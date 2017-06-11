@@ -1,0 +1,33 @@
+Changelog 1.4.0
+- Added custom color menu
+- Tweaked lots of little things around the UI
+- Face-lifted settings menu
+- Massive performance increase when working with lots of elements
+- Added multi-level texture folder support
+- Added center menu
+- Added roll function to rotate around X axis
+- Added entity model import
+- Entity model export can now modify mobs.json file
+- Added keybindings to move elements
+- Filename displays in window title
+- Open with... Blockbench support
+- Importing and exporting groups
+- Added option to hide the grid
+- UV editor now changes color to be more visible on different backgrounds
+- Added texture export to .OBJ export
+- Re-arranged import and export buttons
+- Added message box to display feedback
+- Added interface zoom menu
+- Changed order of faces in UV editor
+- Changed UV copy system
+- Added cube properties menu
+- Added more buttons to edit and delete textures
+
+- Fixed undo system and added redo function
+- Fixed: Colors of axis-helpers don't match Minecraft
+- Fixed slider inaccuracy on screen edges
+- Fixed display scale input not updating preview
+- Fixed: Clear side would not update texture in UV editor
+- Fixed texture error icons not updating
+- Fixed possible texture ID overlapping when importing models
+- Fixed particle texture going missing when importing from JSON file
