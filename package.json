@@ -26,7 +26,7 @@
     "publish": [{
       "provider": "github",
       "owner": "JannisX11",
-      "releaseType": "draft",
+      "releaseType": "draft"
     }],
     "dmg": {
       "contents": [
