@@ -6,8 +6,6 @@
   "main": "main.js",
   "build": {
     "appId": "blockbench",
-    "category": "public.app-category.education",
-
     "mac": {
       "category": "macOS.application"
     },
