@@ -1,17 +1,22 @@
 sudo: required
-dist: trusty    
-language: c   
+dist: trusty
+
+language: c
+
 matrix:
   include:
     - os: osx
     - os: linux
-    env: CC=clang CXX=clang++ npm_config_clang=1
-    compiler: clang   
+      env: CC=clang CXX=clang++ npm_config_clang=1
+      compiler: clang   
+
 node_js:
-  - 6   
+  - 6
+
 cache:
   directories:
-    - node_modules    
+    - node_modules   
+
 addons:
   apt:
     sources:
@@ -23,13 +28,14 @@ addons:
         - libgnome-keyring-dev
         - xz-utils
         - xorriso
-        - xvfb    
+        - xvfb
+
 install:
   - nvm install 6
   - npm install electron-builder@next
   - npm install
   - export DISPLAY=':99.0'
-  - Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & 
+  - Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
 
 before_script:
   - export DISPLAY=:99.0
