@@ -6,8 +6,39 @@
   "main": "main.js",
   "build": {
     "appId": "blockbench",
+    "category": "public.app-category.education",
+
     "mac": {
       "category": "macOS.application"
+    },
+    "files": [
+      "assets/",
+      "build/",
+      "css/",
+      "font/",
+      "js",
+      "main.js",
+      "index.php",
+      "package.json",
+      "favicon.png",
+      "icon.icns",
+      "icon.ico",
+      "icon.png"
+    ],
+    "dmg": {
+      "contents": [
+        {"x": 130, "y": 220},
+        {"x": 410, "y": 220, "type": "link", "path": "/Applications"}
+      ]
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ]
     }
   },
   "mac": {
