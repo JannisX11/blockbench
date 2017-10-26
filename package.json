@@ -1,7 +1,7 @@
 {
   "name": "Blockbench",
   "description": "Minecraft Block Model Editor",
-  "version": "1.9.2",
+  "version": "1.10.0",
   "author": "JannisX11",
   "main": "main.js",
   "build": {
@@ -23,6 +23,11 @@
       "icon.ico",
       "icon.png"
     ],
+    "publish": [{
+      "provider": "github",
+      "owner": "JannisX11",
+      "releaseType": "draft",
+    }],
     "dmg": {
       "contents": [
         {"x": 130, "y": 220},
@@ -36,7 +41,8 @@
       "target": [
         "AppImage",
         "deb"
-      ]
+      ],
+      "category": "",
     }
   },
   "mac": {
@@ -44,7 +50,7 @@
   },
   "scripts": {
     "pack": "build --dir",
-    "dist": "build"
+    "dist": "build -p=onTagOrDraft"
   },
   "devDependencies": {
     "async": "^2.4.1",
