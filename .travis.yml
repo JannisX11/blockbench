@@ -44,3 +44,12 @@ before_script:
 
 script:
   - npm run dist
+
+deploy:
+  provider: releases
+  user: JannisX11
+  api_key: $GH_TOKEN
+  file: $TRAVIS_BUILD_DIR/
+  skip_cleanup: true
+  on:
+    tags: true
