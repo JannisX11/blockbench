@@ -49,7 +49,7 @@ deploy:
   provider: releases
   user: JannisX11
   api_key: $GH_TOKEN
-  file: $TRAVIS_BUILD_DIR/
+  file: "/home/travis/build/JannisX11/blockbench/dist/Blockbench_1.9.1_amd64.deb"
   skip_cleanup: true
   on:
     tags: true

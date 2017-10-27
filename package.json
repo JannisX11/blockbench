@@ -50,7 +50,7 @@
   },
   "scripts": {
     "pack": "build --dir",
-    "dist": "build -p=onTagOrDraft"
+    "dist": "build --publish onTagOrDraft"
   },
   "devDependencies": {
     "async": "^2.4.1",
