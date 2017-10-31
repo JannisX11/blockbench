@@ -2,7 +2,9 @@
   "name": "Blockbench",
   "description": "Minecraft Block Model Editor",
   "version": "1.10.1",
-  "author": "JannisX11",
+  "author": {
+    "name": "JannisX11"
+  },
   "main": "main.js",
   "build": {
     "appId": "blockbench",
