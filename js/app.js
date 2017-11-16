@@ -38,7 +38,7 @@ function getLatestVersion(init) {
     $.getJSON('http://blockbench.net/api/index.json', function(data) {
         if (data.version) {
             latest_version = data.version
-            if (latest_version !== appVersion && init === true) {
+            if (compareVersions(latest_version, appVersion) && init === true) {
                 showDialog('update_notification')
                 $('.dialog#update_notification h2 span').text(latest_version)
                 console.log('Found new version: '+latest_version)
@@ -209,52 +209,9 @@ function saveFileEntity() {
         if (fileName === undefined) {
             return;
         }
-        var content = buildEntityModel(false)
+        var content = buildEntityModel({raw: true})
 
-        fs.readFile(fileName, 'utf-8', function (errx, data) {
-            var obj = {}
-            if (!errx) {
-                try {
-                    obj = JSON.parse(data)
-                } catch (err) {
-                    err = err+''
-                    var answer = app.dialog.showMessageBox(currentwindow, {
-                        type: 'warning',
-                        buttons: ['Create Backup and Overwrite', 'Overwrite', 'Cancel'],
-                        title: 'Blockbench',
-                        message: 'Blockbench cannot combine this model with the old file',
-                        detail: err,
-                        noLink: false
-                    })
-                    if (answer === 0) {
-                        var backup_file_name = pathToName(fileName, true) + ' backup ' + new Date().toLocaleString().split(':').join('_')
-                        backup_file_name = fileName.replace(pathToName(fileName, false), backup_file_name)
-                        fs.writeFile(backup_file_name, data, function (err2) {
-                            if (err2) {
-                                console.log('Error saving backup model: ', err2)
-                            }
-                        }) 
-                    }
-                    if (answer === 2) {
-                        return;
-                    }
-
-                }
-            }
-            var model_name = Project.parent
-            if (model_name == '') model_name = 'geometry.unknown'
-            obj[model_name] = content
-            content = autoStringify(obj)
-
-            fs.writeFile(fileName, content, function (err) {
-                if (err) {
-                    console.log('Error Saving Entity Model: '+err)
-                }
-                showQuickMessage('Saved as bedrock entity model')
-            })
-
-        })
-
+        writeFileEntity(content, fileName)
     })
 }
 function saveFileObj() {
@@ -297,24 +254,79 @@ function saveFileObj() {
 //Writers
 function saveFile(props) {
     if (Prop.file_path !== 'Unknown') {
-        var content = buildBlockModel(true)
         Prop.project_saved = true;
         $('title').text(pathToName(Prop.file_path, false)+' - Blockbench')
-        fs.writeFile(Prop.file_path, content, function (err) {
-            if (err) {
-                console.log('Error Saving File: '+err)
-            }
-            if (props && props.closeAfter) {
-                preventClosing = false
-                setTimeout(function() {
-                    currentwindow.close()
-                }, 12)
-            }
-            showQuickMessage('Saved as '+ pathToName(Prop.file_path, true))
-        })
+
+        if (settings.entity_mode.value === false) {
+            var content = buildBlockModel()
+            fs.writeFile(Prop.file_path, content, function (err) {
+                if (err) {
+                    console.log('Error Saving File: '+err)
+                }
+                if (props && props.closeAfter) {
+                    preventClosing = false
+                    setTimeout(function() {
+                        currentwindow.close()
+                    }, 12)
+                }
+                showQuickMessage('Saved as '+ pathToName(Prop.file_path, true))
+            })
+        } else {
+            var content = buildEntityModel({raw: true})
+            writeFileEntity(content, Prop.file_path)
+        }
     } else {
-        saveFileBlock()
+        if (settings.entity_mode.value === false) {
+            saveFileBlock()
+        } else {
+            saveFileEntity()
+        }
     }
+}
+function writeFileEntity(content, fileName) {
+    Prop.file_path = fileName
+    fs.readFile(fileName, 'utf-8', function (errx, data) {
+        var obj = {}
+        if (!errx) {
+            try {
+                obj = JSON.parse(data)
+            } catch (err) {
+                err = err+''
+                var answer = app.dialog.showMessageBox(currentwindow, {
+                    type: 'warning',
+                    buttons: ['Create Backup and Overwrite', 'Overwrite', 'Cancel'],
+                    title: 'Blockbench',
+                    message: 'Blockbench cannot combine this model with the old file',
+                    detail: err,
+                    noLink: false
+                })
+                if (answer === 0) {
+                    var backup_file_name = pathToName(fileName, true) + ' backup ' + new Date().toLocaleString().split(':').join('_')
+                    backup_file_name = fileName.replace(pathToName(fileName, false), backup_file_name)
+                    fs.writeFile(backup_file_name, data, function (err2) {
+                        if (err2) {
+                            console.log('Error saving backup model: ', err2)
+                        }
+                    }) 
+                }
+                if (answer === 2) {
+                    return;
+                }
+
+            }
+        }
+        var model_name = Project.parent
+        if (model_name == '') model_name = 'geometry.unknown'
+        obj[model_name] = content
+        content = autoStringify(obj)
+
+        fs.writeFile(fileName, content, function (err) {
+            if (err) {
+                console.log('Error Saving Entity Model: '+err)
+            }
+            showQuickMessage('Saved as bedrock entity model')
+        })
+    })
 }
 
 //Open

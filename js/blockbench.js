@@ -1,4 +1,4 @@
-var appVersion = '1.10.0'
+var appVersion = '1.10.1'
 var osfs = '/'
 var File, i;
 var browser_name = 'electron'
@@ -26,7 +26,6 @@ var nslide = {
     lock: null
 }
 var uv_clipboard;
-var canvas_grid = 1;
 var outliner, texturelist;
 var pe_list_data = []
 var _vect;
@@ -99,6 +98,7 @@ function initializeApp() {
         Prop.fps = framespersecond;
         framespersecond = 0;
     }, 1000)
+    settings.entity_mode.value = false
 
     main_uv = new UVEditor('main_uv', false, true)
     main_uv.setToMainSlot()
@@ -116,6 +116,15 @@ function initializeApp() {
             var item = TreeElements.findRecursive('uuid', $(ui.draggable).parent().attr('id'))
             dropOutlinerObjects(item, undefined, event)
         }
+    })
+    $('#cubes_list').contextmenu(function(event) {
+        new ContextMenu(event, [
+            {icon: 'add_box', name: 'Add Cube', click: function() {addCube()} },
+            {icon: 'create_new_folder', name: 'Add Group', click: function() {addGroup()} },
+            {icon: 'sort_by_alpha', name: 'Sort', click: function() {sortOutliner()} },
+            {icon: 'playlist_add_check', name: 'Select All', click: function() {selectAll()} },
+            {icon: 'dns', name: 'Toggle Options', click: function() {toggleOutlinerOptions()} },
+        ])
     })
 
 
@@ -167,11 +176,9 @@ function initializeApp() {
     if (!isApp) {
         showSplashScreen = tryLoadPOSTModel()
     }
-    if (isApp && showSplashScreen) {
-        showSplashScreen = __dirname.includes('htdocs') === false
-    }
     if (showSplashScreen) {
-        $('#welcome_content').load('http://www.blockbench.net/api/welcome/index.html', function() {
+        //$('#welcome_content').load('http://www.blockbench.net/api/welcome/index.html', function() {
+        $('#welcome_content').load('C:\\xampp\\htdocs\\blockbench\\api\\welcome\\index.html', function() {
             $('#welcome_screen #welcome_content').css('max-height', ($(window).height() - 460)+'px')
             showDialog('welcome_screen')
             localStorage.setItem('welcomed_version', appVersion) 
@@ -229,14 +236,20 @@ function setupVue() {
                     textures[index].selected = true
                 }
                 var index = textures.indexOf(item)
-                new ContextMenu(event, [
-                    {icon: 'crop_original', name: 'Apply to Faces', click: function() {     item.apply()}},
-                    {icon: 'fa-cube', name: 'Apply to Cubes', click: function() {           item.apply(true)}},
+                var menu_points = []
+                if (settings.entity_mode.value === false) {
+                    menu_points = [
+                        {icon: 'crop_original', name: 'Apply to Faces', click: function() {     item.apply()}},
+                        {icon: 'fa-cube', name: 'Apply to Cubes', click: function() {           item.apply(true)}},
+                    ]
+                }
+                menu_points.push(
                     {icon: 'refresh', name: 'Refresh', local_only: true, click: function() {item.reloadTexture()}},
                     {icon: 'folder',  name: 'Open in Folder', local_only: true, click: function() {item.openFolder()}},
                     {icon: 'delete',  name: 'Delete', click: function() {                   item.remove()}},
-                    {icon: 'settings',name: 'Settings', click: function() {                 openTextureMenu(index)}}
-                ])
+                    {icon: 'list',    name: 'Properties', click: function() {                 openTextureMenu(index)}}
+                )
+                new ContextMenu(event, menu_points)
             }
         }
     })
@@ -344,8 +357,20 @@ function resetAllKeybindings() {
     $.extend(keybinds, keybindSetup(true))
     localStorage.setItem('keybinds', JSON.stringify(omitKeys(keybinds, ['name'], true)))
 }
-function calcCanvasGridSize() {
-    canvas_grid = 16 / limitNumber(settings.edit_size.value, 1, 64)
+function canvasGridSize(shift, ctrl) {
+    if (!shift && !ctrl) {
+        return 16 / limitNumber(settings.edit_size.value, 1, 64)
+    } else if (ctrl && shift) {
+        var basic = 16 / limitNumber(settings.edit_size.value, 1, 64)
+        var control = 16 / limitNumber(settings.ctrl_size.value, 1, 1024)
+        var shift = 16 / limitNumber(settings.shift_size.value, 1, 1024)
+        control = basic / control
+        return shift / control
+    } else if (ctrl) {
+        return 16 / limitNumber(settings.ctrl_size.value, 1, 1024)
+    } else {
+        return 16 / limitNumber(settings.shift_size.value, 1, 1024)
+    }
 }
 
 //NSlide Trigger
@@ -367,7 +392,7 @@ function setupNslides(scope) {
             nslideSlide(this, event, ui)
         },
         start: function(event, ui) {
-            nslide.pre = canvas_grid
+            nslide.pre = canvasGridSize()
             nslide.top = ui.position.top
             nslide.left = ui.position.left
         },
@@ -469,7 +494,7 @@ function nslideSlide(obj, event, ui) {
     //Math
     var offset = Math.round((event.clientX-nslide.left)/50)
     if (isUV === false) {
-        offset *= canvas_grid;
+        offset *= canvasGridSize();
     }
     var difference = offset - nslide.pre;
     nslide.pre = offset;
@@ -521,16 +546,9 @@ function nslideArrow(button, difference, event) {
 
 
     if (action.includes('uv') === false) {
-        difference *= canvas_grid;
+        difference *= canvasGridSize(event.shiftKey, event.ctrlKey);
     }
 
-
-    if (event.shiftKey === true) {
-        difference *= 0.25
-    }
-    if (event.ctrlKey === true) {
-        difference *= 0.1
-    }
 
     var isUV = false
     if (action.includes('uv') === true) isUV = true
@@ -589,6 +607,7 @@ function nslideStorage(key, val, index) {
                 selected_group.origin[2] = val
                 break;
             }
+            Canvas.updatePositions()
         } else if (selected.length > 0) {
             if (index !== undefined) {
                 affected = [index]
@@ -768,30 +787,15 @@ function moveCube(obj, val, axis) {
     if (obj.rotation && movementAxis === false) {
         obj.rotation.origin[axis] += difference
     }
+    obj.mapAutoUV()
 }
 function scaleCube(obj, val, axis) {
     obj.to[axis] = limitToBox(val + obj.from[axis])
-    if (obj.display.autouv === true && settings.entity_mode.value === false) {
-        obj.faces.north.uv = calcAutoUV(obj, 'north', [obj.size(0), obj.size(1)])
-        obj.faces.east.uv =  calcAutoUV(obj, 'east',  [obj.size(2), obj.size(1)])
-        obj.faces.south.uv = calcAutoUV(obj, 'south', [obj.size(0), obj.size(1)])
-        obj.faces.west.uv =  calcAutoUV(obj, 'west',  [obj.size(2), obj.size(1)])
-        obj.faces.up.uv =    calcAutoUV(obj, 'up',    [obj.size(0), obj.size(2)])
-        obj.faces.down.uv =  calcAutoUV(obj, 'down',  [obj.size(0), obj.size(2)])
-        Canvas.updateUV(elements.indexOf(obj))
-    }
+    obj.mapAutoUV()
 }
 function scaleCubeNegative(obj, val, axis) {
     obj.from[axis] = limitToBox(obj.to[axis] - val)
-    if (obj.display.autouv === true && settings.entity_mode.value === false) {
-        obj.faces.north.uv = calcAutoUV(obj, 'north', [obj.size(0), obj.size(1)])
-        obj.faces.east.uv =  calcAutoUV(obj, 'east',  [obj.size(2), obj.size(1)])
-        obj.faces.south.uv = calcAutoUV(obj, 'south', [obj.size(0), obj.size(1)])
-        obj.faces.west.uv =  calcAutoUV(obj, 'west',  [obj.size(2), obj.size(1)])
-        obj.faces.up.uv =    calcAutoUV(obj, 'up',    [obj.size(0), obj.size(2)])
-        obj.faces.down.uv =  calcAutoUV(obj, 'down',  [obj.size(0), obj.size(2)])
-        Canvas.updateUV(elements.indexOf(obj))
-    }
+    obj.mapAutoUV()
 }
 function moveCubesRelative(difference, index) { //Multiple
     var axes = []
@@ -820,7 +824,7 @@ function moveCubesRelative(difference, index) { //Multiple
     if (index === 2 && height !== 'down') difference *= -1
     if (index === 1 && height === 'up') difference *= -1
 
-    difference *= canvas_grid;
+    difference *= canvasGridSize();
     
     var action = 'pos_'+axes[index]
     selected.forEach(function(s) {
@@ -844,7 +848,7 @@ function addToSelection(id, event, isOutlinerClick) {
                 } else {
                     starting_point = true
                 }
-                if (s.title === 'Cube') {
+                if (s.type === 'cube') {
                     var index = elements.indexOf(s)
                     if (!selected.includes(index)) {
                         selected.push(index)
@@ -853,7 +857,7 @@ function addToSelection(id, event, isOutlinerClick) {
                     s.selectLow()
                 }
             } else if (starting_point) {
-                if (s.title === 'Cube') {
+                if (s.type === 'cube') {
                     var index = elements.indexOf(s)
                     if (!selected.includes(index)) {
                         selected.push(index)
@@ -899,7 +903,7 @@ function updateSelection() {
 
     //Selected Elements
     selected = selected.filter(function(s) {
-        return typeof elements[s] === 'object' && elements[s].title === 'Cube'
+        return typeof elements[s] === 'object' && elements[s].type === 'cube'
     })
 
 
@@ -919,7 +923,10 @@ function updateSelection() {
     } else if (selected.length === 0) {
         $('.selection_only').css('visibility', 'hidden')
     }
-    if ((selected.length > 0) || settings.entity_mode.value && selected_group) {
+    if (
+        (settings.entity_mode.value === true && selected_group !== undefined) ||
+        (settings.entity_mode.value === false && (selected_group !== undefined || selected.length > 0))
+    ) {
         Rotation.load()
     }
     $('#outliner_stats').text(selected.length+'/'+elements.length)
@@ -928,11 +935,6 @@ function updateSelection() {
     movementAxis = isMovementOnRotatedAxis()
     centerTransformer()
     updateNslideValues()
-    if (selected_group && selected.length === 0) {
-        Rotation.groupMode()
-    } else if (selected.length > 0) {
-        Rotation.cubeMode()
-    }
     if (settings.entity_mode.value) {
         if (selected_group) {
             $('.selection_only#options').css('visibility', 'visible')
@@ -1082,9 +1084,11 @@ var Undo = {
         entry.textures.forEach(function(s) {
             var tex = new Texture(s)
 
-            var arr = tex.iconpath.split('?')
-            arr[arr.length-1] = tex_version
-            tex.iconpath = arr.join('?')
+            if (Blockbench.isWeb === false) {
+                var arr = tex.iconpath.split('?')
+                arr[arr.length-1] = tex_version
+                tex.iconpath = arr.join('?')
+            }
 
             tex.load()
             textures.push(tex)
@@ -1160,8 +1164,9 @@ function paint() {
         elements[selected[0]].from[1]+0,
         elements[selected[0]].from[2]+0
     ]
+    var canvas_grid = canvasGridSize()
     var sizes = [canvas_grid, canvas_grid, canvas_grid]
-    if (brush_template && brush_template.title === 'Cube') {
+    if (brush_template && brush_template.type === 'cube') {
         sizes = brush_template.size()
     }
     switch (main_uv.face) {
@@ -1498,6 +1503,9 @@ function mirror(axis) {
     setUndo('Mirrored cubes')
 }
 function openScaleAll() {
+    $('#model_scale_range').val(1)
+    $('#model_scale_label').val(1)
+
     selected.forEach(function(s) {
         var obj = elements[s]
         obj.display.before = {from: [], to: [], origin: [8, 8, 8]}
@@ -1522,7 +1530,7 @@ function scaleAll(save, size) {
         hideDialog()
     }
     if (size === undefined) {
-        size = $('#model_scale_range').val()
+        size = $('#model_scale_label').val()
     }
     origin = [8, 8, 8]
     if (settings.entity_mode.value) {

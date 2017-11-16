@@ -32,15 +32,12 @@ function buildBlockModel(options) {                    //Export Blockmodel
     function iterate(arr) {
         var i = 0;
         if (!arr || !arr.length) {
-            console.log('return')
             return;
         }
         for (i=0; i<arr.length; i++) {
-            if (arr[i].title === 'Cube') {
+            if (arr[i].type === 'cube') {
                 computeCube(arr[i])
-                console.log(arr[i])
             } else if (arr[i].title === 'Group') {
-                console.log('g')
                 iterate(arr[i].children)
             }
         }
@@ -97,11 +94,22 @@ function buildBlockModel(options) {                    //Export Blockmodel
     if (checkExport('elements', elements.length >= 1)) {
         blockmodel.elements = clear_elements
     }
-    if (checkExport('groups', settings.export_groups.value)) {
+    if (checkExport('groups', (settings.export_groups.value && getAllOutlinerGroups().length))) {
         blockmodel.groups = compileGroups(undefined, element_index_lut)
     }
     if (checkExport('display', Object.keys(display).length >= 1)) {
-        blockmodel.display = display
+        var new_display = {}
+        for (var key in display) {
+            if (display.hasOwnProperty(key)) {
+                if (display[key].scale.join('_') !== '1_1_1' ||
+                    display[key].rotation ||
+                    display[key].translation
+                ) {
+                    new_display[key] = display[key]
+                }
+            }
+        }
+        blockmodel.display = new_display
     }
     if (options.raw) {
         return blockmodel
@@ -115,7 +123,6 @@ function loadFile(data, filepath, makeNew) {    //Load File Into GUI
     if (makeNew === true) {
         //Create New Project
         if (newProject() == false) return;
-        Prop.file_path = filepath
         Prop.file_name = pathToName(Prop.file_path, true)
         Project.name = pathToName(Prop.file_path, false)
         if (Project.name.length > 0) {
@@ -124,6 +131,7 @@ function loadFile(data, filepath, makeNew) {    //Load File Into GUI
             $('title').text('Blockbench')
         }
         Prop.project_saved = true;
+        Prop.file_path = filepath
     } else {
         //Add to Current Project
         previous_length = elements.length
@@ -364,9 +372,10 @@ function loadPEModel() {
     setUndo('Opened entity model')
 }
 function buildEntityModel(options) {
+    if (options === undefined) options = {}
     var entitymodel = {}
-    entitymodel.texturewidth = Project.texture_width;
-    entitymodel.textureheight = Project.texture_height;
+    entitymodel.texturewidth = parseInt(Project.texture_width);
+    entitymodel.textureheight = parseInt(Project.texture_height);
     var bones = []
     TreeElements.forEach(function(g) {
         if (g.title !== 'Group') return;
@@ -395,7 +404,11 @@ function buildEntityModel(options) {
     })
     entitymodel.bones = bones
 
-    return entitymodel
+    if (options.raw) {
+        return entitymodel
+    } else {
+        return autoStringify(entitymodel)
+    }
 }
 function buildOptifineModel() {
     var jpm = {}
@@ -451,6 +464,7 @@ function newProject(entity_mode) {
         TreeElements.splice(0, 1)
         textures.length = 0
         selected.length = 0
+        selected_group = undefined
         display = {}
         Prop.file_path = 'Unknown';
         Prop.file_name = '-';

@@ -226,7 +226,7 @@ class refModel {
 		var skin = 'assets/player_skin.png';
 		$.getJSON('http://blockbench.net/api/index.json', function (data) {
 			if (data.donatorSkin == true) {
-				skin = 'http://blockbench.net/api/player_skin.png';
+				skin = 'http://blockbench.net/api/player_skin.png?'+(Math.random()+'').substr(2, 3);
 			}
 		}).always(function() {
 			scope.buildModel(things, skin);
@@ -974,6 +974,11 @@ var displayReferenceObjects = {
 		if (buttons.length === 10000) {
 			this.refmodels[buttons[0]].load()
 			return;
+		}
+		if (buttons.length < 2) {
+			$('.reference_model_bar').css('visibility', 'hidden')
+		} else {
+			$('.reference_model_bar').css('visibility', 'visible')
 		}
 		var i = 0;
 		while (i < buttons.length) {

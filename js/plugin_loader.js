@@ -184,15 +184,8 @@ function loadPlugin(id, cb, install) {
 			if (cb !== undefined) cb()
 		}).fail(function() {
 			console.log('Could not find file of plugin "'+id+'". Uninstalling it instead.')
-			var index = Plugins.installed.indexOf(id)
-			if (index > -1) {
-				Plugins.installed.splice(index, 1)
-			}
-			var data_obj = Plugins.data.findInArray('id', id)
-			data_obj.installed = false
-			if (data_obj.uninstall) {
-				data_obj.uninstall()
-			}
+			uninstallPlugin(id)
+			saveInstalledPlugins()
 		})
 	} else {
 		$.getScript('http://blockbench.net/api/plugins/'+id+'.js', function() {

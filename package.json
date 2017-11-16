@@ -1,7 +1,7 @@
 {
   "name": "Blockbench",
   "description": "Minecraft Block Model Editor",
-  "version": "0.10.0",
+  "version": "1.10.1",
   "author": {
     "name": "JannisX11",
     "email": "info@blockbench.net"
@@ -26,11 +26,6 @@
       "icon.ico",
       "icon.png"
     ],
-    "publish": [{
-      "provider": "github",
-      "owner": "JannisX11",
-      "releaseType": "draft"
-    }],
     "dmg": {
       "contents": [
         {"x": 130, "y": 220},

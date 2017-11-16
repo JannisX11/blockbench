@@ -31,7 +31,7 @@ class Texture {
 	        }
 	    }
 	}
-	load(isDefault) {
+	load(isDefault, reloading) {
 		var scope = this;
 
 		this.error = false;
@@ -69,18 +69,22 @@ class Texture {
             scope.dark_box = (scope.average_color.r + scope.average_color.g + scope.average_color.b) >= 383
 
             //Width / Animation
-            if (img.naturalWidth !== img.naturalHeight) {
+            if (img.naturalWidth !== img.naturalHeight && settings.entity_mode.value === false) {
                 if (img.naturalHeight % img.naturalWidth === 0) {
                     scope.frameCount = img.naturalHeight / img.naturalWidth
                     Canvas.updateAllUVs()
-                } else if (settings.entity_mode.value === false) {
+                } else {
                     scope.error = true;
                     showQuickMessage('Texture needs to be square')
                 }
             }
-            if (textures.indexOf(scope) === 0) {
+            if (settings.entity_mode.value && textures.indexOf(scope) === 0 && !reloading) {
                 Project.texture_width = img.naturalWidth
                 Project.texture_height = img.naturalHeight
+                if (selected.length) {
+                	main_uv.loadData()
+                	main_uv.setGrid()
+                }
             }
             if ($('.dialog#texture_edit:visible').length >= 1 && scope.selected === true) {
                 loadTextureMenu(scope)
@@ -210,7 +214,7 @@ class Texture {
 		}
 		this.iconpath = this.path + '?' + tex_version;
         this.iconpath = this.iconpath.replace(/\?\d+$/, '?' + tex_version)
-        this.load()
+        this.load(undefined, true)
 		if (single) {
 	        Canvas.updateAllFaces()
 	        main_uv.loadData()
@@ -263,11 +267,31 @@ class Texture {
 	    return this;
 	}
 	add() {
+		var scope = this
 		if (!textures.includes(this)) {
 			textures.push(this)
 		}
-           Blockbench.dispatchEvent( 'add_texture', {texture: this})
+        Blockbench.dispatchEvent( 'add_texture', {texture: this})
 		loadTextureDraggable()
+
+		if (settings.entity_mode.value && elements.length) {
+		    var sides = ['north', 'east', 'south', 'west', 'up', 'down']
+		    elements.forEach(function(s) {
+		        sides.forEach(function(side) {
+		            s.faces[side].texture = '#'+scope.id
+		        })
+		    })
+		    Canvas.updateAllFaces()
+		    if (selected.length) {
+		    	main_uv.loadData()
+		    }
+		    textures.forEach(function (t, i) {
+		    	if (t !== scope) {
+	    			textures.splice(i, 1)
+		    	}
+		    })
+		    setUndo('Loaded Texture')
+		}
 		return this;
 	}
 	extend(properties) {

@@ -64,11 +64,14 @@ var OutlinerButtons = {
 	},
 	autouv: {
 		title: 'Auto UV',
-		icon: ' fa fa-magic',
-		icon_off: ' fa fa-minus',
+		icon: ' fa fa-thumb-tack',
+		icon_off: ' fa fa-times-circle-o',
+		icon_alt: ' fa fa-magic',
 		advanced_option: true,
 		click: function(obj) {
-			var state = !obj.display.autouv
+			var state = obj.display.autouv+1
+			if (state > 2) state = 0
+
 			if (selected.length < 2 || !selected.includes(obj.index())) {
 				obj.setAutoUV(state)
 			} else {
@@ -85,7 +88,7 @@ var selected_group;
 //Cubes
 class Face {
 	constructor() {
-		this.uv = [0, 0, canvas_grid, canvas_grid]
+		this.uv = [0, 0, canvasGridSize(), canvasGridSize()]
 	}
 }
 class OutlinerElement {
@@ -100,7 +103,7 @@ class OutlinerElement {
 		if (group === undefined) {
 			group = 'root'
 		} else if (group !== 'root') {
-			if (group.title === 'Cube') {
+			if (group.type === 'cube') {
 				if (group.display.parent === 'root') {
 					index = TreeElements.indexOf(group)
 					group = 'root'
@@ -110,7 +113,7 @@ class OutlinerElement {
 				}
 			}
 		}
-		if (group != 'root' && group.title === 'Group') {
+		if (group != 'root' && group.type === 'group') {
 			var i = 0
 			var level = group;
 			while (i < 50) {
@@ -218,7 +221,13 @@ class OutlinerElement {
 				return this.shade
 				break;
 			case 'Auto UV': 
-				return this.display.autouv
+				if (!this.display.autouv) {
+					return false
+				} else if (this.display.autouv === 1) {
+					return true
+				} else {
+					return 'alt'
+				}
 				break;
 		}
 		return true;
@@ -230,9 +239,9 @@ class Cube extends OutlinerElement {
 		var x1 = 0;
 		var y1 = 0;
 		var z1 = 0;
-		var x2 = canvas_grid;
-		var y2 = canvas_grid;
-		var z2 = canvas_grid;
+		var x2 = canvasGridSize();
+		var y2 = x2;
+		var z2 = x2;
 		if (!name) name = 'cube';
 		if (!shade) shade = true;
 		this.name = name;
@@ -242,7 +251,7 @@ class Cube extends OutlinerElement {
 		this.display = {
 			visibility: true,
 			isselected: true,
-			autouv: settings.autouv.value,
+			autouv: (settings.autouv.value ? 1 : 0),
 			export: true,
 			parent: 'root'
 		}
@@ -352,6 +361,121 @@ class Cube extends OutlinerElement {
 		duplicateCubes()
 		elements[selected[0]].addTo(this)
 	}
+	mapAutoUV() {
+		if (settings.entity_mode.value) return;
+		var scope = this
+		if (scope.display.autouv === 2) {
+			var all_faces = ['north', 'south', 'west', 'east', 'up', 'down']
+			all_faces.forEach(function(side) {
+		        var uv = scope.faces[side].uv.slice()
+		        switch (side) {
+		            case 'north':
+		            uv = [
+		                16 - scope.to[0],
+		                16 - scope.to[1],
+		                16 - scope.from[0],
+		                16 - scope.from[1],
+		            ];
+		            break;
+		            case 'south':
+		            uv = [
+		                scope.from[0],
+		                16 - scope.to[1],
+		                scope.to[0],
+		                16 - scope.from[1],
+		            ];
+		            break;
+		            case 'west':
+		            uv = [
+		                scope.from[2],
+		                16 - scope.to[1],
+		                scope.to[2],
+		                16 - scope.from[1],
+		            ];
+		            break;
+		            case 'east':
+		            uv = [
+		                16 - scope.to[2],
+		                16 - scope.to[1],
+		                16 - scope.from[2],
+		                16 - scope.from[1],
+		            ];
+		            break;
+		            case 'up':
+		            uv = [
+		                scope.from[0],
+		                scope.from[2],
+		                scope.to[0],
+		                scope.to[2],
+		            ];
+		            break;
+		            case 'down':
+		            uv = [
+		                scope.from[0],
+		                16 - scope.to[2],
+		                scope.to[0],
+		                16 - scope.from[2],
+		            ];
+		            break;
+		        }
+		        uv.forEach(function(s, uvi) {
+		            uv[uvi] = limitNumber(s, 0, 16)
+		        })
+		        scope.faces[side].uv = uv
+		    })
+        	Canvas.updateUV(scope.index())
+		} else if (scope.display.autouv === 1) {
+
+			function calcAutoUV(face, size) {
+				var sx = scope.faces[face].uv[0]
+				var sy = scope.faces[face].uv[1]
+				var rot = scope.faces[face].rotation
+
+				//Match To Rotation
+				if (rot === 90 || rot === 270) {
+				    size.reverse()
+				}
+				//Limit Input to 16
+				size.forEach(function(s) {
+				    if (s > 16) {
+				        s = 16
+				    }
+				})
+				//Calculate End Points
+				var x = sx + size[0]
+				var y = sy + size[1]
+				//Prevent Over 16
+				if (x > 16) {
+				    sx = 16 - (x - sx)
+				    x = 16
+				}
+				if (y > 16) {
+				    sy = 16 - (y - sy)
+				    y = 16
+				}
+				//Prevent Negative
+				if (sx < 0) sx = 0
+				if (sy < 0) sy = 0
+				//Prevent Mirroring
+				if (x < sx) x = sx
+				if (y < sy) y = sy
+
+				//if ()
+				//Return
+				return [sx, sy, x, y]
+			}
+			scope.faces.north.uv = calcAutoUV('north', [scope.size(0), scope.size(1)])
+		    scope.faces.east.uv =  calcAutoUV('east',  [scope.size(2), scope.size(1)])
+		    scope.faces.south.uv = calcAutoUV('south', [scope.size(0), scope.size(1)])
+		    scope.faces.west.uv =  calcAutoUV('west',  [scope.size(2), scope.size(1)])
+		    scope.faces.up.uv =    calcAutoUV('up',    [scope.size(0), scope.size(2)])
+		    scope.faces.down.uv =  calcAutoUV('down',  [scope.size(0), scope.size(2)])
+
+        	Canvas.updateUV(scope.index())
+		} else {
+			//
+		}
+	}
 	setVisibility(val) {
 		this.display.visibility = val !== false;
 		//
@@ -365,12 +489,13 @@ class Cube extends OutlinerElement {
 		//
 	}
 	setAutoUV(val) {
-		this.display.autouv = val !== false;
-		//scaleCube(this, 0, 0)
+		this.display.autouv = val;
+		this.mapAutoUV()
 		Canvas.updateSelectedFaces()
 	}
 }
 	Cube.prototype.title = 'Cube'
+	Cube.prototype.type = 'cube'
 	Cube.prototype.icon = 'fa fa-cube'
 	Cube.prototype.isParent = false
 	Cube.prototype.buttons = [
@@ -444,6 +569,7 @@ class Group extends OutlinerElement {
 		if (this.display.isselected === false) return;
 		selected_group = undefined;
 		this.display.isselected = false
+		return this;
 	}
 	openUp() {
 		this.isOpen = true
@@ -453,6 +579,7 @@ class Group extends OutlinerElement {
 		} else {
 			this.scrollOutlinerTo()
 		}
+		return this;
 	}
 	remove() {
 		this.unselect()
@@ -489,6 +616,7 @@ class Group extends OutlinerElement {
 		TreeElements.clearObjectRecursive(this)
 		selected_group = undefined
 		delete this
+		return array
 	}
 	renameChildren() {
 		stopRenameCubes()
@@ -496,13 +624,45 @@ class Group extends OutlinerElement {
 	}
 	showContextMenu(event) {
 		var scope = this;
-		new ContextMenu(event, [
+		var menu_points = [
 			{icon: 'content_copy', name: 'Duplicate', click: function() {scope.duplicate();setUndo('Duplicated Group')}},
 			{icon: 'sort_by_alpha', name: 'Sort', click: function() {scope.sortContent()}},
 			{icon: 'fa-leaf', name: 'Resolve', click: function() {scope.resolve();setUndo('Resolved Group')}},
 			{icon: 'text_format', name: 'Rename', click: function() {scope.rename()}},
 			{icon: 'fa-align-left', name: 'Rename Content', click: function() {scope.renameChildren()}}
-		])
+		]
+		if (settings.entity_mode.value) {
+			menu_points.push({icon: 'rotate_90_degrees_ccw', name: 'Rotation', click: function() {
+				scope.boneRotationDialog()
+			}})
+		}
+		new ContextMenu(event, menu_points)
+	}
+	boneRotationDialog() {
+		this.select()
+		var bone_rotation_dialog = new Dialog({
+			title: 'Bone Rotation',
+			draggable: true,
+			lines: [
+				'<div class="dialog_bar"><label class="inline_label">X: </label><input type="number" class="dark_bordered rotation_x" min="-180" max="180" step="0.5" oninput="selected_group.setBoneRotation(0, $(this))"></div>',
+				'<div class="dialog_bar"><label class="inline_label">Y: </label><input type="number" class="dark_bordered rotation_y" min="-180" max="180" step="0.5" oninput="selected_group.setBoneRotation(1, $(this))"></div>',
+				'<div class="dialog_bar"><label class="inline_label">Z: </label><input type="number" class="dark_bordered rotation_z" min="-180" max="180" step="0.5" oninput="selected_group.setBoneRotation(2, $(this))"></div>'
+			],
+			id: 'bone_rotation',
+			fadeTime: 100,
+			onCancel: function() {
+				hideDialog()
+			},
+			singleButton: true
+		}).show()
+		$(bone_rotation_dialog.object).find('input.rotation_x').val(this.rotation[0])
+		$(bone_rotation_dialog.object).find('input.rotation_y').val(this.rotation[1])
+		$(bone_rotation_dialog.object).find('input.rotation_z').val(this.rotation[2])
+	}
+	setBoneRotation(axis, obj) {
+		this.rotation[axis] = limitNumber(parseFloat(obj.val()), -180, 180)
+		if (isNaN(this.rotation[axis])) this.rotation[axis] = 0
+		Canvas.updatePositions()
 	}
 	sortContent() {
 		if (this.children.length < 1) return;
@@ -517,7 +677,7 @@ class Group extends OutlinerElement {
 			var array = g1.children
 			i = 0;
 			while (i < array.length) {
-				if (array[i].title === 'Cube') {
+				if (array[i].type === 'cube') {
 					var dupl = new Cube().extend(array[i])
 					dupl.addTo(g2)
 					elements.push(dupl)
@@ -551,7 +711,7 @@ class Group extends OutlinerElement {
 		var i = 0
 		while (i < this.children.length) {
 			func(this.children[i])
-			if (this.children[i].title === 'Group') {
+			if (this.children[i].type === 'group') {
 				this.children[i].forEachChild(func)
 			}
 			i++;
@@ -584,14 +744,15 @@ class Group extends OutlinerElement {
 	}
 	setAutoUV(val) {
 		this.forEachChild(function(s) {
-			s.display.autouv = val !== false;
+			s.display.autouv = val;
 			s.updateElement()
 		})
-		this.display.autouv = val !== false;
+		this.display.autouv = val;
 		this.updateElement()
 	}
 }
 	Group.prototype.title = 'Group'
+	Group.prototype.type = 'group'
 	Group.prototype.icon = 'fa fa-folder'
 	Group.prototype.isParent = true
 	Group.prototype.buttons = [
@@ -660,7 +821,7 @@ function getAllOutlinerGroups() {
 	function iterate(array) {
 		var i = 0;
 		while (i < array.length) {
-			if (array[i].title === 'Group')
+			if (array[i].type === 'group')
 				ta.push(array[i])
 				if (array[i].children && array[i].children.length > 0) {
 					iterate(array[i].children)
@@ -676,7 +837,7 @@ function compileGroups(save_nonexported, lut) {
 	function iterate(array, save_array) {
 		var i = 0;
 		while (i < array.length) {
-			if (array[i].title === 'Cube') {
+			if (array[i].type === 'cube') {
 				if (!save_nonexported || array[i].display.save_nonexported === true) {
 					if (lut) {
 						var index = lut[elements.indexOf(array[i])]
@@ -687,29 +848,34 @@ function compileGroups(save_nonexported, lut) {
 						save_array.push(index)
 					}
 				}
-			} else if (array[i].title === 'Group') {
+			} else if (array[i].type === 'group') {
 				var obj = {
 					name: array[i].name,
 					isOpen: array[i].isOpen,
 					display: $.extend(true, {}, array[i].display),
 					children: []
 				}
-				if (array[i].origin.join('_') !== '8_8_8') {
-					obj.origin = array[i].origin
+				if (lut === undefined || obj.display.export === true) {
+					if (array[i].origin.join('_') !== '8_8_8') {
+						obj.origin = array[i].origin
+					}
+					if (array[i].rotation.join('_') !== '0_0_0') {
+						obj.rotation = array[i].rotation
+					}
+					if (array[i].reset) {
+						obj.reset = true
+					}
+					if (lut) {
+						delete obj.display.export
+					}
+					delete obj.display.parent
+					delete obj.display.isselected
+					delete obj.display.object
+					if (array[i].children.length > 0) {
+						iterate(array[i].children, obj.children)
+					}
+					save_array.push(obj)
 				}
-				if (array[i].rotation.join('_') !== '0_0_0') {
-					obj.rotation = array[i].rotation
-				}
-				if (array[i].reset) {
-					obj.reset = true
-				}
-				delete obj.display.parent
-				delete obj.display.isselected
-				delete obj.display.object
-				if (array[i].children.length > 0) {
-					iterate(array[i].children, obj.children)
-				}
-				save_array.push(obj)
 			}
 			i++;
 		}
@@ -808,9 +974,9 @@ function loadOutlinerDraggable() {
 					//Texture
 					var id = $(ui.helper).attr('texid')
 					var sides = ['north', 'east', 'south', 'west', 'up', 'down']
-					if (target.title === 'Group') {
+					if (target.type === 'group') {
 						target.forEachChild(function(s) {
-							if (s.title === 'Group') return;
+							if (s.type === 'group') return;
 							sides.forEach(function(side) {
 								s.faces[side].texture = '#'+id
 							})
@@ -839,7 +1005,7 @@ function loadOutlinerDraggable() {
 
 function dropOutlinerObjects(item, target, event) {
 	var items;
-	if (item.title === 'Cube' && selected.includes( item.index() )) {
+	if (item.type === 'cube' && selected.includes( item.index() )) {
 		items = selected.Elements()
 	} else {
 		items = [item]
@@ -847,7 +1013,7 @@ function dropOutlinerObjects(item, target, event) {
 	items.forEach(function(item) {
 		if (item && item !== target) {
 			if (event.altKey) { 
-				if (item.title === 'Cube') {
+				if (item.type === 'cube') {
 					elements.push(new Cube().extend(item).addTo(target))
 				} else {
 					item.duplicate().addTo(target)
@@ -869,10 +1035,15 @@ function addCube() {
 	var base_cube = new Cube().addTo()
 	if (selected_group) {
 		base_cube.addTo(selected_group)
-	} else {
-		base_cube.addTo()
 	}
 
+	if (textures.length && settings.entity_mode.value) {
+		var sides = ['north', 'east', 'south', 'west', 'up', 'down']
+	    sides.forEach(function(side) {
+	        base_cube.faces[side].texture = '#'+textures[0].id
+	    })
+	    main_uv.loadData()
+	}
 
 	if (selected_group) selected_group.unselect()
 	elements.push(base_cube)
@@ -886,6 +1057,10 @@ function addCube() {
 			renameCubes()
 		}
 	})
+	if (settings.entity_mode.value) {
+		var new_group = 
+		base_cube.addTo(new Group().addTo('root').openUp())
+	}
     Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 	return base_cube
 }
@@ -915,7 +1090,7 @@ function addGroup() {
 
 //Misc
 function isMovementOnRotatedAxis() {
-	if (settings.move_origin.value) {
+	if ((settings.move_origin.value || Prop.tool === 'scale') && !settings.entity_mode.value) {
 		if (selected.length > 1) {
 			if (elements[selected[0]].rotation === undefined) return false;
 			var i = 0;
@@ -984,6 +1159,7 @@ function origin2geometry() {
 var Rotation = {
 	angleBefore: 0,
 	load: function() {
+		$('.selection_only#options').css('visibility', 'visible')
 		if (settings.entity_mode.value === false) {
 			var s = selected[0]
 			try {
@@ -1135,31 +1311,22 @@ var Rotation = {
 		})
 	},
 	remove: function() {
+		if (selected.length == 0) {return;}
+		selected.forEach(function(s) {
+			if (elements[s].rotation !== undefined) {
+				delete elements[s].rotation;
+			}
+		})
+		Rotation.load()
+		updateNslideValues()
+		Canvas.updatePositions()
+	},
+	fn: function (argument) {
 		if (settings.entity_mode.value === false) {
-			if (selected.length == 0) {return;}
-			selected.forEach(function(s) {
-				if (elements[s].rotation !== undefined) {
-					delete elements[s].rotation;
-				}
-			})
-			Rotation.load()
-			updateNslideValues()
-			Canvas.updatePositions()
+			Rotation.remove()
 		} else if (selected_group) {
-			selected_group.rotation[getAxisNumber($('#cube_axis option:selected').attr('id'))] = 0
-			Canvas.updatePositions()
+			selected_group.boneRotationDialog()
 		}
-	},
-	groupMode: function() {
-		setOriginHelper({origin: selected_group.origin, axis: 'x', angle: 0})
-		$('.ui#options').css('visibility', 'visible')
-		$('.ui#options h3').text('Group Settings')
-		$('div.nslide[n-action="origin_x"]:not(".editing")').text(trimFloatNumber(selected_group.origin[0]))
-		$('div.nslide[n-action="origin_y"]:not(".editing")').text(trimFloatNumber(selected_group.origin[1]))
-		$('div.nslide[n-action="origin_z"]:not(".editing")').text(trimFloatNumber(selected_group.origin[2]))
-	},
-	cubeMode: function() {
-		
 	}
 }
 function deleteCubes(array) {

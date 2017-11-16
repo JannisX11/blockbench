@@ -129,6 +129,11 @@
         height: 30px;
         width: 24px;
     }
+    i.material-icons.message_box_icon {
+        font-size: 40pt;
+        float: left;
+        padding-right: 8px;
+    }
 
 /*Vars*/
     body {
@@ -408,6 +413,7 @@
     }
     header div#title {
         width: auto;
+        min-width: 154px;
         padding-right: 16px;
         padding-left: 06px;
         padding-top: 2px;
@@ -588,8 +594,9 @@
     .ui#textures {
         bottom: 0;
         position: fixed;
-        top: 520px;
+        top: 514px;
         width: 328px;
+        border-top: 1px solid var(--color-border);
     }
 
     .ui#uv {
@@ -1143,7 +1150,7 @@
     #options .bar .tool.wide {
         width: 83px;
     }
-    .tool#origin2geometry .tooltip {
+    .tool .tooltip.clip_right {
         right: 0;
     }
     #cube_rescale {
@@ -1408,6 +1415,16 @@
         width: 128px;
         image-rendering: pixelated;
         margin-bottom: -7px;
+    }
+    #entity_mode_resolution_button {
+        display: none;
+    }
+    body.entity_mode #entity_mode_resolution_button {
+        display: block;
+        padding: 0;
+        height: 32px;
+        width: 154px;
+        border: none;
     }
 
 /*Display*/

@@ -31,7 +31,6 @@ function colorSettingsSetup(reset) {
         $.extend(app_colors, stored_app_colors)
     }
     updateUIColor()
-    calcCanvasGridSize()
     buildGrid()
 }
 
@@ -118,6 +117,39 @@ function textPrompt(title, var_string, value, callback) {
 function renameCubeList(name) {
     selected.forEach(function(s, i) {
         elements[s].name = name.split('%').join(s).split('$').join(i)
+    })
+}
+function randomHelpMessage() {
+    var tips = [
+        'Go to the Settings menu and select the Keybindings tab to change your keys.',
+        'Blockbench works as a Program on Windows, macOS and Linux, or as a web app on any device, including tablets.',
+        'Double click in the canvas or hit spacebar to toggle between the scale and the drag tool.',
+        'Create groups to manage different parts of your model.',
+        'Open the Display tab in the top right corner to change how the model looks in your hands.',
+        'Only open textures that are in your resource pack.',
+        'Use Fizzy81\'s animation generator to create animated models.',
+        'Use blockmodels.com or sketchfab.com to share your models.',
+        'Press Ctrl + P to take a screenshot, press Ctrl + V to paste it into a Discord chat or a tweet.',
+        'Hold Shift or Ctrl to select multiple cubes',
+        'Join the Discord server to ask for help: discord.blockbench.net',
+        'You can load a blueprint of your model to make it easier to get the proportions right. Enter a side view and drag the image into the background. Use the menu on the bottom right to adjust it.',
+        'There are many useful plugins by the community in the plugin menu. Just click install and go.',
+        'Keep Blockbench updated. Updates add new functions to Blockbench, fix bugs and installing them is as easy opening the updates screen from the File menu and clicking the Update button',
+        'Check the Move Relative box in the Edit menu to move cubes on their rotated axis.'
+    ]
+    var message = tips[Math.floor(Math.random()*tips.length)]
+    Blockbench.showMessageBox({
+        width: 640,
+        title: 'Tip',
+        icon: 'info',
+        message: message,
+        cancel: 1,
+        confirm: 0,
+        buttons: ['Next', 'Close']
+    }, function(answer) {
+        if (answer === 0) {
+            randomHelpMessage()
+        }
     })
 }
 

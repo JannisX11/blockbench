@@ -54,8 +54,22 @@
         <script src="js/plugin_loader.js"></script>
     	<script>if (window.module) module = window.module;</script>
 
-    <div id="post_model" class="web_only post_data" hidden></div>
-    <div id="post_textures" class="web_only post_data" hidden></div>
+    <div id="post_model" class="web_only post_data" hidden><?php
+        if ( $_SERVER['REQUEST_METHOD'] == 'POST' ) {
+            $model = $_POST['model'];
+            if ($model != "text") {
+                echo $model;
+            }
+        }
+    ?></div>
+    <div id="post_textures" class="web_only post_data" hidden><?php
+        if ( $_SERVER['REQUEST_METHOD'] == 'POST' ) {
+            $textures = $_POST['textures'];
+            if ($textures != "text") {
+                echo $textures;
+            }
+        }
+    ?></div>
     <!---->
     <div id="blackout" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"></div>
 
@@ -63,7 +77,6 @@
         <div id="welcome_content"></div>
         <button type="button" class="large cancel_btn hidden" onclick="hideDialog()">Cancel</button>
         <div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
-        
     </div>
 
     <div class="dialog draggable paddinged" id="file_loader">
@@ -270,7 +283,7 @@
 
         <div class="dialog_bar" style="height: 32px;">
             <input type="range" id="model_scale_range" value="1" min="0" max="4" step="0.02" oninput="modelScaleSync()">
-            <input type="number" class="f_left" id="model_scale_label" min="0" max="4" value="1" oninput="modelScaleSync(true)">
+            <input type="number" class="f_left" id="model_scale_label" min="0" max="4" step="0.02" value="1" oninput="modelScaleSync(true)">
         </div>
         <div class="dialog_bar narrow" id="scaling_clipping_warning"></div>
 
@@ -937,8 +950,8 @@
                 <input class="hidden" type="radio" name="display" id="gui">
                 <label class="tool" for="gui" onclick="loadDispGUI()"><i class="material-icons">border_style</i><div class="tooltip">GUI</div></label>
             </div>
-            <p>Reference Model</p>
-            <div id="display_ref_bar" class="bar tabs_small">
+            <p class="reference_model_bar">Reference Model</p>
+            <div id="display_ref_bar" class="bar tabs_small reference_model_bar">
             </div>
 
             <p>Rotation</p><div class="tool head_right" onclick="resetDisplaySettings('rotation')"><i class="material-icons">replay</i></div>
@@ -1043,22 +1056,22 @@
                     <option value="z" id="z">Z Axis</option>
                 </select>
                 <div class="tool" id="cube_rescale_tool"><input type="checkbox" id="cube_rescale" class="rotation_tool" onclick="Rotation.set()"><div class="tooltip">Rescale</div></div>
-                <div class="tool right_tool" id="origin2geometry" onclick="Rotation.remove()"><i class="material-icons">clear</i><div class="tooltip">Remove Rotation</div></div>
+                <div class="tool right_tool" id="rotation_function_button" onclick="Rotation.fn()"><i class="material-icons">clear</i><div class="tooltip clip_right">Remove Rotation</div></div>
             </div>
             <div class="bar">
-                <div class="placeholder"></div>Origin
+                <div class="placeholder"></div><div id="rotation_origin_label">Origin</div>
             </div>
             <div class="bar">
             <div class="tool wide nslide_tool"><div class="nslide" n-action="origin_x"></div><div class="tooltip">Origin X</div></div>
             <div class="tool wide nslide_tool"><div class="nslide" n-action="origin_y"></div><div class="tooltip">Origin Y</div></div>
             <div class="tool wide nslide_tool"><div class="nslide" n-action="origin_z"></div><div class="tooltip">Origin Z</div></div>
-                <div class="tool right_tool" id="origin2geometry" onclick="origin2geometry()"><i class="material-icons">center_focus_strong</i><div class="tooltip">Origin To Geometry</div></div>
+                <div class="tool right_tool" id="origin2geometry" onclick="origin2geometry()"><i class="material-icons">center_focus_strong</i><div class="tooltip clip_right">Origin To Geometry</div></div>
             </div>
         </div>
         <div id="outliner" class="ui">
             <h3>Outliner</h3>
             <div class="bar m_edit">
-                <div class="tool" onclick="addCube(0,0,0,canvas_grid,canvas_grid,canvas_grid)"><i class="material-icons">add_box</i><div class="tooltip">Add Cube</div></div>
+                <div class="tool" onclick="addCube()"><i class="material-icons">add_box</i><div class="tooltip">Add Cube</div></div>
                 <div class="tool" onclick="addGroup()"><i class="material-icons">create_new_folder</i><div class="tooltip">Add Group</div></div>
                 <div class="tool" id="outliner_option_toggle" onclick="toggleOutlinerOptions()"><i class="material-icons">view_stream</i><div class="tooltip">More Options</div></div>
                 <div id="outliner_stats">0/0</div>

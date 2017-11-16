@@ -41,6 +41,63 @@ class API {
 			showQuickMessage(message)
 		}
 	}
+	showMessageBox(options, cb) {
+
+		if (options.confirm === undefined) options.confirm = 0
+		if (options.cancel === undefined) options.cancel = 0
+		if (!options.buttons) options.buttons = ['Ok']
+
+		var jq_dialog = $('<div class="dialog paddinged" style="width: auto;" id="message_box"><h2 class="dialog_handle">'+options.title+'</h2></div>')
+
+		jq_dialog.append('<div class="dialog_bar" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
+			(options.icon ? '<i class="material-icons message_box_icon">'+options.icon+'</i>' : '')+
+			options.message+'</div>'
+		)
+
+		var buttons = []
+
+		options.buttons.forEach(function(b, i) {
+			var btn = $('<button type="button" class="large">'+b+'</button>')
+			btn.click(function(e) {
+				hideDialog()
+				setTimeout(function() {
+			    	jq_dialog.remove()
+			    },200)
+				cb(i)
+			})
+			buttons.push(btn)
+		})
+		buttons[options.confirm].addClass('confirm_btn')
+		buttons[options.cancel].addClass('cancel_btn')
+		jq_dialog.append($('<div class="dialog_bar"></div>').append(buttons))
+
+
+    	jq_dialog.addClass('draggable')
+        jq_dialog.draggable({
+            handle: ".dialog_handle"
+        })
+        var x = ($(window).width()-540)/2
+        jq_dialog.css('left', x+'px')
+        jq_dialog.css('position', 'absolute')
+
+		$('#plugin_dialog_wrapper').append(jq_dialog)
+	    $('.dialog').hide(0)
+	    $('#blackout').fadeIn(100)
+	    jq_dialog.fadeIn(100)
+
+	    jq_dialog.css('top', limitNumber($(window).height()/2-jq_dialog.height()/2, 0, 100)+'px')
+	    if (options.width) {
+	    	jq_dialog.css('width', options.width+'px')
+	    } else {
+	    	jq_dialog.css('width', limitNumber(options.buttons.length*170+44, 380, 894)+'px')
+	    }
+
+	    setTimeout(function() {
+	        $('.context_handler.ctx').removeClass('ctx')
+	    }, 64)
+	    open_dialog = 'message_box'
+	    return jq_dialog
+	}
 
 	import(type, cb, extensions) {
 		type = type.replace('.', '')
@@ -168,7 +225,6 @@ function Dialog(settings) {
 	    setTimeout(function() {
 	    	$(scope.object).remove()
 	    },this.fadeTime)
-	    console.log('Hiding Dialog')
 	}
 
 	this.confirmEnabled = settings.confirmEnabled === false ? false : true

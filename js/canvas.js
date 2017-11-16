@@ -79,7 +79,7 @@ function initCanvas() {
     //TransformControls
     Transformer = new THREE.TransformControls(cameraPers, canvas1)
     Transformer.setSize(0.5)
-    Transformer.setTranslationSnap(canvas_grid)
+    Transformer.setTranslationSnap(canvasGridSize())
     scene.add(Transformer)
 
     enterScene(true)
@@ -327,7 +327,7 @@ function buildGrid() {
 
     if (settings.full_grid.value === true) {
         size = 24
-        step = canvas_grid;
+        step = canvasGridSize();
 
         var geometry = new THREE.Geometry();
         
@@ -401,7 +401,7 @@ function buildGrid() {
 
         if (settings.base_grid.value === true) {
             size = 8
-            step = canvas_grid;
+            step = canvasGridSize();
 
             var geometry = new THREE.Geometry();
             
@@ -579,8 +579,7 @@ function canvasClick( event ) {
         }
         main_uv.setFace(selectedFace)
         var obj = TreeElements.findRecursive('uuid', intersects[0].object.name)
-        event.cube = obj
-        Blockbench.dispatchEvent( 'canvas_select', event )
+        Blockbench.dispatchEvent( 'canvas_select', {event: event, intersects: intersects, face: selectedFace, cube: obj} )
         addToSelection(elements.indexOf(obj), event)
 
         if (Prop.tool === 'brush' && event.shiftKey === false) {
@@ -607,6 +606,10 @@ function toggleTools() {
 
 function centerTransformer(offset) {
     if (selected.length === 0) return;
+    var obj = elements[selected[0]]
+
+
+    //Getting Center
 
     var center = [0, 0, 0]
     var i = 0;
@@ -624,26 +627,68 @@ function centerTransformer(offset) {
         center[i] = center[i] / (selected.length * 2)
         i++;
     }
-    var obj = elements[selected[0]]
-
     var vec = new THREE.Vector3(center[0], center[1], center[2])
-    if (selected.length === 1 && obj.rotation !== undefined) {
-        vec.x -= obj.rotation.origin[0]
-        vec.y -= obj.rotation.origin[1]
-        vec.z -= obj.rotation.origin[2]
-        vec.applyEuler(obj.display.mesh.rotation)
-        vec.x += obj.rotation.origin[0]
-        vec.y += obj.rotation.origin[1]
-        vec.z += obj.rotation.origin[2]
+
+
+
+    //Position + Rotation
+    if (settings.entity_mode.value === false) {
+
+        //Blockmodel Mode
+
+        Transformer.rotation.set(0, 0, 0)
+
+        if (selected.length === 1 && obj.rotation !== undefined) {
+            vec.x -= obj.rotation.origin[0]
+            vec.y -= obj.rotation.origin[1]
+            vec.z -= obj.rotation.origin[2]
+            if (obj.display.mesh) {
+                vec.applyEuler(obj.display.mesh.rotation)
+            }
+            vec.x += obj.rotation.origin[0]
+            vec.y += obj.rotation.origin[1]
+            vec.z += obj.rotation.origin[2]
+        }
+        Transformer.position.copy(vec)
+
+        if (obj.rotation !== undefined && movementAxis === true) {
+            Transformer.rotation[obj.rotation.axis] = Math.PI / (180 / obj.rotation.angle)
+        } 
+    } else {
+
+        //Entity Mode
+
+        var group;
+        if (selected_group) {
+            var group = selected_group
+        } else {
+            var i = 0;
+            while (i < selected.length) {
+                if (typeof elements[selected[i]].display.parent === 'object' &&
+                    elements[selected[i]].display.parent.type === 'group'
+                ) {
+                    var group = elements[selected[i]].display.parent
+                }
+                i++;
+            }
+        }
+        if (group) {
+            vec.x -= group.origin[0]
+            vec.y -= group.origin[1]
+            vec.z -= group.origin[2]
+            vec.applyEuler(obj.display.mesh.rotation)
+            vec.x += group.origin[0]
+            vec.y += group.origin[1]
+            vec.z += group.origin[2]
+        }
+        Transformer.position.copy(vec)
+        Transformer.rotation.copy(elements[selected[0]].display.mesh.rotation)
     }
-    Transformer.position.copy(vec)
-    Transformer.rotation.set(0, 0, 0)
-    if (obj.rotation !== undefined && movementAxis === true) {
-        Transformer.rotation[obj.rotation.axis] = Math.PI / (180 / obj.rotation.angle)
-    }
+
     if (offset !== undefined) {
         Transformer.position.add(offset)
     }
+
 }
 
 function getRescalingFactor(angle) {
@@ -828,7 +873,7 @@ class CanvasController {
         var arr = selected.slice()
         if (settings.entity_mode.value && selected_group) {
             selected_group.children.forEach(function(s) {
-                if (s.title === 'Cube') {
+                if (s.type === 'cube') {
                     var index = elements.indexOf(s)
                     if (!arr.includes(index)) {
                         arr.push(index)
@@ -836,7 +881,7 @@ class CanvasController {
                 }
             })
         }
-        selected.forEach(function(s) {
+        arr.forEach(function(s) {
             if (elements[s].display.visibility == true) {
                 Canvas.adaptObjectPosition(elements[s].display.mesh, elements[s])
             }

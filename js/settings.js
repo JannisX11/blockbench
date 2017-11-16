@@ -22,6 +22,7 @@ function keybindSetup(get) {
         confirm:    {shift: false, ctrl: false, alt: false, code: 13, name: 'Confirm', char: 'ENTER'},
         cancel:     {shift: false, ctrl: false, alt: false, code: 27, name: 'Cancel', char: 'ESCAPE'},
         screenshot_clean:{shift: false, ctrl: true, alt: false, code: 80, name: 'Screenshot', char: 'Ctrl + P'},
+        plugin_reload:{shift: false, ctrl: true, alt: false, code: 74, name: 'Reload Dev Plugins', char: 'Ctrl + J'},
 
         headline2:  {is_title: true, title: "File"}, 
         open_file:  {shift: false, ctrl: true, alt: false, code: 79, name: 'Open File', char: 'Ctrl + O'},
@@ -120,14 +121,19 @@ function settingSetup() {
         entity_mode:  {value: false, name: 'Entity Model Mode', desc: 'Unrestricted editing mode for Bedrock and Optifine models'},
         undo_limit:   {value: 20, is_number: true, name: 'Undo Limit', desc: 'Number of steps you can undo'},
         move_origin:  {value: false, name: 'Move on Relative Axes', desc: 'Move rotated elements on their own axes if possible'},
-        snapnslide:   {value: false, name: 'Snap Slider', desc: 'Snaps combo-sliders to their valid positions'},
         autouv:       {value: true,  name: 'Auto UV', desc: 'Enable AutoUV by default'},
         create_rename:{value: false, name: 'Rename new Cube', desc: 'Focus name field when creating new element or group'},
         canvas_unselect:{value: false, name: 'Canvas Click Unselect', desc: 'Unselects all elements when clicking on the canvas background'},
-        edit_size:    {value: 16, is_number: true, name: 'Grid Resolution', desc: 'Resolution of the grid that cubes snap to'},
         show_actions: {value: false, name: 'Tell Actions', desc: 'Display every action in the status bar'},
+        //Snapping
+        headline4:    {is_title: true, title: "Snapping"},
+        edit_size:    {value: 16, is_number: true, name: 'Grid Resolution', desc: 'Resolution of the grid that cubes snap to'},
+        shift_size:   {value: 64, is_number: true, name: 'Shift Resolution', desc: 'Resolution of the grid while holding shift'},
+        ctrl_size:    {value: 160, is_number: true, name: 'Control Resolution', desc: 'Resolution of the grid while holding control'},
+        //rotation_snap:{value: true, name: 'Rotation Snap', desc: 'Snap Rotations to 22.5° (limit of the Minecraft model format)'},
+        snapnslide:   {value: false, name: 'Snap Slider', desc: 'Snaps combo-sliders to their valid positions'},
         //Export
-        headline4:    {is_title: true, title: "Export"}, 
+        headline5:    {is_title: true, title: "Export"}, 
         minifiedout:  {value: false,name: 'Minified Export', desc: 'Write JSON file in one line'},
         max_json_length:{value: 56, is_number: true, name: 'Maximum Line Length', desc: 'Break JSON lines after this number'},
         round_digits: {value: 4, is_number: true, name: 'Round numbers', desc: 'Round numbers'},
@@ -154,7 +160,7 @@ function projectTagSetup() {
     Project.parent            = "";
     Project.description       = "";
     Project.texture_width     = 64;
-    Project.texture_height    = 32;
+    Project.texture_height    = 64;
     Project.ambientocclusion  = true;
 }
 function displayPresetsSetup() {
@@ -359,7 +365,7 @@ $(document).keydown(function(e) {
             Undo.redo()
         }
         if (compareKeys(e, keybinds.add_cube)) {
-            addCube(0,0,0,canvas_grid,canvas_grid,canvas_grid)
+            addCube()
         }
         if (compareKeys(e, keybinds.new_group)) {
             addGroup()
@@ -471,7 +477,7 @@ function saveSettings() {
             Canvas.materials[mat].transparent = settings.transparency.value
     }
     setScreenRatio()
-    calcCanvasGridSize()
+    canvasGridSize()
     buildGrid()
     setShading()
     if (settings.snapnslide.value === true) {
@@ -497,6 +503,12 @@ function saveSettings() {
     hideDialog()
     updateUIColor()
     updateSelection()
+    if (settings.entity_mode.value) {
+        main_uv.setGrid()
+        if (uv_dialog.editors) {
+            uv_dialog.editors.single.setGrid()
+        }
+    }
     Blockbench.dispatchEvent( 'update_settings')
 }
 function toggleSetting(setting) {
@@ -517,19 +529,38 @@ var entityMode = {
         settings.entity_mode.value = true
         $('body').addClass('entity_mode')
         $('label[for="project_parent"]').text('Mob Geometry Name')
+
+        //Rotation Menu
         $('#cube_rescale_tool div').text('Reset Bone')
+        $('#rotation_function_button i').text('settings')
+        $('#rotation_function_button .tooltip').text('Rotation Menu')
+        $('.ui#options h3').text('Bone Settings')
+        $('#rotation_origin_label').text('Pivot')
         $('input#cube_rotate').attr('min', '-180').attr('max', '180').attr('step', '5.625').addClass('entity_mode')
+
         main_uv.buildDom().setToMainSlot().setFace('north')
+        main_uv.autoGrid = true
         $('.block_mode_only').hide()
+        buildGrid()
+        Blockbench.dispatchEvent('join_entity_mode')
     },
     leave: function() {
         settings.entity_mode.value = false
         $('body').removeClass('entity_mode')
         $('label[for="project_parent"]').text('Parent Model')
+
+        //Rotation Menu
         $('#cube_rescale_tool div').text('Rescale')
+        $('#rotation_function_button i').text('clear')
+        $('#rotation_function_button .tooltip').text('Remove Rotation')
+        $('.ui#options h3').text('Rotation')
+        $('#rotation_origin_label').text('Origin')
         $('input#cube_rotate').attr('min', '-67.5').attr('max', '67.5').attr('step', '22.5').removeClass('entity_mode')
+
         $('.block_mode_only').show()
+        $('.ui#textures').css('top', 514+'px')
         main_uv.buildDom(true).setToMainSlot()
+        buildGrid()
         elements.forEach(function(s, i) {
             //Push elements into 3x3 block box
             [0, 1, 2].forEach(function(ax) {
@@ -556,5 +587,6 @@ var entityMode = {
                 }
             })
         })
+        Blockbench.dispatchEvent('leave_entity_mode')
     }
 }

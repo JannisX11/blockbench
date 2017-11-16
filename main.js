@@ -18,7 +18,7 @@ function createWindow () {
   win.maximize()
   win.show()
   win.loadURL(url.format({
-    pathname: path.join(__dirname, 'index.php'),
+    pathname: path.join(__dirname, 'index.html'),
     protocol: 'file:',
     slashes: true
   }))

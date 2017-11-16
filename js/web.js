@@ -220,11 +220,11 @@ function saveFileEntity() {
     var obj = {}
     var model_name = Project.parent
     if (model_name == '') model_name = 'geometry.unknown'
-    obj[model_name] = buildEntityModel()
+    obj[model_name] = buildEntityModel({raw: true})
 
     var data = autoStringify(obj)
     var blob = new Blob([data], {type: "text/plain;charset=utf-8"});
-    saveAs(blob, 'model.json')
+    saveAs(blob, 'mobs.json')
     showQuickMessage('Saved as bedrock entity model')
 }
 function saveFileObj() {

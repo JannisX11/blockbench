@@ -1,49 +1,3 @@
-function calcAutoUV(obj, face, size) {
-    var sx = obj.faces[face].uv[0]
-    var sy = obj.faces[face].uv[1]
-    var rot = obj.faces[face].rotation
-
-    //Match To Rotation
-    if (rot === 90 || rot === 270) {
-        size.reverse()
-    }
-    //Limit Input to 16
-    size.forEach(function(s) {
-        if (s > 16) {
-            s = 16
-        }
-    })
-    //Calculate End Points
-    var x = sx + size[0]
-    var y = sy + size[1]
-    //Prevent Over 16
-    if (x > 16) {
-        sx = 16 - (x - sx)
-        x = 16
-    }
-    if (y > 16) {
-        sy = 16 - (y - sy)
-        y = 16
-    }
-    //Prevent Negative
-    if (sx < 0) sx = 0
-    if (sy < 0) sy = 0
-    //Prevent Mirroring
-    if (x < sx) x = sx
-    if (y < sy) y = sy
-
-    //if ()
-    //Return
-    return [sx, sy, x, y]
-}
-function triggerAutoUV() {
-    Vue.nextTick(function() {
-        setTimeout(function() {
-            scaleCube(elements[selected[0]], 0, 'x')
-        }, 10)
-    })
-}
-
 function getTextureById(id) {
     if (id === undefined) return;
     if (id == '$transparent') {
@@ -100,6 +54,7 @@ class UVEditor {
                 '<div class="tool wide nslide_tool"><div class="nslide" n-action="moveuv_y"></div><div class="tooltip">Move Y</div></div>' +
                 (settings.entity_mode.value ? '' : '<div class="tool wide nslide_tool"><div class="nslide" n-action="scaleuv_x"></div><div class="tooltip">Scale X</div></div>') +
                 (settings.entity_mode.value ? '' : '<div class="tool wide nslide_tool"><div class="nslide" n-action="scaleuv_y"></div><div class="tooltip">Scale Y</div></div>') +
+                '<button class="large" id="entity_mode_resolution_button" onclick="showDialog(\'project_settings\');">Resolution</button>'+
             '</div>'
         )
         this.jquery.main.append(this.jquery.nslides)
@@ -275,11 +230,16 @@ class UVEditor {
         }
     }
     //Set
-    setSize(size) {
+    setSize(size, cancel_load) {
         this.size = size
-        this.jquery.frame.height(size)
         this.jquery.frame.width(size)
-        if (settings.entity_mode.value === false) {
+
+        if (settings.entity_mode.value) {
+            this.jquery.frame.height(size / (Project.texture_width/Project.texture_height))
+            $('.ui#textures').css('top', 133+(size / (Project.texture_width/Project.texture_height))+'px')
+        } else {
+            this.jquery.frame.height(size)
+
             this.jquery.size.resizable('option', 'maxHeight', size)
             this.jquery.size.resizable('option', 'maxWidth', size)
             this.jquery.size.resizable('option', 'grid', [size/this.grid, size/this.grid])
@@ -287,10 +247,16 @@ class UVEditor {
         var nslide_width = (size / 4) - (size % 4 > 0 ? 1 : 0)
         this.jquery.nslides.find('.nslide_tool').css('width', (size/4-2)+'px')
         this.jquery.nslides.find('.nslide').css('width', (size/4-2)+'px')
-        this.loadData()
+        if (!cancel_load) {
+            this.loadData()
+        }
+        return this;
     }
     setGrid(grid, load) {
-        if (grid === undefined || grid === 'dialog') {
+        if (settings.entity_mode.value) {
+            this.autoGrid = false;
+            grid = Project.texture_width
+        } else if (grid === undefined || grid === 'dialog') {
             this.autoGrid = false;
             if (grid === undefined) {
                 grid = this.jquery.bar.find('#uv_snap option:selected').attr('id')
@@ -388,7 +354,7 @@ class UVEditor {
         var pixelSize = this.size/16
         //Save UV from Frame to object!!
         var left = this.jquery.size.position().left / pixelSize
-        var top  = this.jquery.size.position().top / pixelSize
+        var top  = this.jquery.size.position().top / pixelSize * (Project.texture_width/Project.texture_height)
         var left2 = (this.jquery.size.width()) / pixelSize + left
         var top2 = (this.jquery.size.height()) / pixelSize + top
 
@@ -453,6 +419,9 @@ class UVEditor {
                 this.setGrid(tex.res, false)
             }
         }
+        if (settings.entity_mode.value) {
+            this.setSize(this.size, true)
+        }
     }
     displayTransformInfo() {
         var ref = elements[selected[0]].faces[this.face]
@@ -470,7 +439,7 @@ class UVEditor {
         }
     }
     displayEmptyTexture() {
-        this.jquery.frame.css('background', 'var(--color-back)')
+        this.jquery.frame.css('background-color', 'var(--color-back)').css('background-image', 'none')
         this.texture = false;
         this.setFrameColor()
         if (this.autoGrid) {
@@ -487,7 +456,7 @@ class UVEditor {
         //X
         if (settings.entity_mode.value) {
             var width = (elements[selected[0]].size(0) + elements[selected[0]].size(2))*2
-            width = width/Project.texture_width * 16
+            width = limitNumber(width/Project.texture_width * 16, 0, 16)
         } else {
             var width = limitNumber(face.uv[2]-face.uv[0], -16, 16)
         }
@@ -502,7 +471,7 @@ class UVEditor {
         //Y
         if (settings.entity_mode.value) {
             var height = elements[selected[0]].size(2) + elements[selected[0]].size(1)
-            height = height/Project.texture_width * 16
+            height = limitNumber(height/Project.texture_width * 16, 0, 16)
         } else {
             var height = limitNumber(face.uv[3]-face.uv[1], -16, 16)
         }
@@ -520,10 +489,16 @@ class UVEditor {
     }
     displayNslides() {
         var face_uv = elements[selected[0]].faces[this.face].uv
-        this.jquery.nslides.find('div.nslide[n-action="moveuv_x"]:not(".editing")').text(trimFloatNumber(face_uv[0]))
-        this.jquery.nslides.find('div.nslide[n-action="moveuv_y"]:not(".editing")').text(trimFloatNumber(face_uv[1]))
-        this.jquery.nslides.find('div.nslide[n-action="scaleuv_x"]:not(".editing")').text(trimFloatNumber(face_uv[2] - face_uv[0]))
-        this.jquery.nslides.find('div.nslide[n-action="scaleuv_y"]:not(".editing")').text(trimFloatNumber(face_uv[3] - face_uv[1]))
+        var values = [
+            trimFloatNumber(face_uv[0] * (settings.entity_mode.value ? Project.texture_width / 16 : 1)),
+            trimFloatNumber(face_uv[1] * (settings.entity_mode.value ? Project.texture_height / 16 : 1)),
+            trimFloatNumber(face_uv[2] - face_uv[0]),
+            trimFloatNumber(face_uv[3] - face_uv[1])
+        ]
+        this.jquery.nslides.find('div.nslide[n-action="moveuv_x"]:not(".editing")').text(values[0])
+        this.jquery.nslides.find('div.nslide[n-action="moveuv_y"]:not(".editing")').text(values[1])
+        this.jquery.nslides.find('div.nslide[n-action="scaleuv_x"]:not(".editing")').text(values[2])
+        this.jquery.nslides.find('div.nslide[n-action="scaleuv_y"]:not(".editing")').text(values[3])
     }
     displayTools() {
         //Cullface
@@ -543,6 +518,11 @@ class UVEditor {
     }
     //Nslide
     slider(action, difference, index) {
+        if (settings.entity_mode.value === false) {} else if (action.includes('x')) {
+            difference *= (16 / Project.texture_width)
+        } else {
+            difference *= (16 / Project.texture_height)
+        }
         var before;
         switch (action) {
             case 'moveuv_x':
@@ -578,6 +558,11 @@ class UVEditor {
         $('#nslide_head #nslide_offset').text('Offset: '+difference)
     }
     nslideInput(action, difference) {
+        if (settings.entity_mode.value === false) {} else if (action.includes('x')) {
+            difference *= (16 / Project.texture_width)
+        } else {
+            difference *= (16 / Project.texture_height)
+        }
         var scope = this;
         selected.forEach(function(s) {
             var obj = elements[s]
@@ -600,12 +585,26 @@ class UVEditor {
     }
     moveCoord(index, val, obj) {
         var uvTag = obj.faces[this.face].uv
-        var size = uvTag[index + 2] - uvTag[index]
-        val = limitNumber(val, 0, 16)
-        val = limitNumber(val + size, 0, 16) - size
+        if (settings.entity_mode.value === false) {
+            var size = uvTag[index + 2] - uvTag[index]
+            val = limitNumber(val, 0, 16)
+            val = limitNumber(val + size, 0, 16) - size
 
-        uvTag[index] = val
-        uvTag[index + 2] = size + val
+            uvTag[index] = val
+            uvTag[index + 2] = size + val
+        } else {
+            if (index === 0) {
+                var size = (elements[selected[0]].size(0) + elements[selected[0]].size(2))*2
+                size = size/Project.texture_width * 16
+            } else {
+                var size = elements[selected[0]].size(2) + elements[selected[0]].size(1)
+                size = size/Project.texture_height * 16
+            }
+            val = limitNumber(val, 0, 16)
+            val = limitNumber(val + size, 0, 16) - size
+            uvTag[index] = val
+            uvTag[index + 2] = 16
+        }
 
         this.displayNslides()
         this.displayFrame()
@@ -1126,9 +1125,11 @@ var uv_dialog = {
             y: obj.height()
         }
         if (uv_dialog.single) {
+            var menu_gap = settings.entity_mode.value ? 38 : 130
             var editor_size = size.x
-            if (size.x > size.y - 130) {
-                editor_size = size.y - 130
+            size.y = (size.y - menu_gap) * (settings.entity_mode.value ? Project.texture_width/Project.texture_height : 1)
+            if (size.x > size.y) {
+                editor_size =  size.y
             }
             editor_size = editor_size - (editor_size % 16)
             uv_dialog.editors.single.setSize(editor_size)

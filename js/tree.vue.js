@@ -12,12 +12,12 @@
                 '<input type="text" class="cube_name" v-model="node.name" disabled>' +
                 '<a v-for="btn in node.buttons" class="ml5" href="javascript:" :title="btn.title" v-on:click.stop="btnClick(btn, node)" v-bind:class="{advanced_option: btn.advanced_option}">' +
                     '<i v-if="node.isIconEnabled(btn.title) === true" :class="btn.icon"></i>' +
+                    '<i v-else-if="node.isIconEnabled(btn.title) === \'alt\'" :class="btn.icon_alt"></i>' +
                     '<i v-else :class="btn.icon_off"></i>' +
                 '</a>' +
             '</div>' +
             //Other Entries
             '<ul v-show="node.isOpen">' +
-                //'<li v-show="node.showLoading && node._loading"><i class="fa fa-spinner fa-pulse"></i></li>' +
                 '<vue-tree-item v-for="item in node.children" :node="item" v-key="item.uuid"></vue-tree-item>' +
             '</ul>' +
         '</li>',

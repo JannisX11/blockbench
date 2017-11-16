@@ -272,15 +272,6 @@ function limitNumber(number, min, max) {
   if (number < min) number = min;
   return number;
 }
-function getSnapFactor(event) {
-  if (event.shiftKey) {
-    return canvas_grid / 4;
-  } else if (event.ctrlKey) {
-    return canvas_grid / 10;
-  } else {
-    return canvas_grid;
-  }
-}
 function compareVersions(string1/*new*/, string2/*old*/) {
   // Is string1 newer than string2 ?
   var arr1 = string1.split('.')
@@ -299,4 +290,34 @@ function compareVersions(string1/*new*/, string2/*old*/) {
     i++;
   }
   return false;
+}
+function useBedrockFlipFix(axis) {
+  if (settings.entity_mode.value === false) return false;
+  if (typeof axis === 'string') {
+    axis = getAxisNumber(axis)
+  }
+  var group;
+  if (selected_group) {
+      var group = selected_group
+  } else {
+    var i = 0;
+    while (i < selected.length) {
+      if (typeof elements[selected[i]].display.parent === 'object' &&
+        elements[selected[i]].display.parent.type === 'group'
+      ) {
+        var group = elements[selected[i]].display.parent
+      }
+      i++;
+    }
+  }
+  if (group) {
+    var rotations = group.rotation.slice()
+    rotations.splice(axis, 1)
+    rotations.forEach(function(r, i) {
+      rotations[i] = (r >= -90 && r <= 90)
+    })
+    return rotations[0] !== rotations[1]
+  } else {
+    return false
+  }
 }

@@ -643,7 +643,7 @@
 
 		};
 
-		this.calcPosition = function(offset) {
+		/*this.calcPosition = function(offset) {
 
   			if (selected.length === 0) return;
 		    scope.children[0].rotation.set(0, 0, 0)
@@ -666,13 +666,32 @@
 		    }
 		    var vec = new THREE.Vector3()
 		    vec.set(center[0], center[1], center[2])
+        	if (settings.entity_mode.value) {
+		        var obj = elements[selected[0]]
+        		if (obj.display.parent !== 'root' &&
+		            typeof obj.display.parent === 'object' &&
+		            obj.display.parent.display.parent === 'root' &&
+		            obj.display.parent.rotation.join('_') !== '0_0_0'
+        		) {
+	            	vec.setFromMatrixPosition(obj.display.mesh.matrixWorld)
+	            	scope.rotation['x'] = Math.PI / (180 / obj.display.parent.rotation[0])
+	            	scope.rotation['y'] = Math.PI / (180 / obj.display.parent.rotation[1])
+	            	scope.rotation['z'] = Math.PI / (180 / obj.display.parent.rotation[2])
+	            	vec.x -= obj.display.parent.origin[0]
+	            	vec.y -= obj.display.parent.origin[1]
+	            	vec.z -= obj.display.parent.origin[2]
+
+
+        		}
+        	} else {
+        		scope.rotation.set(0, 0, 0)
+        	}
 		    if (offset !== undefined) {
 		    	vec.add(offset)
 		        if (movementAxis === true) {
-		        	var obj = elements[selected[0]]
-		            if (obj.rotation) {
+		        	if (obj.rotation && settings.entity_mode.value === false) {
 		            	vec.setFromMatrixPosition(obj.display.mesh.matrixWorld)
-		            	scope.children[0].rotation[obj.rotation.axis] = Math.PI / (180 / obj.rotation.angle)
+		            	scope.rotation[obj.rotation.axis] = Math.PI / (180 / obj.rotation.angle)
 		            	vec.x -= obj.rotation.origin[0]
 		            	vec.y -= obj.rotation.origin[1]
 		            	vec.z -= obj.rotation.origin[2]
@@ -681,7 +700,7 @@
 		    	scope.position.copy(vec)
 		        //scope.position.add(vec)
 		    }
-		}
+		}*/
 
 		function onPointerHover( event ) {
 
@@ -803,13 +822,10 @@
 					var axis = scope.axis.toLowerCase()
 					scope.direction = true
 				}
-				//if (axis !== 'x') point.x = 0;
-				//if (axis !== 'y') point.y = 0;
-				//if (axis !== 'z') point.z = 0;
 
 				var axisNumber = getAxisNumber(axis)
-				var snap_factor = getSnapFactor(event)
-				point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor
+				var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
+				point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor * (useBedrockFlipFix(axis) ? -1 : 1)
 
 
 				if (previousValue !== point[axis]) {
@@ -840,8 +856,8 @@
 				if ( scope.axis !== "Y") point.y = 0;
 				if ( scope.axis !== "Z") point.z = 0;
 
-				var snap_factor = getSnapFactor(event)
-				point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor
+				var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
+				point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor * (useBedrockFlipFix(axis) ? -1 : 1)
 
 
 				if (previousValue !== point[axis]) {
@@ -863,6 +879,14 @@
 					if (movementAxis === true) {
 						rotatedPoint.applyEuler( scope.objects[0].rotation )
 					}
+					var obj = elements[selected[0]]
+					if (settings.entity_mode.value && 
+		                typeof obj.display.parent === 'object' &&
+		                obj.display.parent.display.parent === 'root' &&
+		                obj.display.parent.rotation.join('_') !== '0_0_0'
+		            ) {
+		            	rotatedPoint.applyEuler( scope.objects[0].rotation )
+		            }
 
 					scope.objects.forEach(function(s, i) {
 						s.position.copy( oldPositionArray[i] );
@@ -910,7 +934,7 @@
 					}
 
 					selected.forEach(function(s) {
-						moveCube(elements[s], elements[s].from[getAxisNumber(axis)] + difference, getAxisNumber(axis))
+						moveCube(elements[s], elements[s].from[getAxisNumber(axis)] + difference * (useBedrockFlipFix(axis) ? -1 : 1), getAxisNumber(axis))
 					})
 
 					setUndo('Moved cube'+pluralS(selected))
