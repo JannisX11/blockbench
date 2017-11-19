@@ -95,13 +95,23 @@ function buildBlockModel(options) {                    //Export Blockmodel
         blockmodel.elements = clear_elements
     }
     if (checkExport('groups', (settings.export_groups.value && getAllOutlinerGroups().length))) {
-        blockmodel.groups = compileGroups(undefined, element_index_lut)
+        groups = compileGroups(undefined, element_index_lut)
+        var i = 0;
+        while (i < groups.length) {
+            if (typeof groups[i] === 'object') {
+                i = Infinity
+            }
+            i++
+        }
+        if (i === Infinity) {
+            blockmodel.groups = groups
+        }
     }
     if (checkExport('display', Object.keys(display).length >= 1)) {
         var new_display = {}
         for (var key in display) {
             if (display.hasOwnProperty(key)) {
-                if (display[key].scale.join('_') !== '1_1_1' ||
+                if ((display[key].scale && display[key].scale.join('_') !== '1_1_1') ||
                     display[key].rotation ||
                     display[key].translation
                 ) {

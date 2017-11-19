@@ -1033,8 +1033,14 @@ function dropOutlinerObjects(item, target, event) {
 
 function addCube() {
 	var base_cube = new Cube().addTo()
+	var create_bone = (settings.entity_mode.value && !selected_group && selected.length === 0)
 	if (selected_group) {
 		base_cube.addTo(selected_group)
+	} else if (selected[0] !== undefined &&
+		elements[selected[0]] &&
+		elements[selected[0]].display.parent !== 'root'
+	) {
+		base_cube.addTo(elements[selected[0]].display.parent)
 	}
 
 	if (textures.length && settings.entity_mode.value) {
@@ -1057,8 +1063,7 @@ function addCube() {
 			renameCubes()
 		}
 	})
-	if (settings.entity_mode.value) {
-		var new_group = 
+	if (create_bone) {
 		base_cube.addTo(new Group().addTo('root').openUp())
 	}
     Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )

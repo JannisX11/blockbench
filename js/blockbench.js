@@ -1,4 +1,4 @@
-var appVersion = '1.10.1'
+var appVersion = '1.10.2'
 var osfs = '/'
 var File, i;
 var browser_name = 'electron'
@@ -177,8 +177,7 @@ function initializeApp() {
         showSplashScreen = tryLoadPOSTModel()
     }
     if (showSplashScreen) {
-        //$('#welcome_content').load('http://www.blockbench.net/api/welcome/index.html', function() {
-        $('#welcome_content').load('C:\\xampp\\htdocs\\blockbench\\api\\welcome\\index.html', function() {
+        $('#welcome_content').load('http://www.blockbench.net/api/welcome/index.html', function() {
             $('#welcome_screen #welcome_content').css('max-height', ($(window).height() - 460)+'px')
             showDialog('welcome_screen')
             localStorage.setItem('welcomed_version', appVersion) 
@@ -837,6 +836,7 @@ function moveCubesRelative(difference, index) { //Multiple
 
 //Selections
 function addToSelection(id, event, isOutlinerClick) {
+    if (elements[id] === undefined) return false;
     //Shift
     if (event.shiftKey === true && elements[id].getParentArray().includes(elements[selected[selected.length-1]]) && isOutlinerClick) {
         var starting_point;
@@ -890,6 +890,7 @@ function addToSelection(id, event, isOutlinerClick) {
         s.display.isselected = false;
     })
     updateSelection()
+    return elements[id];
 }
 function updateSelection() {
     //Clear
