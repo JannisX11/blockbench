@@ -11,7 +11,8 @@ function createWindow () {
     backgroundColor: '#21252b',
     webPreferences: {
       experimentalFeatures: true,
-      webgl: true
+      webgl: true,
+      webSecurity: false
     }
   })
   win.setMenu(null);
