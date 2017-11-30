@@ -111,7 +111,7 @@ function buildBlockModel(options) {                    //Export Blockmodel
         var new_display = {}
         for (var key in display) {
             if (display.hasOwnProperty(key)) {
-                if ((display[key].scale && display[key].scale.join('_') !== '1_1_1') ||
+                if ((typeof display[key].scale === 'object' && display[key].scale.join('_') !== '1_1_1') ||
                     display[key].rotation ||
                     display[key].translation
                 ) {
@@ -345,7 +345,10 @@ function loadPEModel() {
                 group.origin = [0, 0, 0]
             }
             if (b.rotation) {
-                group.rotation = b.rotation
+                group.rotation = b.rotation.slice()
+                group.rotation.forEach(function(br, ri) {
+                    group.rotation[ri] *= -1
+                })
             }
             group.reset = b.reset === true
 
@@ -394,7 +397,10 @@ function buildEntityModel(options) {
         bone.name = g.name
         bone.pivot = g.origin
         if (g.rotation.join('_') !== '0_0_0') {
-            bone.rotation = g.rotation
+            bone.rotation = g.rotation.slice()
+            bone.rotation.forEach(function(br, ri) {
+                bone.rotation[ri] *= -1
+            })
         }
         if (g.reset) {
             bone.reset = true

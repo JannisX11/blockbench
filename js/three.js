@@ -20096,7 +20096,7 @@
 
 		} catch ( error ) {
 
-	        $('#status_bar').html('<div><i class="material-icons">warning</i></div><div>Your '+isApp ? 'computer' : 'browser'+' is not compatible with WebGL.</div>')
+	        $('#status_bar').html('<div><i class="material-icons">warning</i></div><div>Your '+(isApp ? 'computer' : 'browser')+' is not compatible with WebGL.</div>')
 	        console.error('Could not create WebGL context')
 	        console.error(error)
 

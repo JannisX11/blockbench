@@ -120,6 +120,7 @@ function settingSetup() {
         headline3:    {is_title: true, title: "Edit"}, 
         entity_mode:  {value: false, name: 'Entity Model Mode', desc: 'Unrestricted editing mode for Bedrock and Optifine models'},
         undo_limit:   {value: 20, is_number: true, name: 'Undo Limit', desc: 'Number of steps you can undo'},
+        restricted_canvas:{value: true, name: 'Restricted Canvas', desc: 'Move rotated elements on their own axes if possible'},
         move_origin:  {value: false, name: 'Move on Relative Axes', desc: 'Move rotated elements on their own axes if possible'},
         autouv:       {value: true,  name: 'Auto UV', desc: 'Enable AutoUV by default'},
         create_rename:{value: false, name: 'Rename new Cube', desc: 'Focus name field when creating new element or group'},
@@ -526,6 +527,9 @@ function toggleWireframe() {
 var entityMode = {
     state: false,
     join: function() {
+        if (display_mode) {
+           exitDisplaySettings() 
+        }
         settings.entity_mode.value = true
         $('body').addClass('entity_mode')
         $('label[for="project_parent"]').text('Mob Geometry Name')

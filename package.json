@@ -15,10 +15,6 @@
     "files": [
       "assets/",
       "build/",
-      "build/background.png",
-      "build/icon.icns",
-      "build/icon.ico",
-      "build/icon.png",
       "css/",
       "font/",
       "js",

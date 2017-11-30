@@ -643,64 +643,6 @@
 
 		};
 
-		/*this.calcPosition = function(offset) {
-
-  			if (selected.length === 0) return;
-		    scope.children[0].rotation.set(0, 0, 0)
-
-		    var center = [0, 0, 0]
-		    var i = 0;
-		    selected.forEach(function(s) {
-		        var obj = elements[s]
-		        i = 0;
-		        while (i < 3) {
-		            center[i] += obj.from[i]
-		            center[i] += obj.to[i]
-		            i++;
-		        }
-		    })
-		    i = 0;
-		    while (i < 3) {
-		        center[i] = center[i] / (selected.length * 2)
-		        i++;
-		    }
-		    var vec = new THREE.Vector3()
-		    vec.set(center[0], center[1], center[2])
-        	if (settings.entity_mode.value) {
-		        var obj = elements[selected[0]]
-        		if (obj.display.parent !== 'root' &&
-		            typeof obj.display.parent === 'object' &&
-		            obj.display.parent.display.parent === 'root' &&
-		            obj.display.parent.rotation.join('_') !== '0_0_0'
-        		) {
-	            	vec.setFromMatrixPosition(obj.display.mesh.matrixWorld)
-	            	scope.rotation['x'] = Math.PI / (180 / obj.display.parent.rotation[0])
-	            	scope.rotation['y'] = Math.PI / (180 / obj.display.parent.rotation[1])
-	            	scope.rotation['z'] = Math.PI / (180 / obj.display.parent.rotation[2])
-	            	vec.x -= obj.display.parent.origin[0]
-	            	vec.y -= obj.display.parent.origin[1]
-	            	vec.z -= obj.display.parent.origin[2]
-
-
-        		}
-        	} else {
-        		scope.rotation.set(0, 0, 0)
-        	}
-		    if (offset !== undefined) {
-		    	vec.add(offset)
-		        if (movementAxis === true) {
-		        	if (obj.rotation && settings.entity_mode.value === false) {
-		            	vec.setFromMatrixPosition(obj.display.mesh.matrixWorld)
-		            	scope.rotation[obj.rotation.axis] = Math.PI / (180 / obj.rotation.angle)
-		            	vec.x -= obj.rotation.origin[0]
-		            	vec.y -= obj.rotation.origin[1]
-		            	vec.z -= obj.rotation.origin[2]
-		            }
-		        }
-		    	scope.position.copy(vec)
-		        //scope.position.add(vec)
-		    }
-		}*/
 
 		function onPointerHover( event ) {
 
@@ -834,9 +776,9 @@
 						var obj = elements[s]
 						var mesh = scope.objects[i]
 						if (scope.direction === true) { //Positive
-							scaleCube(obj, limitNumber(oldScale + point[axis], 0, 48), axisNumber)
+							scaleCube(obj, limitCoord(oldScale + point[axis]-16)+16, axisNumber)
 						} else {
-							scaleCubeNegative(obj, limitNumber(oldScale - point[axis], 0, 48), axisNumber)
+							scaleCubeNegative(obj, limitCoord(oldScale - point[axis]-16)+16, axisNumber)
 						}
 						if (settings.entity_mode.value === true) {
 							Canvas.updateUV(s)

@@ -762,10 +762,13 @@ function updateNslideValues() {
 
 //Movement
 function isInBox(val) {
-    return (val < 32 && val > -16 || settings.entity_mode.value)
+    return (val < 32 && val > -16 || isCanvasRestricted() === false)
+}
+function isCanvasRestricted() {
+    return (settings.restricted_canvas.value === true && settings.entity_mode.value === false)
 }
 function limitToBox(val) {
-    if (settings.entity_mode.value) {
+    if (!isCanvasRestricted()) {
         return val;
     } else if (val > 32) {
         return 32;
@@ -1013,7 +1016,7 @@ function createSelection() {
 }
 
 function limitCoord(coord) {
-    if (settings.entity_mode.value === true) return coord
+    if (isCanvasRestricted() === false) return coord
     if (coord > 32) {coord = 32}
     else if (coord < -16) {coord = -16}
     return coord;
@@ -1203,7 +1206,7 @@ function paint() {
         from[1]+base_cube.size(1),
         from[2]+base_cube.size(2)
     ]
-    if (settings.entity_mode.value === false) {
+    if (isCanvasRestricted()) {
         var i = 0
         while (i < 3) {
             if (base_cube.to[i] > 32 || from[i] < -16) return;
