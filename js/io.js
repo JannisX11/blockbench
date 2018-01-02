@@ -85,7 +85,7 @@ function buildBlockModel(options) {                    //Export Blockmodel
     if (checkExport('parent', Project.parent != '')) {
         blockmodel.parent = Project.parent
     }
-    if (checkExport('ambientocclusion', Project.ambientocclusion)) {
+    if (checkExport('ambientocclusion', Project.ambientocclusion === false)) {
         blockmodel.ambientocclusion = false
     }
     if (checkExport('textures', Object.keys(texturesObj).length >= 1)) {
@@ -133,8 +133,6 @@ function loadFile(data, filepath, makeNew) {    //Load File Into GUI
     if (makeNew === true) {
         //Create New Project
         if (newProject() == false) return;
-        Prop.file_name = pathToName(Prop.file_path, true)
-        Project.name = pathToName(Prop.file_path, false)
         if (Project.name.length > 0) {
             $('title').text(Project.name+' - Blockbench')
         } else {
@@ -142,6 +140,8 @@ function loadFile(data, filepath, makeNew) {    //Load File Into GUI
         }
         Prop.project_saved = true;
         Prop.file_path = filepath
+        Prop.file_name = pathToName(Prop.file_path, true)
+        Project.name = pathToName(Prop.file_path, false)
     } else {
         //Add to Current Project
         previous_length = elements.length

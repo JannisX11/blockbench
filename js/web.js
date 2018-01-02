@@ -29,9 +29,9 @@ function tryLoadPOSTModel() {
                 tex.load()
             })
         }
-        return false;
+        return true;
     } else {
-        return showSplashScreen
+        return false
     }
 }
 

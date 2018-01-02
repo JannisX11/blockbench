@@ -1,4 +1,4 @@
-var appVersion = '1.10.2'
+var appVersion = '1.10.3'
 var osfs = '/'
 var File, i;
 var browser_name = 'electron'
@@ -52,15 +52,9 @@ var Prop = {
 }
 var sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
 var movementAxis = true;
-var showSplashScreen = localStorage.getItem('welcomed_version') != appVersion
 
 $.ajaxSetup({ cache: false });
 
-$.getJSON('http://blockbench.net/api/index.json', function (data) {
-    if (data.forceSplashScreen == true) {
-        showSplashScreen = true
-    }
-})
 
 function initializeApp() {
     //Browser Support Detection
@@ -126,8 +120,6 @@ function initializeApp() {
             {icon: 'dns', name: 'Toggle Options', click: function() {toggleOutlinerOptions()} },
         ])
     })
-
-
 //Events
     $(window).on( "unload", saveLocalStorages)
 
@@ -173,16 +165,6 @@ function initializeApp() {
             $(this).addClass('ctx')
         }
     })
-    if (!isApp) {
-        showSplashScreen = tryLoadPOSTModel()
-    }
-    if (showSplashScreen) {
-        $('#welcome_content').load('http://www.blockbench.net/api/welcome/index.html', function() {
-            $('#welcome_screen #welcome_content').css('max-height', ($(window).height() - 460)+'px')
-            showDialog('welcome_screen')
-            localStorage.setItem('welcomed_version', appVersion) 
-        })
-    }
     Undo.add('Blank')
 }
 function setupVue() {

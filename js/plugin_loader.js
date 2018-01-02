@@ -76,7 +76,7 @@ function loadInstalledPlugins() {
 				installed: Plugins.installed.includes(id)
 			}
 			if (obj.installed) {
-				loadPlugin(id)
+				downloadPlugin(id)
 			}
 			Plugins.data.push(obj)
 			Plugins.data.sort(function(a,b) {
@@ -84,6 +84,7 @@ function loadInstalledPlugins() {
 			});
 		}
 	} else if (Plugins.installed.length > 0) {
+		//Only show downloaded plugins in the plugin window
 		Plugins.installed.forEach(function(id) {
 			loadPlugin(id, function() {
 				//Plugin Data Comes from the plugin file
@@ -170,7 +171,7 @@ function saveInstalledPlugins() {
 	localStorage.setItem('installed_plugins', JSON.stringify(Plugins.installed))
 	hideDialog()
 }
-function loadPlugin(id, cb, install) {
+function loadPlugin(id, cb, install, allow_update) {
 	if (isApp === true) {
 		$.getScript(Plugins.path + id + '.js', function(a) {
 			if (onUninstall) {

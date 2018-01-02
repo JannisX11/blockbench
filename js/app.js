@@ -106,7 +106,7 @@ function installUpdate() {
     var received_bytes = 0;
     var total_bytes = 0;
 
-    $('.uc_btn').attr('disabled', true)
+    $('.uc_btn').css('visibility', 'hidden')
 
     var asar_path = __dirname
     if (asar_path.includes('.asar') === false) {

@@ -112,7 +112,6 @@ function textPrompt(title, var_string, value, callback) {
             console.error(err)
         }
     })
-    // textPrompt('Texture Name', 'textures[0].name')
 }
 function renameCubeList(name) {
     selected.forEach(function(s, i) {
@@ -135,7 +134,8 @@ function randomHelpMessage() {
         'You can load a blueprint of your model to make it easier to get the proportions right. Enter a side view and drag the image into the background. Use the menu on the bottom right to adjust it.',
         'There are many useful plugins by the community in the plugin menu. Just click install and go.',
         'Keep Blockbench updated. Updates add new functions to Blockbench, fix bugs and installing them is as easy opening the updates screen from the File menu and clicking the Update button',
-        'Check the Move Relative box in the Edit menu to move cubes on their rotated axis.'
+        'Check the Move Relative box in the Edit menu to move cubes on their rotated axis.',
+        'When you are renaming multiple elements, you can number them by adding the placeholders $ (relative) or % (absolute).'
     ]
     var message = tips[Math.floor(Math.random()*tips.length)]
     Blockbench.showMessageBox({
@@ -309,6 +309,7 @@ function updateUIColor() {
         }
     }
     var grid_color = '0x'+app_colors.hover.hex.replace('#', '')
+    $('meta[name=theme-color]').attr('content', app_colors.ui.hex)
 
     try {
         three_grid.getObjectByName('grid').material.color = new THREE.Color(parseInt(grid_color, 16))
@@ -419,6 +420,42 @@ function updateMenu() {
     })
 }
 
+//SplashScreen
+var splashScreen = {
+    attempt: function(res) {
+        //NOW:  Internet Available! -- DOM Ready!
+
+        //Post Model
+        if (!isApp && tryLoadPOSTModel()) {
+            return;
+        }
+
+        //Show
+        if (res[1] ||//Forced
+            localStorage.getItem('welcomed_version') != appVersion//Updated
+        ) {
+            splashScreen.show()
+        }
+    },
+    show: function() {
+        $('#welcome_content').load('http://www.blockbench.net/api/welcome/index.html', function() {
+            $('#welcome_screen #welcome_body').css('max-height', ($(window).height() - 478) + 'px')
+            showDialog('welcome_screen')
+            localStorage.setItem('welcomed_version', appVersion) 
+        })
+    },
+    p_doc: new Promise(function(resolve, reject) {
+        $(document).ready(function() {
+            resolve(true)
+        })
+    }),
+    p_force: new Promise(function(resolve, reject) {
+        $.getJSON('http://blockbench.net/api/index.json', function (data) {
+            resolve(data.forceSplashScreen)
+        })
+    })
+}
+Promise.all([splashScreen.p_doc, splashScreen.p_force]).then(splashScreen.attempt)
 
 
 

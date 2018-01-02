@@ -365,6 +365,7 @@ class Cube extends OutlinerElement {
 		if (settings.entity_mode.value) return;
 		var scope = this
 		if (scope.display.autouv === 2) {
+			//Relative UV
 			var all_faces = ['north', 'south', 'west', 'east', 'up', 'down']
 			all_faces.forEach(function(side) {
 		        var uv = scope.faces[side].uv.slice()
@@ -431,6 +432,13 @@ class Cube extends OutlinerElement {
 				var sy = scope.faces[face].uv[1]
 				var rot = scope.faces[face].rotation
 
+				//Use Texture resolution
+				var tex = getTextureById(scope.faces[face].texture)
+				if (tex && tex.res && tex.res != 16) {
+					size[0] *= 16 / tex.res
+					size[1] *= 16 / tex.res
+				}
+
 				//Match To Rotation
 				if (rot === 90 || rot === 270) {
 				    size.reverse()
@@ -459,8 +467,6 @@ class Cube extends OutlinerElement {
 				//Prevent Mirroring
 				if (x < sx) x = sx
 				if (y < sy) y = sy
-
-				//if ()
 				//Return
 				return [sx, sy, x, y]
 			}
@@ -556,6 +562,28 @@ class Group extends OutlinerElement {
 		}
 		updateSelection()
 	}
+	selectChildren(event) {
+		var scope = this;
+		if (currently_renaming) return;
+		if (!event) event = {shiftKey: false}
+		var firstChildSelected = false
+
+		//Clear Old Group
+		if (selected_group) selected_group.unselect()
+		selected.length = 0
+
+		//Select This Group
+		getAllOutlinerGroups().forEach(function(s) {
+			s.display.isselected = false
+		})
+		this.display.isselected = true
+		selected_group = this
+
+		scope.children.forEach(function(s) {
+			s.selectLow()
+		})
+		updateSelection()
+	}
 	selectLow(highlight) {
 		//Only Select
 		if (highlight !== false) {
@@ -619,6 +647,7 @@ class Group extends OutlinerElement {
 		return array
 	}
 	renameChildren() {
+		this.selectChildren()
 		stopRenameCubes()
 		textPrompt('Rename Elements', '', elements[selected[0]].name, renameCubeList)
 	}
@@ -905,9 +934,9 @@ function parseGroups(array) {
 					obj.reset = true
 				}
 				obj.isOpen = array[i].isOpen
-				obj.display.visibility = array[i].display.visibility
-				obj.display.export = array[i].display.export
-				obj.display.autouv = array[i].display.autouv
+				if (array[i].display.visibility !== undefined) obj.display.visibility = array[i].display.visibility
+				if (array[i].display.export 	!== undefined) obj.display.export = array[i].display.export
+				if (array[i].display.autouv 	!== undefined) obj.display.autouv = array[i].display.autouv
 				obj.children.length = 0
 				obj.display.parent = addGroup
 				if (array[i].children.length > 0) {
@@ -1151,12 +1180,36 @@ function duplicateCubes() {
 }
 function origin2geometry() {
 	selected.forEach(function(s) {
-		if (elements[s].rotation == undefined) {
-			elements[s].rotation = {origin:[8,8,8], axis: 'y', angle: 0}
+
+		var obj = elements[s]
+		var element_size = obj.size()
+		var element_center = new THREE.Vector3(
+			(element_size[0]   / 2) + obj.from[0],
+			(element_size[1]   / 2) + obj.from[1],
+			(element_size[2]   / 2) + obj.from[2]
+		)
+
+		if (obj.rotation == undefined) {
+			obj.rotation = {origin:[8,8,8], axis: 'y', angle: 0}
 		}
-		elements[s].rotation.origin[0] = (elements[s].size(0) / 2) + elements[s].from[0]
-		elements[s].rotation.origin[1] = (elements[s].size(1) / 2) + elements[s].from[1]
-		elements[s].rotation.origin[2] = (elements[s].size(2) / 2) + elements[s].from[2]
+		element_center.x -= obj.rotation.origin[0]
+		element_center.y -= obj.rotation.origin[1]
+		element_center.z -= obj.rotation.origin[2]
+
+		if (obj.display.mesh) {
+			element_center.applyEuler(obj.display.mesh.rotation)
+		}
+		obj.rotation.origin[0] += element_center.x
+		obj.rotation.origin[1] += element_center.y
+		obj.rotation.origin[2] += element_center.z
+
+		obj.to[0] = obj.rotation.origin[0] + element_size[0] / 2
+		obj.to[1] = obj.rotation.origin[1] + element_size[1] / 2
+		obj.to[2] = obj.rotation.origin[2] + element_size[2] / 2
+
+		obj.from[0] = obj.rotation.origin[0] - element_size[0] / 2
+		obj.from[1] = obj.rotation.origin[1] - element_size[1] / 2
+		obj.from[2] = obj.rotation.origin[2] - element_size[2] / 2
 	})
 	Canvas.updatePositions()
 	setUndo('Set origin to geometry')
