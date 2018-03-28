@@ -15,16 +15,19 @@ var Plugins = {
 		Plugins.Vue._data.showAll = !Plugins.Vue._data.showAll
 	},
 	devReload: function() {
+		var reloads = 0;
 		Plugins.data.forEach(function(pl) {
 			if (pl.fromFile) {
 				pl.reload()
+				reloads++;
 			}
 		})
+		console.log('Reloaded '+reloads+ ' plugin'+pluralS(reloads))
 	}
 }
 
 if (isApp) {
-	Plugins.path = __dirname.replace('resources'+osfs+'app.asar', 'plugins'+osfs)
+	Plugins.path = app.app.getPath('userData')+osfs+'plugins'+osfs
 	fs.readdir(Plugins.path, function(err) {
 	    if (err) {
 	        fs.mkdir(Plugins.path, function(a) {})
@@ -73,10 +76,15 @@ function loadInstalledPlugins() {
 				description: plugin.description,
 				icon: plugin.icon,
 				variant: plugin.variant,
+				min_version: plugin.min_version,
 				installed: Plugins.installed.includes(id)
 			}
 			if (obj.installed) {
-				downloadPlugin(id)
+				if (isApp) {
+					downloadPlugin(id)
+				} else {
+					loadPlugin(id)
+				}
 			}
 			Plugins.data.push(obj)
 			Plugins.data.sort(function(a,b) {
@@ -96,6 +104,7 @@ function loadInstalledPlugins() {
 					description: plugin_data.description,
 					icon: plugin_data.icon,
 					variant: plugin_data.variant,
+					min_version: plugin_data.min_version,
 					installed: true
 				}
 				Plugins.data.push(obj)
@@ -120,7 +129,7 @@ function loadInstalledPlugins() {
 			installedPlugins() {
 				var name = $('#plugin_search_bar').val().toUpperCase()
 				return this.items.filter(item => {
-					if (this.showAll || item.installed) {
+					if (this.showAll !== item.installed) {
 						if (name.length > 0) {
 							return (
 								item.id.toUpperCase().includes(name) ||
@@ -161,8 +170,10 @@ function loadInstalledPlugins() {
 						isApp === (plugin.variant === 'desktop') && 
 						isApp !== (plugin.variant === 'web')
 					);
-				return result;
-					
+				if (result && plugin.min_version) {
+					result = compareVersions(plugin.min_version, appVersion) ? 'outdated_client' : true
+				}
+				return result;	
 			}
 		}
 	})
@@ -208,6 +219,7 @@ function loadPlugin(id, cb, install, allow_update) {
 }
 function loadPluginFromFile() {
 	function readFromPluginFile(content, path, hideWarning) {
+		onInstall = undefined
 		if (!hideWarning) {
 			if (isApp) {
 				if (!confirm('Do you want to allow this plugin to make changes to your PC? Only load plugins from people you trust.')) return;
@@ -223,8 +235,8 @@ function loadPluginFromFile() {
 			return;
 		}
 		var obj = {
-			author: 'x11',
-			icon: 'refresh',
+			author: 'unknown',
+			icon: 'extension',
 			installed: true,
 			id: 'test',
 			title: 'Plugin',
@@ -256,6 +268,8 @@ function loadPluginFromFile() {
 		$.extend(true, obj, plugin_data)
 		obj.uninstallMethod = onUninstall
 		onUninstall = undefined
+		if (onInstall) onInstall()
+		onInstall = undefined
 		Plugins.data.push(obj)
 		Plugins.data.sort(function(a,b) {
 			return sort_collator.compare(a.title, b.title)

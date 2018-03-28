@@ -177,6 +177,7 @@ THREE.OBJExporter.prototype = {
 		}
         
 	}
+	mtlOutput += 'newmtl none'
 
 	return {
 		obj: output,
@@ -202,9 +203,9 @@ function getMtlFace(obj, index) {
 	var id = obj.faces[key].texture
 
 	if (id === '$transparent') {
-		return 'usemtl none'
+		return 'usemtl none\n'
 	} else if (id === undefined) {
-		return 'usemtl none'
+		return 'usemtl none\n'
 	} else {
 		id = id.replace('#', '')
 		return 'usemtl ' + id + '\n';

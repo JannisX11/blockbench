@@ -52,8 +52,8 @@ class UVEditor {
             '<div class="bar">'+
                 '<div class="tool wide nslide_tool"><div class="nslide" n-action="moveuv_x"></div><div class="tooltip">Move X</div></div>' +
                 '<div class="tool wide nslide_tool"><div class="nslide" n-action="moveuv_y"></div><div class="tooltip">Move Y</div></div>' +
-                (settings.entity_mode.value ? '' : '<div class="tool wide nslide_tool"><div class="nslide" n-action="scaleuv_x"></div><div class="tooltip">Scale X</div></div>') +
-                (settings.entity_mode.value ? '' : '<div class="tool wide nslide_tool"><div class="nslide" n-action="scaleuv_y"></div><div class="tooltip">Scale Y</div></div>') +
+                (Blockbench.entity_mode ? '' : '<div class="tool wide nslide_tool"><div class="nslide" n-action="scaleuv_x"></div><div class="tooltip">Scale X</div></div>') +
+                (Blockbench.entity_mode ? '' : '<div class="tool wide nslide_tool"><div class="nslide" n-action="scaleuv_y"></div><div class="tooltip">Scale Y</div></div>') +
                 '<button class="large" id="entity_mode_resolution_button" onclick="showDialog(\'project_settings\');">Resolution</button>'+
             '</div>'
         )
@@ -63,6 +63,14 @@ class UVEditor {
             //dummy function, sets the global variable nslide.editor to the current uv editor
             nslide.editor = scope;
         })
+
+        this.jquery.size.mouseenter(function() {
+            scope.displayMappingOverlay()
+        })
+        this.jquery.size.mouseleave(function() {
+            $(this).find('.uv_mapping_overlay').remove()
+        })
+
         if (toolbar) {
             this.jquery.bar = $(
                 '<div class="bar">' +
@@ -102,19 +110,16 @@ class UVEditor {
         }
 
 
-        if (settings.entity_mode.value === false) {
+        if (Blockbench.entity_mode === false) {
             this.jquery.size.resizable({
                 handles: "all",
                 maxHeight: 320,
                 maxWidth: 320,
                 containment: 'parent',
-                start: function(event, ui) {
-                    //ui.originalSize.width += 2
-                    //ui.originalSize.height += 2
-                },
                 resize: function(event, ui) {
                     scope.save()
                     scope.displayNslides()
+                    scope.disableAutoUV()
                 },
                 stop: function(event, ui) {
                     setUndo('Changed UV')
@@ -158,46 +163,7 @@ class UVEditor {
         })
 
         this.jquery.frame.contextmenu(function(event) {
-            if (settings.entity_mode.value) return;
-            var ref = elements[selected[0]].faces[scope.face]
-            ContextMenu(event, [
-                {icon: 'content_copy', name: 'Copy', click: function(event) {scope.copy(event)}},
-                {icon: 'content_paste', name: 'Paste', click: function(event) {scope.paste(event)}},
-                {icon: 'photo_size_select_large', name: 'UV Mapping', children: [
-                    {icon: 'zoom_out_map', name: 'Maximize', click: function(event) {scope.maximize(event)}},
-                    {icon: 'brightness_auto', name: 'Auto UV', click: function(event) {scope.setAutoSize(event)}},
-                    {icon: 'brightness_auto', name: 'Rel. Auto UV', click: function(event) {scope.setRelativeAutoSize(event)}},
-                    {icon: 'rotate_90_degrees_ccw', name: 'Rotation', children: function() {
-                        var off = 'radio_button_unchecked'
-                        var on = 'radio_button_checked'
-                        return [
-                            {icon: (!ref.rotation ? on : off), name: '0', click: function(event) {scope.setRotation(0)}},
-                            {icon: (ref.rotation === 90 ? on : off), name: '90', click: function(event) {scope.setRotation(90)}},
-                            {icon: (ref.rotation === 180 ? on : off), name: '180', click: function(event) {scope.setRotation(180)}},
-                            {icon: (ref.rotation === 270 ? on : off), name: '270', click: function(event) {scope.setRotation(270)}}
-                        ]
-                    }},
-                    {icon: 'flip', name: 'Mirror X', click: function(event) {scope.mirrorX(event)}},
-                    {icon: 'flip', name: 'Mirror Y', click: function(event) {scope.mirrorY(event)}},
-                ]},
-                {
-                    icon: (ref.tintindex === 0 ? 'check_box' : 'check_box_outline_blank'),
-                    name: 'Tint', click: function(event) {scope.switchTint(elements[selected[0]].faces[scope.face].tintindex !== 0)}
-                },
-                {icon: 'collections', name: 'Texture', children: function() {
-                    var arr = [
-                        {icon: 'clear', name: 'Transparent', click: function(event) {scope.clear(event)}},
-                    ]
-                    textures.forEach(function(s) {
-                        arr.push({
-                            name: s.name,
-                            icon: s.img,
-                            click: function(event) {scope.applyTexture(s.id)}
-                        })
-                    })
-                    return arr;
-                }}
-            ])
+            scope.contextMenu()
         })
         return this;
     }
@@ -222,10 +188,18 @@ class UVEditor {
             return [this.face]
         }
     }
+    getUVTag(obj) {
+        if (!obj) obj = selected[0]
+        if (Blockbench.entity_mode) {
+            return [obj.uv_offset[0], obj.uv_offset[1], 0, 0];
+        } else {
+            return obj.faces[this.face].uv;
+        }
+    }
     forCubes(cb) {
         var i = 0;
         while (i < selected.length) {
-            cb(elements[selected[i]], selected[i])
+            cb(selected[i], selected[i].index())
             i++;
         }
     }
@@ -233,8 +207,11 @@ class UVEditor {
     setSize(size, cancel_load) {
         this.size = size
         this.jquery.frame.width(size)
+        if (uv_dialog.editors !== undefined && this === uv_dialog.editors.single) {
+            this.jquery.main.width(size)
+        }
 
-        if (settings.entity_mode.value) {
+        if (Blockbench.entity_mode) {
             this.jquery.frame.height(size / (Project.texture_width/Project.texture_height))
             $('.ui#textures').css('top', 133+(size / (Project.texture_width/Project.texture_height))+'px')
         } else {
@@ -253,7 +230,7 @@ class UVEditor {
         return this;
     }
     setGrid(grid, load) {
-        if (settings.entity_mode.value) {
+        if (Blockbench.entity_mode) {
             this.autoGrid = false;
             grid = Project.texture_width
         } else if (grid === undefined || grid === 'dialog') {
@@ -277,7 +254,7 @@ class UVEditor {
             }
         }
         this.grid = grid
-        if (settings.entity_mode.value === false) {
+        if (Blockbench.entity_mode === false) {
             this.jquery.size.resizable('option', 'grid', [this.getPixelSize(), this.getPixelSize()])
         }
         if (load !== false) this.loadData()
@@ -302,7 +279,7 @@ class UVEditor {
         $('.ui#uv').append(this.jquery.main)
         this.jquery.main.on('mousewheel', function() {
 
-            if (settings.entity_mode.value) return;
+            if (Blockbench.entity_mode) return;
 
             var faceIDs = {'north': 0, 'south': 1, 'west': 2, 'east': 3, 'up': 4, 'down': 5}
             var id = faceIDs[scope.face]
@@ -329,7 +306,7 @@ class UVEditor {
     }
     loadData() {
         if (selected.length === 0) return;
-        var face = elements[selected[0]].faces[this.face]
+        var face = selected[0].faces[this.face]
         
         //Set Rotation
         if (face.rotation) {
@@ -351,19 +328,26 @@ class UVEditor {
     }
     save() {
         var scope = this;
-        var pixelSize = this.size/16
         //Save UV from Frame to object!!
-        var left = this.jquery.size.position().left / pixelSize
-        var top  = this.jquery.size.position().top / pixelSize * (Project.texture_width/Project.texture_height)
-        var left2 = (this.jquery.size.width()) / pixelSize + left
-        var top2 = (this.jquery.size.height()) / pixelSize + top
 
+        if (Blockbench.entity_mode) {
 
-        //Check if negative
-        if (settings.entity_mode.value) {
-            var uvArr = [left, top, 16, 16]
+            selected.forEach(function(obj) {
+                obj.uv_offset = [
+                    Math.round(scope.jquery.size.position().left / (scope.size/Project.texture_width) * 8) / 8,
+                    Math.round(scope.jquery.size.position().top  / (scope.size/Project.texture_width) * 8) / 8
+                ]
+                Canvas.updateUV(obj)
+            })
+
         } else {
-            var uvTag = elements[selected[0]].faces[this.face].uv
+
+            var pixelSize = this.size/16
+            var left = this.jquery.size.position().left / pixelSize
+            var top  = this.jquery.size.position().top / pixelSize * (Project.texture_width/Project.texture_height)
+            var left2 = (this.jquery.size.width()) / pixelSize + left
+            var top2 = (this.jquery.size.height()) / pixelSize + top
+            var uvTag = this.getUVTag()
 
             if (uvTag[0] > uvTag[2]) {
                 left2 = [left, left = left2][0];
@@ -377,13 +361,12 @@ class UVEditor {
                     uvArr[i] = 16
                 }
             })
+            selected.forEach(function(obj) {
+                obj.faces[scope.face].uv = uvArr.slice()
+                Canvas.updateUV(obj)
+            })
         }
 
-        selected.forEach(function(s) {
-            var obj = elements[s]
-            obj.faces[scope.face].uv = uvArr.slice()
-            Canvas.updateUV(s)
-        })
         if (this !== main_uv && this.face === main_uv.face) {
             main_uv.loadData()
         }
@@ -409,24 +392,24 @@ class UVEditor {
             this.setFrameColor(tex.dark_box)
             var css = 'url("'+tex.iconpath.split('\\').join('\\\\').replace(/ /g, '%20')+'")'
             this.jquery.frame.css('background-image', css)
-            if (settings.entity_mode.value) {
+            if (Blockbench.entity_mode) {
                 this.jquery.frame.css('background-size', 'contain')
             } else {
                 this.jquery.frame.css('background-size', 'cover')
             }
             this.texture = tex;
-            if (this.autoGrid) {
+            if (this.autoGrid || Blockbench.entity_mode) {
                 this.setGrid(tex.res, false)
             }
         }
-        if (settings.entity_mode.value) {
+        if (Blockbench.entity_mode) {
             this.setSize(this.size, true)
         }
     }
     displayTransformInfo() {
-        var ref = elements[selected[0]].faces[this.face]
+        var ref = selected[0].faces[this.face]
         this.jquery.transform_info.text('')
-        if (settings.entity_mode.value) return;
+        if (Blockbench.entity_mode) return;
 
         if (ref.uv[0] > ref.uv[2]) {
             this.jquery.transform_info.append('<b>X</b>')
@@ -446,55 +429,135 @@ class UVEditor {
             this.grid = 16
         }
     }
-    displayFrame(face) {
-        if (!face) {
-            face = elements[selected[0]].faces[this.face]
-        }
-
+    displayFrame() {
+        /*
+        var uvTag = this.getUVTag(selected[0])
         var pixels = this.size/16
 
         //X
-        if (settings.entity_mode.value) {
-            var width = (elements[selected[0]].size(0) + elements[selected[0]].size(2))*2
+        if (Blockbench.entity_mode) {
+            var width = (selected[0].size(0) + selected[0].size(2))*2
             width = limitNumber(width/Project.texture_width * 16, 0, 16)
         } else {
-            var width = limitNumber(face.uv[2]-face.uv[0], -16, 16)
+            var width = limitNumber(uvTag[2]-uvTag[0], -16, 16)
         }
-        var x = limitNumber(face.uv[0], 0, 16) * pixels
+        var x = limitNumber(uvTag[0], 0, 16)
         if (width < 0) {
             width *= -1
             x = x - width
         }
         this.jquery.size.width(width * pixels)
-        this.jquery.size.css('left', x+'px')
+        this.jquery.size.css('left', x*pixels+'px')
 
         //Y
-        if (settings.entity_mode.value) {
-            var height = elements[selected[0]].size(2) + elements[selected[0]].size(1)
+        if (Blockbench.entity_mode) {
+            var height = selected[0].size(2) + selected[0].size(1)
             height = limitNumber(height/Project.texture_width * 16, 0, 16)
         } else {
-            var height = limitNumber(face.uv[3]-face.uv[1], -16, 16)
+            var height = limitNumber(uvTag[3]-uvTag[1], -16, 16)
         }
-        var y = limitNumber(face.uv[1], 0, 16) * pixels
+        var y = limitNumber(uvTag[1], 0, 16)
         if (height < 0) {
             height *= -1
             y = y - height
         }
-        if (settings.entity_mode.value) {
+        if (Blockbench.entity_mode) {
             y *= (Project.texture_height/Project.texture_width)
         }
         this.jquery.size.height(height * pixels)
-        this.jquery.size.css('top', y+'px')
+        this.jquery.size.css('top', y*pixels+'px')
+        this.displayTransformInfo()
+        */
+        var scope = this;
+        if (Blockbench.entity_mode) {
+            var uvTag = this.getUVTag(selected[0])
+
+            var width = (selected[0].size(0) + selected[0].size(2))*2
+                width = limitNumber(width, 0, Project.texture_width)
+                width = width/Project.texture_width*scope.size
+
+            var x = limitNumber(uvTag[0], 0, Project.texture_width)
+                x *= scope.size/Project.texture_width
+
+            this.jquery.size.width(width)
+            this.jquery.size.css('left', x+'px')
+
+
+            var height = selected[0].size(2) + selected[0].size(1)
+                height = limitNumber(height, 0, Project.texture_height)
+                height = height/Project.texture_height*scope.size
+                height *= Project.texture_height/Project.texture_width
+
+            var y = limitNumber(uvTag[1], 0, Project.texture_height)
+                y *= scope.size/Project.texture_height
+                y *= Project.texture_height/Project.texture_width
+
+            this.jquery.size.height(height)
+            this.jquery.size.css('top', y+'px')
+
+
+        } else {
+
+            var uvTag = this.getUVTag(selected[0])
+            var pixels = this.size/16
+
+            //X
+            var width = limitNumber(uvTag[2]-uvTag[0], -16, 16)
+            var x = limitNumber(uvTag[0], 0, 16)
+            if (width < 0) {
+                width *= -1
+                x = x - width
+            }
+            this.jquery.size.width(width * pixels)
+            this.jquery.size.css('left', x*pixels+'px')
+
+            //Y
+            var height = limitNumber(uvTag[3]-uvTag[1], -16, 16)
+            var y = limitNumber(uvTag[1], 0, 16)
+            if (height < 0) {
+                height *= -1
+                y = y - height
+            }
+            this.jquery.size.height(height * pixels)
+            this.jquery.size.css('top', y*pixels+'px')
+        }
         this.displayTransformInfo()
     }
+    displayMappingOverlay() {
+        if (!Blockbench.entity_mode) return this;
+        var scope = this;
+        var size = scope.getPixelSize()
+        function addElement(x,y,width, height, n, color) {
+            scope.jquery.size.append('<div class="uv_mapping_overlay" '+
+                'style="left: '+x*size+'px; top: '+y*size+'px;'+
+                'height: '+height*size+'px; width: '+width*size+'px;'+
+                'background: '+color+';"></div>')
+        }
+        var obj = selected[0]
+        addElement(obj.size(2), 0, obj.size(0), obj.size(2),                            '#b4d4e1', '#ecf8fd')
+        addElement(obj.size(2)+obj.size(0), 0, obj.size(0), obj.size(2),                '#536174', '#6e788c')
+        addElement(0, obj.size(2), obj.size(2), obj.size(1),                            '#43e88d', '#7BFFA3')
+        addElement(obj.size(2), obj.size(2), obj.size(0), obj.size(1),                  '#5bbcf4', '#7BD4FF')
+        addElement(obj.size(2)+obj.size(0), obj.size(2), obj.size(2), obj.size(1),      '#f48686', '#FFA7A4')
+        addElement(2*obj.size(2)+obj.size(0), obj.size(2), obj.size(0), obj.size(1),    '#f8dd72', '#FFF899')
+    }
     displayNslides() {
-        var face_uv = elements[selected[0]].faces[this.face].uv
-        var values = [
-            trimFloatNumber(face_uv[0] * (settings.entity_mode.value ? Project.texture_width / 16 : 1)),
-            trimFloatNumber(face_uv[1] * (settings.entity_mode.value ? Project.texture_height / 16 : 1)),
-            trimFloatNumber(face_uv[2] - face_uv[0]),
-            trimFloatNumber(face_uv[3] - face_uv[1])
-        ]
+        if (Blockbench.entity_mode) {
+            var values = [
+                trimFloatNumber(selected[0].uv_offset[0] ),
+                trimFloatNumber(selected[0].uv_offset[1] ),
+                0,
+                0
+            ]
+        } else {
+            var face_uv = selected[0].faces[this.face].uv
+            var values = [
+                trimFloatNumber(face_uv[0] * (Blockbench.entity_mode ? Project.texture_width / 16 : 1)),
+                trimFloatNumber(face_uv[1] * (Blockbench.entity_mode ? Project.texture_height / 16 : 1)),
+                trimFloatNumber(face_uv[2] - face_uv[0]),
+                trimFloatNumber(face_uv[3] - face_uv[1])
+            ]
+        }
         this.jquery.nslides.find('div.nslide[n-action="moveuv_x"]:not(".editing")').text(values[0])
         this.jquery.nslides.find('div.nslide[n-action="moveuv_y"]:not(".editing")').text(values[1])
         this.jquery.nslides.find('div.nslide[n-action="scaleuv_x"]:not(".editing")').text(values[2])
@@ -502,7 +565,7 @@ class UVEditor {
     }
     displayTools() {
         //Cullface
-        var face = elements[selected[0]].faces[this.face]
+        var face = selected[0].faces[this.face]
         if (face.cullface) {
             $('#uv_dialog_toolbar select#cullface').val(face.cullface)
         } else {
@@ -516,56 +579,89 @@ class UVEditor {
             $('#uv_dialog_toolbar input#tint').prop('checked', false)
         }
     }
+    contextMenu() {
+        var scope = this;
+        if (Blockbench.entity_mode) return;
+        var ref = selected[0].faces[scope.face]
+        ContextMenu(event, [
+            {icon: 'content_copy', name: 'Copy', click: function(event) {scope.copy(event)}},
+            {icon: 'content_paste', name: 'Paste', click: function(event) {scope.paste(event)}},
+            {icon: 'photo_size_select_large', name: 'UV Mapping', children: [
+                {icon: ref.enabled!==false ? 'check_box' : 'check_box_outline_blank', name: 'Export', click: function(event) {scope.toggleUV(event)}},
+                {icon: 'zoom_out_map', name: 'Maximize', click: function(event) {scope.maximize(event)}},
+                {icon: 'brightness_auto', name: 'Auto UV', click: function(event) {scope.setAutoSize(event)}},
+                {icon: 'brightness_auto', name: 'Rel. Auto UV', click: function(event) {scope.setRelativeAutoSize(event)}},
+                {icon: 'rotate_90_degrees_ccw', name: 'Rotation', children: function() {
+                    var off = 'radio_button_unchecked'
+                    var on = 'radio_button_checked'
+                    return [
+                        {icon: (!ref.rotation ? on : off), name: '0', click: function(event) {scope.setRotation(0)}},
+                        {icon: (ref.rotation === 90 ? on : off), name: '90', click: function(event) {scope.setRotation(90)}},
+                        {icon: (ref.rotation === 180 ? on : off), name: '180', click: function(event) {scope.setRotation(180)}},
+                        {icon: (ref.rotation === 270 ? on : off), name: '270', click: function(event) {scope.setRotation(270)}}
+                    ]
+                }},
+                {icon: (ref.uv[0] > ref.uv[2] ? 'check_box' : 'check_box_outline_blank'), name: 'Mirror X', click: function(event) {scope.mirrorX(event)}},
+                {icon: (ref.uv[1] > ref.uv[3] ? 'check_box' : 'check_box_outline_blank'), name: 'Mirror Y', click: function(event) {scope.mirrorY(event)}},
+            ]},
+            {
+                icon: (ref.tintindex === 0 ? 'check_box' : 'check_box_outline_blank'),
+                name: 'Tint', click: function(event) {scope.switchTint(selected[0].faces[scope.face].tintindex !== 0)}
+            },
+            {icon: 'collections', name: 'Texture', children: function() {
+                var arr = [
+                    {icon: 'clear', name: 'Transparent', click: function(event) {scope.clear(event)}},
+                ]
+                textures.forEach(function(s) {
+                    arr.push({
+                        name: s.name,
+                        icon: s.img,
+                        click: function(event) {scope.applyTexture(s.id)}
+                    })
+                })
+                return arr;
+            }}
+        ])
+    }
     //Nslide
-    slider(action, difference, index) {
-        if (settings.entity_mode.value === false) {} else if (action.includes('x')) {
-            difference *= (16 / Project.texture_width)
-        } else {
-            difference *= (16 / Project.texture_height)
-        }
+    slider(action, difference, obj) {
         var before;
         switch (action) {
             case 'moveuv_x':
-                before = elements[index].faces[this.face].uv[0];
+                before = this.getUVTag(obj)[0];
                 break;
             case 'moveuv_y':
-                before = elements[index].faces[this.face].uv[1];
+                before = this.getUVTag(obj)[1];
                 break;
             case 'scaleuv_x':
-                before = elements[index].faces[this.face].uv[2] - elements[index].faces[this.face].uv[0];
+                before = this.getUVTag(obj)[2] - this.getUVTag(obj)[0];
                 break;
             case 'scaleuv_y':
-                before = elements[index].faces[this.face].uv[3] - elements[index].faces[this.face].uv[1];
+                before = this.getUVTag(obj)[3] - this.getUVTag(obj)[1];
                 break;
         }
 
         difference += before
         switch (action) {
             case 'moveuv_x':
-            this.moveCoord(0, difference, elements[index])
+            this.moveCoord(0, difference, obj)
             break;
             case 'moveuv_y':
-            this.moveCoord(1, difference, elements[index])
+            this.moveCoord(1, difference, obj)
             break;
 
             case 'scaleuv_x':
-            this.scaleCoord(0, difference, elements[index])
+            this.scaleCoord(0, difference, obj)
             break;
             case 'scaleuv_y':
-            this.scaleCoord(1, difference, elements[index])
+            this.scaleCoord(1, difference, obj)
             break;
         }
         $('#nslide_head #nslide_offset').text('Offset: '+difference)
     }
     nslideInput(action, difference) {
-        if (settings.entity_mode.value === false) {} else if (action.includes('x')) {
-            difference *= (16 / Project.texture_width)
-        } else {
-            difference *= (16 / Project.texture_height)
-        }
         var scope = this;
-        selected.forEach(function(s) {
-            var obj = elements[s]
+        selected.forEach(function(obj) {
             switch (action) {
                 case 'moveuv_x':
                 scope.moveCoord(0, difference, obj)
@@ -584,8 +680,8 @@ class UVEditor {
         })
     }
     moveCoord(index, val, obj) {
-        var uvTag = obj.faces[this.face].uv
-        if (settings.entity_mode.value === false) {
+        if (Blockbench.entity_mode === false) {
+            var uvTag = this.getUVTag(obj)
             var size = uvTag[index + 2] - uvTag[index]
             val = limitNumber(val, 0, 16)
             val = limitNumber(val + size, 0, 16) - size
@@ -594,16 +690,15 @@ class UVEditor {
             uvTag[index + 2] = size + val
         } else {
             if (index === 0) {
-                var size = (elements[selected[0]].size(0) + elements[selected[0]].size(2))*2
-                size = size/Project.texture_width * 16
+                var size = (selected[0].size(0) + selected[0].size(2))*2
+                var limit = Project.texture_width
             } else {
-                var size = elements[selected[0]].size(2) + elements[selected[0]].size(1)
-                size = size/Project.texture_height * 16
+                var size = selected[0].size(2) + selected[0].size(1)
+                var limit = Project.texture_height
             }
-            val = limitNumber(val, 0, 16)
-            val = limitNumber(val + size, 0, 16) - size
-            uvTag[index] = val
-            uvTag[index + 2] = 16
+            val = limitNumber(val, 0, limit)
+            val = limitNumber(val + size, 0, limit) - size
+            obj.uv_offset[index] = val
         }
 
         this.displayNslides()
@@ -611,7 +706,7 @@ class UVEditor {
     }
     scaleCoord(index, val, obj) {
 
-        var uvTag = obj.faces[this.face].uv
+        var uvTag = this.getUVTag(obj)
 
         uvTag[index + 2] = limitNumber(uvTag[index] + val, 0, 16)
 
@@ -620,14 +715,26 @@ class UVEditor {
     }
 
     //Events
+    disableAutoUV() {
+        this.forCubes(function(obj) {
+            obj.display.autouv = 0
+        })
+    }
+    toggleUV() {
+        var scope = this
+        var state = selected[0].faces[this.face].enabled === false
+        this.forCubes(function(obj) {
+            obj.faces[scope.face].enabled = state
+        })
+    }
     maximize(event) {
         var scope = this;
-        this.forCubes(function(obj, i) {
+        this.forCubes(function(obj) {
             scope.getFaces(event).forEach(function(side) {
                 obj.faces[side].uv = [0, 0, 16, 16]
             })
-            obj.display.autouv = false
-            Canvas.updateUV(i)
+            obj.display.autouv = 0
+            Canvas.updateUV(obj)
         })
         this.message('Maximized')
         this.loadData()
@@ -651,8 +758,8 @@ class UVEditor {
                 }
                 obj.faces[side].uv = [left, top, left2, top2]
             })
-            obj.display.autouv = false
-            Canvas.updateUV(i)
+            obj.display.autouv = 0
+            Canvas.updateUV(obj)
         })
         this.message('Auto Size')
         this.loadData()
@@ -718,8 +825,8 @@ class UVEditor {
                 })
                 obj.faces[side].uv = uv
             })
-            obj.display.autouv = false
-            Canvas.updateUV(i)
+            obj.display.autouv = 0
+            Canvas.updateUV(obj)
         })
         this.message('Auto Size')
         this.loadData()
@@ -733,8 +840,8 @@ class UVEditor {
                 obj.faces[side].uv[0] = obj.faces[side].uv[2]
                 obj.faces[side].uv[2] = proxy
             })
-            obj.display.autouv = false
-            Canvas.updateUV(i)
+            obj.display.autouv = 0
+            Canvas.updateUV(obj)
         })
         this.message('Mirrored')
         this.loadData()
@@ -748,8 +855,8 @@ class UVEditor {
                 obj.faces[side].uv[1] = obj.faces[side].uv[3]
                 obj.faces[side].uv[3] = proxy
             })
-            obj.display.autouv = false
-            Canvas.updateUV(i)
+            obj.display.autouv = 0
+            Canvas.updateUV(obj)
         })
         this.message('Mirrored')
         this.loadData()
@@ -758,13 +865,11 @@ class UVEditor {
     applyAll(event) {
         var scope = this;
         this.forCubes(function(obj, i) {
-            var pre_side = {}
-            $.extend(true, pre_side, obj.faces[scope.face]) 
             uv_dialog.allFaces.forEach(function(side) {
-                $.extend(true, obj.faces[side], pre_side) 
+                $.extend(true, obj.faces[side], obj.faces[scope.face]) 
             })
-            obj.display.autouv = false
-            Canvas.updateUV(i)
+            obj.display.autouv = 0
+            Canvas.updateUV(obj)
         })
         this.message('Applied To All Faces')
         this.loadData()
@@ -777,7 +882,7 @@ class UVEditor {
                 obj.faces[side].uv = [0, 0, 0, 0]
                 obj.faces[side].texture = '$transparent';
             })
-            Canvas.updateUV(i)
+            Canvas.updateUV(obj)
         })
         this.loadData()
         this.message('Cleared')
@@ -833,7 +938,7 @@ class UVEditor {
             } else {
                 obj.faces[scope.face].rotation = parseInt(value)
             }
-            Canvas.updateUV(i)
+            Canvas.updateUV(obj)
         })
         this.displayTransformInfo()
         this.message('Rotated')
@@ -847,7 +952,7 @@ class UVEditor {
             } else {
                 obj.faces[scope.face].rotation = parseInt(value)
             }
-            Canvas.updateUV(i)
+            Canvas.updateUV(obj)
         })
         this.loadData()
         this.message('Rotated')
@@ -874,7 +979,7 @@ class UVEditor {
         uv_dialog.clipboard = []
 
         function addToClipboard(face) {
-            var tag = elements[selected[0]].faces[face]
+            var tag = selected[0].faces[face]
             var new_tag = {
                 uv: tag.uv.slice(),
                 face: face
@@ -882,6 +987,7 @@ class UVEditor {
             if (tag.texture) new_tag.texture = tag.texture
             if (tag.cullface) new_tag.cullface = tag.cullface
             if (tag.rotation) new_tag.rotation = tag.rotation
+            if (tag.enabled !== undefined) new_tag.enabled = tag.enabled
             if (tag.tintindex !== undefined) new_tag.tintindex = tag.tintindex
             uv_dialog.clipboard.push(new_tag)
         }
@@ -900,16 +1006,17 @@ class UVEditor {
 
         function applyFace(tag, face) {
             if (!face) face = tag.face
-            selected.forEach(function(i) {
-                var target = elements[i].faces[face]
+            selected.forEach(function(obj) {
+                var target = obj.faces[face]
                 target.uv = tag.uv.slice()
 
                 if (tag.texture || target.texture) target.texture = tag.texture
                 if (tag.cullface || target.cullface) target.cullface = tag.cullface
                 if (tag.rotation || target.rotation) target.rotation = tag.rotation
+                if (tag.enabled !== undefined || target.enabled !== undefined) target.enabled = tag.enabled
                 if (tag.tintindex !== undefined || target.texture !== undefined) target.tintindex = tag.tintindex
 
-                Canvas.updateUV(i)
+                Canvas.updateUV(obj)
             })
         }
 
@@ -957,9 +1064,10 @@ class UVEditor {
                 delete obj.faces[side].texture;
                 delete obj.faces[side].rotation;
                 delete obj.faces[side].tintindex;
+                delete obj.faces[side].enabled;
                 delete obj.faces[side].cullface;
             })
-            Canvas.updateUV(i)
+            Canvas.updateUV(obj)
         })
         this.loadData()
         this.message('Reset')
@@ -1125,9 +1233,9 @@ var uv_dialog = {
             y: obj.height()
         }
         if (uv_dialog.single) {
-            var menu_gap = settings.entity_mode.value ? 38 : 130
+            var menu_gap = Blockbench.entity_mode ? 66 : 130
             var editor_size = size.x
-            size.y = (size.y - menu_gap) * (settings.entity_mode.value ? Project.texture_width/Project.texture_height : 1)
+            size.y = (size.y - menu_gap) * (Blockbench.entity_mode ? Project.texture_width/Project.texture_height : 1)
             if (size.x > size.y) {
                 editor_size =  size.y
             }
@@ -1183,7 +1291,7 @@ var uv_dialog = {
         uv_dialog.clipboard = []
 
         function addToClipboard(face) {
-            var tag = elements[selected[0]].faces[face]
+            var tag = selected[0].faces[face]
             var new_tag = {
                 uv: tag.uv.slice(),
                 face: face
@@ -1191,6 +1299,7 @@ var uv_dialog = {
             if (tag.texture) new_tag.texture = tag.texture
             if (tag.cullface) new_tag.cullface = tag.cullface
             if (tag.rotation) new_tag.rotation = tag.rotation
+            if (tag.enabled !== undefined) new_tag.enabled = tag.enabled
             if (tag.tintindex !== undefined) new_tag.tintindex = tag.tintindex
             uv_dialog.clipboard.push(new_tag)
         }
@@ -1212,16 +1321,17 @@ var uv_dialog = {
 
         function applyFace(tag, face) {
             if (!face) face = tag.face
-            selected.forEach(function(i) {
-                var target = elements[i].faces[face]
+            selected.forEach(function(obj) {
+                var target = obj.faces[face]
                 target.uv = tag.uv.slice()
 
                 if (tag.texture || target.texture) target.texture = tag.texture
                 if (tag.cullface || target.cullface) target.cullface = tag.cullface
                 if (tag.rotation || target.rotation) target.rotation = tag.rotation
+                if (tag.enabled !== undefined || target.enabled !== undefined) target.enabled = tag.enabled
                 if (tag.tintindex !== undefined || target.texture !== undefined) target.tintindex = tag.tintindex
 
-                Canvas.updateUV(i)
+                Canvas.updateUV(obj)
             })
         }
 

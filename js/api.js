@@ -8,6 +8,7 @@ class API {
 		this.platform = 'web'
 		this.selection = selected;
 		this.flags = []
+		this.entity_mode = false
 		if (isApp) {
 			this.platform = require('os').platform()
 			if (this.platform.includes('win32') === true) osfs = '\\'
@@ -63,7 +64,9 @@ class API {
 				setTimeout(function() {
 			    	jq_dialog.remove()
 			    },200)
-				cb(i)
+			    if (cb) {
+					cb(i)
+			    }
 			})
 			buttons.push(btn)
 		})
@@ -222,6 +225,7 @@ function Dialog(settings) {
 	    $('#blackout').fadeOut(this.fadeTime)
 	    $(scope.object).fadeOut(this.fadeTime)
 	    open_dialog = false;
+	    Prop.active_panel = undefined
 	    setTimeout(function() {
 	    	$(scope.object).remove()
 	    },this.fadeTime)
@@ -281,14 +285,15 @@ function Dialog(settings) {
 	        $('.context_handler.ctx').removeClass('ctx')
 	    }, 64)
 	    open_dialog = scope.id
+	    Prop.active_panel = 'dialog'
 	    return this;
 	}
 }
 
-
 function ContextMenu(event, array) {
 	function getEntryFromObject(s, parent) {
 		if (s.local_only && !isApp) return;
+		if (s.condition === false) return;
 
 		var icon = ''
 		if (typeof s.icon === 'string') {
@@ -305,7 +310,7 @@ function ContextMenu(event, array) {
 
 		}
 
-		if (s.children && s.children) {
+		if (s.children) {
 			if (typeof s.children === 'function') {
 				s.children = s.children()
 			}
@@ -336,8 +341,13 @@ function ContextMenu(event, array) {
 	}
 
 	var ctxmenu = $('<ul class="contextMenu"></ul>')
+	var length = 0
 	array.forEach(function(s, i) {
-		ctxmenu.append(getEntryFromObject(s, ctxmenu))
+		var entry = getEntryFromObject(s, ctxmenu)
+		if (entry) {
+			ctxmenu.append(entry)
+			length++
+		}
 	})
 	$('body').append(ctxmenu)
 
@@ -347,7 +357,7 @@ function ContextMenu(event, array) {
 	var offset_top  = event.clientY
 
 	if (offset_left > $(window).width() - el_width) offset_left -= el_width
-	if (offset_top  > $(window).height() - 35 * array.length ) offset_top -= 35 * array.length
+	if (offset_top  > $(window).height() - 35 * length ) offset_top -= 35 * length
 
 	ctxmenu.css('left', offset_left+'px')
 	ctxmenu.css('top',  offset_top +'px')

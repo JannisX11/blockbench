@@ -1,23 +1,11 @@
-var appVersion = '1.10.3'
+var appVersion = '1.11.0'
 var osfs = '/'
 var File, i;
 var browser_name = 'electron'
 var elements = [];
 var TreeElements = [];
 var textures = [];
-var selected = []
-Array.prototype.Elements = function() {
-    if (this != selected) {
-        console.warn('Array.Elements() is only supported for the "selected" array')
-    }
-    var i = 0;
-    var arr = []
-    while (i < this.length) {
-        arr.push(elements[this[i]])
-        i++;
-    }
-    return arr;
-}
+var selected = [];
 var prev_side = 'north';
 var nslide = {
     top:  null,
@@ -34,15 +22,14 @@ var open_dialog = false;
 var tex_version = 1;
 var round_index = 1000000;
 var added_model_index = 0;
-var currently_renaming = false;
 var g_makeNew = false;
-var brush_template;
+var slider_scroll_stop_function;
 var pe_list;
 var holding_shift = false;
 var main_uv;
 var Prop = {
+    active_panel:   'preview',
     wireframe:      false,
-    tool:           'translate',
     file_path:      'Unknown',
     file_name:      '-',
     project_saved:  true,
@@ -50,6 +37,7 @@ var Prop = {
     zoom:           100,
     facing:         'north'
 }
+var mouse_pos = {x:0,y:0}
 var sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
 var movementAxis = true;
 
@@ -85,14 +73,19 @@ function initializeApp() {
     if (localStorage.getItem('donated') == 'true') {
         $('#donation_hint').remove()
     }
+    Toolbox.updateBar()
 
     updateMenu()
+
+    if (isApp) {
+        updateRecentProjects()
+    }
     
     setInterval(function() {
         Prop.fps = framespersecond;
         framespersecond = 0;
     }, 1000)
-    settings.entity_mode.value = false
+    Blockbench.entity_mode = false
 
     main_uv = new UVEditor('main_uv', false, true)
     main_uv.setToMainSlot()
@@ -115,13 +108,49 @@ function initializeApp() {
         new ContextMenu(event, [
             {icon: 'add_box', name: 'Add Cube', click: function() {addCube()} },
             {icon: 'create_new_folder', name: 'Add Group', click: function() {addGroup()} },
-            {icon: 'sort_by_alpha', name: 'Sort', click: function() {sortOutliner()} },
-            {icon: 'playlist_add_check', name: 'Select All', click: function() {selectAll()} },
+            {icon: 'sort_by_alpha', name: 'Sort', condition: TreeElements.length > 0, click: function() {sortOutliner()} },
+            {icon: 'playlist_add_check', name: 'Select All', condition: TreeElements.length > 0, click: function() {selectAll()} },
+            {icon: 'format_indent_decrease', name: 'Collapse All', condition: TreeElements.length > 0, click: function() {collapseAllGroups()} },
             {icon: 'dns', name: 'Toggle Options', click: function() {toggleOutlinerOptions()} },
+        ])
+    })
+    $('#texture_list').contextmenu(function(event) {
+        new ContextMenu(event, [
+            {icon: 'add_box', name: 'Import Texture', click: function() {openTexture()} },
+            {icon: 'check_box_outline_blank', name: 'Create Blank', click: function() {Painter.addBitmapDialog()} },
+            {icon: 'refresh', name: 'Reload Textures', condition: isApp, click: function() {reloadTextures()} },
         ])
     })
 //Events
     $(window).on( "unload", saveLocalStorages)
+
+    $('.entity_mode_only').hide()
+
+    $('.ui#uv'      ).click( function() { setActivePanel('uv'      )})
+    $('.ui#textures').click( function() { setActivePanel('textures')})
+    $('.ui#options' ).click( function() { setActivePanel('options' )})
+    $('.ui#outliner').click( function() { setActivePanel('outliner')})
+    $('header'      ).click( function() { setActivePanel('header'  )})
+    $('#preview'    ).click( function() { setActivePanel('preview' )})
+
+    $('.tool').mouseenter(function() {
+        var tooltip = $(this).find('div.tooltip')
+        if (!tooltip || typeof tooltip.offset() !== 'object') return;
+        //Left
+        if (tooltip.css('left') === '-4px') {
+            tooltip.css('left', 'auto')
+        }
+        if (-tooltip.offset().left > 4) {
+            tooltip.css('left', '-4px')
+        }
+        //Right
+        if (tooltip.css('right') === '-4px') {
+            tooltip.css('right', 'auto')
+        }
+        if ((tooltip.offset().left + tooltip.width()) - $(window).width() > 4) {
+            tooltip.css('right', '-4px')
+        }
+    })
 
 
     $('ul#cubes_list').click(function(event) {
@@ -129,8 +158,6 @@ function initializeApp() {
             unselectAll()
         }
     })
-
-
     $('input[type="range"]').on('mousewheel', function () {
         var factor = event.deltaY > 0 ? -1 : 1
         var val = parseFloat($(event.target).val()) + parseFloat($(event.target).attr('step')) * factor
@@ -138,6 +165,7 @@ function initializeApp() {
 
         $(event.target).val(val)
         eval($(event.target).attr('oninput'))
+        eval($(event.target).attr('onmouseup'))
     })
 
     $(document).mousedown(function(event) {
@@ -150,6 +178,10 @@ function initializeApp() {
         if ($(event.target).is('input.cube_name:not([disabled])') === false) {
             stopRenameCubes()
         }
+    })
+    $(document).mousemove(function(event) {
+        mouse_pos.x = event.clientX
+        mouse_pos.y = event.clientY
     })
     $('.context_handler').on('click', function() {
         $(this).addClass('ctx')
@@ -164,6 +196,15 @@ function initializeApp() {
             $('.menu_bar_point.ctx').removeClass('ctx')
             $(this).addClass('ctx')
         }
+    })
+    $('#texture_list').click(function(){
+        unselectTextures()
+    })
+    $('#brush_color').spectrum({
+        preferredFormat: "hex",
+        color: 'ffffff',
+        showAlpha: true,
+        showInput: true
     })
     Undo.add('Blank')
 }
@@ -202,35 +243,6 @@ function setupVue() {
             selectT: function(item, event) {
                 var index = textures.indexOf(item)
                 textures[index].select()
-            },
-            menu: function(item, event) {
-                var index = textures.indexOf(item)
-                textures.forEach(function(s) {
-                    s.selected = false;
-                })
-                textures[index].selected = true
-                openTextureMenu(index)
-            },
-            showContextMenu: function(item, event) {
-                function selectThisTex() {
-                    textures.forEach(function(s) { s.selected = false })
-                    textures[index].selected = true
-                }
-                var index = textures.indexOf(item)
-                var menu_points = []
-                if (settings.entity_mode.value === false) {
-                    menu_points = [
-                        {icon: 'crop_original', name: 'Apply to Faces', click: function() {     item.apply()}},
-                        {icon: 'fa-cube', name: 'Apply to Cubes', click: function() {           item.apply(true)}},
-                    ]
-                }
-                menu_points.push(
-                    {icon: 'refresh', name: 'Refresh', local_only: true, click: function() {item.reloadTexture()}},
-                    {icon: 'folder',  name: 'Open in Folder', local_only: true, click: function() {item.openFolder()}},
-                    {icon: 'delete',  name: 'Delete', click: function() {                   item.remove()}},
-                    {icon: 'list',    name: 'Properties', click: function() {                 openTextureMenu(index)}}
-                )
-                new ContextMenu(event, menu_points)
             }
         }
     })
@@ -309,7 +321,7 @@ function setupVue() {
     })
     project_vue._data.Project = Project
 
-
+/*
     var displaypresets_vue = new Vue({
         el: '#display_presets',
         data: {display_presets},
@@ -327,6 +339,7 @@ function setupVue() {
         }
     })
     displaypresets_vue._data.display_presets = display_presets
+*/
 
     var stats_bar_vue = new Vue({
         el: '#status_bar',
@@ -556,25 +569,25 @@ function nslideArrow(button, difference, event) {
     setUndo('Moved cube')
 }
 //Internal
-function executeNslide(action, index, difference) {
+function executeNslide(action, obj, difference) {
     if (typeof action !== 'string') {
         $(action).change()
         action = $(action).find('.nslide').attr('n-action')
         if (action.includes('uv')) {
-            nslide.editor.slider(action, difference, index)
+            nslide.editor.slider(action, difference, obj)
             return;
         }
     }
-    var number = nslideStorage(action, false, index)
+    var number = nslideStorage(action, false, obj)
     number += difference;
-    nslideStorage(action, number, index)
+    nslideStorage(action, number, obj)
     $('#nslide_head #nslide_offset').text('Offset: '+number)
 }
-function nslideStorage(key, val, index) {
+function nslideStorage(key, val, obj) {
     if (key.includes('uv')) {
         return;
     }
-    var group_origin = key.includes('origin') && selected_group && (settings.entity_mode.value || selected.length === 0)
+    var group_origin = key.includes('origin') && selected_group && (Blockbench.entity_mode || selected.length === 0)
     if (val !== undefined && val !== false) {
         if (group_origin) {
             switch (key) {
@@ -590,92 +603,93 @@ function nslideStorage(key, val, index) {
             }
             Canvas.updatePositions()
         } else if (selected.length > 0) {
-            if (index !== undefined) {
-                affected = [index]
+            var affected;
+            if (obj !== undefined) {
+                affected = [obj]
             } else {
                 affected = selected;
             }
             affected.forEach(function(s, i) {
-                if (key.includes('origin') && elements[s].rotation == undefined) {
-                    elements[s].rotation = {origin:[8,8,8], axis: 'y', angle: 0}
+                if (key.includes('origin') && s.rotation == undefined) {
+                    s.rotation = {origin:[8,8,8], axis: 'y', angle: 0}
                 }
                 switch (key) {
                     case 'pos_x':
-                    moveCube(elements[s], val, 0)
+                    moveCube(s, val, 0)
                     break;
                     case 'pos_y':
-                    moveCube(elements[s], val, 1)
+                    moveCube(s, val, 1)
                     break;
                     case 'pos_z':
-                    moveCube(elements[s], val, 2)
+                    moveCube(s, val, 2)
                     break;
 
                     case 'size_x':
-                    scaleCube(elements[s], val, 0)
+                    scaleCube(s, val, 0)
                     break;
                     case 'size_y':
-                    scaleCube(elements[s], val, 1)
+                    scaleCube(s, val, 1)
                     break;
                     case 'size_z':
-                    scaleCube(elements[s], val, 2)
+                    scaleCube(s, val, 2)
                     break;
 
                     case 'origin_x':
-                    elements[s].rotation.origin[0] = val
+                    s.rotation.origin[0] = val
                     break;
                     case 'origin_y':
-                    elements[s].rotation.origin[1] = val
+                    s.rotation.origin[1] = val
                     break;
                     case 'origin_z':
-                    elements[s].rotation.origin[2] = val
+                    s.rotation.origin[2] = val
                     break;
 
                 //
                     case 'moveuv_x':
-                    moveUVCoord(0, val, elements[s], i)
+                    moveUVCoord(0, val, s, i)
                     break;
                     case 'moveuv_y':
-                    moveUVCoord(1, val, elements[s], i)
+                    moveUVCoord(1, val, s, i)
                     break;
 
                     case 'scaleuv_x':
-                    scaleUVCoord(0, val, elements[s], i)
+                    scaleUVCoord(0, val, s, i)
                     break;
                     case 'scaleuv_y':
-                    scaleUVCoord(1, val, elements[s], i)
+                    scaleUVCoord(1, val, s, i)
                     break;
                 }
             })
         }
     } else {                                //GET
-        if (index == undefined) index = selected[0]
+        if (obj == undefined) obj = selected[0]
         switch (key) {
             case 'pos_x':
-            return elements[index].from[0]
+            return obj.from[0]
             break;
             case 'pos_y':
-            return elements[index].from[1]
+            return obj.from[1]
             break;
             case 'pos_z':
-            return elements[index].from[2]
+            return obj.from[2]
             break;
 
             case 'size_x':
-            return elements[index].size(0)
+            return obj.size(0)
             break;
             case 'size_y':
-            return elements[index].size(1)
+            return obj.size(1)
             break;
             case 'size_z':
-            return elements[index].size(2)
+            return obj.size(2)
             break;
 
             case 'origin_x':
             if (group_origin) {
                 return selected_group.origin[0]
-            } else if (elements[index]) {
+            } else if (obj) {
                 try {
-                    return elements[index].rotation.origin[0]
+                    return obj.rotation.origin[0]
                 } catch (err) {
                     return 8;
                 }
@@ -684,9 +698,9 @@ function nslideStorage(key, val, index) {
             case 'origin_y':
             if (group_origin) {
                 return selected_group.origin[1]
-            } else if (elements[index]) {
+            } else if (obj) {
                 try {
-                    return elements[index].rotation.origin[1]
+                    return obj.rotation.origin[1]
                 } catch (err) {
                     return 8;
                 }
@@ -695,9 +709,9 @@ function nslideStorage(key, val, index) {
             case 'origin_z':
             if (group_origin) {
                 return selected_group.origin[2]
-            } else if (elements[index]) {
+            } else if (obj) {
                 try {
-                    return elements[index].rotation.origin[2]
+                    return obj.rotation.origin[2]
                 } catch (err) {
                     return 8;
                 }
@@ -711,20 +725,20 @@ function updateNslideValues() {
     var m_size = ['', '', '']
     var m_origin = ['', '', '']
     //Pos/Size
-    if (selected.length > 0) {
-        m_pos = elements[selected[0]].from
+    if (selected[0]) {
+        m_pos = selected[0].from
 
-        m_size = [elements[selected[0]].size(0), elements[selected[0]].size(1), elements[selected[0]].size(2)]
+        m_size = [selected[0].size(0), selected[0].size(1), selected[0].size(2)]
     }
 
     //Origin
-    if (settings.entity_mode.value) {
+    if (Blockbench.entity_mode) {
         if (selected_group) {
             m_origin = selected_group.origin
         }
     } else if (selected.length > 0) {
-        if (elements[selected[0]].rotation != undefined) {
-            m_origin = elements[selected[0]].rotation.origin
+        if (selected[0].rotation != undefined) {
+            m_origin = selected[0].rotation.origin
         }
     } else if (selected_group) {
         m_origin = selected_group.origin
@@ -742,110 +756,34 @@ function updateNslideValues() {
     $('div.nslide[n-action="origin_z"]:not(".editing")').text(trimFloatNumber(m_origin[2]))
 }
 
-//Movement
-function isInBox(val) {
-    return (val < 32 && val > -16 || isCanvasRestricted() === false)
-}
-function isCanvasRestricted() {
-    return (settings.restricted_canvas.value === true && settings.entity_mode.value === false)
-}
-function limitToBox(val) {
-    if (!isCanvasRestricted()) {
-        return val;
-    } else if (val > 32) {
-        return 32;
-    } else if (val < -16) {
-        return -16;
-    } else {
-        return val;
-    }
-}
-function moveCube(obj, val, axis) {
-    //Obj = Direct  -  val = Total  -   Axis = Number
-    val = limitToBox(val)
-    val = limitToBox(val + obj.size(axis))
-    var size = obj.size(axis)
-    var difference = val - obj.to[axis]
-    obj.to[axis] = val
-    obj.from[axis] = val - size
-    if (obj.rotation && movementAxis === false) {
-        obj.rotation.origin[axis] += difference
-    }
-    obj.mapAutoUV()
-}
-function scaleCube(obj, val, axis) {
-    obj.to[axis] = limitToBox(val + obj.from[axis])
-    obj.mapAutoUV()
-}
-function scaleCubeNegative(obj, val, axis) {
-    obj.from[axis] = limitToBox(obj.to[axis] - val)
-    obj.mapAutoUV()
-}
-function moveCubesRelative(difference, index) { //Multiple
-    var axes = []
-    // < >
-    // PageUpDown
-    // ^ v
-    var facing = getFacingDirection()
-    var height = getFacingHeight()
-    switch (facing) {
-        case 'north': axes = ['x', 'z', 'y']; break;
-        case 'south': axes = ['x', 'z', 'y']; break;
-        case 'west':  axes = ['z', 'x', 'y']; break;
-        case 'east':  axes = ['z', 'x', 'y']; break;
-    }
-
-    if (height !== 'middle') {
-        if (index === 1) {
-            index = 2
-        } else if (index === 2) {
-            index = 1
-        }
-    }
-    if (facing === 'south' && (index === 0 || index === 1))  difference *= -1
-    if (facing === 'west'  && index === 0)  difference *= -1
-    if (facing === 'east'  && index === 1)  difference *= -1
-    if (index === 2 && height !== 'down') difference *= -1
-    if (index === 1 && height === 'up') difference *= -1
-
-    difference *= canvasGridSize();
-    
-    var action = 'pos_'+axes[index]
-    selected.forEach(function(s) {
-        executeNslide(action, s, difference)
-    })
-    Canvas.updatePositions()
-    setUndo('Moved cube')
-}
-
-
 //Selections
-function addToSelection(id, event, isOutlinerClick) {
-    if (elements[id] === undefined) return false;
-    //Shift
-    if (event.shiftKey === true && elements[id].getParentArray().includes(elements[selected[selected.length-1]]) && isOutlinerClick) {
+function addToSelection(obj, event, isOutlinerClick) {
+    if (obj === undefined) return false;
+    //Shiftv
+    var just_selected = []
+    if (event.shiftKey === true && obj.getParentArray().includes(selected[selected.length-1]) && isOutlinerClick) {
         var starting_point;
-        var last_selected = elements[selected[selected.length-1]]
-        elements[id].getParentArray().forEach(function(s, i) {
-            if (s === last_selected || s === elements[id]) {
+        var last_selected = selected[selected.length-1]
+        obj.getParentArray().forEach(function(s, i) {
+            if (s === last_selected || s === obj) {
                 if (starting_point) {
                     starting_point = false
                 } else {
                     starting_point = true
                 }
                 if (s.type === 'cube') {
-                    var index = elements.indexOf(s)
-                    if (!selected.includes(index)) {
-                        selected.push(index)
+                    if (!selected.includes(s)) {
+                        selected.push(s)
+                        just_selected.push(s)
                     }
                 } else {
                     s.selectLow()
                 }
             } else if (starting_point) {
                 if (s.type === 'cube') {
-                    var index = elements.indexOf(s)
-                    if (!selected.includes(index)) {
-                        selected.push(index)
+                    if (!selected.includes(s)) {
+                        selected.push(s)
+                        just_selected.push(s)
                     }
                 } else {
                     s.selectLow(false)
@@ -856,17 +794,21 @@ function addToSelection(id, event, isOutlinerClick) {
 
     //Control
     } else if (event.ctrlKey || event.shiftKey ) {
-        if (selected.includes(id)) {
-            selected = selected.filter(function(e) {return e !== id})
+        if (selected.includes(obj)) {
+            selected = selected.filter(function(e) {
+                return e !== obj
+            })
         } else {
-            selected.push(id)
+            selected.push(obj)
+            just_selected.push(obj)
         }
 
 
     //Normal
     } else {
-        selected = [id]
-        elements[id].showInOutliner()
+        selected = [obj]
+        just_selected.push(obj)
+        obj.showInOutliner()
     }
     if (selected_group) {
         selected_group.unselect()
@@ -874,8 +816,9 @@ function addToSelection(id, event, isOutlinerClick) {
     getAllOutlinerGroups().forEach(function(s) {
         s.display.isselected = false;
     })
+    Blockbench.dispatchEvent('added_to_selection', {added: just_selected})
     updateSelection()
-    return elements[id];
+    return obj;
 }
 function updateSelection() {
     //Clear
@@ -889,18 +832,18 @@ function updateSelection() {
 
     //Selected Elements
     selected = selected.filter(function(s) {
-        return typeof elements[s] === 'object' && elements[s].type === 'cube'
+        return typeof s === 'object' && s.type === 'cube'
     })
 
 
-    selected.forEach(function(s) {
-        elements[s].display.isselected = true
-        Canvas.buildOutline(s)
-        if (Prop.tool !== 'brush' && elements[s].display.visibility === true) {
-            Transformer.attach(elements[s].display.mesh)
+    selected.forEach(function(obj) {
+        obj.display.isselected = true
+        Canvas.buildOutline(obj)
+        if (Toolbox.selected.showTransformer && obj.display.visibility === true) {
+            Transformer.attach(obj.display.mesh)
         }
     })
-    Canvas.updateAllFaces()
+    //Canvas.updateAllFaces()
 
     //Interface
     if (selected.length > 0) {
@@ -910,18 +853,19 @@ function updateSelection() {
         $('.selection_only').css('visibility', 'hidden')
     }
     if (
-        (settings.entity_mode.value === true && selected_group !== undefined) ||
-        (settings.entity_mode.value === false && (selected_group !== undefined || selected.length > 0))
+        (Blockbench.entity_mode === true && selected_group !== undefined) ||
+        (Blockbench.entity_mode === false && (selected_group !== undefined || selected.length > 0))
     ) {
         Rotation.load()
     }
     $('#outliner_stats').text(selected.length+'/'+elements.length)
+    $('.uv_mapping_overlay').remove()
 
     //Misc
     movementAxis = isMovementOnRotatedAxis()
     centerTransformer()
     updateNslideValues()
-    if (settings.entity_mode.value) {
+    if (Blockbench.entity_mode) {
         if (selected_group) {
             $('.selection_only#options').css('visibility', 'visible')
             if (settings.origin.value) {
@@ -933,7 +877,7 @@ function updateSelection() {
     } else {
         //Origin Helper
         if (selected.length === 1 && settings.origin.value) {
-            var obj = elements[selected[0]]
+            var obj = selected[0]
             if (obj.rotation != undefined) {
                 setOriginHelper(obj.rotation)
             } else if (settings.origin.value) {
@@ -941,13 +885,15 @@ function updateSelection() {
             }
         }
     }
+    Transformer.update()
+    Blockbench.dispatchEvent('update_selection')
 }
 function selectAll() {
     if (selected.length < elements.length) {
         selected.length = 0
         var i = 0; 
         while (elements.length > i) {
-            selected.push(i)
+            selected.push(elements[i])
             i++;
         }
     } else {
@@ -966,11 +912,11 @@ function unselectAll() {
     updateSelection()
 }
 function invertSelection() {
-    elements.forEach(function(s, i) {
-        if (selected.includes(i)) {
-            selected.splice(selected.indexOf(i), 1)
+    elements.forEach(function(s) {
+        if (selected.includes(s)) {
+            selected.splice(selected.indexOf(s), 1)
         } else {
-            selected.push(i)
+            selected.push(s)
         }
     })
     updateSelection()
@@ -980,6 +926,9 @@ function createSelection() {
     if ($('#selgen_new').is(':checked')) {
         selected.length = 0
     }
+    if (selected_group) {
+        selected_group.unselect()
+    }
     var name_seg = $('#selgen_name').val().toUpperCase()
     var rdm = $('#selgen_random').val()/100
 
@@ -988,29 +937,28 @@ function createSelection() {
         array = selected_group.children
     }
 
-    array.forEach(function(s, i) {
+    array.forEach(function(s) {
         if (s.name.toUpperCase().includes(name_seg) === false) return;
         if (Math.random() > rdm) return;
-        selected.push(i)
+        selected.push(s)
     })
     updateSelection()
+    if (selected.length) {
+        selected[0].showInOutliner()
+    }
     hideDialog()
 }
-
-function limitCoord(coord) {
-    if (isCanvasRestricted() === false) return coord
-    if (coord > 32) {coord = 32}
-    else if (coord < -16) {coord = -16}
-    return coord;
-}
-
 //Undo
 var Undo = {
     index: 0,
     history: [],
 
-    add: function(action) {
-        var entry = new Undo.historyEntry(action)
+    add: function(action, isTextureEdit) {
+        if (isTextureEdit) {
+            var entry = new Undo.textureHistoryEntry(action)
+        } else {
+            var entry = new Undo.historyEntry(action)
+        }
 
         //Clear History if in middle
         if (Undo.history.length-1 > Undo.index) {
@@ -1051,6 +999,10 @@ var Undo = {
         Blockbench.dispatchEvent('redo', {})
     },
     loadEntry: function(entry) {
+        if (entry.type == 'texture_edit') {
+            Undo.loadTextureEntry(entry)
+            return;
+        }
         selected.length = 0
         updateSelection()
         if (selected_group) {
@@ -1063,14 +1015,14 @@ var Undo = {
         entry.elements.forEach(function(s, i) {
             elements.push(new Cube().extend(s))
             if (s.display.isselected === true) {
-                selected.push(i)
+                selected.push(elements[elements.length-1])
             }
         })
 
         entry.textures.forEach(function(s) {
             var tex = new Texture(s)
 
-            if (Blockbench.isWeb === false) {
+            if (s.mode === 'link') {
                 var arr = tex.iconpath.split('?')
                 arr[arr.length-1] = tex_version
                 tex.iconpath = arr.join('?')
@@ -1093,15 +1045,32 @@ var Undo = {
         loadOutlinerDraggable()
         texturelist.$forceUpdate();
     },
+    loadTextureEntry: function(entry) {
+
+        textures.length = 0
+        entry.textures.forEach(function(s) {
+            var tex = new Texture(s)
+
+            if (s.mode === 'link') {
+                var arr = tex.iconpath.split('?')
+                arr[arr.length-1] = tex_version
+                tex.iconpath = arr.join('?')
+            }
+
+            tex.load()
+            textures.push(tex)
+        })
+        texturelist.$forceUpdate();
+    },
     historyEntry: function(action) {       //Constructor
         var entry = this;
 
         this.action = action
         this.face = main_uv.face
         this.elements = []
-        elements.forEach(function(s, i) {
+        elements.forEach(function(s) {
             entry.elements.push(new Cube().extend(s))
-            entry.elements[entry.elements.length-1].display.isselected = selected.includes(i) === true
+            entry.elements[entry.elements.length-1].display.isselected = selected.includes(s) === true
         })
         this.textures = []
         textures.forEach(function(s) {
@@ -1112,6 +1081,20 @@ var Undo = {
             entry.textures.push(tex)
         })
         this.outliner = JSON.stringify(compileGroups())
+    },
+    textureHistoryEntry: function(action) {       //Constructor
+        var entry = this;
+
+        this.action = action
+        this.type = 'texture_edit'
+        this.textures = []
+        textures.forEach(function(s) {
+            var tex = {}
+            $.extend(true, tex, s)
+            delete tex.material
+            delete tex.img
+            entry.textures.push(tex)
+        })
     }
 }
 function setUndo(action) {
@@ -1120,114 +1103,25 @@ function setUndo(action) {
     }
     Undo.add(action)
 }
-
 //Misc
-function setTool(stool) {
-    Prop.tool = stool
-    $(canvas1).css('cursor', 'default')
-
-    switch(stool) {
-        case 'brush':
-            showQuickMessage('Select a template cube')
-            brush_template = 'select';
-            $(canvas1).css('cursor', 'crosshair')
-            break;
-        case 'translate':
-            Transformer.setMode('translate')
-            break;
-        case 'scale':
-            Transformer.setMode('scale')
-            break;
-    }
-    updateSelection()
-    $('.tool.sel').removeClass('sel')
-    $('.tool#tool_'+Prop.tool).addClass('sel')
-}
-function paint() {
-    if (!$('#tool_brush.sel').length) return
-    var from = [
-        elements[selected[0]].from[0]+0,
-        elements[selected[0]].from[1]+0,
-        elements[selected[0]].from[2]+0
-    ]
-    var canvas_grid = canvasGridSize()
-    var sizes = [canvas_grid, canvas_grid, canvas_grid]
-    if (brush_template && brush_template.type === 'cube') {
-        sizes = brush_template.size()
-    }
-    switch (main_uv.face) {
-        case 'north':
-        from[2] -= sizes[2];
-        break;
-        case 'south':
-        from[2] += sizes[2];
-        break;
-        case 'west':
-        from[0] -= sizes[0];
-        break;
-        case 'east':
-        from[0] += sizes[0];
-        break;
-
-        case 'up':
-        from[1] += sizes[1];
-        break;
-        case 'down':
-        from[1] -= sizes[1];
-        break;
-    }
-
-    var base_cube = new Cube()
-    if (typeof brush_template === 'object') {
-        base_cube.extend(brush_template).addTo(brush_template.display.parent)
-    }
-    base_cube.uuid = guid()
-
-    base_cube.to = [
-        from[0]+base_cube.size(0),
-        from[1]+base_cube.size(1),
-        from[2]+base_cube.size(2)
-    ]
-    if (isCanvasRestricted()) {
-        var i = 0
-        while (i < 3) {
-            if (base_cube.to[i] > 32 || from[i] < -16) return;
-            i++;
-        }
-    }
-    var number = base_cube.name.match(/[0-9]+$/)
-    if (number) {
-        number = parseInt(number[0])
-        base_cube.name = base_cube.name.split(number).join(number+1)
-    }
-
-    base_cube.from = from
-    base_cube.display.mesh = undefined;
-    elements.push(base_cube)
-    selected.length = 0
-    selected.push(elements.length-1)
-    Canvas.updateSelected()
-    setUndo('Painted voxel')
-}
-
 var Screencam = {
-    copyCanvas: function() {
+    normalCanvas: function(options, cb) {
         dataUrl = canvas1.toDataURL()
-        if (isApp) {
-            var screenshot = nativeImage.createFromDataURL(dataUrl)
-            clipboard.writeImage(screenshot)
-            Blockbench.showMessage('Screenshot copied to clipboard', 'center')
-        } else {
-            new Dialog({
-                title: 'Screenshot - Right Click to copy', 
-                id: 'screenie', 
-                lines: ['<img src="'+dataUrl+'" width="600px" class="allow_default_menu"></img>'],
-                draggable: true,
-                singleButton: true
-            }).show()
-        }
+
+        dataUrl = dataUrl.replace('data:image/png;base64,','')
+        Jimp.read(Buffer.from(dataUrl, 'base64'), function() {}).then(function(image) { 
+            
+            image.autocrop([0, false])
+            if (options && options.width && options.height) {
+                image.contain(options.width, options.height)
+            }
+
+            image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
+                Screencam.returnScreenshot(dataUrl, cb)
+            })
+        });
     },
-    cleanCanvas: function() {
+    cleanCanvas: function(options, cb) {
 
         scene.remove(three_grid)
         scene.remove(Transformer)
@@ -1236,13 +1130,13 @@ var Screencam = {
 
         setTimeout(function() {
 
-            Screencam.copyCanvas()
+            Screencam.normalCanvas(options, cb)
             scene.add(three_grid)
             scene.add(Transformer)
             scene.add(outlines)
 
             if (selected.length === 1 && settings.origin.value) {
-                var obj = elements[selected[0]]
+                var obj = selected[0]
                 if (obj.rotation != undefined) {
                     setOriginHelper(obj.rotation)
                 } else if (settings.origin.value) {
@@ -1252,386 +1146,168 @@ var Screencam = {
 
         }, 40)
     },
-    fullScreen: function() {
-        currentwindow.capturePage(function(screenshot) {
-            /*
-            clipboard.writeImage(screenshot)
-            Blockbench.showMessage('Screenshot copied to clipboard', 'center')
-            */
-        })
-    }
-}
-//Transform
-function rotateUVFace(number, iteration) {
-    while (iteration > 0) {
-        if (number == undefined) {
-            number = 90
-        } else {
-            number += 90
-            if (number == 360) {
-                number = undefined
-            }
-        }
-        iteration -= 1;
-    }
-    return number;
-}
-function rotateSelectedY(iteration, skipSave) {
-    var origin = [8, 8, 8]
-    if (selected_group) {
-        origin = selected_group.origin.slice()
-    } else if (elements[selected[0]].rotation != undefined) {
-        origin = elements[selected[0]].rotation.origin.slice()
-    }
-    while (iteration > 0) {
-        selected.forEach(function(s) {
-            var cube = elements[s]
-            //main
-            var x = cube.from[2]
-            cube.from[2] = cube.to[2]
-            cube.to[2] = x
-            cube.from = rotateCoordsY(cube.from, 1, origin)
-            cube.to = rotateCoordsY(cube.to, 1, origin)
-            if (cube.rotation) {
-                cube.rotation.origin = rotateCoordsY(cube.rotation.origin, 1, origin)
-            }
-            //Fine Rotation
-            if (cube.rotation !== undefined) {
-                if (cube.rotation.axis === 'x') {
-                    cube.rotation.axis = 'z'
-                } else if (cube.rotation.axis != 'y') {
-                    cube.rotation.axis = 'x'
-                    cube.rotation.angle *= (-1)
+    fullScreen: function(options, cb) {
+        setTimeout(function() {
+            $('.context_handler.ctx').removeClass('ctx')
+            $('.context_handler.ctx').removeClass('ctx')
+            $('.context_handler.ctx').removeClass('ctx')
+            $('.context_handler.ctx').removeClass('ctx')
+        }, 10)
+        setTimeout(function() {
+            currentwindow.capturePage(function(screenshot) {
+                var dataUrl = screenshot.toDataURL()
+                dataUrl = dataUrl.replace('data:image/png;base64,','')
+                Jimp.read(Buffer.from(dataUrl, 'base64'), function() {}).then(function(image) { 
+
+                    if (options && options.width && options.height) {
+                        image.contain(options.width, options.height)
+                    }
+
+                    image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
+                        Screencam.returnScreenshot(dataUrl, cb)
+                    })
+                });
+            })
+        }, 20)
+    },
+    returnScreenshot: function(dataUrl, cb) {
+        if (cb) {
+            cb(dataUrl)
+        } else if (isApp) {
+            var screenshot = nativeImage.createFromDataURL(dataUrl)
+            Blockbench.showMessageBox({
+                title: 'Screenshot',
+                icon: 'computer',
+                message: 'Screenshot captured.',
+                buttons: ['Save', 'Clipboard'],
+                confirm: 0,
+                cancel: 1
+            }, function(result) {
+                if (result === 0) {
+                    app.dialog.showSaveDialog(currentwindow, {filters: [ {name: 'Image', extensions: ['png']} ]}, function (fileName) {
+                        if (fileName === undefined) {
+                            return;
+                        }
+                        fs.writeFile(fileName, screenshot.toPNG(), function (err) {})
+                    })
+                } else if (result === 1) {
+                    clipboard.writeImage(screenshot)
                 }
-            }
-            //Faces
-            if (cube.faces.up.rotation == undefined) {
-                cube.faces.up.rotation = 90
-            } else {
-                cube.faces.up.rotation += 90
-                if (cube.faces.up.rotation == 360) {
-                    delete cube.faces.up.rotation
-                }
-            }
-            if (cube.faces.down.rotation == undefined) {
-                cube.faces.down.rotation = 270
-            } else {
-                cube.faces.down.rotation -= 90
-                if (cube.faces.down.rotation == 0) {
-                    delete cube.faces.down.rotation
-                }
-            }
-            var temp = cube.faces.north
-            cube.faces.north = cube.faces.west
-            cube.faces.west = cube.faces.south
-            cube.faces.south = cube.faces.east
-            cube.faces.east = temp
-        })
-        iteration -= 1;
-    }
-    if (!skipSave) {
-        Canvas.updatePositions()
-        Canvas.updateSelectedFaces()
-        setUndo('Rotated cubes')
-    }
-}
-function rotateCoordsY(array, axis, origin) {
-    if (origin === undefined) {
-        origin = [8, 8, 8]
-    }
-    var a, b;
-    array.forEach(function(s, i) {
-        if (i == axis) {
-            //
+            })
         } else {
-            if (a == undefined) {
-                a = s - origin[i]
-                b = i
-            } else {
-                array[b] = s - origin[i]
-                array[b] = origin[b] - array[b]
-                array[i] = origin[i] + a;
-            }
+            new Dialog({
+                title: 'Screenshot - Right Click to copy', 
+                id: 'screenie', 
+                lines: ['<img src="'+dataUrl+'" width="600px" class="allow_default_menu"></img>'],
+                draggable: true,
+                singleButton: true
+            }).show()
         }
-    })
-    return array
-}
-function rotateSelectedX(iteration, skipSave) {
-    var origin = [8, 8, 8]
-    if (selected_group) {
-        origin = selected_group.origin.slice()
-    } else if (elements[selected[0]].rotation != undefined) {
-        origin = elements[selected[0]].rotation.origin.slice()
     }
-    while (iteration > 0) {
-        selected.forEach(function(s) {
-            var cube = elements[s]
-            //Coordinates
-            var y = cube.from[2]
-            cube.from[2] = cube.to[2]
-            cube.to[2] = y
-            cube.from = rotateCoordsX(cube.from, 1, origin)
-            cube.to = rotateCoordsX(cube.to, 1, origin)
-            if (cube.rotation) {
-                cube.rotation.origin = rotateCoordsX(cube.rotation.origin, 1, origin)
-            }
-            //Fine Rotation
-            if (cube.rotation !== undefined) {
-                if (cube.rotation.axis === 'y') {
-                    cube.rotation.axis = 'z'
-                } else if (cube.rotation.axis != 'x') {
-                    cube.rotation.axis = 'y'
-                    cube.rotation.angle *= (-1)
+}
+var clipbench = {
+    cubes: [],
+    copy: function(event) {
+        var p = Prop.active_panel
+        if (open_dialog == 'uv_dialog') {
+            uv_dialog.copy(event)
+        } else if (p == 'uv') {
+            main_uv.copy(event)
+        } else if (display_mode) {
+            copyDisplaySlot()
+        } else if (p == 'textures' && isApp) {
+            if (textures.selected) {
+                cl('test')
+                if (textures.selected.mode === 'bitmap') {
+                    var img = nativeImage.createFromDataURL(textures.selected.iconpath)
+                } else {
+                    var img = nativeImage.createFromPath(textures.selected.iconpath.split('?')[0])
                 }
+                clipboard.writeImage(img)
             }
-
-            //UV
-            cube.faces.west.rotation = rotateUVFace(cube.faces.west.rotation, 1)
-            cube.faces.east.rotation = rotateUVFace(cube.faces.east.rotation, 3)
-            cube.faces.north.rotation = rotateUVFace(cube.faces.north.rotation, 2)
-            cube.faces.down.rotation = rotateUVFace(cube.faces.down.rotation, 2)
-
-            var temp = cube.faces.north
-            cube.faces.north = cube.faces.down
-            cube.faces.down = cube.faces.south
-            cube.faces.south = cube.faces.up
-            cube.faces.up = temp
-        })
-        iteration -= 1;
-    }
-    if (!skipSave) {
-        Canvas.updatePositions()
-        Canvas.updateSelectedFaces()
-        setUndo('Rotated cubes')
-    }
-}
-function rotateCoordsX(array, axis, origin) {
-    if (origin === undefined) {
-        origin = [8, 8, 8]
-    }
-    var new_array = [
-        array[0],
-        origin[1] - ( array[2] - origin[2] ),
-        origin[2] + ( array[1] - origin[1] )
-    ]
-    return new_array
-}
-function rotateSelectedZ(iteration) {
-    if (iteration === 1) {
-        rotateSelectedX(1)
-        rotateSelectedY(1)
-        rotateSelectedX(3)
-    } else {
-        rotateSelectedX(1)
-        rotateSelectedY(3)
-        rotateSelectedX(3)
-    }
-    Canvas.updatePositions()
-    Canvas.updateSelectedFaces()
-    setUndo('Rotated cubes')
-}
-function mirror(axis) {
-    function mirrorUVX(uv) {
-        return [uv[2], uv[1], uv[0], uv[3]]
-    }
-    function mirrorUVY(uv) {
-        return [uv[0], uv[3], uv[2], uv[1]]
-    }
-    var center = 8
-    if (selected_group) {
-        center = selected_group.origin[axis]
-    }
-    selected.forEach(function(s) {
-        var obj = elements[s]
-        if (obj.rotation) {
-            if (obj.rotation.axis !== axisIndex(axis)) {
-                obj.rotation.angle *= -1
-            }
-        }
-        var from = obj.from[axis]
-        obj.from[axis] = center - (obj.to[axis] - center)
-        obj.to[axis] = center - (from - center)
-        if (obj.rotation) {
-            obj.rotation.origin[axis] = center - (obj.rotation.origin[axis] - center)
-        }
-        //Faces
-        var switchFaces;
-        switch(axis) {
-            case 0: switchFaces = ['west', 'east']; break;
-            case 1: switchFaces = ['up', 'down']; break;
-            case 2: switchFaces = ['south', 'north']; break;
-        }
-        var x = obj.faces[switchFaces[0]]
-        obj.faces[switchFaces[0]] = obj.faces[switchFaces[1]]
-        obj.faces[switchFaces[1]] = x
-        //UV
-        if (axis === 1) {
-            obj.faces.north.uv = mirrorUVY(obj.faces.north.uv)
-            obj.faces.south.uv = mirrorUVY(obj.faces.south.uv)
-            obj.faces.east.uv = mirrorUVY(obj.faces.east.uv)
-            obj.faces.west.uv = mirrorUVY(obj.faces.west.uv)
-        } else {
-            obj.faces.north.uv = mirrorUVX(obj.faces.north.uv)
-            obj.faces.south.uv = mirrorUVX(obj.faces.south.uv)
-            obj.faces.east.uv = mirrorUVX(obj.faces.east.uv)
-            obj.faces.west.uv = mirrorUVX(obj.faces.west.uv)
-        }
-        if (axis === 0) {
-            obj.faces.up.uv = mirrorUVX(obj.faces.up.uv)
-            obj.faces.down.uv = mirrorUVX(obj.faces.down.uv)
-        } else {
-            obj.faces.up.uv = mirrorUVY(obj.faces.up.uv)
-            obj.faces.down.uv = mirrorUVY(obj.faces.down.uv)
-        }
-    })
-    Canvas.updatePositions()
-    Canvas.updateSelectedFaces()
-    setUndo('Mirrored cubes')
-}
-function openScaleAll() {
-    $('#model_scale_range').val(1)
-    $('#model_scale_label').val(1)
-
-    selected.forEach(function(s) {
-        var obj = elements[s]
-        obj.display.before = {from: [], to: [], origin: [8, 8, 8]}
-        obj.display.before.from[0] = obj.from[0]
-        obj.display.before.from[1] = obj.from[1]
-        obj.display.before.from[2] = obj.from[2]
-
-        obj.display.before.to[0] = obj.to[0]
-        obj.display.before.to[1] = obj.to[1]
-        obj.display.before.to[2] = obj.to[2]
-
-        if (obj.rotation !== undefined ) {
-            obj.display.before.origin[0] = obj.rotation.origin[0]
-            obj.display.before.origin[1] = obj.rotation.origin[1]
-            obj.display.before.origin[2] = obj.rotation.origin[2]
-        }
-    })
-    showDialog('scaling')
-}
-function scaleAll(save, size) {
-    if (save === true) {
-        hideDialog()
-    }
-    if (size === undefined) {
-        size = $('#model_scale_label').val()
-    }
-    origin = [8, 8, 8]
-    if (settings.entity_mode.value) {
-        origin = [0, 0, 0]
-    } else if (selected_group) {
-        origin = selected_group.origin
-    }
-    var clip = false
-    selected.forEach(function(s) {
-        var obj = elements[s]
-        obj.display.autouv = false;
-        origin.forEach(function(ogn, i) {
-            if ($('#model_scale_'+getAxisLetter(i)+'_axis').is(':checked')) {
-
-                obj.from[i] = (obj.display.before.from[i] - ogn) * size
-                if (obj.from[i] + ogn > 32 || obj.from[i] + ogn < -16) clip = true
-                obj.from[i] = limitCoord(obj.from[i] + ogn)
-
-                obj.to[i] = (obj.display.before.to[i] - ogn) * size
-                if (obj.to[i] + ogn > 32 || obj.to[i] + ogn < -16) clip = true
-                obj.to[i] = limitCoord(obj.to[i] + ogn)
-
-                if (obj.rotation !== undefined) {
-                    obj.rotation.origin[i] = (obj.display.before.origin[i] - ogn) * size
-                    obj.rotation.origin[i] = obj.rotation.origin[i] + ogn
+        } else if (p == 'outliner' || p == 'preview') {
+            clipbench.cubes = []
+            clipbench.group = undefined
+            if (selected_group) {
+                clipbench.group = selected_group.duplicate('cache')
+                if (isApp) {
+                    clipboard.writeHTML(JSON.stringify({type: 'group', content: clipbench.group}))
                 }
             } else {
-
-                obj.from[i] = obj.display.before.from[i]
-                obj.to[i] = obj.display.before.to[i]
-
-                if (obj.rotation !== undefined) {
-                    obj.rotation.origin[i] = obj.display.before.origin[i]
-                }
-
+                selected.forEach(function(obj) {
+                    var base_cube = new Cube(obj)
+                    base_cube.display.mesh = undefined;
+                    clipbench.cubes.push(base_cube)
+                })
+                clipboard.writeHtml(JSON.stringify({type: 'cubes', content: clipbench.cubes}))
             }
-        })
-        if (save === true) {
-            delete obj.display.before
         }
-    })
-    if (clip && settings.entity_mode.value === false) {
-        $('#scaling_clipping_warning').text('Model clipping: Your model is too large for the canvas')
-    } else {
-        $('#scaling_clipping_warning').text('')
-    }
-    Canvas.updatePositions()
-    if (save === true) {
-        setUndo('Scaled cubes')
-    }
-}
-function modelScaleSync(label) {
-    if (label) {
-        var size = $('#model_scale_label').val()
-        $('#model_scale_range').val(size)
-    } else {
-        var size = $('#model_scale_range').val()
-        $('#model_scale_label').val(size)
-    }
-    scaleAll(false, size)
-}
-function cancelScaleAll() {
-    selected.forEach(function(s) {
-        var obj = elements[s]
-        if (obj === undefined) return;
-        obj.from[0] = obj.display.before.from[0]
-        obj.from[1] = obj.display.before.from[1]
-        obj.from[2] = obj.display.before.from[2]
+    },
+    paste: function(event) {
+        var p = Prop.active_panel
+        if (open_dialog == 'uv_dialog') {
+            uv_dialog.paste(event)
+        } else if (p == 'uv') {
+            main_uv.paste(event)
+        } else if (display_mode) {
+            pasteDisplaySlot()
+        } else if (p == 'textures' && isApp) {
+            var img = clipboard.readImage()
+            if (img) {
+                var dataUrl = img.toDataURL()
+                var texture = new Texture({name: 'pasted', folder: 'blocks' }).fromDataURL(dataUrl).add().fillParticle()
+                setTimeout(function() {
+                    texture.openMenu()
+                },40)
+            }
+        } else if (p == 'outliner' || p == 'preview') {
+            //Group
+            var group = 'root'
+            if (selected_group) {
+                group = selected_group
+            } else if (selected[0]) {
+                group = selected[0]
+            }
+            selected.length = 0
+            if (isApp) {
+                var raw = clipboard.readHtml()
+                try {
+                    var data = JSON.parse(raw)
+                    if (data.type === 'cubes' && data.content) {
+                        clipbench.group = undefined
+                        clipbench.cubes = data.content
+                    } else if (data.type === 'group' && data.content) {
+                        clipbench.group = data.content
+                        clipbench.cubes = []
+                    }
+                } catch (err) {}
+            }
+            if (clipbench.group) {
+                clipbench.group.duplicate(group)
+            } else {
+                clipbench.cubes.forEach(function(obj) {
+                    var base_cube = new Cube()
+                    base_cube.extend(obj)
+                    base_cube.uuid = guid()
+                    base_cube.display.mesh = undefined;
 
-        obj.to[0] = obj.display.before.to[0]
-        obj.to[1] = obj.display.before.to[1]
-        obj.to[2] = obj.display.before.to[2]
-
-        if (obj.rotation !== undefined ) {
-            obj.rotation.origin[0] = obj.display.before.origin[0]
-            obj.rotation.origin[1] = obj.display.before.origin[1]
-            obj.rotation.origin[2] = obj.display.before.origin[2]
+                    elements.push(base_cube)
+                    base_cube.addTo(group)
+                    Canvas.addCube(elements[elements.length-1])
+                    selected.push(elements[elements.length-1])
+                })
+                updateSelection()
+                setUndo('Pasted Cubes')
+            }
         }
-        delete obj.display.before
-    })
-    Canvas.updatePositions()
-    hideDialog()
+
+    },
 }
-function centerCubesAll(axis) {
-    centerCubes(0, false)
-    centerCubes(1, false)
-    centerCubes(2, false)
-    Canvas.updatePositions()
-    setUndo('Centered cubes')
-}
-function centerCubes(axis, update) {
-    var average = 0;
-    selected.forEach(function(s) {
-        var obj = elements[s]
-        average += obj.from[axis]
-        average += obj.to[axis]
-    })
-    average = average / (selected.length * 2)
-    var difference = 8 - average
-
-    selected.forEach(function(s) {
-        executeNslide('pos_'+getAxisLetter(axis), s, difference)
-    })
-
-    if (update !== false) {
-        Canvas.updatePositions()
-        setUndo('Centered cubes on '+getAxisLetter(axis))
-    }
-}
-
-
 TextureAnimator = {
     isPlaying: false,
     interval: false,
     start: function() {
+        clearInterval(TextureAnimator.interval)
         TextureAnimator.isPlaying = true
         TextureAnimator.updateButton()
         TextureAnimator.interval = setInterval(TextureAnimator.nextFrame, 1000/settings.texture_fps.value)
@@ -1662,7 +1338,7 @@ TextureAnimator = {
         })
         var i = 0
         while (i < elements.length) {
-            Canvas.updateUV(i, true)
+            Canvas.updateUV(elements[i], true)
             i++;
         }
     },
@@ -1675,7 +1351,7 @@ TextureAnimator = {
             } 
         })
         while (i < elements.length) {
-            Canvas.updateUV(i, true)
+            Canvas.updateUV(elements[i], true)
             i++;
         }
     },
@@ -1705,5 +1381,150 @@ TextureAnimator = {
                 TextureAnimator.stop()
             }
         }
+    }
+}
+var Vertexsnap = {
+    step1: true,
+    vertexes: new THREE.Object3D(),
+    vertexed_cubes: [],
+    hovering: false,
+    addVertexes: function(cube) {
+        if (Vertexsnap.vertexed_cubes.includes(cube)) return;
+        if (cube.display.visibility === false) return;
+
+        canvas1.removeEventListener("mousemove", Vertexsnap.hoverCanvas)
+        canvas1.addEventListener("mousemove", Vertexsnap.hoverCanvas)
+
+        var o_vertices = cube.display.mesh.geometry.vertices
+        cube.display.mesh.updateMatrixWorld()
+        o_vertices.forEach(function(v, id) {
+            var outline_color = '0x'+app_colors.accent.hex.replace('#', '')
+            var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({color: parseInt(outline_color)}))
+            var pos = mesh.position.copy(v)
+            pos.applyMatrix4(cube.display.mesh.matrixWorld)
+            pos.addScalar(8)
+            mesh.rotation.copy(cube.display.mesh.rotation)
+            mesh.cube = cube
+            mesh.isVertex = true
+            mesh.vertex_id = id
+            Vertexsnap.vertexes.add(mesh)
+        })
+        Vertexsnap.vertexed_cubes.push(cube)
+        controls.updateSceneScale()
+    },
+    removeVertexes: function() {
+        var i = Vertexsnap.vertexes.children.length
+        while (i >= 0) {
+            Vertexsnap.vertexes.remove(Vertexsnap.vertexes.children[i])
+            i--;
+        }
+        Vertexsnap.vertexed_cubes = []
+        canvas1.removeEventListener("mousemove", Vertexsnap.hoverCanvas)
+    },
+    hoverCanvas: function(event) {
+        if (Vertexsnap.hovering) {
+            Vertexsnap.vertexes.children.forEach(function(v) {
+                if (v.type === 'Line') {
+                    Vertexsnap.vertexes.remove(v)
+                } else {
+                    v.material.color.set(parseInt('0x'+app_colors.accent.hex.replace('#', '')))
+                }
+            })
+        }
+        let data = Canvas.raycast()
+        if (!data || !data.vertex) return;
+        var vertex = data.vertex
+        vertex.material.color.g = 1
+        Vertexsnap.hovering = true
+
+        if (Vertexsnap.step1 === false) {
+            var color = '0x'+app_colors.accent.hex.replace('#', '')
+            var geometry = new THREE.Geometry();
+            geometry.vertices.push(Vertexsnap.vertex_pos);
+            geometry.vertices.push(vertex.position);
+            var line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: parseInt(color) }));
+            line.renderOrder = 900
+            line.material.depthTest = false
+            Vertexsnap.vertexes.add(line)
+        }
+    },
+    select: function() {
+        Vertexsnap.removeVertexes()
+        selected.forEach(function(obj) {
+            Vertexsnap.addVertexes(obj)
+        })
+        if (selected.length) {
+            $(canvas1).css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
+        }
+    },
+    canvasClick: function(data) {
+        if (!data.vertex) return;
+
+        if (Vertexsnap.step1) {
+            Vertexsnap.step1 = false
+            Vertexsnap.vertex_pos = data.vertex.position
+            Vertexsnap.vertex_id = data.vertex.vertex_id
+            Vertexsnap.cubes = selected.slice()
+            Vertexsnap.removeVertexes()
+            $(canvas1).css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
+        } else {
+            Vertexsnap.snap(data)
+            $(canvas1).css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
+        }
+    },
+    snap: function(data) {
+        var pos = data.vertex.position
+        pos.sub(Vertexsnap.vertex_pos)
+
+        if ($('select#vertex_scale option:selected').attr('id') === 'scale') {
+            //Scale
+
+            var m;
+            switch (Vertexsnap.vertex_id) {
+                case 0: m=[ 1,1,1 ]; break;
+                case 1: m=[ 1,1,0 ]; break;
+                case 2: m=[ 1,0,1 ]; break;
+                case 3: m=[ 1,0,0 ]; break;
+                case 4: m=[ 0,1,0 ]; break;
+                case 5: m=[ 0,1,1 ]; break;
+                case 6: m=[ 0,0,0 ]; break;
+                case 7: m=[ 0,0,1 ]; break;
+            }
+
+            Vertexsnap.cubes.forEach(function(obj) {
+                var cube_pos = new THREE.Vector3().copy(pos).removeEuler(Vertexsnap.cubes[0].display.mesh.rotation)
+                for (i=0; i<3; i++) {
+                    if (m[i] === 1) {
+                        obj.to[i] += cube_pos.getComponent(i)
+                    } else {
+                        obj.from[i] += cube_pos.getComponent(i)
+                    }
+                }
+            })
+        } else {
+            Vertexsnap.cubes.forEach(function(obj) {
+                var cube_pos = new THREE.Vector3().copy(pos)
+                if (Blockbench.entity_mode === false) {
+                    if (obj.rotation) {
+                        obj.rotation.origin[0] += cube_pos.getComponent(0)
+                        obj.rotation.origin[1] += cube_pos.getComponent(1)
+                        obj.rotation.origin[2] += cube_pos.getComponent(2)
+                    }
+                } else {
+                    cube_pos.removeEuler(Vertexsnap.cubes[0].display.mesh.rotation)
+                }
+                obj.from[0] += cube_pos.getComponent(0)
+                obj.from[1] += cube_pos.getComponent(1)
+                obj.from[2] += cube_pos.getComponent(2)
+                obj.to[0] += cube_pos.getComponent(0)
+                obj.to[1] += cube_pos.getComponent(1)
+                obj.to[2] += cube_pos.getComponent(2)
+            })
+        }
+
+        Vertexsnap.removeVertexes()
+        Canvas.updateAllPositions()
+        setUndo('Vertex Snap')
+        Vertexsnap.step1 = true
     }
 }

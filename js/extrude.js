@@ -146,7 +146,7 @@ function convertExtrusionImage() {
 							}
 							draw_y++;
 						}
-						var current_cube = new Cube(cube_name+'_'+cube_nr)
+						var current_cube = new Cube({name: cube_name+'_'+cube_nr})
 						
 						current_cube.from = [rect.x*scale_i, 0, rect.y*scale_i]
 						current_cube.to = [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i]
@@ -163,7 +163,7 @@ function convertExtrusionImage() {
 						current_cube.faces.west = {uv:[rect.x*scale_i, rect.y*scale_i, (rect.x+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index, rotation: 270}
 
 						elements.push(current_cube)
-						selected.push(elements.length-1)
+						selected.push(elements[elements.length-1])
 						cube_nr++;
 					}
 
@@ -181,12 +181,10 @@ function convertExtrusionImage() {
 
 		    var group = new Group(cube_name).addTo()
 		    selected.forEach(function(s) {
-		        elements[s].addTo(group)
+		        s.addTo(group)
 		    })
 		    if (g_makeNew === true || isNewProject) {
-		        Prop.file_name = cube_name
-		        Project.name = cube_name
-    			$('title').text(cube_name+' - Blockbench')
+		        setProjectTitle(cube_name)
 		        Prop.project_saved = false;
 		    }
 

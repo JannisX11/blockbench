@@ -117,6 +117,12 @@ THREE.OrbitControls = function ( object, domElement ) {
 		}
 		if (selected.length === 0) return;
 		Transformer.update()
+		Vertexsnap.vertexes.children.forEach(function(v,i) {
+		    var scaleVector = new THREE.Vector3();
+		    var scale = scaleVector.subVectors(v.position, Transformer.camera.position).length() / 500;
+		    scale = (Math.sqrt(scale) + scale/10) * 1.2
+		    v.scale.set(scale, scale, scale)
+		})
 	};
 
 	// this method is exposed, but perhaps it would be better if we can make it private...
@@ -676,6 +682,10 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 			if ( scope.enableRotate === false ) return;
 
+			if (event.which === 1 && Canvas.raycast() && display_mode === false) {
+				return;
+			}
+
 			handleMouseDownRotate( event );
 
 			state = STATE.ROTATE;
@@ -683,6 +693,10 @@ THREE.OrbitControls = function ( object, domElement ) {
 		} else if ( compareKeys(event, keybinds.canvas_drag) ) {
 
 			if ( scope.enablePan === false ) return;
+
+			if (event.which === 1 && Canvas.raycast() && display_mode === false) {
+				return;
+			}
 
 			handleMouseDownPan( event );
 
@@ -815,11 +829,14 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 			case 1:	// one-fingered touch: rotate
 
-				if ( scope.enableRotate === false ) return;
-
-				handleTouchStartRotate( event );
-
-				state = STATE.TOUCH_ROTATE;
+				if (isOrtho) {
+					handleTouchStartPan( event );
+					state = STATE.TOUCH_PAN;
+				} else {
+					if ( scope.enableRotate === false ) return;
+					handleTouchStartRotate( event );
+					state = STATE.TOUCH_ROTATE;
+				}
 
 				break;
 
@@ -860,6 +877,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 	function onTouchMove( event ) {
 
 		if ( scope.enabled === false ) return;
+		if ( Transformer.dragging ) return;
 
 		event.preventDefault();
 		event.stopPropagation();
@@ -868,10 +886,14 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 			case 1: // one-fingered touch: rotate
 
-				if ( scope.enableRotate === false ) return;
-				if ( state !== STATE.TOUCH_ROTATE ) return; // is this needed?...
 
-				handleTouchMoveRotate( event );
+				if (isOrtho) {
+					handleTouchMovePan( event );
+				} else {
+					if ( scope.enableRotate === false ) return;
+					if ( state !== STATE.TOUCH_ROTATE ) return; // is this needed?...
+					handleTouchMoveRotate( event );
+				}
 
 				break;
 

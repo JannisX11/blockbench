@@ -33,7 +33,6 @@ function colorSettingsSetup(reset) {
     updateUIColor()
     buildGrid()
 }
-
 function showDialog(dialog) {
     var obj = $('.dialog#'+dialog)
     $('.dialog').hide(0)
@@ -43,6 +42,7 @@ function showDialog(dialog) {
         $('.context_handler.ctx').removeClass('ctx')
     }, 64)
     open_dialog = dialog
+    Prop.active_panel = 'dialog'
     //Draggable
     if (obj.hasClass('draggable')) {
         obj.draggable({
@@ -69,6 +69,7 @@ function hideDialog() {
     $('#blackout').fadeOut(200)
     $('.dialog').fadeOut(200)
     open_dialog = false;
+    Prop.active_panel = undefined
 }
 function setSettingsTab(tab) {
     $('#settings .tab.open').removeClass('open')
@@ -114,9 +115,14 @@ function textPrompt(title, var_string, value, callback) {
     })
 }
 function renameCubeList(name) {
-    selected.forEach(function(s, i) {
-        elements[s].name = name.split('%').join(s).split('$').join(i)
+    elements.forEach(function(obj, i) {
+        if (obj.display.isselected) {
+            obj.name = name.split('%').join(obj.index()).split('$').join(i)
+        }
     })
+}
+function setActivePanel(panel) {
+    Prop.active_panel = panel
 }
 function randomHelpMessage() {
     var tips = [
@@ -152,6 +158,8 @@ function randomHelpMessage() {
         }
     })
 }
+
+
 
 //Scenes
 function enterScene(scene) {
@@ -210,7 +218,6 @@ function updateScenePosition(zoom) {
 
     $('div#preview').css('background-position', pos_x + 'px ' + pos_y+'px')
                     .css('background-size',  active_scene.background.size * zoom +'px')
-
 }
 function updateBackgroundRatio() {
     //Update Ratio
@@ -243,7 +250,6 @@ function updateScenePanelControls() {
     active_scene.background.lock = scene_controls.find('input#scene_fixed').is(':checked')
     updateScenePosition()
 }
-
 function scenesSetup(reset) {
     canvas_scenes = {
         normal: {name: 'Normal', background:  {image: false, size: 1000, x: 0, y: 0, ratio: 1, lock: 'disabled'}},
@@ -386,6 +392,21 @@ $(document).keyup(function(event) {
         $('.tooltip_shift').hide()
     }
 })
+function setProjectTitle(title) {
+    if (Blockbench.entity_mode && Project.parent) {
+        title = Project.parent
+    }
+    if (title) {
+        Prop.file_name = title
+        if (Blockbench.entity_mode) {
+            title = title.replace(/^geometry\./,'')
+        }
+        $('title').text(title+' - Blockbench')
+    } else {
+        Prop.file_name = ''
+        $('title').text('Blockbench')
+    }
+}
 /*
 function updateCubeList() {
     Vue.nextTick(function() {

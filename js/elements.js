@@ -17,10 +17,10 @@ var OutlinerButtons = {
 		advanced_option: false,
 		click: function(obj) {
 			var state = !obj.display.visibility
-			if (selected.length < 2 || !selected.includes(obj.index())) {
+			if (selected.length < 2 || !selected.includes(obj)) {
 				obj.setVisibility(state)
 			} else {
-				selected.Elements().forEach(function(s, i) {
+				selected.forEach(function(s, i) {
 					s.setVisibility(state)
 				})
 			}
@@ -35,10 +35,10 @@ var OutlinerButtons = {
 		advanced_option: true,
 		click: function(obj) {
 			var state = !obj.display.export
-			if (selected.length < 2 || !selected.includes(obj.index())) {
+			if (selected.length < 2 || !selected.includes(obj)) {
 				obj.setExport(state)
 			} else {
-				selected.Elements().forEach(function(s, i) {
+				selected.forEach(function(s, i) {
 					s.setExport(state)
 				})
 			}
@@ -52,10 +52,10 @@ var OutlinerButtons = {
 		advanced_option: true,
 		click: function(obj) {
 			var state = !obj.shade
-			if (selected.length < 2 || !selected.includes(obj.index())) {
+			if (selected.length < 2 || !selected.includes(obj)) {
 				obj.setShading(state)
 			} else {
-				selected.Elements().forEach(function(s, i) {
+				selected.forEach(function(s, i) {
 					s.setShading(state)
 				})
 			}
@@ -72,10 +72,10 @@ var OutlinerButtons = {
 			var state = obj.display.autouv+1
 			if (state > 2) state = 0
 
-			if (selected.length < 2 || !selected.includes(obj.index())) {
+			if (selected.length < 2 || !selected.includes(obj)) {
 				obj.setAutoUV(state)
 			} else {
-				selected.Elements().forEach(function(s, i) {
+				selected.forEach(function(s, i) {
 					s.setAutoUV(state)
 				})
 			}
@@ -94,6 +94,35 @@ class Face {
 class OutlinerElement {
 	constructor() {
 		this.uuid = guid()
+	}
+	sortInBefore(element) {
+		var index = -1;
+
+		if (element.display.parent === 'root') {
+			index = TreeElements.indexOf(element)
+			var arr = TreeElements
+			this.display.parent = 'root'
+		} else {
+			index = element.display.parent.children.indexOf(element)
+			element = element.display.parent
+			var arr = element.children
+			this.display.parent = element
+		}
+		// element = parent group
+
+
+		this.removeFromParent()
+
+		//Adding
+		if (index < 0)
+			arr.push(this)
+		else {
+			arr.splice(index, 0, this)
+		}
+
+		//Loading
+		loadOutlinerDraggable()
+		return this;
 	}
 	addTo(group) {
 		//Remove
@@ -177,20 +206,28 @@ class OutlinerElement {
 		}
 	}
 	showInOutliner() {
+		var scope = this;
 		if (this.display.parent !== 'root') {
 			this.display.parent.openUp()
-		} else {
-			this.scrollOutlinerTo()
 		}
+        Vue.nextTick(function(){
+			scope.scrollOutlinerTo()
+        })
 	}
 	scrollOutlinerTo() {
-		/*
-		var scroll_amount = $('#'+this.uuid).offset().top - 320
-		console.log(scroll_amount)
-		if (scroll_amount < c_height-280 && scroll_amount > -24) return;
+		var el = $('#'+this.uuid)
+		if (el.length === 0) return;
+
+    	var el_pos = el.offset().top
+    	if (el_pos > 300 && el_pos < $('#cubes_list').height() + 300) return;
+
+    	var multiple = el_pos > 300 ? 0.8 : 0.2
+		var scroll_amount = el.offset().top  + $('#cubes_list').scrollTop() - 320
+		scroll_amount -= $('#cubes_list').height()*multiple - 15
+
 		$('#cubes_list').animate({
         	scrollTop: scroll_amount
-    	}, 200);*/
+    	}, 200);
 	}
 	updateElement() {
 		var scope = this
@@ -206,7 +243,7 @@ class OutlinerElement {
 		obj.select()
 		obj.focus()
 		obj.addClass('renaming')
-		currently_renaming = true
+		Blockbench.addFlag('renaming')
 		return this;
 	}
 	isIconEnabled(title) {
@@ -234,20 +271,14 @@ class OutlinerElement {
 	}
 }
 class Cube extends OutlinerElement {
-	constructor(name, shade) {
+	constructor(data) {
 		super()
-		var x1 = 0;
-		var y1 = 0;
-		var z1 = 0;
-		var x2 = canvasGridSize();
-		var y2 = x2;
-		var z2 = x2;
-		if (!name) name = 'cube';
-		if (!shade) shade = true;
-		this.name = name;
-		this.from = [x1, y1, z1];
-		this.to = [x2, y2, z2];
-		this.shade = shade;
+		let size = canvasGridSize();
+		this.name = 'cube';
+		this.from = [0, 0, 0];
+		this.to = [size, size, size];
+		this.shade = true;
+		this.uv_offset = [0,0]
 		this.display = {
 			visibility: true,
 			isselected: true,
@@ -256,6 +287,21 @@ class Cube extends OutlinerElement {
 			parent: 'root'
 		}
 		this.faces = {north: new Face(), east: new Face(), south: new Face(), west: new Face(), up: new Face(), down: new Face()}
+		if (data && typeof data === 'object') {
+			this.extend(data)
+		}
+	}
+	init() {
+		if (!elements.includes(this)) {
+			elements.push(this)
+		}
+		if (!scene.children.includes(this)) {
+			Canvas.addCube(this)
+		}
+		if (true) {
+			this.addTo()
+		}
+		return this;
 	}
 	size(axis) {
 		if (axis !== undefined) {
@@ -268,58 +314,90 @@ class Cube extends OutlinerElement {
 		return elements.indexOf(this)
 	}
 	select(event) {
-		addToSelection(elements.indexOf(this), event, true)
+		addToSelection(this, event, true)
 	}
 	selectLow() {
-		var index = elements.indexOf(this)
-		if (selected.includes(index) === false) {
-			selected.push(index)
+		if (selected.includes(this) === false) {
+			selected.push(this)
 		}
 	}
 	extend(object) {
-		if (object.name !== undefined) this.name = object.name
-		if (object.shade !== undefined) this.shade = object.shade
+		function mergeNumber(obj, source, index) {
+			if (source[index] !== undefined) {
+				var val = source[index]
+				if (typeof val === 'number' && !isNaN(val)) {
+					obj[index] = val
+				} else {
+					val = parseFloat(val)
+					if (typeof val === 'number' && !isNaN(val)) {
+						obj[index] = val
+					}
+				}
+			}
+		}
+		function mergeString(obj, source, index) {
+			if (source[index] !== undefined) {
+				var val = source[index]
+				if (typeof val === 'string') {
+					obj[index] = val
+				} else {
+					obj[index] = val+''
+				}
+			}
+		}
+		function mergeBoolean(obj, source, index) {
+			if (source[index] !== undefined) {
+				obj[index] = source[index]
+			}
+		}
+		mergeString(this, object, 'name')
+		mergeBoolean(this, object, 'shade')
+		mergeNumber(this, object, 'inflate')
 		if (object.from) {
-			if (object.from[0] !== undefined) this.from[0] = parseFloat(object.from[0])
-			if (object.from[1] !== undefined) this.from[1] = parseFloat(object.from[1])
-			if (object.from[2] !== undefined) this.from[2] = parseFloat(object.from[2])
+			mergeNumber(this.from, object.from, 0)
+			mergeNumber(this.from, object.from, 1)
+			mergeNumber(this.from, object.from, 2)
 		}
 		if (object.to) {
-			if (object.to[0] !== undefined) this.to[0] = parseFloat(object.to[0])
-			if (object.to[1] !== undefined) this.to[1] = parseFloat(object.to[1])
-			if (object.to[2] !== undefined) this.to[2] = parseFloat(object.to[2])
+			mergeNumber(this.to, object.to, 0)
+			mergeNumber(this.to, object.to, 1)
+			mergeNumber(this.to, object.to, 2)
+		}
+		if (object.uv_offset) {
+			mergeNumber(this.uv_offset, object.uv_offset, 0)
+			mergeNumber(this.uv_offset, object.uv_offset, 1)
 		}
 		if (object.rotation) {
 			if (this.rotation === undefined) this.rotation = {origin: [8,8,8], axis: 'x', angle: 0}
-			if (object.rotation.axis !== undefined) this.rotation.axis = object.rotation.axis
-			if (object.rotation.angle !== undefined) this.rotation.angle = object.rotation.angle
-			if (object.rotation.rescale !== undefined) this.rotation.rescale = object.rotation.rescale
+			mergeString(this.rotation, object.rotation, 'axis')
+			mergeNumber(this.rotation, object.rotation, 'angle')
+			mergeBoolean(this.rotation, object.rotation, 'rescale')
 			if (object.rotation.origin) {
-				if (object.rotation.origin[0] !== undefined) this.rotation.origin[0] = parseFloat(object.rotation.origin[0])
-				if (object.rotation.origin[1] !== undefined) this.rotation.origin[1] = parseFloat(object.rotation.origin[1])
-				if (object.rotation.origin[2] !== undefined) this.rotation.origin[2] = parseFloat(object.rotation.origin[2])
+				mergeNumber(this.rotation.origin, object.rotation.origin, 0)
+				mergeNumber(this.rotation.origin, object.rotation.origin, 1)
+				mergeNumber(this.rotation.origin, object.rotation.origin, 2)
 			}
 		}
 		if (object.faces) {
 			for (var face in this.faces) {
 				if (this.faces.hasOwnProperty(face) && object.faces.hasOwnProperty(face)) {
-					if (object.faces[face].texture !== undefined) this.faces[face].texture = object.faces[face].texture
-					if (object.faces[face].cullface !== undefined) this.faces[face].cullface = object.faces[face].cullface
-					if (object.faces[face].rotation !== undefined) this.faces[face].rotation = object.faces[face].rotation
-					if (object.faces[face].tintindex !== undefined) this.faces[face].tintindex = object.faces[face].tintindex
+					mergeString(this.faces[face], object.faces[face], 'texture')
+					mergeString(this.faces[face], object.faces[face], 'cullface')
+					mergeNumber(this.faces[face], object.faces[face], 'rotation')
+					mergeNumber(this.faces[face], object.faces[face], 'tintindex')
 					if (object.faces[face].uv) {
-						if (object.faces[face].uv[0] !== undefined) this.faces[face].uv[0] = parseFloat(object.faces[face].uv[0])
-						if (object.faces[face].uv[1] !== undefined) this.faces[face].uv[1] = parseFloat(object.faces[face].uv[1])
-						if (object.faces[face].uv[2] !== undefined) this.faces[face].uv[2] = parseFloat(object.faces[face].uv[2])
-						if (object.faces[face].uv[3] !== undefined) this.faces[face].uv[3] = parseFloat(object.faces[face].uv[3])
+						mergeNumber(this.faces[face].uv, object.faces[face].uv, 0)
+						mergeNumber(this.faces[face].uv, object.faces[face].uv, 1)
+						mergeNumber(this.faces[face].uv, object.faces[face].uv, 2)
+						mergeNumber(this.faces[face].uv, object.faces[face].uv, 3)
 					}
 				}
 			}
 		}
 		if (object.display) {
-			if (object.display.autouv !== undefined) this.display.autouv = object.display.autouv
-			if (object.display.export !== undefined) this.display.export = object.display.export
-			if (object.display.visibility !== undefined) this.display.visibility = object.display.visibility
+			mergeNumber(this.display, object.display, 'autouv')
+			mergeBoolean(this.display, object.display, 'export')
+			mergeBoolean(this.display, object.display, 'visibility')
 		}
 		return this;
 	}
@@ -328,14 +406,14 @@ class Cube extends OutlinerElement {
 		if (this.display.visibility) {
 			scene.remove(this.display.mesh)
 		}
-		var s = elements.remove(this)
-		if (s && selected.includes(s)) {
-			selected.splice(selected.indexOf(s), 1)
+		if (selected.includes(this)) {
+			selected.splice(selected.indexOf(this), 1)
+		}
+		elements.splice(this.index(), 1)
+		if (update !== false) {
+			updateSelection()
 		}
 		delete this;
-		if (update) {
-			Canvas.updateIndexes()
-		}
 	}
 	showContextMenu(event) {
 		var scope = this;
@@ -347,22 +425,80 @@ class Cube extends OutlinerElement {
 				setUndo('Duplicated Cubes')
 			}},
 			{icon: 'text_format', name: 'Rename', click: function() {
-				if (selected.length > 1 && selected.includes(scope.index())) {
+				if (selected.length > 1 && selected.includes(scope)) {
 					renameCubes()
 				} else {
 					scope.rename()
 				}
-			}}
+			}},
+			{icon: 'pages', name: 'Inflate...', condition: Blockbench.entity_mode, click: function() {
+				scope.inflateDialog()
+			}},
 		])
+	}
+	inflateDialog() {
+		var scope = this;
+		if (!selected.includes(scope)) {
+			scope.select()
+		}
+		var before_val = scope.inflate
+		var inflate_dialog = new Dialog({
+			title: 'Inflate',
+			draggable: true,
+			lines: [
+				'<div class="dialog_bar"><label class="inline_label">Inflate: </label>'+
+				'<input type="number" class="dark_bordered inflate" min="0" max="64" step="0.5">'+
+				'<div class="tool"><i class="material-icons">clear</i><div class="tooltip">Reset</div></div>'+
+				'</div>'
+			],
+			id: 'inflate_dialog',
+			fadeTime: 100,
+			singleButton: true,
+			onCancel: function() {
+				inflate_dialog.hide()
+				if (before_val !== scope.inflate) {
+					setUndo('Inflated Cubes')
+				}
+			}
+		}).show()
+		$(inflate_dialog.object).find('input').val(this.inflate ? this.inflate : 0)
+		$(inflate_dialog.object).find('input').change(function() {
+			inflateCubes($(this).val())
+		})
+		$(inflate_dialog.object).find('div.tool').click(function() {
+			inflateCubes()
+		})
 	}
 	duplicate() {
 		selected.length = 0
 		this.selectLow()
 		duplicateCubes()
-		elements[selected[0]].addTo(this)
+		if (selected[0]) {
+			selected[0].addTo(this)
+		}
+	}
+	applyTexture(texture, faces) {
+		var scope = this;
+		if (faces === true || Blockbench.entity_mode) {
+	        var sides = ['north', 'east', 'south', 'west', 'up', 'down']
+	    } else if (faces === undefined) {
+	        var sides = [main_uv.face]
+	    } else {
+	        var sides = faces
+	    }
+        sides.forEach(function(side) {
+            scope.faces[side].texture = '#'+texture.id
+        })
+	    if (this.display.isselected) {
+	    	main_uv.loadData()
+	    }
+        if (!Prop.wireframe && scope.display.visibility == true) {
+            Canvas.adaptObjectFaces(scope.display.mesh, scope, this.display.isselected)
+            Canvas.updateUV(scope)
+        }
 	}
 	mapAutoUV() {
-		if (settings.entity_mode.value) return;
+		if (Blockbench.entity_mode) return;
 		var scope = this
 		if (scope.display.autouv === 2) {
 			//Relative UV
@@ -424,7 +560,7 @@ class Cube extends OutlinerElement {
 		        })
 		        scope.faces[side].uv = uv
 		    })
-        	Canvas.updateUV(scope.index())
+        	Canvas.updateUV(scope)
 		} else if (scope.display.autouv === 1) {
 
 			function calcAutoUV(face, size) {
@@ -477,7 +613,7 @@ class Cube extends OutlinerElement {
 		    scope.faces.up.uv =    calcAutoUV('up',    [scope.size(0), scope.size(2)])
 		    scope.faces.down.uv =  calcAutoUV('down',  [scope.size(0), scope.size(2)])
 
-        	Canvas.updateUV(scope.index())
+        	Canvas.updateUV(scope)
 		} else {
 			//
 		}
@@ -492,7 +628,9 @@ class Cube extends OutlinerElement {
 	}
 	setShading(val) {
 		this.shade = val !== false;
-		//
+		if (Blockbench.entity_mode) {
+			Canvas.updateUV(this)
+		}
 	}
 	setAutoUV(val) {
 		this.display.autouv = val;
@@ -505,22 +643,26 @@ class Cube extends OutlinerElement {
 	Cube.prototype.icon = 'fa fa-cube'
 	Cube.prototype.isParent = false
 	Cube.prototype.buttons = [
-		OutlinerButtons.autouv,
-		OutlinerButtons.shading,
-		OutlinerButtons.export,
+		OutlinerButtons.remove,
 		OutlinerButtons.visibility,
-		OutlinerButtons.remove
+		OutlinerButtons.export,
+		OutlinerButtons.shading,
+		OutlinerButtons.autouv
 	]
 class Group extends OutlinerElement {
 	constructor(name) {
 		super()
 		if (name === undefined) {
-			this.name = 'group'
+			this.name = Blockbench.entity_mode ? 'bone' : 'group'
 		} else {
 			this.name = name
 		}
 		this.children = []
-		this.origin = [8, 8, 8]
+		if (Blockbench.entity_mode) {
+			this.origin = [0, 4, 0]	
+		} else {
+			this.origin = [8, 8, 8]	
+		}
 		this.rotation = [0, 0, 0]
 		this.reset = false
 		this.shade = true
@@ -534,7 +676,7 @@ class Group extends OutlinerElement {
 	}
 	select(event) {
 		var scope = this;
-		if (currently_renaming) return;
+		if (Blockbench.hasFlag('renaming')) return;
 		if (!event) event = {shiftKey: false}
 		var firstChildSelected = (scope.children[0] && scope.children[0].display.isselected)
 
@@ -564,7 +706,7 @@ class Group extends OutlinerElement {
 	}
 	selectChildren(event) {
 		var scope = this;
-		if (currently_renaming) return;
+		if (Blockbench.hasFlag('renaming')) return;
 		if (!event) event = {shiftKey: false}
 		var firstChildSelected = false
 
@@ -604,8 +746,6 @@ class Group extends OutlinerElement {
 		this.updateElement()
 		if (this.display.parent && this.display.parent !== 'root') {
 			this.display.parent.openUp()
-		} else {
-			this.scrollOutlinerTo()
 		}
 		return this;
 	}
@@ -649,23 +789,18 @@ class Group extends OutlinerElement {
 	renameChildren() {
 		this.selectChildren()
 		stopRenameCubes()
-		textPrompt('Rename Elements', '', elements[selected[0]].name, renameCubeList)
+		textPrompt('Rename Elements', '', selected[0].name, renameCubeList)
 	}
 	showContextMenu(event) {
 		var scope = this;
-		var menu_points = [
+		new ContextMenu(event, [
 			{icon: 'content_copy', name: 'Duplicate', click: function() {scope.duplicate();setUndo('Duplicated Group')}},
 			{icon: 'sort_by_alpha', name: 'Sort', click: function() {scope.sortContent()}},
 			{icon: 'fa-leaf', name: 'Resolve', click: function() {scope.resolve();setUndo('Resolved Group')}},
 			{icon: 'text_format', name: 'Rename', click: function() {scope.rename()}},
-			{icon: 'fa-align-left', name: 'Rename Content', click: function() {scope.renameChildren()}}
-		]
-		if (settings.entity_mode.value) {
-			menu_points.push({icon: 'rotate_90_degrees_ccw', name: 'Rotation', click: function() {
-				scope.boneRotationDialog()
-			}})
-		}
-		new ContextMenu(event, menu_points)
+			{icon: 'fa-align-left', name: 'Rename Content', click: function() {scope.renameChildren()}},
+			{icon: 'rotate_90_degrees_ccw', name: 'Rotation...', condition: Blockbench.entity_mode, click: function() {scope.boneRotationDialog()}}
+		])
 	}
 	boneRotationDialog() {
 		this.select()
@@ -680,7 +815,7 @@ class Group extends OutlinerElement {
 			id: 'bone_rotation',
 			fadeTime: 100,
 			onCancel: function() {
-				hideDialog()
+				bone_rotation_dialog.hide()
 			},
 			singleButton: true
 		}).show()
@@ -700,16 +835,17 @@ class Group extends OutlinerElement {
 		});
 		setUndo('Sorted group')
 	}
-	duplicate() {
-		var i = 0;
+	duplicate(destination) {
 		function duplicateArray(g1, g2) {
 			var array = g1.children
-			i = 0;
+			var i = 0;
 			while (i < array.length) {
 				if (array[i].type === 'cube') {
-					var dupl = new Cube().extend(array[i])
+					var dupl = new Cube(array[i])
 					dupl.addTo(g2)
-					elements.push(dupl)
+					if (destination !== 'cache') {
+						elements.push(dupl)
+					}
 				} else {
 					var dupl = array[i].getChildlessCopy()
 					duplicateArray(array[i], dupl)
@@ -720,8 +856,14 @@ class Group extends OutlinerElement {
 		}
 		var base_group = this.getChildlessCopy()
 		duplicateArray(this, base_group)
-		base_group.addTo(this.display.parent)
-		Canvas.updateAll()
+
+		if (!destination) {
+			base_group.addTo(this.display.parent)
+			Canvas.updateAll()
+		} else if (destination !== 'cache') {
+			base_group.addTo(destination)
+			Canvas.updateAll()
+		}
 		return base_group;
 	}
 	getChildlessCopy() {
@@ -764,11 +906,18 @@ class Group extends OutlinerElement {
 		this.updateElement()
 	}
 	setShading(val) {
-		this.forEachChild(function(s) {
-			s.shade = val !== false;
-			s.updateElement()
-		})
+		if (!Blockbench.entity_mode) {
+			this.forEachChild(function(s) {
+				s.shade = val !== false;
+				s.updateElement()
+			})
+		}
 		this.shade = val !== false;
+		if (Blockbench.entity_mode) {
+			this.forEachChild(function(s) {
+				Canvas.updateUV(s)
+			})
+		}
 		this.updateElement()
 	}
 	setAutoUV(val) {
@@ -785,11 +934,11 @@ class Group extends OutlinerElement {
 	Group.prototype.icon = 'fa fa-folder'
 	Group.prototype.isParent = true
 	Group.prototype.buttons = [
-		OutlinerButtons.autouv,
-		OutlinerButtons.shading,
-		OutlinerButtons.export,
+		OutlinerButtons.remove,
 		OutlinerButtons.visibility,
-		OutlinerButtons.remove
+		OutlinerButtons.export,
+		OutlinerButtons.shading,
+		OutlinerButtons.autouv
 	]
 Array.prototype.clearObjectRecursive = function(obj) {
 	var i = 0
@@ -820,8 +969,8 @@ Array.prototype.findRecursive = function(key1, val) {
 }
 
 function forOutlinerSelection(item, cb) {
-	if (selected.length > 1 && selected.includes(item.index())) {
-		var items = selected.Elements()
+	if (selected.length > 1 && selected.includes(item)) {
+		var items = selected
 	} else {
 		var items = [item]
 	}
@@ -881,6 +1030,7 @@ function compileGroups(save_nonexported, lut) {
 				var obj = {
 					name: array[i].name,
 					isOpen: array[i].isOpen,
+					shade: array[i].shade,
 					display: $.extend(true, {}, array[i].display),
 					children: []
 				}
@@ -912,14 +1062,24 @@ function compileGroups(save_nonexported, lut) {
 	iterate(TreeElements, result)
 	return result;
 }
-function parseGroups(array) {
+function parseGroups(array, importGroup, startIndex) {
 	function iterate(array, save_array, addGroup) {
 		var i = 0;
 		while (i < array.length) {
 			if (typeof array[i] === 'number') {
-				if (elements[array[i]]) {
-					save_array.push(elements[array[i]])
-					elements[array[i]].display.parent = addGroup
+				var obj = elements[array[i] + (startIndex ? startIndex : 0) ]
+				if (obj && obj.type === 'cube') {
+					obj.removeFromParent()
+					save_array.push(obj)
+					obj.display.parent = addGroup
+					if (Blockbench.hasFlag('importing') && typeof addGroup === 'object') {
+						if (addGroup.display.autouv !== undefined) {
+							obj.display.autouv = addGroup.display.autouv
+						}
+						if (addGroup.display.visibility !== undefined) {
+							obj.display.visibility = addGroup.display.visibility
+						}
+					}
 				}
 			} else {
 				var obj = new Group()
@@ -934,6 +1094,7 @@ function parseGroups(array) {
 					obj.reset = true
 				}
 				obj.isOpen = array[i].isOpen
+				obj.shade = array[i].shade
 				if (array[i].display.visibility !== undefined) obj.display.visibility = array[i].display.visibility
 				if (array[i].display.export 	!== undefined) obj.display.export = array[i].display.export
 				if (array[i].display.autouv 	!== undefined) obj.display.autouv = array[i].display.autouv
@@ -947,9 +1108,13 @@ function parseGroups(array) {
 			i++;
 		}
 	}
-	TreeElements.length = 1
-	TreeElements.splice(0, 1)
-	iterate(array, TreeElements, 'root')
+	if (importGroup && startIndex !== undefined) {
+		iterate(array, importGroup.children, importGroup)
+	} else {
+		TreeElements.length = 1
+		TreeElements.splice(0, 1)
+		iterate(array, TreeElements, 'root')
+	}
 }
 //Outliner
 function toggleOutlinerOptions(force) {
@@ -975,11 +1140,34 @@ function loadOutlinerDraggable() {
 				if (selected.length > 1) {
 					helper.append('<div class="outliner_drag_number">'+selected.length+'</div>')
 				}
+				helper.on('mousewheel', function() {
+					var delta = event.deltaY * 1 + $('#cubes_list').scrollTop()
+					$('#cubes_list').animate({scrollTop: delta}, 10);
+				})
 				return helper;
 			},
 			revert: 'invalid',
 			appendTo: 'body',
-			zIndex: 19
+			zIndex: 19,
+			drag: function(event, ui) {/*
+				$('.drag_hover_insert_before').removeClass('drag_hover_insert_before')
+				var tar = $('#cubes_list li .drag_hover.outliner_node')
+				var element = TreeElements.findRecursive('uuid', tar.attr('id'))
+				if (tar.length) {
+					var y = event.clientY - tar.position().top
+					if (y < 10) {
+						tar.addClass('drag_hover_insert_before')
+					} else if (element.type === 'cube') {
+						tar.addClass('drag_hover_insert_before')
+					}
+				}
+
+				//console.log(event)
+				//console.log(dpos - epos.top)
+
+				//console.log()
+				*/
+			}
 		})
 		$('li.outliner_node').droppable({
 			greedy: true,
@@ -991,6 +1179,12 @@ function loadOutlinerDraggable() {
 			tolerance: 'pointer',
 			hoverClass: 'drag_hover',
 			drop: function(event, ui) {
+				/*
+				var dpos = event.clientY
+				var epos = $(event.target).position()
+				console.log(dpos - epos.top)
+				*/
+
 				$('.drag_hover').removeClass('drag_hover')
 				var target = TreeElements.findRecursive('uuid', $(event.target).attr('id'))
 
@@ -1012,8 +1206,8 @@ function loadOutlinerDraggable() {
 						})
 					} else {
 						var targets;
-						if (selected.includes( target.index() )) {
-							targets = selected.Elements()
+						if (selected.includes(target)) {
+							targets = selected
 						} else {
 							targets = [target]
 						}
@@ -1031,11 +1225,19 @@ function loadOutlinerDraggable() {
 		})
 	})
 }
+function collapseAllGroups() {
+	getAllOutlinerGroups().forEach(function(g) {
+		g.isOpen = false
+		var name = g.name
+		g.name = '_$X0v_'
+		g.name = name
+	})
+}
 
 function dropOutlinerObjects(item, target, event) {
 	var items;
-	if (item.type === 'cube' && selected.includes( item.index() )) {
-		items = selected.Elements()
+	if (item.type === 'cube' && selected.includes( item )) {
+		items = selected
 	} else {
 		items = [item]
 	}
@@ -1059,30 +1261,38 @@ function dropOutlinerObjects(item, target, event) {
 	}
 }
 
-
 function addCube() {
 	var base_cube = new Cube().addTo()
-	var create_bone = (settings.entity_mode.value && !selected_group && selected.length === 0)
+	var create_bone = (Blockbench.entity_mode && !selected_group && selected.length === 0)
 	if (selected_group) {
 		base_cube.addTo(selected_group)
 	} else if (selected[0] !== undefined &&
-		elements[selected[0]] &&
-		elements[selected[0]].display.parent !== 'root'
+		selected[0].display.parent !== 'root'
 	) {
-		base_cube.addTo(elements[selected[0]].display.parent)
+		base_cube.addTo(selected[0].display.parent)
 	}
 
-	if (textures.length && settings.entity_mode.value) {
+	if (textures.length && Blockbench.entity_mode) {
 		var sides = ['north', 'east', 'south', 'west', 'up', 'down']
 	    sides.forEach(function(side) {
 	        base_cube.faces[side].texture = '#'+textures[0].id
 	    })
 	    main_uv.loadData()
 	}
+	if (Blockbench.entity_mode && selected_group) {
+		var pos1 = selected_group.origin.slice()
+		base_cube.extend({
+			from:[ pos1[0]-0, pos1[1]-0, pos1[2]-0 ],
+			to:[   pos1[0]+1, pos1[1]+1, pos1[2]+1 ]
+		})
+	}
 
 	if (selected_group) selected_group.unselect()
 	elements.push(base_cube)
-	selected = [elements.length-1]
+	if (create_bone) {
+		base_cube.addTo(new Group().addTo('root').openUp())
+	}
+	selected = [elements[elements.length-1]]
 	Canvas.updateSelected()
 	setUndo('Added cube')
 	loadOutlinerDraggable()
@@ -1092,18 +1302,15 @@ function addCube() {
 			renameCubes()
 		}
 	})
-	if (create_bone) {
-		base_cube.addTo(new Group().addTo('root').openUp())
-	}
     Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 	return base_cube
 }
 function addGroup() {
 	var base_group = new Group()
 	selected.forEach(function(s, i) {
-		elements[s].addTo(base_group)
+		s.addTo(base_group)
 		if (i === 0) {
-			elements[s].display.isselected = false
+			s.display.isselected = false
 		}
 	})
 	base_group.addTo(selected_group)
@@ -1120,273 +1327,7 @@ function addGroup() {
 	})
 }
 
-
-
 //Misc
-function isMovementOnRotatedAxis() {
-	if ((settings.move_origin.value || Prop.tool === 'scale') && !settings.entity_mode.value) {
-		if (selected.length > 1) {
-			if (elements[selected[0]].rotation === undefined) return false;
-			var i = 0;
-			var code = null;
-			while (i < selected.length) {
-				var new_code = getAxisRotationCode(elements[selected[i]].rotation)
-				if (code === null) {
-					code = new_code
-				} else {
-					if (code !== new_code) return false;
-				}
-				i++;
-			}
-		}
-		return true;
-	} else {
-		return false;
-	}
-}
-function getAxisRotationCode(rotation) {
-	if (rotation === undefined) {
-		return 'none'
-	} else {
-		return rotation.axis + '_' + rotation.angle
-	}
-}
-//Actions
-function duplicateCubes() {
-	selected.forEach(function(s, i) {
-		var old_group = elements[s].display.parent
-		var base_cube = new Cube()
-		base_cube.extend(elements[s])
-		base_cube.uuid = guid()
-
-		//Numberation
-		var number = base_cube.name.match(/[0-9]+$/)
-		if (number) {
-			number = parseInt(number[0])
-			base_cube.name = base_cube.name.split(number).join(number+1)
-		}
-
-		//Rest
-		base_cube.display.mesh = undefined;
-		elements.push(base_cube)
-		base_cube.addTo(old_group)
-
-		Canvas.addCube(elements.length-1)
-
-		selected[i] = elements.length-1
-	})
-	setTool('translate')//( Also updates selection)
-	setUndo('Duplicated cube'+pluralS(selected))
-}
-function origin2geometry() {
-	selected.forEach(function(s) {
-
-		var obj = elements[s]
-		var element_size = obj.size()
-		var element_center = new THREE.Vector3(
-			(element_size[0]   / 2) + obj.from[0],
-			(element_size[1]   / 2) + obj.from[1],
-			(element_size[2]   / 2) + obj.from[2]
-		)
-
-		if (obj.rotation == undefined) {
-			obj.rotation = {origin:[8,8,8], axis: 'y', angle: 0}
-		}
-		element_center.x -= obj.rotation.origin[0]
-		element_center.y -= obj.rotation.origin[1]
-		element_center.z -= obj.rotation.origin[2]
-
-		if (obj.display.mesh) {
-			element_center.applyEuler(obj.display.mesh.rotation)
-		}
-		obj.rotation.origin[0] += element_center.x
-		obj.rotation.origin[1] += element_center.y
-		obj.rotation.origin[2] += element_center.z
-
-		obj.to[0] = obj.rotation.origin[0] + element_size[0] / 2
-		obj.to[1] = obj.rotation.origin[1] + element_size[1] / 2
-		obj.to[2] = obj.rotation.origin[2] + element_size[2] / 2
-
-		obj.from[0] = obj.rotation.origin[0] - element_size[0] / 2
-		obj.from[1] = obj.rotation.origin[1] - element_size[1] / 2
-		obj.from[2] = obj.rotation.origin[2] - element_size[2] / 2
-	})
-	Canvas.updatePositions()
-	setUndo('Set origin to geometry')
-}
-var Rotation = {
-	angleBefore: 0,
-	load: function() {
-		$('.selection_only#options').css('visibility', 'visible')
-		if (settings.entity_mode.value === false) {
-			var s = selected[0]
-			try {
-				$('#cube_rotate').val(elements[s].rotation.angle)
-				$('#cube_axis').val(elements[s].rotation.axis)
-				var rescale = elements[s].rotation.rescale
-				if (rescale === undefined) {
-					rescale = false;
-				}
-				$('#cube_rescale').prop('checked', rescale);
-			} catch (err) {
-				$('#cube_rotate').val('0');
-				$('#cube_axis').val('y');
-				$('#cube_rescale').prop('checked', false);
-			}
-		} else {
-			if (selected_group) {
-				var axis = $('#cube_axis').val()
-				$('#cube_rotate').val(selected_group.rotation[getAxisNumber(axis)])
-				$('#cube_rescale').prop('checked', selected_group.reset);
-			} else {
-				$('#cube_rotate').val('0');
-				$('#cube_rescale').prop('checked', false);
-			}
-		}
-	},
-	selectTool: function() {
-		if (settings.entity_mode.value) {
-			Rotation.load()
-		} else {
-			Rotation.set()
-		}
-	},
-	start: function() {
-		Rotation.angleBefore = $('#cube_rotate').val();
-	},
-	slide: function() {
-		if (settings.entity_mode.value === false) {
-			if (selected.length == 0) {return;}
-			var angle = parseFloat($('#cube_rotate').val())
-			var axis = $('#cube_axis option:selected').attr('id')
-			var rescale = $('#cube_rescale').is(':checked')
-			if (angle > 45) {
-				$('#cube_rotate_dummy').css('border-left', '5px solid var(--color-accent)')
-			} else if (angle < -45) {
-				$('#cube_rotate_dummy').css('border-right', '5px solid var(--color-accent)')
-			} else {
-				$('#cube_rotate_dummy').css('border', 'none')
-			}
-			selected.forEach(function(s) {
-				if (elements[s].rotation == undefined) {
-					elements[s].rotation = {origin:[8,8,8], axis: 'y', angle: 45}
-				}
-				elements[s].rotation.angle = angle;
-				elements[s].rotation.axis = axis;
-				if (rescale) {
-					elements[s].rotation.rescale = true;
-				} else {
-					delete elements[s].rotation.rescale;
-				}
-			})
-			Canvas.updatePositions()
-		} else {
-			if (!selected_group) return;
-			var angle = parseFloat($('#cube_rotate').val())
-			var axis = getAxisNumber($('#cube_axis option:selected').attr('id'))
-			selected_group.rotation[axis] = angle
-			Canvas.updatePositions()
-		}
-	},
-	save: function() {
-		if (settings.entity_mode.value === false) {
-			$('#cube_rotate_dummy').css('border', 'none')
-			if ($('#cube_rotate').val() !== Rotation.angleBefore) {
-				var angle = $('#cube_rotate').val()
-				var axis = $('#cube_axis option:selected').attr('id')
-				if (angle === '67.5') {
-					$('#cube_rotate').val('-22.5')
-					this.forceAngle('-22.5')
-					switch (axis) {
-						case 'x':
-							rotateSelectedX(1)
-							break;
-						case 'y':
-							rotateSelectedY(3)
-							break;
-						case 'z':
-							rotateSelectedZ(1)
-							break;
-					}
-				} else if (angle === '-67.5') {
-					$('#cube_rotate').val('22.5')
-					this.forceAngle('22.5')
-					switch (axis) {
-						case 'x':
-							rotateSelectedX(3)
-							break;
-						case 'y':
-							rotateSelectedY(1)
-							break;
-						case 'z':
-							rotateSelectedZ(3)
-							break;
-					}
-				} else {
-					setUndo('Changed rotation')
-				}
-			}
-		} else {
-			if ($('#cube_rotate').val() !== Rotation.angleBefore && selected_group) {
-				setUndo('Changed rotation')
-			}
-		}
-	},
-	set: function() {
-		if (settings.entity_mode.value === false) {
-			if (selected.length == 0) {return;}
-			var angle = $('#cube_rotate').val()
-			var axis = $('#cube_axis option:selected').attr('id')
-			var rescale = $('#cube_rescale').is(':checked')
-			selected.forEach(function(s) {
-				if (elements[s].rotation == undefined) {
-					elements[s].rotation = {origin:[8,8,8], axis: 'y', angle: 45}
-				}
-				elements[s].rotation.angle = parseFloat(angle);
-				elements[s].rotation.axis = axis;
-				if (rescale) {
-					elements[s].rotation.rescale = true;
-				} else {
-					delete elements[s].rotation.rescale;
-				}
-			})
-			Canvas.updatePositions()
-		} else {
-			var reset = $('#cube_rescale').is(':checked')
-			if (selected_group) {
-				selected_group.reset = reset
-			}
-		}
-	},
-	forceAngle: function(angle) {
-		angle = parseFloat(angle)
-		var axis = $('#cube_axis option:selected').attr('id')
-		selected.forEach(function(s) {
-			if (elements[s].rotation == undefined) {
-				elements[s].rotation = {origin:[8,8,8], axis: axis, angle: 45}
-			}
-			elements[s].rotation.angle = angle;
-		})
-	},
-	remove: function() {
-		if (selected.length == 0) {return;}
-		selected.forEach(function(s) {
-			if (elements[s].rotation !== undefined) {
-				delete elements[s].rotation;
-			}
-		})
-		Rotation.load()
-		updateNslideValues()
-		Canvas.updatePositions()
-	},
-	fn: function (argument) {
-		if (settings.entity_mode.value === false) {
-			Rotation.remove()
-		} else if (selected_group) {
-			selected_group.boneRotationDialog()
-		}
-	}
-}
 function deleteCubes(array) {
 	if (selected_group) {
 		selected_group.remove()
@@ -1401,7 +1342,7 @@ function deleteCubes(array) {
 		array.sort(function(a,b){return a - b}).reverse()
 	}
 	array.forEach(function(s) {
-		elements[s].remove()
+		s.remove()
 	})
 	Canvas.updateIndexes()
 	setUndo('Removed cubes')
@@ -1410,17 +1351,17 @@ function toggleCubeProperty(thing, first_level) {
 	if (selected.length === 0) return;
 	var value;
 	if (first_level) {
-		value = !elements[selected[0]][thing]
+		value = !selected[0][thing]
 		selected.forEach(function(s) {
-			elements[s][thing] = value
+			s[thing] = value
 		})
 	} else {
-		value = !elements[selected[0]].display[thing]
+		value = !selected[0].display[thing]
 		selected.forEach(function(s) {
-			elements[s].display[thing] = value
+			s.display[thing] = value
 		})
 		if (thing === 'visibility') {
-			Canvas.updateAll()
+			Canvas.updateVisiblilty()
 		}
 	}
 	if (value) {
@@ -1437,16 +1378,16 @@ function renameCubes() {
 	} else if (selected.length === 0) {
 		return;
 	} else if (selected.length === 1) {
-		elements[selected[0]].rename()
+		selected[0].rename()
 	} else {
-		textPrompt('Rename Elements', '', elements[selected[0]].name, renameCubeList)
+		textPrompt('Rename Elements', '', selected[0].name, renameCubeList)
 	}
 }
 function stopRenameCubes() {
-	if (currently_renaming) {
+	if (Blockbench.hasFlag('renaming')) {
 		$('.outliner_object input.renaming').attr('disabled', true).removeClass('renaming')
 		$('body').focus()
-		currently_renaming = false
+		Blockbench.removeFlag('renaming')
 	}
 }
 function sortOutliner() {

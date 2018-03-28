@@ -1,14 +1,10 @@
-var keybinds, settings, display_presets;
+var keybinds, settings, settings_old, display_presets;
 
 var Project = new Object()
 projectTagSetup()
 keybindSetup()
 settingSetup()
 displayPresetsSetup()
-
-$(document).keydown(function(e) {
-    holding_shift = e.shiftKey;
-});
 
 $(document).keyup(function(e) {
     holding_shift = false;
@@ -35,39 +31,33 @@ function keybindSetup(get) {
         headline3:  {is_title: true, title: "Edit"}, 
         undo:       {shift: false, ctrl: true, alt: false, code: 90, name: 'Undo', char: 'Ctrl + Z'},
         redo:       {shift: false, ctrl: true, alt: false, code: 89, name: 'Redo', char: 'Ctrl + Y'},
+        copy:       {shift: false, ctrl: true, alt: false, code: 67, name: 'Copy', char: 'Ctrl + C'},
+        paste:      {shift: false, ctrl: true, alt: false, code: 86, name: 'Paste', char: 'Ctrl + V'},
+        cut:        {shift: false, ctrl: true, alt: false, code: 88, name: 'Cut', char: 'Ctrl + X'},
         create_selection:{shift: false, ctrl: true, alt: false, code: 70, name: 'Create Selection', char: 'Ctrl + F'},
         select_all: {shift: false, ctrl: true, alt: false, code: 65, name: 'Select All', char: 'Ctrl + A'},
-        invert_select:{shift:false,ctrl: true, alt: false, code: 65, name: 'Select All', char: 'Ctrl + A'},
         add_cube:   {shift: false, ctrl: true, alt: false, code: 78, name: 'Add Cube', char: 'Ctrl + N'},
         new_group:  {shift: false, ctrl: true, alt: false, code: 71, name: 'Add Group', char: 'Ctrl + G'},
         duplicate:  {shift: false, ctrl: true, alt: false, code: 68, name: 'Duplicate Cube', char: 'Ctrl + D'},
         delete:     {shift: false, ctrl: false, alt: false,code: 46, name: 'Delete Selected', char: 'DELETE'},
         rename:     {shift: false, ctrl: false, alt: false,code: 113,name: 'Rename', char: 'F2'},
 
-        headline4:  {is_title: true, title: "Textures"}, 
-        uv_copy:    {shift: false, ctrl: true, alt: false, code: 67, name: 'Copy UV', char: 'Ctrl + C'},
-        uv_copy_all:{shift: true,  ctrl: true, alt: false, code: 67, name: 'Copy UV All', char: 'Ctrl + Shift + C'},
-        uv_paste:   {shift: false, ctrl: true, alt: false, code: 86, name: 'Paste UV', char: 'Ctrl + V'},
-        uv_paste_all:{shift: true, ctrl: true, alt: false, code: 86, name: 'Paste UV All', char: 'Ctrl + Shift + V'},
-
-        headline5:  {is_title: true, title: "Display Mode"}, 
-        copy_disp:  {shift: false, ctrl: true, alt: false, code: 67, name: 'Copy Display Settings', char: 'Ctrl + C'},
-        paste_disp: {shift: false, ctrl: true, alt: false, code: 86, name: 'Paste Display Settings', char: 'Ctrl + V'},
-        reload_tex: {shift: false, ctrl: true, alt: false, code: 82, name: 'Reload Textures', char: 'Ctrl + R'},
+        headline4:   {is_title: true, title: "Textures"},
+        reload_tex:  {shift: false, ctrl: true, alt: false, code: 82, name: 'Reload Textures', char: 'Ctrl + R'},
 
         headline6:     {is_title: true, title: "Tool"}, 
         tool_translate:{shift: false, ctrl: false, alt: false, code: 86, name: 'Move Tool', char: 'V'},
         tool_scale:    {shift: false, ctrl: false, alt: false, code: 83, name: 'Scale Tool', char: 'S'},
         tool_brush:    {shift: false, ctrl: false, alt: false, code: 66, name: 'Brush', char: 'B'},
-        tool_swap:    {shift: false, ctrl: false, alt: false, code: 32, name: 'Swap Move and Scale', char: 'SPACE'},
+        tool_swap:     {shift: false, ctrl: false, alt: false, code: 32, name: 'Swap Move and Scale', char: 'SPACE'},
 
-        headline7:  {is_title: true, title: "Movement"}, 
-        move_north: {shift: false, ctrl: false, alt: false, code: 38, name: 'Move South', char: 'ARROWUP'},
-        move_south: {shift: false, ctrl: false, alt: false, code: 40, name: 'Move North', char: 'ARROWDOWN'},
-        move_west:  {shift: false, ctrl: false, alt: false, code: 37, name: 'Move West', char: 'ARROWLEFT'},
-        move_east:  {shift: false, ctrl: false, alt: false, code: 39, name: 'Move East', char: 'ARROWRIGHT'},
-        move_up:    {shift: false, ctrl: false, alt: false, code: 33, name: 'Move Up', char: 'PAGEUP'},
-        move_down:  {shift: false, ctrl: false, alt: false, code: 34, name: 'Move Down', char: 'PAGEDOWN'},
+        headline7:   {is_title: true, title: "Movement"}, 
+        move_north:  {shift: false, ctrl: false, alt: false, code: 38, name: 'Move South', char: 'ARROWUP'},
+        move_south:  {shift: false, ctrl: false, alt: false, code: 40, name: 'Move North', char: 'ARROWDOWN'},
+        move_west:   {shift: false, ctrl: false, alt: false, code: 37, name: 'Move West', char: 'ARROWLEFT'},
+        move_east:   {shift: false, ctrl: false, alt: false, code: 39, name: 'Move East', char: 'ARROWRIGHT'},
+        move_up:     {shift: false, ctrl: false, alt: false, code: 33, name: 'Move Up', char: 'PAGEUP'},
+        move_down:   {shift: false, ctrl: false, alt: false, code: 34, name: 'Move Down', char: 'PAGEDOWN'},
 
         headline8:   {is_title: true, title: "View"}, 
         wireframe:   {shift: false, ctrl: false, alt: false, code: 90,  name: 'Toggle Wireframe', char: 'Z'},
@@ -99,6 +89,7 @@ function keybindSetup(get) {
     }
 }
 function settingSetup() {
+    settings_old = {}
     settings = {
         //Preview
         headline2:    {is_title: true, title: "Preview"}, 
@@ -107,8 +98,9 @@ function settingSetup() {
         shading:      {value: true,  name: 'Shading', desc: 'Enable shading'},
         transparency: {value: true,  name: 'Transparency', desc: 'Render transparent textures transparent'},
         texture_fps:  {value: 2, is_number: true, name: 'Animated Texture FPS', desc: 'Frames per second for animated textures'},
-        status_bar:   {value: true,  name: 'Status Bar', desc: 'Show the status bar that displays fps etc.'},
         swap_sidebar: {value: false, name: 'Swap Sidebars', desc: 'Swaps the right and the left sidebar'},
+        status_bar:   {value: true,  name: 'Status Bar', desc: 'Show the status bar that displays fps etc.'},
+        show_actions: {value: false, name: 'Display Actions', desc: 'Display every action in the status bar'},
         //Grid
         headline1:    {is_title: true, title: "Grid"}, 
         base_grid:    {value: true,  name: 'Small Grid', desc: 'Show small grid and axes'},
@@ -118,20 +110,27 @@ function settingSetup() {
         display_grid: {value: true, name: 'Display Mode', desc: 'Show grid in display mode'},
         //Edit
         headline3:    {is_title: true, title: "Edit"}, 
-        entity_mode:  {value: false, name: 'Entity Model Mode', desc: 'Unrestricted editing mode for Bedrock and Optifine models'},
         undo_limit:   {value: 20, is_number: true, name: 'Undo Limit', desc: 'Number of steps you can undo'},
         restricted_canvas:{value: true, name: 'Restricted Canvas', desc: 'Restrict Canvas to 3x3 block area to prevent invalid models'},
         move_origin:  {value: false, name: 'Move on Relative Axes', desc: 'Move rotated elements on their own axes if possible'},
+        canvas_unselect:{value: false, name: 'Canvas Click Unselect', desc: 'Unselects all elements when clicking on the canvas background'},
+        paint_side_restrict:{value: true, name: 'Restrict Brush to Side', desc: 'Restrict brushes to only paint on the current side'},
+        //Defaults
+        headline35:    {is_title: true, title: "Defaults"}, 
+        center_origin:{value: false, name: 'Grid Center Origin', desc: 'Set the origin to 8, 8, 8 by default'},
         autouv:       {value: true,  name: 'Auto UV', desc: 'Enable AutoUV by default'},
         create_rename:{value: false, name: 'Rename New Cube', desc: 'Focus name field when creating new element or group'},
-        canvas_unselect:{value: false, name: 'Canvas Click Unselect', desc: 'Unselects all elements when clicking on the canvas background'},
-        show_actions: {value: false, name: 'Display Actions', desc: 'Display every action in the status bar'},
         //Snapping
         headline4:    {is_title: true, title: "Snapping"},
         edit_size:    {value: 16, is_number: true, name: 'Grid Resolution', desc: 'Resolution of the grid that cubes snap to'},
         shift_size:   {value: 64, is_number: true, name: 'Shift Resolution', desc: 'Resolution of the grid while holding shift'},
         ctrl_size:    {value: 160, is_number: true, name: 'Control Resolution', desc: 'Resolution of the grid while holding control'},
         snapnslide:   {value: false, name: 'Snap Slider', desc: 'Snaps combo-sliders to their valid positions'},
+        negative_size:{value: false, name: 'Negative Size', desc: 'Allow the scale tool to use negative sizes'},
+        //Dialogs
+        headline4b:             {is_title: true, title: "Dialogs"},
+        dialog_unsaved_textures:{value: true, name: 'Unsaved Textures', desc: 'Show "Unsaved Textures" dialog'},
+        dialog_larger_cubes:    {value: true, name: 'Model Too Large', desc: 'Show "Model Too Large" dialog'},
         //Export
         headline5:    {is_title: true, title: "Export"}, 
         minifiedout:  {value: false,name: 'Minified Export', desc: 'Write JSON file in one line'},
@@ -294,11 +293,15 @@ function displayPresetsSetup() {
     }
 }
 $(document).keydown(function(e) {
+    holding_shift = e.shiftKey;
     if (e.which === 16) {
         showShiftTooltip()
     }
     if (e.ctrlKey === true && e.which == 73 && isApp) {
         app.getCurrentWindow().toggleDevTools()
+    }
+    if (compareKeys(e, keybinds.plugin_reload) && isApp) {
+        Plugins.devReload()
     }
 
     if (open_dialog !== false) {
@@ -317,7 +320,7 @@ $(document).keydown(function(e) {
         }
         return;
     }
-    if (currently_renaming === true) {
+    if (Blockbench.hasFlag('renaming')) {
         if (compareKeys(e, keybinds.confirm)) {
             stopRenameCubes()
         }
@@ -329,6 +332,13 @@ $(document).keydown(function(e) {
             $(document).click()
         }
         return;
+    }
+    //CopyPaste
+    if (compareKeys(e, keybinds.copy)) {
+        clipbench.copy(e)
+    }
+    if (compareKeys(e, keybinds.paste)) {
+        clipbench.paste(e)
     }
 
     if (compareKeys(e, keybinds.screenshot_clean)) {
@@ -351,7 +361,7 @@ $(document).keydown(function(e) {
         display_mode ? exitDisplaySettings() : enterDisplaySettings()
     }
     if (compareKeys(e, keybinds.settings)) {
-        showDialog('settings');setSettingsTab('setting')
+        openSettings()
     }
     if (compareKeys(e, keybinds.wireframe)) {
         toggleWireframe()
@@ -392,11 +402,11 @@ $(document).keydown(function(e) {
             showDialog('selection_creator')
         }
         if (compareKeys(e, keybinds.tool_translate)) {
-            setTool('translate')
+            Toolbox.set('translate')
         } else if (compareKeys(e, keybinds.tool_scale)) {
-            setTool('scale')
+            Toolbox.set('scale')
         } else if (compareKeys(e, keybinds.tool_brush)) {
-            setTool('brush')
+            Toolbox.set('paint_brush')
         } else if (compareKeys(e, keybinds.tool_swap)) {
             toggleTools()
         }
@@ -470,7 +480,19 @@ function saveLocalStorages() {
     localStorage.setItem('canvas_scenes', JSON.stringify(canvas_scenes))
     localStorage.setItem('settings', JSON.stringify(omitKeys(settings, ['name', 'desc'], true)) )
 }
-function saveSettings() {
+function openSettings() {
+    for (var sett in settings) {
+        if (settings.hasOwnProperty(sett)) {
+            settings_old[sett] = settings[sett].value
+        }
+    }
+    showDialog('settings')
+    setSettingsTab('setting')
+}
+function saveSettings(force_update) {
+    function hasSettingChanged(id) {
+        return (settings[id].value !== settings_old[id])
+    }
     updateMenu()
     for (var mat in Canvas.materials) {
         if (Canvas.materials.hasOwnProperty(mat))
@@ -479,7 +501,6 @@ function saveSettings() {
     setScreenRatio()
     canvasGridSize()
     buildGrid()
-    setShading()
     if (settings.snapnslide.value === true) {
         $('.nslide').draggable( "option", "grid", [ 50, 100 ] );
     } else {
@@ -495,21 +516,25 @@ function saveSettings() {
     } else {
         $('body').css('grid-template-rows', '32px calc(100% - 32px) 0px')
     }
-    if (entityMode.state !== settings.entity_mode.value) {
-        entityMode.state = settings.entity_mode.value
-        settings.entity_mode.value ? entityMode.join() : entityMode.leave()
-    }
-    TextureAnimator.updateSpeed()
     hideDialog()
     updateUIColor()
     updateSelection()
-    if (settings.entity_mode.value) {
+    if (Blockbench.entity_mode) {
         main_uv.setGrid()
         if (uv_dialog.editors) {
             uv_dialog.editors.single.setGrid()
         }
     }
-    Blockbench.dispatchEvent( 'update_settings')
+    if (hasSettingChanged('shading')) {
+        setShading()
+    }
+    if (hasSettingChanged('texture_fps')) {
+        TextureAnimator.updateSpeed()
+    }
+    if (hasSettingChanged('restricted_canvas') && settings.restricted_canvas.value && Blockbench.entity_mode === false) {
+        moveIntoBox()
+    }
+    Blockbench.dispatchEvent('update_settings')
 }
 function toggleSetting(setting) {
     if (settings[setting].value === true) {
@@ -529,10 +554,10 @@ var entityMode = {
         if (display_mode) {
            exitDisplaySettings() 
         }
-        settings.entity_mode.value = true
+        Blockbench.entity_mode = true
         $('body').addClass('entity_mode')
         $('label[for="project_parent"]').text('Mob Geometry Name')
-
+        $('button#entity_mode_convert').text('To Block Model')
         //Rotation Menu
         $('#cube_rescale_tool div').text('Reset Bone')
         $('#rotation_function_button i').text('settings')
@@ -541,17 +566,23 @@ var entityMode = {
         $('#rotation_origin_label').text('Pivot')
         $('input#cube_rotate').attr('min', '-180').attr('max', '180').attr('step', '5.625').addClass('entity_mode')
 
+        //UI Changes
+        $('.block_mode_only').hide()
+        $('.entity_mode_only').show()
+        //UV
         main_uv.buildDom().setToMainSlot().setFace('north')
         main_uv.autoGrid = true
-        $('.block_mode_only').hide()
+        main_uv.setGrid()
+        //Update
         buildGrid()
+        Canvas.updateAll()
         Blockbench.dispatchEvent('join_entity_mode')
     },
     leave: function() {
-        settings.entity_mode.value = false
+        Blockbench.entity_mode = false
         $('body').removeClass('entity_mode')
         $('label[for="project_parent"]').text('Parent Model')
-
+        $('button#entity_mode_convert').text('To Entity Model')
         //Rotation Menu
         $('#cube_rescale_tool div').text('Rescale')
         $('#rotation_function_button i').text('clear')
@@ -559,37 +590,35 @@ var entityMode = {
         $('.ui#options h3').text('Rotation')
         $('#rotation_origin_label').text('Origin')
         $('input#cube_rotate').attr('min', '-67.5').attr('max', '67.5').attr('step', '22.5').removeClass('entity_mode')
-
+        //UI Changes
         $('.block_mode_only').show()
+        $('.entity_mode_only').hide()
         $('.ui#textures').css('top', 514+'px')
+        //UV
         main_uv.buildDom(true).setToMainSlot()
+        //Update
         buildGrid()
-        elements.forEach(function(s, i) {
-            //Push elements into 3x3 block box
-            [0, 1, 2].forEach(function(ax) {
-                var overlap = s.from[ax] + s.to[ax] - 32
-                if (overlap > 0) {
-                    //If positive site overlaps
-                    s.from[ax] -= overlap
-                    s.to[ax] -= overlap
-
-                    overlap = 16 + s.from[ax]
-                    if (overlap < 0) {
-                        s.from[ax] = -16
-                    }
-                } else {
-                    overlap = s.from[ax] + 16
-                    if (overlap < 0) {
-                        s.from[ax] -= overlap
-                        s.to[ax] -= overlap
-
-                        if (s.from[ax] + s.to[ax] > 32) {
-                            s.to[ax] = 32
-                        }
-                    }
-                }
-            })
-        })
+        moveIntoBox(elements)
         Blockbench.dispatchEvent('leave_entity_mode')
+    },
+    convert: function() {
+        Blockbench.showMessageBox({
+            title: 'Convert Model to '+(Blockbench.entity_mode ? 'Block' : 'Entity')+' Model',
+            icon: 'warning',
+            message: 'Are you sure you want to convert this model to a'+(Blockbench.entity_mode ? ' block' : 'n entity')+' model? You cannot undo this step.',
+            buttons: ['Convert', 'Cancel'],
+            confirm: 0,
+            cancel: 1
+        }, function(result) {
+            if (result === 0) {
+                Undo.history.length = 0;
+                Undo.index = 0;
+                if (Blockbench.entity_mode) {
+                    entityMode.leave()
+                } else {
+                    entityMode.join()
+                }
+            }
+        })
     }
 }

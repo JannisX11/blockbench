@@ -8,26 +8,114 @@ $('.open-in-browser').click((event) => {
 });
 var lastImportEvent;
 
+
+
+document.ondragover = document.ondrop = (ev) => {
+    ev.preventDefault()
+}
+document.body.ondrop = (ev) => {
+    if (ev.dataTransfer == undefined) {
+        return; 
+    }
+    if (ev.dataTransfer.files[0] != undefined) {
+        ev.preventDefault()
+        var file = ev.dataTransfer.files[0]
+        var reader = new FileReader()
+
+        if (file.name.substr(-4).toUpperCase() == 'JSON') {
+
+            reader.onloadend = function() {
+                loadFile(reader.result, 'model', true)
+            }
+            if (file) {
+                reader.readAsText(file)
+            }
+        } else if (file.name.length > 6 && file.name.substr(-7).toUpperCase() == 'BBSTYLE') {
+            
+            reader.onloadend = function() {
+                applyBBStyle(reader.result)
+            }
+            if (file) {
+                reader.readAsText(file)
+            }
+
+
+        } else if (file.name.substr(-3).toUpperCase() == 'PNG') {
+
+
+            if (ev.target == canvas1) {
+                reader.onloadend = function() {
+                    //background
+                    active_scene.background.image = reader.result
+                    enterScene(true)
+                }
+                if (file) {
+                    reader.readAsDataURL(file)
+                }
+            } else {
+                if ($('li.texture').has(ev.target).length) {
+                    var id = $('li.texture').has(ev.target).attr('texid')
+                    var texture = getTextureById(id)
+                    if (texture && texture.error) {
+                        reader.onloadend = function() {
+                            texture.fromDataURL(reader.result)
+                        }
+                        reader.readAsDataURL(file)
+                        return;
+                    }
+                }
+                //texture
+                var fileArray = ev.dataTransfer.files;
+                var len = fileArray.length;
+
+                function addTex(file, name) {
+                    var reader = new FileReader()
+                    reader.onloadend = function() {
+                        new Texture({folder: 'blocks', name: name}).add().fromDataURL(reader.result).fillParticle()
+                    }
+                    reader.readAsDataURL(file)
+                }
+
+                var i = 0;
+                while (fileArray[i]) {
+                    addTex(fileArray[i], fileArray[i].name)
+                    i++;
+                }
+                loadTextureDraggable()
+                
+            }
+
+        }
+    }
+}
+
+
 function tryLoadPOSTModel() {
     if ($('#post_model').text() !== '') {
+        console.log('[P] Data in model tag found')
         if ($('#post_textures').text() !== '') {
+            console.log('[P] Data in texture tag found')
             Project.dataURLTextures = true
         }
         loadFile($('#post_model').text(), 'model', true)
-        $('#post_model').remove()
+        console.log('[P] File Loaded')
+        //$('#post_model').remove()
         if ($('#post_textures').text() !== '') {
             var data = JSON.parse( $('#post_textures').text() )
+            console.log('[P] textures parsed', data)
             for (var key in data) {
                 if (data.hasOwnProperty(key)) {
                     var tex = getTextureById(key+'');
-                    if (!tex) return;
-                    tex.img.src = ''
-                    tex.iconpath = data[key]
+                    if (tex) {
+                        tex.img.src = ''
+                        tex.iconpath = data[key]
+                    }
                 }
             }
             textures.forEach(function(tex) {
                 tex.load()
             })
+            console.log('[P] '+textures.length+' textures loaded')
         }
         return true;
     } else {
@@ -88,7 +176,7 @@ function fileLoaderLoad(type, showInputs, importFunction) {
 
 
 //Loader Read
-function readTexture() {
+function readTexture(file) {
 	hideDialog()
 	var file = $('#file_upload').get(0).files[0]
 	var reader = new FileReader()
@@ -110,8 +198,6 @@ function readTexture() {
 	}
 	if (file) {
 		reader.readAsDataURL(file)
-	} else {
-
 	}
 }
 function readFile() {
@@ -228,21 +314,47 @@ function saveFileEntity() {
     showQuickMessage('Saved as bedrock entity model')
 }
 function saveFileObj() {
-    scene.remove(three_grid)
-    scene.remove(Transformer)
     var exporter = new THREE.OBJExporter();
     var content = exporter.parse( scene, 'model');
-    scene.add(three_grid)
-    scene.add(Transformer)
 
     //OBJECT
-    var blob = new Blob([content.obj], {type: "text/plain;charset=utf-8"});
-    saveAs(blob, 'model.obj')
+    var blob_obj = new Blob([content.obj], {type: "text/plain;charset=utf-8"});
+    var obj_saver = saveAs(blob_obj, 'model.obj')
 
-    //MATERIAL
-    var blob = new Blob([content.mtl], {type: "text/plain;charset=utf-8"});
-    saveAs(blob, 'model.mtl')
-    showQuickMessage('Saved as .obj model')
+    obj_saver.onwriteend = function() {
+        //MATERIAL
+        var blob_mtl = new Blob([content.mtl], {type: "text/plain;charset=utf-8"});
+        saveAs(blob_mtl, 'model.mtl').onwriteend = function() {
+            if (settings.obj_textures.value === true) {
+                var tex_i = 0
+                function saveTex() {
+                    if (textures[tex_i] && content.images.hasOwnProperty(textures[tex_i].id)) {
+                        var image_data = atob(textures[tex_i].iconpath.split(',')[1]);
+                        var arraybuffer = new ArrayBuffer(image_data.length);
+                        var view = new Uint8Array(arraybuffer);
+                        for (var i=0; i<image_data.length; i++) {
+                            view[i] = image_data.charCodeAt(i) & 0xff;
+                        }
+                        var blob = new Blob([arraybuffer], {type: 'application/octet-stream'})
+                        var img_saver = saveAs(blob, textures[tex_i].name)
+                        img_saver.onwriteend = function() {
+                            tex_i++
+                            saveTex()
+                        }
+                    } else if (textures[tex_i]) {
+                        tex_i++
+                        saveTex()
+                    } else {
+                        showQuickMessage('Saved as .obj model')
+                    }
+                }
+                saveTex()
+            } else {
+                showQuickMessage('Saved as .obj model')
+            }
+        }
+    }
+
 }
 
 function saveFile() {
@@ -253,7 +365,7 @@ function saveFile() {
 
 //Misc
 window.onbeforeunload = function() {
-	if (Prop.project_saved === false) {
+	if (Prop.project_saved === false && elements.length > 0) {
     	return true;
 	}
 }

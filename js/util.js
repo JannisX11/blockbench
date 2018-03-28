@@ -1,3 +1,4 @@
+var cl = console.log
 var asyncLoop = function(o){
     var i=-1;
 
@@ -15,6 +16,10 @@ function pathToName(path, extension) {
   } else {
     return path_array[path_array.length-1].split('.').slice(0, -1).join('.')
   }
+}
+tinycolor.prototype.toInt = function() {
+  var rgba = this.toRgb()
+  return Jimp.rgbaToInt(rgba.r, rgba.g, rgba.b, rgba.a)
 }
 
 function guid() {
@@ -53,6 +58,7 @@ Array.prototype.remove = function (item) { {
   }
   return false;
 }
+
     
 }
 Object.defineProperty(Array.prototype, "equals", {enumerable: false});
@@ -214,10 +220,12 @@ function getAverageRGB(imgEl) {
     length = data.data.length;
     
     while ( (i += blockSize * 4) < length ) {
-        ++count;
-        rgb.r += data.data[i];
-        rgb.g += data.data[i+1];
-        rgb.b += data.data[i+2];
+        if (data.data[i+3] > 0) {
+          ++count;
+          rgb.r += data.data[i];
+          rgb.g += data.data[i+1];
+          rgb.b += data.data[i+2];
+        }
     }
     
     // ~~ used to floor values
@@ -292,7 +300,7 @@ function compareVersions(string1/*new*/, string2/*old*/) {
   return false;
 }
 function useBedrockFlipFix(axis) {
-  if (settings.entity_mode.value === false) return false;
+  if (Blockbench.entity_mode === false) return false;
   if (typeof axis === 'string') {
     axis = getAxisNumber(axis)
   }
@@ -302,10 +310,10 @@ function useBedrockFlipFix(axis) {
   } else {
     var i = 0;
     while (i < selected.length) {
-      if (typeof elements[selected[i]].display.parent === 'object' &&
-        elements[selected[i]].display.parent.type === 'group'
+      if (typeof selected[i].display.parent === 'object' &&
+        selected[i].display.parent.type === 'group'
       ) {
-        var group = elements[selected[i]].display.parent
+        var group = selected[i].display.parent
       }
       i++;
     }

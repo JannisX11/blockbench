@@ -628,7 +628,28 @@
 			}
 			this.scale.set( scale, scale, scale );
 
-			if ( scope.space === "local" ) {
+
+
+			//Origin
+			scale = rot_origin.getWorldPosition().distanceTo( camPosition ) / 32;
+			if ( scope.camera instanceof THREE.PerspectiveCamera ) {
+
+				//eye.copy( camPosition ).sub( worldPosition ).normalize();
+
+			} else if ( scope.camera instanceof THREE.OrthographicCamera ) {
+
+				//eye.copy( camPosition ).normalize();
+				scale = (6 / cameraOrtho.zoom)/10;
+
+			}
+			rot_origin.scale.set( scale, scale, scale );
+
+
+
+
+
+
+			if ( scope.space === "local" ) { 
 
 				_gizmo[ _mode ].update( worldRotation, eye );
 
@@ -646,11 +667,17 @@
 
 		function onPointerHover( event ) {
 
-			if ( scope.objects.length === 0 || _dragging === true || ( event.button !== undefined && event.button !== 0 ) ) return;
+			if ( scope.objects.length === 0 || ( event.button !== undefined && event.button !== 0 ) ) return;
 
 			var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 
 			var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children );
+
+			if (intersect) {
+				scope.dragging = true
+			}
+
+			if (_dragging === true) return;
 
 			scope.hoverAxis = null;
 
@@ -680,6 +707,7 @@
 				var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children );
 
 				if ( intersect ) {
+					scope.dragging = true
 
 					if (intersect.object.name.toLowerCase() === cameraOrtho.axis) return;
 
@@ -702,7 +730,7 @@
 
 					if ( planeIntersect ) {
 
-						oldScale = elements[selected[0]].size(getAxisNumber(scope.axis.toLowerCase().replace('n', '')))
+						oldScale = selected[0].size(getAxisNumber(scope.axis.toLowerCase().replace('n', '')))
 
 						oldPositionArray.length = 0
 						oldScaleArray.length = 0
@@ -754,7 +782,7 @@
 			point.copy( planeIntersect.point );
 			point.sub( offset );
 
-			if (Prop.tool === 'scale') {
+			if (Toolbox.selected.id === 'scale') {
 
 				//Scale
 				if (scope.axis.substr(0, 1) === 'N') {
@@ -772,16 +800,17 @@
 
 				if (previousValue !== point[axis]) {
 
-					selected.forEach(function(s, i) {
-						var obj = elements[s]
+					selected.forEach(function(obj, i) {
 						var mesh = scope.objects[i]
-						if (scope.direction === true) { //Positive
-							scaleCube(obj, limitCoord(oldScale + point[axis]-16)+16, axisNumber)
+						var allow_negative = settings.negative_size.value
+
+						if (scope.direction) { //Positive
+							scaleCube(obj, limitNumber(oldScale + point[axis], (allow_negative ? -32000 : 0), 32000), axisNumber)
 						} else {
-							scaleCubeNegative(obj, limitCoord(oldScale - point[axis]-16)+16, axisNumber)
+							scaleCubeNegative(obj, limitNumber(oldScale - point[axis], (allow_negative ? -32000 : 0), 32000), axisNumber)
 						}
-						if (settings.entity_mode.value === true) {
-							Canvas.updateUV(s)
+						if (Blockbench.entity_mode === true) {
+							Canvas.updateUV(obj)
 						}
 					})
 					Canvas.updatePositions(true)
@@ -808,12 +837,12 @@
 					var difference = scope.position.getComponent(axis) - oldOriginPosition.getComponent(axis)
 					var in_boundaries = true;
 
-					selected.forEach(function(s) {
-						if (elements[s].from[axis] + difference < -16) in_boundaries = false;
-						if (elements[s].to[axis]   + difference >  32) in_boundaries = false;
+					selected.forEach(function(obj) {
+						if (obj.from[axis] + difference < -16) in_boundaries = false;
+						if (obj.to[axis]   + difference >  32) in_boundaries = false;
 					})
 
-					var nslide_number = trimFloatNumber( limitNumber( elements[selected[0]].from[axis] + difference ) )
+					var nslide_number = trimFloatNumber( limitNumber( selected[0].from[axis] + difference ) )
 					$('div.nslide[n-action="pos_'+scope.axis.toLowerCase()+'"]:not(".editing")').text(nslide_number)
 
 					var rotatedPoint = new THREE.Vector3();
@@ -821,8 +850,8 @@
 					if (movementAxis === true) {
 						rotatedPoint.applyEuler( scope.objects[0].rotation )
 					}
-					var obj = elements[selected[0]]
-					if (settings.entity_mode.value && 
+					var obj = selected[0]
+					if (Blockbench.entity_mode && 
 		                typeof obj.display.parent === 'object' &&
 		                obj.display.parent.display.parent === 'root' &&
 		                obj.display.parent.rotation.join('_') !== '0_0_0'
@@ -845,6 +874,7 @@
 
 		function onPointerUp( event ) {
 			event.preventDefault(); // Prevent MouseEvent on mobile
+			scope.dragging = false
 
 			if ( event.button !== undefined && event.button !== 0 && event.button !== 2 ) return;
 
@@ -854,29 +884,27 @@
 				scope.dispatchEvent( mouseUpEvent );
 				controls.stopMovement()
 
-				if (Prop.tool === 'scale') {
+				if (Toolbox.selected.id === 'scale') {
 					//Scale
 					setUndo('Scaled cube'+pluralS(selected))
 					Canvas.updatePositions()
 
 				} else if (scope.axis !== null) {
-					//Translate
-
-					var rotatedPoint = new THREE.Vector3();
-					rotatedPoint.copy(point)
-					if (movementAxis === true && scope.objects.length > 0) {
-						rotatedPoint.applyEuler( scope.objects[0].rotation )
-					}
-
 
 					var axis = scope.axis.toLowerCase()
 					var difference = scope.position.distanceTo(oldOriginPosition)
-					if (scope.position[axis] < oldOriginPosition[axis]) {
+
+					oldOriginPosition.sub(scope.position).negate()
+					oldOriginPosition.removeEuler(Transformer.rotation)
+
+					if (oldOriginPosition[axis] < 0) {
 						difference *= -1
 					}
 
-					selected.forEach(function(s) {
-						moveCube(elements[s], elements[s].from[getAxisNumber(axis)] + difference * (useBedrockFlipFix(axis) ? -1 : 1), getAxisNumber(axis))
+					selected.forEach(function(obj) {
+						var valx = obj.from[getAxisNumber(axis)]
+						valx += difference
+						moveCube(obj, valx, getAxisNumber(axis))
 					})
 
 					setUndo('Moved cube'+pluralS(selected))
@@ -923,3 +951,29 @@
 	THREE.TransformControls.prototype.constructor = THREE.TransformControls;
 
 }() );
+
+THREE.Euler.prototype.inverse = function () {
+
+    var q = new THREE.Quaternion();
+
+    return function inverse() {
+
+        return this.setFromQuaternion( q.setFromEuler( this ).inverse() );
+
+    };
+
+}();
+THREE.Vector3.prototype.removeEuler = function (euler) {
+
+	var normal = new THREE.Vector3(0, 0, 1)
+
+    return function removeEuler(euler) {
+
+	    this.applyAxisAngle(normal,              -euler.z)
+	    this.applyAxisAngle(normal.set(0, 1, 0), -euler.y)
+	    this.applyAxisAngle(normal.set(1, 0, 0), -euler.x)
+	    return this;
+
+    };
+
+}();

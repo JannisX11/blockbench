@@ -55,6 +55,9 @@ function initCanvas() {
     scene.position['y'] = -8
     scene.position['z'] = -8
 
+    scene.add(Vertexsnap.vertexes)
+
+
     loader = new THREE.TextureLoader()
     
     renderer = new THREE.WebGLRenderer({
@@ -338,7 +341,7 @@ function buildGrid() {
             geometry.vertices.push(new THREE.Vector3(i, 0, size))
         }
         var line = new THREE.Line( geometry, line_material, THREE.LinePieces);
-        if (settings.entity_mode.value === true) {
+        if (Blockbench.entity_mode === true) {
             line.position.set(0,0,0)
         } else { 
             line.position.set(8,0,8)
@@ -366,7 +369,7 @@ function buildGrid() {
         geometry = new THREE.PlaneGeometry(5, 5)
         var north_mark = new THREE.Mesh(geometry, northMarkMaterial)
 
-        if (settings.entity_mode.value === true) {
+        if (Blockbench.entity_mode === true) {
             north_mark.position.set(0,0,-27)
         } else {
             north_mark.position.set(8,0,-19)
@@ -388,7 +391,7 @@ function buildGrid() {
             }
 
             var line_big = new THREE.Line( geometry_big, line_material, THREE.LinePieces);
-            if (settings.entity_mode.value === true) {
+            if (Blockbench.entity_mode === true) {
                 line_big.position.set(0,0,0)
             } else { 
                 line_big.position.set(8,0,8)
@@ -412,7 +415,7 @@ function buildGrid() {
                  geometry.vertices.push(new THREE.Vector3(i, 0, size))
              }
             var line = new THREE.Line( geometry, line_material, THREE.LinePieces);
-            if (settings.entity_mode.value === true) {
+            if (Blockbench.entity_mode === true) {
                 line.position.set(0,0,0)
             } else { 
                 line.position.set(8,0,8)
@@ -425,21 +428,21 @@ function buildGrid() {
             geometry = new THREE.Geometry();
             material = new THREE.LineBasicMaterial({color: '#EE4040'});
             geometry.vertices.push(new THREE.Vector3( 0, 0, -0.005))
-            geometry.vertices.push(new THREE.Vector3( (settings.entity_mode.value ? 8 : 16), 0, -0.005))
+            geometry.vertices.push(new THREE.Vector3( (Blockbench.entity_mode ? 8 : 16), 0, -0.005))
             x_axis = new THREE.Line( geometry, material, THREE.LinePieces);
             three_grid.add(x_axis)
 
             geometry = new THREE.Geometry();
             material = new THREE.LineBasicMaterial({color: '#547CEA'});
             geometry.vertices.push(new THREE.Vector3( -0.005, 0, 0))
-            geometry.vertices.push(new THREE.Vector3( -0.005, 0, (settings.entity_mode.value ? 8 : 16)))
+            geometry.vertices.push(new THREE.Vector3( -0.005, 0, (Blockbench.entity_mode ? 8 : 16)))
             z_axis = new THREE.Line( geometry, material, THREE.LinePieces);
             three_grid.add(z_axis)
 
             //North
             geometry = new THREE.PlaneGeometry(2.4, 2.4)
             var north_mark = new THREE.Mesh(geometry, northMarkMaterial)
-            if (settings.entity_mode.value === true) {
+            if (Blockbench.entity_mode === true) {
                 north_mark.position.set(0,0,-9.5)
             } else {
                 north_mark.position.set(8,0,-1.5)
@@ -452,7 +455,7 @@ function buildGrid() {
         var geometry_box = new THREE.EdgesGeometry(new THREE.BoxBufferGeometry(48, 48, 48));
 
         var large_box = new THREE.LineSegments( geometry_box, line_material);
-        if (settings.entity_mode.value === true) {
+        if (Blockbench.entity_mode === true) {
             large_box.position.set(0,8,0)
         } else { 
             large_box.position.set(8,8,8)
@@ -529,66 +532,21 @@ var drag_top, drag_left;
 function canvasClick( event ) {
     $(':focus').blur()
     if (Transformer.hoverAxis !== null || display_mode === true || event.button !== 0) return;
-
     event.preventDefault()
 
-    var canvas_offset = $('#preview').offset()
-
-    mouse.x = ((event.clientX - canvas_offset.left) / c_width) * 2 - 1;
-    mouse.y = - ((event.clientY - canvas_offset.top) / c_height) * 2 + 1;
-
-    if (isOrtho === true) {
-        raycaster.setFromCamera( mouse, cameraOrtho );
-    } else {
-        raycaster.setFromCamera( mouse, cameraPers );
-    }
-
-
-    objects = []
-    scene.children.forEach(function(s) {
-        if (s.isElement === true) {
-            objects.push(s)
-        }
-    })
-
-    var intersects = raycaster.intersectObjects( objects );
-    if (intersects.length > 0) {
-        controls.hasMoved = true
-        var selectedFace = 'north'
-        if (settings.entity_mode.value === false) {
-            switch(Math.floor( intersects[0].faceIndex / 2 )) {
-                case 5:
-                selectedFace = 'north'
-                break;
-                case 0:
-                selectedFace = 'east'
-                break;
-                case 4:
-                selectedFace = 'south'
-                break;
-                case 1:
-                selectedFace = 'west'
-                break;
-                case 2:
-                selectedFace = 'up'
-                break;
-                case 3:
-                selectedFace = 'down'
-                break;
+    var data = Canvas.raycast(event)
+    if (data) {
+        if (Toolbox.selected.select_cubes !== false && data.type === 'cube') {
+            if (Toolbox.selected.selectFace) {
+                main_uv.setFace(data.face)
+            }
+            Blockbench.dispatchEvent( 'canvas_select', data )
+            if (Toolbox.selected.selectElement) {
+                addToSelection(data.cube, event)
             }
         }
-        main_uv.setFace(selectedFace)
-        var obj = TreeElements.findRecursive('uuid', intersects[0].object.name)
-        Blockbench.dispatchEvent( 'canvas_select', {event: event, intersects: intersects, face: selectedFace, cube: obj} )
-        addToSelection(elements.indexOf(obj), event)
-
-        if (Prop.tool === 'brush' && event.shiftKey === false) {
-            if (brush_template == 'select') {
-                brush_template = TreeElements.findRecursive('uuid', intersects[0].object.name)
-                $(canvas1).css('cursor', 'url(assets/brush.png), auto')
-            } else {
-                paint()
-            }
+        if (typeof Toolbox.selected.onCanvasClick === 'function') {
+            Toolbox.selected.onCanvasClick(data)
         }
         return true;
     } else {
@@ -597,24 +555,23 @@ function canvasClick( event ) {
 }
 
 function toggleTools() {
-    if (Prop.tool === 'translate') {
-        setTool('scale')
-    } else /*if (Prop.tool === 'scale')*/ {
-        setTool('translate')
+    if (Toolbox.selected.id === 'translate') {
+        Toolbox.set('scale')
+    } else if (Toolbox.selected.id === 'scale') {
+        Toolbox.set('translate')
     }
 }
 
 function centerTransformer(offset) {
     if (selected.length === 0) return;
-    var obj = elements[selected[0]]
+    var obj = selected[0]
 
 
     //Getting Center
 
     var center = [0, 0, 0]
     var i = 0;
-    selected.forEach(function(s) {
-        var obj = elements[s]
+    selected.forEach(function(obj) {
         i = 0;
         while (i < 3) {
             center[i] += obj.from[i]
@@ -632,7 +589,7 @@ function centerTransformer(offset) {
 
 
     //Position + Rotation
-    if (settings.entity_mode.value === false) {
+    if (Blockbench.entity_mode === false) {
 
         //Blockmodel Mode
 
@@ -664,10 +621,10 @@ function centerTransformer(offset) {
         } else {
             var i = 0;
             while (i < selected.length) {
-                if (typeof elements[selected[i]].display.parent === 'object' &&
-                    elements[selected[i]].display.parent.type === 'group'
+                if (typeof selected[i].display.parent === 'object' &&
+                    selected[i].display.parent.type === 'group'
                 ) {
-                    var group = elements[selected[i]].display.parent
+                    var group = selected[i].display.parent
                 }
                 i++;
             }
@@ -682,7 +639,7 @@ function centerTransformer(offset) {
             vec.z += group.origin[2]
         }
         Transformer.position.copy(vec)
-        Transformer.rotation.copy(elements[selected[0]].display.mesh.rotation)
+        Transformer.rotation.copy(selected[0].display.mesh.rotation)
     }
 
     if (offset !== undefined) {
@@ -744,6 +701,63 @@ class CanvasController {
     constructor() {
         this.materials = []
     }
+    raycast(event) {
+        var canvas_offset = $('#preview').offset()
+        mouse.x = ((mouse_pos.x - canvas_offset.left) / c_width) * 2 - 1;
+        mouse.y = - ((mouse_pos.y - canvas_offset.top) / c_height) * 2 + 1;
+        if (isOrtho === true) {
+            raycaster.setFromCamera( mouse, cameraOrtho );
+        } else {
+            raycaster.setFromCamera( mouse, cameraPers );
+        }
+        objects = []
+        scene.children.forEach(function(s) {
+            if (s.isElement === true) {
+                objects.push(s)
+            }
+        })
+        if (Vertexsnap.vertexes.children.length) {
+            Vertexsnap.vertexes.children.forEach(function(s) {
+                if (s.isVertex === true) {
+                    objects.push(s)
+                }
+            })
+        }
+        var intersects = raycaster.intersectObjects( objects );
+        if (intersects.length > 0) {
+            var intersect = intersects[0].object
+            if (intersect.isElement) {
+                controls.hasMoved = true
+                var obj = TreeElements.findRecursive('uuid', intersects[0].object.name)
+                switch(Math.floor( intersects[0].faceIndex / 2 )) {
+                    case 5: var face = 'north'; break;
+                    case 0: var face = 'east';  break;
+                    case 4: var face = 'south'; break;
+                    case 1: var face = 'west';  break;
+                    case 2: var face = 'up';    break;
+                    case 3: var face = 'down';  break;
+                    default:var face = 'north'; break;
+                }
+                return {
+                    event: event,
+                    type: 'cube',
+                    intersects: intersects,
+                    face: face,
+                    cube: obj
+                }
+            } else if (intersect.isVertex) {
+                return {
+                    event: event,
+                    type: 'vertex',
+                    intersects: intersects,
+                    cube: intersect.cube,
+                    vertex: intersect
+                }
+            }
+        } else {
+            return false;
+        }
+    }
     clear() {
         var objects = []
         scene.children.forEach(function(s) {
@@ -758,9 +772,9 @@ class CanvasController {
     updateAll() {
         updateNslideValues()
         Canvas.clear()
-        elements.forEach(function(s, i) {
+        elements.forEach(function(s) {
             if (s.display.visibility == true) {
-                Canvas.addCube(i)
+                Canvas.addCube(s)
             }
         })
         updateSelection()
@@ -770,13 +784,13 @@ class CanvasController {
             arr = selected
             updateNslideValues()
         }
-        arr.forEach(function(s) {
-            if (elements[s].display.visibility == true) {
-                var obj = elements[s].display.mesh
-                if (obj !== undefined) {
-                    scene.remove(obj)
-                }
-                Canvas.addCube(s)
+        arr.forEach(function(obj) {
+            var mesh = obj.display.mesh
+            if (mesh !== undefined) {
+                scene.remove(mesh)
+            }
+            if (obj.display.visibility == true) {
+                Canvas.addCube(obj)
             }
         })
         updateSelection()
@@ -799,9 +813,8 @@ class CanvasController {
         })
         updateSelection()
     }
-    addCube(index) {
+    addCube(s) {
         //This does NOT remove old cubes
-        var s = elements[index]
 
         //Material
         if (Prop.wireframe === false) {
@@ -818,26 +831,35 @@ class CanvasController {
         scene.add(mesh)
         s.display.mesh = mesh
         if (Prop.wireframe === false) {
-            Canvas.updateUV(index)
+            Canvas.updateUV(s)
         }
     }
     adaptObjectPosition(mesh, obj) {
 
+        function setSize(geo) {
+            var inflate = obj.inflate
+            if (Blockbench.entity_mode && obj.inflate !== undefined) {
+                geo.from([ obj.from[0]-inflate, obj.from[1]-inflate, obj.from[2]-inflate ])
+                geo.to(  [ obj.to[0]  +inflate, obj.to[1]  +inflate, obj.to[2]  +inflate ])
+            } else {
+                geo.from(obj.from)
+                geo.to(obj.to)
+            }
+        }
+
         if (Prop.wireframe === true) {
             var proxy_box = new THREE.BoxGeometry(1, 1, 1)
-            proxy_box.from(obj.from)
-            proxy_box.to(obj.to)
+            setSize(proxy_box)
             mesh.geometry = new THREE.EdgesGeometry(proxy_box)
             mesh.geometry.computeBoundingSphere()
         } else {
-            mesh.geometry.from(obj.from)
-            mesh.geometry.to(obj.to)
+            setSize(mesh.geometry)
             mesh.geometry.computeBoundingSphere()
         }
         mesh.scale.set(1, 1, 1)
         mesh.rotation.set(0, 0, 0)
 
-        if (settings.entity_mode.value) {
+        if (Blockbench.entity_mode) {
             mesh.position.set(0, 0, 0)
             if (obj.display.parent !== 'root' &&
                 typeof obj.display.parent === 'object' &&
@@ -871,19 +893,29 @@ class CanvasController {
     updatePositions(leave_selection) {
         updateNslideValues()
         var arr = selected.slice()
-        if (settings.entity_mode.value && selected_group) {
+        if (Blockbench.entity_mode && selected_group) {
             selected_group.children.forEach(function(s) {
                 if (s.type === 'cube') {
-                    var index = elements.indexOf(s)
-                    if (!arr.includes(index)) {
-                        arr.push(index)
+                    if (!arr.includes(s)) {
+                        arr.push(s)
                     }
                 }
             })
         }
-        arr.forEach(function(s) {
-            if (elements[s].display.visibility == true) {
-                Canvas.adaptObjectPosition(elements[s].display.mesh, elements[s])
+        arr.forEach(function(obj) {
+            if (obj.display.visibility == true) {
+                Canvas.adaptObjectPosition(obj.display.mesh, obj)
+            }
+        })
+        if (leave_selection !== true) {
+            updateSelection()
+        }
+    }
+    updateAllPositions(leave_selection) {
+        updateNslideValues()
+        elements.forEach(function(obj) {
+            if (obj.display.visibility == true) {
+                Canvas.adaptObjectPosition(obj.display.mesh, obj)
             }
         })
         if (leave_selection !== true) {
@@ -891,17 +923,22 @@ class CanvasController {
         }
     }
     updateVisiblilty() {
-        Canvas.updateAll()
-        /*
+        //Canvas.updateAll()
         elements.forEach(function(s) {
             if (s.display.visibility == true) {
-                scene.add(s.display.mesh)
+                if (!s.display.mesh) {
+                    Canvas.addCube(s)
+                } else if (!scene.children.includes(s.display.mesh)) {
+                    scene.add(s.display.mesh)
+                    Canvas.adaptObjectPosition(s.display.mesh, s)
+                    Canvas.adaptObjectFaces(s.display.mesh, s)
+                    Canvas.updateUV(s)
+                }
             } else {
                 scene.remove(s.display.mesh)
             }
         })
         updateSelection()
-        */
     }
     adaptObjectFaces(mesh, obj) {
         var materials = []
@@ -911,7 +948,6 @@ class CanvasController {
 
                 var tex = getTextureById(obj.faces[face].texture)
                 if (typeof tex !== 'object') {
-                    //materials.push(emptyMaterials[ elements.indexOf(obj) % emptyMaterials.length ])
                     materials.push(emptyMaterials[Math.floor(parseInt(obj.uuid.substr(0, 1), 16) / 2)])
                 } else {
                     materials.push(Canvas.materials[tex.uuid])
@@ -922,10 +958,10 @@ class CanvasController {
     }
     updateSelectedFaces() {
         if (Prop.wireframe === true) return;
-        selected.forEach(function(s) {
-            if (elements[s].display.visibility == true) {
-                Canvas.adaptObjectFaces(elements[s].display.mesh, elements[s])
-                Canvas.updateUV(s)
+        selected.forEach(function(obj) {
+            if (obj.display.visibility == true) {
+                Canvas.adaptObjectFaces(obj.display.mesh, obj)
+                Canvas.updateUV(obj)
             }
         })
     }
@@ -933,45 +969,62 @@ class CanvasController {
         if (Prop.wireframe === true) return;
         elements.forEach(function(s, i) {
             if (s.display.visibility == true) {
-                Canvas.adaptObjectFaces(s.display.mesh, s, selected.includes(i))
-                Canvas.updateUV(i)
+                Canvas.adaptObjectFaces(s.display.mesh, s, selected.includes(s))
+                Canvas.updateUV(s)
             }
         })
     }
     updateUVs() {
         if (Prop.wireframe === true) return;
-        selected.forEach(function(s) {
-            if (elements[s].display.visibility == true) {
-                Canvas.updateUV(s)
+        selected.forEach(function(obj) {
+            if (obj.display.visibility == true) {
+                Canvas.updateUV(obj)
             }
         })
     }
     updateAllUVs() {
         if (Prop.wireframe === true) return;
-        elements.forEach(function(s, i) {
-            if (s.display.visibility == true) {
-                Canvas.updateUV(i)
+        elements.forEach(function(obj) {
+            if (obj.display.visibility == true) {
+                Canvas.updateUV(obj)
             }
         })
     }
-    updateUV(index, animation) {
+    updateUV(obj, animation) {
         if (Prop.wireframe === true) return;
-        var obj = elements[index]
         var mesh = obj.display.mesh
         if (mesh === undefined) return;
         mesh.geometry.faceVertexUvs[0] = [];
 
-        if (settings.entity_mode.value) {
+        if (Blockbench.entity_mode) {
 
-            var offset = {x: obj.faces.north.uv[0], y: obj.faces.north.uv[1]}
             var face_list = [   
                 {face: 'north', fIndex: 10, from: [obj.size(2), obj.size(2)], to: [obj.size(0), obj.size(1)]},
                 {face: 'east', fIndex: 0, from: [0, obj.size(2)], to: [obj.size(2), obj.size(1)]},
                 {face: 'south', fIndex: 8, from: [obj.size(2)*2 + obj.size(0), obj.size(2)], to: [obj.size(0), obj.size(1)]},
                 {face: 'west', fIndex: 2, from: [obj.size(2) + obj.size(0), obj.size(2)], to: [obj.size(2), obj.size(1)]},
-                {face: 'up', fIndex: 4, from: [obj.size(2), 0], to: [obj.size(0), obj.size(2)]},
+                {face: 'up', fIndex: 4, from: [obj.size(2)+obj.size(0), obj.size(2)], to: [-obj.size(0), -obj.size(2)]},
                 {face: 'down', fIndex: 6, from: [obj.size(2)+obj.size(0), 0], to: [obj.size(0), obj.size(2)]}
             ]
+            var group_mirror = (obj.display.parent !== 'root' && obj.display.parent.shade === false)
+            var cube_mirror  = obj.shade === false
+
+            if (cube_mirror !== group_mirror) {
+                face_list.forEach(function(f) {
+                    f.from[0] += f.to[0]
+                    f.to[0] *= -1
+                })
+                //East+West
+                
+                var p = {}
+                p.from = face_list[1].from
+                p.to = face_list[1].to
+                face_list[1].from = face_list[3].from.slice()
+                face_list[1].to = face_list[3].to.slice()
+                p.from = face_list[3].from.slice()
+                p.to = face_list[3].to.slice()
+
+            }
             face_list.forEach(function(f) {
 
                 f.from[0] /= Project.texture_width  / 16
@@ -980,15 +1033,21 @@ class CanvasController {
                 f.to[1]   /= Project.texture_height / 16
                 var data = {
                     uv: [
-                        f.from[0] + offset.x,
-                        f.from[1] + offset.y,
-                        f.from[0] + f.to[0] + offset.x,
-                        f.from[1] + f.to[1] + offset.y
+                        f.from[0] + obj.uv_offset[0]           / Project.texture_width  * 16,
+                        f.from[1] + obj.uv_offset[1]           / Project.texture_height * 16,
+                        f.from[0] + f.to[0] + obj.uv_offset[0] / Project.texture_width  * 16,
+                        f.from[1] + f.to[1] + obj.uv_offset[1] / Project.texture_height * 16
                     ]
                 }
                 data.uv.forEach(function(s, si) {
                     data.uv[si] *= 1
                 })
+
+                obj.faces[f.face].uv[0] = data.uv[0]
+                obj.faces[f.face].uv[1] = data.uv[1]
+                obj.faces[f.face].uv[2] = data.uv[2]
+                obj.faces[f.face].uv[3] = data.uv[3]
+
                 mesh.geometry.faceVertexUvs[0][f.fIndex] = [
                     getUVArray(data, 0)[0],
                     getUVArray(data, 0)[1],
@@ -1043,23 +1102,20 @@ class CanvasController {
         mesh.geometry.elementsNeedUpdate = true;
         return mesh.geometry
     }
-    buildOutline(id) {
-        if (elements[id].display.visibility == false) return;
-        var object = elements[id].display.mesh
+    buildOutline(obj) {
+        if (obj.display.visibility == false) return;
+        var object = obj.display.mesh
         if (object === undefined) return;
         var geo = new THREE.EdgesGeometry(object.geometry);
 
         var outline_color = '0x'+app_colors.accent.hex.replace('#', '')
         var mat = new THREE.LineBasicMaterial({color: parseInt(outline_color), linewidth: 50})
         var wireframe = new THREE.LineSegments(geo, mat)
-        wireframe.name = id+'_outline'
+        wireframe.name = obj.uuid+'_outline'
         wireframe.position.set(object.position.x, object.position.y, object.position.z)
 
-        var obj = elements[id]
 
-
-
-        if (settings.entity_mode.value) {
+        if (Blockbench.entity_mode) {
             if (obj.display.parent !== 'root' &&
                 typeof obj.display.parent === 'object' &&
                 obj.display.parent.display.parent === 'root' &&

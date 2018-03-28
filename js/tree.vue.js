@@ -5,6 +5,7 @@
         '<li class="outliner_node" v-bind:class="{ parent_li: node.children && node.children.length > 0}" v-bind:id="node.uuid">' +
             '<div @contextmenu.prevent.stop="node.showContextMenu($event)" class="outliner_object" v-on:dblclick="node.rename($event)" v-on:click="node.select($event)" :title="node.title" v-bind:class="{ cube: node.title === \'Cube\', group: node.title === \'Group\', selected: node.display.isselected }">' +
                 //Opener
+                
                 '<i v-if="node.children && node.children.length > 0" v-on:click="toggle(node)" class="fa icon-open-state" :class=\'{"fa-caret-right": !node.isOpen, "fa-caret-down": node.isOpen}\'></i>' +
                 '<i v-else class="outliner_opener_placeholder"></i>' +
                 //Main

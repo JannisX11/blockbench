@@ -15,11 +15,15 @@ function createWindow () {
       webSecurity: false
     }
   })
+  var index_path = path.join(__dirname, 'index.html')
+  if (__dirname.includes('xampp\\htdocs\\blockbench\\web')) {
+    index_path = path.join(__dirname, 'index.php')
+  }
   win.setMenu(null);
   win.maximize()
   win.show()
   win.loadURL(url.format({
-    pathname: path.join(__dirname, 'index.html'),
+    pathname: index_path,
     protocol: 'file:',
     slashes: true
   }))

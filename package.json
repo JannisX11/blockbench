@@ -1,10 +1,15 @@
 {
   "name": "Blockbench",
   "description": "Minecraft Block Model Editor",
-  "version": "1.10.3",
+  "version": "1.11.0",
+  "license": "MIT",
   "author": {
     "name": "JannisX11",
     "email": "info@blockbench.net"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JannisX11/blockbench"
   },
   "main": "main.js",
   "build": {
@@ -28,8 +33,16 @@
     ],
     "dmg": {
       "contents": [
-        {"x": 130, "y": 220},
-        {"x": 410, "y": 220, "type": "link", "path": "/Applications"}
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
       ]
     },
     "win": {
@@ -52,7 +65,8 @@
   },
   "devDependencies": {
     "async": "^2.4.1",
-    "electron": "^1.7.5",
-    "electron-winstaller": "^2.5.2"
+    "electron": "^1.8.4",
+    "electron-winstaller": "^2.5.2",
+    "electron-builder": "^20.6.2"
   }
 }

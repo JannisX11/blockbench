@@ -32,7 +32,7 @@ class refModel {
 				} else if (slot === 'thirdperson_lefthand') {
 					setDisplayArea(-5, 8, 6, -90, 22.5, 90, 1, 1, 1)
 				} else if (slot === 'head') {
-					setDisplayArea(0, 22, 0, 0, 90, 0, 0.618, 0.618, 0.618)
+					setDisplayArea(0, 22, 0, 0, 90, 0, 0.625, 0.625, 0.625)
 				}
 			}
 		} else if (id === 'armor_stand') {
@@ -42,7 +42,7 @@ class refModel {
 				} else if (slot === 'thirdperson_lefthand') {
 					setDisplayArea(-2, 6, 6, -90, 0, 90, 1, 1, 1)
 				} else if (slot === 'head') {
-					setDisplayArea(0, 21, 0, 0, 90, 0, 0.618, 0.618, 0.618)
+					setDisplayArea(0, 21, 0, 0, 90, 0, 0.625, 0.625, 0.625)
 				}
 			}
 		} else if (id === 'armor_stand_small') {
@@ -62,7 +62,7 @@ class refModel {
 				} else if (slot === 'thirdperson_lefthand') {
 					setDisplayArea(-10, 18, 6, -90, 90, 90, 1, 1, 1)
 				} else if (slot === 'head') {
-					setDisplayArea(0, 22, 0, 0, 90, 0, 0.618, 0.618, 0.618)
+					setDisplayArea(0, 22, 0, 0, 90, 0, 0.625, 0.625, 0.625)
 				}
 			}
 		} else if (id === 'baby_zombie') {
@@ -1112,7 +1112,6 @@ function syncDispInput(obj, sender, axis, event) {//Syncs Range and Input, calls
 	} else if (sender === 'scale') {
 		//From Input(Real) to Range
 		if (display[slot].scale == undefined) {
-			//$(obj).parent().find('input.scaleRange').val(0)
 			display[slot].scale = [1,1,1]
 		}
 		if (val >= 1) {
@@ -1123,9 +1122,9 @@ function syncDispInput(obj, sender, axis, event) {//Syncs Range and Input, calls
 	}
 
 	if (holding_shift === true) {
-		dispScale(val, 'x')	
-		dispScale(val, 'y')	
-		dispScale(val, 'z')	
+		dispScale(val, 'x')
+		dispScale(val, 'y')
+		dispScale(val, 'z')
 		$('#display_settings input.scale').val(val)
 		$('#display_settings input.scaleRange').val(raw_val)
 	} else {
@@ -1186,7 +1185,7 @@ function resetDisplaySettings(key) {
 	}
 }
 
-function applyDisplayPreset(preset) {
+function applyDisplayPreset(preset, all) {
 	if (preset == undefined) return;
 	if (preset.areas[slot] == undefined) {
 		showQuickMessage('Preset does not contain information for this slot')
@@ -1242,6 +1241,40 @@ function createPreset() {
 	hideDialog()
 	localStorage.setItem('display_presets', JSON.stringify(display_presets))
 }
+function displayPresetContext(e) {
+	var presets = []
+	display_presets.forEach(function(p) {
+		var icon = 'label'
+		if (p.fixed) {
+			switch(p.name) {
+				case 'Vanilla Item': icon = 'filter_vintage'; break;
+				case 'Vanilla Block': icon = 'fa-cube'; break;
+				case 'Vanilla Handheld': icon = 'build'; break;
+				case 'Vanilla Handheld Rod': icon = 'remove'; break;
+			}
+		}
+		presets.push({
+			icon: icon,
+			name: p.name,
+			children: function() {
+				var suboptions = [
+					{icon: 'done', name: 'Apply on this Slot', click: function() {applyDisplayPreset(p)}},
+					{icon: 'done_all', name: 'Apply on all Slots', click: function() {applyDisplayPreset(p, true)}}
+				]
+				if (!p.fixed) {
+					suboptions.push({icon: 'clear', name: 'Remove'})
+				}
+				return suboptions
+				
+				filter_vintage
+				build 
+				remove
+			},
+			click: function() { applyDisplayPreset(p) }
+		})
+	})
+	new ContextMenu(e, presets)
+}
 
 
 
@@ -1258,14 +1291,6 @@ function setDisplayArea(x, y, z, rx, ry, rz, sx, sy, sz) {//Sets the Work Area t
 	display_area.scale['y'] = sy;
 	display_area.scale['z'] = sz;
 }
-/*
-function groundAnimation() {
-	display_area.rotation.y += 0.0075
-	ground_timer += 1
-	if (ground_timer < 200) display_area.position.y += 0.0165
-	if (ground_timer > 200) display_area.position.y -= 0.0165
-	if (ground_timer === 400) ground_timer = 0;
-}*/
 function groundAnimation() {
 	display_area.rotation.y += 0.015
 	ground_timer += 1
@@ -1433,16 +1458,29 @@ function copyDisplaySlot() {
 }
 function pasteDisplaySlot() {
 	if (display_clipboard == undefined) return;
+
+	if (typeof display_clipboard.rotation === 'object' && display_clipboard.rotation.join('_') === '0_0_0') {
+		display[slot].rotation = undefined
+	} else {
+		display[slot].rotation = display_clipboard.rotation
+	}
+
+	if (typeof display_clipboard.translation === 'object' && display_clipboard.translation.join('_') === '0_0_0') {
+		display[slot].translation = undefined
+	} else {
+		display[slot].translation = display_clipboard.translation
+	}
+
+	if (typeof display_clipboard.scale === 'object' && display_clipboard.scale.join('_') === '1_1_1') {
+		display[slot].scale = undefined
+	} else {
+		display[slot].scale = display_clipboard.scale
+	}
+	/*
 	var clear_content = {}
 	$.extend(true, clear_content, display_clipboard)
-	if (slot === 'gui' || slot === 'firstperson_lefthand' || slot === 'firstperson_righthand') {
-		try  {
-			clear_content.translation[2] = 0;
-		} catch(err) {
-
-		}
-	}
 	$.extend(true, display[slot], clear_content)
+	*/
 	loadSlot(slot)
 }
 

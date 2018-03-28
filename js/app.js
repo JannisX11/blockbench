@@ -1,13 +1,14 @@
-var app           = require('electron').remote,
-    fs            = require('fs'),
-    nativeImage   = require('electron').nativeImage,
-    exec          = require('child_process').exec,
-    originalFs    = require('original-fs'),
-    http          = require('http'),
-    currentwindow = app.getCurrentWindow(),
-    dialog_win    = null,
-    latest_version= false,
-    preventClosing= true;
+var app            = require('electron').remote,
+    fs             = require('fs'),
+    nativeImage    = require('electron').nativeImage,
+    exec           = require('child_process').exec,
+    originalFs     = require('original-fs'),
+    http           = require('http'),
+    currentwindow  = app.getCurrentWindow(),
+    dialog_win     = null,
+    latest_version = false,
+    preventClosing = true;
+    recent_projects= undefined
 
 const shell = require('electron').shell;
 const {clipboard} = require('electron')
@@ -24,6 +25,9 @@ $(document).ready(function() {
         return true;
     });
     $('.web_only').remove()
+    if (process.platform == 'linux') {
+        $('#app_update_button').remove()
+    }
     if (__dirname.includes('C:\\xampp\\htdocs\\blockbench\\web')) {
         Blockbench.addFlag('dev')
         $('#file_menu_list').append('<li class="menu_seperator"></li>')
@@ -31,10 +35,10 @@ $(document).ready(function() {
     }
 })
 
-
 getLatestVersion(true)
 //Called on start to show message
 function getLatestVersion(init) {
+    if (process.platform == 'linux') return;
     $.getJSON('http://blockbench.net/api/index.json', function(data) {
         if (data.version) {
             latest_version = data.version
@@ -50,9 +54,47 @@ function getLatestVersion(init) {
         latest_version = false
     })
 }
+//Recent Projects
+function updateRecentProjects() {
+    if (recent_projects === undefined) {
+        //Setup
+        recent_projects = []
+        var raw = localStorage.getItem('recent_projects')
+        if (raw) {
+            recent_projects = JSON.parse(raw)
+        }
+    }
+    //Menu
+    var list = $('ul#recent_projects')
+    list.html('')
+    var i = recent_projects.length-1
+    while (i >= 0) {
+        var p = recent_projects[i]
+        var entry = $('<li onclick=readFile(\''+p.path.split('\\').join('\\\\')+'\',true)><i class="material-icons">insert_drive_file</i>'+p.name+'</li>')
+        list.append(entry)
+        i--;
+    }
 
 
-
+    //Set Local Storage
+    localStorage.setItem('recent_projects', JSON.stringify(recent_projects))
+}
+function addRecentProject(data) {
+    var i = recent_projects.length-1
+    while (i >= 0) {
+        var p = recent_projects[i]
+        if (p.path === data.path) {
+            recent_projects.splice(i, 1)
+        }
+        i--;
+    }
+    recent_projects.push({name: data.name, path: data.path})
+    if (recent_projects.length > 8) {
+        recent_projects.shift()
+    }
+    updateRecentProjects()
+}
+//Updates
 function checkForUpdates(instant) {
     showDialog('updater')
     setProgressBar('update_bar', 0, 1)
@@ -100,7 +142,6 @@ function refreshUpdateDialog() {
         getLatestVersion(false)
     })
 }
-
 function installUpdate() {
     console.log('Starting Update')
     var received_bytes = 0;
@@ -127,7 +168,6 @@ function installUpdate() {
         })
     });
 }
-
 function updateInstallationEnd() {
     hideDialog()
     var exe_path = __dirname.split(osfs)
@@ -140,6 +180,7 @@ function updateInstallationEnd() {
     }
 }
 
+//Default Pack
 function openDefaultTexturePath() {
     var answer = app.dialog.showMessageBox(currentwindow, {
         type: 'info',
@@ -160,8 +201,81 @@ function openDefaultTexturePath() {
         })
     }
 }
-
-
+//Texture Paths
+function findEntityTexture(mob, return_path) {
+    var textures = {
+        'geometry.chicken': 'chicken',
+        'geometry.blaze': 'blaze',
+        'geometry.llamaspit': 'llama/spit',
+        'geometry.llama': 'llama/llama_creamy',
+        'geometry.dragon': 'dragon/dragon',
+        'geometry.ghast': 'ghast/ghast',
+        'geometry.slime': 'slime/slime',
+        'geometry.slime.armor': 'slime/slime',
+        'geometry.lavaslime': 'slime/magmacube',
+        'geometry.silverfish': 'silverfish',
+        'geometry.shulker': 'shulker/shulker_undyed',
+        'geometry.rabbit': 'rabbit/brown',
+        'geometry.horse': 'horse/horse_brown',
+        'geometry.horse.v2': 'horse2/horse_brown',
+        'geometry.humanoid': 'steve',
+        'geometry.creeper': 'creeper/creeper',
+        'geometry.enderman': 'enderman/enderman',
+        'geometry.zombie': 'zombie/zombie',
+        'geometry.zombie.husk': 'zombie/husk',
+        'geometry.pigzombie': 'pig/pigzombie',
+        'geometry.pigzombie.baby': 'pig/pigzombie',
+        'geometry.skeleton': 'skeleton/skeleton',
+        'geometry.skeleton.wither': 'skeleton/wither_skeleton',
+        'geometry.skeleton.stray': 'skeleton/stray',
+        'geometry.squid': 'squid',
+        'geometry.spider': 'spider/spider',
+        'geometry.cow': 'cow/cow',
+        'geometry.mooshroom': 'cow/mooshroom',
+        'geometry.sheep.sheared': 'sheep/sheep',
+        'geometry.sheep': 'sheep/sheep',
+        'geometry.pig': 'pig/pig',
+        'geometry.bat': 'bat',
+        'geometry.irongolem': 'iron_golem',
+        'geometry.snowgolem': 'snow_golem',
+        'geometry.zombie.villager': 'zombie_villager/zombie_villager',
+        'geometry.evoker': 'illager/evoker',
+        'geometry.vex': 'vex/vex',
+        'geometry.vindicator': 'vindicator',
+        'geometry.wolf': 'wolf/wolf',
+        'geometry.ocelot': 'cat/ocelot',
+        'geometry.guardian': 'guardian',
+        'geometry.polarbear': 'polarbear',
+        'geometry.villager': 'villager/villager',
+        'geometry.villager.witch': 'witch',
+        'geometry.witherBoss': 'wither_boss/wither',
+        'geometry.agent': 'agent',
+        'geometry.armor_stand': 'armor_stand',
+        'geometry.parrot': 'parrot/parrot_red_blue',
+        'geometry.bed': 'bed/white',
+        'geometry.player_head': 'steve',
+        'geometry.mob_head': 'skeleton/skeleton',
+        'geometry.dragon_head': 'dragon/dragon'
+    }
+    var path = textures[mob.split(':')[0]]
+    if (path) {
+        var texture_path = Prop.file_path.split(osfs)
+        texture_path.splice(-2)
+        texture_path.push('textures')
+        texture_path.push('entity')
+        texture_path = texture_path.concat(path.split('/'))
+        texture_path = texture_path.join(osfs)
+        if (return_path) {
+            return texture_path+'.png';
+        } else {
+            if (fs.existsSync(texture_path + '.png')) {
+                var texture = new Texture({keep_size: true}).fromPath(texture_path + '.png').add()
+            } else if (fs.existsSync(texture_path + '.tga')) {
+                var texture = new Texture({keep_size: true}).fromPath(texture_path + '.tga').add()
+            }
+        }
+    }
+}
 //Save Dialogs
 function saveFileBlock() {
     app.dialog.showSaveDialog(currentwindow, {
@@ -175,6 +289,7 @@ function saveFileBlock() {
             return;
         }
         Prop.file_path = fileName;
+        Project.name = pathToName(fileName, true);
         saveFile()
     })
 }
@@ -249,15 +364,13 @@ function saveFileObj() {
         showQuickMessage('Saved as obj model')
     })
 }
-
-
 //Writers
 function saveFile(props) {
     if (Prop.file_path !== 'Unknown') {
         Prop.project_saved = true;
-        $('title').text(pathToName(Prop.file_path, false)+' - Blockbench')
+        setProjectTitle(pathToName(Prop.file_path, false))
 
-        if (settings.entity_mode.value === false) {
+        if (Blockbench.entity_mode === false) {
             var content = buildBlockModel()
             fs.writeFile(Prop.file_path, content, function (err) {
                 if (err) {
@@ -276,7 +389,7 @@ function saveFile(props) {
             writeFileEntity(content, Prop.file_path)
         }
     } else {
-        if (settings.entity_mode.value === false) {
+        if (Blockbench.entity_mode === false) {
             saveFileBlock()
         } else {
             saveFileEntity()
@@ -328,11 +441,11 @@ function writeFileEntity(content, fileName) {
         })
     })
 }
-
 //Open
 function openFile(makeNew) {
     app.dialog.showOpenDialog(currentwindow, {filters: [{name: 'Model', extensions: ['json']}]}, function (fileNames) {
         if (fileNames !== undefined) {
+            addRecentProject({name: pathToName(fileNames[0]), path: fileNames[0]})
             readFile(fileNames[0], makeNew)
         }
     })
@@ -343,6 +456,7 @@ function readFile(filepath, makeNew) {
             console.log(err)
             return;
         }
+        addRecentProject({name: pathToName(filepath), path: filepath})
         loadFile(data, filepath, makeNew)
     })
 }
@@ -352,7 +466,7 @@ function openTexture() {
         var arr = textures[0].path.split(osfs)
         arr.splice(-1)
         start_path = arr.join(osfs)
-    } else if (Prop.file_name) {
+    } else if (Prop.file_path) {
         var arr = Prop.file_path.split(osfs)
         arr.splice(-3)
         arr.push('textures')
@@ -406,45 +520,7 @@ function importExtrusion(makeNew) {
     })
 }
 
-function dropTexture(ev) {
-    ev.preventDefault();
-    ev.stopPropagation();
-}
-function loadBackgroundImage(event) {
-    if (event !== undefined) {
-        if (event.altKey === true) {
-            textPrompt('Background Image Path', 'active_scene.background.image', true)
-            return;
-        }
-    }
-    app.dialog.showOpenDialog(currentwindow, {properties: ['openFile'], filters: [{name: 'Image', extensions: ['png', 'jpg', 'jpg', 'jpeg', 'gif']}]}, function (fileNames) {
-        if (fileNames !== undefined) {
-            active_scene.background.image = fileNames[0]
-            enterScene(true)
-        }
-    })
-}
-
-
-function setZoomLevel(mode) {
-    switch (mode) {
-        case 'in':    Prop.zoom += 5;  break;
-        case 'out':   Prop.zoom -= 5;  break;
-        case 'reset': Prop.zoom = 100; break;
-    }
-    var level = (Prop.zoom - 100) / 12
-    currentwindow.webContents.setZoomLevel(level)
-    setScreenRatio()
-}
-
-window.onbeforeunload = function() {
-    if (preventClosing === true) {
-        setTimeout(function() {
-            showSaveDialog(true)
-        }, 2)
-        return true;
-    }
-}
+//Drop
 document.ondragover = document.ondrop = (ev) => {
     ev.preventDefault()
 }
@@ -453,12 +529,14 @@ document.body.ondrop = (ev) => {
         return; 
     }
     if (ev.dataTransfer.files[0] != undefined) {
-        ev.preventDefault()
-        if (ev.dataTransfer.files[0].path.substr(-4).toUpperCase() == 'JSON') {
-            readFile(ev.dataTransfer.files[0].path, true)
-        } else if (ev.dataTransfer.files[0].path.substr(-7).toUpperCase() == 'BBSTYLE') {
 
-            fs.readFile(ev.dataTransfer.files[0].path, 'utf-8', function (err, data) {
+        ev.preventDefault()
+        var fileArray = ev.dataTransfer.files;
+        if (fileArray[0].path.substr(-4).toUpperCase() == 'JSON') {
+            readFile(fileArray[0].path, true)
+        } else if (fileArray[0].path.substr(-7).toUpperCase() == 'BBSTYLE') {
+
+            fs.readFile(fileArray[0].path, 'utf-8', function (err, data) {
                 if (err) {
                     console.log(err)
                     return;
@@ -467,14 +545,22 @@ document.body.ondrop = (ev) => {
             })
 
 
-        } else if (ev.dataTransfer.files[0].path.substr(-3).toUpperCase() == 'PNG') {
+        } else if (fileArray[0].path.substr(-3).toUpperCase() == 'PNG') {
 
             if (ev.target == canvas1) {
-                active_scene.background.image = ev.dataTransfer.files[0].path
+                active_scene.background.image = fileArray[0].path
                 enterScene(true)
             } else {
+                
+                if ($('li.texture').has(ev.target).length) {
+                    var id = $('li.texture').has(ev.target).attr('texid')
+                    var texture = getTextureById(id)
+                    if (texture && texture.error) {
+                        texture.fromPath(fileArray[0].path)
+                        return;
+                    }
+                }
 
-                var fileArray = ev.dataTransfer.files;
                 var len = fileArray.length;
 
                 for (var i = 0; i < len; i++) {
@@ -494,7 +580,44 @@ document.body.ondrop = (ev) => {
         }
     }
 }
-
+function dropTexture(ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+}
+function loadBackgroundImage(event) {
+    if (event !== undefined) {
+        if (event.altKey === true) {
+            textPrompt('Background Image Path', 'active_scene.background.image', true)
+            return;
+        }
+    }
+    app.dialog.showOpenDialog(currentwindow, {properties: ['openFile'], filters: [{name: 'Image', extensions: ['png', 'jpg', 'jpg', 'jpeg', 'gif']}]}, function (fileNames) {
+        if (fileNames !== undefined) {
+            active_scene.background.image = fileNames[0]
+            enterScene(true)
+        }
+    })
+}
+//Zoom
+function setZoomLevel(mode) {
+    switch (mode) {
+        case 'in':    Prop.zoom += 5;  break;
+        case 'out':   Prop.zoom -= 5;  break;
+        case 'reset': Prop.zoom = 100; break;
+    }
+    var level = (Prop.zoom - 100) / 12
+    currentwindow.webContents.setZoomLevel(level)
+    setScreenRatio()
+}
+//Close
+window.onbeforeunload = function() {
+    if (preventClosing === true) {
+        setTimeout(function() {
+            showSaveDialog(true)
+        }, 2)
+        return true;
+    }
+}
 function showSaveDialog(close) {
     if (Blockbench.flags.includes('allow_reload')) {
         close = false

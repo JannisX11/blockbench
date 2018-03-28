@@ -730,13 +730,6 @@
         color: var(--color-text);
     }
 
-    .texture {
-        vertical-align: middle;
-        padding: 8px;
-        border: 1px solid var(--color-border);
-        box-sizing: border-box;
-    }
-
     .list {
         background-color: var(--color-back);
         height: calc(100% - 86px);
@@ -875,6 +868,12 @@
     .drag_hover {
         border: 2px solid var(--color-accent);
     }
+    .drag_hover.drag_hover_insert_before {
+        border-top: 2px solid var(--color-accent);
+        border-bottom: none;
+        border-right: none;
+        border-left: none;
+    }
     /*Cancel Dragover for main list*/
     #cubes_list > div > ul > li.outliner_node.parent_li {
         border: none !important;
@@ -883,11 +882,16 @@
         width: calc(100% - 80px);
         padding-right: 5px;
         padding-left: 5px;
+        pointer-events: none;
+    }
+    .outliner_object input.cube_name.renaming {
+        pointer-events: auto;
     }
     .outliner_object a {
         width: 21px;
         display: inline-block;
         font-size: 13pt;
+        float: right;
     }
     body > .outliner_object {
         width: 260px;
@@ -950,6 +954,7 @@
         color: var(--color-text);
         white-space: nowrap;
         padding-left: 34px;
+        padding-right: 20px;
     }
     .contextMenu li.parent::before {
         content: "\f105";
@@ -960,6 +965,7 @@
         -webkit-font-smoothing: antialiased;
         float: right;
         margin-top: 6px;
+        margin-right: -12px;
     }
     .contextMenu li:hover {
         color: var(--color-light);
@@ -990,13 +996,21 @@
 /*Textures*/
     .texture {
         height: 50px;
-        background-color: var(--color-button);
+        /*background-color: var(--color-button);*/
         white-space: nowrap;
         position: relative;
+        vertical-align: middle;
+        padding: 8px;
+        border: 1px solid transparent;
+        box-sizing: border-box;
+    }
+    .texture:hover  .texture_name {
+        color: var(--color-light);
     }
     .texture.selected {
-        background: var(--color-hover);
-        }
+        background: var(--color-button);
+        border: 1px solid var(--color-border);
+    }
     .texture > i {
         margin-top: 4px;
     }
@@ -1016,6 +1030,9 @@
     img.texture_icon {
         image-rendering: pixelated;
     }
+    .texture.selected img.texture_icon {
+        margin-top: 0;
+    }
     .texture_drag_helper {
         border: 1px solid var(--color-border);
         z-index: 100;
@@ -1034,11 +1051,13 @@
     }
 
     .texture_name {
-        margin-top: 2px;
+        margin-top: 3px;
         margin-left: 6px;
         margin-right: 4px;
-        width: calc(100% - 82px);
+        width: calc(100% - 106px);
         overflow: hidden;
+        font-size: 0.94em;
+        cursor: default;
     }
     .texture_error {
         position: absolute;
@@ -1055,6 +1074,9 @@
         margin-top: 8px;
         text-shadow: 0 0 5px #000;
         font-size: 24pt !important;
+    }
+    i.highlighted_icon {
+        color: red;
     }
 
 /*UV*/
@@ -1103,12 +1125,19 @@
         image-rendering: pixelated;
         position: relative;
     }
+    .uv_mapping_overlay {
+        position: absolute;
+        opacity: 0.4;
+    }
     #uv_dialog_toolbar {
         clear: both;
         padding: 12px;
         height: 42px;
         padding-top: 5px;
         border-top: 1px solid var(--color-border);
+    }
+    #uv_dialog h2.dialog_handle.entity_mode_only {
+        margin: 0;
     }
 
     #uv_size {
@@ -1577,9 +1606,24 @@
         border: 1px solid var(--color-border);
         float: left;
     }
+    input[type=range].dark_bordered {
+        float: left;
+        height: 31px;
+        padding-top: 3px;
+        padding-left: 0;
+    }
+    select.dark_bordered {
+        color: var(--color-text);
+        padding: 4px;
+        padding-top: 2px;
+    }
     label.name_space_left {
         float: left;
         width: 155px;
+    }
+    label.in_toolbar {
+        padding: 8px;
+        padding-top: 3px;
     }
 
 /*Layout Menu*/
@@ -1708,14 +1752,16 @@
         cursor: default;
     }
     #plugin_list li .button_bar {
-        height: 36px;
+        height: auto;
         float: right;
         margin-left: -1px;
         margin-top: 6px;
+        text-align: right;
     }
-    .tiny {
+    #plugin_list li .button_bar.tiny {
         opacity: 0.6;
         font-size: 0.86em;
+        padding-right: 2px;
     }
     #plugin_list li button {
         width: 112px;
@@ -1815,6 +1861,19 @@
     }
     body.entity_mode .ui#textures {
         top: 453px;
+    }
+
+    a.ml5 i.shade_mirror_on:before  {
+        content: "\f005";
+    }
+    a.ml5 i.shade_mirror_off:before  {
+        content: "\f006";
+    }
+    body.entity_mode a.ml5 i.shade_mirror_on:before  {
+        content: "\f005";
+    }
+    body.entity_mode a.ml5 i.shade_mirror_off:before  {
+        content: "\f005";
     }
 
 @media (max-width:1090px)  {
