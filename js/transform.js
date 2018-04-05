@@ -26,38 +26,53 @@ function duplicateCubes() {
 	setUndo('Duplicated cube'+pluralS(selected))
 }
 function origin2geometry() {
-	selected.forEach(function(obj) {
 
-		var element_size = obj.size()
-		var element_center = new THREE.Vector3(
-			(element_size[0]   / 2) + obj.from[0],
-			(element_size[1]   / 2) + obj.from[1],
-			(element_size[2]   / 2) + obj.from[2]
-		)
+    if (Blockbench.entity_mode) {
+        if (!selected_group) return
+        var position = [0, 0, 0]
+        selected_group.children.forEach(function(obj) {
+            position[0] += obj.from[0] + obj.size(0)/2
+            position[1] += obj.from[1] + obj.size(1)/2
+            position[2] += obj.from[2] + obj.size(2)/2
+        })
+        position.forEach(function(p, pi) {
+            position[pi] = p / selected_group.children.length
+        })
+        selected_group.origin = position
+    } else {
+    	selected.forEach(function(obj) {
 
-		if (obj.rotation == undefined) {
-			obj.rotation = {origin:[8,8,8], axis: 'y', angle: 0}
-		}
-		element_center.x -= obj.rotation.origin[0]
-		element_center.y -= obj.rotation.origin[1]
-		element_center.z -= obj.rotation.origin[2]
+    		var element_size = obj.size()
+    		var element_center = new THREE.Vector3(
+    			(element_size[0]   / 2) + obj.from[0],
+    			(element_size[1]   / 2) + obj.from[1],
+    			(element_size[2]   / 2) + obj.from[2]
+    		)
 
-		if (obj.display.mesh) {
-			element_center.applyEuler(obj.display.mesh.rotation)
-		}
-		obj.rotation.origin[0] += element_center.x
-		obj.rotation.origin[1] += element_center.y
-		obj.rotation.origin[2] += element_center.z
+    		if (obj.rotation == undefined) {
+    			obj.rotation = {origin:[8,8,8], axis: 'y', angle: 0}
+    		}
+    		element_center.x -= obj.rotation.origin[0]
+    		element_center.y -= obj.rotation.origin[1]
+    		element_center.z -= obj.rotation.origin[2]
 
-		obj.to[0] = obj.rotation.origin[0] + element_size[0] / 2
-		obj.to[1] = obj.rotation.origin[1] + element_size[1] / 2
-		obj.to[2] = obj.rotation.origin[2] + element_size[2] / 2
+    		if (obj.display.mesh) {
+    			element_center.applyEuler(obj.display.mesh.rotation)
+    		}
+    		obj.rotation.origin[0] += element_center.x
+    		obj.rotation.origin[1] += element_center.y
+    		obj.rotation.origin[2] += element_center.z
 
-		obj.from[0] = obj.rotation.origin[0] - element_size[0] / 2
-		obj.from[1] = obj.rotation.origin[1] - element_size[1] / 2
-		obj.from[2] = obj.rotation.origin[2] - element_size[2] / 2
-	})
-	Canvas.updatePositions()
+    		obj.to[0] = obj.rotation.origin[0] + element_size[0] / 2
+    		obj.to[1] = obj.rotation.origin[1] + element_size[1] / 2
+    		obj.to[2] = obj.rotation.origin[2] + element_size[2] / 2
+
+    		obj.from[0] = obj.rotation.origin[0] - element_size[0] / 2
+    		obj.from[1] = obj.rotation.origin[1] - element_size[1] / 2
+    		obj.from[2] = obj.rotation.origin[2] - element_size[2] / 2
+    	})
+    }
+    Canvas.updatePositions()
 	setUndo('Set origin to geometry')
 }
 function inflateCubes(val) {
@@ -316,7 +331,7 @@ function moveIntoBox(list) {
     list.forEach(function(s, i) {
         //Push elements into 3x3 block box
         [0, 1, 2].forEach(function(ax) {
-            var overlap = s.from[ax] + s.to[ax] - 32
+            var overlap = s.to[ax] - 32
             if (overlap > 0) {
                 //If positive site overlaps
                 s.from[ax] -= overlap
@@ -332,7 +347,7 @@ function moveIntoBox(list) {
                     s.from[ax] -= overlap
                     s.to[ax] -= overlap
 
-                    if (s.from[ax] + s.to[ax] > 32) {
+                    if (s.to[ax] > 32) {
                         s.to[ax] = 32
                     }
                 }
@@ -760,7 +775,7 @@ function centerCubes(axis, update) {
         average += obj.to[axis]
     })
     average = average / (selected.length * 2)
-    var difference = 8 - average
+    var difference = (Blockbench.entity_mode ? 0 : 8) - average
 
     selected.forEach(function(s) {
         executeNslide('pos_'+getAxisLetter(axis), s, difference)

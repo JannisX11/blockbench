@@ -78,9 +78,16 @@ var Toolbox = {
 			label: 'Paint Brush',
 			icon: 'fa-paint-brush',
 			showTransformer: false,
+			paint_tool: true,
 			optionBar: 'brush',
 			onCanvasClick: function(data) {
-				Painter.startBrush(data.cube, data.intersects[0], data.event)
+				Painter.startBrushCanvas(data, data.event)
+			},
+			onSelect: function() {
+				$('.UVEditor').find('#uv_size').hide()
+			},
+			onUnselect: function() {
+				$('.UVEditor').find('#uv_size').show()
 			}
 		}),
 		new Tool({

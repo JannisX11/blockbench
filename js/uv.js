@@ -63,6 +63,9 @@ class UVEditor {
             //dummy function, sets the global variable nslide.editor to the current uv editor
             nslide.editor = scope;
         })
+        if (Toolbox.selected.paint_tool) {
+            this.jquery.size.hide()
+        }
 
         this.jquery.size.mouseenter(function() {
             scope.displayMappingOverlay()
@@ -165,8 +168,60 @@ class UVEditor {
         this.jquery.frame.contextmenu(function(event) {
             scope.contextMenu()
         })
+
+        this.jquery.frame.mousedown(function(event) {
+            if (Toolbox.selected.id === 'paint_brush') {
+                scope.startBrush(event)
+            }
+        })
         return this;
     }
+    getBrushCoordinates(event) {
+        var scope = this;
+        return {
+            x: Math.floor(event.offsetX/scope.getPixelSize()),
+            y: Math.floor(event.offsetY/scope.getPixelSize())
+        }
+    }
+
+
+
+    startBrush(event) {
+        var scope = this;
+        Painter.active_uv_editor = scope;
+
+        var texture = scope.getTexture()
+        if (texture) {
+            var x = scope.getBrushCoordinates(event).x
+            var y = scope.getBrushCoordinates(event).y
+            Painter.startBrush(texture, x, y, undefined, event)
+        }
+        if (event.altKey === false && texture.mode !== 'link') {
+            scope.jquery.frame.get(0).addEventListener('mousemove', scope.moveBrush, false );
+            document.addEventListener('mouseup', scope.stopBrush, false );
+        }
+    }
+    moveBrush(event) {
+        var scope = Painter.active_uv_editor;
+        var texture = scope.getTexture()
+        if (!texture) {
+            Blockbench.showMessage('The surface does not have a texture', 'center')
+        } else if (texture.mode !== 'bitmap') {
+            texture.highlightModeToggle()
+            Blockbench.showMessage('You can only paint on bitmap textures', 'center')
+        } else {
+            var x = scope.getBrushCoordinates(event).x
+            var y = scope.getBrushCoordinates(event).y
+            Painter.useBrush(texture, x, y)
+        }
+    }
+    stopBrush(event) {
+        var scope = Painter.active_uv_editor;
+        scope.jquery.frame.get(0).removeEventListener( 'mousemove', scope.moveBrush, false );
+        document.removeEventListener( 'mouseup', scope.stopBrush, false );
+        Painter.stopBrush()
+    }
+
     message(msg) {
         var box = $('<div class="uv_message_box">' + msg + '</div>')
         this.jquery.frame.append(box)
@@ -195,6 +250,9 @@ class UVEditor {
         } else {
             return obj.faces[this.face].uv;
         }
+    }
+    getTexture() {
+        return getTextureById(selected[0].faces[this.face].texture)
     }
     forCubes(cb) {
         var i = 0;
@@ -1089,6 +1147,8 @@ var uv_dialog = {
     selection: [],
     selection_all: [],
     hoveredSide: false,
+    single_size: {},
+    all_size: {},
     setup: function() {
         uv_dialog.editors = {
             single:new UVEditor('single').appendTo('#uv_dialog_single'),
@@ -1121,7 +1181,7 @@ var uv_dialog = {
             }
         }
         $('.dialog#uv_dialog').resizable({
-            minWidth: 200,
+            minWidth: 202,
             minHeight: 464,
             resize: function() {
                 uv_dialog.updateSize()
@@ -1193,6 +1253,7 @@ var uv_dialog = {
         uv_dialog.centerDialog()
     },
     openTab: function(tab) {
+        uv_dialog.saveSize()
         $('#uv_tab_bar .tab').removeClass('open')
         $('#uv_tab_bar .tab#'+tab).addClass('open')
         if (tab === 'all') {
@@ -1207,6 +1268,8 @@ var uv_dialog = {
             uv_dialog.selection = uv_dialog.selection_all.splice(0, 10)
             uv_dialog.updateSelection()
             $('#uv_dialog_toolbar #grid_snap').val(uv_dialog.editors.north.gridSelectOption)
+            $('.dialog#uv_dialog').width(uv_dialog.all_size.x)
+            $('.dialog#uv_dialog').height(uv_dialog.all_size.y)
         } else {
             uv_dialog.single = true
             $('#uv_dialog_single').show()
@@ -1222,9 +1285,20 @@ var uv_dialog = {
                 uv_dialog.editors.single.setSize(max_size)
                 uv_dialog.editors.single.jquery.main.css('margin-left', 'auto').css('margin-right', 'auto').css('width', max_size+'px')
             }
+            $('.dialog#uv_dialog').width(uv_dialog.single_size.x)
+            $('.dialog#uv_dialog').height(uv_dialog.single_size.y)
         }
         uv_dialog.hoveredSide = false;
         uv_dialog.updateSize()
+    },
+    saveSize: function() {
+        if (uv_dialog.single) {
+            uv_dialog.single_size.x = $('.dialog#uv_dialog').width()
+            uv_dialog.single_size.y = $('.dialog#uv_dialog').height()
+        } else {
+            uv_dialog.all_size.x = $('.dialog#uv_dialog').width()
+            uv_dialog.all_size.y = $('.dialog#uv_dialog').height()
+        }
     },
     updateSize: function() {
         var obj = $('.dialog#uv_dialog')
@@ -1248,16 +1322,14 @@ var uv_dialog = {
                 //2 x 3     0.83 - 7.2
                 if (size.y*1.4 > size.x) {
                     var editor_size = limitNumber(size.x / 2 - 20, 80, $(window).height()/3-120)
+                    editor_size = limitNumber(editor_size, 80, (size.y-64)/3-77)
                 } else {
                     var editor_size = size.y / 3 - 96 - 48
                 }
             } else {
                 //4 x 2
-                if (size.y - 250 > size.x / 2) {
-                    var editor_size = size.x / 4 - 20
-                } else {
-                    var editor_size = size.y / 2 - 130
-                }
+                var y_margin = ($('#uv_dialog_toolbar #uv_rotation').position().left>900 ? 122 : 150)
+                var editor_size = limitNumber(size.x/4-20,  16,  size.y/2-y_margin)
                 centerUp = true
             }
             editor_size = editor_size - (editor_size % 16)

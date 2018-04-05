@@ -223,6 +223,7 @@ function findEntityTexture(mob, return_path) {
         'geometry.enderman': 'enderman/enderman',
         'geometry.zombie': 'zombie/zombie',
         'geometry.zombie.husk': 'zombie/husk',
+        'geometry.zombie.drowned': 'zombie/drowned',
         'geometry.pigzombie': 'pig/pigzombie',
         'geometry.pigzombie.baby': 'pig/pigzombie',
         'geometry.skeleton': 'skeleton/skeleton',
@@ -244,6 +245,7 @@ function findEntityTexture(mob, return_path) {
         'geometry.vindicator': 'vindicator',
         'geometry.wolf': 'wolf/wolf',
         'geometry.ocelot': 'cat/ocelot',
+        'geometry.trident': 'trident',
         'geometry.guardian': 'guardian',
         'geometry.polarbear': 'polarbear',
         'geometry.villager': 'villager/villager',
@@ -255,7 +257,14 @@ function findEntityTexture(mob, return_path) {
         'geometry.bed': 'bed/white',
         'geometry.player_head': 'steve',
         'geometry.mob_head': 'skeleton/skeleton',
-        'geometry.dragon_head': 'dragon/dragon'
+        'geometry.dragon_head': 'dragon/dragon',
+        'geometry.cod': 'fish/fish',
+        'geometry.pufferfish.small': 'fish/pufferfish',
+        'geometry.pufferfish.mid': 'fish/pufferfish',
+        'geometry.pufferfish.large': 'fish/pufferfish',
+        'geometry.salmon': 'fish/salmon',
+        'geometry.tropicalfish_a': 'fish/tropical_a',
+        'geometry.tropicalfish_b': 'fish/tropical_b'
     }
     var path = textures[mob.split(':')[0]]
     if (path) {

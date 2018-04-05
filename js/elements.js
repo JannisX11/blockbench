@@ -149,7 +149,7 @@ class OutlinerElement {
 				if (level === 'root') {
 					i = 50
 				} else if (level === this) {
-					return;
+					return this;
 				} else {
 					level = group.display.parent
 				}
@@ -298,7 +298,7 @@ class Cube extends OutlinerElement {
 		if (!scene.children.includes(this)) {
 			Canvas.addCube(this)
 		}
-		if (true) {
+		if (!this.display.parent) {
 			this.addTo()
 		}
 		return this;
@@ -434,6 +434,25 @@ class Cube extends OutlinerElement {
 			{icon: 'pages', name: 'Inflate...', condition: Blockbench.entity_mode, click: function() {
 				scope.inflateDialog()
 			}},
+            {icon: 'collections', condition: (!Blockbench.entity_mode), name: 'Texture', children: function() {
+                var arr = [
+                    {icon: 'clear', name: 'Transparent', click: function(event) {
+                    	scope.applyTexture(undefined, true)
+                    	setUndo('Removed texture')
+                    }},
+                ]
+                textures.forEach(function(t) {
+                    arr.push({
+                        name: t.name,
+                        icon: t.img,
+                        click: function(event) {
+                        	scope.applyTexture(t, true)
+                        	setUndo('Applied texture')
+                        }
+                    })
+                })
+                return arr;
+            }}
 		])
 	}
 	inflateDialog() {
@@ -486,8 +505,12 @@ class Cube extends OutlinerElement {
 	    } else {
 	        var sides = faces
 	    }
+		var id = '$transparent'
+		if (texture && texture.id !== undefined) {
+			id = '#'+texture.id
+		}
         sides.forEach(function(side) {
-            scope.faces[side].texture = '#'+texture.id
+            scope.faces[side].texture = id
         })
 	    if (this.display.isselected) {
 	    	main_uv.loadData()

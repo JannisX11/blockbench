@@ -28,9 +28,9 @@ class refModel {
 		if (id === 'player') {
 			this.onload = function() {
 				if (slot === 'thirdperson_righthand') {
-					setDisplayArea(-5, 8, -6, -90, 22.5, 90, 1, 1, 1)
+					setDisplayArea(-5.7, 7.5, -6, -90, 22.5, 90, 1, 1, 1)
 				} else if (slot === 'thirdperson_lefthand') {
-					setDisplayArea(-5, 8, 6, -90, 22.5, 90, 1, 1, 1)
+					setDisplayArea(-5.7, 7.5, 6, -90, 22.5, 90, 1, 1, 1)
 				} else if (slot === 'head') {
 					setDisplayArea(0, 22, 0, 0, 90, 0, 0.625, 0.625, 0.625)
 				}
@@ -156,7 +156,7 @@ class refModel {
 	buildPlayer() {
 		var scope = this;
 		var things = [
-			{"size": [4, 12, 4], "pos": [0, 12, -6], "origin": [0, 16, 0], "angle": -20,
+			{"size": [4, 12, 4], "pos": [0, 12, -6], "origin": [0, 16, 0], "angle": -22.5,
 				"north": {"uv": [10, 5, 11, 8], "texture": "#0"},
 				"east": {"uv": [13, 5, 14, 8], "texture": "#0"},
 				"south": {"uv": [12, 5, 13, 8], "texture": "#0"},
@@ -165,7 +165,7 @@ class refModel {
 				"down": { "uv": [12, 4, 13, 5], "texture": "#0", "rotation": 270 }
 			},	//Right Arm
 
-			{"size": [4, 12, 4], "pos": [0, 12, 6], "origin": [0, 16, 0], "angle": -20,
+			{"size": [4, 12, 4], "pos": [0, 12, 6], "origin": [0, 16, 0], "angle": -22.5,
 				"north": {"uv": [8, 13, 9, 16], "texture": "#0"},
 				"east": {"uv": [11, 13, 12, 16], "texture": "#0"},
 				"south": {"uv": [10, 13, 11, 16], "texture": "#0"},

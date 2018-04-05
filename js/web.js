@@ -92,17 +92,13 @@ document.body.ondrop = (ev) => {
 
 function tryLoadPOSTModel() {
     if ($('#post_model').text() !== '') {
-        console.log('[P] Data in model tag found')
         if ($('#post_textures').text() !== '') {
-            console.log('[P] Data in texture tag found')
             Project.dataURLTextures = true
         }
         loadFile($('#post_model').text(), 'model', true)
-        console.log('[P] File Loaded')
         //$('#post_model').remove()
         if ($('#post_textures').text() !== '') {
             var data = JSON.parse( $('#post_textures').text() )
-            console.log('[P] textures parsed', data)
             for (var key in data) {
                 if (data.hasOwnProperty(key)) {
                     var tex = getTextureById(key+'');
@@ -115,7 +111,6 @@ function tryLoadPOSTModel() {
             textures.forEach(function(tex) {
                 tex.load()
             })
-            console.log('[P] '+textures.length+' textures loaded')
         }
         return true;
     } else {

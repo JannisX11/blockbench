@@ -428,19 +428,6 @@ function setInterfaceMode(mode) {
     setScreenRatio()
 }
 
-//Menu
-function updateMenu() {
-    //Settings Dependent
-    $('header .settings_dependent').each(function(i, o) {
-        var set = $(o).attr('setting')
-        if (settings[set] && settings[set].value === true) {
-            $(o).text('check_box')
-        } else {
-            $(o).text('check_box_outline_blank')
-        }
-    })
-}
-
 //SplashScreen
 var splashScreen = {
     attempt: function(res) {

@@ -25,7 +25,7 @@ function initCanvas() {
     cameraOrtho.axis = null
     cameraPers.position.set(-20, 20, -20)
 
-    wireframeMaterial = new THREE.LineBasicMaterial({color: 0x74c2ff, linewidth: 1})
+    wireframeMaterial = new THREE.LineBasicMaterial({color: 0x74c2ff})
     
     controls = new THREE.OrbitControls(cameraPers, canvas1);
     controls.minDistance = 1;
@@ -322,7 +322,6 @@ function buildGrid() {
     var size, step;
     var grid_color = new THREE.Color(parseInt('0x'+app_colors.grid.hex.replace('#', ''), 16))
     var line_material = new THREE.LineBasicMaterial({color: grid_color});
-    line_material.linewidth = 6;
     var material;
 
     northMarkMaterial.color = grid_color
@@ -1017,12 +1016,15 @@ class CanvasController {
                 //East+West
                 
                 var p = {}
-                p.from = face_list[1].from
-                p.to = face_list[1].to
+
+                p.from = face_list[1].from.slice()
+                p.to = face_list[1].to.slice()
+
                 face_list[1].from = face_list[3].from.slice()
                 face_list[1].to = face_list[3].to.slice()
-                p.from = face_list[3].from.slice()
-                p.to = face_list[3].to.slice()
+
+                face_list[3].from = p.from.slice()
+                face_list[3].to = p.to.slice()
 
             }
             face_list.forEach(function(f) {
@@ -1109,7 +1111,7 @@ class CanvasController {
         var geo = new THREE.EdgesGeometry(object.geometry);
 
         var outline_color = '0x'+app_colors.accent.hex.replace('#', '')
-        var mat = new THREE.LineBasicMaterial({color: parseInt(outline_color), linewidth: 50})
+        var mat = new THREE.LineBasicMaterial({color: parseInt(outline_color), linewidth: 2})
         var wireframe = new THREE.LineSegments(geo, mat)
         wireframe.name = obj.uuid+'_outline'
         wireframe.position.set(object.position.x, object.position.y, object.position.z)

@@ -1,7 +1,7 @@
 {
   "name": "Blockbench",
   "description": "Minecraft Block Model Editor",
-  "version": "1.11.0",
+  "version": "1.11.1",
   "license": "MIT",
   "author": {
     "name": "JannisX11",
@@ -61,7 +61,7 @@
   },
   "scripts": {
     "pack": "build --dir",
-    "dist": "build --publish onTagOrDraft"
+    "dist": "build --publish always"
   },
   "devDependencies": {
     "async": "^2.4.1",

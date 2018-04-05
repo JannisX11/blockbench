@@ -81,8 +81,7 @@ class Texture {
                 }
             }
             if (Blockbench.entity_mode && textures.indexOf(scope) === 0 && !reloading && !scope.keep_size) {
-                Project.texture_width = img.naturalWidth
-                Project.texture_height = img.naturalHeight
+                entityMode.setResolution(img.naturalWidth, img.naturalHeight)
                 if (selected.length) {
                 	main_uv.loadData()
                 	main_uv.setGrid()
@@ -279,6 +278,7 @@ class Texture {
 		textures.forEach(function(s) {
 	        s.selected = false;
 	    })
+		Prop.active_panel = 'textures'
 	    this.selected = true
         textures.selected = this
 	    return this;
@@ -363,7 +363,7 @@ class Texture {
 	    setUndo('Applied texture')
 	}
 	openFolder() {
-		if (!isApp) return;
+		if (!isApp || this.type !== 'link') return;
 		shell.showItemInFolder(this.path)
 	}
 	remove() {

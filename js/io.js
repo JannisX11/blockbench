@@ -584,7 +584,7 @@ function buildEntityModel(options) {
                             cube.inflate = s.inflate
                         }
                         if (s.shade === false) {
-                            bone.mirror = true
+                            cube.mirror = true
                         }
                         bone.cubes.push(cube)
                     }

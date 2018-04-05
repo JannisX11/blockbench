@@ -21,6 +21,9 @@ tinycolor.prototype.toInt = function() {
   var rgba = this.toRgb()
   return Jimp.rgbaToInt(rgba.r, rgba.g, rgba.b, rgba.a)
 }
+Array.prototype.empty = function() {
+  this.length = 0;
+}
 
 function guid() {
   function s4() {

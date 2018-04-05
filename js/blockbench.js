@@ -1,4 +1,4 @@
-var appVersion = '1.11.0'
+var appVersion = '1.11.1'
 var osfs = '/'
 var File, i;
 var browser_name = 'electron'
@@ -74,8 +74,6 @@ function initializeApp() {
         $('#donation_hint').remove()
     }
     Toolbox.updateBar()
-
-    updateMenu()
 
     if (isApp) {
         updateRecentProjects()
@@ -320,26 +318,6 @@ function setupVue() {
         data: {Project}
     })
     project_vue._data.Project = Project
-
-/*
-    var displaypresets_vue = new Vue({
-        el: '#display_presets',
-        data: {display_presets},
-        methods: {
-            applyPreset: function(preset, event) {
-                var index = display_presets.indexOf(preset)
-                applyDisplayPreset(display_presets[index])
-            },
-            deletePreset: function(preset, event) {
-                var index = display_presets.indexOf(preset)
-                if (display_presets[index].fixed == true) return;
-                display_presets.splice(index, 1)
-                localStorage.setItem('display_presets', JSON.stringify(display_presets))
-            }
-        }
-    })
-    displaypresets_vue._data.display_presets = display_presets
-*/
 
     var stats_bar_vue = new Vue({
         el: '#status_bar',
@@ -954,6 +932,9 @@ var Undo = {
     history: [],
 
     add: function(action, isTextureEdit) {
+        if (settings.show_actions.value === true) {
+            showStatusMessage(action)
+        }
         if (isTextureEdit) {
             var entry = new Undo.textureHistoryEntry(action)
         } else {
@@ -1057,7 +1038,7 @@ var Undo = {
                 tex.iconpath = arr.join('?')
             }
 
-            tex.load()
+            tex.load(true, true)
             textures.push(tex)
         })
         texturelist.$forceUpdate();
@@ -1097,12 +1078,7 @@ var Undo = {
         })
     }
 }
-function setUndo(action) {
-    if (settings.show_actions.value === true) {
-        showStatusMessage(action)
-    }
-    Undo.add(action)
-}
+var setUndo = Undo.add
 //Misc
 var Screencam = {
     normalCanvas: function(options, cb) {
@@ -1168,7 +1144,7 @@ var Screencam = {
                     })
                 });
             })
-        }, 20)
+        }, 40)
     },
     returnScreenshot: function(dataUrl, cb) {
         if (cb) {
@@ -1211,35 +1187,21 @@ var clipbench = {
         var p = Prop.active_panel
         if (open_dialog == 'uv_dialog') {
             uv_dialog.copy(event)
-        } else if (p == 'uv') {
-            main_uv.copy(event)
         } else if (display_mode) {
             copyDisplaySlot()
+        } else if (p == 'uv' || p == 'preview') {
+            main_uv.copy(event)
         } else if (p == 'textures' && isApp) {
             if (textures.selected) {
-                cl('test')
-                if (textures.selected.mode === 'bitmap') {
-                    var img = nativeImage.createFromDataURL(textures.selected.iconpath)
-                } else {
-                    var img = nativeImage.createFromPath(textures.selected.iconpath.split('?')[0])
-                }
-                clipboard.writeImage(img)
+                clipbench.setTexture(textures.selected)
             }
-        } else if (p == 'outliner' || p == 'preview') {
-            clipbench.cubes = []
-            clipbench.group = undefined
+        } else if (p == 'outliner') {
+            clipbench.setCubes()
+            clipbench.setGroup()
             if (selected_group) {
-                clipbench.group = selected_group.duplicate('cache')
-                if (isApp) {
-                    clipboard.writeHTML(JSON.stringify({type: 'group', content: clipbench.group}))
-                }
+                clipbench.setGroup(selected_group)
             } else {
-                selected.forEach(function(obj) {
-                    var base_cube = new Cube(obj)
-                    base_cube.display.mesh = undefined;
-                    clipbench.cubes.push(base_cube)
-                })
-                clipboard.writeHtml(JSON.stringify({type: 'cubes', content: clipbench.cubes}))
+                clipbench.setCubes(selected)
             }
         }
     },
@@ -1247,10 +1209,10 @@ var clipbench = {
         var p = Prop.active_panel
         if (open_dialog == 'uv_dialog') {
             uv_dialog.paste(event)
-        } else if (p == 'uv') {
-            main_uv.paste(event)
         } else if (display_mode) {
             pasteDisplaySlot()
+        } else if (p == 'uv' || p == 'preview') {
+            main_uv.paste(event)
         } else if (p == 'textures' && isApp) {
             var img = clipboard.readImage()
             if (img) {
@@ -1260,7 +1222,7 @@ var clipbench = {
                     texture.openMenu()
                 },40)
             }
-        } else if (p == 'outliner' || p == 'preview') {
+        } else if (p == 'outliner') {
             //Group
             var group = 'root'
             if (selected_group) {
@@ -1286,22 +1248,51 @@ var clipbench = {
                 clipbench.group.duplicate(group)
             } else {
                 clipbench.cubes.forEach(function(obj) {
-                    var base_cube = new Cube()
-                    base_cube.extend(obj)
-                    base_cube.uuid = guid()
-                    base_cube.display.mesh = undefined;
+                    var base_cube = new Cube(obj)
 
-                    elements.push(base_cube)
-                    base_cube.addTo(group)
-                    Canvas.addCube(elements[elements.length-1])
+                    base_cube.addTo(group).init()
                     selected.push(elements[elements.length-1])
                 })
                 updateSelection()
                 setUndo('Pasted Cubes')
             }
         }
-
     },
+    setTexture: function(texture) {
+        //Sets the raw image of the texture
+        if (!isApp) return;
+
+        if (texture.mode === 'bitmap') {
+            var img = nativeImage.createFromDataURL(texture.iconpath)
+        } else {
+            var img = nativeImage.createFromPath(texture.iconpath.split('?')[0])
+        }
+        clipboard.writeImage(img)
+    },
+    setGroup: function(group) {
+        if (!group) {
+            clipbench.group = undefined
+            return;
+        }
+        clipbench.group = group.duplicate('cache')
+        if (isApp) {
+            clipboard.writeHTML(JSON.stringify({type: 'group', content: clipbench.group}))
+        }
+    },
+    setCubes: function(cubes) {
+        if (!cubes) {
+            clipbench.cubes = []
+            return;
+        }
+        cubes.forEach(function(obj) {
+            var base_cube = new Cube(obj)
+            base_cube.display.mesh = undefined;
+            clipbench.cubes.push(base_cube)
+        })
+        if (isApp) {
+            clipboard.writeHtml(JSON.stringify({type: 'cubes', content: clipbench.cubes}))
+        }
+    }
 }
 TextureAnimator = {
     isPlaying: false,

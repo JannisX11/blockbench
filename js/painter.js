@@ -9,7 +9,7 @@ class BBPainter {
 		if (typeof options !== 'object') {
 			options = {}
 		}
-		if (texture.type === 'link') {
+		if (texture.mode === 'link') {
 			console.error('Cannot edit link texture')
 			return;
 		}
@@ -22,6 +22,13 @@ class BBPainter {
 	        	texture.iconpath = dataUrl
 	        	texture.updateMaterial()
 	        	main_uv.loadData()
+	        	if (open_dialog === 'uv_dialog') {
+	        		for (var editor in uv_dialog.editors) {
+	        			if (uv_dialog.editors.hasOwnProperty(editor)) {
+	        				uv_dialog.editors[editor].loadData()
+	        			}
+	        		}
+	        	}
 	        	if (!options.noUndo) {
 	        		Undo.add('Paint', true)
 	        	}
@@ -42,41 +49,20 @@ class BBPainter {
 		    })
 		}
 	}
-	startBrush(data, x, event) {
-		if (event.altKey === false) {
-			Painter.brushChanges = false
-			document.addEventListener('mousemove', Painter.moveBrush, false );
-			document.addEventListener('mouseup', Painter.stopBrush, false );
-			Painter.moveBrush(true)
-		} else {
-			//Pick Color
-			var data = Canvas.raycast()
-			if (data) {
-				var texture = getTextureById(data.cube.faces[data.face].texture)
-				if (texture) {
-					var x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth )
-					var y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight )
+	startBrushCanvas(data, event) {
 
-					function getPxColor(image) {
-						var c = image.getPixelColor(x,y)
-						console.log(c)
-						c = tinycolor(Jimp.intToRGBA(c))
-						console.log(c)
-						console.log(c.toHexString())
-						$('#brush_color').spectrum('set', c.toHexString())
-					}
-					if (texture.mode == 'bitmap') {
-						Jimp.read(Buffer.from(texture.iconpath.replace('data:image/png;base64,', ''), 'base64'), function() {}).then(getPxColor)
-					} else {
-						Jimp.read(texture.iconpath, function() {}).then(getPxColor)
-					}
-				} else {
-
-				}
-			}
+		var texture = getTextureById(data.cube.faces[data.face].texture)
+		if (texture) {
+			var x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth )
+			var y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight )
+			Painter.startBrush(texture, x, y, data.cube.faces[data.face].uv, event)
+		}
+		if (event.altKey === false && texture.mode !== 'link') {
+			document.addEventListener('mousemove', Painter.moveBrushCanvas, false );
+			document.addEventListener('mouseup', Painter.stopBrushCanvas, false );
 		}
 	}
-	moveBrush(force) {
+	moveBrushCanvas(force) {
 		var data = Canvas.raycast()
 		if (data) {
 			var texture = getTextureById(data.cube.faces[data.face].texture)
@@ -88,61 +74,98 @@ class BBPainter {
 			} else {
 				var x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth )
 				var y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight )
-				if ((Painter.currentPixel[0] !== x || Painter.currentPixel[1] !== y)) {
-					Painter.currentPixel = [x, y]
-					Painter.brushChanges = true
-
-					Painter.edit(texture, function(image) {
-			        	var color = $('#brush_color').spectrum('get').toRgb()
-			        	var size = limitNumber(parseInt($('#brush_size').val()), 1, 20);
-			        	var softness = limitNumber(parseFloat($('#brush_softness').val()), 0, 1);
-			        	var brush_mode = $('select#brush_mode option:selected').attr('id')
-
-			        	Painter.editing_area = [
-			        		data.cube.faces[data.face].uv[0] / 16 * texture.img.naturalWidth,
-			        		data.cube.faces[data.face].uv[1] / 16 * texture.img.naturalHeight,
-			        		data.cube.faces[data.face].uv[2] / 16 * texture.img.naturalWidth,
-			        		data.cube.faces[data.face].uv[3] / 16 * texture.img.naturalHeight
-			        	]
-			        	if (Painter.editing_area[0] > Painter.editing_area[2]) {
-			        		var sw = Painter.editing_area[2]
-			        		Painter.editing_area[2] = Painter.editing_area[0]
-			        		Painter.editing_area[0] = sw
-			        	}
-			        	if (Painter.editing_area[1] > Painter.editing_area[3]) {
-			        		var sw = Painter.editing_area[3]
-			        		Painter.editing_area[3] = Painter.editing_area[1]
-			        		Painter.editing_area[1] = sw
-			        	}
-
-			        	if (brush_mode === 'round') {
-				        	Painter.editCircle(image, x, y, size, softness, function(pxcolor, opacity) {
-				        		var result_color = Painter.combineColors(pxcolor, color, opacity);
-								return result_color;
-				        	})
-			        	} else if (brush_mode === 'noise') {
-				        	Painter.editCircle(image, x, y, size, softness, function(pxcolor, opacity) {
-				        		var result_color = Painter.combineColors(pxcolor, color, opacity*Math.random());
-								return result_color;
-				        	})
-			        	} else if (brush_mode === 'eraser') {
-				        	Painter.editCircle(image, x, y, size, softness, function(pxcolor, opacity) {
-								return {r: pxcolor.r, g: pxcolor.g, b: pxcolor.b, a: pxcolor.a*(1-opacity)};
-				        	})
-			        	} else if (brush_mode === 'fill') {
-				        	Painter.editFace(image, x, y, function(pxcolor) {
-				        		return Painter.combineColors(pxcolor, color, 1)
-				        	})
-			        	}
-			        	Painter.editing_area = undefined
-			        }, {noUndo: true, use_cache: true})
-				}
+				Painter.useBrush(texture, x, y, data.cube.faces[data.face].uv)
 			}
 		}
 	}
+	stopBrushCanvas() {
+		document.removeEventListener( 'mousemove', Painter.moveBrushCanvas, false );
+		document.removeEventListener( 'mouseup', Painter.stopBrushCanvas, false );
+		Painter.stopBrush()
+	}
+
+	startBrush(texture, x, y, uvTag, event) {
+		if (event.altKey === false) {
+			if (texture.mode !== 'bitmap') {
+				texture.highlightModeToggle()
+				Blockbench.showMessage('You can only paint on bitmap textures', 'center')
+			} else {
+            	Painter.brushChanges = false
+				Painter.useBrush(texture, x, y, uvTag)
+			}
+		} else {
+			Painter.colorPicker(texture, x, y)
+		}
+	}
+	colorPicker(texture, x, y) {
+		function getPxColor(image) {
+			var c = image.getPixelColor(x,y)
+			c = tinycolor(Jimp.intToRGBA(c))
+			$('#brush_color').spectrum('set', c.toHexString())
+		}
+		if (texture.mode == 'bitmap') {
+			Jimp.read(Buffer.from(texture.iconpath.replace('data:image/png;base64,', ''), 'base64'), function() {}).then(getPxColor)
+		} else {
+			Jimp.read(texture.iconpath, function() {}).then(getPxColor)
+		}
+	}
+	useBrush(texture, x, y, uvTag) {
+		if ((Painter.currentPixel[0] !== x || Painter.currentPixel[1] !== y)) {
+			Painter.currentPixel = [x, y]
+			Painter.brushChanges = true
+
+			Painter.edit(texture, function(image) {
+				var color = $('#brush_color').spectrum('get').toRgb()
+				var size = limitNumber(parseInt($('#brush_size').val()), 1, 20);
+				var softness = limitNumber(parseFloat($('#brush_softness').val()), 0, 1);
+				var brush_mode = $('select#brush_mode option:selected').attr('id')
+
+				if (uvTag) {
+					Painter.editing_area = [
+						uvTag[0] / 16 * texture.img.naturalWidth,
+						uvTag[1] / 16 * texture.img.naturalHeight,
+						uvTag[2] / 16 * texture.img.naturalWidth,
+						uvTag[3] / 16 * texture.img.naturalHeight
+					]
+				} else {
+					Painter.editing_area = [0, 0, texture.red, texture.red]
+				}
+
+				if (Painter.editing_area[0] > Painter.editing_area[2]) {
+					var sw = Painter.editing_area[2]
+					Painter.editing_area[2] = Painter.editing_area[0]
+					Painter.editing_area[0] = sw
+				}
+				if (Painter.editing_area[1] > Painter.editing_area[3]) {
+					var sw = Painter.editing_area[3]
+					Painter.editing_area[3] = Painter.editing_area[1]
+					Painter.editing_area[1] = sw
+				}
+
+				if (brush_mode === 'round') {
+			    	Painter.editCircle(image, x, y, size, softness, function(pxcolor, opacity) {
+			    		var result_color = Painter.combineColors(pxcolor, color, opacity);
+						return result_color;
+			    	})
+				} else if (brush_mode === 'noise') {
+			    	Painter.editCircle(image, x, y, size, softness, function(pxcolor, opacity) {
+			    		var result_color = Painter.combineColors(pxcolor, color, opacity*Math.random());
+						return result_color;
+			    	})
+				} else if (brush_mode === 'eraser') {
+			    	Painter.editCircle(image, x, y, size, softness, function(pxcolor, opacity) {
+						return {r: pxcolor.r, g: pxcolor.g, b: pxcolor.b, a: pxcolor.a*(1-opacity)};
+			    	})
+				} else if (brush_mode === 'fill') {
+			    	Painter.editFace(image, x, y, function(pxcolor) {
+			    		return Painter.combineColors(pxcolor, color, 1)
+			    	})
+				}
+	        	Painter.editing_area = undefined
+	        }, {noUndo: true, use_cache: true})
+		}
+	}
 	stopBrush() {
-		document.removeEventListener( 'mousemove', Painter.moveBrush, false );
-		document.removeEventListener( 'mouseup', Painter.stopBrush, false );
 		if (Painter.brushChanges) {
 			Undo.add('Paint', true)
 			Painter.brushChanges = false
@@ -325,12 +348,12 @@ class BBPainter {
 		if (isNaN(options.res) || !options.res) {
 			options.res = 16
 		}
-		console.log(options)
 		if (options.color === undefined) {
 			options.color = 0xffffffff
 		}
 		var texture = new Texture({
 			mode: 'bitmap',
+			keep_size: true,
 			res: options.res,
 			name: options.name ? options.name : 'texture',
 			folder: options.folder ? options.folder : 'blocks'
@@ -446,19 +469,8 @@ class BBPainter {
 		}
 		//Size
 		var max_size = Math.max(max_x_pos, line_y_pos)
-		max_size = snap16(max_size)
+		max_size = snapNum(max_size, 16)
 		var img_size = {x: max_size, y: max_size}
-		/*
-		if (max_x_pos <= max_size/2) {
-			//vert
-			img_size = {x: snap16(max_size/2), y: max_size}
-		} else if (line_y_pos <= max_size/2) {
-			//landscape
-			img_size = {x: max_size, y: snap16(max_size/2)}
-		} else {
-			//square
-			img_size = {x: max_size, y: max_size}
-		}*/
 		
 		function drawTemplateRectangle(image, border_color, color, coords) {
 			Painter.drawRectangle(image, border_color, {
@@ -495,8 +507,7 @@ class BBPainter {
 			})
 			image.getBase64("image/png", function(a, dataUrl){
 				cb(dataUrl)
-				Project.texture_width = img_size.x
-				Project.texture_height = img_size.y
+				entityMode.setResolution(img_size.x, img_size.y, true)
 			})
 		})
 	}

@@ -45,11 +45,12 @@ function keybindSetup(get) {
         headline4:   {is_title: true, title: "Textures"},
         reload_tex:  {shift: false, ctrl: true, alt: false, code: 82, name: 'Reload Textures', char: 'Ctrl + R'},
 
-        headline6:     {is_title: true, title: "Tool"}, 
-        tool_translate:{shift: false, ctrl: false, alt: false, code: 86, name: 'Move Tool', char: 'V'},
-        tool_scale:    {shift: false, ctrl: false, alt: false, code: 83, name: 'Scale Tool', char: 'S'},
-        tool_brush:    {shift: false, ctrl: false, alt: false, code: 66, name: 'Brush', char: 'B'},
-        tool_swap:     {shift: false, ctrl: false, alt: false, code: 32, name: 'Swap Move and Scale', char: 'SPACE'},
+        headline6:      {is_title: true, title: "Tool"}, 
+        tool_translate: {shift: false, ctrl: false, alt: false, code: 86, name: 'Move Tool', char: 'V'},
+        tool_scale:     {shift: false, ctrl: false, alt: false, code: 83, name: 'Scale Tool', char: 'S'},
+        tool_brush:     {shift: false, ctrl: false, alt: false, code: 66, name: 'Brush', char: 'B'},
+        tool_vertexsnap:{shift: false, ctrl: false, alt: false, code: 66, name: 'Vertex Snap', char: 'X'},
+        tool_swap:      {shift: false, ctrl: false, alt: false, code: 32, name: 'Swap Move and Scale', char: 'SPACE'},
 
         headline7:   {is_title: true, title: "Movement"}, 
         move_north:  {shift: false, ctrl: false, alt: false, code: 38, name: 'Move South', char: 'ARROWUP'},
@@ -138,8 +139,8 @@ function settingSetup() {
         round_digits: {value: 4, is_number: true, name: 'Round numbers', desc: 'Round numbers'},
         export_groups:{value: true, name: 'Export Groups', desc: 'Save groups in blockmodel files'},
         obj_textures: {value: true,  name: 'Export Textures', desc: 'Export textures when exporting OBJ file'},
-        comment:      {value: true,  name: 'File Comment', desc: 'Add a credit comment to file'},
-        comment_text: {value: 'Made with Blockbench, a free, modern block model editor by JannisX11', is_string: true},
+        comment:      {value: true,  name: 'Credit Comment', desc: 'Add a credit comment to file'},
+        comment_text: {value: 'Made with Blockbench', is_string: true},
         default_path: {value: false, hidden: true}
     }
     if (localStorage.getItem('settings') != null) {
@@ -305,11 +306,13 @@ $(document).keydown(function(e) {
     }
 
     if (open_dialog !== false) {
-        if (open_dialog === 'uv_dialog') {   
-            if (compareKeys(e, keybinds.uv_copy)) {
+        if (open_dialog === 'uv_dialog') {
+            //Copy/Paste handling for UV dialog
+            //Can't use clipbench because that would preventDefault() all other copy/paste in dialogs
+            if (compareKeys(e, keybinds.copy)) {
                 uv_dialog.copy(e)
             }
-            if (compareKeys(e, keybinds.uv_paste)) {
+            if (compareKeys(e, keybinds.paste)) {
                 uv_dialog.paste(e)
             }
         }
@@ -407,6 +410,8 @@ $(document).keydown(function(e) {
             Toolbox.set('scale')
         } else if (compareKeys(e, keybinds.tool_brush)) {
             Toolbox.set('paint_brush')
+        } else if (compareKeys(e, keybinds.tool_vertexsnap)) {
+            Toolbox.set('vertex_snap')
         } else if (compareKeys(e, keybinds.tool_swap)) {
             toggleTools()
         }
@@ -493,36 +498,49 @@ function saveSettings(force_update) {
     function hasSettingChanged(id) {
         return (settings[id].value !== settings_old[id])
     }
-    updateMenu()
-    for (var mat in Canvas.materials) {
-        if (Canvas.materials.hasOwnProperty(mat))
-            Canvas.materials[mat].transparent = settings.transparency.value
-    }
     setScreenRatio()
-    canvasGridSize()
-    buildGrid()
-    if (settings.snapnslide.value === true) {
-        $('.nslide').draggable( "option", "grid", [ 50, 100 ] );
-    } else {
-        $('.nslide').draggable( "option", "grid", false );
-    }
-    if (settings.swap_sidebar.value === true) {
-        $('body').addClass('rtl')
-    } else {
-        $('body').removeClass('rtl')
-    }
-    if (settings.status_bar.value) {
-        $('body').css('grid-template-rows', '32px calc(100% - 58px) 26px')
-    } else {
-        $('body').css('grid-template-rows', '32px calc(100% - 32px) 0px')
-    }
     hideDialog()
     updateUIColor()
     updateSelection()
-    if (Blockbench.entity_mode) {
-        main_uv.setGrid()
-        if (uv_dialog.editors) {
-            uv_dialog.editors.single.setGrid()
+
+    $('header .settings_dependent').each(function(i, o) {
+        var set = $(o).attr('setting')
+        if (settings[set] && settings[set].value === true) {
+            $(o).text('check_box')
+        } else {
+            $(o).text('check_box_outline_blank')
+        }
+    })
+
+    if (hasSettingChanged('status_bar')) {
+        if (settings.snapnslide.value === true) {
+            $('.nslide').draggable( "option", "grid", [ 50, 100 ] );
+        } else {
+            $('.nslide').draggable( "option", "grid", false );
+        }
+    }
+    if (hasSettingChanged('status_bar')) {
+        if (settings.status_bar.value) {
+            $('body').css('grid-template-rows', '32px calc(100% - 58px) 26px')
+        } else {
+            $('body').css('grid-template-rows', '32px calc(100% - 32px) 0px')
+        }
+    }
+    if (hasSettingChanged('swap_sidebar')) {
+        if (settings.swap_sidebar.value === true) {
+            $('body').addClass('rtl')
+        } else {
+            $('body').removeClass('rtl')
+        }
+    }
+    if (hasSettingChanged('base_grid') || hasSettingChanged('large_grid') || hasSettingChanged('full_grid') ||hasSettingChanged('large_box') || hasSettingChanged('display_grid')) {
+        buildGrid()
+    }
+    if (hasSettingChanged('transparency')) {
+        for (var mat in Canvas.materials) {
+            if (Canvas.materials.hasOwnProperty(mat)) {
+                Canvas.materials[mat].transparent = settings.transparency.value
+            }
         }
     }
     if (hasSettingChanged('shading')) {
@@ -535,6 +553,16 @@ function saveSettings(force_update) {
         moveIntoBox()
     }
     Blockbench.dispatchEvent('update_settings')
+}
+function saveProjectSettings() {
+    if (Blockbench.entity_mode) {
+        main_uv.setGrid()
+        if (uv_dialog.editors) {
+            uv_dialog.editors.single.setGrid()
+        }
+        entityMode.setResolution()
+    }
+    hideDialog()
 }
 function toggleSetting(setting) {
     if (settings[setting].value === true) {
@@ -550,6 +578,7 @@ function toggleWireframe() {
 }
 var entityMode = {
     state: false,
+    old_res: {},
     join: function() {
         if (display_mode) {
            exitDisplaySettings() 
@@ -620,5 +649,35 @@ var entityMode = {
                 }
             }
         })
+    },
+    setResolution: function(x, y, lockUV) {
+        if (!Blockbench.entity_mode) return;
+
+        if (x, y) {
+            entityMode.old_res.x = Project.texture_width
+            entityMode.old_res.y = Project.texture_height
+        }
+        if (x) {
+            Project.texture_width = x
+        }
+
+        if (entityMode.old_res.x != Project.texture_width && !lockUV) {
+            elements.forEach(function(obj) {
+                obj.uv_offset[0] *= Project.texture_width/entityMode.old_res.x
+            })
+        }
+
+        if (y) {
+            Project.texture_height = y
+        }
+        if (entityMode.old_res.y != Project.texture_height && !lockUV) {
+            elements.forEach(function(obj) {
+                obj.uv_offset[1] *= Project.texture_height/entityMode.old_res.y
+            })
+        }
+
+        entityMode.old_res.x = Project.texture_width
+        entityMode.old_res.y = Project.texture_height
+        Canvas.updateAllUVs()
     }
 }
