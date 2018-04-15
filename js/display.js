@@ -25,56 +25,80 @@ class refModel {
 					break;
 			}
 		}
-		if (id === 'player') {
-			this.onload = function() {
-				if (slot === 'thirdperson_righthand') {
-					setDisplayArea(-5.7, 7.5, -6, -90, 22.5, 90, 1, 1, 1)
-				} else if (slot === 'thirdperson_lefthand') {
-					setDisplayArea(-5.7, 7.5, 6, -90, 22.5, 90, 1, 1, 1)
-				} else if (slot === 'head') {
-					setDisplayArea(0, 22, 0, 0, 90, 0, 0.625, 0.625, 0.625)
+		switch (id) {
+			case 'player':
+				this.onload = function() {
+					if (slot === 'thirdperson_righthand') {
+						setDisplayArea(-5.7, 7.5, -6, -90, 22.5, 90, 1, 1, 1)
+					} else if (slot === 'thirdperson_lefthand') {
+						setDisplayArea(-5.7, 7.5, 6, -90, 22.5, 90, 1, 1, 1)
+					} else if (slot === 'head') {
+						setDisplayArea(0, 22, 0, 0, 90, 0, 0.625, 0.625, 0.625)
+					}
 				}
-			}
-		} else if (id === 'armor_stand') {
-			this.onload = function() {
-				if (slot === 'thirdperson_righthand') {
-					setDisplayArea(-2, 6, -6, -90, 0, 90, 1, 1, 1)
-				} else if (slot === 'thirdperson_lefthand') {
-					setDisplayArea(-2, 6, 6, -90, 0, 90, 1, 1, 1)
-				} else if (slot === 'head') {
-					setDisplayArea(0, 21, 0, 0, 90, 0, 0.625, 0.625, 0.625)
+				break;
+			case 'armor_stand':
+				this.onload = function() {
+					if (slot === 'thirdperson_righthand') {
+						setDisplayArea(-2, 6, -6, -90, 0, 90, 1, 1, 1)
+					} else if (slot === 'thirdperson_lefthand') {
+						setDisplayArea(-2, 6, 6, -90, 0, 90, 1, 1, 1)
+					} else if (slot === 'head') {
+						setDisplayArea(0, 21, 0, 0, 90, 0, 0.625, 0.625, 0.625)
+					}
 				}
-			}
-		} else if (id === 'armor_stand_small') {
-			this.onload = function() {
-				if (slot === 'thirdperson_righthand') {
-					setDisplayArea(-1, 0, -3, -90, 0, 90, 0.5, 0.5, 0.5)
-				} else if (slot === 'thirdperson_lefthand') {
-					setDisplayArea(-1, 0, 3, -90, 0, 90, 0.5, 0.5, 0.5)
-				} else if (slot === 'head') {
-					setDisplayArea(0, 8.5, 0, 0, 90, 0, 0.4635, 0.4635, 0.4635)
+				break;
+			case 'armor_stand_small':
+				this.onload = function() {
+					if (slot === 'thirdperson_righthand') {
+						setDisplayArea(-1, 0, -3, -90, 0, 90, 0.5, 0.5, 0.5)
+					} else if (slot === 'thirdperson_lefthand') {
+						setDisplayArea(-1, 0, 3, -90, 0, 90, 0.5, 0.5, 0.5)
+					} else if (slot === 'head') {
+						setDisplayArea(0, 8.5, 0, 0, 90, 0, 0.4635, 0.4635, 0.4635)
+					}
 				}
-			}
-		} else if (id === 'zombie') {
-			this.onload = function() {
-				if (slot === 'thirdperson_righthand') {
-					setDisplayArea(-10, 18, -6, -90, 90, 90, 1, 1, 1)
-				} else if (slot === 'thirdperson_lefthand') {
-					setDisplayArea(-10, 18, 6, -90, 90, 90, 1, 1, 1)
-				} else if (slot === 'head') {
-					setDisplayArea(0, 22, 0, 0, 90, 0, 0.625, 0.625, 0.625)
+				break;
+			case 'zombie':
+				this.onload = function() {
+					if (slot === 'thirdperson_righthand') {
+						setDisplayArea(-10, 18, -6, -90, 90, 90, 1, 1, 1)
+					} else if (slot === 'thirdperson_lefthand') {
+						setDisplayArea(-10, 18, 6, -90, 90, 90, 1, 1, 1)
+					} else if (slot === 'head') {
+						setDisplayArea(0, 22, 0, 0, 90, 0, 0.625, 0.625, 0.625)
+					}
 				}
-			}
-		} else if (id === 'baby_zombie') {
-			this.onload = function() {
-				if (slot === 'thirdperson_righthand') {
-					setDisplayArea(-5, 6, -3, -90, 90, 90, 0.5, 0.5, 0.5)
-				} else if (slot === 'thirdperson_lefthand') {
-					setDisplayArea(-5, 6, 3, -90, 90, 90, 0.5, 0.5, 0.5)
-				} else if (slot === 'head') {
-					setDisplayArea(0, 8.5, 0, 0, 90, 0, 0.4635, 0.4635, 0.4635)
+				break;
+			case 'baby_zombie':
+				this.onload = function() {
+					if (slot === 'thirdperson_righthand') {
+						setDisplayArea(-5, 6, -3, -90, 90, 90, 0.5, 0.5, 0.5)
+					} else if (slot === 'thirdperson_lefthand') {
+						setDisplayArea(-5, 6, 3, -90, 90, 90, 0.5, 0.5, 0.5)
+					} else if (slot === 'head') {
+						setDisplayArea(0, 8.5, 0, 0, 90, 0, 0.4635, 0.4635, 0.4635)
+					}
 				}
-			}
+				break;
+			case 'monitor':
+				this.onload = function() {
+					if (slot === 'firstperson_righthand') {
+						setDisplayArea(-20.8, -8.4, 9, 0, 270, 0, 1,1,1)
+					} else if (slot === 'firstperson_lefthand') {
+						setDisplayArea(-20.5, -8.4, -9, 0, 270, 0, 1,1,1)
+					}
+				}
+				break;
+			case 'bow':
+				this.onload = function() {
+					if (slot === 'firstperson_righthand') {
+						setDisplayArea(-24.7, -5.6, 5.4, 64, -115, 55, 1,1,1)
+					} else if (slot === 'firstperson_lefthand') {
+						setDisplayArea(-24.7, -5.6, -5.4, -64, -65, -55, 1,1,1)
+					}
+				}
+				break;
 		}
 	}
 	buildModel(things, texture) {
@@ -145,6 +169,7 @@ class refModel {
 				case 'baby_zombie': this.buildBabyZombie(); break;
 				case 'armor_stand_small': this.buildArmorStandSmall(); break;
 				case 'monitor': this.buildMonitor(); break;
+				case 'bow': this.buildMonitor(); break;
 				case 'block': this.buildBlock(); break;
 				case 'frame': this.buildFrame(); break;
 			}
@@ -224,9 +249,9 @@ class refModel {
 			}//Body
 		]
 		var skin = 'assets/player_skin.png';
-		$.getJSON('http://blockbench.net/api/index.json', function (data) {
+		$.getJSON('https://blockbench.net/api/index.json', function (data) {
 			if (data.donatorSkin == true) {
-				skin = 'http://blockbench.net/api/player_skin.png?'+(Math.random()+'').substr(2, 3);
+				skin = 'https://blockbench.net/api/player_skin.png?'+(Math.random()+'').substr(2, 3);
 			}
 		}).always(function() {
 			scope.buildModel(things, skin);
@@ -322,7 +347,7 @@ class refModel {
 			},
 			{
 				"size": [3, 3, 12],
-				"pos": [0, 16.5, 0],
+				"pos": [0, 16.505, 0],
 				"origin": [0, 0, 0],
 				"north": {"uv": [3, 7.25, 3.75, 8], "texture": "#0"},
 				"east": {
@@ -470,7 +495,7 @@ class refModel {
 			},
 			{
 				"size": [1.5, 1.5, 6],
-				"pos": [0, 5.25, 0],
+				"pos": [0, 5.255, 0],
 				"origin": [0, 0, 0],
 				"north": {"uv": [3, 7.25, 3.75, 8], "texture": "#0"},
 				"east": {
@@ -961,7 +986,8 @@ var displayReferenceObjects = {
 		armor_stand: 		new refModel('armor_stand', 'Armor Stand'),
 		baby_zombie: 		new refModel('baby_zombie', 'Baby Zombie'),
 		armor_stand_small:  new refModel('armor_stand_small', 'Armor Stand Small'),
-		monitor: 			new refModel('monitor', 'Monitor'),
+		monitor: 			new refModel('monitor', 'Normal'),
+		bow: 				new refModel('bow', 'Bow'),
 		block: 				new refModel('block', 'Block'),
 		frame: 				new refModel('frame', 'Item Frame'),
 		inventory_nine: 	new refModel('inventory_nine', '3x3', true),
@@ -983,9 +1009,14 @@ var displayReferenceObjects = {
 		var i = 0;
 		while (i < buttons.length) {
 			var ref = this.refmodels[buttons[i]]
+			var icon = 'icon-'+ref.icon
+			switch (icon) {
+				case 'icon-monitor': icon = 'fa fa-asterisk'; break;
+				case 'icon-bow': icon = 'fa fa-chevron-right'; break;
+			}
 			var button = $(
 				'<div><input class="hidden" type="radio" name="refmodel" id="'+ref.id+'"'+ (i === 0 ? ' selected' : '') +'>'+
-				'<label class="tool" onclick="displayReferenceObjects.refmodels.'+ref.id+'.load()" for="'+ref.id+'"><i class="icon-'+ref.icon+'"></i><div class="tooltip">'+ref.name+'</div></label></div>'
+				'<label class="tool" onclick="displayReferenceObjects.refmodels.'+ref.id+'.load()" for="'+ref.id+'"><i class="'+icon+'"></i><div class="tooltip">'+ref.name+'</div></label></div>'
 			)
 			$('#display_ref_bar').append(button)
 			if (i === 0) {
@@ -1209,35 +1240,24 @@ function createPreset() {
 	} else {
 		$('input#preset_name').val('new preset')
 	}
-	display_presets.push({name: name, areas: {}})
-	var preset = display_presets[display_presets.length-1]
+	var preset = {name: name, areas: {}}
+	display_presets.push(preset)
 
-	if ($('#thirdperson_righthand_save').is(':checked')) {
-		preset.areas.thirdperson_righthand = display.thirdperson_righthand
-	}
-	if ($('#thirdperson_lefthand_save').is(':checked')) {
-		preset.areas.thirdperson_lefthand = display.thirdperson_lefthand
-	}
-
-	if ($('#firstperson_righthand_save').is(':checked')) {
-		preset.areas.firstperson_righthand = display.firstperson_righthand
-	}
-	if ($('#firstperson_lefthand_save').is(':checked')) {
-		preset.areas.firstperson_lefthand = display.firstperson_lefthand
-	}
-
-	if ($('#ground_save').is(':checked')) {
-		preset.areas.ground = display.ground
-	}
-	if ($('#gui_save').is(':checked')) {
-		preset.areas.gui = display.gui
-	}
-	if ($('#head_save').is(':checked')) {
-		preset.areas.head = display.head
-	}
-	if ($('#fixed_save').is(':checked')) {
-		preset.areas.fixed = display.fixed
-	}
+	var possible_slots = [
+		'thirdperson_righthand',
+		'thirdperson_lefthand',
+		'firstperson_righthand',
+		'firstperson_righthand',
+		'ground',
+		'gui',
+		'head',
+		'fixed',
+	]
+	possible_slots.forEach(function(s) {
+		if ($('#'+s+'_save').is(':checked')) {
+			preset.areas[s] = display[s]
+		}
+	})
 	hideDialog()
 	localStorage.setItem('display_presets', JSON.stringify(display_presets))
 }
@@ -1262,15 +1282,12 @@ function displayPresetContext(e) {
 					{icon: 'done_all', name: 'Apply on all Slots', click: function() {applyDisplayPreset(p, true)}}
 				]
 				if (!p.fixed) {
-					suboptions.push({icon: 'clear', name: 'Remove'})
+					suboptions.push({icon: 'clear', name: 'Remove', click: function() {
+						display_presets.splice(display_presets.indexOf(p),1)
+					}})
 				}
 				return suboptions
-				
-				filter_vintage
-				build 
-				remove
-			},
-			click: function() { applyDisplayPreset(p) }
+			}
 		})
 	})
 	new ContextMenu(e, presets)
@@ -1290,6 +1307,36 @@ function setDisplayArea(x, y, z, rx, ry, rz, sx, sy, sz) {//Sets the Work Area t
 	display_area.scale['x'] = sx;
 	display_area.scale['y'] = sy;
 	display_area.scale['z'] = sz;
+	/*
+var xchg = 
+$('#translation_z').on('input', xchg)
+
+
+
+$('#translation_z').on('input', function(e) {
+	var num = $(e.target).val()
+	display_area.position.z = num
+	console.log(num)
+})
+
+
+$('#rotation_z').on('input', function(e) {
+	var num = $(e.target).val()
+	display_area.rotation.z = Math.PI / (180 / num)
+	console.log(num)
+})
+
+
+0
+0
+2.5
+
+0
+0
+0
+
+
+	*/
 }
 function groundAnimation() {
 	display_area.rotation.y += 0.015
@@ -1361,7 +1408,6 @@ function loadDisp(key, skin) {	//Loads The Menu and slider values, common for al
 	display_base.scale['x'] = getDisplayNumber(key, 'scale', 0);
 	display_base.scale['y'] = getDisplayNumber(key, 'scale', 1);
 	display_base.scale['z'] = getDisplayNumber(key, 'scale', 2);
-
 }
 function loadDispThirdRight() {	//Loader
 	loadDisp('thirdperson_righthand', true)
@@ -1381,7 +1427,7 @@ function loadDispFirstRight() {	//Loader
 	cameraPers.position.set(-32.4, 0, 0)
 	controls.target.set(0,0,0)
 	controls.enabled = false
-	displayReferenceObjects.bar(['monitor'])
+	displayReferenceObjects.bar(['monitor', 'bow'])
 }
 function loadDispFirstLeft() {	//Loader
 	loadDisp('firstperson_lefthand')
@@ -1393,7 +1439,7 @@ function loadDispFirstLeft() {	//Loader
 	cameraPers.position.set(-32.4, 0, 0)
 	controls.target.set(0,0,0)
 	controls.enabled = false
-	displayReferenceObjects.bar(['monitor'])
+	displayReferenceObjects.bar(['monitor', 'bow'])
 }
 function loadDispHead() {		//Loader
 	loadDisp('head', true)

@@ -4,7 +4,7 @@ By JannisX11
 */
 var onUninstall, onInstall;
 var Plugins = {
-	apipath: 'http://blockbench.net/api/plugins.json',
+	apipath: 'https://blockbench.net/api/plugins.json',
 	Vue: [],			//Vue Object
 	installed: [], 		//Simple List of Names
 	json: undefined,	//Json from website
@@ -36,7 +36,7 @@ if (isApp) {
 } else {
 	Plugins.apipath = '../api/plugins.json'
 }
-$.getJSON('http://blockbench.net/api/plugins.json', function(data) {
+$.getJSON('https://blockbench.net/api/plugins.json', function(data) {
 	Plugins.json = data
 	if (Plugins.loadingStep === true) {
 		loadInstalledPlugins()
@@ -200,7 +200,7 @@ function loadPlugin(id, cb, install, allow_update) {
 			saveInstalledPlugins()
 		})
 	} else {
-		$.getScript('http://blockbench.net/api/plugins/'+id+'.js', function() {
+		$.getScript('https://blockbench.net/api/plugins/'+id+'.js', function() {
 			if (onUninstall) {
 				Plugins.data.findInArray('id', id).uninstall = onUninstall
 				onUninstall = undefined
@@ -281,7 +281,7 @@ function downloadPlugin(id) {
     //$('.uc_btn').attr('disabled', true)
 
     var file = originalFs.createWriteStream(Plugins.path+id+'.js')
-    var request = http.get('http://blockbench.net/api/plugins/'+id+'.js', function(response) {
+    var request = https.get('https://blockbench.net/api/plugins/'+id+'.js', function(response) {
         response.pipe(file);
         response.on('end', function() {
         	setTimeout(function() {

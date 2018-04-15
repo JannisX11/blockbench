@@ -4,7 +4,7 @@ class Texture {
 	    this.path = ''
 	    this.name = ''
 	    this.folder = '';
-	    this.iconpath = ''
+	    this.source = ''
 		this.particle = false
 	    this.selected = false
 	    this.error = false;
@@ -46,12 +46,12 @@ class Texture {
 
         var img = this.img = new Image()
 
-        img.src = this.iconpath
+        img.src = this.source
         img.onerror = function() {
             this.src = 'assets/missing.png'
             scope.error = true;
             scope.show_icon = false
-            console.log('Error loading '+scope.iconpath)
+            console.log('Error loading '+scope.source)
             if (isApp && !isDefault && scope.mode !== 'bitmap' && !Blockbench.entity_mode) {
             	scope.fromDefaultPack()
             }
@@ -102,9 +102,9 @@ class Texture {
 		this.name = pathToName(path, true)
 		this.mode = 'link'
 		if (path.includes('data:image')) {
-			this.iconpath = path
+			this.source = path
 		} else {
-			this.iconpath = path + '?' + tex_version
+			this.source = path + '?' + tex_version
 		}
 		this.generateFolder(path)
 		
@@ -121,7 +121,7 @@ class Texture {
 	}
 	fromDataURL(data_url) {
 		this.path = this.folder+'/'+this.name
-		this.iconpath = data_url
+		this.source = data_url
 		this.mode = 'bitmap'
 		this.load()
 		return this;
@@ -131,7 +131,7 @@ class Texture {
 			this.mode = 'link'
 			console.log('Trying to get texture from default pack')
 			this.path = settings.default_path.value + osfs + this.folder + osfs + this.name
-			this.iconpath = this.path + '?' + tex_version
+			this.source = this.path + '?' + tex_version
 			this.load(true)
 		}
 	}
@@ -148,7 +148,7 @@ class Texture {
 		                    console.log(err)
 		                }
 		                scope.path = fileNames[0]
-		                scope.iconpath = scope.path + '?' + tex_version;
+		                scope.source = scope.path + '?' + tex_version;
 		                scope.name = scope.path.split(osfs).slice(-1)[0]
 		                scope.mode = 'link'
 
@@ -189,7 +189,7 @@ class Texture {
 			var reader = new FileReader()
 			reader.onloadend = function() {
 		        
-		        scope.iconpath = reader.result
+		        scope.source = reader.result
 		        var img = new Image()
 		        try {
 		            img.src = reader.result
@@ -223,8 +223,8 @@ class Texture {
 		if (single) {
         	tex_version++;
 		}
-		this.iconpath = this.path + '?' + tex_version;
-        this.iconpath = this.iconpath.replace(/\?\d+$/, '?' + tex_version)
+		this.source = this.path + '?' + tex_version;
+        this.source = this.source.replace(/\?\d+$/, '?' + tex_version)
         this.load(undefined, true)
 		if (single) {
 	        //Canvas.updateAllFaces()
@@ -239,7 +239,7 @@ class Texture {
 		var scope = this;
         var img = new Image()
         try {
-            img.src = scope.iconpath
+            img.src = scope.source
         } catch(err) {
         }
         var tex = new THREE.Texture(img)
@@ -437,9 +437,9 @@ class Texture {
 	                    return;
 	                }
 	                if (scope.mode === 'link') {
-	                	var image = nativeImage.createFromPath(scope.iconpath).toPNG()
+	                	var image = nativeImage.createFromPath(scope.source).toPNG()
 	                } else {
-	                	var image = nativeImage.createFromDataURL(scope.iconpath).toPNG()
+	                	var image = nativeImage.createFromDataURL(scope.source).toPNG()
 	                }
 
 	                fs.writeFile(fileName, image, function (err) {
@@ -468,9 +468,11 @@ class Texture {
 			}
 		} else {
 			var download = document.createElement('a');
-			download.href = scope.iconpath
+			download.href = scope.source
 			download.download = scope.name;
+			if (browser_name === 'firefox') document.body.appendChild(download);
 			download.click();
+			if (browser_name === 'firefox') document.body.removeChild(download);
 		}
 	}
 	toLink(link) {
@@ -486,10 +488,10 @@ class Texture {
 	toBitmap() {
 		var scope = this;
 		if (isApp && scope.mode === 'link') {
-			Jimp.read(scope.iconpath).then(function (image) {
+			Jimp.read(scope.source).then(function (image) {
 				image.getBase64(Jimp.MIME_PNG, function(err, dataUrl) {
 				    scope.mode = 'bitmap'
-				    scope.iconpath = dataUrl
+				    scope.source = dataUrl
 				    Blockbench.showMessage('Converted Texture to Bitmap', 'center')
 				    Undo.add('Converted texture', true)
 				})
@@ -558,7 +560,7 @@ function reloadTextures() {
     tex_version++;
     textures.forEach(function(t) {
     	if (t.mode === 'link') {
-	        t.iconpath = t.path + '?' + tex_version;
+	        t.source = t.path + '?' + tex_version;
 	        t.refresh(false)
 	    }
     })

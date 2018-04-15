@@ -1432,6 +1432,9 @@
         width: 344px;
         min-height: 51px;
     }
+    p.multiline_text span {
+        user-select: inherit;
+    }
     #texture_menu_thumbnail {
         float: right;
         margin-top: 3px;
@@ -1445,14 +1448,11 @@
         image-rendering: pixelated;
         margin-bottom: -7px;
     }
-    #entity_mode_resolution_button {
-        display: none;
-    }
-    body.entity_mode #entity_mode_resolution_button {
+    body.entity_mode button.entity_mode_uv_button {
         display: block;
         padding: 0;
         height: 32px;
-        width: 154px;
+        width: 73px;
         border: none;
     }
 

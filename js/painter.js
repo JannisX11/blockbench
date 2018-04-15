@@ -19,7 +19,7 @@ class BBPainter {
 		) {
 	    	cb(Painter.current.image)
 	        Painter.current.image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
-	        	texture.iconpath = dataUrl
+	        	texture.source = dataUrl
 	        	texture.updateMaterial()
 	        	main_uv.loadData()
 	        	if (open_dialog === 'uv_dialog') {
@@ -35,11 +35,11 @@ class BBPainter {
 	        })
 		} else {
 		    Painter.current.texture = texture
-		    Jimp.read(Buffer.from(texture.iconpath.replace('data:image/png;base64,', ''), 'base64'), function() {}).then(function(image) {
+		    Jimp.read(Buffer.from(texture.source.replace('data:image/png;base64,', ''), 'base64'), function() {}).then(function(image) {
 		    	cb(image)
 		    	Painter.current.image = image
 		        image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
-		        	texture.iconpath = dataUrl
+		        	texture.source = dataUrl
 		        	texture.updateMaterial()
 		        	main_uv.loadData()
 		        	if (!options.noUndo) {
@@ -57,7 +57,7 @@ class BBPainter {
 			var y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight )
 			Painter.startBrush(texture, x, y, data.cube.faces[data.face].uv, event)
 		}
-		if (event.altKey === false && texture.mode !== 'link') {
+		if (event.altKey === false && texture && texture.mode !== 'link') {
 			document.addEventListener('mousemove', Painter.moveBrushCanvas, false );
 			document.addEventListener('mouseup', Painter.stopBrushCanvas, false );
 		}
@@ -104,9 +104,9 @@ class BBPainter {
 			$('#brush_color').spectrum('set', c.toHexString())
 		}
 		if (texture.mode == 'bitmap') {
-			Jimp.read(Buffer.from(texture.iconpath.replace('data:image/png;base64,', ''), 'base64'), function() {}).then(getPxColor)
+			Jimp.read(Buffer.from(texture.source.replace('data:image/png;base64,', ''), 'base64'), function() {}).then(getPxColor)
 		} else {
-			Jimp.read(texture.iconpath, function() {}).then(getPxColor)
+			Jimp.read(texture.source, function() {}).then(getPxColor)
 		}
 	}
 	useBrush(texture, x, y, uvTag) {

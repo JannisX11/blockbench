@@ -24,7 +24,7 @@ function keybindSetup(get) {
         open_file:  {shift: false, ctrl: true, alt: false, code: 79, name: 'Open File', char: 'Ctrl + O'},
         save:       {shift: false, ctrl: true, alt: false, code: 83, name: 'Save', char: 'Ctrl + S'},
         save_as:    {shift: true,  ctrl: true, alt: false, code: 83, name: 'Save As', char: 'Ctrl + Shift + S'},
-        open_texture: {shift: false, ctrl: true, alt: false, code: 84, name: 'Import Texture', char: 'Ctrl + T'},
+        open_texture:{shift: false, ctrl: true, alt: false, code: 84, name: 'Import Texture', char: 'Ctrl + T'},
         toggle_mode:{shift: false, ctrl: true, alt: false, code: 9, name: 'Toggle Mode', char: 'Ctrl + TAB'},
         settings:   {shift: false, ctrl: true, alt: false, code: 69, name: 'Settings', char: 'Ctrl + E'},
 
@@ -94,7 +94,7 @@ function settingSetup() {
     settings = {
         //Preview
         headline2:    {is_title: true, title: "Preview"}, 
-        origin:       {value: true,  name: 'Rotation Origin', desc: 'Show object origin'},
+        origin_size: {value: 10, is_number: true, name: 'Rotation Origin', desc: 'Size of the rotation origin'},
         control_size: {value: 10, is_number: true, name: 'Axis Control Size', desc: 'Size of the 3 axis control tool'},
         shading:      {value: true,  name: 'Shading', desc: 'Enable shading'},
         transparency: {value: true,  name: 'Transparency', desc: 'Render transparent textures transparent'},
@@ -159,8 +159,8 @@ function projectTagSetup() {
     Project.name              = "";
     Project.parent            = "";
     Project.description       = "";
-    Project.texture_width     = 64;
-    Project.texture_height    = 64;
+    Project.texture_width     = 16;
+    Project.texture_height    = 16;
     Project.ambientocclusion  = true;
 }
 function displayPresetsSetup() {
@@ -619,12 +619,12 @@ var entityMode = {
         $('.ui#options h3').text('Rotation')
         $('#rotation_origin_label').text('Origin')
         $('input#cube_rotate').attr('min', '-67.5').attr('max', '67.5').attr('step', '22.5').removeClass('entity_mode')
+        //UV
+        main_uv.buildDom(true).setToMainSlot()
         //UI Changes
         $('.block_mode_only').show()
         $('.entity_mode_only').hide()
         $('.ui#textures').css('top', 514+'px')
-        //UV
-        main_uv.buildDom(true).setToMainSlot()
         //Update
         buildGrid()
         moveIntoBox(elements)
@@ -653,7 +653,14 @@ var entityMode = {
     setResolution: function(x, y, lockUV) {
         if (!Blockbench.entity_mode) return;
 
-        if (x, y) {
+        Project.texture_width = parseInt(Project.texture_width)
+        Project.texture_height = parseInt(Project.texture_height)
+        if (typeof entityMode.old_res.x !== 'number' || typeof entityMode.old_res.y !== 'number') {
+            entityMode.old_res.x = Project.texture_width
+            entityMode.old_res.y = Project.texture_height
+        }
+
+        if (x && y) {
             entityMode.old_res.x = Project.texture_width
             entityMode.old_res.y = Project.texture_height
         }

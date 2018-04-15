@@ -115,8 +115,8 @@ THREE.OrbitControls = function ( object, domElement ) {
 		if (isOrtho === true && active_scene.background.image !== false) {
 			updateScenePosition(cameraOrtho.zoom)
 		}
-		if (selected.length === 0) return;
 		Transformer.update()
+		if (selected.length === 0) return;
 		Vertexsnap.vertexes.children.forEach(function(v,i) {
 		    var scaleVector = new THREE.Vector3();
 		    var scale = scaleVector.subVectors(v.position, Transformer.camera.position).length() / 500;

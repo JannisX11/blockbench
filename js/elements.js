@@ -124,7 +124,7 @@ class OutlinerElement {
 		loadOutlinerDraggable()
 		return this;
 	}
-	addTo(group) {
+	addTo(group, update) {
 		//Remove
 		var index = -1;
 
@@ -178,7 +178,9 @@ class OutlinerElement {
 		}
 
 		//Loading
-		loadOutlinerDraggable()
+		if (update !== false) {
+			loadOutlinerDraggable()
+		}
 		return this;
 	}
 	removeFromParent() {
@@ -310,6 +312,9 @@ class Cube extends OutlinerElement {
 			return [this.to[0] - this.from[0], this.to[1] - this.from[1], this.to[2] - this.from[2]]
 		}
 	}
+	getMesh() {
+		return Canvas.meshes[this.uuid]
+	}
 	index() {
 		return elements.indexOf(this)
 	}
@@ -404,8 +409,9 @@ class Cube extends OutlinerElement {
 	remove(update) {
 		TreeElements.clearObjectRecursive(this)
 		if (this.display.visibility) {
-			scene.remove(this.display.mesh)
+			scene.remove(this.getMesh())
 		}
+		Canvas.meshes[this.uuid] = undefined
 		if (selected.includes(this)) {
 			selected.splice(selected.indexOf(this), 1)
 		}
@@ -444,7 +450,7 @@ class Cube extends OutlinerElement {
                 textures.forEach(function(t) {
                     arr.push({
                         name: t.name,
-                        icon: t.img,
+                        icon: (t.mode === 'link' ? t.img : t.source),
                         click: function(event) {
                         	scope.applyTexture(t, true)
                         	setUndo('Applied texture')
@@ -516,7 +522,7 @@ class Cube extends OutlinerElement {
 	    	main_uv.loadData()
 	    }
         if (!Prop.wireframe && scope.display.visibility == true) {
-            Canvas.adaptObjectFaces(scope.display.mesh, scope, this.display.isselected)
+            Canvas.adaptObjectFaces(scope.getMesh(), scope, this.display.isselected)
             Canvas.updateUV(scope)
         }
 	}
@@ -580,6 +586,7 @@ class Cube extends OutlinerElement {
 		        }
 		        uv.forEach(function(s, uvi) {
 		            uv[uvi] = limitNumber(s, 0, 16)
+		            uv[uvi] *= 16 / (uvi%2 ? Project.texture_height : Project.texture_width)
 		        })
 		        scope.faces[side].uv = uv
 		    })
@@ -637,8 +644,6 @@ class Cube extends OutlinerElement {
 		    scope.faces.down.uv =  calcAutoUV('down',  [scope.size(0), scope.size(2)])
 
         	Canvas.updateUV(scope)
-		} else {
-			//
 		}
 	}
 	setVisibility(val) {
@@ -1365,7 +1370,7 @@ function deleteCubes(array) {
 		array.sort(function(a,b){return a - b}).reverse()
 	}
 	array.forEach(function(s) {
-		s.remove()
+		s.remove(false)
 	})
 	Canvas.updateIndexes()
 	setUndo('Removed cubes')

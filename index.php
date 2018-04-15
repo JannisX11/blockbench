@@ -8,20 +8,21 @@
     <link rel="stylesheet" href="css/w3.css">
     <link rel="stylesheet" href="css/jquery-ui.min.css">
     <link rel="stylesheet" href="css/font-awesome.min.css">
+    <link rel="stylesheet" href="css/spectrum.css">
     <link rel="stylesheet" href="css/style.css">
     <style type="text/css" id="bbstyle"></style>
 </head>
 <body spellcheck="false">
 	<script>if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix</script>
         <script src="js/vue.min.js"></script>
-        <!--script src="https://unpkg.com/vue"></script-->
         <script src="js/tree.vue.js"></script>
         <script src="js/jquery.js"></script>
         <script src="js/jquery-ui.min.js"></script>
+        <script src="js/jimp.min.js"></script>
+        <script src="js/spectrum.js"></script>
         <script src="js/three.js"></script>
         <script src="js/OrbitControls.js"></script>
         <script src="js/TransformControls.js"></script>
-        <script src="js/THREE.MeshLine.js"></script>
         <script src="js/OBJExporter.js"></script>
         
         <script src="js/util.js"></script>
@@ -45,9 +46,12 @@
 
         <script src="js/io.js"></script>
         <script src="js/elements.js"></script>
+        <script src="js/transform.js"></script>
         <script src="js/textures.js"></script>
         <script src="js/uv.js"></script>
         <script src="js/interface.js"></script>
+        <script src="js/tools.js"></script>
+        <script src="js/painter.js"></script>
         <script src="js/display.js"></script>
         <script src="js/extrude.js"></script>
         <script src="js/api.js"></script>
@@ -70,6 +74,7 @@
             }
         }
     ?></div>
+    <div style="display: none;"></div>
     <!---->
     <div id="blackout" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"></div>
 
@@ -147,18 +152,22 @@
         </div>
         <ul class="list" id="plugin_list">
             <li v-for="plugin in installedPlugins" v-bind:plugin="plugin.id" v-bind:class="{testing: plugin.fromFile}">
-                <div class="title"><i class="material-icons">{{ plugin.icon }}</i>{{ plugin.title }}</div>
-                <div class="button_bar" v-if="checkIfInstallable(plugin)">
+                <div class="title">
+                    <i v-if="plugin.icon.substr(0,3) !== 'fa-' " class="material-icons">{{ plugin.icon }}</i>
+                    <i v-else class="fa fa_big" v-bind:class="plugin.icon"></i>
+                {{ plugin.title }}</div>
+                <div class="button_bar" v-if="checkIfInstallable(plugin) === true">
                     <button type="button" v-on:click="uninstall($event)" v-if="plugin.installed"><i class="material-icons">delete</i>Uninstall</button>
                     <button type="button" v-on:click="install($event)" v-else><i class="material-icons">add</i>Install</button>
                     <button type="button" class="local_only" v-on:click="plugin.reload()" v-if="plugin.installed && plugin.fromFile && isApp"><i class="material-icons">refresh</i>Reload</button>
                 </div>
-                <div class="button_bar tiny" v-else>This plugin is only for {{ plugin.variant }}</div>
+                <div class="button_bar tiny" v-else-if="checkIfInstallable(plugin) === 'outdated_client'">Requires the latest version<br>of Blockbench</div>
+                <div class="button_bar tiny" v-else>Only for {{ plugin.variant }}</div>
                 <div class="author">by {{ plugin.author }}</div>
                 <div class="description">{{ plugin.description }}</div>
             </li>
             <div class="no_plugin_message" v-if="installedPlugins.length < 1 && showAll === false">No plugins are installed</div>
-            <div class="no_plugin_message" v-if="installedPlugins.length < 1 && showAll === true" id="plugin_available_empty">Could not find any plugins online</div>
+            <div class="no_plugin_message" v-if="installedPlugins.length < 1 && showAll === true" id="plugin_available_empty">No Plugins available</div>
         </ul>
 
         <div class="dialog_bar">
@@ -238,12 +247,17 @@
             <input type="file" accept=".png" id="texture_change" class="hidden">
             <label for="texture_change" id="texture_change_label" class="web_only tool"><i class="material-icons">file_upload</i><div class="tooltip">Change File</div></label>
             <div id="change_file_button" class="local_only tool"><i class="material-icons">file_upload</i><div class="tooltip">Change File</div></div>
-            <div class="tool local_only" onclick="textures.selected.refresh(true)"><i class="material-icons">refresh</i><div class="tooltip">Reload</div></div>
-            <div class="tool local_only" onclick="textures.selected.openFolder()"><i class="material-icons">folder</i><div class="tooltip">Open Folder</div></div>
+            <div class="tool link_only" onclick="textures.selected.refresh(true)"><i class="material-icons">refresh</i><div class="tooltip">Reload</div></div>
+            <div class="tool link_only" onclick="textures.selected.openFolder()"><i class="material-icons">folder</i><div class="tooltip">Open Folder</div></div>
             <div class="tool" onclick="textures.selected.remove()"><i class="material-icons">delete</i><div class="tooltip">Delete</div></div>
         </div>
 
         <p class="multiline_text" id="te_path">path</p>
+
+        <div class="dialog_bar narrow bitmap_only"><label>Name</label> </div>
+        <div class="dialog_bar bitmap_only">
+            <input type="text" class="input_wide" id="te_name">
+        </div>
 
         <div class="dialog_bar narrow"><label>Variable</label> </div>
         <div class="dialog_bar">
@@ -402,24 +416,22 @@
         </div>
 
 
-        <div class="dialog_bar narrow">
+        <div class="dialog_bar narrow block_mode_only">
             <label for="project_description">Description Tag</label>
         </div>
-        <div class="dialog_bar">
+        <div class="dialog_bar block_mode_only">
             <input v-model="Project.description" type="text" id="project_description" class="dark_bordered input_wide">
         </div>
 
 
-        <div class="dialog_bar narrow">
-            <label for="project_description">Ambient Occlusion</label>
-        </div>
-        <div class="dialog_bar">
+        <div class="dialog_bar" class="name_space_left block_mode_only">
             <input v-model="Project.ambientocclusion" type="checkbox" id="project_ambientocclusion">
+            <label for="project_description" class="name_space_left">Ambient Occlusion</label>
         </div>
 
 
         <div class="dialog_bar narrow">
-            <label for="project_description">Texture Size (for PE models)</label>
+            <label for="project_description">Texture Size</label>
         </div>
         <div class="dialog_bar">
             <label for="project_texsize_x" class="inline_label">Width</label>
@@ -430,7 +442,8 @@
 
 
         <div class="dialog_bar">
-            <button type="button" class="large confirm_btn cancel_btn" onclick="saveSettings()">Close</button>
+            <button type="button" class="large confirm_btn cancel_btn" onclick="saveProjectSettings()">Close</button>
+            <button type="button" class="large" id="entity_mode_convert" onclick="entityMode.convert()">To Entity Model</button>
         </div>
         <div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
     </div>
@@ -621,14 +634,17 @@
             <p><b>Bug Tracker: </b><a class="open-in-browser" href="https://github.com/JannisX11/blockbench/issues">github.com/JannisX11/blockbench</a></p>
             <p class="local_only">This app is built with <b>Electron</b>, a framework for creating native applications with web technologies like JavaScript, HTML, and CSS.</p>
             <a class="open-in-browser local_only" href="https://electron.atom.io">electron.atom.io</a>
-            <p><b>Icon Pack: </b><a href="https://material.io/icons/" class="open-in-browser">material.io/icons</a></p>
+            <p>Vertex Snapping is based on a design by SirBenet</p>
+            <p><b>Icon Packs: </b><a href="https://material.io/icons/" class="open-in-browser">material.io/icons</a> &amp; <a href="http://fontawesome.io/icons/" class="open-in-browser">fontawesome</a></p>
             <p><b>Javascript Libraries: </b>
                 <a href="https://jquery.com" class="open-in-browser">jQuery</a>
-                <a href="https://jquery.com" class="open-in-browser">jQuery UI</a>
+                <a href="https://jqueryui.com" class="open-in-browser">jQuery UI</a>
                 <a href="https://vuejs.org" class="open-in-browser">VueJS</a>
                 <a href="https://github.com/weibangtuo/vue-tree" class="open-in-browser">Vue Tree</a>
                 <a href="https://threejs.org" class="open-in-browser">ThreeJS</a>
-                <a href="https://github.com/lydell/json-stringify-pretty-compact/blob/master/LICENSE" class="open-in-browser">json-stringify-pretty-compact</a>
+                <a href="https://github.com/lydell/json-stringify-pretty-compact" class="open-in-browser">json-stringify-pretty-compact</a>
+                <a href="https://github.com/oliver-moran/jimp" class="open-in-browser">Jimp</a>
+                <a href="https://bgrins.github.io/spectrum" class="open-in-browser">Spectrum</a>
             </p>
         </div>
         <div class="dialog_bar">
@@ -647,6 +663,7 @@
             <div onclick="uv_dialog.openTab('up')" id="up" class="tab">Up</div>
             <div onclick="uv_dialog.openTab('down')" id="down" class="tab">Down</div>
         </div>
+        <h2 class="dialog_handle entity_mode_only">UV Editor</h2>
         <div id="uv_dialog_all" class="uv_dialog_content uv_dialog_all_only">
             
         </div>
@@ -734,6 +751,10 @@
                             <li onclick="newProject(true)"><i class="material-icons">pets</i>Entity Model</li>
                         </ul>
                     </li>
+                    <li class="local_only"><i class="material-icons">history</i>Recent
+                        <i class="material-icons more_icon">navigate_next</i>
+                        <ul class="dropdown level2" id="recent_projects"></ul>
+                    </li>
                     <li><i class="material-icons">folder_open</i>Open
                         <i class="material-icons more_icon">navigate_next</i>
                         <ul class="dropdown level2">
@@ -750,19 +771,19 @@
                     </li>
                     <li><i class="material-icons">file_download</i>Export<i class="material-icons more_icon">navigate_next</i>
                         <ul class="dropdown level2">
-                            <li class="local_only" onclick="saveFileBlock()"><i class="material-icons">insert_drive_file</i>Blockmodel</li>
-                            <li class="web_only" onclick="saveFileBlock()"><i class="material-icons">file_download</i>Blockmodel</li>
-                            <li onclick="saveFileEntity()"><i class="material-icons">pets</i>Bedrock Entity</li>
-                            <li onclick="saveFileOptifine()"><i class="material-icons">play_circle_outline</i>Optifine Entity</li>
+                            <li class="local_only block_mode_only" onclick="saveFileBlock()"><i class="material-icons">insert_drive_file</i>Blockmodel</li>
+                            <li class="web_only block_mode_only" onclick="saveFileBlock()"><i class="material-icons">file_download</i>Blockmodel</li>
+                            <li onclick="saveFileEntity()" class="entity_mode_only"><i class="material-icons">pets</i>Bedrock Entity</li>
+                            <li onclick="saveFileOptifine()" class="block_mode_only"><i class="material-icons">play_circle_outline</i>Optifine Entity</li>
                             <li onclick="saveFileObj()"><i class="material-icons">crop_square</i>OBJ Model</li>
                         </ul>
                     </li>
                     <li class="web_only" onclick="saveFileBlock()"><i class="material-icons">file_download</i>Download</li>
                     <li class="local_only" onclick="saveFile()"><i class="material-icons">save</i>Save</li>
                     <li class="menu_seperator"></li>
-                    <li onclick="showDialog('settings');setSettingsTab('setting')"><i class="material-icons">settings</i>Settings...</li>
+                    <li onclick="openSettings()"><i class="material-icons">settings</i>Settings...</li>
                     <li onclick="showDialog('plugins')"><i class="material-icons">extension</i>Plugins...</li>
-                    <li class="local_only" onclick="checkForUpdates()"><i class="material-icons">update</i>Updates...</li>
+                    <li class="local_only" id="app_update_button" onclick="checkForUpdates()"><i class="material-icons">update</i>Updates...</li>
                     <li onclick="randomHelpMessage()"><i class="material-icons">help</i>Tip</li>
                     <li><i class="material-icons">loyalty</i><a class="open-in-browser" href="http://blockbench.net/donate.html">Donate</a></li>
                 </ul>
@@ -792,6 +813,7 @@
                 <div>Transform</div>
                 <ul class="dropdown">
                     <li onclick="openScaleAll()"><i class="material-icons">settings_overscan</i>Scale...</li>
+                    <li onclick="showInflationDialog()" class="entity_mode_only"><i class="material-icons">settings_overscan</i>Inflate...</li>
                     <li><i class="material-icons">rotate_90_degrees_ccw</i>Rotate<i class="material-icons more_icon">navigate_next</i>
                         <ul class="dropdown level2">
                             <li onclick="rotateSelectedY(1)"><i class="material-icons color_y">rotate_right</i>Rotate CW</li>
@@ -873,26 +895,46 @@
                     <li><i class="material-icons">camera_alt</i>Screenshot<i class="material-icons more_icon">navigate_next</i>
                         <ul class="dropdown level2">
                             <li onclick="Screencam.cleanCanvas()"><i class="fa fa_big fa-cubes"></i>Capture Model</li>
-                            <li onclick="Screencam.copyCanvas()"><i class="material-icons">grid_on</i>Capture Canvas</li>
-                            <!--li class="local_only" onclick="Screencam.fullScreen()"><i class="material-icons">computer</i>Capture Window</li-->
+                            <li onclick="Screencam.normalCanvas()"><i class="material-icons">grid_on</i>Capture Canvas</li>
+                            <li class="local_only" onclick="Screencam.fullScreen()"><i class="material-icons">computer</i>Capture Window</li>
                         </ul>
                     </li>
-                    <li class="mobile_only" onclick="display_mode ? exitDisplaySettings() : enterDisplaySettings()"><i class="material-icons">swap_horiz</i>Switch Mode</li>
                 </ul>
             </li>
         </ul>
-        <div class="tool bbtool sel m_edit" id="tool_translate" onclick="setTool('translate')"><i class="fa fa_big fa-hand-paper-o"></i><div class="tooltip">Drag</div></div>
-        <div class="tool bbtool m_edit" id="tool_scale" onclick="setTool('scale')"><i class="material-icons">open_with</i><div class="tooltip">Scale</div></div>
-        <!--div class="tool m_edit" id="tool_rotate" onclick="setTool('rotate')"><i class="material-icons">sync</i><div class="tooltip">Rotate</div></div-->
-        <div class="tool bbtool m_edit" id="tool_brush" onclick="setTool('brush')"><i class="fa fa_big fa-paint-brush"></i><div class="tooltip">Brush</div></div>
+        <div id="toolbox" class="f_left"></div>
         <div class="placeholder m_edit"></div>
-        <div class="tool wide m_edit nslide_tool selection_only"><div class="nslide" n-action="pos_x"></div><div class="tooltip">Move X</div></div>
-        <div class="tool wide m_edit nslide_tool selection_only"><div class="nslide" n-action="pos_y"></div><div class="tooltip">Move Y</div></div>
-        <div class="tool wide m_edit nslide_tool selection_only"><div class="nslide" n-action="pos_z"></div><div class="tooltip">Move Z</div></div>
-        <div class="placeholder m_edit selection_only"></div>
-        <div class="tool wide m_edit nslide_tool selection_only"><div class="nslide" n-action="size_x"></div><div class="tooltip">Scale X</div></div>
-        <div class="tool wide m_edit nslide_tool selection_only"><div class="nslide" n-action="size_y"></div><div class="tooltip">Scale Y</div></div>
-        <div class="tool wide m_edit nslide_tool selection_only"><div class="nslide" n-action="size_z"></div><div class="tooltip">Scale Z</div></div>
+        <div id="tool_options_transform" class="f_left tool_options">
+            <div class="tool wide m_edit nslide_tool selection_only"><div class="nslide" n-action="pos_x"></div><div class="tooltip">Move X</div></div>
+            <div class="tool wide m_edit nslide_tool selection_only"><div class="nslide" n-action="pos_y"></div><div class="tooltip">Move Y</div></div>
+            <div class="tool wide m_edit nslide_tool selection_only"><div class="nslide" n-action="pos_z"></div><div class="tooltip">Move Z</div></div>
+            <div class="placeholder m_edit selection_only"></div>
+            <div class="tool wide m_edit nslide_tool selection_only"><div class="nslide" n-action="size_x"></div><div class="tooltip">Scale X</div></div>
+            <div class="tool wide m_edit nslide_tool selection_only"><div class="nslide" n-action="size_y"></div><div class="tooltip">Scale Y</div></div>
+            <div class="tool wide m_edit nslide_tool selection_only"><div class="nslide" n-action="size_z"></div><div class="tooltip">Scale Z</div></div>
+        </div>
+        <div id="tool_options_brush" class="f_left tool_options">
+            <label class="f_left in_toolbar">Mode:</label>
+            <select class="dark_bordered" id="brush_mode">
+                <option id="round">Normal</option>
+                <option id="noise">Noise</option>
+                <option id="eraser">Eraser</option>
+                <option id="fill">Fill</option>
+            </select>
+            <label class="f_left in_toolbar">Color:</label>
+            <input class="f_left" type="text" id="brush_color">
+            <label class="f_left in_toolbar">Size:</label>
+            <input type="range" class="dark_bordered" id="brush_size" step="1" value="0" min="1" max="20" style="width: 80px;">
+            <label class="f_left in_toolbar">Soft:</label>
+            <input type="range" class="dark_bordered" id="brush_softness" step="0.1" value="0" min="0" max="1" style="width: 80px;">
+        </div>
+        <div id="tool_options_vertex_snap" class="f_left tool_options">
+            <label class="f_left in_toolbar">Mode:</label>
+            <select class="dark_bordered" id="vertex_scale">
+                <option id="move">Move</option>
+                <option id="scale">Scale</option>
+            </select>
+        </div>
         <dir class="mode_tab block_mode_only" id="mode_display_tab" onclick="if (!display_mode) {enterDisplaySettings()}">Display</dir>
         <dir class="mode_tab open" id="mode_edit_tab" onclick="if (display_mode) {exitDisplaySettings()}">Edit</dir>
     </header>
@@ -999,38 +1041,39 @@
             <div class="bar">
                 <div class="tool" onclick="copyDisplaySlot()"><i class="material-icons">content_copy</i><div class="tooltip">Copy</div></div>
                 <div class="tool" onclick="pasteDisplaySlot()"><i class="material-icons">content_paste</i><div class="tooltip">Paste</div></div>
-                <div id="display_presets" class="context_handler"><label class="f_left">Presets</label><i class="material-icons">arrow_drop_down</i>
-                    <ul>
-                        <li v-for="preset in display_presets"><i v-on:click="deletePreset(preset, $event)" class="material-icons">clear</i><div v-on:click="applyPreset(preset, $event)">{{ preset.name }}</div></li>
-                    </ul>
-                    </div>
+                <div class="tool" onclick="displayPresetContext(event)"><i class="fa fa_big fa-list"></i><div class="tooltip">Presets</div></div>
                 <div class="tool" onclick="showDialog('create_preset')"><i class="material-icons">add</i><div class="tooltip">New Preset</div></div>
             </div>
         </div>
         <div id="textures" class="ui m_edit">
             <h3>Textures</h3>
             <div class="bar">
-                <div class="tool" onclick="openTexture()"><i class="material-icons">library_add</i><div class="tooltip">Add Texture</div></div>
+                <div class="tool" onclick="openTexture()"><i class="material-icons">library_add</i><div class="tooltip">Import Texture</div></div>
+                <div class="tool" onclick="Painter.addBitmapDialog()"><i class="material-icons">check_box_outline_blank</i><div class="tooltip">Create Blank</div></div>
                 <div class="tool local_only" onclick="reloadTextures()"><i class="material-icons">refresh</i><div class="tooltip">Reload Textures</div></div>
                 <div class="tool" onclick="TextureAnimator.start()" id="texture_animation_button" style="display: none;"><i class="material-icons">play_arrow</i><div class="tooltip">
                 Animations</div></div>
-                <div id="particle_label">Particle</div>
             </div>
             <ul id="texture_list" class="list">
                 <li
                     v-for="texture in textures"
                     v-bind:class="{ selected: texture.selected }"
                     v-bind:texid="texture.id"
-                    class="texture" v-on:click.stop="selectT(texture, $event)"
-                    v-on:dblclick="menu(texture, $event)"
-                    @contextmenu.prevent.stop="showContextMenu(texture, $event)"
+                    class="texture"
+                    v-on:click.stop="texture.select()"
+                    v-on:dblclick="texture.openMenu($event)"
+                    @contextmenu.prevent.stop="texture.showContextMenu($event)"
                 >
                     <div class="texture_icon_wrapper">
-                        <img v-bind:texid="texture.id" v-bind:src="texture.iconpath" class="texture_icon" width="48px" alt="missing image" v-if="texture.show_icon" />
+                        <img v-bind:texid="texture.id" v-bind:src="texture.source" class="texture_icon" width="48px" alt="missing image" v-if="texture.show_icon" />
                         <i class="material-icons texture_error" title="Image Error" v-if="texture.error">error_outline</i>
                         <i class="texture_movie fa fa_big fa-film" title="Animated Texture" v-if="texture.frameCount > 1"></i>
                     </div>
                     <div class="texture_name">{{ texture.name }}</div>
+                    <i class="material-icons texture_mode_toggle" v-bind:title="capitalizeFirstLetter(texture.mode)" v-on:click.stop="texture.convert()">
+                        <template v-if="texture.mode === 'link'">link</template>
+                        <template v-else>stop</template>
+                    </i>
                     <i class="material-icons" title="Particle" v-on:click.stop="toggleP(texture)">
                         <template v-if="texture.particle === true">grain</template>
                         <template v-else>remove</template>
@@ -1045,7 +1088,7 @@
         <div id="options" class="ui selection_only">
             <h3>Rotation</h3>
             <div class="bar">
-            <div class="placeholder"></div>Rotation
+            <div class="placeholder"></div>Angle
             </div>
             <div class="bar" id="rotation_main_bar" style="position: relative;">
                 <div id="cube_rotate_dummy"></div>
@@ -1056,7 +1099,7 @@
                     <option value="z" id="z">Z Axis</option>
                 </select>
                 <div class="tool" id="cube_rescale_tool"><input type="checkbox" id="cube_rescale" class="rotation_tool" onclick="Rotation.set()"><div class="tooltip">Rescale</div></div>
-                <div class="tool right_tool" id="rotation_function_button" onclick="Rotation.fn()"><i class="material-icons">clear</i><div class="tooltip clip_right">Remove Rotation</div></div>
+                <div class="tool right_tool" id="rotation_function_button" onclick="Rotation.fn()"><i class="material-icons">clear</i><div class="tooltip">Remove Rotation</div></div>
             </div>
             <div class="bar">
                 <div class="placeholder"></div><div id="rotation_origin_label">Origin</div>

@@ -2,7 +2,7 @@
 function newProject(entity_mode) {
     if (showSaveDialog()) {
         if (display_mode === true) exitDisplaySettings()
-        TextureAnimator
+        //TextureAnimator
         projectTagSetup()
         elements.length = 0;
         TreeElements.length = 1
@@ -33,10 +33,7 @@ function newProject(entity_mode) {
     }
 }
 function newEntityProject() {
-    newProject(function () {
-        Blockbench.entity_mode = true
-        entity_mode.join()
-    })
+    newProject(true)
 }
 //Import
 function loadFile(data, filepath, makeNew) {
@@ -91,13 +88,12 @@ function loadFile(data, filepath, makeNew) {
             base_cube.display.autouv = false;
             elements.push(base_cube);
             if (makeNew === true) {
-                base_cube.addTo()
+                TreeElements.push(base_cube)
             } else if (import_group) {
-                base_cube.addTo(import_group)
+                import_group.push(base_cube)
             }
         })
     }
-
     if (data.groups && data.groups.length > 0) {
         if (makeNew === true) {
             parseGroups(data.groups)
@@ -108,7 +104,6 @@ function loadFile(data, filepath, makeNew) {
     if (import_group) {
         import_group.addTo()
     }
-
     if (
         !data.elements &&
         data.parent == 'item/generated' &&
@@ -204,6 +199,7 @@ function loadFile(data, filepath, makeNew) {
         Project.ambientocclusion = false;
     }
     loadTextureDraggable()
+    loadOutlinerDraggable()
     Canvas.updateAll()
     setUndo('Opened project')
     Blockbench.removeFlag('importing')
@@ -291,6 +287,7 @@ function loadPEModel() {
             var group = new Group(b.name)
             if (b.pivot) {
                 group.origin = b.pivot
+                group.origin[0] *= -1
             } else {
                 group.origin = [0, 0, 0]
             }
@@ -332,16 +329,17 @@ function loadPEModel() {
                     }
                     base_cube.shade = !s.mirror
                     elements.push(base_cube)
-                    base_cube.addTo(group)
+                    base_cube.addTo(group, false)
                 })
             }
-            group.addTo()
+            group.addTo(undefined, false)
         })
     }
     pe_list_data.length = 0;
     hideDialog()
 
     loadTextureDraggable()
+    loadOutlinerDraggable()
     Canvas.updateAll()
     setProjectTitle()
     setUndo('Opened entity model')
@@ -551,6 +549,7 @@ function buildEntityModel(options) {
         var bone = {}
         bone.name = g.name
         bone.pivot = g.origin
+        bone.pivot[0] *= -1
         if (g.rotation.join('_') !== '0_0_0') {
             bone.rotation = g.rotation.slice()
             bone.rotation.forEach(function(br, ri) {
@@ -573,20 +572,20 @@ function buildEntityModel(options) {
                         iterate(arr[i].children)
                     } else if (arr[i].type === 'cube') {
                         var s = arr[i]
-                        if (s === undefined) return;
-                        if (s.display.export === false) return;
-                        var cube = {}
-                        cube.origin = s.from.slice()
-                        cube.size = s.size()
-                        cube.origin[0] = -(cube.origin[0] + cube.size[0])
-                        cube.uv = s.uv_offset
-                        if (s.inflate && typeof s.inflate === 'number') {
-                            cube.inflate = s.inflate
+                        if (s !== undefined && s.display.export !== false) {
+                            var cube = {}
+                            cube.origin = s.from.slice()
+                            cube.size = s.size()
+                            cube.origin[0] = -(cube.origin[0] + cube.size[0])
+                            cube.uv = s.uv_offset
+                            if (s.inflate && typeof s.inflate === 'number') {
+                                cube.inflate = s.inflate
+                            }
+                            if (s.shade === false) {
+                                cube.mirror = true
+                            }
+                            bone.cubes.push(cube)
                         }
-                        if (s.shade === false) {
-                            cube.mirror = true
-                        }
-                        bone.cubes.push(cube)
                     }
                     i++;
                 }
@@ -646,4 +645,11 @@ function buildOptifineModel() {
 
 
     return autoStringify(jpm)
+}
+function buildOBJModel(name) {
+    scene.position.set(0,0,0)
+    var exporter = new THREE.OBJExporter();
+    var content = exporter.parse( scene, name);
+    scene.position.set(-8,-8,-8)
+    return content;
 }

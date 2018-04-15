@@ -146,7 +146,7 @@ function convertExtrusionImage() {
 							}
 							draw_y++;
 						}
-						var current_cube = new Cube({name: cube_name+'_'+cube_nr})
+						var current_cube = new Cube({name: cube_name+'_'+cube_nr, display: {autouv: 0}})
 						
 						current_cube.from = [rect.x*scale_i, 0, rect.y*scale_i]
 						current_cube.to = [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i]
@@ -181,13 +181,13 @@ function convertExtrusionImage() {
 
 		    var group = new Group(cube_name).addTo()
 		    selected.forEach(function(s) {
-		        s.addTo(group)
+		        s.addTo(group, false)
 		    })
 		    if (g_makeNew === true || isNewProject) {
 		        setProjectTitle(cube_name)
 		        Prop.project_saved = false;
 		    }
-
+		    loadOutlinerDraggable()
 			Canvas.updateAll()
 			setUndo()
 			hideDialog()

@@ -104,7 +104,7 @@ function tryLoadPOSTModel() {
                     var tex = getTextureById(key+'');
                     if (tex) {
                         tex.img.src = ''
-                        tex.iconpath = data[key]
+                        tex.source = data[key]
                     }
                 }
             }
@@ -214,7 +214,7 @@ function reopenTexture(texture) {
 	var reader = new FileReader()
 	reader.onloadend = function() {
         
-        texture.iconpath = reader.result
+        texture.source = reader.result
         var img = new Image()
         try {
             img.src = reader.result
@@ -309,9 +309,7 @@ function saveFileEntity() {
     showQuickMessage('Saved as bedrock entity model')
 }
 function saveFileObj() {
-    var exporter = new THREE.OBJExporter();
-    var content = exporter.parse( scene, 'model');
-
+    var content = buildOBJModel('model')
     //OBJECT
     var blob_obj = new Blob([content.obj], {type: "text/plain;charset=utf-8"});
     var obj_saver = saveAs(blob_obj, 'model.obj')
@@ -324,7 +322,7 @@ function saveFileObj() {
                 var tex_i = 0
                 function saveTex() {
                     if (textures[tex_i] && content.images.hasOwnProperty(textures[tex_i].id)) {
-                        var image_data = atob(textures[tex_i].iconpath.split(',')[1]);
+                        var image_data = atob(textures[tex_i].source.split(',')[1]);
                         var arraybuffer = new ArrayBuffer(image_data.length);
                         var view = new Uint8Array(arraybuffer);
                         for (var i=0; i<image_data.length; i++) {

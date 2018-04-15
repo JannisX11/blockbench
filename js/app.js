@@ -3,7 +3,7 @@ var app            = require('electron').remote,
     nativeImage    = require('electron').nativeImage,
     exec           = require('child_process').exec,
     originalFs     = require('original-fs'),
-    http           = require('http'),
+    https           = require('https'),
     currentwindow  = app.getCurrentWindow(),
     dialog_win     = null,
     latest_version = false,
@@ -39,7 +39,7 @@ getLatestVersion(true)
 //Called on start to show message
 function getLatestVersion(init) {
     if (process.platform == 'linux') return;
-    $.getJSON('http://blockbench.net/api/index.json', function(data) {
+    $.getJSON('https://blockbench.net/api/index.json', function(data) {
         if (data.version) {
             latest_version = data.version
             if (compareVersions(latest_version, appVersion) && init === true) {
@@ -70,7 +70,7 @@ function updateRecentProjects() {
     var i = recent_projects.length-1
     while (i >= 0) {
         var p = recent_projects[i]
-        var entry = $('<li onclick=readFile(\''+p.path.split('\\').join('\\\\')+'\',true)><i class="material-icons">insert_drive_file</i>'+p.name+'</li>')
+        var entry = $('<li onclick="readFile(\''+p.path.split('\\').join('\\\\')+'\',true)"><i class="material-icons">insert_drive_file</i>'+p.name+'</li>')
         list.append(entry)
         i--;
     }
@@ -156,7 +156,7 @@ function installUpdate() {
 
     var file = originalFs.createWriteStream(asar_path)
 
-    var request = http.get("http://blockbench.net/api/app.asar", function(response) {
+    var request = https.get("https://blockbench.net/api/app.asar", function(response) {
         response.pipe(file);
 
         total_bytes = parseInt(response.headers['content-length']);
@@ -343,12 +343,7 @@ function saveFileObj() {
         if (fileName === undefined) {
             return;
         }
-        scene.remove(three_grid)
-        scene.remove(Transformer)
-        var exporter = new THREE.OBJExporter();
-        var content = exporter.parse( scene, pathToName(fileName, false));
-        scene.add(three_grid)
-        scene.add(Transformer)
+        var content = buildOBJModel(pathToName(fileName, false))
 
         //OBJECT
         fs.writeFile(fileName, content.obj, function (err) {})
@@ -359,13 +354,20 @@ function saveFileObj() {
         //IMAGES
         if (settings.obj_textures.value === true) {
             for (var key in content.images) {
-                if (content.images.hasOwnProperty(key) && content.images[key].path) {
-                    var native_image_instance = nativeImage.createFromPath(content.images[key].path)
+                var texture = content.images[key]
+                if (content.images.hasOwnProperty(key) && texture.path) {
+                    if (texture.mode === 'link') {
+                        var native_image_instance = nativeImage.createFromPath(texture.path)
+                    } else {
+                        var native_image_instance = nativeImage.createFromDataURL(texture.source)
+                    }
                     var image = native_image_instance.toPNG()
                     var image_path = fileName.split(osfs)
                     image_path.pop()
-                    image_path = image_path.join(osfs) + osfs + content.images[key].name
-
+                    image_path = image_path.join(osfs) + osfs + texture.name
+                    if (image_path.substr(-4) !== '.png') {
+                        image_path = image_path + '.png'
+                    }
                     fs.writeFile(image_path, image, function (err) {})
                 }
             }
@@ -454,7 +456,7 @@ function writeFileEntity(content, fileName) {
 function openFile(makeNew) {
     app.dialog.showOpenDialog(currentwindow, {filters: [{name: 'Model', extensions: ['json']}]}, function (fileNames) {
         if (fileNames !== undefined) {
-            addRecentProject({name: pathToName(fileNames[0]), path: fileNames[0]})
+            addRecentProject({name: pathToName(fileNames[0], 'mobs_id'), path: fileNames[0]})
             readFile(fileNames[0], makeNew)
         }
     })
@@ -465,7 +467,7 @@ function readFile(filepath, makeNew) {
             console.log(err)
             return;
         }
-        addRecentProject({name: pathToName(filepath), path: filepath})
+        addRecentProject({name: pathToName(filepath, 'mobs_id'), path: filepath})
         loadFile(data, filepath, makeNew)
     })
 }

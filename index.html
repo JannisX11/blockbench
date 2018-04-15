@@ -402,22 +402,22 @@
         </div>
 
 
-        <div class="dialog_bar narrow">
+        <div class="dialog_bar narrow block_mode_only">
             <label for="project_description">Description Tag</label>
         </div>
-        <div class="dialog_bar">
+        <div class="dialog_bar block_mode_only">
             <input v-model="Project.description" type="text" id="project_description" class="dark_bordered input_wide">
         </div>
 
 
-        <div class="dialog_bar" class="name_space_left">
+        <div class="dialog_bar" class="name_space_left block_mode_only">
             <input v-model="Project.ambientocclusion" type="checkbox" id="project_ambientocclusion">
             <label for="project_description" class="name_space_left">Ambient Occlusion</label>
         </div>
 
 
         <div class="dialog_bar narrow">
-            <label for="project_description">Texture Size (for PE models)</label>
+            <label for="project_description">Texture Size</label>
         </div>
         <div class="dialog_bar">
             <label for="project_texsize_x" class="inline_label">Width</label>
@@ -624,7 +624,7 @@
             <p><b>Icon Packs: </b><a href="https://material.io/icons/" class="open-in-browser">material.io/icons</a> &amp; <a href="http://fontawesome.io/icons/" class="open-in-browser">fontawesome</a></p>
             <p><b>Javascript Libraries: </b>
                 <a href="https://jquery.com" class="open-in-browser">jQuery</a>
-                <a href="https://jquery.com" class="open-in-browser">jQuery UI</a>
+                <a href="https://jqueryui.com" class="open-in-browser">jQuery UI</a>
                 <a href="https://vuejs.org" class="open-in-browser">VueJS</a>
                 <a href="https://github.com/weibangtuo/vue-tree" class="open-in-browser">Vue Tree</a>
                 <a href="https://threejs.org" class="open-in-browser">ThreeJS</a>
@@ -881,7 +881,7 @@
                     <li><i class="material-icons">camera_alt</i>Screenshot<i class="material-icons more_icon">navigate_next</i>
                         <ul class="dropdown level2">
                             <li onclick="Screencam.cleanCanvas()"><i class="fa fa_big fa-cubes"></i>Capture Model</li>
-                            <li onclick="Screencam.copyCanvas()"><i class="material-icons">grid_on</i>Capture Canvas</li>
+                            <li onclick="Screencam.normalCanvas()"><i class="material-icons">grid_on</i>Capture Canvas</li>
                             <li class="local_only" onclick="Screencam.fullScreen()"><i class="material-icons">computer</i>Capture Window</li>
                         </ul>
                     </li>
@@ -1051,7 +1051,7 @@
                     @contextmenu.prevent.stop="texture.showContextMenu($event)"
                 >
                     <div class="texture_icon_wrapper">
-                        <img v-bind:texid="texture.id" v-bind:src="texture.iconpath" class="texture_icon" width="48px" alt="missing image" v-if="texture.show_icon" />
+                        <img v-bind:texid="texture.id" v-bind:src="texture.source" class="texture_icon" width="48px" alt="missing image" v-if="texture.show_icon" />
                         <i class="material-icons texture_error" title="Image Error" v-if="texture.error">error_outline</i>
                         <i class="texture_movie fa fa_big fa-film" title="Animated Texture" v-if="texture.frameCount > 1"></i>
                     </div>

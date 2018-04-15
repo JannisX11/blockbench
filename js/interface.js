@@ -446,7 +446,7 @@ var splashScreen = {
         }
     },
     show: function() {
-        $('#welcome_content').load('http://www.blockbench.net/api/welcome/index.html', function() {
+        $('#welcome_content').load('https://www.blockbench.net/api/welcome/index.html', function() {
             $('#welcome_screen #welcome_body').css('max-height', ($(window).height() - 478) + 'px')
             showDialog('welcome_screen')
             localStorage.setItem('welcomed_version', appVersion) 
@@ -458,7 +458,7 @@ var splashScreen = {
         })
     }),
     p_force: new Promise(function(resolve, reject) {
-        $.getJSON('http://blockbench.net/api/index.json', function (data) {
+        $.getJSON('https://blockbench.net/api/index.json', function (data) {
             resolve(data.forceSplashScreen)
         })
     })

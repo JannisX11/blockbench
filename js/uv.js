@@ -11,6 +11,67 @@ function getTexturesById(id) {
     id = id.split('#').join('');
     return $.grep(textures, function(e) {return e.id == id});
 }
+function showUVShiftDialog() {
+    if (!selected.length) return;
+    var dialog = new Dialog({
+        title: 'Shift UV',
+        draggable: true,
+        lines: [
+            '<div class="dialog_bar">'+
+                'Enter the number you want to multiply the UV offset coordinates by. Mathematical expressions are allowed. Prepend a "+" if you want to add a specific number'+
+            '</div>',
+            '<div class="dialog_bar">'+
+                '<label class="inline_label">Horizontal: </label>'+
+                '<input type="text" class="dark_bordered" id="shift_uv_horizontal">'+
+            '</div>',
+            '<div class="dialog_bar">'+
+                '<label class="inline_label">Vertical: </label>'+
+                '<input type="text" class="dark_bordered" id="shift_uv_vertical">'+
+            '</div>'
+        ],
+        id: 'uv_shift_dialog',
+        fadeTime: 100,
+        onConfirm: function() {
+            dialog.hide()
+            var h = $(dialog.object).find('#shift_uv_horizontal').val()
+            if (h.length > 0) {
+                var add;
+                if (h.substr(0,1) === '+') {
+                    h = h.substr(1).trim()
+                    add = true
+                }
+                h = eval(h)
+                selected.forEach(function(obj) {
+                    if (add) {
+                        obj.uv_offset[0] += h
+                    } else {
+                        obj.uv_offset[0] *= h
+                    }
+                })
+            }
+            var v = $(dialog.object).find('#shift_uv_vertical').val()
+            if (v.length > 0) {
+                var add;
+                if (v.substr(0,1) === '+') {
+                    v = v.substr(1).trim()
+                    add = true
+                }
+                v = eval(v)
+                selected.forEach(function(obj) {
+                    if (add) {
+                        obj.uv_offset[1] += v
+                    } else {
+                        obj.uv_offset[1] *= v
+                    }
+                })
+            }
+            setUndo('Shifted UV')
+        },
+        onCancel: function() {
+            dialog.hide()
+        }
+    }).show()
+}
 class UVEditor {
     constructor(id, headline, toolbar) {
         this.face = 'north';
@@ -47,6 +108,9 @@ class UVEditor {
         this.jquery.frame.append('<div class="uv_transform_info" title="Transform indicators"></div>')
         this.jquery.frame.css('background-repeat', 'no-repeat')
         this.jquery.transform_info = this.jquery.frame.find('.uv_transform_info')
+        if (browser_name === 'firefox') {
+            this.jquery.frame.css('image-rendering', '-moz-crisp-edges')
+        }
 
         this.jquery.nslides = $(
             '<div class="bar">'+
@@ -54,7 +118,8 @@ class UVEditor {
                 '<div class="tool wide nslide_tool"><div class="nslide" n-action="moveuv_y"></div><div class="tooltip">Move Y</div></div>' +
                 (Blockbench.entity_mode ? '' : '<div class="tool wide nslide_tool"><div class="nslide" n-action="scaleuv_x"></div><div class="tooltip">Scale X</div></div>') +
                 (Blockbench.entity_mode ? '' : '<div class="tool wide nslide_tool"><div class="nslide" n-action="scaleuv_y"></div><div class="tooltip">Scale Y</div></div>') +
-                '<button class="large" id="entity_mode_resolution_button" onclick="showDialog(\'project_settings\');">Resolution</button>'+
+                (Blockbench.entity_mode ? '<button class="large entity_mode_only entity_mode_uv_button" id="entity_mode_resolution_button" onclick="showDialog(\'project_settings\');">Size</button>' : '')+
+                (Blockbench.entity_mode ? '<button class="large entity_mode_only entity_mode_uv_button" id="entity_mode_shift_button" onclick="showUVShiftDialog()">Shift</button>' : '')+
             '</div>'
         )
         this.jquery.main.append(this.jquery.nslides)
@@ -196,7 +261,7 @@ class UVEditor {
             var y = scope.getBrushCoordinates(event).y
             Painter.startBrush(texture, x, y, undefined, event)
         }
-        if (event.altKey === false && texture.mode !== 'link') {
+        if (event.altKey === false && texture && texture.mode !== 'link') {
             scope.jquery.frame.get(0).addEventListener('mousemove', scope.moveBrush, false );
             document.addEventListener('mouseup', scope.stopBrush, false );
         }
@@ -448,7 +513,7 @@ class UVEditor {
                 return;
             }
             this.setFrameColor(tex.dark_box)
-            var css = 'url("'+tex.iconpath.split('\\').join('\\\\').replace(/ /g, '%20')+'")'
+            var css = 'url("'+tex.source.split('\\').join('\\\\').replace(/ /g, '%20')+'")'
             this.jquery.frame.css('background-image', css)
             if (Blockbench.entity_mode) {
                 this.jquery.frame.css('background-size', 'contain')
@@ -670,11 +735,11 @@ class UVEditor {
                 var arr = [
                     {icon: 'clear', name: 'Transparent', click: function(event) {scope.clear(event)}},
                 ]
-                textures.forEach(function(s) {
+                textures.forEach(function(t) {
                     arr.push({
-                        name: s.name,
-                        icon: s.img,
-                        click: function(event) {scope.applyTexture(s.id)}
+                        name: t.name,
+                        icon: (t.mode === 'link' ? t.img : t.source),
+                        click: function(event) {scope.applyTexture(t.id)}
                     })
                 })
                 return arr;
@@ -718,6 +783,7 @@ class UVEditor {
         $('#nslide_head #nslide_offset').text('Offset: '+difference)
     }
     nslideInput(action, difference) {
+        console.log('x')
         var scope = this;
         selected.forEach(function(obj) {
             switch (action) {
@@ -735,6 +801,7 @@ class UVEditor {
                 scope.scaleCoord(1, difference, obj)
                 break;
             }
+            Canvas.updateUV(obj)
         })
     }
     moveCoord(index, val, obj) {
@@ -927,8 +994,8 @@ class UVEditor {
                 $.extend(true, obj.faces[side], obj.faces[scope.face]) 
             })
             obj.display.autouv = 0
-            Canvas.updateUV(obj)
         })
+        Canvas.updateSelectedFaces()
         this.message('Applied To All Faces')
         this.loadData()
         setUndo('Applied UV to all faces')

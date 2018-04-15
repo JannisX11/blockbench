@@ -2,26 +2,21 @@
 function duplicateCubes() {
 	selected.forEach(function(obj, i) {
 		var old_group = obj.display.parent
-		var base_cube = new Cube()
-		base_cube.extend(obj)
-		base_cube.uuid = guid()
-
+		var base_cube = new Cube(obj)
 		//Numberation
 		var number = base_cube.name.match(/[0-9]+$/)
 		if (number) {
 			number = parseInt(number[0])
 			base_cube.name = base_cube.name.split(number).join(number+1)
 		}
-
 		//Rest
-		base_cube.display.mesh = undefined;
 		elements.push(base_cube)
 		base_cube.addTo(old_group)
-
-		Canvas.addCube(elements[elements.length-1])
-
-		selected[i] = elements[elements.length-1]
+		Canvas.addCube(base_cube)
+		selected[i] = base_cube
 	})
+
+
 	Toolbox.set('translate')//( Also updates selection)
 	setUndo('Duplicated cube'+pluralS(selected))
 }
@@ -39,38 +34,62 @@ function origin2geometry() {
             position[pi] = p / selected_group.children.length
         })
         selected_group.origin = position
+
+    } else if (selected.length > 1) {
+
+        var center = [0, 0, 0]
+        var i = 0;
+        selected.forEach(function(obj) {
+            i = 0;
+            while (i < 3) {
+                center[i] += obj.from[i]
+                center[i] += obj.to[i]
+                i++;
+            }
+        })
+        i = 0;
+        while (i < 3) {
+            center[i] = center[i] / (selected.length * 2)
+            i++;
+        }
+        selected.forEach(function(obj) {
+            if (!obj.rotation) {
+                obj.rotation = {angle: 0, axis: 'y'}
+            }
+            obj.rotation.origin = center.slice()
+        })
+
     } else {
-    	selected.forEach(function(obj) {
 
-    		var element_size = obj.size()
-    		var element_center = new THREE.Vector3(
-    			(element_size[0]   / 2) + obj.from[0],
-    			(element_size[1]   / 2) + obj.from[1],
-    			(element_size[2]   / 2) + obj.from[2]
-    		)
+        var obj = selected[0]
+		var element_size = obj.size()
+		var element_center = new THREE.Vector3(
+			(element_size[0]   / 2) + obj.from[0],
+			(element_size[1]   / 2) + obj.from[1],
+			(element_size[2]   / 2) + obj.from[2]
+		)
 
-    		if (obj.rotation == undefined) {
-    			obj.rotation = {origin:[8,8,8], axis: 'y', angle: 0}
-    		}
-    		element_center.x -= obj.rotation.origin[0]
-    		element_center.y -= obj.rotation.origin[1]
-    		element_center.z -= obj.rotation.origin[2]
+		if (obj.rotation == undefined) {
+			obj.rotation = {origin:[8,8,8], axis: 'y', angle: 0}
+		}
+		element_center.x -= obj.rotation.origin[0]
+		element_center.y -= obj.rotation.origin[1]
+		element_center.z -= obj.rotation.origin[2]
 
-    		if (obj.display.mesh) {
-    			element_center.applyEuler(obj.display.mesh.rotation)
-    		}
-    		obj.rotation.origin[0] += element_center.x
-    		obj.rotation.origin[1] += element_center.y
-    		obj.rotation.origin[2] += element_center.z
+		if (obj.getMesh()) {
+			element_center.applyEuler(obj.getMesh().rotation)
+		}
+		obj.rotation.origin[0] += element_center.x
+		obj.rotation.origin[1] += element_center.y
+		obj.rotation.origin[2] += element_center.z
 
-    		obj.to[0] = obj.rotation.origin[0] + element_size[0] / 2
-    		obj.to[1] = obj.rotation.origin[1] + element_size[1] / 2
-    		obj.to[2] = obj.rotation.origin[2] + element_size[2] / 2
+		obj.to[0] = obj.rotation.origin[0] + element_size[0] / 2
+		obj.to[1] = obj.rotation.origin[1] + element_size[1] / 2
+		obj.to[2] = obj.rotation.origin[2] + element_size[2] / 2
 
-    		obj.from[0] = obj.rotation.origin[0] - element_size[0] / 2
-    		obj.from[1] = obj.rotation.origin[1] - element_size[1] / 2
-    		obj.from[2] = obj.rotation.origin[2] - element_size[2] / 2
-    	})
+		obj.from[0] = obj.rotation.origin[0] - element_size[0] / 2
+		obj.from[1] = obj.rotation.origin[1] - element_size[1] / 2
+		obj.from[2] = obj.rotation.origin[2] - element_size[2] / 2
     }
     Canvas.updatePositions()
 	setUndo('Set origin to geometry')
@@ -328,6 +347,7 @@ function limitToBox(val) {
 }
 function moveIntoBox(list) {
     if (!list) list = elements
+    if (list.length === 0) return;
     list.forEach(function(s, i) {
         //Push elements into 3x3 block box
         [0, 1, 2].forEach(function(ax) {

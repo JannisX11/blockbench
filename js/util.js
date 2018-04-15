@@ -11,8 +11,14 @@ var asyncLoop = function(o){
 }
 function pathToName(path, extension) {
   var path_array = path.split('/').join('\\').split('\\')
-  if (extension) {
+  if (extension === true) {
     return path_array[path_array.length-1]
+  } else if (extension === 'mobs_id') {
+    var name = path_array[path_array.length-1].split('.').slice(0, -1).join('.')
+    if (name === 'mobs') {
+      name = name + ' (' + path_array[path_array.length-3].substr(0,8) + '...)'
+    }
+    return name
   } else {
     return path_array[path_array.length-1].split('.').slice(0, -1).join('.')
   }
@@ -33,6 +39,12 @@ function guid() {
   }
   return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
     s4() + '-' + s4() + s4() + s4();
+}
+Math.radToDeg = function(rad) {
+  return rad * (180*Math.PI)
+}
+Math.degToRad = function(deg) {
+  return Math.PI / (180 /deg)
 }
 
 Array.prototype.equals = function (array) {

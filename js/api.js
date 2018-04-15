@@ -299,6 +299,8 @@ function ContextMenu(event, array) {
 		if (typeof s.icon === 'string') {
 			if (s.icon.substr(0, 2) === 'fa') {
 				icon = '<i class="fa fa_big ' + s.icon + '"></i>'
+			} else if (s.icon.substr(0, 14) === 'data:image/png') {
+				icon = '<img src="'+s.icon+'">'
 			} else {
 				icon = '<i class="material-icons">' + s.icon + '</i>'
 			}

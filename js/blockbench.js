@@ -1,4 +1,4 @@
-var appVersion = '1.11.1'
+var appVersion = '1.11.2'
 var osfs = '/'
 var File, i;
 var browser_name = 'electron'
@@ -818,7 +818,7 @@ function updateSelection() {
         obj.display.isselected = true
         Canvas.buildOutline(obj)
         if (Toolbox.selected.showTransformer && obj.display.visibility === true) {
-            Transformer.attach(obj.display.mesh)
+            Transformer.attach(obj.getMesh())
         }
     })
     //Canvas.updateAllFaces()
@@ -846,7 +846,7 @@ function updateSelection() {
     if (Blockbench.entity_mode) {
         if (selected_group) {
             $('.selection_only#options').css('visibility', 'visible')
-            if (settings.origin.value) {
+            if (settings.origin_size.value > 0) {
                 setOriginHelper({origin: selected_group.origin, axis: 'x', angle: 0})
             }
         } else {
@@ -854,11 +854,11 @@ function updateSelection() {
         }
     } else {
         //Origin Helper
-        if (selected.length === 1 && settings.origin.value) {
+        if (selected.length === 1 && settings.origin_size.value > 0) {
             var obj = selected[0]
             if (obj.rotation != undefined) {
                 setOriginHelper(obj.rotation)
-            } else if (settings.origin.value) {
+            } else if (settings.origin_size.value > 0) {
                 setOriginHelper({origin: [8,8,8], axis: 'x', angle: 0})
             }
         }
@@ -897,6 +897,7 @@ function invertSelection() {
             selected.push(s)
         }
     })
+    if (selected_group) selected_group.unselect()
     updateSelection()
     Blockbench.dispatchEvent('invert_selection')
 }
@@ -1004,9 +1005,9 @@ var Undo = {
             var tex = new Texture(s)
 
             if (s.mode === 'link') {
-                var arr = tex.iconpath.split('?')
+                var arr = tex.source.split('?')
                 arr[arr.length-1] = tex_version
-                tex.iconpath = arr.join('?')
+                tex.source = arr.join('?')
             }
 
             tex.load()
@@ -1033,9 +1034,9 @@ var Undo = {
             var tex = new Texture(s)
 
             if (s.mode === 'link') {
-                var arr = tex.iconpath.split('?')
+                var arr = tex.source.split('?')
                 arr[arr.length-1] = tex_version
-                tex.iconpath = arr.join('?')
+                tex.source = arr.join('?')
             }
 
             tex.load(true, true)
@@ -1098,27 +1099,19 @@ var Screencam = {
         });
     },
     cleanCanvas: function(options, cb) {
+        function setVis(v) {
+            three_grid.visible = v
+            Transformer.visible = v
+            outlines.visible = v
+            rot_origin.visible = v
+        }
 
-        scene.remove(three_grid)
-        scene.remove(Transformer)
-        scene.remove(outlines)
-        scene.remove(rot_origin)
+        setVis(false)
 
         setTimeout(function() {
 
             Screencam.normalCanvas(options, cb)
-            scene.add(three_grid)
-            scene.add(Transformer)
-            scene.add(outlines)
-
-            if (selected.length === 1 && settings.origin.value) {
-                var obj = selected[0]
-                if (obj.rotation != undefined) {
-                    setOriginHelper(obj.rotation)
-                } else if (settings.origin.value) {
-                    setOriginHelper({origin: [8,8,8], axis: 'x', angle: 0})
-                }
-            }
+            setVis(true)
 
         }, 40)
     },
@@ -1263,9 +1256,9 @@ var clipbench = {
         if (!isApp) return;
 
         if (texture.mode === 'bitmap') {
-            var img = nativeImage.createFromDataURL(texture.iconpath)
+            var img = nativeImage.createFromDataURL(texture.source)
         } else {
-            var img = nativeImage.createFromPath(texture.iconpath.split('?')[0])
+            var img = nativeImage.createFromPath(texture.source.split('?')[0])
         }
         clipboard.writeImage(img)
     },
@@ -1286,7 +1279,6 @@ var clipbench = {
         }
         cubes.forEach(function(obj) {
             var base_cube = new Cube(obj)
-            base_cube.display.mesh = undefined;
             clipbench.cubes.push(base_cube)
         })
         if (isApp) {
@@ -1315,8 +1307,9 @@ TextureAnimator = {
         }
     },
     nextFrame: function() {
+        var animated_tex = []
         textures.forEach(function(tex, i) {
-            if (tex.frameCount) {
+            if (tex.frameCount > 1) {
                 if (tex.currentFrame === undefined) {
                     tex.currentFrame = 0
                 } else if (tex.currentFrame >= tex.frameCount-1) {
@@ -1325,13 +1318,20 @@ TextureAnimator = {
                     tex.currentFrame++;
                 }
                 $($('.texture').get(i)).find('img').css('margin-top', (tex.currentFrame*-48)+'px')
-            } 
+                animated_tex.push(''+tex.id)
+            }
         })
-        var i = 0
-        while (i < elements.length) {
-            Canvas.updateUV(elements[i], true)
-            i++;
-        }
+        elements.forEach(function(obj) {
+            var update = false
+            for (var face in obj.faces) {
+                if (update === false) {
+                    update = (obj.faces.hasOwnProperty(face) && animated_tex.includes(obj.faces[face].texture.replace(/^#/, '')))
+                }
+            }
+            if (update) {
+                Canvas.updateUV(obj, true)
+            }
+        })
     },
     reset: function() {
         TextureAnimator.stop()
@@ -1386,15 +1386,15 @@ var Vertexsnap = {
         canvas1.removeEventListener("mousemove", Vertexsnap.hoverCanvas)
         canvas1.addEventListener("mousemove", Vertexsnap.hoverCanvas)
 
-        var o_vertices = cube.display.mesh.geometry.vertices
-        cube.display.mesh.updateMatrixWorld()
+        var o_vertices = cube.getMesh().geometry.vertices
+        cube.getMesh().updateMatrixWorld()
         o_vertices.forEach(function(v, id) {
             var outline_color = '0x'+app_colors.accent.hex.replace('#', '')
             var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({color: parseInt(outline_color)}))
             var pos = mesh.position.copy(v)
-            pos.applyMatrix4(cube.display.mesh.matrixWorld)
+            pos.applyMatrix4(cube.getMesh().matrixWorld)
             pos.addScalar(8)
-            mesh.rotation.copy(cube.display.mesh.rotation)
+            mesh.rotation.copy(cube.getMesh().rotation)
             mesh.cube = cube
             mesh.isVertex = true
             mesh.vertex_id = id
@@ -1483,7 +1483,7 @@ var Vertexsnap = {
             }
 
             Vertexsnap.cubes.forEach(function(obj) {
-                var cube_pos = new THREE.Vector3().copy(pos).removeEuler(Vertexsnap.cubes[0].display.mesh.rotation)
+                var cube_pos = new THREE.Vector3().copy(pos).removeEuler(Vertexsnap.cubes[0].getMesh().rotation)
                 for (i=0; i<3; i++) {
                     if (m[i] === 1) {
                         obj.to[i] += cube_pos.getComponent(i)
@@ -1502,7 +1502,7 @@ var Vertexsnap = {
                         obj.rotation.origin[2] += cube_pos.getComponent(2)
                     }
                 } else {
-                    cube_pos.removeEuler(Vertexsnap.cubes[0].display.mesh.rotation)
+                    cube_pos.removeEuler(Vertexsnap.cubes[0].getMesh().rotation)
                 }
                 obj.from[0] += cube_pos.getComponent(0)
                 obj.from[1] += cube_pos.getComponent(1)
