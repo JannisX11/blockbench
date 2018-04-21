@@ -68,5 +68,8 @@
     "electron": "^1.8.4",
     "electron-winstaller": "^2.5.2",
     "electron-builder": "^20.6.2"
+  },
+  "dependencies": {
+    "discord-rpc": "github:discordjs/rpc"
   }
 }
