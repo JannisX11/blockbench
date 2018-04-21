@@ -73,7 +73,7 @@ async function updatePresence() {
   let details
   
   let projectName = await win.webContents.executeJavaScript("$(\"#project_name\")[0].value");
-  projectName = "" ? details = "Working on ${projectName}" : ""
+  projectName !== "" ? details = "Working on " + projectName : details = undefined
   rpc.setActivity({
     details: details,
     state: "Modeling in blockbench",
