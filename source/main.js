@@ -13,8 +13,7 @@ function createWindow () {
     backgroundColor: '#21252b',
     webPreferences: {
       experimentalFeatures: true,
-      webgl: true,
-      webSecurity: false
+      webgl: true
     }
   })
   var index_path = path.join(__dirname, 'index.html')
@@ -25,7 +24,7 @@ function createWindow () {
   win.maximize()
   win.show()
   win.loadURL(url.format({
-    pathname: index_path,
+    pathname: path.join(__dirname, 'index.php'),
     protocol: 'file:',
     slashes: true
   }))
