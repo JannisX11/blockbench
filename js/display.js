@@ -1060,6 +1060,10 @@ function enterDisplaySettings() {		//Enterung Display Setting Mode, changes the 
 	} else {
 		$('#display_presets > ul').css('margin-top', '0')
 	}
+	if (outlines.children.length) {
+		outlines.children.length = 0
+		Canvas.updateAllPositions()
+	}
 }
 function exitDisplaySettings() {		//Enterung Display Setting Mode, changes the scene etc
     resetDisplayBase()
@@ -1307,36 +1311,6 @@ function setDisplayArea(x, y, z, rx, ry, rz, sx, sy, sz) {//Sets the Work Area t
 	display_area.scale['x'] = sx;
 	display_area.scale['y'] = sy;
 	display_area.scale['z'] = sz;
-	/*
-var xchg = 
-$('#translation_z').on('input', xchg)
-
-
-
-$('#translation_z').on('input', function(e) {
-	var num = $(e.target).val()
-	display_area.position.z = num
-	console.log(num)
-})
-
-
-$('#rotation_z').on('input', function(e) {
-	var num = $(e.target).val()
-	display_area.rotation.z = Math.PI / (180 / num)
-	console.log(num)
-})
-
-
-0
-0
-2.5
-
-0
-0
-0
-
-
-	*/
 }
 function groundAnimation() {
 	display_area.rotation.y += 0.015

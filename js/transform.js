@@ -11,12 +11,12 @@ function duplicateCubes() {
 		}
 		//Rest
 		elements.push(base_cube)
-		base_cube.addTo(old_group)
+		base_cube.addTo(old_group, false)
 		Canvas.addCube(base_cube)
 		selected[i] = base_cube
 	})
 
-
+    loadOutlinerDraggable()
 	Toolbox.set('translate')//( Also updates selection)
 	setUndo('Duplicated cube'+pluralS(selected))
 }
@@ -156,13 +156,14 @@ var Rotation = {
 			}
 		}
 	},
-	selectTool: function() {
+	switchAxis: function() {
 		if (Blockbench.entity_mode) {
 			Rotation.load()
 		} else {
 			Rotation.set()
 		}
 	},
+    //Start, slide, save
 	start: function() {
 		Rotation.angleBefore = $('#cube_rotate').val();
 	},
@@ -244,6 +245,7 @@ var Rotation = {
 			}
 		}
 	},
+    //
 	set: function() {
 		if (Blockbench.entity_mode === false) {
 			if (selected.length == 0) {return;}
@@ -291,7 +293,7 @@ var Rotation = {
 		updateNslideValues()
 		Canvas.updatePositions()
 	},
-	fn: function (argument) {
+	button: function (argument) {
 		if (Blockbench.entity_mode === false) {
 			Rotation.remove()
 		} else if (selected_group) {
@@ -738,6 +740,9 @@ function scaleAll(save, size) {
         if (save === true) {
             delete obj.display.before
         }
+        if (Blockbench.entity_mode) {
+            Canvas.updateUV(obj)
+        }
     })
     if (clip && Blockbench.entity_mode === false) {
         $('#scaling_clipping_warning').text('Model clipping: Your model is too large for the canvas')
@@ -806,6 +811,3 @@ function centerCubes(axis, update) {
         setUndo('Centered cubes on '+getAxisLetter(axis))
     }
 }
-
-//Vertex Snap
-

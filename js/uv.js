@@ -16,16 +16,17 @@ function showUVShiftDialog() {
     var dialog = new Dialog({
         title: 'Shift UV',
         draggable: true,
+        width: 387,
         lines: [
-            '<div class="dialog_bar">'+
-                'Enter the number you want to multiply the UV offset coordinates by. Mathematical expressions are allowed. Prepend a "+" if you want to add a specific number'+
+            '<div class="dialog_bar" style="height: auto; padding-bottom: 20px;">'+
+                'Enter the number you want to <b>multiply</b> the UV offset coordinates by. Mathematical expressions are allowed. Prepend a "+" if you want to <b>add</b> that number'+
             '</div>',
             '<div class="dialog_bar">'+
-                '<label class="inline_label">Horizontal: </label>'+
+                '<label class="inline_label" style="width: 120px;">Horizontal: </label>'+
                 '<input type="text" class="dark_bordered" id="shift_uv_horizontal">'+
             '</div>',
             '<div class="dialog_bar">'+
-                '<label class="inline_label">Vertical: </label>'+
+                '<label class="inline_label" style="width: 120px;">Vertical: </label>'+
                 '<input type="text" class="dark_bordered" id="shift_uv_vertical">'+
             '</div>'
         ],
@@ -41,7 +42,7 @@ function showUVShiftDialog() {
                     add = true
                 }
                 h = eval(h)
-                selected.forEach(function(obj) {
+                elements.forEach(function(obj) {
                     if (add) {
                         obj.uv_offset[0] += h
                     } else {
@@ -57,14 +58,16 @@ function showUVShiftDialog() {
                     add = true
                 }
                 v = eval(v)
-                selected.forEach(function(obj) {
+                elements.forEach(function(obj) {
                     if (add) {
                         obj.uv_offset[1] += v
                     } else {
                         obj.uv_offset[1] *= v
                     }
+                    Canvas.updateUV(obj)
                 })
             }
+            main_uv.loadData()
             setUndo('Shifted UV')
         },
         onCancel: function() {
@@ -553,49 +556,13 @@ class UVEditor {
         }
     }
     displayFrame() {
-        /*
-        var uvTag = this.getUVTag(selected[0])
-        var pixels = this.size/16
-
-        //X
-        if (Blockbench.entity_mode) {
-            var width = (selected[0].size(0) + selected[0].size(2))*2
-            width = limitNumber(width/Project.texture_width * 16, 0, 16)
-        } else {
-            var width = limitNumber(uvTag[2]-uvTag[0], -16, 16)
-        }
-        var x = limitNumber(uvTag[0], 0, 16)
-        if (width < 0) {
-            width *= -1
-            x = x - width
-        }
-        this.jquery.size.width(width * pixels)
-        this.jquery.size.css('left', x*pixels+'px')
-
-        //Y
-        if (Blockbench.entity_mode) {
-            var height = selected[0].size(2) + selected[0].size(1)
-            height = limitNumber(height/Project.texture_width * 16, 0, 16)
-        } else {
-            var height = limitNumber(uvTag[3]-uvTag[1], -16, 16)
-        }
-        var y = limitNumber(uvTag[1], 0, 16)
-        if (height < 0) {
-            height *= -1
-            y = y - height
-        }
-        if (Blockbench.entity_mode) {
-            y *= (Project.texture_height/Project.texture_width)
-        }
-        this.jquery.size.height(height * pixels)
-        this.jquery.size.css('top', y*pixels+'px')
-        this.displayTransformInfo()
-        */
         var scope = this;
         if (Blockbench.entity_mode) {
             var uvTag = this.getUVTag(selected[0])
 
-            var width = (selected[0].size(0) + selected[0].size(2))*2
+            var size_tag = selected[0].size(undefined, true)
+
+            var width = (size_tag[0] + size_tag[2])*2
                 width = limitNumber(width, 0, Project.texture_width)
                 width = width/Project.texture_width*scope.size
 
@@ -606,7 +573,7 @@ class UVEditor {
             this.jquery.size.css('left', x+'px')
 
 
-            var height = selected[0].size(2) + selected[0].size(1)
+            var height = size_tag[2] + size_tag[1]
                 height = limitNumber(height, 0, Project.texture_height)
                 height = height/Project.texture_height*scope.size
                 height *= Project.texture_height/Project.texture_width
@@ -649,20 +616,21 @@ class UVEditor {
     displayMappingOverlay() {
         if (!Blockbench.entity_mode) return this;
         var scope = this;
-        var size = scope.getPixelSize()
+        var pixels = scope.getPixelSize()
         function addElement(x,y,width, height, n, color) {
             scope.jquery.size.append('<div class="uv_mapping_overlay" '+
-                'style="left: '+x*size+'px; top: '+y*size+'px;'+
-                'height: '+height*size+'px; width: '+width*size+'px;'+
+                'style="left: '+x*pixels+'px; top: '+y*pixels+'px;'+
+                'height: '+height*pixels+'px; width: '+width*pixels+'px;'+
                 'background: '+color+';"></div>')
         }
-        var obj = selected[0]
-        addElement(obj.size(2), 0, obj.size(0), obj.size(2),                            '#b4d4e1', '#ecf8fd')
-        addElement(obj.size(2)+obj.size(0), 0, obj.size(0), obj.size(2),                '#536174', '#6e788c')
-        addElement(0, obj.size(2), obj.size(2), obj.size(1),                            '#43e88d', '#7BFFA3')
-        addElement(obj.size(2), obj.size(2), obj.size(0), obj.size(1),                  '#5bbcf4', '#7BD4FF')
-        addElement(obj.size(2)+obj.size(0), obj.size(2), obj.size(2), obj.size(1),      '#f48686', '#FFA7A4')
-        addElement(2*obj.size(2)+obj.size(0), obj.size(2), obj.size(0), obj.size(1),    '#f8dd72', '#FFF899')
+        var size = selected[0].size(undefined, true)
+
+        addElement(size[2], 0, size[0], size[2],                '#b4d4e1', '#ecf8fd')
+        addElement(size[2]+size[0], 0, size[0], size[2],        '#536174', '#6e788c')
+        addElement(0, size[2], size[2], size[1],                '#43e88d', '#7BFFA3')
+        addElement(size[2], size[2], size[0], size[1],          '#5bbcf4', '#7BD4FF')
+        addElement(size[2]+size[0], size[2], size[2], size[1],  '#f48686', '#FFA7A4')
+        addElement(2*size[2]+size[0], size[2], size[0], size[1],'#f8dd72', '#FFF899')
     }
     displayNslides() {
         if (Blockbench.entity_mode) {
@@ -783,7 +751,6 @@ class UVEditor {
         $('#nslide_head #nslide_offset').text('Offset: '+difference)
     }
     nslideInput(action, difference) {
-        console.log('x')
         var scope = this;
         selected.forEach(function(obj) {
             switch (action) {
@@ -1104,6 +1071,13 @@ class UVEditor {
         uv_dialog.clipboard = []
 
         function addToClipboard(face) {
+            if (Blockbench.entity_mode) {
+                var new_tag = {
+                    uv: selected[0].uv_offset
+                }
+                uv_dialog.clipboard.push(new_tag)
+                return;
+            }
             var tag = selected[0].faces[face]
             var new_tag = {
                 uv: tag.uv.slice(),

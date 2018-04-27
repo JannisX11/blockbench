@@ -182,7 +182,7 @@
         <ul id="pe_list" class="list">
             <li v-for="item in searched" v-bind:class="{ selected: item.selected }" v-on:click="selectE(item, $event)" ondblclick="loadPEModel()">
                 <h4>{{ item.name }}</h4>
-                <p>{{ item.bonecount }} Bones</p>
+                <p>{{ item.bonecount }} Bones, {{ item.cubecount }} Cubes</p>
             </li>
         </ul>
 
@@ -618,18 +618,18 @@
             <p><b>Creator: </b>JannisX11</p>
             <p><b>Website: </b><a class="open-in-browser" href="http://blockbench.net">blockbench.net</a></p>
             <p><b>Bug Tracker: </b><a class="open-in-browser" href="https://github.com/JannisX11/blockbench/issues">github.com/JannisX11/blockbench</a></p>
-            <p class="local_only">This app is built with <b>Electron</b>, a framework for creating native applications with web technologies like JavaScript, HTML, and CSS.</p>
+            <p class="local_only">This app is built with <a href="https://electronjs.org" class="open-in-browser">Electron</a>, a framework for creating native applications with web technologies like Javascript, HTML, and CSS.</p>
             <a class="open-in-browser local_only" href="https://electron.atom.io">electron.atom.io</a>
-            <p>Vertex Snapping is based on a design by SirBenet</p>
+            <p>Vertex Snapping is based on a plugin by SirBenet</p>
             <p><b>Icon Packs: </b><a href="https://material.io/icons/" class="open-in-browser">material.io/icons</a> &amp; <a href="http://fontawesome.io/icons/" class="open-in-browser">fontawesome</a></p>
             <p><b>Javascript Libraries: </b>
-                <a href="https://jquery.com" class="open-in-browser">jQuery</a>
-                <a href="https://jqueryui.com" class="open-in-browser">jQuery UI</a>
-                <a href="https://vuejs.org" class="open-in-browser">VueJS</a>
-                <a href="https://github.com/weibangtuo/vue-tree" class="open-in-browser">Vue Tree</a>
-                <a href="https://threejs.org" class="open-in-browser">ThreeJS</a>
-                <a href="https://github.com/lydell/json-stringify-pretty-compact" class="open-in-browser">json-stringify-pretty-compact</a>
-                <a href="https://github.com/oliver-moran/jimp" class="open-in-browser">Jimp</a>
+                <a href="https://jquery.com" class="open-in-browser">jQuery</a>,
+                <a href="https://jqueryui.com" class="open-in-browser">jQuery UI</a>,
+                <a href="https://vuejs.org" class="open-in-browser">VueJS</a>,
+                <a href="https://github.com/weibangtuo/vue-tree" class="open-in-browser">Vue Tree</a>,
+                <a href="https://threejs.org" class="open-in-browser">ThreeJS</a>,
+                <a href="https://github.com/lydell/json-stringify-pretty-compact" class="open-in-browser">json-stringify-pretty-compact</a>,
+                <a href="https://github.com/oliver-moran/jimp" class="open-in-browser">Jimp</a>,
                 <a href="https://bgrins.github.io/spectrum" class="open-in-browser">Spectrum</a>
             </p>
         </div>
@@ -748,7 +748,7 @@
                             <li onclick="importExtrusion(true)"><i class="material-icons">eject</i>Extruded Texture</li>
                         </ul>
                     </li>
-                    <li><i class="material-icons">note_add</i>Add
+                    <li class="block_mode_only"><i class="material-icons">note_add</i>Add
                         <i class="material-icons more_icon">navigate_next</i>
                         <ul class="dropdown level2">
                             <li onclick="openFile(false)"><i class="material-icons">assessment</i>Model</li>
@@ -1079,13 +1079,13 @@
             <div class="bar" id="rotation_main_bar" style="position: relative;">
                 <div id="cube_rotate_dummy"></div>
                 <input type="range" class="tool half rotation_tool" id="cube_rotate" name="cube_rotate" min="-67.5" max="67.5" step="22.5" value="0" onmousedown="Rotation.start()" oninput="Rotation.slide()" onmouseup="Rotation.save()">
-                <select class="tool half rotation_tool" id="cube_axis" name="cube_axis" onchange="Rotation.selectTool()">
+                <select class="tool half rotation_tool" id="cube_axis" name="cube_axis" onchange="Rotation.switchAxis()">
                     <option value="x" id="x">X Axis</option>
                     <option value="y" id="y" selected>Y Axis</option>
                     <option value="z" id="z">Z Axis</option>
                 </select>
                 <div class="tool" id="cube_rescale_tool"><input type="checkbox" id="cube_rescale" class="rotation_tool" onclick="Rotation.set()"><div class="tooltip">Rescale</div></div>
-                <div class="tool right_tool" id="rotation_function_button" onclick="Rotation.fn()"><i class="material-icons">clear</i><div class="tooltip">Remove Rotation</div></div>
+                <div class="tool right_tool" id="rotation_function_button" onclick="Rotation.button()"><i class="material-icons">clear</i><div class="tooltip">Remove Rotation</div></div>
             </div>
             <div class="bar">
                 <div class="placeholder"></div><div id="rotation_origin_label">Origin</div>

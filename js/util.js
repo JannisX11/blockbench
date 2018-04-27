@@ -46,6 +46,10 @@ Math.radToDeg = function(rad) {
 Math.degToRad = function(deg) {
   return Math.PI / (180 /deg)
 }
+Math.roundTo = function(num, digits) {
+  var d = Math.pow(10,digits)
+  return Math.round(num * d) / d
+}
 
 Array.prototype.equals = function (array) {
     if (!array)

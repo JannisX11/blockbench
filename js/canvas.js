@@ -495,6 +495,7 @@ function setOriginHelper(obj) {
     rot_origin.rotation.x = 0
     rot_origin.rotation.y = 0
     rot_origin.rotation.z = 0
+
     if (obj.angle) {
         rot_origin.rotation[obj.axis] = Math.PI / (180 /obj.angle)
     } else if (Blockbench.entity_mode && selected_group) {
@@ -842,8 +843,11 @@ class CanvasController {
         if (Prop.wireframe === false) {
             Canvas.updateUV(s)
         }
+        Canvas.buildOutline(s)
     }
     adaptObjectPosition(mesh, obj) {
+
+        if (!mesh) mesh = obj.getMesh()
 
         function setSize(geo) {
             var inflate = obj.inflate
@@ -898,6 +902,7 @@ class CanvasController {
         } else {
             mesh.position.set(0, 0, 0)
         }
+        Canvas.buildOutline(obj)
     }
     updatePositions(leave_selection) {
         updateNslideValues()
@@ -1008,18 +1013,19 @@ class CanvasController {
 
         if (Blockbench.entity_mode) {
 
+            var size = obj.size(undefined, true)
+            
             var face_list = [   
-                {face: 'north', fIndex: 10, from: [obj.size(2), obj.size(2)], size: [obj.size(0), obj.size(1)]},
-                {face: 'east', fIndex: 0, from: [0, obj.size(2)], size: [obj.size(2), obj.size(1)]},
-                {face: 'south', fIndex: 8, from: [obj.size(2)*2 + obj.size(0), obj.size(2)], size: [obj.size(0), obj.size(1)]},
-                {face: 'west', fIndex: 2, from: [obj.size(2) + obj.size(0), obj.size(2)], size: [obj.size(2), obj.size(1)]},
-                {face: 'up', fIndex: 4, from: [obj.size(2)+obj.size(0), obj.size(2)], size: [-obj.size(0), -obj.size(2)]},
-                {face: 'down', fIndex: 6, from: [obj.size(2)+obj.size(0)*2, 0], size: [-obj.size(0), obj.size(2)]}
+                {face: 'north', fIndex: 10, from:   [size[2], size[2]],             size: [size[0],  size[1]]},
+                {face: 'east', fIndex: 0, from:     [0, size[2]],                   size: [size[2],  size[1]]},
+                {face: 'south', fIndex: 8, from:    [size[2]*2 + size[0], size[2]], size: [size[0],  size[1]]},
+                {face: 'west', fIndex: 2, from:     [size[2] + size[0], size[2]],   size: [size[2],  size[1]]},
+                {face: 'up', fIndex: 4, from:       [size[2]+size[0], size[2]],     size: [-size[0], -size[2]]},
+                {face: 'down', fIndex: 6, from:     [size[2]+size[0]*2, 0],         size: [-size[0], size[2]]}
             ]
-            var group_mirror = (obj.display.parent !== 'root' && obj.display.parent.shade === false)
             var cube_mirror  = obj.shade === false
 
-            if (cube_mirror !== group_mirror) {
+            if (cube_mirror) {
                 face_list.forEach(function(f) {
                     f.from[0] += f.size[0]
                     f.size[0] *= -1
@@ -1042,14 +1048,14 @@ class CanvasController {
 
                 f.from[0] /= Project.texture_width  / 16
                 f.from[1] /= Project.texture_height / 16 
-                f.size[0]   /= Project.texture_width  / 16
-                f.size[1]   /= Project.texture_height / 16
+                f.size[0] /= Project.texture_width  / 16
+                f.size[1] /= Project.texture_height / 16
                 var data = {
                     uv: [
-                        f.from[0] + obj.uv_offset[0]           / Project.texture_width  * 16,
-                        f.from[1] + obj.uv_offset[1]           / Project.texture_height * 16,
-                        f.from[0] + f.size[0] + obj.uv_offset[0] / Project.texture_width  * 16,
-                        f.from[1] + f.size[1] + obj.uv_offset[1] / Project.texture_height * 16
+                        f.from[0]             + Math.floor(obj.uv_offset[0]+0.0000001) / Project.texture_width  * 16,
+                        f.from[1]             + Math.floor(obj.uv_offset[1]+0.0000001) / Project.texture_height * 16,
+                        f.from[0] + f.size[0] + Math.floor(obj.uv_offset[0]+0.0000001) / Project.texture_width  * 16,
+                        f.from[1] + f.size[1] + Math.floor(obj.uv_offset[1]+0.0000001) / Project.texture_height * 16
                     ]
                 }
                 data.uv.forEach(function(s, si) {
@@ -1123,55 +1129,34 @@ class CanvasController {
         if (obj.display.visibility == false) return;
         var mesh = obj.getMesh()
         if (mesh === undefined) return;
+        mesh.remove(mesh.outline)
+
         var geo = new THREE.EdgesGeometry(mesh.geometry);
 
-        var outline_color = '0x'+app_colors.accent.hex.replace('#', '')
-        var mat = new THREE.LineBasicMaterial({color: parseInt(outline_color), linewidth: 2})
+        //var outline_color = '0x'+app_colors.accent.hex.replace('#', '')
+        var mat = new THREE.LineBasicMaterial({color: gizmo_colors.outline, linewidth: 2})
         var wireframe = new THREE.LineSegments(geo, mat)
         wireframe.name = obj.uuid+'_outline'
-        wireframe.position.copy(mesh.position)
-        wireframe.rotation.copy(mesh.rotation)
-        wireframe.scale.copy(mesh.scale)
+        wireframe.visible = obj.display.isselected
+        mesh.outline = wireframe
+        mesh.add(wireframe)
+    }
+    outlineObjects(arr) {
+        arr.forEach(function(obj) {
+            var mesh = obj.getMesh()
+            if (mesh === undefined) return;
 
-        /*
-        if (Blockbench.entity_mode) {
-            if (obj.display.parent !== 'root' &&
-                typeof obj.display.parent === 'object' &&
-                obj.display.parent.display.parent === 'root' &&
-                obj.display.parent.rotation.join('_') !== '0_0_0') {
-                //
-                obj.display.parent.rotation.forEach(function(n, i) {
-                    wireframe.rotation[getAxisLetter(i)] = Math.PI / (180 / n)
-                })
-            }
-        } else if (obj.rotation) {
-            wireframe.position.set(obj.rotation.origin[0], obj.rotation.origin[1], obj.rotation.origin[2])
-            if (obj.rotation.angle !== 0) {
-                wireframe.rotation[obj.rotation.axis] = Math.PI / (180 /obj.rotation.angle) 
-            }
-            if (obj.rotation.rescale === true) {
-                
-                var rescale = getRescalingFactor(obj.rotation.angle);
-                wireframe.scale.set(rescale, rescale, rescale)
-                wireframe.scale[obj.rotation.axis] = 1
-            }
-        }
-        */
-        outlines.add(wireframe)
+            var geo = new THREE.EdgesGeometry(mesh.geometry);
+            var mat = new THREE.LineBasicMaterial({color: gizmo_colors.outline, linewidth: 1})
+            var wireframe = new THREE.LineSegments(geo, mat)
+
+            wireframe.position.copy(mesh.position)
+            wireframe.rotation.copy(mesh.rotation)
+            wireframe.scale.copy(mesh.scale)
+
+            wireframe.name = obj.uuid+'_ghost_outline'
+            outlines.add(wireframe)
+        })
     }
 }
 var Canvas = new CanvasController()
-
-
-rotatePoint =  function(point, rotation_degrees, pivot_point) {
-    var s = Math.sin((Math.PI / 180) * rotation_degrees);
-    var c = Math.cos((Math.PI / 180) * rotation_degrees);
-    var new_point = [0,0]
-    point[0] -= pivot_point[0];
-    point[1] -= pivot_point[1];
-    new_point[0] = point[0] * c - point[1] * s;
-    new_point[1] = point[0] * s + point[1] * c;
-    new_point[0] += pivot_point[0];
-    new_point[1] += pivot_point[1];
-    return new_point;
-}

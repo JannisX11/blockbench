@@ -728,8 +728,14 @@
 					var planeIntersect = intersectObjects( pointer, [ _gizmo[ _mode ].activePlane ] );
 
 					if ( planeIntersect ) {
+						if (Toolbox.selected.id === 'scale') {
+							var axisnr = getAxisNumber(scope.axis.toLowerCase().replace('n', ''))
+							selected.forEach(function(obj) {
+								obj.display.oldScale = obj.size(axisnr)
+							})
+						}
 
-						oldScale = selected[0].size(getAxisNumber(scope.axis.toLowerCase().replace('n', '')))
+						Canvas.outlineObjects(selected)
 
 						oldPositionArray.length = 0
 						oldScaleArray.length = 0
@@ -804,9 +810,9 @@
 						var allow_negative = settings.negative_size.value
 
 						if (scope.direction) { //Positive
-							scaleCube(obj, limitNumber(oldScale + point[axis], (allow_negative ? -32000 : 0), 32000), axisNumber)
+							scaleCube(obj, limitNumber(obj.display.oldScale + point[axis], (allow_negative ? -32000 : 0), 32000), axisNumber)
 						} else {
-							scaleCubeNegative(obj, limitNumber(oldScale - point[axis], (allow_negative ? -32000 : 0), 32000), axisNumber)
+							scaleCubeNegative(obj, limitNumber(obj.display.oldScale - point[axis], (allow_negative ? -32000 : 0), 32000), axisNumber)
 						}
 						if (Blockbench.entity_mode === true) {
 							Canvas.updateUV(obj)
@@ -833,16 +839,6 @@
 				if (previousValue !== point[axis]) {
 
 					var axis = getAxisNumber(scope.axis.toLowerCase())
-					var difference = scope.position.getComponent(axis) - oldOriginPosition.getComponent(axis)
-					var in_boundaries = true;
-
-					selected.forEach(function(obj) {
-						if (obj.from[axis] + difference < -16) in_boundaries = false;
-						if (obj.to[axis]   + difference >  32) in_boundaries = false;
-					})
-
-					var nslide_number = trimFloatNumber( limitNumber( selected[0].from[axis] + difference ) )
-					$('div.nslide[n-action="pos_'+scope.axis.toLowerCase()+'"]:not(".editing")').text(nslide_number)
 
 					var rotatedPoint = new THREE.Vector3();
 					rotatedPoint.copy(point)
@@ -864,6 +860,16 @@
 					})
 					centerTransformer(rotatedPoint)
 					previousValue = point.getComponent(axis)
+
+					var difference = scope.position.distanceTo(oldOriginPosition)
+					var shiftVec = new THREE.Vector3().copy(oldOriginPosition)
+					shiftVec.sub(scope.position).negate().removeEuler(Transformer.rotation)
+					if (shiftVec[scope.axis.toLowerCase()] < 0) {
+						difference *= -1
+					}
+
+					var nslide_number = trimFloatNumber( limitNumber( selected[0].from[axis] + difference ) )
+					$('div.nslide[n-action="pos_'+scope.axis.toLowerCase()+'"]:not(".editing")').text(nslide_number)
 				}
 			}
 			scope.dispatchEvent( changeEvent );
@@ -882,11 +888,17 @@
 				mouseUpEvent.mode = _mode;
 				scope.dispatchEvent( mouseUpEvent );
 				controls.stopMovement()
+				outlines.children.length = 0
 
 				if (Toolbox.selected.id === 'scale') {
 					//Scale
 					setUndo('Scaled cube'+pluralS(selected))
 					Canvas.updatePositions()
+					if (Toolbox.selected.id === 'scale') {
+						selected.forEach(function(obj) {
+							delete obj.display.oldScale
+						})
+					}
 
 				} else if (scope.axis !== null) {
 

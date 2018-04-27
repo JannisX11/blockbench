@@ -594,6 +594,15 @@ var entityMode = {
         $('.ui#options h3').text('Bone Settings')
         $('#rotation_origin_label').text('Pivot')
         $('input#cube_rotate').attr('min', '-180').attr('max', '180').attr('step', '5.625').addClass('entity_mode')
+        if (textures.length > 1) {
+            textures.splice(1)
+        }
+        if (textures.length) {
+            var tex = textures[0]
+            if (tex.img.naturalWidth !== tex.img.naturalWidth && tex.error) {
+                tex.error = false
+            }
+        }
 
         //UI Changes
         $('.block_mode_only').hide()
@@ -621,11 +630,17 @@ var entityMode = {
         $('input#cube_rotate').attr('min', '-67.5').attr('max', '67.5').attr('step', '22.5').removeClass('entity_mode')
         //UV
         main_uv.buildDom(true).setToMainSlot()
+        if (textures[0]) {
+            textures[0].load()
+        }
         //UI Changes
         $('.block_mode_only').show()
         $('.entity_mode_only').hide()
         $('.ui#textures').css('top', 514+'px')
         //Update
+        if (textures.length) {
+            texture[0].load()
+        }
         buildGrid()
         moveIntoBox(elements)
         Blockbench.dispatchEvent('leave_entity_mode')
@@ -644,6 +659,9 @@ var entityMode = {
                 Undo.index = 0;
                 if (Blockbench.entity_mode) {
                     entityMode.leave()
+                    elements.forEach(function(obj) {
+                        obj.display.autouv = 0
+                    })
                 } else {
                     entityMode.join()
                 }
@@ -686,5 +704,8 @@ var entityMode = {
         entityMode.old_res.x = Project.texture_width
         entityMode.old_res.y = Project.texture_height
         Canvas.updateAllUVs()
+        if (selected.length) {
+            main_uv.loadData()
+        }
     }
 }

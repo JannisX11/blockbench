@@ -232,12 +232,10 @@ class OutlinerElement {
     	}, 200);
 	}
 	updateElement() {
-		var scope = this
-		var old_name = this.name
-		scope.name = '_&/3%6-7A'
-		Vue.nextTick(function() {
-			scope.name = old_name
-		})
+		var scope = this;
+		var old_name = this.name;
+		scope.name = '_&/3%6-7A';
+		scope.name = old_name;
 	}
 	rename() {
 		var obj = $('#'+this.uuid+' > div.outliner_object > input.cube_name')
@@ -305,11 +303,23 @@ class Cube extends OutlinerElement {
 		}
 		return this;
 	}
-	size(axis) {
+	size(axis, floored) {
+		var scope = this;
+		function getA(axis) {
+			if (floored === true) {
+				return Math.floor(0.0000001 + scope.to[axis] - scope.from[axis]) 
+			} else {
+				return scope.to[axis] - scope.from[axis]
+			}
+		}
 		if (axis !== undefined) {
-			return this.to[axis] - this.from[axis];
+			return getA(axis);
 		} else {
-			return [this.to[0] - this.from[0], this.to[1] - this.from[1], this.to[2] - this.from[2]]
+			return [
+				getA(0),
+				getA(1),
+				getA(2)
+			]
 		}
 	}
 	getMesh() {
@@ -409,7 +419,10 @@ class Cube extends OutlinerElement {
 	remove(update) {
 		TreeElements.clearObjectRecursive(this)
 		if (this.display.visibility) {
+			var mesh = this.getMesh()
 			scene.remove(this.getMesh())
+			delete Canvas.meshes[this.uuid]
+			mesh.geometry.dispose()
 		}
 		Canvas.meshes[this.uuid] = undefined
 		if (selected.includes(this)) {
@@ -425,9 +438,7 @@ class Cube extends OutlinerElement {
 		var scope = this;
 		new ContextMenu(event, [
 			{icon: 'content_copy', name: 'Duplicate', click: function() {
-				forOutlinerSelection(scope, function(item) {
-					item.duplicate()
-				})
+				scope.duplicate()
 				setUndo('Duplicated Cubes')
 			}},
 			{icon: 'text_format', name: 'Rename', click: function() {
@@ -495,11 +506,15 @@ class Cube extends OutlinerElement {
 		})
 	}
 	duplicate() {
-		selected.length = 0
-		this.selectLow()
-		duplicateCubes()
-		if (selected[0]) {
-			selected[0].addTo(this)
+		if (selected.length > 1 && this.display.isselected) {
+			duplicateCubes()
+		} else {
+			selected.length = 0
+			this.selectLow()
+			duplicateCubes()
+			if (selected[0]) {
+				selected[0].addTo(this)
+			}
 		}
 	}
 	applyTexture(texture, faces) {
@@ -663,7 +678,10 @@ class Cube extends OutlinerElement {
 	setAutoUV(val) {
 		this.display.autouv = val;
 		this.mapAutoUV()
-		Canvas.updateSelectedFaces()
+        if (this.display.visibility == true) {
+            Canvas.adaptObjectFaces(this.getMesh(), this)
+            Canvas.updateUV(this)
+        }
 	}
 }
 	Cube.prototype.title = 'Cube'
@@ -781,7 +799,7 @@ class Group extends OutlinerElement {
 		this.unselect()
 		var i = this.children.length-1
 		while (i >= 0) {
-			this.children[i].remove()
+			this.children[i].remove(false)
 			i--;
 		}
 		Canvas.updateIndexes()
@@ -790,6 +808,7 @@ class Group extends OutlinerElement {
 		} else {
 			TreeElements.remove(this)
 		}
+		updateSelection()
 	}
 	index() {
 		return -1;
@@ -807,8 +826,9 @@ class Group extends OutlinerElement {
 			array.reverse()
 		}
 		array.forEach(function(s, i) {
-			s.addTo(scope.display.parent)
+			s.addTo(scope.display.parent, false)
 		})
+		loadOutlinerDraggable()
 		TreeElements.clearObjectRecursive(this)
 		selected_group = undefined
 		delete this
@@ -870,14 +890,14 @@ class Group extends OutlinerElement {
 			while (i < array.length) {
 				if (array[i].type === 'cube') {
 					var dupl = new Cube(array[i])
-					dupl.addTo(g2)
+					dupl.addTo(g2, false)
 					if (destination !== 'cache') {
 						elements.push(dupl)
 					}
 				} else {
 					var dupl = array[i].getChildlessCopy()
 					duplicateArray(array[i], dupl)
-					dupl.addTo(g2)
+					dupl.addTo(g2, false)
 				}
 				i++;
 			}
@@ -886,12 +906,13 @@ class Group extends OutlinerElement {
 		duplicateArray(this, base_group)
 
 		if (!destination) {
-			base_group.addTo(this.display.parent)
+			base_group.addTo(this.display.parent, false)
 			Canvas.updateAll()
 		} else if (destination !== 'cache') {
-			base_group.addTo(destination)
+			base_group.addTo(destination, false)
 			Canvas.updateAll()
 		}
+		loadOutlinerDraggable()
 		return base_group;
 	}
 	getChildlessCopy() {
@@ -939,13 +960,12 @@ class Group extends OutlinerElement {
 				s.shade = val !== false;
 				s.updateElement()
 			})
-		}
-		this.shade = val !== false;
-		if (Blockbench.entity_mode) {
+		} else {
 			this.forEachChild(function(s) {
 				Canvas.updateUV(s)
 			})
 		}
+		this.shade = val !== false;
 		this.updateElement()
 	}
 	setAutoUV(val) {
@@ -1103,6 +1123,8 @@ function parseGroups(array, importGroup, startIndex) {
 					if (Blockbench.hasFlag('importing') && typeof addGroup === 'object') {
 						if (addGroup.display.autouv !== undefined) {
 							obj.display.autouv = addGroup.display.autouv
+							if (obj.display.autouv === true) obj.display.autouv = 1
+							if (obj.display.autouv === false) obj.display.autouv = 0
 						}
 						if (addGroup.display.visibility !== undefined) {
 							obj.display.visibility = addGroup.display.visibility
@@ -1121,8 +1143,8 @@ function parseGroups(array, importGroup, startIndex) {
 				if (array[i].reset) {
 					obj.reset = true
 				}
-				obj.isOpen = array[i].isOpen
-				obj.shade = array[i].shade
+				if (array[i].isOpen 			!== undefined) obj.isOpen = array[i].isOpen
+				if (array[i].shade 				!== undefined) obj.shade = array[i].shade
 				if (array[i].display.visibility !== undefined) obj.display.visibility = array[i].display.visibility
 				if (array[i].display.export 	!== undefined) obj.display.export = array[i].display.export
 				if (array[i].display.autouv 	!== undefined) obj.display.autouv = array[i].display.autouv
@@ -1159,7 +1181,7 @@ function toggleOutlinerOptions(force) {
 }
 function loadOutlinerDraggable() {
 	Vue.nextTick(function() {
-		$('div.outliner_object').draggable({
+		$('li.outliner_node:not(.ui-droppable) > div.outliner_object').draggable({
 			delay: 120,
 			revertDuration: 50,
 			helper: function() {
@@ -1197,7 +1219,7 @@ function loadOutlinerDraggable() {
 				*/
 			}
 		})
-		$('li.outliner_node').droppable({
+		$('li.outliner_node:not(.ui-droppable)').droppable({
 			greedy: true,
 			accept: function(s) { 
 				if (s.hasClass('outliner_object') || s.hasClass('texture')) { 
@@ -1318,7 +1340,7 @@ function addCube() {
 	if (selected_group) selected_group.unselect()
 	elements.push(base_cube)
 	if (create_bone) {
-		base_cube.addTo(new Group().addTo('root').openUp())
+		base_cube.addTo(new Group().addTo('root', false).openUp(), false)
 	}
 	selected = [elements[elements.length-1]]
 	Canvas.updateSelected()
@@ -1336,7 +1358,7 @@ function addCube() {
 function addGroup() {
 	var base_group = new Group()
 	selected.forEach(function(s, i) {
-		s.addTo(base_group)
+		s.addTo(base_group, false)
 		if (i === 0) {
 			s.display.isselected = false
 		}
@@ -1379,7 +1401,13 @@ function toggleCubeProperty(thing, first_level) {
 	if (selected.length === 0) return;
 	var value;
 	if (first_level) {
-		value = !selected[0][thing]
+		value = selected[0][thing]
+		if (typeof value === 'number') {
+			value++;
+			if (value === 3) value = 0
+		} else {
+			value = 0
+		}
 		selected.forEach(function(s) {
 			s[thing] = value
 		})

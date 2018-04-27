@@ -314,12 +314,26 @@ function updateUIColor() {
             }
         }
     }
-    var grid_color = '0x'+app_colors.hover.hex.replace('#', '')
+    //var grid_color = '0x'+app_colors.hover.hex.replace('#', '')
     $('meta[name=theme-color]').attr('content', app_colors.ui.hex)
 
-    try {
-        three_grid.getObjectByName('grid').material.color = new THREE.Color(parseInt(grid_color, 16))
-    } catch(err) {}
+    var c_outline = parseInt('0x'+app_colors.accent.hex.replace('#', ''))
+    if (!gizmo_colors.outline || c_outline !== gizmo_colors.outline.getHex()) {
+        gizmo_colors.outline = new THREE.Color( c_outline )
+        elements.forEach(function(obj) {
+            obj.getMesh().outline.material.color = gizmo_colors.outline
+        })
+    }
+
+    var c_grid = parseInt('0x'+app_colors.grid.hex.replace('#', ''))
+    if (!gizmo_colors.grid || c_grid !== gizmo_colors.grid.getHex()) {
+        gizmo_colors.grid = new THREE.Color( c_grid )
+        try {
+            three_grid.getObjectByName('grid').material.color = gizmo_colors.grid
+        } catch(err) {}
+    }
+    //gizmo_colors.grid    = new THREE.Color( parseInt('0x'+app_colors.accent.hex.replace('#', '')) )
+
 
     localStorage.setItem('app_colors', JSON.stringify(app_colors))
 }
@@ -446,6 +460,7 @@ var splashScreen = {
         }
     },
     show: function() {
+        if (open_dialog) return;
         $('#welcome_content').load('https://www.blockbench.net/api/welcome/index.html', function() {
             $('#welcome_screen #welcome_body').css('max-height', ($(window).height() - 478) + 'px')
             showDialog('welcome_screen')

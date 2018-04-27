@@ -54,15 +54,33 @@ function loadFile(data, filepath, makeNew) {
         added_model_index++;
         var import_group = new Group(pathToName(filepath, false))
     }
-
-    data = JSON.parse(data)
-
+    try {
+        data = JSON.parse(data)
+    } catch (err) {
+        console.error(err)
+        Blockbench.showMessageBox({
+            title: 'Invalid Model File',
+            icon: 'error',
+            message: 'Could not open model file: <br> '+err,
+            buttons: ['OK']
+        })
+        return;
+    }
     //Check if PE Model
     for (var key in data) {
         if (key.includes('geometry.')) {
             loadPEModelFile(data)
             return;
         }
+    }
+    if (!data.elements && !data.parent && !data.display && !data.textures) {
+        Blockbench.showMessageBox({
+            title: 'Invalid Model File',
+            icon: 'error',
+            message: 'This file does not contain valid model data.',
+            buttons: ['OK']
+        })
+        return;
     }
     Blockbench.entity_mode = false;
     saveSettings()
@@ -78,19 +96,28 @@ function loadFile(data, filepath, makeNew) {
     if (data.elements) {
         data.elements.forEach(function(obj) {
             base_cube = new Cube(obj)
+            var uv_stated = false;
             for (var face in base_cube.faces) {
                 if (obj.faces[face] === undefined) {
                     base_cube.faces[face].texture = '$transparent'
                     base_cube.faces[face].uv = [0,0,0,0]
+                } else  if (typeof obj.faces[face].uv === 'object') {
+                    uv_stated = true
                 }
             }
-            base_cube.uuid = guid()
-            base_cube.display.autouv = false;
+            if (!uv_stated) {
+                base_cube.display.autouv = 2
+                base_cube.mapAutoUV()
+            } else {
+                base_cube.display.autouv = 0;
+            }
             elements.push(base_cube);
             if (makeNew === true) {
                 TreeElements.push(base_cube)
+                base_cube.display.parent = 'root'
             } else if (import_group) {
-                import_group.push(base_cube)
+                import_group.children.push(base_cube)
+                base_cube.display.parent = import_group
             }
         })
     }
@@ -130,7 +157,13 @@ function loadFile(data, filepath, makeNew) {
         })
         elements.push(base_cube);
         base_cube.addTo()
-
+    } else if (!data.elements && data.parent) {
+        Blockbench.showMessageBox({
+            title: 'Empty Model',
+            icon: 'info',
+            message: 'This file is a child of '+data.parent+' and does not contain a model.',
+            buttons: ['OK']
+        })
     }
     if (data.textures) {
         //Create Path Array to fetch textures
@@ -201,7 +234,7 @@ function loadFile(data, filepath, makeNew) {
     loadTextureDraggable()
     loadOutlinerDraggable()
     Canvas.updateAll()
-    setUndo('Opened project')
+    setUndo('Opened model')
     Blockbench.removeFlag('importing')
     if (makeNew) {
         Prop.project_saved = true;
@@ -218,9 +251,15 @@ function loadPEModelFile(data) {
 
     for (var key in data) {
         if (key.includes('geometry.') && data.hasOwnProperty(key)) {
-            var base_model = {name: key, bonecount: 0, selected: false, object: data[key]}
+            var base_model = {name: key, bonecount: 0, cubecount: 0, selected: false, object: data[key]}
             if (data[key].bones) {
                 base_model.bonecount = data[key].bones.length
+                data[key].bones.forEach(function(b) {
+                    if (b.cubes) {
+                        base_model.cubecount += b.cubes.length
+                    }
+                })
+                if (typeof base_model.cubecount !== 'number') base_model.cubecount = '[E]'
             }
             pe_list_data.push(base_model)
         }
@@ -271,12 +310,17 @@ function loadPEModel() {
         data = pe_list_data[0]
     }
     Project.parent = data.name
+    Project.texture_width = 64
+    Project.texture_height = 64
+
     if (data.object.texturewidth !== undefined) {
         Project.texture_width = data.object.texturewidth
     }
     if (data.object.textureheight !== undefined) {
         Project.texture_height = data.object.textureheight
     }
+    entityMode.old_res.x = Project.texture_width
+    entityMode.old_res.y = Project.texture_height
 
     if (data.object.bones) {
         var included_bones = []
@@ -292,7 +336,7 @@ function loadPEModel() {
                 group.origin = [0, 0, 0]
             }
             if (b.rotation) {
-                group.rotation = b.rotation.slice()
+                group.rotation = b.rotation
                 group.rotation.forEach(function(br, ri) {
                     group.rotation[ri] *= -1
                 })
@@ -327,7 +371,11 @@ function loadPEModel() {
                     if (s.inflate && typeof s.inflate === 'number') {
                         base_cube.inflate = s.inflate
                     }
-                    base_cube.shade = !s.mirror
+                    if (s.mirror === undefined) {
+                        base_cube.shade = group.shade
+                    } else {
+                        base_cube.shade = !s.mirror
+                    }
                     elements.push(base_cube)
                     base_cube.addTo(group, false)
                 })
@@ -493,7 +541,7 @@ function buildBlockModel(options) {
     if (checkExport('textures', Object.keys(texturesObj).length >= 1)) {
         blockmodel.textures = texturesObj
     }
-    if (checkExport('elements', elements.length >= 1)) {
+    if (checkExport('elements', clear_elements.length >= 1)) {
         blockmodel.elements = clear_elements
     }
     if (checkExport('display', Object.keys(display).length >= 1)) {
@@ -548,7 +596,7 @@ function buildEntityModel(options) {
         //Bone
         var bone = {}
         bone.name = g.name
-        bone.pivot = g.origin
+        bone.pivot = g.origin.slice()
         bone.pivot[0] *= -1
         if (g.rotation.join('_') !== '0_0_0') {
             bone.rotation = g.rotation.slice()
@@ -559,7 +607,7 @@ function buildEntityModel(options) {
         if (g.reset) {
             bone.reset = true
         }
-        if (g.shade === false) {
+        if (!g.shade) {
             bone.mirror = true
         }
         //Cubes
@@ -581,8 +629,9 @@ function buildEntityModel(options) {
                             if (s.inflate && typeof s.inflate === 'number') {
                                 cube.inflate = s.inflate
                             }
-                            if (s.shade === false) {
-                                cube.mirror = true
+
+                            if (s.shade === !!bone.mirror) {
+                                cube.mirror = !s.shade
                             }
                             bone.cubes.push(cube)
                         }

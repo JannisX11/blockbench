@@ -258,6 +258,7 @@ function findEntityTexture(mob, return_path) {
         'geometry.player_head': 'steve',
         'geometry.mob_head': 'skeleton/skeleton',
         'geometry.dragon_head': 'dragon/dragon',
+        'geometry.boat': 'boat/boat_oak',
         'geometry.cod': 'fish/fish',
         'geometry.pufferfish.small': 'fish/pufferfish',
         'geometry.pufferfish.mid': 'fish/pufferfish',
@@ -274,13 +275,22 @@ function findEntityTexture(mob, return_path) {
         texture_path.push('entity')
         texture_path = texture_path.concat(path.split('/'))
         texture_path = texture_path.join(osfs)
-        if (return_path) {
+        if (return_path === true) {
             return texture_path+'.png';
         } else {
             if (fs.existsSync(texture_path + '.png')) {
                 var texture = new Texture({keep_size: true}).fromPath(texture_path + '.png').add()
             } else if (fs.existsSync(texture_path + '.tga')) {
                 var texture = new Texture({keep_size: true}).fromPath(texture_path + '.tga').add()
+
+            } else if (settings.default_path && settings.default_path.value) {
+
+                texture_path = settings.default_path.value + osfs + 'entity' + osfs + path.split('/').join(osfs)
+                if (fs.existsSync(texture_path + '.png')) {
+                    var texture = new Texture({keep_size: true}).fromPath(texture_path + '.png').add()
+                } else if (fs.existsSync(texture_path + '.tga')) {
+                    var texture = new Texture({keep_size: true}).fromPath(texture_path + '.tga').add()
+                }
             }
         }
     }
@@ -465,6 +475,12 @@ function readFile(filepath, makeNew) {
     fs.readFile(filepath, 'utf-8', function (err, data) {
         if (err) {
             console.log(err)
+            Blockbench.showMessageBox({
+                title: 'File Error',
+                icon: 'error_outline',
+                message: 'Blockbench could not find the requested file. Make sure it is saved locally and not in a cloud.',
+                buttons: ['OK']
+            })
             return;
         }
         addRecentProject({name: pathToName(filepath, 'mobs_id'), path: filepath})

@@ -1,5 +1,6 @@
 /**
  * @author mrdoob / http://mrdoob.com/
+ * modified for Blockbench
  */
 
 THREE.OBJExporter = function () {};
@@ -10,13 +11,13 @@ THREE.OBJExporter.prototype = {
 
 	parse: function ( object, mtlFileName ) {
 
-	var output = '';
+	var output = '# Made in Blockbench '+appVersion+'\n';
 	var materials = {};
 
 	var indexVertex = 0;
 	var indexVertexUvs = 0;
 	var indexNormals = 0;
-      	
+
 	output += 'mtllib ' + mtlFileName +  '.mtl\n';
 
 		var parseMesh = function ( mesh ) {
@@ -33,7 +34,7 @@ THREE.OBJExporter.prototype = {
 
 			if ( geometry instanceof THREE.Geometry ) {
 
-				output += 'o ' + mesh.name + '\n';
+				output += 'o ' + element.name + '\n';
 
 				var vertices = geometry.vertices;
 
@@ -132,17 +133,22 @@ THREE.OBJExporter.prototype = {
 
 				for ( var i = 0, j = 1, l = faces.length; i < l; i ++, j += 3 ) {
 
-					var face = faces[ i ];
+					var f_mat = getMtlFace(element, i)
 
-					if (i % 2 === 0) {
-						output += getMtlFace(element, i)
+					if (f_mat) {
+
+						var face = faces[ i ];
+
+						if (i % 2 === 0) {
+							output += f_mat
+						}
+
+						output += 'f ';
+						output += ( indexVertex + face.a + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j     ) : '' ) + '/' + ( indexNormals + j     ) + ' ';
+						output += ( indexVertex + face.b + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j + 1 ) : '' ) + '/' + ( indexNormals + j + 1 ) + ' ';
+						output += ( indexVertex + face.c + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j + 2 ) : '' ) + '/' + ( indexNormals + j + 2 ) + '\n';
+
 					}
-
-					output += 'f ';
-					output += ( indexVertex + face.a + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j     ) : '' ) + '/' + ( indexNormals + j     ) + ' ';
-					output += ( indexVertex + face.b + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j + 1 ) : '' ) + '/' + ( indexNormals + j + 1 ) + ' ';
-					output += ( indexVertex + face.c + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j + 2 ) : '' ) + '/' + ( indexNormals + j + 2 ) + '\n';
-
 				}
 
 			} else {
@@ -167,15 +173,13 @@ THREE.OBJExporter.prototype = {
       		
 	// mtl output
       
-	var mtlOutput = '';
+	var mtlOutput = '# Made in Blockbench '+appVersion+'\n';;
       
 	for (var key in materials) {
 		if (materials.hasOwnProperty(key) && materials[key]) {
 			mtlOutput += 'newmtl ' +key+ '\n'
 			mtlOutput += 'map_Kd '+ materials[key].name +'\n';
-			//mtlOutput += 'illum 2\n';
 		}
-        
 	}
 	mtlOutput += 'newmtl none'
 
@@ -192,18 +196,18 @@ function getMtlFace(obj, index) {
 	if (index % 2 == 1) index--;
 	var key = 'north'
 	switch (index) {
-        case 10:  key = 'north'; break;
-        case 0:   key = 'east';  break;
-        case 8:  key = 'south';  break;
-        case 2:   key = 'west';  break;
-        case 4:     key = 'up';  break;
-        case 6:   key = 'down';  break;
+		case 10:  key = 'north'; break;
+		case 0:   key = 'east';  break;
+		case 8:  key = 'south';  break;
+		case 2:   key = 'west';  break;
+		case 4:     key = 'up';  break;
+		case 6:   key = 'down';  break;
 	}
 
 	var id = obj.faces[key].texture
 
 	if (id === '$transparent') {
-		return 'usemtl none\n'
+		return false
 	} else if (id === undefined) {
 		return 'usemtl none\n'
 	} else {

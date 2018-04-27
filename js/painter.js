@@ -387,9 +387,9 @@ class BBPainter {
 	}
 	generateTemplate(res, color, cb) {
 		function cubeTempl(obj) {
-			this.x = Math.ceil(obj.size(0))
-			this.y = Math.ceil(obj.size(1))
-			this.z = Math.ceil(obj.size(2))
+			this.x = Math.floor(obj.size(0))
+			this.y = Math.floor(obj.size(1))
+			this.z = Math.floor(obj.size(2))
 			this.obj = obj
 
 			this.height = this.z + this.y
@@ -409,6 +409,8 @@ class BBPainter {
 		var o = 0
 
 		elements.forEach(function(obj) {
+			if (obj.display.visibility === false) return;
+			
 			if (o === line_length) {
 				o = 0
 				i++

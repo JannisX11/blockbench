@@ -1,4 +1,4 @@
-var appVersion = '1.11.2'
+var appVersion = '1.11.5'
 var osfs = '/'
 var File, i;
 var browser_name = 'electron'
@@ -402,13 +402,6 @@ function setupNslides(scope) {
         $(this).addClass('editing')
         $(this).focus()
         document.execCommand('selectAll')
-        //$(this).val(nslideStorage($(this).attr('n-action')))
-        /*
-        $(this).keyup(function(event) {
-            if (event.which == 13) {
-            }
-        })
-        */
     });
     scope.find('.nslide_tool').on('mouseenter', function() {
     if (selected.length === 0 && !selected_group) return;
@@ -803,7 +796,6 @@ function updateSelection() {
     scene.remove(rot_origin)
     Transformer.detach()
     Transformer.hoverAxis = null;
-    outlines.children = []
     elements.forEach(function(s) {
         s.display.isselected = false
     })
@@ -816,12 +808,13 @@ function updateSelection() {
 
     selected.forEach(function(obj) {
         obj.display.isselected = true
-        Canvas.buildOutline(obj)
         if (Toolbox.selected.showTransformer && obj.display.visibility === true) {
             Transformer.attach(obj.getMesh())
         }
     })
-    //Canvas.updateAllFaces()
+    elements.forEach(function(obj) {
+        obj.getMesh().outline.visible = obj.display.isselected
+    })
 
     //Interface
     if (selected.length > 0) {
@@ -858,9 +851,9 @@ function updateSelection() {
             var obj = selected[0]
             if (obj.rotation != undefined) {
                 setOriginHelper(obj.rotation)
-            } else if (settings.origin_size.value > 0) {
+            }/* else if (settings.origin_size.value > 0) {
                 setOriginHelper({origin: [8,8,8], axis: 'x', angle: 0})
-            }
+            }*/
         }
     }
     Transformer.update()
@@ -1039,7 +1032,7 @@ var Undo = {
                 tex.source = arr.join('?')
             }
 
-            tex.load(true, true)
+            tex.load(undefined, true)
             textures.push(tex)
         })
         texturelist.$forceUpdate();
@@ -1243,9 +1236,10 @@ var clipbench = {
                 clipbench.cubes.forEach(function(obj) {
                     var base_cube = new Cube(obj)
 
-                    base_cube.addTo(group).init()
+                    base_cube.addTo(group, false).init()
                     selected.push(elements[elements.length-1])
                 })
+                loadOutlinerDraggable()
                 updateSelection()
                 setUndo('Pasted Cubes')
             }
