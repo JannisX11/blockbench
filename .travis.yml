@@ -31,8 +31,8 @@ addons:
       - xvfb
 
 install:
-  - nvm install 6
-  - npm install electron-builder@next
+  - nvm install 8
+  - npm install electron-builder@20.6.1
   - npm install
   - export DISPLAY=':99.0'
   - Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
@@ -44,12 +44,3 @@ before_script:
 
 script:
   - npm run dist
-
-deploy:
-  provider: releases
-  user: JannisX11
-  api_key: $GH_TOKEN
-  file: "/home/travis/build/JannisX11/blockbench/dist/Blockbench_1.9.1_amd64.deb"
-  skip_cleanup: true
-  on:
-    tags: true
