@@ -56,15 +56,27 @@ function loadFile(data, filepath, makeNew) {
     }
     try {
         data = JSON.parse(data)
-    } catch (err) {
-        console.error(err)
-        Blockbench.showMessageBox({
-            title: 'Invalid Model File',
-            icon: 'error',
-            message: 'Could not open model file: <br> '+err,
-            buttons: ['OK']
-        })
-        return;
+    } catch (err1) {
+        data = data.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, '')
+        try {
+            data = JSON.parse(data)
+        } catch (err) {
+            console.error(err)
+            var length = err.toString().split('at position ')[1]
+            if (length) {
+                length = parseInt(length)
+                console.log(data.substr(0, length+1) + ' <-- HERE')
+            } else if (err.toString().includes('Unexpected end of JSON input')) {
+                console.log(data.substr(data.length-10, 10) + ' <-- HERE')
+            }
+            Blockbench.showMessageBox({
+                title: 'Invalid Model File',
+                icon: 'error',
+                message: 'Could not open model file: <br> '+err,
+                buttons: ['OK']
+            })
+            return;
+        }
     }
     //Check if PE Model
     for (var key in data) {
@@ -96,6 +108,7 @@ function loadFile(data, filepath, makeNew) {
     if (data.elements) {
         data.elements.forEach(function(obj) {
             base_cube = new Cube(obj)
+            if (obj.__comment) base_cube.name = obj.__comment
             var uv_stated = false;
             for (var face in base_cube.faces) {
                 if (obj.faces[face] === undefined) {
@@ -355,6 +368,9 @@ function loadPEModel() {
             if (b.cubes) {
                 b.cubes.forEach(function(s) {
                     var base_cube = new Cube({name: b.name, display:{autouv: false}})
+                    if (s.name) {
+                        base_cube.name = s.name
+                    }
                     if (s.origin) {
                         base_cube.from = s.origin
                         base_cube.from[0] = -(base_cube.from[0] + s.size[0])
@@ -396,6 +412,17 @@ function loadPEModel() {
     }
 }
 //Export
+class oneLiner {
+    constructor(data) {
+        if (data !== undefined) {
+            for (var key in data) {
+                if (data.hasOwnProperty(key)) {
+                    this[key] = data[key]
+                }
+            }
+        }
+    }
+}
 function buildBlockModel(options) {
     if (options === undefined) options = {}
     var clear_elements = []
@@ -409,7 +436,7 @@ function buildBlockModel(options) {
         var element = {}
         element_index_lut[s.index()] = clear_elements.length
 
-        if (options.cube_name !== false && !settings.minifiedout.value) {
+        if (options.cube_name !== false && !settings.minifiedout.value && s.name !== 'cube') {
             element.name = s.name
         }
         element.from = s.from.slice()
@@ -418,11 +445,11 @@ function buildBlockModel(options) {
             element.shade = false
         }
         if (s.rotation) {
-            element.rotation = {
+            element.rotation = new oneLiner({
                 angle: s.rotation.angle,
                 axis: s.rotation.axis,
                 origin: s.rotation.origin
-            }
+            })
             if (s.rotation.rescale === true) {
                 element.rotation.rescale = true
             }
@@ -431,7 +458,7 @@ function buildBlockModel(options) {
         for (var face in s.faces) {
             if (s.faces.hasOwnProperty(face)) {
                 if (s.faces[face].texture !== '$transparent') {
-                    var tag = {}
+                    var tag = new oneLiner()
                     if (s.faces[face].enabled !== false) {
                         tag.uv = s.faces[face].uv
                     }
@@ -469,6 +496,7 @@ function buildBlockModel(options) {
         ) {
             largerCubesNr++;
         }
+        element.constructor.bbtype = 'Cube'
         clear_elements.push(element)
     }
     function iterate(arr) {
@@ -621,7 +649,7 @@ function buildEntityModel(options) {
                     } else if (arr[i].type === 'cube') {
                         var s = arr[i]
                         if (s !== undefined && s.display.export !== false) {
-                            var cube = {}
+                            var cube = new oneLiner()
                             cube.origin = s.from.slice()
                             cube.size = s.size()
                             cube.origin[0] = -(cube.origin[0] + cube.size[0])
@@ -701,4 +729,73 @@ function buildOBJModel(name) {
     var content = exporter.parse( scene, name);
     scene.position.set(-8,-8,-8)
     return content;
+}
+function compileJSON(object, options) {
+    var output = ''
+    if (typeof options !== 'object') options = {}
+    function newLine(tabs) {
+        if (options.small === true) {return '';}
+        var s = '\n'
+        for (var i = 0; i < tabs; i++) {
+            s += '\t'
+        }
+        return s;
+    }
+    function handleVar(o, tabs) {
+        var out = ''
+        if (typeof o === 'string') {
+            //String
+            out += '"' + o.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"'
+        } else if (typeof o === 'boolean') {
+            //Boolean
+            out += (o ? 'true' : 'false')
+        } else if (typeof o === 'number') {
+            //Number
+            o = (Math.round(o*100000)/100000).toString()
+            out += o
+        } else if (o === null) {
+            //Null
+            out += null
+        } else if (typeof o === 'object' && o.constructor.name === 'Array') {
+            //Array
+            var comma = false
+            out += '['
+            for (var i = 0; i < o.length; i++) {
+                var compiled = handleVar(o[i], tabs+1)
+                if (compiled) {
+                    var breaks = typeof o[i] === 'object'
+                    if (comma) {out += ',' + (breaks || options.small?'':' ')}
+                    if (breaks) {out += newLine(tabs)}
+                    out += compiled
+                    comma = true
+                }
+            }
+            if (typeof o[o.length-1] === 'object') {out += newLine(tabs-1)}
+            out += ']'
+        } else if (typeof o === 'object') {
+            //Object
+            var breaks = o.constructor.name !== 'oneLiner';
+            var comma = false
+            out += '{'
+            for (var key in o) {
+                if (o.hasOwnProperty(key)) {
+                    var compiled = handleVar(o[key], tabs+1)
+                    if (compiled) {
+                        if (comma) {out += ',' + (breaks || options.small?'':' ')}
+                        if (breaks) {out += newLine(tabs)}
+                        out += '"' + key + '":' + (options.small === true ? '' : ' ')
+                        out += compiled
+                        comma = true
+                    }
+                }
+            }
+            if (breaks) {out += newLine(tabs-1)}
+            out += '}'
+        }
+        return out;
+    }
+    return handleVar(object, 1)
+}
+function autoStringify(object) {
+  return compileJSON(object, {small: settings.minifiedout.value})
 }

@@ -418,50 +418,68 @@ function saveFile(props) {
     }
 }
 function writeFileEntity(content, fileName) {
-    Prop.file_path = fileName
-    fs.readFile(fileName, 'utf-8', function (errx, data) {
-        var obj = {}
-        if (!errx) {
-            try {
-                obj = JSON.parse(data)
-            } catch (err) {
-                err = err+''
-                var answer = app.dialog.showMessageBox(currentwindow, {
-                    type: 'warning',
-                    buttons: ['Create Backup and Overwrite', 'Overwrite', 'Cancel'],
-                    title: 'Blockbench',
-                    message: 'Blockbench cannot combine this model with the old file',
-                    detail: err,
-                    noLink: false
-                })
-                if (answer === 0) {
-                    var backup_file_name = pathToName(fileName, true) + ' backup ' + new Date().toLocaleString().split(':').join('_')
-                    backup_file_name = fileName.replace(pathToName(fileName, false), backup_file_name)
-                    fs.writeFile(backup_file_name, data, function (err2) {
-                        if (err2) {
-                            console.log('Error saving backup model: ', err2)
+        Prop.file_path = fileName
+        fs.readFile(fileName, 'utf-8', function (errx, data) {
+            var obj = {}
+            if (!errx) {
+                try {
+                    obj = JSON.parse(data.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, ''))
+                } catch (err) {
+                    err = err+''
+                    var answer = app.dialog.showMessageBox(currentwindow, {
+                        type: 'warning',
+                        buttons: ['Create Backup and Overwrite', 'Overwrite', 'Cancel'],
+                        title: 'Blockbench',
+                        message: 'Blockbench cannot combine this model with the old file',
+                        detail: err,
+                        noLink: false
+                    })
+                    if (answer === 0) {
+                        var backup_file_name = pathToName(fileName, true) + ' backup ' + new Date().toLocaleString().split(':').join('_')
+                        backup_file_name = fileName.replace(pathToName(fileName, false), backup_file_name)
+                        fs.writeFile(backup_file_name, data, function (err2) {
+                            if (err2) {
+                                console.log('Error saving backup model: ', err2)
+                            }
+                        }) 
+                    }
+                    if (answer === 2) {
+                        return;
+                    }
+            }
+                if (typeof obj === 'object') {
+                    for (var key in obj) {
+                        if (obj.hasOwnProperty(key) &&
+                            obj[key].bones &&
+                            typeof obj[key].bones === 'object' &&
+                            obj[key].bones.constructor.name === 'Array'
+                        ) {
+                            obj[key].bones.forEach(function(bone) {
+                                if (typeof bone.cubes === 'object' &&
+                                    bone.cubes.constructor.name === 'Array'
+                                ) {
+                                    bone.cubes.forEach(function(c, ci) {
+                                        bone.cubes[ci] = new oneLiner(c)
+                                    })
+                                }
+                            })
                         }
-                    }) 
+                    }
                 }
-                if (answer === 2) {
-                    return;
+            }
+            var model_name = Project.parent
+            if (model_name == '') model_name = 'geometry.unknown'
+            obj[model_name] = content
+            content = autoStringify(obj)
+
+            fs.writeFile(fileName, content, function (err) {
+                if (err) {
+                    console.log('Error Saving Entity Model: '+err)
                 }
-
-            }
-        }
-        var model_name = Project.parent
-        if (model_name == '') model_name = 'geometry.unknown'
-        obj[model_name] = content
-        content = autoStringify(obj)
-
-        fs.writeFile(fileName, content, function (err) {
-            if (err) {
-                console.log('Error Saving Entity Model: '+err)
-            }
-            showQuickMessage('Saved as bedrock entity model')
+                showQuickMessage('Saved as bedrock entity model')
+            })
         })
-    })
-}
+    }
 //Open
 function openFile(makeNew) {
     app.dialog.showOpenDialog(currentwindow, {filters: [{name: 'Model', extensions: ['json']}]}, function (fileNames) {

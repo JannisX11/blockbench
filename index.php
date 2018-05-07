@@ -1145,7 +1145,6 @@
             {{ Prop.fps }} FPS
         </div>
     </div>
-    <div id="donation_hint" class="hidden m_disp">This could be your skin. <a onclick="localStorage.setItem('donated', 'true')" class="open-in-browser" href="http://blockbench.net/donate.html">Learn more</a></div>
     <div id="scene_controls" class="bar hidden">
         <div class="tool" id="scene_controls_toggle" onclick="toggleScenePanel()"><i class="material-icons">first_page</i><div class="tooltip">Settings</div></div>
         <div id="scene_controls_panel">

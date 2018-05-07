@@ -639,7 +639,7 @@ var entityMode = {
         $('.ui#textures').css('top', 514+'px')
         //Update
         if (textures.length) {
-            texture[0].load()
+            textures[0].load()
         }
         buildGrid()
         moveIntoBox(elements)
@@ -659,10 +659,12 @@ var entityMode = {
                 Undo.index = 0;
                 if (Blockbench.entity_mode) {
                     entityMode.leave()
+                    Project.parent = ''
                     elements.forEach(function(obj) {
                         obj.display.autouv = 0
                     })
                 } else {
+                    Project.parent = 'geometry.unknown'
                     entityMode.join()
                 }
             }

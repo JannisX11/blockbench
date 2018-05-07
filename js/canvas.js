@@ -573,7 +573,7 @@ function toggleTools() {
 
 function centerTransformer(offset) {
     if (selected.length === 0) return;
-    var obj = selected[0]
+    var first_obj
 
 
     //Getting Center
@@ -587,7 +587,13 @@ function centerTransformer(offset) {
             center[i] += obj.to[i]
             i++;
         }
+        if (!first_obj && obj.display.visibility) {
+            first_obj = obj
+        }
     })
+    if (!first_obj) {
+        return;
+    }
     i = 0;
     while (i < 3) {
         center[i] = center[i] / (selected.length * 2)
@@ -604,21 +610,21 @@ function centerTransformer(offset) {
 
         Transformer.rotation.set(0, 0, 0)
 
-        if (selected.length === 1 && obj.rotation !== undefined) {
-            vec.x -= obj.rotation.origin[0]
-            vec.y -= obj.rotation.origin[1]
-            vec.z -= obj.rotation.origin[2]
-            if (obj.getMesh()) {
-                vec.applyEuler(obj.getMesh().rotation)
+        if (selected.length === 1 && first_obj.rotation !== undefined) {
+            vec.x -= first_obj.rotation.origin[0]
+            vec.y -= first_obj.rotation.origin[1]
+            vec.z -= first_obj.rotation.origin[2]
+            if (first_obj.getMesh()) {
+                vec.applyEuler(first_obj.getMesh().rotation)
             }
-            vec.x += obj.rotation.origin[0]
-            vec.y += obj.rotation.origin[1]
-            vec.z += obj.rotation.origin[2]
+            vec.x += first_obj.rotation.origin[0]
+            vec.y += first_obj.rotation.origin[1]
+            vec.z += first_obj.rotation.origin[2]
         }
         Transformer.position.copy(vec)
 
-        if (obj.rotation !== undefined && movementAxis === true) {
-            Transformer.rotation[obj.rotation.axis] = Math.PI / (180 / obj.rotation.angle)
+        if (first_obj.rotation !== undefined && movementAxis === true) {
+            Transformer.rotation[first_obj.rotation.axis] = Math.PI / (180 / first_obj.rotation.angle)
         } 
     } else {
 
@@ -642,7 +648,7 @@ function centerTransformer(offset) {
             vec.x -= group.origin[0]
             vec.y -= group.origin[1]
             vec.z -= group.origin[2]
-            vec.applyEuler(obj.getMesh().rotation)
+            vec.applyEuler(first_obj.getMesh().rotation)
             vec.x += group.origin[0]
             vec.y += group.origin[1]
             vec.z += group.origin[2]

@@ -1,4 +1,4 @@
-var appVersion = '1.11.5'
+var appVersion = '1.11.6'
 var osfs = '/'
 var File, i;
 var browser_name = 'electron'
@@ -70,9 +70,9 @@ function initializeApp() {
 
     //Misc
     console.log('Blockbench ' + appVersion + (isApp ? ' Desktop' : ' Web ('+capitalizeFirstLetter(browser_name)+')'))
-    if (localStorage.getItem('donated') == 'true') {
-        $('#donation_hint').remove()
-    }
+
+    splashScreen.attempt()
+
     Toolbox.updateBar()
 
     if (isApp) {
@@ -204,6 +204,7 @@ function initializeApp() {
         showAlpha: true,
         showInput: true
     })
+
     Undo.add('Blank')
 }
 function setupVue() {
@@ -813,7 +814,15 @@ function updateSelection() {
         }
     })
     elements.forEach(function(obj) {
-        obj.getMesh().outline.visible = obj.display.isselected
+        if (obj.display.visibility) {
+            var mesh = obj.getMesh()
+            if (mesh) {
+                if (!mesh.outline) {
+                    Canvas.buildOutline(mesh)
+                }
+                mesh.outline.visible = obj.display.isselected
+            }
+        }
     })
 
     //Interface

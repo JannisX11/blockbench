@@ -445,41 +445,31 @@ function setInterfaceMode(mode) {
 //SplashScreen
 var splashScreen = {
     attempt: function(res) {
-        //NOW:  Internet Available! -- DOM Ready!
-
         //Post Model
         if (!isApp && tryLoadPOSTModel()) {
             return;
         }
-
         //Show
-        if (res[1] ||//Forced
-            localStorage.getItem('welcomed_version') != appVersion//Updated
-        ) {
+        if (localStorage.getItem('welcomed_version') != appVersion) {
             splashScreen.show()
+        } else {
+            $.getJSON('https://blockbench.net/api/index.json', function (data) {
+                if (data.forceSplashScreen) {
+                    splashScreen.show()
+                }
+            })
         }
     },
     show: function() {
         if (open_dialog) return;
-        $('#welcome_content').load('https://www.blockbench.net/api/welcome/index.html', function() {
+        $('#welcome_content').load('https://www.blockbench.net/api/welcome/index.html', function(a, err) {
+            if (err === 'error') return;
             $('#welcome_screen #welcome_body').css('max-height', ($(window).height() - 478) + 'px')
             showDialog('welcome_screen')
             localStorage.setItem('welcomed_version', appVersion) 
         })
-    },
-    p_doc: new Promise(function(resolve, reject) {
-        $(document).ready(function() {
-            resolve(true)
-        })
-    }),
-    p_force: new Promise(function(resolve, reject) {
-        $.getJSON('https://blockbench.net/api/index.json', function (data) {
-            resolve(data.forceSplashScreen)
-        })
-    })
+    }
 }
-Promise.all([splashScreen.p_doc, splashScreen.p_force]).then(splashScreen.attempt)
-
 
 
 //Mobile

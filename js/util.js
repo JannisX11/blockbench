@@ -255,23 +255,6 @@ function getAverageRGB(imgEl) {
     return rgb;  
 }
 
-function autoStringify(object) {
-  if (settings.minifiedout.value === true) {
-      var string = JSON.stringify(object)
-  } else {
-      var string = stringify(object, {indent: '\t', maxLength: parseInt(settings.max_json_length.value)})
-  }
-  string.replace(/-?[0-9]+\.-?[0-9]{5,16}/g, function(s) {
-    var parts = s.split('.')
-    if (parts[1].length > settings.round_digits.value) {
-      return parts[0] + '.' + parts[1].substr(0, settings.round_digits.value)
-    } else {
-      return s;
-    }
-  })
-  return string;
-}
-
 function pluralS(arr) {
   if (arr.length === 1 || arr === 1) {
     return '';
