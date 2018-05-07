@@ -64,7 +64,6 @@
     "dist": "build --publish always"
   },
   "devDependencies": {
-    "async": "^2.4.1",
     "electron": "^1.8.4",
     "electron-builder": "^20.6.1"
   }
