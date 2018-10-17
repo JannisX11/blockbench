@@ -30,7 +30,7 @@ THREE.OBJExporter.prototype = {
 			var element  = TreeElements.findRecursive('uuid', mesh.name)
 
 			if (element === undefined) return;
-			if (element.display.export === false) return;
+			if (element.export === false) return;
 
 			if ( geometry instanceof THREE.Geometry ) {
 
@@ -114,7 +114,7 @@ THREE.OBJExporter.prototype = {
 					}
 
 				}
-              
+			  
 				// material
 				for (var key in element.faces) {
 					if (element.faces.hasOwnProperty(key)) {
@@ -144,7 +144,7 @@ THREE.OBJExporter.prototype = {
 						}
 
 						output += 'f ';
-						output += ( indexVertex + face.a + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j     ) : '' ) + '/' + ( indexNormals + j     ) + ' ';
+						output += ( indexVertex + face.a + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j	 ) : '' ) + '/' + ( indexNormals + j	 ) + ' ';
 						output += ( indexVertex + face.b + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j + 1 ) : '' ) + '/' + ( indexNormals + j + 1 ) + ' ';
 						output += ( indexVertex + face.c + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j + 2 ) : '' ) + '/' + ( indexNormals + j + 2 ) + '\n';
 
@@ -170,11 +170,11 @@ THREE.OBJExporter.prototype = {
 			if ( child instanceof THREE.Mesh ) parseMesh( child );
 
 		} );
-      		
+	  		
 	// mtl output
-      
+	  
 	var mtlOutput = '# Made in Blockbench '+appVersion+'\n';;
-      
+	  
 	for (var key in materials) {
 		if (materials.hasOwnProperty(key) && materials[key]) {
 			mtlOutput += 'newmtl ' +key+ '\n'
@@ -200,7 +200,7 @@ function getMtlFace(obj, index) {
 		case 0:   key = 'east';  break;
 		case 8:  key = 'south';  break;
 		case 2:   key = 'west';  break;
-		case 4:     key = 'up';  break;
+		case 4:	 key = 'up';  break;
 		case 6:   key = 'down';  break;
 	}
 

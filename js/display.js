@@ -1,100 +1,88 @@
 var display = {}
+Blockbench.display_settings = display
 var ground_animation = false;
 var ground_timer = 0
-var slot;
+var display_slot;
 var display_clipboard;
 
 class refModel {
-	constructor(id, name, background) {
+	constructor(id) {
 		this.model = new THREE.Object3D();
-		this.name = name;
+		this.name = tl('display.reference.'+id);
 		this.id = id;
 		this.icon = id;
 		this.initialized = false;
-		if (background) {
-			this.background = {image: './assets/'+this.id+'.png', x: 0, y: 0, size: 1023}
-			switch (this.id) {
-				case 'inventory_nine':
-					this.background = {image: './assets/'+this.id+'.png', x: 0, y: 0, size: 1023}
-					break;
-				case 'inventory_full':
-					this.background = {image: './assets/'+this.id+'.png', x: 0, y: -432, size: 2781}
-					break;
-				case 'hud':
-					this.background = {image: './assets/'+this.id+'.png', x: -224, y: -140, size: 3391}
-					break;
-			}
-		}
+
 		switch (id) {
 			case 'player':
 				this.onload = function() {
-					if (slot === 'thirdperson_righthand') {
+					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(-5.7, 7.5, -6, -90, 22.5, 90, 1, 1, 1)
-					} else if (slot === 'thirdperson_lefthand') {
+					} else if (display_slot === 'thirdperson_lefthand') {
 						setDisplayArea(-5.7, 7.5, 6, -90, 22.5, 90, 1, 1, 1)
-					} else if (slot === 'head') {
+					} else if (display_slot === 'head') {
 						setDisplayArea(0, 22, 0, 0, 90, 0, 0.625, 0.625, 0.625)
 					}
 				}
 				break;
 			case 'armor_stand':
 				this.onload = function() {
-					if (slot === 'thirdperson_righthand') {
+					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(-2, 6, -6, -90, 0, 90, 1, 1, 1)
-					} else if (slot === 'thirdperson_lefthand') {
+					} else if (display_slot === 'thirdperson_lefthand') {
 						setDisplayArea(-2, 6, 6, -90, 0, 90, 1, 1, 1)
-					} else if (slot === 'head') {
+					} else if (display_slot === 'head') {
 						setDisplayArea(0, 21, 0, 0, 90, 0, 0.625, 0.625, 0.625)
 					}
 				}
 				break;
 			case 'armor_stand_small':
 				this.onload = function() {
-					if (slot === 'thirdperson_righthand') {
+					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(-1, 0, -3, -90, 0, 90, 0.5, 0.5, 0.5)
-					} else if (slot === 'thirdperson_lefthand') {
+					} else if (display_slot === 'thirdperson_lefthand') {
 						setDisplayArea(-1, 0, 3, -90, 0, 90, 0.5, 0.5, 0.5)
-					} else if (slot === 'head') {
+					} else if (display_slot === 'head') {
 						setDisplayArea(0, 8.5, 0, 0, 90, 0, 0.4635, 0.4635, 0.4635)
 					}
 				}
 				break;
 			case 'zombie':
 				this.onload = function() {
-					if (slot === 'thirdperson_righthand') {
+					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(-10, 18, -6, -90, 90, 90, 1, 1, 1)
-					} else if (slot === 'thirdperson_lefthand') {
+					} else if (display_slot === 'thirdperson_lefthand') {
 						setDisplayArea(-10, 18, 6, -90, 90, 90, 1, 1, 1)
-					} else if (slot === 'head') {
+					} else if (display_slot === 'head') {
 						setDisplayArea(0, 22, 0, 0, 90, 0, 0.625, 0.625, 0.625)
 					}
 				}
 				break;
 			case 'baby_zombie':
 				this.onload = function() {
-					if (slot === 'thirdperson_righthand') {
+					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(-5, 6, -3, -90, 90, 90, 0.5, 0.5, 0.5)
-					} else if (slot === 'thirdperson_lefthand') {
+					} else if (display_slot === 'thirdperson_lefthand') {
 						setDisplayArea(-5, 6, 3, -90, 90, 90, 0.5, 0.5, 0.5)
-					} else if (slot === 'head') {
+					} else if (display_slot === 'head') {
 						setDisplayArea(0, 8.5, 0, 0, 90, 0, 0.4635, 0.4635, 0.4635)
 					}
 				}
 				break;
 			case 'monitor':
 				this.onload = function() {
-					if (slot === 'firstperson_righthand') {
+					if (display_slot === 'firstperson_righthand') {
 						setDisplayArea(-20.8, -8.4, 9, 0, 270, 0, 1,1,1)
-					} else if (slot === 'firstperson_lefthand') {
+					} else if (display_slot === 'firstperson_lefthand') {
 						setDisplayArea(-20.5, -8.4, -9, 0, 270, 0, 1,1,1)
 					}
 				}
 				break;
 			case 'bow':
 				this.onload = function() {
-					if (slot === 'firstperson_righthand') {
+					if (display_slot === 'firstperson_righthand') {
 						setDisplayArea(-24.7, -5.6, 5.4, 64, -115, 55, 1,1,1)
-					} else if (slot === 'firstperson_lefthand') {
+					} else if (display_slot === 'firstperson_lefthand') {
 						setDisplayArea(-24.7, -5.6, -5.4, -64, -65, -55, 1,1,1)
 					}
 				}
@@ -107,18 +95,19 @@ class refModel {
 			var mat = new THREE.MeshBasicMaterial({color: 0x000000});
 		} else {
 			var img = new Image();
-		    img.src = texture;
-		    var tex = new THREE.Texture(img);
-		    img.tex = tex;
-		    img.tex.magFilter = THREE.NearestFilter;
-		    img.tex.minFilter = THREE.NearestFilter;
-		    img.onload = function() {
-		        this.tex.needsUpdate = true;
-		    }
-		    img.crossOrigin = '';
-		    var mat = new THREE.MeshLambertMaterial({color: 0xffffff, map: tex, transparent: true});
+			img.src = texture;
+			var tex = new THREE.Texture(img);
+			img.tex = tex;
+			img.tex.magFilter = THREE.NearestFilter;
+			img.tex.minFilter = THREE.NearestFilter;
+			img.onload = function() {
+				this.tex.needsUpdate = true;
+			}
+			img.crossOrigin = '';
+			var mat = new THREE.MeshLambertMaterial({color: 0xffffff, map: tex, transparent: true});
 		}
 
+		scope.material = mat
 
 		things.forEach(function(s) {
 			var mesh = new THREE.Mesh(new THREE.CubeGeometry(s.size[0], s.size[1], s.size[2]), mat )
@@ -129,22 +118,22 @@ class refModel {
 				mesh.rotation['z'] = Math.PI / (180 /s.angle)
 			}
 
-		    for (var face in s) {
-		        if (s.hasOwnProperty(face) && s[face].uv !== undefined) {
-			        var fIndex = 0;
-			        switch(face) {
-			            case 'north':   fIndex = 10;   break;
-			            case 'east':    fIndex = 0;    break;
-			            case 'south':   fIndex = 8;    break;
-			            case 'west':    fIndex = 2;    break;
-			            case 'up':      fIndex = 4;    break;
-			            case 'down':    fIndex = 6;    break;
-			        }
-			        mesh.geometry.faceVertexUvs[0][fIndex] = [ getUVArray(s[face])[0], getUVArray(s[face])[1], getUVArray(s[face])[3] ];
-			        mesh.geometry.faceVertexUvs[0][fIndex+1] = [ getUVArray(s[face])[1], getUVArray(s[face])[2], getUVArray(s[face])[3] ];
-			    }
-		    }
-		    mesh.geometry.elementsNeedUpdate = true;
+			for (var face in s) {
+				if (s.hasOwnProperty(face) && s[face].uv !== undefined) {
+					var fIndex = 0;
+					switch(face) {
+						case 'north':   fIndex = 10;   break;
+						case 'east':	fIndex = 0;	break;
+						case 'south':   fIndex = 8;	break;
+						case 'west':	fIndex = 2;	break;
+						case 'up':	  fIndex = 4;	break;
+						case 'down':	fIndex = 6;	break;
+					}
+					mesh.geometry.faceVertexUvs[0][fIndex] = [ getUVArray(s[face])[0], getUVArray(s[face])[1], getUVArray(s[face])[3] ];
+					mesh.geometry.faceVertexUvs[0][fIndex+1] = [ getUVArray(s[face])[1], getUVArray(s[face])[2], getUVArray(s[face])[3] ];
+				}
+			}
+			mesh.geometry.elementsNeedUpdate = true;
 
 			scope.model.add(mesh);
 		})
@@ -155,10 +144,6 @@ class refModel {
 		displayReferenceObjects.clear()
 		if (typeof this.onload === 'function') {
 			this.onload()
-		}
-		if (this.background) {
-			displayReferenceObjects.setBackground(this.background)
-			return;
 		}
 		//3D
 		if (!this.initialized) {
@@ -177,6 +162,8 @@ class refModel {
 		}
 		display_scene.add(this.model)
 		displayReferenceObjects.active = this;
+		
+		main_preview.loadBackground()
 	}
 	buildPlayer() {
 		var scope = this;
@@ -187,7 +174,7 @@ class refModel {
 				"south": {"uv": [12, 5, 13, 8], "texture": "#0"},
 				"west": {"uv": [11, 5, 12, 8], "texture": "#0"},
 				"up": { "uv": [11, 4, 12, 5], "texture": "#0", "rotation": 270 },
-				"down": { "uv": [12, 4, 13, 5], "texture": "#0", "rotation": 270 }
+				"down": { "uv": [12, 5, 13, 4], "texture": "#0", "rotation": 270 }
 			},	//Right Arm
 
 			{"size": [4, 12, 4], "pos": [0, 12, 6], "origin": [0, 16, 0], "angle": -22.5,
@@ -196,7 +183,7 @@ class refModel {
 				"south": {"uv": [10, 13, 11, 16], "texture": "#0"},
 				"west": {"uv": [9, 13, 10, 16], "texture": "#0"},
 				"up": { "uv": [9, 12, 10, 13], "texture": "#0", "rotation": 270 },
-				"down": { "uv": [10, 12, 11, 13], "texture": "#0", "rotation": 270 }
+				"down": { "uv": [10, 13, 11, 12], "texture": "#0", "rotation": 270 }
 			},	//Left Arm
 
 			{"size": [4, 12, 4], "pos": [0, 0, -2], "origin": [0, 0, 0], 
@@ -223,9 +210,19 @@ class refModel {
 				"south": {"uv": [4, 2, 6, 4], "texture": "#0"},
 				"west": {"uv": [2, 2, 4, 4], "texture": "#0"},
 				"up": {"uv": [2, 0, 4, 2],"texture": "#0","rotation": 90 },
-				"down": { "uv": [4, 0, 6, 2], "texture": "#0", "rotation": 270 }
+				"down": { "uv": [6, 0, 4, 2], "texture": "#0", "rotation": 90 }
 			},//Head
 
+
+
+			{"size": [4, 12, 8], "pos": [0, 12, 0], "origin": [0, 0, 0],
+				"north": {"uv": [4, 5, 5, 8], "texture": "#0"},
+				"east": {"uv": [8, 5, 10, 8], "texture": "#0"},
+				"south": {"uv": [7, 5, 8, 8], "texture": "#0"},
+				"west": {"uv": [5, 5, 7, 8], "texture": "#0"},
+				"up": { "uv": [5, 4, 7, 5], "texture": "#0", "rotation": 270 },
+				"down": { "uv": [7, 4, 9, 5], "texture": "#0", "rotation": 270 }
+			},//Body
 
 				/*
 				{"size": [9, 9, 9], "pos": [0, 22, 0], "origin": [0, 0, 0], 
@@ -235,27 +232,14 @@ class refModel {
 					"west": {"uv": [10, 2, 12, 4], "texture": "#0"},
 					"up": {"uv": [10, 0, 12, 2],"texture": "#0","rotation": 90 },
 					"down": { "uv": [12, 0, 14, 2], "texture": "#0", "rotation": 270 }
-				},//Head Layer
+				}//Head Layer
 
 				*/
-
-			{"size": [4, 12, 8], "pos": [0, 12, 0], "origin": [0, 0, 0],
-				"north": {"uv": [4, 5, 5, 8], "texture": "#0"},
-				"east": {"uv": [8, 5, 10, 8], "texture": "#0"},
-				"south": {"uv": [7, 5, 8, 8], "texture": "#0"},
-				"west": {"uv": [5, 5, 7, 8], "texture": "#0"},
-				"up": { "uv": [5, 4, 7, 5], "texture": "#0", "rotation": 270 },
-				"down": { "uv": [7, 4, 9, 5], "texture": "#0", "rotation": 270 }
-			}//Body
 		]
 		var skin = 'assets/player_skin.png';
-		$.getJSON('https://blockbench.net/api/index.json', function (data) {
-			if (data.donatorSkin == true) {
-				skin = 'https://blockbench.net/api/player_skin.png?'+(Math.random()+'').substr(2, 3);
-			}
-		}).always(function() {
-			scope.buildModel(things, skin);
-		})
+
+		scope.buildModel(things, skin);
+		updateDisplaySkin()
 	}
 	buildArmorStand() {
 		this.buildModel([
@@ -267,8 +251,8 @@ class refModel {
 				"east": {"uv": [3, 11, 6, 11.25], "texture": "#0"},
 				"south": {"uv": [6, 11, 9, 11.25], "texture": "#0"},
 				"west": {"uv": [9, 11, 12, 11.25], "texture": "#0"},
-				"up": {"uv": [3, 8, 6, 11], "texture": "#0"},
-				"down": {"uv": [6, 8, 9, 11], "texture": "#0"}
+				"up": {"uv": [3, 8, 6, 11], "texture": "#0","rotation": 90},
+				"down": {"uv": [6, 8, 9, 11], "texture": "#0", "rotation": 270}
 			},
 			{
 				"size": [2, 11, 2],
@@ -278,8 +262,8 @@ class refModel {
 				"east": {"uv": [9, 4.5, 9.5, 7.5], "texture": "#0"},
 				"south": {"uv": [9.5, 4.5, 10, 7.5], "texture": "#0"},
 				"west": {"uv": [8, 4.5, 8.5, 7.5], "texture": "#0"},
-				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0"},
-				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0"}
+				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0","rotation": 90},
+				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0", "rotation": 270}
 			},
 			{
 				"size": [2, 11, 2],
@@ -289,8 +273,8 @@ class refModel {
 				"east": {"uv": [9, 4.5, 9.5, 7.5], "texture": "#0"},
 				"south": {"uv": [9.5, 4.5, 10, 7.5], "texture": "#0"},
 				"west": {"uv": [8, 4.5, 8.5, 7.5], "texture": "#0"},
-				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0"},
-				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0"}
+				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0","rotation": 90},
+				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0", "rotation": 270}
 			},
 			{
 				"size": [2, 2, 8],
@@ -315,12 +299,12 @@ class refModel {
 				"up": {
 					"uv": [0, 12.5, 2, 13],
 					"texture": "#0",
-					"rotation": 90
+					"rotation": 90,"rotation": 90
 				},
 				"down": {
 					"uv": [0, 12.5, 2, 13],
 					"texture": "#0",
-					"rotation": 90
+					"rotation": 90, "rotation": 270
 				}
 			},
 			{
@@ -331,8 +315,8 @@ class refModel {
 				"east": {"uv": [9, 4.5, 9.5, 7.5], "texture": "#0"},
 				"south": {"uv": [9.5, 4.5, 10, 7.5], "texture": "#0"},
 				"west": {"uv": [8, 4.5, 8.5, 7.5], "texture": "#0"},
-				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0"},
-				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0"}
+				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0","rotation": 90},
+				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0", "rotation": 270}
 			},
 			{
 				"size": [2, 7, 2],
@@ -342,8 +326,8 @@ class refModel {
 				"east": {"uv": [9, 4.5, 9.5, 7.5], "texture": "#0"},
 				"south": {"uv": [9.5, 4.5, 10, 7.5], "texture": "#0"},
 				"west": {"uv": [8, 4.5, 8.5, 7.5], "texture": "#0"},
-				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0"},
-				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0"}
+				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0","rotation": 90},
+				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0", "rotation": 270}
 			},
 			{
 				"size": [3, 3, 12],
@@ -362,12 +346,12 @@ class refModel {
 				"up": {
 					"uv": [0.75, 6.5, 3.75, 7.25],
 					"texture": "#0",
-					"rotation": 90
+					"rotation": 90,"rotation": 90
 				},
 				"down": {
 					"uv": [3.75, 6.5, 6.75, 7.25],
 					"texture": "#0",
-					"rotation": 90
+					"rotation": 90, "rotation": 270
 				}
 			},
 			{
@@ -378,8 +362,8 @@ class refModel {
 				"east": {"uv": [1, 0.5, 1.5, 2.25], "texture": "#0"},
 				"south": {"uv": [1.5, 0.5, 2, 2.25], "texture": "#0"},
 				"west": {"uv": [0, 0.5, 0.5, 2.25], "texture": "#0"},
-				"up": {"uv": [0.5, 0, 1, 0.5], "texture": "#0"},
-				"down": {"uv": [1, 0, 1.5, 0.5], "texture": "#0"}
+				"up": {"uv": [0.5, 0, 1, 0.5], "texture": "#0","rotation": 90},
+				"down": {"uv": [1, 0, 1.5, 0.5], "texture": "#0", "rotation": 270}
 			},
 			{
 				"size": [2, 12, 2],
@@ -389,8 +373,8 @@ class refModel {
 				"east": {"uv": [6.5, 0.5, 6, 3.5], "texture": "#0"},
 				"south": {"uv": [7.5, 0.5, 8, 3.5], "texture": "#0"},
 				"west": {"uv": [6, 0.5, 6.5, 3.5], "texture": "#0"},
-				"up": {"uv": [6.5, 0, 7, 0.5], "texture": "#0"},
-				"down": {"uv": [7, 0, 7.5, 0.5], "texture": "#0"}
+				"up": {"uv": [6.5, 0, 7, 0.5], "texture": "#0","rotation": 90},
+				"down": {"uv": [7, 0, 7.5, 0.5], "texture": "#0", "rotation": 270}
 			},
 			{
 				"size": [2, 12, 2],
@@ -400,8 +384,8 @@ class refModel {
 				"east": {"uv": [6.5, 0.5, 7, 3.5], "texture": "#0"},
 				"south": {"uv": [7.5, 0.5, 8, 3.5], "texture": "#0"},
 				"west": {"uv": [6.5, 0.5, 6, 3.5], "texture": "#0"},
-				"up": {"uv": [6.5, 0, 7, 0.5], "texture": "#0"},
-				"down": {"uv": [7, 0, 7.5, 0.5], "texture": "#0"}
+				"up": {"uv": [6.5, 0, 7, 0.5], "texture": "#0","rotation": 90},
+				"down": {"uv": [7, 0, 7.5, 0.5], "texture": "#0","rotation": 270}
 			}
 		], 'assets/armor_stand.png')
 	}
@@ -415,8 +399,8 @@ class refModel {
 				"east": {"uv": [3, 11, 6, 11.25], "texture": "#0"},
 				"south": {"uv": [6, 11, 9, 11.25], "texture": "#0"},
 				"west": {"uv": [9, 11, 12, 11.25], "texture": "#0"},
-				"up": {"uv": [3, 8, 6, 11], "texture": "#0"},
-				"down": {"uv": [6, 8, 9, 11], "texture": "#0"}
+				"up": {"uv": [3, 8, 6, 11], "texture": "#0","rotation": 90},
+				"down": {"uv": [6, 8, 9, 11], "texture": "#0", "rotation": 270}
 			},
 			{
 				"size": [1, 5.5, 1],
@@ -426,8 +410,8 @@ class refModel {
 				"east": {"uv": [9, 4.5, 9.5, 7.5], "texture": "#0"},
 				"south": {"uv": [9.5, 4.5, 10, 7.5], "texture": "#0"},
 				"west": {"uv": [8, 4.5, 8.5, 7.5], "texture": "#0"},
-				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0"},
-				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0"}
+				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0","rotation": 90},
+				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0", "rotation": 270}
 			},
 			{
 				"size": [1, 5.5, 1],
@@ -437,8 +421,8 @@ class refModel {
 				"east": {"uv": [9, 4.5, 9.5, 7.5], "texture": "#0"},
 				"south": {"uv": [9.5, 4.5, 10, 7.5], "texture": "#0"},
 				"west": {"uv": [8, 4.5, 8.5, 7.5], "texture": "#0"},
-				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0"},
-				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0"}
+				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0","rotation": 90},
+				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0", "rotation": 270}
 			},
 			{
 				"size": [1, 1, 4],
@@ -479,8 +463,8 @@ class refModel {
 				"east": {"uv": [9, 4.5, 9.5, 7.5], "texture": "#0"},
 				"south": {"uv": [9.5, 4.5, 10, 7.5], "texture": "#0"},
 				"west": {"uv": [8, 4.5, 8.5, 7.5], "texture": "#0"},
-				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0"},
-				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0"}
+				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0","rotation": 90},
+				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0", "rotation": 270}
 			},
 			{
 				"size": [1, 3.5, 1],
@@ -490,8 +474,8 @@ class refModel {
 				"east": {"uv": [9, 4.5, 9.5, 7.5], "texture": "#0"},
 				"south": {"uv": [9.5, 4.5, 10, 7.5], "texture": "#0"},
 				"west": {"uv": [8, 4.5, 8.5, 7.5], "texture": "#0"},
-				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0"},
-				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0"}
+				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0","rotation": 90},
+				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0", "rotation": 270}
 			},
 			{
 				"size": [1.5, 1.5, 6],
@@ -530,8 +514,8 @@ class refModel {
 				"east": {"uv": [1, 0.5, 1.5, 2.25], "texture": "#0"},
 				"south": {"uv": [1.5, 0.5, 2, 2.25], "texture": "#0"},
 				"west": {"uv": [0, 0.5, 0.5, 2.25], "texture": "#0"},
-				"up": {"uv": [0.5, 0, 1, 0.5], "texture": "#0"},
-				"down": {"uv": [1, 0, 1.5, 0.5], "texture": "#0"}
+				"up": {"uv": [0.5, 0, 1, 0.5], "texture": "#0","rotation": 90},
+				"down": {"uv": [1, 0, 1.5, 0.5], "texture": "#0", "rotation": 270}
 			},
 			{
 				"size": [1, 6, 1],
@@ -541,8 +525,8 @@ class refModel {
 				"east": {"uv": [6.5, 0.5, 6, 3.5], "texture": "#0"},
 				"south": {"uv": [7.5, 0.5, 8, 3.5], "texture": "#0"},
 				"west": {"uv": [6, 0.5, 6.5, 3.5], "texture": "#0"},
-				"up": {"uv": [6.5, 0, 7, 0.5], "texture": "#0"},
-				"down": {"uv": [7, 0, 7.5, 0.5], "texture": "#0"}
+				"up": {"uv": [6.5, 0, 7, 0.5], "texture": "#0","rotation": 90},
+				"down": {"uv": [7, 0, 7.5, 0.5], "texture": "#0", "rotation": 270}
 			},
 			{
 				"size": [1, 6, 1],
@@ -552,8 +536,8 @@ class refModel {
 				"east": {"uv": [6.5, 0.5, 7, 3.5], "texture": "#0"},
 				"south": {"uv": [7.5, 0.5, 8, 3.5], "texture": "#0"},
 				"west": {"uv": [6.5, 0.5, 6, 3.5], "texture": "#0"},
-				"up": {"uv": [6.5, 0, 7, 0.5], "texture": "#0"},
-				"down": {"uv": [7, 0, 7.5, 0.5], "texture": "#0"}
+				"up": {"uv": [6.5, 0, 7, 0.5], "texture": "#0","rotation": 90},
+				"down": {"uv": [7, 0, 7.5, 0.5], "texture": "#0", "rotation": 270}
 			}
 		], 'assets/armor_stand.png')
 	}
@@ -661,7 +645,7 @@ class refModel {
 					"texture": "#1"
 				},
 				"east": {
-					"uv": [6.01, 2.01, 6.99, 3.99],
+					"uv": [6.01, 2.01, 7.99, 3.99],
 					"texture": "#1"
 				},
 				"south": {
@@ -715,7 +699,7 @@ class refModel {
 				"down": {
 					"uv": [13.01, 5.01, 13.99, 7.99],
 					"texture": "#1",
-					"rotation": 270
+					"rotation": 90
 				}
 			},
 			{
@@ -750,7 +734,7 @@ class refModel {
 				"down": {
 					"uv": [11.01, 13.01, 11.99, 15.99],
 					"texture": "#1",
-					"rotation": 270
+					"rotation": 90
 				}
 			}
 		], 'assets/zombie.png')
@@ -859,7 +843,7 @@ class refModel {
 					"texture": "#1"
 				},
 				"east": {
-					"uv": [6.01, 2.01, 6.99, 3.99],
+					"uv": [6.01, 2.01, 7.99, 3.99],
 					"texture": "#1"
 				},
 				"south": {
@@ -913,7 +897,7 @@ class refModel {
 				"down": {
 					"uv": [13.01, 5.01, 13.99, 7.99],
 					"texture": "#1",
-					"rotation": 270
+					"rotation": 90
 				}
 			},
 			{
@@ -948,7 +932,7 @@ class refModel {
 				"down": {
 					"uv": [11.01, 13.01, 11.99, 15.99],
 					"texture": "#1",
-					"rotation": 270
+					"rotation": 90
 				}
 			}
 		], 'assets/zombie.png')
@@ -981,18 +965,18 @@ class refModel {
 }
 var displayReferenceObjects = {
 	refmodels: {
-		player: 			new refModel('player', 'Player'),
-		zombie: 			new refModel('zombie', 'Zombie'),
-		armor_stand: 		new refModel('armor_stand', 'Armor Stand'),
-		baby_zombie: 		new refModel('baby_zombie', 'Baby Zombie'),
-		armor_stand_small:  new refModel('armor_stand_small', 'Armor Stand Small'),
-		monitor: 			new refModel('monitor', 'Normal'),
-		bow: 				new refModel('bow', 'Bow'),
-		block: 				new refModel('block', 'Block'),
-		frame: 				new refModel('frame', 'Item Frame'),
-		inventory_nine: 	new refModel('inventory_nine', '3x3', true),
-		inventory_full:		new refModel('inventory_full', 'Inventory', true),
-		hud: 				new refModel('hud', 'HUD', true)
+		player: 			new refModel('player'),
+		zombie: 			new refModel('zombie'),
+		armor_stand: 		new refModel('armor_stand'),
+		baby_zombie: 		new refModel('baby_zombie'),
+		armor_stand_small:  new refModel('armor_stand_small'),
+		monitor: 			new refModel('monitor'),
+		bow: 				new refModel('bow'),
+		block: 				new refModel('block'),
+		frame: 				new refModel('frame'),
+		inventory_nine: 	new refModel('inventory_nine'),
+		inventory_full:		new refModel('inventory_full'),
+		hud: 				new refModel('hud')
 	},
 	active: '',
 	bar: function(buttons) {
@@ -1012,7 +996,6 @@ var displayReferenceObjects = {
 			var icon = 'icon-'+ref.icon
 			switch (icon) {
 				case 'icon-monitor': icon = 'fa fa-asterisk'; break;
-				case 'icon-bow': icon = 'fa fa-chevron-right'; break;
 			}
 			var button = $(
 				'<div><input class="hidden" type="radio" name="refmodel" id="'+ref.id+'"'+ (i === 0 ? ' selected' : '') +'>'+
@@ -1028,65 +1011,85 @@ var displayReferenceObjects = {
 	},
 	clear: function() {
 		display_scene.remove(displayReferenceObjects.active.model)
-		displayReferenceObjects.active = ''
+		displayReferenceObjects.active = false
 		$('#donation_hint').hide()
 	},
-	setBackground: function(tag) {
-		active_scene.background = tag
-		enterScene(true)
-		setTimeout(function() {
-			updateScenePosition(cameraOrtho.zoom)
-		}, 50)
-	}
+	slots: [
+		'thirdperson_righthand',
+		'thirdperson_lefthand',
+		'firstperson_righthand',
+		'firstperson_righthand',
+		'ground',
+		'gui',
+		'head',
+		'fixed',
+	]
 }
 
 function enterDisplaySettings() {		//Enterung Display Setting Mode, changes the scene etc
-	setCameraType('pers')
-	selected = []
 	display_mode = true;
+
+	selected = []
 	updateSelection()
+
+	if (quad_previews.enabled) {
+		quad_previews.enabled_before = true
+		main_preview.fullscreen()
+	}
+	main_preview.setNormalCamera()
+	main_preview.camPers.position.set(-80, 40, -30)
+	main_preview.camPers.setFocalLength(45)
+
+	
+	$('body').addClass('display_mode')
 	$('.m_edit').hide()
 	$('.m_disp').show()
-	$('body').addClass('display_mode')
 	$('#display_bar input#thirdperson_righthand').prop("checked", true)
+	updateInterface()
+	//return;
+
 	loadDispThirdRight()
-	cameraPers.position.set(-80, 40, -30)
-	cameraPers.setFocalLength(45)
 	buildGrid()
 	setShading()
-	setInterfaceMode('display')
-	if ($(window).height() < 865) {
-		$('#display_presets > ul').css('margin-top', '-175px')
-	} else {
-		$('#display_presets > ul').css('margin-top', '0')
-	}
+	Canvas.updateRenderSides()
+	resizeWindow()
 	if (outlines.children.length) {
 		outlines.children.length = 0
 		Canvas.updateAllPositions()
 	}
 }
 function exitDisplaySettings() {		//Enterung Display Setting Mode, changes the scene etc
-    resetDisplayBase()
-    setDisplayArea(0,0,0, 0,0,0, 1,1,1)
+	resetDisplayBase()
+	setDisplayArea(0,0,0, 0,0,0, 1,1,1)
 
-    setTimeout(function() {
+	setTimeout(() => {
+
 		display_mode = false;
+
+		main_preview.controls.target.set(0,-3,0)
+		main_preview.camPers.position.set(-20, 20, -20)
+		main_preview.controls.enabled = true
+		main_preview.setNormalCamera()
+		main_preview.camPers.setFocalLength(45)
+
 		$('.m_disp').hide()
 		$('.m_edit').show()
+		$('.selection_only').css('visibility', 'hidden')
 		$('body').removeClass('display_mode')
-	    controls.target.set(0,-3,0)
-	    cameraPers.position.set(-20, 20, -20)
-		controls.enabled = true
-		setCameraType('pers')
-		cameraPers.setFocalLength(45)
-        $('.selection_only').css('visibility', 'hidden')
-		setInterfaceMode('edit')
+		resizeWindow()
+		updateInterface()
+		if (quad_previews.enabled_before) {
+			openQuadView()
+		}
+
 		buildGrid()
 		setShading()
+		Canvas.updateRenderSides()
 		setTimeout(function() {
-			cameraPers.setFocalLength(45)
-		}, 80)
-	}, 20)
+			main_preview.camPers.setFocalLength(45)
+		}, 20)
+	}, 60)
+
 }
 function axisIndex(index) {
 	if (typeof index === 'number') {
@@ -1146,8 +1149,8 @@ function syncDispInput(obj, sender, axis, event) {//Syncs Range and Input, calls
 		$(obj).parent().find('input.scale').val(val)
 	} else if (sender === 'scale') {
 		//From Input(Real) to Range
-		if (display[slot].scale == undefined) {
-			display[slot].scale = [1,1,1]
+		if (display[display_slot].scale == undefined) {
+			display[display_slot].scale = [1,1,1]
 		}
 		if (val >= 1) {
 			raw_val = (val-1)*(4/3)
@@ -1168,37 +1171,37 @@ function syncDispInput(obj, sender, axis, event) {//Syncs Range and Input, calls
 	}
 }
 function dispRotate(val, axis) {		//Change the actual thing
-	if (display[slot].rotation == undefined) {
-		display[slot].rotation = [0,0,0]
+	if (display[display_slot].rotation == undefined) {
+		display[display_slot].rotation = [0,0,0]
 	}
-	display[slot].rotation[axisIndex(axis)] = val
-	if (slot === 'thirdperson_lefthand' && axis === 'y') val *= (-1)
-	if (slot === 'firstperson_lefthand' && axis === 'y') val *= (-1)
-	if (slot === 'thirdperson_lefthand' && axis === 'z') val *= (-1)
-	if (slot === 'firstperson_lefthand' && axis === 'z') val *= (-1)
+	display[display_slot].rotation[axisIndex(axis)] = val
+	if (display_slot === 'thirdperson_lefthand' && axis === 'y') val *= (-1)
+	if (display_slot === 'firstperson_lefthand' && axis === 'y') val *= (-1)
+	if (display_slot === 'thirdperson_lefthand' && axis === 'z') val *= (-1)
+	if (display_slot === 'firstperson_lefthand' && axis === 'z') val *= (-1)
 	display_base.rotation[axis] = Math.PI / (180 / val);
 }
 function dispTranslate(val, axis) {		//Change the actual thing
-	if (display[slot].translation == undefined) {
-		display[slot].translation = [0,0,0]
+	if (display[display_slot].translation == undefined) {
+		display[display_slot].translation = [0,0,0]
 	}
-	display[slot].translation[axisIndex(axis)] = val
-	if (slot === 'thirdperson_lefthand' && axis === 'x') val *= (-1)
-	if (slot === 'firstperson_lefthand' && axis === 'x') val *= (-1)
+	display[display_slot].translation[axisIndex(axis)] = val
+	if (display_slot === 'thirdperson_lefthand' && axis === 'x') val *= (-1)
+	if (display_slot === 'firstperson_lefthand' && axis === 'x') val *= (-1)
 	display_base.position[axis] = val
 }
 function dispScale(val, axis) {			//Change the actual thing
-	if (display[slot].scale == undefined) {
-		display[slot].scale = [0,0,0]
+	if (display[display_slot].scale == undefined) {
+		display[display_slot].scale = [0,0,0]
 	}
 	val = limitNumber(val, 0.001, 4)
-	display[slot].scale[axisIndex(axis)] = val
+	display[display_slot].scale[axisIndex(axis)] = val
 	if (val == 0) val = 0.001
 	display_base.scale[axis] = val
 }
 
 function resetDisplaySettings(key) {
-	delete display[slot][key]
+	delete display[display_slot][key]
 	$('input#'+key+'_x').val(0)
 	$('input#'+key+'_y').val(0)
 	$('input#'+key+'_z').val(0)
@@ -1222,24 +1225,24 @@ function resetDisplaySettings(key) {
 
 function applyDisplayPreset(preset, all) {
 	if (preset == undefined) return;
-	if (preset.areas[slot] == undefined) {
-		showQuickMessage('Preset does not contain information for this slot')
+	var slots = [display_slot]
+	if (all) {
+		slots = displayReferenceObjects.slots
+	} else if (preset.areas[display_slot] == undefined) {
+		Blockbench.showQuickMessage('message.preset_no_info')
 		return;
 	};
-	var clear_content = {}
-	$.extend(true, clear_content, preset.areas[slot])
-	if (slot === 'gui' || slot === 'firstperson_lefthand' || slot === 'firstperson_righthand') {
-		try  {
-			clear_content.translation[2] = 0;
-		} catch(err) {}
-	}
-	$.extend(true, display[slot], clear_content)
-	loadSlot(slot)
+	slots.forEach(function(sl) {
+		if (!preset.areas[sl]) return;
+		if (typeof display[sl] !== 'object') display[sl] = {}
+		$.extend(true, display[sl], preset.areas[sl])
+	})
+	loadSlot(display_slot)
 }
 function createPreset() {
 	var name = $('input#preset_name').val()
 	if (name == '') {
-		$('input#preset_name').val('Please Enter A Name')
+		$('input#preset_name').val(tl('"display.preset.blank_name'))
 		return;
 	} else {
 		$('input#preset_name').val('new preset')
@@ -1247,17 +1250,7 @@ function createPreset() {
 	var preset = {name: name, areas: {}}
 	display_presets.push(preset)
 
-	var possible_slots = [
-		'thirdperson_righthand',
-		'thirdperson_lefthand',
-		'firstperson_righthand',
-		'firstperson_righthand',
-		'ground',
-		'gui',
-		'head',
-		'fixed',
-	]
-	possible_slots.forEach(function(s) {
+	displayReferenceObjects.slots.forEach(function(s) {
 		if ($('#'+s+'_save').is(':checked')) {
 			preset.areas[s] = display[s]
 		}
@@ -1265,38 +1258,6 @@ function createPreset() {
 	hideDialog()
 	localStorage.setItem('display_presets', JSON.stringify(display_presets))
 }
-function displayPresetContext(e) {
-	var presets = []
-	display_presets.forEach(function(p) {
-		var icon = 'label'
-		if (p.fixed) {
-			switch(p.name) {
-				case 'Vanilla Item': icon = 'filter_vintage'; break;
-				case 'Vanilla Block': icon = 'fa-cube'; break;
-				case 'Vanilla Handheld': icon = 'build'; break;
-				case 'Vanilla Handheld Rod': icon = 'remove'; break;
-			}
-		}
-		presets.push({
-			icon: icon,
-			name: p.name,
-			children: function() {
-				var suboptions = [
-					{icon: 'done', name: 'Apply on this Slot', click: function() {applyDisplayPreset(p)}},
-					{icon: 'done_all', name: 'Apply on all Slots', click: function() {applyDisplayPreset(p, true)}}
-				]
-				if (!p.fixed) {
-					suboptions.push({icon: 'clear', name: 'Remove', click: function() {
-						display_presets.splice(display_presets.indexOf(p),1)
-					}})
-				}
-				return suboptions
-			}
-		})
-	})
-	new ContextMenu(e, presets)
-}
-
 
 
 function setDisplayArea(x, y, z, rx, ry, rz, sx, sy, sz) {//Sets the Work Area to the given Space
@@ -1315,7 +1276,7 @@ function setDisplayArea(x, y, z, rx, ry, rz, sx, sy, sz) {//Sets the Work Area t
 function groundAnimation() {
 	display_area.rotation.y += 0.015
 	ground_timer += 1
-	display_area.position.y = 13.5 + Math.sin(Math.PI * (ground_timer / 100))
+	display_area.position.y = 13.5 + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
 	if (ground_timer === 200) ground_timer = 0;
 }
 
@@ -1341,17 +1302,17 @@ function getDisplayNumber(key, mode, axis) {
 	}
 }
 function loadDisp(key, skin) {	//Loads The Menu and slider values, common for all Radio Buttons
-	slot = key
-	enterScene(key)
+	display_slot = key
+	//enterScene(key)
 	resetDisplayBase()
-	if (key !== 'gui' && isOrtho === true) {
-		setCameraType('pers')
+	if (key !== 'gui' && main_preview.isOrtho === true) {
+		main_preview.setNormalCamera()
 	}
-	controls.enabled = true;
+	main_preview.controls.enabled = true;
 	ground_animation = false;
 	$('input#translation_z').prop('disabled', false)
 	$('#donation_hint').hide()
-	cameraPers.setFocalLength(45)
+	main_preview.camPers.setFocalLength(45)
 
 	if (display[key] == undefined) {
 		display[key] = {}
@@ -1397,10 +1358,10 @@ function loadDispThirdLeft() {	//Loader
 function loadDispFirstRight() {	//Loader
 	loadDisp('firstperson_righthand')
 	setDisplayArea(-20.8, -8.4, 9, 0, 270, 0, 1,1,1)
-	cameraPers.setFocalLength(12)
-	cameraPers.position.set(-32.4, 0, 0)
-	controls.target.set(0,0,0)
-	controls.enabled = false
+	main_preview.camPers.setFocalLength(12)
+	main_preview.camPers.position.set(-32.4, 0, 0)
+	main_preview.controls.target.set(0,0,0)
+	main_preview.controls.enabled = false
 	displayReferenceObjects.bar(['monitor', 'bow'])
 }
 function loadDispFirstLeft() {	//Loader
@@ -1409,10 +1370,10 @@ function loadDispFirstLeft() {	//Loader
 	display_base.rotation['y'] = Math.PI / (180 / -getDisplayNumber('firstperson_lefthand', 'rotation', 1))
 	display_base.rotation['z'] = Math.PI / (180 / -getDisplayNumber('firstperson_lefthand', 'rotation', 2))
 	setDisplayArea(-20.5, -8.4, -9, 0, 270, 0, 1,1,1)
-	cameraPers.setFocalLength(12)
-	cameraPers.position.set(-32.4, 0, 0)
-	controls.target.set(0,0,0)
-	controls.enabled = false
+	main_preview.camPers.setFocalLength(12)
+	main_preview.camPers.position.set(-32.4, 0, 0)
+	main_preview.controls.target.set(0,0,0)
+	main_preview.controls.enabled = false
 	displayReferenceObjects.bar(['monitor', 'bow'])
 }
 function loadDispHead() {		//Loader
@@ -1422,12 +1383,11 @@ function loadDispHead() {		//Loader
 function loadDispGUI() {		//Loader
 	loadDisp('gui')
 	setDisplayArea(0, 0, 0, 0, 0, 0, 0.4, 0.4, 0.4)
-    cameraOrtho.zoom = 1
-	controls.target.set(0,0,0)
+	main_preview.camOrtho.zoom = 1
+	main_preview.controls.target.set(0,0,0)
 	//controls.enabled = false
-	setCameraType('ortho')
-    cameraOrtho.position.set(0,0,32)
-	cameraOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: true, a: 'y'}]
+	main_preview.setOrthographicCamera(2)
+	main_preview.camOrtho.position.set(0,0,32)
 	displayReferenceObjects.bar(['inventory_nine', 'inventory_full', 'hud'])
 }
 function loadDispGround() {		//Loader
@@ -1473,37 +1433,124 @@ function loadSlot(slot) {
 
 function copyDisplaySlot() {
 	var base_setting = {rotation: [0, 0, 0], translation: [0, 0, 0], scale: [1, 1, 1]}
-	$.extend(true, base_setting, display[slot])
+	$.extend(true, base_setting, display[display_slot])
 	display_clipboard = base_setting
 }
 function pasteDisplaySlot() {
 	if (display_clipboard == undefined) return;
 
 	if (typeof display_clipboard.rotation === 'object' && display_clipboard.rotation.join('_') === '0_0_0') {
-		display[slot].rotation = undefined
+		delete display[display_slot].rotation;
 	} else {
-		display[slot].rotation = display_clipboard.rotation
+		display[display_slot].rotation = display_clipboard.rotation.slice();
 	}
 
 	if (typeof display_clipboard.translation === 'object' && display_clipboard.translation.join('_') === '0_0_0') {
-		display[slot].translation = undefined
+		delete display[display_slot].translation;
 	} else {
-		display[slot].translation = display_clipboard.translation
+		display[display_slot].translation = display_clipboard.translation.slice();
 	}
 
 	if (typeof display_clipboard.scale === 'object' && display_clipboard.scale.join('_') === '1_1_1') {
-		display[slot].scale = undefined
+		delete display[display_slot].scale;
 	} else {
-		display[slot].scale = display_clipboard.scale
+		display[display_slot].scale = display_clipboard.scale.slice();
 	}
 	/*
 	var clear_content = {}
 	$.extend(true, clear_content, display_clipboard)
 	$.extend(true, display[slot], clear_content)
 	*/
-	loadSlot(slot)
+	loadSlot(display_slot)
 }
 
+function changeDisplaySkin() {
+	Blockbench.showMessageBox({
+		translateKey: 'display_skin',
+		icon: 'icon-player',
+		buttons: [
+			tl('message.display_skin.upload'),
+			tl('message.display_skin.name'),
+			tl('message.display_skin.reset')
+		],
+		confirm: 0,
+		cancel: 1
+	}, function(result) {
+		if (result === 2) {
+			settings.display_skin.value = false
+			updateDisplaySkin()
+		} else if (result === 1) {
+			if (typeof settings.display_skin.value === 'string' && settings.display_skin.value.substr(0, 9) === 'username:') {
+				var before = settings.display_skin.value.replace('username:', '')
+			} else {
+				var before = ''
+			}
+			Blockbench.textPrompt(tl('message.display_skin.name'), before, function(text) {
+				settings.display_skin.value = 'username:'+text
+				updateDisplaySkin()
+			})
+		} else {
+			Blockbench.import({
+				extensions: ['png'],
+				type: 'PNG Player Skin',
+				readtype: 'image'
+			}, function(files) {
+				if (files.length) {
+					settings.display_skin.value = isApp ? files[0].path : files[0].content
+					updateDisplaySkin()
+				}
+			})
+		}
+	})
+}
+function updateDisplaySkin() {
+	var val = settings.display_skin.value
+	var source;
+	function setPSkin(skin) {
+		if (!displayReferenceObjects.refmodels.player.material) {
+			return;
+		}
+		var mat = displayReferenceObjects.refmodels.player.material
 
 
+		var img = new Image()
+		try {
+			img.src = skin
+		} catch(err) {
+		}
+		img.onload = function() {
+			mat.map.dispose()
+			var tex = new THREE.Texture(img)
+			img.tex = tex;
+			img.tex.magFilter = THREE.NearestFilter
+			img.tex.minFilter = THREE.NearestFilter
+			this.tex.needsUpdate = true;
+			mat.map = tex
+		}
 
+
+	}
+	if (!val) {
+		setPSkin('assets/player_skin.png')
+
+	} else if (typeof val === 'string' && val.substr(0, 9) === 'username:') {
+		var username = val.substr(9)
+		$.getJSON('https://api.mojang.com/users/profiles/minecraft/'+username, function(uuid) {
+			if (uuid && uuid.id) {
+
+				$.getJSON('https://sessionserver.mojang.com/session/minecraft/profile/'+uuid.id, function(data) {
+					if (data && data.properties) {
+						var skin_path;
+						try {
+							skin_path = JSON.parse(atob(data.properties[0].value)).textures.SKIN.url
+						} catch (err) {}
+						setPSkin(skin_path)
+					}
+				})
+			}
+		})
+	} else {
+		setPSkin(val)
+	}
+	//displayReferenceObjects.refmodels.player.material
+}

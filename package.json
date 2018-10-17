@@ -1,7 +1,7 @@
 {
   "name": "Blockbench",
   "description": "Minecraft Block Model Editor",
-  "version": "1.11.6",
+  "version": "2.0.0",
   "license": "MIT",
   "author": {
     "name": "JannisX11",
@@ -23,6 +23,8 @@
       "css/",
       "font/",
       "js",
+      "lib",
+      "lang",
       "main.js",
       "index.html",
       "package.json",
@@ -64,7 +66,11 @@
     "dist": "build --publish always"
   },
   "devDependencies": {
-    "electron": "^1.8.4",
-    "electron-builder": "^20.6.1"
+    "async": "^2.4.1",
+    "electron": "^2.0.0",
+    "electron-builder": "^20.6.2"
+  },
+  "dependencies": {
+    "winreg": "^1.2.4"
   }
 }

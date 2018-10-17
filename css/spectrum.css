@@ -320,10 +320,12 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
 }
 .sp-picker-container {
     width: 172px;
+    padding-left: 8px;
 }
 
 /* Palettes */
 .sp-palette-container {
+    padding-right: 0;
 }
 
 .sp-palette-only .sp-palette-container {
@@ -341,7 +343,7 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
     border:solid 2px transparent;
 }
 .sp-palette .sp-thumb-el:hover, .sp-palette .sp-thumb-el.sp-thumb-active {
-    border-color: orange;
+    border-color: var(--color-accent);
 }
 .sp-thumb-el {
     position:relative;
@@ -371,32 +373,32 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
     float: right;
     height: 27px;
 }
+.sp-button-container a:hover {
+    color: var(--color-light);
+}
 
 /* Replacer (the little preview div that shows up instead of the <input>) */
 .sp-replacer {
     margin:0;
     overflow:hidden;
     cursor:pointer;
-    padding: 4px;
+    padding: 6px;
+    height: 32px;
     display:inline-block;
     *zoom: 1;
     *display: inline;
-    border: solid 1px var(--color-border);
-    background: var(--color-back);
+    background: var(--color-button);
     color: var(--color-text);
     vertical-align: middle;
     outline: none;
 }
 .sp-replacer:hover, .sp-replacer.sp-active {
-    color: var(--color-text-acc);
+    color: var(--color-text_acc);
 }
 .sp-replacer.sp-disabled {
     cursor:default;
     border-color: silver;
     color: silver;
-}
-.tool_options .sp-replacer {
-    float: left;
 }
 .sp-dd {
     padding: 2px 0;
@@ -416,14 +418,15 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
 }
 
 .sp-palette {
-    *width: 220px;
-    max-width: 220px;
+    width: 40px;
+    max-height: 220px;
+    overflow-y: scroll;
 }
 .sp-palette .sp-thumb-el {
-    width:16px;
-    height: 16px;
-    margin:2px 1px;
-    border: solid 1px #d0d0d0;
+    width: 26px;
+    height: 20px;
+    margin: 1px;
+    border: 2px solid var(--color-border);
 }
 
 .sp-container {

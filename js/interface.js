@@ -1,498 +1,649 @@
-var app_colors, canvas_scenes, active_scene;
-scenesSetup()
+var app_colors;
 
-function colorSettingsSetup(reset) {
-    app_colors = {
-        back: {hex: '#21252b'},
-        dark: {hex: '#17191d'},
-        border: {hex: '#181a1f'},
-        ui: {hex: '#282c34'},
-        accent: {hex: '#3e90ff'},
-        grid: {hex: '#495061'},
-        button: {hex: '#3a3f4b'},
-        hover: {hex: '#495061'},
-        text: {hex: '#cacad4'},
-        light: {hex: '#f4f3ff'},
-        text_acc: {hex: '#000006'},
-        main: {font: ''},
-        headline: {font: ''},
-        css: ''
-    }
-    if (reset) {
-        $('#layout_font_main').val('')
-        $('#layout_font_headline').val('')
-        changeUIFont('main')
-        changeUIFont('headline')
-        $('style#bbstyle').text('')
-        setScreenRatio()
-    }
-    if (localStorage.getItem('app_colors') != null && reset != true) {
-        var stored_app_colors = JSON.parse(localStorage.getItem('app_colors'))
-        $.extend(app_colors, stored_app_colors)
-    }
-    updateUIColor()
-    buildGrid()
+//Panels
+class Panel {
+	constructor(data) {
+		var scope = this;
+		this.type = 'panel'
+		this.id = data.id || 'new_panel'
+		this.title = data.title || tl('panel.'+this.id)
+		this.condition = data.condition
+		this.onResize = data.onResize
+		this.node = $('.panel#'+this.id).get(0)// || $('<div class="panel" id="'+this.id+'"></div>')[0]
+		if (data.toolbars) {
+			this.toolbars = data.toolbars
+		}
+		this.handle = $('<h3 class="panel_handle">'+this.title+'</h3>').get(0)
+		$(this.handle).draggable({
+			revertDuration: 0,
+			cursorAt: { left: 24, top: 24 },
+			helper: 'clone',
+			revert: true,
+			appendTo: 'body',
+			zIndex: 19,
+			scope: 'panel',
+			start: function() {
+				Interface.panel = scope;
+			},
+			stop: function(e, ui) {
+				var target = Interface.panel
+				if (typeof target === 'string') {
+					scope.moveTo(target)
+				} else if (target.type === 'panel') {
+					var target_pos = $(target.node).offset().top
+					var target_height = $(target.node).height()
+					var before = ui.position.top < target_pos + target_height / 2
+					if (target && target !== scope) {
+						scope.moveTo(target, before)
+					}
+				}
+				saveInterfaceRearrangement()
+			}
+		})
+		$(this.node)
+			.droppable({
+				accept: 'h3',
+				scope: 'panel',
+				tolerance: 'pointer',
+				drop: function(e, ui) {
+					Interface.panel = scope;
+				}
+			})
+			.click((event) => {
+				setActivePanel(this.id)
+			})
+			.prepend(this.handle)
+	}
+	moveTo(ref_panel, before) {
+		var scope = this
+		if (typeof ref_panel === 'string') {
+			if (ref_panel === 'left_bar') {
+				$('#left_bar').append(scope.node)
+			} else {
+				$('#right_bar').append(scope.node)
+			}
+		} else {
+			if (before) {
+				$(ref_panel.node).before(scope.node)
+			} else {
+				$(ref_panel.node).after(scope.node)
+			}
+		}
+		if (this.onResize) {
+			this.onResize()
+		}
+	}
+	update() {
+		var show = BARS.condition(this.condition)
+		if (show) {
+			$(this.node).show()
+			if (this.onResize) this.onResize()
+		} else {
+			$(this.node).hide()
+		}
+	}
 }
-function showDialog(dialog) {
-    var obj = $('.dialog#'+dialog)
-    $('.dialog').hide(0)
-    $('#blackout').fadeIn(200)
-    obj.fadeIn(200)
-    setTimeout(function() {
-        $('.context_handler.ctx').removeClass('ctx')
-    }, 64)
-    open_dialog = dialog
-    Prop.active_panel = 'dialog'
-    //Draggable
-    if (obj.hasClass('draggable')) {
-        obj.draggable({
-            handle: ".dialog_handle",
-            containment: 'body'
-        })
-        var x = ($(window).width()-obj.width())/2
-        obj.css('left', x+'px')
-        obj.css('top', '64px')
-    }
+class ResizeLine {
+	constructor(data) {
+		var scope = this;
+		this.id = data.id
+		this.horizontal = data.horizontal === true
+		this.position = data.position
+		this.condition = data.condition
+		var jq = $('<div class="resizer '+(data.horizontal ? 'horizontal' : 'vertical')+'"></div>')
+		this.node = jq.get(0)
+		$('body').append(this.node)
+		jq.draggable({
+			axis: this.horizontal ? 'y' : 'y',
+			containment: 'document',
+			revert: true,
+			start: function(e, u) {
+				scope.before = data.get()
+			},
+			drag: function(e, u) {
+				if (scope.horizontal) {
+					data.set(scope.before, u.position.top - u.originalPosition.top)
+				} else {
+					data.set(scope.before, (e.clientX - u.position.left))
+				}
+				updateInterface()
+			},
+			stop: function(e, u) {
+				updateInterface()
+			}
+		})
+	}
+	update() {
+		if (BARS.condition(this.condition)) {
+			$(this.node).show()
+			if (this.position) {
+				this.position(this)
+			}
+		} else {
+			$(this.node).hide()
+		}
+	}
+	setPosition(data) {
+		var jq = $(this.node)
+		jq.css('top', 	data.top 	!== undefined ? data.top+	'px' : '')
+		jq.css('bottom',data.bottom !== undefined ? data.bottom+'px' : '')
+		jq.css('left', 	data.left 	!== undefined ? data.left+	'px' : '')
+		jq.css('right', data.right 	!== undefined ? data.right+	'px' : '')
 
-    //Specific
-    if (dialog === 'file_loader') {
-        $('#file_upload').val('')
-        $('#file_folder').val('')
-        $('#web_import_btn').unbind()
-    } else if (dialog === 'selection_creator') {
-        $('#selection_creator input#selgen_name').select()
-    } else if (dialog === 'plugins') {
-        $('#plugin_list').css('max-height', ($(window).height() - 320) +'px')
-    }
+		if (data.top !== undefined) {
+			jq.css('top', data.top+'px')
+		}
+		if (data.bottom !== undefined && (!data.horizontal || data.top === undefined)) {
+			jq.css('bottom', data.bottom+'px')
+		}
+		if (data.left !== undefined) {
+			jq.css('left', data.left+'px')
+		}
+		if (data.right !== undefined && (data.horizontal || data.left === undefined)) {
+			jq.css('right', data.right+'px')
+		}
+	}
+}
+
+var Interface = {
+	default_data: {
+		left_bar_width: 328,
+		right_bar_width: 300,
+		quad_view_x: 50,
+		quad_view_y: 50,
+		left_bar: ['uv', 'textures', 'display'],
+		right_bar: ['options', 'outliner']
+	},
+	Resizers: {
+		left: new ResizeLine({
+			id: 'left',
+			get: function() {return Interface.data.left_bar_width},
+			set: function(o, diff) {Interface.data.left_bar_width = limitNumber(o + diff, 64, $(window).width()- 240 - Interface.data.right_bar_width)},
+			position: function(line) {line.setPosition({ top: 32, bottom: 0, left: Interface.data.left_bar_width-2 })}
+		}),
+		right: new ResizeLine({
+			id: 'right',
+			get: function() {return Interface.data.right_bar_width},
+			set: function(o, diff) {Interface.data.right_bar_width = limitNumber(o - diff, 64, $(window).width()- 240 - Interface.data.left_bar_width)},
+			position: function(line) {line.setPosition({ top: 32, bottom: 0, right: Interface.data.right_bar_width-2 })}
+		}),
+		quad_view_x: new ResizeLine({
+			id: 'quad_view_x',
+			condition: function() {return quad_previews.enabled},
+			get: function() {return Interface.data.quad_view_x},
+			set: function(o, diff) {Interface.data.quad_view_x = limitNumber(o + diff/$('#preview').width()*100, 5, 95)},
+			position: function(line) {line.setPosition({
+				top: 32,
+				bottom: 0,
+				left: Interface.data.left_bar_width + $('#preview').width()*Interface.data.quad_view_x/100
+			})}
+		}),
+		quad_view_y: new ResizeLine({
+			id: 'quad_view_y',
+			horizontal: true,
+			condition: function() {return quad_previews.enabled},
+			get: function() {return Interface.data.quad_view_y},
+			set: function(o, diff) {Interface.data.quad_view_y = limitNumber(o + diff/$('#preview').height()*100, 5, 95)},
+			position: function(line) {line.setPosition({
+				left: Interface.data.left_bar_width+2,
+				right: Interface.data.right_bar_width+2,
+				top: 32+$('#preview').height()*Interface.data.quad_view_y/100
+			})}
+		})
+	},
+	Panels: {}
+}
+
+//Misc
+function setupInterface() {
+	Interface.data = $.extend(true, {}, Interface.default_data)
+	var interface_data = localStorage.getItem('interface_data')
+	try {
+		interface_data = JSON.parse(interface_data)
+		Interface.data.left_bar = interface_data.left_bar
+		Interface.data.right_bar = interface_data.right_bar
+		$.extend(true, Interface.data, interface_data)
+	} catch (err) {}
+
+	$('.entity_mode_only').hide()
+
+	$('.sidebar').droppable({
+		accept: 'h3',
+		scope: 'panel',
+		tolerance: 'pointer',
+		drop: function(e, ui) {
+			Interface.panel = $(this).attr('id');
+		}
+	})
+
+	//Panels
+	Interface.Panels.uv = new Panel({
+		id: 'uv',
+		condition: function() {return !display_mode},
+		toolbars: {
+			bottom: Toolbars.main_uv
+		},
+		onResize: function() {
+			var size = limitNumber($(this.node).width()-4, 64, 1200)
+			size = Math.floor(size/16)*16
+			main_uv.setSize(size)
+		}
+	})
+	Interface.Panels.textures = new Panel({
+		id: 'textures',
+		condition: function() {return !display_mode},
+		toolbars: {
+			head: Toolbars.textures
+		}
+	})
+	Interface.Panels.options = new Panel({
+		id: 'options',
+		condition: function() {return !display_mode},
+		toolbars: {
+
+		}
+	})
+	Interface.Panels.outliner = new Panel({
+		id: 'outliner',
+		condition: function() {return !display_mode},
+		toolbars: {
+			head: Toolbars.outliner
+		}
+	})
+	Interface.Panels.display = new Panel({
+		id: 'display',
+		condition: function() {return display_mode},
+		toolbars: {
+			head: Toolbars.textures
+		}
+	})
+	Interface.data.left_bar.forEach((id) => {
+		if (Interface.Panels[id]) {
+			$('#left_bar').append(Interface.Panels[id].node)
+		}
+	})
+	Interface.data.right_bar.forEach((id) => {
+		if (Interface.Panels[id]) {
+			$('#right_bar').append(Interface.Panels[id].node)
+		}
+	})
+
+
+	//Tooltip Fix
+	$('.tool').on('mouseenter', function() {
+
+		var tooltip = $(this).find('div.tooltip')
+		if (!tooltip || typeof tooltip.offset() !== 'object') return;
+		//Left
+		if (tooltip.css('left') === '-4px') {
+			tooltip.css('left', 'auto')
+		}
+		if (-tooltip.offset().left > 4) {
+			tooltip.css('left', '-4px')
+		}
+		//Right
+		if (tooltip.css('right') === '-4px') {
+			tooltip.css('right', 'auto')
+		}
+		if ((tooltip.offset().left + tooltip.width()) - $(window).width() > 4) {
+			tooltip.css('right', '-4px')
+		}
+	})
+
+	//Clickbinds
+	$('header'	  ).click( 	function() { setActivePanel('header'  )})
+	$('#preview'	).click(function() { setActivePanel('preview' )})
+
+	$('ul#cubes_list').click(function(event) {
+		if (event.target === document.getElementById('cubes_list')) {
+			unselectAll()
+		}
+	})
+	$('#texture_list').click(function(){
+		unselectTextures()
+	})
+	$(document).mousedown(function(event) {
+		if ($('.ctx').find(event.target).length === 0) {
+			$('.context_handler.ctx').removeClass('ctx')
+		}
+		if (open_menu && $('.contextMenu').find(event.target).length === 0) {
+			open_menu.hide();
+		}
+		if ($(event.target).is('input.cube_name:not([disabled])') === false) {
+			stopRenameCubes()
+		}
+	})
+	$('.context_handler').on('click', function() {
+		$(this).addClass('ctx')
+	})
+	$(document).contextmenu(function(event) {
+		if (!$(event.target).hasClass('allow_default_menu')) {
+			return false;
+		}
+	})
+
+	//Scrolling
+	$('input[type="range"]').on('mousewheel', function () {
+		var factor = event.deltaY > 0 ? -1 : 1
+		var val = parseFloat($(event.target).val()) + parseFloat($(event.target).attr('step')) * factor
+		val = limitNumber(val, $(event.target).attr('min'), $(event.target).attr('max'))
+
+		$(event.target).val(val)
+		eval($(event.target).attr('oninput'))
+		eval($(event.target).attr('onmouseup'))
+	})
+
+	//Mousemove
+	$(document).mousemove(function(event) {
+		mouse_pos.x = event.clientX
+		mouse_pos.y = event.clientY
+	})
+	updateInterface()
+}
+function saveInterfaceRearrangement() {
+	Interface.data.left_bar.length = 0
+	$('#left_bar > .panel').each((i, obj) => {
+		let id = $(obj).attr('id');
+		Interface.data.left_bar.push(id);
+	})
+	Interface.data.right_bar.length = 0
+	$('#right_bar > .panel').each((i, obj) => {
+		let id = $(obj).attr('id');
+		Interface.data.right_bar.push(id);
+	})
+	localStorage.setItem('interface_data', JSON.stringify(Interface.data))
+}
+
+function updateInterface() {
+	BARS.updateConditions()
+	MenuBar.update()
+	resizeWindow()
+	resizeWindow()
+	localStorage.setItem('interface_data', JSON.stringify(Interface.data))
+}
+function updateInterfacePanels() {
+	for (var key in Interface.Panels) {
+		var panel = Interface.Panels[key]
+		panel.update()
+	}
+	var left_width = $('.sidebar#left_bar > .panel:visible').length ? Interface.data.left_bar_width : 0
+	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.data.right_bar_width : 0
+	$('body').css(
+		'grid-template-columns',
+		left_width+'px auto '+ right_width +'px'
+	)
+	$('.quad_canvas_wrapper.qcw_x').css('width', Interface.data.quad_view_x+'%')
+	$('.quad_canvas_wrapper.qcw_y').css('height', Interface.data.quad_view_y+'%')
+	$('.quad_canvas_wrapper:not(.qcw_x)').css('width', (100-Interface.data.quad_view_x)+'%')
+	$('.quad_canvas_wrapper:not(.qcw_y)').css('height', (100-Interface.data.quad_view_y)+'%')
+	for (var key in Interface.Resizers) {
+		var resizer = Interface.Resizers[key]
+		resizer.update()
+	}
+}
+
+function setActivePanel(panel) {
+	Prop.active_panel = panel
+}
+function setProjectTitle(title) {
+	if (Blockbench.entity_mode && Project.parent) {
+		title = Project.parent
+	}
+	if (title) {
+		Prop.file_name = title
+		if (!Project.name) {
+			Project.name = title
+		}
+		if (Blockbench.entity_mode) {
+			title = title.replace(/^geometry\./,'').replace(/:[a-z0-9.]+/, '')
+		}
+		$('title').text(title+' - Blockbench')
+	} else {
+		Prop.file_name = ''
+		$('title').text('Blockbench')
+	}
+}
+
+//Dialogs
+function showDialog(dialog) {
+	var obj = $('.dialog#'+dialog)
+	$('.dialog').hide(0)
+	$('#blackout').fadeIn(200)
+	obj.fadeIn(200)
+	setTimeout(function() {
+		$('.context_handler.ctx').removeClass('ctx')
+	}, 64)
+	open_dialog = dialog
+	open_interface = dialog
+	Prop.active_panel = 'dialog'
+	//Draggable
+	if (obj.hasClass('draggable')) {
+		obj.draggable({
+			handle: ".dialog_handle",
+			containment: 'body'
+		})
+		var x = ($(window).width()-obj.width())/2
+		obj.css('left', x+'px')
+		obj.css('top', '64px')
+		obj.css('max-height', ($(window).height()-128)+'px')
+	}
 }
 function hideDialog() {
-    $('#blackout').fadeOut(200)
-    $('.dialog').fadeOut(200)
-    open_dialog = false;
-    Prop.active_panel = undefined
+	$('#blackout').fadeOut(200)
+	$('.dialog').fadeOut(200)
+	open_dialog = false;
+	open_interface = false;
+	Prop.active_panel = undefined
 }
 function setSettingsTab(tab) {
-    $('#settings .tab.open').removeClass('open')
-    $('#settings .tab#'+tab).addClass('open')
-    $('#settings .tab_content').addClass('hidden')
-    $('#settings .tab_content#'+tab).removeClass('hidden')
-    if (tab === 'keybindings') {
-        //Keybinds
-        $('#keybindlist').css('max-height', ($(window).height() - 320) +'px')
-    } else if (tab === 'setting') {
-        //Settings
-        $('#settingslist').css('max-height', ($(window).height() - 320) +'px')
-    } else if (tab === 'layout_settings') {
-        $('#layout_font_main').val(app_colors.main.font)
-        $('#layout_font_headline').val(app_colors.headline.font)
-    }
+	$('#settings .tab.open').removeClass('open')
+	$('#settings .tab#'+tab).addClass('open')
+	$('#settings .tab_content').addClass('hidden')
+	$('#settings .tab_content#'+tab).removeClass('hidden')
+	if (tab === 'keybindings') {
+		//Keybinds
+		$('#keybindlist').css('max-height', ($(window).height() - 320) +'px')
+	} else if (tab === 'setting') {
+		//Settings
+		$('#settingslist').css('max-height', ($(window).height() - 320) +'px')
+	} else if (tab === 'layout_settings') {
+		$('#layout_font_main').val(app_colors.main.font)
+		$('#layout_font_headline').val(app_colors.headline.font)
+	}
 }
-function textPrompt(title, var_string, value, callback) {
-    showDialog('text_input')
-    $('#text_input h2').text(title)
-    if (value === true) {
-        //Get Previous Value For Input
-        eval('value = '+var_string)
-        try {
-            eval('value = '+var_string)
-        } catch(err) {
-            console.error(err)
-        }
-    }
-    $('#text_input input#text_input_field').val(value).select()
-    $('#text_input button.confirm_btn').off()
-    $('#text_input button.confirm_btn').click(function() {
-        var s = $('#text_input input#text_input_field').val()
-        if (callback !== undefined) {
-            callback(s)
-        }
-        if (var_string == '') return;
-        try {
-            eval(var_string + ' = "'+s+'"')
-        } catch(err) {
-            console.error(err)
-        }
-    })
-}
-function renameCubeList(name) {
-    elements.forEach(function(obj, i) {
-        if (obj.display.isselected) {
-            obj.name = name.split('%').join(obj.index()).split('$').join(i)
-        }
-    })
-}
-function setActivePanel(panel) {
-    Prop.active_panel = panel
-}
-function randomHelpMessage() {
-    var tips = [
-        'Go to the Settings menu and select the Keybindings tab to change your keys.',
-        'Blockbench works as a Program on Windows, macOS and Linux, or as a web app on any device, including tablets.',
-        'Double click in the canvas or hit spacebar to toggle between the scale and the drag tool.',
-        'Create groups to manage different parts of your model.',
-        'Open the Display tab in the top right corner to change how the model looks in your hands.',
-        'Only open textures that are in your resource pack.',
-        'Use Fizzy81\'s animation generator to create animated models.',
-        'Use blockmodels.com or sketchfab.com to share your models.',
-        'Press Ctrl + P to take a screenshot, press Ctrl + V to paste it into a Discord chat or a tweet.',
-        'Hold Shift or Ctrl to select multiple cubes',
-        'Join the Discord server to ask for help: discord.blockbench.net',
-        'You can load a blueprint of your model to make it easier to get the proportions right. Enter a side view and drag the image into the background. Use the menu on the bottom right to adjust it.',
-        'There are many useful plugins by the community in the plugin menu. Just click install and go.',
-        'Keep Blockbench updated. Updates add new functions to Blockbench, fix bugs and installing them is as easy opening the updates screen from the File menu and clicking the Update button',
-        'Check the Move Relative box in the Edit menu to move cubes on their rotated axis.',
-        'When you are renaming multiple elements, you can number them by adding the placeholders $ (relative) or % (absolute).'
-    ]
-    var message = tips[Math.floor(Math.random()*tips.length)]
-    Blockbench.showMessageBox({
-        width: 640,
-        title: 'Tip',
-        icon: 'info',
-        message: message,
-        cancel: 1,
-        confirm: 0,
-        buttons: ['Next', 'Close']
-    }, function(answer) {
-        if (answer === 0) {
-            randomHelpMessage()
-        }
-    })
-}
-
-
-
-//Scenes
-function enterScene(scene) {
-    var container = $('div#preview')
-    var scene_controls = $('#scene_controls')
-    if (scene !== true) {
-        active_scene = canvas_scenes[scene]
-    } else {
-    }
-    if (active_scene.background.image !== false) {
-
-        //Background
-        container.css('background-image', 'url("'+active_scene.background.image.split('\\').join('/')+'")')
-        updateScenePosition()
-
-        //Panel
-        scene_controls.fadeIn(100)
-        $('#scene_controls_panel').hide(0)
-        scene_controls.find('img').attr('src', active_scene.background.image)
-        scene_controls.find('#scene_controls_toggle i').text('first_page')
-
-        if (active_scene.background.lock === 'disabled') {
-            scene_controls.find('.scene_lock').hide()
-        } else {
-            scene_controls.find('.scene_lock').show()
-        }
-
-    } else {
-        container.css('background-image', 'none')
-        scene_controls.fadeOut(100)
-    }
-}
-function clearBackgroundImage() {
-    active_scene.background.image = false;
-    enterScene(true)
-}
-function updateScenePosition(zoom) {
-    if (zoom === undefined) zoom = 1
-    if (isOrtho === true && active_scene.background.lock === false) zoom = cameraOrtho.zoom
-    if (active_scene.background.lock === true) zoom = 1
-
-    var offset = [0, 0];
-
-    if (isOrtho === true && active_scene.background.lock !== true) {
-
-        offset.forEach(function(s, i) {
-            s = cameraOrtho.backgroundHandle[i].n === true ? 1 : -1
-            s = s * controls.target[cameraOrtho.backgroundHandle[i].a]
-            s = s * zoom * 40;
-            offset[i] = s
-        })
-    }
-
-    var pos_x = offset[0] + (active_scene.background.x * zoom) + c_width/2 - (active_scene.background.size * zoom) / 2
-    var pos_y = offset[1] + (active_scene.background.y * zoom) + c_height/2 - ((active_scene.background.size / active_scene.background.ratio) * zoom) / 2
-
-    $('div#preview').css('background-position', pos_x + 'px ' + pos_y+'px')
-                    .css('background-size',  active_scene.background.size * zoom +'px')
-}
-function updateBackgroundRatio() {
-    //Update Ratio
-    var img = $('#scene_controls img')[0]
-    active_scene.background.ratio = img.naturalWidth / img.naturalHeight
-    updateScenePosition()
-}
-function toggleScenePanel() {
-    var scene_controls = $('#scene_controls')
-    if (scene_controls.find('#scene_controls_panel').is(':visible')) {
-        //Hide
-        scene_controls.find('#scene_controls_panel').hide(200)
-        scene_controls.find('#scene_controls_toggle i').text('first_page')
-    } else {
-        //Show
-        scene_controls.find('#scene_controls_panel').show(200)
-        scene_controls.find('#scene_controls_toggle i').text('last_page')
-
-        scene_controls.find('input#scene_size').val(active_scene.background.size)
-        scene_controls.find('input#scene_x').val(active_scene.background.x)
-        scene_controls.find('input#scene_y').val(active_scene.background.y)
-        scene_controls.find('input#scene_fixed').prop('checked', active_scene.background.y === true)
-    }
-}
-function updateScenePanelControls() {
-    var scene_controls = $('#scene_controls')
-    active_scene.background.size = limitNumber(parseInt( scene_controls.find('input#scene_size').val()) )
-    active_scene.background.x    = limitNumber(parseInt( scene_controls.find('input#scene_x').val()) )
-    active_scene.background.y    = limitNumber(parseInt( scene_controls.find('input#scene_y').val()) )
-    active_scene.background.lock = scene_controls.find('input#scene_fixed').is(':checked')
-    updateScenePosition()
-}
-function scenesSetup(reset) {
-    canvas_scenes = {
-        normal: {name: 'Normal', background:  {image: false, size: 1000, x: 0, y: 0, ratio: 1, lock: 'disabled'}},
-        ortho0: {name: 'Ortho 0', background: {image: false, size: 1000, x: 0, y: 0}},
-        ortho1: {name: 'Ortho 1', background: {image: false, size: 1000, x: 0, y: 0, ratio: 1, lock: false}},
-        ortho2: {name: 'Ortho 2', background: {image: false, size: 1200, x: 0, y: 0, ratio: 1, lock: false}},
-        ortho3: {name: 'Ortho 3', background: {image: false, size: 1000, x: 0, y: 0, ratio: 1, lock: false}},
-        ortho4: {name: 'Ortho 4', background: {image: false, size: 1000, x: 0, y: 0, ratio: 1, lock: false}},
-        ortho5: {name: 'Ortho 5', background: {image: false, size: 1000, x: 0, y: 0, ratio: 1, lock: false}},
-
-        thirdperson_righthand: {name: 'thirdperson_righthand', background:  {image: false, size: 1000, x: 0, y: 0, ratio: 1, lock: 'disabled'}},
-        thirdperson_lefthand:  {name: 'thirdperson_lefthand',  background:  {image: false, size: 1000, x: 0, y: 0, ratio: 1, lock: 'disabled'}},
-        firstperson_righthand: {name: 'firstperson_righthand', background:  {image: false, size: 1000, x: 0, y: 0, ratio: 1, lock: 'disabled'}},
-        firstperson_lefthand:  {name: 'firstperson_lefthand',  background:  {image: false, size: 1000, x: 0, y: 0, ratio: 1, lock: 'disabled'}},
-
-        head:   {name: 'head',   background:  {image: false, size: 1000, x: 0, y: 0, ratio: 1, lock: 'disabled'}},
-        ground: {name: 'ground', background:  {image: false, size: 1000, x: 0, y: 0, ratio: 1, lock: 'disabled'}},
-        fixed:  {name: 'fixed',  background:  {image: false, size: 1000, x: 0, y: 0, ratio: 1, lock: 'disabled'}},
-        gui:    {name: 'gui',    background:  {image: './assets/inventory.png', size: 1020, x: 0, y: 0, ratio: 1, lock: false}}
-    }
-    if (localStorage.getItem('canvas_scenes') != null && reset != true) {
-        var stored_canvas_scenes = JSON.parse(localStorage.getItem('canvas_scenes'))
-        $.extend(canvas_scenes, stored_canvas_scenes)
-    }
-    active_scene = canvas_scenes.normal
-}
-
 
 //Color
+function colorSettingsSetup(reset) {
+	app_colors = {
+		back: {hex: '#21252b'},
+		dark: {hex: '#17191d'},
+		border: {hex: '#181a1f'},
+		ui: {hex: '#282c34'},
+		bright_ui: {hex: '#f4f3ff'},
+		accent: {hex: '#3e90ff'},
+		grid: {hex: '#495061'},
+		button: {hex: '#3a3f4b'},
+		selected: {hex: '#495061'},
+		text: {hex: '#cacad4'},
+		light: {hex: '#f4f3ff'},
+		text_acc: {hex: '#000006'},
+		main: {font: ''},
+		headline: {font: ''},
+		css: ''
+	}
+	if (reset) {
+		$('#layout_font_main').val('')
+		$('#layout_font_headline').val('')
+		changeUIFont('main')
+		changeUIFont('headline')
+		$('style#bbstyle').text('')
+		resizeWindow()
+	}
+	if (localStorage.getItem('app_colors') != null && reset != true) {
+		var stored_app_colors = JSON.parse(localStorage.getItem('app_colors'))
+		$.extend(app_colors, stored_app_colors)
+	}
+	updateUIColor()
+	buildGrid()
+}
 function initUIColor(event) {
-    var type = $(event.target).attr('id').split('color_')[1]
-    $('input#color_'+type).val(app_colors[type].hex)
+	var type = $(event.target).attr('id').split('color_')[1]
+	$('input#color_'+type).val(app_colors[type].hex)
 }
 function changeUIColor(event) {
-    var type = $(event.target).attr('id').split('color_')[1]
+	var type = $(event.target).attr('id').split('color_')[1]
 
-    app_colors[type].hex = $('input#color_'+type).val()
-    updateUIColor()
+	app_colors[type].hex = $('input#color_'+type).val()
+	updateUIColor()
 }
 function changeUIFont(type) {
-    var font = $('#layout_font_'+type).val()
-    app_colors[type].font = font
-    if (type === 'main') {
-        $('body').css('font-family', app_colors[type].font)
-    } else {
-        $('h1, h2, h3, h4, h5').css('font-family', app_colors[type].font)
-    }
+	var font = $('#layout_font_'+type).val()
+	app_colors[type].font = font
+	if (type === 'main') {
+		$('body').css('font-family', app_colors[type].font)
+	} else {
+		$('h1, h2, h3, h4, h5').css('font-family', app_colors[type].font)
+	}
 }
 function updateUIColor() {
-    for (var type in app_colors) {
-        if (app_colors.hasOwnProperty(type)) {
-            if (type === 'css') {
-                $('style#bbstyle').text(app_colors.css)
-            } else if (app_colors[type].hex) {
-                document.body.style.setProperty('--color-'+type, app_colors[type].hex);
-            } else if (app_colors[type].font) {
-                if (type === 'main') {
-                    $('body').css('font-family', app_colors[type].font)
-                } else {
-                    $('h1, h2, h3, h4, h5').css('font-family', app_colors[type].font)
-                }
-            }
-        }
-    }
-    //var grid_color = '0x'+app_colors.hover.hex.replace('#', '')
-    $('meta[name=theme-color]').attr('content', app_colors.ui.hex)
+	for (var type in app_colors) {
+		if (app_colors.hasOwnProperty(type)) {
+			if (type === 'css') {
+				$('style#bbstyle').text(app_colors.css)
+			} else if (app_colors[type].hex) {
+				document.body.style.setProperty('--color-'+type, app_colors[type].hex);
+			} else if (app_colors[type].font) {
+				if (type === 'main') {
+					$('body').css('font-family', app_colors[type].font)
+				} else {
+					$('h1, h2, h3, h4, h5').css('font-family', app_colors[type].font)
+				}
+			}
+		}
+	}
+	$('meta[name=theme-color]').attr('content', app_colors.ui.hex)
 
-    var c_outline = parseInt('0x'+app_colors.accent.hex.replace('#', ''))
-    if (!gizmo_colors.outline || c_outline !== gizmo_colors.outline.getHex()) {
-        gizmo_colors.outline = new THREE.Color( c_outline )
-        elements.forEach(function(obj) {
-            obj.getMesh().outline.material.color = gizmo_colors.outline
-        })
-    }
+	var c_outline = parseInt('0x'+app_colors.accent.hex.replace('#', ''))
+	if (!gizmo_colors.outline || c_outline !== gizmo_colors.outline.getHex()) {
+		gizmo_colors.outline = new THREE.Color( c_outline )
+		Canvas.outlineMaterial.color = gizmo_colors.outline
+	}
 
-    var c_grid = parseInt('0x'+app_colors.grid.hex.replace('#', ''))
-    if (!gizmo_colors.grid || c_grid !== gizmo_colors.grid.getHex()) {
-        gizmo_colors.grid = new THREE.Color( c_grid )
-        try {
-            three_grid.getObjectByName('grid').material.color = gizmo_colors.grid
-        } catch(err) {}
-    }
-    //gizmo_colors.grid    = new THREE.Color( parseInt('0x'+app_colors.accent.hex.replace('#', '')) )
+	var c_grid = parseInt('0x'+app_colors.grid.hex.replace('#', ''))
+	if (!gizmo_colors.grid || c_grid !== gizmo_colors.grid.getHex()) {
+		gizmo_colors.grid = new THREE.Color( c_grid )
+		try {
+			three_grid.getObjectByName('grid').material.color = gizmo_colors.grid
+		} catch(err) {}
+	}
+	//gizmo_colors.grid	= new THREE.Color( parseInt('0x'+app_colors.accent.hex.replace('#', '')) )
 
 
-    localStorage.setItem('app_colors', JSON.stringify(app_colors))
+	localStorage.setItem('app_colors', JSON.stringify(app_colors))
 }
 
+//BBLayout
 function importLayout() {
-    Blockbench.import('bbstyle', function(content) {
-        applyBBStyle(content)
-    })
+	Blockbench.import('bbstyle', function(content) {
+		applyBBStyle(content)
+	})
 }
 function applyBBStyle(data) {
-    if (typeof data === 'string') {
-        try {
-            data = JSON.parse(data)
+	if (typeof data === 'string') {
+		try {
+			data = JSON.parse(data)
 
-        } catch(err) {
-            console.log(err)
-            return;
-        }
-    }
-    if (typeof data !== 'object') return;
-    $.extend(app_colors, data)
-    if (data.css) {
-        $('style#bbstyle').text(data.css)
-        setScreenRatio()
-    }
-    updateUIColor()
+		} catch(err) {
+			console.log(err)
+			return;
+		}
+	}
+	if (typeof data !== 'object') return;
+	$.extend(app_colors, data)
+	if (data.css) {
+		$('style#bbstyle').text(data.css)
+		resizeWindow()
+	}
+	updateUIColor()
 }
 function exportLayout() {
-    Blockbench.export(autoStringify(app_colors), 'layout', 'bbstyle')
+	Blockbench.export(autoStringify(app_colors), 'layout', 'bbstyle')
 }
 
-function showQuickMessage(message, time) {
-    var quick_message_box = $('<div id="quick_message_box" class="hidden"></div>') 
-    $('body').append(quick_message_box)
-    
-    quick_message_box.text(message)
-    quick_message_box.fadeIn(100)
-    setTimeout(function() {
-        quick_message_box.fadeOut(100)
-        setTimeout(function() {
-            quick_message_box.remove()
-        }, 100)
-    }, time ? time : 1000)
-}
-function showStatusMessage(message, time) {           //Shows a quick message in the status bar
-    var status_message = $('#status_message')
-    var status_name    = $('#status_name')
-
-    status_message.text(message)
-
-    status_name.hide(100)
-    status_message.show(100)
-
-    setTimeout(function() {
-        status_message.hide(100)
-        status_name.show(100)
-    }, time ? time : 600)
-}
+//UI Edit
 function setProgressBar(id, val, time) {
-    $('#'+id+' > .progress_bar_inner').animate({width: val*488}, time-1)
+	$('#'+id+' > .progress_bar_inner').animate({width: val*488}, time-1)
 }
 
 //Tooltip
-
 function showShiftTooltip() {
-    $(':hover').find('.tooltip_shift').css('display', 'inline')
+	$(':hover').find('.tooltip_shift').css('display', 'inline')
 }
 $(document).keyup(function(event) {
-    if (event.which === 16) {
-        $('.tooltip_shift').hide()
-    }
+	if (event.which === 16) {
+		$('.tooltip_shift').hide()
+	}
 })
-function setProjectTitle(title) {
-    if (Blockbench.entity_mode && Project.parent) {
-        title = Project.parent
-    }
-    if (title) {
-        Prop.file_name = title
-        if (Blockbench.entity_mode) {
-            title = title.replace(/^geometry\./,'')
-        }
-        $('title').text(title+' - Blockbench')
-    } else {
-        Prop.file_name = ''
-        $('title').text('Blockbench')
-    }
-}
-/*
-function updateCubeList() {
-    Vue.nextTick(function() {
-        $('.cube_context').on('click', function(event) {
-            var ul = $(this).find('ul')
-            var pos = $(window).height() - event.clientY
-            if (pos < 110) {
-                ul.css('top', '-120px');
-            } else {
-                ul.css('top', '24px');
-            }
-        })
-    })
-}*/
-
-function setInterfaceMode(mode) {
-    $('.mode_tab').removeClass('open')
-    $('.mode_tab#mode_'+mode+'_tab').addClass('open')
-    setScreenRatio()
-}
 
 //SplashScreen
 var splashScreen = {
-    attempt: function(res) {
-        //Post Model
-        if (!isApp && tryLoadPOSTModel()) {
-            return;
-        }
-        //Show
-        if (localStorage.getItem('welcomed_version') != appVersion) {
-            splashScreen.show()
-        } else {
-            $.getJSON('https://blockbench.net/api/index.json', function (data) {
-                if (data.forceSplashScreen) {
-                    splashScreen.show()
-                }
-            })
-        }
-    },
-    show: function() {
-        if (open_dialog) return;
-        $('#welcome_content').load('https://www.blockbench.net/api/welcome/index.html', function(a, err) {
-            if (err === 'error') return;
-            $('#welcome_screen #welcome_body').css('max-height', ($(window).height() - 478) + 'px')
-            showDialog('welcome_screen')
-            localStorage.setItem('welcomed_version', appVersion) 
-        })
-    }
-}
+	attempt: function(res) {
+		//NOW:  Internet Available! -- DOM Ready!
 
+		//Post Model
+		if (!isApp && tryLoadPOSTModel()) {
+			return;
+		}
+
+		//Show
+		if (res[1] ||//Forced
+			localStorage.getItem('welcomed_version') != appVersion//Updated
+		) {
+			splashScreen.show()
+		}
+	},
+	show: function() {
+		if (open_dialog) return;
+		$('#welcome_content').load('https://www.blockbench.net/api/welcome/index.html', function() {
+			$('#welcome_screen #welcome_body').css('max-height', ($(window).height() - 478) + 'px')
+			showDialog('welcome_screen')
+			localStorage.setItem('welcomed_version', appVersion) 
+		})
+	},
+	p_doc: new Promise(function(resolve, reject) {
+		$(document).ready(function() {
+			resolve(true)
+		})
+	}),
+	p_force: new Promise(function(resolve, reject) {
+		$.getJSON('https://blockbench.net/api/index.json', function (data) {
+			resolve(data.forceSplashScreen)
+		})
+	})
+}
+Promise.all([splashScreen.p_doc, splashScreen.p_force]).then(splashScreen.attempt)
 
 //Mobile
 function setMobileTab(mode) {
-    $('.mobile_mode_tab').removeClass('open')
-    $('#mobile_tab_'+mode).addClass('open')
-    //
-    $('.sidebar').css('grid-area', '')
-    $('#preview').css('grid-area', '')
-    $('header').css('grid-area', '')
-    switch (mode) {
-        case 'preview':
-            $('#preview').css('grid-area', 'main')
-            break;
-        case 'textures':
-            $('#left_bar').css('grid-area', 'main')
-            break;
-        case 'elements':
-            $('#right_bar').css('grid-area', 'main')
-            break;
-        case 'menu':
-            $('header').css('grid-area', 'main')
-            break;
-    }
-    setScreenRatio()
+	$('.mobile_mode_tab').removeClass('open')
+	$('#mobile_tab_'+mode).addClass('open')
+	//
+	$('.sidebar').css('grid-area', '')
+	$('#preview').css('grid-area', '')
+	$('header').css('grid-area', '')
+	switch (mode) {
+		case 'preview':
+			$('#preview').css('grid-area', 'main')
+			break;
+		case 'textures':
+			$('#left_bar').css('grid-area', 'main')
+			break;
+		case 'elements':
+			$('#right_bar').css('grid-area', 'main')
+			break;
+		case 'menu':
+			$('header').css('grid-area', 'main')
+			break;
+	}
+	resizeWindow()
 }

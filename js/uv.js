@@ -1,1476 +1,1576 @@
-function getTextureById(id) {
-    if (id === undefined) return;
-    if (id == '$transparent') {
-        return {material: transparentMaterial};
-    }
-    id = id.split('#').join('');
-    return $.grep(textures, function(e) {return e.id == id})[0];
-}
-function getTexturesById(id) {
-    if (id === undefined) return;
-    id = id.split('#').join('');
-    return $.grep(textures, function(e) {return e.id == id});
-}
 function showUVShiftDialog() {
-    if (!selected.length) return;
-    var dialog = new Dialog({
-        title: 'Shift UV',
-        draggable: true,
-        width: 387,
-        lines: [
-            '<div class="dialog_bar" style="height: auto; padding-bottom: 20px;">'+
-                'Enter the number you want to <b>multiply</b> the UV offset coordinates by. Mathematical expressions are allowed. Prepend a "+" if you want to <b>add</b> that number'+
-            '</div>',
-            '<div class="dialog_bar">'+
-                '<label class="inline_label" style="width: 120px;">Horizontal: </label>'+
-                '<input type="text" class="dark_bordered" id="shift_uv_horizontal">'+
-            '</div>',
-            '<div class="dialog_bar">'+
-                '<label class="inline_label" style="width: 120px;">Vertical: </label>'+
-                '<input type="text" class="dark_bordered" id="shift_uv_vertical">'+
-            '</div>'
-        ],
-        id: 'uv_shift_dialog',
-        fadeTime: 100,
-        onConfirm: function() {
-            dialog.hide()
-            var h = $(dialog.object).find('#shift_uv_horizontal').val()
-            if (h.length > 0) {
-                var add;
-                if (h.substr(0,1) === '+') {
-                    h = h.substr(1).trim()
-                    add = true
-                }
-                h = eval(h)
-                elements.forEach(function(obj) {
-                    if (add) {
-                        obj.uv_offset[0] += h
-                    } else {
-                        obj.uv_offset[0] *= h
-                    }
-                })
-            }
-            var v = $(dialog.object).find('#shift_uv_vertical').val()
-            if (v.length > 0) {
-                var add;
-                if (v.substr(0,1) === '+') {
-                    v = v.substr(1).trim()
-                    add = true
-                }
-                v = eval(v)
-                elements.forEach(function(obj) {
-                    if (add) {
-                        obj.uv_offset[1] += v
-                    } else {
-                        obj.uv_offset[1] *= v
-                    }
-                    Canvas.updateUV(obj)
-                })
-            }
-            main_uv.loadData()
-            setUndo('Shifted UV')
-        },
-        onCancel: function() {
-            dialog.hide()
-        }
-    }).show()
+	if (!selected.length) return;
+	var dialog = new Dialog({
+		title: tl('dialog.shift_uv.title'),
+		draggable: true,
+		width: 387,
+		lines: [
+			'<div class="dialog_bar" style="height: auto; padding-bottom: 20px;">'+
+				tl('dialog.shift_uv.message')+
+			'</div>',
+			'<div class="dialog_bar">'+
+				'<label class="inline_label" style="width: 120px;">'+tl('.dialog.shift_uv.horizontal')+': </label>'+
+				'<input type="text" class="dark_bordered" id="shift_uv_horizontal">'+
+			'</div>',
+			'<div class="dialog_bar">'+
+				'<label class="inline_label" style="width: 120px;">'+tl('.dialog.shift_uv.vertical')+': </label>'+
+				'<input type="text" class="dark_bordered" id="shift_uv_vertical">'+
+			'</div>'
+		],
+		id: 'uv_shift_dialog',
+		fadeTime: 100,
+		onConfirm: function() {
+			Undo.initEdit({cubes: elements, uv_only: true})
+			dialog.hide()
+			var h = $(dialog.object).find('#shift_uv_horizontal').val()
+			if (h.length > 0) {
+				var add;
+				if (h.substr(0,1) === '+') {
+					h = h.substr(1).trim()
+					add = true
+				}
+				h = eval(h)
+				elements.forEach(function(obj) {
+					if (add) {
+						obj.uv_offset[0] += h
+					} else {
+						obj.uv_offset[0] *= h
+					}
+				})
+			}
+			var v = $(dialog.object).find('#shift_uv_vertical').val()
+			if (v.length > 0) {
+				var add;
+				if (v.substr(0,1) === '+') {
+					v = v.substr(1).trim()
+					add = true
+				}
+				v = eval(v)
+				elements.forEach(function(obj) {
+					if (add) {
+						obj.uv_offset[1] += v
+					} else {
+						obj.uv_offset[1] *= v
+					}
+					Canvas.updateUV(obj)
+				})
+			}
+			main_uv.loadData()
+			Undo.finishEdit('uv_shift')
+		},
+		onCancel: function() {
+			dialog.hide()
+		}
+	}).show()
 }
 class UVEditor {
-    constructor(id, headline, toolbar) {
-        this.face = 'north';
-        this.size = 320;
-        this.grid = 16;
-        this.id = id
-        this.autoGrid = true;
-        this.texture = false;
-        this.headline = headline
-        this.jquery = {}
-        this.uuid = guid()
+	constructor(id, headline, toolbar) {
+		this.face = 'north';
+		this.size = 320;
+		this.grid = 16;
+		this.id = id
+		this.autoGrid = true;
+		this.texture = false;
+		this.headline = headline
+		this.jquery = {}
+		this.uuid = guid()
 
-        this.buildDom(toolbar)
-    }
-    buildDom(toolbar) {
-        var scope = this
-        if (this.jquery.main) {
-            this.jquery.main.remove()
-        }
-        this.jquery.main = $('<div class="UVEditor" id="UVEditor_'+scope.id+'"></div>')
-        if (this.headline) {
-            this.jquery.main.append('<div class="uv_headline"><div class="uv_title">'+capitalizeFirstLetter(scope.id)+'</div><div class="tool"><i class="material-icons">fullscreen</i><div class="tooltip">Fullscreen</div></div></div>')
-            this.jquery.main.find('div.uv_headline > .tool').click(function() {
-                uv_dialog.openTab(scope.id)
-            })
-            this.jquery.main.find('div.uv_headline').click(function(event) {
-                event.stopPropagation()
-                uv_dialog.select(scope.id, event)
-            })
-        }
-        this.jquery.frame = $('<div id="uv_frame" style="background-repeat: no-repeat;"><div id="uv_size"></div></div>')
-        this.jquery.size  = this.jquery.frame.find('div#uv_size')
-        this.jquery.main.append(this.jquery.frame)
-        this.jquery.frame.append('<div class="uv_transform_info" title="Transform indicators"></div>')
-        this.jquery.frame.css('background-repeat', 'no-repeat')
-        this.jquery.transform_info = this.jquery.frame.find('.uv_transform_info')
-        if (browser_name === 'firefox') {
-            this.jquery.frame.css('image-rendering', '-moz-crisp-edges')
-        }
+		uv_dialog.all_editors.push(this)
 
-        this.jquery.nslides = $(
-            '<div class="bar">'+
-                '<div class="tool wide nslide_tool"><div class="nslide" n-action="moveuv_x"></div><div class="tooltip">Move X</div></div>' +
-                '<div class="tool wide nslide_tool"><div class="nslide" n-action="moveuv_y"></div><div class="tooltip">Move Y</div></div>' +
-                (Blockbench.entity_mode ? '' : '<div class="tool wide nslide_tool"><div class="nslide" n-action="scaleuv_x"></div><div class="tooltip">Scale X</div></div>') +
-                (Blockbench.entity_mode ? '' : '<div class="tool wide nslide_tool"><div class="nslide" n-action="scaleuv_y"></div><div class="tooltip">Scale Y</div></div>') +
-                (Blockbench.entity_mode ? '<button class="large entity_mode_only entity_mode_uv_button" id="entity_mode_resolution_button" onclick="showDialog(\'project_settings\');">Size</button>' : '')+
-                (Blockbench.entity_mode ? '<button class="large entity_mode_only entity_mode_uv_button" id="entity_mode_shift_button" onclick="showUVShiftDialog()">Shift</button>' : '')+
-            '</div>'
-        )
-        this.jquery.main.append(this.jquery.nslides)
-        setupNslides(this.jquery.nslides)
-        this.jquery.nslides.find('.nslide_tool').on('change', function() {
-            //dummy function, sets the global variable nslide.editor to the current uv editor
-            nslide.editor = scope;
-        })
-        if (Toolbox.selected.paint_tool) {
-            this.jquery.size.hide()
-        }
+		this.buildDom(toolbar)
+	}
+	buildDom(toolbar) {
+		var scope = this
+		if (this.jquery.main) {
+			this.jquery.main.remove()
+		}
+		this.jquery.main = $('<div class="UVEditor" id="UVEditor_'+scope.id+'"></div>')
+		if (this.headline) {
+			this.jquery.main.append('<div class="uv_headline"><div class="uv_title">'+capitalizeFirstLetter(scope.id)+'</div><div class="tool"><i class="material-icons">fullscreen</i><div class="tooltip">Fullscreen</div></div></div>')
+			this.jquery.main.find('div.uv_headline > .tool').click(function() {
+				uv_dialog.openTab(scope.id)
+			})
+			this.jquery.main.find('div.uv_headline').click(function(event) {
+				event.stopPropagation()
+				uv_dialog.select(scope.id, event)
+			})
+		}
+		this.jquery.frame = $('<div id="uv_frame" style="background-repeat: no-repeat;"><div id="uv_size"><div class="uv_size_handle"></div></div></div>')
+		this.jquery.size  = this.jquery.frame.find('div#uv_size')
+		this.jquery.main.append(this.jquery.frame)
+		this.jquery.frame.append('<div class="uv_transform_info" title="Transform indicators"></div>')
+		this.jquery.frame.css('background-repeat', 'no-repeat')
+		this.jquery.transform_info = this.jquery.frame.find('.uv_transform_info')
+		if (Blockbench.browser === 'firefox') {
+			this.jquery.frame.css('image-rendering', '-moz-crisp-edges')
+		}
 
-        this.jquery.size.mouseenter(function() {
-            scope.displayMappingOverlay()
-        })
-        this.jquery.size.mouseleave(function() {
-            $(this).find('.uv_mapping_overlay').remove()
-        })
+		this.jquery.sliders = $('<div class="bar" style="margin-left: 2px;"></div>')
 
-        if (toolbar) {
-            this.jquery.bar = $(
-                '<div class="bar">' +
-                    '<select class="tool" id="uv_snap" name="grid_snap" style="width: 50px;">' +
-                        '<option id="auto" selected>Auto</option>' +
-                        '<option id="16">16x16</option>' +
-                        '<option id="32">32x32</option>' +
-                        '<option id="64">64x64</option>' +
-                        '<option id="none">Free</option>' +
-                    '</select>' +
-                    '<div class="tool" id="maximize"><i class="material-icons">zoom_out_map</i><div class="tooltip">Maximize<div class="tooltip_shift"> All</div></div></div>' +
-                    '<div class="tool" id="auto_size"><i class="material-icons">brightness_auto</i><div class="tooltip">Auto Size<div class="tooltip_shift"> All</div></div></div>' +
-                    '<div class="tool" id="applyAll"><i class="material-icons">format_color_fill</i><div class="tooltip">Apply To All Sides</div></div>' +
-                    '<div class="tool" id="clear"><i class="material-icons">clear</i><div class="tooltip">Clear<div class="tooltip_shift"> All</div></div></div>' +
-                    '<div class="tool" id="reset"><i class="material-icons">replay</i><div class="tooltip">Reset<div class="tooltip_shift"> All</div></div></div>' +
-                    '<input class="tool" id="uv_rotation" title="Rotation" type="range" min="0" max="270" step="90" value="0" style="width: 60px;">' +
-                '</div>'
-            )
+		this.jquery.main.append(this.jquery.sliders)
+		var onBefore = function() {
+			Undo.initEdit({cubes: selected})
+		}
+		var onAfter = function() {
+			Undo.finishEdit('dones')
+		}
+		var getInterval = function(event) {
+			return Blockbench.entity_mode
+				? 1 
+				: 16/scope.grid;
+		}
+		this.sliders = {
+			pos_x: new NumSlider({
+				id: 'uv_slider_pos_x',
+				private: true,
+				condition: function() {return true},
+				get: function() {
+					if (Blockbench.entity_mode && selected[0]) {
+						return trimFloatNumber(selected[0].uv_offset[0])
+					} else {
+						var face_uv = selected[0].faces[scope.face].uv
+						if (face_uv) {
+							return trimFloatNumber(face_uv[0])
+						}
+					}
+					return 0
+				},
+				change: function(value, fixed) {
+					scope.slidePos(value, fixed, 0)
+				},
+				getInterval: getInterval,
+				onBefore: onBefore,
+				onAfter: onAfter
+			}).toElement(this.jquery.sliders),
 
-            //Click Bindings
-                this.jquery.bar.find('#maximize').click(function(event) {
-                    scope.maximize(event)
-                })
-                this.jquery.bar.find('#auto_size').click(function(event) {scope.setAutoSize(event)})
-                this.jquery.bar.find('#applyAll').click(function(event) {scope.applyAll(event)})
-                this.jquery.bar.find('#clear').click(function(event) {scope.clear(event)})
+			pos_y: new NumSlider({
+				id: 'uv_slider_pos_y',
+				private: true,
+				condition: function() {return true},
+				get: function() {
+					if (Blockbench.entity_mode && selected[0]) {
+						return trimFloatNumber(selected[0].uv_offset[1])
+					} else {
+						var face_uv = selected[0].faces[scope.face].uv
+						if (face_uv) {
+							return trimFloatNumber(face_uv[1])
+						}
+					}
+					return 0
+				},
+				change: function(value, fixed) {
+					scope.slidePos(value, fixed, 1)
+				},
+				getInterval: getInterval,
+				onBefore: onBefore,
+				onAfter: onAfter
+			}).toElement(this.jquery.sliders),
 
-                this.jquery.bar.find('#uv_rotation').on('input', function(event) {scope.rotate(true)})
-                this.jquery.bar.find('#grid_snap').change(function(event) {scope.selectGridSize(event)})
+			size_x: new NumSlider({
+				id: 'uv_slider_size_x',
+				private: true,
+				condition: function() {return !Blockbench.entity_mode},
+				get: function() {
+					if (!Blockbench.entity_mode && selected[0]) {
+						var face_uv = selected[0].faces[scope.face].uv
+						if (face_uv) {
+							return trimFloatNumber(face_uv[2] - face_uv[0])
+						}
+					}
+					return 0
+				},
+				getInterval: function(event) {
+					return Blockbench.entity_mode
+						? 1 
+						: 16/scope.grid;
+				},
+				change: function(value, fixed) {
+					scope.slideSize(value, fixed, 0)
+				},
+				getInterval: getInterval,
+				onBefore: onBefore,
+				onAfter: onAfter
+			}).toElement(this.jquery.sliders),
 
-                this.jquery.bar.find('#reset').click(function(event) {scope.reset(event)}) //onclick
+			size_y: new NumSlider({
+				id: 'uv_slider_size_y',
+				private: true,
+				condition: function() {return !Blockbench.entity_mode},
+				get: function() {
+					if (!Blockbench.entity_mode && selected[0]) {
+						var face_uv = selected[0].faces[scope.face].uv
+						if (face_uv) {
+							return trimFloatNumber(face_uv[3] - face_uv[1])
+						}
+					}
+					return 0
+				},
+				change: function(value, fixed) {
+					scope.slideSize(value, fixed, 1)
+				},
+				getInterval: getInterval,
+				onBefore: onBefore,
+				onAfter: onAfter
 
-                this.jquery.bar.find('#uv_snap').on('change', function(event) {scope.setGrid()})
-            this.jquery.main.append(this.jquery.bar)
-        } else {
-            this.jquery.bar = $('')
-        }
+			}).toElement(this.jquery.sliders)
+		}
+			
 
+		this.jquery.size.mouseenter(function() {
+			scope.displayMappingOverlay()
+		})
+		this.jquery.size.mouseleave(function() {
+			$(this).find('.uv_mapping_overlay').remove()
+		})
 
-        if (Blockbench.entity_mode === false) {
-            this.jquery.size.resizable({
-                handles: "all",
-                maxHeight: 320,
-                maxWidth: 320,
-                containment: 'parent',
-                resize: function(event, ui) {
-                    scope.save()
-                    scope.displayNslides()
-                    scope.disableAutoUV()
-                },
-                stop: function(event, ui) {
-                    setUndo('Changed UV')
-                },
-                grid: [20,20]
-            })
-        }
-        this.jquery.size.draggable({
-            containment: 'parent',
-            stop: function(event, ui) {
-                scope.save()
-                setUndo('Changed UV')
-            },
-            drag: function( event, ui ) {
-                var snapTolerance = 200//$(this).draggable('option', 'snapTolerance');
-                var topRemainder = ui.position.top % (scope.size/scope.grid);
-                var leftRemainder = ui.position.left % (scope.size/scope.grid);
-                
-                if (topRemainder <= snapTolerance) {
-                    ui.position.top = ui.position.top - topRemainder;
-                }
-                
-                if (leftRemainder <= snapTolerance) {
-                    ui.position.left = ui.position.left - leftRemainder;
-                }
-                scope.save()
-                scope.displayNslides()
-            } 
-        })
+		this.jquery.main.on('mousewheel', function() {
+			if (Blockbench.entity_mode) {
+				scope.displayMappingOverlay()
+				scope.jquery.main.on('mousemove', function() {
+					$(scope.jquery.size).find('.uv_mapping_overlay').remove()
+					scope.jquery.main.off('mousemove')
+				})
+			}
+		})
 
-        this.jquery.frame.droppable({
-            accept: 'li.texture',
-            tolerance: 'pointer',
-            drop: function(event, ui) {
-                if (selected.length == 0) {
-                    return
-                }
-                var id = $(ui.helper).attr('texid')
-                scope.applyTexture(id)
-            }
-        })
-
-        this.jquery.frame.contextmenu(function(event) {
-            scope.contextMenu()
-        })
-
-        this.jquery.frame.mousedown(function(event) {
-            if (Toolbox.selected.id === 'paint_brush') {
-                scope.startBrush(event)
-            }
-        })
-        return this;
-    }
-    getBrushCoordinates(event) {
-        var scope = this;
-        return {
-            x: Math.floor(event.offsetX/scope.getPixelSize()),
-            y: Math.floor(event.offsetY/scope.getPixelSize())
-        }
-    }
-
-
-
-    startBrush(event) {
-        var scope = this;
-        Painter.active_uv_editor = scope;
-
-        var texture = scope.getTexture()
-        if (texture) {
-            var x = scope.getBrushCoordinates(event).x
-            var y = scope.getBrushCoordinates(event).y
-            Painter.startBrush(texture, x, y, undefined, event)
-        }
-        if (event.altKey === false && texture && texture.mode !== 'link') {
-            scope.jquery.frame.get(0).addEventListener('mousemove', scope.moveBrush, false );
-            document.addEventListener('mouseup', scope.stopBrush, false );
-        }
-    }
-    moveBrush(event) {
-        var scope = Painter.active_uv_editor;
-        var texture = scope.getTexture()
-        if (!texture) {
-            Blockbench.showMessage('The surface does not have a texture', 'center')
-        } else if (texture.mode !== 'bitmap') {
-            texture.highlightModeToggle()
-            Blockbench.showMessage('You can only paint on bitmap textures', 'center')
-        } else {
-            var x = scope.getBrushCoordinates(event).x
-            var y = scope.getBrushCoordinates(event).y
-            Painter.useBrush(texture, x, y)
-        }
-    }
-    stopBrush(event) {
-        var scope = Painter.active_uv_editor;
-        scope.jquery.frame.get(0).removeEventListener( 'mousemove', scope.moveBrush, false );
-        document.removeEventListener( 'mouseup', scope.stopBrush, false );
-        Painter.stopBrush()
-    }
-
-    message(msg) {
-        var box = $('<div class="uv_message_box">' + msg + '</div>')
-        this.jquery.frame.append(box)
-        setTimeout(function() {
-            box.fadeOut(200)
-            setTimeout(function() {
-                box.remove()
-            }, 300)
-        }, 1000)
-    }
-    //Get
-    getPixelSize() {
-        return this.size/this.grid
-    }
-    getFaces(event) {
-        if (event && event.shiftKey) {
-            return ['north', 'east', 'south', 'west', 'up', 'down']
-        } else {
-            return [this.face]
-        }
-    }
-    getUVTag(obj) {
-        if (!obj) obj = selected[0]
-        if (Blockbench.entity_mode) {
-            return [obj.uv_offset[0], obj.uv_offset[1], 0, 0];
-        } else {
-            return obj.faces[this.face].uv;
-        }
-    }
-    getTexture() {
-        return getTextureById(selected[0].faces[this.face].texture)
-    }
-    forCubes(cb) {
-        var i = 0;
-        while (i < selected.length) {
-            cb(selected[i], selected[i].index())
-            i++;
-        }
-    }
-    //Set
-    setSize(size, cancel_load) {
-        this.size = size
-        this.jquery.frame.width(size)
-        if (uv_dialog.editors !== undefined && this === uv_dialog.editors.single) {
-            this.jquery.main.width(size)
-        }
-
-        if (Blockbench.entity_mode) {
-            this.jquery.frame.height(size / (Project.texture_width/Project.texture_height))
-            $('.ui#textures').css('top', 133+(size / (Project.texture_width/Project.texture_height))+'px')
-        } else {
-            this.jquery.frame.height(size)
-
-            this.jquery.size.resizable('option', 'maxHeight', size)
-            this.jquery.size.resizable('option', 'maxWidth', size)
-            this.jquery.size.resizable('option', 'grid', [size/this.grid, size/this.grid])
-        }
-        var nslide_width = (size / 4) - (size % 4 > 0 ? 1 : 0)
-        this.jquery.nslides.find('.nslide_tool').css('width', (size/4-2)+'px')
-        this.jquery.nslides.find('.nslide').css('width', (size/4-2)+'px')
-        if (!cancel_load) {
-            this.loadData()
-        }
-        return this;
-    }
-    setGrid(grid, load) {
-        if (Blockbench.entity_mode) {
-            this.autoGrid = false;
-            grid = Project.texture_width
-        } else if (grid === undefined || grid === 'dialog') {
-            this.autoGrid = false;
-            if (grid === undefined) {
-                grid = this.jquery.bar.find('#uv_snap option:selected').attr('id')
-            } else {
-                grid = $('#uv_dialog_toolbar #uv_snap option:selected').attr('id')
-            }
-            if (grid === 'auto') {
-                if (this.texture) {
-                    grid = this.texture.res
-                } else {
-                    grid = 16
-                }
-                this.autoGrid = true
-            } else if (grid === 'none') {
-                grid = 512
-            } else {
-                grid = parseInt(grid)
-            }
-        }
-        this.grid = grid
-        if (Blockbench.entity_mode === false) {
-            this.jquery.size.resizable('option', 'grid', [this.getPixelSize(), this.getPixelSize()])
-        }
-        if (load !== false) this.loadData()
-    }
-    setFace(face) {
-        this.face = face
-        this.loadData()
-        if (this.id === 'main_uv') {
-            $('input#'+face+'_radio').prop("checked", true)
-        }
-        return this;
-    }
-    setFrameColor(black) {
-        if (black) {
-            this.jquery.size.css('box-shadow', '0 0 6px black')
-        } else {
-            this.jquery.size.css('box-shadow', '0 0 6px white')
-        }
-    }
-    setToMainSlot() {
-        var scope = this;
-        $('.ui#uv').append(this.jquery.main)
-        this.jquery.main.on('mousewheel', function() {
-
-            if (Blockbench.entity_mode) return;
-
-            var faceIDs = {'north': 0, 'south': 1, 'west': 2, 'east': 3, 'up': 4, 'down': 5}
-            var id = faceIDs[scope.face]
-            event.deltaY > 0 ? id++ : id--;
-            if (id === 6) id = 0
-            if (id === -1) id = 5
-            $('input#'+getKeyByValue(faceIDs, id)+'_radio').prop("checked", true)
-            scope.loadSelectedFace()
-        })
-        this.jquery.frame.on('dblclick', function() {
-            uv_dialog.openFull()
-        })
-        return this;
-    }
-    appendTo(selector) {
-        $(selector).append(this.jquery.main)
-        return this;
-    }
-    //Load
-    loadSelectedFace() {
-        this.face = $('#texture_bar input:checked').attr('id').replace('_radio', '')
-        this.loadData()
-        return false;
-    }
-    loadData() {
-        if (selected.length === 0) return;
-        var face = selected[0].faces[this.face]
-        
-        //Set Rotation
-        if (face.rotation) {
-            this.jquery.bar.find('#uv_rotation').val(face.rotation)
-        } else {
-            this.jquery.bar.find('#uv_rotation').val(0)
-        }
-
-        this.displayTexture(face.texture)
-        this.displayFrame()//and transform info
-        this.displayNslides()
-
-        if (this.id !== 'main_uv') {
-            this.displayTools()
-        }
-        if (this !== main_uv && this.face === main_uv.face) {
-            main_uv.loadData()
-        }
-    }
-    save() {
-        var scope = this;
-        //Save UV from Frame to object!!
-
-        if (Blockbench.entity_mode) {
-
-            selected.forEach(function(obj) {
-                obj.uv_offset = [
-                    Math.round(scope.jquery.size.position().left / (scope.size/Project.texture_width) * 8) / 8,
-                    Math.round(scope.jquery.size.position().top  / (scope.size/Project.texture_width) * 8) / 8
-                ]
-                Canvas.updateUV(obj)
-            })
-
-        } else {
-
-            var pixelSize = this.size/16
-            var left = this.jquery.size.position().left / pixelSize
-            var top  = this.jquery.size.position().top / pixelSize * (Project.texture_width/Project.texture_height)
-            var left2 = (this.jquery.size.width()) / pixelSize + left
-            var top2 = (this.jquery.size.height()) / pixelSize + top
-            var uvTag = this.getUVTag()
-
-            if (uvTag[0] > uvTag[2]) {
-                left2 = [left, left = left2][0];
-            }
-            if (uvTag[1] > uvTag[3]) {
-                top2 = [top, top = top2][0];
-            }
-            var uvArr = [left, top, left2, top2]
-            uvArr.forEach(function(s, i) {
-                if (s === 15.9) {
-                    uvArr[i] = 16
-                }
-            })
-            selected.forEach(function(obj) {
-                obj.faces[scope.face].uv = uvArr.slice()
-                Canvas.updateUV(obj)
-            })
-        }
-
-        if (this !== main_uv && this.face === main_uv.face) {
-            main_uv.loadData()
-        }
-    }
-    applyTexture(id) {
-        var scope = this;
-        this.forCubes(function(obj) {
-            obj.faces[scope.face].texture = '#'+id
-        })
-        this.loadData()
-        Canvas.updateSelectedFaces()
-        setUndo('Applied Texture')
-    }
-    displayTexture(id) {
-        if (!id || id === '$transparent') {
-            this.displayEmptyTexture()
-        } else {
-            var tex = getTextureById(id+'')
-            if (tex === undefined || tex.error) {
-                this.displayEmptyTexture()
-                return;
-            }
-            this.setFrameColor(tex.dark_box)
-            var css = 'url("'+tex.source.split('\\').join('\\\\').replace(/ /g, '%20')+'")'
-            this.jquery.frame.css('background-image', css)
-            if (Blockbench.entity_mode) {
-                this.jquery.frame.css('background-size', 'contain')
-            } else {
-                this.jquery.frame.css('background-size', 'cover')
-            }
-            this.texture = tex;
-            if (this.autoGrid || Blockbench.entity_mode) {
-                this.setGrid(tex.res, false)
-            }
-        }
-        if (Blockbench.entity_mode) {
-            this.setSize(this.size, true)
-        }
-    }
-    displayTransformInfo() {
-        var ref = selected[0].faces[this.face]
-        this.jquery.transform_info.text('')
-        if (Blockbench.entity_mode) return;
-
-        if (ref.uv[0] > ref.uv[2]) {
-            this.jquery.transform_info.append('<b>X</b>')
-        }
-        if (ref.uv[1] > ref.uv[3]) {
-            this.jquery.transform_info.append('<b>Y</b>')
-        }
-        if (ref.rotation) {
-            this.jquery.transform_info.append('<b>'+ref.rotation+'</b>')
-        }
-    }
-    displayEmptyTexture() {
-        this.jquery.frame.css('background-color', 'var(--color-back)').css('background-image', 'none')
-        this.texture = false;
-        this.setFrameColor()
-        if (this.autoGrid) {
-            this.grid = 16
-        }
-    }
-    displayFrame() {
-        var scope = this;
-        if (Blockbench.entity_mode) {
-            var uvTag = this.getUVTag(selected[0])
-
-            var size_tag = selected[0].size(undefined, true)
-
-            var width = (size_tag[0] + size_tag[2])*2
-                width = limitNumber(width, 0, Project.texture_width)
-                width = width/Project.texture_width*scope.size
-
-            var x = limitNumber(uvTag[0], 0, Project.texture_width)
-                x *= scope.size/Project.texture_width
-
-            this.jquery.size.width(width)
-            this.jquery.size.css('left', x+'px')
+		if (toolbar) {
+			this.jquery.bar = $(Toolbars.main_uv.node)
+			this.jquery.main.append(this.jquery.bar)
+		} else {
+			this.jquery.bar = $('')
+		}
 
 
-            var height = size_tag[2] + size_tag[1]
-                height = limitNumber(height, 0, Project.texture_height)
-                height = height/Project.texture_height*scope.size
-                height *= Project.texture_height/Project.texture_width
+		this.jquery.size.resizable({
+			handles: "all",
+			maxHeight: 320,
+			maxWidth: 320,
+			containment: 'parent',
+			start: function(event, ui) {
+				Undo.initEdit({cubes: selected, uv_only: true})
+			},
+			resize: function(event, ui) {
+				scope.save()
+				scope.displaySliders()
+			},
+			stop: function(event, ui) {
+				Undo.finishEdit('uv_change')
+				scope.disableAutoUV()
+				scope.updateDragHandle(ui.position)
+			},
+			grid: [20,20]
+		})
 
-            var y = limitNumber(uvTag[1], 0, Project.texture_height)
-                y *= scope.size/Project.texture_height
-                y *= Project.texture_height/Project.texture_width
+		this.jquery.size.draggable({
+			containment: 'parent',
+			start: function(event, ui) {
+				Undo.initEdit({cubes: selected, uv_only: true})
+			},
+			drag: function( event, ui ) {
+				var snapTolerance = 200//$(this).draggable('option', 'snapTolerance');
+				var topRemainder = ui.position.top % (scope.size/scope.grid);
+				var leftRemainder = ui.position.left % (scope.size/scope.grid);
+				
+				if (topRemainder <= snapTolerance) {
+					ui.position.top = ui.position.top - topRemainder;
+				}
+				
+				if (leftRemainder <= snapTolerance) {
+					ui.position.left = ui.position.left - leftRemainder;
+				}
+				scope.save()
+				scope.displaySliders()
+			},
+			stop: function(event, ui) {
+				scope.save()
+				Undo.finishEdit('uv_change')
+				scope.disableAutoUV()
+				scope.updateDragHandle(ui.position)
+			}
+		})
 
-            this.jquery.size.height(height)
-            this.jquery.size.css('top', y+'px')
+		this.jquery.frame.droppable({
+			accept: 'li.texture',
+			tolerance: 'pointer',
+			drop: function(event, ui) {
+				if (selected.length == 0) {
+					return
+				}
+				var id = $(ui.helper).attr('texid')
+				scope.applyTexture(id)
+			}
+		})
+
+		this.jquery.frame.contextmenu(function(event) {
+			scope.contextMenu()
+		})
+
+		this.jquery.frame.mousedown(function(event) {
+			if (Toolbox.selected.id === 'brush_tool') {
+				scope.startBrush(event)
+			}
+		})
+		this.setSize(this.size)
+		return this;
+	}
+	getBrushCoordinates(event) {
+		var scope = this;
+		return {
+			x: Math.floor(event.offsetX/scope.getPixelSize()),
+			y: Math.floor(event.offsetY/scope.getPixelSize())
+		}
+	}
+	startBrush(event) {
+		var scope = this;
+		Painter.active_uv_editor = scope;
+
+		var texture = scope.getTexture()
+		if (texture) {
+			var x = scope.getBrushCoordinates(event).x
+			var y = scope.getBrushCoordinates(event).y
+			Painter.startBrush(texture, x, y, undefined, event)
+		}
+		if (event.altKey === false && texture && texture.mode !== 'link') {
+			scope.jquery.frame.get(0).addEventListener('mousemove', scope.moveBrush, false );
+			document.addEventListener('mouseup', scope.stopBrush, false );
+		}
+	}
+	moveBrush(event) {
+		var scope = Painter.active_uv_editor;
+		var texture = scope.getTexture()
+		if (!texture) {
+			Blockbench.showQuickMessage('message.untextured')
+		} else {
+			var x = scope.getBrushCoordinates(event).x
+			var y = scope.getBrushCoordinates(event).y
+			Painter.useBrush(texture, x, y)
+		}
+	}
+	stopBrush(event) {
+		var scope = Painter.active_uv_editor;
+		scope.jquery.frame.get(0).removeEventListener( 'mousemove', scope.moveBrush, false );
+		document.removeEventListener( 'mouseup', scope.stopBrush, false );
+		Painter.stopBrush()
+	}
+	message(msg, vars) {
+		msg = tl(msg, vars)
+		var box = $('<div class="uv_message_box">' + msg + '</div>')
+		this.jquery.frame.append(box)
+		setTimeout(function() {
+			box.fadeOut(200)
+			setTimeout(function() {
+				box.remove()
+			}, 300)
+		}, 1000)
+	}
+	//Get
+	getPixelSize() {
+		if (Blockbench.entity_mode) {
+			this.grid = Project.texture_width
+		}
+		return this.size/this.grid
+	}
+	getFaces(event) {
+		if (event && event.shiftKey) {
+			return ['north', 'east', 'south', 'west', 'up', 'down']
+		} else {
+			return [this.face]
+		}
+	}
+	getUVTag(obj) {
+		if (!obj) obj = selected[0]
+		if (Blockbench.entity_mode) {
+			return [obj.uv_offset[0], obj.uv_offset[1], 0, 0];
+		} else {
+			return obj.faces[this.face].uv;
+		}
+	}
+	getTexture() {
+		return getTextureById(selected[0].faces[this.face].texture)
+	}
+	forCubes(cb) {
+		var i = 0;
+		while (i < selected.length) {
+			cb(selected[i], selected[i].index())
+			i++;
+		}
+	}
+	//Set
+	setSize(size, cancel_load) {
+		this.size = size
+		this.jquery.frame.width(size)
+		if (uv_dialog.editors !== undefined && this === uv_dialog.editors.single) {
+			this.jquery.main.width(size)
+		}
+
+		if (Blockbench.entity_mode) {
+			this.height = size / (Project.texture_width/Project.texture_height)
+			this.jquery.frame.height(this.height)
+			$('.panel#textures').css('top', 133+(size / (Project.texture_width/Project.texture_height))+'px')
+		} else {
+			this.height = size
+			this.jquery.frame.height(size)
+
+			this.jquery.size.resizable('option', 'maxHeight', size)
+			this.jquery.size.resizable('option', 'maxWidth', size)
+			this.jquery.size.resizable('option', 'grid', [size/this.grid, size/this.grid])
+		}
+		for (var id in this.sliders) {
+			this.sliders[id].setWidth(size/(Blockbench.entity_mode?2:4)-2.5)
+		}
+		if (!cancel_load) {
+			this.loadData()
+		}
+		return this;
+	}
+	setGrid(grid, load) {
+		if (Blockbench.entity_mode) {
+			this.autoGrid = false;
+			grid = Project.texture_width
+		} else if (grid === undefined || grid === 'dialog') {
+			this.autoGrid = false;
+			grid = BarItems.uv_grid.get()
+			if (grid === 'auto') {
+				if (this.texture) {
+					grid = this.texture.res
+				} else {
+					grid = 16
+				}
+				this.autoGrid = true
+			} else if (grid === 'none') {
+				grid = 512
+			} else {
+				grid = parseInt(grid)
+			}
+		}
+		this.grid = grid
+		if (Blockbench.entity_mode === false) {
+			this.jquery.size.resizable('option', 'grid', [this.getPixelSize(), this.getPixelSize()])
+		}
+		if (load !== false) this.loadData()
+	}
+	setFace(face) {
+		this.face = face
+		this.loadData()
+		if (this.id === 'main_uv') {
+			$('input#'+face+'_radio').prop("checked", true)
+		}
+		return this;
+	}
+	setFrameColor(black) {
+		if (black) {
+			this.jquery.size.css('box-shadow', '0 0 6px black')
+		} else {
+			this.jquery.size.css('box-shadow', '0 0 6px white')
+		}
+	}
+	setToMainSlot() {
+		var scope = this;
+		$('.panel#uv').append(this.jquery.main)
+		this.jquery.main.on('mousewheel', function() {
+
+			if (Blockbench.entity_mode) {
+			} else {
+				var faceIDs = {'north': 0, 'south': 1, 'west': 2, 'east': 3, 'up': 4, 'down': 5}
+				var id = faceIDs[scope.face]
+				event.deltaY > 0 ? id++ : id--;
+				if (id === 6) id = 0
+				if (id === -1) id = 5
+				$('input#'+getKeyByValue(faceIDs, id)+'_radio').prop("checked", true)
+				scope.loadSelectedFace()
+			}
+		})
+		this.jquery.frame.on('dblclick', function() {
+			uv_dialog.openFull()
+		})
+		return this;
+	}
+	appendTo(selector) {
+		$(selector).append(this.jquery.main)
+		return this;
+	}
+	//Load
+	loadSelectedFace() {
+		this.face = $('#texture_bar input:checked').attr('id').replace('_radio', '')
+		this.loadData()
+		return false;
+	}
+	loadData() {
+		if (selected.length === 0) return;
+		var face = selected[0].faces[this.face]
+		
+		//Set Rotation
+		BarItems.uv_rotation.set(face.rotation||0)
+
+		this.displayTexture(face.texture)
+		this.displayFrame()//and transform info
+		this.displayTools()
+		this.displaySliders()
+		this.updateDragHandle()
+
+		if (this.id !== 'main_uv') {
+			this.displayTools()
+		}
+		if (this !== main_uv && this.face === main_uv.face) {
+			main_uv.loadData()
+		}
+	}
+	save() {
+		var scope = this;
+		//Save UV from Frame to object!!
+
+		if (Blockbench.entity_mode) {
+
+			selected.forEach(function(obj) {
+				obj.uv_offset = [
+					Math.round(scope.jquery.size.position().left / (scope.size/Project.texture_width) * 8) / 8,
+					Math.round(scope.jquery.size.position().top  / (scope.size/Project.texture_width) * 8) / 8
+				]
+				Canvas.updateUV(obj)
+			})
+
+		} else {
+
+			var pixelSize = this.size/16
+			var left = this.jquery.size.position().left / pixelSize
+			var top  = this.jquery.size.position().top / pixelSize * (Project.texture_width/Project.texture_height)
+			var left2 = (this.jquery.size.width()) / pixelSize + left
+			var top2 = (this.jquery.size.height()) / pixelSize + top
+			var uvTag = this.getUVTag()
+
+			if (uvTag[0] > uvTag[2]) {
+				left2 = [left, left = left2][0];
+			}
+			if (uvTag[1] > uvTag[3]) {
+				top2 = [top, top = top2][0];
+			}
+			var uvArr = [left, top, left2, top2]
+			uvArr.forEach(function(s, i) {
+				if (s === 15.9) {
+					uvArr[i] = 16
+				}
+			})
+			selected.forEach(function(obj) {
+				obj.faces[scope.face].uv = uvArr.slice()
+				Canvas.updateUV(obj)
+			})
+		}
+
+		if (this !== main_uv && this.face === main_uv.face) {
+			main_uv.loadData()
+		}
+	}
+	applyTexture(id) {
+		var scope = this;
+		Undo.initEdit({cubes: selected, uv_only: true})
+		this.forCubes(function(obj) {
+			obj.faces[scope.face].texture = '#'+id
+		})
+		this.loadData()
+		Canvas.updateSelectedFaces()
+		Undo.finishEdit('apply_texture')
+	}
+	displayTexture(id) {
+		if (!id || id === '$transparent') {
+			this.displayEmptyTexture()
+		} else {
+			var tex = getTextureById(id+'')
+			if (tex === undefined || tex.error) {
+				this.displayEmptyTexture()
+				return;
+			}
+			this.setFrameColor(tex.dark_box)
+			var css = 'url("'+tex.source.split('\\').join('\\\\').replace(/ /g, '%20')+'")'
+			this.jquery.frame.css('background-image', css)
+			if (Blockbench.entity_mode) {
+				this.jquery.frame.css('background-size', 'contain')
+			} else {
+				this.jquery.frame.css('background-size', 'cover')
+			}
+			this.texture = tex;
+			tex.select()
+			if (this.autoGrid || Blockbench.entity_mode) {
+				this.setGrid(tex.res, false)
+			}
+		}
+		if (Blockbench.entity_mode) {
+			this.setSize(this.size, true)
+		}
+	}
+	displayTransformInfo() {
+		var ref = selected[0].faces[this.face]
+		this.jquery.transform_info.text('')
+		if (Blockbench.entity_mode) return;
+
+		if (ref.uv[0] > ref.uv[2]) {
+			this.jquery.transform_info.append('<b>X</b>')
+		}
+		if (ref.uv[1] > ref.uv[3]) {
+			this.jquery.transform_info.append('<b>Y</b>')
+		}
+		if (ref.rotation) {
+			this.jquery.transform_info.append('<b>'+ref.rotation+'</b>')
+		}
+	}
+	displayEmptyTexture() {
+		this.jquery.frame.css('background-color', 'var(--color-back)').css('background-image', 'none')
+		this.texture = false;
+		this.setFrameColor()
+		if (this.autoGrid) {
+			this.grid = 16
+		}
+	}
+	displayFrame() {
+		var scope = this;
+		if (Blockbench.entity_mode) {
+			var uvTag = this.getUVTag(selected[0])
+
+			var size_tag = selected[0].size(undefined, true)
+
+			var width = (size_tag[0] + size_tag[2])*2
+				width = limitNumber(width, 0, Project.texture_width)
+				width = width/Project.texture_width*scope.size
+
+			var x = limitNumber(uvTag[0], 0, Project.texture_width)
+				x *= scope.size/Project.texture_width
+
+			this.jquery.size.width(width)
+			this.jquery.size.css('left', x+'px')
 
 
-        } else {
+			var height = size_tag[2] + size_tag[1]
+				height = limitNumber(height, 0, Project.texture_height)
+				height = height/Project.texture_height*scope.size
+				height *= Project.texture_height/Project.texture_width
 
-            var uvTag = this.getUVTag(selected[0])
-            var pixels = this.size/16
+			var y = limitNumber(uvTag[1], 0, Project.texture_height)
+				y *= scope.size/Project.texture_height
+				y *= Project.texture_height/Project.texture_width
 
-            //X
-            var width = limitNumber(uvTag[2]-uvTag[0], -16, 16)
-            var x = limitNumber(uvTag[0], 0, 16)
-            if (width < 0) {
-                width *= -1
-                x = x - width
-            }
-            this.jquery.size.width(width * pixels)
-            this.jquery.size.css('left', x*pixels+'px')
+			this.jquery.size.height(height)
+			this.jquery.size.css('top', y+'px')
+		} else {
 
-            //Y
-            var height = limitNumber(uvTag[3]-uvTag[1], -16, 16)
-            var y = limitNumber(uvTag[1], 0, 16)
-            if (height < 0) {
-                height *= -1
-                y = y - height
-            }
-            this.jquery.size.height(height * pixels)
-            this.jquery.size.css('top', y*pixels+'px')
-        }
-        this.displayTransformInfo()
-    }
-    displayMappingOverlay() {
-        if (!Blockbench.entity_mode) return this;
-        var scope = this;
-        var pixels = scope.getPixelSize()
-        function addElement(x,y,width, height, n, color) {
-            scope.jquery.size.append('<div class="uv_mapping_overlay" '+
-                'style="left: '+x*pixels+'px; top: '+y*pixels+'px;'+
-                'height: '+height*pixels+'px; width: '+width*pixels+'px;'+
-                'background: '+color+';"></div>')
-        }
-        var size = selected[0].size(undefined, true)
+			var uvTag = this.getUVTag(selected[0])
+			var pixels = this.size/16
 
-        addElement(size[2], 0, size[0], size[2],                '#b4d4e1', '#ecf8fd')
-        addElement(size[2]+size[0], 0, size[0], size[2],        '#536174', '#6e788c')
-        addElement(0, size[2], size[2], size[1],                '#43e88d', '#7BFFA3')
-        addElement(size[2], size[2], size[0], size[1],          '#5bbcf4', '#7BD4FF')
-        addElement(size[2]+size[0], size[2], size[2], size[1],  '#f48686', '#FFA7A4')
-        addElement(2*size[2]+size[0], size[2], size[0], size[1],'#f8dd72', '#FFF899')
-    }
-    displayNslides() {
-        if (Blockbench.entity_mode) {
-            var values = [
-                trimFloatNumber(selected[0].uv_offset[0] ),
-                trimFloatNumber(selected[0].uv_offset[1] ),
-                0,
-                0
-            ]
-        } else {
-            var face_uv = selected[0].faces[this.face].uv
-            var values = [
-                trimFloatNumber(face_uv[0] * (Blockbench.entity_mode ? Project.texture_width / 16 : 1)),
-                trimFloatNumber(face_uv[1] * (Blockbench.entity_mode ? Project.texture_height / 16 : 1)),
-                trimFloatNumber(face_uv[2] - face_uv[0]),
-                trimFloatNumber(face_uv[3] - face_uv[1])
-            ]
-        }
-        this.jquery.nslides.find('div.nslide[n-action="moveuv_x"]:not(".editing")').text(values[0])
-        this.jquery.nslides.find('div.nslide[n-action="moveuv_y"]:not(".editing")').text(values[1])
-        this.jquery.nslides.find('div.nslide[n-action="scaleuv_x"]:not(".editing")').text(values[2])
-        this.jquery.nslides.find('div.nslide[n-action="scaleuv_y"]:not(".editing")').text(values[3])
-    }
-    displayTools() {
-        //Cullface
-        var face = selected[0].faces[this.face]
-        if (face.cullface) {
-            $('#uv_dialog_toolbar select#cullface').val(face.cullface)
-        } else {
-            $('#uv_dialog_toolbar select#cullface').val('off')
-        }
+			//X
+			var width = limitNumber(uvTag[2]-uvTag[0], -16, 16)
+			var x = limitNumber(uvTag[0], 0, 16)
+			if (width < 0) {
+				width *= -1
+				x = x - width
+			}
+			this.jquery.size.width(width * pixels)
+			this.jquery.size.css('left', x*pixels+'px')
 
-        //Tint
-        if (face.tintindex != undefined) {
-            $('#uv_dialog_toolbar input#tint').prop('checked', true)
-        } else {
-            $('#uv_dialog_toolbar input#tint').prop('checked', false)
-        }
-    }
-    contextMenu() {
-        var scope = this;
-        if (Blockbench.entity_mode) return;
-        var ref = selected[0].faces[scope.face]
-        ContextMenu(event, [
-            {icon: 'content_copy', name: 'Copy', click: function(event) {scope.copy(event)}},
-            {icon: 'content_paste', name: 'Paste', click: function(event) {scope.paste(event)}},
-            {icon: 'photo_size_select_large', name: 'UV Mapping', children: [
-                {icon: ref.enabled!==false ? 'check_box' : 'check_box_outline_blank', name: 'Export', click: function(event) {scope.toggleUV(event)}},
-                {icon: 'zoom_out_map', name: 'Maximize', click: function(event) {scope.maximize(event)}},
-                {icon: 'brightness_auto', name: 'Auto UV', click: function(event) {scope.setAutoSize(event)}},
-                {icon: 'brightness_auto', name: 'Rel. Auto UV', click: function(event) {scope.setRelativeAutoSize(event)}},
-                {icon: 'rotate_90_degrees_ccw', name: 'Rotation', children: function() {
-                    var off = 'radio_button_unchecked'
-                    var on = 'radio_button_checked'
-                    return [
-                        {icon: (!ref.rotation ? on : off), name: '0', click: function(event) {scope.setRotation(0)}},
-                        {icon: (ref.rotation === 90 ? on : off), name: '90', click: function(event) {scope.setRotation(90)}},
-                        {icon: (ref.rotation === 180 ? on : off), name: '180', click: function(event) {scope.setRotation(180)}},
-                        {icon: (ref.rotation === 270 ? on : off), name: '270', click: function(event) {scope.setRotation(270)}}
-                    ]
-                }},
-                {icon: (ref.uv[0] > ref.uv[2] ? 'check_box' : 'check_box_outline_blank'), name: 'Mirror X', click: function(event) {scope.mirrorX(event)}},
-                {icon: (ref.uv[1] > ref.uv[3] ? 'check_box' : 'check_box_outline_blank'), name: 'Mirror Y', click: function(event) {scope.mirrorY(event)}},
-            ]},
-            {
-                icon: (ref.tintindex === 0 ? 'check_box' : 'check_box_outline_blank'),
-                name: 'Tint', click: function(event) {scope.switchTint(selected[0].faces[scope.face].tintindex !== 0)}
-            },
-            {icon: 'collections', name: 'Texture', children: function() {
-                var arr = [
-                    {icon: 'clear', name: 'Transparent', click: function(event) {scope.clear(event)}},
-                ]
-                textures.forEach(function(t) {
-                    arr.push({
-                        name: t.name,
-                        icon: (t.mode === 'link' ? t.img : t.source),
-                        click: function(event) {scope.applyTexture(t.id)}
-                    })
-                })
-                return arr;
-            }}
-        ])
-    }
-    //Nslide
-    slider(action, difference, obj) {
-        var before;
-        switch (action) {
-            case 'moveuv_x':
-                before = this.getUVTag(obj)[0];
-                break;
-            case 'moveuv_y':
-                before = this.getUVTag(obj)[1];
-                break;
-            case 'scaleuv_x':
-                before = this.getUVTag(obj)[2] - this.getUVTag(obj)[0];
-                break;
-            case 'scaleuv_y':
-                before = this.getUVTag(obj)[3] - this.getUVTag(obj)[1];
-                break;
-        }
+			//Y
+			var height = limitNumber(uvTag[3]-uvTag[1], -16, 16)
+			var y = limitNumber(uvTag[1], 0, 16)
+			if (height < 0) {
+				height *= -1
+				y = y - height
+			}
+			this.jquery.size.height(height * pixels)
+			this.jquery.size.css('top', y*pixels+'px')
+		}
+		this.updateDragHandle()
+		this.displayTransformInfo()
+	}
+	displayMappingOverlay() {
+		if (!Blockbench.entity_mode) return this;
+		var scope = this;
+		var pixels = scope.getPixelSize()
+		function addElement(x,y,width, height, n, color) {
+			scope.jquery.size.append('<div class="uv_mapping_overlay" '+
+				'style="left: '+x*pixels+'px; top: '+y*pixels+'px;'+
+				'height: '+height*pixels+'px; width: '+width*pixels+'px;'+
+				'background: '+color+';"></div>')
+		}
+		var size = selected[0].size(undefined, true)
 
-        difference += before
-        switch (action) {
-            case 'moveuv_x':
-            this.moveCoord(0, difference, obj)
-            break;
-            case 'moveuv_y':
-            this.moveCoord(1, difference, obj)
-            break;
+		$(scope.jquery.size).find('.uv_mapping_overlay').remove()
 
-            case 'scaleuv_x':
-            this.scaleCoord(0, difference, obj)
-            break;
-            case 'scaleuv_y':
-            this.scaleCoord(1, difference, obj)
-            break;
-        }
-        $('#nslide_head #nslide_offset').text('Offset: '+difference)
-    }
-    nslideInput(action, difference) {
-        var scope = this;
-        selected.forEach(function(obj) {
-            switch (action) {
-                case 'moveuv_x':
-                scope.moveCoord(0, difference, obj)
-                break;
-                case 'moveuv_y':
-                scope.moveCoord(1, difference, obj)
-                break;
+		addElement(size[2], 0, size[0], size[2],				'#b4d4e1', '#ecf8fd')
+		addElement(size[2]+size[0], 0, size[0], size[2],		'#536174', '#6e788c')
+		addElement(0, size[2], size[2], size[1],				'#43e88d', '#7BFFA3')
+		addElement(size[2], size[2], size[0], size[1],		  '#5bbcf4', '#7BD4FF')
+		addElement(size[2]+size[0], size[2], size[2], size[1],  '#f48686', '#FFA7A4')
+		addElement(2*size[2]+size[0], size[2], size[0], size[1],'#f8dd72', '#FFF899')
+	}
+	displaySliders() {
+		this.sliders.pos_x.update()
+		this.sliders.pos_y.update()
+		this.sliders.size_x.update()
+		this.sliders.size_y.update()
+	}
+	displayTools() {
+		//Cullface
+		var face = selected[0].faces[this.face]
+		BarItems.cullface.set(face.cullface||'off')
+		BarItems.face_tint.setIcon(face.tintindex !== undefined ? 'check_box' : 'check_box_outline_blank')
+	}
+	updateDragHandle() {
+		var pos = this.jquery.size.position()
+		var handle = this.jquery.size.find('div.uv_size_handle')
+		handle.css('top', -pos.top+'px')
+		handle.css('left', -pos.left+'px')
+		handle.width(this.size)
+		handle.height(this.height?this.height:this.size)
+	}
+	updateInterface() {
+		for (var key in this.sliders) {
+			var slider = this.sliders[key]
+			$(slider.node).css('display', BARS.condition(slider.condition)?'block':'none')
+		}
+		this.jquery.size.resizable('option', 'disabled', Blockbench.entity_mode)
+	}
+	contextMenu() {
+		var scope = this;
+		if (Blockbench.entity_mode) return;
+		this.reference_face = selected[0].faces[scope.face]
+		this.menu.open(event, this)
+		return this;
+	}
+	slidePos(difference, fixed, axis) {
+		var scope = this
+		selected.forEach(function(obj) {
+			if (Blockbench.entity_mode === false) {
+				var uvTag = scope.getUVTag(obj)
+				var size = uvTag[axis + 2] - uvTag[axis]
+				if (!fixed) {
+					difference += uvTag[axis]
+				}
+				difference = limitNumber(difference, 0, 16)
+				difference = limitNumber(difference + size, 0, 16) - size
 
-                case 'scaleuv_x':
-                scope.scaleCoord(0, difference, obj)
-                break;
-                case 'scaleuv_y':
-                scope.scaleCoord(1, difference, obj)
-                break;
-            }
-            Canvas.updateUV(obj)
-        })
-    }
-    moveCoord(index, val, obj) {
-        if (Blockbench.entity_mode === false) {
-            var uvTag = this.getUVTag(obj)
-            var size = uvTag[index + 2] - uvTag[index]
-            val = limitNumber(val, 0, 16)
-            val = limitNumber(val + size, 0, 16) - size
+				uvTag[axis] = difference
+				uvTag[axis+2] = difference + size
+			} else {
+				if (axis === 0) {
+					var size = (obj.size(0) + obj.size(2))*2
+					var limit = Project.texture_width
+				} else {
+					var size = obj.size(2) + obj.size(1)
+					var limit = Project.texture_height
+				}
+				if (!fixed) {
+					difference += obj.uv_offset[axis]
+				}
+				difference = limitNumber(difference, 0, limit)
+				difference = limitNumber(difference + size, 0, limit) - size
+				obj.uv_offset[axis] = difference
+			}
+		})
+		this.displaySliders()
+		this.displayFrame()
+		this.disableAutoUV()
+	}
+	slideSize(difference, fixed, axis) {
+		var scope = this
+		selected.forEach(function(obj) {
+			if (Blockbench.entity_mode === false) {
 
-            uvTag[index] = val
-            uvTag[index + 2] = size + val
-        } else {
-            if (index === 0) {
-                var size = (selected[0].size(0) + selected[0].size(2))*2
-                var limit = Project.texture_width
-            } else {
-                var size = selected[0].size(2) + selected[0].size(1)
-                var limit = Project.texture_height
-            }
-            val = limitNumber(val, 0, limit)
-            val = limitNumber(val + size, 0, limit) - size
-            obj.uv_offset[index] = val
-        }
+				var uvTag = scope.getUVTag(obj)
+				if (!fixed) {
+					difference += uvTag[axis+2]
+				}
+				uvTag[axis+2] = limitNumber(difference, 0, 16)
+			}
+		})
+		this.displaySliders()
+		this.displayFrame()
+		this.disableAutoUV()
+	}
 
-        this.displayNslides()
-        this.displayFrame()
-    }
-    scaleCoord(index, val, obj) {
+	//Events
+	disableAutoUV() {
+		this.forCubes(function(obj) {
+			obj.autouv = 0
+		})
+	}
+	toggleUV() {
+		var scope = this
+		var state = selected[0].faces[this.face].enabled === false
+		this.forCubes(function(obj) {
+			obj.faces[scope.face].enabled = state
+		})
+	}
+	maximize(event) {
+		var scope = this;
+		this.forCubes(function(obj) {
+			scope.getFaces(event).forEach(function(side) {
+				obj.faces[side].uv = [0, 0, 16, 16]
+			})
+			obj.autouv = 0
+			Canvas.updateUV(obj)
+		})
+		this.message('uv_editor.maximized')
+		this.loadData()
+	}
+	setAutoSize(event) {
+		var scope = this;
+		var top, left, top2, left2;
 
-        var uvTag = this.getUVTag(obj)
+		this.forCubes(function(obj, i) {
+			scope.getFaces(event).forEach(function(side) {
+				left = top = 0;
+				if (side == 'north' || side == 'south') {
+					left2 = limitNumber(obj.size('0'), 0, 16)
+					top2 = limitNumber(obj.size('1'), 0, 16)
+				} else if (side == 'east' || side == 'west') {
+					left2 = limitNumber(obj.size('2'), 0, 16)
+					top2 = limitNumber(obj.size('1'), 0, 16)
+				} else if (side == 'up' || side == 'down') {
+					left2 = limitNumber(obj.size('0'), 0, 16)
+					top2 = limitNumber(obj.size('2'), 0, 16)
+				}
+				obj.faces[side].uv = [left, top, left2, top2]
+			})
+			obj.autouv = 0
+			Canvas.updateUV(obj)
+		})
+		this.message('uv_editor.autouv')
+		this.loadData()
+	}
+	setRelativeAutoSize(event) {
+		var scope = this;
+		this.forCubes(function(obj, i) {
+			scope.getFaces(event).forEach(function(side) {
+				var uv = obj.faces[side].uv
+				switch (side) {
+					case 'north':
+					uv = [
+						16 - obj.to[0],
+						16 - obj.to[1],
+						16 - obj.from[0],
+						16 - obj.from[1],
+					];
+					break;
+					case 'south':
+					uv = [
+						obj.from[0],
+						16 - obj.to[1],
+						obj.to[0],
+						16 - obj.from[1],
+					];
+					break;
+					case 'west':
+					uv = [
+						obj.from[2],
+						16 - obj.to[1],
+						obj.to[2],
+						16 - obj.from[1],
+					];
+					break;
+					case 'east':
+					uv = [
+						16 - obj.from[2],
+						16 - obj.from[1],
+						16 - obj.to[2],
+						16 - obj.to[1],
+					];
+					break;
+					case 'up':
+					uv = [
+						obj.from[0],
+						obj.from[2],
+						obj.to[0],
+						obj.to[2],
+					];
+					break;
+					case 'down':
+					uv = [
+						obj.from[0],
+						16 - obj.to[2],
+						obj.to[0],
+						16 - obj.from[2],
+					];
+					break;
+				}
+				uv.forEach(function(s, uvi) {
+					uv[uvi] = limitNumber(s, 0, 16)
+				})
+				obj.faces[side].uv = uv
+			})
+			obj.autouv = 0
+			Canvas.updateUV(obj)
+		})
+		this.message('uv_editor.autouv')
+		this.loadData()
+	}
+	mirrorX(event) {
+		var scope = this;
+		this.forCubes(function(obj, i) {
+			scope.getFaces(event).forEach(function(side) {
+				var proxy = obj.faces[side].uv[0]
+				obj.faces[side].uv[0] = obj.faces[side].uv[2]
+				obj.faces[side].uv[2] = proxy
+			})
+			obj.autouv = 0
+			Canvas.updateUV(obj)
+		})
+		this.message('uv_editor.mirrored')
+		this.loadData()
+	}
+	mirrorY(event) {
+		var scope = this;
+		this.forCubes(function(obj, i) {
+			scope.getFaces(event).forEach(function(side) {
+				var proxy = obj.faces[side].uv[1]
+				obj.faces[side].uv[1] = obj.faces[side].uv[3]
+				obj.faces[side].uv[3] = proxy
+			})
+			obj.autouv = 0
+			Canvas.updateUV(obj)
+		})
+		this.message('uv_editor.mirrored')
+		this.loadData()
+	}
+	applyAll(event) {
+		var scope = this;
+		this.forCubes(function(obj, i) {
+			uv_dialog.allFaces.forEach(function(side) {
+				$.extend(true, obj.faces[side], obj.faces[scope.face]) 
+			})
+			obj.autouv = 0
+		})
+		Canvas.updateSelectedFaces()
+		this.message('uv_editor.to_all')
+		this.loadData()
+	}
+	clear(event) {
+		var scope = this;
+		Undo.initEdit({cubes: selected, uv_only: true})
+		this.forCubes(function(obj, i) {
+			scope.getFaces(event).forEach(function(side) {
+				obj.faces[side].uv = [0, 0, 0, 0]
+				obj.faces[side].texture = '$transparent';
+			})
+			Canvas.updateUV(obj)
+		})
+		this.loadData()
+		this.message('uv_editor.transparent')
+		Undo.finishEdit('uv_clear')
+		Canvas.updateSelectedFaces()
+	}
+	switchCullface(event) {
+		var scope = this;
+		Undo.initEdit({cubes: selected, uv_only: true})
+		var val = BarItems.cullface.get()
+		if (val === 'off') val = false
+		this.forCubes(function(obj) {
+			if (val) {
+				obj.faces[scope.face].cullface = val
+			} else {
+				delete obj.faces[scope.face].cullface
+			}
+		})
+		if (val) {
+			this.message('uv_editor.cullface_on')
+		} else {
+			this.message('uv_editor.cullface_off')
+		}
+		Undo.finishEdit('set_cullface')
+	}
+	switchTint(event) {
+		var scope = this;
+		var val = selected[0].faces[scope.face].tintindex === undefined
 
-        uvTag[index + 2] = limitNumber(uvTag[index] + val, 0, 16)
+		if (event === true || event === false) val = event
+		this.forCubes(function(obj) {
+			if (val) {
+				obj.faces[scope.face].tintindex = 0
+			} else {
+				delete obj.faces[scope.face].tintindex
+			}
+		})
+		if (val) {
+			this.message('uv_editor.tint_on')
+		} else {
+			this.message('uv_editor.tint_off')
+		}
+		this.displayTools()
+	}
+	rotate() {
+		var scope = this;
+		var value = BarItems.uv_rotation.get()
+		this.forCubes(function(obj, i) {
+			if (value == 0) {
+				delete obj.faces[scope.face].rotation
+			} else {
+				obj.faces[scope.face].rotation = parseInt(value)
+			}
+			Canvas.updateUV(obj)
+		})
+		this.displayTransformInfo()
+		this.message('uv_editor.rotated')
+	}
+	setRotation(value) {
+		var scope = this;
+		this.forCubes(function(obj, i) {
+			if (value == 0) {
+				delete obj.faces[scope.face].rotation
+			} else {
+				obj.faces[scope.face].rotation = parseInt(value)
+			}
+			Canvas.updateUV(obj)
+		})
+		this.loadData()
+		this.message('uv_editor.rotated')
+	}
+	selectGridSize(event) {
+	}
+	autoCullface(event) {
+		var scope = this;
+		this.forCubes(function(obj) {
+			scope.getFaces(event).forEach(function(side) {
+				obj.faces[side].cullface = side
+			})
+		})
+		this.loadData()
+		this.message('uv_editor.auto_cull')
+	}
+	copy(event) {
+		this.select()
+		if (selected.length === 0) return;
 
-        this.displayNslides()
-        this.displayFrame()
-    }
+		var scope = this;
+		uv_dialog.clipboard = []
 
-    //Events
-    disableAutoUV() {
-        this.forCubes(function(obj) {
-            obj.display.autouv = 0
-        })
-    }
-    toggleUV() {
-        var scope = this
-        var state = selected[0].faces[this.face].enabled === false
-        this.forCubes(function(obj) {
-            obj.faces[scope.face].enabled = state
-        })
-    }
-    maximize(event) {
-        var scope = this;
-        this.forCubes(function(obj) {
-            scope.getFaces(event).forEach(function(side) {
-                obj.faces[side].uv = [0, 0, 16, 16]
-            })
-            obj.display.autouv = 0
-            Canvas.updateUV(obj)
-        })
-        this.message('Maximized')
-        this.loadData()
-        setUndo('Maximized UV')
-    }
-    setAutoSize(event) {
-        var scope = this;
-        var top, left, top2, left2;
-        this.forCubes(function(obj, i) {
-            scope.getFaces(event).forEach(function(side) {
-                left = top = 0;
-                if (side == 'north' || side == 'south') {
-                    left2 = limitNumber(obj.size('0'), 0, 16)
-                    top2 = limitNumber(obj.size('1'), 0, 16)
-                } else if (side == 'east' || side == 'west') {
-                    left2 = limitNumber(obj.size('2'), 0, 16)
-                    top2 = limitNumber(obj.size('1'), 0, 16)
-                } else if (side == 'up' || side == 'down') {
-                    left2 = limitNumber(obj.size('0'), 0, 16)
-                    top2 = limitNumber(obj.size('2'), 0, 16)
-                }
-                obj.faces[side].uv = [left, top, left2, top2]
-            })
-            obj.display.autouv = 0
-            Canvas.updateUV(obj)
-        })
-        this.message('Auto Size')
-        this.loadData()
-        setUndo('Used Auto UV')
-    }
-    setRelativeAutoSize(event) {
-        var scope = this;
-        this.forCubes(function(obj, i) {
-            scope.getFaces(event).forEach(function(side) {
-                var uv = obj.faces[side].uv
-                switch (side) {
-                    case 'north':
-                    uv = [
-                        16 - obj.to[0],
-                        16 - obj.to[1],
-                        16 - obj.from[0],
-                        16 - obj.from[1],
-                    ];
-                    break;
-                    case 'south':
-                    uv = [
-                        obj.from[0],
-                        16 - obj.to[1],
-                        obj.to[0],
-                        16 - obj.from[1],
-                    ];
-                    break;
-                    case 'west':
-                    uv = [
-                        obj.from[2],
-                        16 - obj.to[1],
-                        obj.to[2],
-                        16 - obj.from[1],
-                    ];
-                    break;
-                    case 'east':
-                    uv = [
-                        16 - obj.from[2],
-                        16 - obj.from[1],
-                        16 - obj.to[2],
-                        16 - obj.to[1],
-                    ];
-                    break;
-                    case 'up':
-                    uv = [
-                        obj.from[0],
-                        obj.from[2],
-                        obj.to[0],
-                        obj.to[2],
-                    ];
-                    break;
-                    case 'down':
-                    uv = [
-                        obj.from[0],
-                        16 - obj.to[2],
-                        obj.to[0],
-                        16 - obj.from[2],
-                    ];
-                    break;
-                }
-                uv.forEach(function(s, uvi) {
-                    uv[uvi] = limitNumber(s, 0, 16)
-                })
-                obj.faces[side].uv = uv
-            })
-            obj.display.autouv = 0
-            Canvas.updateUV(obj)
-        })
-        this.message('Auto Size')
-        this.loadData()
-        setUndo('Used Auto UV')
-    }
-    mirrorX(event) {
-        var scope = this;
-        this.forCubes(function(obj, i) {
-            scope.getFaces(event).forEach(function(side) {
-                var proxy = obj.faces[side].uv[0]
-                obj.faces[side].uv[0] = obj.faces[side].uv[2]
-                obj.faces[side].uv[2] = proxy
-            })
-            obj.display.autouv = 0
-            Canvas.updateUV(obj)
-        })
-        this.message('Mirrored')
-        this.loadData()
-        setUndo('Mirrored UV')
-    }
-    mirrorY(event) {
-        var scope = this;
-        this.forCubes(function(obj, i) {
-            scope.getFaces(event).forEach(function(side) {
-                var proxy = obj.faces[side].uv[1]
-                obj.faces[side].uv[1] = obj.faces[side].uv[3]
-                obj.faces[side].uv[3] = proxy
-            })
-            obj.display.autouv = 0
-            Canvas.updateUV(obj)
-        })
-        this.message('Mirrored')
-        this.loadData()
-        setUndo('Mirrored UV')
-    }
-    applyAll(event) {
-        var scope = this;
-        this.forCubes(function(obj, i) {
-            uv_dialog.allFaces.forEach(function(side) {
-                $.extend(true, obj.faces[side], obj.faces[scope.face]) 
-            })
-            obj.display.autouv = 0
-        })
-        Canvas.updateSelectedFaces()
-        this.message('Applied To All Faces')
-        this.loadData()
-        setUndo('Applied UV to all faces')
-    }
-    clear(event) {
-        var scope = this;
-        this.forCubes(function(obj, i) {
-            scope.getFaces(event).forEach(function(side) {
-                obj.faces[side].uv = [0, 0, 0, 0]
-                obj.faces[side].texture = '$transparent';
-            })
-            Canvas.updateUV(obj)
-        })
-        this.loadData()
-        this.message('Cleared')
-        setUndo('Cleared Faces')
-        Canvas.updateSelectedFaces()
-    }
-    switchCullface(event) {
-        var scope = this;
-        var val = $('#uv_dialog_toolbar #cullface option:selected').attr('id')
-        if (val === 'off') val = false
-        this.forCubes(function(obj) {
-            if (val) {
-                obj.faces[scope.face].cullface = val
-            } else {
-                delete obj.faces[scope.face].cullface
-            }
-        })
-        if (val) {
-            this.message('Cullface On')
-        } else {
-            this.message('Cullface Off')
-        }
-        setUndo('Set Cullface')
-    }
-    switchTint(event) {
-        var scope = this;
-        var val = $('#uv_dialog_toolbar #tint').is(':checked')
-        if (event === true || event === false) val = event
-        this.forCubes(function(obj) {
-            if (val) {
-                obj.faces[scope.face].tintindex = 0
-            } else {
-                delete obj.faces[scope.face].tintindex
-            }
-        })
-        if (val) {
-            this.message('Tint On')
-        } else {
-            this.message('Tint Off')
-        }
-        setUndo('Set Tint')
-    }
-    rotate(main) {
-        if (main === true) {
-            var value = this.jquery.bar.find('#uv_rotation').val()
-        } else {
-            var value = $('#uv_dialog_toolbar #uv_rotation').val()
-        }
-        var scope = this;
-        this.forCubes(function(obj, i) {
-            if (value == 0) {
-                delete obj.faces[scope.face].rotation
-            } else {
-                obj.faces[scope.face].rotation = parseInt(value)
-            }
-            Canvas.updateUV(obj)
-        })
-        this.displayTransformInfo()
-        this.message('Rotated')
-        setUndo('Rotated')
-    }
-    setRotation(value) {
-        var scope = this;
-        this.forCubes(function(obj, i) {
-            if (value == 0) {
-                delete obj.faces[scope.face].rotation
-            } else {
-                obj.faces[scope.face].rotation = parseInt(value)
-            }
-            Canvas.updateUV(obj)
-        })
-        this.loadData()
-        this.message('Rotated')
-        setUndo('Rotated')
-    }
-    selectGridSize(event) {
-    }
-    autoCullface(event) {
-        var scope = this;
-        this.forCubes(function(obj) {
-            scope.getFaces(event).forEach(function(side) {
-                obj.faces[side].cullface = side
-            })
-        })
-        this.loadData()
-        this.message('Cullface To Self')
-        setUndo('Set Cullface')
-    }
-    copy(event) {
-        this.select()
-        if (selected.length === 0) return;
+		if (Blockbench.entity_mode) {
+			var new_tag = {
+				uv: selected[0].uv_offset
+			}
+			uv_dialog.clipboard.push(new_tag)
+			this.message('uv_editor.copied')
+			return;
+		}
 
-        var scope = this;
-        uv_dialog.clipboard = []
+		function addToClipboard(face) {
+			if (Blockbench.entity_mode) {
+				var new_tag = {
+					uv: selected[0].uv_offset
+				}
+				uv_dialog.clipboard.push(new_tag)
+				return;
+			}
+			var tag = selected[0].faces[face]
+			var new_tag = {
+				uv: tag.uv.slice(),
+				face: face
+			}
+			if (tag.texture) new_tag.texture = tag.texture
+			if (tag.cullface) new_tag.cullface = tag.cullface
+			if (tag.rotation) new_tag.rotation = tag.rotation
+			if (tag.enabled !== undefined) new_tag.enabled = tag.enabled
+			if (tag.tintindex !== undefined) new_tag.tintindex = tag.tintindex
+			uv_dialog.clipboard.push(new_tag)
+		}
+		if (event.shiftKey) {
+			uv_dialog.allFaces.forEach(function(s) {
+				addToClipboard(s)
+			})
+		} else {
+			addToClipboard(this.face)
+		}
+		this.message('uv_editor.copied_x', [uv_dialog.clipboard.length])
+	}
+	paste(event) {
+		this.select()
+		Undo.initEdit({cubes: selected, uv_only: true})
+		if (uv_dialog.clipboard === null || selected.length === 0) return;
+		if (Blockbench.entity_mode) {
+			selected.forEach(function(obj) {
+				obj.uv_offset = uv_dialog.clipboard[0].uv.slice()
+				Canvas.updateUV(obj)
+			})
+			this.loadData()
+			return;
+		}
 
-        function addToClipboard(face) {
-            if (Blockbench.entity_mode) {
-                var new_tag = {
-                    uv: selected[0].uv_offset
-                }
-                uv_dialog.clipboard.push(new_tag)
-                return;
-            }
-            var tag = selected[0].faces[face]
-            var new_tag = {
-                uv: tag.uv.slice(),
-                face: face
-            }
-            if (tag.texture) new_tag.texture = tag.texture
-            if (tag.cullface) new_tag.cullface = tag.cullface
-            if (tag.rotation) new_tag.rotation = tag.rotation
-            if (tag.enabled !== undefined) new_tag.enabled = tag.enabled
-            if (tag.tintindex !== undefined) new_tag.tintindex = tag.tintindex
-            uv_dialog.clipboard.push(new_tag)
-        }
-        if (event.shiftKey) {
-            uv_dialog.allFaces.forEach(function(s) {
-                addToClipboard(s)
-            })
-        } else {
-            addToClipboard(this.face)
-        }
-        this.message('Copied '+uv_dialog.clipboard.length+' faces')
-    }
-    paste(event) {
-        this.select()
-        if (uv_dialog.clipboard === null || selected.length === 0) return;
+		function applyFace(tag, face) {
+			if (!face) face = tag.face
+			selected.forEach(function(obj) {
+				var target = obj.faces[face]
+				target.uv = tag.uv.slice()
 
-        function applyFace(tag, face) {
-            if (!face) face = tag.face
-            selected.forEach(function(obj) {
-                var target = obj.faces[face]
-                target.uv = tag.uv.slice()
+				if (tag.texture || target.texture) target.texture = tag.texture
+				if (tag.cullface || target.cullface) target.cullface = tag.cullface
+				if (tag.rotation || target.rotation) target.rotation = tag.rotation
+				if (tag.enabled !== undefined || target.enabled !== undefined) target.enabled = tag.enabled
+				if (tag.tintindex !== undefined || target.texture !== undefined) target.tintindex = tag.tintindex
 
-                if (tag.texture || target.texture) target.texture = tag.texture
-                if (tag.cullface || target.cullface) target.cullface = tag.cullface
-                if (tag.rotation || target.rotation) target.rotation = tag.rotation
-                if (tag.enabled !== undefined || target.enabled !== undefined) target.enabled = tag.enabled
-                if (tag.tintindex !== undefined || target.texture !== undefined) target.tintindex = tag.tintindex
+				Canvas.updateUV(obj)
+			})
+		}
 
-                Canvas.updateUV(obj)
-            })
-        }
-
-        if (this.id === 'main_uv' && event) {
-            if (event.shiftKey) {
-                uv_dialog.allFaces.forEach(function(s) {
-                    applyFace(uv_dialog.clipboard[0], s)
-                })
-            } else {
-                if (uv_dialog.clipboard.length === 1) {
-                    applyFace(uv_dialog.clipboard[0], main_uv.face)
-                } else {
-                    uv_dialog.clipboard.forEach(function(s) {
-                        applyFace(s)
-                    })
-                }
-            }
-        } else {
-            if (uv_dialog.selection.length === 1) {
-                applyFace(uv_dialog.clipboard[0], uv_dialog.selection[0])
-            } else {
-                if (uv_dialog.clipboard.length === 1) {
-                    uv_dialog.selection.forEach(function(s) {
-                        applyFace(uv_dialog.clipboard[0], s)
-                    })
-                } else {
-                    uv_dialog.clipboard.forEach(function(s) {
-                        if (uv_dialog.selection.includes(s.face)) {
-                            applyFace(s)
-                        }
-                    })
-                }
-            }
-        }
-        this.loadData()
-        Canvas.updateSelectedFaces()
-        setUndo('Pasted UV')
-        this.message('Pasted face')
-    }
-    reset(event) {
-        var scope = this;
-        this.forCubes(function(obj, i) {
-            scope.getFaces(event).forEach(function(side) {
-                obj.faces[side].uv = [0, 0, 1, 1]
-                delete obj.faces[side].texture;
-                delete obj.faces[side].rotation;
-                delete obj.faces[side].tintindex;
-                delete obj.faces[side].enabled;
-                delete obj.faces[side].cullface;
-            })
-            Canvas.updateUV(obj)
-        })
-        this.loadData()
-        this.message('Reset')
-        setUndo('Reset Face')
-        Canvas.updateSelectedFaces()
-    }
-    select() {
-        if (uv_dialog.allFaces.includes(this.id) === false) return;
-        uv_dialog.selection = [this.id]
-        uv_dialog.updateSelection()
-    }
+		if (this.id === 'main_uv' && event) {
+			if (event.shiftKey) {
+				uv_dialog.allFaces.forEach(function(s) {
+					applyFace(uv_dialog.clipboard[0], s)
+				})
+			} else {
+				if (uv_dialog.clipboard.length === 1) {
+					applyFace(uv_dialog.clipboard[0], main_uv.face)
+				} else {
+					uv_dialog.clipboard.forEach(function(s) {
+						applyFace(s)
+					})
+				}
+			}
+		} else {
+			if (uv_dialog.selection.length === 1) {
+				applyFace(uv_dialog.clipboard[0], uv_dialog.selection[0])
+			} else {
+				if (uv_dialog.clipboard.length === 1) {
+					uv_dialog.selection.forEach(function(s) {
+						applyFace(uv_dialog.clipboard[0], s)
+					})
+				} else {
+					uv_dialog.clipboard.forEach(function(s) {
+						if (uv_dialog.selection.includes(s.face)) {
+							applyFace(s)
+						}
+					})
+				}
+			}
+		}
+		this.loadData()
+		Canvas.updateSelectedFaces()
+		this.message('uv_editor.pasted')
+		Undo.finishEdit('uv_paste')
+	}
+	reset(event) {
+		var scope = this;
+		this.forCubes(function(obj, i) {
+			scope.getFaces(event).forEach(function(side) {
+				obj.faces[side].uv = [0, 0, 1, 1]
+				delete obj.faces[side].texture;
+				delete obj.faces[side].rotation;
+				delete obj.faces[side].tintindex;
+				delete obj.faces[side].enabled;
+				delete obj.faces[side].cullface;
+			})
+			Canvas.updateUV(obj)
+		})
+		this.loadData()
+		this.message('uv_editor.reset')
+		Canvas.updateSelectedFaces()
+	}
+	select() {
+		if (uv_dialog.allFaces.includes(this.id) === false) return;
+		uv_dialog.selection = [this.id]
+		uv_dialog.updateSelection()
+	}
 }
+	UVEditor.prototype.menu = new Menu([
+		{icon: 'content_copy', name: 'menu.uv.copy', click: function(editor) {
+			editor.copy(event)
+		}},
+		{icon: 'content_paste', name: 'menu.uv.paste', click: function(editor) {
+			Undo.initEdit({cubes: selected, uv_only: true})
+			editor.paste(event)
+			Undo.finishEdit('uv_paste')
+		}},
+		{icon: 'photo_size_select_large', name: 'menu.uv.mapping', children: function(editor) { return [
+			{icon: editor.reference_face.enabled!==false ? 'check_box' : 'check_box_outline_blank', name: 'menu.uv.mapping.export', click: function(editor) {
+				Undo.initEdit({cubes: selected, uv_only: true})
+				editor.toggleUV(event)
+				Undo.finishEdit('uv_toggle')
+			}},
+			{icon: 'zoom_out_map', name: 'menu.uv.mapping.maximize', click: function(editor) {
+				Undo.initEdit({cubes: selected, uv_only: true})
+				editor.maximize(event)
+				Undo.finishEdit('uv_maximize')
+			}},
+			{icon: 'brightness_auto', name: 'menu.uv.mapping.auto', click: function(editor) {
+				Undo.initEdit({cubes: selected, uv_only: true})
+				editor.setAutoSize(event)
+				Undo.finishEdit('uv_auto')
+			}},
+			{icon: 'brightness_auto', name: 'menu.uv.mapping.rel_auto', click: function(editor) {
+				Undo.initEdit({cubes: selected, uv_only: true})
+				editor.setRelativeAutoSize(event)
+				Undo.finishEdit('uv_auto')
+			}},
+			{icon: 'rotate_90_degrees_ccw', name: 'menu.uv.mapping.rotation', children: function() {
+				var off = 'radio_button_unchecked'
+				var on = 'radio_button_checked'
+				return [
+					{icon: (!editor.reference_face.rotation ? on : off), name: '0&deg;', click: function(editor) {
+						Undo.initEdit({cubes: selected, uv_only: true})
+						editor.setRotation(0)
+						Undo.finishEdit('uv_rotate')
+					}},
+					{icon: (editor.reference_face.rotation === 90 ? on : off), name: '90&deg;', click: function(editor) {
+						Undo.initEdit({cubes: selected, uv_only: true})
+						editor.setRotation(90)
+						Undo.finishEdit('uv_rotate')
+					}},
+					{icon: (editor.reference_face.rotation === 180 ? on : off), name: '180&deg;', click: function(editor) {
+						Undo.initEdit({cubes: selected, uv_only: true})
+						editor.setRotation(180)
+						Undo.finishEdit('uv_rotate')
+					}},
+					{icon: (editor.reference_face.rotation === 270 ? on : off), name: '270&deg;', click: function(editor) {
+						Undo.initEdit({cubes: selected, uv_only: true})
+						editor.setRotation(270)
+						Undo.finishEdit('uv_rotate')
+					}}
+				]
+			}},
+			{
+				icon: (editor.reference_face.uv[0] > editor.reference_face.uv[2] ? 'check_box' : 'check_box_outline_blank'),
+				name: 'menu.uv.mapping.mirror_x',
+				click: function(editor) {
+					Undo.initEdit({cubes: selected, uv_only: true})
+					editor.mirrorX(event)
+					Undo.finishEdit('uv_mirror')
+				}},
+			{
+				icon: (editor.reference_face.uv[1] > editor.reference_face.uv[3] ? 'check_box' : 'check_box_outline_blank'),
+				name: 'menu.uv.mapping.mirror_y',
+				click: function(editor) {
+					Undo.initEdit({cubes: selected, uv_only: true})
+					editor.mirrorY(event)
+					Undo.finishEdit('uv_mirror')
+				}},
+		]}},
+		{
+			//icon: (scope.reference_face.tintindex === 0 ? 'check_box' : 'check_box_outline_blank'),
+			name: 'menu.uv.tint', click: function(editor) {
+				Undo.initEdit({cubes: selected, uv_only: true})
+				editor.switchTint(selected[0].faces[editor.face].tintindex !== 0)
+				Undo.finishEdit('face_tint')
+			},icon: 'content_copy'
+		},
+		{icon: 'collections', name: 'menu.uv.texture', children: function() {
+			var arr = [
+				{icon: 'clear', name: 'menu.uv.texture.transparent', click: function(editor) {editor.clear(event)}},
+			]
+			textures.forEach(function(t) {
+				arr.push({
+					name: t.name,
+					icon: (t.mode === 'link' ? t.img : t.source),
+					click: function(editor) {editor.applyTexture(t.id)}
+				})
+			})
+			return arr;
+		}}
+	])
+
+/*
+Maximize
+Auto UV
+Relative Auto UV
+Apply to all
+Clear
+Reset
+
+
+*/
+
+
 
 var uv_dialog = {
-    isSetup: false,
-    single: false,
-    clipboard: null,
-    allFaces: ['north', 'south', 'west', 'east', 'up', 'down'],
-    selection: [],
-    selection_all: [],
-    hoveredSide: false,
-    single_size: {},
-    all_size: {},
-    setup: function() {
-        uv_dialog.editors = {
-            single:new UVEditor('single').appendTo('#uv_dialog_single'),
-            north: new UVEditor('north', true).appendTo('#uv_dialog_all'),
-            south: new UVEditor('south', true).appendTo('#uv_dialog_all'),
-            west:  new UVEditor('west', true).appendTo('#uv_dialog_all'),
-            east:  new UVEditor('east', true).appendTo('#uv_dialog_all'),
-            up:    new UVEditor('up', true).appendTo('#uv_dialog_all'),
-            down:  new UVEditor('down', true).appendTo('#uv_dialog_all')
-        }
-        var size = $(window).height() - 200
-        size = size - (size % 16)
-        uv_dialog.editors.single.setSize(size)
-        uv_dialog.editors.single.jquery.main.css('margin-left', 'auto').css('margin-right', 'auto').css('width', size+'px')
-        uv_dialog.editors.up.jquery.main.css('margin-left', '276px').css('clear', 'both')
-        uv_dialog.isSetup = true
+	isSetup: false,
+	single: false,
+	clipboard: null,
+	allFaces: ['north', 'south', 'west', 'east', 'up', 'down'],
+	selection: [],
+	selection_all: [],
+	all_editors: [],
+	hoveredSide: false,
+	single_size: {},
+	all_size: {},
+	setup: function() {
+		uv_dialog.editors = {
+			single:new UVEditor('single').appendTo('#uv_dialog_single'),
+			north: new UVEditor('north', true).appendTo('#uv_dialog_all'),
+			south: new UVEditor('south', true).appendTo('#uv_dialog_all'),
+			west:  new UVEditor('west', true).appendTo('#uv_dialog_all'),
+			east:  new UVEditor('east', true).appendTo('#uv_dialog_all'),
+			up:	new UVEditor('up', true).appendTo('#uv_dialog_all'),
+			down:  new UVEditor('down', true).appendTo('#uv_dialog_all')
+		}
+		var size = $(window).height() - 200
+		size = size - (size % 16)
+		uv_dialog.editors.single.setSize(size)
+		uv_dialog.editors.single.jquery.main.css('margin-left', 'auto').css('margin-right', 'auto').css('width', size+'px')
+		uv_dialog.editors.up.jquery.main.css('margin-left', '276px').css('clear', 'both')
+		uv_dialog.isSetup = true
 
-        var single_size = size / 2 - 72
-        single_size = limitNumber(single_size - (single_size % 16), 80, 256)
-        for (var key in uv_dialog.editors) {
-            if (uv_dialog.editors[key] && key !== 'single') {
-                uv_dialog.editors[key].setFace(key, false)
-                uv_dialog.editors[key].setSize(single_size)
-                uv_dialog.editors[key].jquery.main.mouseenter(function(event) {
-                    uv_dialog.hoveredSide = $(this).attr('id').replace('UVEditor_', '')
-                })
-                uv_dialog.editors[key].jquery.main.mouseleave(function() {
-                    uv_dialog.hoveredSide = false
-                })
-            }
-        }
-        $('.dialog#uv_dialog').resizable({
-            minWidth: 202,
-            minHeight: 464,
-            resize: function() {
-                uv_dialog.updateSize()
-            },
-            containment: 'document',
-            handles: 'all'
-        })
-    },
-    select: function(id, event) {
-        if (event.shiftKey) {
-            uv_dialog.selection.push(id)
-        } else {
-            if (uv_dialog.selection.includes(id) && uv_dialog.selection.length === 1) {
-                uv_dialog.selection = []
-            } else {
-                uv_dialog.selection = [id]
-            }
-        }
-        uv_dialog.updateSelection()
-    },
-    selectAll: function() {
-        uv_dialog.selection = ['north', 'south', 'west', 'east', 'up', 'down']
-        uv_dialog.updateSelection()
-    },
-    selectNone: function() {
-        uv_dialog.selection = []
-        uv_dialog.updateSelection()
-    },
-    forSelection: function(cb) {
-        if (uv_dialog.single) {
-            uv_dialog.editors.single[cb]()
-        } else {
-            if (uv_dialog.selection.length > 0) {
-                uv_dialog.selection.forEach(function(s) {
-                    uv_dialog.editors[s][cb]()
-                })
-            } else {
-                uv_dialog.allFaces.forEach(function(s) {
-                    uv_dialog.editors[s][cb]()
-                })
-            }
-        }
-    },
-    updateSelection: function() {
-        $('#uv_dialog_all .UVEditor .uv_headline').removeClass('selected')
-        uv_dialog.selection.forEach(function(id) {
-            $('#uv_dialog_all #UVEditor_'+id+' .uv_headline').addClass('selected')
-        })
-    },
-    openDialog: function() {
-        var obj = $('.dialog#uv_dialog')
-        showDialog('uv_dialog')
+		var single_size = size / 2 - 72
+		single_size = limitNumber(single_size - (single_size % 16), 80, 256)
+		for (var key in uv_dialog.editors) {
+			if (uv_dialog.editors[key] && key !== 'single') {
+				uv_dialog.editors[key].setFace(key, false)
+				uv_dialog.editors[key].setSize(single_size)
+				uv_dialog.editors[key].jquery.main.mouseenter(function(event) {
+					uv_dialog.hoveredSide = $(this).attr('id').replace('UVEditor_', '')
+				})
+				uv_dialog.editors[key].jquery.main.mouseleave(function() {
+					uv_dialog.hoveredSide = false
+				})
+			}
+		}
+		$('.dialog#uv_dialog').resizable({
+			minWidth: 202,
+			minHeight: 464,
+			resize: function() {
+				uv_dialog.updateSize()
+			},
+			containment: 'document',
+			handles: 'all'
+		})
+		BARS.updateConditions()
+	},
+	select: function(id, event) {
+		if (event.shiftKey) {
+			uv_dialog.selection.push(id)
+		} else {
+			if (uv_dialog.selection.includes(id) && uv_dialog.selection.length === 1) {
+				uv_dialog.selection = []
+			} else {
+				uv_dialog.selection = [id]
+			}
+		}
+		uv_dialog.updateSelection()
+	},
+	selectAll: function() {
+		uv_dialog.selection = ['north', 'south', 'west', 'east', 'up', 'down']
+		uv_dialog.updateSelection()
+	},
+	selectNone: function() {
+		uv_dialog.selection = []
+		uv_dialog.updateSelection()
+	},
+	forSelection: function(cb, event) {
+		if (open_dialog === false) {
+			main_uv[cb](event)
+		} else if (uv_dialog.single) {
+			uv_dialog.editors.single[cb]()
+		} else {
+			if (uv_dialog.selection.length > 0) {
+				uv_dialog.selection.forEach(function(s) {
+					uv_dialog.editors[s][cb]()
+				})
+			} else {
+				uv_dialog.allFaces.forEach(function(s) {
+					uv_dialog.editors[s][cb]()
+				})
+			}
+		}
+	},
+	updateSelection: function() {
+		$('#uv_dialog_all .UVEditor .uv_headline').removeClass('selected')
+		uv_dialog.selection.forEach(function(id) {
+			$('#uv_dialog_all #UVEditor_'+id+' .uv_headline').addClass('selected')
+		})
+	},
+	openDialog: function() {
+		var obj = $('.dialog#uv_dialog')
+		showDialog('uv_dialog')
 
-        if (!uv_dialog.isSetup) uv_dialog.setup()
-    },
-    centerDialog: function() {
-        var obj = $('.dialog#uv_dialog')
-        obj.css('left', (($(window).width()-obj.width())/2) +'px')
-        obj.css('top', (($(window).height() - obj.height()) / 2) + 'px')
-    },
-    openAll: function() {
-        uv_dialog.openDialog()
-        uv_dialog.openTab('all')
-        uv_dialog.centerDialog()
-    },
-    openFull: function() {
-        uv_dialog.openDialog()
-        uv_dialog.openTab(main_uv.face)
-        uv_dialog.centerDialog()
-    },
-    openTab: function(tab) {
-        uv_dialog.saveSize()
-        $('#uv_tab_bar .tab').removeClass('open')
-        $('#uv_tab_bar .tab#'+tab).addClass('open')
-        if (tab === 'all') {
-            uv_dialog.single = false
-            $('#uv_dialog_single').hide()
-            $('.uv_dialog_all_only').show()
-            for (var key in uv_dialog.editors) {
-                if (uv_dialog.editors[key] && key !== 'single') {
-                    uv_dialog.editors[key].loadData()
-                }
-            }
-            uv_dialog.selection = uv_dialog.selection_all.splice(0, 10)
-            uv_dialog.updateSelection()
-            $('#uv_dialog_toolbar #grid_snap').val(uv_dialog.editors.north.gridSelectOption)
-            $('.dialog#uv_dialog').width(uv_dialog.all_size.x)
-            $('.dialog#uv_dialog').height(uv_dialog.all_size.y)
-        } else {
-            uv_dialog.single = true
-            $('#uv_dialog_single').show()
-            $('.uv_dialog_all_only').hide()
-            uv_dialog.editors.single.setFace(tab)
-            uv_dialog.selection_all = uv_dialog.selection.splice(0, 10)
-            uv_dialog.selection = [tab]
-            $('#uv_dialog_toolbar #grid_snap').val(uv_dialog.editors.single.gridSelectOption)
+		if (!uv_dialog.isSetup) uv_dialog.setup()
+	},
+	centerDialog: function() {
+		var obj = $('.dialog#uv_dialog')
+		obj.css('left', (($(window).width()-obj.width())/2) +'px')
+		obj.css('top', (($(window).height() - obj.height()) / 2) + 'px')
+	},
+	openAll: function() {
+		uv_dialog.openDialog()
+		uv_dialog.openTab('all')
+		uv_dialog.centerDialog()
+	},
+	openFull: function() {
+		uv_dialog.openDialog()
+		uv_dialog.openTab(main_uv.face)
+		uv_dialog.centerDialog()
+	},
+	openTab: function(tab) {
+		uv_dialog.saveSize()
+		$('#uv_tab_bar .tab').removeClass('open')
+		$('#uv_tab_bar .tab#'+tab).addClass('open')
+		if (tab === 'all') {
+			uv_dialog.single = false
+			$('#uv_dialog_single').hide()
+			$('.uv_dialog_all_only').show()
+			for (var key in uv_dialog.editors) {
+				if (uv_dialog.editors[key] && key !== 'single') {
+					uv_dialog.editors[key].loadData()
+				}
+			}
+			uv_dialog.selection = uv_dialog.selection_all.splice(0, 10)
+			uv_dialog.updateSelection()
 
-            var max_size = $(window).height() - 200
-            max_size = max_size - (max_size % 16)
-            if (max_size < uv_dialog.editors.single.size ) {
-                uv_dialog.editors.single.setSize(max_size)
-                uv_dialog.editors.single.jquery.main.css('margin-left', 'auto').css('margin-right', 'auto').css('width', max_size+'px')
-            }
-            $('.dialog#uv_dialog').width(uv_dialog.single_size.x)
-            $('.dialog#uv_dialog').height(uv_dialog.single_size.y)
-        }
-        uv_dialog.hoveredSide = false;
-        uv_dialog.updateSize()
-    },
-    saveSize: function() {
-        if (uv_dialog.single) {
-            uv_dialog.single_size.x = $('.dialog#uv_dialog').width()
-            uv_dialog.single_size.y = $('.dialog#uv_dialog').height()
-        } else {
-            uv_dialog.all_size.x = $('.dialog#uv_dialog').width()
-            uv_dialog.all_size.y = $('.dialog#uv_dialog').height()
-        }
-    },
-    updateSize: function() {
-        var obj = $('.dialog#uv_dialog')
-        var size = {
-            x: obj.width(),
-            y: obj.height()
-        }
-        if (uv_dialog.single) {
-            var menu_gap = Blockbench.entity_mode ? 66 : 130
-            var editor_size = size.x
-            size.y = (size.y - menu_gap) * (Blockbench.entity_mode ? Project.texture_width/Project.texture_height : 1)
-            if (size.x > size.y) {
-                editor_size =  size.y
-            }
-            editor_size = editor_size - (editor_size % 16)
-            uv_dialog.editors.single.setSize(editor_size)
+			BarItems.uv_grid.set(uv_dialog.editors.north.gridSelectOption)
 
-        } else {
-            var centerUp = false
-            if (size.x < size.y/1.2) {
-                //2 x 3     0.83 - 7.2
-                if (size.y*1.4 > size.x) {
-                    var editor_size = limitNumber(size.x / 2 - 20, 80, $(window).height()/3-120)
-                    editor_size = limitNumber(editor_size, 80, (size.y-64)/3-77)
-                } else {
-                    var editor_size = size.y / 3 - 96 - 48
-                }
-            } else {
-                //4 x 2
-                var y_margin = ($('#uv_dialog_toolbar #uv_rotation').position().left>900 ? 122 : 150)
-                var editor_size = limitNumber(size.x/4-20,  16,  size.y/2-y_margin)
-                centerUp = true
-            }
-            editor_size = editor_size - (editor_size % 16)
-            uv_dialog.setEditorSize(editor_size)
-            if (centerUp) {
-                uv_dialog.editors.up.jquery.main.css('margin-left', (editor_size+20)+'px').css('clear', 'both')
-            }
-        }
-    },
-    setEditorSize: function(size) {
-        for (var key in uv_dialog.editors) {
-            if (uv_dialog.editors[key] && key !== 'single') {
-                uv_dialog.editors[key].jquery.main.css('margin-left', '0')
-                uv_dialog.editors[key].setSize(size)
-            }
-        }
-    },
-    changeGrid: function() {
-        if (uv_dialog.single) {
-            uv_dialog.editors.single.setGrid('dialog')
-            uv_dialog.editors.single.gridSelectOption = $('#uv_dialog_toolbar #grid_snap option:selected').attr('id')
-        } else {
-            uv_dialog.allFaces.forEach(function(s) {
-                uv_dialog.editors[s].setGrid('dialog')
-            })
-            uv_dialog.editors.north.gridSelectOption = $('#uv_dialog_toolbar #grid_snap option:selected').attr('id')
-        }
-    },
-    copy: function() {
-        if (selected.length === 0) return;
-        uv_dialog.clipboard = []
+			$('.dialog#uv_dialog').width(uv_dialog.all_size.x)
+			$('.dialog#uv_dialog').height(uv_dialog.all_size.y)
+		} else {
+			uv_dialog.single = true
+			$('#uv_dialog_single').show()
+			$('.uv_dialog_all_only').hide()
+			uv_dialog.editors.single.setFace(tab)
+			uv_dialog.selection_all = uv_dialog.selection.splice(0, 10)
+			uv_dialog.selection = [tab]
+			BarItems.uv_grid.set(uv_dialog.editors.single.gridSelectOption)
 
-        function addToClipboard(face) {
-            var tag = selected[0].faces[face]
-            var new_tag = {
-                uv: tag.uv.slice(),
-                face: face
-            }
-            if (tag.texture) new_tag.texture = tag.texture
-            if (tag.cullface) new_tag.cullface = tag.cullface
-            if (tag.rotation) new_tag.rotation = tag.rotation
-            if (tag.enabled !== undefined) new_tag.enabled = tag.enabled
-            if (tag.tintindex !== undefined) new_tag.tintindex = tag.tintindex
-            uv_dialog.clipboard.push(new_tag)
-        }
-        if (uv_dialog.hoveredSide) {
-            addToClipboard(uv_dialog.hoveredSide)
+			var max_size = $(window).height() - 200
+			max_size = max_size - (max_size % 16)
+			if (max_size < uv_dialog.editors.single.size ) {
+				uv_dialog.editors.single.setSize(max_size)
+				uv_dialog.editors.single.jquery.main.css('margin-left', 'auto').css('margin-right', 'auto').css('width', max_size+'px')
+			}
+			$('.dialog#uv_dialog').width(uv_dialog.single_size.x)
+			$('.dialog#uv_dialog').height(uv_dialog.single_size.y)
+		}
+		uv_dialog.hoveredSide = false;
+		uv_dialog.updateSize()
+	},
+	saveSize: function() {
+		if (uv_dialog.single) {
+			uv_dialog.single_size.x = $('.dialog#uv_dialog').width()
+			uv_dialog.single_size.y = $('.dialog#uv_dialog').height()
+		} else {
+			uv_dialog.all_size.x = $('.dialog#uv_dialog').width()
+			uv_dialog.all_size.y = $('.dialog#uv_dialog').height()
+		}
+	},
+	updateSize: function() {
+		var obj = $('.dialog#uv_dialog')
+		var size = {
+			x: obj.width(),
+			y: obj.height()
+		}
+		if (uv_dialog.single) {
+			var menu_gap = Blockbench.entity_mode ? 66 : 130
+			var editor_size = size.x
+			size.y = (size.y - menu_gap) * (Blockbench.entity_mode ? Project.texture_width/Project.texture_height : 1)
+			if (size.x > size.y) {
+				editor_size =  size.y
+			}
+			editor_size = editor_size - (editor_size % 16)
+			uv_dialog.editors.single.setSize(editor_size)
 
-        } else if (uv_dialog.selection.length > 0) {
-            uv_dialog.selection.forEach(function(s) {
-                addToClipboard(s)
-            })
-        } else {
-            uv_dialog.allFaces.forEach(function(s) {
-                addToClipboard(s)
-            })
-        }
-    },
-    paste: function() {
-        if (uv_dialog.clipboard === null || selected.length === 0) return;
+		} else {
+			var centerUp = false
+			if (size.x < size.y/1.2) {
+				//2 x 3	 0.83 - 7.2
+				if (size.y*1.4 > size.x) {
+					var editor_size = limitNumber(size.x / 2 - 20, 80, $(window).height()/3-120)
+					editor_size = limitNumber(editor_size, 80, (size.y-64)/3-77)
+				} else {
+					var editor_size = size.y / 3 - 96 - 48
+				}
+			} else {
+				//4 x 2
+				var y_margin = 150
+				var editor_size = limitNumber(size.x/4-20,  16,  size.y/2-y_margin)
+				centerUp = true
+			}
+			editor_size = editor_size - (editor_size % 16)
+			uv_dialog.setEditorSize(editor_size)
+			if (centerUp) {
+				uv_dialog.editors.up.jquery.main.css('margin-left', (editor_size+20)+'px').css('clear', 'both')
+			}
+		}
+	},
+	setEditorSize: function(size) {
+		for (var key in uv_dialog.editors) {
+			if (uv_dialog.editors[key] && key !== 'single') {
+				uv_dialog.editors[key].jquery.main.css('margin-left', '0')
+				uv_dialog.editors[key].setSize(size)
+			}
+		}
+	},
+	changeGrid: function(value) {
+		if (uv_dialog.single) {
+			uv_dialog.editors.single.setGrid('dialog')
+			uv_dialog.editors.single.gridSelectOption = value
+		} else {
+			uv_dialog.allFaces.forEach(function(s) {
+				uv_dialog.editors[s].setGrid('dialog')
+			})
+			uv_dialog.editors.north.gridSelectOption = value
+		}
+	},
+	copy: function(event) {
+		if (selected.length === 0) return;
+		uv_dialog.clipboard = []
 
-        function applyFace(tag, face) {
-            if (!face) face = tag.face
-            selected.forEach(function(obj) {
-                var target = obj.faces[face]
-                target.uv = tag.uv.slice()
+		function addToClipboard(face) {
+			var tag = selected[0].faces[face]
+			var new_tag = {
+				uv: tag.uv.slice(),
+				face: face
+			}
+			if (tag.texture) new_tag.texture = tag.texture
+			if (tag.cullface) new_tag.cullface = tag.cullface
+			if (tag.rotation) new_tag.rotation = tag.rotation
+			if (tag.enabled !== undefined) new_tag.enabled = tag.enabled
+			if (tag.tintindex !== undefined) new_tag.tintindex = tag.tintindex
+			uv_dialog.clipboard.push(new_tag)
+		}
+		if (uv_dialog.hoveredSide) {
+			addToClipboard(uv_dialog.hoveredSide)
+			uv_dialog.editors[uv_dialog.hoveredSide].message('uv_editor.copied')
 
-                if (tag.texture || target.texture) target.texture = tag.texture
-                if (tag.cullface || target.cullface) target.cullface = tag.cullface
-                if (tag.rotation || target.rotation) target.rotation = tag.rotation
-                if (tag.enabled !== undefined || target.enabled !== undefined) target.enabled = tag.enabled
-                if (tag.tintindex !== undefined || target.texture !== undefined) target.tintindex = tag.tintindex
+		} else if (uv_dialog.selection.length > 0) {
+			uv_dialog.selection.forEach(function(s) {
+				addToClipboard(s)
+			})
+		} else {
+			uv_dialog.allFaces.forEach(function(s) {
+				addToClipboard(s)
+			})
+		}
+	},
+	paste: function(event) {
+		if (uv_dialog.clipboard === null || selected.length === 0) return;
 
-                Canvas.updateUV(obj)
-            })
-        }
+		function applyFace(tag, face) {
+			if (!face) face = tag.face
+			selected.forEach(function(obj) {
+				var target = obj.faces[face]
+				target.uv = tag.uv.slice()
 
-        if (uv_dialog.hoveredSide) {
-            uv_dialog.editors[uv_dialog.hoveredSide].paste({shiftKey: false})
+				if (tag.texture || target.texture) target.texture = tag.texture
+				if (tag.cullface || target.cullface) target.cullface = tag.cullface
+				if (tag.rotation || target.rotation) target.rotation = tag.rotation
+				if (tag.enabled !== undefined || target.enabled !== undefined) target.enabled = tag.enabled
+				if (tag.tintindex !== undefined || target.texture !== undefined) target.tintindex = tag.tintindex
 
-        } else if (uv_dialog.selection.length === 1) {
-            applyFace(uv_dialog.clipboard[0], uv_dialog.selection[0])
-        } else {
-            if (uv_dialog.clipboard.length === 1) {
-                uv_dialog.selection.forEach(function(s) {
-                    applyFace(uv_dialog.clipboard[0], s)
-                })
-            } else {
-                uv_dialog.clipboard.forEach(function(s) {
-                    if (uv_dialog.selection.includes(s.face)) {
-                        applyFace(s)
-                    }
-                })
-            }
-        }
+				Canvas.updateUV(obj)
+			})
+		}
 
-        for (var key in uv_dialog.editors) {
-            if (uv_dialog.editors[key]) {
-                uv_dialog.editors[key].loadData()
-            }
-        }
-    }
+		if (uv_dialog.hoveredSide) {
+			uv_dialog.editors[uv_dialog.hoveredSide].paste({shiftKey: false})
+
+		} else if (uv_dialog.selection.length === 1) {
+			applyFace(uv_dialog.clipboard[0], uv_dialog.selection[0])
+		} else {
+			if (uv_dialog.clipboard.length === 1) {
+				uv_dialog.selection.forEach(function(s) {
+					applyFace(uv_dialog.clipboard[0], s)
+				})
+			} else {
+				uv_dialog.clipboard.forEach(function(s) {
+					if (uv_dialog.selection.includes(s.face)) {
+						applyFace(s)
+					}
+				})
+			}
+		}
+
+		for (var key in uv_dialog.editors) {
+			if (uv_dialog.editors[key]) {
+				uv_dialog.editors[key].loadData()
+			}
+		}
+	}
 }

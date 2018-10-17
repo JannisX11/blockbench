@@ -9,80 +9,48 @@
 // This set of controls performs orbiting, dollying (zooming), and panning.
 // Unlike TrackballControls, it maintains the "up" direction object.up (+Y by default).
 //
-//    Orbit - left mouse / touch: one finger move
-//    Zoom - middle mouse, or mousewheel / touch: two finger spread or squish
-//    Pan - right mouse, or arrow keys / touch: three finger swipe
+//	Orbit - left mouse / touch: one finger move
+//	Zoom - middle mouse, or mousewheel / touch: two finger spread or squish
+//	Pan - right mouse, or arrow keys / touch: three finger swipe
 
-THREE.OrbitControls = function ( object, domElement ) {
+THREE.OrbitControls = function ( object, preview ) {
 
 	this.object = object;
+	this.preview = preview
+	this.domElement = preview.canvas;
 
-	this.domElement = ( domElement !== undefined ) ? domElement : document;
-
-	// Set to false to disable this control
 	this.enabled = true;
-
-	// "target" sets the location of focus, where the object orbits around
+	this.isEnabled = function() {
+		return this.enabled && Toolbox.selected.navigate
+	};
 	this.target = new THREE.Vector3();
-
-	// How far you can dolly in and out ( PerspectiveCamera only )
 	this.minDistance = 0;
 	this.maxDistance = Infinity;
-
-	// How far you can zoom in and out ( OrthographicCamera only )
 	this.minZoom = 0;
 	this.maxZoom = Infinity;
-
-	// How far you can orbit vertically, upper and lower limits.
-	// Range is 0 to Math.PI radians.
 	this.minPolarAngle = 0; // radians
 	this.maxPolarAngle = Math.PI; // radians
-
-	// How far you can orbit horizontally, upper and lower limits.
-	// If set, must be a sub-interval of the interval [ - Math.PI, Math.PI ].
 	this.minAzimuthAngle = - Infinity; // radians
 	this.maxAzimuthAngle = Infinity; // radians
-
-	// Set to true to enable damping (inertia)
-	// If damping is enabled, you must call controls.update() in your animation loop
 	this.enableDamping = false;
 	this.dampingFactor = 0.25;
-
-	// This option actually enables dollying in and out; left as "zoom" for backwards compatibility.
-	// Set to false to disable zooming
 	this.enableZoom = true;
 	this.zoomSpeed = 1.0;
-
-	// Set to false to disable rotating
 	this.enableRotate = true;
 	this.rotateSpeed = 1.0;
-
-	// Set to false to disable panning
 	this.enablePan = true;
 	this.keyPanSpeed = 7.0;	// pixels moved per arrow key push
-
-	// Set to true to automatically rotate around the target
-	// If auto-rotate is enabled, you must call controls.update() in your animation loop
 	this.autoRotate = false;
 	this.autoRotateSpeed = 2.0; // 30 seconds per round when fps is 60
-
-	// Set to false to disable use of the keys
 	this.enableKeys = true;
-
 	// The four arrow keys
 	this.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
-
 	// Mouse buttons
 	this.mouseButtons = { ORBIT: THREE.MOUSE.LEFT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
-
 	// for reset
 	this.target0 = this.target.clone();
 	this.position0 = this.object.position.clone();
 	this.zoom0 = this.object.zoom;
-
-	//
-	// public methods
-	//
 
 	this.getPolarAngle = function () {
 
@@ -112,17 +80,11 @@ THREE.OrbitControls = function ( object, domElement ) {
 	};
 
 	this.updateSceneScale = function() {
-		if (isOrtho === true && active_scene.background.image !== false) {
-			updateScenePosition(cameraOrtho.zoom)
+		if (scope.preview.isOrtho === true && scope.preview.camOrtho.axis && scope.preview.background.image !== false) {
+			scope.preview.updateBackground()
 		}
 		Transformer.update()
 		if (selected.length === 0) return;
-		Vertexsnap.vertexes.children.forEach(function(v,i) {
-		    var scaleVector = new THREE.Vector3();
-		    var scale = scaleVector.subVectors(v.position, Transformer.camera.position).length() / 500;
-		    scale = (Math.sqrt(scale) + scale/10) * 1.2
-		    v.scale.set(scale, scale, scale)
-		})
 	};
 
 	// this method is exposed, but perhaps it would be better if we can make it private...
@@ -672,25 +634,33 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	function onMouseDown( event ) {
 
-		if ( scope.enabled === false ) return;
+		if ( scope.isEnabled() === false ) return;
 
 		event.preventDefault();
 
 		scope.hasMoved = false
+		
+		if ( Keybinds.extra.preview_rotate.keybind.isTriggered(event) ) {
 
-		if ( compareKeys(event, keybinds.canvas_rotate) ) {
+			if (/**/false/**/ && scope.object.isOrthographicCamera === true && scope.enablePan === true) {
 
-			if ( scope.enableRotate === false ) return;
+				handleMouseDownPan( event );
+				state = STATE.PAN;
+				
+			} else {
 
-			if (event.which === 1 && Canvas.raycast() && display_mode === false) {
-				return;
+				if ( scope.enableRotate === false ) return;
+
+				if (event.which === 1 && Canvas.raycast() && display_mode === false) {
+					return;
+				}
+
+				handleMouseDownRotate( event );
+
+				state = STATE.ROTATE;
 			}
 
-			handleMouseDownRotate( event );
-
-			state = STATE.ROTATE;
-
-		} else if ( compareKeys(event, keybinds.canvas_drag) ) {
+		} else if ( Keybinds.extra.preview_drag.keybind.isTriggered(event) ) {
 
 			if ( scope.enablePan === false ) return;
 
@@ -749,7 +719,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	function onMouseMove( event ) {
 
-		if ( scope.enabled === false ) return;
+		if ( scope.isEnabled() === false ) return;
 
 		event.preventDefault();
 
@@ -779,7 +749,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	function onMouseUp( event ) {
 
-		if ( scope.enabled === false ) return;
+		if ( scope.isEnabled() === false ) return;
 
 		handleMouseUp( event );
 
@@ -801,7 +771,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	function onMouseWheel( event ) {
 
-		if ( scope.enabled === false || scope.enableZoom === false || ( state !== STATE.NONE && state !== STATE.ROTATE ) ) return;
+		if ( scope.isEnabled() === false || scope.enableZoom === false || ( state !== STATE.NONE && state !== STATE.ROTATE ) ) return;
 
 		event.preventDefault();
 		event.stopPropagation();
@@ -815,7 +785,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	function onKeyDown( event ) {
 
-		if ( scope.enabled === false || scope.enableKeys === false || scope.enablePan === false ) return;
+		if ( scope.isEnabled() === false || scope.enableKeys === false || scope.enablePan === false ) return;
 
 		handleKeyDown( event );
 
@@ -823,13 +793,13 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	function onTouchStart( event ) {
 
-		if ( scope.enabled === false ) return;
+		if ( scope.isEnabled() === false ) return;
 
 		switch ( event.touches.length ) {
 
 			case 1:	// one-fingered touch: rotate
 
-				if (isOrtho) {
+				if (scope.preview.isOrtho) {
 					handleTouchStartPan( event );
 					state = STATE.TOUCH_PAN;
 				} else {
@@ -876,7 +846,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	function onTouchMove( event ) {
 
-		if ( scope.enabled === false ) return;
+		if ( scope.isEnabled() === false ) return;
 		if ( Transformer.dragging ) return;
 
 		event.preventDefault();
@@ -887,7 +857,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 			case 1: // one-fingered touch: rotate
 
 
-				if (isOrtho) {
+				if (scope.preview.isOrtho) {
 					handleTouchMovePan( event );
 				} else {
 					if ( scope.enableRotate === false ) return;
@@ -925,7 +895,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	function onTouchEnd( event ) {
 
-		if ( scope.enabled === false ) return;
+		if ( scope.isEnabled() === false ) return;
 
 		handleTouchEnd( event );
 

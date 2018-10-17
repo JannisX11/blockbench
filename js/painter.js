@@ -4,60 +4,64 @@ class BBPainter {
 		this.currentPixel = [-1, -1]
 		this.brushChanges = false
 		this.current = {/*texture, image*/}
+		this.background_color = new ColorPicker({
+			id: 'background_color',
+			label: true,
+			private: true,
+		})
 	}
 	edit(texture, cb, options) {
-		if (typeof options !== 'object') {
-			options = {}
-		}
-		if (texture.mode === 'link') {
-			console.error('Cannot edit link texture')
-			return;
+		if (!options.noUndo) {
+			Undo.initEdit({textures: [texture], bitmap: true})
 		}
 		if (options.use_cache &&
 			texture === Painter.current.texture &&
 			typeof Painter.current.image === 'object'
 		) {
-	    	cb(Painter.current.image)
-	        Painter.current.image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
-	        	texture.source = dataUrl
-	        	texture.updateMaterial()
-	        	main_uv.loadData()
-	        	if (open_dialog === 'uv_dialog') {
-	        		for (var editor in uv_dialog.editors) {
-	        			if (uv_dialog.editors.hasOwnProperty(editor)) {
-	        				uv_dialog.editors[editor].loadData()
-	        			}
-	        		}
-	        	}
-	        	if (!options.noUndo) {
-	        		Undo.add('Paint', true)
-	        	}
-	        })
+			cb(Painter.current.image)
+			Painter.current.image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
+				texture.source = dataUrl
+				texture.updateMaterial()
+				main_uv.loadData()
+				if (open_dialog === 'uv_dialog') {
+					for (var editor in uv_dialog.editors) {
+						if (uv_dialog.editors.hasOwnProperty(editor)) {
+							uv_dialog.editors[editor].loadData()
+						}
+					}
+				}
+				if (!options.noUndo) {
+					Undo.finishEdit('edit_texture')
+				}
+			})
 		} else {
-		    Painter.current.texture = texture
-		    Jimp.read(Buffer.from(texture.source.replace('data:image/png;base64,', ''), 'base64'), function() {}).then(function(image) {
-		    	cb(image)
-		    	Painter.current.image = image
-		        image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
-		        	texture.source = dataUrl
-		        	texture.updateMaterial()
-		        	main_uv.loadData()
-		        	if (!options.noUndo) {
-		        		Undo.add('Paint', true)
-		        	}
-		        })
-		    })
+			Painter.current.texture = texture
+			Jimp.read(Buffer.from(texture.source.replace('data:image/png;base64,', ''), 'base64'), function() {}).then(function(image) {
+				cb(image)
+				Painter.current.image = image
+				image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
+					texture.source = dataUrl
+					texture.updateMaterial()
+					main_uv.loadData()
+					if (!options.noUndo) {
+						Undo.finishEdit('edit_texture')
+					}
+				})
+			})
 		}
 	}
 	startBrushCanvas(data, event) {
 
 		var texture = getTextureById(data.cube.faces[data.face].texture)
+		if (!texture) {
+			Blockbench.showQuickMessage('message.untextured')
+		}
 		if (texture) {
 			var x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth )
 			var y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight )
 			Painter.startBrush(texture, x, y, data.cube.faces[data.face].uv, event)
 		}
-		if (event.altKey === false && texture && texture.mode !== 'link') {
+		if (event.altKey === false && texture) {
 			document.addEventListener('mousemove', Painter.moveBrushCanvas, false );
 			document.addEventListener('mouseup', Painter.stopBrushCanvas, false );
 		}
@@ -66,12 +70,7 @@ class BBPainter {
 		var data = Canvas.raycast()
 		if (data) {
 			var texture = getTextureById(data.cube.faces[data.face].texture)
-			if (!texture) {
-				Blockbench.showMessage('The surface does not have a texture', 'center')
-			} else if (texture.mode !== 'bitmap') {
-				texture.highlightModeToggle()
-				Blockbench.showMessage('You can only paint on bitmap textures', 'center')
-			} else {
+			if (texture) {
 				var x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth )
 				var y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight )
 				Painter.useBrush(texture, x, y, data.cube.faces[data.face].uv)
@@ -83,16 +82,11 @@ class BBPainter {
 		document.removeEventListener( 'mouseup', Painter.stopBrushCanvas, false );
 		Painter.stopBrush()
 	}
-
 	startBrush(texture, x, y, uvTag, event) {
 		if (event.altKey === false) {
-			if (texture.mode !== 'bitmap') {
-				texture.highlightModeToggle()
-				Blockbench.showMessage('You can only paint on bitmap textures', 'center')
-			} else {
-            	Painter.brushChanges = false
-				Painter.useBrush(texture, x, y, uvTag)
-			}
+			Undo.initEdit({textures: [texture], bitmap: true})
+			Painter.brushChanges = false
+			Painter.useBrush(texture, x, y, uvTag)
 		} else {
 			Painter.colorPicker(texture, x, y)
 		}
@@ -101,7 +95,7 @@ class BBPainter {
 		function getPxColor(image) {
 			var c = image.getPixelColor(x,y)
 			c = tinycolor(Jimp.intToRGBA(c))
-			$('#brush_color').spectrum('set', c.toHexString())
+			BarItems.brush_color.set(c)
 		}
 		if (texture.mode == 'bitmap') {
 			Jimp.read(Buffer.from(texture.source.replace('data:image/png;base64,', ''), 'base64'), function() {}).then(getPxColor)
@@ -114,11 +108,12 @@ class BBPainter {
 			Painter.currentPixel = [x, y]
 			Painter.brushChanges = true
 
-			Painter.edit(texture, function(image) {
-				var color = $('#brush_color').spectrum('get').toRgb()
-				var size = limitNumber(parseInt($('#brush_size').val()), 1, 20);
-				var softness = limitNumber(parseFloat($('#brush_softness').val()), 0, 1);
-				var brush_mode = $('select#brush_mode option:selected').attr('id')
+			texture.edit(function(image) {
+				var color = BarItems.brush_color.get().toRgb()
+				var size = BarItems.slider_brush_size.get();
+				var softness = BarItems.slider_brush_softness.get()/100;
+				var b_opacity = BarItems.slider_brush_opacity.get()/100;
+				var brush_mode = BarItems.brush_mode.get()
 
 				if (uvTag) {
 					Painter.editing_area = [
@@ -142,32 +137,32 @@ class BBPainter {
 					Painter.editing_area[1] = sw
 				}
 
-				if (brush_mode === 'round') {
-			    	Painter.editCircle(image, x, y, size, softness, function(pxcolor, opacity) {
-			    		var result_color = Painter.combineColors(pxcolor, color, opacity);
+				if (brush_mode === 'brush') {
+					Painter.editCircle(image, x, y, size, softness, function(pxcolor, opacity) {
+						var result_color = Painter.combineColors(pxcolor, color, opacity*b_opacity);
 						return result_color;
-			    	})
+					})
 				} else if (brush_mode === 'noise') {
-			    	Painter.editCircle(image, x, y, size, softness, function(pxcolor, opacity) {
-			    		var result_color = Painter.combineColors(pxcolor, color, opacity*Math.random());
+					Painter.editCircle(image, x, y, size, softness, function(pxcolor, opacity) {
+						var result_color = Painter.combineColors(pxcolor, color, opacity*b_opacity*Math.random());
 						return result_color;
-			    	})
+					})
 				} else if (brush_mode === 'eraser') {
-			    	Painter.editCircle(image, x, y, size, softness, function(pxcolor, opacity) {
-						return {r: pxcolor.r, g: pxcolor.g, b: pxcolor.b, a: pxcolor.a*(1-opacity)};
-			    	})
+					Painter.editCircle(image, x, y, size, softness, function(pxcolor, opacity) {
+						return {r: pxcolor.r, g: pxcolor.g, b: pxcolor.b, a: pxcolor.a*(1-b_opacity*opacity)};
+					})
 				} else if (brush_mode === 'fill') {
-			    	Painter.editFace(image, x, y, function(pxcolor) {
-			    		return Painter.combineColors(pxcolor, color, 1)
-			    	})
+					Painter.editFace(image, x, y, function(pxcolor) {
+						return Painter.combineColors(pxcolor, color, 1)
+					})
 				}
-	        	Painter.editing_area = undefined
-	        }, {noUndo: true, use_cache: true})
+				Painter.editing_area = undefined
+			}, {noUndo: true, use_cache: true})
 		}
 	}
 	stopBrush() {
 		if (Painter.brushChanges) {
-			Undo.add('Paint', true)
+			Undo.finishEdit('paint')
 			Painter.brushChanges = false
 		}
 		Painter.currentPixel = [-1, -1]
@@ -191,10 +186,10 @@ class BBPainter {
 	drawRectangle(image, color, rect) {
 		var color = Jimp.intToRGBA(color)
 		image.scan(rect.x, rect.y, rect.w, rect.h, function (x, y, idx) {
-		    this.bitmap.data[idx + 0] = color.r
-		    this.bitmap.data[idx + 1] = color.g
-		    this.bitmap.data[idx + 2] = color.b
-		    this.bitmap.data[idx + 3] = color.a
+			this.bitmap.data[idx + 0] = color.r
+			this.bitmap.data[idx + 1] = color.g
+			this.bitmap.data[idx + 2] = color.b
+			this.bitmap.data[idx + 3] = color.a
 		});
 	}
 	editFace(image, x, y, editPx) {
@@ -229,10 +224,10 @@ class BBPainter {
 				b:this.bitmap.data[idx+2],
 				a:this.bitmap.data[idx+3]/255
 			})
-		    this.bitmap.data[idx+0] = result_color.r
-		    this.bitmap.data[idx+1] = result_color.g
-		    this.bitmap.data[idx+2] = result_color.b
-		    this.bitmap.data[idx+3] = result_color.a*255
+			this.bitmap.data[idx+0] = result_color.r
+			this.bitmap.data[idx+1] = result_color.g
+			this.bitmap.data[idx+2] = result_color.b
+			this.bitmap.data[idx+3] = result_color.a*255
 
 		});
 	}
@@ -280,25 +275,63 @@ class BBPainter {
 					b:this.bitmap.data[idx+2],
 					a:this.bitmap.data[idx+3]/255
 				}, opacity)
-			    this.bitmap.data[idx+0] = result_color.r
-			    this.bitmap.data[idx+1] = result_color.g
-			    this.bitmap.data[idx+2] = result_color.b
-			    this.bitmap.data[idx+3] = result_color.a*255
+				this.bitmap.data[idx+0] = result_color.r
+				this.bitmap.data[idx+1] = result_color.g
+				this.bitmap.data[idx+2] = result_color.b
+				this.bitmap.data[idx+3] = result_color.a*255
 			}
 		});
 	}
+	drawRotatedRectangle(image, color, rect, cx, cy, angle) {
+		var color = Jimp.intToRGBA(color)
+		var sin = Math.sin(-Math.degToRad(angle))
+		var cos = Math.cos(-Math.degToRad(angle))
+		function rotatePoint(px, py) {
+			px -= cx
+			py -= cy
+			return {
+				x: (px * cos - py * sin) + cx,
+				y: (px * sin + py * cos) + cy
+			}
+		}
+		image.scan(0, 0, 48, 48, function (px, py, idx) {
+			var rotated = rotatePoint(px, py)
+			if (
+				rotated.x > rect.x-1 && rotated.x < rect.x + rect.w+2 &&
+				rotated.y > rect.y-1 && rotated.y < rect.y + rect.h+2 
+			) {
+				var opacity = 	limitNumber(rect.x - rotated.x, 0, 1) +
+								limitNumber(rotated.x - (rect.x + rect.w), 0, 1) +
+								limitNumber(rect.y - rotated.y, 0, 1) +
+								limitNumber(rotated.y - (rect.y + rect.h), 0, 1)
+
+				opacity = 1-limitNumber(opacity*1.61, 0, 1)
+				if (this.bitmap.data[idx + 3]) {
+					opacity = 1
+				}
+
+				this.bitmap.data[idx + 0] = color.r
+				this.bitmap.data[idx + 1] = color.g
+				this.bitmap.data[idx + 2] = color.b
+				this.bitmap.data[idx + 3] = color.a*opacity
+			}
+		})
+	}
 	addBitmapDialog() {
 		var lines = []
-		lines.push('<div class="dialog_bar"><label class="name_space_left" for="bitmap_name">Name</label><input class="dark_bordered half" type="text" id="bitmap_name"></div>')
-		lines.push('<div class="dialog_bar"><label class="name_space_left" for="bitmap_folder">Folder</label><input class="dark_bordered half" type="text" id="bitmap_folder"></div>')
-		if (elements.length > 0 && Blockbench.entity_mode) {
-			lines.push('<div class="dialog_bar"><input type="checkbox" id="bitmap_doTemplate"><label class="name_space_left" for="bitmap_doTemplate">Generate Template</label></div>')
+
+		lines.push({label: 'dialog.create_texture.name', node: '<input class="dark_bordered half" type="text" id="bitmap_name">'})
+		lines.push({label: 'dialog.create_texture.folder', node: '<input class="dark_bordered half" type="text" id="bitmap_folder">'})
+		if (elements.length > 0) {
+			lines.push({label: 'dialog.create_texture.template', node: '<input type="checkbox" id="bitmap_doTemplate">'})
 		}
-		lines.push('<div class="dialog_bar"><input type="text" id="bitmap_color"><label class="name_space_left" for="bitmap_color">Background Color</label></div>')
-		lines.push('<div class="dialog_bar"><label class="name_space_left" for="bitmap_resolution">Resolution</label><input class="dark_bordered" style="width:72px" type="number" id="bitmap_resolution"></div>')
+		lines.push({widget: Painter.background_color})
+		lines.push({label: 'dialog.create_texture.resolution', node: '<input class="dark_bordered" style="width:72px" type="number" id="bitmap_resolution">'})
+
+
 		var dialog = new Dialog({
 			id: 'add_bitmap',
-			title: 'Create Texture',
+			title: tl('dialog.create_texture.title'),
 			draggable: true,
 			lines: lines,
 			onConfirm: function() {
@@ -307,15 +340,9 @@ class BBPainter {
 			}
 		})
 		dialog.show()
-		$('input#bitmap_color').spectrum({
-	        preferredFormat: "hex",
-	        color: 'ffffff',
-	        showAlpha: true,
-	        showInput: true
-		})
 		$('.dialog#add_bitmap input#bitmap_doTemplate').click(function() {
-			if ($(this).is(':checked') && $('input#bitmap_color').spectrum('get').toHex8() === 'ffffffff') {
-				$('input#bitmap_color').spectrum('set', '#00000000')
+			if (Painter.background_color.get().toHex8() === 'ffffffff') {
+				Painter.background_color.set('#00000000')
 			}
 		})
 	}
@@ -329,7 +356,7 @@ class BBPainter {
 		updateSelection()
 	}
 	addBitmapFromDialog() {
-		var color = $('input#bitmap_color').spectrum('get').toRgb()
+		var color = Painter.background_color.get().toRgb()
 		color = Jimp.rgbaToInt(color.r, color.g, color.b, color.a*255)
 
 		Painter.addBitmap({
@@ -371,6 +398,7 @@ class BBPainter {
 			if (typeof after === 'function') {
 				after(texture)
 			}
+			return texture;
 		}
 		if (options.entity_template === true) {
 			Painter.generateTemplate(options.res, options.color, makeTexture)
@@ -385,11 +413,11 @@ class BBPainter {
 			})
 		})
 	}
-	generateTemplate(res, color, cb) {
+	generateTemplate(res, background_color, cb) {
 		function cubeTempl(obj) {
-			this.x = Math.floor(obj.size(0))
-			this.y = Math.floor(obj.size(1))
-			this.z = Math.floor(obj.size(2))
+			this.x = obj.size(0, true)
+			this.y = obj.size(1, true)
+			this.z = obj.size(2, true)
 			this.obj = obj
 
 			this.height = this.z + this.y
@@ -404,20 +432,41 @@ class BBPainter {
 		var valid_cubes = 0;
 
 		var lines = [[]]
-		var line_length = Math.ceil( Math.sqrt(elements.length/2) )
-		var i = 0
+		var line_length = Math.sqrt(elements.length/2)
 		var o = 0
 
-		elements.forEach(function(obj) {
-			if (obj.display.visibility === false) return;
-			
-			if (o === line_length) {
+		var cubes = elements.slice()
+		var avg_size = 0;
+
+		var i = cubes.length-1
+		while (i >= 0) {
+			let obj = cubes[i]
+			if (obj.visibility === false) {
+				cubes.splice(i,1)
+			} else {
+				obj.template_size = (obj.size(2, true) + obj.size(1, true)) + (obj.size(2, true) + obj.size(0, true))*2
+				//obj.template_size = (obj.size(2, true) + obj.size(0, true))
+				avg_size += obj.template_size
+			}
+			i--;
+		}
+		avg_size /= cubes.length
+		cubes.sort(function(a,b) {
+			return b.template_size - a.template_size
+		})
+
+		i = 0
+		var ox = 0
+		cubes.forEach(function(obj) {			
+			if (ox >= line_length) {
 				o = 0
+				ox = 0
 				i++
 				lines[i] = []
 			}
 			lines[i][o] = obj
-			o++
+			o++;
+			ox += obj.template_size/avg_size
 		})
 
 		lines.forEach(function(b) {
@@ -466,22 +515,29 @@ class BBPainter {
 			Blockbench.showMessage('No valid cubes', 'center')
 			return;
 		}
-		function snapNum(number, snapTo) {
-			return number - number%snapTo + (number%snapTo==0 ? 0 : snapTo)
+		function getNextPower(num, min) {
+			var i = min ? min : 2
+			while (i < num && i < 4000) {
+				i *= 2
+			}
+			return i;
 		}
 		//Size
 		var max_size = Math.max(max_x_pos, line_y_pos)
-		max_size = snapNum(max_size, 16)
-		var img_size = {x: max_size, y: max_size}
+		max_size = Math.ceil(max_size/16)*16//getNextPower(max_size, 16)
 		
 		function drawTemplateRectangle(image, border_color, color, coords) {
+			if (background_color != 0) {
+				border_color = background_color
+				color = undefined
+			}
 			Painter.drawRectangle(image, border_color, {
 				x: coords.x*res_multiple,
 				y: coords.y*res_multiple,
 				w: coords.w*res_multiple,
 				h: coords.h*res_multiple
 			})
-			if (coords.w <= 2 || coords.h <= 2) return;
+			if (coords.w <= 2 || coords.h <= 2 || !color) return;
 			Painter.drawRectangle(image, color, {
 				x: coords.x * res_multiple + 1,
 				y: coords.y * res_multiple + 1,
@@ -489,8 +545,9 @@ class BBPainter {
 				h: coords.h * res_multiple - 2
 			})
 		}
+
 		//Drawing
-		new Jimp(img_size.x*res_multiple, img_size.y*res_multiple, color, function(err, image) {
+		new Jimp(max_size*res_multiple, max_size*res_multiple, 0, function(err, image) {
 
 			bone_temps.forEach(function(bt) {
 				bt.forEach(function(t) {
@@ -502,14 +559,43 @@ class BBPainter {
 					drawTemplateRectangle(image, 0xf48686ff, 0xFFA7A4ff, {x: t.posx+t.z+t.x, 	y: t.posy+t.z, 	w: t.z, 	h: t.y})// west
 					drawTemplateRectangle(image, 0xf8dd72ff, 0xFFF899ff, {x: t.posx+t.z+t.x+t.z,y: t.posy+t.z, 	w: t.x, 	h: t.y})// south
 
-					t.obj.uv_offset[0] = t.posx
-					t.obj.uv_offset[1] = t.posy
+					let obj = t.obj
+					obj.uv_offset[0] = t.posx
+					obj.uv_offset[1] = t.posy
 
+					if (!Blockbench.entity_mode) {
+						var size = obj.size(undefined, true)
+						
+						var face_list = [   
+							{face: 'north', fIndex: 10,	from: [size[2], size[2]],			 	size: [size[0],  size[1]]},
+							{face: 'east', fIndex: 0,	from: [0, size[2]],				   		size: [size[2],  size[1]]},
+							{face: 'south', fIndex: 8,	from: [size[2]*2 + size[0], size[2]], 	size: [size[0],  size[1]]},
+							{face: 'west', fIndex: 2,	from: [size[2] + size[0], size[2]],   	size: [size[2],  size[1]]},
+							{face: 'up', fIndex: 4,		from: [size[2]+size[0], size[2]],	 	size: [-size[0], -size[2]]},
+							{face: 'down', fIndex: 6,	from: [size[2]+size[0]*2, 0],		 	size: [-size[0], size[2]]}
+						]
+
+						face_list.forEach(function(f) {
+
+							obj.faces[f.face].uv[0] = (f.from[0]			 + 	Math.floor(obj.uv_offset[0]+0.0000001)) / max_size  * 16,
+							obj.faces[f.face].uv[1] = (f.from[1]			 + 	Math.floor(obj.uv_offset[1]+0.0000001)) / max_size * 16,
+							obj.faces[f.face].uv[2] = (f.from[0] + f.size[0] + 	Math.floor(obj.uv_offset[0]+0.0000001)) / max_size  * 16,
+							obj.faces[f.face].uv[3] = (f.from[1] + f.size[1] + 	Math.floor(obj.uv_offset[1]+0.0000001)) / max_size * 16
+
+						})
+					}
 				})
 			})
 			image.getBase64("image/png", function(a, dataUrl){
-				cb(dataUrl)
-				entityMode.setResolution(img_size.x, img_size.y, true)
+				var texture = cb(dataUrl)
+				entityMode.setResolution(max_size, max_size, true)
+				if (texture && !Blockbench.entity_mode) {
+					bone_temps.forEach(function(bt) {
+						bt.forEach(function(t) {
+							t.obj.applyTexture(texture, true)
+						})
+					})
+				}
 			})
 		})
 	}

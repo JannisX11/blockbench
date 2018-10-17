@@ -4,6 +4,7 @@ class Texture {
 		this.path = ''
 		this.name = ''
 		this.folder = '';
+		this.namespace = '';
 		this.source = ''
 		this.particle = false
 		this.selected = false
@@ -13,7 +14,9 @@ class Texture {
 		this.average_color = {r:0, g:0, b:0}
 		this.dark_box = false
 		this.img = 0;
-		this.mode = 'link' //link, bitmap
+		this.res = 0;
+		this.mode = 'link' //link, bitmap (internally used)
+		this.saved = true
 		if (!isApp) this.mode = 'bitmap'
 		this.uuid = guid()
 
@@ -21,10 +24,18 @@ class Texture {
 			this.extend(data)
 		}
 		if (!this.id) {
-			var i = 0;
+			var i = textures.length;
 			while (true) {
-				var matches = $.grep(textures, function(e) {return e.id == i})
-				if (matches.length > 0) {
+				var c = 0
+				var duplicates = false;
+				while (c < textures.length) {
+					if (textures[c].id === i) {
+						duplicates = true;
+					}
+					c++;
+				}
+				//var matches = $.grep(textures, function(e) {return e.id == i})
+				if (duplicates === true) {
 					i++;
 				} else {
 					this.id = i;
@@ -33,28 +44,51 @@ class Texture {
 			}
 		}
 	}
+	getUndoCopy(bitmap) {
+		var copy = {
+			path: this.path,
+			name: this.name,
+			folder: this.folder,
+			namespace: this.namespace,
+			particle: this.particle,
+			selected: this.selected,
+			mode: this.mode,
+			saved: this.saved,
+			uuid: this.uuid
+		}
+		if (bitmap || this.mode === 'link') {
+			copy.source = this.source
+		}
+		return copy
+	}
 	load(isDefault, reloading, cb) {
 		var scope = this;
 
+		if (Painter.current.texture === this) {
+			Painter.current = {}
+		}
 		this.error = false;
 		this.show_icon = true
 		this.frameCount = 1
+		var img = this.img = new Image()
 
 		if (Canvas.materials[scope.uuid] !== undefined) {
 			Canvas.materials[scope.uuid].dispose()
 		}
-
-		var img = this.img = new Image()
-
-		img.src = this.source
-		img.onerror = function() {
-			this.src = 'assets/missing.png'
+		function onerror() {
+			scope.img.src = 'assets/missing.png'
 			scope.error = true;
 			scope.show_icon = false
 			console.log('Error loading '+scope.source)
 			if (isApp && !isDefault && scope.mode !== 'bitmap') {
 				scope.fromDefaultPack()
 			}
+		}
+		if (isApp && this.mode === 'link' && !fs.existsSync(this.source.replace(/\?\d$/, ''))) {
+			onerror()
+		} else {
+			img.src = this.source
+			img.onerror = onerror
 		}
 
 		var tex = new THREE.Texture(img)
@@ -79,24 +113,33 @@ class Texture {
 				if (img.naturalHeight % img.naturalWidth === 0) {
 					scope.frameCount = img.naturalHeight / img.naturalWidth
 					Canvas.updateAllUVs()
+					BARS.updateConditions()
 				} else {
 					scope.error = true;
-					showQuickMessage('Texture needs to be square')
+					Blockbench.showQuickMessage('message.square_textures')
 				}
 			}
-			if (Blockbench.entity_mode && textures.indexOf(scope) === 0 && !reloading && !scope.keep_size) {
-
-				if (Project.texture_width !== img.naturalWidth || Blockbench.texture_height !== img.naturalHeight) {
+			if (Blockbench.entity_mode && textures.indexOf(scope) === 0 && !scope.keep_size) {
+				var size = {
+					ow: Project.texture_width,
+					oh: Project.texture_height,
+					nw: img.naturalWidth,
+					nh: img.naturalHeight
+				}
+				if (size.ow != size.nw || size.oh != size.nh) {
 					Blockbench.showMessageBox({
-						title: 'Texture Resolution',
+						translateKey: 'update_res',
 						icon: 'photo_size_select_small',
-						message: 'Would you like to update the project resolution to the resolution of this texture? Click \'Cancel\' if your texture has a higher resolution than normal.',
-						buttons: ['Update', 'Cancel'],
+						buttons: [tl('message.update_res.update'), tl('dialog.cancel')],
 						confirm: 0,
 						cancel: 1
 					}, function(result) {
 						if (result === 0) {
-							entityMode.setResolution(img.naturalWidth, img.naturalHeight)
+							var lockUV = ( // EG. Texture Optimierung > Modulo geht nicht in allen Bereichen auf
+								(size.ow%size.nw || size.oh%size.nh) &&
+								(size.nw%size.ow || size.nh%size.oh)
+							)
+							entityMode.setResolution(img.naturalWidth, img.naturalHeight, lockUV)
 							if (selected.length) {
 								main_uv.loadData()
 								main_uv.setGrid()
@@ -109,16 +152,58 @@ class Texture {
 				scope.openMenu()
 			}
 			TextureAnimator.updateButton()
-			Canvas.updateAllFaces()
+			Canvas.updateAllFaces(scope)
 		}
-		var mat = new THREE.MeshLambertMaterial({color: 0xffffff, map: tex, transparent: settings.transparency.value});
+		if (Canvas.materials[this.uuid]) {
+			Canvas.materials[this.uuid].map.dispose()
+			Canvas.materials[this.uuid].dispose()
+			delete Canvas.materials[this.uuid].map.dispose()
+		}
+		var mat = new THREE.MeshLambertMaterial({
+			color: 0xffffff,
+			map: tex,
+			transparent: settings.transparency.value,
+			side: display_mode || Blockbench.entity_mode ? 2 : 0
+		});
 		Canvas.materials[this.uuid] = mat
 		return this;
 	}
+	fromJavaLink(link, path_array) {
+		if (typeof link !== 'string' || link.substr(0, 1) === '#') {
+			this.load()
+			return this;
+		}
+
+		var spaces = link.split(':')
+		if (spaces.length > 1) {
+			this.namespace = spaces[0]
+			link = spaces[1]
+			path_array[path_array.length-1] = this.namespace
+		}
+		path_array.push('textures', link.replace(/\//g, osfs))
+		var path = path_array.join(osfs)+'.png'
+		if (path) {
+			this.fromPath(path)
+		}
+		return this;
+	}
 	fromPath(path) {
+		var scope = this;
+		if (path && pathToExtension(path) === 'tga') {
+			var targa_loader = new Targa()
+			targa_loader.open(path, function() {
+				scope.fromFile({
+					name: pathToName(path, true),
+					path: path,
+					content: targa_loader.getDataURL()
+				})
+			})
+			return this;
+		}
 		this.path = path
 		this.name = pathToName(path, true)
 		this.mode = 'link'
+		this.saved = true
 		if (path.includes('data:image')) {
 			this.source = path
 		} else {
@@ -138,10 +223,29 @@ class Texture {
 		return this;
 	}
 	fromDataURL(data_url) {
-		this.path = this.folder+'/'+this.name
 		this.source = data_url
 		this.mode = 'bitmap'
+		this.saved = false;
 		this.load()
+		return this;
+	}
+	fromFile(file) {
+		if (!file) return this;
+		if (file.name) this.name = file.name
+		if (typeof file.content === 'string' && file.content.substr(0, 4)) {
+			this.fromDataURL(file.content)
+
+			if (!file.path) {
+			} else if (pathToExtension(file.path) === 'png') {
+				this.path = file.path
+			} else if (pathToExtension(file.path) === 'tga') {
+				this.path = ''
+			}
+
+		} else if (isApp) {
+			this.fromPath(file.path)
+		}
+		this.saved = true
 		return this;
 	}
 	fromDefaultPack() {
@@ -156,86 +260,36 @@ class Texture {
 			}
 		}
 	}
-	reopen() {
+	reopen(force) {
 		var scope = this;
-		if (isApp) {
-			app.dialog.showOpenDialog(currentwindow, {
-				filters: [{name: 'PNG Texture', extensions: ['png']}],
-				defaultPath: scope.path
-			}, function (fileNames) {
-				if (fileNames !== undefined) {
-					fs.readFile(fileNames[0], function (err) {
-						if (err) {
-							console.log(err)
-						}
-						scope.path = fileNames[0]
-						scope.source = scope.path + '?' + tex_version;
-						scope.name = scope.path.split(osfs).slice(-1)[0]
-						scope.mode = 'link'
 
-						if (scope.path.includes(osfs +'textures'+osfs)) {
-							var arr = scope.path.split(osfs+'textures'+osfs)
-							arr = arr[arr.length-1].split(osfs)
-							arr.pop()
-							scope.folder = arr.join('/')
-						} else {
-							var arr = scope.path.split(osfs)
-							scope.folder = arr[arr.length-2]
-						}
-
-						var img = new Image()
-						try {
-							img.src = fileNames[0]
-						} catch(err) {
-							img.src = 'missing.png'
-						}
-						var tex = new THREE.Texture(img)
-						img.tex = tex;
-						img.tex.magFilter = THREE.NearestFilter
-						img.tex.minFilter = THREE.LinearMipMapLinearFilter
-						img.onload = function() {
-							this.tex.needsUpdate = true;
-							scope.res = img.naturalWidth;
-						}
-						Canvas.materials[scope.uuid] = new THREE.MeshBasicMaterial({color: 0xffffff, map: tex, transparent: true});
-						
-						scope.load()
-						Canvas.updateAllFaces()
-
-					})
+		function _replace() {
+			Blockbench.import({
+				extensions: ['png', 'tga'],
+				type: 'PNG Texture',
+				readtype: 'image',
+				startpath: scope.path
+			}, function(files) {
+				scope.fromFile(files[0])
+			})
+			Painter.current = {}
+			Blockbench.dispatchEvent( 'change_texture_path', {texture: scope} )
+		}
+		if (scope.saved || force) {
+			_replace()
+		} else {
+			Blockbench.showMessageBox({
+				translateKey: 'unsaved_texture',
+				icon: 'warning',
+				buttons: [tl('dialog.continue'), tl('dialog.cancel')],
+				confirm: 0,
+				cancel: 1
+			}, function(result) {
+				if (result === 0) {
+					_replace()
 				}
 			})
-		} else {
-			var file = $('.dialog:visible #texture_change').get(0).files[0]
-			var reader = new FileReader()
-			reader.onloadend = function() {
-				
-				scope.source = reader.result
-				var img = new Image()
-				try {
-					img.src = reader.result
-				} catch(err) {
-					console.log(err)
-					img.src = 'missing.png'
-				}
-				var tex = new THREE.Texture(img)
-				img.tex = tex;
-				img.tex.magFilter = THREE.NearestFilter
-				img.tex.minFilter = THREE.LinearMipMapLinearFilter
-				img.onload = function() {
-					this.tex.needsUpdate = true;
-					scope.res = img.naturalWidth;
-				}
-				Canvas.materials[scope.uuid] = new THREE.MeshLambertMaterial({color: 0xffffff, map: tex, transparent: true});
-				scope.load()
-				Canvas.updateAllFaces()
-				main_uv.loadData()
-			}
-			if (file) {
-				reader.readAsDataURL(file)
-			}
 		}
-		Blockbench.dispatchEvent( 'change_texture_path', {texture: scope} )
 	}
 	refresh(single) {
 		if (this.mode === 'bitmap') {
@@ -248,7 +302,6 @@ class Texture {
 		this.source = this.source.replace(/\?\d+$/, '?' + tex_version)
 		this.load(undefined, true)
 		if (single) {
-			//Canvas.updateAllFaces()
 			main_uv.loadData()
 			loadTextureDraggable()
 		}
@@ -263,11 +316,12 @@ class Texture {
 			img.src = scope.source
 		} catch(err) {
 		}
-		var tex = new THREE.Texture(img)
-		img.tex = tex;
-		img.tex.magFilter = THREE.NearestFilter
-		img.tex.minFilter = THREE.NearestFilter
 		img.onload = function() {
+			Canvas.materials[scope.uuid].map.dispose()
+			var tex = new THREE.Texture(img)
+			img.tex = tex;
+			img.tex.magFilter = THREE.NearestFilter
+			img.tex.minFilter = THREE.NearestFilter
 			this.tex.needsUpdate = true;
 			Canvas.materials[scope.uuid].map = tex
 		}
@@ -277,7 +331,9 @@ class Texture {
 		textures.forEach(function(s) {
 			s.particle = false;
 		})
-		this.particle = true
+		if (!Blockbench.entity_mode) {
+			this.particle = true
+		}
 		return this;
 	}
 	fillParticle() {
@@ -292,8 +348,20 @@ class Texture {
 		}
 		return this;
 	}
-	javaTextureLink() {
-		return this.folder+'/'+this.name.split('.png').join('')
+	javaTextureLink(backup) {
+		if (backup) {
+			return this.source;
+		}
+		
+		var link = this.name.replace(/\.png$/, '')
+
+		if (this.folder) {
+			link = this.folder + '/' + link
+		}
+		if (this.namespace && this.namespace !== 'minecraft') {
+			link = this.namespace + ':' + link
+		}
+		return link;
 	}
 	select() {
 		textures.forEach(function(s) {
@@ -308,18 +376,22 @@ class Texture {
 		var scope = this
 		if (path.includes(osfs+'textures'+osfs)) {
 			var arr = path.split(osfs+'textures'+osfs)
-			arr = arr[arr.length-1].split(osfs)
-			arr.pop()
-			scope.folder = arr.join('/')
+
+			var arr1 = arr[0].split(osfs)
+			scope.namespace = arr1[arr1.length-1]
+
+			var arr2 = arr[arr.length-1].split(osfs)
+			arr2.pop()
+			scope.folder = arr2.join('/')
 		} else {
 			var arr = path.split(osfs)
 			scope.folder = arr[arr.length-2]
-			if (Blockbench.entity_mode === false) {
+			if (Blockbench.entity_mode === false && isApp) {
+				console.trace()
 				Blockbench.showMessageBox({
-					title: 'Texture Import',
+					translateKey: 'loose_texture',
 					icon: 'folder_open',
-					message: 'The imported texture is not contained in a resource pack. Minecraft can only load textures inside the textures folder of a loaded resource pack.',
-					buttons: ['Change Path', 'OK'],
+					buttons: [tl('message.loose_texture.change'), tl('dialog.ok')],
 					confirm: 0,
 					cancel: 1
 				}, function(result) {
@@ -331,7 +403,10 @@ class Texture {
 		}
 		return this;
 	}
-	add() {
+	add(undo) {
+		if (undo !== false) {
+			Undo.initEdit({textures: []})
+		}
 		var scope = this
 		if (!textures.includes(this)) {
 			textures.push(this)
@@ -355,7 +430,9 @@ class Texture {
 					textures.splice(i, 1)
 				}
 			})
-			setUndo('Loaded Texture')
+		}
+		if (undo === true) {
+			Undo.finishEdit('add_texture', {textures: [this]})
 		}
 		return this;
 	}
@@ -365,10 +442,12 @@ class Texture {
 				this[key] = properties[key]
 			}
 		}
+		return this;
 	}
 	apply(all) {
 		if (selected.length === 0) return;
 		var scope = this;
+		Undo.initEdit({cubes: selected})
 		if (all || Blockbench.entity_mode) {
 			var sides = ['north', 'east', 'south', 'west', 'up', 'down']
 		} else {
@@ -381,47 +460,67 @@ class Texture {
 		})
 		Canvas.updateSelectedFaces()
 		main_uv.loadData()
-		setUndo('Applied texture')
+		Undo.finishEdit('applied_texture')
+		return this;
 	}
 	openFolder() {
-		if (!isApp || this.mode !== 'link') return;
+		if (!isApp || !this.path) return;
 		shell.showItemInFolder(this.path)
+		return this;
+	}
+	openEditor() {
+		var scope = this;
+		if (!settings.image_editor.value) {
+			changeImageEditor(scope)
+
+		} else {
+			if (fs.existsSync(settings.image_editor.value)) {
+				require('child_process').spawn(settings.image_editor.value, [this.path])
+			} else {
+				var answer = app.dialog.showMessageBox(currentwindow, {
+					type: 'info',
+					noLink: true,
+					title: tl('message.image_editor_missing.title'),
+					message: tl('message.image_editor_missing.message'),
+					detail: tl('message.image_editor_missing.detail')
+				})
+				selectImageEditorFile(scope)
+			}
+		}
+		return this;
 	}
 	remove() {
 		textures.splice(textures.indexOf(this), 1)
-		Canvas.updateAll()
+		Canvas.updateAllFaces()
 		$('#uv_frame').css('background', 'transparent')
 		TextureAnimator.updateButton()
 		hideDialog()
+		BARS.updateConditions()
 	}
 	showContextMenu(event) {
 		var scope = this;
-		var menu_points = [
-			{icon: 'crop_original',	 	name: 'Apply to Faces', condition: Blockbench.entity_mode === false && selected.length > 0, click: function() {scope.apply()}},
-			{icon: 'fa-cube',		   	name: 'Apply to Cubes', condition: Blockbench.entity_mode === false && selected.length > 0, click: function() {scope.apply(true)}},
-			{icon: 'refresh',		   	name: 'Refresh', 		condition: (isApp && scope.mode === 'link'), 	click: function() {scope.reloadTexture()}},
-			{icon: 'file_upload',		name: 'Change File',	condition: (isApp && scope.mode === 'link'), 	click: function() {scope.reopen()}},
-			{icon: 'folder',			name: 'Open in Folder', condition: (isApp && scope.mode === 'link'), 	click: function() {scope.openFolder()}},
-			{icon: 'border_vertical',   name: 'Convert to Bitmap',condition: (isApp && scope.mode === 'link'), 	click: function() {scope.toBitmap()}},
-			{icon: 'file_download',	 	name: 'Export', 		condition: (scope.mode !== 'link'),click: function() {scope.download()}},
-			{icon: 'delete',			name: 'Delete', 		click: function() { scope.remove()}},
-			{icon: 'list',			  	name: 'Properties', 	click: function() { scope.openMenu()}}
-		]
-		new ContextMenu(event, menu_points)
+		scope.select()
+		this.menu.open(event, scope)
 	}
 	openMenu() {
 		var scope = this
 		scope.select()
 		showDialog('texture_edit')
 
-		var arr = scope.path.split(osfs)
-		arr.splice(-1)
-		var path = arr.join('<span class="slash">/</span>') + '<span class="slash">/</span><span class="accent_color">' + scope.name + '</span>'
+		if (scope.path) {
+			var arr = scope.path.split(osfs)
+			arr.splice(-1)
+			var path = arr.join('<span class="slash">/</span>') + '<span class="slash">/</span><span class="accent_color">' + scope.name + '</span>'
+			$('#texture_edit #te_path').html(path)
+		} else {
+			$('#texture_edit #te_path').html('')
+		}
+
 		$('#texture_edit #te_title').text(scope.name + ' ('+scope.img.naturalWidth+' x '+scope.img.naturalHeight+')')
-		$('#texture_edit #te_path').html(path)
 		$('#texture_edit input#te_variable').val(scope.id)
 		$('#texture_edit input#te_name').val(scope.name)
 		$('#texture_edit input#te_folder').val(scope.folder)
+		$('#texture_edit input#te_namespace').val()
 		$('#texture_menu_thumbnail').html(scope.img)
 
 		if (scope.mode === 'link') {
@@ -431,152 +530,191 @@ class Texture {
 			$('#texture_edit .tool.link_only').hide()
 			$('#texture_edit .tool.bitmap_only').show()
 		}
+	}
+	save(as) {
+		var scope = this;
+		if (scope.saved && !as) {
+			return this;
+		}
 
 		if (isApp) {
-			$('#texture_edit #change_file_button').click( function() {
-				scope.reopen()
-			})
-		} else {
-			$('#texture_edit #texture_change').off('change')
-			$('#texture_edit #texture_change').on('change', function() {
-				scope.reopen()
-			})
-		}
-	}
-	download(linkBack) {
-		var scope = this;
-		if (isApp) {
-			function writeOnApp(linkBack) {
+			//overwrite path
+			if (scope.mode === 'link') {
+				var image = nativeImage.createFromPath(scope.source).toPNG()
+			} else {
+				var image = nativeImage.createFromDataURL(scope.source).toPNG()
+			}
+			tex_version++;
+			if (!as && this.path && this.path.substr(1,1) === ':') {
+				fs.writeFile(this.path, image, function (err) {
+					scope.fromPath(scope.path)
+				})
+			} else {
 				var find_path;
 				if (Blockbench.entity_mode) {
 					find_path = findEntityTexture(Project.parent, true)
 				}
-				app.dialog.showSaveDialog(currentwindow, {
-					filters: [ {name: 'Texture', extensions: ['png']} ],
-					defaultPath: (find_path ? find_path : scope.path)
-				}, function (fileName) {
-					if (fileName === undefined) {
-						return;
-					}
-					if (scope.mode === 'link') {
-						var image = nativeImage.createFromPath(scope.source).toPNG()
-					} else {
-						var image = nativeImage.createFromDataURL(scope.source).toPNG()
-					}
-
-					fs.writeFile(fileName, image, function (err) {
-						if (linkBack) {
-							scope.toLink(fileName)
-							Blockbench.showMessage('Linked Texture and File', 'center')
-						}
-					})
+				Blockbench.export({
+					type: 'PNG Texture',
+					extensions: ['png'],
+					name: scope.name,
+					content: image,
+					startpath: find_path,
+					savetype: 'image'
+				}, function(path) {
+					scope.fromPath(path)
 				})
 			}
-			if (linkBack) {
-				writeOnApp(true)
-			} else if (scope.mode === 'bitmap') {
-				Blockbench.showMessageBox({
-					title: 'Export Texture',
-					icon: 'present_to_all',
-					message: 'Do you want to link the exported texture back in?',
-					buttons: ['Export and Link', 'Export Only'],
-					confirm: 0,
-					cancel: 1
-				}, function(result) {
-					writeOnApp(result === 0)
-				})
-			} else {
-				writeOnApp(false)
-			}
 		} else {
-			var download = document.createElement('a');
-			download.href = scope.source
-			download.download = scope.name;
-			if (browser_name === 'firefox') document.body.appendChild(download);
-			download.click();
-			if (browser_name === 'firefox') document.body.removeChild(download);
+			//Download
+			Blockbench.export({
+				type: 'PNG Texture',
+				extensions: ['png'],
+				name: scope.name,
+				content: scope.source,
+				savetype: 'image'
+			}, function() {
+				scope.saved = true;
+			})
 		}
+		return this;
 	}
-	toLink(link) {
-		if (link && isApp && this.mode === 'bitmap') {
-			tex_version++;
-			this.fromPath(link)
-			Undo.add('Converted texture', true)
-			return this;
-		} else {
-			return false;
-		}
-	}
-	toBitmap() {
+	toBitmap(cb) {
+		//Converts texture to bitmap
+		//Unsaves it
 		var scope = this;
 		if (isApp && scope.mode === 'link') {
 			Jimp.read(scope.source).then(function (image) {
 				image.getBase64(Jimp.MIME_PNG, function(err, dataUrl) {
 					scope.mode = 'bitmap'
+					scope.saved = false
 					scope.source = dataUrl
-					Blockbench.showMessage('Converted Texture to Bitmap', 'center')
-					Undo.add('Converted texture', true)
+					cb()
 				})
 			})
-		} else {
-			return false;
 		}
 	}
-	convert() {
-		if (!isApp) {
-			Blockbench.showMessage('Converting textures is not possible in the webapp.', 'center')
-			return;
-		}
+	edit(cb, options) {
 		var scope = this;
-		Blockbench.showMessageBox({
-			title: 'Convert Texture',
-			icon: 'compare',
-			message: 'Do you want to convert the texture to '+ (scope.mode === 'bitmap' ? ' a linked texture' : ' a bitmap') +'?'+
-			'<br><b>Link:</b> The texture is saved on the computer and linked to Blockbench.'+
-			'<br><b>Bitmap:</b> The texture only exists in Blockbench and can be modified in it.',
-			buttons: ['Convert', 'Cancel'],
-			confirm: 0,
-			cancel: 1
-		}, function(result) {
-			if (result === 0) {
-				if (scope.mode === 'link') {
-					scope.toBitmap()
-				} else if (isApp) {
-					scope.download(true)
-				}
-			}
-		})
-	}
-	highlightModeToggle() {
-		var icon = $('.texture[texid="'+this.id+'"] i.texture_mode_toggle')
-		var x = 0;
-		icon.addClass('highlighted_icon')
-		var interval = setInterval(function() {
-			if (x%2 === 0) {
-				icon.removeClass('highlighted_icon')
-			} else {
-				icon.addClass('highlighted_icon')
-			}
-			if (x > 3) {
-				clearInterval(interval)
-			}
-			x++;
-		}, 200)
+		if (typeof options !== 'object') {
+			options = {}
+		}
+		if (scope.mode === 'link') {
+			scope.toBitmap(function() {
+				Painter.edit(scope, cb, options)
+			})
+		} else {
+			Painter.edit(scope, cb, options)
+		}
+		scope.saved = false;
 	}
 }
+	Texture.prototype.menu = new Menu([
 
-
-function applyTexture(all, id) {
-	if (selected.length === 0) return;
-	if (id === undefined) {
-		textures.forEach(function(s) {
-			if (s.selected) {
-				id = s.id
+			{
+				icon: 'crop_original',
+				name: 'menu.texture.face', 
+				condition: function() {return !Blockbench.entity_mode && selected.length > 0},
+				click: function(texture) {texture.apply()}
+			},
+			{
+				icon: 'fa-cube',
+				name: 'menu.texture.cube',
+				condition: function() {return !Blockbench.entity_mode && selected.length > 0},
+				click: function(texture) {texture.apply(true)}
+			},
+			{
+				icon: 'bubble_chart',
+				name: 'menu.texture.particle',
+				condition: function() {return !Blockbench.entity_mode},
+				click: function(texture) {
+					if (texture.particle) {
+						texture.particle = false
+					} else {
+						texture.enableParticle()
+					}
+				}
+			},
+			'_',
+			{
+				icon: 'edit',
+				name: 'menu.texture.edit',
+				condition: function(texture) {return texture.mode == 'link'},
+				click: function(texture) { texture.openEditor()}
+			},
+			{
+				icon: 'folder',
+				name: 'menu.texture.folder',
+				condition: function(texture) {return isApp && texture.path},
+				click: function(texture) {texture.openFolder()}
+			},
+			{
+				icon: 'save',
+				name: 'menu.texture.save',
+				condition: function(texture) {return !texture.saved && texture.path},
+				click: function(texture) {texture.save()}
+			},
+			{
+				icon: 'file_download',
+				name: 'menu.texture.export',
+				click: function(texture) {texture.save(true)}
+			},
+			'_',
+			{
+				icon: 'refresh',
+				name: 'menu.texture.refresh',
+				condition: function(texture) {return texture.mode == 'link'},
+				click: function(texture) {texture.reloadTexture()}
+			},
+			{
+				icon: 'file_upload',
+				name: 'menu.texture.change',
+				click: function(texture) { texture.reopen()}
+			},
+			{
+				icon: 'delete',
+				name: 'menu.texture.delete',
+				click: function(texture) {
+					Undo.initEdit({textures: [texture], bitmap: true})
+					texture.remove()
+					Undo.initEdit({textures: [], bitmap: true})
+			}},
+			'_',
+			{
+				icon: 'list',
+				name: 'menu.texture.properties',
+				click: function(texture) { texture.openMenu()}
 			}
-		})
+	])
+
+function openTexture() {
+	var start_path;
+	if (!isApp) {} else
+	if (textures.length > 0) {
+		var arr = textures[0].path.split(osfs)
+		arr.splice(-1)
+		start_path = arr.join(osfs)
+	} else if (Prop.file_path) {
+		var arr = Prop.file_path.split(osfs)
+		arr.splice(-3)
+		arr.push('textures')
+		start_path = arr.join(osfs)
 	}
-	if (id === undefined) return;
-	getTextureById(id).apply(all)
+	Blockbench.import({
+		readtype: 'image',
+		type: 'PNG Texture',
+		extensions: ['png', 'tga'],
+		multiple: true,
+		startpath: start_path
+	}, function(results) {
+		var new_textures = []
+		Undo.initEdit({textures: new_textures})
+		results.forEach(function(f) {
+			var t = new Texture({name: f.name}).fromFile(f).add(false).fillParticle()
+			new_textures.push(t)
+		})
+		Undo.finishEdit('add_texture')
+	})
 }
 function reloadTextures() {
 	tex_version++;
@@ -590,6 +728,13 @@ function reloadTextures() {
 	main_uv.loadData()
 	loadTextureDraggable()
 }
+function saveTextures() {
+	textures.forEach(function(t) {
+		if (!t.saved) {
+			t.save()
+		}
+	})
+}
 function getSelectedTextureIndex() {
 	var index = false
 	textures.forEach(function(s, i) {
@@ -601,17 +746,18 @@ function getSelectedTextureIndex() {
 }
 function saveTextureMenu() {
 	hideDialog()
+	Undo.initEdit({textures})
 	index = getSelectedTextureIndex()
 	if (index === false) return;
 	var tex = textures[index]
-	if (tex.mode === 'bitmap') {
-		tex.name = $('#texture_edit input#te_name').val()
-	}
+	tex.name = $('#texture_edit input#te_name').val()
 	tex.id = $('#texture_edit input#te_variable').val()
 	tex.folder = $('#texture_edit input#te_folder').val()
+	tex.namespace = $('#texture_edit input#te_namespace').val()
 
 	$('#texture_edit #change_file_button').unbind('click')
 	$('#texture_edit #file_upload').unbind('input')
+	Undo.finishEdit('texture_edit')
 }
 function loadTextureDraggable() {
 	Vue.nextTick(function() {
@@ -628,10 +774,11 @@ function loadTextureDraggable() {
 				revert: 'invalid',
 				appendTo: 'body',
 				zIndex: 19,
+				distance: 4,
 				stop: function(event, ui) {
 					setTimeout(function() {
-						if ($('canvas#canvas:hover').length > 0) {
-							var data = Canvas.raycast()
+						if ($('canvas.preview:hover').length > 0) {
+							var data = Canvas.getCurrentPreview().raycast()
 							if (data.cube && data.face) {
 								var tex = getTextureById(ui.helper.attr('texid'))
 								if (tex) {
@@ -650,4 +797,50 @@ function unselectTextures() {
 		s.selected = false;
 	})
 	textures.selected = false
+}
+function changeTexturesFolder() {
+	var path = undefined;
+	var i = 0;
+	while (i < textures.length && path === undefined) {
+		if (typeof textures[i].path == 'string' && textures[i].path.length > 8) {
+			path = textures[i].path
+		}
+		i++;
+	}
+	if (!path) {return;}
+
+	var path = path.split(osfs)
+	path.splice(-1)
+	path = path.join(osfs)
+
+	 app.dialog.showOpenDialog(currentwindow, {
+		title: tl('message.default_textures.select'),
+		properties: ['openDirectory'],
+		defaultPath: path
+	}, function(filePaths) {
+		if (filePaths && filePaths.length) {
+			var new_path = filePaths[0]
+			Undo.initEdit({textures})
+			textures.forEach(function(t) {
+				if (typeof t.path === 'string' && t.path.includes(path)) {
+					t.fromPath(t.path.replace(path, new_path))
+				} 
+			})
+			Undo.finishEdit('folder_changed')
+		}
+	})
+
+}
+function getTextureById(id) {
+	if (id === undefined) return;
+	if (id == '$transparent') {
+		return {material: transparentMaterial};
+	}
+	id = id.replace('#', '');
+	return $.grep(textures, function(e) {return e.id == id})[0];
+}
+function getTexturesById(id) {
+	if (id === undefined) return;
+	id = id.split('#').join('');
+	return $.grep(textures, function(e) {return e.id == id});
 }

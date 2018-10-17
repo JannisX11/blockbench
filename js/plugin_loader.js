@@ -29,9 +29,9 @@ var Plugins = {
 if (isApp) {
 	Plugins.path = app.app.getPath('userData')+osfs+'plugins'+osfs
 	fs.readdir(Plugins.path, function(err) {
-	    if (err) {
-	        fs.mkdir(Plugins.path, function(a) {})
-	    }
+		if (err) {
+			fs.mkdir(Plugins.path, function(a) {})
+		}
 	})
 } else {
 	Plugins.apipath = '../api/plugins.json'
@@ -74,10 +74,12 @@ function loadInstalledPlugins() {
 				title: plugin.title,
 				author: plugin.author,
 				description: plugin.description,
+				about: plugin.about,
 				icon: plugin.icon,
 				variant: plugin.variant,
 				min_version: plugin.min_version,
-				installed: Plugins.installed.includes(id)
+				installed: Plugins.installed.includes(id),
+				expanded: false
 			}
 			if (obj.installed) {
 				if (isApp) {
@@ -102,10 +104,12 @@ function loadInstalledPlugins() {
 					title: plugin_data.title,
 					author: plugin_data.author,
 					description: plugin_data.description,
+					about: plugin_data.about,
 					icon: plugin_data.icon,
 					variant: plugin_data.variant,
 					min_version: plugin_data.min_version,
-					installed: true
+					installed: true,
+					expanded: false
 				}
 				Plugins.data.push(obj)
 				Plugins.data.sort(function(a,b) {
@@ -145,22 +149,19 @@ function loadInstalledPlugins() {
 			}
 		},
 		methods: {
-			install: function(event) {
-				var id = $(event.target.parentElement.parentElement).attr('plugin')
+			install: function(plugin) {
 				if (isApp) {
-					downloadPlugin(id)
+					downloadPlugin(plugin.id)
 				} else {
-					loadPlugin(id)
+					loadPlugin(plugin.id)
 				}
 			},
-			uninstall: function() {
-				var id = $(event.target.parentElement.parentElement).attr('plugin')
-				uninstallPlugin(id)
+			uninstall: function(plugin) {
+				uninstallPlugin(plugin.id)
 			},
-			update: function() {
+			update: function(plugin) {
 				if (isApp) {
-					var id = $(event.target.parentElement.parentElement).attr('plugin')
-					downloadPlugin(id)
+					downloadPlugin(plugin.id)
 				}
 			},
 			checkIfInstallable: function(plugin) {
@@ -171,9 +172,25 @@ function loadInstalledPlugins() {
 						isApp !== (plugin.variant === 'web')
 					);
 				if (result && plugin.min_version) {
-					result = compareVersions(plugin.min_version, appVersion) ? 'outdated_client' : true
+					result = compareVersions(plugin.min_version, appVersion) ? 'outdated' : true
+				} else if (result === false) {
+					result = (plugin.variant === 'web') ? 'web_only' : 'app_only'
 				}
-				return result;	
+				return (result === true) ? true : tl('dialog.plugins.'+result);	
+			},
+			toggleInfo: function(plugin, force) {
+				Plugins.data.forEach(function(p) {
+					if (p !== plugin && p.expanded) p.expanded = false;
+				})
+				plugin.expanded = plugin.expanded !== true
+				if (force !== undefined) {
+					plugin.expanded = force === true
+				}
+				if (plugin.expanded) {
+					plugin.expandicon = 'expand_less'
+				} else {
+					plugin.expandicon = 'expand_more'
+				}
 			}
 		}
 	})
@@ -182,7 +199,7 @@ function saveInstalledPlugins() {
 	localStorage.setItem('installed_plugins', JSON.stringify(Plugins.installed))
 	hideDialog()
 }
-function loadPlugin(id, cb, install, allow_update) {
+function loadPlugin(id, cb, install) {
 	if (isApp === true) {
 		$.getScript(Plugins.path + id + '.js', function(a) {
 			if (onUninstall) {
@@ -217,78 +234,85 @@ function loadPlugin(id, cb, install, allow_update) {
 	}
 	Plugins.data.findInArray('id', id).installed = true
 }
-function loadPluginFromFile() {
-	function readFromPluginFile(content, path, hideWarning) {
-		onInstall = undefined
-		if (!hideWarning) {
-			if (isApp) {
-				if (!confirm('Do you want to allow this plugin to make changes to your PC? Only load plugins from people you trust.')) return;
-			} else {
-				if (!confirm('Do you want to load this plugin? Only load plugins from people you trust.')) return;
-			}
-		}
-		try {
-			eval(content)
-		} catch (err) {
-			showQuickMessage('Invalid Plugin File, See Console')
-			console.error(err)
-			return;
-		}
-		var obj = {
-			author: 'unknown',
-			icon: 'extension',
-			installed: true,
-			id: 'test',
-			title: 'Plugin',
-			variant: 'both',
-			description: '',
-			fromFile: true,
-			filePath: path,
-			uninstall: function() {
-				var index = Plugins.data.indexOf(this)
-				if (index >= 0) Plugins.data.splice(index, 1)
-				if (this.uninstallMethod) {
-					this.uninstallMethod()
-				}
-			},
-			reload: function() {
-				if (isApp) {
-					obj.uninstall()
-					fs.readFile(path, 'utf-8', function (err, data) {
-				        if (err) {
-				            console.log(err)
-				            return;
-				        }
-						readFromPluginFile(data, path, true)
-				    })
-				}
-			},
-			uninstallMethod: false
-		}
-		$.extend(true, obj, plugin_data)
-		obj.uninstallMethod = onUninstall
-		onUninstall = undefined
-		if (onInstall) onInstall()
-		onInstall = undefined
-		Plugins.data.push(obj)
-		Plugins.data.sort(function(a,b) {
-			return sort_collator.compare(a.title, b.title)
-		});
-	}
-	Blockbench.import('.js', readFromPluginFile, ['bbplugin', 'js'])
-}
-function downloadPlugin(id) {
-    //$('.uc_btn').attr('disabled', true)
+function loadPluginFromFile(file, hideWarning) {
+	var hideWarning;
+	var content = file.content
+	var path = file.path
+	localStorage.setItem('plugin_dev_path', path)
+	onInstall = undefined
 
-    var file = originalFs.createWriteStream(Plugins.path+id+'.js')
-    var request = https.get('https://blockbench.net/api/plugins/'+id+'.js', function(response) {
-        response.pipe(file);
-        response.on('end', function() {
-        	setTimeout(function() {
-        		loadPlugin(id, undefined, true)
-        	}, 100)
-        })
-    });
+	if (!hideWarning) {
+		if (isApp) {
+			if (!confirm(tl('message.load_plugin_app'))) return;
+		} else {
+			if (!confirm(tl('message.load_plugin_web'))) return;
+		}
+	}
+	try {
+		eval(content)
+	} catch (err) {
+		Blockbench.showQuickMessage('message.invalid_plugin')
+		console.error(err)
+		return;
+	}
+	var obj = {
+		author: 'unknown',
+		icon: 'extension',
+		installed: true,
+		id: 'test',
+		title: 'Plugin',
+		variant: 'both',
+		description: '',
+		about: '',
+		fromFile: true,
+		filePath: path,
+		expanded: false,
+		uninstall: function() {
+			var index = Plugins.data.indexOf(this)
+			if (index >= 0) Plugins.data.splice(index, 1)
+			if (this.uninstallMethod) {
+				this.uninstallMethod()
+			}
+		},
+		reload: function() {
+			if (isApp) {
+				obj.uninstall()
+				fs.readFile(path, 'utf-8', function (err, data) {
+					if (err) {
+						console.log(err)
+						return;
+					}
+					loadPluginFromFile({
+						content: data,
+						path: path
+					}, true)
+				})
+			}
+		},
+		uninstallMethod: false
+	}
+	$.extend(true, obj, plugin_data)
+	obj.uninstallMethod = onUninstall
+	onUninstall = undefined
+	if (onInstall) onInstall()
+	onInstall = undefined
+	Plugins.data.push(obj)
+	Plugins.data.sort(function(a,b) {
+		return sort_collator.compare(a.title, b.title)
+	});
+}
+function downloadPlugin(id, is_install) {
+	//$('.uc_btn').attr('disabled', true)
+
+	var file = originalFs.createWriteStream(Plugins.path+id+'.js')
+	var request = https.get('https://blockbench.net/api/plugins/'+id+'.js', function(response) {
+		response.pipe(file);
+		response.on('end', function() {
+			setTimeout(function() {
+				loadPlugin(id, undefined, is_install)
+			}, 100)
+		})
+	});
 }
 function uninstallPlugin(id) {
 	if (isApp) {
