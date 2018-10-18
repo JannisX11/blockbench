@@ -67,7 +67,7 @@
 	<div id="post_model" class="web_only post_data" hidden></div>
 	<div id="post_textures" class="web_only post_data" hidden></div>
 	<div style="display: none;"></div>
-	<!---->
+
 	<div id="blackout" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"></div>
 
 	<div class="dialog draggable" id="welcome_screen">
