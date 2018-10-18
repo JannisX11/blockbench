@@ -543,11 +543,6 @@ function updateUIColor() {
 }
 
 //BBLayout
-function importLayout() {
-	Blockbench.import('bbstyle', function(content) {
-		applyBBStyle(content)
-	})
-}
 function applyBBStyle(data) {
 	if (typeof data === 'string') {
 		try {
@@ -565,9 +560,6 @@ function applyBBStyle(data) {
 		resizeWindow()
 	}
 	updateUIColor()
-}
-function exportLayout() {
-	Blockbench.export(autoStringify(app_colors), 'layout', 'bbstyle')
 }
 
 //UI Edit
@@ -622,28 +614,3 @@ var splashScreen = {
 	})
 }
 Promise.all([splashScreen.p_doc, splashScreen.p_force]).then(splashScreen.attempt)
-
-//Mobile
-function setMobileTab(mode) {
-	$('.mobile_mode_tab').removeClass('open')
-	$('#mobile_tab_'+mode).addClass('open')
-	//
-	$('.sidebar').css('grid-area', '')
-	$('#preview').css('grid-area', '')
-	$('header').css('grid-area', '')
-	switch (mode) {
-		case 'preview':
-			$('#preview').css('grid-area', 'main')
-			break;
-		case 'textures':
-			$('#left_bar').css('grid-area', 'main')
-			break;
-		case 'elements':
-			$('#right_bar').css('grid-area', 'main')
-			break;
-		case 'menu':
-			$('header').css('grid-area', 'main')
-			break;
-	}
-	resizeWindow()
-}

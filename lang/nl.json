@@ -744,5 +744,6 @@
     "message.image_editor_missing.message": "Selecteer het executeerbare bestand van je afbeeldingsbewerker.",
     "message.image_editor_missing.detail": "Blockbench kon geen afbeelding editor vinden op jouw computer. Selecteer het executeerbare bestand van jouw gewenste afbeeldingsbewerker.",
     "action.update_autouv": "Update Auto UV",
+    "category.uv": "UV",
     "action.update_autouv.desc": "Update de auto UV van de geselecteerde"
 }

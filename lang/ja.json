@@ -744,5 +744,6 @@
     "message.image_editor_missing.message": "使用可能な画像エディタファイルを選択します",
     "message.image_editor_missing.detail": "Blockbenchは使用可能な画像ファイルを見つけることが出来ませんでした。",
     "action.update_autouv": "自動UVを更新",
+    "category.uv": "UV",
     "action.update_autouv.desc": "選択したキューブの自動UVを更新する"
 }

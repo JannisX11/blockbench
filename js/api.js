@@ -225,7 +225,7 @@ class API {
 						name: options.type ? options.type : options.extensions[0],
 						extensions: options.extensions
 					}],
-					properties: properties,
+					properties: properties.length?properties:undefined,
 					defaultPath: options.startpath
 				},
 			function (fileNames) {

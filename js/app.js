@@ -413,9 +413,9 @@ function saveFile(props) {
 		}
 	}
 }
-function writeFileEntity(content, fileName) {
-	Prop.file_path = fileName
-	fs.readFile(fileName, 'utf-8', function (errx, data) {
+function writeFileEntity(content, filepath) {
+	Prop.file_path = filepath
+	fs.readFile(filepath, 'utf-8', function (errx, data) {
 		var obj = {}
 		if (!errx) {
 			try {
@@ -435,8 +435,8 @@ function writeFileEntity(content, fileName) {
 					noLink: false
 				})
 				if (answer === 0) {
-					var backup_file_name = pathToName(fileName, true) + ' backup ' + new Date().toLocaleString().split(':').join('_')
-					backup_file_name = fileName.replace(pathToName(fileName, false), backup_file_name)
+					var backup_file_name = pathToName(filepath, true) + ' backup ' + new Date().toLocaleString().split(':').join('_')
+					backup_file_name = filepath.replace(pathToName(filepath, false), backup_file_name)
 					fs.writeFile(backup_file_name, data, function (err2) {
 						if (err2) {
 							console.log('Error saving backup model: ', err2)
@@ -483,17 +483,17 @@ function writeFileEntity(content, fileName) {
 		})
 	})
 }
-function writeFileObj(content, fileName) {
-	if (fileName === undefined) {
+function writeFileObj(content, filepath) {
+	if (filepath === undefined) {
 		return;
 	}
-	var content = buildOBJModel(pathToName(fileName, false))
+	var content = buildOBJModel(pathToName(filepath, false))
 
 	//OBJECT
-	fs.writeFile(fileName, content.obj, function (err) {})
+	fs.writeFile(filepath, content.obj, function (err) {})
 
 	//MATERIAL
-	fs.writeFile(fileName.split('.obj').join('.mtl'), content.mtl, function (err) {})
+	fs.writeFile(filepath.split('.obj').join('.mtl'), content.mtl, function (err) {})
 
 	//IMAGES
 	if (settings.obj_textures.value === true) {
@@ -506,7 +506,7 @@ function writeFileObj(content, fileName) {
 					var native_image_instance = nativeImage.createFromDataURL(texture.source)
 				}
 				var image = native_image_instance.toPNG()
-				var image_path = fileName.split(osfs)
+				var image_path = filepath.split(osfs)
 				image_path.pop()
 				image_path = image_path.join(osfs) + osfs + texture.name
 				if (image_path.substr(-4) !== '.png') {

@@ -744,5 +744,6 @@
     "message.image_editor_missing.message": "Selecciona el archivo ejecutable de tu editor de imágenes.",
     "message.image_editor_missing.detail": "Blockbench no pudo encontrar un editor de imágenes en tu ordenador. Selecciona el archivo ejecutable de tu editor de imágenes preferido.",
     "action.update_autouv": "Actualizar Auto UV",
+    "category.uv": "UV",
     "action.update_autouv.desc": "Actualiza el mapeado del auto UV en los cubos seleccionados"
 }

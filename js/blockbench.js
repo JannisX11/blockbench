@@ -1,4 +1,4 @@
-const appVersion = '2.0.0'
+const appVersion = '2.0.1'
 var osfs = '/'
 var File, i;
 const elements = [];
@@ -736,7 +736,11 @@ TextureAnimator = {
 			var update = false
 			for (var face in obj.faces) {
 				if (update === false) {
-					update = (obj.faces.hasOwnProperty(face) && animated_tex.includes(obj.faces[face].texture.replace(/^#/, '')))
+					update = (
+						obj.faces.hasOwnProperty(face) &&
+						typeof obj.faces[face].texture === 'string' &&
+						animated_tex.includes(obj.faces[face].texture.replace(/^#/, ''))
+					)
 				}
 			}
 			if (update) {

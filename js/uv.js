@@ -313,11 +313,12 @@ class UVEditor {
 		this.setSize(this.size)
 		return this;
 	}
-	getBrushCoordinates(event) {
+	getBrushCoordinates(event, tex) {
 		var scope = this;
+		var multiplier = tex ? tex.res/Project.texture_width : 1
 		return {
-			x: Math.floor(event.offsetX/scope.getPixelSize()),
-			y: Math.floor(event.offsetY/scope.getPixelSize())
+			x: Math.floor(event.offsetX/scope.getPixelSize()*multiplier),
+			y: Math.floor(event.offsetY/scope.getPixelSize()*multiplier)
 		}
 	}
 	startBrush(event) {
@@ -326,8 +327,8 @@ class UVEditor {
 
 		var texture = scope.getTexture()
 		if (texture) {
-			var x = scope.getBrushCoordinates(event).x
-			var y = scope.getBrushCoordinates(event).y
+			var x = scope.getBrushCoordinates(event, texture).x
+			var y = scope.getBrushCoordinates(event, texture).y
 			Painter.startBrush(texture, x, y, undefined, event)
 		}
 		if (event.altKey === false && texture && texture.mode !== 'link') {
@@ -341,8 +342,8 @@ class UVEditor {
 		if (!texture) {
 			Blockbench.showQuickMessage('message.untextured')
 		} else {
-			var x = scope.getBrushCoordinates(event).x
-			var y = scope.getBrushCoordinates(event).y
+			var x = scope.getBrushCoordinates(event, texture).x
+			var y = scope.getBrushCoordinates(event, texture).y
 			Painter.useBrush(texture, x, y)
 		}
 	}

@@ -356,8 +356,7 @@ class BBPainter {
 		updateSelection()
 	}
 	addBitmapFromDialog() {
-		var color = Painter.background_color.get().toRgb()
-		color = Jimp.rgbaToInt(color.r, color.g, color.b, color.a*255)
+		var color = Painter.background_color.get()
 
 		Painter.addBitmap({
 			res: limitNumber(parseInt($('.dialog#add_bitmap input#bitmap_resolution').val()), 1, 2048),
@@ -376,7 +375,7 @@ class BBPainter {
 			options.res = 16
 		}
 		if (options.color === undefined) {
-			options.color = 0xffffffff
+			options.color = new tinycolor().toRgb()
 		}
 		var texture = new Texture({
 			mode: 'bitmap',
@@ -407,7 +406,7 @@ class BBPainter {
 		}
 	}
 	generateBlank(height, width, color, cb) {
-		new Jimp(height, width, color, function(err, image) {
+		new Jimp(height, width, color.toInteger(), function(err, image) {
 			image.getBase64("image/png", function(a, dataUrl){
 				cb(dataUrl)
 			})
@@ -525,9 +524,13 @@ class BBPainter {
 		//Size
 		var max_size = Math.max(max_x_pos, line_y_pos)
 		max_size = Math.ceil(max_size/16)*16//getNextPower(max_size, 16)
+
+		if (background_color.getAlpha() != 0) {
+			background_color = background_color.toInteger()
+		}
 		
 		function drawTemplateRectangle(image, border_color, color, coords) {
-			if (background_color != 0) {
+			if (typeof background_color === 'number') {
 				border_color = background_color
 				color = undefined
 			}

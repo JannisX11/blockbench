@@ -366,6 +366,7 @@
 	"category.view": "View",
 	"category.display": "Display Settings",
 	"category.textures": "Textures",
+	"category.uv": "UV",
 	"category.misc": "Miscellaneous",
 
 	"keybind.preview_select": "Select",

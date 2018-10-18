@@ -744,5 +744,6 @@
     "message.image_editor_missing.message": "Wähle die Programmdatei deines Bildbearbeitungsprogramms",
     "message.image_editor_missing.detail": "Blockbench konnte kein Bildbearbeitungsprogramm auf deinem Computer finden. Wähle die Programmdatei eines Bildbearbeitungsprogramms aus.",
     "action.update_autouv": "Auto UV berechnen",
+    "category.uv": "UV",
     "action.update_autouv.desc": "Berechnet das automatische UV Mapping für die ausgewählten Elemente neu"
 }

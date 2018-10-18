@@ -204,9 +204,7 @@ class Tool extends Action {
 		if (Toolbox.selected && Toolbox.selected.onUnselect && typeof Toolbox.selected.onUnselect == 'function') {
 			Toolbox.selected.onUnselect()
 		}
-		$('.tool.sel').removeClass('sel')
 		Toolbox.selected = this;
-		$('.tool.'+this.id).addClass('sel')
 
 		if (this.transformerMode) {
 			Transformer.setMode(this.transformerMode)
@@ -223,6 +221,8 @@ class Tool extends Action {
 		}
 		$('#preview').css('cursor', (this.cursor ? this.cursor : 'default'))
 		updateSelection()
+		$('.tool.sel').removeClass('sel')
+		$('.tool.'+this.id).addClass('sel')
 
 		if (typeof this.onSelect == 'function') {
 			this.onSelect()
@@ -578,7 +578,6 @@ class ColorPicker extends Widget {
 		})
 	}
 	change(color) {
-		this.set( color )
 		if (this.onChange) {
 			this.onChange()
 		}
@@ -591,7 +590,7 @@ class ColorPicker extends Widget {
 	}
 	set(color) {
 		this.value = new tinycolor(color)
-		this.jq.spectrum('set', this.value.toHexString())
+		this.jq.spectrum('set', this.value.toHex8String())
 		return this;
 	}
 	get() {
@@ -1514,13 +1513,26 @@ var BARS = {
 				id: 'import_layout',
 				icon: 'folder',
 				category: 'blockbench',
-				click: function () {importLayout()}
+				click: function () {
+					Blockbench.import({
+						extensions: ['bbstyle', 'js'],
+						type: 'Blockbench Style'
+					}, function(files) {
+						applyBBStyle(files[0].content)
+					})
+				}
 			})
 			new Action({
 				id: 'export_layout',
 				icon: 'style',
 				category: 'blockbench',
-				click: function () {exportLayout()}
+				click: function () {
+					Blockbench.export({
+						type: 'Blockbench Style',
+						extensions: ['bbstyle'],
+						content: autoStringify(app_colors)
+					})
+				}
 			})
 			new Action({
 				id: 'reset_layout',
@@ -1896,7 +1908,7 @@ var BARS = {
 				icon: 'border_clear',
 				category: 'view',
 				keybind: new Keybind({key: 90}),
-				condition: () => Toolbox.selected.allowWireframe,
+				condition: () => Toolbox && Toolbox.selected && Toolbox.selected.allowWireframe,
 				click: function () {toggleWireframe()}
 			})
 
@@ -2568,7 +2580,7 @@ class Menu {
 				entry = s.menu_node
 				if (BARS.condition(s.condition)) {
 					parent.append(entry)
-					$(entry).mouseenter(function(e) {
+					$(entry).on('mouseenter mousedown', function(e) {
 						scope.hover(this, e)
 					})
 				}
@@ -2642,9 +2654,16 @@ class Menu {
 		ctxmenu.css('left', offset_left+'px')
 		ctxmenu.css('top',  offset_top +'px')
 
-		ctxmenu.click(function() {
-			scope.hide()
+		$(this.node).filter(':not(.tx)').addClass('tx').click(function(ev) {
+			if (
+				ev.target.className.includes('parent') ||
+				(ev.target.parentNode && ev.target.parentNode.className.includes('parent'))
+			) {} else {
+				scope.hide()
+			}
+
 		})
+
 		if (this.type === 'bar_menu') {
 			MenuBar.open = this
 			$(this.label).addClass('opened')

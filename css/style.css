@@ -1128,6 +1128,9 @@
 	.UVEditor {
 		position: relative;
 	}
+	.UVEditor > .toolbar {
+		margin-top: 3px;
+	}
 	#uv_dialog_all .UVEditor {
 		float: left;
 		padding: 8px;
@@ -1994,57 +1997,6 @@
 	body.entity_mode a.ml5 i.shade_mirror_off:before  {
 		content: "\f005";
 	}
-
-@media (max-width:790px)  {
-	.mode_tab {
-		display: none;
-	}
-}
-
-@media (max-width:628px)  {
-	body {
-		display: grid;
-		grid-template-columns: 100%;
-		grid-template-rows: 40px calc(100% - 66px) 26px;
-		grid-template-areas: 
-			"mode_bar"
-			"main"
-			"status_bar";
-	}
-	.mobile_only {
-		display: block;
-	}
-	.dialog {
-		width: 100%;
-		height: 100%;
-		margin-top: 0;
-	}
-
-	#mobile_tab_bar {
-		grid-area: mode_bar;
-		height: 40px;
-		background-color: var(--color-ui);
-	}
-	.mobile_mode_tab {
-		height: 40px;
-		width: 25%;
-		float: left;
-		padding-top: 8px;
-		cursor: default;
-		text-align: center;
-		color: var(--color-text);
-	}
-	.mobile_mode_tab:hover {
-		color: var(--color-light);
-	}
-	.mobile_mode_tab.open {
-		background-color: var(--color-selected);
-		color: var(--color-light);
-	}
-}
-
-
-
 
 
  #cubes_list > div > ul > li > ul > li:last-child {
