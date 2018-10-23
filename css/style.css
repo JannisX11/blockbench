@@ -15,6 +15,7 @@
 
 	::-webkit-scrollbar {
 		width: 6px;
+		height: 6px;
 	}
 	 
 	::-webkit-scrollbar-track {
@@ -478,6 +479,9 @@
 		color: var(--color-light);
 		background: var(--color-accent);
 	}
+	li.menu_bar_point:hover {
+		color: var(--color-light);
+	}
 	header div#title {
 		width: auto;
 		padding-right: 16px;
@@ -599,6 +603,9 @@
 		padding: 6px;
 		background: var(--color-ui);
 	}
+	.panel > p {
+		margin-left: 12px;
+	}
 	body > h3.panel_handle {
 		box-shadow: 0 0 16px black;
 		width: auto;
@@ -615,6 +622,10 @@
 	}
 	#status_bar {
 		grid-area: status_bar;
+	}
+	.single_canvas_wrapper {
+		height: 100%;
+		width: 100%;
 	}
 	.quad_canvas_wrapper {
 		height: 50%;
@@ -793,6 +804,9 @@
 	body.display_mode #cubes_list {
 		height: calc(100% - 50px);
 	}
+	body.animation_mode #cubes_list .outliner_object.cube {
+		display: none;
+	}
 
 	h3 {
 		font-weight: inherit;
@@ -811,7 +825,7 @@
 	@-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
 	@keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }
 
-/*Texture*/
+/*Displaytabs*/
 
 	.tabs_small input[type="radio"]:checked+label {
 		background: var(--color-selected);
@@ -960,6 +974,8 @@
 		left: 40px;
 		border: 1px solid var(--color-border);
 	}
+
+
 
 
 /*Context*/
@@ -1114,9 +1130,79 @@
 		margin-top: 24px;
 		text-shadow: 0 0 5px #000;
 	}
-	i.highlighted_icon {
-		color: red;
+
+
+/*Animations*/
+	.panel#animations #animations_list {
+		min-height: 126px;
+		max-height: 294px;
 	}
+	.animation {
+		height: 42px;
+		white-space: nowrap;
+		position: relative;
+		vertical-align: middle;
+		padding: 8px;
+		border: 1px solid transparent;
+		box-sizing: border-box;
+	}
+	.animation:hover  .animation_name {
+		color: var(--color-light);
+	}
+	.animation.selected {
+		background: var(--color-selected);
+		border: 1px solid var(--color-border);
+	}
+	.animation > i {
+		margin-top: 2px;
+		margin-right: 4px;
+	}
+	.animation > * {
+		float: left;
+	}
+
+/*Timeline*/
+	#timeline {
+		display: none;
+	}
+	body.animation_mode #timeline {
+		display: block;
+		height: 130px;
+		background-color: var(--color-ui);
+    	border-top: 1px solid var(--color-border);
+	}
+	body.animation_mode #preview .single_canvas_wrapper {
+		height: calc(100% - 130px);
+	}
+	#timeline_inner {
+		overflow-y: hidden;
+		overflow-x: scroll;
+		position: relative;
+		background-color: var(--color-back);
+		height: 129px;
+	}
+	#timeline_inner .keyframe {
+		position: absolute;
+	}
+	#timeline_inner .keyframe.selected {
+		color: var(--color-accent);
+	}
+/*Keyframe Panel*/
+	.panel#keyframe .tabs_small label {
+		font-size: 1em;
+		height: 32px;
+		width: 25%;
+	}
+	.panel#keyframe .bar label {
+		margin-top: 3px;
+		margin-left: 8px;
+		width: 32px;
+		text-align: center;
+	}
+	.panel#keyframe .bar input.dark_bordered {
+		width: calc(100% - 45px);
+	}
+
 
 /*UV*/
 	#uv_dialog {
@@ -1349,9 +1435,6 @@
 		padding-left: 6px;
 		border-bottom: 2px solid var(--color-border);
 	}
-	#keybindlist > li li {
-		height: 34px;
-	}
 	#settings h3 > i {
 		margin-top: 5px;
 		float: left;
@@ -1362,11 +1445,10 @@
 	#keybindlist .tool {
 		height: 32px;
 		width: 25px;
+		float: right;
 	}
 	#keybindlist li > div.keybindslot {
-		width: calc(48% - 30px);
-		float: left;
-		margin: 2px;
+		width: calc(48% - 32px);
 		padding: 2px;
 		padding-left: 8px;
 		height: 30px;
@@ -1375,6 +1457,7 @@
 		font-size: 0.84em;
 		overflow: hidden;
 		white-space: nowrap;
+		display: inline-block;
 	}
 	#keybindlist li > div.keybindslot:hover {
 		background-color: var(--color-selected);
@@ -1384,10 +1467,11 @@
 	#keybindlist li div:first-child {
 		background: transparent;
 		width: calc(52% - 28px);
-		float: left;
 		text-align: right;
 		padding: 2px;
 		padding-left: 8px;
+		vertical-align: top;
+		display: inline-block;
 	}
 	#keybindlist > li > div:focus {
 		color: transparent;

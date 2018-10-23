@@ -51,7 +51,7 @@ class BBPainter {
 		}
 	}
 	startBrushCanvas(data, event) {
-
+		Painter.current.x = Painter.current.y = 0
 		var texture = getTextureById(data.cube.faces[data.face].texture)
 		if (!texture) {
 			Blockbench.showQuickMessage('message.untextured')
@@ -71,9 +71,35 @@ class BBPainter {
 		if (data) {
 			var texture = getTextureById(data.cube.faces[data.face].texture)
 			if (texture) {
-				var x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth )
-				var y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight )
-				Painter.useBrush(texture, x, y, data.cube.faces[data.face].uv)
+				var x, y, new_face;
+				var end_x = x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth )
+				var end_y = y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight )
+				if (x === Painter.current.x && y === Painter.current.y) {
+					//return
+				}
+				if (Painter.current.face !== data.face) {
+					Painter.current.x = x
+					Painter.current.y = y
+					Painter.current.face = data.face
+					new_face = true
+				}
+				var diff = {
+					x: x - (Painter.current.x||x),
+					y: y - (Painter.current.y||y),
+				}
+				var length = Math.sqrt(diff.x*diff.x + diff.y*diff.y)
+				if (new_face && !length) {
+					length = 1
+				}
+				var i = 0;
+				while (i < length) {
+					x = end_x - diff.x / length * i
+					y = end_y - diff.y / length * i
+					Painter.useBrush(texture, x, y, data.cube.faces[data.face].uv)
+					i++;
+				}
+				Painter.current.x = end_x
+				Painter.current.y = end_y
 			}
 		}
 	}
@@ -87,6 +113,8 @@ class BBPainter {
 			Undo.initEdit({textures: [texture], bitmap: true})
 			Painter.brushChanges = false
 			Painter.useBrush(texture, x, y, uvTag)
+			Painter.current.x = x;
+			Painter.current.y = y;
 		} else {
 			Painter.colorPicker(texture, x, y)
 		}

@@ -79,6 +79,9 @@ Math.roundTo = function(num, digits) {
 	var d = Math.pow(10,digits)
 	return Math.round(num * d) / d
 }
+Math.lerp = function(a,b,m) {
+	return (m-a) / (b-a)
+}
 function trimFloatNumber(val) {
 	if (val == '') return val;
 	var string = val.toFixed(4)
@@ -307,7 +310,7 @@ function pathToName(path, extension) {
 		}
 		return name
 	} else {
-		return path_array[path_array.length-1].split('.').slice(0, -1).join('.')
+		return path_array[path_array.length-1].replace(/\.\w+$/, '')
 	}
 }
 function pathToExtension(path) {

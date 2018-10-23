@@ -347,8 +347,68 @@ class Cube extends OutlinerElement {
 	index() {
 		return elements.indexOf(this)
 	}
-	select(event) {
-		addToSelection(this, event, true)
+	select(event, isOutlinerClick) {
+		var scope = this;
+		if (scope === undefined) return false;
+		//Shiftv
+		var just_selected = []
+		if (event && event.shiftKey === true && scope.getParentArray().includes(selected[selected.length-1]) && isOutlinerClick) {
+			var starting_point;
+			var last_selected = selected[selected.length-1]
+			scope.getParentArray().forEach(function(s, i) {
+				if (s === last_selected || s === scope) {
+					if (starting_point) {
+						starting_point = false
+					} else {
+						starting_point = true
+					}
+					if (s.type === 'cube') {
+						if (!selected.includes(s)) {
+							selected.push(s)
+							just_selected.push(s)
+						}
+					} else {
+						s.selectLow()
+					}
+				} else if (starting_point) {
+					if (s.type === 'cube') {
+						if (!selected.includes(s)) {
+							selected.push(s)
+							just_selected.push(s)
+						}
+					} else {
+						s.selectLow(false)
+					}
+				}
+			})
+
+		//Control
+		} else if (event && (event.ctrlKey || event.shiftKey )) {
+			if (selected.includes(scope)) {
+				selected = selected.filter(function(e) {
+					return e !== scope
+				})
+			} else {
+				selected.push(scope)
+				just_selected.push(scope)
+			}
+
+
+		//Normal
+		} else {
+			selected = [scope]
+			just_selected.push(scope)
+			scope.showInOutliner()
+		}
+		if (selected_group) {
+			selected_group.unselect()
+		}
+		getAllOutlinerGroups().forEach(function(s) {
+			s.selected = false;
+		})
+		Blockbench.dispatchEvent('added_to_selection', {added: just_selected})
+		updateSelection()
+		return this;
 	}
 	selectLow() {
 		if (selected.includes(this) === false) {
@@ -396,6 +456,11 @@ class Cube extends OutlinerElement {
 			Merge.number(this.rotation, object.rotation, 1)
 			Merge.number(this.rotation, object.rotation, 2)
 		}
+		if (object.rotated) {
+			Merge.number(this.rotation, object.rotated, 0)
+			Merge.number(this.rotation, object.rotated, 1)
+			Merge.number(this.rotation, object.rotated, 2)
+		}
 		if (object.origin) {
 			Merge.number(this.origin, object.origin, 0)
 			Merge.number(this.origin, object.origin, 1)
@@ -424,7 +489,9 @@ class Cube extends OutlinerElement {
 		TreeElements.clearObjectRecursive(this)
 		if (this.visibility) {
 			var mesh = this.getMesh()
-			scene.remove(this.getMesh())
+			if (mesh.parent) {
+				mesh.parent.remove(mesh)
+			}
 			delete Canvas.meshes[this.uuid]
 			mesh.geometry.dispose()
 		}
@@ -762,11 +829,12 @@ class Cube extends OutlinerElement {
 				var rot = scope.faces[face].rotation
 
 				//Use Texture resolution
+				/*
 				var tex = getTextureById(scope.faces[face].texture)
 				if (tex && tex.res && tex.res != 16) {
 					size[0] *= 16 / tex.res
 					size[1] *= 16 / tex.res
-				}
+				}*/
 
 				//Match To Rotation
 				if (rot === 90 || rot === 270) {
@@ -852,6 +920,7 @@ class Cube extends OutlinerElement {
 				cube.rename()
 			}
 		}},
+		'update_autouv',
 		{name: 'menu.cube.color', icon: 'color_lens', children: [
 			{icon: 'bubble_chart', color: cubeColors[0].hex, name: 'cube.color.'+cubeColors[0].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(0)})}},
 			{icon: 'bubble_chart', color: cubeColors[1].hex, name: 'cube.color.'+cubeColors[1].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(1)})}},
@@ -894,10 +963,7 @@ class Cube extends OutlinerElement {
 			})
 			return arr;
 		}},
-		{icon: 'delete', name: 'menu.cube.delete', click: function(cube) {
-			deleteCubes()
-		}},
-		'update_autouv'
+		'delete'
 	])
 class Group extends OutlinerElement {
 	constructor(data) {
@@ -923,6 +989,16 @@ class Group extends OutlinerElement {
 		} else if (typeof data === 'string') {
 			this.name = data
 		}
+	}
+	getMesh() {
+		var bone = Canvas.bones[this.uuid]
+		if (!bone) {
+			bone = new THREE.Object3D()
+			bone.name = this.name
+			bone.isGroup = true
+			Canvas.bones[this.uuid] = bone
+		}
+		return bone;
 	}
 	select(event) {
 		var scope = this;
@@ -1552,35 +1628,35 @@ function dropOutlinerObjects(item, target, event) {
 function addCube() {
 	Undo.initEdit({outliner: true, cubes: [], selection: true});
 	var base_cube = new Cube({
-		autouv: (settings.autouv.value ? 1 : 0)
+autouv: (settings.autouv.value ? 1 : 0)
 	}).addTo()
 	if (selected_group) {
-		base_cube.addTo(selected_group)
+base_cube.addTo(selected_group)
 	} else if (selected[0] !== undefined &&
-		selected[0].parent !== 'root'
+selected[0].parent !== 'root'
 	) {
-		base_cube.addTo(selected[0].parent)
+base_cube.addTo(selected[0].parent)
 	}
 
 	if (textures.length && Blockbench.entity_mode) {
-		var sides = ['north', 'east', 'south', 'west', 'up', 'down']
-		sides.forEach(function(side) {
-			base_cube.faces[side].texture = '#'+textures[0].id
-		})
-		main_uv.loadData()
+var sides = ['north', 'east', 'south', 'west', 'up', 'down']
+sides.forEach(function(side) {
+	base_cube.faces[side].texture = '#'+textures[0].id
+})
+main_uv.loadData()
 	}
 	if (Blockbench.entity_mode) {
-		var add_group = selected_group
-		if (!add_group && selected.length) {
-			add_group = selected[0].parent
-		}
-		if (add_group && add_group.type === 'group') {
-			var pos1 = add_group.origin.slice()
-			base_cube.extend({
-				from:[ pos1[0]-0, pos1[1]-0, pos1[2]-0 ],
-				to:[   pos1[0]+1, pos1[1]+1, pos1[2]+1 ]
-			})
-		}
+var add_group = selected_group
+if (!add_group && selected.length) {
+	add_group = selected[0].parent
+}
+if (add_group && add_group.type === 'group') {
+	var pos1 = add_group.origin.slice()
+	base_cube.extend({
+		from:[ pos1[0]-0, pos1[1]-0, pos1[2]-0 ],
+		to:[   pos1[0]+1, pos1[1]+1, pos1[2]+1 ]
+	})
+}
 	}
 
 	if (selected_group) selected_group.unselect()

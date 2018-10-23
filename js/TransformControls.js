@@ -824,8 +824,9 @@
 			point.copy( planeIntersect.point );
 			point.sub( offset );
 			if (!Blockbench.globalMovement) {
-				point.applyQuaternion(selected[0].getMesh().quaternion.inverse())
-				selected[0].getMesh().quaternion.inverse()
+				var rotation = new THREE.Quaternion()
+				scope.objects[0].getWorldQuaternion(rotation)
+				point.applyQuaternion(rotation.inverse())
 			}
 
 			if (Toolbox.selected.id === 'resize_tool') {
@@ -880,12 +881,14 @@
 
 				if (previousValue !== point[axis]) {
 
-					var axis = getAxisNumber(scope.axis.toLowerCase())
+					var axis = getAxisNumber(axis)
 
 					var rotatedPoint = new THREE.Vector3();
 					rotatedPoint.copy(point)
-					if (Blockbench.globalMovement === false) {
-						rotatedPoint.applyEuler( scope.objects[0].rotation )
+					if (Blockbench.globalMovement === false && !Blockbench.entity_mode) {
+						var rotation = new THREE.Quaternion()
+						scope.objects[0].getWorldQuaternion(rotation)
+						rotatedPoint.applyQuaternion(rotation)
 					}
 
 					centerTransformer(rotatedPoint)
@@ -918,7 +921,16 @@
 						scope.last_valid_position.copy(scope.position)
 						scope.objects.forEach(function(s, i) {
 							s.position.copy( oldPositionArray[i] );
-							s.position.add( rotatedPoint );
+							if (Blockbench.entity_mode && Blockbench.globalMovement) {
+								var cube_offset = new THREE.Vector3().copy(rotatedPoint)
+								var rotation = new THREE.Quaternion()
+								s.getWorldQuaternion(rotation)
+								cube_offset.applyQuaternion(rotation.inverse())
+								s.position.add( cube_offset );
+							} else {
+								s.position.add( rotatedPoint );
+							}
+
 						})
 					}
 				}
@@ -957,7 +969,9 @@
 					var difference = scope.last_valid_position.distanceTo(oldOriginPosition)
 
 					oldOriginPosition.sub(scope.last_valid_position).negate()
-					oldOriginPosition.removeEuler(Transformer.rotation)
+					if (Blockbench.globalMovement) {
+						oldOriginPosition.removeEuler(Transformer.rotation)
+					}
 
 					if (oldOriginPosition[axis] < 0) {
 						difference *= -1

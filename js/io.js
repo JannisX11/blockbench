@@ -142,6 +142,7 @@ function loadBlockModel(model, filepath, add) {
 		model.elements.forEach(function(obj) {
 			base_cube = new Cube(obj)
 			if (obj.__comment) base_cube.name = obj.__comment
+			//Faces
 			var uv_stated = false;
 			for (var face in base_cube.faces) {
 				if (obj.faces[face] === undefined) {
@@ -229,7 +230,7 @@ function loadBlockModel(model, filepath, add) {
 			if (names[texture_arr.particle]) {
 				names[texture_arr.particle].enableParticle()
 			} else {
-				new Texture({id: 'particle'}).enableParticle().fromPath(path).add()
+				new Texture({id: 'particle'}).fromJavaLink(texture_arr[tex], path_arr.slice()).add().enableParticle()
 			}
 		}
 		//Get Rid Of ID overlapping
@@ -874,7 +875,9 @@ function buildBlockModel(options) {
 		element_index_lut[s.index()] = clear_elements.length
 
 		if ((options.cube_name !== false && !settings.minifiedout.value) || options.cube_name === true) {
-			element.name = s.name
+			if (s.name !== 'cube') {
+				element.name = s.name
+			}
 		}
 		element.from = s.from.slice()
 		element.to = s.to.slice()
@@ -893,6 +896,8 @@ function buildBlockModel(options) {
 				element.rotation.rescale = true
 			} else {
 				element.rotation = new oneLiner({
+					angle: 0,
+					axis: 'y',
 					origin: s.origin,
 					rescale: true
 				})
@@ -911,12 +916,14 @@ function buildBlockModel(options) {
 					if (s.faces[face].enabled !== false) {
 						tag.uv = s.faces[face].uv
 					}
+					if (s.faces[face].rotation) {
+						tag.rotation = s.faces[face].rotation
+					}
 					if (s.faces[face].texture) {
 						tag.texture = s.faces[face].texture
 						element_has_texture = true
-					}
-					if (s.faces[face].rotation) {
-						tag.rotation = s.faces[face].rotation
+					} else {
+						tag.texture = '#missing'
 					}
 					if (s.faces[face].cullface !== undefined) {
 						tag.cullface = s.faces[face].cullface
@@ -1174,8 +1181,8 @@ function buildJPMModel(options) {
 	}
 	jpm.textureSize = [Project.texture_width, Project.texture_height]
 
-	if (settings.comment.value === true) {
-		jpm.credit = settings.comment_text.value
+	if (settings.credit.value) {
+		jpm.credit = settings.credit.value
 	}
 
 	var submodels = []

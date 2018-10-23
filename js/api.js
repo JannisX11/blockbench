@@ -225,7 +225,7 @@ class API {
 						name: options.type ? options.type : options.extensions[0],
 						extensions: options.extensions
 					}],
-					properties: properties.length?properties:undefined,
+					properties: (properties.length && Blockbench.platform !== 'darwin')?properties:undefined,
 					defaultPath: options.startpath
 				},
 			function (fileNames) {
@@ -364,11 +364,14 @@ class API {
 		*/
 		if (Blockbench.isWeb) {
 			var file_name = options.name + (options.extensions ? '.'+options.extensions[0] : '')
-			if (options.savetype === 'image') {
+			if (options.custom_writer) {
+				options.custom_writer(options.content, file_name)
+				
+			} else if (options.savetype === 'image') {
 
 				var download = document.createElement('a');
-				download.href = file_name
-				download.download = options.name;
+				download.href = options.content
+				download.download = file_name;
 				if (Blockbench.browser === 'firefox') document.body.appendChild(download);
 				download.click();
 				if (Blockbench.browser === 'firefox') document.body.removeChild(download);
@@ -385,7 +388,9 @@ class API {
 					name: options.type,
 					extensions: options.extensions
 				} ],
-				defaultPath: options.startpath !== 'Unknown' ? options.startpath : options.name
+				defaultPath: (options.startpath && options.startpath !== 'Unknown')
+					? options.startpath.replace(/\.\w+$/, '')
+					: options.name
 			}, function (file_path) {
 				if (file_path === undefined) {
 					return;

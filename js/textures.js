@@ -76,16 +76,23 @@ class Texture {
 			Canvas.materials[scope.uuid].dispose()
 		}
 		function onerror() {
-			scope.img.src = 'assets/missing.png'
-			scope.error = true;
-			scope.show_icon = false
-			console.log('Error loading '+scope.source)
-			if (isApp && !isDefault && scope.mode !== 'bitmap') {
+			if (isApp &&
+				!isDefault &&
+				scope.mode !== 'bitmap' &&
 				scope.fromDefaultPack()
+			) {
+				return true;
+			} else {
+				scope.img.src = 'assets/missing.png'
+				scope.error = true;
+				scope.show_icon = false
+				console.log('Error loading '+scope.source)
 			}
 		}
-		if (isApp && this.mode === 'link' && !fs.existsSync(this.source.replace(/\?\d$/, ''))) {
-			onerror()
+		if (isApp && this.mode === 'link' && !fs.existsSync(this.source.replace(/\?\d+$/, ''))) {
+			if (onerror()) {
+				return
+			}
 		} else {
 			img.src = this.source
 			img.onerror = onerror
@@ -157,7 +164,7 @@ class Texture {
 		if (Canvas.materials[this.uuid]) {
 			Canvas.materials[this.uuid].map.dispose()
 			Canvas.materials[this.uuid].dispose()
-			delete Canvas.materials[this.uuid].map.dispose()
+			delete Canvas.materials[this.uuid]
 		}
 		var mat = new THREE.MeshLambertMaterial({
 			color: 0xffffff,
@@ -250,13 +257,13 @@ class Texture {
 	}
 	fromDefaultPack() {
 		if (isApp && settings.default_path && settings.default_path.value) {
-
 			var path = settings.default_path.value + osfs + this.folder + osfs + this.name
 			if (fs.existsSync(path)) {
 				this.mode = 'link'
 				this.path = path
 				this.source = this.path + '?' + tex_version
 				this.load(true)
+				return true;
 			}
 		}
 	}
@@ -298,7 +305,7 @@ class Texture {
 		if (single) {
 			tex_version++;
 		}
-		this.source = this.path + '?' + tex_version;
+		//this.source = this.path + '?' + tex_version;
 		this.source = this.source.replace(/\?\d+$/, '?' + tex_version)
 		this.load(undefined, true)
 		if (single) {
@@ -387,7 +394,6 @@ class Texture {
 			var arr = path.split(osfs)
 			scope.folder = arr[arr.length-2]
 			if (Blockbench.entity_mode === false && isApp) {
-				console.trace()
 				Blockbench.showMessageBox({
 					translateKey: 'loose_texture',
 					icon: 'folder_open',

@@ -1,4 +1,4 @@
-const appVersion = '2.0.1'
+const appVersion = '2.0.2'
 var osfs = '/'
 var File, i;
 const elements = [];
@@ -270,13 +270,30 @@ function setupVue() {
 		el: '#project_settings',
 		data: {Project}
 	})
-	project_vue._data.Project = Project
+	//project_vue._data.Project = Project
+
+	Animator.vue = new Vue({
+		el: '#animations_list',
+		data: {
+			animations: Animator.animations
+		}
+	})
+	//project_vue._data.Project = Project
+
+
+	Timeline.vue = new Vue({
+		el: '#timeline_inner',
+		data: {
+			size: 40,
+			keyframes: []
+		}
+	})
 
 	var stats_bar_vue = new Vue({
 		el: '#status_bar',
 		data: {Prop}
 	})
-	project_vue._data.Prop = Prop
+	//project_vue._data.Prop = Prop
 }
 function canvasGridSize(shift, ctrl) {
 	if (!shift && !ctrl) {
@@ -327,69 +344,6 @@ function updateNslideValues() {
 }
 
 //Selections
-function addToSelection(obj, event, isOutlinerClick) {
-	if (obj === undefined) return false;
-	//Shiftv
-	var just_selected = []
-	if (event && event.shiftKey === true && obj.getParentArray().includes(selected[selected.length-1]) && isOutlinerClick) {
-		var starting_point;
-		var last_selected = selected[selected.length-1]
-		obj.getParentArray().forEach(function(s, i) {
-			if (s === last_selected || s === obj) {
-				if (starting_point) {
-					starting_point = false
-				} else {
-					starting_point = true
-				}
-				if (s.type === 'cube') {
-					if (!selected.includes(s)) {
-						selected.push(s)
-						just_selected.push(s)
-					}
-				} else {
-					s.selectLow()
-				}
-			} else if (starting_point) {
-				if (s.type === 'cube') {
-					if (!selected.includes(s)) {
-						selected.push(s)
-						just_selected.push(s)
-					}
-				} else {
-					s.selectLow(false)
-				}
-			}
-		})
-
-
-	//Control
-	} else if (event && (event.ctrlKey || event.shiftKey )) {
-		if (selected.includes(obj)) {
-			selected = selected.filter(function(e) {
-				return e !== obj
-			})
-		} else {
-			selected.push(obj)
-			just_selected.push(obj)
-		}
-
-
-	//Normal
-	} else {
-		selected = [obj]
-		just_selected.push(obj)
-		obj.showInOutliner()
-	}
-	if (selected_group) {
-		selected_group.unselect()
-	}
-	getAllOutlinerGroups().forEach(function(s) {
-		s.selected = false;
-	})
-	Blockbench.dispatchEvent('added_to_selection', {added: just_selected})
-	updateSelection()
-	return obj;
-}
 function updateSelection() {
 	//Clear
 	scene.remove(rot_origin)
@@ -435,6 +389,9 @@ function updateSelection() {
 			}
 		} else {
 			$('.selection_only#options').css('visibility', 'hidden')
+		}
+		if (Animator.state && Animator.selected && selected_group) {
+			Animator.selected.getCurrentBoneAnimator().select()
 		}
 	} else {
 		//Origin Helper
@@ -983,10 +940,10 @@ const entityMode = {
 	},
 	convert: function() {
 		Blockbench.showMessageBox({
-			title: tl('message.convert_model.title'),
+			title: tl('message.convert_mode.title'),
 			icon: 'warning',
-			message: tl('message.convert_model.message', [tl(Blockbench.entity_mode?'message.convert_model.block':'message.convert_model.entity')]),
-			buttons: [tl('message.convert_model.convert'), tl('dialog.cancel')],
+			message: tl('message.convert_mode.message', [tl(Blockbench.entity_mode?'message.convert_mode.block':'message.convert_mode.entity')]),
+			buttons: [tl('message.convert_mode.convert'), tl('dialog.cancel')],
 			confirm: 0,
 			cancel: 1
 		}, function(result) {

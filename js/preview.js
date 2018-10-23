@@ -12,7 +12,6 @@ var doRender = false;
 var quad_previews = {};
 var three_grid = new THREE.Object3D();
 var rot_origin = new THREE.Object3D();
-var status_bar_height = 25
 var gizmo_colors = {
 	r: new THREE.Color(0xfd3043),
 	g: new THREE.Color(0x26ec45),
@@ -123,7 +122,7 @@ class Preview {
 			this.raycaster.setFromCamera( this.mouse, this.camPers );
 		}
 		var objects = []
-		scene.children.forEach(function(s) {
+		scene.traverse(function(s) {
 			if (s.isElement === true) {
 				objects.push(s)
 			}
@@ -268,7 +267,9 @@ class Preview {
 		return this;
 	}
 	getFacingDirection() {
-		var vec = this.controls.object.getWorldDirection().applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4).ceil()
+		var vec = new THREE.Vector3()
+		this.controls.object.getWorldDirection(vec)
+		vec.applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4).ceil()
 		switch (vec.x+'_'+vec.z) {
 			case '1_1':
 				return 'south'
@@ -285,7 +286,7 @@ class Preview {
 		}
 	}
 	getFacingHeight() {
-		var y = this.controls.object.getWorldDirection().y
+		var y = this.controls.object.getWorldDirection(new THREE.Vector3()).y
 		if (y > 0.5) {
 			return 'up'
 		} else if (y < -0.5) {
@@ -301,18 +302,16 @@ class Preview {
 		quad_previews.current = this;
 		if (Transformer.hoverAxis !== null || !Keybinds.extra.preview_select.keybind.isTriggered(event)) return;
 		event.preventDefault()
-		var data = false;
-		if (!display_mode) {
-			var data = this.raycast(event)
-		}
+
+		var data = this.raycast(event)
 		if (data) {
 			this.static_rclick = false
-			if (Toolbox.selected.select_cubes !== false && data.type === 'cube') {
+			if (Toolbox.selected.selectCubes && data.type === 'cube') {
 				if (Toolbox.selected.selectFace) {
 					main_uv.setFace(data.face)
 				}
 				Blockbench.dispatchEvent( 'canvas_select', data )
-				addToSelection(data.cube, event)
+				data.cube.select(event)
 			}
 			if (typeof Toolbox.selected.onCanvasClick === 'function') {
 				Toolbox.selected.onCanvasClick(data)
@@ -605,7 +604,11 @@ class Preview {
 		quad_previews.current = this;
 		quad_previews.enabled = false;
 		$('#preview').empty()
-		$('#preview').append(this.canvas)
+
+		var wrapper = $('<div class="single_canvas_wrapper"></div>')
+		wrapper.append(this.canvas)
+		$('#preview').append(wrapper)
+
 		resizeWindow()
 		return this;
 	}
@@ -652,7 +655,7 @@ class Preview {
 				}}
 			]
 		}},
-		{icon: 'videocam', name: 'menu.preview.perspective', condition: function(preview) {return !preview.movingBackground && !display_mode}, children: function(preview) {
+		{icon: 'videocam', name: 'menu.preview.perspective', condition: function(preview) {return !preview.movingBackground && !display_mode && !Animator.state}, children: function(preview) {
 			function getBtn(angle, pers) {
 				var condition = (pers && !preview.isOrtho)
 							 || (!pers && angle === preview.angle && preview.isOrtho);
@@ -668,7 +671,7 @@ class Preview {
 				{icon: getBtn(5), name: 'direction.west', 	color: 'x', click: function(preview) {preview.setOrthographicCamera(5)}}
 			]
 		}},
-		{icon: 'widgets', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !display_mode}, click: function() {
+		{icon: 'widgets', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !display_mode && !Animator.state}, click: function() {
 			openQuadView()
 		}},
 		{icon: 'web_asset', name: 'menu.preview.fullview', condition: function(preview) {return quad_previews.enabled && !preview.movingBackground && !display_mode}, click: function(preview) {
@@ -1134,24 +1137,28 @@ function centerTransformer(offset) {
 		//Blockmodel Mode
 
 		Transformer.rotation.set(0, 0, 0)
+		var mesh = first_obj.getMesh()
 
 		if (selected.length === 1 && first_obj.rotation !== undefined) {
 			vec.x -= first_obj.origin[0]
 			vec.y -= first_obj.origin[1]
 			vec.z -= first_obj.origin[2]
-			if (first_obj.getMesh()) {
-				vec.applyEuler(first_obj.getMesh().rotation)
+			if (mesh) {
+				vec.applyEuler(mesh.rotation)
 			}
 			vec.x += first_obj.origin[0]
 			vec.y += first_obj.origin[1]
 			vec.z += first_obj.origin[2]
 		}
 		Transformer.position.copy(vec)
+		if (mesh && Blockbench.globalMovement === false) {
+			Transformer.rotation.copy(mesh.rotation)
+		}
 
 		if (first_obj.rotation !== undefined && Blockbench.globalMovement === false) {
-			Transformer.rotation.x = Math.PI / (180 /first_obj.rotation[0])
-			Transformer.rotation.y = Math.PI / (180 /first_obj.rotation[1])
-			Transformer.rotation.z = Math.PI / (180 /first_obj.rotation[2])
+			//Transformer.rotation.x = Math.PI / (180 /first_obj.rotation[0])
+			//Transformer.rotation.y = Math.PI / (180 /first_obj.rotation[1])
+			//Transformer.rotation.z = Math.PI / (180 /first_obj.rotation[2])
 		} 
 	} else {
 
@@ -1183,8 +1190,9 @@ function centerTransformer(offset) {
 		}
 		Transformer.position.copy(vec)
 		if (Blockbench.globalMovement === false) {
-			var rotation = 
-			Transformer.rotation.copy(first_obj.getMesh().rotation)
+			var rotation = new THREE.Quaternion()
+			first_obj.getMesh().getWorldQuaternion(rotation)
+			Transformer.rotation.setFromQuaternion( rotation )
 		} else {
 			Transformer.rotation.set(0, 0, 0)
 		}
@@ -1243,8 +1251,9 @@ function getUVArray(side, frame, stretch) {
 }
 class CanvasController {
 	constructor() {
-		this.materials = []
-		this.meshes = []
+		this.materials = {}
+		this.meshes = {}
+		this.bones = {}
 		this.outlineMaterial = new THREE.LineBasicMaterial({linewidth: 2})
 		this.face_order = ['east', 'west', 'up', 'down', 'south', 'north']
 	}
@@ -1262,13 +1271,15 @@ class CanvasController {
 	}
 	clear() {
 		var objects = []
-		scene.children.forEach(function(s) {
+		scene.traverse(function(s) {
 			if (s.isElement === true || s.isGroup === true) {
 				objects.push(s)
 			}
 		})
 		objects.forEach(function(s) {
-			scene.remove(s)
+			if (s.parent) {
+				s.parent.remove(s)
+			}
 			if (s.geometry) s.geometry.dispose()
 			if (s.outline && s.outline.geometry) s.outline.geometry.dispose()
 			delete Canvas.meshes[s.name]
@@ -1291,7 +1302,7 @@ class CanvasController {
 		arr.forEach(function(obj) {
 			var mesh = obj.getMesh()
 			if (mesh !== undefined) {
-				scene.remove(mesh)
+				mesh.parent.remove(mesh)
 			}
 			if (obj.visibility == true) {
 				Canvas.addCube(obj)
@@ -1311,7 +1322,7 @@ class CanvasController {
 		scene.children.forEach(function(s, i) {
 			if (s.isElement === true) {
 				if (lut.indexOf(s) === -1) {
-					scene.remove(s)
+					s.parent.remove(s)
 				}
 			}
 		})
@@ -1332,7 +1343,7 @@ class CanvasController {
 		mesh.name = s.uuid;
 		mesh.type = 'cube';
 		mesh.isElement = true;
-		scene.add(mesh)
+		//scene.add(mesh)
 		Canvas.meshes[s.uuid] = mesh
 		if (Prop.wireframe === false) {
 			Canvas.updateUV(s)
@@ -1369,50 +1380,61 @@ class CanvasController {
 		if (Blockbench.entity_mode) {
 			mesh.position.set(0, 0, 0)
 			mesh.rotation.reorder('YZX')
-			if (obj.parent !== 'root' &&
-				typeof obj.parent === 'object' &&
-				obj.parent.rotation.join('_') !== '0_0_0'
-			) {
-				var origin = obj.parent.origin
-				if (parent) {
-					origin = [parent.position.x, parent.position.y, parent.position.z]
+			function iterate(itobj) {
+				//Iterate inside (cube) > outside
+				var itmesh = itobj.type === 'cube' ? mesh : itobj.getMesh()
+				if (itobj.type === 'group') {
+					itmesh.rotation.reorder('ZYX')
+					itobj.rotation.forEach(function(n, i) {
+						itmesh.rotation[getAxisLetter(i)] = Math.PI / (180 / n) * (i == 2 ? -1 : 1)
+					})
 				}
-				mesh.position.fromArray(origin)
-				mesh.geometry.translate(-origin[0], -origin[1], -origin[2])
+				itmesh.fix_rotation = itmesh.rotation.clone()
 
-				obj.parent.rotation.forEach(function(n, i) {
-					mesh.rotation[getAxisLetter(i)] = Math.PI / (180 / n) * (i == 2 ? -1 : 1)
-				})
-
-				if (parent) {
-					mesh.rotation.set(
-						mesh.rotation.x + parent.rotation.x,
-						mesh.rotation.y + parent.rotation.y,
-						mesh.rotation.z + parent.rotation.z
-					)
+				if (itobj.type === 'group') {
+					itmesh.position.fromArray(itobj.origin)
 				}
+
+				if (typeof itobj.parent === 'object') {
+
+					itmesh.position.x -=  itobj.parent.origin[0]
+					itmesh.position.y -=  itobj.parent.origin[1]
+					itmesh.position.z -=  itobj.parent.origin[2]
+				}
+				itmesh.fix_position = itmesh.position.clone()
+
+				if (typeof itobj.parent === 'object') {
+					var parent_mesh = iterate(itobj.parent)
+					parent_mesh.add(itmesh)
+				} else {
+					scene.add(itmesh)
+				}
+				return itmesh
 			}
+			iterate(obj)
 
-		} else if (obj.rotation !== undefined) {
-
-			mesh.rotation.reorder('XYZ')
-			mesh.position.set(obj.origin[0], obj.origin[1], obj.origin[2])
-			mesh.geometry.translate(-obj.origin[0], -obj.origin[1], -obj.origin[2])
-
-			mesh.rotation.x = Math.PI / (180 /obj.rotation[0])
-			mesh.rotation.y = Math.PI / (180 /obj.rotation[1])
-			mesh.rotation.z = Math.PI / (180 /obj.rotation[2])
-
-			if (obj.rescale === true) {
-
-				var rescale = getRescalingFactor(obj.rotation.angle);
-				mesh.scale.set(rescale, rescale, rescale)
-				if (obj.rotationAxis()) {
-					mesh.scale[obj.rotationAxis()] = 1
-				}
-			}
 		} else {
-			mesh.position.set(0, 0, 0)
+			if (obj.rotation !== undefined) {
+
+				mesh.rotation.reorder('ZYX')
+				mesh.position.set(obj.origin[0], obj.origin[1], obj.origin[2])
+				mesh.geometry.translate(-obj.origin[0], -obj.origin[1], -obj.origin[2])
+
+				mesh.rotation.x = Math.PI / (180 /obj.rotation[0])
+				mesh.rotation.y = Math.PI / (180 /obj.rotation[1])
+				mesh.rotation.z = Math.PI / (180 /obj.rotation[2])
+
+				if (obj.rescale === true) {
+					var axis = obj.rotationAxis()||'y'
+
+					var rescale = getRescalingFactor(obj.rotation[getAxisNumber(axis)]);
+					mesh.scale.set(rescale, rescale, rescale)
+					mesh.scale[axis] = 1
+				}
+			} else {
+				mesh.position.set(0, 0, 0)
+			}
+			scene.add(mesh)
 		}
 		Canvas.buildOutline(obj)
 	}
@@ -1452,18 +1474,24 @@ class CanvasController {
 		elements.forEach(function(s) {
 			var mesh = s.getMesh()
 			if (s.visibility == true) {
+				if (mesh && !mesh.isLine == Prop.wireframe) {
+					if (mesh.parent) {
+						mesh.parent.remove(mesh)
+					}
+					mesh = undefined
+				}
 				if (!mesh) {
 					Canvas.addCube(s)
 				} else if (!scene.children.includes(mesh)) {
 					scene.add(mesh)
+					Canvas.adaptObjectPosition(s, mesh)
 					if (!Prop.wireframe) {
-						Canvas.adaptObjectPosition(s, mesh)
 						Canvas.adaptObjectFaces(s, mesh)
 						Canvas.updateUV(s)
 					}
 				}
-			} else {
-				scene.remove(mesh)
+			} else if (mesh.parent) {
+				mesh.parent.remove(mesh)
 			}
 		})
 		updateSelection()
@@ -1682,8 +1710,9 @@ class CanvasController {
 			var geo = new THREE.EdgesGeometry(mesh.geometry);
 			var wireframe = new THREE.LineSegments(geo, Canvas.outlineMaterial)
 
-			wireframe.position.copy(mesh.position)
-			wireframe.rotation.copy(mesh.rotation)
+			mesh.getWorldPosition(wireframe.position)
+			wireframe.position.sub(scene.position)
+			wireframe.rotation.setFromQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()))
 			wireframe.scale.copy(mesh.scale)
 
 			wireframe.name = obj.uuid+'_ghost_outline'

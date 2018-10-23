@@ -219,7 +219,7 @@ function setupInterface() {
 	//Panels
 	Interface.Panels.uv = new Panel({
 		id: 'uv',
-		condition: function() {return !display_mode},
+		condition: function() {return !display_mode && !Animator.state},
 		toolbars: {
 			bottom: Toolbars.main_uv
 		},
@@ -231,14 +231,14 @@ function setupInterface() {
 	})
 	Interface.Panels.textures = new Panel({
 		id: 'textures',
-		condition: function() {return !display_mode},
+		condition: function() {return !display_mode && !Animator.state},
 		toolbars: {
 			head: Toolbars.textures
 		}
 	})
 	Interface.Panels.options = new Panel({
 		id: 'options',
-		condition: function() {return !display_mode},
+		condition: function() {return !display_mode && !Animator.state},
 		toolbars: {
 
 		}
@@ -248,6 +248,20 @@ function setupInterface() {
 		condition: function() {return !display_mode},
 		toolbars: {
 			head: Toolbars.outliner
+		}
+	})
+	Interface.Panels.animations = new Panel({
+		id: 'animations',
+		condition: () => Animator.state,
+		toolbars: {
+			head: Toolbars.animations
+		}
+	})
+	Interface.Panels.keyframe = new Panel({
+		id: 'keyframe',
+		condition: () => Animator.state,
+		toolbars: {
+			head: Toolbars.keyframe
 		}
 	})
 	Interface.Panels.display = new Panel({
@@ -306,7 +320,7 @@ function setupInterface() {
 		if ($('.ctx').find(event.target).length === 0) {
 			$('.context_handler.ctx').removeClass('ctx')
 		}
-		if (open_menu && $('.contextMenu').find(event.target).length === 0) {
+		if (open_menu && $('.contextMenu').find(event.target).length === 0 && $('.menu_bar_point.opened:hover').length === 0) {
 			open_menu.hide();
 		}
 		if ($(event.target).is('input.cube_name:not([disabled])') === false) {
@@ -332,6 +346,15 @@ function setupInterface() {
 		eval($(event.target).attr('oninput'))
 		eval($(event.target).attr('onmouseup'))
 	})
+	$('#timeline_inner').on('mousewheel', function() {
+		if (event.ctrlKey) {
+			var offset = 1 - event.deltaY/600
+			Timeline.vue._data.size = limitNumber(Timeline.vue._data.size * offset, 10, 500)
+		} else {
+			this.scrollLeft += event.deltaY/2
+		}
+		event.preventDefault();
+	});
 
 	//Mousemove
 	$(document).mousemove(function(event) {

@@ -183,6 +183,7 @@ class Tool extends Action {
 		this.type = 'tool'
 		this.toolbar = data.toolbar;
 		this.selectFace = data.selectFace;
+		this.selectCubes = data.selectCubes !== false;
 		this.paintTool = data.paintTool;
 		this.transformerMode = data.transformerMode;
 		this.allowWireframe = data.allowWireframe == true;
@@ -1255,7 +1256,7 @@ var BARS = {
 				transformerMode: 'hidden',
 				toolbar: 'vertex_snap',
 				category: 'tools',
-				select_cubes: true,
+				selectCubes: true,
 				cursor: 'copy',
 				keybind: new Keybind({key: 88}),
 				onCanvasClick: function(data) {
@@ -1276,7 +1277,7 @@ var BARS = {
 				icon: 'icon-player',
 				transformerMode: 'hidden',
 				category: 'tools',
-				select_cubes: false,
+				selectCubes: false,
 				condition: function() {return !Blockbench.entity_mode},
 				onCanvasClick: function(data) {
 				},
@@ -1287,6 +1288,27 @@ var BARS = {
 					exitDisplaySettings()
 				}
 			})
+			/*
+			new Tool({
+				id: 'animation_mode_tool',
+				icon: 'movie',
+				transformerMode: 'hidden',
+				category: 'tools',
+				selectCubes: false,
+				condition: () => Blockbench.entity_mode,
+				onCanvasClick: function(data) {
+					if (data.cube && data.cube.parent.type === 'group') {
+
+						data.cube.parent.select()
+					}
+				},
+				onSelect: function() {
+					Animator.join()
+				},
+				onUnselect: function() {
+					Animator.leave()
+				}
+			})*/
 
 			new Action({
 				id: 'swap_tools',
@@ -1448,7 +1470,6 @@ var BARS = {
 					Blockbench.export({
 						type: 'Optifine Entity Model',
 						extensions: ['jem'],
-						name: Project.name,
 						startpath: Prop.file_path,
 						content: content
 					})
@@ -1462,7 +1483,6 @@ var BARS = {
 					Blockbench.export({
 						type: 'Alias Wavefront',
 						extensions: ['obj'],
-						name: Project.name ? Project.name : Prop.file_name,
 						startpath: Prop.file_path,
 						custom_writer: writeFileObj
 					})
@@ -1570,6 +1590,7 @@ var BARS = {
 				id: 'undo',
 				icon: 'undo',
 				category: 'edit',
+				condition: () => (!display_mode && !Animator.state),
 				keybind: new Keybind({key: 90, ctrl: true}),
 				click: function () {Undo.undo()}
 			})
@@ -1577,6 +1598,7 @@ var BARS = {
 				id: 'redo',
 				icon: 'redo',
 				category: 'edit',
+				condition: () => (!display_mode && !Animator.state),
 				keybind: new Keybind({key: 89, ctrl: true}),
 				click: function () {Undo.redo()}
 			})
@@ -1656,7 +1678,7 @@ var BARS = {
 				id: 'invert_selection',
 				icon: 'swap_vert',
 				category: 'edit',
-				keybind: new Keybind({key: 73, ctrl: true}),
+				keybind: new Keybind({key: 73, ctrl: true, shift: true}),
 				click: function () {invertSelection()}
 			})
 			new Action({
@@ -1871,6 +1893,57 @@ var BARS = {
 				}
 			})
 
+		//Move Cube Keys
+			new Action({
+				id: 'move_up',
+				icon: 'arrow_upward',
+				category: 'transform',
+				condition: () => (selected.length && !open_interface && !open_menu),
+				keybind: new Keybind({key: 38, ctrl: null, shift: null}),
+				click: function (e) {moveCubesRelative(-1, 2, e)}
+			})
+			new Action({
+				id: 'move_down',
+				icon: 'arrow_downward',
+				category: 'transform',
+				condition: () => (selected.length && !open_interface && !open_menu),
+				keybind: new Keybind({key: 40, ctrl: null, shift: null}),
+				click: function (e) {moveCubesRelative(1, 2, e)}
+			})
+			new Action({
+				id: 'move_left',
+				icon: 'arrow_back',
+				category: 'transform',
+				condition: () => (selected.length && !open_interface && !open_menu),
+				keybind: new Keybind({key: 37, ctrl: null, shift: null}),
+				click: function (e) {moveCubesRelative(-1, 0, e)}
+			})
+			new Action({
+				id: 'move_right',
+				icon: 'arrow_forward',
+				category: 'transform',
+				condition: () => (selected.length && !open_interface && !open_menu),
+				keybind: new Keybind({key: 39, ctrl: null, shift: null}),
+				click: function (e) {moveCubesRelative(1, 0, e)}
+			})
+			new Action({
+				id: 'move_forth',
+				icon: 'keyboard_arrow_up',
+				category: 'transform',
+				condition: () => (selected.length && !open_interface && !open_menu),
+				keybind: new Keybind({key: 33, ctrl: null, shift: null}),
+				click: function (e) {moveCubesRelative(-1, 1, e)}
+			})
+			new Action({
+				id: 'move_back',
+				icon: 'keyboard_arrow_down',
+				category: 'transform',
+				condition: () => (selected.length && !open_interface && !open_menu),
+				keybind: new Keybind({key: 34, ctrl: null, shift: null}),
+				click: function (e) {moveCubesRelative(1, 1, e)}
+			})
+
+
 		//View
 			new Action({
 				id: 'fullscreen',
@@ -2049,9 +2122,9 @@ var BARS = {
 				icon: 'zoom_out_map',
 				category: 'uv',
 				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function () { 
+				click: function (event) { 
 					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('maximize')
+					uv_dialog.forSelection('maximize', event)
 					Undo.finishEdit('uv')
 				}
 			})
@@ -2060,9 +2133,9 @@ var BARS = {
 				icon: 'brightness_auto',
 				category: 'uv',
 				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function () {
+				click: function (event) {
 					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('setAutoSize')
+					uv_dialog.forSelection('setAutoSize', event)
 					Undo.finishEdit('uv')
 				}
 			})
@@ -2071,9 +2144,9 @@ var BARS = {
 				icon: 'brightness_auto',
 				category: 'uv',
 				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function () {
+				click: function (event) {
 					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('setRelativeAutoSize')
+					uv_dialog.forSelection('setRelativeAutoSize', event)
 					Undo.finishEdit('uv')
 				}
 			})
@@ -2082,9 +2155,9 @@ var BARS = {
 				icon: 'icon-mirror_x',
 				category: 'uv',
 				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function () {
+				click: function (event) {
 					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('mirrorX')
+					uv_dialog.forSelection('mirrorX', event)
 					Undo.finishEdit('uv')
 				}
 			})
@@ -2093,9 +2166,9 @@ var BARS = {
 				icon: 'icon-mirror_y',
 				category: 'uv',
 				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function () {
+				click: function (event) {
 					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('mirrorY')
+					uv_dialog.forSelection('mirrorY', event)
 					Undo.finishEdit('uv')
 				}
 			})
@@ -2104,9 +2177,9 @@ var BARS = {
 				icon: 'clear',
 				category: 'uv',
 				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function () {
+				click: function (event) {
 					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('clear')
+					uv_dialog.forSelection('clear', event)
 					Undo.finishEdit('uv')
 				}
 			})
@@ -2115,9 +2188,9 @@ var BARS = {
 				icon: 'replay',
 				category: 'uv',
 				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function () {
+				click: function (event) {
 					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('reset')
+					uv_dialog.forSelection('reset', event)
 					Undo.finishEdit('uv')
 				}
 			})
@@ -2156,9 +2229,9 @@ var BARS = {
 				icon: 'block',
 				category: 'uv',
 				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function () {
+				click: function (event) {
 					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('autoCullface')
+					uv_dialog.forSelection('autoCullface', event)
 					Undo.finishEdit('uv')
 				}
 			})
@@ -2166,9 +2239,9 @@ var BARS = {
 				id: 'face_tint',
 				category: 'uv',
 				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function (e) {
+				click: function (event) {
 					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('switchTint', e)
+					uv_dialog.forSelection('switchTint', event)
 					Undo.finishEdit('uv')
 				}
 			})
@@ -2195,11 +2268,14 @@ var BARS = {
 				category: 'transform',
 				condition: function() {return !Blockbench.entity_mode && selected.length;},
 				click: function () {
+					Undo.initEdit({cubes: selected})
 					var value = !selected[0].rescale
 					selected.forEach(function(cube) {
 						cube.rescale = value
 					})
+					Canvas.updatePositions()
 					updateNslideValues()
+					Undo.finishEdit('rescale')
 				}
 			})
 			new Action({
@@ -2208,8 +2284,10 @@ var BARS = {
 				category: 'transform',
 				condition: function() {return Blockbench.entity_mode && selected_group;},
 				click: function () {
+					Undo.initEdit({group: selected_group})
 					selected_group.reset = !selected_group.reset
 					updateNslideValues()
+					Undo.finishEdit('bone_reset')
 				}
 			})
 
@@ -2256,6 +2334,67 @@ var BARS = {
 				click: function () {showDialog('create_preset')}
 			})
 
+		//Animations
+		/*
+			new Action({
+				id: 'add_animation',
+				icon: 'fa-plus-circle',
+				category: 'animation',
+				condition: () => Animator.state,
+				click: function () {
+					var animation = new Animation({name: 'animation.'+Project.parent.replace(/geometry./, '')+'.new'}).add()
+
+				}
+			})
+			new Action({
+				id: 'load_animation_file',
+				icon: 'fa-file-video-o',
+				category: 'animation',
+				condition: () => Animator.state,
+				click: function () {
+					
+					Blockbench.import({
+						extensions: ['json'],
+						type: 'JSON Animation'
+					}, function(files) {
+						Animator.loadFile(files[0])
+					})
+
+				}
+			})
+			new Action({
+				id: 'export_animation_file',
+				icon: 'fa-file-video-o',
+				category: 'animation',
+				condition: () => Animator.state,
+				click: function () {
+					var content = autoStringify(Animator.buildFile())
+					Blockbench.export({
+						type: 'JSON Animation',
+						extensions: ['json'],
+						name: Project.parent||'animation',
+						startpath: Prop.file_path,
+						content: content
+					})
+
+				}
+			})
+			new Action({
+				id: 'play_animation',
+				icon: 'play_arrow',
+				category: 'animation',
+				condition: () => Animator.state,
+				click: function () {
+					
+					if (Animator.playing) {
+						Timeline.pause()
+					} else {
+						Timeline.start()
+					}
+
+				}
+			})*/
+
 		//Misc
 			new Action({
 				id: 'reload',
@@ -2285,6 +2424,23 @@ var BARS = {
 			],
 			default_place: true
 		})
+		//Toolbars.animations = new Toolbar({
+		//	id: 'animations',
+		//	children: [
+		//		'add_animation',
+		//		'load_animation_file',
+		//		'play_animation',
+		//		'export_animation_file'
+		//	],
+		//	default_place: true
+		//})
+		//Toolbars.keyframe = new Toolbar({
+		//	id: 'keyframe',
+		//	children: [
+		//		'reload_textures'
+		//	],
+		//	default_place: true
+		//})
 		Toolbars.texturelist = new Toolbar({
 			id: 'texturelist',
 			children: [
@@ -2302,7 +2458,8 @@ var BARS = {
 				'resize_tool',
 				'vertex_snap_tool',
 				'brush_tool',
-				'display_mode_tool'
+				'display_mode_tool',
+				//'animation_mode_tool'
 			],
 			default_place: true
 		})
@@ -2324,6 +2481,15 @@ var BARS = {
 				'slider_origin_y',
 				'slider_origin_z',
 				'origin_to_geometry'
+			],
+			default_place: true
+		})
+		Toolbars.display = new Toolbar({
+			id: 'display',
+			children: [
+				'copy',
+				'paste',
+				'add_display_preset'
 			],
 			default_place: true
 		})
@@ -2752,11 +2918,15 @@ class BarMenu extends Menu {
 		this.node = $('<ul class="contextMenu"></ul>')[0]
 		this.label = $('<li class="menu_bar_point">'+tl('menu.'+id)+'</li>')[0]
 		$(this.label).click(function() {
-			scope.show()
+			if (open_menu === scope) {
+				scope.hide()
+			} else {
+				scope.open()
+			}
 		})
 		$(this.label).mouseenter(function() {
 			if (MenuBar.open && MenuBar.open !== scope) {
-				scope.show()
+				scope.open()
 			}
 		})
 		this.structure = structure

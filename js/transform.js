@@ -68,7 +68,7 @@ function origin2geometry() {
 	Undo.finishEdit('origin2geometry')
 }
 function isMovementGlobal() {
-	if (selected.length === 0 || !settings.local_move.value) {
+	if (selected.length === 0 || (!settings.local_move.value && Toolbox.selected.id !== 'resize_tool')) {
 		return true;
 	}
 
@@ -174,7 +174,14 @@ function moveCube(obj, val, axis) {
 		} else {
 			var m = new THREE.Vector3()
 			m[getAxisLetter(axis)] = difference
-			m.removeEuler(obj.getMesh().rotation)
+
+
+
+			var rotation = new THREE.Quaternion()
+			obj.getMesh().getWorldQuaternion(rotation)
+			m.applyQuaternion(rotation.inverse())
+
+
 			obj.from[0] += m.x;
 			obj.from[1] += m.y;
 			obj.from[2] += m.z;
@@ -185,7 +192,6 @@ function moveCube(obj, val, axis) {
 	}
 	obj.mapAutoUV()
 }
-
 function scaleCube(obj, val, axis) {
 	obj.to[axis] = limitToBox(val + obj.from[axis])
 	obj.mapAutoUV()
@@ -193,6 +199,47 @@ function scaleCube(obj, val, axis) {
 function scaleCubeNegative(obj, val, axis) {
 	obj.from[axis] = limitToBox(obj.to[axis] - val)
 	obj.mapAutoUV()
+}
+function moveCubesRelative(difference, index, event) { //Multiple
+	if (!quad_previews.current) {
+		return;
+	}
+	Undo.initEdit({cubes: selected})
+    var axes = []
+    // < >
+    // PageUpDown
+    // ^ v
+    var facing = quad_previews.current.getFacingDirection()
+    var height = quad_previews.current.getFacingHeight()
+    switch (facing) {
+        case 'north': axes = [0, 2, 1]; break;
+        case 'south': axes = [0, 2, 1]; break;
+        case 'west':  axes = [2, 0, 1]; break;
+        case 'east':  axes = [2, 0, 1]; break;
+    }
+
+    if (height !== 'middle') {
+        if (index === 1) {
+            index = 2
+        } else if (index === 2) {
+            index = 1
+        }
+    }
+    if (facing === 'south' && (index === 0 || index === 1))  difference *= -1
+    if (facing === 'west'  && index === 0)  difference *= -1
+    if (facing === 'east'  && index === 1)  difference *= -1
+    if (index === 2 && height !== 'down') difference *= -1
+    if (index === 1 && height === 'up') difference *= -1
+
+    if (event) {
+    	difference *= canvasGridSize(event.shiftKey, event.ctrlKey);
+    }
+    
+    selected.forEach(function(s) {
+        moveCube(s, s.from[axes[index]]+difference, axes[index])
+    })
+    Canvas.updatePositions()
+	Undo.finishEdit('move')
 }
 //Rotate
 function rotateSelected(axis, steps) {

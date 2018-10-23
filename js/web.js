@@ -43,7 +43,7 @@ function tryLoadPOSTModel() {
 
 
 //Saver
-function saveFileEntity() {
+function writeFileEntity() {
 	var obj = {}
 	var model_name = Project.parent
 	if (model_name == '') model_name = 'geometry.unknown'
@@ -51,19 +51,19 @@ function saveFileEntity() {
 
 	var data = autoStringify(obj)
 	var blob = new Blob([data], {type: "text/plain;charset=utf-8"});
-	saveAs(blob, 'mobs.json')
+	saveAs(blob, 'mobs.json', {autoBOM: true})
 	Blockbench.showQuickMessage('Saved as bedrock entity model')
 }
-function saveFileObj() {
+function writeFileObj() {
 	var content = buildOBJModel('model')
 	//OBJECT
 	var blob_obj = new Blob([content.obj], {type: "text/plain;charset=utf-8"});
-	var obj_saver = saveAs(blob_obj, 'model.obj')
+	var obj_saver = saveAs(blob_obj, 'model.obj', {autoBOM: true})
 
 	obj_saver.onwriteend = function() {
 		//MATERIAL
 		var blob_mtl = new Blob([content.mtl], {type: "text/plain;charset=utf-8"});
-		saveAs(blob_mtl, 'model.mtl').onwriteend = function() {
+		saveAs(blob_mtl, 'model.mtl', {autoBOM: true}).onwriteend = function() {
 			if (settings.obj_textures.value === true) {
 				var tex_i = 0
 				function saveTex() {
@@ -93,13 +93,12 @@ function saveFileObj() {
 			}
 		}
 	}
-
 }
 
 function saveFile() {
 	var data = buildBlockModel()
 	var blob = new Blob([data], {type: "text/plain;charset=utf-8"});
-	saveAs(blob, 'model.json')
+	saveAs(blob, 'model.json', {autoBOM: true})
 }
 
 //Misc

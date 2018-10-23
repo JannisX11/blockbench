@@ -52,10 +52,8 @@
 	"keys.printscreen": "Print Screen",
 	"keys.pause": "Pause",
 
-	"mobile_tab.preview": "Preview",
-	"mobile_tab.textures": "Textures",
-	"mobile_tab.elements": "Elements",
-	"mobile_tab.menu": "Menu",
+	"status_bar.saved":"Model is saved",
+	"status_bar.unsaved":"There are unsaved changes",
 
 	"message.rotation_limit.title": "Rotation Limits",
 	"message.rotation_limit.message": "Rotations are limited by Minecraft to one axis and 22.5 degree increments. Rotating on a different axis will clear all rotations on the other axes. Disable the option \"Restricted Rotation\" if you are modeling for other purposes and need free rotations.",
@@ -443,6 +441,8 @@
 	"action.vertex_snap_tool.desc": "Move one cube to another cube by connecting two vertices.",
 	"action.display_mode_tool": "Display",
 	"action.display_mode_tool.desc": "Change how the model will look when held by players",
+	"action.animation_mode_tool": "Animation",
+	"action.animation_mode_tool.desc": "Define custom animations for the model",
 	"action.swap_tools": "Swap Tools",
 	"action.swap_tools.desc": "Switch between the move and resize tool",
 
@@ -577,6 +577,19 @@
 
 	"action.add_display_preset": "New Preset",
 	"action.add_display_preset.desc": "Add a new display setting preset.",
+
+	"action.move_up": "Move Up",
+	"action.move_up.desc": "Move the selected cubes up relative to the current camera angle",
+	"action.move_down": "Move Down",
+	"action.move_down.desc": "Move the selected cubes down relative to the current camera angle",
+	"action.move_left": "Move Left",
+	"action.move_left.desc": "Move the selected cubes left relative to the current camera angle",
+	"action.move_right": "Move Right",
+	"action.move_right.desc": "Move the selected cubes right relative to the current camera angle",
+	"action.move_forth": "Move Forth",
+	"action.move_forth.desc": "Move the selected cubes forth relative to the current camera angle",
+	"action.move_back": "Move Back",
+	"action.move_back.desc": "Move the selected cubes back relative to the current camera angle",
 
 	"action.fullscreen": "Fullscreen",
 	"action.fullscreen.desc": "Toggles fullscreen mode.",

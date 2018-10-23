@@ -315,7 +315,8 @@ class UVEditor {
 	}
 	getBrushCoordinates(event, tex) {
 		var scope = this;
-		var multiplier = tex ? tex.res/Project.texture_width : 1
+		var multiplier = (Blockbench.entity_mode && tex) ? tex.res/Project.texture_width : 1
+		var pixel_size = scope.size / tex.res
 		return {
 			x: Math.floor(event.offsetX/scope.getPixelSize()*multiplier),
 			y: Math.floor(event.offsetY/scope.getPixelSize()*multiplier)
@@ -327,6 +328,7 @@ class UVEditor {
 
 		var texture = scope.getTexture()
 		if (texture) {
+			Painter.current.x = Painter.current.y = 0
 			var x = scope.getBrushCoordinates(event, texture).x
 			var y = scope.getBrushCoordinates(event, texture).y
 			Painter.startBrush(texture, x, y, undefined, event)
@@ -342,9 +344,37 @@ class UVEditor {
 		if (!texture) {
 			Blockbench.showQuickMessage('message.untextured')
 		} else {
-			var x = scope.getBrushCoordinates(event, texture).x
-			var y = scope.getBrushCoordinates(event, texture).y
-			Painter.useBrush(texture, x, y)
+			var x, y, new_face;
+			var end_x = x = scope.getBrushCoordinates(event, texture).x
+			var end_y = y = scope.getBrushCoordinates(event, texture).y
+
+
+			if (x === Painter.current.x && y === Painter.current.y) {
+				//return
+			}
+			if (Painter.current.face !== scope.face) {
+				Painter.current.x = x
+				Painter.current.y = y
+				Painter.current.face = scope.face
+				new_face = true
+			}
+			var diff = {
+				x: x - (Painter.current.x||x),
+				y: y - (Painter.current.y||y),
+			}
+			var length = Math.sqrt(diff.x*diff.x + diff.y*diff.y)
+			if (new_face && !length) {
+				length = 1
+			}
+			var i = 0;
+			while (i < length) {
+				x = end_x - diff.x / length * i
+				y = end_y - diff.y / length * i
+				Painter.useBrush(texture, x, y)
+				i++;
+			}
+			Painter.current.x = end_x
+			Painter.current.y = end_y
 		}
 	}
 	stopBrush(event) {
@@ -417,7 +447,7 @@ class UVEditor {
 			this.jquery.size.resizable('option', 'grid', [size/this.grid, size/this.grid])
 		}
 		for (var id in this.sliders) {
-			this.sliders[id].setWidth(size/(Blockbench.entity_mode?2:4)-2.5)
+			this.sliders[id].setWidth(size/(Blockbench.entity_mode?2:4)-3)
 		}
 		if (!cancel_load) {
 			this.loadData()
@@ -762,6 +792,7 @@ class UVEditor {
 				difference = limitNumber(difference + size, 0, limit) - size
 				obj.uv_offset[axis] = difference
 			}
+			Canvas.updateUV(obj)
 		})
 		this.displaySliders()
 		this.displayFrame()
@@ -773,10 +804,13 @@ class UVEditor {
 			if (Blockbench.entity_mode === false) {
 
 				var uvTag = scope.getUVTag(obj)
-				if (!fixed) {
+				if (fixed) {
+					difference += uvTag[axis]
+				} else {
 					difference += uvTag[axis+2]
 				}
 				uvTag[axis+2] = limitNumber(difference, 0, 16)
+				Canvas.updateUV(obj)
 			}
 		})
 		this.displaySliders()
