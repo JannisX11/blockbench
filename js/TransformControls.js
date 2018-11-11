@@ -1,5 +1,6 @@
 /**
- * @author arodic / https://github.com/arodic
+ * original author: arodic / https://github.com/arodic
+ * modified for Blockbench by jannisx11
  */
 
 ( function () {
@@ -556,6 +557,9 @@
 			scope.dispatchEvent(changeEvent);
 		};
 
+		this.cancel = function () {
+		};
+
 		this.updateVisibleAxes = function () {
 			scope.children[ _mode === 'translate' ? 0 : 1 ].children[0].children.forEach(function(s, i) {
 				if (!scope.camera.axis) {
@@ -769,6 +773,8 @@
 							})
 							Undo.initEdit({cubes: selected})
 						} else if (Toolbox.selected.id === 'move_tool') {
+
+							previousValue = undefined
 							Undo.initEdit({cubes: selected})
 						}
 
@@ -782,7 +788,6 @@
 
 							oldPositionArray.push(new THREE.Vector3());
 							oldScaleArray.push(new THREE.Vector3());
-							//parentRotationArray.push(s.rotation);
 							oldOriginPosition = new THREE.Vector3()
 							oldOriginPosition.copy(scope.position)
 
@@ -791,7 +796,6 @@
 							oldScaleArray[ oldScaleArray.length-1 ].copy( s.scale );
 
 							parentScale.setFromMatrixScale( tempMatrix.getInverse( s.parent.matrixWorld ) );
-
 						})
 
 						offset.copy( planeIntersect.point );
@@ -842,7 +846,7 @@
 
 				var axisNumber = getAxisNumber(axis)
 				var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
-				point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor * (useBedrockFlipFix(axis) ? -1 : 1)
+				point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor// * (useBedrockFlipFix(axis) ? -1 : 1)
 
 
 				if (previousValue !== point[axis]) {
@@ -866,73 +870,43 @@
 					scope.hasChanged = true
 				}
 
-			} else {
+			} else if (Toolbox.selected.id === 'move_tool') {
 
-				//Translate
+
 				var axis = scope.axis.toLowerCase()
-
-				if ( scope.axis !== "X") point.x = 0;
-				if ( scope.axis !== "Y") point.y = 0;
-				if ( scope.axis !== "Z") point.z = 0;
-
+				var axisNumber = getAxisNumber(axis)
 				var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
-				point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor * (useBedrockFlipFix(axis) ? -1 : 1)
+				point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor// * (useBedrockFlipFix(axis) ? -1 : 1)
 
+				if (previousValue === undefined) {
+					previousValue = point[axis]
 
-				if (previousValue !== point[axis]) {
-
-					var axis = getAxisNumber(axis)
-
-					var rotatedPoint = new THREE.Vector3();
-					rotatedPoint.copy(point)
-					if (Blockbench.globalMovement === false && !Blockbench.entity_mode) {
-						var rotation = new THREE.Quaternion()
-						scope.objects[0].getWorldQuaternion(rotation)
-						rotatedPoint.applyQuaternion(rotation)
-					}
-
-					centerTransformer(rotatedPoint)
-					previousValue = point.getComponent(axis)
-
-					var difference = scope.position.distanceTo(oldOriginPosition)
-					var shiftVec = new THREE.Vector3().copy(oldOriginPosition)
-					shiftVec.sub(scope.position).negate().removeEuler(Transformer.rotation)
-					if (shiftVec[scope.axis.toLowerCase()] < 0) {
-						difference *= -1
-					}
-
-					var nslide_number = trimFloatNumber( limitNumber( selected[0].from[axis] + difference ) )
-					BarItems['slider_pos_'+scope.axis.toLowerCase()].setValue(nslide_number)
-					scope.hasChanged = true
+				} else if (previousValue !== point[axis]) {
+					var difference = point[axis] - previousValue
 
 					var overlapping = false
 					if (settings.restricted_canvas.value && !Blockbench.entity_mode) {
 						selected.forEach(function(obj) {
 							overlapping = overlapping || (
-								obj.to[axis] + difference > 32 ||
-								obj.to[axis] + difference < -16 ||
-								obj.from[axis] + difference > 32 ||
-								obj.from[axis] + difference < -16
+								obj.to[axisNumber] + difference > 32 ||
+								obj.to[axisNumber] + difference < -16 ||
+								obj.from[axisNumber] + difference > 32 ||
+								obj.from[axisNumber] + difference < -16
 							)
 						})
 					}
-
 					if (!overlapping) {
-						scope.last_valid_position.copy(scope.position)
-						scope.objects.forEach(function(s, i) {
-							s.position.copy( oldPositionArray[i] );
-							if (Blockbench.entity_mode && Blockbench.globalMovement) {
-								var cube_offset = new THREE.Vector3().copy(rotatedPoint)
-								var rotation = new THREE.Quaternion()
-								s.getWorldQuaternion(rotation)
-								cube_offset.applyQuaternion(rotation.inverse())
-								s.position.add( cube_offset );
-							} else {
-								s.position.add( rotatedPoint );
-							}
-
+						selected.forEach(function(obj, i) {
+							var mesh = scope.objects[i]
+							var valx = obj.from[axisNumber]
+							valx += difference
+							moveCube(obj, valx, axisNumber)
 						})
+						Canvas.updatePositions(true)
+						centerTransformer()
 					}
+					previousValue = point[axis]
+					scope.hasChanged = true
 				}
 			}
 			scope.dispatchEvent( changeEvent );
@@ -965,25 +939,10 @@
 
 				} else if (scope.axis !== null) {
 
-					var axis = scope.axis.toLowerCase()
-					var difference = scope.last_valid_position.distanceTo(oldOriginPosition)
-
-					oldOriginPosition.sub(scope.last_valid_position).negate()
-					if (Blockbench.globalMovement) {
-						oldOriginPosition.removeEuler(Transformer.rotation)
-					}
-
-					if (oldOriginPosition[axis] < 0) {
-						difference *= -1
-					}
-
-					selected.forEach(function(obj) {
-						var valx = obj.from[getAxisNumber(axis)]
-						valx += difference
-						moveCube(obj, valx, getAxisNumber(axis))
-					})
-
 					Canvas.updatePositions()
+					selected.forEach(function(obj) {
+						delete obj.oldPosition
+					})
 					if (scope.hasChanged) {
 						Undo.finishEdit('move')
 					}

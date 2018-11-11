@@ -225,7 +225,7 @@ $(document).keydown(function(e) {
 	}
 
 	var used = false;
-	var input_focus = $('input[type="text"]:focus, input[type="number"]:focus, div[contenteditable="true"]:focus').length > 0
+	var input_focus = $('input[type="text"]:focus, input[type="number"]:focus, div[contenteditable="true"]:focus, textarea:focus').length > 0
 
 	if (input_focus) {
 		//User Editing Anything

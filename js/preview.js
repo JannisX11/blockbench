@@ -263,7 +263,7 @@ class Preview {
 	resetCamera() {
 		this.controls.target.set(0, -3, 0);
 		this.camPers.position.set(-20, 20, -20)
-		this.setCameraType('pers')
+		this.setNormalCamera()
 		return this;
 	}
 	getFacingDirection() {
@@ -581,7 +581,7 @@ class Preview {
 			var dataUrl = scope.canvas.toDataURL()
 
 			dataUrl = dataUrl.replace('data:image/png;base64,','')
-			Jimp.read(Buffer.from(dataUrl, 'base64'), function() {}).then(function(image) { 
+			Jimp.read(Buffer.from(dataUrl, 'base64')).then(function(image) { 
 				
 				image.autocrop([0, false])
 				if (options && options.width && options.height) {
@@ -624,6 +624,9 @@ class Preview {
 		{icon: 'photo_camera', name: 'menu.preview.screenshot', click: function(preview) {
 			preview.screenshot()
 		}},
+		{icon: 'icon-player', name: 'settings.display_skin', condition: () => (display_mode && displayReferenceObjects.active.id === 'player'), click: function() {
+			changeDisplaySkin()
+		}},
 		{icon: 'wallpaper', name: 'menu.preview.background', children: function(preview) {
 			var has_background = !!main_preview.background.image
 			return [
@@ -655,7 +658,7 @@ class Preview {
 				}}
 			]
 		}},
-		{icon: 'videocam', name: 'menu.preview.perspective', condition: function(preview) {return !preview.movingBackground && !display_mode && !Animator.state}, children: function(preview) {
+		{icon: 'videocam', name: 'menu.preview.perspective', condition: function(preview) {return !preview.movingBackground && !display_mode && !Animator.open}, children: function(preview) {
 			function getBtn(angle, pers) {
 				var condition = (pers && !preview.isOrtho)
 							 || (!pers && angle === preview.angle && preview.isOrtho);
@@ -671,7 +674,7 @@ class Preview {
 				{icon: getBtn(5), name: 'direction.west', 	color: 'x', click: function(preview) {preview.setOrthographicCamera(5)}}
 			]
 		}},
-		{icon: 'widgets', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !display_mode && !Animator.state}, click: function() {
+		{icon: 'widgets', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !display_mode && !Animator.open}, click: function() {
 			openQuadView()
 		}},
 		{icon: 'web_asset', name: 'menu.preview.fullview', condition: function(preview) {return quad_previews.enabled && !preview.movingBackground && !display_mode}, click: function(preview) {
@@ -839,7 +842,11 @@ function initCanvas() {
 	}
 	emptyMaterials = []
 	cubeColors.forEach(function(s, i) {
-		var thismaterial = new THREE.MeshLambertMaterial({color: 0xffffff, map: tex})
+		var thismaterial = new THREE.MeshLambertMaterial({
+			color: 0xffffff,
+			map: tex,
+			side: display_mode || Blockbench.entity_mode ? 2 : 0
+		})
 
 		thismaterial.color.set(s.hex)
 		emptyMaterials.push(thismaterial)
@@ -884,6 +891,9 @@ function resizeWindow(event) {
 	})
 	if (Interface.data) {
 		updateInterfacePanels()
+	}
+	if (Animator.open) {
+		Timeline.updateSize()
 	}
 	if (!Toolbars || !Toolbars[Toolbox.selected.toolbar]) return;
 	Toolbars[Toolbox.selected.toolbar].children.forEach(function(action) {
@@ -1087,18 +1097,6 @@ function buildGrid() {
 		setupGrid = true;
 	}
 }
-function setOriginHelper(obj) {
-
-	rot_origin.position.x = obj.origin[0]
-	rot_origin.position.y = obj.origin[1]
-	rot_origin.position.z = obj.origin[2]
-
-	rot_origin.rotation.x = Math.degToRad( obj.rotation[0] )
-	rot_origin.rotation.y = Math.degToRad( obj.rotation[1] )
-	rot_origin.rotation.z = Math.degToRad( obj.rotation[2] )
-
-	scene.add(rot_origin)
-}
 function centerTransformer(offset) {
 	if (selected.length === 0) return;
 	var first_obj
@@ -1109,14 +1107,47 @@ function centerTransformer(offset) {
 	var center = [0, 0, 0]
 	var i = 0;
 	selected.forEach(function(obj) {
-		i = 0;
-		while (i < 3) {
-			center[i] += obj.from[i]
-			center[i] += obj.to[i]
-			i++;
-		}
-		if (!first_obj && obj.visibility) {
-			first_obj = obj
+		var m = obj.getMesh()
+		if (obj.visibility && m) {
+			var pos = new THREE.Vector3(
+				obj.from[0] + obj.size(0)/2,
+				obj.from[1] + obj.size(1)/2,
+				obj.from[2] + obj.size(2)/2
+			)
+			if (!Blockbench.entity_mode) {
+
+				pos.x -= obj.origin[0]
+				pos.y -= obj.origin[1]
+				pos.z -= obj.origin[2]
+				var r = m.getWorldQuaternion(new THREE.Quaternion())
+				pos.applyQuaternion(r)
+				pos.x += obj.origin[0]
+				pos.y += obj.origin[1]
+				pos.z += obj.origin[2]
+			} else {
+				TreeElements.forEach((obj) => {
+					if (obj.type === 'group') {
+						let mesh = obj.getMesh()
+						if (obj.visibility && mesh) {
+							mesh.updateMatrixWorld()
+						}
+					}
+				})
+				var r = m.getWorldQuaternion(new THREE.Quaternion())
+				pos.applyQuaternion(r)
+				pos.add(m.getWorldPosition(new THREE.Vector3()))
+				pos.x += 8
+				pos.y += 8
+				pos.z += 8
+			}
+
+			center[0] += pos.x
+			center[1] += pos.y
+			center[2] += pos.z
+
+			if (!first_obj) {
+				first_obj = obj
+			}
 		}
 	})
 	if (!first_obj) {
@@ -1124,7 +1155,7 @@ function centerTransformer(offset) {
 	}
 	i = 0;
 	while (i < 3) {
-		center[i] = center[i] / (selected.length * 2)
+		center[i] = center[i] / selected.length
 		i++;
 	}
 	var vec = new THREE.Vector3(center[0], center[1], center[2])
@@ -1135,45 +1166,27 @@ function centerTransformer(offset) {
 	if (Blockbench.entity_mode === false) {
 
 		//Blockmodel Mode
-
 		Transformer.rotation.set(0, 0, 0)
-		var mesh = first_obj.getMesh()
-
-		if (selected.length === 1 && first_obj.rotation !== undefined) {
-			vec.x -= first_obj.origin[0]
-			vec.y -= first_obj.origin[1]
-			vec.z -= first_obj.origin[2]
-			if (mesh) {
-				vec.applyEuler(mesh.rotation)
-			}
-			vec.x += first_obj.origin[0]
-			vec.y += first_obj.origin[1]
-			vec.z += first_obj.origin[2]
-		}
 		Transformer.position.copy(vec)
+
+		var mesh = first_obj.getMesh()
 		if (mesh && Blockbench.globalMovement === false) {
 			Transformer.rotation.copy(mesh.rotation)
 		}
-
-		if (first_obj.rotation !== undefined && Blockbench.globalMovement === false) {
-			//Transformer.rotation.x = Math.PI / (180 /first_obj.rotation[0])
-			//Transformer.rotation.y = Math.PI / (180 /first_obj.rotation[1])
-			//Transformer.rotation.z = Math.PI / (180 /first_obj.rotation[2])
-		} 
 	} else {
 
 		//Entity Mode
 
 		var group;
 		if (selected_group) {
-			var group = selected_group
+			group = selected_group
 		} else {
 			var i = 0;
 			while (i < selected.length) {
 				if (typeof selected[i].parent === 'object' &&
 					selected[i].parent.type === 'group'
 				) {
-					var group = selected[i].parent
+					group = selected[i].parent
 					i = selected.length
 				}
 				i++;
@@ -1199,7 +1212,7 @@ function centerTransformer(offset) {
 	}
 
 	if (offset !== undefined) {
-		Transformer.position.add(offset)
+		//Transformer.position.add(offset)
 	}
 }
 //Display
@@ -1254,7 +1267,14 @@ class CanvasController {
 		this.materials = {}
 		this.meshes = {}
 		this.bones = {}
-		this.outlineMaterial = new THREE.LineBasicMaterial({linewidth: 2})
+		this.outlineMaterial = new THREE.LineBasicMaterial({
+			linewidth: 2,
+			transparent: true
+		})
+		this.wireframeMaterial = new THREE.MeshBasicMaterial({
+			color: 0x00FF00,
+			wireframe: true
+		});
 		this.face_order = ['east', 'west', 'up', 'down', 'south', 'north']
 	}
 	raycast(event) {
@@ -1310,34 +1330,11 @@ class CanvasController {
 		})
 		updateSelection()
 	}
-	updateIndexes() {
-		var lut = []
-		elements.forEach(function(s, i) {
-			var obj = s.getMesh();
-			if (obj !== undefined) {
-				obj.name = s.uuid;
-				lut.push(obj)
-			}
-		})
-		scene.children.forEach(function(s, i) {
-			if (s.isElement === true) {
-				if (lut.indexOf(s) === -1) {
-					s.parent.remove(s)
-				}
-			}
-		})
-		updateSelection()
-	}
 	addCube(s) {
 		//This does NOT remove old cubes
 
-		//Material
-		if (Prop.wireframe === false) {
-			var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1))
-			Canvas.adaptObjectFaces(s, mesh)
-		} else {
-			var mesh = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)), wireframeMaterial);
-		}
+		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1))
+		Canvas.adaptObjectFaces(s, mesh)
 
 		Canvas.adaptObjectPosition(s, mesh)
 		mesh.name = s.uuid;
@@ -1364,16 +1361,9 @@ class CanvasController {
 			}
 		}
 
-		if (Prop.wireframe === true) {
-			var proxy_box = new THREE.BoxGeometry(1, 1, 1)
-			setSize(proxy_box)
-			proxy_box.computeBoundingSphere()
-			mesh.geometry = new THREE.EdgesGeometry(proxy_box)
-			mesh.vertices = proxy_box.vertices
-		} else {
-			setSize(mesh.geometry)
-			mesh.geometry.computeBoundingSphere()
-		}
+		setSize(mesh.geometry)
+		mesh.geometry.computeBoundingSphere()
+
 		mesh.scale.set(1, 1, 1)
 		mesh.rotation.set(0, 0, 0)
 
@@ -1388,11 +1378,13 @@ class CanvasController {
 					itobj.rotation.forEach(function(n, i) {
 						itmesh.rotation[getAxisLetter(i)] = Math.PI / (180 / n) * (i == 2 ? -1 : 1)
 					})
+					itmesh.updateMatrixWorld()
 				}
 				itmesh.fix_rotation = itmesh.rotation.clone()
 
 				if (itobj.type === 'group') {
 					itmesh.position.fromArray(itobj.origin)
+					itmesh.scale.x = itmesh.scale.y = itmesh.scale.z = 1
 				}
 
 				if (typeof itobj.parent === 'object') {
@@ -1437,6 +1429,7 @@ class CanvasController {
 			scene.add(mesh)
 		}
 		Canvas.buildOutline(obj)
+		mesh.updateMatrixWorld()
 	}
 	updatePositions(leave_selection) {
 		updateNslideValues()
@@ -1457,6 +1450,7 @@ class CanvasController {
 		})
 		if (leave_selection !== true) {
 			updateSelection()
+			updateSelection()
 		}
 	}
 	updateAllPositions(leave_selection) {
@@ -1474,23 +1468,17 @@ class CanvasController {
 		elements.forEach(function(s) {
 			var mesh = s.getMesh()
 			if (s.visibility == true) {
-				if (mesh && !mesh.isLine == Prop.wireframe) {
-					if (mesh.parent) {
-						mesh.parent.remove(mesh)
-					}
-					mesh = undefined
-				}
 				if (!mesh) {
 					Canvas.addCube(s)
 				} else if (!scene.children.includes(mesh)) {
 					scene.add(mesh)
 					Canvas.adaptObjectPosition(s, mesh)
+					Canvas.adaptObjectFaces(s, mesh)
 					if (!Prop.wireframe) {
-						Canvas.adaptObjectFaces(s, mesh)
 						Canvas.updateUV(s)
 					}
 				}
-			} else if (mesh.parent) {
+			} else if (mesh && mesh.parent) {
 				mesh.parent.remove(mesh)
 			}
 		})
@@ -1503,51 +1491,68 @@ class CanvasController {
 				mat.side = display_mode || Blockbench.entity_mode ? 2 : 0
 			}
 		})
+		emptyMaterials.forEach(function(mat) {
+			mat.side = display_mode || Blockbench.entity_mode ? 2 : 0
+		})
 	}
 	adaptObjectFaces(obj, mesh) {
-		if (Prop.wireframe === true) return;
 		if (!mesh) mesh = obj.getMesh()
-		var materials = []
+		if (!Prop.wireframe) {
+			var materials = []
+			this.face_order.forEach(function(face) {
 
-		this.face_order.forEach(function(face) {
+				if (obj.faces.hasOwnProperty(face)) {
 
-			if (obj.faces.hasOwnProperty(face)) {
-
-				var tex = getTextureById(obj.faces[face].texture)
-				if (typeof tex !== 'object') {
-					materials.push(emptyMaterials[obj.color])
-				} else {
-					materials.push(Canvas.materials[tex.uuid])
+					var tex = getTextureById(obj.faces[face].texture)
+					if (typeof tex !== 'object') {
+						materials.push(emptyMaterials[obj.color])
+					} else {
+						materials.push(Canvas.materials[tex.uuid])
+					}
 				}
+			})
+			mesh.material = materials
+		} else {
+			mesh.material = Canvas.wireframeMaterial
+		}
+		/*
+		if (!mesh.wireframe == Prop.wireframe) {
+			if (Prop.wireframe) {
+				mesh.wireframe = Canvas.getOutlineMesh(mesh);
+				mesh.add(mesh.wireframe);
+			} else {
+				mesh.remove(mesh.wireframe);
+				delete mesh.wireframe;
 			}
-		})
-		mesh.material = materials
+		}*/
 	}
 	updateSelectedFaces() {
-		if (Prop.wireframe === true) return;
 		selected.forEach(function(obj) {
 			if (obj.visibility == true) {
 				Canvas.adaptObjectFaces(obj)
-				Canvas.updateUV(obj)
+				if (!Prop.wireframe) {
+					Canvas.updateUV(obj)
+				}
 			}
 		})
 	}
 	updateAllFaces(texture) {
-		if (Prop.wireframe === true) return;
-		elements.forEach(function(s, i) {
-			if (s.visibility == true) {
+		elements.forEach(function(obj) {
+			if (obj.visibility == true) {
 				var used = true;
 				if (texture) {
 				 	used = false;
-					for (var face in s.faces) {
-						if (s.faces[face] && s.faces[face].texture === '#'+texture.id) {
+					for (var face in obj.faces) {
+						if (obj.faces[face] && obj.faces[face].texture === '#'+texture.id) {
 				 			used = true;
 						}
 					}
 				}
 				if (used === true) {
-					Canvas.adaptObjectFaces(s)
-					Canvas.updateUV(s)
+					Canvas.adaptObjectFaces(obj)
+					if (!Prop.wireframe) {
+						Canvas.updateUV(obj)
+					}
 				}
 			}
 		})
@@ -1688,18 +1693,45 @@ class CanvasController {
 		mesh.geometry.elementsNeedUpdate = true;
 		return mesh.geometry
 	}
+	getOutlineMesh(mesh) {
+		var vs = mesh.geometry.vertices
+		var geometry = new THREE.Geometry()
+		geometry.vertices = [
+			vs[2],
+			vs[3],
+			vs[6],
+			vs[7],
+			vs[2],
+			vs[0],
+			vs[1],
+			vs[4],
+			vs[5],
+			vs[0],//1
+			vs[5],
+			vs[7],//2
+			vs[6],
+			vs[4],//3
+			vs[1],
+			vs[3]
+		]
+		return new THREE.Line(geometry, Canvas.outlineMaterial)
+	}
 	buildOutline(obj) {
 		if (obj.visibility == false) return;
 		var mesh = obj.getMesh()
 		if (mesh === undefined) return;
+
+		if (mesh.outline) {
+			mesh.outline.geometry.verticesNeedUpdate = true;
+			return;
+		}
 		mesh.remove(mesh.outline)
 
-		var geo = new THREE.EdgesGeometry(mesh.geometry);
-		var wireframe = new THREE.LineSegments(geo, Canvas.outlineMaterial)
-		wireframe.name = obj.uuid+'_outline'
-		wireframe.visible = obj.selected
-		mesh.outline = wireframe
-		mesh.add(wireframe)
+		var line = Canvas.getOutlineMesh(mesh)
+		line.name = obj.uuid+'_outline'
+		line.visible = obj.selected
+		mesh.outline = line
+		mesh.add(line)
 	}
 	outlineObjects(arr) {
 		arr.forEach(function(obj) {
@@ -1707,6 +1739,16 @@ class CanvasController {
 			var mesh = obj.getMesh()
 			if (mesh === undefined) return;
 
+			var line = Canvas.getOutlineMesh(mesh)
+
+			mesh.getWorldPosition(line.position)
+			line.position.sub(scene.position)
+			line.rotation.setFromQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()))
+			line.scale.copy(mesh.scale)
+
+			line.name = obj.uuid+'_ghost_outline'
+			outlines.add(line)
+			/*
 			var geo = new THREE.EdgesGeometry(mesh.geometry);
 			var wireframe = new THREE.LineSegments(geo, Canvas.outlineMaterial)
 
@@ -1717,7 +1759,160 @@ class CanvasController {
 
 			wireframe.name = obj.uuid+'_ghost_outline'
 			outlines.add(wireframe)
+			*/
 		})
 	}
 }
 var Canvas = new CanvasController()
+
+BARS.defineActions(function() {
+	new Action({
+		id: 'toggle_wireframe',
+		icon: 'border_clear',
+		category: 'view',
+		keybind: new Keybind({key: 90}),
+		condition: () => Toolbox && Toolbox.selected && Toolbox.selected.allowWireframe,
+		click: function () {
+			Prop.wireframe = !Prop.wireframe
+			Canvas.updateAll()
+		}
+	})
+
+	new Action({
+		id: 'screenshot_model',
+		icon: 'fa-cubes',
+		category: 'view',
+		keybind: new Keybind({key: 80, ctrl: true}),
+		click: function () {quad_previews.current.screenshot()}
+	})
+	new Action({
+		id: 'screenshot_app',
+		icon: 'icon-bb_interface',
+		category: 'view',
+		click: function () {Screencam.fullScreen()}
+	})
+	new Action({
+		id: 'toggle_quad_view',
+		icon: 'widgets',
+		category: 'view',
+		keybind: new Keybind({key: 9}),
+		click: function () {
+			main_preview.toggleFullscreen()
+		}
+	})
+
+				//{icon: getBtn(0, true), name: 'menu.preview.perspective.normal', click: function(preview) {preview.setNormalCamera()}},
+				//{icon: getBtn(0), name: 'direction.top',	color: 'y', (0)}},
+				//{icon: getBtn(1), name: 'direction.bottom',	color: 'y', (1)}},
+				//{icon: getBtn(2), name: 'direction.south',	color: 'z', (2)}},
+				//{icon: getBtn(3), name: 'direction.north', 	color: 'z', (3)}},
+				//{icon: getBtn(4), name: 'direction.east', 	color: 'x', (4)}},
+				//{icon: getBtn(5), name: 'direction.west', 	color: 'x', (5)}}
+				/*
+        reset_view:  {shift: false, ctrl: false, alt: false, code: 96,  name: 'Reset View', char: 'NUMPAD 0'},
+        view_normal: {shift: false, ctrl: false, alt: false, code: 101, name: 'Normal View', char: 'NUMPAD 5'},
+        view_0:      {shift: false, ctrl: false, alt: false, code: 104, name: 'Top View', char: 'NUMPAD 8'},
+        view_1:      {shift: false, ctrl: false, alt: false, code: 98,  name: 'Bottom View', char: 'NUMPAD 2'},
+        view_2:      {shift: false, ctrl: false, alt: false, code: 100, name: 'South View', char: 'NUMPAD 4'},
+        view_3:      {shift: false, ctrl: false, alt: false, code: 102, name: 'North View', char: 'NUMPAD 6'},
+        view_4:      {shift: false, ctrl: false, alt: false, code: 103, name: 'East View', char: 'NUMPAD 7'},
+        view_5:      {shift: false, ctrl: false, alt: false, code: 105, name: 'West View', char: 'NUMPAD 9'}
+				*/
+
+	new Action({
+		id: 'camera_reset',
+		name: 'direction.top',
+		description: 'direction.top',
+		icon: 'videocam',
+		category: 'view',
+		keybind: new Keybind({key: 96}),
+		click: function () {
+			quad_previews.current.resetCamera()
+		}
+	})
+	new Action({
+		id: 'camera_normal',
+		name: 'menu.preview.perspective.normal',
+		description: 'menu.preview.perspective.normal',
+		icon: 'videocam',
+		category: 'view',
+		keybind: new Keybind({key: 101}),
+		click: function () {
+			quad_previews.current.setNormalCamera()
+		}
+	})
+
+
+	new Action({
+		id: 'camera_top',
+		name: 'direction.top',
+		description: 'direction.top',
+		icon: 'videocam',
+		color: 'y',
+		category: 'view',
+		keybind: new Keybind({key: 104}),
+		click: function () {
+			quad_previews.current.setOrthographicCamera(0)
+		}
+	})
+	new Action({
+		id: 'camera_bottom',
+		name: 'direction.bottom',
+		description: 'direction.bottom',
+		icon: 'videocam',
+		color: 'y',
+		category: 'view',
+		keybind: new Keybind({key: 98}),
+		click: function () {
+			quad_previews.current.setOrthographicCamera(1)
+		}
+	})
+	new Action({
+		id: 'camera_south',
+		name: 'direction.south',
+		description: 'direction.south',
+		icon: 'videocam',
+		color: 'z',
+		category: 'view',
+		keybind: new Keybind({key: 100}),
+		click: function () {
+			quad_previews.current.setOrthographicCamera(2)
+		}
+	})
+	new Action({
+		id: 'camera_north',
+		name: 'direction.north',
+		description: 'direction.north',
+		icon: 'videocam',
+		color: 'z',
+		category: 'view',
+		keybind: new Keybind({key: 102}),
+		click: function () {
+			quad_previews.current.setOrthographicCamera(3)
+		}
+	})
+	new Action({
+		id: 'camera_east',
+		name: 'direction.east',
+		description: 'direction.east',
+		icon: 'videocam',
+		color: 'x',
+		category: 'view',
+		keybind: new Keybind({key: 103}),
+		click: function () {
+			quad_previews.current.setOrthographicCamera(4)
+		}
+	})
+	new Action({
+		id: 'camera_west',
+		name: 'direction.west',
+		description: 'direction.west',
+		icon: 'videocam',
+		color: 'x',
+		category: 'view',
+		keybind: new Keybind({key: 105}),
+		click: function () {
+			quad_previews.current.setOrthographicCamera(5)
+		}
+	})
+})

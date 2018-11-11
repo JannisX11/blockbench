@@ -170,7 +170,8 @@ class Texture {
 			color: 0xffffff,
 			map: tex,
 			transparent: settings.transparency.value,
-			side: display_mode || Blockbench.entity_mode ? 2 : 0
+			side: display_mode || Blockbench.entity_mode ? 2 : 0,
+			alphaTest: 0.2
 		});
 		Canvas.materials[this.uuid] = mat
 		return this;
@@ -180,7 +181,10 @@ class Texture {
 			this.load()
 			return this;
 		}
-
+		if (link.substr(0, 22) === 'data:image/png;base64,') {
+			this.fromDataURL(link)
+			return this;
+		}
 		var spaces = link.split(':')
 		if (spaces.length > 1) {
 			this.namespace = spaces[0]
@@ -546,7 +550,7 @@ class Texture {
 		if (isApp) {
 			//overwrite path
 			if (scope.mode === 'link') {
-				var image = nativeImage.createFromPath(scope.source).toPNG()
+				var image = nativeImage.createFromPath(scope.source.replace(/\?\d+$/, '')).toPNG()
 			} else {
 				var image = nativeImage.createFromDataURL(scope.source).toPNG()
 			}
@@ -679,7 +683,7 @@ class Texture {
 			},
 			{
 				icon: 'delete',
-				name: 'menu.texture.delete',
+				name: 'generic.delete',
 				click: function(texture) {
 					Undo.initEdit({textures: [texture], bitmap: true})
 					texture.remove()
@@ -850,3 +854,67 @@ function getTexturesById(id) {
 	id = id.split('#').join('');
 	return $.grep(textures, function(e) {return e.id == id});
 }
+
+BARS.defineActions(function() {
+	new Action({
+		id: 'import_texture',
+		icon: 'library_add',
+		category: 'textures',
+		keybind: new Keybind({key: 84, ctrl: true}),
+		click: function () {
+			openTexture()
+		}
+	})
+	new Action({
+		id: 'create_texture',
+		icon: 'icon-create_bitmap',
+		category: 'textures',
+		keybind: new Keybind({key: 84, ctrl: true, shift: true}),
+		click: function () {
+			Painter.addBitmapDialog()
+		}
+	})
+	new Action({
+		id: 'reload_textures',
+		icon: 'refresh',
+		category: 'textures',
+		keybind: new Keybind({key: 82, ctrl: true}),
+		condition: isApp,
+		click: reloadTextures
+	})
+	new Action({
+		id: 'save_textures',
+		icon: 'save',
+		category: 'textures',
+		keybind: new Keybind({key: 83, ctrl: true, alt: true}),
+		click: function () {saveTextures()}
+	})
+	new Action({
+		id: 'change_textures_folder',
+		icon: 'fa-hdd-o',
+		category: 'textures',
+		condition: () => textures.length > 0,
+		click: function () {changeTexturesFolder()}
+	})
+	new Action({
+		id: 'animated_textures',
+		icon: 'play_arrow',
+		category: 'textures',
+		condition: function() {
+			if (Blockbench.entity_mode) return false;
+			var i = 0;
+			var show = false;
+			while (i < textures.length) {
+				if (textures[i].frameCount > 1) {
+					show = true;
+					i = textures.length
+				}
+				i++;
+			}
+			return show;
+		},
+		click: function () {
+			TextureAnimator.toggle()
+		}
+	})
+})

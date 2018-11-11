@@ -10,13 +10,10 @@ function newProject(entity_mode) {
 		selected.length = 0;
 		selected_group = undefined;
 		display = {};
-		Project.name = '';
-		Project.parent = '';
-		Project.description	 = '';
+		Project.name = Project.parent = Project.description	 = '';
 		Project.texture_width = Project.texture_height = 16;
 		Project.ambientocclusion = true;
-		Prop.file_path = '';
-		Prop.file_name = '';
+		Prop.file_path = Prop.file_name = Prop.file_name_alt = '';
 		Prop.project_saved = true;
 		Prop.added_models = 0;
 		setProjectTitle();
@@ -26,11 +23,14 @@ function newProject(entity_mode) {
 		Undo.history.length = 0;
 		Undo.index = 0;
 		Painter.current = {};
+		Animator.animations.length = 1;
+		Animator.animations.splice(0, 1);
 		if (entity_mode) {
 			entityMode.join();
 		} else {
 			entityMode.leave();
 		}
+		$('#var_placeholder_area').val('')
 		return true;
 	} else {
 		return false;
@@ -197,7 +197,7 @@ function loadBlockModel(model, filepath, add) {
 				up:	{uv: [0,0,0,0], texture: '$transparent'},
 				down:  {uv: [0,0,0,0], texture: '$transparent'},
 			},
-			autouv: false,
+			autouv: 0,
 			export: false
 		})
 		elements.push(base_cube);
@@ -333,7 +333,7 @@ function loadJEMModel(model) {
 				function addBox(box, i, mirrored) {
 					var base_cube = new Cube({
 						name: box.name || group.name,
-						autouv: false,
+						autouv: 0,
 						uv_offset: box.textureOffset,
 						inflate: box.sizeAdd
 					})
@@ -557,7 +557,7 @@ function loadPEModel(data) {
 			included_bones.push(b.name)
 		})
 		data.object.bones.forEach(function(b, bi) {
-			var group = new Group({name: b.name, origin: b.pivot})
+			var group = new Group({name: b.name, origin: b.pivot, material: b.material})
 			bones[b.name] = group
 			if (b.pivot) {
 				group.origin[0] *= -1
@@ -587,7 +587,7 @@ function loadPEModel(data) {
 
 			if (b.cubes) {
 				b.cubes.forEach(function(s) {
-					var base_cube = new Cube({name: b.name, autouv: false, color: bi%8})
+					var base_cube = new Cube({name: b.name, autouv: 0, color: bi%8})
 					if (s.origin) {
 						base_cube.from = s.origin
 						base_cube.from[0] = -(base_cube.from[0] + s.size[0])
@@ -692,7 +692,7 @@ var Extruder = {
 		var texture_index = '#'+textures[textures.length-1].id
 		var isNewProject = elements.length === 0;
 
-		var jimage = Jimp.read(Extruder.ext_img.src, function() {}).then(function(image) {	
+		var jimage = Jimp.read(Extruder.ext_img.src).then(function(image) {	
 			var pixel_opacity_tolerance = $('#scan_tolerance').val()
 			function isOpaquePixel(px_x, px_y) {
 				return parseInt(image.getPixelColor(px_x, px_y).toString(16).substr(6,2), 16) >= pixel_opacity_tolerance;
@@ -897,7 +897,7 @@ function buildBlockModel(options) {
 			} else {
 				element.rotation = new oneLiner({
 					angle: 0,
-					axis: 'y',
+					axis: s.rotation_axis||'y',
 					origin: s.origin,
 					rescale: true
 				})
@@ -1109,6 +1109,9 @@ function buildEntityModel(options) {
 		}
 		if (!g.shade) {
 			bone.mirror = true
+		}
+		if (g.material) {
+			bone.material = g.material
 		}
 		//Cubes
 		if (g.children && g.children.length) {
@@ -1420,3 +1423,161 @@ function autoParseJSON(data, feedback) {
 	}
 	return data;
 }
+
+BARS.defineActions(function() {
+	new Action({
+		id: 'new_block_model',
+		icon: 'insert_drive_file',
+		category: 'file',
+		keybind: new Keybind({key: 78, ctrl: true}),
+		click: function () {newProject()}
+	})
+	new Action({
+		id: 'new_entity_model',
+		icon: 'pets',
+		category: 'file',
+		keybind: new Keybind({key: 78, ctrl: true, shift: true}),
+		click: function () {newProject(true)}
+	})
+	new Action({
+		id: 'open_model',
+		icon: 'assessment',
+		category: 'file',
+		keybind: new Keybind({key: 79, ctrl: true}),
+		click: function () {
+			Blockbench.import({
+				extensions: ['json', 'jem', 'jpm'],
+				type: 'JSON Model'
+			}, function(files) {
+				if (isApp) {
+					addRecentProject({name: pathToName(files[0].path, 'mobs_id'), path: files[0].path})
+				}
+				loadModel(files[0].content, files[0].path)
+			})
+		}
+	})
+	new Action({
+		id: 'add_model',
+		icon: 'assessment',
+		category: 'file',
+		click: function () {
+			Blockbench.import({
+				extensions: ['json', 'jem', 'jpm'],
+				type: 'JSON Model'
+			}, function(files) {
+				if (isApp) {
+					addRecentProject({name: pathToName(files[0].path, 'mobs_id'), path: files[0].path})
+				}
+				loadModel(files[0].content, files[0].path, true)
+			})
+		}
+	})
+	new Action({
+		id: 'extrude_texture',
+		icon: 'eject',
+		category: 'file',
+		click: function () {
+			Blockbench.import({
+				extensions: ['png'],
+				type: 'PNG Texture',
+				readtype: 'image'
+			}, function(files) {
+				if (files.length) {
+					if (isApp) {
+	                	new Texture().fromPath(files[0].path).add().fillParticle()
+					} else {
+	                	new Texture().fromDataURL(files[0].content).add().fillParticle()
+					}
+	                showDialog('image_extruder')
+					Extruder.drawImage(isApp ? files[0].path : files[0].content)
+				}
+			})
+		}
+	})
+	new Action({
+		id: 'export_blockmodel',
+		icon: 'insert_drive_file',
+		category: 'file',
+		keybind: new Keybind({key: 83, ctrl: true, shift: true}),
+		condition: function() {return !Blockbench.entity_mode},
+		click: function () {
+			var content = buildBlockModel()
+			Blockbench.export({
+				type: 'JSON Model',
+				extensions: ['json'],
+				name: Project.name||'model',
+				startpath: Prop.file_path,
+				content: content
+			})
+		}
+	})
+	new Action({
+		id: 'export_entity',
+		icon: 'pets',
+		category: 'file',
+		keybind: new Keybind({key: 83, ctrl: true, shift: true}),
+		condition: function() {return Blockbench.entity_mode},
+		click: function () {
+			var content = buildEntityModel({raw: true});
+			Blockbench.export({
+				type: 'JSON Entity Model',
+				extensions: ['json'],
+				name: Project.name,
+				startpath: Prop.file_path,
+				content: content,
+				custom_writer: writeFileEntity
+			})
+		}
+	})
+	new Action({
+		id: 'export_optifine_part',
+		icon: 'icon-optifine_file',
+		category: 'file',
+		condition: function() {return !Blockbench.entity_mode},
+		click: function () {
+			var content = buildJPMModel()
+			Blockbench.export({
+				type: 'Optifine Part Model',
+				extensions: ['jpm'],
+				name: Project.name,
+				startpath: Prop.file_path,
+				content: content
+			})
+		}
+	})
+	new Action({
+		id: 'export_optifine_full',
+		icon: 'icon-optifine_file',
+		category: 'file',
+		condition: function() {return Blockbench.entity_mode},
+		click: function () {
+			var content = buildJEMModel()
+			Blockbench.export({
+				type: 'Optifine Entity Model',
+				extensions: ['jem'],
+				startpath: Prop.file_path,
+				content: content
+			})
+		}
+	})
+	new Action({
+		id: 'export_obj',
+		icon: 'icon-objects',
+		category: 'file',
+		click: function () {
+			Blockbench.export({
+				type: 'Alias Wavefront',
+				extensions: ['obj'],
+				startpath: Prop.file_path,
+				custom_writer: writeFileObj
+			})
+		}
+	})
+	new Action({
+		id: 'save',
+		icon: 'save',
+		category: 'file',
+		keybind: new Keybind({key: 83, ctrl: true}),
+		click: function () {saveFile();saveTextures();}
+	})
+})

@@ -348,3 +348,20 @@ function switchPluginTabs(installed) {
 		Plugins.Vue._data.showAll = true
 	}
 }
+
+BARS.defineActions(function() {
+	new Action({
+		id: 'load_plugin',
+		icon: 'fa-file-code-o',
+		category: 'blockbench',
+		click: function () {
+			Blockbench.import({
+				extensions: ['bbplugin', 'js'],
+				type: 'Blockbench Plugin',
+				startpath: localStorage.getItem('plugin_dev_path')
+			}, function(files) {
+				loadPluginFromFile(files[0])
+			})
+		}
+	})
+})

@@ -81,6 +81,11 @@ class API {
 		}, time ? time : 1000)
 	}
 	showStatusMessage(message, time) {
+		Blockbench.setStatusBarText(tl(message))
+		setTimeout(function() {
+			Blockbench.setStatusBarText()
+		}, time ? time : 600)
+		/*
 		var status_message = $('#status_message')
 		var status_name	= $('#status_name')
 
@@ -92,7 +97,14 @@ class API {
 		setTimeout(function() {
 			status_message.hide(100)
 			status_name.show(100)
-		}, time ? time : 600)
+		}, time ? time : 600)*/
+	}
+	setStatusBarText(text) {
+		if (text) {
+			Prop.file_name = text
+		} else {
+			Prop.file_name = Prop.file_name_alt||''
+		}
 	}
 	showMessage(message, location) {
 		if (location === 'status_bar') {
@@ -173,7 +185,7 @@ class API {
 	}
 	textPrompt(title, value, callback) {
 		showDialog('text_input')
-		$('#text_input h2').text(title)
+		$('#text_input h2').text(tl(title))
 		$('#text_input input#text_input_field').val(value).select()
 		$('#text_input button.confirm_btn').off()
 		$('#text_input button.confirm_btn').click(function() {

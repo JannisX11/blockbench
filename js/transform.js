@@ -201,7 +201,7 @@ function scaleCubeNegative(obj, val, axis) {
 	obj.mapAutoUV()
 }
 function moveCubesRelative(difference, index, event) { //Multiple
-	if (!quad_previews.current) {
+	if (!quad_previews.current || !selected.length) {
 		return;
 	}
 	Undo.initEdit({cubes: selected})
@@ -243,6 +243,7 @@ function moveCubesRelative(difference, index, event) { //Multiple
 }
 //Rotate
 function rotateSelected(axis, steps) {
+	if (!selected.length) return;
 	Undo.initEdit({cubes: selected});
 	if (!steps) steps = 1
 	var origin = [8, 8, 8]
@@ -261,6 +262,7 @@ function rotateSelected(axis, steps) {
 }
 //Mirror
 function mirrorSelected(axis) {
+	if (!selected.length) return;
 	Undo.initEdit({cubes: selected})
 	var center = 8
 	if (selected_group && Blockbench.entity_mode) {
@@ -363,6 +365,7 @@ function centerCubesAll(axis) {
 	Canvas.updatePositions()
 }
 function centerCubes(axis, update) {
+	if (!selected.length) return;
 	var average = 0;
 	selected.forEach(function(obj) {
 		average += obj.from[axis]
@@ -381,3 +384,592 @@ function centerCubes(axis, update) {
 		Canvas.updatePositions()
 	}
 }
+
+BARS.defineActions(function() {
+	function moveOnAxis(value, fixed, axis) {
+		selected.forEach(function(obj, i) {
+			var number = value
+			if (fixed) {
+				number -= obj.from[axis]
+			}
+			number = limitToBox(obj.to  [axis] + number) - obj.to  [axis];
+			number = limitToBox(obj.from[axis] + number) - obj.from[axis];
+			obj.from[axis] += number
+			obj.to[axis] += number
+			obj.mapAutoUV()
+		})
+		Canvas.updatePositions()
+	}
+	new NumSlider({
+		id: 'slider_pos_x',
+		condition: function() {return selected.length},
+		get: function() {
+			return selected[0].from[0]
+		},
+		change: function(value, fixed) {
+			moveOnAxis(value, fixed, 0)
+		},
+		onBefore: function() {
+			Undo.initEdit({cubes: selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('move')
+		}
+	}) 
+	new NumSlider({
+		id: 'slider_pos_y',
+		condition: function() {return selected.length},
+		get: function() {
+			return selected[0].from[1]
+		},
+		change: function(value, fixed) {
+			moveOnAxis(value, fixed, 1)
+		},
+		onBefore: function() {
+			Undo.initEdit({cubes: selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('move')
+		}
+	}) 
+	new NumSlider({
+		id: 'slider_pos_z',
+		condition: function() {return selected.length},
+		get: function() {
+			return selected[0].from[2]
+		},
+		change: function(value, fixed) {
+			moveOnAxis(value, fixed, 2)
+		},
+		onBefore: function() {
+			Undo.initEdit({cubes: selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('move')
+		}
+	})
+
+
+	function scaleOnAxis(value, fixed, axis) {
+		selected.forEach(function(obj, i) {
+			var diff = value
+			if (fixed) {
+				diff -= obj.size(axis)
+			}
+			obj.to[axis] = limitToBox(obj.to[axis] + diff)
+			obj.mapAutoUV()
+		})
+		Canvas.updatePositions()
+	}
+	new NumSlider({
+		id: 'slider_size_x',
+		condition: function() {return selected.length},
+		get: function() {
+			return selected[0].to[0] - selected[0].from[0]
+		},
+		change: function(value, fixed) {
+			scaleOnAxis(value, fixed, 0)
+		},
+		onBefore: function() {
+			Undo.initEdit({cubes: selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('resize')
+		}
+	})
+	new NumSlider({
+		id: 'slider_size_y',
+		condition: function() {return selected.length},
+		get: function() {
+			return selected[0].to[1] - selected[0].from[1]
+		},
+		change: function(value, fixed) {
+			scaleOnAxis(value, fixed, 1)
+		},
+		onBefore: function() {
+			Undo.initEdit({cubes: selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('resize')
+		}
+	})
+	new NumSlider({
+		id: 'slider_size_z',
+		condition: function() {return selected.length},
+		get: function() {
+			return selected[0].to[2] - selected[0].from[2]
+		},
+		change: function(value, fixed) {
+			scaleOnAxis(value, fixed, 2)
+		},
+		onBefore: function() {
+			Undo.initEdit({cubes: selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('resize')
+		}
+	})
+
+	new NumSlider({
+		id: 'slider_inflate',
+		condition: function() {return Blockbench.entity_mode && selected.length},
+		get: function() {
+			return selected[0].inflate
+		},
+		change: function(value, fixed) {
+			selected.forEach(function(obj, i) {
+				var diff = value
+				if (fixed) {
+					diff -= obj.inflate
+				}
+				obj.inflate = obj.inflate + diff
+			})
+			Canvas.updatePositions()
+		},
+		onBefore: function() {
+			Undo.initEdit({cubes: selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('inflate')
+		}
+	})
+
+	function rotateOnAxis(value, fixed, axis) {
+		if (Blockbench.entity_mode) {	
+			if (!selected_group) return;
+			if (!fixed) {
+				value = value + selected_group.rotation[axis]
+			}
+			value = value % 360
+			selected_group.rotation[axis] = value
+			Canvas.updatePositions()
+			return;
+		}
+		//Warning
+		if (settings.limited_rotation.value && settings.dialog_rotation_limit.value) {
+			var i = 0;
+			while (i < selected.length) {
+				if (selected[i].rotation[(axis+1)%3] ||
+					selected[i].rotation[(axis+2)%3]
+				) {
+					i = Infinity
+
+					Blockbench.showMessageBox({
+						title: tl('message.rotation_limit.title'),
+						icon: 'rotate_right',
+						message: tl('message.rotation_limit.message'),
+						buttons: [tl('dialog.ok'), tl('dialog.dontshowagain')]
+					}, function(r) {
+						if (r === 1) {
+							settings.dialog_rotation_limit.value = false
+							saveSettings()
+						}
+					})
+					return;
+					//Gotta stop the numslider here
+				}
+				i++;
+			}
+		}
+		var axis_letter = getAxisLetter(axis)
+		var origin = selected[0].origin
+		selected.forEach(function(obj, i) {
+			if (!obj.rotation.equals([0,0,0])) {
+				origin = obj.origin
+			}
+		})
+		selected.forEach(function(obj, i) {
+			if (obj.rotation.equals([0,0,0])) {
+				obj.origin = origin
+			}
+			var obj_val = value;
+			if (!fixed) {
+				obj_val += obj.rotation[axis]
+			}
+			obj_val = obj_val % 360
+			if (settings.limited_rotation.value) {
+				//Limit To 1 Axis
+				obj.rotation[(axis+1)%3] = 0
+				obj.rotation[(axis+2)%3] = 0
+				//Limit Angle
+				obj_val = Math.round(obj_val/22.5)*22.5
+				if (obj_val > 45 || obj_val < -45) {
+
+					let f = obj_val > 45
+					obj.roll(axis, f!=(axis==1) ? 1 : 3)
+					obj_val = f ? -22.5 : 22.5;
+				}
+			}
+			obj.rotation[axis] = obj_val
+			obj.rotation_axis = axis_letter
+		})
+		Canvas.updatePositions()
+	}
+	function getRotationInterval(event) {
+		if (settings.limited_rotation.value && !Blockbench.entity_mode) {
+			return 22.5;
+		} else if (event.shiftKey && event.ctrlKey) {
+			return 0.25;
+		} else if (event.shiftKey) {
+			return 45;
+		} else if (event.ctrlKey) {
+			return 1;
+		} else {
+			return 5;
+		}
+	}
+	new NumSlider({
+		id: 'slider_rotation_x',
+		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
+		get: function() {
+			var obj = Blockbench.entity_mode ? selected_group : selected[0]
+			return obj ? obj.rotation[0] : ''
+		},
+		change: function(value, fixed) {
+			rotateOnAxis(value, fixed, 0)
+		},
+		onBefore: function() {
+			Undo.initEdit({cubes: selected, group: selected_group})
+		},
+		onAfter: function() {
+			Undo.finishEdit('rotate')
+		},
+		getInterval: getRotationInterval
+	})
+	new NumSlider({
+		id: 'slider_rotation_y',
+		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
+		get: function() {
+			var obj = Blockbench.entity_mode ? selected_group : selected[0]
+			return obj ? obj.rotation[1] : ''
+		},
+		change: function(value, fixed) {
+			rotateOnAxis(value, fixed, 1)
+		},
+		onBefore: function() {
+			Undo.initEdit({cubes: selected, group: selected_group})
+		},
+		onAfter: function() {
+			Undo.finishEdit('rotate')
+		},
+		getInterval: getRotationInterval
+	})
+	new NumSlider({
+		id: 'slider_rotation_z',
+		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
+		get: function() {
+			var obj = Blockbench.entity_mode ? selected_group : selected[0]
+			return obj ? obj.rotation[2] : ''
+		},
+		change: function(value, fixed) {
+			rotateOnAxis(value, fixed, 2)
+		},
+		onBefore: function() {
+			Undo.initEdit({cubes: selected, group: selected_group})
+		},
+		onAfter: function() {
+			Undo.finishEdit('rotate')
+		},
+		getInterval: getRotationInterval
+	})
+
+
+	function moveOriginOnAxis(value, fixed, axis) {
+		if (selected_group) {
+			var diff = value
+			if (fixed) {
+				diff -= selected_group.origin[axis]
+			}
+			selected_group.origin[axis] += diff
+			Canvas.updatePositions()
+			return;
+		}
+		selected.forEach(function(obj, i) {
+			var diff = value
+			if (fixed) {
+				diff -= obj.origin[axis]
+			}
+			obj.origin[axis] += diff
+		})
+		Canvas.updatePositions()
+	}
+	new NumSlider({
+		id: 'slider_origin_x',
+		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
+		get: function() {
+			var obj = Blockbench.entity_mode ? selected_group : selected[0]
+			return obj ? obj.origin[0] : ''
+		},
+		change: function(value, fixed) {
+			moveOriginOnAxis(value, fixed, 0)
+		},
+		onBefore: function() {
+			Undo.initEdit({cubes: selected, group: selected_group})
+		},
+		onAfter: function() {
+			Undo.finishEdit('origin')
+		}
+	})
+	new NumSlider({
+		id: 'slider_origin_y',
+		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
+		get: function() {
+			var obj = Blockbench.entity_mode ? selected_group : selected[0]
+			return obj ? obj.origin[1] : ''
+		},
+		change: function(value, fixed) {
+			moveOriginOnAxis(value, fixed, 1)
+		},
+		onBefore: function() {
+			Undo.initEdit({cubes: selected, group: selected_group})
+		},
+		onAfter: function() {
+			Undo.finishEdit('origin')
+		}
+	})
+	new NumSlider({
+		id: 'slider_origin_z',
+		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
+		get: function() {
+			var obj = Blockbench.entity_mode ? selected_group : selected[0]
+			return obj ? obj.origin[2] : ''
+		},
+		change: function(value, fixed) {
+			moveOriginOnAxis(value, fixed, 2)
+		},
+		onBefore: function() {
+			Undo.initEdit({cubes: selected, group: selected_group})
+		},
+		onAfter: function() {
+			Undo.finishEdit('origin')
+		}
+	})
+
+	new Action({
+		id: 'scale',
+		icon: 'settings_overscan',
+		category: 'transform',
+		click: function () {
+			$('#model_scale_range').val(1)
+			$('#model_scale_label').val(1)
+
+			Undo.initEdit({cubes: selected})
+
+			selected.forEach(function(obj) {
+				obj.before = {
+					from: obj.from.slice(),
+					to: obj.to.slice(),
+					origin: obj.origin.slice()
+				}
+			})
+			showDialog('scaling')
+		}
+	})
+	new Action({
+		id: 'rotate_x_cw',
+		icon: 'rotate_right',
+		color: 'x',
+		category: 'transform',
+		click: function () {
+			rotateSelected(0, 1);
+		}
+	})
+	new Action({
+		id: 'rotate_x_ccw',
+		icon: 'rotate_left',
+		color: 'x',
+		category: 'transform',
+		click: function () {
+			rotateSelected(0, 3);
+		}
+	})
+	new Action({
+		id: 'rotate_y_cw',
+		icon: 'rotate_right',
+		color: 'y',
+		category: 'transform',
+		click: function () {
+			rotateSelected(1, 1);
+		}
+	})
+	new Action({
+		id: 'rotate_y_ccw',
+		icon: 'rotate_left',
+		color: 'y',
+		category: 'transform',
+		click: function () {
+			rotateSelected(1, 3);
+		}
+	})
+	new Action({
+		id: 'rotate_z_cw',
+		icon: 'rotate_right',
+		color: 'z',
+		category: 'transform',
+		click: function () {
+			rotateSelected(2, 1);
+		}
+	})
+	new Action({
+		id: 'rotate_z_ccw',
+		icon: 'rotate_left',
+		color: 'z',
+		category: 'transform',
+		click: function () {
+			rotateSelected(2, 3);
+		}
+	})
+
+	new Action({
+		id: 'flip_x',
+		icon: 'icon-mirror_x',
+		color: 'x',
+		category: 'transform',
+		click: function () {
+			mirrorSelected(0);
+		}
+	})
+	new Action({
+		id: 'flip_y',
+		icon: 'icon-mirror_y',
+		color: 'y',
+		category: 'transform',
+		click: function () {
+			mirrorSelected(1);
+		}
+	})
+	new Action({
+		id: 'flip_z',
+		icon: 'icon-mirror_z',
+		color: 'z',
+		category: 'transform',
+		click: function () {
+			mirrorSelected(2);
+		}
+	})
+
+	new Action({
+		id: 'center_x',
+		icon: 'vertical_align_center',
+		color: 'x',
+		category: 'transform',
+		click: function () {
+			Undo.initEdit({cubes: selected});
+			centerCubes(0);
+			Undo.finishEdit('center')
+		}
+	})
+	new Action({
+		id: 'center_y',
+		icon: 'vertical_align_center',
+		color: 'y',
+		category: 'transform',
+		click: function () {
+			Undo.initEdit({cubes: selected});
+			centerCubes(1);
+			Undo.finishEdit('center')
+		}
+	})
+	new Action({
+		id: 'center_z',
+		icon: 'vertical_align_center',
+		color: 'z',
+		category: 'transform',
+		click: function () {
+			Undo.initEdit({cubes: selected});
+			centerCubes(2);
+			Undo.finishEdit('center')
+		}
+	})
+	new Action({
+		id: 'center_all',
+		icon: 'filter_center_focus',
+		category: 'transform',
+		click: function () {
+			Undo.initEdit({cubes: selected});
+			centerCubesAll();
+			Undo.finishEdit('center')
+		}
+	})
+
+	new Action({
+		id: 'toggle_visibility',
+		icon: 'visibility',
+		category: 'transform',
+		click: function () {toggleCubeProperty('visibility')}
+	})
+	new Action({
+		id: 'toggle_export',
+		icon: 'save',
+		category: 'transform',
+		click: function () {toggleCubeProperty('export')}
+	})
+	new Action({
+		id: 'toggle_autouv',
+		icon: 'fullscreen_exit',
+		category: 'transform',
+		click: function () {toggleCubeProperty('autouv')}
+	})
+	new Action({
+		id: 'toggle_shade',
+		icon: 'wb_sunny',
+		category: 'transform',
+		click: function () {toggleCubeProperty('shade')}
+	})
+	new Action({
+		id: 'rename',
+		icon: 'text_format',
+		category: 'transform',
+		keybind: new Keybind({key: 113}),
+		click: function () {renameCubes()}
+	})
+	new Action({
+		id: 'update_autouv',
+		icon: 'brightness_auto',
+		category: 'transform',
+		condition: () => !Blockbench.entity_mode,
+		click: function () {
+			if (selected.length) {
+				Undo.initEdit({cubes: selected[0].forSelected(), selection: true})
+				selected[0].forSelected(function(cube) {
+					cube.mapAutoUV()
+				})
+				Undo.finishEdit('update_autouv')
+			}
+		}
+	})
+	new Action({
+		id: 'origin_to_geometry',
+		icon: 'filter_center_focus',
+		category: 'transform',
+		click: function () {origin2geometry()}
+	})
+	new Action({
+		id: 'rescale_toggle',
+		icon: 'check_box_outline_blank',
+		category: 'transform',
+		condition: function() {return !Blockbench.entity_mode && selected.length;},
+		click: function () {
+			Undo.initEdit({cubes: selected})
+			var value = !selected[0].rescale
+			selected.forEach(function(cube) {
+				cube.rescale = value
+			})
+			Canvas.updatePositions()
+			updateNslideValues()
+			Undo.finishEdit('rescale')
+		}
+	})
+	new Action({
+		id: 'bone_reset_toggle',
+		icon: 'check_box_outline_blank',
+		category: 'transform',
+		condition: function() {return Blockbench.entity_mode && selected_group;},
+		click: function () {
+			Undo.initEdit({group: selected_group})
+			selected_group.reset = !selected_group.reset
+			updateNslideValues()
+			Undo.finishEdit('bone_reset')
+		}
+	})
+})

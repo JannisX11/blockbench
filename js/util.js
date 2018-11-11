@@ -82,6 +82,9 @@ Math.roundTo = function(num, digits) {
 Math.lerp = function(a,b,m) {
 	return (m-a) / (b-a)
 }
+Math.isBetween = function(n, a, b) {
+   return (n - a) * (n - b) <= 0
+}
 function trimFloatNumber(val) {
 	if (val == '') return val;
 	var string = val.toFixed(4)

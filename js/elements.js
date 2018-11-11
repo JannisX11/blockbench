@@ -2,7 +2,7 @@
 var OutlinerButtons = {
 	remove: {
 		id: 'remove',
-		title: tl('switches.remove'),
+		title: tl('generic.delete'),
 		icon: ' fa fa-times',
 		icon_off: ' fa fa-times',
 		advanced_option: false,
@@ -333,6 +333,9 @@ class Cube extends OutlinerElement {
 		}
 	}
 	rotationAxis() {
+		if (this.rotation_axis) {
+			return this.rotation_axis
+		}
 		var axis_i = 0;
 		while (axis_i < 3) {
 			if (this.rotation[axis_i] !== 0) {
@@ -450,7 +453,10 @@ class Cube extends OutlinerElement {
 				Merge.number(this.origin, object.rotation.origin, 1)
 				Merge.number(this.origin, object.rotation.origin, 2)
 			}
-			Merge.boolean(this, object.rotation, 'rotation_rescale')
+			Merge.boolean(this, object.rotation, 'rescale')
+			if (typeof object.rotation.axis === 'string') {
+				this.rotation_axis = object.rotation.axis
+			}
 		} else if (object.rotation) {
 			Merge.number(this.rotation, object.rotation, 0)
 			Merge.number(this.rotation, object.rotation, 1)
@@ -466,7 +472,8 @@ class Cube extends OutlinerElement {
 			Merge.number(this.origin, object.origin, 1)
 			Merge.number(this.origin, object.origin, 2)
 		}
-		Merge.boolean(this, object, 'rotation_rescale')
+		Merge.boolean(this, object, 'rescale')
+		Merge.string(this, object, 'rotation_axis')
 		if (object.faces) {
 			for (var face in this.faces) {
 				if (this.faces.hasOwnProperty(face) && object.faces.hasOwnProperty(face)) {
@@ -913,7 +920,7 @@ class Cube extends OutlinerElement {
 			})
 			Undo.finishEdit('duplicate', {outliner: true, cubes: selected, selection: true})
 		}},
-		{name: 'menu.cube.rename', icon: 'text_format', click: function(cube) {
+		{name: 'generic.rename', icon: 'text_format', click: function(cube) {
 			if (selected.length > 1) {
 				renameCubes(cube)
 			} else {
@@ -978,6 +985,7 @@ class Group extends OutlinerElement {
 		this.rotation = [0, 0, 0];
 		this.reset = false;
 		this.shade = true;
+		this.material;
 		this.selected = false;
 		this.visibility = true;
 		this.export = true;
@@ -1071,6 +1079,7 @@ class Group extends OutlinerElement {
 		Merge.string(this, object, 'name')
 		Merge.boolean(this, object, 'shade')
 		Merge.boolean(this, object, 'reset')
+		Merge.string(this, object, 'material')
 		if (object.origin) {
 			Merge.number(this.origin, object.origin, 0)
 			Merge.number(this.origin, object.origin, 1)
@@ -1148,31 +1157,17 @@ class Group extends OutlinerElement {
 	showContextMenu(event) {
 		this.menu.open(event, this)
 	}
-	boneRotationDialog() {
-		this.select()
-		var bone_rotation_dialog = new Dialog({
-			title: 'Bone Rotation',
-			draggable: true,
-			lines: [
-				'<div class="dialog_bar"><label class="inline_label">X: </label><input type="number" class="dark_bordered rotation_x" min="-180" max="180" step="0.5" oninput="selected_group.setBoneRotation(0, $(this))"></div>',
-				'<div class="dialog_bar"><label class="inline_label">Y: </label><input type="number" class="dark_bordered rotation_y" min="-180" max="180" step="0.5" oninput="selected_group.setBoneRotation(1, $(this))"></div>',
-				'<div class="dialog_bar"><label class="inline_label">Z: </label><input type="number" class="dark_bordered rotation_z" min="-180" max="180" step="0.5" oninput="selected_group.setBoneRotation(2, $(this))"></div>'
-			],
-			id: 'bone_rotation',
-			fadeTime: 100,
-			onCancel: function() {
-				bone_rotation_dialog.hide()
-			},
-			singleButton: true
-		}).show()
-		$(bone_rotation_dialog.object).find('input.rotation_x').val(this.rotation[0])
-		$(bone_rotation_dialog.object).find('input.rotation_y').val(this.rotation[1])
-		$(bone_rotation_dialog.object).find('input.rotation_z').val(this.rotation[2])
-	}
-	setBoneRotation(axis, obj) {
-		this.rotation[axis] = limitNumber(parseFloat(obj.val()), -180, 180)
-		if (isNaN(this.rotation[axis])) this.rotation[axis] = 0
-		Canvas.updatePositions()
+	setMaterial(material) {
+		var scope = this;
+		Blockbench.textPrompt('message.bone_material', scope.material, function(id) {
+			Undo.initEdit({outliner: true})
+			if (id) {
+				scope.material = id
+			} else {
+				delete scope.material
+			}
+			Undo.finishEdit('bone_material')
+		})
 	}
 	sortContent() {
 		Undo.initEdit({outliner: true})
@@ -1220,20 +1215,31 @@ class Group extends OutlinerElement {
 		base_group.origin = this.origin.slice()
 		base_group.rotation = this.rotation.slice()
 		base_group.shade = this.shade
+		base_group.material = this.material
 		base_group.reset = this.reset
 		base_group.visibility = this.visibility
 		base_group.export = this.export
 		base_group.autouv = this.autouv
 		return base_group;
 	}
-	compile() {
+	compile(undo) {
 		var obj = {
-			name: this.name,
-			isOpen: this.isOpen === true,
-			export: this.export,	//Don't export "export" if "lut" exists in compileGroups?
-			visibility: this.visibility
+			name: this.name
 		}
-		if (this.origin.join('_') !== '8_8_8') {
+		if (this.shade == false) {
+			obj.shade = false
+		}
+		if (this.material) {
+			obj.material = this.material
+		}
+		if (undo) {
+			obj.uuid = this.uuid;
+			obj.export = this.export;
+			obj.isOpen = this.isOpen === true;
+			obj.visibility = this.visibility;
+			obj.autouv = this.autouv;
+		}
+		if (this.origin.join('_') !== '8_8_8' || Blockbench.entity_mode) {
 			obj.origin = this.origin
 		}
 		if (this.rotation.join('_') !== '0_0_0') {
@@ -1242,6 +1248,7 @@ class Group extends OutlinerElement {
 		if (this.reset) {
 			obj.reset = true
 		}
+		obj.children = []
 		return obj;
 	}
 	forEachChild(func) {
@@ -1299,19 +1306,21 @@ class Group extends OutlinerElement {
 		OutlinerButtons.autouv
 	]
 	Group.prototype.menu = new Menu([
+		{icon: 'layers', name: 'menu.group.material', condition: () => Blockbench.entity_mode, click: function(group) {group.setMaterial()}},
+		'_',
 		{icon: 'content_copy', name: 'menu.group.duplicate', click: function(group) {
 			var cubes_before = elements.length
 			Undo.initEdit({outliner: true, cubes: [], selection: true})
 			group.duplicate()
 			Undo.finishEdit('duplicate_group', {outliner: true, cubes: elements.slice().slice(cubes_before), selection: true})
 		}},
+		{icon: 'text_format', name: 'generic.rename', click: function(group) {group.rename()}},
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', click: function(group) {group.sortContent()}},
 		{icon: 'fa-leaf', name: 'menu.group.resolve', click: function(group) {
 			Undo.initEdit({outliner: true})
 			group.resolve()
 			Undo.finishEdit('group resolve')
 		}},
-		{icon: 'text_format', name: 'menu.group.rename', click: function(group) {group.rename()}}
 	])
 Array.prototype.clearObjectRecursive = function(obj) {
 	var i = 0
@@ -1327,11 +1336,11 @@ Array.prototype.clearObjectRecursive = function(obj) {
 Array.prototype.findRecursive = function(key1, val) {
 	var i = 0
 	while (i < this.length) {
-		var tag = this[i][key1]
+		let tag = this[i][key1]
 		if (tag === val) {
 			return this[i];
 		} else if (this[i].children && this[i].children.length > 0) {
-			var inner = this[i].children.findRecursive(key1, val)
+			let inner = this[i].children.findRecursive(key1, val)
 			if (inner !== undefined) {
 				return inner;
 			}
@@ -1405,12 +1414,8 @@ function compileGroups(undo, lut) {
 
 				if (lut === undefined || array[i].export === true) {
 
-					var obj = array[i].compile()
-					if (undo) {
-						obj.autouv = array[i].autouv
-						obj.shade = array[i].shade
-					}
-					obj.children = []
+					var obj = array[i].compile(undo)
+
 					if (array[i].children.length > 0) {
 						iterate(array[i].children, obj.children)
 					}
@@ -1452,9 +1457,15 @@ function parseGroups(array, importGroup, startIndex) {
 			} else {
 				var obj = new Group(array[i])
 				obj.parent = addGroup
-				obj.isOpen = array[i].isOpen
-				if (array[i].children.length > 0) {
+				obj.isOpen = !!array[i].isOpen
+				if (array[i].uuid) {
+					obj.uuid = array[i].uuid
+				}
+				if (array[i].children && array[i].children.length > 0) {
 					iterate(array[i].children, obj.children, obj)
+				}
+				if (array[i].content && array[i].content.length > 0) {
+					iterate(array[i].content, obj.children, obj)
 				}
 				save_array.push(obj)
 			}
@@ -1599,6 +1610,13 @@ function dropOutlinerObjects(item, target, event) {
 		selected.length = 0
 	} else {
 		Undo.initEdit({outliner: true, selection: true})
+		var updatePosRecursive = function(item) {
+			if (item.type === 'cube') {
+				Canvas.adaptObjectPosition(item)
+			} else if (item.type === 'group' && item.children && item.children.length) {
+				item.children.forEach(updatePosRecursive)
+			}
+		}
 	}
 	items.forEach(function(item) {
 		if (item && item !== target) {
@@ -1611,8 +1629,8 @@ function dropOutlinerObjects(item, target, event) {
 				}
 			} else {
 				item.addTo(target)
-				if (Blockbench.entity_mode && item.type === 'cube') {
-					Canvas.adaptObjectPosition(item)
+				if (Blockbench.entity_mode) {
+					updatePosRecursive(item)
 				}
 			}
 		}
@@ -1628,35 +1646,35 @@ function dropOutlinerObjects(item, target, event) {
 function addCube() {
 	Undo.initEdit({outliner: true, cubes: [], selection: true});
 	var base_cube = new Cube({
-autouv: (settings.autouv.value ? 1 : 0)
+		autouv: (settings.autouv.value ? 1 : 0)
 	}).addTo()
 	if (selected_group) {
-base_cube.addTo(selected_group)
+		base_cube.addTo(selected_group)
 	} else if (selected[0] !== undefined &&
-selected[0].parent !== 'root'
+		selected[0].parent !== 'root'
 	) {
-base_cube.addTo(selected[0].parent)
+		base_cube.addTo(selected[0].parent)
 	}
 
 	if (textures.length && Blockbench.entity_mode) {
-var sides = ['north', 'east', 'south', 'west', 'up', 'down']
-sides.forEach(function(side) {
-	base_cube.faces[side].texture = '#'+textures[0].id
-})
-main_uv.loadData()
+		var sides = ['north', 'east', 'south', 'west', 'up', 'down']
+		sides.forEach(function(side) {
+			base_cube.faces[side].texture = '#'+textures[0].id
+		})
+		main_uv.loadData()
 	}
 	if (Blockbench.entity_mode) {
-var add_group = selected_group
-if (!add_group && selected.length) {
-	add_group = selected[0].parent
-}
-if (add_group && add_group.type === 'group') {
-	var pos1 = add_group.origin.slice()
-	base_cube.extend({
-		from:[ pos1[0]-0, pos1[1]-0, pos1[2]-0 ],
-		to:[   pos1[0]+1, pos1[1]+1, pos1[2]+1 ]
-	})
-}
+		var add_group = selected_group
+		if (!add_group && selected.length) {
+			add_group = selected[0].parent
+		}
+		if (add_group && add_group.type === 'group') {
+			var pos1 = add_group.origin.slice()
+			base_cube.extend({
+				from:[ pos1[0]-0, pos1[1]-0, pos1[2]-0 ],
+				to:[   pos1[0]+1, pos1[1]+1, pos1[2]+1 ]
+			})
+		}
 	}
 
 	if (selected_group) selected_group.unselect()
@@ -1681,7 +1699,9 @@ function addGroup() {
 	if (!add_group && selected.length) {
 		add_group = selected[0].parent
 	}
-	var base_group = new Group()
+	var base_group = new Group({
+		origin: add_group ? add_group.origin : undefined
+	})
 	selected.forEach(function(s, i) {
 		s.addTo(base_group, false)
 		if (i === 0) {
@@ -1711,16 +1731,15 @@ function deleteCubes(array) {
 	}
 	if (array == undefined) {
 		array = selected.slice(0)
-	}
-	if (array.constructor !== Array) {
+	} else if (array.constructor !== Array) {
 		array = [array]
 	} else {
-		array.sort(function(a,b){return a - b}).reverse()
+		array = array.slice(0)
 	}
 	array.forEach(function(s) {
 		s.remove(false)
 	})
-	Canvas.updateIndexes()
+	updateSelection()
 	Undo.finishEdit('delete')
 }
 function duplicateCubes() {
@@ -1806,3 +1825,39 @@ function toggleCubeProperty(key) {
 	})
 	Undo.finishEdit('toggle_prop')
 }
+
+BARS.defineActions(function() {
+	new Action({
+		id: 'add_cube',
+		icon: 'add_box',
+		category: 'edit',
+		keybind: new Keybind({key: 78, ctrl: true}),
+		condition: () => {return (!Blockbench.entity_mode || selected_group || selected.length) && !display_mode && !Animator.open},
+		click: function () {
+			addCube();
+		}
+	})
+	new Action({
+		id: 'add_group',
+		icon: 'create_new_folder',
+		category: 'edit',
+		keybind: new Keybind({key: 71, ctrl: true}),
+		click: function () {
+			addGroup();
+		}
+	})
+	new Action({
+		id: 'outliner_toggle',
+		icon: 'view_stream',
+		category: 'edit',
+		keybind: new Keybind({key: 115}),
+		click: function () {
+			toggleOutlinerOptions()
+		}
+	})
+	new BarText({
+		id: 'cube_counter',
+		right: true,
+		click: function() {selectAll()}
+	})
+})

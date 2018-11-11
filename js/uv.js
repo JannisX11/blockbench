@@ -1609,3 +1609,188 @@ var uv_dialog = {
 		}
 	}
 }
+
+BARS.defineActions(function() {
+	new Action({
+		id: 'uv_dialog',
+		icon: 'view_module',
+		category: 'blockbench',
+		condition: ()=>!Blockbench.entity_mode && selected.length,
+		click: function () {uv_dialog.openAll()}
+	})
+	new Action({
+		id: 'uv_dialog_full',
+		icon: 'web_asset',
+		category: 'blockbench',
+		click: function () {uv_dialog.openFull()}
+	})
+
+	new BarSlider({
+		id: 'uv_rotation',
+		category: 'uv',
+		condition: () => !Blockbench.entity_mode && selected.length,
+		min: 0, max: 270, step: 90, width: 80,
+		onChange: function(slider) {
+			Undo.initEdit({cubes: selected, uv_only: true})
+			uv_dialog.forSelection('rotate')
+			Undo.finishEdit('uv')
+		}
+	})
+	new BarSelect({
+		id: 'uv_grid', 
+		category: 'uv',
+		condition: () => !Blockbench.entity_mode && selected.length,
+		width: 60,
+		options: {
+			auto: true,
+			'16': '16x16',
+			'32': '32x32',
+			'64': '64x64',
+			none: true,
+		},
+		onChange: function(slider) {
+			if (open_dialog) {
+				uv_dialog.changeGrid(slider.get())
+			} else {
+				main_uv.setGrid()
+			}
+		}
+	})
+	new Action({
+		id: 'uv_maximize',
+		icon: 'zoom_out_map',
+		category: 'uv',
+		condition: () => !Blockbench.entity_mode && selected.length,
+		click: function (event) { 
+			Undo.initEdit({cubes: selected, uv_only: true})
+			uv_dialog.forSelection('maximize', event)
+			Undo.finishEdit('uv')
+		}
+	})
+	new Action({
+		id: 'uv_auto',
+		icon: 'brightness_auto',
+		category: 'uv',
+		condition: () => !Blockbench.entity_mode && selected.length,
+		click: function (event) {
+			Undo.initEdit({cubes: selected, uv_only: true})
+			uv_dialog.forSelection('setAutoSize', event)
+			Undo.finishEdit('uv')
+		}
+	})
+	new Action({
+		id: 'uv_rel_auto',
+		icon: 'brightness_auto',
+		category: 'uv',
+		condition: () => !Blockbench.entity_mode && selected.length,
+		click: function (event) {
+			Undo.initEdit({cubes: selected, uv_only: true})
+			uv_dialog.forSelection('setRelativeAutoSize', event)
+			Undo.finishEdit('uv')
+		}
+	})
+	new Action({
+		id: 'uv_mirror_x',
+		icon: 'icon-mirror_x',
+		category: 'uv',
+		condition: () => !Blockbench.entity_mode && selected.length,
+		click: function (event) {
+			Undo.initEdit({cubes: selected, uv_only: true})
+			uv_dialog.forSelection('mirrorX', event)
+			Undo.finishEdit('uv')
+		}
+	})
+	new Action({
+		id: 'uv_mirror_y',
+		icon: 'icon-mirror_y',
+		category: 'uv',
+		condition: () => !Blockbench.entity_mode && selected.length,
+		click: function (event) {
+			Undo.initEdit({cubes: selected, uv_only: true})
+			uv_dialog.forSelection('mirrorY', event)
+			Undo.finishEdit('uv')
+		}
+	})
+	new Action({
+		id: 'uv_transparent',
+		icon: 'clear',
+		category: 'uv',
+		condition: () => !Blockbench.entity_mode && selected.length,
+		click: function (event) {
+			Undo.initEdit({cubes: selected, uv_only: true})
+			uv_dialog.forSelection('clear', event)
+			Undo.finishEdit('uv')
+		}
+	})
+	new Action({
+		id: 'uv_reset',
+		icon: 'replay',
+		category: 'uv',
+		condition: () => !Blockbench.entity_mode && selected.length,
+		click: function (event) {
+			Undo.initEdit({cubes: selected, uv_only: true})
+			uv_dialog.forSelection('reset', event)
+			Undo.finishEdit('uv')
+		}
+	})
+	new Action({
+		id: 'uv_apply_all',
+		icon: 'format_color_fill',
+		category: 'uv',
+		condition: () => !Blockbench.entity_mode && selected.length,
+		click: function (e) {
+			Undo.initEdit({cubes: selected, uv_only: true})
+			main_uv.applyAll(e)
+			Undo.finishEdit('uv')
+		}
+	})
+	new BarSelect({
+		id: 'cullface', 
+		category: 'uv',
+		condition: () => !Blockbench.entity_mode && selected.length,
+		options: {
+			off: tl('uv_editor.no_faces'),
+			north: tl('face.north'),
+			south: tl('face.south'),
+			west: tl('face.west'),
+			east: tl('face.east'),
+			top: tl('face.up'),
+			bottom: tl('face.down'),
+		},
+		onChange: function(sel, event) {
+			Undo.initEdit({cubes: selected, uv_only: true})
+			uv_dialog.forSelection('switchCullface')
+			Undo.finishEdit('uv')
+		}
+	})
+	new Action({
+		id: 'auto_cullface',
+		icon: 'block',
+		category: 'uv',
+		condition: () => !Blockbench.entity_mode && selected.length,
+		click: function (event) {
+			Undo.initEdit({cubes: selected, uv_only: true})
+			uv_dialog.forSelection('autoCullface', event)
+			Undo.finishEdit('uv')
+		}
+	})
+	new Action({
+		id: 'face_tint',
+		category: 'uv',
+		condition: () => !Blockbench.entity_mode && selected.length,
+		click: function (event) {
+			Undo.initEdit({cubes: selected, uv_only: true})
+			uv_dialog.forSelection('switchTint', event)
+			Undo.finishEdit('uv')
+		}
+	})
+	new Action({
+		id: 'uv_shift',
+		condition: () => Blockbench.entity_mode,
+		icon: 'photo_size_select_large',
+		category: 'uv',
+		click: function () {
+			showUVShiftDialog()
+		}
+	})
+})

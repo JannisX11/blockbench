@@ -3,18 +3,6 @@ var settings, settings_old, display_presets;
 settingSetup()
 displayPresetsSetup()
 
-/*Settings
-	toggle
-	number
-	text
-	select (language)
-	click (displayskin, defaultrp)
-	
-
-	image editor (option, path)
-	
-*/
-
 function settingSetup() {
 	settings_old = {}
 	settings = {
@@ -280,6 +268,4 @@ function toggleSetting(setting) {
 	saveSettings()
 }
 function toggleWireframe() {
-	Prop.wireframe = !Prop.wireframe
-	Canvas.updateAll()
 }

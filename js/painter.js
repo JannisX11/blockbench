@@ -36,7 +36,7 @@ class BBPainter {
 			})
 		} else {
 			Painter.current.texture = texture
-			Jimp.read(Buffer.from(texture.source.replace('data:image/png;base64,', ''), 'base64'), function() {}).then(function(image) {
+			Jimp.read(Buffer.from(texture.source.replace('data:image/png;base64,', ''), 'base64')).then(function(image) {
 				cb(image)
 				Painter.current.image = image
 				image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
@@ -77,10 +77,11 @@ class BBPainter {
 				if (x === Painter.current.x && y === Painter.current.y) {
 					//return
 				}
-				if (Painter.current.face !== data.face) {
+				if (Painter.current.face !== data.face || Painter.current.cube !== data.cube) {
 					Painter.current.x = x
 					Painter.current.y = y
 					Painter.current.face = data.face
+					Painter.current.cube = data.cube
 					new_face = true
 				}
 				var diff = {
@@ -126,9 +127,9 @@ class BBPainter {
 			BarItems.brush_color.set(c)
 		}
 		if (texture.mode == 'bitmap') {
-			Jimp.read(Buffer.from(texture.source.replace('data:image/png;base64,', ''), 'base64'), function() {}).then(getPxColor)
+			Jimp.read(Buffer.from(texture.source.replace('data:image/png;base64,', ''), 'base64')).then(getPxColor)
 		} else {
-			Jimp.read(texture.source, function() {}).then(getPxColor)
+			Jimp.read(texture.source).then(getPxColor)
 		}
 	}
 	useBrush(texture, x, y, uvTag) {
@@ -462,7 +463,7 @@ class BBPainter {
 		var line_length = Math.sqrt(elements.length/2)
 		var o = 0
 
-		var cubes = elements.slice()
+		var cubes = Blockbench.entity_mode ? elements.slice() : selected.slice()
 		var avg_size = 0;
 
 		var i = cubes.length-1
@@ -624,6 +625,7 @@ class BBPainter {
 					bone_temps.forEach(function(bt) {
 						bt.forEach(function(t) {
 							t.obj.applyTexture(texture, true)
+							t.obj.autouv = 0
 						})
 					})
 				}
@@ -632,3 +634,67 @@ class BBPainter {
 	}
 }
 var Painter = new BBPainter()
+
+BARS.defineActions(function() {
+	new BarSelect({
+		id: 'vertex_snap_mode',
+		options: {
+			move: true,
+			scale: true
+		}
+	})
+	new ColorPicker({
+		id: 'brush_color',
+		palette: true
+	})
+	new BarSelect({
+		id: 'brush_mode',
+		options: {
+			brush: true,
+			noise: true,
+			eraser: true,
+			fill: true
+		}
+	})
+
+	new NumSlider({
+		id: 'slider_brush_size',
+		settings: {
+			min: 1, max: 20, step: 1, default: 1,
+		}
+	})
+	new NumSlider({
+		id: 'slider_brush_softness',
+		settings: {
+			min: 0, max: 100, default: 0,
+			interval: function(event) {
+				if (event.shiftKey && event.ctrlKey) {
+					return 0.25;
+				} else if (event.shiftKey) {
+					return 5;
+				} else if (event.ctrlKey) {
+					return 1;
+				} else {
+					return 10;
+				}
+			}
+		}
+	})
+	new NumSlider({
+		id: 'slider_brush_opacity',
+		settings: {
+			min: 0, max: 100, default: 100,
+			interval: function(event) {
+				if (event.shiftKey && event.ctrlKey) {
+					return 0.25;
+				} else if (event.shiftKey) {
+					return 5;
+				} else if (event.ctrlKey) {
+					return 1;
+				} else {
+					return 10;
+				}
+			}
+		}
+	})
+})

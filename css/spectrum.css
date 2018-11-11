@@ -89,7 +89,7 @@ License: MIT
     height: 30px;
     width: 12px;
     margin-top: -6px;
-    background-color: var(--color-back);
+    background-color: var(--color-ui);
     border: 1px solid var(--color-border);
 }
 .sp-alpha-inner:hover .sp-alpha-handle {
@@ -258,7 +258,7 @@ License: MIT
     left: -3px;
     right: -3px;
     background: white;
-    background-color: var(--color-back);
+    background-color: var(--color-ui);
     border: 1px solid var(--color-border);
     margin-top: 5px;
 }

@@ -1,4 +1,4 @@
-const appVersion = '2.0.2'
+const appVersion = '2.1.0'
 var osfs = '/'
 var File, i;
 const elements = [];
@@ -135,8 +135,7 @@ function initializeApp() {
 
 	setupInterface()
 	setupDragHandlers()
-	//saveSettings()
-	//Undo.add('Blank')
+	Blockbench.setup_successful = true
 }
 function setupVue() {
 	outliner = new Vue({
@@ -176,61 +175,6 @@ function setupVue() {
 	})
 	texturelist._data.elements = textures
 
-
-/*
-	var keybindlist = new Vue({
-		el: 'ul#keybindlist',
-		data: {keybinds},
-		methods: {
-			prepareInput: function(key) {
-				$('div:focus').on('keyup mousedown', function(event) {
-					event.preventDefault()
-					key.code = event.which
-					key.ctrl = event.ctrlKey
-					key.shift = event.shiftKey
-					key.alt = event.altKey
-					keys = []
-					if (key.ctrl) keys.push('Ctrl')
-					if (key.shift) keys.push('Shift')
-					if (key.alt) keys.push('Alt')
-					if (key.code === 1) {
-						keys.push('Left-Click')
-					} else if (key.code === 2) {
-						keys.push('Mousewheel')
-					} else if (key.code === 3) {
-						keys.push('Right-Click')
-
-					} else if (key.code >= 96 && key.code <= 105) {
-						keys.push('NUMPAD '+event.key)
-					} else if (event.key === ' ') {
-						keys.push('SPACE')
-					} else {
-						keys.push(event.key.toUpperCase())
-					}
-					key.char = keys.join(' + ')
-
-					$(this).blur()
-					$(this).off('keyup mousedown')
-					localStorage.setItem('keybinds', JSON.stringify(omitKeys(keybinds, ['name'], true)))
-				})
-				.on('keydown keypress keyup click click dblclick mouseup', function(event) {
-					event.preventDefault()
-				})
-			},
-			resetKey: function(key) {
-				var obj = keybindSetup(true)
-				for (var keystring in keybinds) {
-					if (keybinds.hasOwnProperty(keystring) && keybinds[keystring] === key) {
-						keybinds[keystring] = obj[keystring]
-						break;
-					}
-				}
-				localStorage.setItem('keybinds', JSON.stringify(omitKeys(keybinds, ['name'], true)))
-			}
-		}
-	})
-	keybindlist._data.elements = keybinds
-	*/
 	setupKeybindings()
 
 	var structure = {}
@@ -259,7 +203,6 @@ function setupVue() {
 					for (var ct in structure) {
 						structure[ct].open = false
 					}
-					
 				}
 				category.open = !category.open
 			}
@@ -284,8 +227,11 @@ function setupVue() {
 	Timeline.vue = new Vue({
 		el: '#timeline_inner',
 		data: {
-			size: 40,
-			keyframes: []
+			size: 150,
+			length: 10,
+			timecodes: [],
+			keyframes: [],
+			marker: Timeline.second
 		}
 	})
 
@@ -346,7 +292,9 @@ function updateNslideValues() {
 //Selections
 function updateSelection() {
 	//Clear
-	scene.remove(rot_origin)
+	if (rot_origin.parent) {
+		rot_origin.parent.remove(rot_origin)
+	}
 	Transformer.detach()
 	Transformer.hoverAxis = null;
 	
@@ -385,18 +333,43 @@ function updateSelection() {
 		if (selected_group) {
 			$('.selection_only#options').css('visibility', 'visible')
 			if (settings.origin_size.value > 0) {
-				setOriginHelper(selected_group)
+				selected_group.getMesh().add(rot_origin)
 			}
 		} else {
 			$('.selection_only#options').css('visibility', 'hidden')
 		}
-		if (Animator.state && Animator.selected && selected_group) {
-			Animator.selected.getCurrentBoneAnimator().select()
+		if (Animator.open && Animator.selected && selected_group) {
+			Animator.selected.getBoneAnimator().select()
+		}
+		if (Animator.open) {
+			updateKeyframeSelection()
 		}
 	} else {
 		//Origin Helper
-		if (selected.length === 1 && settings.origin_size.value > 0) {
-			setOriginHelper(selected[0])
+		if (selected.length === 1 && selected[0].visibility) {
+			selected[0].getMesh().add(rot_origin)
+		} else if (selected.length > 0) {
+			var origin = null;
+			var first_visible = null;
+			var i = 0;
+			while (i < selected.length) {
+				if (selected[i].visibility) {
+
+					if (first_visible === null) {
+						first_visible = selected[i]
+					}
+					if (origin === null) {
+						origin = selected[i].origin
+					} else if (!origin.equals(selected[i].origin)) {
+						origin = false;
+						i = Infinity;
+					}
+				}
+				i++;
+			}
+			if (first_visible && typeof origin === 'object') {
+				first_visible.getMesh().add(rot_origin)
+			} 
 		}
 	}
 	Transformer.update()
@@ -477,7 +450,7 @@ var Screencam = {
 			currentwindow.capturePage(function(screenshot) {
 				var dataUrl = screenshot.toDataURL()
 				dataUrl = dataUrl.replace('data:image/png;base64,','')
-				Jimp.read(Buffer.from(dataUrl, 'base64'), function() {}).then(function(image) { 
+				Jimp.read(Buffer.from(dataUrl, 'base64')).then(function(image) { 
 
 					if (options && options.width && options.height) {
 						image.contain(options.width, options.height)
@@ -537,6 +510,10 @@ var Clipbench = {
 			uv_dialog.copy(event)
 		} else if (display_mode) {
 			copyDisplaySlot()
+		} else if (Animator.open) {
+			if (Timeline.selected.length) {
+				Clipbench.setKeyframes(Timeline.selected)
+			}
 		} else if (p == 'uv' || p == 'preview') {
 			main_uv.copy(event)
 		} else if (p == 'textures' && isApp) {
@@ -562,6 +539,33 @@ var Clipbench = {
 			uv_dialog.paste(event)
 		} else if (display_mode) {
 			pasteDisplaySlot()
+		} else if (Animator.open) {
+			//
+			if (isApp) {
+				var raw = clipboard.readHTML()
+				try {
+					var data = JSON.parse(raw)
+					if (data.type === 'keyframes' && data.content) {
+						Clipbench.keyframes = data.content
+					}
+				} catch (err) {}
+			}
+			if (Clipbench.keyframes && Clipbench.keyframes.length) {
+
+
+				if (!Animator.selected) return;
+				var bone = Animator.selected.getBoneAnimator()
+				if (bone) {
+					Clipbench.keyframes.forEach(function(data) {
+						var base_kf = new Keyframe(data)
+						base_kf.time = Timeline.second + data.time_offset
+						bone.pushKeyframe(base_kf)
+					})
+					Vue.nextTick(Timeline.update)
+				}
+			}
+
+
 		} else if (p == 'uv' || p == 'preview') {
 			main_uv.paste(event)
 		} else if (p == 'textures' && isApp) {
@@ -644,6 +648,32 @@ var Clipbench = {
 		})
 		if (isApp) {
 			clipboard.writeHTML(JSON.stringify({type: 'cubes', content: Clipbench.cubes}))
+		}
+	},
+	setKeyframes: function(keyframes) {
+		Clipbench.keyframes = []
+		if (!keyframes || keyframes.length === 0) {
+			return;
+		}
+		var first = keyframes[0];
+		keyframes.forEach(function(kf) {
+			if (kf.time < first.time) {
+				first = kf
+			}
+		})
+		keyframes.forEach(function(kf) {
+			Clipbench.keyframes.push({
+				channel: kf.channel,
+				x: kf.x,
+				y: kf.y,
+				z: kf.z,
+				w: kf.w,
+				isQuaternion: kf.isQuaternion,
+				time_offset: kf.time - first.time,
+			})
+		})
+		if (isApp) {
+			clipboard.writeHTML(JSON.stringify({type: 'keyframes', content: Clipbench.keyframes}))
 		}
 	}
 }
@@ -771,20 +801,26 @@ var Vertexsnap = {
 			})
 		}
 		let data = Canvas.raycast()
-		if (!data || !data.vertex) return;
+		if (!data || !data.vertex) {
+			Blockbench.setStatusBarText()
+			return;
+		}
 		var vertex = data.vertex
 		vertex.material.color.g = 1
 		Vertexsnap.hovering = true
 
 		if (Vertexsnap.step1 === false) {
-			var color = '0x'+app_colors.accent.hex.replace('#', '')
+			//Line
 			var geometry = new THREE.Geometry();
 			geometry.vertices.push(Vertexsnap.vertex_pos);
 			geometry.vertices.push(vertex.position);
-			var line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: parseInt(color) }));
+			var line = new THREE.Line(geometry, Vertexsnap.lineMaterial);
 			line.renderOrder = 900
-			line.material.depthTest = false
 			Vertexsnap.vertexes.add(line)
+			//Measure
+			var diff = new THREE.Vector3().copy(Vertexsnap.vertex_pos)
+			diff.sub(vertex.position)
+			Blockbench.setStatusBarText(tl('status_bar.vertex_distance', [trimFloatNumber(diff.length())] ))
 		}
 	},
 	select: function() {
@@ -795,6 +831,8 @@ var Vertexsnap = {
 		if (selected.length) {
 			$('#preview').css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
 		}
+		Vertexsnap.lineMaterial = Canvas.outlineMaterial.clone()
+		Vertexsnap.lineMaterial.depthTest = false
 	},
 	canvasClick: function(data) {
 		if (!data.vertex) return;
@@ -810,6 +848,7 @@ var Vertexsnap = {
 			Vertexsnap.snap(data)
 			$('#preview').css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
 		}
+		Blockbench.setStatusBarText()
 	},
 	snap: function(data) {
 		Undo.initEdit({cubes: Vertexsnap.cubes})
@@ -833,13 +872,18 @@ var Vertexsnap = {
 			}
 
 			Vertexsnap.cubes.forEach(function(obj) {
-				var cube_pos = new THREE.Vector3().copy(pos).removeEuler(Vertexsnap.cubes[0].getMesh().rotation)
+				var q = obj.getMesh().getWorldQuaternion(new THREE.Quaternion()).inverse()
+				var cube_pos = new THREE.Vector3().copy(pos).applyQuaternion(q)
+
 				for (i=0; i<3; i++) {
 					if (m[i] === 1) {
 						obj.to[i] += cube_pos.getComponent(i)
 					} else {
 						obj.from[i] += cube_pos.getComponent(i)
 					}
+				}
+				if (Blockbench.entity_mode && obj.visibility) {
+					Canvas.updateUV(obj)
 				}
 			})
 		} else {
@@ -850,7 +894,8 @@ var Vertexsnap = {
 					obj.origin[1] += cube_pos.getComponent(1)
 					obj.origin[2] += cube_pos.getComponent(2)
 				} else {
-					cube_pos.removeEuler(Vertexsnap.cubes[0].getMesh().rotation)
+					var q = obj.getMesh().getWorldQuaternion(new THREE.Quaternion()).inverse()
+					cube_pos.applyQuaternion(q)
 				}
 				obj.from[0] += cube_pos.getComponent(0)
 				obj.from[1] += cube_pos.getComponent(1)

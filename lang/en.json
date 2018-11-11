@@ -19,6 +19,9 @@
 	"data.seperator": "Seperator",
 	"data.image": "Image",
 
+	"generic.delete": "Delete",
+	"generic.rename": "Rename",
+
 	"keys.ctrl": "Control",
 	"keys.shift": "Shift",
 	"keys.alt": "Alt",
@@ -54,6 +57,7 @@
 
 	"status_bar.saved":"Model is saved",
 	"status_bar.unsaved":"There are unsaved changes",
+	"status_bar.vertex_distance":"Distance: %0",
 
 	"message.rotation_limit.title": "Rotation Limits",
 	"message.rotation_limit.message": "Rotations are limited by Minecraft to one axis and 22.5 degree increments. Rotating on a different axis will clear all rotations on the other axes. Disable the option \"Restricted Rotation\" if you are modeling for other purposes and need free rotations.",
@@ -120,6 +124,11 @@
 	"message.display_skin.name": "Username",
 	"message.display_skin.reset": "Reset",
 
+	"message.display_skin_model.title": "Skin Model",
+	"message.display_skin_model.message": "Chose the model type of your skin",
+	"message.display_skin_model.classic": "Classic",
+	"message.display_skin_model.slim": "Slim",
+
 	"message.invalid_plugin": "Invalid Plugin File, See Console",
 	"message.load_plugin_app": "Do you want to allow this plugin to make changes to your PC? Only load plugins from people you trust.",
 	"message.load_plugin_web": "Do you want to load this plugin? Only load plugins from people you trust.",
@@ -129,7 +138,15 @@
 	"message.save_obj": "Saved as .obj model",
 	"message.save_entity": "Saved as bedrock entity model",
 	"message.rename_cubes": "Rename Cubes",
+	"message.rename_animation": "Rename Animation",
+	"message.animation_update_var": "Animation Update Variable",
 	"message.untextured": "This surface does not have a texture",
+
+	"message.no_animation_selected": "You have to select an animation to do this",
+	"message.bone_material": "Change bone material",
+	"message.no_bone_selected": "You have to select a bone to do this",
+	"message.duplicate_groups.title": "Bone Name Duplicate",
+	"message.duplicate_groups.message": "The name of this bone exists on multiple bones. This can cause problems.",
 
 	"dialog.project.title": "Project",
 	"dialog.project.name": "File Name",
@@ -206,10 +223,6 @@
 	"dialog.shift_uv.message": "Enter the number you want to multiply the UV offset coordinates by. Mathematical expressions are allowed. Prepend a \"+\" if you want to add that number.",
 	"dialog.shift_uv.horizontal": "Horizontal",
 	"dialog.shift_uv.vertical": "Vertical",
-	"dialog.shift_uv": "",
-	"dialog.shift_uv": "",
-	"dialog.shift_uv": "",
-	"dialog.shift_uv": "",
 
 	"dialog.input.title": "Input",
 
@@ -249,12 +262,14 @@
 	"layout.color.accent.desc": "Slider thumb and other details",
 	"layout.color.grid": "Grid",
 	"layout.color.grid.desc": "3D preview grid",
+	"layout.color.wireframe": "Wireframe",
+	"layout.color.wireframe.desc": "Wireframe view lines",
 	"layout.color.text": "Text",
 	"layout.color.text.desc": "Normal text",
 	"layout.color.light": "Light",
-	"layout.color.light.desc": "Selected text",
+	"layout.color.light.desc": "Highlighted text",
 	"layout.color.accent_text": "Accent Text",
-	"layout.color.accent_text.desc": "Text on accent elements",
+	"layout.color.accent_text.desc": "Text on bright or accent elements",
 	"layout.font.main": "Main Font",
 	"layout.font.headline": "Headline Font",
 
@@ -609,6 +624,8 @@
 	"action.screenshot_app.desc": "Take a screenshot of the whole application",
 	"action.toggle_quad_view": "Toggle Quad View",
 	"action.toggle_quad_view.desc": "Toggle the 4 viewport mode",
+	"action.camera_reset": "Reset Camera",
+	"action.camera_reset.desc": "Reset the current preview to the default camera angle",
 
 	"action.import_texture": "Import Texture",
 	"action.import_texture.desc": "Import one or more textures from your file system",
@@ -639,7 +656,7 @@
 	"action.uv_grid.auto": "Auto",
 	"action.uv_grid.none": "None",
 	"action.uv_apply_all": "Apply To All Faces",
-	"action.uv_apply_all.desc": "Applies the settings of the current face to all ",
+	"action.uv_apply_all.desc": "Applies the settings of the current face to all faces",
 	"action.uv_maximize": "Maximize UV",
 	"action.uv_maximize.desc": "Sets the UV for this face to the full texture",
 	"action.uv_auto": "Auto UV",
@@ -663,11 +680,34 @@
 	"action.uv_shift": "Shift UV",
 	"action.uv_shift.desc": "Shift all UV regions by a fixed amount or mathematical expression",
 
+	"action.add_animation": "Add Animation",
+	"action.add_animation.desc": "Create a blank animation",
+	"action.load_animation_file": "Import Animations",
+	"action.load_animation_file.desc": "Import an animation file",
+	"action.play_animation": "Play Animations",
+	"action.play_animation.desc": "Preview the selected animation",
+	"action.export_animation_file": "Export Animations",
+	"action.export_animation_file.desc": "Export a json file with the current animations",
+	"action.slider_animation_length": "Animation Length",
+	"action.slider_animation_length.desc": "Change the length of the selected animation",
+	"action.slider_keyframe_time": "Timecode",
+	"action.slider_keyframe_time.desc": "Change the timecode of the selected keyframes",
+	"action.select_all_keyframes": "Select All Keyframes",
+	"action.select_all_keyframes.desc": "Select all keyframes of the current bone",
+	"action.delete_keyframes": "Delete Keyframes",
+	"action.delete_keyframes.desc": "Delete all selected keyframes",
+
+
+	"timeline.rotation": "Rotation",
+	"timeline.position": "Position",
+	"timeline.scale": "Scale",
+
 	"menu.file": "File",
 	"menu.edit": "Edit",
 	"menu.transform": "Transform",
 	"menu.filter": "Filter",
 	"menu.display": "Display",
+	"menu.animation": "Animation",
 	"menu.view": "View",
 
 	"menu.file.new": "New",
@@ -686,18 +726,15 @@
 	"menu.view.screenshot": "Screenshot",
 
 	"menu.cube.duplicate": "Duplicate",
-	"menu.cube.rename": "Rename",
 	"menu.cube.color": "Marker Color",
 	"menu.cube.texture": "Texture",
 	"menu.cube.texture.transparent": "Transparent",
 	"menu.cube.texture.blank": "Blank",
-	"menu.cube.delete": "Delete",
 
+	"menu.group.material": "Set Material",
 	"menu.group.duplicate": "Duplicate",
 	"menu.group.sort": "Sort",
 	"menu.group.resolve": "Resolve",
-	"menu.group.rename": "Rename",
-	"menu.group.rename_content": "Rename Content",
 
 	"menu.texture.face": "Apply to Face",
 	"menu.texture.cube": "Apply to Cubes",
@@ -709,7 +746,6 @@
 	"menu.texture.particle": "Use for Particles",
 	"menu.texture.export": "Save As",
 	"menu.texture.save": "Save",
-	"menu.texture.delete": "Delete",
 	"menu.texture.properties": "Properties",
 
 	"menu.preview.background": "Background",
@@ -741,6 +777,14 @@
 	"menu.toolbar.edit": "Customize",
 	"menu.toolbar.reset": "Reset",
 
+	"menu.animation.loop": "Loop",
+	"menu.animation.override": "Override",
+	"menu.animation.anim_time_update": "Update Variable",
+
+	"menu.timeline.add": "Add Keyframe",
+
+	"menu.keyframe.quaternion": "Quaternion",
+
 	"cube.color.light_blue": "Light Blue",
 	"cube.color.yellow": "Yellow",
 	"cube.color.orange": "Orange",
@@ -750,7 +794,6 @@
 	"cube.color.green": "Green",
 	"cube.color.lime": "Lime",
 
-	"switches.remove": "Remove",
 	"switches.visibility": "Visibility",
 	"switches.export": "Export",
 	"switches.shading": "Shade",
@@ -760,6 +803,12 @@
 	"panel.display": "Display",
 	"panel.textures": "Textures",
 	"panel.outliner": "Outliner",
+	"panel.animations": "Animations",
+	"panel.keyframe": "Keyframe",
+	"panel.keyframe.type": "Keyframe (%0)",
+	"panel.variable_placeholders": "Variable Placeholders",
+	"panel.variable_placeholders.info": "List the variables you want to preview via name=value",
+
 	"panel.options": "Rotation",
 	"panel.options.angle": "Angle",
 	"panel.options.origin": "Origin",
@@ -830,8 +879,5 @@
 	"display.preset.item": "Default Item",
 	"display.preset.block": "Default Block",
 	"display.preset.handheld": "Default Weapon",
-	"display.preset.rod": "Default Rod",
-	"display.preset.use": "Apply",
-	"display.preset.use_all": "Apply to all slots",
-	"display.preset.remove": "Remove"
+	"display.preset.rod": "Default Rod"
 }

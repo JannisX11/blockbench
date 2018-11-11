@@ -144,6 +144,14 @@ class Action extends BarItem {
 	trigger(event) {
 		var scope = this;
 		if (BARS.condition(scope.condition, scope)) {
+			if (event && event.type === 'click' && event.altKey && scope.keybind) {
+				var record = function() {
+					document.removeEventListener('keyup', record)
+					scope.keybind.record()
+				}
+				document.addEventListener('keyup', record, false)
+				return true;
+			}
 			scope.click(event)
 			$(scope.nodes).each(function() {
 				$(this).css('color', 'var(--color-light)')
@@ -186,7 +194,7 @@ class Tool extends Action {
 		this.selectCubes = data.selectCubes !== false;
 		this.paintTool = data.paintTool;
 		this.transformerMode = data.transformerMode;
-		this.allowWireframe = data.allowWireframe == true;
+		this.allowWireframe = data.allowWireframe !== false;
 
 		this.onCanvasClick = data.onCanvasClick;
 		this.onSelect = data.onSelect;
@@ -439,6 +447,7 @@ class NumSlider extends Widget {
 		return parseFloat(this.value);
 	}
 	update() {
+		if (!BARS.condition(this.condition)) return;
 		var number = this.get();
 		this.setValue(number)
 		$('#nslide_head #nslide_offset').text(this.name+': '+number)
@@ -623,6 +632,9 @@ class Toolbar {
 		var items = data.children
 		if (!force && BARS.stored[scope.id] && typeof BARS.stored[scope.id] === 'object') {
 			items = BARS.stored[scope.id]
+			if (this.id === 'tools' && !items.includes('animation_mode_tool')) {
+				items.push('animation_mode_tool')
+			}
 		}
 		if (items && items.constructor.name === 'Array') {
 			var content = $(scope.node).find('div.content')
@@ -745,6 +757,7 @@ class Toolbar {
 var BARS = {
 	stored: {},
 	editing_bar: undefined,
+	action_definers: [],
 	condition: function(condition, context) {
 		if (condition === undefined) {
 			return true;
@@ -753,6 +766,9 @@ var BARS = {
 		} else {
 			return !!condition
 		}
+	},
+	defineActions: function(definer) {
+		BARS.action_definers.push(definer)
 	},
 	setupActions: function() {
 		BarItems = {}
@@ -785,435 +801,12 @@ var BARS = {
 				keybind: new Keybind({key: 27})
 			})
 
-		//Sliders
-			function moveOnAxis(value, fixed, axis) {
-				selected.forEach(function(obj, i) {
-					var number = value
-					if (fixed) {
-						number -= obj.from[axis]
-					}
-					number = limitToBox(obj.to  [axis] + number) - obj.to  [axis];
-					number = limitToBox(obj.from[axis] + number) - obj.from[axis];
-					obj.from[axis] += number
-					obj.to[axis] += number
-					obj.mapAutoUV()
-				})
-				Canvas.updatePositions()
-			}
-			new NumSlider({
-				id: 'slider_pos_x',
-				condition: function() {return selected.length},
-				get: function() {
-					return selected[0].from[0]
-				},
-				change: function(value, fixed) {
-					moveOnAxis(value, fixed, 0)
-				},
-				onBefore: function() {
-					Undo.initEdit({cubes: selected})
-				},
-				onAfter: function() {
-					Undo.finishEdit('move')
-				}
-			}) 
-			new NumSlider({
-				id: 'slider_pos_y',
-				condition: function() {return selected.length},
-				get: function() {
-					return selected[0].from[1]
-				},
-				change: function(value, fixed) {
-					moveOnAxis(value, fixed, 1)
-				},
-				onBefore: function() {
-					Undo.initEdit({cubes: selected})
-				},
-				onAfter: function() {
-					Undo.finishEdit('move')
-				}
-			}) 
-			new NumSlider({
-				id: 'slider_pos_z',
-				condition: function() {return selected.length},
-				get: function() {
-					return selected[0].from[2]
-				},
-				change: function(value, fixed) {
-					moveOnAxis(value, fixed, 2)
-				},
-				onBefore: function() {
-					Undo.initEdit({cubes: selected})
-				},
-				onAfter: function() {
-					Undo.finishEdit('move')
-				}
-			})
-
-
-			function scaleOnAxis(value, fixed, axis) {
-				selected.forEach(function(obj, i) {
-					var diff = value
-					if (fixed) {
-						diff -= obj.size(axis)
-					}
-					obj.to[axis] = limitToBox(obj.to[axis] + diff)
-					obj.mapAutoUV()
-				})
-				Canvas.updatePositions()
-			}
-			new NumSlider({
-				id: 'slider_size_x',
-				condition: function() {return selected.length},
-				get: function() {
-					return selected[0].to[0] - selected[0].from[0]
-				},
-				change: function(value, fixed) {
-					scaleOnAxis(value, fixed, 0)
-				},
-				onBefore: function() {
-					Undo.initEdit({cubes: selected})
-				},
-				onAfter: function() {
-					Undo.finishEdit('resize')
-				}
-			})
-			new NumSlider({
-				id: 'slider_size_y',
-				condition: function() {return selected.length},
-				get: function() {
-					return selected[0].to[1] - selected[0].from[1]
-				},
-				change: function(value, fixed) {
-					scaleOnAxis(value, fixed, 1)
-				},
-				onBefore: function() {
-					Undo.initEdit({cubes: selected})
-				},
-				onAfter: function() {
-					Undo.finishEdit('resize')
-				}
-			})
-			new NumSlider({
-				id: 'slider_size_z',
-				condition: function() {return selected.length},
-				get: function() {
-					return selected[0].to[2] - selected[0].from[2]
-				},
-				change: function(value, fixed) {
-					scaleOnAxis(value, fixed, 2)
-				},
-				onBefore: function() {
-					Undo.initEdit({cubes: selected})
-				},
-				onAfter: function() {
-					Undo.finishEdit('resize')
-				}
-			})
-
-			new NumSlider({
-				id: 'slider_inflate',
-				condition: function() {return Blockbench.entity_mode && selected.length},
-				get: function() {
-					return selected[0].inflate
-				},
-				change: function(value, fixed) {
-					selected.forEach(function(obj, i) {
-						var diff = value
-						if (fixed) {
-							diff -= obj.inflate
-						}
-						obj.inflate = obj.inflate + diff
-					})
-					Canvas.updatePositions()
-				},
-				onBefore: function() {
-					Undo.initEdit({cubes: selected})
-				},
-				onAfter: function() {
-					Undo.finishEdit('inflate')
-				}
-			})
-
-			function rotateOnAxis(value, fixed, axis) {
-				if (Blockbench.entity_mode) {	
-					if (!selected_group) return;
-					if (!fixed) {
-						value = value + selected_group.rotation[axis]
-					}
-					value = value % 360
-					selected_group.rotation[axis] = value
-					Canvas.updatePositions()
-					return;
-				}
-				//Warning
-				if (settings.limited_rotation.value && settings.dialog_rotation_limit.value) {
-					var i = 0;
-					while (i < selected.length) {
-						if (selected[i].rotation[(axis+1)%3] ||
-							selected[i].rotation[(axis+2)%3]
-						) {
-							i = Infinity
-
-							Blockbench.showMessageBox({
-								title: tl('message.rotation_limit.title'),
-								icon: 'rotate_right',
-								message: tl('message.rotation_limit.message'),
-								buttons: [tl('dialog.ok'), tl('dialog.dontshowagain')]
-							}, function(r) {
-								if (r === 1) {
-									settings.dialog_rotation_limit.value = false
-									saveSettings()
-								}
-							})
-							return;
-							//Gotta stop the numslider here
-						}
-						i++;
-					}
-				}
-				var origin = selected[0].origin
-				selected.forEach(function(obj, i) {
-					if (!obj.rotation.equals([0,0,0])) {
-						origin = obj.origin
-					}
-				})
-				selected.forEach(function(obj, i) {
-					if (obj.rotation.equals([0,0,0])) {
-						obj.origin = origin
-					}
-					var obj_val = value;
-					if (!fixed) {
-						obj_val += obj.rotation[axis]
-					}
-					obj_val = obj_val % 360
-					if (settings.limited_rotation.value) {
-						//Limit To 1 Axis
-						obj.rotation[(axis+1)%3] = 0
-						obj.rotation[(axis+2)%3] = 0
-						//Limit Angle
-						obj_val = Math.round(obj_val/22.5)*22.5
-						if (obj_val > 45 || obj_val < -45) {
-
-							let f = obj_val > 45
-							obj.roll(axis, f!=(axis==1) ? 1 : 3)
-							obj_val = f ? -22.5 : 22.5;
-						}
-					}
-					obj.rotation[axis] = obj_val
-				})
-				Canvas.updatePositions()
-			}
-			function getRotationInterval(event) {
-				if (settings.limited_rotation.value && !Blockbench.entity_mode) {
-					return 22.5;
-				} else if (event.shiftKey && event.ctrlKey) {
-					return 0.25;
-				} else if (event.shiftKey) {
-					return 45;
-				} else if (event.ctrlKey) {
-					return 1;
-				} else {
-					return 5;
-				}
-			}
-			new NumSlider({
-				id: 'slider_rotation_x',
-				condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
-				get: function() {
-					var obj = Blockbench.entity_mode ? selected_group : selected[0]
-					return obj ? obj.rotation[0] : ''
-				},
-				change: function(value, fixed) {
-					rotateOnAxis(value, fixed, 0)
-				},
-				onBefore: function() {
-					Undo.initEdit({cubes: selected, group: selected_group})
-				},
-				onAfter: function() {
-					Undo.finishEdit('rotate')
-				},
-				getInterval: getRotationInterval
-			})
-			new NumSlider({
-				id: 'slider_rotation_y',
-				condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
-				get: function() {
-					var obj = Blockbench.entity_mode ? selected_group : selected[0]
-					return obj ? obj.rotation[1] : ''
-				},
-				change: function(value, fixed) {
-					rotateOnAxis(value, fixed, 1)
-				},
-				onBefore: function() {
-					Undo.initEdit({cubes: selected, group: selected_group})
-				},
-				onAfter: function() {
-					Undo.finishEdit('rotate')
-				},
-				getInterval: getRotationInterval
-			})
-			new NumSlider({
-				id: 'slider_rotation_z',
-				condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
-				get: function() {
-					var obj = Blockbench.entity_mode ? selected_group : selected[0]
-					return obj ? obj.rotation[2] : ''
-				},
-				change: function(value, fixed) {
-					rotateOnAxis(value, fixed, 2)
-				},
-				onBefore: function() {
-					Undo.initEdit({cubes: selected, group: selected_group})
-				},
-				onAfter: function() {
-					Undo.finishEdit('rotate')
-				},
-				getInterval: getRotationInterval
-			})
-
-
-			function moveOriginOnAxis(value, fixed, axis) {
-				if (selected_group) {
-					var diff = value
-					if (fixed) {
-						diff -= selected_group.origin[axis]
-					}
-					selected_group.origin[axis] += diff
-					Canvas.updatePositions()
-					return;
-				}
-				selected.forEach(function(obj, i) {
-					var diff = value
-					if (fixed) {
-						diff -= obj.origin[axis]
-					}
-					obj.origin[axis] += diff
-				})
-				Canvas.updatePositions()
-			}
-			new NumSlider({
-				id: 'slider_origin_x',
-				condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
-				get: function() {
-					var obj = Blockbench.entity_mode ? selected_group : selected[0]
-					return obj ? obj.origin[0] : ''
-				},
-				change: function(value, fixed) {
-					moveOriginOnAxis(value, fixed, 0)
-				},
-				onBefore: function() {
-					Undo.initEdit({cubes: selected, group: selected_group})
-				},
-				onAfter: function() {
-					Undo.finishEdit('origin')
-				}
-			})
-			new NumSlider({
-				id: 'slider_origin_y',
-				condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
-				get: function() {
-					var obj = Blockbench.entity_mode ? selected_group : selected[0]
-					return obj ? obj.origin[1] : ''
-				},
-				change: function(value, fixed) {
-					moveOriginOnAxis(value, fixed, 1)
-				},
-				onBefore: function() {
-					Undo.initEdit({cubes: selected, group: selected_group})
-				},
-				onAfter: function() {
-					Undo.finishEdit('origin')
-				}
-			})
-			new NumSlider({
-				id: 'slider_origin_z',
-				condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
-				get: function() {
-					var obj = Blockbench.entity_mode ? selected_group : selected[0]
-					return obj ? obj.origin[2] : ''
-				},
-				change: function(value, fixed) {
-					moveOriginOnAxis(value, fixed, 2)
-				},
-				onBefore: function() {
-					Undo.initEdit({cubes: selected, group: selected_group})
-				},
-				onAfter: function() {
-					Undo.finishEdit('origin')
-				}
-			})
-
-		//Brush
-			new BarSelect({
-				id: 'vertex_snap_mode',
-				options: {
-					move: true,
-					scale: true
-				}
-			})
-			new ColorPicker({
-				id: 'brush_color',
-				palette: true
-			})
-			new BarSelect({
-				id: 'brush_mode',
-				options: {
-					brush: true,
-					noise: true,
-					eraser: true,
-					fill: true
-				}
-			})
-
-			new NumSlider({
-				id: 'slider_brush_size',
-				settings: {
-					min: 1, max: 20, step: 1, default: 1,
-				}
-			})
-			new NumSlider({
-				id: 'slider_brush_softness',
-				settings: {
-					min: 0, max: 100, default: 0,
-					interval: function(event) {
-						if (event.shiftKey && event.ctrlKey) {
-							return 0.25;
-						} else if (event.shiftKey) {
-							return 5;
-						} else if (event.ctrlKey) {
-							return 1;
-						} else {
-							return 10;
-						}
-					}
-				}
-			})
-			new NumSlider({
-				id: 'slider_brush_opacity',
-				settings: {
-					min: 0, max: 100, default: 100,
-					interval: function(event) {
-						if (event.shiftKey && event.ctrlKey) {
-							return 0.25;
-						} else if (event.shiftKey) {
-							return 5;
-						} else if (event.ctrlKey) {
-							return 1;
-						} else {
-							return 10;
-						}
-					}
-				}
-			})
-
-
 		//Tools
 			new Tool({
 				id: 'move_tool',
 				icon: 'fa-hand-paper-o',
 				category: 'tools',
 				selectFace: true,
-				allowWireframe: true,
 				transformerMode: 'translate',
 				toolbar: 'transform',
 				keybind: new Keybind({key: 86})
@@ -1223,7 +816,6 @@ var BARS = {
 				icon: 'open_with',
 				category: 'tools',
 				selectFace: true,
-				allowWireframe: true,
 				transformerMode: 'scale',
 				toolbar: 'transform',
 				keybind: new Keybind({key: 83})
@@ -1236,6 +828,7 @@ var BARS = {
 				selectFace: true,
 				transformerMode: 'hidden',
 				paintTool: true,
+				allowWireframe: false,
 				keybind: new Keybind({key: 66}),
 				onCanvasClick: function(data) {
 					Painter.startBrushCanvas(data, data.event)
@@ -1278,7 +871,7 @@ var BARS = {
 				transformerMode: 'hidden',
 				category: 'tools',
 				selectCubes: false,
-				condition: function() {return !Blockbench.entity_mode},
+				condition: () => !Blockbench.entity_mode,
 				onCanvasClick: function(data) {
 				},
 				onSelect: function() {
@@ -1288,7 +881,6 @@ var BARS = {
 					exitDisplaySettings()
 				}
 			})
-			/*
 			new Tool({
 				id: 'animation_mode_tool',
 				icon: 'movie',
@@ -1308,7 +900,7 @@ var BARS = {
 				onUnselect: function() {
 					Animator.leave()
 				}
-			})*/
+			})
 
 			new Action({
 				id: 'swap_tools',
@@ -1341,161 +933,6 @@ var BARS = {
 				}
 			})
 			new Action({
-				id: 'new_block_model',
-				icon: 'insert_drive_file',
-				category: 'file',
-				keybind: new Keybind({key: 78, ctrl: true}),
-				click: function () {newProject()}
-			})
-			new Action({
-				id: 'new_entity_model',
-				icon: 'pets',
-				category: 'file',
-				keybind: new Keybind({key: 78, ctrl: true, shift: true}),
-				click: function () {newProject(true)}
-			})
-			new Action({
-				id: 'open_model',
-				icon: 'assessment',
-				category: 'file',
-				keybind: new Keybind({key: 79, ctrl: true}),
-				click: function () {
-					Blockbench.import({
-						extensions: ['json', 'jem', 'jpm'],
-						type: 'JSON Model'
-					}, function(files) {
-						if (isApp) {
-							addRecentProject({name: pathToName(files[0].path, 'mobs_id'), path: files[0].path})
-						}
-						loadModel(files[0].content, files[0].path)
-					})
-				}
-			})
-			new Action({
-				id: 'add_model',
-				icon: 'assessment',
-				category: 'file',
-				click: function () {
-					Blockbench.import({
-						extensions: ['json', 'jem', 'jpm'],
-						type: 'JSON Model'
-					}, function(files) {
-						if (isApp) {
-							addRecentProject({name: pathToName(files[0].path, 'mobs_id'), path: files[0].path})
-						}
-						loadModel(files[0].content, files[0].path, true)
-					})
-				}
-			})
-			new Action({
-				id: 'extrude_texture',
-				icon: 'eject',
-				category: 'file',
-				click: function () {
-					Blockbench.import({
-						extensions: ['png'],
-						type: 'PNG Texture',
-						readtype: 'image'
-					}, function(files) {
-						if (files.length) {
-							if (isApp) {
-			                	new Texture().fromPath(files[0].path).add().fillParticle()
-							} else {
-			                	new Texture().fromDataURL(files[0].content).add().fillParticle()
-							}
-			                showDialog('image_extruder')
-							Extruder.drawImage(isApp ? files[0].path : files[0].content)
-						}
-					})
-				}
-			})
-			new Action({
-				id: 'export_blockmodel',
-				icon: 'insert_drive_file',
-				category: 'file',
-				keybind: new Keybind({key: 83, ctrl: true, shift: true}),
-				condition: function() {return !Blockbench.entity_mode},
-				click: function () {
-					var content = buildBlockModel()
-					Blockbench.export({
-						type: 'JSON Model',
-						extensions: ['json'],
-						name: Project.name||'model',
-						startpath: Prop.file_path,
-						content: content
-					})
-				}
-			})
-			new Action({
-				id: 'export_entity',
-				icon: 'pets',
-				category: 'file',
-				keybind: new Keybind({key: 83, ctrl: true, shift: true}),
-				condition: function() {return Blockbench.entity_mode},
-				click: function () {
-					var content = buildEntityModel({raw: true});
-					Blockbench.export({
-						type: 'JSON Entity Model',
-						extensions: ['json'],
-						name: Project.name,
-						startpath: Prop.file_path,
-						content: content,
-						custom_writer: writeFileEntity
-					})
-				}
-			})
-			new Action({
-				id: 'export_optifine_part',
-				icon: 'icon-optifine_file',
-				category: 'file',
-				condition: function() {return !Blockbench.entity_mode},
-				click: function () {
-					var content = buildJPMModel()
-					Blockbench.export({
-						type: 'Optifine Part Model',
-						extensions: ['jpm'],
-						name: Project.name,
-						startpath: Prop.file_path,
-						content: content
-					})
-				}
-			})
-			new Action({
-				id: 'export_optifine_full',
-				icon: 'icon-optifine_file',
-				category: 'file',
-				condition: function() {return Blockbench.entity_mode},
-				click: function () {
-					var content = buildJEMModel()
-					Blockbench.export({
-						type: 'Optifine Entity Model',
-						extensions: ['jem'],
-						startpath: Prop.file_path,
-						content: content
-					})
-				}
-			})
-			new Action({
-				id: 'export_obj',
-				icon: 'icon-objects',
-				category: 'file',
-				click: function () {
-					Blockbench.export({
-						type: 'Alias Wavefront',
-						extensions: ['obj'],
-						startpath: Prop.file_path,
-						custom_writer: writeFileObj
-					})
-				}
-			})
-			new Action({
-				id: 'save',
-				icon: 'save',
-				category: 'file',
-				keybind: new Keybind({key: 83, ctrl: true}),
-				click: function () {saveFile();saveTextures();}
-			})
-			new Action({
 				id: 'settings_window',
 				icon: 'settings',
 				category: 'blockbench',
@@ -1521,68 +958,12 @@ var BARS = {
 				category: 'blockbench',
 				click: function () {Blockbench.openLink('http://blockbench.net/donate')}
 			})
-
-		//Dialogs, UI
 			new Action({
-				id: 'reset_keybindings',
-				icon: 'replay',
-				category: 'blockbench',
-				click: function () {Keybinds.reset()}
-			})
-			new Action({
-				id: 'import_layout',
-				icon: 'folder',
-				category: 'blockbench',
-				click: function () {
-					Blockbench.import({
-						extensions: ['bbstyle', 'js'],
-						type: 'Blockbench Style'
-					}, function(files) {
-						applyBBStyle(files[0].content)
-					})
-				}
-			})
-			new Action({
-				id: 'export_layout',
-				icon: 'style',
-				category: 'blockbench',
-				click: function () {
-					Blockbench.export({
-						type: 'Blockbench Style',
-						extensions: ['bbstyle'],
-						content: autoStringify(app_colors)
-					})
-				}
-			})
-			new Action({
-				id: 'reset_layout',
-				icon: 'replay',
-				category: 'blockbench',
-				click: function () {
-					colorSettingsSetup(true)
-					Interface.data = $.extend(true, {}, Interface.default_data)
-					Interface.data.left_bar.forEach((id) => {
-						$('#left_bar').append(Interface.Panels[id].node)
-					})
-					Interface.data.right_bar.forEach((id) => {
-						$('#right_bar').append(Interface.Panels[id].node)
-					})
-					updateInterface()
-				}
-			})
-			new Action({
-				id: 'load_plugin',
-				icon: 'fa-file-code-o',
-				category: 'blockbench',
-				click: function () {
-					Blockbench.import({
-						extensions: ['bbplugin', 'js'],
-						type: 'Blockbench Plugin',
-						startpath: localStorage.getItem('plugin_dev_path')
-					}, function(files) {
-						loadPluginFromFile(files[0])
-					})
-				}
+				id: 'reload',
+				icon: 'refresh',
+				category: 'file',
+				condition: () => Blockbench.hasFlag('dev'),
+				click: function () {Blockbench.reload()}
 			})
 
 		//Edit
@@ -1590,7 +971,7 @@ var BARS = {
 				id: 'undo',
 				icon: 'undo',
 				category: 'edit',
-				condition: () => (!display_mode && !Animator.state),
+				condition: () => (!display_mode && !Animator.open),
 				keybind: new Keybind({key: 90, ctrl: true}),
 				click: function () {Undo.undo()}
 			})
@@ -1598,7 +979,7 @@ var BARS = {
 				id: 'redo',
 				icon: 'redo',
 				category: 'edit',
-				condition: () => (!display_mode && !Animator.state),
+				condition: () => (!display_mode && !Animator.open),
 				keybind: new Keybind({key: 89, ctrl: true}),
 				click: function () {Undo.redo()}
 			})
@@ -1630,6 +1011,7 @@ var BARS = {
 				id: 'duplicate',
 				icon: 'content_copy',
 				category: 'edit',
+				condition: () => (!display_mode && !Animator.open),
 				keybind: new Keybind({key: 68, ctrl: true}),
 				click: function () {
 					duplicateCubes();
@@ -1639,6 +1021,7 @@ var BARS = {
 				id: 'delete',
 				icon: 'delete',
 				category: 'edit',
+				condition: () => (!display_mode && !Animator.open),
 				keybind: new Keybind({key: 46}),
 				click: function () {
 					deleteCubes();
@@ -1668,6 +1051,7 @@ var BARS = {
 				id: 'select_window',
 				icon: 'filter_list',
 				category: 'edit',
+				condition: () => (!display_mode && !Animator.open),
 				keybind: new Keybind({key: 70, ctrl: true}),
 				click: function () {
 					showDialog('selection_creator')
@@ -1678,13 +1062,14 @@ var BARS = {
 				id: 'invert_selection',
 				icon: 'swap_vert',
 				category: 'edit',
-				keybind: new Keybind({key: 73, ctrl: true, shift: true}),
+				condition: () => (!display_mode && !Animator.open),
 				click: function () {invertSelection()}
 			})
 			new Action({
 				id: 'select_all',
 				icon: 'select_all',
 				category: 'edit',
+				condition: () => (!display_mode && !Animator.open),
 				keybind: new Keybind({key: 65, ctrl: true}),
 				click: function () {selectAll()}
 			})
@@ -1692,205 +1077,8 @@ var BARS = {
 				id: 'collapse_groups',
 				icon: 'format_indent_decrease',
 				category: 'edit',
-				condition: function() {
-					return TreeElements.length > 0
-				},
+				condition: () => TreeElements.length > 0,
 				click: function () {collapseAllGroups()}
-			})
-
-		//Transform
-			new Action({
-				id: 'scale',
-				icon: 'settings_overscan',
-				category: 'transform',
-				click: function () {
-					$('#model_scale_range').val(1)
-					$('#model_scale_label').val(1)
-
-					Undo.initEdit({cubes: selected})
-
-					selected.forEach(function(obj) {
-						obj.before = {
-							from: obj.from.slice(),
-							to: obj.to.slice(),
-							origin: obj.origin.slice()
-						}
-					})
-					showDialog('scaling')
-				}
-			})
-			new Action({
-				id: 'rotate_x_cw',
-				icon: 'rotate_right',
-				color: 'x',
-				category: 'transform',
-				click: function () {
-					rotateSelected(0, 1);
-				}
-			})
-			new Action({
-				id: 'rotate_x_ccw',
-				icon: 'rotate_left',
-				color: 'x',
-				category: 'transform',
-				click: function () {
-					rotateSelected(0, 3);
-				}
-			})
-			new Action({
-				id: 'rotate_y_cw',
-				icon: 'rotate_right',
-				color: 'y',
-				category: 'transform',
-				click: function () {
-					rotateSelected(1, 1);
-				}
-			})
-			new Action({
-				id: 'rotate_y_ccw',
-				icon: 'rotate_left',
-				color: 'y',
-				category: 'transform',
-				click: function () {
-					rotateSelected(1, 3);
-				}
-			})
-			new Action({
-				id: 'rotate_z_cw',
-				icon: 'rotate_right',
-				color: 'z',
-				category: 'transform',
-				click: function () {
-					rotateSelected(2, 1);
-				}
-			})
-			new Action({
-				id: 'rotate_z_ccw',
-				icon: 'rotate_left',
-				color: 'z',
-				category: 'transform',
-				click: function () {
-					rotateSelected(2, 3);
-				}
-			})
-
-			new Action({
-				id: 'flip_x',
-				icon: 'icon-mirror_x',
-				color: 'x',
-				category: 'transform',
-				click: function () {
-					mirrorSelected(0);
-				}
-			})
-			new Action({
-				id: 'flip_y',
-				icon: 'icon-mirror_y',
-				color: 'y',
-				category: 'transform',
-				click: function () {
-					mirrorSelected(1);
-				}
-			})
-			new Action({
-				id: 'flip_z',
-				icon: 'icon-mirror_z',
-				color: 'z',
-				category: 'transform',
-				click: function () {
-					mirrorSelected(2);
-				}
-			})
-
-			new Action({
-				id: 'center_x',
-				icon: 'vertical_align_center',
-				color: 'x',
-				category: 'transform',
-				click: function () {
-					Undo.initEdit({cubes: selected});
-					centerCubes(0);
-					Undo.finishEdit('center')
-				}
-			})
-			new Action({
-				id: 'center_y',
-				icon: 'vertical_align_center',
-				color: 'y',
-				category: 'transform',
-				click: function () {
-					Undo.initEdit({cubes: selected});
-					centerCubes(1);
-					Undo.finishEdit('center')
-				}
-			})
-			new Action({
-				id: 'center_z',
-				icon: 'vertical_align_center',
-				color: 'z',
-				category: 'transform',
-				click: function () {
-					Undo.initEdit({cubes: selected});
-					centerCubes(2);
-					Undo.finishEdit('center')
-				}
-			})
-			new Action({
-				id: 'center_all',
-				icon: 'filter_center_focus',
-				category: 'transform',
-				click: function () {
-					Undo.initEdit({cubes: selected});
-					centerCubesAll();
-					Undo.finishEdit('center')
-				}
-			})
-
-			new Action({
-				id: 'toggle_visibility',
-				icon: 'visibility',
-				category: 'transform',
-				click: function () {toggleCubeProperty('visibility')}
-			})
-			new Action({
-				id: 'toggle_export',
-				icon: 'save',
-				category: 'transform',
-				click: function () {toggleCubeProperty('export')}
-			})
-			new Action({
-				id: 'toggle_autouv',
-				icon: 'fullscreen_exit',
-				category: 'transform',
-				click: function () {toggleCubeProperty('autouv')}
-			})
-			new Action({
-				id: 'toggle_shade',
-				icon: 'wb_sunny',
-				category: 'transform',
-				click: function () {toggleCubeProperty('shade')}
-			})
-			new Action({
-				id: 'rename',
-				icon: 'text_format',
-				category: 'transform',
-				keybind: new Keybind({key: 113}),
-				click: function () {renameCubes()}
-			})
-			new Action({
-				id: 'update_autouv',
-				icon: 'brightness_auto',
-				category: 'transform',
-				condition: () => !Blockbench.entity_mode,
-				click: function () {
-					if (selected.length) {
-						Undo.initEdit({cubes: selected[0].forSelected(), selection: true})
-						selected[0].forSelected(function(cube) {
-							cube.mapAutoUV()
-						})
-						Undo.finishEdit('update_autouv')
-					}
-				}
 			})
 
 		//Move Cube Keys
@@ -1943,6 +1131,54 @@ var BARS = {
 				click: function (e) {moveCubesRelative(1, 1, e)}
 			})
 
+		//Settings
+			new Action({
+				id: 'reset_keybindings',
+				icon: 'replay',
+				category: 'blockbench',
+				click: function () {Keybinds.reset()}
+			})
+			new Action({
+				id: 'import_layout',
+				icon: 'folder',
+				category: 'blockbench',
+				click: function () {
+					Blockbench.import({
+						extensions: ['bbstyle', 'js'],
+						type: 'Blockbench Style'
+					}, function(files) {
+						applyBBStyle(files[0].content)
+					})
+				}
+			})
+			new Action({
+				id: 'export_layout',
+				icon: 'style',
+				category: 'blockbench',
+				click: function () {
+					Blockbench.export({
+						type: 'Blockbench Style',
+						extensions: ['bbstyle'],
+						content: autoStringify(app_colors)
+					})
+				}
+			})
+			new Action({
+				id: 'reset_layout',
+				icon: 'replay',
+				category: 'blockbench',
+				click: function () {
+					colorSettingsSetup(true)
+					Interface.data = $.extend(true, {}, Interface.default_data)
+					Interface.data.left_bar.forEach((id) => {
+						$('#left_bar').append(Interface.Panels[id].node)
+					})
+					Interface.data.right_bar.forEach((id) => {
+						$('#right_bar').append(Interface.Panels[id].node)
+					})
+					updateInterface()
+				}
+			})
 
 		//View
 			new Action({
@@ -1976,433 +1212,13 @@ var BARS = {
 				condition: isApp,
 				click: function () {setZoomLevel('reset')}
 			})
-			new Action({
-				id: 'toggle_wireframe',
-				icon: 'border_clear',
-				category: 'view',
-				keybind: new Keybind({key: 90}),
-				condition: () => Toolbox && Toolbox.selected && Toolbox.selected.allowWireframe,
-				click: function () {toggleWireframe()}
-			})
 
-			new Action({
-				id: 'screenshot_model',
-				icon: 'fa-cubes',
-				category: 'view',
-				keybind: new Keybind({key: 80, ctrl: true}),
-				click: function () {quad_previews.current.screenshot()}
-			})
-			new Action({
-				id: 'screenshot_app',
-				icon: 'icon-bb_interface',
-				category: 'view',
-				click: function () {Screencam.fullScreen()}
-			})
-			new Action({
-				id: 'toggle_quad_view',
-				icon: 'widgets',
-				category: 'view',
-				keybind: new Keybind({key: 9}),
-				click: function () {
-					main_preview.toggleFullscreen()
-				}
-			})
 
-		//Textures
-			new Action({
-				id: 'import_texture',
-				icon: 'library_add',
-				category: 'textures',
-				keybind: new Keybind({key: 84, ctrl: true}),
-				click: function () {
-					openTexture()
-				}
-			})
-			new Action({
-				id: 'create_texture',
-				icon: 'icon-create_bitmap',
-				category: 'textures',
-				keybind: new Keybind({key: 84, ctrl: true, shift: true}),
-				click: function () {
-					Painter.addBitmapDialog()
-				}
-			})
-			new Action({
-				id: 'reload_textures',
-				icon: 'refresh',
-				category: 'textures',
-				keybind: new Keybind({key: 82, ctrl: true}),
-				condition: isApp,
-				click: reloadTextures
-			})
-			new Action({
-				id: 'save_textures',
-				icon: 'save',
-				category: 'textures',
-				keybind: new Keybind({key: 83, ctrl: true, alt: true}),
-				click: function () {saveTextures()}
-			})
-			new Action({
-				id: 'change_textures_folder',
-				icon: 'fa-hdd-o',
-				category: 'textures',
-				condition: () => textures.length > 0,
-				click: function () {changeTexturesFolder()}
-			})
-			new Action({
-				id: 'animated_textures',
-				icon: 'play_arrow',
-				category: 'textures',
-				condition: function() {
-					if (Blockbench.entity_mode) return false;
-					var i = 0;
-					var show = false;
-					while (i < textures.length) {
-						if (textures[i].frameCount > 1) {
-							show = true;
-							i = textures.length
-						}
-						i++;
-					}
-					return show;
-				},
-				click: function () {
-					TextureAnimator.toggle()
-				}
-			})
-
-		//UV
-			new Action({
-				id: 'uv_dialog',
-				icon: 'view_module',
-				category: 'blockbench',
-				condition: ()=>!Blockbench.entity_mode && selected.length,
-				click: function () {uv_dialog.openAll()}
-			})
-			new Action({
-				id: 'uv_dialog_full',
-				icon: 'web_asset',
-				category: 'blockbench',
-				click: function () {uv_dialog.openFull()}
-			})
-
-			new BarSlider({
-				id: 'uv_rotation',
-				category: 'uv',
-				condition: () => !Blockbench.entity_mode && selected.length,
-				min: 0, max: 270, step: 90, width: 80,
-				onChange: function(slider) {
-					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('rotate')
-					Undo.finishEdit('uv')
-				}
-			})
-			new BarSelect({
-				id: 'uv_grid', 
-				category: 'uv',
-				condition: () => !Blockbench.entity_mode && selected.length,
-				width: 60,
-				options: {
-					auto: true,
-					'16': '16x16',
-					'32': '32x32',
-					'64': '64x64',
-					none: true,
-				},
-				onChange: function(slider) {
-					if (open_dialog) {
-						uv_dialog.changeGrid(slider.get())
-					} else {
-						main_uv.setGrid()
-					}
-				}
-			})
-			new Action({
-				id: 'uv_maximize',
-				icon: 'zoom_out_map',
-				category: 'uv',
-				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function (event) { 
-					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('maximize', event)
-					Undo.finishEdit('uv')
-				}
-			})
-			new Action({
-				id: 'uv_auto',
-				icon: 'brightness_auto',
-				category: 'uv',
-				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function (event) {
-					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('setAutoSize', event)
-					Undo.finishEdit('uv')
-				}
-			})
-			new Action({
-				id: 'uv_rel_auto',
-				icon: 'brightness_auto',
-				category: 'uv',
-				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function (event) {
-					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('setRelativeAutoSize', event)
-					Undo.finishEdit('uv')
-				}
-			})
-			new Action({
-				id: 'uv_mirror_x',
-				icon: 'icon-mirror_x',
-				category: 'uv',
-				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function (event) {
-					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('mirrorX', event)
-					Undo.finishEdit('uv')
-				}
-			})
-			new Action({
-				id: 'uv_mirror_y',
-				icon: 'icon-mirror_y',
-				category: 'uv',
-				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function (event) {
-					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('mirrorY', event)
-					Undo.finishEdit('uv')
-				}
-			})
-			new Action({
-				id: 'uv_transparent',
-				icon: 'clear',
-				category: 'uv',
-				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function (event) {
-					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('clear', event)
-					Undo.finishEdit('uv')
-				}
-			})
-			new Action({
-				id: 'uv_reset',
-				icon: 'replay',
-				category: 'uv',
-				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function (event) {
-					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('reset', event)
-					Undo.finishEdit('uv')
-				}
-			})
-			new Action({
-				id: 'uv_apply_all',
-				icon: 'format_color_fill',
-				category: 'uv',
-				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function (e) {
-					Undo.initEdit({cubes: selected, uv_only: true})
-					main_uv.applyAll(e)
-					Undo.finishEdit('uv')
-				}
-			})
-			new BarSelect({
-				id: 'cullface', 
-				category: 'uv',
-				condition: () => !Blockbench.entity_mode && selected.length,
-				options: {
-					off: tl('uv_editor.no_faces'),
-					north: tl('face.north'),
-					south: tl('face.south'),
-					west: tl('face.west'),
-					east: tl('face.east'),
-					top: tl('face.up'),
-					bottom: tl('face.down'),
-				},
-				onChange: function(sel, event) {
-					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('switchCullface')
-					Undo.finishEdit('uv')
-				}
-			})
-			new Action({
-				id: 'auto_cullface',
-				icon: 'block',
-				category: 'uv',
-				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function (event) {
-					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('autoCullface', event)
-					Undo.finishEdit('uv')
-				}
-			})
-			new Action({
-				id: 'face_tint',
-				category: 'uv',
-				condition: () => !Blockbench.entity_mode && selected.length,
-				click: function (event) {
-					Undo.initEdit({cubes: selected, uv_only: true})
-					uv_dialog.forSelection('switchTint', event)
-					Undo.finishEdit('uv')
-				}
-			})
-			new Action({
-				id: 'uv_shift',
-				condition: () => Blockbench.entity_mode,
-				icon: 'photo_size_select_large',
-				category: 'uv',
-				click: function () {
-					showUVShiftDialog()
-				}
-			})
-
-		//Rotations
-			new Action({
-				id: 'origin_to_geometry',
-				icon: 'filter_center_focus',
-				category: 'transform',
-				click: function () {origin2geometry()}
-			})
-			new Action({
-				id: 'rescale_toggle',
-				icon: 'check_box_outline_blank',
-				category: 'transform',
-				condition: function() {return !Blockbench.entity_mode && selected.length;},
-				click: function () {
-					Undo.initEdit({cubes: selected})
-					var value = !selected[0].rescale
-					selected.forEach(function(cube) {
-						cube.rescale = value
-					})
-					Canvas.updatePositions()
-					updateNslideValues()
-					Undo.finishEdit('rescale')
-				}
-			})
-			new Action({
-				id: 'bone_reset_toggle',
-				icon: 'check_box_outline_blank',
-				category: 'transform',
-				condition: function() {return Blockbench.entity_mode && selected_group;},
-				click: function () {
-					Undo.initEdit({group: selected_group})
-					selected_group.reset = !selected_group.reset
-					updateNslideValues()
-					Undo.finishEdit('bone_reset')
-				}
-			})
-
-		//Outliner
-			new Action({
-				id: 'add_cube',
-				icon: 'add_box',
-				category: 'edit',
-				keybind: new Keybind({key: 78, ctrl: true}),
-				condition: function() {return !Blockbench.entity_mode || selected_group || selected.length},
-				click: function () {
-					addCube();
-				}
-			})
-			new Action({
-				id: 'add_group',
-				icon: 'create_new_folder',
-				category: 'edit',
-				keybind: new Keybind({key: 71, ctrl: true}),
-				click: function () {
-					addGroup();
-				}
-			})
-			new Action({
-				id: 'outliner_toggle',
-				icon: 'view_stream',
-				category: 'edit',
-				keybind: new Keybind({key: 115}),
-				click: function () {
-					toggleOutlinerOptions()
-				}
-			})
-			new BarText({
-				id: 'cube_counter',
-				right: true,
-				click: function() {selectAll()}
-			})
-
-		//Display Mode
-			new Action({
-				id: 'add_display_preset',
-				icon: 'add',
-				category: 'display',
-				click: function () {showDialog('create_preset')}
-			})
-
-		//Animations
-		/*
-			new Action({
-				id: 'add_animation',
-				icon: 'fa-plus-circle',
-				category: 'animation',
-				condition: () => Animator.state,
-				click: function () {
-					var animation = new Animation({name: 'animation.'+Project.parent.replace(/geometry./, '')+'.new'}).add()
-
-				}
-			})
-			new Action({
-				id: 'load_animation_file',
-				icon: 'fa-file-video-o',
-				category: 'animation',
-				condition: () => Animator.state,
-				click: function () {
-					
-					Blockbench.import({
-						extensions: ['json'],
-						type: 'JSON Animation'
-					}, function(files) {
-						Animator.loadFile(files[0])
-					})
-
-				}
-			})
-			new Action({
-				id: 'export_animation_file',
-				icon: 'fa-file-video-o',
-				category: 'animation',
-				condition: () => Animator.state,
-				click: function () {
-					var content = autoStringify(Animator.buildFile())
-					Blockbench.export({
-						type: 'JSON Animation',
-						extensions: ['json'],
-						name: Project.parent||'animation',
-						startpath: Prop.file_path,
-						content: content
-					})
-
-				}
-			})
-			new Action({
-				id: 'play_animation',
-				icon: 'play_arrow',
-				category: 'animation',
-				condition: () => Animator.state,
-				click: function () {
-					
-					if (Animator.playing) {
-						Timeline.pause()
-					} else {
-						Timeline.start()
-					}
-
-				}
-			})*/
-
-		//Misc
-			new Action({
-				id: 'reload',
-				icon: 'refresh',
-				category: 'file',
-				condition: () => Blockbench.hasFlag('dev'),
-				click: function () {Blockbench.reload()}
-			})
+		BARS.action_definers.forEach((definer) => {
+			if (typeof definer === 'function') {
+				definer()
+			}
+		})
 	},
 	setupToolbars: function() {
 		//
@@ -2424,23 +1240,6 @@ var BARS = {
 			],
 			default_place: true
 		})
-		//Toolbars.animations = new Toolbar({
-		//	id: 'animations',
-		//	children: [
-		//		'add_animation',
-		//		'load_animation_file',
-		//		'play_animation',
-		//		'export_animation_file'
-		//	],
-		//	default_place: true
-		//})
-		//Toolbars.keyframe = new Toolbar({
-		//	id: 'keyframe',
-		//	children: [
-		//		'reload_textures'
-		//	],
-		//	default_place: true
-		//})
 		Toolbars.texturelist = new Toolbar({
 			id: 'texturelist',
 			children: [
@@ -2459,7 +1258,7 @@ var BARS = {
 				'vertex_snap_tool',
 				'brush_tool',
 				'display_mode_tool',
-				//'animation_mode_tool'
+				'animation_mode_tool'
 			],
 			default_place: true
 		})
@@ -2533,6 +1332,23 @@ var BARS = {
 				'auto_cullface',
 				'_',
 				'uv_rotation'
+			],
+			default_place: true
+		})
+		//Animations
+		Toolbars.animations = new Toolbar({
+			id: 'animations',
+			children: [
+				'add_animation',
+				'slider_animation_length',
+				'play_animation'
+			],
+			default_place: true
+		})
+		Toolbars.keyframe = new Toolbar({
+			id: 'keyframe',
+			children: [
+				'slider_keyframe_time'
 			],
 			default_place: true
 		})
@@ -2742,19 +1558,26 @@ class Menu {
 				if (!s) {
 					return;
 				}
-				s.menu_node.addEventListener('click', s.click)
 				entry = s.menu_node
 				if (BARS.condition(s.condition)) {
+
+					if (!entry.hasMenuEvents) {
+						entry.hasMenuEvents = true
+						entry.addEventListener('click', (e) => {s.trigger(e)})
+						$(entry).on('mouseenter mousedown', function(e) {
+							scope.hover(this, e)
+						})
+					}
 					parent.append(entry)
-					$(entry).on('mouseenter mousedown', function(e) {
-						scope.hover(this, e)
-					})
 				}
 			} else if (typeof s === 'object') {
 
 				if (BARS.condition(s.condition, context)) {
-
-					var icon = Blockbench.getIconNode(s.icon, s.color)
+					if (typeof s.icon === 'function') {
+						var icon = Blockbench.getIconNode(s.icon(context), s.color)
+					} else {
+						var icon = Blockbench.getIconNode(s.icon, s.color)
+					}
 					entry = $('<li>' + tl(s.name) + '</li>')
 					entry.prepend(icon)
 					if (typeof s.click === 'function') {
@@ -2801,7 +1624,7 @@ class Menu {
 
 		if (position && position.clientX !== undefined) {
 			var offset_left = position.clientX
-			var offset_top  = position.clientY
+			var offset_top  = position.clientY+1
 		} else {
 			if (!position && scope.type === 'bar_menu') {
 				position = scope.label
@@ -2911,6 +1734,7 @@ class BarMenu extends Menu {
 	constructor(id, structure, condition) {
 		super()
 		var scope = this;
+		MenuBar.menues[id] = this
 		this.type = 'bar_menu'
 		this.id = id
 		this.children = [];
@@ -2943,7 +1767,7 @@ var MenuBar = {
 	menues: {},
 	open: undefined,
 	setup: function() {
-		MenuBar.menues.file = new BarMenu('file', [
+		new BarMenu('file', [
 			'project_window',
 			{name: 'menu.file.new', id: 'new', icon: 'insert_drive_file', children: [
 				'new_block_model',
@@ -2984,7 +1808,7 @@ var MenuBar = {
 			'donate',
 			'reload'
 		])
-		MenuBar.menues.edit = new BarMenu('edit', [
+		new BarMenu('edit', [
 			'undo',
 			'redo',
 			'_',
@@ -2997,8 +1821,8 @@ var MenuBar = {
 			'_',
 			'select_window',
 			'invert_selection'
-		], function() {return !display_mode})
-		MenuBar.menues.transform = new BarMenu('transform', [
+		], () => (!display_mode && !Animator.open))
+		new BarMenu('transform', [
 			'scale',
 			{name: 'menu.transform.rotate', id: 'rotate', icon: 'rotate_90_degrees_ccw', children: [
 				'rotate_x_cw',
@@ -3027,8 +1851,8 @@ var MenuBar = {
 				'rename'
 			]}
 
-		], function() {return !display_mode})
-		MenuBar.menues.filter = new BarMenu('filter', [
+		], () => (!display_mode && !Animator.open))
+		new BarMenu('filter', [
 			'plugins_window',
 			'_'
 			/*
@@ -3038,9 +1862,9 @@ var MenuBar = {
 			entity / player model / shape generator
 			*/
 
-		], function() {return !display_mode})
+		])
 
-		MenuBar.menues.display = new BarMenu('display', [
+		new BarMenu('display', [
 			'copy',
 			'paste',
 			'_',
@@ -3104,10 +1928,20 @@ var MenuBar = {
 				})
 				return presets;
 			}}
-		], function() {return display_mode})
+		], () => display_mode)
+
+		new BarMenu('animation', [
+			'copy',
+			'paste',
+			'select_all_keyframes',
+			'delete_keyframes',
+			'_',
+			'load_animation_file',
+			'export_animation_file',
+		], () => Animator.open)
 
 
-		MenuBar.menues.view = new BarMenu('view', [
+		new BarMenu('view', [
 			'fullscreen',
 			{name: 'menu.view.zoom', id: 'zoom', condition: isApp, icon: 'search', children: [
 				'zoom_in',

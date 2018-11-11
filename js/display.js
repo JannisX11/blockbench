@@ -3,10 +3,12 @@ Blockbench.display_settings = display
 var ground_animation = false;
 var ground_timer = 0
 var display_slot;
+var display_preview;
 var display_clipboard;
 
 class refModel {
 	constructor(id) {
+		var scope = this;
 		this.model = new THREE.Object3D();
 		this.name = tl('display.reference.'+id);
 		this.id = id;
@@ -16,12 +18,17 @@ class refModel {
 		switch (id) {
 			case 'player':
 				this.onload = function() {
+					let angle = Math.degToRad(scope.angle||22.5)
+					let x = scope.variant === 'alex' ? 5.5 : 6
+					let y = 22 - Math.cos(angle)*10 + Math.sin(angle)*2
+					let z = 	 Math.sin(angle)*10 + Math.cos(angle)*2
+
 					if (display_slot === 'thirdperson_righthand') {
-						setDisplayArea(-5.7, 7.5, -6, -90, 22.5, 90, 1, 1, 1)
+						setDisplayArea(x, y, -z, -67.5,0,0, 1, 1, 1)
 					} else if (display_slot === 'thirdperson_lefthand') {
-						setDisplayArea(-5.7, 7.5, 6, -90, 22.5, 90, 1, 1, 1)
+						setDisplayArea(-x, y, -z, -67.5,0,0, 1, 1, 1)
 					} else if (display_slot === 'head') {
-						setDisplayArea(0, 22, 0, 0, 90, 0, 0.625, 0.625, 0.625)
+						setDisplayArea(0, 22, 0, 0, 0, 0, 0.625, 0.625, 0.625)
 					}
 				}
 				break;
@@ -104,18 +111,29 @@ class refModel {
 				this.tex.needsUpdate = true;
 			}
 			img.crossOrigin = '';
-			var mat = new THREE.MeshLambertMaterial({color: 0xffffff, map: tex, transparent: true});
+			var mat = new THREE.MeshLambertMaterial({
+				color: 0xffffff,
+				map: tex,
+				transparent: true,
+				side: 2,
+				alphaTest: 0.2
+			});
 		}
 
 		scope.material = mat
 
 		things.forEach(function(s) {
 			var mesh = new THREE.Mesh(new THREE.CubeGeometry(s.size[0], s.size[1], s.size[2]), mat )
-			mesh.position.set(s.origin[0], s.origin[1], s.origin[2])
-			mesh.geometry.translate(-s.origin[0], -s.origin[1], -s.origin[2])
+			if (s.origin) {
+				mesh.position.set(s.origin[0], s.origin[1], s.origin[2])
+				mesh.geometry.translate(-s.origin[0], -s.origin[1], -s.origin[2])
+			}
 			mesh.geometry.translate(s.pos[0], s.pos[1], s.pos[2])
-			if (s.angle) {
-				mesh.rotation['z'] = Math.PI / (180 /s.angle)
+			if (s.rotation) {
+				mesh.rotation.setFromDegreeArray(s.rotation)
+			}
+			if (s.model) {
+				mesh.r_model = s.model
 			}
 
 			for (var face in s) {
@@ -140,6 +158,17 @@ class refModel {
 		scope.model.name = name;
 		return this;
 	}
+	setModelVariant(variant) {
+		this.variant = variant
+		this.model.children.forEach((m) => {
+			if (m.r_model) {
+				m.visible = m.r_model === variant;
+			}
+		})
+		if (displayReferenceObjects.active === this) {
+			this.onload()
+		}
+	}
 	load() {
 		displayReferenceObjects.clear()
 		if (typeof this.onload === 'function') {
@@ -163,82 +192,226 @@ class refModel {
 		display_scene.add(this.model)
 		displayReferenceObjects.active = this;
 		
-		main_preview.loadBackground()
+		display_preview.loadBackground()
 	}
-	buildPlayer() {
+	buildPlayer(slim) {
 		var scope = this;
-		var things = [
-			{"size": [4, 12, 4], "pos": [0, 12, -6], "origin": [0, 16, 0], "angle": -22.5,
-				"north": {"uv": [10, 5, 11, 8], "texture": "#0"},
-				"east": {"uv": [13, 5, 14, 8], "texture": "#0"},
-				"south": {"uv": [12, 5, 13, 8], "texture": "#0"},
-				"west": {"uv": [11, 5, 12, 8], "texture": "#0"},
-				"up": { "uv": [11, 4, 12, 5], "texture": "#0", "rotation": 270 },
-				"down": { "uv": [12, 5, 13, 4], "texture": "#0", "rotation": 270 }
-			},	//Right Arm
-
-			{"size": [4, 12, 4], "pos": [0, 12, 6], "origin": [0, 16, 0], "angle": -22.5,
-				"north": {"uv": [8, 13, 9, 16], "texture": "#0"},
-				"east": {"uv": [11, 13, 12, 16], "texture": "#0"},
-				"south": {"uv": [10, 13, 11, 16], "texture": "#0"},
-				"west": {"uv": [9, 13, 10, 16], "texture": "#0"},
-				"up": { "uv": [9, 12, 10, 13], "texture": "#0", "rotation": 270 },
-				"down": { "uv": [10, 13, 11, 12], "texture": "#0", "rotation": 270 }
-			},	//Left Arm
-
-			{"size": [4, 12, 4], "pos": [0, 0, -2], "origin": [0, 0, 0], 
-				"north": {"uv": [0, 5, 1, 8], "texture": "#0"},
-				"east": {"uv": [3, 5, 4, 8], "texture": "#0"},
-				"south": {"uv": [2, 5, 3, 8], "texture": "#0"},
-				"west": {"uv": [1, 5, 2, 8], "texture": "#0"},
-				"up": { "uv": [1, 4, 2, 5], "texture": "#0", "rotation": 270 },
-				"down": { "uv": [2, 4, 3, 5], "texture": "#0", "rotation": 270 }
-			},//R Leg
-
-			{"size": [4, 12, 4], "pos": [0, 0, 2], "origin": [0, 0, 0],
-				"north": {"uv": [4, 13, 5, 16], "texture": "#0"},
-				"east": {"uv": [7, 13, 8, 16], "texture": "#0"},
-				"south": {"uv": [6, 13, 7, 16], "texture": "#0"},
-				"west": {"uv": [5, 13, 6, 16], "texture": "#0"},
-				"up": { "uv": [5, 12, 6, 13], "texture": "#0", "rotation": 270 },
-				"down": { "uv": [6, 12, 7, 13], "texture": "#0", "rotation": 270 }
-			},// L Leg
-
-			{"size": [8, 8, 8], "pos": [0, 22, 0], "origin": [0, 0, 0], 
-				"north": {"uv": [0, 2, 2, 4], "texture": "#0"},
-				"east": {"uv": [6, 2, 8, 4], "texture": "#0"},
-				"south": {"uv": [4, 2, 6, 4], "texture": "#0"},
-				"west": {"uv": [2, 2, 4, 4], "texture": "#0"},
-				"up": {"uv": [2, 0, 4, 2],"texture": "#0","rotation": 90 },
-				"down": { "uv": [6, 0, 4, 2], "texture": "#0", "rotation": 90 }
-			},//Head
-
-
-
-			{"size": [4, 12, 8], "pos": [0, 12, 0], "origin": [0, 0, 0],
-				"north": {"uv": [4, 5, 5, 8], "texture": "#0"},
-				"east": {"uv": [8, 5, 10, 8], "texture": "#0"},
-				"south": {"uv": [7, 5, 8, 8], "texture": "#0"},
-				"west": {"uv": [5, 5, 7, 8], "texture": "#0"},
-				"up": { "uv": [5, 4, 7, 5], "texture": "#0", "rotation": 270 },
-				"down": { "uv": [7, 4, 9, 5], "texture": "#0", "rotation": 270 }
-			},//Body
-
-				/*
-				{"size": [9, 9, 9], "pos": [0, 22, 0], "origin": [0, 0, 0], 
-					"north": {"uv": [8, 2, 10, 4], "texture": "#0"},
-					"east": {"uv": [14, 2, 16, 4], "texture": "#0"},
-					"south": {"uv": [12, 2, 14, 4], "texture": "#0"},
-					"west": {"uv": [10, 2, 12, 4], "texture": "#0"},
-					"up": {"uv": [10, 0, 12, 2],"texture": "#0","rotation": 90 },
-					"down": { "uv": [12, 0, 14, 2], "texture": "#0", "rotation": 270 }
-				}//Head Layer
-
-				*/
+		var cubes = [
+			{
+				//Head
+				"size": [8, 8, 8],
+				"pos": [0, 28, 0],
+				"north": {"uv": [2.032, 2.032, 3.968, 3.968]},
+				"east": {"uv": [0.032, 2.032, 1.968, 3.968]},
+				"south": {"uv": [6.032, 2.032, 7.968, 3.968]},
+				"west": {"uv": [4.032, 2.032, 5.968, 3.968]},
+				"up": {"uv": [3.968, 1.968, 2.032, 0.032]},
+				"down": {"uv": [5.968, 0.032, 4.032, 1.968]}
+			},
+			{
+				//Head Layer
+				"size": [9, 9, 9],
+				"pos": [0, 28, 0],
+				"north": {"uv": [10.032, 2.032, 11.968, 3.968]},
+				"east": {"uv": [8.032, 2.032, 9.968, 3.968]},
+				"south": {"uv": [14.032, 2.032, 15.968, 3.968]},
+				"west": {"uv": [12.032, 2.032, 13.968, 3.968]},
+				"up": {"uv": [11.968, 1.968, 10.032, 0.032]},
+				"down": {"uv": [13.968, 0.032, 12.032, 1.968]}
+			},
+			{
+				//Body
+				"size": [8, 12, 4],
+				"pos": [0, 18, 0],
+				"north": {"uv": [6.968, 5.032, 5.032, 7.968]},
+				"east": {"uv": [7.968, 5.032, 7.032, 7.968]},
+				"south": {"uv": [9.968, 5.032, 8.032, 7.968]},
+				"west": {"uv": [4.968, 5.032, 4.032, 7.968]},
+				"up": {"uv": [5.032, 4.968, 6.968, 4.032]},
+				"down": {"uv": [7.032, 4.032, 8.968, 4.968]}
+			},
+			{
+				//Body Layer
+				"size": [9, 13, 5],
+				"pos": [0, 18, 0],
+				"north": {"uv": [6.968, 9.032, 5.032, 11.968]},
+				"east": {"uv": [7.968, 9.032, 7.032, 11.968]},
+				"south": {"uv": [9.968, 9.032, 8.032, 11.968]},
+				"west": {"uv": [4.968, 9.032, 4.032, 11.968]},
+				"up": {"uv": [5.032, 8.968, 6.968, 8.032]},
+				"down": {"uv": [7.032, 8.032, 8.968, 8.968]}
+			},
+			{
+				//R Leg
+				"size": [4, 12, 4],
+				"pos": [1.95, 6, 0],
+				"origin": [0, 12, 0],
+				"rotation": [-1, 0, 0],
+				"north": {"uv": [1.032, 5.032, 1.968, 7.968]},
+				"east": {"uv": [0.032, 5.032, 0.968, 7.968]},
+				"south": {"uv": [3.032, 5.032, 3.968, 7.968]},
+				"west": {"uv": [2.032, 5.032, 2.968, 7.968]},
+				"up": {"uv": [1.968, 4.968, 1.032, 4.032]},
+				"down": {"uv": [2.968, 4.032, 2.032, 4.968]}
+			},
+			{
+				//R Leg Layer
+				"size": [5, 13, 5],
+				"pos": [1.95, 6, 0],
+				"origin": [0, 12, 0],
+				"rotation": [-1, 0, 0],
+				"north": {"uv": [1.032, 9.032, 1.968, 11.968]},
+				"east": {"uv": [0.032, 9.032, 0.968, 11.968]},
+				"south": {"uv": [3.032, 9.032, 3.968, 11.968]},
+				"west": {"uv": [2.032, 9.032, 2.968, 11.968]},
+				"up": {"uv": [1.968, 8.968, 1.032, 8.032]},
+				"down": {"uv": [2.968, 8.032, 2.032, 8.968]}
+			},
+			{
+				//L Leg
+				"size": [4, 12, 4],
+				"pos": [-1.95, 6, 0],
+				"origin": [0, 12, 0],
+				"rotation": [1, 0, 0],
+				"north": {"uv": [5.032, 13.032, 5.968, 15.968]},
+				"east": {"uv": [4.032, 13.032, 4.968, 15.968]},
+				"south": {"uv": [7.032, 13.032, 7.968, 15.968]},
+				"west": {"uv": [6.032, 13.032, 6.968, 15.968]},
+				"up": {"uv": [5.968, 12.968, 5.032, 12.032]},
+				"down": {"uv": [6.968, 12.032, 6.032, 12.968]}
+			},
+			{
+				//L Leg Layer
+				"size": [5, 13, 5],
+				"pos": [-1.95, 6, 0],
+				"origin": [0, 12, 0],
+				"rotation": [1, 0, 0],
+				"north": {"uv": [1.032, 13.032, 1.968, 15.968]},
+				"east": {"uv": [0.032, 13.032, 0.968, 15.968]},
+				"south": {"uv": [3.032, 13.032, 3.968, 15.968]},
+				"west": {"uv": [2.032, 13.032, 2.968, 15.968]},
+				"up": {"uv": [1.968, 12.968, 1.032, 12.032]},
+				"down": {"uv": [2.968, 12.032, 2.032, 12.968]}
+			},
+			//Steve
+			{
+				//R Arm
+				"size": [4, 12, 4],
+				"pos": [6, 18, 0],
+				"origin": [4, 22, 0],
+				"rotation": [22.5, 0, 0],
+				"north": {"uv": [11.032, 5.032, 11.968, 7.968]},
+				"east": {"uv": [10.032, 5.032, 10.968, 7.968]},
+				"south": {"uv": [13.032, 5.032, 13.968, 7.968]},
+				"west": {"uv": [12.032, 5.032, 12.968, 7.968]},
+				"up": {"uv": [11.968, 4.968, 11.032, 4.032]},
+				"down": {"uv": [12.968, 4.032, 12.032, 4.968]},
+				"model": "steve"
+			},
+			{
+				//R Arm Layer
+				"size": [5, 13, 5],
+				"pos": [6, 18, 0],
+				"origin": [4, 22, 0],
+				"rotation": [22.5, 0, 0],
+				"north": {"uv": [11.032, 9.032, 11.968, 11.968]},
+				"east": {"uv": [10.032, 9.032, 10.968, 11.968]},
+				"south": {"uv": [13.032, 9.032, 13.968, 11.968]},
+				"west": {"uv": [12.032, 9.032, 12.968, 11.968]},
+				"up": {"uv": [11.968, 8.968, 11.032, 8.032]},
+				"down": {"uv": [12.968, 8.032, 12.032, 8.968]},
+				"model": "steve"
+			},
+			{
+				//L Arm
+				"size": [4, 12, 4],
+				"pos": [-6, 18, 0],
+				"origin": [-4, 22, 0],
+				"rotation": [22.5, 0, 0],
+				"north": {"uv": [9.032, 13.032, 9.968, 15.968]},
+				"east": {"uv": [8.032, 13.032, 8.968, 15.968]},
+				"south": {"uv": [11.032, 13.032, 11.968, 15.968]},
+				"west": {"uv": [10.032, 13.032, 10.968, 15.968]},
+				"up": {"uv": [9.968, 12.968, 9.032, 12.032]},
+				"down": {"uv": [10.968, 12.032, 10.032, 12.968]},
+				"model": "steve"
+			},
+			{
+				//L Arm Layer
+				"size": [5, 13, 5],
+				"pos": [-6, 18, 0],
+				"origin": [-4, 22, 0],
+				"rotation": [22.5, 0, 0],
+				"north": {"uv": [13.032, 13.032, 13.968, 15.968]},
+				"east": {"uv": [12.032, 13.032, 12.968, 15.968]},
+				"south": {"uv": [15.032, 13.032, 15.968, 15.968]},
+				"west": {"uv": [14.032, 13.032, 14.968, 15.968]},
+				"up": {"uv": [13.968, 12.968, 13.032, 12.032]},
+				"down": {"uv": [14.968, 12.032, 14.032, 12.968]},
+				"model": "steve"
+			},
+			//ALEX
+			{
+				//R Arm
+				"size": [3, 12, 4],
+				"pos": [5.5, 18, 0],
+				"origin": [0, 22, 0],
+				"rotation": [22.5, 0, 0],
+				"north": {"uv": [11.032, 5.032, 11.718, 7.968]},
+				"east": {"uv": [10.032, 5.032, 10.968, 7.968]},
+				"south": {"uv": [12.782, 5.032, 13.468, 7.968]},
+				"west": {"uv": [11.782, 5.032, 12.718, 7.968]},
+				"up": {"uv": [11.718, 4.968, 11.032, 4.032]},
+				"down": {"uv": [12.468, 4.032, 11.782, 4.968]},
+				"model": "alex"
+			},
+			{
+				//R Arm Layer
+				"size": [4, 13, 5],
+				"pos": [5.5, 18, 0],
+				"origin": [0, 22, 0],
+				"rotation": [22.5, 0, 0],
+				"north": {"uv": [11.032, 9.032, 11.718, 11.968]},
+				"east": {"uv": [10.032, 9.032, 10.968, 11.968]},
+				"south": {"uv": [12.782, 9.032, 13.468, 11.968]},
+				"west": {"uv": [11.782, 9.032, 12.718, 11.968]},
+				"up": {"uv": [11.718, 8.968, 11.032, 8.032]},
+				"down": {"uv": [12.468, 8.032, 11.782, 8.968]},
+				"model": "alex"
+			},
+			{
+				//L Arm
+				"size": [3, 12, 4],
+				"pos": [-5.5, 18, 0],
+				"origin": [0, 22, 0],
+				"rotation": [22.5, 0, 0],
+				"north": {"uv": [9.032, 13.032, 9.718, 15.968]},
+				"east": {"uv": [8.032, 13.032, 8.968, 15.968]},
+				"south": {"uv": [10.782, 13.032, 11.468, 15.968]},
+				"west": {"uv": [9.782, 13.032, 10.718, 15.968]},
+				"up": {"uv": [9.718, 12.968, 9.032, 12.032]},
+				"down": {"uv": [10.468, 12.032, 9.782, 12.968]},
+				"model": "alex"
+			},
+			{
+				//L Arm Layer
+				"size": [4, 13, 5],
+				"pos": [-5.5, 18, 0],
+				"origin": [0, 22, 0],
+				"rotation": [22.5, 0, 0],
+				"north": {"uv": [13.032, 13.032, 13.718, 15.968]},
+				"east": {"uv": [12.032, 13.032, 12.968, 15.968]},
+				"south": {"uv": [14.782, 13.032, 15.468, 15.968]},
+				"west": {"uv": [13.782, 13.032, 14.718, 15.968]},
+				"up": {"uv": [13.718, 12.968, 13.032, 12.032]},
+				"down": {"uv": [14.468, 12.032, 13.782, 12.968]},
+				"model": "alex"
+			}
 		]
 		var skin = 'assets/player_skin.png';
 
-		scope.buildModel(things, skin);
+		scope.buildModel(cubes, skin);
+		this.setModelVariant('steve')
 		updateDisplaySkin()
 	}
 	buildArmorStand() {
@@ -247,34 +420,34 @@ class refModel {
 				"size": [12, 1, 12],
 				"pos": [0, -5.5, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [0, 11, 3, 11.25], "texture": "#0"},
-				"east": {"uv": [3, 11, 6, 11.25], "texture": "#0"},
-				"south": {"uv": [6, 11, 9, 11.25], "texture": "#0"},
-				"west": {"uv": [9, 11, 12, 11.25], "texture": "#0"},
-				"up": {"uv": [3, 8, 6, 11], "texture": "#0","rotation": 90},
-				"down": {"uv": [6, 8, 9, 11], "texture": "#0", "rotation": 270}
+				"north": {"uv": [0, 11, 3, 11.25]},
+				"east": {"uv": [3, 11, 6, 11.25]},
+				"south": {"uv": [6, 11, 9, 11.25]},
+				"west": {"uv": [9, 11, 12, 11.25]},
+				"up": {"uv": [3, 8, 6, 11],"rotation": 90},
+				"down": {"uv": [6, 8, 9, 11], "rotation": 270}
 			},
 			{
 				"size": [2, 11, 2],
 				"pos": [0, 0.5, -2],
 				"origin": [0, 0, 0],
-				"north": {"uv": [8.5, 4.5, 9, 7.5], "texture": "#0"},
-				"east": {"uv": [9, 4.5, 9.5, 7.5], "texture": "#0"},
-				"south": {"uv": [9.5, 4.5, 10, 7.5], "texture": "#0"},
-				"west": {"uv": [8, 4.5, 8.5, 7.5], "texture": "#0"},
-				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0","rotation": 90},
-				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0", "rotation": 270}
+				"north": {"uv": [8.5, 4.5, 9, 7.5]},
+				"east": {"uv": [9, 4.5, 9.5, 7.5]},
+				"south": {"uv": [9.5, 4.5, 10, 7.5]},
+				"west": {"uv": [8, 4.5, 8.5, 7.5]},
+				"up": {"uv": [8.5, 4, 9, 4.5],"rotation": 90},
+				"down": {"uv": [9, 4, 9.5, 4.5], "rotation": 270}
 			},
 			{
 				"size": [2, 11, 2],
 				"pos": [0, 0.5, 2],
 				"origin": [0, 0, 0],
-				"north": {"uv": [8.5, 4.5, 9, 7.5], "texture": "#0"},
-				"east": {"uv": [9, 4.5, 9.5, 7.5], "texture": "#0"},
-				"south": {"uv": [9.5, 4.5, 10, 7.5], "texture": "#0"},
-				"west": {"uv": [8, 4.5, 8.5, 7.5], "texture": "#0"},
-				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0","rotation": 90},
-				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0", "rotation": 270}
+				"north": {"uv": [8.5, 4.5, 9, 7.5]},
+				"east": {"uv": [9, 4.5, 9.5, 7.5]},
+				"south": {"uv": [9.5, 4.5, 10, 7.5]},
+				"west": {"uv": [8, 4.5, 8.5, 7.5]},
+				"up": {"uv": [8.5, 4, 9, 4.5],"rotation": 90},
+				"down": {"uv": [9, 4, 9.5, 4.5], "rotation": 270}
 			},
 			{
 				"size": [2, 2, 8],
@@ -311,29 +484,29 @@ class refModel {
 				"size": [2, 7, 2],
 				"pos": [0, 11.5, 2],
 				"origin": [0, 0, 0],
-				"north": {"uv": [8.5, 4.5, 9, 7.5], "texture": "#0"},
-				"east": {"uv": [9, 4.5, 9.5, 7.5], "texture": "#0"},
-				"south": {"uv": [9.5, 4.5, 10, 7.5], "texture": "#0"},
-				"west": {"uv": [8, 4.5, 8.5, 7.5], "texture": "#0"},
-				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0","rotation": 90},
-				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0", "rotation": 270}
+				"north": {"uv": [8.5, 4.5, 9, 7.5]},
+				"east": {"uv": [9, 4.5, 9.5, 7.5]},
+				"south": {"uv": [9.5, 4.5, 10, 7.5]},
+				"west": {"uv": [8, 4.5, 8.5, 7.5]},
+				"up": {"uv": [8.5, 4, 9, 4.5],"rotation": 90},
+				"down": {"uv": [9, 4, 9.5, 4.5], "rotation": 270}
 			},
 			{
 				"size": [2, 7, 2],
 				"pos": [0, 11.5, -2],
 				"origin": [0, 0, 0],
-				"north": {"uv": [8.5, 4.5, 9, 7.5], "texture": "#0"},
-				"east": {"uv": [9, 4.5, 9.5, 7.5], "texture": "#0"},
-				"south": {"uv": [9.5, 4.5, 10, 7.5], "texture": "#0"},
-				"west": {"uv": [8, 4.5, 8.5, 7.5], "texture": "#0"},
-				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0","rotation": 90},
-				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0", "rotation": 270}
+				"north": {"uv": [8.5, 4.5, 9, 7.5]},
+				"east": {"uv": [9, 4.5, 9.5, 7.5]},
+				"south": {"uv": [9.5, 4.5, 10, 7.5]},
+				"west": {"uv": [8, 4.5, 8.5, 7.5]},
+				"up": {"uv": [8.5, 4, 9, 4.5],"rotation": 90},
+				"down": {"uv": [9, 4, 9.5, 4.5], "rotation": 270}
 			},
 			{
 				"size": [3, 3, 12],
 				"pos": [0, 16.505, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [3, 7.25, 3.75, 8], "texture": "#0"},
+				"north": {"uv": [3, 7.25, 3.75, 8]},
 				"east": {
 					"uv": [3.75, 7.25, 6.75, 8],
 					"texture": "#0"
@@ -342,7 +515,7 @@ class refModel {
 					"uv": [6.75, 7.25, 7.5, 8],
 					"texture": "#0"
 				},
-				"west": {"uv": [0, 7.25, 3, 8], "texture": "#0"},
+				"west": {"uv": [0, 7.25, 3, 8]},
 				"up": {
 					"uv": [0.75, 6.5, 3.75, 7.25],
 					"texture": "#0",
@@ -358,34 +531,34 @@ class refModel {
 				"size": [2, 6, 2],
 				"pos": [0, 21, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [0.5, 0.5, 1, 2.25], "texture": "#0"},
-				"east": {"uv": [1, 0.5, 1.5, 2.25], "texture": "#0"},
-				"south": {"uv": [1.5, 0.5, 2, 2.25], "texture": "#0"},
-				"west": {"uv": [0, 0.5, 0.5, 2.25], "texture": "#0"},
-				"up": {"uv": [0.5, 0, 1, 0.5], "texture": "#0","rotation": 90},
-				"down": {"uv": [1, 0, 1.5, 0.5], "texture": "#0", "rotation": 270}
+				"north": {"uv": [0.5, 0.5, 1, 2.25]},
+				"east": {"uv": [1, 0.5, 1.5, 2.25]},
+				"south": {"uv": [1.5, 0.5, 2, 2.25]},
+				"west": {"uv": [0, 0.5, 0.5, 2.25]},
+				"up": {"uv": [0.5, 0, 1, 0.5],"rotation": 90},
+				"down": {"uv": [1, 0, 1.5, 0.5], "rotation": 270}
 			},
 			{
 				"size": [2, 12, 2],
 				"pos": [0, 12, -6],
 				"origin": [0, 0, 0],
-				"north": {"uv": [7, 0.5, 7.5, 3.5], "texture": "#0"},
-				"east": {"uv": [6.5, 0.5, 6, 3.5], "texture": "#0"},
-				"south": {"uv": [7.5, 0.5, 8, 3.5], "texture": "#0"},
-				"west": {"uv": [6, 0.5, 6.5, 3.5], "texture": "#0"},
-				"up": {"uv": [6.5, 0, 7, 0.5], "texture": "#0","rotation": 90},
-				"down": {"uv": [7, 0, 7.5, 0.5], "texture": "#0", "rotation": 270}
+				"north": {"uv": [7, 0.5, 7.5, 3.5]},
+				"east": {"uv": [6.5, 0.5, 6, 3.5]},
+				"south": {"uv": [7.5, 0.5, 8, 3.5]},
+				"west": {"uv": [6, 0.5, 6.5, 3.5]},
+				"up": {"uv": [6.5, 0, 7, 0.5],"rotation": 90},
+				"down": {"uv": [7, 0, 7.5, 0.5], "rotation": 270}
 			},
 			{
 				"size": [2, 12, 2],
 				"pos": [0, 12, 6],
 				"origin": [0, 0, 0],
-				"north": {"uv": [7, 0.5, 7.5, 3.5], "texture": "#0"},
-				"east": {"uv": [6.5, 0.5, 7, 3.5], "texture": "#0"},
-				"south": {"uv": [7.5, 0.5, 8, 3.5], "texture": "#0"},
-				"west": {"uv": [6.5, 0.5, 6, 3.5], "texture": "#0"},
-				"up": {"uv": [6.5, 0, 7, 0.5], "texture": "#0","rotation": 90},
-				"down": {"uv": [7, 0, 7.5, 0.5], "texture": "#0","rotation": 270}
+				"north": {"uv": [7, 0.5, 7.5, 3.5]},
+				"east": {"uv": [6.5, 0.5, 7, 3.5]},
+				"south": {"uv": [7.5, 0.5, 8, 3.5]},
+				"west": {"uv": [6.5, 0.5, 6, 3.5]},
+				"up": {"uv": [6.5, 0, 7, 0.5],"rotation": 90},
+				"down": {"uv": [7, 0, 7.5, 0.5],"rotation": 270}
 			}
 		], 'assets/armor_stand.png')
 	}
@@ -395,34 +568,34 @@ class refModel {
 				"size": [6, 0.5, 6],
 				"pos": [0, -5.75, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [0, 11, 3, 11.25], "texture": "#0"},
-				"east": {"uv": [3, 11, 6, 11.25], "texture": "#0"},
-				"south": {"uv": [6, 11, 9, 11.25], "texture": "#0"},
-				"west": {"uv": [9, 11, 12, 11.25], "texture": "#0"},
-				"up": {"uv": [3, 8, 6, 11], "texture": "#0","rotation": 90},
-				"down": {"uv": [6, 8, 9, 11], "texture": "#0", "rotation": 270}
+				"north": {"uv": [0, 11, 3, 11.25]},
+				"east": {"uv": [3, 11, 6, 11.25]},
+				"south": {"uv": [6, 11, 9, 11.25]},
+				"west": {"uv": [9, 11, 12, 11.25]},
+				"up": {"uv": [3, 8, 6, 11],"rotation": 90},
+				"down": {"uv": [6, 8, 9, 11], "rotation": 270}
 			},
 			{
 				"size": [1, 5.5, 1],
 				"pos": [0, -2.75, -1],
 				"origin": [0, 0, 0],
-				"north": {"uv": [8.5, 4.5, 9, 7.5], "texture": "#0"},
-				"east": {"uv": [9, 4.5, 9.5, 7.5], "texture": "#0"},
-				"south": {"uv": [9.5, 4.5, 10, 7.5], "texture": "#0"},
-				"west": {"uv": [8, 4.5, 8.5, 7.5], "texture": "#0"},
-				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0","rotation": 90},
-				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0", "rotation": 270}
+				"north": {"uv": [8.5, 4.5, 9, 7.5]},
+				"east": {"uv": [9, 4.5, 9.5, 7.5]},
+				"south": {"uv": [9.5, 4.5, 10, 7.5]},
+				"west": {"uv": [8, 4.5, 8.5, 7.5]},
+				"up": {"uv": [8.5, 4, 9, 4.5],"rotation": 90},
+				"down": {"uv": [9, 4, 9.5, 4.5], "rotation": 270}
 			},
 			{
 				"size": [1, 5.5, 1],
 				"pos": [0, -2.75, 1],
 				"origin": [0, 0, 0],
-				"north": {"uv": [8.5, 4.5, 9, 7.5], "texture": "#0"},
-				"east": {"uv": [9, 4.5, 9.5, 7.5], "texture": "#0"},
-				"south": {"uv": [9.5, 4.5, 10, 7.5], "texture": "#0"},
-				"west": {"uv": [8, 4.5, 8.5, 7.5], "texture": "#0"},
-				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0","rotation": 90},
-				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0", "rotation": 270}
+				"north": {"uv": [8.5, 4.5, 9, 7.5]},
+				"east": {"uv": [9, 4.5, 9.5, 7.5]},
+				"south": {"uv": [9.5, 4.5, 10, 7.5]},
+				"west": {"uv": [8, 4.5, 8.5, 7.5]},
+				"up": {"uv": [8.5, 4, 9, 4.5],"rotation": 90},
+				"down": {"uv": [9, 4, 9.5, 4.5], "rotation": 270}
 			},
 			{
 				"size": [1, 1, 4],
@@ -459,29 +632,29 @@ class refModel {
 				"size": [1, 3.5, 1],
 				"pos": [0, 2.75, 1],
 				"origin": [0, 0, 0],
-				"north": {"uv": [8.5, 4.5, 9, 7.5], "texture": "#0"},
-				"east": {"uv": [9, 4.5, 9.5, 7.5], "texture": "#0"},
-				"south": {"uv": [9.5, 4.5, 10, 7.5], "texture": "#0"},
-				"west": {"uv": [8, 4.5, 8.5, 7.5], "texture": "#0"},
-				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0","rotation": 90},
-				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0", "rotation": 270}
+				"north": {"uv": [8.5, 4.5, 9, 7.5]},
+				"east": {"uv": [9, 4.5, 9.5, 7.5]},
+				"south": {"uv": [9.5, 4.5, 10, 7.5]},
+				"west": {"uv": [8, 4.5, 8.5, 7.5]},
+				"up": {"uv": [8.5, 4, 9, 4.5],"rotation": 90},
+				"down": {"uv": [9, 4, 9.5, 4.5], "rotation": 270}
 			},
 			{
 				"size": [1, 3.5, 1],
 				"pos": [0, 2.75, -1],
 				"origin": [0, 0, 0],
-				"north": {"uv": [8.5, 4.5, 9, 7.5], "texture": "#0"},
-				"east": {"uv": [9, 4.5, 9.5, 7.5], "texture": "#0"},
-				"south": {"uv": [9.5, 4.5, 10, 7.5], "texture": "#0"},
-				"west": {"uv": [8, 4.5, 8.5, 7.5], "texture": "#0"},
-				"up": {"uv": [8.5, 4, 9, 4.5], "texture": "#0","rotation": 90},
-				"down": {"uv": [9, 4, 9.5, 4.5], "texture": "#0", "rotation": 270}
+				"north": {"uv": [8.5, 4.5, 9, 7.5]},
+				"east": {"uv": [9, 4.5, 9.5, 7.5]},
+				"south": {"uv": [9.5, 4.5, 10, 7.5]},
+				"west": {"uv": [8, 4.5, 8.5, 7.5]},
+				"up": {"uv": [8.5, 4, 9, 4.5],"rotation": 90},
+				"down": {"uv": [9, 4, 9.5, 4.5], "rotation": 270}
 			},
 			{
 				"size": [1.5, 1.5, 6],
 				"pos": [0, 5.255, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [3, 7.25, 3.75, 8], "texture": "#0"},
+				"north": {"uv": [3, 7.25, 3.75, 8]},
 				"east": {
 					"uv": [3.75, 7.25, 6.75, 8],
 					"texture": "#0"
@@ -490,7 +663,7 @@ class refModel {
 					"uv": [6.75, 7.25, 7.5, 8],
 					"texture": "#0"
 				},
-				"west": {"uv": [0, 7.25, 3, 8], "texture": "#0"},
+				"west": {"uv": [0, 7.25, 3, 8]},
 				"up": {
 					"uv": [0.75, 6.5, 3.75, 7.25],
 					"texture": "#0",
@@ -510,34 +683,34 @@ class refModel {
 				],
 				"pos": [0, 8.27, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [0.5, 0.5, 1, 2.25], "texture": "#0"},
-				"east": {"uv": [1, 0.5, 1.5, 2.25], "texture": "#0"},
-				"south": {"uv": [1.5, 0.5, 2, 2.25], "texture": "#0"},
-				"west": {"uv": [0, 0.5, 0.5, 2.25], "texture": "#0"},
-				"up": {"uv": [0.5, 0, 1, 0.5], "texture": "#0","rotation": 90},
-				"down": {"uv": [1, 0, 1.5, 0.5], "texture": "#0", "rotation": 270}
+				"north": {"uv": [0.5, 0.5, 1, 2.25]},
+				"east": {"uv": [1, 0.5, 1.5, 2.25]},
+				"south": {"uv": [1.5, 0.5, 2, 2.25]},
+				"west": {"uv": [0, 0.5, 0.5, 2.25]},
+				"up": {"uv": [0.5, 0, 1, 0.5],"rotation": 90},
+				"down": {"uv": [1, 0, 1.5, 0.5], "rotation": 270}
 			},
 			{
 				"size": [1, 6, 1],
 				"pos": [0, 3, -3],
 				"origin": [0, 0, 0],
-				"north": {"uv": [7, 0.5, 7.5, 3.5], "texture": "#0"},
-				"east": {"uv": [6.5, 0.5, 6, 3.5], "texture": "#0"},
-				"south": {"uv": [7.5, 0.5, 8, 3.5], "texture": "#0"},
-				"west": {"uv": [6, 0.5, 6.5, 3.5], "texture": "#0"},
-				"up": {"uv": [6.5, 0, 7, 0.5], "texture": "#0","rotation": 90},
-				"down": {"uv": [7, 0, 7.5, 0.5], "texture": "#0", "rotation": 270}
+				"north": {"uv": [7, 0.5, 7.5, 3.5]},
+				"east": {"uv": [6.5, 0.5, 6, 3.5]},
+				"south": {"uv": [7.5, 0.5, 8, 3.5]},
+				"west": {"uv": [6, 0.5, 6.5, 3.5]},
+				"up": {"uv": [6.5, 0, 7, 0.5],"rotation": 90},
+				"down": {"uv": [7, 0, 7.5, 0.5], "rotation": 270}
 			},
 			{
 				"size": [1, 6, 1],
 				"pos": [0, 3, 3],
 				"origin": [0, 0, 0],
-				"north": {"uv": [7, 0.5, 7.5, 3.5], "texture": "#0"},
-				"east": {"uv": [6.5, 0.5, 7, 3.5], "texture": "#0"},
-				"south": {"uv": [7.5, 0.5, 8, 3.5], "texture": "#0"},
-				"west": {"uv": [6.5, 0.5, 6, 3.5], "texture": "#0"},
-				"up": {"uv": [6.5, 0, 7, 0.5], "texture": "#0","rotation": 90},
-				"down": {"uv": [7, 0, 7.5, 0.5], "texture": "#0", "rotation": 270}
+				"north": {"uv": [7, 0.5, 7.5, 3.5]},
+				"east": {"uv": [6.5, 0.5, 7, 3.5]},
+				"south": {"uv": [7.5, 0.5, 8, 3.5]},
+				"west": {"uv": [6.5, 0.5, 6, 3.5]},
+				"up": {"uv": [6.5, 0, 7, 0.5],"rotation": 90},
+				"down": {"uv": [7, 0, 7.5, 0.5], "rotation": 270}
 			}
 		], 'assets/armor_stand.png')
 	}
@@ -1032,13 +1205,16 @@ function enterDisplaySettings() {		//Enterung Display Setting Mode, changes the 
 	selected = []
 	updateSelection()
 
+	if (!display_preview) {
+		display_preview = new Preview({id: 'display'})
+	}
 	if (quad_previews.enabled) {
 		quad_previews.enabled_before = true
-		main_preview.fullscreen()
 	}
-	main_preview.setNormalCamera()
-	main_preview.camPers.position.set(-80, 40, -30)
-	main_preview.camPers.setFocalLength(45)
+	display_preview.fullscreen()
+	display_preview.setNormalCamera()
+	display_preview.camPers.position.set(-80, 40, -30)
+	display_preview.camPers.setFocalLength(45)
 
 	
 	$('body').addClass('display_mode')
@@ -1066,11 +1242,7 @@ function exitDisplaySettings() {		//Enterung Display Setting Mode, changes the s
 
 		display_mode = false;
 
-		main_preview.controls.target.set(0,-3,0)
-		main_preview.camPers.position.set(-20, 20, -20)
-		main_preview.controls.enabled = true
-		main_preview.setNormalCamera()
-		main_preview.camPers.setFocalLength(45)
+		main_preview.fullscreen()
 
 		$('.m_disp').hide()
 		$('.m_edit').show()
@@ -1085,9 +1257,6 @@ function exitDisplaySettings() {		//Enterung Display Setting Mode, changes the s
 		buildGrid()
 		setShading()
 		Canvas.updateRenderSides()
-		setTimeout(function() {
-			main_preview.camPers.setFocalLength(45)
-		}, 20)
 	}, 60)
 
 }
@@ -1242,7 +1411,7 @@ function applyDisplayPreset(preset, all) {
 function createPreset() {
 	var name = $('input#preset_name').val()
 	if (name == '') {
-		$('input#preset_name').val(tl('"display.preset.blank_name'))
+		$('input#preset_name').val(tl('display.preset.blank_name'))
 		return;
 	} else {
 		$('input#preset_name').val('new preset')
@@ -1305,14 +1474,14 @@ function loadDisp(key, skin) {	//Loads The Menu and slider values, common for al
 	display_slot = key
 	//enterScene(key)
 	resetDisplayBase()
-	if (key !== 'gui' && main_preview.isOrtho === true) {
-		main_preview.setNormalCamera()
+	if (key !== 'gui' && display_preview.isOrtho === true) {
+		display_preview.setNormalCamera()
 	}
-	main_preview.controls.enabled = true;
+	display_preview.controls.enabled = true;
 	ground_animation = false;
 	$('input#translation_z').prop('disabled', false)
 	$('#donation_hint').hide()
-	main_preview.camPers.setFocalLength(45)
+	display_preview.camPers.setFocalLength(45)
 
 	if (display[key] == undefined) {
 		display[key] = {}
@@ -1358,10 +1527,10 @@ function loadDispThirdLeft() {	//Loader
 function loadDispFirstRight() {	//Loader
 	loadDisp('firstperson_righthand')
 	setDisplayArea(-20.8, -8.4, 9, 0, 270, 0, 1,1,1)
-	main_preview.camPers.setFocalLength(12)
-	main_preview.camPers.position.set(-32.4, 0, 0)
-	main_preview.controls.target.set(0,0,0)
-	main_preview.controls.enabled = false
+	display_preview.camPers.setFocalLength(12)
+	display_preview.camPers.position.set(-32.4, 0, 0)
+	display_preview.controls.target.set(0,0,0)
+	display_preview.controls.enabled = false
 	displayReferenceObjects.bar(['monitor', 'bow'])
 }
 function loadDispFirstLeft() {	//Loader
@@ -1370,10 +1539,10 @@ function loadDispFirstLeft() {	//Loader
 	display_base.rotation['y'] = Math.PI / (180 / -getDisplayNumber('firstperson_lefthand', 'rotation', 1))
 	display_base.rotation['z'] = Math.PI / (180 / -getDisplayNumber('firstperson_lefthand', 'rotation', 2))
 	setDisplayArea(-20.5, -8.4, -9, 0, 270, 0, 1,1,1)
-	main_preview.camPers.setFocalLength(12)
-	main_preview.camPers.position.set(-32.4, 0, 0)
-	main_preview.controls.target.set(0,0,0)
-	main_preview.controls.enabled = false
+	display_preview.camPers.setFocalLength(12)
+	display_preview.camPers.position.set(-32.4, 0, 0)
+	display_preview.controls.target.set(0,0,0)
+	display_preview.controls.enabled = false
 	displayReferenceObjects.bar(['monitor', 'bow'])
 }
 function loadDispHead() {		//Loader
@@ -1383,11 +1552,11 @@ function loadDispHead() {		//Loader
 function loadDispGUI() {		//Loader
 	loadDisp('gui')
 	setDisplayArea(0, 0, 0, 0, 0, 0, 0.4, 0.4, 0.4)
-	main_preview.camOrtho.zoom = 1
-	main_preview.controls.target.set(0,0,0)
+	display_preview.camOrtho.zoom = 1
+	display_preview.controls.target.set(0,0,0)
 	//controls.enabled = false
-	main_preview.setOrthographicCamera(2)
-	main_preview.camOrtho.position.set(0,0,32)
+	display_preview.setOrthographicCamera(2)
+	display_preview.camOrtho.position.set(0,0,32)
 	displayReferenceObjects.bar(['inventory_nine', 'inventory_full', 'hud'])
 }
 function loadDispGround() {		//Loader
@@ -1465,21 +1634,42 @@ function pasteDisplaySlot() {
 }
 
 function changeDisplaySkin() {
+	var buttons = [
+		tl('message.display_skin.upload'),
+		tl('message.display_skin.reset')
+	]
+	if (isApp) {
+		buttons.splice(1, 0, tl('message.display_skin.name'))
+	}
 	Blockbench.showMessageBox({
 		translateKey: 'display_skin',
 		icon: 'icon-player',
-		buttons: [
-			tl('message.display_skin.upload'),
-			tl('message.display_skin.name'),
-			tl('message.display_skin.reset')
-		],
+		buttons: buttons,
 		confirm: 0,
-		cancel: 1
+		cancel: isApp ? 2 : 1
 	}, function(result) {
-		if (result === 2) {
-			settings.display_skin.value = false
-			updateDisplaySkin()
-		} else if (result === 1) {
+		if (result === 0) {
+			Blockbench.import({
+				extensions: ['png'],
+				type: 'PNG Player Skin',
+				readtype: 'image'
+			}, function(files) {
+
+				Blockbench.showMessageBox({
+					translateKey: 'display_skin_model',
+					icon: 'icon-player',
+					buttons: [
+						tl('message.display_skin_model.classic'),
+						tl('message.display_skin_model.slim')
+					]
+				}, function(slim) {
+					if (files.length) {
+						settings.display_skin.value = (slim?'S':'C') +','+ (isApp ? files[0].path : files[0].content)
+						updateDisplaySkin()
+					}
+				})
+			})
+		} else if (result === 1 && isApp) {
 			if (typeof settings.display_skin.value === 'string' && settings.display_skin.value.substr(0, 9) === 'username:') {
 				var before = settings.display_skin.value.replace('username:', '')
 			} else {
@@ -1490,23 +1680,15 @@ function changeDisplaySkin() {
 				updateDisplaySkin()
 			})
 		} else {
-			Blockbench.import({
-				extensions: ['png'],
-				type: 'PNG Player Skin',
-				readtype: 'image'
-			}, function(files) {
-				if (files.length) {
-					settings.display_skin.value = isApp ? files[0].path : files[0].content
-					updateDisplaySkin()
-				}
-			})
+			settings.display_skin.value = false
+			updateDisplaySkin()
 		}
 	})
 }
 function updateDisplaySkin() {
 	var val = settings.display_skin.value
 	var source;
-	function setPSkin(skin) {
+	function setPSkin(skin, slim) {
 		if (!displayReferenceObjects.refmodels.player.material) {
 			return;
 		}
@@ -1525,15 +1707,15 @@ function updateDisplaySkin() {
 			img.tex.magFilter = THREE.NearestFilter
 			img.tex.minFilter = THREE.NearestFilter
 			this.tex.needsUpdate = true;
-			mat.map = tex
+			mat.map = tex;
+
+			displayReferenceObjects.refmodels.player.setModelVariant(slim ? 'alex' : 'steve')
 		}
-
-
 	}
-	if (!val) {
+	if (!val || typeof val !== 'string') {
 		setPSkin('assets/player_skin.png')
 
-	} else if (typeof val === 'string' && val.substr(0, 9) === 'username:') {
+	} else if (val.substr(0, 9) === 'username:') {
 		var username = val.substr(9)
 		$.getJSON('https://api.mojang.com/users/profiles/minecraft/'+username, function(uuid) {
 			if (uuid && uuid.id) {
@@ -1541,16 +1723,38 @@ function updateDisplaySkin() {
 				$.getJSON('https://sessionserver.mojang.com/session/minecraft/profile/'+uuid.id, function(data) {
 					if (data && data.properties) {
 						var skin_path;
+						var is_slim = false;
 						try {
-							skin_path = JSON.parse(atob(data.properties[0].value)).textures.SKIN.url
+							var parsed = JSON.parse(atob(data.properties[0].value))
+							skin_path = parsed.textures.SKIN.url
+							if (parsed.textures.SKIN.metadata && parsed.textures.SKIN.metadata.model === 'slim') {
+								is_slim = true
+							}
 						} catch (err) {}
-						setPSkin(skin_path)
+						setPSkin(skin_path, is_slim)
 					}
 				})
 			}
 		})
 	} else {
-		setPSkin(val)
+		if (val.substr(1,1) === ',') {
+			var slim = val.substr(0,1) === 'S'
+			val = val.substr(2)
+		} else {
+			var slim = false
+		}
+		setPSkin(val, slim)
 	}
 	//displayReferenceObjects.refmodels.player.material
 }
+BARS.defineActions(function() {
+	
+})
+BARS.defineActions(function() {
+	new Action({
+		id: 'add_display_preset',
+		icon: 'add',
+		category: 'display',
+		click: function () {showDialog('create_preset')}
+	})
+})

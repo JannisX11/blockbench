@@ -13,6 +13,7 @@
     <style type="text/css" id="bbstyle"></style>
 </head>
 <body spellcheck="false">
+    <div id="loading_error_message" style="display: none;">An error occurred while loading Blockbench</div>
     <script>
         if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
         var isApp = typeof require !== 'undefined'
@@ -62,12 +63,14 @@
         <script src="js/painter.js"></script>
         <script src="js/display.js"></script>
         <script src="js/animations.js"></script>
+        <script src="js/molang.js"></script>
         <script src="js/plugin_loader.js"></script>
         <script>if (window.module) module = window.module;</script>
 
     <div id="post_model" class="web_only post_data" hidden></div>
     <div id="post_textures" class="web_only post_data" hidden></div>
     <div style="display: none;"></div>
+
 
     <div id="blackout" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"></div>
 
@@ -506,6 +509,22 @@
             <div class="bar next_to_title" id="layout_title_bar"></div>
             <div id="color_wrapper">
                 <div class="color_field">
+                    <input type="color" class="color_input" id="color_ui" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+                    <label for="color_ui" style="background-color: var(--color-ui)" class="color_input"></label>
+                    <div class="desc">
+                        <h4 class="tl">layout.color.ui</h4>
+                        <p class="tl">layout.color.ui.desc</p>
+                    </div>
+                </div>
+                <div class="color_field">
+                    <input type="color" class="color_input" id="color_bright_ui" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+                    <label for="color_bright_ui" style="background-color: var(--color-bright_ui)" class="color_input"></label>
+                    <div class="desc">
+                        <h4 class="tl">layout.color.bright_ui</h4>
+                        <p class="tl">layout.color.bright_ui.desc</p>
+                    </div>
+                </div>
+                <div class="color_field">
                     <input type="color" class="color_input" id="color_back" oninput="changeUIColor(event)" onclick="initUIColor(event)">
                     <label for="color_back" style="background-color: var(--color-back)" class="color_input"></label>
                     <div class="desc">
@@ -519,14 +538,6 @@
                     <div class="desc">
                         <h4 class="tl">layout.color.dark</h4>
                         <p class="tl">layout.color.dark.desc</p>
-                    </div>
-                </div>
-                <div class="color_field">
-                    <input type="color" class="color_input" id="color_ui" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-                    <label for="color_ui" style="background-color: var(--color-ui)" class="color_input"></label>
-                    <div class="desc">
-                        <h4 class="tl">layout.color.ui</h4>
-                        <p class="tl">layout.color.ui.desc</p>
                     </div>
                 </div>
                 <!--Button-->
@@ -563,14 +574,6 @@
                     </div>
                 </div>
                 <div class="color_field">
-                    <input type="color" class="color_input" id="color_grid" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-                    <label for="color_grid" style="background-color: var(--color-grid)" class="color_input"></label>
-                    <div class="desc">
-                        <h4 class="tl">layout.color.grid</h4>
-                        <p class="tl">layout.color.grid.desc</p>
-                    </div>
-                </div>
-                <div class="color_field">
                     <input type="color" class="color_input" id="color_text" oninput="changeUIColor(event)" onclick="initUIColor(event)">
                     <label for="color_text" style="background-color: var(--color-text)" class="color_input"></label>
                     <div class="desc">
@@ -595,11 +598,19 @@
                     </div>
                 </div>
                 <div class="color_field">
-                    <input type="color" class="color_input" id="color_bright_ui" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-                    <label for="color_bright_ui" style="background-color: var(--color-bright_ui)" class="color_input"></label>
+                    <input type="color" class="color_input" id="color_grid" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+                    <label for="color_grid" style="background-color: var(--color-grid)" class="color_input"></label>
                     <div class="desc">
-                        <h4 class="tl">layout.color.bright_ui</h4>
-                        <p class="tl">layout.color.bright_ui.desc</p>
+                        <h4 class="tl">layout.color.grid</h4>
+                        <p class="tl">layout.color.grid.desc</p>
+                    </div>
+                </div>
+                <div class="color_field">
+                    <input type="color" class="color_input" id="color_wireframe" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+                    <label for="color_wireframe" style="background-color: var(--color-wireframe)" class="color_input"></label>
+                    <div class="desc">
+                        <h4 class="tl">layout.color.wireframe</h4>
+                        <p class="tl">layout.color.wireframe.desc</p>
                     </div>
                 </div>
             </div>
@@ -805,35 +816,33 @@
                     @contextmenu.prevent.stop="animation.showContextMenu($event)"
                 >
                     <i class="material-icons">movie</i>
-                    <div class="animation_name">{{ animation.name }}</div>
+                    <input class="animation_name" v-model="animation.name" disabled="true">
                 </li>
             </ul>
         </div>
         <div id="keyframe" class="panel">
             <div class="toolbar_wrapper keyframe"></div>
+            <p class="tl" id="keyframe_type_label"></p>
             <div class="bar" id="keyframe_bar_x">
                 <label>X</label>
-                <input type="text" id="keyframe_x" class="dark_bordered" axis="x" oninput="updateKeyframeValue(this)">
+                <input type="text" id="keyframe_x" class="dark_bordered code" axis="x" oninput="updateKeyframeValue(this)">
             </div>
             <div class="bar" id="keyframe_bar_y">
                 <label>Y</label>
-                <input type="text" id="keyframe_y" class="dark_bordered" axis="y" oninput="updateKeyframeValue(this)">
+                <input type="text" id="keyframe_y" class="dark_bordered code" axis="y" oninput="updateKeyframeValue(this)">
             </div>
             <div class="bar" id="keyframe_bar_z">
                 <label>Z</label>
-                <input type="text" id="keyframe_z" class="dark_bordered" axis="z" oninput="updateKeyframeValue(this)">
+                <input type="text" id="keyframe_z" class="dark_bordered code" axis="z" oninput="updateKeyframeValue(this)">
             </div>
             <div class="bar" id="keyframe_bar_w">
                 <label>W</label>
-                <input type="text" id="keyframe_w" class="dark_bordered" axis="w" oninput="updateKeyframeValue(this)">
+                <input type="text" id="keyframe_w" class="dark_bordered code" axis="w" oninput="updateKeyframeValue(this)">
             </div>
-            <!--
-                Rotation / Quaterion / Position / Scale
-                X
-                Y
-                Z
-                W
-            -->
+        </div>
+        <div id="variable_placeholders" class="panel grow">
+            <p class="tl">panel.variable_placeholders.info</p>
+            <textarea id="var_placeholder_area" class="code" style="flex-grow: 1;" onkeyup="Animator.preview()"></textarea>
         </div>
         <div id="textures" class="panel grow">
             <div class="toolbar_wrapper texturelist"></div>
@@ -879,15 +888,40 @@
     <div id="preview">
     </div>
     <div id="timeline">
-        <div id="timeline_inner">
+        <div id="timeline_head">
+            <div id="timeline_corner"></div>
+            <div class="channel_head">
+                <div class="text_button" onclick="Timeline.addKeyframe('rotation')"><i class="material-icons">add</i></div>
+                <span class="tl">timeline.rotation</span>
+            </div>
+            <div class="channel_head">
+                <div class="text_button" onclick="Timeline.addKeyframe('position')"><i class="material-icons">add</i></div>
+                <span class="tl">timeline.position</span>
+            </div>
+            <div class="channel_head">
+                <div class="text_button" onclick="Timeline.addKeyframe('scale')"><i class="material-icons">add</i></div>
+                <span class="tl">timeline.scale</span>
+            </div>
+        </div>
+        <div id="timeline_inner" @contextmenu.prevent="Timeline.showMenu(event)" v-on:click.stop="Timeline.unselect(event)">
+            <div id="timeline_time" v-bind:style="{width: (size*length)+'px'}">
+                <div v-for="t in timecodes" class="timeline_timecode" v-bind:style="{left: (t.time * size) + 'px'}">
+                    {{ t.text }}
+                </div>
+            </div>
+            <div id="timeline_marker"
+                v-bind:style="{left: (8 + marker * size) + 'px'}"
+            ></div>
             <div
                 v-for="keyframe in keyframes"
-                v-bind:style="{left: keyframe.time * size + 'px', top: keyframe.channel_index*32 + 'px'}"
+                v-bind:style="{left: (8 + keyframe.time * size) + 'px', top: (34+keyframe.channel_index*31) + 'px'}"
                 class="keyframe"
                 v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
                 v-bind:id="keyframe.uuid"
-                v-on:mousedown.stop="keyframe.select($event)"
-                @contextmenu.prevent.stop="keyframe.showContextMenu($event)"
+                v-on:click.stop="keyframe.select($event)"
+                v-on:dblclick="keyframe.callMarker()"
+                :title="tl('timeline.'+keyframe.channel)"
+                @contextmenu.prevent="keyframe.showContextMenu($event)"
             >
                 <i class="material-icons">stop</i>
             </div>
@@ -915,6 +949,14 @@
         colorSettingsSetup()
         animate()
         initializeApp()
+    </script>
+    <script>
+        if (!Blockbench || !Blockbench.setup_successful) {
+            document.getElementById('loading_error_message').style.display = 'block'
+            if (typeof require !== undefined) {
+                require('electron').remote.getCurrentWindow().webContents.openDevTools()
+            }
+        }
     </script>
 </body>
 </html>

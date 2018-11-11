@@ -35,9 +35,16 @@ class Panel {
 					var before = ui.position.top < target_pos + target_height / 2
 					if (target && target !== scope) {
 						scope.moveTo(target, before)
+					} else {
+						if (e.clientX > window.innerWidth - 200) {
+							scope.moveTo('right_bar')
+						} else if (e.clientX < 200) {
+							scope.moveTo('left_bar')
+						}
 					}
 				}
 				saveInterfaceRearrangement()
+				updateInterface()
 			}
 		})
 		$(this.node)
@@ -72,6 +79,7 @@ class Panel {
 		if (this.onResize) {
 			this.onResize()
 		}
+		updateInterface()
 	}
 	update() {
 		var show = BARS.condition(this.condition)
@@ -157,15 +165,45 @@ var Interface = {
 	Resizers: {
 		left: new ResizeLine({
 			id: 'left',
+			condition: function() {
+				var i = 0;
+				Interface.data.left_bar.forEach(p => {
+					if (BARS.condition(Interface.Panels[p].condition)) {i++;}
+				})
+				return i;
+			},
 			get: function() {return Interface.data.left_bar_width},
-			set: function(o, diff) {Interface.data.left_bar_width = limitNumber(o + diff, 64, $(window).width()- 240 - Interface.data.right_bar_width)},
-			position: function(line) {line.setPosition({ top: 32, bottom: 0, left: Interface.data.left_bar_width-2 })}
+			set: function(o, diff) {
+				Interface.data.left_bar_width = limitNumber(o + diff, 64, $(window).width()- 240 - Interface.data.right_bar_width)
+			},
+			position: function(line) {
+				line.setPosition({
+					top: 32,
+					bottom: 0,
+					left: Interface.data.left_bar_width-2
+				})
+			}
 		}),
 		right: new ResizeLine({
 			id: 'right',
+			condition: function() {
+				var i = 0;
+				Interface.data.right_bar.forEach(p => {
+					if (BARS.condition(Interface.Panels[p].condition)) {i++;}
+				})
+				return i;
+			},
 			get: function() {return Interface.data.right_bar_width},
-			set: function(o, diff) {Interface.data.right_bar_width = limitNumber(o - diff, 64, $(window).width()- 240 - Interface.data.left_bar_width)},
-			position: function(line) {line.setPosition({ top: 32, bottom: 0, right: Interface.data.right_bar_width-2 })}
+			set: function(o, diff) {
+				Interface.data.right_bar_width = limitNumber(o - diff, 64, $(window).width()- 240 - Interface.data.left_bar_width)
+			},
+			position: function(line) {
+				line.setPosition({
+					top: 32,
+					bottom: 0,
+					right: Interface.data.right_bar_width-2
+				})
+			}
 		}),
 		quad_view_x: new ResizeLine({
 			id: 'quad_view_x',
@@ -183,7 +221,9 @@ var Interface = {
 			horizontal: true,
 			condition: function() {return quad_previews.enabled},
 			get: function() {return Interface.data.quad_view_y},
-			set: function(o, diff) {Interface.data.quad_view_y = limitNumber(o + diff/$('#preview').height()*100, 5, 95)},
+			set: function(o, diff) {
+				Interface.data.quad_view_y = limitNumber(o + diff/$('#preview').height()*100, 5, 95)
+			},
 			position: function(line) {line.setPosition({
 				left: Interface.data.left_bar_width+2,
 				right: Interface.data.right_bar_width+2,
@@ -219,7 +259,7 @@ function setupInterface() {
 	//Panels
 	Interface.Panels.uv = new Panel({
 		id: 'uv',
-		condition: function() {return !display_mode && !Animator.state},
+		condition: function() {return !display_mode && !Animator.open},
 		toolbars: {
 			bottom: Toolbars.main_uv
 		},
@@ -231,14 +271,14 @@ function setupInterface() {
 	})
 	Interface.Panels.textures = new Panel({
 		id: 'textures',
-		condition: function() {return !display_mode && !Animator.state},
+		condition: function() {return !display_mode && !Animator.open},
 		toolbars: {
 			head: Toolbars.textures
 		}
 	})
 	Interface.Panels.options = new Panel({
 		id: 'options',
-		condition: function() {return !display_mode && !Animator.state},
+		condition: function() {return !display_mode && !Animator.open},
 		toolbars: {
 
 		}
@@ -252,16 +292,22 @@ function setupInterface() {
 	})
 	Interface.Panels.animations = new Panel({
 		id: 'animations',
-		condition: () => Animator.state,
+		condition: () => Animator.open,
 		toolbars: {
 			head: Toolbars.animations
 		}
 	})
 	Interface.Panels.keyframe = new Panel({
 		id: 'keyframe',
-		condition: () => Animator.state,
+		condition: () => Animator.open,
 		toolbars: {
 			head: Toolbars.keyframe
+		}
+	})
+	Interface.Panels.variable_placeholders = new Panel({
+		id: 'variable_placeholders',
+		condition: () => Animator.open,
+		toolbars: {
 		}
 	})
 	Interface.Panels.display = new Panel({
@@ -349,10 +395,14 @@ function setupInterface() {
 	$('#timeline_inner').on('mousewheel', function() {
 		if (event.ctrlKey) {
 			var offset = 1 - event.deltaY/600
-			Timeline.vue._data.size = limitNumber(Timeline.vue._data.size * offset, 10, 500)
+			Timeline.vue._data.size = limitNumber(Timeline.vue._data.size * offset, 10, 1000)
+			this.scrollLeft *= offset
+			let l = (event.offsetX / this.clientWidth) * 500 * (event.deltaY<0?1:-0.2)
+			this.scrollLeft += l
 		} else {
 			this.scrollLeft += event.deltaY/2
 		}
+		Timeline.updateSize()
 		event.preventDefault();
 	});
 
@@ -413,7 +463,7 @@ function setProjectTitle(title) {
 		title = Project.parent
 	}
 	if (title) {
-		Prop.file_name = title
+		Prop.file_name = Prop.file_name_alt = title
 		if (!Project.name) {
 			Project.name = title
 		}
@@ -422,7 +472,7 @@ function setProjectTitle(title) {
 		}
 		$('title').text(title+' - Blockbench')
 	} else {
-		Prop.file_name = ''
+		Prop.file_name = Prop.file_name_alt = ''
 		$('title').text('Blockbench')
 	}
 }
@@ -484,12 +534,13 @@ function colorSettingsSetup(reset) {
 		ui: {hex: '#282c34'},
 		bright_ui: {hex: '#f4f3ff'},
 		accent: {hex: '#3e90ff'},
-		grid: {hex: '#495061'},
 		button: {hex: '#3a3f4b'},
 		selected: {hex: '#495061'},
 		text: {hex: '#cacad4'},
 		light: {hex: '#f4f3ff'},
 		text_acc: {hex: '#000006'},
+		grid: {hex: '#495061'},
+		wireframe: {hex: '#576f82'},
 		main: {font: ''},
 		headline: {font: ''},
 		css: ''
@@ -550,6 +601,11 @@ function updateUIColor() {
 	if (!gizmo_colors.outline || c_outline !== gizmo_colors.outline.getHex()) {
 		gizmo_colors.outline = new THREE.Color( c_outline )
 		Canvas.outlineMaterial.color = gizmo_colors.outline
+	}
+	var w_wire = parseInt('0x'+app_colors.wireframe.hex.replace('#', ''))
+	if (!gizmo_colors.wire || w_wire !== gizmo_colors.wire.getHex()) {
+		gizmo_colors.wire = new THREE.Color( w_wire )
+		Canvas.wireframeMaterial.color = gizmo_colors.wire
 	}
 
 	var c_grid = parseInt('0x'+app_colors.grid.hex.replace('#', ''))
