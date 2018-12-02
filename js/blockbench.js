@@ -1,4 +1,4 @@
-const appVersion = '2.1.0'
+const appVersion = '2.2.0'
 var osfs = '/'
 var File, i;
 const elements = [];
@@ -106,30 +106,13 @@ function initializeApp() {
 		}
 	})
 	$('#cubes_list').contextmenu(function(event) {
-		new Menu([
-			'add_cube',
-			'add_group',
-			'sort_outliner',
-			'select_all',
-			'collapse_groups',
-			'outliner_toggle'
-		]).show(event)
+		Interface.Panels.outliner.menu.show(event)
 	})
 	$('#texture_list').contextmenu(function(event) {
-		new Menu([
-			'import_texture',
-			'create_texture',
-			'reload_textures',
-			'change_textures_folder',
-			'save_textures'
-		]).show(event)
+		Interface.Panels.textures.menu.show(event)
 	})
 	$('#status_bar').contextmenu(function(event) {
-		new Menu([
-			'project_window',
-			'open_model_folder',
-			'save'
-		]).show(event)
+		Interface.status_bar.menu.show(event)
 	})
 	$(window).on( "unload", saveLocalStorages)
 
@@ -310,7 +293,7 @@ function updateSelection() {
 		}
 		if (obj.visibility) {
 			var mesh = obj.getMesh()
-			if (mesh) {
+			if (mesh && mesh.outline) {
 				mesh.outline.visible = obj.selected
 			}
 		}
@@ -332,7 +315,7 @@ function updateSelection() {
 	if (Blockbench.entity_mode) {
 		if (selected_group) {
 			$('.selection_only#options').css('visibility', 'visible')
-			if (settings.origin_size.value > 0) {
+			if (settings.origin_size.value > 0 && selected_group.visibility) {
 				selected_group.getMesh().add(rot_origin)
 			}
 		} else {
@@ -347,7 +330,10 @@ function updateSelection() {
 	} else {
 		//Origin Helper
 		if (selected.length === 1 && selected[0].visibility) {
-			selected[0].getMesh().add(rot_origin)
+			let mesh = selected[0].getMesh()
+			if (mesh) {
+				mesh.add(rot_origin)
+			}
 		} else if (selected.length > 0) {
 			var origin = null;
 			var first_visible = null;
@@ -368,7 +354,10 @@ function updateSelection() {
 				i++;
 			}
 			if (first_visible && typeof origin === 'object') {
-				first_visible.getMesh().add(rot_origin)
+				let mesh = first_visible.getMesh()
+				if (mesh) {
+					mesh.add(rot_origin)
+				}
 			} 
 		}
 	}
@@ -469,20 +458,27 @@ var Screencam = {
 		} else if (isApp) {
 			var screenshot = nativeImage.createFromDataURL(dataUrl)
 			var img = new Image()
+			var is_gif = dataUrl.substr(5, 9) == 'image/gif'
 			img.src = dataUrl
+
+			var btns = [tl('dialog.save')]
+			if (!is_gif) {
+				btns.push(tl('message.screenshot.clipboard'))
+			}
 			Blockbench.showMessageBox({
 				translateKey: 'screenshot',
 				icon: img,
-				buttons: [tl('dialog.save'), tl('message.screenshot.clipboard')],
+				buttons: btns,
 				confirm: 0,
-				cancel: 1
+				cancel: btns.length-1
 			}, function(result) {
 				if (result === 0) {
-					app.dialog.showSaveDialog(currentwindow, {filters: [ {name: tl('data.image'), extensions: ['png']} ]}, function (fileName) {
+					app.dialog.showSaveDialog(currentwindow, {filters: [ {name: tl('data.image'), extensions: [is_gif ? 'gif' : 'png']} ]}, function (fileName) {
 						if (fileName === undefined) {
 							return;
 						}
-						fs.writeFile(fileName, screenshot.toPNG(), function (err) {})
+						//fs.writeFile(fileName, screenshot.toPNG(), function (err) {})
+						fs.writeFile(fileName, Buffer(dataUrl.split(',')[1],'base64'), err => {})
 					})
 				} else if (result === 1) {
 					clipboard.writeImage(screenshot)
@@ -500,6 +496,36 @@ var Screencam = {
 	},
 	cleanCanvas: function(options, cb) {
 		quad_previews.current.screenshot(options, cb)
+	},
+	createGif: function(options, cb) {
+		if (typeof options !== 'object') {
+			options = {}
+		}
+		var interval = options.fps ? (1000/options.fps) : 100
+		var gif = new GIF({
+			repeat: options.repeat,
+			quality: options.quality,
+			transparent: 0x000000,
+		})
+		gif.on('finished', blob => {
+			var reader = new FileReader()
+			reader.onload = () => {
+				Screencam.returnScreenshot(reader.result, cb)
+			}
+			reader.readAsDataURL(blob)
+		})
+		gif.addFrame(quad_previews.current.canvas)
+		var loop = setInterval(() => {
+			gif.addFrame(quad_previews.current.canvas, {delay: interval})
+		}, interval)
+
+		setTimeout(() => {
+			clearInterval(loop)
+			gif.render()
+			if (Animator.open && Timeline.playing) {
+				Timeline.pause()
+			}
+		}, options.length || 1000)
 	}
 }
 var Clipbench = {

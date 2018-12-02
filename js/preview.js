@@ -1,7 +1,7 @@
 var scene, main_preview, previews,
 	Sun, lights,
-	emptyMaterials, transparentMaterial, northMarkMaterial,
-	outlines, setupGrid, wireframeMaterial,
+	emptyMaterials, northMarkMaterial,
+	outlines, wireframeMaterial,
 	Transformer,
 	canvas_scenes,
 	display_scene, display_area, display_base;
@@ -452,10 +452,6 @@ class Preview {
 					from[uv_axes.v],
 					to[uv_axes.u],
 					to[uv_axes.v]
-					//cube.from[getAxisNumber(uv_axes.u)],
-					//cube.from[getAxisNumber(uv_axes.v)],
-					//cube.to[getAxisNumber(uv_axes.u)],
-					//cube.to[getAxisNumber(uv_axes.v)]
 				)
 				var isSelected = doRectanglesOverlap(plane_rect, cube_rect)
 			}
@@ -555,18 +551,48 @@ class Preview {
 		this.controls.enabled = this.controls.enabled_before
 		delete this.controls.enabled_before
 	}
+	backgroundPositionDialog() {
+		var scope = this;
+		var dialog = new Dialog({
+			id: 'background_position',
+			title: 'message.set_background_position.title',
+			lines: [
+				`<div class="dialog_bar">
+					<input type="number" class="dark_bordered" value="${scope.background.x}" id="background_pos_x">
+					<input type="number" class="dark_bordered" value="${scope.background.y}" id="background_pos_y">
+					<input type="number" class="dark_bordered" value="${scope.background.size}" id="background_size">
+				</div>`
+			],
+			onConfirm: function() {
+				var coords = [
+					parseFloat( $(dialog.object).find('#background_pos_x').val() ),
+					parseFloat( $(dialog.object).find('#background_pos_y').val() ),
+					parseFloat( $(dialog.object).find('#background_size').val() )
+				]
+				dialog.hide()
+				if (!scope.background) return;
+				
+				if (!isNaN(coords[0])) { scope.background.x 	= coords[0] }
+				if (!isNaN(coords[1])) { scope.background.y 	= coords[1] }
+				if (!isNaN(coords[2])) { scope.background.size	= coords[2] }
+
+				scope.updateBackground()
+			}
+		})
+		dialog.show()
+	}
 	//Misc
 	screenshot(options, cb) {
 		var scope = this;
-		function editVis(cb) {
-			cb(three_grid)
-			cb(Transformer)
-			cb(outlines)
-			cb(rot_origin)
+		function editVis(edit) {
+			edit(three_grid)
+			edit(Transformer)
+			edit(outlines)
+			edit(rot_origin)
 			selected.forEach(function(obj) {
 				var m = obj.getMesh()
 				if (m && m.outline) {
-					cb(m.outline)
+					edit(m.outline)
 				}
 			})
 		}
@@ -644,6 +670,9 @@ class Preview {
 				}},
 				{icon: 'photo_size_select_large', name: 'menu.preview.background.position', condition: has_background, click: function(preview) {
 					preview.startMovingBackground()
+				}},
+				{icon: 'photo_size_select_large', name: 'menu.preview.background.set_position', condition: has_background, click: function(preview) {
+					preview.backgroundPositionDialog()
 				}},
 				{
 					name: 'menu.preview.background.lock',
@@ -851,9 +880,6 @@ function initCanvas() {
 		thismaterial.color.set(s.hex)
 		emptyMaterials.push(thismaterial)
 	})
-	
-	//transparentMaterial
-	transparentMaterial = new THREE.MeshBasicMaterial({visible:false});
 
 	var img = new Image();
 	img.src = 'assets/north.png';
@@ -864,8 +890,23 @@ function initCanvas() {
 	img.onload = function() {
 		this.tex.needsUpdate = true;
 	}
-	//northMarkMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color(parseInt(grid_color, 16)), map: tex, transparent: true})
 	northMarkMaterial = new THREE.MeshBasicMaterial({map: tex, transparent: true, side: THREE.DoubleSide})
+
+	//Rotation Pivot
+	var helper1 = new THREE.AxesHelper(2)
+	var helper2 = new THREE.AxesHelper(2)
+	helper1.rotation.x = Math.PI / 1
+
+	helper2.rotation.x = Math.PI / -1
+	helper2.rotation.y = Math.PI / 1
+	helper2.scale.y = -1
+
+	rot_origin.add(helper1)
+	rot_origin.add(helper2)
+
+	rot_origin.rotation.reorder('ZYX')
+
+	setupGrid = true;
 	
 	resizeWindow()
 }
@@ -876,7 +917,7 @@ function animate() {
 	})
 	framespersecond++;
 	if (display_mode === true && ground_animation === true) {
-		groundAnimation()
+		DisplayMode.groundAnimation()
 	}
 }
 function resizeWindow(event) {
@@ -1077,25 +1118,6 @@ function buildGrid() {
 		three_grid.add(large_box)
 	}
 	scene.add(three_grid)
-
-	//Origin
-
-	if (setupGrid !== true) {
-		var helper1 = new THREE.AxesHelper(2)
-		var helper2 = new THREE.AxesHelper(2)
-		helper1.rotation.x = Math.PI / 1
-
-		helper2.rotation.x = Math.PI / -1
-		helper2.rotation.y = Math.PI / 1
-		helper2.scale.y = -1
-
-		rot_origin.add(helper1)
-		rot_origin.add(helper2)
-
-		rot_origin.rotation.reorder('ZYX')
-
-		setupGrid = true;
-	}
 }
 function centerTransformer(offset) {
 	if (selected.length === 0) return;
@@ -1275,8 +1297,10 @@ class CanvasController {
 			color: 0x00FF00,
 			wireframe: true
 		});
+		this.transparentMaterial = new THREE.MeshBasicMaterial({visible:false});
 		this.face_order = ['east', 'west', 'up', 'down', 'south', 'north']
 	}
+	//Misc
 	raycast(event) {
 		var preview = Canvas.getCurrentPreview()
 		if (preview) {
@@ -1289,6 +1313,7 @@ class CanvasController {
 		var canvas = $('canvas.preview:hover').get(0)
 		if (canvas) return canvas.preview
 	}
+	//Main updaters
 	clear() {
 		var objects = []
 		scene.traverse(function(s) {
@@ -1314,144 +1339,6 @@ class CanvasController {
 			}
 		})
 		updateSelection()
-	}
-	updateSelected(arr) {
-		if (!arr) {
-			arr = selected
-		}
-		arr.forEach(function(obj) {
-			var mesh = obj.getMesh()
-			if (mesh !== undefined) {
-				mesh.parent.remove(mesh)
-			}
-			if (obj.visibility == true) {
-				Canvas.addCube(obj)
-			}
-		})
-		updateSelection()
-	}
-	addCube(s) {
-		//This does NOT remove old cubes
-
-		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1))
-		Canvas.adaptObjectFaces(s, mesh)
-
-		Canvas.adaptObjectPosition(s, mesh)
-		mesh.name = s.uuid;
-		mesh.type = 'cube';
-		mesh.isElement = true;
-		//scene.add(mesh)
-		Canvas.meshes[s.uuid] = mesh
-		if (Prop.wireframe === false) {
-			Canvas.updateUV(s)
-		}
-		Canvas.buildOutline(s)
-	}
-	adaptObjectPosition(obj, mesh, parent) {
-		if (!mesh) mesh = obj.getMesh()
-
-		function setSize(geo) {
-			if (Blockbench.entity_mode && obj.inflate !== undefined) {
-				var inflate = obj.inflate
-				geo.from([ obj.from[0]-inflate, obj.from[1]-inflate, obj.from[2]-inflate ])
-				geo.to(  [ obj.to[0]  +inflate, obj.to[1]  +inflate, obj.to[2]  +inflate ])
-			} else {
-				geo.from(obj.from)
-				geo.to(obj.to)
-			}
-		}
-
-		setSize(mesh.geometry)
-		mesh.geometry.computeBoundingSphere()
-
-		mesh.scale.set(1, 1, 1)
-		mesh.rotation.set(0, 0, 0)
-
-		if (Blockbench.entity_mode) {
-			mesh.position.set(0, 0, 0)
-			mesh.rotation.reorder('YZX')
-			function iterate(itobj) {
-				//Iterate inside (cube) > outside
-				var itmesh = itobj.type === 'cube' ? mesh : itobj.getMesh()
-				if (itobj.type === 'group') {
-					itmesh.rotation.reorder('ZYX')
-					itobj.rotation.forEach(function(n, i) {
-						itmesh.rotation[getAxisLetter(i)] = Math.PI / (180 / n) * (i == 2 ? -1 : 1)
-					})
-					itmesh.updateMatrixWorld()
-				}
-				itmesh.fix_rotation = itmesh.rotation.clone()
-
-				if (itobj.type === 'group') {
-					itmesh.position.fromArray(itobj.origin)
-					itmesh.scale.x = itmesh.scale.y = itmesh.scale.z = 1
-				}
-
-				if (typeof itobj.parent === 'object') {
-
-					itmesh.position.x -=  itobj.parent.origin[0]
-					itmesh.position.y -=  itobj.parent.origin[1]
-					itmesh.position.z -=  itobj.parent.origin[2]
-				}
-				itmesh.fix_position = itmesh.position.clone()
-
-				if (typeof itobj.parent === 'object') {
-					var parent_mesh = iterate(itobj.parent)
-					parent_mesh.add(itmesh)
-				} else {
-					scene.add(itmesh)
-				}
-				return itmesh
-			}
-			iterate(obj)
-
-		} else {
-			if (obj.rotation !== undefined) {
-
-				mesh.rotation.reorder('ZYX')
-				mesh.position.set(obj.origin[0], obj.origin[1], obj.origin[2])
-				mesh.geometry.translate(-obj.origin[0], -obj.origin[1], -obj.origin[2])
-
-				mesh.rotation.x = Math.PI / (180 /obj.rotation[0])
-				mesh.rotation.y = Math.PI / (180 /obj.rotation[1])
-				mesh.rotation.z = Math.PI / (180 /obj.rotation[2])
-
-				if (obj.rescale === true) {
-					var axis = obj.rotationAxis()||'y'
-
-					var rescale = getRescalingFactor(obj.rotation[getAxisNumber(axis)]);
-					mesh.scale.set(rescale, rescale, rescale)
-					mesh.scale[axis] = 1
-				}
-			} else {
-				mesh.position.set(0, 0, 0)
-			}
-			scene.add(mesh)
-		}
-		Canvas.buildOutline(obj)
-		mesh.updateMatrixWorld()
-	}
-	updatePositions(leave_selection) {
-		updateNslideValues()
-		var arr = selected.slice()
-		if (Blockbench.entity_mode && selected_group) {
-			selected_group.children.forEach(function(s) {
-				if (s.type === 'cube') {
-					if (!arr.includes(s)) {
-						arr.push(s)
-					}
-				}
-			})
-		}
-		arr.forEach(function(obj) {
-			if (obj.visibility == true) {
-				Canvas.adaptObjectPosition(obj)
-			}
-		})
-		if (leave_selection !== true) {
-			updateSelection()
-			updateSelection()
-		}
 	}
 	updateAllPositions(leave_selection) {
 		updateNslideValues()
@@ -1484,58 +1371,6 @@ class CanvasController {
 		})
 		updateSelection()
 	}
-	updateRenderSides() {
-		textures.forEach(function(t) {
-			var mat = Canvas.materials[t.uuid]
-			if (mat) {
-				mat.side = display_mode || Blockbench.entity_mode ? 2 : 0
-			}
-		})
-		emptyMaterials.forEach(function(mat) {
-			mat.side = display_mode || Blockbench.entity_mode ? 2 : 0
-		})
-	}
-	adaptObjectFaces(obj, mesh) {
-		if (!mesh) mesh = obj.getMesh()
-		if (!Prop.wireframe) {
-			var materials = []
-			this.face_order.forEach(function(face) {
-
-				if (obj.faces.hasOwnProperty(face)) {
-
-					var tex = getTextureById(obj.faces[face].texture)
-					if (typeof tex !== 'object') {
-						materials.push(emptyMaterials[obj.color])
-					} else {
-						materials.push(Canvas.materials[tex.uuid])
-					}
-				}
-			})
-			mesh.material = materials
-		} else {
-			mesh.material = Canvas.wireframeMaterial
-		}
-		/*
-		if (!mesh.wireframe == Prop.wireframe) {
-			if (Prop.wireframe) {
-				mesh.wireframe = Canvas.getOutlineMesh(mesh);
-				mesh.add(mesh.wireframe);
-			} else {
-				mesh.remove(mesh.wireframe);
-				delete mesh.wireframe;
-			}
-		}*/
-	}
-	updateSelectedFaces() {
-		selected.forEach(function(obj) {
-			if (obj.visibility == true) {
-				Canvas.adaptObjectFaces(obj)
-				if (!Prop.wireframe) {
-					Canvas.updateUV(obj)
-				}
-			}
-		})
-	}
 	updateAllFaces(texture) {
 		elements.forEach(function(obj) {
 			if (obj.visibility == true) {
@@ -1557,6 +1392,75 @@ class CanvasController {
 			}
 		})
 	}
+	updateAllUVs() {
+		if (Prop.wireframe === true) return;
+		elements.forEach(function(obj) {
+			if (obj.visibility == true) {
+				Canvas.updateUV(obj)
+			}
+		})
+	}
+	updateRenderSides() {
+		textures.forEach(function(t) {
+			var mat = Canvas.materials[t.uuid]
+			if (mat) {
+				mat.side = (display_mode || Blockbench.entity_mode) ? 2 : 0
+			}
+		})
+		emptyMaterials.forEach(function(mat) {
+			mat.side = (display_mode || Blockbench.entity_mode) ? 2 : 0
+		})
+	}
+	//Selection updaters
+	updateSelected(arr) {
+		if (!arr) {
+			arr = selected
+		}
+		arr.forEach(function(obj) {
+			var mesh = obj.getMesh()
+			if (mesh !== undefined) {
+				mesh.parent.remove(mesh)
+			}
+			if (obj.visibility == true) {
+				Canvas.addCube(obj)
+			}
+		})
+		updateSelection()
+	}
+	updatePositions(leave_selection) {
+		updateNslideValues()
+		var arr = selected.slice()
+		if (Blockbench.entity_mode && selected_group) {
+			selected_group.children.forEach(function(s) {
+				if (s.type === 'cube') {
+					if (!arr.includes(s)) {
+						arr.push(s)
+					}
+				}
+			})
+			if (arr.length === selected.length) {
+				Canvas.ascendElementPosition(selected_group)
+			}
+		}
+		arr.forEach(function(obj) {
+			if (obj.visibility == true) {
+				Canvas.adaptObjectPosition(obj)
+			}
+		})
+		if (leave_selection !== true) {
+			updateSelection()
+		}
+	}
+	updateSelectedFaces() {
+		selected.forEach(function(obj) {
+			if (obj.visibility == true) {
+				Canvas.adaptObjectFaces(obj)
+				if (!Prop.wireframe) {
+					Canvas.updateUV(obj)
+				}
+			}
+		})
+	}
 	updateUVs() {
 		if (Prop.wireframe === true) return;
 		selected.forEach(function(obj) {
@@ -1565,13 +1469,168 @@ class CanvasController {
 			}
 		})
 	}
-	updateAllUVs() {
-		if (Prop.wireframe === true) return;
-		elements.forEach(function(obj) {
-			if (obj.visibility == true) {
-				Canvas.updateUV(obj)
-			}
+	outlineObjects(arr) {
+		arr.forEach(function(obj) {
+			if (!obj.visibility) return;
+			var mesh = obj.getMesh()
+			if (mesh === undefined) return;
+
+			var line = Canvas.getOutlineMesh(mesh)
+
+			mesh.getWorldPosition(line.position)
+			line.position.sub(scene.position)
+			line.rotation.setFromQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()))
+			line.scale.copy(mesh.scale)
+
+			line.name = obj.uuid+'_ghost_outline'
+			outlines.add(line)
 		})
+	}
+	//Object handlers
+	addCube(obj) {
+		//This does NOT remove old cubes
+		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1))
+		Canvas.adaptObjectFaces(obj, mesh)
+
+		Canvas.adaptObjectPosition(obj, mesh)
+		mesh.name = obj.uuid;
+		mesh.type = 'cube';
+		mesh.isElement = true;
+		//scene.add(mesh)
+		Canvas.meshes[obj.uuid] = mesh
+		if (Prop.wireframe === false) {
+			Canvas.updateUV(obj)
+		}
+		Canvas.buildOutline(obj)
+	}
+	adaptObjectPosition(obj, mesh, parent) {
+		if (!mesh) mesh = obj.getMesh()
+
+		function setSize(geo) {
+			if (Blockbench.entity_mode && obj.inflate !== undefined) {
+				var inflate = obj.inflate
+				geo.from([ obj.from[0]-inflate, obj.from[1]-inflate, obj.from[2]-inflate ])
+				geo.to(  [ obj.to[0]  +inflate, obj.to[1]  +inflate, obj.to[2]  +inflate ])
+			} else {
+				geo.from(obj.from)
+				geo.to(obj.to)
+			}
+		}
+
+		setSize(mesh.geometry)
+		mesh.geometry.computeBoundingSphere()
+
+		mesh.scale.set(1, 1, 1)
+		mesh.rotation.set(0, 0, 0)
+
+		if (Blockbench.entity_mode) {
+			mesh.position.set(0, 0, 0)
+			mesh.rotation.reorder('YZX')
+			Canvas.ascendElementPosition(obj, mesh)
+
+		} else {
+			if (obj.rotation !== undefined) {
+
+				mesh.rotation.reorder('ZYX')
+				mesh.position.set(obj.origin[0], obj.origin[1], obj.origin[2])
+				mesh.geometry.translate(-obj.origin[0], -obj.origin[1], -obj.origin[2])
+
+				mesh.rotation.x = Math.PI / (180 /obj.rotation[0])
+				mesh.rotation.y = Math.PI / (180 /obj.rotation[1])
+				mesh.rotation.z = Math.PI / (180 /obj.rotation[2])
+
+				if (obj.rescale === true) {
+					var axis = obj.rotationAxis()||'y'
+
+					var rescale = getRescalingFactor(obj.rotation[getAxisNumber(axis)]);
+					mesh.scale.set(rescale, rescale, rescale)
+					mesh.scale[axis] = 1
+				}
+			} else {
+				mesh.position.set(0, 0, 0)
+			}
+			scene.add(mesh)
+		}
+		Canvas.buildOutline(obj)
+		mesh.updateMatrixWorld()
+	}
+	ascendElementPosition(el, elmesh) {
+		function iterate(obj, mesh) {
+			//Iterate inside (cube) > outside
+			if (!mesh) {
+				mesh = obj.getMesh()
+			}
+			if (!mesh) {
+			}
+			if (obj.type === 'group') {
+				mesh.rotation.reorder('ZYX')
+				obj.rotation.forEach(function(n, i) {
+					mesh.rotation[getAxisLetter(i)] = Math.PI / (180 / n) * (i == 2 ? -1 : 1)
+				})
+				mesh.updateMatrixWorld()
+			}
+			mesh.fix_rotation = mesh.rotation.clone()
+
+			if (obj.type === 'group') {
+				mesh.position.fromArray(obj.origin)
+				mesh.scale.x = mesh.scale.y = mesh.scale.z = 1
+			}
+
+			if (typeof obj.parent === 'object') {
+
+				mesh.position.x -=  obj.parent.origin[0]
+				mesh.position.y -=  obj.parent.origin[1]
+				mesh.position.z -=  obj.parent.origin[2]
+			}
+			mesh.fix_position = mesh.position.clone()
+
+			if (typeof obj.parent === 'object') {
+				var parent_mesh = iterate(obj.parent)
+				parent_mesh.add(mesh)
+			} else {
+				scene.add(mesh)
+			}
+			return mesh
+		}
+		iterate(el, elmesh)
+	}
+	getOutlineMesh(mesh) {
+		var vs = mesh.geometry.vertices
+		var geometry = new THREE.Geometry()
+		geometry.vertices = [
+			vs[2], vs[3],
+			vs[6], vs[7],
+			vs[2], vs[0],
+			vs[1], vs[4],
+			vs[5], vs[0],
+			vs[5], vs[7],
+			vs[6], vs[4],
+			vs[1], vs[3]
+		]
+		return new THREE.Line(geometry, Canvas.outlineMaterial)
+	}
+	adaptObjectFaces(obj, mesh) {
+		if (!mesh) mesh = obj.getMesh()
+		if (!Prop.wireframe) {
+			var materials = []
+			this.face_order.forEach(function(face) {
+
+				if (obj.faces[face].texture === null) {
+					materials.push(Canvas.transparentMaterial)
+
+				} else {
+					var tex = getTextureById(obj.faces[face].texture)
+					if (typeof tex === 'object') {
+						materials.push(Canvas.materials[tex.uuid])
+					} else {
+						materials.push(emptyMaterials[obj.color])
+					}
+				}
+			})
+			mesh.material = materials
+		} else {
+			mesh.material = Canvas.wireframeMaterial
+		}
 	}
 	updateUV(obj, animation, force_entity_mode) {
 		if (Prop.wireframe === true) return;
@@ -1666,7 +1725,7 @@ class CanvasController {
 					}
 					stretch = 1
 					frame = 0
-					if (obj[face].texture && obj[face].texture !== '$transparent') {
+					if (obj[face].texture && obj[face].texture !== null) {
 						var tex = getTextureById(obj[face].texture)
 						if (typeof tex === 'object' && tex.constructor.name === 'Texture' && tex.frameCount) {
 							stretch = tex.frameCount
@@ -1693,29 +1752,6 @@ class CanvasController {
 		mesh.geometry.elementsNeedUpdate = true;
 		return mesh.geometry
 	}
-	getOutlineMesh(mesh) {
-		var vs = mesh.geometry.vertices
-		var geometry = new THREE.Geometry()
-		geometry.vertices = [
-			vs[2],
-			vs[3],
-			vs[6],
-			vs[7],
-			vs[2],
-			vs[0],
-			vs[1],
-			vs[4],
-			vs[5],
-			vs[0],//1
-			vs[5],
-			vs[7],//2
-			vs[6],
-			vs[4],//3
-			vs[1],
-			vs[3]
-		]
-		return new THREE.Line(geometry, Canvas.outlineMaterial)
-	}
 	buildOutline(obj) {
 		if (obj.visibility == false) return;
 		var mesh = obj.getMesh()
@@ -1732,35 +1768,6 @@ class CanvasController {
 		line.visible = obj.selected
 		mesh.outline = line
 		mesh.add(line)
-	}
-	outlineObjects(arr) {
-		arr.forEach(function(obj) {
-			if (!obj.visibility) return;
-			var mesh = obj.getMesh()
-			if (mesh === undefined) return;
-
-			var line = Canvas.getOutlineMesh(mesh)
-
-			mesh.getWorldPosition(line.position)
-			line.position.sub(scene.position)
-			line.rotation.setFromQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()))
-			line.scale.copy(mesh.scale)
-
-			line.name = obj.uuid+'_ghost_outline'
-			outlines.add(line)
-			/*
-			var geo = new THREE.EdgesGeometry(mesh.geometry);
-			var wireframe = new THREE.LineSegments(geo, Canvas.outlineMaterial)
-
-			mesh.getWorldPosition(wireframe.position)
-			wireframe.position.sub(scene.position)
-			wireframe.rotation.setFromQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()))
-			wireframe.scale.copy(mesh.scale)
-
-			wireframe.name = obj.uuid+'_ghost_outline'
-			outlines.add(wireframe)
-			*/
-		})
 	}
 }
 var Canvas = new CanvasController()
@@ -1784,6 +1791,43 @@ BARS.defineActions(function() {
 		category: 'view',
 		keybind: new Keybind({key: 80, ctrl: true}),
 		click: function () {quad_previews.current.screenshot()}
+	})
+	new Action({
+		id: 'record_model_gif',
+		icon: 'local_movies',
+		category: 'view',
+		click: function () {
+			var lines = [
+				{label: 'dialog.create_gif.length', node: '<input class="dark_bordered half" type="number" value="10" id="gif_length">'},
+				{label: 'dialog.create_gif.fps', node: '<input class="dark_bordered half" type="number" value="10" id="gif_fps">'},
+				{label: 'dialog.create_gif.compression', node: '<input class="dark_bordered half" type="number" value="4" id="gif_quality">'},
+			]
+			if (Animator.open) {
+				lines.push({label: 'dialog.create_gif.play', node: '<input type="checkbox" id="gif_play_animation">'})
+			}
+			var dialog = new Dialog({
+				id: 'create_gif',
+				title: tl('dialog.create_gif.title'),
+				draggable: true,
+				lines: lines,
+				onConfirm: function() {
+					var jq = $(dialog.object)
+					var length = parseInt( jq.find('#gif_length').val() )
+					var fps = parseInt( jq.find('#gif_fps').val() )
+					var quality = parseInt( jq.find('#gif_quality').val() )
+					if (jq.find('#gif_play_animation').is(':checked')) {
+						Timeline.start()
+					}
+					Screencam.createGif({
+						length: limitNumber(length, 0.1, 240)*1000,
+						fps: limitNumber(fps, 0.5, 30),
+						quality: limitNumber(fps, 0, 30),
+					}, Screencam.returnScreenshot)
+					dialog.hide()
+				}
+			})
+			dialog.show()
+		}
 	})
 	new Action({
 		id: 'screenshot_app',
@@ -1841,7 +1885,6 @@ BARS.defineActions(function() {
 			quad_previews.current.setNormalCamera()
 		}
 	})
-
 
 	new Action({
 		id: 'camera_top',

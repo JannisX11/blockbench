@@ -300,7 +300,7 @@ class Cube extends OutlinerElement {
 		if (!this.parent || (this.parent === 'root' && TreeElements.indexOf(this) === -1)) {
 			this.addTo()
 		}
-		if (!this.getMesh() || !scene.children.includes(this.getMesh())) {
+		if (this.visibility && (!this.getMesh() || !scene.children.includes(this.getMesh()))) {
 			Canvas.addCube(this)
 		}
 		if (update !== false) {
@@ -496,11 +496,13 @@ class Cube extends OutlinerElement {
 		TreeElements.clearObjectRecursive(this)
 		if (this.visibility) {
 			var mesh = this.getMesh()
-			if (mesh.parent) {
-				mesh.parent.remove(mesh)
+			if (mesh) {
+				if (mesh.parent) {
+					mesh.parent.remove(mesh)
+				}
+				delete Canvas.meshes[this.uuid]
+				mesh.geometry.dispose()
 			}
-			delete Canvas.meshes[this.uuid]
-			mesh.geometry.dispose()
 		}
 		delete Canvas.meshes[this.uuid]
 		if (selected.includes(this)) {
@@ -743,7 +745,7 @@ class Cube extends OutlinerElement {
 		} else {
 			var sides = faces
 		}
-		var id = '$transparent'
+		var id = null
 		if (texture && texture.id !== undefined) {
 			id = '#'+texture.id
 		} else if (texture === 'blank') {
@@ -752,7 +754,7 @@ class Cube extends OutlinerElement {
 		sides.forEach(function(side) {
 			scope.faces[side].texture = id
 		})
-		if (this.selected) {
+		if (selected.indexOf(this) === 0) {
 			main_uv.loadData()
 		}
 		if (!Prop.wireframe && scope.visibility == true) {
@@ -1118,7 +1120,6 @@ class Group extends OutlinerElement {
 			this.children[i].remove(false)
 			i--;
 		}
-		Canvas.updateIndexes()
 		if (typeof this.parent === 'object') {
 			this.parent.children.remove(this)
 		} else {
@@ -1817,12 +1818,10 @@ function toggleCubeProperty(key) {
 	Undo.initEdit({cubes: selected})
 	selected.forEach(cube => {
 		cube[key] = state;
-		if (key === 'visibility') {
-			Canvas.updateVisibility()
-		} else if (key === 'autouv') {
-			
-		}
 	})
+	if (key === 'visibility') {
+		Canvas.updateVisibility()
+	}
 	Undo.finishEdit('toggle_prop')
 }
 

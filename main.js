@@ -37,9 +37,9 @@ app.commandLine.appendSwitch('ignore-gpu-blacklist')
 app.on('ready', createWindow)
 
 app.on('window-all-closed', () => {
-	if (process.platform !== 'darwin') {
+	//if (process.platform !== 'darwin') {
 		app.quit()
-	}
+	//}
 })
 
 

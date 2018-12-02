@@ -6,6 +6,7 @@ class Panel {
 		var scope = this;
 		this.type = 'panel'
 		this.id = data.id || 'new_panel'
+		this.menu = data.menu
 		this.title = data.title || tl('panel.'+this.id)
 		this.condition = data.condition
 		this.onResize = data.onResize
@@ -231,6 +232,7 @@ var Interface = {
 			})}
 		})
 	},
+	status_bar: {},
 	Panels: {}
 }
 
@@ -274,7 +276,14 @@ function setupInterface() {
 		condition: function() {return !display_mode && !Animator.open},
 		toolbars: {
 			head: Toolbars.textures
-		}
+		},
+		menu: new Menu([
+			'import_texture',
+			'create_texture',
+			'reload_textures',
+			'change_textures_folder',
+			'save_textures'
+		])
 	})
 	Interface.Panels.options = new Panel({
 		id: 'options',
@@ -288,7 +297,15 @@ function setupInterface() {
 		condition: function() {return !display_mode},
 		toolbars: {
 			head: Toolbars.outliner
-		}
+		},
+		menu: new Menu([
+			'add_cube',
+			'add_group',
+			'sort_outliner',
+			'select_all',
+			'collapse_groups',
+			'outliner_toggle'
+		])
 	})
 	Interface.Panels.animations = new Panel({
 		id: 'animations',
@@ -327,6 +344,13 @@ function setupInterface() {
 			$('#right_bar').append(Interface.Panels[id].node)
 		}
 	})
+
+
+	Interface.status_bar.menu = new Menu([
+		'project_window',
+		'open_model_folder',
+		'save'
+	])
 
 
 	//Tooltip Fix
@@ -623,15 +647,7 @@ function updateUIColor() {
 
 //BBLayout
 function applyBBStyle(data) {
-	if (typeof data === 'string') {
-		try {
-			data = JSON.parse(data)
-
-		} catch(err) {
-			console.log(err)
-			return;
-		}
-	}
+	data = autoParseJSON(data)
 	if (typeof data !== 'object') return;
 	$.extend(app_colors, data)
 	if (data.css) {
@@ -644,6 +660,9 @@ function applyBBStyle(data) {
 //UI Edit
 function setProgressBar(id, val, time) {
 	$('#'+id+' > .progress_bar_inner').animate({width: val*488}, time-1)
+	if (isApp) {
+		currentwindow.setProgressBar(val)
+	}
 }
 
 //Tooltip

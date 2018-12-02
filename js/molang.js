@@ -242,7 +242,7 @@ function previewVariableValue(name, time) {
 		var i = 0;
 		while (i < inputs.length) {
 			let key, val;
-			[key, val] = inputs[i].split('=')
+			[key, val] = inputs[i].replace(/[\s;]/g, '').split('=')
 			if (key === name) {
 				return parseMolang(val)
 			}

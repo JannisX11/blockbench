@@ -61,6 +61,15 @@ class Texture {
 		}
 		return copy
 	}
+	extend(properties) {
+		for (var key in properties) {
+			if (properties.hasOwnProperty(key)) {
+				this[key] = properties[key]
+			}
+		}
+		return this;
+	}
+	//Loading
 	load(isDefault, reloading, cb) {
 		var scope = this;
 
@@ -77,7 +86,7 @@ class Texture {
 		}
 		function onerror() {
 			if (isApp &&
-				!isDefault &&
+				!(isDefault || scope.isDefault) &&
 				scope.mode !== 'bitmap' &&
 				scope.fromDefaultPack()
 			) {
@@ -177,7 +186,7 @@ class Texture {
 		return this;
 	}
 	fromJavaLink(link, path_array) {
-		if (typeof link !== 'string' || link.substr(0, 1) === '#') {
+		if (typeof link !== 'string' || (link.substr(0, 1) === '#' && !link.includes('/'))) {
 			this.load()
 			return this;
 		}
@@ -196,6 +205,25 @@ class Texture {
 		if (path) {
 			this.fromPath(path)
 		}
+		return this;
+	}
+	fromFile(file) {
+		if (!file) return this;
+		if (file.name) this.name = file.name
+		if (typeof file.content === 'string' && file.content.substr(0, 4) === 'data') {
+			this.fromDataURL(file.content)
+
+			if (!file.path) {
+			} else if (pathToExtension(file.path) === 'png') {
+				this.path = file.path
+			} else if (pathToExtension(file.path) === 'tga') {
+				this.path = ''
+			}
+
+		} else if (isApp) {
+			this.fromPath(file.path)
+		}
+		this.saved = true
 		return this;
 	}
 	fromPath(path) {
@@ -221,6 +249,7 @@ class Texture {
 			this.source = path + '?' + tex_version
 		}
 		this.generateFolder(path)
+		this.startWatcher()
 		
 		if (!isApp && Project.dataURLTextures) {
 			if (this.img && this.img.src) {
@@ -240,39 +269,72 @@ class Texture {
 		this.load()
 		return this;
 	}
-	fromFile(file) {
-		if (!file) return this;
-		if (file.name) this.name = file.name
-		if (typeof file.content === 'string' && file.content.substr(0, 4)) {
-			this.fromDataURL(file.content)
-
-			if (!file.path) {
-			} else if (pathToExtension(file.path) === 'png') {
-				this.path = file.path
-			} else if (pathToExtension(file.path) === 'tga') {
-				this.path = ''
-			}
-
-		} else if (isApp) {
-			this.fromPath(file.path)
-		}
-		this.saved = true
-		return this;
-	}
 	fromDefaultPack() {
 		if (isApp && settings.default_path && settings.default_path.value) {
-			var path = settings.default_path.value + osfs + this.folder + osfs + this.name
-			if (fs.existsSync(path)) {
-				this.mode = 'link'
-				this.path = path
-				this.source = this.path + '?' + tex_version
-				this.load(true)
-				return true;
+			if (Blockbench.entity_mode) {
+				var path = findEntityTexture(Project.parent, 'raw')
+				if (path) {
+					this.isDefault = true
+					path = settings.default_path.value + osfs + path
+
+					if (fs.existsSync(path + '.png')) {
+						this.fromPath(path + '.png')
+						delete this.isDefault
+						return true;
+
+					} else if (fs.existsSync(path + '.tga')) {
+						this.fromPath(path + '.tga')
+						delete this.isDefault
+						return true;
+					}
+					delete this.isDefault
+				}
+			} else {
+				var path = settings.default_path.value + osfs + this.folder + osfs + this.name
+				if (fs.existsSync(path)) {
+					this.fromPath(path)
+					return true;
+				}
 			}
 		}
+	}
+	updateSource(dataUrl) {
+		this.source = dataUrl
+		this.img.src = dataUrl
+		this.updateMaterial()
+		if (main_uv.texture === this) {
+			main_uv.loadData()
+		}
+		if (open_dialog === 'uv_dialog') {
+			for (var editor in uv_dialog.editors) {
+				if (uv_dialog.editors.hasOwnProperty(editor) && uv_dialog.editors[editor].texture === this) {
+					uv_dialog.editors[editor].loadData()
+				}
+			}
+		}
+		return this;
+	}
+	updateMaterial() {
+		var scope = this;
+		var img = new Image()
+		try {
+			img.src = scope.source
+		} catch(err) {
+		}
+		img.onload = function() {
+			Canvas.materials[scope.uuid].map.dispose()
+			var tex = new THREE.Texture(img)
+			img.tex = tex;
+			img.tex.magFilter = THREE.NearestFilter
+			img.tex.minFilter = THREE.NearestFilter
+			this.tex.needsUpdate = true;
+			Canvas.materials[scope.uuid].map = tex
+		}
+		return this;
 	}
 	reopen(force) {
 		var scope = this;
+		this.stopWatcher()
 
 		function _replace() {
 			Blockbench.import({
@@ -282,6 +344,7 @@ class Texture {
 				startpath: scope.path
 			}, function(files) {
 				scope.fromFile(files[0])
+
 			})
 			Painter.current = {}
 			Blockbench.dispatchEvent( 'change_texture_path', {texture: scope} )
@@ -320,68 +383,23 @@ class Texture {
 	reloadTexture() {
 		this.refresh(true)
 	}
-	updateMaterial() {
+	startWatcher() {
+		if (this.mode !== 'link' || !isApp || !fs.existsSync(this.path)) {
+			return;
+		}
 		var scope = this;
-		var img = new Image()
-		try {
-			img.src = scope.source
-		} catch(err) {
-		}
-		img.onload = function() {
-			Canvas.materials[scope.uuid].map.dispose()
-			var tex = new THREE.Texture(img)
-			img.tex = tex;
-			img.tex.magFilter = THREE.NearestFilter
-			img.tex.minFilter = THREE.NearestFilter
-			this.tex.needsUpdate = true;
-			Canvas.materials[scope.uuid].map = tex
-		}
-		return this;
-	}
-	enableParticle() {
-		textures.forEach(function(s) {
-			s.particle = false;
-		})
-		if (!Blockbench.entity_mode) {
-			this.particle = true
-		}
-		return this;
-	}
-	fillParticle() {
-		var particle_tex = false
-		textures.forEach(function(t) {
-			if (t.particle) {
-				particle_tex = t
+
+		fs.watchFile(scope.path, {interval: 50}, function(curr, prev) {
+			if (curr.mtime !== prev.mtime) {
+				scope.reloadTexture()
 			}
 		})
-		if (!particle_tex) {
-			this.enableParticle()
-		}
-		return this;
 	}
-	javaTextureLink(backup) {
-		if (backup) {
-			return this.source;
+	stopWatcher() {
+		if (this.mode !== 'link' || !isApp || !fs.existsSync(this.path)) {
+			return;
 		}
-		
-		var link = this.name.replace(/\.png$/, '')
-
-		if (this.folder) {
-			link = this.folder + '/' + link
-		}
-		if (this.namespace && this.namespace !== 'minecraft') {
-			link = this.namespace + ':' + link
-		}
-		return link;
-	}
-	select() {
-		textures.forEach(function(s) {
-			s.selected = false;
-		})
-		Prop.active_panel = 'textures'
-		this.selected = true
-		textures.selected = this
-		return this;
+		fs.unwatchFile(this.path)
 	}
 	generateFolder(path) {
 		var scope = this
@@ -411,6 +429,16 @@ class Texture {
 				})
 			}
 		}
+		return this;
+	}
+	//Management
+	select() {
+		textures.forEach(function(s) {
+			s.selected = false;
+		})
+		Prop.active_panel = 'textures'
+		this.selected = true
+		textures.selected = this
 		return this;
 	}
 	add(undo) {
@@ -446,11 +474,34 @@ class Texture {
 		}
 		return this;
 	}
-	extend(properties) {
-		for (var key in properties) {
-			if (properties.hasOwnProperty(key)) {
-				this[key] = properties[key]
+	remove() {
+		this.stopWatcher()
+		textures.splice(textures.indexOf(this), 1)
+		Canvas.updateAllFaces()
+		$('#uv_frame').css('background', 'transparent')
+		TextureAnimator.updateButton()
+		hideDialog()
+		BARS.updateConditions()
+	}
+	//Use
+	enableParticle() {
+		textures.forEach(function(s) {
+			s.particle = false;
+		})
+		if (!Blockbench.entity_mode) {
+			this.particle = true
+		}
+		return this;
+	}
+	fillParticle() {
+		var particle_tex = false
+		textures.forEach(function(t) {
+			if (t.particle) {
+				particle_tex = t
 			}
+		})
+		if (!particle_tex) {
+			this.enableParticle()
 		}
 		return this;
 	}
@@ -473,6 +524,7 @@ class Texture {
 		Undo.finishEdit('applied_texture')
 		return this;
 	}
+	//Interface
 	openFolder() {
 		if (!isApp || !this.path) return;
 		shell.showItemInFolder(this.path)
@@ -498,14 +550,6 @@ class Texture {
 			}
 		}
 		return this;
-	}
-	remove() {
-		textures.splice(textures.indexOf(this), 1)
-		Canvas.updateAllFaces()
-		$('#uv_frame').css('background', 'transparent')
-		TextureAnimator.updateButton()
-		hideDialog()
-		BARS.updateConditions()
 	}
 	showContextMenu(event) {
 		var scope = this;
@@ -540,6 +584,22 @@ class Texture {
 			$('#texture_edit .tool.link_only').hide()
 			$('#texture_edit .tool.bitmap_only').show()
 		}
+	}
+	//Export
+	javaTextureLink(backup) {
+		if (backup) {
+			return this.source;
+		}
+		
+		var link = this.name.replace(/\.png$/, '')
+
+		if (this.folder) {
+			link = this.folder + '/' + link
+		}
+		if (this.namespace && this.namespace !== 'minecraft') {
+			link = this.namespace + ':' + link
+		}
+		return link;
 	}
 	save(as) {
 		var scope = this;
@@ -620,7 +680,6 @@ class Texture {
 	}
 }
 	Texture.prototype.menu = new Menu([
-
 			{
 				icon: 'crop_original',
 				name: 'menu.texture.face', 
@@ -843,7 +902,7 @@ function changeTexturesFolder() {
 }
 function getTextureById(id) {
 	if (id === undefined) return;
-	if (id == '$transparent') {
+	if (id == null) {
 		return {material: transparentMaterial};
 	}
 	id = id.replace('#', '');

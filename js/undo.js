@@ -70,7 +70,6 @@ var Undo = {
 	},
 	save: function(aspects) {
 		var scope = this;
-		var full = aspects.complete
 		this.aspects = aspects
 
 		if (aspects.selection) {
@@ -83,7 +82,7 @@ var Undo = {
 			}
 		}
 
-		if ( aspects.cubes) {
+		if (aspects.cubes) {
 			this.cubes = {}
 			aspects.cubes.forEach(function(obj) {
 				if (aspects.uv_only) {
@@ -100,16 +99,16 @@ var Undo = {
 			})
 		}
 
-		if (full || aspects.outliner) {
+		if (aspects.outliner) {
 			this.outliner = compileGroups(true)
 		}
 
-		if (full || aspects.group) {
+		if (aspects.group) {
 			this.group = aspects.group.getChildlessCopy()
 			this.group.uuid = aspects.group.uuid
 		}
 
-		if (full || aspects.textures) {
+		if (aspects.textures) {
 			this.textures = {}
 			aspects.textures.forEach(function(t) {
 				var tex = t.getUndoCopy(aspects.bitmap)
@@ -121,11 +120,24 @@ var Undo = {
 			this.settings = aspects.settings
 		}
 
-		if (full || aspects.resolution) {
+		if (aspects.resolution) {
 			this.resolution = {
 				width:  Project.texture_width,
 				height: Project.texture_height
 			}
+		}
+
+		if (aspects.animation) {
+			this.animation = aspects.animation ? aspects.animation.undoCopy() : null; 
+		}
+		if (aspects.keyframes && Animator.selected && Animator.selected.getBoneAnimator()) {
+			this.keyframes = {
+				animation: Animator.selected.uuid,
+				bone: Animator.selected.getBoneAnimator().uuid
+			}
+			aspects.keyframes.forEach(kf => {
+				scope.keyframes[kf.uuid] = kf.undoCopy()
+			})
 		}
 	},
 	loadSave: function(save, reference) {
@@ -229,6 +241,84 @@ var Undo = {
 		if (save.resolution) {
 			Project.texture_width = save.resolution.width
 			Project.texture_height = save.resolution.height
+		}
+
+		if (save.animation) {
+
+			var animation = Animator.animations.findInArray('uuid', save.animation)
+			if (!animation) {
+				//new
+				animation = new Animation()
+			}
+			//populate
+			Animation.extend(save.animation)
+
+		} else if (reference.animation) {
+			//remove
+			var animation = Animator.animations.findInArray('uuid', reference.animation.uuid)
+			if (animation.remove) {
+				animation.remove()
+			}
+		}
+
+		if (save.keyframes && Animator.selected) {
+			var animation = false;
+			if (Animator.selected.uuid !== save.keyframes.animation) {
+				animation = Animator.animations.findInArray('uuid', save.keyframes.animation)
+			} else {
+				animation = Animator.selected
+			}
+
+			if (animation.select && animation !== Animator.selected) {
+				animation.select()
+			}
+			var bone = false;
+			if (Animator.selected.uuid !== save.keyframes.animation) {
+				animation = Animator.animations.findInArray('uuid', save.keyframes.animation)
+			} else {
+				animation = Animator.selected
+			}
+
+			if (animation.select && animation !== Animator.selected) {
+				animation.select()
+			}
+
+
+			function getKeyframe(uuid) {
+				var i = 0;
+				while (i < Timeline.keyframes.length) {
+					if (Timeline.keyframes[i].uuid === uuid) {
+						return Timeline.keyframes[i];
+					}
+					i++;
+				}
+			}
+			var added = 0;
+			for (var uuid in save.keyframes) {
+				if (uuid.length === 36 && save.keyframes.hasOwnProperty(uuid)) {
+					var data = save.keyframes[uuid]
+					var kf = getKeyframe(uuid)
+					if (kf) {
+						kf.extend(data)
+					} else {
+						kf = new Keyframe(data)
+						Timeline.keyframes.push(kf)
+						added++;
+					}
+				}
+			}
+			for (var uuid in reference.keyframes) {
+				if (uuid.length === 36 && reference.keyframes.hasOwnProperty(uuid) && !save.keyframes.hasOwnProperty(uuid)) {
+					var kf = getKeyframe(uuid)
+					if (kf) {
+						kf.remove()
+					}
+				}
+			}
+			if (added) {
+				Vue.nextTick(Timeline.update)
+			}
+			updateKeyframeSelection()
 		}
 		updateSelection()
 	}

@@ -22,8 +22,34 @@ class Animation {
 		Merge.number(this, data, 'length')
 		return this;
 	}
+	undoCopy() {
+		var scope = this;
+		var copy = {
+			uuid: this.uuid,
+			name: this.name,
+			loop: this.loop,
+			override: this.override,
+			anim_time_update: this.anim_time_update,
+			length: this.length,
+			selected: this.selected,
+		}
+		if (this.bones.length) {
+			copy.bones = {}
+			for (var uuid in this.bones) {
+				var kfs = this.bones[uuid].keyframes
+				if (kfs && kfs.length) {
+					var kfs_copy = copy.bones[uuid] = []
+					kfs.forEach(kf => {
+						kfs_copy.push(kf.undoCopy())
+					})
+				}
+			}
+		}
+		return copy;
+	}
 	select() {
 		var scope = this;
+		var selected_bone = selected_group
 		Animator.animations.forEach(function(a) {
 			a.selected = false;
 		})
@@ -44,6 +70,10 @@ class Animation {
 			})
 		}
 		iterate(TreeElements)
+
+		if (selected_bone) {
+			selected_bone.select()
+		}
 		Animator.preview()
 		return this;
 	}
@@ -212,7 +242,7 @@ class BoneAnimator {
 
 		if (!arr) {
 		} else if (arr.length === 4) {
-			var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr))
+			var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
 			bone.rotation.x -= added_rotation.x
 			bone.rotation.y -= added_rotation.y
 			bone.rotation.z += added_rotation.z
@@ -441,6 +471,47 @@ class Keyframe {
 		Animator.preview()
 		return this;
 	}
+	findNearest(distance, channel, direction) {
+		if (!this.parent) return [];
+		//channel: all, others, this, 0, 1, 2
+		//direction: true>, false<, undefined<>
+		var scope = this
+		function getDelta(kf, abs) {
+			if (abs) {
+				return Math.abs(kf.time - scope.time)
+			} else {
+				return kf.time - scope.time
+			}
+		}
+		var matches = []
+		var i = 0;
+		while (i < scope.parent.keyframes.length) {
+			var kf = scope.parent.keyframes[i]
+			let delta = getDelta(kf)
+
+			let delta_match = Math.abs(delta) <= distance &&
+				(delta>0 == direction || direction === undefined)
+
+			let channel_match = (
+				(channel === 'all') ||
+				(channel === 'others' && kf.channel !== scope.channel) ||
+				(channel === 'this' && kf.channel === scope.channel) ||
+				(channel === kf.channel_index) ||
+				(channel === kf.channel)
+			)
+
+			if (channel_match && delta_match) {
+				matches.push(kf)
+			}
+			i++;
+		}
+
+		matches.sort((a, b) => {
+			return getDelta(a, true) - getDelta(b, true)
+		})
+
+		return matches
+	}
 	showContextMenu(event) {
 		if (!this.selected) {
 			this.select();
@@ -448,7 +519,7 @@ class Keyframe {
 		this.menu.open(event, this);
 		return this;
 	}
-	remove(selected) {
+	remove() {
 		if (this.parent) {
 			this.parent.keyframes.remove(this)
 		}
@@ -467,6 +538,22 @@ class Keyframe {
 
 		this.channel_index = this.channel === 'rotation' ? 0 : (this.channel === 'position' ? 1 : 2)
 		return this;
+	}
+	undoCopy() {
+		var copy = {
+			channel: this.channel_index,
+			time: this.time,
+			x: this.x,
+			//uuid: this.uuid
+		}
+		if (this.channel_index !== 2) {//Not Scale
+			copy.y = this.y
+			copy.z = this.z
+		}
+		if (this.channel_index === 0 && this.isQuaternion) {
+			copy.w = this.w
+		}
+		return copy;
 	}
 }
 	Keyframe.prototype.menu = new Menu([
@@ -549,6 +636,7 @@ function selectAllKeyframes() {
 	updateKeyframeSelection()
 }
 function removeSelectedKeyframes() {
+	Undo.initEdit({keyframes: Timeline.selected})
 	var i = Timeline.keyframes.length;
 	while (i > 0) {
 		i--;
@@ -557,6 +645,7 @@ function removeSelectedKeyframes() {
 			kf.remove()
 		}
 	}
+	Undo.finishEdit('remove keyframes')
 }
 
 
@@ -567,7 +656,6 @@ const Animator = {
 	animations: [],
 	frame: 0,
 	interval: false,
-	playing: false,
 	join: function() {
 
 		Animator.open = true;
@@ -715,8 +803,10 @@ const Animator = {
 
 }
 const Timeline = {
+	keyframes: [],//frames
 	selected: [],//frames
 	second: 0,
+	playing: false,
 	setTime: function(seconds) {
 		seconds = limitNumber(seconds, 0, 1000)
 		Timeline.vue._data.marker = seconds
@@ -753,22 +843,32 @@ const Timeline = {
 				Timeline.setTime(Timeline.second)
 			}
 		})*/
-		$('#timeline_inner #timeline_time').mousedown((e) => {
+		$('#timeline_inner #timeline_time').mousedown(e => {
 			Timeline.dragging_marker = true;
+			let time = e.offsetX / Timeline.vue._data.size
+			Timeline.setTime(time)
+			if (Animator.selected) {
+				Animator.preview()
+			}
 		})
-		.mousemove((e) => {
+		.mousemove(e => {
 			if (Timeline.dragging_marker) {
-				let time = (e.offsetX-8) / Timeline.vue._data.size
+				let time = e.offsetX / Timeline.vue._data.size
 				Timeline.setTime(time)
 				if (Animator.selected) {
 					Animator.preview()
 				}
 			}
 		})
-		$(document).mouseup((e) => {
+		$(document).mouseup(e => {
 			if (Timeline.dragging_marker) {
 				delete Timeline.dragging_marker
 			}
+		})
+		$('.keyframe_input').click(e => {
+			Undo.initEdit({keyframes: Timeline.selected})
+		}).focusout(e => {
+			Undo.finishEdit('edit keyframe')
 		})
 		Timeline.is_setup = true
 	},
@@ -778,6 +878,7 @@ const Timeline = {
 			axis: 'x',
 			distance: 10,
 			start: function(event, ui) {
+				Undo.initEdit({keyframes: Timeline.keyframes})
 				var id = $(ui.helper).attr('id')
 				var i = 0;
 				while (i < Timeline.vue._data.keyframes.length) {
@@ -791,12 +892,32 @@ const Timeline = {
 			drag: function(event, ui) {
 				var difference = (ui.position.left - ui.originalPosition.left - 8) / Timeline.vue._data.size;
 				var id = $(ui.helper).attr('id')
+				var snap_value = false
+				var nearest
+				var i = 0;
+				while (i < Timeline.vue._data.keyframes.length) {
+					var kf = Timeline.vue._data.keyframes[i]
+					if (kf.uuid === id) {
+						i = Infinity
+						kf.time = limitNumber(kf.time_before + difference, 0, 256)
+						nearest = kf.findNearest(8 / Timeline.vue._data.size, 'others')
+					}
+					i++;
+				}
+				if (nearest && nearest.length) {
+					snap_value = nearest[0].time
+					difference = snap_value - kf.time_before;
+				}
+
 				var i = 0;
 				while (i < Timeline.vue._data.keyframes.length) {
 					var kf = Timeline.vue._data.keyframes[i]
 					if (kf.uuid === id || kf.selected) {
-						kf.time = limitNumber(kf.time_before + difference, 0, 256)
-						//i = Infinity
+						var t = limitNumber(kf.time_before + difference, 0, 256)
+						if (kf.uuid === id) {
+							ui.position.left = t * Timeline.vue._data.size + 8
+						}
+						kf.time = t
 					}
 					i++;
 				}
@@ -813,6 +934,7 @@ const Timeline = {
 					}
 					i++;
 				}
+				Undo.finishEdit('drag keyframes')
 			}
 		})
 	},
@@ -860,7 +982,7 @@ const Timeline = {
 		if (!Animator.selected) return;
 		Animator.selected.getMaxLength()
 		Timeline.pause()
-		Animator.playing = true
+		Timeline.playing = true
 		BarItems.play_animation.setIcon('pause')
 		Timeline.loop()
 	},
@@ -881,7 +1003,7 @@ const Timeline = {
 		}
 	},
 	pause: function() {
-		Animator.playing = false;
+		Timeline.playing = false;
 		BarItems.play_animation.setIcon('play_arrow')
 		if (Animator.interval) {
 			clearInterval(Animator.interval)
@@ -898,8 +1020,10 @@ const Timeline = {
 			Blockbench.showQuickMessage('message.no_bone_selected')
 			return
 		}
+		Undo.initEdit({keyframes: bone.keyframes})
 		var kf = bone.addKeyframe(false, Timeline.second, channel?channel:'rotation')
 		kf.select()
+		Undo.finishEdit('add_keyframe')
 		Vue.nextTick(Timeline.update)
 	},
 	showMenu: function(event) {
@@ -917,9 +1041,11 @@ const Timeline = {
 			}
 			var bone = Animator.selected.getBoneAnimator()
 			if (bone) {
+				Undo.initEdit({keyframes: bone.keyframes})
 				var kf = bone.addKeyframe(false, Math.round(time*30)/30, row === 2 ? 'scale' : (row === 1 ? 'position' : 'rotation'))
 				kf.select().callMarker()
 				Vue.nextTick(Timeline.update)
+				Undo.finishEdit('add_keyframe')
 			} else {
 				Blockbench.showQuickMessage('message.no_bone_selected')
 			}
@@ -996,7 +1122,7 @@ BARS.defineActions(function() {
 		condition: () => Animator.open,
 		click: function () {
 			
-			if (Animator.playing) {
+			if (Timeline.playing) {
 				Timeline.pause()
 			} else {
 				Timeline.start()
@@ -1032,6 +1158,12 @@ BARS.defineActions(function() {
 				kf.time = limitNumber(value, 0, 1e4)
 			})
 			Animator.preview()
+		},
+		onBefore: function() {
+			Undo.initEdit({keyframes: Timeline.selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('edit keyframe')
 		}
 	})
 	new Action({

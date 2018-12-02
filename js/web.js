@@ -55,15 +55,18 @@ function writeFileEntity() {
 	Blockbench.showQuickMessage('Saved as bedrock entity model')
 }
 function writeFileObj() {
+	var delay = 40
 	var content = buildOBJModel('model')
 	//OBJECT
 	var blob_obj = new Blob([content.obj], {type: "text/plain;charset=utf-8"});
 	var obj_saver = saveAs(blob_obj, 'model.obj', {autoBOM: true})
 
-	obj_saver.onwriteend = function() {
+	setTimeout(function() {
 		//MATERIAL
 		var blob_mtl = new Blob([content.mtl], {type: "text/plain;charset=utf-8"});
-		saveAs(blob_mtl, 'model.mtl', {autoBOM: true}).onwriteend = function() {
+		saveAs(blob_mtl, 'model.mtl', {autoBOM: true})
+
+		setTimeout(function() {
 			if (settings.obj_textures.value === true) {
 				var tex_i = 0
 				function saveTex() {
@@ -76,10 +79,10 @@ function writeFileObj() {
 						}
 						var blob = new Blob([arraybuffer], {type: 'application/octet-stream'})
 						var img_saver = saveAs(blob, textures[tex_i].name)
-						img_saver.onwriteend = function() {
+						setTimeout(function() {
 							tex_i++
 							saveTex()
-						}
+						}, delay)
 					} else if (textures[tex_i]) {
 						tex_i++
 						saveTex()
@@ -91,8 +94,8 @@ function writeFileObj() {
 			} else {
 				Blockbench.showQuickMessage(tl('message.save_obj'))
 			}
-		}
-	}
+		}, delay)
+	}, delay)
 }
 
 function saveFile() {

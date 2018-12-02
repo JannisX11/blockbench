@@ -9,7 +9,7 @@ function newProject(entity_mode) {
 		textures.length = 0;
 		selected.length = 0;
 		selected_group = undefined;
-		display = {};
+		Blockbench.display_settings = display = {};
 		Project.name = Project.parent = Project.description	 = '';
 		Project.texture_width = Project.texture_height = 16;
 		Project.ambientocclusion = true;
@@ -74,7 +74,7 @@ function setupDragHandlers() {
 				}
 			} else {
 				files.forEach(function(f) {
-					new Texture().fromFile(files[0]).add().fillParticle()
+					new Texture().fromFile(f).add().fillParticle()
 				})
 			}
 		}
@@ -146,7 +146,7 @@ function loadBlockModel(model, filepath, add) {
 			var uv_stated = false;
 			for (var face in base_cube.faces) {
 				if (obj.faces[face] === undefined) {
-					base_cube.faces[face].texture = '$transparent'
+					base_cube.faces[face].texture = null
 					base_cube.faces[face].uv = [0,0,0,0]
 				} else  if (typeof obj.faces[face].uv === 'object') {
 					uv_stated = true
@@ -192,10 +192,10 @@ function loadBlockModel(model, filepath, add) {
 			faces: {
 				north: {uv: [16,0,0,16], texture: 'layer0'},
 				south: {uv: [16,0,16,0], texture: 'layer0'},
-				east:  {uv: [0,0,0,0], texture: '$transparent'},
-				west:  {uv: [0,0,0,0], texture: '$transparent'},
-				up:	{uv: [0,0,0,0], texture: '$transparent'},
-				down:  {uv: [0,0,0,0], texture: '$transparent'},
+				east:  {uv: [0,0,0,0], texture: null},
+				west:  {uv: [0,0,0,0], texture: null},
+				up:	{uv: [0,0,0,0], texture: null},
+				down:  {uv: [0,0,0,0], texture: null},
 			},
 			autouv: 0,
 			export: false
@@ -321,7 +321,7 @@ function loadJEMModel(model) {
 			//Bone
 			var group = new Group({
 				name: b.part,
-				origin: b.origin,
+				origin: b.translate,
 				rotation: b.rotate,
 				shade: !(b.mirrorTexture && b.mirrorTexture.includes('u'))
 			})
@@ -694,9 +694,6 @@ var Extruder = {
 
 		var jimage = Jimp.read(Extruder.ext_img.src).then(function(image) {	
 			var pixel_opacity_tolerance = $('#scan_tolerance').val()
-			function isOpaquePixel(px_x, px_y) {
-				return parseInt(image.getPixelColor(px_x, px_y).toString(16).substr(6,2), 16) >= pixel_opacity_tolerance;
-			}
 
 			//var ext_x, ext_y;
 			var finished_pixels = {}
@@ -709,6 +706,12 @@ var Extruder = {
 				Extruder.width = Extruder.height;
 			}
 			scale_i = 16 / Extruder.width;
+
+			function isOpaquePixel(px_x, px_y) {
+				return Math.isBetween(px_x, 0, Extruder.width-1)
+					&& Math.isBetween(px_y, 0, Extruder.height-1)
+					&& parseInt(image.getPixelColor(px_x, px_y).toString(16).substr(6,2), 16) >= pixel_opacity_tolerance;
+			}
 			function finishPixel(x, y) {
 				if (finished_pixels[x] === undefined) {
 					finished_pixels[x] = {}
@@ -721,131 +724,112 @@ var Extruder = {
 
 			//Scanning
 			let ext_y = 0;
-			asyncLoop({
-				length : Extruder.height,
-				functionToLoop : function(async_loop, i){
-					setTimeout(function(){
+			while (ext_y < Extruder.height) {
 
-						let ext_x = 0;
-						while (ext_x < Extruder.width) {
-							if (isPixelFinished(ext_x, ext_y) === false && isOpaquePixel(ext_x, ext_y) === true) {
+				let ext_x = 0;
+				while (ext_x < Extruder.width) {
+					if (isPixelFinished(ext_x, ext_y) === false && isOpaquePixel(ext_x, ext_y) === true) {
 
-								//Search From New Pixel
-								var loop = true;
-								var rect = {x: ext_x, y: ext_y, x2: ext_x, y2: ext_y}
-								var safety_limit = 5000
+						//Search From New Pixel
+						var loop = true;
+						var rect = {x: ext_x, y: ext_y, x2: ext_x, y2: ext_y}
+						var safety_limit = 5000
 
-								//Expanding Loop
-								while (loop === true && safety_limit) {
-									var y_check, x_check, canExpandX, canExpandY;
-									//Expand X
-									if (scan_mode === 'areas' || scan_mode === 'lines') {
-										y_check = rect.y
-										x_check = rect.x2 + scale_i
-										canExpandX = true
-										while (y_check <= rect.y2) {
-											//Check If Row is Free
-											if (isOpaquePixel(x_check, y_check) === false || isPixelFinished(x_check, y_check) === true) {
-												canExpandX = false;
-											}
-											y_check += scale_i
-										}
-										if (canExpandX === true) {
-											rect.x2 += scale_i
-										}
-									} else {
+						//Expanding Loop
+						while (loop === true && safety_limit) {
+							var y_check, x_check, canExpandX, canExpandY;
+							//Expand X
+							if (scan_mode === 'areas' || scan_mode === 'lines') {
+								y_check = rect.y
+								x_check = rect.x2 + 1
+								canExpandX = true
+								while (y_check <= rect.y2) {
+									//Check If Row is Free
+									if (isOpaquePixel(x_check, y_check) === false || isPixelFinished(x_check, y_check) === true) {
 										canExpandX = false;
 									}
-									//Expand Y
-									if (scan_mode === 'areas' || scan_mode === 'columns') {
-										x_check = rect.x
-										y_check = rect.y2 + scale_i
-										canExpandY = true
-										while (x_check <= rect.x2) {
-											//Check If Row is Free
-											if (isOpaquePixel(x_check, y_check) === false || isPixelFinished(x_check, y_check) === true) {
-												canExpandY = false
-											}
-											x_check += scale_i
-										}
-										if (canExpandY === true) {
-											rect.y2 += scale_i
-										}
-									} else {
-										canExpandY = false;
-									}
-									//Conclusion
-									if (canExpandX === false && canExpandY === false) {
-										loop = false;
-									}
-									safety_limit--;
+									y_check += 1
 								}
-								if (scan_mode === 'areas' || scan_mode === 'columns') {
-									rect.x2 += scale_i-1;
+								if (canExpandX === true) {
+									rect.x2 += 1
 								}
-								if (scan_mode === 'areas' || scan_mode === 'columns') {
-									rect.y2 += scale_i-1;
-								}
-
-
-
-								//Draw Rectangle
-								var draw_x = rect.x
-								var draw_y = rect.y
-								while (draw_y <= rect.y2) {
-									draw_x = rect.x
-									while (draw_x <= rect.x2) {
-										finishPixel(draw_x, draw_y)
-										draw_x++;
-									}
-									draw_y++;
-								}
-								var current_cube = new Cube({name: cube_name+'_'+cube_nr, autouv: 0})
-								
-								current_cube.from = [rect.x*scale_i, 0, rect.y*scale_i]
-								current_cube.to = [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i]
-
-								//Sides
-								current_cube.faces.up = {uv:[rect.x*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index}
-								current_cube.faces.down = {uv:[rect.x*scale_i, (rect.y2+1)*scale_i, (rect.x2+1)*scale_i, rect.y*scale_i], texture: texture_index}
-
-								current_cube.faces.north = {uv:[(rect.x2+1)*scale_i, rect.y*scale_i, rect.x*scale_i, (rect.y+1)*scale_i], texture: texture_index}
-								current_cube.faces.south = {uv:[rect.x*scale_i, rect.y2*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index}
-
-								current_cube.faces.east = {uv:[rect.x2*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index, rotation: 90}
-								current_cube.faces.west = {uv:[rect.x*scale_i, rect.y*scale_i, (rect.x+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index, rotation: 270}
-
-								elements.push(current_cube)
-								selected.push(elements[elements.length-1])
-								cube_nr++;
+							} else {
+								canExpandX = false;
 							}
-
-
-							ext_x++;
+							//Expand Y
+							if (scan_mode === 'areas' || scan_mode === 'columns') {
+								x_check = rect.x
+								y_check = rect.y2 + 1
+								canExpandY = true
+								while (x_check <= rect.x2) {
+									//Check If Row is Free
+									if (isOpaquePixel(x_check, y_check) === false || isPixelFinished(x_check, y_check) === true) {
+										canExpandY = false
+									}
+									x_check += 1
+								}
+								if (canExpandY === true) {
+									rect.y2 += 1
+								}
+							} else {
+								canExpandY = false;
+							}
+							//Conclusion
+							if (canExpandX === false && canExpandY === false) {
+								loop = false;
+							}
+							safety_limit--;
 						}
-						setProgressBar('extrusion_bar', ext_y/Extruder.height, Extruder.width)
-						ext_y++;
-						async_loop()
 
-					},Extruder.width);
-				},
-				callback : function(){
-					setProgressBar('extrusion_bar', 1)
+						//Draw Rectangle
+						var draw_x = rect.x
+						var draw_y = rect.y
+						while (draw_y <= rect.y2) {
+							draw_x = rect.x
+							while (draw_x <= rect.x2) {
+								finishPixel(draw_x, draw_y)
+								draw_x++;
+							}
+							draw_y++;
+						}
+						var current_cube = new Cube({name: cube_name+'_'+cube_nr, autouv: 0})
+						
+						current_cube.from = [rect.x*scale_i, 0, rect.y*scale_i]
+						current_cube.to = [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i]
 
-					var group = new Group(cube_name).addTo()
-					selected.forEach(function(s) {
-						s.addTo(group, false)
-					})
-					if (Blockbench.hasFlag('new_project') || isNewProject) {
-						setProjectTitle(cube_name)
-						Prop.project_saved = false;
+						//Sides
+						current_cube.faces.up = {uv:[rect.x*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index}
+						current_cube.faces.down = {uv:[rect.x*scale_i, (rect.y2+1)*scale_i, (rect.x2+1)*scale_i, rect.y*scale_i], texture: texture_index}
+
+						current_cube.faces.north = {uv:[(rect.x2+1)*scale_i, rect.y*scale_i, rect.x*scale_i, (rect.y+1)*scale_i], texture: texture_index}
+						current_cube.faces.south = {uv:[rect.x*scale_i, rect.y2*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index}
+
+						current_cube.faces.east = {uv:[rect.x2*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index, rotation: 90}
+						current_cube.faces.west = {uv:[rect.x*scale_i, rect.y*scale_i, (rect.x+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index, rotation: 270}
+
+						elements.push(current_cube)
+						selected.push(elements[elements.length-1])
+						cube_nr++;
 					}
-					Blockbench.removeFlag('new_project')
-					loadOutlinerDraggable()
-					Canvas.updateAll()
-					hideDialog()
-				}	
-			});
+
+
+					ext_x++;
+				}
+				ext_y++;
+			}
+
+			var group = new Group(cube_name).addTo()
+			selected.forEach(function(s) {
+				s.addTo(group, false)
+			})
+			if (Blockbench.hasFlag('new_project') || isNewProject) {
+				setProjectTitle(cube_name)
+				Prop.project_saved = false;
+			}
+			Blockbench.removeFlag('new_project')
+			loadOutlinerDraggable()
+			Canvas.updateAll()
+			hideDialog()
 		})
 	}
 }
@@ -911,7 +895,7 @@ function buildBlockModel(options) {
 		var e_faces = {}
 		for (var face in s.faces) {
 			if (s.faces.hasOwnProperty(face)) {
-				if (s.faces[face].texture !== '$transparent') {
+				if (s.faces[face].texture !== null) {
 					var tag = new oneLiner()
 					if (s.faces[face].enabled !== false) {
 						tag.uv = s.faces[face].uv
@@ -1197,7 +1181,7 @@ function buildJPMModel(options) {
 		box.coordinates = [s.from[0], s.from[1], s.from[2], s.size(0), s.size(1), s.size(2)]
 		for (var face in s.faces) {
 			if (s.faces.hasOwnProperty(face)) {
-				if (s.faces[face].texture !== undefined && s.faces[face].texture !== '$transparent') {
+				if (s.faces[face].texture !== undefined && s.faces[face].texture !== null) {
 					box['uv'+capitalizeFirstLetter(face)] = [
 						s.faces[face].uv[0] / 16 * Project.texture_width,
 						s.faces[face].uv[1] / 16 * Project.texture_height,
@@ -1318,6 +1302,123 @@ function buildJEMModel(options) {
 		return autoStringify(entitymodel)
 	}
 }
+function buildClassModel(options) {
+	function F(num) {
+		var s = trimFloatNumber(num) + ''
+		if (!s.includes('.')) {
+			s += '.0'
+		}
+		return s+'F';
+	}
+
+	var bones = []
+	var bone_nr = 1
+	var model_id = Project.parent.replace('geometry.', '')
+	var all_groups = getAllOutlinerGroups()
+
+	all_groups.forEach((g) => {
+		//model += `\nthis.bone${bone_nr} = new ModelRenderer`
+		var id = g.name
+		bone_nr++;
+		if (g.export === false) return;
+
+		var bone = {
+			id: id,
+			rootBone: g.parent.type !== 'group',
+			lines: [
+				`${id} = new ModelRenderer(this);`,//Texture Offset
+				`${id}.setRotationPoint(${F(-g.origin[0])}, ${F(24-g.origin[1])}, ${F(g.origin[2])});`,
+			]
+		}
+		//Rotation
+		if (!g.rotation.allEqual(0)) {
+			bone.lines.push(
+				`setRotationAngle(${id}, ${
+					F(Math.degToRad(-g.rotation[0])) }, ${
+					F(Math.degToRad(-g.rotation[1])) }, ${
+					F(Math.degToRad(-g.rotation[2])) });`
+			)
+		}
+		//Parent
+		if (!bone.rootBone) {
+			let parent_index = all_groups.indexOf(g.parent)
+			if (parent_index >= 0) {
+				bone.lines.push(
+					`${ g.parent.name }.addChild(${id});`
+				)
+			}
+		}
+		//Boxes
+		g.children.forEach((obj) => {
+			if (obj.export === false || obj.type !== 'cube') return;
+			var values = [
+				''+id,
+				Math.floor(obj.uv_offset[0]),
+				Math.floor(obj.uv_offset[1]),
+				F(g.origin[0] - obj.to[0]),
+				F(-obj.from[1] - obj.size(1, true) + g.origin[1]),
+				F(obj.from[2] - g.origin[2]),
+				obj.size(0, true),
+				obj.size(1, true),
+				obj.size(2, true),
+				F(obj.inflate),
+				!obj.shade
+			]
+			bone.lines.push(
+				`${id}.cubeList.add(new ModelBox(${ values.join(', ') }));`
+			)
+		})
+
+		bones.push(bone)
+
+	})
+
+
+	var model = (settings.credit.value
+			? '//'+settings.credit.value+'\n'
+			: '')+
+		'//Paste this code into your mod. Don\'t forget to add your imports\n' +
+		'\nimport org.lwjgl.opengl.GL11;'+
+		'\nimport net.minecraft.client.model.ModelBase;'+
+		'\nimport net.minecraft.client.model.ModelBox;'+
+		'\nimport net.minecraft.client.model.ModelRenderer;'+
+		'\nimport net.minecraft.client.renderer.GlStateManager;'+
+		'\nimport net.minecraft.entity.Entity;\n'+
+		'\npublic class '+model_id+' extends ModelBase {'
+
+	bones.forEach((bone) => {
+		model += `\n	public ModelRenderer ${bone.id};`;
+	})
+
+	model += '\n'+
+		 '\n	public '+model_id+'() {'+
+		 '\n		textureWidth = '+	(Project.texture_width || 32)	+';'+
+		 '\n		textureHeight = '+	(Project.texture_height|| 32)	+';\n';
+
+	bones.forEach((bone) => {
+		model += `\n		${bone.lines.join('\n		')}\n`;
+	})
+
+	model +=
+		 '	}\n'+
+		 '\n	@Override'+
+		 '\n	public void render(Entity entity, float f, float f1, float f2, float f3, float f4, float f5) { '
+	
+	bones.forEach((bone) => {
+		if (bone.rootBone) {
+			model += `\n		${bone.id}.render(f5);`;
+		}
+	})
+	model +=
+		 '\n	}'+
+		 '\n	public void setRotationAngle(ModelRenderer modelRenderer, float x, float y, float z) {'+
+		 '\n		modelRenderer.rotateAngleX = x;'+
+		 '\n		modelRenderer.rotateAngleY = y;'+
+		 '\n		modelRenderer.rotateAngleZ = z;'+
+		 '\n	}'+
+		 '\n}';
+	 return model;
+}
 function buildOBJModel(name) {
 	scene.position.set(0,0,0)
 	var exporter = new THREE.OBJExporter();
@@ -1403,15 +1504,26 @@ function autoParseJSON(data, feedback) {
 			data = JSON.parse(data)
 		} catch (err) {
 			if (feedback === false) return;
+			function logErrantPart(whole, start, length) {
+				var line = whole.substr(0, start).match(/\n/gm)
+				line = line ? line.length+1 : 1
+				var result = '';
+				var lines = whole.substr(start, length).split(/\n/gm)
+				lines.forEach((s, i) => {
+					result += `#${line+i} ${s}\n`
+				})
+				console.log(result.substr(0, result.length-1) + ' <-- HERE')
+			}
 			console.error(err)
 			var length = err.toString().split('at position ')[1]
 			if (length) {
 				length = parseInt(length)
 				var start = limitNumber(length-20, 0, Infinity)
-				console.log(data.substr(start, 1+length-start) + ' <-- HERE')
-				//console.log(data.substr(0, length+1) + ' <-- HERE')
+
+				logErrantPart(data, start, 1+length-start)
 			} else if (err.toString().includes('Unexpected end of JSON input')) {
-				console.log(data.substr(data.length-10, 10) + ' <-- HERE')
+
+				logErrantPart(data, data.length-10, 10)
 			}
 			Blockbench.showMessageBox({
 				translateKey: 'invalid_file',
@@ -1437,7 +1549,10 @@ BARS.defineActions(function() {
 		icon: 'pets',
 		category: 'file',
 		keybind: new Keybind({key: 78, ctrl: true, shift: true}),
-		click: function () {newProject(true)}
+		click: function () {
+			newProject(true);
+			showDialog('project_settings');
+		}
 	})
 	new Action({
 		id: 'open_model',
@@ -1484,11 +1599,11 @@ BARS.defineActions(function() {
 			}, function(files) {
 				if (files.length) {
 					if (isApp) {
-	                	new Texture().fromPath(files[0].path).add().fillParticle()
+						new Texture().fromPath(files[0].path).add().fillParticle()
 					} else {
-	                	new Texture().fromDataURL(files[0].content).add().fillParticle()
+						new Texture().fromDataURL(files[0].content).add().fillParticle()
 					}
-	                showDialog('image_extruder')
+					showDialog('image_extruder')
 					Extruder.drawImage(isApp ? files[0].path : files[0].content)
 				}
 			})
@@ -1526,6 +1641,22 @@ BARS.defineActions(function() {
 				startpath: Prop.file_path,
 				content: content,
 				custom_writer: writeFileEntity
+			})
+		}
+	})
+	new Action({
+		id: 'export_class_entity',
+		icon: 'free_breakfast',
+		category: 'file',
+		condition: function() {return Blockbench.entity_mode},
+		click: function () {
+			var content = buildClassModel();
+			Blockbench.export({
+				type: 'Java Class',
+				extensions: ['java'],
+				name: Project.name,
+				startpath: Prop.file_path,
+				content: content
 			})
 		}
 	})

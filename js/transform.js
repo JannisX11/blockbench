@@ -460,6 +460,9 @@ BARS.defineActions(function() {
 			obj.mapAutoUV()
 		})
 		Canvas.updatePositions()
+		if (Blockbench.entity_mode) {
+			Canvas.updateUVs()
+		}
 	}
 	new NumSlider({
 		id: 'slider_size_x',
@@ -750,8 +753,8 @@ BARS.defineActions(function() {
 		icon: 'settings_overscan',
 		category: 'transform',
 		click: function () {
-			$('#model_scale_range').val(1)
-			$('#model_scale_label').val(1)
+			$('#model_scale_range, #model_scale_label').val(1)
+			$('#scaling_clipping_warning').text('')
 
 			Undo.initEdit({cubes: selected})
 

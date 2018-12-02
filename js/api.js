@@ -85,19 +85,6 @@ class API {
 		setTimeout(function() {
 			Blockbench.setStatusBarText()
 		}, time ? time : 600)
-		/*
-		var status_message = $('#status_message')
-		var status_name	= $('#status_name')
-
-		status_message.text(tl(message))
-
-		status_name.hide(100)
-		status_message.show(100)
-
-		setTimeout(function() {
-			status_message.hide(100)
-			status_name.show(100)
-		}, time ? time : 600)*/
 	}
 	setStatusBarText(text) {
 		if (text) {
@@ -153,7 +140,7 @@ class API {
 		}
 		buttons[options.confirm].addClass('confirm_btn')
 		buttons[options.cancel].addClass('cancel_btn')
-		jq_dialog.append($('<div class="dialog_bar"></div>').append(buttons))
+		jq_dialog.append($('<div class="dialog_bar button_bar"></div>').append(buttons))
 
 
 		jq_dialog.addClass('draggable')
@@ -432,17 +419,13 @@ class API {
 	}
 	//Flags
 	addFlag(flag) {
-		if (!this.hasFlag(flag)) {
-			this.flags.push(flag)
-		}
+		this.flags[flag] = true
 	}
 	removeFlag(flag) {
-
-		this.flags.remove(flag)
+		delete this.flags[flag]
 	}
 	hasFlag(flag) {
-
-		return this.flags.includes(flag)
+		return this.flags[flag]
 	}
 	//Events
 	dispatchEvent(event_name, event) {

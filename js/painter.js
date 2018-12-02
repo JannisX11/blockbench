@@ -18,18 +18,9 @@ class BBPainter {
 			texture === Painter.current.texture &&
 			typeof Painter.current.image === 'object'
 		) {
-			cb(Painter.current.image)
+			Painter.current.image = cb(Painter.current.image) || Painter.current.image
 			Painter.current.image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
-				texture.source = dataUrl
-				texture.updateMaterial()
-				main_uv.loadData()
-				if (open_dialog === 'uv_dialog') {
-					for (var editor in uv_dialog.editors) {
-						if (uv_dialog.editors.hasOwnProperty(editor)) {
-							uv_dialog.editors[editor].loadData()
-						}
-					}
-				}
+				texture.updateSource(dataUrl)
 				if (!options.noUndo) {
 					Undo.finishEdit('edit_texture')
 				}
@@ -37,12 +28,10 @@ class BBPainter {
 		} else {
 			Painter.current.texture = texture
 			Jimp.read(Buffer.from(texture.source.replace('data:image/png;base64,', ''), 'base64')).then(function(image) {
-				cb(image)
+				image = cb(image) || image
 				Painter.current.image = image
 				image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
-					texture.source = dataUrl
-					texture.updateMaterial()
-					main_uv.loadData()
+					texture.updateSource(dataUrl)
 					if (!options.noUndo) {
 						Undo.finishEdit('edit_texture')
 					}
@@ -264,6 +253,7 @@ class BBPainter {
 		r = Math.round(r)
 
 		image.scan(x-r-1, y-r-1, 2*r+3, 2*r+3, function (px, py, idx) {
+
 			if (px >= this.bitmap.width ||
 				px < 0 ||
 				py >= this.bitmap.height ||
@@ -276,10 +266,10 @@ class BBPainter {
 				Painter.editing_area && 
 				typeof Painter.editing_area === 'object' &&
 				(
-					px+0.2 < Painter.editing_area[0] ||
-					py+0.2 < Painter.editing_area[1] ||
-					px+0.2 >= Painter.editing_area[2] ||
-					py+0.2 >= Painter.editing_area[3] 
+					px+0.02 < Math.floor(Painter.editing_area[0]) ||
+					py+0.02 < Math.floor(Painter.editing_area[1]) ||
+					px+0.02 >= Painter.editing_area[2] ||
+					py+0.02 >= Painter.editing_area[3] 
 				)
 			) {
 				return;
@@ -388,7 +378,7 @@ class BBPainter {
 		var color = Painter.background_color.get()
 
 		Painter.addBitmap({
-			res: limitNumber(parseInt($('.dialog#add_bitmap input#bitmap_resolution').val()), 1, 2048),
+			res: limitNumber(parseInt($('.dialog#add_bitmap input#bitmap_resolution').val()), 16, 2048),
 			color: color,
 			name: $('.dialog#add_bitmap input#bitmap_name').val(),
 			folder: $('.dialog#add_bitmap input#bitmap_folder').val(),
@@ -443,9 +433,10 @@ class BBPainter {
 	}
 	generateTemplate(res, background_color, cb) {
 		function cubeTempl(obj) {
-			this.x = obj.size(0, true)
-			this.y = obj.size(1, true)
-			this.z = obj.size(2, true)
+			var min = Blockbench.entity_mode ? 0 : 1
+			this.x = obj.size(0, true) || min
+			this.y = obj.size(1, true) || min
+			this.z = obj.size(2, true) || min
 			this.obj = obj
 
 			this.height = this.z + this.y
@@ -453,7 +444,7 @@ class BBPainter {
 			return this;
 		}
 
-		var res_multiple = (res ? res : 16) / 16
+		var res_multiple = res / 16
 		var bone_temps = []
 		var max_x_pos = 0
 		var line_y_pos = 0;
@@ -636,6 +627,35 @@ class BBPainter {
 var Painter = new BBPainter()
 
 BARS.defineActions(function() {
+
+	new Tool({
+		id: 'brush_tool',
+		icon: 'fa-paint-brush',
+		category: 'tools',
+		toolbar: 'brush',
+		selectFace: true,
+		transformerMode: 'hidden',
+		paintTool: true,
+		allowWireframe: false,
+		keybind: new Keybind({key: 66}),
+		onCanvasClick: function(data) {
+			Painter.startBrushCanvas(data, data.event)
+		},
+		onSelect: function() {
+			BarItems.slider_brush_size.update()
+			BarItems.slider_brush_softness.update()
+			BarItems.slider_brush_opacity.update()
+			$('.UVEditor').find('#uv_size').hide()
+		},
+		onUnselect: function() {
+			$('.UVEditor').find('#uv_size').show()
+		}
+	})
+	//Noise ?		grain
+	//Color Picker 	colorize
+	//Eraser		fa-eraser
+	//Fill			format_color_fill
+
 	new BarSelect({
 		id: 'vertex_snap_mode',
 		options: {

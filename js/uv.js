@@ -9,11 +9,11 @@ function showUVShiftDialog() {
 				tl('dialog.shift_uv.message')+
 			'</div>',
 			'<div class="dialog_bar">'+
-				'<label class="inline_label" style="width: 120px;">'+tl('.dialog.shift_uv.horizontal')+': </label>'+
+				'<label class="inline_label" style="width: 120px;">'+tl('dialog.shift_uv.horizontal')+': </label>'+
 				'<input type="text" class="dark_bordered" id="shift_uv_horizontal">'+
 			'</div>',
 			'<div class="dialog_bar">'+
-				'<label class="inline_label" style="width: 120px;">'+tl('.dialog.shift_uv.vertical')+': </label>'+
+				'<label class="inline_label" style="width: 120px;">'+tl('dialog.shift_uv.vertical')+': </label>'+
 				'<input type="text" class="dark_bordered" id="shift_uv_vertical">'+
 			'</div>'
 		],
@@ -82,7 +82,7 @@ class UVEditor {
 	buildDom(toolbar) {
 		var scope = this
 		if (this.jquery.main) {
-			this.jquery.main.remove()
+			this.jquery.main.detach()
 		}
 		this.jquery.main = $('<div class="UVEditor" id="UVEditor_'+scope.id+'"></div>')
 		if (this.headline) {
@@ -398,8 +398,14 @@ class UVEditor {
 	getPixelSize() {
 		if (Blockbench.entity_mode) {
 			this.grid = Project.texture_width
+			return this.size/this.grid
+		} else {
+			return this.size/ (
+				(typeof this.texture === 'object' && this.texture.res)
+					? this.texture.res
+					: this.grid
+			)
 		}
-		return this.size/this.grid
 	}
 	getFaces(event) {
 		if (event && event.shiftKey) {
@@ -602,7 +608,7 @@ class UVEditor {
 		Undo.finishEdit('apply_texture')
 	}
 	displayTexture(id) {
-		if (!id || id === '$transparent') {
+		if (!id || id === null) {
 			this.displayEmptyTexture()
 		} else {
 			var tex = getTextureById(id+'')
@@ -980,9 +986,9 @@ class UVEditor {
 		this.forCubes(function(obj, i) {
 			scope.getFaces(event).forEach(function(side) {
 				obj.faces[side].uv = [0, 0, 0, 0]
-				obj.faces[side].texture = '$transparent';
+				obj.faces[side].texture = null;
 			})
-			Canvas.updateUV(obj)
+			Canvas.adaptObjectFaces(obj)
 		})
 		this.loadData()
 		this.message('uv_editor.transparent')
@@ -1187,11 +1193,10 @@ class UVEditor {
 				delete obj.faces[side].enabled;
 				delete obj.faces[side].cullface;
 			})
-			Canvas.updateUV(obj)
+			Canvas.adaptObjectFaces(obj)
 		})
 		this.loadData()
 		this.message('uv_editor.reset')
-		Canvas.updateSelectedFaces()
 	}
 	select() {
 		if (uv_dialog.allFaces.includes(this.id) === false) return;
@@ -1273,16 +1278,28 @@ class UVEditor {
 				}},
 		]}},
 		{
-			//icon: (scope.reference_face.tintindex === 0 ? 'check_box' : 'check_box_outline_blank'),
+			icon: (editor) => (editor.reference_face.tintindex === 0 ? 'check_box' : 'check_box_outline_blank'),
 			name: 'menu.uv.tint', click: function(editor) {
 				Undo.initEdit({cubes: selected, uv_only: true})
 				editor.switchTint(selected[0].faces[editor.face].tintindex !== 0)
 				Undo.finishEdit('face_tint')
-			},icon: 'content_copy'
+			}
 		},
 		{icon: 'collections', name: 'menu.uv.texture', children: function() {
 			var arr = [
-				{icon: 'clear', name: 'menu.uv.texture.transparent', click: function(editor) {editor.clear(event)}},
+				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(editor, event) {
+					Undo.initEdit({cubes: selected})
+					selected.forEach((obj) => {
+						editor.getFaces(event).forEach(function(side) {
+							delete obj.faces[side].texture;
+						})
+						Canvas.adaptObjectFaces(obj)
+					})
+					editor.loadData()
+					editor.message('uv_editor.reset')
+					Undo.initEdit('texture blank')
+				}},
+				{icon: 'clear', name: 'menu.cube.texture.transparent', click: function(editor) {editor.clear(event)}},
 			]
 			textures.forEach(function(t) {
 				arr.push({
@@ -1294,18 +1311,6 @@ class UVEditor {
 			return arr;
 		}}
 	])
-
-/*
-Maximize
-Auto UV
-Relative Auto UV
-Apply to all
-Clear
-Reset
-
-
-*/
-
 
 
 var uv_dialog = {

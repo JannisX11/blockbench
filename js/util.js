@@ -70,7 +70,7 @@ function guid() {
 		s4() + '-' + s4() + s4() + s4();
 }
 Math.radToDeg = function(rad) {
-	return rad * (180*Math.PI)
+	return rad / Math.PI * 180
 }
 Math.degToRad = function(deg) {
 	return Math.PI / (180 /deg)
@@ -107,7 +107,7 @@ function getAxisNumber(letter) {
 }
 function limitNumber(number, min, max) {
 	if (number > max) number = max;
-	if (number < min) number = min;
+	if (number < min || isNaN(number)) number = min;
 	return number;
 }
 function getRectangle(a, b, c, d) {
@@ -152,6 +152,11 @@ function doRectanglesOverlap(rect1, rect2) {
 }
 
 //Array
+Array.prototype.safePush = function(item) {
+	if (!this.includes(item)) {
+		this.push(item)
+	}
+}
 Array.prototype.equals = function (array) {
 		if (!array)
 				return false;
@@ -198,6 +203,16 @@ Array.prototype.positiveItems = function() {
 		i++;
 	}
 	return x;
+}
+Array.prototype.allEqual = function(s) {
+	var i = 0;
+	while (i < this.length) {
+		if (this[i] !== s) {
+			return false;
+		}
+		i++;
+	}
+	return true;
 }
 
 //Object

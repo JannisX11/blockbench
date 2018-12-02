@@ -175,6 +175,7 @@
 			font-size: 16pt;
 			height: 30px;
 			width: 24px;
+			text-align: center;
 		}
 		.dialog .message_box_icon {
 			font-size: 40pt;
@@ -565,18 +566,6 @@
 			"left_bar preview right_bar"
 			"left_bar status_bar right_bar";
 	}
-	body.display_mode {
-		display: grid;
-		grid-template-columns: 328px auto;
-		grid-template-rows: 32px auto 26px;
-		grid-template-areas: 
-			"header header"
-			"left_bar preview"
-			"left_bar status_bar";
-	}
-	body.display_mode #right_bar {
-		display: none;
-	}
 	header {
 		background-color: var(--color-ui);;
 		grid-area: header;
@@ -655,6 +644,7 @@
 	.single_canvas_wrapper {
 		height: 100%;
 		width: 100%;
+		position: relative;
 	}
 	.quad_canvas_wrapper {
 		height: 50%;
@@ -762,7 +752,7 @@
 		height: 10px;
 		float: left;
 	}
-	.toolbar_seperator {
+	.toolbar_separator {
 		width: 2px;
 		height: 24px;
 		float: left;
@@ -833,7 +823,7 @@
 		overflow-y: scroll;
 		flex-grow: 1;
 	}
-	body.display_mode #cubes_list {
+	body.animation_mode #cubes_list {
 		height: calc(100% - 50px);
 	}
 	body.animation_mode #cubes_list .outliner_object.cube {
@@ -1031,6 +1021,9 @@
 		height: 35px;
 		padding: 4px;
 		padding-left: 34px;
+		padding-right: 8px;
+	}
+	.contextMenu li.parent {
 		padding-right: 20px;
 	}
 	.contextMenu li.parent::before {
@@ -1070,7 +1063,7 @@
 	.contextMenu li.opened > .contextMenu.sub {
 		display: block;
 	}
-	li.menu_seperator {
+	li.menu_separator {
 		height: 2px;
 		width: 100%;
 		padding: 0;
@@ -1275,6 +1268,7 @@
 	}
 	#timeline_head > .channel_head .text_button {
 		width: 26px;
+		height: 25px;
 		font-size: 16pt;
 		float: right;
 	}
@@ -1498,6 +1492,9 @@
 	}
 	.dialog_bar.narrow {
 		min-height: 30px;
+	}
+	.dialog_bar.button_bar {
+		text-align: right;
 	}
 	.dialog .tab {
 		float: left;
@@ -1754,7 +1751,10 @@
 	}
 	.tool.disp_range {
 		width: calc(100% - 67px);
-		background-color: var(--color-back);
+		float: none;
+	}
+	.tool.disp_range.scaleRange {
+		width: calc(100% - 109px);
 		float: none;
 	}
 	.tool.disp_text {
@@ -1802,30 +1802,27 @@
 	#display_settings p {
 		padding-left: 6px;
 	}
+	div#display_crosshair:after {
+		content: "";
+		width: 20px;
+		height: 2px;
+		background-color: var(--color-grid);
+		position: absolute;
+		margin-left: -9px;
+		margin-top: 9px;
+	}
+	div#display_crosshair {
+		width: 2px;
+		height: 20px;
+		background-color: var(--color-grid);
+		position: absolute;
+		top: calc(50% - 10px);
+		margin-left: 50%;
+		margin-right: auto;
+	}
 
-	/*Web*/
-	#web_import_btn {
-		margin-left: 0;
-	}
-	#file_upload_label {
-		height: 40px;
-		width: 200px;
-		border: 1px solid var(--color-border);
-		background: var(--color-button);
-		display: inline-block;
-		cursor: default;
-		padding-top: 6px;
-	}
-	#file_upload_label:hover {
-		background: var(--color-accent);
-		color: var(--color-text_acc);
-	}
-	#file_upload_label i {
-		float: left;
-		margin-left: 30px;
-		margin-right: 5px;
-		margin-top: 2px;
-	}
+
+/*Scale*/
 	#model_scale_range {
 		width: calc(100% - 50px);
 		float: left;
@@ -2171,7 +2168,7 @@
 	#bar_items_current li {
 		min-width: 20px;
 	}
-	#bar_items_current li .toolbar_seperator {
+	#bar_items_current li .toolbar_separator {
 		width: 12px;
 		background-color: var(--color-button);
 		border: 1px solid var(--color-border);

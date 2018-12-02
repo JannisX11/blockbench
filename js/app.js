@@ -336,6 +336,8 @@ function findEntityTexture(mob, return_path) {
 
 		if (return_path === true) {
 			return texture_path+'.png';
+		} else if (return_path === 'raw') {
+			return ['entity', ...path.split('/')].join(osfs)
 		} else {
 			if (fs.existsSync(texture_path + '.png')) {
 				var texture = new Texture({keep_size: true}).fromPath(texture_path + '.png').add()

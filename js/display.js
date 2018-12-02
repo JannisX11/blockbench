@@ -1,3 +1,4 @@
+
 var display = {}
 Blockbench.display_settings = display
 var ground_animation = false;
@@ -5,6 +6,13 @@ var ground_timer = 0
 var display_slot;
 var display_preview;
 var display_clipboard;
+var enterDisplaySettings, exitDisplaySettings;
+const DisplayMode = {};
+
+
+
+(function() {
+
 
 class refModel {
 	constructor(id) {
@@ -232,7 +240,7 @@ class refModel {
 			},
 			{
 				//Body Layer
-				"size": [9, 13, 5],
+				"size": [8.5, 12.5, 4.5],
 				"pos": [0, 18, 0],
 				"north": {"uv": [6.968, 9.032, 5.032, 11.968]},
 				"east": {"uv": [7.968, 9.032, 7.032, 11.968]},
@@ -256,7 +264,7 @@ class refModel {
 			},
 			{
 				//R Leg Layer
-				"size": [5, 13, 5],
+				"size": [4.5, 12.5, 4.5],
 				"pos": [1.95, 6, 0],
 				"origin": [0, 12, 0],
 				"rotation": [-1, 0, 0],
@@ -282,7 +290,7 @@ class refModel {
 			},
 			{
 				//L Leg Layer
-				"size": [5, 13, 5],
+				"size": [4.5, 12.5, 4.5],
 				"pos": [-1.95, 6, 0],
 				"origin": [0, 12, 0],
 				"rotation": [1, 0, 0],
@@ -310,7 +318,7 @@ class refModel {
 			},
 			{
 				//R Arm Layer
-				"size": [5, 13, 5],
+				"size": [4.5, 12.5, 4.5],
 				"pos": [6, 18, 0],
 				"origin": [4, 22, 0],
 				"rotation": [22.5, 0, 0],
@@ -338,7 +346,7 @@ class refModel {
 			},
 			{
 				//L Arm Layer
-				"size": [5, 13, 5],
+				"size": [4.5, 12.5, 4.5],
 				"pos": [-6, 18, 0],
 				"origin": [-4, 22, 0],
 				"rotation": [22.5, 0, 0],
@@ -367,7 +375,7 @@ class refModel {
 			},
 			{
 				//R Arm Layer
-				"size": [4, 13, 5],
+				"size": [3.5, 12.5, 4.5],
 				"pos": [5.5, 18, 0],
 				"origin": [0, 22, 0],
 				"rotation": [22.5, 0, 0],
@@ -395,7 +403,7 @@ class refModel {
 			},
 			{
 				//L Arm Layer
-				"size": [4, 13, 5],
+				"size": [3.5, 12.5, 4.5],
 				"pos": [-5.5, 18, 0],
 				"origin": [0, 22, 0],
 				"rotation": [22.5, 0, 0],
@@ -1136,7 +1144,7 @@ class refModel {
 		], 'assets/item_frame.png')
 	}
 }
-var displayReferenceObjects = {
+window.displayReferenceObjects = {
 	refmodels: {
 		player: 			new refModel('player'),
 		zombie: 			new refModel('zombie'),
@@ -1199,7 +1207,7 @@ var displayReferenceObjects = {
 	]
 }
 
-function enterDisplaySettings() {		//Enterung Display Setting Mode, changes the scene etc
+enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes the scene etc
 	display_mode = true;
 
 	selected = []
@@ -1224,7 +1232,7 @@ function enterDisplaySettings() {		//Enterung Display Setting Mode, changes the 
 	updateInterface()
 	//return;
 
-	loadDispThirdRight()
+	DisplayMode.loadThirdRight()
 	buildGrid()
 	setShading()
 	Canvas.updateRenderSides()
@@ -1234,7 +1242,7 @@ function enterDisplaySettings() {		//Enterung Display Setting Mode, changes the 
 		Canvas.updateAllPositions()
 	}
 }
-function exitDisplaySettings() {		//Enterung Display Setting Mode, changes the scene etc
+exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the scene etc
 	resetDisplayBase()
 	setDisplayArea(0,0,0, 0,0,0, 1,1,1)
 
@@ -1286,29 +1294,27 @@ function resetDisplayBase() {
 }
 
 
-function syncDispInput(obj, sender, axis, event) {//Syncs Range and Input, calls the change functions
+DisplayMode.syncDispInput = function(obj, sender, axis, event) {//Syncs Range and Input, calls the change functions
 	var val = $(obj).val()
-	var raw_val;
+	var range_val;
 	if (typeof val === 'string' || val instanceof String) {
 		val = parseFloat(val.replace(/[^-.0-9]/g, ""))
 	}
 	if (isNaN(val)) val = 0
 
 	if (sender === 'rotation') {
-		if (val > 180) val = 180
-		if (val < -180) val = -180
+		val = limitNumber(val, -180, 180)
 		$(obj).siblings('input').val(val)
 		dispRotate(val, axis)
 		return;
 	} else if (sender === 'translation') {
-		if (val > 80) val = 80
-		if (val < -80) val = -80
+		val = limitNumber(val, -80, 80)
 		$(obj).siblings('input').val(val);
 		dispTranslate(val, axis)
 		return;
 	} else if (sender === 'scaleRange') {
 		//From Range to Real
-		raw_val = val
+		range_val = val
 		if (val >= 0) {
 			val = (val*(3/4))+1
 			if (val >=4) val = 4
@@ -1316,15 +1322,16 @@ function syncDispInput(obj, sender, axis, event) {//Syncs Range and Input, calls
 			val = (val+4)/4
 		}
 		$(obj).parent().find('input.scale').val(val)
+
 	} else if (sender === 'scale') {
 		//From Input(Real) to Range
 		if (display[display_slot].scale == undefined) {
 			display[display_slot].scale = [1,1,1]
 		}
 		if (val >= 1) {
-			raw_val = (val-1)*(4/3)
+			range_val = (Math.abs(val)-1)*(4/3)
 		} else {
-			raw_val =(val*4)-4
+			range_val =(Math.abs(val)*4)-4
 		}
 	}
 
@@ -1332,12 +1339,20 @@ function syncDispInput(obj, sender, axis, event) {//Syncs Range and Input, calls
 		dispScale(val, 'x')
 		dispScale(val, 'y')
 		dispScale(val, 'z')
-		$('#display_settings input.scale').val(val)
-		$('#display_settings input.scaleRange').val(raw_val)
+		$('.panel#display input.scale').val(Math.abs(val))
+		$('.panel#display input.scaleRange').val(range_val)
 	} else {
 		dispScale(val, axis)		
-		$(obj).parent().find('input.scaleRange').val(raw_val)
+		$(obj).parent().find('input.scaleRange').val(range_val)
 	}
+}
+DisplayMode.syncDispMirror = function(node, axis) {
+	if (!display[display_slot].scale) {
+		return;
+	}
+	var axis = (node.id||'x').substr(-1)
+	display_base.scale[axis] = display[display_slot].scale[axisIndex(axis)] *= -1
+	loadDisp(display_slot)
 }
 function dispRotate(val, axis) {		//Change the actual thing
 	if (display[display_slot].rotation == undefined) {
@@ -1361,15 +1376,18 @@ function dispTranslate(val, axis) {		//Change the actual thing
 }
 function dispScale(val, axis) {			//Change the actual thing
 	if (display[display_slot].scale == undefined) {
-		display[display_slot].scale = [0,0,0]
+		display[display_slot].scale = [1,1,1]
 	}
+	var scale_tag = display[display_slot].scale
+	var is_inverse = scale_tag[axisIndex(axis)] < 0
+
 	val = limitNumber(val, 0.001, 4)
-	display[display_slot].scale[axisIndex(axis)] = val
+	scale_tag[axisIndex(axis)] = val * (is_inverse ? -1 : 1)
 	if (val == 0) val = 0.001
-	display_base.scale[axis] = val
+	display_base.scale[axis] = val * (is_inverse ? -1 : 1)
 }
 
-function resetDisplaySettings(key) {
+DisplayMode.resetDisplaySettings = function(key) {
 	delete display[display_slot][key]
 	$('input#'+key+'_x').val(0)
 	$('input#'+key+'_y').val(0)
@@ -1392,7 +1410,7 @@ function resetDisplaySettings(key) {
 	}
 }
 
-function applyDisplayPreset(preset, all) {
+DisplayMode.applyPreset = function(preset, all) {
 	if (preset == undefined) return;
 	var slots = [display_slot]
 	if (all) {
@@ -1406,9 +1424,9 @@ function applyDisplayPreset(preset, all) {
 		if (typeof display[sl] !== 'object') display[sl] = {}
 		$.extend(true, display[sl], preset.areas[sl])
 	})
-	loadSlot(display_slot)
+	DisplayMode.load(display_slot)
 }
-function createPreset() {
+DisplayMode.createPreset = function() {
 	var name = $('input#preset_name').val()
 	if (name == '') {
 		$('input#preset_name').val(tl('display.preset.blank_name'))
@@ -1442,7 +1460,7 @@ function setDisplayArea(x, y, z, rx, ry, rz, sx, sy, sz) {//Sets the Work Area t
 	display_area.scale['y'] = sy;
 	display_area.scale['z'] = sz;
 }
-function groundAnimation() {
+DisplayMode.groundAnimation = function() {
 	display_area.rotation.y += 0.015
 	ground_timer += 1
 	display_area.position.y = 13.5 + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
@@ -1470,7 +1488,7 @@ function getDisplayNumber(key, mode, axis) {
 		return def;
 	}
 }
-function loadDisp(key, skin) {	//Loads The Menu and slider values, common for all Radio Buttons
+function loadDisp(key) {	//Loads The Menu and slider values, common for all Radio Buttons
 	display_slot = key
 	//enterScene(key)
 	resetDisplayBase()
@@ -1480,7 +1498,7 @@ function loadDisp(key, skin) {	//Loads The Menu and slider values, common for al
 	display_preview.controls.enabled = true;
 	ground_animation = false;
 	$('input#translation_z').prop('disabled', false)
-	$('#donation_hint').hide()
+	$('#display_crosshair').detach()
 	display_preview.camPers.setFocalLength(45)
 
 	if (display[key] == undefined) {
@@ -1494,12 +1512,15 @@ function loadDisp(key, skin) {	//Loads The Menu and slider values, common for al
 	$('input#translation_y').val(getDisplayNumber(key, 'translation', 1))
 	$('input#translation_z').val(getDisplayNumber(key, 'translation', 2))
 
-	$('input#scale_x').val(getDisplayNumber(key, 'scale', 0))
-	$('input#scale_y').val(getDisplayNumber(key, 'scale', 1))
-	$('input#scale_z').val(getDisplayNumber(key, 'scale', 2))
-	syncDispInput($('input#scale_x'), 'scale')
-	syncDispInput($('input#scale_y'), 'scale')
-	syncDispInput($('input#scale_z'), 'scale')
+	$('input#scale_x').val(Math.abs(getDisplayNumber(key, 'scale', 0)))
+	$('input#scale_y').val(Math.abs(getDisplayNumber(key, 'scale', 1)))
+	$('input#scale_z').val(Math.abs(getDisplayNumber(key, 'scale', 2)))
+	DisplayMode.syncDispInput($('input#scale_x'), 'scale')
+	DisplayMode.syncDispInput($('input#scale_y'), 'scale')
+	DisplayMode.syncDispInput($('input#scale_z'), 'scale')
+	$('#display_scale_invert_x i').text(getDisplayNumber(key, 'scale', 0) > 0 ? 'check_box_outline_blank' : 'check_box')
+	$('#display_scale_invert_y i').text(getDisplayNumber(key, 'scale', 1) > 0 ? 'check_box_outline_blank' : 'check_box')
+	$('#display_scale_invert_z i').text(getDisplayNumber(key, 'scale', 2) > 0 ? 'check_box_outline_blank' : 'check_box')
 
 	display_base.rotation['x'] = Math.PI / (180 / getDisplayNumber(key, 'rotation', 0));
 	display_base.rotation['y'] = Math.PI / (180 / getDisplayNumber(key, 'rotation', 1));
@@ -1512,19 +1533,20 @@ function loadDisp(key, skin) {	//Loads The Menu and slider values, common for al
 	display_base.scale['x'] = getDisplayNumber(key, 'scale', 0);
 	display_base.scale['y'] = getDisplayNumber(key, 'scale', 1);
 	display_base.scale['z'] = getDisplayNumber(key, 'scale', 2);
+
 }
-function loadDispThirdRight() {	//Loader
-	loadDisp('thirdperson_righthand', true)
+DisplayMode.loadThirdRight = function() {	//Loader
+	loadDisp('thirdperson_righthand')
 	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
 }
-function loadDispThirdLeft() {	//Loader
-	loadDisp('thirdperson_lefthand', true)
+DisplayMode.loadThirdLeft = function() {	//Loader
+	loadDisp('thirdperson_lefthand')
 	display_base.position['x'] = -getDisplayNumber('thirdperson_lefthand', 'translation', 0)
 	display_base.rotation['y'] = Math.PI / (180 / -getDisplayNumber('thirdperson_lefthand', 'rotation', 1))
 	display_base.rotation['z'] = Math.PI / (180 / -getDisplayNumber('thirdperson_lefthand', 'rotation', 2))
 	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
 }
-function loadDispFirstRight() {	//Loader
+DisplayMode.loadFirstRight = function() {	//Loader
 	loadDisp('firstperson_righthand')
 	setDisplayArea(-20.8, -8.4, 9, 0, 270, 0, 1,1,1)
 	display_preview.camPers.setFocalLength(12)
@@ -1532,8 +1554,9 @@ function loadDispFirstRight() {	//Loader
 	display_preview.controls.target.set(0,0,0)
 	display_preview.controls.enabled = false
 	displayReferenceObjects.bar(['monitor', 'bow'])
+	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
-function loadDispFirstLeft() {	//Loader
+DisplayMode.loadFirstLeft = function() {	//Loader
 	loadDisp('firstperson_lefthand')
 	display_base.position['x'] = -getDisplayNumber('firstperson_lefthand', 'translation', 0)
 	display_base.rotation['y'] = Math.PI / (180 / -getDisplayNumber('firstperson_lefthand', 'rotation', 1))
@@ -1544,12 +1567,13 @@ function loadDispFirstLeft() {	//Loader
 	display_preview.controls.target.set(0,0,0)
 	display_preview.controls.enabled = false
 	displayReferenceObjects.bar(['monitor', 'bow'])
+	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
-function loadDispHead() {		//Loader
-	loadDisp('head', true)
+DisplayMode.loadHead = function() {		//Loader
+	loadDisp('head')
 	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
 }
-function loadDispGUI() {		//Loader
+DisplayMode.loadGUI = function() {		//Loader
 	loadDisp('gui')
 	setDisplayArea(0, 0, 0, 0, 0, 0, 0.4, 0.4, 0.4)
 	display_preview.camOrtho.zoom = 1
@@ -1559,43 +1583,43 @@ function loadDispGUI() {		//Loader
 	display_preview.camOrtho.position.set(0,0,32)
 	displayReferenceObjects.bar(['inventory_nine', 'inventory_full', 'hud'])
 }
-function loadDispGround() {		//Loader
+DisplayMode.loadGround = function() {		//Loader
 	loadDisp('ground')
 	setDisplayArea(0, 12, 0, 0, 0, 0, 1, 1, 1)
 	ground_animation = true;
 	ground_timer = 0
 	displayReferenceObjects.bar(['block'])
 }
-function loadDispFixed() {		//Loader
+DisplayMode.loadFixed = function() {		//Loader
 	loadDisp('fixed')
 	setDisplayArea(0, 0, -8.5, 0, 0, 0, 0.5, 0.5, 0.5)
 	displayReferenceObjects.bar(['frame'])
 }
-function loadSlot(slot) {
-		switch (slot) {
+DisplayMode.load = function(slot) {
+	switch (slot) {
 		case 'thirdperson_righthand':
-		loadDispThirdRight()
+		DisplayMode.loadThirdRight()
 		break;
 		case 'thirdperson_lefthand':
-		loadDispThirdLeft()
+		DisplayMode.loadThirdLeft()
 		break;
 		case 'firstperson_righthand':
-		loadDispFirstRight()
+		DisplayMode.loadFirstRight()
 		break;
 		case 'firstperson_lefthand':
-		loadDispFirstLeft()
+		DisplayMode.loadFirstLeft()
 		break;
 		case 'head':
-		loadDispHead()
+		DisplayMode.loadHead()
 		break;
 		case 'gui':
-		loadDispGUI()
+		DisplayMode.loadGUI()
 		break;
 		case 'ground':
-		loadDispGround()
+		DisplayMode.loadGround()
 		break;
 		case 'fixed':
-		loadDispFixed()
+		DisplayMode.loadFixed()
 		break;
 	}
 }
@@ -1630,10 +1654,10 @@ function pasteDisplaySlot() {
 	$.extend(true, clear_content, display_clipboard)
 	$.extend(true, display[slot], clear_content)
 	*/
-	loadSlot(display_slot)
+	DisplayMode.load(display_slot)
 }
 
-function changeDisplaySkin() {
+window.changeDisplaySkin = function() {
 	var buttons = [
 		tl('message.display_skin.upload'),
 		tl('message.display_skin.reset')
@@ -1758,3 +1782,5 @@ BARS.defineActions(function() {
 		click: function () {showDialog('create_preset')}
 	})
 })
+
+})()

@@ -119,7 +119,7 @@ THREE.OBJExporter.prototype = {
 				for (var key in element.faces) {
 					if (element.faces.hasOwnProperty(key)) {
 						var id = element.faces[key].texture
-						if (id !== undefined && id !== '$transparent') {
+						if (id !== undefined && id !== null) {
 							id = id.replace('#', '')
 							if (materials[id] === undefined) {
 								materials[id] = getTextureById(id)
@@ -206,7 +206,7 @@ function getMtlFace(obj, index) {
 
 	var id = obj.faces[key].texture
 
-	if (id === '$transparent') {
+	if (id === null) {
 		return false
 	} else if (id === undefined) {
 		return 'usemtl none\n'

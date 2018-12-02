@@ -1,8 +1,8 @@
 var Toolbars, BarItems, MenuBar, open_menu, Toolbox;
 //Bars
-class MenuSeperator {
+class MenuSeparator {
 	constructor() {
-		this.menu_node = $('<li class="menu_seperator"></li>')
+		this.menu_node = $('<li class="menu_separator"></li>')
 	}
 }
 class BarItem {
@@ -18,6 +18,7 @@ class BarItem {
 		this.node;
 		this.condition = data.condition;
 		this.nodes = []
+		this.toolbars = []
 	}
 	conditionMet() {
 		if (this.condition === undefined) {
@@ -77,11 +78,20 @@ class BarItem {
 		var clone = $(scope.node).clone(true, true).get(0);
 		scope.nodes.push(clone);
 		return clone;
-
 	}
 	toElement(destination) {
-		$(destination).append(this.node)
+		$(destination).first().append(this.getNode())
 		return this;
+	}
+	pushToolbar(bar) {
+		var scope = this;
+		if (scope.uniqueNode && scope.toolbars.length) {
+			for (var i = scope.toolbars.length-1; i >= 0; i--) {
+				scope.toolbars[i].remove(scope)
+			}
+		}
+		bar.children.push(this)
+		this.toolbars.safePush(bar)
 	}
 }
 class KeybindItem {
@@ -241,8 +251,9 @@ class Tool extends Action {
 }
 class Widget extends BarItem {
 	constructor(data) {
-		super(data)
-		this.type = 'widget'
+		super(data);
+		this.type = 'widget';
+		this.uniqueNode = true;
 	}
 }
 class NumSlider extends Widget {
@@ -641,13 +652,13 @@ class Toolbar {
 			content.children().detach()
 			items.forEach(function(id) {
 				if (typeof id === 'string' && id.substr(0, 1) === '_') {
-					content.append('<div class="toolbar_seperator"></div>')
+					content.append('<div class="toolbar_separator"></div>')
 					scope.children.push('_'+guid().substr(0,8))
 					return;
 				}
 				var item = BarItems[id]
 				if (item) {
-					scope.children.push(item)
+					item.pushToolbar(scope)
 					if (BARS.condition(item.condition)) {
 						content.append(item.getNode())
 					}
@@ -661,6 +672,11 @@ class Toolbar {
 		return this;
 	}
 	contextmenu(event) {
+		var offset = $(this.node).find('.toolbar_menu').offset()
+		if (offset) {
+			event.clientX = offset.left+7
+			event.clientY = offset.top+28
+		}
 		this.menu.open(event, this)
 	}
 	editMenu() {
@@ -670,13 +686,20 @@ class Toolbar {
 		})
 		BARS.list.currentBar = this.children;
 		showDialog('toolbar_edit');
-
-
 		return this;
 	}
 	add(action, position) {
 		if (position === undefined) position = this.children.length
+		if (typeof action === 'object' && action.uniqueNode && action.toolbars.length) {
+			for (var i = action.toolbars.length-1; i >= 0; i--) {
+				action.toolbars[i].remove(action)
+			}
+		}
+		//Adding
 		this.children.splice(position, 0, action)
+		if (typeof action === 'object') {
+			action.toolbars.safePush(this)
+		}
 		this.update()
 		return this;
 	}
@@ -685,6 +708,7 @@ class Toolbar {
 		while (i >= 0) {
 			var item = this.children[i]
 			if (item === action || item.id === action) {
+				item.toolbars.remove(this)
 				this.children.splice(i, 1)
 				this.update()
 				return this;
@@ -697,29 +721,33 @@ class Toolbar {
 		var scope = this;
 		var content = $(this.node).find('.content')
 		content.find('> .tool').detach()
-		var seperators = content.find('> .toolbar_seperator').detach()
+		var separators = content.find('> .toolbar_separator').detach()
 		var sep_nr = 0;
 
 		this.children.forEach(function(item, i) {
 			if (typeof item === 'string') {
 				var last = content.find('> :last-child')
-				if (last.length === 0 || last.hasClass('toolbar_seperator') || i == scope.children.length-1) {
+				if (last.length === 0 || last.hasClass('toolbar_separator') || i == scope.children.length-1) {
 					return
 				}
-				var sep = seperators[sep_nr]
+				var sep = separators[sep_nr]
 				if (sep) {
 					content.append(sep)
 					sep_nr++;
 				} else {
-					content.append('<div class="toolbar_seperator"></div>')
+					content.append('<div class="toolbar_separator"></div>')
 				}
-			} else if (!BARS.condition( item.condition )) {
-			} else {
-				content.append(item.getNode())
+			} else if (typeof item === 'object') {
+				if (BARS.condition( item.condition )) {
+					content.append(item.getNode())
+					item.toolbars.safePush(scope)
+				} else {
+					item.toolbars.remove(scope)
+				}
 			}
 		})
 		var last = content.find('> :last-child')
-		if (last.length && last.hasClass('toolbar_seperator')) {
+		if (last.length && last.hasClass('toolbar_separator')) {
 			last.remove()
 		}
 		this.save()
@@ -819,29 +847,6 @@ var BARS = {
 				transformerMode: 'scale',
 				toolbar: 'transform',
 				keybind: new Keybind({key: 83})
-			})
-			new Tool({
-				id: 'brush_tool',
-				icon: 'fa-paint-brush',
-				category: 'tools',
-				toolbar: 'brush',
-				selectFace: true,
-				transformerMode: 'hidden',
-				paintTool: true,
-				allowWireframe: false,
-				keybind: new Keybind({key: 66}),
-				onCanvasClick: function(data) {
-					Painter.startBrushCanvas(data, data.event)
-				},
-				onSelect: function() {
-					BarItems.slider_brush_size.update()
-					BarItems.slider_brush_softness.update()
-					BarItems.slider_brush_opacity.update()
-					$('.UVEditor').find('#uv_size').hide()
-				},
-				onUnselect: function() {
-					$('.UVEditor').find('#uv_size').show()
-				}
 			})
 			new Tool({
 				id: 'vertex_snap_tool',
@@ -971,7 +976,7 @@ var BARS = {
 				id: 'undo',
 				icon: 'undo',
 				category: 'edit',
-				condition: () => (!display_mode && !Animator.open),
+				condition: () => (!display_mode),
 				keybind: new Keybind({key: 90, ctrl: true}),
 				click: function () {Undo.undo()}
 			})
@@ -979,7 +984,7 @@ var BARS = {
 				id: 'redo',
 				icon: 'redo',
 				category: 'edit',
-				condition: () => (!display_mode && !Animator.open),
+				condition: () => (!display_mode),
 				keybind: new Keybind({key: 89, ctrl: true}),
 				click: function () {Undo.redo()}
 			})
@@ -1416,8 +1421,8 @@ var BARS = {
 					var name = $('#action_search_bar').val().toUpperCase()
 					var list = [{
 						icon: 'bookmark',
-						name: tl('data.seperator'),
-						type: 'seperator'
+						name: tl('data.separator'),
+						type: 'separator'
 					}]
 					if (this.showAll == false) {
 						return list
@@ -1451,7 +1456,8 @@ var BARS = {
 					$('#bar_items_current .tooltip').css('display', '')
 					setTimeout(() => {
 						if ($('#bar_items_current:hover').length === 0) {
-							var item = this.currentBar.splice(event.oldIndex, 1)[0]
+							var item = scope.currentBar.splice(event.oldIndex, 1)[0]
+							item.toolbars.remove(BARS.editing_bar)
 							scope.update()
 						}
 					}, 30)
@@ -1463,11 +1469,11 @@ var BARS = {
 					BARS.editing_bar.update()
 				},
 				addItem: function(item) {
-					if (item.type === 'seperator') {
+					if (item.type === 'separator') {
 						item = '_'
 					}
-					this.currentBar.push(item)
-					this.update()
+					BARS.editing_bar.add(item)
+					BARS.editing_bar.update()
 				}
 			}
 		})
@@ -1500,8 +1506,8 @@ class Menu {
 	}
 	hover(node, event) {
 		if (event) event.stopPropagation()
-		$(this.node).find('li.focused').removeClass('focused')
-		$(this.node).find('li.opened').removeClass('opened')
+		$(open_menu.node).find('li.focused').removeClass('focused')
+		$(open_menu.node).find('li.opened').removeClass('opened')
 		var obj = $(node)
 		obj.addClass('focused')
 		obj.parents('li.parent').addClass('opened')
@@ -1531,6 +1537,58 @@ class Menu {
 			}
 		}
 	}
+	keyNavigate(e) {
+		var scope = this;
+		var used;
+		var obj = $(this.node)
+		if (e.which >= 37 && e.which <= 40) {
+
+			if (obj.find('li.focused').length) {
+				var old = obj.find('li.focused'), next;
+				switch (e.which) {
+					case 37: next = old.parent('ul').parent('li'); 					break;//<
+					case 38: next = old.prevAll('li:not(.menu_separator)').first(); break;//UP
+					case 39: next = old.find('ul li:first-child'); 					break;//>
+					case 40: next = old.nextAll('li:not(.menu_separator)').first(); break;//DOWN
+				}
+
+				if (!next.length && e.which%2 == 0) {
+					var siblings = old.siblings('li:not(.menu_separator)')
+					if (e.which === 38) {
+						next = siblings.last()
+					} else {
+						next = siblings.first()
+					}
+				}
+				if (next && next.length) {
+					old.removeClass('focused')
+					scope.hover(next.get(0))
+				} else if (scope.type === 'bar_menu' && e.which%2) {
+					var index = MenuBar.keys.indexOf(scope.id)
+					index += (e.which == 39 ? 1 : -1)
+					if (index < 0) {
+						index = MenuBar.keys.length-1
+					} else if (index >= MenuBar.keys.length) {
+						index = 0;
+					}
+					MenuBar.menues[MenuBar.keys[index]].open()
+				}
+			} else {
+				obj.find('> li:first-child').addClass('focused')
+			}
+			used = true;
+		} else if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
+			obj.find('li.focused').click()
+			if (scope) {
+				scope.hide()
+			}
+			used = true;
+		} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
+			scope.hide()
+			used = true;
+		}
+		return used;
+	}
 	open(position, context) {
 
 		var scope = this;
@@ -1546,9 +1604,9 @@ class Menu {
 
 			var entry;
 			if (s === '_') {
-				entry = new MenuSeperator().menu_node
+				entry = new MenuSeparator().menu_node
 				var last = parent.children().last()
-				if (last.length && !last.hasClass('menu_seperator')) {
+				if (last.length && !last.hasClass('menu_separator')) {
 					parent.append(entry)
 				}
 			} else if (typeof s === 'string' || s instanceof Action) {
@@ -1598,7 +1656,7 @@ class Menu {
 								getEntry(s2, childlist)
 							})
 							var last = childlist.children().last()
-							if (last.length && last.hasClass('menu_seperator')) {
+							if (last.length && last.hasClass('menu_separator')) {
 								last.remove()
 							}
 						}
@@ -1611,11 +1669,11 @@ class Menu {
 			}
 		}
 
-		this.structure.forEach(function(s, i) {
+		scope.structure.forEach(function(s, i) {
 			getEntry(s, ctxmenu)
 		})
 		var last = ctxmenu.children().last()
-		if (last.length && last.hasClass('menu_seperator')) {
+		if (last.length && last.hasClass('menu_separator')) {
 			last.remove()
 		}
 
@@ -1643,7 +1701,7 @@ class Menu {
 		ctxmenu.css('left', offset_left+'px')
 		ctxmenu.css('top',  offset_top +'px')
 
-		$(this.node).filter(':not(.tx)').addClass('tx').click(function(ev) {
+		$(scope.node).filter(':not(.tx)').addClass('tx').click(function(ev) {
 			if (
 				ev.target.className.includes('parent') ||
 				(ev.target.parentNode && ev.target.parentNode.className.includes('parent'))
@@ -1653,13 +1711,12 @@ class Menu {
 
 		})
 
-		if (this.type === 'bar_menu') {
-			MenuBar.open = this
-			$(this.label).addClass('opened')
+		if (scope.type === 'bar_menu') {
+			MenuBar.open = scope
+			$(scope.label).addClass('opened')
 		}
-		open_menu = this;
-		return this;
-
+		open_menu = scope;
+		return scope;
 	}
 	show(position) {
 		return this.open(position);
@@ -1796,6 +1853,7 @@ var MenuBar = {
 			{name: 'menu.file.export', id: 'export', icon: 'insert_drive_file', children: [
 				'export_blockmodel',
 				'export_entity',
+				'export_class_entity',
 				'export_optifine_part',
 				'export_optifine_full',
 				'export_obj'
@@ -1885,7 +1943,7 @@ var MenuBar = {
 						icon: icon,
 						name: p.id ? tl('display.preset.'+p.id) : p.name,
 						click: function() {
-							applyDisplayPreset(p)
+							DisplayMode.applyPreset(p)
 						}
 					})
 				})
@@ -1907,7 +1965,7 @@ var MenuBar = {
 						icon: icon,
 						name: p.id ? tl('display.preset.'+p.id) : p.name,
 						click: function() {
-							applyDisplayPreset(p, true)
+							DisplayMode.applyPreset(p, true)
 						}
 					})
 				})
@@ -1945,14 +2003,16 @@ var MenuBar = {
 			'fullscreen',
 			{name: 'menu.view.zoom', id: 'zoom', condition: isApp, icon: 'search', children: [
 				'zoom_in',
-				'zoom_out'
+				'zoom_out',
+				'zoom_reset'
 			]},
 			'_',
 			'toggle_wireframe',
 			'toggle_quad_view',
 			{name: 'menu.view.screenshot', id: 'screenshot', condition: isApp, icon: 'camera_alt', children: [
 				'screenshot_model',
-				'screenshot_app'
+				'screenshot_app',
+				'record_model_gif',
 			]},
 		])
 		MenuBar.update()

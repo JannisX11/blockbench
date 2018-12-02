@@ -271,53 +271,8 @@ $(document).keydown(function(e) {
 		}
 	} else if (open_menu) {
 
-		var obj = $(open_menu.node)
-		if (e.which >= 37 && e.which <= 40) {
+		used = open_menu.keyNavigate(e)||used
 
-			if (obj.find('li.focused').length) {
-				var old = obj.find('li.focused'), next;
-				switch (e.which) {
-					case 37: next = old.parent('ul').parent('li'); 					break;//<
-					case 38: next = old.prevAll('li:not(.menu_seperator)').first(); break;//UP
-					case 39: next = old.find('ul li:first-child'); 					break;//>
-					case 40: next = old.nextAll('li:not(.menu_seperator)').first(); break;//DOWN
-				}
-
-				if (!next.length && e.which%2 == 0) {
-					var siblings = old.siblings('li:not(.menu_seperator)')
-					if (e.which === 38) {
-						next = siblings.last()
-					} else {
-						next = siblings.first()
-					}
-				}
-				if (next && next.length) {
-					old.removeClass('focused')
-					open_menu.hover(next)
-				} else if (open_menu.type === 'bar_menu' && e.which%2) {
-					var index = MenuBar.keys.indexOf(open_menu.id)
-					index += (e.which == 39 ? 1 : -1)
-					if (index < 0) {
-						index = MenuBar.keys.length-1
-					} else if (index >= MenuBar.keys.length) {
-						index = 0;
-					}
-					MenuBar.menues[MenuBar.keys[index]].open()
-				}
-			} else {
-				obj.find('> li:first-child').addClass('focused')
-			}
-			used = true;
-		} else if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-			obj.find('li.focused').click()
-			if (open_menu) {
-				open_menu.hide()
-			}
-			used = true;
-		} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
-			open_menu.hide()
-			used = true;
-		}
 	} else if (open_interface && typeof open_interface == 'object' && open_interface.hide) {
 		if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
 			open_interface.confirm()
