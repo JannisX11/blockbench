@@ -463,7 +463,6 @@ function updateInterfacePanels() {
 		var panel = Interface.Panels[key]
 		panel.update()
 	}
-	return;
 	var left_width = $('.sidebar#left_bar > .panel:visible').length ? Interface.data.left_bar_width : 0
 	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.data.right_bar_width : 0
 	$('body').css(

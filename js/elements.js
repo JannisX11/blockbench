@@ -347,8 +347,8 @@ class Cube extends OutlinerElement {
 	}
 	rotationAxis() {
 		for (var axis = 0; axis < 3; axis++) {
-			if (this.rotation[axis_i] !== 0) {
-				this.rotation_axis = getAxisLetter(axis_i);
+			if (this.rotation[axis] !== 0) {
+				this.rotation_axis = getAxisLetter(axis);
 				return this.rotation_axis;
 			}
 		}
@@ -486,7 +486,11 @@ class Cube extends OutlinerElement {
 		if (object.faces) {
 			for (var face in this.faces) {
 				if (this.faces.hasOwnProperty(face) && object.faces.hasOwnProperty(face)) {
-					Merge.string(this.faces[face], object.faces[face], 'texture')
+					if (object.faces[face].texture === null) {
+						this.faces[face].texture = null
+					} else {
+						Merge.string(this.faces[face], object.faces[face], 'texture')
+					}
 					Merge.string(this.faces[face], object.faces[face], 'cullface')
 					Merge.number(this.faces[face], object.faces[face], 'rotation')
 					Merge.number(this.faces[face], object.faces[face], 'tintindex')

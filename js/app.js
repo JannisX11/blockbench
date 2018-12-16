@@ -373,6 +373,7 @@ function saveFile(props) {
 	if (Prop.file_path) {
 		Prop.project_saved = true;
 		setProjectTitle(pathToName(Prop.file_path, false))
+        addRecentProject({name: pathToName(path, true), path: path})
 		var extension = pathToExtension(Prop.file_path)
 
 		if (Blockbench.entity_mode === false) {

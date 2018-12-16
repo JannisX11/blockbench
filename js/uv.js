@@ -104,6 +104,9 @@ class UVEditor {
 		if (Blockbench.browser === 'firefox') {
 			this.jquery.frame.css('image-rendering', '-moz-crisp-edges')
 		}
+		if (Toolbox.selected.paintTool) {
+			this.jquery.size.hide()
+		}
 
 		this.jquery.sliders = $('<div class="bar" style="margin-left: 2px;"></div>')
 
@@ -370,7 +373,7 @@ class UVEditor {
 			while (i < length) {
 				x = end_x - diff.x / length * i
 				y = end_y - diff.y / length * i
-				Painter.useBrush(texture, x, y)
+				Painter.useBrush(texture, x, y, undefined, i < length-1)
 				i++;
 			}
 			Painter.current.x = end_x

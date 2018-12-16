@@ -870,6 +870,13 @@ var BARS = {
 					Blockbench.removeListener('update_selection', Vertexsnap.select)
 				}
 			})
+			new BarSelect({
+				id: 'vertex_snap_mode',
+				options: {
+					move: true,
+					scale: true
+				}
+			})
 			new Tool({
 				id: 'display_mode_tool',
 				icon: 'icon-player',

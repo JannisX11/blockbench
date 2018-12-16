@@ -671,13 +671,6 @@ BARS.defineActions(function() {
 	//Eraser		fa-eraser
 	//Fill			format_color_fill
 
-	new BarSelect({
-		id: 'vertex_snap_mode',
-		options: {
-			move: true,
-			scale: true
-		}
-	})
 	new ColorPicker({
 		id: 'brush_color',
 		palette: true

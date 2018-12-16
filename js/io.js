@@ -1641,6 +1641,13 @@ BARS.defineActions(function() {
 				name: Project.name||'model',
 				startpath: Prop.file_path,
 				content: content
+			}, (path) => {
+				Prop.project_saved = true
+				if (isApp && path) {
+					Prop.file_path = path
+					setProjectTitle(pathToName(Prop.file_path, true))
+        			addRecentProject({name: pathToName(path, true), path: path})
+				}
 			})
 		}
 	})
