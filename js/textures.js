@@ -54,7 +54,9 @@ class Texture {
 			selected: this.selected,
 			mode: this.mode,
 			saved: this.saved,
-			uuid: this.uuid
+			uuid: this.uuid,
+			old_width: this.old_width,
+			old_height: this.old_height
 		}
 		if (bitmap || this.mode === 'link') {
 			copy.source = this.source
@@ -135,33 +137,37 @@ class Texture {
 					Blockbench.showQuickMessage('message.square_textures')
 				}
 			}
-			if (Blockbench.entity_mode && textures.indexOf(scope) === 0 && !scope.keep_size) {
-				var size = {
-					ow: Project.texture_width,
-					oh: Project.texture_height,
-					nw: img.naturalWidth,
-					nh: img.naturalHeight
-				}
-				if (size.ow != size.nw || size.oh != size.nh) {
-					Blockbench.showMessageBox({
-						translateKey: 'update_res',
-						icon: 'photo_size_select_small',
-						buttons: [tl('message.update_res.update'), tl('dialog.cancel')],
-						confirm: 0,
-						cancel: 1
-					}, function(result) {
-						if (result === 0) {
-							var lockUV = ( // EG. Texture Optimierung > Modulo geht nicht in allen Bereichen auf
-								(size.ow%size.nw || size.oh%size.nh) &&
-								(size.nw%size.ow || size.nh%size.oh)
-							)
-							entityMode.setResolution(img.naturalWidth, img.naturalHeight, lockUV)
-							if (selected.length) {
-								main_uv.loadData()
-								main_uv.setGrid()
+			if (Blockbench.entity_mode && textures.indexOf(scope) === 0) {
+				if (!scope.keep_size) {
+					var size = {
+						pw: Project.texture_width,
+						ph: Project.texture_height,
+						nw: img.naturalWidth,
+						nh: img.naturalHeight
+					}
+					if ((scope.old_width != size.nw || scope.old_height != size.nh) && (size.pw != size.nw || size.ph != size.nh)) {
+						Blockbench.showMessageBox({
+							translateKey: 'update_res',
+							icon: 'photo_size_select_small',
+							buttons: [tl('message.update_res.update'), tl('dialog.cancel')],
+							confirm: 0,
+							cancel: 1
+						}, function(result) {
+							if (result === 0) {
+								var lockUV = ( // EG. Texture Optimierung > Modulo geht nicht in allen Bereichen auf
+									(size.pw%size.nw || size.ph%size.nh) &&
+									(size.nw%size.pw || size.nh%size.ph)
+								)
+								entityMode.setResolution(img.naturalWidth, img.naturalHeight, lockUV)
+								if (selected.length) {
+									main_uv.loadData()
+									main_uv.setGrid()
+								}
 							}
-						}
-					})
+						})
+					}
+					scope.old_width = img.naturalWidth
+					scope.old_height = img.naturalHeight
 				}
 			}
 			if ($('.dialog#texture_edit:visible').length >= 1 && scope.selected === true) {

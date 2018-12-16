@@ -264,6 +264,19 @@ class OutlinerElement {
 		}
 		return true;
 	}
+	isChildOf(group, max_levels) {
+		function iterate(obj, level) {
+			if (!obj || obj === 'root') {
+				return false;
+			} else if (obj === group) {
+				return true;
+			} else if (!max_levels || level < max_levels-1) {
+				return iterate(obj.parent, level+1)
+			}
+			return false;
+		}
+		return iterate(this.parent, 0)
+	}
 }
 class Cube extends OutlinerElement {
 	constructor(data, uuid) {
@@ -333,15 +346,11 @@ class Cube extends OutlinerElement {
 		}
 	}
 	rotationAxis() {
-		if (this.rotation_axis) {
-			return this.rotation_axis
-		}
-		var axis_i = 0;
-		while (axis_i < 3) {
+		for (var axis = 0; axis < 3; axis++) {
 			if (this.rotation[axis_i] !== 0) {
-				return getAxisLetter(axis_i)
+				this.rotation_axis = getAxisLetter(axis_i);
+				return this.rotation_axis;
 			}
-			axis_i++;
 		}
 	}
 	getMesh() {
@@ -688,7 +697,9 @@ class Cube extends OutlinerElement {
 	}
 	setColor(index) {
 		this.color = index;
-		Canvas.updateSelectedFaces()
+		if (this.visibility) {
+			Canvas.adaptObjectFaces(obj)
+		}
 	}
 	showContextMenu(event) {
 		if (!this.selected) {
@@ -1014,7 +1025,8 @@ class Group extends OutlinerElement {
 		var scope = this;
 		if (Blockbench.hasFlag('renaming')) return;
 		if (!event) event = {shiftKey: false}
-		var allSelected = (selected_group === this && selected.length === this.children.length)
+		var allSelected = selected_group === this && selected.length && this.matchesSelection()
+		//(selected_group === this && selected.length >= this.children.length)
 
 		//Clear Old Group
 		if (selected_group) selected_group.unselect()
@@ -1076,6 +1088,21 @@ class Group extends OutlinerElement {
 		selected_group = undefined;
 		this.selected = false
 		return this;
+	}
+	matchesSelection() {
+		var scope = this;
+		var match = true;
+		for (var i = 0; i < selected.length; i++) {
+			if (!selected[i].isChildOf(scope, 20)) {
+				return false
+			}
+		}
+		this.forEachChild(obj => {
+			if (!obj.selected) {
+				match = false
+			}
+		})
+		return match;
 	}
 	extend(object) {
 		Merge.string(this, object, 'name')
@@ -1207,6 +1234,7 @@ class Group extends OutlinerElement {
 		} else if (destination !== 'cache') {
 			base_group.addTo(destination, false)
 		}
+		Canvas.updatePositions()
 		loadOutlinerDraggable()
 		return base_group;
 	}

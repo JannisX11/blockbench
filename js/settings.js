@@ -11,12 +11,13 @@ function settingSetup() {
 		show_actions: 		{value: false},
 		backup_interval: 	{value: 10, type: 'number'},
 		//Preview 
-		origin_size: 	{category: 'preview', value: 10, type: 'number'},
-		control_size: 	{category: 'preview', value: 10, type: 'number'},
-		display_skin: 	{category: 'preview', value: false, type: 'click', condition: isApp, icon: 'icon-player', click: function() { changeDisplaySkin() }},
-		shading:	  	{category: 'preview', value: true}, 
-		transparency: 	{category: 'preview', value: true}, 
-		texture_fps:  	{category: 'preview', value: 2, type: 'number'},
+		origin_size: 		{category: 'preview', value: 10, type: 'number'},
+		control_size: 		{category: 'preview', value: 10, type: 'number'},
+		display_skin: 		{category: 'preview', value: false, type: 'click', condition: isApp, icon: 'icon-player', click: function() { changeDisplaySkin() }},
+		seethrough_outline:	{category: 'preview', value: false},
+		shading:	  		{category: 'preview', value: true}, 
+		transparency: 		{category: 'preview', value: true}, 
+		texture_fps:  		{category: 'preview', value: 2, type: 'number'},
 		//Grid
 		base_grid:		{category: 'grid', value: true,},
 		large_grid: 	{category: 'grid', value: false},
@@ -228,7 +229,8 @@ function saveSettings(force_update) {
 			action.toggleLinkedSetting(false)
 		}
 	}
-	if (hasSettingChanged('base_grid') || hasSettingChanged('large_grid') || hasSettingChanged('full_grid') ||hasSettingChanged('large_box') || hasSettingChanged('display_grid')) {
+	if (hasSettingChanged('base_grid') || hasSettingChanged('large_grid') || hasSettingChanged('full_grid')
+		||hasSettingChanged('large_box') || hasSettingChanged('display_grid') || hasSettingChanged('edit_size')) {
 		buildGrid()
 	}
 	if (hasSettingChanged('transparency')) {
@@ -238,6 +240,7 @@ function saveSettings(force_update) {
 			}
 		}
 	}
+	Canvas.outlineMaterial.depthTest = !settings.seethrough_outline.value
 	if (hasSettingChanged('shading')) {
 		setShading()
 	}

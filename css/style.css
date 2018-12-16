@@ -1381,6 +1381,7 @@
 		position: absolute;
 		opacity: 0.4;
 		cursor: inherit;
+		pointer-events: none;
 	}
 	#uv_dialog_toolbar {
 		clear: both;
@@ -1561,7 +1562,6 @@
 		width: 100%;
 		min-height: 34px;
 		padding-left: 6px;
-		border-bottom: 2px solid var(--color-border);
 	}
 	#settings h3 > i {
 		margin-top: 5px;
@@ -1618,7 +1618,6 @@
 	}
 	#settingslist > li {
 		padding-left: 6px;
-		border-bottom: 2px solid var(--color-border);
 	}
 	#settingslist li li {
 		padding-top: 7px;

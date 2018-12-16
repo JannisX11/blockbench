@@ -312,6 +312,8 @@
 	"settings.control_size.desc": "Size of the 3 axis control tool",
 	"settings.display_skin": "Display Skin",
 	"settings.display_skin.desc": "Skin used for the display reference player model",
+	"settings.seethrough_outline": "X-Ray Outlines",
+	"settings.seethrough_outline.desc": "Show outlines through objects",
 	"settings.shading": "Shading",
 	"settings.shading.desc": "Enable shading",
 	"settings.transparency": "Transparency",

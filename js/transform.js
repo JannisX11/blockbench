@@ -265,10 +265,23 @@ function mirrorSelected(axis) {
 	if (!selected.length) return;
 	Undo.initEdit({cubes: selected})
 	var center = 8
-	if (selected_group && Blockbench.entity_mode) {
-		center = selected_group.origin[axis]
-	} else if (Blockbench.entity_mode) {
+	if (Blockbench.entity_mode) {
 		center = 0
+		if (selected_group && selected_group.matchesSelection()) {
+			function flipGroup(group) {
+				if (group.type === 'group') {
+					for (var i = 0; i < 3; i++) {
+						if (i === axis) {
+							group.origin[i] *= -1
+						} else {
+							group.rotation[i] *= -1
+						}
+					}
+				}
+			}
+			flipGroup(selected_group)
+			selected_group.forEachChild(flipGroup)
+		}
 	}
 	selected.forEach(function(obj) {
 		obj.flip(axis, center, false)
@@ -279,6 +292,12 @@ function mirrorSelected(axis) {
 	})
 	updateSelection()
 	Undo.finishEdit('mirror')
+/*
+Conditions:
+Selection equals group cubes:
+	all selected cubes have group as parent
+
+*/
 }
 //Scale
 function scaleAll(save, size) {

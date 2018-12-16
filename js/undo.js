@@ -12,10 +12,11 @@ var Undo = {
 		Undo.current_save = new Undo.save(aspects)
 	},
 	finishEdit: function(action, aspects) {
+		aspects = aspects || Undo.current_save.aspects
 		//After
 		var entry = {
 			before: Undo.current_save,
-			post: new Undo.save(aspects || Undo.current_save.aspects),
+			post: new Undo.save(aspects),
 			action: action
 		}
 		Undo.current_save = entry.post
@@ -30,7 +31,9 @@ var Undo = {
 			Undo.history.shift()
 		}
 		Undo.index = Undo.history.length
-		Prop.project_saved = false;
+		if (!aspects || !aspects.keep_saved) {
+			Prop.project_saved = false;
+		}
 	},
 	undo: function() {
 		if (Undo.history.length <= 0 || Undo.index < 1) return;

@@ -407,11 +407,12 @@ class Keyframe {
 		}
 	}
 	get(axis) {
-		let num = parseFloat(this[axis])
-		if (isNaN(num)) {
-			return this[axis]
+		if (!this[axis]) {
+			return 0;
+		} else if (!isNaN(this[axis])) {
+			return parseFloat(this[axis])
 		} else {
-			return num
+			return this[axis]
 		}
 	}
 	calc(axis) {
@@ -423,6 +424,9 @@ class Keyframe {
 		}
 	}
 	getArray() {
+		if (this.channel === 'scale') {
+			return this.get('x')
+		}
 		var arr = [
 			this.get('x'),
 			this.get('y'),
@@ -636,7 +640,7 @@ function selectAllKeyframes() {
 	updateKeyframeSelection()
 }
 function removeSelectedKeyframes() {
-	Undo.initEdit({keyframes: Timeline.selected})
+	Undo.initEdit({keyframes: Timeline.selected, keep_saved: true})
 	var i = Timeline.keyframes.length;
 	while (i > 0) {
 		i--;
@@ -645,6 +649,7 @@ function removeSelectedKeyframes() {
 			kf.remove()
 		}
 	}
+	updateKeyframeSelection()
 	Undo.finishEdit('remove keyframes')
 }
 
@@ -688,6 +693,10 @@ const Animator = {
 		}
 		if (Animator.selected) {
 			Animator.selected.select()
+		}
+		if (isApp && !Prop.animation_path && !Animator.animations.length && Prop.file_path) {
+			//Load
+			findBedrockAnimation()
 		}
 	},
 	leave: function (argument) {
@@ -744,6 +753,9 @@ const Animator = {
 						}
 					}
 				}
+			}
+			if (isApp && file.path) {
+				Prop.animation_path = file.path
 			}
 		}
 	},
@@ -866,7 +878,7 @@ const Timeline = {
 			}
 		})
 		$('.keyframe_input').click(e => {
-			Undo.initEdit({keyframes: Timeline.selected})
+			Undo.initEdit({keyframes: Timeline.selected, keep_saved: true})
 		}).focusout(e => {
 			Undo.finishEdit('edit keyframe')
 		})
@@ -878,7 +890,7 @@ const Timeline = {
 			axis: 'x',
 			distance: 10,
 			start: function(event, ui) {
-				Undo.initEdit({keyframes: Timeline.keyframes})
+				Undo.initEdit({keyframes: Timeline.keyframes, keep_saved: true})
 				var id = $(ui.helper).attr('id')
 				var i = 0;
 				while (i < Timeline.vue._data.keyframes.length) {
@@ -1020,7 +1032,7 @@ const Timeline = {
 			Blockbench.showQuickMessage('message.no_bone_selected')
 			return
 		}
-		Undo.initEdit({keyframes: bone.keyframes})
+		Undo.initEdit({keyframes: bone.keyframes, keep_saved: true})
 		var kf = bone.addKeyframe(false, Timeline.second, channel?channel:'rotation')
 		kf.select()
 		Undo.finishEdit('add_keyframe')
@@ -1041,7 +1053,7 @@ const Timeline = {
 			}
 			var bone = Animator.selected.getBoneAnimator()
 			if (bone) {
-				Undo.initEdit({keyframes: bone.keyframes})
+				Undo.initEdit({keyframes: bone.keyframes, keep_saved: true})
 				var kf = bone.addKeyframe(false, Math.round(time*30)/30, row === 2 ? 'scale' : (row === 1 ? 'position' : 'rotation'))
 				kf.select().callMarker()
 				Vue.nextTick(Timeline.update)
@@ -1096,8 +1108,10 @@ BARS.defineActions(function() {
 		condition: () => Animator.open,
 		click: function () {
 			var content = autoStringify(Animator.buildFile())
-			var path = Prop.file_path
-			if (isApp) {
+			var path = Prop.animation_path
+
+			if (isApp && !path) {
+				path = Prop.file_path
 				var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
 				var m_index = path.search(exp)
 				if (m_index > 3) {
@@ -1160,7 +1174,7 @@ BARS.defineActions(function() {
 			Animator.preview()
 		},
 		onBefore: function() {
-			Undo.initEdit({keyframes: Timeline.selected})
+			Undo.initEdit({keyframes: Timeline.selected, keep_saved: true})
 		},
 		onAfter: function() {
 			Undo.finishEdit('edit keyframe')

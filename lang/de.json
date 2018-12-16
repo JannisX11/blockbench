@@ -809,5 +809,7 @@
     "menu.preview.background.set_position": "Position festlegen",
     "dialog.toolbar_edit.hidden": "Ausgeblendet",
     "action.export_class_entity": "Java Entity exportieren",
-    "action.export_class_entity.desc": "Exportiert das Modell als Java Class."
+    "action.export_class_entity.desc": "Exportiert das Modell als Java Class.",
+    "settings.seethrough_outline": "Durchscheinende Auswahl",
+    "settings.seethrough_outline.desc": "Zeige Auswahl durch Objekte hindurch an"
 }

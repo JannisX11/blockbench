@@ -356,6 +356,18 @@ function findEntityTexture(mob, return_path) {
 		}
 	}
 }
+function findBedrockAnimation() {
+
+	var animation_path = Prop.file_path.split(osfs)
+	var index = animation_path.lastIndexOf('models')
+	animation_path.splice(index)
+	animation_path = [...animation_path, 'animations', pathToName(Prop.file_path)+'.json'].join(osfs)
+	if (fs.existsSync(animation_path)) {
+		Blockbench.read([animation_path], {}, (files) => {
+			Animator.loadFile(files[0])
+		})
+	}
+}
 //Writers
 function saveFile(props) {
 	if (Prop.file_path) {

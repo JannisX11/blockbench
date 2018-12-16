@@ -805,9 +805,11 @@
     "action.record_model_gif.desc": "Graba un GIF animado de este modelo desde este ángulo",
     "display.mirror": "Invertir",
     "data.separator": "Separador",
-    "message.set_background_position.title": "Background Position",
-    "menu.preview.background.set_position": "Set Position",
-    "dialog.toolbar_edit.hidden": "Hidden",
-    "action.export_class_entity": "Export Java Entity",
-    "action.export_class_entity.desc": "Export the entity model as a Java class"
+    "message.set_background_position.title": "Posición del Fondo",
+    "menu.preview.background.set_position": "Ajustar Posición",
+    "dialog.toolbar_edit.hidden": "Oculto",
+    "action.export_class_entity": "Exportar Entidad de Java",
+    "action.export_class_entity.desc": "Exporta el modelo de entidad como una clase de Java",
+    "settings.seethrough_outline": "X-Ray Outlines",
+    "settings.seethrough_outline.desc": "Show outlines through objects"
 }

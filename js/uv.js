@@ -718,10 +718,15 @@ class UVEditor {
 		if (!Blockbench.entity_mode) return this;
 		var scope = this;
 		var pixels = scope.getPixelSize()
-		function addElement(x,y,width, height, n, color) {
+		function addElement(x, y, width, height, n, color) {
+			x *= pixels;
+			y *= pixels;
+			width  = limitNumber(width *pixels + x, 0, scope.size)  - x;
+			height = limitNumber(height*pixels + y, 0, scope.height)- y;
+
 			scope.jquery.size.append('<div class="uv_mapping_overlay" '+
-				'style="left: '+x*pixels+'px; top: '+y*pixels+'px;'+
-				'height: '+height*pixels+'px; width: '+width*pixels+'px;'+
+				'style="left: '+x+'px; top: '+y+'px;'+
+				'height: '+height+'px; width: '+width+'px;'+
 				'background: '+color+';"></div>')
 		}
 		var size = selected[0].size(undefined, true)
@@ -1759,8 +1764,8 @@ BARS.defineActions(function() {
 			south: tl('face.south'),
 			west: tl('face.west'),
 			east: tl('face.east'),
-			top: tl('face.up'),
-			bottom: tl('face.down'),
+			up: tl('face.up'),
+			down: tl('face.down'),
 		},
 		onChange: function(sel, event) {
 			Undo.initEdit({cubes: selected, uv_only: true})

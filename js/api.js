@@ -42,16 +42,22 @@ class API {
 			icon = icon()
 		}
 		if (icon === undefined) {
+			//Missing
 			jq = $('<i class="material-icons icon">help_outline</i>')
 		} else if (icon instanceof HTMLElement) {
+			//Node
 			jq = $(icon)
 		} else if (icon.substr(0, 2) === 'fa') {
+			//Font Awesome
 			jq = $('<i class="icon fa fa_big ' + icon + '"></i>')
 		} else if (icon.substr(0, 5) === 'icon-') {
+			//Icomoon
 			jq = $('<i class="' + icon + '"></i>')
 		} else if (icon.substr(0, 14) === 'data:image/png') {
+			//Data URL
 			jq = $('<img class="icon" src="'+icon+'">')
 		} else {
+			//Material Icon
 			jq = $('<i class="material-icons icon">' + icon + '</i>')
 		}
 		if (color) {
@@ -228,77 +234,7 @@ class API {
 					defaultPath: options.startpath
 				},
 			function (fileNames) {
-				if (fileNames == undefined) return;
-
-				var results = [];
-				var result_count = 0;
-				var i = 0;
-				var errant;
-				while (i < fileNames.length) {
-					(function() {
-						var this_i = i;
-						var file = fileNames[i]
-
-						if (options.readtype === 'image') {
-							//
-							var extension = pathToExtension(file)
-							if (extension === 'tga') {
-								var targa_loader = new Targa()
-								targa_loader.open(file, () => {
-
-									results[this_i] = {
-										name: pathToName(file, true),
-										path: file,
-										content: targa_loader.getDataURL()
-									}
-								
-									result_count++;
-									if (result_count === fileNames.length) {
-										cb(results)
-									}
-								})
-
-							} else {
-								results[this_i] = {
-									name: pathToName(file, true),
-									path: file
-								}
-								result_count++;
-								if (result_count === fileNames.length) {
-									cb(results)
-								}
-							}
-						} else /*text*/ {
-							fs.readFile(file, 'utf-8', function (err, data) {
-								if (err) {
-									console.log(err)
-									if (!errant && options.errorbox !== false) {
-										Blockbench.showMessageBox({
-											translateKey: 'file_not_found',
-											icon: 'error_outline'
-										})
-									}
-									errant = true
-									return;
-								}
-								if (data.charCodeAt(0) === 0xFEFF) {
-									data = data.substr(1)
-								}
-								results[this_i] = {
-									name: pathToName(file, true),
-									path: file,
-									content: data
-								}
-								result_count++;
-								if (result_count === fileNames.length) {
-									cb(results)
-								}
-							})
-						}
-					})()
-					i++;
-				}
-
+				Blockbench.read(fileNames, options, cb)
 			})
 		} else {
 			$('<input '+
@@ -348,6 +284,78 @@ class API {
 					})()
 				}
 			}).click()
+		}
+	}
+	read(paths, options, cb) {
+		if (!isApp || paths == undefined) return false;
+
+		var results = [];
+		var result_count = 0;
+		var i = 0;
+		var errant;
+		while (i < paths.length) {
+			(function() {
+				var this_i = i;
+				var file = paths[i]
+
+				if (options.readtype === 'image') {
+					//
+					var extension = pathToExtension(file)
+					if (extension === 'tga') {
+						var targa_loader = new Targa()
+						targa_loader.open(file, () => {
+
+							results[this_i] = {
+								name: pathToName(file, true),
+								path: file,
+								content: targa_loader.getDataURL()
+							}
+						
+							result_count++;
+							if (result_count === paths.length) {
+								cb(results)
+							}
+						})
+
+					} else {
+						results[this_i] = {
+							name: pathToName(file, true),
+							path: file
+						}
+						result_count++;
+						if (result_count === paths.length) {
+							cb(results)
+						}
+					}
+				} else /*text*/ {
+					fs.readFile(file, 'utf-8', function (err, data) {
+						if (err) {
+							console.log(err)
+							if (!errant && options.errorbox !== false) {
+								Blockbench.showMessageBox({
+									translateKey: 'file_not_found',
+									icon: 'error_outline'
+								})
+							}
+							errant = true
+							return;
+						}
+						if (data.charCodeAt(0) === 0xFEFF) {
+							data = data.substr(1)
+						}
+						results[this_i] = {
+							name: pathToName(file, true),
+							path: file,
+							content: data
+						}
+						result_count++;
+						if (result_count === paths.length) {
+							cb(results)
+						}
+					})
+				}
+			})()
+			i++;
 		}
 	}
 	export(options, cb) {

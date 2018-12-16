@@ -33,7 +33,7 @@ const Language = {
 		nl: 'Nederlands (Dutch)',
 		pl: 'Polski (Polish)',
 		ru: '\u0440\u0443\u0441\u0441\u043A\u0438\u0439 (Russian)',
-		//sv: 'Svenska (Swedish)',
+		sv: 'Svenska (Swedish)',
 		zh: '\u4e2d\u6587 (Chinese)',//中文
 	}
 }

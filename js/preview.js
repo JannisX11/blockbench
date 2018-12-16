@@ -172,19 +172,14 @@ class Preview {
 	render() {
 		if (this.canvas.isConnected === false) return;
 		this.controls.update()
-		if (display_mode === false) {
-			if (this.isOrtho === true) {
-				this.renderer.render(scene, this.camOrtho)
-			} else {
-				this.renderer.render(scene, this.camPers)
-			}
-		} else {
-			if (this.isOrtho === true) {
-				this.renderer.render(display_scene, this.camOrtho)
-			} else {
-				this.renderer.render(display_scene, this.camPers)
-			}
-		}
+		this.renderer.render(
+			display_mode
+				? display_scene
+				: scene,
+			this.isOrtho
+				? this.camOrtho
+				: this.camPers
+		)
 	}
 	//Camera
 	setNormalCamera() {
@@ -589,6 +584,7 @@ class Preview {
 			edit(Transformer)
 			edit(outlines)
 			edit(rot_origin)
+			edit(Vertexsnap.vertexes)
 			selected.forEach(function(obj) {
 				var m = obj.getMesh()
 				if (m && m.outline) {
@@ -597,7 +593,7 @@ class Preview {
 			})
 		}
 
-		editVis(function(obj) {
+		editVis(obj => {
 			obj.was_visible = obj.visible
 			obj.visible = false
 		})
@@ -619,7 +615,7 @@ class Preview {
 				})
 			});
 	
-			editVis(function(obj) {
+			editVis(obj => {
 				obj.visible = obj.was_visible
 				delete obj.was_visible
 			})
@@ -890,7 +886,12 @@ function initCanvas() {
 	img.onload = function() {
 		this.tex.needsUpdate = true;
 	}
-	northMarkMaterial = new THREE.MeshBasicMaterial({map: tex, transparent: true, side: THREE.DoubleSide})
+	northMarkMaterial = new THREE.MeshBasicMaterial({
+		map: tex,
+		transparent: true,
+		side: THREE.DoubleSide,
+		alphaTest: 0.2
+	})
 
 	//Rotation Pivot
 	var helper1 = new THREE.AxesHelper(2)
@@ -1754,20 +1755,21 @@ class CanvasController {
 	}
 	buildOutline(obj) {
 		if (obj.visibility == false) return;
-		var mesh = obj.getMesh()
+		var mesh = obj.getMesh();
 		if (mesh === undefined) return;
 
 		if (mesh.outline) {
 			mesh.outline.geometry.verticesNeedUpdate = true;
 			return;
 		}
-		mesh.remove(mesh.outline)
+		mesh.remove(mesh.outline);
 
-		var line = Canvas.getOutlineMesh(mesh)
-		line.name = obj.uuid+'_outline'
-		line.visible = obj.selected
-		mesh.outline = line
-		mesh.add(line)
+		var line = Canvas.getOutlineMesh(mesh);
+		line.name = obj.uuid+'_outline';
+		line.visible = obj.selected;
+		line.renderOrder = 2;
+		mesh.outline = line;
+		mesh.add(line);
 	}
 }
 var Canvas = new CanvasController()

@@ -15,6 +15,7 @@ function newProject(entity_mode) {
 		Project.ambientocclusion = true;
 		Prop.file_path = Prop.file_name = Prop.file_name_alt = '';
 		Prop.project_saved = true;
+		Prop.animation_path = '';
 		Prop.added_models = 0;
 		setProjectTitle();
 		Canvas.updateAll();
@@ -1313,8 +1314,25 @@ function buildClassModel(options) {
 
 	var bones = []
 	var bone_nr = 1
-	var model_id = Project.parent.replace('geometry.', '')
+	var model_id = Project.parent.replace('geometry.', '') || 'unknown';
 	var all_groups = getAllOutlinerGroups()
+
+	var loose_cubes = []
+	TreeElements.forEach(obj => {
+		if (obj.type === 'cube') {
+			loose_cubes.push(obj)
+		}
+	})
+	if (loose_cubes.length) {
+		var group = {
+			name: 'bb_main',
+			rotation: [0, 0, 0],
+			origin: [0, 0, 0],
+			parent: 'root',
+			children: loose_cubes
+		}
+		all_groups.splice(0, 0, group)
+	}
 
 	all_groups.forEach((g) => {
 		//model += `\nthis.bone${bone_nr} = new ModelRenderer`
@@ -1377,7 +1395,7 @@ function buildClassModel(options) {
 	var model = (settings.credit.value
 			? '//'+settings.credit.value+'\n'
 			: '')+
-		'//Paste this code into your mod. Don\'t forget to add your imports\n' +
+		'//Paste this code into your mod.\n' +
 		'\nimport org.lwjgl.opengl.GL11;'+
 		'\nimport net.minecraft.client.model.ModelBase;'+
 		'\nimport net.minecraft.client.model.ModelBox;'+
@@ -1387,7 +1405,7 @@ function buildClassModel(options) {
 		'\npublic class '+model_id+' extends ModelBase {'
 
 	bones.forEach((bone) => {
-		model += `\n	public ModelRenderer ${bone.id};`;
+		model += `\n	private final ModelRenderer ${bone.id};`;
 	})
 
 	model += '\n'+
@@ -1402,7 +1420,7 @@ function buildClassModel(options) {
 	model +=
 		 '	}\n'+
 		 '\n	@Override'+
-		 '\n	public void render(Entity entity, float f, float f1, float f2, float f3, float f4, float f5) { '
+		 '\n	public void render(Entity entity, float f, float f1, float f2, float f3, float f4, float f5) {'
 	
 	bones.forEach((bone) => {
 		if (bone.rootBone) {

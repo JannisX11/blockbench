@@ -144,7 +144,7 @@
             <li v-for="item in currentBar" v-bind:title="item.name" :key="item.id||item">
                 <div v-if="typeof item === 'string'" class="toolbar_separator"></div>
                 <div v-else class="tool">
-                    <span class="icon_wrapper" v-bind:style="{opacity: BARS.condition(item.condition) ? 1 : 0.4}" v-html="Blockbench.getIconNode(item.icon).outerHTML"></span>
+                    <span class="icon_wrapper" v-bind:style="{opacity: BARS.condition(item.condition) ? 1 : 0.4}" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></span>
                     <div class="tooltip">{{item.name + (BARS.condition(item.condition) ? '' : ' (' + tl('dialog.toolbar_edit.hidden') + ')' )}}</div>
                 </div>
             </li> 
@@ -159,7 +159,7 @@
 
         <ul class="list" id="bar_item_list">
             <li v-for="item in searchedBarItems" v-on:click="addItem(item)">
-                <div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon).outerHTML"></div>
+                <div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
                 <div class="icon_wrapper add"><i class="material-icons">add</i></div>
                 {{ item.name }}
             </li>
@@ -452,13 +452,13 @@
                                 <div class="setting_element" v-html="Blockbench.getIconNode(setting.icon).outerHTML"></div>
                             </template>
                             <template v-else-if="!setting.type"><!--TOGGLE-->
-                                <div class="setting_element"><input type="checkbox" v-model="setting.value" v-on:click="saveSettings()"></div>
+                                <div class="setting_element"><input type="checkbox" v-model="setting.value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
                             </template>
 
-                            <div class="setting_label">
+                            <label class="setting_label" v-bind:for="'setting_'+key">
                                 <div class="setting_name">{{ tl('settings.'+key) }}</div>
                                 <div class="setting_description">{{ tl('settings.'+key+'.desc') }}</div>
-                            </div>
+                            </label>
 
                             <template v-if="setting.type === 'text'">
                                 <input type="text" class="dark_bordered" style="width: 96%" v-model="setting.value" v-on:input="saveSettings()">

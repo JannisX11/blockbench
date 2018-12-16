@@ -809,5 +809,7 @@
     "menu.preview.background.set_position": "Définir la position",
     "dialog.toolbar_edit.hidden": "Hidden",
     "action.export_class_entity": "Export Java Entity",
-    "action.export_class_entity.desc": "Export the entity model as a Java class"
+    "action.export_class_entity.desc": "Export the entity model as a Java class",
+    "settings.seethrough_outline": "X-Ray Outlines",
+    "settings.seethrough_outline.desc": "Show outlines through objects"
 }

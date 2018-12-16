@@ -1,4 +1,4 @@
-const appVersion = '2.2.0'
+const appVersion = '2.2.1'
 var osfs = '/'
 var File, i;
 const elements = [];
@@ -535,7 +535,7 @@ var Clipbench = {
 		if (open_dialog == 'uv_dialog') {
 			uv_dialog.copy(event)
 		} else if (display_mode) {
-			copyDisplaySlot()
+			DisplayMode.copy()
 		} else if (Animator.open) {
 			if (Timeline.selected.length) {
 				Clipbench.setKeyframes(Timeline.selected)
@@ -564,7 +564,7 @@ var Clipbench = {
 		if (open_dialog == 'uv_dialog') {
 			uv_dialog.paste(event)
 		} else if (display_mode) {
-			pasteDisplaySlot()
+			DisplayMode.paste()
 		} else if (Animator.open) {
 			//
 			if (isApp) {

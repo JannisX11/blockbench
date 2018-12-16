@@ -535,14 +535,14 @@ class BarSelect extends Widget {
 		})
 	}
 	change(event) {
-		this.set( $(event.target).find('option:selected').attr('id') )
+		this.set( $(event.target).find('option:selected').prop('id') )
 		if (this.onChange) {
 			this.onChange(this, event)
 		}
 	}
 	set(id) {
 		this.value = id
-		$(this.nodes).find('option#'+id).attr('selected', true).siblings().attr('selected', false)
+		$(this.nodes).find('option#'+id).prop('selected', true).siblings().prop('selected', false)
 	}
 	get() {
 		return this.value

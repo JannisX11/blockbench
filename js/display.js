@@ -36,7 +36,7 @@ class refModel {
 					} else if (display_slot === 'thirdperson_lefthand') {
 						setDisplayArea(-x, y, -z, -67.5,0,0, 1, 1, 1)
 					} else if (display_slot === 'head') {
-						setDisplayArea(0, 22, 0, 0, 0, 0, 0.625, 0.625, 0.625)
+						setDisplayArea(0, 28, 0, 0, 0, 0, 0.625, 0.625, 0.625)
 					}
 				}
 				break;
@@ -1245,28 +1245,24 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the scene etc
 	resetDisplayBase()
 	setDisplayArea(0,0,0, 0,0,0, 1,1,1)
+	display_area.updateMatrixWorld()
+	display_base.updateMatrixWorld()
 
-	setTimeout(() => {
+	display_mode = false;
+	main_preview.fullscreen()
 
-		display_mode = false;
-
-		main_preview.fullscreen()
-
-		$('.m_disp').hide()
-		$('.m_edit').show()
-		$('.selection_only').css('visibility', 'hidden')
-		$('body').removeClass('display_mode')
-		resizeWindow()
-		updateInterface()
-		if (quad_previews.enabled_before) {
-			openQuadView()
-		}
-
-		buildGrid()
-		setShading()
-		Canvas.updateRenderSides()
-	}, 60)
-
+	$('.m_disp').hide()
+	$('.m_edit').show()
+	$('.selection_only').css('visibility', 'hidden')
+	$('body').removeClass('display_mode')
+	resizeWindow()
+	updateInterface()
+	if (quad_previews.enabled_before) {
+		openQuadView()
+	}
+	buildGrid()
+	setShading()
+	Canvas.updateRenderSides()
 }
 function axisIndex(index) {
 	if (typeof index === 'number') {
@@ -1352,7 +1348,7 @@ DisplayMode.syncDispMirror = function(node, axis) {
 	}
 	var axis = (node.id||'x').substr(-1)
 	display_base.scale[axis] = display[display_slot].scale[axisIndex(axis)] *= -1
-	loadDisp(display_slot)
+	DisplayMode.load(display_slot)
 }
 function dispRotate(val, axis) {		//Change the actual thing
 	if (display[display_slot].rotation == undefined) {
@@ -1447,7 +1443,7 @@ DisplayMode.createPreset = function() {
 }
 
 
-function setDisplayArea(x, y, z, rx, ry, rz, sx, sy, sz) {//Sets the Work Area to the given Space
+var setDisplayArea = DisplayMode.setBase = function(x, y, z, rx, ry, rz, sx, sy, sz) {//Sets the Work Area to the given Space
 	display_area.rotation['x'] = Math.PI / (180 / rx);
 	display_area.rotation['y'] = Math.PI / (180 / ry);
 	display_area.rotation['z'] = Math.PI / (180 / rz);
@@ -1624,12 +1620,12 @@ DisplayMode.load = function(slot) {
 	}
 }
 
-function copyDisplaySlot() {
+DisplayMode.copy = function() {
 	var base_setting = {rotation: [0, 0, 0], translation: [0, 0, 0], scale: [1, 1, 1]}
 	$.extend(true, base_setting, display[display_slot])
 	display_clipboard = base_setting
 }
-function pasteDisplaySlot() {
+DisplayMode.paste = function() {
 	if (display_clipboard == undefined) return;
 
 	if (typeof display_clipboard.rotation === 'object' && display_clipboard.rotation.join('_') === '0_0_0') {

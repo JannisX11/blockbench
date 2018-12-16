@@ -805,9 +805,11 @@
     "action.record_model_gif.desc": "現在の角度からモデルのアニメーションGIFを記録する",
     "display.mirror": "ミラー",
     "data.separator": "セパレータ",
-    "message.set_background_position.title": "Background Position",
-    "menu.preview.background.set_position": "Set Position",
-    "dialog.toolbar_edit.hidden": "Hidden",
-    "action.export_class_entity": "Export Java Entity",
-    "action.export_class_entity.desc": "Export the entity model as a Java class"
+    "message.set_background_position.title": "背景の位置",
+    "menu.preview.background.set_position": "位置をセット",
+    "dialog.toolbar_edit.hidden": "隠す",
+    "action.export_class_entity": "Java Entityをエクスポート",
+    "action.export_class_entity.desc": "エンティティモデルをjava としてエクスポートする",
+    "settings.seethrough_outline": "X-Ray Outlines",
+    "settings.seethrough_outline.desc": "Show outlines through objects"
 }

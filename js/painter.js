@@ -11,7 +11,7 @@ class BBPainter {
 		})
 	}
 	edit(texture, cb, options) {
-		if (!options.noUndo) {
+		if (!options.no_undo) {
 			Undo.initEdit({textures: [texture], bitmap: true})
 		}
 		if (options.use_cache &&
@@ -19,9 +19,12 @@ class BBPainter {
 			typeof Painter.current.image === 'object'
 		) {
 			Painter.current.image = cb(Painter.current.image) || Painter.current.image
+			if (options.no_update === true) {
+				return;
+			}
 			Painter.current.image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
 				texture.updateSource(dataUrl)
-				if (!options.noUndo) {
+				if (!options.no_undo) {
 					Undo.finishEdit('edit_texture')
 				}
 			})
@@ -32,7 +35,7 @@ class BBPainter {
 				Painter.current.image = image
 				image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
 					texture.updateSource(dataUrl)
-					if (!options.noUndo) {
+					if (!options.no_undo) {
 						Undo.finishEdit('edit_texture')
 					}
 				})
@@ -85,7 +88,7 @@ class BBPainter {
 				while (i < length) {
 					x = end_x - diff.x / length * i
 					y = end_y - diff.y / length * i
-					Painter.useBrush(texture, x, y, data.cube.faces[data.face].uv)
+					Painter.useBrush(texture, x, y, data.cube.faces[data.face].uv, i < length-1)
 					i++;
 				}
 				Painter.current.x = end_x
@@ -121,7 +124,7 @@ class BBPainter {
 			Jimp.read(texture.source).then(getPxColor)
 		}
 	}
-	useBrush(texture, x, y, uvTag) {
+	useBrush(texture, x, y, uvTag, no_update) {
 		if ((Painter.currentPixel[0] !== x || Painter.currentPixel[1] !== y)) {
 			Painter.currentPixel = [x, y]
 			Painter.brushChanges = true
@@ -175,7 +178,7 @@ class BBPainter {
 					})
 				}
 				Painter.editing_area = undefined
-			}, {noUndo: true, use_cache: true})
+			}, {no_undo: true, use_cache: true, no_update: no_update})
 		}
 	}
 	stopBrush() {
@@ -569,18 +572,30 @@ class BBPainter {
 			})
 		}
 
+		var face_data = {
+			up:		{c1: 0xb4d4e1ff, c2: 0xecf8fdff, place: t => {return {x: t.posx+t.z, 		y: t.posy, 		w: t.x, 	h: t.z}}},
+			down:	{c1: 0x536174ff, c2: 0x6e788cff, place: t => {return {x: t.posx+t.z+t.x, 	y: t.posy, 		w: t.x, 	h: t.z}}},
+			east:	{c1: 0x43e88dff, c2: 0x7BFFA3ff, place: t => {return {x: t.posx, 			y: t.posy+t.z, 	w: t.z, 	h: t.y}}},
+			north:	{c1: 0x5bbcf4ff, c2: 0x7BD4FFff, place: t => {return {x: t.posx+t.z, 		y: t.posy+t.z, 	w: t.x, 	h: t.y}}},
+			west:	{c1: 0xf48686ff, c2: 0xFFA7A4ff, place: t => {return {x: t.posx+t.z+t.x, 	y: t.posy+t.z, 	w: t.z, 	h: t.y}}},
+			south:	{c1: 0xf8dd72ff, c2: 0xFFF899ff, place: t => {return {x: t.posx+t.z+t.x+t.z,y: t.posy+t.z, 	w: t.x, 	h: t.y}}},
+		}
+
 		//Drawing
 		new Jimp(max_size*res_multiple, max_size*res_multiple, 0, function(err, image) {
 
 			bone_temps.forEach(function(bt) {
 				bt.forEach(function(t) {
 
-					drawTemplateRectangle(image, 0xb4d4e1ff, 0xecf8fdff, {x: t.posx+t.z, 		y: t.posy, 		w: t.x, 	h: t.z})// up
-					drawTemplateRectangle(image, 0x536174ff, 0x6e788cff, {x: t.posx+t.z+t.x, 	y: t.posy, 		w: t.x, 	h: t.z})// down
-					drawTemplateRectangle(image, 0x43e88dff, 0x7BFFA3ff, {x: t.posx, 			y: t.posy+t.z, 	w: t.z, 	h: t.y})// east
-					drawTemplateRectangle(image, 0x5bbcf4ff, 0x7BD4FFff, {x: t.posx+t.z, 		y: t.posy+t.z, 	w: t.x, 	h: t.y})// north
-					drawTemplateRectangle(image, 0xf48686ff, 0xFFA7A4ff, {x: t.posx+t.z+t.x, 	y: t.posy+t.z, 	w: t.z, 	h: t.y})// west
-					drawTemplateRectangle(image, 0xf8dd72ff, 0xFFF899ff, {x: t.posx+t.z+t.x+t.z,y: t.posy+t.z, 	w: t.x, 	h: t.y})// south
+					for (var face in face_data) {
+						let d = face_data[face]
+						if (!options.use_texture || (t.obj.faces[face].texture)) {
+							//Colored
+							drawTemplateRectangle(image, d.c1, d.c2, d.place(t))
+						} else {
+							//Texture
+						}
+					}
 
 					let obj = t.obj
 					obj.uv_offset[0] = t.posx
