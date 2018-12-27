@@ -13,7 +13,9 @@
     <style type="text/css" id="bbstyle"></style>
 </head>
 <body spellcheck="false">
-    <div id="loading_error_message" style="display: none;">An error occurred while loading Blockbench</div>
+    <div id="loading_error_message" style="display: none;">An error occurred while loading Blockbench
+        <button onclick="Blockbench.reload()" class="large" style="display: block; margin-right: auto; margin-left: auto;">Reload</button>
+    </div>
     <script>
         if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
         var isApp = typeof require !== 'undefined'
@@ -28,6 +30,7 @@
         <script src="lib/gif.js"></script>
         <script src="lib/spectrum.js"></script>
         <script src="lib/three.js"></script>
+        <script src="lib/three_custom.js"></script>
         <script src="js/OrbitControls.js"></script>
         <script src="js/TransformControls.js"></script>
         <script src="js/OBJExporter.js"></script>
@@ -36,6 +39,7 @@
         <script src="js/util.js"></script>
         <script src="js/keyboard.js"></script>
         <script src="js/settings.js"></script>
+        <script src="js/actions.js"></script>
         <script src="js/blockbench.js"></script>
         <script src="js/undo.js"></script>
 
@@ -48,7 +52,6 @@
         </script>
 
         <script src="js/api.js"></script>
-        <script src="js/actions.js"></script>
         <script src="js/io.js"></script>
         <script src="js/elements.js"></script>
         <script src="js/preview.js"></script>
@@ -63,8 +66,6 @@
         <script src="js/plugin_loader.js"></script>
         <script>if (window.module) module = window.module;</script>
 
-    <div id="post_model" class="web_only post_data" hidden></div>
-    <div id="post_textures" class="web_only post_data" hidden></div>
     <div style="display: none;"></div>
 
 
@@ -297,55 +298,44 @@
     <div class="dialog draggable paddinged" id="create_preset">
         <h2 class="dialog_handle tl">dialog.display_preset.title</h2>
         <div class="dialog_bar tl">dialog.display_preset.message</div>
-
         <div class="dialog_bar">
             <input type="checkbox" id="thirdperson_righthand_save" checked>
             <label for="thirdperson_righthand_save" class="tl">display.slot.third_right</label>
         </div>
-
         <div class="dialog_bar">
             <input type="checkbox" id="thirdperson_lefthand_save" checked>
             <label for="thirdperson_lefthand_save" class="tl">display.slot.third_left</label>
         </div>
-
         <div class="dialog_bar">
             <input type="checkbox" id="firstperson_righthand_save" checked>
             <label for="firstperson_righthand_save" class="tl">display.slot.first_right</label>
         </div>
-
         <div class="dialog_bar">
             <input type="checkbox" id="firstperson_lefthand_save" checked>
             <label for="firstperson_lefthand_save" class="tl">display.slot.first_left</label>
         </div>
-
         <div class="dialog_bar">
             <input type="checkbox" id="head_save" checked>
             <label for="head_save" class="tl">display.slot.head</label>
         </div>
-
         <div class="dialog_bar">
             <input type="checkbox" id="ground_save" checked>
             <label for="ground_save" class="tl">display.slot.ground</label>
         </div>
-
         <div class="dialog_bar">
             <input type="checkbox" id="fixed_save" checked>
             <label for="fixed_save" class="tl">display.slot.frame</label>
         </div>
-
         <div class="dialog_bar">
             <input type="checkbox" id="gui_save" checked>
             <label for="gui_save" class="tl">display.slot.gui</label>
         </div>
-
         <div class="dialog_bar narrow">
             <label class="tl">display.presetname</label>
         </div>
-
         <div class="dialog_bar">
             <input type="text" id="preset_name" class="input_wide" id="new preset">
         </div>
-
         <div class="dialog_bar">
             <button type="button" class="large tl confirm_btn" onclick="DisplayMode.createPreset()">dialog.display_preset.create</button>
             <button type="button" class="large tl cancel_btn" onclick="hideDialog()">dialog.cancel</button>
@@ -444,9 +434,9 @@
                     </h3>
                     <ul v-if="category.open">
 
-                        <li v-for="(setting, key) in category.items" v-on="setting.click ? {click: setting.click} : {}">
+                        <li v-for="(setting, key) in category.items" v-if="Condition(setting.condition)" v-on="setting.click ? {click: setting.click} : {}">
                             <template v-if="setting.type === 'number'">
-                                <div class="setting_element"><input type="number" v-model="setting.value" v-on:input="saveSettings()"></div>
+                                <div class="setting_element"><input type="number" v-model.number="setting.value" v-on:input="saveSettings()"></div>
                             </template>
                             <template v-else-if="setting.type === 'click'">
                                 <div class="setting_element" v-html="Blockbench.getIconNode(setting.icon).outerHTML"></div>
@@ -699,6 +689,14 @@
         <ul id="menu_bar"></ul>
         <div class="toolbar_wrapper narrow tools"></div>
         <div class="toolbar_wrapper narrow tool_options"></div>
+        <div id="mode_selector">
+            <li
+                v-for="mode in options"
+                v-if="Condition(mode.condition)"
+                v-bind:class="{selected: mode.selected}"
+                v-on:click="mode.select()"
+            >{{ mode.name }}</li>
+        </div>
     </header>
     <div id="left_bar" class="sidebar">
         <div id="uv" class="panel selection_only">
@@ -754,55 +752,36 @@
             <div id="display_ref_bar" class="bar tabs_small reference_model_bar">
             </div>
 
-            <p class="tl">display.rotation</p><div class="tool head_right" onclick="DisplayMode.resetDisplaySettings('rotation')"><i class="material-icons">replay</i></div>
-            <div class="bar">
-                <input type="range" class="tool disp_range" id="rotation_x" name="" min="-180" max="180" step="1" value="0" oninput="DisplayMode.syncDispInput(this, 'rotation', 'x')">
-                <input type="number" class="tool disp_text" id="rotation_x" oninput="DisplayMode.syncDispInput(this, 'rotation', 'x')" min="-180" max="180" step="0.5" value="0">
-            </div>
-            <div class="bar">
-                <input type="range" class="tool disp_range" id="rotation_y" name="" min="-180" max="180" step="1" value="0" oninput="DisplayMode.syncDispInput(this, 'rotation', 'y')">
-                <input type="number" class="tool disp_text" id="rotation_y" oninput="DisplayMode.syncDispInput(this, 'rotation', 'y')" min="-180" max="180" step="0.5" value="0">
-            </div>
-            <div class="bar">
-                <input type="range" class="tool disp_range" id="rotation_z" name="" min="-180" max="180" step="1" value="0" oninput="DisplayMode.syncDispInput(this, 'rotation', 'z')">
-                <input type="number" class="tool disp_text" id="rotation_z" oninput="DisplayMode.syncDispInput(this, 'rotation', 'z')" min="-180" max="180" step="0.5" value="0">
-            </div>
+            <div id="display_sliders">
+                
+                <p class="tl">display.rotation</p><div class="tool head_right" v-on:click="resetChannel('rotation')"><i class="material-icons">replay</i></div>
+                <div class="bar" v-for="axis in [0, 1, 2]">
+                    <input type="range" class="tool disp_range" v-model.number="slot.rotation[axis]" min="-180" max="180" step="1" value="0" @input="change" @input="change(axis, 'rotation')" @mousedown="start" @change="save">
+                    <input type="number" class="tool disp_text" v-model.number="slot.rotation[axis]" min="-180" max="180" step="0.5" value="0" @input="change(axis, 'rotation');save()" @mousedown="start">
+                </div>
+                
+                <p class="tl">display.translation</p><div class="tool head_right" v-on:click="resetChannel('translation')"><i class="material-icons">replay</i></div>
+                <div class="bar" v-for="axis in [0, 1, 2]">
+                    <input type="range" class="tool disp_range" v-model.number="slot.translation[axis]" 
+                        v-bind:min="Math.abs(slot.translation[axis]) < 10 ? -20 : (slot.translation[axis] > 0 ? -70*3+10 : -80)"
+                        v-bind:max="Math.abs(slot.translation[axis]) < 10 ?  20 : (slot.translation[axis] < 0 ? 70*3-10 : 80)"
+                        v-bind:step="Math.abs(slot.translation[axis]) < 10 ? 0.25 : 1"
+                        value="0" @input="change(axis, 'rotation')" @mousedown="start" @change="save">
+                    <input type="number" class="tool disp_text" v-model.number="slot.translation[axis]" min="-80" max="80" step="0.5" value="0" @input="change(axis, 'rotation');save()" @mousedown="start">
+                </div>
 
-            <p class="tl">display.translation</p><div class="tool head_right" onclick="DisplayMode.resetDisplaySettings('translation')"><i class="material-icons">replay</i></div>
-            <div class="bar">
-                <input type="range" class="tool disp_range" id="translation_x" name="" min="-32" max="32" step="0.5" value="0" oninput="DisplayMode.syncDispInput(this, 'translation', 'x')">
-                <input type="number" class="tool disp_text" id="translation_x" oninput="DisplayMode.syncDispInput(this, 'translation', 'x')" min="-80" max="80" step="0.5" value="0">
-            </div>
-            <div class="bar">
-                <input type="range" class="tool disp_range" id="translation_y" name="" min="-32" max="32" step="0.5" value="0" oninput="DisplayMode.syncDispInput(this, 'translation', 'y')">
-                <input type="number" class="tool disp_text" id="translation_y" oninput="DisplayMode.syncDispInput(this, 'translation', 'y')" min="-80" max="80" step="0.5" value="0">
-            </div>
-            <div class="bar">
-                <input type="range" class="tool disp_range" id="translation_z" name="" min="-32" max="32" step="0.5" value="0" oninput="DisplayMode.syncDispInput(this, 'translation', 'z')">
-                <input type="number" class="tool disp_text" id="translation_z" oninput="DisplayMode.syncDispInput(this, 'translation', 'z')" min="-80" max="80" step="0.5" value="0">
-            </div>
-            
-            <p class="tl">display.scale</p><div class="tool head_right" onclick="DisplayMode.resetDisplaySettings('scale')"><i class="material-icons">replay</i></div>
-            <div class="bar">
-                <div class="tool display_scale_invert" id="display_scale_invert_x" onclick="DisplayMode.syncDispMirror(this, 'x')">
-                    <i class="material-icons">check_box_outline_blank</i><div class="tooltip tl">display.mirror</div>
+                <p class="tl">display.scale</p><div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>
+                <div class="bar" v-for="axis in [0, 1, 2]">
+                    <div class="tool display_scale_invert" v-on:click="invert(axis)">
+                        <i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i><div class="tooltip tl">display.mirror</div>
+                    </div>
+                    <input type="range" class="tool disp_range scaleRange" v-model.number="slot.scale[axis]" v-bind:id="'scale_range_'+axis"
+                        v-bind:min="slot.scale[axis] > 1 ? -2 : 0"
+                        v-bind:max="slot.scale[axis] > 1 ? 4 : 2"
+                        step="0.01"
+                        value="0" @input="change(axis, 'scale')" @mousedown="start" @change="save">
+                    <input type="number" class="tool disp_text" v-model.number="slot.scale[axis]" min="0" max="4" step="0.01" value="0" @input="change(axis, 'scale');save()" @mousedown="start">
                 </div>
-                <input type="range" class="tool disp_range scaleRange" id="scale_x" name="" min="-4" max="4" step="0.1" value="0" oninput="DisplayMode.syncDispInput(this, 'scaleRange', 'x', event)">
-                <input type="number" class="tool disp_text scale" id="scale_x" oninput="DisplayMode.syncDispInput(this, 'scale', 'x')" step="0.1" min="-4" max="4">
-            </div>
-            <div class="bar">
-                <div class="tool display_scale_invert" id="display_scale_invert_y" onclick="DisplayMode.syncDispMirror(this, 'x')">
-                    <i class="material-icons">check_box_outline_blank</i><div class="tooltip tl">display.mirror</div>
-                </div>
-                <input type="range" class="tool disp_range scaleRange" id="scale_y" name="" min="-4" max="4" step="0.1" value="0" oninput="DisplayMode.syncDispInput(this, 'scaleRange', 'y', event)">
-                <input type="number" class="tool disp_text scale" id="scale_y" oninput="DisplayMode.syncDispInput(this, 'scale', 'y')" step="0.1" min="-4" max="4">
-            </div>
-            <div class="bar">
-                <div class="tool display_scale_invert" id="display_scale_invert_z" onclick="DisplayMode.syncDispMirror(this, 'x')">
-                    <i class="material-icons">check_box_outline_blank</i><div class="tooltip tl">display.mirror</div>
-                </div>
-                <input type="range" class="tool disp_range scaleRange" id="scale_z" name="" min="-4" max="4" step="0.1" value="0" oninput="DisplayMode.syncDispInput(this, 'scaleRange', 'z', event)">
-                <input type="number" class="tool disp_text scale" id="scale_z" oninput="DisplayMode.syncDispInput(this, 'scale', 'z')" step="0.1" min="-4" max="4">
             </div>
         </div>
         <div id="animations" class="panel">
@@ -854,12 +833,12 @@
                     v-bind:class="{ selected: texture.selected, particle: texture.particle}"
                     v-bind:texid="texture.id"
                     class="texture"
-                    v-on:click.stop="texture.select()"
+                    v-on:click.stop="texture.select($event)"
                     v-on:dblclick="texture.openMenu($event)"
                     @contextmenu.prevent.stop="texture.showContextMenu($event)"
                 >
                     <div class="texture_icon_wrapper">
-                        <img v-bind:texid="texture.id" v-bind:src="texture.source" class="texture_icon" width="48px" alt="missing image" v-if="texture.show_icon" />
+                        <img v-bind:texid="texture.id" v-bind:src="texture.source" class="texture_icon" width="48px" alt="[E]" v-if="texture.show_icon" />
                         <i class="material-icons texture_error" title="Image Error" v-if="texture.error">error_outline</i>
                         <i class="texture_movie fa fa_big fa-film" title="Animated Texture" v-if="texture.frameCount > 1"></i>
                     </div>
@@ -945,6 +924,7 @@
         <div class="f_right">
             {{ Prop.fps }} FPS
         </div>
+        <div id="status_progress" v-if="Prop.progress" v-bind:style="{width: Prop.progress*100+'%'}"></div>
     </div>
     <script>
         initCanvas()

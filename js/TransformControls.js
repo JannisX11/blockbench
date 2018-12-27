@@ -36,9 +36,7 @@
 			}
 
 		};
-
 	};
-
 	GizmoMaterial.prototype = Object.create( THREE.MeshBasicMaterial.prototype );
 	GizmoMaterial.prototype.constructor = GizmoMaterial;
 
@@ -72,15 +70,11 @@
 			}
 
 		};
-
 	};
-
 	GizmoLineMaterial.prototype = Object.create( THREE.LineBasicMaterial.prototype );
 	GizmoLineMaterial.prototype.constructor = GizmoLineMaterial;
 
-
 	var pickerMaterial = new GizmoMaterial( { visible: false, transparent: false } );
-
 
 	THREE.TransformGizmo = function () {
 
@@ -134,6 +128,7 @@
 						var object = gizmoMap[ name ][ i ][ 0 ];
 						var position = gizmoMap[ name ][ i ][ 1 ];
 						var rotation = gizmoMap[ name ][ i ][ 2 ];
+						var scale = gizmoMap[ name ][ i ][ 3 ];
 
 						if (object.name.length === 0) {
 							object.name = name;
@@ -142,6 +137,9 @@
 
 						if ( position ) object.position.set( position[ 0 ], position[ 1 ], position[ 2 ] );
 						if ( rotation ) object.rotation.set( rotation[ 0 ], rotation[ 1 ], rotation[ 2 ] );
+						if ( scale ) {
+							object.scale.set( scale[ 0 ], scale[ 1 ], scale[ 2 ] );
+						}
 
 						parent.add( object );
 
@@ -181,8 +179,15 @@
 			this.traverse( function( child ) {
 
 				if ( child.material && child.material.highlight ) {
-
-					if ( child.name === axis ) {
+					/*
+					if (axis === null) {
+						child.material.opacity = 0.82
+					} else if (axis === child.name) {
+						child.material.opacity = 2
+					} else {
+						child.material.opacity = 0.24
+					}*/
+					if ( child.name === axis) {
 
 						child.material.highlight( true );
 
@@ -197,12 +202,10 @@
 			} );
 
 		};
-
 	};
 
 	THREE.TransformGizmo.prototype = Object.create( THREE.Object3D.prototype );
 	THREE.TransformGizmo.prototype.constructor = THREE.TransformGizmo;
-
 	THREE.TransformGizmo.prototype.update = function ( rotation, eye ) {
 
 		var vec1 = new THREE.Vector3( 0, 0, 0 );
@@ -222,7 +225,6 @@
 			}
 
 		} );
-
 	};
 
 	THREE.TransformGizmoTranslate = function () {
@@ -297,9 +299,7 @@
 		};
 
 		this.init();
-
 	};
-
 	THREE.TransformGizmoTranslate.prototype = Object.create( THREE.TransformGizmo.prototype );
 	THREE.TransformGizmoTranslate.prototype.constructor = THREE.TransformGizmoTranslate;
 
@@ -336,7 +336,7 @@
 				[ new THREE.Line( lineYGeometry, new GizmoLineMaterial( { color: gizmo_colors.g} ) ) ],
 
 				[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: gizmo_colors.g } ) ), [ 0, -1.5, 0 ] ],
-				[ new THREE.Line( lineYGeometry, new GizmoLineMaterial( { color: gizmo_colors.g } ) ), [ 0, -1, 0 ] ]
+				[ new THREE.Line(lineYGeometry, new GizmoLineMaterial( { color: gizmo_colors.g } ) ), [ 0, -1, 0 ] ]
 			],
 			Z: [
 				[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: gizmo_colors.b } ) ), [ 0, 0, 0.5 ], [ Math.PI / 2, 0, 0 ] ],
@@ -393,11 +393,137 @@
 			}
 		};
 		this.init();
-
 	};
-
 	THREE.TransformGizmoScale.prototype = Object.create( THREE.TransformGizmo.prototype );
 	THREE.TransformGizmoScale.prototype.constructor = THREE.TransformGizmoScale;
+
+	THREE.TransformGizmoRotate = function () {
+
+		THREE.TransformGizmo.call( this );
+
+		var CircleGeometry = function ( radius, facing, arc ) {
+
+			var geometry = new THREE.BufferGeometry();
+			var vertices = [];
+			arc = arc ? arc : 1;
+
+			for ( var i = 0; i <= 64 * arc; ++ i ) {
+
+				if ( facing === 'x' ) vertices.push( 0, Math.cos( i / 32 * Math.PI ) * radius, Math.sin( i / 32 * Math.PI ) * radius );
+				if ( facing === 'y' ) vertices.push( Math.cos( i / 32 * Math.PI ) * radius, 0, Math.sin( i / 32 * Math.PI ) * radius );
+				if ( facing === 'z' ) vertices.push( Math.sin( i / 32 * Math.PI ) * radius, Math.cos( i / 32 * Math.PI ) * radius, 0 );
+
+			}
+
+			geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+			return geometry;
+
+		};
+
+		this.handleGizmos = {
+
+			X: [
+				[ new THREE.Line( new CircleGeometry( 1, 'x', 0.5 ), new GizmoLineMaterial( { color: gizmo_colors.r } ) ) ],
+				[ new THREE.Mesh( new THREE.OctahedronBufferGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.r } ) ), [ 0, 0, 0.98 ], null, [ 1, 4, 1 ] ],
+			],
+			Y: [
+				[ new THREE.Line( new CircleGeometry( 1, 'y', 0.5 ), new GizmoLineMaterial( { color: gizmo_colors.g } ) ) ],
+				[ new THREE.Mesh( new THREE.OctahedronBufferGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.g } ) ), [ 0, 0, 0.98 ], null, [ 4, 1, 1 ] ],
+			],
+			Z: [
+				[ new THREE.Line( new CircleGeometry( 1, 'z', 0.5 ), new GizmoLineMaterial( { color: gizmo_colors.b } ) ) ],
+				[ new THREE.Mesh( new THREE.OctahedronBufferGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.b } ) ), [ 0.98, 0, 0 ], null, [ 1, 4, 1 ] ],
+			],
+			XYZE: [[ new THREE.Line( new CircleGeometry( 1, 'z', 1 ), new GizmoLineMaterial( { color: 0x787878 } ) ) ]]
+
+		};
+
+		this.pickerGizmos = {
+
+			X: [[ new THREE.Mesh( new THREE.TorusBufferGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ 0, - Math.PI / 2, - Math.PI / 2 ] ]],
+			Y: [[ new THREE.Mesh( new THREE.TorusBufferGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ Math.PI / 2, 0, 0 ] ]],
+			Z: [[ new THREE.Mesh( new THREE.TorusBufferGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ]]
+
+		};
+
+		this.setActivePlane = function ( axis ) {
+
+			if ( axis === "E" ) this.activePlane = this.planes[ "XYZE" ];
+
+			if ( axis === "X" ) this.activePlane = this.planes[ "YZ" ];
+
+			if ( axis === "Y" ) this.activePlane = this.planes[ "XZ" ];
+
+			if ( axis === "Z" ) this.activePlane = this.planes[ "XY" ];
+
+		};
+
+		this.update = function ( rotation, eye2 ) {
+
+			THREE.TransformGizmo.prototype.update.apply( this, arguments );
+
+			var group = {
+
+				handles: this[ "handles" ],
+				pickers: this[ "pickers" ],
+
+			};
+
+			var tempMatrix = new THREE.Matrix4();
+			var worldRotation = new THREE.Euler( 0, 0, 1 );
+			var tempQuaternion = new THREE.Quaternion();
+			var unitX = new THREE.Vector3( 1, 0, 0 );
+			var unitY = new THREE.Vector3( 0, 1, 0 );
+			var unitZ = new THREE.Vector3( 0, 0, 1 );
+			var quaternionX = new THREE.Quaternion();
+			var quaternionY = new THREE.Quaternion();
+			var quaternionZ = new THREE.Quaternion();
+			var eye = eye2.clone();
+
+			worldRotation.copy( this.planes[ "XY" ].rotation );
+			tempQuaternion.setFromEuler( worldRotation );
+
+			tempMatrix.makeRotationFromQuaternion( tempQuaternion ).getInverse( tempMatrix );
+			eye.applyMatrix4( tempMatrix );
+
+			this.traverse( function( child ) {
+
+
+				tempQuaternion.setFromEuler( worldRotation );
+
+
+				if ( child.name === "X" ) {
+
+					quaternionX.setFromAxisAngle( unitX, Math.atan2( - eye.y, eye.z ) );
+					tempQuaternion.multiplyQuaternions( tempQuaternion, quaternionX );
+					child.quaternion.copy( tempQuaternion );
+
+				}
+
+				if ( child.name === "Y" ) {
+
+					quaternionY.setFromAxisAngle( unitY, Math.atan2( eye.x, eye.z ) );
+					tempQuaternion.multiplyQuaternions( tempQuaternion, quaternionY );
+					child.quaternion.copy( tempQuaternion );
+
+				}
+
+				if ( child.name === "Z" ) {
+
+					quaternionZ.setFromAxisAngle( unitZ, Math.atan2( eye.y, eye.x ) );
+					tempQuaternion.multiplyQuaternions( tempQuaternion, quaternionZ );
+					child.quaternion.copy( tempQuaternion );
+
+				}
+
+			} );
+
+		};
+
+		this.init();
+	};
+	THREE.TransformGizmoRotate.prototype = Object.create( THREE.TransformGizmo.prototype );
+	THREE.TransformGizmoRotate.prototype.constructor = THREE.TransformGizmoRotate;
 
 	THREE.TransformControls = function ( cam, domElement ) {
 
@@ -408,8 +534,6 @@
 		this.camera = cam
 		this.objects = [];
 		this.visible = false;
-		this.translationSnap = null;
-		this.rotationSnap = null;
 		this.space = "world";
 		this.size = 1;
 		this.axis = null;
@@ -428,7 +552,8 @@
 		var _gizmo = {
 
 			"translate": new THREE.TransformGizmoTranslate(),
-			"scale": new THREE.TransformGizmoScale()
+			"scale": new THREE.TransformGizmoScale(),
+			"rotate": new THREE.TransformGizmoRotate()
 		};
 
 		for ( var type in _gizmo ) {
@@ -440,13 +565,12 @@
 
 		}
 
-		
-		this.children[0].children[0].children.forEach(function(s) {
-			s.renderOrder = 999
+		//Adjust GIzmos
+		this.traverse((kid) => {
+			kid.renderOrder = 999
 		})
-		this.children[1].children[0].children.forEach(function(s) {
-			s.renderOrder = 999
-		})
+		this.children[2].children[0].children[6].renderOrder -= 9
+		this.children[2].scale.set(0.8, 0.8, 0.8)
 
 		//Vars
 			var changeEvent = { type: "change" };
@@ -481,18 +605,15 @@
 			var quaternionE = new THREE.Quaternion();
 
 			var oldRotationMatrix = new THREE.Vector4()
-			var oldPositionArray = []
-			var oldScaleArray = []
+			var oldRotationArray = []
 			var parentRotationArray = []
 			var oldScale = 0;
 			var oldScaleTranslation = 0;
 			var positionSnapOffset = new THREE.Vector3()
 			var previousValue = 0;
 			var tempScale = 1;
-			var oldOriginPosition = new THREE.Vector3()
 
 			var parentRotationMatrix  = new THREE.Matrix4();
-			var parentScale = new THREE.Vector3();
 
 			var worldPosition = new THREE.Vector3();
 			var worldRotation = new THREE.Euler();
@@ -500,48 +621,33 @@
 			var camPosition = new THREE.Vector3();
 			var camRotation = new THREE.Euler();
 
-		this.dispose = function () {
-
-
-		};
+			var animation_channels = {
+				rotate: 'rotation',
+				translate: 'position',
+				scale: 'scale'
+			}
 
 		this.attach = function ( object ) {
-
-			this.objects.push(object);
+			this.objects.safePush(object);
 			this.visible = true;
-			//this.update();
 		};
 
 		this.detach = function () {
-
 			this.objects.length = 0
 			this.visible = false;
 			this.axis = null;
 		};
-
-		this.getMode = function () {
-
-			return _mode;
-		};
-
 		this.setMode = function ( mode ) {
-
-			if (mode === 'hidden') return;
-
-			_mode = mode ? mode : _mode;
-
+			if (mode === 'hidden') {
+				return;
+			}
+			_mode = mode||_mode;
 			if ( _mode === "scale" ) scope.space = "local";
-
-			for ( var type in _gizmo ) _gizmo[ type ].visible = ( type === _mode );
+			for ( var type in _gizmo ) _gizmo[ type ].visible = (type === _mode);
 
 			this.update();
 			this.updateVisibleAxes()
 			scope.dispatchEvent( changeEvent );
-		};
-
-		this.setTranslationSnap = function ( translationSnap ) {
-
-			scope.translationSnap = translationSnap;
 		};
 		this.setSize = function ( size ) {
 
@@ -549,40 +655,33 @@
 			this.update();
 			scope.dispatchEvent( changeEvent );
 		};
-
 		this.setSpace = function ( space ) {
-
 			scope.space = space;
 			this.update();
 			scope.dispatchEvent(changeEvent);
 		};
-
-		this.cancel = function () {
-		};
-
 		this.updateVisibleAxes = function () {
-			scope.children[ _mode === 'translate' ? 0 : 1 ].children[0].children.forEach(function(s, i) {
+			var hide_own_axis = (_mode !== 'rotate')
+			function updateVis(s, i) {
 				if (!scope.camera.axis) {
 					s.visible = true
-				} else if (s.name.includes(scope.camera.axis.toUpperCase()) === true) {
+				} else if (s.name.includes(scope.camera.axis.toUpperCase()) === hide_own_axis) {
 					s.visible = false;
 				} else {
 					s.visible = true;
 				}
-			})
+			}
+			_gizmo[ _mode ].children[0].children.forEach(updateVis)
+			_gizmo[ _mode ].pickers.children.forEach(updateVis)
 		};
-
 		this.getScale = function() {
 
 			var scope = Transformer;
-
 			scope.camera.updateMatrixWorld();
 			camPosition.setFromMatrixPosition( scope.camera.matrixWorld );
-			camRotation.setFromRotationMatrix( tempMatrix.extractRotation( scope.camera.matrixWorld ) );
+			//camRotation.setFromRotationMatrix( tempMatrix.extractRotation( scope.camera.matrixWorld ) );
 			//eye.copy( camPosition ).sub( worldPosition ).normalize();
-
 			//this.position.copy( worldPosition );
-
 			if ( scope.camera instanceof THREE.PerspectiveCamera ) {
 
 				scale = worldPosition.distanceTo( camPosition )/6
@@ -598,53 +697,48 @@
 			scale *= (1000+scope.camera.preview.height)/2000
 			return scale;
 		}
-
 		this.setScale = function(sc) {
-
 			Transformer.scale.set(sc,sc,sc)
 		}
-
 		this.update = function (object) {
-
 			var scope = Transformer;
 
-			if ( scope.objects.length == 0 && !selected_group) return;
-
-			this.getScale()
-
-			this.scale.set( scale, scale, scale );
-
-
+			if (!object && Modes.id === 'display' && Toolbox.selected.transformerMode === 'rotate') {
+				object = display_area;
+			} else if (Blockbench.entity_mode && selected_group) {
+				if (Toolbox.selected.transformerMode !== 'scale' && selected_group.parent.type === 'group') {
+					object = selected_group.parent.getMesh()
+				}
+			}
+			if (scope.objects.length == 0 && !selected_group && !display_mode && !Animator.open) {
+				this.visible = false;
+				return;
+			}
+			this.getWorldPosition(worldPosition)
+			this.setScale(this.getScale());
 
 			//Origin
 			if ( scope.camera instanceof THREE.PerspectiveCamera ) {
 
+				eye.copy( camPosition ).sub( worldPosition ).normalize();
 				scale = rot_origin.getWorldPosition(new THREE.Vector3()).distanceTo( camPosition ) / 16 * (settings.origin_size.value / 20);
 
 			} else if ( scope.camera instanceof THREE.OrthographicCamera ) {
 
-				//eye.copy( camPosition ).normalize();
+				eye.copy( camPosition ).normalize();
 				scale = (6 / scope.camera.zoom) * (settings.origin_size.value / 50);
-
 			}
 			rot_origin.scale.set( scale, scale, scale );
 
-
-			if ( scope.space === "local" && object) {
-
+			if (object) {
 				worldRotation.setFromRotationMatrix( tempMatrix.extractRotation( object.matrixWorld ) );
-
 				_gizmo[ _mode ].update( worldRotation, eye );
 
-			} else if ( scope.space === "world" ) {
-
+			} else {
 				_gizmo[ _mode ].update( new THREE.Euler(), eye );
-
 			}
-
 			_gizmo[ _mode ].highlight( scope.axis );
 		};
-
 		this.fadeInControls = function(frames) {
 			if (!frames || typeof frames !== 'number') frames = 10
 			var scope = Transformer;
@@ -661,7 +755,6 @@
 				}
 			}, 16)
 		}
-
 		this.setCanvas = function(canvas) {
 			if (this.canvas) {
 				this.canvas.removeEventListener( "mousedown", onPointerDown );
@@ -695,43 +788,32 @@
 			this.canvas.addEventListener( "touchcancel", onPointerUp, false );
 			this.canvas.addEventListener( "touchleave", onPointerUp, false );
 		}
-
 		this.setCanvas(domElement)
 
-
 		function onPointerHover( event ) {
-
 			if ( scope.objects.length === 0 || ( event.button !== undefined && event.button !== 0 ) ) return;
 
 			var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
-
 			var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children );
-
 			if (intersect) {
 				scope.dragging = true
 			}
-
 			if (_dragging === true) return;
-
 			scope.hoverAxis = null;
 
 			if ( intersect ) {
 				scope.hoverAxis = intersect.object.name;
-				if (scope.hoverAxis.toLowerCase() === scope.camera.axis) {
+				if (scope.camera.axis && (scope.hoverAxis.toLowerCase() === scope.camera.axis) === (_mode !== 'rotate')) {
 					scope.hoverAxis = null
 				}
 				event.preventDefault();
 			}
 			if ( scope.axis !== scope.hoverAxis ) {
-
 				scope.axis = scope.hoverAxis;
 				scope.update();
 				scope.dispatchEvent( changeEvent );
-
 			}
-
 		}
-
 		function onPointerDown( event ) {
 
 			if ( scope.objects.length === 0 || _dragging === true || ( event.button !== undefined && event.button !== 0  ) ) return;
@@ -739,181 +821,281 @@
 			if ( pointer.button === 0 || pointer.button === undefined ) {
 
 				var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children );
-
 				if ( intersect ) {
 					scope.dragging = true
 
-					if (intersect.object.name.toLowerCase() === scope.camera.axis) return;
-
+					Transformer.getWorldPosition(worldPosition)
+					if (scope.camera.axis && (scope.hoverAxis.toLowerCase() === scope.camera.axis) === (_mode !== 'rotate')) return;
 					event.preventDefault();
 					event.stopPropagation();
-
 					scope.dispatchEvent( mouseDownEvent );
 
 					scope.axis = intersect.object.name;
-
 					scope.update();
 					tempScale = 1
 					oldScaleTranslation = 0;
-
 					eye.copy( camPosition ).sub( worldPosition ).normalize();
-
 					_gizmo[ _mode ].setActivePlane( scope.axis, eye );
-
 					var planeIntersect = intersectObjects( pointer, [ _gizmo[ _mode ].activePlane ] );
 
 					scope.last_valid_position.copy(scope.position)
 					scope.hasChanged = false
 
-					if ( planeIntersect ) {
-						if (Toolbox.selected.id === 'resize_tool') {
-							var axisnr = getAxisNumber(scope.axis.toLowerCase().replace('n', ''))
-							selected.forEach(function(obj) {
-								obj.oldScale = obj.size(axisnr)
-							})
-							Undo.initEdit({cubes: selected})
-						} else if (Toolbox.selected.id === 'move_tool') {
-
-							previousValue = undefined
-							Undo.initEdit({cubes: selected})
-						}
-
-						Canvas.outlineObjects(selected)
-
-						oldPositionArray.length = 0
-						oldScaleArray.length = 0
-						parentRotationArray.length = 0
-
-						scope.objects.forEach(function(s) {
-
-							oldPositionArray.push(new THREE.Vector3());
-							oldScaleArray.push(new THREE.Vector3());
-							oldOriginPosition = new THREE.Vector3()
-							oldOriginPosition.copy(scope.position)
-
-
-							oldPositionArray[ oldPositionArray.length-1 ].copy( s.position );
-							oldScaleArray[ oldScaleArray.length-1 ].copy( s.scale );
-
-							parentScale.setFromMatrixScale( tempMatrix.getInverse( s.parent.matrixWorld ) );
-						})
-
-						offset.copy( planeIntersect.point );
-
+					if (Toolbox.selected.id === 'resize_tool') {
+						scope.direction = scope.axis.substr(0, 1) !== 'N'
 					}
 
+					if ( planeIntersect ) {
+						offset.copy( planeIntersect.point );
+						previousValue = undefined
+						Canvas.outlineObjects(selected)
+					}
+				}
+			}
+			_dragging = true;
+		}
+		function beforeFirstChange(event) {
+			if (scope.hasChanged) return;
+
+			if (Modes.id === 'edit') {
+
+				if (Toolbox.selected.id === 'resize_tool') {
+					var axisnr = getAxisNumber(scope.axis.toLowerCase().replace('n', ''))
+					selected.forEach(function(obj) {
+						obj.oldScale = obj.size(axisnr)
+					})
+				}
+				Undo.initEdit({cubes: selected})
+
+			} else if (Modes.id === 'animate') {
+
+				if (Timeline.playing) {
+					Timeline.pause()
+				}
+				var channel = animation_channels[_mode]
+				scope.keyframe = false;
+				for (var i = 0; i < Timeline.keyframes.length; i++) {
+					var kf = Timeline.keyframes[i];
+					if (kf.channel === channel && Math.abs(kf.time - Timeline.second) < 0.02) {
+						scope.keyframe = kf
+					}
+				}
+				Undo.initEdit({keyframes: scope.keyframe ? [scope.keyframe] : null})
+				if (!scope.keyframe) {
+					var ba = Animator.selected.getBoneAnimator()
+					scope.keyframe = ba.addKeyframe(null, Timeline.second, channel);
 				}
 
+			} else if (Modes.id === 'display') {
+				Undo.initEdit({display_slots: [display_slot]})
 			}
-
-			_dragging = true;
-
+			scope.firstChangeMade = true
 		}
-
 		function onPointerMove( event ) {
 
 			if ( scope.objects === undefined || scope.axis === null || _dragging === false || ( event.button !== undefined && event.button !== 0 ) ) return;
 
 			scope.orbit_controls.hasMoved = true
-
 			var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
-
 			var planeIntersect = intersectObjects( pointer, [ _gizmo[ _mode ].activePlane ] );
-
-			if ( planeIntersect === false ) return;
+			if (!planeIntersect) return;
 
 			event.preventDefault();
 			event.stopPropagation();
 
+			var axis = scope.axis.substr(-1).toLowerCase()
+			var axisNumber = getAxisNumber(axis)
+
 			point.copy( planeIntersect.point );
-			point.sub( offset );
-			if (!Blockbench.globalMovement) {
+
+			if (Toolbox.selected.id !== 'rotate_tool') {
+				point.sub( offset );
+			}
+
+			if (Toolbox.selected.id === 'rotate_tool') {
+
+				point.sub( worldPosition );
+				var rotations = [
+					Math.atan2( point.z, point.y ),
+					Math.atan2( point.x, point.z ),
+					Math.atan2( point.y, point.x )
+				]
+				var angle = Math.radToDeg( rotations[axisNumber] )
+
+			} else if (!Blockbench.globalMovement) {
 				var rotation = new THREE.Quaternion()
 				scope.objects[0].getWorldQuaternion(rotation)
 				point.applyQuaternion(rotation.inverse())
 			}
 
-			if (Toolbox.selected.id === 'resize_tool') {
+			if (Modes.id === 'edit') {
 
-				//Scale
-				if (scope.axis.substr(0, 1) === 'N') {
-					var axis = scope.axis.substr(1, 1).toLowerCase()
-					scope.direction = false
-				} else {
-					var axis = scope.axis.toLowerCase()
-					scope.direction = true
-				}
-
-				var axisNumber = getAxisNumber(axis)
-				var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
-				point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor// * (useBedrockFlipFix(axis) ? -1 : 1)
+				if (Toolbox.selected.id === 'resize_tool') {
+					//Scale
+					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
+					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor// * (useBedrockFlipFix(axis) ? -1 : 1)
 
 
-				if (previousValue !== point[axis]) {
+					if (previousValue !== point[axis]) {
+						beforeFirstChange(event)
 
-					selected.forEach(function(obj, i) {
-						var mesh = scope.objects[i]
-						var allow_negative = settings.negative_size.value
-
-						if (scope.direction) { //Positive
-							scaleCube(obj, limitNumber(obj.oldScale + point[axis], (allow_negative ? -32000 : 0), 32000), axisNumber)
-						} else {
-							scaleCubeNegative(obj, limitNumber(obj.oldScale - point[axis], (allow_negative ? -32000 : 0), 32000), axisNumber)
-						}
-						if (Blockbench.entity_mode === true) {
-							Canvas.updateUV(obj)
-						}
-					})
-					Canvas.updatePositions(true)
-					centerTransformer()
-					previousValue = point[axis]
-					scope.hasChanged = true
-				}
-
-			} else if (Toolbox.selected.id === 'move_tool') {
-
-
-				var axis = scope.axis.toLowerCase()
-				var axisNumber = getAxisNumber(axis)
-				var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
-				point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor// * (useBedrockFlipFix(axis) ? -1 : 1)
-
-				if (previousValue === undefined) {
-					previousValue = point[axis]
-
-				} else if (previousValue !== point[axis]) {
-					var difference = point[axis] - previousValue
-
-					var overlapping = false
-					if (settings.restricted_canvas.value && !Blockbench.entity_mode) {
-						selected.forEach(function(obj) {
-							overlapping = overlapping || (
-								obj.to[axisNumber] + difference > 32 ||
-								obj.to[axisNumber] + difference < -16 ||
-								obj.from[axisNumber] + difference > 32 ||
-								obj.from[axisNumber] + difference < -16
-							)
-						})
-					}
-					if (!overlapping) {
 						selected.forEach(function(obj, i) {
 							var mesh = scope.objects[i]
-							var valx = obj.from[axisNumber]
-							valx += difference
-							moveCube(obj, valx, axisNumber)
+							var allow_negative = settings.negative_size.value
+
+							if (scope.direction) { //Positive
+								scaleCube(obj, limitNumber(obj.oldScale + point[axis], (allow_negative ? -32000 : 0), 32000), axisNumber)
+							} else {
+								scaleCubeNegative(obj, limitNumber(obj.oldScale - point[axis], (allow_negative ? -32000 : 0), 32000), axisNumber)
+							}
+							if (Blockbench.entity_mode === true) {
+								Canvas.updateUV(obj)
+							}
 						})
 						Canvas.updatePositions(true)
 						centerTransformer()
+						previousValue = point[axis]
+						scope.hasChanged = true
 					}
-					previousValue = point[axis]
+
+				} else if (Toolbox.selected.id === 'move_tool') {
+
+					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
+					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor// * (useBedrockFlipFix(axis) ? -1 : 1)
+
+					if (previousValue === undefined) {
+						previousValue = point[axis]
+
+					} else if (previousValue !== point[axis]) {
+						beforeFirstChange(event)
+
+						var difference = point[axis] - previousValue
+
+						var overlapping = false
+						if (settings.restricted_canvas.value && !Blockbench.entity_mode) {
+							selected.forEach(function(obj) {
+								overlapping = overlapping || (
+									obj.to[axisNumber] + difference > 32 ||
+									obj.to[axisNumber] + difference < -16 ||
+									obj.from[axisNumber] + difference > 32 ||
+									obj.from[axisNumber] + difference < -16
+								)
+							})
+						}
+						if (!overlapping) {
+							/*var group = Blockbench.entity_mode && selected_group && selected_group.matchesSelection();
+							if (group) {
+								selected_group.origin[axisNumber] += difference
+							}*/
+							selected.forEach(function(obj, i) {
+								var mesh = scope.objects[i]
+								var valx = obj.from[axisNumber]
+								valx += difference
+								moveCube(obj, valx, axisNumber/*, group*/)
+							})
+							Canvas.updatePositions(true)
+							centerTransformer()
+						}
+						previousValue = point[axis]
+						scope.hasChanged = true
+					}
+				} else if (Toolbox.selected.id === 'rotate_tool') {
+
+					var snap = getRotationInterval(event)
+					angle = Math.round(angle / snap) * snap
+					if (previousValue === undefined) previousValue = angle
+
+					if (previousValue !== angle) {
+						beforeFirstChange(event)
+
+						var difference = angle - previousValue
+						rotateOnAxis(difference, false, axisNumber)
+						Canvas.updatePositions(true)
+						centerTransformer()
+						previousValue = angle
+						scope.hasChanged = true
+					}
+				}
+			} else if (Animator.open) {
+
+				if (!Animator.selected) {
+					Blockbench.showQuickMessage('message.no_animation_selected')
+				}
+
+				if (Toolbox.selected.id === 'rotate_tool') {
+					value = Math.trimDeg(axisNumber === 2 ? angle : -angle)
+					var round_num = getRotationInterval(event)
+				} else {
+					value = point[axis]
+					var round_num = canvasGridSize(event.shiftKey, event.ctrlKey)
+				}
+				value = Math.round(value/round_num)*round_num
+				if (previousValue === undefined) previousValue = value
+
+				if (value !== previousValue && Animator.selected && Animator.selected.getBoneAnimator()) {
+					beforeFirstChange(event)
+					var difference = value - (previousValue||0)
+
+					if (Toolbox.selected.transformerMode === 'scale') {
+						axis = 'x';
+					}
+					scope.keyframe.offset(axis, difference);
+					scope.keyframe.select()
+
+					updateKeyframeSelection()
+					Animator.preview()
+					previousValue = value
+					scope.hasChanged = true
+				}
+
+			} else if (display_mode) {
+
+				var rotation = new THREE.Quaternion()
+				scope.getWorldQuaternion(rotation)
+				point.applyQuaternion(rotation.inverse())
+
+				var channel = animation_channels[_mode]
+				if (channel === 'position') channel = 'translation'
+				var value = (Toolbox.selected.id === 'rotate_tool') ? angle : point[axis]
+				if (channel === 'scale') {
+					value = Math.round(value*64)/(64*8)
+					if (!scope.direction) value *= -1;
+				} else {
+					value = Math.round(value*4)/4
+				}
+				if (Toolbox.selected.id === 'rotate_tool') {
+					value = Math.trimDeg(value)
+				}
+				if (display_slot.includes('lefthand')) {
+					if (channel === 'rotation' && axisNumber) {
+						value *= -1
+					} else if (channel === 'translation' && !axisNumber) {
+						value *= -1
+					}
+				}
+				if (previousValue === undefined) previousValue = value
+
+				if (value !== previousValue) {
+					beforeFirstChange(event)
+
+					var difference = value - (previousValue||0)
+					display[display_slot][channel][axisNumber] += difference
+
+					if (event.shiftKey) {
+						var val = display[display_slot][channel][axisNumber]
+						display[display_slot][channel][(axisNumber+1)%3] = val
+						display[display_slot][channel][(axisNumber+2)%3] = val
+					}
+					DisplayMode.slot.update()
+
+					previousValue = value
 					scope.hasChanged = true
 				}
 			}
+
 			scope.dispatchEvent( changeEvent );
 			scope.dispatchEvent( objectChangeEvent );
-
 		}
-
 		function onPointerUp( event ) {
 			event.preventDefault(); // Prevent MouseEvent on mobile
 			scope.dragging = false
@@ -927,47 +1109,46 @@
 				scope.orbit_controls.stopMovement()
 				outlines.children.length = 0
 
-				if (Toolbox.selected.id === 'resize_tool') {
-					//Scale
-					Canvas.updatePositions()
-					selected.forEach(function(obj) {
-						delete obj.oldScale
-					})
-					if (scope.hasChanged) {
-						Undo.finishEdit('resize')
-					}
+				if (Modes.id === 'edit') {
+					if (Toolbox.selected.id === 'resize_tool') {
+						//Scale
+						selected.forEach(function(obj) {
+							delete obj.oldScale
+						})
+						if (scope.hasChanged) {
+							Undo.finishEdit('resize')
+						}
 
-				} else if (scope.axis !== null) {
+					} else if (scope.axis !== null) {
 
-					Canvas.updatePositions()
-					selected.forEach(function(obj) {
-						delete obj.oldPosition
-					})
-					if (scope.hasChanged) {
-						Undo.finishEdit('move')
+						//Canvas.updatePositions()
+						selected.forEach(function(obj) {
+							delete obj.oldPosition
+						})
+						if (scope.hasChanged) {
+							Undo.finishEdit('move')
+						}
 					}
+					updateSelection()
+
+				} else if (Modes.id === 'animate') {
+					Undo.finishEdit('change keyframe')
+
+				} else if (Modes.id === 'display') {
+					Undo.finishEdit('edit display slot')
 				}
-
 			}
-
 			_dragging = false;
 
 			if ( 'TouchEvent' in window && event instanceof TouchEvent ) {
-
 				// Force "rollover"
-
 				scope.axis = null;
 				scope.update();
 				scope.dispatchEvent( changeEvent );
-
 			} else {
-
 				onPointerHover( event );
-
 			}
-
 		}
-
 		function intersectObjects( pointer, objects ) {
 
 			var rect = scope.canvas.getBoundingClientRect();
@@ -979,11 +1160,8 @@
 
 			var intersections = ray.intersectObjects( objects, true );
 			return intersections[ 0 ] ? intersections[ 0 ] : false;
-
 		}
-
 	};
-
 	THREE.TransformControls.prototype = Object.create( THREE.Object3D.prototype );
 	THREE.TransformControls.prototype.constructor = THREE.TransformControls;
 
@@ -992,7 +1170,6 @@
 THREE.Euler.prototype.inverse = function () {
 
 	var q = new THREE.Quaternion();
-
 	return function inverse() {
 
 		return this.setFromQuaternion( q.setFromEuler( this ).inverse() );
@@ -1003,7 +1180,6 @@ THREE.Euler.prototype.inverse = function () {
 THREE.Vector3.prototype.removeEuler = function (euler) {
 
 	var normal = new THREE.Vector3(0, 0, 1)
-
 	return function removeEuler(euler) {
 
 		this.applyAxisAngle(normal,			  -euler.z)

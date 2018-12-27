@@ -7,11 +7,10 @@ var scene, main_preview, previews,
 	display_scene, display_area, display_base;
 var framespersecond = 0;
 var display_mode = false;
-var cubes = new THREE.Group();
 var doRender = false;
 var quad_previews = {};
-var three_grid = new THREE.Object3D();
-var rot_origin = new THREE.Object3D();
+const three_grid = new THREE.Object3D();
+const rot_origin = new THREE.Object3D();
 var gizmo_colors = {
 	r: new THREE.Color(0xfd3043),
 	g: new THREE.Color(0x26ec45),
@@ -45,6 +44,7 @@ class Preview {
 		this.controls.maxDistance = 320;
 		this.controls.target.set(0,-3,0);
 		this.controls.enableKeys = false;
+		this.controls.zoomSpeed = 1.5
 
 		//Keybinds
 		this.controls.mouseButtons.ZOOM = undefined;
@@ -69,7 +69,7 @@ class Preview {
 		this.mouse = new THREE.Vector2();
 		this.canvas.addEventListener('mousedown', 	function(event) { scope.click(event)}, false)
 		this.canvas.addEventListener('mousemove', 	function(event) { scope.static_rclick = false}, false)
-		this.canvas.addEventListener('contextmenu',	function(event) { scope.showContextMenu(event)}, false)
+		this.canvas.addEventListener('mouseup',		function(event) { scope.showContextMenu(event)}, false)
 		this.canvas.addEventListener('dblclick', 	function() {Toolbox.toggleTransforms()}, false)
 		this.canvas.addEventListener('touchstart', 	function() { scope.onTouchStart()}, false)
 		this.canvas.addEventListener('mouseenter', 	function() { scope.occupyTransformer()}, false)
@@ -301,12 +301,18 @@ class Preview {
 		var data = this.raycast(event)
 		if (data) {
 			this.static_rclick = false
-			if (Toolbox.selected.selectCubes && data.type === 'cube') {
+			if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data.type === 'cube') {
 				if (Toolbox.selected.selectFace) {
 					main_uv.setFace(data.face)
 				}
 				Blockbench.dispatchEvent( 'canvas_select', data )
-				data.cube.select(event)
+				if (Animator.open || (Toolbox.selected.id === 'rotate_tool' && Blockbench.entity_mode)) {
+					if (data.cube.parent.type === 'group') {
+						data.cube.parent.select()
+					}
+				} else {
+					data.cube.select(event)
+				}
 			}
 			if (typeof Toolbox.selected.onCanvasClick === 'function') {
 				Toolbox.selected.onCanvasClick(data)
@@ -345,7 +351,7 @@ class Preview {
 		return this;
 	}
 	showContextMenu(event) {
-		if (this.static_rclick) {
+		if (this.static_rclick && event.which === 3) {
 			var data = this.raycast()
 			if (data && data.cube) {
 				data.cube.showContextMenu(event)
@@ -597,6 +603,10 @@ class Preview {
 			obj.was_visible = obj.visible
 			obj.visible = false
 		})
+		var ground_anim_before = ground_animation
+		if (display_mode && ground_animation) {
+			ground_animation = false
+		}
 
 		setTimeout(function() {
 
@@ -619,6 +629,9 @@ class Preview {
 				obj.visible = obj.was_visible
 				delete obj.was_visible
 			})
+			if (display_mode && ground_anim_before) {
+				ground_animation = ground_anim_before
+			}
 
 		}, 40)
 	}
@@ -650,7 +663,7 @@ class Preview {
 			changeDisplaySkin()
 		}},
 		{icon: 'wallpaper', name: 'menu.preview.background', children: function(preview) {
-			var has_background = !!main_preview.background.image
+			var has_background = !!preview.background.image
 			return [
 				{icon: 'folder', name: 'menu.preview.background.load', click: function(preview) {
 					Blockbench.import({
@@ -672,7 +685,7 @@ class Preview {
 				}},
 				{
 					name: 'menu.preview.background.lock',
-					condition: has_background && preview.background.lock !== null,
+					condition: (has_background && preview.background.lock !== null && preview.isOrtho),
 					icon: preview.background.lock?'check_box':'check_box_outline_blank', 
 					click: function(preview) {
 					preview.background.lock = !preview.background.lock
@@ -747,9 +760,16 @@ function initCanvas() {
 	display_scene = new THREE.Scene();
 	display_area = new THREE.Object3D();
 	display_base = new THREE.Object3D();
+
 	display_scene.add(display_area)
 	display_area.add(display_base)
 	display_base.add(scene)
+
+	scene.name = 'scene'
+	display_base.name = 'display_base'
+	display_area.name = 'display_area'
+	display_scene.name = 'display_scene'
+
 	scene.position.set(-8,-8,-8)
 
 	scene.add(Vertexsnap.vertexes)
@@ -813,7 +833,6 @@ function initCanvas() {
 	//TransformControls
 	Transformer = new THREE.TransformControls(main_preview.camPers, main_preview.canvas)
 	Transformer.setSize(0.5)
-	Transformer.setTranslationSnap(canvasGridSize())
 	scene.add(Transformer)
 	main_preview.occupyTransformer()
 
@@ -917,7 +936,7 @@ function animate() {
 		prev.render()
 	})
 	framespersecond++;
-	if (display_mode === true && ground_animation === true) {
+	if (display_mode === true && ground_animation === true && !Transformer.hoverAxis) {
 		DisplayMode.groundAnimation()
 	}
 }
@@ -937,22 +956,7 @@ function resizeWindow(event) {
 	if (Animator.open) {
 		Timeline.updateSize()
 	}
-	if (!Toolbars || !Toolbars[Toolbox.selected.toolbar]) return;
-	Toolbars[Toolbox.selected.toolbar].children.forEach(function(action) {
-		if (action.type === 'numslider') {
-			action.setWidth(40)
-		}
-	})
-	if ($('div.tool_options .toolbar').length > 0) {
-		var sliders = $('header .tool.nslide_tool').length
-		var space = $(window).width() - $('div.tool_options .toolbar').offset().left - $('div.tool_options .toolbar').width()
-		var width = limitNumber(37 + space / sliders, 40, 80)
-		Toolbars[Toolbox.selected.toolbar].children.forEach(function(action) {
-			if (action.type === 'numslider') {
-				action.setWidth(width)
-			}
-		})
-	}
+	BARS.updateToolToolbar()
 }
 $(window).resize(resizeWindow)
 
@@ -975,55 +979,54 @@ function buildGrid() {
 	if (display_mode === true && settings.display_grid.value === false) return;
 
 	three_grid.name = 'grid_group'
-	var size, step;
-	var grid_color = new THREE.Color(parseInt('0x'+app_colors.grid.hex.replace('#', ''), 16))
-	var line_material = new THREE.LineBasicMaterial({color: grid_color});
+	gizmo_colors.grid = new THREE.Color(parseInt('0x'+app_colors.grid.hex.replace('#', ''), 16))
 	var material;
 
-	northMarkMaterial.color = grid_color
+	northMarkMaterial.color = gizmo_colors.grid
+
+	function setupAxisLine(origin, length, axis) {
+		var color = 'rgb'[getAxisNumber(axis)]
+		var geometry = new THREE.Geometry();
+		var material = new THREE.LineBasicMaterial({color: gizmo_colors[color]});
+
+		var dest = new THREE.Vector3().copy(origin)
+		dest[axis] += length
+		geometry.vertices.push(origin)
+		geometry.vertices.push(dest)
+
+		var line = new THREE.Line( geometry, material);
+		line.name = 'axis_line_'+axis;
+		three_grid.add(line)
+	}
+	//Axis Lines
+	if (settings.base_grid.value || settings.full_grid.value)
+	if (Blockbench.entity_mode || !settings.full_grid.value) {
+		var length = Blockbench.entity_mode
+			? (settings.full_grid.value ? 24 : 8)
+			: 16
+		setupAxisLine(new THREE.Vector3( 0, 0.001, 0), length, 'x')
+		setupAxisLine(new THREE.Vector3( 0, 0.001, 0), length, 'z')
+
+	} else {
+		setupAxisLine(new THREE.Vector3( -16, 0.001, -16), 48, 'x')
+		setupAxisLine(new THREE.Vector3( -16, 0.001, -16), 48, 'z')
+	}
 
 
 	if (settings.full_grid.value === true) {
-		size = 24
-		step = canvasGridSize();
-
-		var geometry = new THREE.Geometry();
-		
-		for ( var i = - size; i <= size; i += step) {
-			geometry.vertices.push(new THREE.Vector3( -size, 0, i))
-			geometry.vertices.push(new THREE.Vector3( size, 0, i))
-			geometry.vertices.push(new THREE.Vector3(i, 0, -size))
-			geometry.vertices.push(new THREE.Vector3(i, 0, size))
-		}
-		var line = new THREE.Line( geometry, line_material, THREE.LinePieces);
+		//Grid
+		var grid = new THREE.GridHelper(48, 48/canvasGridSize(), gizmo_colors.grid, gizmo_colors.grid)
 		if (Blockbench.entity_mode === true) {
-			line.position.set(0,0,0)
+			grid.position.set(0,0,0)
 		} else { 
-			line.position.set(8,0,8)
+			grid.position.set(8,0,8)
 		}
-		three_grid.add(line)
-		line.name = 'grid'
-
-
-		//Axis Helpers
-		geometry = new THREE.Geometry();
-		material = new THREE.LineBasicMaterial({color: gizmo_colors.r});
-		geometry.vertices.push(new THREE.Vector3( -16, 0.001, -16))
-		geometry.vertices.push(new THREE.Vector3( 32, 0.001, -16))
-		x_axis = new THREE.Line( geometry, material, THREE.LinePieces);
-		three_grid.add(x_axis)
-
-		geometry = new THREE.Geometry();
-		material = new THREE.LineBasicMaterial({color: gizmo_colors.b});
-		geometry.vertices.push(new THREE.Vector3( -16, 0.001, -16))
-		geometry.vertices.push(new THREE.Vector3( -16, 0.001, 32))
-		z_axis = new THREE.Line( geometry, material, THREE.LinePieces);
-		three_grid.add(z_axis)
+		three_grid.add(grid)
+		grid.name = 'grid'
 
 		//North
 		geometry = new THREE.PlaneGeometry(5, 5)
 		var north_mark = new THREE.Mesh(geometry, northMarkMaterial)
-
 		if (Blockbench.entity_mode === true) {
 			north_mark.position.set(0,0,-27)
 		} else {
@@ -1034,65 +1037,28 @@ function buildGrid() {
 
 	} else {
 		if (settings.large_grid.value === true) {
-			var geometry_big = new THREE.Geometry();
-			size = 24
-			step = 16;
-			
-			for ( var i = - size; i <= size; i += step) {
-				geometry_big.vertices.push(new THREE.Vector3( -size, 0, i))
-				geometry_big.vertices.push(new THREE.Vector3( size, 0, i))
-				geometry_big.vertices.push(new THREE.Vector3(i, 0, -size))
-				geometry_big.vertices.push(new THREE.Vector3(i, 0, size))
-			}
-
-			var line_big = new THREE.Line( geometry_big, line_material, THREE.LinePieces);
+			//Grid
+			var grid = new THREE.GridHelper(48, 3, gizmo_colors.grid, gizmo_colors.grid)
 			if (Blockbench.entity_mode === true) {
-				line_big.position.set(0,0,0)
+				grid.position.set(0,0,0)
 			} else { 
-				line_big.position.set(8,0,8)
+				grid.position.set(8,0,8)
 			}
-			line_big.name = 'grid'
-			three_grid.add(line_big)
-
+			grid.name = 'grid'
+			three_grid.add(grid)
 		}
 
-
 		if (settings.base_grid.value === true) {
-			size = 8
-			step = canvasGridSize();
+			//Grid
+			var grid = new THREE.GridHelper(16, 16/canvasGridSize(), gizmo_colors.grid, gizmo_colors.grid)
 
-			var geometry = new THREE.Geometry();
-			
-			 for ( var i = - size; i <= size; i += step) {
-				 geometry.vertices.push(new THREE.Vector3( -size, 0, i))
-				 geometry.vertices.push(new THREE.Vector3( size, 0, i))
-				 geometry.vertices.push(new THREE.Vector3(i, 0, -size))
-				 geometry.vertices.push(new THREE.Vector3(i, 0, size))
-			 }
-			var line = new THREE.Line( geometry, line_material, THREE.LinePieces);
 			if (Blockbench.entity_mode === true) {
-				line.position.set(0,0,0)
+				grid.position.set(0,0,0)
 			} else { 
-				line.position.set(8,0,8)
+				grid.position.set(8,0,8)
 			}
-			three_grid.add(line)
-			
-			line.name = 'grid'
-
-			//Axis Helpers
-			geometry = new THREE.Geometry();
-			material = new THREE.LineBasicMaterial({color: '#EE4040'});
-			geometry.vertices.push(new THREE.Vector3( 0, 0.001, 0))
-			geometry.vertices.push(new THREE.Vector3( (Blockbench.entity_mode ? 8 : 16), 0.001, 0))
-			x_axis = new THREE.Line( geometry, material, THREE.LinePieces);
-			three_grid.add(x_axis)
-
-			geometry = new THREE.Geometry();
-			material = new THREE.LineBasicMaterial({color: '#547CEA'});
-			geometry.vertices.push(new THREE.Vector3( 0, 0.001, 0))
-			geometry.vertices.push(new THREE.Vector3( 0, 0.001, (Blockbench.entity_mode ? 8 : 16)))
-			z_axis = new THREE.Line( geometry, material, THREE.LinePieces);
-			three_grid.add(z_axis)
+			grid.name = 'grid'
+			three_grid.add(grid)
 
 			//North
 			geometry = new THREE.PlaneGeometry(2.4, 2.4)
@@ -1109,81 +1075,99 @@ function buildGrid() {
 	if (settings.large_box.value === true) {
 		var geometry_box = new THREE.EdgesGeometry(new THREE.BoxBufferGeometry(48, 48, 48));
 
+		var line_material = new THREE.LineBasicMaterial({color: gizmo_colors.grid});
 		var large_box = new THREE.LineSegments( geometry_box, line_material);
 		if (Blockbench.entity_mode === true) {
 			large_box.position.set(0,8,0)
 		} else { 
 			large_box.position.set(8,8,8)
 		}
-		large_box.name = 'peter'
+		large_box.name = 'grid'
 		three_grid.add(large_box)
 	}
 	scene.add(three_grid)
 }
 function centerTransformer(offset) {
 	if (selected.length === 0) return;
-	var first_obj
 
+	var rotate_tool = Toolbox.selected.transformerMode === 'rotate'
 
-	//Getting Center
+	if (Animator.open && selected_group) {
+		var g_mesh = selected_group.getMesh()
 
-	var center = [0, 0, 0]
-	var i = 0;
-	selected.forEach(function(obj) {
-		var m = obj.getMesh()
-		if (obj.visibility && m) {
-			var pos = new THREE.Vector3(
-				obj.from[0] + obj.size(0)/2,
-				obj.from[1] + obj.size(1)/2,
-				obj.from[2] + obj.size(2)/2
-			)
-			if (!Blockbench.entity_mode) {
+		g_mesh.getWorldPosition(Transformer.position)
+		Transformer.position.x += 8;
+		Transformer.position.y += 8;
+		Transformer.position.z += 8;
+		Transformer.rotation.set(0, 0, 0)
+		Transformer.update()
 
-				pos.x -= obj.origin[0]
-				pos.y -= obj.origin[1]
-				pos.z -= obj.origin[2]
-				var r = m.getWorldQuaternion(new THREE.Quaternion())
-				pos.applyQuaternion(r)
-				pos.x += obj.origin[0]
-				pos.y += obj.origin[1]
-				pos.z += obj.origin[2]
-			} else {
-				TreeElements.forEach((obj) => {
-					if (obj.type === 'group') {
-						let mesh = obj.getMesh()
-						if (obj.visibility && mesh) {
-							mesh.updateMatrixWorld()
-						}
-					}
-				})
-				var r = m.getWorldQuaternion(new THREE.Quaternion())
-				pos.applyQuaternion(r)
-				pos.add(m.getWorldPosition(new THREE.Vector3()))
-				pos.x += 8
-				pos.y += 8
-				pos.z += 8
-			}
-
-			center[0] += pos.x
-			center[1] += pos.y
-			center[2] += pos.z
-
-			if (!first_obj) {
-				first_obj = obj
-			}
-		}
-	})
-	if (!first_obj) {
+		//if (!rotate_tool) {
+		//	var quat = new THREE.Quaternion()
+		//	g_mesh.getWorldQuaternion(quat)
+		//	Transformer.rotation.setFromQuaternion(quat, 'ZYX')
+		//} else {
+		//}
 		return;
 	}
-	i = 0;
-	while (i < 3) {
-		center[i] = center[i] / selected.length
-		i++;
+
+	//Getting Center
+	if (Blockbench.entity_mode) {
+		Canvas.updateAllBones()
+	}
+	if (!rotate_tool) {
+		var first_obj
+		var center = [0, 0, 0]
+		var i = 0;
+		selected.forEach(function(obj) {
+			var m = obj.getMesh()
+			if (obj.visibility && m) {
+				var pos = new THREE.Vector3(
+					obj.from[0] + obj.size(0)/2,
+					obj.from[1] + obj.size(1)/2,
+					obj.from[2] + obj.size(2)/2
+				)
+				if (!Blockbench.entity_mode) {
+
+					pos.x -= obj.origin[0]
+					pos.y -= obj.origin[1]
+					pos.z -= obj.origin[2]
+					var r = m.getWorldQuaternion(new THREE.Quaternion())
+					pos.applyQuaternion(r)
+					pos.x += obj.origin[0]
+					pos.y += obj.origin[1]
+					pos.z += obj.origin[2]
+				} else {
+					var r = m.getWorldQuaternion(new THREE.Quaternion())
+					pos.applyQuaternion(r)
+					pos.add(m.getWorldPosition(new THREE.Vector3()))
+					pos.x += 8
+					pos.y += 8
+					pos.z += 8
+				}
+
+				center[0] += pos.x
+				center[1] += pos.y
+				center[2] += pos.z
+
+				if (!first_obj) {
+					first_obj = obj
+				}
+			}
+		})
+		if (!first_obj) {
+			return;
+		}
+		i = 0;
+		while (i < 3) {
+			center[i] = center[i] / selected.length
+			i++;
+		}
+	} else {
+		var first_obj = selected[0]
+		var center = first_obj.origin
 	}
 	var vec = new THREE.Vector3(center[0], center[1], center[2])
-
-
 
 	//Position + Rotation
 	if (Blockbench.entity_mode === false) {
@@ -1193,12 +1177,24 @@ function centerTransformer(offset) {
 		Transformer.position.copy(vec)
 
 		var mesh = first_obj.getMesh()
-		if (mesh && Blockbench.globalMovement === false) {
+		if (mesh && Blockbench.globalMovement === false && !rotate_tool) {
 			Transformer.rotation.copy(mesh.rotation)
 		}
 	} else {
-
 		//Entity Mode
+
+		if (selected_group && rotate_tool) {
+			var mesh = selected_group.getMesh()
+			if (mesh) {
+				mesh.getWorldPosition(Transformer.position)
+			}
+			Transformer.position.x += 8
+			Transformer.position.y += 8
+			Transformer.position.z += 8
+
+			Transformer.rotation.set(0, 0, 0)
+			return;
+		}
 
 		var group;
 		if (selected_group) {
@@ -1225,7 +1221,7 @@ function centerTransformer(offset) {
 			vec.z += group.origin[2]
 		}
 		Transformer.position.copy(vec)
-		if (Blockbench.globalMovement === false) {
+		if (Blockbench.globalMovement === false && !rotate_tool) {
 			var rotation = new THREE.Quaternion()
 			first_obj.getMesh().getWorldQuaternion(rotation)
 			Transformer.rotation.setFromQuaternion( rotation )
@@ -1233,10 +1229,7 @@ function centerTransformer(offset) {
 			Transformer.rotation.set(0, 0, 0)
 		}
 	}
-
-	if (offset !== undefined) {
-		//Transformer.position.add(offset)
-	}
+	Transformer.update()
 }
 //Display
 function getRescalingFactor(angle) {
@@ -1334,6 +1327,7 @@ class CanvasController {
 	updateAll() {
 		updateNslideValues()
 		Canvas.clear()
+		Canvas.updateAllBones()
 		elements.forEach(function(s) {
 			if (s.visibility == true) {
 				Canvas.addCube(s)
@@ -1343,11 +1337,7 @@ class CanvasController {
 	}
 	updateAllPositions(leave_selection) {
 		updateNslideValues()
-		elements.forEach(function(obj) {
-			if (obj.visibility == true) {
-				Canvas.adaptObjectPosition(obj)
-			}
-		})
+		elements.forEach(Canvas.adaptObjectPosition)
 		if (leave_selection !== true) {
 			updateSelection()
 		}
@@ -1432,15 +1422,13 @@ class CanvasController {
 		updateNslideValues()
 		var arr = selected.slice()
 		if (Blockbench.entity_mode && selected_group) {
-			selected_group.children.forEach(function(s) {
-				if (s.type === 'cube') {
-					if (!arr.includes(s)) {
-						arr.push(s)
-					}
+			selected_group.forEachChild(obj => {
+				if (obj.type === 'cube') {
+					arr.safePush(obj)
 				}
 			})
 			if (arr.length === selected.length) {
-				Canvas.ascendElementPosition(selected_group)
+				Canvas.updateAllBones()
 			}
 		}
 		arr.forEach(function(obj) {
@@ -1487,6 +1475,37 @@ class CanvasController {
 			outlines.add(line)
 		})
 	}
+	updateAllBones() {
+
+		getAllOutlinerGroups().forEach((obj) => {
+			let mesh = obj.getMesh()
+			if (obj.visibility && mesh) {
+
+				mesh.rotation.reorder('ZYX')
+				obj.rotation.forEach(function(n, i) {
+					mesh.rotation[getAxisLetter(i)] = Math.PI / (180 / n) * (i == 2 ? -1 : 1)
+				})
+				mesh.position.fromArray(obj.origin)
+				mesh.scale.x = mesh.scale.y = mesh.scale.z = 1
+
+				if (obj.parent.type === 'group') {
+
+					mesh.position.x -=  obj.parent.origin[0]
+					mesh.position.y -=  obj.parent.origin[1]
+					mesh.position.z -=  obj.parent.origin[2]
+
+					var parent_mesh = obj.parent.getMesh()
+					parent_mesh.add(mesh)
+				} else {
+					scene.add(mesh)
+				}
+				mesh.updateMatrixWorld()
+
+				mesh.fix_position = mesh.position.clone()
+				mesh.fix_rotation = mesh.rotation.clone()
+			}
+		})
+	}
 	//Object handlers
 	addCube(obj) {
 		//This does NOT remove old cubes
@@ -1505,7 +1524,9 @@ class CanvasController {
 		Canvas.buildOutline(obj)
 	}
 	adaptObjectPosition(obj, mesh, parent) {
-		if (!mesh) mesh = obj.getMesh()
+		if (!obj.visibility) return;
+		
+		if (!mesh || mesh > 0) mesh = obj.getMesh()
 
 		function setSize(geo) {
 			if (Blockbench.entity_mode && obj.inflate !== undefined) {
@@ -1527,8 +1548,14 @@ class CanvasController {
 		if (Blockbench.entity_mode) {
 			mesh.position.set(0, 0, 0)
 			mesh.rotation.reorder('YZX')
-			Canvas.ascendElementPosition(obj, mesh)
-
+			if (obj.parent.type === 'group') {
+				obj.parent.getMesh().add(mesh)
+				mesh.position.x -=  obj.parent.origin[0]
+				mesh.position.y -=  obj.parent.origin[1]
+				mesh.position.z -=  obj.parent.origin[2]
+			} else {
+				scene.add(mesh)
+			}
 		} else {
 			if (obj.rotation !== undefined) {
 
@@ -1560,8 +1587,6 @@ class CanvasController {
 			//Iterate inside (cube) > outside
 			if (!mesh) {
 				mesh = obj.getMesh()
-			}
-			if (!mesh) {
 			}
 			if (obj.type === 'group') {
 				mesh.rotation.reorder('ZYX')
@@ -1595,23 +1620,9 @@ class CanvasController {
 		}
 		iterate(el, elmesh)
 	}
-	getOutlineMesh(mesh) {
-		var vs = mesh.geometry.vertices
-		var geometry = new THREE.Geometry()
-		geometry.vertices = [
-			vs[2], vs[3],
-			vs[6], vs[7],
-			vs[2], vs[0],
-			vs[1], vs[4],
-			vs[5], vs[0],
-			vs[5], vs[7],
-			vs[6], vs[4],
-			vs[1], vs[3]
-		]
-		return new THREE.Line(geometry, Canvas.outlineMaterial)
-	}
 	adaptObjectFaces(obj, mesh) {
 		if (!mesh) mesh = obj.getMesh()
+		if (!mesh) return;
 		if (!Prop.wireframe) {
 			var materials = []
 			this.face_order.forEach(function(face) {
@@ -1753,6 +1764,22 @@ class CanvasController {
 		mesh.geometry.elementsNeedUpdate = true;
 		return mesh.geometry
 	}
+	//Outline
+	getOutlineMesh(mesh) {
+		var vs = mesh.geometry.vertices
+		var geometry = new THREE.Geometry()
+		geometry.vertices = [
+			vs[2], vs[3],
+			vs[6], vs[7],
+			vs[2], vs[0],
+			vs[1], vs[4],
+			vs[5], vs[0],
+			vs[5], vs[7],
+			vs[6], vs[4],
+			vs[1], vs[3]
+		]
+		return new THREE.Line(geometry, Canvas.outlineMaterial)
+	}
 	buildOutline(obj) {
 		if (obj.visibility == false) return;
 		var mesh = obj.getMesh();
@@ -1768,6 +1795,7 @@ class CanvasController {
 		line.name = obj.uuid+'_outline';
 		line.visible = obj.selected;
 		line.renderOrder = 2;
+		line.frustumCulled = false;
 		mesh.outline = line;
 		mesh.add(line);
 	}
@@ -1800,7 +1828,7 @@ BARS.defineActions(function() {
 		category: 'view',
 		click: function () {
 			var lines = [
-				{label: 'dialog.create_gif.length', node: '<input class="dark_bordered half" type="number" value="10" id="gif_length">'},
+				{label: 'dialog.create_gif.length', node: '<input class="dark_bordered half" type="number" value="10" step="0.25" id="gif_length">'},
 				{label: 'dialog.create_gif.fps', node: '<input class="dark_bordered half" type="number" value="10" id="gif_fps">'},
 				{label: 'dialog.create_gif.compression', node: '<input class="dark_bordered half" type="number" value="4" id="gif_quality">'},
 			]
@@ -1814,7 +1842,7 @@ BARS.defineActions(function() {
 				lines: lines,
 				onConfirm: function() {
 					var jq = $(dialog.object)
-					var length = parseInt( jq.find('#gif_length').val() )
+					var length = parseFloat( jq.find('#gif_length').val() )
 					var fps = parseInt( jq.find('#gif_fps').val() )
 					var quality = parseInt( jq.find('#gif_quality').val() )
 					if (jq.find('#gif_play_animation').is(':checked')) {
@@ -1823,7 +1851,7 @@ BARS.defineActions(function() {
 					Screencam.createGif({
 						length: limitNumber(length, 0.1, 240)*1000,
 						fps: limitNumber(fps, 0.5, 30),
-						quality: limitNumber(fps, 0, 30),
+						quality: limitNumber(quality, 0, 30),
 					}, Screencam.returnScreenshot)
 					dialog.hide()
 				}

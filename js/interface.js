@@ -86,6 +86,11 @@ class Panel {
 		var show = BARS.condition(this.condition)
 		if (show) {
 			$(this.node).show()
+			if (Interface.data.left_bar.includes(this.id)) {
+				this.width = Interface.data.left_bar_width
+			} else if (Interface.data.right_bar.includes(this.id)) {
+				this.width = Interface.data.right_bar_width
+			}
 			if (this.onResize) this.onResize()
 		} else {
 			$(this.node).hide()
@@ -99,6 +104,7 @@ class ResizeLine {
 		this.horizontal = data.horizontal === true
 		this.position = data.position
 		this.condition = data.condition
+		this.width = 0;
 		var jq = $('<div class="resizer '+(data.horizontal ? 'horizontal' : 'vertical')+'"></div>')
 		this.node = jq.get(0)
 		$('body').append(this.node)
@@ -175,7 +181,7 @@ var Interface = {
 			},
 			get: function() {return Interface.data.left_bar_width},
 			set: function(o, diff) {
-				Interface.data.left_bar_width = limitNumber(o + diff, 64, $(window).width()- 240 - Interface.data.right_bar_width)
+				Interface.data.left_bar_width = limitNumber(o + diff, 128, $(window).width()- 240 - Interface.data.right_bar_width)
 			},
 			position: function(line) {
 				line.setPosition({
@@ -196,7 +202,7 @@ var Interface = {
 			},
 			get: function() {return Interface.data.right_bar_width},
 			set: function(o, diff) {
-				Interface.data.right_bar_width = limitNumber(o - diff, 64, $(window).width()- 240 - Interface.data.left_bar_width)
+				Interface.data.right_bar_width = limitNumber(o - diff, 128, $(window).width()- 240 - Interface.data.left_bar_width)
 			},
 			position: function(line) {
 				line.setPosition({
@@ -298,6 +304,9 @@ function setupInterface() {
 		toolbars: {
 			head: Toolbars.outliner
 		},
+		onResize: t => {
+			getAllOutlinerObjects().forEach(o => o.updateElement())
+		},
 		menu: new Menu([
 			'add_cube',
 			'add_group',
@@ -349,6 +358,7 @@ function setupInterface() {
 	Interface.status_bar.menu = new Menu([
 		'project_window',
 		'open_model_folder',
+		'open_backup_folder',
 		'save'
 	])
 
@@ -407,6 +417,7 @@ function setupInterface() {
 	})
 
 	//Scrolling
+	/*
 	$('input[type="range"]').on('mousewheel', function () {
 		var factor = event.deltaY > 0 ? -1 : 1
 		var val = parseFloat($(event.target).val()) + parseFloat($(event.target).attr('step')) * factor
@@ -415,7 +426,7 @@ function setupInterface() {
 		$(event.target).val(val)
 		eval($(event.target).attr('oninput'))
 		eval($(event.target).attr('onmouseup'))
-	})
+	})*/
 	$('#timeline_inner').on('mousewheel', function() {
 		if (event.ctrlKey) {
 			var offset = 1 - event.deltaY/600
@@ -459,16 +470,16 @@ function updateInterface() {
 	localStorage.setItem('interface_data', JSON.stringify(Interface.data))
 }
 function updateInterfacePanels() {
-	for (var key in Interface.Panels) {
-		var panel = Interface.Panels[key]
-		panel.update()
-	}
 	var left_width = $('.sidebar#left_bar > .panel:visible').length ? Interface.data.left_bar_width : 0
 	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.data.right_bar_width : 0
 	$('body').css(
 		'grid-template-columns',
 		left_width+'px auto '+ right_width +'px'
 	)
+	for (var key in Interface.Panels) {
+		var panel = Interface.Panels[key]
+		panel.update()
+	}
 	$('.quad_canvas_wrapper.qcw_x').css('width', Interface.data.quad_view_x+'%')
 	$('.quad_canvas_wrapper.qcw_y').css('height', Interface.data.quad_view_y+'%')
 	$('.quad_canvas_wrapper:not(.qcw_x)').css('width', (100-Interface.data.quad_view_x)+'%')
@@ -635,12 +646,12 @@ function updateUIColor() {
 	var c_grid = parseInt('0x'+app_colors.grid.hex.replace('#', ''))
 	if (!gizmo_colors.grid || c_grid !== gizmo_colors.grid.getHex()) {
 		gizmo_colors.grid = new THREE.Color( c_grid )
-		try {
-			three_grid.getObjectByName('grid').material.color = gizmo_colors.grid
-		} catch(err) {}
+		three_grid.children.forEach(c => {
+			if (c.name === 'grid' && c.material) {
+				c.material.color = gizmo_colors.grid;
+			}
+		})
 	}
-	//gizmo_colors.grid	= new THREE.Color( parseInt('0x'+app_colors.accent.hex.replace('#', '')) )
-
 
 	localStorage.setItem('app_colors', JSON.stringify(app_colors))
 }
@@ -659,7 +670,11 @@ function applyBBStyle(data) {
 
 //UI Edit
 function setProgressBar(id, val, time) {
-	$('#'+id+' > .progress_bar_inner').animate({width: val*488}, time-1)
+	if (!id || id === 'main') {
+		Prop.progress = val
+	} else {
+		$('#'+id+' > .progress_bar_inner').animate({width: val*488}, time-1)
+	}
 	if (isApp) {
 		currentwindow.setProgressBar(val)
 	}
@@ -679,12 +694,10 @@ $(document).keyup(function(event) {
 var splashScreen = {
 	attempt: function(res) {
 		//NOW:  Internet Available! -- DOM Ready!
-
 		//Post Model
 		if (!isApp && tryLoadPOSTModel()) {
 			return;
 		}
-
 		//Show
 		if (res[1] ||//Forced
 			localStorage.getItem('welcomed_version') != appVersion//Updated
@@ -694,8 +707,15 @@ var splashScreen = {
 	},
 	show: function() {
 		if (open_dialog) return;
-		$('#welcome_content').load('https://www.blockbench.net/api/welcome/index.html', function() {
+		$('#welcome_content').load('https://www.blockbench.net/api/welcome/index.html', () => {
 			$('#welcome_screen #welcome_body').css('max-height', ($(window).height() - 478) + 'px')
+			if (isApp) {
+				$('#welcome_screen .open-in-browser').click((event) => {
+					event.preventDefault();
+					shell.openExternal(event.target.href);
+					return true;
+				});
+			}
 			showDialog('welcome_screen')
 			localStorage.setItem('welcomed_version', appVersion) 
 		})

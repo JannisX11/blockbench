@@ -146,6 +146,7 @@ class Action extends BarItem {
 		this.menu_node = $(`<li>${this.name}</li>`).get(0)
 		$(this.node).add(this.menu_node).prepend(this.icon_node)
 		$(this.node).click(function(e) {scope.trigger(e)})
+
 		if (data.linked_setting) {
 			this.toggleLinkedSetting(false)
 		}
@@ -194,12 +195,14 @@ class Action extends BarItem {
 		}
 	}
 }
+
 class Tool extends Action {
 	constructor(data) {
 		super(data)
 		var scope = this;
 		this.type = 'tool'
 		this.toolbar = data.toolbar;
+		this.alt_tool = data.alt_tool;
 		this.selectFace = data.selectFace;
 		this.selectCubes = data.selectCubes !== false;
 		this.paintTool = data.paintTool;
@@ -224,6 +227,7 @@ class Tool extends Action {
 			Toolbox.selected.onUnselect()
 		}
 		Toolbox.selected = this;
+		delete Toolbox.original;
 
 		if (this.transformerMode) {
 			Transformer.setMode(this.transformerMode)
@@ -234,7 +238,6 @@ class Tool extends Action {
 		}
 		if (this.toolbar && Toolbars[this.toolbar]) {
 			Toolbars[this.toolbar].toPlace('tool_options')
-			resizeWindow()
 		} else {
 			$('.toolbar_wrapper.tool_options > .toolbar').detach()
 		}
@@ -382,7 +385,7 @@ class NumSlider extends Widget {
 		var scope = this;
 		var number = 0;
 		//Math
-		var offset = Math.round((event.clientX-scope.left)/50)
+		var offset = Math.round((event.clientX-scope.left)/30)
 		if (scope.uv === false) {
 			offset *= canvasGridSize();
 		}
@@ -461,7 +464,7 @@ class NumSlider extends Widget {
 		if (!BARS.condition(this.condition)) return;
 		var number = this.get();
 		this.setValue(number)
-		$('#nslide_head #nslide_offset').text(this.name+': '+number)
+		$('#nslide_head #nslide_offset').text(this.name+': '+this.value)
 	}
 }
 class BarSlider extends Widget {
@@ -643,9 +646,6 @@ class Toolbar {
 		var items = data.children
 		if (!force && BARS.stored[scope.id] && typeof BARS.stored[scope.id] === 'object') {
 			items = BARS.stored[scope.id]
-			if (this.id === 'tools' && !items.includes('animation_mode_tool')) {
-				items.push('animation_mode_tool')
-			}
 		}
 		if (items && items.constructor.name === 'Array') {
 			var content = $(scope.node).find('div.content')
@@ -786,15 +786,7 @@ var BARS = {
 	stored: {},
 	editing_bar: undefined,
 	action_definers: [],
-	condition: function(condition, context) {
-		if (condition === undefined) {
-			return true;
-		} else if (typeof condition === 'function') {
-			return condition(context)
-		} else {
-			return !!condition
-		}
-	},
+	condition: Condition,
 	defineActions: function(definer) {
 		BARS.action_definers.push(definer)
 	},
@@ -837,7 +829,9 @@ var BARS = {
 				selectFace: true,
 				transformerMode: 'translate',
 				toolbar: 'transform',
-				keybind: new Keybind({key: 86})
+				alt_tool: 'resize_tool',
+				keybind: new Keybind({key: 86}),
+				condition: () => Modes.id === 'edit' || Modes.id === 'animate' || Modes.id === 'display'
 			})
 			new Tool({
 				id: 'resize_tool',
@@ -846,7 +840,20 @@ var BARS = {
 				selectFace: true,
 				transformerMode: 'scale',
 				toolbar: 'transform',
-				keybind: new Keybind({key: 83})
+				alt_tool: 'move_tool',
+				keybind: new Keybind({key: 83}),
+				condition: () => Modes.id === 'edit' || Modes.id === 'animate' || Modes.id === 'display'
+			})
+			new Tool({
+				id: 'rotate_tool',
+				icon: 'sync',
+				category: 'tools',
+				selectFace: true,
+				transformerMode: 'rotate',
+				toolbar: 'transform',
+				alt_tool: 'move_tool',
+				keybind: new Keybind({key: 82}),
+				condition: () => Modes.id === 'edit' || Modes.id === 'animate' || Modes.id === 'display'
 			})
 			new Tool({
 				id: 'vertex_snap_tool',
@@ -857,6 +864,7 @@ var BARS = {
 				selectCubes: true,
 				cursor: 'copy',
 				keybind: new Keybind({key: 88}),
+				condition: () => Modes.id === 'edit',
 				onCanvasClick: function(data) {
 					Vertexsnap.canvasClick(data)
 				},
@@ -877,47 +885,11 @@ var BARS = {
 					scale: true
 				}
 			})
-			new Tool({
-				id: 'display_mode_tool',
-				icon: 'icon-player',
-				transformerMode: 'hidden',
-				category: 'tools',
-				selectCubes: false,
-				condition: () => !Blockbench.entity_mode,
-				onCanvasClick: function(data) {
-				},
-				onSelect: function() {
-					enterDisplaySettings()
-				},
-				onUnselect: function() {
-					exitDisplaySettings()
-				}
-			})
-			new Tool({
-				id: 'animation_mode_tool',
-				icon: 'movie',
-				transformerMode: 'hidden',
-				category: 'tools',
-				selectCubes: false,
-				condition: () => Blockbench.entity_mode,
-				onCanvasClick: function(data) {
-					if (data.cube && data.cube.parent.type === 'group') {
-
-						data.cube.parent.select()
-					}
-				},
-				onSelect: function() {
-					Animator.join()
-				},
-				onUnselect: function() {
-					Animator.leave()
-				}
-			})
-
 			new Action({
 				id: 'swap_tools',
 				icon: 'swap_horiz',
 				category: 'tools',
+				condition: () => !Animator.open,
 				keybind: new Keybind({key: 32}),
 				click: function () {
 					if (Toolbox.selected.id === 'move_tool') {
@@ -945,17 +917,20 @@ var BARS = {
 				}
 			})
 			new Action({
+				id: 'open_backup_folder',
+				icon: 'fa-archive',
+				category: 'file',
+				condition: () => isApp,
+				click: function (e) {
+					shell.showItemInFolder(app.app.getPath('userData')+osfs+'backups'+osfs+'.')
+				}
+			})
+			new Action({
 				id: 'settings_window',
 				icon: 'settings',
 				category: 'blockbench',
 				keybind: new Keybind({key: 69, ctrl: true}),
 				click: function () {openSettings()}
-			})
-			new Action({
-				id: 'plugins_window',
-				icon: 'extension',
-				category: 'blockbench',
-				click: function () {showDialog('plugins')}
 			})
 			new Action({
 				id: 'update_window',
@@ -979,22 +954,6 @@ var BARS = {
 			})
 
 		//Edit
-			new Action({
-				id: 'undo',
-				icon: 'undo',
-				category: 'edit',
-				condition: () => (!display_mode),
-				keybind: new Keybind({key: 90, ctrl: true}),
-				click: function () {Undo.undo()}
-			})
-			new Action({
-				id: 'redo',
-				icon: 'redo',
-				category: 'edit',
-				condition: () => (!display_mode),
-				keybind: new Keybind({key: 89, ctrl: true}),
-				click: function () {Undo.redo()}
-			})
 			new Action({
 				id: 'copy',
 				icon: 'fa-clone',
@@ -1023,7 +982,7 @@ var BARS = {
 				id: 'duplicate',
 				icon: 'content_copy',
 				category: 'edit',
-				condition: () => (!display_mode && !Animator.open),
+				condition: () => (!display_mode && !Animator.open && selected.length),
 				keybind: new Keybind({key: 68, ctrl: true}),
 				click: function () {
 					duplicateCubes();
@@ -1033,7 +992,7 @@ var BARS = {
 				id: 'delete',
 				icon: 'delete',
 				category: 'edit',
-				condition: () => (!display_mode && !Animator.open),
+				condition: () => (!display_mode && !Animator.open && selected.length),
 				keybind: new Keybind({key: 46}),
 				click: function () {
 					deleteCubes();
@@ -1267,10 +1226,12 @@ var BARS = {
 			children: [
 				'move_tool',
 				'resize_tool',
+				'rotate_tool',
 				'vertex_snap_tool',
 				'brush_tool',
-				'display_mode_tool',
-				'animation_mode_tool'
+				'fill_tool',
+				'eraser',
+				'color_picker'
 			],
 			default_place: true
 		})
@@ -1500,6 +1461,25 @@ var BARS = {
 		uv_dialog.all_editors.forEach((editor) => {
 			editor.updateInterface()
 		})
+		BARS.updateToolToolbar()
+	},
+	updateToolToolbar: function() {
+		if (!Toolbars || !Toolbars[Toolbox.selected.toolbar]) return;
+		Toolbars[Toolbox.selected.toolbar].children.forEach(function(action) {
+			if (action.type === 'numslider') {
+				action.setWidth(40)
+			}
+		})
+		if ($('div.tool_options .toolbar').length > 0) {
+			var sliders = $('header .tool.nslide_tool').length
+			var space = $(window).width() - $('div.tool_options .toolbar').offset().left - $('div.tool_options .toolbar').width() - $('#mode_selector').width() + 6
+			var width = limitNumber(37 + space / sliders, 40, 80)
+			Toolbars[Toolbox.selected.toolbar].children.forEach(function(action) {
+				if (action.type === 'numslider') {
+					action.setWidth(width)
+				}
+			})
+		}
 	}
 }
 

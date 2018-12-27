@@ -245,7 +245,16 @@ $(document).keydown(function(e) {
 	if (e.ctrlKey === true && e.which == 73 && isApp) {
 		app.getCurrentWindow().toggleDevTools()
 		used = true
+	} else if (e.which === 18 && Toolbox.selected.alt_tool && !Toolbox.original) {
+		//Alt Tool
+		var orig = Toolbox.selected;
+		var alt = BarItems[Toolbox.selected.alt_tool]
+		if (alt && Condition(alt)) {
+			alt.select()
+			Toolbox.original = orig
+		}
 	}
+	//Keybinds
 	if (!input_focus) {
 		Keybinds.actions.forEach(function(action) {
 			if (
@@ -260,7 +269,7 @@ $(document).keydown(function(e) {
 			}
 		})
 	}
-
+	//Dialog
 	if (open_dialog) {
 		if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
 			$('.dialog#'+open_dialog).find('.confirm_btn:not([disabled])').click()
@@ -269,6 +278,7 @@ $(document).keydown(function(e) {
 			$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()
 			used = true
 		}
+	//Menu
 	} else if (open_menu) {
 
 		used = open_menu.keyNavigate(e)||used
@@ -289,4 +299,8 @@ $(document).keydown(function(e) {
 
 $(document).keyup(function(e) {
 	holding_shift = false;
+	if (e.which === 18 && Toolbox.original && Toolbox.original.alt_tool) {
+		Toolbox.original.select()
+		delete Toolbox.original;
+	}
 });

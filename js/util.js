@@ -48,6 +48,18 @@ function useBedrockFlipFix(axis) {
 		return false
 	}
 }
+const Condition = function(condition, context) {
+	if (condition !== undefined && condition !== null && condition.condition !== undefined) {
+		condition = condition.condition
+	}
+	if (condition === undefined) {
+		return true;
+	} else if (typeof condition === 'function') {
+		return condition(context)
+	} else {
+		return !!condition
+	}
+}
 var cl = console.log
 var asyncLoop = function(o){
 	var i=-1;
@@ -84,6 +96,9 @@ Math.lerp = function(a,b,m) {
 }
 Math.isBetween = function(n, a, b) {
    return (n - a) * (n - b) <= 0
+}
+Math.trimDeg = function(a) {
+	return (a+180*15)%360-180
 }
 function trimFloatNumber(val) {
 	if (val == '') return val;
@@ -154,8 +169,10 @@ function doRectanglesOverlap(rect1, rect2) {
 //Array
 Array.prototype.safePush = function(item) {
 	if (!this.includes(item)) {
-		this.push(item)
+		this.push(item);
+		return true;
 	}
+	return false;
 }
 Array.prototype.equals = function (array) {
 		if (!array)
@@ -342,50 +359,51 @@ tinycolor.prototype.toInt = function() {
 	var rgba = this.toRgb()
 	return Jimp.rgbaToInt(rgba.r, rgba.g, rgba.b, rgba.a)
 }
-function getAverageRGB(imgEl) {
+function getAverageRGB(imgEl, blockSize) {
 		
-		var blockSize = 5, // only visit every 5 pixels
-				defaultRGB = {r:0,g:0,b:0}, // for non-supporting envs
-				canvas = document.createElement('canvas'),
-				context = canvas.getContext && canvas.getContext('2d'),
-				data, width, height,
-				i = -4,
-				length,
-				rgb = {r:0,g:0,b:0},
-				count = 0;
-				
-		if (!context) {
-				return defaultRGB;
+	var defaultRGB = {r:0,g:0,b:0}, // for non-supporting envs
+		canvas = document.createElement('canvas'),
+		context = canvas.getContext && canvas.getContext('2d'),
+		data, width, height,
+		i = -4,
+		length,
+		rgb = {r:0,g:0,b:0},
+		count = 0;
+			
+	if (!context) {
+		return defaultRGB;
+	}
+	
+	height = canvas.height = imgEl.naturalHeight || imgEl.offsetHeight || imgEl.height;
+	width = canvas.width = imgEl.naturalWidth || imgEl.offsetWidth || imgEl.width;
+	
+	context.drawImage(imgEl, 0, 0);
+	
+	try {
+		data = context.getImageData(0, 0, width, height);
+	} catch(e) {
+		/* security error, img on diff domain */alert('x');
+		return defaultRGB;
+	}
+	
+	length = data.data.length;
+
+	if (!blockSize) blockSize = Math.ceil(length/64)
+	
+	while ( (i += blockSize * 4) < length ) {
+		if (data.data[i+3] > 0) {
+			++count;
+			rgb.r += data.data[i];
+			rgb.g += data.data[i+1];
+			rgb.b += data.data[i+2];
 		}
-		
-		height = canvas.height = imgEl.naturalHeight || imgEl.offsetHeight || imgEl.height;
-		width = canvas.width = imgEl.naturalWidth || imgEl.offsetWidth || imgEl.width;
-		
-		context.drawImage(imgEl, 0, 0);
-		
-		try {
-				data = context.getImageData(0, 0, width, height);
-		} catch(e) {
-				/* security error, img on diff domain */alert('x');
-				return defaultRGB;
-		}
-		
-		length = data.data.length;
-		
-		while ( (i += blockSize * 4) < length ) {
-				if (data.data[i+3] > 0) {
-					++count;
-					rgb.r += data.data[i];
-					rgb.g += data.data[i+1];
-					rgb.b += data.data[i+2];
-				}
-		}
-		
-		// ~~ used to floor values
-		rgb.r = ~~(rgb.r/count);
-		rgb.g = ~~(rgb.g/count);
-		rgb.b = ~~(rgb.b/count);
-		
-		return rgb;	
+	}
+	
+	// ~~ used to floor values
+	rgb.r = ~~(rgb.r/count);
+	rgb.g = ~~(rgb.g/count);
+	rgb.b = ~~(rgb.b/count);
+	
+	return rgb;	
 }
 

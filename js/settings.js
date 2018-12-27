@@ -7,31 +7,32 @@ function settingSetup() {
 	settings_old = {}
 	settings = {
 		//General
-		language: 	  		{value: 'en', type: 'select', options: Language.options},
-		show_actions: 		{value: false},
-		backup_interval: 	{value: 10, type: 'number'},
+		language:			{value: 'en', type: 'select', options: Language.options},
+		backup_interval:	{value: 10, type: 'number', condition: isApp},
+		backup_retain:		{value: 30, type: 'number', condition: isApp},
 		//Preview 
 		origin_size: 		{category: 'preview', value: 10, type: 'number'},
 		control_size: 		{category: 'preview', value: 10, type: 'number'},
+		//focal_length: 		{category: 'preview', value: 70, type: 'number'},
 		display_skin: 		{category: 'preview', value: false, type: 'click', condition: isApp, icon: 'icon-player', click: function() { changeDisplaySkin() }},
 		seethrough_outline:	{category: 'preview', value: false},
 		shading:	  		{category: 'preview', value: true}, 
 		transparency: 		{category: 'preview', value: true}, 
 		texture_fps:  		{category: 'preview', value: 2, type: 'number'},
-		//Grid
-		base_grid:		{category: 'grid', value: true,},
-		large_grid: 	{category: 'grid', value: false},
-		full_grid:		{category: 'grid', value: false},
-		large_box:		{category: 'grid', value: false},
-		display_grid:	{category: 'grid', value: false},
 		//Edit
-		undo_limit:   		{category: 'edit', value: 80, type: 'number'},
+		undo_limit:   		{category: 'edit', value: 128, type: 'number'},
 		restricted_canvas: 	{category: 'edit', value: true},
 		limited_rotation: 	{category: 'edit', value: true},
 		local_move:   		{category: 'edit', value: true},
 		canvas_unselect: 	{category: 'edit', value: false},
 		paint_side_restrict:{category: 'edit', value: true},
 		image_editor: 		{category: 'edit', value: false, type: 'click', condition: isApp, icon: 'fa-pencil-square', click: function() {changeImageEditor() }},
+		//Grid
+		base_grid:		{category: 'grid', value: true,},
+		large_grid: 	{category: 'grid', value: false},
+		full_grid:		{category: 'grid', value: false},
+		large_box:		{category: 'grid', value: false},
+		display_grid:	{category: 'grid', value: false},
 		//Snapping
 		edit_size:		{category: 'snapping', value: 16, type: 'number'},
 		shift_size: 	{category: 'snapping', value: 64, type: 'number'},
@@ -247,6 +248,12 @@ function saveSettings(force_update) {
 	if (hasSettingChanged('texture_fps')) {
 		TextureAnimator.updateSpeed()
 	}
+	/*
+	if (hasSettingChanged('focal_length')) {
+		previews.forEach(p => {
+			p.camPers.setFocalLength(2000/limitNumber(settings.focal_length.value, 10, 200))
+		})
+	}*/
 	if (hasSettingChanged('restricted_canvas') && settings.restricted_canvas.value && Blockbench.entity_mode === false) {
 		moveIntoBox(undefined, false)
 	}

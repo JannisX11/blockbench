@@ -482,7 +482,7 @@ THREE.OrbitControls = function ( object, preview ) {
 		// console.log( 'handleMouseWheel' );
 
 		if ( event.deltaY < 0 ) {
-
+			
 			dollyOut( getZoomScale() );
 
 		} else if ( event.deltaY > 0 ) {

@@ -230,6 +230,18 @@ class OutlinerElement {
 		scope.name = '_&/3%6-7A';
 		scope.name = old_name;
 	}
+	getDepth() {
+		var d = 0;
+		function it(p) {
+			if (p.parent) {
+				d++;
+				return it(p.parent)
+			} else {
+				return d-1;
+			}
+		}
+		return it(this)
+	}
 	rename() {
 		this.showInOutliner()
 		var obj = $('#'+this.uuid+' > div.outliner_object > input.cube_name')
@@ -240,6 +252,27 @@ class OutlinerElement {
 		Blockbench.addFlag('renaming')
 		this.old_name = this.name
 		return this;
+	}
+	saveName(save) {
+		var scope = this;
+		if (save !== false && scope.name.length > 0) {
+			var name = scope.name
+			scope.name = scope.old_name
+			if (scope.type === 'cube') {
+				Undo.initEdit({cubes: [scope]})
+			} else {
+				Undo.initEdit({outliner: true})
+			}
+			scope.name = name
+			delete scope.old_name
+			if (Blockbench.entity_mode && scope.type === 'group') {
+				scope.createUniqueName()
+			}
+			Undo.finishEdit('rename')
+		} else {
+			scope.name = scope.old_name
+			delete scope.old_name
+		}
 	}
 	isIconEnabled(btn) {
 		switch (btn.id) {
@@ -352,6 +385,7 @@ class Cube extends OutlinerElement {
 				return this.rotation_axis;
 			}
 		}
+		return this.rotation_axis;
 	}
 	getMesh() {
 		return Canvas.meshes[this.uuid]
@@ -374,7 +408,7 @@ class Cube extends OutlinerElement {
 					} else {
 						starting_point = true
 					}
-					if (s.type === 'cube') {
+					if (s.type !== 'group') {
 						if (!selected.includes(s)) {
 							selected.push(s)
 							just_selected.push(s)
@@ -383,7 +417,7 @@ class Cube extends OutlinerElement {
 						s.selectLow()
 					}
 				} else if (starting_point) {
-					if (s.type === 'cube') {
+					if (s.type !== 'group') {
 						if (!selected.includes(s)) {
 							selected.push(s)
 							just_selected.push(s)
@@ -702,7 +736,7 @@ class Cube extends OutlinerElement {
 	setColor(index) {
 		this.color = index;
 		if (this.visibility) {
-			Canvas.adaptObjectFaces(obj)
+			Canvas.adaptObjectFaces(this)
 		}
 	}
 	showContextMenu(event) {
@@ -933,8 +967,10 @@ class Cube extends OutlinerElement {
 
 			Undo.initEdit({outliner: true, cubes: [], selection: true});
 			cube.forSelected(function(obj) {
-				obj.duplicate()
+				obj.duplicate(false)
 			})
+			updateSelection()
+			loadOutlinerDraggable()
 			Undo.finishEdit('duplicate', {outliner: true, cubes: selected, selection: true})
 		}},
 		{name: 'generic.rename', icon: 'text_format', click: function(cube) {
@@ -1162,8 +1198,26 @@ class Group extends OutlinerElement {
 			Undo.finishEdit('removed_group')
 		}
 	}
-	index() {
-		return -1;
+	createUniqueName() {
+		var scope = this;
+		var others = getAllOutlinerGroups();
+		var name = this.name.replace(/\d+$/, '');
+		function check(n) {
+			for (var i = 0; i < others.length; i++) {
+				if (others[i] !== scope && others[i].name == n) return false;
+			}
+			return true;
+		}
+		if (check(this.name)) {
+			return this.name;
+		}
+		for (var num = 2; num < 256; num++) {
+			if (check(name+num)) {
+				scope.name = name+num;
+				return scope.name;
+			}
+		}
+		return false;
 	}
 	resolve() {
 		var scope = this;
@@ -1238,6 +1292,7 @@ class Group extends OutlinerElement {
 		} else if (destination !== 'cache') {
 			base_group.addTo(destination, false)
 		}
+		base_group.createUniqueName()
 		Canvas.updatePositions()
 		loadOutlinerDraggable()
 		return base_group;
@@ -1735,6 +1790,9 @@ function addGroup() {
 	var base_group = new Group({
 		origin: add_group ? add_group.origin : undefined
 	})
+	if (Blockbench.entity_mode) {
+		base_group.createUniqueName()
+	}
 	selected.forEach(function(s, i) {
 		s.addTo(base_group, false)
 		if (i === 0) {
@@ -1806,23 +1864,9 @@ function renameCubes(element) {
 function stopRenameCubes(save) {
 	if (Blockbench.hasFlag('renaming')) {
 		var uuid = $('.outliner_object input.renaming').parent().parent().attr('id')
-		if (uuid) {
-			var element = TreeElements.findRecursive('uuid', uuid)
-			if (save !== false && element.name.length > 0) {
-				var name = element.name
-				element.name = element.old_name
-				if (element.type === 'cube') {
-					Undo.initEdit({cubes: [element]})
-				} else {
-					Undo.initEdit({outliner: true})
-				}
-				element.name = name
-				delete element.old_name
-				Undo.finishEdit('rename')
-			} else {
-				element.name = element.old_name
-				delete element.old_name
-			}
+		var element = TreeElements.findRecursive('uuid', uuid)
+		if (element) {
+			element.saveName(save)
 		}
 		$('.outliner_object input.renaming').attr('disabled', true).removeClass('renaming')
 		$('body').focus()

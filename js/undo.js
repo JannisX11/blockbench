@@ -142,6 +142,13 @@ var Undo = {
 				scope.keyframes[kf.uuid] = kf.undoCopy()
 			})
 		}
+
+		if (aspects.display_slots) {
+			scope.display_slots = {}
+			aspects.display_slots.forEach(slot => {
+				scope.display_slots[slot] = display[slot].copy()
+			})
+		}
 	},
 	loadSave: function(save, reference) {
 		if (save.cubes) {
@@ -323,6 +330,38 @@ var Undo = {
 			}
 			updateKeyframeSelection()
 		}
+
+		if (save.display_slots) {
+			for (var slot in save.display_slots) {
+				if (!display[slot]) {
+					display[slot] = new DisplaySlot()
+				}
+				display[slot].extend(save.display_slots[slot]).update()
+			}
+		}
 		updateSelection()
 	}
 }
+Undo.save.prototype.addTexture = function(texture) {
+	if (!this.textures) return;
+	if (this.aspects.textures.safePush(texture)) {
+		this.textures[texture.uuid] = texture.getUndoCopy(this.aspects.bitmap)
+	}
+}
+BARS.defineActions(function() {
+	
+	new Action({
+		id: 'undo',
+		icon: 'undo',
+		category: 'edit',
+		keybind: new Keybind({key: 90, ctrl: true}),
+		click: function () {Undo.undo()}
+	})
+	new Action({
+		id: 'redo',
+		icon: 'redo',
+		category: 'edit',
+		keybind: new Keybind({key: 89, ctrl: true}),
+		click: function () {Undo.redo()}
+	})
+})

@@ -25,6 +25,7 @@ function newProject(entity_mode) {
 		Undo.index = 0;
 		Painter.current = {};
 		Animator.animations.length = 1;
+		Animator.selected = undefined;
 		Animator.animations.splice(0, 1);
 		if (entity_mode) {
 			entityMode.join();
@@ -86,7 +87,7 @@ function loadModel(data, filepath, add) {
 		//Create New Project
 		if (newProject() == false) return;
 		Prop.file_path = filepath
-		setProjectTitle(pathToName(filepath, true))
+		setProjectTitle(pathToName(filepath))
 	}
 	Blockbench.addFlag('importing')
 	var model = autoParseJSON(data)
@@ -122,7 +123,11 @@ function loadBlockModel(model, filepath, add) {
 		})
 		return;
 	}
-	Blockbench.entity_mode = false;
+	if (model.mode === 'entity') {
+		entityMode.join()
+	} else {
+		Blockbench.entity_mode = false;
+	}
 	saveSettings()
 
 	var previous_length = add ? elements.length : 0
@@ -134,7 +139,7 @@ function loadBlockModel(model, filepath, add) {
 
 	//Load
 	if (model.display !== undefined) {
-		display = model.display
+		DisplayMode.loadJSON(model.display)
 	}
 
 	var oid = elements.length
@@ -147,10 +152,16 @@ function loadBlockModel(model, filepath, add) {
 			var uv_stated = false;
 			for (var face in base_cube.faces) {
 				if (obj.faces[face] === undefined) {
+
 					base_cube.faces[face].texture = null
 					base_cube.faces[face].uv = [0,0,0,0]
-				} else  if (typeof obj.faces[face].uv === 'object') {
-					uv_stated = true
+				} else {
+					if (typeof obj.faces[face].uv === 'object') {
+						uv_stated = true
+					}
+					if (obj.faces[face].texture === '#missing') {
+						delete base_cube.faces[face].texture;
+					}
 				}
 			}
 			if (!uv_stated) {
@@ -215,13 +226,14 @@ function loadBlockModel(model, filepath, add) {
 		var path_arr = filepath.split(osfs)
 		var index = path_arr.length - path_arr.indexOf('models')
 		path_arr.splice(-index)
+
 		var texture_arr = model.textures
 		var names = {}
 
 		for (var tex in texture_arr) {
 			if (texture_arr.hasOwnProperty(tex)) {
 				if (tex != 'particle') {
-					var t = new Texture({id: tex}).fromJavaLink(texture_arr[tex], path_arr.slice()).add()
+					var t = new Texture({id: tex}).fromJavaLink(texture_arr[tex], path_arr.slice()).add(false)
 					names[texture_arr[tex]] = t
 				}
 			}
@@ -231,7 +243,7 @@ function loadBlockModel(model, filepath, add) {
 			if (names[texture_arr.particle]) {
 				names[texture_arr.particle].enableParticle()
 			} else {
-				new Texture({id: 'particle'}).fromJavaLink(texture_arr[tex], path_arr.slice()).add().enableParticle()
+				new Texture({id: 'particle'}).fromJavaLink(texture_arr[tex], path_arr.slice()).add(false).enableParticle()
 			}
 		}
 		//Get Rid Of ID overlapping
@@ -369,7 +381,7 @@ function loadJEMModel(model) {
 	Canvas.updateAll()
 	if (model.texture) {
 		var path = Prop.file_path.replace(/\\[\w .-]+$/, '\\'+model.texture)
-		new Texture().fromPath(path).add()
+		new Texture().fromPath(path).add(false)
 	}
 }
 function loadPEModelFile(data) {
@@ -537,7 +549,7 @@ function loadPEModel(data) {
 			data = pe_list_data[0]
 		}
 	}
-	Project.parent = data.name
+	Project.parent = data.name.replace(/^geometry\./, '')
 	Project.texture_width = 64
 	Project.texture_height = 64
 
@@ -641,8 +653,8 @@ function loadPEModel(data) {
 	loadOutlinerDraggable()
 	Canvas.updateAll()
 	setProjectTitle()
-	if (isApp && data.name) {
-		findEntityTexture(data.name)
+	if (isApp && Project.parent) {
+		findEntityTexture(Project.parent)
 	}
 }
 var Extruder = {
@@ -1025,17 +1037,10 @@ function buildBlockModel(options) {
 		var new_display = {}
 		var entries = 0;
 		for (var key in display) {
-			if (display.hasOwnProperty(key)) {
-				if ((typeof display[key].scale === 'object' && display[key].scale.join('_') !== '1_1_1') ||
-					display[key].rotation ||
-					display[key].translation
-				) {
-					new_display[key] = display[key]
-					entries++;
-					if (new_display[key].scale && new_display[key].scale.join('_') === '1_1_1') {
-						new_display[key].scale = undefined
-					}
-				}
+			var slot = display[key].export()
+			if (slot) {
+				new_display[key] = display[key].export()
+				entries++;
 			}
 		}
 		if (entries) {
@@ -1130,7 +1135,7 @@ function buildEntityModel(options) {
 		bones.push(bone)
 	})
 
-	if (options.visible_box !== false) {
+	if (bones.length && options.visible_box !== false) {
 		var offset = new THREE.Vector3(8,8,8)
 		visible_box.max.add(offset)
 		visible_box.min.add(offset)
@@ -1152,13 +1157,15 @@ function buildEntityModel(options) {
 		}
 		entitymodel.visible_bounds_offset = [0, entitymodel.visible_bounds_height/2 , 0]
 	}
-
-	entitymodel.bones = bones
+	if (bones.length) {
+		entitymodel.bones = bones
+	}
 
 	if (options.raw) {
 		return entitymodel
 	} else {
-		return autoStringify(entitymodel)
+		var model_name = 'geometry.' + (Project.parent||'unknown')
+		return autoStringify({[model_name]: entitymodel})
 	}
 }
 function buildJPMModel(options) {
@@ -1312,10 +1319,10 @@ function buildClassModel(options) {
 		return s+'F';
 	}
 
-	var bones = []
 	var bone_nr = 1
-	var model_id = Project.parent.replace('geometry.', '') || 'unknown';
+	var model_id = Project.parent.replace(/^geometry\./, '') || 'unknown';
 	var all_groups = getAllOutlinerGroups()
+	var renderers = {}
 
 	var loose_cubes = []
 	TreeElements.forEach(obj => {
@@ -1345,9 +1352,9 @@ function buildClassModel(options) {
 			rootBone: g.parent.type !== 'group',
 			lines: [
 				`${id} = new ModelRenderer(this);`,//Texture Offset
-				`${id}.setRotationPoint(${F(-g.origin[0])}, ${F(24-g.origin[1])}, ${F(g.origin[2])});`,
 			]
 		}
+		var origin = [-g.origin[0], -g.origin[1], g.origin[2]]
 		//Rotation
 		if (!g.rotation.allEqual(0)) {
 			bone.lines.push(
@@ -1358,14 +1365,21 @@ function buildClassModel(options) {
 			)
 		}
 		//Parent
-		if (!bone.rootBone) {
-			let parent_index = all_groups.indexOf(g.parent)
-			if (parent_index >= 0) {
-				bone.lines.push(
-					`${ g.parent.name }.addChild(${id});`
-				)
-			}
+		if (!bone.rootBone && all_groups.indexOf(g.parent) >= 0) {
+			bone.lines.push(
+				`${ g.parent.name }.addChild(${id});`
+			)
+			origin[0] += g.parent.origin[0]
+			origin[1] += g.parent.origin[1]
+			origin[2] -= g.parent.origin[2]
+		} else {
+			origin[1] += 24
 		}
+		//origin
+		bone.lines.splice(1, 0, 
+			`${id}.setRotationPoint(${F(origin[0])}, ${F(origin[1])}, ${F(origin[2])});`
+		)
+
 		//Boxes
 		g.children.forEach((obj) => {
 			if (obj.export === false || obj.type !== 'cube') return;
@@ -1387,7 +1401,7 @@ function buildClassModel(options) {
 			)
 		})
 
-		bones.push(bone)
+		renderers[id] = bone;
 
 	})
 
@@ -1404,29 +1418,29 @@ function buildClassModel(options) {
 		'\nimport net.minecraft.entity.Entity;\n'+
 		'\npublic class '+model_id+' extends ModelBase {'
 
-	bones.forEach((bone) => {
-		model += `\n	private final ModelRenderer ${bone.id};`;
-	})
+	for (var r_id in renderers) {
+		model += `\n	private final ModelRenderer ${r_id};`;
+	}
 
 	model += '\n'+
 		 '\n	public '+model_id+'() {'+
 		 '\n		textureWidth = '+	(Project.texture_width || 32)	+';'+
 		 '\n		textureHeight = '+	(Project.texture_height|| 32)	+';\n';
 
-	bones.forEach((bone) => {
-		model += `\n		${bone.lines.join('\n		')}\n`;
-	})
+	for (var r_id in renderers) {
+		model += `\n		${renderers[r_id].lines.join('\n		')}\n`;
+	}
 
 	model +=
 		 '	}\n'+
 		 '\n	@Override'+
 		 '\n	public void render(Entity entity, float f, float f1, float f2, float f3, float f4, float f5) {'
 	
-	bones.forEach((bone) => {
-		if (bone.rootBone) {
-			model += `\n		${bone.id}.render(f5);`;
+	for (var r_id in renderers) {
+		if (renderers[r_id].rootBone) {
+			model += `\n		${r_id}.render(f5);`;
 		}
-	})
+	}
 	model +=
 		 '\n	}'+
 		 '\n	public void setRotationAngle(ModelRenderer modelRenderer, float x, float y, float z) {'+
@@ -1555,6 +1569,7 @@ function autoParseJSON(data, feedback) {
 }
 
 BARS.defineActions(function() {
+	//New
 	new Action({
 		id: 'new_block_model',
 		icon: 'insert_drive_file',
@@ -1572,6 +1587,7 @@ BARS.defineActions(function() {
 			showDialog('project_settings');
 		}
 	})
+	//Import
 	new Action({
 		id: 'open_model',
 		icon: 'assessment',
@@ -1617,9 +1633,9 @@ BARS.defineActions(function() {
 			}, function(files) {
 				if (files.length) {
 					if (isApp) {
-						new Texture().fromPath(files[0].path).add().fillParticle()
+						new Texture().fromPath(files[0].path).add(false).fillParticle()
 					} else {
-						new Texture().fromDataURL(files[0].content).add().fillParticle()
+						new Texture().fromDataURL(files[0].content).add(false).fillParticle()
 					}
 					showDialog('image_extruder')
 					Extruder.drawImage(isApp ? files[0].path : files[0].content)
@@ -1627,6 +1643,7 @@ BARS.defineActions(function() {
 			})
 		}
 	})
+	//Export
 	new Action({
 		id: 'export_blockmodel',
 		icon: 'insert_drive_file',
@@ -1634,20 +1651,13 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 83, ctrl: true, shift: true}),
 		condition: function() {return !Blockbench.entity_mode},
 		click: function () {
-			var content = buildBlockModel()
 			Blockbench.export({
 				type: 'JSON Model',
 				extensions: ['json'],
 				name: Project.name||'model',
 				startpath: Prop.file_path,
-				content: content
-			}, (path) => {
-				Prop.project_saved = true
-				if (isApp && path) {
-					Prop.file_path = path
-					setProjectTitle(pathToName(Prop.file_path, true))
-        			addRecentProject({name: pathToName(path, true), path: path})
-				}
+				project_file: true,
+				content: buildBlockModel()
 			})
 		}
 	})
@@ -1658,14 +1668,14 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 83, ctrl: true, shift: true}),
 		condition: function() {return Blockbench.entity_mode},
 		click: function () {
-			var content = buildEntityModel({raw: true});
 			Blockbench.export({
 				type: 'JSON Entity Model',
 				extensions: ['json'],
 				name: Project.name,
 				startpath: Prop.file_path,
-				content: content,
-				custom_writer: writeFileEntity
+				content: buildEntityModel({raw: isApp}),
+				project_file: true,
+				custom_writer: isApp ? writeFileEntity : undefined
 			})
 		}
 	})

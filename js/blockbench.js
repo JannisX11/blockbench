@@ -1,4 +1,4 @@
-const appVersion = '2.2.2'
+const appVersion = '2.3.0'
 var osfs = '/'
 var File, i;
 const elements = [];
@@ -24,6 +24,7 @@ const Prop = {
 	project_saved:  true,
 	fps:			0,
 	zoom:		   100,
+	progress:	   0,
 	facing:		 'north'
 }
 const Project = {
@@ -118,6 +119,7 @@ function initializeApp() {
 
 	setupInterface()
 	setupDragHandlers()
+	Modes.options.edit.select()
 	Blockbench.setup_successful = true
 }
 function setupVue() {
@@ -196,7 +198,53 @@ function setupVue() {
 		el: '#project_settings',
 		data: {Project}
 	})
-	//project_vue._data.Project = Project
+
+	DisplayMode.vue = new Vue({
+		el: '#display_sliders',
+		data: {
+			slot: new DisplaySlot()
+		},
+		methods: {
+			isMirrored: (axis) => {
+				if (display[display_slot]) {
+					return display[display_slot].scale[axis] < 0;
+				}
+			},
+			change: (axis, channel) => {
+				if (channel === 'scale') {
+					var val = limitNumber(DisplayMode.slot.scale[axis], 0, 4)
+					DisplayMode.slot.scale[axis] = val;
+					if (holding_shift) {
+						DisplayMode.slot.scale[0] = val;
+						DisplayMode.slot.scale[1] = val;
+						DisplayMode.slot.scale[2] = val;
+					}
+				} else if (channel === 'translation') {
+					DisplayMode.slot.translation[axis] = limitNumber(DisplayMode.slot.translation[axis], -80, 80)
+				} else {
+					DisplayMode.slot.rotation[axis] = Math.trimDeg(DisplayMode.slot.rotation[axis])
+				}
+				DisplayMode.updateDisplayBase()
+			},
+			resetChannel: (channel) => {
+				Undo.initEdit({display_slots: [display_slot]})
+				DisplayMode.slot.extend({[channel]: [0, 0, 0]})
+				Undo.finishEdit('reset display')
+			},
+			invert: (axis) => {
+				Undo.initEdit({display_slots: [display_slot]})
+				DisplayMode.slot.mirror[axis] = !DisplayMode.slot.mirror[axis];
+				DisplayMode.slot.update()
+				Undo.finishEdit('mirror display')
+			},
+			start: () => {
+				Undo.initEdit({display_slots: [display_slot]})
+			},
+			save: () => {
+				Undo.finishEdit('change_display')
+			}
+		}
+	})
 
 	Animator.vue = new Vue({
 		el: '#animations_list',
@@ -204,7 +252,6 @@ function setupVue() {
 			animations: Animator.animations
 		}
 	})
-	//project_vue._data.Project = Project
 
 
 	Timeline.vue = new Vue({
@@ -222,13 +269,19 @@ function setupVue() {
 		el: '#status_bar',
 		data: {Prop}
 	})
-	//project_vue._data.Prop = Prop
+
+	Modes.vue = new Vue({
+		el: '#mode_selector',
+		data: {
+			options: Modes.options
+		}
+	})
 }
 function canvasGridSize(shift, ctrl) {
 	if (!shift && !ctrl) {
-		return 16 / limitNumber(settings.edit_size.value, 1, 64)
+		return 16 / limitNumber(settings.edit_size.value, 1, 1024)
 	} else if (ctrl && shift) {
-		var basic = 16 / limitNumber(settings.edit_size.value, 1, 64)
+		var basic = 16 / limitNumber(settings.edit_size.value, 1, 1024)
 		var control = 16 / limitNumber(settings.ctrl_size.value, 1, 1024)
 		var shift = 16 / limitNumber(settings.shift_size.value, 1, 1024)
 		control = basic / control
@@ -281,13 +334,17 @@ function updateSelection() {
 	Transformer.detach()
 	Transformer.hoverAxis = null;
 	
+	if (display_mode) {
+		DisplayMode.centerTransformer()
+	}
+
 	elements.forEach(function(obj) {
 		var is_in_selection = selected.includes(obj)
 		if (is_in_selection !== obj.selected) {
 			obj.selected = is_in_selection
 		}
 		if (obj.selected === true) {
-			if (Toolbox.selected.transformerMode !== 'hidden' && obj.visibility === true) {
+			if (Toolbox.selected.transformerMode !== 'hidden' && obj.visibility === true && (Toolbox.selected.transformerMode !== 'rotate' || !Blockbench.entity_mode)) {
 				Transformer.attach(obj.getMesh())
 			}
 		}
@@ -317,6 +374,9 @@ function updateSelection() {
 			$('.selection_only#options').css('visibility', 'visible')
 			if (settings.origin_size.value > 0 && selected_group.visibility) {
 				selected_group.getMesh().add(rot_origin)
+			}
+			if (Toolbox.selected.transformerMode === 'rotate') {
+				Transformer.attach(selected_group.getMesh())
 			}
 		} else {
 			$('.selection_only#options').css('visibility', 'hidden')
@@ -426,6 +486,92 @@ function createSelection() {
 	}
 	hideDialog()
 }
+//Modes
+class Mode extends KeybindItem {
+	constructor(data) {
+		super(data)
+		this.id = data.id;
+		this.name = data.name || tl('mode.'+this.id);
+		this.selected = false
+		this.default_tool = data.default_tool;
+		this.selectCubes = data.selectCubes !== false
+		this.condition = data.condition;
+		this.onSelect = data.onSelect;
+		this.onUnselect = data.onUnselect;
+		this.category = data.category;
+		Modes.options[this.id] = this;
+	}
+	select() {
+		if (typeof Modes.selected.onUnselect === 'function') {
+			Modes.selected.onUnselect()
+		}
+		if (Modes.selected.selected) {
+			Modes.selected.selected = false
+		}
+		if (typeof this.onSelect === 'function') {
+			this.onSelect()
+		}
+		this.selected = true;
+		Modes.id = this.id
+		Modes.selected = this;
+		updateInterface()
+		Canvas.updateRenderSides()
+		resizeWindow()
+		if (BarItems[this.default_tool]) {
+			BarItems[this.default_tool].select()
+		} else {
+			BarItems.move_tool.select()
+		}
+		updateSelection()
+	}
+	trigger() {
+		if (Condition(this.condition)) {
+			this.select()
+		}
+	}
+}
+const Modes = {
+	id: 'edit',
+	selected: false,
+	options: {},
+};
+BARS.defineActions(function() {
+	new Mode({
+		id: 'edit',
+		default_tool: 'move_tool',
+		keybind: new Keybind({key: 49})
+	})
+	new Mode({
+		id: 'paint',
+		default_tool: 'brush_tool',
+		keybind: new Keybind({key: 50})
+	})
+	new Mode({
+		id: 'display',
+		selectCubes: false,
+		default_tool: 'move_tool',
+		keybind: new Keybind({key: 51}),
+		condition: () => !Blockbench.entity_mode,
+		onSelect: () => {
+			enterDisplaySettings()
+		},
+		onUnselect: () => {
+			exitDisplaySettings()
+		},
+	})
+	new Mode({
+		id: 'animate',
+		default_tool: 'move_tool',
+		keybind: new Keybind({key: 51}),
+		condition: () => Blockbench.entity_mode,
+		onSelect: () => {
+			Animator.join()
+		},
+		onUnselect: () => {
+			Animator.leave()
+		}
+	})
+})
 //Misc
 var Screencam = {
 	fullScreen: function(options, cb) {
@@ -461,7 +607,7 @@ var Screencam = {
 			var is_gif = dataUrl.substr(5, 9) == 'image/gif'
 			img.src = dataUrl
 
-			var btns = [tl('dialog.save')]
+			var btns = [tl('dialog.cancel'), tl('dialog.save')]
 			if (!is_gif) {
 				btns.push(tl('message.screenshot.clipboard'))
 			}
@@ -469,10 +615,10 @@ var Screencam = {
 				translateKey: 'screenshot',
 				icon: img,
 				buttons: btns,
-				confirm: 0,
-				cancel: btns.length-1
+				confirm: 1,
+				cancel: 0
 			}, function(result) {
-				if (result === 0) {
+				if (result === 1) {
 					app.dialog.showSaveDialog(currentwindow, {filters: [ {name: tl('data.image'), extensions: [is_gif ? 'gif' : 'png']} ]}, function (fileName) {
 						if (fileName === undefined) {
 							return;
@@ -480,7 +626,7 @@ var Screencam = {
 						//fs.writeFile(fileName, screenshot.toPNG(), function (err) {})
 						fs.writeFile(fileName, Buffer(dataUrl.split(',')[1],'base64'), err => {})
 					})
-				} else if (result === 1) {
+				} else if (result === 2) {
 					clipboard.writeImage(screenshot)
 				}
 			})
@@ -501,31 +647,81 @@ var Screencam = {
 		if (typeof options !== 'object') {
 			options = {}
 		}
+		if (!options.length) {
+			options.length = 1000
+		}
 		var interval = options.fps ? (1000/options.fps) : 100
 		var gif = new GIF({
 			repeat: options.repeat,
 			quality: options.quality,
 			transparent: 0x000000,
 		})
+		var frame_count = (options.length/interval)
+
+		/*
 		gif.on('finished', blob => {
 			var reader = new FileReader()
 			reader.onload = () => {
 				Screencam.returnScreenshot(reader.result, cb)
 			}
+			if (Animator.open && Timeline.playing) {
+				Timeline.pause()
+			}
+			reader.readAsDataURL(blob)
+			if (!options.silent) {
+				Blockbench.setProgress(0)
+				Blockbench.setStatusBarText()
+			}
+		})
+		if (!options.silent) {
+			Blockbench.setStatusBarText(tl('status_bar.recording_gif'))
+			gif.on('progress', Blockbench.setProgress)
+		}
+
+
+		for (var frame = 0; frame < frame_count; frame++) {
+			gif.addFrame(quad_previews.current.canvas, {delay: interval})
+		}
+		gif.render()*/
+
+		//Problem with this ^^ When recording, frames get generated as fast as possible
+
+		gif.on('finished', blob => {
+			var reader = new FileReader()
+			reader.onload = () => {
+				if (!options.silent) {
+					Blockbench.setProgress(0)
+					Blockbench.setStatusBarText()
+				}
+				Screencam.returnScreenshot(reader.result, cb)
+			}
 			reader.readAsDataURL(blob)
 		})
-		gif.addFrame(quad_previews.current.canvas)
+		if (!options.silent) {
+			Blockbench.setStatusBarText(tl('status_bar.recording_gif'))
+			gif.on('progress', Blockbench.setProgress)
+		}
+		var frames = 0;
 		var loop = setInterval(() => {
-			gif.addFrame(quad_previews.current.canvas, {delay: interval})
+			var img = new Image()
+			img.src = quad_previews.current.canvas.toDataURL()
+			img.onload = () => {
+				gif.addFrame(img, {delay: interval})
+			}
+			Blockbench.setProgress(interval*frames/options.length)
+			frames++;
 		}, interval)
 
 		setTimeout(() => {
 			clearInterval(loop)
+			if (!options.silent) {
+				Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
+			}
 			gif.render()
 			if (Animator.open && Timeline.playing) {
 				Timeline.pause()
 			}
-		}, options.length || 1000)
+		}, options.length)
 	}
 }
 var Clipbench = {
@@ -974,6 +1170,7 @@ const entityMode = {
 		//UI Changes
 		$('.block_mode_only').hide()
 		$('.entity_mode_only').show()
+		Modes.options.edit.select()
 		//UV
 		main_uv.buildDom().setToMainSlot().setFace('north')
 		main_uv.autoGrid = true
@@ -999,6 +1196,7 @@ const entityMode = {
 		//UI Changes
 		$('.block_mode_only').show()
 		$('.entity_mode_only').hide()
+		Modes.options.edit.select()
 		//Update
 		if (textures.length) {
 			textures[0].load()

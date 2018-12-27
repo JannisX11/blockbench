@@ -2,15 +2,12 @@
 	$.getScript("lib/file_saver.js");
 })()
 
-
 $(document).ready(function() {
 	$('.open-in-browser').click((event) => {
 		   event.preventDefault();
 		   window.open(event.target.href, '_blank');
 	});
 })
-
-
 
 function tryLoadPOSTModel() {
 	if ($('#post_model').text() !== '') {
@@ -40,20 +37,7 @@ function tryLoadPOSTModel() {
 	}
 }
 
-
-
 //Saver
-function writeFileEntity() {
-	var obj = {}
-	var model_name = Project.parent
-	if (model_name == '') model_name = 'geometry.unknown'
-	obj[model_name] = buildEntityModel({raw: true})
-
-	var data = autoStringify(obj)
-	var blob = new Blob([data], {type: "text/plain;charset=utf-8"});
-	saveAs(blob, 'mobs.json', {autoBOM: true})
-	Blockbench.showQuickMessage('Saved as bedrock entity model')
-}
 function writeFileObj() {
 	var delay = 40
 	var content = buildOBJModel('model')
@@ -99,9 +83,11 @@ function writeFileObj() {
 }
 
 function saveFile() {
-	var data = buildBlockModel()
-	var blob = new Blob([data], {type: "text/plain;charset=utf-8"});
-	saveAs(blob, 'model.json', {autoBOM: true})
+	if (Blockbench.entity_mode === false) {
+		BarItems.export_blockmodel.trigger()
+	} else {
+		BarItems.export_entity.trigger()
+	}
 }
 
 //Misc

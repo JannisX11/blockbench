@@ -45,28 +45,43 @@ TODO:
 Support for negative numbers
 */
 
-function parseMolang(string) {
-	if (typeof string === 'number') {
-		return isNaN(string) ? 0 : string
-	}
-	function splitUp(s, char) {
-		var i = 0;
-		var level = 0
-		while (i < s.length) {
-			let c = s[i];
-			if (c === '(') {
-				level++;
-			} else if (c === ')') {
-				level--;
-			} else if (level === 0 && s.substr(i, char.length) === char) {
+function splitUpMolang(s, char, inverse) {
+	var direction = inverse ? -1 : 1;
+	var i = inverse ? s.length-1 : 0;
+	var level = 0;
+	var is_string = typeof char === 'string'
+	while (inverse ? i >= 0 : i < s.length) {
+		let c = s[i];
+		if (c === '(') {
+			level += direction;
+		} else if (c === ')') {
+			level -= direction;
+		} else if (level === 0) {
+			var letters = s.substr(i, char.length)
+			if (is_string && letters === char) {
 				return [
 					s.substr(0, i),
 					s.substr(i+char.length)
 				];
+			} else if (!is_string) {
+				for (var xi = 0; xi < char.length; xi++) {
+					if (char[xi] === letters) {
+						return [
+							s.substr(0, i),
+							s.substr(i+char[xi].length)
+						];
+					}
+				}
 			}
-			i++;
 		}
+		i += direction;
+	}
 
+}
+
+function parseMolang(string) {
+	if (typeof string === 'number') {
+		return isNaN(string) ? 0 : string
 	}
 	function iterate(s) {
 		//Spaces and brackets
@@ -74,12 +89,12 @@ function parseMolang(string) {
 		if (s.substr(0, 1) === '(' && s.substr(-1) === ')') {
 			s = s.substr(1, s.length-2)
 		}
-		let split = splitUp(s, '&&')
+		let split = splitUpMolang(s, '&&')
 		// a ? b : c
-		split = splitUp(s, '?')
+		split = splitUpMolang(s, '?')
 		if (split) {
 			let condition = iterate(split[0])
-			let ab = splitUp(split[1], ':')
+			let ab = splitUpMolang(split[1], ':')
 			if (ab.length) {
 				return iterate(ab[condition?0:1])
 			}
@@ -88,40 +103,40 @@ function parseMolang(string) {
 		if (split) {
 			return iterate(split[0]) && iterate(split[1]) ? 1 : 0
 		}
-		split = splitUp(s, '||')
+		split = splitUpMolang(s, '||')
 		if (split) {
 			return iterate(split[0]) || iterate(split[1]) ? 1 : 0
 		}
-		split = splitUp(s, '<')
+		split = splitUpMolang(s, '<')
 		if (split) {
 			return iterate(split[0]) < iterate(split[1]) ? 1 : 0
 		}
-		split = splitUp(s, '<==')
+		split = splitUpMolang(s, '<==')
 		if (split) {
 			return iterate(split[0]) <= iterate(split[1]) ? 1 : 0
 		}
-		split = splitUp(s, '>')
+		split = splitUpMolang(s, '>')
 		if (split) {
 			return iterate(split[0]) < iterate(split[1]) ? 1 : 0
 		}
-		split = splitUp(s, '>==')
+		split = splitUpMolang(s, '>==')
 		if (split) {
 			return iterate(split[0]) <= iterate(split[1]) ? 1 : 0
 		}
-		split = splitUp(s, '===')
+		split = splitUpMolang(s, '===')
 		if (split) {
 			return iterate(split[0]) === iterate(split[1]) ? 1 : 0
 		}
-		split = splitUp(s, '!==')
+		split = splitUpMolang(s, '!==')
 		if (split) {
 			return iterate(split[0]) !== iterate(split[1]) ? 1 : 0
 		}
 
-		split = splitUp(s, '+')
+		split = splitUpMolang(s, '+', true)
 		if (split) {
 			return iterate(split[0]) + iterate(split[1])
 		}
-		split = splitUp(s, '-')
+		split = splitUpMolang(s, '-', true)
 		if (split) {
 			if (split[0].length === 0) {
 				return -iterate(split[1])
@@ -129,11 +144,11 @@ function parseMolang(string) {
 				return iterate(split[0]) - iterate(split[1])
 			}
 		}
-		split = splitUp(s, '*')
+		split = splitUpMolang(s, '*')
 		if (split) {
 			return iterate(split[0]) * iterate(split[1])
 		}
-		split = splitUp(s, '/')
+		split = splitUpMolang(s, '/')
 		if (split) {
 			return iterate(split[0]) / iterate(split[1])
 		}

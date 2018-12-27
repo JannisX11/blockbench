@@ -117,6 +117,9 @@ class Animation {
 		for (var uuid in this.bones) {
 			this.bones[uuid].displayFrame(time)
 		}
+		if (selected_group) {
+			centerTransformer()
+		}
 	}
 	add() {
 		if (!Animator.animations.includes(this)) {
@@ -174,9 +177,7 @@ class Animation {
 			delete
 		*/
 	])
-/*
 
-*/
 class BoneAnimator {
 	constructor() {
 		this.keyframes = []
@@ -200,25 +201,30 @@ class BoneAnimator {
 				y: values[1],
 				z: values[2]
 			})
+			if (values[3]) {
+				keyframe.extend({w: values[3], isQuaternion: true})
+			}
 		} else if (typeof values === 'number' || typeof values === 'string') {
 			keyframe.extend({
 				x: values
 			})
 		} else {
-			var ref = this.interpolate(time, channel)
+			var ref = this.interpolate(time, channel, true)
 			if (ref) {
 				let e = 1e2
+				ref.forEach((r, i) => {
+					if (!isNaN(r)) {
+						ref[i] = Math.round(parseFloat(r)*e)/e
+					}
+				})
 				keyframe.extend({
-					x: Math.round(ref[0]*e)/e,
-					y: Math.round(ref[1]*e)/e,
-					z: Math.round(ref[2]*e)/e,
-					w: ref.length === 4 ? Math.round(ref[3]*e)/e : undefined,
+					x: ref[0],
+					y: ref[1],
+					z: ref[2],
+					w: ref.length === 4 ? ref[3] : undefined,
 					isQuaternion: ref.length === 4
 				})
 			}
-		}
-		if (values.length > 3) {
-			keyframe.extend({w: values[3], isQuaternion: true})
 		}
 		this.keyframes.push(keyframe)
 		keyframe.parent = this;
@@ -270,7 +276,7 @@ class BoneAnimator {
 		}
 		return this;
 	}
-	interpolate(time, channel) {
+	interpolate(time, channel, allow_expression) {
 		var i = 0;
 		var before = false
 		var after = false
@@ -304,31 +310,28 @@ class BoneAnimator {
 		} else {
 			let alpha = Math.lerp(before.time, after.time, time)
 			result = [
-				before.calc('x') + (after.calc('x') - before.calc('x')) * alpha
+				before.getLerp(after, 'x', alpha, allow_expression)
 			]
 			if (before.channel !== 'scale')	{
-				result[1] = (before.calc('y') + (after.calc('y') - before.calc('y')) * alpha)
+				result[1] = before.getLerp(after, 'y', alpha, allow_expression)
+				result[2] = before.getLerp(after, 'z', alpha, allow_expression)
 			}
-			if (before.channel !== 'scale')	{
-				result[2] = (before.calc('z') + (after.calc('z') - before.calc('z')) * alpha)
-			}
-			if (before.isQuaternion && after.isQuaternion)	 	{
-				result[3] = (before.calc('w') + (after.calc('w') - before.calc('w')) * alpha)
+			if (before.isQuaternion && after.isQuaternion) {
+				result[3] = before.getLerp(after, 'q', alpha, allow_expression)
 			}
 		}
 		if (result && result.type === 'keyframe') {
 			let keyframe = result
+			let method = allow_expression ? 'get' : 'calc'
 			result = [
-				keyframe.calc('x')
+				keyframe[method]('x')
 			]
 			if (keyframe.channel !== 'scale')	{
-				result[1] = keyframe.calc('y')
-			}
-			if (keyframe.channel !== 'scale')	{
-				result[2] = keyframe.calc('z')
+				result[1] = keyframe[method]('y')
+				result[2] = keyframe[method]('z')
 			}
 			if (keyframe.isQuaternion)	 	{
-				result[3] = keyframe.calc('w')
+				result[3] = keyframe[method]('w')
 			}
 		}
 		return result
@@ -346,6 +349,7 @@ class BoneAnimator {
 				this.displayScale(result)
 			}
 		}
+		this.group.getMesh().updateMatrixWorld()
 	}
 	select() {
 		var duplicates;
@@ -421,6 +425,66 @@ class Keyframe {
 	set(axis, value) {
 		if (axis === 'x' || axis === 'y' || axis === 'z' || axis === 'w') {
 			this[axis] = value
+		}
+		return this;
+	}
+	offset(axis, amount) {
+		var value = this.get(axis)
+		if (!value || value === '0') {
+			this.set(axis, amount)
+		}
+		if (typeof value === 'number') {
+			this.set(axis, value+amount)
+			return value+amount
+		}
+		var start = value.match(/^-?\s*\d*(\.\d+)?\s*(\+|-)/)
+		if (start) {
+			var number = parseFloat( start[0].substr(0, start[0].length-1) ) + amount
+			value = trimFloatNumber(number) + value.substr(start[0].length-1)
+		} else {
+
+			var end = value.match(/(\+|-)\s*\d*(\.\d+)?\s*$/)
+			if (end) {
+				var number = (parseFloat( end[0] ) + amount)+''
+				value = value.substr(0, end.index) + (number.substr(0,1)=='-'?'':'+') + trimFloatNumber(number)
+			} else {
+				value = trimFloatNumber(amount) +(value.substr(0,1)=='-'?'':'+')+ value
+			}
+		}
+		this.set(axis, value)
+		return value;
+
+		/*
+		function iterate(string, index) {
+			if (!isNaN(string)) {
+				return [index, string.length]
+			}
+			var splices = splitUpMolang(string, ['+', '-'])
+			if (!splices) return false;
+
+			var result = iterate(splices[1], index+splices[0].length)
+			if (result) return result;
+
+			result = iterate(splices[0], index)
+			if (result) return result;
+		}
+
+		var p = iterate(value, 0)
+		if (p) {
+			value = value.substr(0, p[0]) + amount + value.substr(p[0]+p[1])
+			this.set(axis, value)
+		} else {
+			amount = ''+amount
+			if (amount.substr(0, 1) !== '-') amount = '+'+amount
+			this.set(axis, value+amount)
+		}*/
+	}
+	getLerp(other, axis, amount, allow_expression) {
+		if (allow_expression && this.get(axis) === other.get(axis)) {
+			return this.get(axis)
+		} else {
+			let calc = this.calc(axis)
+			return calc + (other.calc(axis) - calc) * amount
 		}
 	}
 	getArray() {
@@ -531,6 +595,8 @@ class Keyframe {
 	extend(data) {
 		if (data.channel && Animator.possible_channels[data.channel]) {
 			Merge.string(this, data, 'channel')
+		} else if (typeof data.channel === 'number') {
+			this.channel = Animator.channel_index[data.channel]
 		}
 		Merge.number(this, data, 'time')
 
@@ -540,7 +606,7 @@ class Keyframe {
 		Merge.string(this, data, 'w')
 		Merge.boolean(this, data, 'isQuaternion')
 
-		this.channel_index = this.channel === 'rotation' ? 0 : (this.channel === 'position' ? 1 : 2)
+		this.channel_index = Animator.channel_index.indexOf(this.channel)
 		return this;
 	}
 	undoCopy() {
@@ -583,6 +649,7 @@ class Keyframe {
 		*/
 	])
 
+
 function updateKeyframeValue(obj) {
 	var axis = $(obj).attr('axis')
 	var value = $(obj).val()
@@ -614,10 +681,21 @@ function updateKeyframeSelection() {
 		$('#keyframe_bar_y, #keyframe_bar_z').toggle(first.channel !== 'scale')
 		$('#keyframe_bar_w').toggle(first.channel === 'rotation' && first.isQuaternion) 
 
-		$('#keyframe_bar_x input').val(first['x'])
-		$('#keyframe_bar_y input').val(first['y'])
-		$('#keyframe_bar_z input').val(first['z'])
-		$('#keyframe_bar_w input').val(first['w'])
+		var values = [
+			first.get('x'),
+			first.get('y'),
+			first.get('z'),
+			first.get('w')
+		]
+		values.forEach((v, vi) => {
+			if (typeof v === 'number') {
+				values[vi] = trimFloatNumber(v)
+			}
+		})
+		$('#keyframe_bar_x input').val(values[0])
+		$('#keyframe_bar_y input').val(values[1])
+		$('#keyframe_bar_z input').val(values[2])
+		$('#keyframe_bar_w input').val(values[3])
 
 		BarItems.slider_keyframe_time.update()
 	} else {
@@ -656,7 +734,7 @@ function removeSelectedKeyframes() {
 
 const Animator = {
 	possible_channels: {rotation: true, position: true, scale: true},
-	channel_index: {rotation: true, position: true, scale: true},
+	channel_index: ['rotation', 'position', 'scale'],
 	open: false,
 	animations: [],
 	frame: 0,
@@ -669,12 +747,9 @@ const Animator = {
 
 		if (quad_previews.enabled) {
 			quad_previews.enabled_before = true
-			main_preview.fullscreen()
 		}
+		main_preview.fullscreen()
 		main_preview.setNormalCamera()
-		main_preview.camPers.position.set(-80, 40, -30)
-		main_preview.camPers.setFocalLength(45)
-
 
 		$('body').addClass('animation_mode')
 		$('.m_edit').hide()
@@ -753,6 +828,9 @@ const Animator = {
 						}
 					}
 				}
+				if (!Animator.selected) {
+					animation.select()
+				}
 			}
 			if (isApp && file.path) {
 				Prop.animation_path = file.path
@@ -819,12 +897,20 @@ const Timeline = {
 	selected: [],//frames
 	second: 0,
 	playing: false,
-	setTime: function(seconds) {
+	setTime: function(seconds, editing) {
 		seconds = limitNumber(seconds, 0, 1000)
 		Timeline.vue._data.marker = seconds
 		Timeline.second = seconds
-		Timeline.setTimecode(seconds)
+		if (!editing) {
+			Timeline.setTimecode(seconds)
+		}
 		Timeline.updateSize()
+		//Scroll
+		var scroll = $('#timeline_inner').scrollLeft()
+		var marker = Timeline.second * Timeline.vue._data.size + 8
+		if (marker < scroll || marker > scroll + $('#timeline_inner').width()) {
+			$('#timeline_inner').scrollLeft(marker-16)
+		}
 	},
 	setTimecode: function(time) {
 		let m = Math.floor(time/60)
@@ -882,7 +968,65 @@ const Timeline = {
 		}).focusout(e => {
 			Undo.finishEdit('edit keyframe')
 		})
+		$('#timeline_corner').click(e => {
+			if ($('#timeline_corner').attr('contenteditable') == 'true') return;
+
+			$('#timeline_corner').attr('contenteditable', true).focus().select()
+			var times = $('#timeline_corner').text().split(':')
+			while (times.length < 3) {
+				times.push('00')
+			}
+			var node = $('#timeline_corner').get(0).childNodes[0]
+			var selection = window.getSelection();        
+			var range = document.createRange();
+
+			var sel = [0, node.length]
+			if (e.offsetX < 24) {
+				sel = [0, times[0].length]
+			} else if (e.offsetX < 54) {
+				sel = [times[0].length+1, times[1].length]
+			} else if (e.offsetX < 80) {
+				sel = [times[0].length+times[1].length+2, times[2].length]
+			}
+			sel[1] = limitNumber(sel[0]+sel[1], sel[0], node.length)
+
+			range.setStart(node, sel[0])
+			range.setEnd(node, sel[1])
+			selection.removeAllRanges();
+			selection.addRange(range);
+
+		})
+		.on('focusout keydown', e => {
+			if (e.type === 'focusout' || Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
+				$('#timeline_corner').attr('contenteditable', false)
+				Timeline.setTimecode(Timeline.second)
+			}
+		})
+		.on('keyup', e => {
+			var times = $('#timeline_corner').text().split(':')
+			times.forEach((t, i) => {
+				times[i] = parseInt(t)
+				if (isNaN(times[i])) {
+					times[i] = 0
+				}
+			})
+			while (times.length < 3) {
+				times.push(0)
+			}
+			var seconds
+				= times[0]*60
+				+ limitNumber(times[1], 0, 59)
+				+ limitNumber(times[2]/30, 0, 29)
+			if (Math.abs(seconds-Timeline.second) > 1e-3 ) {
+				Timeline.setTime(seconds, true)
+				if (Animator.selected) {
+					Animator.preview()
+				}
+			}
+		})
+
 		Timeline.is_setup = true
+		Timeline.setTime(0)
 	},
 	update: function() {
 		//Draggable
@@ -1073,7 +1217,7 @@ BARS.defineActions(function() {
 		condition: () => Animator.open,
 		click: function () {
 			var animation = new Animation({
-				name: 'animation.' + (Project.parent.replace(/geometry./, '')||'model') + '.new'
+				name: 'animation.' + (Project.parent||'model') + '.new'
 			}).add().select()
 
 		}
@@ -1136,6 +1280,10 @@ BARS.defineActions(function() {
 		condition: () => Animator.open,
 		click: function () {
 			
+			if (!Animator.selected) {
+				Blockbench.showQuickMessage('message.no_animation_selected')
+				return;
+			}
 			if (Timeline.playing) {
 				Timeline.pause()
 			} else {

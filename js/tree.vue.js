@@ -7,6 +7,7 @@
 				class="outliner_object" v-on:dblclick="node.rename($event)"
 				v-on:click="node.select($event, true)" v-on:touchstart="node.select($event)" :title="node.title"
 				v-bind:class="{ cube: node.type === \'cube\', group: node.type === \'group\', selected: node.selected }"
+				v-bind:style="{'padding-left': (node.getDepth ? limitNumber(node.getDepth(), 0, (Interface.Panels.outliner.width-124) / 20) * 20 : 0)+'px'}"
 			>` +
 				//Opener
 				

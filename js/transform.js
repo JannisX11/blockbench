@@ -158,37 +158,36 @@ function moveIntoBox(list, value_before) {
 	Undo.finishEdit('restrict', {cubes: selected, settings: {restricted_canvas: true}})
 }
 //Movement
-function moveCube(obj, val, axis) {
+function moveCube(obj, val, axis, move_origin) {
 	//Obj = Direct  -  val = Total  -   Axis = Number
 	val = limitToBox(val)
 	val = limitToBox(val + obj.size(axis))
 	var size = obj.size(axis)
 	var difference = val - obj.to[axis]
-	if (!Blockbench.entity_mode || !Blockbench.globalMovement) {
+
+	//Move
+	if (Blockbench.globalMovement && Blockbench.entity_mode && !move_origin) {
+		var m = new THREE.Vector3()
+		m[getAxisLetter(axis)] = difference
+
+		var rotation = new THREE.Quaternion()
+		obj.getMesh().getWorldQuaternion(rotation)
+		m.applyQuaternion(rotation.inverse())
+
+		obj.from[0] += m.x;
+		obj.from[1] += m.y;
+		obj.from[2] += m.z;
+		obj.to[0]	+= m.x;
+		obj.to[1]	+= m.y;
+		obj.to[2]	+= m.z;
+
+	} else {
 		obj.to[axis] = val
 		obj.from[axis] = val - size
 	}
-	if (Blockbench.globalMovement) {
-		if (!Blockbench.entity_mode) {
-			obj.origin[axis] += difference
-		} else {
-			var m = new THREE.Vector3()
-			m[getAxisLetter(axis)] = difference
-
-
-
-			var rotation = new THREE.Quaternion()
-			obj.getMesh().getWorldQuaternion(rotation)
-			m.applyQuaternion(rotation.inverse())
-
-
-			obj.from[0] += m.x;
-			obj.from[1] += m.y;
-			obj.from[2] += m.z;
-			obj.to[0]	+= m.x;
-			obj.to[1]	+= m.y;
-			obj.to[2]	+= m.z;
-		}
+	//Origin
+	if (Blockbench.globalMovement && !Blockbench.entity_mode) {
+		obj.origin[axis] += difference
 	}
 	obj.mapAutoUV()
 }
@@ -404,6 +403,92 @@ function centerCubes(axis, update) {
 	}
 }
 
+function getRotationInterval(event) {
+	if (settings.limited_rotation.value && !Blockbench.entity_mode) {
+		return 22.5;
+	} else if (event.shiftKey && event.ctrlKey) {
+		return 0.25;
+	} else if (event.shiftKey) {
+		return 45;
+	} else if (event.ctrlKey) {
+		return 1;
+	} else {
+		return 5;
+	}
+}
+function rotateOnAxis(value, fixed, axis) {
+	if (Blockbench.entity_mode) {	
+		if (!selected_group) return;
+		if (!fixed) {
+			value = value + selected_group.rotation[axis]
+		}
+		value = Math.trimDeg(value)
+		selected_group.rotation[axis] = value
+		Canvas.updateAllBones()
+		return;
+	}
+	//Warning
+	if (settings.limited_rotation.value && settings.dialog_rotation_limit.value) {
+		var i = 0;
+		while (i < selected.length) {
+			if (selected[i].rotation[(axis+1)%3] ||
+				selected[i].rotation[(axis+2)%3]
+			) {
+				i = Infinity
+
+				Blockbench.showMessageBox({
+					title: tl('message.rotation_limit.title'),
+					icon: 'rotate_right',
+					message: tl('message.rotation_limit.message'),
+					buttons: [tl('dialog.ok'), tl('dialog.dontshowagain')]
+				}, function(r) {
+					if (r === 1) {
+						settings.dialog_rotation_limit.value = false
+						saveSettings()
+					}
+				})
+				return;
+				//Gotta stop the numslider here
+			}
+			i++;
+		}
+	}
+	var axis_letter = getAxisLetter(axis)
+	var origin = selected[0].origin
+	selected.forEach(function(obj, i) {
+		if (!obj.rotation.equals([0,0,0])) {
+			origin = obj.origin
+		}
+	})
+	selected.forEach(function(obj, i) {
+		if (obj.rotation.equals([0,0,0])) {
+			obj.origin = origin
+		}
+		var obj_val = value;
+		if (!fixed) {
+			obj_val += obj.rotation[axis]
+		}
+		obj_val = obj_val % 360
+		if (settings.limited_rotation.value) {
+			//Limit To 1 Axis
+			obj.rotation[(axis+1)%3] = 0
+			obj.rotation[(axis+2)%3] = 0
+			//Limit Angle
+			obj_val = Math.round(obj_val/22.5)*22.5
+			if (obj_val > 45 || obj_val < -45) {
+
+				let f = obj_val > 45
+				obj.roll(axis, f!=(axis==1) ? 1 : 3)
+				obj_val = f ? -22.5 : 22.5;
+			}
+		} else {
+			obj_val = Math.trimDeg(obj_val)
+		}
+		obj.rotation[axis] = obj_val
+		obj.rotation_axis = axis_letter
+	})
+}
+
 BARS.defineActions(function() {
 	function moveOnAxis(value, fixed, axis) {
 		selected.forEach(function(obj, i) {
@@ -531,7 +616,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('resize')
 		}
 	})
-
+	//Inflage
 	new NumSlider({
 		id: 'slider_inflate',
 		condition: function() {return Blockbench.entity_mode && selected.length},
@@ -555,91 +640,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('inflate')
 		}
 	})
-
-	function rotateOnAxis(value, fixed, axis) {
-		if (Blockbench.entity_mode) {	
-			if (!selected_group) return;
-			if (!fixed) {
-				value = value + selected_group.rotation[axis]
-			}
-			value = value % 360
-			selected_group.rotation[axis] = value
-			Canvas.updatePositions()
-			return;
-		}
-		//Warning
-		if (settings.limited_rotation.value && settings.dialog_rotation_limit.value) {
-			var i = 0;
-			while (i < selected.length) {
-				if (selected[i].rotation[(axis+1)%3] ||
-					selected[i].rotation[(axis+2)%3]
-				) {
-					i = Infinity
-
-					Blockbench.showMessageBox({
-						title: tl('message.rotation_limit.title'),
-						icon: 'rotate_right',
-						message: tl('message.rotation_limit.message'),
-						buttons: [tl('dialog.ok'), tl('dialog.dontshowagain')]
-					}, function(r) {
-						if (r === 1) {
-							settings.dialog_rotation_limit.value = false
-							saveSettings()
-						}
-					})
-					return;
-					//Gotta stop the numslider here
-				}
-				i++;
-			}
-		}
-		var axis_letter = getAxisLetter(axis)
-		var origin = selected[0].origin
-		selected.forEach(function(obj, i) {
-			if (!obj.rotation.equals([0,0,0])) {
-				origin = obj.origin
-			}
-		})
-		selected.forEach(function(obj, i) {
-			if (obj.rotation.equals([0,0,0])) {
-				obj.origin = origin
-			}
-			var obj_val = value;
-			if (!fixed) {
-				obj_val += obj.rotation[axis]
-			}
-			obj_val = obj_val % 360
-			if (settings.limited_rotation.value) {
-				//Limit To 1 Axis
-				obj.rotation[(axis+1)%3] = 0
-				obj.rotation[(axis+2)%3] = 0
-				//Limit Angle
-				obj_val = Math.round(obj_val/22.5)*22.5
-				if (obj_val > 45 || obj_val < -45) {
-
-					let f = obj_val > 45
-					obj.roll(axis, f!=(axis==1) ? 1 : 3)
-					obj_val = f ? -22.5 : 22.5;
-				}
-			}
-			obj.rotation[axis] = obj_val
-			obj.rotation_axis = axis_letter
-		})
-		Canvas.updatePositions()
-	}
-	function getRotationInterval(event) {
-		if (settings.limited_rotation.value && !Blockbench.entity_mode) {
-			return 22.5;
-		} else if (event.shiftKey && event.ctrlKey) {
-			return 0.25;
-		} else if (event.shiftKey) {
-			return 45;
-		} else if (event.ctrlKey) {
-			return 1;
-		} else {
-			return 5;
-		}
-	}
+	//Rotation
 	new NumSlider({
 		id: 'slider_rotation_x',
 		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
@@ -649,6 +650,7 @@ BARS.defineActions(function() {
 		},
 		change: function(value, fixed) {
 			rotateOnAxis(value, fixed, 0)
+			Canvas.updatePositions()
 		},
 		onBefore: function() {
 			Undo.initEdit({cubes: selected, group: selected_group})
@@ -667,6 +669,7 @@ BARS.defineActions(function() {
 		},
 		change: function(value, fixed) {
 			rotateOnAxis(value, fixed, 1)
+			Canvas.updatePositions()
 		},
 		onBefore: function() {
 			Undo.initEdit({cubes: selected, group: selected_group})
@@ -685,6 +688,7 @@ BARS.defineActions(function() {
 		},
 		change: function(value, fixed) {
 			rotateOnAxis(value, fixed, 2)
+			Canvas.updatePositions()
 		},
 		onBefore: function() {
 			Undo.initEdit({cubes: selected, group: selected_group})

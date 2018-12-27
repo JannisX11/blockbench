@@ -27,7 +27,7 @@ $(document).ready(function() {
 	if (fs.existsSync(app.app.getPath('userData')+osfs+'backups') === false) {
 		fs.mkdirSync( app.app.getPath('userData')+osfs+'backups')
 	}
-	createBackup()
+	createBackup(true)
 	$('.web_only').remove()
 	if (__dirname.includes('C:\\xampp\\htdocs\\blockbench\\web')) {
 		Blockbench.addFlag('dev')
@@ -206,10 +206,6 @@ function changeImageEditor(texture) {
 			dialog.hide()
 		}
 	}).show()
-	/*
-	Ask for file IF
-		_other selected
-	*/
 }
 function selectImageEditorFile(texture) {
 	app.dialog.showOpenDialog(currentwindow, {
@@ -254,79 +250,80 @@ function openDefaultTexturePath() {
 }
 function findEntityTexture(mob, return_path) {
 	var textures = {
-		'geometry.chicken': 'chicken',
-		'geometry.blaze': 'blaze',
-		'geometry.llamaspit': 'llama/spit',
-		'geometry.llama': 'llama/llama_creamy',
-		'geometry.dragon': 'dragon/dragon',
-		'geometry.ghast': 'ghast/ghast',
-		'geometry.slime': 'slime/slime',
-		'geometry.slime.armor': 'slime/slime',
-		'geometry.lavaslime': 'slime/magmacube',
-		'geometry.silverfish': 'silverfish',
-		'geometry.shulker': 'shulker/shulker_undyed',
-		'geometry.rabbit': 'rabbit/brown',
-		'geometry.horse': 'horse/horse_brown',
-		'geometry.horse.v2': 'horse2/horse_brown',
-		'geometry.humanoid': 'steve',
-		'geometry.creeper': 'creeper/creeper',
-		'geometry.enderman': 'enderman/enderman',
-		'geometry.zombie': 'zombie/zombie',
-		'geometry.zombie.husk': 'zombie/husk',
-		'geometry.zombie.drowned': 'zombie/drowned',
-		'geometry.pigzombie': 'pig/pigzombie',
-		'geometry.pigzombie.baby': 'pig/pigzombie',
-		'geometry.skeleton': 'skeleton/skeleton',
-		'geometry.skeleton.wither': 'skeleton/wither_skeleton',
-		'geometry.skeleton.stray': 'skeleton/stray',
-		'geometry.squid': 'squid',
-		'geometry.spider': 'spider/spider',
-		'geometry.cow': 'cow/cow',
-		'geometry.mooshroom': 'cow/mooshroom',
-		'geometry.sheep.sheared': 'sheep/sheep',
-		'geometry.sheep': 'sheep/sheep',
-		'geometry.phantom': 'phantom',
-		'geometry.pig': 'pig/pig',
-		'geometry.bat': 'bat',
-		'geometry.dolphin': 'dolphin',
-		'geometry.irongolem': 'iron_golem',
-		'geometry.snowgolem': 'snow_golem',
-		'geometry.zombie.villager': 'zombie_villager/zombie_farmer',
-		'geometry.evoker': 'illager/evoker',
-		'geometry.vex': 'vex/vex',
-		'geometry.vindicator': 'vindicator',
-		'geometry.wolf': 'wolf/wolf',
-		'geometry.ocelot': 'cat/ocelot',
-		'geometry.cat': 'cat/siamese',
-		'geometry.trident': 'trident',
-		'geometry.guardian': 'guardian',
-		'geometry.polarbear': 'polarbear',
-		'geometry.turtle': 'sea_turtle',
-		'geometry.villager': 'villager/farmer',
-		'geometry.villager.witch': 'witch',
-		'geometry.witherBoss': 'wither_boss/wither',
-		'geometry.agent': 'agent',
-		'geometry.armor_stand': 'armor_stand',
-		'geometry.parrot': 'parrot/parrot_red_blue',
-		'geometry.bed': 'bed/white',
-		'geometry.player_head': 'steve',
-		'geometry.mob_head': 'skeleton/skeleton',
-		'geometry.dragon_head': 'dragon/dragon',
-		'geometry.boat': 'boat/boat_oak',
-		'geometry.minecart': 'minecart',
-		'geometry.cod': 'fish/fish',
-		'geometry.pufferfish.small': 'fish/pufferfish',
-		'geometry.pufferfish.mid': 'fish/pufferfish',
-		'geometry.pufferfish.large': 'fish/pufferfish',
-		'geometry.salmon': 'fish/salmon',
-		'geometry.tropicalfish_a': 'fish/tropical_a',
-		'geometry.tropicalfish_b': 'fish/tropical_b',
-		'geometry.endermite': 'endermite',
-		'geometry.panda': 'panda/panda',
+		'chicken': 'chicken',
+		'blaze': 'blaze',
+		'llamaspit': 'llama/spit',
+		'llama': 'llama/llama_creamy',
+		'dragon': 'dragon/dragon',
+		'ghast': 'ghast/ghast',
+		'slime': 'slime/slime',
+		'slime.armor': 'slime/slime',
+		'lavaslime': 'slime/magmacube',
+		'silverfish': 'silverfish',
+		'shulker': 'shulker/shulker_undyed',
+		'rabbit': 'rabbit/brown',
+		'horse': 'horse/horse_brown',
+		'horse.v2': 'horse2/horse_brown',
+		'humanoid': 'steve',
+		'creeper': 'creeper/creeper',
+		'enderman': 'enderman/enderman',
+		'zombie': 'zombie/zombie',
+		'zombie.husk': 'zombie/husk',
+		'zombie.drowned': 'zombie/drowned',
+		'pigzombie': 'pig/pigzombie',
+		'pigzombie.baby': 'pig/pigzombie',
+		'skeleton': 'skeleton/skeleton',
+		'skeleton.wither': 'skeleton/wither_skeleton',
+		'skeleton.stray': 'skeleton/stray',
+		'squid': 'squid',
+		'spider': 'spider/spider',
+		'cow': 'cow/cow',
+		'mooshroom': 'cow/mooshroom',
+		'sheep.sheared': 'sheep/sheep',
+		'sheep': 'sheep/sheep',
+		'phantom': 'phantom',
+		'pig': 'pig/pig',
+		'bat': 'bat',
+		'dolphin': 'dolphin',
+		'irongolem': 'iron_golem',
+		'snowgolem': 'snow_golem',
+		'zombie.villager': 'zombie_villager/zombie_farmer',
+		'evoker': 'illager/evoker',
+		'vex': 'vex/vex',
+		'vindicator': 'vindicator',
+		'wolf': 'wolf/wolf',
+		'ocelot': 'cat/ocelot',
+		'cat': 'cat/siamese',
+		'trident': 'trident',
+		'guardian': 'guardian',
+		'polarbear': 'polarbear',
+		'turtle': 'sea_turtle',
+		'villager': 'villager/farmer',
+		'villager.witch': 'witch',
+		'witherBoss': 'wither_boss/wither',
+		'agent': 'agent',
+		'armor_stand': 'armor_stand',
+		'parrot': 'parrot/parrot_red_blue',
+		'bed': 'bed/white',
+		'player_head': 'steve',
+		'mob_head': 'skeleton/skeleton',
+		'dragon_head': 'dragon/dragon',
+		'boat': 'boat/boat_oak',
+		'minecart': 'minecart',
+		'cod': 'fish/fish',
+		'pufferfish.small': 'fish/pufferfish',
+		'pufferfish.mid': 'fish/pufferfish',
+		'pufferfish.large': 'fish/pufferfish',
+		'salmon': 'fish/salmon',
+		'tropicalfish_a': 'fish/tropical_a',
+		'tropicalfish_b': 'fish/tropical_b',
+		'endermite': 'endermite',
+		'panda': 'panda/panda',
 	}
-	var path = textures[mob.split(':')[0]]
+	mob = mob.split(':')[0].replace(/^geometry\./, '')
+	var path = textures[mob]
 	if (!path) {
-		path = mob.split(':')[0].replace('geometry.', '')
+		path = mob
 	}
 	if (path) {
 		var texture_path = Prop.file_path.split(osfs)
@@ -368,68 +365,30 @@ function findBedrockAnimation() {
 		})
 	}
 }
+
 //Writers
 function saveFile(props) {
 	if (Prop.file_path) {
-		Prop.project_saved = true;
-		setProjectTitle(pathToName(Prop.file_path, false))
-        addRecentProject({name: pathToName(Prop.file_path, true), path: Prop.file_path})
 		var extension = pathToExtension(Prop.file_path)
-
 		if (Blockbench.entity_mode === false) {
-			if (extension === 'jpm') {
-				BarItems.export_optifine_part.trigger()
-			} else {
-				var content = buildBlockModel()
-				fs.writeFile(Prop.file_path, content, function (err) {
-					if (err) {
-						console.log('Error Saving File: '+err)
-					}
-					if (props && props.closeAfter) {
-						preventClosing = false
-						setTimeout(function() {
-							currentwindow.close()
-						}, 12)
-					}
-					Blockbench.showQuickMessage(tl('message.save_file', [pathToName(Prop.file_path, true)]))
-				})
-			}
+			Blockbench.writeFile(Prop.file_path, {
+				project_file: true,
+				content: buildBlockModel()
+			})
 		} else {
-			if (extension === 'jem') {
-				BarItems.export_optifine_full.trigger()
-			} else {
-				var content = buildEntityModel({raw: true})
-				writeFileEntity(content, Prop.file_path)
-			}
+			writeFileEntity(buildEntityModel({raw: true}), Prop.file_path)
 		}
 	} else {
 		if (Blockbench.entity_mode === false) {
-			Blockbench.export({
-				type: 'JSON Model',
-				extensions: ['json'],
-				name: Project.name||'model',
-				startpath: Prop.file_path,
-				custom_writer: function(content, path) {
-					Prop.file_path = path
-					Project.name = pathToName(path, true)
-					saveFile(props)
-				}
-			})
+			BarItems.export_blockmodel.trigger()
 		} else {
-			var content = buildEntityModel({raw: true});
-			Blockbench.export({
-				type: 'JSON Entity Model',
-				extensions: ['json'],
-				name: Project.name,
-				startpath: Prop.file_path,
-				content: content,
-				custom_writer: writeFileEntity
-			})
+			BarItems.export_entity.trigger()
 		}
 	}
 }
 function writeFileEntity(content, filepath) {
 	Prop.file_path = filepath
+	var model_name = 'geometry.' + (Project.parent.replace(/^geometry\./, '')||'unknown')
 	fs.readFile(filepath, 'utf-8', function (errx, data) {
 		var obj = {}
 		if (!errx) {
@@ -482,8 +441,6 @@ function writeFileEntity(content, filepath) {
 				}
 			}
 		}
-		var model_name = Project.parent
-		if (model_name == '') model_name = 'geometry.unknown'
 		obj[model_name] = content
 		content = autoStringify(obj)
 
@@ -495,6 +452,9 @@ function writeFileEntity(content, filepath) {
 			Prop.project_saved = true;
 			setProjectTitle(pathToName(filepath, false))
         	addRecentProject({name: pathToName(filepath, 'mobs_id'), path: filepath})
+			if (Blockbench.hasFlag('close_after_saving')) {
+				closeBlockbenchWindow()
+			}
 		})
 	})
 }
@@ -503,18 +463,15 @@ function writeFileObj(content, filepath) {
 		return;
 	}
 	var content = buildOBJModel(pathToName(filepath, false))
-
 	//OBJECT
 	fs.writeFile(filepath, content.obj, function (err) {})
-
 	//MATERIAL
 	fs.writeFile(filepath.split('.obj').join('.mtl'), content.mtl, function (err) {})
-
 	//IMAGES
 	if (settings.obj_textures.value === true) {
 		for (var key in content.images) {
 			var texture = content.images[key]
-			if (content.images.hasOwnProperty(key) && texture.path) {
+			if (texture && texture.path) {
 				if (texture.mode === 'link') {
 					var native_image_instance = nativeImage.createFromPath(texture.path)
 				} else {
@@ -533,6 +490,8 @@ function writeFileObj(content, filepath) {
 	}
 	Blockbench.showQuickMessage('message.save_obj')
 }
+
+
 //Open
 function readFile(filepath, makeNew) {
     fs.readFile(filepath, 'utf-8', function (err, data) {
@@ -552,7 +511,34 @@ function readFile(filepath, makeNew) {
 function createBackup(init) {
 	setTimeout(createBackup, limitNumber(parseFloat(settings.backup_interval.value), 1, 10e8)*60000)
 
+	var duration = parseInt(settings.backup_retain.value)+1
+	var folder_path = app.app.getPath('userData')+osfs+'backups'
+	var d = new Date()
+	var days = d.getDate() + (d.getMonth()+1)*30.44 + (d.getYear()-100)*365.25
+
+	if (init) {
+		fs.readdir(folder_path, (err, files) => {
+			if (!err) {
+				files.forEach((name, i) => {
+					var date = name.split('_')[1]
+					if (date) {
+						var nums = date.split('.')
+						nums.forEach((n, ni) => {
+							nums[ni] = parseInt(n)
+						})
+						var b_days = nums[0] + nums[1]*30.44 + nums[2]*365.25
+						if (!isNaN(b_days) && days - b_days > duration) {
+							try {
+								fs.unlinkSync(folder_path +osfs+ name)
+							} catch (err) {console.log(err)}
+						}
+					}
+				})
+			}
+		})
+	}
 	if (init || elements.length === 0) return;
+
 	var model = buildBlockModel({
 		backup: true,
 		raw: true,
@@ -561,15 +547,15 @@ function createBackup(init) {
 		comment: false,
 		groups: true
 	})
-	var d = new Date()
 	var file_name = 'backup_'+d.getDate()+'.'+(d.getMonth()+1)+'.'+(d.getYear()-100)+'_'+d.getHours()+'.'+d.getMinutes()
-	var file_path = app.app.getPath('userData')+osfs+'backups'+osfs+file_name+'.json'
+	var file_path = folder_path+osfs+file_name+'.json'
 
 	fs.writeFile(file_path, JSON.stringify(model), function (err) {
 		if (err) {
 			console.log('Error creating backup: '+err)
 		}
 	})
+	//trimBackups
 }
 
 //Zoom
@@ -593,7 +579,7 @@ window.onbeforeunload = function() {
 	}
 }
 function showSaveDialog(close) {
-	if (Blockbench.flags.includes('allow_reload')) {
+	if (Blockbench.hasFlag('allow_reload')) {
 		close = false
 	}
 	var unsaved_textures = 0;
@@ -611,26 +597,29 @@ function showSaveDialog(close) {
 			noLink: true
 		})
 		if (answer === 0) {
-			saveFile({closeAfter: close})
-			return false;
+			if (close === true) {
+				Blockbench.addFlag('close_after_saving')
+			}
+			BarItems.save.trigger()
+			return true;
 		} else if (answer === 2) {
 			return false;
 		} else {
 			if (close === true) {
-				preventClosing = false
-				setTimeout(function() {
-					currentwindow.close()
-				}, 12)
+				closeBlockbenchWindow()
 			}
 			return true;
 		}
 	} else {
 		if (close === true) {
-			preventClosing = false
-			setTimeout(function() {
-				currentwindow.close()
-			}, 12)
+			closeBlockbenchWindow()
 		}
 		return true;
 	}
+}
+function closeBlockbenchWindow() {
+	preventClosing = false
+	setTimeout(function() {
+		currentwindow.close()
+	}, 12)
 }

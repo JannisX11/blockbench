@@ -29,16 +29,15 @@ class Texture {
 				var c = 0
 				var duplicates = false;
 				while (c < textures.length) {
-					if (textures[c].id === i) {
+					if (textures[c].id == i) {
 						duplicates = true;
 					}
 					c++;
 				}
-				//var matches = $.grep(textures, function(e) {return e.id == i})
 				if (duplicates === true) {
 					i++;
 				} else {
-					this.id = i;
+					this.id = i.toString();
 					return;
 				}
 			}
@@ -193,13 +192,19 @@ class Texture {
 	}
 	fromJavaLink(link, path_array) {
 		if (typeof link !== 'string' || (link.substr(0, 1) === '#' && !link.includes('/'))) {
-			this.load()
+			this.load();
 			return this;
 		}
 		if (link.substr(0, 22) === 'data:image/png;base64,') {
 			this.fromDataURL(link)
 			return this;
 		}
+		if (isApp && (link.substr(1, 2) === ':\\' || link.substr(1, 2) === ':/')) {
+			var path = link.replace(/\\|\//g, osfs).replace(/\?\d+/g, '')
+			this.fromPath(path)
+			return this;
+		}
+		var can_load = !!path_array.length
 		var spaces = link.split(':')
 		if (spaces.length > 1) {
 			this.namespace = spaces[0]
@@ -208,8 +213,16 @@ class Texture {
 		}
 		path_array.push('textures', link.replace(/\//g, osfs))
 		var path = path_array.join(osfs)+'.png'
-		if (path) {
+		if (path && can_load) {
 			this.fromPath(path)
+		} else {
+			this.path = path
+			this.folder = link.replace(/\\/g, '/').split('/')
+			this.folder = this.folder.splice(0, this.folder.length-1).join('/')
+			this.name = pathToName(path, true)
+			this.mode = 'link'
+			this.saved = true
+			this.load()
 		}
 		return this;
 	}
@@ -296,7 +309,7 @@ class Texture {
 					delete this.isDefault
 				}
 			} else {
-				var path = settings.default_path.value + osfs + this.folder + osfs + this.name
+				var path = settings.default_path.value + osfs + this.folder.replace(/\//g, osfs) + osfs + this.name
 				if (fs.existsSync(path)) {
 					this.fromPath(path)
 					return true;
@@ -333,7 +346,8 @@ class Texture {
 			img.tex = tex;
 			img.tex.magFilter = THREE.NearestFilter
 			img.tex.minFilter = THREE.NearestFilter
-			this.tex.needsUpdate = true;
+			img.tex.needsUpdate = true;
+			scope.img = img
 			Canvas.materials[scope.uuid].map = tex
 		}
 		return this;
@@ -390,7 +404,7 @@ class Texture {
 		this.refresh(true)
 	}
 	startWatcher() {
-		if (this.mode !== 'link' || !isApp || !fs.existsSync(this.path)) {
+		if (this.mode !== 'link' || !isApp || !this.path.match(/\.[a-zA-Z]+$/) || !fs.existsSync(this.path)) {
 			return;
 		}
 		var scope = this;
@@ -438,11 +452,13 @@ class Texture {
 		return this;
 	}
 	//Management
-	select() {
-		textures.forEach(function(s) {
-			s.selected = false;
+	select(event) {
+		textures.forEach(s => {
+			if (s.selected) s.selected = false;
 		})
-		Prop.active_panel = 'textures'
+		if (event) {
+			Prop.active_panel = 'textures'
+		}
 		this.selected = true
 		textures.selected = this
 		return this;
@@ -480,14 +496,20 @@ class Texture {
 		}
 		return this;
 	}
-	remove() {
+	remove(no_update) {
+		if (!no_update) {
+			Undo.initEdit({textures: [this]})
+		}
 		this.stopWatcher()
 		textures.splice(textures.indexOf(this), 1)
-		Canvas.updateAllFaces()
-		$('#uv_frame').css('background', 'transparent')
-		TextureAnimator.updateButton()
-		hideDialog()
-		BARS.updateConditions()
+		if (!no_update) {
+			Canvas.updateAllFaces()
+			$('#uv_frame').css('background', 'transparent')
+			TextureAnimator.updateButton()
+			hideDialog()
+			BARS.updateConditions()
+			Undo.finishEdit('remove_textures', {textures: []})
+		}
 	}
 	//Use
 	enableParticle() {
@@ -656,18 +678,17 @@ class Texture {
 		return this;
 	}
 	toBitmap(cb) {
-		//Converts texture to bitmap
-		//Unsaves it
 		var scope = this;
 		if (isApp && scope.mode === 'link') {
-			Jimp.read(scope.source).then(function (image) {
-				image.getBase64(Jimp.MIME_PNG, function(err, dataUrl) {
-					scope.mode = 'bitmap'
-					scope.saved = false
-					scope.source = dataUrl
-					cb()
-				})
-			})
+			var canvas = document.createElement('canvas')
+			canvas.width = scope.img.naturalWidth;
+			canvas.height = scope.img.naturalHeight;
+			var ctx = canvas.getContext('2d');
+			ctx.drawImage(scope.img, 0, 0)
+			scope.mode = 'bitmap'
+			scope.saved = false
+			scope.source = canvas.toDataURL('image/png')
+			cb()
 		}
 	}
 	edit(cb, options) {

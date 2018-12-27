@@ -74,6 +74,7 @@ class API {
 		return jq.get(0)
 	}
 	showQuickMessage(message, time) {
+		$('#quick_message_box').remove()
 		var quick_message_box = $('<div id="quick_message_box" class="hidden"></div>') 
 		$('body').append(quick_message_box)
 		
@@ -98,6 +99,9 @@ class API {
 		} else {
 			Prop.file_name = Prop.file_name_alt||''
 		}
+	}
+	setProgress(progress, time, bar) {
+		setProgressBar(bar, progress||0, time)
 	}
 	showMessage(message, location) {
 		if (location === 'status_bar') {
@@ -277,6 +281,8 @@ class API {
 							} else {
 								reader.readAsDataURL(file)
 							}
+						} else if (options.readtype === 'buffer') {
+							reader.readAsArrayBuffer(file)
 						} else /*text*/ {
 							reader.readAsText(file)
 						}
@@ -367,6 +373,7 @@ class API {
 			content
 			startpath
 			savetype
+			project_file
 			custom_writer
 		*/
 		if (Blockbench.isWeb) {
@@ -386,6 +393,10 @@ class API {
 				var blob = new Blob([options.content], {type: "text/plain;charset=utf-8"});
 				saveAs(blob, file_name, {autoBOM: true})
 			}
+			if (options.project_file) {
+				Prop.project_saved = true;
+				setProjectTitle(options.name)
+			}
 			if (typeof cb === 'function') {
 				cb()
 			}
@@ -399,30 +410,50 @@ class API {
 					? options.startpath.replace(/\.\w+$/, '')
 					: options.name
 			}, function (file_path) {
-				if (file_path === undefined) {
+				Blockbench.writeFile(file_path, options, cb)
+			})
+		}
+	}
+	writeFile(file_path, options, cb) {
+		/*	
+			content
+			savetype
+			project_file
+			custom_writer
+		*/
+		if (!isApp || file_path === undefined) {
+			return;
+		}
+		if (options.savetype === 'image' && typeof options.content === 'string') {
+			if (options.content.substr(0, 10) === 'data:image') {
+				options.content = nativeImage.createFromDataURL(options.content).toPNG()
+			} else {
+				options.content = nativeImage.createFromPath(options.content).toPNG()
+			}
+		}
+		if (options.custom_writer) {
+			options.custom_writer(options.content, file_path)
+		} else {
+			fs.writeFile(file_path, options.content, function (err) {
+				if (err) {
+					console.log('Error exporting file: '+err)
 					return;
 				}
-				if (options.savetype === 'image' && typeof options.content === 'string') {
-					if (options.content.substr(0, 10) === 'data:image') {
-						options.content = nativeImage.createFromDataURL(options.content).toPNG()
-					} else {
-						options.content = nativeImage.createFromPath(options.content).toPNG()
-					}
-				}
-				if (options.custom_writer) {
-					options.custom_writer(options.content, file_path)
-				} else {
-					fs.writeFile(file_path, options.content, function (err) {
-						if (err) {
-							console.log('Error exporting file: '+err)
-							return;
-						}
-						if (cb) {
-							cb(file_path)
-						}
-					})
+				if (cb) {
+					cb(file_path)
 				}
 			})
+		}
+		if (options.project_file) {
+			Prop.file_path = file_path
+			Prop.project_saved = true;
+			Project.name = pathToName(file_path, true)
+			setProjectTitle(pathToName(file_path, false))
+			addRecentProject({name: pathToName(file_path, Blockbench.entity_mode ? 'mobs_id' : false), path: Prop.file_path})
+			Blockbench.showQuickMessage(tl('message.save_file', [Project.name]))
+			if (Blockbench.hasFlag('close_after_saving')) {
+				closeBlockbenchWindow()
+			}
 		}
 	}
 	//Flags

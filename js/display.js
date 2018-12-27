@@ -11,8 +11,60 @@ const DisplayMode = {};
 
 
 
-(function() {
+class DisplaySlot {
+	constructor(id, data) {
+		this.rotation = [0, 0, 0];
+		this.translation = [0, 0, 0];
+		this.scale = [1, 1, 1];
+		this.mirror = [false, false, false]
+		if (data) this.extend(data)
+	}
+	copy() {
+		return {
+			rotation: this.rotation.slice(),
+			translation: this.translation.slice(),
+			scale: this.scale.slice(),
+			mirror: this.mirror.slice()
+		}
+	}
+	export() {
+		var build = {}
+		if (!this.rotation.allEqual(0)) build.rotation = this.rotation
+		if (!this.translation.allEqual(0)) build.translation = this.translation
+		if (!this.scale.allEqual(1) || !this.mirror.allEqual(false)) {
+			build.scale = this.scale.slice()
+			if (!this.mirror.allEqual(false)) {
+				build.scale.forEach((s, i) => {
+					build.scale[i] *= s ? -1 : 1;
+				})
+			}
+		}
+		if (Object.keys(build).length) {
+			return build;
+		}
+	}
+	extend(data) {
+		if (!data) return this;
+		for (var i = 0; i < 3; i++) {
+			if (data.rotation) Merge.number(this.rotation, data.rotation, i)
+			if (data.translation) Merge.number(this.translation, data.translation, i)
+			if (data.mirror) Merge.boolean(this.mirror, data.mirror, i)
+			if (data.scale) Merge.number(this.scale, data.scale, i)
+			if (data.scale && data.scale[i] < 0) this.mirror[i] = true;
+		}
+		this.update()
+		return this;
+	}
+	update() {
+		if (this === DisplayMode.slot) {
+			DisplayMode.vue.$forceUpdate()
+			DisplayMode.updateDisplayBase()
+		}
+		return this;
+	}
+}
 
+(function() {
 
 class refModel {
 	constructor(id) {
@@ -1223,20 +1275,22 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	display_preview.setNormalCamera()
 	display_preview.camPers.position.set(-80, 40, -30)
 	display_preview.camPers.setFocalLength(45)
-
 	
 	$('body').addClass('display_mode')
 	$('.m_edit').hide()
 	$('.m_disp').show()
 	$('#display_bar input#thirdperson_righthand').prop("checked", true)
 	updateInterface()
-	//return;
 
-	DisplayMode.loadThirdRight()
+
 	buildGrid()
 	setShading()
+	DisplayMode.loadThirdRight()
 	Canvas.updateRenderSides()
 	resizeWindow()
+	display_area.updateMatrixWorld()
+	display_base.updateMatrixWorld()
+	DisplayMode.centerTransformer()
 	if (outlines.children.length) {
 		outlines.children.length = 0
 		Canvas.updateAllPositions()
@@ -1260,6 +1314,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	if (quad_previews.enabled_before) {
 		openQuadView()
 	}
+	scene.add(Transformer)
 	buildGrid()
 	setShading()
 	Canvas.updateRenderSides()
@@ -1276,135 +1331,51 @@ function axisIndex(index) {
 	}
 }
 function resetDisplayBase() {
-	display_base.rotation['x'] = Math.PI / (180 / 0.1);
-	display_base.rotation['y'] = Math.PI / (180 / 0.1);
-	display_base.rotation['z'] = Math.PI / (180 / 0.1);
-
-	display_base.position['x'] = 0;
-	display_base.position['y'] = 0;
-	display_base.position['z'] = 0;
-
-	display_base.scale['x'] = 1;
-	display_base.scale['y'] = 1;
-	display_base.scale['z'] = 1;
+	display_base.rotation.x = Math.PI / (180 / 0.1);
+	display_base.rotation.y = Math.PI / (180 / 0.1);
+	display_base.rotation.z = Math.PI / (180 / 0.1);
+	display_base.position.x = 0;
+	display_base.position.y = 0;
+	display_base.position.z = 0;
+	display_base.scale.x = 1;
+	display_base.scale.y = 1;
+	display_base.scale.z = 1;
 }
 
+DisplayMode.centerTransformer = function() {
+	display_scene.add(Transformer)
+	Transformer.attach(display_base)
 
-DisplayMode.syncDispInput = function(obj, sender, axis, event) {//Syncs Range and Input, calls the change functions
-	var val = $(obj).val()
-	var range_val;
-	if (typeof val === 'string' || val instanceof String) {
-		val = parseFloat(val.replace(/[^-.0-9]/g, ""))
-	}
-	if (isNaN(val)) val = 0
+	display_base.getWorldPosition(Transformer.position)
 
-	if (sender === 'rotation') {
-		val = limitNumber(val, -180, 180)
-		$(obj).siblings('input').val(val)
-		dispRotate(val, axis)
-		return;
-	} else if (sender === 'translation') {
-		val = limitNumber(val, -80, 80)
-		$(obj).siblings('input').val(val);
-		dispTranslate(val, axis)
-		return;
-	} else if (sender === 'scaleRange') {
-		//From Range to Real
-		range_val = val
-		if (val >= 0) {
-			val = (val*(3/4))+1
-			if (val >=4) val = 4
-		} else {
-			val = (val+4)/4
-		}
-		$(obj).parent().find('input.scale').val(val)
-
-	} else if (sender === 'scale') {
-		//From Input(Real) to Range
-		if (display[display_slot].scale == undefined) {
-			display[display_slot].scale = [1,1,1]
-		}
-		if (val >= 1) {
-			range_val = (Math.abs(val)-1)*(4/3)
-		} else {
-			range_val =(Math.abs(val)*4)-4
-		}
-	}
-
-	if (holding_shift === true) {
-		dispScale(val, 'x')
-		dispScale(val, 'y')
-		dispScale(val, 'z')
-		$('.panel#display input.scale').val(Math.abs(val))
-		$('.panel#display input.scaleRange').val(range_val)
+	if (Toolbox.selected.transformerMode === 'translate') {
+		Transformer.rotation.copy(display_area.rotation)
+	} else if (Toolbox.selected.transformerMode === 'scale') {
+		var q = display_base.getWorldQuaternion(new THREE.Quaternion())
+		Transformer.rotation.setFromQuaternion(q)
 	} else {
-		dispScale(val, axis)		
-		$(obj).parent().find('input.scaleRange').val(range_val)
+		Transformer.rotation.set(0, 0, 0)
 	}
+	Transformer.update()
 }
-DisplayMode.syncDispMirror = function(node, axis) {
-	if (!display[display_slot].scale) {
-		return;
-	}
-	var axis = (node.id||'x').substr(-1)
-	display_base.scale[axis] = display[display_slot].scale[axisIndex(axis)] *= -1
-	DisplayMode.load(display_slot)
-}
-function dispRotate(val, axis) {		//Change the actual thing
-	if (display[display_slot].rotation == undefined) {
-		display[display_slot].rotation = [0,0,0]
-	}
-	display[display_slot].rotation[axisIndex(axis)] = val
-	if (display_slot === 'thirdperson_lefthand' && axis === 'y') val *= (-1)
-	if (display_slot === 'firstperson_lefthand' && axis === 'y') val *= (-1)
-	if (display_slot === 'thirdperson_lefthand' && axis === 'z') val *= (-1)
-	if (display_slot === 'firstperson_lefthand' && axis === 'z') val *= (-1)
-	display_base.rotation[axis] = Math.PI / (180 / val);
-}
-function dispTranslate(val, axis) {		//Change the actual thing
-	if (display[display_slot].translation == undefined) {
-		display[display_slot].translation = [0,0,0]
-	}
-	display[display_slot].translation[axisIndex(axis)] = val
-	if (display_slot === 'thirdperson_lefthand' && axis === 'x') val *= (-1)
-	if (display_slot === 'firstperson_lefthand' && axis === 'x') val *= (-1)
-	display_base.position[axis] = val
-}
-function dispScale(val, axis) {			//Change the actual thing
-	if (display[display_slot].scale == undefined) {
-		display[display_slot].scale = [1,1,1]
-	}
-	var scale_tag = display[display_slot].scale
-	var is_inverse = scale_tag[axisIndex(axis)] < 0
+DisplayMode.updateDisplayBase = function(slot) {
+	if (!slot) slot = display[display_slot]
 
-	val = limitNumber(val, 0.001, 4)
-	scale_tag[axisIndex(axis)] = val * (is_inverse ? -1 : 1)
-	if (val == 0) val = 0.001
-	display_base.scale[axis] = val * (is_inverse ? -1 : 1)
+	display_base.rotation.x = Math.PI / (180 / slot.rotation[0]);
+	display_base.rotation.y = Math.PI / (180 / slot.rotation[1]) * (display_slot.includes('lefthand') ? -1 : 1);
+	display_base.rotation.z = Math.PI / (180 / slot.rotation[2]) * (display_slot.includes('lefthand') ? -1 : 1);
+
+	display_base.position.x = slot.translation[0] * (display_slot.includes('lefthand') ? -1 : 1);
+	display_base.position.y = slot.translation[1];
+	display_base.position.z = slot.translation[2];
+
+	display_base.scale.x = (slot.scale[0]||0.001) * (slot.mirror[0] ? -1 : 1);
+	display_base.scale.y = (slot.scale[1]||0.001) * (slot.mirror[1] ? -1 : 1);
+	display_base.scale.z = (slot.scale[2]||0.001) * (slot.mirror[2] ? -1 : 1);
+
+	DisplayMode.centerTransformer()
 }
 
-DisplayMode.resetDisplaySettings = function(key) {
-	delete display[display_slot][key]
-	$('input#'+key+'_x').val(0)
-	$('input#'+key+'_y').val(0)
-	$('input#'+key+'_z').val(0)
-	if (key == 'rotation') {
-		display_base.rotation.x = Math.PI / (180 / 0);
-		display_base.rotation.y = Math.PI / (180 / 0);
-		display_base.rotation.z = Math.PI / (180 / 0);
-	} else if (key == 'translation') {
-		display_base.position.x = 0
-		display_base.position.y = 0
-		display_base.position.z = 0
-	} else if (key == 'scale') {
-		$('input#scale_x.scale').val(1)
-		$('input#scale_y.scale').val(1)
-		$('input#scale_z.scale').val(1)
-		display_base.scale.x = 1
-		display_base.scale.y = 1
-		display_base.scale.z = 1
-	}
-}
 
 DisplayMode.applyPreset = function(preset, all) {
 	if (preset == undefined) return;
@@ -1415,12 +1386,12 @@ DisplayMode.applyPreset = function(preset, all) {
 		Blockbench.showQuickMessage('message.preset_no_info')
 		return;
 	};
+	Undo.initEdit({display_slots: slots})
 	slots.forEach(function(sl) {
-		if (!preset.areas[sl]) return;
-		if (typeof display[sl] !== 'object') display[sl] = {}
-		$.extend(true, display[sl], preset.areas[sl])
+		DisplayMode.slot.extend(preset.areas[sl])
 	})
-	DisplayMode.load(display_slot)
+	DisplayMode.updateDisplayBase()
+	Undo.finishEdit('apply display preset')
 }
 DisplayMode.createPreset = function() {
 	var name = $('input#preset_name').val()
@@ -1435,11 +1406,18 @@ DisplayMode.createPreset = function() {
 
 	displayReferenceObjects.slots.forEach(function(s) {
 		if ($('#'+s+'_save').is(':checked')) {
-			preset.areas[s] = display[s]
+			preset.areas[s] = display[s].copy()
 		}
 	})
 	hideDialog()
 	localStorage.setItem('display_presets', JSON.stringify(display_presets))
+}
+DisplayMode.loadJSON = function(data) {
+	for (var slot in data) {
+		if (displayReferenceObjects.slots.includes(slot)) {
+			display[slot] = new DisplaySlot().extend(data[slot])
+		}
+	}
 }
 
 
@@ -1455,39 +1433,22 @@ var setDisplayArea = DisplayMode.setBase = function(x, y, z, rx, ry, rz, sx, sy,
 	display_area.scale['x'] = sx;
 	display_area.scale['y'] = sy;
 	display_area.scale['z'] = sz;
+
+	display_area.updateMatrixWorld()
+
+	DisplayMode.centerTransformer()
 }
 DisplayMode.groundAnimation = function() {
 	display_area.rotation.y += 0.015
 	ground_timer += 1
 	display_area.position.y = 13.5 + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
+	DisplayMode.centerTransformer()
 	if (ground_timer === 200) ground_timer = 0;
 }
 
-function getDisplayNumber(key, mode, axis) {
-	var def = 0
-	if (mode == 'scale') {
-		def = 1
-	}
-	if (display[key] == undefined) {
-		return def;
-	}
-	if (display[key][mode] == undefined) {
-		return def;
-	}
-	if (display[key][mode][axis] != undefined) {
-		var val = display[key][mode][axis];
-		if (mode == 'scale' && val == 0) {
-			val = 0.001;
-		}
-		return val;
-	} else {
-		return def;
-	}
-}
 function loadDisp(key) {	//Loads The Menu and slider values, common for all Radio Buttons
 	display_slot = key
-	//enterScene(key)
-	resetDisplayBase()
+
 	if (key !== 'gui' && display_preview.isOrtho === true) {
 		display_preview.setNormalCamera()
 	}
@@ -1498,37 +1459,12 @@ function loadDisp(key) {	//Loads The Menu and slider values, common for all Radi
 	display_preview.camPers.setFocalLength(45)
 
 	if (display[key] == undefined) {
-		display[key] = {}
+		display[key] = new DisplaySlot()
 	}
-	$('input#rotation_x').val(getDisplayNumber(key, 'rotation', 0))
-	$('input#rotation_y').val(getDisplayNumber(key, 'rotation', 1))
-	$('input#rotation_z').val(getDisplayNumber(key, 'rotation', 2))
-
-	$('input#translation_x').val(getDisplayNumber(key, 'translation', 0))
-	$('input#translation_y').val(getDisplayNumber(key, 'translation', 1))
-	$('input#translation_z').val(getDisplayNumber(key, 'translation', 2))
-
-	$('input#scale_x').val(Math.abs(getDisplayNumber(key, 'scale', 0)))
-	$('input#scale_y').val(Math.abs(getDisplayNumber(key, 'scale', 1)))
-	$('input#scale_z').val(Math.abs(getDisplayNumber(key, 'scale', 2)))
-	DisplayMode.syncDispInput($('input#scale_x'), 'scale')
-	DisplayMode.syncDispInput($('input#scale_y'), 'scale')
-	DisplayMode.syncDispInput($('input#scale_z'), 'scale')
-	$('#display_scale_invert_x i').text(getDisplayNumber(key, 'scale', 0) > 0 ? 'check_box_outline_blank' : 'check_box')
-	$('#display_scale_invert_y i').text(getDisplayNumber(key, 'scale', 1) > 0 ? 'check_box_outline_blank' : 'check_box')
-	$('#display_scale_invert_z i').text(getDisplayNumber(key, 'scale', 2) > 0 ? 'check_box_outline_blank' : 'check_box')
-
-	display_base.rotation['x'] = Math.PI / (180 / getDisplayNumber(key, 'rotation', 0));
-	display_base.rotation['y'] = Math.PI / (180 / getDisplayNumber(key, 'rotation', 1));
-	display_base.rotation['z'] = Math.PI / (180 / getDisplayNumber(key, 'rotation', 2));
-
-	display_base.position['x'] = getDisplayNumber(key, 'translation', 0);
-	display_base.position['y'] = getDisplayNumber(key, 'translation', 1);
-	display_base.position['z'] = getDisplayNumber(key, 'translation', 2);
-
-	display_base.scale['x'] = getDisplayNumber(key, 'scale', 0);
-	display_base.scale['y'] = getDisplayNumber(key, 'scale', 1);
-	display_base.scale['z'] = getDisplayNumber(key, 'scale', 2);
+	DisplayMode.vue._data.slot = display[key]
+	DisplayMode.slot = display[key]
+	DisplayMode.updateDisplayBase()
+	DisplayMode.centerTransformer()
 
 }
 DisplayMode.loadThirdRight = function() {	//Loader
@@ -1537,9 +1473,6 @@ DisplayMode.loadThirdRight = function() {	//Loader
 }
 DisplayMode.loadThirdLeft = function() {	//Loader
 	loadDisp('thirdperson_lefthand')
-	display_base.position['x'] = -getDisplayNumber('thirdperson_lefthand', 'translation', 0)
-	display_base.rotation['y'] = Math.PI / (180 / -getDisplayNumber('thirdperson_lefthand', 'rotation', 1))
-	display_base.rotation['z'] = Math.PI / (180 / -getDisplayNumber('thirdperson_lefthand', 'rotation', 2))
 	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
 }
 DisplayMode.loadFirstRight = function() {	//Loader
@@ -1554,9 +1487,6 @@ DisplayMode.loadFirstRight = function() {	//Loader
 }
 DisplayMode.loadFirstLeft = function() {	//Loader
 	loadDisp('firstperson_lefthand')
-	display_base.position['x'] = -getDisplayNumber('firstperson_lefthand', 'translation', 0)
-	display_base.rotation['y'] = Math.PI / (180 / -getDisplayNumber('firstperson_lefthand', 'rotation', 1))
-	display_base.rotation['z'] = Math.PI / (180 / -getDisplayNumber('firstperson_lefthand', 'rotation', 2))
 	setDisplayArea(-20.5, -8.4, -9, 0, 270, 0, 1,1,1)
 	display_preview.camPers.setFocalLength(12)
 	display_preview.camPers.position.set(-32.4, 0, 0)
@@ -1621,36 +1551,11 @@ DisplayMode.load = function(slot) {
 }
 
 DisplayMode.copy = function() {
-	var base_setting = {rotation: [0, 0, 0], translation: [0, 0, 0], scale: [1, 1, 1]}
-	$.extend(true, base_setting, display[display_slot])
-	display_clipboard = base_setting
+	display_clipboard = DisplayMode.slot.copy()
 }
 DisplayMode.paste = function() {
-	if (display_clipboard == undefined) return;
-
-	if (typeof display_clipboard.rotation === 'object' && display_clipboard.rotation.join('_') === '0_0_0') {
-		delete display[display_slot].rotation;
-	} else {
-		display[display_slot].rotation = display_clipboard.rotation.slice();
-	}
-
-	if (typeof display_clipboard.translation === 'object' && display_clipboard.translation.join('_') === '0_0_0') {
-		delete display[display_slot].translation;
-	} else {
-		display[display_slot].translation = display_clipboard.translation.slice();
-	}
-
-	if (typeof display_clipboard.scale === 'object' && display_clipboard.scale.join('_') === '1_1_1') {
-		delete display[display_slot].scale;
-	} else {
-		display[display_slot].scale = display_clipboard.scale.slice();
-	}
-	/*
-	var clear_content = {}
-	$.extend(true, clear_content, display_clipboard)
-	$.extend(true, display[slot], clear_content)
-	*/
-	DisplayMode.load(display_slot)
+	DisplayMode.slot.extend(display_clipboard)
+	DisplayMode.updateDisplayBase()
 }
 
 window.changeDisplaySkin = function() {
@@ -1767,9 +1672,6 @@ function updateDisplaySkin() {
 	}
 	//displayReferenceObjects.refmodels.player.material
 }
-BARS.defineActions(function() {
-	
-})
 BARS.defineActions(function() {
 	new Action({
 		id: 'add_display_preset',

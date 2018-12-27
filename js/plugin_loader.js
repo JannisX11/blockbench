@@ -351,6 +351,15 @@ function switchPluginTabs(installed) {
 
 BARS.defineActions(function() {
 	new Action({
+		id: 'plugins_window',
+		icon: 'extension',
+		category: 'blockbench',
+		click: function () {
+			showDialog('plugins')
+			$('#plugin_list').css('max-height', limitNumber($(window).height()-300, 80, 600)+'px')
+		}
+	})
+	new Action({
 		id: 'load_plugin',
 		icon: 'fa-file-code-o',
 		category: 'blockbench',

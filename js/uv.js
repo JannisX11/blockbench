@@ -1109,7 +1109,7 @@ class UVEditor {
 				uv: tag.uv.slice(),
 				face: face
 			}
-			if (tag.texture) new_tag.texture = tag.texture
+			if (tag.texture !== undefined) new_tag.texture = tag.texture
 			if (tag.cullface) new_tag.cullface = tag.cullface
 			if (tag.rotation) new_tag.rotation = tag.rotation
 			if (tag.enabled !== undefined) new_tag.enabled = tag.enabled
@@ -1144,7 +1144,7 @@ class UVEditor {
 				var target = obj.faces[face]
 				target.uv = tag.uv.slice()
 
-				if (tag.texture || target.texture) target.texture = tag.texture
+				if (tag.texture !== undefined || target.texture !== undefined) target.texture = tag.texture
 				if (tag.cullface || target.cullface) target.cullface = tag.cullface
 				if (tag.rotation || target.rotation) target.rotation = tag.rotation
 				if (tag.enabled !== undefined || target.enabled !== undefined) target.enabled = tag.enabled
