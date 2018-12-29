@@ -1554,8 +1554,20 @@ DisplayMode.copy = function() {
 	display_clipboard = DisplayMode.slot.copy()
 }
 DisplayMode.paste = function() {
+	Undo.initEdit({display_slots: [display_slot]})
 	DisplayMode.slot.extend(display_clipboard)
 	DisplayMode.updateDisplayBase()
+	Undo.finishEdit('paste display slot')
+}
+
+DisplayMode.scrollSlider = function(type, value, el) {
+	Undo.initEdit({display_slots: [display_slot]})
+
+	var [channel, axis] = type.split('.')
+	DisplayMode.slot[channel][parseInt(axis)] = value
+
+	DisplayMode.slot.update()
+	Undo.finishEdit('change display slot')
 }
 
 window.changeDisplaySkin = function() {

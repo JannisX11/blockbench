@@ -115,10 +115,6 @@ function showSaveDialog(close) {
 			return false;
 		}
 	} else {
-		if (close) {
-			preventClosing = false
-			app.getCurrentWindow().close()
-		}
 		return true;
 	}
 }

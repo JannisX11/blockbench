@@ -359,11 +359,8 @@ class Cube extends OutlinerElement {
 		function getA(axis) {
 			if (floored === true) {
 				var n = Math.floor(0.0000001 + scope.to[axis] - scope.from[axis]) 
-				if (!Blockbench.entity_mode && n === 0 && scope.to[axis] - scope.from[axis] > 0.02) {
-					return 1;
-				} else {
-					return n
-				}
+				//if (!Blockbench.entity_mode && n === 0 && scope.to[axis] - scope.from[axis] > 0.02) {return 1}
+				return n;
 			} else {
 				return scope.to[axis] - scope.from[axis]
 			}
@@ -1339,12 +1336,17 @@ class Group extends OutlinerElement {
 		obj.children = []
 		return obj;
 	}
-	forEachChild(func) {
+	forEachChild(cb, type, forSelf) {
 		var i = 0
+		if (forSelf) {
+			cb(this)
+		}
 		while (i < this.children.length) {
-			func(this.children[i])
+			if (!type || this.children[i].type === type) {
+				cb(this.children[i])
+			}
 			if (this.children[i].type === 'group') {
-				this.children[i].forEachChild(func)
+				this.children[i].forEachChild(cb, type)
 			}
 			i++;
 		}
@@ -1354,11 +1356,9 @@ class Group extends OutlinerElement {
 			var val = !this[key]
 		}
 		var cubes = []
-		this.forEachChild((obj) => {
-			if (obj.type === 'cube') {
-				cubes.push(obj)
-			}
-		})
+		this.forEachChild(obj => {
+			cubes.push(obj)
+		}, 'cube')
 		Undo.initEdit({outliner: true, cubes: cubes})
 		if (!Blockbench.entity_mode || key !=='shade') {
 			this.forEachChild(function(s) {
@@ -1652,11 +1652,10 @@ function loadOutlinerDraggable() {
 					var sides = ['north', 'east', 'south', 'west', 'up', 'down']
 					if (target.type === 'group') {
 						target.forEachChild(function(s) {
-							if (s.type === 'group') return;
 							sides.forEach(function(side) {
 								s.faces[side].texture = '#'+id
 							})
-						})
+						}, 'cube')
 					} else {
 						var targets;
 						if (selected.includes(target)) {
@@ -1933,6 +1932,18 @@ BARS.defineActions(function() {
 	new BarText({
 		id: 'cube_counter',
 		right: true,
-		click: function() {selectAll()}
+		click: function() {selectAll()},
+		onUpdate: function() {
+			if (Animator.open) {
+				var all = getAllOutlinerGroups().length
+				var sel = 0;
+				if (selected_group) {
+					selected_group.forEachChild(_ => sel++, 'group', true)
+				}
+				this.set(sel+'/'+all)
+			} else {
+				this.set(selected.length+'/'+elements.length)
+			}
+		}
 	})
 })

@@ -18,7 +18,8 @@
     </div>
     <script>
         if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
-        var isApp = typeof require !== 'undefined'
+        const isApp = typeof require !== 'undefined';
+        const appVersion = '2.3.1';
     </script>
         <script src="lib/vue.min.js"></script>
         <script src="lib/vue_sortable.js"></script>
@@ -756,13 +757,13 @@
                 
                 <p class="tl">display.rotation</p><div class="tool head_right" v-on:click="resetChannel('rotation')"><i class="material-icons">replay</i></div>
                 <div class="bar" v-for="axis in [0, 1, 2]">
-                    <input type="range" class="tool disp_range" v-model.number="slot.rotation[axis]" min="-180" max="180" step="1" value="0" @input="change" @input="change(axis, 'rotation')" @mousedown="start" @change="save">
+                    <input type="range" class="tool disp_range" v-model.number="slot.rotation[axis]" v-bind:trigger_type="'rotation.'+axis" min="-180" max="180" step="1" value="0" @input="change" @input="change(axis, 'rotation')" @mousedown="start" @change="save">
                     <input type="number" class="tool disp_text" v-model.number="slot.rotation[axis]" min="-180" max="180" step="0.5" value="0" @input="change(axis, 'rotation');save()" @mousedown="start">
                 </div>
                 
                 <p class="tl">display.translation</p><div class="tool head_right" v-on:click="resetChannel('translation')"><i class="material-icons">replay</i></div>
                 <div class="bar" v-for="axis in [0, 1, 2]">
-                    <input type="range" class="tool disp_range" v-model.number="slot.translation[axis]" 
+                    <input type="range" class="tool disp_range" v-model.number="slot.translation[axis]" v-bind:trigger_type="'translation.'+axis"
                         v-bind:min="Math.abs(slot.translation[axis]) < 10 ? -20 : (slot.translation[axis] > 0 ? -70*3+10 : -80)"
                         v-bind:max="Math.abs(slot.translation[axis]) < 10 ?  20 : (slot.translation[axis] < 0 ? 70*3-10 : 80)"
                         v-bind:step="Math.abs(slot.translation[axis]) < 10 ? 0.25 : 1"
@@ -775,7 +776,7 @@
                     <div class="tool display_scale_invert" v-on:click="invert(axis)">
                         <i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i><div class="tooltip tl">display.mirror</div>
                     </div>
-                    <input type="range" class="tool disp_range scaleRange" v-model.number="slot.scale[axis]" v-bind:id="'scale_range_'+axis"
+                    <input type="range" class="tool disp_range scaleRange" v-model.number="slot.scale[axis]" v-bind:trigger_type="'scale.'+axis" v-bind:id="'scale_range_'+axis"
                         v-bind:min="slot.scale[axis] > 1 ? -2 : 0"
                         v-bind:max="slot.scale[axis] > 1 ? 4 : 2"
                         step="0.01"

@@ -479,7 +479,7 @@ class BBPainter {
 			res: options.res,
 			name: options.name ? options.name : 'texture',
 			folder: options.folder ? options.folder : 'blocks'
-		}).add()
+		})
 		function makeTexture(dataUrl) {
 			texture.fromDataURL(dataUrl)
 			switch (options.particle) {
@@ -493,7 +493,7 @@ class BBPainter {
 			if (typeof after === 'function') {
 				after(texture)
 			}
-			return texture;
+			return texture.add(false);
 		}
 		if (options.entity_template === true) {
 			Undo.initEdit({textures: [], cubes: Blockbench.entity_mode ? elements : selected, uv_only: true})
@@ -663,10 +663,10 @@ class BBPainter {
 		}
 		function drawTexture(face, coords) {
 			if (!Blockbench.entity_mode) {
-				if (face.texture === undefined || face.texture === null) return;
+				if (face.texture === undefined || face.texture === null) return false;
 				texture = getTextureById(face.texture)
 			}
-			if (!texture || !texture.img) return;
+			if (!texture || !texture.img) return false;
 			var uv = face.uv;
 			var src = getRectangle(uv[0], uv[1], uv[2], uv[3])
 			ctx.drawImage(
@@ -680,6 +680,7 @@ class BBPainter {
 				coords.w*res_multiple,
 				coords.h*res_multiple
 			)
+			return true;
 		}
 
 		var face_data = {
@@ -696,12 +697,11 @@ class BBPainter {
 		templates.forEach(function(t) {
 			for (var face in face_data) {
 				let d = face_data[face]
-				if (options.use_texture || !t.obj.faces[face].texture) {
-					//Colored
+				
+				if (!t.obj.faces[face].texture ||
+					!drawTexture(t.obj.faces[face], d.place(t))
+				) {
 					drawTemplateRectangle(d.c1, d.c2, d.place(t))
-				} else {
-					//Texture
-					drawTexture(t.obj.faces[face], d.place(t))
 				}
 			}
 			let obj = t.obj
@@ -756,7 +756,7 @@ BARS.defineActions(function() {
 		paintTool: true,
 		allowWireframe: false,
 		keybind: new Keybind({key: 66}),
-		condition: () => Modes.id === 'paint',
+		modes: ['paint'],
 		onCanvasClick: function(data) {
 			Painter.startBrushCanvas(data, data.event)
 		},
@@ -780,7 +780,7 @@ BARS.defineActions(function() {
 		transformerMode: 'hidden',
 		paintTool: true,
 		allowWireframe: false,
-		condition: () => Modes.id === 'paint',
+		modes: ['paint'],
 		onCanvasClick: function(data) {
 			Painter.startBrushCanvas(data, data.event)
 		},
@@ -803,7 +803,7 @@ BARS.defineActions(function() {
 		transformerMode: 'hidden',
 		paintTool: true,
 		allowWireframe: false,
-		condition: () => Modes.id === 'paint',
+		modes: ['paint'],
 		onCanvasClick: function(data) {
 			Painter.startBrushCanvas(data, data.event)
 		},
@@ -826,7 +826,7 @@ BARS.defineActions(function() {
 		transformerMode: 'hidden',
 		paintTool: true,
 		allowWireframe: false,
-		condition: () => Modes.id === 'paint',
+		modes: ['paint'],
 		onCanvasClick: function(data) {
 			Painter.startBrushCanvas(data, data.event)
 		},

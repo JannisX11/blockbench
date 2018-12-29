@@ -417,16 +417,22 @@ function setupInterface() {
 	})
 
 	//Scrolling
-	/*
 	$('input[type="range"]').on('mousewheel', function () {
+		var obj = $(event.target)
 		var factor = event.deltaY > 0 ? -1 : 1
-		var val = parseFloat($(event.target).val()) + parseFloat($(event.target).attr('step')) * factor
-		val = limitNumber(val, $(event.target).attr('min'), $(event.target).attr('max'))
+		var val = parseFloat(obj.val()) + parseFloat(obj.attr('step')) * factor
+		val = limitNumber(val, obj.attr('min'), obj.attr('max'))
 
-		$(event.target).val(val)
-		eval($(event.target).attr('oninput'))
-		eval($(event.target).attr('onmouseup'))
-	})*/
+		if (obj.attr('trigger_type')) {
+			DisplayMode.scrollSlider(obj.attr('trigger_type'), val, obj)
+			return;
+		}
+
+		obj.val(val)
+		eval(obj.attr('oninput'))
+		eval(obj.attr('onmouseup'))
+	})
+
 	$('#timeline_inner').on('mousewheel', function() {
 		if (event.ctrlKey) {
 			var offset = 1 - event.deltaY/600
@@ -700,7 +706,7 @@ var splashScreen = {
 		}
 		//Show
 		if (res[1] ||//Forced
-			localStorage.getItem('welcomed_version') != appVersion//Updated
+			Blockbench.hasFlag('after_update')//Updated
 		) {
 			splashScreen.show()
 		}

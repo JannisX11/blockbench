@@ -1003,6 +1003,7 @@
 
 					var snap = getRotationInterval(event)
 					angle = Math.round(angle / snap) * snap
+					if (Math.abs(angle) > 300) angle = angle > 0 ? -snap : snap;
 					if (previousValue === undefined) previousValue = angle
 
 					if (previousValue !== angle) {
@@ -1027,7 +1028,12 @@
 					var round_num = getRotationInterval(event)
 				} else {
 					value = point[axis]
-					var round_num = canvasGridSize(event.shiftKey, event.ctrlKey)
+					if (Toolbox.selected.id === 'resize_tool') {
+						value *= (scope.direction) ? 0.1 : -0.1
+						round_num = 0.1
+					} else {
+						var round_num = canvasGridSize(event.shiftKey, event.ctrlKey)
+					}
 				}
 				value = Math.round(value/round_num)*round_num
 				if (previousValue === undefined) previousValue = value

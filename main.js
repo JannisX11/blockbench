@@ -12,12 +12,13 @@ function createWindow () {
 		webPreferences: {
 			//experimentalFeatures: true,
 			webgl: true,
-			webSecurity: true
+			webSecurity: true,
+			nodeIntegration: true
 		}
 	})
 	var index_path = path.join(__dirname, 'index.html')
 	if (__dirname.includes('xampp\\htdocs\\')) {
-		index_path = path.join(__dirname, 'index.php')
+		//index_path = path.join(__dirname, 'index.php')
 	}
 	win.setMenu(null);
 	win.maximize()
@@ -37,9 +38,7 @@ app.commandLine.appendSwitch('ignore-gpu-blacklist')
 app.on('ready', createWindow)
 
 app.on('window-all-closed', () => {
-	//if (process.platform !== 'darwin') {
-		app.quit()
-	//}
+	app.quit()
 })
 
 

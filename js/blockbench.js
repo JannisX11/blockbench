@@ -1,4 +1,3 @@
-const appVersion = '2.3.0'
 var osfs = '/'
 var File, i;
 const elements = [];
@@ -67,6 +66,9 @@ function initializeApp() {
 		$('.local_only').remove()
 	} else {
 		$('.web_only').remove()
+	}
+	if (localStorage.getItem('welcomed_version') != appVersion) {
+		Blockbench.addFlag('after_update')
 	}
 	BARS.setupActions()
 	BARS.setupToolbars()
@@ -363,7 +365,7 @@ function updateSelection() {
 	} else if (selected.length === 0) {
 		$('.selection_only').css('visibility', 'hidden')
 	}
-	BarItems.cube_counter.set(selected.length+'/'+elements.length)
+	BarItems.cube_counter.update()
 	$('.uv_mapping_overlay').remove()
 	updateNslideValues()
 	//Misc

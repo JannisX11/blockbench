@@ -164,6 +164,7 @@ class Action extends BarItem {
 				return true;
 			}
 			scope.click(event)
+
 			$(scope.nodes).each(function() {
 				$(this).css('color', 'var(--color-light)')
 			})
@@ -203,23 +204,22 @@ class Tool extends Action {
 		this.type = 'tool'
 		this.toolbar = data.toolbar;
 		this.alt_tool = data.alt_tool;
+		this.modes = data.modes;
 		this.selectFace = data.selectFace;
 		this.selectCubes = data.selectCubes !== false;
 		this.paintTool = data.paintTool;
 		this.transformerMode = data.transformerMode;
 		this.allowWireframe = data.allowWireframe !== false;
 
+		if (!this.condition) {
+			this.condition = function() {
+				return scope.modes && scope.modes.includes(Modes.id)
+			}
+		}
 		this.onCanvasClick = data.onCanvasClick;
 		this.onSelect = data.onSelect;
 		this.onUnselect = data.onUnselect;
 		$(this.node).click(function() {scope.select()})
-	}
-	trigger() {
-		if (BARS.condition(this.condition, this)) {
-			this.select()
-			return true;
-		}
-		return false;
 	}
 	select() {
 		if (this === Toolbox.selected) return;
@@ -250,6 +250,23 @@ class Tool extends Action {
 			this.onSelect()
 		}
 		return this;
+	}
+	trigger(event) {
+		var scope = this;
+		if (BARS.condition(scope.condition, scope)) {
+			this.select()
+			return true;
+		} else if (event.type.includes('key') && this.modes) {
+			for (var i = 0; i < this.modes.length; i++) {
+				var mode = Modes.options[this.modes[i]]
+				if (mode && Condition(mode.condition)) {
+					mode.select()
+					this.select()
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 }
 class Widget extends BarItem {
@@ -560,6 +577,7 @@ class BarText extends Widget {
 		if (data.right) {
 			$(this.node).addClass('f_right')
 		}
+		this.onUpdate = data.onUpdate;
 		if (typeof data.click === 'function') {
 			this.click = data.click;
 			this.node.addEventListener('click', this.click)
@@ -568,6 +586,12 @@ class BarText extends Widget {
 	set(text) {
 		$(this.nodes).text(text)
 	}
+	update() {
+		if (typeof this.onUpdate === 'function') {
+			this.onUpdate()
+		}
+	}
+
 }
 class ColorPicker extends Widget {
 	constructor(data) {
@@ -830,8 +854,8 @@ var BARS = {
 				transformerMode: 'translate',
 				toolbar: 'transform',
 				alt_tool: 'resize_tool',
+				modes: ['edit', 'display', 'animate'],
 				keybind: new Keybind({key: 86}),
-				condition: () => Modes.id === 'edit' || Modes.id === 'animate' || Modes.id === 'display'
 			})
 			new Tool({
 				id: 'resize_tool',
@@ -841,8 +865,8 @@ var BARS = {
 				transformerMode: 'scale',
 				toolbar: 'transform',
 				alt_tool: 'move_tool',
+				modes: ['edit', 'display', 'animate'],
 				keybind: new Keybind({key: 83}),
-				condition: () => Modes.id === 'edit' || Modes.id === 'animate' || Modes.id === 'display'
 			})
 			new Tool({
 				id: 'rotate_tool',
@@ -852,8 +876,8 @@ var BARS = {
 				transformerMode: 'rotate',
 				toolbar: 'transform',
 				alt_tool: 'move_tool',
+				modes: ['edit', 'display', 'animate'],
 				keybind: new Keybind({key: 82}),
-				condition: () => Modes.id === 'edit' || Modes.id === 'animate' || Modes.id === 'display'
 			})
 			new Tool({
 				id: 'vertex_snap_tool',
@@ -863,8 +887,8 @@ var BARS = {
 				category: 'tools',
 				selectCubes: true,
 				cursor: 'copy',
+				modes: ['edit'],
 				keybind: new Keybind({key: 88}),
-				condition: () => Modes.id === 'edit',
 				onCanvasClick: function(data) {
 					Vertexsnap.canvasClick(data)
 				},
@@ -2065,7 +2089,7 @@ var Keybinds = {
 		Keybinds.save()
 	}
 }
-if (localStorage.getItem('keybindings')) {
+if (localStorage.getItem('keybindings') && localStorage.getItem('welcomed_version') == appVersion) {
 	try {
 		Keybinds.stored = JSON.parse(localStorage.getItem('keybindings'))
 	} catch (err) {}

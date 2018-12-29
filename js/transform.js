@@ -344,6 +344,16 @@ function scaleAll(save, size) {
 			Canvas.updateUV(obj)
 		}
 	})
+	if (Blockbench.entity_mode && selected_group) {
+		selected_group.forEachChild((g) => {
+			g.origin[0] = g.old_origin[0] * size
+			g.origin[1] = g.old_origin[1] * size
+			g.origin[2] = g.old_origin[2] * size
+			if (save === true) {
+				delete g.old_origin
+			}
+		}, 'group')
+	}
 	if (clip && Blockbench.entity_mode === false) {
 		$('#scaling_clipping_warning').text('Model clipping: Your model is too large for the canvas')
 	} else {
@@ -372,6 +382,14 @@ function cancelScaleAll() {
 		obj.origin = obj.before.origin
 		delete obj.before
 	})
+	if (Blockbench.entity_mode && selected_group) {
+		selected_group.forEachChild((g) => {
+			g.origin[0] = g.old_origin[0]
+			g.origin[1] = g.old_origin[1]
+			g.origin[2] = g.old_origin[2]
+			delete g.old_origin
+		}, 'group')
+	}
 	Canvas.updatePositions()
 	hideDialog()
 }
@@ -462,13 +480,14 @@ function rotateOnAxis(value, fixed, axis) {
 	})
 	selected.forEach(function(obj, i) {
 		if (obj.rotation.equals([0,0,0])) {
-			obj.origin = origin
+			obj.origin = origin.slice()
 		}
 		var obj_val = value;
 		if (!fixed) {
 			obj_val += obj.rotation[axis]
 		}
-		obj_val = obj_val % 360
+
+		obj_val = Math.trimDeg(obj_val)
 		if (settings.limited_rotation.value) {
 			//Limit To 1 Axis
 			obj.rotation[(axis+1)%3] = 0
@@ -506,7 +525,7 @@ BARS.defineActions(function() {
 	}
 	new NumSlider({
 		id: 'slider_pos_x',
-		condition: function() {return selected.length},
+		condition: () => (selected.length && Modes.id === 'edit'),
 		get: function() {
 			return selected[0].from[0]
 		},
@@ -522,7 +541,7 @@ BARS.defineActions(function() {
 	}) 
 	new NumSlider({
 		id: 'slider_pos_y',
-		condition: function() {return selected.length},
+		condition: () => (selected.length && Modes.id === 'edit'),
 		get: function() {
 			return selected[0].from[1]
 		},
@@ -538,7 +557,7 @@ BARS.defineActions(function() {
 	}) 
 	new NumSlider({
 		id: 'slider_pos_z',
-		condition: function() {return selected.length},
+		condition: () => (selected.length && Modes.id === 'edit'),
 		get: function() {
 			return selected[0].from[2]
 		},
@@ -570,7 +589,7 @@ BARS.defineActions(function() {
 	}
 	new NumSlider({
 		id: 'slider_size_x',
-		condition: function() {return selected.length},
+		condition: () => (selected.length && Modes.id === 'edit'),
 		get: function() {
 			return selected[0].to[0] - selected[0].from[0]
 		},
@@ -586,7 +605,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider({
 		id: 'slider_size_y',
-		condition: function() {return selected.length},
+		condition: () => (selected.length && Modes.id === 'edit'),
 		get: function() {
 			return selected[0].to[1] - selected[0].from[1]
 		},
@@ -602,7 +621,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider({
 		id: 'slider_size_z',
-		condition: function() {return selected.length},
+		condition: () => (selected.length && Modes.id === 'edit'),
 		get: function() {
 			return selected[0].to[2] - selected[0].from[2]
 		},
@@ -619,7 +638,7 @@ BARS.defineActions(function() {
 	//Inflage
 	new NumSlider({
 		id: 'slider_inflate',
-		condition: function() {return Blockbench.entity_mode && selected.length},
+		condition: function() {return Blockbench.entity_mode && selected.length && Modes.id === 'edit'},
 		get: function() {
 			return selected[0].inflate
 		},
@@ -643,7 +662,7 @@ BARS.defineActions(function() {
 	//Rotation
 	new NumSlider({
 		id: 'slider_rotation_x',
-		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
+		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length) && Modes.id === 'edit'},
 		get: function() {
 			var obj = Blockbench.entity_mode ? selected_group : selected[0]
 			return obj ? obj.rotation[0] : ''
@@ -662,7 +681,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider({
 		id: 'slider_rotation_y',
-		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
+		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length) && Modes.id === 'edit'},
 		get: function() {
 			var obj = Blockbench.entity_mode ? selected_group : selected[0]
 			return obj ? obj.rotation[1] : ''
@@ -681,7 +700,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider({
 		id: 'slider_rotation_z',
-		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
+		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length) && Modes.id === 'edit'},
 		get: function() {
 			var obj = Blockbench.entity_mode ? selected_group : selected[0]
 			return obj ? obj.rotation[2] : ''
@@ -721,7 +740,7 @@ BARS.defineActions(function() {
 	}
 	new NumSlider({
 		id: 'slider_origin_x',
-		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
+		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length) && Modes.id === 'edit'},
 		get: function() {
 			var obj = Blockbench.entity_mode ? selected_group : selected[0]
 			return obj ? obj.origin[0] : ''
@@ -738,7 +757,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider({
 		id: 'slider_origin_y',
-		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
+		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length) && Modes.id === 'edit'},
 		get: function() {
 			var obj = Blockbench.entity_mode ? selected_group : selected[0]
 			return obj ? obj.origin[1] : ''
@@ -755,7 +774,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider({
 		id: 'slider_origin_z',
-		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length)},
+		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length) && Modes.id === 'edit'},
 		get: function() {
 			var obj = Blockbench.entity_mode ? selected_group : selected[0]
 			return obj ? obj.origin[2] : ''
@@ -779,7 +798,7 @@ BARS.defineActions(function() {
 			$('#model_scale_range, #model_scale_label').val(1)
 			$('#scaling_clipping_warning').text('')
 
-			Undo.initEdit({cubes: selected})
+			Undo.initEdit({cubes: selected, outliner: Blockbench.entity_mode})
 
 			selected.forEach(function(obj) {
 				obj.before = {
@@ -788,6 +807,11 @@ BARS.defineActions(function() {
 					origin: obj.origin.slice()
 				}
 			})
+			if (Blockbench.entity_mode && selected_group) {
+				selected_group.forEachChild((g) => {
+					g.old_origin = g.origin.slice();
+				}, 'group', true)
+			}
 			showDialog('scaling')
 		}
 	})

@@ -144,12 +144,12 @@ function installUpdate() {
 
 	$('.uc_btn').css('visibility', 'hidden')
 
-	var asar_path = __dirname
+	var asar_path = __dirname;
 	if (asar_path.includes('.asar') === false) {
-		asar_path = asar_path + osfs+'resources'+osfs+'app.asar'
+		asar_path = asar_path + osfs+'resources'+osfs+'app.asar';
 	}
 
-	var file = originalFs.createWriteStream(asar_path)
+	var file = originalFs.createWriteStream(asar_path);
 
 	var request = https.get("https://blockbench.net/api/app.asar", function(response) {
 		response.pipe(file);
@@ -164,14 +164,15 @@ function installUpdate() {
 	});
 }
 function updateInstallationEnd() {
-	hideDialog()
-	var exe_path = __dirname.split(osfs)
-	exe_path.splice(-2)
-	exe_path = exe_path.join(osfs)+osfs+'blockbench.exe'
+	hideDialog();
+	Blockbench.addFlag('update_restart');
+	var exe_path = __dirname.split(osfs);
+	exe_path.splice(-2);
+	exe_path = exe_path.join(osfs)+osfs+'blockbench.exe';
 	if (showSaveDialog(true)) {
-		exec(exe_path)
+		exec(exe_path);
 	} else {
-		Blockbench.showQuickMessage('message.restart_to_update')
+		Blockbench.showQuickMessage('message.restart_to_update');
 	}
 }
 //Image Editor
@@ -391,6 +392,15 @@ function writeFileEntity(content, filepath) {
 	var model_name = 'geometry.' + (Project.parent.replace(/^geometry\./, '')||'unknown')
 	fs.readFile(filepath, 'utf-8', function (errx, data) {
 		var obj = {}
+		if (content.bones && content.bones.length) {
+			var has_parents = false;
+			for (var i = 0; i < content.bones.length && !has_parents; i++) {
+				if (content.bones[i].parent) has_parents = true;
+			}
+			if (has_parents) {
+				obj.format_version = '1.8.0'
+			}
+		}
 		if (!errx) {
 			try {
 				obj = JSON.parse(data.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, ''))
@@ -490,7 +500,6 @@ function writeFileObj(content, filepath) {
 	}
 	Blockbench.showQuickMessage('message.save_obj')
 }
-
 
 //Open
 function readFile(filepath, makeNew) {
@@ -618,8 +627,12 @@ function showSaveDialog(close) {
 	}
 }
 function closeBlockbenchWindow() {
-	preventClosing = false
+	preventClosing = false;
+	
+	if (!Blockbench.hasFlag('update_restart')) {
+		return currentwindow.close();
+	}
 	setTimeout(function() {
-		currentwindow.close()
-	}, 12)
+		currentwindow.close();
+	}, 240)
 }
