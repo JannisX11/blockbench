@@ -67,9 +67,6 @@
 	},
 	"devDependencies": {
 		"async": "^2.4.1",
-		"electron-builder": "^20.38.3"
-	},
-	"dependencies": {
-		"winreg": "^1.2.4"
+		"electron-builder": "^20.38.4"
 	}
 }
