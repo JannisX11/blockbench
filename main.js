@@ -1,14 +1,15 @@
-const {app, BrowserWindow} = require('electron')
+const { app, BrowserWindow } = require('electron')
 const path = require('path')
 const url = require('url')
 
 let win
 
-function createWindow () {
+function createWindow() {
 	win = new BrowserWindow({
-		icon:'icon.ico',
+		icon: 'icon.ico',
 		show: false,
 		backgroundColor: '#21252b',
+		frame: false,
 		webPreferences: {
 			//experimentalFeatures: true,
 			webgl: true,
