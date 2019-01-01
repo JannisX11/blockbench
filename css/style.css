@@ -2249,25 +2249,17 @@
 	pointer-events: none;
 }
 
-/*.window-controls {
-  position: fixed;
-  z-index: 100;
-  height: 1.8rem;
-  background: #0e131b;
-  margin-left: calc(91.2%);
-  width: 8.8rem;
-  float: right;
-}*/
+.spacer {
+	width: 5px
+}
+
 li.window-controls {
-  margin-left: 0px !important;
-  margin-right: 0px !important;
+  margin-left: -7px !important;
 }
 i.window-controls {
   height: -webkit-fill-available;
   padding: 0em 0rem;
   float: right;
-  margin-left: 0px !important;
-  margin-right: 0px !important;
 }
 i:hover.window-controls {
   background: rgba(88, 88, 88, 0.63);

@@ -735,6 +735,8 @@
             <li v-for="mode in options" v-if="Condition(mode.condition)" v-bind:class="{selected: mode.selected}"
                 v-on:click="mode.select()">{{ mode.name }}</li>
 
+            <li class="spacer"></li>
+
             <script>const remote = require('electron').remote;</script>
             <li class="window-controls not-mac" onclick="remote.BrowserWindow.getFocusedWindow().minimize();"><i class="min-btn window-controls">─</i></li>
             <li class="window-controls not-mac" onclick="remote.BrowserWindow.getFocusedWindow().isMaximized() ? remote.BrowserWindow.getFocusedWindow().unmaximize() : remote.BrowserWindow.getFocusedWindow().maximize();"><i
