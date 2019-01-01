@@ -1,19 +1,19 @@
-var app			= require('electron').remote,
-	fs			 = require('fs'),
-	nativeImage	= require('electron').nativeImage,
-	exec		   = require('child_process').exec,
-	originalFs	 = require('original-fs'),
-	https		   = require('https'),
-	currentwindow  = app.getCurrentWindow(),
-	dialog_win	 = null,
+var app = require('electron').remote,
+	fs = require('fs'),
+	nativeImage = require('electron').nativeImage,
+	exec = require('child_process').exec,
+	originalFs = require('original-fs'),
+	https = require('https'),
+	currentwindow = app.getCurrentWindow(),
+	dialog_win = null,
 	latest_version = false,
 	preventClosing = true;
-	recent_projects= undefined
+recent_projects = undefined
 
 const shell = require('electron').shell;
-const {clipboard} = require('electron')
+const { clipboard } = require('electron')
 
-$(document).ready(function() {
+$(document).ready(function () {
 	if (app.process.argv.length >= 2) {
 		if (app.process.argv[1].substr(-5) == '.json') {
 			readFile(app.process.argv[1], true)
@@ -24,14 +24,23 @@ $(document).ready(function() {
 		shell.openExternal(event.target.href);
 		return true;
 	});
-	if (fs.existsSync(app.app.getPath('userData')+osfs+'backups') === false) {
-		fs.mkdirSync( app.app.getPath('userData')+osfs+'backups')
+	if (fs.existsSync(app.app.getPath('userData') + osfs + 'backups') === false) {
+		fs.mkdirSync(app.app.getPath('userData') + osfs + 'backups')
 	}
 	createBackup(true)
 	$('.web_only').remove()
 	if (__dirname.includes('C:\\xampp\\htdocs\\blockbench\\web')) {
 		Blockbench.addFlag('dev')
 	}
+
+	// window controls
+	let css = '';
+	if (process.platform === "darwin") {
+		css = '.not-mac { display: none !important; } header div#title { margin-left: 67px; }';
+	} else {
+		css = 'header div#title { margin-left: 0px; }'
+	}
+	$('<style>' + css + '</style>').appendTo(document.head);
 })
 
 getLatestVersion(true)
@@ -43,23 +52,23 @@ function getLatestVersion(init) {
 			latest_version = data.version
 			if (compareVersions(latest_version, appVersion) && init === true) {
 
-		        Blockbench.showMessageBox({
+				Blockbench.showMessageBox({
 					translateKey: 'update_notification',
 					message: tl('message.update_notification.message', [latest_version]),
 					icon: 'update',
 					buttons: [tl('message.update_notification.install'), tl('message.update_notification.later')],
 					confirm: 0, cancel: 1
-		        }, (result) => {
-		        	if (result === 0) {
-		        		checkForUpdates(true)
-		        	}
-		        })
+				}, (result) => {
+					if (result === 0) {
+						checkForUpdates(true)
+					}
+				})
 
 			} else if (init === false) {
 				checkForUpdates()
 			}
 		}
-	}).fail(function() {
+	}).fail(function () {
 		latest_version = false
 	})
 }
@@ -77,7 +86,7 @@ function updateRecentProjects() {
 	localStorage.setItem('recent_projects', JSON.stringify(recent_projects))
 }
 function addRecentProject(data) {
-	var i = recent_projects.length-1
+	var i = recent_projects.length - 1
 	while (i >= 0) {
 		var p = recent_projects[i]
 		if (p.path === data.path) {
@@ -85,7 +94,7 @@ function addRecentProject(data) {
 		}
 		i--;
 	}
-	recent_projects.push({name: data.name, path: data.path})
+	recent_projects.push({ name: data.name, path: data.path })
 	if (recent_projects.length > 8) {
 		recent_projects.shift()
 	}
@@ -98,7 +107,7 @@ function checkForUpdates(instant) {
 	var data;
 	if (latest_version === false) {
 
-		data =  `<div class="tool" onclick="refreshUpdateDialog()">
+		data = `<div class="tool" onclick="refreshUpdateDialog()">
 				<i class="material-icons">refresh</i>
 				<div class="tooltip">${tl('dialog.update.refresh')}</div>
 				</div>
@@ -107,18 +116,18 @@ function checkForUpdates(instant) {
 				</div>`;
 
 	} else if (latest_version !== appVersion) {
-		data = 
+		data =
 			`<div class="dialog_bar narrow">${tl('dialog.update.latest')}: ${latest_version}</div>
 			<div class="dialog_bar narrow">${tl('dialog.update.installed')}: ${appVersion}</div>
 			<div class=""><button type="button" class="large uc_btn" id="update_button" onclick="installUpdate()">${tl('dialog.update.update')}</button></div>`;
 
 		if (instant) {
-			setTimeout(function() {
+			setTimeout(function () {
 				installUpdate()
 			}, 60)
 		}
 	} else {
-		data = 
+		data =
 			`<div class="tool" onclick="refreshUpdateDialog()">
 				<i class="material-icons">refresh</i>
 				<div class="tooltip">${tl('dialog.update.refresh')}</div>
@@ -131,8 +140,8 @@ function checkForUpdates(instant) {
 	$('#updater_content').html(data)
 }
 function refreshUpdateDialog() {
-	currentwindow.webContents.session.clearCache(function() {
-		data = '<div class="dialog_bar narrow"><i class="material-icons blue_icon spinning">refresh</i>'+tl('dialog.update.connecting')+'</div>'
+	currentwindow.webContents.session.clearCache(function () {
+		data = '<div class="dialog_bar narrow"><i class="material-icons blue_icon spinning">refresh</i>' + tl('dialog.update.connecting') + '</div>'
 		$('#updater_content').html(data)
 		getLatestVersion(false)
 	})
@@ -146,18 +155,18 @@ function installUpdate() {
 
 	var asar_path = __dirname;
 	if (asar_path.includes('.asar') === false) {
-		asar_path = asar_path + osfs+'resources'+osfs+'app.asar';
+		asar_path = asar_path + osfs + 'resources' + osfs + 'app.asar';
 	}
 
 	var file = originalFs.createWriteStream(asar_path);
 
-	var request = https.get("https://blockbench.net/api/app.asar", function(response) {
+	var request = https.get("https://blockbench.net/api/app.asar", function (response) {
 		response.pipe(file);
 
 		total_bytes = parseInt(response.headers['content-length']);
 
 		response.on('end', updateInstallationEnd)
-		response.on('data', function(chunk) {
+		response.on('data', function (chunk) {
 			received_bytes += chunk.length;
 			setProgressBar('update_bar', received_bytes / total_bytes, 1);
 		})
@@ -168,7 +177,7 @@ function updateInstallationEnd() {
 	Blockbench.addFlag('update_restart');
 	var exe_path = __dirname.split(osfs);
 	exe_path.splice(-2);
-	exe_path = exe_path.join(osfs)+osfs+'blockbench.exe';
+	exe_path = exe_path.join(osfs) + osfs + 'blockbench.exe';
 	if (showSaveDialog(true)) {
 		exec(exe_path);
 	} else {
@@ -180,19 +189,19 @@ function changeImageEditor(texture) {
 	var dialog = new Dialog({
 		title: tl('message.image_editor.title'),
 		id: 'image_editor',
-		lines: ['<div class="dialog_bar"><select class="dark_bordered input_wide">'+
-				'<option id="ps">Photoshop</option>'+
-				'<option id="gimp">Gimp</option>'+
-				'<option id="pdn">Paint.NET</option>'+
-				'<option id="other">'+tl('message.image_editor.file')+'</option>'+
+		lines: ['<div class="dialog_bar"><select class="dark_bordered input_wide">' +
+			'<option id="ps">Photoshop</option>' +
+			'<option id="gimp">Gimp</option>' +
+			'<option id="pdn">Paint.NET</option>' +
+			'<option id="other">' + tl('message.image_editor.file') + '</option>' +
 			'</select></div>'],
 		draggable: true,
-		onConfirm: function() {
+		onConfirm: function () {
 			var id = $('.dialog#image_editor option:selected').attr('id')
 			var path;
 			switch (id) {
-				case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop CC 2018\\Photoshop.exe'; break;
-				case 'gimp':path = 'C:\\Program Files\\GIMP 2\\bin\\gimp-2.10.exe'; break;
+				case 'ps': path = 'C:\\Program Files\\Adobe\\Adobe Photoshop CC 2018\\Photoshop.exe'; break;
+				case 'gimp': path = 'C:\\Program Files\\GIMP 2\\bin\\gimp-2.10.exe'; break;
 				case 'pdn': path = 'C:\\Program Files\\paint.net\\PaintDotNet.exe'; break;
 			}
 			if (id === 'other') {
@@ -211,8 +220,8 @@ function changeImageEditor(texture) {
 function selectImageEditorFile(texture) {
 	app.dialog.showOpenDialog(currentwindow, {
 		title: tl('message.image_editor.exe'),
-		filters: [{name: 'Executable Program', extensions: ['exe']}]
-	}, function(filePaths) {
+		filters: [{ name: 'Executable Program', extensions: ['exe'] }]
+	}, function (filePaths) {
 		if (filePaths) {
 			settings.image_editor.value = filePaths[0]
 			if (texture) {
@@ -226,8 +235,8 @@ function openDefaultTexturePath() {
 	var answer = app.dialog.showMessageBox(currentwindow, {
 		type: 'info',
 		buttons: (
-			settings.default_path.value ? 	[tl('dialog.cancel'), tl('message.default_textures.continue'), tl('message.default_textures.remove')]
-										:	[tl('dialog.cancel'), tl('message.default_textures.continue')]
+			settings.default_path.value ? [tl('dialog.cancel'), tl('message.default_textures.continue'), tl('message.default_textures.remove')]
+				: [tl('dialog.cancel'), tl('message.default_textures.continue')]
 		),
 		noLink: true,
 		title: tl('message.default_textures.title'),
@@ -237,10 +246,10 @@ function openDefaultTexturePath() {
 	if (answer === 0) {
 		return;
 	} else if (answer === 1) {
-		 app.dialog.showOpenDialog(currentwindow, {
+		app.dialog.showOpenDialog(currentwindow, {
 			title: tl('message.default_textures.select'),
 			properties: ['openDirectory'],
-		}, function(filePaths) {
+		}, function (filePaths) {
 			if (filePaths) {
 				settings.default_path.value = filePaths[0]
 			}
@@ -333,22 +342,22 @@ function findEntityTexture(mob, return_path) {
 		texture_path = [...texture_path, 'textures', 'entity', ...path.split('/')].join(osfs)
 
 		if (return_path === true) {
-			return texture_path+'.png';
+			return texture_path + '.png';
 		} else if (return_path === 'raw') {
 			return ['entity', ...path.split('/')].join(osfs)
 		} else {
 			if (fs.existsSync(texture_path + '.png')) {
-				var texture = new Texture({keep_size: true}).fromPath(texture_path + '.png').add()
+				var texture = new Texture({ keep_size: true }).fromPath(texture_path + '.png').add()
 			} else if (fs.existsSync(texture_path + '.tga')) {
-				var texture = new Texture({keep_size: true}).fromPath(texture_path + '.tga').add()
+				var texture = new Texture({ keep_size: true }).fromPath(texture_path + '.tga').add()
 
 			} else if (settings.default_path && settings.default_path.value) {
 
 				texture_path = settings.default_path.value + osfs + 'entity' + osfs + path.split('/').join(osfs)
 				if (fs.existsSync(texture_path + '.png')) {
-					var texture = new Texture({keep_size: true}).fromPath(texture_path + '.png').add()
+					var texture = new Texture({ keep_size: true }).fromPath(texture_path + '.png').add()
 				} else if (fs.existsSync(texture_path + '.tga')) {
-					var texture = new Texture({keep_size: true}).fromPath(texture_path + '.tga').add()
+					var texture = new Texture({ keep_size: true }).fromPath(texture_path + '.tga').add()
 				}
 			}
 		}
@@ -359,7 +368,7 @@ function findBedrockAnimation() {
 	var animation_path = Prop.file_path.split(osfs)
 	var index = animation_path.lastIndexOf('models')
 	animation_path.splice(index)
-	animation_path = [...animation_path, 'animations', pathToName(Prop.file_path)+'.json'].join(osfs)
+	animation_path = [...animation_path, 'animations', pathToName(Prop.file_path) + '.json'].join(osfs)
 	if (fs.existsSync(animation_path)) {
 		Blockbench.read([animation_path], {}, (files) => {
 			Animator.loadFile(files[0])
@@ -377,7 +386,7 @@ function saveFile(props) {
 				content: buildBlockModel()
 			})
 		} else {
-			writeFileEntity(buildEntityModel({raw: true}), Prop.file_path)
+			writeFileEntity(buildEntityModel({ raw: true }), Prop.file_path)
 		}
 	} else {
 		if (Blockbench.entity_mode === false) {
@@ -389,7 +398,7 @@ function saveFile(props) {
 }
 function writeFileEntity(content, filepath) {
 	Prop.file_path = filepath
-	var model_name = 'geometry.' + (Project.parent.replace(/^geometry\./, '')||'unknown')
+	var model_name = 'geometry.' + (Project.parent.replace(/^geometry\./, '') || 'unknown')
 	fs.readFile(filepath, 'utf-8', function (errx, data) {
 		var obj = {}
 		if (content.bones && content.bones.length) {
@@ -405,7 +414,7 @@ function writeFileEntity(content, filepath) {
 			try {
 				obj = JSON.parse(data.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, ''))
 			} catch (err) {
-				err = err+''
+				err = err + ''
 				var answer = app.dialog.showMessageBox(currentwindow, {
 					type: 'warning',
 					buttons: [
@@ -425,7 +434,7 @@ function writeFileEntity(content, filepath) {
 						if (err2) {
 							console.log('Error saving backup model: ', err2)
 						}
-					}) 
+					})
 				}
 				if (answer === 2) {
 					return;
@@ -438,11 +447,11 @@ function writeFileEntity(content, filepath) {
 						typeof obj[key].bones === 'object' &&
 						obj[key].bones.constructor.name === 'Array'
 					) {
-						obj[key].bones.forEach(function(bone) {
+						obj[key].bones.forEach(function (bone) {
 							if (typeof bone.cubes === 'object' &&
 								bone.cubes.constructor.name === 'Array'
 							) {
-								bone.cubes.forEach(function(c, ci) {
+								bone.cubes.forEach(function (c, ci) {
 									bone.cubes[ci] = new oneLiner(c)
 								})
 							}
@@ -456,12 +465,12 @@ function writeFileEntity(content, filepath) {
 
 		fs.writeFile(filepath, content, function (err) {
 			if (err) {
-				console.log('Error Saving Entity Model: '+err)
+				console.log('Error Saving Entity Model: ' + err)
 			}
 			Blockbench.showQuickMessage('message.save_entity')
 			Prop.project_saved = true;
 			setProjectTitle(pathToName(filepath, false))
-        	addRecentProject({name: pathToName(filepath, 'mobs_id'), path: filepath})
+			addRecentProject({ name: pathToName(filepath, 'mobs_id'), path: filepath })
 			if (Blockbench.hasFlag('close_after_saving')) {
 				closeBlockbenchWindow()
 			}
@@ -474,9 +483,9 @@ function writeFileObj(content, filepath) {
 	}
 	var content = buildOBJModel(pathToName(filepath, false))
 	//OBJECT
-	fs.writeFile(filepath, content.obj, function (err) {})
+	fs.writeFile(filepath, content.obj, function (err) { })
 	//MATERIAL
-	fs.writeFile(filepath.split('.obj').join('.mtl'), content.mtl, function (err) {})
+	fs.writeFile(filepath.split('.obj').join('.mtl'), content.mtl, function (err) { })
 	//IMAGES
 	if (settings.obj_textures.value === true) {
 		for (var key in content.images) {
@@ -494,7 +503,7 @@ function writeFileObj(content, filepath) {
 				if (image_path.substr(-4) !== '.png') {
 					image_path = image_path + '.png'
 				}
-				fs.writeFile(image_path, image, function (err) {})
+				fs.writeFile(image_path, image, function (err) { })
 			}
 		}
 	}
@@ -503,27 +512,27 @@ function writeFileObj(content, filepath) {
 
 //Open
 function readFile(filepath, makeNew) {
-    fs.readFile(filepath, 'utf-8', function (err, data) {
-        if (err) {
-            console.log(err)
-            Blockbench.showMessageBox({
+	fs.readFile(filepath, 'utf-8', function (err, data) {
+		if (err) {
+			console.log(err)
+			Blockbench.showMessageBox({
 				translateKey: 'file_not_found',
 				icon: 'error_outline'
-            })
-            return;
-        }
-        addRecentProject({name: pathToName(filepath, 'mobs_id'), path: filepath})
-        loadModel(data, filepath, !makeNew)
-    })
+			})
+			return;
+		}
+		addRecentProject({ name: pathToName(filepath, 'mobs_id'), path: filepath })
+		loadModel(data, filepath, !makeNew)
+	})
 }
 //Backup
 function createBackup(init) {
-	setTimeout(createBackup, limitNumber(parseFloat(settings.backup_interval.value), 1, 10e8)*60000)
+	setTimeout(createBackup, limitNumber(parseFloat(settings.backup_interval.value), 1, 10e8) * 60000)
 
-	var duration = parseInt(settings.backup_retain.value)+1
-	var folder_path = app.app.getPath('userData')+osfs+'backups'
+	var duration = parseInt(settings.backup_retain.value) + 1
+	var folder_path = app.app.getPath('userData') + osfs + 'backups'
 	var d = new Date()
-	var days = d.getDate() + (d.getMonth()+1)*30.44 + (d.getYear()-100)*365.25
+	var days = d.getDate() + (d.getMonth() + 1) * 30.44 + (d.getYear() - 100) * 365.25
 
 	if (init) {
 		fs.readdir(folder_path, (err, files) => {
@@ -535,11 +544,11 @@ function createBackup(init) {
 						nums.forEach((n, ni) => {
 							nums[ni] = parseInt(n)
 						})
-						var b_days = nums[0] + nums[1]*30.44 + nums[2]*365.25
+						var b_days = nums[0] + nums[1] * 30.44 + nums[2] * 365.25
 						if (!isNaN(b_days) && days - b_days > duration) {
 							try {
-								fs.unlinkSync(folder_path +osfs+ name)
-							} catch (err) {console.log(err)}
+								fs.unlinkSync(folder_path + osfs + name)
+							} catch (err) { console.log(err) }
 						}
 					}
 				})
@@ -556,12 +565,12 @@ function createBackup(init) {
 		comment: false,
 		groups: true
 	})
-	var file_name = 'backup_'+d.getDate()+'.'+(d.getMonth()+1)+'.'+(d.getYear()-100)+'_'+d.getHours()+'.'+d.getMinutes()
-	var file_path = folder_path+osfs+file_name+'.json'
+	var file_name = 'backup_' + d.getDate() + '.' + (d.getMonth() + 1) + '.' + (d.getYear() - 100) + '_' + d.getHours() + '.' + d.getMinutes()
+	var file_path = folder_path + osfs + file_name + '.json'
 
 	fs.writeFile(file_path, JSON.stringify(model), function (err) {
 		if (err) {
-			console.log('Error creating backup: '+err)
+			console.log('Error creating backup: ' + err)
 		}
 	})
 	//trimBackups
@@ -570,8 +579,8 @@ function createBackup(init) {
 //Zoom
 function setZoomLevel(mode) {
 	switch (mode) {
-		case 'in':	Prop.zoom += 5;  break;
-		case 'out':   Prop.zoom -= 5;  break;
+		case 'in': Prop.zoom += 5; break;
+		case 'out': Prop.zoom -= 5; break;
 		case 'reset': Prop.zoom = 100; break;
 	}
 	var level = (Prop.zoom - 100) / 12
@@ -579,9 +588,9 @@ function setZoomLevel(mode) {
 	resizeWindow()
 }
 //Close
-window.onbeforeunload = function() {
+window.onbeforeunload = function () {
 	if (preventClosing === true) {
-		setTimeout(function() {
+		setTimeout(function () {
 			showSaveDialog(true)
 		}, 2)
 		return true;
@@ -592,7 +601,7 @@ function showSaveDialog(close) {
 		close = false
 	}
 	var unsaved_textures = 0;
-	textures.forEach(function(t) {
+	textures.forEach(function (t) {
 		if (!t.saved) {
 			unsaved_textures++;
 		}
@@ -628,11 +637,11 @@ function showSaveDialog(close) {
 }
 function closeBlockbenchWindow() {
 	preventClosing = false;
-	
+
 	if (!Blockbench.hasFlag('update_restart')) {
 		return currentwindow.close();
 	}
-	setTimeout(function() {
+	setTimeout(function () {
 		currentwindow.close();
 	}, 240)
 }

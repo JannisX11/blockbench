@@ -1,4 +1,6 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, ipcMain } = require('electron')
+
+const remote = require('electron').remote;
 const path = require('path')
 const url = require('url')
 
@@ -10,6 +12,10 @@ function createWindow() {
 		show: false,
 		backgroundColor: '#21252b',
 		frame: false,
+		width: 1009,
+		height: 676,
+		minWidth: 1009,
+		minHeight: 676,
 		webPreferences: {
 			//experimentalFeatures: true,
 			webgl: true,
@@ -29,6 +35,7 @@ function createWindow() {
 		protocol: 'file:',
 		slashes: true
 	}))
+
 	win.on('closed', () => {
 		win = null
 	})
@@ -37,6 +44,7 @@ function createWindow() {
 
 app.commandLine.appendSwitch('ignore-gpu-blacklist')
 app.on('ready', createWindow)
+
 
 app.on('window-all-closed', () => {
 	app.quit()

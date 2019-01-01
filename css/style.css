@@ -586,6 +586,7 @@
 			"left_bar status_bar right_bar";
 	}
 	header {
+		-webkit-app-region: drag;
 		background-color: var(--color-ui);;
 		grid-area: header;
 		overflow: hidden;
@@ -593,6 +594,7 @@
 	}
 	header > * {
 		display: inline-block;
+		-webkit-app-region: no-drag;
 	}
 	#loading_error_message {
 		height: 100%;
@@ -2245,4 +2247,51 @@
 	border: 1px solid var(--color-accent);
 	background-color: rgba(40,50,60,0.5);
 	pointer-events: none;
+}
+
+/*.window-controls {
+  position: fixed;
+  z-index: 100;
+  height: 1.8rem;
+  background: #0e131b;
+  margin-left: calc(91.2%);
+  width: 8.8rem;
+  float: right;
+}*/
+li.window-controls {
+  margin-left: 0px !important;
+  margin-right: 0px !important;
+}
+i.window-controls {
+  height: -webkit-fill-available;
+  padding: 0em 0rem;
+  float: right;
+  margin-left: 0px !important;
+  margin-right: 0px !important;
+}
+i:hover.window-controls {
+  background: rgba(88, 88, 88, 0.63);
+}
+i.exit-btn.window-controls {
+  padding-top: 0.33rem;
+  font-size: 1.2rem;
+}
+i.exit-btn:hover.window-controls {
+  background: rgba(255, 0, 0, 0.65);
+  opacity: 0.65;
+}
+i.exit-btn:hover.window-controls i::before {
+  opacity: 1;
+}
+i.max-btn.window-controls {
+  padding-top: 0.34rem;
+  font-size: 0.75rem;
+}
+i.min-btn.window-controls {
+  padding-right: 1rem;
+  padding-left: 1rem;
+  padding-top: 0.23rem;
+  font-size: 1.2rem;
+  user-select: none;
+  font-family: Cambria;
 }
