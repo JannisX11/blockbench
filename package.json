@@ -37,14 +37,21 @@
 		],
 		"dmg": {
 			"artifactName": "${productName}_${version}.${ext}",
+			"backgroundColor": "#282c34",
+			"window": {
+				"x": 200,
+				"y": 100,
+				"width": 440,
+				"height": 220 
+			},
 			"contents": [
 				{
 					"x": 130,
-					"y": 220
+					"y": 120
 				},
 				{
-					"x": 410,
-					"y": 220,
+					"x": 360,
+					"y": 120,
 					"type": "link",
 					"path": "/Applications"
 				}
@@ -59,12 +66,12 @@
 			"target": [
 				"deb"
 			],
-			"category": ""
+			"category": "3DGraphics"
 		}
 	},
 	"scripts": {
 		"dist": "build --publish=always",
-		"dist32": "build --ia32 --publish=always"
+		"dist32": "build -w --ia32 --publish=always"
 	},
 	"devDependencies": {
 		"async": "^2.4.1",

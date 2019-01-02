@@ -8,15 +8,16 @@ matrix:
   include:
     - name: "macOS"
       os: osx
+
     - name: "Windows 64"
       os: windows
+
     - name: "Windows 32"
-      os: windows
-      script: npm run dist32
-    - name: "Linux"
       os: linux
-      env: CC=clang CXX=clang++ npm_config_clang=1
-      compiler: clang   
+      script: npm run dist32
+
+    - name: "Linux"
+      os: linux  
 
 
 cache:
