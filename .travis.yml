@@ -2,6 +2,7 @@ sudo: required
 dist: trusty
 
 language: node_js
+node_js: "10"
 
 matrix:
   include:
@@ -17,7 +18,6 @@ matrix:
       env: CC=clang CXX=clang++ npm_config_clang=1
       compiler: clang   
 
-node_js: "10"
 
 cache:
   directories:
@@ -39,15 +39,7 @@ addons:
 install:
   - nvm install 10
   - npm install electron-builder
-  - npm install
-  - export DISPLAY=':99.0'
-  - Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-
-before_script:
-  - export DISPLAY=:99.0
-  - sh -e /etc/init.d/xvfb start &
-  - sleep 3   
-
+  
 script:
   - npm run dist
 
