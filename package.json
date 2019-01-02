@@ -63,7 +63,8 @@
 	},
 	"scripts": {
 		"pack": "build --dir",
-		"dist": "build --publish=always"
+		"dist": "build --publish=always",
+		"dist32": "build --ia32 --publish=always"
 	},
 	"devDependencies": {
 		"async": "^2.4.1",
