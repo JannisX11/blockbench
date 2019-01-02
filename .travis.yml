@@ -13,7 +13,7 @@ matrix:
       os: windows
 
     - name: "Windows 32"
-      os: linux
+      os: osx
       script: npm run dist32
 
     - name: "Linux"
@@ -22,7 +22,10 @@ matrix:
 
 cache:
   directories:
-    - node_modules   
+    - node_modules
+    
+before_cache:
+  - rm -rf $HOME/.cache/electron-builder/wine
 
 install:
   - nvm install 10
