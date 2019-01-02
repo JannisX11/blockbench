@@ -11,7 +11,7 @@ matrix:
       compiler: clang   
 
 node_js:
-  - 6
+  - 4
 
 cache:
   directories:
@@ -31,8 +31,8 @@ addons:
       - xvfb
 
 install:
-  - nvm install 8
-  - npm install electron-builder@20.6.1
+  - nvm install 6
+  - npm install electron-builder
   - npm install
   - export DISPLAY=':99.0'
   - Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
