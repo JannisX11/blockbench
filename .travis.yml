@@ -31,7 +31,7 @@ addons:
       - xvfb
 
 install:
-  - nvm install 6
+  - nvm install 10
   - npm install electron-builder
   - npm install
   - export DISPLAY=':99.0'
