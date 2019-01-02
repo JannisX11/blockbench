@@ -14,8 +14,10 @@
 	"main": "main.js",
 	"build": {
 		"appId": "blockbench",
+		"productName": "Blockbench",
 		"mac": {
-			"category": "macOS.application"
+			"category": "macOS.application",
+			"target": "dmg"
 		},
 		"files": [
 			"assets/",
@@ -34,6 +36,7 @@
 			"icon.png"
 		],
 		"dmg": {
+			"artifactName": "${productName}_${version}.${ext}",
 			"contents": [
 				{
 					"x": 130,
@@ -48,21 +51,18 @@
 			]
 		},
 		"win": {
+			"artifactName": "${productName}_${arch}_${version}.${ext}",
 			"target": "nsis"
 		},
 		"linux": {
+			"artifactName": "${productName}_${version}.${ext}",
 			"target": [
-				"AppImage",
 				"deb"
 			],
 			"category": ""
 		}
 	},
-	"mac": {
-		"target": "dmg"
-	},
 	"scripts": {
-		"pack": "build --dir",
 		"dist": "build --publish=always",
 		"dist32": "build --ia32 --publish=always"
 	},
