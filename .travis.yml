@@ -11,7 +11,7 @@ matrix:
       compiler: clang   
 
 node_js:
-  - 4
+  - 10
 
 cache:
   directories:
