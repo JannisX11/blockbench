@@ -38,7 +38,6 @@ addons:
       - xvfb
 
 install:
-  - nvm install 10
   - npm install electron-builder
   - npm install
   - export DISPLAY=':99.0'
@@ -51,3 +50,6 @@ before_script:
 
 script:
   - npm run dist
+
+notifications:
+  email: false
