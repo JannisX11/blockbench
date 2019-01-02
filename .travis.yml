@@ -1,7 +1,7 @@
 sudo: required
 dist: trusty
 
-language: c
+language: node_js
 
 matrix:
   include:
@@ -17,8 +17,7 @@ matrix:
       env: CC=clang CXX=clang++ npm_config_clang=1
       compiler: clang   
 
-node_js:
-  - 10
+node_js: "10"
 
 cache:
   directories:
@@ -38,6 +37,7 @@ addons:
       - xvfb
 
 install:
+  - nvm install 10
   - npm install electron-builder
   - npm install
   - export DISPLAY=':99.0'
