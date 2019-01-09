@@ -10,11 +10,12 @@ matrix:
       os: osx
 
     - name: "Windows 64"
-      os: windows
+      os: osx
+      script: build -w --x64 --publish=always
 
     - name: "Windows 32"
       os: osx
-      script: npm run dist32
+      script: build -w --ia32 --publish=always
 
     - name: "Linux"
       os: linux  
@@ -23,16 +24,13 @@ matrix:
 cache:
   directories:
     - node_modules
-    
-before_cache:
-  - rm -rf $HOME/.cache/electron-builder/wine
 
 install:
   - nvm install 10
   - npm install electron-builder
 
 script:
-  - npm run dist
+  - build --publish=always
 
 notifications:
   email: false
