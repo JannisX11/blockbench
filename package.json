@@ -15,6 +15,7 @@
 	"build": {
 		"appId": "blockbench",
 		"productName": "Blockbench",
+		"artifactName": "${productName}_${arch}_${version}.${ext}",
 		"mac": {
 			"category": "macOS.application",
 			"target": "dmg"
@@ -36,7 +37,7 @@
 			"icon.png"
 		],
 		"dmg": {
-			"artifactName": "${productName}_${arch}_${version}.${ext}",
+			"artifactName": "${productName}_${version}.${ext}",
 			"backgroundColor": "#282c34",
 			"window": {
 				"x": 200,
