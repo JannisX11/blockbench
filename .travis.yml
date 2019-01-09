@@ -9,13 +9,9 @@ matrix:
     - name: "macOS"
       os: osx
 
-    - name: "Windows 64"
+    - name: "Windows"
       os: osx
-      script: build -w --x64 --publish=always
-
-    - name: "Windows 32"
-      os: osx
-      script: build -w --ia32 --publish=always
+      script: build -w --x64 --publish=always && build -w --ia32 --publish=always
 
     - name: "Linux"
       os: linux  

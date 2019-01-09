@@ -36,7 +36,7 @@
 			"icon.png"
 		],
 		"dmg": {
-			"artifactName": "${productName}_${version}.${ext}",
+			"artifactName": "${productName}_${arch}_${version}.${ext}",
 			"backgroundColor": "#282c34",
 			"window": {
 				"x": 200,
