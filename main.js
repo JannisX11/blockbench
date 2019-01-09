@@ -17,9 +17,9 @@ function createWindow () {
 		}
 	})
 	var index_path = path.join(__dirname, 'index.html')
-	if (__dirname.includes('xampp\\htdocs\\')) {
-		//index_path = path.join(__dirname, 'index.php')
-	}
+	/*if (__dirname.includes('xampp\\htdocs\\')) {
+		index_path = path.join(__dirname, 'index.php')
+	}*/
 	win.setMenu(null);
 	win.maximize()
 	win.show()
@@ -35,12 +35,12 @@ function createWindow () {
 }
 
 app.commandLine.appendSwitch('ignore-gpu-blacklist')
+
 app.on('ready', createWindow)
 
 app.on('window-all-closed', () => {
 	app.quit()
 })
-
 
 app.on('activate', () => {
 	if (win === null) {

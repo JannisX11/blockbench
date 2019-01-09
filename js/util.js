@@ -205,13 +205,10 @@ Array.prototype.empty = function() {
 	this.length = 0;
 }
 Array.prototype.findInArray = function(key, value) {
-	if (this.length === 0) return {};
-	var i = 0
-	while (i < this.length) {
+	for (var i = 0; i < this.length; i++) {
 		if (this[i][key] === value) return this[i]
-		i++;
 	}
-	return {};
+	return false;
 }
 Array.prototype.positiveItems = function() {
 	var x = 0, i = 0;

@@ -5,7 +5,6 @@ var ground_animation = false;
 var ground_timer = 0
 var display_slot;
 var display_preview;
-var display_clipboard;
 var enterDisplaySettings, exitDisplaySettings;
 const DisplayMode = {};
 
@@ -13,11 +12,15 @@ const DisplayMode = {};
 
 class DisplaySlot {
 	constructor(id, data) {
+		this.default()
+		if (data) this.extend(data)
+	}
+	default() {
 		this.rotation = [0, 0, 0];
 		this.translation = [0, 0, 0];
 		this.scale = [1, 1, 1];
 		this.mirror = [false, false, false]
-		if (data) this.extend(data)
+		return this;
 	}
 	copy() {
 		return {
@@ -56,7 +59,7 @@ class DisplaySlot {
 		return this;
 	}
 	update() {
-		if (this === DisplayMode.slot) {
+		if (display_mode && this === DisplayMode.slot) {
 			DisplayMode.vue.$forceUpdate()
 			DisplayMode.updateDisplayBase()
 		}
@@ -1251,18 +1254,19 @@ window.displayReferenceObjects = {
 		'thirdperson_righthand',
 		'thirdperson_lefthand',
 		'firstperson_righthand',
-		'firstperson_righthand',
+		'firstperson_lefthand',
 		'ground',
 		'gui',
 		'head',
 		'fixed',
 	]
 }
+DisplayMode.slots = displayReferenceObjects.slots
 
 enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes the scene etc
 	display_mode = true;
 
-	selected = []
+	selected.empty()
 	updateSelection()
 
 	if (!display_preview) {
@@ -1280,14 +1284,13 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	$('.m_edit').hide()
 	$('.m_disp').show()
 	$('#display_bar input#thirdperson_righthand').prop("checked", true)
-	updateInterface()
 
 
 	buildGrid()
 	setShading()
 	DisplayMode.loadThirdRight()
 	Canvas.updateRenderSides()
-	resizeWindow()
+
 	display_area.updateMatrixWorld()
 	display_base.updateMatrixWorld()
 	DisplayMode.centerTransformer()
@@ -1388,7 +1391,10 @@ DisplayMode.applyPreset = function(preset, all) {
 	};
 	Undo.initEdit({display_slots: slots})
 	slots.forEach(function(sl) {
-		DisplayMode.slot.extend(preset.areas[sl])
+		if (!display[sl]) {
+			display[sl] = new DisplaySlot()
+		}
+		display[sl].extend(preset.areas[sl])
 	})
 	DisplayMode.updateDisplayBase()
 	Undo.finishEdit('apply display preset')
@@ -1419,7 +1425,6 @@ DisplayMode.loadJSON = function(data) {
 		}
 	}
 }
-
 
 var setDisplayArea = DisplayMode.setBase = function(x, y, z, rx, ry, rz, sx, sy, sz) {//Sets the Work Area to the given Space
 	display_area.rotation['x'] = Math.PI / (180 / rx);
@@ -1464,7 +1469,6 @@ function loadDisp(key) {	//Loads The Menu and slider values, common for all Radi
 	DisplayMode.vue._data.slot = display[key]
 	DisplayMode.slot = display[key]
 	DisplayMode.updateDisplayBase()
-	DisplayMode.centerTransformer()
 
 }
 DisplayMode.loadThirdRight = function() {	//Loader
@@ -1551,11 +1555,11 @@ DisplayMode.load = function(slot) {
 }
 
 DisplayMode.copy = function() {
-	display_clipboard = DisplayMode.slot.copy()
+	Clipbench.display_slot = DisplayMode.slot.copy()
 }
 DisplayMode.paste = function() {
 	Undo.initEdit({display_slots: [display_slot]})
-	DisplayMode.slot.extend(display_clipboard)
+	DisplayMode.slot.extend(Clipbench.display_slot)
 	DisplayMode.updateDisplayBase()
 	Undo.finishEdit('paste display slot')
 }

@@ -3,8 +3,8 @@ Plugin Loader for Blockbench
 By JannisX11
 */
 var onUninstall, onInstall;
-var Plugins = {
-	apipath: 'https://blockbench.net/api/plugins.json',
+const Plugins = {
+	apipath: 'https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins.json',
 	Vue: [],			//Vue Object
 	installed: [], 		//Simple List of Names
 	json: undefined,	//Json from website
@@ -27,16 +27,14 @@ var Plugins = {
 }
 
 if (isApp) {
-	Plugins.path = app.app.getPath('userData')+osfs+'plugins'+osfs
+	Plugins.path = app.getPath('userData')+osfs+'plugins'+osfs
 	fs.readdir(Plugins.path, function(err) {
 		if (err) {
 			fs.mkdir(Plugins.path, function(a) {})
 		}
 	})
-} else {
-	Plugins.apipath = '../api/plugins.json'
 }
-$.getJSON('https://blockbench.net/api/plugins.json', function(data) {
+$.getJSON(Plugins.apipath, function(data) {
 	Plugins.json = data
 	if (Plugins.loadingStep === true) {
 		loadInstalledPlugins()
@@ -217,7 +215,7 @@ function loadPlugin(id, cb, install) {
 			saveInstalledPlugins()
 		})
 	} else {
-		$.getScript('https://blockbench.net/api/plugins/'+id+'.js', function() {
+		$.getScript('https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins/'+id+'.js', function() {
 			if (onUninstall) {
 				Plugins.data.findInArray('id', id).uninstall = onUninstall
 				onUninstall = undefined
@@ -305,7 +303,7 @@ function downloadPlugin(id, is_install) {
 	//$('.uc_btn').attr('disabled', true)
 
 	var file = originalFs.createWriteStream(Plugins.path+id+'.js')
-	var request = https.get('https://blockbench.net/api/plugins/'+id+'.js', function(response) {
+	var request = https.get('https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins/'+id+'.js', function(response) {
 		response.pipe(file);
 		response.on('end', function() {
 			setTimeout(function() {

@@ -869,7 +869,7 @@ function buildBlockModel(options) {
 		if (s.export == false) return;
 		//Create Element
 		var element = {}
-		element_index_lut[s.index()] = clear_elements.length
+		element_index_lut[s.index] = clear_elements.length
 
 		if ((options.cube_name !== false && !settings.minifiedout.value) || options.cube_name === true) {
 			if (s.name !== 'cube') {
@@ -1036,11 +1036,14 @@ function buildBlockModel(options) {
 	if (checkExport('display', Object.keys(display).length >= 1)) {
 		var new_display = {}
 		var entries = 0;
-		for (var key in display) {
-			var slot = display[key].export()
-			if (slot) {
-				new_display[key] = display[key].export()
-				entries++;
+		for (var i in DisplayMode.slots) {
+			var key = DisplayMode.slots[i]
+			if (DisplayMode.slots.hasOwnProperty(i) && display[key]) {
+				var slot = display[key].export()
+				if (slot) {
+					new_display[key] = display[key].export()
+					entries++;
+				}
 			}
 		}
 		if (entries) {
@@ -1122,7 +1125,7 @@ function buildEntityModel(options) {
 						cube.mirror = !s.shade
 					}
 					//Visible Bounds
-					var mesh = s.getMesh()
+					var mesh = s.mesh
 					if (mesh) {
 						visible_box.expandByObject(mesh)
 					}
@@ -1583,8 +1586,9 @@ BARS.defineActions(function() {
 		category: 'file',
 		keybind: new Keybind({key: 78, ctrl: true, shift: true}),
 		click: function () {
-			newProject(true);
-			showDialog('project_settings');
+			if (newProject(true)) {
+				showDialog('project_settings');
+			}
 		}
 	})
 	//Import

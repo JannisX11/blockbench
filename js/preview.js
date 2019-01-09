@@ -445,7 +445,7 @@ class Preview {
 			if ((event.shiftKey || event.ctrlKey) && scope.selection.old_selected.indexOf(cube) >= 0) {
 				var isSelected = true
 			} else {
-				var mesh = cube.getMesh()
+				var mesh = cube.mesh
 				var from = 	new THREE.Vector3().copy(mesh.geometry.vertices[6]).applyMatrix4(mesh.matrixWorld)
 				var to = 	new THREE.Vector3().copy(mesh.geometry.vertices[0]).applyMatrix4(mesh.matrixWorld)
 				var cube_rect = getRectangle(
@@ -592,7 +592,7 @@ class Preview {
 			edit(rot_origin)
 			edit(Vertexsnap.vertexes)
 			selected.forEach(function(obj) {
-				var m = obj.getMesh()
+				var m = obj.mesh
 				if (m && m.outline) {
 					edit(m.outline)
 				}
@@ -643,8 +643,15 @@ class Preview {
 		var wrapper = $('<div class="single_canvas_wrapper"></div>')
 		wrapper.append(this.canvas)
 		$('#preview').append(wrapper)
-
-		resizeWindow()
+		
+		previews.forEach(function(prev) {
+			if (prev.canvas.isConnected) {
+				prev.resize()
+			}
+		})
+		if (Interface.data) {
+			updateInterfacePanels()
+		}
 		return this;
 	}
 	toggleFullscreen() {
@@ -940,25 +947,6 @@ function animate() {
 		DisplayMode.groundAnimation()
 	}
 }
-function resizeWindow(event) {
-	if (!previews || (event && event.target && event.target !== window)) {
-		return;
-	}
-
-	previews.forEach(function(prev) {
-		if (prev.canvas.isConnected) {
-			prev.resize()
-		}
-	})
-	if (Interface.data) {
-		updateInterfacePanels()
-	}
-	if (Animator.open) {
-		Timeline.updateSize()
-	}
-	BARS.updateToolToolbar()
-}
-$(window).resize(resizeWindow)
 
 function setShading() {
 	scene.remove(lights)
@@ -1093,7 +1081,7 @@ function centerTransformer(offset) {
 	var rotate_tool = Toolbox.selected.transformerMode === 'rotate'
 
 	if (Animator.open && selected_group) {
-		var g_mesh = selected_group.getMesh()
+		var g_mesh = selected_group.mesh
 
 		g_mesh.getWorldPosition(Transformer.position)
 		Transformer.position.x += 8;
@@ -1120,7 +1108,7 @@ function centerTransformer(offset) {
 		var center = [0, 0, 0]
 		var i = 0;
 		selected.forEach(function(obj) {
-			var m = obj.getMesh()
+			var m = obj.mesh
 			if (obj.visibility && m) {
 				var pos = new THREE.Vector3(
 					obj.from[0] + obj.size(0)/2,
@@ -1176,7 +1164,7 @@ function centerTransformer(offset) {
 		Transformer.rotation.set(0, 0, 0)
 		Transformer.position.copy(vec)
 
-		var mesh = first_obj.getMesh()
+		var mesh = first_obj.mesh
 		if (mesh && Blockbench.globalMovement === false && !rotate_tool) {
 			Transformer.rotation.copy(mesh.rotation)
 		}
@@ -1184,7 +1172,7 @@ function centerTransformer(offset) {
 		//Entity Mode
 
 		if (selected_group && rotate_tool) {
-			var mesh = selected_group.getMesh()
+			var mesh = selected_group.mesh
 			if (mesh) {
 				mesh.getWorldPosition(Transformer.position)
 			}
@@ -1215,7 +1203,7 @@ function centerTransformer(offset) {
 			vec.x -= group.origin[0]
 			vec.y -= group.origin[1]
 			vec.z -= group.origin[2]
-			vec.applyEuler(first_obj.getMesh().rotation)
+			vec.applyEuler(first_obj.mesh.rotation)
 			vec.x += group.origin[0]
 			vec.y += group.origin[1]
 			vec.z += group.origin[2]
@@ -1223,7 +1211,7 @@ function centerTransformer(offset) {
 		Transformer.position.copy(vec)
 		if (Blockbench.globalMovement === false && !rotate_tool) {
 			var rotation = new THREE.Quaternion()
-			first_obj.getMesh().getWorldQuaternion(rotation)
+			first_obj.mesh.getWorldQuaternion(rotation)
 			Transformer.rotation.setFromQuaternion( rotation )
 		} else {
 			Transformer.rotation.set(0, 0, 0)
@@ -1344,7 +1332,7 @@ class CanvasController {
 	}
 	updateVisibility() {
 		elements.forEach(function(s) {
-			var mesh = s.getMesh()
+			var mesh = s.mesh
 			if (s.visibility == true) {
 				if (!mesh) {
 					Canvas.addCube(s)
@@ -1408,7 +1396,7 @@ class CanvasController {
 			arr = selected
 		}
 		arr.forEach(function(obj) {
-			var mesh = obj.getMesh()
+			var mesh = obj.mesh
 			if (mesh !== undefined) {
 				mesh.parent.remove(mesh)
 			}
@@ -1461,7 +1449,7 @@ class CanvasController {
 	outlineObjects(arr) {
 		arr.forEach(function(obj) {
 			if (!obj.visibility) return;
-			var mesh = obj.getMesh()
+			var mesh = obj.mesh
 			if (mesh === undefined) return;
 
 			var line = Canvas.getOutlineMesh(mesh)
@@ -1478,7 +1466,7 @@ class CanvasController {
 	updateAllBones() {
 
 		getAllOutlinerGroups().forEach((obj) => {
-			let mesh = obj.getMesh()
+			let mesh = obj.mesh
 			if (obj.visibility && mesh) {
 
 				mesh.rotation.reorder('ZYX')
@@ -1494,7 +1482,7 @@ class CanvasController {
 					mesh.position.y -=  obj.parent.origin[1]
 					mesh.position.z -=  obj.parent.origin[2]
 
-					var parent_mesh = obj.parent.getMesh()
+					var parent_mesh = obj.parent.mesh
 					parent_mesh.add(mesh)
 				} else {
 					scene.add(mesh)
@@ -1526,7 +1514,7 @@ class CanvasController {
 	adaptObjectPosition(obj, mesh, parent) {
 		if (!obj.visibility) return;
 		
-		if (!mesh || mesh > 0) mesh = obj.getMesh()
+		if (!mesh || mesh > 0) mesh = obj.mesh
 
 		function setSize(geo) {
 			if (Blockbench.entity_mode && obj.inflate !== undefined) {
@@ -1549,7 +1537,7 @@ class CanvasController {
 			mesh.position.set(0, 0, 0)
 			mesh.rotation.reorder('YZX')
 			if (obj.parent.type === 'group') {
-				obj.parent.getMesh().add(mesh)
+				obj.parent.mesh.add(mesh)
 				mesh.position.x -=  obj.parent.origin[0]
 				mesh.position.y -=  obj.parent.origin[1]
 				mesh.position.z -=  obj.parent.origin[2]
@@ -1586,7 +1574,7 @@ class CanvasController {
 		function iterate(obj, mesh) {
 			//Iterate inside (cube) > outside
 			if (!mesh) {
-				mesh = obj.getMesh()
+				mesh = obj.mesh
 			}
 			if (obj.type === 'group') {
 				mesh.rotation.reorder('ZYX')
@@ -1621,7 +1609,7 @@ class CanvasController {
 		iterate(el, elmesh)
 	}
 	adaptObjectFaces(obj, mesh) {
-		if (!mesh) mesh = obj.getMesh()
+		if (!mesh) mesh = obj.mesh
 		if (!mesh) return;
 		if (!Prop.wireframe) {
 			var materials = []
@@ -1646,7 +1634,7 @@ class CanvasController {
 	}
 	updateUV(obj, animation, force_entity_mode) {
 		if (Prop.wireframe === true) return;
-		var mesh = obj.getMesh()
+		var mesh = obj.mesh
 		if (mesh === undefined) return;
 		mesh.geometry.faceVertexUvs[0] = [];
 
@@ -1689,34 +1677,34 @@ class CanvasController {
 				f.from[1] /= Project.texture_height / 16 
 				f.size[0] /= Project.texture_width  / 16
 				f.size[1] /= Project.texture_height / 16
-				var data = {
-					uv: [
-						f.from[0]			 + Math.floor(obj.uv_offset[0]+0.0000001) / Project.texture_width  * 16,
-						f.from[1]			 + Math.floor(obj.uv_offset[1]+0.0000001) / Project.texture_height * 16,
-						f.from[0] + f.size[0] + Math.floor(obj.uv_offset[0]+0.0000001) / Project.texture_width  * 16,
-						f.from[1] + f.size[1] + Math.floor(obj.uv_offset[1]+0.0000001) / Project.texture_height * 16
-					]
-				}
-				data.uv.forEach(function(s, si) {
-					data.uv[si] *= 1
+				var uv= [
+					f.from[0]			 +  obj.uv_offset[0] / Project.texture_width  * 16,
+					f.from[1]			 +  obj.uv_offset[1] / Project.texture_height * 16,
+					f.from[0] + f.size[0] + obj.uv_offset[0] / Project.texture_width  * 16,
+					f.from[1] + f.size[1] + obj.uv_offset[1] / Project.texture_height * 16
+				]
+				uv.forEach(function(s, si) {
+					uv[si] *= 1
 				})
 
-				obj.faces[f.face].uv[0] = data.uv[0]
-				obj.faces[f.face].uv[1] = data.uv[1]
-				obj.faces[f.face].uv[2] = data.uv[2]
-				obj.faces[f.face].uv[3] = data.uv[3]
+				obj.faces[f.face].uv[0] = uv[0]
+				obj.faces[f.face].uv[1] = uv[1]
+				obj.faces[f.face].uv[2] = uv[2]
+				obj.faces[f.face].uv[3] = uv[3]
 
-				var uvArray = getUVArray(data, 0)
-				mesh.geometry.faceVertexUvs[0][f.fIndex] = [
-					uvArray[0],
-					uvArray[1],
-					uvArray[3]
-				];
-				mesh.geometry.faceVertexUvs[0][f.fIndex+1] = [
-					uvArray[1],
-					uvArray[2],
-					uvArray[3]
-				];
+				var do_cl = Math.random()<0.001
+
+				//Fight Bleeding
+				for (var si = 0; si < 2; si++) {
+					let margin = 16/(si?Project.texture_height:Project.texture_width)/16;
+					if (uv[si] > uv[si+2]) {
+						margin = -margin
+					}
+					uv[si] += margin
+					uv[si+2] -= margin
+				}
+
+				Canvas.updateUVFace(mesh.geometry.faceVertexUvs[0], f.fIndex, {uv: uv}, 0)
 			})
 
 		} else {
@@ -1726,15 +1714,6 @@ class CanvasController {
 			var frame = 0
 			for (var face in obj) {
 				if (obj.hasOwnProperty(face)) {
-					var fIndex = 0;
-					switch(face) {
-						case 'north':   fIndex = 10;break;
-						case 'east':	fIndex = 0;	break;
-						case 'south':   fIndex = 8;	break;
-						case 'west':	fIndex = 2;	break;
-						case 'up':	  	fIndex = 4;	break;
-						case 'down':	fIndex = 6;	break;
-					}
 					stretch = 1
 					frame = 0
 					if (obj[face].texture && obj[face].texture !== null) {
@@ -1746,23 +1725,62 @@ class CanvasController {
 							}
 						}
 					}
-					var uvArray = getUVArray(obj[face], frame, stretch)
-					mesh.geometry.faceVertexUvs[0][fIndex] = [
-						uvArray[0],
-						uvArray[1],
-						uvArray[3]
-					];
-					mesh.geometry.faceVertexUvs[0][fIndex+1] = [
-						uvArray[1],
-						uvArray[2],
-						uvArray[3]
-					];
+					Canvas.updateUVFace(mesh.geometry.faceVertexUvs[0], Canvas.face_order.indexOf(face)*2, obj[face], frame, stretch)
 				}
 			}
 
 		}
 		mesh.geometry.elementsNeedUpdate = true;
 		return mesh.geometry
+	}
+	updateUVFace(vertex_uvs, index, face, frame, stretch) {
+		if (stretch === undefined) {
+			stretch = -1
+		} else {
+			stretch = stretch*(-1)
+		}
+		if (!vertex_uvs[index]) vertex_uvs[index] = [];
+		if (!vertex_uvs[index+1]) vertex_uvs[index+1] = [];
+		var arr = [
+			vertex_uvs[index][0],
+			vertex_uvs[index][1],
+			vertex_uvs[index+1][1],
+			vertex_uvs[index+1][2],
+		]
+		for (var i = 0; i < 4; i++) {
+			if (arr[i] === undefined) {
+				arr[i] = new THREE.Vector2()
+			}
+		}
+		
+		arr[0].set(face.uv[0]/16, (face.uv[1]/16)/stretch+1),  //0,1
+		arr[1].set(face.uv[0]/16, (face.uv[3]/16)/stretch+1),  //0,0
+		arr[2].set(face.uv[2]/16, (face.uv[3]/16)/stretch+1),   //1,0
+		arr[3].set(face.uv[2]/16, (face.uv[1]/16)/stretch+1)  //1,1
+
+		if (frame > 0 && stretch !== -1) {
+			//Animate
+			var offset = (1/stretch) * frame
+			arr[0].y += offset
+			arr[1].y += offset
+			arr[2].y += offset
+			arr[3].y += offset
+		}
+		var rot = (face.rotation+0)
+		while (rot > 0) {
+			arr.push(arr.shift())
+			rot = rot-90;
+		}
+		vertex_uvs[index] = [
+			arr[0],
+			arr[1],
+			arr[3]
+		];
+		vertex_uvs[index+1] = [
+			arr[1],
+			arr[2],
+			arr[3]
+		];
 	}
 	//Outline
 	getOutlineMesh(mesh) {
@@ -1782,7 +1800,7 @@ class CanvasController {
 	}
 	buildOutline(obj) {
 		if (obj.visibility == false) return;
-		var mesh = obj.getMesh();
+		var mesh = obj.mesh;
 		if (mesh === undefined) return;
 
 		if (mesh.outline) {
@@ -1800,7 +1818,7 @@ class CanvasController {
 		mesh.add(line);
 	}
 }
-var Canvas = new CanvasController()
+const Canvas = new CanvasController()
 
 BARS.defineActions(function() {
 	new Action({
@@ -1863,6 +1881,7 @@ BARS.defineActions(function() {
 		id: 'screenshot_app',
 		icon: 'icon-bb_interface',
 		category: 'view',
+		condition: isApp,
 		click: function () {Screencam.fullScreen()}
 	})
 	new Action({
@@ -1874,25 +1893,6 @@ BARS.defineActions(function() {
 			main_preview.toggleFullscreen()
 		}
 	})
-
-				//{icon: getBtn(0, true), name: 'menu.preview.perspective.normal', click: function(preview) {preview.setNormalCamera()}},
-				//{icon: getBtn(0), name: 'direction.top',	color: 'y', (0)}},
-				//{icon: getBtn(1), name: 'direction.bottom',	color: 'y', (1)}},
-				//{icon: getBtn(2), name: 'direction.south',	color: 'z', (2)}},
-				//{icon: getBtn(3), name: 'direction.north', 	color: 'z', (3)}},
-				//{icon: getBtn(4), name: 'direction.east', 	color: 'x', (4)}},
-				//{icon: getBtn(5), name: 'direction.west', 	color: 'x', (5)}}
-				/*
-        reset_view:  {shift: false, ctrl: false, alt: false, code: 96,  name: 'Reset View', char: 'NUMPAD 0'},
-        view_normal: {shift: false, ctrl: false, alt: false, code: 101, name: 'Normal View', char: 'NUMPAD 5'},
-        view_0:      {shift: false, ctrl: false, alt: false, code: 104, name: 'Top View', char: 'NUMPAD 8'},
-        view_1:      {shift: false, ctrl: false, alt: false, code: 98,  name: 'Bottom View', char: 'NUMPAD 2'},
-        view_2:      {shift: false, ctrl: false, alt: false, code: 100, name: 'South View', char: 'NUMPAD 4'},
-        view_3:      {shift: false, ctrl: false, alt: false, code: 102, name: 'North View', char: 'NUMPAD 6'},
-        view_4:      {shift: false, ctrl: false, alt: false, code: 103, name: 'East View', char: 'NUMPAD 7'},
-        view_5:      {shift: false, ctrl: false, alt: false, code: 105, name: 'West View', char: 'NUMPAD 9'}
-				*/
-
 	new Action({
 		id: 'camera_reset',
 		name: 'direction.top',

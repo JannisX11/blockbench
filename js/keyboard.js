@@ -1,4 +1,3 @@
-
 class Keybind {
 	constructor(keys) {
 		this.key 	= -1;
@@ -166,8 +165,6 @@ class Keybind {
 	}
 }
 
-
-
 function setupKeybindings() {
 	Keybinds.vue = new Vue({
 		el: 'ul#keybindlist',
@@ -215,7 +212,6 @@ function setupKeybindings() {
 	})
 }
 
-
 $(document).keydown(function(e) {
 	if (Keybinds.recording) return;
 	//Shift
@@ -243,7 +239,7 @@ $(document).keydown(function(e) {
 	}
 	//Hardcoded Keys
 	if (e.ctrlKey === true && e.which == 73 && isApp) {
-		app.getCurrentWindow().toggleDevTools()
+		electron.getCurrentWindow().toggleDevTools()
 		used = true
 	} else if (e.which === 18 && Toolbox.selected.alt_tool && !Toolbox.original) {
 		//Alt Tool
@@ -253,6 +249,8 @@ $(document).keydown(function(e) {
 			alt.select()
 			Toolbox.original = orig
 		}
+	} else if (Keybinds.extra.cancel.keybind.isTriggered(e) && (Transformer.dragging/* || ...*/)) {
+		Undo.cancelEdit()
 	}
 	//Keybinds
 	if (!input_focus) {
@@ -303,4 +301,4 @@ $(document).keyup(function(e) {
 		Toolbox.original.select()
 		delete Toolbox.original;
 	}
-});
+})

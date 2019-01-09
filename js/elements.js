@@ -40,9 +40,11 @@ var OutlinerButtons = {
 	},
 	shading: {
 		id: 'shading',
-		title: tl('switches.shading'),
-		icon: ' fa fa-star',
-		icon_off: ' fa fa-star-o',
+		get title() {return Blockbench.entity_mode ? tl('switches.mirror') : tl('switches.shading')},
+		get icon() {return Blockbench.entity_mode ? 'fa fa-star' : 'fa fa-star'},
+		get icon_off() {return Blockbench.entity_mode ? 'fa fa-star-half-o' : 'fa fa-star-o'},
+		//icon: ' fa fa-star',
+		//icon_off: ' fa fa-star-o',
 		advanced_option: true,
 		click: function(obj) {
 			obj.toggle('shade')
@@ -346,7 +348,7 @@ class Cube extends OutlinerElement {
 		if (!this.parent || (this.parent === 'root' && TreeElements.indexOf(this) === -1)) {
 			this.addTo()
 		}
-		if (this.visibility && (!this.getMesh() || !scene.children.includes(this.getMesh()))) {
+		if (this.visibility && (!this.mesh || !scene.children.includes(this.mesh))) {
 			Canvas.addCube(this)
 		}
 		if (update !== false) {
@@ -385,9 +387,12 @@ class Cube extends OutlinerElement {
 		return this.rotation_axis;
 	}
 	getMesh() {
-		return Canvas.meshes[this.uuid]
+		return this.mesh;
 	}
-	index() {
+	get mesh() {
+		return Canvas.meshes[this.uuid];
+	}
+	get index() {
 		return elements.indexOf(this)
 	}
 	select(event, isOutlinerClick) {
@@ -539,7 +544,7 @@ class Cube extends OutlinerElement {
 	remove(update) {
 		TreeElements.clearObjectRecursive(this)
 		if (this.visibility) {
-			var mesh = this.getMesh()
+			var mesh = this.mesh
 			if (mesh) {
 				if (mesh.parent) {
 					mesh.parent.remove(mesh)
@@ -552,7 +557,7 @@ class Cube extends OutlinerElement {
 		if (selected.includes(this)) {
 			selected.splice(selected.indexOf(this), 1)
 		}
-		elements.splice(this.index(), 1)
+		elements.splice(this.index, 1)
 		if (Transformer.dragging) {
 			outlines.remove(outlines.getObjectByName(this.uuid+'_ghost_outline'))
 		}
@@ -1049,6 +1054,9 @@ class Group extends OutlinerElement {
 		}
 	}
 	getMesh() {
+		return this.mesh;
+	}
+	get mesh() {
 		var bone = Canvas.bones[this.uuid]
 		if (!bone) {
 			bone = new THREE.Object3D()
@@ -1289,9 +1297,11 @@ class Group extends OutlinerElement {
 		} else if (destination !== 'cache') {
 			base_group.addTo(destination, false)
 		}
-		base_group.createUniqueName()
-		Canvas.updatePositions()
-		loadOutlinerDraggable()
+		if (destination !== 'cache') {
+			base_group.createUniqueName()
+			Canvas.updatePositions()
+			loadOutlinerDraggable()
+		}
 		return base_group;
 	}
 	getChildlessCopy() {
@@ -1424,8 +1434,7 @@ Array.prototype.clearObjectRecursive = function(obj) {
 Array.prototype.findRecursive = function(key1, val) {
 	var i = 0
 	while (i < this.length) {
-		let tag = this[i][key1]
-		if (tag === val) {
+		if (this[i][key1] === val) {
 			return this[i];
 		} else if (this[i].children && this[i].children.length > 0) {
 			let inner = this[i].children.findRecursive(key1, val)
@@ -1854,7 +1863,7 @@ function renameCubes(element) {
 		Blockbench.textPrompt(tl('message.rename_cubes'), selected[0].name, function (name) {
 			Undo.initEdit({cubes: selected})
 			selected.forEach(function(obj, i) {
-				obj.name = name.split('%').join(obj.index()).split('$').join(i)
+				obj.name = name.replace(/%/g, obj.index).replace(/\$/g, i)
 			})
 			Undo.finishEdit('rename')
 		})
@@ -1915,6 +1924,7 @@ BARS.defineActions(function() {
 		id: 'add_group',
 		icon: 'create_new_folder',
 		category: 'edit',
+		condition: () => !Animator.open,
 		keybind: new Keybind({key: 71, ctrl: true}),
 		click: function () {
 			addGroup();

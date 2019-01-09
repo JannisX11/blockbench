@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Minecraft Block Model Editor",
-	"version": "2.3.1",
+	"version": "2.3.2",
 	"license": "MIT",
 	"author": {
 		"name": "JannisX11",
@@ -42,7 +42,7 @@
 				"x": 200,
 				"y": 100,
 				"width": 440,
-				"height": 220 
+				"height": 220
 			},
 			"contents": [
 				{
@@ -71,10 +71,12 @@
 	},
 	"scripts": {
 		"dist": "build --publish=always",
-		"dist32": "build -w --ia32 --publish=always"
+		"win64": "build -w --ia32 --publish=always",
+		"win32": "build -w --x64 --publish=always"
 	},
 	"devDependencies": {
 		"async": "^2.4.1",
+		"electron": "4.0.1",
 		"electron-builder": "^20.38.4"
 	}
 }

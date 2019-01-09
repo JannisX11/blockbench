@@ -63,7 +63,7 @@ function loadLanguage() {
 		dataType: "json",
 		url: 'lang/'+Language.code+'.json',
 		//data: data,
-		async: false, 
+		//async: false, 
 		success: function(data) {
 			Language.data = data
 			translateUI()

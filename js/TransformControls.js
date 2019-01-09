@@ -707,7 +707,7 @@
 				object = display_area;
 			} else if (Blockbench.entity_mode && selected_group) {
 				if (Toolbox.selected.transformerMode !== 'scale' && selected_group.parent.type === 'group') {
-					object = selected_group.parent.getMesh()
+					object = selected_group.parent.mesh
 				}
 			}
 			if (scope.objects.length == 0 && !selected_group && !display_mode && !Animator.open) {
@@ -791,12 +791,13 @@
 		this.setCanvas(domElement)
 
 		function onPointerHover( event ) {
+
 			if ( scope.objects.length === 0 || ( event.button !== undefined && event.button !== 0 ) ) return;
 
 			var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 			var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children );
 			if (intersect) {
-				scope.dragging = true
+				//scope.dragging = true
 			}
 			if (_dragging === true) return;
 			scope.hoverAxis = null;
@@ -825,7 +826,7 @@
 					scope.dragging = true
 
 					Transformer.getWorldPosition(worldPosition)
-					if (scope.camera.axis && (scope.hoverAxis.toLowerCase() === scope.camera.axis) === (_mode !== 'rotate')) return;
+					if (scope.camera.axis && (scope.hoverAxis && scope.hoverAxis.toLowerCase() === scope.camera.axis) === (_mode !== 'rotate')) return;
 					event.preventDefault();
 					event.stopPropagation();
 					scope.dispatchEvent( mouseDownEvent );
@@ -1061,17 +1062,18 @@
 				point.applyQuaternion(rotation.inverse())
 
 				var channel = animation_channels[_mode]
-				if (channel === 'position') channel = 'translation'
-				var value = (Toolbox.selected.id === 'rotate_tool') ? angle : point[axis]
-				if (channel === 'scale') {
-					value = Math.round(value*64)/(64*8)
-					if (!scope.direction) value *= -1;
-				} else {
-					value = Math.round(value*4)/4
+				if (channel === 'position') channel = 'translation';
+				var value = point[axis]
+				var bf = display[display_slot][channel][axisNumber] - (previousValue||0)
+
+				if (channel === 'rotation') {
+					value = Math.trimDeg(bf + Math.round(angle*4)/4) - bf;
+				} else if (channel === 'translation') {
+					value = limitNumber( bf+Math.round(value*4)/4, -80, 80) - bf;
+				} else /* scale */ {
+					value = limitNumber( bf+Math.round(value*64)/(64*8)*(scope.direction ? 1 : -1), 0, 4) - bf;
 				}
-				if (Toolbox.selected.id === 'rotate_tool') {
-					value = Math.trimDeg(value)
-				}
+
 				if (display_slot.includes('lefthand')) {
 					if (channel === 'rotation' && axisNumber) {
 						value *= -1
@@ -1087,7 +1089,7 @@
 					var difference = value - (previousValue||0)
 					display[display_slot][channel][axisNumber] += difference
 
-					if (event.shiftKey) {
+					if (event.shiftKey && channel === 'scale') {
 						var val = display[display_slot][channel][axisNumber]
 						display[display_slot][channel][(axisNumber+1)%3] = val
 						display[display_slot][channel][(axisNumber+2)%3] = val

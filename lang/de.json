@@ -823,5 +823,7 @@
     "action.color_picker": "Farbpipette",
     "action.color_picker.desc": "Wählt die Farbe eines Pixels der Textur aus.",
     "action.open_backup_folder": "Backup-Ordner öffnen",
-    "action.open_backup_folder.desc": "Öffnet den Backup-Ordner von Blockbench"
+    "action.open_backup_folder.desc": "Öffnet den Backup-Ordner von Blockbench",
+    "switches.mirror": "UV Spiegeln",
+    "language_name": "Deutsch"
 }

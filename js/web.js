@@ -1,5 +1,8 @@
 (function() {
 	$.getScript("lib/file_saver.js");
+	$.getScript('https://rawgit.com/nodeca/pako/master/dist/pako.js', function() {
+		window.zlib = pako
+	})
 })()
 
 $(document).ready(function() {

@@ -38,7 +38,7 @@
     "keys.down": "Стрелка вниз",
     "keys.pageup": "Page Up",
     "keys.pagedown": "Page Down",
-    "keys.plus": "+",
+    "keys.plus": "Плюс",
     "keys.comma": ",",
     "keys.point": ".",
     "keys.minus": "-",
@@ -810,8 +810,8 @@
     "mode.paint": "Красить",
     "mode.display": "Предпросмотр",
     "mode.animate": "Анимировать",
-    "status_bar.recording_gif": "Recording GIF",
-    "status_bar.processing_gif": "Processing GIF",
+    "status_bar.recording_gif": "Запись GIF",
+    "status_bar.processing_gif": "Обработка GIF",
     "settings.backup_retain": "Продолжительность хранения автосохранений",
     "settings.backup_retain.desc": "Set how long Blockbench retains old backups in days",
     "action.rotate_tool": "Вращать",
@@ -822,6 +822,8 @@
     "action.eraser.desc": "Eraser tool to replace colors on a texture with transparency",
     "action.color_picker": "Color Picker",
     "action.color_picker.desc": "Tool to pick the color of pixels on your texture",
-    "action.open_backup_folder": "Открыть папку",
-    "action.open_backup_folder.desc": "Opens the Blockbench backup folder"
+    "action.open_backup_folder": "Открыть папку автосохранений",
+    "action.open_backup_folder.desc": "Opens the Blockbench backup folder",
+    "switches.mirror": "Mirror UV",
+    "language_name": "English"
 }

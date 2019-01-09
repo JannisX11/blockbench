@@ -172,10 +172,6 @@ class API {
 		} else {
 			jq_dialog.css('width', limitNumber(options.buttons.length*170+44, 380, 894)+'px')
 		}
-
-		setTimeout(function() {
-			$('.context_handler.ctx').removeClass('ctx')
-		}, 64)
 		open_dialog = 'message_box'
 		open_interface = 'message_box'
 		return jq_dialog
@@ -226,7 +222,7 @@ class API {
 				options.extensions = ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif']
 			}
 
-			app.dialog.showOpenDialog(
+			electron.dialog.showOpenDialog(
 				currentwindow,
 				{
 					title: options.title ? options.title : '',
@@ -401,7 +397,7 @@ class API {
 				cb()
 			}
 		} else {
-			app.dialog.showSaveDialog(currentwindow, {
+			electron.dialog.showSaveDialog(currentwindow, {
 				filters: [ {
 					name: options.type,
 					extensions: options.extensions
@@ -517,7 +513,7 @@ class API {
 		delete this.drag_handlers[id]
 	}
 }
-var Blockbench = new API()
+const Blockbench = new API()
 
 function Dialog(settings) {
 	var scope = this;
@@ -619,9 +615,6 @@ function Dialog(settings) {
 		if (this.width) {
 			jq_dialog.css('width', this.width+'px')
 		}
-		setTimeout(function() {
-			$('.context_handler.ctx').removeClass('ctx')
-		}, 64)
 		open_dialog = scope.id
 		open_interface = scope
 		Prop.active_panel = 'dialog'

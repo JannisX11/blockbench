@@ -1,22 +1,22 @@
-var app			= require('electron').remote,
-	fs			 = require('fs'),
-	nativeImage	= require('electron').nativeImage,
-	exec		   = require('child_process').exec,
-	originalFs	 = require('original-fs'),
-	https		   = require('https'),
-	currentwindow  = app.getCurrentWindow(),
-	dialog_win	 = null,
+const electron = require('electron').remote;
+const {clipboard, shell, nativeImage} = require('electron');
+const app = electron.app;
+const fs = require('fs');
+const zlib = require('zlib');
+const exec = require('child_process').exec;
+const originalFs = require('original-fs');
+const https = require('https');
+
+const currentwindow = electron.getCurrentWindow();
+var dialog_win	 = null,
 	latest_version = false,
 	preventClosing = true;
-	recent_projects= undefined
-
-const shell = require('electron').shell;
-const {clipboard} = require('electron')
+	recent_projects= undefined;
 
 $(document).ready(function() {
-	if (app.process.argv.length >= 2) {
-		if (app.process.argv[1].substr(-5) == '.json') {
-			readFile(app.process.argv[1], true)
+	if (electron.process.argv.length >= 2) {
+		if (electron.process.argv[1].substr(-5) == '.json') {
+			readFile(electron.process.argv[1], true)
 		}
 	}
 	$('.open-in-browser').click((event) => {
@@ -24,8 +24,8 @@ $(document).ready(function() {
 		shell.openExternal(event.target.href);
 		return true;
 	});
-	if (fs.existsSync(app.app.getPath('userData')+osfs+'backups') === false) {
-		fs.mkdirSync( app.app.getPath('userData')+osfs+'backups')
+	if (fs.existsSync(app.getPath('userData')+osfs+'backups') === false) {
+		fs.mkdirSync( app.getPath('userData')+osfs+'backups')
 	}
 	createBackup(true)
 	$('.web_only').remove()
@@ -38,22 +38,22 @@ getLatestVersion(true)
 //Called on start to show message
 function getLatestVersion(init) {
 	if (process.platform == 'linux') return;
-	$.getJSON('https://blockbench.net/api/index.json', (data) => {
+	$.getJSON('https://raw.githubusercontent.com/JannisX11/blockbench/master/package.json', (data) => {
 		if (data.version) {
 			latest_version = data.version
 			if (compareVersions(latest_version, appVersion) && init === true) {
 
-		        Blockbench.showMessageBox({
+				Blockbench.showMessageBox({
 					translateKey: 'update_notification',
 					message: tl('message.update_notification.message', [latest_version]),
 					icon: 'update',
 					buttons: [tl('message.update_notification.install'), tl('message.update_notification.later')],
 					confirm: 0, cancel: 1
-		        }, (result) => {
-		        	if (result === 0) {
-		        		checkForUpdates(true)
-		        	}
-		        })
+				}, (result) => {
+					if (result === 0) {
+						checkForUpdates(true)
+					}
+				})
 
 			} else if (init === false) {
 				checkForUpdates()
@@ -209,7 +209,7 @@ function changeImageEditor(texture) {
 	}).show()
 }
 function selectImageEditorFile(texture) {
-	app.dialog.showOpenDialog(currentwindow, {
+	electron.dialog.showOpenDialog(currentwindow, {
 		title: tl('message.image_editor.exe'),
 		filters: [{name: 'Executable Program', extensions: ['exe']}]
 	}, function(filePaths) {
@@ -223,7 +223,7 @@ function selectImageEditorFile(texture) {
 }
 //Default Pack
 function openDefaultTexturePath() {
-	var answer = app.dialog.showMessageBox(currentwindow, {
+	var answer = electron.dialog.showMessageBox(currentwindow, {
 		type: 'info',
 		buttons: (
 			settings.default_path.value ? 	[tl('dialog.cancel'), tl('message.default_textures.continue'), tl('message.default_textures.remove')]
@@ -237,7 +237,7 @@ function openDefaultTexturePath() {
 	if (answer === 0) {
 		return;
 	} else if (answer === 1) {
-		 app.dialog.showOpenDialog(currentwindow, {
+		 electron.dialog.showOpenDialog(currentwindow, {
 			title: tl('message.default_textures.select'),
 			properties: ['openDirectory'],
 		}, function(filePaths) {
@@ -406,7 +406,7 @@ function writeFileEntity(content, filepath) {
 				obj = JSON.parse(data.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, ''))
 			} catch (err) {
 				err = err+''
-				var answer = app.dialog.showMessageBox(currentwindow, {
+				var answer = electron.dialog.showMessageBox(currentwindow, {
 					type: 'warning',
 					buttons: [
 						tl('message.bedrock_overwrite_error.backup_overwrite'),
@@ -461,7 +461,7 @@ function writeFileEntity(content, filepath) {
 			Blockbench.showQuickMessage('message.save_entity')
 			Prop.project_saved = true;
 			setProjectTitle(pathToName(filepath, false))
-        	addRecentProject({name: pathToName(filepath, 'mobs_id'), path: filepath})
+			addRecentProject({name: pathToName(filepath, 'mobs_id'), path: filepath})
 			if (Blockbench.hasFlag('close_after_saving')) {
 				closeBlockbenchWindow()
 			}
@@ -503,25 +503,25 @@ function writeFileObj(content, filepath) {
 
 //Open
 function readFile(filepath, makeNew) {
-    fs.readFile(filepath, 'utf-8', function (err, data) {
-        if (err) {
-            console.log(err)
-            Blockbench.showMessageBox({
+	fs.readFile(filepath, 'utf-8', function (err, data) {
+		if (err) {
+			console.log(err)
+			Blockbench.showMessageBox({
 				translateKey: 'file_not_found',
 				icon: 'error_outline'
-            })
-            return;
-        }
-        addRecentProject({name: pathToName(filepath, 'mobs_id'), path: filepath})
-        loadModel(data, filepath, !makeNew)
-    })
+			})
+			return;
+		}
+		addRecentProject({name: pathToName(filepath, 'mobs_id'), path: filepath})
+		loadModel(data, filepath, !makeNew)
+	})
 }
 //Backup
 function createBackup(init) {
 	setTimeout(createBackup, limitNumber(parseFloat(settings.backup_interval.value), 1, 10e8)*60000)
 
 	var duration = parseInt(settings.backup_retain.value)+1
-	var folder_path = app.app.getPath('userData')+osfs+'backups'
+	var folder_path = app.getPath('userData')+osfs+'backups'
 	var d = new Date()
 	var days = d.getDate() + (d.getMonth()+1)*30.44 + (d.getYear()-100)*365.25
 
@@ -598,7 +598,7 @@ function showSaveDialog(close) {
 		}
 	})
 	if ((Prop.project_saved === false && elements.length > 0) || unsaved_textures) {
-		var answer = app.dialog.showMessageBox(currentwindow, {
+		var answer = electron.dialog.showMessageBox(currentwindow, {
 			type: 'question',
 			buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
 			title: 'Blockbench',

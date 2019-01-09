@@ -177,7 +177,6 @@ class Animation {
 			delete
 		*/
 	])
-
 class BoneAnimator {
 	constructor() {
 		this.keyframes = []
@@ -237,13 +236,13 @@ class BoneAnimator {
 	}
 	doRender() {
 		this.getGroup()
-		if (this.group && this.group.children && this.group.getMesh()) {
-			let mesh = this.group.getMesh()
+		if (this.group && this.group.children && this.group.mesh) {
+			let mesh = this.group.mesh
 			return (mesh && mesh.fix_rotation)
 		}
 	}
 	displayRotation(arr) {
-		var bone = this.group.getMesh()
+		var bone = this.group.mesh
 		bone.rotation.copy(bone.fix_rotation)
 
 		if (!arr) {
@@ -260,7 +259,7 @@ class BoneAnimator {
 		return this;
 	}
 	displayPosition(arr) {
-		var bone = this.group.getMesh()
+		var bone = this.group.mesh
 		bone.position.copy(bone.fix_position)
 		if (arr) {
 			bone.position.add(new THREE.Vector3().fromArray(arr))
@@ -268,7 +267,7 @@ class BoneAnimator {
 		return this;
 	}
 	displayScale(arr) {
-		var bone = this.group.getMesh()
+		var bone = this.group.mesh
 		if (arr) {
 			bone.scale.x = bone.scale.y = bone.scale.z = arr[0] ? arr[0] : 0.00001
 		} else {
@@ -349,7 +348,7 @@ class BoneAnimator {
 				this.displayScale(result)
 			}
 		}
-		this.group.getMesh().updateMatrixWorld()
+		this.group.mesh.updateMatrixWorld()
 	}
 	select() {
 		var duplicates;
@@ -591,6 +590,7 @@ class Keyframe {
 		if (this.parent) {
 			this.parent.keyframes.remove(this)
 		}
+		Timeline.selected.remove(this)
 	}
 	extend(data) {
 		if (data.channel && Animator.possible_channels[data.channel]) {
@@ -648,7 +648,6 @@ class Keyframe {
 			delete
 		*/
 	])
-
 
 function updateKeyframeValue(obj) {
 	var axis = $(obj).attr('axis')
@@ -730,7 +729,6 @@ function removeSelectedKeyframes() {
 	updateKeyframeSelection()
 	Undo.finishEdit('remove keyframes')
 }
-
 
 const Animator = {
 	possible_channels: {rotation: true, position: true, scale: true},
@@ -890,7 +888,6 @@ const Animator = {
 			animations: animations
 		}
 	}
-
 }
 const Timeline = {
 	keyframes: [],//frames
@@ -949,25 +946,26 @@ const Timeline = {
 				Animator.preview()
 			}
 		})
-		.mousemove(e => {
+		$(document).mousemove(e => {
 			if (Timeline.dragging_marker) {
-				let time = e.offsetX / Timeline.vue._data.size
+				let offset = mouse_pos.x - $('#timeline_inner #timeline_time').offset().left
+				let time = offset / Timeline.vue._data.size
 				Timeline.setTime(time)
-				if (Animator.selected) {
-					Animator.preview()
-				}
+				Animator.preview()
 			}
 		})
-		$(document).mouseup(e => {
+		.mouseup(e => {
 			if (Timeline.dragging_marker) {
 				delete Timeline.dragging_marker
 			}
 		})
+		//Keyframe inputs
 		$('.keyframe_input').click(e => {
 			Undo.initEdit({keyframes: Timeline.selected, keep_saved: true})
 		}).focusout(e => {
 			Undo.finishEdit('edit keyframe')
 		})
+		//Enter Time
 		$('#timeline_corner').click(e => {
 			if ($('#timeline_corner').attr('contenteditable') == 'true') return;
 
@@ -994,7 +992,6 @@ const Timeline = {
 			range.setEnd(node, sel[1])
 			selection.removeAllRanges();
 			selection.addRange(range);
-
 		})
 		.on('focusout keydown', e => {
 			if (e.type === 'focusout' || Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {

@@ -19,7 +19,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '2.3.1';
+		const appVersion = '2.3.2';
 	</script>
 		<script src="lib/vue.min.js"></script>
 		<script src="lib/vue_sortable.js"></script>
@@ -85,7 +85,6 @@
 	?></div>
 	<div style="display: none;"></div>
 
-
 	<div id="blackout" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"></div>
 
 	<div class="dialog draggable" id="welcome_screen">
@@ -99,7 +98,6 @@
 		<h1></h1>
 
 		<div id="updater_content"></div>
-
 
 		<div class="progress_bar" id="update_bar">
 			<div class="progress_bar_inner"></div>
@@ -283,7 +281,7 @@
 		<h2 class="dialog_handle tl">dialog.scale.title</h2>
 
 		<div class="dialog_bar narrow">
-			<label for="file_folder" class="tl">dialog.scale.axis</label>
+			<label class="tl">dialog.scale.axis</label>
 		</div>
 
 		<div class="dialog_bar" style="height: 32px;">
@@ -296,7 +294,7 @@
 		</div>
 
 		<div class="dialog_bar narrow">
-			<label for="file_folder" class="tl">dialog.scale.scale</label>
+			<label class="tl">dialog.scale.scale</label>
 		</div>
 
 		<div class="dialog_bar" style="height: 32px;">
@@ -374,12 +372,12 @@
 		</div>
 
 		<div class="dialog_bar">
-			<label class="name_space_left tl" for="selgen_new">dialog.select.name</label>
+			<label class="name_space_left tl">dialog.select.name</label>
 			<input type="text" class="dark_bordered half" id="selgen_name">
 		</div>
 
 		<div class="dialog_bar">
-			<label class="name_space_left tl" for="selgen_new">dialog.select.random</label>
+			<label class="name_space_left tl">dialog.select.random</label>
 			<input type="range" min="0" max="100" step="1" value="100" class="tool half" id="selgen_random">
 		</div>
 
@@ -410,13 +408,13 @@
 		</div>
 
 		<div class="dialog_bar" class="name_space_left block_mode_only">
-			<label for="project_description" class="name_space_left tl">dialog.project.ao</label>
+			<label for="project_ambientocclusion" class="name_space_left tl">dialog.project.ao</label>
 			<input v-model="Project.ambientocclusion" type="checkbox" id="project_ambientocclusion">
 		</div>
 
 
 		<div class="dialog_bar narrow">
-			<label for="project_description" class="tl">dialog.project.texture_size</label>
+			<label class="tl">dialog.project.texture_size</label>
 		</div>
 		<div class="dialog_bar">
 			<label for="project_texsize_x" class="inline_label tl">dialog.project.width</label>
@@ -783,8 +781,8 @@
 						v-bind:min="Math.abs(slot.translation[axis]) < 10 ? -20 : (slot.translation[axis] > 0 ? -70*3+10 : -80)"
 						v-bind:max="Math.abs(slot.translation[axis]) < 10 ?  20 : (slot.translation[axis] < 0 ? 70*3-10 : 80)"
 						v-bind:step="Math.abs(slot.translation[axis]) < 10 ? 0.25 : 1"
-						value="0" @input="change(axis, 'rotation')" @mousedown="start" @change="save">
-					<input type="number" class="tool disp_text" v-model.number="slot.translation[axis]" min="-80" max="80" step="0.5" value="0" @input="change(axis, 'rotation');save()" @mousedown="start">
+						value="0" @input="change(axis, 'translation')" @mousedown="start" @change="save">
+					<input type="number" class="tool disp_text" v-model.number="slot.translation[axis]" min="-80" max="80" step="0.5" value="0" @input="change(axis, 'translation');save()" @mousedown="start">
 				</div>
 
 				<p class="tl">display.scale</p><div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>

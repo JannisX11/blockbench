@@ -823,5 +823,7 @@
     "action.color_picker": "Seleccionador de Color",
     "action.color_picker.desc": "Herramienta para seleccionar el color de píxeles en tu textura",
     "action.open_backup_folder": "Abrir Carpeta de Backups",
-    "action.open_backup_folder.desc": "Abre la carpeta de backups de Blockbench"
+    "action.open_backup_folder.desc": "Abre la carpeta de backups de Blockbench",
+    "switches.mirror": "Mirror UV",
+    "language_name": "English"
 }

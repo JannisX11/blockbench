@@ -166,7 +166,7 @@ var Interface = {
 		right_bar_width: 300,
 		quad_view_x: 50,
 		quad_view_y: 50,
-		left_bar: ['uv', 'textures', 'display'],
+		left_bar: ['uv', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
 		right_bar: ['options', 'outliner']
 	},
 	Resizers: {
@@ -397,9 +397,6 @@ function setupInterface() {
 		unselectTextures()
 	})
 	$(document).mousedown(function(event) {
-		if ($('.ctx').find(event.target).length === 0) {
-			$('.context_handler.ctx').removeClass('ctx')
-		}
 		if (open_menu && $('.contextMenu').find(event.target).length === 0 && $('.menu_bar_point.opened:hover').length === 0) {
 			open_menu.hide();
 		}
@@ -472,20 +469,26 @@ function updateInterface() {
 	BARS.updateConditions()
 	MenuBar.update()
 	resizeWindow()
-	resizeWindow()
 	localStorage.setItem('interface_data', JSON.stringify(Interface.data))
 }
 function updateInterfacePanels() {
-	var left_width = $('.sidebar#left_bar > .panel:visible').length ? Interface.data.left_bar_width : 0
-	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.data.right_bar_width : 0
 	$('body').css(
 		'grid-template-columns',
-		left_width+'px auto '+ right_width +'px'
+		Interface.data.left_bar_width+'px auto '+ Interface.data.right_bar_width +'px'
 	)
 	for (var key in Interface.Panels) {
 		var panel = Interface.Panels[key]
 		panel.update()
 	}
+	var left_width = $('.sidebar#left_bar > .panel:visible').length ? Interface.data.left_bar_width : 0
+	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.data.right_bar_width : 0
+	if (!left_width || !right_width) {
+		$('body').css(
+			'grid-template-columns',
+			left_width+'px auto '+ right_width +'px'
+		)
+	}
+
 	$('.quad_canvas_wrapper.qcw_x').css('width', Interface.data.quad_view_x+'%')
 	$('.quad_canvas_wrapper.qcw_y').css('height', Interface.data.quad_view_y+'%')
 	$('.quad_canvas_wrapper:not(.qcw_x)').css('width', (100-Interface.data.quad_view_x)+'%')
@@ -495,6 +498,26 @@ function updateInterfacePanels() {
 		resizer.update()
 	}
 }
+
+function resizeWindow(event) {
+	if (!previews || (event && event.target && event.target !== window)) {
+		return;
+	}
+	if (Animator.open) {
+		Timeline.updateSize()
+	}
+
+	if (Interface.data) {
+		updateInterfacePanels()
+	}
+	previews.forEach(function(prev) {
+		if (prev.canvas.isConnected) {
+			prev.resize()
+		}
+	})
+	BARS.updateToolToolbar()
+}
+$(window).resize(resizeWindow)
 
 function setActivePanel(panel) {
 	Prop.active_panel = panel
@@ -524,9 +547,6 @@ function showDialog(dialog) {
 	$('.dialog').hide(0)
 	$('#blackout').fadeIn(200)
 	obj.fadeIn(200)
-	setTimeout(function() {
-		$('.context_handler.ctx').removeClass('ctx')
-	}, 64)
 	open_dialog = dialog
 	open_interface = dialog
 	Prop.active_panel = 'dialog'

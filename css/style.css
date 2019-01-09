@@ -431,9 +431,6 @@
 	input.mediun_width {
 		width: 64px;
 	}
-	.custom_select.ctx ul {
-		display: block;
-	}
 	div.nslide {
 		height: 32px;
 		width: 79px;
@@ -658,7 +655,6 @@
 	.single_canvas_wrapper {
 		height: 100%;
 		width: 100%;
-		position: relative;
 	}
 	.quad_canvas_wrapper {
 		height: 50%;
@@ -897,29 +893,10 @@
 	#cubes_list > div.vue-tree > ul > li > *:not(ul) {
 		display: none;
 	}
-	/*
-	#cubes_list > div > ul > li > ul > li > ul > li > div {
-		padding-left: 20px;
-	}
-	#cubes_list > div > ul > li > ul > li > ul > li > ul > li > div {
-		padding-left: 40px;
-	}
-	#cubes_list > div > ul > li > ul > li > ul > li > ul > li > ul > li > div {
-		padding-left: 60px;
-	}
-	#cubes_list > div > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li > div {
-		padding-left: 80px;
-	}
-	#cubes_list > div > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li > div {
-		padding-left: 100px;
-	}
-	#cubes_list > div > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul li > div {
-		padding-left: 120px;
-	}
-	*/
-	.outliner_object i.fa {
+	.outliner_node .outliner_object i, .outliner_object i[class^="icon-"] {
 		text-align: center;
 		width: 18px;
+		font-size: 17.3px;
 	}
 	.outliner_opener_placeholder {
 		width: 18px;
@@ -1776,32 +1753,6 @@
 		width: 60px;
 		background-color: var(--color-back);
 		float: none;
-	}
-	#display_presets {
-		margin-left: 5px;
-		cursor: default;
-	}
-	#display_presets ul {
-		display: none;
-		position: absolute;
-		max-height: 214px;
-		overflow-y: auto;
-	}
-	#display_presets.ctx ul {
-		display: block;
-		background-color: var(--color-dark)
-	}
-	#display_presets ul li {
-		cursor: default;
-		height: 36px;
-		padding: 4px;
-	}
-	#display_presets ul li > * {
-		float: left;
-		margin-right: 5px;
-	}
-	#display_presets ul li > *:hover {
-		color: var(--color-light);
 	}
 	.dialog.paddinged {
 		padding: 24px;

@@ -823,5 +823,7 @@
     "action.color_picker": "颜色选择器",
     "action.color_picker.desc": "用于选择材质纹理上像素颜色的工具",
     "action.open_backup_folder": "打开备份文件夹",
-    "action.open_backup_folder.desc": "打开Blockbench备份文件夹"
+    "action.open_backup_folder.desc": "打开Blockbench备份文件夹",
+    "switches.mirror": "Mirror UV",
+    "language_name": "中文"
 }

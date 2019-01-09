@@ -49,8 +49,8 @@ function origin2geometry() {
 		element_center.y -= obj.origin[1]
 		element_center.z -= obj.origin[2]
 
-		if (obj.getMesh()) {
-			element_center.applyEuler(obj.getMesh().rotation)
+		if (obj.mesh) {
+			element_center.applyEuler(obj.mesh.rotation)
 		}
 		obj.origin[0] += element_center.x
 		obj.origin[1] += element_center.y
@@ -171,7 +171,7 @@ function moveCube(obj, val, axis, move_origin) {
 		m[getAxisLetter(axis)] = difference
 
 		var rotation = new THREE.Quaternion()
-		obj.getMesh().getWorldQuaternion(rotation)
+		obj.mesh.getWorldQuaternion(rotation)
 		m.applyQuaternion(rotation.inverse())
 
 		obj.from[0] += m.x;

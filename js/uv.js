@@ -431,7 +431,7 @@ class UVEditor {
 	forCubes(cb) {
 		var i = 0;
 		while (i < selected.length) {
-			cb(selected[i], selected[i].index())
+			cb(selected[i])
 			i++;
 		}
 	}
@@ -603,7 +603,7 @@ class UVEditor {
 	applyTexture(id) {
 		var scope = this;
 		Undo.initEdit({cubes: selected, uv_only: true})
-		this.forCubes(function(obj) {
+		this.forCubes(obj => {
 			obj.faces[scope.face].texture = '#'+id
 		})
 		this.loadData()
@@ -834,20 +834,20 @@ class UVEditor {
 
 	//Events
 	disableAutoUV() {
-		this.forCubes(function(obj) {
+		this.forCubes(obj => {
 			obj.autouv = 0
 		})
 	}
 	toggleUV() {
 		var scope = this
 		var state = selected[0].faces[this.face].enabled === false
-		this.forCubes(function(obj) {
+		this.forCubes(obj => {
 			obj.faces[scope.face].enabled = state
 		})
 	}
 	maximize(event) {
 		var scope = this;
-		this.forCubes(function(obj) {
+		this.forCubes(obj => {
 			scope.getFaces(event).forEach(function(side) {
 				obj.faces[side].uv = [0, 0, 16, 16]
 			})
@@ -861,7 +861,7 @@ class UVEditor {
 		var scope = this;
 		var top, left, top2, left2;
 
-		this.forCubes(function(obj, i) {
+		this.forCubes(obj => {
 			scope.getFaces(event).forEach(function(side) {
 				left = top = 0;
 				if (side == 'north' || side == 'south') {
@@ -884,7 +884,7 @@ class UVEditor {
 	}
 	setRelativeAutoSize(event) {
 		var scope = this;
-		this.forCubes(function(obj, i) {
+		this.forCubes(obj => {
 			scope.getFaces(event).forEach(function(side) {
 				var uv = obj.faces[side].uv
 				switch (side) {
@@ -950,7 +950,7 @@ class UVEditor {
 	}
 	mirrorX(event) {
 		var scope = this;
-		this.forCubes(function(obj, i) {
+		this.forCubes(obj => {
 			scope.getFaces(event).forEach(function(side) {
 				var proxy = obj.faces[side].uv[0]
 				obj.faces[side].uv[0] = obj.faces[side].uv[2]
@@ -964,7 +964,7 @@ class UVEditor {
 	}
 	mirrorY(event) {
 		var scope = this;
-		this.forCubes(function(obj, i) {
+		this.forCubes(obj => {
 			scope.getFaces(event).forEach(function(side) {
 				var proxy = obj.faces[side].uv[1]
 				obj.faces[side].uv[1] = obj.faces[side].uv[3]
@@ -978,7 +978,7 @@ class UVEditor {
 	}
 	applyAll(event) {
 		var scope = this;
-		this.forCubes(function(obj, i) {
+		this.forCubes(obj => {
 			uv_dialog.allFaces.forEach(function(side) {
 				$.extend(true, obj.faces[side], obj.faces[scope.face]) 
 			})
@@ -991,7 +991,7 @@ class UVEditor {
 	clear(event) {
 		var scope = this;
 		Undo.initEdit({cubes: selected, uv_only: true})
-		this.forCubes(function(obj, i) {
+		this.forCubes(obj => {
 			scope.getFaces(event).forEach(function(side) {
 				obj.faces[side].uv = [0, 0, 0, 0]
 				obj.faces[side].texture = null;
@@ -1008,7 +1008,7 @@ class UVEditor {
 		Undo.initEdit({cubes: selected, uv_only: true})
 		var val = BarItems.cullface.get()
 		if (val === 'off') val = false
-		this.forCubes(function(obj) {
+		this.forCubes(obj => {
 			if (val) {
 				obj.faces[scope.face].cullface = val
 			} else {
@@ -1027,7 +1027,7 @@ class UVEditor {
 		var val = selected[0].faces[scope.face].tintindex === undefined
 
 		if (event === true || event === false) val = event
-		this.forCubes(function(obj) {
+		this.forCubes(obj => {
 			if (val) {
 				obj.faces[scope.face].tintindex = 0
 			} else {
@@ -1044,7 +1044,7 @@ class UVEditor {
 	rotate() {
 		var scope = this;
 		var value = BarItems.uv_rotation.get()
-		this.forCubes(function(obj, i) {
+		this.forCubes(obj => {
 			if (value == 0) {
 				delete obj.faces[scope.face].rotation
 			} else {
@@ -1057,7 +1057,7 @@ class UVEditor {
 	}
 	setRotation(value) {
 		var scope = this;
-		this.forCubes(function(obj, i) {
+		this.forCubes(obj => {
 			if (value == 0) {
 				delete obj.faces[scope.face].rotation
 			} else {
@@ -1072,7 +1072,7 @@ class UVEditor {
 	}
 	autoCullface(event) {
 		var scope = this;
-		this.forCubes(function(obj) {
+		this.forCubes(obj => {
 			scope.getFaces(event).forEach(function(side) {
 				obj.faces[side].cullface = side
 			})
@@ -1192,7 +1192,7 @@ class UVEditor {
 	}
 	reset(event) {
 		var scope = this;
-		this.forCubes(function(obj, i) {
+		this.forCubes(obj => {
 			scope.getFaces(event).forEach(function(side) {
 				obj.faces[side].uv = [0, 0, 1, 1]
 				delete obj.faces[side].texture;
@@ -1321,7 +1321,7 @@ class UVEditor {
 	])
 
 
-var uv_dialog = {
+const uv_dialog = {
 	isSetup: false,
 	single: false,
 	clipboard: null,

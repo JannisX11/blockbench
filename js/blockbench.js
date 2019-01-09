@@ -34,8 +34,8 @@ const Project = {
 	texture_height	: 16,
 	ambientocclusion: true,
 }
-var mouse_pos = {x:0,y:0}
-var sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
+const mouse_pos = {x:0,y:0}
+const sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
 
 $.ajaxSetup({ cache: false });
 
@@ -222,9 +222,9 @@ function setupVue() {
 						DisplayMode.slot.scale[2] = val;
 					}
 				} else if (channel === 'translation') {
-					DisplayMode.slot.translation[axis] = limitNumber(DisplayMode.slot.translation[axis], -80, 80)
+					DisplayMode.slot.translation[axis] = limitNumber(DisplayMode.slot.translation[axis], -80, 80)||0;
 				} else {
-					DisplayMode.slot.rotation[axis] = Math.trimDeg(DisplayMode.slot.rotation[axis])
+					DisplayMode.slot.rotation[axis] = Math.trimDeg(DisplayMode.slot.rotation[axis])||0;
 				}
 				DisplayMode.updateDisplayBase()
 			},
@@ -347,11 +347,11 @@ function updateSelection() {
 		}
 		if (obj.selected === true) {
 			if (Toolbox.selected.transformerMode !== 'hidden' && obj.visibility === true && (Toolbox.selected.transformerMode !== 'rotate' || !Blockbench.entity_mode)) {
-				Transformer.attach(obj.getMesh())
+				Transformer.attach(obj.mesh)
 			}
 		}
 		if (obj.visibility) {
-			var mesh = obj.getMesh()
+			var mesh = obj.mesh
 			if (mesh && mesh.outline) {
 				mesh.outline.visible = obj.selected
 			}
@@ -375,10 +375,10 @@ function updateSelection() {
 		if (selected_group) {
 			$('.selection_only#options').css('visibility', 'visible')
 			if (settings.origin_size.value > 0 && selected_group.visibility) {
-				selected_group.getMesh().add(rot_origin)
+				selected_group.mesh.add(rot_origin)
 			}
 			if (Toolbox.selected.transformerMode === 'rotate') {
-				Transformer.attach(selected_group.getMesh())
+				Transformer.attach(selected_group.mesh)
 			}
 		} else {
 			$('.selection_only#options').css('visibility', 'hidden')
@@ -392,7 +392,7 @@ function updateSelection() {
 	} else {
 		//Origin Helper
 		if (selected.length === 1 && selected[0].visibility) {
-			let mesh = selected[0].getMesh()
+			let mesh = selected[0].mesh
 			if (mesh) {
 				mesh.add(rot_origin)
 			}
@@ -416,7 +416,7 @@ function updateSelection() {
 				i++;
 			}
 			if (first_visible && typeof origin === 'object') {
-				let mesh = first_visible.getMesh()
+				let mesh = first_visible.mesh
 				if (mesh) {
 					mesh.add(rot_origin)
 				}
@@ -518,7 +518,6 @@ class Mode extends KeybindItem {
 		Modes.selected = this;
 		updateInterface()
 		Canvas.updateRenderSides()
-		resizeWindow()
 		if (BarItems[this.default_tool]) {
 			BarItems[this.default_tool].select()
 		} else {
@@ -578,12 +577,6 @@ BARS.defineActions(function() {
 var Screencam = {
 	fullScreen: function(options, cb) {
 		setTimeout(function() {
-			$('.context_handler.ctx').removeClass('ctx')
-			$('.context_handler.ctx').removeClass('ctx')
-			$('.context_handler.ctx').removeClass('ctx')
-			$('.context_handler.ctx').removeClass('ctx')
-		}, 10)
-		setTimeout(function() {
 			currentwindow.capturePage(function(screenshot) {
 				var dataUrl = screenshot.toDataURL()
 				dataUrl = dataUrl.replace('data:image/png;base64,','')
@@ -621,7 +614,7 @@ var Screencam = {
 				cancel: 0
 			}, function(result) {
 				if (result === 1) {
-					app.dialog.showSaveDialog(currentwindow, {filters: [ {name: tl('data.image'), extensions: [is_gif ? 'gif' : 'png']} ]}, function (fileName) {
+					electron.dialog.showSaveDialog(currentwindow, {filters: [ {name: tl('data.image'), extensions: [is_gif ? 'gif' : 'png']} ]}, function (fileName) {
 						if (fileName === undefined) {
 							return;
 						}
@@ -788,8 +781,6 @@ var Clipbench = {
 					Vue.nextTick(Timeline.update)
 				}
 			}
-
-
 		} else if (p == 'uv' || p == 'preview') {
 			main_uv.paste(event)
 		} else if (p == 'textures' && isApp) {
@@ -808,6 +799,7 @@ var Clipbench = {
 			var group = 'root'
 			if (selected_group) {
 				group = selected_group
+				selected_group.isOpen = true
 			} else if (selected[0]) {
 				group = selected[0]
 			}
@@ -826,6 +818,9 @@ var Clipbench = {
 				} catch (err) {}
 			}
 			if (Clipbench.group) {
+				if (typeof Clipbench.group.duplicate !== 'function') {
+					Clipbench.group = new Group(Clipbench.group)
+				}
 				Clipbench.group.duplicate(group)
 			} else {
 				Clipbench.cubes.forEach(function(obj) {
@@ -988,15 +983,15 @@ var Vertexsnap = {
 		$('#preview').get(0).removeEventListener("mousemove", Vertexsnap.hoverCanvas)
 		$('#preview').get(0).addEventListener("mousemove", Vertexsnap.hoverCanvas)
 
-		var o_vertices = cube.getMesh().geometry.vertices
-		cube.getMesh().updateMatrixWorld()
+		var o_vertices = cube.mesh.geometry.vertices
+		cube.mesh.updateMatrixWorld()
 		o_vertices.forEach(function(v, id) {
 			var outline_color = '0x'+app_colors.accent.hex.replace('#', '')
 			var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({color: parseInt(outline_color)}))
 			var pos = mesh.position.copy(v)
-			pos.applyMatrix4(cube.getMesh().matrixWorld)
+			pos.applyMatrix4(cube.mesh.matrixWorld)
 			pos.addScalar(8)
-			mesh.rotation.copy(cube.getMesh().rotation)
+			mesh.rotation.copy(cube.mesh.rotation)
 			mesh.cube = cube
 			mesh.isVertex = true
 			mesh.vertex_id = id
@@ -1096,7 +1091,7 @@ var Vertexsnap = {
 			}
 
 			Vertexsnap.cubes.forEach(function(obj) {
-				var q = obj.getMesh().getWorldQuaternion(new THREE.Quaternion()).inverse()
+				var q = obj.mesh.getWorldQuaternion(new THREE.Quaternion()).inverse()
 				var cube_pos = new THREE.Vector3().copy(pos).applyQuaternion(q)
 
 				for (i=0; i<3; i++) {
@@ -1118,7 +1113,7 @@ var Vertexsnap = {
 					obj.origin[1] += cube_pos.getComponent(1)
 					obj.origin[2] += cube_pos.getComponent(2)
 				} else {
-					var q = obj.getMesh().getWorldQuaternion(new THREE.Quaternion()).inverse()
+					var q = obj.mesh.getWorldQuaternion(new THREE.Quaternion()).inverse()
 					cube_pos.applyQuaternion(q)
 				}
 				obj.from[0] += cube_pos.getComponent(0)

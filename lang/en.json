@@ -1,4 +1,6 @@
 {
+	"language_name": "English",
+
 	"dialog.ok": "OK",
 	"dialog.cancel": "Cancel",
 	"dialog.confirm": "Confirm",
@@ -826,6 +828,7 @@
 	"switches.visibility": "Visibility",
 	"switches.export": "Export",
 	"switches.shading": "Shade",
+	"switches.mirror": "Mirror UV",
 	"switches.autouv": "Auto UV",
 
 	"panel.uv": "UV",

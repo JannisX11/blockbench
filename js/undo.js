@@ -35,6 +35,12 @@ var Undo = {
 			Prop.project_saved = false;
 		}
 	},
+	cancelEdit: function() {
+		if (!Undo.current_save) return;
+		outlines.children.length = 0
+		Undo.loadSave(Undo.current_save, new Undo.save(Undo.current_save.aspects))
+		delete Undo.current_save;
+	},
 	undo: function() {
 		if (Undo.history.length <= 0 || Undo.index < 1) return;
 
@@ -146,7 +152,11 @@ var Undo = {
 		if (aspects.display_slots) {
 			scope.display_slots = {}
 			aspects.display_slots.forEach(slot => {
-				scope.display_slots[slot] = display[slot].copy()
+				if (display[slot]) {
+					scope.display_slots[slot] = display[slot].copy()
+				} else {
+					scope.display_slots[slot] = null
+				}
 			})
 		}
 	},
@@ -155,7 +165,7 @@ var Undo = {
 			for (var uuid in save.cubes) {
 				if (save.cubes.hasOwnProperty(uuid)) {
 					var data = save.cubes[uuid]
-					var obj = TreeElements.findRecursive('uuid', uuid)
+					var obj = elements.findInArray('uuid', uuid)
 					if (obj) {
 						for (var face in obj.faces) {
 							obj.faces[face] = {uv: []}
@@ -171,7 +181,7 @@ var Undo = {
 			}
 			for (var uuid in reference.cubes) {
 				if (reference.cubes.hasOwnProperty(uuid) && !save.cubes.hasOwnProperty(uuid)) {
-					var obj = TreeElements.findRecursive('uuid', uuid)
+					var obj = elements.findInArray('uuid', uuid)
 					if (obj) {
 						obj.remove(false)
 					}
@@ -275,22 +285,19 @@ var Undo = {
 			var animation = false;
 			if (Animator.selected.uuid !== save.keyframes.animation) {
 				animation = Animator.animations.findInArray('uuid', save.keyframes.animation)
-			} else {
-				animation = Animator.selected
+				if (animation.select) {
+					animation.select()
+				}
 			}
 
-			if (animation.select && animation !== Animator.selected) {
-				animation.select()
-			}
-			var bone = false;
-			if (Animator.selected.uuid !== save.keyframes.animation) {
-				animation = Animator.animations.findInArray('uuid', save.keyframes.animation)
-			} else {
-				animation = Animator.selected
-			}
-
-			if (animation.select && animation !== Animator.selected) {
-				animation.select()
+			var bone = Animator.selected.getBoneAnimator();
+			if (!bone || bone.uuid !== save.keyframes.bone) {
+				for (var uuid in Animator.selected.bones) {
+					if (uuid === save.keyframes.bone) {
+						bone = Animator.selected.bones[uuid]
+						bone.select()
+					}
+				}
 			}
 
 
@@ -312,11 +319,14 @@ var Undo = {
 						kf.extend(data)
 					} else {
 						kf = new Keyframe(data)
+						kf.parent = bone;
+						kf.uuid = uuid;
 						Timeline.keyframes.push(kf)
 						added++;
 					}
 				}
 			}
+
 			for (var uuid in reference.keyframes) {
 				if (uuid.length === 36 && reference.keyframes.hasOwnProperty(uuid) && !save.keyframes.hasOwnProperty(uuid)) {
 					var kf = getKeyframe(uuid)
@@ -329,14 +339,19 @@ var Undo = {
 				Vue.nextTick(Timeline.update)
 			}
 			updateKeyframeSelection()
+			Animator.preview()
 		}
 
 		if (save.display_slots) {
 			for (var slot in save.display_slots) {
-				if (!display[slot]) {
+				var data = save.display_slots[slot]
+
+				if (!display[slot] && data) {
 					display[slot] = new DisplaySlot()
+				} else if (data === null && display[slot]) {
+					display[slot].default()
 				}
-				display[slot].extend(save.display_slots[slot]).update()
+				display[slot].extend(data).update()
 			}
 		}
 		updateSelection()

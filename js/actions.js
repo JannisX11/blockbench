@@ -1,4 +1,4 @@
-var Toolbars, BarItems, MenuBar, open_menu, Toolbox;
+var Toolbars, BarItems, open_menu, Toolbox;
 //Bars
 class MenuSeparator {
 	constructor() {
@@ -196,7 +196,6 @@ class Action extends BarItem {
 		}
 	}
 }
-
 class Tool extends Action {
 	constructor(data) {
 		super(data)
@@ -213,7 +212,7 @@ class Tool extends Action {
 
 		if (!this.condition) {
 			this.condition = function() {
-				return scope.modes && scope.modes.includes(Modes.id)
+				return !scope.modes || scope.modes.includes(Modes.id);
 			}
 		}
 		this.onCanvasClick = data.onCanvasClick;
@@ -806,7 +805,7 @@ class Toolbar {
 	}
 }
 
-var BARS = {
+const BARS = {
 	stored: {},
 	editing_bar: undefined,
 	action_definers: [],
@@ -946,7 +945,7 @@ var BARS = {
 				category: 'file',
 				condition: () => isApp,
 				click: function (e) {
-					shell.showItemInFolder(app.app.getPath('userData')+osfs+'backups'+osfs+'.')
+					shell.showItemInFolder(app.getPath('userData')+osfs+'backups'+osfs+'.')
 				}
 			})
 			new Action({
@@ -1831,7 +1830,7 @@ class BarMenu extends Menu {
 		return this;
 	}
 }
-var MenuBar = {
+const MenuBar = {
 	menues: {},
 	open: undefined,
 	setup: function() {
@@ -2020,7 +2019,7 @@ var MenuBar = {
 			'_',
 			'toggle_wireframe',
 			'toggle_quad_view',
-			{name: 'menu.view.screenshot', id: 'screenshot', condition: isApp, icon: 'camera_alt', children: [
+			{name: 'menu.view.screenshot', id: 'screenshot', icon: 'camera_alt', children: [
 				'screenshot_model',
 				'screenshot_app',
 				'record_model_gif',
@@ -2062,7 +2061,7 @@ var MenuBar = {
 		}
 	}
 }
-var Keybinds = {
+const Keybinds = {
 	actions: [],
 	stored: {},
 	extra: {},

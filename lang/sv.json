@@ -823,5 +823,7 @@
     "action.color_picker": "Color Picker",
     "action.color_picker.desc": "Tool to pick the color of pixels on your texture",
     "action.open_backup_folder": "Open Backup Folder",
-    "action.open_backup_folder.desc": "Opens the Blockbench backup folder"
+    "action.open_backup_folder.desc": "Opens the Blockbench backup folder",
+    "switches.mirror": "Mirror UV",
+    "language_name": "English"
 }
