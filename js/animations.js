@@ -120,6 +120,7 @@ class Animation {
 		if (selected_group) {
 			centerTransformer()
 		}
+		Blockbench.dispatchEvent('display_animation_frame')
 	}
 	add() {
 		if (!Animator.animations.includes(this)) {
@@ -132,6 +133,7 @@ class Animation {
 			Animator.selected = false
 		}
 		Animator.animations.remove(this)
+		Blockbench.dispatchEvent('remove_animation', {animation: this})
 		return this;
 	}
 	getMaxLength() {
@@ -1140,9 +1142,7 @@ const Timeline = {
 		Timeline.loop()
 	},
 	loop: function() {
-		if (Animator.selected) {
-			Animator.selected.displayFrame(Timeline.second)
-		}
+		Animator.preview()
 		if (Animator.selected && Timeline.second < (Animator.selected.length||1e3)) {
 			Animator.interval = setTimeout(Timeline.loop, 16.66)
 			Timeline.setTime(Timeline.second + 1/60)
@@ -1206,6 +1206,25 @@ const Timeline = {
 	])
 }
 
+onVueSetup(function() {
+	Animator.vue = new Vue({
+		el: '#animations_list',
+		data: {
+			animations: Animator.animations
+		}
+	})
+	Timeline.vue = new Vue({
+		el: '#timeline_inner',
+		data: {
+			size: 150,
+			length: 10,
+			timecodes: [],
+			keyframes: [],
+			marker: Timeline.second
+		}
+	})
+})
+
 BARS.defineActions(function() {
 	new Action({
 		id: 'add_animation',
@@ -1230,7 +1249,7 @@ BARS.defineActions(function() {
 				var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
 				var m_index = path.search(exp)
 				if (m_index > 3) {
-					path = path.substr(0, m_index) + osfs + 'animations' + osfs +  pathToName(Prop.file_path, true)
+					path = path.substr(0, m_index) + osfs + 'animations' + osfs + pathToName(Prop.file_path).replace(/\.geo/, '.animation')
 				}
 			}
 			Blockbench.import({

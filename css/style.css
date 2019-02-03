@@ -72,6 +72,7 @@
 	  text-transform: none;
 	  line-height: 1;
 	  font-size: 1.4em;
+	  max-width: 24px;
 
 	   Better Font Rendering =========== 
 	  -webkit-font-smoothing: antialiased;
@@ -656,6 +657,9 @@
 		height: 100%;
 		width: 100%;
 	}
+	body.display_mode .single_canvas_wrapper {
+		position: relative;
+	}
 	.quad_canvas_wrapper {
 		height: 50%;
 		width: 50%;
@@ -714,7 +718,6 @@
 	.tool {
 		height: 32px;
 		width: 40px;
-		padding-top: 4px;
 		margin-left: 1px;
 		margin-right: 1px;
 		background: transparent;
@@ -724,6 +727,10 @@
 		cursor: default;
 		float: left;
 		color: var(--color-text);
+	}
+	.tool i {
+		display: inline-block;
+		margin-top: 4px;
 	}
 
 	.tool.sel {
@@ -790,7 +797,7 @@
 		padding-right: 5px;
 		padding-top: 2px;
 		color: var(--color-text_acc);
-		margin-top: -3px;
+		margin-top: 32px;
 		display: none;
 		background: var(--color-bright_ui);
 		white-space: nowrap;
@@ -871,9 +878,11 @@
 		cursor: default;
 		text-align: center;
 		font-size: 0.9em;
-		padding-top: 5px;
 		float: left;
 		overflow: hidden;
+	}
+	.panel#uv .tabs_small label {
+    	padding-top: 4px;
 	}
 
 	.tabs_small  {
@@ -1060,7 +1069,73 @@
 		background-color: var(--color-text);
 	}
 
+/*Action Select*/
+	#action_selector {
+		position: absolute;
+		right: 0;
+		left: 0;
+		margin-left: auto;
+		margin-right: auto;
+		top: 200px;
+		width: 360px;
+		height: 42px;
+		box-shadow: 0 0 5px black;
+	}
+	#action_selector > input {
+		width: 100%;
+		height: 42px;
+		padding: 5px;
+		padding-left: 12px;
+		background-color: var(--color-ui);
+		border: 1px solid var(--color-border);
+	}
+	#action_selector > i {
+		position: absolute;
+		right: 6px;
+		top: 9px;
+	}
+	#action_selector > ul {
+		background-color: var(--color-bright_ui);
+		color: var(--color-text_acc);
+		min-height: 20px;
+		width: 300px;
+		margin-left: 8px;
+		box-shadow: 0 0 5px black;
+		max-height: 400px;
+		overflow-y: auto;
+		overflow-x: hidden;
+	}
+	#action_selector > ul > li {
+		padding: 4px;
+	}
+	#action_selector > ul > li.selected {
+		background-color: var(--color-accent);
+	}
+	#action_selector > ul > li div.icon_wrapper {
+		display: inline-block;
+		height: 26px;
+		vertical-align: text-top;
+	}
 
+
+
+
+
+		
+	#bar_item_list {
+		max-height: 400px;
+		margin-bottom: 20px;
+		overflow-y: scroll;
+		min-height: 80px;
+		border: 1px solid var(--color-border);
+		border-right: none;
+	}
+	#bar_item_list li {
+		padding: 4px; 
+	}
+	#bar_item_list li:hover {
+		color: var(--color-light);
+	}
 
 /*Textures*/
 	.texture {
@@ -1583,7 +1658,7 @@
 		color: var(--color-light);
 	}
 
-	#keybindlist li div:first-child {
+	#keybindlist li > div:first-child {
 		background: transparent;
 		width: calc(52% - 28px);
 		text-align: right;
@@ -2051,7 +2126,7 @@
 		font-size: 0.9em;
 		padding: 3px;
 		float: left;
-		margin-top: 7px;
+		margin-top: 6px;
 	}
 	#plugin_list li .title i.plugin_expand_icon {
 		display: none;

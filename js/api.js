@@ -10,7 +10,12 @@ class API {
 		this.drag_handlers = {}
 		this.entity_mode = false
 		if (isApp) {
-			this.platform = require('os').platform()
+			this.platform = process.platform
+			switch (this.platform) {
+				case 'win32': 	this.operating_system = 'Windows'; break;
+				case 'darwin': 	this.operating_system = 'macOS'; break;
+				default:		this.operating_system = 'Linux'; break;
+			}
 			if (this.platform.includes('win32') === true) osfs = '\\'
 		}
 	}
@@ -32,7 +37,7 @@ class API {
 		return Blockbench.entity_mode;
 	}
 	registerEdit() {
-		console.error('Blockbench.registerEdit is outdated. Please use Undo.initEdit and Undo.finishEdit')
+		console.warn('Blockbench.registerEdit is outdated. Please use Undo.initEdit and Undo.finishEdit')
 	}
 
 	//Interface
@@ -189,7 +194,8 @@ class API {
 		})
 	}
 	addMenuEntry(name, icon, click) {
-		MenuBar.addAction({icon: icon, name: name, id: name, click: click}, 'filter')
+		var action = new Action({icon: icon, name: name, id: name, click: click})
+		MenuBar.addAction(action, 'filter')
 	}
 	removeMenuEntry(name) {
 		MenuBar.removeAction('filter.'+name)
@@ -430,15 +436,10 @@ class API {
 		if (options.custom_writer) {
 			options.custom_writer(options.content, file_path)
 		} else {
-			fs.writeFile(file_path, options.content, function (err) {
-				if (err) {
-					console.log('Error exporting file: '+err)
-					return;
-				}
-				if (cb) {
-					cb(file_path)
-				}
-			})
+			fs.writeFileSync(file_path, options.content)
+			if (cb) {
+				cb(file_path)
+			}
 		}
 		if (options.project_file) {
 			Prop.file_path = file_path
@@ -654,18 +655,20 @@ document.body.ondrop = function(event) {
 					(function() {
 						var path = fileNames[i].path
 						var this_i = i;
-						fs.readFile(path, 'utf-8', function (err, data) {
-							if (err) {
-								console.log(err)
-								if (!errant && handler.errorbox !== false) {
-									Blockbench.showMessageBox({
-										translateKey: 'file_not_found',
-										icon: 'error_outline'
-									})
-								}
-								errant = true
-								return;
+						var data;
+						try {
+							data = fs.readFileSync(path, 'utf-8')
+						} catch (err) {
+							console.log(err)
+							if (!errant && handler.errorbox !== false) {
+								Blockbench.showMessageBox({
+									translateKey: 'file_not_found',
+									icon: 'error_outline'
+								})
 							}
+							errant = true
+						}
+						if (data) {
 							results[this_i] = {
 								name: pathToName(path, true),
 								path: path,
@@ -675,7 +678,7 @@ document.body.ondrop = function(event) {
 							if (result_count === fileNames.length) {
 								handler.cb(results, event)
 							}
-						})
+						}
 					})()
 				}
 			} else {

@@ -12,8 +12,10 @@ var Undo = {
 		Undo.current_save = new Undo.save(aspects)
 	},
 	finishEdit: function(action, aspects) {
+		if (!Undo.current_save) return;
 		aspects = aspects || Undo.current_save.aspects
 		//After
+		Blockbench.dispatchEvent('finish_edit', {aspects})
 		var entry = {
 			before: Undo.current_save,
 			post: new Undo.save(aspects),
@@ -34,6 +36,7 @@ var Undo = {
 		if (!aspects || !aspects.keep_saved) {
 			Prop.project_saved = false;
 		}
+		Blockbench.dispatchEvent('finished_edit', {aspects})
 	},
 	cancelEdit: function() {
 		if (!Undo.current_save) return;
@@ -50,7 +53,7 @@ var Undo = {
 		var entry = Undo.history[Undo.index]
 		Undo.loadSave(entry.before, entry.post)
 		console.log('Undo: '+entry.action)
-		Blockbench.dispatchEvent('undo', {entry: entry})
+		Blockbench.dispatchEvent('undo', {entry})
 	},
 	redo: function() {
 		if (Undo.history.length <= 0) return;
@@ -63,7 +66,7 @@ var Undo = {
 		var entry = Undo.history[Undo.index-1]
 		Undo.loadSave(entry.post, entry.before)
 		console.log('Redo: '+entry.action)
-		Blockbench.dispatchEvent('redo', {})
+		Blockbench.dispatchEvent('redo', {entry})
 	},
 	getItemByUUID: function(list, uuid) {
 		if (!list || typeof list !== 'object' || !list.length) {return false;}
@@ -75,7 +78,6 @@ var Undo = {
 			i++;
 		}
 		return false;
-
 	},
 	save: function(aspects) {
 		var scope = this;
@@ -168,7 +170,7 @@ var Undo = {
 					var obj = elements.findInArray('uuid', uuid)
 					if (obj) {
 						for (var face in obj.faces) {
-							obj.faces[face] = {uv: []}
+							obj.faces[face].reset()
 						}
 						obj.extend(data)
 						Canvas.adaptObjectPosition(obj)

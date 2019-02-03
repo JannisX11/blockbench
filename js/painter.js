@@ -59,12 +59,7 @@ class BBPainter {
 				})
 			} else {
 				Painter.current.texture = texture
-				var c = Painter.current.canvas = document.createElement('canvas')
-				var ctx = c.getContext('2d');
-				c.width = texture.res;
-				c.height = texture.img.naturalHeight;
-				ctx.drawImage(texture.img, 0, 0)
-
+				var c = Painter.current.canvas = Painter.getCanvas(texture)
 				cb(c)
 
 				texture.updateSource(c.toDataURL())
@@ -76,7 +71,7 @@ class BBPainter {
 	}
 	startBrushCanvas(data, event) {
 		Painter.current.x = Painter.current.y = 0
-		var texture = getTextureById(data.cube.faces[data.face].texture)
+		var texture = data.cube.faces[data.face].getTexture()
 		if (!texture) {
 			Blockbench.showQuickMessage('message.untextured')
 		}
@@ -93,7 +88,7 @@ class BBPainter {
 	moveBrushCanvas(force) {
 		var data = Canvas.raycast()
 		if (data) {
-			var texture = getTextureById(data.cube.faces[data.face].texture)
+			var texture = data.cube.faces[data.face].getTexture()
 			if (texture) {
 				var x, y, new_face;
 				var end_x = x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth )
@@ -148,17 +143,25 @@ class BBPainter {
 			Painter.colorPicker(texture, x, y)
 		}
 	}
+	getCanvas(texture) {
+		var c = document.createElement('canvas')
+		var ctx = c.getContext('2d');
+		c.width = texture.res;
+		c.height = texture.img.naturalHeight;
+		ctx.drawImage(texture.img, 0, 0)
+		return c;
+	}
 	colorPicker(texture, x, y) {
-		function getPxColor(image) {
-			var c = image.getPixelColor(x,y)
-			c = tinycolor(Jimp.intToRGBA(c))
-			BarItems.brush_color.set(c)
-		}
-		if (texture.mode == 'bitmap') {
-			Jimp.read(Buffer.from(texture.source.replace('data:image/png;base64,', ''), 'base64')).then(getPxColor)
-		} else {
-			Jimp.read(texture.source).then(getPxColor)
-		}
+		var ctx = Painter.getCanvas(texture).getContext('2d')
+		Painter.scanCanvas(ctx, x, y, 1, 1, (x, y, px) => {
+			var t = tinycolor({
+				r: px[0],
+				g: px[1],
+				b: px[2],
+				a: px[3]/256
+			})
+			BarItems.brush_color.set(t)
+		})
 	}
 	useBrush(texture, x, y, uvTag, no_update) {
 		if ((Painter.currentPixel[0] !== x || Painter.currentPixel[1] !== y)) {
@@ -185,39 +188,90 @@ class BBPainter {
 						uvTag[3] / 16 * texture.img.naturalHeight
 					]
 				} else {
-					var rect = Painter.editing_area = [0, 0, texture.red, texture.red]
+					var rect = Painter.editing_area = [0, 0, texture.img.naturalWidth, texture.img.naturalHeight]
 				}
 				for (var t = 0; t < 2; t++) {
 					if (rect[t] > rect[t+2]) {
 						[rect[t], rect[t+2]] = [rect[t+2], rect[t]]
 					}
+					rect[t] = Math.floor(rect[t])
+					rect[t+2] = Math.ceil(rect[t+2])
 				}
-				ctx.rect(rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1])
+				var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
+				ctx.rect(rect[0], rect[1], w, h)
 
 				if (tool === 'fill_tool') {
 
 					ctx.fillStyle = BarItems.brush_color.get().toRgbString()
-					ctx.fill()
+
+					var fill_mode = BarItems.fill_mode.get()
+					var cube = selected[0]
+
+					if (cube && fill_mode === 'cube') {
+						for (var face in cube.faces) {
+							var tag = cube.faces[face]
+							if (tag.texture === Painter.current.texture.uuid) {
+								var rect = getRectangle(
+									Math.floor(tag.uv[0] / 16 * texture.img.naturalWidth),
+									Math.floor(tag.uv[1] / 16 * texture.img.naturalHeight),
+									Math.ceil(tag.uv[2] / 16 * texture.img.naturalWidth),
+									Math.ceil(tag.uv[3] / 16 * texture.img.naturalHeight)
+								)
+								ctx.rect(rect.ax, rect.ay, rect.x, rect.y)
+								ctx.fill()
+							}
+						}
+
+					} else if (fill_mode === 'face') {
+						ctx.fill()
+					} else {
+
+						var pxcol = [];
+						var map = {}
+						Painter.scanCanvas(ctx, x, y, 1, 1, (x, y, px) => {
+							px.forEach((val, i) => {
+								pxcol[i] = val
+							})
+						})
+						Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
+							if (pxcol.equals(px)) {
+								if (!map[x]) map[x] = {}
+								map[x][y] = true
+							}
+						})
+						function checkPx(x, y) {
+							if (map[x] && map[x][y]) {
+								map[x][y] = false;
+
+								checkPx(x+1, y)
+								checkPx(x-1, y)
+								checkPx(x, y+1)
+								checkPx(x, y-1)
+							}
+						}
+						checkPx(x, y)
+						Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
+							if (map[x] && map[x][y] === false) {
+								var pxcolor = {
+									r: px[0],
+									g: px[1],
+									b: px[2],
+									a: px[3]/255
+								}
+								var result_color = Painter.combineColors(pxcolor, color, 1);
+								px[0] = result_color.r
+								px[1] = result_color.g
+								px[2] = result_color.b
+								px[3] = result_color.a*255
+							}
+						})
+
+					}
+
 
 				} else {
 					ctx.clip()
-					/*ctx.beginPath();
-					ctx.moveTo((Painter.current.x||x)+.5, (Painter.current.y||y)+.5)
-					ctx.lineTo(x+.5, y+.5)
-					if (softness) {
-						ctx.filter = `blur(${ softness*size/2 }px)`;
-					} else {
-						ctx.imageSmoothingEnabled = false
-					}
-					ctx.lineWidth = size
-					ctx.lineCap = 'round'
-					if (brush_mode === 'eraser') {
-						ctx.globalCompositeOperation = 'destination-out'
-						ctx.strokeStyle = 'rgba(0,0,0,0)';
-					} else {
-						ctx.strokeStyle = color
-					}
-					ctx.stroke()*/
+
 					if (tool === 'brush_tool') {
 						Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity) {
 							var result_color = Painter.combineColors(pxcolor, color, opacity*b_opacity*(noise?Math.random():1));
@@ -417,6 +471,7 @@ class BBPainter {
 		lines.push({label: 'dialog.create_texture.folder', node: '<input class="dark_bordered half" type="text" id="bitmap_folder">'})
 		if (elements.length > 0) {
 			lines.push({label: 'dialog.create_texture.template', node: '<input type="checkbox" id="bitmap_doTemplate">'})
+			lines.push({label: 'dialog.create_texture.compress', node: '<input type="checkbox" id="bitmap_compressTemplate">'})
 		}
 		lines.push({widget: Painter.background_color})
 		lines.push({label: 'dialog.create_texture.resolution', node: '<input class="dark_bordered" style="width:72px" type="number" id="bitmap_resolution">'})
@@ -433,7 +488,11 @@ class BBPainter {
 			}
 		})
 		dialog.show()
+		$('#bitmap_compressTemplate').parent().hide()
+
 		$('.dialog#add_bitmap input#bitmap_doTemplate').click(function() {
+			var checked = $('.dialog#add_bitmap input#bitmap_doTemplate').is(':checked')
+			$('#bitmap_compressTemplate').parent()[ checked ? 'show' : 'hide' ]()
 			if (Painter.background_color.get().toHex8() === 'ffffffff') {
 				Painter.background_color.set('#00000000')
 			}
@@ -457,7 +516,8 @@ class BBPainter {
 			name: $('.dialog#add_bitmap input#bitmap_name').val(),
 			folder: $('.dialog#add_bitmap input#bitmap_folder').val(),
 			particle: 'auto',
-			entity_template: $('.dialog#add_bitmap input#bitmap_doTemplate').is(':checked')
+			entity_template: $('.dialog#add_bitmap input#bitmap_doTemplate').is(':checked'),
+			compress: $('.dialog#add_bitmap input#bitmap_compressTemplate').is(':checked')
 		})
 	}
 	addBitmap(options, after) {
@@ -493,16 +553,19 @@ class BBPainter {
 			if (typeof after === 'function') {
 				after(texture)
 			}
+			if (options.entity_template) {
+				Undo.finishEdit('create template', {textures: [texture], bitmap: true, cubes: Blockbench.entity_mode ? elements : selected, uv_only: true})
+			} else {
+				Undo.finishEdit('create blank texture', {textures: [texture], bitmap: true})
+			}
 			return texture.add(false);
 		}
 		if (options.entity_template === true) {
-			Undo.initEdit({textures: [], cubes: Blockbench.entity_mode ? elements : selected, uv_only: true})
-			Painter.generateTemplate(options.res, options.color, makeTexture, options.texture)
-			Undo.finishEdit({textures: [texture], cubes: Blockbench.entity_mode ? elements : selected, uv_only: true})
+			Undo.initEdit({textures: Blockbench.entity_mode ? textures : [], cubes: Blockbench.entity_mode ? elements : selected, uv_only: true})
+			Painter.generateTemplate(options, makeTexture)
 		} else {
 			Undo.initEdit({textures: []})
 			Painter.generateBlank(options.res, options.res, options.color, makeTexture)
-			Undo.finishEdit({textures: [texture]})
 		}
 	}
 	generateBlank(height, width, color, cb) {
@@ -515,15 +578,18 @@ class BBPainter {
 		ctx.fillRect(0, 0, width, height)
 
 		cb(canvas.toDataURL())
-
 	}
-	generateTemplate(res, background_color, cb, texture) {
+	generateTemplate(options, cb) {
+		var res = options.res
+		var background_color = options.color
+		var texture = options.texture
 		function cubeTempl(obj) {
 			var min = Blockbench.entity_mode ? 0 : 1
 			this.x = obj.size(0, true) || min
 			this.y = obj.size(1, true) || min
 			this.z = obj.size(2, true) || min
 			this.obj = obj
+			this.template_size = (obj.size(2, true) + obj.size(1, true)) + (obj.size(2, true) + obj.size(0, true))*2
 
 			this.height = this.z + this.y
 			this.width = 2* (this.x + this.z)
@@ -532,103 +598,143 @@ class BBPainter {
 
 		var res_multiple = res / 16
 		var templates = []
-		var max_x_pos = 0
-		var line_y_pos = 0;
-		var valid_cubes = 0;
-
-		var lines = [[]]
-		var line_length = Math.sqrt(elements.length/2)
-		var o = 0
-
-		var cubes = Blockbench.entity_mode ? elements.slice() : selected.slice()
+		var extend_x = 0;
+		var extend_y = 0;
 		var avg_size = 0;
+		var cubes = Blockbench.entity_mode ? elements.slice() : selected.slice()
 
 		var i = cubes.length-1
 		while (i >= 0) {
 			let obj = cubes[i]
-			if (obj.visibility === false) {
-				cubes.splice(i,1)
-			} else {
-				obj.template_size = (obj.size(2, true) + obj.size(1, true)) + (obj.size(2, true) + obj.size(0, true))*2
-				avg_size += obj.template_size
+			if (obj.visibility === true) {
+				templates.push(new cubeTempl(obj))
+				avg_size += templates[templates.length-1].template_size
 			}
 			i--;
 		}
-		avg_size /= cubes.length
-		cubes.sort(function(a,b) {
-			return b.template_size - a.template_size
-		})
-
-		i = 0
-		var ox = 0
-		cubes.forEach(function(obj) {
-			if (ox >= line_length) {
-				o = 0
-				ox = 0
-				i++
-				lines[i] = []
-			}
-			lines[i][o] = obj
-			o++;
-			ox += obj.template_size/avg_size
-		})
-
-		lines.forEach(function(b) {
-
-			//Data
-			var temps = []
-			b.forEach(function(s, si) {
-				if (s.type === 'cube') {
-					temps.push(new cubeTempl(s))
-					valid_cubes++;
-				}
-			})
-			//Defaults
-			//Find the maximum height of the line
-			var max_height = 0
-			temps.forEach(function(t) {
-				max_height = Math.max(max_height, t.height)
-			})
-			var x_pos = 0
-			var y_pos = 0 //Y Position of current area relative to this bone
-			var filled_x_pos = 0;
-			//Algorithm
-			temps.forEach(function(t) {
-				if (y_pos > 0 && (y_pos + t.height) <= max_height) {
-					//same column
-					t.posx = x_pos
-					t.posy = y_pos + line_y_pos
-					filled_x_pos = Math.max(filled_x_pos, x_pos+t.width)
-					y_pos += t.height
-				} else {
-					//new column
-					x_pos = filled_x_pos
-					y_pos = t.height
-					t.posx = x_pos
-					t.posy = line_y_pos
-					filled_x_pos = Math.max(filled_x_pos, x_pos+t.width)
-				}
-				//size of widest bone
-				max_x_pos = Math.max(max_x_pos, filled_x_pos)
-				templates.push(t)
-			})
-			line_y_pos += max_height
+		templates.sort(function(a,b) {
+			return b.template_size - a.template_size;
 		})
 		//Cancel if no cubes
-		if (valid_cubes == 0) {
+		if (templates.length == 0) {
 			Blockbench.showMessage('No valid cubes', 'center')
 			return;
 		}
-		function getNextPower(num, min) {
-			var i = min ? min : 2
-			while (i < num && i < 4000) {
-				i *= 2
+		/*
+		TEMPLATE MENU
+			condensed
+			use old texture
+		*/
+		if (options.compress) {
+
+			var fill_map = {}
+			function occupy(x, y) {
+				if (!fill_map[x]) fill_map[x] = {}
+				fill_map[x][y] = true
 			}
-			return i;
+			function check(x, y) {
+				return fill_map[x] && fill_map[x][y]
+			}
+			function forTemplatePixel(tpl, sx, sy, cb) {
+				for (var x = 0; x < tpl.width; x++) {		
+					for (var y = 0; y < tpl.height; y++) {
+						if (y >= tpl.z || (x >= tpl.z && x < (tpl.z + 2*tpl.x))) {
+							if (cb(sx+x, sy+y)) return;
+						}
+					}
+				}
+			}
+			function place(tpl, x, y) {
+				var works = true;
+				forTemplatePixel(tpl, x, y, (tx, ty) => {
+					if (check(tx, ty)) {
+						works = false;
+						return true;
+					}
+				})
+				if (works) {
+					forTemplatePixel(tpl, x, y, occupy)
+					tpl.posx = x;
+					tpl.posy = y;
+					extend_x = Math.max(extend_x, x + tpl.width);
+					extend_y = Math.max(extend_y, y + tpl.height);
+					return true;
+				}
+			}
+			templates.forEach(tpl => {
+				var vert = extend_x > extend_y;
+				//Scan for empty spot
+				for (var line = 0; line < 2e3; line++) {	
+					for (var x = 0; x < line; x++) {
+						if (place(tpl, x, line)) return;
+					}
+					for (var y = 0; y < line; y++) {
+						if (place(tpl, line, y)) return;
+					}
+				}
+			})
+		} else {
+			//OLD -------------------------------------------
+			var lines = [[]]
+			var line_length = Math.sqrt(elements.length/2)
+			avg_size /= templates.length
+			var o = 0
+			var i = 0
+			var ox = 0
+			templates.forEach(function(tpl) {
+				if (ox >= line_length) {
+					o = ox = 0
+					i++
+					lines[i] = []
+				}
+				lines[i][o] = tpl
+				o++;
+				ox += tpl.template_size/avg_size
+			})
+
+			lines.forEach(function(temps) {
+
+				var x_pos = 0
+				var y_pos = 0 //Y Position of current area relative to this bone
+				var filled_x_pos = 0;
+				var max_height = 0
+				//Find the maximum height of the line
+				temps.forEach(function(t) {
+					max_height = Math.max(max_height, t.height)
+				})
+				//Place
+				temps.forEach(function(t) {
+					if (y_pos > 0 && (y_pos + t.height) <= max_height) {
+						//same column
+						t.posx = x_pos
+						t.posy = y_pos + extend_y
+						filled_x_pos = Math.max(filled_x_pos, x_pos+t.width)
+						y_pos += t.height
+					} else {
+						//new column
+						x_pos = filled_x_pos
+						y_pos = t.height
+						t.posx = x_pos
+						t.posy = extend_y
+						filled_x_pos = Math.max(filled_x_pos, x_pos+t.width)
+					}
+					//size of widest bone
+					extend_x = Math.max(extend_x, filled_x_pos)
+				})
+				extend_y += max_height
+			})
 		}
+
 		//Size
-		var max_size = Math.max(max_x_pos, line_y_pos)
-		max_size = Math.ceil(max_size/16)*16//getNextPower(max_size, 16)
+		//function getNextPower(num, min) {
+		//	var i = min ? min : 2
+		//	while (i < num && i < 4000) {
+		//		i *= 2
+		//	}
+		//	return i;
+		//}
+		var max_size = Math.max(extend_x, extend_y)
+		max_size = Math.ceil(max_size/16)*16
 
 		if (background_color.getAlpha() != 0) {
 			background_color = background_color.toInteger()
@@ -664,22 +770,52 @@ class BBPainter {
 		function drawTexture(face, coords) {
 			if (!Blockbench.entity_mode) {
 				if (face.texture === undefined || face.texture === null) return false;
-				texture = getTextureById(face.texture)
+				texture = face.getTexture()
 			}
 			if (!texture || !texture.img) return false;
-			var uv = face.uv;
+			
+			ctx.save()
+			var uv = face.uv.slice();
+
+			if (face.direction === 'up') {
+				uv = [uv[2], uv[3], uv[0], uv[1]]
+			} else if (face.direction === 'down') {
+				uv = [uv[2], uv[1], uv[0], uv[3]]
+			}
+
 			var src = getRectangle(uv[0], uv[1], uv[2], uv[3])
+			var flip = [
+				uv[0] > uv[2] ? -1 : 1,
+				uv[1] > uv[3] ? -1 : 1
+			]
+			if (flip[0] + flip[1] < 1) {
+				ctx.scale(flip[0], flip[1])
+			}
+			if (face.rotation) {
+				ctx.rotate(Math.degToRad(face.rotation))
+				let rot = face.rotation
+
+				if (rot <= 180) flip[1] *= -1;
+				if (rot >= 180) flip[0] *= -1;
+				
+				while (rot > 0) {
+					[coords.x, coords.y] = [coords.y, coords.x];
+					[coords.w, coords.h] = [coords.h, coords.w];
+					rot -= 90;
+				}
+			}
 			ctx.drawImage(
 				texture.img,
 				src.ax/16 * texture.img.naturalWidth,
 				src.ay/16 * texture.img.naturalHeight,
 				src.x /16 * texture.img.naturalWidth,
 				src.y /16 * texture.img.naturalHeight,
-				coords.x*res_multiple,
-				coords.y*res_multiple,
-				coords.w*res_multiple,
-				coords.h*res_multiple
+				coords.x*res_multiple*flip[0],
+				coords.y*res_multiple*flip[1],
+				coords.w*res_multiple*flip[0],
+				coords.h*res_multiple*flip[1]
 			)
+			ctx.restore()
 			return true;
 		}
 
@@ -693,8 +829,9 @@ class BBPainter {
 		}
 
 		//Drawing
-
 		templates.forEach(function(t) {
+			let obj = t.obj
+			
 			for (var face in face_data) {
 				let d = face_data[face]
 				
@@ -704,7 +841,6 @@ class BBPainter {
 					drawTemplateRectangle(d.c1, d.c2, d.place(t))
 				}
 			}
-			let obj = t.obj
 			obj.uv_offset[0] = t.posx
 			obj.uv_offset[1] = t.posy
 
@@ -719,15 +855,16 @@ class BBPainter {
 					{face: 'up', fIndex: 4,		from: [size[2]+size[0], size[2]],	 	size: [-size[0], -size[2]]},
 					{face: 'down', fIndex: 6,	from: [size[2]+size[0]*2, 0],		 	size: [-size[0], size[2]]}
 				]
-
 				face_list.forEach(function(f) {
 
-					obj.faces[f.face].uv[0] = (f.from[0]			 + 	Math.floor(obj.uv_offset[0]+0.0000001)) / max_size  * 16,
-					obj.faces[f.face].uv[1] = (f.from[1]			 + 	Math.floor(obj.uv_offset[1]+0.0000001)) / max_size * 16,
-					obj.faces[f.face].uv[2] = (f.from[0] + f.size[0] + 	Math.floor(obj.uv_offset[0]+0.0000001)) / max_size  * 16,
-					obj.faces[f.face].uv[3] = (f.from[1] + f.size[1] + 	Math.floor(obj.uv_offset[1]+0.0000001)) / max_size * 16
-
+					obj.faces[f.face].uv[0] = (f.from[0]			 + 	Math.floor(obj.uv_offset[0]+0.0000001)) / max_size * 16;
+					obj.faces[f.face].uv[1] = (f.from[1]			 + 	Math.floor(obj.uv_offset[1]+0.0000001)) / max_size * 16;
+					obj.faces[f.face].uv[2] = (f.from[0] + f.size[0] + 	Math.floor(obj.uv_offset[0]+0.0000001)) / max_size * 16;
+					obj.faces[f.face].uv[3] = (f.from[1] + f.size[1] + 	Math.floor(obj.uv_offset[1]+0.0000001)) / max_size * 16;
+					obj.faces[f.face].rotation = 0;
 				})
+			} else {
+				obj.mirror_uv = false
 			}
 		})
 		var dataUrl = canvas.toDataURL()
@@ -852,6 +989,15 @@ BARS.defineActions(function() {
 		options: {
 			brush: true,
 			noise: true
+		}
+	})
+	new BarSelect({
+		id: 'fill_mode',
+		condition: () => Toolbox && Toolbox.selected.id === 'fill_tool',
+		options: {
+			face: true,
+			color: true,
+			cube: true
 		}
 	})
 

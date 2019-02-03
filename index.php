@@ -19,7 +19,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '2.3.2';
+		const appVersion = '2.4.0';
 	</script>
 		<script src="lib/vue.min.js"></script>
 		<script src="lib/vue_sortable.js"></script>
@@ -38,10 +38,10 @@
 		
 		<script src="js/language.js"></script>
 		<script src="js/util.js"></script>
-		<script src="js/keyboard.js"></script>
-		<script src="js/settings.js"></script>
 		<script src="js/actions.js"></script>
 		<script src="js/blockbench.js"></script>
+		<script src="js/keyboard.js"></script>
+		<script src="js/settings.js"></script>
 		<script src="js/undo.js"></script>
 
 		<script type="text/javascript">
@@ -66,7 +66,7 @@
 		<script src="js/molang.js"></script>
 		<script src="js/plugin_loader.js"></script>
 		<script>if (window.module) module = window.module;</script>
-
+		
 	<div id="post_model" class="web_only post_data" hidden><?php
 		if ( $_SERVER['REQUEST_METHOD'] == 'POST' ) {
 			$model = $_POST['model'];
@@ -84,6 +84,7 @@
 		}
 	?></div>
 	<div style="display: none;"></div>
+
 
 	<div id="blackout" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"></div>
 
@@ -122,8 +123,8 @@
 			</div>
 		</div>
 		<ul class="list" id="plugin_list">
-			<li v-for="plugin in installedPlugins" v-bind:plugin="plugin.id" v-bind:class="{testing: plugin.fromFile, expanded: plugin.expanded}">
-				<div class="title" v-on:click="toggleInfo(plugin)">
+			<li v-for="plugin in plugin_search" v-bind:plugin="plugin.id" v-bind:class="{testing: plugin.fromFile, expanded: plugin.expanded}">
+				<div class="title" v-on:click="plugin.toggleInfo()">
 					<i v-if="plugin.icon.substr(0,3) !== 'fa-' " class="material-icons plugin_icon">{{ plugin.icon }}</i>
 					<i v-else class="fa fa_big plugin_icon" v-bind:class="plugin.icon"></i>
 
@@ -131,9 +132,9 @@
 					<i v-else class="material-icons plugin_expand_icon">expand_more</i>
 					{{ plugin.title }}
 				</div>
-				<div class="button_bar" v-if="checkIfInstallable(plugin) === true">
-					<button type="button" class="" v-on:click="uninstall(plugin)" v-if="plugin.installed"><i class="material-icons">delete</i><span class="tl">dialog.plugins.uninstall</span></button>
-					<button type="button" class="" v-on:click="install(plugin)" v-else><i class="material-icons">add</i><span class="tl">dialog.plugins.install</span></button>
+				<div class="button_bar" v-if="plugin.isInstallable()">
+					<button type="button" class="" v-on:click="plugin.uninstall()" v-if="plugin.installed"><i class="material-icons">delete</i><span class="tl">dialog.plugins.uninstall</span></button>
+					<button type="button" class="" v-on:click="plugin.download()" v-else><i class="material-icons">add</i><span class="tl">dialog.plugins.install</span></button>
 					<button type="button" class="local_only" v-on:click="plugin.reload()" v-if="plugin.installed && plugin.fromFile && isApp"><i class="material-icons">refresh</i><span class="tl">dialog.plugins.reload</span></button>
 				</div>
 				<div class="button_bar tiny tl" v-else>{{ checkIfInstallable(plugin) }}</div>
@@ -141,14 +142,14 @@
 				<div class="author">{{ tl('dialog.plugins.author', [plugin.author]) }}</div>
 				<div class="description">{{ plugin.description }}</div>
 				<div v-if="plugin.expanded" class="about" v-html="plugin.about"><button>a</button></div>
-				<div v-if="plugin.expanded" class="tl" v-on:click="toggleInfo(plugin)" style="text-decoration: underline;">dialog.plugins.show_less</div>
+				<div v-if="plugin.expanded" class="tl" v-on:click="plugin.toggleInfo()" style="text-decoration: underline;">dialog.plugins.show_less</div>
 			</li>
-			<div class="no_plugin_message tl" v-if="installedPlugins.length < 1 && showAll === false">dialog.plugins.none_installed</div>
-			<div class="no_plugin_message tl" v-if="installedPlugins.length < 1 && showAll === true" id="plugin_available_empty">dialog.plugins.none_available</div>
+			<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && showAll === false">dialog.plugins.none_installed</div>
+			<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && showAll === true" id="plugin_available_empty">dialog.plugins.none_available</div>
 		</ul>
 
 		<div class="dialog_bar">
-			<button type="button" class="large cancel_btn confirm_btn uc_btn tl" onclick="saveInstalledPlugins()">dialog.close</button>
+			<button type="button" class="large cancel_btn confirm_btn uc_btn tl" onclick="saveInstalledPlugins();hideDialog();">dialog.close</button>
 		</div>
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</div>
@@ -160,8 +161,8 @@
 			<li v-for="item in currentBar" v-bind:title="item.name" :key="item.id||item">
 				<div v-if="typeof item === 'string'" class="toolbar_separator"></div>
 				<div v-else class="tool">
-					<span class="icon_wrapper" v-bind:style="{opacity: BARS.condition(item.condition) ? 1 : 0.4}" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></span>
 					<div class="tooltip">{{item.name + (BARS.condition(item.condition) ? '' : ' (' + tl('dialog.toolbar_edit.hidden') + ')' )}}</div>
+					<span class="icon_wrapper" v-bind:style="{opacity: BARS.condition(item.condition) ? 1 : 0.4}" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></span>
 				</div>
 			</li> 
 		</ul>
@@ -182,7 +183,7 @@
 		</ul>
 
 		<div class="dialog_bar">
-			<button type="button" class="large cancel_btn confirm_btn uc_btn tl" onclick="saveInstalledPlugins()">dialog.close</button>
+			<button type="button" class="large cancel_btn confirm_btn uc_btn tl" onclick="saveInstalledPlugins();hideDialog();">dialog.close</button>
 		</div>
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</div>
@@ -243,10 +244,10 @@
 		<div id="texture_menu_thumbnail"></div>
 
 		<div class="bar">
-			<div class="tool link_only" onclick="textures.selected.reopen()"><i class="material-icons">file_upload</i><div class="tooltip tl">menu.texture.change</div></div>
-			<div class="tool link_only" onclick="textures.selected.refresh(true)"><i class="material-icons">refresh</i><div class="tooltip tl">menu.texture.refresh</div></div>
-			<div class="tool link_only" onclick="textures.selected.openFolder()"><i class="material-icons">folder</i><div class="tooltip tl">menu.texture.folder</div></div>
-			<div class="tool" onclick="textures.selected.remove()"><i class="material-icons">delete</i><div class="tooltip tl">menu.texture.delete</div></div>
+			<div class="tool link_only" onclick="textures.selected.reopen()"><div class="tooltip tl">menu.texture.change</div><i class="material-icons">file_upload</i></div>
+			<div class="tool link_only" onclick="textures.selected.refresh(true)"><div class="tooltip tl">menu.texture.refresh</div><i class="material-icons">refresh</i></div>
+			<div class="tool link_only" onclick="textures.selected.openFolder()"><div class="tooltip tl">menu.texture.folder</div><i class="material-icons">folder</i></div>
+			<div class="tool" onclick="textures.selected.remove()"><div class="tooltip tl">menu.texture.delete</div><i class="material-icons">delete</i></div>
 		</div>
 
 		<p class="multiline_text" id="te_path">path</p>
@@ -306,6 +307,7 @@
 		<div class="dialog_bar">
 			<button type="button" onclick="scaleAll(true)" class="large confirm_btn tl">dialog.scale.confirm</button>
 			<button type="button" class="large cancel_btn tl" onclick="cancelScaleAll()">dialog.cancel</button>
+			<button type="button" class="large hidden tl" id="scale_overflow_btn" onclick="scaleAllSelectOverflow()">dialog.scale.select_overflow</button>
 		</div>
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</div>
@@ -489,12 +491,12 @@
 							<div>{{action.name}}</div>
 							<div class="keybindslot" v-on:click.stop="record(action)">{{ action.keybind ? action.keybind.label : '' }}</div>
 							<div class="tool" v-on:click="reset(action)">
-								<i class="material-icons">replay</i>
 								<div class="tooltip tl">keybindings.reset</div>
+								<i class="material-icons">replay</i>
 							</div>
 							<div class="tool" v-on:click="clear(action)">
-								<i class="material-icons">clear</i>
 								<div class="tooltip tl">keybindings.clear</div>
+								<i class="material-icons">clear</i>
 							</div>
 						</li>
 					</ul>
@@ -696,6 +698,17 @@
 
 	<div id="plugin_dialog_wrapper"></div>
 
+	<div id="action_selector" v-if="open">
+		<input type="text" v-model="search_input">
+		<i class="material-icons" id="action_search_bar_icon">search</i>
+		<ul>
+			<li v-for="(item, i) in actions" v-on:click="ActionControl.click(item, $event)" v-bind:class="{selected: i === index}" v-on:mouseenter="index = i">
+				<div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
+				{{ item.name }}
+			</li>
+		</ul>
+	</div>
+
 	<header>
 		<div id="title">
 			<span>Blockbench</span>
@@ -742,26 +755,26 @@
 			<p class="tl">display.slot</p>
 			<div id="display_bar" class="bar tabs_small">
 				<input class="hidden" type="radio" name="display" id="thirdperson_righthand" checked>
-				<label class="tool" for="thirdperson_righthand" onclick="DisplayMode.loadThirdRight()"><i class="material-icons">accessibility</i><div class="tooltip tl">display.slot.third_right</div></label>
+				<label class="tool" for="thirdperson_righthand" onclick="DisplayMode.loadThirdRight()"><div class="tooltip tl">display.slot.third_right</div><i class="material-icons">accessibility</i></label>
 				<input class="hidden" type="radio" name="display" id="thirdperson_lefthand">
-				<label class="tool" for="thirdperson_lefthand" onclick="DisplayMode.loadThirdLeft()"><i class="material-icons">accessibility</i><div class="tooltip tl">display.slot.third_left</div></label>
+				<label class="tool" for="thirdperson_lefthand" onclick="DisplayMode.loadThirdLeft()"><div class="tooltip tl">display.slot.third_left</div><i class="material-icons">accessibility</i></label>
 
 				<input class="hidden" type="radio" name="display" id="firstperson_righthand">
-				<label class="tool" for="firstperson_righthand" onclick="DisplayMode.loadFirstRight()"><i class="material-icons">person</i><div class="tooltip tl">display.slot.first_right</div></label>
+				<label class="tool" for="firstperson_righthand" onclick="DisplayMode.loadFirstRight()"><div class="tooltip tl">display.slot.first_right</div><i class="material-icons">person</i></label>
 				<input class="hidden" type="radio" name="display" id="firstperson_lefthand">
-				<label class="tool" for="firstperson_lefthand" onclick="DisplayMode.loadFirstLeft()"><i class="material-icons">person</i><div class="tooltip tl">display.slot.first_left</div></label>
+				<label class="tool" for="firstperson_lefthand" onclick="DisplayMode.loadFirstLeft()"><div class="tooltip tl">display.slot.first_left</div><i class="material-icons">person</i></label>
 
 				<input class="hidden" type="radio" name="display" id="head">
-				<label class="tool" for="head" onclick="DisplayMode.loadHead()"><i class="material-icons">sentiment_satisfied</i><div class="tooltip tl">display.slot.head</div></label>
+				<label class="tool" for="head" onclick="DisplayMode.loadHead()"><div class="tooltip tl">display.slot.head</div><i class="material-icons">sentiment_satisfied</i></label>
 
 				<input class="hidden" type="radio" name="display" id="ground">
-				<label class="tool" for="ground" onclick="DisplayMode.loadGround()"><i class="icon-ground"></i><div class="tooltip tl">display.slot.ground</div></label>
+				<label class="tool" for="ground" onclick="DisplayMode.loadGround()"><div class="tooltip tl">display.slot.ground</div><i class="icon-ground"></i></label>
 
 				<input class="hidden" type="radio" name="display" id="fixed">
-				<label class="tool" for="fixed" onclick="DisplayMode.loadFixed()"><i class="material-icons">filter_frames</i><div class="tooltip tl">display.slot.frame</div></label>
+				<label class="tool" for="fixed" onclick="DisplayMode.loadFixed()"><div class="tooltip tl">display.slot.frame</div><i class="material-icons">filter_frames</i></label>
 
 				<input class="hidden" type="radio" name="display" id="gui">
-				<label class="tool" for="gui" onclick="DisplayMode.loadGUI()"><i class="material-icons">border_style</i><div class="tooltip tl">display.slot.gui</div></label>
+				<label class="tool" for="gui" onclick="DisplayMode.loadGUI()"><div class="tooltip tl">display.slot.gui</div><i class="material-icons">border_style</i></label>
 			</div>
 			<p class="reference_model_bar tl">display.reference</p>
 			<div id="display_ref_bar" class="bar tabs_small reference_model_bar">
@@ -788,7 +801,8 @@
 				<p class="tl">display.scale</p><div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>
 				<div class="bar" v-for="axis in [0, 1, 2]">
 					<div class="tool display_scale_invert" v-on:click="invert(axis)">
-						<i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i><div class="tooltip tl">display.mirror</div>
+						<div class="tooltip tl">display.mirror</div>
+						<i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i>
 					</div>
 					<input type="range" class="tool disp_range scaleRange" v-model.number="slot.scale[axis]" v-bind:trigger_type="'scale.'+axis" v-bind:id="'scale_range_'+axis"
 						v-bind:min="slot.scale[axis] > 1 ? -2 : 0"
@@ -846,7 +860,7 @@
 				<li
 					v-for="texture in textures"
 					v-bind:class="{ selected: texture.selected, particle: texture.particle}"
-					v-bind:texid="texture.id"
+					v-bind:texid="texture.uuid"
 					class="texture"
 					v-on:click.stop="texture.select($event)"
 					v-on:dblclick="texture.openMenu($event)"
@@ -924,7 +938,7 @@
 			<div id="timeline_lines"></div>
 		</div>
 	</div>
-	<div id="status_bar">
+	<div id="status_bar" @contextmenu="Interface.status_bar.menu.show(event);console.log(true);">
 		<div id="status_saved">
 			<i class="material-icons" v-if="Prop.project_saved" v-bind:title="tl('status_bar.saved')">check</i>
 			<i class="material-icons" v-else v-bind:title="tl('status_bar.unsaved')">close</i>

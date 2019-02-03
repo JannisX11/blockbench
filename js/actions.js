@@ -29,29 +29,26 @@ class BarItem {
 			return !!this.condition
 		}
 	}
-	addLabel(in_bar) {
-		$(this.node).attr('title', this.description)
+	addLabel(in_bar, action) {
+		if (!action || this instanceof BarItem) {
+			action = this;
+		}
+		$(action.node).attr('title', action.description)
 		if (in_bar) {
-			$(this.node).prepend('<label class="f_left in_toolbar">'+this.name+':</label>')
+			$(action.node).prepend('<label class="f_left in_toolbar">'+action.name+':</label>')
 		} else {
-			$(this.node).append('<div class="tooltip">'+this.name+'</div>')
+			$(action.node).prepend('<div class="tooltip">'+action.name+'</div>')
 			.on('mouseenter', function() {
 
 				var tooltip = $(this).find('div.tooltip')
 				if (!tooltip || typeof tooltip.offset() !== 'object') return;
-				//Left
-				if (tooltip.css('left') === '-4px') {
-					tooltip.css('left', 'auto')
-				}
-				if (-tooltip.offset().left > 4) {
-					tooltip.css('left', '-4px')
-				}
-				//Right
-				if (tooltip.css('right') === '-4px') {
-					tooltip.css('right', 'auto')
-				}
-				if ((tooltip.offset().left + tooltip.width()) - $(window).width() > 4) {
-					tooltip.css('right', '-4px')
+
+				tooltip.css('margin-left', '0')
+				var offset = tooltip.offset()
+				offset.right = offset.left + parseInt(tooltip.css('width').replace(/px/, '')) - $(window).width()
+
+				if (offset.right > 4) {
+					tooltip.css('margin-left', -offset.right+'px')
 				}
 			})
 		}
@@ -127,6 +124,7 @@ class Action extends BarItem {
 		}
 		this.keybind.setAction(this.id)
 		this.work_in_dialog = data.work_in_dialog === true
+		this.uses = 0;
 		//Icon
 		this.icon = data.icon
 		this.color = data.color
@@ -142,9 +140,9 @@ class Action extends BarItem {
 		this.icon_node = Blockbench.getIconNode(this.icon, this.color)
 		this.node = $(`<div class="tool ${this.id}"></div>`).get(0)
 		this.nodes = [this.node]
-		this.addLabel(data.label)
 		this.menu_node = $(`<li>${this.name}</li>`).get(0)
-		$(this.node).add(this.menu_node).prepend(this.icon_node)
+		$(this.node).add(this.menu_node).append(this.icon_node)
+		this.addLabel(data.label)
 		$(this.node).click(function(e) {scope.trigger(e)})
 
 		if (data.linked_setting) {
@@ -164,6 +162,7 @@ class Action extends BarItem {
 				return true;
 			}
 			scope.click(event)
+			scope.uses++;
 
 			$(scope.nodes).each(function() {
 				$(this).css('color', 'var(--color-light)')
@@ -227,6 +226,7 @@ class Tool extends Action {
 		}
 		Toolbox.selected = this;
 		delete Toolbox.original;
+		this.uses++;
 
 		if (this.transformerMode) {
 			Transformer.setMode(this.transformerMode)
@@ -309,8 +309,8 @@ class NumSlider extends Widget {
 		}
 		var scope = this;
 		this.node = $( `<div class="tool wide widget nslide_tool">
-							<div class="nslide" n-action="${this.id}"></div>
 							<div class="tooltip">${this.name}</div>
+							<div class="nslide" n-action="${this.id}"></div>
 					  	</div>`).get(0);
 		this.jq_outer = $(this.node)
 		this.jq_inner = this.jq_outer.find('.nslide');
@@ -651,10 +651,15 @@ class Toolbar {
 		var scope = this;
 		this.children = [];
 		this.default_children = data.children.slice()
-		this.node = $('<div class="toolbar">'+
+		var jq = $('<div class="toolbar">'+
 			'<div class="content"></div>'+
-			'<div class="tool toolbar_menu"><i class="material-icons">more_vert</i><div class="tooltip">'+tl('data.toolbar')+'</div></div>'+
-		'</div>').get(0)
+			'<div class="tool toolbar_menu"><i class="material-icons">more_vert</i></div>'+
+		'</div>')
+		this.node = jq.get(0)
+		BarItem.prototype.addLabel(false, {
+			name: tl('data.toolbar'),
+			node: jq.find('.tool.toolbar_menu').get(0)
+		})
 		$(this.node).find('div.toolbar_menu').click(function(event) {scope.contextmenu(event)})
 		if (data) {
 			this.id = data.id
@@ -928,7 +933,12 @@ const BARS = {
 				id: 'project_window',
 				icon: 'featured_play_list',
 				category: 'file',
-				click: function () {showDialog('project_settings');}
+				click: function () {
+					showDialog('project_settings');
+					if (Blockbench.entity_mode) {
+						Undo.initEdit({resolution: true})
+					}
+				}
 			})
 			new Action({
 				id: 'open_model_folder',
@@ -1005,10 +1015,18 @@ const BARS = {
 				id: 'duplicate',
 				icon: 'content_copy',
 				category: 'edit',
-				condition: () => (!display_mode && !Animator.open && selected.length),
+				condition: () => (!display_mode && !Animator.open && (selected.length || selected_group)),
 				keybind: new Keybind({key: 68, ctrl: true}),
 				click: function () {
-					duplicateCubes();
+					if (selected_group && (selected_group.matchesSelection() || selected.length === 0)) {
+						var cubes_before = elements.length
+						Undo.initEdit({outliner: true, cubes: [], selection: true})
+						var g = selected_group.duplicate()
+						g.select().isOpen = true;
+						Undo.finishEdit('duplicate_group', {outliner: true, cubes: elements.slice().slice(cubes_before), selection: true})
+					} else {
+						duplicateCubes();
+					}
 				}
 			})
 			new Action({
@@ -1080,7 +1098,7 @@ const BARS = {
 				id: 'move_up',
 				icon: 'arrow_upward',
 				category: 'transform',
-				condition: () => (selected.length && !open_interface && !open_menu),
+				condition: () => (selected.length && !open_menu),
 				keybind: new Keybind({key: 38, ctrl: null, shift: null}),
 				click: function (e) {moveCubesRelative(-1, 2, e)}
 			})
@@ -1088,7 +1106,7 @@ const BARS = {
 				id: 'move_down',
 				icon: 'arrow_downward',
 				category: 'transform',
-				condition: () => (selected.length && !open_interface && !open_menu),
+				condition: () => (selected.length && !open_menu),
 				keybind: new Keybind({key: 40, ctrl: null, shift: null}),
 				click: function (e) {moveCubesRelative(1, 2, e)}
 			})
@@ -1096,7 +1114,7 @@ const BARS = {
 				id: 'move_left',
 				icon: 'arrow_back',
 				category: 'transform',
-				condition: () => (selected.length && !open_interface && !open_menu),
+				condition: () => (selected.length && !open_menu),
 				keybind: new Keybind({key: 37, ctrl: null, shift: null}),
 				click: function (e) {moveCubesRelative(-1, 0, e)}
 			})
@@ -1104,7 +1122,7 @@ const BARS = {
 				id: 'move_right',
 				icon: 'arrow_forward',
 				category: 'transform',
-				condition: () => (selected.length && !open_interface && !open_menu),
+				condition: () => (selected.length && !open_menu),
 				keybind: new Keybind({key: 39, ctrl: null, shift: null}),
 				click: function (e) {moveCubesRelative(1, 0, e)}
 			})
@@ -1112,7 +1130,7 @@ const BARS = {
 				id: 'move_forth',
 				icon: 'keyboard_arrow_up',
 				category: 'transform',
-				condition: () => (selected.length && !open_interface && !open_menu),
+				condition: () => (selected.length && !open_menu),
 				keybind: new Keybind({key: 33, ctrl: null, shift: null}),
 				click: function (e) {moveCubesRelative(-1, 1, e)}
 			})
@@ -1120,7 +1138,7 @@ const BARS = {
 				id: 'move_back',
 				icon: 'keyboard_arrow_down',
 				category: 'transform',
-				condition: () => (selected.length && !open_interface && !open_menu),
+				condition: () => (selected.length && !open_menu),
 				keybind: new Keybind({key: 34, ctrl: null, shift: null}),
 				click: function (e) {moveCubesRelative(1, 1, e)}
 			})
@@ -1207,6 +1225,17 @@ const BARS = {
 				click: function () {setZoomLevel('reset')}
 			})
 
+		//Find Action
+			new Action({
+				id: 'select_action',
+				icon: 'fullscreen',
+				category: 'blockbench',
+				condition: isApp,
+				keybind: new Keybind({key: 70}),
+				click: function () {
+					ActionControl.select()
+				}
+			})
 
 		BARS.action_definers.forEach((definer) => {
 			if (typeof definer === 'function') {
@@ -1218,7 +1247,7 @@ const BARS = {
 		//
 		Toolbars = {}
 		var stored = localStorage.getItem('toolbars')
-		if (stored) {
+		if (stored && localStorage.getItem('welcomed_version') == appVersion) {
 			stored = JSON.parse(stored)
 			if (typeof stored === 'object') {
 				BARS.stored = stored
@@ -1298,6 +1327,10 @@ const BARS = {
 				'uv_auto',
 				'uv_transparent',
 				'uv_rotation',
+				//Box
+				'toggle_uv_overlay',
+				'uv_shift',
+				'toggle_mirror_uv',
 			],
 			default_place: true
 		})
@@ -1367,6 +1400,7 @@ const BARS = {
 			id: 'brush',
 			children: [
 				'brush_mode',
+				'fill_mode',
 				'brush_color',
 				'slider_brush_size',
 				'slider_brush_opacity',
@@ -1408,7 +1442,6 @@ const BARS = {
 			},
 			computed: {
 				searchedBarItems() {
-
 					var name = $('#action_search_bar').val().toUpperCase()
 					var list = [{
 						icon: 'bookmark',
@@ -1472,6 +1505,44 @@ const BARS = {
 			BARS.list._data.showAll = !BARS.list._data.showAll
 			BARS.list._data.showAll = !BARS.list._data.showAll
 		}
+
+		ActionControl.vue = new Vue({
+			el: '#action_selector',
+			data: {
+				open: false,
+				search_input: '',
+				index: 0,
+				length: 0,
+				list: []
+			},
+			computed: {
+				actions: function() {
+					var search_input = this._data.search_input.toUpperCase()
+					var list = this._data.list.empty()
+					for (var i = 0; i < Keybinds.actions.length; i++) {
+						var item = Keybinds.actions[i];
+						if (
+							search_input.length == 0 ||
+							item.name.toUpperCase().includes(search_input) ||
+							item.id.toUpperCase().includes(search_input)
+						) {
+							if (item instanceof Action && BARS.condition(item.condition)) {
+								list.push(item)
+								if (list.length > ActionControl.max_length) i = Infinity;
+							}
+						}
+					}
+					this._data.length = list.length;
+					if (this._data.index < 0) {
+						this._data.index = 0;
+					}
+					if (this._data.index >= list.length) {
+						this._data.index = list.length-1;
+					}
+					return list;
+				}
+			}
+		})
 	},
 	updateConditions: function() {
 		for (var key in Toolbars) {
@@ -1503,6 +1574,57 @@ const BARS = {
 				}
 			})
 		}
+	}
+}
+const ActionControl = {
+	get open() {return ActionControl.vue._data.open},
+	set open(state) {ActionControl.vue._data.open = !!state},
+	type: 'action_selector',
+	max_length: 16,
+	select: function() {
+		ActionControl.open = true;
+		open_interface = ActionControl;
+		ActionControl.vue._data.index = 0;
+		Vue.nextTick(_ => {
+			$('#action_selector > input').focus().select();
+		})
+	},
+	hide: function() {
+		open_interface = false;
+		ActionControl.open = false;
+	},
+	confirm: function(e) {
+		var data = ActionControl.vue._data
+		var action = data.list[data.index]
+		ActionControl.hide()
+		if (action) {
+			action.trigger(e)
+		}
+	},
+	cancel: function() {
+		ActionControl.hide()
+	},
+	click: function(action, e) {
+		action.trigger(e)
+		ActionControl.hide()
+	},
+	handleKeys: function(e) {
+		var data = ActionControl.vue._data
+
+		if (e.which === 38) {
+			data.index--;
+			if (data.index < 0) {
+				data.index = data.length-1;
+			}
+		} else if (e.which === 40) {
+			data.index++;
+			if (data.index >= data.length) {
+				data.index = 0;
+			}
+		} else {
+			return false;
+		}
+		return true;
 	}
 }
 
@@ -1649,7 +1771,7 @@ class Menu {
 					entry = $('<li>' + tl(s.name) + '</li>')
 					entry.prepend(icon)
 					if (typeof s.click === 'function') {
-						entry.click(function() {s.click(context)})
+						entry.click(function(e) {s.click(context, e)})
 					}
 					//Submenu
 					if (typeof s.children == 'function' || typeof s.children == 'object') {
@@ -1838,7 +1960,7 @@ const MenuBar = {
 			'project_window',
 			{name: 'menu.file.new', id: 'new', icon: 'insert_drive_file', children: [
 				'new_block_model',
-				'new_entity_model'
+				'new_entity_model',
 			]},
 			{name: 'menu.file.recent', id: 'recent', icon: 'history', condition: function() {return isApp && recent_projects.length}, children: function() {
 				var arr = []
@@ -1848,8 +1970,8 @@ const MenuBar = {
 						name: p.name,
 						path: p.path,
 						icon: entity ? 'view_list' : 'insert_drive_file',
-						click: function() {
-							readFile(p.path, true)
+						click: function(c, event) {
+							readFile(p.path, !event.shiftKey)
 						}
 					})
 				})
@@ -1872,7 +1994,6 @@ const MenuBar = {
 			'_',
 			'settings_window',
 			'update_window',
-			'show_tip',
 			'donate',
 			'reload'
 		])
@@ -1881,9 +2002,9 @@ const MenuBar = {
 			'redo',
 			'_',
 			'add_cube',
+			'add_group',
 			'duplicate',
 			'delete',
-			'sort_outliner',
 			'_',
 			'local_move',
 			'_',
@@ -1916,6 +2037,7 @@ const MenuBar = {
 				'toggle_export',
 				'toggle_autouv',
 				'toggle_shade',
+				'toggle_mirror_uv',
 				'rename'
 			]}
 
@@ -2088,7 +2210,7 @@ const Keybinds = {
 		Keybinds.save()
 	}
 }
-if (localStorage.getItem('keybindings') && localStorage.getItem('welcomed_version') == appVersion) {
+if (localStorage.getItem('keybindings')) {
 	try {
 		Keybinds.stored = JSON.parse(localStorage.getItem('keybindings'))
 	} catch (err) {}

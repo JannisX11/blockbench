@@ -548,6 +548,7 @@
 
 		var _mode = "translate";
 		var _dragging = false;
+		var _has_groups = false;
 		var _plane = "XY";
 		var _gizmo = {
 
@@ -866,7 +867,16 @@
 						obj.oldScale = obj.size(axisnr)
 					})
 				}
-				Undo.initEdit({cubes: selected})
+				_has_groups = Blockbench.entity_mode && selected_group && selected_group.matchesSelection() && Toolbox.selected.transformerMode == 'translate';
+				var rotate_group = Blockbench.entity_mode && selected_group && Toolbox.selected.transformerMode == 'rotate';
+
+				if (rotate_group) {
+					Undo.initEdit({cubes: selected, group: selected_group})
+				} else if (_has_groups) {
+					Undo.initEdit({cubes: selected, outliner: true})
+				} else {
+					Undo.initEdit({cubes: selected})
+				}
 
 			} else if (Modes.id === 'animate') {
 
@@ -984,15 +994,17 @@
 							})
 						}
 						if (!overlapping) {
-							/*var group = Blockbench.entity_mode && selected_group && selected_group.matchesSelection();
-							if (group) {
-								selected_group.origin[axisNumber] += difference
-							}*/
+							if (_has_groups && Blockbench.globalMovement) {
+								selected_group.forEachChild(g => {
+									g.origin[axisNumber] += difference
+								}, 'group', true)
+
+							}
 							selected.forEach(function(obj, i) {
 								var mesh = scope.objects[i]
 								var valx = obj.from[axisNumber]
 								valx += difference
-								moveCube(obj, valx, axisNumber/*, group*/)
+								moveCube(obj, valx, axisNumber, _has_groups)
 							})
 							Canvas.updatePositions(true)
 							centerTransformer()

@@ -1,71 +1,52 @@
 //Actions
 function origin2geometry() {
-	Undo.initEdit({cubes: selected})
+
 	if (Blockbench.entity_mode) {
+		Undo.initEdit({group: selected_group})
+
 		if (!selected_group || selected_group.children.length === 0) return;
 		var position = [0, 0, 0]
 		selected_group.children.forEach(function(obj) {
-			position[0] += obj.from[0] + obj.size(0)/2
-			position[1] += obj.from[1] + obj.size(1)/2
-			position[2] += obj.from[2] + obj.size(2)/2
+			if (obj.type === 'cube') {
+				position[0] += obj.from[0] + obj.size(0)/2
+				position[1] += obj.from[1] + obj.size(1)/2
+				position[2] += obj.from[2] + obj.size(2)/2
+			}
 		})
 		position.forEach(function(p, pi) {
 			position[pi] = p / selected_group.children.length
 		})
 		selected_group.origin = position
 
-	} else if (selected.length > 1) {
-
-		var center = [0, 0, 0]
-		var i = 0;
-		selected.forEach(function(obj) {
-			i = 0;
-			while (i < 3) {
-				center[i] += obj.from[i]
-				center[i] += obj.to[i]
-				i++;
-			}
-		})
-		i = 0;
-		while (i < 3) {
-			center[i] = center[i] / (selected.length * 2)
-			i++;
-		}
-		selected.forEach(function(obj) {
-			obj.origin = center.slice()
-		})
-
 	} else {
+		Undo.initEdit({cubes: selected})
 
-		var obj = selected[0]
-		var element_size = obj.size()
-		var element_center = new THREE.Vector3(
-			(element_size[0]   / 2) + obj.from[0],
-			(element_size[1]   / 2) + obj.from[1],
-			(element_size[2]   / 2) + obj.from[2]
-		)
-
-		element_center.x -= obj.origin[0]
-		element_center.y -= obj.origin[1]
-		element_center.z -= obj.origin[2]
-
-		if (obj.mesh) {
-			element_center.applyEuler(obj.mesh.rotation)
-		}
-		obj.origin[0] += element_center.x
-		obj.origin[1] += element_center.y
-		obj.origin[2] += element_center.z
-
-		obj.to[0] = obj.origin[0] + element_size[0] / 2
-		obj.to[1] = obj.origin[1] + element_size[1] / 2
-		obj.to[2] = obj.origin[2] + element_size[2] / 2
-
-		obj.from[0] = obj.origin[0] - element_size[0] / 2
-		obj.from[1] = obj.origin[1] - element_size[1] / 2
-		obj.from[2] = obj.origin[2] - element_size[2] / 2
+		var center = getSelectionCenter()
+		
+		selected.forEach(cube => {
+			cube.transferOrigin(center)
+		})
 	}
 	Canvas.updatePositions()
-	Undo.finishEdit('origin2geometry')
+	Undo.finishEdit('origin to geometry')
+}
+function getSelectionCenter() {
+	var center = [0, 0, 0]
+	var i = 0;
+	selected.forEach(cube => {
+		var m = cube.mesh
+		if (cube.visibility && m) {
+
+			var pos = cube.getWorldCenter()
+			center[0] += pos.x
+			center[1] += pos.y
+			center[2] += pos.z
+		}
+	})
+	for (var i = 0; i < 3; i++) {
+		center[i] = center[i] / selected.length
+	}
+	return center;
 }
 function isMovementGlobal() {
 	if (selected.length === 0 || (!settings.local_move.value && Toolbox.selected.id !== 'resize_tool')) {
@@ -356,8 +337,10 @@ function scaleAll(save, size) {
 	}
 	if (clip && Blockbench.entity_mode === false) {
 		$('#scaling_clipping_warning').text('Model clipping: Your model is too large for the canvas')
+		$('#scale_overflow_btn').css('display', 'inline-block')
 	} else {
 		$('#scaling_clipping_warning').text('')
+		$('#scale_overflow_btn').hide()
 	}
 	Canvas.updatePositions()
 	if (save === true) {
@@ -392,6 +375,26 @@ function cancelScaleAll() {
 	}
 	Canvas.updatePositions()
 	hideDialog()
+}
+function scaleAllSelectOverflow() {
+	var overflow = [];
+	selected.forEach(function(obj) {
+		var clip = false
+		obj.from.forEach(function(ogn, i) {
+
+			if (obj.from[i] > 32 || obj.from[i] < -16) clip = true
+			if (obj.to[i]   > 32 || obj.to[i]   < -16) clip = true
+		})
+		if (clip) {
+			overflow.push(obj)
+		}
+	})
+	cancelScaleAll()
+	selected.length = 0;
+	overflow.forEach(cube => {
+		selected.push(cube)
+	})
+	updateSelection();
 }
 //Center
 function centerCubesAll(axis) {
@@ -474,19 +477,24 @@ function rotateOnAxis(value, fixed, axis) {
 	var axis_letter = getAxisLetter(axis)
 	var origin = selected[0].origin
 	selected.forEach(function(obj, i) {
-		if (!obj.rotation.equals([0,0,0])) {
+		if (!obj.rotation.allEqual(0)) {
 			origin = obj.origin
 		}
 	})
+	if (origin.allEqual(8)) {
+		origin = getSelectionCenter()
+		origin.forEach((n, ni) => {
+			origin[ni] = Math.round(n*2)/2
+		})
+	}
 	selected.forEach(function(obj, i) {
-		if (obj.rotation.equals([0,0,0])) {
+		if (obj.rotation.allEqual(0)) {
 			obj.origin = origin.slice()
 		}
 		var obj_val = value;
 		if (!fixed) {
 			obj_val += obj.rotation[axis]
 		}
-
 		obj_val = Math.trimDeg(obj_val)
 		if (settings.limited_rotation.value) {
 			//Limit To 1 Axis
@@ -813,6 +821,7 @@ BARS.defineActions(function() {
 				}, 'group', true)
 			}
 			showDialog('scaling')
+			scaleAll(false, 1)
 		}
 	})
 	new Action({
@@ -964,6 +973,14 @@ BARS.defineActions(function() {
 		id: 'toggle_shade',
 		icon: 'wb_sunny',
 		category: 'transform',
+		condition: () => !Blockbench.entity_mode,
+		click: function () {toggleCubeProperty('shade')}
+	})
+	new Action({
+		id: 'toggle_mirror_uv',
+		icon: 'icon-mirror_x',
+		category: 'transform',
+		condition: () => Blockbench.entity_mode,
 		click: function () {toggleCubeProperty('shade')}
 	})
 	new Action({

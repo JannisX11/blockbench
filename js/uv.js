@@ -115,7 +115,10 @@ class UVEditor {
 			Undo.initEdit({cubes: selected})
 		}
 		var onAfter = function() {
-			Undo.finishEdit('dones')
+			Undo.finishEdit('edit UV')
+			if (Blockbench.entity_mode) {
+				scope.displayAllMappingOverlays()
+			}
 		}
 		var getInterval = function(event) {
 			return Blockbench.entity_mode
@@ -226,16 +229,6 @@ class UVEditor {
 			$(this).find('.uv_mapping_overlay').remove()
 		})
 
-		this.jquery.main.on('mousewheel', function() {
-			if (Blockbench.entity_mode) {
-				scope.displayMappingOverlay()
-				scope.jquery.main.on('mousemove', function() {
-					$(scope.jquery.size).find('.uv_mapping_overlay').remove()
-					scope.jquery.main.off('mousemove')
-				})
-			}
-		})
-
 		if (toolbar) {
 			this.jquery.bar = $(Toolbars.main_uv.node)
 			this.jquery.main.append(this.jquery.bar)
@@ -289,6 +282,9 @@ class UVEditor {
 				Undo.finishEdit('uv_change')
 				scope.disableAutoUV()
 				scope.updateDragHandle(ui.position)
+				if (Blockbench.entity_mode) {
+					scope.displayAllMappingOverlays()
+				}
 			}
 		})
 
@@ -309,13 +305,25 @@ class UVEditor {
 		})
 
 		this.jquery.frame.mousedown(function(event) {
-			if (Toolbox.selected.id === 'brush_tool') {
+			if (Toolbox.selected.paintTool) {
 				scope.startBrush(event)
 			}
 		})
 		this.setSize(this.size)
 		return this;
 	}
+	message(msg, vars) {
+		msg = tl(msg, vars)
+		var box = $('<div class="uv_message_box">' + msg + '</div>')
+		this.jquery.frame.append(box)
+		setTimeout(function() {
+			box.fadeOut(200)
+			setTimeout(function() {
+				box.remove()
+			}, 300)
+		}, 1000)
+	}
+	//Brush
 	getBrushCoordinates(event, tex) {
 		var scope = this;
 		var multiplier = (Blockbench.entity_mode && tex) ? tex.res/Project.texture_width : 1
@@ -332,11 +340,10 @@ class UVEditor {
 		var texture = scope.getTexture()
 		if (texture) {
 			Painter.current.x = Painter.current.y = 0
-			var x = scope.getBrushCoordinates(event, texture).x
-			var y = scope.getBrushCoordinates(event, texture).y
-			Painter.startBrush(texture, x, y, undefined, event)
+			var coords = scope.getBrushCoordinates(event, texture)
+			Painter.startBrush(texture, coords.x, coords.y, undefined, event)
 		}
-		if (event.altKey === false && texture && texture.mode !== 'link') {
+		if (Toolbox.selected.id !== 'color_picker' && texture) {
 			scope.jquery.frame.get(0).addEventListener('mousemove', scope.moveBrush, false );
 			document.addEventListener('mouseup', scope.stopBrush, false );
 		}
@@ -386,17 +393,6 @@ class UVEditor {
 		document.removeEventListener( 'mouseup', scope.stopBrush, false );
 		Painter.stopBrush()
 	}
-	message(msg, vars) {
-		msg = tl(msg, vars)
-		var box = $('<div class="uv_message_box">' + msg + '</div>')
-		this.jquery.frame.append(box)
-		setTimeout(function() {
-			box.fadeOut(200)
-			setTimeout(function() {
-				box.remove()
-			}, 300)
-		}, 1000)
-	}
 	//Get
 	getPixelSize() {
 		if (Blockbench.entity_mode) {
@@ -426,7 +422,7 @@ class UVEditor {
 		}
 	}
 	getTexture() {
-		return getTextureById(selected[0].faces[this.face].texture)
+		return selected[0].faces[this.face].getTexture()
 	}
 	forCubes(cb) {
 		var i = 0;
@@ -437,6 +433,7 @@ class UVEditor {
 	}
 	//Set
 	setSize(size, cancel_load) {
+		var old_size = this.size;
 		this.size = size
 		this.jquery.frame.width(size)
 		if (uv_dialog.editors !== undefined && this === uv_dialog.editors.single) {
@@ -447,6 +444,9 @@ class UVEditor {
 			this.height = size / (Project.texture_width/Project.texture_height)
 			this.jquery.frame.height(this.height)
 			$('.panel#textures').css('top', 133+(size / (Project.texture_width/Project.texture_height))+'px')
+			if (old_size !== size) {
+				this.displayAllMappingOverlays(true)
+			}
 		} else {
 			this.height = size
 			this.jquery.frame.height(size)
@@ -489,11 +489,13 @@ class UVEditor {
 		}
 		if (load !== false) this.loadData()
 	}
-	setFace(face) {
+	setFace(face, update) {
 		this.face = face
-		this.loadData()
 		if (this.id === 'main_uv') {
 			$('input#'+face+'_radio').prop("checked", true)
+		}
+		if (update !== false) {
+			this.loadData()
 		}
 		return this;
 	}
@@ -542,12 +544,14 @@ class UVEditor {
 		//Set Rotation
 		BarItems.uv_rotation.set(face.rotation||0)
 
-		this.displayTexture(face.texture)
+		this.displayTexture(face)
 		this.displayFrame()//and transform info
 		this.displayTools()
 		this.displaySliders()
 		this.updateDragHandle()
-
+		if (Blockbench.entity_mode) {
+			this.displayAllMappingOverlays()
+		}
 		if (this.id !== 'main_uv') {
 			this.displayTools()
 		}
@@ -570,12 +574,14 @@ class UVEditor {
 			})
 
 		} else {
-
+			var trim = v => Math.round(v*1000+0.3)/1000;
 			var pixelSize = this.size/16
-			var left = this.jquery.size.position().left / pixelSize
-			var top  = this.jquery.size.position().top / pixelSize * (Project.texture_width/Project.texture_height)
-			var left2 = (this.jquery.size.width()) / pixelSize + left
-			var top2 = (this.jquery.size.height()) / pixelSize + top
+
+			var left = trim( this.jquery.size.position().left / pixelSize);
+			var top  = trim( this.jquery.size.position().top / pixelSize * (Project.texture_width/Project.texture_height));
+			var left2= Math.clamp(trim( (this.jquery.size.width()) / pixelSize + left), 0, 16);
+			var top2 = Math.clamp(trim( (this.jquery.size.height()) / pixelSize + top), 0, 16);
+
 			var uvTag = this.getUVTag()
 
 			if (uvTag[0] > uvTag[2]) {
@@ -600,25 +606,21 @@ class UVEditor {
 			main_uv.loadData()
 		}
 	}
-	applyTexture(id) {
+	applyTexture(uuid) {
 		var scope = this;
 		Undo.initEdit({cubes: selected, uv_only: true})
 		this.forCubes(obj => {
-			obj.faces[scope.face].texture = '#'+id
+			obj.faces[scope.face].texture = uuid
 		})
 		this.loadData()
 		Canvas.updateSelectedFaces()
 		Undo.finishEdit('apply_texture')
 	}
-	displayTexture(id) {
-		if (!id || id === null) {
+	displayTexture(face) {
+		var tex = face.getTexture()
+		if (!tex || typeof tex !== 'object' || tex.error) {
 			this.displayEmptyTexture()
 		} else {
-			var tex = getTextureById(id+'')
-			if (tex === undefined || tex.error) {
-				this.displayEmptyTexture()
-				return;
-			}
 			this.setFrameColor(tex.dark_box)
 			var css = 'url("'+tex.source.split('\\').join('\\\\').replace(/ /g, '%20')+'")'
 			this.jquery.frame.css('background-image', css)
@@ -717,24 +719,40 @@ class UVEditor {
 		this.updateDragHandle()
 		this.displayTransformInfo()
 	}
+	//Overlay
 	displayMappingOverlay() {
 		if (!Blockbench.entity_mode) return this;
 		var scope = this;
+		var sides = this.getMappingOverlay()
+
+		$(scope.jquery.size).find('.uv_mapping_overlay').remove()
+		scope.jquery.size.append(sides)
+
+		return this;
+	}
+	getMappingOverlay(cube, absolute) {
+		var scope = this;
+		var sides = $('<div class="mapping_overlay_cube"></div>')
 		var pixels = scope.getPixelSize()
+		if (!cube) cube = selected[0]
 		function addElement(x, y, width, height, n, color) {
+			if (absolute) {
+				x += cube.uv_offset[0];
+				y += cube.uv_offset[1];
+			}
 			x *= pixels;
 			y *= pixels;
 			width  = limitNumber(width *pixels + x, 0, scope.size)  - x;
 			height = limitNumber(height*pixels + y, 0, scope.height)- y;
 
-			scope.jquery.size.append('<div class="uv_mapping_overlay" '+
-				'style="left: '+x+'px; top: '+y+'px;'+
-				'height: '+height+'px; width: '+width+'px;'+
-				'background: '+color+';"></div>')
+			sides.append($(`<div class="uv_mapping_overlay"
+				style="left: ${x}px; top: ${y}px;
+				height: ${height}px; width: ${width}px;
+				background: ${color};"></div>`))
 		}
-		var size = selected[0].size(undefined, true)
+		var size = cube.size(undefined, true)
 
-		$(scope.jquery.size).find('.uv_mapping_overlay').remove()
+		sides.attr('size_hash', `${cube.uv_offset[0]}_${cube.uv_offset[1]}_${size[0]}_${size[1]}_${size[2]}`)
 
 		addElement(size[2], 0, size[0], size[2],				'#b4d4e1', '#ecf8fd')
 		addElement(size[2]+size[0], 0, size[0], size[2],		'#536174', '#6e788c')
@@ -742,7 +760,32 @@ class UVEditor {
 		addElement(size[2], size[2], size[0], size[1],		  '#5bbcf4', '#7BD4FF')
 		addElement(size[2]+size[0], size[2], size[2], size[1],  '#f48686', '#FFA7A4')
 		addElement(2*size[2]+size[0], size[2], size[0], size[1],'#f8dd72', '#FFF899')
+
+		return sides;
 	}
+	displayAllMappingOverlays(force_reload) {
+		var scope = this;
+		var cycle = bbuid(4)
+		if (this.showing_overlays) {
+			elements.forEach(cube => {
+				var size = cube.size(undefined, true)
+				var hash = `${cube.uv_offset[0]}_${cube.uv_offset[1]}_${size[0]}_${size[1]}_${size[2]}`
+				var c = scope.jquery.frame.find(`.mapping_overlay_cube:not(.${cycle})[size_hash="${hash}"]`).first()
+				if (force_reload || !c.length) {
+					var sides = scope.getMappingOverlay(cube, true)
+					sides.addClass(cycle)
+					scope.jquery.frame.append(sides)
+				} else {
+					c.addClass(cycle)
+				}
+			})
+			$(`.mapping_overlay_cube:not(.${cycle})`).remove()
+			$('.mapping_overlay_cube').removeClass(cycle)
+		} else {
+			$(scope.jquery.frame).find('.mapping_overlay_cube').remove()
+		}
+	}
+	//UI
 	displaySliders() {
 		this.sliders.pos_x.update()
 		this.sliders.pos_y.update()
@@ -753,7 +796,7 @@ class UVEditor {
 		//Cullface
 		var face = selected[0].faces[this.face]
 		BarItems.cullface.set(face.cullface||'off')
-		BarItems.face_tint.setIcon(face.tintindex !== undefined ? 'check_box' : 'check_box_outline_blank')
+		BarItems.face_tint.setIcon(face.tint ? 'check_box' : 'check_box_outline_blank')
 	}
 	updateDragHandle() {
 		var pos = this.jquery.size.position()
@@ -914,10 +957,10 @@ class UVEditor {
 					break;
 					case 'east':
 					uv = [
-						16 - obj.from[2],
-						16 - obj.from[1],
 						16 - obj.to[2],
 						16 - obj.to[1],
+						16 - obj.from[2],
+						16 - obj.from[1],
 					];
 					break;
 					case 'up':
@@ -1024,15 +1067,11 @@ class UVEditor {
 	}
 	switchTint(event) {
 		var scope = this;
-		var val = selected[0].faces[scope.face].tintindex === undefined
+		var val = !selected[0].faces[scope.face].tint
 
 		if (event === true || event === false) val = event
 		this.forCubes(obj => {
-			if (val) {
-				obj.faces[scope.face].tintindex = 0
-			} else {
-				delete obj.faces[scope.face].tintindex
-			}
+			obj.faces[scope.face].tint = val
 		})
 		if (val) {
 			this.message('uv_editor.tint_on')
@@ -1043,13 +1082,9 @@ class UVEditor {
 	}
 	rotate() {
 		var scope = this;
-		var value = BarItems.uv_rotation.get()
+		var value = parseInt(BarItems.uv_rotation.get())
 		this.forCubes(obj => {
-			if (value == 0) {
-				delete obj.faces[scope.face].rotation
-			} else {
-				obj.faces[scope.face].rotation = parseInt(value)
-			}
+			obj.faces[scope.face].rotation = value
 			Canvas.updateUV(obj)
 		})
 		this.displayTransformInfo()
@@ -1057,12 +1092,9 @@ class UVEditor {
 	}
 	setRotation(value) {
 		var scope = this;
+		value = parseInt(value)
 		this.forCubes(obj => {
-			if (value == 0) {
-				delete obj.faces[scope.face].rotation
-			} else {
-				obj.faces[scope.face].rotation = parseInt(value)
-			}
+			obj.faces[scope.face].rotation = value
 			Canvas.updateUV(obj)
 		})
 		this.loadData()
@@ -1105,15 +1137,7 @@ class UVEditor {
 				return;
 			}
 			var tag = selected[0].faces[face]
-			var new_tag = {
-				uv: tag.uv.slice(),
-				face: face
-			}
-			if (tag.texture !== undefined) new_tag.texture = tag.texture
-			if (tag.cullface) new_tag.cullface = tag.cullface
-			if (tag.rotation) new_tag.rotation = tag.rotation
-			if (tag.enabled !== undefined) new_tag.enabled = tag.enabled
-			if (tag.tintindex !== undefined) new_tag.tintindex = tag.tintindex
+			var new_tag = new Face().extend(tag)
 			uv_dialog.clipboard.push(new_tag)
 		}
 		if (event.shiftKey) {
@@ -1141,15 +1165,7 @@ class UVEditor {
 		function applyFace(tag, face) {
 			if (!face) face = tag.face
 			selected.forEach(function(obj) {
-				var target = obj.faces[face]
-				target.uv = tag.uv.slice()
-
-				if (tag.texture !== undefined || target.texture !== undefined) target.texture = tag.texture
-				if (tag.cullface || target.cullface) target.cullface = tag.cullface
-				if (tag.rotation || target.rotation) target.rotation = tag.rotation
-				if (tag.enabled !== undefined || target.enabled !== undefined) target.enabled = tag.enabled
-				if (tag.tintindex !== undefined || target.texture !== undefined) target.tintindex = tag.tintindex
-
+				obj.faces[face].extend(tag)
 				Canvas.updateUV(obj)
 			})
 		}
@@ -1194,12 +1210,7 @@ class UVEditor {
 		var scope = this;
 		this.forCubes(obj => {
 			scope.getFaces(event).forEach(function(side) {
-				obj.faces[side].uv = [0, 0, 1, 1]
-				delete obj.faces[side].texture;
-				delete obj.faces[side].rotation;
-				delete obj.faces[side].tintindex;
-				delete obj.faces[side].enabled;
-				delete obj.faces[side].cullface;
+				obj.faces[side].reset()
 			})
 			Canvas.adaptObjectFaces(obj)
 		})
@@ -1213,6 +1224,9 @@ class UVEditor {
 	}
 }
 	UVEditor.prototype.menu = new Menu([
+		'copy',
+		'paste',
+		/*
 		{icon: 'content_copy', name: 'menu.uv.copy', click: function(editor) {
 			editor.copy(event)
 		}},
@@ -1220,28 +1234,16 @@ class UVEditor {
 			Undo.initEdit({cubes: selected, uv_only: true})
 			editor.paste(event)
 			Undo.finishEdit('uv_paste')
-		}},
+		}},*/
 		{icon: 'photo_size_select_large', name: 'menu.uv.mapping', children: function(editor) { return [
 			{icon: editor.reference_face.enabled!==false ? 'check_box' : 'check_box_outline_blank', name: 'menu.uv.mapping.export', click: function(editor) {
 				Undo.initEdit({cubes: selected, uv_only: true})
 				editor.toggleUV(event)
 				Undo.finishEdit('uv_toggle')
 			}},
-			{icon: 'zoom_out_map', name: 'menu.uv.mapping.maximize', click: function(editor) {
-				Undo.initEdit({cubes: selected, uv_only: true})
-				editor.maximize(event)
-				Undo.finishEdit('uv_maximize')
-			}},
-			{icon: 'brightness_auto', name: 'menu.uv.mapping.auto', click: function(editor) {
-				Undo.initEdit({cubes: selected, uv_only: true})
-				editor.setAutoSize(event)
-				Undo.finishEdit('uv_auto')
-			}},
-			{icon: 'brightness_auto', name: 'menu.uv.mapping.rel_auto', click: function(editor) {
-				Undo.initEdit({cubes: selected, uv_only: true})
-				editor.setRelativeAutoSize(event)
-				Undo.finishEdit('uv_auto')
-			}},
+			'uv_maximize',
+			'uv_auto',
+			'uv_rel_auto',
 			{icon: 'rotate_90_degrees_ccw', name: 'menu.uv.mapping.rotation', children: function() {
 				var off = 'radio_button_unchecked'
 				var on = 'radio_button_checked'
@@ -1275,7 +1277,8 @@ class UVEditor {
 					Undo.initEdit({cubes: selected, uv_only: true})
 					editor.mirrorX(event)
 					Undo.finishEdit('uv_mirror')
-				}},
+				}
+			},
 			{
 				icon: (editor.reference_face.uv[1] > editor.reference_face.uv[3] ? 'check_box' : 'check_box_outline_blank'),
 				name: 'menu.uv.mapping.mirror_y',
@@ -1283,13 +1286,14 @@ class UVEditor {
 					Undo.initEdit({cubes: selected, uv_only: true})
 					editor.mirrorY(event)
 					Undo.finishEdit('uv_mirror')
-				}},
+				}
+			},
 		]}},
 		{
-			icon: (editor) => (editor.reference_face.tintindex === 0 ? 'check_box' : 'check_box_outline_blank'),
+			icon: (editor) => (editor.reference_face.tint ? 'check_box' : 'check_box_outline_blank'),
 			name: 'menu.uv.tint', click: function(editor) {
 				Undo.initEdit({cubes: selected, uv_only: true})
-				editor.switchTint(selected[0].faces[editor.face].tintindex !== 0)
+				editor.switchTint(selected[0].faces[editor.face].tint)
 				Undo.finishEdit('face_tint')
 			}
 		},
@@ -1313,7 +1317,7 @@ class UVEditor {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
-					click: function(editor) {editor.applyTexture(t.id)}
+					click: function(editor) {editor.applyTexture(t.uuid)}
 				})
 			})
 			return arr;
@@ -1552,16 +1556,7 @@ const uv_dialog = {
 
 		function addToClipboard(face) {
 			var tag = selected[0].faces[face]
-			var new_tag = {
-				uv: tag.uv.slice(),
-				face: face
-			}
-			if (tag.texture) new_tag.texture = tag.texture
-			if (tag.cullface) new_tag.cullface = tag.cullface
-			if (tag.rotation) new_tag.rotation = tag.rotation
-			if (tag.enabled !== undefined) new_tag.enabled = tag.enabled
-			if (tag.tintindex !== undefined) new_tag.tintindex = tag.tintindex
-			uv_dialog.clipboard.push(new_tag)
+			uv_dialog.clipboard.push(new Face(tag))
 		}
 		if (uv_dialog.hoveredSide) {
 			addToClipboard(uv_dialog.hoveredSide)
@@ -1583,15 +1578,7 @@ const uv_dialog = {
 		function applyFace(tag, face) {
 			if (!face) face = tag.face
 			selected.forEach(function(obj) {
-				var target = obj.faces[face]
-				target.uv = tag.uv.slice()
-
-				if (tag.texture || target.texture) target.texture = tag.texture
-				if (tag.cullface || target.cullface) target.cullface = tag.cullface
-				if (tag.rotation || target.rotation) target.rotation = tag.rotation
-				if (tag.enabled !== undefined || target.enabled !== undefined) target.enabled = tag.enabled
-				if (tag.tintindex !== undefined || target.texture !== undefined) target.tintindex = tag.tintindex
-
+				obj.faces[face].extend(tag)
 				Canvas.updateUV(obj)
 			})
 		}
@@ -1646,7 +1633,7 @@ BARS.defineActions(function() {
 		onChange: function(slider) {
 			Undo.initEdit({cubes: selected, uv_only: true})
 			uv_dialog.forSelection('rotate')
-			Undo.finishEdit('uv')
+			Undo.finishEdit('uv rotate')
 		}
 	})
 	new BarSelect({
@@ -1677,7 +1664,7 @@ BARS.defineActions(function() {
 		click: function (event) { 
 			Undo.initEdit({cubes: selected, uv_only: true})
 			uv_dialog.forSelection('maximize', event)
-			Undo.finishEdit('uv')
+			Undo.finishEdit('uv maximize')
 		}
 	})
 	new Action({
@@ -1688,7 +1675,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({cubes: selected, uv_only: true})
 			uv_dialog.forSelection('setAutoSize', event)
-			Undo.finishEdit('uv')
+			Undo.finishEdit('auto uv')
 		}
 	})
 	new Action({
@@ -1699,7 +1686,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({cubes: selected, uv_only: true})
 			uv_dialog.forSelection('setRelativeAutoSize', event)
-			Undo.finishEdit('uv')
+			Undo.finishEdit('auto uv')
 		}
 	})
 	new Action({
@@ -1710,7 +1697,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({cubes: selected, uv_only: true})
 			uv_dialog.forSelection('mirrorX', event)
-			Undo.finishEdit('uv')
+			Undo.finishEdit('mirror uv')
 		}
 	})
 	new Action({
@@ -1721,7 +1708,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({cubes: selected, uv_only: true})
 			uv_dialog.forSelection('mirrorY', event)
-			Undo.finishEdit('uv')
+			Undo.finishEdit('mirror uv')
 		}
 	})
 	new Action({
@@ -1732,7 +1719,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({cubes: selected, uv_only: true})
 			uv_dialog.forSelection('clear', event)
-			Undo.finishEdit('uv')
+			Undo.finishEdit('remove face')
 		}
 	})
 	new Action({
@@ -1743,7 +1730,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({cubes: selected, uv_only: true})
 			uv_dialog.forSelection('reset', event)
-			Undo.finishEdit('uv')
+			Undo.finishEdit('reset uv')
 		}
 	})
 	new Action({
@@ -1754,7 +1741,7 @@ BARS.defineActions(function() {
 		click: function (e) {
 			Undo.initEdit({cubes: selected, uv_only: true})
 			main_uv.applyAll(e)
-			Undo.finishEdit('uv')
+			Undo.finishEdit('uv apply all')
 		}
 	})
 	new BarSelect({
@@ -1773,7 +1760,7 @@ BARS.defineActions(function() {
 		onChange: function(sel, event) {
 			Undo.initEdit({cubes: selected, uv_only: true})
 			uv_dialog.forSelection('switchCullface')
-			Undo.finishEdit('uv')
+			Undo.finishEdit('cullface')
 		}
 	})
 	new Action({
@@ -1784,7 +1771,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({cubes: selected, uv_only: true})
 			uv_dialog.forSelection('autoCullface', event)
-			Undo.finishEdit('uv')
+			Undo.finishEdit('auto cullface')
 		}
 	})
 	new Action({
@@ -1794,7 +1781,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({cubes: selected, uv_only: true})
 			uv_dialog.forSelection('switchTint', event)
-			Undo.finishEdit('uv')
+			Undo.finishEdit('tint')
 		}
 	})
 	new Action({
@@ -1804,6 +1791,17 @@ BARS.defineActions(function() {
 		category: 'uv',
 		click: function () {
 			showUVShiftDialog()
+		}
+	})
+	new Action({
+		id: 'toggle_uv_overlay',
+		condition: () => Blockbench.entity_mode,
+		icon: 'crop_landscape',//'crop_landscape'
+		category: 'uv',
+		click: function () {
+			main_uv.showing_overlays = !main_uv.showing_overlays
+			BarItems.toggle_uv_overlay.setIcon(main_uv.showing_overlays ? 'view_quilt' : 'crop_landscape')
+			main_uv.displayAllMappingOverlays()
 		}
 	})
 })

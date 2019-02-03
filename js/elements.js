@@ -81,8 +81,46 @@ var selected_group;
 
 //Cubes
 class Face {
-	constructor() {
+	constructor(direction, data) {
+		this.direction = direction || 'north';
+		this.reset()
 		this.uv = [0, 0, canvasGridSize(), canvasGridSize()]
+		if (data) {
+			this.extend(data)
+		}
+	}
+	extend(object) {
+		if (object.texture === null) {
+			this.texture = null
+		} else {
+			Merge.string(this, object, 'texture')
+		}
+		Merge.string(this, object, 'cullface')
+		Merge.number(this, object, 'rotation')
+		Merge.number(this, object, 'tint')
+		if (object.uv) {
+			Merge.number(this.uv, object.uv, 0)
+			Merge.number(this.uv, object.uv, 1)
+			Merge.number(this.uv, object.uv, 2)
+			Merge.number(this.uv, object.uv, 3)
+		}
+		return this;
+	}
+	reset() {
+		this.uv = [0, 0, 0, 0];
+		this.rotation = 0;
+		this.texture = false;
+		this.cullface = '';
+		this.enabled = true;
+		this.tint = false;
+		return this;
+	}
+	getTexture() {
+		if (typeof this.texture === 'string') {
+			return textures.findInArray('uuid', this.texture)
+		} else {
+			return this.texture;
+		}
 	}
 }
 class OutlinerElement {
@@ -129,14 +167,20 @@ class OutlinerElement {
 			if (group.type === 'cube') {
 				if (group.parent === 'root') {
 					index = TreeElements.indexOf(group)
+					if (index === TreeElements.length-1) {
+						index++;
+					}
 					group = 'root'
 				} else {
 					index = group.parent.children.indexOf(group)
+					if (index === group.parent.children.length-1) {
+						index++;
+					}
 					group = group.parent
 				}
 			}
 		}
-		if (group != 'root' && group.type === 'group') {
+		if (group.type === 'group') {
 			var i = 0
 			var level = group;
 			while (i < 50) {
@@ -312,6 +356,12 @@ class OutlinerElement {
 		}
 		return iterate(this.parent, 0)
 	}
+	get mirror_uv() {
+		return !this.shade;
+	}
+	set mirror_uv(val) {
+		this.shade = !val;
+	}
 }
 class Cube extends OutlinerElement {
 	constructor(data, uuid) {
@@ -336,7 +386,14 @@ class Cube extends OutlinerElement {
 		this.export = true;
 		this.parent = 'root';
 
-		this.faces = {north: new Face(), east: new Face(), south: new Face(), west: new Face(), up: new Face(), down: new Face()}
+		this.faces = {
+			north: 	new Face('north'),
+			east: 	new Face('east'),
+			south: 	new Face('south'),
+			west: 	new Face('west'),
+			up: 	new Face('up'),
+			down: 	new Face('down')
+		}
 		if (data && typeof data === 'object') {
 			this.extend(data)
 		}
@@ -522,20 +579,7 @@ class Cube extends OutlinerElement {
 		if (object.faces) {
 			for (var face in this.faces) {
 				if (this.faces.hasOwnProperty(face) && object.faces.hasOwnProperty(face)) {
-					if (object.faces[face].texture === null) {
-						this.faces[face].texture = null
-					} else {
-						Merge.string(this.faces[face], object.faces[face], 'texture')
-					}
-					Merge.string(this.faces[face], object.faces[face], 'cullface')
-					Merge.number(this.faces[face], object.faces[face], 'rotation')
-					Merge.number(this.faces[face], object.faces[face], 'tintindex')
-					if (object.faces[face].uv) {
-						Merge.number(this.faces[face].uv, object.faces[face].uv, 0)
-						Merge.number(this.faces[face].uv, object.faces[face].uv, 1)
-						Merge.number(this.faces[face].uv, object.faces[face].uv, 2)
-						Merge.number(this.faces[face].uv, object.faces[face].uv, 3)
-					}
+					this.faces[face].extend(object.faces[face])
 				}
 			}
 		}
@@ -614,22 +658,22 @@ class Cube extends OutlinerElement {
 					this.faces.north.rotation= rotateUVFace(this.faces.north.rotation, 2)
 					this.faces.down.rotation = rotateUVFace(this.faces.down.rotation, 2)
 
-					var temp = this.faces.north
-					this.faces.north = this.faces.down
-					this.faces.down = this.faces.south
-					this.faces.south = this.faces.up
-					this.faces.up = temp
+					var temp = new Face(true, this.faces.north)
+					this.faces.north.extend(this.faces.down)
+					this.faces.down.extend(this.faces.south)
+					this.faces.south.extend(this.faces.up)
+					this.faces.up.extend(temp)
 
 				} else if (axis === 1) {
 
 					this.faces.up.rotation= rotateUVFace(this.faces.up.rotation, 1)
 					this.faces.down.rotation = rotateUVFace(this.faces.down.rotation, 3)
 
-					var temp = this.faces.north
-					this.faces.north = this.faces.west
-					this.faces.west = this.faces.south
-					this.faces.south = this.faces.east
-					this.faces.east = temp
+					var temp = new Face(true, this.faces.north)
+					this.faces.north.extend(this.faces.west)
+					this.faces.west.extend(this.faces.south)
+					this.faces.south.extend(this.faces.east)
+					this.faces.east.extend(temp)
 
 				} else if (axis === 2) {
 
@@ -641,11 +685,11 @@ class Cube extends OutlinerElement {
 					this.faces.west.rotation = rotateUVFace(this.faces.west.rotation, 3)
 					this.faces.down.rotation = rotateUVFace(this.faces.down.rotation, 3)
 
-					var temp = this.faces.east
-					this.faces.east = this.faces.down
-					this.faces.down = this.faces.west
-					this.faces.west = this.faces.up
-					this.faces.up = temp
+					var temp = new Face(true, this.faces.east)
+					this.faces.east.extend(this.faces.down)
+					this.faces.down.extend(this.faces.west)
+					this.faces.west.extend(this.faces.up)
+					this.faces.up.extend(temp)
 				}
 
 
@@ -708,8 +752,8 @@ class Cube extends OutlinerElement {
 				case 2: switchFaces = ['south', 'north']; break;
 			}
 			var x = this.faces[switchFaces[0]]
-			this.faces[switchFaces[0]] = this.faces[switchFaces[1]]
-			this.faces[switchFaces[1]] = x
+			this.faces[switchFaces[0]].extend(this.faces[switchFaces[1]])
+			this.faces[switchFaces[1]].extend(x)
 
 			//UV
 			if (axis === 1) {
@@ -734,6 +778,58 @@ class Cube extends OutlinerElement {
 		Canvas.adaptObjectPosition(this)
 		Canvas.adaptObjectFaces(this)
 		Canvas.updateUV(this)
+	}
+	transferOrigin(origin) {
+		if (!this.mesh) return;
+		var q = this.mesh.getWorldQuaternion(new THREE.Quaternion())
+		var shift = new THREE.Vector3(
+			this.origin[0] - origin[0],
+			this.origin[1] - origin[1],
+			this.origin[2] - origin[2],
+		)
+		var dq = new THREE.Vector3().copy(shift)
+		dq.applyQuaternion(q)
+		shift.sub(dq)
+		shift.applyQuaternion(q.inverse())
+
+		this.from[0] += shift.x;
+		this.from[1] += shift.y;
+		this.from[2] += shift.z;
+		this.to[0] += shift.x;
+		this.to[1] += shift.y;
+		this.to[2] += shift.z;
+
+		this.origin = origin.slice();
+
+		Canvas.adaptObjectPosition(this)
+		return this;
+	}
+	getWorldCenter() {
+		var m = this.mesh;
+		var pos = new THREE.Vector3(
+			this.from[0] + this.size(0)/2,
+			this.from[1] + this.size(1)/2,
+			this.from[2] + this.size(2)/2
+		)
+		if (!Blockbench.entity_mode) {
+
+			pos.x -= this.origin[0]
+			pos.y -= this.origin[1]
+			pos.z -= this.origin[2]
+			var r = m.getWorldQuaternion(new THREE.Quaternion())
+			pos.applyQuaternion(r)
+			pos.x += this.origin[0]
+			pos.y += this.origin[1]
+			pos.z += this.origin[2]
+		} else {
+			var r = m.getWorldQuaternion(new THREE.Quaternion())
+			pos.applyQuaternion(r)
+			pos.add(m.getWorldPosition(new THREE.Vector3()))
+			pos.x += 8
+			pos.y += 8
+			pos.z += 8
+		}
+		return pos;
 	}
 	setColor(index) {
 		this.color = index;
@@ -797,8 +893,8 @@ class Cube extends OutlinerElement {
 			var sides = faces
 		}
 		var id = null
-		if (texture && texture.id !== undefined) {
-			id = '#'+texture.id
+		if (texture) {
+			id = texture.uuid
 		} else if (texture === 'blank') {
 			id = undefined;
 		}
@@ -887,14 +983,6 @@ class Cube extends OutlinerElement {
 				var sx = scope.faces[face].uv[0]
 				var sy = scope.faces[face].uv[1]
 				var rot = scope.faces[face].rotation
-
-				//Use Texture resolution
-				/*
-				var tex = getTextureById(scope.faces[face].texture)
-				if (tex && tex.res && tex.res != 16) {
-					size[0] *= 16 / tex.res
-					size[1] *= 16 / tex.res
-				}*/
 
 				//Match To Rotation
 				if (rot === 90 || rot === 270) {
@@ -1046,6 +1134,7 @@ class Group extends OutlinerElement {
 		this.export = true;
 		this.autouv = 0;
 		this.parent = 'root';
+		this.isOpen = false;
 
 		if (typeof data === 'object') {
 			this.extend(data)
@@ -1096,6 +1185,7 @@ class Group extends OutlinerElement {
 			})
 		}
 		updateSelection()
+		return this;
 	}
 	selectChildren(event) {
 		var scope = this;
@@ -1118,6 +1208,7 @@ class Group extends OutlinerElement {
 			s.selectLow()
 		})
 		updateSelection()
+		return this;
 	}
 	selectLow(highlight) {
 		//Only Select
@@ -1127,6 +1218,7 @@ class Group extends OutlinerElement {
 		this.children.forEach(function(s) {
 			s.selectLow(highlight)
 		})
+		return this;
 	}
 	unselect() {
 		if (this.selected === false) return;
@@ -1167,6 +1259,7 @@ class Group extends OutlinerElement {
 		Merge.number(this, object, 'autouv')
 		Merge.boolean(this, object, 'export')
 		Merge.boolean(this, object, 'visibility')
+		return this;
 	}
 	openUp() {
 		this.isOpen = true
@@ -1247,6 +1340,7 @@ class Group extends OutlinerElement {
 	}
 	showContextMenu(event) {
 		this.menu.open(event, this)
+		return this;
 	}
 	setMaterial(material) {
 		var scope = this;
@@ -1259,6 +1353,7 @@ class Group extends OutlinerElement {
 			}
 			Undo.finishEdit('bone_material')
 		})
+		return this;
 	}
 	sortContent() {
 		Undo.initEdit({outliner: true})
@@ -1267,22 +1362,26 @@ class Group extends OutlinerElement {
 			return sort_collator.compare(a.name, b.name)
 		});
 		Undo.finishEdit('sort')
+		return this;
 	}
 	duplicate(destination) {
 		function duplicateArray(g1, g2) {
 			var array = g1.children
 			var i = 0;
 			while (i < array.length) {
-				if (array[i].type === 'cube') {
+				if (array[i].type !== 'group') {
 					var dupl = new Cube(array[i])
 					dupl.addTo(g2, false)
 					if (destination !== 'cache') {
-						dupl.init()
+						dupl.init(false)
 					} else {
 						dupl.parent = undefined
 					}
 				} else {
 					var dupl = array[i].getChildlessCopy()
+					if (Blockbench.entity_mode && destination !== 'cache') {
+						dupl.createUniqueName()
+					}
 					duplicateArray(array[i], dupl)
 					dupl.addTo(g2, false)
 				}
@@ -1335,10 +1434,10 @@ class Group extends OutlinerElement {
 			obj.autouv = this.autouv;
 		}
 		if (this.origin.join('_') !== '8_8_8' || Blockbench.entity_mode) {
-			obj.origin = this.origin
+			obj.origin = this.origin.slice()
 		}
 		if (this.rotation.join('_') !== '0_0_0') {
-			obj.rotation = this.rotation
+			obj.rotation = this.rotation.slice()
 		}
 		if (this.reset) {
 			obj.reset = true
@@ -1657,13 +1756,12 @@ function loadOutlinerDraggable() {
 
 				} else if ($(ui.draggable).hasClass('texture')) {
 					//Texture
-					var id = $(ui.helper).attr('texid')
-					var sides = ['north', 'east', 'south', 'west', 'up', 'down']
+					var uuid = $(ui.helper).attr('texid')
 					if (target.type === 'group') {
-						target.forEachChild(function(s) {
-							sides.forEach(function(side) {
-								s.faces[side].texture = '#'+id
-							})
+						target.forEachChild(function(cube) {
+							for (var face in cube.faces) {
+								cube.faces[face].texture = uuid
+							}
 						}, 'cube')
 					} else {
 						var targets;
@@ -1673,10 +1771,10 @@ function loadOutlinerDraggable() {
 							targets = [target]
 						}
 
-						targets.forEach(function(target) {
-							sides.forEach(function(side) {
-								target.faces[side].texture = '#'+id
-							})
+						targets.forEach(function(cube) {
+							for (var face in cube.faces) {
+								cube.faces[face].texture = uuid
+							}
 						})
 					}
 					main_uv.loadData()
@@ -1718,19 +1816,20 @@ function dropOutlinerObjects(item, target, event) {
 		if (item && item !== target) {
 			if (event.altKey) { 
 				if (item.type === 'cube') {
-					var cube = new Cube(item).addTo(target).init()
+					var cube = new Cube(item).addTo(target, false).init(false)
 					selected.push(cube)
 				} else {
-					item.duplicate().addTo(target).select()
+					item.duplicate().addTo(target, false).select()
 				}
 			} else {
-				item.addTo(target)
+				item.addTo(target, false)
 				if (Blockbench.entity_mode) {
 					updatePosRecursive(item)
 				}
 			}
 		}
 	})
+	loadOutlinerDraggable()
 	if (event.altKey) {
 		updateSelection()
 		Undo.finishEdit('drag', {cubes: selected, outliner: true, selection: true})
@@ -1753,10 +1852,9 @@ function addCube() {
 	}
 
 	if (textures.length && Blockbench.entity_mode) {
-		var sides = ['north', 'east', 'south', 'west', 'up', 'down']
-		sides.forEach(function(side) {
-			base_cube.faces[side].texture = '#'+textures[0].id
-		})
+		for (var face in base_cube.faces) {
+			base_cube.faces[face].texture = textures[0].uuid
+		}
 		main_uv.loadData()
 	}
 	if (Blockbench.entity_mode) {
@@ -1878,6 +1976,11 @@ function stopRenameCubes(save) {
 		}
 		$('.outliner_object input.renaming').attr('disabled', true).removeClass('renaming')
 		$('body').focus()
+		if (window.getSelection) {
+			window.getSelection().removeAllRanges()
+		} else if (document.selection) {
+			document.selection.empty()
+		}
 		Blockbench.removeFlag('renaming')
 	}
 }
@@ -1906,8 +2009,30 @@ function toggleCubeProperty(key) {
 	if (key === 'visibility') {
 		Canvas.updateVisibility()
 	}
+	if (key === 'shade' && Blockbench.entity_mode) {
+		Canvas.updateUVs()
+	}
 	Undo.finishEdit('toggle_prop')
 }
+
+onVueSetup(function() {
+	outliner = new Vue({
+		el: '#cubes_list',
+		data: {
+			option: {
+				root: {
+					name: 'Model',
+					isParent: true,
+					isOpen: true,
+					selected: false,
+					onOpened: function () {},
+					select: function() {},
+					children: TreeElements
+				}
+			}
+		}
+	})
+})
 
 BARS.defineActions(function() {
 	new Action({

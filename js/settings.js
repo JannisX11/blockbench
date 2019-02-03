@@ -16,6 +16,7 @@ function settingSetup() {
 		//focal_length: 		{category: 'preview', value: 70, type: 'number'},
 		display_skin: 		{category: 'preview', value: false, type: 'click', condition: isApp, icon: 'icon-player', click: function() { changeDisplaySkin() }},
 		seethrough_outline:	{category: 'preview', value: false},
+		brightness: 		{category: 'preview', value: 50, type: 'number'},
 		shading:	  		{category: 'preview', value: true}, 
 		transparency: 		{category: 'preview', value: true}, 
 		texture_fps:  		{category: 'preview', value: 2, type: 'number'},
@@ -242,7 +243,7 @@ function saveSettings(force_update) {
 		}
 	}
 	Canvas.outlineMaterial.depthTest = !settings.seethrough_outline.value
-	if (hasSettingChanged('shading')) {
+	if (hasSettingChanged('shading') || hasSettingChanged('brightness')) {
 		setShading()
 	}
 	if (hasSettingChanged('texture_fps')) {
@@ -265,7 +266,10 @@ function saveProjectSettings() {
 		if (uv_dialog.editors) {
 			uv_dialog.editors.single.setGrid()
 		}
-		entityMode.setResolution()
+		if (entityMode.old_res.x !== Project.texture_width || entityMode.old_res.y !== Project.texture_height) {
+			entityMode.setResolution()
+			Undo.finishEdit('changed resolution')
+		}
 	}
 	hideDialog()
 }
@@ -279,3 +283,41 @@ function toggleSetting(setting) {
 }
 function toggleWireframe() {
 }
+
+onVueSetup(function() {
+	var structure = {}
+	for (var key in settings) {
+		var category = settings[key].category
+		if (!category) category = 'general'
+
+		if (!structure[category]) {
+			structure[category] = {
+				name: tl('settings.category.'+category),
+				open: category === 'general',
+				items: {}
+			}
+		}
+		structure[category].items[key] = settings[key]
+	}
+	var settingslist = new Vue({
+		el: 'ul#settingslist',
+		data: {structure},
+		methods: {
+			saveSettings: function() {
+				localStorage.setItem('settings', JSON.stringify(settings))
+			},
+			toggleCategory: function(category) {
+				if (!category.open) {
+					for (var ct in structure) {
+						structure[ct].open = false
+					}
+				}
+				category.open = !category.open
+			}
+		}
+	})
+	var project_vue = new Vue({
+		el: '#project_settings',
+		data: {Project}
+	})
+})

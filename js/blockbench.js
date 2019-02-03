@@ -77,7 +77,10 @@ function initializeApp() {
 
 	//Misc
 	translateUI()
-	console.log('Blockbench ' + appVersion + (isApp ? ' Desktop' : ' Web ('+capitalizeFirstLetter(Blockbench.browser)+')'))
+	console.log('Blockbench ' + appVersion + (isApp
+		? (' Desktop (' + Blockbench.operating_system +')')
+		: (' Web ('+capitalizeFirstLetter(Blockbench.browser)+')')
+	))
 	if (localStorage.getItem('donated') == 'true') {
 		$('#donation_hint').remove()
 	}
@@ -95,7 +98,11 @@ function initializeApp() {
 	main_uv = new UVEditor('main_uv', false, true)
 	main_uv.setToMainSlot()
 
-	setupVue()
+	onVueSetup.funcs.forEach((func) => {
+		if (typeof func === 'function') {
+			func()
+		}
+	})
 
 //JQuery UI
 	$('#cubes_list').droppable({
@@ -114,9 +121,6 @@ function initializeApp() {
 	$('#texture_list').contextmenu(function(event) {
 		Interface.Panels.textures.menu.show(event)
 	})
-	$('#status_bar').contextmenu(function(event) {
-		Interface.status_bar.menu.show(event)
-	})
 	$(window).on( "unload", saveLocalStorages)
 
 	setupInterface()
@@ -124,161 +128,13 @@ function initializeApp() {
 	Modes.options.edit.select()
 	Blockbench.setup_successful = true
 }
-function setupVue() {
-	outliner = new Vue({
-		el: '#cubes_list',
-		data: {
-			option: {
-				root: {
-					name: 'Model',
-					isParent: true,
-					isOpen: true,
-					selected: false,
-					onOpened: function () {},
-					select: function() {},
-					children: TreeElements
-				}
-			}
-		}
-	})
-
-	texturelist = new Vue({
-		el: '#texture_list',
-		data: {textures},
-		methods: {
-			toggleP: function(texture) {
-				textures.forEach(function(t) {
-					if (t !== texture) {
-						t.particle = false;
-					}
-				})
-				texture.particle = !texture.particle
-			},
-			selectT: function(item, event) {
-				var index = textures.indexOf(item)
-				textures[index].select()
-			}
-		}
-	})
-	texturelist._data.elements = textures
-
-	setupKeybindings()
-
-	var structure = {}
-	for (var key in settings) {
-		var category = settings[key].category
-		if (!category) category = 'general'
-
-		if (!structure[category]) {
-			structure[category] = {
-				name: tl('settings.category.'+category),
-				open: category === 'general',
-				items: {}
-			}
-		}
-		structure[category].items[key] = settings[key]
+function onVueSetup(func) {
+	if (!onVueSetup.funcs) {
+		onVueSetup.funcs = []
 	}
-	var settingslist = new Vue({
-		el: 'ul#settingslist',
-		data: {structure},
-		methods: {
-			saveSettings: function() {
-				localStorage.setItem('settings', JSON.stringify(settings))
-			},
-			toggleCategory: function(category) {
-				if (!category.open) {
-					for (var ct in structure) {
-						structure[ct].open = false
-					}
-				}
-				category.open = !category.open
-			}
-		}
-	})
-
-	var project_vue = new Vue({
-		el: '#project_settings',
-		data: {Project}
-	})
-
-	DisplayMode.vue = new Vue({
-		el: '#display_sliders',
-		data: {
-			slot: new DisplaySlot()
-		},
-		methods: {
-			isMirrored: (axis) => {
-				if (display[display_slot]) {
-					return display[display_slot].scale[axis] < 0;
-				}
-			},
-			change: (axis, channel) => {
-				if (channel === 'scale') {
-					var val = limitNumber(DisplayMode.slot.scale[axis], 0, 4)
-					DisplayMode.slot.scale[axis] = val;
-					if (holding_shift) {
-						DisplayMode.slot.scale[0] = val;
-						DisplayMode.slot.scale[1] = val;
-						DisplayMode.slot.scale[2] = val;
-					}
-				} else if (channel === 'translation') {
-					DisplayMode.slot.translation[axis] = limitNumber(DisplayMode.slot.translation[axis], -80, 80)||0;
-				} else {
-					DisplayMode.slot.rotation[axis] = Math.trimDeg(DisplayMode.slot.rotation[axis])||0;
-				}
-				DisplayMode.updateDisplayBase()
-			},
-			resetChannel: (channel) => {
-				Undo.initEdit({display_slots: [display_slot]})
-				DisplayMode.slot.extend({[channel]: [0, 0, 0]})
-				Undo.finishEdit('reset display')
-			},
-			invert: (axis) => {
-				Undo.initEdit({display_slots: [display_slot]})
-				DisplayMode.slot.mirror[axis] = !DisplayMode.slot.mirror[axis];
-				DisplayMode.slot.update()
-				Undo.finishEdit('mirror display')
-			},
-			start: () => {
-				Undo.initEdit({display_slots: [display_slot]})
-			},
-			save: () => {
-				Undo.finishEdit('change_display')
-			}
-		}
-	})
-
-	Animator.vue = new Vue({
-		el: '#animations_list',
-		data: {
-			animations: Animator.animations
-		}
-	})
-
-
-	Timeline.vue = new Vue({
-		el: '#timeline_inner',
-		data: {
-			size: 150,
-			length: 10,
-			timecodes: [],
-			keyframes: [],
-			marker: Timeline.second
-		}
-	})
-
-	var stats_bar_vue = new Vue({
-		el: '#status_bar',
-		data: {Prop}
-	})
-
-	Modes.vue = new Vue({
-		el: '#mode_selector',
-		data: {
-			options: Modes.options
-		}
-	})
+	onVueSetup.funcs.push(func)
 }
+
 function canvasGridSize(shift, ctrl) {
 	if (!shift && !ctrl) {
 		return 16 / limitNumber(settings.edit_size.value, 1, 1024)
@@ -335,7 +191,6 @@ function updateSelection() {
 	}
 	Transformer.detach()
 	Transformer.hoverAxis = null;
-	
 	if (display_mode) {
 		DisplayMode.centerTransformer()
 	}
@@ -361,12 +216,12 @@ function updateSelection() {
 	//Interface
 	if (selected.length > 0) {
 		$('.selection_only').css('visibility', 'visible')
+		main_uv.jquery.size.find('.uv_mapping_overlay').remove()
 		main_uv.loadData()
-	} else if (selected.length === 0) {
+	} else {
 		$('.selection_only').css('visibility', 'hidden')
 	}
 	BarItems.cube_counter.update()
-	$('.uv_mapping_overlay').remove()
 	updateNslideValues()
 	//Misc
 	Blockbench.globalMovement = isMovementGlobal()
@@ -536,6 +391,14 @@ const Modes = {
 	selected: false,
 	options: {},
 };
+onVueSetup(function() {
+	Modes.vue = new Vue({
+		el: '#mode_selector',
+		data: {
+			options: Modes.options
+		}
+	})
+});
 BARS.defineActions(function() {
 	new Mode({
 		id: 'edit',
@@ -987,7 +850,9 @@ var Vertexsnap = {
 		cube.mesh.updateMatrixWorld()
 		o_vertices.forEach(function(v, id) {
 			var outline_color = '0x'+app_colors.accent.hex.replace('#', '')
-			var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({color: parseInt(outline_color)}))
+			//Each vertex needs it's own material for hovering
+			var material = new THREE.MeshBasicMaterial({color: parseInt(outline_color)})
+			var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material)
 			var pos = mesh.position.copy(v)
 			pos.applyMatrix4(cube.mesh.matrixWorld)
 			pos.addScalar(8)
@@ -1169,7 +1034,7 @@ const entityMode = {
 		$('.entity_mode_only').show()
 		Modes.options.edit.select()
 		//UV
-		main_uv.buildDom().setToMainSlot().setFace('north')
+		//main_uv.buildDom(true).setToMainSlot().setFace('north')
 		main_uv.autoGrid = true
 		main_uv.setGrid()
 		//Update
@@ -1186,7 +1051,11 @@ const entityMode = {
 		//Rotation Menu
 		$('input#cube_rotate').attr('min', '-67.5').attr('max', '67.5').attr('step', '22.5').removeClass('entity_mode')
 		//UV
-		main_uv.buildDom(true).setToMainSlot()
+		//main_uv.buildDom(true).setToMainSlot()
+		main_uv.autoGrid = false
+		main_uv.showing_overlays = false
+		main_uv.displayAllMappingOverlays()
+		main_uv.setGrid()
 		if (textures[0]) {
 			textures[0].load()
 		}

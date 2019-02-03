@@ -60,6 +60,17 @@ const Condition = function(condition, context) {
 		return !!condition
 	}
 }
+class oneLiner {
+	constructor(data) {
+		if (data !== undefined) {
+			for (var key in data) {
+				if (data.hasOwnProperty(key)) {
+					this[key] = data[key]
+				}
+			}
+		}
+	}
+}
 var cl = console.log
 var asyncLoop = function(o){
 	var i=-1;
@@ -80,6 +91,20 @@ function guid() {
 	}
 	return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
 		s4() + '-' + s4() + s4() + s4();
+}
+function bbuid(l) {
+	l = l || 1
+	let chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+	var s = '';
+	while (l > 0) {
+		var n = Math.floor(Math.random()*62)
+		if (n > 9) {
+			n = chars[n-10]
+		}
+		s += n
+		l--;
+	}
+	return s;
 }
 Math.radToDeg = function(rad) {
 	return rad / Math.PI * 180
@@ -125,6 +150,7 @@ function limitNumber(number, min, max) {
 	if (number < min || isNaN(number)) number = min;
 	return number;
 }
+Math.clamp = limitNumber;
 function getRectangle(a, b, c, d) {
 	var rect = {};
 	if (!b && typeof a === 'object') {
@@ -203,6 +229,7 @@ Array.prototype.remove = function (item) { {
 }
 Array.prototype.empty = function() {
 	this.length = 0;
+	return this;
 }
 Array.prototype.findInArray = function(key, value) {
 	for (var i = 0; i < this.length; i++) {

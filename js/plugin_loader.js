@@ -1,14 +1,10 @@
-/*
-Plugin Loader for Blockbench
-By JannisX11
-*/
 var onUninstall, onInstall;
 const Plugins = {
 	apipath: 'https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins.json',
 	Vue: [],			//Vue Object
 	installed: [], 		//Simple List of Names
 	json: undefined,	//Json from website
-	data: [],			//Vue Object Data
+	all: [],			//Vue Object Data
 	loadingStep: false,
 	updateSearch: function() {
 		Plugins.Vue._data.showAll = !Plugins.Vue._data.showAll
@@ -16,13 +12,179 @@ const Plugins = {
 	},
 	devReload: function() {
 		var reloads = 0;
-		Plugins.data.forEach(function(pl) {
-			if (pl.fromFile) {
-				pl.reload()
+		for (var i = Plugins.all.length-1; i >= 0; i--) {
+			if (Plugins.all[i].fromFile) {
+				Plugins.all[i].reload()
 				reloads++;
 			}
-		})
+		}
+		Blockbench.showQuickMessage(tl('message.plugin_reload', [reloads]))
 		console.log('Reloaded '+reloads+ ' plugin'+pluralS(reloads))
+	}
+}
+
+class Plugin {
+	constructor(id, data) {
+		this.id = id;
+		this.installed = false;
+		this.expanded = false;
+		this.title = '';
+		this.author = '';
+		this.description = '';
+		this.about = '';
+		this.icon = '';
+		this.variant = '';
+		this.min_version = '';
+		if (data) {
+			this.extend(data)
+		}
+	}
+	extend(data) {
+		Merge.boolean(this, data, 'installed')
+		Merge.boolean(this, data, 'expanded')
+		Merge.string(this, data, 'title')
+		Merge.string(this, data, 'author')
+		Merge.string(this, data, 'description')
+		Merge.string(this, data, 'about')
+		Merge.string(this, data, 'icon')
+		Merge.string(this, data, 'variant')
+		Merge.string(this, data, 'min_version')
+		return this;
+	}
+	install(first, cb) {
+		var scope = this;
+		$.getScript(Plugins.path + scope.id + '.js', function() {
+			scope.bindGlobalData(first)
+			if (cb) cb()
+		}).fail(function() {
+			if (isApp) {
+				console.log('Could not find file of plugin "'+scope.id+'". Uninstalling it instead.')
+				scope.uninstall()
+			}
+		})
+		Plugins.installed.safePush(scope.id)
+		scope.installed = true;
+		return scope;
+	}
+	bindGlobalData(first) {
+		var scope = this;
+		if (onUninstall) {
+			scope.onUninstall = onUninstall
+		}
+		if (first && onInstall) {
+			onInstall()
+		}
+		window.onInstall = window.onUninstall = window.plugin_data = undefined
+		return this;
+	}
+	download(first) {
+		var scope = this;
+		if (!isApp) {
+			scope.install(first)
+			return this;
+		}
+		var file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
+		var request = https.get('https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins/'+this.id+'.js', function(response) {
+			response.pipe(file);
+			response.on('end', function() {
+				setTimeout(function() {
+					scope.install(first)
+				}, 50)
+			})
+		});
+		return this;
+	}
+	loadFromFile(file, hideWarning) {
+		var scope = this;
+		var path = file.path
+		localStorage.setItem('plugin_dev_path', file.path)
+		onInstall = undefined
+
+		if (!hideWarning) {
+			if (isApp) {
+				if (!confirm(tl('message.load_plugin_app'))) return;
+			} else {
+				if (!confirm(tl('message.load_plugin_web'))) return;
+			}
+		}
+		$.getScript(file.path, function() {
+			scope.id = (plugin_data && plugin_data.id)||pathToName(file.path)
+			scope.installed = true
+			scope.fromFile = true
+			scope.path = file.path
+			scope.extend(plugin_data)
+			scope.bindGlobalData(true)
+			Plugins.installed.safePush(scope.path)
+			saveInstalledPlugins()
+			Plugins.all.sort(function(a,b) {
+				return sort_collator.compare(a.title, b.title)
+			});
+		})
+		Plugins.all.safePush(this)
+		return this;
+	}
+	uninstall() {
+		var scope = this;
+		if (isApp && this.fromFile) {
+			if (this.onUninstall) {
+				this.onUninstall()
+			}
+			Plugins.all.remove(this)
+			Plugins.installed.remove(this.path)
+		} else {
+			if (isApp) {
+				var filepath = Plugins.path + scope.id + '.js'
+				if (fs.existsSync(filepath)) {
+					fs.unlink(filepath, (err) => {
+						if (err) {
+							console.log(err);
+						}
+					});
+				}
+			}
+			Plugins.installed.remove(scope.id)
+			scope.installed = false
+			if (scope.onUninstall) {
+				scope.onUninstall()
+			}
+		}
+		saveInstalledPlugins()
+		return this;
+	}
+	reload() {
+		if (!isApp) return this;
+		this.uninstall()
+		this.loadFromFile({path: this.path}, true)
+		return this;
+	}
+	isInstallable() {
+		var scope = this;
+		var result = 
+			scope.variant === 'both' ||
+			(
+				isApp === (scope.variant === 'desktop') && 
+				isApp !== (scope.variant === 'web')
+			);
+		if (result && scope.min_version) {
+			result = compareVersions(scope.min_version, appVersion) ? 'outdated' : true
+		} else if (result === false) {
+			result = (scope.variant === 'web') ? 'web_only' : 'app_only'
+		}
+		return (result === true) ? true : tl('dialog.plugins.'+result);
+	}
+	toggleInfo(force) {
+		var scope = this;
+		Plugins.all.forEach(function(p) {
+			if (p !== scope && p.expanded) p.expanded = false;
+		})
+		if (force !== undefined) {
+			this.expanded = force === true
+		} else {
+			this.expanded = this.expanded !== true
+		}
+	}
+	get expandicon() {
+		return this.expanded ? 'expand_less' : 'expand_more'
 	}
 }
 
@@ -33,102 +195,78 @@ if (isApp) {
 			fs.mkdir(Plugins.path, function(a) {})
 		}
 	})
+} else {
+	Plugins.path = 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/';
 }
 $.getJSON(Plugins.apipath, function(data) {
 	Plugins.json = data
-	if (Plugins.loadingStep === true) {
-		loadInstalledPlugins()
-	} else {
-		Plugins.loadingStep = true
-	}
+	loadInstalledPlugins()
 }).fail(function() {
 	console.log('Could not connect to plugin server')
 	$('#plugin_available_empty').text('Could not connect to plugin server')
-	if (Plugins.loadingStep === true) {
-		loadInstalledPlugins()
-	} else {
-		Plugins.loadingStep = true
-	}
+	loadInstalledPlugins()
 })
-
 $(document).ready(function() {
-	if (Plugins.loadingStep === true) {
-		loadInstalledPlugins()
-	} else {
-		Plugins.loadingStep = true
-	}
+	loadInstalledPlugins()
 })
 
 function loadInstalledPlugins() {
+	if (!Plugins.loadingStep) {
+		Plugins.loadingStep = true
+		return;
+	}
 	var storage_data = localStorage.getItem('installed_plugins')
 	if (storage_data !== null) {
 		Plugins.installed = JSON.parse(storage_data)
 	}
 	if (Plugins.json !== undefined) {
+		//From Store
 		for (var id in Plugins.json) {
-			var plugin = Plugins.json[id]
-			var obj = {
-				id: id,
-				title: plugin.title,
-				author: plugin.author,
-				description: plugin.description,
-				about: plugin.about,
-				icon: plugin.icon,
-				variant: plugin.variant,
-				min_version: plugin.min_version,
-				installed: Plugins.installed.includes(id),
-				expanded: false
+			var plugin = new Plugin(id, Plugins.json[id])
+			if (Plugins.installed.includes(id)) {
+				plugin.download()
 			}
-			if (obj.installed) {
-				if (isApp) {
-					downloadPlugin(id)
-				} else {
-					loadPlugin(id)
-				}
-			}
-			Plugins.data.push(obj)
-			Plugins.data.sort(function(a,b) {
-				return sort_collator.compare(a.title, b.title)
-			});
+			Plugins.all.push(plugin)
 		}
-	} else if (Plugins.installed.length > 0) {
-		//Only show downloaded plugins in the plugin window
+		Plugins.all.sort(function(a,b) {
+			return sort_collator.compare(a.title, b.title)
+		});
+	} else if (Plugins.installed.length > 0 && isApp) {
 		Plugins.installed.forEach(function(id) {
-			loadPlugin(id, function() {
-				//Plugin Data Comes from the plugin file
-				if (plugin_data === undefined) return;
-				var obj = {
-					id: id,
-					title: plugin_data.title,
-					author: plugin_data.author,
-					description: plugin_data.description,
-					about: plugin_data.about,
-					icon: plugin_data.icon,
-					variant: plugin_data.variant,
-					min_version: plugin_data.min_version,
-					installed: true,
-					expanded: false
-				}
-				Plugins.data.push(obj)
-				Plugins.data.sort(function(a,b) {
-					return sort_collator.compare(a.title, b.title)
-				});
-			})
+
+			if (id.substr(-3) !== '.js') {
+				//downloaded public plugin
+				var plugin = new Plugin(id).install(false, () => {
+					if (typeof plugin_data === 'object') {
+						plugin.extend(plugin_data)
+						Plugins.all.push(plugin)
+						Plugins.all.sort(function(a,b) {
+							return sort_collator.compare(a.title, b.title)
+						});
+					}
+				})
+			}
 		})
 	}
 	if (Plugins.installed.length > 0) {
+		Plugins.installed.forEach(function(id) {
+
+			if (id.substr(-3) === '.js') {
+				//Dev Plugins
+				var plugin = new Plugin().loadFromFile({path: id}, true)
+			}
+		})
 		console.log('Loaded '+Plugins.installed.length+' plugin'+pluralS(Plugins.installed.length))
 	}
 	
-
 	Plugins.Vue = new Vue({
 		el: '#plugin_list',
 		data: {
 			showAll: false,
-			items: Plugins.data
+			items: Plugins.all
 		},
 		computed: {
-			installedPlugins() {
+			plugin_search() {
 				var name = $('#plugin_search_bar').val().toUpperCase()
 				return this.items.filter(item => {
 					if (this.showAll !== item.installed) {
@@ -145,196 +283,14 @@ function loadInstalledPlugins() {
 					return false;
 				})
 			}
-		},
-		methods: {
-			install: function(plugin) {
-				if (isApp) {
-					downloadPlugin(plugin.id)
-				} else {
-					loadPlugin(plugin.id)
-				}
-			},
-			uninstall: function(plugin) {
-				uninstallPlugin(plugin.id)
-			},
-			update: function(plugin) {
-				if (isApp) {
-					downloadPlugin(plugin.id)
-				}
-			},
-			checkIfInstallable: function(plugin) {
-				var result = 
-					plugin.variant === 'both' ||
-					(
-						isApp === (plugin.variant === 'desktop') && 
-						isApp !== (plugin.variant === 'web')
-					);
-				if (result && plugin.min_version) {
-					result = compareVersions(plugin.min_version, appVersion) ? 'outdated' : true
-				} else if (result === false) {
-					result = (plugin.variant === 'web') ? 'web_only' : 'app_only'
-				}
-				return (result === true) ? true : tl('dialog.plugins.'+result);	
-			},
-			toggleInfo: function(plugin, force) {
-				Plugins.data.forEach(function(p) {
-					if (p !== plugin && p.expanded) p.expanded = false;
-				})
-				plugin.expanded = plugin.expanded !== true
-				if (force !== undefined) {
-					plugin.expanded = force === true
-				}
-				if (plugin.expanded) {
-					plugin.expandicon = 'expand_less'
-				} else {
-					plugin.expandicon = 'expand_more'
-				}
-			}
 		}
 	})
 }
 function saveInstalledPlugins() {
 	localStorage.setItem('installed_plugins', JSON.stringify(Plugins.installed))
-	hideDialog()
 }
-function loadPlugin(id, cb, install) {
-	if (isApp === true) {
-		$.getScript(Plugins.path + id + '.js', function(a) {
-			if (onUninstall) {
-				Plugins.data.findInArray('id', id).uninstall = onUninstall
-				onUninstall = undefined
-			}
-			if (install && onInstall) {
-				onInstall()
-			}
-			onInstall = undefined
-			if (cb !== undefined) cb()
-		}).fail(function() {
-			console.log('Could not find file of plugin "'+id+'". Uninstalling it instead.')
-			uninstallPlugin(id)
-			saveInstalledPlugins()
-		})
-	} else {
-		$.getScript('https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins/'+id+'.js', function() {
-			if (onUninstall) {
-				Plugins.data.findInArray('id', id).uninstall = onUninstall
-				onUninstall = undefined
-			}
-			if (install && onInstall) {
-				onInstall()
-			}
-			onInstall = undefined
-			if (cb) cb()
-		})
-	}
-	if (Plugins.installed.includes(id) === false) {
-		Plugins.installed.push(id)
-	}
-	Plugins.data.findInArray('id', id).installed = true
-}
-function loadPluginFromFile(file, hideWarning) {
-	var hideWarning;
-	var content = file.content
-	var path = file.path
-	localStorage.setItem('plugin_dev_path', path)
-	onInstall = undefined
-
-	if (!hideWarning) {
-		if (isApp) {
-			if (!confirm(tl('message.load_plugin_app'))) return;
-		} else {
-			if (!confirm(tl('message.load_plugin_web'))) return;
-		}
-	}
-	try {
-		eval(content)
-	} catch (err) {
-		Blockbench.showQuickMessage('message.invalid_plugin')
-		console.error(err)
-		return;
-	}
-	var obj = {
-		author: 'unknown',
-		icon: 'extension',
-		installed: true,
-		id: 'test',
-		title: 'Plugin',
-		variant: 'both',
-		description: '',
-		about: '',
-		fromFile: true,
-		filePath: path,
-		expanded: false,
-		uninstall: function() {
-			var index = Plugins.data.indexOf(this)
-			if (index >= 0) Plugins.data.splice(index, 1)
-			if (this.uninstallMethod) {
-				this.uninstallMethod()
-			}
-		},
-		reload: function() {
-			if (isApp) {
-				obj.uninstall()
-				fs.readFile(path, 'utf-8', function (err, data) {
-					if (err) {
-						console.log(err)
-						return;
-					}
-					loadPluginFromFile({
-						content: data,
-						path: path
-					}, true)
-				})
-			}
-		},
-		uninstallMethod: false
-	}
-	$.extend(true, obj, plugin_data)
-	obj.uninstallMethod = onUninstall
-	onUninstall = undefined
-	if (onInstall) onInstall()
-	onInstall = undefined
-	Plugins.data.push(obj)
-	Plugins.data.sort(function(a,b) {
-		return sort_collator.compare(a.title, b.title)
-	});
-}
-function downloadPlugin(id, is_install) {
-	//$('.uc_btn').attr('disabled', true)
-
-	var file = originalFs.createWriteStream(Plugins.path+id+'.js')
-	var request = https.get('https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins/'+id+'.js', function(response) {
-		response.pipe(file);
-		response.on('end', function() {
-			setTimeout(function() {
-				loadPlugin(id, undefined, is_install)
-			}, 100)
-		})
-	});
-}
-function uninstallPlugin(id) {
-	if (isApp) {
-		var filepath = Plugins.path + id + '.js'
-		if (fs.existsSync(filepath)) {
-			fs.unlink(filepath, (err) => {
-				if (err) {
-					console.log(err);
-					return;
-				}
-			});
-		} else {
-			//File does not exist
-		}
-	}
-	var index = Plugins.installed.indexOf(id)
-	if (index > -1) {
-		Plugins.installed.splice(index, 1)
-	}
-	var data_obj = Plugins.data.findInArray('id', id)
-	data_obj.installed = false
-	if (data_obj.uninstall) {
-		data_obj.uninstall()
-	}
+function loadPluginFromFile(file) {
+	var plugin = new Plugin().loadFromFile(file, false)
 }
 function switchPluginTabs(installed) {
 	$('#plugins .tab').removeClass('open')
@@ -358,12 +314,21 @@ BARS.defineActions(function() {
 		}
 	})
 	new Action({
+		id: 'reload_plugins',
+		icon: 'sync',
+		category: 'blockbench',
+		keybind: new Keybind({ctrl: true, key: 74}),
+		click: function () {
+			Plugins.devReload()
+		}
+	})
+	new Action({
 		id: 'load_plugin',
 		icon: 'fa-file-code-o',
 		category: 'blockbench',
 		click: function () {
 			Blockbench.import({
-				extensions: ['bbplugin', 'js'],
+				extensions: ['js'],
 				type: 'Blockbench Plugin',
 				startpath: localStorage.getItem('plugin_dev_path')
 			}, function(files) {

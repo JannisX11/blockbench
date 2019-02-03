@@ -22,12 +22,10 @@ function tryLoadPOSTModel() {
 		if ($('#post_textures').text() !== '') {
 			var data = JSON.parse( $('#post_textures').text() )
 			for (var key in data) {
-				if (data.hasOwnProperty(key)) {
-					var tex = getTextureById(key+'');
-					if (tex) {
-						tex.img.src = ''
-                        tex.source = 'data:image/png;base64,'+data[key]
-					}
+				var tex = textures.findInArray('id', key+'');
+				if (tex) {
+					tex.img.src = ''
+					tex.source = 'data:image/png;base64,'+data[key]
 				}
 			}
 			textures.forEach(function(tex) {

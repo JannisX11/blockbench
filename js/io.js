@@ -33,6 +33,7 @@ function newProject(entity_mode) {
 			entityMode.leave();
 		}
 		$('#var_placeholder_area').val('')
+		Blockbench.dispatchEvent('new_project')
 		return true;
 	} else {
 		return false;
@@ -70,15 +71,15 @@ function setupDragHandlers() {
 		function(files, event) {
 			var texture_li = $(event.target).parents('li.texture')
 			if (texture_li.length) {
-				var tex = getTextureById(texture_li.attr('texid'))
+				var tex = textures.findInArray('uuid', texture_li.attr('texid'))
 				if (tex) {
 					tex.fromFile(files[0])
+					return;
 				}
-			} else {
-				files.forEach(function(f) {
-					new Texture().fromFile(f).add().fillParticle()
-				})
 			}
+			files.forEach(function(f) {
+				new Texture().fromFile(f).add().fillParticle()
+			})
 		}
 	)
 }
@@ -161,6 +162,9 @@ function loadBlockModel(model, filepath, add) {
 					}
 					if (obj.faces[face].texture === '#missing') {
 						delete base_cube.faces[face].texture;
+					}
+					if (obj.faces[face].tintindex !== undefined) {
+						base_cube.faces[face].tint = true;
 					}
 				}
 			}
@@ -247,29 +251,23 @@ function loadBlockModel(model, filepath, add) {
 			}
 		}
 		//Get Rid Of ID overlapping
-		textures.forEach(function(t, i) {
-			if (i >= previous_texture_length) {
-				if (getTexturesById(t.id).length > 1) {
-					var before = t.id
-					t.id = Prop.added_models + '_' + t.id
-					elements.forEach(function(s, si) {
-						if (si >= previous_length) {
-							for (var face in s.faces) {
-								if (s.faces[face].texture === '#'+before) {
-									s.faces[face].texture = '#'+t.id
-								}
-							}
-						}
-					})
-				}
+		for (var i = previous_texture_length; i < textures.length; i++) {
+			var t = textures[i]
+			var import_id = t.id;
+			if (getTexturesById(t.id).length > 1) {
+				t.id = Prop.added_models + '_' + t.id
 			}
-		})
+			elements.forEach(function(s, si) {
+				for (var face in s.faces) {
+					if (s.faces[face].texture === '#'+import_id) {
+						s.faces[face].texture = t.uuid
+					}
+				}
+			})
+		}
 		//Select Last Texture
 		if (textures.length > 0) {
-			textures.forEach(function(s) {
-				s.selected = false;
-			})
-			textures[textures.length-1].selected = true;
+			textures[textures.length-1].select();
 		}
 	}
 
@@ -336,7 +334,7 @@ function loadJEMModel(model) {
 				name: b.part,
 				origin: b.translate,
 				rotation: b.rotate,
-				shade: !(b.mirrorTexture && b.mirrorTexture.includes('u'))
+				mirror_uv: (b.mirrorTexture && b.mirrorTexture.includes('u'))
 			})
 			group.origin[1] *= -1
 			group.origin[2] *= -1
@@ -595,7 +593,7 @@ function loadPEModel(data) {
 				group.rotation[ri] *= -1
 			})
 			
-			group.shade = !b.mirror
+			group.mirror_uv = b.mirror === true
 			group.reset = b.reset === true
 
 			if (b.cubes) {
@@ -618,9 +616,9 @@ function loadPEModel(data) {
 						base_cube.inflate = s.inflate
 					}
 					if (s.mirror === undefined) {
-						base_cube.shade = group.shade
+						base_cube.mirror_uv = group.mirror_uv
 					} else {
-						base_cube.shade = !s.mirror
+						base_cube.mirror_uv = s.mirror === true
 					}
 					elements.push(base_cube)
 					base_cube.addTo(group, false)
@@ -805,20 +803,20 @@ var Extruder = {
 							}
 							draw_y++;
 						}
-						var current_cube = new Cube({name: cube_name+'_'+cube_nr, autouv: 0})
-						
-						current_cube.from = [rect.x*scale_i, 0, rect.y*scale_i]
-						current_cube.to = [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i]
-
-						//Sides
-						current_cube.faces.up = {uv:[rect.x*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index}
-						current_cube.faces.down = {uv:[rect.x*scale_i, (rect.y2+1)*scale_i, (rect.x2+1)*scale_i, rect.y*scale_i], texture: texture_index}
-
-						current_cube.faces.north = {uv:[(rect.x2+1)*scale_i, rect.y*scale_i, rect.x*scale_i, (rect.y+1)*scale_i], texture: texture_index}
-						current_cube.faces.south = {uv:[rect.x*scale_i, rect.y2*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index}
-
-						current_cube.faces.east = {uv:[rect.x2*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index, rotation: 90}
-						current_cube.faces.west = {uv:[rect.x*scale_i, rect.y*scale_i, (rect.x+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index, rotation: 270}
+						var current_cube = new Cube({
+							name: cube_name+'_'+cube_nr,
+							autouv: 0,
+							from: [rect.x*scale_i, 0, rect.y*scale_i],
+							to: [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i],
+							faces: {
+								up:		{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index},
+								down:	{uv:[rect.x*scale_i, (rect.y2+1)*scale_i, (rect.x2+1)*scale_i, rect.y*scale_i], texture: texture_index},
+								north:	{uv:[(rect.x2+1)*scale_i, rect.y*scale_i, rect.x*scale_i, (rect.y+1)*scale_i], texture: texture_index},
+								south:	{uv:[rect.x*scale_i, rect.y2*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index},
+								east:	{uv:[rect.x2*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index, rotation: 90},
+								west:	{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index, rotation: 270}
+							}
+						})
 
 						elements.push(current_cube)
 						selected.push(elements[elements.length-1])
@@ -847,17 +845,6 @@ var Extruder = {
 	}
 }
 //Export
-class oneLiner {
-	constructor(data) {
-		if (data !== undefined) {
-			for (var key in data) {
-				if (data.hasOwnProperty(key)) {
-					this[key] = data[key]
-				}
-			}
-		}
-	}
-}
 function buildBlockModel(options) {
 	if (options === undefined) options = {}
 	var clear_elements = []
@@ -917,31 +904,28 @@ function buildBlockModel(options) {
 						tag.rotation = s.faces[face].rotation
 					}
 					if (s.faces[face].texture) {
-						tag.texture = s.faces[face].texture
+						var tex = s.faces[face].getTexture()
+						if (tex) {
+							tag.texture = '#' + tex.id
+							textures_used.safePush(tex)
+						}
 						element_has_texture = true
-					} else {
+					}
+					if (!tag.texture) {
 						tag.texture = '#missing'
 					}
-					if (s.faces[face].cullface !== undefined) {
+					if (s.faces[face].cullface) {
 						tag.cullface = s.faces[face].cullface
 					}
-					if (s.faces[face].tintindex !== undefined) {
-						tag.tintindex = s.faces[face].tintindex
+					if (s.faces[face].tint) {
+						tag.tintindex = 0
 					}
 					e_faces[face] = tag
 				}
 			}
 		}
 		//Gather Textures
-		if (element_has_texture) {
-			for (var face in s.faces) {
-				if (s.faces.hasOwnProperty(face)) {
-					if (!textures_used.includes(s.faces[face].texture)) {
-						textures_used.push(s.faces[face].texture)
-					}
-				}
-			}
-		} else {
+		if (!element_has_texture) {
 			element.color = s.color
 		}
 		element.faces = e_faces
@@ -992,7 +976,7 @@ function buildBlockModel(options) {
 	var texturesObj = {}
 	var hasUnsavedTextures = false
 	textures.forEach(function(t, i){
-		if (!textures_used.includes('#'+t.id) && !isTexturesOnlyModel) return;
+		if (!textures_used.includes(t) && !isTexturesOnlyModel) return;
 
 		texturesObj[t.id] = t.javaTextureLink(options.backup)
 		if (t.particle) {
@@ -1038,12 +1022,9 @@ function buildBlockModel(options) {
 		var entries = 0;
 		for (var i in DisplayMode.slots) {
 			var key = DisplayMode.slots[i]
-			if (DisplayMode.slots.hasOwnProperty(i) && display[key]) {
-				var slot = display[key].export()
-				if (slot) {
-					new_display[key] = display[key].export()
-					entries++;
-				}
+			if (DisplayMode.slots.hasOwnProperty(i) && display[key] && display[key].export) {
+				new_display[key] = display[key].export()
+				entries++;
 			}
 		}
 		if (entries) {
@@ -1081,7 +1062,25 @@ function buildEntityModel(options) {
 	var cube_count = 0;
 	var visible_box = new THREE.Box3()
 
-	getAllOutlinerGroups().forEach(function(g) {
+	var groups = getAllOutlinerGroups()
+	var loose_cubes = [];
+	TreeElements.forEach(obj => {
+		if (obj.type === 'cube') {
+			loose_cubes.push(obj)
+		}
+	})
+	if (loose_cubes.length) {
+		groups.splice(0, 0, {
+			type: 'group',
+			parent: 'root',
+			name: 'unknown_bone',
+			origin: [0, 0, 0],
+			rotation: [0],
+			children: loose_cubes
+		})
+	}
+
+	groups.forEach(function(g) {
 		if (g.type !== 'group') return;
 		//Bone
 		var bone = {}
@@ -1091,7 +1090,7 @@ function buildEntityModel(options) {
 		}
 		bone.pivot = g.origin.slice()
 		bone.pivot[0] *= -1
-		if (g.rotation.join('_') !== '0_0_0') {
+		if (!g.rotation.allEqual(0)) {
 			bone.rotation = g.rotation.slice()
 			bone.rotation.forEach(function(br, ri) {
 				bone.rotation[ri] *= -1
@@ -1100,7 +1099,7 @@ function buildEntityModel(options) {
 		if (g.reset) {
 			bone.reset = true
 		}
-		if (!g.shade) {
+		if (g.mirror_uv) {
 			bone.mirror = true
 		}
 		if (g.material) {
@@ -1121,8 +1120,8 @@ function buildEntityModel(options) {
 					if (s.inflate && typeof s.inflate === 'number') {
 						cube.inflate = s.inflate
 					}
-					if (s.shade === !!bone.mirror) {
-						cube.mirror = !s.shade
+					if (s.mirror_uv === !bone.mirror) {
+						cube.mirror = s.mirror_uv
 					}
 					//Visible Bounds
 					var mesh = s.mesh
@@ -1212,7 +1211,6 @@ function buildJPMModel(options) {
 		} else {
 			boxes.push(box)
 		}
-		submodels.push(submodel)
 	})
 	if (boxes.length) {
 		jpm.boxes = boxes
@@ -1250,7 +1248,7 @@ function buildJEMModel(options) {
 		if (g.rotation.join('_') !== '0_0_0') {
 			bone.rotate = g.rotation.slice()
 		}
-		if (g.shade === false) {
+		if (g.mirror_uv) {
 			bone.mirrorTexture = 'u'
 		}
 		//Cubes
@@ -1282,7 +1280,7 @@ function buildJEMModel(options) {
 							if (s.inflate && typeof s.inflate === 'number') {
 								cube.sizeAdd = s.inflate
 							}
-							if (s.shade === g.shade) {
+							if (s.mirror_uv === g.mirror_uv) {
 								bone.boxes.push(cube)
 							} else {
 								mirrored_boxes.push(cube)
@@ -1397,7 +1395,7 @@ function buildClassModel(options) {
 				obj.size(1, true),
 				obj.size(2, true),
 				F(obj.inflate),
-				!obj.shade
+				obj.mirror_uv
 			]
 			bone.lines.push(
 				`${id}.cubeList.add(new ModelBox(${ values.join(', ') }));`

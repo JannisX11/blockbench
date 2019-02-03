@@ -384,6 +384,11 @@ function setupInterface() {
 		}
 	})
 
+	var stats_bar_vue = new Vue({
+		el: '#status_bar',
+		data: {Prop}
+	})
+
 	//Clickbinds
 	$('header'	  ).click( 	function() { setActivePanel('header'  )})
 	$('#preview'	).click(function() { setActivePanel('preview' )})
@@ -399,6 +404,9 @@ function setupInterface() {
 	$(document).mousedown(function(event) {
 		if (open_menu && $('.contextMenu').find(event.target).length === 0 && $('.menu_bar_point.opened:hover').length === 0) {
 			open_menu.hide();
+		}
+		if (ActionControl.open && $('#action_selector').find(event.target).length === 0) {
+			ActionControl.hide();
 		}
 		if ($(event.target).is('input.cube_name:not([disabled])') === false) {
 			stopRenameCubes()
@@ -743,6 +751,7 @@ var splashScreen = {
 				});
 			}
 			showDialog('welcome_screen')
+			Blockbench.dispatchEvent('show_splash_screen')
 			localStorage.setItem('welcomed_version', appVersion) 
 		})
 	},

@@ -165,7 +165,7 @@ class Keybind {
 	}
 }
 
-function setupKeybindings() {
+onVueSetup(function() {
 	Keybinds.vue = new Vue({
 		el: 'ul#keybindlist',
 		data: {structure: Keybinds.structure},
@@ -203,14 +203,9 @@ function setupKeybindings() {
 				}
 				category.open = !category.open
 			}
-			/*
-				change
-				reset
-				clear
-			*/
 		}
 	})
-}
+})
 
 $(document).keydown(function(e) {
 	if (Keybinds.recording) return;
@@ -283,12 +278,15 @@ $(document).keydown(function(e) {
 
 	} else if (open_interface && typeof open_interface == 'object' && open_interface.hide) {
 		if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-			open_interface.confirm()
+			open_interface.confirm(e)
 			used = true
 		} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
-			open_interface.hide()
+			open_interface.hide(e)
 			used = true
 		}
+	}
+	if (ActionControl.open) {
+		used = ActionControl.handleKeys(e) || used
 	}
 	if (used) {
 		e.preventDefault()

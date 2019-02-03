@@ -1,11 +1,14 @@
-const {app, BrowserWindow} = require('electron')
+const {app, BrowserWindow, Menu} = require('electron')
 const path = require('path')
 const url = require('url')
 
-let win
+let orig_win;
 
-function createWindow () {
-	win = new BrowserWindow({
+function createWindow() {
+	if (!app.requestSingleInstanceLock()) {
+		return;
+	}
+	let win = new BrowserWindow({
 		icon:'icon.ico',
 		show: false,
 		backgroundColor: '#21252b',
@@ -16,11 +19,43 @@ function createWindow () {
 			nodeIntegration: true
 		}
 	})
+	if (!orig_win) orig_win = win;
 	var index_path = path.join(__dirname, 'index.html')
-	/*if (__dirname.includes('xampp\\htdocs\\')) {
-		index_path = path.join(__dirname, 'index.php')
-	}*/
-	win.setMenu(null);
+	if (process.platform === 'darwin') { 
+		var template = [{ 
+			label: 'File', 
+			submenu: [{ 
+				label: 'Quit', 
+				accelerator: 'CmdOrCtrl+Q', 
+				click: function() { 
+					app.quit(); 
+				} 
+			}] 
+		}, { 
+			label: 'Edit', 
+			submenu: [{ 
+				label: 'Cut', 
+				accelerator: 'CmdOrCtrl+X', 
+				selector: 'cut:' 
+			}, { 
+				label: 'Copy', 
+				accelerator: 'CmdOrCtrl+C', 
+				selector: 'copy:'
+			}, { 
+				label: 'Paste', 
+				accelerator: 'CmdOrCtrl+V', 
+				selector: 'paste:' 
+			}, { 
+				label: 'Select All', 
+				accelerator: 'CmdOrCtrl+A', 
+				selector: 'selectAll:' 
+			}] 
+		}]
+		var osxMenu = Menu.buildFromTemplate(template);
+		Menu.setApplicationMenu(osxMenu)
+	} else {
+		win.setMenu(null);
+	}
 	win.maximize()
 	win.show()
 	win.loadURL(url.format({
@@ -33,6 +68,11 @@ function createWindow () {
 	})
 	//win.webContents.openDevTools()
 }
+
+app.on('second-instance', function (event, argv, cwd) {
+	process.argv = argv
+	createWindow()
+})
 
 app.commandLine.appendSwitch('ignore-gpu-blacklist')
 

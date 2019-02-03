@@ -24,17 +24,20 @@ $(document).ready(function() {
 		shell.openExternal(event.target.href);
 		return true;
 	});
+	Prop.zoom = 100 + currentwindow.webContents._getZoomLevel()*12
 	if (fs.existsSync(app.getPath('userData')+osfs+'backups') === false) {
 		fs.mkdirSync( app.getPath('userData')+osfs+'backups')
 	}
 	createBackup(true)
 	$('.web_only').remove()
-	if (__dirname.includes('C:\\xampp\\htdocs\\blockbench\\web')) {
+	if (__dirname.includes('C:\\xampp\\htdocs\\blockbench')) {
 		Blockbench.addFlag('dev')
 	}
-})
-
-getLatestVersion(true)
+});
+(function() {
+	console.log('Electron '+process.versions.electron+', Node '+process.versions.node)
+	getLatestVersion(true)
+})()
 //Called on start to show message
 function getLatestVersion(init) {
 	if (process.platform == 'linux') return;
@@ -211,7 +214,7 @@ function changeImageEditor(texture) {
 function selectImageEditorFile(texture) {
 	electron.dialog.showOpenDialog(currentwindow, {
 		title: tl('message.image_editor.exe'),
-		filters: [{name: 'Executable Program', extensions: ['exe']}]
+		filters: [{name: 'Executable Program', extensions: ['exe', 'app']}]
 	}, function(filePaths) {
 		if (filePaths) {
 			settings.image_editor.value = filePaths[0]
@@ -251,8 +254,6 @@ function openDefaultTexturePath() {
 }
 function findEntityTexture(mob, return_path) {
 	var textures = {
-		'chicken': 'chicken',
-		'blaze': 'blaze',
 		'llamaspit': 'llama/spit',
 		'llama': 'llama/llama_creamy',
 		'dragon': 'dragon/dragon',
@@ -260,7 +261,6 @@ function findEntityTexture(mob, return_path) {
 		'slime': 'slime/slime',
 		'slime.armor': 'slime/slime',
 		'lavaslime': 'slime/magmacube',
-		'silverfish': 'silverfish',
 		'shulker': 'shulker/shulker_undyed',
 		'rabbit': 'rabbit/brown',
 		'horse': 'horse/horse_brown',
@@ -276,41 +276,30 @@ function findEntityTexture(mob, return_path) {
 		'skeleton': 'skeleton/skeleton',
 		'skeleton.wither': 'skeleton/wither_skeleton',
 		'skeleton.stray': 'skeleton/stray',
-		'squid': 'squid',
 		'spider': 'spider/spider',
 		'cow': 'cow/cow',
 		'mooshroom': 'cow/mooshroom',
 		'sheep.sheared': 'sheep/sheep',
 		'sheep': 'sheep/sheep',
-		'phantom': 'phantom',
 		'pig': 'pig/pig',
-		'bat': 'bat',
-		'dolphin': 'dolphin',
 		'irongolem': 'iron_golem',
 		'snowgolem': 'snow_golem',
 		'zombie.villager': 'zombie_villager/zombie_farmer',
 		'evoker': 'illager/evoker',
 		'vex': 'vex/vex',
-		'vindicator': 'vindicator',
 		'wolf': 'wolf/wolf',
 		'ocelot': 'cat/ocelot',
 		'cat': 'cat/siamese',
-		'trident': 'trident',
-		'guardian': 'guardian',
-		'polarbear': 'polarbear',
 		'turtle': 'sea_turtle',
 		'villager': 'villager/farmer',
 		'villager.witch': 'witch',
 		'witherBoss': 'wither_boss/wither',
-		'agent': 'agent',
-		'armor_stand': 'armor_stand',
 		'parrot': 'parrot/parrot_red_blue',
 		'bed': 'bed/white',
 		'player_head': 'steve',
 		'mob_head': 'skeleton/skeleton',
 		'dragon_head': 'dragon/dragon',
 		'boat': 'boat/boat_oak',
-		'minecart': 'minecart',
 		'cod': 'fish/fish',
 		'pufferfish.small': 'fish/pufferfish',
 		'pufferfish.mid': 'fish/pufferfish',
@@ -318,7 +307,6 @@ function findEntityTexture(mob, return_path) {
 		'salmon': 'fish/salmon',
 		'tropicalfish_a': 'fish/tropical_a',
 		'tropicalfish_b': 'fish/tropical_b',
-		'endermite': 'endermite',
 		'panda': 'panda/panda',
 	}
 	mob = mob.split(':')[0].replace(/^geometry\./, '')
@@ -388,85 +376,90 @@ function saveFile(props) {
 	}
 }
 function writeFileEntity(content, filepath) {
+
+
 	Prop.file_path = filepath
 	var model_name = 'geometry.' + (Project.parent.replace(/^geometry\./, '')||'unknown')
-	fs.readFile(filepath, 'utf-8', function (errx, data) {
-		var obj = {}
-		if (content.bones && content.bones.length) {
-			var has_parents = false;
-			for (var i = 0; i < content.bones.length && !has_parents; i++) {
-				if (content.bones[i].parent) has_parents = true;
-			}
-			if (has_parents) {
-				obj.format_version = '1.8.0'
-			}
+	var data;
+	try {
+		data = fs.readFileSync(filepath, 'utf-8')
+	} catch (err) {}
+	var obj = {}
+	if (content.bones && content.bones.length) {
+		var has_parents = false;
+		for (var i = 0; i < content.bones.length && !has_parents; i++) {
+			if (content.bones[i].parent) has_parents = true;
 		}
-		if (!errx) {
-			try {
-				obj = JSON.parse(data.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, ''))
-			} catch (err) {
-				err = err+''
-				var answer = electron.dialog.showMessageBox(currentwindow, {
-					type: 'warning',
-					buttons: [
-						tl('message.bedrock_overwrite_error.backup_overwrite'),
-						tl('message.bedrock_overwrite_error.overwrite'),
-						tl('dialog.cancel')
-					],
-					title: 'Blockbench',
-					message: tl('message.bedrock_overwrite_error.message'),
-					detail: err,
-					noLink: false
-				})
-				if (answer === 0) {
-					var backup_file_name = pathToName(filepath, true) + ' backup ' + new Date().toLocaleString().split(':').join('_')
-					backup_file_name = filepath.replace(pathToName(filepath, false), backup_file_name)
-					fs.writeFile(backup_file_name, data, function (err2) {
-						if (err2) {
-							console.log('Error saving backup model: ', err2)
-						}
-					}) 
-				}
-				if (answer === 2) {
-					return;
-				}
-			}
-			if (typeof obj === 'object') {
-				for (var key in obj) {
-					if (obj.hasOwnProperty(key) &&
-						obj[key].bones &&
-						typeof obj[key].bones === 'object' &&
-						obj[key].bones.constructor.name === 'Array'
-					) {
-						obj[key].bones.forEach(function(bone) {
-							if (typeof bone.cubes === 'object' &&
-								bone.cubes.constructor.name === 'Array'
-							) {
-								bone.cubes.forEach(function(c, ci) {
-									bone.cubes[ci] = new oneLiner(c)
-								})
-							}
-						})
+		if (has_parents) {
+			obj.format_version = '1.8.0'
+		}
+	}
+	if (data) {
+		try {
+			obj = JSON.parse(data.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, ''))
+		} catch (err) {
+			err = err+''
+			var answer = electron.dialog.showMessageBox(currentwindow, {
+				type: 'warning',
+				buttons: [
+					tl('message.bedrock_overwrite_error.backup_overwrite'),
+					tl('message.bedrock_overwrite_error.overwrite'),
+					tl('dialog.cancel')
+				],
+				title: 'Blockbench',
+				message: tl('message.bedrock_overwrite_error.message'),
+				detail: err,
+				noLink: false
+			})
+			if (answer === 0) {
+				var backup_file_name = pathToName(filepath, true) + ' backup ' + new Date().toLocaleString().split(':').join('_')
+				backup_file_name = filepath.replace(pathToName(filepath, false), backup_file_name)
+				fs.writeFile(backup_file_name, data, function (err2) {
+					if (err2) {
+						console.log('Error saving backup model: ', err2)
 					}
+				}) 
+			}
+			if (answer === 2) {
+				return;
+			}
+		}
+		if (typeof obj === 'object') {
+			for (var key in obj) {
+				if (obj.hasOwnProperty(key) &&
+					obj[key].bones &&
+					typeof obj[key].bones === 'object' &&
+					obj[key].bones.constructor.name === 'Array'
+				) {
+					obj[key].bones.forEach(function(bone) {
+						if (typeof bone.cubes === 'object' &&
+							bone.cubes.constructor.name === 'Array'
+						) {
+							bone.cubes.forEach(function(c, ci) {
+								bone.cubes[ci] = new oneLiner(c)
+							})
+						}
+					})
 				}
 			}
 		}
-		obj[model_name] = content
-		content = autoStringify(obj)
+	}
+	obj[model_name] = content
+	content = autoStringify(obj)
 
-		fs.writeFile(filepath, content, function (err) {
-			if (err) {
-				console.log('Error Saving Entity Model: '+err)
-			}
-			Blockbench.showQuickMessage('message.save_entity')
-			Prop.project_saved = true;
-			setProjectTitle(pathToName(filepath, false))
-			addRecentProject({name: pathToName(filepath, 'mobs_id'), path: filepath})
-			if (Blockbench.hasFlag('close_after_saving')) {
-				closeBlockbenchWindow()
-			}
-		})
-	})
+	try {
+		fs.writeFileSync(filepath, content)
+	} catch (err) {
+		console.log('Error Saving Entity Model: '+err)
+		return;
+	}
+	Blockbench.showQuickMessage('message.save_entity')
+	Prop.project_saved = true;
+	setProjectTitle(pathToName(filepath, false))
+	addRecentProject({name: pathToName(filepath, 'mobs_id'), path: filepath})
+	if (Blockbench.hasFlag('close_after_saving')) {
+		closeBlockbenchWindow()
+	}
 }
 function writeFileObj(content, filepath) {
 	if (filepath === undefined) {
@@ -566,7 +559,6 @@ function createBackup(init) {
 	})
 	//trimBackups
 }
-
 //Zoom
 function setZoomLevel(mode) {
 	switch (mode) {
@@ -628,6 +620,7 @@ function showSaveDialog(close) {
 }
 function closeBlockbenchWindow() {
 	preventClosing = false;
+	Blockbench.dispatchEvent('before_closing')
 	
 	if (!Blockbench.hasFlag('update_restart')) {
 		return currentwindow.close();

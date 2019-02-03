@@ -37,9 +37,10 @@ class DisplaySlot {
 		if (!this.scale.allEqual(1) || !this.mirror.allEqual(false)) {
 			build.scale = this.scale.slice()
 			if (!this.mirror.allEqual(false)) {
-				build.scale.forEach((s, i) => {
-					build.scale[i] *= s ? -1 : 1;
-				})
+
+				for (var i = 0; i < 3; i++) {
+					build.scale[i] *= this.mirror[i] ? -1 : 1;
+				}
 			}
 		}
 		if (Object.keys(build).length) {
@@ -53,6 +54,7 @@ class DisplaySlot {
 			if (data.translation) Merge.number(this.translation, data.translation, i)
 			if (data.mirror) Merge.boolean(this.mirror, data.mirror, i)
 			if (data.scale) Merge.number(this.scale, data.scale, i)
+			this.scale[i] = Math.abs(this.scale[i])
 			if (data.scale && data.scale[i] < 0) this.mirror[i] = true;
 		}
 		this.update()
@@ -141,20 +143,14 @@ class refModel {
 				break;
 			case 'monitor':
 				this.onload = function() {
-					if (display_slot === 'firstperson_righthand') {
-						setDisplayArea(-20.8, -8.4, 9, 0, 270, 0, 1,1,1)
-					} else if (display_slot === 'firstperson_lefthand') {
-						setDisplayArea(-20.5, -8.4, -9, 0, 270, 0, 1,1,1)
-					}
+					var side = display_slot.includes('left') ? -1 : 1;
+					setDisplayArea(side*9, -8.4, 20.8, 0, 0, 0, 1,1,1)
 				}
 				break;
 			case 'bow':
 				this.onload = function() {
-					if (display_slot === 'firstperson_righthand') {
-						setDisplayArea(-24.7, -5.6, 5.4, 64, -115, 55, 1,1,1)
-					} else if (display_slot === 'firstperson_lefthand') {
-						setDisplayArea(-24.7, -5.6, -5.4, -64, -65, -55, 1,1,1)
-					}
+					var side = display_slot.includes('left') ? -1 : 1;
+					setDisplayArea(side*5.4, -5.6, 24.7, side*64, side*-25, side*55, 1,1,1)
 				}
 				break;
 		}
@@ -286,9 +282,9 @@ class refModel {
 				//Body
 				"size": [8, 12, 4],
 				"pos": [0, 18, 0],
-				"north": {"uv": [6.968, 5.032, 5.032, 7.968]},
+				"north": {"uv": [5.032, 5.032, 6.968, 7.968]},
 				"east": {"uv": [7.968, 5.032, 7.032, 7.968]},
-				"south": {"uv": [9.968, 5.032, 8.032, 7.968]},
+				"south": {"uv": [8.032, 5.032, 9.968, 7.968]},
 				"west": {"uv": [4.968, 5.032, 4.032, 7.968]},
 				"up": {"uv": [5.032, 4.968, 6.968, 4.032]},
 				"down": {"uv": [7.032, 4.032, 8.968, 4.968]}
@@ -297,9 +293,9 @@ class refModel {
 				//Body Layer
 				"size": [8.5, 12.5, 4.5],
 				"pos": [0, 18, 0],
-				"north": {"uv": [6.968, 9.032, 5.032, 11.968]},
+				"north": {"uv": [5.032, 9.032, 6.968, 11.968]},
 				"east": {"uv": [7.968, 9.032, 7.032, 11.968]},
-				"south": {"uv": [9.968, 9.032, 8.032, 11.968]},
+				"south": {"uv": [8.032, 9.032, 9.968, 11.968]},
 				"west": {"uv": [4.968, 9.032, 4.032, 11.968]},
 				"up": {"uv": [5.032, 8.968, 6.968, 8.032]},
 				"down": {"uv": [7.032, 8.032, 8.968, 8.968]}
@@ -1175,10 +1171,10 @@ class refModel {
 	}
 	buildMonitor() {
 		this.buildModel([
-			{"size": [0.1, 8, 8], "pos": [-31.2, 4.93, 0], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
-			{"size": [0.1, 8, 8], "pos": [-31.2, -4.93, 0], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
-			{"size": [0.1, 8, 8], "pos": [-31.2, 0, 5.65], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
-			{"size": [0.1, 8, 8], "pos": [-31.2, 0, -5.65], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}}
+			{"size": [8, 8, 0.1], "pos": [0, 4.93, 31.20], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
+			{"size": [8, 8, 0.1], "pos": [0, -4.93, 31.20], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
+			{"size": [8, 8, 0.1], "pos": [5.65, 0, 31.2], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
+			{"size": [8, 8, 0.1], "pos": [-5.65, 0, 31.2], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}}
 		], 'black')
 	}
 	buildBlock() {
@@ -1234,8 +1230,13 @@ window.displayReferenceObjects = {
 				case 'icon-monitor': icon = 'fa fa-asterisk'; break;
 			}
 			var button = $(
-				'<div><input class="hidden" type="radio" name="refmodel" id="'+ref.id+'"'+ (i === 0 ? ' selected' : '') +'>'+
-				'<label class="tool" onclick="displayReferenceObjects.refmodels.'+ref.id+'.load()" for="'+ref.id+'"><i class="'+icon+'"></i><div class="tooltip">'+ref.name+'</div></label></div>'
+				`<div>
+					<input class="hidden" type="radio" name="refmodel" id="${ref.id}"${ i === 0 ? ' selected' : '' }>
+					<label class="tool" onclick="displayReferenceObjects.refmodels.${ref.id}.load()" for="${ref.id}">
+						<div class="tooltip">${ref.name}</div>
+						<i class="${icon}"></i>
+					</label>
+				</div>`
 			)
 			$('#display_ref_bar').append(button)
 			if (i === 0) {
@@ -1411,7 +1412,7 @@ DisplayMode.createPreset = function() {
 	display_presets.push(preset)
 
 	displayReferenceObjects.slots.forEach(function(s) {
-		if ($('#'+s+'_save').is(':checked')) {
+		if ($('#'+s+'_save').is(':checked') && display[s]) {
 			preset.areas[s] = display[s].copy()
 		}
 	})
@@ -1459,7 +1460,6 @@ function loadDisp(key) {	//Loads The Menu and slider values, common for all Radi
 	}
 	display_preview.controls.enabled = true;
 	ground_animation = false;
-	$('input#translation_z').prop('disabled', false)
 	$('#display_crosshair').detach()
 	display_preview.camPers.setFocalLength(45)
 
@@ -1481,9 +1481,8 @@ DisplayMode.loadThirdLeft = function() {	//Loader
 }
 DisplayMode.loadFirstRight = function() {	//Loader
 	loadDisp('firstperson_righthand')
-	setDisplayArea(-20.8, -8.4, 9, 0, 270, 0, 1,1,1)
 	display_preview.camPers.setFocalLength(12)
-	display_preview.camPers.position.set(-32.4, 0, 0)
+	display_preview.camPers.position.set(0, 0, 32.4)
 	display_preview.controls.target.set(0,0,0)
 	display_preview.controls.enabled = false
 	displayReferenceObjects.bar(['monitor', 'bow'])
@@ -1491,9 +1490,8 @@ DisplayMode.loadFirstRight = function() {	//Loader
 }
 DisplayMode.loadFirstLeft = function() {	//Loader
 	loadDisp('firstperson_lefthand')
-	setDisplayArea(-20.5, -8.4, -9, 0, 270, 0, 1,1,1)
 	display_preview.camPers.setFocalLength(12)
-	display_preview.camPers.position.set(-32.4, 0, 0)
+	display_preview.camPers.position.set(0, 0, 32.4)
 	display_preview.controls.target.set(0,0,0)
 	display_preview.controls.enabled = false
 	displayReferenceObjects.bar(['monitor', 'bow'])
@@ -1508,7 +1506,6 @@ DisplayMode.loadGUI = function() {		//Loader
 	setDisplayArea(0, 0, 0, 0, 0, 0, 0.4, 0.4, 0.4)
 	display_preview.camOrtho.zoom = 1
 	display_preview.controls.target.set(0,0,0)
-	//controls.enabled = false
 	display_preview.setOrthographicCamera(2)
 	display_preview.camOrtho.position.set(0,0,32)
 	displayReferenceObjects.bar(['inventory_nine', 'inventory_full', 'hud'])
@@ -1688,11 +1685,67 @@ function updateDisplaySkin() {
 	}
 	//displayReferenceObjects.refmodels.player.material
 }
+
+
+onVueSetup(function() {
+	DisplayMode.vue = new Vue({
+		el: '#display_sliders',
+		data: {
+			slot: new DisplaySlot()
+		},
+		methods: {
+			isMirrored: (axis) => {
+				if (display[display_slot]) {
+					return display[display_slot].scale[axis] < 0;
+				}
+			},
+			change: (axis, channel) => {
+				if (channel === 'scale') {
+					var val = limitNumber(DisplayMode.slot.scale[axis], 0, 4)
+					DisplayMode.slot.scale[axis] = val;
+					if (holding_shift) {
+						DisplayMode.slot.scale[0] = val;
+						DisplayMode.slot.scale[1] = val;
+						DisplayMode.slot.scale[2] = val;
+					}
+				} else if (channel === 'translation') {
+					DisplayMode.slot.translation[axis] = limitNumber(DisplayMode.slot.translation[axis], -80, 80)||0;
+				} else {
+					DisplayMode.slot.rotation[axis] = Math.trimDeg(DisplayMode.slot.rotation[axis])||0;
+				}
+				DisplayMode.updateDisplayBase()
+			},
+			resetChannel: (channel) => {
+				var v = channel === 'scale' ? 1 : 0;
+				Undo.initEdit({display_slots: [display_slot]})
+				DisplayMode.slot.extend({[channel]: [v, v, v]})
+				if (channel === 'scale') {
+				DisplayMode.slot.extend({mirror: [false, false, false]})
+				}
+				Undo.finishEdit('reset display')
+			},
+			invert: (axis) => {
+				Undo.initEdit({display_slots: [display_slot]})
+				DisplayMode.slot.mirror[axis] = !DisplayMode.slot.mirror[axis];
+				DisplayMode.slot.update()
+				Undo.finishEdit('mirror display')
+			},
+			start: () => {
+				Undo.initEdit({display_slots: [display_slot]})
+			},
+			save: () => {
+				Undo.finishEdit('change_display')
+			}
+		}
+	})
+})
+
 BARS.defineActions(function() {
 	new Action({
 		id: 'add_display_preset',
 		icon: 'add',
 		category: 'display',
+		condition: () => display_mode,
 		click: function () {showDialog('create_preset')}
 	})
 })

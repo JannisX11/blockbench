@@ -478,7 +478,7 @@ class Texture {
 			var sides = ['north', 'east', 'south', 'west', 'up', 'down']
 			elements.forEach(function(s) {
 				sides.forEach(function(side) {
-					s.faces[side].texture = '#'+scope.id
+					s.faces[side].texture = scope.uuid
 				})
 			})
 			Canvas.updateAllFaces()
@@ -537,15 +537,16 @@ class Texture {
 		if (selected.length === 0) return;
 		var scope = this;
 		Undo.initEdit({cubes: selected})
-		if (all || Blockbench.entity_mode) {
-			var sides = ['north', 'east', 'south', 'west', 'up', 'down']
-		} else {
-			var sides = [main_uv.face]
-		}
+
 		selected.forEach(function(obj) {
-			sides.forEach(function(side) {
-				obj.faces[side].texture = '#'+scope.id
-			})
+			for (var face in obj.faces) {
+				if (all || Blockbench.entity_mode || face === main_uv.face) {
+					var f = obj.faces[face]
+					if (all !== 'blank' || (f.texture !== null && !f.getTexture())) {
+						f.texture = scope.uuid
+					}
+				}
+			}
 		})
 		Canvas.updateSelectedFaces()
 		main_uv.loadData()
@@ -714,6 +715,12 @@ class Texture {
 				click: function(texture) {texture.apply()}
 			},
 			{
+				icon: 'texture',
+				name: 'menu.texture.blank', 
+				condition: function() {return !Blockbench.entity_mode && selected.length > 0},
+				click: function(texture) {texture.apply('blank')}
+			},
+			{
 				icon: 'fa-cube',
 				name: 'menu.texture.cube',
 				condition: function() {return !Blockbench.entity_mode && selected.length > 0},
@@ -876,7 +883,7 @@ function loadTextureDraggable() {
 						if ($('canvas.preview:hover').length > 0) {
 							var data = Canvas.getCurrentPreview().raycast()
 							if (data.cube && data.face) {
-								var tex = getTextureById(ui.helper.attr('texid'))
+								var tex = textures.findInArray('uuid', ui.helper.attr('texid'));
 								if (tex) {
 									data.cube.applyTexture(tex, [data.face])
 								}
@@ -928,7 +935,7 @@ function changeTexturesFolder() {
 
 }
 function getTextureById(id) {
-	if (id === undefined) return;
+	if (id === undefined || id === false) return;
 	if (id == null) {
 		return {material: transparentMaterial};
 	}
@@ -937,9 +944,17 @@ function getTextureById(id) {
 }
 function getTexturesById(id) {
 	if (id === undefined) return;
-	id = id.split('#').join('');
+	id = id.replace('#', '');
 	return $.grep(textures, function(e) {return e.id == id});
 }
+
+onVueSetup(function() {
+	texturelist = new Vue({
+		el: '#texture_list',
+		data: {textures}
+	})
+	texturelist._data.elements = textures
+})
 
 BARS.defineActions(function() {
 	new Action({

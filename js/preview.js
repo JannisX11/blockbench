@@ -35,7 +35,6 @@ class Preview {
 		this.camOrtho = new THREE.OrthographicCamera(-600,  600, -400, 400, 1, 100)
 		this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'y'}]
 		this.camOrtho.axis = null
-		this.camPers.position.set(-20, 20, -20)
 		this.camPers.preview = this.camOrtho.preview = this; 
 
 		//Controls
@@ -45,6 +44,8 @@ class Preview {
 		this.controls.target.set(0,-3,0);
 		this.controls.enableKeys = false;
 		this.controls.zoomSpeed = 1.5
+
+		this.resetCamera(true)
 
 		//Keybinds
 		this.controls.mouseButtons.ZOOM = undefined;
@@ -255,10 +256,13 @@ class Preview {
 		this.controls.updateSceneScale();
 		return this;
 	}
-	resetCamera() {
+	resetCamera(init) {
+		var dis = 24
 		this.controls.target.set(0, -3, 0);
-		this.camPers.position.set(-20, 20, -20)
-		this.setNormalCamera()
+		this.camPers.position.set(-dis, dis*0.8, -dis)
+		if (!init) {
+			this.setNormalCamera()
+		}
 		return this;
 	}
 	getFacingDirection() {
@@ -303,7 +307,7 @@ class Preview {
 			this.static_rclick = false
 			if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data.type === 'cube') {
 				if (Toolbox.selected.selectFace) {
-					main_uv.setFace(data.face)
+					main_uv.setFace(data.face, false)
 				}
 				Blockbench.dispatchEvent( 'canvas_select', data )
 				if (Animator.open || (Toolbox.selected.id === 'rotate_tool' && Blockbench.entity_mode)) {
@@ -441,10 +445,10 @@ class Preview {
 		)
 		selected.length = 0;
 		elements.forEach(function(cube) {
-			
+
 			if ((event.shiftKey || event.ctrlKey) && scope.selection.old_selected.indexOf(cube) >= 0) {
 				var isSelected = true
-			} else {
+			} else if (cube.visibility) {
 				var mesh = cube.mesh
 				var from = 	new THREE.Vector3().copy(mesh.geometry.vertices[6]).applyMatrix4(mesh.matrixWorld)
 				var to = 	new THREE.Vector3().copy(mesh.geometry.vertices[0]).applyMatrix4(mesh.matrixWorld)
@@ -711,6 +715,7 @@ class Preview {
 			}
 			return [
 				{icon: getBtn(0, true), name: 'menu.preview.perspective.normal', click: function(preview) {preview.setNormalCamera()}},
+				'camera_reset',
 				{icon: getBtn(0), name: 'direction.top',	color: 'y', click: function(preview) {preview.setOrthographicCamera(0)}},
 				{icon: getBtn(1), name: 'direction.bottom',	color: 'y', click: function(preview) {preview.setOrthographicCamera(1)}},
 				{icon: getBtn(2), name: 'direction.south',	color: 'z', click: function(preview) {preview.setOrthographicCamera(2)}},
@@ -847,29 +852,41 @@ function initCanvas() {
 	Sun = new THREE.AmbientLight( 0xffffff );
 	Sun.name = 'sun'
 	scene.add(Sun);
+	Sun.intensity = 0.44
 
 	lights = new THREE.Object3D()
 	lights.name = 'lights'
 	
-	var light_top = new THREE.DirectionalLight( 0x777777 );
+	var light_top = new THREE.DirectionalLight( /*0x777777*/ );
+	light_top.name = 'light_top'
 	light_top.position.set(8, 100, 8)
 	lights.add(light_top);
+	
+	light_top.intensity = 0.66
 
-	var light_west = new THREE.DirectionalLight( 0x222222 );
-	light_west.position.set(-100, 8, 8)
-	lights.add(light_west);
-
-	var light_east = new THREE.DirectionalLight( 0x222222 );
-	light_east.position.set(100, 8, 8)
-	lights.add(light_east);
-
-	var light_north = new THREE.DirectionalLight( 0x444444 );
+	var light_north = new THREE.DirectionalLight( /*0x444444*/ );
+	light_north.name = 'light_north'
 	light_north.position.set(8, 8, -100)
 	lights.add(light_north);
 
-	var light_south = new THREE.DirectionalLight( 0x444444 );
+	var light_south = new THREE.DirectionalLight( /*0x444444*/ );
+	light_south.name = 'light_south'
 	light_south.position.set(8, 8, 100)
 	lights.add(light_south);
+
+	light_north.intensity = light_south.intensity = 0.44
+
+	var light_west = new THREE.DirectionalLight( /*0x222222*/ );
+	light_west.name = 'light_west'
+	light_west.position.set(-100, 8, 8)
+	lights.add(light_west);
+
+	var light_east = new THREE.DirectionalLight( /*0x222222*/ );
+	light_east.name = 'light_east'
+	light_east.position.set(100, 8, 8)
+	lights.add(light_east);
+
+	light_west.intensity = light_east.intensity = 0.22
 
 	setShading()
 
@@ -951,14 +968,11 @@ function animate() {
 function setShading() {
 	scene.remove(lights)
 	display_scene.remove(lights)
-	Sun.intensity = 1
+	Sun.intensity = settings.brightness.value/100;
 	if (settings.shading.value === true) {
-		Sun.intensity = 0.65
-		if (display_mode) {
-			display_scene.add(lights)
-		} else {
-			scene.add(lights)
-		}
+		(display_mode ? display_scene : scene).add(lights)
+	} else {
+		Sun.intensity *= (1/0.6)
 	}
 }
 //Helpers
@@ -1089,13 +1103,6 @@ function centerTransformer(offset) {
 		Transformer.position.z += 8;
 		Transformer.rotation.set(0, 0, 0)
 		Transformer.update()
-
-		//if (!rotate_tool) {
-		//	var quat = new THREE.Quaternion()
-		//	g_mesh.getWorldQuaternion(quat)
-		//	Transformer.rotation.setFromQuaternion(quat, 'ZYX')
-		//} else {
-		//}
 		return;
 	}
 
@@ -1104,57 +1111,18 @@ function centerTransformer(offset) {
 		Canvas.updateAllBones()
 	}
 	if (!rotate_tool) {
-		var first_obj
-		var center = [0, 0, 0]
-		var i = 0;
-		selected.forEach(function(obj) {
-			var m = obj.mesh
-			if (obj.visibility && m) {
-				var pos = new THREE.Vector3(
-					obj.from[0] + obj.size(0)/2,
-					obj.from[1] + obj.size(1)/2,
-					obj.from[2] + obj.size(2)/2
-				)
-				if (!Blockbench.entity_mode) {
-
-					pos.x -= obj.origin[0]
-					pos.y -= obj.origin[1]
-					pos.z -= obj.origin[2]
-					var r = m.getWorldQuaternion(new THREE.Quaternion())
-					pos.applyQuaternion(r)
-					pos.x += obj.origin[0]
-					pos.y += obj.origin[1]
-					pos.z += obj.origin[2]
-				} else {
-					var r = m.getWorldQuaternion(new THREE.Quaternion())
-					pos.applyQuaternion(r)
-					pos.add(m.getWorldPosition(new THREE.Vector3()))
-					pos.x += 8
-					pos.y += 8
-					pos.z += 8
-				}
-
-				center[0] += pos.x
-				center[1] += pos.y
-				center[2] += pos.z
-
-				if (!first_obj) {
-					first_obj = obj
-				}
+		var first_obj;
+		var center = getSelectionCenter()
+		for (var i = 0; i < selected.length && !first_obj; i++) {
+			if (selected[i].visibility) {
+				first_obj = selected[i];
 			}
-		})
-		if (!first_obj) {
-			return;
-		}
-		i = 0;
-		while (i < 3) {
-			center[i] = center[i] / selected.length
-			i++;
 		}
 	} else {
 		var first_obj = selected[0]
 		var center = first_obj.origin
 	}
+	if (!first_obj || !first_obj.visibility) return;
 	var vec = new THREE.Vector3(center[0], center[1], center[2])
 
 	//Position + Rotation
@@ -1357,7 +1325,7 @@ class CanvasController {
 				if (texture) {
 				 	used = false;
 					for (var face in obj.faces) {
-						if (obj.faces[face] && obj.faces[face].texture === '#'+texture.id) {
+						if (obj.faces[face].texture === texture.uuid) {
 				 			used = true;
 						}
 					}
@@ -1420,9 +1388,7 @@ class CanvasController {
 			}
 		}
 		arr.forEach(function(obj) {
-			if (obj.visibility == true) {
-				Canvas.adaptObjectPosition(obj)
-			}
+			Canvas.adaptObjectPosition(obj)
 		})
 		if (leave_selection !== true) {
 			updateSelection()
@@ -1608,22 +1574,22 @@ class CanvasController {
 		}
 		iterate(el, elmesh)
 	}
-	adaptObjectFaces(obj, mesh) {
-		if (!mesh) mesh = obj.mesh
+	adaptObjectFaces(cube, mesh) {
+		if (!mesh) mesh = cube.mesh
 		if (!mesh) return;
 		if (!Prop.wireframe) {
 			var materials = []
 			this.face_order.forEach(function(face) {
 
-				if (obj.faces[face].texture === null) {
+				if (cube.faces[face].texture === null) {
 					materials.push(Canvas.transparentMaterial)
 
 				} else {
-					var tex = getTextureById(obj.faces[face].texture)
-					if (typeof tex === 'object') {
+					var tex = cube.faces[face].getTexture()
+					if (tex && tex.uuid) {
 						materials.push(Canvas.materials[tex.uuid])
 					} else {
-						materials.push(emptyMaterials[obj.color])
+						materials.push(emptyMaterials[cube.color])
 					}
 				}
 			})
@@ -1717,7 +1683,7 @@ class CanvasController {
 					stretch = 1
 					frame = 0
 					if (obj[face].texture && obj[face].texture !== null) {
-						var tex = getTextureById(obj[face].texture)
+						var tex = obj[face].getTexture()
 						if (typeof tex === 'object' && tex.constructor.name === 'Texture' && tex.frameCount) {
 							stretch = tex.frameCount
 							if (animation === true && tex.currentFrame) {
@@ -1830,6 +1796,9 @@ BARS.defineActions(function() {
 		click: function () {
 			Prop.wireframe = !Prop.wireframe
 			Canvas.updateAll()
+			if (Modes.id === 'animate') {
+				Animator.preview()
+			}
 		}
 	})
 
@@ -1888,6 +1857,7 @@ BARS.defineActions(function() {
 		id: 'toggle_quad_view',
 		icon: 'widgets',
 		category: 'view',
+		condition: () => (Modes.id === 'edit' || Modes.id === 'paint'),
 		keybind: new Keybind({key: 9}),
 		click: function () {
 			main_preview.toggleFullscreen()
@@ -1895,8 +1865,8 @@ BARS.defineActions(function() {
 	})
 	new Action({
 		id: 'camera_reset',
-		name: 'direction.top',
-		description: 'direction.top',
+		name: 'menu.preview.perspective.reset',
+		description: 'menu.preview.perspective.reset',
 		icon: 'videocam',
 		category: 'view',
 		keybind: new Keybind({key: 96}),

@@ -8,7 +8,6 @@ THREE.OBJExporter = function () {};
 THREE.OBJExporter.prototype = {
 
 	constructor: THREE.OBJExporter,
-
 	parse: function ( object, mtlFileName ) {
 
 	var output = '# Made in Blockbench '+appVersion+'\n';
@@ -44,13 +43,9 @@ THREE.OBJExporter.prototype = {
 					vertex.applyMatrix4( mesh.matrixWorld );
 
 					output += 'v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z + '\n';
-
 					nbVertex ++;
-
 				}
-
 				// uvs
-
 				var faces = geometry.faces;
 				var faceVertexUvs = geometry.faceVertexUvs[ 0 ];
 				var hasVertexUvs = faces.length === faceVertexUvs.length;
@@ -64,15 +59,10 @@ THREE.OBJExporter.prototype = {
 						for ( var j = 0, jl = vertexUvs.length; j < jl; j ++ ) {
 
 							var uv = vertexUvs[ j ];
-
 							output += 'vt ' + uv.x + ' ' + uv.y + '\n';
-
 							nbVertexUvs ++;
-
 						}
-
 					}
-
 				}
 
 				// normals
@@ -95,9 +85,7 @@ THREE.OBJExporter.prototype = {
 							output += 'vn ' + normal.x + ' ' + normal.y + ' ' + normal.z + '\n';
 
 							nbNormals ++;
-
 						}
-
 					} else {
 
 						var normal = face.normal.clone();
@@ -106,69 +94,49 @@ THREE.OBJExporter.prototype = {
 						for ( var j = 0; j < 3; j ++ ) {
 
 							output += 'vn ' + normal.x + ' ' + normal.y + ' ' + normal.z + '\n';
-
 							nbNormals ++;
-
 						}
-
 					}
-
 				}
 			  
 				// material
-				for (var key in element.faces) {
-					if (element.faces.hasOwnProperty(key)) {
-						var id = element.faces[key].texture
-						if (id !== undefined && id !== null) {
-							id = id.replace('#', '')
-							if (materials[id] === undefined) {
-								materials[id] = getTextureById(id)
-							}
-						}
+				for (var face in element.faces) {
+					var tex = element.faces[face].getTexture()
+					if (tex && tex.uuid && !materials[tex.id]) {
+						materials[tex.id] = tex
 					}
 				}
-
-
 
 
 				for ( var i = 0, j = 1, l = faces.length; i < l; i ++, j += 3 ) {
 
 					var f_mat = getMtlFace(element, i)
-
 					if (f_mat) {
 
 						var face = faces[ i ];
-
 						if (i % 2 === 0) {
 							output += f_mat
 						}
-
 						output += 'f ';
 						output += ( indexVertex + face.a + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j	 ) : '' ) + '/' + ( indexNormals + j	 ) + ' ';
 						output += ( indexVertex + face.b + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j + 1 ) : '' ) + '/' + ( indexNormals + j + 1 ) + ' ';
 						output += ( indexVertex + face.c + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j + 2 ) : '' ) + '/' + ( indexNormals + j + 2 ) + '\n';
-
 					}
 				}
-
 			} else {
-
 				console.warn( 'THREE.OBJExporter.parseMesh(): geometry type unsupported', mesh );
 				// TODO: Support only BufferGeometry and use use setFromObject()
-
 			}
 
 			// update index
 			indexVertex += nbVertex;
 			indexVertexUvs += nbVertexUvs;
 			indexNormals += nbNormals;
-
 		};
 
 		object.traverse( function ( child ) {
 
 			if ( child instanceof THREE.Mesh ) parseMesh( child );
-
 		} );
 	  		
 	// mtl output
@@ -190,7 +158,6 @@ THREE.OBJExporter.prototype = {
 	}
 
 	}
-
 };
 function getMtlFace(obj, index) {
 	if (index % 2 == 1) index--;
@@ -204,14 +171,13 @@ function getMtlFace(obj, index) {
 		case 6:   key = 'down';  break;
 	}
 
-	var id = obj.faces[key].texture
+	var tex = obj.faces[key].getTexture()
 
-	if (id === null) {
+	if (tex === null) {
 		return false
-	} else if (id === undefined) {
+	} else if (typeof tex === 'string') {
 		return 'usemtl none\n'
 	} else {
-		id = id.replace('#', '')
-		return 'usemtl ' + id + '\n';
+		return 'usemtl ' + tex.id + '\n';
 	}
 }
