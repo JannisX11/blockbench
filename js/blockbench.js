@@ -33,6 +33,12 @@ const Project = {
 	texture_width	: 16,
 	texture_height	: 16,
 	ambientocclusion: true,
+	get geometry_name() {
+		return this.parent;
+	},
+	set geometry_name(n) {
+		this.parent = n;
+	},
 }
 const mouse_pos = {x:0,y:0}
 const sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
@@ -163,9 +169,7 @@ function updateNslideValues() {
 		BarItems.slider_size_y.update()
 		BarItems.slider_size_z.update()
 
-		if (Blockbench.entity_mode) {
-			BarItems.slider_inflate.update()
-		}
+		BarItems.slider_inflate.update()
 	}
 	if (selected.length || (Blockbench.entity_mode && selected_group)) {
 		BarItems.slider_origin_x.update()
@@ -437,7 +441,19 @@ BARS.defineActions(function() {
 	})
 })
 //Misc
-var Screencam = {
+const TickUpdates = {
+	Run: function() {
+		if (TickUpdates.outliner) {
+			delete TickUpdates.outliner;
+			loadOutlinerDraggable()
+		}
+		if (TickUpdates.selection) {
+			delete TickUpdates.selection;
+			updateSelection()
+		}
+	}
+}
+const Screencam = {
 	fullScreen: function(options, cb) {
 		setTimeout(function() {
 			currentwindow.capturePage(function(screenshot) {
@@ -516,34 +532,6 @@ var Screencam = {
 		})
 		var frame_count = (options.length/interval)
 
-		/*
-		gif.on('finished', blob => {
-			var reader = new FileReader()
-			reader.onload = () => {
-				Screencam.returnScreenshot(reader.result, cb)
-			}
-			if (Animator.open && Timeline.playing) {
-				Timeline.pause()
-			}
-			reader.readAsDataURL(blob)
-			if (!options.silent) {
-				Blockbench.setProgress(0)
-				Blockbench.setStatusBarText()
-			}
-		})
-		if (!options.silent) {
-			Blockbench.setStatusBarText(tl('status_bar.recording_gif'))
-			gif.on('progress', Blockbench.setProgress)
-		}
-
-
-		for (var frame = 0; frame < frame_count; frame++) {
-			gif.addFrame(quad_previews.current.canvas, {delay: interval})
-		}
-		gif.render()*/
-
-		//Problem with this ^^ When recording, frames get generated as fast as possible
-
 		gif.on('finished', blob => {
 			var reader = new FileReader()
 			reader.onload = () => {
@@ -582,7 +570,7 @@ var Screencam = {
 		}, options.length)
 	}
 }
-var Clipbench = {
+const Clipbench = {
 	cubes: [],
 	copy: function(event, cut) {
 		var p = Prop.active_panel
@@ -632,7 +620,6 @@ var Clipbench = {
 			}
 			if (Clipbench.keyframes && Clipbench.keyframes.length) {
 
-
 				if (!Animator.selected) return;
 				var bone = Animator.selected.getBoneAnimator()
 				if (bone) {
@@ -659,12 +646,12 @@ var Clipbench = {
 			
 			Undo.initEdit({outliner: true, cubes: [], selection: true});
 			//Group
-			var group = 'root'
+			var target = 'root'
 			if (selected_group) {
-				group = selected_group
+				target = selected_group
 				selected_group.isOpen = true
 			} else if (selected[0]) {
-				group = selected[0]
+				target = selected[0]
 			}
 			selected.length = 0
 			if (isApp) {
@@ -681,18 +668,30 @@ var Clipbench = {
 				} catch (err) {}
 			}
 			if (Clipbench.group) {
-				if (typeof Clipbench.group.duplicate !== 'function') {
-					Clipbench.group = new Group(Clipbench.group)
+				function iterate(obj, parent) {
+					if (obj.children) {
+						var copy = new Group(obj)
+						if (obj.children && obj.children.length) {
+							obj.children.forEach((child) => {
+								iterate(child, copy)
+							})
+						}
+						copy.addTo(parent)
+					} else {
+						var copy = new Cube(obj)
+						copy.addTo(parent).init()
+						selected.push(elements[elements.length-1])
+					}
 				}
-				Clipbench.group.duplicate(group)
-			} else {
-				Clipbench.cubes.forEach(function(obj) {
-					var base_cube = new Cube(obj)
+				iterate(Clipbench.group, target)
+				updateSelection()
 
-					base_cube.addTo(group, false).init()
+			} else if (Clipbench.cubes && Clipbench.cubes.length) {
+				Clipbench.cubes.forEach(function(obj) {
+					var copy = new Cube(obj)
+					copy.addTo(target).init()
 					selected.push(elements[elements.length-1])
 				})
-				loadOutlinerDraggable()
 				updateSelection()
 			}
 			Undo.finishEdit('paste', {outliner: true, cubes: selected, selection: true});
@@ -759,82 +758,8 @@ var Clipbench = {
 		}
 	}
 }
-TextureAnimator = {
-	isPlaying: false,
-	interval: false,
-	start: function() {
-		clearInterval(TextureAnimator.interval)
-		TextureAnimator.isPlaying = true
-		TextureAnimator.updateButton()
-		TextureAnimator.interval = setInterval(TextureAnimator.nextFrame, 1000/settings.texture_fps.value)
-	},
-	stop: function() {
-		TextureAnimator.isPlaying = false
-		clearInterval(TextureAnimator.interval)
-		TextureAnimator.updateButton()
-	},
-	toggle: function() {
-		if (TextureAnimator.isPlaying) {
-			TextureAnimator.stop()
-		} else {
-			TextureAnimator.start()
-		}
-	},
-	updateSpeed: function() {
-		if (TextureAnimator.isPlaying) {
-			TextureAnimator.stop()
-			TextureAnimator.start()
-		}
-	},
-	nextFrame: function() {
-		var animated_tex = []
-		textures.forEach(function(tex, i) {
-			if (tex.frameCount > 1) {
-				if (tex.currentFrame === undefined) {
-					tex.currentFrame = 0
-				} else if (tex.currentFrame >= tex.frameCount-1) {
-					tex.currentFrame = 0
-				} else {
-					tex.currentFrame++;
-				}
-				$($('.texture').get(i)).find('img').css('margin-top', (tex.currentFrame*-48)+'px')
-				animated_tex.push(''+tex.id)
-			}
-		})
-		elements.forEach(function(obj) {
-			var update = false
-			for (var face in obj.faces) {
-				if (update === false) {
-					update = (
-						obj.faces.hasOwnProperty(face) &&
-						typeof obj.faces[face].texture === 'string' &&
-						animated_tex.includes(obj.faces[face].texture.replace(/^#/, ''))
-					)
-				}
-			}
-			if (update) {
-				Canvas.updateUV(obj, true)
-			}
-		})
-	},
-	reset: function() {
-		TextureAnimator.stop()
-		textures.forEach(function(tex, i) {
-			if (tex.frameCount) {
-				tex.currentFrame = 0
-				$($('.texture').get(i)).find('img').css('margin-top', '0')
-			} 
-		})
-		while (i < elements.length) {
-			Canvas.updateUV(elements[i], true)
-			i++;
-		}
-	},
-	updateButton: function() {
-		BarItems.animated_textures.setIcon( TextureAnimator.isPlaying ? 'pause' : 'play_arrow' )
-	}
-}
-var Vertexsnap = {
+
+const Vertexsnap = {
 	step1: true,
 	vertexes: new THREE.Object3D(),
 	vertexed_cubes: [],

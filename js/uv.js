@@ -226,6 +226,7 @@ class UVEditor {
 			scope.displayMappingOverlay()
 		})
 		this.jquery.size.mouseleave(function() {
+		console.trace('RM')
 			$(this).find('.uv_mapping_overlay').remove()
 		})
 
@@ -284,6 +285,9 @@ class UVEditor {
 				scope.updateDragHandle(ui.position)
 				if (Blockbench.entity_mode) {
 					scope.displayAllMappingOverlays()
+					if (scope.jquery.size.is(':hover')) {
+						scope.displayMappingOverlay()
+					}
 				}
 			}
 		})
@@ -1137,7 +1141,7 @@ class UVEditor {
 				return;
 			}
 			var tag = selected[0].faces[face]
-			var new_tag = new Face().extend(tag)
+			var new_tag = new Face(face, tag)
 			uv_dialog.clipboard.push(new_tag)
 		}
 		if (event.shiftKey) {
@@ -1180,7 +1184,7 @@ class UVEditor {
 					applyFace(uv_dialog.clipboard[0], main_uv.face)
 				} else {
 					uv_dialog.clipboard.forEach(function(s) {
-						applyFace(s)
+						applyFace(s, s.direction)
 					})
 				}
 			}
@@ -1556,19 +1560,25 @@ const uv_dialog = {
 
 		function addToClipboard(face) {
 			var tag = selected[0].faces[face]
-			uv_dialog.clipboard.push(new Face(tag))
+			uv_dialog.clipboard.push(new Face(null, tag))
 		}
 		if (uv_dialog.hoveredSide) {
 			addToClipboard(uv_dialog.hoveredSide)
 			uv_dialog.editors[uv_dialog.hoveredSide].message('uv_editor.copied')
 
+		} else if (uv_dialog.single) {
+			addToClipboard(uv_dialog.editors.single.face)
+			uv_dialog.editors.single.message('uv_editor.copied')
+
 		} else if (uv_dialog.selection.length > 0) {
 			uv_dialog.selection.forEach(function(s) {
 				addToClipboard(s)
+				uv_dialog.editors[s].message('uv_editor.copied')
 			})
 		} else {
 			uv_dialog.allFaces.forEach(function(s) {
 				addToClipboard(s)
+				uv_dialog.editors[s].message('uv_editor.copied')
 			})
 		}
 	},
@@ -1588,15 +1598,22 @@ const uv_dialog = {
 
 		} else if (uv_dialog.selection.length === 1) {
 			applyFace(uv_dialog.clipboard[0], uv_dialog.selection[0])
+			if (uv_dialog.single) {
+				uv_dialog.editors.single.message('uv_editor.pasted')
+			} else {
+				uv_dialog.editors[uv_dialog.selection[0]].message('uv_editor.pasted')
+			}
 		} else {
 			if (uv_dialog.clipboard.length === 1) {
 				uv_dialog.selection.forEach(function(s) {
 					applyFace(uv_dialog.clipboard[0], s)
+					uv_dialog.editors[s].message('uv_editor.pasted')
 				})
 			} else {
 				uv_dialog.clipboard.forEach(function(s) {
 					if (uv_dialog.selection.includes(s.face)) {
 						applyFace(s)
+						uv_dialog.editors[s].message('uv_editor.pasted')
 					}
 				})
 			}
@@ -1717,9 +1734,7 @@ BARS.defineActions(function() {
 		category: 'uv',
 		condition: () => !Blockbench.entity_mode && selected.length,
 		click: function (event) {
-			Undo.initEdit({cubes: selected, uv_only: true})
 			uv_dialog.forSelection('clear', event)
-			Undo.finishEdit('remove face')
 		}
 	})
 	new Action({

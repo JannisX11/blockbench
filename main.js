@@ -5,7 +5,7 @@ const url = require('url')
 let orig_win;
 
 function createWindow() {
-	if (!app.requestSingleInstanceLock()) {
+	if (app.requestSingleInstanceLock && !app.requestSingleInstanceLock()) {
 		return;
 	}
 	let win = new BrowserWindow({
@@ -83,7 +83,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('activate', () => {
-	if (win === null) {
+	/*if (win === null) {
 		createWindow()
-	}
+	}*/
 })

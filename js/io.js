@@ -43,7 +43,7 @@ function newProject(entity_mode) {
 function setupDragHandlers() {
 	Blockbench.addDragHandler(
 		'model',
-		{extensions: ['json', 'jem', 'jpm']},
+		{extensions: ['json', 'jem', 'jpm', 'bbmodel']},
 		function(files) {
 			loadModel(files[0].content, files[0].path || files[0].path)
 			if (isApp) {
@@ -94,14 +94,16 @@ function loadModel(data, filepath, add) {
 	var model = autoParseJSON(data)
 	var extension = pathToExtension(filepath)
 
-	if (extension === 'jpm') {
+	if (extension === 'bbmodel') {
+		loadBBModel(model)
+	} else if (extension === 'jpm') {
 		loadJPMModel(model)
 	} else if (extension === 'jem') {
 		loadJEMModel(model)
 	} else { //JSON
 		for (var key in model) {
 			if (key.includes('geometry.')) {
-				loadPEModelFile(model)
+				loadEntityModelFile(model)
 				return;
 			}
 		}
@@ -114,6 +116,80 @@ function loadModel(data, filepath, add) {
 	Blockbench.removeFlag('importing')
 	if (!add) {
 		Prop.project_saved = true;
+	}
+}
+function loadBBModel(model) {
+	if (!model.meta || !model.meta.format) {
+		Blockbench.showMessageBox({
+			translateKey: 'invalid_model',
+			icon: 'error',
+		})
+		return;
+	}
+	if (compareVersions(model.meta.format, '1.0')) {
+		Blockbench.showMessageBox({
+			translateKey: 'outdated_client',
+			icon: 'error',
+		})
+		return;
+	}
+	if (model.meta.box_uv && model.meta.bone_rig) {
+		entityMode.join()
+	} else {
+		Blockbench.entity_mode = false;
+	}
+	saveSettings()
+	Project.name = model.name;
+	if (model.geo_name) {
+		Project.geometry_name = model.geo_name;
+	} else if (model.parent) {
+		Project.parent = model.parent;
+	}
+	if (model.ambientocclusion !== undefined) {
+		Project.ambientocclusion = !!model.ambientocclusion;
+	}
+	if (model.resolution !== undefined) {
+		Project.texture_width = model.resolution.width;
+		Project.texture_height = model.resolution.height;
+	}
+
+	if (model.textures) {
+		model.textures.forEach(tex => {
+			var tex_copy = new Texture(tex).add(false);
+			tex_copy.uuid = tex.uuid;
+			if (tex_copy.mode === 'link') {
+				tex_copy.fromPath(tex.path)
+			} else {
+				tex_copy.fromDataURL(tex.source)
+			}
+		})
+	}
+	if (model.cubes) {
+		model.cubes.forEach(function(cube) {
+			base_cube = new Cube(cube).init(false)
+			for (var face in base_cube.faces) {
+				if (!model.meta.box_uv) {
+					var texture = textures[cube.faces[face].texture]
+					if (texture) {
+						base_cube.faces[face].texture = texture.uuid
+					}
+				} else if (textures[0]) {
+					base_cube.faces[face].texture = textures[0].uuid
+				}
+			}
+		})
+		loadOutlinerDraggable()
+	}
+	if (model.outliner) {
+		parseGroups(model.outliner)
+	}
+	if (model.animations) {
+		model.animations.forEach(ani => {
+			var base_ani = new Animation(ani).add();
+		})
+	}
+	if (model.display !== undefined) {
+		DisplayMode.loadJSON(model.display)
 	}
 }
 function loadBlockModel(model, filepath, add) {
@@ -329,6 +405,8 @@ function loadJEMModel(model) {
 	if (model.models) {
 		model.models.forEach(function(b) {
 			if (typeof b !== 'object') return;
+			var subcount = 0;
+
 			//Bone
 			var group = new Group({
 				name: b.part,
@@ -339,40 +417,60 @@ function loadJEMModel(model) {
 			group.origin[1] *= -1
 			group.origin[2] *= -1
 
-			//Cubes
-			if ((b.boxes && b.boxes.length) || (b.submodel && b.submodel.boxes && b.submodel.boxes.length)) {
-				function addBox(box, i, mirrored) {
-					var base_cube = new Cube({
-						name: box.name || group.name,
-						autouv: 0,
-						uv_offset: box.textureOffset,
-						inflate: box.sizeAdd
-					})
-					if (box.coordinates) {
-						base_cube.extend({
-							from: [
-								box.coordinates[0],
-								box.coordinates[1],
-								box.coordinates[2]
-							],
-							to: [
-								box.coordinates[0]+box.coordinates[3],
-								box.coordinates[1]+box.coordinates[4],
-								box.coordinates[2]+box.coordinates[5]
-							]
+			function readContent(submodel, p_group) {
+
+				if (submodel.boxes && submodel.boxes.length) {
+					submodel.boxes.forEach(box => {
+
+						var base_cube = new Cube({
+							name: box.name || p_group.name,
+							autouv: 0,
+							uv_offset: box.textureOffset,
+							inflate: box.sizeAdd,
+							mirror_uv: p_group.mirror_uv
 						})
-					}
-					elements.push(base_cube)
-					base_cube.addTo(group, false)
+						if (box.coordinates) {
+							base_cube.extend({
+								from: [
+									box.coordinates[0],
+									box.coordinates[1],
+									box.coordinates[2]
+								],
+								to: [
+									box.coordinates[0]+box.coordinates[3],
+									box.coordinates[1]+box.coordinates[4],
+									box.coordinates[2]+box.coordinates[5]
+								]
+							})
+						}
+						if (p_group.parent !== 'root') {
+							for (var i = 0; i < 3; i++) {
+								base_cube.from[i] += p_group.origin[i];
+								base_cube.to[i] += p_group.origin[i];
+							}
+						}
+						elements.push(base_cube)
+						base_cube.addTo(p_group)
+					})
 				}
-				if (b.boxes && b.boxes.length) {
-					b.boxes.forEach(addBox)
+				if (submodel.submodels && submodel.submodels.length) {
+					submodel.submodels.forEach(subsub => {
+						var group = new Group({
+							name: `${b.part}_sub_${subcount}`,
+							origin: subsub.translate || submodel.translate,
+							rotation: subsub.rotate,
+							mirror_uv: (subsub.mirrorTexture && subsub.mirrorTexture.includes('u'))
+						})
+						subcount++;
+						group.rotation[2] *= -1
+						group.addTo(p_group)
+						readContent(subsub, group)
+					})
 				}
-				if (b.submodel && b.submodel.boxes && b.submodel.boxes.length) {
-					b.submodel.boxes.forEach(function(box, i) {addBox(box, i, true)})
-				}
+
 			}
-			group.addTo(undefined, false)
+			group.addTo(undefined)
+			readContent(b, group)
 		})
 	}
 	loadOutlinerDraggable()
@@ -382,7 +480,7 @@ function loadJEMModel(model) {
 		new Texture().fromPath(path).add(false)
 	}
 }
-function loadPEModelFile(data) {
+function loadEntityModelFile(data) {
 	pe_list_data.length = 0
 	entityMode.join()
 
@@ -393,7 +491,7 @@ function loadPEModelFile(data) {
 		}
 	}
 	if (geometries.length === 1) {
-		loadPEModel({object: data[geometries[0]], name: geometries[0]})
+		loadEntityModel({object: data[geometries[0]], name: geometries[0]})
 		return;
 	}
 
@@ -536,7 +634,7 @@ function loadPEModelFile(data) {
 	$('input#pe_search_bar').select()
 	//texturelist._data.elements = textures
 }
-function loadPEModel(data) {
+function loadEntityModel(data) {
 	if (data === undefined) {
 		pe_list_data.forEach(function(s) {
 			if (s.selected === true) {
@@ -621,12 +719,12 @@ function loadPEModel(data) {
 						base_cube.mirror_uv = s.mirror === true
 					}
 					elements.push(base_cube)
-					base_cube.addTo(group, false)
+					base_cube.addTo(group)
 				})
 			}
 			if (b.children) {
 				b.children.forEach(function(cg) {
-					cg.addTo(group, false)
+					cg.addTo(group)
 				})
 			}
 			var parent_group = 'root';
@@ -641,7 +739,7 @@ function loadPEModel(data) {
 					})
 				}
 			}
-			group.addTo(parent_group, false)
+			group.addTo(parent_group)
 		})
 	}
 	pe_list_data.length = 0;
@@ -700,7 +798,7 @@ var Extruder = {
 	},
 	startConversion: function() {
 		var scan_mode = $('select#scan_mode option:selected').attr('id') /*areas, lines, columns, pixels*/
-		var texture_index = '#'+textures[textures.length-1].id
+		var texture = textures[textures.length-1].uuid
 		var isNewProject = elements.length === 0;
 
 		var jimage = Jimp.read(Extruder.ext_img.src).then(function(image) {	
@@ -809,12 +907,12 @@ var Extruder = {
 							from: [rect.x*scale_i, 0, rect.y*scale_i],
 							to: [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i],
 							faces: {
-								up:		{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index},
-								down:	{uv:[rect.x*scale_i, (rect.y2+1)*scale_i, (rect.x2+1)*scale_i, rect.y*scale_i], texture: texture_index},
-								north:	{uv:[(rect.x2+1)*scale_i, rect.y*scale_i, rect.x*scale_i, (rect.y+1)*scale_i], texture: texture_index},
-								south:	{uv:[rect.x*scale_i, rect.y2*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index},
-								east:	{uv:[rect.x2*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index, rotation: 90},
-								west:	{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x+1)*scale_i, (rect.y2+1)*scale_i], texture: texture_index, rotation: 270}
+								up:		{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture},
+								down:	{uv:[rect.x*scale_i, (rect.y2+1)*scale_i, (rect.x2+1)*scale_i, rect.y*scale_i], texture: texture},
+								north:	{uv:[(rect.x2+1)*scale_i, rect.y*scale_i, rect.x*scale_i, (rect.y+1)*scale_i], texture: texture},
+								south:	{uv:[rect.x*scale_i, rect.y2*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture},
+								east:	{uv:[rect.x2*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 90},
+								west:	{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 270}
 							}
 						})
 
@@ -831,7 +929,7 @@ var Extruder = {
 
 			var group = new Group(cube_name).addTo()
 			selected.forEach(function(s) {
-				s.addTo(group, false)
+				s.addTo(group)
 			})
 			if (Blockbench.hasFlag('new_project') || isNewProject) {
 				setProjectTitle(cube_name)
@@ -845,6 +943,89 @@ var Extruder = {
 	}
 }
 //Export
+function buildBBModel(options) {
+	if (!options) options = 0;
+	var model = {
+		meta: {
+			format: '1.0',
+			box_uv: Blockbench.entity_mode,
+			bone_rig: Blockbench.entity_mode,
+		},
+		name: Project.name,
+	}
+	model[Blockbench.entity_mode ? 'geo_name' : 'parent'] = Project.parent
+	if (!Blockbench.entity_mode) {
+		model.ambientocclusion = Project.ambientocclusion
+	}
+	if (model.meta.box_uv) {
+		model.resolution = {
+			width: Project.texture_width || 16,
+			height: Project.texture_height || 16,
+		}
+	}
+	model.cubes = []
+	elements.forEach(cube => {
+		var el = {
+			name: cube.name,
+			from: cube.from,
+			to: cube.to,
+			autouv: cube.autouv,
+			color: cube.color
+		}
+		if (!cube.visibility) el.visibility = false;
+		if (!cube.export) el.export = false;
+		if (!cube.shade) el.shade = false;
+		if (cube.inflate) el.inflate = cube.inflate;
+		if (!cube.rotation.allEqual(0)) el.rotation = cube.rotation;
+		if (!cube.origin.allEqual(0)) el.origin = cube.origin;
+		if (!cube.uv_offset.allEqual(0)) el.uv_offset = cube.uv_offset;
+
+		if (!model.meta.box_uv) {
+			el.faces = {}
+			for (var face in cube.faces) {
+				el.faces[face] = cube.faces[face].getSaveCopy()
+			}
+		}
+
+		model.cubes.push(el)
+	})
+	model.outliner = compileGroups()
+
+	model.textures = [];
+	textures.forEach(tex => {
+		var t = tex.getUndoCopy();
+		delete t.selected;
+		model.textures.push(t);
+	})
+
+	if (Animator.animations.length) {
+		model.animations = [];
+		Animator.animations.forEach(a => {
+			model.animations.push(a.undoCopy({bone_names: true}))
+		})
+	}
+
+
+	if (!Blockbench.entity_mode && Object.keys(display).length >= 1) {
+		var new_display = {}
+		var entries = 0;
+		for (var i in DisplayMode.slots) {
+			var key = DisplayMode.slots[i]
+			if (DisplayMode.slots.hasOwnProperty(i) && display[key] && display[key].export) {
+				new_display[key] = display[key].export()
+				entries++;
+			}
+		}
+		if (entries) {
+			model.display = new_display
+		}
+	}
+	if (options.raw) {
+		return model
+	} else {
+		return JSON.stringify(model)
+	}
+}
 function buildBlockModel(options) {
 	if (options === undefined) options = {}
 	var clear_elements = []
@@ -865,6 +1046,12 @@ function buildBlockModel(options) {
 		}
 		element.from = s.from.slice()
 		element.to = s.to.slice()
+		if (s.inflate) {
+			for (var i = 0; i < 3; i++) {
+				element.from[i] -= s.inflate;
+				element.to[i] += s.inflate;
+			}
+		}
 		if (s.shade === false) {
 			element.shade = false
 		}
@@ -1233,77 +1420,92 @@ function buildJEMModel(options) {
 		entitymodel.texture = textures[0].name
 	}
 	entitymodel.textureSize = [parseInt(Project.texture_width), parseInt(Project.texture_height)];
-	var models = []
+	entitymodel.models = []
 
 	TreeElements.forEach(function(g) {
-		if (g.type !== 'group') return;
 		//Bone
-		var bone = {}
-		bone.part = g.name
-		bone.invertAxis = 'xy'
-		bone.translate = g.origin.slice()
+		var bone = {
+			part: g.name,
+			invertAxis: 'xy',
+			translate: g.origin.slice()
+		}
 		bone.translate[1] *= -1
 		bone.translate[2] *= -1
 
-		if (g.rotation.join('_') !== '0_0_0') {
+		if (!g.rotation.allEqual(0)) {
 			bone.rotate = g.rotation.slice()
 		}
 		if (g.mirror_uv) {
 			bone.mirrorTexture = 'u'
 		}
-		//Cubes
-		if (g.children && g.children.length) {
-			bone.boxes = []
-			var mirrored_boxes = []
-			function iterate(arr) {
-				var i = 0;
-				while (i < arr.length) {
-					if (arr[i].type === 'group') {
-						iterate(arr[i].children)
-					} else if (arr[i].type === 'cube') {
-						var s = arr[i]
-						if (s !== undefined && s.export !== false) {
-							var cube = new oneLiner()
 
-							var c_pos = s.from.slice()
-							var c_size = s.size()
-							cube.coordinates = [
-								c_pos[0],//b_translate[0] - c_pos[0] - c_size[0],
-								c_pos[1],//b_translate[1] - c_pos[1] - c_size[1],
-								c_pos[2],
-								c_size[0],
-								c_size[1],
-								c_size[2]
-							]
+		function populate(p_model, group) {
 
-							cube.textureOffset = s.uv_offset
-							if (s.inflate && typeof s.inflate === 'number') {
-								cube.sizeAdd = s.inflate
-							}
-							if (s.mirror_uv === g.mirror_uv) {
-								bone.boxes.push(cube)
-							} else {
-								mirrored_boxes.push(cube)
-							}
-						}
+			if (group.children.length === 0) return;
+			var mirror_sub;
+
+			group.children.forEach(obj => {
+				if (!obj.export) return;
+				if (obj.type === 'cube') {
+
+					var box = new oneLiner()
+					var c_size = obj.size()
+					box.coordinates = [
+						obj.from[0],
+						obj.from[1],
+						obj.from[2],
+						c_size[0],
+						c_size[1],
+						c_size[2]
+					]
+					if (p_model && p_model.part === undefined) {
+						box.coordinates[0] -= p_model.translate[0];
+						box.coordinates[1] -= p_model.translate[1];
+						box.coordinates[2] -= p_model.translate[2];
 					}
-					i++;
-				}
-			}
-			iterate(g.children)
-			if (mirrored_boxes.length) {
-				bone.submodel = {
-					invertAxis: 'xy',
-					boxes: mirrored_boxes
-				}
-				if (g.shade !== false) {
-					bone.submodel.mirrorTexture = 'u'
-				}
-			}
+					box.textureOffset = obj.uv_offset
+					if (obj.inflate && typeof obj.inflate === 'number') {
+						box.sizeAdd = obj.inflate
+					}
+
+					if (obj.mirror_uv !== group.mirror_uv) {
+						if (!mirror_sub) {
+							mirror_sub = { 
+								invertAxis: 'xy',
+								mirrorTexture: 'u',//xxx
+								boxes: []
+							}
+							if (!p_model.submodels) p_model.submodels = [];
+							p_model.submodels.splice(0, 0, mirror_sub)
+						}
+						mirror_sub.boxes.push(box)
+					} else {
+						if (!p_model.boxes) p_model.boxes = []
+						p_model.boxes.push(box)
+					}
+				} else if (obj.type === 'group') {
+
+					var bone = {
+						invertAxis: 'xy',
+						translate: obj.origin.slice()
+					}
+					if (obj.mirror_uv) {
+						bone.mirrorTexture = 'u'
+					}
+					if (!obj.rotation.allEqual(0)) {
+						bone.rotate = obj.rotation.slice()
+						bone.rotate[2] *= -1
+					}
+					populate(bone, obj)
+
+					if (!p_model.submodels) p_model.submodels = [];
+					p_model.submodels.push(bone)
+				} 
+			})
 		}
-		models.push(bone)
+		populate(bone, g)
+		entitymodel.models.push(bone)
 	})
-	entitymodel.models = models
 
 	if (options.raw) {
 		return entitymodel
@@ -1597,7 +1799,7 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 79, ctrl: true}),
 		click: function () {
 			Blockbench.import({
-				extensions: ['json', 'jem', 'jpm'],
+				extensions: ['json', 'jem', 'jpm', 'bbmodel'],
 				type: 'JSON Model'
 			}, function(files) {
 				if (isApp) {
@@ -1660,6 +1862,21 @@ BARS.defineActions(function() {
 				startpath: Prop.file_path,
 				project_file: true,
 				content: buildBlockModel()
+			})
+		}
+	})
+	new Action({
+		id: 'export_bbmodel',
+		icon: 'insert_drive_file',
+		category: 'file',
+		click: function () {
+			Blockbench.export({
+				type: 'Blockbench Save',
+				extensions: ['bbmodel'],
+				name: Project.name||'model',
+				startpath: Prop.file_path,
+				project_file: true,
+				content: buildBBModel()
 			})
 		}
 	})
@@ -1747,5 +1964,36 @@ BARS.defineActions(function() {
 		category: 'file',
 		keybind: new Keybind({key: 83, ctrl: true}),
 		click: function () {saveFile();saveTextures();}
+	})
+	new Action({
+		id: 'export_asset_archive',
+		icon: 'archive',
+		category: 'file',
+		click: function() {
+			var archive = new JSZip();
+			if (Blockbench.entity_mode === false) {
+				var content = buildBlockModel()
+			} else {
+				var content = buildEntityModel()
+			}
+			archive.file((Project.name||'model')+'.json', content)
+			var texfolder = archive.folder('textures');
+			textures.forEach(tex => {
+				if (tex.mode === 'bitmap') {
+					texfolder.file(pathToName(tex.name) + '.png', tex.source.replace('data:image/png;base64,', ''), {base64: true});
+				}
+			})
+			archive.generateAsync({type: 'blob'}).then(content => {
+				Blockbench.export({
+					type: 'Zip Archive',
+					extensions: ['zip'],
+					name: 'assets',
+					startpath: Prop.file_path,
+					content: content,
+					savetype: 'zip',
+					project_file: true
+				})
+			})
+		}
 	})
 })

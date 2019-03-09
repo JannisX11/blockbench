@@ -143,12 +143,16 @@ class Keybind {
 	}
 	record() {
 		var scope = this;
-		Keybinds.recording = true;
-		var overlay = $('<div id="overlay_message_box" contenteditable="true"></div>')
-		$('body').append(overlay)
-		overlay.focus()
-		overlay.on('keyup mousedown', function(event) {
-			overlay.off('keyup mousedown')
+		Keybinds.recording = this;
+		var overlay = $('#overlay_message_box').show()
+		var input = overlay.find('#keybind_input_box')
+		var top = limitNumber($(window).height()/2 - 200, 30, 800)
+		overlay.find('> div').css('margin-top', top+'px')
+
+		function onActivate(event) {
+
+			if (event.target && event.target.tagName === 'BUTTON') return;
+
 			scope.key 	= event.which
 			if (scope.ctrl 	!== null) scope.ctrl 	= event.ctrlKey
 			if (scope.shift !== null) scope.shift 	= event.shiftKey
@@ -156,11 +160,24 @@ class Keybind {
 			if (scope.meta 	!== null) scope.meta 	= event.metaKey
 			scope.label = scope.getText()
 			scope.save(true)
-			Keybinds.recording = false
-			overlay.detach().hide()
-		}).on('keydown keypress keyup click click dblclick mouseup', function(event) {
+			Blockbench.showQuickMessage(scope.label)
+
+			scope.stopRecording()
+		}
+
+		input.focus().on('keyup', onActivate)
+		overlay.on('mousedown', onActivate)
+
+		overlay.on('keydown keypress keyup click click dblclick mouseup', function(event) {
 			event.preventDefault()
 		})
+		return this;
+	}
+	stopRecording() {
+		var scope = this;
+		Keybinds.recording = false
+		$('#overlay_message_box').hide().off('mousedown')
+		$('#keybind_input_box').off('keyup')
 		return this;
 	}
 }

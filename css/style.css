@@ -79,77 +79,80 @@
 	  -moz-osx-font-smoothing: grayscale;
 	}
 
-	.icon-mirror_x:before {
-	  content: "\e915";
-	}
-	.icon-mirror_y:before {
-	  content: "\e916";
-	}
-	.icon-mirror_z:before {
-	  content: "\e917";
-	}
-	.icon-saved:before {
-	  content: "\e913";
-	}
-	.icon-player:before {
-	  content: "\e914";
-	}
-	.icon-vertexsnap:before {
+	.icon-blockbench_file:before {
 	  content: "\e900";
 	}
-	.icon-optifine_file:before {
-	  content: "\e912";
-	}
-	.icon-objects:before {
-	  content: "\e902";
-	}
-	.icon-create_bitmap:before {
+	.icon-vertexsnap:before {
 	  content: "\e901";
 	}
-	.icon-bow:before {
+	.icon-create_bitmap:before {
+	  content: "\e902";
+	}
+	.icon-objects:before {
 	  content: "\e903";
 	}
-	.icon-bb_interface:before {
+	.icon-bow:before {
 	  content: "\e904";
 	}
-	.icon-blockbench_inverted:before {
-	  content: "\e911";
-	}
-	.icon-blockbench:before {
+	.icon-bb_interface:before {
 	  content: "\e905";
 	}
-	.icon-x11:before {
+	.icon-blockbench:before {
 	  content: "\e906";
 	}
-	.icon-baby_zombie:before {
+	.icon-x11:before {
 	  content: "\e907";
 	}
-	.icon-armor_stand:before {
+	.icon-baby_zombie:before {
 	  content: "\e908";
 	}
-	.icon-armor_stand_small:before {
+	.icon-armor_stand:before {
 	  content: "\e909";
 	}
-	.icon-ground:before {
+	.icon-armor_stand_small:before {
 	  content: "\e90a";
 	}
-	.icon-hud:before {
+	.icon-ground:before {
 	  content: "\e90b";
 	}
-	.icon-inventory_full:before {
+	.icon-hud:before {
 	  content: "\e90c";
 	}
-	.icon-inventory_nine:before {
+	.icon-inventory_full:before {
 	  content: "\e90d";
 	}
-	.icon-inventory_single:before {
+	.icon-inventory_nine:before {
 	  content: "\e90e";
 	}
-	.icon-player_head:before {
+	.icon-inventory_single:before {
 	  content: "\e90f";
 	}
-	.icon-zombie:before {
+	.icon-player_head:before {
 	  content: "\e910";
+	}
+	.icon-zombie:before {
+	  content: "\e911";
+	}
+	.icon-blockbench_inverted:before {
+	  content: "\e912";
+	}
+	.icon-optifine_file:before {
+	  content: "\e913";
+	}
+	.icon-saved:before {
+	  content: "\e914";
+	}
+	.icon-player:before {
+	  content: "\e915";
+	}
+	.icon-mirror_x:before {
+	  content: "\e916";
+	}
+	.icon-mirror_y:before {
+	  content: "\e917";
+	}
+	.icon-mirror_z:before {
+	  content: "\e918";
 	}
 
 
@@ -177,6 +180,7 @@
 			height: 30px;
 			width: 24px;
 			text-align: center;
+			vertical-align: text-top;
 		}
 		.dialog .message_box_icon {
 			font-size: 40pt;
@@ -787,7 +791,7 @@
 	}
 
 	.half {
-		width: calc(50% - 2px);
+		width: calc(50% - 4px);
 	}
 
 	.tooltip {
@@ -928,14 +932,46 @@
 	.outliner_object:hover {
 		color: var(--color-light);
 	}
-	.drag_hover {
-		border: 2px solid var(--color-accent);
+	#cubes_list.drag_hover > .vue-tree {
+		position: relative;
 	}
-	.drag_hover.drag_hover_insert_before {
-		border-top: 2px solid var(--color-accent);
-		border-bottom: none;
-		border-right: none;
-		border-left: none;
+	#cubes_list.drag_hover > .vue-tree > ul::before {
+		content: '';
+		width: calc(100% - 12px);
+		height: 2px;
+		margin-left: 6px;
+		background: var(--color-accent);
+		z-index: 3;
+		display: block;
+		position: absolute;
+		bottom: 0px;
+	}
+	.drag_hover[order]::before {
+		content: '';
+		width: calc(100% - 12px);
+		height: 2px;
+		margin-left: 6px;
+		background: var(--color-accent);
+		z-index: 3;
+		display: block;
+		position: absolute;
+	}
+	.drag_hover[order] {
+		position: relative;
+	}
+	.drag_hover[order="-1"]::before {
+		margin-top: -1px;
+	}
+	.drag_hover[order="1"]::before {
+		bottom: 0px;
+	}
+	.drag_hover[order="0"]::before {
+		width: 5px;
+		height: 30px;
+		margin-left: 0;
+		border-top-right-radius: 4px;
+		border-bottom-right-radius: 4px;
+
 	}
 	/*Cancel Dragover for main list*/
 	#cubes_list > div > ul > li.outliner_node.parent_li {
@@ -957,7 +993,8 @@
 		float: right;
 	}
 	body > .outliner_object {
-		width: 260px;
+		width: 180px;
+		padding-left: 0 !important;
 		box-shadow: 0 0 4px black;
 	}
 	body > .outliner_object a {
@@ -992,7 +1029,7 @@
 		font-weight: normal;
 		position: absolute;
 		top: -20px;
-		left: 40px;
+		left: 20px;
 		border: 1px solid var(--color-border);
 	}
 
@@ -1143,7 +1180,8 @@
 		white-space: nowrap;
 		position: relative;
 		vertical-align: middle;
-		padding: 8px;
+		padding-left: 8px;
+		padding-right: 8px;
 		border: 1px solid transparent;
 		box-sizing: border-box;
 	}
@@ -1155,7 +1193,8 @@
 		border: 1px solid var(--color-border);
 	}
 	.texture > i {
-		margin-top: 4px;
+		margin-top: 12px;
+		float: right;
 	}
 	.texture > i.clickable:hover {
 		color: var(--color-light);
@@ -1169,7 +1208,6 @@
 	div.texture_icon_wrapper {
 		height: 48px;
 		width: 48px;
-		margin-top: -8px;
 		overflow: hidden;
 		position: relative;
 	}
@@ -1185,16 +1223,8 @@
 		width: 48px;
 		height: 48px;
 	}
-	.texture_id {
-		display: none !important;
-	}
-
-	.texture_remove {
-		width: 24px;
-	}
-
 	.texture_name {
-		margin-top: 3px;
+		margin-top: 2px;
 		margin-left: 6px;
 		margin-right: 4px;
 		width: calc(100% - 82px);
@@ -1202,7 +1232,18 @@
 		font-size: 0.94em;
 		cursor: default;
 	}
-	.texture.particle .texture_name {
+	.texture_res {
+		margin-top: -3px;
+		margin-left: 6px;
+		margin-right: 4px;
+		width: calc(100% - 82px);
+		height: 20px;
+		overflow: hidden;
+		font-size: 0.86em;
+		opacity: 0.6;
+		cursor: default;
+	}
+	.texture.particle .texture_name, .texture.particle .texture_res {
 		width: calc(100% - 106px);
 	}
 	.texture_error {
@@ -1260,12 +1301,12 @@
 	}
 	body.animation_mode #timeline {
 		display: block;
-		height: 130px;
-		background-color: var(--color-dark);
+		height: 162px;
+		background-color: var(--color-back);
     	border-top: 1px solid var(--color-border);
 	}
 	body.animation_mode #preview .single_canvas_wrapper {
-		height: calc(100% - 130px);
+		height: calc(100% - 162px);
 	}
 	#timeline_inner {
 		overflow-y: hidden;
@@ -1482,6 +1523,7 @@
 		bottom: -3px;
 		font-size: 0.8em;
 		cursor: default;
+		pointer-events: none;
 	}
 	#uv .bar.next_to_title {
 		margin-top: -32px;
@@ -1782,6 +1824,30 @@
 		border: none;
 	}
 
+/*Keybind recording*/
+	#overlay_message_box {
+		height: 100%;
+		width: 100%;
+		position: absolute;
+		z-index: 130;
+		text-align: center;
+		background-color: rgba(0, 0, 0, 0.8);
+	}
+	#overlay_message_box > div {
+		margin-top: 64px;
+		width: 400px;
+		margin-left: auto;
+		margin-right: auto;
+	}
+	#overlay_message_box > div > p {
+		margin-bottom: 20px;
+	}
+	#overlay_message_box h3 i {
+		vertical-align: sub;
+		padding: 8px;
+		font-size: 1.2em;
+	}
+
 /*Display*/
 	.mode_tab {
 		display: block;
@@ -1991,14 +2057,6 @@
 		text-align: center;
 		cursor: default;
 		pointer-events: none;
-	}
-	#overlay_message_box {
-		height: 100%;
-		width: 100%;
-		position: absolute;
-		z-index: 130;
-		text-align: center;
-		background-color: rgba(0, 0, 0, 0.6);
 	}
 	.uv_message_box {
 		position: absolute;

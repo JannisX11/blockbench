@@ -272,7 +272,7 @@ class Widget extends BarItem {
 	constructor(data) {
 		super(data);
 		this.type = 'widget';
-		this.uniqueNode = true;
+		//this.uniqueNode = true;
 	}
 }
 class NumSlider extends Widget {
@@ -283,6 +283,7 @@ class NumSlider extends Widget {
 		this.icon = 'code'
 		this.value = 0;
 		this.width = 79;
+		this.uniqueNode = true;
 		if (typeof data.get === 'function') this.get = data.get;
 		this.onBefore = data.onBefore;
 		this.onAfter = data.onAfter;
@@ -879,9 +880,19 @@ const BARS = {
 				selectFace: true,
 				transformerMode: 'rotate',
 				toolbar: 'transform',
-				alt_tool: 'move_tool',
+				alt_tool: 'pivot_tool',
 				modes: ['edit', 'display', 'animate'],
 				keybind: new Keybind({key: 82}),
+			})
+			new Tool({
+				id: 'pivot_tool',
+				icon: 'gps_fixed',
+				category: 'tools',
+				transformerMode: 'translate',
+				toolbar: 'transform',
+				alt_tool: 'rotate_tool',
+				modes: ['edit'],
+				keybind: new Keybind({key: 80}),
 			})
 			new Tool({
 				id: 'vertex_snap_tool',
@@ -1227,10 +1238,9 @@ const BARS = {
 
 		//Find Action
 			new Action({
-				id: 'select_action',
+				id: 'action_control',
 				icon: 'fullscreen',
 				category: 'blockbench',
-				condition: isApp,
 				keybind: new Keybind({key: 70}),
 				click: function () {
 					ActionControl.select()
@@ -1279,6 +1289,7 @@ const BARS = {
 				'move_tool',
 				'resize_tool',
 				'rotate_tool',
+				'pivot_tool',
 				'vertex_snap_tool',
 				'brush_tool',
 				'fill_tool',
@@ -1370,7 +1381,6 @@ const BARS = {
 			children: [
 				'add_animation',
 				'slider_animation_length',
-				'play_animation'
 			],
 			default_place: true
 		})
@@ -1378,6 +1388,16 @@ const BARS = {
 			id: 'keyframe',
 			children: [
 				'slider_keyframe_time'
+			],
+			default_place: true
+		})
+		Toolbars.timeline = new Toolbar({
+			id: 'timeline',
+			children: [
+				'slider_animation_speed',
+				'previous_keyframe',
+				'next_keyframe',
+				'play_animation',
 			],
 			default_place: true
 		})
@@ -1965,11 +1985,15 @@ const MenuBar = {
 			{name: 'menu.file.recent', id: 'recent', icon: 'history', condition: function() {return isApp && recent_projects.length}, children: function() {
 				var arr = []
 				recent_projects.forEach(function(p) {
-					var entity = p.name.substr(0,4) === 'mobs'
+					switch (p.icon_id) {
+						default: var icon = 'fa-file-o'; break;
+						case 1:  var icon = 'icon-blockbench_file'; break;
+						case 2:  var icon = 'fa-file-text-o'; break;
+					}
 					arr.splice(0, 0, {
 						name: p.name,
 						path: p.path,
-						icon: entity ? 'view_list' : 'insert_drive_file',
+						icon: icon,
 						click: function(c, event) {
 							readFile(p.path, !event.shiftKey)
 						}

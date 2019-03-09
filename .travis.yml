@@ -11,7 +11,7 @@ matrix:
 
     - name: "Windows"
       os: osx
-      script: build -w --x64 --publish=always && build -w --ia32 --publish=always
+      script: build -w --x64 --publish=always
 
     - name: "Linux"
       os: linux  

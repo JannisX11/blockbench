@@ -923,7 +923,7 @@
 				point.sub( offset );
 			}
 
-			if (Toolbox.selected.id === 'rotate_tool') {
+			if (Toolbox.selected.transformerMode === 'rotate') {
 
 				point.sub( worldPosition );
 				var rotations = [
@@ -941,35 +941,7 @@
 
 			if (Modes.id === 'edit') {
 
-				if (Toolbox.selected.id === 'resize_tool') {
-					//Scale
-					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
-					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor// * (useBedrockFlipFix(axis) ? -1 : 1)
-
-
-					if (previousValue !== point[axis]) {
-						beforeFirstChange(event)
-
-						selected.forEach(function(obj, i) {
-							var mesh = scope.objects[i]
-							var allow_negative = settings.negative_size.value
-
-							if (scope.direction) { //Positive
-								scaleCube(obj, limitNumber(obj.oldScale + point[axis], (allow_negative ? -32000 : 0), 32000), axisNumber)
-							} else {
-								scaleCubeNegative(obj, limitNumber(obj.oldScale - point[axis], (allow_negative ? -32000 : 0), 32000), axisNumber)
-							}
-							if (Blockbench.entity_mode === true) {
-								Canvas.updateUV(obj)
-							}
-						})
-						Canvas.updatePositions(true)
-						centerTransformer()
-						previousValue = point[axis]
-						scope.hasChanged = true
-					}
-
-				} else if (Toolbox.selected.id === 'move_tool') {
+				if (Toolbox.selected.id === 'move_tool') {
 
 					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
 					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor// * (useBedrockFlipFix(axis) ? -1 : 1)
@@ -1001,7 +973,6 @@
 
 							}
 							selected.forEach(function(obj, i) {
-								var mesh = scope.objects[i]
 								var valx = obj.from[axisNumber]
 								valx += difference
 								moveCube(obj, valx, axisNumber, _has_groups)
@@ -1012,6 +983,34 @@
 						previousValue = point[axis]
 						scope.hasChanged = true
 					}
+				} else if (Toolbox.selected.id === 'resize_tool') {
+					//Scale
+					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
+					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor// * (useBedrockFlipFix(axis) ? -1 : 1)
+
+
+					if (previousValue !== point[axis]) {
+						beforeFirstChange(event)
+
+						selected.forEach(function(obj, i) {
+							var mesh = scope.objects[i]
+							var allow_negative = settings.negative_size.value
+
+							if (scope.direction) { //Positive
+								scaleCube(obj, limitNumber(obj.oldScale + point[axis], (allow_negative ? -32000 : 0), 32000), axisNumber)
+							} else {
+								scaleCubeNegative(obj, limitNumber(obj.oldScale - point[axis], (allow_negative ? -32000 : 0), 32000), axisNumber)
+							}
+							if (Blockbench.entity_mode === true) {
+								Canvas.updateUV(obj)
+							}
+						})
+						Canvas.updatePositions(true)
+						centerTransformer()
+						previousValue = point[axis]
+						scope.hasChanged = true
+					}
+
 				} else if (Toolbox.selected.id === 'rotate_tool') {
 
 					var snap = getRotationInterval(event)
@@ -1029,6 +1028,35 @@
 						previousValue = angle
 						scope.hasChanged = true
 					}
+				} else if (Toolbox.selected.id === 'pivot_tool') {
+
+					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
+					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor// * (useBedrockFlipFix(axis) ? -1 : 1)
+
+					if (previousValue === undefined) {
+						previousValue = point[axis]
+
+					} else if (previousValue !== point[axis]) {
+						beforeFirstChange(event)
+
+						var difference = point[axis] - previousValue
+
+						if (Blockbench.entity_mode && selected_group) {
+							selected_group.origin[axisNumber] += difference;
+						} else {
+							var origin = Transformer.position.toArray()
+							origin[axisNumber] += difference;
+							selected.forEach(cube => {
+								cube.transferOrigin(origin)
+							})
+						}
+						Canvas.updatePositions(true)
+						centerTransformer()
+
+						previousValue = point[axis]
+						scope.hasChanged = true
+					}
+
 				}
 			} else if (Animator.open) {
 

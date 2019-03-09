@@ -110,6 +110,7 @@ class Preview {
 			this.camOrtho.updateProjectionMatrix();
 		}
 		this.renderer.setSize(this.width, this.height);
+		this.renderer.setPixelRatio(window.devicePixelRatio);
 		this.updateBackground()
 		return this;
 	}
@@ -297,6 +298,7 @@ class Preview {
 	//Controls
 	click(event) {
 		$(':focus').blur()
+		display_mode
 		this.static_rclick = event.button === 2
 		quad_previews.current = this;
 		if (Transformer.hoverAxis !== null || !Keybinds.extra.preview_select.keybind.isTriggered(event)) return;
@@ -310,7 +312,7 @@ class Preview {
 					main_uv.setFace(data.face, false)
 				}
 				Blockbench.dispatchEvent( 'canvas_select', data )
-				if (Animator.open || (Toolbox.selected.id === 'rotate_tool' && Blockbench.entity_mode)) {
+				if (Animator.open || (Blockbench.entity_mode && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))) {
 					if (data.cube.parent.type === 'group') {
 						data.cube.parent.select()
 					}
@@ -357,7 +359,7 @@ class Preview {
 	showContextMenu(event) {
 		if (this.static_rclick && event.which === 3) {
 			var data = this.raycast()
-			if (data && data.cube) {
+			if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data && data.cube) {
 				data.cube.showContextMenu(event)
 			} else {
 				this.menu.open(event, this)
@@ -560,7 +562,7 @@ class Preview {
 		var scope = this;
 		var dialog = new Dialog({
 			id: 'background_position',
-			title: 'message.set_background_position.title',
+			title: tl('message.set_background_position.title'),
 			lines: [
 				`<div class="dialog_bar">
 					<input type="number" class="dark_bordered" value="${scope.background.x}" id="background_pos_x">
@@ -611,33 +613,40 @@ class Preview {
 		if (display_mode && ground_animation) {
 			ground_animation = false
 		}
+		this.render()
 
-		setTimeout(function() {
+		var dataUrl = scope.canvas.toDataURL()
 
-			var dataUrl = scope.canvas.toDataURL()
+		dataUrl = dataUrl.replace('data:image/png;base64,','')
+		Jimp.read(Buffer.from(dataUrl, 'base64')).then(function(image) { 
+			
+			if (display_mode && display_slot === 'gui') {
+				var zoom = display_preview.camOrtho.zoom * devicePixelRatio
+				var resolution = 256 * zoom;
 
-			dataUrl = dataUrl.replace('data:image/png;base64,','')
-			Jimp.read(Buffer.from(dataUrl, 'base64')).then(function(image) { 
+				var start_x = display_preview.width *devicePixelRatio/2 - display_preview.controls.target.x*zoom*40 - resolution/2;
+				var start_y = display_preview.height*devicePixelRatio/2 + display_preview.controls.target.y*zoom*40 - resolution/2;
 				
+				image.crop(start_x, start_y, resolution, resolution)
+			} else {
 				image.autocrop([0, false])
 				if (options && options.width && options.height) {
 					image.contain(options.width, options.height)
 				}
-
-				image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
-					Screencam.returnScreenshot(dataUrl, cb)
-				})
-			});
-	
-			editVis(obj => {
-				obj.visible = obj.was_visible
-				delete obj.was_visible
-			})
-			if (display_mode && ground_anim_before) {
-				ground_animation = ground_anim_before
 			}
 
-		}, 40)
+			image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
+				Screencam.returnScreenshot(dataUrl, cb)
+			})
+		});
+
+		editVis(obj => {
+			obj.visible = obj.was_visible
+			delete obj.was_visible
+		})
+		if (display_mode && ground_anim_before) {
+			ground_animation = ground_anim_before
+		}
 	}
 	fullscreen() {
 		quad_previews.current = this;
@@ -735,7 +744,6 @@ class Preview {
 		}}
 	])
 
-
 function openQuadView() {
 	quad_previews.enabled = true;
 
@@ -759,7 +767,6 @@ function openQuadView() {
 	
 	updateInterface()
 }
-
 
 //Init/Update
 function initCanvas() {
@@ -955,6 +962,7 @@ function initCanvas() {
 	resizeWindow()
 }
 function animate() {
+	TickUpdates.Run()
 	requestAnimationFrame( animate );
 	previews.forEach(function(prev) {
 		prev.render()
@@ -1092,7 +1100,7 @@ function buildGrid() {
 function centerTransformer(offset) {
 	if (selected.length === 0) return;
 
-	var rotate_tool = Toolbox.selected.transformerMode === 'rotate'
+	var pivot_center = Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool' 
 
 	if (Animator.open && selected_group) {
 		var g_mesh = selected_group.mesh
@@ -1110,7 +1118,7 @@ function centerTransformer(offset) {
 	if (Blockbench.entity_mode) {
 		Canvas.updateAllBones()
 	}
-	if (!rotate_tool) {
+	if (!pivot_center) {
 		var first_obj;
 		var center = getSelectionCenter()
 		for (var i = 0; i < selected.length && !first_obj; i++) {
@@ -1133,13 +1141,13 @@ function centerTransformer(offset) {
 		Transformer.position.copy(vec)
 
 		var mesh = first_obj.mesh
-		if (mesh && Blockbench.globalMovement === false && !rotate_tool) {
+		if (mesh && Blockbench.globalMovement === false && !pivot_center) {
 			Transformer.rotation.copy(mesh.rotation)
 		}
 	} else {
 		//Entity Mode
 
-		if (selected_group && rotate_tool) {
+		if (selected_group && pivot_center) {
 			var mesh = selected_group.mesh
 			if (mesh) {
 				mesh.getWorldPosition(Transformer.position)
@@ -1177,7 +1185,7 @@ function centerTransformer(offset) {
 			vec.z += group.origin[2]
 		}
 		Transformer.position.copy(vec)
-		if (Blockbench.globalMovement === false && !rotate_tool) {
+		if (Blockbench.globalMovement === false && !pivot_center) {
 			var rotation = new THREE.Quaternion()
 			first_obj.mesh.getWorldQuaternion(rotation)
 			Transformer.rotation.setFromQuaternion( rotation )
@@ -1482,18 +1490,19 @@ class CanvasController {
 		
 		if (!mesh || mesh > 0) mesh = obj.mesh
 
-		function setSize(geo) {
-			if (Blockbench.entity_mode && obj.inflate !== undefined) {
-				var inflate = obj.inflate
-				geo.from([ obj.from[0]-inflate, obj.from[1]-inflate, obj.from[2]-inflate ])
-				geo.to(  [ obj.to[0]  +inflate, obj.to[1]  +inflate, obj.to[2]  +inflate ])
-			} else {
-				geo.from(obj.from)
-				geo.to(obj.to)
+		var from = obj.from.slice()
+		from.forEach((v, i) => {
+			from[i] -= obj.inflate
+		})
+		var to = obj.to.slice()
+		to.forEach((v, i) => {
+			to[i] += obj.inflate
+			if (from[i] === to[i]) {
+				to[i] += 0.001
 			}
-		}
-
-		setSize(mesh.geometry)
+		})
+		mesh.geometry.from(from)
+		mesh.geometry.to(to)
 		mesh.geometry.computeBoundingSphere()
 
 		mesh.scale.set(1, 1, 1)
@@ -1684,7 +1693,7 @@ class CanvasController {
 					frame = 0
 					if (obj[face].texture && obj[face].texture !== null) {
 						var tex = obj[face].getTexture()
-						if (typeof tex === 'object' && tex.constructor.name === 'Texture' && tex.frameCount) {
+						if (tex instanceof Texture && tex.frameCount !== 1) {
 							stretch = tex.frameCount
 							if (animation === true && tex.currentFrame) {
 								frame = tex.currentFrame

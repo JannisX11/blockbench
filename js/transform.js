@@ -646,7 +646,7 @@ BARS.defineActions(function() {
 	//Inflage
 	new NumSlider({
 		id: 'slider_inflate',
-		condition: function() {return Blockbench.entity_mode && selected.length && Modes.id === 'edit'},
+		condition: function() {return selected.length && Modes.id === 'edit'},
 		get: function() {
 			return selected[0].inflate
 		},

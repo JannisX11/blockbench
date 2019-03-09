@@ -9,7 +9,7 @@ class Texture {
 		this.particle = false
 		this.selected = false
 		this.error = false;
-		this.frameCount = 1
+		this.ratio = 1
 		this.show_icon = true
 		this.average_color = {r:0, g:0, b:0}
 		this.dark_box = false
@@ -43,6 +43,11 @@ class Texture {
 			}
 		}
 	}
+	get frameCount() {
+		if (this.ratio !== 1) {
+			return 1/this.ratio
+		}
+	}
 	getUndoCopy(bitmap) {
 		var copy = {
 			path: this.path,
@@ -57,17 +62,28 @@ class Texture {
 			old_width: this.old_width,
 			old_height: this.old_height
 		}
-		if (bitmap || this.mode === 'link') {
+		if (bitmap || this.mode === 'bitmap') {
 			copy.source = this.source
 		}
 		return copy
 	}
-	extend(properties) {
+	extend(data) {
+		Merge.string(this, data, 'path')
+		Merge.string(this, data, 'name')
+		Merge.string(this, data, 'folder')
+		Merge.string(this, data, 'namespace')
+		Merge.boolean(this, data, 'particle')
+		Merge.string(this, data, 'mode')
+		Merge.boolean(this, data, 'saved')
+		if (this.mode === 'bitmap') {
+			Merge.string(this, data, 'source')
+		}
+		/*
 		for (var key in properties) {
 			if (properties.hasOwnProperty(key)) {
 				this[key] = properties[key]
 			}
-		}
+		}*/
 		return this;
 	}
 	//Loading
@@ -79,7 +95,6 @@ class Texture {
 		}
 		this.error = false;
 		this.show_icon = true
-		this.frameCount = 1
 		var img = this.img = new Image()
 
 		if (Canvas.materials[scope.uuid] !== undefined) {
@@ -117,6 +132,7 @@ class Texture {
 
 			this.tex.needsUpdate = true;
 			scope.res = img.naturalWidth;
+			scope.ratio = img.naturalWidth / img.naturalHeight;
 
 			if (isDefault) {
 				console.log('Successfully loaded '+scope.name+' from default pack')
@@ -128,7 +144,6 @@ class Texture {
 			//Width / Animation
 			if (img.naturalWidth !== img.naturalHeight && Blockbench.entity_mode === false) {
 				if (img.naturalHeight % img.naturalWidth === 0) {
-					scope.frameCount = img.naturalHeight / img.naturalWidth
 					Canvas.updateAllUVs()
 					BARS.updateConditions()
 				} else {
@@ -838,21 +853,10 @@ function saveTextures() {
 		}
 	})
 }
-function getSelectedTextureIndex() {
-	var index = false
-	textures.forEach(function(s, i) {
-		if (s.selected === true) {
-			index = i
-		}
-	})
-	return index;
-}
 function saveTextureMenu() {
 	hideDialog()
 	Undo.initEdit({textures})
-	index = getSelectedTextureIndex()
-	if (index === false) return;
-	var tex = textures[index]
+	var tex = textures.selected
 	tex.name = $('#texture_edit input#te_name').val()
 	tex.id = $('#texture_edit input#te_variable').val()
 	tex.folder = $('#texture_edit input#te_folder').val()
@@ -873,20 +877,31 @@ function loadTextureDraggable() {
 					if (!t.hasClass('texture')) t = t.parent()
 					return t.find('.texture_icon_wrapper').clone().addClass('texture_drag_helper').attr('texid', t.attr('texid'))
 				},
-				cursorAt: { left: 24, top: 24 },
+				cursorAt: { left: 2, top: -5 },
 				revert: 'invalid',
 				appendTo: 'body',
 				zIndex: 19,
 				distance: 4,
+				drag: function(event, ui) {
+					$('.outliner_node[order]').attr('order', null)
+					var tar = $('#cubes_list li .drag_hover.outliner_node').deepest()
+					var element = TreeElements.findRecursive('uuid', tar.attr('id'))
+					if (element) {
+						tar.attr('order', '0')
+					}
+				},
 				stop: function(event, ui) {
 					setTimeout(function() {
 						if ($('canvas.preview:hover').length > 0) {
 							var data = Canvas.getCurrentPreview().raycast()
 							if (data.cube && data.face) {
 								var tex = textures.findInArray('uuid', ui.helper.attr('texid'));
+								var cubes_list = data.cube.selected ? selected : [data.cube];
+								Undo.initEdit({})
 								if (tex) {
 									data.cube.applyTexture(tex, [data.face])
 								}
+								Undo.finishEdit('apply texture')
 							}
 						}
 					}, 10)
@@ -946,6 +961,76 @@ function getTexturesById(id) {
 	if (id === undefined) return;
 	id = id.replace('#', '');
 	return $.grep(textures, function(e) {return e.id == id});
+}
+
+TextureAnimator = {
+	isPlaying: false,
+	interval: false,
+	start: function() {
+		clearInterval(TextureAnimator.interval)
+		TextureAnimator.isPlaying = true
+		TextureAnimator.updateButton()
+		TextureAnimator.interval = setInterval(TextureAnimator.nextFrame, 1000/settings.texture_fps.value)
+	},
+	stop: function() {
+		TextureAnimator.isPlaying = false
+		clearInterval(TextureAnimator.interval)
+		TextureAnimator.updateButton()
+	},
+	toggle: function() {
+		if (TextureAnimator.isPlaying) {
+			TextureAnimator.stop()
+		} else {
+			TextureAnimator.start()
+		}
+	},
+	updateSpeed: function() {
+		if (TextureAnimator.isPlaying) {
+			TextureAnimator.stop()
+			TextureAnimator.start()
+		}
+	},
+	nextFrame: function() {
+		var animated_tex = []
+		textures.forEach(function(tex, i) {
+			if (tex.frameCount > 1) {
+				if (tex.currentFrame === undefined) {
+					tex.currentFrame = 0
+				} else if (tex.currentFrame >= tex.frameCount-1) {
+					tex.currentFrame = 0
+				} else {
+					tex.currentFrame++;
+				}
+				$($('.texture').get(i)).find('img').css('margin-top', (tex.currentFrame*-48)+'px')
+				animated_tex.push(tex)
+			}
+		})
+		elements.forEach(function(obj) {
+			var update = false
+			for (var face in obj.faces) {
+				update = update || animated_tex.includes(obj.faces[face].getTexture());
+			}
+			if (update) {
+				Canvas.updateUV(obj, true)
+			}
+		})
+	},
+	reset: function() {
+		TextureAnimator.stop()
+		textures.forEach(function(tex, i) {
+			if (tex.frameCount) {
+				tex.currentFrame = 0
+				$($('.texture').get(i)).find('img').css('margin-top', '0')
+			} 
+		})
+		while (i < elements.length) {
+			Canvas.updateUV(elements[i], true)
+			i++;
+		}
+	},
+	updateButton: function() {
+		BarItems.animated_textures.setIcon( TextureAnimator.isPlaying ? 'pause' : 'play_arrow' )
+	}
 }
 
 onVueSetup(function() {

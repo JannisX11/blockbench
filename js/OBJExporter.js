@@ -175,7 +175,7 @@ function getMtlFace(obj, index) {
 
 	if (tex === null) {
 		return false
-	} else if (typeof tex === 'string') {
+	} else if (!tex || typeof tex === 'string') {
 		return 'usemtl none\n'
 	} else {
 		return 'usemtl ' + tex.id + '\n';

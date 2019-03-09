@@ -20,9 +20,24 @@ class Animation {
 		Merge.boolean(this, data, 'override')
 		Merge.string(this, data, 'anim_time_update')
 		Merge.number(this, data, 'length')
+		if (data.bones) {
+			for (var key in data.bones) {
+				var group = TreeElements.findRecursive( isUUID(key) ? 'uuid' : 'name', key )
+				if (group) {
+					var ba = this.getBoneAnimator(group)
+					var kfs = data.bones[key]
+					if (kfs && ba) {
+						kfs.forEach(kf_data => {
+							var kf = new Keyframe(kf_data)
+							ba.pushKeyframe(kf)
+						})
+					}
+				}
+			}
+		}
 		return this;
 	}
-	undoCopy() {
+	undoCopy(options) {
 		var scope = this;
 		var copy = {
 			uuid: this.uuid,
@@ -33,11 +48,14 @@ class Animation {
 			length: this.length,
 			selected: this.selected,
 		}
-		if (this.bones.length) {
+		if (Object.keys(this.bones).length) {
 			copy.bones = {}
 			for (var uuid in this.bones) {
 				var kfs = this.bones[uuid].keyframes
 				if (kfs && kfs.length) {
+					if (options && options.bone_names) {
+						uuid = this.bones[uuid].getGroup().name
+					}
 					var kfs_copy = copy.bones[uuid] = []
 					kfs.forEach(kf => {
 						kfs_copy.push(kf.undoCopy())
@@ -768,6 +786,8 @@ const Animator = {
 		}
 		if (Animator.selected) {
 			Animator.selected.select()
+		} else if (Animator.animations.length) {
+			Animator.animations[0].select()
 		}
 		if (isApp && !Prop.animation_path && !Animator.animations.length && Prop.file_path) {
 			//Load
@@ -894,6 +914,7 @@ const Animator = {
 const Timeline = {
 	keyframes: [],//frames
 	selected: [],//frames
+	playback_speed: 100,
 	second: 0,
 	playing: false,
 	setTime: function(seconds, editing) {
@@ -1024,6 +1045,7 @@ const Timeline = {
 			}
 		})
 
+		BarItems.slider_animation_speed.update()
 		Timeline.is_setup = true
 		Timeline.setTime(0)
 	},
@@ -1144,8 +1166,9 @@ const Timeline = {
 	loop: function() {
 		Animator.preview()
 		if (Animator.selected && Timeline.second < (Animator.selected.length||1e3)) {
-			Animator.interval = setTimeout(Timeline.loop, 16.66)
-			Timeline.setTime(Timeline.second + 1/60)
+			
+			Animator.interval = setTimeout(Timeline.loop, 100/6)
+			Timeline.setTime(Timeline.second + (1/60) * (Timeline.playback_speed/100))
 		} else {
 			Timeline.setTime(0)
 			if (Animator.selected && Animator.selected.loop) {
@@ -1322,6 +1345,50 @@ BARS.defineActions(function() {
 		}
 	})
 	new NumSlider({
+		id: 'slider_animation_speed',
+		category: 'animation',
+		condition: () => Animator.open,
+		get: function() {
+			return Timeline.playback_speed;
+		},
+		change: function(value, fixed) {
+			if (!fixed) {
+				value += Timeline.playback_speed
+			}
+			Timeline.playback_speed = limitNumber(value, 0, 10000)
+		},
+		getInterval: (e) => {
+			var val = BarItems.slider_animation_speed.get()
+			if (e.shiftKey) {
+				if (val < 50) {
+					return 10;
+				} else {
+					return 50;
+				}
+			}
+			if (e.ctrlKey) {
+				if (val < 500) {
+					return 1;
+				} else {
+					return 10;
+				}
+			}
+			if (val < 10) {
+				return 1;
+			} else if (val < 50) {
+				return 5;
+			} else if (val < 160) {
+				return 10;
+			} else if (val < 300) {
+				return 20;
+			} else if (val < 1000) {
+				return 50;
+			} else {
+				return 500;
+			}
+		}
+	})
+	new NumSlider({
 		id: 'slider_keyframe_time',
 		category: 'animation',
 		condition: () => Animator.open && Timeline.selected.length,
@@ -1344,6 +1411,72 @@ BARS.defineActions(function() {
 			Undo.finishEdit('edit keyframe')
 		}
 	})
+
+	new Action({
+		id: 'previous_keyframe',
+		icon: 'fa-arrow-circle-left',
+		category: 'animation',
+		condition: () => Animator.open,
+		click: function () {
+
+			var time = Timeline.second;
+			function getDelta(kf, abs) {
+				return kf.time - time
+			}
+			var matches = []
+			for (var i = 0; i < Timeline.keyframes.length; i++) {
+				var kf = Timeline.keyframes[i]
+				let delta = getDelta(kf)
+				if (delta < 0) {
+					matches.push(kf)
+				}
+			}
+			matches.sort((a, b) => {
+				return Math.abs(getDelta(a)) - Math.abs(getDelta(b))
+			})
+			var kf = matches[0]
+			if (kf) {
+				kf.select().callMarker()
+			} else {
+				if (Timeline.selected.length) {
+					selectAllKeyframes()
+					selectAllKeyframes()
+				}
+				Timeline.setTime(0)
+				Animator.preview()
+			}
+		}
+	})
+	new Action({
+		id: 'next_keyframe',
+		icon: 'fa-arrow-circle-right',
+		category: 'animation',
+		condition: () => Animator.open,
+		click: function () {
+
+			var time = Timeline.second;
+			function getDelta(kf, abs) {
+				return kf.time - time
+			}
+			var matches = []
+			for (var i = 0; i < Timeline.keyframes.length; i++) {
+				var kf = Timeline.keyframes[i]
+				let delta = getDelta(kf)
+				if (delta > 0) {
+					matches.push(kf)
+				}
+			}
+			matches.sort((a, b) => {
+				return Math.abs(getDelta(a)) - Math.abs(getDelta(b))
+			})
+			var kf = matches[0]
+			if (kf) {
+				kf.select().callMarker()
+			}
+		}
+	})
+
+
 	new Action({
 		id: 'select_all_keyframes',
 		icon: 'select_all',

@@ -88,7 +88,11 @@ function addRecentProject(data) {
 		}
 		i--;
 	}
-	recent_projects.push({name: data.name, path: data.path})
+	var icon_id = pathToExtension(data.path) === 'bbmodel' ? 1 : 0;
+	if (data.name.substr(0,4) === 'mobs') {
+		icon_id = 2;
+	}
+	recent_projects.push({name: data.name, path: data.path, icon_id})
 	if (recent_projects.length > 8) {
 		recent_projects.shift()
 	}
@@ -519,6 +523,7 @@ function createBackup(init) {
 	var days = d.getDate() + (d.getMonth()+1)*30.44 + (d.getYear()-100)*365.25
 
 	if (init) {
+		//Clear old backups
 		fs.readdir(folder_path, (err, files) => {
 			if (!err) {
 				files.forEach((name, i) => {
@@ -541,23 +546,15 @@ function createBackup(init) {
 	}
 	if (init || elements.length === 0) return;
 
-	var model = buildBlockModel({
-		backup: true,
-		raw: true,
-		cube_name: true,
-		prevent_dialog: true,
-		comment: false,
-		groups: true
-	})
+	var model = buildBBModel()
 	var file_name = 'backup_'+d.getDate()+'.'+(d.getMonth()+1)+'.'+(d.getYear()-100)+'_'+d.getHours()+'.'+d.getMinutes()
-	var file_path = folder_path+osfs+file_name+'.json'
+	var file_path = folder_path+osfs+file_name+'.bbmodel'
 
-	fs.writeFile(file_path, JSON.stringify(model), function (err) {
+	fs.writeFile(file_path, model, function (err) {
 		if (err) {
 			console.log('Error creating backup: '+err)
 		}
 	})
-	//trimBackups
 }
 //Zoom
 function setZoomLevel(mode) {

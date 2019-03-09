@@ -81,6 +81,23 @@ var asyncLoop = function(o){
 	} 
 	async_loop();//init
 }
+//    1234567890qwertzuiopuasdfghjklyxcvbn
+//Jquery
+$.fn.deepest = function() {
+	if (!this.length) return this;
+	var opts = []
+	this.each((i, node) => {
+		var i = 0;
+		var obj = $(node)
+		while (obj.parent().get(0) instanceof HTMLBodyElement === false) {
+			obj = obj.parent()
+			i++;
+		}
+		opts.push({depth: i, o: node})
+	})
+	opts.sort((a, b) => (a.depth < b.depth));
+	return $(opts[0].o)
+}
 
 //Math
 function guid() {
@@ -91,6 +108,9 @@ function guid() {
 	}
 	return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
 		s4() + '-' + s4() + s4() + s4();
+}
+function isUUID(s) {
+	return (s.length === 36 && s.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/))
 }
 function bbuid(l) {
 	l = l || 1

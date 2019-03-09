@@ -71,6 +71,8 @@ class BBPainter {
 	}
 	startBrushCanvas(data, event) {
 		Painter.current.x = Painter.current.y = 0
+		Painter.current.face = data.face;
+		Painter.current.cube = data.cube;
 		var texture = data.cube.faces[data.face].getTexture()
 		if (!texture) {
 			Blockbench.showQuickMessage('message.untextured')
@@ -205,8 +207,7 @@ class BBPainter {
 					ctx.fillStyle = BarItems.brush_color.get().toRgbString()
 
 					var fill_mode = BarItems.fill_mode.get()
-					var cube = selected[0]
-
+					var cube = Painter.current.cube;
 					if (cube && fill_mode === 'cube') {
 						for (var face in cube.faces) {
 							var tag = cube.faces[face]
@@ -265,10 +266,7 @@ class BBPainter {
 								px[3] = result_color.a*255
 							}
 						})
-
 					}
-
-
 				} else {
 					ctx.clip()
 
@@ -282,7 +280,6 @@ class BBPainter {
 							return {r: pxcolor.r, g: pxcolor.g, b: pxcolor.b, a: pxcolor.a*(1-b_opacity*opacity*(noise?Math.random():1))};
 						})
 					}
-
 					ctx.restore();
 				}
 				Painter.editing_area = undefined;
@@ -561,7 +558,12 @@ class BBPainter {
 			return texture.add(false);
 		}
 		if (options.entity_template === true) {
-			Undo.initEdit({textures: Blockbench.entity_mode ? textures : [], cubes: Blockbench.entity_mode ? elements : selected, uv_only: true})
+			Undo.initEdit({
+				textures: Blockbench.entity_mode ? textures : [],
+				cubes: Blockbench.entity_mode ? elements : selected,
+				uv_only: true,
+				resolution: true
+			})
 			Painter.generateTemplate(options, makeTexture)
 		} else {
 			Undo.initEdit({textures: []})

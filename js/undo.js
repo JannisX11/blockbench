@@ -177,7 +177,7 @@ var Undo = {
 						Canvas.adaptObjectFaces(obj)
 						Canvas.updateUV(obj)
 					} else {
-						obj = new Cube(data, uuid).init(false)
+						obj = new Cube(data, uuid).init()
 					}
 				}
 			}
@@ -269,10 +269,8 @@ var Undo = {
 
 			var animation = Animator.animations.findInArray('uuid', save.animation)
 			if (!animation) {
-				//new
 				animation = new Animation()
 			}
-			//populate
 			Animation.extend(save.animation)
 
 		} else if (reference.animation) {
@@ -356,6 +354,13 @@ var Undo = {
 				display[slot].extend(data).update()
 			}
 		}
+		if (open_dialog == 'uv_dialog') {
+			for (var key in uv_dialog.editors) {
+				if (uv_dialog.editors[key]) {
+					uv_dialog.editors[key].loadData()
+				}
+			}
+		}
 		updateSelection()
 	}
 }
@@ -371,14 +376,18 @@ BARS.defineActions(function() {
 		id: 'undo',
 		icon: 'undo',
 		category: 'edit',
+		condition: () => (!open_dialog || open_dialog === 'uv_dialog'),
+		work_in_dialog: true,
 		keybind: new Keybind({key: 90, ctrl: true}),
-		click: function () {Undo.undo()}
+		click: Undo.undo
 	})
 	new Action({
 		id: 'redo',
 		icon: 'redo',
 		category: 'edit',
+		condition: () => (!open_dialog || open_dialog === 'uv_dialog'),
+		work_in_dialog: true,
 		keybind: new Keybind({key: 89, ctrl: true}),
-		click: function () {Undo.redo()}
+		click: Undo.redo
 	})
 })

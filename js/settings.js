@@ -318,6 +318,13 @@ onVueSetup(function() {
 	})
 	var project_vue = new Vue({
 		el: '#project_settings',
-		data: {Project}
+		data: {Project},
+		methods: {
+			syncGeometry: function() {
+				if (Blockbench.entity_mode && Project.name.length > 0 && !Project.geometry_name) {
+					Project.geometry_name = Project.name.toLowerCase().replace(/\s/g, '')
+				}
+			}
+		}
 	})
 })

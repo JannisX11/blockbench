@@ -380,6 +380,7 @@ class API {
 		*/
 		if (Blockbench.isWeb) {
 			var file_name = options.name + (options.extensions ? '.'+options.extensions[0] : '')
+			var callback_used;
 			if (options.custom_writer) {
 				options.custom_writer(options.content, file_name)
 				
@@ -391,6 +392,10 @@ class API {
 				if (Blockbench.browser === 'firefox') document.body.appendChild(download);
 				download.click();
 				if (Blockbench.browser === 'firefox') document.body.removeChild(download);
+
+			} else if (options.savetype === 'zip') {
+				saveAs(options.content, file_name)
+
 			} else {
 				var blob = new Blob([options.content], {type: "text/plain;charset=utf-8"});
 				saveAs(blob, file_name, {autoBOM: true})
@@ -399,7 +404,7 @@ class API {
 				Prop.project_saved = true;
 				setProjectTitle(options.name)
 			}
-			if (typeof cb === 'function') {
+			if (!callback_used && typeof cb === 'function') {
 				cb()
 			}
 		} else {
@@ -446,7 +451,7 @@ class API {
 			Prop.project_saved = true;
 			Project.name = pathToName(file_path, true)
 			setProjectTitle(pathToName(file_path, false))
-			addRecentProject({name: pathToName(file_path, Blockbench.entity_mode ? 'mobs_id' : false), path: Prop.file_path})
+			addRecentProject({name: pathToName(file_path, Blockbench.entity_mode ? 'mobs_id' : true), path: Prop.file_path})
 			Blockbench.showQuickMessage(tl('message.save_file', [Project.name]))
 			if (Blockbench.hasFlag('close_after_saving')) {
 				closeBlockbenchWindow()

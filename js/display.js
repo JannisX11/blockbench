@@ -228,7 +228,8 @@ class refModel {
 			this.onload()
 		}
 	}
-	load() {
+	load(index) {
+		displayReferenceObjects.ref_indexes[display_slot] = index || 0;
 		displayReferenceObjects.clear()
 		if (typeof this.onload === 'function') {
 			this.onload()
@@ -1232,15 +1233,15 @@ window.displayReferenceObjects = {
 			var button = $(
 				`<div>
 					<input class="hidden" type="radio" name="refmodel" id="${ref.id}"${ i === 0 ? ' selected' : '' }>
-					<label class="tool" onclick="displayReferenceObjects.refmodels.${ref.id}.load()" for="${ref.id}">
+					<label class="tool" onclick="displayReferenceObjects.refmodels.${ref.id}.load(${i})" for="${ref.id}">
 						<div class="tooltip">${ref.name}</div>
 						<i class="${icon}"></i>
 					</label>
 				</div>`
 			)
 			$('#display_ref_bar').append(button)
-			if (i === 0) {
-				ref.load()
+			if (i === displayReferenceObjects.ref_indexes[display_slot]) {
+				ref.load(i)
 				button.find('input').prop("checked", true)
 			}
 			i++;
@@ -1250,6 +1251,16 @@ window.displayReferenceObjects = {
 		display_scene.remove(displayReferenceObjects.active.model)
 		displayReferenceObjects.active = false
 		$('#donation_hint').hide()
+	},
+	ref_indexes: {
+		thirdperson_righthand: 0,
+		thirdperson_lefthand: 0,
+		firstperson_righthand: 0,
+		firstperson_lefthand: 0,
+		ground: 0,
+		gui: 0,
+		head: 0,
+		fixed: 0,
 	},
 	slots: [
 		'thirdperson_righthand',
@@ -1280,6 +1291,7 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	display_preview.setNormalCamera()
 	display_preview.camPers.position.set(-80, 40, -30)
 	display_preview.camPers.setFocalLength(45)
+	lights.rotation.y = (Math.PI/4)*3
 	
 	$('body').addClass('display_mode')
 	$('.m_edit').hide()
@@ -1305,6 +1317,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	setDisplayArea(0,0,0, 0,0,0, 1,1,1)
 	display_area.updateMatrixWorld()
 	display_base.updateMatrixWorld()
+	lights.rotation.y = 0
 
 	display_mode = false;
 	main_preview.fullscreen()
