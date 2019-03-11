@@ -5,6 +5,7 @@ class Texture {
 		this.name = ''
 		this.folder = '';
 		this.namespace = '';
+		this.id = '';
 		this.source = ''
 		this.particle = false
 		this.selected = false
@@ -54,6 +55,7 @@ class Texture {
 			name: this.name,
 			folder: this.folder,
 			namespace: this.namespace,
+			id: this.id,
 			particle: this.particle,
 			selected: this.selected,
 			mode: this.mode,
@@ -72,18 +74,13 @@ class Texture {
 		Merge.string(this, data, 'name')
 		Merge.string(this, data, 'folder')
 		Merge.string(this, data, 'namespace')
+		Merge.string(this, data, 'id')
 		Merge.boolean(this, data, 'particle')
 		Merge.string(this, data, 'mode')
 		Merge.boolean(this, data, 'saved')
 		if (this.mode === 'bitmap') {
 			Merge.string(this, data, 'source')
 		}
-		/*
-		for (var key in properties) {
-			if (properties.hasOwnProperty(key)) {
-				this[key] = properties[key]
-			}
-		}*/
 		return this;
 	}
 	//Loading
@@ -618,7 +615,7 @@ class Texture {
 		$('#texture_edit input#te_variable').val(scope.id)
 		$('#texture_edit input#te_name').val(scope.name)
 		$('#texture_edit input#te_folder').val(scope.folder)
-		$('#texture_edit input#te_namespace').val()
+		$('#texture_edit input#te_namespace').val(scope.namespace)
 		$('#texture_menu_thumbnail').html(scope.img)
 
 		if (scope.mode === 'link') {

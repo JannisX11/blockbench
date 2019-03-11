@@ -1161,7 +1161,7 @@ class Group extends OutlinerElement {
 
 		//Clear Old Group
 		if (selected_group) selected_group.unselect()
-		if (event.shiftKey === false && event.ctrlKey === false) {
+		if (event.shiftKey === true || event.ctrlKey === true) {
 			selected.length = 0
 		}
 		//Select This Group

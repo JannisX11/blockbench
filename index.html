@@ -19,7 +19,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '2.5.0';
+		const appVersion = '2.5.1';
 	</script>
 		<script src="lib/vue.min.js"></script>
 		<script src="lib/vue_sortable.js"></script>
@@ -242,7 +242,7 @@
 			<div class="tool link_only" onclick="textures.selected.reopen()"><div class="tooltip tl">menu.texture.change</div><i class="material-icons">file_upload</i></div>
 			<div class="tool link_only" onclick="textures.selected.refresh(true)"><div class="tooltip tl">menu.texture.refresh</div><i class="material-icons">refresh</i></div>
 			<div class="tool link_only" onclick="textures.selected.openFolder()"><div class="tooltip tl">menu.texture.folder</div><i class="material-icons">folder</i></div>
-			<div class="tool" onclick="textures.selected.remove()"><div class="tooltip tl">menu.texture.delete</div><i class="material-icons">delete</i></div>
+			<div class="tool" onclick="textures.selected.remove()"><div class="tooltip tl">generic.delete</div><i class="material-icons">delete</i></div>
 		</div>
 
 		<p class="multiline_text" id="te_path">path</p>
@@ -867,11 +867,11 @@
 						<i class="material-icons texture_error" title="Image Error" v-if="texture.error">error_outline</i>
 						<i class="texture_movie fa fa_big fa-film" title="Animated Texture" v-if="texture.frameCount > 1"></i>
 					</div>
-					<i class="material-icons texture_particle_icon" v-if="texture.particle">bubble_chart</i>
 					<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture.saved}" v-on:click="texture.save()">
 						<template v-if="texture.saved">check_circle</template>
 						<template v-else>save</template>
 					</i>
+					<i class="material-icons texture_particle_icon" v-if="texture.particle">bubble_chart</i>
 					<div class="texture_name">{{ texture.name }}</div>
 					<div class="texture_res">{{!Blockbench.entity_mode ? (texture.ratio == 1 ? texture.res + 'px' : (texture.res + 'px, ' + texture.frameCount+'f')) : (texture.res + ' x ' + texture.res*texture.ratio + 'px')}}</div>
 				</li>

@@ -218,6 +218,44 @@ function loadBlockModel(model, filepath, add) {
 	if (model.display !== undefined) {
 		DisplayMode.loadJSON(model.display)
 	}
+	var texture_ids = {}
+	if (model.textures) {
+		//Create Path Array to fetch textures
+		var path_arr = filepath.split(osfs)
+		var index = path_arr.length - path_arr.indexOf('models')
+		path_arr.splice(-index)
+
+		var texture_arr = model.textures
+		var paths = {}
+
+		for (var tex in texture_arr) {
+			if (texture_arr.hasOwnProperty(tex)) {
+				if (tex != 'particle') {
+					var t = new Texture({id: tex}).fromJavaLink(texture_arr[tex], path_arr.slice()).add(false)
+					paths[texture_arr[tex]] = texture_ids[tex] = t
+				}
+			}
+		}
+		if (texture_arr.particle) {
+			if (paths[texture_arr.particle]) {
+				paths[texture_arr.particle].enableParticle()
+			} else {
+				var t = new Texture({id: 'particle'}).fromJavaLink(texture_arr[tex], path_arr.slice()).add(false).enableParticle()
+				texture_ids.particle = t;
+			}
+		}
+		//Get Rid Of ID overlapping
+		for (var i = previous_texture_length; i < textures.length; i++) {
+			var t = textures[i]
+			if (getTexturesById(t.id).length > 1) {
+				t.id = Prop.added_models + '_' + t.id
+			}
+		}
+		//Select Last Texture
+		if (textures.length > 0) {
+			textures[textures.length-1].select();
+		}
+	}
 
 	var oid = elements.length
 
@@ -233,11 +271,17 @@ function loadBlockModel(model, filepath, add) {
 					base_cube.faces[face].texture = null
 					base_cube.faces[face].uv = [0,0,0,0]
 				} else {
+					delete base_cube.faces[face].texture;
 					if (typeof obj.faces[face].uv === 'object') {
 						uv_stated = true
 					}
 					if (obj.faces[face].texture === '#missing') {
-						delete base_cube.faces[face].texture;
+
+					} else if (obj.faces[face].texture) {
+						var t = texture_ids[obj.faces[face].texture.replace(/^#/, '')]
+						if (t instanceof Texture) {
+							base_cube.faces[face].texture = t.uuid;
+						}
 					}
 					if (obj.faces[face].tintindex !== undefined) {
 						base_cube.faces[face].tint = true;
@@ -268,7 +312,7 @@ function loadBlockModel(model, filepath, add) {
 		}
 	}
 	if (import_group) {
-		import_group.addTo()
+		import_group.addTo().select()
 	}
 	if (
 		!model.elements &&
@@ -300,51 +344,6 @@ function loadBlockModel(model, filepath, add) {
 			icon: 'info',
 			message: tl('message.child_model_only.message', [model.parent])
 		})
-	}
-	if (model.textures) {
-		//Create Path Array to fetch textures
-		var path_arr = filepath.split(osfs)
-		var index = path_arr.length - path_arr.indexOf('models')
-		path_arr.splice(-index)
-
-		var texture_arr = model.textures
-		var names = {}
-
-		for (var tex in texture_arr) {
-			if (texture_arr.hasOwnProperty(tex)) {
-				if (tex != 'particle') {
-					var t = new Texture({id: tex}).fromJavaLink(texture_arr[tex], path_arr.slice()).add(false)
-					names[texture_arr[tex]] = t
-				}
-			}
-		}
-		if (texture_arr === undefined) texture_arr = {}
-		if (texture_arr.particle) {
-			if (names[texture_arr.particle]) {
-				names[texture_arr.particle].enableParticle()
-			} else {
-				new Texture({id: 'particle'}).fromJavaLink(texture_arr[tex], path_arr.slice()).add(false).enableParticle()
-			}
-		}
-		//Get Rid Of ID overlapping
-		for (var i = previous_texture_length; i < textures.length; i++) {
-			var t = textures[i]
-			var import_id = t.id;
-			if (getTexturesById(t.id).length > 1) {
-				t.id = Prop.added_models + '_' + t.id
-			}
-			elements.forEach(function(s, si) {
-				for (var face in s.faces) {
-					if (s.faces[face].texture === '#'+import_id) {
-						s.faces[face].texture = t.uuid
-					}
-				}
-			})
-		}
-		//Select Last Texture
-		if (textures.length > 0) {
-			textures[textures.length-1].select();
-		}
 	}
 
 	//Set Parent

@@ -257,7 +257,7 @@
 			<div class="tool link_only" onclick="textures.selected.reopen()"><div class="tooltip tl">menu.texture.change</div><i class="material-icons">file_upload</i></div>
 			<div class="tool link_only" onclick="textures.selected.refresh(true)"><div class="tooltip tl">menu.texture.refresh</div><i class="material-icons">refresh</i></div>
 			<div class="tool link_only" onclick="textures.selected.openFolder()"><div class="tooltip tl">menu.texture.folder</div><i class="material-icons">folder</i></div>
-			<div class="tool" onclick="textures.selected.remove()"><div class="tooltip tl">menu.texture.delete</div><i class="material-icons">delete</i></div>
+			<div class="tool" onclick="textures.selected.remove()"><div class="tooltip tl">generic.delete</div><i class="material-icons">delete</i></div>
 		</div>
 
 		<p class="multiline_text" id="te_path">path</p>
