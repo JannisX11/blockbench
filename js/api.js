@@ -8,6 +8,7 @@ class API {
 		this.selection = selected;
 		this.flags = []
 		this.drag_handlers = {}
+		this.events = {}
 		this.entity_mode = false
 		if (isApp) {
 			this.platform = process.platform
@@ -25,6 +26,7 @@ class API {
 		Undo.finishEdit()
 	}
 	reload() {
+		localStorage.removeItem('backup_model')
 		if (isApp) {
 			preventClosing = false
 			Blockbench.flags.push('allow_reload')
@@ -138,7 +140,7 @@ class API {
 		var buttons = []
 
 		options.buttons.forEach(function(b, i) {
-			var btn = $('<button type="button" class="large">'+b+'</button>')
+			var btn = $('<button type="button">'+b+'</button>')
 			btn.click(function(e) {
 				hideDialog()
 				setTimeout(function() {
@@ -437,8 +439,18 @@ class API {
 			} else {
 				options.content = nativeImage.createFromPath(options.content).toPNG()
 			}
-		}
-		if (options.custom_writer) {
+		} else if (options.savetype === 'zip') {
+			var fileReader = new FileReader();
+			fileReader.onload = function(event) {
+			    var buffer = Buffer.from(new Uint8Array(this.result));
+				fs.writeFileSync(file_path, buffer)
+				if (cb) {
+					cb(file_path)
+				}
+			};
+			fileReader.readAsArrayBuffer(options.content);
+
+		} else if (options.custom_writer) {
 			options.custom_writer(options.content, file_path)
 		} else {
 			fs.writeFileSync(file_path, options.content)
@@ -469,35 +481,27 @@ class API {
 		return this.flags[flag]
 	}
 	//Events
-	dispatchEvent(event_name, event) {
-		if (!this.listeners) {
-			return;
-		}
-		var i = 0;
-		while (i < this.listeners.length) {
-			if (this.listeners[i].name === event_name) {
-				this.listeners[i].callback(event)
+	dispatchEvent(event_name, data) {
+		var list = this.events[event_name]
+		if (!list) return;
+		for (var i = 0; i < list.length; i++) {
+			if (typeof list[i] === 'function') {
+				list[i](data)
 			}
-			i++;
 		}
 	}
 	addListener(event_name, cb) {
-		if (!this.listeners) {
-			this.listeners = []
+		if (!this.events[event_name]) {
+			this.events[event_name] = []
 		}
-		this.listeners.push({name: event_name, callback: cb})
+		this.events[event_name].safePush(cb)
+	}
+	on(event_name, cb) {
+		return Blockbench.addListener(event_name, cb) 
 	}
 	removeListener(event_name, cb) {
-		if (!this.listeners) {
-			return;
-		}
-		var i = 0;
-		while (i < this.listeners.length) {
-			if (this.listeners[i].name === event_name && this.listeners[i].callback === cb) {
-				this.listeners.splice(i, 1)
-			}
-			i++;
-		}
+		if (!this.events[event_name]) return;
+		this.events[event_name].remove(cb);
 	}
 	//File Drag
 	addDragHandler(id, options, cb) {
@@ -525,11 +529,13 @@ function Dialog(settings) {
 	var scope = this;
 	this.title = settings.title
 	this.lines = settings.lines
+	this.form = settings.form
 	this.id = settings.id
 	this.width = settings.width
 	this.fadeTime = settings.fadeTime
 	this.draggable = settings.draggable
 	this.singleButton = settings.singleButton
+	this.buttons = settings.buttons
 	if (!parseInt(settings.fadeTime)) this.fadeTime = 200
 
 
@@ -559,50 +565,149 @@ function Dialog(settings) {
 		$(this.object).find('.cancel_btn:not([disabled])').click()
 	}
 	this.show = function() {
-		var jq_dialog = $('<div class="dialog paddinged" style="width: auto;" id="'+scope.id+'"><h2 class="dialog_handle">'+scope.title+'</h2></div>')
+		var jq_dialog = $(`<div class="dialog paddinged" style="width: auto;" id="${scope.id}"><h2 class="dialog_handle">${tl(scope.title)}</h2></div>`)
 		scope.object = jq_dialog.get(0)
 		var max_label_width = 0;
-		scope.lines.forEach(function(l) {
-			if (typeof l === 'object' && (l.label || l.widget)) {
+		if (scope.lines) {
+			scope.lines.forEach(function(l) {
+				if (typeof l === 'object' && (l.label || l.widget)) {
 
-				var bar = $('<div class="dialog_bar"></div>')
-				if (l.label) {
-					bar.append('<label class="name_space_left">'+tl(l.label)+(l.nocolon?'':':')+'</label>')
-					max_label_width = Math.max(getStringWidth(tl(l.label)), max_label_width)
-				}
-				if (l.node) {
-					bar.append(l.node)
-				} else if (l.widget) {
-					var widget = l.widget
-					if (typeof l.widget === 'string') {
-						widget = BarItems[l.widget]
-					} else if (typeof l.widget === 'function') {
-						widget = l.widget()
+					var bar = $('<div class="dialog_bar"></div>')
+					if (l.label) {
+						bar.append('<label class="name_space_left">'+tl(l.label)+(l.nocolon?'':':')+'</label>')
+						max_label_width = Math.max(getStringWidth(tl(l.label)), max_label_width)
 					}
-					bar.append(widget.getNode())
-					max_label_width = Math.max(getStringWidth(widget.name), max_label_width)
+					if (l.node) {
+						bar.append(l.node)
+					} else if (l.widget) {
+						var widget = l.widget
+						if (typeof l.widget === 'string') {
+							widget = BarItems[l.widget]
+						} else if (typeof l.widget === 'function') {
+							widget = l.widget()
+						}
+						bar.append(widget.getNode())
+						max_label_width = Math.max(getStringWidth(widget.name), max_label_width)
+					}
+					jq_dialog.append(bar)
+				} else {
+					jq_dialog.append(l)
 				}
-				jq_dialog.append(bar)
-			} else {
-				jq_dialog.append(l)
-			}
-		})
-		if (max_label_width) {
-			document.styleSheets[0].insertRule('.dialog#'+this.id+' .dialog_bar label {width: '+(max_label_width+14)+'px}')
+			})
 		}
-		if (this.singleButton) {
+		if (scope.form) {
+			for (var form_id in scope.form) {
+				var data = scope.form[form_id]
+				if (data && Condition(data.condition)) {
+					var bar = $('<div class="dialog_bar"></div>')
+					if (data.label) {
+						bar.append(`<label class="name_space_left" for="${form_id}">${tl(data.label)+(data.nocolon?'':':')}</label>`)
+						max_label_width = Math.max(getStringWidth(tl(data.label)), max_label_width)
+					}
+					/*
+						type: +text
+						label
+						placeholder
+					*/
+					switch (data.type) {
+						default:
+							bar.append(`<input class="dark_bordered half" type="text" id="${form_id}" value="${data.value||''}" placeholder="${data.placeholder||''}">`)
+							break;
+						case 'textarea':
+							bar.append(`<textarea style="height: ${data.height||150}px;" id="${form_id}"></textarea>`)
+							break;
+						case 'text':
+							bar.append(`<p>${tl(data.text)}</p>`)
+							bar.addClass('small_text')
+							break;
+						case 'number':
+							bar.append(`<input class="dark_bordered half" type="number" id="${form_id}" value="${data.value||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
+							break;
+						case 'color':
+							if (!data.colorpicker) {
+								data.colorpicker = new ColorPicker({
+									id: 'cp_'+form_id,
+									label: false,
+									private: true
+								})
+							}
+							bar.append(data.colorpicker.getNode())
+							break;
+						case 'checkbox':
+							bar.append(`<input type="checkbox" id="${form_id}"${data.value ? ' checked' : ''}>`)
+							break;
+					}
+					if (data.readonly) {
+						bar.find('input').attr('readonly', 'readonly')
+					}
+					jq_dialog.append(bar)
+				}
+			}
+		}
+		if (max_label_width) {
+			document.styleSheets[0].insertRule('.dialog#'+this.id+' .dialog_bar label {width: '+(max_label_width+8)+'px}')
+		}
+		if (this.buttons) {
+
+
+			var buttons = []
+
+			scope.buttons.forEach(function(b, i) {
+				var btn = $('<button type="button">'+b+'</button>')
+				buttons.push(btn)
+			})
+			buttons[scope.confirmIndex||0].addClass('confirm_btn')
+			buttons[scope.cancelIndex||1].addClass('cancel_btn')
+			jq_dialog.append($('<div class="dialog_bar button_bar"></div>').append(buttons))
+
+
+
+		} else if (this.singleButton) {
+
 			jq_dialog.append('<div class="dialog_bar">' +
 				'<button type="button" class="large cancel_btn confirm_btn"'+ (this.confirmEnabled ? '' : ' disabled') +'>'+tl('dialog.close')+'</button>' +
 			'</div>')
+
 		} else {
+
 			jq_dialog.append(['<div class="dialog_bar">',
 				'<button type="button" class="large confirm_btn"'+ (this.confirmEnabled ? '' : ' disabled') +'>'+tl('dialog.confirm')+'</button>',
 				'<button type="button" class="large cancel_btn"'+ (this.cancelEnabled ? '' : ' disabled') +'>'+tl('dialog.cancel')+'</button>',
 			'</div>'].join(''))
+
 		}
 		jq_dialog.append('<div id="dialog_close_button" onclick="$(\'.dialog#\'+open_dialog).find(\'.cancel_btn:not([disabled])\').click()"><i class="material-icons">clear</i></div>')
-		$(this.object).find('.confirm_btn').click(this.onConfirm)
-		$(this.object).find('.cancel_btn').click(this.onCancel)
+		var confirmFn = function(e) {
+
+			var result = {}
+			if (scope.form) {
+				for (var form_id in scope.form) {
+					var data = scope.form[form_id]
+					switch (data.type) {
+						default:
+							result[form_id] = jq_dialog.find('input#'+form_id).val()
+							break;
+						case 'text': break;
+						case 'textarea':
+							result[form_id] = jq_dialog.find('textarea#'+form_id).val()
+							break;
+						case 'number':
+							result[form_id] = parseFloat(jq_dialog.find('input#'+form_id).val())||0
+							break;
+						case 'color':
+							result[form_id] = data.colorpicker.get();
+							break;
+						case 'checkbox':
+							result[form_id] = jq_dialog.find('input#'+form_id).is(':checked')
+							break;
+					}
+				}
+			}
+			scope.onConfirm(result, e)
+		}
+		confirmFn.bind(this)
+		$(this.object).find('.confirm_btn').click(confirmFn)
+		$(this.object).find('.cancel_btn').click(() => {this.onCancel()})
 		//Draggable
 		if (this.draggable !== false) {
 			jq_dialog.addClass('draggable')

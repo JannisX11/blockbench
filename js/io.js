@@ -1,6 +1,6 @@
 //New
-function newProject(entity_mode) {
-	if (showSaveDialog()) {
+function newProject(entity_mode, force) {
+	if (force || showSaveDialog()) {
 		if (Toolbox.selected.id !== 'move_tool') BarItems.move_tool.select();
 		elements.length = 0;
 		TreeElements.length = 1;
@@ -95,7 +95,9 @@ function loadModel(data, filepath, add) {
 	var extension = pathToExtension(filepath)
 
 	if (extension === 'bbmodel') {
-		loadBBModel(model)
+		setTimeout(() => {
+			loadBBModel(model)
+		}, 8)
 	} else if (extension === 'jpm') {
 		loadJPMModel(model)
 	} else if (extension === 'jem') {
@@ -109,13 +111,12 @@ function loadModel(data, filepath, add) {
 		}
 		loadBlockModel(model, filepath, add)
 	}
-
-	loadTextureDraggable()
-	loadOutlinerDraggable()
-	Canvas.updateAll()
 	Blockbench.removeFlag('importing')
 	if (!add) {
 		Prop.project_saved = true;
+	}
+	if (!add) {
+		EditSession.initNewModel()
 	}
 }
 function loadBBModel(model) {
@@ -138,7 +139,6 @@ function loadBBModel(model) {
 	} else {
 		Blockbench.entity_mode = false;
 	}
-	saveSettings()
 	Project.name = model.name;
 	if (model.geo_name) {
 		Project.geometry_name = model.geo_name;
@@ -155,8 +155,7 @@ function loadBBModel(model) {
 
 	if (model.textures) {
 		model.textures.forEach(tex => {
-			var tex_copy = new Texture(tex).add(false);
-			tex_copy.uuid = tex.uuid;
+			var tex_copy = new Texture(tex, tex.uuid).add(false);
 			if (tex_copy.mode === 'link') {
 				tex_copy.fromPath(tex.path)
 			} else {
@@ -166,7 +165,9 @@ function loadBBModel(model) {
 	}
 	if (model.cubes) {
 		model.cubes.forEach(function(cube) {
-			base_cube = new Cube(cube).init(false)
+			base_cube = new Cube()
+			if (cube.uuid) base_cube.uuid = cube.uuid;
+			base_cube.extend(cube).init(false)
 			for (var face in base_cube.faces) {
 				if (!model.meta.box_uv) {
 					var texture = textures[cube.faces[face].texture]
@@ -182,15 +183,26 @@ function loadBBModel(model) {
 	}
 	if (model.outliner) {
 		parseGroups(model.outliner)
+		if (model.meta.bone_rig) {
+			Canvas.updateAllBones()
+			Canvas.updateAllPositions()
+		}
 	}
 	if (model.animations) {
 		model.animations.forEach(ani => {
-			var base_ani = new Animation(ani).add();
+			var base_ani = new Animation()
+			base_ani.uuid = ani.uuid;
+			base_ani.extend(ani).add();
 		})
 	}
 	if (model.display !== undefined) {
 		DisplayMode.loadJSON(model.display)
 	}
+	if (model.history) {
+		Undo.history = model.history.slice()
+		Undo.index = model.history_index;
+	}
+	updateSelection()
 }
 function loadBlockModel(model, filepath, add) {
 	if (!model.elements && !model.parent && !model.display && !model.textures) {
@@ -209,7 +221,10 @@ function loadBlockModel(model, filepath, add) {
 
 	var previous_length = add ? elements.length : 0
 	var previous_texture_length = add ? textures.length : 0
+	var new_cubes = [];
+	var new_textures = [];
 	if (add) {
+		Undo.initEdit({cubes: new_cubes, outliner: true, textures: new_textures})
 		Prop.added_models++;
 		var import_group = new Group(pathToName(filepath, false))
 	}
@@ -219,6 +234,7 @@ function loadBlockModel(model, filepath, add) {
 		DisplayMode.loadJSON(model.display)
 	}
 	var texture_ids = {}
+	var texture_paths = {}
 	if (model.textures) {
 		//Create Path Array to fetch textures
 		var path_arr = filepath.split(osfs)
@@ -226,22 +242,23 @@ function loadBlockModel(model, filepath, add) {
 		path_arr.splice(-index)
 
 		var texture_arr = model.textures
-		var paths = {}
 
 		for (var tex in texture_arr) {
 			if (texture_arr.hasOwnProperty(tex)) {
 				if (tex != 'particle') {
 					var t = new Texture({id: tex}).fromJavaLink(texture_arr[tex], path_arr.slice()).add(false)
-					paths[texture_arr[tex]] = texture_ids[tex] = t
+					texture_paths[texture_arr[tex]] = texture_ids[tex] = t
+					new_textures.push(t);
 				}
 			}
 		}
 		if (texture_arr.particle) {
-			if (paths[texture_arr.particle]) {
-				paths[texture_arr.particle].enableParticle()
+			if (texture_paths[texture_arr.particle]) {
+				texture_paths[texture_arr.particle].enableParticle()
 			} else {
 				var t = new Texture({id: 'particle'}).fromJavaLink(texture_arr[tex], path_arr.slice()).add(false).enableParticle()
-				texture_ids.particle = t;
+				texture_paths[texture_arr[tex]] = texture_ids.particle = t;
+				new_textures.push(t);
 			}
 		}
 		//Get Rid Of ID overlapping
@@ -278,10 +295,22 @@ function loadBlockModel(model, filepath, add) {
 					if (obj.faces[face].texture === '#missing') {
 
 					} else if (obj.faces[face].texture) {
-						var t = texture_ids[obj.faces[face].texture.replace(/^#/, '')]
-						if (t instanceof Texture) {
-							base_cube.faces[face].texture = t.uuid;
+						var id = obj.faces[face].texture.replace(/^#/, '')
+						var t = texture_ids[id]
+
+						if (t instanceof Texture === false) {
+							if (texture_paths[obj.faces[face].texture]) {
+								var t = texture_paths[obj.faces[face].texture]
+								if (t.id === 'particle') {
+									t.extend({id: id, name: '#'+id}).loadEmpty(3)
+								}
+							} else {
+								var t = new Texture({id: id, name: '#'+id}).add(false).loadEmpty(3)
+								texture_ids[id] = t
+								new_textures.push(t);
+							}
 						}
+						base_cube.faces[face].texture = t.uuid;
 					}
 					if (obj.faces[face].tintindex !== undefined) {
 						base_cube.faces[face].tint = true;
@@ -294,7 +323,6 @@ function loadBlockModel(model, filepath, add) {
 			} else {
 				base_cube.autouv = 0;
 			}
-			elements.push(base_cube);
 			if (!add) {
 				TreeElements.push(base_cube)
 				base_cube.parent = 'root'
@@ -302,6 +330,8 @@ function loadBlockModel(model, filepath, add) {
 				import_group.children.push(base_cube)
 				base_cube.parent = import_group
 			}
+			base_cube.init()
+			new_cubes.push(base_cube);
 		})
 	}
 	if (model.groups && model.groups.length > 0) {
@@ -326,18 +356,17 @@ function loadBlockModel(model, filepath, add) {
 			from: [0, 0, 7.5],
 			to:   [16, 16, 7.8],
 			faces: {
-				north: {uv: [16,0,0,16], texture: 'layer0'},
-				south: {uv: [16,0,16,0], texture: 'layer0'},
+				north: {uv: [16,0,0,16], texture: textures[0].uuid || null},
+				south: {uv: [0,0,16,16], texture: textures[0].uuid || null},
 				east:  {uv: [0,0,0,0], texture: null},
 				west:  {uv: [0,0,0,0], texture: null},
-				up:	{uv: [0,0,0,0], texture: null},
+				up:	   {uv: [0,0,0,0], texture: null},
 				down:  {uv: [0,0,0,0], texture: null},
 			},
 			autouv: 0,
 			export: false
-		})
-		elements.push(base_cube);
-		base_cube.addTo()
+		}).init()
+		new_cubes.push(base_cube);
 	} else if (!model.elements && model.parent) {
 		Blockbench.showMessageBox({
 			translateKey: 'child_model_only',
@@ -345,6 +374,7 @@ function loadBlockModel(model, filepath, add) {
 			message: tl('message.child_model_only.message', [model.parent])
 		})
 	}
+	updateSelection()
 
 	//Set Parent
 	if (model.parent !== undefined) {
@@ -354,8 +384,15 @@ function loadBlockModel(model, filepath, add) {
 	if (model.ambientocclusion === false) {
 		Project.ambientocclusion = false;
 	}
+	if (add) {
+		Undo.finishEdit('add block model')
+	}
 }
-function loadJPMModel(model) {
+function loadJPMModel(model, add) {
+	var new_cubes = [];
+	if (add) {
+		Undo.initEdit({cubes: new_cubes, outliner: true})
+	}
 	function addSubmodel(submodel) {
 		if (submodel.boxes) {
 			submodel.boxes.forEach(function(box) {
@@ -382,9 +419,8 @@ function loadJPMModel(model) {
 							down: {uv: box.uvDown},
 						},
 						rotation: submodel.rotate
-					})
-					elements.push(base_cube);
-					TreeElements.push(base_cube)
+					}).init()
+					new_cubes.push(base_cube);
 				}
 			})
 		}
@@ -392,10 +428,13 @@ function loadJPMModel(model) {
 			submodel.submodels.forEach(addSubmodel)
 		}
 	}
+	if (add) {
+		Undo.finishEdit('add jpm model')
+	}
 	addSubmodel(model)
 	Canvas.updateAll()
 }
-function loadJEMModel(model) {
+function loadJEMModel(model, add) {
 	entityMode.join()
 	if (model.textureSize) {
 		Project.texture_width = parseInt(model.textureSize[0])
@@ -498,7 +537,6 @@ function loadEntityModelFile(data) {
 	if (pe_list && pe_list._data) {
 		pe_list._data.search_text = ''
 	}
-	saveSettings()
 
 	function rotateOriginCoord(pivot, y, z) {
 		return [
@@ -751,6 +789,7 @@ function loadEntityModel(data) {
 	if (isApp && Project.parent) {
 		findEntityTexture(Project.parent)
 	}
+	EditSession.initNewModel()
 }
 var Extruder = {
 	drawImage: function(path) {
@@ -978,22 +1017,26 @@ function buildBBModel(options) {
 		if (!cube.rotation.allEqual(0)) el.rotation = cube.rotation;
 		if (!cube.origin.allEqual(0)) el.origin = cube.origin;
 		if (!cube.uv_offset.allEqual(0)) el.uv_offset = cube.uv_offset;
-
 		if (!model.meta.box_uv) {
 			el.faces = {}
 			for (var face in cube.faces) {
 				el.faces[face] = cube.faces[face].getSaveCopy()
 			}
 		}
+		el.uuid = cube.uuid
 
 		model.cubes.push(el)
 	})
-	model.outliner = compileGroups()
+	model.outliner = compileGroups(true)
 
 	model.textures = [];
 	textures.forEach(tex => {
 		var t = tex.getUndoCopy();
 		delete t.selected;
+		if (options.bitmaps) {
+			t.source = 'data:image/png;base64,'+tex.getBase64()
+			t.mode = 'bitmap'
+		}
 		model.textures.push(t);
 	})
 
@@ -1003,7 +1046,6 @@ function buildBBModel(options) {
 			model.animations.push(a.undoCopy({bone_names: true}))
 		})
 	}
-
 
 	if (!Blockbench.entity_mode && Object.keys(display).length >= 1) {
 		var new_display = {}
@@ -1019,10 +1061,24 @@ function buildBBModel(options) {
 			model.display = new_display
 		}
 	}
+
+	if (options.history) {
+		model.history = [];
+		Undo.history.forEach(h => {
+			var e = {
+				before: omitKeys(h.before, ['aspects']),
+				post: omitKeys(h.post, ['aspects']),
+				action: h.action
+			}
+			model.history.push(e);
+		})
+		model.history_index = Undo.index;
+	}
+
 	if (options.raw) {
-		return model
+		return model;
 	} else {
-		return JSON.stringify(model)
+		return JSON.stringify(model);
 	}
 }
 function buildBlockModel(options) {
@@ -1164,9 +1220,12 @@ function buildBlockModel(options) {
 	textures.forEach(function(t, i){
 		if (!textures_used.includes(t) && !isTexturesOnlyModel) return;
 
-		texturesObj[t.id] = t.javaTextureLink(options.backup)
+		var link = t.javaTextureLink()
+		if (t.id !== link.replace(/^#/, '')) {
+			texturesObj[t.id] = link
+		}
 		if (t.particle) {
-			texturesObj.particle = t.javaTextureLink(options.backup)
+			texturesObj.particle = link
 		}
 		if (t.mode === 'bitmap') {
 			hasUnsavedTextures = true
@@ -1292,33 +1351,34 @@ function buildEntityModel(options) {
 			bone.material = g.material
 		}
 		//Cubes
-		if (g.children && g.children.length) {
-			bone.cubes = []
-			var i = 0;
-			while (i < g.children.length) {
-				var s = g.children[i]
-				if (s !== undefined && s.type === 'cube' && s.export !== false) {
-					var cube = new oneLiner()
-					cube.origin = s.from.slice()
-					cube.size = s.size()
-					cube.origin[0] = -(cube.origin[0] + cube.size[0])
-					cube.uv = s.uv_offset
-					if (s.inflate && typeof s.inflate === 'number') {
-						cube.inflate = s.inflate
-					}
-					if (s.mirror_uv === !bone.mirror) {
-						cube.mirror = s.mirror_uv
-					}
-					//Visible Bounds
-					var mesh = s.mesh
-					if (mesh) {
-						visible_box.expandByObject(mesh)
-					}
-					bone.cubes.push(cube)
-					cube_count++;
+		var cubes = []
+		var i = 0;
+		while (i < g.children.length) {
+			var s = g.children[i]
+			if (s !== undefined && s.type === 'cube' && s.export !== false) {
+				var cube = new oneLiner()
+				cube.origin = s.from.slice()
+				cube.size = s.size()
+				cube.origin[0] = -(cube.origin[0] + cube.size[0])
+				cube.uv = s.uv_offset
+				if (s.inflate && typeof s.inflate === 'number') {
+					cube.inflate = s.inflate
 				}
-				i++;
+				if (s.mirror_uv === !bone.mirror) {
+					cube.mirror = s.mirror_uv
+				}
+				//Visible Bounds
+				var mesh = s.mesh
+				if (mesh) {
+					visible_box.expandByObject(mesh)
+				}
+				cubes.push(cube)
+				cube_count++;
 			}
+			i++;
+		}
+		if (cubes.length) {
+			bone.cubes = cubes
 		}
 		bones.push(bone)
 	})
@@ -1660,6 +1720,75 @@ function buildOBJModel(name) {
 	scene.position.set(-8,-8,-8)
 	return content;
 }
+function uploadSketchfabModel() {
+
+	var dialog = new Dialog({
+		id: 'sketchfab_uploader',
+		title: 'Upload Sketchfab Model',
+		width: 540,
+		form: {
+			token: {label: 'dialog.sketchfab_uploader.token', value: settings.sketchfab_token.value},
+			about_token: {type: 'text', text: 'dialog.sketchfab_uploader.about_token'},
+			name: {label: 'dialog.sketchfab_uploader.name'},
+			description: {label: 'dialog.sketchfab_uploader.description', type: 'textarea'},
+			tags: {label: 'dialog.sketchfab_uploader.tags', placeholder: 'Tag1 Tag2'},
+		},
+		onConfirm: function(formResult) {
+			if (formResult.token && !formResult.name) {
+				Blockbench.showQuickMessage('message.sketchfab.name_or_token', 1800)
+				return;
+			}
+			if (!formResult.tags.split(' ').includes('blockbench')) {
+				formResult.tags += ' blockbench';
+			}
+			var data = new FormData()
+			data.append('token', formResult.token)
+			data.append('name', formResult.name)
+			data.append('description', formResult.description)
+			data.append('tags', formResult.tags)
+
+			settings.sketchfab_token.value = formResult.token
+
+			var archive = new JSZip();
+			var model_data = buildOBJModel('model')
+			archive.file('model.obj', model_data.obj)
+			archive.file('model.mtl', model_data.mtl)
+			for (var key in model_data.images) {
+				var tex = model_data.images[key];
+				if (tex) {
+					archive.file(pathToName(tex.name) + '.png', tex.getBase64(), {base64: true});
+				}
+			}
+
+			archive.generateAsync({type: 'blob'}).then(blob => {
+
+				var file = new File([blob], 'model.zip', {type: 'application/x-zip-compressed'})
+				data.append('modelFile', file)
+
+				$.ajax({
+					url: 'https://api.sketchfab.com/v3/models',
+					data: data,
+					cache: false,
+					contentType: false,
+					processData: false,
+					type: 'POST',
+					success: function(response) {
+						Blockbench.showQuickMessage('message.sketchfab.success', 1500)
+						Blockbench.openLink('https://sketchfab.com/models/'+response.uid)
+					},
+					error: function(response) {
+						Blockbench.showQuickMessage('message.sketchfab.error', 1500)
+						console.error(response);
+					}
+				})
+			})
+
+			dialog.hide()
+		}
+	})
+	dialog.show()
+}
+
 function compileJSON(object, options) {
 	var output = ''
 	if (typeof options !== 'object') options = {}
@@ -1770,6 +1899,22 @@ function autoParseJSON(data, feedback) {
 	return data;
 }
 
+function saveProjectSettings() {
+	if (Blockbench.entity_mode) {
+		main_uv.setGrid()
+		if (uv_dialog.editors) {
+			uv_dialog.editors.single.setGrid()
+		}
+		if (entityMode.old_res.x !== Project.texture_width || entityMode.old_res.y !== Project.texture_height) {
+			entityMode.setResolution()
+			Undo.finishEdit('changed resolution')
+		}
+		if (EditSession.active && EditSession.hosting) {
+			EditSession.sendAll('change_project_meta', JSON.stringify(Project));
+		}
+	}
+}
+
 BARS.defineActions(function() {
 	//New
 	new Action({
@@ -1777,7 +1922,11 @@ BARS.defineActions(function() {
 		icon: 'insert_drive_file',
 		category: 'file',
 		keybind: new Keybind({key: 78, ctrl: true}),
-		click: function () {newProject()}
+		click: function () {
+			if (newProject()) {
+				EditSession.initNewModel()
+			}
+		}
 	})
 	new Action({
 		id: 'new_entity_model',
@@ -1787,6 +1936,7 @@ BARS.defineActions(function() {
 		click: function () {
 			if (newProject(true)) {
 				showDialog('project_settings');
+				EditSession.initNewModel()
 			}
 		}
 	})
@@ -1796,6 +1946,7 @@ BARS.defineActions(function() {
 		icon: 'assessment',
 		category: 'file',
 		keybind: new Keybind({key: 79, ctrl: true}),
+		condition: () => (!EditSession.active || EditSession.hosting),
 		click: function () {
 			Blockbench.import({
 				extensions: ['json', 'jem', 'jpm', 'bbmodel'],
@@ -1976,7 +2127,6 @@ BARS.defineActions(function() {
 				var content = buildEntityModel()
 			}
 			archive.file((Project.name||'model')+'.json', content)
-			var texfolder = archive.folder('textures');
 			textures.forEach(tex => {
 				if (tex.mode === 'bitmap') {
 					texfolder.file(pathToName(tex.name) + '.png', tex.source.replace('data:image/png;base64,', ''), {base64: true});
@@ -1993,6 +2143,14 @@ BARS.defineActions(function() {
 					project_file: true
 				})
 			})
+		}
+	})
+	new Action({
+		id: 'upload_sketchfab',
+		icon: 'fa-cube',
+		category: 'file',
+		click: function(ev) {
+			uploadSketchfabModel()
 		}
 	})
 })

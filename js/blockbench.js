@@ -24,6 +24,8 @@ const Prop = {
 	fps:			0,
 	zoom:		   100,
 	progress:	   0,
+	session: false,
+	connections: 0,
 	facing:		 'north'
 }
 const Project = {
@@ -140,7 +142,6 @@ function onVueSetup(func) {
 	}
 	onVueSetup.funcs.push(func)
 }
-
 function canvasGridSize(shift, ctrl) {
 	if (!shift && !ctrl) {
 		return 16 / limitNumber(settings.edit_size.value, 1, 1024)
@@ -156,7 +157,6 @@ function canvasGridSize(shift, ctrl) {
 		return 16 / limitNumber(settings.shift_size.value, 1, 1024)
 	}
 }
-
 function updateNslideValues() {
 	//if (!selected.length && (!Blockbench.entity_mode || !selected_group)) return;
 
@@ -309,18 +309,6 @@ function unselectAll() {
 	})
 	updateSelection()
 }
-function invertSelection() {
-	elements.forEach(function(s) {
-		if (selected.includes(s)) {
-			selected.splice(selected.indexOf(s), 1)
-		} else {
-			selected.push(s)
-		}
-	})
-	if (selected_group) selected_group.unselect()
-	updateSelection()
-	Blockbench.dispatchEvent('invert_selection')
-}
 function createSelection() {
 	if ($('#selgen_new').is(':checked')) {
 		selected.length = 0
@@ -359,7 +347,6 @@ class Mode extends KeybindItem {
 		this.condition = data.condition;
 		this.onSelect = data.onSelect;
 		this.onUnselect = data.onUnselect;
-		this.category = data.category;
 		Modes.options[this.id] = this;
 	}
 	select() {
@@ -407,17 +394,20 @@ BARS.defineActions(function() {
 	new Mode({
 		id: 'edit',
 		default_tool: 'move_tool',
+		category: 'navigate',
 		keybind: new Keybind({key: 49})
 	})
 	new Mode({
 		id: 'paint',
 		default_tool: 'brush_tool',
+		category: 'navigate',
 		keybind: new Keybind({key: 50})
 	})
 	new Mode({
 		id: 'display',
 		selectCubes: false,
 		default_tool: 'move_tool',
+		category: 'navigate',
 		keybind: new Keybind({key: 51}),
 		condition: () => !Blockbench.entity_mode,
 		onSelect: () => {
@@ -430,6 +420,7 @@ BARS.defineActions(function() {
 	new Mode({
 		id: 'animate',
 		default_tool: 'move_tool',
+		category: 'navigate',
 		keybind: new Keybind({key: 51}),
 		condition: () => Blockbench.entity_mode,
 		onSelect: () => {
@@ -440,6 +431,17 @@ BARS.defineActions(function() {
 		}
 	})
 })
+//Backup
+setInterval(function() {
+	if (TreeElements.length || textures.length) {
+		try {
+			var model = buildBBModel()
+			localStorage.setItem('backup_model', model)
+		} catch (err) {
+			console.log('Unable to create backup. ', err)
+		}
+	}
+}, 1e3*30)
 //Misc
 const TickUpdates = {
 	Run: function() {
@@ -450,6 +452,18 @@ const TickUpdates = {
 		if (TickUpdates.selection) {
 			delete TickUpdates.selection;
 			updateSelection()
+		}
+		if (TickUpdates.main_uv) {
+			delete TickUpdates.main_uv;
+			main_uv.loadData()
+		}
+		if (TickUpdates.texture_list) {
+			delete TickUpdates.texture_list;
+			loadTextureDraggable();
+		}
+		if (TickUpdates.keyframes) {
+			delete TickUpdates.keyframes;
+			Vue.nextTick(Timeline.update)
 		}
 	}
 }
@@ -524,6 +538,7 @@ const Screencam = {
 		if (!options.length) {
 			options.length = 1000
 		}
+		var preview = quad_previews.current;
 		var interval = options.fps ? (1000/options.fps) : 100
 		var gif = new GIF({
 			repeat: options.repeat,
@@ -531,6 +546,11 @@ const Screencam = {
 			transparent: 0x000000,
 		})
 		var frame_count = (options.length/interval)
+
+		if (options.turnspeed) {
+			preview.controls.autoRotate = true;
+			preview.controls.autoRotateSpeed = options.turnspeed;
+		}
 
 		gif.on('finished', blob => {
 			var reader = new FileReader()
@@ -550,7 +570,7 @@ const Screencam = {
 		var frames = 0;
 		var loop = setInterval(() => {
 			var img = new Image()
-			img.src = quad_previews.current.canvas.toDataURL()
+			img.src = preview.canvas.toDataURL()
 			img.onload = () => {
 				gif.addFrame(img, {delay: interval})
 			}
@@ -566,6 +586,9 @@ const Screencam = {
 			gif.render()
 			if (Animator.open && Timeline.playing) {
 				Timeline.pause()
+			}
+			if (options.turnspeed) {
+				preview.controls.autoRotate = false;
 			}
 		}, options.length)
 	}
@@ -597,7 +620,7 @@ const Clipbench = {
 				Clipbench.setCubes(selected)
 			}
 			if (cut) {
-				deleteCubes()
+				BarItems.delete.trigger()
 			}
 		}
 	},
@@ -637,7 +660,7 @@ const Clipbench = {
 			var img = clipboard.readImage()
 			if (img) {
 				var dataUrl = img.toDataURL()
-				var texture = new Texture({name: 'pasted', folder: 'blocks' }).fromDataURL(dataUrl).add().fillParticle()
+				var texture = new Texture({name: 'pasted', folder: 'blocks' }).fromDataURL(dataUrl).fillParticle().add(true)
 				setTimeout(function() {
 					texture.openMenu()
 				},40)
@@ -755,6 +778,13 @@ const Clipbench = {
 		})
 		if (isApp) {
 			clipboard.writeHTML(JSON.stringify({type: 'keyframes', content: Clipbench.keyframes}))
+		}
+	},
+	setText: function(text) {
+		if (isApp) {
+			clipboard.writeText(text)
+		} else {
+			document.execCommand('copy')
 		}
 	}
 }

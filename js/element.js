@@ -13,8 +13,9 @@ var OutlinerButtons = {
 			}
 			Undo.initEdit({cubes: obj.forSelected(), outliner: true, selection: true})
 			obj.forSelected(function(cube) {
-				cube.remove(true)
+				cube.remove()
 			})
+			updateSelection()
 			Undo.finishEdit('remove', {cubes: [], outliner: true, selection: true})
 		}
 	},
@@ -150,8 +151,9 @@ class OutlinerElement {
 	constructor(uuid) {
 		this.uuid = uuid || guid()
 	}
-	sortInBefore(element) {
+	sortInBefore(element, index_mod) {
 		var index = -1;
+		index_mod = index_mod || 0;
 
 		if (element.parent === 'root') {
 			index = TreeElements.indexOf(element)
@@ -169,7 +171,7 @@ class OutlinerElement {
 		if (index < 0)
 			arr.push(this)
 		else {
-			arr.splice(index, 0, this)
+			arr.splice(index+index_mod, 0, this)
 		}
 
 		TickUpdates.outliner = true;
@@ -217,21 +219,8 @@ class OutlinerElement {
 		return this;
 	}
 	removeFromParent() {
-		var scope = this;
-		if (this.parent === 'root') {
-			TreeElements.forEach(function(s, i) {
-				if (s === scope) {
-					TreeElements.splice(i, 1)
-				}
-			})
-		} else if (typeof this.parent === 'object') {
-			var childArray = this.parent.children
-			childArray.forEach(function(s, i) {
-				if (s === scope) {
-					childArray.splice(i, 1)
-				}
-			})
-		}
+		this.getParentArray().remove(this);
+		return this;
 	}
 	getParentArray() {
 		if (this.parent === 'root') {
@@ -264,12 +253,14 @@ class OutlinerElement {
 		$('#cubes_list').animate({
 			scrollTop: scroll_amount
 		}, 200);
+		return this;
 	}
 	updateElement() {
 		var scope = this;
 		var old_name = this.name;
 		scope.name = '_&/3%6-7A';
 		scope.name = old_name;
+		return this;
 	}
 	getDepth() {
 		var d = 0;
@@ -314,6 +305,7 @@ class OutlinerElement {
 			scope.name = scope.old_name
 			delete scope.old_name
 		}
+		return this;
 	}
 	isIconEnabled(btn) {
 		switch (btn.id) {
@@ -598,9 +590,7 @@ class Cube extends OutlinerElement {
 			}
 		}
 		delete Canvas.meshes[this.uuid]
-		if (selected.includes(this)) {
-			selected.splice(selected.indexOf(this), 1)
-		}
+		selected.remove(this)
 		elements.splice(this.index, 1)
 		if (Transformer.dragging) {
 			outlines.remove(outlines.getObjectByName(this.uuid+'_ghost_outline'))
@@ -1161,7 +1151,7 @@ class Group extends OutlinerElement {
 
 		//Clear Old Group
 		if (selected_group) selected_group.unselect()
-		if (event.shiftKey === true || event.ctrlKey === true) {
+		if (event.shiftKey !== true && event.ctrlKey !== true) {
 			selected.length = 0
 		}
 		//Select This Group
@@ -1293,9 +1283,14 @@ class Group extends OutlinerElement {
 			Undo.finishEdit('removed_group')
 		}
 	}
-	createUniqueName() {
+	createUniqueName(group_arr) {
 		var scope = this;
 		var others = getAllOutlinerGroups();
+		if (group_arr && group_arr.length) {
+			group_arr.forEach(g => {
+				others.safePush(g)
+			})
+		}
 		var name = this.name.replace(/\d+$/, '');
 		function check(n) {
 			for (var i = 0; i < others.length; i++) {
@@ -1306,7 +1301,7 @@ class Group extends OutlinerElement {
 		if (check(this.name)) {
 			return this.name;
 		}
-		for (var num = 2; num < 256; num++) {
+		for (var num = 2; num < 2e3; num++) {
 			if (check(name+num)) {
 				scope.name = name+num;
 				return scope.name;
@@ -1364,6 +1359,7 @@ class Group extends OutlinerElement {
 		return this;
 	}
 	duplicate(destination) {
+		var copied_groups = [];
 		function duplicateArray(g1, g2) {
 			var array = g1.children
 			var i = 0;
@@ -1378,28 +1374,32 @@ class Group extends OutlinerElement {
 					}
 				} else {
 					var copy = array[i].getChildlessCopy()
-					duplicateArray(array[i], copy)
 					copy.addTo(g2)
 					if (destination == 'cache') {
 						copy.parent = undefined;
 					} else if (Blockbench.entity_mode) {
-						copy.createUniqueName()
+						copy.createUniqueName(copied_groups)
 					}
+					copied_groups.push(copy)
+					duplicateArray(array[i], copy)
 				}
 				i++;
 			}
 		}
 		var base_group = this.getChildlessCopy()
+		if (destination !== 'cache') {
+			base_group.createUniqueName()
+			copied_groups.push(base_group)
+		}
 		duplicateArray(this, base_group)
 		base_group.parent = undefined;
 
 		if (!destination) {
-			base_group.addTo(this.parent)
+			base_group.sortInBefore(this, 1).select()
 		} else if (destination !== 'cache') {
 			base_group.addTo(destination)
 		}
 		if (destination !== 'cache') {
-			base_group.createUniqueName()
 			Canvas.updatePositions()
 			TickUpdates.outliner = true;
 		}
@@ -1681,21 +1681,11 @@ function parseGroups(array, importGroup, startIndex) {
 	}
 }
 //Outliner
-function toggleOutlinerOptions(force) {
-	if (force === undefined) {
-		force = !$('.panel#outliner').hasClass('more_options')
-	}
-	if (force) {
-		$('.panel#outliner').addClass('more_options')
-		BarItems.outliner_toggle.setIcon('dns')
-	} else {
-		$('.panel#outliner').removeClass('more_options')
-		BarItems.outliner_toggle.setIcon('view_stream')
-	}
-}
 function loadOutlinerDraggable() {
 	function getOrder(loc, obj) {
-		if (obj.type === 'group') {
+		if (!obj) {
+			return;
+		} else if (obj.type === 'group') {
 			if (loc < 8) return -1;
 			if (loc > 24) return 1;
 		} else {
@@ -1788,15 +1778,17 @@ function loadOutlinerDraggable() {
 		})
 	})
 }
-function collapseAllGroups() {
-	getAllOutlinerGroups().forEach(function(g) {
-		g.isOpen = false
-		var name = g.name
-		g.name = '_$X0v_'
-		g.name = name
-	})
-}
 function dropOutlinerObjects(item, target, event, order) {
+	if (item.type === 'group' && target && target.parent) {
+		var is_parent = false;
+		function iterate(g) {
+			if (!(is_parent = g === item) && g.parent.type === 'group') {
+				iterate(g.parent)
+			}
+		}
+		iterate(target)
+		if (is_parent) return;
+	}
 	if (item.type === 'cube' && selected.includes( item )) {
 		var items = selected.slice();
 	} else {
@@ -1943,25 +1935,6 @@ function addGroup() {
 }
 
 //Misc
-function deleteCubes(array) {
-	Undo.initEdit({cubes: selected, outliner: true, selection: true})
-	if (selected_group) {
-		selected_group.remove(true)
-		return;
-	}
-	if (array == undefined) {
-		array = selected.slice(0)
-	} else if (array.constructor !== Array) {
-		array = [array]
-	} else {
-		array = array.slice(0)
-	}
-	array.forEach(function(s) {
-		s.remove(false)
-	})
-	updateSelection()
-	Undo.finishEdit('delete')
-}
 function duplicateCubes() {
 	Undo.initEdit({cubes: [], outliner: true, selection: true})
 	selected.forEach(function(obj, i) {
@@ -2006,14 +1979,6 @@ function stopRenameCubes(save) {
 		}
 		Blockbench.removeFlag('renaming')
 	}
-}
-function sortOutliner() {
-	Undo.initEdit({outliner: true})
-	if (TreeElements.length < 1) return;
-	TreeElements.sort(function(a,b) {
-		return sort_collator.compare(a.name, b.name)
-	});
-	Undo.finishEdit('sort_outliner')
 }
 function toggleCubeProperty(key) {
 	var state = selected[0][key]
@@ -2084,7 +2049,15 @@ BARS.defineActions(function() {
 		category: 'edit',
 		keybind: new Keybind({key: 115}),
 		click: function () {
-			toggleOutlinerOptions()
+			
+			var state = !$('.panel#outliner').hasClass('more_options')
+			if (state) {
+				$('.panel#outliner').addClass('more_options')
+				BarItems.outliner_toggle.setIcon('dns')
+			} else {
+				$('.panel#outliner').removeClass('more_options')
+				BarItems.outliner_toggle.setIcon('view_stream')
+			}
 		}
 	})
 	new BarText({
@@ -2102,6 +2075,137 @@ BARS.defineActions(function() {
 			} else {
 				this.set(selected.length+'/'+elements.length)
 			}
+		}
+	})
+
+	new Action({
+		id: 'duplicate',
+		icon: 'content_copy',
+		category: 'edit',
+		condition: () => (!display_mode && !Animator.open && (selected.length || selected_group)),
+		keybind: new Keybind({key: 68, ctrl: true}),
+		click: function () {
+			if (selected_group && (selected_group.matchesSelection() || selected.length === 0)) {
+				var cubes_before = elements.length
+				Undo.initEdit({outliner: true, cubes: [], selection: true})
+				var g = selected_group.duplicate()
+				g.select().isOpen = true;
+				Undo.finishEdit('duplicate_group', {outliner: true, cubes: elements.slice().slice(cubes_before), selection: true})
+			} else {
+				duplicateCubes();
+			}
+		}
+	})
+	new Action({
+		id: 'delete',
+		icon: 'delete',
+		category: 'edit',
+		condition: () => (!display_mode && !Animator.open && (selected.length || selected_group)),
+		keybind: new Keybind({key: 46}),
+		click: function () {
+
+			var array;
+			Undo.initEdit({cubes: selected, outliner: true, selection: true})
+			if (selected_group) {
+				selected_group.remove(true)
+				return;
+			}
+			if (array == undefined) {
+				array = selected.slice(0)
+			} else if (array.constructor !== Array) {
+				array = [array]
+			} else {
+				array = array.slice(0)
+			}
+			array.forEach(function(s) {
+				s.remove(false)
+			})
+			updateSelection()
+			Undo.finishEdit('delete')
+		}
+	})
+	new Action({
+		id: 'sort_outliner',
+		icon: 'sort_by_alpha',
+		category: 'edit',
+		click: function () {
+			Undo.initEdit({outliner: true});
+			if (TreeElements.length < 1) return;
+			TreeElements.sort(function(a,b) {
+				return sort_collator.compare(a.name, b.name)
+			});
+			Undo.finishEdit('sort_outliner')
+		}
+	})
+	new Action({
+		id: 'local_move',
+		icon: 'check_box',
+		category: 'edit',
+		linked_setting: 'local_move',
+		click: function () {
+			BarItems.local_move.toggleLinkedSetting()
+			updateSelection()
+		}
+	})
+	new Action({
+		id: 'element_colors',
+		icon: 'check_box',
+		category: 'edit',
+		linked_setting: 'outliner_colors',
+		click: function () {
+			BarItems.element_colors.toggleLinkedSetting()
+			updateSelection()
+		}
+	})
+	new Action({
+		id: 'select_window',
+		icon: 'filter_list',
+		category: 'edit',
+		condition: () => (!display_mode && !Animator.open),
+		keybind: new Keybind({key: 70, ctrl: true}),
+		click: function () {
+			showDialog('selection_creator')
+			$('#selgen_name').focus()
+		}
+	})
+	new Action({
+		id: 'invert_selection',
+		icon: 'swap_vert',
+		category: 'edit',
+		condition: () => (!display_mode && !Animator.open),
+		click: function () {
+			elements.forEach(function(s) {
+				if (selected.includes(s)) {
+					selected.splice(selected.indexOf(s), 1)
+				} else {
+					selected.push(s)
+				}
+			})
+			if (selected_group) selected_group.unselect()
+			updateSelection()
+			Blockbench.dispatchEvent('invert_selection')
+		}
+	})
+	new Action({
+		id: 'select_all',
+		icon: 'select_all',
+		category: 'edit',
+		condition: () => (!display_mode && !Animator.open),
+		keybind: new Keybind({key: 65, ctrl: true}),
+		click: function () {selectAll()}
+	})
+	new Action({
+		id: 'collapse_groups',
+		icon: 'format_indent_decrease',
+		category: 'edit',
+		condition: () => TreeElements.length > 0,
+		click: function () {
+			getAllOutlinerGroups().forEach(function(g) {
+				g.isOpen = false
+				var name = g.name
+				g.name = '_$X0v_'
+				g.name = name
+			})
 		}
 	})
 })

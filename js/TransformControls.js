@@ -891,7 +891,7 @@
 						scope.keyframe = kf
 					}
 				}
-				Undo.initEdit({keyframes: scope.keyframe ? [scope.keyframe] : null})
+				Undo.initEdit({keyframes: scope.keyframe ? [scope.keyframe] : []})
 				if (!scope.keyframe) {
 					var ba = Animator.selected.getBoneAnimator()
 					scope.keyframe = ba.addKeyframe(null, Timeline.second, channel);
@@ -1083,9 +1083,6 @@
 					beforeFirstChange(event)
 					var difference = value - (previousValue||0)
 
-					if (Toolbox.selected.transformerMode === 'scale') {
-						axis = 'x';
-					}
 					scope.keyframe.offset(axis, difference);
 					scope.keyframe.select()
 
@@ -1180,7 +1177,7 @@
 					updateSelection()
 
 				} else if (Modes.id === 'animate') {
-					Undo.finishEdit('change keyframe')
+					Undo.finishEdit('change keyframe', {keyframes: [scope.keyframe]})
 
 				} else if (Modes.id === 'display') {
 					Undo.finishEdit('edit display slot')

@@ -19,7 +19,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '2.5.0';
+		const appVersion = '2.6.0';
 	</script>
 		<script src="lib/vue.min.js"></script>
 		<script src="lib/vue_sortable.js"></script>
@@ -30,6 +30,7 @@
 		<script src="lib/jimp.min.js"></script>
 		<script src="lib/jszip.min.js"></script>
 		<script src="lib/gif.js"></script>
+		<script src="lib/peer.min.js"></script>
 		<script src="lib/spectrum.js"></script>
 		<script src="lib/three.js"></script>
 		<script src="lib/three_custom.js"></script>
@@ -43,6 +44,7 @@
 		<script src="js/keyboard.js"></script>
 		<script src="js/settings.js"></script>
 		<script src="js/undo.js"></script>
+		<script src="js/edit_sessions.js"></script>
 
 		<script type="text/javascript">
 			if (isApp === true) {
@@ -85,6 +87,7 @@
 		}
 	?></div>
 	<div style="display: none;"></div>
+
 
 	<div id="blackout" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"></div>
 
@@ -144,7 +147,7 @@
 				</div>
 				<div class="button_bar" v-if="plugin.isInstallable()">
 					<button type="button" class="" v-on:click="plugin.uninstall()" v-if="plugin.installed"><i class="material-icons">delete</i><span class="tl">dialog.plugins.uninstall</span></button>
-					<button type="button" class="" v-on:click="plugin.download()" v-else><i class="material-icons">add</i><span class="tl">dialog.plugins.install</span></button>
+					<button type="button" class="" v-on:click="plugin.download(true)" v-else><i class="material-icons">add</i><span class="tl">dialog.plugins.install</span></button>
 					<button type="button" class="local_only" v-on:click="plugin.reload()" v-if="plugin.installed && plugin.fromFile && isApp"><i class="material-icons">refresh</i><span class="tl">dialog.plugins.reload</span></button>
 				</div>
 				<div class="button_bar tiny tl" v-else>{{ checkIfInstallable(plugin) }}</div>
@@ -160,6 +163,35 @@
 
 		<div class="dialog_bar">
 			<button type="button" class="large cancel_btn confirm_btn uc_btn tl" onclick="saveInstalledPlugins();hideDialog();">dialog.close</button>
+		</div>
+		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
+	</div>
+
+	<div class="dialog draggable paddinged" id="edit_sessions">
+		<h2 class="dialog_handle tl">dialog.edit_session.title</h2>
+
+		<div class="dialog_bar">
+			<label class="name_space_left tl">edit_session.username</label>
+			<input type="text" class="dark_bordered half" id="edit_session_username">
+		</div>
+		<div class="dialog_bar">
+			<label class="name_space_left tl">edit_session.token</label>
+			<input type="text" class="dark_bordered half f_left" id="edit_session_token">
+			<div id="edit_session_copy_button" class="tool" onclick="EditSession.copyToken()"><div class="tooltip tl">action.paste</div><i class="fa fa_big fa-clipboard"></i></div>
+		</div>
+		<div class="edit_session_inactive">
+			<p class="tl">edit_session.about</p>
+			<p>This feature is in BETA. Bugs may occur while using it.</p>
+		</div>
+		<div class="edit_session_active hidden">
+			<p><b class="tl">edit_session.status</b>: <span class="tl" id="edit_session_status">edit_session.connected</span></p>
+		</div>
+
+		<div class="dialog_bar">
+			<button type="button" class="edit_session_inactive confirm_btn tl" onclick="EditSession.join();">edit_session.join</button>
+			<button type="button" class="edit_session_inactive tl" onclick="EditSession.start();">edit_session.create</button>
+			<button type="button" class="edit_session_active tl" onclick="EditSession.quit();">edit_session.quit</button>
+			<button type="button" class="cancel_btn tl" onclick="hideDialog();">dialog.cancel</button>
 		</div>
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</div>
@@ -291,9 +323,7 @@
 	<div class="dialog draggable paddinged" id="scaling">
 		<h2 class="dialog_handle tl">dialog.scale.title</h2>
 
-		<div class="dialog_bar narrow">
-			<label class="tl">dialog.scale.axis</label>
-		</div>
+		<label class="tl">dialog.scale.axis</label>
 
 		<div class="dialog_bar" style="height: 32px;">
 			<input type="checkbox" class="toggle_panel" id="model_scale_x_axis" onchange="scaleAll()" checked>
@@ -304,20 +334,28 @@
 			<label class="toggle_panel" for="model_scale_z_axis">Z</label>
 		</div>
 
-		<div class="dialog_bar narrow">
-			<label class="tl">dialog.scale.scale</label>
+		<label class="tl">data.origin</label>
+		<div class="dialog_bar">
+			<label for="scaling_origin_x" class="inline_label tl">X</label>
+			<input type="number" id="scaling_origin_x" class="dark_bordered mediun_width" oninput="scaleAll()">
+			<label for="scaling_origin_y" class="inline_label tl">Y</label>
+			<input type="number" id="scaling_origin_y" class="dark_bordered mediun_width" oninput="scaleAll()">
+			<label for="scaling_origin_z" class="inline_label tl">Z</label>
+			<input type="number" id="scaling_origin_z" class="dark_bordered mediun_width" oninput="scaleAll()">
 		</div>
 
+		<label class="tl">dialog.scale.scale</label>
 		<div class="dialog_bar" style="height: 32px;">
 			<input type="range" id="model_scale_range" value="1" min="0" max="4" step="0.02" oninput="modelScaleSync()">
 			<input type="number" class="f_left" id="model_scale_label" min="0" max="4" step="0.02" value="1" oninput="modelScaleSync(true)">
 		</div>
+
 		<div class="dialog_bar narrow" id="scaling_clipping_warning"></div>
 
 		<div class="dialog_bar">
-			<button type="button" onclick="scaleAll(true)" class="large confirm_btn tl">dialog.scale.confirm</button>
-			<button type="button" class="large cancel_btn tl" onclick="cancelScaleAll()">dialog.cancel</button>
-			<button type="button" class="large hidden tl" id="scale_overflow_btn" onclick="scaleAllSelectOverflow()">dialog.scale.select_overflow</button>
+			<button type="button" onclick="scaleAll(true)" class="confirm_btn tl">dialog.scale.confirm</button>
+			<button type="button" class="cancel_btn tl" onclick="cancelScaleAll()">dialog.cancel</button>
+			<button type="button" class="hidden tl" id="scale_overflow_btn" onclick="scaleAllSelectOverflow()">dialog.scale.select_overflow</button>
 		</div>
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</div>
@@ -437,7 +475,7 @@
 
 
 		<div class="dialog_bar">
-			<button type="button" class="large tl confirm_btn cancel_btn" onclick="saveProjectSettings()">dialog.confirm</button>
+			<button type="button" class="large tl confirm_btn cancel_btn" onclick="saveProjectSettings();hideDialog();">dialog.confirm</button>
 			<button type="button" class="large tl" id="entity_mode_convert" onclick="entityMode.convert()">dialog.project.to_entitymodel</button>
 		</div>
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
@@ -481,9 +519,11 @@
 								<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.value" v-on:input="saveSettings()">
 							</template>
 							<template v-else-if="setting.type === 'select'">
-								<select v-model="setting.value" class="dark_bordered">
-									<option v-for="(text, id) in setting.options" v-bind:value="id">{{ text }}</option>
-								</select>
+								<div class="bar_select">
+									<select v-model="setting.value">
+										<option v-for="(text, id) in setting.options" v-bind:value="id">{{ text }}</option>
+									</select>
+								</div>
 							</template>
 						</li>
 					</ul>
@@ -712,12 +752,15 @@
 	<div id="action_selector" v-if="open">
 		<input type="text" v-model="search_input">
 		<i class="material-icons" id="action_search_bar_icon">search</i>
-		<ul>
-			<li v-for="(item, i) in actions" v-on:click="ActionControl.click(item, $event)" v-bind:class="{selected: i === index}" v-on:mouseenter="index = i">
-				<div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
-				{{ item.name }}
-			</li>
-		</ul>
+		<div>
+			<ul>
+				<li v-for="(item, i) in actions" v-on:click="ActionControl.click(item, $event)" v-bind:class="{selected: i === index}" v-on:mouseenter="index = i">
+					<div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
+					{{ item.name }}
+				</li>
+			</ul>
+			<div class="small_text" v-if="actions[index]">{{ actions[index].description }}</div>
+		</div>
 	</div>
 
 	<header>
@@ -879,16 +922,16 @@
 				>
 					<div class="texture_icon_wrapper">
 						<img v-bind:texid="texture.id" v-bind:src="texture.source" class="texture_icon" width="48px" alt="[E]" v-if="texture.show_icon" />
-						<i class="material-icons texture_error" title="Image Error" v-if="texture.error">error_outline</i>
+						<i class="material-icons texture_error" v-bind:title="texture.getErrorMessage()" v-if="texture.error">error_outline</i>
 						<i class="texture_movie fa fa_big fa-film" title="Animated Texture" v-if="texture.frameCount > 1"></i>
 					</div>
-					<i class="material-icons texture_particle_icon" v-if="texture.particle">bubble_chart</i>
 					<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture.saved}" v-on:click="texture.save()">
 						<template v-if="texture.saved">check_circle</template>
 						<template v-else>save</template>
 					</i>
+					<i class="material-icons texture_particle_icon" v-if="texture.particle">bubble_chart</i>
 					<div class="texture_name">{{ texture.name }}</div>
-					<div class="texture_res">{{!Blockbench.entity_mode ? (texture.ratio == 1 ? texture.res + 'px' : (texture.res + 'px, ' + texture.frameCount+'f')) : (texture.res + ' x ' + texture.res*texture.ratio + 'px')}}</div>
+					<div class="texture_res">{{ texture.error ? texture.getErrorMessage() : (!Blockbench.entity_mode ? (texture.ratio == 1 ? texture.res + 'px' : (texture.res + 'px, ' + texture.frameCount+'f')) : (texture.res + ' x ' + texture.res*texture.ratio + 'px'))}}</div>
 				</li>
 			</ul>
 		</div>
@@ -897,8 +940,12 @@
 		<div id="options" class="panel selection_only">
 			<p class="tl">panel.options.angle</p>
 			<div class="toolbar_wrapper rotation"></div>
-			<p class="tl">panel.options.origin</p>
+			<p class="tl">data.origin</p>
 			<div class="toolbar_wrapper origin"></div>
+		</div>
+		<div id="color" class="panel">
+			<div id="main_colorpicker_preview"><div></div></div>
+			<input id="main_colorpicker">
 		</div>
 		<div id="outliner" class="panel grow">
 			<div class="toolbar_wrapper outliner"></div>
@@ -965,6 +1012,9 @@
 		</div>
 		<div class="f_right">
 			{{ Prop.fps }} FPS
+		</div>
+		<div class="f_right" v-if="Prop.session">
+			{{ Prop.connections }} Clients
 		</div>
 		<div id="status_progress" v-if="Prop.progress" v-bind:style="{width: Prop.progress*100+'%'}"></div>
 	</div>

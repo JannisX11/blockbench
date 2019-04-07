@@ -32,10 +32,12 @@ const Language = {
 		ja: '\u65E5\u672C\u8A9E (Japanese)',//日本語
 		nl: 'Nederlands (Dutch)',
 		pl: 'Polski (Polish)',
+		pt: 'Portugu\u00EAs (Portuguese)',
 		ru: '\u0440\u0443\u0441\u0441\u043A\u0438\u0439 (Russian)',
 		sv: 'Svenska (Swedish)',
 		zh: '\u4e2d\u6587 (Chinese)',//中文
-	}
+	},
+	toString: () => Language.code
 }
 function getStringWidth(string, size) {
 	var a = $('<label style="position: absolute">'+string+'</label>')
@@ -61,7 +63,7 @@ function loadLanguage() {
 	}
 	$.ajax({
 		dataType: "json",
-		url: 'lang/'+Language.code+'.json',
+		url: 'lang/'+Language+'.json',
 		//data: data,
 		//async: false, 
 		success: function(data) {

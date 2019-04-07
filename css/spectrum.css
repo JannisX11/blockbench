@@ -13,11 +13,32 @@ License: MIT
     *display: inline;
     *zoom: 1;
     /* https://github.com/bgrins/spectrum/issues/40 */
-    z-index: 9999994;
+    z-index: 1;
     overflow: hidden; 
+}
+.sp-container:not(.sp-flat) {
+    z-index: 22;
 }
 .sp-container.sp-flat {
     position: relative;
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    width: 100%;
+}
+.sp-container.sp-flat {
+    position: relative;
+    background: transparent;
+    box-shadow: none;
+}
+.sp-container.sp-flat .sp-picker-container {
+    width: calc(100% - 70px);
+}
+.sp-container.sp-flat .sp-button-container {
+    display: none;
+}
+.sp-container.sp-flat .sp-input-container {
+    width: 100%;
 }
 
 /* Fix for * { box-sizing: border-box; } */
@@ -46,19 +67,19 @@ License: MIT
     top:0;
     left:0;
     bottom:0;
-    right:20%;
+    right: 32px;
 }
 .sp-hue {
     position: absolute;
     top:0;
     right:0;
     bottom:0;
-    left:84%;
+    width: 24px; 
     height: 100%;
 }
 
 .sp-clear-enabled .sp-hue {
-    top:33px;
+    top:30px;
     height: 77.5%;
 }
 
@@ -103,9 +124,6 @@ License: MIT
     left: 0;
     height: 22px;
     margin-top: 16px;
-}
-.sp-alpha-inner {
-    border: solid 1px var(--color-border);
 }
 
 .sp-clear {
@@ -288,9 +306,6 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
 .sp-top {
     margin-bottom: 3px;
 }
-.sp-color, .sp-hue, .sp-clear {
-    border: solid 1px var(--color-border);
-}
 
 /* Input */
 .sp-input-container {
@@ -393,7 +408,7 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
     outline: none;
 }
 .sp-replacer:hover, .sp-replacer.sp-active {
-    color: var(--color-text_acc);
+    color: var(--color-light);
 }
 .sp-replacer.sp-disabled {
     cursor:default;
@@ -411,7 +426,6 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
     position:relative;
     width:25px;
     height: 20px;
-    border: solid 1px #222;
     margin-right: 5px;
     float:left;
     z-index: 0;
@@ -448,6 +462,16 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
     margin-right: 5px;
     vertical-align: middle;
     text-decoration:none;
+}
+
+#main_colorpicker_preview {
+    width: 100%;
+    height: 12px;
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAIAAADZF8uwAAAAGUlEQVQYV2M4gwH+YwCGIasIUwhT25BVBADtzYNYrHvv4gAAAABJRU5ErkJggg==);
+}
+#main_colorpicker_preview > div {
+    width: 100%;
+    height: 12px;
 }
 
 

@@ -14,12 +14,13 @@ function settingSetup() {
 		origin_size: 		{category: 'preview', value: 10, type: 'number'},
 		control_size: 		{category: 'preview', value: 10, type: 'number'},
 		//focal_length: 		{category: 'preview', value: 70, type: 'number'},
-		display_skin: 		{category: 'preview', value: false, type: 'click', condition: isApp, icon: 'icon-player', click: function() { changeDisplaySkin() }},
 		seethrough_outline:	{category: 'preview', value: false},
 		brightness: 		{category: 'preview', value: 50, type: 'number'},
 		shading:	  		{category: 'preview', value: true}, 
 		transparency: 		{category: 'preview', value: true}, 
+		outliner_colors:	{category: 'preview', value: true}, 
 		texture_fps:  		{category: 'preview', value: 2, type: 'number'},
+		display_skin: 		{category: 'preview', value: false, type: 'click', condition: isApp, icon: 'icon-player', click: function() { changeDisplaySkin() }},
 		//Edit
 		undo_limit:   		{category: 'edit', value: 128, type: 'number'},
 		restricted_canvas: 	{category: 'edit', value: true},
@@ -51,7 +52,8 @@ function settingSetup() {
 		minifiedout:  	{category: 'export', value: false},
 		export_groups:	{category: 'export', value: true},
 		obj_textures: 	{category: 'export', value: true},
-		credit: 		{category: 'export', value: 'Made with Blockbench', type: 'text'}
+		sketchfab_token:{category: 'export', value: '', type: 'text'},
+		credit: 		{category: 'export', value: 'Made with Blockbench', type: 'text'},
 	}
 
 	if (localStorage.getItem('settings') != null) {
@@ -259,19 +261,6 @@ function saveSettings(force_update) {
 		moveIntoBox(undefined, false)
 	}
 	Blockbench.dispatchEvent('update_settings')
-}
-function saveProjectSettings() {
-	if (Blockbench.entity_mode) {
-		main_uv.setGrid()
-		if (uv_dialog.editors) {
-			uv_dialog.editors.single.setGrid()
-		}
-		if (entityMode.old_res.x !== Project.texture_width || entityMode.old_res.y !== Project.texture_height) {
-			entityMode.setResolution()
-			Undo.finishEdit('changed resolution')
-		}
-	}
-	hideDialog()
 }
 function toggleSetting(setting) {
 	if (settings[setting].value === true) {

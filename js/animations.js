@@ -27,6 +27,7 @@ class Animation {
 					var ba = this.getBoneAnimator(group)
 					var kfs = data.bones[key]
 					if (kfs && ba) {
+						ba.keyframes.length = 0;
 						kfs.forEach(kf_data => {
 							var kf = new Keyframe(kf_data)
 							ba.pushKeyframe(kf)
@@ -98,8 +99,10 @@ class Animation {
 	rename() {
 		var scope = this;
 		Blockbench.textPrompt('message.rename_animation', this.name, function(name) {
-			if (name) {
+			if (name && name !== scope.name) {
+				Undo.initEdit({animations: [scope]})
 				scope.name = name
+				Undo.finishEdit('rename animation')
 			}
 		})
 		return this;
@@ -107,8 +110,10 @@ class Animation {
 	editUpdateVariable() {
 		var scope = this;
 		Blockbench.textPrompt('message.animation_update_var', this.anim_time_update, function(name) {
-			if (name) {
+			if (name && name !== scope.anim_time_update) {
+				Undo.initEdit({animations: [this]})
 				scope.anim_time_update = name
+				Undo.finishEdit('change animation variable')
 			}
 		})
 		return this;
@@ -140,18 +145,31 @@ class Animation {
 		}
 		Blockbench.dispatchEvent('display_animation_frame')
 	}
-	add() {
+	add(undo) {
+		if (undo) {
+			Undo.initEdit({animations: []})
+		}
 		if (!Animator.animations.includes(this)) {
 			Animator.animations.push(this)
 		}
+		if (undo) {
+			this.select()
+			Undo.finishEdit('add animation', {animations: [this]})
+		}
 		return this;
 	}
-	remove() {
+	remove(undo) {
+		if (undo) {
+			Undo.initEdit({animations: [this]})
+		}
 		if (Animator.selected === this) {
 			Animator.selected = false
 		}
 		Animator.animations.remove(this)
-		Blockbench.dispatchEvent('remove_animation', {animation: this})
+		if (undo) {
+			Undo.finishEdit('remove animation', {animation: null})
+		}
+		Blockbench.dispatchEvent('remove_animation', {animations: [this]})
 		return this;
 	}
 	getMaxLength() {
@@ -186,7 +204,7 @@ class Animation {
 			animation.editUpdateVariable()
 		}},
 		{name: 'generic.delete', icon: 'delete', click: function(animation) {
-			animation.remove()
+			animation.remove(true)
 		}},
 		/*
 			rename
@@ -247,6 +265,7 @@ class BoneAnimator {
 		}
 		this.keyframes.push(keyframe)
 		keyframe.parent = this;
+		TickUpdates.keyframes = true;
 		return keyframe;
 	}
 	pushKeyframe(keyframe) {
@@ -289,9 +308,11 @@ class BoneAnimator {
 	displayScale(arr) {
 		var bone = this.group.mesh
 		if (arr) {
-			bone.scale.x = bone.scale.y = bone.scale.z = arr[0] ? arr[0] : 0.00001
+			bone.scale.x = arr[0] ? arr[0] : 0.00001;
+			bone.scale.y = arr[1] ? arr[1] : 0.00001;
+			bone.scale.z = arr[2] ? arr[2] : 0.00001;
 		} else {
-			bone.scale.x = bone.scale.y = bone.scale.z = 1
+			bone.scale.x = bone.scale.y = bone.scale.z = 1;
 		}
 		return this;
 	}
@@ -329,12 +350,10 @@ class BoneAnimator {
 		} else {
 			let alpha = Math.lerp(before.time, after.time, time)
 			result = [
-				before.getLerp(after, 'x', alpha, allow_expression)
+				before.getLerp(after, 'x', alpha, allow_expression),
+				before.getLerp(after, 'y', alpha, allow_expression),
+				before.getLerp(after, 'z', alpha, allow_expression)
 			]
-			if (before.channel !== 'scale')	{
-				result[1] = before.getLerp(after, 'y', alpha, allow_expression)
-				result[2] = before.getLerp(after, 'z', alpha, allow_expression)
-			}
 			if (before.isQuaternion && after.isQuaternion) {
 				result[3] = before.getLerp(after, 'q', alpha, allow_expression)
 			}
@@ -343,12 +362,10 @@ class BoneAnimator {
 			let keyframe = result
 			let method = allow_expression ? 'get' : 'calc'
 			result = [
-				keyframe[method]('x')
+				keyframe[method]('x'),
+				keyframe[method]('y'),
+				keyframe[method]('z')
 			]
-			if (keyframe.channel !== 'scale')	{
-				result[1] = keyframe[method]('y')
-				result[2] = keyframe[method]('z')
-			}
 			if (keyframe.isQuaternion)	 	{
 				result[3] = keyframe[method]('w')
 			}
@@ -405,7 +422,7 @@ class BoneAnimator {
 		if (this.group && this.group.parent && this.group.parent !== 'root') {
 			this.group.parent.openUp()
 		}
-		Vue.nextTick(Timeline.update)
+		TickUpdates.keyframes = true;
 		return this;
 	}
 }
@@ -424,8 +441,8 @@ class Keyframe {
 		this.uuid = guid()
 		if (typeof data === 'object') {
 			this.extend(data)
-			if (this.channel === 'scale' && data.x === undefined) {
-				this.x = 1
+			if (this.channel === 'scale' && data.x == undefined && data.y == undefined && data.z == undefined) {
+				this.x = this.y = this.z = 1;
 			}
 		}
 	}
@@ -507,9 +524,6 @@ class Keyframe {
 		}
 	}
 	getArray() {
-		if (this.channel === 'scale') {
-			return this.get('x')
-		}
 		var arr = [
 			this.get('x'),
 			this.get('y'),
@@ -659,6 +673,7 @@ class Keyframe {
 				updateKeyframeSelection()
 			}
 		},
+		'copy',
 		{name: 'generic.delete', icon: 'delete', click: function(keyframe) {
 			keyframe.select({shiftKey: true})
 			removeSelectedKeyframes()
@@ -696,8 +711,7 @@ function updateKeyframeSelection() {
 	if (Timeline.selected.length && !multi_channel) {
 		var first = Timeline.selected[0]
 		$('#keyframe_type_label').text(tl('panel.keyframe.type', [tl('timeline.'+first.channel)] ))
-		$('#keyframe_bar_x').show()
-		$('#keyframe_bar_y, #keyframe_bar_z').toggle(first.channel !== 'scale')
+		$('#keyframe_bar_x, #keyframe_bar_y, #keyframe_bar_z').show()
 		$('#keyframe_bar_w').toggle(first.channel === 'rotation' && first.isQuaternion) 
 
 		var values = [
@@ -747,6 +761,7 @@ function removeSelectedKeyframes() {
 		}
 	}
 	updateKeyframeSelection()
+	Animator.preview()
 	Undo.finishEdit('remove keyframes')
 }
 
@@ -779,7 +794,7 @@ const Animator = {
 		if (!Timeline.is_setup) {
 			Timeline.setup()
 		}
-		Timeline.update()
+		TickUpdates.keyframes = true;
 		if (outlines.children.length) {
 			outlines.children.length = 0
 			Canvas.updateAllPositions()
@@ -859,7 +874,7 @@ const Animator = {
 	},
 	buildFile: function(options) {
 		if (typeof options !== 'object') {
-			options = {}
+			options = false
 		}
 		var animations = {}
 		Animator.animations.forEach(function(a) {
@@ -935,7 +950,7 @@ const Timeline = {
 	setTimecode: function(time) {
 		let m = Math.floor(time/60)
 		let s = Math.floor(time%60)
-		let f = Math.floor((time%1) * 30)
+		let f = Math.floor((time%1) * 100)
 		if ((s+'').length === 1) {s = '0'+s}
 		if ((f+'').length === 1) {f = '0'+f}
 		$('#timeline_corner').text(m + ':' + s  + ':' + f)
@@ -1036,7 +1051,7 @@ const Timeline = {
 			var seconds
 				= times[0]*60
 				+ limitNumber(times[1], 0, 59)
-				+ limitNumber(times[2]/30, 0, 29)
+				+ limitNumber(times[2]/100, 0, 99)
 			if (Math.abs(seconds-Timeline.second) > 1e-3 ) {
 				Timeline.setTime(seconds, true)
 				if (Animator.selected) {
@@ -1045,25 +1060,47 @@ const Timeline = {
 			}
 		})
 
+		$('#timeline_inner').on('mousewheel', function() {
+			if (event.ctrlKey) {
+				var offset = 1 - event.deltaY/600
+				Timeline.vue._data.size = limitNumber(Timeline.vue._data.size * offset, 10, 1000)
+				this.scrollLeft *= offset
+				let l = (event.offsetX / this.clientWidth) * 500 * (event.deltaY<0?1:-0.2)
+				this.scrollLeft += l
+			} else {
+				this.scrollLeft += event.deltaY/2
+			}
+			Timeline.updateSize()
+			event.preventDefault();
+		});
+
 		BarItems.slider_animation_speed.update()
 		Timeline.is_setup = true
 		Timeline.setTime(0)
 	},
 	update: function() {
 		//Draggable
-		$('#timeline_inner .keyframe').draggable({
+		$('#timeline_inner .keyframe:not(.ui-draggable)').draggable({
 			axis: 'x',
-			distance: 10,
+			distance: 4,
 			start: function(event, ui) {
 				Undo.initEdit({keyframes: Timeline.keyframes, keep_saved: true})
 				var id = $(ui.helper).attr('id')
+
+				var clicked = Timeline.vue._data.keyframes.findInArray('uuid', id)
+				if (clicked) {
+					clicked.select()
+				}
+
+
+
+
 				var i = 0;
-				while (i < Timeline.vue._data.keyframes.length) {
+				for (var i = 0; i < Timeline.vue._data.keyframes.length; i++) {
 					var kf = Timeline.vue._data.keyframes[i]
-					if (kf.uuid === id || kf.selected) {
+					if (kf.selected) {
 						kf.time_before = kf.time
 					}
-					i++;
 				}
 			},
 			drag: function(event, ui) {
@@ -1102,6 +1139,7 @@ const Timeline = {
 				Animator.preview()
 			},
 			stop: function(event, ui) {
+				/*
 				var id = $(ui.helper).attr('id')
 				var i = 0;
 				while (i < Timeline.vue._data.keyframes.length) {
@@ -1110,7 +1148,7 @@ const Timeline = {
 						kf.dragging = true
 					}
 					i++;
-				}
+				}*/
 				Undo.finishEdit('drag keyframes')
 			}
 		})
@@ -1200,7 +1238,6 @@ const Timeline = {
 		var kf = bone.addKeyframe(false, Timeline.second, channel?channel:'rotation')
 		kf.select()
 		Undo.finishEdit('add_keyframe')
-		Vue.nextTick(Timeline.update)
 	},
 	showMenu: function(event) {
 		if (event.target.id === 'timeline_inner') {
@@ -1220,12 +1257,12 @@ const Timeline = {
 				Undo.initEdit({keyframes: bone.keyframes, keep_saved: true})
 				var kf = bone.addKeyframe(false, Math.round(time*30)/30, row === 2 ? 'scale' : (row === 1 ? 'position' : 'rotation'))
 				kf.select().callMarker()
-				Vue.nextTick(Timeline.update)
 				Undo.finishEdit('add_keyframe')
 			} else {
 				Blockbench.showQuickMessage('message.no_bone_selected')
 			}
-		}}
+		}},
+		'paste'
 	])
 }
 
@@ -1257,7 +1294,7 @@ BARS.defineActions(function() {
 		click: function () {
 			var animation = new Animation({
 				name: 'animation.' + (Project.parent||'model') + '.new'
-			}).add().select()
+			}).add(true).rename()
 
 		}
 	})
@@ -1408,7 +1445,27 @@ BARS.defineActions(function() {
 			Undo.initEdit({keyframes: Timeline.selected, keep_saved: true})
 		},
 		onAfter: function() {
-			Undo.finishEdit('edit keyframe')
+			Undo.finishEdit('move keyframes')
+		}
+	})
+	new Action({
+		id: 'reset_keyframe',
+		icon: 'replay',
+		category: 'animation',
+		condition: () => Animator.open,
+		click: function () {
+			Undo.initEdit({keyframes: Timeline.selected, keep_saved: true})
+			Timeline.selected.forEach((kf) => {
+				var n = kf.channel === 'scale' ? 1 : 0;
+				kf.extend({
+					x: n,
+					y: n,
+					z: n,
+					w: kf.isQuaternion ? 0 : undefined
+				})
+			})
+			Undo.finishEdit('reset keyframes')
+			Animator.preview()
 		}
 	})
 

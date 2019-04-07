@@ -11,6 +11,9 @@ $(document).ready(function() {
 		   window.open(event.target.href, '_blank');
 	});
 })
+/*setInterval(function() {
+	Prop.zoom = Math.round(devicePixelRatio*100)
+}, 500)*/
 
 function tryLoadPOSTModel() {
 	if ($('#post_model').text() !== '') {

@@ -79,6 +79,9 @@ class Plugin {
 	}
 	download(first) {
 		var scope = this;
+		if (first) {
+			Blockbench.showQuickMessage(tl('message.install_plugin', [scope.title]), 1400)
+		}
 		if (!isApp) {
 			scope.install(first)
 			return this;
@@ -249,14 +252,18 @@ function loadInstalledPlugins() {
 		})
 	}
 	if (Plugins.installed.length > 0) {
+		var loaded = []
 		Plugins.installed.forEach(function(id) {
 
-			if (id.substr(-3) === '.js') {
+			if (id && id.substr(-3) === '.js') {
 				//Dev Plugins
 				var plugin = new Plugin().loadFromFile({path: id}, true)
+				loaded.push(pathToName(id))
+			} else if (id) {
+				loaded.push(id)
 			}
 		})
-		console.log('Loaded '+Plugins.installed.length+' plugin'+pluralS(Plugins.installed.length))
+		console.log(`Loaded ${loaded.length} plugin${pluralS(loaded.length)}`, loaded)
 	}
 	
 	Plugins.Vue = new Vue({

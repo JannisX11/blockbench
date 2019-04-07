@@ -4,7 +4,7 @@ const url = require('url')
 
 let orig_win;
 
-function createWindow() {
+function createWindow(second_instance) {
 	if (app.requestSingleInstanceLock && !app.requestSingleInstanceLock()) {
 		return;
 	}
@@ -66,12 +66,15 @@ function createWindow() {
 	win.on('closed', () => {
 		win = null
 	})
-	//win.webContents.openDevTools()
+	if (second_instance === true) {
+		win.webContents.second_instance = true
+
+	}
 }
 
 app.on('second-instance', function (event, argv, cwd) {
 	process.argv = argv
-	createWindow()
+	createWindow(true)
 })
 
 app.commandLine.appendSwitch('ignore-gpu-blacklist')

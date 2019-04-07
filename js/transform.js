@@ -287,12 +287,11 @@ function scaleAll(save, size) {
 	if (size === undefined) {
 		size = $('#model_scale_label').val()
 	}
-	var origin = [8, 8, 8]
-	if (Blockbench.entity_mode) {
-		origin = [0, 0, 0]
-	} else if (selected_group) {
-		origin = selected_group.origin
-	}
+	var origin = [
+		parseFloat($('#scaling_origin_x').val())||0,
+		parseFloat($('#scaling_origin_y').val())||0,
+		parseFloat($('#scaling_origin_z').val())||0,
+	]
 	var clip = false
 	selected.forEach(function(obj) {
 		obj.autouv = 0;
@@ -735,6 +734,9 @@ BARS.defineActions(function() {
 			}
 			selected_group.origin[axis] += diff
 			Canvas.updatePositions()
+			if (Blockbench.entity_mode) {
+				Canvas.updateAllBones()
+			}
 			return;
 		}
 		selected.forEach(function(obj, i) {
@@ -821,6 +823,11 @@ BARS.defineActions(function() {
 				}, 'group', true)
 			}
 			showDialog('scaling')
+			var v = Blockbench.entity_mode ? 0 : 8;
+			var origin = selected_group ? selected_group.origin : [v, 0, v];
+			$('#scaling_origin_x').val(origin[0])
+			$('#scaling_origin_y').val(origin[1])
+			$('#scaling_origin_z').val(origin[2])
 			scaleAll(false, 1)
 		}
 	})

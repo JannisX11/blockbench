@@ -14,11 +14,8 @@ var dialog_win	 = null,
 	recent_projects= undefined;
 
 $(document).ready(function() {
-	if (electron.process.argv.length >= 2) {
-		if (electron.process.argv[1].substr(-5) == '.json') {
-			readFile(electron.process.argv[1], true)
-		}
-	}
+
+	//Setup
 	$('.open-in-browser').click((event) => {
 		event.preventDefault();
 		shell.openExternal(event.target.href);
@@ -33,6 +30,36 @@ $(document).ready(function() {
 	if (__dirname.includes('C:\\xampp\\htdocs\\blockbench')) {
 		Blockbench.addFlag('dev')
 	}
+
+	//Load Model
+	var model_loaded = false
+	if (electron.process.argv.length >= 2) {
+		var extension = pathToExtension(electron.process.argv[1])
+
+		if (['json', 'bbmodel', 'jem', 'jpm'].includes(extension)) {
+			Blockbench.read([electron.process.argv[1]], {}, (files) => {
+
+				loadModel(files[0].content, files[0].path || files[0].path)
+				addRecentProject({name: pathToName(files[0].path, 'mobs_id'), path: files[0].path})
+				model_loaded = true
+			})
+		}
+	}
+	if (!model_loaded && localStorage.getItem('backup_model') && !currentwindow.webContents.second_instance) {
+		var backup_model = localStorage.getItem('backup_model')
+		localStorage.removeItem('backup_model')
+		Blockbench.showMessageBox({
+			translateKey: 'recover_backup',
+			icon: 'fa-archive',
+			buttons: [tl('dialog.continue'), tl('dialog.cancel')],
+			confirm: 0,
+			cancel: 1
+		}, function(result) {
+			if (result === 0) {
+				loadModel(backup_model, 'backup.bbmodel')
+			}
+		})
+	}
 });
 (function() {
 	console.log('Electron '+process.versions.electron+', Node '+process.versions.node)
@@ -44,7 +71,7 @@ function getLatestVersion(init) {
 	$.getJSON('https://raw.githubusercontent.com/JannisX11/blockbench/master/package.json', (data) => {
 		if (data.version) {
 			latest_version = data.version
-			if (compareVersions(latest_version, appVersion) && init === true) {
+			if (compareVersions(latest_version, appVersion) && init === true && !open_dialog) {
 
 				Blockbench.showMessageBox({
 					translateKey: 'update_notification',
@@ -93,7 +120,7 @@ function addRecentProject(data) {
 		icon_id = 2;
 	}
 	recent_projects.push({name: data.name, path: data.path, icon_id})
-	if (recent_projects.length > 8) {
+	if (recent_projects.length > 12) {
 		recent_projects.shift()
 	}
 	updateRecentProjects()
@@ -187,7 +214,7 @@ function changeImageEditor(texture) {
 	var dialog = new Dialog({
 		title: tl('message.image_editor.title'),
 		id: 'image_editor',
-		lines: ['<div class="dialog_bar"><select class="dark_bordered input_wide">'+
+		lines: ['<div class="dialog_bar"><select class="input_wide">'+
 				'<option id="ps">Photoshop</option>'+
 				'<option id="gimp">Gimp</option>'+
 				'<option id="pdn">Paint.NET</option>'+
@@ -329,18 +356,16 @@ function findEntityTexture(mob, return_path) {
 		} else if (return_path === 'raw') {
 			return ['entity', ...path.split('/')].join(osfs)
 		} else {
-			if (fs.existsSync(texture_path + '.png')) {
-				var texture = new Texture({keep_size: true}).fromPath(texture_path + '.png').add()
-			} else if (fs.existsSync(texture_path + '.tga')) {
-				var texture = new Texture({keep_size: true}).fromPath(texture_path + '.tga').add()
-
-			} else if (settings.default_path && settings.default_path.value) {
-
-				texture_path = settings.default_path.value + osfs + 'entity' + osfs + path.split('/').join(osfs)
-				if (fs.existsSync(texture_path + '.png')) {
-					var texture = new Texture({keep_size: true}).fromPath(texture_path + '.png').add()
-				} else if (fs.existsSync(texture_path + '.tga')) {
-					var texture = new Texture({keep_size: true}).fromPath(texture_path + '.tga').add()
+			function tryItWith(extension) {
+				if (fs.existsSync(texture_path+'.'+extension)) {
+					var texture = new Texture({keep_size: true}).fromPath(texture_path+'.'+extension).add()
+				}
+			}
+			if (!tryItWith('png') && !tryItWith('tga')) {
+				if (settings.default_path && settings.default_path.value) {
+					
+					texture_path = settings.default_path.value + osfs + 'entity' + osfs + path.split('/').join(osfs)
+					tryItWith('png') || tryItWith('tga')
 				}
 			}
 		}
@@ -378,6 +403,11 @@ function saveFile(props) {
 			BarItems.export_entity.trigger()
 		}
 	}
+	if (Blockbench.entity_mode && Prop.animation_path) {
+		Blockbench.writeFile(Prop.animation_path, {
+			content: autoStringify(Animator.buildFile())
+		})
+	}
 }
 function writeFileEntity(content, filepath) {
 
@@ -388,15 +418,8 @@ function writeFileEntity(content, filepath) {
 	try {
 		data = fs.readFileSync(filepath, 'utf-8')
 	} catch (err) {}
-	var obj = {}
-	if (content.bones && content.bones.length) {
-		var has_parents = false;
-		for (var i = 0; i < content.bones.length && !has_parents; i++) {
-			if (content.bones[i].parent) has_parents = true;
-		}
-		if (has_parents) {
-			obj.format_version = '1.8.0'
-		}
+	var obj = {
+		format_version: '1.10.0'
 	}
 	if (data) {
 		try {
@@ -547,6 +570,7 @@ function createBackup(init) {
 	if (init || elements.length === 0) return;
 
 	var model = buildBBModel()
+	localStorage.setItem('backup_model', model)
 	var file_name = 'backup_'+d.getDate()+'.'+(d.getMonth()+1)+'.'+(d.getYear()-100)+'_'+d.getHours()+'.'+d.getMinutes()
 	var file_path = folder_path+osfs+file_name+'.bbmodel'
 
@@ -555,17 +579,6 @@ function createBackup(init) {
 			console.log('Error creating backup: '+err)
 		}
 	})
-}
-//Zoom
-function setZoomLevel(mode) {
-	switch (mode) {
-		case 'in':	Prop.zoom += 5;  break;
-		case 'out':   Prop.zoom -= 5;  break;
-		case 'reset': Prop.zoom = 100; break;
-	}
-	var level = (Prop.zoom - 100) / 12
-	currentwindow.webContents.setZoomLevel(level)
-	resizeWindow()
 }
 //Close
 window.onbeforeunload = function() {
@@ -618,6 +631,7 @@ function showSaveDialog(close) {
 function closeBlockbenchWindow() {
 	preventClosing = false;
 	Blockbench.dispatchEvent('before_closing')
+	localStorage.removeItem('backup_model')
 	
 	if (!Blockbench.hasFlag('update_restart')) {
 		return currentwindow.close();

@@ -67,6 +67,7 @@ class UVEditor {
 	constructor(id, headline, toolbar) {
 		this.face = 'north';
 		this.size = 320;
+		this.zoom = 1;
 		this.grid = 16;
 		this.id = id
 		this.autoGrid = true;
@@ -95,12 +96,15 @@ class UVEditor {
 				uv_dialog.select(scope.id, event)
 			})
 		}
+		this.jquery.viewport = $('<div id="uv_viewport"></div>')
+		this.jquery.transform_info = $('<div class="uv_transform_info"></div>')
+		this.jquery.main.append(this.jquery.transform_info)
+		this.jquery.main.append(this.jquery.viewport)
+
 		this.jquery.frame = $('<div id="uv_frame" style="background-repeat: no-repeat;"><div id="uv_size"><div class="uv_size_handle"></div></div></div>')
 		this.jquery.size  = this.jquery.frame.find('div#uv_size')
-		this.jquery.main.append(this.jquery.frame)
-		this.jquery.frame.append('<div class="uv_transform_info" title="Transform indicators"></div>')
+		this.jquery.viewport.append(this.jquery.frame)
 		this.jquery.frame.css('background-repeat', 'no-repeat')
-		this.jquery.transform_info = this.jquery.frame.find('.uv_transform_info')
 		if (Blockbench.browser === 'firefox') {
 			this.jquery.frame.css('image-rendering', '-moz-crisp-edges')
 		}
@@ -222,13 +226,6 @@ class UVEditor {
 		}
 			
 
-		this.jquery.size.mouseenter(function() {
-			scope.displayMappingOverlay()
-		})
-		this.jquery.size.mouseleave(function() {
-		console.trace('RM')
-			$(this).find('.uv_mapping_overlay').remove()
-		})
 
 		if (toolbar) {
 			this.jquery.bar = $(Toolbars.main_uv.node)
@@ -237,7 +234,7 @@ class UVEditor {
 			this.jquery.bar = $('')
 		}
 
-
+		var dragging_not_clicking = false;
 		this.jquery.size.resizable({
 			handles: "all",
 			maxHeight: 320,
@@ -247,34 +244,45 @@ class UVEditor {
 				Undo.initEdit({cubes: selected, uv_only: true})
 			},
 			resize: function(event, ui) {
+
+
+
+				//ui.size.width = ui.originalSize.width + (ui.size.width - ui.originalSize.width) / scope.zoom
+				//ui.size.height = ui.originalSize.height + (ui.size.height - ui.originalSize.height) / scope.zoom
+				/*
+				ui.size.width = ui.size.width - ui.size.width % (scope.size/scope.grid) + (scope.size/scope.grid)/2;
+				ui.size.height = ui.size.height - ui.size.height % (scope.size/scope.grid) + (scope.size/scope.grid)/2;
+				*/
+				//var size = main_uv.height / main_uv.grid * main_uv.zoom
+
 				scope.save()
 				scope.displaySliders()
 			},
 			stop: function(event, ui) {
+				dragging_not_clicking = true;
 				Undo.finishEdit('uv_change')
 				scope.disableAutoUV()
 				scope.updateDragHandle(ui.position)
-			},
-			grid: [20,20]
+			}
 		})
 
 		this.jquery.size.draggable({
-			containment: 'parent',
 			start: function(event, ui) {
 				Undo.initEdit({cubes: selected, uv_only: true})
 			},
 			drag: function( event, ui ) {
-				var snapTolerance = 200//$(this).draggable('option', 'snapTolerance');
-				var topRemainder = ui.position.top % (scope.size/scope.grid);
-				var leftRemainder = ui.position.left % (scope.size/scope.grid);
+				var p = ui.position;
+				var o = ui.originalPosition
+
+				p.left = o.left + (p.left - o.left)
+				p.top = o.top + (p.top - o.top)
+
+				p.left = limitNumber(p.left, 0, scope.inner_size-scope.jquery.size.width()+1)
+				p.top = limitNumber(p.top, 0, scope.inner_size-scope.jquery.size.height()+1)
 				
-				if (topRemainder <= snapTolerance) {
-					ui.position.top = ui.position.top - topRemainder;
-				}
-				
-				if (leftRemainder <= snapTolerance) {
-					ui.position.left = ui.position.left - leftRemainder;
-				}
+				p.left = p.left - p.left % (scope.inner_size/scope.grid);
+				p.top = p.top - p.top % (scope.inner_size/scope.grid);
+
 				scope.save()
 				scope.displaySliders()
 			},
@@ -304,13 +312,61 @@ class UVEditor {
 			}
 		})
 
-		this.jquery.frame.contextmenu(function(event) {
+		this.jquery.size.mouseenter(function() {
+			scope.displayMappingOverlay()
+		})
+		this.jquery.size.mouseleave(function() {
+			$(this).find('.uv_mapping_overlay').remove()
+		})
+
+		this.jquery.frame.click(function(event) {
+			if (!dragging_not_clicking) {
+				scope.reverseSelect(event)
+			}
+			dragging_not_clicking = false;
+		})
+
+		this.jquery.viewport.contextmenu(function(event) {
 			scope.contextMenu()
 		})
 
-		this.jquery.frame.mousedown(function(event) {
-			if (Toolbox.selected.paintTool) {
+		this.jquery.viewport.mousedown(function(event) {
+			if (Toolbox.selected.paintTool && event.which === 1) {
 				scope.startBrush(event)
+			}
+		})
+		this.jquery.viewport.on('mousewheel', function(e) {
+			if (e.ctrlKey) {
+				var n = (event.deltaY < 0) ? 0.1 : -0.1;
+				n *= scope.zoom
+				var number = limitNumber(scope.zoom + n, 1.0, 4.0)
+				if (Math.abs(number - scope.zoom) > 0.001) {
+					this.scrollLeft += (scope.inner_size * n / 2) * (event.offsetX / scope.jquery.frame.width());
+					this.scrollTop  += (scope.inner_size * n / 2) * (event.offsetY / scope.jquery.frame.height());
+				}
+				scope.setZoom(number)
+				event.preventDefault()
+				e.preventDefault()
+				return false;
+			}
+		})
+		var dMWCoords = {x: 0, y: 0}
+		function dragMouseWheel(e) {
+			e.currentTarget.scrollLeft -= (e.pageX - dMWCoords.x)
+			e.currentTarget.scrollTop -= (e.pageY - dMWCoords.y)
+			dMWCoords = {x: e.pageX, y: e.pageY}
+		}
+		function dragMouseWheelStop(e) {
+			scope.jquery.viewport.off('mousemove', dragMouseWheel)
+			document.removeEventListener('mouseup', dragMouseWheelStop)
+		}
+		scope.jquery.viewport.on('mousedown', function(e) {
+			if (e.which === 2) {
+				scope.jquery.viewport.on('mousemove', dragMouseWheel)
+				document.addEventListener('mouseup', dragMouseWheelStop)
+				dMWCoords = {x: e.pageX, y: e.pageY}
+				e.preventDefault();
+				return false;
 			}
 		})
 		this.setSize(this.size)
@@ -331,7 +387,7 @@ class UVEditor {
 	getBrushCoordinates(event, tex) {
 		var scope = this;
 		var multiplier = (Blockbench.entity_mode && tex) ? tex.res/Project.texture_width : 1
-		var pixel_size = scope.size / tex.res
+		var pixel_size = scope.inner_size / tex.res
 		return {
 			x: Math.floor(event.offsetX/scope.getPixelSize()*multiplier),
 			y: Math.floor(event.offsetY/scope.getPixelSize()*multiplier)
@@ -398,12 +454,18 @@ class UVEditor {
 		Painter.stopBrush()
 	}
 	//Get
+	get inner_size() {
+		return this.size*this.zoom;
+	}
+	get inner_height() {
+		return this.height*this.zoom;
+	}
 	getPixelSize() {
 		if (Blockbench.entity_mode) {
 			this.grid = Project.texture_width
-			return this.size/this.grid
+			return this.inner_size/this.grid
 		} else {
-			return this.size/ (
+			return this.inner_size/ (
 				(typeof this.texture === 'object' && this.texture.res)
 					? this.texture.res
 					: this.grid
@@ -428,6 +490,42 @@ class UVEditor {
 	getTexture() {
 		return selected[0].faces[this.face].getTexture()
 	}
+	reverseSelect(event) {
+		var scope = this;
+		if (!event.target.classList.contains('uv_size_handle') && !event.target.id === 'uv_frame') {
+			return this;
+		}
+		var matches = [];
+		var face_match;
+		var u = event.offsetX / main_uv.inner_size * 16;
+		var v = event.offsetY / main_uv.inner_height * 16;
+		elements.forEach(cube => {
+			for (var face in cube.faces) {
+				var uv = cube.faces[face].uv
+				if (uv && Math.isBetween(u, uv[0], uv[2]) && Math.isBetween(v, uv[1], uv[3]) && cube.faces[face].getTexture() === scope.texture) {
+					matches.safePush(cube)
+					if (!face_match) {
+						face_match = face
+					}
+					break;
+				}
+			}
+		})
+		if (matches.length) {
+			if (!Blockbench.entity_mode) {
+				main_uv.setFace(face_match)
+			}
+			if (!event.ctrlKey && !event.shiftKey) {
+				selected.empty();
+			}
+			matches.forEach(s => {
+				selected.safePush(s)
+			})
+			updateSelection()
+			scope.displayMappingOverlay()
+		}
+		return this;
+	}
 	forCubes(cb) {
 		var i = 0;
 		while (i < selected.length) {
@@ -436,35 +534,61 @@ class UVEditor {
 		}
 	}
 	//Set
-	setSize(size, cancel_load) {
+	setSize(input_size, cancel_load) {
 		var old_size = this.size;
-		this.size = size
-		this.jquery.frame.width(size)
-		if (uv_dialog.editors !== undefined && this === uv_dialog.editors.single) {
-			this.jquery.main.width(size)
-		}
+		var size = input_size - (input_size % 16);
+		this.size = size;
+		this.jquery.frame.width(this.inner_size);
+		this.jquery.viewport.width(size+8);
+		this.jquery.main.width(size+8);
 
 		if (Blockbench.entity_mode) {
 			this.height = size / (Project.texture_width/Project.texture_height)
-			this.jquery.frame.height(this.height)
+			this.jquery.frame.height(this.inner_height)
+			this.jquery.viewport.height(this.height+8)
 			$('.panel#textures').css('top', 133+(size / (Project.texture_width/Project.texture_height))+'px')
 			if (old_size !== size) {
 				this.displayAllMappingOverlays(true)
 			}
 		} else {
 			this.height = size
-			this.jquery.frame.height(size)
+			this.jquery.frame.height(this.inner_size)
+			this.jquery.viewport.height(size+8)
 
-			this.jquery.size.resizable('option', 'maxHeight', size)
-			this.jquery.size.resizable('option', 'maxWidth', size)
-			this.jquery.size.resizable('option', 'grid', [size/this.grid, size/this.grid])
+			this.jquery.size.resizable('option', 'maxHeight', this.inner_size)
+			this.jquery.size.resizable('option', 'maxWidth', this.inner_size)
+			this.jquery.size.resizable('option', 'grid', [this.inner_size/this.grid, this.inner_size/this.grid])
 		}
 		for (var id in this.sliders) {
-			this.sliders[id].setWidth(size/(Blockbench.entity_mode?2:4)-3)
+			this.sliders[id].setWidth(size/(Blockbench.entity_mode?2:4)-1)
 		}
 		if (!cancel_load) {
 			this.loadData()
 		}
+		return this;
+	}
+	setZoom(zoom) {
+		var zoomed_size = this.size * zoom;
+		var size = zoomed_size - (zoomed_size % 16);
+		this.zoom = size/this.size
+
+		this.jquery.frame.width(this.inner_size);
+
+		if (Blockbench.entity_mode) {
+			this.jquery.frame.height(this.inner_height)
+			this.displayAllMappingOverlays(true)
+		} else {
+			this.jquery.frame.height(this.inner_size)
+			this.jquery.size.resizable('option', 'maxHeight', this.inner_size)
+			this.jquery.size.resizable('option', 'maxWidth', this.inner_size)
+			this.jquery.size.resizable('option', 'grid', [this.inner_size/this.grid, this.inner_size/this.grid])
+		}
+		if (this.zoom > 1) {
+			this.jquery.viewport.css('overflow', 'scroll scroll')
+		} else {
+			this.jquery.viewport.css('overflow', 'hidden')
+		}
+		this.loadData()
 		return this;
 	}
 	setGrid(grid, load) {
@@ -504,19 +628,14 @@ class UVEditor {
 		return this;
 	}
 	setFrameColor(black) {
-		if (black) {
-			this.jquery.size.css('box-shadow', '0 0 6px black')
-		} else {
-			this.jquery.size.css('box-shadow', '0 0 6px white')
-		}
+		this.jquery.size.toggleClass('dark_frame', black === true)
 	}
 	setToMainSlot() {
 		var scope = this;
 		$('.panel#uv').append(this.jquery.main)
-		this.jquery.main.on('mousewheel', function() {
+		this.jquery.main.on('mousewheel', function(e) {
 
-			if (Blockbench.entity_mode) {
-			} else {
+			if (!Blockbench.entity_mode && !e.ctrlKey) {
 				var faceIDs = {'north': 0, 'south': 1, 'west': 2, 'east': 3, 'up': 4, 'down': 5}
 				var id = faceIDs[scope.face]
 				event.deltaY > 0 ? id++ : id--;
@@ -524,6 +643,7 @@ class UVEditor {
 				if (id === -1) id = 5
 				$('input#'+getKeyByValue(faceIDs, id)+'_radio').prop("checked", true)
 				scope.loadSelectedFace()
+				e.preventDefault()
 			}
 		})
 		this.jquery.frame.on('dblclick', function() {
@@ -571,20 +691,20 @@ class UVEditor {
 
 			selected.forEach(function(obj) {
 				obj.uv_offset = [
-					Math.round(scope.jquery.size.position().left / (scope.size/Project.texture_width) * 8) / 8,
-					Math.round(scope.jquery.size.position().top  / (scope.size/Project.texture_width) * 8) / 8
+					Math.round(scope.jquery.size.position().left / (scope.inner_size/Project.texture_width) * 8) / 8,
+					Math.round(scope.jquery.size.position().top  / (scope.inner_size/Project.texture_width) * 8) / 8
 				]
 				Canvas.updateUV(obj)
 			})
 
 		} else {
 			var trim = v => Math.round(v*1000+0.3)/1000;
-			var pixelSize = this.size/16
+			var pixelSize = this.inner_size/16
 
 			var left = trim( this.jquery.size.position().left / pixelSize);
 			var top  = trim( this.jquery.size.position().top / pixelSize * (Project.texture_width/Project.texture_height));
-			var left2= Math.clamp(trim( (this.jquery.size.width()) / pixelSize + left), 0, 16);
-			var top2 = Math.clamp(trim( (this.jquery.size.height()) / pixelSize + top), 0, 16);
+			var left2= Math.clamp(trim( Math.round(this.jquery.size.width()) / pixelSize + left), 0, 16);
+			var top2 = Math.clamp(trim( Math.round(this.jquery.size.height()) / pixelSize + top), 0, 16);
 
 			var uvTag = this.getUVTag()
 
@@ -595,11 +715,7 @@ class UVEditor {
 				top2 = [top, top = top2][0];
 			}
 			var uvArr = [left, top, left2, top2]
-			uvArr.forEach(function(s, i) {
-				if (s === 15.9) {
-					uvArr[i] = 16
-				}
-			})
+
 			selected.forEach(function(obj) {
 				obj.faces[scope.face].uv = uvArr.slice()
 				Canvas.updateUV(obj)
@@ -623,7 +739,12 @@ class UVEditor {
 	displayTexture(face) {
 		var tex = face.getTexture()
 		if (!tex || typeof tex !== 'object' || tex.error) {
-			this.displayEmptyTexture()
+			this.jquery.frame.css('background-color', 'var(--color-back)').css('background-image', 'none')
+			this.texture = false;
+			this.setFrameColor()
+			if (this.autoGrid || Blockbench.entity_mode) {
+				this.setGrid(16, false)
+			}
 		} else {
 			this.setFrameColor(tex.dark_box)
 			var css = 'url("'+tex.source.split('\\').join('\\\\').replace(/ /g, '%20')+'")'
@@ -634,10 +755,14 @@ class UVEditor {
 				this.jquery.frame.css('background-size', 'cover')
 			}
 			this.texture = tex;
-			tex.select()
 			if (this.autoGrid || Blockbench.entity_mode) {
 				this.setGrid(tex.res, false)
 			}
+		}
+		if (!tex || typeof tex !== 'object') {
+			unselectTextures()
+		} else {
+			tex.select()
 		}
 		if (Blockbench.entity_mode) {
 			this.setSize(this.size, true)
@@ -658,14 +783,6 @@ class UVEditor {
 			this.jquery.transform_info.append('<b>'+ref.rotation+'</b>')
 		}
 	}
-	displayEmptyTexture() {
-		this.jquery.frame.css('background-color', 'var(--color-back)').css('background-image', 'none')
-		this.texture = false;
-		this.setFrameColor()
-		if (this.autoGrid) {
-			this.grid = 16
-		}
-	}
 	displayFrame() {
 		var scope = this;
 		if (Blockbench.entity_mode) {
@@ -675,10 +792,10 @@ class UVEditor {
 
 			var width = (size_tag[0] + size_tag[2])*2
 				width = limitNumber(width, 0, Project.texture_width)
-				width = width/Project.texture_width*scope.size
+				width = width/Project.texture_width*scope.inner_size
 
 			var x = limitNumber(uvTag[0], 0, Project.texture_width)
-				x *= scope.size/Project.texture_width
+				x *= scope.inner_size/Project.texture_width
 
 			this.jquery.size.width(width)
 			this.jquery.size.css('left', x+'px')
@@ -686,11 +803,11 @@ class UVEditor {
 
 			var height = size_tag[2] + size_tag[1]
 				height = limitNumber(height, 0, Project.texture_height)
-				height = height/Project.texture_height*scope.size
+				height = height/Project.texture_height*scope.inner_size
 				height *= Project.texture_height/Project.texture_width
 
 			var y = limitNumber(uvTag[1], 0, Project.texture_height)
-				y *= scope.size/Project.texture_height
+				y *= scope.inner_size/Project.texture_height
 				y *= Project.texture_height/Project.texture_width
 
 			this.jquery.size.height(height)
@@ -698,7 +815,7 @@ class UVEditor {
 		} else {
 
 			var uvTag = this.getUVTag(selected[0])
-			var pixels = this.size/16
+			var pixels = this.inner_size/16
 
 			//X
 			var width = limitNumber(uvTag[2]-uvTag[0], -16, 16)
@@ -729,7 +846,7 @@ class UVEditor {
 		var scope = this;
 		var sides = this.getMappingOverlay()
 
-		$(scope.jquery.size).find('.uv_mapping_overlay').remove()
+		$(scope.jquery.size).find('.mapping_overlay_cube').remove()
 		scope.jquery.size.append(sides)
 
 		return this;
@@ -746,8 +863,8 @@ class UVEditor {
 			}
 			x *= pixels;
 			y *= pixels;
-			width  = limitNumber(width *pixels + x, 0, scope.size)  - x;
-			height = limitNumber(height*pixels + y, 0, scope.height)- y;
+			width  = limitNumber(width *pixels + x, 0, scope.inner_size)  - x;
+			height = limitNumber(height*pixels + y, 0, scope.inner_height)- y;
 
 			sides.append($(`<div class="uv_mapping_overlay"
 				style="left: ${x}px; top: ${y}px;
@@ -774,7 +891,7 @@ class UVEditor {
 			elements.forEach(cube => {
 				var size = cube.size(undefined, true)
 				var hash = `${cube.uv_offset[0]}_${cube.uv_offset[1]}_${size[0]}_${size[1]}_${size[2]}`
-				var c = scope.jquery.frame.find(`.mapping_overlay_cube:not(.${cycle})[size_hash="${hash}"]`).first()
+				var c = scope.jquery.frame.find(`> .mapping_overlay_cube:not(.${cycle})[size_hash="${hash}"]`).first()
 				if (force_reload || !c.length) {
 					var sides = scope.getMappingOverlay(cube, true)
 					sides.addClass(cycle)
@@ -819,7 +936,7 @@ class UVEditor {
 	}
 	contextMenu() {
 		var scope = this;
-		if (Blockbench.entity_mode) return;
+		//if (Blockbench.entity_mode) return;
 		this.reference_face = selected[0].faces[scope.face]
 		this.menu.open(event, this)
 		return this;
@@ -1228,6 +1345,12 @@ class UVEditor {
 	}
 }
 	UVEditor.prototype.menu = new Menu([
+		{name: 'menu.view.zoom', id: 'zoom', condition: isApp, icon: 'search', children: [
+			'zoom_in',
+			'zoom_out',
+			'zoom_reset'
+		]},
+		'_',
 		'copy',
 		'paste',
 		/*
@@ -1239,7 +1362,7 @@ class UVEditor {
 			editor.paste(event)
 			Undo.finishEdit('uv_paste')
 		}},*/
-		{icon: 'photo_size_select_large', name: 'menu.uv.mapping', children: function(editor) { return [
+		{icon: 'photo_size_select_large', name: 'menu.uv.mapping', condition: () => !Blockbench.entity_mode, children: function(editor) { return [
 			{icon: editor.reference_face.enabled!==false ? 'check_box' : 'check_box_outline_blank', name: 'menu.uv.mapping.export', click: function(editor) {
 				Undo.initEdit({cubes: selected, uv_only: true})
 				editor.toggleUV(event)
@@ -1295,13 +1418,14 @@ class UVEditor {
 		]}},
 		{
 			icon: (editor) => (editor.reference_face.tint ? 'check_box' : 'check_box_outline_blank'),
+			condition: () => !Blockbench.entity_mode,
 			name: 'menu.uv.tint', click: function(editor) {
 				Undo.initEdit({cubes: selected, uv_only: true})
 				editor.switchTint(selected[0].faces[editor.face].tint)
 				Undo.finishEdit('face_tint')
 			}
 		},
-		{icon: 'collections', name: 'menu.uv.texture', children: function() {
+		{icon: 'collections', name: 'menu.uv.texture', condition: () => !Blockbench.entity_mode, children: function() {
 			var arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(editor, event) {
 					Undo.initEdit({cubes: selected})
@@ -1351,9 +1475,8 @@ const uv_dialog = {
 			down:  new UVEditor('down', true).appendTo('#uv_dialog_all')
 		}
 		var size = $(window).height() - 200
-		size = size - (size % 16)
 		uv_dialog.editors.single.setSize(size)
-		uv_dialog.editors.single.jquery.main.css('margin-left', 'auto').css('margin-right', 'auto').css('width', size+'px')
+		uv_dialog.editors.single.jquery.main.css('margin-left', 'auto').css('margin-right', 'auto')//.css('width', (size+10)+'px')
 		uv_dialog.editors.up.jquery.main.css('margin-left', '276px').css('clear', 'both')
 		uv_dialog.isSetup = true
 
@@ -1476,7 +1599,6 @@ const uv_dialog = {
 			BarItems.uv_grid.set(uv_dialog.editors.single.gridSelectOption)
 
 			var max_size = $(window).height() - 200
-			max_size = max_size - (max_size % 16)
 			if (max_size < uv_dialog.editors.single.size ) {
 				uv_dialog.editors.single.setSize(max_size)
 				uv_dialog.editors.single.jquery.main.css('margin-left', 'auto').css('margin-right', 'auto').css('width', max_size+'px')
@@ -1503,29 +1625,23 @@ const uv_dialog = {
 			y: obj.height()
 		}
 		if (uv_dialog.single) {
-			var menu_gap = Blockbench.entity_mode ? 66 : 130
+			var menu_gap = Blockbench.entity_mode ? 66 : 154
 			var editor_size = size.x
 			size.y = (size.y - menu_gap) * (Blockbench.entity_mode ? Project.texture_width/Project.texture_height : 1)
 			if (size.x > size.y) {
 				editor_size =  size.y
 			}
-			editor_size = editor_size - (editor_size % 16)
 			uv_dialog.editors.single.setSize(editor_size)
 
 		} else {
 			var centerUp = false
 			if (size.x < size.y/1.2) {
-				//2 x 3	 0.83 - 7.2
-				if (size.y*1.4 > size.x) {
-					var editor_size = limitNumber(size.x / 2 - 20, 80, $(window).height()/3-120)
-					editor_size = limitNumber(editor_size, 80, (size.y-64)/3-77)
-				} else {
-					var editor_size = size.y / 3 - 96 - 48
-				}
+				var editor_size = limitNumber(size.x / 2 - 35, 80, $(window).height()/3-120)
+				editor_size = limitNumber(editor_size, 80, (size.y-64)/3-120)
 			} else {
 				//4 x 2
-				var y_margin = 150
-				var editor_size = limitNumber(size.x/4-20,  16,  size.y/2-y_margin)
+				var y_margin = 130
+				var editor_size = limitNumber(size.x/4-25,  16,  size.y/2-y_margin)
 				centerUp = true
 			}
 			editor_size = editor_size - (editor_size % 16)
@@ -1647,9 +1763,13 @@ BARS.defineActions(function() {
 		category: 'uv',
 		condition: () => !Blockbench.entity_mode && selected.length,
 		min: 0, max: 270, step: 90, width: 80,
-		onChange: function(slider) {
+		onBefore: () => {
 			Undo.initEdit({cubes: selected, uv_only: true})
+		},
+		onChange: function(slider) {
 			uv_dialog.forSelection('rotate')
+		},
+		onAfter: () => {
 			Undo.finishEdit('uv rotate')
 		}
 	})
@@ -1658,6 +1778,7 @@ BARS.defineActions(function() {
 		category: 'uv',
 		condition: () => !Blockbench.entity_mode && selected.length,
 		width: 60,
+		value: 'auto',
 		options: {
 			auto: true,
 			'16': '16x16',

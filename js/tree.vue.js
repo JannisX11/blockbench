@@ -14,7 +14,7 @@
 				'<i v-if="node.children && node.children.length > 0" v-on:click="toggle(node)" class="fa icon-open-state" :class=\'{"fa-caret-right": !node.isOpen, "fa-caret-down": node.isOpen}\'></i>' +
 				'<i v-else class="outliner_opener_placeholder"></i>' +
 				//Main
-				'<i v-if="showIcon(node)" :class="nodeClass(node)"></i>' +
+				'<i :class="node.icon + (settings.outliner_colors.value ? \' ec_\'+node.color : \'\')"></i>' +
 				'<input type="text" class="cube_name" v-model="node.name" disabled>' +
 				'<a v-for="btn in node.buttons" class="ml5" href="javascript:" :title="btn.title" v-on:click.stop="btnClick(btn, node)" v-bind:class="{advanced_option: btn.advanced_option}">' +
 					'<i v-if="node.isIconEnabled(btn) === true" :class="btn.icon"></i>' +
@@ -33,9 +33,6 @@
 			}
 		},
 		methods: {
-			showIcon: function (node) {
-				return node.icon || node.openedIcon || node.closedIcon;
-			},
 			nodeClass: function (node) {
 				if (node.isOpen) {
 					return node.openedIcon || node.icon;

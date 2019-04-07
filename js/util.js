@@ -275,6 +275,9 @@ Array.prototype.allEqual = function(s) {
 	}
 	return true;
 }
+Array.prototype.random = function() {
+	return this[Math.floor(Math.random()*this.length)]
+}
 
 //Object
 Object.defineProperty(Array.prototype, "equals", {enumerable: false});

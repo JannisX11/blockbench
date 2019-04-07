@@ -37,6 +37,9 @@ var Undo = {
 			Prop.project_saved = false;
 		}
 		Blockbench.dispatchEvent('finished_edit', {aspects})
+		if (EditSession.active) {
+			EditSession.sendEdit(entry)
+		}
 	},
 	cancelEdit: function() {
 		if (!Undo.current_save) return;
@@ -44,7 +47,7 @@ var Undo = {
 		Undo.loadSave(Undo.current_save, new Undo.save(Undo.current_save.aspects))
 		delete Undo.current_save;
 	},
-	undo: function() {
+	undo: function(remote) {
 		if (Undo.history.length <= 0 || Undo.index < 1) return;
 
 		Prop.project_saved = false;
@@ -52,10 +55,13 @@ var Undo = {
 
 		var entry = Undo.history[Undo.index]
 		Undo.loadSave(entry.before, entry.post)
+		if (EditSession.active && remote !== true) {
+			EditSession.sendAll('command', 'undo')
+		}
 		console.log('Undo: '+entry.action)
 		Blockbench.dispatchEvent('undo', {entry})
 	},
-	redo: function() {
+	redo: function(remote) {
 		if (Undo.history.length <= 0) return;
 		if (Undo.index >= Undo.history.length) {
 			return;
@@ -65,8 +71,25 @@ var Undo = {
 
 		var entry = Undo.history[Undo.index-1]
 		Undo.loadSave(entry.post, entry.before)
+		if (EditSession.active && remote !== true) {
+			EditSession.sendAll('command', 'redo')
+		}
 		console.log('Redo: '+entry.action)
 		Blockbench.dispatchEvent('redo', {entry})
+	},
+	remoteEdit: function(entry) {
+		Undo.loadSave(entry.post, entry.before, 'session')
+
+		if (entry.save_history !== false) {
+			delete Undo.current_save;
+			Undo.history.push(entry)
+			if (Undo.history.length > settings.undo_limit.value) {
+				Undo.history.shift()
+			}
+			Undo.index = Undo.history.length
+			Prop.project_saved = false;
+			Blockbench.dispatchEvent('finished_edit', {remote: true})
+		}
 	},
 	getItemByUUID: function(list, uuid) {
 		if (!list || typeof list !== 'object' || !list.length) {return false;}
@@ -96,16 +119,15 @@ var Undo = {
 		if (aspects.cubes) {
 			this.cubes = {}
 			aspects.cubes.forEach(function(obj) {
+				var copy = new Cube(obj)
 				if (aspects.uv_only) {
-					var copy = new Cube(obj)
 					copy = {
 						uv_offset: copy.uv_offset,
 						faces: copy.faces,
 					}
-				} else {
-					var copy = new Cube(obj)
 				}
 				copy.uuid = obj.uuid
+				delete copy.parent;
 				scope.cubes[obj.uuid] = copy
 			})
 		}
@@ -138,8 +160,11 @@ var Undo = {
 			}
 		}
 
-		if (aspects.animation) {
-			this.animation = aspects.animation ? aspects.animation.undoCopy() : null; 
+		if (aspects.animations) {
+			this.animations = {}
+			aspects.animations.forEach(a => {
+				scope.animations[a.uuid] = a.undoCopy();
+			})
 		}
 		if (aspects.keyframes && Animator.selected && Animator.selected.getBoneAnimator()) {
 			this.keyframes = {
@@ -162,7 +187,8 @@ var Undo = {
 			})
 		}
 	},
-	loadSave: function(save, reference) {
+	loadSave: function(save, reference, mode) {
+		var is_session = mode === 'session';
 		if (save.cubes) {
 			for (var uuid in save.cubes) {
 				if (save.cubes.hasOwnProperty(uuid)) {
@@ -185,7 +211,7 @@ var Undo = {
 				if (reference.cubes.hasOwnProperty(uuid) && !save.cubes.hasOwnProperty(uuid)) {
 					var obj = elements.findInArray('uuid', uuid)
 					if (obj) {
-						obj.remove(false)
+						obj.remove()
 					}
 				}
 			}
@@ -196,12 +222,23 @@ var Undo = {
 		if (save.outliner) {
 			selected_group = undefined
 			parseGroups(save.outliner)
+			if (is_session) {
+				function iterate(arr) {
+					arr.forEach((obj) => {
+						delete obj.isOpen;
+						if (obj.children) {
+							iterate(obj.children)
+						}
+					})
+				}
+				iterate(save.outliner)
+			}
 			if (Blockbench.entity_mode) {
 				Canvas.updateAllPositions()
 			}
 		}
 
-		if (save.selection_group) {
+		if (save.selection_group && !is_session) {
 			selected_group = undefined
 			var sel_group = TreeElements.findRecursive('uuid', save.selection_group)
 			if (sel_group) {
@@ -209,7 +246,7 @@ var Undo = {
 			}
 		}
 
-		if (save.selection) {
+		if (save.selection && !is_session) {
 			selected.length = 0;
 			elements.forEach(function(obj) {
 				if (save.selection.includes(obj.uuid)) {
@@ -221,6 +258,9 @@ var Undo = {
 		if (save.group) {
 			var group = TreeElements.findRecursive('uuid', save.group.uuid)
 			if (group) {
+				if (is_session) {
+					delete save.group.isOpen;
+				}
 				group.extend(save.group)
 				if (Blockbench.entity_mode) {
 					group.forEachChild(function(obj) {
@@ -238,10 +278,17 @@ var Undo = {
 				if (reference.textures[uuid]) {
 					var tex = Undo.getItemByUUID(textures, uuid)
 					if (tex) {
+						var require_reload = tex.mode !== save.textures[uuid].mode;
 						tex.extend(save.textures[uuid]).updateMaterial()
+						if (require_reload || reference.textures[uuid] === true) {
+							tex.load()
+						} else {
+							tex.updateMaterial()
+						}
 					}
 				} else {
-					new Texture(save.textures[uuid]).load().add(false)
+					var tex = new Texture(save.textures[uuid], uuid)
+					tex.load().add(false)
 				}
 			}
 			for (var uuid in reference.textures) {
@@ -265,81 +312,91 @@ var Undo = {
 			Project.texture_height = save.resolution.height
 		}
 
-		if (save.animation) {
+		if (save.animations) {
+			for (var uuid in save.animations) {
 
-			var animation = Animator.animations.findInArray('uuid', save.animation)
-			if (!animation) {
-				animation = new Animation()
-			}
-			Animation.extend(save.animation)
-
-		} else if (reference.animation) {
-			//remove
-			var animation = Animator.animations.findInArray('uuid', reference.animation.uuid)
-			if (animation.remove) {
-				animation.remove()
-			}
-		}
-
-		if (save.keyframes && Animator.selected) {
-			var animation = false;
-			if (Animator.selected.uuid !== save.keyframes.animation) {
-				animation = Animator.animations.findInArray('uuid', save.keyframes.animation)
-				if (animation.select) {
+				var animation = reference.animations[uuid] ? Undo.getItemByUUID(Animator.animations, uuid) : null;
+				if (!animation) {
+					animation = new Animation()
+					animation.uuid = uuid
+				}
+				animation.extend(save.animations[uuid]).add(false)
+				if (save.animations[uuid].selected) {
 					animation.select()
 				}
 			}
-
-			var bone = Animator.selected.getBoneAnimator();
-			if (!bone || bone.uuid !== save.keyframes.bone) {
-				for (var uuid in Animator.selected.bones) {
-					if (uuid === save.keyframes.bone) {
-						bone = Animator.selected.bones[uuid]
-						bone.select()
+			for (var uuid in reference.animations) {
+				if (!save.animations[uuid]) {
+					var animation = Undo.getItemByUUID(Animator.animations, uuid)
+					if (animation) {
+						animation.remove(false)
 					}
 				}
 			}
+		}
 
-
-			function getKeyframe(uuid) {
-				var i = 0;
-				while (i < Timeline.keyframes.length) {
-					if (Timeline.keyframes[i].uuid === uuid) {
-						return Timeline.keyframes[i];
-					}
-					i++;
+		if (save.keyframes) {
+			var animation = Animator.selected;
+			if (!animation || animation.uuid !== save.keyframes.animation) {
+				animation = Animator.animations.findInArray('uuid', save.keyframes.animation)
+				if (animation.select && Animator.open && is_session) {
+					animation.select()
 				}
 			}
-			var added = 0;
-			for (var uuid in save.keyframes) {
-				if (uuid.length === 36 && save.keyframes.hasOwnProperty(uuid)) {
-					var data = save.keyframes[uuid]
-					var kf = getKeyframe(uuid)
-					if (kf) {
-						kf.extend(data)
-					} else {
-						kf = new Keyframe(data)
-						kf.parent = bone;
-						kf.uuid = uuid;
-						Timeline.keyframes.push(kf)
-						added++;
+			if (animation) {
+				var bone = Animator.selected.getBoneAnimator();
+				if (!bone || bone.uuid !== save.keyframes.bone) {
+					for (var uuid in Animator.selected.bones) {
+						if (uuid === save.keyframes.bone) {
+							bone = Animator.selected.bones[uuid]
+							if (bone.select && Animator.open && is_session) {
+								bone.select()
+							}
+						}
 					}
 				}
-			}
+				if (bone) {
 
-			for (var uuid in reference.keyframes) {
-				if (uuid.length === 36 && reference.keyframes.hasOwnProperty(uuid) && !save.keyframes.hasOwnProperty(uuid)) {
-					var kf = getKeyframe(uuid)
-					if (kf) {
-						kf.remove()
+					function getKeyframe(uuid) {
+						var i = 0;
+						while (i < Timeline.keyframes.length) {
+							if (Timeline.keyframes[i].uuid === uuid) {
+								return Timeline.keyframes[i];
+							}
+							i++;
+						}
 					}
+					var added = 0;
+					for (var uuid in save.keyframes) {
+						if (uuid.length === 36 && save.keyframes.hasOwnProperty(uuid)) {
+							var data = save.keyframes[uuid]
+							var kf = getKeyframe(uuid)
+							if (kf) {
+								kf.extend(data)
+							} else {
+								kf = new Keyframe(data)
+								kf.parent = bone;
+								kf.uuid = uuid;
+								Timeline.keyframes.push(kf)
+								added++;
+							}
+						}
+					}
+					for (var uuid in reference.keyframes) {
+						if (uuid.length === 36 && reference.keyframes.hasOwnProperty(uuid) && !save.keyframes.hasOwnProperty(uuid)) {
+							var kf = getKeyframe(uuid)
+							if (kf) {
+								kf.remove()
+							}
+						}
+					}
+					if (added) {
+						Vue.nextTick(Timeline.update)
+					}
+					updateKeyframeSelection()
+					Animator.preview()
 				}
 			}
-			if (added) {
-				Vue.nextTick(Timeline.update)
-			}
-			updateKeyframeSelection()
-			Animator.preview()
 		}
 
 		if (save.display_slots) {

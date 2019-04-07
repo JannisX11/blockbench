@@ -250,7 +250,7 @@ function previewVariableValue(name, time) {
 		return 1
 	} else if (name === 'false') {
 		return 0
-	} else if (name === 'global.anim_time' || name === 'time' || name === 'query.life_time' ) {
+	} else if (name === 'global.anim_time' || name === 'query.anim_time' || name === 'time' || name === 'query.life_time' ) {
 		return time
 	} else {
 		var inputs = $('#var_placeholder_area').val().split('\n')

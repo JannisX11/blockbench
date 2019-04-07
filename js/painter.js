@@ -162,7 +162,7 @@ class BBPainter {
 				b: px[2],
 				a: px[3]/256
 			})
-			BarItems.brush_color.set(t)
+			ColorPanel.set(t)
 		})
 	}
 	useBrush(texture, x, y, uvTag, no_update) {
@@ -174,7 +174,7 @@ class BBPainter {
 				var ctx = canvas.getContext('2d')
 				ctx.save()
 
-				var color = BarItems.brush_color.get().toRgb();//.toRgbString()
+				var color = ColorPanel.get().toRgb();//.toRgbString()
 				var size = BarItems.slider_brush_size.get();
 				var softness = BarItems.slider_brush_softness.get()/100;
 				var b_opacity = BarItems.slider_brush_opacity.get()/100;
@@ -196,15 +196,15 @@ class BBPainter {
 					if (rect[t] > rect[t+2]) {
 						[rect[t], rect[t+2]] = [rect[t+2], rect[t]]
 					}
-					rect[t] = Math.floor(rect[t])
-					rect[t+2] = Math.ceil(rect[t+2])
+					rect[t] = Math.round(rect[t])
+					rect[t+2] = Math.round(rect[t+2])
 				}
 				var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
 				ctx.rect(rect[0], rect[1], w, h)
 
 				if (tool === 'fill_tool') {
 
-					ctx.fillStyle = BarItems.brush_color.get().toRgbString()
+					ctx.fillStyle = ColorPanel.get().toRgbString()
 
 					var fill_mode = BarItems.fill_mode.get()
 					var cube = Painter.current.cube;
@@ -462,59 +462,41 @@ class BBPainter {
 		})
 	}
 	addBitmapDialog() {
-		var lines = []
-
-		lines.push({label: 'dialog.create_texture.name', node: '<input class="dark_bordered half" type="text" id="bitmap_name">'})
-		lines.push({label: 'dialog.create_texture.folder', node: '<input class="dark_bordered half" type="text" id="bitmap_folder">'})
-		if (elements.length > 0) {
-			lines.push({label: 'dialog.create_texture.template', node: '<input type="checkbox" id="bitmap_doTemplate">'})
-			lines.push({label: 'dialog.create_texture.compress', node: '<input type="checkbox" id="bitmap_compressTemplate">'})
-		}
-		lines.push({widget: Painter.background_color})
-		lines.push({label: 'dialog.create_texture.resolution', node: '<input class="dark_bordered" style="width:72px" type="number" id="bitmap_resolution">'})
-
-
 		var dialog = new Dialog({
 			id: 'add_bitmap',
 			title: tl('dialog.create_texture.title'),
-			draggable: true,
-			lines: lines,
-			onConfirm: function() {
-				Painter.addBitmapFromDialog()
+			form: {
+				bitmap_name: 			{label: 'dialog.create_texture.name'},
+				bitmap_folder: 			{label: 'dialog.create_texture.folder'},
+				bitmap_doTemplate: 		{label: 'dialog.create_texture.template', type: 'checkbox', condition: elements.length},
+				bitmap_compressTemplate: {label: 'dialog.create_texture.compress', type: 'checkbox'},
+				bitmap_power: {label: 'dialog.create_texture.power', type: 'checkbox', value: true},
+				background_color: {type: 'color', colorpicker: Painter.background_color},
+				bitmap_resolution: 		{label: 'dialog.create_texture.resolution', type: 'number', value: 16},
+			},
+			onConfirm: function(results) {
+
+				Painter.addBitmap({
+					res: limitNumber(results.bitmap_resolution, 16, 2048),
+					color: results.background_color,
+					name: results.bitmap_name,
+					folder: results.bitmap_folder,
+					particle: 'auto',
+					entity_template: results.bitmap_doTemplate,
+					compress: results.bitmap_compressTemplate,
+					power: results.bitmap_power
+				})
 				dialog.hide()
 			}
-		})
-		dialog.show()
-		$('#bitmap_compressTemplate').parent().hide()
+		}).show()
+		$('#bitmap_compressTemplate, #bitmap_power').parent().hide()
 
 		$('.dialog#add_bitmap input#bitmap_doTemplate').click(function() {
 			var checked = $('.dialog#add_bitmap input#bitmap_doTemplate').is(':checked')
-			$('#bitmap_compressTemplate').parent()[ checked ? 'show' : 'hide' ]()
+			$('#bitmap_compressTemplate, #bitmap_power').parent()[ checked ? 'show' : 'hide' ]()
 			if (Painter.background_color.get().toHex8() === 'ffffffff') {
 				Painter.background_color.set('#00000000')
 			}
-		})
-	}
-	testSetup() {
-		Painter.addBitmap()
-		main_uv.setFace('up')
-		addCube().extend({to:[16,1,16]})
-		elements[0].faces.up.uv = [0,0,16,16]
-		textures[0].apply()
-		Canvas.updateSelected()
-		updateSelection()
-	}
-	addBitmapFromDialog() {
-		var color = Painter.background_color.get()
-
-		Painter.addBitmap({
-			res: limitNumber(parseInt($('.dialog#add_bitmap input#bitmap_resolution').val()), 16, 2048),
-			color: color,
-			name: $('.dialog#add_bitmap input#bitmap_name').val(),
-			folder: $('.dialog#add_bitmap input#bitmap_folder').val(),
-			particle: 'auto',
-			entity_template: $('.dialog#add_bitmap input#bitmap_doTemplate').is(':checked'),
-			compress: $('.dialog#add_bitmap input#bitmap_compressTemplate').is(':checked')
 		})
 	}
 	addBitmap(options, after) {
@@ -622,11 +604,15 @@ class BBPainter {
 			Blockbench.showMessage('No valid cubes', 'center')
 			return;
 		}
-		/*
-		TEMPLATE MENU
-			condensed
-			use old texture
-		*/
+
+		function getNextPower(num, min) {
+			var i = min ? min : 2
+			while (i < num && i < 4000) {
+				i *= 2
+			}
+			return i;
+		}
+
 		if (options.compress) {
 
 			var fill_map = {}
@@ -726,20 +712,16 @@ class BBPainter {
 				extend_y += max_height
 			})
 		}
-
-		//Size
-		//function getNextPower(num, min) {
-		//	var i = min ? min : 2
-		//	while (i < num && i < 4000) {
-		//		i *= 2
-		//	}
-		//	return i;
-		//}
+		
 		var max_size = Math.max(extend_x, extend_y)
-		max_size = Math.ceil(max_size/16)*16
+		if (options.power) {
+			max_size = getNextPower(max_size, 16);
+		} else {
+			max_size = Math.ceil(max_size/16)*16;
+		}
 
 		if (background_color.getAlpha() != 0) {
-			background_color = background_color.toInteger()
+			background_color = background_color.toRgbString()
 		}
 		var canvas = document.createElement('canvas')
 		canvas.width = canvas.height = max_size*res_multiple;
@@ -747,8 +729,9 @@ class BBPainter {
 		ctx.imageSmoothingEnabled = false;
 
 		
-		function drawTemplateRectangle(border_color, color, coords) {
-			if (typeof background_color === 'number') {
+		function drawTemplateRectangle(border_color, color, face, coords) {
+			//if (!Blockbench.entity_mode && face && face.texture === null) return;
+			if (typeof background_color === 'string') {
 				border_color = background_color
 				color = undefined
 			}
@@ -840,7 +823,7 @@ class BBPainter {
 				if (!t.obj.faces[face].texture ||
 					!drawTexture(t.obj.faces[face], d.place(t))
 				) {
-					drawTemplateRectangle(d.c1, d.c2, d.place(t))
+					drawTemplateRectangle(d.c1, d.c2, t.obj.faces[face], d.place(t))
 				}
 			}
 			obj.uv_offset[0] = t.posx
@@ -880,7 +863,20 @@ class BBPainter {
 		}
 	}
 }
-var Painter = new BBPainter()
+const Painter = new BBPainter()
+
+const ColorPanel = {
+	set: function(color) {
+		var value = new tinycolor(color)
+		$('#main_colorpicker').spectrum('set', value.toHex8String())
+		$('#main_colorpicker_preview > div').css('background-color', value.toRgbString())
+		return this;
+	},
+	get: function() {
+		var value = $('#main_colorpicker').spectrum('get');
+		return value;
+	}
+}
 
 BARS.defineActions(function() {
 
@@ -980,11 +976,6 @@ BARS.defineActions(function() {
 		}
 	})
 
-	new ColorPicker({
-		id: 'brush_color',
-		condition: () => (Toolbox && ['brush_tool', 'color_picker', 'fill_tool'].includes(Toolbox.selected.id)),
-		palette: true
-	})
 	new BarSelect({
 		id: 'brush_mode',
 		condition: () => Toolbox && (Toolbox.selected.id === 'brush_tool' || Toolbox.selected.id === 'eraser'),

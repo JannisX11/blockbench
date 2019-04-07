@@ -60,6 +60,9 @@ class Panel {
 			.click((event) => {
 				setActivePanel(this.id)
 			})
+			.contextmenu((event) => {
+				setActivePanel(this.id)
+			})
 			.prepend(this.handle)
 	}
 	moveTo(ref_panel, before) {
@@ -162,7 +165,7 @@ class ResizeLine {
 
 var Interface = {
 	default_data: {
-		left_bar_width: 328,
+		left_bar_width: 338,
 		right_bar_width: 300,
 		quad_view_x: 50,
 		quad_view_y: 50,
@@ -254,6 +257,7 @@ function setupInterface() {
 	} catch (err) {}
 
 	$('.entity_mode_only').hide()
+	$('.edit_session_active').hide()
 
 	$('.sidebar').droppable({
 		accept: 'h3',
@@ -272,7 +276,7 @@ function setupInterface() {
 			bottom: Toolbars.main_uv
 		},
 		onResize: function() {
-			var size = limitNumber($(this.node).width()-4, 64, 1200)
+			var size = limitNumber($(this.node).width()-10, 64, 1200)
 			size = Math.floor(size/16)*16
 			main_uv.setSize(size)
 		}
@@ -293,11 +297,38 @@ function setupInterface() {
 	})
 	Interface.Panels.options = new Panel({
 		id: 'options',
-		condition: function() {return !display_mode && !Animator.open},
+		condition: function() {return Modes.id === 'edit'},
 		toolbars: {
-
+			rotation: Toolbars.rotation,
+			origin: Toolbars.origin,
 		}
 	})
+	Interface.Panels.color = new Panel({
+		id: 'color',
+		condition: () => Modes.id === 'paint',
+		toolbars: {
+
+		},
+		onResize: t => {
+			$('#main_colorpicker').spectrum('reflow');
+			var h = $('.panel#color .sp-container.sp-flat').height()-20;
+			$('.panel#color .sp-palette').css('max-height', h+'px')
+		}
+	})
+	Interface.Panels.color.picker = $('#main_colorpicker').spectrum({
+			preferredFormat: "hex",
+			color: 'ffffff',
+			flat: true,
+			showAlpha: true,
+			showInput: true,
+			maxSelectionSize: 128,
+			showPalette: true,
+			palette: [],
+			localStorageKey: 'brush_color_palette',
+			move: function(c) {
+				$('#main_colorpicker_preview > div').css('background-color', c.toRgbString())
+			}
+		})
 	Interface.Panels.outliner = new Panel({
 		id: 'outliner',
 		condition: function() {return !display_mode},
@@ -310,9 +341,11 @@ function setupInterface() {
 		menu: new Menu([
 			'add_cube',
 			'add_group',
+			'_',
 			'sort_outliner',
 			'select_all',
 			'collapse_groups',
+			'element_colors',
 			'outliner_toggle'
 		])
 	})
@@ -361,6 +394,7 @@ function setupInterface() {
 		'open_backup_folder',
 		'save'
 	])
+	//$(document).contextmenu()
 
 
 	//Tooltip Fix
@@ -417,6 +451,9 @@ function setupInterface() {
 	})
 	$(document).contextmenu(function(event) {
 		if (!$(event.target).hasClass('allow_default_menu')) {
+			/*if (event.target.nodeName === 'INPUT' && $(event.target).is(':focus')) {
+				Interface.text_edit_menu.open(event, event.target)
+			}*/
 			return false;
 		}
 	})
@@ -437,20 +474,6 @@ function setupInterface() {
 		eval(obj.attr('oninput'))
 		eval(obj.attr('onmouseup'))
 	})
-
-	$('#timeline_inner').on('mousewheel', function() {
-		if (event.ctrlKey) {
-			var offset = 1 - event.deltaY/600
-			Timeline.vue._data.size = limitNumber(Timeline.vue._data.size * offset, 10, 1000)
-			this.scrollLeft *= offset
-			let l = (event.offsetX / this.clientWidth) * 500 * (event.deltaY<0?1:-0.2)
-			this.scrollLeft += l
-		} else {
-			this.scrollLeft += event.deltaY/2
-		}
-		Timeline.updateSize()
-		event.preventDefault();
-	});
 
 	//Mousemove
 	$(document).mousemove(function(event) {
@@ -548,11 +571,37 @@ function setProjectTitle(title) {
 		$('title').text('Blockbench')
 	}
 }
+//Zoom
+function setZoomLevel(mode) {
+	if (Prop.active_panel === 'uv') {
+		var zoom = main_uv.zoom
+		switch (mode) {
+			case 'in':	zoom *= 1.5;  break;
+			case 'out':   zoom *= 0.66;  break;
+			case 'reset': zoom = 1; break;
+		}
+		zoom = limitNumber(zoom, 1, 4)
+		main_uv.setZoom(zoom)
+
+	} else if (isApp) {
+		switch (mode) {
+			case 'in':	Prop.zoom += 5;  break;
+			case 'out':   Prop.zoom -= 5;  break;
+			case 'reset': Prop.zoom = 100; break;
+		}
+		var level = (Prop.zoom - 100) / 12
+		currentwindow.webContents.setZoomLevel(level)
+		resizeWindow()
+	}
+}
 
 //Dialogs
 function showDialog(dialog) {
 	var obj = $('.dialog#'+dialog)
 	$('.dialog').hide(0)
+	if (open_menu) {
+		open_menu.hide()
+	}
 	$('#blackout').fadeIn(200)
 	obj.fadeIn(200)
 	open_dialog = dialog

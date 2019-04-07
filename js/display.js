@@ -150,7 +150,7 @@ class refModel {
 			case 'bow':
 				this.onload = function() {
 					var side = display_slot.includes('left') ? -1 : 1;
-					setDisplayArea(side*5.4, -5.6, 24.7, side*64, side*-25, side*55, 1,1,1)
+					setDisplayArea(side*4.2, -4.9, 25, -20, -19, -8, 1,1,1)
 				}
 				break;
 		}
@@ -1302,7 +1302,6 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	buildGrid()
 	setShading()
 	DisplayMode.loadThirdRight()
-	Canvas.updateRenderSides()
 
 	display_area.updateMatrixWorld()
 	display_base.updateMatrixWorld()
@@ -1482,6 +1481,7 @@ function loadDisp(key) {	//Loads The Menu and slider values, common for all Radi
 	DisplayMode.vue._data.slot = display[key]
 	DisplayMode.slot = display[key]
 	DisplayMode.updateDisplayBase()
+	Canvas.updateRenderSides()
 
 }
 DisplayMode.loadThirdRight = function() {	//Loader

@@ -649,6 +649,9 @@ class Preview {
 		}
 	}
 	fullscreen() {
+		if (quad_previews.current) {
+			quad_previews.current.controls.stopMovement()
+		}
 		quad_previews.current = this;
 		quad_previews.enabled = false;
 		$('#preview').empty()
@@ -1356,14 +1359,20 @@ class CanvasController {
 		})
 	}
 	updateRenderSides() {
+		var side = Blockbench.entity_mode ? 2 : 0;
+		if (display_mode) {
+			if (['thirdperson_righthand', 'thirdperson_lefthand', 'head'].includes(display_slot)) {
+				side = 2;
+			}
+		}
 		textures.forEach(function(t) {
 			var mat = Canvas.materials[t.uuid]
 			if (mat) {
-				mat.side = (display_mode || Blockbench.entity_mode) ? 2 : 0
+				mat.side = side
 			}
 		})
 		emptyMaterials.forEach(function(mat) {
-			mat.side = (display_mode || Blockbench.entity_mode) ? 2 : 0
+			mat.side = side
 		})
 	}
 	//Selection updaters
@@ -1667,8 +1676,6 @@ class CanvasController {
 				obj.faces[f.face].uv[2] = uv[2]
 				obj.faces[f.face].uv[3] = uv[3]
 
-				var do_cl = Math.random()<0.001
-
 				//Fight Bleeding
 				for (var si = 0; si < 2; si++) {
 					let margin = 16/(si?Project.texture_height:Project.texture_width)/16;
@@ -1823,36 +1830,30 @@ BARS.defineActions(function() {
 		icon: 'local_movies',
 		category: 'view',
 		click: function () {
-			var lines = [
-				{label: 'dialog.create_gif.length', node: '<input class="dark_bordered half" type="number" value="10" step="0.25" id="gif_length">'},
-				{label: 'dialog.create_gif.fps', node: '<input class="dark_bordered half" type="number" value="10" id="gif_fps">'},
-				{label: 'dialog.create_gif.compression', node: '<input class="dark_bordered half" type="number" value="4" id="gif_quality">'},
-			]
-			if (Animator.open) {
-				lines.push({label: 'dialog.create_gif.play', node: '<input type="checkbox" id="gif_play_animation">'})
-			}
-			var dialog = new Dialog({
+			new Dialog({
 				id: 'create_gif',
 				title: tl('dialog.create_gif.title'),
 				draggable: true,
-				lines: lines,
-				onConfirm: function() {
-					var jq = $(dialog.object)
-					var length = parseFloat( jq.find('#gif_length').val() )
-					var fps = parseInt( jq.find('#gif_fps').val() )
-					var quality = parseInt( jq.find('#gif_quality').val() )
-					if (jq.find('#gif_play_animation').is(':checked')) {
+				form: {
+					length: {label: 'dialog.create_gif.length', type: 'number', value: 10, step: 0.25},
+					fps: 	{label: 'dialog.create_gif.fps', type: 'number', value: 10},
+					quality:{label: 'dialog.create_gif.compression', type: 'number', value: 4},
+					turn:	{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -10, max: 10},
+					play: 	{label: 'dialog.create_gif.play', type: 'checkbox', condition: Animator.open},
+				},
+				onConfirm: function(formData) {
+					if (formData.play) {
 						Timeline.start()
 					}
 					Screencam.createGif({
-						length: limitNumber(length, 0.1, 240)*1000,
-						fps: limitNumber(fps, 0.5, 30),
-						quality: limitNumber(quality, 0, 30),
+						length: limitNumber(formData.length, 0.1, 240)*1000,
+						fps: limitNumber(formData.fps, 0.5, 30),
+						quality: limitNumber(formData.quality, 0, 30),
+						turnspeed: formData.turn,
 					}, Screencam.returnScreenshot)
-					dialog.hide()
+					this.hide()
 				}
-			})
-			dialog.show()
+			}).show()
 		}
 	})
 	new Action({

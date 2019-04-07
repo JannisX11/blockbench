@@ -253,7 +253,7 @@ $(document).keydown(function(e) {
 	if (e.ctrlKey === true && e.which == 73 && isApp) {
 		electron.getCurrentWindow().toggleDevTools()
 		used = true
-	} else if (e.which === 18 && Toolbox.selected.alt_tool && !Toolbox.original) {
+	} else if (e.which === 18 && Toolbox.selected.alt_tool && !Toolbox.original && !open_interface) {
 		//Alt Tool
 		var orig = Toolbox.selected;
 		var alt = BarItems[Toolbox.selected.alt_tool]
