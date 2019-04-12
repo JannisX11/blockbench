@@ -991,13 +991,6 @@ BARS.defineActions(function() {
 		click: function () {toggleCubeProperty('shade')}
 	})
 	new Action({
-		id: 'rename',
-		icon: 'text_format',
-		category: 'transform',
-		keybind: new Keybind({key: 113}),
-		click: function () {renameCubes()}
-	})
-	new Action({
 		id: 'update_autouv',
 		icon: 'brightness_auto',
 		category: 'transform',

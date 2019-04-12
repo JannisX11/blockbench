@@ -12,7 +12,11 @@ var open_dialog = false;
 var open_interface = false;
 var tex_version = 1;
 var pe_list;
-var holding_shift = false;
+const Pressing = {
+	shift: false,
+	ctrl: false,
+	alt: false,
+}
 var main_uv;
 const Prop = {
 	active_panel:   'preview',
@@ -597,16 +601,23 @@ const Clipbench = {
 	cubes: [],
 	copy: function(event, cut) {
 		var p = Prop.active_panel
-		if (open_dialog == 'uv_dialog') {
+		var text = window.getSelection()+''
+		if (text) {
+			Clipbench.setText(text)
+
+		} else if (open_dialog == 'uv_dialog') {
 			uv_dialog.copy(event)
+
 		} else if (display_mode) {
 			DisplayMode.copy()
+
 		} else if (Animator.open) {
 			if (Timeline.selected.length) {
 				Clipbench.setKeyframes(Timeline.selected)
 			}
 		} else if (p == 'uv' || p == 'preview') {
 			main_uv.copy(event)
+			
 		} else if (p == 'textures' && isApp) {
 			if (textures.selected) {
 				Clipbench.setTexture(textures.selected)

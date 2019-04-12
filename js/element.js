@@ -44,8 +44,6 @@ var OutlinerButtons = {
 		get title() {return Blockbench.entity_mode ? tl('switches.mirror') : tl('switches.shading')},
 		get icon() {return Blockbench.entity_mode ? 'fa fa-star' : 'fa fa-star'},
 		get icon_off() {return Blockbench.entity_mode ? 'fa fa-star-half-o' : 'fa fa-star-o'},
-		//icon: ' fa fa-star',
-		//icon_off: ' fa fa-star-o',
 		advanced_option: true,
 		click: function(obj) {
 			obj.toggle('shade')
@@ -94,6 +92,8 @@ class Face {
 			this.texture = null;
 		} else if (object.texture === false) {
 			this.texture = false;
+		} else if (textures.includes(object.texture)) {
+			this.texture = object.texture.uuid;
 		} else if (typeof object.texture === 'string') {
 			Merge.string(this, object, 'texture')
 		}
@@ -832,22 +832,24 @@ class Cube extends OutlinerElement {
 		this.menu.open(event, this)
 		return this;
 	}
-	forSelected(fc) {
+	forSelected(fc, undo_tag) {
 		if (selected.length <= 1 || !selected.includes(this)) {
-			if (fc) {
-				fc(this)
-			}
-			return [this];
+			var edited = [this]
 		} else {
-			var i = selected.length;
-			while (i > 0) {
-				i--;
-				if (fc) {
-					fc(selected[i])
-				}
-			}
-			return selected
+			var edited = selected
 		}
+		if (typeof fc === 'function') {
+			if (undo_tag) {
+				Undo.initEdit({cubes: edited})
+			}
+			for (var i = 0; i < edited.length; i++) {
+				fc(edited[i])
+			}
+			if (undo_tag) {
+				Undo.finishEdit(undo_tag)
+			}
+		}
+		return edited;
 	}
 	duplicate() {
 		var old_group = this.parent
@@ -1012,19 +1014,16 @@ class Cube extends OutlinerElement {
 		}
 	}
 	toggle(key, val) {
-		var selection = this.forSelected()
 		if (val === undefined) {
 			var val = !this[key]
 		}
-
-		Undo.initEdit({cubes: selection})
-		selection.forEach(function (cube) {
+		this.forSelected((cube) => {
 			cube[key] = val
-		})
+		}, 'toggle '+key)
 		if (key === 'visibility') {
 			Canvas.updateVisibility()
 		}
-		Undo.finishEdit('toggle')
+		return this;
 	}
 }
 	Cube.prototype.title = tl('data.cube')
@@ -1050,39 +1049,29 @@ class Cube extends OutlinerElement {
 			updateSelection()
 			Undo.finishEdit('duplicate', {outliner: true, cubes: selected, selection: true})
 		}},
-		{name: 'generic.rename', icon: 'text_format', click: function(cube) {
-			if (selected.length > 1) {
-				renameCubes(cube)
-			} else {
-				cube.rename()
-			}
-		}},
+		{name: 'generic.rename', icon: 'text_format', click: renameOutliner},
 		'update_autouv',
 		{name: 'menu.cube.color', icon: 'color_lens', children: [
-			{icon: 'bubble_chart', color: cubeColors[0].hex, name: 'cube.color.'+cubeColors[0].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(0)})}},
-			{icon: 'bubble_chart', color: cubeColors[1].hex, name: 'cube.color.'+cubeColors[1].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(1)})}},
-			{icon: 'bubble_chart', color: cubeColors[2].hex, name: 'cube.color.'+cubeColors[2].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(2)})}},
-			{icon: 'bubble_chart', color: cubeColors[3].hex, name: 'cube.color.'+cubeColors[3].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(3)})}},
-			{icon: 'bubble_chart', color: cubeColors[4].hex, name: 'cube.color.'+cubeColors[4].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(4)})}},
-			{icon: 'bubble_chart', color: cubeColors[5].hex, name: 'cube.color.'+cubeColors[5].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(5)})}},
-			{icon: 'bubble_chart', color: cubeColors[6].hex, name: 'cube.color.'+cubeColors[6].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(6)})}},
-			{icon: 'bubble_chart', color: cubeColors[7].hex, name: 'cube.color.'+cubeColors[7].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(7)})}}
+			{icon: 'bubble_chart', color: cubeColors[0].hex, name: 'cube.color.'+cubeColors[0].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(0)}, 'change color')}},
+			{icon: 'bubble_chart', color: cubeColors[1].hex, name: 'cube.color.'+cubeColors[1].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(1)}, 'change color')}},
+			{icon: 'bubble_chart', color: cubeColors[2].hex, name: 'cube.color.'+cubeColors[2].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(2)}, 'change color')}},
+			{icon: 'bubble_chart', color: cubeColors[3].hex, name: 'cube.color.'+cubeColors[3].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(3)}, 'change color')}},
+			{icon: 'bubble_chart', color: cubeColors[4].hex, name: 'cube.color.'+cubeColors[4].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(4)}, 'change color')}},
+			{icon: 'bubble_chart', color: cubeColors[5].hex, name: 'cube.color.'+cubeColors[5].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(5)}, 'change color')}},
+			{icon: 'bubble_chart', color: cubeColors[6].hex, name: 'cube.color.'+cubeColors[6].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(6)}, 'change color')}},
+			{icon: 'bubble_chart', color: cubeColors[7].hex, name: 'cube.color.'+cubeColors[7].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(7)}, 'change color')}}
 		]},
 		{name: 'menu.cube.texture', icon: 'collections', condition: function() {return !Blockbench.entity_mode}, children: function() {
 			var arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {
-					Undo.initEdit({cubes: selected})
 					cube.forSelected(function(obj) {
 						obj.applyTexture('blank', true)
-					})
-					Undo.initEdit('texture blank')
+					}, 'texture blank')
 				}},
 				{icon: 'clear', name: 'menu.cube.texture.transparent', click: function(cube) {
-					Undo.initEdit({cubes: selected})
 					cube.forSelected(function(obj) {
 						obj.applyTexture(undefined, true)
-					})
-					Undo.initEdit('texture blank')
+					}, 'texture transparent')
 				}}
 			]
 			textures.forEach(function(t) {
@@ -1090,11 +1079,9 @@ class Cube extends OutlinerElement {
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
 					click: function(cube) {
-						Undo.initEdit({cubes: selected})
 						cube.forSelected(function(obj) {
 							obj.applyTexture(t, true)
-						})
-						Undo.initEdit('texture blank')
+						}, 'apply texture')
 					}
 				})
 			})
@@ -1515,7 +1502,7 @@ class Group extends OutlinerElement {
 			group.duplicate()
 			Undo.finishEdit('duplicate_group', {outliner: true, cubes: elements.slice().slice(cubes_before), selection: true})
 		}},
-		{icon: 'text_format', name: 'generic.rename', click: function(group) {group.rename()}},
+		'rename',
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', click: function(group) {group.sortContent()}},
 		{icon: 'fa-leaf', name: 'menu.group.resolve', click: function(group) {
 			Undo.initEdit({outliner: true})
@@ -1945,25 +1932,39 @@ function duplicateCubes() {
 	BarItems.move_tool.select()
 	Undo.finishEdit('duplicate', {cubes: selected, outliner: true, selection: true})
 }
-function renameCubes(element) {
-	stopRenameCubes()
-	if (selected_group && !element) {
+function renameOutliner(element) {
+	stopRenameOutliner()
+
+	if (selected_group && !element && !EditSession.active) {
 		selected_group.rename()
-	} else if (selected.length === 0) {
-		return;
-	} else if (selected.length === 1) {
+
+	} else if (selected.length === 1 && !EditSession.active) {
 		selected[0].rename()
-	} else {
-		Blockbench.textPrompt(tl('message.rename_cubes'), selected[0].name, function (name) {
-			Undo.initEdit({cubes: selected})
-			selected.forEach(function(obj, i) {
-				obj.name = name.replace(/%/g, obj.index).replace(/\$/g, i)
+
+	} else if (selected.length) {
+
+		if (selected_group && !element) {
+			Blockbench.textPrompt(tl('message.rename_cubes'), selected_group.name, function (name) {
+
+				Undo.initEdit({group: selected_group})
+				selected_group.name = name
+				if (Blockbench.entity_mode) {
+					selected_group.createUniqueName()
+				}
+				Undo.finishEdit('rename group')
 			})
-			Undo.finishEdit('rename')
-		})
+		} else {
+			Blockbench.textPrompt(tl('message.rename_cubes'), selected[0].name, function (name) {
+				Undo.initEdit({cubes: selected})
+				selected.forEach(function(obj, i) {
+					obj.name = name.replace(/%/g, obj.index).replace(/\$/g, i)
+				})
+				Undo.finishEdit('rename')
+			})
+		}
 	}
 }
-function stopRenameCubes(save) {
+function stopRenameOutliner(save) {
 	if (Blockbench.hasFlag('renaming')) {
 		var uuid = $('.outliner_object input.renaming').parent().parent().attr('id')
 		var element = TreeElements.findRecursive('uuid', uuid)
@@ -2074,6 +2075,17 @@ BARS.defineActions(function() {
 				this.set(sel+'/'+all)
 			} else {
 				this.set(selected.length+'/'+elements.length)
+			}
+		}
+	})
+	new Action({
+		id: 'rename',
+		icon: 'text_format',
+		category: 'edit',
+		keybind: new Keybind({key: 113}),
+		click: function () {
+			if (Modes.id === 'edit') {
+				renameOutliner()
 			}
 		}
 	})

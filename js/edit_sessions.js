@@ -3,42 +3,53 @@ const EditSession = {
 	active: false,
 	hosting: false,
 	BBKey: '1h3sq3hoj6vfkh',
+	clients: {},
 	start: function() {
 		if (EditSession.active) return;
 
-		EditSession.hosting = true;
-		Prop.session = true;
-		EditSession.setState(true);
 		var peer = EditSession.peer = new Peer({key: '1h3sq3hoj6vfkh'});
 		EditSession.username = $('#edit_session_username').val()
 
 		peer.on('open', (token) => {
+			EditSession.hosting = true;
+			Prop.session = true;
+			EditSession.setState(true);
+			EditSession.username = $('#edit_session_username').val()
+
+			var client = EditSession.self = new EditSession.Client({
+				id: EditSession.peer.id,
+				name: EditSession.username,
+				hosting: true
+			})
+
 			$('#edit_session_token').val(token)
 			EditSession.token = token;
 			Clipbench.setText(token)
 			Blockbench.dispatchEvent('create_session', {peer, token})
 		})
 		peer.on('connection', (conn) => {
-			EditSession.initConnection(conn)
-			Prop.connections = Object.keys(peer.connections).length
-			console.log(tl('edit_session.joined', [conn.metadata.username]))
-			Blockbench.showQuickMessage(tl('edit_session.joined', [conn.metadata.username]))
-			//New Login
-			var model = buildBBModel({uuids: true, bitmaps: true, history: true})
 			conn.on('open', function() {
-				Blockbench.dispatchEvent('user_joins_session', {conn})
-				conn.send({
+
+				var client = new EditSession.Client({
+					id: conn.peer,
+					conn: conn,
+					name: conn.metadata.username,
+					hosting: false
+				})
+				Chat.processMessage({text: tl('edit_session.joined', [client.name]), color: 'green'})
+				Blockbench.showQuickMessage(tl('edit_session.joined', [client.name]))
+				//New Login
+				client.send({
+					type: 'chat_message',
+					data: {text: tl('edit_session.welcome', [EditSession.username]), color: 'yellow'}
+				})
+				var model = buildBBModel({uuids: true, bitmaps: true, history: true})
+				client.send({
 					type: 'init_model',
 					fromHost: EditSession.hosting,
 					sender: EditSession.peer.id,
 					data: model
 				})
-			})
-			conn.on('close', function() {
-				Blockbench.dispatchEvent('user_leaves_session', {conn})
-				Blockbench.showQuickMessage(tl('edit_session.left', [conn.metadata.username]))
-				delete peer.connections[conn.peer]
-				Prop.connections = Object.keys(peer.connections).length
 			})
 		})
 	},
@@ -48,7 +59,7 @@ const EditSession = {
 		EditSession.hosting = false;
 		EditSession.peer = new Peer({key: '1h3sq3hoj6vfkh'});
 		var token = $('#edit_session_token').val()
-		var username = $('#edit_session_username').val()
+		EditSession.username = $('#edit_session_username').val()
 		if (!token || !EditSession._matchToken(token)) {
 			Blockbench.showMessageBox({
 				translateKey: 'invalid_session',
@@ -60,16 +71,15 @@ const EditSession = {
 		}
 
 		EditSession.token = token;
-		var conn = EditSession.peer.connect(token, {metadata: {username: username}});
+		var conn = EditSession.peer.connect(token, {metadata: {username: EditSession.username}});
 
-		conn.on('error', (a, b) => {
+		conn.on('error', (e) => {
 			Blockbench.showMessageBox({
 				translateKey: 'invalid_session',
 				icon: 'cloud_off',
 				buttons: [tl('dialog.ok')],
-			}, result => {
-				showDialog('edit_sessions');
 			})
+			EditSession.quit()
 		})
 		conn.on('open', () => {
 			hideDialog()
@@ -80,6 +90,8 @@ const EditSession = {
 		})
 	},
 	quit: function() {
+		if (!EditSession.active) return;
+		
 		Blockbench.dispatchEvent('quit_session', {})
 		if (EditSession.hosting) {
 			EditSession.sendAll('command', 'quit_session')
@@ -88,12 +100,12 @@ const EditSession = {
 		}
 		setTimeout(function() {
 			EditSession.setState(false)
+			Chat.history.purge()
 			EditSession.peer.destroy()
 			Prop.session = false;
 			Prop.connections = 0;
 			Blockbench.showQuickMessage('edit_session.quit_session', 1500)
 		}, 400)
-
 	},
 	setState: function(active) {
 		EditSession.active = active;
@@ -110,6 +122,7 @@ const EditSession = {
 			$('#edit_session_copy_button .tooltip').text(tl('action.paste'))
 			$('#edit_session_token').val('')
 		}
+		updateInterface()
 	},
 	dialog: function() {
 		showDialog('edit_sessions');
@@ -152,23 +165,22 @@ const EditSession = {
 			EditSession.sendAll('init_model', JSON.stringify(model))
 		}
 	},
-
 	initConnection: function(conn) {
 		conn.on('data', EditSession.receiveData)
 	},
 	sendAll: function(type, data) {
 		var tag = {type, data}
 		Blockbench.dispatchEvent('send_session_data', tag)
-		for (var key in EditSession.peer.connections) {
-			var conns = EditSession.peer.connections[key];
-			conns.forEach(conn => {
-				conn.send({
+		for (var id in EditSession.clients) {
+			var client = EditSession.clients[id];
+			if (client != EditSession.self) {
+				client.send({
 					type: tag.type,
 					fromHost: EditSession.hosting,
 					sender: EditSession.peer.id,
 					data: tag.data
-				});
-			})
+				})
+			}
 		}
 		if (Blockbench.hasFlag('log_session')) {
 			console.log('Sent Data:', type, data)
@@ -208,26 +220,153 @@ const EditSession = {
 
 		if (tag.type === 'edit') {
 			Undo.remoteEdit(data)
+
 		} else if (tag.type === 'init_model') {
 			force = data.flag === 'force';
 			newProject(false, force)
 			loadBBModel(data)
+
 		} else if (tag.type === 'command') {
 			switch (data) {
 				case 'undo': Undo.undo(true); break;
 				case 'redo': Undo.redo(true); break;
 				case 'quit_session': EditSession.quit(); break;
 			}
+
 		} else if (tag.type === 'change_project_meta') {
 			for (var key in data) {
-				Project = data[key];
+				Project[key] = data[key];
 			}
+
+		} else if (tag.type === 'chat_input' && EditSession.hosting) {
+			Chat.processMessage(tag.data)
+
+		} else if (tag.type === 'chat_message') {
+			Chat.addMessage(tag.data)
 		}
+	},
+	updateClientCount: function() {
+		Prop.connections = Object.keys(EditSession.clients).length-1
 	},
 	_matchToken: function(token) {
 		return !!(token.length === 16 && token.match(/[a-z0-9]{16}/))
 	}
 }
+EditSession.Client = class {
+	constructor(data) {
+		var scope = this;
+		this.id = data.id;
+		this.hosting = data.hosting;
+		this.conn = data.conn;
+		this.name = data.name;
+
+		EditSession.clients[this.id] = this;
+		EditSession.updateClientCount()
+
+		if (this.conn) {
+			EditSession.initConnection(this.conn)
+			this.conn.on('close', () => {
+				scope.disconnect()
+			})
+			this.conn.on('error', (e) => {
+				scope.disconnect()
+				this.conn.close()
+				console.error(e)
+			})
+			Blockbench.dispatchEvent('user_joins_session', {conn: this.conn})
+		}
+	}
+	send(tag) {
+		this.conn.send(tag)
+	}
+	disconnect(e) {
+		Blockbench.dispatchEvent('user_leaves_session', {conn: this.conn})
+		delete EditSession.peer.connections[this.conn.peer];
+		delete EditSession.clients[this.id];
+		EditSession.updateClientCount();
+
+		Chat.processMessage({text: tl('edit_session.left', [this.name]), color: 'red'})
+		Blockbench.showQuickMessage(tl('edit_session.left', [this.name]))
+	}
+}
+
+const Chat = {
+	history: [],
+	expanded: true,
+	maxlength: 512,
+	toggle: function() {
+		this.expanded = !this.expanded;
+		BarItems.toggle_chat.setIcon( Chat.expanded ? 'keyboard_arrow_down' : 'keyboard_arrow_up' )
+	},
+	send: function(text) {
+		if (typeof text !== 'string') {
+			text = $('input#chat_input').val()
+			$('input#chat_input').val('')
+		}
+		if (!text) return;
+		Chat.processMessage({author: EditSession.username, text: text})
+	},
+	addMessage: function(message) {
+		if (!(message instanceof Chat.Message)) {
+			message = new Chat.Message(message)
+		}
+		Chat.history.push(message)
+		Vue.nextTick(() => {
+			$('#chat_history').scrollTop(10000)
+		})
+		return message;
+	},
+	processMessage: function(data) {
+		if (!EditSession.hosting) {
+			EditSession.host.send({type: 'chat_input', data: data})
+			return;
+		}
+		var message = new Chat.Message(data)
+		//Host Only
+		Blockbench.dispatchEvent('process_chat_message', message)
+
+		EditSession.sendAll('chat_message', data)
+		Chat.addMessage(data)
+	}
+};
+Chat.Message = class {
+	constructor(data) {
+		this.author = data.author||'';
+		this.author = this.author.substr(0, 64)
+		this.self = (this.author && this.author === EditSession.username);
+		this.text = data.text.substr(0, Chat.maxlength)||'';
+		this.timestamp = new Date.getTimestamp()
+		this.toString = () => (this.author + ': ' + this.content);
+		//Color
+		this.color = data.color
+		switch (this.color) {
+			case 'red': 	this.hex = '#ff4158'; break;
+			case 'orange': 	this.hex = '#ff6f10'; break;
+			case 'yellow': 	this.hex = '#ffd100'; break;
+			case 'green': 	this.hex = '#00eb3b'; break;
+			case 'blue': 	this.hex = '#08a3ff'; break;
+		}
+	}
+	toObject() {
+		return {
+			author: this.author,
+			text: this.text,
+			color: this.color,
+		}
+	}
+	showAuthor() {
+		if (!this.author) return false;
+		var this_i = Chat.history.indexOf(this);
+		var prev = Chat.history[this_i-1];
+		return (!prev) || (prev.author !== this.author);
+	}
+}
+onVueSetup(function() {
+	Chat.vue = new Vue({
+		el: '#chat_history',
+		data: Chat
+	})
+})
 
 BARS.defineActions(function() {
 	new Action({
@@ -235,5 +374,12 @@ BARS.defineActions(function() {
 		icon: 'people',
 		category: 'blockbench',
 		click: EditSession.dialog
+	})
+	new Action({
+		id: 'toggle_chat',
+		icon: 'keyboard_arrow_down',
+		condition: () => EditSession.active,
+		category: 'blockbench',
+		click: () => (Chat.toggle())
 	})
 })

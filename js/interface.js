@@ -165,12 +165,12 @@ class ResizeLine {
 
 var Interface = {
 	default_data: {
-		left_bar_width: 338,
+		left_bar_width: 332,
 		right_bar_width: 300,
 		quad_view_x: 50,
 		quad_view_y: 50,
 		left_bar: ['uv', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
-		right_bar: ['options', 'outliner']
+		right_bar: ['options', 'color', 'outliner', 'chat']
 	},
 	Resizers: {
 		left: new ResizeLine({
@@ -255,6 +255,12 @@ function setupInterface() {
 		Interface.data.right_bar = interface_data.right_bar
 		$.extend(true, Interface.data, interface_data)
 	} catch (err) {}
+
+	if (!Language.loading_steps) {
+		Language.loading_steps = true;
+	} else {
+		translateUI()
+	}
 
 	$('.entity_mode_only').hide()
 	$('.edit_session_active').hide()
@@ -347,6 +353,15 @@ function setupInterface() {
 			'collapse_groups',
 			'element_colors',
 			'outliner_toggle'
+		])
+	})
+	Interface.Panels.chat = new Panel({
+		id: 'chat',
+		condition: function() {return EditSession.active},
+		toolbars: {},
+		onResize: t => {
+		},
+		menu: new Menu([
 		])
 	})
 	Interface.Panels.animations = new Panel({
@@ -442,8 +457,8 @@ function setupInterface() {
 		if (ActionControl.open && $('#action_selector').find(event.target).length === 0) {
 			ActionControl.hide();
 		}
-		if ($(event.target).is('input.cube_name:not([disabled])') === false) {
-			stopRenameCubes()
+		if ($(event.target).is('input.cube_name:not([disabled])') === false && Blockbench.hasFlag('renaming')) {
+			stopRenameOutliner()
 		}
 	})
 	$('.context_handler').on('click', function() {

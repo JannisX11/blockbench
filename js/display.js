@@ -1716,7 +1716,7 @@ onVueSetup(function() {
 				if (channel === 'scale') {
 					var val = limitNumber(DisplayMode.slot.scale[axis], 0, 4)
 					DisplayMode.slot.scale[axis] = val;
-					if (holding_shift) {
+					if (Pressing.shift) {
 						DisplayMode.slot.scale[0] = val;
 						DisplayMode.slot.scale[1] = val;
 						DisplayMode.slot.scale[2] = val;

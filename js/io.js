@@ -3,8 +3,7 @@ function newProject(entity_mode, force) {
 	if (force || showSaveDialog()) {
 		if (Toolbox.selected.id !== 'move_tool') BarItems.move_tool.select();
 		elements.length = 0;
-		TreeElements.length = 1;
-		TreeElements.splice(0, 1);
+		TreeElements.purge();
 		Canvas.materials.length = 0;
 		textures.length = 0;
 		selected.length = 0;
@@ -24,9 +23,8 @@ function newProject(entity_mode, force) {
 		Undo.history.length = 0;
 		Undo.index = 0;
 		Painter.current = {};
-		Animator.animations.length = 1;
+		Animator.animations.purge();
 		Animator.selected = undefined;
-		Animator.animations.splice(0, 1);
 		if (entity_mode) {
 			entityMode.join();
 		} else {
@@ -836,17 +834,25 @@ var Extruder = {
 	},
 	startConversion: function() {
 		var scan_mode = $('select#scan_mode option:selected').attr('id') /*areas, lines, columns, pixels*/
-		var texture = textures[textures.length-1].uuid
 		var isNewProject = elements.length === 0;
 
 		var jimage = Jimp.read(Extruder.ext_img.src).then(function(image) {	
 			var pixel_opacity_tolerance = $('#scan_tolerance').val()
 
+			//Undo
+			Undo.initEdit({cubes: selected, outliner: true, textures: []})
+			if (isApp) {
+				var texture = new Texture().fromPath(Extruder.ext_img.src).add(false).fillParticle()
+			} else {
+				var texture = new Texture().fromDataURL(Extruder.ext_img.src).add(false).fillParticle()
+			}
+
 			//var ext_x, ext_y;
 			var finished_pixels = {}
 			var cube_nr = 0;
-			var cube_name = textures[textures.length-1].name.split('.')[0]
-			selected = []
+			var cube_name = texture.name.split('.')[0]
+			selected.empty()
+
 			//Scale Index
 			var scale_i = 1;
 			if (Extruder.width < Extruder.height) {
@@ -973,6 +979,9 @@ var Extruder = {
 				setProjectTitle(cube_name)
 				Prop.project_saved = false;
 			}
+
+			Undo.finishEdit('add extruded texture', {cubes: selected, outliner: true, textures: [textures[textures.length-1]]})
+
 			Blockbench.removeFlag('new_project')
 			loadOutlinerDraggable()
 			Canvas.updateAll()
@@ -1721,19 +1730,25 @@ function buildOBJModel(name) {
 	return content;
 }
 function uploadSketchfabModel() {
-
+	if (elements.length === 0) {
+		return;
+	}
 	var dialog = new Dialog({
 		id: 'sketchfab_uploader',
 		title: 'Upload Sketchfab Model',
 		width: 540,
 		form: {
 			token: {label: 'dialog.sketchfab_uploader.token', value: settings.sketchfab_token.value},
-			about_token: {type: 'text', text: 'dialog.sketchfab_uploader.about_token'},
+			about_token: {type: 'text', text: tl('dialog.sketchfab_uploader.about_token', ['[sketchfab.com/settings/password](https://sketchfab.com/settings/password)'])},
 			name: {label: 'dialog.sketchfab_uploader.name'},
 			description: {label: 'dialog.sketchfab_uploader.description', type: 'textarea'},
 			tags: {label: 'dialog.sketchfab_uploader.tags', placeholder: 'Tag1 Tag2'},
+			divider: '_',
+			private: {label: 'dialog.sketchfab_uploader.private', type: 'checkbox'},
+			password: {label: 'dialog.sketchfab_uploader.password'},
 		},
 		onConfirm: function(formResult) {
+
 			if (formResult.token && !formResult.name) {
 				Blockbench.showQuickMessage('message.sketchfab.name_or_token', 1800)
 				return;
@@ -1746,6 +1761,9 @@ function uploadSketchfabModel() {
 			data.append('name', formResult.name)
 			data.append('description', formResult.description)
 			data.append('tags', formResult.tags)
+			data.append('private', formResult.private)
+			data.append('password', formResult.password)
+			data.append('source', 'blockbench')
 
 			settings.sketchfab_token.value = formResult.token
 
@@ -1909,9 +1927,9 @@ function saveProjectSettings() {
 			entityMode.setResolution()
 			Undo.finishEdit('changed resolution')
 		}
-		if (EditSession.active && EditSession.hosting) {
-			EditSession.sendAll('change_project_meta', JSON.stringify(Project));
-		}
+	}
+	if (EditSession.active) {
+		EditSession.sendAll('change_project_meta', JSON.stringify(Project));
 	}
 }
 
@@ -1986,11 +2004,6 @@ BARS.defineActions(function() {
 				readtype: 'image'
 			}, function(files) {
 				if (files.length) {
-					if (isApp) {
-						new Texture().fromPath(files[0].path).add(false).fillParticle()
-					} else {
-						new Texture().fromDataURL(files[0].content).add(false).fillParticle()
-					}
 					showDialog('image_extruder')
 					Extruder.drawImage(isApp ? files[0].path : files[0].content)
 				}
@@ -2017,7 +2030,7 @@ BARS.defineActions(function() {
 	})
 	new Action({
 		id: 'export_bbmodel',
-		icon: 'insert_drive_file',
+		icon: 'icon-blockbench_file',
 		category: 'file',
 		click: function () {
 			Blockbench.export({
@@ -2119,6 +2132,7 @@ BARS.defineActions(function() {
 		id: 'export_asset_archive',
 		icon: 'archive',
 		category: 'file',
+		condition: !isApp,
 		click: function() {
 			var archive = new JSZip();
 			if (Blockbench.entity_mode === false) {
@@ -2129,7 +2143,7 @@ BARS.defineActions(function() {
 			archive.file((Project.name||'model')+'.json', content)
 			textures.forEach(tex => {
 				if (tex.mode === 'bitmap') {
-					texfolder.file(pathToName(tex.name) + '.png', tex.source.replace('data:image/png;base64,', ''), {base64: true});
+					archive.file(pathToName(tex.name) + '.png', tex.source.replace('data:image/png;base64,', ''), {base64: true});
 				}
 			})
 			archive.generateAsync({type: 'blob'}).then(content => {
@@ -2147,7 +2161,7 @@ BARS.defineActions(function() {
 	})
 	new Action({
 		id: 'upload_sketchfab',
-		icon: 'fa-cube',
+		icon: 'icon-sketchfab',
 		category: 'file',
 		click: function(ev) {
 			uploadSketchfabModel()

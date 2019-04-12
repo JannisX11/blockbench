@@ -101,6 +101,9 @@ window.onbeforeunload = function() {
 	}
 }
 function showSaveDialog(close) {
+	function beforeClosing() {	
+		EditSession.quit()
+	}
 	var unsaved_textures = 0;
 	textures.forEach(function(t) {
 		if (!t.saved) {
@@ -114,11 +117,13 @@ function showSaveDialog(close) {
 			if (close) {
 				//preventClosing = false
 			}
+			beforeClosing()
 			return true;
 		} else {
 			return false;
 		}
 	} else {
+		beforeClosing()
 		return true;
 	}
 }

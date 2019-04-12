@@ -520,7 +520,7 @@ class BBPainter {
 			folder: options.folder ? options.folder : 'blocks'
 		})
 		function makeTexture(dataUrl) {
-			texture.fromDataURL(dataUrl)
+			texture.fromDataURL(dataUrl).add(false)
 			switch (options.particle) {
 				case 'auto':
 				texture.fillParticle();
@@ -532,12 +532,10 @@ class BBPainter {
 			if (typeof after === 'function') {
 				after(texture)
 			}
-			if (options.entity_template) {
-				Undo.finishEdit('create template', {textures: [texture], bitmap: true, cubes: Blockbench.entity_mode ? elements : selected, uv_only: true})
-			} else {
+			if (!options.entity_template) {
 				Undo.finishEdit('create blank texture', {textures: [texture], bitmap: true})
 			}
-			return texture.add(false);
+			return texture;
 		}
 		if (options.entity_template === true) {
 			Undo.initEdit({
@@ -861,6 +859,7 @@ class BBPainter {
 				t.obj.autouv = 0
 			})
 		}
+		Undo.finishEdit('create template', {textures: [texture], bitmap: true, cubes: Blockbench.entity_mode ? elements : selected, uv_only: true})
 	}
 }
 const Painter = new BBPainter()

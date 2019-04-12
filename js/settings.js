@@ -18,7 +18,7 @@ function settingSetup() {
 		brightness: 		{category: 'preview', value: 50, type: 'number'},
 		shading:	  		{category: 'preview', value: true}, 
 		transparency: 		{category: 'preview', value: true}, 
-		outliner_colors:	{category: 'preview', value: true}, 
+		outliner_colors:	{category: 'preview', value: false}, 
 		texture_fps:  		{category: 'preview', value: 2, type: 'number'},
 		display_skin: 		{category: 'preview', value: false, type: 'click', condition: isApp, icon: 'icon-player', click: function() { changeDisplaySkin() }},
 		//Edit

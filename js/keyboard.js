@@ -75,19 +75,13 @@ class Keybind {
 		if (this.alt) 	modifiers.push(tl('keys.alt'))
 		if (this.meta) 	modifiers.push(tl('keys.meta'))
 
-		//if (this.ctrl === null) 	modifiers.push('[' + tl('keys.ctrl') 	+ ']')
-		//if (this.shift === null)	modifiers.push('[' + tl('keys.shift') 	+ ']')
-		//if (this.alt === null) 		modifiers.push('[' + tl('keys.alt')		+ ']')
-		//if (this.meta === null) 	modifiers.push('[' + tl('keys.meta') 	+ ']')
-
-		var char = this.getCode()//String.fromCharCode(this.code).toLowerCase()
+		var char = this.getCode()
 		var char_tl = tl('keys.'+char)
 		if (char_tl === ('keys.'+char)) {
 			modifiers.push(capitalizeFirstLetter(char))
 		} else {
 			modifiers.push(char_tl)
 		}
-		//modifiers.push(capitalizeFirstLetter(String.fromCharCode(this.code)))
 		return modifiers.join(' + ')
 	}
 	getCode(key) {
@@ -227,7 +221,9 @@ onVueSetup(function() {
 $(document).keydown(function(e) {
 	if (Keybinds.recording) return;
 	//Shift
-	holding_shift = e.shiftKey;
+	Pressing.shift = e.shiftKey;
+	Pressing.alt = e.altKey;
+	Pressing.ctrl = e.ctrlKey;
 	if (e.which === 16) {
 		showShiftTooltip()
 	}
@@ -239,11 +235,17 @@ $(document).keydown(function(e) {
 		//User Editing Anything
 	    if (Blockbench.hasFlag('renaming')) {
 	        if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-	            stopRenameCubes()
+	            stopRenameOutliner()
 	        } else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
-	            stopRenameCubes(false)
+	            stopRenameOutliner(false)
 	        }
 	        return;
+	    }
+	    if ($('input#chat_input:focus').length && EditSession.active) {
+	    	if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
+		    	Chat.send();
+		    	return;
+		    }
 	    }
 		if (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
 			$(document).click()
@@ -311,9 +313,14 @@ $(document).keydown(function(e) {
 })
 
 $(document).keyup(function(e) {
-	holding_shift = false;
+	if (Pressing.alt && ActionControl.open) {
+		ActionControl.vue.$forceUpdate()
+	}
 	if (e.which === 18 && Toolbox.original && Toolbox.original.alt_tool) {
 		Toolbox.original.select()
 		delete Toolbox.original;
 	}
+	Pressing.shift = false;
+	Pressing.alt = false;
+	Pressing.ctrl = false;
 })

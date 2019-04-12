@@ -598,17 +598,16 @@ function Dialog(settings) {
 		if (scope.form) {
 			for (var form_id in scope.form) {
 				var data = scope.form[form_id]
-				if (data && Condition(data.condition)) {
+				if (data === '_') {
+					jq_dialog.append('<hr />')
+					
+				} else if (data && Condition(data.condition)) {
 					var bar = $('<div class="dialog_bar"></div>')
 					if (data.label) {
 						bar.append(`<label class="name_space_left" for="${form_id}">${tl(data.label)+(data.nocolon?'':':')}</label>`)
 						max_label_width = Math.max(getStringWidth(tl(data.label)), max_label_width)
 					}
-					/*
-						type: +text
-						label
-						placeholder
-					*/
+
 					switch (data.type) {
 						default:
 							bar.append(`<input class="dark_bordered half" type="text" id="${form_id}" value="${data.value||''}" placeholder="${data.placeholder||''}">`)
@@ -616,8 +615,26 @@ function Dialog(settings) {
 						case 'textarea':
 							bar.append(`<textarea style="height: ${data.height||150}px;" id="${form_id}"></textarea>`)
 							break;
+						case 'select':
+							var el = $(`<div class="bar_select half"><select id="${form_id}"></select></div>`)
+							var sel = el.find('select')
+							for (var key in data.options) {
+								var name = tl(data.options[key])
+								sel.append(`<option id="${key}" ${data.default === key ? 'selected' : ''}>${name}</option>`)
+							}
+							bar.append(el)
+							break;
 						case 'text':
-							bar.append(`<p>${tl(data.text)}</p>`)
+							var regex = /\[(.+)\]\((.+\..+)\)/g;
+							var matches = data.text.match(regex)
+							if (matches) {
+								data.text = data.text.replace(regex, (m, label, url) => {
+									return `<a href="${url}" class="open-in-browser">${label}</a>`
+								})
+							} else {
+								data.text = tl(data.text)
+							}
+							bar.append(`<p>${data.text}</p>`)
 							bar.addClass('small_text')
 							break;
 						case 'number':
@@ -683,23 +700,29 @@ function Dialog(settings) {
 			if (scope.form) {
 				for (var form_id in scope.form) {
 					var data = scope.form[form_id]
-					switch (data.type) {
-						default:
-							result[form_id] = jq_dialog.find('input#'+form_id).val()
-							break;
-						case 'text': break;
-						case 'textarea':
-							result[form_id] = jq_dialog.find('textarea#'+form_id).val()
-							break;
-						case 'number':
-							result[form_id] = parseFloat(jq_dialog.find('input#'+form_id).val())||0
-							break;
-						case 'color':
-							result[form_id] = data.colorpicker.get();
-							break;
-						case 'checkbox':
-							result[form_id] = jq_dialog.find('input#'+form_id).is(':checked')
-							break;
+					if (typeof data === 'object') {
+						switch (data.type) {
+							default:
+								result[form_id] = jq_dialog.find('input#'+form_id).val()
+								break;
+							case 'text':
+								break;
+							case 'textarea':
+								result[form_id] = jq_dialog.find('textarea#'+form_id).val()
+								break;
+							case 'select':
+								result[form_id] = jq_dialog.find('select#'+form_id+' > option:selected').attr('id')
+								break;
+							case 'number':
+								result[form_id] = Math.clamp(parseFloat(jq_dialog.find('input#'+form_id).val())||0, data.min, data.max)
+								break;
+							case 'color':
+								result[form_id] = data.colorpicker.get();
+								break;
+							case 'checkbox':
+								result[form_id] = jq_dialog.find('input#'+form_id).is(':checked')
+								break;
+						}
 					}
 				}
 			}
@@ -726,6 +749,11 @@ function Dialog(settings) {
 		if (this.width) {
 			jq_dialog.css('width', this.width+'px')
 		}
+		jq_dialog.find('.open-in-browser').click((event) => {
+			event.preventDefault();
+			shell.openExternal(event.target.href);
+			return true;
+		});
 		open_dialog = scope.id
 		open_interface = scope
 		Prop.active_panel = 'dialog'

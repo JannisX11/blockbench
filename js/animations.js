@@ -980,9 +980,7 @@ const Timeline = {
 			Timeline.dragging_marker = true;
 			let time = e.offsetX / Timeline.vue._data.size
 			Timeline.setTime(time)
-			if (Animator.selected) {
-				Animator.preview()
-			}
+			Animator.preview()
 		})
 		$(document).mousemove(e => {
 			if (Timeline.dragging_marker) {
@@ -1054,9 +1052,7 @@ const Timeline = {
 				+ limitNumber(times[2]/100, 0, 99)
 			if (Math.abs(seconds-Timeline.second) > 1e-3 ) {
 				Timeline.setTime(seconds, true)
-				if (Animator.selected) {
-					Animator.preview()
-				}
+				Animator.preview()
 			}
 		})
 
@@ -1088,12 +1084,10 @@ const Timeline = {
 				var id = $(ui.helper).attr('id')
 
 				var clicked = Timeline.vue._data.keyframes.findInArray('uuid', id)
-				if (clicked) {
+				if (clicked && !clicked.selected) {
 					clicked.select()
 				}
-
-
-
+				clicked.dragging = true;
 
 				var i = 0;
 				for (var i = 0; i < Timeline.vue._data.keyframes.length; i++) {
@@ -1452,7 +1446,7 @@ BARS.defineActions(function() {
 		id: 'reset_keyframe',
 		icon: 'replay',
 		category: 'animation',
-		condition: () => Animator.open,
+		condition: () => Animator.open && Timeline.selected.length,
 		click: function () {
 			Undo.initEdit({keyframes: Timeline.selected, keep_saved: true})
 			Timeline.selected.forEach((kf) => {

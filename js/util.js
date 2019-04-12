@@ -81,7 +81,11 @@ var asyncLoop = function(o){
 	} 
 	async_loop();//init
 }
-//    1234567890qwertzuiopuasdfghjklyxcvbn
+Date.prototype.getTimestamp = function() {
+	var l2 = i => (i.toString().length === 1 ? '0'+i : i);
+	return l2(this.getHours()) + ':' + l2(this.getMinutes());
+}
+
 //Jquery
 $.fn.deepest = function() {
 	if (!this.length) return this;
@@ -249,6 +253,11 @@ Array.prototype.remove = function (item) { {
 }
 Array.prototype.empty = function() {
 	this.length = 0;
+	return this;
+}
+Array.prototype.purge = function() {
+	this.length = Math.clamp(this.length, 0, 1);
+	this.splice(0, 1)
 	return this;
 }
 Array.prototype.findInArray = function(key, value) {

@@ -4,6 +4,7 @@
 	<title>Blockbench</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="theme-color" content="#3e90ff">
+	<meta name="robots" content="noindex">
 	<link rel="shortcut icon" href="favicon.png" type="image/x-icon" />
 	<link rel="stylesheet" href="css/w3.css">
 	<link rel="stylesheet" href="css/jquery-ui.min.css">
@@ -19,7 +20,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '2.6.0';
+		const appVersion = '2.6.5';
 	</script>
 		<script src="lib/vue.min.js"></script>
 		<script src="lib/vue_sortable.js"></script>
@@ -355,7 +356,7 @@
 		<div class="dialog_bar">
 			<button type="button" onclick="scaleAll(true)" class="confirm_btn tl">dialog.scale.confirm</button>
 			<button type="button" class="cancel_btn tl" onclick="cancelScaleAll()">dialog.cancel</button>
-			<button type="button" class="hidden tl" id="scale_overflow_btn" onclick="scaleAllSelectOverflow()">dialog.scale.select_overflow</button>
+			<button type="button" class="minor hidden tl" id="scale_overflow_btn" onclick="scaleAllSelectOverflow()">dialog.scale.select_overflow</button>
 		</div>
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</div>
@@ -448,7 +449,6 @@
 			<input v-model="Project.name" type="text" id="project_name" v-on:focusout="syncGeometry()" class="dark_bordered input_wide">
 		</div>
 
-
 		<div class="dialog_bar narrow">
 			<label for="project_parent" class="tl">dialog.project.parent</label>
 		</div>
@@ -462,7 +462,6 @@
 			<input v-model="Project.ambientocclusion" type="checkbox" id="project_ambientocclusion">
 		</div>
 
-
 		<div class="dialog_bar narrow">
 			<label class="tl">dialog.project.texture_size</label>
 		</div>
@@ -473,10 +472,9 @@
 			<input v-model="Project.texture_height" type="number" id="project_texsize_y" class="dark_bordered mediun_width" min="1" value="32">
 		</div>
 
-
 		<div class="dialog_bar">
-			<button type="button" class="large tl confirm_btn cancel_btn" onclick="saveProjectSettings();hideDialog();">dialog.confirm</button>
-			<button type="button" class="large tl" id="entity_mode_convert" onclick="entityMode.convert()">dialog.project.to_entitymodel</button>
+			<button type="button" class="tl confirm_btn cancel_btn" onclick="saveProjectSettings();hideDialog();">dialog.confirm</button>
+			<button type="button" class="minor tl" id="entity_mode_convert" onclick="entityMode.convert()">dialog.project.to_entitymodel</button>
 		</div>
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</div>
@@ -488,6 +486,7 @@
 			<div class="tl tab" id="layout_settings" onclick="setSettingsTab('layout_settings')">dialog.settings.layout</div>
 			<div class="tl tab" id="credits" onclick="setSettingsTab('credits')">dialog.settings.about</div>
 		</div>
+
 		<div id="setting" class="tab_content">
 			<h2 class="tl i_b">dialog.settings.settings</h2>
 			<ul id="settingslist">
@@ -530,6 +529,7 @@
 				</li>
 			</ul>
 		</div>
+
 		<div id="keybindings" class="hidden tab_content">
 			<h2 class="tl i_b">dialog.settings.keybinds</h2>
 			<div class="bar next_to_title" id="keybinds_title_bar"></div>
@@ -553,6 +553,7 @@
 				</li>
 			</ul>
 		</div>
+
 		<div id="layout_settings" class="hidden tab_content">
 			<h2 class="tl i_b">dialog.settings.layout</h2>
 			<div class="bar next_to_title" id="layout_title_bar"></div>
@@ -700,6 +701,7 @@
 				<a class="open-in-browser" href="https://stuk.github.io/jszip/">JSZip</a>				
 			</p>
 		</div>
+
 		<div class="dialog_bar">
 			<button type="button" class="large confirm_btn cancel_btn tl" onclick="saveSettings()">dialog.close</button>
 		</div>
@@ -759,7 +761,7 @@
 					{{ item.name }}
 				</li>
 			</ul>
-			<div class="small_text" v-if="actions[index]">{{ actions[index].description }}</div>
+			<div class="small_text" v-if="actions[index]">{{ Pressing.alt ? actions[index].keybind.label : actions[index].description }}</div>
 		</div>
 	</div>
 
@@ -952,6 +954,20 @@
 			<ul id="cubes_list" class="list">
 				<vue-tree :option="option"></vue-tree>
 			</ul>
+		</div>
+		<div id="chat" class="panel grow">
+			<div class="bar next_to_title" id="chat_title_bar"></div>
+			<ul id="chat_history" v-if="expanded">
+				<li v-for="msg in history">
+					<b v-if="msg.showAuthor()" v-bind:class="{self: msg.self}">{{ msg.author }}:</b>
+					<span class="text" v-bind:style="{color: msg.hex || 'inherit'}">{{ msg.text }}</span>
+					<span class="timestamp">{{ msg.timestamp }}</span>
+				</li>
+			</ul>
+			<div id="chat_bar">
+				<input type="text" id="chat_input" class="dark_bordered f_left" maxlength="512">
+				<i class="material-icons" onclick="Chat.send()">send</i>
+			</div>
 		</div>
 	</div>
 	<div id="preview">

@@ -1427,6 +1427,7 @@ const BARS = {
 		BarItems.load_plugin.toElement('#plugins_header_bar')
 		BarItems.uv_dialog.toElement('#uv_title_bar')
 		BarItems.uv_dialog_full.toElement('#uv_title_bar')
+		BarItems.toggle_chat.toElement('#chat_title_bar')
 	},
 	setupVue: function() {
 		BARS.list = new Vue({
@@ -1606,6 +1607,10 @@ const ActionControl = {
 	},
 	handleKeys: function(e) {
 		var data = ActionControl.vue._data
+
+		if (e.altKey) {
+			ActionControl.vue.$forceUpdate()
+		}
 
 		if (e.which === 38) {
 			data.index--;
@@ -1992,6 +1997,8 @@ const MenuBar = {
 				'export_obj',
 				'upload_sketchfab'
 			]},
+			'export_bbmodel',
+			'export_asset_archive',
 			'save',
 			'_',
 			'settings_window',
@@ -2045,17 +2052,6 @@ const MenuBar = {
 			]}
 
 		], () => (!display_mode && !Animator.open))
-		new BarMenu('filter', [
-			'plugins_window',
-			'_',
-			/*
-			plaster
-			optimize
-			sort by transparency
-			entity / player model / shape generator
-			*/
-
-		])
 
 		new BarMenu('display', [
 			'copy',
@@ -2122,6 +2118,18 @@ const MenuBar = {
 				return presets;
 			}}
 		], () => display_mode)
+		
+		new BarMenu('filter', [
+			'plugins_window',
+			'_',
+			/*
+			plaster
+			optimize
+			sort by transparency
+			entity / player model / shape generator
+			*/
+
+		])
 
 		new BarMenu('animation', [
 			'copy',

@@ -16,7 +16,7 @@ var dialog_win	 = null,
 $(document).ready(function() {
 
 	//Setup
-	$('.open-in-browser').click((event) => {
+	$('.open-in-browser').on('click', (event) => {
 		event.preventDefault();
 		shell.openExternal(event.target.href);
 		return true;
@@ -376,9 +376,14 @@ function findBedrockAnimation() {
 	var animation_path = Prop.file_path.split(osfs)
 	var index = animation_path.lastIndexOf('models')
 	animation_path.splice(index)
-	animation_path = [...animation_path, 'animations', pathToName(Prop.file_path)+'.json'].join(osfs)
-	if (fs.existsSync(animation_path)) {
-		Blockbench.read([animation_path], {}, (files) => {
+	var path1 = [...animation_path, 'animations', pathToName(Prop.file_path)+'.json'].join(osfs)
+	var path2 = [...animation_path, 'animations', pathToName(Prop.file_path).replace('.geo', '')+'.animation.json'].join(osfs)
+	if (fs.existsSync(path1)) {
+		Blockbench.read([path1], {}, (files) => {
+			Animator.loadFile(files[0])
+		})
+	} else if (fs.existsSync(path2)) {
+		Blockbench.read([path2], {}, (files) => {
 			Animator.loadFile(files[0])
 		})
 	}
@@ -632,6 +637,7 @@ function closeBlockbenchWindow() {
 	preventClosing = false;
 	Blockbench.dispatchEvent('before_closing')
 	localStorage.removeItem('backup_model')
+	EditSession.quit()
 	
 	if (!Blockbench.hasFlag('update_restart')) {
 		return currentwindow.close();

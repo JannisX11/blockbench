@@ -612,8 +612,9 @@ class UVEditor {
 			}
 		}
 		this.grid = grid
+		var pixels = this.inner_size / this.grid;
 		if (Blockbench.entity_mode === false) {
-			this.jquery.size.resizable('option', 'grid', [this.getPixelSize(), this.getPixelSize()])
+			this.jquery.size.resizable('option', 'grid', [pixels, pixels])
 		}
 		if (load !== false) this.loadData()
 	}
@@ -685,7 +686,7 @@ class UVEditor {
 	}
 	save() {
 		var scope = this;
-		//Save UV from Frame to object!!
+		//Save UV from Frame to object
 
 		if (Blockbench.entity_mode) {
 
@@ -701,10 +702,11 @@ class UVEditor {
 			var trim = v => Math.round(v*1000+0.3)/1000;
 			var pixelSize = this.inner_size/16
 
-			var left = trim( this.jquery.size.position().left / pixelSize);
-			var top  = trim( this.jquery.size.position().top / pixelSize * (Project.texture_width/Project.texture_height));
-			var left2= Math.clamp(trim( Math.round(this.jquery.size.width()) / pixelSize + left), 0, 16);
-			var top2 = Math.clamp(trim( Math.round(this.jquery.size.height()) / pixelSize + top), 0, 16);
+			var position = this.jquery.size.position()
+			var left = trim( position.left / pixelSize);
+			var top  = trim( position.top / pixelSize * (Project.texture_width/Project.texture_height));
+			var left2= Math.clamp(trim( (this.jquery.size.width() + position.left) / pixelSize), 0, 16);
+			var top2 = Math.clamp(trim( (this.jquery.size.height() + position.top) / pixelSize), 0, 16);
 
 			var uvTag = this.getUVTag()
 
@@ -1518,7 +1520,11 @@ const uv_dialog = {
 		uv_dialog.updateSelection()
 	},
 	selectAll: function() {
-		uv_dialog.selection = ['north', 'south', 'west', 'east', 'up', 'down']
+		if (uv_dialog.selection.length === 6) {
+			uv_dialog.selection.empty()
+		} else {
+			uv_dialog.selection = uv_dialog.allFaces.slice()
+		}
 		uv_dialog.updateSelection()
 	},
 	selectNone: function() {
@@ -1626,7 +1632,7 @@ const uv_dialog = {
 		}
 		if (uv_dialog.single) {
 			var menu_gap = Blockbench.entity_mode ? 66 : 154
-			var editor_size = size.x
+			var editor_size = size.x-16
 			size.y = (size.y - menu_gap) * (Blockbench.entity_mode ? Project.texture_width/Project.texture_height : 1)
 			if (size.x > size.y) {
 				editor_size =  size.y
@@ -1794,6 +1800,15 @@ BARS.defineActions(function() {
 			}
 		}
 	})
+
+	new Action({
+		id: 'uv_select_all',
+		icon: 'view_module',
+		category: 'uv',
+		condition: () => open_dialog === 'uv_dialog',
+		click: uv_dialog.selectAll
+	})
+
 	new Action({
 		id: 'uv_maximize',
 		icon: 'zoom_out_map',

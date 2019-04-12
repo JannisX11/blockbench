@@ -64,18 +64,15 @@ function loadLanguage() {
 	$.ajax({
 		dataType: "json",
 		url: 'lang/'+Language+'.json',
-		//data: data,
 		//async: false, 
 		success: function(data) {
 			Language.data = data
-			translateUI()
+			if (!Language.loading_steps) {
+				Language.loading_steps = true;
+			} else {
+				translateUI()
+			}
 		}
 	});
-	/*
-	$.getJSON('lang/'+Language.code+'.json', function(data) {
-		Language.data = data
-		translateUI()
-	})
-	*/
 }
 loadLanguage()
