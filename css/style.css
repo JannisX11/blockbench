@@ -1785,9 +1785,11 @@
 		margin-top: -32px;
 		position: relative;
 		float: right;
+		pointer-events: none;
 	}
 	.panel .bar.next_to_title > .tool {
 		float: right;
+		pointer-events: initial;
 	}
 	#uv_size .ui-resizable-se:before,
 	#uv_size .ui-resizable-sw:before,
@@ -1836,9 +1838,11 @@
 		color: var(--color-text);
 		min-height: 81px;
 		max-height: 320px;
-		overflow-y: scroll;
 		padding: 5px;
 		font-size: 12pt;
+		overflow-y: scroll;
+		overflow-x: hidden;
+		word-break: break-word;
 	}
 	#chat_history li {
 		padding-top: 1px;
@@ -1863,6 +1867,7 @@
 		opacity: 0.6;
 		font-size: 0.8em;
 		float: right;
+		clear: both;
 	}
 	#chat_bar {
 		height: 32px;

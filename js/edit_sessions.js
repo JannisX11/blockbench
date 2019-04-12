@@ -171,16 +171,16 @@ const EditSession = {
 	sendAll: function(type, data) {
 		var tag = {type, data}
 		Blockbench.dispatchEvent('send_session_data', tag)
-		for (var id in EditSession.clients) {
-			var client = EditSession.clients[id];
-			if (client != EditSession.self) {
-				client.send({
+		for (var key in EditSession.peer.connections) {
+			var conns = EditSession.peer.connections[key];
+			conns.forEach(conn => {
+				conn.send({
 					type: tag.type,
 					fromHost: EditSession.hosting,
 					sender: EditSession.peer.id,
 					data: tag.data
-				})
-			}
+				});
+			})
 		}
 		if (Blockbench.hasFlag('log_session')) {
 			console.log('Sent Data:', type, data)

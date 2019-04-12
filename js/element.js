@@ -1941,7 +1941,7 @@ function renameOutliner(element) {
 	} else if (selected.length === 1 && !EditSession.active) {
 		selected[0].rename()
 
-	} else if (selected.length) {
+	} else {
 
 		if (selected_group && !element) {
 			Blockbench.textPrompt(tl('message.rename_cubes'), selected_group.name, function (name) {
