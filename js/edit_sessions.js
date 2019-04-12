@@ -335,7 +335,8 @@ Chat.Message = class {
 		this.author = this.author.substr(0, 64)
 		this.self = (this.author && this.author === EditSession.username);
 		this.text = data.text.substr(0, Chat.maxlength)||'';
-		this.timestamp = new Date.getTimestamp()
+		var date = new Date();
+		this.timestamp = date.getTimestamp()
 		this.toString = () => (this.author + ': ' + this.content);
 		//Color
 		this.color = data.color
