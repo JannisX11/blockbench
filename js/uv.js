@@ -1274,14 +1274,16 @@ class UVEditor {
 	}
 	paste(event) {
 		this.select()
-		Undo.initEdit({cubes: selected, uv_only: true})
 		if (uv_dialog.clipboard === null || selected.length === 0) return;
+
+		Undo.initEdit({cubes: selected, uv_only: true})
 		if (Blockbench.entity_mode) {
 			selected.forEach(function(obj) {
 				obj.uv_offset = uv_dialog.clipboard[0].uv.slice()
 				Canvas.updateUV(obj)
 			})
 			this.loadData()
+			Undo.finishEdit('uv paste')
 			return;
 		}
 
@@ -1327,7 +1329,7 @@ class UVEditor {
 		this.loadData()
 		Canvas.updateSelectedFaces()
 		this.message('uv_editor.pasted')
-		Undo.finishEdit('uv_paste')
+		Undo.finishEdit('uv paste')
 	}
 	reset(event) {
 		var scope = this;

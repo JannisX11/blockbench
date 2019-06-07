@@ -111,7 +111,7 @@ class Animation {
 		var scope = this;
 		Blockbench.textPrompt('message.animation_update_var', this.anim_time_update, function(name) {
 			if (name && name !== scope.anim_time_update) {
-				Undo.initEdit({animations: [this]})
+				Undo.initEdit({animations: [scope]})
 				scope.anim_time_update = name
 				Undo.finishEdit('change animation variable')
 			}
@@ -301,7 +301,9 @@ class BoneAnimator {
 		var bone = this.group.mesh
 		bone.position.copy(bone.fix_position)
 		if (arr) {
-			bone.position.add(new THREE.Vector3().fromArray(arr))
+			var offset = new THREE.Vector3().fromArray(arr);
+			offset.x *= -1;
+			bone.position.add(offset)
 		}
 		return this;
 	}
@@ -648,11 +650,8 @@ class Keyframe {
 			channel: this.channel_index,
 			time: this.time,
 			x: this.x,
-			//uuid: this.uuid
-		}
-		if (this.channel_index !== 2) {//Not Scale
-			copy.y = this.y
-			copy.z = this.z
+			y: this.y,
+			z: this.z,
 		}
 		if (this.channel_index === 0 && this.isQuaternion) {
 			copy.w = this.w
@@ -881,7 +880,7 @@ const Animator = {
 			var ani_tag = animations[a.name] = {}
 			if (a.loop) ani_tag.loop = true
 			if (a.length) ani_tag.animation_length = a.length
-			if (a.override) ani_tag.override = true
+			if (a.override) ani_tag.override_previous_animation = true
 			if (a.anim_time_update) ani_tag.anim_time_update = a.anim_time_update
 			ani_tag.bones = {}
 			for (var uuid in a.bones) {

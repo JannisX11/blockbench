@@ -667,7 +667,7 @@ class Cube extends OutlinerElement {
 					this.faces.north.rotation = rotateUVFace(this.faces.north.rotation, 1)
 					this.faces.south.rotation= rotateUVFace(this.faces.south.rotation, 3)
 
-					this.faces.up.rotation= rotateUVFace(this.faces.up.rotation, 1)
+					this.faces.up.rotation= rotateUVFace(this.faces.up.rotation, 3)
 					this.faces.east.rotation= rotateUVFace(this.faces.east.rotation, 3)
 					this.faces.west.rotation = rotateUVFace(this.faces.west.rotation, 3)
 					this.faces.down.rotation = rotateUVFace(this.faces.down.rotation, 3)

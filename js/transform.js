@@ -363,6 +363,9 @@ function cancelScaleAll() {
 		obj.to = obj.before.to
 		obj.origin = obj.before.origin
 		delete obj.before
+		if (Blockbench.entity_mode) {
+			Canvas.updateUV(obj)
+		}
 	})
 	if (Blockbench.entity_mode && selected_group) {
 		selected_group.forEachChild((g) => {

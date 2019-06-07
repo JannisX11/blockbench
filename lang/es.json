@@ -82,7 +82,6 @@
     "message.default_textures.message": "Selecciona la carpeta \"textures\" del Resource Pack por defecto",
     "message.default_textures.detail": "Extrae el paquete de texturas por defecto del Minecraft jar o búscalo en Google y descárgalo. Después busca la carpeta \"textures\" y ábrela. Blockbench recordará esa localización y tratará de extraer las texturas desde ahí si no las puede encontrar en el paquete de texturas actual.",
     "message.default_textures.select": "Selecciona la carpeta \"textures\" por defecto",
-    "message.default_textures.continue": "Continuar",
     "message.default_textures.remove": "Borrar",
     "message.image_editor.title": "Selecciona un editor de imágenes",
     "message.image_editor.file": "Seleccionar archivo...",
@@ -818,7 +817,7 @@
     "action.open_backup_folder.desc": "Abre la carpeta de backups de Blockbench",
     "switches.mirror": "Invertir UV",
     "Name of the Language you are editing, NOT English": {
-        "language_name": "English"
+        "language_name": "Español"
     },
     "message.plugin_reload": "Recargados %0 plugins locales",
     "settings.brightness": "Brillo",
@@ -902,12 +901,12 @@
     "edit_session.status": "Estado",
     "edit_session.hosting": "Anfitrión",
     "edit_session.connected": "Conectado a una sesión",
-    "dialog.sketchfab_uploader.private": "Private (Pro)",
-    "dialog.sketchfab_uploader.password": "Password (Pro)",
-    "action.toggle_chat": "Toggle Chat",
-    "action.toggle_chat.desc": "Toggle the visibility of the chat history",
-    "action.uv_select_all": "Select All",
-    "action.uv_select_all.desc": "Select all faces in the UV dialog",
+    "dialog.sketchfab_uploader.private": "Privado (Pro)",
+    "dialog.sketchfab_uploader.password": "Contraseña (Pro)",
+    "action.toggle_chat": "Cambiar Chat",
+    "action.toggle_chat.desc": "Cambia la visibilidad del historial del chat",
+    "action.uv_select_all": "Seleccionar Todos",
+    "action.uv_select_all.desc": "Selecciona todas las caras en el diálogo del UV",
     "panel.chat": "Chat",
-    "edit_session.welcome": "Welcome to this session by %0"
+    "edit_session.welcome": "Bienvenido a esta sesión por %0"
 }

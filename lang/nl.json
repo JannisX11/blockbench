@@ -82,7 +82,6 @@
     "message.default_textures.message": "Selecteer de \"textures\"-map van het standaard resource pack",
     "message.default_textures.detail": "Pak de standaard resource pack van de Minecraft jar uit of google en download het. Zoek de \"textures\"-map en open hem. Blockbench zal de locatie onthouden en daar afbeeldingen uit halen als ze niet in de huidige resource pack te vinden zijn.",
     "message.default_textures.select": "Selecteer de standaard \"textures\"-map",
-    "message.default_textures.continue": "Doorgaan",
     "message.default_textures.remove": "Verwijderen",
     "message.image_editor.title": "Selecteer een afbeelding-bewerker",
     "message.image_editor.file": "Selecteer Bestand...",
@@ -818,7 +817,7 @@
     "action.open_backup_folder.desc": "Opens the Blockbench backup folder",
     "switches.mirror": "Mirror UV",
     "Name of the Language you are editing, NOT English": {
-        "language_name": "Français"
+        "language_name": "Nederlands"
     },
     "message.plugin_reload": "Reloaded %0 local plugins",
     "settings.brightness": "Brightness",

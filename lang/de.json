@@ -82,7 +82,6 @@
     "message.default_textures.message": "Wähle den \"textures\" Ordner deines Ressourcenpakets",
     "message.default_textures.detail": "Extrahiere das Standard-Ressourcenpaket aus der Minecraft .jar oder lade es aus dem Internet herunder. Finde dann den \"textures\" Ordner und öffne diesen. Blockbench merkt sich diesen Ordner und greift in Zukunft darauf zurück, wenn es die Texturen nicht anderweitig finden kann.",
     "message.default_textures.select": "Ordner auswählen",
-    "message.default_textures.continue": "Fortfahren",
     "message.default_textures.remove": "Entfernen",
     "message.image_editor.title": "Wähle ein Bildbearbeitungsprogramm",
     "message.image_editor.file": "Datei auswählen...",

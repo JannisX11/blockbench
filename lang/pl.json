@@ -82,7 +82,6 @@
     "message.default_textures.message": "Wybierz folder \"textures\" w domyślnym resource packu",
     "message.default_textures.detail": "Wyciągnij domyślny resource pack z pliku .jar Minecrafta albo wygoogluj i ściągnij go. Potem, znajdź folder \"textures\" i otwórz go. Blockbench zapamięta to miejsce i weźmie stamtąd tekstury, jeżeli nie znajdzie ich w aktualnym resource packu.",
     "message.default_textures.select": "Wybierz domyślny folder \"textures\"",
-    "message.default_textures.continue": "Kontynuuj",
     "message.default_textures.remove": "Usuń",
     "message.image_editor.title": "Wybierz edytor obrazów",
     "message.image_editor.file": "Wybierz plik...",

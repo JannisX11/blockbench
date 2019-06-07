@@ -21,7 +21,10 @@ $(document).ready(function() {
 		shell.openExternal(event.target.href);
 		return true;
 	});
-	Prop.zoom = 100 + currentwindow.webContents._getZoomLevel()*12
+	try {
+		Prop.zoom = 100 + currentwindow.webContents.getZoomLevel()*12
+	} catch (err) {}
+
 	if (fs.existsSync(app.getPath('userData')+osfs+'backups') === false) {
 		fs.mkdirSync( app.getPath('userData')+osfs+'backups')
 	}
@@ -393,13 +396,20 @@ function findBedrockAnimation() {
 function saveFile(props) {
 	if (Prop.file_path) {
 		var extension = pathToExtension(Prop.file_path)
-		if (Blockbench.entity_mode === false) {
+		if (extension == 'json') {
+			if (Blockbench.entity_mode === false) {
+				Blockbench.writeFile(Prop.file_path, {
+					project_file: true,
+					content: buildBlockModel()
+				})
+			} else {
+				writeFileEntity(buildEntityModel({raw: true}), Prop.file_path)
+			}
+		} else if (extension == 'bbmodel') {
 			Blockbench.writeFile(Prop.file_path, {
 				project_file: true,
-				content: buildBlockModel()
+				content: buildBBModel()
 			})
-		} else {
-			writeFileEntity(buildEntityModel({raw: true}), Prop.file_path)
 		}
 	} else {
 		if (Blockbench.entity_mode === false) {

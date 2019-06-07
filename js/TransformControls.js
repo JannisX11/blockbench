@@ -1082,6 +1082,9 @@
 				if (value !== previousValue && Animator.selected && Animator.selected.getBoneAnimator()) {
 					beforeFirstChange(event)
 					var difference = value - (previousValue||0)
+					if (axis == 'x' && Toolbox.selected.id === 'move_tool') {
+						difference *= -1
+					}
 
 					scope.keyframe.offset(axis, difference);
 					scope.keyframe.select()
