@@ -65,7 +65,8 @@
 		"linux": {
 			"artifactName": "${productName}_${version}.${ext}",
 			"target": [
-				"deb"
+				"deb",
+				"rpm"
 			],
 			"category": "3DGraphics"
 		}
