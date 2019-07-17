@@ -12,6 +12,10 @@ function createWindow(second_instance) {
 		icon:'icon.ico',
 		show: false,
 		backgroundColor: '#21252b',
+		frame: false,
+		titleBarStyle: 'hidden',
+		minWidth: 640,
+		minHeight: 480,
 		webPreferences: {
 			//experimentalFeatures: true,
 			webgl: true,
@@ -32,32 +36,36 @@ function createWindow(second_instance) {
 				} 
 			}] 
 		}, { 
-			label: 'Edit', 
-			submenu: [{ 
-				label: 'Cut', 
-				accelerator: 'CmdOrCtrl+X', 
-				selector: 'cut:' 
-			}, { 
-				label: 'Copy', 
-				accelerator: 'CmdOrCtrl+C', 
+			label: 'Edit',
+			submenu: [{
+				label: 'Cut',
+				accelerator: 'CmdOrCtrl+X',
+				selector: 'cut:'
+			}, {
+				label: 'Copy',
+				accelerator: 'CmdOrCtrl+C',
 				selector: 'copy:'
-			}, { 
-				label: 'Paste', 
-				accelerator: 'CmdOrCtrl+V', 
-				selector: 'paste:' 
-			}, { 
-				label: 'Select All', 
-				accelerator: 'CmdOrCtrl+A', 
-				selector: 'selectAll:' 
-			}] 
+			}, {
+				label: 'Paste',
+				accelerator: 'CmdOrCtrl+V',
+				selector: 'paste:'
+			}, {
+				label: 'Select All',
+				accelerator: 'CmdOrCtrl+A',
+				selector: 'selectAll:'
+			}]
 		}]
 		var osxMenu = Menu.buildFromTemplate(template);
 		Menu.setApplicationMenu(osxMenu)
 	} else {
 		win.setMenu(null);
 	}
+	
 	win.maximize()
-	win.show()
+	win.webContents.on('dom-ready', () => {
+		//win.maximize()
+	})
+
 	win.loadURL(url.format({
 		pathname: index_path,
 		protocol: 'file:',

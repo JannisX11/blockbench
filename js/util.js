@@ -19,13 +19,13 @@ function compareVersions(string1/*new*/, string2/*old*/) {
 	return false;
 }
 function useBedrockFlipFix(axis) {
-	if (Blockbench.entity_mode === false) return false;
+	if (Format.bone_rig === false) return false;
 	if (typeof axis === 'string') {
 		axis = getAxisNumber(axis)
 	}
 	var group;
-	if (selected_group) {
-			var group = selected_group
+	if (Group.selected) {
+			var group = Group.selected
 	} else {
 		var i = 0;
 		while (i < selected.length) {
@@ -149,6 +149,12 @@ Math.isBetween = function(n, a, b) {
 Math.trimDeg = function(a) {
 	return (a+180*15)%360-180
 }
+Math.isPowerOfTwo = function(x) {
+	return (x > 1) && ((x & (x - 1)) == 0);
+}
+Math.randomab = function(a, b) {
+	return a + Math.random()*(b-a);
+}
 function trimFloatNumber(val) {
 	if (val == '') return val;
 	var string = val.toFixed(4)
@@ -216,6 +222,35 @@ function doRectanglesOverlap(rect1, rect2) {
 	return true;
 }
 
+//Date
+Number.prototype.toDigitString = function(digits) {
+	if (!digits) digits = 1;
+	var s = this.toString();
+	var l = s.length
+	for (var i = 0; i < (digits-l); i++) {
+		s = '0'+s;
+	}
+	return s;
+}
+Date.prototype.getDateArray = function() {
+	return [
+		this.getDate(),
+		this.getMonth()+1,
+		this.getYear()+1900
+	];
+}
+Date.prototype.getDateString = function() {
+	var a = this.getDateArray();
+	return `${a[0].toDigitString(2)}.${a[1].toDigitString(2)}.${a[2]}`;
+}
+Date.prototype.dayOfYear = function() {
+	var start = new Date(this.getFullYear(), 0, 0);
+	var diff = this - start;
+	var oneDay = 1000 * 60 * 60 * 24;
+	return Math.floor(diff / oneDay);
+
+}
+
 //Array
 Array.prototype.safePush = function(item) {
 	if (!this.includes(item)) {
@@ -225,22 +260,22 @@ Array.prototype.safePush = function(item) {
 	return false;
 }
 Array.prototype.equals = function (array) {
-		if (!array)
-				return false;
+	if (!array)
+			return false;
 
-		if (this.length != array.length)
-				return false;
+	if (this.length != array.length)
+			return false;
 
-		for (var i = 0, l=this.length; i < l; i++) {
-				if (this[i] instanceof Array && array[i] instanceof Array) {
-						if (!this[i].equals(array[i]))
-								return false;			 
-				}					 
-				else if (this[i] != array[i]) { 
-						return false;	 
-				}					 
-		}			 
-		return true;
+	for (var i = 0, l=this.length; i < l; i++) {
+			if (this[i] instanceof Array && array[i] instanceof Array) {
+					if (!this[i].equals(array[i]))
+							return false;			 
+			}					 
+			else if (this[i] != array[i]) { 
+					return false;	 
+			}					 
+	}			 
+	return true;
 }
 Array.prototype.remove = function (item) { {
 	var index = this.indexOf(item)
@@ -266,6 +301,9 @@ Array.prototype.findInArray = function(key, value) {
 	}
 	return false;
 }
+Array.prototype.last = function() {
+	return this[this.length-1];
+}
 Array.prototype.positiveItems = function() {
 	var x = 0, i = 0;
 	while (i < this.length) {
@@ -286,6 +324,12 @@ Array.prototype.allEqual = function(s) {
 }
 Array.prototype.random = function() {
 	return this[Math.floor(Math.random()*this.length)]
+}
+Array.prototype.forEachReverse = function(cb) {
+	var i = this.length;
+	for (var i = this.length-1; i >= 0; i--) {
+		cb(this[i], i);
+	}
 }
 
 //Object
@@ -373,6 +417,11 @@ var Merge = {
 		if (source[index] !== undefined) {
 			obj[index] = source[index]
 		}
+	},
+	function: function(obj, source, index) {
+		if (typeof source[index] === 'function') {
+			obj[index] = source[index]
+		}
 	}
 }
 
@@ -394,12 +443,6 @@ function pathToName(path, extension) {
 	var path_array = path.split('/').join('\\').split('\\')
 	if (extension === true) {
 		return path_array[path_array.length-1]
-	} else if (extension === 'mobs_id') {
-		var name = path_array[path_array.length-1].split('.').slice(0, -1).join('.')
-		if (name === 'mobs' && path_array[path_array.length-3]) {
-			name = name + ' (' + path_array[path_array.length-3].substr(0,8) + '...)'
-		}
-		return name
 	} else {
 		return path_array[path_array.length-1].replace(/\.\w+$/, '')
 	}

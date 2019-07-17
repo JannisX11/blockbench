@@ -1,15 +1,13 @@
-class BBPainter {
-	constructor() {
-		this.color = 0x0000ffff
-		this.currentPixel = [-1, -1]
-		this.brushChanges = false
-		this.current = {/*texture, image*/}
-		this.background_color = new ColorPicker({
-			id: 'background_color',
-			label: true,
-			private: true,
-		})
-	}
+const Painter = {
+	color: 0x0000ffff,
+	currentPixel: [-1, -1],
+	brushChanges: false,
+	current: {/*texture, image*/},
+	background_color: new ColorPicker({
+		id: 'background_color',
+		label: true,
+		private: true,
+	}),
 	edit(texture, cb, options) {
 		if (!options.no_undo) {
 			Undo.initEdit({textures: [texture], bitmap: true})
@@ -68,9 +66,23 @@ class BBPainter {
 				}
 			}
 		}
-	}
+	},
+
+	setAlphaMatrix(tex, x, y, val) {
+		if (!Painter.current.alpha_matrix) Painter.current.alpha_matrix = {}
+		var mx = Painter.current.alpha_matrix;
+		if (!mx[tex.uuid]) mx[tex.uuid] = {};
+		if (!mx[tex.uuid][x]) mx[tex.uuid][x] = {};
+		mx[tex.uuid][x][y] = val
+	},
+	getAlphaMatrix(tex, x, y) {
+		return Painter.current.alpha_matrix
+			&& Painter.current.alpha_matrix[tex.uuid]
+			&& Painter.current.alpha_matrix[tex.uuid][x]
+			&& Painter.current.alpha_matrix[tex.uuid][x][y];
+	},
+
 	startBrushCanvas(data, event) {
-		Painter.current.x = Painter.current.y = 0
 		Painter.current.face = data.face;
 		Painter.current.cube = data.cube;
 		var texture = data.cube.faces[data.face].getTexture()
@@ -86,15 +98,15 @@ class BBPainter {
 			document.addEventListener('mousemove', Painter.moveBrushCanvas, false );
 			document.addEventListener('mouseup', Painter.stopBrushCanvas, false );
 		}
-	}
+	},
 	moveBrushCanvas(force) {
 		var data = Canvas.raycast()
 		if (data) {
 			var texture = data.cube.faces[data.face].getTexture()
 			if (texture) {
 				var x, y, new_face;
-				var end_x = x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth )
-				var end_y = y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight )
+				x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth )
+				y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight )
 				if (x === Painter.current.x && y === Painter.current.y) {
 					return
 				}
@@ -108,43 +120,53 @@ class BBPainter {
 						Undo.current_save.addTexture(texture)
 					}
 				}
-				var diff = {
-					x: x - (Painter.current.x||x),
-					y: y - (Painter.current.y||y),
-				}
-				var length = Math.sqrt(diff.x*diff.x + diff.y*diff.y)
-				if (new_face && !length) {
-					length = 1
-				}
-				var i = 0;
-				while (i < length) {
-					x = end_x - diff.x / length * i
-					y = end_y - diff.y / length * i
-					Painter.useBrush(texture, x, y, data.cube.faces[data.face].uv, i < length-1)
-					i++;
-				}
-
-				Painter.current.x = end_x
-				Painter.current.y = end_y
+				Painter.drawBrushLine(texture, x, y, new_face, data.cube.faces[data.face].uv)
 			}
 		}
-	}
+	},
+	drawBrushLine(texture, end_x, end_y, new_face, uv) {
+		var x = end_x;
+		var y = end_y;
+		var diff = {
+			x: x - (Painter.current.x||x),
+			y: y - (Painter.current.y||y),
+		}
+		var length = Math.sqrt(diff.x*diff.x + diff.y*diff.y)
+		if (new_face && !length) {
+			length = 1
+		}
+		var i = 0;
+		while (i < length) {
+			x = Math.round(end_x - diff.x / length * i)
+			y = Math.round(end_y - diff.y / length * i)
+			Painter.useBrush(texture, x, y, uv, i < length-1)
+			i++;
+		}
+
+		Painter.current.x = end_x;
+		Painter.current.y = end_y;
+	},
 	stopBrushCanvas() {
 		document.removeEventListener( 'mousemove', Painter.moveBrushCanvas, false );
 		document.removeEventListener( 'mouseup', Painter.stopBrushCanvas, false );
 		Painter.stopBrush()
-	}
+	},
 	startBrush(texture, x, y, uvTag, event) {
-		if (Toolbox.selected.id !== 'color_picker') {
-			Undo.initEdit({textures: [texture], bitmap: true})
-			Painter.brushChanges = false
-			Painter.useBrush(texture, x, y, uvTag)
-			Painter.current.x = x;
-			Painter.current.y = y;
-		} else {
+		if (Toolbox.selected.id === 'color_picker') {
 			Painter.colorPicker(texture, x, y)
+		} else {
+			Undo.initEdit({textures: [texture], bitmap: true});
+			Painter.brushChanges = false;
+			if (event.shiftKey) {
+				Painter.drawBrushLine(texture, x, y);
+			} else {
+				Painter.current.x = Painter.current.y = 0
+				Painter.useBrush(texture, x, y, uvTag)
+				Painter.current.x = x;
+				Painter.current.y = y;
+			}
 		}
-	}
+	},
 	getCanvas(texture) {
 		var c = document.createElement('canvas')
 		var ctx = c.getContext('2d');
@@ -152,7 +174,7 @@ class BBPainter {
 		c.height = texture.img.naturalHeight;
 		ctx.drawImage(texture.img, 0, 0)
 		return c;
-	}
+	},
 	colorPicker(texture, x, y) {
 		var ctx = Painter.getCanvas(texture).getContext('2d')
 		Painter.scanCanvas(ctx, x, y, 1, 1, (x, y, px) => {
@@ -164,7 +186,7 @@ class BBPainter {
 			})
 			ColorPanel.set(t)
 		})
-	}
+	},
 	useBrush(texture, x, y, uvTag, no_update) {
 		if ((Painter.currentPixel[0] !== x || Painter.currentPixel[1] !== y)) {
 			Painter.currentPixel = [x, y]
@@ -176,10 +198,11 @@ class BBPainter {
 
 				var color = ColorPanel.get().toRgb();//.toRgbString()
 				var size = BarItems.slider_brush_size.get();
-				var softness = BarItems.slider_brush_softness.get()/100;
-				var b_opacity = BarItems.slider_brush_opacity.get()/100;
-				var tool = Toolbox.selected.id;
-				var noise = BarItems.brush_mode.get() == 'noise';
+				let softness = BarItems.slider_brush_softness.get()/100;
+				let b_opacity = BarItems.slider_brush_opacity.get()/100;
+				let m_opacity = BarItems.slider_brush_min_opacity.value/100;
+				let tool = Toolbox.selected.id;
+				let noise = BarItems.brush_mode.get() == 'noise';
 
 				ctx.beginPath();
 				if (uvTag) {
@@ -271,29 +294,39 @@ class BBPainter {
 					ctx.clip()
 
 					if (tool === 'brush_tool') {
-						Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity) {
-							var result_color = Painter.combineColors(pxcolor, color, opacity*b_opacity*(noise?Math.random():1));
+						Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity, px, py) {
+							var a = noise
+								  ? Math.randomab(m_opacity, b_opacity) * opacity
+								  : b_opacity * opacity;
+							var before = Painter.getAlphaMatrix(texture, px, py)
+							Painter.setAlphaMatrix(texture, px, py, a);
+							if (before) a = Math.clamp(a-before, 0, 1);
+							var result_color = Painter.combineColors(pxcolor, color, a);
 							return result_color;
 						})
 					} else if (tool === 'eraser') {
 						Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity) {
-							return {r: pxcolor.r, g: pxcolor.g, b: pxcolor.b, a: pxcolor.a*(1-b_opacity*opacity*(noise?Math.random():1))};
+							var a = noise
+								  ? Math.randomab(m_opacity, b_opacity)
+								  : b_opacity;
+							return {r: pxcolor.r, g: pxcolor.g, b: pxcolor.b, a: pxcolor.a*(1-a)};
 						})
 					}
 					ctx.restore();
 				}
 				Painter.editing_area = undefined;
 
-			}, {method: 'canvas', no_undo: true, use_cache: true, no_update: no_update});
+			}, {method: 'canvas', no_undo: true, use_cache: true, no_update});
 		}
-	}
+	},
 	stopBrush() {
 		if (Painter.brushChanges) {
 			Undo.finishEdit('paint');
 			Painter.brushChanges = false;
 		}
+		delete Painter.current.alpha_matrix;
 		Painter.currentPixel = [-1, -1];
-	}
+	},
 	combineColors(base, added, opacity) {
 		if (typeof base === 'number') base = Jimp.intToRGBA(base)
 		if (typeof added === 'number') added = Jimp.intToRGBA(added)
@@ -309,7 +342,13 @@ class BBPainter {
 
 		added.a = original_a
 		return mix;
-	}
+	},
+	updateNslideValues() {
+		BarItems.slider_brush_size.update()
+		BarItems.slider_brush_softness.update()
+		BarItems.slider_brush_opacity.update()
+		BarItems.slider_brush_min_opacity.update()
+	},
 	scanCanvas(ctx, x, y, w, h, cb) {
 		var arr = ctx.getImageData(x, y, w, h)
 		for (var i = 0; i < arr.data.length; i += 4) {
@@ -324,7 +363,7 @@ class BBPainter {
 			})
 		}
 		ctx.putImageData(arr, x, y)
-	}
+	},
 	drawRectangle(image, color, rect) {
 		var color = Jimp.intToRGBA(color)
 		image.scan(rect.x, rect.y, rect.w, rect.h, function (x, y, idx) {
@@ -333,7 +372,7 @@ class BBPainter {
 			this.bitmap.data[idx + 2] = color.b
 			this.bitmap.data[idx + 3] = color.a
 		});
-	}
+	},
 	editFace(image, x, y, editPx) {
 		var x = Math.floor(Painter.editing_area[0]-0.5)
 		var y = Math.floor(Painter.editing_area[1]-0.5)
@@ -372,7 +411,7 @@ class BBPainter {
 			this.bitmap.data[idx+3] = result_color.a*255
 
 		});
-	}
+	},
 	editCircle(ctx, x, y, r, s, editPx) {
 		r = Math.round(r)
 
@@ -418,14 +457,14 @@ class BBPainter {
 					g: pixel[1],
 					b: pixel[2],
 					a: pixel[3]/255
-				}, opacity)
+				}, opacity, px+x, py+y)
 				pixel[0] = result_color.r
 				pixel[1] = result_color.g
 				pixel[2] = result_color.b
 				pixel[3] = result_color.a*255
 			}
 		});
-	}
+	},
 	drawRotatedRectangle(image, color, rect, cx, cy, angle) {
 		var color = Jimp.intToRGBA(color)
 		var sin = Math.sin(-Math.degToRad(angle))
@@ -460,62 +499,54 @@ class BBPainter {
 				this.bitmap.data[idx + 3] = color.a*opacity
 			}
 		})
-	}
+	},
 	addBitmapDialog() {
 		var dialog = new Dialog({
 			id: 'add_bitmap',
 			title: tl('dialog.create_texture.title'),
 			form: {
-				bitmap_name: 			{label: 'dialog.create_texture.name'},
-				bitmap_folder: 			{label: 'dialog.create_texture.folder'},
-				bitmap_doTemplate: 		{label: 'dialog.create_texture.template', type: 'checkbox', condition: elements.length},
-				bitmap_compressTemplate: {label: 'dialog.create_texture.compress', type: 'checkbox'},
-				bitmap_power: {label: 'dialog.create_texture.power', type: 'checkbox', value: true},
-				background_color: {type: 'color', colorpicker: Painter.background_color},
-				bitmap_resolution: 		{label: 'dialog.create_texture.resolution', type: 'number', value: 16},
+				name: 			{label: 'dialog.create_texture.name', value: 'texture'},
+				folder: 		{label: 'dialog.create_texture.folder'},
+				entity_template:{label: 'dialog.create_texture.template', type: 'checkbox', condition: elements.length},
+				compress: 		{label: 'dialog.create_texture.compress', type: 'checkbox', value: true},
+				power: 			{label: 'dialog.create_texture.power', type: 'checkbox', value: true},
+				double_use: 	{label: 'dialog.create_texture.double_use', type: 'checkbox', value: true, condition: Project.box_uv},
+				color: 			{type: 'color', colorpicker: Painter.background_color},
+				resolution: 	{label: 'dialog.create_texture.resolution', type: 'number', value: 16, min: 16, max: 2048},
 			},
 			onConfirm: function(results) {
-
-				Painter.addBitmap({
-					res: limitNumber(results.bitmap_resolution, 16, 2048),
-					color: results.background_color,
-					name: results.bitmap_name,
-					folder: results.bitmap_folder,
-					particle: 'auto',
-					entity_template: results.bitmap_doTemplate,
-					compress: results.bitmap_compressTemplate,
-					power: results.bitmap_power
-				})
+				results.particle = 'auto';
+				Painter.addBitmap(results)
 				dialog.hide()
 			}
 		}).show()
-		$('#bitmap_compressTemplate, #bitmap_power').parent().hide()
+		$('#add_bitmap #compress, #add_bitmap #power, #add_bitmap #double_use').parent().hide()
 
-		$('.dialog#add_bitmap input#bitmap_doTemplate').click(function() {
-			var checked = $('.dialog#add_bitmap input#bitmap_doTemplate').is(':checked')
-			$('#bitmap_compressTemplate, #bitmap_power').parent()[ checked ? 'show' : 'hide' ]()
+		$('.dialog#add_bitmap input#entity_template').click(function() {
+			var checked = $('.dialog#add_bitmap input#entity_template').is(':checked')
+			$('#add_bitmap #compress, #add_bitmap #power, #add_bitmap #double_use').parent()[ checked ? 'show' : 'hide' ]()
 			if (Painter.background_color.get().toHex8() === 'ffffffff') {
 				Painter.background_color.set('#00000000')
 			}
 		})
-	}
+	},
 	addBitmap(options, after) {
 		if (typeof options !== 'object') {
 			options = {}
 		}
-		if (isNaN(options.res) || !options.res) {
-			options.res = 16
+		if (isNaN(options.resolution) || !options.resolution) {
+			options.resolution = 16
 		}
 		if (options.color === undefined) {
 			options.color = new tinycolor().toRgb()
 		}
-		if (Blockbench.entity_mode) {
+		if (Format.single_texture) {
 			options.texture = textures[0]
 		}
 		var texture = new Texture({
 			mode: 'bitmap',
 			keep_size: true,
-			res: options.res,
+			res: options.resolution,
 			name: options.name ? options.name : 'texture',
 			folder: options.folder ? options.folder : 'blocks'
 		})
@@ -539,17 +570,17 @@ class BBPainter {
 		}
 		if (options.entity_template === true) {
 			Undo.initEdit({
-				textures: Blockbench.entity_mode ? textures : [],
-				cubes: Blockbench.entity_mode ? elements : selected,
+				textures: Format.single_texture ? textures : [],
+				elements: Format.single_texture ? elements : selected,
 				uv_only: true,
 				resolution: true
 			})
 			Painter.generateTemplate(options, makeTexture)
 		} else {
 			Undo.initEdit({textures: []})
-			Painter.generateBlank(options.res, options.res, options.color, makeTexture)
+			Painter.generateBlank(options.resolution, options.resolution, options.color, makeTexture)
 		}
-	}
+	},
 	generateBlank(height, width, color, cb) {
 		var canvas = document.createElement('canvas')
 		canvas.width = width;
@@ -560,36 +591,49 @@ class BBPainter {
 		ctx.fillRect(0, 0, width, height)
 
 		cb(canvas.toDataURL())
-	}
+	},
 	generateTemplate(options, cb) {
-		var res = options.res
-		var background_color = options.color
-		var texture = options.texture
+		var res = options.resolution;
+		var background_color = options.color;
+		var texture = options.texture;
+		var min_size = Project.box_uv ? 0 : 1;
 		function cubeTempl(obj) {
-			var min = Blockbench.entity_mode ? 0 : 1
-			this.x = obj.size(0, true) || min
-			this.y = obj.size(1, true) || min
-			this.z = obj.size(2, true) || min
-			this.obj = obj
-			this.template_size = (obj.size(2, true) + obj.size(1, true)) + (obj.size(2, true) + obj.size(0, true))*2
+			this.x = obj.size(0, true) || min_size;
+			this.y = obj.size(1, true) || min_size;
+			this.z = obj.size(2, true) || min_size;
+			this.obj = obj;
+			this.template_size = (obj.size(2, true) + obj.size(1, true))+ (obj.size(2, true) + obj.size(0, true))*2;
 
-			this.height = this.z + this.y
-			this.width = 2* (this.x + this.z)
+			this.height = this.z + this.y;
+			this.width = 2* (this.x + this.z);
 			return this;
 		}
 
 		var res_multiple = res / 16
-		var templates = []
+		var templates = [];
+		var doubles = {};
 		var extend_x = 0;
 		var extend_y = 0;
 		var avg_size = 0;
-		var cubes = Blockbench.entity_mode ? elements.slice() : selected.slice()
+		var cubes = Format.single_texture ? elements.slice() : selected.slice()
 
 		var i = cubes.length-1
 		while (i >= 0) {
 			let obj = cubes[i]
 			if (obj.visibility === true) {
-				templates.push(new cubeTempl(obj))
+				var template = new cubeTempl(obj)
+				if (options.double_use && Project.box_uv) {
+					var double_key = [...obj.uv_offset, ...obj.size(undefined, true)].join('_')
+					if (doubles[double_key]) {
+						doubles[double_key].push(template)
+						doubles[double_key][0].duplicates = doubles[double_key];
+						i--;
+						continue;
+					} else {
+						doubles[double_key] = [template]
+					}
+				}
+				templates.push(template)
 				avg_size += templates[templates.length-1].template_size
 			}
 			i--;
@@ -651,7 +695,7 @@ class BBPainter {
 				var vert = extend_x > extend_y;
 				//Scan for empty spot
 				for (var line = 0; line < 2e3; line++) {	
-					for (var x = 0; x < line; x++) {
+					for (var x = 0; x <= line; x++) {
 						if (place(tpl, x, line)) return;
 					}
 					for (var y = 0; y < line; y++) {
@@ -728,7 +772,6 @@ class BBPainter {
 
 		
 		function drawTemplateRectangle(border_color, color, face, coords) {
-			//if (!Blockbench.entity_mode && face && face.texture === null) return;
 			if (typeof background_color === 'string') {
 				border_color = background_color
 				color = undefined
@@ -740,23 +783,24 @@ class BBPainter {
 				coords.w*res_multiple,
 				coords.h*res_multiple
 			)
-			if (coords.w <= 2 || coords.h <= 2 || !color) return;
+			if (coords.w*res_multiple > 2 && coords.h*res_multiple > 2 && color) {
+				ctx.fillStyle = color
+				ctx.fillRect(
+					coords.x * res_multiple + 1,
+					coords.y * res_multiple + 1,
+					coords.w * res_multiple - 2,
+					coords.h * res_multiple - 2
+				)
+			}
 
-			ctx.fillStyle = color
-			ctx.fillRect(
-				coords.x * res_multiple + 1,
-				coords.y * res_multiple + 1,
-				coords.w * res_multiple - 2,
-				coords.h * res_multiple - 2
-			)
 		}
 		function drawTexture(face, coords) {
-			if (!Blockbench.entity_mode) {
+			if (!Format.single_texture) {
 				if (face.texture === undefined || face.texture === null) return false;
 				texture = face.getTexture()
 			}
 			if (!texture || !texture.img) return false;
-			
+
 			ctx.save()
 			var uv = face.uv.slice();
 
@@ -827,8 +871,20 @@ class BBPainter {
 			obj.uv_offset[0] = t.posx
 			obj.uv_offset[1] = t.posy
 
-			if (!Blockbench.entity_mode) {
+			if (t.duplicates) {
+				t.duplicates.forEach(t_2 => {
+					t_2.obj.uv_offset[0] = t.posx;
+					t_2.obj.uv_offset[1] = t.posy;
+				})
+			} else {
+				obj.mirror_uv = false
+			}
+
+			if (!Project.box_uv) {
 				var size = obj.size(undefined, true)
+				size.forEach((n, i) => {
+					size[i] = n || min_size;
+				})
 				
 				var face_list = [   
 					{face: 'north', fIndex: 10,	from: [size[2], size[2]],			 	size: [size[0],  size[1]]},
@@ -846,32 +902,29 @@ class BBPainter {
 					obj.faces[f.face].uv[3] = (f.from[1] + f.size[1] + 	Math.floor(obj.uv_offset[1]+0.0000001)) / max_size * 16;
 					obj.faces[f.face].rotation = 0;
 				})
-			} else {
-				obj.mirror_uv = false
 			}
 		})
 		var dataUrl = canvas.toDataURL()
 		var texture = cb(dataUrl)
-		entityMode.setResolution(max_size, max_size, true)
-		if (texture && !Blockbench.entity_mode) {
+		Project.texture_width = Project.texture_height = max_size;
+		if (texture && !Project.box_uv) {
 			templates.forEach(function(t) {
 				t.obj.applyTexture(texture, true)
 				t.obj.autouv = 0
 			})
 		}
-		Undo.finishEdit('create template', {textures: [texture], bitmap: true, cubes: Blockbench.entity_mode ? elements : selected, uv_only: true})
+		Undo.finishEdit('create template', {textures: [texture], bitmap: true, elements: Format.single_texture ? elements : selected, uv_only: true})
 	}
 }
-const Painter = new BBPainter()
 
 const ColorPanel = {
-	set: function(color) {
+	set(color) {
 		var value = new tinycolor(color)
 		$('#main_colorpicker').spectrum('set', value.toHex8String())
 		$('#main_colorpicker_preview > div').css('background-color', value.toRgbString())
 		return this;
 	},
-	get: function() {
+	get() {
 		var value = $('#main_colorpicker').spectrum('get');
 		return value;
 	}
@@ -895,9 +948,7 @@ BARS.defineActions(function() {
 			Painter.startBrushCanvas(data, data.event)
 		},
 		onSelect: function() {
-			BarItems.slider_brush_size.update()
-			BarItems.slider_brush_softness.update()
-			BarItems.slider_brush_opacity.update()
+			Painter.updateNslideValues()
 			$('.UVEditor').find('#uv_size').hide()
 		},
 		onUnselect: function() {
@@ -919,9 +970,7 @@ BARS.defineActions(function() {
 			Painter.startBrushCanvas(data, data.event)
 		},
 		onSelect: function() {
-			BarItems.slider_brush_size.update()
-			BarItems.slider_brush_softness.update()
-			BarItems.slider_brush_opacity.update()
+			Painter.updateNslideValues()
 			$('.UVEditor').find('#uv_size').hide()
 		},
 		onUnselect: function() {
@@ -942,9 +991,7 @@ BARS.defineActions(function() {
 			Painter.startBrushCanvas(data, data.event)
 		},
 		onSelect: function() {
-			BarItems.slider_brush_size.update()
-			BarItems.slider_brush_softness.update()
-			BarItems.slider_brush_opacity.update()
+			Painter.updateNslideValues()
 			$('.UVEditor').find('#uv_size').hide()
 		},
 		onUnselect: function() {
@@ -965,9 +1012,7 @@ BARS.defineActions(function() {
 			Painter.startBrushCanvas(data, data.event)
 		},
 		onSelect: function() {
-			BarItems.slider_brush_size.update()
-			BarItems.slider_brush_softness.update()
-			BarItems.slider_brush_opacity.update()
+			Painter.updateNslideValues()
 			$('.UVEditor').find('#uv_size').hide()
 		},
 		onUnselect: function() {
@@ -978,6 +1023,10 @@ BARS.defineActions(function() {
 	new BarSelect({
 		id: 'brush_mode',
 		condition: () => Toolbox && (Toolbox.selected.id === 'brush_tool' || Toolbox.selected.id === 'eraser'),
+		onChange() {
+			BARS.updateConditions();
+			Painter.updateNslideValues()
+		},
 		options: {
 			brush: true,
 			noise: true
@@ -997,7 +1046,7 @@ BARS.defineActions(function() {
 		id: 'slider_brush_size',
 		condition: () => (Toolbox && ['brush_tool', 'eraser'].includes(Toolbox.selected.id)),
 		settings: {
-			min: 1, max: 20, step: 1, default: 1,
+			min: 1, max: 20, interval: 1, default: 1,
 		}
 	})
 	new NumSlider({
@@ -1023,6 +1072,24 @@ BARS.defineActions(function() {
 		condition: () => (Toolbox && ['brush_tool', 'eraser'].includes(Toolbox.selected.id)),
 		settings: {
 			min: 0, max: 100, default: 100,
+			interval: function(event) {
+				if (event.shiftKey && event.ctrlKey) {
+					return 0.25;
+				} else if (event.shiftKey) {
+					return 5;
+				} else if (event.ctrlKey) {
+					return 1;
+				} else {
+					return 10;
+				}
+			}
+		}
+	})
+	new NumSlider({
+		id: 'slider_brush_min_opacity',
+		condition: () => (Toolbox && ['brush_tool', 'eraser'].includes(Toolbox.selected.id) && BarItems.brush_mode.value == 'noise'),
+		settings: {
+			min: 0, max: 100, default: 50,
 			interval: function(event) {
 				if (event.shiftKey && event.ctrlKey) {
 					return 0.25;

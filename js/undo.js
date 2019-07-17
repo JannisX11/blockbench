@@ -2,16 +2,29 @@ var Undo = {
 	index: 0,
 	history: [],
 	initEdit: function(aspects) {
-		//Before
-		if (aspects && Undo.current_save) {
-			//This "before" is the same as the "after" of the previous step
-			if (Objector.equalKeys(aspects, Undo.current_save.aspects) && aspects.cubes !== selected) {
-				//return;
-			}
+		if (aspects && aspects.cubes) {
+			console.warn('Aspect "cubes" is deprecated. Please use "elements" instead.');
+			aspects.elements = aspects.cubes;
 		}
+		/*
+		if (
+			aspects && Undo.current_save &&
+			Objector.equalKeys(aspects, Undo.current_save.aspects) &&
+			aspects.elements !== selected &&
+			Undo.history.length == Undo.index
+		) {
+			return;
+		}
+		- This still causes issues, for example with different texture selections
+		*/
 		Undo.current_save = new Undo.save(aspects)
+		return Undo.current_save;
 	},
 	finishEdit: function(action, aspects) {
+		if (aspects && aspects.cubes) {
+			console.warn('Aspect "cubes" is deprecated. Please use "elements" instead.');
+			aspects.elements = aspects.cubes;
+		}
 		if (!Undo.current_save) return;
 		aspects = aspects || Undo.current_save.aspects
 		//After
@@ -22,9 +35,9 @@ var Undo = {
 			action: action
 		}
 		Undo.current_save = entry.post
-
-		if (Undo.history.length-1 > Undo.index) {
-			Undo.history.length = Undo.index+1
+		if (Undo.history.length > Undo.index) {
+			Undo.history.length = Undo.index;
+			delete Undo.current_save;
 		}
 	 
 		Undo.history.push(entry)
@@ -40,6 +53,7 @@ var Undo = {
 		if (EditSession.active) {
 			EditSession.sendEdit(entry)
 		}
+		return entry;
 	},
 	cancelEdit: function() {
 		if (!Undo.current_save) return;
@@ -58,7 +72,6 @@ var Undo = {
 		if (EditSession.active && remote !== true) {
 			EditSession.sendAll('command', 'undo')
 		}
-		console.log('Undo: '+entry.action)
 		Blockbench.dispatchEvent('undo', {entry})
 	},
 	redo: function(remote) {
@@ -67,14 +80,13 @@ var Undo = {
 			return;
 		}
 		Prop.project_saved = false;
-		Undo.index++;
 
-		var entry = Undo.history[Undo.index-1]
+		var entry = Undo.history[Undo.index]
+		Undo.index++;
 		Undo.loadSave(entry.post, entry.before)
 		if (EditSession.active && remote !== true) {
 			EditSession.sendAll('command', 'redo')
 		}
-		console.log('Redo: '+entry.action)
 		Blockbench.dispatchEvent('redo', {entry})
 	},
 	remoteEdit: function(entry) {
@@ -104,31 +116,22 @@ var Undo = {
 	},
 	save: function(aspects) {
 		var scope = this;
-		this.aspects = aspects
+		this.aspects = aspects;
 
 		if (aspects.selection) {
 			this.selection = []
 			selected.forEach(function(obj) {
 				scope.selection.push(obj.uuid)
 			})
-			if (selected_group) {
-				this.selection_group = selected_group.uuid
+			if (Group.selected) {
+				this.selection_group = Group.selected.uuid
 			}
 		}
 
-		if (aspects.cubes) {
-			this.cubes = {}
-			aspects.cubes.forEach(function(obj) {
-				var copy = new Cube(obj)
-				if (aspects.uv_only) {
-					copy = {
-						uv_offset: copy.uv_offset,
-						faces: copy.faces,
-					}
-				}
-				copy.uuid = obj.uuid
-				delete copy.parent;
-				scope.cubes[obj.uuid] = copy
+		if (aspects.elements) {
+			this.elements = {}
+			aspects.elements.forEach(function(obj) {
+				scope.elements[obj.uuid] = obj.getUndoCopy(aspects)
 			})
 		}
 
@@ -153,8 +156,9 @@ var Undo = {
 			this.settings = aspects.settings
 		}
 
-		if (aspects.resolution) {
-			this.resolution = {
+		if (aspects.uv_mode) {
+			this.uv_mode = {
+				box_uv: Project.box_uv,
 				width:  Project.texture_width,
 				height: Project.texture_height
 			}
@@ -189,26 +193,29 @@ var Undo = {
 	},
 	loadSave: function(save, reference, mode) {
 		var is_session = mode === 'session';
-		if (save.cubes) {
-			for (var uuid in save.cubes) {
-				if (save.cubes.hasOwnProperty(uuid)) {
-					var data = save.cubes[uuid]
-					var obj = elements.findInArray('uuid', uuid)
-					if (obj) {
-						for (var face in obj.faces) {
-							obj.faces[face].reset()
+		if (save.elements) {
+			for (var uuid in save.elements) {
+				if (save.elements.hasOwnProperty(uuid)) {
+					var element = save.elements[uuid]
+
+					var new_element = elements.findInArray('uuid', uuid)
+					if (new_element) {
+						for (var face in new_element.faces) {
+							new_element.faces[face].reset()
 						}
-						obj.extend(data)
-						Canvas.adaptObjectPosition(obj)
-						Canvas.adaptObjectFaces(obj)
-						Canvas.updateUV(obj)
+						new_element.extend(element)
+						if (new_element instanceof Cube) {
+							Canvas.adaptObjectPosition(new_element)
+							Canvas.adaptObjectFaces(new_element)
+							Canvas.updateUV(new_element)
+						}
 					} else {
-						obj = new Cube(data, uuid).init()
+						new_element = new element.constructor(element, uuid).init()
 					}
 				}
 			}
-			for (var uuid in reference.cubes) {
-				if (reference.cubes.hasOwnProperty(uuid) && !save.cubes.hasOwnProperty(uuid)) {
+			for (var uuid in reference.elements) {
+				if (reference.elements.hasOwnProperty(uuid) && !save.elements.hasOwnProperty(uuid)) {
 					var obj = elements.findInArray('uuid', uuid)
 					if (obj) {
 						obj.remove()
@@ -220,7 +227,7 @@ var Undo = {
 		}
 
 		if (save.outliner) {
-			selected_group = undefined
+			Group.selected = undefined
 			parseGroups(save.outliner)
 			if (is_session) {
 				function iterate(arr) {
@@ -233,14 +240,14 @@ var Undo = {
 				}
 				iterate(save.outliner)
 			}
-			if (Blockbench.entity_mode) {
+			if (Format.bone_rig) {
 				Canvas.updateAllPositions()
 			}
 		}
 
 		if (save.selection_group && !is_session) {
-			selected_group = undefined
-			var sel_group = TreeElements.findRecursive('uuid', save.selection_group)
+			Group.selected = undefined
+			var sel_group = Outliner.root.findRecursive('uuid', save.selection_group)
 			if (sel_group) {
 				sel_group.select()
 			}
@@ -250,19 +257,19 @@ var Undo = {
 			selected.length = 0;
 			elements.forEach(function(obj) {
 				if (save.selection.includes(obj.uuid)) {
-					selected.push(obj)
+					obj.selectLow()
 				}
 			})
 		}
 
 		if (save.group) {
-			var group = TreeElements.findRecursive('uuid', save.group.uuid)
+			var group = Outliner.root.findRecursive('uuid', save.group.uuid)
 			if (group) {
 				if (is_session) {
 					delete save.group.isOpen;
 				}
 				group.extend(save.group)
-				if (Blockbench.entity_mode) {
+				if (Format.bone_rig) {
 					group.forEachChild(function(obj) {
 						if (obj.type === 'cube') {
 							Canvas.adaptObjectPosition(obj)
@@ -307,9 +314,11 @@ var Undo = {
 			}
 		}
 
-		if (save.resolution) {
-			Project.texture_width = save.resolution.width
-			Project.texture_height = save.resolution.height
+		if (save.uv_mode) {
+			Project.box_uv = save.uv_mode.box_uv;
+			Project.texture_width = save.uv_mode.width;
+			Project.texture_height = save.uv_mode.height;
+			Canvas.updateAllUVs()
 		}
 
 		if (save.animations) {
@@ -433,7 +442,7 @@ BARS.defineActions(function() {
 		id: 'undo',
 		icon: 'undo',
 		category: 'edit',
-		condition: () => (!open_dialog || open_dialog === 'uv_dialog'),
+		condition: () => (!open_dialog || open_dialog === 'uv_dialog' || open_dialog === 'toolbar_edit'),
 		work_in_dialog: true,
 		keybind: new Keybind({key: 90, ctrl: true}),
 		click: Undo.undo
@@ -442,7 +451,7 @@ BARS.defineActions(function() {
 		id: 'redo',
 		icon: 'redo',
 		category: 'edit',
-		condition: () => (!open_dialog || open_dialog === 'uv_dialog'),
+		condition: () => (!open_dialog || open_dialog === 'uv_dialog' || open_dialog === 'toolbar_edit'),
 		work_in_dialog: true,
 		keybind: new Keybind({key: 89, ctrl: true}),
 		click: Undo.redo

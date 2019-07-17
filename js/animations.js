@@ -3,6 +3,7 @@ class Animation {
 		this.name = '';
 		this.uuid = guid()
 		this.loop = true;
+		this.playing = false;
 		this.override = false;
 		this.selected = false;
 		this.anim_time_update = '';
@@ -22,7 +23,7 @@ class Animation {
 		Merge.number(this, data, 'length')
 		if (data.bones) {
 			for (var key in data.bones) {
-				var group = TreeElements.findRecursive( isUUID(key) ? 'uuid' : 'name', key )
+				var group = Outliner.root.findRecursive( isUUID(key) ? 'uuid' : 'name', key )
 				if (group) {
 					var ba = this.getBoneAnimator(group)
 					var kfs = data.bones[key]
@@ -68,27 +69,20 @@ class Animation {
 	}
 	select() {
 		var scope = this;
-		var selected_bone = selected_group
+		var selected_bone = Group.selected
 		Animator.animations.forEach(function(a) {
-			a.selected = false;
+			a.selected = a.playing = false;
 		})
 		Prop.active_panel = 'animations'
-		this.selected = true
+		this.selected = true;
+		this.playing = true;
 		Animator.selected = this
 		unselectAll()
 		BarItems.slider_animation_length.update()
 
-		function iterate(arr) {
-			arr.forEach((it) => {
-				if (it.type === 'group') {
-					Animator.selected.getBoneAnimator(it)
-					if (it.children && it.children.length) {
-						iterate(it.children)
-					}
-				}
-			})
-		}
-		iterate(TreeElements)
+		Group.all.forEach(group => {
+			Animator.selected.getBoneAnimator(group)
+		})
 
 		if (selected_bone) {
 			selected_bone.select()
@@ -109,14 +103,23 @@ class Animation {
 	}
 	editUpdateVariable() {
 		var scope = this;
-		Blockbench.textPrompt('message.animation_update_var', this.anim_time_update, function(name) {
+		Blockbench.textPrompt('message.animation_update_var', scope.anim_time_update, function(name) {
 			if (name && name !== scope.anim_time_update) {
-				Undo.initEdit({animations: [this]})
+				Undo.initEdit({animations: [scope]})
 				scope.anim_time_update = name
 				Undo.finishEdit('change animation variable')
 			}
 		})
 		return this;
+	}
+	togglePlayingState(state) {
+		if (!this.selected) {
+			this.playing = state !== undefined ? state : !this.playing;
+			Animator.preview();
+		} else {
+			Timeline.start();
+		}
+		return this.playing;
 	}
 	showContextMenu(event) {
 		this.select();
@@ -124,27 +127,18 @@ class Animation {
 		return this;
 	}
 	getBoneAnimator(group) {
-		if (!group && selected_group) {
-			group = selected_group
+		if (!group && Group.selected) {
+			group = Group.selected
 		} else if (!group) {
 			return;
 		}
 		var uuid = group.uuid
 		if (!this.bones[uuid]) {
-			var ba = this.bones[uuid] = new BoneAnimator()
-			ba.uuid = uuid
+			this.bones[uuid] = new BoneAnimator(uuid);
 		}
 		return this.bones[uuid];
 	}
-	displayFrame(time) {
-		for (var uuid in this.bones) {
-			this.bones[uuid].displayFrame(time)
-		}
-		if (selected_group) {
-			centerTransformer()
-		}
-		Blockbench.dispatchEvent('display_animation_frame')
-	}
+
 	add(undo) {
 		if (undo) {
 			Undo.initEdit({animations: []})
@@ -191,9 +185,7 @@ class Animation {
 	}
 }
 	Animation.prototype.menu = new Menu([
-		{name: 'generic.rename', icon: 'text_format', click: function(animation) {
-			animation.rename()
-		}},
+		'rename',
 		{name: 'menu.animation.loop', icon: (a) => (a.loop?'check_box':'check_box_outline_blank'), click: function(animation) {
 			animation.loop = !animation.loop
 		}},
@@ -203,9 +195,7 @@ class Animation {
 		{name: 'menu.animation.anim_time_update', icon: 'update', click: function(animation) {
 			animation.editUpdateVariable()
 		}},
-		{name: 'generic.delete', icon: 'delete', click: function(animation) {
-			animation.remove(true)
-		}},
+		'delete'
 		/*
 			rename
 			Loop: checkbox
@@ -216,16 +206,59 @@ class Animation {
 		*/
 	])
 class BoneAnimator {
-	constructor() {
-		this.keyframes = []
-		this.uuid;
+	constructor(uuid) {
+		this.keyframes = [];
+		this.uuid = uuid;
 	}
 	getGroup() {
-		this.group = TreeElements.findRecursive('uuid', this.uuid)
+		this.group = Outliner.root.findRecursive('uuid', this.uuid)
 		if (!this.group) {
 			console.log('no group found for '+this.uuid)
 		}
 		return this.group
+	}
+	select() {
+		var duplicates;
+		function iterate(arr) {
+			arr.forEach((it) => {
+				if (it.type === 'group' && !duplicates) {
+					if (it.name === Group.selected.name && it !== Group.selected) {
+						duplicates = true
+					} else if (it.children && it.children.length) {
+						iterate(it.children)
+					}
+				}
+			})
+		}
+		iterate(Outliner.root)
+		if (duplicates) {
+			Blockbench.showMessageBox({
+				translateKey: 'duplicate_groups',
+				icon: 'folder',
+				buttons: ['dialog.ok'],
+			})
+		}
+		Timeline.animator = this;
+		
+		if (Timeline.keyframes !== this.keyframes) {
+			Timeline.keyframes.forEach(function(kf) {
+				kf.selected = false
+			})
+			Timeline.selected.length = 0
+			Timeline.keyframes = Timeline.vue._data.keyframes = this.keyframes
+			if (this.keyframes[0]) {
+				this.keyframes[0].select()
+			} else {
+				updateKeyframeSelection()
+			}
+		} else {
+			updateKeyframeSelection()
+		}
+		if (this.group && this.group.parent && this.group.parent !== 'root') {
+			this.group.parent.openUp()
+		}
+		TickUpdates.keyframes = true;
+		return this;
 	}
 	addKeyframe(values, time, channel) {
 		var keyframe = new Keyframe({
@@ -243,7 +276,9 @@ class BoneAnimator {
 			}
 		} else if (typeof values === 'number' || typeof values === 'string') {
 			keyframe.extend({
-				x: values
+				x: values,
+				y: values,
+				z: values
 			})
 		} else {
 			var ref = this.interpolate(time, channel, true)
@@ -282,7 +317,6 @@ class BoneAnimator {
 	}
 	displayRotation(arr) {
 		var bone = this.group.mesh
-		bone.rotation.copy(bone.fix_rotation)
 
 		if (!arr) {
 		} else if (arr.length === 4) {
@@ -299,21 +333,19 @@ class BoneAnimator {
 	}
 	displayPosition(arr) {
 		var bone = this.group.mesh
-		bone.position.copy(bone.fix_position)
 		if (arr) {
-			bone.position.add(new THREE.Vector3().fromArray(arr))
+			var offset = new THREE.Vector3().fromArray(arr);
+			offset.x *= -1;
+			bone.position.add(offset)
 		}
 		return this;
 	}
 	displayScale(arr) {
-		var bone = this.group.mesh
-		if (arr) {
-			bone.scale.x = arr[0] ? arr[0] : 0.00001;
-			bone.scale.y = arr[1] ? arr[1] : 0.00001;
-			bone.scale.z = arr[2] ? arr[2] : 0.00001;
-		} else {
-			bone.scale.x = bone.scale.y = bone.scale.z = 1;
-		}
+		if (!arr) return this;
+		var bone = this.group.mesh;
+		bone.scale.x *= arr[0] || 0.00001;
+		bone.scale.y *= arr[1] || 0.00001;
+		bone.scale.z *= arr[2] || 0.00001;
 		return this;
 	}
 	interpolate(time, channel, allow_expression) {
@@ -349,6 +381,9 @@ class BoneAnimator {
 			//
 		} else {
 			let alpha = Math.lerp(before.time, after.time, time)
+			if (Blockbench.hasFlag('no_interpolations')) {
+				alpha = Math.round(alpha)
+			}
 			result = [
 				before.getLerp(after, 'x', alpha, allow_expression),
 				before.getLerp(after, 'y', alpha, allow_expression),
@@ -375,55 +410,10 @@ class BoneAnimator {
 	displayFrame(time) {
 		if (!this.doRender()) return;
 		this.getGroup()
-		for (var channel in Animator.possible_channels) {
-			var result = this.interpolate(time, channel)
-			if (channel === 'rotation') {
-				this.displayRotation(result)
-			} else if (channel === 'position') {
-				this.displayPosition(result)
-			} else if (channel === 'scale') {
-				this.displayScale(result)
-			}
-		}
-		this.group.mesh.updateMatrixWorld()
-	}
-	select() {
-		var duplicates;
-		function iterate(arr) {
-			arr.forEach((it) => {
-				if (it.type === 'group' && !duplicates) {
-					if (it.name === selected_group.name && it !== selected_group) {
-						duplicates = true
-					} else if (it.children && it.children.length) {
-						iterate(it.children)
-					}
-				}
-			})
-		}
-		iterate(TreeElements)
-		if (duplicates) {
-			Blockbench.showMessageBox({
-				translateKey: 'duplicate_groups',
-				icon: 'folder',
-				buttons: [tl('dialog.ok')],
-			})
-		}
-		Timeline.animator = this;
-		Timeline.keyframes.forEach(function(kf) {
-			kf.selected = false
-		})
-		Timeline.selected.length = 0
-		Timeline.keyframes = Timeline.vue._data.keyframes = this.keyframes
-		if (this.keyframes[0]) {
-			this.keyframes[0].select()
-		} else {
-			updateKeyframeSelection()
-		}
-		if (this.group && this.group.parent && this.group.parent !== 'root') {
-			this.group.parent.openUp()
-		}
-		TickUpdates.keyframes = true;
-		return this;
+
+		this.displayRotation(this.interpolate(time, 'rotation'))
+		this.displayPosition(this.interpolate(time, 'position'))
+		this.displayScale(this.interpolate(time, 'scale'))
 	}
 }
 class Keyframe {
@@ -456,7 +446,7 @@ class Keyframe {
 		}
 	}
 	calc(axis) {
-		return parseMolang(this[axis])
+		return Molang.parse(this[axis])
 	}
 	set(axis, value) {
 		if (axis === 'x' || axis === 'y' || axis === 'z' || axis === 'w') {
@@ -489,31 +479,6 @@ class Keyframe {
 		}
 		this.set(axis, value)
 		return value;
-
-		/*
-		function iterate(string, index) {
-			if (!isNaN(string)) {
-				return [index, string.length]
-			}
-			var splices = splitUpMolang(string, ['+', '-'])
-			if (!splices) return false;
-
-			var result = iterate(splices[1], index+splices[0].length)
-			if (result) return result;
-
-			result = iterate(splices[0], index)
-			if (result) return result;
-		}
-
-		var p = iterate(value, 0)
-		if (p) {
-			value = value.substr(0, p[0]) + amount + value.substr(p[0]+p[1])
-			this.set(axis, value)
-		} else {
-			amount = ''+amount
-			if (amount.substr(0, 1) !== '-') amount = '+'+amount
-			this.set(axis, value+amount)
-		}*/
 	}
 	getLerp(other, axis, amount, allow_expression) {
 		if (allow_expression && this.get(axis) === other.get(axis)) {
@@ -563,8 +528,19 @@ class Keyframe {
 		if (Timeline.selected.indexOf(this) == -1) {
 			Timeline.selected.push(this)
 		}
+		var select_tool = true;
+		Timeline.selected.forEach(kf => {
+			if (kf.channel != scope.channel) select_tool = false;
+		})
 		this.selected = true
 		updateKeyframeSelection()
+		if (select_tool) {
+			switch (this.channel_index) {
+				case 0: BarItems.rotate_tool.select(); break;
+				case 1: BarItems.move_tool.select(); break;
+				case 2: BarItems.resize_tool.select(); break;
+			}
+		}
 		return this;
 	}
 	callMarker() {
@@ -648,11 +624,8 @@ class Keyframe {
 			channel: this.channel_index,
 			time: this.time,
 			x: this.x,
-			//uuid: this.uuid
-		}
-		if (this.channel_index !== 2) {//Not Scale
-			copy.y = this.y
-			copy.z = this.z
+			y: this.y,
+			z: this.z,
 		}
 		if (this.channel_index === 0 && this.isQuaternion) {
 			copy.w = this.w
@@ -674,10 +647,11 @@ class Keyframe {
 			}
 		},
 		'copy',
-		{name: 'generic.delete', icon: 'delete', click: function(keyframe) {
+		'delete',
+		/*{name: 'generic.delete', icon: 'delete', click: function(keyframe) {
 			keyframe.select({shiftKey: true})
 			removeSelectedKeyframes()
-		}},
+		}},*/
 		/*
 			settotimestamp
 			delete
@@ -694,7 +668,7 @@ function updateKeyframeValue(obj) {
 	Animator.preview()
 }
 function updateKeyframeSelection() {
-	if (!selected_group) {
+	if (!Group.selected) {
 		Timeline.keyframes = Timeline.vue._data.keyframes = []
 		Timeline.animator = undefined
 		Timeline.selected.length = 0
@@ -765,6 +739,22 @@ function removeSelectedKeyframes() {
 	Undo.finishEdit('remove keyframes')
 }
 
+function findBedrockAnimation() {
+	var animation_path = ModelMeta.export_path.split(osfs)
+	var index = animation_path.lastIndexOf('models')
+	animation_path.splice(index)
+	var path1 = [...animation_path, 'animations', pathToName(ModelMeta.export_path)+'.json'].join(osfs)
+	var path2 = [...animation_path, 'animations', pathToName(ModelMeta.export_path).replace('.geo', '')+'.animation.json'].join(osfs)
+	if (fs.existsSync(path1)) {
+		Blockbench.read([path1], {}, (files) => {
+			Animator.loadFile(files[0])
+		})
+	} else if (fs.existsSync(path2)) {
+		Blockbench.read([path2], {}, (files) => {
+			Animator.loadFile(files[0])
+		})
+	}
+}
 const Animator = {
 	possible_channels: {rotation: true, position: true, scale: true},
 	channel_index: ['rotation', 'position', 'scale'],
@@ -772,11 +762,12 @@ const Animator = {
 	animations: [],
 	frame: 0,
 	interval: false,
-	join: function() {
+	join() {
 
 		Animator.open = true;
 		selected.length = 0
 		updateSelection()
+		Canvas.updateAllBones()
 
 		if (quad_previews.enabled) {
 			quad_previews.enabled_before = true
@@ -785,11 +776,9 @@ const Animator = {
 		main_preview.setNormalCamera()
 
 		$('body').addClass('animation_mode')
-		$('.m_edit').hide()
 		if (!Animator.timeline_node) {
 			Animator.timeline_node = $('#timeline').get(0)
 		}
-		$('#preview').append(Animator.timeline_node)
 		updateInterface()
 		if (!Timeline.is_setup) {
 			Timeline.setup()
@@ -804,30 +793,43 @@ const Animator = {
 		} else if (Animator.animations.length) {
 			Animator.animations[0].select()
 		}
-		if (isApp && !Prop.animation_path && !Animator.animations.length && Prop.file_path) {
+		if (isApp && !ModelMeta.animation_path && !Animator.animations.length && ModelMeta.export_path) {
 			//Load
 			findBedrockAnimation()
 		}
 	},
-	leave: function (argument) {
+	leave (argument) {
 		Timeline.pause()
 		Animator.open = false;
-		Canvas.updateAllPositions()
-		$('#timeline').detach()
-		$('.m_edit').show()
 		$('body').removeClass('animation_mode')
 		resizeWindow()
 		updateInterface()
 		if (quad_previews.enabled_before) {
 			openQuadView()
 		}
+		Canvas.updateAllBones()
 	},
-	preview: function() {
-		if (Animator.selected) {
-			Animator.selected.displayFrame(Timeline.second)
+	preview() {
+
+		Group.all.forEach(group => {
+			var bone = group.mesh;
+			bone.rotation.copy(bone.fix_rotation)
+			bone.position.copy(bone.fix_position)
+			bone.scale.x = bone.scale.y = bone.scale.z = 1;
+
+			Animator.animations.forEach(animation => {
+				if (animation.playing) {
+					animation.getBoneAnimator(group).displayFrame(Timeline.second)
+				}
+			})
+			group.mesh.updateMatrixWorld()
+		})
+		if (Group.selected) {
+			Transformer.center()
 		}
+		Blockbench.dispatchEvent('display_animation_frame')
 	},
-	loadFile: function(file) {
+	loadFile(file) {
 		var json = autoParseJSON(file.content)
 		if (json && typeof json.animations === 'object') {
 			for (var ani_name in json.animations) {
@@ -844,11 +846,10 @@ const Animator = {
 				//Bones
 				for (var bone_name in a.bones) {
 					var b = a.bones[bone_name]
-					var group = TreeElements.findRecursive('name', bone_name)
+					var group = Outliner.root.findRecursive('name', bone_name)
 					if (group) {
-						var ba = new BoneAnimator()
-						animation.bones[group.uuid] = ba
-						ba.uuid = group.uuid;
+						var ba = new BoneAnimator(group.uuid);
+						animation.bones[group.uuid] = ba;
 						//Channels
 						for (var channel in b) {
 							if (Animator.possible_channels[channel]) {
@@ -868,11 +869,11 @@ const Animator = {
 				}
 			}
 			if (isApp && file.path) {
-				Prop.animation_path = file.path
+				ModelMeta.animation_path = file.path
 			}
 		}
 	},
-	buildFile: function(options) {
+	buildFile(options) {
 		if (typeof options !== 'object') {
 			options = false
 		}
@@ -881,7 +882,7 @@ const Animator = {
 			var ani_tag = animations[a.name] = {}
 			if (a.loop) ani_tag.loop = true
 			if (a.length) ani_tag.animation_length = a.length
-			if (a.override) ani_tag.override = true
+			if (a.override) ani_tag.override_previous_animation = true
 			if (a.anim_time_update) ani_tag.anim_time_update = a.anim_time_update
 			ani_tag.bones = {}
 			for (var uuid in a.bones) {
@@ -932,7 +933,7 @@ const Timeline = {
 	playback_speed: 100,
 	second: 0,
 	playing: false,
-	setTime: function(seconds, editing) {
+	setTime(seconds, editing) {
 		seconds = limitNumber(seconds, 0, 1000)
 		Timeline.vue._data.marker = seconds
 		Timeline.second = seconds
@@ -947,7 +948,7 @@ const Timeline = {
 			$('#timeline_inner').scrollLeft(marker-16)
 		}
 	},
-	setTimecode: function(time) {
+	setTimecode(time) {
 		let m = Math.floor(time/60)
 		let s = Math.floor(time%60)
 		let f = Math.floor((time%1) * 100)
@@ -955,38 +956,26 @@ const Timeline = {
 		if ((f+'').length === 1) {f = '0'+f}
 		$('#timeline_corner').text(m + ':' + s  + ':' + f)
 	},
-	setup: function() {
-		/*
-		$('#timeline_inner #timeline_marker').draggable({
-			axis: 'x',
-			distance: 2,
-			start: function(event, ui) {
-				Timeline.pause()
-			},
-			drag: function(event, ui) {
-				var difference = (ui.position.left - ui.originalPosition.left) / Timeline.vue._data.size;
-				Timeline.second = limitNumber(Timeline.vue._data.marker + difference, 0, 1000)
-				Timeline.setTimecode(Timeline.second)
-				Timeline.updateSize()
-				if (Animator.selected) {
-					Animator.preview() 
-				}
-			},
-			stop: function(event, ui) {
-				Timeline.setTime(Timeline.second)
-			}
-		})*/
+	snapTime(time) {
+		//return time;
+		if (time == undefined || isNaN(time)) {
+			time = Timeline.second;
+		}
+		var fps = settings.animation_snap.value;
+		return Math.clamp(Math.round(time*fps)/fps, 0);
+	},
+	setup() {
 		$('#timeline_inner #timeline_time').mousedown(e => {
 			Timeline.dragging_marker = true;
 			let time = e.offsetX / Timeline.vue._data.size
-			Timeline.setTime(time)
+			Timeline.setTime(Timeline.snapTime(time))
 			Animator.preview()
 		})
 		$(document).mousemove(e => {
 			if (Timeline.dragging_marker) {
 				let offset = mouse_pos.x - $('#timeline_inner #timeline_time').offset().left
 				let time = offset / Timeline.vue._data.size
-				Timeline.setTime(time)
+				Timeline.setTime(Timeline.snapTime(time))
 				Animator.preview()
 			}
 		})
@@ -1074,11 +1063,12 @@ const Timeline = {
 		Timeline.is_setup = true
 		Timeline.setTime(0)
 	},
-	update: function() {
+	update() {
 		//Draggable
 		$('#timeline_inner .keyframe:not(.ui-draggable)').draggable({
 			axis: 'x',
 			distance: 4,
+			helper: false,
 			start: function(event, ui) {
 				Undo.initEdit({keyframes: Timeline.keyframes, keep_saved: true})
 				var id = $(ui.helper).attr('id')
@@ -1107,7 +1097,7 @@ const Timeline = {
 					var kf = Timeline.vue._data.keyframes[i]
 					if (kf.uuid === id) {
 						i = Infinity
-						kf.time = limitNumber(kf.time_before + difference, 0, 256)
+						kf.time = Timeline.snapTime(limitNumber(kf.time_before + difference, 0, 256))
 						nearest = kf.findNearest(8 / Timeline.vue._data.size, 'others')
 					}
 					i++;
@@ -1125,7 +1115,7 @@ const Timeline = {
 						if (kf.uuid === id) {
 							ui.position.left = t * Timeline.vue._data.size + 8
 						}
-						kf.time = t
+						kf.time = Timeline.snapTime(t)
 					}
 					i++;
 				}
@@ -1133,21 +1123,11 @@ const Timeline = {
 				Animator.preview()
 			},
 			stop: function(event, ui) {
-				/*
-				var id = $(ui.helper).attr('id')
-				var i = 0;
-				while (i < Timeline.vue._data.keyframes.length) {
-					var kf = Timeline.vue._data.keyframes[i]
-					if (kf.uuid === id) {
-						kf.dragging = true
-					}
-					i++;
-				}*/
 				Undo.finishEdit('drag keyframes')
 			}
 		})
 	},
-	updateSize: function() {
+	updateSize() {
 		let size = Timeline.vue._data.size
 		var max_length = ($('#timeline_inner').width()-8) / Timeline.vue._data.size;
 		Timeline.vue._data.keyframes.forEach((kf) => {
@@ -1167,6 +1147,11 @@ const Timeline = {
 		else if (size < 800) {step = 0.1}
 		else {step = 0.05}
 
+		if (step < 1) {
+			var FPS = 1/settings.animation_snap.value;
+			step = Math.round(step/FPS) * FPS
+			step = 1/Math.round(1/step)
+		}
 
 		var i = 0;
 		while (i < Timeline.vue._data.length) {
@@ -1177,7 +1162,7 @@ const Timeline = {
 			i += step;
 		}
 	},
-	unselect: function(e) {
+	unselect(e) {
 		if (!Animator.selected) return;
 		Timeline.keyframes.forEach((kf) => {
 			if (kf.selected) {
@@ -1187,7 +1172,7 @@ const Timeline = {
 		})
 		updateKeyframeSelection()
 	},
-	start: function() {
+	start() {
 		if (!Animator.selected) return;
 		Animator.selected.getMaxLength()
 		Timeline.pause()
@@ -1195,7 +1180,7 @@ const Timeline = {
 		BarItems.play_animation.setIcon('pause')
 		Timeline.loop()
 	},
-	loop: function() {
+	loop() {
 		Animator.preview()
 		if (Animator.selected && Timeline.second < (Animator.selected.length||1e3)) {
 			
@@ -1210,7 +1195,7 @@ const Timeline = {
 			}
 		}
 	},
-	pause: function() {
+	pause() {
 		Timeline.playing = false;
 		BarItems.play_animation.setIcon('play_arrow')
 		if (Animator.interval) {
@@ -1218,7 +1203,7 @@ const Timeline = {
 			Animator.interval = false
 		}
 	},
-	addKeyframe: function(channel) {
+	addKeyframe(channel, reset) {
 		if (!Animator.selected) { 
 			Blockbench.showQuickMessage('message.no_animation_selected')
 			return
@@ -1229,11 +1214,13 @@ const Timeline = {
 			return
 		}
 		Undo.initEdit({keyframes: bone.keyframes, keep_saved: true})
-		var kf = bone.addKeyframe(false, Timeline.second, channel?channel:'rotation')
+		var values = reset ? (channel == 'scale' ? 1 : 0) : false;
+		var kf = bone.addKeyframe(values, Timeline.snapTime(), channel?channel:'rotation')
 		kf.select()
-		Undo.finishEdit('add_keyframe')
+		Animator.preview()
+		Undo.finishEdit('add keyframe')
 	},
-	showMenu: function(event) {
+	showMenu(event) {
 		if (event.target.id === 'timeline_inner') {
 			Timeline.menu.open(event, event);
 		}
@@ -1249,15 +1236,40 @@ const Timeline = {
 			var bone = Animator.selected.getBoneAnimator()
 			if (bone) {
 				Undo.initEdit({keyframes: bone.keyframes, keep_saved: true})
-				var kf = bone.addKeyframe(false, Math.round(time*30)/30, row === 2 ? 'scale' : (row === 1 ? 'position' : 'rotation'))
+				var kf = bone.addKeyframe(false, Timeline.snapTime(time), Animator.channel_index[row])
 				kf.select().callMarker()
-				Undo.finishEdit('add_keyframe')
+				Undo.finishEdit('add keyframe')
 			} else {
 				Blockbench.showQuickMessage('message.no_bone_selected')
 			}
 		}},
 		'paste'
 	])
+}
+Molang.global_variables = {
+	'true': 1,
+	'false': 0,
+	get 'query.anim_time'() {
+		return Timeline.second;
+	},
+	get 'global.anim_time'() {
+		return Timeline.second;
+	},
+	get 'query.life_time'() {
+		return Timeline.second;
+	}
+}
+Molang.variableHandler = function (variable) {
+	var inputs = $('#var_placeholder_area').val().split('\n')
+	var i = 0;
+	while (i < inputs.length) {
+		let key, val;
+		[key, val] = inputs[i].replace(/[\s;]/g, '').split('=')
+		if (key === variable) {
+			return Molang.parse(val)
+		}
+		i++;
+	}
 }
 
 onVueSetup(function() {
@@ -1287,23 +1299,23 @@ BARS.defineActions(function() {
 		condition: () => Animator.open,
 		click: function () {
 			var animation = new Animation({
-				name: 'animation.' + (Project.parent||'model') + '.new'
+				name: 'animation.' + (Project.geometry_name||'model') + '.new'
 			}).add(true).rename()
 
 		}
 	})
 	new Action({
 		id: 'load_animation_file',
-		icon: 'fa-file-video-o',
+		icon: 'fa-file-video',
 		category: 'animation',
 		condition: () => Animator.open,
 		click: function () {
-			var path = Prop.file_path
+			var path = ModelMeta.export_path
 			if (isApp) {
 				var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
 				var m_index = path.search(exp)
 				if (m_index > 3) {
-					path = path.substr(0, m_index) + osfs + 'animations' + osfs + pathToName(Prop.file_path).replace(/\.geo/, '.animation')
+					path = path.substr(0, m_index) + osfs + 'animations' + osfs + pathToName(ModelMeta.export_path).replace(/\.geo/, '.animation')
 				}
 			}
 			Blockbench.import({
@@ -1322,20 +1334,20 @@ BARS.defineActions(function() {
 		condition: () => Animator.open,
 		click: function () {
 			var content = autoStringify(Animator.buildFile())
-			var path = Prop.animation_path
+			var path = ModelMeta.animation_path
 
 			if (isApp && !path) {
-				path = Prop.file_path
+				path = ModelMeta.export_path
 				var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
 				var m_index = path.search(exp)
 				if (m_index > 3) {
-					path = path.substr(0, m_index) + osfs + 'animations' + osfs +  pathToName(Prop.file_path, true)
+					path = path.substr(0, m_index) + osfs + 'animations' + osfs +  pathToName(ModelMeta.export_path, true)
 				}
 			}
 			Blockbench.export({
 				type: 'JSON Animation',
 				extensions: ['json'],
-				name: Project.parent||'animation',
+				name: Project.geometry_name||'animation',
 				startpath: path,
 				content: content
 			})
@@ -1431,7 +1443,7 @@ BARS.defineActions(function() {
 				if (!fixed) {
 					value += kf.time
 				}
-				kf.time = limitNumber(value, 0, 1e4)
+				kf.time = Timeline.snapTime(limitNumber(value, 0, 1e4))
 			})
 			Animator.preview()
 		},
@@ -1459,6 +1471,7 @@ BARS.defineActions(function() {
 				})
 			})
 			Undo.finishEdit('reset keyframes')
+			updateKeyframeSelection()
 			Animator.preview()
 		}
 	})
@@ -1535,13 +1548,5 @@ BARS.defineActions(function() {
 		condition: () => Animator.open,
 		keybind: new Keybind({key: 65, ctrl: true}),
 		click: function () {selectAllKeyframes()}
-	})
-	new Action({
-		id: 'delete_keyframes',
-		icon: 'delete',
-		category: 'animation',
-		condition: () => Animator.open,
-		keybind: new Keybind({key: 46}),
-		click: function () {removeSelectedKeyframes()}
 	})
 })

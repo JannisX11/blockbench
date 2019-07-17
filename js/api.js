@@ -1,47 +1,42 @@
-class API {
-	constructor() {
-		this.elements = elements;
-		this.textures = textures;
-		this.isWeb = !isApp;
-		this.version = appVersion;
-		this.platform = 'web'
-		this.selection = selected;
-		this.flags = []
-		this.drag_handlers = {}
-		this.events = {}
-		this.entity_mode = false
-		if (isApp) {
-			this.platform = process.platform
-			switch (this.platform) {
-				case 'win32': 	this.operating_system = 'Windows'; break;
-				case 'darwin': 	this.operating_system = 'macOS'; break;
-				default:		this.operating_system = 'Linux'; break;
-			}
-			if (this.platform.includes('win32') === true) osfs = '\\'
-		}
-	}
+const Blockbench = {
+	isWeb: !isApp,
+	isMobile: window.innerWidth <= 480,
+	version: appVersion,
+	platform: 'web',
+	flags: [],
+	drag_handlers: {},
+	events: {},
+	openTime: new Date(),
+	get elements() {
+		console.warn('Blockbench.elements is deprecated. Please use Outliner.elements instead.')
+		return Outliner.elements
+	},
+	get selection() {
+		console.warn('Blockbench.selection is deprecated. Please use Cube.selected or Outliner.selected instead.')
+		return Cube.selected
+	},
+	get textures() {
+		console.warn('Blockbench.textures is deprecated. Please just use textures instead.')
+		return textures;
+	},
 	edit(aspects, cb) {
 		Undo.initEdit(aspects)
 		cb()
 		Undo.finishEdit()
-	}
+	},
 	reload() {
 		localStorage.removeItem('backup_model')
 		if (isApp) {
-			preventClosing = false
+			Blockbench.addFlag('allow_closing')
 			Blockbench.flags.push('allow_reload')
 			currentwindow.reload()
 		} else {
 			location.reload()
 		}
-	}
-	checkEntityMode() {
-		return Blockbench.entity_mode;
-	}
+	},
 	registerEdit() {
 		console.warn('Blockbench.registerEdit is outdated. Please use Undo.initEdit and Undo.finishEdit')
-	}
-
+	},
 	//Interface
 	getIconNode(icon, color) {
 		var jq;
@@ -56,7 +51,11 @@ class API {
 			jq = $(icon)
 		} else if (icon.substr(0, 2) === 'fa') {
 			//Font Awesome
-			jq = $('<i class="icon fa fa_big ' + icon + '"></i>')
+			if (icon.substr(3, 1) == '.') {
+				jq = $(`<i class="icon ${icon.substr(0, 3)} fa_big ${icon.substr(4)}"></i>`)
+			} else {
+				jq = $('<i class="icon fa fa_big ' + icon + '"></i>')
+			}
 		} else if (icon.substr(0, 5) === 'icon-') {
 			//Icomoon
 			jq = $('<i class="' + icon + '"></i>')
@@ -79,44 +78,44 @@ class API {
 			}
 		}
 		return jq.get(0)
-	}
+	},
 	showQuickMessage(message, time) {
 		$('#quick_message_box').remove()
 		var quick_message_box = $('<div id="quick_message_box" class="hidden"></div>') 
 		$('body').append(quick_message_box)
 		
 		quick_message_box.text(tl(message))
-		quick_message_box.fadeIn(100)
+		quick_message_box.fadeIn(0)
 		setTimeout(function() {
-			quick_message_box.fadeOut(100)
+			quick_message_box.fadeOut(0)
 			setTimeout(function() {
 				quick_message_box.remove()
-			}, 100)
+			}, 1)
 		}, time ? time : 1000)
-	}
+	},
 	showStatusMessage(message, time) {
 		Blockbench.setStatusBarText(tl(message))
 		setTimeout(function() {
 			Blockbench.setStatusBarText()
-		}, time ? time : 600)
-	}
+		}, time ? time : 800)
+	},
 	setStatusBarText(text) {
 		if (text) {
 			Prop.file_name = text
 		} else {
 			Prop.file_name = Prop.file_name_alt||''
 		}
-	}
+	},
 	setProgress(progress, time, bar) {
 		setProgressBar(bar, progress||0, time)
-	}
+	},
 	showMessage(message, location) {
 		if (location === 'status_bar') {
 			Blockbench.showStatusMessage(message)
 		} else if (location === 'center') {
 			Blockbench.showQuickMessage(message)
 		}
-	}
+	},
 	showMessageBox(options, cb) {
 
 		if (options.confirm === undefined) options.confirm = 0
@@ -128,10 +127,10 @@ class API {
 			if (!options.message) options.message = tl('message.'+options.translateKey+'.message')
 		}
 
-		var jq_dialog = $('<div class="dialog paddinged" style="width: auto;" id="message_box"><h2 class="dialog_handle">'+options.title+'</h2></div>')
+		var jq_dialog = $('<dialog class="dialog paddinged" style="width: auto;" id="message_box"><div class="dialog_handle">'+options.title+'</div></dialog>')
 
 		jq_dialog.append('<div class="dialog_bar" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
-			options.message+'</div>'
+			marked(tl(options.message))+'</div>'
 		)
 		if (options.icon) {
 			jq_dialog.find('.dialog_bar').prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'))
@@ -140,7 +139,7 @@ class API {
 		var buttons = []
 
 		options.buttons.forEach(function(b, i) {
-			var btn = $('<button type="button">'+b+'</button>')
+			var btn = $('<button type="button">'+tl(b)+'</button>')
 			btn.click(function(e) {
 				hideDialog()
 				setTimeout(function() {
@@ -169,11 +168,11 @@ class API {
 		jq_dialog.css('position', 'absolute')
 
 		$('#plugin_dialog_wrapper').append(jq_dialog)
-		$('.dialog').hide(0)
-		$('#blackout').fadeIn(100)
-		jq_dialog.fadeIn(100)
+		$('.dialog').hide()
+		$('#blackout').show()
+		jq_dialog.show()
 
-		jq_dialog.css('top', limitNumber($(window).height()/2-jq_dialog.height()/2, 0, 100)+'px')
+		jq_dialog.css('top', limitNumber($(window).height()/2-jq_dialog.height()/2 - 140, 0, 2000)+'px')
 		if (options.width) {
 			jq_dialog.css('width', options.width+'px')
 		} else {
@@ -182,7 +181,7 @@ class API {
 		open_dialog = 'message_box'
 		open_interface = 'message_box'
 		return jq_dialog
-	}
+	},
 	textPrompt(title, value, callback) {
 		showDialog('text_input')
 		$('#text_input h2').text(tl(title))
@@ -194,21 +193,35 @@ class API {
 				callback(s)
 			}
 		})
-	}
+	},
 	addMenuEntry(name, icon, click) {
 		var action = new Action({icon: icon, name: name, id: name, click: click})
 		MenuBar.addAction(action, 'filter')
-	}
+	},
 	removeMenuEntry(name) {
 		MenuBar.removeAction('filter.'+name)
-	}
+	},
 	openLink(link) {
 		if (isApp) {
 			shell.openExternal(link)
 		} else {
 			window.open(link)
 		}
-	}
+	},
+	notification(title, text, icon) {
+		Notification.requestPermission().then(status => {
+			if (status == 'granted') {
+				let n = new Notification(title, {body: text, icon: icon||'favicon.png'})
+				n.onclick = function() {
+					if (isApp) {
+						currentwindow.focus();
+					} else {
+						window.focus();
+					}
+				}
+			}
+		})
+	},
 	//IO
 	import(options, cb) {
 		if (typeof options !== 'object') {options = {}}
@@ -295,7 +308,7 @@ class API {
 				}
 			}).click()
 		}
-	}
+	},
 	read(paths, options, cb) {
 		if (!isApp || paths == undefined) return false;
 
@@ -367,7 +380,7 @@ class API {
 			})()
 			i++;
 		}
-	}
+	},
 	export(options, cb) {
 		if (!options) return;
 		/*	
@@ -382,7 +395,6 @@ class API {
 		*/
 		if (Blockbench.isWeb) {
 			var file_name = options.name + (options.extensions ? '.'+options.extensions[0] : '')
-			var callback_used;
 			if (options.custom_writer) {
 				options.custom_writer(options.content, file_name)
 				
@@ -402,12 +414,8 @@ class API {
 				var blob = new Blob([options.content], {type: "text/plain;charset=utf-8"});
 				saveAs(blob, file_name, {autoBOM: true})
 			}
-			if (options.project_file) {
-				Prop.project_saved = true;
-				setProjectTitle(options.name)
-			}
-			if (!callback_used && typeof cb === 'function') {
-				cb()
+			if (typeof cb === 'function') {
+				cb(options)
 			}
 		} else {
 			electron.dialog.showSaveDialog(currentwindow, {
@@ -422,7 +430,7 @@ class API {
 				Blockbench.writeFile(file_path, options, cb)
 			})
 		}
-	}
+	},
 	writeFile(file_path, options, cb) {
 		/*	
 			content
@@ -437,9 +445,11 @@ class API {
 			if (options.content.substr(0, 10) === 'data:image') {
 				options.content = nativeImage.createFromDataURL(options.content).toPNG()
 			} else {
+				options.content = options.content.replace(/\?\d+$/, '');
 				options.content = nativeImage.createFromPath(options.content).toPNG()
 			}
-		} else if (options.savetype === 'zip') {
+		}
+		if (options.savetype === 'zip') {
 			var fileReader = new FileReader();
 			fileReader.onload = function(event) {
 			    var buffer = Buffer.from(new Uint8Array(this.result));
@@ -458,28 +468,18 @@ class API {
 				cb(file_path)
 			}
 		}
-		if (options.project_file) {
-			Prop.file_path = file_path
-			Prop.project_saved = true;
-			Project.name = pathToName(file_path, true)
-			setProjectTitle(pathToName(file_path, false))
-			addRecentProject({name: pathToName(file_path, Blockbench.entity_mode ? 'mobs_id' : true), path: Prop.file_path})
-			Blockbench.showQuickMessage(tl('message.save_file', [Project.name]))
-			if (Blockbench.hasFlag('close_after_saving')) {
-				closeBlockbenchWindow()
-			}
-		}
-	}
+
+	},
 	//Flags
 	addFlag(flag) {
 		this.flags[flag] = true
-	}
+	},
 	removeFlag(flag) {
 		delete this.flags[flag]
-	}
+	},
 	hasFlag(flag) {
 		return this.flags[flag]
-	}
+	},
 	//Events
 	dispatchEvent(event_name, data) {
 		var list = this.events[event_name]
@@ -489,20 +489,20 @@ class API {
 				list[i](data)
 			}
 		}
-	}
+	},
 	addListener(event_name, cb) {
 		if (!this.events[event_name]) {
 			this.events[event_name] = []
 		}
 		this.events[event_name].safePush(cb)
-	}
+	},
 	on(event_name, cb) {
 		return Blockbench.addListener(event_name, cb) 
-	}
+	},
 	removeListener(event_name, cb) {
 		if (!this.events[event_name]) return;
 		this.events[event_name].remove(cb);
-	}
+	},
 	//File Drag
 	addDragHandler(id, options, cb) {
 		var entry = {
@@ -518,247 +518,19 @@ class API {
 		if (options.element) entry.element = options.element;
 
 		this.drag_handlers[id] = entry
-	}
+	},
 	removeDragHandler(id) {
 		delete this.drag_handlers[id]
-	}
+	},
 }
-const Blockbench = new API()
-
-function Dialog(settings) {
-	var scope = this;
-	this.title = settings.title
-	this.lines = settings.lines
-	this.form = settings.form
-	this.id = settings.id
-	this.width = settings.width
-	this.fadeTime = settings.fadeTime
-	this.draggable = settings.draggable
-	this.singleButton = settings.singleButton
-	this.buttons = settings.buttons
-	if (!parseInt(settings.fadeTime)) this.fadeTime = 200
-
-
-	this.hide = function() {
-		$('#blackout').fadeOut(this.fadeTime)
-		$(scope.object).fadeOut(this.fadeTime)
-			.find('.tool').detach()
-		open_dialog = false;
-		open_interface = false;
-		Prop.active_panel = undefined
-		setTimeout(function() {
-			$(scope.object).remove()
-		},this.fadeTime)
+if (isApp) {
+	Blockbench.platform = process.platform;
+	switch (Blockbench.platform) {
+		case 'win32': 	Blockbench.operating_system = 'Windows'; break;
+		case 'darwin': 	Blockbench.operating_system = 'macOS'; break;
+		default:		Blockbench.operating_system = 'Linux'; break;
 	}
-
-	this.confirmEnabled = settings.confirmEnabled === false ? false : true
-	this.cancelEnabled = settings.cancelEnabled === false ? false : true
-	this.onConfirm = settings.onConfirm ? settings.onConfirm : this.hide
-	this.onCancel = settings.onCancel ? settings.onCancel : this.hide
-
-	this.object;
-
-	this.confirm = function() {
-		$(this.object).find('.confirm_btn:not([disabled])').click()
-	}
-	this.cancel = function() {
-		$(this.object).find('.cancel_btn:not([disabled])').click()
-	}
-	this.show = function() {
-		var jq_dialog = $(`<div class="dialog paddinged" style="width: auto;" id="${scope.id}"><h2 class="dialog_handle">${tl(scope.title)}</h2></div>`)
-		scope.object = jq_dialog.get(0)
-		var max_label_width = 0;
-		if (scope.lines) {
-			scope.lines.forEach(function(l) {
-				if (typeof l === 'object' && (l.label || l.widget)) {
-
-					var bar = $('<div class="dialog_bar"></div>')
-					if (l.label) {
-						bar.append('<label class="name_space_left">'+tl(l.label)+(l.nocolon?'':':')+'</label>')
-						max_label_width = Math.max(getStringWidth(tl(l.label)), max_label_width)
-					}
-					if (l.node) {
-						bar.append(l.node)
-					} else if (l.widget) {
-						var widget = l.widget
-						if (typeof l.widget === 'string') {
-							widget = BarItems[l.widget]
-						} else if (typeof l.widget === 'function') {
-							widget = l.widget()
-						}
-						bar.append(widget.getNode())
-						max_label_width = Math.max(getStringWidth(widget.name), max_label_width)
-					}
-					jq_dialog.append(bar)
-				} else {
-					jq_dialog.append(l)
-				}
-			})
-		}
-		if (scope.form) {
-			for (var form_id in scope.form) {
-				var data = scope.form[form_id]
-				if (data === '_') {
-					jq_dialog.append('<hr />')
-					
-				} else if (data && Condition(data.condition)) {
-					var bar = $('<div class="dialog_bar"></div>')
-					if (data.label) {
-						bar.append(`<label class="name_space_left" for="${form_id}">${tl(data.label)+(data.nocolon?'':':')}</label>`)
-						max_label_width = Math.max(getStringWidth(tl(data.label)), max_label_width)
-					}
-
-					switch (data.type) {
-						default:
-							bar.append(`<input class="dark_bordered half" type="text" id="${form_id}" value="${data.value||''}" placeholder="${data.placeholder||''}">`)
-							break;
-						case 'textarea':
-							bar.append(`<textarea style="height: ${data.height||150}px;" id="${form_id}"></textarea>`)
-							break;
-						case 'select':
-							var el = $(`<div class="bar_select half"><select id="${form_id}"></select></div>`)
-							var sel = el.find('select')
-							for (var key in data.options) {
-								var name = tl(data.options[key])
-								sel.append(`<option id="${key}" ${data.default === key ? 'selected' : ''}>${name}</option>`)
-							}
-							bar.append(el)
-							break;
-						case 'text':
-							var regex = /\[(.+)\]\((.+\..+)\)/g;
-							var matches = data.text.match(regex)
-							if (matches) {
-								data.text = data.text.replace(regex, (m, label, url) => {
-									return `<a href="${url}" class="open-in-browser">${label}</a>`
-								})
-							} else {
-								data.text = tl(data.text)
-							}
-							bar.append(`<p>${data.text}</p>`)
-							bar.addClass('small_text')
-							break;
-						case 'number':
-							bar.append(`<input class="dark_bordered half" type="number" id="${form_id}" value="${data.value||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
-							break;
-						case 'color':
-							if (!data.colorpicker) {
-								data.colorpicker = new ColorPicker({
-									id: 'cp_'+form_id,
-									label: false,
-									private: true
-								})
-							}
-							bar.append(data.colorpicker.getNode())
-							break;
-						case 'checkbox':
-							bar.append(`<input type="checkbox" id="${form_id}"${data.value ? ' checked' : ''}>`)
-							break;
-					}
-					if (data.readonly) {
-						bar.find('input').attr('readonly', 'readonly')
-					}
-					jq_dialog.append(bar)
-				}
-			}
-		}
-		if (max_label_width) {
-			document.styleSheets[0].insertRule('.dialog#'+this.id+' .dialog_bar label {width: '+(max_label_width+8)+'px}')
-		}
-		if (this.buttons) {
-
-
-			var buttons = []
-
-			scope.buttons.forEach(function(b, i) {
-				var btn = $('<button type="button">'+b+'</button>')
-				buttons.push(btn)
-			})
-			buttons[scope.confirmIndex||0].addClass('confirm_btn')
-			buttons[scope.cancelIndex||1].addClass('cancel_btn')
-			jq_dialog.append($('<div class="dialog_bar button_bar"></div>').append(buttons))
-
-
-
-		} else if (this.singleButton) {
-
-			jq_dialog.append('<div class="dialog_bar">' +
-				'<button type="button" class="large cancel_btn confirm_btn"'+ (this.confirmEnabled ? '' : ' disabled') +'>'+tl('dialog.close')+'</button>' +
-			'</div>')
-
-		} else {
-
-			jq_dialog.append(['<div class="dialog_bar">',
-				'<button type="button" class="large confirm_btn"'+ (this.confirmEnabled ? '' : ' disabled') +'>'+tl('dialog.confirm')+'</button>',
-				'<button type="button" class="large cancel_btn"'+ (this.cancelEnabled ? '' : ' disabled') +'>'+tl('dialog.cancel')+'</button>',
-			'</div>'].join(''))
-
-		}
-		jq_dialog.append('<div id="dialog_close_button" onclick="$(\'.dialog#\'+open_dialog).find(\'.cancel_btn:not([disabled])\').click()"><i class="material-icons">clear</i></div>')
-		var confirmFn = function(e) {
-
-			var result = {}
-			if (scope.form) {
-				for (var form_id in scope.form) {
-					var data = scope.form[form_id]
-					if (typeof data === 'object') {
-						switch (data.type) {
-							default:
-								result[form_id] = jq_dialog.find('input#'+form_id).val()
-								break;
-							case 'text':
-								break;
-							case 'textarea':
-								result[form_id] = jq_dialog.find('textarea#'+form_id).val()
-								break;
-							case 'select':
-								result[form_id] = jq_dialog.find('select#'+form_id+' > option:selected').attr('id')
-								break;
-							case 'number':
-								result[form_id] = Math.clamp(parseFloat(jq_dialog.find('input#'+form_id).val())||0, data.min, data.max)
-								break;
-							case 'color':
-								result[form_id] = data.colorpicker.get();
-								break;
-							case 'checkbox':
-								result[form_id] = jq_dialog.find('input#'+form_id).is(':checked')
-								break;
-						}
-					}
-				}
-			}
-			scope.onConfirm(result, e)
-		}
-		confirmFn.bind(this)
-		$(this.object).find('.confirm_btn').click(confirmFn)
-		$(this.object).find('.cancel_btn').click(() => {this.onCancel()})
-		//Draggable
-		if (this.draggable !== false) {
-			jq_dialog.addClass('draggable')
-			jq_dialog.draggable({
-				handle: ".dialog_handle"
-			})
-			var x = ($(window).width()-540)/2
-			jq_dialog.css('left', x+'px')
-			jq_dialog.css('position', 'absolute')
-		}
-		$('#plugin_dialog_wrapper').append(jq_dialog)
-		$('.dialog').hide(0)
-		$('#blackout').fadeIn(scope.fadeTime)
-		jq_dialog.fadeIn(scope.fadeTime)
-		jq_dialog.css('top', limitNumber($(window).height()/2-jq_dialog.height()/2, 0, 100)+'px')
-		if (this.width) {
-			jq_dialog.css('width', this.width+'px')
-		}
-		jq_dialog.find('.open-in-browser').click((event) => {
-			event.preventDefault();
-			shell.openExternal(event.target.href);
-			return true;
-		});
-		open_dialog = scope.id
-		open_interface = scope
-		Prop.active_panel = 'dialog'
-		return this;
-	}
+	if (Blockbench.platform.includes('win32') === true) osfs = '\\';
 }
 
 document.ondragover = function(event) {
@@ -901,6 +673,4 @@ function forDragHandlers(event, cb) {
 			cb(handler, el)
 		}
 	}
-
 }
-

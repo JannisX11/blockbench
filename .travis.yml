@@ -14,7 +14,10 @@ matrix:
       script: build -w --x64 --publish=always
 
     - name: "Linux"
-      os: linux  
+      os: linux
+      script:
+        - sudo apt-get install rpm
+        - build --publish=always
 
 
 cache:

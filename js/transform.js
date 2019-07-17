@@ -1,12 +1,12 @@
 //Actions
 function origin2geometry() {
 
-	if (Blockbench.entity_mode) {
-		Undo.initEdit({group: selected_group})
+	if (Format.bone_rig && Group.selected) {
+		Undo.initEdit({group: Group.selected})
 
-		if (!selected_group || selected_group.children.length === 0) return;
+		if (!Group.selected || Group.selected.children.length === 0) return;
 		var position = [0, 0, 0]
-		selected_group.children.forEach(function(obj) {
+		Group.selected.children.forEach(function(obj) {
 			if (obj.type === 'cube') {
 				position[0] += obj.from[0] + obj.size(0)/2
 				position[1] += obj.from[1] + obj.size(1)/2
@@ -14,16 +14,16 @@ function origin2geometry() {
 			}
 		})
 		position.forEach(function(p, pi) {
-			position[pi] = p / selected_group.children.length
+			position[pi] = p / Group.selected.children.length
 		})
-		selected_group.origin = position
+		Group.selected.origin = position
 
-	} else {
-		Undo.initEdit({cubes: selected})
+	} else if (Cube.selected) {
+		Undo.initEdit({elements: Cube.selected})
 
 		var center = getSelectionCenter()
 		
-		selected.forEach(cube => {
+		Cube.selected.forEach(cube => {
 			cube.transferOrigin(center)
 		})
 	}
@@ -41,10 +41,19 @@ function getSelectionCenter() {
 			center[0] += pos.x
 			center[1] += pos.y
 			center[2] += pos.z
+		} else if (!m && cube.from) {
+			center[0] += cube.from[0];
+			center[1] += cube.from[1];
+			center[2] += cube.from[2];
 		}
 	})
 	for (var i = 0; i < 3; i++) {
 		center[i] = center[i] / selected.length
+	}
+	if (!Format.bone_rig) {
+		center[0] += 8;
+		center[1] += 8;
+		center[2] += 8;
 	}
 	return center;
 }
@@ -53,25 +62,25 @@ function isMovementGlobal() {
 		return true;
 	}
 
-
-	if (!Blockbench.entity_mode) {
-		if (selected.length > 1) {
-			if (selected[0].rotation.equals([0,0,0])) return true;
+	if (Format.rotate_cubes) {
+		if (Cube.selected.length > 1) {
+			if (Cube.selected[0].rotation.equals([0,0,0])) return true;
 			var i = 0;
-			while (i < selected.length) {
-				if (!selected[0].rotation.equals(selected[i].rotation)) {
+			while (i < Cube.selected.length) {
+				if (!Cube.selected[0].rotation.equals(Cube.selected[i].rotation)) {
 					return true;
 				}
 				i++;
 			}
 		}
 		return false;
-	} else {
-		if (selected[0] && selected[0].parent.type === 'group') {
-			var ref_group = selected[0].parent
+	}
+	if (Format.bone_rig) {
+		if (Cube.selected[0] && Cube.selected[0].parent.type === 'group') {
+			var ref_group = Cube.selected[0].parent
 			var i = 0;
-			while (i < selected.length) {
-				var obj = selected[i]
+			while (i < Cube.selected.length) {
+				var obj = Cube.selected[i]
 				if (
 					obj.parent.type !== 'group' ||
 					!obj.parent.rotation.equals(ref_group.rotation)
@@ -87,13 +96,10 @@ function isMovementGlobal() {
 }
 //Canvas Restriction
 function isInBox(val) {
-	return (val < 32 && val > -16 || isCanvasRestricted() === false)
-}
-function isCanvasRestricted() {
-	return (settings.restricted_canvas.value === true && Blockbench.entity_mode === false)
+	return !Format.canvas_limit || (val < 32 && val > -16)
 }
 function limitToBox(val) {
-	if (!isCanvasRestricted()) {
+	if (!Format.canvas_limit) {
 		return val;
 	} else if (val > 32) {
 		return 32;
@@ -103,88 +109,12 @@ function limitToBox(val) {
 		return val;
 	}
 }
-function moveIntoBox(list, value_before) {
-	if (!list) list = elements
-	if (list.length === 0) return;
-	Undo.initEdit({cubes: selected, settings: {restricted_canvas: !!value_before}})
-
-	list.forEach(function(s, i) {
-		//Push elements into 3x3 block box
-		[0, 1, 2].forEach(function(ax) {
-			var overlap = s.to[ax] - 32
-			if (overlap > 0) {
-				//If positive site overlaps
-				s.from[ax] -= overlap
-				s.to[ax] -= overlap
-
-				overlap = 16 + s.from[ax]
-				if (overlap < 0) {
-					s.from[ax] = -16
-				}
-			} else {
-				overlap = s.from[ax] + 16
-				if (overlap < 0) {
-					s.from[ax] -= overlap
-					s.to[ax] -= overlap
-
-					if (s.to[ax] > 32) {
-						s.to[ax] = 32
-					}
-				}
-			}
-		})
-		Canvas.adaptObjectPosition(s)
-	})
-	updateSelection()
-	Undo.finishEdit('restrict', {cubes: selected, settings: {restricted_canvas: true}})
-}
 //Movement
-function moveCube(obj, val, axis, move_origin) {
-	//Obj = Direct  -  val = Total  -   Axis = Number
-	val = limitToBox(val)
-	val = limitToBox(val + obj.size(axis))
-	var size = obj.size(axis)
-	var difference = val - obj.to[axis]
-
-	//Move
-	if (Blockbench.globalMovement && Blockbench.entity_mode && !move_origin) {
-		var m = new THREE.Vector3()
-		m[getAxisLetter(axis)] = difference
-
-		var rotation = new THREE.Quaternion()
-		obj.mesh.getWorldQuaternion(rotation)
-		m.applyQuaternion(rotation.inverse())
-
-		obj.from[0] += m.x;
-		obj.from[1] += m.y;
-		obj.from[2] += m.z;
-		obj.to[0]	+= m.x;
-		obj.to[1]	+= m.y;
-		obj.to[2]	+= m.z;
-
-	} else {
-		obj.to[axis] = val
-		obj.from[axis] = val - size
-	}
-	//Origin
-	if (Blockbench.globalMovement && !Blockbench.entity_mode) {
-		obj.origin[axis] += difference
-	}
-	obj.mapAutoUV()
-}
-function scaleCube(obj, val, axis) {
-	obj.to[axis] = limitToBox(val + obj.from[axis])
-	obj.mapAutoUV()
-}
-function scaleCubeNegative(obj, val, axis) {
-	obj.from[axis] = limitToBox(obj.to[axis] - val)
-	obj.mapAutoUV()
-}
 function moveCubesRelative(difference, index, event) { //Multiple
-	if (!quad_previews.current || !selected.length) {
+	if (!quad_previews.current || !Cube.selected.length) {
 		return;
 	}
-	Undo.initEdit({cubes: selected})
+	Undo.initEdit({elements: Cube.selected})
     var axes = []
     // < >
     // PageUpDown
@@ -215,26 +145,26 @@ function moveCubesRelative(difference, index, event) { //Multiple
     	difference *= canvasGridSize(event.shiftKey, event.ctrlKey);
     }
     
-    selected.forEach(function(s) {
-        moveCube(s, s.from[axes[index]]+difference, axes[index])
+    Cube.selected.forEach(cube => {
+        cube.move(difference, axes[index])
     })
     Canvas.updatePositions()
 	Undo.finishEdit('move')
 }
 //Rotate
 function rotateSelected(axis, steps) {
-	if (!selected.length) return;
-	Undo.initEdit({cubes: selected});
+	if (!Cube.selected.length) return;
+	Undo.initEdit({elements: Cube.selected});
 	if (!steps) steps = 1
 	var origin = [8, 8, 8]
-	if (selected_group && Blockbench.entity_mode) {
-		origin = selected_group.origin.slice()
-	} else if (Blockbench.entity_mode) {
+	if (Group.selected && Format.bone_rig) {
+		origin = Group.selected.origin.slice()
+	} else if (Format.bone_rig) {
 		origin = [0, 0, 0]
 	} else {
-		origin = selected[0].origin.slice()
+		origin = Cube.selected[0].origin.slice()
 	}
-	selected.forEach(function(obj) {
+	Cube.selected.forEach(function(obj) {
 		obj.roll(axis, steps, origin)
 	})
 	updateSelection()
@@ -242,12 +172,12 @@ function rotateSelected(axis, steps) {
 }
 //Mirror
 function mirrorSelected(axis) {
-	if (!selected.length) return;
-	Undo.initEdit({cubes: selected})
+	if (!Cube.selected.length) return;
+	Undo.initEdit({elements: Cube.selected, outliner: Format.bone_rig})
 	var center = 8
-	if (Blockbench.entity_mode) {
+	if (Format.bone_rig) {
 		center = 0
-		if (selected_group && selected_group.matchesSelection()) {
+		if (Group.selected && Group.selected.matchesSelection()) {
 			function flipGroup(group) {
 				if (group.type === 'group') {
 					for (var i = 0; i < 3; i++) {
@@ -257,27 +187,197 @@ function mirrorSelected(axis) {
 							group.rotation[i] *= -1
 						}
 					}
+					if (axis == 0 && group.name.includes('right')) {
+						group.name = group.name.replace(/right/g, 'left').replace(/2/, '');
+					} else if (axis == 0 && group.name.includes('left')) {
+						group.name = group.name.replace(/left/g, 'right').replace(/2/, '');
+					}
 				}
 			}
-			flipGroup(selected_group)
-			selected_group.forEachChild(flipGroup)
+			flipGroup(Group.selected)
+			Group.selected.forEachChild(flipGroup)
 		}
 	}
-	selected.forEach(function(obj) {
+	Cube.selected.forEach(function(obj) {
 		obj.flip(axis, center, false)
-		if (Blockbench.entity_mode && axis === 0) {
+		if (Project.box_uv && axis === 0) {
 			obj.shade = !obj.shade
 			Canvas.updateUV(obj)
 		}
 	})
 	updateSelection()
 	Undo.finishEdit('mirror')
-/*
-Conditions:
-Selection equals group cubes:
-	all selected cubes have group as parent
+}
 
-*/
+const Vertexsnap = {
+	step1: true,
+	vertexes: new THREE.Object3D(),
+	vertexed_cubes: [],
+	hovering: false,
+	addVertexes: function(cube) {
+		if (Vertexsnap.vertexed_cubes.includes(cube)) return;
+		if (cube.visibility === false) return;
+
+		$('#preview').get(0).removeEventListener("mousemove", Vertexsnap.hoverCanvas)
+		$('#preview').get(0).addEventListener("mousemove", Vertexsnap.hoverCanvas)
+
+		var o_vertices = cube.mesh.geometry.vertices
+		cube.mesh.updateMatrixWorld()
+		o_vertices.forEach(function(v, id) {
+			var outline_color = '0x'+app_colors.accent.hex.replace('#', '')
+			//Each vertex needs it's own material for hovering
+			var material = new THREE.MeshBasicMaterial({color: parseInt(outline_color)})
+			var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material)
+			var pos = mesh.position.copy(v)
+			pos.applyMatrix4(cube.mesh.matrixWorld)
+			pos.addScalar(8)
+			mesh.rotation.copy(cube.mesh.rotation)
+			mesh.cube = cube
+			mesh.isVertex = true
+			mesh.vertex_id = id
+			Vertexsnap.vertexes.add(mesh)
+		})
+		Vertexsnap.vertexed_cubes.push(cube)
+		Vertexsnap.updateVertexSize()
+	},
+	removeVertexes: function() {
+		var i = Vertexsnap.vertexes.children.length
+		while (i >= 0) {
+			Vertexsnap.vertexes.remove(Vertexsnap.vertexes.children[i])
+			i--;
+		}
+		Vertexsnap.vertexed_cubes = []
+		$('#preview').get(0).removeEventListener("mousemove", Vertexsnap.hoverCanvas)
+	},
+	hoverCanvas: function(event) {
+		if (Vertexsnap.hovering) {
+			Vertexsnap.vertexes.children.forEach(function(v) {
+				if (v.type === 'Line') {
+					Vertexsnap.vertexes.remove(v)
+				} else {
+					v.material.color.set(parseInt('0x'+app_colors.accent.hex.replace('#', '')))
+				}
+			})
+		}
+		let data = Canvas.raycast()
+		if (!data || !data.vertex) {
+			Blockbench.setStatusBarText()
+			return;
+		}
+		var vertex = data.vertex
+		vertex.material.color.g = 1
+		Vertexsnap.hovering = true
+
+		if (Vertexsnap.step1 === false) {
+			//Line
+			var geometry = new THREE.Geometry();
+			geometry.vertices.push(Vertexsnap.vertex_pos);
+			geometry.vertices.push(vertex.position);
+			var line = new THREE.Line(geometry, Vertexsnap.lineMaterial);
+			line.renderOrder = 900
+			Vertexsnap.vertexes.add(line)
+			//Measure
+			var diff = new THREE.Vector3().copy(Vertexsnap.vertex_pos)
+			diff.sub(vertex.position)
+			Blockbench.setStatusBarText(tl('status_bar.vertex_distance', [trimFloatNumber(diff.length())] ))
+		}
+	},
+	select: function() {
+		Vertexsnap.removeVertexes()
+		Cube.selected.forEach(function(obj) {
+			Vertexsnap.addVertexes(obj)
+		})
+		if (Cube.selected.length) {
+			$('#preview').css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
+		}
+		Vertexsnap.lineMaterial = Canvas.outlineMaterial.clone()
+		Vertexsnap.lineMaterial.depthTest = false
+	},
+	canvasClick: function(data) {
+		if (!data.vertex) return;
+
+		if (Vertexsnap.step1) {
+			Vertexsnap.step1 = false
+			Vertexsnap.vertex_pos = data.vertex.position
+			Vertexsnap.vertex_id = data.vertex.vertex_id
+			Vertexsnap.cubes = Cube.selected.slice()
+			Vertexsnap.removeVertexes()
+			$('#preview').css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
+		} else {
+			Vertexsnap.snap(data)
+			$('#preview').css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
+		}
+		Blockbench.setStatusBarText()
+	},
+	snap: function(data) {
+		Undo.initEdit({elements: Vertexsnap.cubes})
+
+		var global_delta = data.vertex.position
+		global_delta.sub(Vertexsnap.vertex_pos)
+
+		if (BarItems.vertex_snap_mode.get() === 'scale') {
+			//Scale
+
+			var m;
+			switch (Vertexsnap.vertex_id) {
+				case 0: m=[ 1,1,1 ]; break;
+				case 1: m=[ 1,1,0 ]; break;
+				case 2: m=[ 1,0,1 ]; break;
+				case 3: m=[ 1,0,0 ]; break;
+				case 4: m=[ 0,1,0 ]; break;
+				case 5: m=[ 0,1,1 ]; break;
+				case 6: m=[ 0,0,0 ]; break;
+				case 7: m=[ 0,0,1 ]; break;
+			}
+
+			Vertexsnap.cubes.forEach(function(obj) {
+				var q = obj.mesh.getWorldQuaternion(new THREE.Quaternion()).inverse()
+				var cube_pos = new THREE.Vector3().copy(global_delta).applyQuaternion(q)
+
+				for (i=0; i<3; i++) {
+					if (m[i] === 1) {
+						obj.to[i] += cube_pos.getComponent(i)
+					} else {
+						obj.from[i] += cube_pos.getComponent(i)
+					}
+				}
+				if (Project.box_uv && obj.visibility) {
+					Canvas.updateUV(obj)
+				}
+			})
+		} else {
+			Vertexsnap.cubes.forEach(function(obj) {
+				var cube_pos = new THREE.Vector3().copy(global_delta)
+				if (Format.rotate_cubes && !Format.bone_rig) {
+					obj.origin[0] += cube_pos.getComponent(0)
+					obj.origin[1] += cube_pos.getComponent(1)
+					obj.origin[2] += cube_pos.getComponent(2)
+				} else {
+					var q = obj.mesh.getWorldQuaternion(new THREE.Quaternion()).inverse()
+					cube_pos.applyQuaternion(q)
+				}
+				obj.from[0] += cube_pos.getComponent(0)
+				obj.from[1] += cube_pos.getComponent(1)
+				obj.from[2] += cube_pos.getComponent(2)
+				obj.to[0] += cube_pos.getComponent(0)
+				obj.to[1] += cube_pos.getComponent(1)
+				obj.to[2] += cube_pos.getComponent(2)
+			})
+		}
+
+		Vertexsnap.removeVertexes()
+		Canvas.updateAllPositions()
+		Undo.finishEdit('vertex snap')
+		Vertexsnap.step1 = true
+	},
+	updateVertexSize: function() {
+		Vertexsnap.vertexes.children.forEach(function(v,i) {
+			var scaleVector = new THREE.Vector3();
+			var scale = scaleVector.subVectors(v.position, Transformer.camera.position).length() / 500;
+			scale = (Math.sqrt(scale) + scale/10) * 1.2
+			v.scale.set(scale, scale, scale)
+		})
+	}
 }
 //Scale
 function scaleAll(save, size) {
@@ -298,43 +398,49 @@ function scaleAll(save, size) {
 		origin.forEach(function(ogn, i) {
 			if ($('#model_scale_'+getAxisLetter(i)+'_axis').is(':checked')) {
 
-				obj.from[i] = (obj.before.from[i] - ogn) * size
-				if (obj.from[i] + ogn > 32 || obj.from[i] + ogn < -16) clip = true
-				obj.from[i] = limitToBox(obj.from[i] + ogn)
+				if (obj.from) {
+					obj.from[i] = (obj.before.from[i] - ogn) * size;
+					if (obj.from[i] + ogn > 32 || obj.from[i] + ogn < -16) clip = true;
+					obj.from[i] = limitToBox(obj.from[i] + ogn);
+				}
 
-				obj.to[i] = (obj.before.to[i] - ogn) * size
-				if (obj.to[i] + ogn > 32 || obj.to[i] + ogn < -16) clip = true
-				obj.to[i] = limitToBox(obj.to[i] + ogn)
+				if (obj.to) {
+					obj.to[i] = (obj.before.to[i] - ogn) * size;
+					if (obj.to[i] + ogn > 32 || obj.to[i] + ogn < -16) clip = true;
+					obj.to[i] = limitToBox(obj.to[i] + ogn);
+				}
 
-				obj.origin[i] = (obj.before.origin[i] - ogn) * size
-				obj.origin[i] = obj.origin[i] + ogn
+				if (obj.origin) {
+					obj.origin[i] = (obj.before.origin[i] - ogn) * size;
+					obj.origin[i] = obj.origin[i] + ogn;
+				}
 			} else {
 
-				obj.from[i] = obj.before.from[i]
-				obj.to[i] = obj.before.to[i]
+				if (obj.from) obj.from[i] = obj.before.from[i];
+				if (obj.to) obj.to[i] = obj.before.to[i];
 
-				obj.origin[i] = obj.before.origin[i]
+				if (obj.origin) obj.origin[i] = obj.before.origin[i];
 
 			}
 		})
 		if (save === true) {
 			delete obj.before
 		}
-		if (Blockbench.entity_mode) {
+		if (Project.box_uv) {
 			Canvas.updateUV(obj)
 		}
 	})
-	if (Blockbench.entity_mode && selected_group) {
-		selected_group.forEachChild((g) => {
+	if (Format.bone_rig && Group.selected) {
+		Group.selected.forEachChild((g) => {
 			g.origin[0] = g.old_origin[0] * size
 			g.origin[1] = g.old_origin[1] * size
 			g.origin[2] = g.old_origin[2] * size
 			if (save === true) {
 				delete g.old_origin
 			}
-		}, 'group')
+		}, Group)
 	}
-	if (clip && Blockbench.entity_mode === false) {
+	if (clip && Format.canvas_limit) {
 		$('#scaling_clipping_warning').text('Model clipping: Your model is too large for the canvas')
 		$('#scale_overflow_btn').css('display', 'inline-block')
 	} else {
@@ -359,18 +465,21 @@ function modelScaleSync(label) {
 function cancelScaleAll() {
 	selected.forEach(function(obj) {
 		if (obj === undefined) return;
-		obj.from = obj.before.from
-		obj.to = obj.before.to
-		obj.origin = obj.before.origin
+		if (obj.from) obj.from = obj.before.from;
+		if (obj.to) obj.to = obj.before.to;
+		if (obj.origin) obj.origin = obj.before.origin;
 		delete obj.before
+		if (Project.box_uv) {
+			Canvas.updateUV(obj)
+		}
 	})
-	if (Blockbench.entity_mode && selected_group) {
-		selected_group.forEachChild((g) => {
+	if (Format.bone_rig && Group.selected) {
+		Group.selected.forEachChild((g) => {
 			g.origin[0] = g.old_origin[0]
 			g.origin[1] = g.old_origin[1]
 			g.origin[2] = g.old_origin[2]
 			delete g.old_origin
-		}, 'group')
+		}, Group)
 	}
 	Canvas.updatePositions()
 	hideDialog()
@@ -381,8 +490,8 @@ function scaleAllSelectOverflow() {
 		var clip = false
 		obj.from.forEach(function(ogn, i) {
 
-			if (obj.from[i] > 32 || obj.from[i] < -16) clip = true
-			if (obj.to[i]   > 32 || obj.to[i]   < -16) clip = true
+			if (obj.from && (obj.from[i] > 32 || obj.from[i] < -16)) clip = true
+			if (obj.to && (obj.to[i]   > 32 || obj.to[i]   < -16)) clip = true
 		})
 		if (clip) {
 			overflow.push(obj)
@@ -390,8 +499,8 @@ function scaleAllSelectOverflow() {
 	})
 	cancelScaleAll()
 	selected.length = 0;
-	overflow.forEach(cube => {
-		selected.push(cube)
+	overflow.forEach(obj => {
+		obj.selectLow()
 	})
 	updateSelection();
 }
@@ -406,25 +515,25 @@ function centerCubes(axis, update) {
 	if (!selected.length) return;
 	var average = 0;
 	selected.forEach(function(obj) {
-		average += obj.from[axis]
-		average += obj.to[axis]
+		if (obj.movable) average += obj.from[axis]
+		if (obj.scalable) average += obj.to[axis]
 	})
 	average = average / (selected.length * 2)
-	var difference = (Blockbench.entity_mode ? 0 : 8) - average
+	var difference = (Format.bone_rig ? 0 : 8) - average
 
 	selected.forEach(function(obj) {
-		obj.from[axis] = limitToBox(obj.from[axis] 	+ difference);
-		obj.to[axis] = 	 limitToBox(obj.to[axis] 	+ difference);
-		obj.origin[axis] += difference;
+		if (obj.movable) obj.from[axis] = limitToBox(obj.from[axis] + difference);
+		if (obj.scalable) obj.to[axis] =  limitToBox(obj.to[axis] 	+ difference);
+		if (obj.origin) obj.origin[axis] += difference;
 	})
 
 	if (update !== false) {
 		Canvas.updatePositions()
 	}
 }
-
+//Rotate
 function getRotationInterval(event) {
-	if (settings.limited_rotation.value && !Blockbench.entity_mode) {
+	if (Format.rotation_limit) {
 		return 22.5;
 	} else if (event.shiftKey && event.ctrlKey) {
 		return 0.25;
@@ -436,23 +545,28 @@ function getRotationInterval(event) {
 		return 5;
 	}
 }
+function getRotationObject() {
+	if (Format.bone_rig && Group.selected) return Group.selected;
+	if (Format.rotate_cubes && Cube.selected.length) return Cube.selected;
+}
 function rotateOnAxis(value, fixed, axis) {
-	if (Blockbench.entity_mode) {	
-		if (!selected_group) return;
+	if (Format.bone_rig && Group.selected) {	
+		if (!Group.selected) return;
 		if (!fixed) {
-			value = value + selected_group.rotation[axis]
+			value = value + Group.selected.rotation[axis]
 		}
 		value = Math.trimDeg(value)
-		selected_group.rotation[axis] = value
+		Group.selected.rotation[axis] = value
 		Canvas.updateAllBones()
-		return;
+		return
 	}
+	if (!Format.rotate_cubes) return;
 	//Warning
-	if (settings.limited_rotation.value && settings.dialog_rotation_limit.value) {
+	if (Format.rotation_limit && settings.dialog_rotation_limit.value) {
 		var i = 0;
-		while (i < selected.length) {
-			if (selected[i].rotation[(axis+1)%3] ||
-				selected[i].rotation[(axis+2)%3]
+		while (i < Cube.selected.length) {
+			if (Cube.selected[i].rotation[(axis+1)%3] ||
+				Cube.selected[i].rotation[(axis+2)%3]
 			) {
 				i = Infinity
 
@@ -464,7 +578,7 @@ function rotateOnAxis(value, fixed, axis) {
 				}, function(r) {
 					if (r === 1) {
 						settings.dialog_rotation_limit.value = false
-						saveSettings()
+						Settings.save()
 					}
 				})
 				return;
@@ -474,19 +588,20 @@ function rotateOnAxis(value, fixed, axis) {
 		}
 	}
 	var axis_letter = getAxisLetter(axis)
-	var origin = selected[0].origin
-	selected.forEach(function(obj, i) {
+	var origin = Cube.selected[0].origin
+	Cube.selected.forEach(function(obj, i) {
 		if (!obj.rotation.allEqual(0)) {
 			origin = obj.origin
 		}
 	})
+	/*
 	if (origin.allEqual(8)) {
 		origin = getSelectionCenter()
 		origin.forEach((n, ni) => {
 			origin[ni] = Math.round(n*2)/2
 		})
-	}
-	selected.forEach(function(obj, i) {
+	}*/
+	Cube.selected.forEach(function(obj, i) {
 		if (obj.rotation.allEqual(0)) {
 			obj.origin = origin.slice()
 		}
@@ -495,7 +610,7 @@ function rotateOnAxis(value, fixed, axis) {
 			obj_val += obj.rotation[axis]
 		}
 		obj_val = Math.trimDeg(obj_val)
-		if (settings.limited_rotation.value) {
+		if (Format.rotation_limit) {
 			//Limit To 1 Axis
 			obj.rotation[(axis+1)%3] = 0
 			obj.rotation[(axis+2)%3] = 0
@@ -518,21 +633,14 @@ function rotateOnAxis(value, fixed, axis) {
 BARS.defineActions(function() {
 	function moveOnAxis(value, fixed, axis) {
 		selected.forEach(function(obj, i) {
-			var number = value
-			if (fixed) {
-				number -= obj.from[axis]
+			if (obj.movable) {
+				obj.move(value, axis, fixed)
 			}
-			number = limitToBox(obj.to  [axis] + number) - obj.to  [axis];
-			number = limitToBox(obj.from[axis] + number) - obj.from[axis];
-			obj.from[axis] += number
-			obj.to[axis] += number
-			obj.mapAutoUV()
 		})
-		Canvas.updatePositions()
 	}
 	new NumSlider({
 		id: 'slider_pos_x',
-		condition: () => (selected.length && Modes.id === 'edit'),
+		condition: () => (selected.length && Modes.edit),
 		get: function() {
 			return selected[0].from[0]
 		},
@@ -540,7 +648,7 @@ BARS.defineActions(function() {
 			moveOnAxis(value, fixed, 0)
 		},
 		onBefore: function() {
-			Undo.initEdit({cubes: selected})
+			Undo.initEdit({elements: selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit('move')
@@ -548,7 +656,7 @@ BARS.defineActions(function() {
 	}) 
 	new NumSlider({
 		id: 'slider_pos_y',
-		condition: () => (selected.length && Modes.id === 'edit'),
+		condition: () => (selected.length && Modes.edit),
 		get: function() {
 			return selected[0].from[1]
 		},
@@ -556,7 +664,7 @@ BARS.defineActions(function() {
 			moveOnAxis(value, fixed, 1)
 		},
 		onBefore: function() {
-			Undo.initEdit({cubes: selected})
+			Undo.initEdit({elements: selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit('move')
@@ -564,7 +672,7 @@ BARS.defineActions(function() {
 	}) 
 	new NumSlider({
 		id: 'slider_pos_z',
-		condition: () => (selected.length && Modes.id === 'edit'),
+		condition: () => (selected.length && Modes.edit),
 		get: function() {
 			return selected[0].from[2]
 		},
@@ -572,7 +680,7 @@ BARS.defineActions(function() {
 			moveOnAxis(value, fixed, 2)
 		},
 		onBefore: function() {
-			Undo.initEdit({cubes: selected})
+			Undo.initEdit({elements: selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit('move')
@@ -582,29 +690,22 @@ BARS.defineActions(function() {
 
 	function scaleOnAxis(value, fixed, axis) {
 		selected.forEach(function(obj, i) {
-			var diff = value
-			if (fixed) {
-				diff -= obj.size(axis)
+			if (obj.scalable) {
+				obj.scale(value, axis, false, fixed, true)
 			}
-			obj.to[axis] = limitToBox(obj.to[axis] + diff)
-			obj.mapAutoUV()
 		})
-		Canvas.updatePositions()
-		if (Blockbench.entity_mode) {
-			Canvas.updateUVs()
-		}
 	}
 	new NumSlider({
 		id: 'slider_size_x',
-		condition: () => (selected.length && Modes.id === 'edit'),
+		condition: () => (Cube.selected.length && Modes.edit),
 		get: function() {
-			return selected[0].to[0] - selected[0].from[0]
+			return Cube.selected[0].to[0] - Cube.selected[0].from[0]
 		},
 		change: function(value, fixed) {
 			scaleOnAxis(value, fixed, 0)
 		},
 		onBefore: function() {
-			Undo.initEdit({cubes: selected})
+			Undo.initEdit({elements: Cube.selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit('resize')
@@ -612,15 +713,15 @@ BARS.defineActions(function() {
 	})
 	new NumSlider({
 		id: 'slider_size_y',
-		condition: () => (selected.length && Modes.id === 'edit'),
+		condition: () => (Cube.selected.length && Modes.edit),
 		get: function() {
-			return selected[0].to[1] - selected[0].from[1]
+			return Cube.selected[0].to[1] - Cube.selected[0].from[1]
 		},
 		change: function(value, fixed) {
 			scaleOnAxis(value, fixed, 1)
 		},
 		onBefore: function() {
-			Undo.initEdit({cubes: selected})
+			Undo.initEdit({elements: Cube.selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit('resize')
@@ -628,15 +729,15 @@ BARS.defineActions(function() {
 	})
 	new NumSlider({
 		id: 'slider_size_z',
-		condition: () => (selected.length && Modes.id === 'edit'),
+		condition: () => (Cube.selected.length && Modes.edit),
 		get: function() {
-			return selected[0].to[2] - selected[0].from[2]
+			return Cube.selected[0].to[2] - Cube.selected[0].from[2]
 		},
 		change: function(value, fixed) {
 			scaleOnAxis(value, fixed, 2)
 		},
 		onBefore: function() {
-			Undo.initEdit({cubes: selected})
+			Undo.initEdit({elements: Cube.selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit('resize')
@@ -645,12 +746,12 @@ BARS.defineActions(function() {
 	//Inflage
 	new NumSlider({
 		id: 'slider_inflate',
-		condition: function() {return selected.length && Modes.id === 'edit'},
+		condition: function() {return Cube.selected.length && Modes.edit},
 		get: function() {
-			return selected[0].inflate
+			return Cube.selected[0].inflate
 		},
 		change: function(value, fixed) {
-			selected.forEach(function(obj, i) {
+			Cube.selected.forEach(function(obj, i) {
 				var diff = value
 				if (fixed) {
 					diff -= obj.inflate
@@ -660,26 +761,31 @@ BARS.defineActions(function() {
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
-			Undo.initEdit({cubes: selected})
+			Undo.initEdit({elements: Cube.selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit('inflate')
 		}
 	})
+
 	//Rotation
 	new NumSlider({
 		id: 'slider_rotation_x',
-		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length) && Modes.id === 'edit'},
+		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
-			var obj = Blockbench.entity_mode ? selected_group : selected[0]
-			return obj ? obj.rotation[0] : ''
+			if (Format.bone_rig && Group.selected) {
+				return Group.selected.rotation[0];
+			}
+			if (Format.rotate_cubes && Cube.selected[0]) {
+				return Cube.selected[0].rotation[0];
+			}
 		},
 		change: function(value, fixed) {
 			rotateOnAxis(value, fixed, 0)
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
-			Undo.initEdit({cubes: selected, group: selected_group})
+			Undo.initEdit({elements: Cube.selected, group: Group.selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit('rotate')
@@ -688,17 +794,21 @@ BARS.defineActions(function() {
 	})
 	new NumSlider({
 		id: 'slider_rotation_y',
-		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length) && Modes.id === 'edit'},
+		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
-			var obj = Blockbench.entity_mode ? selected_group : selected[0]
-			return obj ? obj.rotation[1] : ''
+			if (Format.bone_rig && Group.selected) {
+				return Group.selected.rotation[1];
+			}
+			if (Format.rotate_cubes && Cube.selected[0]) {
+				return Cube.selected[0].rotation[1];
+			}
 		},
 		change: function(value, fixed) {
 			rotateOnAxis(value, fixed, 1)
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
-			Undo.initEdit({cubes: selected, group: selected_group})
+			Undo.initEdit({elements: selected, group: Group.selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit('rotate')
@@ -707,34 +817,44 @@ BARS.defineActions(function() {
 	})
 	new NumSlider({
 		id: 'slider_rotation_z',
-		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length) && Modes.id === 'edit'},
+		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
-			var obj = Blockbench.entity_mode ? selected_group : selected[0]
-			return obj ? obj.rotation[2] : ''
+			if (Format.bone_rig && Group.selected) {
+				return Group.selected.rotation[2];
+			}
+			if (Format.rotate_cubes && Cube.selected[0]) {
+				return Cube.selected[0].rotation[2];
+			}
 		},
 		change: function(value, fixed) {
 			rotateOnAxis(value, fixed, 2)
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
-			Undo.initEdit({cubes: selected, group: selected_group})
+			Undo.initEdit({elements: selected, group: Group.selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit('rotate')
 		},
 		getInterval: getRotationInterval
 	})
+	function rotateCondition() {
+		return (Modes.edit && (
+			(Format.bone_rig && Group.selected) ||
+			(Format.rotate_cubes && Cube.selected.length)
+		))
+	}
 
 
 	function moveOriginOnAxis(value, fixed, axis) {
-		if (selected_group) {
+		if (Group.selected) {
 			var diff = value
 			if (fixed) {
-				diff -= selected_group.origin[axis]
+				diff -= Group.selected.origin[axis]
 			}
-			selected_group.origin[axis] += diff
+			Group.selected.origin[axis] += diff
 			Canvas.updatePositions()
-			if (Blockbench.entity_mode) {
+			if (Format.bone_rig) {
 				Canvas.updateAllBones()
 			}
 			return;
@@ -750,16 +870,20 @@ BARS.defineActions(function() {
 	}
 	new NumSlider({
 		id: 'slider_origin_x',
-		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length) && Modes.id === 'edit'},
+		condition: () => () => (Modes.edit && getRotationObject()),
 		get: function() {
-			var obj = Blockbench.entity_mode ? selected_group : selected[0]
-			return obj ? obj.origin[0] : ''
+			if (Format.bone_rig && Group.selected) {
+				return Group.selected.origin[0];
+			}
+			if (Format.rotate_cubes && Cube.selected[0]) {
+				return Cube.selected[0].origin[0];
+			}
 		},
 		change: function(value, fixed) {
 			moveOriginOnAxis(value, fixed, 0)
 		},
 		onBefore: function() {
-			Undo.initEdit({cubes: selected, group: selected_group})
+			Undo.initEdit({elements: selected, group: Group.selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit('origin')
@@ -767,16 +891,20 @@ BARS.defineActions(function() {
 	})
 	new NumSlider({
 		id: 'slider_origin_y',
-		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length) && Modes.id === 'edit'},
+		condition: () => () => (Modes.edit && getRotationObject()),
 		get: function() {
-			var obj = Blockbench.entity_mode ? selected_group : selected[0]
-			return obj ? obj.origin[1] : ''
+			if (Format.bone_rig && Group.selected) {
+				return Group.selected.origin[1];
+			}
+			if (Format.rotate_cubes && Cube.selected[0]) {
+				return Cube.selected[0].origin[1];
+			}
 		},
 		change: function(value, fixed) {
 			moveOriginOnAxis(value, fixed, 1)
 		},
 		onBefore: function() {
-			Undo.initEdit({cubes: selected, group: selected_group})
+			Undo.initEdit({elements: selected, group: Group.selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit('origin')
@@ -784,16 +912,20 @@ BARS.defineActions(function() {
 	})
 	new NumSlider({
 		id: 'slider_origin_z',
-		condition: function() {return !!(Blockbench.entity_mode ? selected_group : selected.length) && Modes.id === 'edit'},
+		condition: () => () => (Modes.edit && getRotationObject()),
 		get: function() {
-			var obj = Blockbench.entity_mode ? selected_group : selected[0]
-			return obj ? obj.origin[2] : ''
+			if (Format.bone_rig && Group.selected) {
+				return Group.selected.origin[2];
+			}
+			if (Format.rotate_cubes && Cube.selected[0]) {
+				return Cube.selected[0].origin[2];
+			}
 		},
 		change: function(value, fixed) {
 			moveOriginOnAxis(value, fixed, 2)
 		},
 		onBefore: function() {
-			Undo.initEdit({cubes: selected, group: selected_group})
+			Undo.initEdit({elements: selected, group: Group.selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit('origin')
@@ -808,23 +940,23 @@ BARS.defineActions(function() {
 			$('#model_scale_range, #model_scale_label').val(1)
 			$('#scaling_clipping_warning').text('')
 
-			Undo.initEdit({cubes: selected, outliner: Blockbench.entity_mode})
+			Undo.initEdit({elements: selected, outliner: Format.bone_rig})
 
 			selected.forEach(function(obj) {
 				obj.before = {
-					from: obj.from.slice(),
-					to: obj.to.slice(),
-					origin: obj.origin.slice()
+					from: obj.from ? obj.from.slice() : undefined,
+					to: obj.to ? obj.to.slice() : undefined,
+					origin: obj.origin ? obj.origin.slice() : undefined
 				}
 			})
-			if (Blockbench.entity_mode && selected_group) {
-				selected_group.forEachChild((g) => {
+			if (Format.bone_rig && Group.selected) {
+				Group.selected.forEachChild((g) => {
 					g.old_origin = g.origin.slice();
-				}, 'group', true)
+				}, Group, true)
 			}
 			showDialog('scaling')
-			var v = Blockbench.entity_mode ? 0 : 8;
-			var origin = selected_group ? selected_group.origin : [v, 0, v];
+			var v = Format.bone_rig ? 0 : 8;
+			var origin = Group.selected ? Group.selected.origin : [v, 0, v];
 			$('#scaling_origin_x').val(origin[0])
 			$('#scaling_origin_y').val(origin[1])
 			$('#scaling_origin_z').val(origin[2])
@@ -920,7 +1052,7 @@ BARS.defineActions(function() {
 		color: 'x',
 		category: 'transform',
 		click: function () {
-			Undo.initEdit({cubes: selected});
+			Undo.initEdit({elements: selected});
 			centerCubes(0);
 			Undo.finishEdit('center')
 		}
@@ -931,7 +1063,7 @@ BARS.defineActions(function() {
 		color: 'y',
 		category: 'transform',
 		click: function () {
-			Undo.initEdit({cubes: selected});
+			Undo.initEdit({elements: selected});
 			centerCubes(1);
 			Undo.finishEdit('center')
 		}
@@ -942,7 +1074,7 @@ BARS.defineActions(function() {
 		color: 'z',
 		category: 'transform',
 		click: function () {
-			Undo.initEdit({cubes: selected});
+			Undo.initEdit({elements: selected});
 			centerCubes(2);
 			Undo.finishEdit('center')
 		}
@@ -952,7 +1084,7 @@ BARS.defineActions(function() {
 		icon: 'filter_center_focus',
 		category: 'transform',
 		click: function () {
-			Undo.initEdit({cubes: selected});
+			Undo.initEdit({elements: selected});
 			centerCubesAll();
 			Undo.finishEdit('center')
 		}
@@ -980,25 +1112,25 @@ BARS.defineActions(function() {
 		id: 'toggle_shade',
 		icon: 'wb_sunny',
 		category: 'transform',
-		condition: () => !Blockbench.entity_mode,
+		condition: () => !Project.box_uv,
 		click: function () {toggleCubeProperty('shade')}
 	})
 	new Action({
 		id: 'toggle_mirror_uv',
 		icon: 'icon-mirror_x',
 		category: 'transform',
-		condition: () => Blockbench.entity_mode,
+		condition: () => Project.box_uv,
 		click: function () {toggleCubeProperty('shade')}
 	})
 	new Action({
 		id: 'update_autouv',
 		icon: 'brightness_auto',
 		category: 'transform',
-		condition: () => !Blockbench.entity_mode,
+		condition: () => !Project.box_uv,
 		click: function () {
-			if (selected.length) {
-				Undo.initEdit({cubes: selected[0].forSelected(), selection: true})
-				selected[0].forSelected(function(cube) {
+			if (Cube.selected.length) {
+				Undo.initEdit({elements: Cube.selected[0].forSelected(), selection: true})
+				Cube.selected[0].forSelected(function(cube) {
 					cube.mapAutoUV()
 				})
 				Undo.finishEdit('update_autouv')
@@ -1015,11 +1147,11 @@ BARS.defineActions(function() {
 		id: 'rescale_toggle',
 		icon: 'check_box_outline_blank',
 		category: 'transform',
-		condition: function() {return !Blockbench.entity_mode && selected.length;},
+		condition: function() {return Format.rotation_limit && Cube.selected.length;},
 		click: function () {
-			Undo.initEdit({cubes: selected})
-			var value = !selected[0].rescale
-			selected.forEach(function(cube) {
+			Undo.initEdit({elements: Cube.selected})
+			var value = !Cube.selected[0].rescale
+			Cube.selected.forEach(function(cube) {
 				cube.rescale = value
 			})
 			Canvas.updatePositions()
@@ -1031,12 +1163,63 @@ BARS.defineActions(function() {
 		id: 'bone_reset_toggle',
 		icon: 'check_box_outline_blank',
 		category: 'transform',
-		condition: function() {return Blockbench.entity_mode && selected_group;},
+		condition: function() {return Format.bone_rig && Group.selected;},
 		click: function () {
-			Undo.initEdit({group: selected_group})
-			selected_group.reset = !selected_group.reset
+			Undo.initEdit({group: Group.selected})
+			Group.selected.reset = !Group.selected.reset
 			updateNslideValues()
 			Undo.finishEdit('bone_reset')
+		}
+	})
+
+	new Action({
+		id: 'remove_blank_faces',
+		icon: 'cancel_presentation',
+		category: 'filter',
+		condition: () => !Format.box_uv,
+		click: function () {
+			Undo.initEdit({elements: Cube.selected})
+			var arr = Cube.selected.slice()
+			var empty_cubes = [];
+			unselectAll()
+			arr.forEach(cube => {
+				var clear_count = 0;
+				for (var face in cube.faces) {
+					var face_tag = cube.faces[face];
+					if (face_tag.texture == false) {
+						face_tag.texture = null
+						clear_count++;
+					}
+				}
+				if (clear_count == 6) {
+					empty_cubes.push(cube);
+				}
+			})
+			updateSelection();
+			if (empty_cubes.length) {
+				Blockbench.showMessageBox({
+					title: tl('message.cleared_blank_faces.title'),
+					icon: 'rotate_right',
+					message: tl('message.cleared_blank_faces.message', [empty_cubes.length]),
+					buttons: ['generic.remove', 'dialog.cancel']
+				}, function(r) {
+					empty_cubes.forEach(cube => {
+						if (r == 0) {
+							cube.remove();
+						} else {
+							for (var face in cube.faces) {
+								cube.faces[face].texture = false;
+							}
+						}
+					})
+					updateSelection();
+					Canvas.updateAllFaces();
+					Undo.finishEdit('remove blank faces');
+				})
+			} else {
+				Canvas.updateAllFaces();
+				Undo.finishEdit('remove blank faces');
+			}
 		}
 	})
 })

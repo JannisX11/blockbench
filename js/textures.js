@@ -1,3 +1,4 @@
+const textures = [];
 //Textures
 class Texture {
 	constructor(data, uuid) {
@@ -59,7 +60,6 @@ class Texture {
 			color: 0xffffff,
 			map: tex,
 			transparent: settings.transparency.value,
-			side: display_mode || Blockbench.entity_mode ? 2 : 0,
 			alphaTest: 0.2
 		});
 		Canvas.materials[this.uuid] = mat
@@ -78,55 +78,52 @@ class Texture {
 			scope.dark_box = (average_color.r + average_color.g + average_color.b) >= 383
 
 			//Width / Animation
-			if (img.naturalWidth !== img.naturalHeight && Blockbench.entity_mode === false) {
+			if (img.naturalWidth !== img.naturalHeight && Format.id == 'java_block') {
 				if (img.naturalHeight % img.naturalWidth !== 0) {
 					scope.error = 2;
 					Blockbench.showQuickMessage('message.square_textures')
+				} else {
+					BARS.updateConditions()
 				}
 			}
-
-
 			
 
 			//--------------------------------------------------------------------------
+			/*
+			if (Project.box_uv && textures.indexOf(scope) === 0 && !scope.keep_size) {
 
-			if (Blockbench.entity_mode && textures.indexOf(scope) === 0) {
-				if (!scope.keep_size) {
-					var size = {
-						pw: Project.texture_width,
-						ph: Project.texture_height,
-						nw: img.naturalWidth,
-						nh: img.naturalHeight
-					}
-					if (false && (scope.old_width != size.nw || scope.old_height != size.nh) && (size.pw != size.nw || size.ph != size.nh)) {
-						Blockbench.showMessageBox({
-							translateKey: 'update_res',
-							icon: 'photo_size_select_small',
-							buttons: [tl('message.update_res.update'), tl('dialog.cancel')],
-							confirm: 0,
-							cancel: 1
-						}, function(result) {
-							if (result === 0) {
-								var lockUV = ( // EG. Texture Optimierung > Modulo geht nicht in allen Bereichen auf
-									(size.pw%size.nw || size.ph%size.nh) &&
-									(size.nw%size.pw || size.nh%size.ph)
-								)
-								entityMode.setResolution(img.naturalWidth, img.naturalHeight, lockUV)
-								if (selected.length) {
-									main_uv.loadData()
-									main_uv.setGrid()
-								}
-							}
-						})
-					}
-					scope.old_width = img.naturalWidth
-					scope.old_height = img.naturalHeight
+				var size = {
+					pw: Project.texture_width,
+					ph: Project.texture_height,
+					nw: img.naturalWidth,
+					nh: img.naturalHeight
 				}
+				if (false && (scope.old_width != size.nw || scope.old_height != size.nh) && (size.pw != size.nw || size.ph != size.nh)) {
+					Blockbench.showMessageBox({
+						translateKey: 'update_res',
+						icon: 'photo_size_select_small',
+						buttons: [tl('message.update_res.update'), tl('dialog.cancel')],
+						confirm: 0,
+						cancel: 1
+					}, function(result) {
+						if (result === 0) {
+							var lockUV = ( // EG. Texture Optimierung > Modulo geht nicht in allen Bereichen auf
+								(size.pw%size.nw || size.ph%size.nh) &&
+								(size.nw%size.pw || size.nh%size.ph)
+							)
+							entityMode.setResolution(img.naturalWidth, img.naturalHeight, lockUV)
+							if (selected.length) {
+								main_uv.loadData()
+								main_uv.setGrid()
+							}
+						}
+					})
+				}
+				scope.old_width = img.naturalWidth
+				scope.old_height = img.naturalHeight
 			}
-
+			*/
 			//--------------------------------------------------------------------------
-
-
 
 
 			if ($('.dialog#texture_edit:visible').length > 0 && scope.selected === true) {
@@ -219,7 +216,7 @@ class Texture {
 			return this;
 		}
 		if (isApp && (link.substr(1, 2) === ':\\' || link.substr(1, 2) === ':/')) {
-			var path = link.replace(/\\|\//g, osfs).replace(/\?\d+/g, '')
+			var path = link.replace(/\\|\//g, osfs).replace(/\?\d+$/, '')
 			this.fromPath(path)
 			return this;
 		}
@@ -288,6 +285,7 @@ class Texture {
 		}
 		this.generateFolder(path)
 		this.startWatcher()
+		Painter.current = {}
 		
 		if (!isApp && Project.dataURLTextures) {
 			this.loadEmpty()
@@ -319,8 +317,8 @@ class Texture {
 	}
 	fromDefaultPack() {
 		if (isApp && settings.default_path && settings.default_path.value) {
-			if (Blockbench.entity_mode) {
-				var path = findEntityTexture(Project.parent, 'raw')
+			if (Project.single_texture) {
+				var path = findEntityTexture(Project.geometry_name, 'raw')
 				if (path) {
 					this.isDefault = true;
 					path = settings.default_path.value + osfs + path
@@ -446,7 +444,11 @@ class Texture {
 
 		fs.watchFile(scope.path, {interval: 50}, function(curr, prev) {
 			if (curr.mtime !== prev.mtime) {
-				scope.reloadTexture()
+				if (fs.existsSync(scope.path)) {
+					scope.reloadTexture();
+				} else {
+					scope.stopWatcher();
+				}
 			}
 		})
 	}
@@ -470,7 +472,7 @@ class Texture {
 		} else {
 			var arr = path.split(osfs)
 			scope.folder = arr[arr.length-2]
-			if (Blockbench.entity_mode === false && isApp) {
+			if (Format.id === 'java_block' && isApp) {
 				Blockbench.showMessageBox({
 					translateKey: 'loose_texture',
 					icon: 'folder_open',
@@ -509,11 +511,12 @@ class Texture {
 		Blockbench.dispatchEvent( 'add_texture', {texture: this})
 		loadTextureDraggable()
 
-		if (Blockbench.entity_mode && elements.length) {
-			var sides = ['north', 'east', 'south', 'west', 'up', 'down']
-			elements.forEach(function(s) {
-				sides.forEach(function(side) {
-					s.faces[side].texture = scope.uuid
+		if (Format.single_texture && Cube.all.length) {
+			Cube.all.forEach(function(s) {
+				uv_dialog.allFaces.forEach(function(side) {
+					if (s.faces[side].texture !== null) {
+						s.faces[side].texture = scope.uuid;
+					}
 				})
 			})
 			Canvas.updateAllFaces()
@@ -536,6 +539,7 @@ class Texture {
 			Undo.initEdit({textures: [this]})
 		}
 		this.stopWatcher()
+		if (textures.selected == this) textures.selected = false;
 		textures.splice(textures.indexOf(this), 1)
 		if (!no_update) {
 			Canvas.updateAllFaces()
@@ -551,7 +555,7 @@ class Texture {
 		textures.forEach(function(s) {
 			s.particle = false;
 		})
-		if (!Blockbench.entity_mode) {
+		if (Format.id == 'java_block') {
 			this.particle = true
 		}
 		return this;
@@ -569,13 +573,13 @@ class Texture {
 		return this;
 	}
 	apply(all) {
-		if (selected.length === 0) return;
+		if (Cube.selected.length === 0) return;
 		var scope = this;
-		Undo.initEdit({cubes: selected})
+		Undo.initEdit({elements: Cube.selected})
 
-		selected.forEach(function(obj) {
+		Cube.selected.forEach(function(obj) {
 			for (var face in obj.faces) {
-				if (all || Blockbench.entity_mode || face === main_uv.face) {
+				if (all || Project.box_uv || face === main_uv.face) {
 					var f = obj.faces[face]
 					if (all !== 'blank' || (f.texture !== null && !f.getTexture())) {
 						f.texture = scope.uuid
@@ -684,9 +688,17 @@ class Texture {
 				})
 			} else {
 				var find_path;
-				if (Blockbench.entity_mode) {
-					find_path = findEntityTexture(Project.parent, true)
+				if (Format.single_texture) {
+					find_path = findEntityTexture(Project.geometry_name, true)
 				}
+				if (!find_path && ModelMeta.export_path) {
+					var arr = ModelMeta.export_path.split(osfs);
+					var index = arr.lastIndexOf('models');
+					if (index > 1) arr.splice(index, 256, 'textures')
+					if (scope.folder) arr = arr.concat(scope.folder.split('/'));
+					arr.push(scope.name)
+					find_path = arr.join(osfs)
+				} 
 				Blockbench.export({
 					type: 'PNG Texture',
 					extensions: ['png'],
@@ -745,25 +757,25 @@ class Texture {
 			{
 				icon: 'crop_original',
 				name: 'menu.texture.face', 
-				condition: function() {return !Blockbench.entity_mode && selected.length > 0},
+				condition: function() {return !Project.box_uv && selected.length > 0},
 				click: function(texture) {texture.apply()}
 			},
 			{
 				icon: 'texture',
 				name: 'menu.texture.blank', 
-				condition: function() {return !Blockbench.entity_mode && selected.length > 0},
+				condition: function() {return !Project.box_uv && selected.length > 0},
 				click: function(texture) {texture.apply('blank')}
 			},
 			{
 				icon: 'fa-cube',
 				name: 'menu.texture.cube',
-				condition: function() {return !Blockbench.entity_mode && selected.length > 0},
+				condition: function() {return !Project.box_uv && selected.length > 0},
 				click: function(texture) {texture.apply(true)}
 			},
 			{
 				icon: 'bubble_chart',
 				name: 'menu.texture.particle',
-				condition: function() {return !Blockbench.entity_mode},
+				condition: function() {return !Project.box_uv},
 				click: function(texture) {
 					if (texture.particle) {
 						texture.particle = false
@@ -823,48 +835,8 @@ class Texture {
 				click: function(texture) { texture.openMenu()}
 			}
 	])
+	Texture.all = textures;
 
-function openTexture() {
-	var start_path;
-	if (!isApp) {} else
-	if (textures.length > 0) {
-		var arr = textures[0].path.split(osfs)
-		arr.splice(-1)
-		start_path = arr.join(osfs)
-	} else if (Prop.file_path) {
-		var arr = Prop.file_path.split(osfs)
-		arr.splice(-3)
-		arr.push('textures')
-		start_path = arr.join(osfs)
-	}
-	Blockbench.import({
-		readtype: 'image',
-		type: 'PNG Texture',
-		extensions: ['png', 'tga'],
-		multiple: true,
-		startpath: start_path
-	}, function(results) {
-		var new_textures = []
-		Undo.initEdit({textures: new_textures})
-		results.forEach(function(f) {
-			var t = new Texture({name: f.name}).fromFile(f).add(false).fillParticle()
-			new_textures.push(t)
-		})
-		Undo.finishEdit('add_texture')
-	})
-}
-function reloadTextures() {
-	tex_version++;
-	textures.forEach(function(t) {
-		if (t.mode === 'link') {
-			t.source = t.path + '?' + tex_version;
-			t.refresh(false)
-		}
-	})
-	Canvas.updateAllFaces()
-	main_uv.loadData()
-	loadTextureDraggable()
-}
 function saveTextures() {
 	textures.forEach(function(t) {
 		if (!t.saved) {
@@ -914,7 +886,7 @@ function loadTextureDraggable() {
 				drag: function(event, ui) {
 					$('.outliner_node[order]').attr('order', null)
 					var tar = $('#cubes_list li .drag_hover.outliner_node').deepest()
-					var element = TreeElements.findRecursive('uuid', tar.attr('id'))
+					var element = Outliner.root.findRecursive('uuid', tar.attr('id'))
 					if (element) {
 						tar.attr('order', '0')
 					}
@@ -926,7 +898,7 @@ function loadTextureDraggable() {
 							if (data.cube && data.face) {
 								var tex = textures.findInArray('uuid', ui.helper.attr('texid'));
 								var cubes_list = data.cube.selected ? selected : [data.cube];
-								Undo.initEdit({cubes: cubes_list})
+								Undo.initEdit({elements: cubes_list})
 								if (tex) {
 									cubes_list.forEach(cube => {
 										cube.applyTexture(tex, [data.face])
@@ -947,39 +919,6 @@ function unselectTextures() {
 	})
 	textures.selected = false
 }
-function changeTexturesFolder() {
-	var path = undefined;
-	var i = 0;
-	while (i < textures.length && path === undefined) {
-		if (typeof textures[i].path == 'string' && textures[i].path.length > 8) {
-			path = textures[i].path
-		}
-		i++;
-	}
-	if (!path) {return;}
-
-	var path = path.split(osfs)
-	path.splice(-1)
-	path = path.join(osfs)
-
-	 electron.dialog.showOpenDialog(currentwindow, {
-		title: tl('message.default_textures.select'),
-		properties: ['openDirectory'],
-		defaultPath: path
-	}, function(filePaths) {
-		if (filePaths && filePaths.length) {
-			var new_path = filePaths[0]
-			Undo.initEdit({textures})
-			textures.forEach(function(t) {
-				if (typeof t.path === 'string' && t.path.includes(path)) {
-					t.fromPath(t.path.replace(path, new_path))
-				} 
-			})
-			Undo.finishEdit('folder_changed')
-		}
-	})
-
-}
 function getTextureById(id) {
 	if (id === undefined || id === false) return;
 	if (id == null) {
@@ -997,31 +936,31 @@ function getTexturesById(id) {
 TextureAnimator = {
 	isPlaying: false,
 	interval: false,
-	start: function() {
+	start() {
 		clearInterval(TextureAnimator.interval)
 		TextureAnimator.isPlaying = true
 		TextureAnimator.updateButton()
 		TextureAnimator.interval = setInterval(TextureAnimator.nextFrame, 1000/settings.texture_fps.value)
 	},
-	stop: function() {
+	stop() {
 		TextureAnimator.isPlaying = false
 		clearInterval(TextureAnimator.interval)
 		TextureAnimator.updateButton()
 	},
-	toggle: function() {
+	toggle() {
 		if (TextureAnimator.isPlaying) {
 			TextureAnimator.stop()
 		} else {
 			TextureAnimator.start()
 		}
 	},
-	updateSpeed: function() {
+	updateSpeed() {
 		if (TextureAnimator.isPlaying) {
 			TextureAnimator.stop()
 			TextureAnimator.start()
 		}
 	},
-	nextFrame: function() {
+	nextFrame() {
 		var animated_tex = []
 		textures.forEach(function(tex, i) {
 			if (tex.frameCount > 1) {
@@ -1046,7 +985,7 @@ TextureAnimator = {
 			}
 		})
 	},
-	reset: function() {
+	reset() {
 		TextureAnimator.stop()
 		textures.forEach(function(tex, i) {
 			if (tex.frameCount) {
@@ -1059,7 +998,7 @@ TextureAnimator = {
 			i++;
 		}
 	},
-	updateButton: function() {
+	updateButton() {
 		BarItems.animated_textures.setIcon( TextureAnimator.isPlaying ? 'pause' : 'play_arrow' )
 	}
 }
@@ -1079,7 +1018,33 @@ BARS.defineActions(function() {
 		category: 'textures',
 		keybind: new Keybind({key: 84, ctrl: true}),
 		click: function () {
-			openTexture()
+			var start_path;
+			if (!isApp) {} else
+			if (textures.length > 0) {
+				var arr = textures[0].path.split(osfs)
+				arr.splice(-1)
+				start_path = arr.join(osfs)
+			} else if (ModelMeta.export_path) {
+				var arr = ModelMeta.export_path.split(osfs)
+				arr.splice(-3)
+				arr.push('textures')
+				start_path = arr.join(osfs)
+			}
+			Blockbench.import({
+				readtype: 'image',
+				type: 'PNG Texture',
+				extensions: ['png', 'tga'],
+				multiple: true,
+				startpath: start_path
+			}, function(results) {
+				var new_textures = []
+				Undo.initEdit({textures: new_textures})
+				results.forEach(function(f) {
+					var t = new Texture({name: f.name}).fromFile(f).add(false).fillParticle()
+					new_textures.push(t)
+				})
+				Undo.finishEdit('add_texture')
+			})
 		}
 	})
 	new Action({
@@ -1092,14 +1057,6 @@ BARS.defineActions(function() {
 		}
 	})
 	new Action({
-		id: 'reload_textures',
-		icon: 'refresh',
-		category: 'textures',
-		keybind: new Keybind({key: 82, ctrl: true}),
-		condition: isApp,
-		click: reloadTextures
-	})
-	new Action({
 		id: 'save_textures',
 		icon: 'save',
 		category: 'textures',
@@ -1108,17 +1065,48 @@ BARS.defineActions(function() {
 	})
 	new Action({
 		id: 'change_textures_folder',
-		icon: 'fa-hdd-o',
+		icon: 'fas fa-hdd',
 		category: 'textures',
 		condition: () => textures.length > 0,
-		click: function () {changeTexturesFolder()}
+		click: function () {
+			var path = undefined;
+			var i = 0;
+			while (i < textures.length && path === undefined) {
+				if (typeof textures[i].path == 'string' && textures[i].path.length > 8) {
+					path = textures[i].path
+				}
+				i++;
+			}
+			if (!path) {return;}
+
+			var path = path.split(osfs)
+			path.splice(-1)
+			path = path.join(osfs)
+
+			 electron.dialog.showOpenDialog(currentwindow, {
+				title: tl('message.default_textures.select'),
+				properties: ['openDirectory'],
+				defaultPath: path
+			}, function(filePaths) {
+				if (filePaths && filePaths.length) {
+					var new_path = filePaths[0]
+					Undo.initEdit({textures})
+					textures.forEach(function(t) {
+						if (typeof t.path === 'string' && t.path.includes(path)) {
+							t.fromPath(t.path.replace(path, new_path))
+						} 
+					})
+					Undo.finishEdit('folder_changed')
+				}
+			})
+		}
 	})
 	new Action({
 		id: 'animated_textures',
 		icon: 'play_arrow',
 		category: 'textures',
 		condition: function() {
-			if (Blockbench.entity_mode) return false;
+			if (Project.box_uv) return false;
 			var i = 0;
 			var show = false;
 			while (i < textures.length) {

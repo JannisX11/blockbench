@@ -1,0 +1,480 @@
+
+/*INIT*/
+	* {
+		margin: 0;
+		padding: 0;
+		user-select: none;
+		outline: none;
+		outline-color: rgba(0, 0, 0, 0);
+	}
+	/*Webkit*/
+	a:-webkit-any-link {
+	    color: inherit;
+	    text-decoration: underline;
+	}
+	a:-webkit-any-link:hover {
+	    color: var(--color-light);
+	}
+	::-webkit-scrollbar {
+		width: 6px;
+		height: 6px;
+	}
+	 
+	::-webkit-scrollbar-track {
+		background: var(--color-ui);
+	}
+	::-webkit-scrollbar-corner {
+		background: var(--color-ui);
+	}
+	 
+	::-webkit-scrollbar-thumb {
+		background: var(--color-selected);
+	}
+	 
+	::-webkit-scrollbar-thumb:hover {
+		background: var(--color-accent);
+	}
+	/*Mozilla*/
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: var(--color-selected) var(--color-back);
+	}
+
+	::selection {
+		background: var(--color-accent);
+		border-radius: 4px;
+	}
+	@media (max-device-width: 480px) {
+		::-webkit-scrollbar {
+			width: 0;
+			height: 0;
+		}
+		* {
+			scrollbar-width: none;
+		}
+	}
+	@font-face {
+		font-family: 'Material Icons';
+		font-style: normal;
+		font-weight: 400;
+		src: local('Material Icons'),
+			local('MaterialIcons-Regular'),
+			url(../font/MaterialIcons-Regular.woff2) format('woff2'),
+			url(../font/MaterialIcons-Regular.woff) format('woff'),
+			url(../font/MaterialIcons-Regular.ttf) format('truetype');
+	}
+	@font-face {
+		font-family: 'montserrat';
+		font-style: normal;
+		src: local('Material Icons'),
+			local('Montserrat'),
+			url(../font/Montserrat-Regular.ttf) format('truetype');
+	}
+	@font-face {
+		font-family: 'icomoon';
+		src:  url('../font/icomoon.eot?t564px');
+		src:  url('../font/icomoon.eot?t564px#iefix') format('embedded-opentype'),
+			url('../font/icomoon.ttf?t564px') format('truetype'),
+			url('../font/icomoon.woff?t564px') format('woff'),
+			url('../font/icomoon.svg?t564px#icomoon') format('svg');
+		font-weight: normal;
+		font-style: normal;
+	}
+
+/*Icons*/
+	[class^="icon-"]:not(.fa), [class*=" icon-"]:not(.fa) {
+	  /* use !important to prevent issues with browser extensions that change fonts */
+	  font-family: 'icomoon' !important;
+	  speak: none;
+	  font-style: normal;
+	  font-weight: normal;
+	  font-variant: normal;
+	  text-transform: none;
+	  line-height: 1;
+	  font-size: 1.4em;
+	  max-width: 24px;
+
+	   Better Font Rendering =========== 
+	  -webkit-font-smoothing: antialiased;
+	  -moz-osx-font-smoothing: grayscale;
+	}
+
+	.icon-crossbow:before {
+	  content: "\e91b";
+	}
+	.icon-format_bedrock:before {
+	  content: "\e91c";
+	}
+	.icon-format_block:before {
+	  content: "\e91d";
+	}
+	.icon-format_free:before {
+	  content: "\e91e";
+	}
+	.icon-format_hytale:before {
+	  content: "\e91f";
+	}
+	.icon-format_java:before {
+	  content: "\e920";
+	}
+	.icon-format_optifine:before {
+	  content: "\e921";
+	}
+	.icon-sketchfab:before {
+	  content: "\e91a";
+	}
+	.icon-blockbench_file:before {
+	  content: "\e900";
+	}
+	.icon-vertexsnap:before {
+	  content: "\e901";
+	}
+	.icon-create_bitmap:before {
+	  content: "\e902";
+	}
+	.icon-objects:before {
+	  content: "\e903";
+	}
+	.icon-bow:before {
+	  content: "\e904";
+	}
+	.icon-bb_interface:before {
+	  content: "\e905";
+	}
+	.icon-blockbench:before {
+	  content: "\e906";
+	}
+	.icon-x11:before {
+	  content: "\e907";
+	}
+	.icon-baby_zombie:before {
+	  content: "\e908";
+	}
+	.icon-armor_stand:before {
+	  content: "\e909";
+	}
+	.icon-armor_stand_small:before {
+	  content: "\e90a";
+	}
+	.icon-ground:before {
+	  content: "\e90b";
+	}
+	.icon-hud:before {
+	  content: "\e90c";
+	}
+	.icon-inventory_full:before {
+	  content: "\e90d";
+	}
+	.icon-inventory_nine:before {
+	  content: "\e90e";
+	}
+	.icon-inventory_single:before {
+	  content: "\e90f";
+	}
+	.icon-player_head:before {
+	  content: "\e910";
+	}
+	.icon-zombie:before {
+	  content: "\e911";
+	}
+	.icon-blockbench_inverted:before {
+	  content: "\e912";
+	}
+	.icon-optifine_file:before {
+	  content: "\e913";
+	}
+	.icon-saved:before {
+	  content: "\e914";
+	}
+	.icon-player:before {
+	  content: "\e915";
+	}
+	.icon-mirror_x:before {
+	  content: "\e916";
+	}
+	.icon-mirror_y:before {
+	  content: "\e917";
+	}
+	.icon-mirror_z:before {
+	  content: "\e918";
+	}
+
+
+	.material-icons {
+		font-family: 'Material Icons';
+		font-weight: normal;
+		font-style: normal;
+		font-size: 22px;
+		max-width: 22px;
+		display: inline-block;
+		line-height: 1;
+		text-transform: none;
+		letter-spacing: normal;
+		word-wrap: normal;
+		white-space: nowrap;
+		direction: ltr;
+		-webkit-font-smoothing: antialiased;
+		text-rendering: optimizeLegibility;
+	}
+	i.fa_big {
+		font-size: 15pt;
+		height: 28px;
+		width: 22px;
+		text-align: center;
+		vertical-align: text-top;
+	}
+	.dialog .message_box_icon {
+		font-size: 40pt;
+		float: left;
+		padding-right: 8px;
+		min-width: 61px;
+		max-height: 54px;
+		max-width: 62px;
+	}
+	.dialog img.message_box_icon {
+		min-width: auto;
+	}
+
+/*Vars*/
+	body {
+		--color-back: #21252b;
+		--color-dark: #17191d;
+		--color-border: #181a1f;
+		--color-ui: #282c34;
+		--color-accent: #3e90ff;
+		--color-button: #3a3f4b;
+		--color-selected: #3c4456;
+		--color-text: #cacad4;
+		--color-light: #f4f3ff;
+		--color-text_acc: #000006;
+		--color-bright_ui: #f4f3ff;
+
+		--color-close: #d62e3f;
+	}
+
+/*Elements*/
+
+	html {
+		height: 100%;
+		overflow-y: hidden;
+	}
+	body {
+		height: 100%;
+		width: 100%;
+		position: fixed;
+
+		font-family: segoe ui, Helvetiva Neue, arial, sans-serif;
+		font-size: 16px;
+		font-weight: lighter;
+
+		color: var(--color-text);
+		outline-color: var(--color-accent);
+		background-color: var(--color-dark);
+		image-rendering: pixelated;
+	}
+	div {
+		cursor: default;
+	}
+	a {
+		text-decoration: none;
+		cursor: default;
+		color: inherit;
+	}
+	i {
+		cursor: default;
+	}
+
+	b {
+		font-weight: bolder;
+	}
+	li {
+		list-style: none;
+		cursor: default;
+	}
+	hr {
+		border-top: 1px solid var(--color-dark);
+		margin: 12px 0;
+	}
+	h2 {
+		font-weight: lighter;
+		margin: 0;
+		font-family: inherit;
+	}
+	h3 {
+		display: inline-block;
+		font-size: 1.28em;
+		padding-bottom: 4px;
+		font-family: inherit;
+		font-weight: inherit;
+		margin-left: 16px;
+		min-width: 10px;
+		height: 32px;
+	}
+	h4 {
+		font-family: inherit;
+		font-size: 1.2em;
+		font-family: inherit;
+		font-weight: inherit;
+	}
+
+/*Inputs*/
+	input {
+		-webkit-appearance: none;
+		appearance: none;
+		border: none;
+		background: transparent;
+		color: var(--color-text)
+		font-size: 1em;
+		font-family: inherit;
+		font-weight: lighter;
+		outline: none;
+	}
+	button {
+		height: 30px;
+		width: 40px;
+		border: none;
+		background: var(--color-button);
+		display: inline-block;
+		text-align: center;
+		vertical-align: middle;
+		cursor: default;
+		outline: none;
+		height: 35px;
+		min-width: 100px;
+		width: auto;
+		color: var(--color-text);
+		padding-right: 16px;
+		padding-left: 16px;
+		font-weight: normal;
+	}
+	button:hover {
+		background: var(--color-accent);
+		color: var(--color-text_acc) !important;
+	}
+	button.minor {
+		background: transparent;
+    	border: none;
+    	text-decoration: underline;
+	}
+	button.minor:hover {
+		color: var(--color-light) !important;
+	}
+	select {
+		-webkit-appearance: none;
+		appearance: none;
+		outline: none;
+		outline-color: var(--color-accent);
+		border: none;
+		background-color: var(--color-button);
+		height: 30px;
+		padding-top: 2px;
+		padding-left: 10px;
+	    padding-right: 10px;
+	    color: var(--color-text);
+	}
+	select:hover{
+		color: var(--color-light);
+	}
+	select option {
+		-webkit-appearance: none;
+		background-color: var(--color-back);
+		outline: none;
+		border: none;
+		font-weight: lighter;
+	}
+	textarea {
+		width: 100%;
+		height: -webkit-fill-available;
+		padding: 4px;
+		border: 1px solid var(--color-border);
+		background: var(--color-back);
+		color: var(--color-text);
+		cursor: default;
+		resize: none;
+		outline: none;
+	}
+	input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button, {
+		-webkit-appeareance: none;
+	}
+	input[type=range] {
+		background-color: var(--color-back);
+	}
+
+	input[type=range]::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		appearance: none;
+		height: 29px;
+		width: 14px;
+		border:none;
+		background-color: var(--color-accent);
+		cursor: pointer;
+		margin-top: -4px;
+		border-radius: 2px;
+	}
+	input[type=range][disabled=disabled]::-webkit-slider-thumb {
+		background-color: var(--color-button);
+	}
+	input[type=checkbox]::before {
+		content: "\f0c8";
+		font-family: 'Font Awesome 5 Free';
+    	font-weight: 300;
+    	font-size: 15pt;
+	}
+	input[type=checkbox]:checked::before {
+		content: "\f14a";
+		font-family: 'Font Awesome 5 Free';
+    	font-weight: 300;
+	}
+	input[type=checkbox][disabled=disabled] {
+		opacity: 0.6;
+	}
+	div.nslide {
+		height: 30px;
+		width: 100%;
+		padding: 4px;
+		padding-left: 6px;
+		cursor: e-resize;
+		overflow: hidden;
+		white-space: nowrap;
+		outline: none;
+		background-color: var(--color-button);
+	}
+	#nslide_head {
+		margin-top: 30px;
+		color: var(--color-light);
+		white-space: nowrap;
+		position: absolute;
+		z-index: 1111;
+		background-color: var(--color-back);
+	}
+	div.nslide_arrow {
+		position: absolute;
+		z-index: 17;
+		display: inline-block;
+		width: 20px;
+		height: 24px;
+		margin-top: -28px;
+		user-select: none;
+		margin-left: -42px;
+		overflow: hidden;
+		text-align: center;
+	}
+	div.nslide_arrow.na_right {
+		margin-left: 16px;
+	}
+
+	input.toggle_panel {
+		display: none;
+	}
+	label.toggle_panel {
+		height: 30px;
+		width: 56px;
+		padding: 2px;
+		display: inline-block;
+		background-color: var(--color-back);
+		text-align: center;
+	}
+	input:checked + label.toggle_panel {
+		background-color: var(--color-selected);
+	}

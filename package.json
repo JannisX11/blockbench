@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Minecraft Block Model Editor",
-	"version": "2.6.6",
+	"version": "3.0.0",
 	"license": "MIT",
 	"author": {
 		"name": "JannisX11",
@@ -65,7 +65,8 @@
 		"linux": {
 			"artifactName": "${productName}_${version}.${ext}",
 			"target": [
-				"deb"
+				"deb",
+				"rpm"
 			],
 			"category": "3DGraphics"
 		}
@@ -77,7 +78,7 @@
 	},
 	"devDependencies": {
 		"async": "^2.4.1",
-		"electron": "4.0.3",
-		"electron-builder": "^20.39.0"
+		"electron": "5.0.6",
+		"electron-builder": "^20.44.4"
 	}
 }

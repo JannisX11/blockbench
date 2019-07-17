@@ -5,12 +5,13 @@ const Plugins = {
 	installed: [], 		//Simple List of Names
 	json: undefined,	//Json from website
 	all: [],			//Vue Object Data
+	registered: {},
 	loadingStep: false,
-	updateSearch: function() {
+	updateSearch() {
 		Plugins.Vue._data.showAll = !Plugins.Vue._data.showAll
 		Plugins.Vue._data.showAll = !Plugins.Vue._data.showAll
 	},
-	devReload: function() {
+	devReload() {
 		var reloads = 0;
 		for (var i = Plugins.all.length-1; i >= 0; i--) {
 			if (Plugins.all[i].fromFile) {
@@ -20,12 +21,17 @@ const Plugins = {
 		}
 		Blockbench.showQuickMessage(tl('message.plugin_reload', [reloads]))
 		console.log('Reloaded '+reloads+ ' plugin'+pluralS(reloads))
+	},
+	sort() {
+		Plugins.all.sort(function(a,b) {
+			return sort_collator.compare(a.title, b.title)
+		});
 	}
 }
 
 class Plugin {
 	constructor(id, data) {
-		this.id = id;
+		this.id = id||'unknown';
 		this.installed = false;
 		this.expanded = false;
 		this.title = '';
@@ -35,11 +41,13 @@ class Plugin {
 		this.icon = '';
 		this.variant = '';
 		this.min_version = '';
-		if (data) {
-			this.extend(data)
-		}
+
+		this.extend(data)
+
+		Plugins.all.safePush(this);
 	}
 	extend(data) {
+		if (!(data instanceof Object)) return this;
 		Merge.boolean(this, data, 'installed')
 		Merge.boolean(this, data, 'expanded')
 		Merge.string(this, data, 'title')
@@ -49,13 +57,22 @@ class Plugin {
 		Merge.string(this, data, 'icon')
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
+
+		Merge.function(this, data, 'onload')
+		Merge.function(this, data, 'onunload')
+		Merge.function(this, data, 'oninstall')
+		Merge.function(this, data, 'onuninstall')
 		return this;
 	}
 	install(first, cb) {
 		var scope = this;
+		Plugins.registered[this.id] = this;
 		$.getScript(Plugins.path + scope.id + '.js', function() {
+			if (cb) cb.bind(scope)()
 			scope.bindGlobalData(first)
-			if (cb) cb()
+			if (first && scope.oninstall) {
+				scope.oninstall()
+			}
 		}).fail(function() {
 			if (isApp) {
 				console.log('Could not find file of plugin "'+scope.id+'". Uninstalling it instead.')
@@ -66,24 +83,21 @@ class Plugin {
 		scope.installed = true;
 		return scope;
 	}
-	bindGlobalData(first) {
+	bindGlobalData() {
 		var scope = this;
 		if (onUninstall) {
-			scope.onUninstall = onUninstall
+			scope.onuninstall = onUninstall
 		}
-		if (first && onInstall) {
-			onInstall()
+		if (onUninstall) {
+			scope.onuninstall = onUninstall
 		}
 		window.onInstall = window.onUninstall = window.plugin_data = undefined
 		return this;
 	}
 	download(first) {
 		var scope = this;
-		if (first) {
-			Blockbench.showQuickMessage(tl('message.install_plugin', [scope.title]), 1400)
-		}
 		if (!isApp) {
-			scope.install(first)
+			scope.install()
 			return this;
 		}
 		var file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
@@ -97,13 +111,14 @@ class Plugin {
 		});
 		return this;
 	}
-	loadFromFile(file, hideWarning) {
+	loadFromFile(file, first) {
 		var scope = this;
 		var path = file.path
+		Plugins.registered[this.id] = this;
 		localStorage.setItem('plugin_dev_path', file.path)
 		onInstall = undefined
 
-		if (!hideWarning) {
+		if (first) {
 			if (isApp) {
 				if (!confirm(tl('message.load_plugin_app'))) return;
 			} else {
@@ -116,48 +131,52 @@ class Plugin {
 			scope.fromFile = true
 			scope.path = file.path
 			scope.extend(plugin_data)
-			scope.bindGlobalData(true)
+			scope.bindGlobalData()
 			Plugins.installed.safePush(scope.path)
 			saveInstalledPlugins()
-			Plugins.all.sort(function(a,b) {
-				return sort_collator.compare(a.title, b.title)
-			});
+			Plugins.sort()
 		})
 		Plugins.all.safePush(this)
 		return this;
 	}
 	uninstall() {
 		var scope = this;
+		this.unload();
+		if (this.onuninstall) {
+			this.onuninstall()
+		}
+		delete Plugins.registered[this.id];
+		Plugins.installed.remove(this.fromFile ? this.path : this.id);
+		this.installed = false;
+
 		if (isApp && this.fromFile) {
-			if (this.onUninstall) {
-				this.onUninstall()
-			}
 			Plugins.all.remove(this)
-			Plugins.installed.remove(this.path)
-		} else {
-			if (isApp) {
-				var filepath = Plugins.path + scope.id + '.js'
-				if (fs.existsSync(filepath)) {
-					fs.unlink(filepath, (err) => {
-						if (err) {
-							console.log(err);
-						}
-					});
-				}
-			}
-			Plugins.installed.remove(scope.id)
-			scope.installed = false
-			if (scope.onUninstall) {
-				scope.onUninstall()
+
+		} else if (isApp) {
+			var filepath = Plugins.path + scope.id + '.js'
+			if (fs.existsSync(filepath)) {
+				fs.unlink(filepath, (err) => {
+					if (err) {
+						console.log(err);
+					}
+				});
 			}
 		}
 		saveInstalledPlugins()
 		return this;
 	}
+	unload() {
+		if (this.onunload) {
+			this.onunload()
+		}
+		return this;
+	}
 	reload() {
 		if (!isApp) return this;
-		this.uninstall()
-		this.loadFromFile({path: this.path}, true)
+		this.unload()
+		Plugins.all.remove(this)
+		//---------------
+		this.loadFromFile({path: this.path}, false)
 		return this;
 	}
 	isInstallable() {
@@ -189,6 +208,27 @@ class Plugin {
 	get expandicon() {
 		return this.expanded ? 'expand_less' : 'expand_more'
 	}
+}
+Plugin.register = function(id, data) {
+	if (typeof id !== 'string' || typeof data !== 'object') {
+		console.warn('Plugin.register: not enough arguments, string and object required.')
+		return;
+	}
+	var plugin = Plugins.registered[id];
+	if (!plugin) {
+		plugin = Plugins.registered.unknown;
+		if (plugin) {
+			delete Plugins.registered.unknown;
+			plugin.id = id;
+			Plugins.registered[id] = plugin;
+		}
+	}
+	if (!plugin) return;
+	plugin.extend(data)
+	if (plugin.onload instanceof Function) {
+		plugin.onload()
+	}
+	return plugin;
 }
 
 if (isApp) {
@@ -229,24 +269,17 @@ function loadInstalledPlugins() {
 			if (Plugins.installed.includes(id)) {
 				plugin.download()
 			}
-			Plugins.all.push(plugin)
 		}
-		Plugins.all.sort(function(a,b) {
-			return sort_collator.compare(a.title, b.title)
-		});
+		Plugins.sort();
 	} else if (Plugins.installed.length > 0 && isApp) {
+		//Offline
 		Plugins.installed.forEach(function(id) {
 
 			if (id.substr(-3) !== '.js') {
 				//downloaded public plugin
-				var plugin = new Plugin(id).install(false, () => {
-					if (typeof plugin_data === 'object') {
-						plugin.extend(plugin_data)
-						Plugins.all.push(plugin)
-						Plugins.all.sort(function(a,b) {
-							return sort_collator.compare(a.title, b.title)
-						});
-					}
+				var plugin = new Plugin(id).install(false, function() {
+					this.extend(plugin_data)
+					Plugins.sort()
 				})
 			}
 		})
@@ -257,8 +290,12 @@ function loadInstalledPlugins() {
 
 			if (id && id.substr(-3) === '.js') {
 				//Dev Plugins
-				var plugin = new Plugin().loadFromFile({path: id}, true)
-				loaded.push(pathToName(id))
+				if (isApp && fs.existsSync(id)) {
+					var plugin = new Plugin(id).loadFromFile({path: id}, false)
+					loaded.push(pathToName(id))
+				} else {
+					Plugins.installed.remove(id)
+				}
 			} else if (id) {
 				loaded.push(id)
 			}
@@ -297,7 +334,7 @@ function saveInstalledPlugins() {
 	localStorage.setItem('installed_plugins', JSON.stringify(Plugins.installed))
 }
 function loadPluginFromFile(file) {
-	var plugin = new Plugin().loadFromFile(file, false)
+	var plugin = new Plugin().loadFromFile(file, true)
 }
 function switchPluginTabs(installed) {
 	$('#plugins .tab').removeClass('open')
@@ -331,7 +368,7 @@ BARS.defineActions(function() {
 	})
 	new Action({
 		id: 'load_plugin',
-		icon: 'fa-file-code-o',
+		icon: 'fa-file-code',
 		category: 'blockbench',
 		click: function () {
 			Blockbench.import({
