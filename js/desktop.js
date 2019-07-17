@@ -399,5 +399,5 @@ function closeBlockbenchWindow() {
 	}
 	setTimeout(function() {
 		currentwindow.close();
-	}, 240)
+	}, 12)
 }

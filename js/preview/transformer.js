@@ -1066,7 +1066,7 @@
 							}
 							selected.forEach(function(obj, i) {
 								if (obj.movable) {
-									obj.move(difference, axisNumber, false , _has_groups)
+									obj.move(difference, axisNumber, false , _has_groups||!Format.bone_rig)
 								}
 							})
 							scope.updateSelection()

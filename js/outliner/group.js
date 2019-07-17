@@ -446,22 +446,23 @@ function addGroup() {
 	Undo.initEdit({outliner: true});
 	var add_group = Group.selected
 	if (!add_group && selected.length) {
-		add_group = selected[0].parent
+		add_group = Cube.selected.last()
 	}
 	var base_group = new Group({
 		origin: add_group ? add_group.origin : undefined
-	}).sortInBefore(selected.last())
+	})
+	base_group.addTo(add_group)
+	base_group.isOpen = true
+
 	if (Format.bone_rig) {
 		base_group.createUniqueName()
 	}
 	selected.forEach(function(s, i) {
 		s.addTo(base_group)
 		if (i === 0) {
-			s.selected = false
+			//s.selected = false
 		}
 	})
-	base_group.addTo(add_group)
-	base_group.isOpen = true
 	base_group.init().select()
 	Undo.finishEdit('add_group');
 	loadOutlinerDraggable()

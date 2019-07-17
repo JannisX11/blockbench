@@ -357,26 +357,23 @@ const Canvas = {
 		})
 		mesh.geometry.from(from)
 		mesh.geometry.to(to)
-		mesh.geometry.computeBoundingSphere()
 
 		mesh.scale.set(1, 1, 1)
+		mesh.position.set(cube.origin[0], cube.origin[1], cube.origin[2])
+		mesh.geometry.translate(-cube.origin[0], -cube.origin[1], -cube.origin[2])
 		mesh.rotation.set(0, 0, 0)
-		mesh.position.set(0, 0, 0)
+		mesh.geometry.computeBoundingSphere()
 
 		if (Format.rotate_cubes) {
 			if (cube.rotation !== undefined) {
 
 				mesh.rotation.reorder('ZYX')
-				mesh.position.set(cube.origin[0], cube.origin[1], cube.origin[2])
-				mesh.geometry.translate(-cube.origin[0], -cube.origin[1], -cube.origin[2])
-
 				mesh.rotation.x = Math.PI / (180 /cube.rotation[0])
 				mesh.rotation.y = Math.PI / (180 /cube.rotation[1])
 				mesh.rotation.z = Math.PI / (180 /cube.rotation[2])
 
 				if (cube.rescale === true) {
 					var axis = cube.rotationAxis()||'y'
-
 					var rescale = getRescalingFactor(cube.rotation[getAxisNumber(axis)]);
 					mesh.scale.set(rescale, rescale, rescale)
 					mesh.scale[axis] = 1

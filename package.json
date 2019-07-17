@@ -1,12 +1,13 @@
 {
 	"name": "Blockbench",
 	"description": "Minecraft Block Model Editor",
-	"version": "3.0.0",
+	"version": "3.0.1",
 	"license": "MIT",
 	"author": {
 		"name": "JannisX11",
 		"email": "info@blockbench.net"
 	},
+	"homepage": "https://blockbench.net",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/JannisX11/blockbench"

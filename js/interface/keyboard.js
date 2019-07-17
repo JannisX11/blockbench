@@ -7,7 +7,7 @@ class Keybind {
 		this.meta 	= false;
 		this.label = '';
 		if (keys) {
-			if (!exact && Blockbench.platform && keys.ctrl && !keys.meta) {
+			if (isApp && !exact && Blockbench.platform == 'darwin' && keys.ctrl && !keys.meta) {
 				keys.meta = true;
 				keys.ctrl = undefined;
 			}
