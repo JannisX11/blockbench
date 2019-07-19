@@ -327,6 +327,9 @@
 		background: var(--color-accent);
 		color: var(--color-text_acc);
 	}
+	#display_sliders p {
+		margin-top: 6px;
+	}
 
 /*Outliner*/
 	#cubes_list {

@@ -622,8 +622,8 @@ const Painter = {
 			let obj = cubes[i]
 			if (obj.visibility === true) {
 				var template = new cubeTempl(obj)
-				if (options.double_use && Project.box_uv) {
-					var double_key = [...obj.uv_offset, ...obj.size(undefined, true)].join('_')
+				if (options.double_use && Project.box_uv && textures.length) {
+					var double_key = [...obj.uv_offset, ...obj.size(undefined, true), ].join('_')
 					if (doubles[double_key]) {
 						doubles[double_key].push(template)
 						doubles[double_key][0].duplicates = doubles[double_key];

@@ -402,7 +402,7 @@ var codec = new Codec('bedrock_old', {
 			name: this.fileName(),
 			startpath: this.startPath(),
 			content: this.compile({raw: isApp}),
-			custom_writer: isApp ? (a, b) => scope.overwrite(a, b) : null,
+			custom_writer: isApp ? (a, path) => scope.overwrite(a, path, () => scope.afterSave(path)) : null,
 		})
 	},
 
@@ -466,8 +466,8 @@ var codec = new Codec('bedrock_old', {
 				}
 			}
 		}
-		obj[model_name] = content
-		content = autoStringify(obj)
+		obj[model_name] = this.compile({raw: true});
+		content = autoStringify(obj);
 
 		Blockbench.writeFile(path, {content}, cb);
 	}

@@ -563,8 +563,6 @@
     "panel.display": "Visa",
     "panel.textures": "Texturer",
     "panel.outliner": "Konturen",
-    "panel.options": "Rotation",
-    "panel.options.angle": "Vinkel",
     "uv_editor.title": "UV redigerare",
     "uv_editor.all_faces": "Alla",
     "uv_editor.no_faces": "Ingen",
@@ -862,7 +860,6 @@
     "action.edit_session.desc": "Anslut till en redigeringssession för att samarbeta med andra användare",
     "action.reset_keyframe": "Återställ keyframe",
     "action.reset_keyframe.desc": "Återställ alla värden för de valda keyframes",
-    "panel.options.origin": "Ursprung",
     "dialog.edit_session.title": "Redigera session",
     "edit_session.username": "Användarnamn",
     "edit_session.token": "Token",
@@ -958,9 +955,14 @@
     "display.reference.crossbow": "Crossbow",
     "dialog.settings.search_results": "Search Results",
     "settings.animation_snap": "Animation Snap",
-    "settings.animation_snap.desc": "Snap interval for keyframes in the animation timeline",
+    "settings.animation_snap.desc": "Snap interval for keyframes in the animation timeline in steps per second",
     "action.import_optifine_part": "Import OptiFine Part",
     "action.import_optifine_part.desc": "Import an entity part model for OptiFine",
     "data.locator": "Locator",
-    "mode.start.no_recents": "No recently opened models"
+    "mode.start.no_recents": "No recently opened models",
+    "panel.element": "Element",
+    "panel.element.position": "Position",
+    "panel.element.size": "Size",
+    "panel.element.origin": "Pivot Point",
+    "panel.element.rotation": "Rotation"
 }

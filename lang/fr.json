@@ -563,8 +563,6 @@
     "panel.display": "Afficher",
     "panel.textures": "Textures",
     "panel.outliner": "Liste des blocs",
-    "panel.options": "Rotation",
-    "panel.options.angle": "Angle",
     "uv_editor.title": "Éditeur UV",
     "uv_editor.all_faces": "Toutes",
     "uv_editor.no_faces": "Aucun",
@@ -862,7 +860,6 @@
     "action.edit_session.desc": "Connectez-vous à une session pour collaborer avec d'autres utilisateurs.",
     "action.reset_keyframe": "Réinitialiser l'image clé",
     "action.reset_keyframe.desc": "Réinitialiser toutes les valeurs des images clés sélectionnées",
-    "panel.options.origin": "Origine",
     "dialog.edit_session.title": "Editer la session",
     "edit_session.username": "Nom d'utilisateur",
     "edit_session.token": "Jeton",
@@ -958,9 +955,14 @@
     "display.reference.crossbow": "Arbalète",
     "dialog.settings.search_results": "Search Results",
     "settings.animation_snap": "Animation Snap",
-    "settings.animation_snap.desc": "Snap interval for keyframes in the animation timeline",
+    "settings.animation_snap.desc": "Snap interval for keyframes in the animation timeline in steps per second",
     "action.import_optifine_part": "Import OptiFine Part",
     "action.import_optifine_part.desc": "Import an entity part model for OptiFine",
     "data.locator": "Locator",
-    "mode.start.no_recents": "No recently opened models"
+    "mode.start.no_recents": "No recently opened models",
+    "panel.element": "Element",
+    "panel.element.position": "Position",
+    "panel.element.size": "Size",
+    "panel.element.origin": "Pivot Point",
+    "panel.element.rotation": "Rotation"
 }

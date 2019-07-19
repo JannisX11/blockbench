@@ -430,9 +430,9 @@
 		opacity: 0.6;
 	}
 	div.nslide {
-		height: 30px;
+		height: 28px;
 		width: 100%;
-		padding: 4px;
+		padding: 3px;
 		padding-left: 6px;
 		cursor: e-resize;
 		overflow: hidden;
@@ -477,4 +477,7 @@
 	}
 	input:checked + label.toggle_panel {
 		background-color: var(--color-selected);
+	}
+	.y_scrollable {
+		overflow-y: scroll;
 	}

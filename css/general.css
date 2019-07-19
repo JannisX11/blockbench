@@ -1,7 +1,7 @@
 /*Defaults*/
 	div.tool.wide {
 		width: 72px;
-		padding-top: 0px;
+		padding: 1px 0;
 	}
 	.hidden, .tooltip_shift, .custom_select ul, .mobile_only, .m_disp {
 		display: none;
@@ -80,6 +80,9 @@
 		padding: 8px;
 		height: 40px;
 		padding-bottom: 5px;
+	}
+	input.medium_width {
+		width: 64px;
 	}
 
 /*General*/
@@ -457,7 +460,7 @@
 		margin-left: auto;
 		margin-right: auto;
 		background-color: var(--color-ui);
-		overflow-y: auto;
+		overflow-y: scroll;
 		image-rendering: auto;
 	}
 	#start_screen > content > section {

@@ -61,11 +61,8 @@ function createWindow(second_instance) {
 		win.setMenu(null);
 	}
 	
-	win.show()
 	win.maximize()
-	win.webContents.on('dom-ready', () => {
-		//win.maximize()
-	})
+	win.show()
 
 	win.loadURL(url.format({
 		pathname: index_path,

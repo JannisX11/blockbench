@@ -35,7 +35,7 @@ class Preview {
 		this.camOrtho = new THREE.OrthographicCamera(-600,  600, -400, 400, 1, 100)
 		this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'y'}]
 		this.camOrtho.axis = null
-		this.camOrtho.zoom = 0.6
+		this.camOrtho.zoom = 0.5
 		this.camPers.preview = this.camOrtho.preview = this;
 		for (var i = 4; i <= 6; i++) {
 			this.camPers.layers.enable(i);
@@ -462,7 +462,7 @@ class Preview {
 			if ((event.shiftKey || event.ctrlKey) && scope.selection.old_selected.indexOf(cube) >= 0) {
 				var isSelected = true
 			} else {
-				if (cube instanceof Cube && cube.mesh) {
+				if (cube instanceof Cube && cube.visibility && cube.mesh) {
 					var mesh = cube.mesh
 					var from = 	new THREE.Vector3().copy(mesh.geometry.vertices[6]).applyMatrix4(mesh.matrixWorld)
 					var to = 	new THREE.Vector3().copy(mesh.geometry.vertices[0]).applyMatrix4(mesh.matrixWorld)
@@ -815,7 +815,6 @@ function initCanvas() {
 	display_area.name = 'display_area'
 	display_scene.name = 'display_scene'
 
-	scene.position.set(-8,-8,-8)
 
 	scene.add(Vertexsnap.vertexes)
 	Vertexsnap.vertexes.name = 'vertex_handles'
@@ -1242,6 +1241,7 @@ BARS.defineActions(function() {
 		description: 'menu.preview.perspective.normal',
 		icon: 'videocam',
 		category: 'view',
+		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 101}),
 		click: function () {
 			quad_previews.current.setNormalCamera()
@@ -1255,6 +1255,7 @@ BARS.defineActions(function() {
 		icon: 'videocam',
 		color: 'y',
 		category: 'view',
+		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 104}),
 		click: function () {
 			quad_previews.current.setOrthographicCamera(0)
@@ -1267,6 +1268,7 @@ BARS.defineActions(function() {
 		icon: 'videocam',
 		color: 'y',
 		category: 'view',
+		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 98}),
 		click: function () {
 			quad_previews.current.setOrthographicCamera(1)
@@ -1279,6 +1281,7 @@ BARS.defineActions(function() {
 		icon: 'videocam',
 		color: 'z',
 		category: 'view',
+		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 100}),
 		click: function () {
 			quad_previews.current.setOrthographicCamera(2)
@@ -1291,6 +1294,7 @@ BARS.defineActions(function() {
 		icon: 'videocam',
 		color: 'z',
 		category: 'view',
+		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 102}),
 		click: function () {
 			quad_previews.current.setOrthographicCamera(3)
@@ -1303,6 +1307,7 @@ BARS.defineActions(function() {
 		icon: 'videocam',
 		color: 'x',
 		category: 'view',
+		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 103}),
 		click: function () {
 			quad_previews.current.setOrthographicCamera(4)
@@ -1315,6 +1320,7 @@ BARS.defineActions(function() {
 		icon: 'videocam',
 		color: 'x',
 		category: 'view',
+		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 105}),
 		click: function () {
 			quad_previews.current.setOrthographicCamera(5)

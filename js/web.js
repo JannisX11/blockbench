@@ -71,6 +71,7 @@ BARS.defineActions(function() {
 					$(n).removeClass('sel')
 				})
 				updateInterfacePanels()
+				resizeWindow()
 			}
 		})
 		new Action({
@@ -89,6 +90,7 @@ BARS.defineActions(function() {
 					$(n).removeClass('sel')
 				})
 				updateInterfacePanels()
+				resizeWindow()
 			}
 		})
 	}

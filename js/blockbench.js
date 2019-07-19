@@ -14,7 +14,7 @@ const Pressing = {
 	alt: false,
 }
 var main_uv;
-const Prop = {
+var Prop = {
 	active_panel	: 'preview',
 	wireframe	  	: false,
 	file_path	  	: '',
@@ -221,10 +221,14 @@ function updateSelection() {
 		main_uv.loadData()
 		$('.selection_only').css('visibility', 'visible')
 	} else {
-		$('.selection_only').css('visibility', 'hidden')
-	}
-	if (Group.selected && Format.bone_rig) {
-		$('.selection_only#options').css('visibility', 'visible')
+		if (Format.bone_rig && Group.selected) {
+			$('.selection_only').css('visibility', 'visible')
+		} else {
+			$('.selection_only').css('visibility', 'hidden')
+			if (Locator.selected.length) {
+				$('.selection_only#element').css('visibility', 'visible')
+			}
+		}
 	}
 	if (Modes.animate) {
 		if (Animator.selected && Group.selected) {
@@ -441,7 +445,7 @@ setInterval(function() {
 }, 1e3*30)
 //Misc
 const TickUpdates = {
-	Run: function() {
+	Run() {
 		if (TickUpdates.outliner) {
 			delete TickUpdates.outliner;
 			loadOutlinerDraggable()
@@ -465,7 +469,7 @@ const TickUpdates = {
 	}
 }
 const Screencam = {
-	fullScreen: function(options, cb) {
+	fullScreen(options, cb) {
 		setTimeout(function() {
 			currentwindow.capturePage(function(screenshot) {
 				var dataUrl = screenshot.toDataURL()
@@ -483,7 +487,7 @@ const Screencam = {
 			})
 		}, 40)
 	},
-	returnScreenshot: function(dataUrl, cb) {
+	returnScreenshot(dataUrl, cb) {
 		if (cb) {
 			cb(dataUrl)
 		} else if (isApp) {
@@ -524,10 +528,10 @@ const Screencam = {
 			}).show()
 		}
 	},
-	cleanCanvas: function(options, cb) {
+	cleanCanvas(options, cb) {
 		quad_previews.current.screenshot(options, cb)
 	},
-	createGif: function(options, cb) {
+	createGif(options, cb) {
 		/*
 		var images = [];
 		var preview = quad_previews.current;
@@ -615,7 +619,7 @@ const Screencam = {
 }
 const Clipbench = {
 	elements: [],
-	copy: function(event, cut) {
+	copy(event, cut) {
 		var p = Prop.active_panel
 		var text = window.getSelection()+'';
 		if (text) {
@@ -651,7 +655,7 @@ const Clipbench = {
 			}
 		}
 	},
-	paste: function(event) {
+	paste(event) {
 		var p = Prop.active_panel
 		if (open_dialog == 'uv_dialog') {
 			uv_dialog.paste(event)
@@ -749,7 +753,7 @@ const Clipbench = {
 			Undo.finishEdit('paste', {outliner: true, elements: selected, selection: true});
 		}
 	},
-	setTexture: function(texture) {
+	setTexture(texture) {
 		//Sets the raw image of the texture
 		if (!isApp) return;
 
@@ -760,7 +764,7 @@ const Clipbench = {
 		}
 		clipboard.writeImage(img)
 	},
-	setGroup: function(group) {
+	setGroup(group) {
 		if (!group) {
 			Clipbench.group = undefined
 			return;
@@ -770,7 +774,7 @@ const Clipbench = {
 			clipboard.writeHTML(JSON.stringify({type: 'group', content: Clipbench.group}))
 		}
 	},
-	setElements: function(arr) {
+	setElements(arr) {
 		if (!arr) {
 			Clipbench.elements = []
 			return;
@@ -782,7 +786,7 @@ const Clipbench = {
 			clipboard.writeHTML(JSON.stringify({type: 'elements', content: Clipbench.elements}))
 		}
 	},
-	setKeyframes: function(keyframes) {
+	setKeyframes(keyframes) {
 		Clipbench.keyframes = []
 		if (!keyframes || keyframes.length === 0) {
 			return;
@@ -808,7 +812,7 @@ const Clipbench = {
 			clipboard.writeHTML(JSON.stringify({type: 'keyframes', content: Clipbench.keyframes}))
 		}
 	},
-	setText: function(text) {
+	setText(text) {
 		if (isApp) {
 			clipboard.writeText(text)
 		} else {

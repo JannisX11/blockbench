@@ -142,7 +142,7 @@ function parseGeometry(data) {
 			if (b.cubes) {
 				b.cubes.forEach(function(s) {
 					var base_cube = new Cube({
-						name: b.name,
+						name: s.name || b.name,
 						autouv: 0,
 						color: bi%8,
 						rotation: s.rotation,
@@ -312,7 +312,7 @@ var codec = new Codec('bedrock', {
 				if (obj.export) {
 					if (obj instanceof Cube) {
 						var cube = {
-							name: obj.name != g.name ? undefined : obj.name,
+							name: obj.name == g.name ? undefined : obj.name,
 							origin: obj.from.slice(),
 							size: obj.size(),
 							inflate: obj.inflate||undefined,

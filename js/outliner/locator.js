@@ -80,7 +80,7 @@ BARS.defineActions(function() {
 		click: function () {
 			var elements = []
 			Undo.initEdit({elements, outliner: true});
-			elements.push(new Locator().init().select());
+			elements.push(new Locator().addTo(Group.selected||selected[0]).init().select());
 			Undo.finishEdit('add locator');
 		}
 	})

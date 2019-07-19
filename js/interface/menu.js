@@ -353,7 +353,6 @@ const MenuBar = {
 					for (var key in Formats) {
 						(function() {
 							var format = Formats[key];
-							if (!format.allow_new) return;
 							arr.push({
 								id: format.id,
 								name: format.name,
@@ -441,6 +440,7 @@ const MenuBar = {
 			'_',
 			'add_cube',
 			'add_group',
+			'add_locator',
 			'duplicate',
 			'delete',
 			'_',

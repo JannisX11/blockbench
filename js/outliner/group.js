@@ -62,6 +62,9 @@ class Group extends OutlinerElement {
 	}
 	init() {
 		super.init();
+		if (typeof this.parent !== 'object') {
+			this.addTo();
+		}
 		return this;
 	}
 	select(event) {
@@ -304,6 +307,7 @@ class Group extends OutlinerElement {
 			base_group.children.push(child.getSaveCopy());
 		}
 		delete base_group.parent;
+		return base_group;
 	}
 	getChildlessCopy() {
 		var base_group = new Group();

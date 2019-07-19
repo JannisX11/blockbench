@@ -358,6 +358,7 @@ class NumSlider extends Widget {
 				if (typeof scope.onBefore === 'function') {
 					scope.onBefore()
 				}
+				scope.sliding = true;
 				scope.pre = 0;
 				scope.left = ui.position.left
 				scope.last_value = scope.value
@@ -366,6 +367,7 @@ class NumSlider extends Widget {
 				scope.slide(event, ui)
 			},
 			stop: function() {
+				delete scope.sliding;
 				if (typeof scope.onAfter === 'function') {
 					scope.onAfter(scope.value - scope.last_value)
 				}
@@ -520,8 +522,12 @@ class NumSlider extends Widget {
 		if (!BARS.condition(this.condition)) return;
 		var number = this.get();
 		this.setValue(number)
-		if (isNaN(number)) number = '';
-		$('#nslide_head #nslide_offset').text(this.name+': '+this.value)
+		if (isNaN(number)) {
+			this.jq_outer.find('.nslide:not(.editing)').text('')
+		}
+		if (this.sliding) {
+			$('#nslide_head #nslide_offset').text(this.name+': '+this.value)
+		}
 	}
 }
 class BarSlider extends Widget {
@@ -953,7 +959,7 @@ const BARS = {
 				category: 'tools',
 				selectFace: true,
 				transformerMode: 'translate',
-				toolbar: 'move',
+				toolbar: Blockbench.isMobile ? 'element_position' : 'main_tools',
 				alt_tool: 'resize_tool',
 				modes: ['edit', 'display', 'animate'],
 				keybind: new Keybind({key: 86}),
@@ -964,7 +970,7 @@ const BARS = {
 				category: 'tools',
 				selectFace: true,
 				transformerMode: 'scale',
-				toolbar: 'resize',
+				toolbar: Blockbench.isMobile ? 'element_size' : 'main_tools',
 				alt_tool: 'move_tool',
 				modes: ['edit', 'display', 'animate'],
 				keybind: new Keybind({key: 83}),
@@ -975,7 +981,7 @@ const BARS = {
 				category: 'tools',
 				selectFace: true,
 				transformerMode: 'rotate',
-				toolbar: 'rotate',
+				toolbar: Blockbench.isMobile ? 'element_rotation' : 'main_tools',
 				alt_tool: 'pivot_tool',
 				modes: ['edit', 'display', 'animate'],
 				keybind: new Keybind({key: 82}),
@@ -985,7 +991,7 @@ const BARS = {
 				icon: 'gps_fixed',
 				category: 'tools',
 				transformerMode: 'translate',
-				toolbar: 'pivot',
+				toolbar: Blockbench.isMobile ? 'element_origin' : 'main_tools',
 				alt_tool: 'rotate_tool',
 				modes: ['edit'],
 				keybind: new Keybind({key: 80}),
@@ -1365,27 +1371,51 @@ const BARS = {
 			vertical: Blockbench.isMobile,
 			default_place: true
 		})
-		Toolbars.rotation = new Toolbar({
-			id: 'rotation',
+
+
+		Toolbars.element_position = new Toolbar({
+			id: 'element_position',
 			children: [
-				'slider_rotation_x',
-				'slider_rotation_y',
-				'slider_rotation_z',
-				'rescale_toggle',
-				'bone_reset_toggle'
+				'slider_pos_x',
+				'slider_pos_y',
+				'slider_pos_z',
+				'local_move'
 			],
-			default_place: true
+			default_place: !Blockbench.isMobile
 		})
-		Toolbars.origin = new Toolbar({
-			id: 'origin',
+		Toolbars.element_size = new Toolbar({
+			id: 'element_size',
+			children: [
+				'slider_size_x',
+				'slider_size_y',
+				'slider_size_z',
+				'scale'
+			],
+			default_place: !Blockbench.isMobile
+		})
+		Toolbars.element_origin = new Toolbar({
+			id: 'element_origin',
 			children: [
 				'slider_origin_x',
 				'slider_origin_y',
 				'slider_origin_z',
 				'origin_to_geometry'
 			],
-			default_place: true
+			default_place: !Blockbench.isMobile
 		})
+		Toolbars.element_rotation = new Toolbar({
+			id: 'element_rotation',
+			children: [
+				'slider_rotation_x',
+				'slider_rotation_y',
+				'slider_rotation_z',
+				'rescale_toggle'
+			],
+			default_place: !Blockbench.isMobile
+		})
+
+
+
 		Toolbars.display = new Toolbar({
 			id: 'display',
 			children: [
@@ -1470,42 +1500,9 @@ const BARS = {
 			default_place: true
 		})
 		//Tools
-		Toolbars.move = new Toolbar({
-			id: 'move',
+		Toolbars.main_tools = new Toolbar({
+			id: 'main_tools',
 			children: [
-				'slider_pos_x',
-				'slider_pos_y',
-				'slider_pos_z',
-				'_',
-				'local_move'
-			]
-		})
-		Toolbars.resize = new Toolbar({
-			id: 'resize',
-			children: [
-				'slider_size_x',
-				'slider_size_y',
-				'slider_size_z',
-				'_',
-				'slider_inflate'
-			]
-		})
-		Toolbars.rotate = new Toolbar({
-			id: 'rotate',
-			children: [
-				'slider_rotation_x',
-				'slider_rotation_y',
-				'slider_rotation_z',
-				'rescale_toggle'
-			]
-		})
-		Toolbars.pivot = new Toolbar({
-			id: 'pivot',
-			children: [
-				'slider_origin_x',
-				'slider_origin_y',
-				'slider_origin_z',
-				'origin_to_geometry'
 			]
 		})
 		Toolbars.brush = new Toolbar({

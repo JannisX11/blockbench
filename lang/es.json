@@ -563,8 +563,6 @@
     "panel.display": "Visualización",
     "panel.textures": "Texturas",
     "panel.outliner": "Esquema",
-    "panel.options": "Rotación",
-    "panel.options.angle": "Ángulo",
     "uv_editor.title": "Editor de UV",
     "uv_editor.all_faces": "Todo",
     "uv_editor.no_faces": "Ninguno",
@@ -862,7 +860,6 @@
     "action.edit_session.desc": "Conectarse a una sesión de edición para colaborar con otros usuarios",
     "action.reset_keyframe": "Resetear Frames Clave",
     "action.reset_keyframe.desc": "Resetea todos los valores de los frames clave seleccionados",
-    "panel.options.origin": "Origen",
     "dialog.edit_session.title": "Editar Sesión",
     "edit_session.username": "Nombre de Usuario",
     "edit_session.token": "Token",
@@ -958,9 +955,14 @@
     "display.reference.crossbow": "Ballesta",
     "dialog.settings.search_results": "Search Results",
     "settings.animation_snap": "Animation Snap",
-    "settings.animation_snap.desc": "Snap interval for keyframes in the animation timeline",
+    "settings.animation_snap.desc": "Snap interval for keyframes in the animation timeline in steps per second",
     "action.import_optifine_part": "Import OptiFine Part",
     "action.import_optifine_part.desc": "Import an entity part model for OptiFine",
     "data.locator": "Locator",
-    "mode.start.no_recents": "No recently opened models"
+    "mode.start.no_recents": "No recently opened models",
+    "panel.element": "Element",
+    "panel.element.position": "Position",
+    "panel.element.size": "Size",
+    "panel.element.origin": "Pivot Point",
+    "panel.element.rotation": "Rotation"
 }

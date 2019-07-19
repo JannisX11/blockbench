@@ -961,7 +961,7 @@ const Timeline = {
 		if (time == undefined || isNaN(time)) {
 			time = Timeline.second;
 		}
-		var fps = settings.animation_snap.value;
+		var fps = Math.clamp(settings.animation_snap.value, 1, 120);
 		return Math.clamp(Math.round(time*fps)/fps, 0);
 	},
 	setup() {
@@ -1068,7 +1068,7 @@ const Timeline = {
 		$('#timeline_inner .keyframe:not(.ui-draggable)').draggable({
 			axis: 'x',
 			distance: 4,
-			helper: false,
+			helper: () => $('<div></div>'),
 			start: function(event, ui) {
 				Undo.initEdit({keyframes: Timeline.keyframes, keep_saved: true})
 				var id = $(ui.helper).attr('id')
@@ -1148,7 +1148,7 @@ const Timeline = {
 		else {step = 0.05}
 
 		if (step < 1) {
-			var FPS = 1/settings.animation_snap.value;
+			var FPS = 1/Math.clamp(settings.animation_snap.value, 1, 120);
 			step = Math.round(step/FPS) * FPS
 			step = 1/Math.round(1/step)
 		}

@@ -17,6 +17,9 @@ var Undo = {
 		}
 		- This still causes issues, for example with different texture selections
 		*/
+		if (aspects.textures && aspects.textures.length == 0 && Format.single_texture && textures.length == 1) {
+			aspects.textures[0] = textures[0];
+		}
 		Undo.current_save = new Undo.save(aspects)
 		return Undo.current_save;
 	},

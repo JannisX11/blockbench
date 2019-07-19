@@ -563,8 +563,6 @@
     "panel.display": "Anzeigeeinstellungen",
     "panel.textures": "Texturen",
     "panel.outliner": "Outliner",
-    "panel.options": "Drehung",
-    "panel.options.angle": "Winkel",
     "uv_editor.title": "UV Bearbeiten",
     "uv_editor.all_faces": "Alle",
     "uv_editor.no_faces": "Keine",
@@ -862,7 +860,6 @@
     "action.edit_session.desc": "Mit einer Session verbinden, um mit anderen zusammenzuarbeiten",
     "action.reset_keyframe": "Keyframe zurücksetzen",
     "action.reset_keyframe.desc": "Alle Werte der ausgewählten Keyframes zurücksetzen",
-    "panel.options.origin": "Angelpunkt",
     "dialog.edit_session.title": "Zusammenarbeiten",
     "edit_session.username": "Name",
     "edit_session.token": "Schlüssel",
@@ -962,5 +959,10 @@
     "action.import_optifine_part": "OptiFine Part Importieren",
     "action.import_optifine_part.desc": "Importiere ein Part Modell als Teil eines OptiFine Entity Modells",
     "data.locator": "Locator",
-    "mode.start.no_recents": "Keine zuletzt verwendeten Modelle"
+    "mode.start.no_recents": "Keine zuletzt verwendeten Modelle",
+    "panel.element": "Element",
+    "panel.element.position": "Position",
+    "panel.element.size": "Größe",
+    "panel.element.origin": "Angelpunkt",
+    "panel.element.rotation": "Rotation"
 }

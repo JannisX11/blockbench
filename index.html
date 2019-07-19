@@ -26,7 +26,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '3.0.1';
+		const appVersion = '3.0.2';
 	</script>
 		<script src="lib/vue.min.js"></script>
 		<script src="lib/vue_sortable.js"></script>
@@ -338,11 +338,11 @@
 		<label class="tl">data.origin</label>
 		<div class="dialog_bar">
 			<label for="scaling_origin_x" class="inline_label tl">X</label>
-			<input type="number" id="scaling_origin_x" class="dark_bordered mediun_width" oninput="scaleAll()">
+			<input type="number" id="scaling_origin_x" class="dark_bordered medium_width" oninput="scaleAll()">
 			<label for="scaling_origin_y" class="inline_label tl">Y</label>
-			<input type="number" id="scaling_origin_y" class="dark_bordered mediun_width" oninput="scaleAll()">
+			<input type="number" id="scaling_origin_y" class="dark_bordered medium_width" oninput="scaleAll()">
 			<label for="scaling_origin_z" class="inline_label tl">Z</label>
-			<input type="number" id="scaling_origin_z" class="dark_bordered mediun_width" oninput="scaleAll()">
+			<input type="number" id="scaling_origin_z" class="dark_bordered medium_width" oninput="scaleAll()">
 		</div>
 
 		<label class="tl">dialog.scale.scale</label>
@@ -530,122 +530,124 @@
 		<div id="layout_settings" class="hidden tab_content">
 			<h2 class="tl i_b">dialog.settings.layout</h2>
 			<div class="bar next_to_title" id="layout_title_bar"></div>
-			<div id="color_wrapper">
-				<div class="color_field">
-					<input type="color" class="color_input" id="color_ui" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-					<label for="color_ui" style="background-color: var(--color-ui)" class="color_input"></label>
-					<div class="desc">
-						<h4 class="tl">layout.color.ui</h4>
-						<p class="tl">layout.color.ui.desc</p>
+			<div class="y_scrollable" id="layout_list">
+				<div id="color_wrapper">
+					<div class="color_field">
+						<input type="color" class="color_input" id="color_ui" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+						<label for="color_ui" style="background-color: var(--color-ui)" class="color_input"></label>
+						<div class="desc">
+							<h4 class="tl">layout.color.ui</h4>
+							<p class="tl">layout.color.ui.desc</p>
+						</div>
+					</div>
+					<div class="color_field">
+						<input type="color" class="color_input" id="color_bright_ui" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+						<label for="color_bright_ui" style="background-color: var(--color-bright_ui)" class="color_input"></label>
+						<div class="desc">
+							<h4 class="tl">layout.color.bright_ui</h4>
+							<p class="tl">layout.color.bright_ui.desc</p>
+						</div>
+					</div>
+					<div class="color_field">
+						<input type="color" class="color_input" id="color_back" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+						<label for="color_back" style="background-color: var(--color-back)" class="color_input"></label>
+						<div class="desc">
+							<h4 class="tl">layout.color.back</h4>
+							<p class="tl">layout.color.back.desc</p>
+						</div>
+					</div>
+					<div class="color_field">
+						<input type="color" class="color_input" id="color_dark" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+						<label for="color_dark" style="background-color: var(--color-dark)" class="color_input"></label>
+						<div class="desc">
+							<h4 class="tl">layout.color.dark</h4>
+							<p class="tl">layout.color.dark.desc</p>
+						</div>
+					</div>
+					<!--Button-->
+					<div class="color_field">
+						<input type="color" class="color_input" id="color_button" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+						<label for="color_button" style="background-color: var(--color-button)" class="color_input"></label>
+						<div class="desc">
+							<h4 class="tl">layout.color.button</h4>
+							<p class="tl">layout.color.button.desc</p>
+						</div>
+					</div>
+					<div class="color_field">
+						<input type="color" class="color_input" id="color_selected" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+						<label for="color_selected" style="background-color: var(--color-selected)" class="color_input"></label>
+						<div class="desc">
+							<h4 class="tl">layout.color.selected</h4>
+							<p class="tl">layout.color.selected.desc</p>
+						</div>
+					</div>
+					<div class="color_field">
+						<input type="color" class="color_input" id="color_border" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+						<label for="color_border" style="background-color: var(--color-border)" class="color_input"></label>
+						<div class="desc">
+							<h4 class="tl">layout.color.border</h4>
+							<p class="tl">layout.color.border.desc</p>
+						</div>
+					</div>
+					<div class="color_field">
+						<input type="color" class="color_input" id="color_accent" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+						<label for="color_accent" style="background-color: var(--color-accent)" class="color_input"></label>
+						<div class="desc">
+							<h4 class="tl">layout.color.accent</h4>
+							<p class="tl">layout.color.accent.desc</p>
+						</div>
+					</div>
+					<div class="color_field">
+						<input type="color" class="color_input" id="color_text" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+						<label for="color_text" style="background-color: var(--color-text)" class="color_input"></label>
+						<div class="desc">
+							<h4 class="tl">layout.color.text</h4>
+							<p class="tl">layout.color.text.desc</p>
+						</div>
+					</div>
+					<div class="color_field">
+						<input type="color" class="color_input" id="color_light" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+						<label for="color_light" style="background-color: var(--color-light)" class="color_input"></label>
+						<div class="desc">
+							<h4 class="tl">layout.color.light</h4>
+							<p class="tl">layout.color.light.desc</p>
+						</div>
+					</div>
+					<div class="color_field">
+						<input type="color" class="color_input" id="color_text_acc" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+						<label for="color_text_acc" style="background-color: var(--color-text_acc)" class="color_input"></label>
+						<div class="desc">
+							<h4 class="tl">layout.color.accent_text</h4>
+							<p class="tl">layout.color.accent_text.desc</p>
+						</div>
+					</div>
+					<div class="color_field">
+						<input type="color" class="color_input" id="color_grid" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+						<label for="color_grid" style="background-color: var(--color-grid)" class="color_input"></label>
+						<div class="desc">
+							<h4 class="tl">layout.color.grid</h4>
+							<p class="tl">layout.color.grid.desc</p>
+						</div>
+					</div>
+					<div class="color_field">
+						<input type="color" class="color_input" id="color_wireframe" oninput="changeUIColor(event)" onclick="initUIColor(event)">
+						<label for="color_wireframe" style="background-color: var(--color-wireframe)" class="color_input"></label>
+						<div class="desc">
+							<h4 class="tl">layout.color.wireframe</h4>
+							<p class="tl">layout.color.wireframe.desc</p>
+						</div>
 					</div>
 				</div>
-				<div class="color_field">
-					<input type="color" class="color_input" id="color_bright_ui" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-					<label for="color_bright_ui" style="background-color: var(--color-bright_ui)" class="color_input"></label>
-					<div class="desc">
-						<h4 class="tl">layout.color.bright_ui</h4>
-						<p class="tl">layout.color.bright_ui.desc</p>
-					</div>
-				</div>
-				<div class="color_field">
-					<input type="color" class="color_input" id="color_back" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-					<label for="color_back" style="background-color: var(--color-back)" class="color_input"></label>
-					<div class="desc">
-						<h4 class="tl">layout.color.back</h4>
-						<p class="tl">layout.color.back.desc</p>
-					</div>
-				</div>
-				<div class="color_field">
-					<input type="color" class="color_input" id="color_dark" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-					<label for="color_dark" style="background-color: var(--color-dark)" class="color_input"></label>
-					<div class="desc">
-						<h4 class="tl">layout.color.dark</h4>
-						<p class="tl">layout.color.dark.desc</p>
-					</div>
-				</div>
-				<!--Button-->
-				<div class="color_field">
-					<input type="color" class="color_input" id="color_button" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-					<label for="color_button" style="background-color: var(--color-button)" class="color_input"></label>
-					<div class="desc">
-						<h4 class="tl">layout.color.button</h4>
-						<p class="tl">layout.color.button.desc</p>
-					</div>
-				</div>
-				<div class="color_field">
-					<input type="color" class="color_input" id="color_selected" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-					<label for="color_selected" style="background-color: var(--color-selected)" class="color_input"></label>
-					<div class="desc">
-						<h4 class="tl">layout.color.selected</h4>
-						<p class="tl">layout.color.selected.desc</p>
-					</div>
-				</div>
-				<div class="color_field">
-					<input type="color" class="color_input" id="color_border" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-					<label for="color_border" style="background-color: var(--color-border)" class="color_input"></label>
-					<div class="desc">
-						<h4 class="tl">layout.color.border</h4>
-						<p class="tl">layout.color.border.desc</p>
-					</div>
-				</div>
-				<div class="color_field">
-					<input type="color" class="color_input" id="color_accent" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-					<label for="color_accent" style="background-color: var(--color-accent)" class="color_input"></label>
-					<div class="desc">
-						<h4 class="tl">layout.color.accent</h4>
-						<p class="tl">layout.color.accent.desc</p>
-					</div>
-				</div>
-				<div class="color_field">
-					<input type="color" class="color_input" id="color_text" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-					<label for="color_text" style="background-color: var(--color-text)" class="color_input"></label>
-					<div class="desc">
-						<h4 class="tl">layout.color.text</h4>
-						<p class="tl">layout.color.text.desc</p>
-					</div>
-				</div>
-				<div class="color_field">
-					<input type="color" class="color_input" id="color_light" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-					<label for="color_light" style="background-color: var(--color-light)" class="color_input"></label>
-					<div class="desc">
-						<h4 class="tl">layout.color.light</h4>
-						<p class="tl">layout.color.light.desc</p>
-					</div>
-				</div>
-				<div class="color_field">
-					<input type="color" class="color_input" id="color_text_acc" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-					<label for="color_text_acc" style="background-color: var(--color-text_acc)" class="color_input"></label>
-					<div class="desc">
-						<h4 class="tl">layout.color.accent_text</h4>
-						<p class="tl">layout.color.accent_text.desc</p>
-					</div>
-				</div>
-				<div class="color_field">
-					<input type="color" class="color_input" id="color_grid" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-					<label for="color_grid" style="background-color: var(--color-grid)" class="color_input"></label>
-					<div class="desc">
-						<h4 class="tl">layout.color.grid</h4>
-						<p class="tl">layout.color.grid.desc</p>
-					</div>
-				</div>
-				<div class="color_field">
-					<input type="color" class="color_input" id="color_wireframe" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-					<label for="color_wireframe" style="background-color: var(--color-wireframe)" class="color_input"></label>
-					<div class="desc">
-						<h4 class="tl">layout.color.wireframe</h4>
-						<p class="tl">layout.color.wireframe.desc</p>
-					</div>
-				</div>
-			</div>
 
-			<div class="dialog_bar">
-				<label class="name_space_left tl" for="layout_font_main">layout.font.main</label>
-				<input type="text" class="half dark_bordered" id="layout_font_main" oninput="changeUIFont('main')">
-			</div>
+				<div class="dialog_bar">
+					<label class="name_space_left tl" for="layout_font_main">layout.font.main</label>
+					<input type="text" class="half dark_bordered" id="layout_font_main" oninput="changeUIFont('main')">
+				</div>
 
-			<div class="dialog_bar">
-				<label class="name_space_left tl" for="layout_font_headline">layout.font.headline</label>
-				<input type="text" class="half dark_bordered" id="layout_font_headline" oninput="changeUIFont('headline')">
+				<div class="dialog_bar">
+					<label class="name_space_left tl" for="layout_font_headline">layout.font.headline</label>
+					<input type="text" class="half dark_bordered" id="layout_font_headline" oninput="changeUIFont('headline')">
+				</div>
 			</div>
 
 		</div>
@@ -944,22 +946,29 @@
 		</div>
 	</div>
 	<div id="right_bar" class="sidebar">
-		<!--div id="options" class="panel selection_only">
-			<p class="tl">panel.options.angle</p>
-			<div class="toolbar_wrapper rotation"></div>
-			<p class="tl">data.origin</p>
-			<div class="toolbar_wrapper origin"></div>
-		</div-->
+		<div id="element" class="panel selection_only">
+			<p class="tl">panel.element.position</p>
+			<div class="toolbar_wrapper element_position"></div>
+			<p class="tl">panel.element.size</p>
+			<div class="toolbar_wrapper element_size"></div>
+			<p class="tl">panel.element.origin</p>
+			<div class="toolbar_wrapper element_origin"></div>
+			<p class="tl">panel.element.rotation</p>
+			<div class="toolbar_wrapper element_rotation"></div>
+		</div>
+
 		<div id="color" class="panel">
 			<div id="main_colorpicker_preview"><div></div></div>
 			<input id="main_colorpicker">
 		</div>
+
 		<div id="outliner" class="panel grow">
 			<div class="toolbar_wrapper outliner"></div>
 			<ul id="cubes_list" class="list">
 				<vue-tree :option="option"></vue-tree>
 			</ul>
 		</div>
+
 		<div id="chat" class="panel grow">
 			<div class="bar next_to_title" id="chat_title_bar"></div>
 			<ul id="chat_history" v-if="expanded">

@@ -204,7 +204,7 @@ function Dialog(settings) {
 			jq_dialog.draggable({
 				handle: ".dialog_handle"
 			})
-			var x = ($(window).width()-540)/2
+			var x = Math.clamp(($(window).width()-540)/2, 0, 2000)
 			jq_dialog.css('left', x+'px')
 			jq_dialog.css('position', 'absolute')
 		}

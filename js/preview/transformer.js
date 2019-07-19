@@ -622,8 +622,6 @@
 			var previousValue = 0;
 			var tempScale = 1;
 
-			var worldOffset = new THREE.Vector3(8, 8, 8)
-
 			var parentRotationMatrix  = new THREE.Matrix4();
 
 			var worldPosition = new THREE.Vector3();
@@ -833,7 +831,7 @@
 					//Center
 					if (Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool') {
 						rotation_object.mesh.getWorldPosition(this.position)
-						Transformer.position.add(worldOffset);
+						Transformer.position.sub(scene.position);
 					} else {
 						var center = getSelectionCenter()
 						Transformer.position.fromArray(center)
@@ -861,9 +859,6 @@
 
 				this.attach(Group.selected);
 				Group.selected.mesh.getWorldPosition(this.position);
-				this.position.x += 8;
-				this.position.y += 8;
-				this.position.z += 8;
 				if (Toolbox.selected.transformerMode == 'rotate') {
 					this.rotation.set(0, 0, 0);
 				}

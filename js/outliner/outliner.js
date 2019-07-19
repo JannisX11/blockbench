@@ -16,7 +16,7 @@ const Outliner = {
 					return;
 				}
 				Undo.initEdit({elements: obj.forSelected(), outliner: true, selection: true})
-				obj.forSelected(function(cube) {
+				obj.forSelected().slice().forEach(cube => {
 					cube.remove()
 				})
 				updateSelection()

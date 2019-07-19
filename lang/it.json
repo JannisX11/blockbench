@@ -563,8 +563,6 @@
     "panel.display": "Display",
     "panel.textures": "Texture",
     "panel.outliner": "Outliner",
-    "panel.options": "Rotazione",
-    "panel.options.angle": "Angolo",
     "uv_editor.title": "Editor UV",
     "uv_editor.all_faces": "Tutte",
     "uv_editor.no_faces": "Nulla",
@@ -862,7 +860,6 @@
     "action.edit_session.desc": "Connettersi ad una sessione modifiche per collaborare con altri utenti",
     "action.reset_keyframe": "Ripristina Fotogramma",
     "action.reset_keyframe.desc": "Ripristina tutti i valori dei fotogrammi selezionati",
-    "panel.options.origin": "Origine",
     "dialog.edit_session.title": "Sessione Modifiche",
     "edit_session.username": "Username",
     "edit_session.token": "Chiave",
@@ -962,5 +959,10 @@
     "action.import_optifine_part": "Importare parte OptiFine",
     "action.import_optifine_part.desc": "Importare una parte di un modello per OptiFine",
     "data.locator": "Locator",
-    "mode.start.no_recents": "No recently opened models"
+    "mode.start.no_recents": "No recently opened models",
+    "panel.element": "Element",
+    "panel.element.position": "Position",
+    "panel.element.size": "Size",
+    "panel.element.origin": "Pivot Point",
+    "panel.element.rotation": "Rotation"
 }

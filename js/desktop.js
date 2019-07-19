@@ -359,7 +359,7 @@ function showSaveDialog(close) {
 			unsaved_textures++;
 		}
 	})
-	if ((window.Prop && Prop.project_saved === false && elements.length > 0) || unsaved_textures) {
+	if ((window.Prop && Prop.project_saved === false && (elements.length > 0 || Group.all.length > 0)) || unsaved_textures) {
 		var answer = electron.dialog.showMessageBox(currentwindow, {
 			type: 'question',
 			buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],

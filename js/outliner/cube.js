@@ -502,11 +502,6 @@ class Cube extends NonGroup {
 
 		pos.add(m.getWorldPosition(new THREE.Vector3()))
 		
-		if (Format.bone_rig) {
-			pos.x += 8
-			pos.y += 8
-			pos.z += 8
-		}
 		return pos;
 	}
 	setColor(index) {

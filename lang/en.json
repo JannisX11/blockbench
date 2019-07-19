@@ -439,7 +439,7 @@
 	"settings.negative_size": "Negative Size",
 	"settings.negative_size.desc": "Allow the resize tool to use negative sizes",
 	"settings.animation_snap": "Animation Snap",
-	"settings.animation_snap.desc": "Snap interval for keyframes in the animation timeline",
+	"settings.animation_snap.desc": "Snap interval for keyframes in the animation timeline in steps per second",
 
 	"settings.dialog_unsaved_textures": "Unsaved Textures",
 	"settings.dialog_unsaved_textures.desc": "Show \"Unsaved Textures\" dialog",
@@ -970,9 +970,11 @@
 	"panel.variable_placeholders": "Variable Placeholders",
 	"panel.variable_placeholders.info": "List the variables you want to preview via name=value",
 
-	"panel.options": "Rotation",
-	"panel.options.angle": "Angle",
-	"panel.options.origin": "Origin",
+	"panel.element": "Element",
+	"panel.element.position": "Position",
+	"panel.element.size": "Size",
+	"panel.element.origin": "Pivot Point",
+	"panel.element.rotation": "Rotation",
 
 	"uv_editor.title": "UV Editor",
 	"uv_editor.all_faces": "All",

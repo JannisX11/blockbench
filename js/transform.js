@@ -230,7 +230,9 @@ const Vertexsnap = {
 			var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material)
 			var pos = mesh.position.copy(v)
 			pos.applyMatrix4(cube.mesh.matrixWorld)
-			pos.addScalar(8)
+			if (!Format.bone_rig) {
+				pos.addScalar(8)
+			}
 			mesh.rotation.copy(cube.mesh.rotation)
 			mesh.cube = cube
 			mesh.isVertex = true
@@ -392,7 +394,7 @@ function scaleAll(save, size) {
 		parseFloat($('#scaling_origin_y').val())||0,
 		parseFloat($('#scaling_origin_z').val())||0,
 	]
-	var clip = false
+	var overflow = [];
 	selected.forEach(function(obj) {
 		obj.autouv = 0;
 		origin.forEach(function(ogn, i) {
@@ -400,13 +402,13 @@ function scaleAll(save, size) {
 
 				if (obj.from) {
 					obj.from[i] = (obj.before.from[i] - ogn) * size;
-					if (obj.from[i] + ogn > 32 || obj.from[i] + ogn < -16) clip = true;
+					if (obj.from[i] + ogn > 32 || obj.from[i] + ogn < -16) overflow.push(obj);
 					obj.from[i] = limitToBox(obj.from[i] + ogn);
 				}
 
 				if (obj.to) {
 					obj.to[i] = (obj.before.to[i] - ogn) * size;
-					if (obj.to[i] + ogn > 32 || obj.to[i] + ogn < -16) clip = true;
+					if (obj.to[i] + ogn > 32 || obj.to[i] + ogn < -16) overflow.push(obj);
 					obj.to[i] = limitToBox(obj.to[i] + ogn);
 				}
 
@@ -440,7 +442,8 @@ function scaleAll(save, size) {
 			}
 		}, Group)
 	}
-	if (clip && Format.canvas_limit) {
+	if (overflow.length && Format.canvas_limit) {
+		scaleAll.overflow = overflow;
 		$('#scaling_clipping_warning').text('Model clipping: Your model is too large for the canvas')
 		$('#scale_overflow_btn').css('display', 'inline-block')
 	} else {
@@ -485,21 +488,9 @@ function cancelScaleAll() {
 	hideDialog()
 }
 function scaleAllSelectOverflow() {
-	var overflow = [];
-	selected.forEach(function(obj) {
-		var clip = false
-		obj.from.forEach(function(ogn, i) {
-
-			if (obj.from && (obj.from[i] > 32 || obj.from[i] < -16)) clip = true
-			if (obj.to && (obj.to[i]   > 32 || obj.to[i]   < -16)) clip = true
-		})
-		if (clip) {
-			overflow.push(obj)
-		}
-	})
 	cancelScaleAll()
 	selected.length = 0;
-	overflow.forEach(obj => {
+	scaleAll.overflow.forEach(obj => {
 		obj.selectLow()
 	})
 	updateSelection();
@@ -870,7 +861,7 @@ BARS.defineActions(function() {
 	}
 	new NumSlider({
 		id: 'slider_origin_x',
-		condition: () => () => (Modes.edit && getRotationObject()),
+		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.origin[0];
@@ -891,7 +882,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider({
 		id: 'slider_origin_y',
-		condition: () => () => (Modes.edit && getRotationObject()),
+		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.origin[1];
@@ -912,7 +903,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider({
 		id: 'slider_origin_z',
-		condition: () => () => (Modes.edit && getRotationObject()),
+		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.origin[2];

@@ -322,12 +322,14 @@ function setupInterface() {
 			'save_textures'
 		])
 	})
-	Interface.Panels.options = new Panel({
-		id: 'options',
-		condition: () => Modes.id === 'edit',
+	Interface.Panels.element = new Panel({
+		id: 'element',
+		condition: () => Modes.edit,
 		toolbars: {
-			rotation: Toolbars.rotation,
-			origin: Toolbars.origin,
+			element_position: Toolbars.element_position,
+			element_size: Toolbars.element_size,
+			element_origin: Toolbars.element_origin,
+			element_rotation: Toolbars.element_rotation,
 		}
 	})
 	Interface.Panels.color = new Panel({
@@ -659,8 +661,8 @@ function showDialog(dialog) {
 			handle: ".dialog_handle",
 			containment: 'body'
 		})
-		var x = ($(window).width()-obj.width()) / 2;
-		var top = ($(window).height() - obj.height()) / 2;
+		var x = ($(window).width()-obj.outerWidth()) / 2;
+		var top = ($(window).height() - obj.outerHeight()) / 2;
 		obj.css('left', x+'px')
 		obj.css('top', 'px')
 		obj.css('max-height', ($(window).height()-128)+'px')
@@ -685,6 +687,7 @@ function setSettingsTab(tab) {
 		//Settings
 		$('#settingslist').css('max-height', ($(window).height() - 420) +'px')
 	} else if (tab === 'layout_settings') {
+		$('#layout_list').css('max-height', ($(window).height() - 420) +'px')
 		$('#layout_font_main').val(app_colors.main.font)
 		$('#layout_font_headline').val(app_colors.headline.font)
 	}
@@ -934,7 +937,18 @@ var documentReady = new Promise((resolve, reject) => {
 		}
 
 
-		//DIscord
+		//Electron
+		if (isApp && !compareVersions(process.versions.electron, '4.0.0')) {
+			addStartScreenSection({
+				graphic: {type: 'icon', icon: 'fas.fa-atom'},
+				text: [
+					{type: 'h1', text: 'Electron Update Recommended'},
+					{text: 'Your Blockbench is using an old version of Electron. Install the latest version to get the best performance and newest features. Just run the latest Blockbench installer. This only takes a minute and will not affect your custom settings.'},
+					{text: '[Blockbench Downloads](https://blockbench.net/downloads/)'}
+				]
+			})
+		}
+		//Discord
 		if (startup_count < 6) {
 			addStartScreenSection({
 				color: '#7289da',

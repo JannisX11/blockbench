@@ -29,6 +29,7 @@ var codec = new Codec('obj', {
 	compile(options) {
 		if (!options) options = 0;
 
+		var old_scene_position = new THREE.Vector3().copy(scene.position);
 		scene.position.set(0,0,0)
 
 		var output = '# Made in Blockbench '+appVersion+'\n';
@@ -146,7 +147,7 @@ var codec = new Codec('obj', {
 				}
 			} else {
 				console.warn( 'THREE.OBJExporter.parseMesh(): geometry type unsupported', mesh );
-				// TODO: Support only BufferGeometry and use use setFromObject()
+				// TODO: Support only BufferGeometry and use setFromObject()
 			}
 
 			// update index
@@ -176,7 +177,7 @@ var codec = new Codec('obj', {
 		}
 		mtlOutput += 'newmtl none'
 
-		scene.position.set(-8,-8,-8)
+		scene.position.copy(old_scene_position)
 
 		_obj_export = {
 			obj: output,
@@ -186,6 +187,7 @@ var codec = new Codec('obj', {
 		return options.all_files ? _obj_export : output;
 	},
 	write(content, path) {
+		var scope = this;
 
 		var mtl_path = path.replace(/\.obj$/, '.mtl')
 		content = this.compile({mtl_name: pathToName(mtl_path, true)})

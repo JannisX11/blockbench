@@ -113,11 +113,7 @@ class Plugin {
 	}
 	loadFromFile(file, first) {
 		var scope = this;
-		var path = file.path
-		Plugins.registered[this.id] = this;
-		localStorage.setItem('plugin_dev_path', file.path)
-		onInstall = undefined
-
+		if (!isApp && !first) return this;
 		if (first) {
 			if (isApp) {
 				if (!confirm(tl('message.load_plugin_app'))) return;
@@ -125,18 +121,43 @@ class Plugin {
 				if (!confirm(tl('message.load_plugin_web'))) return;
 			}
 		}
-		$.getScript(file.path, function() {
-			scope.id = (plugin_data && plugin_data.id)||pathToName(file.path)
+
+		scope.id = pathToName(file.path)
+		Plugins.registered[this.id] = this;
+		localStorage.setItem('plugin_dev_path', file.path)
+		Plugins.all.safePush(this)
+
+		scope.fromFile = true
+		if (isApp) {
+			$.getScript(file.path, function() {
+				if (window.plugin_data) {
+					scope.id = (plugin_data && plugin_data.id)||pathToName(file.path)
+					scope.extend(plugin_data)
+					scope.bindGlobalData()
+				}
+				scope.installed = true
+				scope.path = file.path
+				Plugins.installed.safePush(scope.path)
+				saveInstalledPlugins()
+				Plugins.sort()
+			})
+		} else {
+			try {
+				eval(file.content);
+			} catch (err) {
+				throw err;
+				return;
+			}
+			if (!Plugins.registered && window.plugin_data) {
+				scope.id = (plugin_data && plugin_data.id)||scope.id
+				scope.extend(plugin_data)
+				scope.bindGlobalData()
+			}
 			scope.installed = true
-			scope.fromFile = true
-			scope.path = file.path
-			scope.extend(plugin_data)
-			scope.bindGlobalData()
 			Plugins.installed.safePush(scope.path)
 			saveInstalledPlugins()
 			Plugins.sort()
-		})
-		Plugins.all.safePush(this)
+		}
 		return this;
 	}
 	uninstall() {
@@ -278,7 +299,7 @@ function loadInstalledPlugins() {
 			if (id.substr(-3) !== '.js') {
 				//downloaded public plugin
 				var plugin = new Plugin(id).install(false, function() {
-					this.extend(plugin_data)
+					this.extend(window.plugin_data)
 					Plugins.sort()
 				})
 			}

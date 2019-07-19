@@ -563,8 +563,6 @@
     "panel.display": "Отображение",
     "panel.textures": "Текстуры",
     "panel.outliner": "Элементы",
-    "panel.options": "Поворот",
-    "panel.options.angle": "Угол",
     "uv_editor.title": "Редактор UV",
     "uv_editor.all_faces": "Все",
     "uv_editor.no_faces": "Нет",
@@ -862,7 +860,6 @@
     "action.edit_session.desc": "Присоединиться к сеансу редактирования для коллаборации с другими пользователями",
     "action.reset_keyframe": "Сбросить кадр",
     "action.reset_keyframe.desc": "Сбросить все значения выбранных кадров",
-    "panel.options.origin": "Центр поворота",
     "dialog.edit_session.title": "Сеанс Редактирования",
     "edit_session.username": "Имя пользователя",
     "edit_session.token": "Ключ",
@@ -962,5 +959,10 @@
     "action.import_optifine_part": "Импортировать часть OptiFine",
     "action.import_optifine_part.desc": "Импортировать часть модели сущности OptiFine",
     "data.locator": "Locator",
-    "mode.start.no_recents": "No recently opened models"
+    "mode.start.no_recents": "No recently opened models",
+    "panel.element": "Element",
+    "panel.element.position": "Position",
+    "panel.element.size": "Size",
+    "panel.element.origin": "Pivot Point",
+    "panel.element.rotation": "Rotation"
 }

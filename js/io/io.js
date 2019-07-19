@@ -67,6 +67,17 @@ class ModelFormat {
 		}
 		main_uv.setGrid()
 		buildGrid()
+		if (Format.bone_rig) {
+			scene.position.set(0, 0, 0);
+		} else {
+			scene.position.set(-8, -8, -8);
+		}
+		/*
+		var center = Format.bone_rig ? -8 : 0;
+		previews.forEach(preview => {
+			preview.controls.target.set(center, -3, center);
+			preview.camOrtho.position.add(preview.controls.target);
+		})*/
 		BARS.updateConditions()
 		Canvas.updateRenderSides()
 		return this;
@@ -283,12 +294,6 @@ class Codec {
 		Blockbench.showQuickMessage(tl('message.save_file', [name]));
 	}
 }
-new ModelFormat({
-	id: 'free',
-	icon: 'icon-format_free',
-	rotate_cubes: true,
-	optional_box_uv: true,
-})
 
 //New
 function resetProject() {
@@ -799,6 +804,12 @@ function autoParseJSON(data, feedback) {
 
 
 BARS.defineActions(function() {
+	new ModelFormat({
+		id: 'free',
+		icon: 'icon-format_free',
+		rotate_cubes: true,
+		optional_box_uv: true,
+	})
 	//Project
 	new Action({
 		id: 'project_window',
@@ -880,6 +891,7 @@ BARS.defineActions(function() {
 		id: 'convert_project',
 		icon: 'fas.fa-file-import',
 		category: 'file',
+		condition: () => (!EditSession.active || EditSession.hosting),
 		click: function () {
 
 			var options = {};
@@ -932,6 +944,7 @@ BARS.defineActions(function() {
 		id: 'add_model',
 		icon: 'assessment',
 		category: 'file',
+		condition: _ => (Format.id == 'java_block' || Format.id == 'free'),
 		click: function () {
 			Blockbench.import({
 				extensions: ['json'],
@@ -949,6 +962,7 @@ BARS.defineActions(function() {
 		id: 'extrude_texture',
 		icon: 'eject',
 		category: 'file',
+		condition: _ => !Project.box_uv,
 		click: function () {
 			Blockbench.import({
 				extensions: ['png'],
@@ -967,7 +981,7 @@ BARS.defineActions(function() {
 		id: 'export_over',
 		icon: 'save',
 		category: 'file',
-		keybind: new Keybind({key: 69, ctrl: true}),
+		keybind: new Keybind({key: 83, ctrl: true}),
 		click: function () {
 			if (isApp) {
 				saveTextures()
@@ -992,33 +1006,39 @@ BARS.defineActions(function() {
 			}
 		}
 	})
-	new Action({
-		id: 'export_asset_archive',
-		icon: 'archive',
-		category: 'file',
-		condition: _ => !isApp && Format && Format.codec,
-		click: function() {
-			var archive = new JSZip();
-			var content = Format.codec.compile()
-			archive.file((Project.name||'model')+'.json', content)
-			textures.forEach(tex => {
-				if (tex.mode === 'bitmap') {
-					archive.file(pathToName(tex.name) + '.png', tex.source.replace('data:image/png;base64,', ''), {base64: true});
-				}
-			})
-			archive.generateAsync({type: 'blob'}).then(content => {
-				Blockbench.export({
-					type: 'Zip Archive',
-					extensions: ['zip'],
-					name: 'assets',
-					startpath: ModelMeta.export_path,
-					content: content,
-					savetype: 'zip'
+	if (BarItems.export_over.keybind.key == 69 && BarItems.export_over.keybind.ctrl) {
+		//Blockbench 3.0.2 update
+		BarItems.export_over.keybind.set({key: 83, ctrl: true}).save(true)
+	}
+	if (!isApp) {
+		new Action({
+			id: 'export_asset_archive',
+			icon: 'archive',
+			category: 'file',
+			condition: _ => Format && Format.codec,
+			click: function() {
+				var archive = new JSZip();
+				var content = Format.codec.compile()
+				archive.file((Project.name||'model')+'.json', content)
+				textures.forEach(tex => {
+					if (tex.mode === 'bitmap') {
+						archive.file(pathToName(tex.name) + '.png', tex.source.replace('data:image/png;base64,', ''), {base64: true});
+					}
 				})
-				Prop.project_saved = true;
-			})
-		}
-	})
+				archive.generateAsync({type: 'blob'}).then(content => {
+					Blockbench.export({
+						type: 'Zip Archive',
+						extensions: ['zip'],
+						name: 'assets',
+						startpath: ModelMeta.export_path,
+						content: content,
+						savetype: 'zip'
+					})
+					Prop.project_saved = true;
+				})
+			}
+		})
+	}
 	new Action({
 		id: 'upload_sketchfab',
 		icon: 'icon-sketchfab',
