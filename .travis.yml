@@ -11,13 +11,13 @@ matrix:
 
     - name: "Windows"
       os: osx
-      script: build -w --x64 --publish=always
+      script: electron-builder -w --x64 --publish=always
 
     - name: "Linux"
       os: linux
       script:
         - sudo apt-get install rpm
-        - build --publish=always
+        - electron-builder --publish=always
 
 
 cache:
@@ -29,7 +29,7 @@ install:
   - npm install electron-builder
 
 script:
-  - build --publish=always
+  - electron-builder --publish=always
 
 notifications:
   email: false

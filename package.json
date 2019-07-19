@@ -73,9 +73,9 @@
 		}
 	},
 	"scripts": {
-		"dist": "build --publish=always",
-		"win64": "build -w --ia32 --publish=always",
-		"win32": "build -w --x64 --publish=always"
+		"dist": "electron-builder --publish=always",
+		"win64": "electron-builder -w --ia32 --publish=always",
+		"win32": "electron-builder -w --x64 --publish=always"
 	},
 	"devDependencies": {
 		"async": "^2.4.1",
