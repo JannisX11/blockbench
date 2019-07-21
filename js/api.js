@@ -311,6 +311,7 @@ const Blockbench = {
 	},
 	read(paths, options, cb) {
 		if (!isApp || paths == undefined) return false;
+		if (typeof paths == 'string') paths = [paths];
 
 		var results = [];
 		var result_count = 0;
@@ -427,6 +428,10 @@ const Blockbench = {
 					? options.startpath.replace(/\.\w+$/, '')
 					: options.name
 			}, function (file_path) {
+				var extension = pathToExtension(file_path);
+				if (!extension && options.extensions && options.extensions[0]) {
+					file_path += '.'+options.extensions[0]
+				}
 				Blockbench.writeFile(file_path, options, cb)
 			})
 		}

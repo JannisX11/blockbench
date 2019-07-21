@@ -312,10 +312,12 @@ var codec = new Codec('bedrock', {
 				if (obj.export) {
 					if (obj instanceof Cube) {
 						var cube = {
-							name: obj.name == g.name ? undefined : obj.name,
 							origin: obj.from.slice(),
 							size: obj.size(),
 							inflate: obj.inflate||undefined,
+						}
+						if (Project.box_uv) {
+							cube = new oneLiner(cube);
 						}
 						cube.origin[0] = -(cube.origin[0] + cube.size[0])
 

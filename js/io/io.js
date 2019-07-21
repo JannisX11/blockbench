@@ -79,6 +79,7 @@ class ModelFormat {
 			preview.camOrtho.position.add(preview.controls.target);
 		})*/
 		BARS.updateConditions()
+		Modes.vue.$forceUpdate()
 		Canvas.updateRenderSides()
 		return this;
 	}
@@ -994,11 +995,9 @@ BARS.defineActions(function() {
 				}
 				if (Format.animation_mode) {
 					if (ModelMeta.animation_path) {
-						Blockbench.writeFile(Prop.animation_path, {
+						Blockbench.writeFile(ModelMeta.animation_path, {
 							content: autoStringify(Animator.buildFile())
 						})
-					} else {
-						//
 					}
 				}
 			} else {

@@ -163,6 +163,7 @@ class Group extends OutlinerElement {
 		return this;
 	}
 	remove(undo) {
+		var scope = this;
 		if (undo) {
 			var cubes = []
 			this.forEachChild(function(element) {
@@ -183,6 +184,14 @@ class Group extends OutlinerElement {
 		} else {
 			Outliner.root.remove(this)
 		}
+		Animator.animations.forEach(animation => {
+			if (animation.bones[scope.uuid]) {
+				delete animation.bones[scope.uuid];
+			}
+			if (animation.selected && Animator.open) {
+				updateKeyframeSelection();
+			}
+		})
 		TickUpdates.selection = true
 		this.constructor.all.remove(this);
 		if (undo) {
@@ -192,24 +201,14 @@ class Group extends OutlinerElement {
 	}
 	resolve() {
 		var scope = this;
-		var array
+		var array = this.children.slice().reverse();
 
-		if (array == undefined) {
-			array = this.children.slice(0)
-		}
-		if (array.constructor !== Array) {
-			array = [array]
-		} else {
-			array.reverse()
-		}
 		array.forEach(function(s, i) {
 			s.addTo(scope.parent)
 		})
 		TickUpdates.outliner = true;
-		this.removeFromParent()
-		Group.selected = undefined
-		delete this
-		return array
+		this.remove(false);
+		return array;
 	}
 	showContextMenu(event) {
 		Prop.active_panel = 'outliner'

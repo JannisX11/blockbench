@@ -1260,7 +1260,7 @@
 					}
 					updateSelection()
 
-				} else if (Modes.id === 'animate') {
+				} else if (Modes.id === 'animate' && scope.keyframe) {
 					Undo.finishEdit('change keyframe', {keyframes: [scope.keyframe]})
 
 				} else if (Modes.id === 'display') {

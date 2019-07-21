@@ -240,7 +240,7 @@ const Canvas = {
 			mesh.getWorldPosition(line.position)
 			line.position.sub(scene.position)
 			line.rotation.setFromQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()))
-			line.scale.copy(mesh.scale)
+			mesh.getWorldScale(line.scale)
 
 			line.name = obj.uuid+'_ghost_outline'
 			outlines.add(line)

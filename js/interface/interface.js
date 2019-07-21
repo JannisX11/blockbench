@@ -978,7 +978,7 @@ var documentReady = new Promise((resolve, reject) => {
 	Promise.all([version_call, documentReady]).then((data) => {
 		if (data[0] && data[0].version) {
 			latest_version = data[0].version;
-			if (compareVersions(latest_version, appVersion)) {
+			if (isApp && compareVersions(latest_version, appVersion)) {
 
 				addStartScreenSection({
 					color: 'var(--color-back)',

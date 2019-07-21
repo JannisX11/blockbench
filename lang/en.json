@@ -99,7 +99,7 @@
 	"status_bar.processing_gif":"Processing GIF",
 
 	"message.rotation_limit.title": "Rotation Limits",
-	"message.rotation_limit.message": "Rotations are limited by Minecraft to one axis and 22.5 degree increments. Rotating on a different axis will clear all rotations on the other axes. Disable the option \"Restricted Rotation\" if you are modeling for other purposes and need free rotations.",
+	"message.rotation_limit.message": "Rotations are limited by Minecraft to one axis and 22.5 degree increments. Rotating on a different axis will clear all rotations on the other axes. Convert the model to \"Free Model\" if you are modeling for other purposes and need free rotations.",
 	"message.file_not_found.title": "File Not Found",
 	"message.file_not_found.message": "Blockbench could not find the requested file. Make sure it is saved locally and not in a cloud.",
 	"message.recover_backup.title": "Recover Model",
@@ -123,7 +123,7 @@
 	"message.unsaved_textures.title": "Unsaved Textures",
 	"message.unsaved_textures.message": "Your model has unsaved textures. Make sure to save them and paste them into your resource pack in the correct folder.",
 	"message.model_clipping.title": "Model Too Large",
-	"message.model_clipping.message": "Your model contains %0 cubes that are larger than the 3x3x3 limit allowed by Minecraft. This model will not work in Minecraft. Enable the option 'Restricted Canvas' to prevent this.",
+	"message.model_clipping.message": "Your model contains %0 cubes that are larger than the 3x3x3 limit allowed by Minecraft. This model will not work in Minecraft.",
 	"message.cleared_blank_faces.title": "Blank Faces",
 	"message.cleared_blank_faces.message": "Blockbench has found %0 cubes without any texture. Do you want to remove those elements?",
 

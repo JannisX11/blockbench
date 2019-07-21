@@ -189,7 +189,6 @@ class Cube extends NonGroup {
 			for (var face in this.faces) {
 				this.faces[face].texture = textures[0].uuid
 			}
-			main_uv.loadData()
 		}
 		if (!this.parent || (this.parent === 'root' && Outliner.root.indexOf(this) === -1)) {
 			this.addTo('root')

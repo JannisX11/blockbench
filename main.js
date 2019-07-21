@@ -6,6 +6,7 @@ let orig_win;
 
 function createWindow(second_instance) {
 	if (app.requestSingleInstanceLock && !app.requestSingleInstanceLock()) {
+		app.quit()
 		return;
 	}
 	let win = new BrowserWindow({

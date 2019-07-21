@@ -594,14 +594,14 @@ function parseGroups(array, importGroup, startIndex) {
 				if (array[i].uuid) {
 					obj.uuid = array[i].uuid
 				}
+				save_array.push(obj)
+				obj.init()
 				if (array[i].children && array[i].children.length > 0) {
 					iterate(array[i].children, obj.children, obj)
 				}
 				if (array[i].content && array[i].content.length > 0) {
 					iterate(array[i].content, obj.children, obj)
 				}
-				save_array.push(obj)
-				obj.init()
 			}
 			i++;
 		}
@@ -609,9 +609,10 @@ function parseGroups(array, importGroup, startIndex) {
 	if (importGroup && startIndex !== undefined) {
 		iterate(array, importGroup.children, importGroup)
 	} else {
-		Outliner.root.length = 1
-		Outliner.root.splice(0, 1)
-		iterate(array, Outliner.root, 'root')
+		Outliner.root.length = 1;
+		Outliner.root.splice(0, 1);
+		Group.all.empty();
+		iterate(array, Outliner.root, 'root');
 	}
 }
 //Outliner

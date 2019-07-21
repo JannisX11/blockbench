@@ -152,17 +152,17 @@ function onVueSetup(func) {
 }
 function canvasGridSize(shift, ctrl) {
 	if (!shift && !ctrl) {
-		return 16 / limitNumber(settings.edit_size.value, 1, 1024)
+		return 16 / limitNumber(settings.edit_size.value, 1, 512)
 	} else if (ctrl && shift) {
-		var basic = 16 / limitNumber(settings.edit_size.value, 1, 1024)
-		var control = 16 / limitNumber(settings.ctrl_size.value, 1, 1024)
-		var shift = 16 / limitNumber(settings.shift_size.value, 1, 1024)
+		var basic = 16 / limitNumber(settings.edit_size.value, 1, 512)
+		var control = 16 / limitNumber(settings.ctrl_size.value, 1, 4096)
+		var shift = 16 / limitNumber(settings.shift_size.value, 1, 4096)
 		control = basic / control
 		return shift / control
 	} else if (ctrl) {
-		return 16 / limitNumber(settings.ctrl_size.value, 1, 1024)
+		return 16 / limitNumber(settings.ctrl_size.value, 1, 4096)
 	} else {
-		return 16 / limitNumber(settings.shift_size.value, 1, 1024)
+		return 16 / limitNumber(settings.shift_size.value, 1, 4096)
 	}
 }
 function updateNslideValues() {
@@ -730,15 +730,15 @@ const Clipbench = {
 			if (Clipbench.group) {
 				function iterate(obj, parent) {
 					if (obj.children) {
-						var copy = new Group(obj)
+						var copy = new Group(obj).addTo(parent).init()
 						if (obj.children && obj.children.length) {
 							obj.children.forEach((child) => {
 								iterate(child, copy)
 							})
 						}
-						copy.addTo(parent)
 					} else {
-						NonGroup.fromSave(obj).addTo(parent).selectLow()
+						var el = NonGroup.fromSave(obj).addTo(parent).selectLow();
+						Canvas.adaptObjectPosition(el);
 					}
 				}
 				iterate(Clipbench.group, target)

@@ -38,10 +38,9 @@ $(document).ready(function() {
 
 	//Load Model
 	if (electron.process.argv.length >= 2) {
-		var extension = pathToExtension(electron.process.argv[1])
-
+		var extension = pathToExtension(electron.process.argv.last())
 		if (['json', 'bbmodel', 'jem'].includes(extension)) {
-			Blockbench.read([electron.process.argv[1]], {}, (files) => {
+			Blockbench.read([electron.process.argv.last()], {}, (files) => {
 				loadModelFile(files[0])
 			})
 		}
@@ -62,7 +61,6 @@ $(document).ready(function() {
 });
 (function() {
 	console.log('Electron '+process.versions.electron+', Node '+process.versions.node)
-	getLatestVersion(true)
 })()
 
 //Recent Projects
@@ -103,28 +101,12 @@ function addRecentProject(data) {
 
 //Updates
 //Called on start to show message
-function getLatestVersion(init) {
+function getLatestVersion() {
 	if (process.platform == 'linux') return;
 	$.getJSON('https://raw.githubusercontent.com/JannisX11/blockbench/master/package.json', (data) => {
 		if (data.version) {
 			latest_version = data.version
-			if (compareVersions(latest_version, appVersion) && init === true && !open_dialog) {
-
-				Blockbench.showMessageBox({
-					translateKey: 'update_notification',
-					message: tl('message.update_notification.message', [latest_version]),
-					icon: 'update',
-					buttons: ['message.update_notification.install', 'message.update_notification.later'],
-					confirm: 0, cancel: 1
-				}, (result) => {
-					if (result === 0) {
-						checkForUpdates(true)
-					}
-				})
-
-			} else if (init === false) {
-				checkForUpdates()
-			}
+			checkForUpdates()
 		}
 	}).fail(function() {
 		latest_version = false
@@ -172,7 +154,7 @@ function refreshUpdateDialog() {
 	currentwindow.webContents.session.clearCache(function() {
 		data = '<div class="dialog_bar narrow"><i class="material-icons blue_icon spinning">refresh</i>'+tl('dialog.update.connecting')+'</div>'
 		$('#updater_content').html(data)
-		getLatestVersion(false)
+		getLatestVersion()
 	})
 }
 function installUpdate() {

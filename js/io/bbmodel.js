@@ -1,7 +1,7 @@
 (function() {
 
 var codec = new Codec('project', {
-	name: 'Blockbench Save',
+	name: 'Blockbench Project',
 	extension: 'bbmodel',
 	remember: true,
 	load(model, file) {

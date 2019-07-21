@@ -2,7 +2,7 @@ class Animation {
 	constructor(data) {
 		this.name = '';
 		this.uuid = guid()
-		this.loop = true;
+		this.loop = false;
 		this.playing = false;
 		this.override = false;
 		this.selected = false;
@@ -37,6 +37,12 @@ class Animation {
 				}
 			}
 		}
+		if (data.particle_effects) {
+			this.particle_effects = data.particle_effects;
+		}
+		if (data.sound_effects) {
+			this.sound_effects = data.sound_effects;
+		}
 		return this;
 	}
 	undoCopy(options) {
@@ -49,6 +55,8 @@ class Animation {
 			anim_time_update: this.anim_time_update,
 			length: this.length,
 			selected: this.selected,
+			particle_effects: this.particle_effects,
+			sound_effects: this.sound_effects,
 		}
 		if (Object.keys(this.bones).length) {
 			copy.bones = {}
@@ -56,7 +64,8 @@ class Animation {
 				var kfs = this.bones[uuid].keyframes
 				if (kfs && kfs.length) {
 					if (options && options.bone_names) {
-						uuid = this.bones[uuid].getGroup().name
+						var group = this.bones[uuid].getGroup();
+						uuid = group ? group.name : ''
 					}
 					var kfs_copy = copy.bones[uuid] = []
 					kfs.forEach(kf => {
@@ -134,11 +143,10 @@ class Animation {
 		}
 		var uuid = group.uuid
 		if (!this.bones[uuid]) {
-			this.bones[uuid] = new BoneAnimator(uuid);
+			this.bones[uuid] = new BoneAnimator(uuid, this);
 		}
 		return this.bones[uuid];
 	}
-
 	add(undo) {
 		if (undo) {
 			Undo.initEdit({animations: []})
@@ -206,14 +214,18 @@ class Animation {
 		*/
 	])
 class BoneAnimator {
-	constructor(uuid) {
+	constructor(uuid, animation) {
 		this.keyframes = [];
 		this.uuid = uuid;
+		this.animation = animation;
 	}
 	getGroup() {
 		this.group = Outliner.root.findRecursive('uuid', this.uuid)
 		if (!this.group) {
 			console.log('no group found for '+this.uuid)
+			if (this.animation && this.animation.bones[this.uuid]) {
+				delete this.animation.bones[this.uuid];
+			}
 		}
 		return this.group
 	}
@@ -841,14 +853,16 @@ const Animator = {
 					override: a.override_previous_animation,
 					anim_time_update: a.anim_time_update,
 					length: a.animation_length,
-					blend_weight: a.blend_weight
+					blend_weight: a.blend_weight,
+					particle_effects: a.particle_effects,
+					sound_effects: a.sound_effects,
 				}).add()
 				//Bones
 				for (var bone_name in a.bones) {
 					var b = a.bones[bone_name]
 					var group = Outliner.root.findRecursive('name', bone_name)
 					if (group) {
-						var ba = new BoneAnimator(group.uuid);
+						var ba = new BoneAnimator(group.uuid, animation);
 						animation.bones[group.uuid] = ba;
 						//Channels
 						for (var channel in b) {
@@ -885,6 +899,8 @@ const Animator = {
 			if (a.override) ani_tag.override_previous_animation = true
 			if (a.anim_time_update) ani_tag.anim_time_update = a.anim_time_update
 			ani_tag.bones = {}
+			if (a.particle_effects) ani_tag.particle_effects = a.particle_effects;
+			if (a.sound_effects) ani_tag.sound_effects = a.sound_effects;
 			for (var uuid in a.bones) {
 				var group = a.bones[uuid].getGroup()
 				if (group && a.bones[uuid].keyframes.length) {

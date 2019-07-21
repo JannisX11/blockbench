@@ -1031,27 +1031,12 @@ const BARS = {
 				id: 'swap_tools',
 				icon: 'swap_horiz',
 				category: 'tools',
-				condition: () => Modes.edit || Modes.display,
+				condition: () => !Modes.animate,
 				keybind: new Keybind({key: 32}),
 				click: function () {
-					var index = Toolbox.children.indexOf(Toolbox.selected)+1;
-					var overflow = 0;
-					while ((
-						Toolbox.children[index] instanceof Tool == false ||
-						Toolbox.children[index] == Toolbox.selected ||
-						!Condition(Toolbox.children[index])
-					) && overflow < 64) {
-						index++;
-						if (index >= Toolbox.children.length) index = 0;
-						overflow++;
+					if (BarItems[Toolbox.selected.alt_tool]) {
+						BarItems[Toolbox.selected.alt_tool].select()
 					}
-					Toolbox.children[index].select()
-					/*
-					if (Toolbox.selected.id === 'move_tool') {
-						BarItems.resize_tool.select()
-					} else if (Toolbox.selected.id === 'resize_tool') {
-						BarItems.move_tool.select()
-					}*/
 				}
 			})
 
@@ -1389,10 +1374,14 @@ const BARS = {
 				'slider_size_x',
 				'slider_size_y',
 				'slider_size_z',
-				'scale'
+				'slider_inflate'
 			],
 			default_place: !Blockbench.isMobile
 		})
+		//3.0.3 update
+		if (Toolbars.element_size.children.includes(BarItems.slider_inflate)) {
+			Toolbars.element_size.add(BarItems.slider_inflate, -1);
+		}
 		Toolbars.element_origin = new Toolbar({
 			id: 'element_origin',
 			children: [
@@ -1580,7 +1569,6 @@ const BARS = {
 							item.id.toUpperCase().includes(name)
 						) {
 							if (
-								BARS.condition(item.condition) &&
 								!this.currentBar.includes(item)
 							) {
 								list.push(item)
