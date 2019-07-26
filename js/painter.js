@@ -507,7 +507,7 @@ const Painter = {
 			form: {
 				name: 			{label: 'dialog.create_texture.name', value: 'texture'},
 				folder: 		{label: 'dialog.create_texture.folder'},
-				entity_template:{label: 'dialog.create_texture.template', type: 'checkbox', condition: elements.length},
+				entity_template:{label: 'dialog.create_texture.template', type: 'checkbox', condition: Cube.all.length},
 				compress: 		{label: 'dialog.create_texture.compress', type: 'checkbox', value: true},
 				power: 			{label: 'dialog.create_texture.power', type: 'checkbox', value: true},
 				double_use: 	{label: 'dialog.create_texture.double_use', type: 'checkbox', value: true, condition: Project.box_uv},
@@ -548,7 +548,7 @@ const Painter = {
 			keep_size: true,
 			res: options.resolution,
 			name: options.name ? options.name : 'texture',
-			folder: options.folder ? options.folder : 'blocks'
+			folder: options.folder ? options.folder : 'block'
 		})
 		function makeTexture(dataUrl) {
 			texture.fromDataURL(dataUrl).add(false)
@@ -571,9 +571,9 @@ const Painter = {
 		if (options.entity_template === true) {
 			Undo.initEdit({
 				textures: Format.single_texture ? textures : [],
-				elements: Format.single_texture ? elements : selected,
+				elements: Format.single_texture ? Cube.all : Cube.selected,
 				uv_only: true,
-				resolution: true
+				uv_mode: true
 			})
 			Painter.generateTemplate(options, makeTexture)
 		} else {
@@ -615,7 +615,7 @@ const Painter = {
 		var extend_x = 0;
 		var extend_y = 0;
 		var avg_size = 0;
-		var cubes = Format.single_texture ? elements.slice() : selected.slice()
+		var cubes = Format.single_texture ? Cube.all.slice() : Cube.selected.slice()
 
 		var i = cubes.length-1
 		while (i >= 0) {
@@ -706,7 +706,7 @@ const Painter = {
 		} else {
 			//OLD -------------------------------------------
 			var lines = [[]]
-			var line_length = Math.sqrt(elements.length/2)
+			var line_length = Math.sqrt(cubes.length/2)
 			avg_size /= templates.length
 			var o = 0
 			var i = 0
@@ -856,6 +856,7 @@ const Painter = {
 		}
 
 		//Drawing
+		cl(templates.length)
 		templates.forEach(function(t) {
 			let obj = t.obj
 			
@@ -868,20 +869,22 @@ const Painter = {
 					drawTemplateRectangle(d.c1, d.c2, t.obj.faces[face], d.place(t))
 				}
 			}
-			obj.uv_offset[0] = t.posx
-			obj.uv_offset[1] = t.posy
+			obj.uv_offset[0] = t.posx;
+			obj.uv_offset[1] = t.posy;
 
 			if (t.duplicates) {
 				t.duplicates.forEach(t_2 => {
 					t_2.obj.uv_offset[0] = t.posx;
 					t_2.obj.uv_offset[1] = t.posy;
+					if (t_2.obj !== obj) {
+						t_2.obj.mirror_uv = t_2.obj.mirror_uv != obj.mirror_uv;
+					}
 				})
-			} else {
-				obj.mirror_uv = false
 			}
+			obj.mirror_uv = false;
 
 			if (!Project.box_uv) {
-				var size = obj.size(undefined, true)
+				var size = obj.size(undefined, true);
 				size.forEach((n, i) => {
 					size[i] = n || min_size;
 				})
@@ -913,7 +916,14 @@ const Painter = {
 				t.obj.autouv = 0
 			})
 		}
-		Undo.finishEdit('create template', {textures: [texture], bitmap: true, elements: Format.single_texture ? elements : selected, uv_only: true})
+		updateSelection()
+		Undo.finishEdit('create template', {
+			textures: [texture],
+			bitmap: true,
+			elements: Format.single_texture ? Cube.all : Cube.selected,
+			uv_only: true,
+			uv_mode: true
+		})
 	}
 }
 

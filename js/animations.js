@@ -1268,10 +1268,10 @@ Molang.global_variables = {
 	get 'query.anim_time'() {
 		return Timeline.second;
 	},
-	get 'global.anim_time'() {
+	get 'query.life_time'() {
 		return Timeline.second;
 	},
-	get 'query.life_time'() {
+	get 'time'() {
 		return Timeline.second;
 	}
 }

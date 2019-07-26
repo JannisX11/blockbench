@@ -22,7 +22,7 @@ class ModelFormat {
 		this.id = data.id;
 		this.name = tl('format.'+this.id);
 		this.description = tl('format.'+this.id+'.desc');
-		this.allow_new = true;
+		this.show_on_start_screen = true;
 
 		this.box_uv = false;
 		this.optional_box_uv = false;
@@ -40,7 +40,7 @@ class ModelFormat {
 		this.onActivation = data.onActivation;
 		this.onDeactivation = data.onDeactivation;
 		Merge.string(this, data, 'icon');
-		Merge.boolean(this, data, 'allow_new');
+		Merge.boolean(this, data, 'show_on_start_screen');
 		
 		Merge.boolean(this, data, 'box_uv');
 		Merge.boolean(this, data, 'optional_box_uv');
@@ -72,16 +72,21 @@ class ModelFormat {
 		} else {
 			scene.position.set(-8, -8, -8);
 		}
-		/*
-		var center = Format.bone_rig ? -8 : 0;
+		var center = Format.bone_rig ? 8 : 0;
 		previews.forEach(preview => {
-			preview.controls.target.set(center, -3, center);
+			preview.controls.target.set(0, center, 0);
 			preview.camOrtho.position.add(preview.controls.target);
-		})*/
-		BARS.updateConditions()
+		})
+		updateSelection()
 		Modes.vue.$forceUpdate()
 		Canvas.updateRenderSides()
 		return this;
+	}
+	new() {
+		if (newProject(this)) {
+			BarItems.project_window.click();
+			return true;
+		}
 	}
 	convertTo() {
 
@@ -278,12 +283,7 @@ class Codec {
 	}
 	afterSave(path) {
 		var name = pathToName(path, true)
-		if (this.remember) {
-			addRecentProject({
-				name,
-				path: path,
-				icon: this.id == 'project' ? 'icon-blockbench_file' : Format.icon
-			});
+		if (Format.codec == this || this.id == 'project') {
 			if (this.id == 'project') {
 				ModelMeta.save_path = path;
 			} else {
@@ -291,6 +291,13 @@ class Codec {
 			}
 			ModelMeta.name = pathToName(path, false);
 			Prop.project_saved = true;
+		}
+		if (this.remember) {
+			addRecentProject({
+				name,
+				path: path,
+				icon: this.id == 'project' ? 'icon-blockbench_file' : Format.icon
+			});
 		}
 		Blockbench.showQuickMessage(tl('message.save_file', [name]));
 	}
@@ -387,7 +394,9 @@ function setupDragHandlers() {
 	)
 }
 function loadModelFile(file) {
-	if (newProject()) {
+	if (showSaveDialog()) {
+		resetProject();
+		
 		var extension = pathToExtension(file.path);
 		var model = autoParseJSON(file.content);
 		if (extension == 'bbmodel') {
@@ -827,7 +836,7 @@ BARS.defineActions(function() {
 					parent: {label: 'dialog.project.parent', value: Project.parent, condition: !Format.bone_rig},
 					geometry_name: {label: 'dialog.project.geoname', value: Project.geometry_name, condition: Format.bone_rig},
 					ambientocclusion: {label: 'dialog.project.ao', type: 'checkbox', value: Project.ambientocclusion, condition: !Format.bone_rig},
-					box_uv: {label: 'dialog.project.box_uv', type: 'checkbox', value: Project.box_uv},
+					box_uv: {label: 'dialog.project.box_uv', type: 'checkbox', value: Project.box_uv, condition: Format.optional_box_uv},
 					texture_width: {
 						label: 'dialog.project.width',
 						type: 'number',
@@ -851,8 +860,9 @@ BARS.defineActions(function() {
 						save = Undo.initEdit({uv_mode: true})
 						Project.texture_width = formResult.texture_width;
 						Project.texture_height = formResult.texture_height;
-						Project.box_uv = formResult.box_uv;
+						if (Format.optional_box_uv) Project.box_uv = formResult.box_uv;
 						Canvas.updateAllUVs()
+						updateSelection()
 					}
 
 					Project.name = formResult.name;

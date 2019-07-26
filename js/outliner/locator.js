@@ -23,6 +23,7 @@ class Locator extends NonGroup {
 	getUndoCopy() {
 		var copy = new Locator(this)
 		copy.uuid = this.uuid
+		copy.type = this.type;
 		delete copy.parent;
 		return copy;
 	}

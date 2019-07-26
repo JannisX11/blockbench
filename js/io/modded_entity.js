@@ -15,7 +15,7 @@ var codec = new Codec('modded_entity', {
 
 		var bone_nr = 1
 		var model_id = Project.geometry_name;
-		var all_groups = Group.all.slice()
+		var all_groups = getAllGroups()
 		var renderers = {}
 
 		var loose_cubes = []

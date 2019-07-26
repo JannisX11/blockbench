@@ -74,6 +74,9 @@ THREE.OrbitControls = function ( object, preview ) {
 			scope.preview.updateBackground()
 		}
 		Transformer.update()
+		if (Toolbox && Toolbox.selected.id == 'vertex_snap_tool') {
+			Vertexsnap.updateVertexSize();
+		}
 	};
 
 	// this method is exposed, but perhaps it would be better if we can make it private...

@@ -222,7 +222,8 @@ function updateSelection() {
 		$('.selection_only').css('visibility', 'visible')
 	} else {
 		if (Format.bone_rig && Group.selected) {
-			$('.selection_only').css('visibility', 'visible')
+			$('.selection_only').css('visibility', 'hidden')
+			$('.selection_only#element').css('visibility', 'visible')
 		} else {
 			$('.selection_only').css('visibility', 'hidden')
 			if (Locator.selected.length) {
@@ -697,7 +698,7 @@ const Clipbench = {
 			var img = clipboard.readImage()
 			if (img) {
 				var dataUrl = img.toDataURL()
-				var texture = new Texture({name: 'pasted', folder: 'blocks' }).fromDataURL(dataUrl).fillParticle().add(true)
+				var texture = new Texture({name: 'pasted', folder: 'block' }).fromDataURL(dataUrl).fillParticle().add(true)
 				setTimeout(function() {
 					texture.openMenu()
 				},40)

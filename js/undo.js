@@ -207,13 +207,13 @@ var Undo = {
 							new_element.faces[face].reset()
 						}
 						new_element.extend(element)
-						if (new_element instanceof Cube) {
+						if (new_element.type == 'cube') {
 							Canvas.adaptObjectPosition(new_element)
 							Canvas.adaptObjectFaces(new_element)
 							Canvas.updateUV(new_element)
 						}
 					} else {
-						new_element = new element.constructor(element, uuid).init()
+						new_element = NonGroup.fromSave(element, true);
 					}
 				}
 			}

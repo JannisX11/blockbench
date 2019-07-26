@@ -2,7 +2,7 @@
 /*Layout*/
 	#page_wrapper {
 		display: grid;
-		grid-template-columns: 332px auto 300px;
+		grid-template-columns: 332px auto 314px;
 		grid-template-rows: 30px minmax(200px, 5000px) 26px;
 		grid-template-areas: 
 			"left_bar toolbar toolbar"

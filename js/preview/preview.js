@@ -45,7 +45,6 @@ class Preview {
 		this.controls = new THREE.OrbitControls(this.camPers, this);
 		this.controls.minDistance = 1;
 		this.controls.maxDistance = 320;
-		this.controls.target.set(0,-3,0);
 		this.controls.enableKeys = false;
 		this.controls.zoomSpeed = 1.5
 
@@ -270,7 +269,7 @@ class Preview {
 	}
 	resetCamera(init) {
 		var dis = 24
-		this.controls.target.set(0, -3, 0);
+		this.controls.target.set(0, 8+scene.position.y, 0);
 		this.camPers.position.set(-dis, dis*0.8, -dis)
 		if (!init) {
 			this.setNormalCamera()

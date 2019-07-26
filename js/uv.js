@@ -483,7 +483,7 @@ class UVEditor {
 		this.jquery.viewport.width(size+8);
 		this.jquery.main.width(size+8);
 
-		if (Format.id === Format.single_texture) {
+		if (Format.single_texture) {
 			this.height = size / (Project.texture_width/Project.texture_height)
 			this.jquery.frame.height(this.inner_height)
 			this.jquery.viewport.height(this.height+8)
@@ -829,7 +829,7 @@ class UVEditor {
 	}
 	//Overlay
 	displayMappingOverlay() {
-		if (!Project.box_uv) return this;
+		if (!Project.box_uv || Cube.selected.length == 0) return this;
 		var scope = this;
 		var sides = this.getMappingOverlay()
 
@@ -1041,6 +1041,9 @@ class UVEditor {
 				} else if (side == 'up' || side == 'down') {
 					left2 = limitNumber(obj.size('0'), 0, 16)
 					top2 = limitNumber(obj.size('2'), 0, 16)
+				}
+				if (obj.faces[side].rotation % 180) {
+					[left2, top2] = [top2, left2];
 				}
 				obj.faces[side].uv = [left, top, left2, top2]
 			})
@@ -1341,6 +1344,7 @@ class UVEditor {
 				obj.faces[side].reset()
 			})
 			Canvas.adaptObjectFaces(obj)
+			Canvas.updateUV(obj)
 		})
 		this.loadData()
 		this.message('uv_editor.reset')

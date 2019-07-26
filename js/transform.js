@@ -376,7 +376,7 @@ const Vertexsnap = {
 		Vertexsnap.vertexes.children.forEach(function(v,i) {
 			var scaleVector = new THREE.Vector3();
 			var scale = scaleVector.subVectors(v.position, Transformer.camera.position).length() / 500;
-			scale = (Math.sqrt(scale) + scale/10) * 1.2
+			scale = (Math.sqrt(scale) + scale/4) * 1.2
 			v.scale.set(scale, scale, scale)
 		})
 	}

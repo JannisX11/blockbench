@@ -81,6 +81,13 @@ function parseGeometry(data) {
 					cg.addTo(group)
 				})
 			}
+			if (b.locators) {
+				for (var key in b.locators) {
+					var coords = b.locators[key];
+					coords[0] *= -1
+					var locator = new Locator({from: coords, name: key}).addTo(group).init();
+				}
+			}
 			var parent_group = 'root';
 			if (b.parent) {
 				if (bones[b.parent]) {
@@ -122,7 +129,7 @@ var codec = new Codec('bedrock_old', {
 		var cube_count = 0;
 		var visible_box = new THREE.Box3()
 
-		var groups = Group.all.slice()
+		var groups = getAllGroups();
 		var loose_cubes = [];
 		Outliner.root.forEach(obj => {
 			if (obj.type === 'cube') {
@@ -167,6 +174,7 @@ var codec = new Codec('bedrock_old', {
 			}
 			//Cubes
 			var cubes = []
+			var locators = {};
 
 			for (var obj of g.children) {
 				if (obj.export) {
@@ -191,11 +199,18 @@ var codec = new Codec('bedrock_old', {
 						cubes.push(cube)
 						cube_count++;
 
+					} else if (obj instanceof Locator) {
+
+						locators[obj.name] = obj.from.slice();
+						locators[obj.name][0] *= -1;
 					}
 				}
 			}
 			if (cubes.length) {
 				bone.cubes = cubes
+			}
+			if (Object.keys(locators).length) {
+				bone.locators = locators
 			}
 			bones.push(bone)
 		})
@@ -477,11 +492,12 @@ var format = new ModelFormat({
 	id: 'bedrock_old',
 	extension: 'json',
 	icon: 'icon-format_bedrock',
-	allow_new: false,
+	show_on_start_screen: false,
 	box_uv: true,
 	single_texture: true,
 	bone_rig: true,
 	animation_mode: true,
+	locators: true,
 	codec,
 	onActivation: function () {
 		

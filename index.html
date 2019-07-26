@@ -6,7 +6,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="theme-color" content="#181a1f">
 	<meta name="robots" content="noindex">
-	<link rel="manifest" href="manifest.json">
+	<!--link rel="manifest" href="manifest.json"-->
 	<link rel="shortcut icon" href="favicon.png" type="image/x-icon" />
 	<link rel="stylesheet" href="css/w3.css">
 	<link rel="stylesheet" href="css/jquery-ui.min.css">
@@ -27,7 +27,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '3.0.3';
+		const appVersion = '3.0.4';
 	</script>
 		<script src="lib/vue.min.js"></script>
 		<script src="lib/vue_sortable.js"></script>
@@ -1036,7 +1036,7 @@
 					<left>
 						<h2 class="tl">mode.start.new</h2>
 						<ul>
-							<li v-for="format in formats" v-if="format.allow_new" v-on:click="newProject(format)">
+							<li v-for="format in formats" v-if="format.show_on_start_screen" v-on:click="format.new()">
 								<span class="icon_wrapper f_left" v-html="Blockbench.getIconNode(format.icon).outerHTML"></span>
 								<h3>{{ format.name }}</h3>
 								<p>{{ format.description }}</p>

@@ -168,7 +168,7 @@ class ResizeLine {
 var Interface = {
 	default_data: {
 		left_bar_width: 332,
-		right_bar_width: 300,
+		right_bar_width: 314,
 		quad_view_x: 50,
 		quad_view_y: 50,
 		left_bar: ['uv', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
@@ -180,7 +180,7 @@ var Interface = {
 			condition: function() {
 				var i = 0;
 				Interface.data.left_bar.forEach(p => {
-					if (BARS.condition(Interface.Panels[p].condition)) {i++;}
+					if (Interface.Panels[p] && BARS.condition(Interface.Panels[p].condition)) {i++;}
 				})
 				return i;
 			},

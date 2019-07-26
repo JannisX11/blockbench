@@ -262,7 +262,7 @@ var codec = new Codec('bedrock', {
 		var bones = []
 		var visible_box = new THREE.Box3()
 
-		var groups = Group.all.slice()
+		var groups = getAllGroups();
 		var loose_cubes = [];
 		Outliner.root.forEach(obj => {
 			if (obj.type === 'cube') {

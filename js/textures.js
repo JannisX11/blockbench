@@ -757,25 +757,25 @@ class Texture {
 			{
 				icon: 'crop_original',
 				name: 'menu.texture.face', 
-				condition: function() {return !Project.box_uv && selected.length > 0},
+				condition() {return !Project.single_texture && selected.length > 0},
 				click: function(texture) {texture.apply()}
 			},
 			{
 				icon: 'texture',
 				name: 'menu.texture.blank', 
-				condition: function() {return !Project.box_uv && selected.length > 0},
+				condition() {return !Project.single_texture && selected.length > 0},
 				click: function(texture) {texture.apply('blank')}
 			},
 			{
 				icon: 'fa-cube',
 				name: 'menu.texture.cube',
-				condition: function() {return !Project.box_uv && selected.length > 0},
+				condition() {return !Project.single_texture && selected.length > 0},
 				click: function(texture) {texture.apply(true)}
 			},
 			{
 				icon: 'bubble_chart',
 				name: 'menu.texture.particle',
-				condition: function() {return !Project.box_uv},
+				condition: function() {return Format.id == 'java_block'},
 				click: function(texture) {
 					if (texture.particle) {
 						texture.particle = false
@@ -897,11 +897,13 @@ function loadTextureDraggable() {
 							var data = Canvas.getCurrentPreview().raycast()
 							if (data.cube && data.face) {
 								var tex = textures.findInArray('uuid', ui.helper.attr('texid'));
-								var cubes_list = data.cube.selected ? selected : [data.cube];
+								var cubes_list = data.cube.selected ? Cube.selected : [data.cube];
 								Undo.initEdit({elements: cubes_list})
 								if (tex) {
 									cubes_list.forEach(cube => {
-										cube.applyTexture(tex, [data.face])
+										if (cube instanceof Cube) {
+											cube.applyTexture(tex, [data.face])
+										}
 									})
 								}
 								Undo.finishEdit('apply texture')

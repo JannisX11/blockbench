@@ -282,7 +282,7 @@ EditSession.Client = class {
 				this.conn.close()
 				console.error(e)
 			})
-			Blockbench.dispatchEvent('user_joins_session', {conn: this.conn})
+			Blockbench.dispatchEvent('user_joins_session', this)
 		}
 	}
 	send(tag) {

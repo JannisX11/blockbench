@@ -1379,7 +1379,7 @@ const BARS = {
 			default_place: !Blockbench.isMobile
 		})
 		//3.0.3 update
-		if (Toolbars.element_size.children.includes(BarItems.slider_inflate)) {
+		if (!Toolbars.element_size.children.includes(BarItems.slider_inflate)) {
 			Toolbars.element_size.add(BarItems.slider_inflate, -1);
 		}
 		Toolbars.element_origin = new Toolbar({

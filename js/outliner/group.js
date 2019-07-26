@@ -445,6 +445,19 @@ function getCurrentGroup() {
 		}
 	}
 }
+function getAllGroups() {
+	var ta = []
+	function iterate(array) {
+		for (var obj of array) {
+			if (obj instanceof Group) {
+				ta.push(obj)
+				iterate(obj.children)
+			}
+		}
+	}
+	iterate(Outliner.root)
+	return ta;
+}
 function addGroup() {
 	Undo.initEdit({outliner: true});
 	var add_group = Group.selected
@@ -460,12 +473,11 @@ function addGroup() {
 	if (Format.bone_rig) {
 		base_group.createUniqueName()
 	}
-	selected.forEach(function(s, i) {
-		s.addTo(base_group)
-		if (i === 0) {
-			//s.selected = false
-		}
-	})
+	if (add_group instanceof NonGroup) {
+		selected.forEach(function(s, i) {
+			s.addTo(base_group)
+		})
+	}
 	base_group.init().select()
 	Undo.finishEdit('add_group');
 	loadOutlinerDraggable()

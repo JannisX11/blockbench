@@ -359,7 +359,7 @@ const MenuBar = {
 								icon: format.icon,
 								description: format.description,
 								click: (e) => {
-									newProject(format)
+									format.new()
 								}
 							})
 						})()

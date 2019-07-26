@@ -645,6 +645,7 @@
 			this.elements.length = 0
 			this.visible = false;
 			this.axis = null;
+			this.hoverAxis = null;
 		};
 		this.setMode = function ( mode ) {
 			if (mode === 'hidden') {
@@ -703,8 +704,7 @@
 				object = Group.selected.parent.mesh
 			}
 			if (scope.elements.length == 0) {
-				this.visible = false;
-				return;
+				this.detach()
 			}
 			this.getWorldPosition(worldPosition)
 			this.setScale(this.getScale());
@@ -721,6 +721,8 @@
 				scale = (6 / scope.camera.zoom) * (settings.origin_size.value / 50);
 			}
 			rot_origin.scale.set( scale, scale, scale );
+			
+			if (scope.elements.length == 0) return;
 
 			if (object) {
 				worldRotation.setFromRotationMatrix( tempMatrix.extractRotation( object.matrixWorld ) );
@@ -821,7 +823,7 @@
 						}
 					}
 					if (!rotation_object) {
-						this.visible = false;
+						this.detach();
 						return;
 					}
 					this.rotation_object = rotation_object;
@@ -882,7 +884,7 @@
 			if ( intersect ) {
 				scope.hoverAxis = intersect.object.name;
 				if (scope.camera.axis && (scope.hoverAxis.toLowerCase() === scope.camera.axis) === (_mode !== 'rotate')) {
-					scope.hoverAxis = null
+					scope.hoverAxis = null;
 				}
 				event.preventDefault();
 			}

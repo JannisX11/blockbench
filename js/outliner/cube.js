@@ -264,6 +264,7 @@ class Cube extends NonGroup {
 			}
 		}
 		copy.uuid = this.uuid
+		copy.type = this.type;
 		delete copy.parent;
 		return copy;
 	}
@@ -702,11 +703,15 @@ class Cube extends NonGroup {
 			var pos = limitToBox(val + this.from[axis] + before);
 			if (pos >= this.from[axis] || settings.negative_size.value || allow_negative) {
 				this.to[axis] = pos;
+			} else {
+				this.to[axis] = this.from[axis];
 			}
 		} else {
 			var pos = limitToBox(val + this.to[axis] - before);
 			if (pos <= this.to[axis] || settings.negative_size.value || allow_negative) {
 				this.from[axis] = pos;
+			} else {
+				this.from[axis] = this.to[axis];
 			}
 		}
 		this.mapAutoUV();
@@ -739,7 +744,7 @@ class Cube extends NonGroup {
 			{icon: 'bubble_chart', color: cubeColors[6].hex, name: 'cube.color.'+cubeColors[6].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(6)}, 'change color')}},
 			{icon: 'bubble_chart', color: cubeColors[7].hex, name: 'cube.color.'+cubeColors[7].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(7)}, 'change color')}}
 		]},
-		{name: 'menu.cube.texture', icon: 'collections', condition: function() {return !Project.box_uv}, children: function() {
+		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Project.single_texture, children: function() {
 			var arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {
 					cube.forSelected(function(obj) {
