@@ -964,5 +964,7 @@
     "panel.element.position": "Position",
     "panel.element.size": "Size",
     "panel.element.origin": "Pivot Point",
-    "panel.element.rotation": "Rotation"
+    "panel.element.rotation": "Rotation",
+    "message.canvas_limit_error.title": "Canvas Limit Error",
+    "message.canvas_limit_error.message": "The action could not be performed correctly because the format limits the canvas to 48 units. Shift the origin to prevent this."
 }

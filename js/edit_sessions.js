@@ -69,6 +69,7 @@ const EditSession = {
 			}, result => {
 				showDialog('edit_sessions');
 			})
+			return;
 		}
 
 		EditSession.token = token;
@@ -289,7 +290,7 @@ EditSession.Client = class {
 		this.conn.send(tag)
 	}
 	disconnect(e) {
-		Blockbench.dispatchEvent('user_leaves_session', {conn: this.conn})
+		Blockbench.dispatchEvent('user_leaves_session', this)
 		delete EditSession.peer.connections[this.conn.peer];
 		delete EditSession.clients[this.id];
 		EditSession.updateClientCount();
@@ -313,7 +314,11 @@ const Chat = {
 			$('input#chat_input').val('')
 		}
 		if (!text) return;
-		Chat.processMessage({author: EditSession.username, text: text})
+		Chat.processMessage({
+			author: EditSession.username,
+			text: text,
+			sender: EditSession.peer.id
+		})
 	},
 	addMessage(message) {
 		if (!(message instanceof Chat.Message)) {
@@ -330,7 +335,11 @@ const Chat = {
 	},
 	processMessage(data) {
 		if (!EditSession.hosting) {
-			EditSession.host.send({type: 'chat_input', data: data})
+			EditSession.host.send({
+				type: 'chat_input',
+				data,
+				sender: EditSession.peer.id
+			})
 			return;
 		}
 		var message = new Chat.Message(data)
@@ -345,7 +354,8 @@ Chat.Message = class {
 	constructor(data) {
 		this.author = data.author||'';
 		this.author = this.author.substr(0, 64)
-		this.self = (this.author && this.author === EditSession.username);
+		this.sender = data.sender
+		this.self = data.sender == EditSession.peer.id;
 		this.text = data.text.substr(0, Chat.maxlength)||'';
 
 		this.html = this.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');

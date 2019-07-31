@@ -20,7 +20,7 @@ function showUVShiftDialog() {
 		id: 'uv_shift_dialog',
 		fadeTime: 100,
 		onConfirm: function() {
-			Undo.initEdit({elements: elements, uv_only: true})
+			Undo.initEdit({elements: Cube.all, uv_only: true})
 			dialog.hide()
 			var h = $(dialog.object).find('#shift_uv_horizontal').val()
 			if (h.length > 0) {
@@ -30,7 +30,7 @@ function showUVShiftDialog() {
 					add = true
 				}
 				h = eval(h)
-				elements.forEach(function(obj) {
+				Cube.all.forEach(function(obj) {
 					if (add) {
 						obj.uv_offset[0] += h
 					} else {
@@ -46,7 +46,7 @@ function showUVShiftDialog() {
 					add = true
 				}
 				v = eval(v)
-				elements.forEach(function(obj) {
+				Cube.all.forEach(function(obj) {
 					if (add) {
 						obj.uv_offset[1] += v
 					} else {
@@ -387,8 +387,8 @@ class UVEditor {
 	//Brush
 	getBrushCoordinates(event, tex) {
 		var scope = this;
-		var multiplier = (Project.box_uv && tex) ? tex.res/Project.texture_width : 1
-		var pixel_size = scope.inner_size / tex.res
+		var multiplier = (Project.box_uv && tex) ? tex.width/Project.texture_width : 1
+		var pixel_size = scope.inner_size / tex.width
 		return {
 			x: Math.floor(event.offsetX/scope.getPixelSize()*multiplier),
 			y: Math.floor(event.offsetY/scope.getPixelSize()*multiplier)
@@ -450,8 +450,8 @@ class UVEditor {
 			return this.inner_size/this.grid
 		} else {
 			return this.inner_size/ (
-				(typeof this.texture === 'object' && this.texture.res)
-					? this.texture.res
+				(typeof this.texture === 'object' && this.texture.width)
+					? this.texture.width
 					: this.grid
 			)
 		}
@@ -543,13 +543,13 @@ class UVEditor {
 			grid = BarItems.uv_grid.get()
 			if (grid === 'auto') {
 				if (this.texture) {
-					grid = this.texture.res
+					grid = this.texture.width
 				} else {
 					grid = 16
 				}
 				this.autoGrid = true
 			} else if (grid === 'none') {
-				grid = 1024
+				grid = 2084
 			} else {
 				grid = parseInt(grid)
 			}
@@ -731,21 +731,21 @@ class UVEditor {
 			this.jquery.frame.css('background-color', 'var(--color-back)').css('background-image', 'none')
 			this.texture = false;
 			this.setFrameColor()
-			if (this.autoGrid || Project.box_uv) {
-				this.setGrid(16, false)
-			}
+			this.setGrid(16, false)
 		} else {
 			this.setFrameColor(tex.dark_box)
 			var css = 'url("'+tex.source.split('\\').join('\\\\').replace(/ /g, '%20')+'")'
 			this.jquery.frame.css('background-image', css)
-			if (Project.box_uv) {
-				this.jquery.frame.css('background-size', 'contain')
-			} else {
+			if (Format.id == 'java_block') {
 				this.jquery.frame.css('background-size', 'cover')
+			} else {
+				this.jquery.frame.css('background-size', 'contain')
 			}
 			this.texture = tex;
-			if (this.autoGrid || Project.box_uv) {
-				this.setGrid(tex.res, false)
+			if (this.autoGrid) {
+				this.setGrid(Project.texture_width, false)
+			} else {
+				this.setGrid(undefined, false)
 			}
 		}
 		if (!tex || typeof tex !== 'object') {
@@ -1027,11 +1027,13 @@ class UVEditor {
 	}
 	setAutoSize(event) {
 		var scope = this;
-		var top, left, top2, left2;
+		var top2, left2;
 
 		this.forCubes(obj => {
 			scope.getFaces(event).forEach(function(side) {
-				left = top = 0;
+				var face = obj.faces[side];
+				face.uv[0] = Math.min(face.uv[0], face.uv[2]);
+				face.uv[1] = Math.min(face.uv[1], face.uv[3]);
 				if (side == 'north' || side == 'south') {
 					left2 = limitNumber(obj.size('0'), 0, 16)
 					top2 = limitNumber(obj.size('1'), 0, 16)
@@ -1042,10 +1044,12 @@ class UVEditor {
 					left2 = limitNumber(obj.size('0'), 0, 16)
 					top2 = limitNumber(obj.size('2'), 0, 16)
 				}
-				if (obj.faces[side].rotation % 180) {
+				if (face.rotation % 180) {
 					[left2, top2] = [top2, left2];
 				}
-				obj.faces[side].uv = [left, top, left2, top2]
+				left2 *= 16 / Project.texture_width;
+				top2 *= 16 / Project.texture_height;
+				face.uv_size = [left2, top2];
 			})
 			obj.autouv = 0
 			Canvas.updateUV(obj)
@@ -1109,7 +1113,7 @@ class UVEditor {
 					break;
 				}
 				uv.forEach(function(s, uvi) {
-					uv[uvi] = limitNumber(s, 0, 16)
+					uv[uvi] = limitNumber(s * 16 / (uvi%2 ? Project.texture_height : Project.texture_width), 0, 16)
 				})
 				obj.faces[side].uv = uv
 			})
@@ -1373,7 +1377,7 @@ class UVEditor {
 			'uv_maximize',
 			'uv_auto',
 			'uv_rel_auto',
-			{icon: 'rotate_90_degrees_ccw', name: 'menu.uv.mapping.rotation', children: function() {
+			{icon: 'rotate_90_degrees_ccw', condition: () => Format.id == 'java_block', name: 'menu.uv.mapping.rotation', children: function() {
 				var off = 'radio_button_unchecked'
 				var on = 'radio_button_checked'
 				return [
@@ -1789,7 +1793,7 @@ BARS.defineActions(function() {
 	new BarSlider({
 		id: 'uv_rotation',
 		category: 'uv',
-		condition: () => !Project.box_uv && Cube.selected.length,
+		condition: () => !Project.box_uv && Format.id == 'java_block' && Cube.selected.length,
 		min: 0, max: 270, step: 90, width: 80,
 		onBefore: () => {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
@@ -1812,6 +1816,8 @@ BARS.defineActions(function() {
 			'16': '16x16',
 			'32': '32x32',
 			'64': '64x64',
+			'128': '128x128',
+			'256': '256x256',
 			none: true,
 		},
 		onChange: function(slider) {

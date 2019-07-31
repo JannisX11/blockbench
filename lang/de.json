@@ -964,5 +964,7 @@
     "panel.element.position": "Position",
     "panel.element.size": "Größe",
     "panel.element.origin": "Angelpunkt",
-    "panel.element.rotation": "Rotation"
+    "panel.element.rotation": "Rotation",
+    "message.canvas_limit_error.title": "Begrenzungsfehler",
+    "message.canvas_limit_error.message": "Die Aktion konnte nicht korrekt durchgeführt werden, weil das Format das Modell auf einen Bereich von 48 Einheiten beschränkt. Verschiebe den Angelpunkt, um das zu verhindern."
 }

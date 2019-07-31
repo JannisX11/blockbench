@@ -580,6 +580,7 @@ const MenuBar = {
 			]},
 			'_',
 			'toggle_wireframe',
+			'painting_grid',
 			'toggle_quad_view',
 			{name: 'menu.view.screenshot', id: 'screenshot', icon: 'camera_alt', children: [
 				'screenshot_model',

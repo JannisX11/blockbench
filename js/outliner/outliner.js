@@ -255,7 +255,7 @@ class OutlinerElement {
 				others.safePush(g)
 			})
 		}
-		var name = this.name.replace(/\d+$/, '');
+		var name = this.name.replace(/\d+$/, '').replace(/\s+/g, '_');
 		function check(n) {
 			for (var i = 0; i < others.length; i++) {
 				if (others[i] !== scope && others[i].name == n) return false;
@@ -265,7 +265,7 @@ class OutlinerElement {
 		if (check(this.name)) {
 			return this.name;
 		}
-		for (var num = 2; num < 2e3; num++) {
+		for (var num = 2; num < 8e3; num++) {
 			if (check(name+num)) {
 				scope.name = name+num;
 				return scope.name;
@@ -440,7 +440,8 @@ class NonGroup extends OutlinerElement {
 
 		//Normal
 		} else {
-			unselectAll()
+			selected.forEachReverse(obj => obj.unselect())
+			if (Group.selected) Group.selected.unselect()
 			scope.selectLow()
 			just_selected.push(scope)
 			scope.showInOutliner()
@@ -950,31 +951,6 @@ BARS.defineActions(function() {
 		}
 	})
 
-	new Action({
-		id: 'duplicate',
-		icon: 'content_copy',
-		category: 'edit',
-		condition: () => (Modes.edit && (selected.length || Group.selected)),
-		keybind: new Keybind({key: 68, ctrl: true}),
-		click: function () {
-			if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {
-				var cubes_before = elements.length;
-				Undo.initEdit({outliner: true, elements: [], selection: true});
-				var g = Group.selected.duplicate();
-				g.select();
-				Undo.finishEdit('duplicate_group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true})
-			} else {
-				var added_elements = [];
-				Undo.initEdit({elements: added_elements, outliner: true, selection: true})
-				selected.forEach(function(obj, i) {
-					var copy = obj.duplicate();
-					added_elements.push(copy);
-				})
-				BarItems.move_tool.select();
-				Undo.finishEdit('duplicate')
-			}
-		}
-	})
 	new Action({
 		id: 'sort_outliner',
 		icon: 'sort_by_alpha',

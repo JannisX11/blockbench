@@ -98,6 +98,8 @@
 	"status_bar.recording_gif":"Recording GIF",
 	"status_bar.processing_gif":"Processing GIF",
 
+	"message.canvas_limit_error.title": "Canvas Limit Error",
+	"message.canvas_limit_error.message": "The action could not be performed correctly because the format limits the canvas to 48 units. Shift the origin to prevent this.",
 	"message.rotation_limit.title": "Rotation Limits",
 	"message.rotation_limit.message": "Rotations are limited by Minecraft to one axis and 22.5 degree increments. Rotating on a different axis will clear all rotations on the other axes. Convert the model to \"Free Model\" if you are modeling for other purposes and need free rotations.",
 	"message.file_not_found.title": "File Not Found",

@@ -156,24 +156,23 @@ class ModelFormat {
 			Cube.all.forEach(function(s, i) {
 				//Push elements into 3x3 block box
 				[0, 1, 2].forEach(function(ax) {
-					var overlap = s.to[ax] - 32
+					var overlap = s.to[ax] + s.inflate - 32
 					if (overlap > 0) {
 						//If positive site overlaps
 						s.from[ax] -= overlap
 						s.to[ax] -= overlap
 
-						overlap = 16 + s.from[ax]
-						if (overlap < 0) {
-							s.from[ax] = -16
+						if (16 + s.from[ax] - s.inflate < 0) {
+							s.from[ax] = -16 + s.inflate
 						}
 					} else {
-						overlap = s.from[ax] + 16
+						overlap = s.from[ax] - s.inflate + 16
 						if (overlap < 0) {
 							s.from[ax] -= overlap
 							s.to[ax] -= overlap
 
-							if (s.to[ax] > 32) {
-								s.to[ax] = 32
+							if (s.to[ax] + s.inflate > 32) {
+								s.to[ax] = 32 - s.inflate
 							}
 						}
 					}
@@ -1015,10 +1014,6 @@ BARS.defineActions(function() {
 			}
 		}
 	})
-	if (BarItems.export_over.keybind.key == 69 && BarItems.export_over.keybind.ctrl) {
-		//Blockbench 3.0.2 update
-		BarItems.export_over.keybind.set({key: 83, ctrl: true}).save(true)
-	}
 	if (!isApp) {
 		new Action({
 			id: 'export_asset_archive',

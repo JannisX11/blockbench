@@ -112,6 +112,7 @@ function parseGeometry(data) {
 	if (isApp && Project.geometry_name) {
 		findEntityTexture(Project.geometry_name)
 	}
+	updateSelection()
 	EditSession.initNewModel()
 }
 

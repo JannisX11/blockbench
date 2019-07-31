@@ -19,7 +19,7 @@ class Texture {
 		//Data
 		this.ratio = 1
 		this.img = 0;
-		this.res = 0;
+		this.width = 0;
 		this.saved = true
 
 		this.mode = isApp ? 'link' : 'bitmap';
@@ -58,16 +58,19 @@ class Texture {
 
 		var mat = new THREE.MeshLambertMaterial({
 			color: 0xffffff,
+			side: Canvas.getRenderSide(),
 			map: tex,
 			transparent: settings.transparency.value,
 			alphaTest: 0.2
 		});
 		Canvas.materials[this.uuid] = mat
 
+		var size_control = {};
+
 		this.img.onload = function() {
 			if (!this.src) return;
 			this.tex.needsUpdate = true;
-			scope.res = img.naturalWidth;
+			scope.width = img.naturalWidth;
 			scope.ratio = img.naturalWidth / img.naturalHeight;
 
 			if (scope.isDefault) {
@@ -88,17 +91,35 @@ class Texture {
 			}
 			
 
-			//--------------------------------------------------------------------------
-			/*
-			if (Project.box_uv && textures.indexOf(scope) === 0 && !scope.keep_size) {
 
-				var size = {
-					pw: Project.texture_width,
-					ph: Project.texture_height,
-					nw: img.naturalWidth,
-					nh: img.naturalHeight
-				}
-				if (false && (scope.old_width != size.nw || scope.old_height != size.nh) && (size.pw != size.nw || size.ph != size.nh)) {
+
+			if (Project.box_uv && Format.single_texture && !scope.keep_size) {
+
+				let pw = Project.texture_width;
+				let ph = Project.texture_height;
+				let nw = img.naturalWidth;
+				let nh = img.naturalHeight;
+
+				//texture is unlike project
+				var unlike = (pw != nw || ph != nh);
+				//Resolution of this texture has changed
+				var changed = size_control.old_width && (size_control.old_width != nw || size_control.old_height != nh);
+				//Resolution could be a multiple of project size
+				var multi = !(
+					(pw%nw || ph%nh) &&
+					(nw%pw || nh%ph)
+				)
+				// x__ > 
+				// xx_ > 
+				// x_x > 
+				// xxx > 
+				// ___ > 
+				// _x_ > 
+				// __x > 
+				// _xx > 
+
+
+				if (unlike && changed) {
 					Blockbench.showMessageBox({
 						translateKey: 'update_res',
 						icon: 'photo_size_select_small',
@@ -107,11 +128,7 @@ class Texture {
 						cancel: 1
 					}, function(result) {
 						if (result === 0) {
-							var lockUV = ( // EG. Texture Optimierung > Modulo geht nicht in allen Bereichen auf
-								(size.pw%size.nw || size.ph%size.nh) &&
-								(size.nw%size.pw || size.nh%size.ph)
-							)
-							entityMode.setResolution(img.naturalWidth, img.naturalHeight, lockUV)
+							setProjectResolution(img.naturalWidth, img.naturalHeight)
 							if (selected.length) {
 								main_uv.loadData()
 								main_uv.setGrid()
@@ -119,11 +136,13 @@ class Texture {
 						}
 					})
 				}
-				scope.old_width = img.naturalWidth
-				scope.old_height = img.naturalHeight
+				size_control.old_width = img.naturalWidth
+				size_control.old_height = img.naturalHeight
 			}
-			*/
-			//--------------------------------------------------------------------------
+
+
+
+
 
 
 			if ($('.dialog#texture_edit:visible').length > 0 && scope.selected === true) {
@@ -152,6 +171,9 @@ class Texture {
 		if (1/this.ratio % 1 === 0) {
 			return 1/this.ratio
 		}
+	}
+	get height() {
+		return this.width / this.ratio;
 	}
 	getErrorMessage() {
 		switch (this.error) {
@@ -441,6 +463,7 @@ class Texture {
 			return;
 		}
 		var scope = this;
+		this.stopWatcher();
 
 		fs.watchFile(scope.path, {interval: 50}, function(curr, prev) {
 			if (curr.mtime !== prev.mtime) {

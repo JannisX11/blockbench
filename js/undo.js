@@ -170,7 +170,7 @@ var Undo = {
 		if (aspects.animations) {
 			this.animations = {}
 			aspects.animations.forEach(a => {
-				scope.animations[a.uuid] = a.undoCopy();
+				scope.animations[a.uuid] = a.getUndoCopy();
 			})
 		}
 		if (aspects.keyframes && Animator.selected && Animator.selected.getBoneAnimator()) {
@@ -179,7 +179,7 @@ var Undo = {
 				bone: Animator.selected.getBoneAnimator().uuid
 			}
 			aspects.keyframes.forEach(kf => {
-				scope.keyframes[kf.uuid] = kf.undoCopy()
+				scope.keyframes[kf.uuid] = kf.getUndoCopy()
 			})
 		}
 
@@ -250,7 +250,7 @@ var Undo = {
 
 		if (save.selection_group && !is_session) {
 			Group.selected = undefined
-			var sel_group = Outliner.root.findRecursive('uuid', save.selection_group)
+			var sel_group = Group.all.findInArray('uuid', save.selection_group)
 			if (sel_group) {
 				sel_group.select()
 			}
@@ -266,7 +266,7 @@ var Undo = {
 		}
 
 		if (save.group) {
-			var group = Outliner.root.findRecursive('uuid', save.group.uuid)
+			var group = Group.all.findInArray('uuid', save.group.uuid)
 			if (group) {
 				if (is_session) {
 					delete save.group.isOpen;
@@ -361,19 +361,19 @@ var Undo = {
 					for (var uuid in Animator.selected.bones) {
 						if (uuid === save.keyframes.bone) {
 							bone = Animator.selected.bones[uuid]
-							if (bone.select && Animator.open && is_session) {
-								bone.select()
+							if (bone.group && Animator.open && !is_session) {
+								bone.group.select()
 							}
 						}
 					}
 				}
-				if (bone) {
+				if (bone.uuid === save.keyframes.bone) {
 
 					function getKeyframe(uuid) {
 						var i = 0;
-						while (i < Timeline.keyframes.length) {
-							if (Timeline.keyframes[i].uuid === uuid) {
-								return Timeline.keyframes[i];
+						while (i < bone.keyframes.length) {
+							if (bone.keyframes[i].uuid === uuid) {
+								return bone.keyframes[i];
 							}
 							i++;
 						}
@@ -386,10 +386,9 @@ var Undo = {
 							if (kf) {
 								kf.extend(data)
 							} else {
-								kf = new Keyframe(data)
+								kf = new Keyframe(data, uuid)
 								kf.parent = bone;
-								kf.uuid = uuid;
-								Timeline.keyframes.push(kf)
+								bone.keyframes.push(kf)
 								added++;
 							}
 						}

@@ -66,7 +66,7 @@ var codec = new Codec('project', {
 		if (Animator.animations.length) {
 			model.animations = [];
 			Animator.animations.forEach(a => {
-				model.animations.push(a.undoCopy({bone_names: true}))
+				model.animations.push(a.getUndoCopy({bone_names: true}))
 			})
 		}
 
@@ -227,10 +227,6 @@ BARS.defineActions(function() {
 		}
 	})
 
-	if (BarItems.save_project.keybind.key == 83 && BarItems.save_project.keybind.ctrl && !BarItems.save_project.keybind.alt && !BarItems.save_project.keybind.shift) {
-		//Blockbench 3.0.2 update
-		BarItems.save_project.keybind.set({key: 83, ctrl: true, alt: true}).save(true)
-	}
 	new Action({
 		id: 'save_project_as',
 		icon: 'save',
@@ -241,10 +237,6 @@ BARS.defineActions(function() {
 			codec.export()
 		}
 	})
-	if (BarItems.save_project_as.keybind.key == 83 && BarItems.save_project_as.keybind.ctrl && !BarItems.save_project_as.keybind.alt && BarItems.save_project_as.keybind.shift) {
-		//Blockbench 3.0.2 update
-		BarItems.save_project_as.keybind.set({key: 83, ctrl: true, alt: true, shift: true}).save(true)
-	}
 })
 
 })()

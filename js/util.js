@@ -18,36 +18,6 @@ function compareVersions(string1/*new*/, string2/*old*/) {
 	}
 	return false;
 }
-function useBedrockFlipFix(axis) {
-	if (Format.bone_rig === false) return false;
-	if (typeof axis === 'string') {
-		axis = getAxisNumber(axis)
-	}
-	var group;
-	if (Group.selected) {
-			var group = Group.selected
-	} else {
-		var i = 0;
-		while (i < selected.length) {
-			if (typeof selected[i].parent === 'object' &&
-				selected[i].parent.type === 'group'
-			) {
-				var group = selected[i].parent
-			}
-			i++;
-		}
-	}
-	if (group) {
-		var rotations = group.rotation.slice()
-		rotations.splice(axis, 1)
-		rotations.forEach(function(r, i) {
-			rotations[i] = (r >= -90 && r <= 90)
-		})
-		return rotations[0] !== rotations[1]
-	} else {
-		return false
-	}
-}
 const Condition = function(condition, context) {
 	if (condition !== undefined && condition !== null && condition.condition !== undefined) {
 		condition = condition.condition
@@ -154,6 +124,12 @@ Math.isPowerOfTwo = function(x) {
 }
 Math.randomab = function(a, b) {
 	return a + Math.random()*(b-a);
+}
+Math.areMultiples = function(n1, n2) {
+	return (
+		(n1/n2)%1 === 0 ||
+		(n2/n1)%1 === 0
+	)
 }
 function trimFloatNumber(val) {
 	if (val == '') return val;
@@ -448,6 +424,7 @@ function pathToName(path, extension) {
 	}
 }
 function pathToExtension(path) {
+	if (typeof path !== 'string') return '';
 	var matches = path.match(/\.\w{2,24}$/)
 	if (!matches || !matches.length) return '';
 	return matches[0].replace('.', '').toLowerCase()

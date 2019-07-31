@@ -81,6 +81,10 @@ const Canvas = {
 				objects.push(s)
 			}
 		})
+		for (var uuid in Canvas.meshes) {
+			var mesh = Canvas.meshes[uuid];
+			objects.safePush(mesh);
+		}
 		objects.forEach(function(s) {
 			if (s.parent) {
 				s.parent.remove(s)
@@ -157,13 +161,17 @@ const Canvas = {
 			}
 		})
 	},
-	updateRenderSides() {
+	getRenderSide() {
 		var side = Format.id === 'java_block' ? 0 : 2;
 		if (display_mode) {
 			if (['thirdperson_righthand', 'thirdperson_lefthand', 'head'].includes(display_slot)) {
 				side = 2;
 			}
 		}
+		return side;
+	},
+	updateRenderSides() {
+		var side = Canvas.getRenderSide();
 		textures.forEach(function(t) {
 			var mat = Canvas.materials[t.uuid]
 			if (mat) {
@@ -173,7 +181,6 @@ const Canvas = {
 		emptyMaterials.forEach(function(mat) {
 			mat.side = side
 		})
-		return side;
 	},
 	//Selection updaters
 	updateSelected(arr) {
@@ -324,6 +331,7 @@ const Canvas = {
 	},
 	//Object handlers
 	addCube(obj) {
+
 		//This does NOT remove old cubes
 		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1))
 		Canvas.adaptObjectFaces(obj, mesh)
@@ -661,8 +669,8 @@ const Canvas = {
 		}
 		if (true) {
 			var tex = cube.faces.north.getTexture()
-			var width = tex ? tex.res : 16
-			var height = tex ? tex.res / tex.ratio : 16
+			var width = tex ? tex.width : 16
+			var height = tex ? tex.height : 16
 			size = [
 				Math.abs(width/16 * cube.faces.north.uv_size[cube.faces.north.rotation%180 ? 1 : 0]),
 				Math.abs(height/16 * cube.faces.north.uv_size[cube.faces.north.rotation%180 ? 0 : 1]),

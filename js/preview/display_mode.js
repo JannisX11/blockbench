@@ -1442,7 +1442,7 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 
 	display_area.updateMatrixWorld()
 	display_base.updateMatrixWorld()
-	DisplayMode.centerTransformer()
+	Transformer.center()
 	if (outlines.children.length) {
 		outlines.children.length = 0
 		Canvas.updateAllPositions()
@@ -1493,22 +1493,6 @@ function resetDisplayBase() {
 	display_base.scale.z = 1;
 }
 
-DisplayMode.centerTransformer = function() {
-	display_scene.add(Transformer)
-	Transformer.attach(display_base)
-
-	display_base.getWorldPosition(Transformer.position)
-
-	if (Toolbox.selected.transformerMode === 'translate') {
-		Transformer.rotation.copy(display_area.rotation)
-	} else if (Toolbox.selected.transformerMode === 'scale') {
-		var q = display_base.getWorldQuaternion(new THREE.Quaternion())
-		Transformer.rotation.setFromQuaternion(q)
-	} else {
-		Transformer.rotation.set(0, 0, 0)
-	}
-	Transformer.update()
-}
 DisplayMode.updateDisplayBase = function(slot) {
 	if (!slot) slot = display[display_slot]
 
@@ -1524,7 +1508,7 @@ DisplayMode.updateDisplayBase = function(slot) {
 	display_base.scale.y = (slot.scale[1]||0.001) * (slot.mirror[1] ? -1 : 1);
 	display_base.scale.z = (slot.scale[2]||0.001) * (slot.mirror[2] ? -1 : 1);
 
-	DisplayMode.centerTransformer()
+	Transformer.center()
 }
 
 
@@ -1589,13 +1573,13 @@ var setDisplayArea = DisplayMode.setBase = function(x, y, z, rx, ry, rz, sx, sy,
 
 	display_area.updateMatrixWorld()
 
-	DisplayMode.centerTransformer()
+	Transformer.center()
 }
 DisplayMode.groundAnimation = function() {
 	display_area.rotation.y += 0.015
 	ground_timer += 1
 	display_area.position.y = 13.5 + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
-	DisplayMode.centerTransformer()
+	Transformer.center()
 	if (ground_timer === 200) ground_timer = 0;
 }
 

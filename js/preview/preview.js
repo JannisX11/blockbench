@@ -144,7 +144,7 @@ class Preview {
 			var intersect = intersects[0].object
 			if (intersect.isElement) {
 				this.controls.hasMoved = true
-				var obj = Outliner.root.findRecursive('uuid', intersects[0].object.name)
+				var obj = elements.findInArray('uuid', intersects[0].object.name)
 				switch (Math.floor( intersects[0].faceIndex / 2 )) {
 					case 5: var face = 'north'; break;
 					case 0: var face = 'east';  break;
@@ -322,7 +322,11 @@ class Preview {
 					main_uv.setFace(data.face, false)
 				}
 				Blockbench.dispatchEvent( 'canvas_select', data )
-				if (Animator.open || (!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))) {
+				if (Format.bone_rig && (
+					Animator.open ||
+					(!Format.rotate_cubes  && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id)) ||
+					event.shiftKey
+				)) {
 					if (data.cube.parent.type === 'group') {
 						data.cube.parent.select()
 					}
@@ -793,6 +797,159 @@ function openQuadView() {
 	updateInterface()
 }
 
+
+const Screencam = {
+	fullScreen(options, cb) {
+		setTimeout(function() {
+			currentwindow.capturePage(function(screenshot) {
+				var dataUrl = screenshot.toDataURL()
+				dataUrl = dataUrl.replace('data:image/png;base64,','')
+				Jimp.read(Buffer.from(dataUrl, 'base64')).then(function(image) { 
+
+					if (options && options.width && options.height) {
+						image.contain(options.width, options.height)
+					}
+
+					image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
+						Screencam.returnScreenshot(dataUrl, cb)
+					})
+				});
+			})
+		}, 40)
+	},
+	returnScreenshot(dataUrl, cb) {
+		if (cb) {
+			cb(dataUrl)
+		} else if (isApp) {
+			var screenshot = nativeImage.createFromDataURL(dataUrl)
+			var img = new Image()
+			var is_gif = dataUrl.substr(5, 9) == 'image/gif'
+			img.src = dataUrl
+
+			var btns = [tl('dialog.cancel'), tl('dialog.save')]
+			if (!is_gif) {
+				btns.push(tl('message.screenshot.clipboard'))
+			}
+			Blockbench.showMessageBox({
+				translateKey: 'screenshot',
+				icon: img,
+				buttons: btns,
+				confirm: 1,
+				cancel: 0
+			}, function(result) {
+				if (result === 1) {
+					electron.dialog.showSaveDialog(currentwindow, {filters: [ {name: tl('data.image'), extensions: [is_gif ? 'gif' : 'png']} ]}, function (fileName) {
+						if (fileName === undefined) {
+							return;
+						}
+						fs.writeFile(fileName, Buffer(dataUrl.split(',')[1], 'base64'), err => {})
+					})
+				} else if (result === 2) {
+					clipboard.writeImage(screenshot)
+				}
+			})
+		} else {
+			new Dialog({
+				title: tl('message.screenshot.right_click'), 
+				id: 'screenie', 
+				lines: ['<img src="'+dataUrl+'" width="600px" class="allow_default_menu"></img>'],
+				draggable: true,
+				singleButton: true
+			}).show()
+		}
+	},
+	cleanCanvas(options, cb) {
+		quad_previews.current.screenshot(options, cb)
+	},
+	createGif(options, cb) {
+		if (typeof options !== 'object') {
+			options = {}
+		}
+		/*
+		var images = [];
+		var preview = quad_previews.current;
+		var interval = setInterval(function() {
+
+			var shot = preview.canvas.toDataURL()
+			images.push(shot);
+
+			if (images.length >= options.length/1000*options.fps) {
+				clearInterval(interval);
+				gifshot.createGIF({
+					images,
+					frameDuration: 10/options.fps,
+					progressCallback: cl,
+					text: 'BLOCKBENCH'
+				}, obj => {
+					Screencam.returnScreenshot(obj.image, cb);
+				})
+			}
+		}, 1000/options.fps)
+		//Does not support transparency
+		*/
+		
+		if (!options.length) {
+			options.length = 1000;
+		}
+		var preview = quad_previews.current;
+		var interval = options.fps ? (1000/options.fps) : 100;
+		var gif = new GIF({
+			repeat: options.repeat,
+			quality: options.quality,
+			transparent: 0x000000,
+		});
+		var frame_count = (options.length/interval);
+
+		if (options.turnspeed) {
+			preview.controls.autoRotate = true;
+			preview.controls.autoRotateSpeed = options.turnspeed;
+		}
+
+		gif.on('finished', blob => {
+			var reader = new FileReader();
+			reader.onload = () => {
+				if (!options.silent) {
+					Blockbench.setProgress(0);
+					Blockbench.setStatusBarText();
+				}
+				Screencam.returnScreenshot(reader.result, cb);
+			}
+			reader.readAsDataURL(blob);
+		});
+		if (!options.silent) {
+			Blockbench.setStatusBarText(tl('status_bar.recording_gif'));
+			gif.on('progress', Blockbench.setProgress);
+		}
+
+		var frames = 0;
+		var loop = setInterval(() => {
+			frames++;
+			var last_frame = frames >= options.length / interval;
+			if (last_frame) {
+				clearInterval(loop)
+				if (!options.silent) {
+					Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
+				}
+				if (Animator.open && Timeline.playing) {
+					Timeline.pause();
+				}
+				if (options.turnspeed) {
+					preview.controls.autoRotate = false;
+				}
+			}
+			var img = new Image();
+			img.src = preview.canvas.toDataURL();
+			img.onload = () => {
+				gif.addFrame(img, {delay: interval});
+				if (last_frame) {
+					gif.render();
+				}
+			}
+			Blockbench.setProgress(interval*frames/options.length);
+		}, interval)
+	}
+}
+
 //Init/Update
 function initCanvas() {
 
@@ -1187,7 +1344,7 @@ BARS.defineActions(function() {
 				form: {
 					length: {label: 'dialog.create_gif.length', type: 'number', value: 10, step: 0.25},
 					fps: 	{label: 'dialog.create_gif.fps', type: 'number', value: 10},
-					quality:{label: 'dialog.create_gif.compression', type: 'number', value: 4},
+					quality:{label: 'dialog.create_gif.compression', type: 'number', value: 20, min: 1, max: 80},
 					turn:	{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -10, max: 10},
 					play: 	{label: 'dialog.create_gif.play', type: 'checkbox', condition: Animator.open},
 				},

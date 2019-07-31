@@ -193,6 +193,47 @@ function updateNslideValues() {
 		}
 	}
 }
+function setProjectResolution(width, height, modify_uv) {
+	let old_res = {
+		x: Project.texture_width,
+		y: Project.texture_height
+	}
+	Project.texture_width = width;
+	Project.texture_height = height;
+
+	if (Project.texture_width / old_res.x != Project.texture_width / old_res.y) {
+		modify_uv = false;
+	}
+
+	if (modify_uv) {
+		var multiplier = [
+			Project.texture_width/entityMode.old_res.x,
+			Project.texture_height/entityMode.old_res.y
+		]
+		function shiftCube(cube, axis) {
+			if (Project.box_uv) {
+				obj.uv_offset[axis] *= multiplier[axis];
+			} else {
+				for (var face in cube.faces) {
+					var uv = cube.faces[face];
+					uv[axis] *= multiplier[axis];
+					uv[axis+2] *= multiplier[axis];
+				}
+			}
+		}
+		if (old_res.x != Project.texture_width && Math.areMultiples(old_res.x, Project.texture_width)) {
+			Cube.all.forEach(cube => shiftCube(cube, 0));
+		}
+		if (old_res.y != Project.texture_height &&  Math.areMultiples(old_res.x, Project.texture_width)) {
+			Cube.all.forEach(cube => shiftCube(cube, 1));
+		}
+	}
+
+	Canvas.updateAllUVs()
+	if (selected.length) {
+		main_uv.loadData()
+	}
+}
 
 //Selections
 function updateSelection() {
@@ -469,155 +510,6 @@ const TickUpdates = {
 		}
 	}
 }
-const Screencam = {
-	fullScreen(options, cb) {
-		setTimeout(function() {
-			currentwindow.capturePage(function(screenshot) {
-				var dataUrl = screenshot.toDataURL()
-				dataUrl = dataUrl.replace('data:image/png;base64,','')
-				Jimp.read(Buffer.from(dataUrl, 'base64')).then(function(image) { 
-
-					if (options && options.width && options.height) {
-						image.contain(options.width, options.height)
-					}
-
-					image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
-						Screencam.returnScreenshot(dataUrl, cb)
-					})
-				});
-			})
-		}, 40)
-	},
-	returnScreenshot(dataUrl, cb) {
-		if (cb) {
-			cb(dataUrl)
-		} else if (isApp) {
-			var screenshot = nativeImage.createFromDataURL(dataUrl)
-			var img = new Image()
-			var is_gif = dataUrl.substr(5, 9) == 'image/gif'
-			img.src = dataUrl
-
-			var btns = [tl('dialog.cancel'), tl('dialog.save')]
-			if (!is_gif) {
-				btns.push(tl('message.screenshot.clipboard'))
-			}
-			Blockbench.showMessageBox({
-				translateKey: 'screenshot',
-				icon: img,
-				buttons: btns,
-				confirm: 1,
-				cancel: 0
-			}, function(result) {
-				if (result === 1) {
-					electron.dialog.showSaveDialog(currentwindow, {filters: [ {name: tl('data.image'), extensions: [is_gif ? 'gif' : 'png']} ]}, function (fileName) {
-						if (fileName === undefined) {
-							return;
-						}
-						fs.writeFile(fileName, Buffer(dataUrl.split(',')[1], 'base64'), err => {})
-					})
-				} else if (result === 2) {
-					clipboard.writeImage(screenshot)
-				}
-			})
-		} else {
-			new Dialog({
-				title: tl('message.screenshot.right_click'), 
-				id: 'screenie', 
-				lines: ['<img src="'+dataUrl+'" width="600px" class="allow_default_menu"></img>'],
-				draggable: true,
-				singleButton: true
-			}).show()
-		}
-	},
-	cleanCanvas(options, cb) {
-		quad_previews.current.screenshot(options, cb)
-	},
-	createGif(options, cb) {
-		/*
-		var images = [];
-		var preview = quad_previews.current;
-		var interval = setInterval(function() {
-
-			var shot = preview.canvas.toDataURL()
-			images.push(shot);
-
-			if (images.length >= options.length/1000*options.fps) {
-				clearInterval(interval);
-				gifshot.createGIF({
-					images,
-					frameDuration: 10/options.fps,
-					progressCallback: cl,
-					text: 'BLOCKBENCH'
-				}, obj => {
-					Screencam.returnScreenshot(obj.image, cb);
-				})
-			}
-		}, 1000/options.fps)
-		//Does not support transparency
-		*/
-		
-
-		if (typeof options !== 'object') {
-			options = {}
-		}
-		if (!options.length) {
-			options.length = 1000
-		}
-		var preview = quad_previews.current;
-		var interval = options.fps ? (1000/options.fps) : 100
-		var gif = new GIF({
-			repeat: options.repeat,
-			quality: options.quality,
-			transparent: 0x000000,
-		})
-		var frame_count = (options.length/interval)
-
-		if (options.turnspeed) {
-			preview.controls.autoRotate = true;
-			preview.controls.autoRotateSpeed = options.turnspeed;
-		}
-
-		gif.on('finished', blob => {
-			var reader = new FileReader()
-			reader.onload = () => {
-				if (!options.silent) {
-					Blockbench.setProgress(0)
-					Blockbench.setStatusBarText()
-				}
-				Screencam.returnScreenshot(reader.result, cb)
-			}
-			reader.readAsDataURL(blob)
-		})
-		if (!options.silent) {
-			Blockbench.setStatusBarText(tl('status_bar.recording_gif'))
-			gif.on('progress', Blockbench.setProgress)
-		}
-		var frames = 0;
-		var loop = setInterval(() => {
-			var img = new Image()
-			img.src = preview.canvas.toDataURL()
-			img.onload = () => {
-				gif.addFrame(img, {delay: interval})
-			}
-			Blockbench.setProgress(interval*frames/options.length)
-			frames++;
-		}, interval)
-
-		setTimeout(() => {
-			clearInterval(loop)
-			if (!options.silent) {
-				Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
-			}
-			gif.render()
-			if (Animator.open && Timeline.playing) {
-				Timeline.pause()
-			}
-			if (options.turnspeed) {
-				preview.controls.autoRotate = false;
-			}
-		}, options.length)
-	}
-}
 const Clipbench = {
 	elements: [],
 	copy(event, cut) {
@@ -732,6 +624,9 @@ const Clipbench = {
 				function iterate(obj, parent) {
 					if (obj.children) {
 						var copy = new Group(obj).addTo(parent).init()
+						if (Format.bone_rig) {
+							copy.createUniqueName();
+						}
 						if (obj.children && obj.children.length) {
 							obj.children.forEach((child) => {
 								iterate(child, copy)
@@ -823,6 +718,5 @@ const Clipbench = {
 }
 
 const entityMode = {
-	old_res: {},
 	hardcodes: {"geometry.chicken":{"body":{"rotation":[90,0,0]}},"geometry.llama":{"chest1":{"rotation":[0,90,0]},"chest2":{"rotation":[0,90,0]},"body":{"rotation":[90,0,0]}},"geometry.cow":{"body":{"rotation":[90,0,0]}},"geometry.sheep.sheared":{"body":{"rotation":[90,0,0]}},"geometry.sheep":{"body":{"rotation":[90,0,0]}},"geometry.phantom":{"body":{"rotation":[0,0,0]},"wing0":{"rotation":[0,0,5.7]},"wingtip0":{"rotation":[0,0,5.7]},"wing1":{"rotation":[0,0,-5.7]},"wingtip1":{"rotation":[0,0,-5.7]},"head":{"rotation":[11.5,0,0]},"tail":{"rotation":[0,0,0]},"tailtip":{"rotation":[0,0,0]}},"geometry.pig":{"body":{"rotation":[90,0,0]}},"geometry.ocelot":{"body":{"rotation":[90,0,0]},"tail1":{"rotation":[90,0,0]},"tail2":{"rotation":[90,0,0]}},"geometry.cat":{"body":{"rotation":[90,0,0]},"tail1":{"rotation":[90,0,0]},"tail2":{"rotation":[90,0,0]}},"geometry.turtle":{"eggbelly":{"rotation":[90,0,0]},"body":{"rotation":[90,0,0]}},"geometry.villager.witch":{"hat2":{"rotation":[-3,0,1.5]},"hat3":{"rotation":[-6,0,3]},"hat4":{"rotation":[-12,0,6]}},"geometry.pufferfish.mid":{"spines_top_front":{"rotation":[45,0,0]},"spines_top_back":{"rotation":[-45,0,0]},"spines_bottom_front":{"rotation":[-45,0,0]},"spines_bottom_back":{"rotation":[45,0,0]},"spines_left_front":{"rotation":[0,45,0]},"spines_left_back":{"rotation":[0,-45,0]},"spines_right_front":{"rotation":[0,-45,0]},"spines_right_back":{"rotation":[0,45,0]}},"geometry.pufferfish.large":{"spines_top_front":{"rotation":[45,0,0]},"spines_top_back":{"rotation":[-45,0,0]},"spines_bottom_front":{"rotation":[-45,0,0]},"spines_bottom_back":{"rotation":[45,0,0]},"spines_left_front":{"rotation":[0,45,0]},"spines_left_back":{"rotation":[0,-45,0]},"spines_right_front":{"rotation":[0,-45,0]},"spines_right_back":{"rotation":[0,45,0]}},"geometry.tropicalfish_a":{"leftFin":{"rotation":[0,-35,0]},"rightFin":{"rotation":[0,35,0]}},"geometry.tropicalfish_b":{"leftFin":{"rotation":[0,-35,0]},"rightFin":{"rotation":[0,35,0]}}},
 }

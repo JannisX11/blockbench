@@ -48,106 +48,100 @@ var codec = new Codec('obj', {
 			var nbNormals = 0;
 
 			var geometry = mesh.geometry;
-			var element  = Outliner.root.findRecursive('uuid', mesh.name)
+			var element  = elements.findInArray('uuid', mesh.name)
 
-			if (element === undefined) return;
+			if (!element) return;
 			if (element.export === false) return;
 
-			if ( geometry instanceof THREE.Geometry ) {
+			output += 'o ' + element.name + '\n';
 
-				output += 'o ' + element.name + '\n';
+			var vertices = geometry.vertices;
 
-				var vertices = geometry.vertices;
+			for ( var i = 0, l = vertices.length; i < l; i ++ ) {
 
-				for ( var i = 0, l = vertices.length; i < l; i ++ ) {
+				var vertex = vertices[ i ].clone();
+				vertex.applyMatrix4( mesh.matrixWorld );
 
-					var vertex = vertices[ i ].clone();
-					vertex.applyMatrix4( mesh.matrixWorld );
+				output += 'v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z + '\n';
+				nbVertex ++;
+			}
+			// uvs
+			var faces = geometry.faces;
+			var faceVertexUvs = geometry.faceVertexUvs[ 0 ];
+			var hasVertexUvs = faces.length === faceVertexUvs.length;
 
-					output += 'v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z + '\n';
-					nbVertex ++;
-				}
-				// uvs
-				var faces = geometry.faces;
-				var faceVertexUvs = geometry.faceVertexUvs[ 0 ];
-				var hasVertexUvs = faces.length === faceVertexUvs.length;
+			if ( hasVertexUvs ) {
 
-				if ( hasVertexUvs ) {
+				for ( var i = 0, l = faceVertexUvs.length; i < l; i ++ ) {
 
-					for ( var i = 0, l = faceVertexUvs.length; i < l; i ++ ) {
+					var vertexUvs = faceVertexUvs[ i ];
 
-						var vertexUvs = faceVertexUvs[ i ];
+					for ( var j = 0, jl = vertexUvs.length; j < jl; j ++ ) {
 
-						for ( var j = 0, jl = vertexUvs.length; j < jl; j ++ ) {
-
-							var uv = vertexUvs[ j ];
-							output += 'vt ' + uv.x + ' ' + uv.y + '\n';
-							nbVertexUvs ++;
-						}
+						var uv = vertexUvs[ j ];
+						output += 'vt ' + uv.x + ' ' + uv.y + '\n';
+						nbVertexUvs ++;
 					}
 				}
+			}
 
-				// normals
+			// normals
 
-				var normalMatrixWorld = new THREE.Matrix3();
-				normalMatrixWorld.getNormalMatrix( mesh.matrixWorld );
+			var normalMatrixWorld = new THREE.Matrix3();
+			normalMatrixWorld.getNormalMatrix( mesh.matrixWorld );
 
-				for ( var i = 0, l = faces.length; i < l; i ++ ) {
+			for ( var i = 0, l = faces.length; i < l; i ++ ) {
 
-					var face = faces[ i ];
-					var vertexNormals = face.vertexNormals;
+				var face = faces[ i ];
+				var vertexNormals = face.vertexNormals;
 
-					if ( vertexNormals.length === 3 ) {
+				if ( vertexNormals.length === 3 ) {
 
-						for ( var j = 0, jl = vertexNormals.length; j < jl; j ++ ) {
+					for ( var j = 0, jl = vertexNormals.length; j < jl; j ++ ) {
 
-							var normal = vertexNormals[ j ].clone();
-							normal.applyMatrix3( normalMatrixWorld );
-
-							output += 'vn ' + normal.x + ' ' + normal.y + ' ' + normal.z + '\n';
-
-							nbNormals ++;
-						}
-					} else {
-
-						var normal = face.normal.clone();
+						var normal = vertexNormals[ j ].clone();
 						normal.applyMatrix3( normalMatrixWorld );
 
-						for ( var j = 0; j < 3; j ++ ) {
+						output += 'vn ' + normal.x + ' ' + normal.y + ' ' + normal.z + '\n';
 
-							output += 'vn ' + normal.x + ' ' + normal.y + ' ' + normal.z + '\n';
-							nbNormals ++;
-						}
+						nbNormals ++;
+					}
+				} else {
+
+					var normal = face.normal.clone();
+					normal.applyMatrix3( normalMatrixWorld );
+
+					for ( var j = 0; j < 3; j ++ ) {
+
+						output += 'vn ' + normal.x + ' ' + normal.y + ' ' + normal.z + '\n';
+						nbNormals ++;
 					}
 				}
-			  
-				// material
-				for (var face in element.faces) {
-					var tex = element.faces[face].getTexture()
-					if (tex && tex.uuid && !materials[tex.id]) {
-						materials[tex.id] = tex
-					}
+			}
+		  
+			// material
+			for (var face in element.faces) {
+				var tex = element.faces[face].getTexture()
+				if (tex && tex.uuid && !materials[tex.id]) {
+					materials[tex.id] = tex
 				}
+			}
 
 
-				for ( var i = 0, j = 1, l = faces.length; i < l; i ++, j += 3 ) {
+			for ( var i = 0, j = 1, l = faces.length; i < l; i ++, j += 3 ) {
 
-					var f_mat = getMtlFace(element, i)
-					if (f_mat) {
+				var f_mat = getMtlFace(element, i)
+				if (f_mat) {
 
-						var face = faces[ i ];
-						if (i % 2 === 0) {
-							output += f_mat
-						}
-						output += 'f ';
-						output += ( indexVertex + face.a + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j	 ) : '' ) + '/' + ( indexNormals + j	 ) + ' ';
-						output += ( indexVertex + face.b + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j + 1 ) : '' ) + '/' + ( indexNormals + j + 1 ) + ' ';
-						output += ( indexVertex + face.c + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j + 2 ) : '' ) + '/' + ( indexNormals + j + 2 ) + '\n';
+					var face = faces[ i ];
+					if (i % 2 === 0) {
+						output += f_mat
 					}
+					output += 'f ';
+					output += ( indexVertex + face.a + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j	 ) : '' ) + '/' + ( indexNormals + j	 ) + ' ';
+					output += ( indexVertex + face.b + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j + 1 ) : '' ) + '/' + ( indexNormals + j + 1 ) + ' ';
+					output += ( indexVertex + face.c + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j + 2 ) : '' ) + '/' + ( indexNormals + j + 2 ) + '\n';
 				}
-			} else {
-				console.warn( 'THREE.OBJExporter.parseMesh(): geometry type unsupported', mesh );
-				// TODO: Support only BufferGeometry and use setFromObject()
 			}
 
 			// update index

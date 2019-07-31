@@ -211,7 +211,7 @@ function changeImageEditor(texture, from_settings) {
 			var id = $('.dialog#image_editor option:selected').attr('id')
 			var path;
 			switch (id) {
-				case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop CC 2018\\Photoshop.exe'; break;
+				case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop CC 2019\\Photoshop.exe'; break;
 				case 'gimp':path = 'C:\\Program Files\\GIMP 2\\bin\\gimp-2.10.exe'; break;
 				case 'pdn': path = 'C:\\Program Files\\paint.net\\PaintDotNet.exe'; break;
 			}

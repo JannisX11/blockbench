@@ -170,8 +170,8 @@ const Painter = {
 	getCanvas(texture) {
 		var c = document.createElement('canvas')
 		var ctx = c.getContext('2d');
-		c.width = texture.res;
-		c.height = texture.img.naturalHeight;
+		c.width = texture.width;
+		c.height = texture.height;
 		ctx.drawImage(texture.img, 0, 0)
 		return c;
 	},
@@ -856,7 +856,6 @@ const Painter = {
 		}
 
 		//Drawing
-		cl(templates.length)
 		templates.forEach(function(t) {
 			let obj = t.obj
 			
@@ -1049,6 +1048,23 @@ BARS.defineActions(function() {
 			face: true,
 			color: true,
 			cube: true
+		}
+	})
+
+
+	new Action({
+		id: 'painting_grid',
+		name: tl('settings.painting_grid'),
+		description: tl('settings.painting_grid.desc'),
+		icon: 'check_box',
+		category: 'view',
+		condition: () => Modes.paint,
+		linked_setting: 'painting_grid',
+		click: function () {
+			BarItems.painting_grid.toggleLinkedSetting()
+			Cube.all.forEach(cube => {
+				Canvas.buildGridBox(cube)
+			})
 		}
 	})
 

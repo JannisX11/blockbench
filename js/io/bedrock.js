@@ -132,8 +132,8 @@ function parseGeometry(data) {
 			if (b.pivot) {
 				group.origin[0] *= -1
 			}
-			group.rotation.forEach(function(br, ri) {
-				group.rotation[ri] *= -1
+			group.rotation.forEach(function(br, axis) {
+				group.rotation[axis] *= -1
 			})
 			
 			group.mirror_uv = b.mirror === true
@@ -148,8 +148,8 @@ function parseGeometry(data) {
 						rotation: s.rotation,
 						origin: s.pivot
 					})
-					base_cube.rotation.forEach(function(br, ri) {
-						base_cube.rotation[ri] *= -1
+					base_cube.rotation.forEach(function(br, axis) {
+						if (axis != 2) base_cube.rotation[axis] *= -1
 					})
 					base_cube.origin[0] *= -1;
 					if (s.origin) {
@@ -168,25 +168,28 @@ function parseGeometry(data) {
 					} else if (s.uv) {
 						Project.box_uv = false;
 						for (var key in base_cube.faces) {
+							var face = base_cube.faces[key]
 							if (s.uv[key]) {
-								base_cube.faces[key].extend({
+								face.extend({
 									uv: [
-										s.uv[key].uv[0] * Project.texture_width/16,
-										s.uv[key].uv[1] * Project.texture_height/16,
+										s.uv[key].uv[0] * (16/Project.texture_width),
+										s.uv[key].uv[1] * (16/Project.texture_height),
 									]
 								})
 								if (s.uv[key].uv_size) {
-									base_cube.faces[key].uv_size = [
-										s.uv[key].uv_size[0] * Project.texture_width/16,
-										s.uv[key].uv_size[1] * Project.texture_height/16,
+									face.uv_size = [
+										s.uv[key].uv_size[0] * (16/Project.texture_width),
+										s.uv[key].uv_size[1] * (16/Project.texture_height),
 									]
-
 								} else {
 									base_cube.autouv = 1;
 									base_cube.mapAutoUV();
 								}
+								if (key == 'up') {
+									face.uv = [face.uv[2], face.uv[3], face.uv[0], face.uv[1]]
+								}
 							} else {
-								base_cube.faces[key].texture = null;
+								face.texture = null;
 							}
 						}
 						
@@ -238,6 +241,7 @@ function parseGeometry(data) {
 	if (isApp && Project.geometry_name) {
 		findEntityTexture(Project.geometry_name)
 	}
+	updateSelection()
 	EditSession.initNewModel()
 }
 
@@ -291,8 +295,8 @@ var codec = new Codec('bedrock', {
 			bone.pivot[0] *= -1
 			if (!g.rotation.allEqual(0)) {
 				bone.rotation = g.rotation.slice()
-				bone.rotation.forEach(function(br, ri) {
-					bone.rotation[ri] *= -1
+				bone.rotation.forEach(function(br, axis) {
+					bone.rotation[axis] *= -1
 				})
 			}
 			if (g.reset) {
@@ -326,8 +330,8 @@ var codec = new Codec('bedrock', {
 							cube.pivot = obj.origin.slice();
 							cube.pivot[0] *= -1
 							cube.rotation = obj.rotation.slice();
-							cube.rotation.forEach(function(br, ri) {
-								cube.rotation[ri] *= -1
+							cube.rotation.forEach(function(br, axis) {
+								if (axis != 2) cube.rotation[axis] *= -1
 							})
 						}
 
@@ -351,6 +355,12 @@ var codec = new Codec('bedrock', {
 											face.uv_size[1] * entitymodel.description.texture_height/16,
 										]
 									});
+									if (key == 'up') {
+										cube.uv[key].uv[0] += cube.uv[key].uv_size[0];
+										cube.uv[key].uv[1] += cube.uv[key].uv_size[1];
+										cube.uv[key].uv_size[0] *= -1;
+										cube.uv[key].uv_size[1] *= -1;
+									}
 								}
 							}
 						}

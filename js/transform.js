@@ -98,13 +98,14 @@ function isMovementGlobal() {
 function isInBox(val) {
 	return !Format.canvas_limit || (val < 32 && val > -16)
 }
-function limitToBox(val) {
+function limitToBox(val, inflate) {
+	if (typeof inflate != 'number') inflate = 0;
 	if (!Format.canvas_limit) {
 		return val;
-	} else if (val > 32) {
-		return 32;
-	} else if (val < -16) {
-		return -16;
+	} else if (val + inflate > 32) {
+		return 32 - inflate;
+	} else if (val - inflate < -16) {
+		return -16 + inflate;
 	} else {
 		return val;
 	}
@@ -338,9 +339,9 @@ const Vertexsnap = {
 
 				for (i=0; i<3; i++) {
 					if (m[i] === 1) {
-						obj.to[i] += cube_pos.getComponent(i)
+						obj.to[i] = limitToBox(obj.to[i] + cube_pos.getComponent(i), obj.inflate)
 					} else {
-						obj.from[i] += cube_pos.getComponent(i)
+						obj.from[i] = limitToBox(obj.from[i] + cube_pos.getComponent(i), -obj.inflate)
 					}
 				}
 				if (Project.box_uv && obj.visibility) {
@@ -358,12 +359,10 @@ const Vertexsnap = {
 					var q = obj.mesh.getWorldQuaternion(new THREE.Quaternion()).inverse()
 					cube_pos.applyQuaternion(q)
 				}
-				obj.from[0] += cube_pos.getComponent(0)
-				obj.from[1] += cube_pos.getComponent(1)
-				obj.from[2] += cube_pos.getComponent(2)
-				obj.to[0] += cube_pos.getComponent(0)
-				obj.to[1] += cube_pos.getComponent(1)
-				obj.to[2] += cube_pos.getComponent(2)
+				var in_box = obj.move(cube_pos);
+				if (!in_box) {
+					Blockbench.showMessageBox({translateKey: 'canvas_limit_error'})
+				}
 			})
 		}
 
@@ -403,13 +402,13 @@ function scaleAll(save, size) {
 				if (obj.from) {
 					obj.from[i] = (obj.before.from[i] - ogn) * size;
 					if (obj.from[i] + ogn > 32 || obj.from[i] + ogn < -16) overflow.push(obj);
-					obj.from[i] = limitToBox(obj.from[i] + ogn);
+					obj.from[i] = limitToBox(obj.from[i] + ogn, -obj.inflate);
 				}
 
 				if (obj.to) {
 					obj.to[i] = (obj.before.to[i] - ogn) * size;
 					if (obj.to[i] + ogn > 32 || obj.to[i] + ogn < -16) overflow.push(obj);
-					obj.to[i] = limitToBox(obj.to[i] + ogn);
+					obj.to[i] = limitToBox(obj.to[i] + ogn, obj.inflate);
 				}
 
 				if (obj.origin) {
@@ -513,8 +512,8 @@ function centerCubes(axis, update) {
 	var difference = (Format.bone_rig ? 0 : 8) - average
 
 	selected.forEach(function(obj) {
-		if (obj.movable) obj.from[axis] = limitToBox(obj.from[axis] + difference);
-		if (obj.scalable) obj.to[axis] =  limitToBox(obj.to[axis] 	+ difference);
+		if (obj.movable) obj.from[axis] = limitToBox(obj.from[axis] + difference, obj.inflate);
+		if (obj.scalable) obj.to[axis] =  limitToBox(obj.to[axis] 	+ difference, obj.inflate);
 		if (obj.origin) obj.origin[axis] += difference;
 	})
 
@@ -734,7 +733,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('resize')
 		}
 	})
-	//Inflage
+	//Inflate
 	new NumSlider({
 		id: 'slider_inflate',
 		condition: function() {return Cube.selected.length && Modes.edit},
@@ -836,7 +835,7 @@ BARS.defineActions(function() {
 		))
 	}
 
-
+	//Origin
 	function moveOriginOnAxis(value, fixed, axis) {
 		if (Group.selected) {
 			var diff = value

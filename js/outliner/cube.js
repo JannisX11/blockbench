@@ -193,7 +193,7 @@ class Cube extends NonGroup {
 		if (!this.parent || (this.parent === 'root' && Outliner.root.indexOf(this) === -1)) {
 			this.addTo('root')
 		}
-		if (this.visibility && (!this.mesh || !scene.children.includes(this.mesh))) {
+		if (this.visibility && (!this.mesh || !this.mesh.parent)) {
 			Canvas.addCube(this)
 		}
 		TickUpdates.outliner = true;
@@ -474,12 +474,7 @@ class Cube extends NonGroup {
 		shift.sub(dq)
 		shift.applyQuaternion(q.inverse())
 
-		this.from[0] += shift.x;
-		this.from[1] += shift.y;
-		this.from[2] += shift.z;
-		this.to[0] += shift.x;
-		this.to[1] += shift.y;
-		this.to[2] += shift.z;
+		this.move(shift)
 
 		this.origin = origin.slice();
 
@@ -538,7 +533,7 @@ class Cube extends NonGroup {
 	}
 	mapAutoUV() {
 		if (Blockbench.box_uv) return;
-		var scope = this
+		var scope = this;
 		if (scope.autouv === 2) {
 			//Relative UV
 			function gt(n) {
@@ -547,6 +542,7 @@ class Cube extends NonGroup {
 			var all_faces = ['north', 'south', 'west', 'east', 'up', 'down']
 			all_faces.forEach(function(side) {
 				var uv = scope.faces[side].uv.slice()
+				var texture = scope.faces[side]
 				switch (side) {
 					case 'north':
 					uv = [
@@ -597,9 +593,11 @@ class Cube extends NonGroup {
 					];
 					break;
 				}
+				var fr_u = 16 / Project.texture_width;
+				var fr_v = 16 / Project.texture_height;
 				uv.forEach(function(s, uvi) {
+					s *= (uvi%2 ? fr_v : fr_u);
 					uv[uvi] = limitNumber(s, 0, 16)
-					uv[uvi] *= 16 / (uvi%2 ? Project.texture_height : Project.texture_width)
 				})
 				scope.faces[side].uv = uv
 			})
@@ -615,6 +613,8 @@ class Cube extends NonGroup {
 				if (rot === 90 || rot === 270) {
 					size.reverse()
 				}
+				size[0] *= 16/Project.texture_width;
+				size[1] *= 16/Project.texture_height;
 				//Limit Input to 16
 				size.forEach(function(s) {
 					if (s > 16) {
@@ -652,12 +652,19 @@ class Cube extends NonGroup {
 			Canvas.updateUV(scope)
 		}
 	}
-	move(val, axis, absolute, move_origin) {
+	move(val, axis, absolute, move_origin, no_update) {
+		if (val instanceof THREE.Vector3) {
+			return this.move(val.x, 0, absolute, move_origin, true)
+				&& this.move(val.y, 1, absolute, move_origin, true)
+				&& this.move(val.z, 2, absolute, move_origin, true);
+		}
 		var size = this.size(axis)
 		if (!absolute) {
 			val = val + this.from[axis]
 		}
-		val = limitToBox(limitToBox(val) + size) - size
+		var in_box = val;
+		val = limitToBox(limitToBox(val, -this.inflate) + size, this.inflate) - size
+		in_box = Math.abs(in_box - val) < 1e-4;
 		val -= this.from[axis]
 
 		//Move
@@ -684,11 +691,12 @@ class Cube extends NonGroup {
 		if (Blockbench.globalMovement && move_origin) {
 			this.origin[axis] += val
 		}
-
-		this.mapAutoUV()
-		Canvas.adaptObjectPosition(this);
-		TickUpdates.selection = true;
-		return this;
+		if (!no_update) {
+			this.mapAutoUV()
+			Canvas.adaptObjectPosition(this);
+			TickUpdates.selection = true;
+		}
+		return in_box;
 	}
 	scale(val, axis, negative, absolute, allow_negative) {
 		if (absolute) {
@@ -700,14 +708,14 @@ class Cube extends NonGroup {
 			val = Math.ceil(val);
 		}
 		if (!negative) {
-			var pos = limitToBox(val + this.from[axis] + before);
+			var pos = limitToBox(val + this.from[axis] + before, this.inflate);
 			if (pos >= this.from[axis] || settings.negative_size.value || allow_negative) {
 				this.to[axis] = pos;
 			} else {
 				this.to[axis] = this.from[axis];
 			}
 		} else {
-			var pos = limitToBox(val + this.to[axis] - before);
+			var pos = limitToBox(val + this.to[axis] - before, this.inflate);
 			if (pos <= this.to[axis] || settings.negative_size.value || allow_negative) {
 				this.from[axis] = pos;
 			} else {

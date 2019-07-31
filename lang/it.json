@@ -959,10 +959,12 @@
     "action.import_optifine_part": "Importare parte OptiFine",
     "action.import_optifine_part.desc": "Importare una parte di un modello per OptiFine",
     "data.locator": "Locator",
-    "mode.start.no_recents": "No recently opened models",
-    "panel.element": "Element",
-    "panel.element.position": "Position",
-    "panel.element.size": "Size",
-    "panel.element.origin": "Pivot Point",
-    "panel.element.rotation": "Rotation"
+    "mode.start.no_recents": "Nessun modello aperto recentemente",
+    "panel.element": "Elemento",
+    "panel.element.position": "Posizione",
+    "panel.element.size": "Dimensione",
+    "panel.element.origin": "Origine",
+    "panel.element.rotation": "Rotazione",
+    "message.canvas_limit_error.title": "Canvas Limit Error",
+    "message.canvas_limit_error.message": "The action could not be performed correctly because the format limits the canvas to 48 units. Shift the origin to prevent this."
 }

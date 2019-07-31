@@ -698,10 +698,8 @@
 		this.update = function (object) {
 			var scope = Transformer;
 
-			if (!object && Modes.id === 'display' && Toolbox.selected.transformerMode === 'rotate') {
-				object = display_area;
-			} else if (Modes.id == 'animate' && Group.selected && Group.selected.parent instanceof Group) {
-				object = Group.selected.parent.mesh
+			if (!object) {
+				object = this.rotation_ref;
 			}
 			if (scope.elements.length == 0) {
 				this.detach()
@@ -726,9 +724,16 @@
 
 			if (object) {
 				worldRotation.setFromRotationMatrix( tempMatrix.extractRotation( object.matrixWorld ) );
-				_gizmo[ _mode ].update( worldRotation, eye );
+				if (Toolbox.selected.transformerMode === 'rotate') {
+					_gizmo[ _mode ].update( worldRotation, eye );
+					this.rotation.set(0, 0, 0);
+				} else {
+					object.getWorldQuaternion(this.rotation)
+				}
 
 			} else {
+				worldRotation.set(0, 0, 0);
+				this.rotation.set(0, 0, 0);
 				_gizmo[ _mode ].update( new THREE.Euler(), eye );
 			}
 			_gizmo[ _mode ].highlight( scope.axis );
@@ -786,7 +791,7 @@
 
 		this.updateSelection = function() {
 			this.elements.empty()
-			if (Modes.edit) {
+			if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
 				if (selected.length) {
 					selected.forEach(element => {
 						if (
@@ -808,7 +813,8 @@
 			return this;
 		}
 		this.center = function() {
-			if (Modes.edit) {
+			delete Transformer.rotation_ref;
+			if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
 				if (Transformer.visible) {
 					var rotation_tool = Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool'
 					var rotation_object = getRotationObject()
@@ -827,7 +833,7 @@
 						return;
 					}
 					this.rotation_object = rotation_object;
-					if (Format.bone_rig) {
+					if (Format.bone_rig && !Modes.animate) {
 						Canvas.updateAllBones()
 					}
 					//Center
@@ -840,32 +846,41 @@
 					}
 
 					//Rotation
-					Transformer.rotation.set(0, 0, 0);
-					if (Toolbox.selected.transformerMode !== 'rotate') {
-						if (Toolbox.selected.id == 'pivot_tool') {
+					if (rotation_tool) {
+						Transformer.rotation_ref = rotation_object.mesh.parent;
 
-							if (rotation_object.parent instanceof Group) {
-								rotation_object.parent.mesh.getWorldQuaternion(this.rotation)
-							}
-						} else if (!Blockbench.globalMovement && Cube.selected[0] && Cube.selected[0].mesh) {
-							Cube.selected[0].mesh.getWorldQuaternion(this.rotation)
-						}
+					} else if (Group.selected) {
+						Transformer.rotation_ref = rotation_object.mesh;
+						
+					} else if (!Blockbench.globalMovement && Cube.selected[0] && Cube.selected[0].mesh) {
+						Transformer.rotation_ref = Cube.selected[0].mesh;
 					}
 				}
 
 			} else if (Modes.display) {
-				this.attach(display_base);
-				DisplayMode.centerTransformer();
+
+				display_scene.add(Transformer)
+				Transformer.attach(display_base)
+
+				display_base.getWorldPosition(Transformer.position)
+
+				if (Toolbox.selected.transformerMode === 'translate') {
+					Transformer.rotation_ref = display_area;
+
+				} else if (Toolbox.selected.transformerMode === 'scale') {
+					Transformer.rotation_ref = display_base;
+				}
+				Transformer.update()
 
 			} else if (Modes.animate && Group.selected) {
 
 				this.attach(Group.selected);
 				Group.selected.mesh.getWorldPosition(this.position);
-				if (Toolbox.selected.transformerMode == 'rotate') {
-					this.rotation.set(0, 0, 0);
+				if (Toolbox.selected.id == 'resize_tool') {
+					Transformer.rotation_ref = Group.selected.mesh;
+				} else {
+					Transformer.rotation_ref = Group.selected.mesh.parent;
 				}
-				Transformer.update()
-				return;
 			}
 		}
 
@@ -937,7 +952,7 @@
 		function beforeFirstChange(event) {
 			if (scope.hasChanged) return;
 
-			if (Modes.edit) {
+			if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
 
 				if (Toolbox.selected.id === 'resize_tool') {
 					var axisnr = getAxisNumber(scope.axis.toLowerCase().replace('n', ''))
@@ -1001,37 +1016,25 @@
 
 			if (Toolbox.selected.transformerMode !== 'rotate') {
 				point.sub( offset );
-			}
+				point.removeEuler(worldRotation)
 
-			if (Toolbox.selected.transformerMode === 'rotate') {
-
+			} else {
 				point.sub( worldPosition );
+				point.removeEuler(worldRotation)
 				var rotations = [
 					Math.atan2( point.z, point.y ),
 					Math.atan2( point.x, point.z ),
 					Math.atan2( point.y, point.x )
 				]
 				var angle = Math.radToDeg( rotations[axisNumber] )
-
-			} else if ((!Blockbench.globalMovement || !Modes.edit) && scope.elements.length) {
-				var rotation = new THREE.Quaternion()
-				var i = 0;
-				while (scope.elements[i]) {
-					if (scope.elements[i].mesh) {
-						scope.elements[0].mesh.getWorldQuaternion(rotation)
-						i = Infinity;
-					}
-					i++;
-				}
-				point.applyQuaternion(rotation.inverse())
 			}
 
-			if (Modes.edit) {
+			if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
 
 				if (Toolbox.selected.id === 'move_tool') {
 
 					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
-					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor// * (useBedrockFlipFix(axis) ? -1 : 1)
+					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
 
 					if (previousValue === undefined) {
 						previousValue = point[axis]
@@ -1046,10 +1049,10 @@
 							selected.forEach(function(obj) {
 								if (obj.movable && obj.scalable) {
 									overlapping = overlapping || (
-										obj.to[axisNumber] + difference > 32 ||
-										obj.to[axisNumber] + difference < -16 ||
-										obj.from[axisNumber] + difference > 32 ||
-										obj.from[axisNumber] + difference < -16
+										obj.to[axisNumber] + difference + obj.inflate > 32 ||
+										obj.to[axisNumber] + difference + obj.inflate < -16 ||
+										obj.from[axisNumber] + difference - obj.inflate > 32 ||
+										obj.from[axisNumber] + difference - obj.inflate < -16
 									)
 								}
 							})
@@ -1074,7 +1077,7 @@
 				} else if (Toolbox.selected.id === 'resize_tool') {
 					//Scale
 					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
-					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor// * (useBedrockFlipFix(axis) ? -1 : 1)
+					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
 
 
 					if (previousValue !== point[axis]) {
@@ -1110,7 +1113,7 @@
 				} else if (Toolbox.selected.id === 'pivot_tool') {
 
 					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
-					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor// * (useBedrockFlipFix(axis) ? -1 : 1)
+					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
 
 					if (previousValue === undefined) {
 						previousValue = point[axis]
@@ -1121,9 +1124,13 @@
 						var difference = point[axis] - previousValue
 
 						if (Format.bone_rig && Group.selected) {
-							var origin = Group.selected.origin.slice();
-							origin[axisNumber] += difference;
-							Group.selected.transferOrigin(origin, true);
+							if (Modes.edit) {
+								var origin = Group.selected.origin.slice();
+								origin[axisNumber] += difference;
+								Group.selected.transferOrigin(origin, true);
+							} else if (Modes.animate) {
+								Group.selected.origin[axisNumber] += difference;
+							}
 						} else {
 							var origin = Transformer.rotation_object.origin.slice()
 							origin[axisNumber] += difference;
@@ -1133,7 +1140,10 @@
 								}
 							})
 						}
-						Canvas.updatePositions(true)
+						Canvas.updatePositions(true);
+						if (Modes.animate) {
+							Animator.preview();
+						}
 						scope.updateSelection()
 
 						previousValue = point[axis]
@@ -1174,7 +1184,6 @@
 					scope.keyframe.offset(axis, difference);
 					scope.keyframe.select()
 
-					updateKeyframeSelection()
 					Animator.preview()
 					previousValue = value
 					scope.hasChanged = true
@@ -1242,7 +1251,7 @@
 				scope.orbit_controls.stopMovement()
 				outlines.children.length = 0
 
-				if (Modes.id === 'edit') {
+				if (Modes.id === 'edit' || Toolbox.selected.id == 'pivot_tool') {
 					if (Toolbox.selected.id === 'resize_tool') {
 						//Scale
 						selected.forEach(function(obj) {
@@ -1297,27 +1306,3 @@
 	THREE.TransformControls.prototype.constructor = THREE.TransformControls;
 
 }() );
-
-THREE.Euler.prototype.inverse = function () {
-
-	var q = new THREE.Quaternion();
-	return function inverse() {
-
-		return this.setFromQuaternion( q.setFromEuler( this ).inverse() );
-
-	};
-
-}();
-THREE.Vector3.prototype.removeEuler = function (euler) {
-
-	var normal = new THREE.Vector3(0, 0, 1)
-	return function removeEuler(euler) {
-
-		this.applyAxisAngle(normal,			  -euler.z)
-		this.applyAxisAngle(normal.set(0, 1, 0), -euler.y)
-		this.applyAxisAngle(normal.set(1, 0, 0), -euler.x)
-		return this;
-
-	};
-
-}();

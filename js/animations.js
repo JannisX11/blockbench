@@ -23,7 +23,7 @@ class Animation {
 		Merge.number(this, data, 'length')
 		if (data.bones) {
 			for (var key in data.bones) {
-				var group = Outliner.root.findRecursive( isUUID(key) ? 'uuid' : 'name', key )
+				var group = Group.all.findInArray( isUUID(key) ? 'uuid' : 'name', key )
 				if (group) {
 					var ba = this.getBoneAnimator(group)
 					var kfs = data.bones[key]
@@ -45,7 +45,7 @@ class Animation {
 		}
 		return this;
 	}
-	undoCopy(options) {
+	getUndoCopy(options) {
 		var scope = this;
 		var copy = {
 			uuid: this.uuid,
@@ -69,7 +69,7 @@ class Animation {
 					}
 					var kfs_copy = copy.bones[uuid] = []
 					kfs.forEach(kf => {
-						kfs_copy.push(kf.undoCopy())
+						kfs_copy.push(kf.getUndoCopy())
 					})
 				}
 			}
@@ -99,13 +99,40 @@ class Animation {
 		Animator.preview()
 		return this;
 	}
+	createUniqueName(arr) {
+		var scope = this;
+		var others = Animator.animations;
+		if (arr && arr.length) {
+			arr.forEach(g => {
+				others.safePush(g)
+			})
+		}
+		var name = this.name.replace(/\d+$/, '');
+		function check(n) {
+			for (var i = 0; i < others.length; i++) {
+				if (others[i] !== scope && others[i].name == n) return false;
+			}
+			return true;
+		}
+		if (check(this.name)) {
+			return this.name;
+		}
+		for (var num = 2; num < 8e3; num++) {
+			if (check(name+num)) {
+				scope.name = name+num;
+				return scope.name;
+			}
+		}
+		return false;
+	}
 	rename() {
 		var scope = this;
 		Blockbench.textPrompt('message.rename_animation', this.name, function(name) {
 			if (name && name !== scope.name) {
-				Undo.initEdit({animations: [scope]})
-				scope.name = name
-				Undo.finishEdit('rename animation')
+				Undo.initEdit({animations: [scope]});
+				scope.name = name;
+				scope.createUniqueName();
+				Undo.finishEdit('rename animation');
 			}
 		})
 		return this;
@@ -193,7 +220,6 @@ class Animation {
 	}
 }
 	Animation.prototype.menu = new Menu([
-		'rename',
 		{name: 'menu.animation.loop', icon: (a) => (a.loop?'check_box':'check_box_outline_blank'), click: function(animation) {
 			animation.loop = !animation.loop
 		}},
@@ -203,7 +229,10 @@ class Animation {
 		{name: 'menu.animation.anim_time_update', icon: 'update', click: function(animation) {
 			animation.editUpdateVariable()
 		}},
-		'delete'
+		'_',
+		'duplicate',
+		'rename',
+		'delete',
 		/*
 			rename
 			Loop: checkbox
@@ -220,7 +249,7 @@ class BoneAnimator {
 		this.animation = animation;
 	}
 	getGroup() {
-		this.group = Outliner.root.findRecursive('uuid', this.uuid)
+		this.group = Group.all.findInArray('uuid', this.uuid)
 		if (!this.group) {
 			console.log('no group found for '+this.uuid)
 			if (this.animation && this.animation.bones[this.uuid]) {
@@ -429,7 +458,7 @@ class BoneAnimator {
 	}
 }
 class Keyframe {
-	constructor(data) {
+	constructor(data, uuid) {
 		this.type = 'keyframe'
 		this.channel = 'rotation'//, 'position', 'scale'
 		this.channel_index = 0;
@@ -440,7 +469,7 @@ class Keyframe {
 		this.z = '0';
 		this.w = '0';
 		this.isQuaternion = false;
-		this.uuid = guid()
+		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		if (typeof data === 'object') {
 			this.extend(data)
 			if (this.channel === 'scale' && data.x == undefined && data.y == undefined && data.z == undefined) {
@@ -631,7 +660,7 @@ class Keyframe {
 		this.channel_index = Animator.channel_index.indexOf(this.channel)
 		return this;
 	}
-	undoCopy() {
+	getUndoCopy() {
 		var copy = {
 			channel: this.channel_index,
 			time: this.time,
@@ -860,7 +889,7 @@ const Animator = {
 				//Bones
 				for (var bone_name in a.bones) {
 					var b = a.bones[bone_name]
-					var group = Outliner.root.findRecursive('name', bone_name)
+					var group = Group.all.findInArray('name', bone_name)
 					if (group) {
 						var ba = new BoneAnimator(group.uuid, animation);
 						animation.bones[group.uuid] = ba;
@@ -912,7 +941,7 @@ const Animator = {
 						if (!channels[kf.channel]) {
 							channels[kf.channel] = {}
 						}
-						let timecode = trimFloatNumber(Math.round(kf.time*60)/60) + ''
+						let timecode = Math.clamp(trimFloatNumber(Math.round(kf.time*60)/60), 0) + '';
 						if (!timecode.includes('.')) {
 							timecode = timecode + '.0'
 						}

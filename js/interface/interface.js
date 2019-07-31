@@ -265,8 +265,8 @@ function setupInterface() {
 	try {
 		interface_data = JSON.parse(interface_data)
 		var old_data = Interface.data
-		Interface.data.left_bar = interface_data.left_bar
-		Interface.data.right_bar = interface_data.right_bar
+		if (interface_data.left_bar) Interface.data.left_bar = interface_data.left_bar;
+		if (interface_data.right_bar) Interface.data.right_bar = interface_data.right_bar;
 		for (key in Interface.Panels) {
 			if (!Interface.data.left_bar.includes(key) && !Interface.data.right_bar.includes(key)) {
 				if (old_data.left_bar.includes(key)) {

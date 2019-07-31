@@ -33,10 +33,11 @@ var codec = new Codec('java_block', {
 			if (s.shade === false) {
 				element.shade = false
 			}
-			if (!s.rotation.equals([0, 0, 0])) {
+			if (!s.rotation.allEqual(0) || !s.origin.allEqual(8)) {
+				var axis = s.rotationAxis()||'y';
 				element.rotation = new oneLiner({
-					angle: s.rotation[getAxisNumber(s.rotationAxis())],
-					axis: s.rotationAxis(),
+					angle: s.rotation[getAxisNumber(axis)],
+					axis,
 					origin: s.origin
 				})
 			}
@@ -98,12 +99,12 @@ var codec = new Codec('java_block', {
 			function inVd(n) {
 				return n > 32 || n < -16
 			}
-			if (inVd(s.from[0]) ||
-				inVd(s.from[1]) ||
-				inVd(s.from[2]) ||
-				inVd(s.to[0]) ||
-				inVd(s.to[1]) ||
-				inVd(s.to[2])
+			if (inVd(element.from[0]) ||
+				inVd(element.from[1]) ||
+				inVd(element.from[2]) ||
+				inVd(element.to[0]) ||
+				inVd(element.to[1]) ||
+				inVd(element.to[2])
 			) {
 				largerCubesNr++;
 			}

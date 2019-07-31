@@ -27,7 +27,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '3.0.4';
+		const appVersion = '3.0.5';
 	</script>
 		<script src="lib/vue.min.js"></script>
 		<script src="lib/vue_sortable.js"></script>
@@ -938,8 +938,8 @@
 					<div class="texture_res">{{ texture.error
 						? texture.getErrorMessage()
 						: (Format.single_texture
-							? (texture.res + ' x ' + texture.res/texture.ratio + 'px')
-							: (texture.ratio == 1? texture.res + 'px': (texture.res + 'px, ' + texture.frameCount+'f'))
+							? (texture.width + ' x ' + texture.height + 'px')
+							: (texture.ratio == 1? texture.width + 'px': (texture.width + 'px, ' + texture.frameCount+'f'))
 						)
 					}}</div>
 				</li>

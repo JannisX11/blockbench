@@ -993,7 +993,7 @@ const BARS = {
 				transformerMode: 'translate',
 				toolbar: Blockbench.isMobile ? 'element_origin' : 'main_tools',
 				alt_tool: 'rotate_tool',
-				modes: ['edit'],
+				modes: ['edit', 'animate'],
 				keybind: new Keybind({key: 80}),
 			})
 			new Tool({
@@ -1106,8 +1106,6 @@ const BARS = {
 				keybind: new Keybind({key: 88, ctrl: true, shift: null}),
 				click: function (event) {Clipbench.copy(event, true)}
 			})
-
-
 			new Action({
 				id: 'rename',
 				icon: 'text_format',
@@ -1162,6 +1160,39 @@ const BARS = {
 			})
 
 
+			new Action({
+				id: 'duplicate',
+				icon: 'content_copy',
+				category: 'edit',
+				condition: () => (Animator.selected && Modes.animate) || (Modes.edit && (selected.length || Group.selected)),
+				keybind: new Keybind({key: 68, ctrl: true}),
+				click: function () {
+					if (Modes.animate) {
+						if (Animator.selected && Prop.active_panel == 'animations') {
+							var copy = Animator.selected.getUndoCopy();
+							var animation = new Animation(copy);
+							animation.createUniqueName();
+							Animator.animations.splice(Animator.animations.indexOf(Animator.selected)+1, 0, animation)
+							animation.add(true).select();
+						}
+					} else if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {
+						var cubes_before = elements.length;
+						Undo.initEdit({outliner: true, elements: [], selection: true});
+						var g = Group.selected.duplicate();
+						g.select();
+						Undo.finishEdit('duplicate_group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true})
+					} else {
+						var added_elements = [];
+						Undo.initEdit({elements: added_elements, outliner: true, selection: true})
+						selected.forEach(function(obj, i) {
+							var copy = obj.duplicate();
+							added_elements.push(copy);
+						})
+						BarItems.move_tool.select();
+						Undo.finishEdit('duplicate')
+					}
+				}
+			})
 
 
 		//Move Cube Keys
@@ -1499,10 +1530,13 @@ const BARS = {
 			children: [
 				'brush_mode',
 				'fill_mode',
+				'_',
 				'slider_brush_size',
 				'slider_brush_opacity',
 				'slider_brush_min_opacity',
-				'slider_brush_softness'
+				'slider_brush_softness',
+				'_',
+				'painting_grid',
 			]
 		})
 		Toolbars.vertex_snap = new Toolbar({
