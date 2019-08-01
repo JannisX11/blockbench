@@ -194,6 +194,12 @@ function updateNslideValues() {
 	}
 }
 function setProjectResolution(width, height, modify_uv) {
+	if (Project.texture_width / width != Project.texture_width / height) {
+		modify_uv = false;
+	}
+
+	Undo.initEdit({uv_mode: true, elements: Cube.all, uv_only: true})
+
 	let old_res = {
 		x: Project.texture_width,
 		y: Project.texture_height
@@ -201,14 +207,11 @@ function setProjectResolution(width, height, modify_uv) {
 	Project.texture_width = width;
 	Project.texture_height = height;
 
-	if (Project.texture_width / old_res.x != Project.texture_width / old_res.y) {
-		modify_uv = false;
-	}
 
 	if (modify_uv) {
 		var multiplier = [
-			Project.texture_width/entityMode.old_res.x,
-			Project.texture_height/entityMode.old_res.y
+			Project.texture_width/old_res.x,
+			Project.texture_height/old_res.y
 		]
 		function shiftCube(cube, axis) {
 			if (Project.box_uv) {
@@ -228,7 +231,7 @@ function setProjectResolution(width, height, modify_uv) {
 			Cube.all.forEach(cube => shiftCube(cube, 1));
 		}
 	}
-
+	Undo.finishEdit('Changed project resolution')
 	Canvas.updateAllUVs()
 	if (selected.length) {
 		main_uv.loadData()

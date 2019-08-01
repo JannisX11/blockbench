@@ -11,18 +11,9 @@ function parseGeometry(data) {
 			data = pe_list_data[0]
 		}
 	}
-	Project.geometry_name = data.name.replace(/^geometry\./, '')
-	Project.texture_width = 64
-	Project.texture_height = 64
-
-	if (data.object.texturewidth !== undefined) {
-		Project.texture_width = data.object.texturewidth
-	}
-	if (data.object.textureheight !== undefined) {
-		Project.texture_height = data.object.textureheight
-	}
-	entityMode.old_res.x = Project.texture_width
-	entityMode.old_res.y = Project.texture_height
+	Project.geometry_name = data.name.replace(/^geometry\./, '');
+	Project.texture_width = data.object.texturewidth || 64;
+	Project.texture_height = data.object.textureheight || 64;
 
 	var bones = {}
 
@@ -164,19 +155,13 @@ var codec = new Codec('bedrock_old', {
 					bone.rotation[ri] *= -1
 				})
 			}
-			if (g.reset) {
-				bone.reset = true
-			}
-			if (g.mirror_uv) {
-				bone.mirror = true
-			}
-			if (g.material) {
-				bone.material = g.material
-			}
-			//Cubes
+			if (g.reset) bone.reset = true;
+			if (g.mirror_uv) bone.mirror = true;
+			if (g.material) bone.material = g.material;
+
+			//Elements
 			var cubes = []
 			var locators = {};
-
 			for (var obj of g.children) {
 				if (obj.export) {
 					if (obj instanceof Cube) {
