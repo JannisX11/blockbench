@@ -128,8 +128,8 @@ const Painter = {
 		var x = end_x;
 		var y = end_y;
 		var diff = {
-			x: x - (Painter.current.x||x),
-			y: y - (Painter.current.y||y),
+			x: x - (Painter.current.x == undefined ? x : Painter.current.x),
+			y: y - (Painter.current.y == undefined ? y : Painter.current.y),
 		}
 		var length = Math.sqrt(diff.x*diff.x + diff.y*diff.y)
 		if (new_face && !length) {
@@ -505,30 +505,47 @@ const Painter = {
 			id: 'add_bitmap',
 			title: tl('dialog.create_texture.title'),
 			form: {
-				name: 			{label: 'dialog.create_texture.name', value: 'texture'},
-				folder: 		{label: 'dialog.create_texture.folder'},
-				entity_template:{label: 'dialog.create_texture.template', type: 'checkbox', condition: Cube.all.length},
-				compress: 		{label: 'dialog.create_texture.compress', type: 'checkbox', value: true},
-				power: 			{label: 'dialog.create_texture.power', type: 'checkbox', value: true},
-				double_use: 	{label: 'dialog.create_texture.double_use', type: 'checkbox', value: true, condition: Project.box_uv},
-				color: 			{type: 'color', colorpicker: Painter.background_color},
-				resolution: 	{label: 'dialog.create_texture.resolution', type: 'number', value: 16, min: 16, max: 2048},
+				name: 		{label: 'generic.name', value: 'texture'},
+				folder: 	{label: 'dialog.create_texture.folder'},
+				template:	{label: 'dialog.create_texture.template', type: 'checkbox', condition: Cube.all.length},
+				color: 		{type: 'color', colorpicker: Painter.background_color},
+				resolution: {label: 'dialog.create_texture.resolution', type: 'number', value: 16, min: 16, max: 2048},
 			},
 			onConfirm: function(results) {
 				results.particle = 'auto';
-				Painter.addBitmap(results)
 				dialog.hide()
+				if (results.template) {
+					var dialog2 = new Dialog({
+						id: 'texture_template',
+						title: tl('dialog.create_texture.template'),
+						form: {
+							compress: 	{label: 'dialog.create_texture.compress', type: 'checkbox', value: true},
+							power: 		{label: 'dialog.create_texture.power', type: 'checkbox', value: true},
+							double_use: {label: 'dialog.create_texture.double_use', type: 'checkbox', value: true, condition: Project.box_uv},
+							color: 		{type: 'color', colorpicker: Painter.background_color},
+							resolution: {label: 'dialog.create_texture.resolution', type: 'select', value: 16, options: {
+								16: '16',
+								32: '32',
+								64: '64',
+								128: '128',
+								256: '256',
+								512: '512',
+							}},
+						},
+						onConfirm: function(results2) {
+							$.extend(results, results2)
+							Painter.addBitmap(results)
+							dialog2.hide()
+						}
+					}).show()
+					if (Painter.background_color.get().toHex8() === 'ffffffff') {
+						Painter.background_color.set('#00000000')
+					}
+				} else {
+					Painter.addBitmap(results)
+				}
 			}
 		}).show()
-		$('#add_bitmap #compress, #add_bitmap #power, #add_bitmap #double_use').parent().hide()
-
-		$('.dialog#add_bitmap input#entity_template').click(function() {
-			var checked = $('.dialog#add_bitmap input#entity_template').is(':checked')
-			$('#add_bitmap #compress, #add_bitmap #power, #add_bitmap #double_use').parent()[ checked ? 'show' : 'hide' ]()
-			if (Painter.background_color.get().toHex8() === 'ffffffff') {
-				Painter.background_color.set('#00000000')
-			}
-		})
 	},
 	addBitmap(options, after) {
 		if (typeof options !== 'object') {
@@ -563,12 +580,12 @@ const Painter = {
 			if (typeof after === 'function') {
 				after(texture)
 			}
-			if (!options.entity_template) {
+			if (!options.template) {
 				Undo.finishEdit('create blank texture', {textures: [texture], bitmap: true})
 			}
 			return texture;
 		}
-		if (options.entity_template === true) {
+		if (options.template === true) {
 			Undo.initEdit({
 				textures: Format.single_texture ? textures : [],
 				elements: Format.single_texture ? Cube.all : Cube.selected,
@@ -941,8 +958,7 @@ const ColorPanel = {
 
 BARS.defineActions(function() {
 
-	new Tool({
-		id: 'brush_tool',
+	new Tool('brush_tool', {
 		icon: 'fa-paint-brush',
 		category: 'tools',
 		toolbar: 'brush',
@@ -964,8 +980,7 @@ BARS.defineActions(function() {
 			$('.UVEditor').find('#uv_size').show()
 		}
 	})
-	new Tool({
-		id: 'fill_tool',
+	new Tool('fill_tool', {
 		icon: 'format_color_fill',
 		category: 'tools',
 		toolbar: 'brush',
@@ -986,8 +1001,7 @@ BARS.defineActions(function() {
 			$('.UVEditor').find('#uv_size').show()
 		}
 	})
-	new Tool({
-		id: 'eraser',
+	new Tool('eraser', {
 		icon: 'fa-eraser',
 		category: 'tools',
 		toolbar: 'brush',
@@ -1007,8 +1021,7 @@ BARS.defineActions(function() {
 			$('.UVEditor').find('#uv_size').show()
 		}
 	})
-	new Tool({
-		id: 'color_picker',
+	new Tool('color_picker', {
 		icon: 'colorize',
 		category: 'tools',
 		toolbar: 'brush',
@@ -1029,8 +1042,7 @@ BARS.defineActions(function() {
 		}
 	})
 
-	new BarSelect({
-		id: 'brush_mode',
+	new BarSelect('brush_mode', {
 		condition: () => Toolbox && (Toolbox.selected.id === 'brush_tool' || Toolbox.selected.id === 'eraser'),
 		onChange() {
 			BARS.updateConditions();
@@ -1041,8 +1053,7 @@ BARS.defineActions(function() {
 			noise: true
 		}
 	})
-	new BarSelect({
-		id: 'fill_mode',
+	new BarSelect('fill_mode', {
 		condition: () => Toolbox && Toolbox.selected.id === 'fill_tool',
 		options: {
 			face: true,
@@ -1052,8 +1063,7 @@ BARS.defineActions(function() {
 	})
 
 
-	new Action({
-		id: 'painting_grid',
+	new Action('painting_grid', {
 		name: tl('settings.painting_grid'),
 		description: tl('settings.painting_grid.desc'),
 		icon: 'check_box',
@@ -1068,24 +1078,22 @@ BARS.defineActions(function() {
 		}
 	})
 
-	new NumSlider({
-		id: 'slider_brush_size',
+	new NumSlider('slider_brush_size', {
 		condition: () => (Toolbox && ['brush_tool', 'eraser'].includes(Toolbox.selected.id)),
 		settings: {
 			min: 1, max: 20, interval: 1, default: 1,
 		}
 	})
-	new NumSlider({
-		id: 'slider_brush_softness',
+	new NumSlider('slider_brush_softness', {
 		condition: () => (Toolbox && ['brush_tool', 'eraser'].includes(Toolbox.selected.id)),
 		settings: {
 			min: 0, max: 100, default: 0,
 			interval: function(event) {
-				if (event.shiftKey && event.ctrlKey) {
+				if (event.shiftKey && event.ctrlOrCmd) {
 					return 0.25;
 				} else if (event.shiftKey) {
 					return 5;
-				} else if (event.ctrlKey) {
+				} else if (event.ctrlOrCmd) {
 					return 1;
 				} else {
 					return 10;
@@ -1093,17 +1101,16 @@ BARS.defineActions(function() {
 			}
 		}
 	})
-	new NumSlider({
-		id: 'slider_brush_opacity',
+	new NumSlider('slider_brush_opacity', {
 		condition: () => (Toolbox && ['brush_tool', 'eraser'].includes(Toolbox.selected.id)),
 		settings: {
 			min: 0, max: 100, default: 100,
 			interval: function(event) {
-				if (event.shiftKey && event.ctrlKey) {
+				if (event.shiftKey && event.ctrlOrCmd) {
 					return 0.25;
 				} else if (event.shiftKey) {
 					return 5;
-				} else if (event.ctrlKey) {
+				} else if (event.ctrlOrCmd) {
 					return 1;
 				} else {
 					return 10;
@@ -1111,17 +1118,16 @@ BARS.defineActions(function() {
 			}
 		}
 	})
-	new NumSlider({
-		id: 'slider_brush_min_opacity',
+	new NumSlider('slider_brush_min_opacity', {
 		condition: () => (Toolbox && ['brush_tool', 'eraser'].includes(Toolbox.selected.id) && BarItems.brush_mode.value == 'noise'),
 		settings: {
 			min: 0, max: 100, default: 50,
 			interval: function(event) {
-				if (event.shiftKey && event.ctrlKey) {
+				if (event.shiftKey && event.ctrlOrCmd) {
 					return 0.25;
 				} else if (event.shiftKey) {
 					return 5;
-				} else if (event.ctrlKey) {
+				} else if (event.ctrlOrCmd) {
 					return 1;
 				} else {
 					return 10;

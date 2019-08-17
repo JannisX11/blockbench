@@ -81,7 +81,8 @@ function initializeApp() {
 	} else {
 		$('.web_only').remove()
 	}
-	if (localStorage.getItem('welcomed_version') != appVersion) {
+	var last_welcome = localStorage.getItem('welcomed_version');
+	if (last_welcome.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
 		Blockbench.addFlag('after_update')
 		localStorage.setItem('welcomed_version', appVersion)
 	}
@@ -276,9 +277,6 @@ function updateSelection() {
 		}
 	}
 	if (Modes.animate) {
-		if (Animator.selected && Group.selected) {
-			Animator.selected.getBoneAnimator().select()
-		}
 		updateKeyframeSelection()
 	}
 
@@ -321,6 +319,7 @@ function createSelection() {
 		Group.selected.unselect()
 	}
 	var name_seg = $('#selgen_name').val().toUpperCase()
+	var tex_seg = $('#selgen_texture').val().toLowerCase()
 	var rdm = $('#selgen_random').val()/100
 
 	var array = elements
@@ -328,10 +327,20 @@ function createSelection() {
 		array = Group.selected.children
 	}
 
-	array.forEach(function(s) {
-		if (s.name.toUpperCase().includes(name_seg) === false) return;
+	array.forEach(function(obj) {
+		if (obj.name.toUpperCase().includes(name_seg) === false) return;
+		if (obj instanceof Cube && tex_seg && !Format.single_texture) {
+			var has_tex = false;
+			for (var key in obj.faces) {
+				var tex = obj.faces[key].getTexture();
+				if (tex && tex.name.includes(tex_seg)) {
+					has_tex = true
+				}
+			}
+			if (!has_tex) return;
+		}
 		if (Math.random() > rdm) return;
-		selected.push(s)
+		selected.push(obj)
 	})
 	updateSelection()
 	if (selected.length) {
@@ -359,6 +368,7 @@ class Mode extends KeybindItem {
 		var scope = this;
 		if (Modes.selected) {
 			delete Modes[Modes.selected.id];
+			Modes.previous_id = Modes.selected.id;
 		}
 		if (typeof Modes.selected.onUnselect === 'function') {
 			Modes.selected.onUnselect()
@@ -438,6 +448,9 @@ BARS.defineActions(function() {
 		condition: () => Format,
 		keybind: new Keybind({key: 50}),
 		onSelect: () => {
+			if (Modes.previous_id == 'animate') {
+				Animator.preview();
+			}
 			Cube.all.forEach(cube => {
 				Canvas.buildGridBox(cube)
 			})
@@ -530,6 +543,9 @@ const Clipbench = {
 		} else if (Animator.open) {
 			if (Timeline.selected.length) {
 				Clipbench.setKeyframes(Timeline.selected)
+				if (cut) {
+					BarItems.delete.trigger()
+				}
 			}
 		} else if (p == 'uv' || p == 'preview') {
 			main_uv.copy(event)
@@ -537,6 +553,9 @@ const Clipbench = {
 		} else if (p == 'textures' && isApp) {
 			if (textures.selected) {
 				Clipbench.setTexture(textures.selected)
+				if (cut) {
+					BarItems.delete.trigger()
+				}
 			}
 		} else if (p == 'outliner') {
 			Clipbench.setElements()
@@ -571,19 +590,17 @@ const Clipbench = {
 			if (Clipbench.keyframes && Clipbench.keyframes.length) {
 
 				if (!Animator.selected) return;
-				var bone = Animator.selected.getBoneAnimator()
-				if (bone) {
+				var animator = Timeline.selected_animator
+				if (animator) {
 					var keyframes = [];
-					Undo.initEdit({keyframes, keep_saved: true});
+					Undo.initEdit({keyframes});
 					Clipbench.keyframes.forEach(function(data, i) {
-						var base_kf = new Keyframe(data);
-						base_kf.time = Timeline.second + data.time_offset;
-						bone.pushKeyframe(base_kf);
-						keyframes.push(base_kf);
-						base_kf.select(i ? {ctrlKey: true} : null)
+
+						var kf = animator.createKeyframe(data, Timeline.time + data.time_offset, data.channel)
+						keyframes.push(kf);
+						kf.select(i ? {ctrlOrCmd: true} : null)
 					})
 					Animator.preview()
-					Vue.nextTick(Timeline.update);
 					Undo.finishEdit('paste keyframes');
 				}
 			}
@@ -697,15 +714,10 @@ const Clipbench = {
 			}
 		})
 		keyframes.forEach(function(kf) {
-			Clipbench.keyframes.push({
-				channel: kf.channel,
-				x: kf.x,
-				y: kf.y,
-				z: kf.z,
-				w: kf.w,
-				isQuaternion: kf.isQuaternion,
-				time_offset: kf.time - first.time,
-			})
+			var copy = kf.getUndoCopy();
+			copy.time_offset = kf.time - first.time;
+			delete copy.animator;
+			Clipbench.keyframes.push(copy)
 		})
 		if (isApp) {
 			clipboard.writeHTML(JSON.stringify({type: 'keyframes', content: Clipbench.keyframes}))

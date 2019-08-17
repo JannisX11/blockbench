@@ -137,7 +137,7 @@ function Dialog(settings) {
 			var buttons = []
 
 			scope.buttons.forEach(function(b, i) {
-				var btn = $('<button type="button">'+tl(b)+'</button>')
+				var btn = $('<button type="button">'+tl(b)+'</button> ')
 				buttons.push(btn)
 			})
 			buttons[scope.confirmIndex] && buttons[scope.confirmIndex].addClass('confirm_btn')
@@ -149,15 +149,15 @@ function Dialog(settings) {
 		} else if (this.singleButton) {
 
 			jq_dialog.append('<div class="dialog_bar">' +
-				'<button type="button" class="large cancel_btn confirm_btn"'+ (this.confirmEnabled ? '' : ' disabled') +'>'+tl('dialog.close')+'</button>' +
+				'<button type="button" class="cancel_btn confirm_btn"'+ (this.confirmEnabled ? '' : ' disabled') +'>'+tl('dialog.close')+'</button>' +
 			'</div>')
 
 		} else {
 
-			jq_dialog.append(['<div class="dialog_bar">',
-				'<button type="button" class="large confirm_btn"'+ (this.confirmEnabled ? '' : ' disabled') +'>'+tl('dialog.confirm')+'</button>',
-				'<button type="button" class="large cancel_btn"'+ (this.cancelEnabled ? '' : ' disabled') +'>'+tl('dialog.cancel')+'</button>',
-			'</div>'].join(''))
+			jq_dialog.append(`<div class="dialog_bar">
+				<button type="button" class="confirm_btn${this.confirmEnabled ? '' : ' disabled'}">${tl('dialog.confirm')}</button>&nbsp;
+				<button type="button" class="cancel_btn${this.cancelEnabled ? '' : ' disabled'}">${tl('dialog.cancel')}</button>
+			</div>`)
 
 		}
 		jq_dialog.append('<div id="dialog_close_button" onclick="$(\'.dialog#\'+open_dialog).find(\'.cancel_btn:not([disabled])\').click()"><i class="material-icons">clear</i></div>')

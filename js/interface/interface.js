@@ -171,6 +171,7 @@ var Interface = {
 		right_bar_width: 314,
 		quad_view_x: 50,
 		quad_view_y: 50,
+		timeline_height: 260,
 		left_bar: ['uv', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
 		right_bar: ['color', 'outliner', 'chat']
 	},
@@ -222,11 +223,14 @@ var Interface = {
 			condition: function() {return quad_previews.enabled},
 			get: function() {return Interface.data.quad_view_x},
 			set: function(o, diff) {Interface.data.quad_view_x = limitNumber(o + diff/$('#preview').width()*100, 5, 95)},
-			position: function(line) {line.setPosition({
-				top: 32,
-				bottom: 0,
-				left: Interface.data.left_bar_width + $('#preview').width()*Interface.data.quad_view_x/100
-			})}
+			position: function(line) {
+				var p = document.getElementById('preview')
+				line.setPosition({
+					top: 32,
+					bottom: p ? window.innerHeight - (p.clientHeight + p.offsetTop) : 0,
+					left: Interface.data.left_bar_width + $('#preview').width()*Interface.data.quad_view_x/100
+				}
+			)}
 		}),
 		quad_view_y: new ResizeLine({
 			id: 'quad_view_y',
@@ -240,6 +244,20 @@ var Interface = {
 				left: Interface.data.left_bar_width+2,
 				right: Interface.data.right_bar_width+2,
 				top: $('#preview').offset().top + $('#preview').height()*Interface.data.quad_view_y/100
+			})}
+		}),
+		timeline: new ResizeLine({
+			id: 'timeline',
+			horizontal: true,
+			condition: function() {return Modes.animate},
+			get: function() {return Interface.data.timeline_height},
+			set: function(o, diff) {
+				Interface.data.timeline_height = limitNumber(o - diff, 150, document.body.clientHeight-120)
+			},
+			position: function(line) {line.setPosition({
+				left: Interface.data.left_bar_width+2,
+				right: Interface.data.right_bar_width+2,
+				top: $('#timeline').offset().top
 			})}
 		})
 	},
@@ -294,6 +312,47 @@ function setupInterface() {
 			Interface.panel = $(this).attr('id');
 		}
 	})
+
+	//Colors
+	var color_wrapper = $('#color_wrapper')
+	for (var key in app_colors) {
+		if (app_colors[key] && app_colors[key].hex) {
+			(() => {
+				var scope_key = key;
+				var hex = app_colors[scope_key].hex;
+				if (key == 'text_acc') key = 'accent_text';
+				var field = $(`<div class="color_field">
+						<div class="layout_color_preview" style="background-color: var(--color-${scope_key})" class="color_input"></div>
+						<div class="desc">
+							<h4>${tl('layout.color.'+key)}</h4>
+							<p>${tl('layout.color.'+key+'.desc')}</p>
+						</div>
+					</div>`);
+				color_wrapper.append(field);
+
+				var last_color = hex;
+				field.spectrum({
+					preferredFormat: "hex",
+					color: hex,
+					showAlpha: false,
+					showInput: true,
+					move(c) {
+						app_colors[scope_key].hex = c.toHexString();
+						updateUIColor();
+					},
+					change(c) {
+						last_color = c.toHexString();
+					},
+					hide(c) {
+						app_colors[scope_key].hex = last_color;
+						field.spectrum('set', last_color)
+						updateUIColor();
+					}
+				});
+			})()
+		}
+	}
+
 
 	//Panels
 	Interface.Panels.uv = new Panel({
@@ -441,8 +500,7 @@ function setupInterface() {
 
 
 	//Tooltip Fix
-	$('.tool').on('mouseenter', function() {
-
+	$(document).on('mouseenter', '.tool', function() {
 		var tooltip = $(this).find('div.tooltip')
 		if (!tooltip || typeof tooltip.offset() !== 'object') return;
 		//Left
@@ -456,8 +514,11 @@ function setupInterface() {
 		if (tooltip.css('right') === '-4px') {
 			tooltip.css('right', 'auto')
 		}
+
 		if ((tooltip.offset().left + tooltip.width()) - $(window).width() > 4) {
 			tooltip.css('right', '-4px')
+		} else if ($(this).parent().css('position') == 'relative') {
+			tooltip.css('right', '0')
 		}
 	})
 
@@ -563,6 +624,7 @@ function updateInterfacePanels() {
 	$('.quad_canvas_wrapper.qcw_y').css('height', Interface.data.quad_view_y+'%')
 	$('.quad_canvas_wrapper:not(.qcw_x)').css('width', (100-Interface.data.quad_view_x)+'%')
 	$('.quad_canvas_wrapper:not(.qcw_y)').css('height', (100-Interface.data.quad_view_y)+'%')
+	$('#timeline').css('height', Interface.data.timeline_height+'px')
 	for (var key in Interface.Resizers) {
 		var resizer = Interface.Resizers[key]
 		resizer.update()
@@ -728,16 +790,6 @@ function colorSettingsSetup(reset) {
 	updateUIColor()
 	buildGrid()
 }
-function initUIColor(event) {
-	var type = $(event.target).attr('id').split('color_')[1]
-	$('input#color_'+type).val(app_colors[type].hex)
-}
-function changeUIColor(event) {
-	var type = $(event.target).attr('id').split('color_')[1]
-
-	app_colors[type].hex = $('input#color_'+type).val()
-	updateUIColor()
-}
 function changeUIFont(type) {
 	var font = $('#layout_font_'+type).val()
 	app_colors[type].font = font
@@ -766,8 +818,9 @@ function updateUIColor() {
 	$('meta[name=theme-color]').attr('content', app_colors.border.hex)
 
 	var c_outline = parseInt('0x'+app_colors.accent.hex.replace('#', ''))
-	if (!gizmo_colors.outline || c_outline !== gizmo_colors.outline.getHex()) {
-		gizmo_colors.outline = new THREE.Color( c_outline )
+
+	if (c_outline !== gizmo_colors.outline.getHex()) {
+		gizmo_colors.outline.set(c_outline)
 		Canvas.outlineMaterial.color = gizmo_colors.outline
 	}
 	var w_wire = parseInt('0x'+app_colors.wireframe.hex.replace('#', ''))

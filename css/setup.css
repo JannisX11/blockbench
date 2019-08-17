@@ -42,7 +42,6 @@
 
 	::selection {
 		background: var(--color-accent);
-		border-radius: 4px;
 	}
 	@media (max-device-width: 480px) {
 		::-webkit-scrollbar {
@@ -52,6 +51,57 @@
 		* {
 			scrollbar-width: none;
 		}
+	}
+	/*Assistant Font*/
+	@font-face {
+		font-family: 'Assistant';
+		font-style: normal;
+		font-weight: 200;
+		src: local('Assistant-ExtraLight'),
+			url(../font/Assistant-ExtraLight.ttf) format('truetype');
+	}
+	@font-face {
+		font-family: 'Assistant';
+		font-style: normal;
+		font-weight: 300;
+		src: local('Assistant-Light'),
+			url(../font/Assistant-Light.ttf) format('truetype');
+	}
+	@font-face {
+		font-family: 'Assistant';
+		font-style: normal;
+		font-weight: 400;
+		src: local('Assistant-Regular'),
+			url(../font/Assistant-Regular.ttf) format('truetype');
+	}
+	@font-face {
+		font-family: 'Assistant';
+		font-style: normal;
+		font-weight: 600;
+		src: local('Assistant-SemiBold'),
+			url(../font/Assistant-SemiBold.ttf) format('truetype');
+	}
+	@font-face {
+		font-family: 'Assistant';
+		font-style: normal;
+		font-weight: 600;
+		src: local('Assistant-Bold'),
+			url(../font/Assistant-Bold.ttf) format('truetype');
+	}
+	@font-face {
+		font-family: 'Assistant';
+		font-style: normal;
+		font-weight: 700;
+		src: local('Assistant-ExtraBold'),
+			url(../font/Assistant-ExtraBold.ttf) format('truetype');
+	}
+	
+
+	@font-face {
+		font-family: 'montserrat';
+		font-style: normal;
+		src: local('Montserrat'),
+			url(../font/Montserrat-Regular.ttf) format('truetype');
 	}
 	@font-face {
 		font-family: 'Material Icons';
@@ -99,6 +149,9 @@
 	  -moz-osx-font-smoothing: grayscale;
 	}
 
+	.icon-format_bedrock_legacy:before {
+	  content: "\e91a";
+	}
 	.icon-crossbow:before {
 	  content: "\e91b";
 	}
@@ -121,7 +174,7 @@
 	  content: "\e921";
 	}
 	.icon-sketchfab:before {
-	  content: "\e91a";
+	  content: "\e919";
 	}
 	.icon-blockbench_file:before {
 	  content: "\e900";
@@ -200,6 +253,7 @@
 	}
 
 
+
 	.material-icons {
 		font-family: 'Material Icons';
 		font-weight: normal;
@@ -263,9 +317,9 @@
 		width: 100%;
 		position: fixed;
 
-		font-family: segoe ui, Helvetiva Neue, arial, sans-serif;
+		font-family: Assistant, segoe ui, Helvetiva Neue, arial, sans-serif;
 		font-size: 16px;
-		font-weight: lighter;
+		font-weight: normal;
 
 		color: var(--color-text);
 		outline-color: var(--color-accent);
@@ -326,7 +380,6 @@
 		color: var(--color-text)
 		font-size: 1em;
 		font-family: inherit;
-		font-weight: lighter;
 		outline: none;
 	}
 	button {
@@ -380,7 +433,6 @@
 		background-color: var(--color-back);
 		outline: none;
 		border: none;
-		font-weight: lighter;
 	}
 	textarea {
 		width: 100%;
@@ -398,19 +450,18 @@
 	}
 	input[type=range] {
 		background-color: var(--color-back);
+		height: 30px;
 	}
 
 	input[type=range]::-webkit-slider-thumb {
 		-webkit-appearance: none;
 		-moz-appearance: none;
 		appearance: none;
-		height: 29px;
-		width: 14px;
+		height: 30px;
+		width: 12px;
 		border:none;
 		background-color: var(--color-accent);
 		cursor: pointer;
-		margin-top: -4px;
-		border-radius: 2px;
 	}
 	input[type=range][disabled=disabled]::-webkit-slider-thumb {
 		background-color: var(--color-button);
@@ -424,7 +475,7 @@
 	input[type=checkbox]:checked::before {
 		content: "\f14a";
 		font-family: 'Font Awesome 5 Free';
-    	font-weight: 300;
+    	font-weight: 600;
 	}
 	input[type=checkbox][disabled=disabled] {
 		opacity: 0.6;

@@ -75,7 +75,7 @@ class Group extends OutlinerElement {
 
 		//Clear Old Group
 		if (Group.selected) Group.selected.unselect()
-		if (event.shiftKey !== true && event.ctrlKey !== true) {
+		if (event.shiftKey !== true && event.ctrlOrCmd !== true) {
 			selected.length = 0
 		}
 		//Select This Group
@@ -83,7 +83,7 @@ class Group extends OutlinerElement {
 			s.selected = false
 		})
 		this.selected = true
-		Group.selected = this
+		Group.selected = this;
 
 		//Select / Unselect Children
 		if (allSelected && event.which === 1) {
@@ -93,6 +93,11 @@ class Group extends OutlinerElement {
 			scope.children.forEach(function(s) {
 				s.selectLow()
 			})
+		}
+		if (Animator.open) {
+			if (Animator.selected) {
+				Animator.selected.getBoneAnimator().select(true)
+			}
 		}
 		updateSelection()
 		return this;
@@ -134,6 +139,12 @@ class Group extends OutlinerElement {
 	}
 	unselect() {
 		if (this.selected === false) return;
+		if (Animator.open && Animator.selected) {
+			var ba = Animator.selected.animators[this.uuid];
+			if (ba) {
+				ba.selected = false
+			}
+		}
 		Group.selected = undefined;
 		this.selected = false
 		TickUpdates.selection = true;
@@ -256,7 +267,7 @@ class Group extends OutlinerElement {
 					obj.from[1] += shift.y;
 					obj.from[2] += shift.z;
 				}
-				if (obj.scalable) {
+				if (obj.resizable) {
 					obj.to[0] += shift.x;
 					obj.to[1] += shift.y;
 					obj.to[2] += shift.z;

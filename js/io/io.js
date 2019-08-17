@@ -20,8 +20,8 @@ class ModelFormat {
 	constructor(data) {
 		Formats[data.id] = this;
 		this.id = data.id;
-		this.name = tl('format.'+this.id);
-		this.description = tl('format.'+this.id+'.desc');
+		this.name = data.name || tl('format.'+this.id);
+		this.description = data.description || tl('format.'+this.id+'.desc');
 		this.show_on_start_screen = true;
 
 		this.box_uv = false;
@@ -74,8 +74,8 @@ class ModelFormat {
 		}
 		var center = Format.bone_rig ? 8 : 0;
 		previews.forEach(preview => {
+			preview.camOrtho.position.y += center - preview.controls.target.y;
 			preview.controls.target.set(0, center, 0);
-			preview.camOrtho.position.add(preview.controls.target);
 		})
 		updateSelection()
 		Modes.vue.$forceUpdate()
@@ -355,7 +355,7 @@ function newProject(format, force) {
 function setupDragHandlers() {
 	Blockbench.addDragHandler(
 		'model',
-		{extensions: ['json', 'jem', 'bbmodel']},
+		{extensions: ['json', 'jem', 'jpm', 'bbmodel']},
 		function(files) {
 			loadModelFile(files[0])
 		}
@@ -415,6 +415,8 @@ function loadModelFile(file) {
 			}
 		} else if (extension == 'jem') {
 			Codecs.optifine_entity.load(model, file)
+		} else if (extension == 'jpm') {
+			Codecs.optifine_part.load(model, file)
 		}
 		EditSession.initNewModel()
 	}
@@ -820,8 +822,7 @@ BARS.defineActions(function() {
 		optional_box_uv: true,
 	})
 	//Project
-	new Action({
-		id: 'project_window',
+	new Action('project_window', {
 		icon: 'featured_play_list',
 		category: 'file',
 		click: function () {
@@ -831,10 +832,11 @@ BARS.defineActions(function() {
 				title: 'dialog.project.title',
 				width: 540,
 				form: {
+					format: {type: 'text', label: 'data.format', text: Format.name||'unknown'},
 					name: {label: 'dialog.project.name', value: Project.name},
 					parent: {label: 'dialog.project.parent', value: Project.parent, condition: !Format.bone_rig},
 					geometry_name: {label: 'dialog.project.geoname', value: Project.geometry_name, condition: Format.bone_rig},
-					ambientocclusion: {label: 'dialog.project.ao', type: 'checkbox', value: Project.ambientocclusion, condition: !Format.bone_rig},
+					ambientocclusion: {label: 'dialog.project.ao', type: 'checkbox', value: Project.ambientocclusion, condition: Format.id == 'java_block'},
 					box_uv: {label: 'dialog.project.box_uv', type: 'checkbox', value: Project.box_uv, condition: Format.optional_box_uv},
 					texture_width: {
 						label: 'dialog.project.width',
@@ -848,7 +850,6 @@ BARS.defineActions(function() {
 						value: Project.texture_height,
 						min: 1
 					},
-
 				},
 				onConfirm: function(formResult) {
 					var save;
@@ -883,8 +884,7 @@ BARS.defineActions(function() {
 			dialog.show()
 		}
 	})
-	new Action({
-		id: 'close_project',
+	new Action('close_project', {
 		icon: 'cancel_presentation',
 		category: 'file',
 		condition: () => (!EditSession.active || EditSession.hosting) && Format,
@@ -897,8 +897,7 @@ BARS.defineActions(function() {
 			}
 		}
 	})
-	new Action({
-		id: 'convert_project',
+	new Action('convert_project', {
 		icon: 'fas.fa-file-import',
 		category: 'file',
 		condition: () => (!EditSession.active || EditSession.hosting),
@@ -916,7 +915,7 @@ BARS.defineActions(function() {
 				form: {
 					text: {type: 'text', text: 'dialog.convert_project.text'},
 					format: {
-						label: 'dialog.convert_project.format',
+						label: 'data.format',
 						type: 'select',
 						default: Format.id,
 						options,
@@ -935,23 +934,21 @@ BARS.defineActions(function() {
 		}
 	})
 	//Import
-	new Action({
-		id: 'open_model',
+	new Action('open_model', {
 		icon: 'assessment',
 		category: 'file',
 		keybind: new Keybind({key: 79, ctrl: true}),
 		condition: () => (!EditSession.active || EditSession.hosting),
 		click: function () {
 			Blockbench.import({
-				extensions: ['json', 'jem', 'bbmodel'],
+				extensions: ['json', 'jem', 'jpm', 'bbmodel'],
 				type: 'Model'
 			}, function(files) {
 				loadModelFile(files[0])
 			})
 		}
 	})
-	new Action({
-		id: 'add_model',
+	new Action('add_model', {
 		icon: 'assessment',
 		category: 'file',
 		condition: _ => (Format.id == 'java_block' || Format.id == 'free'),
@@ -968,8 +965,7 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	new Action({
-		id: 'extrude_texture',
+	new Action('extrude_texture', {
 		icon: 'eject',
 		category: 'file',
 		condition: _ => !Project.box_uv,
@@ -987,8 +983,7 @@ BARS.defineActions(function() {
 		}
 	})
 	//Export
-	new Action({
-		id: 'export_over',
+	new Action('export_over', {
 		icon: 'save',
 		category: 'file',
 		keybind: new Keybind({key: 83, ctrl: true}),
@@ -1007,6 +1002,8 @@ BARS.defineActions(function() {
 						Blockbench.writeFile(ModelMeta.animation_path, {
 							content: autoStringify(Animator.buildFile())
 						})
+					} else if (Animator.animations.length) {
+						BarItems.export_animation_file.trigger()
 					}
 				}
 			} else {
@@ -1015,8 +1012,7 @@ BARS.defineActions(function() {
 		}
 	})
 	if (!isApp) {
-		new Action({
-			id: 'export_asset_archive',
+		new Action('export_asset_archive', {
 			icon: 'archive',
 			category: 'file',
 			condition: _ => Format && Format.codec,
@@ -1043,8 +1039,7 @@ BARS.defineActions(function() {
 			}
 		})
 	}
-	new Action({
-		id: 'upload_sketchfab',
+	new Action('upload_sketchfab', {
 		icon: 'icon-sketchfab',
 		category: 'file',
 		click: function(ev) {

@@ -35,16 +35,16 @@ function getSelectionCenter() {
 	var i = 0;
 	selected.forEach(cube => {
 		var m = cube.mesh
-		if (cube.visibility && m) {
+		if (m) {
 
 			var pos = cube.getWorldCenter()
 			center[0] += pos.x
 			center[1] += pos.y
 			center[2] += pos.z
 		} else if (!m && cube.from) {
-			center[0] += cube.from[0];
-			center[1] += cube.from[1];
-			center[2] += cube.from[2];
+			center[0] += cube.from[0]-scene.position.x;
+			center[1] += cube.from[1]-scene.position.y;
+			center[2] += cube.from[2]-scene.position.z;
 		}
 	})
 	for (var i = 0; i < 3; i++) {
@@ -143,7 +143,7 @@ function moveCubesRelative(difference, index, event) { //Multiple
     if (index === 1 && height === 'up') difference *= -1
 
     if (event) {
-    	difference *= canvasGridSize(event.shiftKey, event.ctrlKey);
+    	difference *= canvasGridSize(event.shiftKey, event.ctrlOrCmd);
     }
     
     Cube.selected.forEach(cube => {
@@ -173,41 +173,52 @@ function rotateSelected(axis, steps) {
 }
 //Mirror
 function mirrorSelected(axis) {
-	if (!Cube.selected.length) return;
-	Undo.initEdit({elements: Cube.selected, outliner: Format.bone_rig})
-	var center = 8
-	if (Format.bone_rig) {
-		center = 0
-		if (Group.selected && Group.selected.matchesSelection()) {
-			function flipGroup(group) {
-				if (group.type === 'group') {
-					for (var i = 0; i < 3; i++) {
-						if (i === axis) {
-							group.origin[i] *= -1
-						} else {
-							group.rotation[i] *= -1
+	if (Modes.animate && Timeline.selected.length) {
+
+		Undo.initEdit({keyframes: Timeline.selected})
+		for (var kf of Timeline.selected) {
+			kf.flip(axis)
+		}
+		Undo.finishEdit('flipped keyframes');
+		updateKeyframeSelection();
+		Animator.preview();
+
+	} else if (Modes.edit && Cube.selected.length) {
+		Undo.initEdit({elements: Cube.selected, outliner: Format.bone_rig})
+		var center = 8
+		if (Format.bone_rig) {
+			center = 0
+			if (Group.selected && Group.selected.matchesSelection()) {
+				function flipGroup(group) {
+					if (group.type === 'group') {
+						for (var i = 0; i < 3; i++) {
+							if (i === axis) {
+								group.origin[i] *= -1
+							} else {
+								group.rotation[i] *= -1
+							}
+						}
+						if (axis == 0 && group.name.includes('right')) {
+							group.name = group.name.replace(/right/g, 'left').replace(/2/, '');
+						} else if (axis == 0 && group.name.includes('left')) {
+							group.name = group.name.replace(/left/g, 'right').replace(/2/, '');
 						}
 					}
-					if (axis == 0 && group.name.includes('right')) {
-						group.name = group.name.replace(/right/g, 'left').replace(/2/, '');
-					} else if (axis == 0 && group.name.includes('left')) {
-						group.name = group.name.replace(/left/g, 'right').replace(/2/, '');
-					}
 				}
+				flipGroup(Group.selected)
+				Group.selected.forEachChild(flipGroup)
 			}
-			flipGroup(Group.selected)
-			Group.selected.forEachChild(flipGroup)
 		}
+		Cube.selected.forEach(function(obj) {
+			obj.flip(axis, center, false)
+			if (Project.box_uv && axis === 0) {
+				obj.shade = !obj.shade
+				Canvas.updateUV(obj)
+			}
+		})
+		updateSelection()
+		Undo.finishEdit('mirror')
 	}
-	Cube.selected.forEach(function(obj) {
-		obj.flip(axis, center, false)
-		if (Project.box_uv && axis === 0) {
-			obj.shade = !obj.shade
-			Canvas.updateUV(obj)
-		}
-	})
-	updateSelection()
-	Undo.finishEdit('mirror')
 }
 
 const Vertexsnap = {
@@ -355,9 +366,6 @@ const Vertexsnap = {
 					obj.origin[0] += cube_pos.getComponent(0)
 					obj.origin[1] += cube_pos.getComponent(1)
 					obj.origin[2] += cube_pos.getComponent(2)
-				} else {
-					var q = obj.mesh.getWorldQuaternion(new THREE.Quaternion()).inverse()
-					cube_pos.applyQuaternion(q)
 				}
 				var in_box = obj.move(cube_pos);
 				if (!in_box) {
@@ -506,14 +514,14 @@ function centerCubes(axis, update) {
 	var average = 0;
 	selected.forEach(function(obj) {
 		if (obj.movable) average += obj.from[axis]
-		if (obj.scalable) average += obj.to[axis]
+		if (obj.resizable) average += obj.to[axis]
 	})
 	average = average / (selected.length * 2)
 	var difference = (Format.bone_rig ? 0 : 8) - average
 
 	selected.forEach(function(obj) {
 		if (obj.movable) obj.from[axis] = limitToBox(obj.from[axis] + difference, obj.inflate);
-		if (obj.scalable) obj.to[axis] =  limitToBox(obj.to[axis] 	+ difference, obj.inflate);
+		if (obj.resizable) obj.to[axis] =  limitToBox(obj.to[axis] 	+ difference, obj.inflate);
 		if (obj.origin) obj.origin[axis] += difference;
 	})
 
@@ -525,11 +533,11 @@ function centerCubes(axis, update) {
 function getRotationInterval(event) {
 	if (Format.rotation_limit) {
 		return 22.5;
-	} else if (event.shiftKey && event.ctrlKey) {
+	} else if (event.shiftKey && event.ctrlOrCmd) {
 		return 0.25;
 	} else if (event.shiftKey) {
 		return 45;
-	} else if (event.ctrlKey) {
+	} else if (event.ctrlOrCmd) {
 		return 1;
 	} else {
 		return 5;
@@ -628,8 +636,7 @@ BARS.defineActions(function() {
 			}
 		})
 	}
-	new NumSlider({
-		id: 'slider_pos_x',
+	new NumSlider('slider_pos_x', {
 		condition: () => (selected.length && Modes.edit),
 		get: function() {
 			return selected[0].from[0]
@@ -644,8 +651,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('move')
 		}
 	}) 
-	new NumSlider({
-		id: 'slider_pos_y',
+	new NumSlider('slider_pos_y', {
 		condition: () => (selected.length && Modes.edit),
 		get: function() {
 			return selected[0].from[1]
@@ -660,8 +666,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('move')
 		}
 	}) 
-	new NumSlider({
-		id: 'slider_pos_z',
+	new NumSlider('slider_pos_z', {
 		condition: () => (selected.length && Modes.edit),
 		get: function() {
 			return selected[0].from[2]
@@ -678,21 +683,20 @@ BARS.defineActions(function() {
 	})
 
 
-	function scaleOnAxis(value, fixed, axis) {
+	function resizeOnAxis(value, fixed, axis) {
 		selected.forEach(function(obj, i) {
-			if (obj.scalable) {
-				obj.scale(value, axis, false, fixed, true)
+			if (obj.resizable) {
+				obj.resize(value, axis, false, fixed, true)
 			}
 		})
 	}
-	new NumSlider({
-		id: 'slider_size_x',
+	new NumSlider('slider_size_x', {
 		condition: () => (Cube.selected.length && Modes.edit),
 		get: function() {
 			return Cube.selected[0].to[0] - Cube.selected[0].from[0]
 		},
 		change: function(value, fixed) {
-			scaleOnAxis(value, fixed, 0)
+			resizeOnAxis(value, fixed, 0)
 		},
 		onBefore: function() {
 			Undo.initEdit({elements: Cube.selected})
@@ -701,14 +705,13 @@ BARS.defineActions(function() {
 			Undo.finishEdit('resize')
 		}
 	})
-	new NumSlider({
-		id: 'slider_size_y',
+	new NumSlider('slider_size_y', {
 		condition: () => (Cube.selected.length && Modes.edit),
 		get: function() {
 			return Cube.selected[0].to[1] - Cube.selected[0].from[1]
 		},
 		change: function(value, fixed) {
-			scaleOnAxis(value, fixed, 1)
+			resizeOnAxis(value, fixed, 1)
 		},
 		onBefore: function() {
 			Undo.initEdit({elements: Cube.selected})
@@ -717,14 +720,13 @@ BARS.defineActions(function() {
 			Undo.finishEdit('resize')
 		}
 	})
-	new NumSlider({
-		id: 'slider_size_z',
+	new NumSlider('slider_size_z', {
 		condition: () => (Cube.selected.length && Modes.edit),
 		get: function() {
 			return Cube.selected[0].to[2] - Cube.selected[0].from[2]
 		},
 		change: function(value, fixed) {
-			scaleOnAxis(value, fixed, 2)
+			resizeOnAxis(value, fixed, 2)
 		},
 		onBefore: function() {
 			Undo.initEdit({elements: Cube.selected})
@@ -734,19 +736,24 @@ BARS.defineActions(function() {
 		}
 	})
 	//Inflate
-	new NumSlider({
-		id: 'slider_inflate',
+	new NumSlider('slider_inflate', {
 		condition: function() {return Cube.selected.length && Modes.edit},
 		get: function() {
 			return Cube.selected[0].inflate
 		},
 		change: function(value, fixed) {
 			Cube.selected.forEach(function(obj, i) {
-				var diff = value
-				if (fixed) {
-					diff -= obj.inflate
+				var v = value
+				if (!fixed) {
+					v += obj.inflate
 				}
-				obj.inflate = obj.inflate + diff
+				v = obj.from[0] - Math.clamp(obj.from[0]-v, -16, 32);
+				v = obj.from[1] - Math.clamp(obj.from[1]-v, -16, 32);
+				v = obj.from[2] - Math.clamp(obj.from[2]-v, -16, 32);
+				v = Math.clamp(obj.to[0]+v, -16, 32) - obj.to[0];
+				v = Math.clamp(obj.to[1]+v, -16, 32) - obj.to[1];
+				v = Math.clamp(obj.to[2]+v, -16, 32) - obj.to[2];
+				obj.inflate = v
 			})
 			Canvas.updatePositions()
 		},
@@ -759,8 +766,7 @@ BARS.defineActions(function() {
 	})
 
 	//Rotation
-	new NumSlider({
-		id: 'slider_rotation_x',
+	new NumSlider('slider_rotation_x', {
 		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -782,8 +788,7 @@ BARS.defineActions(function() {
 		},
 		getInterval: getRotationInterval
 	})
-	new NumSlider({
-		id: 'slider_rotation_y',
+	new NumSlider('slider_rotation_y', {
 		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -805,8 +810,7 @@ BARS.defineActions(function() {
 		},
 		getInterval: getRotationInterval
 	})
-	new NumSlider({
-		id: 'slider_rotation_z',
+	new NumSlider('slider_rotation_z', {
 		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -858,8 +862,7 @@ BARS.defineActions(function() {
 		})
 		Canvas.updatePositions()
 	}
-	new NumSlider({
-		id: 'slider_origin_x',
+	new NumSlider('slider_origin_x', {
 		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -879,8 +882,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('origin')
 		}
 	})
-	new NumSlider({
-		id: 'slider_origin_y',
+	new NumSlider('slider_origin_y', {
 		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -900,8 +902,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('origin')
 		}
 	})
-	new NumSlider({
-		id: 'slider_origin_z',
+	new NumSlider('slider_origin_z', {
 		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -922,8 +923,7 @@ BARS.defineActions(function() {
 		}
 	})
 
-	new Action({
-		id: 'scale',
+	new Action('scale', {
 		icon: 'settings_overscan',
 		category: 'transform',
 		click: function () {
@@ -953,8 +953,7 @@ BARS.defineActions(function() {
 			scaleAll(false, 1)
 		}
 	})
-	new Action({
-		id: 'rotate_x_cw',
+	new Action('rotate_x_cw', {
 		icon: 'rotate_right',
 		color: 'x',
 		category: 'transform',
@@ -962,8 +961,7 @@ BARS.defineActions(function() {
 			rotateSelected(0, 1);
 		}
 	})
-	new Action({
-		id: 'rotate_x_ccw',
+	new Action('rotate_x_ccw', {
 		icon: 'rotate_left',
 		color: 'x',
 		category: 'transform',
@@ -971,8 +969,7 @@ BARS.defineActions(function() {
 			rotateSelected(0, 3);
 		}
 	})
-	new Action({
-		id: 'rotate_y_cw',
+	new Action('rotate_y_cw', {
 		icon: 'rotate_right',
 		color: 'y',
 		category: 'transform',
@@ -980,8 +977,7 @@ BARS.defineActions(function() {
 			rotateSelected(1, 1);
 		}
 	})
-	new Action({
-		id: 'rotate_y_ccw',
+	new Action('rotate_y_ccw', {
 		icon: 'rotate_left',
 		color: 'y',
 		category: 'transform',
@@ -989,8 +985,7 @@ BARS.defineActions(function() {
 			rotateSelected(1, 3);
 		}
 	})
-	new Action({
-		id: 'rotate_z_cw',
+	new Action('rotate_z_cw', {
 		icon: 'rotate_right',
 		color: 'z',
 		category: 'transform',
@@ -998,8 +993,7 @@ BARS.defineActions(function() {
 			rotateSelected(2, 1);
 		}
 	})
-	new Action({
-		id: 'rotate_z_ccw',
+	new Action('rotate_z_ccw', {
 		icon: 'rotate_left',
 		color: 'z',
 		category: 'transform',
@@ -1008,17 +1002,15 @@ BARS.defineActions(function() {
 		}
 	})
 
-	new Action({
-		id: 'flip_x',
+	new Action('flip_x', {
 		icon: 'icon-mirror_x',
 		color: 'x',
 		category: 'transform',
 		click: function () {
-			mirrorSelected(0);
+				mirrorSelected(0);
 		}
 	})
-	new Action({
-		id: 'flip_y',
+	new Action('flip_y', {
 		icon: 'icon-mirror_y',
 		color: 'y',
 		category: 'transform',
@@ -1026,8 +1018,7 @@ BARS.defineActions(function() {
 			mirrorSelected(1);
 		}
 	})
-	new Action({
-		id: 'flip_z',
+	new Action('flip_z', {
 		icon: 'icon-mirror_z',
 		color: 'z',
 		category: 'transform',
@@ -1036,8 +1027,7 @@ BARS.defineActions(function() {
 		}
 	})
 
-	new Action({
-		id: 'center_x',
+	new Action('center_x', {
 		icon: 'vertical_align_center',
 		color: 'x',
 		category: 'transform',
@@ -1047,8 +1037,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('center')
 		}
 	})
-	new Action({
-		id: 'center_y',
+	new Action('center_y', {
 		icon: 'vertical_align_center',
 		color: 'y',
 		category: 'transform',
@@ -1058,8 +1047,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('center')
 		}
 	})
-	new Action({
-		id: 'center_z',
+	new Action('center_z', {
 		icon: 'vertical_align_center',
 		color: 'z',
 		category: 'transform',
@@ -1069,8 +1057,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('center')
 		}
 	})
-	new Action({
-		id: 'center_all',
+	new Action('center_all', {
 		icon: 'filter_center_focus',
 		category: 'transform',
 		click: function () {
@@ -1080,40 +1067,34 @@ BARS.defineActions(function() {
 		}
 	})
 
-	new Action({
-		id: 'toggle_visibility',
+	new Action('toggle_visibility', {
 		icon: 'visibility',
 		category: 'transform',
 		click: function () {toggleCubeProperty('visibility')}
 	})
-	new Action({
-		id: 'toggle_export',
+	new Action('toggle_export', {
 		icon: 'save',
 		category: 'transform',
 		click: function () {toggleCubeProperty('export')}
 	})
-	new Action({
-		id: 'toggle_autouv',
+	new Action('toggle_autouv', {
 		icon: 'fullscreen_exit',
 		category: 'transform',
 		click: function () {toggleCubeProperty('autouv')}
 	})
-	new Action({
-		id: 'toggle_shade',
+	new Action('toggle_shade', {
 		icon: 'wb_sunny',
 		category: 'transform',
 		condition: () => !Project.box_uv,
 		click: function () {toggleCubeProperty('shade')}
 	})
-	new Action({
-		id: 'toggle_mirror_uv',
+	new Action('toggle_mirror_uv', {
 		icon: 'icon-mirror_x',
 		category: 'transform',
 		condition: () => Project.box_uv,
 		click: function () {toggleCubeProperty('shade')}
 	})
-	new Action({
-		id: 'update_autouv',
+	new Action('update_autouv', {
 		icon: 'brightness_auto',
 		category: 'transform',
 		condition: () => !Project.box_uv,
@@ -1127,14 +1108,12 @@ BARS.defineActions(function() {
 			}
 		}
 	})
-	new Action({
-		id: 'origin_to_geometry',
+	new Action('origin_to_geometry', {
 		icon: 'filter_center_focus',
 		category: 'transform',
 		click: function () {origin2geometry()}
 	})
-	new Action({
-		id: 'rescale_toggle',
+	new Action('rescale_toggle', {
 		icon: 'check_box_outline_blank',
 		category: 'transform',
 		condition: function() {return Format.rotation_limit && Cube.selected.length;},
@@ -1149,8 +1128,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('rescale')
 		}
 	})
-	new Action({
-		id: 'bone_reset_toggle',
+	new Action('bone_reset_toggle', {
 		icon: 'check_box_outline_blank',
 		category: 'transform',
 		condition: function() {return Format.bone_rig && Group.selected;},
@@ -1162,8 +1140,7 @@ BARS.defineActions(function() {
 		}
 	})
 
-	new Action({
-		id: 'remove_blank_faces',
+	new Action('remove_blank_faces', {
 		icon: 'cancel_presentation',
 		category: 'filter',
 		condition: () => !Format.box_uv,

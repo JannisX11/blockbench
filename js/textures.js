@@ -711,7 +711,7 @@ class Texture {
 				})
 			} else {
 				var find_path;
-				if (Format.single_texture) {
+				if (Format.bone_rig && Project.geometry_name) {
 					find_path = findEntityTexture(Project.geometry_name, true)
 				}
 				if (!find_path && ModelMeta.export_path) {
@@ -1037,8 +1037,7 @@ onVueSetup(function() {
 })
 
 BARS.defineActions(function() {
-	new Action({
-		id: 'import_texture',
+	new Action('import_texture', {
 		icon: 'library_add',
 		category: 'textures',
 		keybind: new Keybind({key: 84, ctrl: true}),
@@ -1072,8 +1071,7 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	new Action({
-		id: 'create_texture',
+	new Action('create_texture', {
 		icon: 'icon-create_bitmap',
 		category: 'textures',
 		keybind: new Keybind({key: 84, ctrl: true, shift: true}),
@@ -1081,15 +1079,13 @@ BARS.defineActions(function() {
 			Painter.addBitmapDialog()
 		}
 	})
-	new Action({
-		id: 'save_textures',
+	new Action('save_textures', {
 		icon: 'save',
 		category: 'textures',
 		keybind: new Keybind({key: 83, ctrl: true, alt: true}),
 		click: function () {saveTextures()}
 	})
-	new Action({
-		id: 'change_textures_folder',
+	new Action('change_textures_folder', {
 		icon: 'fas fa-hdd',
 		category: 'textures',
 		condition: () => textures.length > 0,
@@ -1126,8 +1122,7 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	new Action({
-		id: 'animated_textures',
+	new Action('animated_textures', {
 		icon: 'play_arrow',
 		category: 'textures',
 		condition: function() {

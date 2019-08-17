@@ -93,7 +93,7 @@ function addRecentProject(data) {
 		icon: data.icon,
 		day: new Date().dayOfYear()
 	})
-	if (recent_projects.length > 12) {
+	if (recent_projects.length > Math.clamp(settings.recent_projects.value, 0, 256)) {
 		recent_projects.pop()
 	}
 	updateRecentProjects()
@@ -130,7 +130,7 @@ function checkForUpdates(instant) {
 		data = 
 			`<div class="dialog_bar narrow">${tl('dialog.update.latest')}: ${latest_version}</div>
 			<div class="dialog_bar narrow">${tl('dialog.update.installed')}: ${appVersion}</div>
-			<div class=""><button type="button" class="large uc_btn" id="update_button" onclick="installUpdate()">${tl('dialog.update.update')}</button></div>`;
+			<div class=""><button type="button" class="uc_btn" id="update_button" onclick="installUpdate()">${tl('dialog.update.update')}</button></div>`;
 
 		if (instant) {
 			setTimeout(function() {
@@ -185,12 +185,9 @@ function installUpdate() {
 }
 function updateInstallationEnd() {
 	hideDialog();
-	Blockbench.addFlag('update_restart');
-	var exe_path = __dirname.split(osfs);
-	exe_path.splice(-2);
-	exe_path = exe_path.join(osfs)+osfs+'blockbench.exe';
-	if (showSaveDialog(true)) {
-		exec(exe_path);
+	if (showSaveDialog()) {
+		app.relaunch()
+		app.exit()
 	} else {
 		Blockbench.showQuickMessage('message.restart_to_update');
 	}
@@ -376,10 +373,5 @@ function closeBlockbenchWindow() {
 	localStorage.removeItem('backup_model')
 	EditSession.quit()
 	
-	if (!Blockbench.hasFlag('update_restart')) {
-		return currentwindow.close();
-	}
-	setTimeout(function() {
-		currentwindow.close();
-	}, 12)
+	return currentwindow.close();
 }

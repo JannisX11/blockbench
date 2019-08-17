@@ -159,7 +159,6 @@
 		font-size: 1.2em;
 		font-weight: normal;
 		font-family: montserrat, arial, sans-serif;
-		background: transparent !important;
 		color: var(--color-light);
 		vertical-align: top;
 		min-width: 62px;
@@ -297,7 +296,7 @@
 /*Displaytabs*/
 
 	.tabs_small input[type="radio"]:checked+label {
-		background: var(--color-selected);
+		border-bottom: 3px solid var(--color-accent);
 	}
 
 	.tabs_small input[type="radio"] {
@@ -324,8 +323,7 @@
 	}
 
 	.tabs_small  label:hover {
-		background: var(--color-accent);
-		color: var(--color-text_acc);
+		color: var(--color-light);
 	}
 	#display_sliders p {
 		margin-top: 6px;
@@ -616,10 +614,9 @@
 		width: 25%;
 	}
 	.panel#keyframe .bar label {
-		margin-top: 3px;
-		margin-left: 8px;
-		width: 32px;
-		text-align: center;
+		margin: 3px 8px;
+	    min-width: 20px;
+	    text-align: center;
 	}
 	.panel#keyframe .bar input.dark_bordered {
 		width: calc(100% - 45px);
@@ -628,120 +625,170 @@
 /*Timeline*/
 	#timeline {
 		display: block;
-		height: 162px;
-		background-color: var(--color-back);
+		height: 300px;
+		background-color: var(--color-ui);
 	}
-	#timeline_inner {
-		overflow-y: hidden;
+	#timeline_vue {
+		height: calc(100% - 30px);
+	}
+	#timeline_body {
+		overflow-y: scroll;
 		overflow-x: scroll;
 		position: relative;
 		background-color: var(--color-back);
-		height: 129px;
-		border-left: 1px solid var(--color-border);
+		height: calc(100% - 30px);
 	}
-	#timeline_inner #timeline_marker {
+	#timeline_marker {
 		position: absolute;
 		pointer-events: none;
-		height: 29px;
-		width: 20px;
+		height: 26px;
+		width: 18px;
 		top: 0;
-		margin-left: -9px;
+		margin-left: -8px;
 		border: 2px solid var(--color-accent);
-		border-top-width: 6px;
+		border-top-width: 5px;
 		background-color: rgba(0, 0, 0, 0.2);
 		z-index: 3;
 	}
-	#timeline_inner #timeline_marker:before {
+	#timeline_marker_line {
 		content: "";
 		display: block;
-		margin-left: 7px;
-		margin-top: 23px;
-		height: 200px;
+		position: absolute;
+		height: 100%;
 		width: 2px;
+		z-index: 2;
 		background-color: var(--color-accent);
 	}
-	#timeline_inner .keyframe {
+	#timeline_body .keyframe {
 		position: absolute;
 		margin-left: -11px;
 		z-index: 3;
+		text-align: center;
+		width: 24px;
 	}
-	#timeline_inner .keyframe.selected {
+	#timeline_body .keyframe i {
+		margin-top: 2px;
+		transform: rotate(45deg);
+		font-size: 14pt;
+	}
+	#timeline_body .animator_head_bar .keyframe {
+		z-index: 1;
+	}
+	#timeline_body .animator_head_bar .keyframe i {
+		transform: none;
+		font-size: 6pt;
+		color: var(--color-grid);
+	}
+	#timeline_body .keyframe.selected {
 		color: var(--color-accent);
+		z-index: 4;
 	}
-	#timeline_head {
-		float: left;
-		width: 120px;
-		background-color: var(--color-ui);
-	}
-	#timeline_head > * {
-		height: 30px;
-		width: 100%;
+
+	#timeline_header {
+		height: 28px;
+		display: flex;
 		border-bottom: 1px solid var(--color-border);
+		border-top: 1px solid var(--color-border);
+		position: relative;
 	}
-	#timeline_head > #timeline_corner {
+	#timeline_corner {
+		width: 144px;
+		flex-shrink: 0;
 		font-family: consolas, monospace;
 		background-color: var(--color-back);
 		padding: 3px;
 		padding-left: 8px;
 		overflow: hidden;
 	}
-	#timeline_head > .channel_head {
-		height: 31px;
-		padding: 4px;
-		text-align: right;
-	}
-	#timeline_head > .channel_head span {
-		width: 86px;
-		float: right;
-		margin-top: -2px;
+	#timeline_time_wrapper {
+		height: 100%;
+		position: relative;
+		background-color: var(--color-button);
 		overflow: hidden;
 	}
-	#timeline_head > .channel_head .text_button {
-		width: 26px;
-		height: 25px;
-		font-size: 16pt;
-		float: right;
-	}
 	#timeline_time {
-		height: 30px;
+		height: 100%;
 		position: relative;
-		background-color: var(--color-ui);
-		border-bottom: 1px solid var(--color-border);
 		margin-left: 8px;
 	}
-	div#timeline_time:before, div#timeline_time:after {
-		content: "";
-		background-color: var(--color-button);
-		width: 100%;
-		height: 2px;
-		display: block;
-		position: absolute;
-		top: 60px;
-		z-index: 0;
-		border-bottom: 1px solid var(--color-border);
-	}
-	div#timeline_time:after {
-		top: 90px;
-	}
 	.timeline_timecode {
-	    border-left: 2px solid var(--color-border);
+	    border-left: 1px solid var(--color-border);
 	    padding-left: 4px;
 	    padding-top: 2px;
+	    height: 100%;
 	    position: absolute;
 	    pointer-events: none;
 	}
-	.timeline_timecode:first-child:before {
-		content: "";
-	    width: 8px;
-	    margin-left: -14px;
-	    z-index: 1;
-	    top: -28px;
-	    height: 125px;
-	    position: absolute;
-	    background-color: var(--color-ui);
-	    margin-top: 28px;
-	    border-right: 1px solid var(--color-border);
+
+
+	#timeline_body_inner {
+		min-height: 100%;
+		position: relative;
+		display: flex;
+		flex-direction: column;
 	}
+	#timeline_selector {
+		display: none;
+	}
+	#timeline_body li > div {
+		height: 24px;
+		display: flex;
+		border-bottom: 1px solid var(--color-border);
+	}
+	.channel_head {
+		position: relative;
+		display: flex;
+		width: 144px;
+		height: calc(100% + 1px);
+		background-color: var(--color-ui);
+		border-right: 1px solid var(--color-border);
+		box-shadow: 1px 8px 10px 0 #00000038;
+		z-index: 5;
+	}
+	#timeline_body li > .animator_head_bar .channel_head:hover {
+		color: var(--color-light);
+	}
+	#timeline_body li > .animator_channel_bar .channel_head {
+		padding-left: 34px;
+	}
+	.channel_head .text_button {
+		width: 26px;
+		height: 24px;
+		text-align: center; 
+		float: left;
+		flex-shrink: 0;
+	}
+	.animator_channel_bar .channel_head .text_button {
+		float: right;
+	}
+	.animator.selected .animator_head_bar {
+		background-color: var(--color-selected);
+	}
+	.animator.selected .animator_head_bar .channel_head {
+		background-color: var(--color-selected);
+	}
+	.channel_head span {
+		flex-grow: 1;
+		flex-shrink: 1;
+		overflow: hidden;
+	}
+	.animator_channel_bar .channel_head span {
+		opacity: 0.75
+	}
+	.keyframe_section {
+		flex-grow: 1;
+		position: relative;
+	}
+	.animator_channel_bar > .keyframe_section {
+		background-color: var(--color-ui);
+	}
+	.animator_close_button:hover {
+		background-color: var(--color-close);
+	}
+	#timeline_empty_head {
+		flex-grow: 1;
+	}
+
 
 /*UV*/
 	.UVEditor {
@@ -817,7 +864,7 @@
 		display: block;
 		right: 8px;
 		top: 8px;
-		font-size: 0.8em;
+		font-size: 0.9em;
 		cursor: default;
 		pointer-events: none;
 		z-index: 5;

@@ -232,67 +232,6 @@ var codec = new Codec('optifine_entity', {
 	}
 })
 
-var part_codec = new Codec('optifine_part', {
-	name: 'OptiFine Part',
-	extension: 'jpm',
-	parse(model, path) {
-		Project.box_uv = false;
-		var new_cubes = [];
-		var import_group = new Group({
-			name: pathToName(path)
-		}).init();
-		Undo.initEdit({elements: new_cubes, outliner: true})
-
-		var resolution = model.textureSize
-		function convertUVCoords(uv) {
-			if (uv instanceof Array && resolution instanceof Array) {
-				uv.forEach((n, i) => {
-					uv[i] *= 16 / resolution[i%2];
-				})
-			}
-			return uv;
-		}
-		function addSubmodel(submodel) {
-			if (submodel.boxes) {
-				submodel.boxes.forEach(function(box) {
-					var cs = box.coordinates
-					if (cs && cs.length >= 6) {
-						base_cube = new Cube({
-							from: [
-								cs[0],
-								cs[1],
-								cs[2]
-							],
-							to: [
-								cs[0] + cs[3],
-								cs[1] + cs[4],
-								cs[2] + cs[5]
-							],
-							name: submodel.id,
-							faces: {
-								north: {uv: convertUVCoords(box.uvNorth)},
-								east: {uv: convertUVCoords(box.uvEast)},
-								south: {uv: convertUVCoords(box.uvSouth)},
-								west: {uv: convertUVCoords(box.uvWest)},
-								up: {uv: convertUVCoords(box.uvUp)},
-								down: {uv: convertUVCoords(box.uvDown)},
-							},
-							rotation: submodel.rotate
-						}).init().addTo(import_group)
-						new_cubes.push(base_cube);
-					}
-				})
-			}
-			if (submodel.submodels) {
-				submodel.submodels.forEach(addSubmodel)
-			}
-		}
-		import_group.addTo()
-		Undo.finishEdit('add jpm model')
-		addSubmodel(model)
-		Canvas.updateAll()
-	}
-})
 
 var format = new ModelFormat({
 	id: 'optifine_entity',
@@ -307,32 +246,14 @@ var format = new ModelFormat({
 })
 codec.format = format;
 
+
 BARS.defineActions(function() {
-	codec.export_action = new Action({
-		id: 'export_optifine_full',
+	codec.export_action = new Action('export_optifine_full', {
 		icon: 'icon-optifine_file',
 		category: 'file',
 		condition: () => Format == format,
 		click: function () {
 			codec.export()
-		}
-	})
-	new Action({
-		id: 'import_optifine_part',
-		icon: 'icon-optifine_file',
-		category: 'file',
-		condition: () => Format == format,
-		click: function () {
-			Blockbench.import({
-				extensions: ['jpm'],
-				type: 'JPM Entity Part Model',
-				multiple: true,
-			}, function(files) {
-				files.forEach(file => {
-					var model = autoParseJSON(file.content)
-					part_codec.parse(model, file.path)
-				})
-			})
 		}
 	})
 })

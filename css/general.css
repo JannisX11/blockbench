@@ -103,6 +103,15 @@
 	.bar > * {
 		float: left;
 	}
+	.bar.flex {
+		display: flex;
+	}
+	.bar.flex > * {
+		float: none;
+	}
+	.bar.flex > label {
+		flex-grow: 0;
+	}
 	.scroll_horizontal {
 		overflow-x: scroll;
 		overflow-y: hidden;
@@ -169,7 +178,7 @@
 		top: 40px;
 		left: 60px;
 	}
-	#selection_box {
+	.selection_rectangle {
 		position: absolute;
 		display: block;
 		border: 1px solid var(--color-accent);
@@ -197,6 +206,7 @@
 	li.menu_bar_point {
 		font-size: 17px;
 		padding: 0 10px;
+		padding-top: 2px;
 		display: inline-block;
 		height: 100%;
 		font-weight: normal;
@@ -351,7 +361,7 @@
 	}
 	.tooltip {
 		position: absolute;
-		height: 30px;
+		height: 28px;
 		padding-left: 5px;
 		padding-right: 5px;
 		padding-top: 2px;
@@ -390,7 +400,7 @@
 	}
 	.contextMenu li {
 		height: 32px;
-		padding: 4px;
+		padding: 5px;
 		padding-left: 34px;
 		padding-right: 8px;
 	}
@@ -477,6 +487,9 @@
 		display: block;
 		padding: 24px;
 		max-height: 600px;
+	}
+	#start_screen section right {
+		overflow-y: auto;
 	}
 	#start_screen left {
 		flex-grow: 0;

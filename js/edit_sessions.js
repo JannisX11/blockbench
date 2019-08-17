@@ -397,14 +397,12 @@ onVueSetup(function() {
 })
 
 BARS.defineActions(function() {
-	new Action({
-		id: 'edit_session',
+	new Action('edit_session', {
 		icon: 'people',
 		category: 'blockbench',
 		click: EditSession.dialog
 	})
-	new Action({
-		id: 'toggle_chat',
+	new Action('toggle_chat', {
 		icon: 'keyboard_arrow_down',
 		condition: () => EditSession.active,
 		category: 'blockbench',

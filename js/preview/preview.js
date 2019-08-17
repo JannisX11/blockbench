@@ -14,7 +14,8 @@ const rot_origin = new THREE.Object3D();
 var gizmo_colors = {
 	r: new THREE.Color(0xfd3043),
 	g: new THREE.Color(0x26ec45),
-	b: new THREE.Color(0x2d5ee8)
+	b: new THREE.Color(0x2d5ee8),
+	outline: new THREE.Color()
 }
 
 class Preview {
@@ -66,7 +67,7 @@ class Preview {
 		this.loadBackground()
 
 		this.selection = {
-			box: $('<div id="selection_box"></div>') 
+			box: $('<div id="selection_box", class="selection_rectangle"></div>') 
 		}
 
 		this.raycaster = new THREE.Raycaster()
@@ -321,7 +322,10 @@ class Preview {
 				if (Toolbox.selected.selectFace) {
 					main_uv.setFace(data.face, false)
 				}
-				Blockbench.dispatchEvent( 'canvas_select', data )
+				Blockbench.dispatchEvent('canvas_select', data)
+				if (Modes.paint) {
+					event = 0;
+				}
 				if (Format.bone_rig && (
 					Animator.open ||
 					(!Format.rotate_cubes  && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id)) ||
@@ -382,7 +386,7 @@ class Preview {
 	//Selection Rectangle
 	startSelRect(event) {
 		var scope = this;
-		if (!display_mode || this.movingBackground) {
+		if (Modes.edit || this.movingBackground) {
 			this.sr_move_f = function(event) { scope.moveSelRect(event)}
 			this.sr_stop_f = function(event) { scope.stopSelRect(event)}
 			this.canvas.addEventListener('mousemove', 	this.sr_move_f, false)
@@ -402,7 +406,7 @@ class Preview {
 			}
 			return
 		};
-		if (display_mode) return;
+		if (!Modes.edit) return;
 
 		$(this.canvas).parent().append(this.selection.box)
 		this.selection.activated = settings.canvas_unselect.value;
@@ -462,7 +466,7 @@ class Preview {
 		unselectAll()
 		elements.forEach(function(cube) {
 
-			if ((event.shiftKey || event.ctrlKey) && scope.selection.old_selected.indexOf(cube) >= 0) {
+			if ((event.shiftKey || event.ctrlOrCmd) && scope.selection.old_selected.indexOf(cube) >= 0) {
 				var isSelected = true
 			} else {
 				if (cube instanceof Cube && cube.visibility && cube.mesh) {
@@ -619,6 +623,8 @@ class Preview {
 		var scope = this;
 		function editVis(edit) {
 			edit(three_grid)
+			edit(Canvas.side_grids.x)
+			edit(Canvas.side_grids.z)
 			edit(Transformer)
 			edit(outlines)
 			edit(rot_origin)
@@ -745,7 +751,7 @@ class Preview {
 				}}
 			]
 		}},
-		{icon: 'videocam', name: 'menu.preview.perspective', condition: function(preview) {return !preview.movingBackground && !display_mode && !Animator.open}, children: function(preview) {
+		{icon: 'videocam', name: 'menu.preview.perspective', condition: function(preview) {return !preview.movingBackground && !Modes.display}, children: function(preview) {
 			function getBtn(angle, pers) {
 				var condition = (pers && !preview.isOrtho)
 							 || (!pers && angle === preview.angle && preview.isOrtho);
@@ -762,10 +768,10 @@ class Preview {
 				{icon: getBtn(5), name: 'direction.west', 	color: 'x', click: function(preview) {preview.setOrthographicCamera(5)}}
 			]
 		}},
-		{icon: 'widgets', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !display_mode && !Animator.open}, click: function() {
+		{icon: 'widgets', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !Modes.display && !Animator.open}, click: function() {
 			openQuadView()
 		}},
-		{icon: 'web_asset', name: 'menu.preview.fullview', condition: function(preview) {return quad_previews.enabled && !preview.movingBackground && !display_mode}, click: function(preview) {
+		{icon: 'web_asset', name: 'menu.preview.fullview', condition: function(preview) {return quad_previews.enabled && !preview.movingBackground && !Modes.display}, click: function(preview) {
 			preview.fullscreen()
 		}},
 		{icon: 'cancel', color: 'x', name: 'menu.preview.stop_drag', condition: function(preview) {return preview.movingBackground;}, click: function(preview) {
@@ -1309,8 +1315,7 @@ function buildGrid() {
 }
 
 BARS.defineActions(function() {
-	new Action({
-		id: 'toggle_wireframe',
+	new Action('toggle_wireframe', {
 		icon: 'border_clear',
 		category: 'view',
 		keybind: new Keybind({key: 90}),
@@ -1325,15 +1330,13 @@ BARS.defineActions(function() {
 		}
 	})
 
-	new Action({
-		id: 'screenshot_model',
+	new Action('screenshot_model', {
 		icon: 'fa-cubes',
 		category: 'view',
 		keybind: new Keybind({key: 80, ctrl: true}),
 		click: function () {quad_previews.current.screenshot()}
 	})
-	new Action({
-		id: 'record_model_gif',
+	new Action('record_model_gif', {
 		icon: 'local_movies',
 		category: 'view',
 		click: function () {
@@ -1363,25 +1366,22 @@ BARS.defineActions(function() {
 			}).show()
 		}
 	})
-	new Action({
-		id: 'screenshot_app',
+	new Action('screenshot_app', {
 		icon: 'icon-bb_interface',
 		category: 'view',
 		condition: isApp,
 		click: function () {Screencam.fullScreen()}
 	})
-	new Action({
-		id: 'toggle_quad_view',
+	new Action('toggle_quad_view', {
 		icon: 'widgets',
 		category: 'view',
-		condition: () => (Modes.id === 'edit' || Modes.id === 'paint'),
+		condition: () => !Modes.display,
 		keybind: new Keybind({key: 9}),
 		click: function () {
 			main_preview.toggleFullscreen()
 		}
 	})
-	new Action({
-		id: 'camera_reset',
+	new Action('camera_reset', {
 		name: 'menu.preview.perspective.reset',
 		description: 'menu.preview.perspective.reset',
 		icon: 'videocam',
@@ -1391,8 +1391,7 @@ BARS.defineActions(function() {
 			quad_previews.current.resetCamera()
 		}
 	})
-	new Action({
-		id: 'camera_normal',
+	new Action('camera_normal', {
 		name: 'menu.preview.perspective.normal',
 		description: 'menu.preview.perspective.normal',
 		icon: 'videocam',
@@ -1404,8 +1403,7 @@ BARS.defineActions(function() {
 		}
 	})
 
-	new Action({
-		id: 'camera_top',
+	new Action('camera_top', {
 		name: 'direction.top',
 		description: 'direction.top',
 		icon: 'videocam',
@@ -1417,8 +1415,7 @@ BARS.defineActions(function() {
 			quad_previews.current.setOrthographicCamera(0)
 		}
 	})
-	new Action({
-		id: 'camera_bottom',
+	new Action('camera_bottom', {
 		name: 'direction.bottom',
 		description: 'direction.bottom',
 		icon: 'videocam',
@@ -1430,8 +1427,7 @@ BARS.defineActions(function() {
 			quad_previews.current.setOrthographicCamera(1)
 		}
 	})
-	new Action({
-		id: 'camera_south',
+	new Action('camera_south', {
 		name: 'direction.south',
 		description: 'direction.south',
 		icon: 'videocam',
@@ -1443,8 +1439,7 @@ BARS.defineActions(function() {
 			quad_previews.current.setOrthographicCamera(2)
 		}
 	})
-	new Action({
-		id: 'camera_north',
+	new Action('camera_north', {
 		name: 'direction.north',
 		description: 'direction.north',
 		icon: 'videocam',
@@ -1456,8 +1451,7 @@ BARS.defineActions(function() {
 			quad_previews.current.setOrthographicCamera(3)
 		}
 	})
-	new Action({
-		id: 'camera_east',
+	new Action('camera_east', {
 		name: 'direction.east',
 		description: 'direction.east',
 		icon: 'videocam',
@@ -1469,8 +1463,7 @@ BARS.defineActions(function() {
 			quad_previews.current.setOrthographicCamera(4)
 		}
 	})
-	new Action({
-		id: 'camera_west',
+	new Action('camera_west', {
 		name: 'direction.west',
 		description: 'direction.west',
 		icon: 'videocam',

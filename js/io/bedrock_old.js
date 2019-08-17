@@ -477,7 +477,7 @@ var codec = new Codec('bedrock_old', {
 var format = new ModelFormat({
 	id: 'bedrock_old',
 	extension: 'json',
-	icon: 'icon-format_bedrock',
+	icon: 'icon-format_bedrock_legacy',
 	show_on_start_screen: false,
 	box_uv: true,
 	single_texture: true,

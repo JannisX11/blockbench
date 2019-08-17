@@ -55,8 +55,7 @@ function showSaveDialog(close) {
 
 BARS.defineActions(function() {
 	if (Blockbench.isMobile) {
-		new Action({
-			id: 'sidebar_left',
+		new Action('sidebar_left', {
 			icon: 'burst_mode',
 			category: 'view',
 			condition: () => !Modes.start,
@@ -74,8 +73,7 @@ BARS.defineActions(function() {
 				resizeWindow()
 			}
 		})
-		new Action({
-			id: 'sidebar_right',
+		new Action('sidebar_right', {
 			icon: 'view_list',
 			category: 'view',
 			condition: () => !Modes.start,

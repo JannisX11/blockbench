@@ -157,6 +157,9 @@ const Blockbench = {
 		buttons[options.confirm].addClass('confirm_btn')
 		buttons[options.cancel].addClass('cancel_btn')
 		jq_dialog.append($('<div class="dialog_bar button_bar"></div>').append(buttons))
+		buttons.forEach(b => {
+			b.after('&nbsp;')
+		})
 
 
 		jq_dialog.addClass('draggable')
@@ -195,7 +198,7 @@ const Blockbench = {
 		})
 	},
 	addMenuEntry(name, icon, click) {
-		var action = new Action({icon: icon, name: name, id: name, click: click})
+		var action = new Action(name, {icon: icon, name: name, click: click})
 		MenuBar.addAction(action, 'filter')
 	},
 	removeMenuEntry(name) {
@@ -428,6 +431,7 @@ const Blockbench = {
 					? options.startpath.replace(/\.\w+$/, '')
 					: options.name
 			}, function (file_path) {
+				if (!file_path) return;
 				var extension = pathToExtension(file_path);
 				if (!extension && options.extensions && options.extensions[0]) {
 					file_path += '.'+options.extensions[0]
@@ -443,7 +447,7 @@ const Blockbench = {
 			project_file
 			custom_writer
 		*/
-		if (!isApp || file_path === undefined) {
+		if (!isApp || !file_path) {
 			return;
 		}
 		if (options.savetype === 'image' && typeof options.content === 'string') {

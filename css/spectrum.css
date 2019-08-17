@@ -59,8 +59,11 @@ License: MIT
    position:absolute;
    top:0;
    left:0;
-   bottom: 16px;
+   bottom: 4px;
    right:0;
+}
+.sp-alpha-enabled .sp-top-inner {
+   bottom: 16px;
 }
 .sp-color {
     position: absolute;
@@ -145,7 +148,7 @@ License: MIT
 }
 
 .sp-container:not(.sp-alpha-enabled) .sp-top {
-    margin-bottom: -20px;
+    /*margin-bottom: -20px;*/
 }
 
 /* Don't allow text selection */

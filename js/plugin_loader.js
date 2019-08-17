@@ -246,6 +246,7 @@ Plugin.register = function(id, data) {
 	}
 	if (!plugin) return;
 	plugin.extend(data)
+	if (data.icon) plugin.icon = Blockbench.getIconNode(data.icon)
 	if (plugin.onload instanceof Function) {
 		plugin.onload()
 	}
@@ -358,7 +359,7 @@ function loadPluginFromFile(file) {
 	var plugin = new Plugin().loadFromFile(file, true)
 }
 function switchPluginTabs(installed) {
-	$('#plugins .tab').removeClass('open')
+	$('#plugins .tab_bar > .open').removeClass('open')
 	if (installed) {
 		$('#installed_plugins').addClass('open')
 		Plugins.Vue._data.showAll = false
@@ -369,8 +370,7 @@ function switchPluginTabs(installed) {
 }
 
 BARS.defineActions(function() {
-	new Action({
-		id: 'plugins_window',
+	new Action('plugins_window', {
 		icon: 'extension',
 		category: 'blockbench',
 		click: function () {
@@ -378,8 +378,7 @@ BARS.defineActions(function() {
 			$('#plugin_list').css('max-height', limitNumber($(window).height()-300, 80, 600)+'px')
 		}
 	})
-	new Action({
-		id: 'reload_plugins',
+	new Action('reload_plugins', {
 		icon: 'sync',
 		category: 'blockbench',
 		keybind: new Keybind({ctrl: true, key: 74}),
@@ -387,8 +386,7 @@ BARS.defineActions(function() {
 			Plugins.devReload()
 		}
 	})
-	new Action({
-		id: 'load_plugin',
+	new Action('load_plugin', {
 		icon: 'fa-file-code',
 		category: 'blockbench',
 		click: function () {

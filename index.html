@@ -27,7 +27,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '3.0.6';
+		const appVersion = '3.1.0';
 	</script>
 		<script src="lib/vue.min.js"></script>
 		<script src="lib/vue_sortable.js"></script>
@@ -80,7 +80,7 @@
 		<script src="js/uv.js"></script>
 		<script src="js/interface/interface.js"></script>
 		<script src="js/painter.js"></script>
-		<script src="js/preview/display_mode.js"></script>
+		<script src="js/display_mode.js"></script>
 		<script src="js/animations.js"></script>
 		<script src="js/plugin_loader.js"></script>
 
@@ -91,7 +91,8 @@
 		<script src="js/io/bedrock_old.js"></script>
 		<script src="js/io/obj.js"></script>
 		<script src="js/io/modded_entity.js"></script>
-		<script src="js/io/optifine.js"></script>
+		<script src="js/io/optifine_jem.js"></script>
+		<script src="js/io/optifine_jpm.js"></script>
 
 		<script>if (window.module) module = window.module;</script>
 
@@ -101,8 +102,8 @@
 		<div>
 			<h3><i class="material-icons">keyboard</i><span class="tl">keybindings.recording</span></h3>
 			<p class="tl">keybindings.press</p>
-			<button class="large tl" onclick="Keybinds.recording.stopRecording()">dialog.cancel</button>
-			<button class="large tl" onclick="Keybinds.recording.clear().stopRecording()">keybindings.clear</button>
+			<button class="tl" onclick="Keybinds.recording.stopRecording()">dialog.cancel</button>
+			<button class="tl" onclick="Keybinds.recording.clear().stopRecording()">keybindings.clear</button>
 			<div id="keybind_input_box" contenteditable="true" style="font-size: 0"></div>
 		</div>
 	</div>
@@ -117,7 +118,7 @@
 			<div class="progress_bar_inner"></div>
 		</div>
 		<div class="dialog_bar">
-			<button type="button" class="large cancel_btn confirm_btn uc_btn tl" onclick="hideDialog()">dialog.close</button>
+			<button type="button" class="cancel_btn confirm_btn uc_btn tl" onclick="hideDialog()">dialog.close</button>
 		</div>
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</dialog>
@@ -128,8 +129,10 @@
 		<div class="bar next_to_title" id="plugins_header_bar"></div>
 
 		<div class="bar">
-			<div class="tab open tl" onclick="switchPluginTabs(true)" id="installed_plugins">dialog.plugins.installed</div>
-			<div class="tab tl" onclick="switchPluginTabs(false)" id="all_plugins">dialog.plugins.available</div>
+			<div class="tab_bar">
+				<div class="open tl" onclick="switchPluginTabs(true)" id="installed_plugins">dialog.plugins.installed</div>
+				<div class="tl" onclick="switchPluginTabs(false)" id="all_plugins">dialog.plugins.available</div>
+			</div>
 			<div class="search_bar">
 				<input type="text" class="dark_bordered" id="plugin_search_bar" oninput="Plugins.updateSearch()">
 				<i class="material-icons" id="plugin_search_bar_icon">search</i>
@@ -138,8 +141,7 @@
 		<ul class="list" id="plugin_list">
 			<li v-for="plugin in plugin_search" v-bind:plugin="plugin.id" v-bind:class="{testing: plugin.fromFile, expanded: plugin.expanded}">
 				<div class="title" v-on:click="plugin.toggleInfo()">
-					<i v-if="plugin.icon.substr(0,3) !== 'fa-' " class="material-icons plugin_icon">{{ plugin.icon }}</i>
-					<i v-else class="fa fa_big plugin_icon" v-bind:class="plugin.icon"></i>
+					<div class="icon_wrapper plugin_icon normal" v-html="Blockbench.getIconNode(plugin.icon, plugin.color).outerHTML"></div>
 
 					<i v-if="plugin.expanded" class="material-icons plugin_expand_icon">expand_less</i>
 					<i v-else class="material-icons plugin_expand_icon">expand_more</i>
@@ -162,7 +164,7 @@
 		</ul>
 
 		<div class="dialog_bar">
-			<button type="button" class="large cancel_btn confirm_btn uc_btn tl" onclick="saveInstalledPlugins();hideDialog();">dialog.close</button>
+			<button type="button" class="cancel_btn confirm_btn uc_btn tl" onclick="saveInstalledPlugins();hideDialog();">dialog.close</button>
 		</div>
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</dialog>
@@ -225,7 +227,7 @@
 		</ul>
 
 		<div class="dialog_bar">
-			<button type="button" class="large cancel_btn confirm_btn uc_btn tl" onclick="saveInstalledPlugins();hideDialog();">dialog.close</button>
+			<button type="button" class="cancel_btn confirm_btn uc_btn tl" onclick="saveInstalledPlugins();hideDialog();">dialog.close</button>
 		</div>
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</dialog>
@@ -247,7 +249,7 @@
 		</ul>
 
 		<div class="dialog_bar">
-			<button type="button" class="large tl confirm_btn" onclick="">dialog.import</button>
+			<button type="button" class="tl confirm_btn" onclick="">dialog.import</button>
 		</div>
 	</dialog>
 
@@ -283,7 +285,7 @@
 	</dialog>
 
 	<dialog class="dialog draggable paddinged" id="texture_edit">
-		<div class="dialog_handle tl" id="te_title">dialog.texture.title</div>
+		<div class="dialog_handle tl" id="te_title">data.texture</div>
 
 		<div id="texture_menu_thumbnail"></div>
 
@@ -296,7 +298,7 @@
 
 		<p class="multiline_text" id="te_path">path</p>
 
-		<div class="dialog_bar narrow bitmap_only"><label class="tl">dialog.texture.name</label> </div>
+		<div class="dialog_bar narrow bitmap_only"><label class="tl">generic.name</label> </div>
 		<div class="dialog_bar bitmap_only">
 			<input type="text" class="input_wide dark_bordered" id="te_name">
 		</div>
@@ -317,7 +319,7 @@
 		</div>
 
 		<div class="dialog_bar">
-			<button type="button" class="large confirm_btn cancel_btn" onclick="saveTextureMenu()">Close</button>
+			<button type="button" class="confirm_btn cancel_btn" onclick="saveTextureMenu()">Close</button>
 		</div>
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</dialog>
@@ -398,14 +400,14 @@
 			<label for="gui_save" class="tl">display.slot.gui</label>
 		</div>
 		<div class="dialog_bar narrow">
-			<label class="tl">display.presetname</label>
+			<label class="tl">generic.name</label>
 		</div>
 		<div class="dialog_bar">
 			<input type="text" id="preset_name" class="input_wide" id="new preset">
 		</div>
 		<div class="dialog_bar">
-			<button type="button" class="large tl confirm_btn" onclick="DisplayMode.createPreset()">dialog.display_preset.create</button>
-			<button type="button" class="large tl cancel_btn" onclick="hideDialog()">dialog.cancel</button>
+			<button type="button" class="tl confirm_btn" onclick="DisplayMode.createPreset()">dialog.display_preset.create</button>
+			<button type="button" class="tl cancel_btn" onclick="hideDialog()">dialog.cancel</button>
 		</div>
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</dialog>
@@ -429,20 +431,25 @@
 		</div>
 
 		<div class="dialog_bar">
+			<label class="name_space_left tl">data.texture</label>
+			<input type="text" class="dark_bordered half" id="selgen_texture">
+		</div>
+
+		<div class="dialog_bar">
 			<label class="name_space_left tl">dialog.select.random</label>
 			<input type="range" min="0" max="100" step="1" value="100" class="tool half" id="selgen_random">
 		</div>
 
 		<div class="dialog_bar">
-			<button type="button" class="large tl confirm_btn" onclick="createSelection()">dialog.select.select</button>
-			<button type="button" class="large tl cancel_btn" onclick="hideDialog()">dialog.cancel</button>
+			<button type="button" class="tl confirm_btn" onclick="createSelection()">dialog.select.select</button>
+			<button type="button" class="tl cancel_btn" onclick="hideDialog()">dialog.cancel</button>
 		</div>
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</dialog>
 
 	<dialog class="dialog draggable paddinged" id="settings">
 		<div class="dialog_handle tl">dialog.settings.settings</div>
-		<div class="dialog_bar borderless" id="settings_tab_bar">
+		<div class="dialog_bar borderless tab_bar" id="settings_tab_bar">
 			<div class="tl tab open" id="setting" onclick="setSettingsTab('setting')">dialog.settings.settings</div>
 			<div class="tl tab" id="keybindings" onclick="setSettingsTab('keybindings')">dialog.settings.keybinds</div>
 			<div class="tl tab" id="layout_settings" onclick="setSettingsTab('layout_settings')">dialog.settings.layout</div>
@@ -533,111 +540,6 @@
 			<div class="bar next_to_title" id="layout_title_bar"></div>
 			<div class="y_scrollable" id="layout_list">
 				<div id="color_wrapper">
-					<div class="color_field">
-						<input type="color" class="color_input" id="color_ui" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-						<label for="color_ui" style="background-color: var(--color-ui)" class="color_input"></label>
-						<div class="desc">
-							<h4 class="tl">layout.color.ui</h4>
-							<p class="tl">layout.color.ui.desc</p>
-						</div>
-					</div>
-					<div class="color_field">
-						<input type="color" class="color_input" id="color_bright_ui" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-						<label for="color_bright_ui" style="background-color: var(--color-bright_ui)" class="color_input"></label>
-						<div class="desc">
-							<h4 class="tl">layout.color.bright_ui</h4>
-							<p class="tl">layout.color.bright_ui.desc</p>
-						</div>
-					</div>
-					<div class="color_field">
-						<input type="color" class="color_input" id="color_back" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-						<label for="color_back" style="background-color: var(--color-back)" class="color_input"></label>
-						<div class="desc">
-							<h4 class="tl">layout.color.back</h4>
-							<p class="tl">layout.color.back.desc</p>
-						</div>
-					</div>
-					<div class="color_field">
-						<input type="color" class="color_input" id="color_dark" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-						<label for="color_dark" style="background-color: var(--color-dark)" class="color_input"></label>
-						<div class="desc">
-							<h4 class="tl">layout.color.dark</h4>
-							<p class="tl">layout.color.dark.desc</p>
-						</div>
-					</div>
-					<!--Button-->
-					<div class="color_field">
-						<input type="color" class="color_input" id="color_button" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-						<label for="color_button" style="background-color: var(--color-button)" class="color_input"></label>
-						<div class="desc">
-							<h4 class="tl">layout.color.button</h4>
-							<p class="tl">layout.color.button.desc</p>
-						</div>
-					</div>
-					<div class="color_field">
-						<input type="color" class="color_input" id="color_selected" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-						<label for="color_selected" style="background-color: var(--color-selected)" class="color_input"></label>
-						<div class="desc">
-							<h4 class="tl">layout.color.selected</h4>
-							<p class="tl">layout.color.selected.desc</p>
-						</div>
-					</div>
-					<div class="color_field">
-						<input type="color" class="color_input" id="color_border" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-						<label for="color_border" style="background-color: var(--color-border)" class="color_input"></label>
-						<div class="desc">
-							<h4 class="tl">layout.color.border</h4>
-							<p class="tl">layout.color.border.desc</p>
-						</div>
-					</div>
-					<div class="color_field">
-						<input type="color" class="color_input" id="color_accent" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-						<label for="color_accent" style="background-color: var(--color-accent)" class="color_input"></label>
-						<div class="desc">
-							<h4 class="tl">layout.color.accent</h4>
-							<p class="tl">layout.color.accent.desc</p>
-						</div>
-					</div>
-					<div class="color_field">
-						<input type="color" class="color_input" id="color_text" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-						<label for="color_text" style="background-color: var(--color-text)" class="color_input"></label>
-						<div class="desc">
-							<h4 class="tl">layout.color.text</h4>
-							<p class="tl">layout.color.text.desc</p>
-						</div>
-					</div>
-					<div class="color_field">
-						<input type="color" class="color_input" id="color_light" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-						<label for="color_light" style="background-color: var(--color-light)" class="color_input"></label>
-						<div class="desc">
-							<h4 class="tl">layout.color.light</h4>
-							<p class="tl">layout.color.light.desc</p>
-						</div>
-					</div>
-					<div class="color_field">
-						<input type="color" class="color_input" id="color_text_acc" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-						<label for="color_text_acc" style="background-color: var(--color-text_acc)" class="color_input"></label>
-						<div class="desc">
-							<h4 class="tl">layout.color.accent_text</h4>
-							<p class="tl">layout.color.accent_text.desc</p>
-						</div>
-					</div>
-					<div class="color_field">
-						<input type="color" class="color_input" id="color_grid" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-						<label for="color_grid" style="background-color: var(--color-grid)" class="color_input"></label>
-						<div class="desc">
-							<h4 class="tl">layout.color.grid</h4>
-							<p class="tl">layout.color.grid.desc</p>
-						</div>
-					</div>
-					<div class="color_field">
-						<input type="color" class="color_input" id="color_wireframe" oninput="changeUIColor(event)" onclick="initUIColor(event)">
-						<label for="color_wireframe" style="background-color: var(--color-wireframe)" class="color_input"></label>
-						<div class="desc">
-							<h4 class="tl">layout.color.wireframe</h4>
-							<p class="tl">layout.color.wireframe.desc</p>
-						</div>
-					</div>
 				</div>
 
 				<div class="dialog_bar">
@@ -685,14 +587,14 @@
 		</div>
 
 		<div class="dialog_bar">
-			<button type="button" class="large confirm_btn cancel_btn tl" onclick="Settings.save()">dialog.close</button>
+			<button type="button" class="confirm_btn cancel_btn tl" onclick="Settings.save()">dialog.close</button>
 		</div>
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</dialog>
 
 	<dialog class="dialog draggable" id="uv_dialog">
 		<div class="dialog_handle tl">uv_editor.title</div>
-		<div class="dialog_bar borderless" id="uv_tab_bar">
+		<div class="dialog_bar borderless tab_bar" id="uv_tab_bar">
 			<div onclick="uv_dialog.openTab('all')" id="all" class="tab open tl">uv_editor.all_faces</div>
 			<div onclick="uv_dialog.openTab('north')" id="north" class="tab tl">face.north</div>
 			<div onclick="uv_dialog.openTab('south')" id="south" class="tab tl">face.south</div>
@@ -711,7 +613,7 @@
 			<div class="toolbar_wrapper uv_dialog"></div>
 		</div>
 
-		<button type="button" onclick="hideDialog()" class="large confirm_btn cancel_btn hidden">dialog.close</button>
+		<button type="button" onclick="hideDialog()" class="confirm_btn cancel_btn hidden">dialog.close</button>
 		
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</dialog>
@@ -724,8 +626,8 @@
 		</div>
 
 		<div class="dialog_bar">
-			<button type="button" class="large confirm_btn tl" onclick="hideDialog()">dialog.confirm</button>
-			<button type="button" class="large cancel_btn tl" onclick="hideDialog()">dialog.cancel</button>
+			<button type="button" class="confirm_btn tl" onclick="hideDialog()">dialog.confirm</button>
+			<button type="button" class="cancel_btn tl" onclick="hideDialog()">dialog.cancel</button>
 		</div>
 		<div id="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</dialog>
@@ -739,7 +641,8 @@
 			<ul>
 				<li v-for="(item, i) in actions" v-on:click="ActionControl.click(item, $event)" v-bind:class="{selected: i === index}" v-on:mouseenter="index = i">
 					<div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
-					{{ item.name }}
+					<div class="name">{{ item.name }}</div>
+					<label>{{ item.keybind.label }}</label>
 				</li>
 			</ul>
 			<div class="small_text" v-if="actions[index]">{{ Pressing.alt ? actions[index].keybind.label : actions[index].description }}</div>
@@ -874,14 +777,14 @@
 		</div>
 		<div id="animations" class="panel">
 			<div class="toolbar_wrapper animations"></div>
-			<ul id="animations_list" class="list">
-				<li v-for="animation in animations"></li>
+			<ul id="animations_list" class="list" v-sortable="{onUpdate: sort, onChoose: choose, fallbackTolerance: 10, animation: 0, handle: ':not(.animation_play_toggle)'}">
 				<li
 					v-for="animation in animations"
 					v-bind:class="{ selected: animation.selected }"
 					v-bind:anim_id="animation.uuid"
 					class="animation"
 					v-on:click.stop="animation.select()"
+					:key="animation.uuid"
 					@contextmenu.prevent.stop="animation.showContextMenu($event)"
 				>
 					<i class="material-icons">movie</i>
@@ -896,21 +799,29 @@
 		<div id="keyframe" class="panel">
 			<div class="toolbar_wrapper keyframe"></div>
 			<p class="tl" id="keyframe_type_label"></p>
-			<div class="bar" id="keyframe_bar_x">
+			<div class="bar flex" id="keyframe_bar_x">
 				<label>X</label>
 				<input type="text" id="keyframe_x" class="dark_bordered code keyframe_input" axis="x" oninput="updateKeyframeValue(this)">
 			</div>
-			<div class="bar" id="keyframe_bar_y">
+			<div class="bar flex" id="keyframe_bar_y">
 				<label>Y</label>
 				<input type="text" id="keyframe_y" class="dark_bordered code keyframe_input" axis="y" oninput="updateKeyframeValue(this)">
 			</div>
-			<div class="bar" id="keyframe_bar_z">
+			<div class="bar flex" id="keyframe_bar_z">
 				<label>Z</label>
 				<input type="text" id="keyframe_z" class="dark_bordered code keyframe_input" axis="z" oninput="updateKeyframeValue(this)">
 			</div>
-			<div class="bar" id="keyframe_bar_w">
+			<div class="bar flex" id="keyframe_bar_w">
 				<label>W</label>
 				<input type="text" id="keyframe_w" class="dark_bordered code keyframe_input" axis="w" oninput="updateKeyframeValue(this)">
+			</div>
+			<div class="bar flex" id="keyframe_bar_effect">
+				<label class="tl">data.effect</label>
+				<input type="text" id="keyframe_effect" class="dark_bordered code keyframe_input" axis="effect" oninput="updateKeyframeValue(this)">
+			</div>
+			<div class="bar flex" id="keyframe_bar_locator">
+				<label class="tl">data.locator</label>
+				<input type="text" id="keyframe_locator" class="dark_bordered code keyframe_input" axis="locator" oninput="updateKeyframeValue(this)">
 			</div>
 		</div>
 		<div id="variable_placeholders" class="panel grow">
@@ -995,44 +906,76 @@
 		</div>
 		<div id="timeline">
 			<div class="toolbar_wrapper timeline"></div>
-			<div id="timeline_head">
-				<div id="timeline_corner"></div>
-				<div class="channel_head">
-					<div class="text_button" onclick="Timeline.addKeyframe('rotation', event.ctrlKey)"><i class="material-icons">add</i></div>
-					<span class="tl">timeline.rotation</span>
-				</div>
-				<div class="channel_head">
-					<div class="text_button" onclick="Timeline.addKeyframe('position', event.ctrlKey)"><i class="material-icons">add</i></div>
-					<span class="tl">timeline.position</span>
-				</div>
-				<div class="channel_head">
-					<div class="text_button" onclick="Timeline.addKeyframe('scale', event.ctrlKey)"><i class="material-icons">add</i></div>
-					<span class="tl">timeline.scale</span>
-				</div>
-			</div>
-			<div id="timeline_inner" @contextmenu.prevent="Timeline.showMenu(event)" v-on:click.stop="Timeline.unselect(event)">
-				<div id="timeline_time" v-bind:style="{width: (size*length)+'px'}">
-					<div v-for="t in timecodes" class="timeline_timecode" v-bind:style="{left: (t.time * size) + 'px'}">
-						{{ t.text }}
+			<div id="timeline_vue">
+				<div id="timeline_header">
+					<div id="timeline_corner" v-bind:style="{width: head_width+'px'}"></div>
+					<div id="timeline_time_wrapper">
+						<div id="timeline_time" v-bind:style="{width: (size*length)+'px', left: -scroll_left+'px'}">
+							<div v-for="t in timecodes" class="timeline_timecode" v-bind:style="{left: (t.time * size) + 'px'}">
+								{{ t.text }}
+							</div>
+							<div id="timeline_marker"
+								v-bind:style="{left: (marker * size) + 'px'}"
+							></div>
+						</div>
 					</div>
 				</div>
-				<div id="timeline_marker"
-					v-bind:style="{left: (8 + marker * size) + 'px'}"
-				></div>
-				<div
-					v-for="keyframe in keyframes"
-					v-bind:style="{left: (8 + keyframe.time * size) + 'px', top: (34+keyframe.channel_index*31) + 'px'}"
-					class="keyframe"
-					v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
-					v-bind:id="keyframe.uuid"
-					v-on:click.stop="keyframe.select($event)"
-					v-on:dblclick="keyframe.callMarker()"
-					:title="tl('timeline.'+keyframe.channel)"
-					@contextmenu.prevent="keyframe.showContextMenu($event)"
-				>
-					<i class="material-icons">stop</i>
+				<div id="timeline_body">
+					<div id="timeline_body_inner">
+						<div id="timeline_marker_line"
+							v-bind:style="{left: (8 + marker * size + head_width) + 'px'}"
+						></div>
+						<li v-for="animator in animators" class="animator" :class="{selected: animator.selected}" :uuid="animator.uuid" v-on:click="animator.select();">
+							<div class="animator_head_bar" v-bind:style="{width: (size*length + head_width)+'px'}">
+								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
+									<div class="text_button" v-on:click.stop="toggleAnimator(animator)">
+										<i class="icon-open-state fa" v-bind:class="{'fa-caret-right': !animator.expanded, 'fa-caret-down': animator.expanded}"></i>
+									</div>
+									<span v-on:click.stop="animator.select();">{{animator.name}}</span>
+									<div class="text_button" v-on:click.stop="removeAnimator(animator)">
+										<i class="material-icons">remove</i>
+									</div>
+								</div>
+								<div class="keyframe_section" v-if="!animator.expanded">
+									<keyframe
+										v-for="keyframe in animator.keyframes"
+										v-bind:style="{left: (8 + keyframe.time * size) + 'px'}"
+										class="keyframe"
+										v-bind:id="'_'+keyframe.uuid"
+									>
+										<i class="material-icons">lens</i>
+									</keyframe>
+								</div>
+							</div>
+							<div class="animator_channel_bar" v-bind:style="{width: (size*length + head_width)+'px'}" v-for="channel in animator.channels" v-if="animator.expanded && (!focus_channel || channel == focus_channel)">
+								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
+									<span>{{ tl('timeline.'+channel) }}</span>
+									<div class="text_button" v-on:click.stop="animator.createKeyframe(null, Timeline.time, channel, true)">
+										<i class="material-icons">add</i>
+									</div>
+								</div>
+								<div class="keyframe_section">
+									<keyframe
+										v-for="keyframe in animator[channel]"
+										v-bind:style="{left: (8 + keyframe.time * size) + 'px'}"
+										class="keyframe"
+										v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
+										v-bind:id="keyframe.uuid"
+										v-on:click.stop="keyframe.select($event)"
+										v-on:dblclick="keyframe.callMarker()"
+										:title="tl('timeline.'+keyframe.channel)"
+										@contextmenu.prevent="keyframe.showContextMenu($event)"
+									>
+										<i class="material-icons">stop</i>
+									</keyframe>
+								</div>
+							</div>
+						</li>
+						<div id="timeline_empty_head" class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
+						</div>
+						<div id="timeline_selector" class="selection_rectangle"></div>
+					</div>
 				</div>
-				<div id="timeline_lines"></div>
 			</div>
 		</div>
 		<div id="start_screen">
@@ -1065,11 +1008,11 @@
 		</div>
 	</div>
 	<div id="status_bar" @contextmenu="Interface.status_bar.menu.show(event)">
-		<div v-html="Blockbench.getIconNode(Format.icon).outerHTML" v-bind:title="Format.name"></div>
 		<div id="status_saved">
 			<i class="material-icons" v-if="Prop.project_saved" v-bind:title="tl('status_bar.saved')">check</i>
 			<i class="material-icons" v-else v-bind:title="tl('status_bar.unsaved')">close</i>
 		</div>
+		<div v-html="Blockbench.getIconNode(Format.icon).outerHTML" v-bind:title="Format.name"></div>
 		<div id="status_name">
 			{{ Prop.file_name }}
 		</div>

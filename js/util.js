@@ -55,6 +55,16 @@ Date.prototype.getTimestamp = function() {
 	var l2 = i => (i.toString().length === 1 ? '0'+i : i);
 	return l2(this.getHours()) + ':' + l2(this.getMinutes());
 }
+Object.defineProperty(Event.prototype, 'ctrlOrCmd', {
+	get: function() {
+		return this.ctrlKey || this.metaKey;
+	}
+})
+Object.defineProperty($.Event.prototype, 'ctrlOrCmd', {
+	get: function() {
+		return this.ctrlKey || this.metaKey;
+	}
+})
 
 //Jquery
 $.fn.deepest = function() {

@@ -1,7 +1,7 @@
 var Undo = {
 	index: 0,
 	history: [],
-	initEdit: function(aspects) {
+	initEdit(aspects) {
 		if (aspects && aspects.cubes) {
 			console.warn('Aspect "cubes" is deprecated. Please use "elements" instead.');
 			aspects.elements = aspects.cubes;
@@ -23,7 +23,7 @@ var Undo = {
 		Undo.current_save = new Undo.save(aspects)
 		return Undo.current_save;
 	},
-	finishEdit: function(action, aspects) {
+	finishEdit(action, aspects) {
 		if (aspects && aspects.cubes) {
 			console.warn('Aspect "cubes" is deprecated. Please use "elements" instead.');
 			aspects.elements = aspects.cubes;
@@ -58,13 +58,25 @@ var Undo = {
 		}
 		return entry;
 	},
-	cancelEdit: function() {
+	cancelEdit() {
 		if (!Undo.current_save) return;
 		outlines.children.length = 0
 		Undo.loadSave(Undo.current_save, new Undo.save(Undo.current_save.aspects))
 		delete Undo.current_save;
 	},
-	undo: function(remote) {
+	addKeyframeCasualties(arr) {
+		if (!arr || arr.length == 0) return;
+		if (!Undo.current_save.keyframes) {
+			Undo.current_save.keyframes = {
+				animation: Animator.selected.uuid
+			}
+		}
+		arr.forEach(kf => {
+			Undo.current_save.affected = true
+			Undo.current_save.keyframes[kf.uuid] = kf.getUndoCopy();
+		})
+	},
+	undo(remote) {
 		if (Undo.history.length <= 0 || Undo.index < 1) return;
 
 		Prop.project_saved = false;
@@ -77,7 +89,7 @@ var Undo = {
 		}
 		Blockbench.dispatchEvent('undo', {entry})
 	},
-	redo: function(remote) {
+	redo(remote) {
 		if (Undo.history.length <= 0) return;
 		if (Undo.index >= Undo.history.length) {
 			return;
@@ -92,7 +104,7 @@ var Undo = {
 		}
 		Blockbench.dispatchEvent('redo', {entry})
 	},
-	remoteEdit: function(entry) {
+	remoteEdit(entry) {
 		Undo.loadSave(entry.post, entry.before, 'session')
 
 		if (entry.save_history !== false) {
@@ -106,7 +118,7 @@ var Undo = {
 			Blockbench.dispatchEvent('finished_edit', {remote: true})
 		}
 	},
-	getItemByUUID: function(list, uuid) {
+	getItemByUUID(list, uuid) {
 		if (!list || typeof list !== 'object' || !list.length) {return false;}
 		var i = 0;
 		while (i < list.length) {
@@ -173,10 +185,9 @@ var Undo = {
 				scope.animations[a.uuid] = a.getUndoCopy();
 			})
 		}
-		if (aspects.keyframes && Animator.selected && Animator.selected.getBoneAnimator()) {
+		if (aspects.keyframes && Animator.selected && Timeline.animators.length) {
 			this.keyframes = {
-				animation: Animator.selected.uuid,
-				bone: Animator.selected.getBoneAnimator().uuid
+				animation: Animator.selected.uuid
 			}
 			aspects.keyframes.forEach(kf => {
 				scope.keyframes[kf.uuid] = kf.getUndoCopy()
@@ -194,7 +205,7 @@ var Undo = {
 			})
 		}
 	},
-	loadSave: function(save, reference, mode) {
+	loadSave(save, reference, mode) {
 		var is_session = mode === 'session';
 		if (save.elements) {
 			for (var uuid in save.elements) {
@@ -327,7 +338,7 @@ var Undo = {
 		if (save.animations) {
 			for (var uuid in save.animations) {
 
-				var animation = reference.animations[uuid] ? Undo.getItemByUUID(Animator.animations, uuid) : null;
+				var animation = (reference.animations && reference.animations[uuid]) ? Undo.getItemByUUID(Animator.animations, uuid) : null;
 				if (!animation) {
 					animation = new Animation()
 					animation.uuid = uuid
@@ -356,57 +367,47 @@ var Undo = {
 				}
 			}
 			if (animation) {
-				var bone = Animator.selected.getBoneAnimator();
-				if (!bone || bone.uuid !== save.keyframes.bone) {
-					for (var uuid in Animator.selected.bones) {
-						if (uuid === save.keyframes.bone) {
-							bone = Animator.selected.bones[uuid]
-							if (bone.group && Animator.open && !is_session) {
-								bone.group.select()
-							}
-						}
-					}
-				}
-				if (bone.uuid === save.keyframes.bone) {
 
-					function getKeyframe(uuid) {
-						var i = 0;
-						while (i < bone.keyframes.length) {
-							if (bone.keyframes[i].uuid === uuid) {
-								return bone.keyframes[i];
-							}
-							i++;
+				function getKeyframe(uuid, animator) {
+					var i = 0;
+					while (i < animator.keyframes.length) {
+						if (animator.keyframes[i].uuid === uuid) {
+							return animator.keyframes[i];
 						}
+						i++;
 					}
-					var added = 0;
-					for (var uuid in save.keyframes) {
-						if (uuid.length === 36 && save.keyframes.hasOwnProperty(uuid)) {
-							var data = save.keyframes[uuid]
-							var kf = getKeyframe(uuid)
-							if (kf) {
-								kf.extend(data)
-							} else {
-								kf = new Keyframe(data, uuid)
-								kf.parent = bone;
-								bone.keyframes.push(kf)
-								added++;
-							}
-						}
-					}
-					for (var uuid in reference.keyframes) {
-						if (uuid.length === 36 && reference.keyframes.hasOwnProperty(uuid) && !save.keyframes.hasOwnProperty(uuid)) {
-							var kf = getKeyframe(uuid)
-							if (kf) {
-								kf.remove()
-							}
-						}
-					}
-					if (added) {
-						Vue.nextTick(Timeline.update)
-					}
-					updateKeyframeSelection()
-					Animator.preview()
 				}
+				var added = 0;
+				for (var uuid in save.keyframes) {
+					if (uuid.length === 36 && save.keyframes.hasOwnProperty(uuid)) {
+						var data = save.keyframes[uuid];
+						var animator = animation.animators[data.animator];
+						if (!animator) continue;
+						var kf = getKeyframe(uuid, animator);
+						if (kf) {
+							kf.extend(data)
+						} else {
+							animator.addKeyframe(data, uuid);
+							added++;
+						}
+					}
+				}
+				for (var uuid in reference.keyframes) {
+					if (uuid.length === 36 && reference.keyframes.hasOwnProperty(uuid) && !save.keyframes.hasOwnProperty(uuid)) {
+						var data = reference.keyframes[uuid];
+						var animator = animation.animators[data.animator];
+						if (!animator) continue;
+						var kf = getKeyframe(uuid, animator)
+						if (kf) {
+							kf.remove()
+						}
+					}
+				}
+				if (added) {
+					Vue.nextTick(Timeline.update)
+				}
+				updateKeyframeSelection()
+				Animator.preview()
 			}
 		}
 
@@ -440,8 +441,7 @@ Undo.save.prototype.addTexture = function(texture) {
 }
 BARS.defineActions(function() {
 	
-	new Action({
-		id: 'undo',
+	new Action('undo', {
 		icon: 'undo',
 		category: 'edit',
 		condition: () => (!open_dialog || open_dialog === 'uv_dialog' || open_dialog === 'toolbar_edit'),
@@ -449,8 +449,7 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 90, ctrl: true}),
 		click: Undo.undo
 	})
-	new Action({
-		id: 'redo',
+	new Action('redo', {
 		icon: 'redo',
 		category: 'edit',
 		condition: () => (!open_dialog || open_dialog === 'uv_dialog' || open_dialog === 'toolbar_edit'),

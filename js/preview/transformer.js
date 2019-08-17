@@ -558,6 +558,16 @@
 			this.add( gizmoObj );
 
 		}
+		this.pivot_marker = new THREE.Mesh(
+			new THREE.IcosahedronGeometry(0.08),
+			new THREE.MeshBasicMaterial()
+		)
+		this.pivot_marker.material.depthTest = false;
+		this.pivot_marker.material.depthWrite = false;
+		this.pivot_marker.material.side = THREE.FrontSide;
+		this.pivot_marker.material.transparent = true;
+		this.pivot_marker.material.color = gizmo_colors.outline;
+		this.children[0].add(this.pivot_marker)
 
 		//Adjust GIzmos
 		this.traverse((kid) => {
@@ -630,11 +640,6 @@
 			var camPosition = new THREE.Vector3();
 			var camRotation = new THREE.Euler();
 
-			var animation_channels = {
-				rotate: 'rotation',
-				translate: 'position',
-				scale: 'scale'
-			}
 
 		this.attach = function ( object ) {
 			this.elements.safePush(object);
@@ -654,6 +659,9 @@
 			_mode = mode||_mode;
 			if ( _mode === "scale" ) scope.space = "local";
 			for ( var type in _gizmo ) _gizmo[ type ].visible = (type === _mode);
+			if (mode == 'translate') {
+				this.pivot_marker.visible = Toolbox.selected.visible = Toolbox.selected.id == 'pivot_tool';
+			}
 
 			this.update();
 			scope.dispatchEvent( changeEvent );
@@ -734,7 +742,7 @@
 			} else {
 				worldRotation.set(0, 0, 0);
 				this.rotation.set(0, 0, 0);
-				_gizmo[ _mode ].update( new THREE.Euler(), eye );
+				_gizmo[ _mode ].update( worldRotation, eye );
 			}
 			_gizmo[ _mode ].highlight( scope.axis );
 		};
@@ -796,7 +804,7 @@
 					selected.forEach(element => {
 						if (
 							(element.movable && Toolbox.selected.transformerMode == 'translate') ||
-							(element.scalable && Toolbox.selected.transformerMode == 'scale') ||
+							(element.resizable && Toolbox.selected.transformerMode == 'scale') ||
 							(element.rotatable && Toolbox.selected.transformerMode == 'rotate')
 						) {
 							scope.attach(element);
@@ -957,7 +965,7 @@
 				if (Toolbox.selected.id === 'resize_tool') {
 					var axisnr = getAxisNumber(scope.axis.toLowerCase().replace('n', ''))
 					selected.forEach(function(obj) {
-						if (obj.scalable) {
+						if (obj.resizable) {
 							obj.oldScale = obj.size(axisnr)
 						}
 					})
@@ -978,18 +986,20 @@
 				if (Timeline.playing) {
 					Timeline.pause()
 				}
-				var channel = animation_channels[_mode]
 				scope.keyframe = false;
-				for (var i = 0; i < Timeline.keyframes.length; i++) {
-					var kf = Timeline.keyframes[i];
-					if (kf.channel === channel && Math.abs(kf.time - Timeline.second) < 0.02) {
-						scope.keyframe = kf
+				var animator = Animator.selected.getBoneAnimator();
+				if (animator) {
+					var channel = Toolbox.selected.animation_channel;
+					var all = animator[channel];
+					for (var kf of all) {
+						if (Math.abs(kf.time - Timeline.time) < 0.02) {
+							scope.keyframe = kf
+						}
 					}
-				}
-				Undo.initEdit({keyframes: scope.keyframe ? [scope.keyframe] : []})
-				if (!scope.keyframe) {
-					var ba = Animator.selected.getBoneAnimator()
-					scope.keyframe = ba.addKeyframe(null, Timeline.second, channel);
+					Undo.initEdit({keyframes: scope.keyframe ? [scope.keyframe] : []})
+					if (!scope.keyframe) {
+						scope.keyframe = animator.createKeyframe(null, Timeline.time, channel);
+					}
 				}
 
 			} else if (Modes.id === 'display') {
@@ -1016,7 +1026,9 @@
 
 			if (Toolbox.selected.transformerMode !== 'rotate') {
 				point.sub( offset );
-				point.removeEuler(worldRotation)
+				if (!display_mode) {
+					point.removeEuler(worldRotation)
+				}
 
 			} else {
 				point.sub( worldPosition );
@@ -1033,7 +1045,7 @@
 
 				if (Toolbox.selected.id === 'move_tool') {
 
-					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
+					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
 					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
 
 					if (previousValue === undefined) {
@@ -1047,7 +1059,7 @@
 						var overlapping = false
 						if (Format.canvas_limit) {
 							selected.forEach(function(obj) {
-								if (obj.movable && obj.scalable) {
+								if (obj.movable && obj.resizable) {
 									overlapping = overlapping || (
 										obj.to[axisNumber] + difference + obj.inflate > 32 ||
 										obj.to[axisNumber] + difference + obj.inflate < -16 ||
@@ -1076,7 +1088,7 @@
 					}
 				} else if (Toolbox.selected.id === 'resize_tool') {
 					//Scale
-					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
+					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
 					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
 
 
@@ -1084,8 +1096,8 @@
 						beforeFirstChange(event)
 
 						selected.forEach(function(obj, i) {
-							if (obj.scalable) {
-								obj.scale(point[axis], axisNumber, !scope.direction)
+							if (obj.resizable) {
+								obj.resize(point[axis], axisNumber, !scope.direction)
 							}
 						})
 						scope.updateSelection()
@@ -1112,7 +1124,7 @@
 					}
 				} else if (Toolbox.selected.id === 'pivot_tool') {
 
-					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlKey)
+					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
 					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
 
 					if (previousValue === undefined) {
@@ -1165,7 +1177,7 @@
 						value *= (scope.direction) ? 0.1 : -0.1
 						round_num = 0.1
 					} else {
-						var round_num = canvasGridSize(event.shiftKey, event.ctrlKey)
+						var round_num = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
 					}
 				}
 				value = Math.round(value/round_num)*round_num
@@ -1195,7 +1207,7 @@
 				scope.getWorldQuaternion(rotation)
 				point.applyQuaternion(rotation.inverse())
 
-				var channel = animation_channels[_mode]
+				var channel = Toolbox.selected.animation_channel
 				if (channel === 'position') channel = 'translation';
 				var value = point[axis]
 				var bf = display[display_slot][channel][axisNumber] - (previousValue||0)

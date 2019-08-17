@@ -355,13 +355,13 @@ class refModel {
 		return this;
 	}
 	setModelVariant(variant) {
-		this.variant = variant
+		this.variant = variant;
 		this.model.children.forEach((m) => {
 			if (m.r_model) {
 				m.visible = m.r_model === variant;
 			}
 		})
-		if (displayReferenceObjects.active === this) {
+		if (display_mode && displayReferenceObjects.active === this) {
 			this.onload()
 		}
 	}
@@ -1721,12 +1721,13 @@ window.changeDisplaySkin = function() {
 	if (isApp) {
 		buttons.splice(1, 0, tl('message.display_skin.name'))
 	}
+	buttons.push('dialog.cancel');
 	Blockbench.showMessageBox({
 		translateKey: 'display_skin',
 		icon: 'icon-player',
 		buttons: buttons,
 		confirm: 0,
-		cancel: isApp ? 2 : 1
+		cancel: buttons.length-1,
 	}, function(result) {
 		if (result === 0) {
 			Blockbench.import({
@@ -1882,8 +1883,7 @@ onVueSetup(function() {
 })
 
 BARS.defineActions(function() {
-	new Action({
-		id: 'add_display_preset',
+	new Action('add_display_preset', {
 		icon: 'add',
 		category: 'display',
 		condition: () => display_mode,

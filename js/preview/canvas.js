@@ -99,9 +99,7 @@ const Canvas = {
 		Canvas.clear()
 		Canvas.updateAllBones()
 		Cube.all.forEach(function(s) {
-			if (s.visibility == true) {
-				Canvas.addCube(s)
-			}
+			Canvas.addCube(s)
 		})
 		updateSelection()
 	},
@@ -114,6 +112,14 @@ const Canvas = {
 	},
 	updateVisibility() {
 		Cube.all.forEach(function(s) {
+			s.mesh.visible = s.visibility == true;
+			if (s.visibility) {
+				Canvas.adaptObjectFaces(s, s.mesh)
+				if (!Prop.wireframe) {
+					Canvas.updateUV(s);
+				}
+			}
+			/*
 			var mesh = s.mesh
 			if (s.visibility == true) {
 				if (!mesh) {
@@ -128,7 +134,7 @@ const Canvas = {
 				}
 			} else if (mesh && mesh.parent) {
 				mesh.parent.remove(mesh)
-			}
+			}*/
 		})
 		updateSelection()
 	},
@@ -192,9 +198,7 @@ const Canvas = {
 			if (mesh && mesh.parent) {
 				mesh.parent.remove(mesh)
 			}
-			if (obj.visibility == true) {
-				Canvas.addCube(obj)
-			}
+			Canvas.addCube(obj)
 		})
 		updateSelection()
 	},
@@ -257,7 +261,7 @@ const Canvas = {
 
 		Group.all.forEach((obj) => {
 			let mesh = obj.mesh
-			if (obj.visibility && mesh) {
+			if (mesh) {
 
 				mesh.rotation.reorder('ZYX')
 				obj.rotation.forEach(function(n, i) {
@@ -347,9 +351,7 @@ const Canvas = {
 		}
 		Canvas.buildOutline(obj)
 	},
-	adaptObjectPosition(cube, mesh, parent) {
-		if (!cube.visibility) return;
-		
+	adaptObjectPosition(cube, mesh, parent) {		
 		if (!mesh || mesh > 0) mesh = cube.mesh
 
 		var from = cube.from.slice()
@@ -398,7 +400,7 @@ const Canvas = {
 			} else {
 				scene.add(mesh)
 			}
-		} else {
+		} else if (mesh.parent !== scene) {
 			scene.add(mesh)
 		}
 		if (Modes.paint) {

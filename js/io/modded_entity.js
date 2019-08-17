@@ -145,6 +145,72 @@ var codec = new Codec('modded_entity', {
 			 '\n}';
 		return model;
 	},
+	parse(model, path, add) {
+		// WIP //
+		var lines = [];
+		model.split('\n').forEach(l => {
+			l = l.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, '').trim().replace(/;$/, '');
+			if (l) {
+				lines.push(l)
+			}
+		})
+
+		var getArgs = function(input) {
+			var i = input.search('(')
+			var args = input.substr(i+1).replace(/\)$/, '');
+			return args.split(/, ?/);
+		}
+		var scope = 0,
+			bones = {},
+			geo_name;
+
+		lines.forEach(line => {
+			if (scope == 0) {
+				if (/^public class/.test(line)) {
+					scope = 1;
+					geo_name = line.split(' ')[2];
+				}
+			} else if (scope == 1) {
+				line = line.replace(/Public|Static|Final|Private|Void/g, '').trim();
+				if (line.substr(0, 13) == 'ModelRenderer') {
+					bones[line.split('')[1]] = new Group().init();
+				} else if (line.substr(0, geo_name.length) == geo_name) {
+					scope = 2;
+				}
+
+			} else if (scope == 2) {
+				line = line.replace(/^this\./, '');
+				var key = line.match(/^\w+(?=[\.|  |=])/);
+				key = key ? key[0] : '';
+				if (key.length) {
+					var action = line.substr(key.length).trim();
+					if (key == 'textureWidth') {
+						Project.texture_width = parseInt(action.replace(/=/), '');
+					} else
+					if (key == 'textureHeight') {
+						Project.texture_height = parseInt(action.replace(/=/), '');
+					} else
+					if (bones[key]) {
+						if (action.match(/^= ?new ModelRenderer\(/)) {
+							var args = getArgs(action);
+						} else
+						if (action.match(/^\.setRotationPoint\(/)) {
+							var args = getArgs(action);
+							var origin = [];
+							args.forEach((n, i) => {
+								origin[i] = parseInt(n.replace(/F/, '')) * (i == 2 ? 1 : -1);
+							})
+							bones[key].extend({origin})
+						} else
+						if (action.match(/^\.cubeList\.add\(/)) {
+							
+						}
+					}
+				}
+			}
+		})
+
+	}
 })
 
 var format = new ModelFormat({

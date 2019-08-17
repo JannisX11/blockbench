@@ -73,8 +73,7 @@ Locator.selected = [];
 Locator.all = [];
 
 BARS.defineActions(function() {
-	new Action({
-		id: 'add_locator',
+	new Action('add_locator', {
 		icon: 'fa-anchor',
 		category: 'edit',
 		condition: () => {return Format.locators && Modes.edit},

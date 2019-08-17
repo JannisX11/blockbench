@@ -212,8 +212,7 @@ var codec = new Codec('project', {
 })
 
 BARS.defineActions(function() {
-	codec.export_action = new Action({
-		id: 'save_project',
+	codec.export_action = new Action('save_project', {
 		icon: 'save',
 		category: 'file',
 		keybind: new Keybind({key: 83, ctrl: true, alt: true}),
@@ -227,8 +226,7 @@ BARS.defineActions(function() {
 		}
 	})
 
-	new Action({
-		id: 'save_project_as',
+	new Action('save_project_as', {
 		icon: 'save',
 		category: 'file',
 		keybind: new Keybind({key: 83, ctrl: true, alt: true, shift: true}),

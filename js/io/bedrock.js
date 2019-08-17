@@ -1,4 +1,5 @@
 function findEntityTexture(mob, return_path) {
+	if (!mob) return;
 	var textures = {
 		'llamaspit': 'llama/spit',
 		'llama': 'llama/llama_creamy',

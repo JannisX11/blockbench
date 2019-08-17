@@ -296,12 +296,12 @@ var codec = new Codec('java_block', {
 						base_cube.faces[face].texture = null
 						base_cube.faces[face].uv = [0,0,0,0]
 					} else {
-						delete base_cube.faces[face].texture;
 						if (typeof obj.faces[face].uv === 'object') {
 							uv_stated = true
 						}
 						if (obj.faces[face].texture === '#missing') {
-
+							base_cube.faces[face].texture = false;
+							
 						} else if (obj.faces[face].texture) {
 							var id = obj.faces[face].texture.replace(/^#/, '')
 							var t = texture_ids[id]

@@ -136,6 +136,11 @@ class Cube extends NonGroup {
 			Merge.number(this.to, object.to, 1)
 			Merge.number(this.to, object.to, 2)
 		}
+		if (object.size) {
+			if (typeof object.size[0] == 'number' && !isNaN(object.size[0])) this.to[0] = this.from[0] + object.size[0]
+			if (typeof object.size[1] == 'number' && !isNaN(object.size[1])) this.to[1] = this.from[1] + object.size[1]
+			if (typeof object.size[2] == 'number' && !isNaN(object.size[2])) this.to[2] = this.from[2] + object.size[2]
+		}
 		if (object.uv_offset) {
 			Merge.number(this.uv_offset, object.uv_offset, 0)
 			Merge.number(this.uv_offset, object.uv_offset, 1)
@@ -281,7 +286,7 @@ class Cube extends NonGroup {
 		if (!this.shade) el.shade = false;
 		if (this.inflate) el.inflate = this.inflate;
 		if (!this.rotation.allEqual(0)) el.rotation = this.rotation;
-		if (!this.origin.allEqual(0)) el.origin = this.origin;
+		el.origin = this.origin;
 		if (!this.uv_offset.allEqual(0)) el.uv_offset = this.uv_offset;
 		if (!meta || !meta.box_uv) {
 			el.faces = {}
@@ -514,14 +519,14 @@ class Cube extends NonGroup {
 		} else {
 			var sides = faces
 		}
-		var id = null
+		var value = null
 		if (texture) {
-			id = texture.uuid
-		} else if (texture === 'blank') {
-			id = undefined;
+			value = texture.uuid
+		} else if (texture === false || texture === null) {
+			value = texture;
 		}
 		sides.forEach(function(side) {
-			scope.faces[side].texture = id
+			scope.faces[side].texture = value
 		})
 		if (selected.indexOf(this) === 0) {
 			main_uv.loadData()
@@ -698,13 +703,13 @@ class Cube extends NonGroup {
 		}
 		return in_box;
 	}
-	scale(val, axis, negative, absolute, allow_negative) {
+	resize(val, axis, negative, absolute, allow_negative) {
 		if (absolute) {
 			var before = 0;
 		} else {
 			var before = this.oldScale ? this.oldScale : this.size(axis);
 		}
-		if (Format.integer_size) {
+		if (Format.integer_size && Project.box_uv) {
 			val = Math.ceil(val);
 		}
 		if (!negative) {
@@ -735,7 +740,7 @@ class Cube extends NonGroup {
 	Cube.prototype.type = 'cube';
 	Cube.prototype.icon = 'fa fa-cube';
 	Cube.prototype.movable = true;
-	Cube.prototype.scalable = true;
+	Cube.prototype.resizable = true;
 	Cube.prototype.rotatable = true;
 	Cube.prototype.menu = new Menu([
 		'copy',
@@ -756,12 +761,12 @@ class Cube extends NonGroup {
 			var arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {
 					cube.forSelected(function(obj) {
-						obj.applyTexture('blank', true)
+						obj.applyTexture(false, true)
 					}, 'texture blank')
 				}},
 				{icon: 'clear', name: 'menu.cube.texture.transparent', click: function(cube) {
 					cube.forSelected(function(obj) {
-						obj.applyTexture(undefined, true)
+						obj.applyTexture(null, true)
 					}, 'texture transparent')
 				}}
 			]

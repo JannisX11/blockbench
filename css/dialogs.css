@@ -76,28 +76,27 @@
 		margin-top: 16px;
 		margin: 16px 4px 0 4px;
 	}
-	.dialog .tab {
-		float: left;
-		width: 25%;
+	.tab_bar {
 		height: 30px;
-		text-align: center;
+		display: flex;
+	}
+	.tab_bar > * {
+		height: 100%;
 		padding-top: 2px;
-		background: var(--color-dark);
-		vertical-align: middle;
+		flex-grow: 1;
 		cursor: default;
+		text-align: center;
+		vertical-align: middle;
 	}
-	.dialog#settings .tab:firstChild {
-		margin-left: 0;
-		width: 25%;
+	.tab_bar > .open {
+		border-bottom: 3px solid var(--color-accent);
 	}
-	.dialog .tab:hover {
+	.tab_bar > *:hover {
 		color: var(--color-light);
 	}
-	.dialog .tab.open {
-		background: transparent;
-		border-top: none;
-		transition: border-top 200 ease-in;
-	}
+
+
+
 	.dialog .tab_content {
 		height: calc(100% - 90px);
 		width: 100%;
@@ -181,6 +180,9 @@
 	}
 	#settingslist li li {
 		padding: 5px 0;
+	}
+	#settingslist li li:hover {
+		color: var(--color-light);
 	}
 	#settingslist li > .setting_element {
 		width: 50px;
@@ -269,10 +271,8 @@
 		vertical-align: top;
 		display: inline-block;
 	}
-	#keybindlist > li > div:focus {
-		color: transparent;
-		text-shadow: 0 0 0 var(--color-light);
-		background-color: var(--color-dark);
+	#keybindlist > li > ul > li {
+		position: relative;
 	}
 	#keybindlist {
 		max-height: 600px;
@@ -306,16 +306,9 @@
 		margin: 0;
 		font-size: 1.2em;
 	}
-	input.color_input {
-		-webkit-appearance: none;
-		display: none;
-	}
-	label.color_input {
-		-webkit-appearance: none;
-		appearance: none;
-		outline: none;
-		height: 36px;
-		width: 46px;
+	.layout_color_preview {
+		height: 32px;
+		width: 42px;
 		margin: 4px;
 		margin-top: 10px;
 		display: inline-block;
@@ -443,6 +436,8 @@
 		padding: 8px;
 		padding-top: 3px;
 		padding-bottom: 0;
+		min-width: 155px;
+		margin-right: 8px;
 	}
 
 	/*PE Import Dialog*/
@@ -509,15 +504,8 @@
 	.dialog#plugins {
 		width: 660px;
 	}
-	#plugins .tab {
-		border: none;
-		margin-left: 0px;
-		background: transparent;
-	}
-	#plugins .tab.open {
-		border: 1px solid var(--color-border);
-		background: var(--color-back);
-		border-bottom: none;
+	#plugins .tab_bar {
+		width: calc(100% - 300px);
 	}
 	#plugin_list {
 		max-height: 600px;
@@ -534,8 +522,11 @@
 		min-height: 128px;
 		height: auto;
 	}
-	#plugin_list li.testing {
-		border: 3px solid var(--color-accent);
+	/*#plugin_list li.testing .title {
+		border-bottom: 3px solid var(--color-accent);
+	}*/
+	#plugin_list li .icon_wrapper {
+		display: inline;
 	}
 	#plugin_list li > * {
 		margin: 0;
@@ -589,7 +580,7 @@
 	#plugin_list li .title:hover i.plugin_expand_icon {
 		display: inline-block;
 	}
-	#plugin_list li .title:hover i.plugin_icon {
+	#plugin_list li .title:hover .plugin_icon {
 		display: none;
 	}
 
@@ -600,7 +591,7 @@
 	}
 	#plugin_list .description {
 		font-size: 0.9em;
-		height: 48px;
+		max-height: 48px;
 		margin-right: 12px;
 	}
 	#plugin_list .about {
@@ -704,8 +695,26 @@
 		font-size: 0.94em
 	}
 	#action_selector ul > li {
+		height: 32px;
 		padding: 4px;
 		overflow: hidden;
+		display: flex;
+		white-space: nowrap;
+	}
+	#action_selector ul > li div.icon_wrapper {
+		flex-grow: 0;
+		flex-shrink: 0;
+	}
+	#action_selector ul > li div.name {
+		padding-left: 4px;
+		flex-grow: 1;
+		flex-shrink: 0;
+	}
+	#action_selector ul > li label {
+		font-size: 0.84em;
+		padding: 2px;
+		flex-grow: 0;
+		flex-shrink: 1;
 	}
 	#action_selector ul > li.selected {
 		background-color: var(--color-accent);

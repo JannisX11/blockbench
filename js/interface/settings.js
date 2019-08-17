@@ -6,6 +6,7 @@ const Settings = {
 			//General
 			language:			{value: 'en', type: 'select', options: Language.options},
 			username:       	{value: '', type: 'text'},
+			recent_projects:	{value: 12, max: 128, min: 0, type: 'number', condition: isApp},
 			backup_interval:	{value: 10, type: 'number', condition: isApp},
 			backup_retain:		{value: 30, type: 'number', condition: isApp},
 			//Preview 
@@ -18,6 +19,7 @@ const Settings = {
 			transparency: 		{category: 'preview', value: true}, 
 			outliner_colors:	{category: 'preview', value: false}, 
 			texture_fps:  		{category: 'preview', value: 2, type: 'number'},
+			volume: 	  		{category: 'preview', value: 80, type: 'number'},
 			display_skin: 		{category: 'preview', value: false, type: 'click', condition: isApp, icon: 'icon-player', click: function() { changeDisplaySkin() }},
 			//Edit
 			undo_limit:   		{category: 'edit', value: 128, type: 'number'},

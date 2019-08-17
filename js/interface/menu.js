@@ -198,7 +198,7 @@ class Menu {
 				position = scope.label
 			}
 			var offset_left = $(position).offset().left;
-			var offset_top  = $(position).offset().top + $(position).height()+1;
+			var offset_top  = $(position).offset().top + $(position).height()+3;
 		}
 
 		if (offset_left > $(window).width() - el_width) {
@@ -405,6 +405,7 @@ const MenuBar = {
 				'export_entity',
 				'export_class_entity',
 				'export_optifine_full',
+				'export_optifine_part',
 				'export_obj',
 				'upload_sketchfab',
 			]},
@@ -564,7 +565,10 @@ const MenuBar = {
 			'copy',
 			'paste',
 			'select_all_keyframes',
+			'reverse_keyframes',
 			'delete',
+			'_',
+			'select_effect_animator',
 			'_',
 			'load_animation_file',
 			'export_animation_file',

@@ -428,7 +428,7 @@ class NonGroup extends OutlinerElement {
 			})
 
 		//Control
-		} else if (event && !Modes.paint && (event.ctrlKey || event.shiftKey )) {
+		} else if (event && !Modes.paint && (event.ctrlOrCmd || event.shiftKey )) {
 			if (selected.includes(scope)) {
 				selected = selected.filter(function(e) {
 					return e !== scope
@@ -890,8 +890,7 @@ onVueSetup(function() {
 })
 
 BARS.defineActions(function() {
-	new Action({
-		id: 'outliner_toggle',
+	new Action('outliner_toggle', {
 		icon: 'view_stream',
 		category: 'edit',
 		keybind: new Keybind({key: 115}),
@@ -907,8 +906,7 @@ BARS.defineActions(function() {
 			}
 		}
 	})
-	new BarText({
-		id: 'cube_counter',
+	new BarText('cube_counter', {
 		right: true,
 		click: function() {
 
@@ -951,8 +949,7 @@ BARS.defineActions(function() {
 		}
 	})
 
-	new Action({
-		id: 'sort_outliner',
+	new Action('sort_outliner', {
 		icon: 'sort_by_alpha',
 		category: 'edit',
 		click: function () {
@@ -964,8 +961,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('sort_outliner')
 		}
 	})
-	new Action({
-		id: 'local_move',
+	new Action('local_move', {
 		icon: 'check_box',
 		category: 'edit',
 		linked_setting: 'local_move',
@@ -974,8 +970,7 @@ BARS.defineActions(function() {
 			updateSelection()
 		}
 	})
-	new Action({
-		id: 'element_colors',
+	new Action('element_colors', {
 		icon: 'check_box',
 		category: 'edit',
 		linked_setting: 'outliner_colors',
@@ -984,8 +979,7 @@ BARS.defineActions(function() {
 			updateSelection()
 		}
 	})
-	new Action({
-		id: 'select_window',
+	new Action('select_window', {
 		icon: 'filter_list',
 		category: 'edit',
 		keybind: new Keybind({key: 70, ctrl: true}),
@@ -995,8 +989,7 @@ BARS.defineActions(function() {
 			$('#selgen_name').focus()
 		}
 	})
-	new Action({
-		id: 'invert_selection',
+	new Action('invert_selection', {
 		icon: 'swap_vert',
 		category: 'edit',
 		keybind: new Keybind({key: 73, ctrl: true}),
@@ -1014,8 +1007,7 @@ BARS.defineActions(function() {
 			Blockbench.dispatchEvent('invert_selection')
 		}
 	})
-	new Action({
-		id: 'select_all',
+	new Action('select_all', {
 		icon: 'select_all',
 		category: 'edit',
 		condition: () => Modes.edit || Modes.paint,

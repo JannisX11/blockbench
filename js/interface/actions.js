@@ -6,8 +6,8 @@ class MenuSeparator {
 	}
 }
 class BarItem {
-	constructor(data) {
-		this.id = data.id;
+	constructor(id, data) {
+		this.id = id;
 		if (!data.private) {
 			BarItems[this.id] = this;
 		}
@@ -80,8 +80,6 @@ class BarItem {
 	}
 	getNode() {
 		var scope = this;
-		if (this.id === 'uv_rotation') {
-		}
 		if (scope.nodes.length === 0) {
 			scope.nodes = [scope.node]
 		}
@@ -125,8 +123,12 @@ class BarItem {
 	}
 }
 class KeybindItem {
-	constructor(data) {
-		this.id = data.id
+	constructor(id, data) {
+		if (typeof id == 'object') {
+			data = id;
+			id = data.id;
+		}
+		this.id = id
 		this.type = 'keybind_item'
 		this.name = tl('keybind.'+this.id)
 		this.category = data.category ? data.category : 'misc'
@@ -141,8 +143,12 @@ class KeybindItem {
 	}
 }
 class Action extends BarItem {
-	constructor(data) {
-		super(data)
+	constructor(id, data) {
+		if (typeof id == 'object') {
+			data = id;
+			id = data.id;
+		}
+		super(id, data)
 		var scope = this;
 		this.type = 'action'
 		//Icon
@@ -226,8 +232,12 @@ class Action extends BarItem {
 	}
 }
 class Tool extends Action {
-	constructor(data) {
-		super(data)
+	constructor(id, data) {
+		if (typeof id == 'object') {
+			data = id;
+			id = data.id;
+		}
+		super(id, data);
 		var scope = this;
 		this.type = 'tool'
 		this.toolbar = data.toolbar;
@@ -237,6 +247,7 @@ class Tool extends Action {
 		this.selectCubes = data.selectCubes !== false;
 		this.paintTool = data.paintTool;
 		this.transformerMode = data.transformerMode;
+		this.animation_channel = data.animation_channel;
 		this.allowWireframe = data.allowWireframe !== false;
 
 		if (!this.condition) {
@@ -299,15 +310,23 @@ class Tool extends Action {
 	}
 }
 class Widget extends BarItem {
-	constructor(data) {
-		super(data);
+	constructor(id, data) {
+		if (typeof id == 'object') {
+			data = id;
+			id = data.id;
+		}
+		super(id, data);
 		this.type = 'widget';
 		//this.uniqueNode = true;
 	}
 }
 class NumSlider extends Widget {
-	constructor(data) {
-		super(data);
+	constructor(id, data) {
+		if (typeof id == 'object') {
+			data = id;
+			id = data.id;
+		}
+		super(id, data);
 		this.uv = !!data.uv;
 		this.type = 'numslider'
 		this.icon = 'code'
@@ -328,7 +347,7 @@ class NumSlider extends Widget {
 		} else {
 			this.interval = function(event) {
 				event = event||0;
-				return canvasGridSize(event.shiftKey, event.ctrlKey);
+				return canvasGridSize(event.shiftKey, event.ctrlOrCmd);
 			};
 		}
 		if (typeof data.getInterval === 'function') {
@@ -395,6 +414,12 @@ class NumSlider extends Widget {
 			scope.jq_inner.addClass('editing')
 			scope.jq_inner.focus()
 			document.execCommand('selectAll')
+		})
+		.dblclick(function(event) {
+			if (event.target != this) return;
+			scope.jq_inner.text('0');
+			scope.input()
+
 		});
 		//Arrows
 		this.jq_outer
@@ -445,7 +470,7 @@ class NumSlider extends Widget {
 		this.change(difference)
 		this.update()
 	}
-	input(obj) {
+	input() {
 		if (typeof this.onBefore === 'function') {
 			this.onBefore()
 		}
@@ -531,14 +556,18 @@ class NumSlider extends Widget {
 	}
 }
 class BarSlider extends Widget {
-	constructor(data) {
-		super(data)
+	constructor(id, data) {
+		if (typeof id == 'object') {
+			data = id;
+			id = data.id;
+		}
+		super(id, data);
 		var scope = this;
 		this.type = 'slider'
 		this.icon = 'fa-sliders-h'
 		this.value = data.value||0
 		this.node = $('<div class="tool widget">'+
-			'<input type="range" class="dark_bordered"'+
+			'<input type="range"'+
 				' value="'+(data.value?data.value:0)+'" '+
 				' min="'+(data.min?data.min:0)+'" '+
 				' max="'+(data.max?data.max:10)+'" '+
@@ -584,8 +613,12 @@ class BarSlider extends Widget {
 	}
 }
 class BarSelect extends Widget {
-	constructor(data) {
-		super(data)
+	constructor(id, data) {
+		if (typeof id == 'object') {
+			data = id;
+			id = data.id;
+		}
+		super(id, data);
 		var scope = this;
 		this.type = 'select'
 		this.icon = 'list'
@@ -652,8 +685,12 @@ class BarSelect extends Widget {
 	}
 }
 class BarText extends Widget {
-	constructor(data) {
-		super(data)
+	constructor(id, data) {
+		if (typeof id == 'object') {
+			data = id;
+			id = data.id;
+		}
+		super(id, data);
 		this.type = 'bar_text'
 		this.icon = 'text_format'
 		this.node = $('<div class="tool widget bar_text">'+data.text||''+'</div>').get(0)
@@ -683,8 +720,12 @@ class BarText extends Widget {
 	}
 }
 class ColorPicker extends Widget {
-	constructor(data) {
-		super(data)
+	constructor(id, data) {
+		if (typeof id == 'object') {
+			data = id;
+			id = data.id;
+		}
+		super(id, data);
 		var scope = this;
 		this.type = 'color_picker'
 		this.icon = 'color_lens'
@@ -925,69 +966,63 @@ const BARS = {
 		BarItems = {}
 
 		//Extras
-			new KeybindItem({
-				id: 'preview_select',
+			new KeybindItem('preview_select', {
 				category: 'navigate',
 				keybind: new Keybind({key: Blockbench.isMobile ? 0 : 1, ctrl: null, shift: null, alt: null})
 			})
-			new KeybindItem({
-				id: 'preview_rotate',
+			new KeybindItem('preview_rotate', {
 				category: 'navigate',
 				keybind: new Keybind({key: 1})
 			})
-			new KeybindItem({
-				id: 'preview_drag',
+			new KeybindItem('preview_drag', {
 				category: 'navigate',
 				keybind: new Keybind({key: 3})
 			})
 
-			new KeybindItem({
-				id: 'confirm',
+			new KeybindItem('confirm', {
 				category: 'navigate',
 				keybind: new Keybind({key: 13})
 			})
-			new KeybindItem({
-				id: 'cancel',
+			new KeybindItem('cancel', {
 				category: 'navigate',
 				keybind: new Keybind({key: 27})
 			})
 
 		//Tools
-			new Tool({
-				id: 'move_tool',
+			new Tool('move_tool', {
 				icon: 'fas fa-hand-paper',
 				category: 'tools',
 				selectFace: true,
 				transformerMode: 'translate',
+				animation_channel: 'position',
 				toolbar: Blockbench.isMobile ? 'element_position' : 'main_tools',
 				alt_tool: 'resize_tool',
 				modes: ['edit', 'display', 'animate'],
 				keybind: new Keybind({key: 86}),
 			})
-			new Tool({
-				id: 'resize_tool',
+			new Tool('resize_tool', {
 				icon: 'open_with',
 				category: 'tools',
 				selectFace: true,
 				transformerMode: 'scale',
+				animation_channel: 'scale',
 				toolbar: Blockbench.isMobile ? 'element_size' : 'main_tools',
 				alt_tool: 'move_tool',
 				modes: ['edit', 'display', 'animate'],
 				keybind: new Keybind({key: 83}),
 			})
-			new Tool({
-				id: 'rotate_tool',
+			new Tool('rotate_tool', {
 				icon: 'sync',
 				category: 'tools',
 				selectFace: true,
 				transformerMode: 'rotate',
+				animation_channel: 'rotation',
 				toolbar: Blockbench.isMobile ? 'element_rotation' : 'main_tools',
 				alt_tool: 'pivot_tool',
 				modes: ['edit', 'display', 'animate'],
 				keybind: new Keybind({key: 82}),
 			})
-			new Tool({
-				id: 'pivot_tool',
+			new Tool('pivot_tool', {
 				icon: 'gps_fixed',
 				category: 'tools',
 				transformerMode: 'translate',
@@ -996,8 +1031,7 @@ const BARS = {
 				modes: ['edit', 'animate'],
 				keybind: new Keybind({key: 80}),
 			})
-			new Tool({
-				id: 'vertex_snap_tool',
+			new Tool('vertex_snap_tool', {
 				icon: 'icon-vertexsnap',
 				transformerMode: 'hidden',
 				toolbar: 'vertex_snap',
@@ -1019,16 +1053,14 @@ const BARS = {
 					Blockbench.removeListener('update_selection', Vertexsnap.select)
 				}
 			})
-			new BarSelect({
-				id: 'vertex_snap_mode',
+			new BarSelect('vertex_snap_mode', {
 				options: {
 					move: true,
 					scale: true
 				},
 				category: 'edit'
 			})
-			new Action({
-				id: 'swap_tools',
+			new Action('swap_tools', {
 				icon: 'swap_horiz',
 				category: 'tools',
 				condition: () => !Modes.animate,
@@ -1041,8 +1073,7 @@ const BARS = {
 			})
 
 		//File
-			new Action({
-				id: 'open_model_folder',
+			new Action('open_model_folder', {
 				icon: 'folder_open',
 				category: 'file',
 				condition: () => {return isApp && (ModelMeta.save_path || ModelMeta.export_path)},
@@ -1050,8 +1081,7 @@ const BARS = {
 					shell.showItemInFolder(ModelMeta.export_path || ModelMeta.save_path);
 				}
 			})
-			new Action({
-				id: 'open_backup_folder',
+			new Action('open_backup_folder', {
 				icon: 'fa-archive',
 				category: 'file',
 				condition: () => isApp,
@@ -1059,22 +1089,19 @@ const BARS = {
 					shell.showItemInFolder(app.getPath('userData')+osfs+'backups'+osfs+'.')
 				}
 			})
-			new Action({
-				id: 'settings_window',
+			new Action('settings_window', {
 				icon: 'settings',
 				category: 'blockbench',
 				keybind: new Keybind({key: 69, ctrl: true}),
 				click: function () {Settings.open()}
 			})
-			new Action({
-				id: 'update_window',
+			new Action('update_window', {
 				icon: 'update',
 				category: 'blockbench',
 				condition: isApp,
 				click: function () {checkForUpdates()}
 			})
-			new Action({
-				id: 'reload',
+			new Action('reload', {
 				icon: 'refresh',
 				category: 'file',
 				condition: () => Blockbench.hasFlag('dev'),
@@ -1082,32 +1109,28 @@ const BARS = {
 			})
 
 		//Edit Generic
-			new Action({
-				id: 'copy',
+			new Action('copy', {
 				icon: 'fa-copy',
 				category: 'edit',
 				work_in_dialog: true,
 				keybind: new Keybind({key: 67, ctrl: true, shift: null}),
 				click: function (event) {Clipbench.copy(event)}
 			})
-			new Action({
-				id: 'paste',
+			new Action('paste', {
 				icon: 'fa-clipboard',
 				category: 'edit',
 				work_in_dialog: true,
 				keybind: new Keybind({key: 86, ctrl: true, shift: null}),
 				click: function (event) {Clipbench.paste(event)}
 			})
-			new Action({
-				id: 'cut',
+			new Action('cut', {
 				icon: 'fa-cut',
 				category: 'edit',
 				work_in_dialog: true,
 				keybind: new Keybind({key: 88, ctrl: true, shift: null}),
 				click: function (event) {Clipbench.copy(event, true)}
 			})
-			new Action({
-				id: 'rename',
+			new Action('rename', {
 				icon: 'text_format',
 				category: 'edit',
 				keybind: new Keybind({key: 113}),
@@ -1120,8 +1143,7 @@ const BARS = {
 				}
 			})
 
-			new Action({
-				id: 'delete',
+			new Action('delete', {
 				icon: 'delete',
 				category: 'edit',
 				//condition: () => (Modes.edit && (selected.length || Group.selected)),
@@ -1160,8 +1182,7 @@ const BARS = {
 			})
 
 
-			new Action({
-				id: 'duplicate',
+			new Action('duplicate', {
 				icon: 'content_copy',
 				category: 'edit',
 				condition: () => (Animator.selected && Modes.animate) || (Modes.edit && (selected.length || Group.selected)),
@@ -1196,48 +1217,42 @@ const BARS = {
 
 
 		//Move Cube Keys
-			new Action({
-				id: 'move_up',
+			new Action('move_up', {
 				icon: 'arrow_upward',
 				category: 'transform',
 				condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
 				keybind: new Keybind({key: 38, ctrl: null, shift: null}),
 				click: function (e) {moveCubesRelative(-1, 2, e)}
 			})
-			new Action({
-				id: 'move_down',
+			new Action('move_down', {
 				icon: 'arrow_downward',
 				category: 'transform',
 				condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
 				keybind: new Keybind({key: 40, ctrl: null, shift: null}),
 				click: function (e) {moveCubesRelative(1, 2, e)}
 			})
-			new Action({
-				id: 'move_left',
+			new Action('move_left', {
 				icon: 'arrow_back',
 				category: 'transform',
 				condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
 				keybind: new Keybind({key: 37, ctrl: null, shift: null}),
 				click: function (e) {moveCubesRelative(-1, 0, e)}
 			})
-			new Action({
-				id: 'move_right',
+			new Action('move_right', {
 				icon: 'arrow_forward',
 				category: 'transform',
 				condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
 				keybind: new Keybind({key: 39, ctrl: null, shift: null}),
 				click: function (e) {moveCubesRelative(1, 0, e)}
 			})
-			new Action({
-				id: 'move_forth',
+			new Action('move_forth', {
 				icon: 'keyboard_arrow_up',
 				category: 'transform',
 				condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
 				keybind: new Keybind({key: 33, ctrl: null, shift: null}),
 				click: function (e) {moveCubesRelative(-1, 1, e)}
 			})
-			new Action({
-				id: 'move_back',
+			new Action('move_back', {
 				icon: 'keyboard_arrow_down',
 				category: 'transform',
 				condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
@@ -1246,14 +1261,12 @@ const BARS = {
 			})
 
 		//Settings
-			new Action({
-				id: 'reset_keybindings',
+			new Action('reset_keybindings', {
 				icon: 'replay',
 				category: 'blockbench',
 				click: function () {Keybinds.reset()}
 			})
-			new Action({
-				id: 'import_layout',
+			new Action('import_layout', {
 				icon: 'folder',
 				category: 'blockbench',
 				click: function () {
@@ -1265,8 +1278,7 @@ const BARS = {
 					})
 				}
 			})
-			new Action({
-				id: 'export_layout',
+			new Action('export_layout', {
 				icon: 'style',
 				category: 'blockbench',
 				click: function () {
@@ -1277,8 +1289,7 @@ const BARS = {
 					})
 				}
 			})
-			new Action({
-				id: 'reset_layout',
+			new Action('reset_layout', {
 				icon: 'replay',
 				category: 'blockbench',
 				click: function () {
@@ -1295,8 +1306,7 @@ const BARS = {
 			})
 
 		//View
-			new Action({
-				id: 'fullscreen',
+			new Action('fullscreen', {
 				icon: 'fullscreen',
 				category: 'view',
 				condition: isApp,
@@ -1305,28 +1315,24 @@ const BARS = {
 					currentwindow.setFullScreen(!currentwindow.isFullScreen())
 				}
 			})
-			new Action({
-				id: 'zoom_in',
+			new Action('zoom_in', {
 				icon: 'zoom_in',
 				category: 'view',
 				click: function () {setZoomLevel('in')}
 			})
-			new Action({
-				id: 'zoom_out',
+			new Action('zoom_out', {
 				icon: 'zoom_out',
 				category: 'view',
 				click: function () {setZoomLevel('out')}
 			})
-			new Action({
-				id: 'zoom_reset',
+			new Action('zoom_reset', {
 				icon: 'zoom_out_map',
 				category: 'view',
 				click: function () {setZoomLevel('reset')}
 			})
 
 		//Find Action
-			new Action({
-				id: 'action_control',
+			new Action('action_control', {
 				icon: 'fullscreen',
 				category: 'blockbench',
 				keybind: new Keybind({key: 70}),
@@ -1505,6 +1511,7 @@ const BARS = {
 			id: 'keyframe',
 			children: [
 				'slider_keyframe_time',
+				'change_keyframe_file',
 				'reset_keyframe'
 			],
 			default_place: true
@@ -1512,6 +1519,10 @@ const BARS = {
 		Toolbars.timeline = new Toolbar({
 			id: 'timeline',
 			children: [
+				'timeline_focus',
+				'clear_timeline',
+				'select_effect_animator',
+				'_',
 				'slider_animation_speed',
 				'previous_keyframe',
 				'next_keyframe',
@@ -1725,7 +1736,7 @@ const ActionControl = {
 	get open() {return ActionControl.vue._data.open},
 	set open(state) {ActionControl.vue._data.open = !!state},
 	type: 'action_selector',
-	max_length: 16,
+	max_length: 32,
 	select() {
 		ActionControl.open = true;
 		open_interface = ActionControl;
