@@ -82,7 +82,7 @@ function initializeApp() {
 		$('.web_only').remove()
 	}
 	var last_welcome = localStorage.getItem('welcomed_version');
-	if (last_welcome.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
+	if (!last_welcome || last_welcome.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
 		Blockbench.addFlag('after_update')
 		localStorage.setItem('welcomed_version', appVersion)
 	}
