@@ -33,7 +33,7 @@ class Animation {
 						ba.position.length = 0;
 						ba.scale.length = 0;
 						kfs.forEach(kf_data => {
-							ba.addKeyframe(kf_data/*, kf_data.uuid*/);
+							ba.addKeyframe(kf_data, kf_data.uuid);
 						})
 					}
 				}
@@ -41,7 +41,7 @@ class Animation {
 		}
 		return this;
 	}
-	getUndoCopy(options) {
+	getUndoCopy(options, save) {
 		var scope = this;
 		var copy = {
 			uuid: this.uuid,
@@ -51,8 +51,6 @@ class Animation {
 			anim_time_update: this.anim_time_update,
 			length: this.length,
 			selected: this.selected,
-			//particle_effects: this.particle_effects,
-			//sound_effects: this.sound_effects,
 		}
 		if (Object.keys(this.animators).length) {
 			copy.animators = {}
@@ -61,11 +59,11 @@ class Animation {
 				if (kfs && kfs.length) {
 					if (options && options.bone_names && this.animators[uuid] instanceof BoneAnimator) {
 						var group = this.animators[uuid].getGroup();
-						uuid = group ? group.name : ''
+						uuid = group ? group.name : '';
 					}
-					var kfs_copy = copy.animators[uuid] = []
+					copy.animators[uuid] = [];
 					kfs.forEach(kf => {
-						kfs_copy.push(kf.getUndoCopy())
+						copy.animators[uuid].push(kf.getUndoCopy(save));
 					})
 				}
 			}
@@ -137,7 +135,7 @@ class Animation {
 	editUpdateVariable() {
 		var scope = this;
 		Blockbench.textPrompt('message.animation_update_var', scope.anim_time_update, function(name) {
-			if (name && name !== scope.anim_time_update) {
+			if (name !== scope.anim_time_update) {
 				Undo.initEdit({animations: [scope]})
 				scope.anim_time_update = name
 				Undo.finishEdit('change animation variable')
@@ -266,6 +264,7 @@ class GeneralAnimator {
 	}
 	addKeyframe(data, uuid) {
 		var channel = data.channel;
+		if (typeof channel == 'number') channel = this.channels[channel];
 		if (channel && this[channel]) {
 			var kf = new Keyframe(data, uuid);
 			this[channel].push(kf);
@@ -612,8 +611,10 @@ class Keyframe {
 	}
 	extend(data) {
 		Merge.number(this, data, 'time')
+		cl('0' , data)
 
 		if (this.transform) {
+			cl('1' , this)
 			if (data.values != undefined) {
 				if (typeof data.values == 'number' || typeof data.values == 'string') {
 					data.x = data.y = data.z = data.values;
@@ -631,6 +632,12 @@ class Keyframe {
 			Merge.string(this, data, 'w')
 			Merge.boolean(this, data, 'isQuaternion')
 		} else {
+			cl('2' , data)
+			if (data.values) {
+				data.effect = data.values.effect;
+				data.locator = data.values.locator;
+				data.file = data.values.file;
+			}
 			Merge.string(this, data, 'effect')
 			Merge.string(this, data, 'locator')
 			Merge.string(this, data, 'file')
@@ -805,9 +812,10 @@ class Keyframe {
 		}
 		Timeline.selected.remove(this)
 	}
-	getUndoCopy() {
+	getUndoCopy(save) {
 		var copy = {
-			animator: this.animator && this.animator.uuid,
+			animator: save ? undefined : this.animator && this.animator.uuid,
+			uuid: save && this.uuid,
 			channel: this.channel,
 			time: this.time,
 			x: this.x,
@@ -1578,24 +1586,6 @@ const Timeline = {
 			Animator.interval = false
 		}
 	},
-	/*
-	addKeyframe(channel, reset) {
-		if (!Animator.selected) { 
-			Blockbench.showQuickMessage('message.no_animation_selected')
-			return
-		}
-		var bone = Animator.selected.getBoneAnimator()
-		if (!bone) { 
-			Blockbench.showQuickMessage('message.no_bone_selected')
-			return
-		}
-		Undo.initEdit({keyframes: bone.keyframes, keep_saved: true})
-		var values = reset ? (channel == 'scale' ? 1 : 0) : false;
-		var kf = bone.addKeyframe(values, Timeline.snapTime(), channel?channel:'rotation')
-		kf.select()
-		Animator.preview()
-		Undo.finishEdit('add keyframe')
-	},*/
 	get keyframes() {
 		var keyframes = [];
 		Timeline.vue._data.animators.forEach(animator => {
@@ -1726,13 +1716,16 @@ BARS.defineActions(function() {
 				if (m_index > 3) {
 					path = path.substr(0, m_index) + osfs + 'animations' + osfs +  pathToName(ModelMeta.export_path, true)
 				}
+				path.replace(/\.geo\./, 'animation')
 			}
 			Blockbench.export({
 				type: 'JSON Animation',
 				extensions: ['json'],
 				name: Project.geometry_name||'animation',
 				startpath: path,
-				content: content
+				content: content,
+			}, (real_path) => {
+				ModelMeta.animation_path = real_path;
 			})
 
 		}

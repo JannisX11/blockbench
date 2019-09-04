@@ -844,7 +844,7 @@ const Screencam = {
 				cancel: 0
 			}, function(result) {
 				if (result === 1) {
-					electron.dialog.showSaveDialog(currentwindow, {filters: [ {name: tl('data.image'), extensions: [is_gif ? 'gif' : 'png']} ]}, function (fileName) {
+					ElecDialogs.showSaveDialog(currentwindow, {filters: [ {name: tl('data.image'), extensions: [is_gif ? 'gif' : 'png']} ]}, function (fileName) {
 						if (fileName === undefined) {
 							return;
 						}

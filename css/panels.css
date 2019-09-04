@@ -600,6 +600,7 @@
 	}
 	.animation > .animation_name {
 		width: calc(100% - 50px);
+		user-select: none;
 	}
 	.animation .animation_play_toggle {
 		width: 22px;

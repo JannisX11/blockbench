@@ -66,7 +66,7 @@ var codec = new Codec('project', {
 		if (Animator.animations.length) {
 			model.animations = [];
 			Animator.animations.forEach(a => {
-				model.animations.push(a.getUndoCopy({bone_names: true}))
+				model.animations.push(a.getUndoCopy({bone_names: true}, true))
 			})
 		}
 

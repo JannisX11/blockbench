@@ -45,6 +45,21 @@ class Locator extends NonGroup {
 		TickUpdates.outliner = true;
 		return this;
 	}
+	getWorldCenter() {
+		var m = this.parent ? this.parent.mesh : scene;
+		var pos = new THREE.Vector3(
+			this.from[0],
+			this.from[1],
+			this.from[2]
+		)
+
+		var r = m.getWorldQuaternion(new THREE.Quaternion())
+		pos.applyQuaternion(r)
+
+		pos.add(m.getWorldPosition(new THREE.Vector3()))
+		
+		return pos;
+	}
 	move(val, axis, absolute) {
 		if (absolute) {
 			this.from[axis] = val

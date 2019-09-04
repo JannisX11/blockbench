@@ -634,7 +634,7 @@ class Texture {
 			if (fs.existsSync(settings.image_editor.value)) {
 				require('child_process').spawn(settings.image_editor.value, [this.path])
 			} else {
-				var answer = electron.dialog.showMessageBox(currentwindow, {
+				var answer = ElecDialogs.showMessageBox(currentwindow, {
 					type: 'info',
 					noLink: true,
 					title: tl('message.image_editor_missing.title'),
@@ -1104,7 +1104,7 @@ BARS.defineActions(function() {
 			path.splice(-1)
 			path = path.join(osfs)
 
-			 electron.dialog.showOpenDialog(currentwindow, {
+			 ElecDialogs.showOpenDialog(currentwindow, {
 				title: tl('message.default_textures.select'),
 				properties: ['openDirectory'],
 				defaultPath: path
