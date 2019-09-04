@@ -944,7 +944,7 @@ BARS.defineActions(function() {
 				extensions: ['json', 'jem', 'jpm', 'bbmodel'],
 				type: 'Model'
 			}, function(files) {
-				loadModelFile(files[0])
+				loadModelFile(files[0]);
 			})
 		}
 	})

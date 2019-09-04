@@ -267,6 +267,18 @@ onVueSetup(function() {
 	}
 })
 
+setInterval(() => {
+	var focus = document.hasFocus();
+	if (Pressing.shift && !focus) Pressing.shift = false;
+	if (Pressing.alt && !focus) {
+		if (Toolbox.original && Toolbox.original.alt_tool) {
+			Toolbox.original.select()
+			delete Toolbox.original;
+		}
+		Pressing.alt = false;
+	}
+}, 100)
+
 $(document).on('keydown mousedown', function(e) {
 	if (Keybinds.recording || e.which < 4) return;
 	//Shift

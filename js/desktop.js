@@ -8,11 +8,37 @@ const originalFs = require('original-fs');
 const https = require('https');
 
 const currentwindow = electron.getCurrentWindow();
+const ElecDialogs = {};
 var dialog_win	 = null,
 	latest_version = false,
 	recent_projects= undefined;
 
 app.setAppUserModelId('blockbench')
+
+if (electron.dialog.showMessageBoxSync) {
+	ElecDialogs.showMessageBox = function(a, b, cb) {
+		if (!cb) cb = b;
+		var result = electron.dialog.showMessageBoxSync(a, b);
+		if (typeof cb == 'function') cb(result);
+		return result;
+	}
+	ElecDialogs.showSaveDialog = function(a, b, cb) {
+		if (!cb) cb = b;
+		var result = electron.dialog.showSaveDialogSync(a, b);
+		if (typeof cb == 'function') cb(result);
+		return result;
+	}
+	ElecDialogs.showOpenDialog = function(a, b, cb) {
+		if (!cb) cb = b;
+		var result = electron.dialog.showOpenDialogSync(a, b);
+		if (typeof cb == 'function') cb(result);
+		return result;
+	}
+} else {
+	ElecDialogs.showMessageBox = electron.dialog.showMessageBox;
+	ElecDialogs.showSaveDialog = electron.dialog.showSaveDialog;
+	ElecDialogs.showOpenDialog = electron.dialog.showOpenDialog;
+}
 
 $(document).ready(function() {
 
@@ -235,7 +261,7 @@ function changeImageEditor(texture, from_settings) {
 	}).show()
 }
 function selectImageEditorFile(texture) {
-	electron.dialog.showOpenDialog(currentwindow, {
+	ElecDialogs.showOpenDialog(currentwindow, {
 		title: tl('message.image_editor.exe'),
 		filters: [{name: 'Executable Program', extensions: ['exe', 'app']}]
 	}, function(filePaths) {
@@ -249,7 +275,7 @@ function selectImageEditorFile(texture) {
 }
 //Default Pack
 function openDefaultTexturePath() {
-	var answer = electron.dialog.showMessageBox(currentwindow, {
+	var answer = ElecDialogs.showMessageBox(currentwindow, {
 		type: 'info',
 		buttons: (
 			settings.default_path.value ? 	[tl('dialog.cancel'), tl('dialog.continue'), tl('generic.remove')]
@@ -263,7 +289,7 @@ function openDefaultTexturePath() {
 	if (answer === 0) {
 		return;
 	} else if (answer === 1) {
-		 electron.dialog.showOpenDialog(currentwindow, {
+		 ElecDialogs.showOpenDialog(currentwindow, {
 			title: tl('message.default_textures.select'),
 			properties: ['openDirectory'],
 		}, function(filePaths) {
@@ -339,7 +365,7 @@ function showSaveDialog(close) {
 		}
 	})
 	if ((window.Prop && Prop.project_saved === false && (elements.length > 0 || Group.all.length > 0)) || unsaved_textures) {
-		var answer = electron.dialog.showMessageBox(currentwindow, {
+		var answer = ElecDialogs.showMessageBox(currentwindow, {
 			type: 'question',
 			buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
 			title: 'Blockbench',

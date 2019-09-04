@@ -857,11 +857,14 @@
 					if (rotation_tool) {
 						Transformer.rotation_ref = rotation_object.mesh.parent;
 
-					} else if (Group.selected) {
+					} else if (Group.selected && !Blockbench.globalMovement) {
 						Transformer.rotation_ref = rotation_object.mesh;
 						
 					} else if (!Blockbench.globalMovement && Cube.selected[0] && Cube.selected[0].mesh) {
 						Transformer.rotation_ref = Cube.selected[0].mesh;
+
+					} else if (!Blockbench.globalMovement && Locator.selected[0]) {
+						Transformer.rotation_ref = Locator.selected[0].parent.mesh;
 					}
 				}
 

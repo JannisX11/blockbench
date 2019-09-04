@@ -33,18 +33,27 @@ function origin2geometry() {
 function getSelectionCenter() {
 	var center = [0, 0, 0]
 	var i = 0;
-	selected.forEach(cube => {
-		var m = cube.mesh
+	selected.forEach(obj => {
+		var m = obj.mesh
 		if (m) {
 
-			var pos = cube.getWorldCenter()
+			var pos = obj.getWorldCenter()
 			center[0] += pos.x
 			center[1] += pos.y
 			center[2] += pos.z
-		} else if (!m && cube.from) {
-			center[0] += cube.from[0]-scene.position.x;
-			center[1] += cube.from[1]-scene.position.y;
-			center[2] += cube.from[2]-scene.position.z;
+		} else if (!m && obj.from) {
+			var pos = obj.getWorldCenter();
+			center[0] += pos.x
+			center[1] += pos.y
+			center[2] += pos.z
+			/*
+			center[0] += pos.x
+			center[1] += pos.y
+			center[2] += pos.z
+			center[0] -= obj.from[0]//-scene.position.x;
+			center[1] -= obj.from[1]//-scene.position.y;
+			center[2] -= obj.from[2]//-scene.position.z;
+			*/
 		}
 	})
 	for (var i = 0; i < 3; i++) {
@@ -362,13 +371,13 @@ const Vertexsnap = {
 		} else {
 			Vertexsnap.cubes.forEach(function(obj) {
 				var cube_pos = new THREE.Vector3().copy(global_delta)
-				if (Format.rotate_cubes && !Format.bone_rig) {
+				if (Format.rotate_cubes && !Blockbench.globalMovement) {
 					obj.origin[0] += cube_pos.getComponent(0)
 					obj.origin[1] += cube_pos.getComponent(1)
 					obj.origin[2] += cube_pos.getComponent(2)
 				}
-				var in_box = obj.move(cube_pos);
-				if (!in_box) {
+				var in_box = obj.moveVector(cube_pos.toArray());
+				if (!in_box && Format.canvas_limit) {
 					Blockbench.showMessageBox({translateKey: 'canvas_limit_error'})
 				}
 			})
@@ -546,6 +555,7 @@ function getRotationInterval(event) {
 function getRotationObject() {
 	if (Format.bone_rig && Group.selected) return Group.selected;
 	if (Format.rotate_cubes && Cube.selected.length) return Cube.selected;
+	if (Locator.selected.length) return Locator.selected[0].parent;
 }
 function rotateOnAxis(value, fixed, axis) {
 	if (Format.bone_rig && Group.selected) {	
@@ -632,9 +642,20 @@ BARS.defineActions(function() {
 	function moveOnAxis(value, fixed, axis) {
 		selected.forEach(function(obj, i) {
 			if (obj.movable) {
-				obj.move(value, axis, fixed)
+				var val = value;
+				var size = obj.size(axis)
+				if (!fixed) {
+					val += obj.from[axis]
+				}
+				val = limitToBox(limitToBox(val, -obj.inflate) + size, obj.inflate) - size
+				val -= obj.from[axis]
+				obj.to[axis] += val;
+				obj.from[axis] += val;
+				obj.mapAutoUV()
+				Canvas.adaptObjectPosition(obj);
 			}
 		})
+		TickUpdates.selection = true;
 	}
 	new NumSlider('slider_pos_x', {
 		condition: () => (selected.length && Modes.edit),
@@ -747,12 +768,14 @@ BARS.defineActions(function() {
 				if (!fixed) {
 					v += obj.inflate
 				}
-				v = obj.from[0] - Math.clamp(obj.from[0]-v, -16, 32);
-				v = obj.from[1] - Math.clamp(obj.from[1]-v, -16, 32);
-				v = obj.from[2] - Math.clamp(obj.from[2]-v, -16, 32);
-				v = Math.clamp(obj.to[0]+v, -16, 32) - obj.to[0];
-				v = Math.clamp(obj.to[1]+v, -16, 32) - obj.to[1];
-				v = Math.clamp(obj.to[2]+v, -16, 32) - obj.to[2];
+				if (Format.canvas_limit) {
+					v = obj.from[0] - Math.clamp(obj.from[0]-v, -16, 32);
+					v = obj.from[1] - Math.clamp(obj.from[1]-v, -16, 32);
+					v = obj.from[2] - Math.clamp(obj.from[2]-v, -16, 32);
+					v = Math.clamp(obj.to[0]+v, -16, 32) - obj.to[0];
+					v = Math.clamp(obj.to[1]+v, -16, 32) - obj.to[1];
+					v = Math.clamp(obj.to[2]+v, -16, 32) - obj.to[2];
+				}
 				obj.inflate = v
 			})
 			Canvas.updatePositions()

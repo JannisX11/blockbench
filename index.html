@@ -27,7 +27,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '3.1.0';
+		const appVersion = '3.1.1';
 	</script>
 		<script src="lib/vue.min.js"></script>
 		<script src="lib/vue_sortable.js"></script>
@@ -784,6 +784,7 @@
 					v-bind:anim_id="animation.uuid"
 					class="animation"
 					v-on:click.stop="animation.select()"
+					v-on:dblclick.stop="animation.rename()"
 					:key="animation.uuid"
 					@contextmenu.prevent.stop="animation.showContextMenu($event)"
 				>

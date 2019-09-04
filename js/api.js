@@ -246,7 +246,7 @@ const Blockbench = {
 				options.extensions = ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif']
 			}
 
-			electron.dialog.showOpenDialog(
+			ElecDialogs.showOpenDialog(
 				currentwindow,
 				{
 					title: options.title ? options.title : '',
@@ -422,7 +422,7 @@ const Blockbench = {
 				cb(options)
 			}
 		} else {
-			electron.dialog.showSaveDialog(currentwindow, {
+			ElecDialogs.showSaveDialog(currentwindow, {
 				filters: [ {
 					name: options.type,
 					extensions: options.extensions
