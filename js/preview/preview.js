@@ -621,64 +621,36 @@ class Preview {
 	//Misc
 	screenshot(options, cb) {
 		var scope = this;
-		function editVis(edit) {
-			edit(three_grid)
-			edit(Canvas.side_grids.x)
-			edit(Canvas.side_grids.z)
-			edit(Transformer)
-			edit(outlines)
-			edit(rot_origin)
-			edit(Vertexsnap.vertexes)
-			Cube.selected.forEach(function(obj) {
-				var m = obj.mesh
-				if (m && m.outline) {
-					edit(m.outline)
-				}
-			})
-		}
 
-		editVis(obj => {
-			obj.was_visible = obj.visible
-			obj.visible = false
-		})
-		var ground_anim_before = ground_animation
-		if (display_mode && ground_animation) {
-			ground_animation = false
-		}
-		this.render()
+		Canvas.withoutGizmos(function() {
 
-		var dataUrl = scope.canvas.toDataURL()
+			scope.render()
+			var dataUrl = scope.canvas.toDataURL()
 
-		dataUrl = dataUrl.replace('data:image/png;base64,','')
-		Jimp.read(Buffer.from(dataUrl, 'base64')).then(function(image) { 
-			
-			if (display_mode && display_slot === 'gui') {
-				var zoom = display_preview.camOrtho.zoom * devicePixelRatio
-				var resolution = 256 * zoom;
-
-				var start_x = display_preview.width *devicePixelRatio/2 - display_preview.controls.target.x*zoom*40 - resolution/2;
-				var start_y = display_preview.height*devicePixelRatio/2 + display_preview.controls.target.y*zoom*40 - resolution/2;
+			dataUrl = dataUrl.replace('data:image/png;base64,','')
+			Jimp.read(Buffer.from(dataUrl, 'base64')).then(function(image) { 
 				
-				image.crop(start_x, start_y, resolution, resolution)
-			} else {
-				image.autocrop([0, false])
-				if (options && options.width && options.height) {
-					image.contain(options.width, options.height)
+				if (display_mode && display_slot === 'gui') {
+					var zoom = display_preview.camOrtho.zoom * devicePixelRatio
+					var resolution = 256 * zoom;
+
+					var start_x = display_preview.width *devicePixelRatio/2 - display_preview.controls.target.x*zoom*40 - resolution/2;
+					var start_y = display_preview.height*devicePixelRatio/2 + display_preview.controls.target.y*zoom*40 - resolution/2;
+					
+					image.crop(start_x, start_y, resolution, resolution)
+				} else {
+					image.autocrop([0, false])
+					if (options && options.width && options.height) {
+						image.contain(options.width, options.height)
+					}
 				}
-			}
 
-			image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
-				Screencam.returnScreenshot(dataUrl, cb)
-			})
-		});
-
-		editVis(obj => {
-			obj.visible = obj.was_visible
-			delete obj.was_visible
+				image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
+					Screencam.returnScreenshot(dataUrl, cb)
+				})
+			});
 		})
-		if (display_mode && ground_anim_before) {
-			ground_animation = ground_anim_before
-		}
+
 	}
 	fullscreen() {
 		if (quad_previews.current) {
@@ -943,14 +915,17 @@ const Screencam = {
 					preview.controls.autoRotate = false;
 				}
 			}
-			var img = new Image();
-			img.src = preview.canvas.toDataURL();
-			img.onload = () => {
-				gif.addFrame(img, {delay: interval});
-				if (last_frame) {
-					gif.render();
+			Canvas.withoutGizmos(function() {
+				var img = new Image();
+				preview.render();
+				img.src = preview.canvas.toDataURL();
+				img.onload = () => {
+					gif.addFrame(img, {delay: interval});
+					if (last_frame) {
+						gif.render();
+					}
 				}
-			}
+			})
 			Blockbench.setProgress(interval*frames/options.length);
 		}, interval)
 	}
