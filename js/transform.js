@@ -46,14 +46,6 @@ function getSelectionCenter() {
 			center[0] += pos.x
 			center[1] += pos.y
 			center[2] += pos.z
-			/*
-			center[0] += pos.x
-			center[1] += pos.y
-			center[2] += pos.z
-			center[0] -= obj.from[0]//-scene.position.x;
-			center[1] -= obj.from[1]//-scene.position.y;
-			center[2] -= obj.from[2]//-scene.position.z;
-			*/
 		}
 	})
 	for (var i = 0; i < 3; i++) {
@@ -70,7 +62,6 @@ function isMovementGlobal() {
 	if (selected.length === 0 || (!settings.local_move.value && Toolbox.selected.id !== 'resize_tool')) {
 		return true;
 	}
-
 	if (Format.rotate_cubes) {
 		if (Cube.selected.length > 1) {
 			if (Cube.selected[0].rotation.equals([0,0,0])) return true;
@@ -82,7 +73,13 @@ function isMovementGlobal() {
 				i++;
 			}
 		}
-		return false;
+		return Format.bone_rig && Group.selected;
+		/*
+		if (!Format.bone_rig || !Group.selected) {
+			return false;
+		} else {
+			return true;
+		}*/
 	}
 	if (Format.bone_rig) {
 		if (Cube.selected[0] && Cube.selected[0].parent.type === 'group') {
@@ -371,10 +368,19 @@ const Vertexsnap = {
 		} else {
 			Vertexsnap.cubes.forEach(function(obj) {
 				var cube_pos = new THREE.Vector3().copy(global_delta)
-				if (Format.rotate_cubes && !Blockbench.globalMovement) {
-					obj.origin[0] += cube_pos.getComponent(0)
-					obj.origin[1] += cube_pos.getComponent(1)
-					obj.origin[2] += cube_pos.getComponent(2)
+
+				if (Format.bone_rig && obj.parent instanceof Group && obj.mesh.parent) {
+					var q = obj.mesh.parent.getWorldQuaternion(new THREE.Quaternion()).inverse();
+					cube_pos.applyQuaternion(q);
+				}
+
+				if (Format.rotate_cubes) {
+					obj.origin[0] += cube_pos.getComponent(0);
+					obj.origin[1] += cube_pos.getComponent(1);
+					obj.origin[2] += cube_pos.getComponent(2);
+				} else {
+					var q = obj.mesh.getWorldQuaternion(new THREE.Quaternion()).inverse();
+					cube_pos.applyQuaternion(q);
 				}
 				var in_box = obj.moveVector(cube_pos.toArray());
 				if (!in_box && Format.canvas_limit) {
@@ -555,7 +561,6 @@ function getRotationInterval(event) {
 function getRotationObject() {
 	if (Format.bone_rig && Group.selected) return Group.selected;
 	if (Format.rotate_cubes && Cube.selected.length) return Cube.selected;
-	if (Locator.selected.length) return Locator.selected[0].parent;
 }
 function rotateOnAxis(value, fixed, axis) {
 	if (Format.bone_rig && Group.selected) {	
@@ -643,16 +648,23 @@ BARS.defineActions(function() {
 		selected.forEach(function(obj, i) {
 			if (obj.movable) {
 				var val = value;
-				var size = obj.size(axis)
 				if (!fixed) {
 					val += obj.from[axis]
 				}
-				val = limitToBox(limitToBox(val, -obj.inflate) + size, obj.inflate) - size
+				if (Format.canvas_limit) {
+					var size = obj.resizable ? obj.size(axis) : 0;
+					val = limitToBox(limitToBox(val, -obj.inflate) + size, obj.inflate) - size
+				}
 				val -= obj.from[axis]
-				obj.to[axis] += val;
+
 				obj.from[axis] += val;
-				obj.mapAutoUV()
-				Canvas.adaptObjectPosition(obj);
+				if (obj.resizable) {
+					obj.to[axis] += val;
+				}
+				if (obj instanceof Cube) {
+					obj.mapAutoUV()
+					Canvas.adaptObjectPosition(obj);
+				}
 			}
 		})
 		TickUpdates.selection = true;
@@ -864,26 +876,28 @@ BARS.defineActions(function() {
 
 	//Origin
 	function moveOriginOnAxis(value, fixed, axis) {
-		if (Group.selected) {
+		var rotation_object = getRotationObject()
+
+		if (rotation_object instanceof Group) {
 			var diff = value
 			if (fixed) {
-				diff -= Group.selected.origin[axis]
+				diff -= rotation_object.origin[axis]
 			}
-			Group.selected.origin[axis] += diff
+			rotation_object.origin[axis] += diff
 			Canvas.updatePositions()
 			if (Format.bone_rig) {
 				Canvas.updateAllBones()
 			}
-			return;
+		} else {
+			rotation_object.forEach(function(obj, i) {
+				var diff = value
+				if (fixed) {
+					diff -= obj.origin[axis]
+				}
+				obj.origin[axis] += diff
+			})
+			Canvas.updatePositions()
 		}
-		selected.forEach(function(obj, i) {
-			var diff = value
-			if (fixed) {
-				diff -= obj.origin[axis]
-			}
-			obj.origin[axis] += diff
-		})
-		Canvas.updatePositions()
 	}
 	new NumSlider('slider_origin_x', {
 		condition: () => (Modes.edit && getRotationObject()),

@@ -497,11 +497,11 @@ class Cube extends NonGroup {
 		pos.y -= this.origin[1]
 		pos.z -= this.origin[2]
 
-		var r = m.getWorldQuaternion(new THREE.Quaternion())
-		pos.applyQuaternion(r)
-
-		pos.add(m.getWorldPosition(new THREE.Vector3()))
-		
+		if (m) {
+			var r = m.getWorldQuaternion(new THREE.Quaternion())
+			pos.applyQuaternion(r)
+			pos.add(m.getWorldPosition(new THREE.Vector3()))
+		}
 		return pos;
 	}
 	setColor(index) {
@@ -657,34 +657,23 @@ class Cube extends NonGroup {
 			Canvas.updateUV(scope)
 		}
 	}
-	move(val, axis, absolute, opts, no_update) {
-		if (!opts) opts = 0;
-		if (val instanceof THREE.Vector3) {
-			return this.move(val.x, 0, absolute, opts, true)
-				&& this.move(val.y, 1, absolute, opts, true)
-				&& this.move(val.z, 2, absolute, opts, true);
-		}
-		var size = this.size(axis)
-		if (!absolute) {
-			val = val + this.from[axis]
-		}
+	move(val, axis, move_origin) {
+
+		var size = this.size(axis);
+		val+= this.from[axis];
 		var in_box = val;
-		val = limitToBox(limitToBox(val, -this.inflate) + size, this.inflate) - size
+		val = limitToBox(limitToBox(val, -this.inflate) + size, this.inflate) - size;
 		in_box = Math.abs(in_box - val) < 1e-4;
-		val -= this.from[axis]
+		val -= this.from[axis];
 
 		//Move
-		if (opts.applyRot) {
-			var m = new THREE.Vector3()
-			m[getAxisLetter(axis)] = val
-		}
-		if (Blockbench.globalMovement && Format.bone_rig && !opts) {
-			var m = new THREE.Vector3()
-			m[getAxisLetter(axis)] = val
+		if (Blockbench.globalMovement && Format.bone_rig && !move_origin) {
+			var m = new THREE.Vector3();
+			m[getAxisLetter(axis)] = val;
 
-			var rotation = new THREE.Quaternion()
-			this.mesh.getWorldQuaternion(rotation)
-			m.applyQuaternion(rotation.inverse())
+			var rotation = new THREE.Quaternion();
+			this.mesh.getWorldQuaternion(rotation);
+			m.applyQuaternion(rotation.inverse());
 
 			this.from[0] += m.x;
 			this.from[1] += m.y;
@@ -698,14 +687,12 @@ class Cube extends NonGroup {
 			this.from[axis] += val;
 		}
 		//Origin
-		if (Blockbench.globalMovement && opts) {
-			this.origin[axis] += val
+		if (Blockbench.globalMovement && move_origin) {
+			this.origin[axis] += val;
 		}
-		if (!no_update) {
-			this.mapAutoUV()
-			Canvas.adaptObjectPosition(this);
-			TickUpdates.selection = true;
-		}
+		this.mapAutoUV()
+		Canvas.adaptObjectPosition(this);
+		TickUpdates.selection = true;
 		return in_box;
 	}
 	moveVector(arr, axis) {
@@ -719,21 +706,17 @@ class Cube extends NonGroup {
 		var scope = this;
 		var in_box = true;
 		arr.forEach((val, i) => {
-			cl('-------------------' + val);
 
 			var size = scope.size(i);
 			val += scope.from[i];
-			cl(val)
 
 			var val_before = val;
 			val = limitToBox(limitToBox(val, -scope.inflate) + size, scope.inflate) - size
 			if (Math.abs(val_before - val) >= 1e-4) in_box = false;
-			cl(val)
 			val -= scope.from[i]
 
 			scope.from[i] += val;
 			scope.to[i] += val;
-			cl(val)
 		})
 		this.mapAutoUV()
 		Canvas.adaptObjectPosition(this);

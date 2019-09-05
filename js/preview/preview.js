@@ -33,10 +33,10 @@ class Preview {
 		//Cameras
 		this.isOrtho = false
 		this.camPers = new THREE.PerspectiveCamera(45, 16 / 9, 1, 3000)
-		this.camOrtho = new THREE.OrthographicCamera(-600,  600, -400, 400, 1, 100)
+		this.camOrtho = new THREE.OrthographicCamera(-600,  600, -400, 400, 0.5, 200);
 		this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'y'}]
 		this.camOrtho.axis = null
-		this.camOrtho.zoom = 0.5
+		this.camOrtho.zoom = 0.4
 		this.camPers.preview = this.camOrtho.preview = this;
 		for (var i = 4; i <= 6; i++) {
 			this.camPers.layers.enable(i);
@@ -45,7 +45,7 @@ class Preview {
 		//Controls
 		this.controls = new THREE.OrbitControls(this.camPers, this);
 		this.controls.minDistance = 1;
-		this.controls.maxDistance = 320;
+		this.controls.maxDistance = 512;
 		this.controls.enableKeys = false;
 		this.controls.zoomSpeed = 1.5
 
@@ -269,7 +269,7 @@ class Preview {
 		return this;
 	}
 	resetCamera(init) {
-		var dis = 24
+		var dis = 40;
 		this.controls.target.set(0, 8+scene.position.y, 0);
 		this.camPers.position.set(-dis, dis*0.8, -dis)
 		if (!init) {
@@ -816,6 +816,7 @@ const Screencam = {
 				cancel: 0
 			}, function(result) {
 				if (result === 1) {
+					Blockbench.export()
 					ElecDialogs.showSaveDialog(currentwindow, {filters: [ {name: tl('data.image'), extensions: [is_gif ? 'gif' : 'png']} ]}, function (fileName) {
 						if (fileName === undefined) {
 							return;
@@ -1297,7 +1298,7 @@ BARS.defineActions(function() {
 		condition: () => Toolbox && Toolbox.selected && Toolbox.selected.allowWireframe,
 		click: function () {
 			Prop.wireframe = !Prop.wireframe
-			Canvas.updateAll()
+			Canvas.updateAllFaces()
 			if (Modes.id === 'animate') {
 				Animator.preview()
 			}

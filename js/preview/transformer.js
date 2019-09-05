@@ -859,6 +859,9 @@
 
 					} else if (Group.selected && !Blockbench.globalMovement) {
 						Transformer.rotation_ref = rotation_object.mesh;
+
+					} else if (Group.selected && Blockbench.globalMovement && Group.selected.parent && Format.bone_rig) {
+						Transformer.rotation_ref = Group.selected.parent.mesh;
 						
 					} else if (!Blockbench.globalMovement && Cube.selected[0] && Cube.selected[0].mesh) {
 						Transformer.rotation_ref = Cube.selected[0].mesh;
@@ -1081,7 +1084,7 @@
 							}
 							selected.forEach(function(obj, i) {
 								if (obj.movable) {
-									obj.move(difference, axisNumber, false , _has_groups||!Format.bone_rig)
+									obj.move(difference, axisNumber , _has_groups||!Format.bone_rig)
 								}
 							})
 							scope.updateSelection()

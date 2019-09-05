@@ -581,7 +581,7 @@
 				<a class="open-in-browser" href="https://bgrins.github.io/spectrum">Spectrum</a>,
 				<a class="open-in-browser" href="https://github.com/jnordberg/gif.js">gif.js</a>,
 				<a class="open-in-browser" href="https://stuk.github.io/jszip/">JSZip</a>,
-				<a class="open-in-browser" href="https://github.com/rotemdan/lzutf8.js">LZ-UTF8</a>
+				<a class="open-in-browser" href="https://github.com/rotemdan/lzutf8.js">LZ-UTF8</a>,
 				<a class="open-in-browser" href="https://github.com/markedjs/marked">Marked</a>
 			</p>
 		</div>
@@ -854,10 +854,7 @@
 					<div class="texture_name">{{ texture.name }}</div>
 					<div class="texture_res">{{ texture.error
 						? texture.getErrorMessage()
-						: (Format.single_texture
-							? (texture.width + ' x ' + texture.height + 'px')
-							: (texture.ratio == 1? texture.width + 'px': (texture.width + 'px, ' + texture.frameCount+'f'))
-						)
+						: texture.width + ' x ' + texture.height + 'px'
 					}}</div>
 				</li>
 			</ul>

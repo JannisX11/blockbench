@@ -237,7 +237,7 @@ class OutlinerElement {
 			}
 			scope.name = name
 			delete scope.old_name
-			if (Format.bone_rig && scope instanceof Group) {
+			if (Condition(scope.needsUniqueName)) {
 				scope.createUniqueName()
 			}
 			Undo.finishEdit('rename')
@@ -394,7 +394,7 @@ class NonGroup extends OutlinerElement {
 	}
 	select(event, isOutlinerClick) {
 		var scope = this;
-		if (scope === undefined) return false;
+		if (scope === undefined || Modes.animate) return false;
 		//Shiftv
 		var just_selected = []
 		if (event && event.shiftKey === true && scope.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && isOutlinerClick) {

@@ -119,6 +119,7 @@ function addRecentProject(data) {
 		icon: data.icon,
 		day: new Date().dayOfYear()
 	})
+	app.addRecentDocument(data.path)
 	if (recent_projects.length > Math.clamp(settings.recent_projects.value, 0, 256)) {
 		recent_projects.pop()
 	}

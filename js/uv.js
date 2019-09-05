@@ -276,7 +276,7 @@ class UVEditor {
 				p.top = o.top + (p.top - o.top)
 
 				p.left = limitNumber(p.left, 0, scope.inner_size-scope.jquery.size.width()+1)
-				p.top = limitNumber(p.top, 0, scope.inner_size-scope.jquery.size.height()+1)
+				p.top = limitNumber(p.top, 0, scope.inner_height-scope.jquery.size.height()+1)
 				
 				p.left = p.left - p.left % (scope.inner_size/scope.grid);
 				p.top = p.top - p.top % (scope.inner_size/scope.grid);
@@ -377,7 +377,7 @@ class UVEditor {
 	message(msg, vars) {
 		msg = tl(msg, vars)
 		var box = $('<div class="uv_message_box">' + msg + '</div>')
-		this.jquery.frame.append(box)
+		this.jquery.main.append(box)
 		setTimeout(function() {
 			box.fadeOut(200)
 			setTimeout(function() {
@@ -1036,14 +1036,14 @@ class UVEditor {
 				face.uv[0] = Math.min(face.uv[0], face.uv[2]);
 				face.uv[1] = Math.min(face.uv[1], face.uv[3]);
 				if (side == 'north' || side == 'south') {
-					left2 = limitNumber(obj.size('0'), 0, 16)
-					top2 = limitNumber(obj.size('1'), 0, 16)
+					left2 = limitNumber(obj.size('0'), 0, Project.texture_width)
+					top2 = limitNumber(obj.size('1'), 0, Project.texture_height)
 				} else if (side == 'east' || side == 'west') {
-					left2 = limitNumber(obj.size('2'), 0, 16)
-					top2 = limitNumber(obj.size('1'), 0, 16)
+					left2 = limitNumber(obj.size('2'), 0, Project.texture_width)
+					top2 = limitNumber(obj.size('1'), 0, Project.texture_height)
 				} else if (side == 'up' || side == 'down') {
-					left2 = limitNumber(obj.size('0'), 0, 16)
-					top2 = limitNumber(obj.size('2'), 0, 16)
+					left2 = limitNumber(obj.size('0'), 0, Project.texture_width)
+					top2 = limitNumber(obj.size('2'), 0, Project.texture_height)
 				}
 				if (face.rotation % 180) {
 					[left2, top2] = [top2, left2];
@@ -1378,7 +1378,7 @@ class UVEditor {
 			'uv_maximize',
 			'uv_auto',
 			'uv_rel_auto',
-			{icon: 'rotate_90_degrees_ccw', condition: () => Format.id == 'java_block', name: 'menu.uv.mapping.rotation', children: function() {
+			{icon: 'rotate_90_degrees_ccw', condition: () => Format.id == 'java_block' || Format.id == 'free', name: 'menu.uv.mapping.rotation', children: function() {
 				var off = 'radio_button_unchecked'
 				var on = 'radio_button_checked'
 				return [
@@ -1791,7 +1791,7 @@ BARS.defineActions(function() {
 
 	new BarSlider('uv_rotation', {
 		category: 'uv',
-		condition: () => !Project.box_uv && Format.id == 'java_block' && Cube.selected.length,
+		condition: () => !Project.box_uv && (Format.id == 'java_block' || Format.id == 'free') && Cube.selected.length,
 		min: 0, max: 270, step: 90, width: 80,
 		onBefore: () => {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})

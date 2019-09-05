@@ -86,15 +86,15 @@ const Painter = {
 		Painter.current.face = data.face;
 		Painter.current.cube = data.cube;
 		var texture = data.cube.faces[data.face].getTexture()
-		if (!texture) {
+		if (!texture || (texture.error && texture.error !== 2)) {
 			Blockbench.showQuickMessage('message.untextured')
+			return;
 		}
-		if (texture) {
-			var x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth )
-			var y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight )
-			Painter.startBrush(texture, x, y, data.cube.faces[data.face].uv, event)
-		}
-		if (Toolbox.selected.id !== 'color_picker' && texture) {
+		var x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth )
+		var y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight )
+		Painter.startBrush(texture, x, y, data.cube.faces[data.face].uv, event)
+
+		if (Toolbox.selected.id !== 'color_picker') {
 			document.addEventListener('mousemove', Painter.moveBrushCanvas, false );
 			document.addEventListener('mouseup', Painter.stopBrushCanvas, false );
 		}

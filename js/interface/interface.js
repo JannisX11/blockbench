@@ -115,7 +115,7 @@ class ResizeLine {
 		this.node = jq.get(0)
 		jq.draggable({
 			axis: this.horizontal ? 'y' : 'y',
-			containment: 'document',
+			containment: '#page_wrapper',
 			revert: true,
 			start: function(e, u) {
 				scope.before = data.get()
@@ -721,7 +721,7 @@ function showDialog(dialog) {
 	if (obj.hasClass('draggable')) {
 		obj.draggable({
 			handle: ".dialog_handle",
-			containment: 'body'
+			containment: '#page_wrapper'
 		})
 		var x = ($(window).width()-obj.outerWidth()) / 2;
 		var top = ($(window).height() - obj.outerHeight()) / 2;

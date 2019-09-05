@@ -36,11 +36,9 @@ var codec = new Codec('project', {
 			model.parent = Project.parent;
 			model.ambientocclusion = Project.ambientocclusion
 		}
-		if (Project.box_uv) {
-			model.resolution = {
-				width: Project.texture_width || 16,
-				height: Project.texture_height || 16,
-			}
+		model.resolution = {
+			width: Project.texture_width || 16,
+			height: Project.texture_height || 16,
 		}
 		if (options.flag) {
 			model.flag = options.flag;

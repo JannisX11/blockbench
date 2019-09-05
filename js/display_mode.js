@@ -1760,7 +1760,7 @@ window.changeDisplaySkin = function() {
 				settings.display_skin.value = 'username:'+text
 				updateDisplaySkin()
 			})
-		} else {
+		} else if (result < buttons.length-1) {
 			settings.display_skin.value = false
 			updateDisplaySkin()
 		}

@@ -77,6 +77,7 @@ var part_codec = new Codec('optifine_part', {
 	parse(model, path, add) {
 		Project.box_uv = false;
 		var new_cubes = [];
+		var box_uv_changed = false;
 		var import_group = add ? new Group({
 			name: pathToName(path)
 		}).init() : 'root';
@@ -118,7 +119,7 @@ var part_codec = new Codec('optifine_part', {
 							-submodel.rotate[1],
 							submodel.rotate[2],
 						]
-						base_cube = new Cube({
+						var base_cube = new Cube({
 							from: [
 								-cs[0]-cs[3],
 								-cs[1]-cs[4],
@@ -133,8 +134,15 @@ var part_codec = new Codec('optifine_part', {
 							rotation,
 							origin
 						})
-						if (box.uvNorth) {
-							if (!add) Project.box_uv = false;
+						if (box.textureOffset) {
+							if (!add && !box_uv_changed) Project.box_uv = true;
+							box_uv_changed = true;
+							base_cube.extend({
+								uv_offset: box.textureOffset
+							})
+						} else {
+							if (!add && !box_uv_changed) Project.box_uv = false;
+							box_uv_changed = true;
 							base_cube.extend({
 								faces: {
 									north: {uv: convertUVCoords(box.uvNorth)},
@@ -144,11 +152,6 @@ var part_codec = new Codec('optifine_part', {
 									up: {uv: convertUVCoords(box.uvUp)},
 									down: {uv: convertUVCoords(box.uvDown)},
 								}
-							})
-						} else {
-							if (!add) Project.box_uv = true;
-							base_cube.extend({
-								uv_offset: box.textureOffset
 							})
 						}
 

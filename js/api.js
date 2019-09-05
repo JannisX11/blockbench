@@ -164,7 +164,8 @@ const Blockbench = {
 
 		jq_dialog.addClass('draggable')
 		jq_dialog.draggable({
-			handle: ".dialog_handle"
+			handle: ".dialog_handle",
+			containment: '#page_wrapper'
 		})
 		var x = ($(window).width()-540)/2
 		jq_dialog.css('left', x+'px')
@@ -250,6 +251,7 @@ const Blockbench = {
 				currentwindow,
 				{
 					title: options.title ? options.title : '',
+					dontAddToRecent: true,
 					filters: [{
 						name: options.type ? options.type : options.extensions[0],
 						extensions: options.extensions
@@ -423,6 +425,7 @@ const Blockbench = {
 			}
 		} else {
 			ElecDialogs.showSaveDialog(currentwindow, {
+				dontAddToRecent: true,
 				filters: [ {
 					name: options.type,
 					extensions: options.extensions

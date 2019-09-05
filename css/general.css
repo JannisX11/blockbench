@@ -170,13 +170,18 @@
 		z-index: 101;
 		min-width: 100px;
 		max-width: 200px;
-		background-color: var(--color-ui);
-		color: var(--color-light);
+		background-color: var(--color-bright_ui);
+		color: var(--color-text_acc);
 		box-shadow: 0 0 2px black;
 		text-align: center;
 		cursor: default;
 		top: 40px;
-		left: 60px;
+		right: 0px;
+		left: 0px;
+		pointer-events: none;
+	}
+	#uv_dialog_all .uv_message_box {
+		top: 60px;
 	}
 	.selection_rectangle {
 		position: absolute;
@@ -488,8 +493,10 @@
 		padding: 24px;
 		max-height: 600px;
 	}
-	#start_screen section right {
+	#start_screen section right > ul {
+		max-height: 465px;
 		overflow-y: auto;
+    	padding-right: 5px;
 	}
 	#start_screen left {
 		flex-grow: 0;

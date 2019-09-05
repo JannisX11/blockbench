@@ -56,6 +56,7 @@ function findEntityTexture(mob, return_path) {
 		'tropicalfish_b': 'fish/tropical_b',
 		'panda': 'panda/panda',
 		'fishing_hook': 'fishhook',
+		'ravager': 'illager/ravager',
 	}
 	mob = mob.split(':')[0].replace(/^geometry\./, '')
 	var path = textures[mob]

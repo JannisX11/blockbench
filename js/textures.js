@@ -179,7 +179,7 @@ class Texture {
 		switch (this.error) {
 			case 0: return ''; break;
 			case 1: return tl('texture.error.file'); break;
-			case 1: return tl('texture.error.invalid'); break;
+			//case 1: return tl('texture.error.invalid'); break;
 			case 2: return tl('texture.error.ratio'); break;
 			case 3: return tl('texture.error.parent'); break;
 		}
@@ -956,6 +956,28 @@ function getTexturesById(id) {
 	if (id === undefined) return;
 	id = id.replace('#', '');
 	return $.grep(textures, function(e) {return e.id == id});
+}
+Clipbench.setTextures = function(texture) {
+	//Sets the raw image of the texture
+	if (!isApp) return;
+
+	if (texture.mode === 'bitmap') {
+		var img = nativeImage.createFromDataURL(texture.source)
+	} else {
+		var img = nativeImage.createFromPath(texture.source.split('?')[0])
+	}
+	clipboard.writeImage(img)
+}
+Clipbench.pasteTextures = function() {
+	if (!isApp) return;
+	var img = clipboard.readImage()
+	if (img) {
+		var dataUrl = img.toDataURL()
+		var texture = new Texture({name: 'pasted', folder: 'block' }).fromDataURL(dataUrl).fillParticle().add(true)
+		setTimeout(function() {
+			texture.openMenu()
+		}, 40)
+	}
 }
 
 TextureAnimator = {

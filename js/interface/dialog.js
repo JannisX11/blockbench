@@ -202,7 +202,8 @@ function Dialog(settings) {
 		if (this.draggable !== false) {
 			jq_dialog.addClass('draggable')
 			jq_dialog.draggable({
-				handle: ".dialog_handle"
+				handle: ".dialog_handle",
+				containment: '#page_wrapper'
 			})
 			var x = Math.clamp(($(window).width()-540)/2, 0, 2000)
 			jq_dialog.css('left', x+'px')

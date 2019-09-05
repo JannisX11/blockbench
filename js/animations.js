@@ -611,10 +611,8 @@ class Keyframe {
 	}
 	extend(data) {
 		Merge.number(this, data, 'time')
-		cl('0' , data)
 
 		if (this.transform) {
-			cl('1' , this)
 			if (data.values != undefined) {
 				if (typeof data.values == 'number' || typeof data.values == 'string') {
 					data.x = data.y = data.z = data.values;
@@ -632,7 +630,6 @@ class Keyframe {
 			Merge.string(this, data, 'w')
 			Merge.boolean(this, data, 'isQuaternion')
 		} else {
-			cl('2' , data)
 			if (data.values) {
 				data.effect = data.values.effect;
 				data.locator = data.values.locator;
@@ -784,7 +781,7 @@ class Keyframe {
 			if (kf.channel != scope.channel) select_tool = false;
 		})
 		this.selected = true
-		updateKeyframeSelection()
+		TickUpdates.keyframe_selection = true;
 		if (select_tool) {
 			switch (this.channel) {
 				case 'rotation': BarItems.rotate_tool.select(); break;
@@ -957,6 +954,76 @@ function findBedrockAnimation() {
 		Blockbench.read([path2], {}, (files) => {
 			Animator.loadFile(files[0])
 		})
+	}
+}
+
+Clipbench.setKeyframes = function() {
+
+	var keyframes = Timeline.selected;
+
+	Clipbench.keyframes = []
+	if (!keyframes || keyframes.length === 0) {
+		return;
+	}
+	var first = keyframes[0];
+	var single_animator;
+	keyframes.forEach(function(kf) {
+		if (kf.time < first.time) {
+			first = kf
+		}
+		if (single_animator && single_animator !== kf.animator.uuid) {
+			single_animator = false;
+		} else if (single_animator == undefined) {
+			single_animator = kf.animator.uuid;
+		}
+	})
+
+	keyframes.forEach(function(kf) {
+		var copy = kf.getUndoCopy();
+		copy.time_offset = kf.time - first.time;
+		if (single_animator != false) {
+			delete copy.animator;
+		}
+		Clipbench.keyframes.push(copy)
+	})
+	if (isApp) {
+		clipboard.writeHTML(JSON.stringify({type: 'keyframes', content: Clipbench.keyframes}))
+	}
+}
+Clipbench.pasteKeyframes = function() {
+	if (isApp) {
+		var raw = clipboard.readHTML()
+		try {
+			var data = JSON.parse(raw)
+			if (data.type === 'keyframes' && data.content) {
+				Clipbench.keyframes = data.content
+			}
+		} catch (err) {}
+	}
+	if (Clipbench.keyframes && Clipbench.keyframes.length) {
+
+		if (!Animator.selected) return;
+		var keyframes = [];
+		Undo.initEdit({keyframes});
+		Clipbench.keyframes.forEach(function(data, i) {
+
+			if (data.animator) {
+				var animator = Animator.selected.animators[data.animator];
+				if (animator && !Timeline.animators.includes(animator)) {
+					animator.select();
+				}
+			} else {
+				var animator = Timeline.selected_animator;
+			}
+			if (animator) {
+				var kf = animator.createKeyframe(data, Timeline.time + data.time_offset, data.channel)
+				keyframes.push(kf);
+				kf.select(i ? {ctrlOrCmd: true} : null)
+			}
+
+		})
+		Animator.preview()
+		Undo.finishEdit('paste keyframes');
 	}
 }
 
@@ -1553,7 +1620,7 @@ const Timeline = {
 			}
 			kf.selected = false
 		})
-		updateKeyframeSelection()
+		TickUpdates.keyframe_selection = true;
 	},
 	start() {
 		if (!Animator.selected) return;
@@ -1716,12 +1783,16 @@ BARS.defineActions(function() {
 				if (m_index > 3) {
 					path = path.substr(0, m_index) + osfs + 'animations' + osfs +  pathToName(ModelMeta.export_path, true)
 				}
-				path.replace(/\.geo\./, 'animation')
+				if (path.match(/\.geo\.json$/)) {
+					path = path.replace(/\.geo\.json$/, '.animation.json')
+				} else {
+					path = path.replace(/\.json$/, '.animation.json')
+				}
 			}
 			Blockbench.export({
 				type: 'JSON Animation',
 				extensions: ['json'],
-				name: Project.geometry_name||'animation',
+				name: (Project.geometry_name||'model')+'.animation',
 				startpath: path,
 				content: content,
 			}, (real_path) => {

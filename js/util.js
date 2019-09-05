@@ -145,6 +145,7 @@ function trimFloatNumber(val) {
 	if (val == '') return val;
 	var string = val.toFixed(4)
 	string = string.replace(/0+$/g, '').replace(/\.$/g, '')
+	if (string == -0) return 0;
 	return string;
 }
 function getAxisLetter(number) {

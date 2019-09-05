@@ -109,6 +109,8 @@
 	"message.rotation_limit.message": "Rotations are limited by Minecraft to one axis and 22.5 degree increments. Rotating on a different axis will clear all rotations on the other axes. Convert the model to \"Free Model\" if you are modeling for other purposes and need free rotations.",
 	"message.file_not_found.title": "File Not Found",
 	"message.file_not_found.message": "Blockbench could not find the requested file. Make sure it is saved locally and not in a cloud.",
+	"message.no_format_import.title": "Write-only Format",
+	"message.no_format_import.message": "Please note that this export format is write-only. To be able to open the model again, you need to also save it as a project.",
 	"message.recover_backup.title": "Recover Model",
 	"message.recover_backup.message": "Blockbench was closed without saving. Do you want to recover the model?",
 	"message.screenshot.title": "Screenshot",

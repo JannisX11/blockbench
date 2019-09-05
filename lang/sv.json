@@ -983,5 +983,7 @@
     "format.optifine_part": "OptiFine Part",
     "format.optifine_part.desc": "JPM part for OptiFine entity models",
     "action.reverse_keyframes": "Reverse Keyframes",
-    "action.reverse_keyframes.desc": "Reverse the order of the selected keyframes"
+    "action.reverse_keyframes.desc": "Reverse the order of the selected keyframes",
+    "message.no_format_import.title": "Write-only Format",
+    "message.no_format_import.message": "Please note that this export format is write-only. To be able to open the model again, you need to also save it as a project."
 }

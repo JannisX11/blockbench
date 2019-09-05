@@ -276,7 +276,7 @@
 	}
 	#keybindlist {
 		max-height: 600px;
-		margin-bottom: 20px;
+		padding-bottom: 25px;
 		overflow-y: scroll;
 	}
 	#keybindlist > li {
@@ -642,6 +642,9 @@
 	}
 	#uv_dialog h2.dialog_handle.entity_mode_only {
 		margin: 0;
+	}
+	#uv_dialog_all .UVEditor .uv_transform_info {
+		top: 30px;
 	}
 
 /*Action Control*/

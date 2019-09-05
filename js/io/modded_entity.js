@@ -209,7 +209,20 @@ var codec = new Codec('modded_entity', {
 				}
 			}
 		})
+	},
+	export() {
+		var scope = this;
 
+		Blockbench.showMessageBox({translateKey: 'no_format_import'}, function() {
+			Blockbench.export({
+				type: scope.name,
+				extensions: [scope.extension],
+				name: scope.fileName(),
+				startpath: scope.startPath(),
+				content: scope.compile(),
+				custom_writer: isApp ? (a, b) => scope.write(a, b) : null,
+			}, path => scope.afterDownload(path))
+		})
 	}
 })
 

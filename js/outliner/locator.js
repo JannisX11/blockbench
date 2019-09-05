@@ -46,23 +46,28 @@ class Locator extends NonGroup {
 		return this;
 	}
 	getWorldCenter() {
-		var m = this.parent ? this.parent.mesh : scene;
-		var pos = new THREE.Vector3(
-			this.from[0],
-			this.from[1],
-			this.from[2]
-		)
+		var pos = this.parent.mesh.getWorldPosition(new THREE.Vector3());
+		var q = this.parent.mesh.getWorldQuaternion(new THREE.Quaternion());
 
-		var r = m.getWorldQuaternion(new THREE.Quaternion())
-		pos.applyQuaternion(r)
+		var offset = new THREE.Vector3().fromArray(this.from).applyQuaternion(q);
+		var offset2 = new THREE.Vector3().fromArray(this.parent.origin).applyQuaternion(q);
 
-		pos.add(m.getWorldPosition(new THREE.Vector3()))
-		
+		pos.add(offset).sub(offset2);
 		return pos;
 	}
-	move(val, axis, absolute) {
-		if (absolute) {
-			this.from[axis] = val
+	move(val, axis) {
+
+		if (Blockbench.globalMovement) {
+			var m = new THREE.Vector3();
+			m[getAxisLetter(axis)] = val;
+
+			var rotation = new THREE.Quaternion();
+			this.parent.mesh.getWorldQuaternion(rotation);
+			m.applyQuaternion(rotation.inverse());
+
+			this.from[0] += m.x;
+			this.from[1] += m.y;
+			this.from[2] += m.z;
 		} else {
 			this.from[axis] += val
 		}
@@ -79,6 +84,7 @@ Locator.prototype.buttons = [
 	Outliner.buttons.remove,
 	Outliner.buttons.export
 ];
+Locator.prototype.needsUniqueName = true;
 Locator.prototype.menu = new Menu([
 		'copy',
 		'rename',
@@ -93,9 +99,11 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => {return Format.locators && Modes.edit},
 		click: function () {
-			var elements = []
-			Undo.initEdit({elements, outliner: true});
-			elements.push(new Locator().addTo(Group.selected||selected[0]).init().select());
+			var objs = []
+			Undo.initEdit({elements: objs, outliner: true});
+			objs.push(
+				new Locator().addTo(Group.selected||selected[0]).init().select().createUniqueName()
+			);
 			Undo.finishEdit('add locator');
 		}
 	})

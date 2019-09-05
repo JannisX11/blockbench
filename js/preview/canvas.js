@@ -1,5 +1,4 @@
 
-//Display
 function getRescalingFactor(angle) {
 	switch (Math.abs(angle)) {
 		case 0:
@@ -72,6 +71,42 @@ const Canvas = {
 	getCurrentPreview() {
 		var canvas = $('canvas.preview:hover').get(0)
 		if (canvas) return canvas.preview
+	},
+	withoutGizmos(cb) {
+
+		function editVis(edit) {
+			edit(three_grid)
+			edit(Canvas.side_grids.x)
+			edit(Canvas.side_grids.z)
+			edit(Transformer)
+			edit(outlines)
+			edit(rot_origin)
+			edit(Vertexsnap.vertexes)
+			Cube.selected.forEach(function(obj) {
+				var m = obj.mesh
+				if (m && m.outline) {
+					edit(m.outline)
+				}
+			})
+		}
+		editVis(obj => {
+			obj.was_visible = obj.visible
+			obj.visible = false
+		})
+		var ground_anim_before = ground_animation
+		if (display_mode && ground_animation) {
+			ground_animation = false
+		}
+
+		cb()
+
+		editVis(obj => {
+			obj.visible = obj.was_visible
+			delete obj.was_visible
+		})
+		if (display_mode && ground_anim_before) {
+			ground_animation = ground_anim_before
+		}
 	},
 	//Main updaters
 	clear() {
@@ -335,7 +370,6 @@ const Canvas = {
 	},
 	//Object handlers
 	addCube(obj) {
-
 		//This does NOT remove old cubes
 		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1))
 		Canvas.adaptObjectFaces(obj, mesh)
@@ -345,11 +379,13 @@ const Canvas = {
 		mesh.type = 'cube';
 		mesh.isElement = true;
 		//scene.add(mesh)
-		Canvas.meshes[obj.uuid] = mesh
+		Canvas.meshes[obj.uuid] = mesh;
 		if (Prop.wireframe === false) {
-			Canvas.updateUV(obj)
+			Canvas.updateUV(obj);
+		} else {
+			mesh.visible = false;
 		}
-		Canvas.buildOutline(obj)
+		Canvas.buildOutline(obj);
 	},
 	adaptObjectPosition(cube, mesh, parent) {		
 		if (!mesh || mesh > 0) mesh = cube.mesh

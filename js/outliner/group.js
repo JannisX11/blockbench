@@ -415,6 +415,7 @@ class Group extends OutlinerElement {
 		Outliner.buttons.shading,
 		Outliner.buttons.autouv
 	];
+	Group.prototype.needsUniqueName = () => Format.bone_rig;
 	Group.prototype.menu = new Menu([
 		'copy',
 		'paste',
@@ -484,7 +485,7 @@ function addGroup() {
 	if (Format.bone_rig) {
 		base_group.createUniqueName()
 	}
-	if (add_group instanceof NonGroup) {
+	if (add_group instanceof NonGroup && selected.length > 1) {
 		selected.forEach(function(s, i) {
 			s.addTo(base_group)
 		})

@@ -74,6 +74,9 @@ class ModelFormat {
 		}
 		var center = Format.bone_rig ? 8 : 0;
 		previews.forEach(preview => {
+			if (preview.isOrtho) {
+				preview.setOrthographicCamera(preview.angle);
+			}
 			preview.camOrtho.position.y += center - preview.controls.target.y;
 			preview.controls.target.set(0, center, 0);
 		})
@@ -251,11 +254,11 @@ class Codec {
 	export() {
 		var scope = this;
 		Blockbench.export({
-			type: this.name,
-			extensions: [this.extension],
-			name: this.fileName(),
-			startpath: this.startPath(),
-			content: this.compile(),
+			type: scope.name,
+			extensions: [scope.extension],
+			name: scope.fileName(),
+			startpath: scope.startPath(),
+			content: scope.compile(),
 			custom_writer: isApp ? (a, b) => scope.write(a, b) : null,
 		}, path => scope.afterDownload(path))
 	}

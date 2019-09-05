@@ -983,5 +983,7 @@
     "format.optifine_part": "OptiFine Part",
     "format.optifine_part.desc": "JPM Part für OptiFine-Entitymodelle",
     "action.reverse_keyframes": "Keyframes umkehren",
-    "action.reverse_keyframes.desc": "Kehrt die Reihenfolge der ausgewählten Keyframes um"
+    "action.reverse_keyframes.desc": "Kehrt die Reihenfolge der ausgewählten Keyframes um",
+    "message.no_format_import.title": "Nicht-lesbares Format",
+    "message.no_format_import.message": "Dieses Format kann nur exportiert und nicht wieder geladen werden. Um das Modell später erneut öffnen zu können, speichere es zusätzlich als Projekt."
 }

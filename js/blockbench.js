@@ -52,6 +52,13 @@ const mouse_pos = {x:0,y:0}
 const sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
 
 $.ajaxSetup({ cache: false });
+(function() {
+	var last_welcome = localStorage.getItem('welcomed_version');
+	if (!last_welcome || last_welcome.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
+		Blockbench.addFlag('after_update');
+	}
+	localStorage.setItem('welcomed_version', appVersion);
+})();
 
 
 function initializeApp() {
@@ -80,11 +87,6 @@ function initializeApp() {
 		$('.local_only').remove()
 	} else {
 		$('.web_only').remove()
-	}
-	var last_welcome = localStorage.getItem('welcomed_version');
-	if (!last_welcome || last_welcome.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
-		Blockbench.addFlag('after_update')
-		localStorage.setItem('welcomed_version', appVersion)
 	}
 	BARS.setupActions()
 	BARS.setupToolbars()
@@ -524,6 +526,10 @@ const TickUpdates = {
 			delete TickUpdates.keyframes;
 			Vue.nextTick(Timeline.update)
 		}
+		if (TickUpdates.keyframe_selection) {
+			delete TickUpdates.keyframe_selection;
+			Vue.nextTick(updateKeyframeSelection)
+		}
 	}
 }
 const Clipbench = {
@@ -542,7 +548,7 @@ const Clipbench = {
 
 		} else if (Animator.open) {
 			if (Timeline.selected.length) {
-				Clipbench.setKeyframes(Timeline.selected)
+				Clipbench.setKeyframes()
 				if (cut) {
 					BarItems.delete.trigger()
 				}
@@ -577,44 +583,11 @@ const Clipbench = {
 		} else if (display_mode) {
 			DisplayMode.paste()
 		} else if (Animator.open) {
-			//
-			if (isApp) {
-				var raw = clipboard.readHTML()
-				try {
-					var data = JSON.parse(raw)
-					if (data.type === 'keyframes' && data.content) {
-						Clipbench.keyframes = data.content
-					}
-				} catch (err) {}
-			}
-			if (Clipbench.keyframes && Clipbench.keyframes.length) {
-
-				if (!Animator.selected) return;
-				var animator = Timeline.selected_animator
-				if (animator) {
-					var keyframes = [];
-					Undo.initEdit({keyframes});
-					Clipbench.keyframes.forEach(function(data, i) {
-
-						var kf = animator.createKeyframe(data, Timeline.time + data.time_offset, data.channel)
-						keyframes.push(kf);
-						kf.select(i ? {ctrlOrCmd: true} : null)
-					})
-					Animator.preview()
-					Undo.finishEdit('paste keyframes');
-				}
-			}
+			Clipbench.pasteKeyframes()
 		} else if (p == 'uv' || p == 'preview') {
 			main_uv.paste(event)
 		} else if (p == 'textures' && isApp) {
-			var img = clipboard.readImage()
-			if (img) {
-				var dataUrl = img.toDataURL()
-				var texture = new Texture({name: 'pasted', folder: 'block' }).fromDataURL(dataUrl).fillParticle().add(true)
-				setTimeout(function() {
-					texture.openMenu()
-				},40)
-			}
+			Clipbench.pasteTextures();
 		} else if (p == 'outliner') {
 			
 			Undo.initEdit({outliner: true, elements: [], selection: true});
@@ -669,17 +642,6 @@ const Clipbench = {
 			Undo.finishEdit('paste', {outliner: true, elements: selected, selection: true});
 		}
 	},
-	setTexture(texture) {
-		//Sets the raw image of the texture
-		if (!isApp) return;
-
-		if (texture.mode === 'bitmap') {
-			var img = nativeImage.createFromDataURL(texture.source)
-		} else {
-			var img = nativeImage.createFromPath(texture.source.split('?')[0])
-		}
-		clipboard.writeImage(img)
-	},
 	setGroup(group) {
 		if (!group) {
 			Clipbench.group = undefined
@@ -700,27 +662,6 @@ const Clipbench = {
 		})
 		if (isApp) {
 			clipboard.writeHTML(JSON.stringify({type: 'elements', content: Clipbench.elements}))
-		}
-	},
-	setKeyframes(keyframes) {
-		Clipbench.keyframes = []
-		if (!keyframes || keyframes.length === 0) {
-			return;
-		}
-		var first = keyframes[0];
-		keyframes.forEach(function(kf) {
-			if (kf.time < first.time) {
-				first = kf
-			}
-		})
-		keyframes.forEach(function(kf) {
-			var copy = kf.getUndoCopy();
-			copy.time_offset = kf.time - first.time;
-			delete copy.animator;
-			Clipbench.keyframes.push(copy)
-		})
-		if (isApp) {
-			clipboard.writeHTML(JSON.stringify({type: 'keyframes', content: Clipbench.keyframes}))
 		}
 	},
 	setText(text) {
