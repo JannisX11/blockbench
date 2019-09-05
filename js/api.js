@@ -535,6 +535,15 @@ const Blockbench = {
 		delete this.drag_handlers[id]
 	},
 }
+
+(function() {
+	var last_welcome = localStorage.getItem('welcomed_version');
+	if (!last_welcome || last_welcome.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
+		Blockbench.addFlag('after_update');
+	}
+	localStorage.setItem('welcomed_version', appVersion);
+})();
+
 if (isApp) {
 	Blockbench.platform = process.platform;
 	switch (Blockbench.platform) {

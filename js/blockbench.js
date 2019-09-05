@@ -52,14 +52,6 @@ const mouse_pos = {x:0,y:0}
 const sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
 
 $.ajaxSetup({ cache: false });
-(function() {
-	var last_welcome = localStorage.getItem('welcomed_version');
-	if (!last_welcome || last_welcome.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
-		Blockbench.addFlag('after_update');
-	}
-	localStorage.setItem('welcomed_version', appVersion);
-})();
-
 
 function initializeApp() {
 	//Browser Detection
