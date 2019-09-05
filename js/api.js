@@ -534,7 +534,7 @@ const Blockbench = {
 	removeDragHandler(id) {
 		delete this.drag_handlers[id]
 	},
-}
+};
 
 (function() {
 	var last_welcome = localStorage.getItem('welcomed_version');
