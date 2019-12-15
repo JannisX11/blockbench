@@ -3,7 +3,7 @@
 var codec = new Codec('modded_entity', {
 	name: 'Java Class',
 	extension: 'java',
-	remember: false,
+	remember: true,
 	compile(options) {
 		function F(num) {
 			var s = trimFloatNumber(num) + '';
@@ -14,9 +14,12 @@ var codec = new Codec('modded_entity', {
 		}
 
 		var bone_nr = 1
-		var model_id = Project.geometry_name;
-		var all_groups = getAllGroups()
-		var renderers = {}
+		var model_id = Project.geometry_name.replace(/[\s-]+/g, '_') || 'custom_model';
+		var all_groups = getAllGroups();
+		var renderers = {};
+
+		var ver = settings.class_export_version.value == '1.14' ? 1 : 0;
+		var rendererName = ver == 1 ? 'RendererModel' : 'ModelRenderer'
 
 		var loose_cubes = []
 		Outliner.root.forEach(obj => {
@@ -43,9 +46,9 @@ var codec = new Codec('modded_entity', {
 
 			var bone = {
 				id: id,
-				rootBone: g.parent.type !== 'group',
+				rootBone: g.parent instanceof Group == false,
 				lines: [
-					`${id} = new ModelRenderer(this);`,//Texture Offset
+					`${id} = new ${rendererName}(this);`,//Texture Offset
 				]
 			}
 			var origin = [-g.origin[0], -g.origin[1], g.origin[2]]
@@ -55,7 +58,7 @@ var codec = new Codec('modded_entity', {
 					`setRotationAngle(${id}, ${
 						F(Math.degToRad(-g.rotation[0])) }, ${
 						F(Math.degToRad(-g.rotation[1])) }, ${
-						F(Math.degToRad(-g.rotation[2])) });`
+						F(Math.degToRad(g.rotation[2])) });`
 				)
 			}
 			//Parent
@@ -107,13 +110,13 @@ var codec = new Codec('modded_entity', {
 			'\nimport org.lwjgl.opengl.GL11;'+
 			'\nimport net.minecraft.client.model.ModelBase;'+
 			'\nimport net.minecraft.client.model.ModelBox;'+
-			'\nimport net.minecraft.client.model.ModelRenderer;'+
+			`\nimport net.minecraft.client.model.${rendererName};`+
 			'\nimport net.minecraft.client.renderer.GlStateManager;'+
 			'\nimport net.minecraft.entity.Entity;\n'+
 			'\npublic class '+model_id+' extends ModelBase {'
 
 		for (var r_id in renderers) {
-			model += `\n	private final ModelRenderer ${r_id};`;
+			model += `\n	private final ${rendererName} ${r_id};`;
 		}
 
 		model += '\n'+
@@ -137,7 +140,7 @@ var codec = new Codec('modded_entity', {
 		}
 		model +=
 			 '\n	}'+
-			 '\n	public void setRotationAngle(ModelRenderer modelRenderer, float x, float y, float z) {'+
+			 `\n	public void setRotationAngle(${rendererName} modelRenderer, float x, float y, float z) {`+
 			 '\n		modelRenderer.rotateAngleX = x;'+
 			 '\n		modelRenderer.rotateAngleY = y;'+
 			 '\n		modelRenderer.rotateAngleZ = z;'+
@@ -160,69 +163,265 @@ var codec = new Codec('modded_entity', {
 			var args = input.substr(i+1).replace(/\)$/, '');
 			return args.split(/, ?/);
 		}
+		function parseScheme(scheme, input) {
+			scheme = scheme.replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\./g, '\\.');
+			var parts = scheme.split('$');
+			var regexstring = '';
+			var results = [];
+			var location = 0;
+			var i = 0;
+			for (var part of parts) {
+				if (i == 0) {
+					var partmatch = new RegExp('^'+part).exec(input);
+					if (partmatch == null) return;
+
+					location = partmatch[0].length;
+				} else {
+					var key = part.substr(0, 1);
+					part = part.substr(1);
+					var key_regex = '';
+					switch (key) {
+						case 'v': key_regex = '^[a-zA-Z_][a-zA-Z0-9_]+'; break;
+						case 'i': key_regex = '^-?\\d+'; break;
+						case 'f': key_regex = '^-?\\d+\\.?\\d*F'; break;
+						case 'd': key_regex = '^-?\\d+\\.?\\d*'; break;
+						case 'b': key_regex = '^true|false'; break;
+					}
+					var partmatch = new RegExp(key_regex+part).exec(input.substr(location));
+					if (partmatch == null) return;
+
+
+					var variable = new RegExp(key_regex).exec(input.substr(location))[0];
+					switch (key) {
+						case 'v': results.push(variable); break;
+						case 'i': results.push(parseInt(variable)); break;
+						case 'f': results.push(parseFloat(variable.replace(/F$/, ''))); break;
+						case 'd': results.push(parseFloat(variable.replace(/F$/, ''))); break;
+						case 'b': results.push(variable == 'true'); break;
+					}
+					location += partmatch[0].length;
+				}
+
+				i++;
+			}
+			match = results;
+			return true;
+		}
 		var scope = 0,
 			bones = {},
-			geo_name;
+			geo_name,
+			match,
+			last_uv;
 
 		lines.forEach(line => {
 			if (scope == 0) {
 				if (/^public class/.test(line)) {
 					scope = 1;
-					geo_name = line.split(' ')[2];
+					geo_name = line.split(/[\s<>()\.]+/g)[2];
 				}
 			} else if (scope == 1) {
-				line = line.replace(/Public|Static|Final|Private|Void/g, '').trim();
-				if (line.substr(0, 13) == 'ModelRenderer') {
-					bones[line.split('')[1]] = new Group().init();
+				line = line.replace(/public |static |final |private |void /g, '').trim();
+				if (line.substr(0, 13) == 'ModelRenderer' || line.substr(0, 13) == 'RendererModel') {
+					bones[line.split(' ')[1]] = new Group({
+						name: line.split(' ')[1],
+						origin: [0, 24, 0]
+					}).init();
 				} else if (line.substr(0, geo_name.length) == geo_name) {
 					scope = 2;
 				}
 
 			} else if (scope == 2) {
 				line = line.replace(/^this\./, '');
-				var key = line.match(/^\w+(?=[\.|  |=])/);
-				key = key ? key[0] : '';
-				if (key.length) {
-					var action = line.substr(key.length).trim();
-					if (key == 'textureWidth') {
-						Project.texture_width = parseInt(action.replace(/=/), '');
-					} else
-					if (key == 'textureHeight') {
-						Project.texture_height = parseInt(action.replace(/=/), '');
-					} else
-					if (bones[key]) {
-						if (action.match(/^= ?new ModelRenderer\(/)) {
-							var args = getArgs(action);
-						} else
-						if (action.match(/^\.setRotationPoint\(/)) {
-							var args = getArgs(action);
-							var origin = [];
-							args.forEach((n, i) => {
-								origin[i] = parseInt(n.replace(/F/, '')) * (i == 2 ? 1 : -1);
-							})
-							bones[key].extend({origin})
-						} else
-						if (action.match(/^\.cubeList\.add\(/)) {
-							
-						}
+				match = undefined;
+				
+				if (line == '}') {
+					scope--;
+				} else
+
+
+				if (parseScheme('textureWidth = $i', line)) {
+					Project.texture_width = match[0];
+				} else
+				
+				if (parseScheme('textureHeight = $i', line)) {
+					Project.texture_height = match[0];
+				} else
+				
+				if (parseScheme('super($v, $i, $i)', line)) {
+					Project.texture_width = match[1];
+					Project.texture_height = match[2];
+				} else
+				
+				if (
+					parseScheme('ModelRenderer $v = new ModelRenderer(this, $i, $i)', line) ||
+					parseScheme('RendererModel $v = new RendererModel(this, $i, $i)', line) ||
+					parseScheme('$v = new ModelRenderer(this, $i, $i)', line) ||
+					parseScheme('$v = new RendererModel(this, $i, $i)', line)
+				) {
+					if (!bones[match[0]]) {
+						bones[match[0]] = new Group({
+							name: match[0],
+							origin: [0, 24, 0]
+						}).init();
 					}
+					last_uv = [match[1], match[2]];
+				} else
+				
+				if (parseScheme('$v.setRotationPoint($f, $f, $f)', line)) {
+					var bone = bones[match[0]]
+					if (bone) {
+						bone.extend({origin: [-match[1], 24-match[2], match[3]]});
+						bone.children.forEach(cube => {
+							if (cube instanceof Cube) {
+								cube.from[0] += bone.origin[0]; cube.to[0] += bone.origin[0];
+								cube.from[1] += bone.origin[1]-24; cube.to[1] += bone.origin[1]-24;
+								cube.from[2] += bone.origin[2]; cube.to[2] += bone.origin[2];
+							}
+						})
+					}
+				} else
+				
+				if (parseScheme('$v.addChild($v)', line.replace(/\(this\./g, '('))) {
+					var child = bones[match[1]], parent = bones[match[0]];
+					child.addTo(parent);
+					child.origin[0] += parent.origin[0];
+					child.origin[1] += parent.origin[1] - 24;
+					child.origin[2] += parent.origin[2];
+					child.children.forEach(cube => {
+						if (cube instanceof Cube) {
+							cube.from[0] += parent.origin[0]; cube.to[0] += parent.origin[0];
+							cube.from[1] += parent.origin[1]-24; cube.to[1] += parent.origin[1]-24;
+							cube.from[2] += parent.origin[2]; cube.to[2] += parent.origin[2];
+						}
+					})
+				} else
+				
+				//Cubes
+				if (parseScheme('$v.cubeList.add(new ModelBox($v, $i, $i, $f, $f, $f, $i, $i, $i, $f, $b))', line)) {
+					var group = bones[match[0]];
+					var cube = new Cube({
+						name: match[0],
+						uv_offset: [match[2], match[3]],
+						from: [
+							group.origin[0] - match[4] - match[7],
+							group.origin[1] - match[5] - match[8],
+							group.origin[2] + match[6]
+						],
+						inflate: match[10],
+						mirror_uv: match[11],
+					})
+					cube.extend({
+						to: [
+							cube.from[0] + match[7],
+							cube.from[1] + match[8],
+							cube.from[2] + match[9],
+						]
+					});
+					cube.addTo(bones[match[0]]).init();
+				} else
+				
+				if (parseScheme('$v.addBox($f, $f, $f, $i, $i, $i)', line)
+				 || parseScheme('$v.addBox($f, $f, $f, $i, $i, $i, $v)', line)
+				 || parseScheme('$v.addBox($f, $f, $f, $i, $i, $i, $f)', line)
+				) {
+					var group = bones[match[0]];
+					var cube = new Cube({
+						name: match[0],
+						uv_offset: last_uv,
+						from: [
+							group.origin[0] - match[1] - match[4],
+							group.origin[1] - match[2] - match[5],
+							group.origin[2] + match[3]
+						],
+						inflate: (typeof match[7] == 'number' ? match[7] : 0),
+						mirror_uv: group.mirror_uv
+					})
+					cube.extend({
+						to: [
+							cube.from[0] + match[4],
+							cube.from[1] + match[5],
+							cube.from[2] + match[6],
+						]
+					});
+					cube.addTo(bones[match[0]]).init();
+				} else
+				
+
+				//Rotation
+				if (parseScheme('setRotationAngle($v, $f, $f, $f)', line)) {
+					//blockbench
+					var group = bones[match[0]];
+					if (group) {
+						group.extend({
+							rotation: [
+								-Math.radToDeg(match[1]),
+								-Math.radToDeg(match[2]),
+								Math.radToDeg(match[3]),
+							]
+						})
+					}
+				} else
+				
+				if (parseScheme('setRotation($v, $f, $f, $f)', line)) {
+					//cubik
+					var group = bones[match[0]];
+					if (group) {
+						group.extend({
+							rotation: [
+								-Math.radToDeg(match[1]),
+								-Math.radToDeg(match[2]),
+								Math.radToDeg(match[3]),
+							]
+						})
+					}
+				} else
+				
+				if (parseScheme('setRotateAngle($v, $f, $f, $f)', line)) {
+					//tabula
+					var group = bones[match[0]];
+					if (group) {
+						group.extend({
+							rotation: [
+								-Math.radToDeg(match[1]),
+								-Math.radToDeg(match[2]),
+								Math.radToDeg(match[3]),
+							]
+						})
+					}
+				} else
+
+				if (parseScheme('$v.rotateAngleX = $f', line)) {
+					//default
+					var group = bones[match[0]];
+					if (group) {
+						group.rotation[0] = -Math.radToDeg(match[1]);
+					}
+				} else
+				if (parseScheme('$v.rotateAngleY = $f', line)) {
+					//default
+					var group = bones[match[0]];
+					if (group) {
+						group.rotation[1] = -Math.radToDeg(match[1]);
+					}
+				} else
+				if (parseScheme('$v.rotateAngleZ = $f', line)) {
+					//default
+					var group = bones[match[0]];
+					if (group) {
+						group.rotation[2] = Math.radToDeg(match[1]);
+					}
+				} else
+				
+				if (parseScheme('$v.mirror = $b', line)) {
+					var group = bones[match[0]];
+					group.mirror_uv = match[1];
+					group.children.forEach(cube => {
+						cube.mirror_uv = match[1];
+					});
 				}
 			}
 		})
-	},
-	export() {
-		var scope = this;
-
-		Blockbench.showMessageBox({translateKey: 'no_format_import'}, function() {
-			Blockbench.export({
-				type: scope.name,
-				extensions: [scope.extension],
-				name: scope.fileName(),
-				startpath: scope.startPath(),
-				content: scope.compile(),
-				custom_writer: isApp ? (a, b) => scope.write(a, b) : null,
-			}, path => scope.afterDownload(path))
-		})
+		Canvas.updateAll();
 	}
 })
 
@@ -234,6 +433,7 @@ var format = new ModelFormat({
 	single_texture: true,
 	integer_size: true,
 	bone_rig: true,
+	centered_grid: true,
 })
 codec.format = format;
 

@@ -26,6 +26,15 @@ const Condition = function(condition, context) {
 		return true;
 	} else if (typeof condition === 'function') {
 		return condition(context)
+	} else if (typeof condition === 'object') {
+		if (condition.modes instanceof Array && condition.modes.includes(Modes.id) === false) return false;
+		if (condition.formats instanceof Array && Format && condition.formats.includes(Format.id) === false) return false;
+		if (condition.tools instanceof Array && condition.tools.includes(Toolbox.selected.id) === false) return false;
+
+		if (condition.method instanceof Function) {
+			return condition.method(context);
+		}
+		return true;
 	} else {
 		return !!condition
 	}
@@ -65,6 +74,33 @@ Object.defineProperty($.Event.prototype, 'ctrlOrCmd', {
 		return this.ctrlKey || this.metaKey;
 	}
 })
+
+function convertTouchEvent(event) {
+	if (event && event.changedTouches && event.changedTouches.length && event.offsetX == undefined) {
+		event.preventDefault();
+		event.clientX = event.changedTouches[0].clientX;
+		event.clientY = event.changedTouches[0].clientY;
+		event.offsetX = event.changedTouches[0].clientX;
+		event.offsetY = event.changedTouches[0].clientY;
+
+		var offset = $(event.target).offset();
+		if (offset) {
+			event.offsetX -= offset.left;
+			event.offsetY -= offset.top;
+		}
+	}
+	return event;
+}
+function addEventListeners(el, events, func, option) {
+	events.split(' ').forEach(e => {
+		el.addEventListener(e, func, option)
+	})
+}
+function removeEventListeners(el, events, func, option) {
+	events.split(' ').forEach(e => {
+		el.removeEventListener(e, func, option)
+	})
+}
 
 //Jquery
 $.fn.deepest = function() {
@@ -141,6 +177,13 @@ Math.areMultiples = function(n1, n2) {
 		(n2/n1)%1 === 0
 	)
 }
+Math.getNextPower =function(num, min) {
+	var i = min ? min : 2
+	while (i < num && i < 4000) {
+		i *= 2
+	}
+	return i;
+}
 function trimFloatNumber(val) {
 	if (val == '') return val;
 	var string = val.toFixed(4)
@@ -166,6 +209,17 @@ function limitNumber(number, min, max) {
 	if (number > max) number = max;
 	if (number < min || isNaN(number)) number = min;
 	return number;
+}
+function highestInObject(obj, inverse) {
+	var n = inverse ? Infinity : -Infinity;
+	var result;
+	for (var key in obj) {
+		if ( (!inverse && obj[key] > n) || (inverse && obj[key] < n) ) {
+			n = obj[key];
+			result = key;
+		}
+	}
+	return result;
 }
 Math.clamp = limitNumber;
 function getRectangle(a, b, c, d) {
@@ -317,6 +371,13 @@ Array.prototype.forEachReverse = function(cb) {
 	for (var i = this.length-1; i >= 0; i--) {
 		cb(this[i], i);
 	}
+}
+Array.prototype.overlap = function(arr2) {
+	var count = 0;
+	for (var item of this) {
+		if (arr2.includes(item)) count++;
+	}
+	return count;
 }
 
 //Object

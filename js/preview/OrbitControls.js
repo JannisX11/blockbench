@@ -44,6 +44,8 @@ THREE.OrbitControls = function ( object, preview ) {
 	this.position0 = this.object.position.clone();
 	this.zoom0 = this.object.zoom;
 
+	var updateHandlers = [];
+
 	this.getPolarAngle = function () {
 
 		return spherical.phi;
@@ -78,6 +80,12 @@ THREE.OrbitControls = function ( object, preview ) {
 			Vertexsnap.updateVertexSize();
 		}
 	};
+
+	this.onUpdate = function(call) {
+		if (typeof call == 'function') {
+			updateHandlers.push(call);
+		}
+	}
 
 	// this method is exposed, but perhaps it would be better if we can make it private...
 	this.update = function () {
@@ -156,6 +164,7 @@ THREE.OrbitControls = function ( object, preview ) {
 			// min(camera displacement, camera rotation in radians)^2 > EPS
 			// using small-angle approximation cos(x/2) = 1 - x^2 / 8
 
+
 			if ( zoomChanged ||
 				lastPosition.distanceToSquared( scope.object.position ) > EPS ||
 				8 * ( 1 - lastQuaternion.dot( scope.object.quaternion ) ) > EPS ) {
@@ -165,6 +174,8 @@ THREE.OrbitControls = function ( object, preview ) {
 				lastPosition.copy( scope.object.position );
 				lastQuaternion.copy( scope.object.quaternion );
 				zoomChanged = false;
+				
+				updateHandlers.forEach(call => call(changeEvent));
 
 				return true;
 
@@ -590,7 +601,7 @@ THREE.OrbitControls = function ( object, preview ) {
 		if ( Keybinds.extra.preview_rotate.keybind.isTriggered(event) ) {
 
 				if ( scope.enableRotate === false ) return;
-				if (event.which === 1 && Canvas.raycast() && display_mode === false) {
+				if (event.which === 1 && Canvas.raycast(event) && display_mode === false) {
 					return;
 				}
 				handleMouseDownRotate( event );
@@ -600,7 +611,7 @@ THREE.OrbitControls = function ( object, preview ) {
 		} else if ( Keybinds.extra.preview_drag.keybind.isTriggered(event) ) {
 
 			if ( scope.enablePan === false ) return;
-			if (event.which === 1 && Canvas.raycast() && display_mode === false) {
+			if (event.which === 1 && Canvas.raycast(event) && display_mode === false) {
 				return;
 			}
 			handleMouseDownPan( event );
@@ -690,6 +701,8 @@ THREE.OrbitControls = function ( object, preview ) {
 
 				//if ( scope.enableRotate === false ) return;
 
+				if (event.touches[0].touchType == 'stylus') return;
+
 				handleTouchStartRotate( event );
 
 				state = STATE.TOUCH_ROTATE;
@@ -723,7 +736,7 @@ THREE.OrbitControls = function ( object, preview ) {
 	function onTouchMove( event ) {
 
 		if ( scope.isEnabled() === false ) return;
-		if ( Transformer.dragging ) return;
+		if ( Transformer.dragging || Painter.painting ) return;
 
 		event.preventDefault();
 		event.stopPropagation();

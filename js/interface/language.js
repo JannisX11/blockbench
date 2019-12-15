@@ -2,7 +2,10 @@ function tl(string, variables) {
 	if (string && string.length > 100) return string;
 	var result = Language.data[string]
 	if (result && result.length > 0) {
-		if (variables && variables.length) {
+		if (variables) {
+			if (variables instanceof Array == false) {
+				variables = [variables];
+			}
 			var i = variables.length;
 			while (i > 0) {
 				i--;
@@ -60,13 +63,15 @@ function getStringWidth(string, size) {
 	}
 	if (code && Language.options[code]) {
 		Language.code = code
+		document.body.parentNode.attributes.lang.value = Language.code;
 	}
 	$.ajax({
 		dataType: "json",
 		url: 'lang/'+Language+'.json',
 		async: false, 
 		success: function(data) {
-			Language.data = data
+			Language.data = data;
+			
 			if (!Language.loading_steps) {
 				Language.loading_steps = true;
 			} else {

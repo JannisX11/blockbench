@@ -120,6 +120,54 @@ function Dialog(settings) {
 						case 'checkbox':
 							bar.append(`<input type="checkbox" id="${form_id}"${data.value ? ' checked' : ''}>`)
 							break;
+						case 'file':
+						case 'folder':
+						case 'save':
+							if (data.type == 'folder' && !isApp) break;
+
+							var input = $(`<input class="dark_bordered half" type="text" id="${form_id}" value="${data.value||''}" disabled>`);
+							bar.append(input);
+							bar.addClass('form_bar_file');
+
+							switch (data.type) {
+								case 'file': 	bar.append('<i class="material-icons">insert_drive_file</i>'); break;
+								case 'folder':	bar.append('<i class="material-icons">folder</i>'); break;
+								case 'save':	bar.append('<i class="material-icons">save</i>'); break;
+							}
+							
+							bar.on('click', e => {
+								function fileCB(files) {
+									data.value = files[0].path;
+									input.val(data.value);
+								}
+								switch (data.type) {
+									case 'file':
+										Blockbench.import({
+											extensions: data.extensions,
+											type: data.filetype,
+											startpath: data.value
+										}, fileCB);
+										break;
+									case 'folder':
+										ElecDialogs.showOpenDialog(currentwindow, {
+											properties: ['openDirectory'],
+											defaultPath: data.value
+										}, function(filePaths) {
+											if (filePaths) fileCB([{ path: filePaths[0] }]);
+										})
+										break;
+									case 'save':
+										Blockbench.export({
+											extensions: data.extensions,
+											type: data.filetype,
+											startpath: data.value,
+											custom_writer: () => {},
+										}, fileCB);
+										break;
+								}
+							})
+
+						case 'folder':
 					}
 					if (data.readonly) {
 						bar.find('input').attr('readonly', 'readonly')
@@ -160,7 +208,7 @@ function Dialog(settings) {
 			</div>`)
 
 		}
-		jq_dialog.append('<div id="dialog_close_button" onclick="$(\'.dialog#\'+open_dialog).find(\'.cancel_btn:not([disabled])\').click()"><i class="material-icons">clear</i></div>')
+		jq_dialog.append('<div class="dialog_close_button" onclick="$(\'.dialog#\'+open_dialog).find(\'.cancel_btn:not([disabled])\').click()"><i class="material-icons">clear</i></div>')
 		var confirmFn = function(e) {
 
 			var result = {}
@@ -196,8 +244,8 @@ function Dialog(settings) {
 			scope.onConfirm(result, e)
 		}
 		confirmFn.bind(this)
-		$(this.object).find('.confirm_btn').click(confirmFn)
-		$(this.object).find('.cancel_btn').click(() => {this.onCancel()})
+		if (this.confirmEnabled) $(this.object).find('.confirm_btn').click(confirmFn)
+		if (this.cancelEnabled) $(this.object).find('.cancel_btn').click(() => {this.onCancel()})
 		//Draggable
 		if (this.draggable !== false) {
 			jq_dialog.addClass('draggable')

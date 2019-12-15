@@ -11,11 +11,11 @@
 			>` +
 				//Opener
 				
-				'<i v-if="node.children && node.children.length > 0" v-on:click.stop="toggle(node)" class="icon-open-state fa" :class=\'{"fa-caret-right": !node.isOpen, "fa-caret-down": node.isOpen}\'></i>' +
+				'<i v-if="node.children && node.children.length > 0 && (!Animator.open || node.children.some(o => o instanceof Group))" v-on:click.stop="toggle(node)" class="icon-open-state fa" :class=\'{"fa-caret-right": !node.isOpen, "fa-caret-down": node.isOpen}\'></i>' +
 				'<i v-else class="outliner_opener_placeholder"></i>' +
 				//Main
-				'<i :class="node.icon + (settings.outliner_colors.value ? \' ec_\'+node.color : \'\')"></i>' +
-				'<input type="text" class="cube_name" v-model="node.name" disabled>' +
+				'<i :class="node.icon + (settings.outliner_colors.value ? \' ec_\'+node.color : \'\')" v-on:dblclick.stop="if (node.children && node.children.length) {node.isOpen = !node.isOpen;}"></i>' +
+				'<input type="text" class="cube_name tab_target" v-model="node.name" disabled>' +
 				'<a v-for="btn in node.buttons" class="ml5" href="javascript:" :title="btn.title" v-on:click.stop="btnClick(btn, node)" v-bind:class="{advanced_option: btn.advanced_option}">' +
 					'<i v-if="node.isIconEnabled(btn) === true" :class="btn.icon"></i>' +
 					'<i v-else-if="node.isIconEnabled(btn) === \'alt\'" :class="btn.icon_alt"></i>' +

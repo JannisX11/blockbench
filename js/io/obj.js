@@ -164,9 +164,6 @@ var codec = new Codec('obj', {
 				var tex = materials[key];
 				mtlOutput += 'newmtl ' +key+ '\n'
 				mtlOutput += `map_Kd ${tex.name} \n`;
-				if (settings.transparency.value) {
-					//mtlOutput += 'map_d '+ tex.name +'\n';//-imfchan m
-				}
 			}
 		}
 		mtlOutput += 'newmtl none'

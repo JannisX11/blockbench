@@ -19,6 +19,7 @@ function getRescalingFactor(angle) {
 	}
 }
 function getUVArray(side, frame, stretch) {
+	//Used by display preview models
 	if (stretch === undefined) {
 		stretch = -1
 	} else {
@@ -51,13 +52,15 @@ const Canvas = {
 	bones: {},
 	outlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
-		transparent: true
+		transparent: true,
+		color: gizmo_colors.outline
 	}),
 	wireframeMaterial: new THREE.MeshBasicMaterial({
-		color: 0x00FF00,
+		color: gizmo_colors.wire,
 		wireframe: true
 	}),
-	transparentMaterial: new THREE.MeshBasicMaterial({visible:false}),
+	transparentMaterial: new THREE.MeshBasicMaterial({visible: false}),
+	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
 	face_order: ['east', 'west', 'up', 'down', 'south', 'north'],
 	//Misc
 	raycast(event) {
@@ -69,6 +72,7 @@ const Canvas = {
 		}
 	},
 	getCurrentPreview() {
+		if (quad_previews.current) return quad_previews.current;
 		var canvas = $('canvas.preview:hover').get(0)
 		if (canvas) return canvas.preview
 	},
@@ -300,7 +304,7 @@ const Canvas = {
 
 				mesh.rotation.reorder('ZYX')
 				obj.rotation.forEach(function(n, i) {
-					mesh.rotation[getAxisLetter(i)] = Math.PI / (180 / n) * (i == 2 ? -1 : 1)
+					mesh.rotation[getAxisLetter(i)] = Math.PI / (180 / n);
 				})
 				mesh.position.fromArray(obj.origin)
 				mesh.scale.x = mesh.scale.y = mesh.scale.z = 1
@@ -382,9 +386,8 @@ const Canvas = {
 		Canvas.meshes[obj.uuid] = mesh;
 		if (Prop.wireframe === false) {
 			Canvas.updateUV(obj);
-		} else {
-			mesh.visible = false;
 		}
+		mesh.visible = obj.visibility;
 		Canvas.buildOutline(obj);
 	},
 	adaptObjectPosition(cube, mesh, parent) {		
@@ -548,15 +551,11 @@ const Canvas = {
 			}
 			face_list.forEach(function(f) {
 
-				f.from[0] /= Project.texture_width  / 16
-				f.from[1] /= Project.texture_height / 16 
-				f.size[0] /= Project.texture_width  / 16
-				f.size[1] /= Project.texture_height / 16
 				var uv= [
-					f.from[0]			 +  obj.uv_offset[0] / Project.texture_width  * 16,
-					f.from[1]			 +  obj.uv_offset[1] / Project.texture_height * 16,
-					f.from[0] + f.size[0] + obj.uv_offset[0] / Project.texture_width  * 16,
-					f.from[1] + f.size[1] + obj.uv_offset[1] / Project.texture_height * 16
+					f.from[0]			 +  obj.uv_offset[0],
+					f.from[1]			 +  obj.uv_offset[1],
+					f.from[0] + f.size[0] + obj.uv_offset[0],
+					f.from[1] + f.size[1] + obj.uv_offset[1]
 				]
 				uv.forEach(function(s, si) {
 					uv[si] *= 1
@@ -569,7 +568,7 @@ const Canvas = {
 
 				//Fight Bleeding
 				for (var si = 0; si < 2; si++) {
-					let margin = 16/(si?Project.texture_height:Project.texture_width)/16;
+					let margin = 1/64;
 					if (uv[si] > uv[si+2]) {
 						margin = -margin
 					}
@@ -625,11 +624,13 @@ const Canvas = {
 				arr[i] = new THREE.Vector2()
 			}
 		}
+		var pw = Project.texture_width;
+		var ph = Project.texture_height;
 		
-		arr[0].set(face.uv[0]/16, (face.uv[1]/16)/stretch+1),  //0,1
-		arr[1].set(face.uv[0]/16, (face.uv[3]/16)/stretch+1),  //0,0
-		arr[2].set(face.uv[2]/16, (face.uv[3]/16)/stretch+1),   //1,0
-		arr[3].set(face.uv[2]/16, (face.uv[1]/16)/stretch+1)  //1,1
+		arr[0].set(face.uv[0]/pw, (face.uv[1]/ph)/stretch+1),  //0,1
+		arr[1].set(face.uv[0]/pw, (face.uv[3]/ph)/stretch+1),  //0,0
+		arr[2].set(face.uv[2]/pw, (face.uv[3]/ph)/stretch+1),   //1,0
+		arr[3].set(face.uv[2]/pw, (face.uv[1]/ph)/stretch+1)  //1,1
 
 		if (frame > 0 && stretch !== -1) {
 			//Animate
@@ -698,35 +699,112 @@ const Canvas = {
 
 		if (!Modes.paint || !settings.painting_grid.value) return;
 
-		var from = cube.from.slice();
-		var to = cube.to.slice();
-		var size = cube.size(undefined, true);
-		if (cube.inflate) {
-			from[0] -= cube.inflate; from[1] -= cube.inflate; from[2] -= cube.inflate;
-			  to[0] += cube.inflate;   to[1] += cube.inflate;   to[2] += cube.inflate;
-		}
-		if (true) {
-			var tex = cube.faces.north.getTexture()
-			var width = tex ? tex.width : 16
-			var height = tex ? tex.height : 16
-			size = [
-				Math.abs(width/16 * cube.faces.north.uv_size[cube.faces.north.rotation%180 ? 1 : 0]),
-				Math.abs(height/16 * cube.faces.north.uv_size[cube.faces.north.rotation%180 ? 0 : 1]),
-				Math.abs(width/16 * cube.faces.west.uv_size[cube.faces.west.rotation%180 ? 1 : 0])
-			]
-			size.forEach((s, i) => {
-				if (s < 1) size[i] = 1
-			})
-		}
+		var box = Canvas.getPaintingGrid(cube);
 
-		var box = new THREE.GridBox(from, to, size);
-		if (Format.rotate_cubes) {
-			box.geometry.translate(-cube.origin[0], -cube.origin[1], -cube.origin[2]);
-		}
 		box.name = cube.uuid+'_grid_box';
 		box.renderOrder = 2;
 		box.frustumCulled = false;
 		mesh.grid_box = box;
 		mesh.add(box);
+	},
+	getPaintingGrid(cube) {
+		var from = cube.from.slice();
+		var to = cube.to.slice();
+		if (cube.inflate) {
+			from[0] -= cube.inflate; from[1] -= cube.inflate; from[2] -= cube.inflate;
+			  to[0] += cube.inflate;   to[1] += cube.inflate;   to[2] += cube.inflate;
+		}
+
+		var vertices = [];
+		var epsilon = 0.0001
+		function getVector2(arr, axis) {
+			switch (axis) {
+				case 0: return [arr[1], arr[2]]; break;
+				case 1: return [arr[0], arr[2]]; break;
+				case 2: return [arr[0], arr[1]]; break;
+			}
+		}
+		function addVector(u, v, axis, w) {
+			switch (axis) {
+				case 0: vertices.push(w, u, v); break;
+				case 1: vertices.push(u, w, v); break;
+				case 2: vertices.push(u, v, w); break;
+			}
+		}
+
+		function addFace(name, uv_offset, axis, side) {
+
+			var start = getVector2(from, axis)
+			var end = getVector2(to, axis)
+			var face = cube.faces[name];
+			var texture = face.getTexture();
+			if (texture == null) return;
+
+			var uv_size = [
+				Math.abs(face.uv_size[0]),
+				Math.abs(face.uv_size[1])
+			]
+			uv_offset = [
+				uv_offset[0] == true
+					? (face.uv_size[0] > 0 ? (1-face.uv[2]%1) : (  face.uv[2]%1))
+					: (face.uv_size[0] > 0 ? (  face.uv[0]%1) : (1-face.uv[0]%1)),
+				uv_offset[1] == true
+					? (face.uv_size[1] > 0 ? (1-face.uv[3]%1) : (  face.uv[3]%1))
+					: (face.uv_size[1] > 0 ? (  face.uv[1]%1) : (1-face.uv[1]%1))
+			]
+			
+			if ((face.rotation % 180 == 90) != (axis == 0)) {
+				uv_size.reverse();
+				uv_offset.reverse();
+			}
+
+			var w = side == 0 ? from[axis] : to[axis]
+
+			//Columns
+			var width = end[0]-start[0];
+			var step = Math.abs( width / uv_size[0] );
+			uv_offset[0] *= step;
+			if (texture) step *= Project.texture_width / texture.width;
+			if (step < epsilon) step = epsilon;
+
+			for (var col = start[0] - uv_offset[0]; col <= end[0]; col += step) {
+				if (col > start[0]) {
+					addVector(col, start[1], axis, w);
+					addVector(col, end[1], axis, w);
+				}
+			}
+
+			//lines
+			var height = end[1]-start[1];
+			var step = Math.abs( height / uv_size[1] );
+			uv_offset[1] *= step;
+			if (texture) step *= Project.texture_height / texture.height;
+			if (step < epsilon) step = epsilon;
+
+			for (var line = start[1] - uv_offset[1]; line <= end[1]; line += step) {
+				if (line > start[1]) {
+					addVector(start[0], line, axis, w);
+					addVector(end[0], line, axis, w);
+				}
+			}
+		}
+
+		addFace('north', [true,  true],  2, 0);
+		addFace('south', [false, true],  2, 1);
+		addFace('west',  [false, true],  0, 0);
+		addFace('east',  [true,  true],  0, 1);
+		addFace('down',  [false, true],  1, 0);
+		addFace('up',    [false, false], 1, 1);
+
+
+		var geometry = new THREE.BufferGeometry();
+		geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+
+		var lines = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({color: gizmo_colors.grid}));
+		lines.geometry.translate(-cube.origin[0], -cube.origin[1], -cube.origin[2]);
+
+
+		return lines;
+
 	}
 }

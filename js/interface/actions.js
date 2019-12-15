@@ -12,9 +12,16 @@ class BarItem {
 			BarItems[this.id] = this;
 		}
 		this.name = tl('action.'+this.id)
-		this.description = tl('action.'+this.id+'.desc')
 		if (data.name) this.name = tl(data.name);
-		if (data.description) this.description = tl(data.description);
+
+		this.description = tl('action.'+this.id+'.desc')
+		if (data.description) {
+			this.description = tl(data.description);
+		} else {
+			var key = `action.${this.id}.desc`;
+			this.description = tl('action.'+this.id+'.desc')
+			if (this.description == key) this.description = '';
+		}
 		this.node;
 		this.condition = data.condition;
 		this.nodes = []
@@ -26,9 +33,9 @@ class BarItem {
 				this.default_keybind = data.keybind
 			}
 			if (Keybinds.stored[this.id]) {
-				this.keybind = new Keybind(Keybinds.stored[this.id], true)
+				this.keybind = new Keybind().set(Keybinds.stored[this.id], this.default_keybind);
 			} else {
-				this.keybind = new Keybind(data.keybind, true)
+				this.keybind = new Keybind().set(data.keybind);
 			}
 			this.keybind.setAction(this.id)
 			this.work_in_dialog = data.work_in_dialog === true
@@ -135,7 +142,11 @@ class KeybindItem {
 		if (data.keybind) {
 			this.default_keybind = data.keybind
 		}
-		this.keybind = new Keybind(data.keybind, true).set(Keybinds.stored[this.id])
+		if (Keybinds.stored[this.id]) {
+			this.keybind = new Keybind().set(Keybinds.stored[this.id], this.default_keybind);
+		} else {
+			this.keybind = new Keybind().set(data.keybind);
+		}
 
 		Keybinds.actions.push(this)
 		Keybinds.extra[this.id] = this;
@@ -169,7 +180,7 @@ class Action extends BarItem {
 		this.menus = [];
 		this.menu_node = $(`<li title="${this.description||''}">${this.name}</li>`).get(0)
 		$(this.node).add(this.menu_node).append(this.icon_node)
-		this.addLabel(data.label)
+		this.addLabel()
 		$(this.node).click(function(e) {scope.trigger(e)})
 
 		if (data.linked_setting) {
@@ -359,7 +370,7 @@ class NumSlider extends Widget {
 		var scope = this;
 		this.node = $( `<div class="tool wide widget nslide_tool">
 							<div class="tooltip">${this.name}</div>
-							<div class="nslide" n-action="${this.id}"></div>
+							<div class="nslide tab_target" n-action="${this.id}"></div>
 					  	</div>`).get(0);
 		this.jq_outer = $(this.node)
 		this.jq_inner = this.jq_outer.find('.nslide');
@@ -396,7 +407,7 @@ class NumSlider extends Widget {
 		.keypress(function (e) {
 			if (e.keyCode === 10 || e.keyCode === 13) {
 				e.preventDefault();
-				scope.stopInput()
+				scope.stopInput();
 			}
 		})
 		.keyup(function (e) {
@@ -467,28 +478,51 @@ class NumSlider extends Widget {
 		this.pre = offset;
 
 		if (!difference) return;
-		this.change(difference)
+		this.change(n => n + difference)
 		this.update()
 	}
 	input() {
-		if (typeof this.onBefore === 'function') {
-			this.onBefore()
-		}
-		this.last_value = this.value
-		var number = this.jq_inner.text().replace(/[^-.0-9]/g, "");
-		var number = parseFloat(number)
-		if (isNaN(number)) {
-			number = 0;
-		}
-		this.change(number, true)
-		this.update()
-		if (typeof this.onAfter === 'function') {
-			this.onAfter(this.value - this.last_value)
-		}
+		this.last_value = this.value;
 	}
 	stopInput() {
-		this.jq_inner.attr('contenteditable', 'false')
+		if (!this.jq_inner.hasClass('editing')) return;
+		var scope = this;
+		var text = this.jq_inner.text();
+		if (this.last_value !== text) {
+			var first_token = text.substr(0, 1);
+
+			if (typeof this.onBefore === 'function') {
+				this.onBefore()
+			}
+
+			if (text.match(/^-?\d*(\.\d+)?$/gm)) {
+				var number = parseFloat(text);
+				if (isNaN(number)) {
+					number = 0;
+				}
+				this.change(val => number);
+			} else {
+				var n = 0;
+				this.change(val => {
+					var variables = {
+						val: val,
+						n
+					};
+					n++;
+
+					if ('+*/'.includes(first_token)) {
+						return Molang.parse(val + text, variables)
+					} else {
+						return Molang.parse(text, variables)
+					}
+				});
+			}
+			if (typeof this.onAfter === 'function') {
+				this.onAfter()
+			}
+		}
 		this.jq_inner.removeClass('editing')
+		this.jq_inner.attr('contenteditable', 'false')
 		this.update()
 	}
 	arrow(difference, event) {
@@ -496,7 +530,7 @@ class NumSlider extends Widget {
 			this.onBefore()
 		}
 		difference *= this.getInterval(event)
-		this.change(difference)
+		this.change(n => n + difference)
 		this.update()
 		if (typeof this.onAfter === 'function') {
 			this.onAfter(difference)
@@ -507,7 +541,7 @@ class NumSlider extends Widget {
 			this.onBefore()
 		}
 		var difference = this.getInterval(false) * event.shiftKey ? -1 : 1;
-		this.change(difference)
+		this.change(n => n + difference)
 		this.update()
 		if (typeof this.onAfter === 'function') {
 			this.onAfter(difference)
@@ -525,15 +559,11 @@ class NumSlider extends Widget {
 
 		}
 		this.jq_outer.find('.nslide:not(.editing)').text(this.value)
-		//this.jq_inner.text(this.value)
 		return this;
 	}
-	change(difference, fixed) {
-		//Solo Sliders only
-		var num = difference
-		if (!fixed) {
-			num += this.get()
-		}
+	change(modify) {
+		//Solo sliders only, gets overwritten for most sliders
+		var num = modify(this.get());
 		if (this.settings && typeof this.settings.min === 'number') {
 			num = limitNumber(num, this.settings.min, this.settings.max)
 		}
@@ -574,7 +604,7 @@ class BarSlider extends Widget {
 				' step="'+(data.step?data.step:1)+'" '+
 				' style="width: '+(data.width?data.width:'auto')+'px;">'+
 		'</div>').get(0)
-		this.addLabel(data.label)
+		this.addLabel()
 		if (typeof data.onChange === 'function') {
 			this.onChange = data.onChange
 		}
@@ -622,7 +652,7 @@ class BarSelect extends Widget {
 		var scope = this;
 		this.type = 'select'
 		this.icon = 'list'
-		this.node = $('<div class="tool widget bar_select"><select></select></div>').get(0)
+		this.node = $('<div class="tool widget bar_select"><div class="bar_select_wrapper"><select></select></div></div>').get(0)
 		if (data.width) {
 			$(this.node).children('select').css('width', data.width+'px')
 		}
@@ -642,12 +672,15 @@ class BarSelect extends Widget {
 				this.values.push(key);
 			}
 		}
-		this.addLabel(data.label)
+		this.addLabel()
 		if (typeof data.onChange === 'function') {
 			this.onChange = data.onChange
 		}
-		$(this.node).children('select').change(function(event) {
+		$(this.node).find('select').change(function(event) {
 			scope.change(event)
+		})
+		$(this.node).on('mousewheel', event => {
+			scope.trigger(event.originalEvent);
 		})
 	}
 	trigger(event) {
@@ -661,9 +694,16 @@ class BarSelect extends Widget {
 				document.addEventListener('keyup', record, false)
 				return true;
 			}
-			var index = this.values.indexOf(this.value)+1
-			if (index >= this.values.length) index = 0;
-			this.set(this.values[index])
+
+			var index = this.values.indexOf(this.value)
+			if ((event.type === 'mousewheel' || event.type === 'wheel') && event.deltaY < 0) {
+				index--;
+			} else {
+				index++;
+			}
+			if (index >= 0 && index < this.values.length) {
+				this.set(this.values[index])
+			}
 			
 			scope.uses++;
 			return true;
@@ -730,7 +770,7 @@ class ColorPicker extends Widget {
 		this.type = 'color_picker'
 		this.icon = 'color_lens'
 		this.node = $('<div class="tool widget"><input class="f_left" type="text"></div>').get(0)
-		this.addLabel(data.label)
+		this.addLabel()
 		this.jq = $(this.node).find('input')
 		if (typeof data.onChange === 'function') {
 			this.onChange = data.onChange
@@ -914,7 +954,6 @@ class Toolbar {
 		if (last.length && last.hasClass('toolbar_separator')) {
 			last.remove()
 		}
-		this.save()
 		return this;
 	}
 	toPlace(place) {
@@ -1020,7 +1059,7 @@ const BARS = {
 				toolbar: Blockbench.isMobile ? 'element_rotation' : 'main_tools',
 				alt_tool: 'pivot_tool',
 				modes: ['edit', 'display', 'animate'],
-				keybind: new Keybind({key: 82}),
+				keybind: new Keybind({key: 82})
 			})
 			new Tool('pivot_tool', {
 				icon: 'gps_fixed',
@@ -1040,7 +1079,7 @@ const BARS = {
 				cursor: 'copy',
 				modes: ['edit'],
 				keybind: new Keybind({key: 88}),
-				onCanvasClick: function(data) {
+				onCanvasClick(data) {
 					Vertexsnap.canvasClick(data)
 				},
 				onSelect: function() {
@@ -1063,7 +1102,7 @@ const BARS = {
 			new Action('swap_tools', {
 				icon: 'swap_horiz',
 				category: 'tools',
-				condition: () => !Modes.animate,
+				condition: {modes: ['edit', 'paint', 'display']},
 				keybind: new Keybind({key: 32}),
 				click: function () {
 					if (BarItems[Toolbox.selected.alt_tool]) {
@@ -1109,27 +1148,6 @@ const BARS = {
 			})
 
 		//Edit Generic
-			new Action('copy', {
-				icon: 'fa-copy',
-				category: 'edit',
-				work_in_dialog: true,
-				keybind: new Keybind({key: 67, ctrl: true, shift: null}),
-				click: function (event) {Clipbench.copy(event)}
-			})
-			new Action('paste', {
-				icon: 'fa-clipboard',
-				category: 'edit',
-				work_in_dialog: true,
-				keybind: new Keybind({key: 86, ctrl: true, shift: null}),
-				click: function (event) {Clipbench.paste(event)}
-			})
-			new Action('cut', {
-				icon: 'fa-cut',
-				category: 'edit',
-				work_in_dialog: true,
-				keybind: new Keybind({key: 88, ctrl: true, shift: null}),
-				click: function (event) {Clipbench.copy(event, true)}
-			})
 			new Action('rename', {
 				icon: 'text_format',
 				category: 'edit',
@@ -1142,7 +1160,6 @@ const BARS = {
 					}
 				}
 			})
-
 			new Action('delete', {
 				icon: 'delete',
 				category: 'edit',
@@ -1151,6 +1168,10 @@ const BARS = {
 				click: function () {
 					if (Prop.active_panel == 'textures' && textures.selected) {
 						textures.selected.remove()
+					} else if (Prop.active_panel == 'color' && ColorPanel.vue._data.open_tab == 'palette') {
+						if (ColorPanel.vue._data.palette.includes(ColorPanel.vue._data.main_color)) {
+							ColorPanel.vue._data.palette.remove(ColorPanel.vue._data.main_color)
+						}
 					} else if ((Modes.edit || Modes.paint) && (selected.length || Group.selected)) {
 
 						var array;
@@ -1180,8 +1201,6 @@ const BARS = {
 					}
 				}
 			})
-
-
 			new Action('duplicate', {
 				icon: 'content_copy',
 				category: 'edit',
@@ -1216,94 +1235,14 @@ const BARS = {
 			})
 
 
-		//Move Cube Keys
-			new Action('move_up', {
-				icon: 'arrow_upward',
-				category: 'transform',
-				condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
-				keybind: new Keybind({key: 38, ctrl: null, shift: null}),
-				click: function (e) {moveCubesRelative(-1, 2, e)}
-			})
-			new Action('move_down', {
-				icon: 'arrow_downward',
-				category: 'transform',
-				condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
-				keybind: new Keybind({key: 40, ctrl: null, shift: null}),
-				click: function (e) {moveCubesRelative(1, 2, e)}
-			})
-			new Action('move_left', {
-				icon: 'arrow_back',
-				category: 'transform',
-				condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
-				keybind: new Keybind({key: 37, ctrl: null, shift: null}),
-				click: function (e) {moveCubesRelative(-1, 0, e)}
-			})
-			new Action('move_right', {
-				icon: 'arrow_forward',
-				category: 'transform',
-				condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
-				keybind: new Keybind({key: 39, ctrl: null, shift: null}),
-				click: function (e) {moveCubesRelative(1, 0, e)}
-			})
-			new Action('move_forth', {
-				icon: 'keyboard_arrow_up',
-				category: 'transform',
-				condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
-				keybind: new Keybind({key: 33, ctrl: null, shift: null}),
-				click: function (e) {moveCubesRelative(-1, 1, e)}
-			})
-			new Action('move_back', {
-				icon: 'keyboard_arrow_down',
-				category: 'transform',
-				condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
-				keybind: new Keybind({key: 34, ctrl: null, shift: null}),
-				click: function (e) {moveCubesRelative(1, 1, e)}
-			})
-
 		//Settings
 			new Action('reset_keybindings', {
 				icon: 'replay',
 				category: 'blockbench',
 				click: function () {Keybinds.reset()}
 			})
-			new Action('import_layout', {
-				icon: 'folder',
-				category: 'blockbench',
-				click: function () {
-					Blockbench.import({
-						extensions: ['bbstyle'],
-						type: 'Blockbench Style'
-					}, function(files) {
-						applyBBStyle(files[0].content)
-					})
-				}
-			})
-			new Action('export_layout', {
-				icon: 'style',
-				category: 'blockbench',
-				click: function () {
-					Blockbench.export({
-						type: 'Blockbench Style',
-						extensions: ['bbstyle'],
-						content: autoStringify(app_colors)
-					})
-				}
-			})
-			new Action('reset_layout', {
-				icon: 'replay',
-				category: 'blockbench',
-				click: function () {
-					colorSettingsSetup(true)
-					Interface.data = $.extend(true, {}, Interface.default_data)
-					Interface.data.left_bar.forEach((id) => {
-						$('#left_bar').append(Interface.Panels[id].node)
-					})
-					Interface.data.right_bar.forEach((id) => {
-						$('#right_bar').append(Interface.Panels[id].node)
-					})
-					updateInterface()
-				}
-			})
+
+
 
 		//View
 			new Action('fullscreen', {
@@ -1354,7 +1293,7 @@ const BARS = {
 		if (stored && !Blockbench.hasFlag('after_update')) {
 			stored = JSON.parse(stored)
 			if (typeof stored === 'object') {
-				BARS.stored = stored
+				BARS.stored = stored;
 			}
 		}
 		Toolbars.outliner = new Toolbar({
@@ -1415,10 +1354,6 @@ const BARS = {
 			],
 			default_place: !Blockbench.isMobile
 		})
-		//3.0.3 update
-		if (!Toolbars.element_size.children.includes(BarItems.slider_inflate)) {
-			Toolbars.element_size.add(BarItems.slider_inflate, -1);
-		}
 		Toolbars.element_origin = new Toolbar({
 			id: 'element_origin',
 			children: [
@@ -1438,6 +1373,35 @@ const BARS = {
 				'rescale_toggle'
 			],
 			default_place: !Blockbench.isMobile
+		})
+		/*
+		Toolbars.bone_ik = new Toolbar({
+			id: 'bone_ik',
+			children: [
+				'ik_enabled',
+				'slider_ik_chain_length'
+			],
+			default_place: !Blockbench.isMobile
+		})*/
+
+
+		Toolbars.palette = new Toolbar({
+			id: 'palette',
+			children: [
+				'import_palette',
+				'export_palette',
+				'generate_palette',
+				'sort_palette',
+			]
+		})
+		Toolbars.color_picker = new Toolbar({
+			id: 'color_picker',
+			children: [
+				'slider_color_h',
+				'slider_color_s',
+				'slider_color_v',
+				'add_to_palette'
+			]
 		})
 
 
@@ -1463,7 +1427,6 @@ const BARS = {
 				'uv_rotation',
 				//Box
 				'toggle_uv_overlay',
-				'uv_shift',
 				'toggle_mirror_uv',
 			],
 			default_place: true
@@ -1580,9 +1543,6 @@ const BARS = {
 		BarItems.move_tool.select()
 
 		BarItems.reset_keybindings.toElement('#keybinds_title_bar')
-		BarItems.import_layout.toElement('#layout_title_bar')
-		BarItems.export_layout.toElement('#layout_title_bar')
-		BarItems.reset_layout.toElement('#layout_title_bar')
 		BarItems.load_plugin.toElement('#plugins_header_bar')
 		BarItems.uv_dialog.toElement('#uv_title_bar')
 		BarItems.uv_dialog_full.toElement('#uv_title_bar')
@@ -1627,7 +1587,7 @@ const BARS = {
 				sort: function(event) {
 					var item = this.currentBar.splice(event.oldIndex, 1)[0]
 					this.currentBar.splice(event.newIndex, 0, item)
-					this.update()
+					this.update();
 				},
 				drop: function(event) {
 					var scope = this;
@@ -1645,14 +1605,14 @@ const BARS = {
 					$('#bar_items_current .tooltip').css('display', 'none')
 				},
 				update: function() {
-					BARS.editing_bar.update()
+					BARS.editing_bar.update().save();
 				},
 				addItem: function(item) {
 					if (item.type === 'separator') {
 						item = '_'
 					}
-					BARS.editing_bar.add(item)
-					BARS.editing_bar.update()
+					BARS.editing_bar.add(item);
+					BARS.editing_bar.update().save();
 				}
 			}
 		})
@@ -1700,9 +1660,10 @@ const BARS = {
 		})
 	},
 	updateConditions() {
+		var open_input = $('input[type="text"]:focus, input[type="number"]:focus, div[contenteditable="true"]:focus')[0]
 		for (var key in Toolbars) {
 			if (Toolbars.hasOwnProperty(key) &&
-				$(Toolbars[key].node).find('input[type="text"]:focus, input[type="number"]:focus, div[contenteditable="true"]:focus').length === 0
+				(!open_input || $(Toolbars[key].node).has(open_input).length === 0)
 			) {
 				Toolbars[key].update()
 			}
@@ -1754,14 +1715,21 @@ const ActionControl = {
 		var action = data.list[data.index]
 		ActionControl.hide()
 		if (action) {
-			action.trigger(e)
+			ActionControl.trigger(action, e)
 		}
 	},
 	cancel() {
 		ActionControl.hide()
 	},
-	click(action, e) {
+	trigger(action, e) {
+		if (action.id == 'action_control') {
+			$('body').effect('shake');
+			Blockbench.showQuickMessage('Congratulations! You have discovered recursion!', 3000)
+		}
 		action.trigger(e)
+	},
+	click(action, e) {
+		ActionControl.trigger(action, e)
 		ActionControl.hide()
 	},
 	handleKeys(e) {

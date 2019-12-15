@@ -18,7 +18,6 @@ function createWindow(second_instance) {
 		minWidth: 640,
 		minHeight: 480,
 		webPreferences: {
-			//experimentalFeatures: true,
 			webgl: true,
 			webSecurity: true,
 			nodeIntegration: true
@@ -26,7 +25,7 @@ function createWindow(second_instance) {
 	})
 	if (!orig_win) orig_win = win;
 	var index_path = path.join(__dirname, 'index.html')
-	if (process.platform === 'darwin') { 
+	if (process.platform === 'darwin') {
 		var template = [{ 
 			label: 'File', 
 			submenu: [{ 
@@ -90,10 +89,4 @@ app.on('ready', createWindow)
 
 app.on('window-all-closed', () => {
 	app.quit()
-})
-
-app.on('activate', () => {
-	/*if (win === null) {
-		createWindow()
-	}*/
 })

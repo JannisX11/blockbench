@@ -139,17 +139,16 @@ var codec = new Codec('java_block', {
 		var texturesObj = {}
 		var hasUnsavedTextures = false
 		textures.forEach(function(t, i){
-			if (!textures_used.includes(t) && !isTexturesOnlyModel) return;
-
-			var link = t.javaTextureLink()
-			if (t.id !== link.replace(/^#/, '')) {
-				texturesObj[t.id] = link
+			if (t.mode === 'bitmap') {
+				hasUnsavedTextures = true
 			}
+			var link = t.javaTextureLink()
 			if (t.particle) {
 				texturesObj.particle = link
 			}
-			if (t.mode === 'bitmap') {
-				hasUnsavedTextures = true
+			if (!textures_used.includes(t) && !isTexturesOnlyModel) return;
+			if (t.id !== link.replace(/^#/, '')) {
+				texturesObj[t.id] = link
 			}
 		})
 
@@ -176,6 +175,9 @@ var codec = new Codec('java_block', {
 		}
 		if (checkExport('ambientocclusion', Project.ambientocclusion === false)) {
 			blockmodel.ambientocclusion = false
+		}
+		if (Project.texture_width !== 16 || Project.texture_height !== 16) {
+			blockmodel.texture_size = [Project.texture_width, Project.texture_height]
 		}
 		if (checkExport('textures', Object.keys(texturesObj).length >= 1)) {
 			blockmodel.textures = texturesObj
@@ -238,6 +240,10 @@ var codec = new Codec('java_block', {
 		}
 
 		//Load
+		if (model.texture_size instanceof Array) {
+			Project.texture_width  = Math.clamp(parseInt(model.texture_size[0]), 1, Infinity)
+			Project.texture_height = Math.clamp(parseInt(model.texture_size[1]), 1, Infinity)
+		}
 		if (model.display !== undefined) {
 			DisplayMode.loadJSON(model.display)
 		}
@@ -254,7 +260,7 @@ var codec = new Codec('java_block', {
 			for (var tex in texture_arr) {
 				if (texture_arr.hasOwnProperty(tex)) {
 					if (tex != 'particle') {
-						var t = new Texture({id: tex}).fromJavaLink(texture_arr[tex], path_arr.slice()).add(false)
+						var t = new Texture({id: tex}).fromJavaLink(texture_arr[tex], path_arr.slice()).add();
 						texture_paths[texture_arr[tex]] = texture_ids[tex] = t
 						new_textures.push(t);
 					}
@@ -264,7 +270,7 @@ var codec = new Codec('java_block', {
 				if (texture_paths[texture_arr.particle]) {
 					texture_paths[texture_arr.particle].enableParticle()
 				} else {
-					var t = new Texture({id: 'particle'}).fromJavaLink(texture_arr[tex], path_arr.slice()).add(false).enableParticle()
+					var t = new Texture({id: 'particle'}).fromJavaLink(texture_arr[tex], path_arr.slice()).enableParticle().add();
 					texture_paths[texture_arr[tex]] = texture_ids.particle = t;
 					new_textures.push(t);
 				}

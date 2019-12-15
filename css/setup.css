@@ -15,6 +15,9 @@
 	a:-webkit-any-link:hover {
 	    color: var(--color-light);
 	}
+	.bright_ui a:-webkit-any-link:hover {
+	    color: var(--color-accent);
+	}
 	::-webkit-scrollbar {
 		width: 6px;
 		height: 6px;
@@ -302,8 +305,18 @@
 		--color-light: #f4f3ff;
 		--color-text_acc: #000006;
 		--color-bright_ui: #f4f3ff;
+		--color-grid: #495061;
+		--color-checkerboard: #2f3339;
 
 		--color-close: #d62e3f;
+
+		--font-custom-main: '';
+		--font-custom-headline: '';
+		--font-custom-code: '';
+
+		--font-main: var(--font-custom-main), Assistant, segoe ui, sans-serif;
+		--font-headline: var(--font-custom-headline), var(--font-custom-main), Assistant, segoe ui, sans-serif;
+		--font-code: var(--font-custom-code), Consolas, Monospace;
 	}
 
 /*Elements*/
@@ -317,7 +330,7 @@
 		width: 100%;
 		position: fixed;
 
-		font-family: Assistant, segoe ui, Helvetiva Neue, arial, sans-serif;
+		font-family: var(--font-main);
 		font-size: 16px;
 		font-weight: normal;
 
@@ -349,25 +362,24 @@
 		border-top: 1px solid var(--color-dark);
 		margin: 12px 0;
 	}
+	h1, h2, h3, h4, h5, h6 {
+		font-family: var(--font-headline);
+	}
 	h2 {
 		font-weight: lighter;
 		margin: 0;
-		font-family: inherit;
 	}
 	h3 {
 		display: inline-block;
 		font-size: 1.28em;
 		padding-bottom: 4px;
-		font-family: inherit;
 		font-weight: inherit;
 		margin-left: 16px;
 		min-width: 10px;
 		height: 32px;
 	}
 	h4 {
-		font-family: inherit;
 		font-size: 1.2em;
-		font-family: inherit;
 		font-weight: inherit;
 	}
 
@@ -403,6 +415,9 @@
 	button:hover {
 		background: var(--color-accent);
 		color: var(--color-text_acc) !important;
+	}
+	button:focus {
+	    text-decoration: underline;
 	}
 	button.minor {
 		background: transparent;

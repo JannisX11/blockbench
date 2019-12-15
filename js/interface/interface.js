@@ -1,5 +1,5 @@
-var app_colors;
 const StartScreen = {};
+var ColorPanel;
 
 //Panels
 class Panel {
@@ -29,6 +29,8 @@ class Panel {
 					Interface.panel = scope;
 				},
 				stop: function(e, ui) {
+					if (!ui) return;
+					if (Math.abs(ui.position.top - ui.originalPosition.top) + Math.abs(ui.position.left - ui.originalPosition.left) < 180) return;
 					var target = Interface.panel
 					if (typeof target === 'string') {
 						scope.moveTo(target)
@@ -313,46 +315,6 @@ function setupInterface() {
 		}
 	})
 
-	//Colors
-	var color_wrapper = $('#color_wrapper')
-	for (var key in app_colors) {
-		if (app_colors[key] && app_colors[key].hex) {
-			(() => {
-				var scope_key = key;
-				var hex = app_colors[scope_key].hex;
-				if (key == 'text_acc') key = 'accent_text';
-				var field = $(`<div class="color_field">
-						<div class="layout_color_preview" style="background-color: var(--color-${scope_key})" class="color_input"></div>
-						<div class="desc">
-							<h4>${tl('layout.color.'+key)}</h4>
-							<p>${tl('layout.color.'+key+'.desc')}</p>
-						</div>
-					</div>`);
-				color_wrapper.append(field);
-
-				var last_color = hex;
-				field.spectrum({
-					preferredFormat: "hex",
-					color: hex,
-					showAlpha: false,
-					showInput: true,
-					move(c) {
-						app_colors[scope_key].hex = c.toHexString();
-						updateUIColor();
-					},
-					change(c) {
-						last_color = c.toHexString();
-					},
-					hide(c) {
-						app_colors[scope_key].hex = last_color;
-						field.spectrum('set', last_color)
-						updateUIColor();
-					}
-				});
-			})()
-		}
-	}
-
 
 	//Panels
 	Interface.Panels.uv = new Panel({
@@ -391,32 +353,13 @@ function setupInterface() {
 			element_rotation: Toolbars.element_rotation,
 		}
 	})
-	Interface.Panels.color = new Panel({
-		id: 'color',
-		condition: () => Modes.id === 'paint',
+	Interface.Panels.bone = new Panel({
+		id: 'bone',
+		condition: () => Modes.animate,
 		toolbars: {
-
-		},
-		onResize: t => {
-			$('#main_colorpicker').spectrum('reflow');
-			var h = $('.panel#color .sp-container.sp-flat').height()-20;
-			$('.panel#color .sp-palette').css('max-height', h+'px')
+			//bone_ik: Toolbars.bone_ik,
 		}
 	})
-	Interface.Panels.color.picker = $('#main_colorpicker').spectrum({
-			preferredFormat: "hex",
-			color: 'ffffff',
-			flat: true,
-			showAlpha: true,
-			showInput: true,
-			maxSelectionSize: 128,
-			showPalette: true,
-			palette: [],
-			localStorageKey: 'brush_color_palette',
-			move: function(c) {
-				$('#main_colorpicker_preview > div').css('background-color', c.toRgbString())
-			}
-		})
 	Interface.Panels.outliner = new Panel({
 		id: 'outliner',
 		condition: () => Modes.id === 'edit' || Modes.id === 'paint' || Modes.id === 'animate',
@@ -489,7 +432,8 @@ function setupInterface() {
 		'project_window',
 		'open_model_folder',
 		'open_backup_folder',
-		'save'
+		'save',
+		'timelapse',
 	])
 
 	for (var key in Interface.Resizers) {
@@ -544,7 +488,7 @@ function setupInterface() {
 	$('#timeline').mousedown((event) => {
 		setActivePanel('timeline');
 	})
-	$(document).on('mousedown touchdown', unselectInterface)
+	$(document).on('mousedown touchstart', unselectInterface)
 	
 	$('.context_handler').on('click', function() {
 		$(this).addClass('ctx')
@@ -658,7 +602,7 @@ function resizeWindow(event) {
 	}
 	BARS.updateToolToolbar()
 }
-$(window).resize(resizeWindow)
+$(window).on('resize orientationchange', resizeWindow)
 
 function setActivePanel(panel) {
 	Prop.active_panel = panel
@@ -745,113 +689,18 @@ function setSettingsTab(tab) {
 	if (tab === 'keybindings') {
 		//Keybinds
 		$('#keybindlist').css('max-height', ($(window).height() - 420) +'px')
+		$('#keybind_search_bar').focus()
+
 	} else if (tab === 'setting') {
 		//Settings
 		$('#settingslist').css('max-height', ($(window).height() - 420) +'px')
+		$('#settings_search_bar').focus()
+
 	} else if (tab === 'layout_settings') {
-		$('#layout_list').css('max-height', ($(window).height() - 420) +'px')
-		$('#layout_font_main').val(app_colors.main.font)
-		$('#layout_font_headline').val(app_colors.headline.font)
-	}
-}
+		//Layout
 
-//Color
-function colorSettingsSetup(reset) {
-	app_colors = {
-		back: {hex: '#21252b'},
-		dark: {hex: '#17191d'},
-		border: {hex: '#181a1f'},
-		ui: {hex: '#282c34'},
-		bright_ui: {hex: '#f4f3ff'},
-		accent: {hex: '#3e90ff'},
-		button: {hex: '#3a3f4b'},
-		selected: {hex: '#3c4456'},
-		text: {hex: '#cacad4'},
-		light: {hex: '#f4f3ff'},
-		text_acc: {hex: '#000006'},
-		grid: {hex: '#495061'},
-		wireframe: {hex: '#576f82'},
-		main: {font: ''},
-		headline: {font: ''},
-		css: ''
+		$('#theme_editor').css('max-height', ($(window).height() - 420) +'px')
 	}
-	if (reset) {
-		$('#layout_font_main').val('')
-		$('#layout_font_headline').val('')
-		changeUIFont('main')
-		changeUIFont('headline')
-		$('style#bbstyle').text('')
-		resizeWindow()
-	}
-	if (localStorage.getItem('app_colors') != null && reset != true) {
-		var stored_app_colors = JSON.parse(localStorage.getItem('app_colors'))
-		$.extend(app_colors, stored_app_colors)
-	}
-	updateUIColor()
-	buildGrid()
-}
-function changeUIFont(type) {
-	var font = $('#layout_font_'+type).val()
-	app_colors[type].font = font
-	if (type === 'main') {
-		$('body').css('font-family', app_colors[type].font)
-	} else {
-		$('h1, h2, h3, h4, h5').css('font-family', app_colors[type].font)
-	}
-}
-function updateUIColor() {
-	for (var type in app_colors) {
-		if (app_colors.hasOwnProperty(type)) {
-			if (type === 'css') {
-				$('style#bbstyle').text(app_colors.css)
-			} else if (app_colors[type].hex) {
-				document.body.style.setProperty('--color-'+type, app_colors[type].hex);
-			} else if (app_colors[type].font) {
-				if (type === 'main') {
-					$('body').css('font-family', app_colors[type].font)
-				} else {
-					$('h1, h2, h3, h4, h5').css('font-family', app_colors[type].font)
-				}
-			}
-		}
-	}
-	$('meta[name=theme-color]').attr('content', app_colors.border.hex)
-
-	var c_outline = parseInt('0x'+app_colors.accent.hex.replace('#', ''))
-
-	if (c_outline !== gizmo_colors.outline.getHex()) {
-		gizmo_colors.outline.set(c_outline)
-		Canvas.outlineMaterial.color = gizmo_colors.outline
-	}
-	var w_wire = parseInt('0x'+app_colors.wireframe.hex.replace('#', ''))
-	if (!gizmo_colors.wire || w_wire !== gizmo_colors.wire.getHex()) {
-		gizmo_colors.wire = new THREE.Color( w_wire )
-		Canvas.wireframeMaterial.color = gizmo_colors.wire
-	}
-
-	var c_grid = parseInt('0x'+app_colors.grid.hex.replace('#', ''))
-	if (!gizmo_colors.grid || c_grid !== gizmo_colors.grid.getHex()) {
-		gizmo_colors.grid = new THREE.Color( c_grid )
-		three_grid.children.forEach(c => {
-			if (c.name === 'grid' && c.material) {
-				c.material.color = gizmo_colors.grid;
-			}
-		})
-	}
-
-	localStorage.setItem('app_colors', JSON.stringify(app_colors))
-}
-
-//BBLayout
-function applyBBStyle(data) {
-	data = autoParseJSON(data)
-	if (typeof data !== 'object') return;
-	$.extend(app_colors, data)
-	if (data.css) {
-		$('style#bbstyle').text(data.css)
-		resizeWindow()
-	}
-	updateUIColor()
 }
 
 //UI Edit
@@ -934,6 +783,9 @@ function addStartScreenSection(data) {
 	}
 	if (data.color) {
 		obj.css('background-color', data.color);
+		if (data.color == 'var(--color-bright_ui)') {
+			obj.addClass('bright_ui')
+		}
 	}
 	if (data.text_color) {
 		obj.css('color', data.text_color);
@@ -969,7 +821,7 @@ var documentReady = new Promise((resolve, reject) => {
 
 	})
 	documentReady.then(() => {
-		var startup_count = parseInt(localStorage.getItem('startups')||0)
+		Blockbench.startup_count = parseInt(localStorage.getItem('startups')||0)
 
 		//Backup Model
 		if (localStorage.getItem('backup_model') && (!isApp || !currentwindow.webContents.second_instance)) {
@@ -1002,20 +854,20 @@ var documentReady = new Promise((resolve, reject) => {
 			})
 		}
 		//Discord
-		if (startup_count < 6) {
+		if (Blockbench.startup_count < 6) {
 			addStartScreenSection({
 				color: '#7289da',
 				text_color: '#ffffff',
 				graphic: {type: 'icon', icon: 'fab.fa-discord'},
 				text: [
 					{type: 'h1', text: 'Discord Server'},
-					{text: 'You need help with modeling or you want to chat about Blockbench? Join the [Modeling Discord](http://discord.blockbench.net)!'}
+					{text: 'You need help with modeling or you want to chat about Blockbench? Join the [Modeling Discord](https://discord.gg/WVHg5kH)!'}
 				],
 				last: true
 			})
 		}
 		//Donation reminder
-		if (startup_count % 12 === 11) {
+		if (Blockbench.startup_count % 12 === 11) {
 			addStartScreenSection({
 				graphic: {type: 'icon', icon: 'fas fa-heart'},
 				text: [
@@ -1049,7 +901,6 @@ var documentReady = new Promise((resolve, reject) => {
 	})
 
 })()
-
 
 onVueSetup(function() {
 	

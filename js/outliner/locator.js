@@ -11,12 +11,13 @@ class Locator extends NonGroup {
 		}
 	}
 	extend(object) {
-		Merge.string(this, object, 'name')
-		Merge.boolean(this, object, 'export')
+		Merge.string(this, object, 'name');
+		this.sanitizeName();
+		Merge.boolean(this, object, 'export');
 		if (object.from) {
-			Merge.number(this.from, object.from, 0)
-			Merge.number(this.from, object.from, 1)
-			Merge.number(this.from, object.from, 2)
+			Merge.number(this.from, object.from, 0);
+			Merge.number(this.from, object.from, 1);
+			Merge.number(this.from, object.from, 2);
 		}
 		return this;
 	}
@@ -45,14 +46,23 @@ class Locator extends NonGroup {
 		TickUpdates.outliner = true;
 		return this;
 	}
+	flip(axis, center) {
+		var offset = this.from[axis] - center
+		this.from[axis] = center - offset;
+		return this;
+	}
 	getWorldCenter() {
-		var pos = this.parent.mesh.getWorldPosition(new THREE.Vector3());
-		var q = this.parent.mesh.getWorldQuaternion(new THREE.Quaternion());
-
+		var pos = new THREE.Vector3();
+		var q = new THREE.Quaternion();
+		if (this.parent instanceof Group) {
+			this.parent.mesh.getWorldPosition(pos);
+			this.parent.mesh.getWorldQuaternion(q);
+			var offset2 = new THREE.Vector3().fromArray(this.parent.origin).applyQuaternion(q);
+			pos.sub(offset2);
+		}
 		var offset = new THREE.Vector3().fromArray(this.from).applyQuaternion(q);
-		var offset2 = new THREE.Vector3().fromArray(this.parent.origin).applyQuaternion(q);
+		pos.add(offset);
 
-		pos.add(offset).sub(offset2);
 		return pos;
 	}
 	move(val, axis) {
@@ -60,10 +70,11 @@ class Locator extends NonGroup {
 		if (Blockbench.globalMovement) {
 			var m = new THREE.Vector3();
 			m[getAxisLetter(axis)] = val;
-
-			var rotation = new THREE.Quaternion();
-			this.parent.mesh.getWorldQuaternion(rotation);
-			m.applyQuaternion(rotation.inverse());
+			if (this.parent instanceof Group) {
+				var rotation = new THREE.Quaternion();
+				this.parent.mesh.getWorldQuaternion(rotation);
+				m.applyQuaternion(rotation.inverse());
+			}
 
 			this.from[0] += m.x;
 			this.from[1] += m.y;
@@ -75,23 +86,24 @@ class Locator extends NonGroup {
 		return this;
 	}
 }
-Locator.prototype.title = tl('data.locator');
-Locator.prototype.type = 'locator';
-Locator.prototype.icon = 'fa fa-anchor';
-Locator.prototype.movable = true;
-Locator.prototype.visibility = true;
-Locator.prototype.buttons = [
-	Outliner.buttons.remove,
-	Outliner.buttons.export
-];
-Locator.prototype.needsUniqueName = true;
-Locator.prototype.menu = new Menu([
-		'copy',
-		'rename',
-		'delete'
-	])
-Locator.selected = [];
-Locator.all = [];
+	Locator.prototype.title = tl('data.locator');
+	Locator.prototype.type = 'locator';
+	Locator.prototype.icon = 'fa fa-anchor';
+	Locator.prototype.name_regex = 'a-zA-Z0-9_'
+	Locator.prototype.movable = true;
+	Locator.prototype.visibility = true;
+	Locator.prototype.buttons = [
+		Outliner.buttons.remove,
+		Outliner.buttons.export
+	];
+	Locator.prototype.needsUniqueName = true;
+	Locator.prototype.menu = new Menu([
+			'copy',
+			'rename',
+			'delete'
+		])
+	Locator.selected = [];
+	Locator.all = [];
 
 BARS.defineActions(function() {
 	new Action('add_locator', {
@@ -101,9 +113,9 @@ BARS.defineActions(function() {
 		click: function () {
 			var objs = []
 			Undo.initEdit({elements: objs, outliner: true});
-			objs.push(
-				new Locator().addTo(Group.selected||selected[0]).init().select().createUniqueName()
-			);
+			var locator = new Locator().addTo(Group.selected||selected[0]).init();
+			locator.select().createUniqueName();
+			objs.push(locator);
 			Undo.finishEdit('add locator');
 		}
 	})

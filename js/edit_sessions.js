@@ -324,6 +324,8 @@ const Chat = {
 		if (!(message instanceof Chat.Message)) {
 			message = new Chat.Message(message)
 		}
+		if (!message.text) return;
+		
 		Chat.history.push(message)
 		Vue.nextTick(() => {
 			$('#chat_history').scrollTop(10000)
@@ -342,9 +344,8 @@ const Chat = {
 			})
 			return;
 		}
-		var message = new Chat.Message(data)
 		//Host Only
-		Blockbench.dispatchEvent('process_chat_message', message)
+		Blockbench.dispatchEvent('process_chat_message', data)
 
 		EditSession.sendAll('chat_message', data)
 		Chat.addMessage(data)

@@ -407,7 +407,6 @@ var Undo = {
 					Vue.nextTick(Timeline.update)
 				}
 				updateKeyframeSelection()
-				Animator.preview()
 			}
 		}
 
@@ -431,6 +430,12 @@ var Undo = {
 			}
 		}
 		updateSelection()
+		if ((save.outliner || save.group) && Format.bone_rig) {
+			Canvas.updateAllBones();
+		}
+		if (Modes.animate) {
+			Animator.preview();
+		}
 	}
 }
 Undo.save.prototype.addTexture = function(texture) {

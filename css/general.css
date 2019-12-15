@@ -48,7 +48,7 @@
 		display: inline-block;
 	}
 	.code {
-		font-family: consolas, monospace;
+		font-family: var(--font-code);
 		font-size: 16px;
 	}
 	.small_text {
@@ -83,6 +83,16 @@
 	}
 	input.medium_width {
 		width: 64px;
+	}
+	.checkerboard {
+		--color-checker_offset: rgba(0, 0, 0, 0.16);
+		background-color: var(--color-checkerboard) !important;
+		background-image: linear-gradient(45deg, var(--color-checkerboard) 25%, transparent 25%),
+						  linear-gradient(-45deg, var(--color-checkerboard) 25%, transparent 25%),
+						  linear-gradient(45deg, transparent 75%, var(--color-checkerboard) 75%),
+						  linear-gradient(-45deg, var(--color-checker_offset) 75%, var(--color-checkerboard) 75%);
+		background-size: 30px 30px;
+		background-position: 0 0, 0 15px, 15px -15px, -15px 0px;
 	}
 
 /*General*/
@@ -193,6 +203,25 @@
 
 	#no_css_message {
 		display: none !important;
+	}
+
+	#center_tip {
+		top: 0;
+		left: 0;
+		right: 0;
+		margin: auto;
+		min-width: 200px;
+		max-width: 100%;
+		position: absolute;
+		text-align: center;
+		background-color: var(--color-accent);
+		color: var(--color-text_acc);
+		width: max-content;
+		padding: 3px 8px;
+	}
+	#center_tip i {
+		vertical-align: text-bottom;
+		margin-right: 6px;
 	}
 
 	.spinning {
@@ -340,7 +369,7 @@
 	.text_button:hover {
 		color: var(--color-light);
 	}
-	.bar_select {
+	.bar_select_wrapper {
 		position: relative;
 	}
 	.bar_select:hover {
@@ -350,7 +379,7 @@
 		padding-right: 24px;
 		width: 100%;
 	}
-	.bar_select::before {
+	.bar_select .bar_select_wrapper::before {
 		content: "\23F7";
 		display: block;
 		position: absolute;
@@ -468,6 +497,32 @@
 	}
 	#start_screen h3 {
 		margin: 0;
+	}
+	#start_screen .recent_project {
+		margin: 2px 0;
+		display: flex;
+	}
+	#start_screen .recent_project .icon_wrapper {
+		flex-shrink: 0;
+	}
+	#start_screen .recent_project_name {
+		font-size: 1.1em;
+		overflow-x: hidden;
+		flex-shrink: 1;
+		flex-grow: 1;
+		margin: 0 4px;
+	}
+	#start_screen .recent_project_date {
+		flex-shrink: 0;
+	}
+	span.recent_project_date:before {
+		content: "";
+		display: block;
+		position: absolute;
+		width: 16px;
+		height: 26px;
+		margin-left: -20px;
+		background: linear-gradient(90deg, transparent, var(--color-ui));
 	}
 
 	#start_screen > content {

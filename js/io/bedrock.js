@@ -1,94 +1,210 @@
-function findEntityTexture(mob, return_path) {
-	if (!mob) return;
-	var textures = {
-		'llamaspit': 'llama/spit',
-		'llama': 'llama/llama_creamy',
-		'dragon': 'dragon/dragon',
-		'ghast': 'ghast/ghast',
-		'slime': 'slime/slime',
-		'slime.armor': 'slime/slime',
-		'lavaslime': 'slime/magmacube',
-		'shulker': 'shulker/shulker_undyed',
-		'rabbit': 'rabbit/brown',
-		'horse': 'horse/horse_brown',
-		'horse.v2': 'horse2/horse_brown',
-		'humanoid': 'steve',
-		'creeper': 'creeper/creeper',
-		'enderman': 'enderman/enderman',
-		'zombie': 'zombie/zombie',
-		'zombie.husk': 'zombie/husk',
-		'zombie.drowned': 'zombie/drowned',
-		'pigzombie': 'pig/pigzombie',
-		'pigzombie.baby': 'pig/pigzombie',
-		'skeleton': 'skeleton/skeleton',
-		'skeleton.wither': 'skeleton/wither_skeleton',
-		'skeleton.stray': 'skeleton/stray',
-		'spider': 'spider/spider',
-		'cow': 'cow/cow',
-		'mooshroom': 'cow/mooshroom',
-		'sheep.sheared': 'sheep/sheep',
-		'sheep': 'sheep/sheep',
-		'pig': 'pig/pig',
-		'irongolem': 'iron_golem',
-		'snowgolem': 'snow_golem',
-		'zombie.villager': 'zombie_villager/zombie_farmer',
-		'evoker': 'illager/evoker',
-		'vex': 'vex/vex',
-		'wolf': 'wolf/wolf',
-		'ocelot': 'cat/ocelot',
-		'cat': 'cat/siamese',
-		'turtle': 'sea_turtle',
-		'villager': 'villager/farmer',
-		'villager.witch': 'witch',
-		'witherBoss': 'wither_boss/wither',
-		'parrot': 'parrot/parrot_red_blue',
-		'bed': 'bed/white',
-		'player_head': 'steve',
-		'mob_head': 'skeleton/skeleton',
-		'dragon_head': 'dragon/dragon',
-		'boat': 'boat/boat_oak',
-		'cod': 'fish/fish',
-		'pufferfish.small': 'fish/pufferfish',
-		'pufferfish.mid': 'fish/pufferfish',
-		'pufferfish.large': 'fish/pufferfish',
-		'salmon': 'fish/salmon',
-		'tropicalfish_a': 'fish/tropical_a',
-		'tropicalfish_b': 'fish/tropical_b',
-		'panda': 'panda/panda',
-		'fishing_hook': 'fishhook',
-		'ravager': 'illager/ravager',
-	}
-	mob = mob.split(':')[0].replace(/^geometry\./, '')
-	var path = textures[mob]
-	if (!path) {
-		path = mob
-	}
-	if (path) {
-		var texture_path = ModelMeta.export_path.split(osfs)
-		var index = texture_path.lastIndexOf('models') - texture_path.length
-		texture_path.splice(index)
-		texture_path = [...texture_path, 'textures', 'entity', ...path.split('/')].join(osfs)
 
-		if (return_path === true) {
-			return texture_path+'.png';
-		} else if (return_path === 'raw') {
-			return ['entity', ...path.split('/')].join(osfs)
+if (isApp) {
+window.BedrockEntityManager = {
+	checkEntityFile(path) {
+		let mce = 'minecraft:client_entity';
+		try {
+			var c = fs.readFileSync(path, 'utf-8');
+			if (typeof c === 'string') {
+				c = JSON.parse(c);
+				if (c && c[mce] && c[mce].description && typeof c[mce].description.geometry == 'object') {
+					for (var key in c[mce].description.geometry) {
+						var geoname = c[mce].description.geometry[key];
+						if (typeof geoname == 'string') {
+							geoname = geoname.replace(/^geometry\./, '');
+							if (geoname == Project.geometry_name) {
+								return c[mce];
+							}
+						}
+					}
+				} 
+			}
+		} catch (err) {
+			console.log(err);
+			return false;
+		}
+	},
+	getEntityFile() {
+		var path = ModelMeta.export_path.split(osfs);
+		var name = path.pop().replace(/\.json$/, '').replace(/\.geo$/, '');
+		var root_index = path.indexOf('models');
+		path.splice(root_index);
+		BedrockEntityManager.root_path =  path.slice().join(osfs);
+		path.push('entity');
+		path = path.join(osfs);
+		var entity_path = findExistingFile([
+			path+osfs+name+'.entity.json',
+			path+osfs+name+'.json',
+		])
+		if (entity_path) {
+			var content = BedrockEntityManager.checkEntityFile(entity_path);
+			if (content) {
+				return content;
+			}
 		} else {
-			function tryItWith(extension) {
-				if (fs.existsSync(texture_path+'.'+extension)) {
-					var texture = new Texture({keep_size: true}).fromPath(texture_path+'.'+extension).add()
-					return true;
+			function searchFolder(path) {
+				try {
+					var files = fs.readdirSync(path);	
+					for (var name of files) {
+						var new_path = path + osfs + name;
+						if (name.match(/\.json$/)) {
+							var result = BedrockEntityManager.checkEntityFile(new_path);
+							if (result) return result;
+						} else if (!name.includes('.')) {
+							var result = searchFolder(new_path);
+							if (result) return result;
+						}
+					}
+				} catch (err) {}
+			}
+			var result = searchFolder(path);
+			if (result) return result;
+		}
+	},
+	initEntity() {
+		BedrockEntityManager.client_entity = BedrockEntityManager.getEntityFile();
+		if (BedrockEntityManager.client_entity && BedrockEntityManager.client_entity.description) {
+
+			var tex_list = BedrockEntityManager.client_entity.description.textures
+			if (tex_list instanceof Object) {
+				var valid_textures_list = [];
+				for (var key in tex_list) {
+					if (typeof tex_list[key] == 'string') {
+						var path = BedrockEntityManager.root_path + osfs + tex_list[key].replace(/\//g, osfs);
+						path = findExistingFile([
+							path+'.png',
+							path+'.tga'
+						])
+						if (path) {
+							valid_textures_list.push(path);
+						}
+					}
+				}
+				if (valid_textures_list.length == 1) {
+					new Texture({keep_size: true}).fromPath(valid_textures_list[0]).add()
+
+				} else if (valid_textures_list.length > 1) {
+					var dialog_list = '';
+					valid_textures_list.forEach((path, i) => {
+						dialog_list += `<li title="${pathToName(path, true)}" arr_index="${i}"></li>`;
+					})
+					var dialog = new Dialog({
+						title: tl('data.texture'),
+						id: 'select_texture',
+						lines: [`<ul id="import_texture_list" class="y_scrollable">${dialog_list}</ul>`],
+						singleButton: true
+					}).show()
+					$('#import_texture_list li').each((i, el) => {
+						$(el).css('background-image', `url("${ valid_textures_list[i].replace(/\\/g, '/') }")`)
+						.click(() => {
+							dialog.hide();
+							new Texture({keep_size: true}).fromPath(valid_textures_list[i]).add()
+						});
+					})
 				}
 			}
-			if (!tryItWith('png') && !tryItWith('tga')) {
-				if (settings.default_path && settings.default_path.value) {
-					
-					texture_path = settings.default_path.value + osfs + 'entity' + osfs + path.split('/').join(osfs)
-					tryItWith('png') || tryItWith('tga')
+
+		} else {
+			BedrockEntityManager.findEntityTexture(Project.geometry_name)
+		}
+	},
+	findEntityTexture(mob, return_path) {
+		if (!mob) return;
+		var textures = {
+			'llamaspit': 'llama/spit',
+			'llama': 'llama/llama_creamy',
+			'dragon': 'dragon/dragon',
+			'ghast': 'ghast/ghast',
+			'slime': 'slime/slime',
+			'slime.armor': 'slime/slime',
+			'lavaslime': 'slime/magmacube',
+			'shulker': 'shulker/shulker_undyed',
+			'rabbit': 'rabbit/brown',
+			'horse': 'horse/horse_brown',
+			'horse.v2': 'horse2/horse_brown',
+			'humanoid': 'steve',
+			'creeper': 'creeper/creeper',
+			'enderman': 'enderman/enderman',
+			'zombie': 'zombie/zombie',
+			'zombie.husk': 'zombie/husk',
+			'zombie.drowned': 'zombie/drowned',
+			'pigzombie': 'pig/pigzombie',
+			'pigzombie.baby': 'pig/pigzombie',
+			'skeleton': 'skeleton/skeleton',
+			'skeleton.wither': 'skeleton/wither_skeleton',
+			'skeleton.stray': 'skeleton/stray',
+			'spider': 'spider/spider',
+			'cow': 'cow/cow',
+			'mooshroom': 'cow/mooshroom',
+			'sheep.sheared': 'sheep/sheep',
+			'sheep': 'sheep/sheep',
+			'pig': 'pig/pig',
+			'irongolem': 'iron_golem',
+			'snowgolem': 'snow_golem',
+			'zombie.villager': 'zombie_villager/zombie_farmer',
+			'evoker': 'illager/evoker',
+			'vex': 'vex/vex',
+			'wolf': 'wolf/wolf',
+			'ocelot': 'cat/ocelot',
+			'cat': 'cat/siamese',
+			'turtle': 'sea_turtle',
+			'villager': 'villager/farmer',
+			'villager.witch': 'witch',
+			'witherBoss': 'wither_boss/wither',
+			'parrot': 'parrot/parrot_red_blue',
+			'bed': 'bed/white',
+			'player_head': 'steve',
+			'mob_head': 'skeleton/skeleton',
+			'dragon_head': 'dragon/dragon',
+			'boat': 'boat/boat_oak',
+			'cod': 'fish/fish',
+			'pufferfish.small': 'fish/pufferfish',
+			'pufferfish.mid': 'fish/pufferfish',
+			'pufferfish.large': 'fish/pufferfish',
+			'salmon': 'fish/salmon',
+			'tropicalfish_a': 'fish/tropical_a',
+			'tropicalfish_b': 'fish/tropical_b',
+			'panda': 'panda/panda',
+			'fishing_hook': 'fishhook',
+			'ravager': 'illager/ravager',
+			'bee': 'bee/bee',
+			'fox': 'fox/fox',
+			'shield': 'shield',
+			'shulker_bullet': 'shulker/spark',
+		}
+		mob = mob.split(':')[0].replace(/^geometry\./, '')
+		var path = textures[mob]
+		if (!path) {
+			path = mob
+		}
+		if (path) {
+			var texture_path = ModelMeta.export_path.split(osfs)
+			var index = texture_path.lastIndexOf('models') - texture_path.length
+			texture_path.splice(index)
+			texture_path = [...texture_path, 'textures', 'entity', ...path.split('/')].join(osfs)
+
+			if (return_path === true) {
+				return texture_path+'.png';
+			} else if (return_path === 'raw') {
+				return ['entity', ...path.split('/')].join(osfs)
+			} else {
+				function tryItWith(extension) {
+					if (fs.existsSync(texture_path+'.'+extension)) {
+						var texture = new Texture({keep_size: true}).fromPath(texture_path+'.'+extension).add()
+						return true;
+					}
+				}
+				if (!tryItWith('png') && !tryItWith('tga')) {
+					if (settings.default_path && settings.default_path.value) {
+						
+						texture_path = settings.default_path.value + osfs + 'entity' + osfs + path.split('/').join(osfs)
+						tryItWith('png') || tryItWith('tga')
+					}
 				}
 			}
 		}
 	}
+}
 }
 
 (function() {
@@ -135,7 +251,7 @@ function parseGeometry(data) {
 				group.origin[0] *= -1
 			}
 			group.rotation.forEach(function(br, axis) {
-				group.rotation[axis] *= -1
+				if (axis !== 2) group.rotation[axis] *= -1
 			})
 			
 			group.mirror_uv = b.mirror === true
@@ -174,14 +290,14 @@ function parseGeometry(data) {
 							if (s.uv[key]) {
 								face.extend({
 									uv: [
-										s.uv[key].uv[0] * (16/Project.texture_width),
-										s.uv[key].uv[1] * (16/Project.texture_height),
+										s.uv[key].uv[0],
+										s.uv[key].uv[1]
 									]
 								})
 								if (s.uv[key].uv_size) {
 									face.uv_size = [
-										s.uv[key].uv_size[0] * (16/Project.texture_width),
-										s.uv[key].uv_size[1] * (16/Project.texture_height),
+										s.uv[key].uv_size[0],
+										s.uv[key].uv_size[1]
 									]
 								} else {
 									base_cube.autouv = 1;
@@ -192,6 +308,7 @@ function parseGeometry(data) {
 								}
 							} else {
 								face.texture = null;
+								face.uv = [0, 0, 0, 0]
 							}
 						}
 						
@@ -241,7 +358,7 @@ function parseGeometry(data) {
 	Canvas.updateAllBones()
 	setProjectTitle()
 	if (isApp && Project.geometry_name) {
-		findEntityTexture(Project.geometry_name)
+		BedrockEntityManager.initEntity()
 	}
 	updateSelection()
 	EditSession.initNewModel()
@@ -281,7 +398,7 @@ var codec = new Codec('bedrock', {
 				parent: 'root',
 				name: 'unknown_bone',
 				origin: [0, 0, 0],
-				rotation: [0],
+				rotation: [0, 0, 0],
 				children: loose_cubes
 			})
 		}
@@ -297,9 +414,8 @@ var codec = new Codec('bedrock', {
 			bone.pivot[0] *= -1
 			if (!g.rotation.allEqual(0)) {
 				bone.rotation = g.rotation.slice()
-				bone.rotation.forEach(function(br, axis) {
-					bone.rotation[axis] *= -1
-				})
+				bone.rotation[0] *= -1;
+				bone.rotation[1] *= -1;
 			}
 			if (g.reset) {
 				bone.reset = true
@@ -328,9 +444,11 @@ var codec = new Codec('bedrock', {
 						cube.origin[0] = -(cube.origin[0] + cube.size[0])
 
 
-						if (!obj.rotation.allEqual(0)) {
+						if (!obj.origin.allEqual(0)) {
 							cube.pivot = obj.origin.slice();
 							cube.pivot[0] *= -1
+						}
+						if (!obj.rotation.allEqual(0)) {
 							cube.rotation = obj.rotation.slice();
 							cube.rotation.forEach(function(br, axis) {
 								if (axis != 2) cube.rotation[axis] *= -1
@@ -349,12 +467,12 @@ var codec = new Codec('bedrock', {
 								if (face.texture !== null) {
 									cube.uv[key] = new oneLiner({
 										uv: [
-											face.uv[0] * entitymodel.description.texture_width/16,
-											face.uv[1] * entitymodel.description.texture_height/16,
+											face.uv[0],
+											face.uv[1],
 										],
 										uv_size: [
-											face.uv_size[0] * entitymodel.description.texture_width/16,
-											face.uv_size[1] * entitymodel.description.texture_height/16,
+											face.uv_size[0],
+											face.uv_size[1],
 										]
 									});
 									if (key == 'up') {
@@ -631,6 +749,13 @@ var codec = new Codec('bedrock', {
 			parseGeometry()
 		})
 	},
+	fileName() {
+		var name = ModelMeta.name||Project.name||'model';
+		if (!name.match(/\.geo$/)) {
+			name += '.geo';
+		}
+		return name;
+	}
 })
 
 var format = new ModelFormat({
@@ -642,8 +767,10 @@ var format = new ModelFormat({
 	optional_box_uv: true,
 	single_texture: true,
 	bone_rig: true,
+	centered_grid: true,
 	animation_mode: true,
 	locators: true,
+	outliner_name_pattern: 'a-zA-Z0-9_',
 	codec,
 	onActivation: function () {
 		

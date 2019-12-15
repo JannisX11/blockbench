@@ -40,7 +40,7 @@ if (electron.dialog.showMessageBoxSync) {
 	ElecDialogs.showOpenDialog = electron.dialog.showOpenDialog;
 }
 
-$(document).ready(function() {
+function initializeDesktopApp() {
 
 	//Setup
 	$(document.body).on('click', 'a[href]', (event) => {
@@ -84,7 +84,7 @@ $(document).ready(function() {
 		$('#windows_window_menu').show()
 	}
 
-});
+}
 (function() {
 	console.log('Electron '+process.versions.electron+', Node '+process.versions.node)
 })()
@@ -125,6 +125,16 @@ function addRecentProject(data) {
 	}
 	updateRecentProjects()
 }
+
+//Window Controls
+function updateWindowState(e, type) {
+	$('#header_free_bar').toggleClass('resize_space', !currentwindow.isMaximized());
+}
+currentwindow.on('maximize', e => updateWindowState(e, 'maximize'));
+currentwindow.on('unmaximize', e => updateWindowState(e, 'unmaximize'));
+currentwindow.on('enter-full-screen', e => updateWindowState(e, 'screen'));
+currentwindow.on('leave-full-screen', e => updateWindowState(e, 'screen'));
+currentwindow.on('ready-to-show', e => updateWindowState(e, 'load'));
 
 //Updates
 //Called on start to show message
@@ -227,17 +237,24 @@ function changeImageEditor(texture, from_settings) {
 		lines: ['<div class="dialog_bar"><select class="input_wide">'+
 				'<option id="ps">Photoshop</option>'+
 				'<option id="gimp">Gimp</option>'+
-				'<option id="pdn">Paint.NET</option>'+
+				(Blockbench.platform == 'win32' ? '<option id="pdn">Paint.NET</option>' : '')+
 				'<option id="other">'+tl('message.image_editor.file')+'</option>'+
 			'</select></div>'],
 		draggable: true,
 		onConfirm() {
 			var id = $('.dialog#image_editor option:selected').attr('id')
 			var path;
-			switch (id) {
-				case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop CC 2019\\Photoshop.exe'; break;
-				case 'gimp':path = 'C:\\Program Files\\GIMP 2\\bin\\gimp-2.10.exe'; break;
-				case 'pdn': path = 'C:\\Program Files\\paint.net\\PaintDotNet.exe'; break;
+			if (Blockbench.platform == 'darwin') {
+				switch (id) {
+					case 'ps':  path = '/Applications/Adobe Photoshop CC 2019/Adobe Photoshop CC 2019.app'; break;
+					case 'gimp':path = '/Applications/Gimp-2.10.app'; break;
+				}
+			} else {
+				switch (id) {
+					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop CC 2019\\Photoshop.exe'; break;
+					case 'gimp':path = 'C:\\Program Files\\GIMP 2\\bin\\gimp-2.10.exe'; break;
+					case 'pdn': path = 'C:\\Program Files\\paint.net\\PaintDotNet.exe'; break;
+				}
 			}
 			if (id === 'other') {
 				selectImageEditorFile(texture)
@@ -302,6 +319,13 @@ function openDefaultTexturePath() {
 		settings.default_path.value = false
 	}
 }
+function findExistingFile(paths) {
+	for (var path of paths) {
+		if (fs.existsSync(path)) {
+			return path;
+		}
+	}
+}
 //Backup
 function createBackup(init) {
 	setTimeout(createBackup, limitNumber(parseFloat(settings.backup_interval.value), 1, 10e8)*60000)
@@ -335,7 +359,7 @@ function createBackup(init) {
 	}
 	if (init || elements.length === 0) return;
 
-	var model = Codecs.project.compile()
+	var model = Codecs.project.compile({compressed: true})
 	localStorage.setItem('backup_model', model)
 	var file_name = 'backup_'+d.getDate()+'.'+(d.getMonth()+1)+'.'+(d.getYear()-100)+'_'+d.getHours()+'.'+d.getMinutes()
 	var file_path = folder_path+osfs+file_name+'.bbmodel'

@@ -33,9 +33,8 @@ function parseGeometry(data) {
 			if (b.pivot) {
 				group.origin[0] *= -1
 			}
-			group.rotation.forEach(function(br, ri) {
-				group.rotation[ri] *= -1
-			})
+			group.rotation[0] *= -1;
+			group.rotation[1] *= -1;
 			
 			group.mirror_uv = b.mirror === true
 			group.reset = b.reset === true
@@ -101,7 +100,7 @@ function parseGeometry(data) {
 	Canvas.updateAllBones()
 	setProjectTitle()
 	if (isApp && Project.geometry_name) {
-		findEntityTexture(Project.geometry_name)
+		BedrockEntityManager.initEntity()
 	}
 	updateSelection()
 	EditSession.initNewModel()
@@ -482,6 +481,7 @@ var format = new ModelFormat({
 	box_uv: true,
 	single_texture: true,
 	bone_rig: true,
+	centered_grid: true,
 	animation_mode: true,
 	locators: true,
 	codec,

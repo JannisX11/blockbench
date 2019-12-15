@@ -1,0 +1,21 @@
+{
+	"short_name": "Blockbench",
+	"name": "Blockbench",
+	"icons": [
+		{
+			"src": "favicon.png",
+			"type": "image/png",
+			"sizes": "128x128"
+		},
+		{
+			"src": "icon.png",
+			"type": "image/png",
+			"sizes": "1024x1024"
+		}
+	],
+	"start_url": "/index.html",
+	"background_color": "#21252b",
+	"theme_color": "#3e90ff",
+	"display": "standalone",
+	"orientation": "portrait"
+}

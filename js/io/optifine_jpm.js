@@ -36,10 +36,10 @@ var part_codec = new Codec('optifine_part', {
 				if (s.faces.hasOwnProperty(face)) {
 					if (s.faces[face].texture !== undefined && s.faces[face].texture !== null) {
 						box['uv'+capitalizeFirstLetter(face)] = [
-							Math.floor(s.faces[face].uv[0] / 16 * Project.texture_width),
-							Math.floor(s.faces[face].uv[1] / 16 * Project.texture_height),
-							Math.ceil(s.faces[face].uv[2] / 16 * Project.texture_width),
-							Math.ceil(s.faces[face].uv[3] / 16 * Project.texture_height)
+							Math.floor(s.faces[face].uv[0]),
+							Math.floor(s.faces[face].uv[1]),
+							Math.ceil(s.faces[face].uv[2]),
+							Math.ceil(s.faces[face].uv[3])
 						]
 					}
 				}
@@ -82,7 +82,9 @@ var part_codec = new Codec('optifine_part', {
 			name: pathToName(path)
 		}).init() : 'root';
 		var origin = [0, 0, 0];
-		Undo.initEdit({elements: new_cubes, outliner: true, uv_mode: true})
+		if (add) {
+			Undo.initEdit({elements: new_cubes, outliner: true, uv_mode: true})
+		}
 
 		var resolution = model.textureSize;
 		if (resolution.length == 2) {
@@ -100,14 +102,6 @@ var part_codec = new Codec('optifine_part', {
 			if (fs.existsSync(texture_path)) {
 				new Texture().fromPath(texture_path).add(false)
 			}
-		}
-		function convertUVCoords(uv) {
-			if (uv instanceof Array && resolution instanceof Array) {
-				uv.forEach((n, i) => {
-					uv[i] *= 16 / resolution[i%2];
-				})
-			}
-			return uv;
 		}
 		function addSubmodel(submodel) {
 			if (submodel.boxes) {
@@ -145,14 +139,38 @@ var part_codec = new Codec('optifine_part', {
 							box_uv_changed = true;
 							base_cube.extend({
 								faces: {
-									north: {uv: convertUVCoords(box.uvNorth)},
-									east: {uv: convertUVCoords(box.uvEast)},
-									south: {uv: convertUVCoords(box.uvSouth)},
-									west: {uv: convertUVCoords(box.uvWest)},
-									up: {uv: convertUVCoords(box.uvUp)},
-									down: {uv: convertUVCoords(box.uvDown)},
+									north: {uv: box.uvNorth},
+									east: {uv: box.uvEast},
+									south: {uv: box.uvSouth},
+									west: {uv: box.uvWest},
+									up: {uv: box.uvUp},
+									down: {uv: box.uvDown},
 								}
 							})
+							if (!box.uvNorth) {
+								base_cube.faces.north.uv = [0, 0, 0, 0]
+								base_cube.faces.north.texture = null;
+							}
+							if (!box.uvEast) {
+								base_cube.faces.east.uv = [0, 0, 0, 0]
+								base_cube.faces.east.texture = null;
+							}
+							if (!box.uvSouth) {
+								base_cube.faces.south.uv = [0, 0, 0, 0]
+								base_cube.faces.south.texture = null;
+							}
+							if (!box.uvWest) {
+								base_cube.faces.west.uv = [0, 0, 0, 0]
+								base_cube.faces.west.texture = null;
+							}
+							if (!box.uvUp) {
+								base_cube.faces.up.uv = [0, 0, 0, 0]
+								base_cube.faces.up.texture = null;
+							}
+							if (!box.uvDown) {
+								base_cube.faces.down.uv = [0, 0, 0, 0]
+								base_cube.faces.down.texture = null;
+							}
 						}
 
 						if (submodel.translate) {
@@ -179,7 +197,9 @@ var part_codec = new Codec('optifine_part', {
 		if (import_group instanceof Group) {
 			import_group.addTo()
 		}
-		Undo.finishEdit('add jpm model')
+		if (add) {
+			Undo.finishEdit('add jpm model')
+		}
 		addSubmodel(model)
 		Canvas.updateAll()
 	}

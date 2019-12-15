@@ -110,7 +110,6 @@ var codec = new Codec('optifine_entity', {
 						}
 						if (!obj.rotation.allEqual(0)) {
 							bone.rotate = obj.rotation.slice()
-							bone.rotate[2] *= -1
 						}
 						populate(bone, obj)
 
@@ -131,16 +130,8 @@ var codec = new Codec('optifine_entity', {
 	},
 	parse(model, path) {
 		if (model.textureSize) {
-			Project.texture_width = parseInt(model.textureSize[0])
-			Project.texture_height = parseInt(model.textureSize[1])
-		}
-		function convertUVCoords(uv) {
-			if (uv instanceof Array) {
-				uv.forEach((n, i) => {
-					uv[i] *= 16 / (i%2 ? Project.texture_height : Project.texture_width);
-				})
-			}
-			return uv;
+			Project.texture_width = parseInt(model.textureSize[0])||16;
+			Project.texture_height = parseInt(model.textureSize[1])||16;
 		}
 		if (model.models) {
 			model.models.forEach(function(b) {
@@ -154,8 +145,8 @@ var codec = new Codec('optifine_entity', {
 					rotation: b.rotate,
 					mirror_uv: (b.mirrorTexture && b.mirrorTexture.includes('u'))
 				})
-				group.origin[1] *= -1
-				group.origin[2] *= -1
+				group.origin[1] *= -1;
+				group.origin[2] *= -1;
 
 				function readContent(submodel, p_group) {
 
@@ -186,12 +177,12 @@ var codec = new Codec('optifine_entity', {
 							if (!box.textureOffset && box.uvNorth) {
 								Project.box_uv = false;
 								base_cube.extend({faces: {
-									north: {uv: convertUVCoords(box.uvNorth)},
-									east: {uv: convertUVCoords(box.uvEast)},
-									south: {uv: convertUVCoords(box.uvSouth)},
-									west: {uv: convertUVCoords(box.uvWest)},
-									up: {uv: convertUVCoords(box.uvUp)},
-									down: {uv: convertUVCoords(box.uvDown)},
+									north: {uv: box.uvNorth},
+									east: {uv: box.uvEast},
+									south: {uv: box.uvSouth},
+									west: {uv: box.uvWest},
+									up: {uv: box.uvUp},
+									down: {uv: box.uvDown},
 								}})
 							}
 							if (p_group.parent !== 'root') {
@@ -212,7 +203,6 @@ var codec = new Codec('optifine_entity', {
 								mirror_uv: (subsub.mirrorTexture && subsub.mirrorTexture.includes('u'))
 							})
 							subcount++;
-							group.rotation[2] *= -1
 							group.addTo(p_group).init()
 							readContent(subsub, group)
 						})
@@ -242,6 +232,7 @@ var format = new ModelFormat({
 	single_texture: true,
 	integer_size: true,
 	bone_rig: true,
+	centered_grid: true,
 	codec
 })
 codec.format = format;

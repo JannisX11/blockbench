@@ -1,27 +1,35 @@
 class Keybind {
-	constructor(keys, exact) {
+	constructor(keys) {
 		this.key 	= -1;
 		this.ctrl 	= false;
 		this.shift 	= false;
 		this.alt 	= false;
 		this.meta 	= false;
 		this.label = '';
+		this.conflict = false;
 		if (keys) {
-			if (isApp && !exact && Blockbench.platform == 'darwin' && keys.ctrl && !keys.meta) {
+			if (isApp && Blockbench.platform == 'darwin' && keys.ctrl && !keys.meta) {
 				keys.meta = true;
 				keys.ctrl = undefined;
 			}
 			this.set(keys)
 		}
 	}
-	set(keys) {
+	set(keys, dflt) {
 		if (!keys || typeof keys !== 'object') return this;
 		this.key = keys.key
-		if (this.ctrl 	!== null) this.ctrl 	= (keys.ctrl === null) ? null : (keys.ctrl 	== true);
-		if (this.shift 	!== null) this.shift 	= (keys.shift=== null) ? null : (keys.shift == true);
-		if (this.alt 	!== null) this.alt 		= (keys.alt  === null) ? null : (keys.alt 	== true);
-		if (this.meta 	!== null) this.meta 	= (keys.meta === null) ? null : (keys.meta 	== true);
+		if (this.ctrl 	!== null) this.ctrl = (keys.ctrl === null) ? null : (keys.ctrl 	== true);
+		if (this.shift 	!== null) this.shift= (keys.shift=== null) ? null : (keys.shift == true);
+		if (this.alt 	!== null) this.alt 	= (keys.alt  === null) ? null : (keys.alt 	== true);
+		if (this.meta 	!== null) this.meta = (keys.meta === null) ? null : (keys.meta 	== true);
+		if (dflt) {
+			if (dflt.ctrl 	== null) this.ctrl = null;
+			if (dflt.shift 	== null) this.shift = null;
+			if (dflt.alt 	== null) this.alt = null;
+			if (dflt.meta 	== null) this.meta = null;
+		}
 		this.label = this.getText()
+		TickUpdates.keybind_conflicts = true;
 		return this;
 	}
 	clear() {
@@ -46,7 +54,8 @@ class Keybind {
 
 			Keybinds.stored[this.action] = obj
 			if (save !== false) {
-				Keybinds.save()
+				Keybinds.save();
+				TickUpdates.keybind_conflicts = true;
 			}
 		}
 		return this;
@@ -65,7 +74,8 @@ class Keybind {
 				actions: [],
 				id: action.category,
 				name: tl('category.'+action.category),
-				open: false
+				open: false,
+				conflict: false,
 			}
 		}
 		Keybinds.structure[action.category].actions.push(action)
@@ -74,10 +84,14 @@ class Keybind {
 	getText() {
 		var modifiers = []
 
-		if (this.ctrl) 	modifiers.push(tl('keys.ctrl'))
-		if (this.shift) modifiers.push(tl('keys.shift'))
-		if (this.alt) 	modifiers.push(tl('keys.alt'))
-		if (this.meta) 	modifiers.push(tl('keys.meta'))
+		if (this.ctrl) 	modifiers.push(tl('keys.ctrl'))	
+		if (this.ctrl == null) 	modifiers.push(`[${tl('keys.ctrl')}]`)
+		if (this.shift) modifiers.push(tl('keys.shift'))	
+		if (this.shift == null) modifiers.push(`[${tl('keys.shift')}]`)
+		if (this.alt) 	modifiers.push(tl('keys.alt'))	
+		if (this.alt == null) 	modifiers.push(`[${tl('keys.alt')}]`)
+		if (this.meta) 	modifiers.push(tl('keys.meta'))	
+		if (this.meta == null) 	modifiers.push(`[${tl('keys.meta')}]`)
 
 		var char = this.getCode()
 		var char_tl = tl('keys.'+char)
@@ -132,6 +146,22 @@ class Keybind {
 			default : return String.fromCharCode(key).toLowerCase(); break;
 		}
 	}
+	hasKey() {
+		return this.key >= 0;
+	}
+	setConflict() {
+		if (!this.conflict) {
+			this.conflict = true;
+			var action = BarItems[this.action];
+			if (!action) {
+				action = Keybinds.extra[this.action];
+			}
+			if (action && Keybinds.structure[action.category]) {
+				Keybinds.structure[action.category].conflict = true;
+			}
+		}
+		return this;
+	}
 	isTriggered(event) {
 		return (
 			this.key 	=== event.which &&
@@ -178,7 +208,6 @@ class Keybind {
 		})
 		return this;
 	}
-	
 	stopRecording() {
 		var scope = this;
 		Keybinds.recording = false
@@ -186,6 +215,41 @@ class Keybind {
 		$('#keybind_input_box').off('keyup keydown')
 		return this;
 	}
+}
+Keybinds.no_overlap = function(k1, k2) {
+	if (typeof k1.condition !== 'object' || typeof k1.condition !== 'object') return false;
+	if (k1.condition.modes && k2.condition.modes && k1.condition.modes.overlap(k2.condition.modes) == 0) return true;
+	if (k1.condition.tools && k2.condition.tools && k1.condition.tools.overlap(k2.condition.tools) == 0) return true;
+	if (k1.condition.formats && k2.condition.formats && k1.condition.formats.overlap(k2.condition.formats) == 0) return true;
+	return false;
+}
+function updateKeybindConflicts() {
+	for (var key in Keybinds.structure) {
+		Keybinds.structure[key].conflict = false;
+	}
+	Keybinds.actions.forEach((action, i) => {
+		action.keybind.conflict = false;
+	})
+	Keybinds.actions.forEach((action, i) => {
+		var keybind = action.keybind;
+		if (keybind.hasKey()) {
+			while (i < Keybinds.actions.length-1) {
+				i++;
+				var keybind2 = Keybinds.actions[i].keybind;
+				if (keybind2.hasKey()
+				 && keybind.key   === keybind2.key
+				 && keybind.ctrl  === keybind2.ctrl
+				 && keybind.shift === keybind2.shift
+				 && keybind.alt   === keybind2.alt
+				 && keybind.meta  === keybind2.meta
+				 && !Keybinds.no_overlap(action, Keybinds.actions[i])
+				) {
+					keybind.setConflict();
+					keybind2.setConflict();
+				}
+			}
+		}
+	})
 }
 
 onVueSetup(function() {
@@ -290,10 +354,35 @@ $(document).on('keydown mousedown', function(e) {
 	}
 
 	var used = false;
-	var input_focus = $('input[type="text"]:focus, input[type="number"]:focus, div[contenteditable="true"]:focus, textarea:focus').length > 0
+	var input_focus = $('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus').get(0)
 
 	if (input_focus) {
 		//User Editing Anything
+		if (e.which == 9 && !open_dialog) {
+			var all_inputs = $('.tab_target:visible')
+			var index = all_inputs.index(input_focus)+1;
+			if (index >= all_inputs.length) index = 0;
+			var next = $(all_inputs.get(index))
+			if (next.length) {
+				if (next.hasClass('cube_name')) {
+					var target = Outliner.root.findRecursive('uuid', next.parent().parent().attr('id'))
+					if (target) {
+						stopRenameOutliner();
+						setTimeout(() => {
+							target.select(e, true).rename();
+						}, 50)
+					}
+
+				} else if (next.hasClass('nslide')) {
+					setTimeout(() => {
+						next.click();
+					}, 50)
+				} else {
+					next.click();
+				}
+				return;
+			}
+		}
 	    if (Blockbench.hasFlag('renaming')) {
 	        if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
 	            stopRenameOutliner()
@@ -308,6 +397,7 @@ $(document).on('keydown mousedown', function(e) {
 		    	return;
 		    }
 	    }
+	    if ($('pre.prism-editor__code:focus').length) return;
 		if (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
 			$(document).click()
 		}

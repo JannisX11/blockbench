@@ -311,6 +311,7 @@ class refModel {
 				color: 0xffffff,
 				map: tex,
 				transparent: true,
+				vertexColors: THREE.FaceColors,
 				side: 2,
 				alphaTest: 0.2
 			});
@@ -422,9 +423,9 @@ class refModel {
 				"size": [8, 12, 4],
 				"pos": [0, 18, 0],
 				"north": {"uv": [5.032, 5.032, 6.968, 7.968]},
-				"east": {"uv": [7.968, 5.032, 7.032, 7.968]},
+				"east": {"uv": [4.032, 5.032, 4.968, 7.968]},
 				"south": {"uv": [8.032, 5.032, 9.968, 7.968]},
-				"west": {"uv": [4.968, 5.032, 4.032, 7.968]},
+				"west": {"uv": [7.032, 5.032, 7.968, 7.968]},
 				"up": {"uv": [5.032, 4.968, 6.968, 4.032]},
 				"down": {"uv": [7.032, 4.032, 8.968, 4.968]}
 			},
@@ -433,9 +434,9 @@ class refModel {
 				"size": [8.5, 12.5, 4.5],
 				"pos": [0, 18, 0],
 				"north": {"uv": [5.032, 9.032, 6.968, 11.968]},
-				"east": {"uv": [7.968, 9.032, 7.032, 11.968]},
+				"east": {"uv": [4.032, 9.032, 4.968, 11.968]},
 				"south": {"uv": [8.032, 9.032, 9.968, 11.968]},
-				"west": {"uv": [4.968, 9.032, 4.032, 11.968]},
+				"west": {"uv": [7.032, 9.032, 7.968, 11.968]},
 				"up": {"uv": [5.032, 8.968, 6.968, 8.032]},
 				"down": {"uv": [7.032, 8.032, 8.968, 8.968]}
 			},
@@ -613,7 +614,7 @@ class refModel {
 		updateDisplaySkin()
 	}
 	buildArmorStand() {
-		this.buildModel([
+		this.buildModel(JSON.parse(`[
 			{
 				"size": [12, 1, 12],
 				"pos": [0, -5.5, 0],
@@ -758,10 +759,10 @@ class refModel {
 				"up": {"uv": [6.5, 0, 7, 0.5],"rotation": 90},
 				"down": {"uv": [7, 0, 7.5, 0.5],"rotation": 270}
 			}
-		], 'assets/armor_stand.png')
+		]`), 'assets/armor_stand.png')
 	}
 	buildArmorStandSmall() {
-		this.buildModel(		[
+		this.buildModel(JSON.parse(`[
 			{
 				"size": [6, 0.5, 6],
 				"pos": [0, -5.75, 0],
@@ -910,10 +911,10 @@ class refModel {
 				"up": {"uv": [6.5, 0, 7, 0.5],"rotation": 90},
 				"down": {"uv": [7, 0, 7.5, 0.5], "rotation": 270}
 			}
-		], 'assets/armor_stand.png')
+		]`), 'assets/armor_stand.png')
 	}
 	buildZombie() {
-		this.buildModel([
+		this.buildModel(JSON.parse(`[
 			{
 				"size": [4, 12, 4],
 				"pos": [0, 0, -2],
@@ -1108,10 +1109,10 @@ class refModel {
 					"rotation": 90
 				}
 			}
-		], 'assets/zombie.png')
+		]`), 'assets/zombie.png')
 	}
 	buildBabyZombie() {
-		this.buildModel([
+		this.buildModel(JSON.parse(`[
 			{
 				"size": [2, 6, 2],
 				"pos": [-2.220446049250313e-16, -3, -1],
@@ -1306,24 +1307,24 @@ class refModel {
 					"rotation": 90
 				}
 			}
-		], 'assets/zombie.png')
+		]`), 'assets/zombie.png')
 	}
 	buildMonitor() {
-		this.buildModel([
+		this.buildModel(JSON.parse(`[
 			{"size": [8, 8, 0.1], "pos": [0, 4.93, 31.20], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
 			{"size": [8, 8, 0.1], "pos": [0, -4.93, 31.20], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
 			{"size": [8, 8, 0.1], "pos": [5.65, 0, 31.2], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
 			{"size": [8, 8, 0.1], "pos": [-5.65, 0, 31.2], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}}
-		], 'black')
+		]`), 'black')
 	}
 	buildBlock() {
-		this.buildModel([
+		this.buildModel(JSON.parse(`[
 			{"size": [16,16,16], "pos": [0, 0, 0], "origin": [0, 0, 0], "north":{"uv":[0,0,16,16]},"east":{"uv":[0,0,16,16]},"south":{"uv":[0,0,16,16]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,16,16]},"down":{"uv":[0,0,16,16]}},	//Right Arm
-		], 'assets/missing.png')
+		]`), 'assets/missing.png')
 	}
 	buildFrame() {
 		this.buildBlock()
-		this.buildModel([
+		this.buildModel(JSON.parse(`[
 			{"size": [10,10,0.5], "pos": [0, 0, -8.25], "origin": [0, 0, 0], "north":{"uv":[3,3,13,13]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,0,0]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
 
 			{"size": [1,12,1], "pos": [5.5, 0, -8.5], "origin": [0, 0, 0], "north":{"uv":[2,2,3,14]},"east":{"uv":[2,2,3,14]},"south":{"uv":[2,2,3,14]},"west":{"uv":[2,2,3,14]},"up":{"uv":[2,2,3,3]},"down":{"uv":[2,2,3,3]}},
@@ -1331,7 +1332,7 @@ class refModel {
 
 			{"size": [10,1,1], "pos": [0, 5.5, -8.5], "origin": [0, 0, 0], "north":{"uv":[3,2,13,3]},"east":{"uv":[3,2,13,3]},"south":{"uv":[3,2,13,3]},"west":{"uv":[3,2,13,3]},"up":{"uv":[3,2,13,3]},"down":{"uv":[3,2,13,3]}},
 			{"size": [10,1,1], "pos": [0, -5.5, -8.5], "origin": [0, 0, 0], "north":{"uv":[3,13,13,14]},"east":{"uv":[3,13,13,14]},"south":{"uv":[3,13,13,14]},"west":{"uv":[3,13,13,14]},"up":{"uv":[3,13,13,14]},"down":{"uv":[3,13,13,14]}}
-		], 'assets/item_frame.png')
+		]`), 'assets/item_frame.png')
 	}
 }
 window.displayReferenceObjects = {

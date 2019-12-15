@@ -93,6 +93,18 @@ const Blockbench = {
 			}, 1)
 		}, time ? time : 1000)
 	},
+	showCenterTip(message, time) {
+		$('#center_tip').remove()
+		var center_tip = $(`<div id="center_tip"><i class="material-icons">info</i>${tl(message)}</div>`) 
+		$('#preview').append(center_tip)
+		
+		setTimeout(function() {
+			center_tip.fadeOut(0)
+			setTimeout(function() {
+				center_tip.remove()
+			}, 1)
+		}, time ? time : 7500)
+	},
 	showStatusMessage(message, time) {
 		Blockbench.setStatusBarText(tl(message))
 		setTimeout(function() {
@@ -357,7 +369,7 @@ const Blockbench = {
 						}
 					}
 				} else /*text*/ {
-					fs.readFile(file, 'utf-8', function (err, data) {
+					var load = function (err, data) {
 						if (err) {
 							console.log(err)
 							if (!errant && options.errorbox !== false) {
@@ -369,7 +381,7 @@ const Blockbench = {
 							errant = true
 							return;
 						}
-						if (data.charCodeAt(0) === 0xFEFF) {
+						if (options.readtype != 'buffer' && data.charCodeAt(0) === 0xFEFF) {
 							data = data.substr(1)
 						}
 						results[this_i] = {
@@ -381,7 +393,12 @@ const Blockbench = {
 						if (result_count === paths.length) {
 							cb(results)
 						}
-					})
+					}
+					if (options.readtype === 'buffer') {
+						fs.readFile(file, load);
+					} else {
+						fs.readFile(file, 'utf8', load);
+					}
 				}
 			})()
 			i++;
@@ -413,7 +430,7 @@ const Blockbench = {
 				download.click();
 				if (Blockbench.browser === 'firefox') document.body.removeChild(download);
 
-			} else if (options.savetype === 'zip') {
+			} else if (options.savetype === 'zip' || options.savetype === 'buffer') {
 				saveAs(options.content, file_name)
 
 			} else {
@@ -421,7 +438,7 @@ const Blockbench = {
 				saveAs(blob, file_name, {autoBOM: true})
 			}
 			if (typeof cb === 'function') {
-				cb(options)
+				cb(file_name)
 			}
 		} else {
 			ElecDialogs.showSaveDialog(currentwindow, {
@@ -471,10 +488,11 @@ const Blockbench = {
 				}
 			};
 			fileReader.readAsArrayBuffer(options.content);
-
 		} else if (options.custom_writer) {
 			options.custom_writer(options.content, file_path)
+
 		} else {
+			//text or buffer
 			fs.writeFileSync(file_path, options.content)
 			if (cb) {
 				cb(file_path)
@@ -518,7 +536,8 @@ const Blockbench = {
 	//File Drag
 	addDragHandler(id, options, cb) {
 		var entry = {
-			cb: cb
+			cb: cb,
+			condition: options.condition
 		}
 		if (options.extensions && options.extensions.length) {
 			entry.extensions = options.extensions
@@ -654,12 +673,15 @@ document.body.ondragleave = function(event) {
 }
 
 function forDragHandlers(event, cb) {
-	if (event.dataTransfer == undefined) {
+	if (event.dataTransfer == undefined || event.dataTransfer.files.length == 0 || !event.dataTransfer.files[0].name) {
 		return; 
 	}
 	for (var id in Blockbench.drag_handlers) {
 		var handler = Blockbench.drag_handlers[id] 
 		var el = undefined;
+		if (!Condition(handler.condition)) {
+			continue;
+		}
 
 		if (!handler.element) {
 			el = $('body').get(0)
@@ -686,12 +708,13 @@ function forDragHandlers(event, cb) {
 				el = parent
 			}
 		}
-		if (el &&
-			event.dataTransfer.files.length > 0 &&
-			event.dataTransfer.files[0].name &&
-			handler.extensions.includes( pathToExtension(event.dataTransfer.files[0].name) )
-		) {
+		handler.extensions.includes( pathToExtension(event.dataTransfer.files[0].name))
+		var name = event.dataTransfer.files[0].name;
+		if (el && handler.extensions.filter(ex => {
+			return name.substr(-ex.length) == ex;
+		}).length) {
 			cb(handler, el)
+			break;
 		}
 	}
 }

@@ -23,7 +23,7 @@ var codec = new Codec('project', {
 		if (!options) options = 0;
 		var model = {
 			meta: {
-				format_version: '3.0',
+				format_version: '3.2',
 				model_format: Format.id,
 				box_uv: Project.box_uv
 			},
@@ -54,7 +54,7 @@ var codec = new Codec('project', {
 		textures.forEach(tex => {
 			var t = tex.getUndoCopy();
 			delete t.selected;
-			if (options.bitmaps) {
+			if (options.bitmaps != false) {
 				t.source = 'data:image/png;base64,'+tex.getBase64()
 				t.mode = 'bitmap'
 			}
@@ -100,10 +100,12 @@ var codec = new Codec('project', {
 
 		if (options.raw) {
 			return model;
-		} else {
+		} else if (options.compressed) {
 			var json_string = JSON.stringify(model);
 			var compressed = '<lz>'+LZUTF8.compress(json_string, {outputEncoding: 'StorageBinaryString'});
-			return json_string;
+			return compressed;
+		} else {
+			return JSON.stringify(model);
 		}
 	},
 	parse(model, path) {
@@ -117,7 +119,7 @@ var codec = new Codec('project', {
 		if (!model.meta.format_version) {
 			model.meta.format_version = model.meta.format;
 		}
-		if (compareVersions(model.meta.format_version, '3.0')) {
+		if (compareVersions(model.meta.format_version, '3.2')) {
 			Blockbench.showMessageBox({
 				translateKey: 'outdated_client',
 				icon: 'error',
@@ -185,6 +187,18 @@ var codec = new Codec('project', {
 			loadOutlinerDraggable()
 		}
 		if (model.outliner) {
+			if (compareVersions('3.2', model.meta.format_version)) {
+				//Fix Z-axis inversion pre 3.2
+				function iterate(list) {
+					for (var child of list) {
+						if (typeof child == 'object' ) {
+							iterate(child.children);
+							if (child.rotation) child.rotation[2] *= -1;
+						}
+					}
+				}
+				iterate(model.outliner)
+			}
 			parseGroups(model.outliner)
 			if (model.meta.bone_rig) {
 				Canvas.updateAllBones()

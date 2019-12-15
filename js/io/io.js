@@ -28,10 +28,12 @@ class ModelFormat {
 		this.optional_box_uv = false;
 		this.single_texture = false;
 		this.bone_rig = false;
+		this.centered_grid = false;
 		this.rotate_cubes = false;
 		this.integer_size = false;
 		this.locators = false;
 		this.canvas_limit = false;
+		this.outliner_name_pattern = false;
 		this.rotation_limit = false;
 		this.display_mode = false;
 		this.animation_mode = false;
@@ -46,10 +48,12 @@ class ModelFormat {
 		Merge.boolean(this, data, 'optional_box_uv');
 		Merge.boolean(this, data, 'single_texture');
 		Merge.boolean(this, data, 'bone_rig');
+		Merge.boolean(this, data, 'centered_grid');
 		Merge.boolean(this, data, 'rotate_cubes');
 		Merge.boolean(this, data, 'integer_size');
 		Merge.boolean(this, data, 'locators');
 		Merge.boolean(this, data, 'canvas_limit');
+		Merge.string(this, data, 'outliner_name_pattern');
 		Merge.boolean(this, data, 'rotation_limit');
 		Merge.boolean(this, data, 'display_mode');
 		Merge.boolean(this, data, 'animation_mode');
@@ -65,14 +69,13 @@ class ModelFormat {
 		if (!converting || !this.optional_box_uv) {
 			Project.box_uv = Format.box_uv;
 		}
-		main_uv.setGrid()
 		buildGrid()
-		if (Format.bone_rig) {
+		if (Format.centered_grid) {
 			scene.position.set(0, 0, 0);
 		} else {
 			scene.position.set(-8, -8, -8);
 		}
-		var center = Format.bone_rig ? 8 : 0;
+		var center = Format.centered_grid ? 8 : 0;
 		previews.forEach(preview => {
 			if (preview.isOrtho) {
 				preview.setOrthographicCamera(preview.angle);
@@ -154,7 +157,7 @@ class ModelFormat {
 		}
 
 		//Canvas Limit
-		if (Format.canvas_limit && !old_format.canvas_limit) {
+		if (Format.canvas_limit && !old_format.canvas_limit && !settings.deactivate_size_limit.value) {
 
 			Cube.all.forEach(function(s, i) {
 				//Push elements into 3x3 block box
@@ -315,6 +318,8 @@ function resetProject() {
 	textures.length = 0;
 	selected.length = 0;
 
+	Screencam.stopTimelapse();
+
 	Group.all.empty();
 	Group.selected = undefined;
 	Cube.all.empty();
@@ -335,10 +340,12 @@ function resetProject() {
 	texturelist.$forceUpdate();
 	Undo.history.length = 0;
 	Undo.index = 0;
+	Undo.current_save = null;
 	Painter.current = {};
 	Animator.animations.purge();
+	Timeline.animators.purge();
 	Animator.selected = undefined;
-	$('#var_placeholder_area').val('')
+	$('#var_placeholder_area').val('');
 }
 function newProject(format, force) {
 	if (force || showSaveDialog()) {
@@ -358,16 +365,16 @@ function newProject(format, force) {
 function setupDragHandlers() {
 	Blockbench.addDragHandler(
 		'model',
-		{extensions: ['json', 'jem', 'jpm', 'bbmodel']},
+		{extensions: ['json', 'jem', 'jpm', 'java', 'bbmodel']},
 		function(files) {
 			loadModelFile(files[0])
 		}
 	)
 	Blockbench.addDragHandler(
 		'style',
-		{extensions: ['bbstyle']},
+		{extensions: ['bbstyle', 'bbtheme']},
 		function(files) {
-			applyBBStyle(files[0].content)
+			CustomTheme.import(files[0]);
 		}
 	)
 	Blockbench.addDragHandler(
@@ -400,26 +407,30 @@ function loadModelFile(file) {
 		resetProject();
 		
 		var extension = pathToExtension(file.path);
-		var model = autoParseJSON(file.content);
-		if (extension == 'bbmodel') {
-			Codecs.project.load(model, file)
+ 		if (extension == 'java') {
+			Codecs.modded_entity.load(file.content, file)
+		} else {
+			var model = autoParseJSON(file.content);
+			if (extension == 'bbmodel') {
+				Codecs.project.load(model, file)
 
-		} else if (extension == 'json') {
-			if (model.parent || model.elements || model.textures) {
-				Codecs.java_block.load(model, file)
+			} else if (extension == 'json') {
+				if (model.parent || model.elements || model.textures) {
+					Codecs.java_block.load(model, file)
 
-			} else if (model.format_version && !compareVersions('1.12.0', model.format_version)) {
-				Codecs.bedrock.load(model, file)
-			} else if (
-				model.format_version ||
-				Object.keys(model).filter((s) => s.match(/^geometry\./)).length
-			) {
-				Codecs.bedrock_old.load(model, file)
+				} else if (model.format_version && !compareVersions('1.12.0', model.format_version)) {
+					Codecs.bedrock.load(model, file)
+				} else if (
+					model.format_version ||
+					Object.keys(model).filter((s) => s.match(/^geometry\./)).length
+				) {
+					Codecs.bedrock_old.load(model, file)
+				}
+			} else if (extension == 'jem') {
+				Codecs.optifine_entity.load(model, file)
+			} else if (extension == 'jpm') {
+				Codecs.optifine_part.load(model, file)
 			}
-		} else if (extension == 'jem') {
-			Codecs.optifine_entity.load(model, file)
-		} else if (extension == 'jpm') {
-			Codecs.optifine_part.load(model, file)
 		}
 		EditSession.initNewModel()
 	}
@@ -636,6 +647,10 @@ function uploadSketchfabModel() {
 			name: {label: 'dialog.sketchfab_uploader.name'},
 			description: {label: 'dialog.sketchfab_uploader.description', type: 'textarea'},
 			tags: {label: 'dialog.sketchfab_uploader.tags', placeholder: 'Tag1 Tag2'},
+			draft: {label: 'dialog.sketchfab_uploader.draft', type: 'checkbox'},
+			// isPublished (draft)
+			// options.background.color = '#ffffff' (Background Color)
+			// Category
 			divider: '_',
 			private: {label: 'dialog.sketchfab_uploader.private', type: 'checkbox'},
 			password: {label: 'dialog.sketchfab_uploader.password'},
@@ -654,6 +669,7 @@ function uploadSketchfabModel() {
 			data.append('name', formResult.name)
 			data.append('description', formResult.description)
 			data.append('tags', formResult.tags)
+			data.append('isPublished', !formResult.draft)
 			data.append('private', formResult.private)
 			data.append('password', formResult.password)
 			data.append('source', 'blockbench')
@@ -718,7 +734,7 @@ function compileJSON(object, options) {
 		var out = ''
 		if (typeof o === 'string') {
 			//String
-			out += '"' + o.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"'
+			out += '"' + o.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"'
 		} else if (typeof o === 'boolean') {
 			//Boolean
 			out += (o ? 'true' : 'false')
@@ -822,6 +838,8 @@ BARS.defineActions(function() {
 		id: 'free',
 		icon: 'icon-format_free',
 		rotate_cubes: true,
+		bone_rig: true,
+		centered_grid: false,
 		optional_box_uv: true,
 	})
 	//Project
@@ -860,9 +878,26 @@ BARS.defineActions(function() {
 						Project.texture_width != formResult.texture_width ||
 						Project.texture_height != formResult.texture_height
 					) {
-						save = Undo.initEdit({uv_mode: true})
+						if (!Project.box_uv && !formResult.box_uv
+							&& (Project.texture_width != formResult.texture_width
+							|| Project.texture_height != formResult.texture_height)
+						) {
+							save = Undo.initEdit({uv_only: true, elements: Cube.all, uv_mode: true})
+							Cube.all.forEach(cube => {
+								for (var key in cube.faces) {
+									var uv = cube.faces[key].uv;
+									uv[0] *= formResult.texture_width / Project.texture_width;
+									uv[2] *= formResult.texture_width / Project.texture_width;
+									uv[1] *= formResult.texture_height / Project.texture_height;
+									uv[3] *= formResult.texture_height / Project.texture_height;
+								}
+							})
+						} else {
+							save = Undo.initEdit({uv_mode: true})
+						}
 						Project.texture_width = formResult.texture_width;
 						Project.texture_height = formResult.texture_height;
+
 						if (Format.optional_box_uv) Project.box_uv = formResult.box_uv;
 						Canvas.updateAllUVs()
 						updateSelection()
@@ -944,7 +979,7 @@ BARS.defineActions(function() {
 		condition: () => (!EditSession.active || EditSession.hosting),
 		click: function () {
 			Blockbench.import({
-				extensions: ['json', 'jem', 'jpm', 'bbmodel'],
+				extensions: ['json', 'jem', 'jpm', 'java', 'bbmodel'],
 				type: 'Model'
 			}, function(files) {
 				loadModelFile(files[0]);
@@ -954,7 +989,7 @@ BARS.defineActions(function() {
 	new Action('add_model', {
 		icon: 'assessment',
 		category: 'file',
-		condition: _ => (Format.id == 'java_block' || Format.id == 'free'),
+		condition: _ => (Format.id == 'java_block'),
 		click: function () {
 			Blockbench.import({
 				extensions: ['json'],
@@ -996,6 +1031,8 @@ BARS.defineActions(function() {
 				if (Format.codec && Format.codec.compile) {
 					if (ModelMeta.export_path) {
 						Format.codec.write(Format.codec.compile(), ModelMeta.export_path)
+					} else if (ModelMeta.save_path) {
+						Codecs.project.write(Codecs.project.compile(), ModelMeta.save_path);
 					} else {
 						Format.codec.export()
 					}
@@ -1011,6 +1048,9 @@ BARS.defineActions(function() {
 				}
 			} else {
 				saveTextures()
+				if (Format.codec && Format.codec.compile) {
+					Format.codec.export()
+				}
 			}
 		}
 	})

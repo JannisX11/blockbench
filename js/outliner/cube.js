@@ -49,7 +49,7 @@ class Face {
 		return this;
 	}
 	getTexture() {
-		if (Format.single_texture) {
+		if (Format.single_texture && Project.box_uv) {
 			return textures[0];
 		}
 		if (typeof this.texture === 'string') {
@@ -95,7 +95,7 @@ class Cube extends NonGroup {
 		this.uv_offset = [0,0]
 		this.inflate = 0;
 		this.rotation = [0, 0, 0]
-		if (Format.bone_rig) {
+		if (Format.centered_grid) {
 			this.origin = [0, 0, 0]	
 		} else {
 			this.origin = [8, 8, 8]	
@@ -119,6 +119,7 @@ class Cube extends NonGroup {
 	}
 	extend(object) {
 		Merge.string(this, object, 'name')
+		this.sanitizeName();
 		Merge.boolean(this, object, 'shade')
 		Merge.boolean(this, object, 'mirror_uv')
 		Merge.number(this, object, 'inflate')
@@ -190,7 +191,7 @@ class Cube extends NonGroup {
 	}
 	init() {
 		super.init();
-		if (Format.bone_rig && textures[0]) {
+		if (Format.single_texture && textures[0]) {
 			for (var face in this.faces) {
 				this.faces[face].texture = textures[0].uuid
 			}
@@ -198,7 +199,7 @@ class Cube extends NonGroup {
 		if (!this.parent || (this.parent === 'root' && Outliner.root.indexOf(this) === -1)) {
 			this.addTo('root')
 		}
-		if (this.visibility && (!this.mesh || !this.mesh.parent)) {
+		if (!this.mesh || !this.mesh.parent) {
 			Canvas.addCube(this)
 		}
 		TickUpdates.outliner = true;
@@ -539,6 +540,8 @@ class Cube extends NonGroup {
 	mapAutoUV() {
 		if (Blockbench.box_uv) return;
 		var scope = this;
+		var pw = Project.texture_width;
+		var ph = Project.texture_height;
 		if (scope.autouv === 2) {
 			//Relative UV
 			function gt(n) {
@@ -551,34 +554,34 @@ class Cube extends NonGroup {
 				switch (side) {
 					case 'north':
 					uv = [
-						16 - scope.to[0],
-						16 - scope.to[1],
-						16 - scope.from[0],
-						16 - scope.from[1],
+						pw - scope.to[0],
+						ph - scope.to[1],
+						pw - scope.from[0],
+						ph - scope.from[1],
 					];
 					break;
 					case 'south':
 					uv = [
 						scope.from[0],
-						16 - scope.to[1],
+						ph - scope.to[1],
 						scope.to[0],
-						16 - scope.from[1],
+						ph - scope.from[1],
 					];
 					break;
 					case 'west':
 					uv = [
 						scope.from[2],
-						16 - scope.to[1],
+						ph - scope.to[1],
 						scope.to[2],
-						16 - scope.from[1],
+						ph - scope.from[1],
 					];
 					break;
 					case 'east':
 					uv = [
-						16 - scope.to[2],
-						16 - scope.to[1],
-						16 - scope.from[2],
-						16 - scope.from[1],
+						pw - scope.to[2],
+						ph - scope.to[1],
+						pw - scope.from[2],
+						ph - scope.from[1],
 					];
 					break;
 					case 'up':
@@ -592,18 +595,18 @@ class Cube extends NonGroup {
 					case 'down':
 					uv = [
 						scope.from[0],
-						16 - scope.to[2],
+						ph - scope.to[2],
 						scope.to[0],
-						16 - scope.from[2],
+						ph - scope.from[2],
 					];
 					break;
 				}
-				var fr_u = 16 / Project.texture_width;
-				var fr_v = 16 / Project.texture_height;
-				uv.forEach(function(s, uvi) {
-					s *= (uvi%2 ? fr_v : fr_u);
-					uv[uvi] = limitNumber(s, 0, 16)
-				})
+				//var fr_u = 16 / Project.texture_width;
+				//var fr_v = 16 / Project.texture_height;
+				//uv.forEach(function(s, uvi) {
+				//	s *= (uvi%2 ? fr_v : fr_u);
+				//	uv[uvi] = limitNumber(s, 0, 16)
+				//})
 				scope.faces[side].uv = uv
 			})
 			Canvas.updateUV(scope)
@@ -618,25 +621,23 @@ class Cube extends NonGroup {
 				if (rot === 90 || rot === 270) {
 					size.reverse()
 				}
-				size[0] *= 16/Project.texture_width;
-				size[1] *= 16/Project.texture_height;
+				//size[0] *= 16/Project.texture_width;
+				//size[1] *= 16/Project.texture_height;
 				//Limit Input to 16
-				size.forEach(function(s) {
-					if (s > 16) {
-						s = 16
-					}
-				})
+				size[0] = Math.clamp(size[0], -Project.texture_width, Project.texture_width)
+				size[1] = Math.clamp(size[1], -Project.texture_height, Project.texture_height)
+
 				//Calculate End Points
 				var x = sx + size[0]
 				var y = sy + size[1]
 				//Prevent Over 16
-				if (x > 16) {
-					sx = 16 - (x - sx)
-					x = 16
+				if (x > Project.texture_width) {
+					sx = Project.texture_width - (x - sx)
+					x = Project.texture_width
 				}
-				if (y > 16) {
-					sy = 16 - (y - sy)
-					y = 16
+				if (y > Project.texture_height) {
+					sy = Project.texture_height - (y - sy)
+					y = Project.texture_height
 				}
 				//Prevent Negative
 				if (sx < 0) sx = 0
@@ -723,24 +724,21 @@ class Cube extends NonGroup {
 		TickUpdates.selection = true;
 		return in_box;
 	}
-	resize(val, axis, negative, absolute, allow_negative) {
-		if (absolute) {
-			var before = 0;
-		} else {
-			var before = this.oldScale ? this.oldScale : this.size(axis);
-		}
+	resize(val, axis, negative, allow_negative) {
+		var before = this.oldScale != undefined ? this.oldScale : this.size(axis);
+		var modify = val instanceof Function ? val : n => (n+val)
 		if (Format.integer_size && Project.box_uv) {
 			val = Math.ceil(val);
 		}
 		if (!negative) {
-			var pos = limitToBox(val + this.from[axis] + before, this.inflate);
+			var pos = limitToBox(this.from[axis] + modify(before), this.inflate);
 			if (pos >= this.from[axis] || settings.negative_size.value || allow_negative) {
 				this.to[axis] = pos;
 			} else {
 				this.to[axis] = this.from[axis];
 			}
 		} else {
-			var pos = limitToBox(val + this.to[axis] - before, this.inflate);
+			var pos = limitToBox(this.to[axis] + modify(-before), this.inflate);
 			if (pos <= this.to[axis] || settings.negative_size.value || allow_negative) {
 				this.from[axis] = pos;
 			} else {
@@ -748,7 +746,7 @@ class Cube extends NonGroup {
 			}
 		}
 		this.mapAutoUV();
-		if (Format.bone_rig) {
+		if (Project.box_uv) {
 			Canvas.updateUV(this);
 		}
 		Canvas.adaptObjectPosition(this);
@@ -762,6 +760,7 @@ class Cube extends NonGroup {
 	Cube.prototype.movable = true;
 	Cube.prototype.resizable = true;
 	Cube.prototype.rotatable = true;
+	Cube.prototype.needsUniqueName = false;
 	Cube.prototype.menu = new Menu([
 		'copy',
 		'duplicate',
@@ -823,7 +822,7 @@ BARS.defineActions(function() {
 		icon: 'add_box',
 		category: 'edit',
 		keybind: new Keybind({key: 78, ctrl: true}),
-		condition: () => {return (!Format.bone_rig || getCurrentGroup()) && Modes.edit},
+		condition: () => Modes.edit,
 		click: function () {
 			
 			Undo.initEdit({outliner: true, elements: [], selection: true});

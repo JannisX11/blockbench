@@ -101,6 +101,10 @@ class Menu {
 	}
 	open(position, context) {
 
+		if (position instanceof TouchEvent) {
+			convertTouchEvent(position);
+		}
+
 		var scope = this;
 		var ctxmenu = $(this.node)
 		if (open_menu) {
@@ -399,7 +403,7 @@ const MenuBar = {
 				'import_optifine_part',
 				'extrude_texture'
 			]},
-			{name: 'menu.file.export', id: 'export', icon: 'insert_drive_file', children: [
+			{name: 'generic.export', id: 'export', icon: 'insert_drive_file', children: [
 				'export_blockmodel',
 				'export_bedrock',
 				'export_entity',
@@ -431,6 +435,7 @@ const MenuBar = {
 			*/
 			'_',
 			'settings_window',
+			'plugins_window',
 			'edit_session',
 			'update_window',
 			'reload'
@@ -446,10 +451,11 @@ const MenuBar = {
 			'delete',
 			'_',
 			'select_window',
+			'select_all',
 			'invert_selection',
 			'_',
 			'local_move',
-		], () => (Modes.edit))
+		])
 		new BarMenu('transform', [
 			'scale',
 			{name: 'menu.transform.rotate', id: 'rotate', icon: 'rotate_90_degrees_ccw', children: [
@@ -564,7 +570,7 @@ const MenuBar = {
 		new BarMenu('animation', [
 			'copy',
 			'paste',
-			'select_all_keyframes',
+			'select_all',
 			'reverse_keyframes',
 			'delete',
 			'_',
@@ -584,12 +590,14 @@ const MenuBar = {
 			]},
 			'_',
 			'toggle_wireframe',
+			'toggle_checkerboard',
 			'painting_grid',
 			'toggle_quad_view',
 			{name: 'menu.view.screenshot', id: 'screenshot', icon: 'camera_alt', children: [
 				'screenshot_model',
 				'screenshot_app',
 				'record_model_gif',
+				'timelapse',
 			]},
 		])
 		MenuBar.update()

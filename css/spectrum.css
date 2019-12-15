@@ -32,7 +32,10 @@ License: MIT
     box-shadow: none;
 }
 .sp-container.sp-flat .sp-picker-container {
-    width: calc(100% - 70px);
+    width: calc(100% - 4px);
+    padding: 2px;
+    padding-bottom: 0;
+    margin-bottom: -12px;
 }
 .sp-container.sp-flat .sp-button-container {
     display: none;
@@ -260,7 +263,7 @@ License: MIT
    height: 8px;
    width: 8px;
    border: 1px solid var(--color-border);
-   background: var(--color-back);
+   background: var(--color-light);
    cursor: pointer;
    position:absolute;
    top:0;
@@ -268,23 +271,21 @@ License: MIT
     margin-top: 3px;
     margin-left: 3px;
 }
-.sp-val:hover .sp-dragger {
-   background: var(--color-accent);
-}
 .sp-slider {
     position: absolute;
     top:0;
     cursor:pointer;
-    height: 12px;
+    height: 0;
     left: -3px;
     right: -3px;
-    background: white;
-    background-color: var(--color-ui);
-    border: 1px solid var(--color-border);
-    margin-top: 5px;
-}
-.sp-hue:hover .sp-slider {
-    background-color: var(--color-accent);
+    margin-top: -8px;
+    border-color: var(--color-light);
+    border-style: solid;
+    border-width: 8px;
+    border-top-color: transparent;
+    border-bottom-color: transparent;
+    margin-top: -8px;
+    border-radius: 3px;
 }
 
 /*
@@ -306,16 +307,13 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
     -ms-box-sizing: border-box;
     box-sizing: border-box;
 }
-.sp-top {
-    margin-bottom: 3px;
-}
 
 /* Input */
 .sp-input-container {
     float: left;
     width: 64%;
     margin-bottom: 4px;
-    margin-top: -2px;
+    margin-top: -3px;
 }
 .sp-input {
     height: 30px;
@@ -323,7 +321,7 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
     padding-left: 4px;
     background-color: var(--color-back);
     border: 1px solid var(--color-border);
-    font-family: monospace;
+    font-family: var(--font-code);
     font-size: 0.8em;
 }
 .sp-input.sp-validation-error {
@@ -333,8 +331,6 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
     float:left;
     position: relative;
     padding: 10px;
-    padding-bottom: 300px;
-    margin-bottom: -300px;
 }
 .sp-picker-container {
     width: 172px;
@@ -446,9 +442,6 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
     border: 2px solid var(--color-border);
 }
 
-.sp-container {
-    padding-bottom: 3px;
-}
 
 
 /* Buttons: http://hellohappy.org/css3-buttons/ */
@@ -467,15 +460,6 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
     text-decoration:none;
 }
 
-#main_colorpicker_preview {
-    width: 100%;
-    height: 12px;
-    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAIAAADZF8uwAAAAGUlEQVQYV2M4gwH+YwCGIasIUwhT25BVBADtzYNYrHvv4gAAAABJRU5ErkJggg==);
-}
-#main_colorpicker_preview > div {
-    width: 100%;
-    height: 12px;
-}
 
 
 .sp-palette span:hover, .sp-palette span.sp-thumb-active {

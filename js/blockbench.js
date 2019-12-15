@@ -20,6 +20,7 @@ var Prop = {
 	file_path	  	: '',
 	file_name	  	: '',
 	added_models 	: 0,
+	recording		: null,
 	project_saved 	: true,
 	fps				: 0,
 	zoom			: 100,
@@ -38,11 +39,23 @@ const Project = {
 	set box_uv(v) {
 		if (Project._box_uv != v) {
 			Project._box_uv = v;
-			switchAutoUV(v);
+			switchBoxUV(v);
 		}
 	},
-	texture_width	: 16,
-	texture_height	: 16,
+	get texture_width() {return Project._texture_width},
+	get texture_height() {return Project._texture_height},
+	set texture_width(n) {
+		n = parseInt(n)||16
+		Vue.nextTick(updateProjectResolution)
+		Project._texture_width = n;
+	},
+	set texture_height(n) {
+		n = parseInt(n)||16
+		Vue.nextTick(updateProjectResolution)
+		Project._texture_height = n;
+	},
+	_texture_width	: 16,
+	_texture_height	: 16,
 	ambientocclusion: true,
 	get optional_box_uv() {
 		return Format.optional_box_uv;
@@ -53,92 +66,6 @@ const sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 
 
 $.ajaxSetup({ cache: false });
 
-function initializeApp() {
-	//Browser Detection
-	Blockbench.browser = 'electron'
-	if (isApp === false) {
-		if (navigator.userAgent.toLowerCase().indexOf('firefox') > -1) {
-			Blockbench.browser = 'firefox'
-		} else if (!!window.chrome && !!window.chrome.webstore) {
-			Blockbench.browser = 'chrome'
-		} else if ((!!window.opr && !!opr.addons) || !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0) {
-			Blockbench.browser = 'opera'
-		} else if (/constructor/i.test(window.HTMLElement) || (function (p) { return p.toString() === "[object SafariRemoteNotification]"; })(!window['safari'] || (typeof safari !== 'undefined' && safari.pushNotification))) {
-			Blockbench.browser = 'safari'
-		} else if (!!document.documentMode) {
-			Blockbench.browser = 'internet_explorer'
-		} else if (!!window.StyleMedia) {
-			Blockbench.browser = 'edge'
-		}
-		if (navigator.appVersion.indexOf("Win") != -1) 	OSName = 'Windows';
-		if (navigator.appVersion.indexOf("Mac") != -1) 	OSName = 'MacOS';
-		if (navigator.appVersion.indexOf("Linux") != -1)OSName = 'Linux';
-		if (['edge', 'internet_explorer'].includes(Blockbench.browser)) {
-			alert(capitalizeFirstLetter(Blockbench.browser)+' does not support Blockbench')
-		}
-		$('.local_only').remove()
-	} else {
-		$('.web_only').remove()
-	}
-	BARS.setupActions()
-	BARS.setupToolbars()
-	BARS.setupVue()
-	MenuBar.setup()
-
-	//Misc
-	translateUI()
-	console.log('Blockbench ' + appVersion + (isApp
-		? (' Desktop (' + Blockbench.operating_system +')')
-		: (' Web ('+capitalizeFirstLetter(Blockbench.browser)+')')
-	))
-	var startups = parseInt(localStorage.getItem('startups')||0);
-	localStorage.setItem('startups', startups+1);
-
-
-	if (isApp) {
-		updateRecentProjects()
-	}
-	
-	setInterval(function() {
-		Prop.fps = framespersecond;
-		framespersecond = 0;
-	}, 1000)
-
-	main_uv = new UVEditor('main_uv', false, true)
-	main_uv.setToMainSlot()
-
-	onVueSetup.funcs.forEach((func) => {
-		if (typeof func === 'function') {
-			func()
-		}
-	})
-
-//JQuery UI
-	$('#cubes_list').droppable({
-		greedy: true,
-		accept: 'div.outliner_object',
-		tolerance: 'pointer',
-		hoverClass: 'drag_hover',
-		drop: function(event, ui) {
-			var item = Outliner.root.findRecursive('uuid', $(ui.draggable).parent().attr('id'))
-			dropOutlinerObjects(item, undefined, event)
-		}
-	})
-	$('#cubes_list').contextmenu(function(event) {
-		event.stopPropagation();
-		event.preventDefault();
-		Interface.Panels.outliner.menu.show(event)
-	})
-	$('#texture_list').contextmenu(function(event) {
-		Interface.Panels.textures.menu.show(event)
-	})
-
-	setupInterface()
-	setupDragHandlers()
-	Modes.options.start.select()
-	Blockbench.setup_successful = true
-
-}
 function onVueSetup(func) {
 	if (!onVueSetup.funcs) {
 		onVueSetup.funcs = []
@@ -187,6 +114,10 @@ function updateNslideValues() {
 			BarItems.rescale_toggle.setIcon(selected[0].rescale ? 'check_box' : 'check_box_outline_blank')
 		}
 	}
+	if (Modes.animate && Group.selected) {
+		//BarItems.slider_ik_chain_length.update();
+		//BarItems.ik_enabled.setIcon(Group.selected.ik_enabled ? 'check_box' : 'check_box_outline_blank')
+	}
 }
 function setProjectResolution(width, height, modify_uv) {
 	if (Project.texture_width / width != Project.texture_width / height) {
@@ -232,6 +163,9 @@ function setProjectResolution(width, height, modify_uv) {
 		main_uv.loadData()
 	}
 }
+function updateProjectResolution() {
+	$('#project_resolution_status').text(`${Project.texture_width} ⨉ ${Project.texture_height}`);
+}
 
 //Selections
 function updateSelection() {
@@ -242,6 +176,7 @@ function updateSelection() {
 			obj.unselect()
 		}
 	})
+
 	Cube.all.forEach(cube => {
 		if (cube.visibility) {
 			var mesh = cube.mesh
@@ -271,29 +206,33 @@ function updateSelection() {
 		}
 	}
 	if (Modes.animate) {
-		updateKeyframeSelection()
+		updateKeyframeSelection();
 	}
 
-	BarItems.cube_counter.update()
-	updateNslideValues()
-	Blockbench.globalMovement = isMovementGlobal()
+	BarItems.cube_counter.update();
+	updateNslideValues();
+	Blockbench.globalMovement = isMovementGlobal();
+	updateCubeHighlights();
+	Canvas.updateOrigin();
+	Transformer.updateSelection();
+	Transformer.update();
 
-	Canvas.updateOrigin()
-	Transformer.updateSelection()
-	Transformer.update()
-
-	BARS.updateConditions()
+	BARS.updateConditions();
 	delete TickUpdates.selection;
-	Blockbench.dispatchEvent('update_selection')
+	Blockbench.dispatchEvent('update_selection');
 }
 function selectAll() {
-	if (selected.length < elements.length) {
-		elements.forEach(obj => {
-			obj.selectLow()
-		})
-		updateSelection()
-	} else {
-		unselectAll()
+	if (Modes.animate) {
+		selectAllKeyframes()
+	} else if (Modes.edit || Modes.paint) {
+		if (selected.length < elements.length) {
+			elements.forEach(obj => {
+				obj.selectLow()
+			})
+			updateSelection()
+		} else {
+			unselectAll()
+		}
 	}
 	Blockbench.dispatchEvent('select_all')
 }
@@ -448,6 +387,11 @@ BARS.defineActions(function() {
 			Cube.all.forEach(cube => {
 				Canvas.buildGridBox(cube)
 			})
+			$('#main_colorpicker').spectrum('set', ColorPanel.vue._data.main_color);
+			BarItems.slider_color_h.update();
+			BarItems.slider_color_s.update();
+			BarItems.slider_color_v.update();
+
 		},
 		onUnselect: () => {
 			Cube.all.forEach(cube => {
@@ -474,7 +418,7 @@ BARS.defineActions(function() {
 		default_tool: 'move_tool',
 		category: 'navigate',
 		center_windows: ['preview', 'timeline'],
-		keybind: new Keybind({key: 51}),
+		keybind: new Keybind({key: 52}),
 		condition: () => Format.animation_mode,
 		onSelect: () => {
 			Animator.join()
@@ -483,6 +427,10 @@ BARS.defineActions(function() {
 			Animator.leave()
 		}
 	})
+	//Update to 3.2.0
+	if (Modes.options.animate.keybind.key == 51) {
+		Modes.options.animate.keybind.set({key: 52})
+	}
 })
 //Backup
 setInterval(function() {
@@ -522,145 +470,9 @@ const TickUpdates = {
 			delete TickUpdates.keyframe_selection;
 			Vue.nextTick(updateKeyframeSelection)
 		}
-	}
-}
-const Clipbench = {
-	elements: [],
-	copy(event, cut) {
-		var p = Prop.active_panel
-		var text = window.getSelection()+'';
-		if (text) {
-			Clipbench.setText(text)
-
-		} else if (open_dialog == 'uv_dialog') {
-			uv_dialog.copy(event)
-
-		} else if (display_mode) {
-			DisplayMode.copy()
-
-		} else if (Animator.open) {
-			if (Timeline.selected.length) {
-				Clipbench.setKeyframes()
-				if (cut) {
-					BarItems.delete.trigger()
-				}
-			}
-		} else if (p == 'uv' || p == 'preview') {
-			main_uv.copy(event)
-			
-		} else if (p == 'textures' && isApp) {
-			if (textures.selected) {
-				Clipbench.setTexture(textures.selected)
-				if (cut) {
-					BarItems.delete.trigger()
-				}
-			}
-		} else if (p == 'outliner') {
-			Clipbench.setElements()
-			Clipbench.setGroup()
-			if (Group.selected) {
-				Clipbench.setGroup(Group.selected)
-			} else {
-				Clipbench.setElements(selected)
-			}
-			if (cut) {
-				BarItems.delete.trigger()
-			}
-		}
-	},
-	paste(event) {
-		var p = Prop.active_panel
-		if (open_dialog == 'uv_dialog') {
-			uv_dialog.paste(event)
-		} else if (display_mode) {
-			DisplayMode.paste()
-		} else if (Animator.open) {
-			Clipbench.pasteKeyframes()
-		} else if (p == 'uv' || p == 'preview') {
-			main_uv.paste(event)
-		} else if (p == 'textures' && isApp) {
-			Clipbench.pasteTextures();
-		} else if (p == 'outliner') {
-			
-			Undo.initEdit({outliner: true, elements: [], selection: true});
-			//Group
-			var target = 'root'
-			if (Group.selected) {
-				target = Group.selected
-				Group.selected.isOpen = true
-			} else if (selected[0]) {
-				target = selected[0]
-			}
-			selected.length = 0
-			if (isApp) {
-				var raw = clipboard.readHTML()
-				try {
-					var data = JSON.parse(raw)
-					if (data.type === 'elements' && data.content) {
-						Clipbench.group = undefined;
-						Clipbench.elements = data.content;
-					} else if (data.type === 'group' && data.content) {
-						Clipbench.group = data.content;
-						Clipbench.elements = [];
-					}
-				} catch (err) {}
-			}
-			if (Clipbench.group) {
-				function iterate(obj, parent) {
-					if (obj.children) {
-						var copy = new Group(obj).addTo(parent).init()
-						if (Format.bone_rig) {
-							copy.createUniqueName();
-						}
-						if (obj.children && obj.children.length) {
-							obj.children.forEach((child) => {
-								iterate(child, copy)
-							})
-						}
-					} else {
-						var el = NonGroup.fromSave(obj).addTo(parent).selectLow();
-						Canvas.adaptObjectPosition(el);
-					}
-				}
-				iterate(Clipbench.group, target)
-				updateSelection()
-
-			} else if (Clipbench.elements && Clipbench.elements.length) {
-				Clipbench.elements.forEach(function(obj) {
-					NonGroup.fromSave(obj).addTo(target).selectLow()
-				})
-				updateSelection()
-			}
-			Undo.finishEdit('paste', {outliner: true, elements: selected, selection: true});
-		}
-	},
-	setGroup(group) {
-		if (!group) {
-			Clipbench.group = undefined
-			return;
-		}
-		Clipbench.group = group.getSaveCopy()
-		if (isApp) {
-			clipboard.writeHTML(JSON.stringify({type: 'group', content: Clipbench.group}))
-		}
-	},
-	setElements(arr) {
-		if (!arr) {
-			Clipbench.elements = []
-			return;
-		}
-		arr.forEach(function(obj) {
-			Clipbench.elements.push(obj.getSaveCopy())
-		})
-		if (isApp) {
-			clipboard.writeHTML(JSON.stringify({type: 'elements', content: Clipbench.elements}))
-		}
-	},
-	setText(text) {
-		if (isApp) {
-			clipboard.writeText(text)
-		} else {
-			document.execCommand('copy')
+		if (TickUpdates.keybind_conflicts) {
+			delete TickUpdates.keybind_conflicts;
+			updateKeybindConflicts();
 		}
 	}
 }

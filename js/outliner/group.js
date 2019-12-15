@@ -4,7 +4,7 @@ class Group extends OutlinerElement {
 		super()
 		this.name = Format.bone_rig ? 'bone' : 'group'
 		this.children = []
-		if (Format.bone_rig) {
+		if (Format.centered_grid) {
 			this.origin = [0, 0, 0];
 		} else {
 			this.origin = [8, 8, 8];
@@ -12,13 +12,14 @@ class Group extends OutlinerElement {
 		this.rotation = [0, 0, 0];
 		this.reset = false;
 		this.shade = true;
-		this.material;
 		this.selected = false;
 		this.visibility = true;
 		this.export = true;
 		this.autouv = 0;
 		this.parent = 'root';
 		this.isOpen = false;
+		this.ik_enabled = false;
+		this.ik_chain_length = 0;
 
 		if (typeof data === 'object') {
 			this.extend(data)
@@ -28,10 +29,10 @@ class Group extends OutlinerElement {
 	}
 	extend(object) {
 		Merge.string(this, object, 'name')
+		this.sanitizeName();
 		Merge.boolean(this, object, 'shade')
 		Merge.boolean(this, object, 'mirror_uv')
 		Merge.boolean(this, object, 'reset')
-		Merge.string(this, object, 'material')
 		if (object.origin) {
 			Merge.number(this.origin, object.origin, 0)
 			Merge.number(this.origin, object.origin, 1)
@@ -227,19 +228,6 @@ class Group extends OutlinerElement {
 		this.menu.open(event, this)
 		return this;
 	}
-	setMaterial() {
-		var scope = this;
-		Blockbench.textPrompt('message.bone_material', scope.material, function(id) {
-			Undo.initEdit({outliner: true})
-			if (id) {
-				scope.material = id
-			} else {
-				delete scope.material
-			}
-			Undo.finishEdit('bone_material')
-		})
-		return this;
-	}
 	transferOrigin(origin) {
 		if (!this.mesh) return;
 		var q = new THREE.Quaternion().copy(this.mesh.quaternion)
@@ -325,7 +313,6 @@ class Group extends OutlinerElement {
 		base_group.origin = this.origin.slice();
 		base_group.rotation = this.rotation.slice();
 		base_group.shade = this.shade;
-		base_group.material = this.material;
 		base_group.reset = this.reset;
 		base_group.visibility = this.visibility;
 		base_group.export = this.export;
@@ -338,9 +325,6 @@ class Group extends OutlinerElement {
 		}
 		if (this.shade == false) {
 			obj.shade = false
-		}
-		if (this.material) {
-			obj.material = this.material
 		}
 		if (undo) {
 			obj.uuid = this.uuid;
@@ -408,6 +392,7 @@ class Group extends OutlinerElement {
 	Group.prototype.type = 'group';
 	Group.prototype.icon = 'fa fa-folder';
 	Group.prototype.isParent = true;
+	Group.prototype.name_regex = 'a-zA-Z0-9_'
 	Group.prototype.buttons = [
 		Outliner.buttons.remove,
 		Outliner.buttons.visibility,
@@ -421,7 +406,6 @@ class Group extends OutlinerElement {
 		'paste',
 		'duplicate',
 		'_',
-		{icon: 'layers', name: 'menu.group.material', condition: () => Format.single_texture, click: function(group) {group.setMaterial()}},
 		'add_locator',
 		/*
 		{icon: 'content_copy', name: 'menu.group.duplicate', click: function(group) {

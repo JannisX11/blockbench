@@ -227,15 +227,16 @@ class OutlinerElement {
 	}
 	saveName(save) {
 		var scope = this;
-		if (save !== false && scope.name.length > 0) {
-			var name = scope.name
-			scope.name = scope.old_name
+		if (save !== false && scope.name.trim().length > 0 && scope.name != scope.old_name) {
+			var name = scope.name.trim();
+			scope.name = scope.old_name;
 			if (scope.type === 'group') {
 				Undo.initEdit({outliner: true})
 			} else {
 				Undo.initEdit({elements: [scope]})
 			}
 			scope.name = name
+			scope.sanitizeName();
 			delete scope.old_name
 			if (Condition(scope.needsUniqueName)) {
 				scope.createUniqueName()
@@ -247,12 +248,31 @@ class OutlinerElement {
 		}
 		return this;
 	}
+	sanitizeName() {
+		if (this.name_regex) {
+			var name_regex = typeof this.name_regex == 'function' ? this.name_regex(this) : this.name_regex;
+			var regex = new RegExp(`[^${name_regex}]`);
+			this.name = this.name.replace(regex, '');
+		}
+	}
 	createUniqueName(arr) {
 		var scope = this;
 		var others = this.constructor.all.slice();
 		if (arr && arr.length) {
 			arr.forEach(g => {
 				others.safePush(g)
+			})
+		}
+		if (Format.outliner_name_pattern) {
+			var rgx = new RegExp(`[^${Format.outliner_name_pattern}]`, 'g');
+			this.name = this.name.replace(rgx, c => {
+				if (c == '-' && '_'.search(rgx) == -1) {
+					return '_';
+				}
+				if (c.toLowerCase().search(rgx) == -1) {
+					return c.toLowerCase();
+				}
+				return '';
 			})
 		}
 		var name = this.name.replace(/\d+$/, '').replace(/\s+/g, '_');
@@ -387,6 +407,9 @@ class NonGroup extends OutlinerElement {
 			selected[index] = copy
 		} else {
 			selected.push(copy)
+		}
+		if (Condition(copy.needsUniqueName)) {
+			copy.createUniqueName()
 		}
 		TickUpdates.outliner = true;
 		TickUpdates.selection = true;
@@ -809,22 +832,27 @@ function renameOutliner(element) {
 	} else {
 
 		if (Group.selected && !element) {
-			Blockbench.textPrompt(tl('message.rename_cubes'), Group.selected.name, function (name) {
-
-				Undo.initEdit({group: Group.selected})
-				Group.selected.name = name
-				if (Format.bone_rig) {
-					Group.selected.createUniqueName()
+			Blockbench.textPrompt('generic.rename', Group.selected.name, function (name) {
+				name = name.trim();
+				if (name) {
+					Undo.initEdit({group: Group.selected})
+					Group.selected.name = name
+					if (Format.bone_rig) {
+						Group.selected.createUniqueName()
+					}
+					Undo.finishEdit('rename group')
 				}
-				Undo.finishEdit('rename group')
 			})
 		} else if (selected.length) {
-			Blockbench.textPrompt(tl('message.rename_cubes'), selected[0].name, function (name) {
-				Undo.initEdit({elements: selected})
-				selected.forEach(function(obj, i) {
-					obj.name = name.replace(/%/g, obj.index).replace(/\$/g, i)
-				})
-				Undo.finishEdit('rename')
+			Blockbench.textPrompt('generic.rename', selected[0].name, function (name) {
+				name = name.trim();
+				if (name) {
+					Undo.initEdit({elements: selected})
+					selected.forEach(function(obj, i) {
+						obj.name = name.replace(/%/g, obj.index).replace(/\$/g, i)
+					})
+					Undo.finishEdit('rename')
+				}
 			})
 		}
 	}
@@ -964,6 +992,7 @@ BARS.defineActions(function() {
 	new Action('local_move', {
 		icon: 'check_box',
 		category: 'edit',
+		condition: () => Modes.edit,
 		linked_setting: 'local_move',
 		click: function () {
 			BarItems.local_move.toggleLinkedSetting()
@@ -983,7 +1012,7 @@ BARS.defineActions(function() {
 		icon: 'filter_list',
 		category: 'edit',
 		keybind: new Keybind({key: 70, ctrl: true}),
-		condition: () => Modes.edit || Modes.paint,
+		condition: () => Modes.edit || Modes.paivnt,
 		click: function () {
 			showDialog('selection_creator')
 			$('#selgen_name').focus()
@@ -1010,7 +1039,7 @@ BARS.defineActions(function() {
 	new Action('select_all', {
 		icon: 'select_all',
 		category: 'edit',
-		condition: () => Modes.edit || Modes.paint,
+		condition: () => !Modes.display,
 		keybind: new Keybind({key: 65, ctrl: true}),
 		click: function () {selectAll()}
 	})

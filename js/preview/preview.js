@@ -1,7 +1,7 @@
 var scene, main_preview, previews,
 	Sun, lights,
-	emptyMaterials, northMarkMaterial,
-	outlines, wireframeMaterial,
+	emptyMaterials,
+	outlines,
 	Transformer,
 	canvas_scenes,
 	display_scene, display_area, display_base;
@@ -15,7 +15,27 @@ var gizmo_colors = {
 	r: new THREE.Color(0xfd3043),
 	g: new THREE.Color(0x26ec45),
 	b: new THREE.Color(0x2d5ee8),
-	outline: new THREE.Color()
+	grid: new THREE.Color(0x495061),
+	wire: new THREE.Color(0x576f82),
+	outline: new THREE.Color(0x3e90ff)
+}
+function updateCubeHighlights(hover_cube) {
+	Cube.all.forEach(cube => {
+		if (cube.visibility) {
+			var mesh = cube.mesh;
+			mesh.geometry.faces.forEach(face => {
+				var b_before = face.color.b;
+				if ((hover_cube == cube || cube.selected) && Modes.edit) {
+					face.color.setRGB(1.3, 1.32, 1.34);
+				} else {
+					face.color.setRGB(1, 1, 1);
+				}
+				if (face.color.b != b_before) {
+					mesh.geometry.colorsNeedUpdate = true;
+				}
+			})
+		}
+	})
 }
 
 class Preview {
@@ -32,7 +52,7 @@ class Preview {
 		this.width = 0;
 		//Cameras
 		this.isOrtho = false
-		this.camPers = new THREE.PerspectiveCamera(45, 16 / 9, 1, 3000)
+		this.camPers = new THREE.PerspectiveCamera(45, 16 / 9, 1, 30000)
 		this.camOrtho = new THREE.OrthographicCamera(-600,  600, -400, 400, 0.5, 200);
 		this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'y'}]
 		this.camOrtho.axis = null
@@ -45,9 +65,30 @@ class Preview {
 		//Controls
 		this.controls = new THREE.OrbitControls(this.camPers, this);
 		this.controls.minDistance = 1;
-		this.controls.maxDistance = 512;
+		this.controls.maxDistance = 3960;
 		this.controls.enableKeys = false;
-		this.controls.zoomSpeed = 1.5
+		this.controls.zoomSpeed = 1.5;
+
+		this.annotations = [];
+		this.controls.onUpdate(() => {
+			setTimeout(() => {
+			this.annotations.forEach(tag => {
+				if (tag.object.visible) {
+					var pos = tag.object.toScreenPosition(this.camera, this.canvas);
+					$(tag.node).css('left', pos.x+'px');
+					$(tag.node).css('top', pos.y+'px');
+				}
+			})
+			}, 6)
+		})
+		this.addExampleTag = function() {
+			var obj = $('<div style="position: absolute; background: #fff; color: #000;">Hallo</div>');
+			obj.insertBefore(scope.canvas);
+			this.annotations.push({
+				object: Cube.selected[0].mesh,
+				node: obj.get(0),
+			})
+		}
 
 		this.resetCamera(true)
 
@@ -72,18 +113,21 @@ class Preview {
 
 		this.raycaster = new THREE.Raycaster()
 		this.mouse = new THREE.Vector2();
-		this.canvas.addEventListener('mousedown', 	function(event) { scope.click(event)}, false)
-		this.canvas.addEventListener('mousemove', 	function(event) { scope.static_rclick = false}, false)
-		this.canvas.addEventListener('mouseup',		function(event) { scope.showContextMenu(event)}, false)
-		this.canvas.addEventListener('dblclick', 	function(event) {Toolbox.toggleTransforms(event)}, false)
-		this.canvas.addEventListener('touchstart', 	function(event) { scope.onTouchStart(event)}, false)
-		this.canvas.addEventListener('mouseenter', 	function(event) { scope.occupyTransformer(event)}, false)
+		addEventListeners(this.canvas, 'mousedown touchstart', 	function(event) { scope.click(event)}, { passive: false })
+		addEventListeners(this.canvas, 'mousemove touchmove', 	function(event) { scope.static_rclick = false}, false)
+		addEventListeners(this.canvas, 'mousemove', 			function(event) { scope.mousemove(event)}, false)
+		addEventListeners(this.canvas, 'mouseup touchend',		function(event) { scope.showContextMenu(event)}, false)
+		addEventListeners(this.canvas, 'dblclick', 				function(event) {Toolbox.toggleTransforms(event)}, false)
+		addEventListeners(this.canvas, 'mouseenter touchstart', function(event) { scope.occupyTransformer(event)}, false)
 
 		Blockbench.addDragHandler('preview_'+this.id, {
 			extensions: ['jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'],
 			element: this.canvas,
 			readtype: 'image',
 		}, function(files) {
+			if (!scope.background.imgtag) {
+				scope.background.imgtag = new Image();
+			}
 			if (isApp) {
 				scope.background.image = files[0].path
 			} else {
@@ -119,9 +163,10 @@ class Preview {
 		return this;
 	}
 	raycast(event) {
+		convertTouchEvent(event);
 		var canvas_offset = $(this.canvas).offset()
-		this.mouse.x = ((mouse_pos.x - canvas_offset.left) / this.width) * 2 - 1;
-		this.mouse.y = - ((mouse_pos.y - canvas_offset.top) / this.height) * 2 + 1;
+		this.mouse.x = ((event.clientX - canvas_offset.left) / this.width) * 2 - 1;
+		this.mouse.y = - ((event.clientY - canvas_offset.top) / this.height) * 2 + 1;
 		if (this.isOrtho === true) {
 			this.raycaster.setFromCamera( this.mouse, this.camOrtho );
 		} else {
@@ -188,6 +233,9 @@ class Preview {
 		)
 	}
 	//Camera
+	get camera() {
+		return this.isOrtho ? this.camOrtho : this.camPers;
+	}
 	setNormalCamera() {
 		this.isOrtho = false;
 		this.camOrtho.axis = null
@@ -308,16 +356,17 @@ class Preview {
 	}
 	//Controls
 	click(event) {
+		event.preventDefault()
 		$(':focus').blur()
 		unselectInterface(event)
-		this.static_rclick = event.button === 2
+		convertTouchEvent(event);
+		this.static_rclick = event.which === 3 || event.type == 'touchstart';
 		quad_previews.current = this;
 		if (Transformer.hoverAxis !== null || (!Keybinds.extra.preview_select.keybind.isTriggered(event) && event.which !== 0)) return;
-		event.preventDefault()
 
-		var data = this.raycast(event)
+		var data = this.raycast(event);
 		if (data) {
-			this.static_rclick = false
+			//this.static_rclick = false
 			if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data.type === 'cube') {
 				if (Toolbox.selected.selectFace) {
 					main_uv.setFace(data.face, false)
@@ -332,7 +381,7 @@ class Preview {
 					event.shiftKey
 				)) {
 					if (data.cube.parent.type === 'group') {
-						data.cube.parent.select()
+						data.cube.parent.select().showInOutliner();
 					}
 				} else {
 					data.cube.select(event)
@@ -342,11 +391,20 @@ class Preview {
 				Toolbox.selected.onCanvasClick(data)
 			}
 			return true;
-		} else if (this.isOrtho && this.camOrtho.axis || this.movingBackground) {
+		}
+		if (typeof Toolbox.selected.onCanvasClick === 'function') {
+			Toolbox.selected.onCanvasClick(0)
+		}
+
+		if (this.isOrtho && this.camOrtho.axis || this.movingBackground) {
 			this.startSelRect(event)
 		} else {
 			return false;
 		}
+	}
+	mousemove(event) {
+		var data = this.raycast(event);
+		updateCubeHighlights(data && data.cube);
 	}
 	raycastMouseCoords(x,y) {
 		var scope = this;
@@ -356,13 +414,7 @@ class Preview {
 		scope.raycaster.setFromCamera( scope.mouse, scope.camOrtho );
 		return scope.raycaster.ray.origin
 	}
-	onTouchStart( event ) {
-		event.preventDefault();
-		event.clientX = event.touches[0].clientX;
-		event.clientY = event.touches[0].clientY;
-		this.click(event)
-	}
-	occupyTransformer() {
+	occupyTransformer(event) {
 		Transformer.camera = this.isOrtho ? this.camOrtho : this.camPers
 		Transformer.orbit_controls = this.controls
 		Transformer.setCanvas(this.canvas)
@@ -370,11 +422,15 @@ class Preview {
 		if (quad_previews) {
 			quad_previews.hovered = this;
 		}
+		if (event && event.type == 'touchstart') {
+			Transformer.simulateMouseDown(event);
+		}
 		return this;
 	}
-	showContextMenu(event) {
-		if (this.static_rclick && event.which === 3) {
-			var data = this.raycast()
+	showContextMenu(event, force) {
+		Prop.active_panel = 'preview';
+		if (this.static_rclick && (event.which === 3 || event.type == 'touchend')) {
+			var data = this.raycast(event)
 			if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data && data.cube) {
 				data.cube.showContextMenu(event)
 			} else {
@@ -389,14 +445,14 @@ class Preview {
 		if (Modes.edit || this.movingBackground) {
 			this.sr_move_f = function(event) { scope.moveSelRect(event)}
 			this.sr_stop_f = function(event) { scope.stopSelRect(event)}
-			this.canvas.addEventListener('mousemove', 	this.sr_move_f, false)
+			document.addEventListener('mousemove', 	this.sr_move_f, false)
 			document.addEventListener('mouseup', 	this.sr_stop_f, false)
 		}
 
 		this.selection.start_x = event.offsetX+0
 		this.selection.start_y = event.offsetY+0
 		this.selection.client_x = event.clientX+0
-		this.selection.client_x = event.clientY+0
+		this.selection.client_y = event.clientY+0
 
 		if (this.movingBackground) {
 			this.background.before = {
@@ -436,12 +492,11 @@ class Preview {
 		var uv_axes = this.getUVAxes()
 		//Overlay
 		var c = getRectangle(
-			this.selection.start_x,
-			this.selection.start_y,
-			event.offsetX,
-			event.offsetY
+			Math.clamp(this.selection.start_x, -2, this.width),
+			Math.clamp(this.selection.start_y, -2, this.height),
+			Math.clamp(this.selection.start_x + (event.clientX - this.selection.client_x), -2, this.width),
+			Math.clamp(this.selection.start_y + (event.clientY - this.selection.client_y), -2, this.height),
 		)
-		if (this.movingBackground) return;
 		this.selection.box.css('left', c.ax+'px')
 		this.selection.box.css('top',  c.ay+'px')
 
@@ -500,7 +555,7 @@ class Preview {
 	}
 	stopSelRect(event) {
 		var scope = this;
-		this.canvas.removeEventListener('mousemove', this.sr_move_f)
+		document.removeEventListener('mousemove', this.sr_move_f)
 		document.removeEventListener('mouseup',	this.sr_stop_f)
 		if (this.movingBackground) {
 			delete this.background.before
@@ -530,7 +585,7 @@ class Preview {
 			}
 		} else if (this.isOrtho) {
 			this.background = canvas_scenes['ortho'+this.angle]
-		} else if (true) {
+		} else {
 			this.background = canvas_scenes.normal
 		}
 		return this.background
@@ -538,6 +593,8 @@ class Preview {
 	loadBackground() {
 		this.getBackground()
 		if (this.background && this.background.image) {
+			if (!this.background.imgtag) this.background.imgtag = new Image();
+			this.background.imgtag.src = this.background.image;
 			$(this.canvas).css('background-image', 'url("'+this.background.image.split('\\').join('/')+'")')
 		} else {
 			$(this.canvas).css('background-image', 'none')
@@ -575,6 +632,9 @@ class Preview {
 		return this;
 	}
 	startMovingBackground() {
+		if (this.movingBackground) {
+			this.stopMovingBackground()
+		}
 		this.movingBackground = true;
 		this.controls.enabled_before = this.controls.enabled
 		this.controls.enabled = false
@@ -590,6 +650,9 @@ class Preview {
 	}
 	backgroundPositionDialog() {
 		var scope = this;
+		if (this.movingBackground) {
+			this.stopMovingBackground()
+		}
 		var dialog = new Dialog({
 			id: 'background_position',
 			title: tl('message.set_background_position.title'),
@@ -621,6 +684,7 @@ class Preview {
 	//Misc
 	screenshot(options, cb) {
 		var scope = this;
+		if (!options) options = 0;
 
 		Canvas.withoutGizmos(function() {
 
@@ -639,7 +703,9 @@ class Preview {
 					
 					image.crop(start_x, start_y, resolution, resolution)
 				} else {
-					image.autocrop([0, false])
+					if (options.crop !== false) {
+						image.autocrop([0, false])
+					}
 					if (options && options.width && options.height) {
 						image.contain(options.width, options.height)
 					}
@@ -689,6 +755,7 @@ class Preview {
 		{icon: 'icon-player', name: 'settings.display_skin', condition: () => (display_mode && displayReferenceObjects.active.id === 'player'), click: function() {
 			changeDisplaySkin()
 		}},
+		'toggle_checkerboard',
 		{icon: 'wallpaper', name: 'menu.preview.background', children: function(preview) {
 			var has_background = !!preview.background.image
 			return [
@@ -777,6 +844,7 @@ function openQuadView() {
 
 
 const Screencam = {
+	recording_timelapse: false,
 	fullScreen(options, cb) {
 		setTimeout(function() {
 			currentwindow.capturePage(function(screenshot) {
@@ -884,6 +952,39 @@ const Screencam = {
 			preview.controls.autoRotateSpeed = options.turnspeed;
 		}
 
+		if (!options.silent) {
+			Blockbench.setStatusBarText(tl('status_bar.recording_gif'));
+			gif.on('progress', Blockbench.setProgress);
+		}
+
+		var frames = 0;
+		var loop = setInterval(() => {
+			frames++;
+			Canvas.withoutGizmos(function() {
+				var img = new Image();
+				preview.render();
+				img.src = preview.canvas.toDataURL();
+				img.onload = () => {
+					gif.addFrame(img, {delay: interval});
+				}
+			})
+			Blockbench.setProgress(interval*frames/options.length);
+		}, interval)
+
+		var endTimer = setTimeout(() => {
+			gif.render();
+			clearInterval(loop)
+			if (!options.silent) {
+				Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
+			}
+			if (Animator.open && Timeline.playing) {
+				Timeline.pause();
+			}
+			if (options.turnspeed) {
+				preview.controls.autoRotate = false;
+			}
+		}, options.length)
+
 		gif.on('finished', blob => {
 			var reader = new FileReader();
 			reader.onload = () => {
@@ -895,47 +996,70 @@ const Screencam = {
 			}
 			reader.readAsDataURL(blob);
 		});
-		if (!options.silent) {
-			Blockbench.setStatusBarText(tl('status_bar.recording_gif'));
-			gif.on('progress', Blockbench.setProgress);
-		}
+	},
 
-		var frames = 0;
-		var loop = setInterval(() => {
-			frames++;
-			var last_frame = frames >= options.length / interval;
-			if (last_frame) {
-				clearInterval(loop)
-				if (!options.silent) {
-					Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
+	recordTimelapse(options) {
+		if (!options.destination) return;
+
+		Prop.recording = true;
+		BarItems.timelapse.setIcon('pause');
+		Blockbench.showQuickMessage('message.timelapse_start');
+
+		var index = 0;
+		function saveImage(image) {
+			var path = `${options.destination}${osfs}${Project.name||'model'}_${index.toDigitString(4)}.png`;
+			fs.writeFile(path, image, (e, b) => {});
+			
+		}
+		if (options.source === 'locked') {
+			var view_pos = new THREE.Vector3().copy(quad_previews.current.camera.position);
+			var view_tar = new THREE.Vector3().copy(quad_previews.current.controls.target);
+		}
+		Screencam.timelapse_loop = setInterval(function() {
+			index++;
+
+			if (!isApp || options.source === 'preview' || options.source === 'locked') {
+				var scope = quad_previews.current;
+				if (options.source === 'locked') {
+					var old_pos = new THREE.Vector3().copy(scope.camera.position);
+					var old_tar = new THREE.Vector3().copy(scope.controls.target);
+					scope.camera.position.copy(view_pos);
+					scope.controls.target.copy(view_tar);
 				}
-				if (Animator.open && Timeline.playing) {
-					Timeline.pause();
-				}
-				if (options.turnspeed) {
-					preview.controls.autoRotate = false;
-				}
-			}
-			Canvas.withoutGizmos(function() {
-				var img = new Image();
-				preview.render();
-				img.src = preview.canvas.toDataURL();
-				img.onload = () => {
-					gif.addFrame(img, {delay: interval});
-					if (last_frame) {
-						gif.render();
+
+				Canvas.withoutGizmos(function() {
+
+					scope.render();
+					var dataUrl = scope.canvas.toDataURL();
+					saveImage(nativeImage.createFromDataURL(dataUrl).toPNG());
+
+					if (options.source === 'locked') {
+						scope.camera.position.copy(old_pos);
+						scope.controls.target.copy(old_tar);
 					}
-				}
-			})
-			Blockbench.setProgress(interval*frames/options.length);
-		}, interval)
+
+				})
+			} else {
+				currentwindow.capturePage((image) => {
+					saveImage(image.toPNG());
+				});
+			}
+
+		}, options.interval*1000);
+	},
+	stopTimelapse() {
+		if (Prop.recording) {
+			Prop.recording = false;
+			clearInterval(Screencam.timelapse_loop);
+			BarItems.timelapse.setIcon('timelapse');
+			Blockbench.showQuickMessage('message.timelapse_stop');
+		}
 	}
 }
 
 //Init/Update
 function initCanvas() {
 
-	wireframeMaterial = new THREE.LineBasicMaterial({color: 0x74c2ff})
 	previews = []
 	
 	//Objects
@@ -1082,6 +1206,7 @@ function initCanvas() {
 	cubeColors.forEach(function(s, i) {
 		var thismaterial = new THREE.MeshLambertMaterial({
 			color: 0xffffff,
+			vertexColors: THREE.FaceColors,
 			map: tex
 		})
 		thismaterial.color.set(s.hex)
@@ -1097,7 +1222,7 @@ function initCanvas() {
 	img.onload = function() {
 		this.tex.needsUpdate = true;
 	}
-	northMarkMaterial = new THREE.MeshBasicMaterial({
+	Canvas.northMarkMaterial = new THREE.MeshBasicMaterial({
 		map: tex,
 		transparent: true,
 		side: THREE.DoubleSide,
@@ -1154,10 +1279,10 @@ function buildGrid() {
 	if (Modes.display && settings.display_grid.value === false) return;
 
 	three_grid.name = 'grid_group'
-	gizmo_colors.grid = new THREE.Color(parseInt('0x'+app_colors.grid.hex.replace('#', ''), 16))
+	gizmo_colors.grid.set(parseInt('0x'+CustomTheme.data.colors.grid.replace('#', ''), 16));
 	var material;
 
-	northMarkMaterial.color = gizmo_colors.grid
+	Canvas.northMarkMaterial.color = gizmo_colors.grid
 
 	function setupAxisLine(origin, length, axis) {
 		var color = 'rgb'[getAxisNumber(axis)]
@@ -1175,8 +1300,8 @@ function buildGrid() {
 	}
 	//Axis Lines
 	if (settings.base_grid.value || settings.full_grid.value)
-	if (Format.bone_rig || !settings.full_grid.value) {
-		var length = Format.bone_rig
+	if (Format.centered_grid || !settings.full_grid.value) {
+		var length = Format.centered_grid
 			? (settings.full_grid.value ? 24 : 8)
 			: 16
 		setupAxisLine(new THREE.Vector3( 0, 0.001, 0), length, 'x')
@@ -1191,8 +1316,8 @@ function buildGrid() {
 
 	if (settings.full_grid.value === true) {
 		//Grid
-		var grid = new THREE.GridHelper(48, 48/canvasGridSize(), gizmo_colors.grid, gizmo_colors.grid)
-		if (Format.bone_rig) {
+		var grid = new THREE.GridHelper(48, 48/canvasGridSize(), gizmo_colors.grid)
+		if (Format.centered_grid) {
 			grid.position.set(0,0,0)
 		} else { 
 			grid.position.set(8,0,8)
@@ -1203,8 +1328,8 @@ function buildGrid() {
 
 		//North
 		geometry = new THREE.PlaneGeometry(5, 5)
-		var north_mark = new THREE.Mesh(geometry, northMarkMaterial)
-		if (Format.bone_rig) {
+		var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
+		if (Format.centered_grid) {
 			north_mark.position.set(0,0,-27)
 		} else {
 			north_mark.position.set(8,0,-19)
@@ -1215,8 +1340,8 @@ function buildGrid() {
 	} else {
 		if (settings.large_grid.value === true) {
 			//Grid
-			var grid = new THREE.GridHelper(48, 3, gizmo_colors.grid, gizmo_colors.grid)
-			if (Format.bone_rig) {
+			var grid = new THREE.GridHelper(48, 3, gizmo_colors.grid)
+			if (Format.centered_grid) {
 				grid.position.set(0,0,0)
 			} else { 
 				grid.position.set(8,0,8)
@@ -1228,9 +1353,9 @@ function buildGrid() {
 
 		if (settings.base_grid.value === true) {
 			//Grid
-			var grid = new THREE.GridHelper(16, 16/canvasGridSize(), gizmo_colors.grid, gizmo_colors.grid)
+			var grid = new THREE.GridHelper(16, 16/canvasGridSize(), gizmo_colors.grid)
 
-			if (Format.bone_rig) {
+			if (Format.centered_grid) {
 				grid.position.set(0,0,0)
 			} else { 
 				grid.position.set(8,0,8)
@@ -1241,8 +1366,8 @@ function buildGrid() {
 
 			//North
 			geometry = new THREE.PlaneGeometry(2.4, 2.4)
-			var north_mark = new THREE.Mesh(geometry, northMarkMaterial)
-			if (Format.bone_rig) {
+			var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
+			if (Format.centered_grid) {
 				north_mark.position.set(0,0,-9.5)
 			} else {
 				north_mark.position.set(8,0,-1.5)
@@ -1256,7 +1381,7 @@ function buildGrid() {
 
 		var line_material = new THREE.LineBasicMaterial({color: gizmo_colors.grid});
 		var large_box = new THREE.LineSegments( geometry_box, line_material);
-		if (Format.bone_rig) {
+		if (Format.centered_grid) {
 			large_box.position.set(0,8,0)
 		} else { 
 			large_box.position.set(8,8,8)
@@ -1274,7 +1399,7 @@ function buildGrid() {
 	Canvas.side_grids.x.name = 'side_grid_x'
 	Canvas.side_grids.x.visible = !Modes.display;
 	Canvas.side_grids.x.rotation.z = Math.PI/2;
-	Canvas.side_grids.x.position.y = Format.bone_rig ? 8 : 0;
+	Canvas.side_grids.x.position.y = Format.centered_grid ? 8 : 0;
 	Canvas.side_grids.x.children.forEach(el => {
 		el.layers.set(1)
 	});
@@ -1284,7 +1409,7 @@ function buildGrid() {
 	Canvas.side_grids.z.visible = !Modes.display;
 	Canvas.side_grids.z.rotation.z = Math.PI/2;
 	Canvas.side_grids.z.rotation.y = 1.6
-	Canvas.side_grids.z.position.y = Format.bone_rig ? 8 : 0;
+	Canvas.side_grids.z.position.y = Format.centered_grid ? 8 : 0;
 	Canvas.side_grids.z.children.forEach(el => {
 		el.layers.set(3)
 	});
@@ -1303,6 +1428,19 @@ BARS.defineActions(function() {
 				Animator.preview()
 			}
 			Blockbench.showQuickMessage('message.wireframe.' + (Prop.wireframe ? 'enabled' : 'disabled'))
+		}
+	})
+	new Action('toggle_checkerboard', {
+		icon: 'fa-chess-board',
+		category: 'view',
+		keybind: new Keybind({key: 84}),
+		click: function () {
+			if (Prop.active_panel == 'uv') {
+				var val = $('#uv_viewport').toggleClass('checkerboard').hasClass('checkerboard');
+			} else {
+				var val = $('#center').toggleClass('checkerboard').hasClass('checkerboard');
+			}
+			Blockbench.showQuickMessage('message.checkerboard.' + (val ? 'enabled' : 'disabled'))
 		}
 	})
 
@@ -1340,6 +1478,35 @@ BARS.defineActions(function() {
 					this.hide()
 				}
 			}).show()
+		}
+	})
+	new Action('timelapse', {
+		icon: 'timelapse',
+		category: 'view',
+		condition: isApp,
+		click: function () {
+			if (!Prop.recording) {
+				new Dialog({
+					id: 'timelapse',
+					title: tl('action.timelapse'),
+					draggable: true,
+					form: {
+						interval: 	 {label: 'dialog.timelapse.interval', type: 'number', value: 10, step: 0.25},
+						source: 	 {label: 'dialog.timelapse.source', type: 'select', value: 'preview', options: {
+							preview: 'data.preview',
+							locked: 'dialog.timelapse.source.locked',
+							interface: 'dialog.timelapse.source.interface',
+						}, condition: isApp},
+						destination: {label: 'dialog.timelapse.destination', type: 'folder', value: ''},
+					},
+					onConfirm: function(formData) {
+						Screencam.recordTimelapse(formData);
+						this.hide()
+					}
+				}).show();
+			} else {
+				Screencam.stopTimelapse();
+			}
 		}
 	})
 	new Action('screenshot_app', {

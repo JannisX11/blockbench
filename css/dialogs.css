@@ -8,7 +8,7 @@
 		opacity: 0.6;
 		z-index: 19;
 	}
-	#dialog_close_button {
+	.dialog_close_button {
 		position: absolute;
 		right: 0px;
 		top: 0px;
@@ -16,11 +16,11 @@
 		width: 30px;
 		padding: 4px;
 	}
-	#dialog_close_button:hover {
+	.dialog_close_button:hover {
 		color: var(--color-light);
 		background-color: var(--color-close);
 	}
-	.dialog:not(.draggable) #dialog_close_button {
+	.dialog:not(.draggable) .dialog_close_button {
 		top: 8px;
 		right: -34px;
 	}
@@ -36,6 +36,7 @@
 		left: unset;
 		right: unset;
 		bottom: unset;
+		display: none;
 	}
 
 	@media (max-device-width: 480px) {
@@ -54,6 +55,10 @@
 		right: 0;
 		margin-right: auto;
 		margin-left: auto;
+	}
+	.dialog:not(.ui-resizable) {
+		min-width: 400px;
+		max-width: 660px;
 	}
 	.dialog.paddinged {
 		padding: 24px;
@@ -75,6 +80,9 @@
 		margin-bottom: 0;
 		margin-top: 16px;
 		margin: 16px 4px 0 4px;
+	}
+	.dialog_bar input[type=checkbox] {
+		padding: 0 4px;
 	}
 	.tab_bar {
 		height: 30px;
@@ -136,9 +144,24 @@
 		user-select: text;
 	}
 
+	dialog .form_bar_file > input {
+		padding-right: 30px;
+	}
+	dialog .form_bar_file > .material-icons {
+		position: absolute;
+		margin-left: -28px;
+		margin-top: 4px;
+		opacity: 0.75;
+	}
+	dialog .form_bar_file:hover > .material-icons {
+		opacity: 1;
+	}
+
 /*Settings Dialog*/
 	dialog#settings {
-		width: 600px;
+		min-width: 400px;
+    	max-width: 640px;
+    	width: 100%;
 	}
 	#settings_tab_bar {
 		margin: -24px;
@@ -262,6 +285,9 @@
 		background-color: var(--color-selected);
 		color: var(--color-light);
 	}
+	#keybindlist li > div.keybindslot.conflict {
+		  border-left: 4px solid var(--color-close);
+	}
 	#keybindlist li > div:first-child {
 		background: transparent;
 		width: calc(52% - 28px);
@@ -291,8 +317,9 @@
 		margin-bottom: 20px;
 	}
 	.color_field {
-		min-height: 64px;
-		width: 100%
+		min-height: 50px;
+		width: 100%;
+		margin: 2px 0;
 	}
 	.color_field .desc {
 		width: calc(100% - 60px);
@@ -307,13 +334,15 @@
 		font-size: 1.2em;
 	}
 	.layout_color_preview {
-		height: 32px;
-		width: 42px;
+		height: 45px;
+		width: 45px;
 		margin: 4px;
-		margin-top: 10px;
 		display: inline-block;
 		vertical-align: top;
-    	border: 1px solid var(--color-border);
+	}
+	.prism-editor-wrapper .prism-editor__line-numbers {
+		background-color: var(--color-back) !important;
+		height: 56px;
 	}
 
 	/*About*/
@@ -361,6 +390,17 @@
 	#texture_menu_thumbnail img {
 		width: 128px;
 		margin-bottom: -7px;
+	}
+	#import_texture_list li {
+		height: 112px;
+		width: 112px;
+		margin: 4px;
+		display: inline-block;
+		background-repeat: no-repeat;
+		background-size: contain;
+	}
+	#import_texture_list li:hover {
+		background-color: var(--color-selected);;
 	}
 	body.entity_mode button.entity_mode_uv_button {
 		display: block;
@@ -410,6 +450,11 @@
 	}
 	button.large:first-child {
 		margin-left: 0;
+	}
+
+	/*Import entity texture*/
+	dialog#select_texture > ul {
+	    max-height: 420px;
 	}
 
 	/*Selection Creator*/
@@ -502,7 +547,7 @@
 		float: left;
 	}
 	.dialog#plugins {
-		width: 660px;
+		width: 100%;
 	}
 	#plugins .tab_bar {
 		width: calc(100% - 300px);

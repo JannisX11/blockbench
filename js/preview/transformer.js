@@ -25,7 +25,7 @@
 
 			if ( highlighted ) {
 
-				this.color.setHex( parseInt(app_colors.accent.hex.replace('#', ''), 16) );
+				this.color.setHex( parseInt(CustomTheme.data.colors.accent.replace('#', ''), 16) );
 				this.opacity = 1;
 
 			} else {
@@ -59,7 +59,7 @@
 
 			if ( highlighted ) {
 
-				this.color.setHex( parseInt(app_colors.accent.hex.replace('#', ''), 16) );
+				this.color.setHex( parseInt(CustomTheme.data.colors.accent.replace('#', ''), 16) );
 				this.opacity = 1;
 
 			} else {
@@ -301,7 +301,7 @@
 		THREE.TransformGizmo.call( this );
 
 		var arrowGeometry = new THREE.Geometry();
-		var mesh = new THREE.Mesh( new THREE.BoxGeometry( 0.125, 0.125, 0.125 ) );
+		var mesh = new THREE.Mesh( new THREE.BoxGeometry( 0.15, 0.06, 0.15 ) );
 		mesh.position.y = 0.5;
 		mesh.updateMatrix();
 
@@ -781,21 +781,24 @@
 			}
 			this.canvas = canvas;
 			this.canvas.addEventListener( "mousedown", onPointerDown, false );
-			this.canvas.addEventListener( "touchstart", onPointerDown, false );
+			this.canvas.addEventListener( "touchstart", onPointerDown, {passive: true} );
 
 			this.canvas.addEventListener( "mousemove", onPointerHover, false );
-			this.canvas.addEventListener( "touchmove", onPointerHover, false );
+			this.canvas.addEventListener( "touchmove", onPointerHover, {passive: true} );
 
 			this.canvas.addEventListener( "mousemove", onPointerMove, false );
-			this.canvas.addEventListener( "touchmove", onPointerMove, false );
+			this.canvas.addEventListener( "touchmove", onPointerMove, {passive: true} );
 
 			this.canvas.addEventListener( "mouseup", onPointerUp, false );
 			this.canvas.addEventListener( "mouseout", onPointerUp, false );
-			this.canvas.addEventListener( "touchend", onPointerUp, false );
-			this.canvas.addEventListener( "touchcancel", onPointerUp, false );
-			this.canvas.addEventListener( "touchleave", onPointerUp, false );
+			this.canvas.addEventListener( "touchend", onPointerUp, {passive: true} );
+			this.canvas.addEventListener( "touchcancel", onPointerUp, {passive: true} );
+			this.canvas.addEventListener( "touchleave", onPointerUp, {passive: true} );
 		}
 		this.setCanvas(domElement)
+		this.simulateMouseDown = function(e) {
+			onPointerDown(e)
+		}
 
 		this.updateSelection = function() {
 			this.elements.empty()
@@ -892,7 +895,7 @@
 				Group.selected.mesh.getWorldPosition(this.position);
 				if (Toolbox.selected.id == 'resize_tool') {
 					Transformer.rotation_ref = Group.selected.mesh;
-				} else {
+				} else if (!Toolbox.selected.id == 'move_tool' || !Group.selected.ik_enabled) {
 					Transformer.rotation_ref = Group.selected.mesh.parent;
 				}
 			}
@@ -977,7 +980,7 @@
 					})
 				}
 				_has_groups = Format.bone_rig && Group.selected && Group.selected.matchesSelection() && Toolbox.selected.transformerMode == 'translate';
-				var rotate_group = Format.bone_rig && Group.selected && Toolbox.selected.transformerMode == 'rotate';
+				var rotate_group = Format.bone_rig && Group.selected && (Toolbox.selected.transformerMode == 'rotate' || Toolbox.selected.id == 'pivot_tool');
 
 				if (rotate_group) {
 					Undo.initEdit({elements: selected, group: Group.selected})
@@ -992,20 +995,122 @@
 				if (Timeline.playing) {
 					Timeline.pause()
 				}
-				scope.keyframe = false;
+				scope.keyframes = [];
+				var undo_keyframes = [];
 				var animator = Animator.selected.getBoneAnimator();
-				if (animator) {
-					var channel = Toolbox.selected.animation_channel;
-					var all = animator[channel];
-					for (var kf of all) {
-						if (Math.abs(kf.time - Timeline.time) < 0.02) {
-							scope.keyframe = kf
+				if (animator && Toolbox.selected.id === 'move_tool' && Group.selected.ik_enabled && Group.selected.ik_chain_length) {
+					/*
+					var bone = Group.selected;
+					for (var i = Group.selected.ik_chain_length; i > 0; i--) {
+						bone = bone.parent;
+						if (bone instanceof Group) {
+							var animator = Animator.selected.getBoneAnimator(bone);
+							animator.addToTimeline();
+							var {before, result} = animator.getOrMakeKeyframe('rotation');
+							scope.keyframes[i-1] = result;
+							if (before) undo_keyframes.push(before);
 						}
 					}
-					Undo.initEdit({keyframes: scope.keyframe ? [scope.keyframe] : []})
-					if (!scope.keyframe) {
-						scope.keyframe = animator.createKeyframe(null, Timeline.time, channel);
+					Undo.initEdit({keyframes: undo_keyframes})
+
+					var solver = new FIK.Structure3D(scene);
+
+					var chain = new FIK.Chain3D();
+					var start = new FIK.V3(0, 0, 0);
+					var endLoc = new FIK.V3(0, 2, 0);
+
+					var basebone;
+
+
+					var bones = [];
+					var bone = Group.selected;
+					for (var i = Group.selected.ik_chain_length; i >= 0; i--) {
+						if (bone instanceof Group) {
+							bones.push(bone);
+							bone = bone.parent;
+						}
 					}
+
+					bones.reverse();
+					var parent_bone;
+					bones.forEach((bone, i) => {
+
+						var copy_bone = new THREE.Bone();
+						var startPoint = new FIK.V3(0,0,0).copy(bone.mesh.getWorldPosition(new THREE.Vector3()))
+
+						var bone = new FIK.Bone3D(startPoint, startPoint)
+						chain.addBone(bone)
+						if (!basebone) {
+							basebone = bone;
+						}
+					})
+
+
+				    //chain.addBone(new FIK.Bone3D(new FIK.V3(1, 2, 0), new FIK.V3(0, 6, 0), undefined, 1, 0x00FF00));
+				    //chain.addBone(new FIK.Bone3D(new FIK.V3(0, 6, 0), new FIK.V3(0, 9, 0), undefined, 1, 0x0000FF));
+				    var target = new FIK.V3()
+
+				    solver.add(chain, target, true);
+				    Transformer.solver = solver
+
+				    /*
+
+					var ik_solver = Transformer.ik_solver = {};
+
+
+					ik_solver.ik = new THREE.IK();
+					ik_solver.chain = new THREE.IKChain();
+					ik_solver.target = new THREE.Object3D();
+					ik_solver.copy_bones = [];
+					scene.add(ik_solver.target)
+
+					var bones = [];
+					var bone = Group.selected;
+					for (var i = Group.selected.ik_chain_length; i >= 0; i--) {
+						if (bone instanceof Group) {
+							bones.push(bone);
+							bone = bone.parent;
+						}
+					}
+					//build proxy chain
+					bones.reverse();
+					var parent_bone;
+					bones.forEach((bone, i) => {
+						var copy_bone = new THREE.Bone();
+						if (!ik_solver.root_bone) {
+							ik_solver.root_bone = copy_bone;
+							bone.mesh.getWorldPosition(copy_bone.position)
+						} else {
+							parent_bone.add(copy_bone);
+							copy_bone.position.z = bone.mesh.position.length();
+							parent_bone.quaternion.setFromUnitVectors(new THREE.Vector3().copy(bone.mesh.position).normalize(), THREE.NormalZ);
+						}
+						ik_solver.chain.add(new THREE.IKJoint(copy_bone), {target: i == bones.length-1 ? ik_solver.target : null});
+						copy_bone.original = bone;
+						ik_solver.copy_bones.push(copy_bone)
+						copy_bone.last_rotation = new THREE.Euler().copy(copy_bone.rotation);
+						parent_bone = copy_bone;
+					})
+
+
+					ik_solver.ik.add(ik_solver.chain);
+					scene.add(ik_solver.root_bone);
+					
+					ik_solver.helper = new THREE.IKHelper(ik_solver.ik);
+					scene.add(ik_solver.helper);
+					cl(ik_solver)
+
+					setTimeout(_ => ik_solver.ik.solve(), 80)*/
+
+
+
+				} else if (animator) {
+
+					var {before, result} = animator.getOrMakeKeyframe(Toolbox.selected.animation_channel);
+
+					Undo.initEdit({keyframes: before ? [before] : []})
+					result.select();
+					scope.keyframes.push(result);
 				}
 
 			} else if (Modes.id === 'display') {
@@ -1063,7 +1168,7 @@
 						var difference = point[axis] - previousValue
 
 						var overlapping = false
-						if (Format.canvas_limit) {
+						if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
 							selected.forEach(function(obj) {
 								if (obj.movable && obj.resizable) {
 									overlapping = overlapping || (
@@ -1084,7 +1189,7 @@
 							}
 							selected.forEach(function(obj, i) {
 								if (obj.movable) {
-									obj.move(difference, axisNumber , _has_groups||!Format.bone_rig)
+									obj.move(difference, axisNumber, _has_groups||!Format.bone_rig)
 								}
 							})
 							scope.updateSelection()
@@ -1122,7 +1227,7 @@
 						beforeFirstChange(event)
 
 						var difference = angle - previousValue
-						rotateOnAxis(difference, false, axisNumber)
+						rotateOnAxis(n => (n + difference), axisNumber)
 						Canvas.updatePositions(true)
 						scope.updateSelection()
 						previousValue = angle
@@ -1180,8 +1285,8 @@
 				} else {
 					value = point[axis]
 					if (Toolbox.selected.id === 'resize_tool') {
-						value *= (scope.direction) ? 0.1 : -0.1
-						round_num = 0.1
+						value *= (scope.direction) ? 0.1 : -0.1;
+						round_num = 0.1;
 					} else {
 						var round_num = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
 					}
@@ -1192,15 +1297,58 @@
 				if (value !== previousValue && Animator.selected && Animator.selected.getBoneAnimator()) {
 					beforeFirstChange(event)
 					var difference = value - (previousValue||0)
-					if (Toolbox.selected.id === 'rotate_tool' && Math.abs(difference) > 300) {
+					if (Toolbox.selected.id === 'rotate_tool' && Math.abs(difference) > 120) {
 						difference = 0;
 					}
 					if (axis == 'x' && Toolbox.selected.id === 'move_tool') {
 						difference *= -1
 					}
+					if (Group.selected.ik_enabled) {
 
-					scope.keyframe.offset(axis, difference);
-					scope.keyframe.select()
+						Transformer.position.x += 1
+						Transformer.solver.update();
+
+
+						//scope.keyframes[0].offset(axis, difference);
+						//scope.keyframes[0].select()
+
+
+						/*
+						var ik_solver = Transformer.ik_solver;
+
+						ik_solver.target.position.copy(planeIntersect.point);
+						cl(ik_solver.target.position.toArray());
+
+						main_preview.render()
+
+						ik_solver.ik.solve();
+
+						ik_solver.copy_bones.forEach((copy_bone, i) => {
+							var keyframe = scope.keyframes[i];
+							cl(keyframe)
+							if (keyframe) {
+								var bone = copy_bone.original;
+								var animator = Animator.selected.getBoneAnimator(bone);
+								cl(`-- ${keyframe.animator.group.name} --`)
+								cl(`${bone.name} - Absolute X: ${Math.radToDeg(copy_bone.rotation.x)}`)
+								cl(`${bone.name} - offset X: ${Math.radToDeg(copy_bone.last_rotation.x - copy_bone.rotation.x)}`)
+								cl(`${bone.name} - offset y: ${Math.radToDeg(copy_bone.last_rotation.y - copy_bone.rotation.y)}`)
+								cl(`${bone.name} - offset z: ${Math.radToDeg(copy_bone.last_rotation.z - copy_bone.rotation.z)}`)
+
+								keyframe.offset('x', Math.radToDeg(copy_bone.last_rotation.x - copy_bone.rotation.x));
+								keyframe.offset('y', Math.radToDeg(copy_bone.last_rotation.y - copy_bone.rotation.y));
+								keyframe.offset('z', Math.radToDeg(copy_bone.last_rotation.z - copy_bone.rotation.z));
+
+								copy_bone.last_rotation.copy(copy_bone.rotation);
+							}
+						})
+
+						*/
+
+					} else {
+						scope.keyframes[0].offset(axis, difference);
+						scope.keyframes[0].select()
+					}
 
 					Animator.preview()
 					previousValue = value
@@ -1289,14 +1437,21 @@
 					}
 					updateSelection()
 
-				} else if (Modes.id === 'animate' && scope.keyframe) {
-					Undo.finishEdit('change keyframe', {keyframes: [scope.keyframe]})
+				} else if (Modes.id === 'animate' && scope.keyframes && scope.keyframes.length) {
+					Undo.finishEdit('change keyframe', {keyframes: scope.keyframes})
 
 				} else if (Modes.id === 'display') {
 					Undo.finishEdit('edit display slot')
 				}
 			}
 			_dragging = false;
+
+			if (scope.hasChanged && Blockbench.startup_count <= 1 && !Blockbench.hasFlag('size_modifier_message')) {
+				Blockbench.addFlag('size_modifier_message');
+				setTimeout(() => {
+					Blockbench.showCenterTip('message.size_modifiers', 8000);
+				}, 5000);
+			}
 
 			if ( 'TouchEvent' in window && event instanceof TouchEvent ) {
 				// Force "rollover"
