@@ -249,10 +249,18 @@ class OutlinerElement {
 		return this;
 	}
 	sanitizeName() {
-		if (this.name_regex) {
-			var name_regex = typeof this.name_regex == 'function' ? this.name_regex(this) : this.name_regex;
-			var regex = new RegExp(`[^${name_regex}]`);
-			this.name = this.name.replace(regex, '');
+		var name_regex = typeof this.name_regex == 'function' ? this.name_regex(this) : this.name_regex;
+		if (name_regex) {
+			var regex = new RegExp(`[^${name_regex}]`, 'g');
+			this.name = this.name.replace(regex, c => {
+				if (c == '-' && '_'.search(regex) == -1) {
+					return '_';
+				}
+				if (c.toLowerCase().search(regex) == -1) {
+					return c.toLowerCase();
+				}
+				return '';
+			});
 		}
 	}
 	createUniqueName(arr) {
@@ -261,18 +269,6 @@ class OutlinerElement {
 		if (arr && arr.length) {
 			arr.forEach(g => {
 				others.safePush(g)
-			})
-		}
-		if (Format.outliner_name_pattern) {
-			var rgx = new RegExp(`[^${Format.outliner_name_pattern}]`, 'g');
-			this.name = this.name.replace(rgx, c => {
-				if (c == '-' && '_'.search(rgx) == -1) {
-					return '_';
-				}
-				if (c.toLowerCase().search(rgx) == -1) {
-					return c.toLowerCase();
-				}
-				return '';
 			})
 		}
 		var name = this.name.replace(/\d+$/, '').replace(/\s+/g, '_');

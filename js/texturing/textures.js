@@ -515,7 +515,7 @@ class Texture {
 	}
 	add(undo) {
 		var scope = this;
-		if (this.path && textures.length) {
+		if (isApp && this.path && textures.length) {
 			for (var tex of textures) {
 				if (tex.path === scope.path) return tex;
 			}

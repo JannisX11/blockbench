@@ -101,7 +101,6 @@ const CustomTheme = {
 					var hex = CustomTheme.data.colors[scope_key];
 					var last_color = hex;
 					var field = wrapper.find('#color_field_'+scope_key);
-					console.log(field);
 
 					field.spectrum({
 						preferredFormat: "hex",

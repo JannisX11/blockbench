@@ -702,7 +702,7 @@ class BarSelect extends Widget {
 				index++;
 			}
 			if (index >= 0 && index < this.values.length) {
-				this.set(this.values[index])
+				this.set(this.values[index]).change(event);
 			}
 			
 			scope.uses++;
@@ -711,17 +711,19 @@ class BarSelect extends Widget {
 		return false;
 	}
 	change(event) {
-		this.set( $(event.target).find('option:selected').prop('id') )
+		this.set( $(event.target).find('option:selected').prop('id') );
 		if (this.onChange) {
-			this.onChange(this, event)
+			this.onChange(this, event);
 		}
+		return this;
 	}
 	set(id) {
 		this.value = id
-		$(this.nodes).find('option#'+id).prop('selected', true).siblings().prop('selected', false)
+		$(this.nodes).find('option#'+id).prop('selected', true).siblings().prop('selected', false);
+		return this;
 	}
 	get() {
-		return this.value
+		return this.value;
 	}
 }
 class BarText extends Widget {

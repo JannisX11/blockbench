@@ -53,7 +53,14 @@ class Setting {
 			})
 
 		}
-
+	}
+	delete() {
+		if (settings[this.id]) {
+			delete settings[this.id];
+		}
+		if (Settings.structure[this.category] && Settings.structure[this.category].items[this.id]) {
+			delete Settings.structure[this.category].items[this.id];
+		}
 	}
 }
 
@@ -89,6 +96,9 @@ const Settings = {
 		new Setting('undo_limit',    		{category: 'edit', value: 256, type: 'number'});
 		new Setting('local_move',    		{category: 'edit', value: true});
 		new Setting('canvas_unselect',  	{category: 'edit', value: false});
+		new Setting('highlight_cubes',  	{category: 'edit', value: true, onChange() {
+			updateCubeHighlights();
+		}});
 		new Setting('deactivate_size_limit',{category: 'edit', value: false});
 		
 		//Grid
@@ -111,12 +121,12 @@ const Settings = {
 		new Setting('brush_opacity_modifier', {category: 'paint', value: 'pressure', type: 'select', options: {
 			'pressure': tl('settings.brush_modifier.pressure'),
 			'tilt': tl('settings.brush_modifier.tilt'),
-			'none': tl('generic.none'),
+			'none': tl('settings.brush_modifier.none'),
 		}});
 		new Setting('brush_size_modifier', {category: 'paint', value: 'tilt', type: 'select', options: {
 			'pressure': tl('settings.brush_modifier.pressure'),
 			'tilt': tl('settings.brush_modifier.tilt'),
-			'none': tl('generic.none'),
+			'none': tl('settings.brush_modifier.none'),
 		}});
 		new Setting('image_editor',  	{category: 'paint', value: false, type: 'click', condition: isApp, icon: 'fas.fa-pen-square', click: function() {changeImageEditor(null, true) }});
 		
@@ -139,7 +149,14 @@ const Settings = {
 		}});
 		new Setting('sketchfab_token', {category: 'export', value: '', type: 'text'});
 		new Setting('credit', {category: 'export', value: 'Made with Blockbench', type: 'text'});
-
+	},
+	addCategory(id, data) {
+		if (!data) data = 0;
+		Settings.structure[id] = {
+			name: data.name || tl('settings.category.'+id),
+			open: data.open != undefined ? !!data.open : id === 'general',
+			items: {}
+		}
 	},
 	open() {
 		for (var sett in settings) {
@@ -232,19 +249,22 @@ const Settings = {
 			structure.search_results.hidden = true;
 		}
 	},
+	get(id) {
+		if (id && settings[id]) {
+			return settings[id].value;
+		}
+	},
 	old: {}
 }
 $(window).on('unload', Settings.saveLocalStorages)
 Settings.setup()
 
 onVueSetup(function() {
-	Settings.structure = {
-		search_results: {
-			name: tl('dialog.settings.search_results'),
-			hidden: true,
-			open: true,
-			items: {}
-		}
+	Settings.structure.search_results = {
+		name: tl('dialog.settings.search_results'),
+		hidden: true,
+		open: true,
+		items: {}
 	}
 	for (var key in settings) {
 		var category = settings[key].category

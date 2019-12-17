@@ -101,6 +101,7 @@ const Canvas = {
 		if (display_mode && ground_animation) {
 			ground_animation = false
 		}
+		updateCubeHighlights(null, true);
 
 		cb()
 
@@ -111,6 +112,7 @@ const Canvas = {
 		if (display_mode && ground_anim_before) {
 			ground_animation = ground_anim_before
 		}
+		updateCubeHighlights();
 	},
 	//Main updaters
 	clear() {
@@ -768,7 +770,7 @@ const Canvas = {
 			if (step < epsilon) step = epsilon;
 
 			for (var col = start[0] - uv_offset[0]; col <= end[0]; col += step) {
-				if (col > start[0]) {
+				if (col >= start[0]) {
 					addVector(col, start[1], axis, w);
 					addVector(col, end[1], axis, w);
 				}
@@ -782,7 +784,7 @@ const Canvas = {
 			if (step < epsilon) step = epsilon;
 
 			for (var line = start[1] - uv_offset[1]; line <= end[1]; line += step) {
-				if (line > start[1]) {
+				if (line >= start[1]) {
 					addVector(start[0], line, axis, w);
 					addVector(end[0], line, axis, w);
 				}

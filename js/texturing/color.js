@@ -55,7 +55,7 @@ onVueSetup(() => {
 			'sort_palette',
 			'clear_palette',
 			{name: 'menu.palette.load', id: 'load', icon: 'fa-tasks', children: [
-				{name: 'menu.palette.load.default', icon: 'bubble_chart', click: () => {
+				{name: 'menu.palette.load.default', icon: 'bubble_chart', id: 'default', click: () => {
 					ColorPanel.palette.purge();
 					ColorPanel.palette.push(...palettes.default);
 				}}

@@ -687,15 +687,18 @@
 	}
 	#timeline_body .keyframe {
 		position: absolute;
-		margin-left: -11px;
+		margin-left: -6px;
 		z-index: 3;
 		text-align: center;
-		width: 24px;
+		width: 13.5px;
+		height: 22px;
 	}
 	#timeline_body .keyframe i {
 		margin-top: 2px;
 		transform: rotate(45deg);
 		font-size: 14pt;
+		margin-left: -3px;
+		pointer-events: none;
 	}
 	#timeline_body .animator_head_bar .keyframe {
 		z-index: 1;

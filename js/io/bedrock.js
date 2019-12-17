@@ -770,7 +770,6 @@ var format = new ModelFormat({
 	centered_grid: true,
 	animation_mode: true,
 	locators: true,
-	outliner_name_pattern: 'a-zA-Z0-9_',
 	codec,
 	onActivation: function () {
 		

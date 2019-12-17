@@ -162,9 +162,13 @@ class Plugin {
 	}
 	uninstall() {
 		var scope = this;
-		this.unload();
-		if (this.onuninstall) {
-			this.onuninstall()
+		try {
+			this.unload();
+			if (this.onuninstall) {
+				this.onuninstall();
+			}
+		} catch (err) {
+			console.log('Error in unload or uninstall method: ', err);
 		}
 		delete Plugins.registered[this.id];
 		Plugins.installed.remove(this.fromFile ? this.path : this.id);

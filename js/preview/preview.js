@@ -19,24 +19,6 @@ var gizmo_colors = {
 	wire: new THREE.Color(0x576f82),
 	outline: new THREE.Color(0x3e90ff)
 }
-function updateCubeHighlights(hover_cube) {
-	Cube.all.forEach(cube => {
-		if (cube.visibility) {
-			var mesh = cube.mesh;
-			mesh.geometry.faces.forEach(face => {
-				var b_before = face.color.b;
-				if ((hover_cube == cube || cube.selected) && Modes.edit) {
-					face.color.setRGB(1.3, 1.32, 1.34);
-				} else {
-					face.color.setRGB(1, 1, 1);
-				}
-				if (face.color.b != b_before) {
-					mesh.geometry.colorsNeedUpdate = true;
-				}
-			})
-		}
-	})
-}
 
 class Preview {
 	constructor(data) {
@@ -404,7 +386,7 @@ class Preview {
 	}
 	mousemove(event) {
 		var data = this.raycast(event);
-		updateCubeHighlights(data && data.cube);
+		if (Settings.get('highlight_cubes')) updateCubeHighlights(data && data.cube);
 	}
 	raycastMouseCoords(x,y) {
 		var scope = this;
@@ -997,17 +979,28 @@ const Screencam = {
 			reader.readAsDataURL(blob);
 		});
 	},
-
 	recordTimelapse(options) {
 		if (!options.destination) return;
+
+		function getFileName(num) {
+			return `${Project.name||'model'}_${num.toDigitString(4)}.png`;
+		}
+		var index = 0;
+		try {
+			var list = fs.readdirSync(options.destination);
+			while (list.includes(getFileName(index+1))) {
+				index++;
+			}
+		} catch (err) {
+			console.log('Unable to analyze past timelapse recording', err)
+		}
 
 		Prop.recording = true;
 		BarItems.timelapse.setIcon('pause');
 		Blockbench.showQuickMessage('message.timelapse_start');
 
-		var index = 0;
 		function saveImage(image) {
-			var path = `${options.destination}${osfs}${Project.name||'model'}_${index.toDigitString(4)}.png`;
+			var path = `${options.destination}${osfs}${getFileName(index)}`;
 			fs.writeFile(path, image, (e, b) => {});
 			
 		}
@@ -1268,6 +1261,24 @@ function setShading() {
 	} else {
 		Sun.intensity *= (1/0.6)
 	}
+}
+function updateCubeHighlights(hover_cube, force_off) {
+	Cube.all.forEach(cube => {
+		if (cube.visibility) {
+			var mesh = cube.mesh;
+			mesh.geometry.faces.forEach(face => {
+				var b_before = face.color.b;
+				if (Settings.get('highlight_cubes') && (hover_cube == cube || cube.selected) && Modes.edit && !force_off) {
+					face.color.setRGB(1.3, 1.32, 1.34);
+				} else {
+					face.color.setRGB(1, 1, 1);
+				}
+				if (face.color.b != b_before) {
+					mesh.geometry.colorsNeedUpdate = true;
+				}
+			})
+		}
+	})
 }
 //Helpers
 function buildGrid() {

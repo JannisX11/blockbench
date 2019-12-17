@@ -516,7 +516,7 @@ class UVEditor {
 	//Selection
 	reverseSelect(event) {
 		var scope = this;
-		if (!this.texture) return this;
+		if (!this.texture && !Format.single_texture) return this;
 		if (!event.target.classList.contains('uv_size_handle') && !event.target.id === 'uv_frame') {
 			return this;
 		}
@@ -527,7 +527,7 @@ class UVEditor {
 		Cube.all.forEach(cube => {
 			for (var face in cube.faces) {
 				var uv = cube.faces[face].uv
-				if (uv && Math.isBetween(u, uv[0], uv[2]) && Math.isBetween(v, uv[1], uv[3]) && cube.faces[face].getTexture() === scope.texture) {
+				if (uv && Math.isBetween(u, uv[0], uv[2]) && Math.isBetween(v, uv[1], uv[3]) && (cube.faces[face].getTexture() === scope.texture || Format.single_texture)) {
 					matches.safePush(cube)
 					if (!face_match) {
 						face_match = face

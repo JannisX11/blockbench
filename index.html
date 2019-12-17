@@ -28,7 +28,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '3.2.0';
+		const appVersion = '3.2.1';
 	</script>
 		<script src="lib/vue.min.js"></script>
 		<script src="lib/vue_sortable.js"></script>
@@ -481,7 +481,7 @@
 
 						<li v-for="(setting, key) in category.items" v-if="Condition(setting.condition)" v-on="setting.click ? {click: setting.click} : {}">
 							<template v-if="setting.type === 'number'">
-								<div class="setting_element"><input type="number" v-model.number="setting.value" :min="setting.min" :min="setting.max" :min="setting.step" v-on:input="saveSettings()"></div>
+								<div class="setting_element"><input type="number" v-model.number="setting.value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()"></div>
 							</template>
 							<template v-else-if="setting.type === 'click'">
 								<div class="setting_element setting_icon" v-html="Blockbench.getIconNode(setting.icon).outerHTML"></div>

@@ -701,7 +701,7 @@ THREE.OrbitControls = function ( object, preview ) {
 
 				//if ( scope.enableRotate === false ) return;
 
-				if (event.touches[0].touchType == 'stylus') return;
+				if (event.touches[0].touchType == 'stylus' && Modes.paint) return;
 
 				handleTouchStartRotate( event );
 

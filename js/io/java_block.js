@@ -64,7 +64,10 @@ var codec = new Codec('java_block', {
 					if (s.faces[face].texture !== null) {
 						var tag = new oneLiner()
 						if (s.faces[face].enabled !== false) {
-							tag.uv = s.faces[face].uv
+							tag.uv = s.faces[face].uv.slice();
+							tag.uv.forEach((n, i) => {
+								tag.uv[i] = n * 16 / main_uv.getResolution(i%2);
+							})
 						}
 						if (s.faces[face].rotation) {
 							tag.rotation = s.faces[face].rotation
@@ -296,25 +299,31 @@ var codec = new Codec('java_block', {
 				if (obj.__comment) base_cube.name = obj.__comment
 				//Faces
 				var uv_stated = false;
-				for (var face in base_cube.faces) {
-					if (obj.faces[face] === undefined) {
+				for (var key in base_cube.faces) {
+					var read_face = obj.faces[key];
+					var new_face = base_cube.faces[key];
+					if (read_face === undefined) {
 
-						base_cube.faces[face].texture = null
-						base_cube.faces[face].uv = [0,0,0,0]
+						new_face.texture = null
+						new_face.uv = [0,0,0,0]
 					} else {
-						if (typeof obj.faces[face].uv === 'object') {
+						if (typeof read_face.uv === 'object') {
 							uv_stated = true
+
+							new_face.uv.forEach((n, i) => {
+								new_face.uv[i] *= main_uv.getResolution(i%2) / 16;
+							})
 						}
-						if (obj.faces[face].texture === '#missing') {
-							base_cube.faces[face].texture = false;
+						if (read_face.texture === '#missing') {
+							new_face.texture = false;
 							
-						} else if (obj.faces[face].texture) {
-							var id = obj.faces[face].texture.replace(/^#/, '')
+						} else if (read_face.texture) {
+							var id = read_face.texture.replace(/^#/, '')
 							var t = texture_ids[id]
 
 							if (t instanceof Texture === false) {
-								if (texture_paths[obj.faces[face].texture]) {
-									var t = texture_paths[obj.faces[face].texture]
+								if (texture_paths[read_face.texture]) {
+									var t = texture_paths[read_face.texture]
 									if (t.id === 'particle') {
 										t.extend({id: id, name: '#'+id}).loadEmpty(3)
 									}
@@ -324,10 +333,10 @@ var codec = new Codec('java_block', {
 									new_textures.push(t);
 								}
 							}
-							base_cube.faces[face].texture = t.uuid;
+							new_face.texture = t.uuid;
 						}
-						if (obj.faces[face].tintindex !== undefined) {
-							base_cube.faces[face].tint = true;
+						if (read_face.tintindex !== undefined) {
+							new_face.tint = true;
 						}
 					}
 				}

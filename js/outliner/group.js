@@ -392,7 +392,7 @@ class Group extends OutlinerElement {
 	Group.prototype.type = 'group';
 	Group.prototype.icon = 'fa fa-folder';
 	Group.prototype.isParent = true;
-	Group.prototype.name_regex = 'a-zA-Z0-9_'
+	Group.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
 	Group.prototype.buttons = [
 		Outliner.buttons.remove,
 		Outliner.buttons.visibility,
