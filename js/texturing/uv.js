@@ -207,7 +207,7 @@ class UVEditor {
 				p.top = limitNumber(p.top, 0, scope.inner_height-scope.jquery.size.height()+1);
 				
 				p.left = p.left - p.left % (scope.inner_width / main_uv.getResolution(0) / scope.grid);
-				p.top  = p.top  - p.top  % (scope.inner_width / main_uv.getResolution(1) / scope.grid);
+				p.top  = p.top  - p.top  % (scope.inner_height / main_uv.getResolution(1) / scope.grid);
 
 				scope.save();
 				scope.displaySliders();

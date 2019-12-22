@@ -174,7 +174,6 @@ const Painter = {
 		Painter.stopBrush();
 	},
 	startBrush(texture, x, y, uvTag, event, data) {
-		$('#display_sliders').text('');
 		if (Toolbox.selected.id === 'color_picker') {
 			Painter.colorPicker(texture, x, y)
 		} else {
@@ -1012,8 +1011,10 @@ const Painter = {
 		var face_list = [];
 		function faceRect(cube, face_key, tex, x, y) {
 			this.cube = cube;
-			this.width  = Math.round(Math.abs(x * res_multiple));
-			this.height = Math.round(Math.abs(y * res_multiple));
+			this.width  = Math.abs(x) * res_multiple;
+			this.height = Math.abs(y) * res_multiple;
+			this.width  = (this.width  >= 0.01 && this.width  < 1) ? 1 : Math.round(this.width );
+			this.height = (this.height >= 0.01 && this.height < 1) ? 1 : Math.round(this.height);
 			this.size = this.width * this.height;
 			this.face_key = face_key;
 			this.texture = tex

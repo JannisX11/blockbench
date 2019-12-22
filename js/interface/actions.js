@@ -684,6 +684,7 @@ class BarSelect extends Widget {
 		})
 	}
 	trigger(event) {
+		if (!event) event = 0;
 		var scope = this;
 		if (BARS.condition(scope.condition, scope)) {
 			if (event && event.type === 'click' && event.altKey && scope.keybind) {
@@ -696,13 +697,17 @@ class BarSelect extends Widget {
 			}
 
 			var index = this.values.indexOf(this.value)
-			if ((event.type === 'mousewheel' || event.type === 'wheel') && event.deltaY < 0) {
-				index--;
+			if (event.type === 'mousewheel' || event.type === 'wheel') {
+				index += event.deltaY < 0 ? -1 : 1;
 			} else {
 				index++;
+				if (index >= this.values.length) index = 0;
 			}
 			if (index >= 0 && index < this.values.length) {
-				this.set(this.values[index]).change(event);
+				this.set(this.values[index]);
+				if (this.onChange) {
+					this.onChange(this, event);
+				}
 			}
 			
 			scope.uses++;
@@ -981,8 +986,9 @@ class Toolbar {
 		this.build({
 			children: this.default_children,
 			default_place: this.default_place
-		}, true)
-		this.save()
+		}, true);
+		this.update();
+		this.save();
 		return this;
 	}
 }

@@ -997,6 +997,6 @@
     "settings.brush_modifier.none": "Ninguno",
     "action.export_entity": "Exportar Entidad de Bedrock",
     "action.export_entity.desc": "Añadir el modelo actual como una entidad a un archivo mobs.json",
-    "settings.highlight_cubes": "Highlight Cubes",
-    "settings.highlight_cubes.desc": "Highlight cubes when you hover over them or select them"
+    "settings.highlight_cubes": "Resaltar Cubos",
+    "settings.highlight_cubes.desc": "Resaltar los cubos cuando pasas por encima de ellos o los seleccionas"
 }

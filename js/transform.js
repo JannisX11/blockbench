@@ -21,10 +21,21 @@ function origin2geometry() {
 	} else if (Cube.selected) {
 		Undo.initEdit({elements: Cube.selected})
 
-		var center = getSelectionCenter()
+		var center = getSelectionCenter();
+		var original_center = center.slice();
 		
 		Cube.selected.forEach(cube => {
-			cube.transferOrigin(center)
+			if (Format.bone_rig && cube.parent instanceof Group) {
+				var v = new THREE.Vector3().fromArray(original_center);
+				cube.parent.mesh.worldToLocal(v);
+				v.x += cube.parent.origin[0];
+				v.y += cube.parent.origin[1];
+				v.z += cube.parent.origin[2];
+				center = v.toArray();
+				cube.transferOrigin(center)
+			} else {
+				cube.transferOrigin(original_center)
+			}
 		})
 	}
 	Canvas.updatePositions()
@@ -396,7 +407,7 @@ const Vertexsnap = {
 		Vertexsnap.vertexes.children.forEach(function(v,i) {
 			var scaleVector = new THREE.Vector3();
 			var scale = scaleVector.subVectors(v.position, Transformer.camera.position).length() / 500;
-			scale = (Math.sqrt(scale)/3 + scale/1.4) * 1.5
+			scale = (Math.sqrt(scale)/3 + scale/1.4) * 1.7
 			if (Blockbench.isMobile) scale *= 4;
 			v.scale.set(scale, scale, scale)
 		})

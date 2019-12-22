@@ -149,10 +149,11 @@ var codec = new Codec('bedrock_old', {
 			bone.pivot = g.origin.slice()
 			bone.pivot[0] *= -1
 			if (!g.rotation.allEqual(0)) {
-				bone.rotation = g.rotation.slice()
-				bone.rotation.forEach(function(br, ri) {
-					bone.rotation[ri] *= -1
-				})
+				bone.rotation = [
+					-g.rotation[0],
+					-g.rotation[1],
+					g.rotation[2]
+				]
 			}
 			if (g.reset) bone.reset = true;
 			if (g.mirror_uv) bone.mirror = true;

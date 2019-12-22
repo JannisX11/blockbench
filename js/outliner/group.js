@@ -197,8 +197,8 @@ class Group extends OutlinerElement {
 			Outliner.root.remove(this)
 		}
 		Animator.animations.forEach(animation => {
-			if (animation.bones[scope.uuid]) {
-				delete animation.bones[scope.uuid];
+			if (animation.animators && animation.animators[scope.uuid]) {
+				delete animation.animators[scope.uuid];
 			}
 			if (animation.selected && Animator.open) {
 				updateKeyframeSelection();

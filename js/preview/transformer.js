@@ -823,6 +823,10 @@
 			this.update()
 			return this;
 		}
+		var display_gui_rotation = new THREE.Object3D();
+		display_gui_rotation.rotation.set(0.2, 0.2, 0);
+		display_gui_rotation.updateMatrixWorld();
+
 		this.center = function() {
 			delete Transformer.rotation_ref;
 			if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
@@ -886,6 +890,9 @@
 
 				} else if (Toolbox.selected.transformerMode === 'scale') {
 					Transformer.rotation_ref = display_base;
+
+				} else if (Toolbox.selected.transformerMode === 'rotate' && display_slot == 'gui') {
+					Transformer.rotation_ref = display_gui_rotation
 				}
 				Transformer.update()
 

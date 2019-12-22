@@ -152,12 +152,15 @@ const Canvas = {
 		}
 	},
 	updateVisibility() {
-		Cube.all.forEach(function(s) {
-			s.mesh.visible = s.visibility == true;
-			if (s.visibility) {
-				Canvas.adaptObjectFaces(s, s.mesh)
+		Cube.all.forEach(function(cube) {
+			cube.mesh.visible = cube.visibility == true;
+			if (cube.visibility) {
+				Canvas.adaptObjectFaces(cube, cube.mesh)
 				if (!Prop.wireframe) {
-					Canvas.updateUV(s);
+					Canvas.updateUV(cube);
+				}
+				if (Modes.paint && settings.painting_grid.value) {
+					Canvas.buildGridBox(cube);
 				}
 			}
 			/*
@@ -805,8 +808,6 @@ const Canvas = {
 		var lines = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({color: gizmo_colors.grid}));
 		lines.geometry.translate(-cube.origin[0], -cube.origin[1], -cube.origin[2]);
 
-
 		return lines;
-
 	}
 }

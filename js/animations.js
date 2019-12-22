@@ -1078,7 +1078,6 @@ const Animator = {
 
 		Animator.open = true;
 		selected.length = 0
-		updateSelection()
 		Canvas.updateAllBones()
 
 		if (quad_previews.enabled) {

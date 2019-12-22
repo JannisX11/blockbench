@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Model editing and animation software",
-	"version": "3.2.1",
+	"version": "3.2.2",
 	"license": "MIT",
 	"author": {
 		"name": "JannisX11",
@@ -61,7 +61,9 @@
 		},
 		"win": {
 			"artifactName": "${productName}_${arch}_${version}.${ext}",
-			"target": "nsis"
+			"target": [
+				"nsis"
+			]
 		},
 		"linux": {
 			"artifactName": "${productName}_${version}.${ext}",

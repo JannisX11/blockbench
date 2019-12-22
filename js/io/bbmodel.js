@@ -157,7 +157,7 @@ var codec = new Codec('project', {
 		if (model.textures) {
 			model.textures.forEach(tex => {
 				var tex_copy = new Texture(tex, tex.uuid).add(false);
-				if (tex_copy.mode === 'link') {
+				if (isApp && tex.path && fs.existsSync(tex.path)) {
 					tex_copy.fromPath(tex.path)
 				} else {
 					tex_copy.fromDataURL(tex.source)

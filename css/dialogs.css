@@ -728,7 +728,7 @@
 	}
 	#action_selector > div > ul {
 		background-color: var(--color-bright_ui);
-		color: var(--color-text_acc);
+		color: var(--color-accent_text);
 		min-height: 20px;
 		width: 340px;
 		max-height: 400px;
@@ -766,7 +766,7 @@
 	}
 	#action_selector ul > li.selected {
 		background-color: var(--color-accent);
-		color: var(--color-text_acc);
+		color: var(--color-accent_text);
 	}
 	#action_selector ul > li div.icon_wrapper {
 		display: inline-block;

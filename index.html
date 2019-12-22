@@ -28,7 +28,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '3.2.1';
+		const appVersion = '3.2.2';
 	</script>
 		<script src="lib/vue.min.js"></script>
 		<script src="lib/vue_sortable.js"></script>
@@ -770,7 +770,7 @@
 			<div id="display_ref_bar" class="bar tabs_small reference_model_bar">
 			</div>
 
-			<div id="display_sliders" style="overflow-y: scroll; max-height: 500px;">
+			<div id="display_sliders">
 				
 				<p class="tl">display.rotation</p><div class="tool head_right" v-on:click="resetChannel('rotation')"><i class="material-icons">replay</i></div>
 				<div class="bar slider_input_combo" v-for="axis in [0, 1, 2]">

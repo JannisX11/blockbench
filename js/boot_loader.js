@@ -114,4 +114,6 @@ if (isApp) {
 
 Modes.options.start.select()
 
+loadInstalledPlugins();
+
 Blockbench.setup_successful = true;

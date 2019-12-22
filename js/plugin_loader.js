@@ -275,9 +275,6 @@ $.getJSON(Plugins.apipath, function(data) {
 	$('#plugin_available_empty').text('Could not connect to plugin server')
 	loadInstalledPlugins()
 })
-$(document).ready(function() {
-	loadInstalledPlugins()
-})
 
 function loadInstalledPlugins() {
 	if (!Plugins.loadingStep) {

@@ -303,7 +303,7 @@
 		--color-selected: #3c4456;
 		--color-text: #cacad4;
 		--color-light: #f4f3ff;
-		--color-text_acc: #000006;
+		--color-accent_text: #000006;
 		--color-bright_ui: #f4f3ff;
 		--color-grid: #495061;
 		--color-checkerboard: #2f3339;
@@ -414,7 +414,7 @@
 	}
 	button:hover {
 		background: var(--color-accent);
-		color: var(--color-text_acc) !important;
+		color: var(--color-accent_text) !important;
 	}
 	button:focus {
 	    text-decoration: underline;

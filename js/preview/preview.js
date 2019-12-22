@@ -673,10 +673,14 @@ class Preview {
 			scope.render()
 			var dataUrl = scope.canvas.toDataURL()
 
+			if (options.crop == false && !options.width && !options.height) {
+				Screencam.returnScreenshot(dataUrl, cb)
+			}
+
 			dataUrl = dataUrl.replace('data:image/png;base64,','')
 			Jimp.read(Buffer.from(dataUrl, 'base64')).then(function(image) { 
 				
-				if (display_mode && display_slot === 'gui') {
+				if (display_mode && display_slot === 'gui' && options.crop !== false) {
 					var zoom = display_preview.camOrtho.zoom * devicePixelRatio
 					var resolution = 256 * zoom;
 

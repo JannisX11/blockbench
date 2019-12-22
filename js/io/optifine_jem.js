@@ -42,7 +42,7 @@ var codec = new Codec('optifine_entity', {
 				bone.mirrorTexture = 'u'
 			}
 
-			function populate(p_model, group) {
+			function populate(p_model, group, depth) {
 
 				if (group.children.length === 0) return;
 				var mirror_sub;
@@ -74,8 +74,10 @@ var codec = new Codec('optifine_entity', {
 							box.textureOffset = obj.uv_offset
 						} else {
 							for (var face in obj.faces) {
-								var uv = obj.faces[face].uv;
-								box[`uv${capitalizeFirstLetter(face)}`] = uv;
+								if (obj.faces[face].texture !== null) {
+									var uv = obj.faces[face].uv;
+									box[`uv${capitalizeFirstLetter(face)}`] = uv;
+								}
 							}
 						}
 
@@ -111,14 +113,19 @@ var codec = new Codec('optifine_entity', {
 						if (!obj.rotation.allEqual(0)) {
 							bone.rotate = obj.rotation.slice()
 						}
-						populate(bone, obj)
+						populate(bone, obj, depth+1)
+						if (depth >= 1) {
+							bone.translate[0] -= group.origin[0];
+							bone.translate[1] -= group.origin[1];
+							bone.translate[2] -= group.origin[2];
+						}
 
 						if (!p_model.submodels) p_model.submodels = [];
 						p_model.submodels.push(bone)
 					} 
 				})
 			}
-			populate(bone, g)
+			populate(bone, g, 0)
 			entitymodel.models.push(bone)
 		})
 
@@ -133,6 +140,7 @@ var codec = new Codec('optifine_entity', {
 			Project.texture_width = parseInt(model.textureSize[0])||16;
 			Project.texture_height = parseInt(model.textureSize[1])||16;
 		}
+		let empty_face = {uv: [0, 0, 0, 0], texture: null}
 		if (model.models) {
 			model.models.forEach(function(b) {
 				if (typeof b !== 'object') return;
@@ -148,7 +156,7 @@ var codec = new Codec('optifine_entity', {
 				group.origin[1] *= -1;
 				group.origin[2] *= -1;
 
-				function readContent(submodel, p_group) {
+				function readContent(submodel, p_group, depth) {
 
 					if (submodel.boxes && submodel.boxes.length) {
 						submodel.boxes.forEach(box => {
@@ -174,15 +182,22 @@ var codec = new Codec('optifine_entity', {
 									]
 								})
 							}
-							if (!box.textureOffset && box.uvNorth) {
+							if (!box.textureOffset && (
+									box.uvNorth
+								 || box.uvEast
+								 || box.uvSouth
+								 || box.uvWest
+								 || box.uvUp
+								 || box.uvDown
+							)) {
 								Project.box_uv = false;
 								base_cube.extend({faces: {
-									north: {uv: box.uvNorth},
-									east: {uv: box.uvEast},
-									south: {uv: box.uvSouth},
-									west: {uv: box.uvWest},
-									up: {uv: box.uvUp},
-									down: {uv: box.uvDown},
+									north: box.uvNorth ? {uv: box.uvNorth} : empty_face,
+									east:  box.uvEast  ? {uv: box.uvEast}  : empty_face,
+									south: box.uvSouth ? {uv: box.uvSouth} : empty_face,
+									west:  box.uvWest  ? {uv: box.uvWest}  : empty_face,
+									up:    box.uvUp    ? {uv: box.uvUp}    : empty_face,
+									down:  box.uvDown  ? {uv: box.uvDown}  : empty_face,
 								}})
 							}
 							if (p_group.parent !== 'root') {
@@ -196,21 +211,26 @@ var codec = new Codec('optifine_entity', {
 					}
 					if (submodel.submodels && submodel.submodels.length) {
 						submodel.submodels.forEach(subsub => {
+							if (depth >= 1 && subsub.translate) {
+								subsub.translate[0] += p_group.origin[0];
+								subsub.translate[1] += p_group.origin[1];
+								subsub.translate[2] += p_group.origin[2];
+							}
 							var group = new Group({
-								name: `${b.part}_sub_${subcount}`,
+								name: subsub.id || `${b.part}_sub_${subcount}`,
 								origin: subsub.translate || submodel.translate,
 								rotation: subsub.rotate,
 								mirror_uv: (subsub.mirrorTexture && subsub.mirrorTexture.includes('u'))
 							})
 							subcount++;
 							group.addTo(p_group).init()
-							readContent(subsub, group)
+							readContent(subsub, group, depth+1)
 						})
 					}
 
 				}
 				group.init().addTo()
-				readContent(b, group)
+				readContent(b, group, 0)
 			})
 		}
 		loadOutlinerDraggable()
