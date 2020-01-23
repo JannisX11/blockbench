@@ -39,10 +39,55 @@ const Blockbench = {
 	},
 	//Interface
 	getIconNode(icon, color) {
-		var jq;
+		let node;
 		if (typeof icon === 'function') {
 			icon = icon()
 		}
+		if (icon === undefined) {
+			//Missing
+			node = document.createElement('i');
+			node.classList.add('material-icons', 'icon');
+			node.innerText = 'help_outline';
+		} else if (icon instanceof HTMLElement) {
+			//Node
+			node = icon
+		} else if (icon.substr(0, 2) === 'fa') {
+			//Font Awesome
+			node = document.createElement('i');
+			node.classList.add('fa_big', 'icon');
+			if (icon.substr(3, 1) === '.') {
+				node.classList.add(icon.substr(0, 3), icon.substr(4));
+			} else {
+				node.classList.add('fa', icon);
+			}
+		} else if (icon.substr(0, 5) === 'icon-') {
+			//Icomoon
+			node = document.createElement('i');
+			node.classList.add(icon, 'icon');
+		} else if (icon.substr(0, 14) === 'data:image/png') {
+			//Data URL
+			node = document.createElement('img');
+			node.classList.add('icon');
+			node.src = icon;
+		} else {
+			//Material Icon
+			node = document.createElement('i');
+			node.classList.add('material-icons', 'icon');
+			node.innerText = icon;
+		}
+		if (color) {
+			if (color === 'x') {
+				node.classList.add('color_x');
+			} else if (color === 'y') {
+				node.classList.add('color_y');
+			} else if (color === 'z') {
+				node.classList.add('color_z');
+			} else if (typeof color === 'string') {
+				node.style.color = color;
+			}
+		}
+		return node
+		/*
 		if (icon === undefined) {
 			//Missing
 			jq = $('<i class="material-icons icon">help_outline</i>')
@@ -78,6 +123,7 @@ const Blockbench = {
 			}
 		}
 		return jq.get(0)
+		*/
 	},
 	showQuickMessage(message, time) {
 		$('#quick_message_box').remove()
@@ -112,7 +158,7 @@ const Blockbench = {
 		}, time ? time : 800)
 	},
 	setStatusBarText(text) {
-		if (text) {
+		if (text !== undefined) {
 			Prop.file_name = text
 		} else {
 			Prop.file_name = Prop.file_name_alt||''

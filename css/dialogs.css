@@ -156,6 +156,16 @@
 	dialog .form_bar_file:hover > .material-icons {
 		opacity: 1;
 	}
+	dialog .form_bar_radio {
+		display: flex;
+	}
+	dialog .form_bar_radio:hover {
+		color: var(--color-light);
+	}
+	dialog .form_bar_radio label {
+		flex-grow: 1;
+		padding: 3px 5px;
+	}
 
 /*Settings Dialog*/
 	dialog#settings {

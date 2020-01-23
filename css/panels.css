@@ -86,11 +86,13 @@
 		width: 100%;
 		overflow: hidden;
 		position: absolute;
+		cursor: inherit;
 	}
 	.quad_canvas_wrapper {
 		height: 50%;
 		width: 50%;
 		position: absolute;
+		cursor: inherit;
 	}
 	.quad_canvas_wrapper.qcw_x {
 		border-right: 2px solid var(--color-grid);
@@ -300,16 +302,14 @@
 	}
 }
 
-/*Displaytabs*/
+/*Display*/
 
 	.tabs_small input[type="radio"]:checked+label {
 		border-bottom: 3px solid var(--color-accent);
 	}
-
 	.tabs_small input[type="radio"] {
 		display: none;
 	}
-
 	.tabs_small label {
 		display: inline-block;
 		height: 30px;
@@ -326,31 +326,70 @@
 	div.tabs_small:not(.icon_bar) label {
     	padding-top: 4px;
 	}
-
 	.tabs_small  {
 		background-color: transparent;
 		height: 30px;
 		display: flex;
 	}
-
 	.tabs_small  label:hover {
 		color: var(--color-light);
 	}
 	#display_sliders p {
 		margin-top: 6px;
 	}
-
-/*Bars*/
+	#display_bar .tool, #display_ref_bar > div {
+		width: calc(100% / 8 - 2px);
+		max-width: 52px;
+	}
+	#display_ref_bar > div > label {
+		width: 100%;
+	}
+	.bar.slider_input_combo {
+		position: relative;
+		display: flex;
+	}
 	.bar.slider_input_combo input.tool[type="range"] {
-		width: calc(100% - 67px);
 		float: none;
+		flex-grow: 1;
+		flex-shrink: 1;
 	}
 	.bar.slider_input_combo input.tool[type="number"] {
-		margin-left: -2px;
 		width: 60px;
 		background-color: var(--color-back);
 		float: none;
+		flex-grow: 0;
+		flex-shrink: 0;
 	}
+
+	input#preset_name {
+		background-color: var(--color-back);
+	}
+	#create_preset .dialog_bar > * {
+		float: left;
+		margin-left: 8px;
+	}
+	#display_settings p {
+		padding-left: 6px;
+	}
+	div#display_crosshair:after {
+		content: "";
+		width: 20px;
+		height: 2px;
+		background-color: var(--color-grid);
+		position: absolute;
+		margin-left: -9px;
+		margin-top: 9px;
+	}
+	div#display_crosshair {
+		width: 2px;
+		height: 20px;
+		background-color: var(--color-grid);
+		position: absolute;
+		top: calc(50% - 10px);
+		margin-left: 50%;
+		margin-right: auto;
+	}
+
 
 
 /*Outliner*/
@@ -638,7 +677,7 @@
 		height: 30px;
 		width: 25%;
 	}
-	.panel#keyframe .bar label {
+	.panel .bar.flex label {
 		margin: 3px 8px;
 	    min-width: 20px;
 	    text-align: center;
@@ -663,7 +702,30 @@
 		background-color: var(--color-back);
 		height: calc(100% - 30px);
 	}
-	#timeline_marker {
+	.timeline_marker {
+		position: absolute;
+		margin-left: -9px;
+		z-index: 5;
+		height: 10px;
+		width: 20px;
+	}
+	.timeline_marker::before {
+		content: "";
+		position: absolute;
+		border-style: solid;
+		border-bottom-color: transparent !important;
+		border-left-color: transparent !important;
+		border-right-color: transparent !important;
+		border-width: 10px;
+		border-radius: 3px;
+		pointer-events: none;
+		border-color: inherit;
+	}
+	.timeline_marker:hover::before {
+		border-width: 11px;
+		margin-left: -1px;
+	}
+	#timeline_playhead {
 		position: absolute;
 		pointer-events: none;
 		height: 26px;
@@ -675,7 +737,7 @@
 		background-color: rgba(0, 0, 0, 0.2);
 		z-index: 3;
 	}
-	#timeline_marker_line {
+	#timeline_playhead_line {
 		content: "";
 		display: block;
 		position: absolute;
@@ -865,6 +927,10 @@
 		margin-bottom: 0;
 		position: relative;
 	}
+
+	body[mode=paint] #uv_frame {
+		cursor: crosshair !important;
+	}
 	#uv_frame > img {
 		position: absolute;
 		pointer-events: none;
@@ -872,6 +938,17 @@
 		height: 100%;
 		top: 0;
 		left: 0;
+		object-fit: cover;
+		object-position: 0 0;
+	}
+	div#uv_brush_outline {
+		border: 1px solid white;
+		width: 0;
+		height: 0;
+		border-radius: 50%;
+		position: absolute;
+		pointer-events: none;
+		mix-blend-mode: difference;
 	}
 	.uv_mapping_overlay {
 		position: absolute;
@@ -1014,46 +1091,6 @@
 	}
 	#chat_bar > i:hover {
 		color: var(--color-light);
-	}
-
-/*Display*/
-	#display_bar .tool, #display_ref_bar > div {
-		width: calc(100% / 8 - 2px);
-		max-width: 52px;
-	}
-	#display_ref_bar > div > label {
-		width: 100%;
-	}
-	.bar .tool.disp_range.scaleRange {
-		max-width: calc(100% - 109px);
-	}
-	input#preset_name {
-		background-color: var(--color-back);
-	}
-	#create_preset .dialog_bar > * {
-		float: left;
-		margin-left: 8px;
-	}
-	#display_settings p {
-		padding-left: 6px;
-	}
-	div#display_crosshair:after {
-		content: "";
-		width: 20px;
-		height: 2px;
-		background-color: var(--color-grid);
-		position: absolute;
-		margin-left: -9px;
-		margin-top: 9px;
-	}
-	div#display_crosshair {
-		width: 2px;
-		height: 20px;
-		background-color: var(--color-grid);
-		position: absolute;
-		top: calc(50% - 10px);
-		margin-left: 50%;
-		margin-right: auto;
 	}
 
 /*Color*/

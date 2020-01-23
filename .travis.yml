@@ -13,6 +13,14 @@ matrix:
       os: osx
       script: electron-builder -w --x64 --publish=always
 
+    - name: "Windows 32"
+      os: osx
+      script: electron-builder -w --ia32 --publish=always -c.productName='Blockbench_32bit'
+
+    - name: "Windows Portable"
+      os: osx
+      script: electron-builder --windows portable --x64 --publish=always -c.productName='Blockbench_portable'
+
     - name: "Linux"
       os: linux
       script:

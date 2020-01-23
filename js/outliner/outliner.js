@@ -71,15 +71,15 @@ const Outliner = {
 	}
 }
 //Colors
-var cubeColors = [
-	{hex: "#A2EBFF", name: 'light_blue'},
-	{hex: "#FFF899", name: 'yellow'},
-	{hex: "#E8BD7B", name: 'orange'},
-	{hex: "#FFA7A4", name: 'red'},
-	{hex: "#C5A6E8", name: 'purple'},
-	{hex: "#A6C8FF", name: 'blue'},
-	{hex: "#7BFFA3", name: 'green'},
-	{hex: "#BDFFA6", name: 'lime'}
+var markerColors = [
+	{pastel: "#A2EBFF", standard: "#58C0FF", name: 'light_blue'},
+	{pastel: "#FFF899", standard: "#F3D81A", name: 'yellow'},
+	{pastel: "#E8BD7B", standard: "#EC9218", name: 'orange'},
+	{pastel: "#FFA7A4", standard: "#FA565D", name: 'red'},
+	{pastel: "#C5A6E8", standard: "#B55AF8", name: 'purple'},
+	{pastel: "#A6C8FF", standard: "#4D89FF", name: 'blue'},
+	{pastel: "#7BFFA3", standard: "#00CE71", name: 'green'},
+	{pastel: "#BDFFA6", standard: "#AFFF62", name: 'lime'}
 ]
 class OutlinerElement {
 	constructor(uuid) {
@@ -264,6 +264,7 @@ class OutlinerElement {
 		}
 	}
 	createUniqueName(arr) {
+		if (!Condition(this.needsUniqueName)) return;
 		var scope = this;
 		var others = this.constructor.all.slice();
 		if (arr && arr.length) {
@@ -871,7 +872,8 @@ function stopRenameOutliner(save) {
 	}
 }
 function toggleCubeProperty(key) {
-	var state = selected[0][key]
+	if (!Cube.selected.length) return;
+	var state = Cube.selected[0][key]
 	if (typeof state === 'number') {
 		state++;
 		if (state === 3) {
@@ -880,8 +882,8 @@ function toggleCubeProperty(key) {
 	} else {
 		state = !state
 	}
-	Undo.initEdit({elements: selected})
-	selected.forEach(cube => {
+	Undo.initEdit({elements: Cube.selected})
+	Cube.selected.forEach(cube => {
 		cube[key] = state;
 	})
 	if (key === 'visibility') {

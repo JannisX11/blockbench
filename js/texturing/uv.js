@@ -302,6 +302,24 @@ class UVEditor {
 				return false;
 			}
 		})
+		//Paint brush outline
+		var brush_outline = $('<div id="uv_brush_outline"></div>');
+		scope.jquery.frame.on('mouseenter mousemove', e => {
+			if (Modes.paint && (['brush_tool', 'eraser'].includes(Toolbox.selected.id))) {
+				scope.jquery.frame.append(brush_outline);
+				var pixel_size = main_uv.getPixelSize();
+				//pos
+				let left = (0.5 + Math.floor(e.offsetX / pixel_size)) * pixel_size;
+				let top =  (0.5 + Math.floor(e.offsetY / pixel_size)) * pixel_size;
+				brush_outline.css('left', left+'px').css('top', top+'px');
+				//size
+				var radius = (BarItems.slider_brush_size.get()-0.5) * pixel_size;
+				brush_outline.css('padding', radius+'px').css('margin', (-radius)+'px');
+			}
+		})
+		scope.jquery.frame.on('mouseleave', e => {
+			brush_outline.detach();
+		})
 		this.setSize(this.size)
 		return this;
 	}
@@ -409,7 +427,8 @@ class UVEditor {
 		}
 	}
 	getTexture() {
-		return Cube.selected[0].faces[this.face].getTexture()
+		if (Format.single_texture) return textures[0];
+		return Cube.selected[0].faces[this.face].getTexture();
 	}
 	//Set
 	setSize(input_size, cancel_load) {
@@ -419,16 +438,14 @@ class UVEditor {
 		this.jquery.frame.width(this.inner_width);
 		this.jquery.viewport.width(size+8);
 		this.jquery.main.width(size+8);
-		this.updateSize();
-		if (old_size !== size) {
-			this.displayAllMappingOverlays(true)
-		}
 
 		for (var id in this.sliders) {
 			this.sliders[id].setWidth(size/(Project.box_uv?2:4)-1)
 		}
 		if (!cancel_load) {
-			this.loadData()
+			this.loadData();
+		} else {
+			this.updateSize();
 		}
 		return this;
 	}
@@ -437,7 +454,8 @@ class UVEditor {
 		var size = zoomed_size - (zoomed_size % 16);
 		this.zoom = size/this.size
 		this.updateSize();
-		this.displayFrame()
+		this.displayFrame();
+
 		return this;
 	}
 	setGrid(value) {
@@ -468,6 +486,12 @@ class UVEditor {
 			this.inner_height/Project.texture_height/this.grid
 		])
 		this.displayMappingOverlay();
+		this.updateAllMappingOverlays();
+		if (this.texture && this.texture.currentFrame) {
+			this.img.style.objectPosition = `0 -${this.texture.currentFrame * this.inner_height}px`;
+		} else {
+			this.img.style.objectPosition = `0 0`;
+		}
 
 		if (this.zoom > 1) {
 			this.jquery.viewport.css('overflow', 'scroll scroll')
@@ -565,11 +589,11 @@ class UVEditor {
 		return false;
 	}
 	loadData() {
-		if (Cube.selected.length === 0) return;
-		var face = Cube.selected[0].faces[this.face]
+		if (Cube.selected.length === 0 && !Modes.paint) return;
+		var face = Cube.selected[0] && Cube.selected[0].faces[this.face];
 		
 		//Set Rotation
-		BarItems.uv_rotation.set(face.rotation||0)
+		BarItems.uv_rotation.set((face && face.rotation)||0)
 
 		this.displayTexture(face)
 		this.displayFrame()//and transform info
@@ -579,14 +603,12 @@ class UVEditor {
 		if (Project.box_uv) {
 			this.displayAllMappingOverlays()
 		}
-		if (this.id !== 'main_uv') {
-			this.displayTools()
-		}
 		if (this !== main_uv && this.face === main_uv.face) {
 			main_uv.loadData()
 		}
 	}
 	save() {
+		if (!Modes.edit) return;
 		var scope = this;
 		//Save UV from Frame to object
 
@@ -641,8 +663,10 @@ class UVEditor {
 		Undo.finishEdit('apply_texture')
 	}
 	displayTexture(face) {
-		if (!face) var face = Cube.selected[0].faces[this.face];
-		var tex = face.getTexture()
+		if (!face && Cube.selected.length) {
+			var face = Cube.selected[0].faces[this.face];
+		}
+		var tex = face ? face.getTexture() : textures[0];
 		if (!tex || typeof tex !== 'object' || (tex.error && tex.error != 2)) {
 			main_uv.img.src = '';
 			this.img.style.display = 'none';
@@ -681,6 +705,7 @@ class UVEditor {
 	}
 	displayFrame() {
 		var scope = this;
+		if (!Modes.edit) return;
 		if (Project.box_uv) {
 			var uvTag = this.getUVTag(Cube.selected[0])
 
@@ -764,10 +789,12 @@ class UVEditor {
 			width  = limitNumber(width *pixels + x, 0, scope.inner_width)  - x;
 			height = limitNumber(height*pixels + y, 0, scope.inner_height)- y;
 
+			var size_data = [x/pixels, y/pixels, width/pixels, height/pixels].join(',');
+
 			sides.append($(`<div class="uv_mapping_overlay"
 				style="left: ${x}px; top: ${y}px;
 				height: ${height}px; width: ${width}px;
-				background: ${color};"></div>`))
+				background: ${color};" data-sizes="${size_data}"></div>`))
 		}
 		var size = cube.size(undefined, true);
 
@@ -786,9 +813,11 @@ class UVEditor {
 		var scope = this;
 		var cycle = bbuid(4)
 		if (this.showing_overlays) {
-			elements.forEach(cube => {
+			Cube.all.forEach(cube => {
 				var size = cube.size(undefined, true)
 				var hash = `${cube.uv_offset[0]}_${cube.uv_offset[1]}_${size[0]}_${size[1]}_${size[2]}`
+				if (scope.jquery.frame.find(`> .mapping_overlay_cube.${cycle}[size_hash="${hash}"]`).length) return;
+
 				var c = scope.jquery.frame.find(`> .mapping_overlay_cube:not(.${cycle})[size_hash="${hash}"]`).first()
 				if (force_reload || !c.length) {
 					var sides = scope.getMappingOverlay(cube, true)
@@ -804,8 +833,33 @@ class UVEditor {
 			$(scope.jquery.frame).find('.mapping_overlay_cube').remove()
 		}
 	}
+	updateAllMappingOverlays() {
+		var scope = this;
+		var pixels = scope.getPixelSize();
+		if (this.showing_overlays) {
+			Cube.all.forEach(cube => {
+				var size = cube.size(undefined, true)
+				var hash = `${cube.uv_offset[0]}_${cube.uv_offset[1]}_${size[0]}_${size[1]}_${size[2]}`
+				var c = scope.jquery.frame.find(`> .mapping_overlay_cube[size_hash="${hash}"]`).first()
+				
+				c.children().each((i, side) => {
+					side = $(side)
+					var data = side.attr('data-sizes');
+					data = data.split(',');
+					data.forEach((s, i) => {
+						data[i] = parseInt(s);
+					})
+					side.css('left',	(data[0] * pixels)+'px')
+						.css('top',		(data[1] * pixels)+'px')
+						.css('width',	(data[2] * pixels)+'px')
+						.css('height',	(data[3] * pixels)+'px')
+				})
+			})
+		}
+	}
 	//UI
 	displaySliders() {
+		if (!Cube.selected.length) return;
 		this.sliders.pos_x.update()
 		this.sliders.pos_y.update()
 		this.sliders.size_x.update()
@@ -813,6 +867,7 @@ class UVEditor {
 	}
 	displayTools() {
 		//Cullface
+		if (!Cube.selected.length) return;
 		var face = Cube.selected[0].faces[this.face]
 		BarItems.cullface.set(face.cullface||'off')
 		BarItems.face_tint.setIcon(face.tint ? 'check_box' : 'check_box_outline_blank')
@@ -942,7 +997,9 @@ class UVEditor {
 
 		this.forCubes(obj => {
 			scope.getFaces(event).forEach(function(side) {
-				var face = obj.faces[side];
+				let face = obj.faces[side];
+				let mirror_x = face.uv[0] > face.uv[2];
+				let mirror_y = face.uv[1] > face.uv[3];
 				face.uv[0] = Math.min(face.uv[0], face.uv[2]);
 				face.uv[1] = Math.min(face.uv[1], face.uv[3]);
 				if (side == 'north' || side == 'south') {
@@ -961,6 +1018,8 @@ class UVEditor {
 				left2 *= scope.getResolution(0, face) / Project.texture_width;
 				top2 *= scope.getResolution(1, face) / Project.texture_height;
 				face.uv_size = [left2, top2];
+				if (mirror_x) [face.uv[0], face.uv[2]] = [face.uv[2], face.uv[0]];
+				if (mirror_y) [face.uv[1], face.uv[3]] = [face.uv[3], face.uv[1]];
 			})
 			obj.autouv = 0
 			Canvas.updateUV(obj)
@@ -1098,9 +1157,7 @@ class UVEditor {
 		if (val === 'off') val = false
 		this.forCubes(obj => {
 			if (val) {
-				obj.faces[scope.face].cullface = val
-			} else {
-				delete obj.faces[scope.face].cullface
+				obj.faces[scope.face].cullface = val || '';
 			}
 		})
 		if (val) {
@@ -1291,7 +1348,7 @@ class UVEditor {
 			'uv_maximize',
 			'uv_auto',
 			'uv_rel_auto',
-			{icon: 'rotate_90_degrees_ccw', condition: () => Format.id == 'java_block' || Format.id == 'free', name: 'menu.uv.mapping.rotation', children: function() {
+			{icon: 'rotate_90_degrees_ccw', condition: () => Format.uv_rotation, name: 'menu.uv.mapping.rotation', children: function() {
 				var off = 'radio_button_unchecked'
 				var on = 'radio_button_checked'
 				return [
@@ -1337,15 +1394,63 @@ class UVEditor {
 				}
 			},
 		]}},
-		{
-			icon: (editor) => (editor.reference_face.tint ? 'check_box' : 'check_box_outline_blank'),
-			condition: () => !Project.box_uv,
-			name: 'menu.uv.tint', click: function(editor) {
-				Undo.initEdit({elements: Cube.selected, uv_only: true})
-				editor.switchTint(Cube.selected[0].faces[editor.face].tint)
-				Undo.finishEdit('face_tint')
-			}
-		},
+		'face_tint',
+		{icon: 'flip_to_back', condition: () => Format.id == 'java_block', name: 'action.cullface', children: function(editor) {
+			var off = 'radio_button_unchecked';
+			var on = 'radio_button_checked';
+			return [
+				{icon: (!editor.reference_face.cullface ? on : off), name: 'uv_editor.no_faces', click: function() {
+					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					editor.forCubes(obj => {
+						obj.faces[editor.face].cullface = '';
+					})
+					Undo.finishEdit('set cullface');
+				}},
+				{icon: (editor.reference_face.cullface == 'north' ? on : off), name: 'face.north', click: function() {
+					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					editor.forCubes(obj => {
+						obj.faces[editor.face].cullface = 'north';
+					})
+					Undo.finishEdit('set cullface');
+				}},
+				{icon: (editor.reference_face.cullface == 'south' ? on : off), name: 'face.south', click: function() {
+					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					editor.forCubes(obj => {
+						obj.faces[editor.face].cullface = 'south';
+					})
+					Undo.finishEdit('set cullface');
+				}},
+				{icon: (editor.reference_face.cullface == 'west' ? on : off), name: 'face.west', click: function() {
+					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					editor.forCubes(obj => {
+						obj.faces[editor.face].cullface = 'west';
+					})
+					Undo.finishEdit('set cullface');
+				}},
+				{icon: (editor.reference_face.cullface == 'east' ? on : off), name: 'face.east', click: function() {
+					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					editor.forCubes(obj => {
+						obj.faces[editor.face].cullface = 'east';
+					})
+					Undo.finishEdit('set cullface');
+				}},
+				{icon: (editor.reference_face.cullface == 'up' ? on : off), name: 'face.up', click: function() {
+					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					editor.forCubes(obj => {
+						obj.faces[editor.face].cullface = 'up';
+					})
+					Undo.finishEdit('set cullface');
+				}},
+				{icon: (editor.reference_face.cullface == 'down' ? on : off), name: 'face.down', click: function() {
+					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					editor.forCubes(obj => {
+						obj.faces[editor.face].cullface = 'down';
+					})
+					Undo.finishEdit('set cullface');
+				}},
+				'auto_cullface'
+			]
+		}},
 		{icon: 'collections', name: 'menu.uv.texture', condition: () => !Project.box_uv, children: function() {
 			var arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(editor, event) {
@@ -1691,7 +1796,7 @@ BARS.defineActions(function() {
 
 	new BarSlider('uv_rotation', {
 		category: 'uv',
-		condition: () => !Project.box_uv && (Format.id == 'java_block' || Format.id == 'free') && Cube.selected.length,
+		condition: () => !Project.box_uv && Format.uv_rotation && Cube.selected.length,
 		min: 0, max: 270, step: 90, width: 80,
 		onBefore: () => {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})

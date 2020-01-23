@@ -150,9 +150,8 @@ const Clipbench = {
 			function iterate(obj, parent) {
 				if (obj.children) {
 					var copy = new Group(obj).addTo(parent).init()
-					if (Format.bone_rig) {
-						copy.createUniqueName();
-					}
+					copy.createUniqueName();
+
 					if (obj.children && obj.children.length) {
 						obj.children.forEach((child) => {
 							iterate(child, copy)
@@ -160,7 +159,10 @@ const Clipbench = {
 					}
 				} else {
 					var el = NonGroup.fromSave(obj).addTo(parent).selectLow();
-					Canvas.adaptObjectPosition(el);
+					el.createUniqueName();
+					if (el instanceof Cube) {
+						Canvas.adaptObjectPosition(el);
+					}
 				}
 			}
 			iterate(Clipbench.group, target)
@@ -168,9 +170,10 @@ const Clipbench = {
 
 		} else if (Clipbench.elements && Clipbench.elements.length) {
 			Clipbench.elements.forEach(function(obj) {
-				NonGroup.fromSave(obj).addTo(target).selectLow()
+				var el = NonGroup.fromSave(obj).addTo(target).selectLow();
+				el.createUniqueName();
 			})
-			updateSelection()
+			Canvas.updatePositions();
 		}
 		Undo.finishEdit('paste', {outliner: true, elements: selected, selection: true});
 	}

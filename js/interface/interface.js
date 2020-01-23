@@ -869,7 +869,7 @@ var documentReady = new Promise((resolve, reject) => {
 		//Donation reminder
 		if (Blockbench.startup_count % 12 === 11) {
 			addStartScreenSection({
-				graphic: {type: 'icon', icon: 'fas fa-heart'},
+				graphic: {type: 'icon', icon: 'fas.fa-heart'},
 				text: [
 					{type: 'h1', text: 'Donation'},
 					{text: 'Are you enjoying Blockbench? Consider donating to the project. Blockbench is 100% donation funded.'},
@@ -913,7 +913,7 @@ onVueSetup(function() {
 		methods: {
 			getDate(p) {
 				if (p.day) {
-					var diff = Blockbench.openTime.dayOfYear() - p.day;
+					var diff = (365e10 + Blockbench.openTime.dayOfYear() - p.day) % 365;
 					if (diff <= 0) {
 						return tl('dates.today');
 					} else if (diff == 1) {

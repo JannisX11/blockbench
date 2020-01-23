@@ -34,7 +34,10 @@ var codec = new Codec('project', {
 		}
 		if (Project.parent) {
 			model.parent = Project.parent;
+		}
+		if (Format.id == 'java_block') {
 			model.ambientocclusion = Project.ambientocclusion
+			model.front_gui_light = Project.front_gui_light;
 		}
 		model.resolution = {
 			width: Project.texture_width || 16,
@@ -148,7 +151,10 @@ var codec = new Codec('project', {
 		}
 		if (model.ambientocclusion !== undefined) {
 			Project.ambientocclusion = !!model.ambientocclusion;
-		} 
+		}
+		if (model.front_gui_light !== undefined) {
+			Project.front_gui_light = !!model.front_gui_light;
+		}
 		if (model.resolution !== undefined) {
 			Project.texture_width = model.resolution.width;
 			Project.texture_height = model.resolution.height;

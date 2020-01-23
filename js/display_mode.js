@@ -1431,7 +1431,6 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	display_preview.setNormalCamera()
 	display_preview.camPers.position.set(-80, 40, -30)
 	display_preview.camPers.setFocalLength(45)
-	lights.rotation.y = (Math.PI/4)*3
 	
 	$('body').addClass('display_mode')
 	$('#display_bar input#thirdperson_righthand').prop("checked", true)
@@ -1512,6 +1511,10 @@ DisplayMode.updateDisplayBase = function(slot) {
 	Transformer.center()
 }
 
+DisplayMode.toggleGuiLight = function() {
+	Project.front_gui_light = !Project.front_gui_light;
+}
+
 
 DisplayMode.applyPreset = function(preset, all) {
 	if (preset == undefined) return;
@@ -1583,6 +1586,14 @@ DisplayMode.groundAnimation = function() {
 	Transformer.center()
 	if (ground_timer === 200) ground_timer = 0;
 }
+DisplayMode.updateGUILight = function() {
+	if (!display_mode) return;
+	if (display_slot == 'gui' && Project.front_gui_light == true) {
+		lights.rotation.set(-Math.PI, 0.6, 0);
+	} else {
+		lights.rotation.set(0, Math.PI * 0.75, 0);
+	}
+} 
 
 function loadDisp(key) {	//Loads The Menu and slider values, common for all Radio Buttons
 	display_slot = key
@@ -1600,9 +1611,10 @@ function loadDisp(key) {	//Loads The Menu and slider values, common for all Radi
 	}
 	DisplayMode.vue._data.slot = display[key]
 	DisplayMode.slot = display[key]
-	DisplayMode.updateDisplayBase()
-	Canvas.updateRenderSides()
-
+	DisplayMode.updateDisplayBase();
+	Canvas.updateRenderSides();
+	DisplayMode.updateGUILight();
+	Toolbars.display.update();
 }
 DisplayMode.loadThirdRight = function() {	//Loader
 	loadDisp('thirdperson_righthand')
@@ -1648,6 +1660,7 @@ DisplayMode.loadGUI = function() {		//Loader
 	display_preview.setOrthographicCamera(2)
 	display_preview.camOrtho.position.set(0,0,32)
 	displayReferenceObjects.bar(['inventory_nine', 'inventory_full', 'hud'])
+	BarItems.gui_light.set(Project.front_gui_light ? 'front' : 'side');
 }
 DisplayMode.loadGround = function() {		//Loader
 	loadDisp('ground')
@@ -1834,6 +1847,7 @@ onVueSetup(function() {
 	DisplayMode.vue = new Vue({
 		el: '#display_sliders',
 		data: {
+			axes: [0, 1, 2],
 			slot: new DisplaySlot()
 		},
 		methods: {
@@ -1889,6 +1903,17 @@ BARS.defineActions(function() {
 		category: 'display',
 		condition: () => display_mode,
 		click: function () {showDialog('create_preset')}
+	})
+	new BarSelect('gui_light', {
+		options: {
+			side: true,
+			front: true,
+		},
+		condition: () => display_mode && display_slot === 'gui',
+		onChange: function(slider) {
+			Project.front_gui_light = slider.get() == 'front';
+			DisplayMode.updateGUILight();
+		}
 	})
 })
 

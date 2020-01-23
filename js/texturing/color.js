@@ -108,12 +108,14 @@ onVueSetup(() => {
 				this.palette.splice(event.newIndex, 0, item);
 			},
 			drop: function(event) {
+				/*
 				var scope = this;
 				setTimeout(() => {
 					if ($('#palette_list:hover').length === 0) {
 						scope.palette.splice(event.oldIndex, 1)[0]
 					}
 				}, 30)
+				*/
 			},
 			setColor(color) {
 				ColorPanel.set(color);
@@ -186,14 +188,19 @@ onVueSetup(() => {
 	ColorPanel.importPalette = function(string) {
 
 		var colors = [];
-		var m_hex = string.match(/#[a-fA-F0-9]{6}/g)
+		var m_hex = string.match(/(#|FF)?[a-fA-F0-9]{6}/g)
 		if (m_hex) m_hex.forEach(color => {
-			color = color.toLowerCase();
+			color = color.substr(-6).toLowerCase();
 			colors.safePush(color);
 		})
 		var m_rgb = string.match(/\(\s*\d{1,3},\s*\d{1,3},\s*\d{1,3}\s*\)/g)
 		if (m_rgb) m_rgb.forEach(color => {
 			color = tinycolor('rgb'+color);
+			colors.safePush(color.toHexString());
+		})
+		var m_gpl = string.match(/\n\d{1,3} \d{1,3} \d{1,3}/g)
+		if (m_gpl) m_gpl.forEach(color => {
+			color = tinycolor(`rgb(${color.substr(1).replace(/ /g, ',')})`);
 			colors.safePush(color.toHexString());
 		})
 		var m_gpl = string.match(/\n\d{1,3} \d{1,3} \d{1,3}/g)
@@ -224,7 +231,7 @@ onVueSetup(() => {
 	}
 
 	Blockbench.addDragHandler('palette', {
-		extensions: ['bbpalette', 'css', 'txt', 'gpl'],
+		extensions: ['bbpalette', 'css', 'txt', 'gpl', 'hex'],
 		readtype: 'text',
 		element: '#color',
 		propagate: true,
@@ -235,22 +242,7 @@ onVueSetup(() => {
 	})
 	Toolbars.palette.toPlace();
 	Toolbars.color_picker.toPlace();
-	/*
-	Import Palette + drop (replace or add after current)
-	Export Palette
-	Add current color to palette
-	(restore default palette)
-	Generate palette from texture  (replace or add after current)
-		blur_linear
-	*/
 })
-
-
-
-
-
-
-
 
 
 BARS.defineActions(function() {
@@ -271,7 +263,7 @@ BARS.defineActions(function() {
 		category: 'color',
 		click: function () {
 			Blockbench.import({
-				extensions: ['bbpalette', 'css', 'txt', 'gpl'],
+				extensions: ['bbpalette', 'css', 'txt', 'gpl', 'hex'],
 				type: 'Blockbench Palette'
 			}, function(files) {
 				if (files && files[0] && typeof files[0].content == 'string') {

@@ -6,7 +6,7 @@ window.BedrockEntityManager = {
 		try {
 			var c = fs.readFileSync(path, 'utf-8');
 			if (typeof c === 'string') {
-				c = JSON.parse(c);
+				c = autoParseJSON(c, false);
 				if (c && c[mce] && c[mce].description && typeof c[mce].description.geometry == 'object') {
 					for (var key in c[mce].description.geometry) {
 						var geoname = c[mce].description.geometry[key];
@@ -95,7 +95,7 @@ window.BedrockEntityManager = {
 						singleButton: true
 					}).show()
 					$('#import_texture_list li').each((i, el) => {
-						$(el).css('background-image', `url("${ valid_textures_list[i].replace(/\\/g, '/') }")`)
+						$(el).css('background-image', `url("${ valid_textures_list[i].replace(/\\/g, '/') }?${Math.round(Math.random()*1e6)}")`)
 						.click(() => {
 							dialog.hide();
 							new Texture({keep_size: true}).fromPath(valid_textures_list[i]).add()
@@ -444,11 +444,10 @@ var codec = new Codec('bedrock', {
 						cube.origin[0] = -(cube.origin[0] + cube.size[0])
 
 
-						if (!obj.origin.allEqual(0)) {
-							cube.pivot = obj.origin.slice();
-							cube.pivot[0] *= -1
-						}
 						if (!obj.rotation.allEqual(0)) {
+							cube.pivot = obj.origin.slice();
+							cube.pivot[0] *= -1;
+							
 							cube.rotation = obj.rotation.slice();
 							cube.rotation.forEach(function(br, axis) {
 								if (axis != 2) cube.rotation[axis] *= -1
@@ -545,7 +544,7 @@ var codec = new Codec('bedrock', {
 		var model_id = 'geometry.'+Project.geometry_name;
 		try {
 			data = fs.readFileSync(path, 'utf-8');
-			data = JSON.parse(data.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, ''))
+			data = autoParseJSON(data, false);
 			if (data['minecraft:geometry'] instanceof Array == false) {
 				throw 'Incompatible format';
 			}

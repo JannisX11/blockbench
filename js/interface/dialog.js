@@ -99,6 +99,17 @@ function Dialog(settings) {
 							}
 							bar.append(el)
 							break;
+						case 'radio':
+							var el = $(`<div class="half form_part_radio" id="${form_id}"></div>`)
+							for (var key in data.options) {
+								var name = tl(data.options[key])
+								el.append(`<div class="form_bar_radio">
+									<input type="radio" name="${form_id}_radio" id="${key}" ${data.default === key ? 'selected' : ''}>
+									<label for="${key}">${name}</label>
+								</div>`)
+							}
+							bar.append(el)
+							break;
 						case 'text':
 							data.text = marked(tl(data.text))
 							bar.append(`<p>${data.text}</p>`)
@@ -227,6 +238,9 @@ function Dialog(settings) {
 								break;
 							case 'select':
 								result[form_id] = jq_dialog.find('select#'+form_id+' > option:selected').attr('id')
+								break;
+							case 'radio':
+								result[form_id] = jq_dialog.find('.form_part_radio#'+form_id+' input:checked').attr('id')
 								break;
 							case 'number':
 								result[form_id] = Math.clamp(parseFloat(jq_dialog.find('input#'+form_id).val())||0, data.min, data.max)

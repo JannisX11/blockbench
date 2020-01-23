@@ -112,8 +112,12 @@ var codec = new Codec('modded_entity', {
 			'\nimport net.minecraft.client.model.ModelBox;'+
 			`\nimport net.minecraft.client.model.${rendererName};`+
 			'\nimport net.minecraft.client.renderer.GlStateManager;'+
-			'\nimport net.minecraft.entity.Entity;\n'+
-			'\npublic class '+model_id+' extends ModelBase {'
+			'\nimport net.minecraft.entity.Entity;\n';
+		if (ver == 1) {
+			model += '\npublic class '+model_id+' extends EntityModel {';
+		} else {
+			model += '\npublic class '+model_id+' extends ModelBase {';
+		}
 
 		for (var r_id in renderers) {
 			model += `\n	private final ${rendererName} ${r_id};`;

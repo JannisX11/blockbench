@@ -55,13 +55,13 @@
 		font-size: 0.94em;
 	}
 	.color_x {
-		color: #d50a0a;
+		color: var(--color-axis-x);
 	}
 	.color_y {
-		color: #23d400;
+		color: var(--color-axis-y);
 	}
 	.color_z {
-		color: #0894ed;
+		color: var(--color-axis-z);
 	}
 	.button {
 		display: inline-block;
@@ -224,6 +224,28 @@
 		margin-right: 6px;
 	}
 
+	.annotation {
+		min-width: 40px;
+		max-width: 100%;
+		width: max-content;
+		position: absolute;
+		text-align: center;
+		background-color: var(--color-bright_ui);
+		color: var(--color-accent_text);
+		padding: 3px 8px;
+		pointer-events: none;
+	}
+	.annotation.transparent {
+		background: transparent;
+		font-weight: normal;
+		font-size: 1.2em;
+		padding: 0;
+		margin: -4px;
+		min-width: 15px;
+		color: var(--color-light);
+		text-shadow: 0 0 5px black;
+	}
+
 	.spinning {
 		-webkit-animation: spin 2s linear infinite;
 		-moz-animation: spin 2s linear infinite;
@@ -239,7 +261,7 @@
 	}
 	li.menu_bar_point {
 		font-size: 17px;
-		padding: 0 10px;
+		padding: 0 8px;
 		padding-top: 2px;
 		display: inline-block;
 		height: 100%;
@@ -380,7 +402,9 @@
 		width: 100%;
 	}
 	.bar_select .bar_select_wrapper::before {
-		content: "\23F7";
+		content: "\f0d7";
+		font-family: 'Font Awesome 5 Free';
+		font-weight: 900;
 		display: block;
 		position: absolute;
 		height: 12px;

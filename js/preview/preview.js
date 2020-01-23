@@ -51,25 +51,31 @@ class Preview {
 		this.controls.enableKeys = false;
 		this.controls.zoomSpeed = 1.5;
 
-		this.annotations = [];
-		this.controls.onUpdate(() => {
-			setTimeout(() => {
-			this.annotations.forEach(tag => {
+		//Annotations
+		this.annotations = {};
+		this.updateAnnotations = function() {
+			for (var key in scope.annotations) {
+				var tag = scope.annotations[key];
 				if (tag.object.visible) {
-					var pos = tag.object.toScreenPosition(this.camera, this.canvas);
+					var pos = tag.object.toScreenPosition(scope.camera, scope.canvas);
 					$(tag.node).css('left', pos.x+'px');
 					$(tag.node).css('top', pos.y+'px');
 				}
-			})
-			}, 6)
-		})
-		this.addExampleTag = function() {
-			var obj = $('<div style="position: absolute; background: #fff; color: #000;">Hallo</div>');
-			obj.insertBefore(scope.canvas);
-			this.annotations.push({
-				object: Cube.selected[0].mesh,
-				node: obj.get(0),
-			})
+			}
+		}
+		this.controls.onUpdate(() => setTimeout(() => {
+			scope.updateAnnotations();
+		}, 6))
+		this.addAnnotation = function(key, tag) {
+			scope.annotations[key] = tag;
+			$(tag.node).insertBefore(scope.canvas);
+			scope.updateAnnotations();
+		}
+		this.removeAnnotation = function(key) {
+			if (scope.annotations[key]) {
+				$(scope.annotations[key].node).detach();
+				delete scope.annotations[key];
+			}
 		}
 
 		this.resetCamera(true)
@@ -338,11 +344,16 @@ class Preview {
 	}
 	//Controls
 	click(event) {
-		event.preventDefault()
-		$(':focus').blur()
-		unselectInterface(event)
+		event.preventDefault();
+		$(':focus').blur();
+		unselectInterface(event);
 		convertTouchEvent(event);
 		this.static_rclick = event.which === 3 || event.type == 'touchstart';
+		if (event.type == 'touchstart') {
+			this.rclick_cooldown = setTimeout(() => {
+				this.rclick_cooldown = true;
+			}, 420)
+		}
 		quad_previews.current = this;
 		if (Transformer.hoverAxis !== null || (!Keybinds.extra.preview_select.keybind.isTriggered(event) && event.which !== 0)) return;
 
@@ -411,7 +422,7 @@ class Preview {
 	}
 	showContextMenu(event, force) {
 		Prop.active_panel = 'preview';
-		if (this.static_rclick && (event.which === 3 || event.type == 'touchend')) {
+		if (this.static_rclick && (event.which === 3 || (event.type == 'touchend' && this.rclick_cooldown == true))) {
 			var data = this.raycast(event)
 			if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data && data.cube) {
 				data.cube.showContextMenu(event)
@@ -419,6 +430,8 @@ class Preview {
 				this.menu.open(event, this)
 			}
 		}
+		clearTimeout(this.rclick_cooldown);
+		delete this.rclick_cooldown;
 		return this;
 	}
 	//Selection Rectangle
@@ -756,6 +769,13 @@ class Preview {
 							preview.loadBackground()
 						}
 					}, 'image', false)
+				}},
+				{icon: 'fa-clipboard', name: 'menu.preview.background.clipboard', condition: isApp, click: function(preview) {
+					var image = clipboard.readImage().toDataURL();
+					if (image.length > 32) {
+						preview.background.image = image;
+						preview.loadBackground();
+					}
 				}},
 				{icon: 'photo_size_select_large', name: 'menu.preview.background.position', condition: has_background, click: function(preview) {
 					preview.startMovingBackground()
@@ -1200,13 +1220,13 @@ function initCanvas() {
 		this.tex.needsUpdate = true;
 	}
 	emptyMaterials = []
-	cubeColors.forEach(function(s, i) {
+	markerColors.forEach(function(s, i) {
 		var thismaterial = new THREE.MeshLambertMaterial({
 			color: 0xffffff,
 			vertexColors: THREE.FaceColors,
 			map: tex
 		})
-		thismaterial.color.set(s.hex)
+		thismaterial.color.set(s.pastel)
 		emptyMaterials.push(thismaterial)
 	})
 
@@ -1239,6 +1259,7 @@ function initCanvas() {
 	rot_origin.add(helper2)
 
 	rot_origin.rotation.reorder('ZYX')
+	rot_origin.base_scale = new THREE.Vector3(1, 1, 1);
 
 	setupGrid = true;
 	

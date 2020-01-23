@@ -41,6 +41,8 @@ var codec = new Codec('obj', {
 
 		output += 'mtllib ' + (options.mtl_name||'materials.mtl') +'\n';
 
+		var scale = 1/16;
+
 		var parseMesh = function ( mesh ) {
 
 			var nbVertex = 0;
@@ -62,7 +64,7 @@ var codec = new Codec('obj', {
 				var vertex = vertices[ i ].clone();
 				vertex.applyMatrix4( mesh.matrixWorld );
 
-				output += 'v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z + '\n';
+				output += 'v ' + (vertex.x*scale) + ' ' + (vertex.y*scale) + ' ' + (vertex.z*scale) + '\n';
 				nbVertex ++;
 			}
 			// uvs

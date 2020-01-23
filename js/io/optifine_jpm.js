@@ -215,6 +215,7 @@ var part_format = new ModelFormat({
 		single_texture: true,
 		integer_size: true,
 		rotate_cubes: true,
+		optional_box_uv: true,
 		codec: part_codec
 })
 part_codec.format = part_format;

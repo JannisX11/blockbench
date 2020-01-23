@@ -332,8 +332,7 @@ Array.prototype.empty = function() {
 	return this;
 }
 Array.prototype.purge = function() {
-	this.length = Math.clamp(this.length, 0, 1);
-	this.splice(0, 1)
+	this.splice(0, Infinity);
 	return this;
 }
 Array.prototype.findInArray = function(key, value) {

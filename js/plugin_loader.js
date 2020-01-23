@@ -391,10 +391,11 @@ BARS.defineActions(function() {
 		icon: 'fa-file-code',
 		category: 'blockbench',
 		click: function () {
+			var startpath = localStorage.getItem('plugin_dev_path') || undefined;
 			Blockbench.import({
 				extensions: ['js'],
 				type: 'Blockbench Plugin',
-				startpath: localStorage.getItem('plugin_dev_path')
+				startpath
 			}, function(files) {
 				loadPluginFromFile(files[0])
 			})

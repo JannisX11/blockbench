@@ -176,11 +176,14 @@
 
 		this.highlight = function ( axis ) {
 
+			var axis_letter = typeof axis === 'string' && axis.substr(-1).toLowerCase();
+
 			this.traverse( function( child ) {
 
 				if ( child.material && child.material.highlight ) {
-					
-					if ( child.name === axis) {
+
+
+					if ( child.name === axis && axis_letter && child.scale[axis_letter] < 5) {
 
 						child.material.highlight( true );
 
@@ -225,7 +228,7 @@
 		THREE.TransformGizmo.call( this );
 
 		var arrowGeometry = new THREE.Geometry();
-		var mesh = new THREE.Mesh( new THREE.CylinderGeometry( 0, 0.05, 0.2, 12, 1, false ) );
+		var mesh = new THREE.Mesh( new THREE.CylinderGeometry( 0, 0.07, 0.2, 12, 1, false ) );
 		mesh.position.y = 0.5;
 		mesh.updateMatrix();
 
@@ -629,6 +632,7 @@
 			var oldScale = 0;
 			var oldScaleTranslation = 0;
 			var positionSnapOffset = new THREE.Vector3()
+			var originalValue = null;
 			var previousValue = 0;
 			var tempScale = 1;
 
@@ -727,6 +731,9 @@
 				scale = (6 / scope.camera.zoom) * (settings.origin_size.value / 50);
 			}
 			rot_origin.scale.set( scale, scale, scale );
+			if (rot_origin.base_scale) {
+				rot_origin.scale.multiply(rot_origin.base_scale);
+			}
 			
 			if (scope.elements.length == 0) return;
 
@@ -907,6 +914,34 @@
 				}
 			}
 		}
+		function displayDistance(number) {
+			Blockbench.setStatusBarText(trimFloatNumber(number));
+		}
+		function extendTransformLine(long) {
+
+			let axis = scope.axis.substr(-1).toLowerCase();
+			let axisNumber = getAxisNumber(axis);
+			let main_gizmo = _gizmo[_mode].children[0];
+
+			switch (Toolbox.selected.transformerMode) {
+				default:
+					var line = main_gizmo.children[axisNumber*2];
+					break;
+				case 'scale':
+					var line = main_gizmo.children[(axisNumber*2 + (scope.direction?1:0)) * 2];
+					break;
+				case 'rotate':
+					var line = rot_origin;
+					break;
+			}
+			line.scale[axis] = long ? 20000 : 1;
+			if (Toolbox.selected.transformerMode !== 'rotate') {
+				line.position[axis] = long ? -10000 : (scope.direction?0:-1);
+			} else {
+				line.base_scale[axis] = long ? 20000 : 1;
+			}
+			_gizmo[ _mode ].highlight( scope.axis );
+		}
 
 		function onPointerHover( event ) {
 
@@ -968,6 +1003,7 @@
 						offset.copy( planeIntersect.point );
 						previousValue = undefined
 						Canvas.outlineObjects(selected)
+						extendTransformLine(true);
 					}
 				}
 			}
@@ -1105,7 +1141,6 @@
 					
 					ik_solver.helper = new THREE.IKHelper(ik_solver.ik);
 					scene.add(ik_solver.helper);
-					cl(ik_solver)
 
 					setTimeout(_ => ik_solver.ik.solve(), 80)*/
 
@@ -1166,6 +1201,9 @@
 					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
 					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
 
+					if (originalValue === null) {
+						originalValue = point[axis];
+					}
 					if (previousValue === undefined) {
 						previousValue = point[axis]
 
@@ -1192,8 +1230,8 @@
 								Group.selected.forEachChild(g => {
 									g.origin[axisNumber] += difference
 								}, Group, true)
-
 							}
+							displayDistance(point[axis] - originalValue);
 							selected.forEach(function(obj, i) {
 								if (obj.movable) {
 									obj.move(difference, axisNumber, _has_groups||!Format.bone_rig)
@@ -1218,6 +1256,7 @@
 								obj.resize(point[axis], axisNumber, !scope.direction)
 							}
 						})
+						displayDistance(point[axis] * (scope.direction ? 1 : -1));
 						scope.updateSelection()
 						previousValue = point[axis]
 						scope.hasChanged = true
@@ -1229,7 +1268,9 @@
 					angle = Math.round(angle / snap) * snap
 					if (Math.abs(angle) > 300) angle = angle > 0 ? -snap : snap;
 					if (previousValue === undefined) previousValue = angle
-
+					if (originalValue === null) {
+						originalValue = angle;
+					}
 					if (previousValue !== angle) {
 						beforeFirstChange(event)
 
@@ -1237,6 +1278,7 @@
 						rotateOnAxis(n => (n + difference), axisNumber)
 						Canvas.updatePositions(true)
 						scope.updateSelection()
+						displayDistance(angle - originalValue);
 						previousValue = angle
 						scope.hasChanged = true
 					}
@@ -1245,6 +1287,9 @@
 					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
 					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
 
+					if (originalValue === null) {
+						originalValue = point[axis];
+					}
 					if (previousValue === undefined) {
 						previousValue = point[axis]
 
@@ -1270,6 +1315,7 @@
 								}
 							})
 						}
+						displayDistance(point[axis] - originalValue);
 						Canvas.updatePositions(true);
 						if (Modes.animate) {
 							Animator.preview();
@@ -1300,6 +1346,9 @@
 				}
 				value = Math.round(value/round_num)*round_num
 				if (previousValue === undefined) previousValue = value
+				if (originalValue === null) {
+					originalValue = value;
+				}
 
 				if (value !== previousValue && Animator.selected && Animator.selected.getBoneAnimator()) {
 					beforeFirstChange(event)
@@ -1324,7 +1373,6 @@
 						var ik_solver = Transformer.ik_solver;
 
 						ik_solver.target.position.copy(planeIntersect.point);
-						cl(ik_solver.target.position.toArray());
 
 						main_preview.render()
 
@@ -1332,15 +1380,9 @@
 
 						ik_solver.copy_bones.forEach((copy_bone, i) => {
 							var keyframe = scope.keyframes[i];
-							cl(keyframe)
 							if (keyframe) {
 								var bone = copy_bone.original;
 								var animator = Animator.selected.getBoneAnimator(bone);
-								cl(`-- ${keyframe.animator.group.name} --`)
-								cl(`${bone.name} - Absolute X: ${Math.radToDeg(copy_bone.rotation.x)}`)
-								cl(`${bone.name} - offset X: ${Math.radToDeg(copy_bone.last_rotation.x - copy_bone.rotation.x)}`)
-								cl(`${bone.name} - offset y: ${Math.radToDeg(copy_bone.last_rotation.y - copy_bone.rotation.y)}`)
-								cl(`${bone.name} - offset z: ${Math.radToDeg(copy_bone.last_rotation.z - copy_bone.rotation.z)}`)
 
 								keyframe.offset('x', Math.radToDeg(copy_bone.last_rotation.x - copy_bone.rotation.x));
 								keyframe.offset('y', Math.radToDeg(copy_bone.last_rotation.y - copy_bone.rotation.y));
@@ -1356,6 +1398,7 @@
 						scope.keyframes[0].offset(axis, difference);
 						scope.keyframes[0].select()
 					}
+					displayDistance(value - originalValue);
 
 					Animator.preview()
 					previousValue = value
@@ -1389,6 +1432,9 @@
 					}
 				}
 				if (previousValue === undefined) previousValue = value
+				if (originalValue === null) {
+					originalValue = value;
+				}
 
 				if (value !== previousValue) {
 					beforeFirstChange(event)
@@ -1402,6 +1448,8 @@
 						display[display_slot][channel][(axisNumber+2)%3] = val
 					}
 					DisplayMode.slot.update()
+
+					displayDistance(value - originalValue);
 
 					previousValue = value
 					scope.hasChanged = true
@@ -1421,8 +1469,13 @@
 
 				mouseUpEvent.mode = _mode;
 				scope.dispatchEvent( mouseUpEvent );
-				scope.orbit_controls.stopMovement()
-				outlines.children.length = 0
+				scope.orbit_controls.stopMovement();
+				outlines.children.length = 0;
+				originalValue = null;
+
+				extendTransformLine(false);
+
+				Blockbench.setStatusBarText();
 
 				if (Modes.id === 'edit' || Toolbox.selected.id == 'pivot_tool') {
 					if (Toolbox.selected.id === 'resize_tool') {

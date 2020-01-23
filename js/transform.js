@@ -678,6 +678,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_pos_x', {
 		name: tl('action.slider_pos', ['X']),
 		description: tl('action.slider_pos.desc', ['X']),
+		color: 'x',
 		condition: () => (selected.length && Modes.edit),
 		get: function() {
 			return selected[0].from[0]
@@ -695,6 +696,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_pos_y', {
 		name: tl('action.slider_pos', ['Y']),
 		description: tl('action.slider_pos.desc', ['Y']),
+		color: 'y',
 		condition: () => (selected.length && Modes.edit),
 		get: function() {
 			return selected[0].from[1]
@@ -712,6 +714,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_pos_z', {
 		name: tl('action.slider_pos', ['Z']),
 		description: tl('action.slider_pos.desc', ['Z']),
+		color: 'z',
 		condition: () => (selected.length && Modes.edit),
 		get: function() {
 			return selected[0].from[2]
@@ -738,6 +741,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_size_x', {
 		name: tl('action.slider_size', ['X']),
 		description: tl('action.slider_size.desc', ['X']),
+		color: 'x',
 		condition: () => (Cube.selected.length && Modes.edit),
 		get: function() {
 			return Cube.selected[0].to[0] - Cube.selected[0].from[0]
@@ -755,6 +759,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_size_y', {
 		name: tl('action.slider_size', ['Y']),
 		description: tl('action.slider_size.desc', ['Y']),
+		color: 'y',
 		condition: () => (Cube.selected.length && Modes.edit),
 		get: function() {
 			return Cube.selected[0].to[1] - Cube.selected[0].from[1]
@@ -772,6 +777,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_size_z', {
 		name: tl('action.slider_size', ['Z']),
 		description: tl('action.slider_size.desc', ['Z']),
+		color: 'z',
 		condition: () => (Cube.selected.length && Modes.edit),
 		get: function() {
 			return Cube.selected[0].to[2] - Cube.selected[0].from[2]
@@ -819,6 +825,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_rotation_x', {
 		name: tl('action.slider_rotation', ['X']),
 		description: tl('action.slider_rotation.desc', ['X']),
+		color: 'x',
 		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -843,6 +850,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_rotation_y', {
 		name: tl('action.slider_rotation', ['Y']),
 		description: tl('action.slider_rotation.desc', ['Y']),
+		color: 'y',
 		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -867,6 +875,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_rotation_z', {
 		name: tl('action.slider_rotation', ['Z']),
 		description: tl('action.slider_rotation.desc', ['Z']),
+		color: 'z',
 		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -920,6 +929,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_origin_x', {
 		name: tl('action.slider_origin', ['X']),
 		description: tl('action.slider_origin.desc', ['X']),
+		color: 'x',
 		condition: () => (Modes.edit || Modes.animate) && getRotationObject(),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -942,6 +952,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_origin_y', {
 		name: tl('action.slider_origin', ['Y']),
 		description: tl('action.slider_origin.desc', ['Y']),
+		color: 'y',
 		condition: () => (Modes.edit || Modes.animate) && getRotationObject(),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -964,6 +975,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_origin_z', {
 		name: tl('action.slider_origin', ['Z']),
 		description: tl('action.slider_origin.desc', ['Z']),
+		color: 'z',
 		condition: () => (Modes.edit || Modes.animate) && getRotationObject(),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -1144,42 +1156,42 @@ BARS.defineActions(function() {
 	new Action('move_up', {
 		icon: 'arrow_upward',
 		category: 'transform',
-		condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
+		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 38, ctrl: null, shift: null}),
 		click: function (e) {moveCubesRelative(-1, 2, e)}
 	})
 	new Action('move_down', {
 		icon: 'arrow_downward',
 		category: 'transform',
-		condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
+		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 40, ctrl: null, shift: null}),
 		click: function (e) {moveCubesRelative(1, 2, e)}
 	})
 	new Action('move_left', {
 		icon: 'arrow_back',
 		category: 'transform',
-		condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
+		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 37, ctrl: null, shift: null}),
 		click: function (e) {moveCubesRelative(-1, 0, e)}
 	})
 	new Action('move_right', {
 		icon: 'arrow_forward',
 		category: 'transform',
-		condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
+		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 39, ctrl: null, shift: null}),
 		click: function (e) {moveCubesRelative(1, 0, e)}
 	})
 	new Action('move_forth', {
 		icon: 'keyboard_arrow_up',
 		category: 'transform',
-		condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
+		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 33, ctrl: null, shift: null}),
 		click: function (e) {moveCubesRelative(-1, 1, e)}
 	})
 	new Action('move_back', {
 		icon: 'keyboard_arrow_down',
 		category: 'transform',
-		condition: () => (selected.length && !open_menu && Modes.id === 'edit'),
+		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 34, ctrl: null, shift: null}),
 		click: function (e) {moveCubesRelative(1, 1, e)}
 	})

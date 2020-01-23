@@ -57,6 +57,7 @@ const Project = {
 	_texture_width	: 16,
 	_texture_height	: 16,
 	ambientocclusion: true,
+	front_gui_light: false,
 	get optional_box_uv() {
 		return Format.optional_box_uv;
 	}
@@ -191,8 +192,6 @@ function updateSelection() {
 		}
 	}
 	if (Cube.selected.length) {
-		main_uv.jquery.size.find('.uv_mapping_overlay').remove()
-		main_uv.loadData()
 		$('.selection_only').css('visibility', 'visible')
 	} else {
 		if (Format.bone_rig && Group.selected) {
@@ -204,6 +203,13 @@ function updateSelection() {
 				$('.selection_only#element').css('visibility', 'visible')
 			}
 		}
+		if (Format.single_texture && Modes.paint) {
+			$('.selection_only#uv').css('visibility', 'visible')
+		}
+	}
+	if (Cube.selected.length || (Format.single_texture && Modes.paint)) {
+		main_uv.jquery.size.find('.uv_mapping_overlay').remove()
+		main_uv.loadData()
 	}
 	if (Modes.animate) {
 		updateKeyframeSelection();
@@ -216,6 +222,9 @@ function updateSelection() {
 	Canvas.updateOrigin();
 	Transformer.updateSelection();
 	Transformer.update();
+	previews.forEach(preview => {
+		preview.updateAnnotations();
+	})
 
 	BARS.updateConditions();
 	delete TickUpdates.selection;
@@ -313,6 +322,8 @@ class Mode extends KeybindItem {
 		Modes.id = this.id
 		Modes.selected = this;
 		Modes[Modes.selected.id] = true;
+
+		document.body.setAttribute('mode', this.id);
 
 		$('#center > #preview').toggle(this.center_windows.includes('preview'));
 		$('#center > #timeline').toggle(this.center_windows.includes('timeline'));
@@ -474,6 +485,95 @@ const TickUpdates = {
 			delete TickUpdates.keybind_conflicts;
 			updateKeybindConflicts();
 		}
+	}
+}
+
+const FormatWizard = {
+	start() {
+		var dialog_1 = new Dialog({
+			id: 'format_wizard_1',
+			title: 'format_wizard.title',
+			width: 540,
+			form: {
+				question: {type: 'text', text: 'Which platform do you want to create a model for?'},
+				platform: {label: 'dialog.radio', type: 'radio', options: {
+					'mcj': 'Minecraft: Java Edition',
+					'mcbe': 'Minecraft: Bedrock Edition',
+					'obj': 'Game Engine'
+				}},
+			},
+			onConfirm: function(formResult1) {
+				if (formResult1.platform == 'obj') {
+
+					FormatWizard.result('free');
+
+				} else if (formResult1.platform == 'mcbe') {
+					var types = {
+						block: 'format_wizard.type.block',
+						item: 'format_wizard.type.item',
+						entity: 'format_wizard.type.entity',
+					}
+				} else {
+					var types = {
+						block: 'format_wizard.type.block',
+						item: 'format_wizard.type.item',
+						entity: 'format_wizard.type.entity',
+						armor: 'format_wizard.type.armor',
+					}
+				}
+				var dialog_2 = new Dialog({
+					id: 'format_wizard_2',
+					title: 'format_wizard.title',
+					width: 540,
+					form: {
+						question: {type: 'text', text: 'What type of model do you want to edit?'},
+						type: {label: 'dialog.radio', type: 'radio', options: types},
+					},
+					onConfirm: function(formResult2) {
+						if (formResult1.platform == 'mcj' && (formResult2.type == 'entity' || formResult2.type == 'armor')) {
+
+							var dialog_3 = new Dialog({
+								id: 'format_wizard_3',
+								title: 'format_wizard.title',
+								width: 540,
+								form: {
+									question: {type: 'text', text: 'What do you want to create the model for?'},
+									product: {label: 'dialog.radio', type: 'radio', options: {
+										vanilla: '',
+										optifine: '',
+										modded: '',
+									}},
+								},
+								onConfirm: function(formResult3) {
+									switch (formResult3.product) {
+										case 'vanilla':
+											FormatWizard.result(''); break;
+										case 'optifine':
+											FormatWizard.result(formResult2.type == 'armor' ? 'java_armor' : 'optifine_entity'); break;
+										case 'modded': default:
+											FormatWizard.result('modded_entity'); break;
+									}
+								}
+							}).show();
+						} else if (formResult1.platform == 'mcj') {
+							FormatWizard.result('java_block');
+						} else {
+							switch (formResult2.type) {
+								case 'block':
+									FormatWizard.result('not_supported_yet'); break;
+								case 'item':
+									FormatWizard.result('not_supported_yet'); break;
+								default:
+									FormatWizard.result('bedrock'); break;
+							}
+						}
+					}
+				}).show();
+			}
+		}).show();
+	},
+	result(result) {
+
 	}
 }
 

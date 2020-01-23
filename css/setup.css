@@ -309,6 +309,9 @@
 		--color-checkerboard: #2f3339;
 
 		--color-close: #d62e3f;
+		--color-axis-x: #d50a0a;
+		--color-axis-y: #23d400;
+		--color-axis-z: #0894ed;
 
 		--font-custom-main: '';
 		--font-custom-headline: '';
@@ -412,6 +415,10 @@
 		padding-left: 16px;
 		font-weight: normal;
 	}
+	button.disabled {
+		opacity: 0.5;
+		pointer-events: none;
+	}
 	button:hover {
 		background: var(--color-accent);
 		color: var(--color-accent_text) !important;
@@ -495,6 +502,19 @@
 	input[type=checkbox][disabled=disabled] {
 		opacity: 0.6;
 	}
+	input[type=radio]::before {
+		content: "\f111";
+		font-family: 'Font Awesome 5 Free';
+    	font-weight: 300;
+    	font-size: 15pt;
+	}
+	input[type=radio]:checked::before {
+		content: "\f192";
+	}
+	input[type=radio][disabled=disabled] {
+		opacity: 0.6;
+	}
+
 	div.nslide {
 		height: 28px;
 		width: 100%;
@@ -505,6 +525,21 @@
 		white-space: nowrap;
 		outline: none;
 		background-color: var(--color-button);
+	}
+	.tool.nslide_tool .nslide_overlay {
+		width: 100%;
+		position: relative;
+		pointer-events: none;
+	}
+	.color_corner {
+		position: absolute;
+		top: 0;
+		right: 0;
+		border-width: 4px;
+		border-style: solid;
+		border-color: transparent;
+		border-bottom-color: transparent !important;
+		border-left-color: transparent !important;
 	}
 	#nslide_head {
 		margin-top: 30px;

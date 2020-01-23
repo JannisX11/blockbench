@@ -28,7 +28,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '3.2.2';
+		const appVersion = '3.3.0';
 	</script>
 		<script src="lib/vue.min.js"></script>
 		<script src="lib/vue_sortable.js"></script>
@@ -99,6 +99,7 @@
 		<script src="js/io/modded_entity.js"></script>
 		<script src="js/io/optifine_jem.js"></script>
 		<script src="js/io/optifine_jpm.js"></script>
+		<script src="js/io/skin.js"></script>
 
 		<script>if (window.module) module = window.module;</script>
 
@@ -773,23 +774,27 @@
 			<div id="display_sliders">
 				
 				<p class="tl">display.rotation</p><div class="tool head_right" v-on:click="resetChannel('rotation')"><i class="material-icons">replay</i></div>
-				<div class="bar slider_input_combo" v-for="axis in [0, 1, 2]">
-					<input type="range" class="tool disp_range" v-model.number="slot.rotation[axis]" v-bind:trigger_type="'rotation.'+axis" min="-180" max="180" step="1" value="0" @input="change" @input="change(axis, 'rotation')" @mousedown="start" @change="save">
+				<div class="bar slider_input_combo" v-for="axis in axes">
+					<input type="range" class="tool disp_range" v-model.number="slot.rotation[axis]" v-bind:trigger_type="'rotation.'+axis"
+						min="-180" max="180" step="1" value="0"
+						@input="change(axis, 'rotation')" @mousedown="start" @change="save">
 					<input lang="en" type="number" class="tool disp_text" v-model.number="slot.rotation[axis]" min="-180" max="180" step="0.5" value="0" @input="change(axis, 'rotation');save()" @mousedown="start">
+					<div class="color_corner" :style="{'border-color': `var(--color-axis-${getAxisLetter(axis)})`}"></div>
 				</div>
 				
 				<p class="tl">display.translation</p><div class="tool head_right" v-on:click="resetChannel('translation')"><i class="material-icons">replay</i></div>
-				<div class="bar slider_input_combo" v-for="axis in [0, 1, 2]">
+				<div class="bar slider_input_combo" v-for="axis in axes">
 					<input type="range" class="tool disp_range" v-model.number="slot.translation[axis]" v-bind:trigger_type="'translation.'+axis"
 						v-bind:min="Math.abs(slot.translation[axis]) < 10 ? -20 : (slot.translation[axis] > 0 ? -70*3+10 : -80)"
 						v-bind:max="Math.abs(slot.translation[axis]) < 10 ?  20 : (slot.translation[axis] < 0 ? 70*3-10 : 80)"
 						v-bind:step="Math.abs(slot.translation[axis]) < 10 ? 0.25 : 1"
 						value="0" @input="change(axis, 'translation')" @mousedown="start" @change="save">
 					<input lang="en" type="number" class="tool disp_text" v-model.number="slot.translation[axis]" min="-80" max="80" step="0.5" value="0" @input="change(axis, 'translation');save()" @mousedown="start">
+					<div class="color_corner" :style="{'border-color': `var(--color-axis-${getAxisLetter(axis)})`}"></div>
 				</div>
 
 				<p class="tl">display.scale</p><div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>
-				<div class="bar slider_input_combo" v-for="axis in [0, 1, 2]">
+				<div class="bar slider_input_combo" v-for="axis in axes">
 					<div class="tool display_scale_invert" v-on:click="invert(axis)">
 						<div class="tooltip tl">display.mirror</div>
 						<i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i>
@@ -800,6 +805,7 @@
 						step="0.01"
 						value="0" @input="change(axis, 'scale')" @mousedown="start" @change="save">
 					<input type="number" class="tool disp_text" v-model.number="slot.scale[axis]" min="0" max="4" step="0.01" value="0" @input="change(axis, 'scale');save()" @mousedown="start">
+					<div class="color_corner" :style="{'border-color': `var(--color-axis-${getAxisLetter(axis)})`}"></div>
 				</div>
 			</div>
 		</div>
@@ -829,15 +835,15 @@
 			<div class="toolbar_wrapper keyframe"></div>
 			<p class="tl" id="keyframe_type_label"></p>
 			<div class="bar flex" id="keyframe_bar_x">
-				<label>X</label>
+				<label class="color_x" style="font-weight: bolder">X</label>
 				<input type="text" id="keyframe_x" class="dark_bordered code keyframe_input tab_target" axis="x" oninput="updateKeyframeValue(this)">
 			</div>
 			<div class="bar flex" id="keyframe_bar_y">
-				<label>Y</label>
+				<label class="color_y" style="font-weight: bolder">Y</label>
 				<input type="text" id="keyframe_y" class="dark_bordered code keyframe_input tab_target" axis="y" oninput="updateKeyframeValue(this)">
 			</div>
 			<div class="bar flex" id="keyframe_bar_z">
-				<label>Z</label>
+				<label class="color_z" style="font-weight: bolder">Z</label>
 				<input type="text" id="keyframe_z" class="dark_bordered code keyframe_input tab_target" axis="z" oninput="updateKeyframeValue(this)">
 			</div>
 			<div class="bar flex" id="keyframe_bar_w">
@@ -851,6 +857,10 @@
 			<div class="bar flex" id="keyframe_bar_locator">
 				<label class="tl">data.locator</label>
 				<input type="text" id="keyframe_locator" class="dark_bordered code keyframe_input tab_target" axis="locator" oninput="updateKeyframeValue(this)">
+			</div>
+			<div class="bar flex" id="keyframe_bar_script">
+				<label class="tl">timeline.pre_effect_script</label>
+				<input type="text" id="keyframe_script" class="dark_bordered code keyframe_input tab_target" axis="script" oninput="updateKeyframeValue(this)">
 			</div>
 			<div class="bar" id="keyframe_bar_instructions">
 				<label class="tl">timeline.timeline</label>
@@ -924,8 +934,6 @@
 								:key="color"
 								v-bind:style="{'background-color': color}"
 								v-bind:title="color" @click="setColor(color)"
-								@mousemove="hover_color = color"
-								@mouseleave="hover_color = ''"
 							></li>
 						</div>
 					</div>
@@ -997,16 +1005,23 @@
 							<div v-for="t in timecodes" class="timeline_timecode" v-bind:style="{left: (t.time * size) + 'px'}">
 								{{ t.text }}
 							</div>
-							<div id="timeline_marker"
-								v-bind:style="{left: (marker * size) + 'px'}"
+							<div id="timeline_playhead"
+								v-bind:style="{left: (playhead * size) + 'px'}"
+							></div>
+							<div
+								v-for="marker in markers"
+								class="timeline_marker"
+								v-bind:style="{left: (marker.time * size) + 'px', 'border-color': markerColors[marker.color].standard}"
+								@contextmenu.prevent="marker.showContextMenu($event)"
+								v-on:click="marker.callPlayhead()"
 							></div>
 						</div>
 					</div>
 				</div>
 				<div id="timeline_body">
 					<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="Timeline.showMenu($event)">
-						<div id="timeline_marker_line"
-							v-bind:style="{left: (8 + marker * size + head_width) + 'px'}"
+						<div id="timeline_playhead_line"
+							v-bind:style="{left: (8 + playhead * size + head_width) + 'px'}"
 						></div>
 						<li v-for="animator in animators" class="animator" :class="{selected: animator.selected}" :uuid="animator.uuid" v-on:click="animator.select();">
 							<div class="animator_head_bar">
@@ -1045,7 +1060,7 @@
 										v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
 										v-bind:id="keyframe.uuid"
 										v-on:click.stop="keyframe.select($event)"
-										v-on:dblclick="keyframe.callMarker()"
+										v-on:dblclick="keyframe.callPlayhead()"
 										:title="tl('timeline.'+keyframe.channel)"
 										@contextmenu.prevent="keyframe.showContextMenu($event)"
 									>

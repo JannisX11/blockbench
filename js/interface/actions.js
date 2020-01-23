@@ -22,6 +22,7 @@ class BarItem {
 			this.description = tl('action.'+this.id+'.desc')
 			if (this.description == key) this.description = '';
 		}
+		this.color = data.color
 		this.node;
 		this.condition = data.condition;
 		this.nodes = []
@@ -164,7 +165,6 @@ class Action extends BarItem {
 		this.type = 'action'
 		//Icon
 		this.icon = data.icon
-		this.color = data.color
 
 		if (data.linked_setting) {
 			this.description = tl('settings.'+data.linked_setting+'.desc')
@@ -255,6 +255,7 @@ class Tool extends Action {
 		this.alt_tool = data.alt_tool;
 		this.modes = data.modes;
 		this.selectFace = data.selectFace;
+		this.cursor = data.cursor;
 		this.selectCubes = data.selectCubes !== false;
 		this.paintTool = data.paintTool;
 		this.transformerMode = data.transformerMode;
@@ -368,7 +369,11 @@ class NumSlider extends Widget {
 			this.keybind.shift = null;
 		}
 		var scope = this;
+		var css_color = 'xyz'.includes(this.color) ? `var(--color-axis-${this.color})` : this.color;
 		this.node = $( `<div class="tool wide widget nslide_tool">
+							<div class="nslide_overlay">
+								<div class="color_corner" style="border-color: ${css_color}"></div>
+							</div>
 							<div class="tooltip">${this.name}</div>
 							<div class="nslide tab_target" n-action="${this.id}"></div>
 					  	</div>`).get(0);
@@ -398,6 +403,7 @@ class NumSlider extends Widget {
 			},
 			stop: function() {
 				delete scope.sliding;
+				Blockbench.setStatusBarText();
 				if (typeof scope.onAfter === 'function') {
 					scope.onAfter(scope.value - scope.last_value)
 				}
@@ -414,6 +420,13 @@ class NumSlider extends Widget {
 			if (e.keyCode !== 10 && e.keyCode !== 13) {
 				scope.input()
 			}
+			if (e.keyCode === 27) {
+				if (!scope.jq_inner.hasClass('editing')) return;
+				e.preventDefault();
+				scope.jq_inner.removeClass('editing')
+				scope.jq_inner.attr('contenteditable', 'false')
+				scope.update()
+			}
 		})
 		.focusout(function() {
 			scope.stopInput()
@@ -429,7 +442,7 @@ class NumSlider extends Widget {
 		.dblclick(function(event) {
 			if (event.target != this) return;
 			scope.jq_inner.text('0');
-			scope.input()
+			scope.stopInput()
 
 		});
 		//Arrows
@@ -478,8 +491,10 @@ class NumSlider extends Widget {
 		this.pre = offset;
 
 		if (!difference) return;
-		this.change(n => n + difference)
-		this.update()
+
+		this.change(n => n + difference);
+		this.update();
+		Blockbench.setStatusBarText(trimFloatNumber(this.value - this.last_value));
 	}
 	input() {
 		this.last_value = this.value;
@@ -1037,7 +1052,7 @@ const BARS = {
 
 		//Tools
 			new Tool('move_tool', {
-				icon: 'fas fa-hand-paper',
+				icon: 'fas.fa-hand-paper',
 				category: 'tools',
 				selectFace: true,
 				transformerMode: 'translate',
@@ -1310,10 +1325,17 @@ const BARS = {
 				'add_cube',
 				'add_group',
 				'outliner_toggle',
-				'cube_counter'
+				'toggle_',
+				'toggle_skin_layer'
 			],
 			default_place: true
 		})
+
+		//update 3.3
+		if (!Toolbars.outliner.children.includes(BarItems.toggle_skin_layer)) {
+			Toolbars.outliner.add(BarItems.toggle_skin_layer, -1)
+		}
+
 		Toolbars.texturelist = new Toolbar({
 			id: 'texturelist',
 			children: [
@@ -1419,7 +1441,8 @@ const BARS = {
 			children: [
 				'copy',
 				'paste',
-				'add_display_preset'
+				'add_display_preset',
+				'gui_light'
 			],
 			default_place: true
 		})
@@ -1493,6 +1516,7 @@ const BARS = {
 				'timeline_focus',
 				'clear_timeline',
 				'select_effect_animator',
+				'add_marker',
 				'_',
 				'slider_animation_speed',
 				'previous_keyframe',
@@ -1501,6 +1525,10 @@ const BARS = {
 			],
 			default_place: true
 		})
+		//update 3.3
+		if (!Toolbars.timeline.children.includes(BarItems.add_marker)) {
+			Toolbars.timeline.add(BarItems.add_marker, 3)
+		}
 		//Tools
 		Toolbars.main_tools = new Toolbar({
 			id: 'main_tools',

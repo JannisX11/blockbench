@@ -35,6 +35,7 @@ class ModelFormat {
 		this.canvas_limit = false;
 		this.outliner_name_pattern = false;
 		this.rotation_limit = false;
+		this.uv_rotation = false;
 		this.display_mode = false;
 		this.animation_mode = false;
 
@@ -55,6 +56,7 @@ class ModelFormat {
 		Merge.boolean(this, data, 'canvas_limit');
 		Merge.string(this, data, 'outliner_name_pattern');
 		Merge.boolean(this, data, 'rotation_limit');
+		Merge.boolean(this, data, 'uv_rotation');
 		Merge.boolean(this, data, 'display_mode');
 		Merge.boolean(this, data, 'animation_mode');
 	}
@@ -331,6 +333,7 @@ function resetProject() {
 	Project.name = Project.parent = Project.geometry_name = Project.description	 = '';
 	Project.texture_width = Project.texture_height = 16;
 	Project.ambientocclusion = true;
+	Project.front_gui_light = false;
 	ModelMeta.save_path = ModelMeta.export_path = ModelMeta.animation_path = ModelMeta.name = '';
 	ModelMeta.saved = true;
 	Prop.project_saved = true;
@@ -702,7 +705,9 @@ function uploadSketchfabModel() {
 					success: function(response) {
 						Blockbench.showMessageBox({
 							title: tl('message.sketchfab.success'),
-							message: `[${formResult.name} on Sketchfab](https://sketchfab.com/models/${response.uid})`,
+							message:
+								`[${formResult.name} on Sketchfab](https://sketchfab.com/models/${response.uid})\n\n&nbsp;\n\n`+
+								tl('message.sketchfab.setup_guide', '[Sketchfab Setup and Common Issues](https://blockbench.net/2020/01/22/sketchfab-setup-and-common-issues/)'),
 							icon: 'icon-sketchfab',
 						})
 					},
@@ -734,7 +739,7 @@ function compileJSON(object, options) {
 		var out = ''
 		if (typeof o === 'string') {
 			//String
-			out += '"' + o.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"'
+			out += '"' + o.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\t/g, '\\t') + '"'
 		} else if (typeof o === 'boolean') {
 			//Boolean
 			out += (o ? 'true' : 'false')
@@ -841,6 +846,7 @@ BARS.defineActions(function() {
 		bone_rig: true,
 		centered_grid: false,
 		optional_box_uv: true,
+		uv_rotation: true,
 	})
 	//Project
 	new Action('project_window', {
@@ -943,7 +949,9 @@ BARS.defineActions(function() {
 
 			var options = {};
 			for (var key in Formats) {
-				options[key] = Formats[key].name;
+				if (key !== Format.id && key !== 'skin') {
+					options[key] = Formats[key].name;
+				}
 			}
 
 			var dialog = new Dialog({
@@ -958,7 +966,6 @@ BARS.defineActions(function() {
 						default: Format.id,
 						options,
 					},
-
 				},
 				onConfirm: function(formResult) {
 					var format = Formats[formResult.format]
@@ -978,9 +985,19 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 79, ctrl: true}),
 		condition: () => (!EditSession.active || EditSession.hosting),
 		click: function () {
+			var startpath;
+			if (isApp && recent_projects && recent_projects.length) {
+				startpath = recent_projects[0].path;
+				if (typeof startpath == 'string') {
+					startpath = startpath.split(osfs);
+					startpath.pop();
+					startpath = startpath.join(osfs);
+				}
+			}
 			Blockbench.import({
 				extensions: ['json', 'jem', 'jpm', 'java', 'bbmodel'],
-				type: 'Model'
+				type: 'Model',
+				startpath
 			}, function(files) {
 				loadModelFile(files[0]);
 			})

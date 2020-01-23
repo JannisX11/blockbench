@@ -561,9 +561,11 @@ class Texture {
 		textures.splice(textures.indexOf(this), 1)
 		if (!no_update) {
 			Canvas.updateAllFaces()
-			$('#uv_frame').css('background', 'transparent')
 			TextureAnimator.updateButton()
 			hideDialog()
+			if (main_uv.texture == this) {
+				main_uv.displayTexture();
+			}
 			BARS.updateConditions()
 			Undo.finishEdit('remove_textures', {textures: []})
 		}
@@ -764,13 +766,12 @@ class Texture {
 		var scope = this;
 		if (!options) options = false;
 
-		if (scope.mode === 'link') {
-			scope.source = 'data:image/png;base64,' + scope.getBase64()
-			scope.mode = 'bitmap'
-			scope.saved = false
-		}
 		if (cb) {
-			Painter.edit(scope, cb, options)
+			Painter.edit(scope, cb, options);
+
+		} else if (scope.mode === 'link') {
+			scope.source = 'data:image/png;base64,' + scope.getBase64();
+			scope.mode = 'bitmap';
 		}
 		scope.saved = false;
 	}
@@ -1021,6 +1022,9 @@ TextureAnimator = {
 				animated_tex.push(tex)
 			}
 		})
+		if (animated_tex.includes(main_uv.texture)) {
+			main_uv.img.style.objectPosition = `0 -${main_uv.texture.currentFrame * main_uv.inner_height}px`;
+		}
 		elements.forEach(function(obj) {
 			var update = false
 			for (var face in obj.faces) {
@@ -1032,13 +1036,14 @@ TextureAnimator = {
 		})
 	},
 	reset() {
-		TextureAnimator.stop()
+		TextureAnimator.stop();
 		textures.forEach(function(tex, i) {
 			if (tex.frameCount) {
 				tex.currentFrame = 0
 				$($('.texture').get(i)).find('img').css('margin-top', '0')
 			} 
 		})
+		main_uv.img.style.objectPosition = '';
 		while (i < elements.length) {
 			Canvas.updateUV(elements[i], true)
 			i++;
@@ -1097,7 +1102,7 @@ BARS.defineActions(function() {
 		category: 'textures',
 		keybind: new Keybind({key: 84, ctrl: true, shift: true}),
 		click: function () {
-			Painter.addBitmapDialog()
+			TextureGenerator.addBitmapDialog()
 		}
 	})
 	new Action('save_textures', {
@@ -1106,7 +1111,7 @@ BARS.defineActions(function() {
 		click: function () {saveTextures()}
 	})
 	new Action('change_textures_folder', {
-		icon: 'fas fa-hdd',
+		icon: 'fas.fa-hdd',
 		category: 'textures',
 		condition: () => textures.length > 0,
 		click: function () {

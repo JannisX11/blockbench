@@ -179,6 +179,9 @@ var codec = new Codec('java_block', {
 		if (checkExport('ambientocclusion', Project.ambientocclusion === false)) {
 			blockmodel.ambientocclusion = false
 		}
+		if (checkExport('front_gui_light', Project.front_gui_light)) {
+			blockmodel.gui_light = 'front';
+		}
 		if (Project.texture_width !== 16 || Project.texture_height !== 16) {
 			blockmodel.texture_size = [Project.texture_width, Project.texture_height]
 		}
@@ -407,6 +410,9 @@ var codec = new Codec('java_block', {
 		if (model.ambientocclusion === false) {
 			Project.ambientocclusion = false;
 		}
+		if (model.gui_light === 'front') {
+			Project.front_gui_light = true;
+		}
 		if (add) {
 			Undo.finishEdit('add block model')
 		}
@@ -421,6 +427,7 @@ var format = new ModelFormat({
 	canvas_limit: true,
 	rotation_limit: true,
 	optional_box_uv: true,
+	uv_rotation: true,
 	display_mode: true,
 	codec
 })

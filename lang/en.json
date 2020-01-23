@@ -55,6 +55,8 @@
 
 	"format.free": "Free Model",
 	"format.free.desc": "Model without restrictions for Unity etc.",
+	"format.skin": "Skin",
+	"format.skin.desc": "Edit player and entity skins",
 	"format.java_block": "Java Block/Item",
 	"format.java_block.desc": "Block model for Java Edition. Size and rotations are limited.",
 	"format.bedrock": "Bedrock Model",
@@ -196,6 +198,7 @@
 	"message.sketchfab.name_or_token": "Please enter your Sketchfab token and a name",
 	"message.sketchfab.success": "Uploaded model successfully",
 	"message.sketchfab.error": "Failed to upload model to Sketchfab",
+	"message.sketchfab.setup_guide": "Want to learn how to set up models in Sketchfab? Read %0",
 	"message.removed_faces": "Removed %0 faces",
 	"message.add_to_palette": "Added to palette",
 	"message.size_modifiers": "Hold down Ctrl or Shift to transform in smaller increments.",
@@ -335,6 +338,10 @@
 	"dialog.model_stats.groups": "Groups",
 	"dialog.model_stats.vertices": "Vertices",
 	"dialog.model_stats.faces": "Faces",
+
+	"dialog.skin.title": "Create Skin",
+	"dialog.skin.model": "Skin",
+	"dialog.skin.texture": "Texture (Optional)",
 	
 	"dialog.settings.settings": "Settings",
 	"dialog.settings.keybinds": "Keybindings",
@@ -582,6 +589,8 @@
 	"action.eraser.desc": "Eraser tool to replace colors on a texture with transparency",
 	"action.color_picker": "Color Picker",
 	"action.color_picker.desc": "Tool to pick the color of pixels on your texture",
+	"action.toggle_skin_layer": "Toggle Skin Layer",
+	"action.toggle_skin_layer.desc": "Toggle the hat and clothing layer of the skin model",
 
 	"action.vertex_snap_tool": "Vertex Snap",
 	"action.vertex_snap_tool.desc": "Move one cube to another cube by connecting two vertices",
@@ -748,6 +757,10 @@
 
 	"action.add_display_preset": "New Preset",
 	"action.add_display_preset.desc": "Add a new display setting preset.",
+	"action.gui_light": "GUI Light",
+	"action.gui_light.desc": "Select the way the item is lit in the inventory",
+	"action.gui_light.side": "Side Light",
+	"action.gui_light.front": "Front Light",
 
 	"action.move_up": "Move Up",
 	"action.move_up.desc": "Move the selected cubes up relative to the current camera angle",
@@ -875,6 +888,10 @@
 	"action.slider_animation_speed.desc": "Playback speed of the timeline in percent",
 	"action.add_keyframe": "Add Keyframe",
 	"action.add_keyframe.desc": "Automatically add a keyframe. Press shift to force default values",
+	"action.add_marker": "Set Marker",
+	"action.add_marker.desc": "Set a timeline marker",
+	"action.move_keyframe_back": "Move Keyframes Back",
+	"action.move_keyframe_forth": "Move Keyframes Forth",
 	"action.previous_keyframe": "Previous Keyframe",
 	"action.previous_keyframe.desc": "Jump to the previous keyframe",
 	"action.next_keyframe": "Next Keyframe",
@@ -897,6 +914,7 @@
 	"timeline.sound": "Sound",
 	"timeline.effects": "Effects",
 	"timeline.timeline": "Instructions",
+	"timeline.pre_effect_script": "Script",
 
 	"menu.file": "File",
 	"menu.edit": "Edit",
@@ -905,6 +923,7 @@
 	"menu.display": "Display",
 	"menu.animation": "Animation",
 	"menu.view": "View",
+	"menu.help": "Help",
 
 	"menu.file.new": "New",
 	"menu.file.recent": "Recent",
@@ -920,6 +939,13 @@
 	"menu.view.zoom": "Zoom",
 	"menu.view.background": "Background",
 	"menu.view.screenshot": "Screenshot",
+
+	"menu.help.discord": "Discord Server",
+	"menu.help.report_issue": "Report an Issue",
+	"menu.help.plugin_documentation": "Plugin API Documentation",
+	"menu.help.search_action": "Search and Run Action",
+	"menu.help.donate": "Donate",
+	"menu.help.about": "About...",
 
 	"menu.cube.color": "Marker Color",
 	"menu.cube.texture": "Texture",
@@ -947,6 +973,7 @@
 
 	"menu.preview.background": "Background",
 	"menu.preview.background.load": "Load",
+	"menu.preview.background.clipboard": "Load from Clipboard",
 	"menu.preview.background.position": "Position",
 	"menu.preview.background.set_position": "Set Position",
 	"menu.preview.background.lock": "Lock To Camera",

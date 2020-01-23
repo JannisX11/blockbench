@@ -101,10 +101,9 @@ class Menu {
 	}
 	open(position, context) {
 
-		if (position instanceof TouchEvent) {
+		if (position && position.changedTouches) {
 			convertTouchEvent(position);
 		}
-
 		var scope = this;
 		var ctxmenu = $(this.node)
 		if (open_menu) {
@@ -145,6 +144,7 @@ class Menu {
 			} else if (typeof s === 'object') {
 
 				if (BARS.condition(s.condition, context)) {
+					let child_count;
 					if (typeof s.icon === 'function') {
 						var icon = Blockbench.getIconNode(s.icon(context), s.color)
 					} else {
@@ -170,12 +170,15 @@ class Menu {
 								getEntry(s2, childlist)
 							})
 							var last = childlist.children().last()
+							child_count = childlist.children().length;
 							if (last.length && last.hasClass('menu_separator')) {
 								last.remove()
 							}
 						}
 					}
-					parent.append(entry)
+					if (child_count !== 0 || typeof s.click === 'function') {
+						parent.append(entry)
+					}
 					entry.mouseenter(function(e) {
 						scope.hover(this, e)
 					})
@@ -437,7 +440,6 @@ const MenuBar = {
 			'settings_window',
 			'plugins_window',
 			'edit_session',
-			'update_window',
 			'reload'
 		])
 		new BarMenu('edit', [
@@ -571,6 +573,8 @@ const MenuBar = {
 			'copy',
 			'paste',
 			'select_all',
+			'add_keyframe',
+			'add_marker',
 			'reverse_keyframes',
 			'delete',
 			'_',
@@ -599,6 +603,28 @@ const MenuBar = {
 				'record_model_gif',
 				'timelapse',
 			]},
+		])
+		new BarMenu('help', [
+			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', click: () => {
+				Blockbench.openLink('http://discord.blockbench.net');
+			}},
+			{name: 'menu.help.report_issue', id: 'report_issue', icon: 'bug_report', click: () => {
+				Blockbench.openLink('https://github.com/JannisX11/blockbench/issues');
+			}},
+			{name: 'menu.help.plugin_documentation', id: 'plugin_documentation', icon: 'fa-book', click: () => {
+				Blockbench.openLink('https://jannisx11.github.io/blockbench-docs/');
+			}},
+			'_',
+			{name: 'menu.help.search_action', description: BarItems.action_control.description, id: 'search_action', icon: 'search', click: ActionControl.select},
+			'_',
+			'update_window',
+			{name: 'menu.help.donate', id: 'donate', icon: 'fas.fa-hand-holding-usd', click: () => {
+				Blockbench.openLink('https://blockbench.net/donate/');
+			}},
+			{name: 'menu.help.about', id: 'about', icon: 'info', click: () => {
+				Settings.open();
+				setSettingsTab('credits');
+			}}
 		])
 		MenuBar.update()
 	},
