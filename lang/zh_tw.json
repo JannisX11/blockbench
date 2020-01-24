@@ -704,7 +704,7 @@
 	"action.rotate_tool": "旋轉",
 	"action.rotate_tool.desc": "用於選擇和旋轉立方體的工具",
 	"action.fill_tool": "油漆桶",
-	"action.fill_tool.desc": "油漆桶—用一種顏色填充整個面",
+	"action.fill_tool.desc": "油漆桶 - 用一種顏色填充整個面",
 	"action.eraser": "橡皮擦",
 	"action.eraser.desc": "橡皮擦工具（替換材質上的顏色為透明）",
 	"action.color_picker": "顏色選擇器",
