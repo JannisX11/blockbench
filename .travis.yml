@@ -10,7 +10,7 @@ matrix:
       os: osx
       script:
         - electron-builder --publish=always
-        - electron-builder -w --x64 --publish=always
+        - electron-builder --windows portable --x64 --publish=always -c.productName='Blockbench_portable'
 
     - name: "Windows"
       os: osx
