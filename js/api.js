@@ -355,13 +355,17 @@ const Blockbench = {
 								cb(results)
 							}
 						}
-						if (options.readtype === 'image') {
+						let readtype = options.readtype;
+						if (typeof readtype == 'function') {
+							readtype = readtype(file.name);
+						}
+						if (readtype === 'image') {
 							if (pathToExtension(file.name) === 'tga') {
 								reader.readAsArrayBuffer(file)
 							} else {
 								reader.readAsDataURL(file)
 							}
-						} else if (options.readtype === 'buffer') {
+						} else if (readtype === 'buffer') {
 							reader.readAsArrayBuffer(file)
 						} else /*text*/ {
 							reader.readAsText(file)
@@ -384,8 +388,12 @@ const Blockbench = {
 			(function() {
 				var this_i = i;
 				var file = paths[i]
+				let readtype = options.readtype;
+				if (typeof readtype == 'function') {
+					readtype = readtype(file);
+				}
 
-				if (options.readtype === 'image') {
+				if (readtype === 'image') {
 					//
 					var extension = pathToExtension(file)
 					if (extension === 'tga') {
@@ -427,7 +435,7 @@ const Blockbench = {
 							errant = true
 							return;
 						}
-						if (options.readtype != 'buffer' && data.charCodeAt(0) === 0xFEFF) {
+						if (readtype != 'buffer' && data.charCodeAt(0) === 0xFEFF) {
 							data = data.substr(1)
 						}
 						results[this_i] = {
@@ -440,7 +448,7 @@ const Blockbench = {
 							cb(results)
 						}
 					}
-					if (options.readtype === 'buffer') {
+					if (readtype === 'buffer') {
 						fs.readFile(file, load);
 					} else {
 						fs.readFile(file, 'utf8', load);

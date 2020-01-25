@@ -894,7 +894,7 @@ class UVEditor {
 	}
 	contextMenu() {
 		var scope = this;
-		this.reference_face = Cube.selected[0].faces[scope.face]
+		this.reference_face = Cube.selected[0] && Cube.selected[0].faces[scope.face];
 		this.menu.open(event, this)
 		return this;
 	}

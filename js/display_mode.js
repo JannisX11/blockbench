@@ -1453,7 +1453,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	setDisplayArea(0,0,0, 0,0,0, 1,1,1)
 	display_area.updateMatrixWorld()
 	display_base.updateMatrixWorld()
-	lights.rotation.y = 0
+	lights.rotation.set(0, 0, 0);
 
 	display_mode = false;
 	main_preview.fullscreen()

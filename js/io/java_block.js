@@ -179,9 +179,6 @@ var codec = new Codec('java_block', {
 		if (checkExport('ambientocclusion', Project.ambientocclusion === false)) {
 			blockmodel.ambientocclusion = false
 		}
-		if (checkExport('front_gui_light', Project.front_gui_light)) {
-			blockmodel.gui_light = 'front';
-		}
 		if (Project.texture_width !== 16 || Project.texture_height !== 16) {
 			blockmodel.texture_size = [Project.texture_width, Project.texture_height]
 		}
@@ -190,6 +187,9 @@ var codec = new Codec('java_block', {
 		}
 		if (checkExport('elements', clear_elements.length >= 1)) {
 			blockmodel.elements = clear_elements
+		}
+		if (checkExport('front_gui_light', Project.front_gui_light)) {
+			blockmodel.gui_light = 'front';
 		}
 		if (checkExport('display', Object.keys(display).length >= 1)) {
 			var new_display = {}

@@ -145,8 +145,16 @@ function Dialog(settings) {
 								case 'folder':	bar.append('<i class="material-icons">folder</i>'); break;
 								case 'save':	bar.append('<i class="material-icons">save</i>'); break;
 							}
-							
+							let remove_button = $('<div class="tool" style="float: none; vertical-align: top;"><i class="material-icons">clear</i></div>');
+							bar.append(remove_button);
+							remove_button.on('click', e => {
+								e.stopPropagation();
+								data.value = '';
+								input.val('');
+							})
+
 							bar.on('click', e => {
+								cl(e.target);
 								function fileCB(files) {
 									data.value = files[0].path;
 									input.val(data.value);

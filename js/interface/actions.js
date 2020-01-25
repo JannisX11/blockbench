@@ -1325,8 +1325,8 @@ const BARS = {
 				'add_cube',
 				'add_group',
 				'outliner_toggle',
-				'toggle_',
-				'toggle_skin_layer'
+				'toggle_skin_layer',
+				'cube_counter'
 			],
 			default_place: true
 		})
@@ -1334,6 +1334,10 @@ const BARS = {
 		//update 3.3
 		if (!Toolbars.outliner.children.includes(BarItems.toggle_skin_layer)) {
 			Toolbars.outliner.add(BarItems.toggle_skin_layer, -1)
+		}
+		//update 3.3.1
+		if (!Toolbars.outliner.children.includes(BarItems.cube_counter)) {
+			Toolbars.outliner.add(BarItems.cube_counter)
 		}
 
 		Toolbars.texturelist = new Toolbar({
@@ -1446,6 +1450,10 @@ const BARS = {
 			],
 			default_place: true
 		})
+		//update 3.3.1
+		if (!Toolbars.display.children.includes(BarItems.gui_light)) {
+			Toolbars.display.add(BarItems.gui_light)
+		}
 		//UV
 		Toolbars.main_uv = new Toolbar({
 			id: 'main_uv',

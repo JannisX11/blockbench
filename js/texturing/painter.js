@@ -673,10 +673,6 @@ const TextureGenerator = {
 			})
 			if (Project.box_uv || options.box_uv) {
 				TextureGenerator.generateTemplate(options, makeTexture)
-				if (options.box_uv && !Project.box_uv) {
-					//todo: Undo Integration
-					Project.box_uv = true;
-				}
 			} else {
 				TextureGenerator.generateFaceTemplate(options, makeTexture)
 			}
@@ -885,6 +881,9 @@ const TextureGenerator = {
 				t.obj.applyTexture(texture, true)
 				t.obj.autouv = 0
 			})
+		}
+		if (options.box_uv && !Project.box_uv) {
+			Project.box_uv = true;
 		}
 		updateSelection()
 		Undo.finishEdit('create template', {

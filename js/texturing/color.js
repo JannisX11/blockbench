@@ -185,13 +185,28 @@ onVueSetup(() => {
 		//$(this).animate({scrollLeft: current + delta}, 200)
 	})
 
-	ColorPanel.importPalette = function(string) {
+	ColorPanel.importPalette = function(file) {
+
+		if (pathToExtension(file.path) == 'png') {
+			var img = new Image(file.content);
+			img.src = file.content || file.path;
+			img.onload = function() {
+				var c = document.createElement('canvas');
+				var ctx = c.getContext('2d');
+				c.width = img.naturalWidth;
+				c.height = img.naturalHeight;
+				ctx.drawImage(img, 0, 0);
+				ColorPanel.generatePalette(ctx);
+			}
+			return;
+		}
+		var string = file.content;
 
 		var colors = [];
-		var m_hex = string.match(/(#|FF)?[a-fA-F0-9]{6}/g)
+		var m_hex = string.match(/(#|FF)?[a-fA-F0-9]{6}/g);
 		if (m_hex) m_hex.forEach(color => {
 			color = color.substr(-6).toLowerCase();
-			colors.safePush(color);
+			colors.safePush('#'+color);
 		})
 		var m_rgb = string.match(/\(\s*\d{1,3},\s*\d{1,3},\s*\d{1,3}\s*\)/g)
 		if (m_rgb) m_rgb.forEach(color => {
@@ -229,20 +244,125 @@ onVueSetup(() => {
 		});
 		dialog.show();
 	}
+	ColorPanel.generatePalette = function(source) {
+
+		var options = {};
+		if (!source) {
+			textures.forEach((tex, i) => {
+				if (!tex.error) {
+					options[i] = tex.name;
+				}
+			})
+		}
+		var dialog = new Dialog({
+			id: 'generate_palette',
+			title: 'action.import_palette',
+			width: 460,
+			form: {
+				texture: {label: 'data.texture', type: 'select', options, condition: !source},
+				replace: {label: 'message.import_palette.replace_palette', type: 'checkbox', value: true},
+				threshold: {label: 'message.import_palette.threshold', type: 'number', value: 10, min: 0, max: 100},
+			},
+			onConfirm(formData) {
+				var colors = {};
+				var result_palette = [];
+
+				if (!source) {
+					var texture = textures[formData.texture];
+					var ctx = Painter.getCanvas(texture).getContext('2d');
+				} else {
+					var ctx = source;
+				}
+				Painter.scanCanvas(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, (x, y, px) => {
+					if (px[3] < 12) return;
+					var t = tinycolor({
+						r: px[0],
+						g: px[1],
+						b: px[2]
+					})
+					var hex = t.toHexString();
+					if (colors[hex]) {
+						colors[hex].count++;
+					} else {
+						colors[hex] = t;
+						t.count = 1;
+					}
+				})
+				var pots = {gray:[], red:[], orange:[], yellow:[], green:[], blue:[], magenta:[]}
+				for (var hex in colors) {
+					var color = colors[hex];
+					if (Math.abs(color._r - color._g) + Math.abs(color._g - color._b) + Math.abs(color._r - color._b) < 74) {
+						//gray
+						pots.gray.push(color);
+					} else {
+						var distances = {
+							red: colorDistance(color, 	 {_r: 250, _g: 0, _b: 0}),
+							orange: colorDistance(color, {_r: 240, _g: 127, _b: 0})*1.4,
+							yellow: colorDistance(color, {_r: 265, _g: 240, _b: 0})*1.4,
+							green: colorDistance(color,  {_r: 0, _g: 255, _b: 0}),
+							blue: colorDistance(color, 	 {_r: 0, _g: 50, _b: 240}),
+							magenta: colorDistance(color,{_r: 255, _g: 0, _b: 255})*1.4,
+						}
+						var closest = highestInObject(distances, true);
+						pots[closest].push(color);
+					}
+				}
+				for (var pot in pots) {
+					pots[pot].sort((a, b) => {
+						return (a._r + a._g + a._b) - (b._r + b._g + b._b);
+					})
+					if (pots[pot].length > 1) {
+						for (var i = pots[pot].length-2; i >= 0; i--) {
+							var col = pots[pot][i];
+							var abv = pots[pot][i+1];
+							var distance = colorDistance(col, abv);
+							if (distance < formData.threshold) {
+								if (col.count < col.count) {
+									pots[pot].splice(i, 1);
+								} else {
+									pots[pot].splice(i+1, 1);
+								}
+							}
+						}
+					}
+					pots[pot].forEach(color => {
+						result_palette.push(color.toHexString());
+					})
+				}
+
+
+
+
+				if (formData.replace) {
+					ColorPanel.palette.purge();
+					ColorPanel.palette.push(...result_palette);
+				} else {
+					result_palette.forEach(color => {
+						ColorPanel.palette.safePush(color);
+					})
+				}
+				dialog.hide();
+			}
+		});
+		dialog.show();
+	}
 
 	Blockbench.addDragHandler('palette', {
-		extensions: ['bbpalette', 'css', 'txt', 'gpl', 'hex'],
+		extensions: ['bbpalette', 'css', 'txt', 'gpl', 'hex', 'png'],
 		readtype: 'text',
+		readtype: (path) => (pathToExtension(path) == 'png' ? 'image' : 'text'),
 		element: '#color',
 		propagate: true,
 	}, function(files) {
-		if (files && files[0] && typeof files[0].content == 'string') {
-			ColorPanel.importPalette(files[0].content);
+		if (files && files[0]) {
+			ColorPanel.importPalette(files[0]);
 		}
 	})
 	Toolbars.palette.toPlace();
 	Toolbars.color_picker.toPlace();
 })
+
+
 
 
 BARS.defineActions(function() {
@@ -263,11 +383,12 @@ BARS.defineActions(function() {
 		category: 'color',
 		click: function () {
 			Blockbench.import({
-				extensions: ['bbpalette', 'css', 'txt', 'gpl', 'hex'],
-				type: 'Blockbench Palette'
+				extensions: ['bbpalette', 'css', 'txt', 'gpl', 'hex', 'png'],
+				type: 'Blockbench Palette',
+				readtype: (path) => (pathToExtension(path) == 'png' ? 'image' : 'text'),
 			}, function(files) {
-				if (files && files[0] && typeof files[0].content == 'string') {
-					ColorPanel.importPalette(files[0].content);
+				if (files && files[0]) {
+					ColorPanel.importPalette(files[0]);
 				}
 			})
 		}
@@ -289,99 +410,7 @@ BARS.defineActions(function() {
 		icon: 'blur_linear',
 		category: 'color',
 		click: function () {
-			var options = {};
-			textures.forEach((tex, i) => {
-				if (!tex.error) {
-					options[i] = tex.name;
-				}
-			})
-			var dialog = new Dialog({
-				id: 'generate_palette',
-				title: 'action.import_palette',
-				width: 460,
-				form: {
-					texture: {label: 'data.texture', type: 'select', options},
-					replace: {label: 'message.import_palette.replace_palette', type: 'checkbox', value: true},
-					threshold: {label: 'message.import_palette.threshold', type: 'number', value: 10, min: 0, max: 100},
-				},
-				onConfirm(formData) {
-					var colors = {};
-					var result_palette = [];
-
-					var texture = textures[formData.texture];
-					var ctx = Painter.getCanvas(texture).getContext('2d')
-					Painter.scanCanvas(ctx, 0, 0, texture.width, texture.height, (x, y, px) => {
-						if (px[3] < 12) return;
-						var t = tinycolor({
-							r: px[0],
-							g: px[1],
-							b: px[2]
-						})
-						var hex = t.toHexString();
-						if (colors[hex]) {
-							colors[hex].count++;
-						} else {
-							colors[hex] = t;
-							t.count = 1;
-						}
-					})
-					var pots = {gray:[], red:[], orange:[], yellow:[], green:[], blue:[], magenta:[]}
-					for (var hex in colors) {
-						var color = colors[hex];
-						if (Math.abs(color._r - color._g) + Math.abs(color._g - color._b) + Math.abs(color._r - color._b) < 74) {
-							//gray
-							pots.gray.push(color);
-						} else {
-							var distances = {
-								red: colorDistance(color, 	 {_r: 250, _g: 0, _b: 0}),
-								orange: colorDistance(color, {_r: 240, _g: 127, _b: 0})*1.4,
-								yellow: colorDistance(color, {_r: 265, _g: 240, _b: 0})*1.4,
-								green: colorDistance(color,  {_r: 0, _g: 255, _b: 0}),
-								blue: colorDistance(color, 	 {_r: 0, _g: 50, _b: 240}),
-								magenta: colorDistance(color,{_r: 255, _g: 0, _b: 255})*1.4,
-							}
-							var closest = highestInObject(distances, true);
-							pots[closest].push(color);
-						}
-					}
-					for (var pot in pots) {
-						pots[pot].sort((a, b) => {
-							return (a._r + a._g + a._b) - (b._r + b._g + b._b);
-						})
-						if (pots[pot].length > 1) {
-							for (var i = pots[pot].length-2; i >= 0; i--) {
-								var col = pots[pot][i];
-								var abv = pots[pot][i+1];
-								var distance = colorDistance(col, abv);
-								if (distance < formData.threshold) {
-									if (col.count < col.count) {
-										pots[pot].splice(i, 1);
-									} else {
-										pots[pot].splice(i+1, 1);
-									}
-								}
-							}
-						}
-						pots[pot].forEach(color => {
-							result_palette.push(color.toHexString());
-						})
-					}
-
-
-
-
-					if (formData.replace) {
-						ColorPanel.palette.purge();
-						ColorPanel.palette.push(...result_palette);
-					} else {
-						result_palette.forEach(color => {
-							ColorPanel.palette.safePush(color);
-						})
-					}
-					dialog.hide();
-				}
-			});
-			dialog.show();
+			ColorPanel.generatePalette();
 		}
 	})
 	new Action('sort_palette', {
