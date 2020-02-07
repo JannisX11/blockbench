@@ -327,6 +327,7 @@
 	"dialog.sketchfab_uploader.about_token": "The token is used to connect Blockbench to your Sketchfab account. You can find it on %0",
 	"dialog.sketchfab_uploader.name": "Model Name",
 	"dialog.sketchfab_uploader.description": "Description",
+	"dialog.sketchfab_uploader.animations": "Animations",
 	"dialog.sketchfab_uploader.tags": "Tags",
 	"dialog.sketchfab_uploader.draft": "Draft",
 	"dialog.sketchfab_uploader.private": "Private (Pro)",
@@ -630,7 +631,9 @@
 	"action.export_optifine_part": "Export OptiFine Part",
 	"action.export_optifine_part.desc": "Export a single part for an OptiFine entity model",
 	"action.export_obj": "Export OBJ Model",
-	"action.export_obj.desc": "Export a Wavefront OBJ model for rendering or game engines",
+	"action.export_obj.desc": "Export a Wavefront OBJ model for rendering",
+	"action.export_gltf": "Export As glTF",
+	"action.export_gltf.desc": "Export model and animations as glTF file to use in other 3D applications",
 	"action.upload_sketchfab": "Sketchfab Upload",
 	"action.upload_sketchfab.desc": "Upload your model to Sketchfab",
 

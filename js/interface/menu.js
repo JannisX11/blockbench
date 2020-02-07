@@ -414,6 +414,7 @@ const MenuBar = {
 				'export_optifine_full',
 				'export_optifine_part',
 				'export_obj',
+				'export_gltf',
 				'upload_sketchfab',
 			]},
 			'export_over',

@@ -522,7 +522,7 @@ class BoneAnimator extends GeneralAnimator {
 			bone.rotation.z += added_rotation.z
 		} else {
 			arr.forEach((n, i) => {
-				bone.rotation[getAxisLetter(i)] += Math.PI / (180 / n) * (i == 2 ? 1 : -1)
+				bone.rotation[getAxisLetter(i)] += Math.degToRad(n) * (i == 2 ? 1 : -1)
 			})
 		}
 		return this;
@@ -805,6 +805,30 @@ class Keyframe {
 			arr.push(this.get('w'))
 		}
 		return arr;
+	}
+	getFixed() {
+		if (this.channel === 'rotation') {
+			let fix = this.animator.group.mesh.fix_rotation;
+			return new THREE.Quaternion().setFromEuler(new THREE.Euler(
+				fix.x - Math.degToRad(this.calc('x')),
+				fix.y - Math.degToRad(this.calc('y')),
+				fix.z + Math.degToRad(this.calc('z')),
+				'ZYX'
+			));
+		} else if (this.channel === 'position') {
+			let fix = this.animator.group.mesh.fix_position;
+			return new THREE.Vector3(
+				fix.x - this.calc('x'),
+				fix.y + this.calc('y'),
+				fix.z + this.calc('z')
+			)
+		} else if (this.channel === 'scale') {
+			return new THREE.Vector3(
+				this.calc('x'),
+				this.calc('y'),
+				this.calc('z')
+			)
+		}
 	}
 	replaceOthers(save) {
 		var scope = this;
@@ -1152,15 +1176,14 @@ const Animator = {
 			outlines.children.length = 0
 			Canvas.updateAllPositions()
 		}
-		if (Animator.selected) {
-			Animator.selected.select()
-		} else if (Animator.animations.length) {
+		if (!Animator.selected && Animator.animations.length) {
 			Animator.animations[0].select()
 		}
 		if (isApp && !ModelMeta.animation_path && !Animator.animations.length && ModelMeta.export_path) {
 			//Load
 			findBedrockAnimation()
 		}
+		Animator.preview()
 	},
 	leave() {
 		Timeline.pause()
@@ -1174,20 +1197,26 @@ const Animator = {
 		}
 		Canvas.updateAllBones()
 	},
-	preview() {
-
+	showDefaultPose(no_matrix_update) {
 		Group.all.forEach(group => {
 			var bone = group.mesh;
 			bone.rotation.copy(bone.fix_rotation)
 			bone.position.copy(bone.fix_position)
 			bone.scale.x = bone.scale.y = bone.scale.z = 1;
 
+			if (!no_matrix_update) group.mesh.updateMatrixWorld()
+		})
+		console.trace('default')
+	},
+	preview() {
+		Animator.showDefaultPose(true);
+
+		Group.all.forEach(group => {
 			Animator.animations.forEach(animation => {
 				if (animation.playing) {
 					animation.getBoneAnimator(group).displayFrame(Timeline.time)
 				}
 			})
-			group.mesh.updateMatrixWorld()
 		})
 
 		Animator.animations.forEach(animation => {

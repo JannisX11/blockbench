@@ -33,7 +33,6 @@ class ModelFormat {
 		this.integer_size = false;
 		this.locators = false;
 		this.canvas_limit = false;
-		this.outliner_name_pattern = false;
 		this.rotation_limit = false;
 		this.uv_rotation = false;
 		this.display_mode = false;
@@ -54,7 +53,6 @@ class ModelFormat {
 		Merge.boolean(this, data, 'integer_size');
 		Merge.boolean(this, data, 'locators');
 		Merge.boolean(this, data, 'canvas_limit');
-		Merge.string(this, data, 'outliner_name_pattern');
 		Merge.boolean(this, data, 'rotation_limit');
 		Merge.boolean(this, data, 'uv_rotation');
 		Merge.boolean(this, data, 'display_mode');
@@ -650,6 +648,7 @@ function uploadSketchfabModel() {
 			name: {label: 'dialog.sketchfab_uploader.name'},
 			description: {label: 'dialog.sketchfab_uploader.description', type: 'textarea'},
 			tags: {label: 'dialog.sketchfab_uploader.tags', placeholder: 'Tag1 Tag2'},
+			animations: {label: 'dialog.sketchfab_uploader.animations', value: true, type: 'checkbox', conditions: (Format.animation_mode && Animator.animations.length)},
 			draft: {label: 'dialog.sketchfab_uploader.draft', type: 'checkbox'},
 			// isPublished (draft)
 			// options.background.color = '#ffffff' (Background Color)
@@ -679,6 +678,9 @@ function uploadSketchfabModel() {
 
 			settings.sketchfab_token.value = formResult.token
 
+
+			/*
+
 			var archive = new JSZip();
 			var model_data = Codecs.obj.compile({all_files: true})
 			archive.file('model.obj', model_data.obj)
@@ -689,10 +691,16 @@ function uploadSketchfabModel() {
 					archive.file(pathToName(tex.name) + '.png', tex.getBase64(), {base64: true});
 				}
 			}
-
 			archive.generateAsync({type: 'blob'}).then(blob => {
-
 				var file = new File([blob], 'model.zip', {type: 'application/x-zip-compressed'})
+			*/
+
+
+			Codecs.gltf.compile({animations: formResult.animations}, (content) => {
+
+				var blob = new Blob([content], {type: "text/plain;charset=utf-8"});
+				var file = new File([blob], 'model.gltf')
+
 				data.append('modelFile', file)
 
 				$.ajax({
@@ -723,6 +731,75 @@ function uploadSketchfabModel() {
 	})
 	dialog.show()
 }
+/*function uploadPastebinModel() {
+	if (elements.length === 0) {
+		return;
+	}
+	var dialog = new Dialog({
+		id: 'sketchfab_uploader',
+		title: 'dialog.sketchfab_uploader.title',
+		width: 540,
+		form: {
+			token: {label: 'dialog.sketchfab_uploader.token', value: settings.sketchfab_token.value},
+			about_token: {type: 'text', text: tl('dialog.sketchfab_uploader.about_token', ['[sketchfab.com/settings/password](https://sketchfab.com/settings/password)'])},
+			name: {label: 'dialog.sketchfab_uploader.name'},
+			description: {label: 'dialog.sketchfab_uploader.description', type: 'textarea'},
+			tags: {label: 'dialog.sketchfab_uploader.tags', placeholder: 'Tag1 Tag2'},
+			draft: {label: 'dialog.sketchfab_uploader.draft', type: 'checkbox'},
+			// isPublished (draft)
+			// options.background.color = '#ffffff' (Background Color)
+			// Category
+			divider: '_',
+			private: {label: 'dialog.sketchfab_uploader.private', type: 'checkbox'},
+			password: {label: 'dialog.sketchfab_uploader.password'},
+		},
+		onConfirm: function(formResult) {
+
+			if (formResult.token && !formResult.name) {
+				Blockbench.showQuickMessage('message.sketchfab.name_or_token', 1800)
+				return;
+			}
+			var model = Codecs.project.compile({compressed: true})
+
+			var data = new FormData()
+			data.append('api_option', 'paste');
+			data.append('api_dev_key', '');
+			data.append('api_paste_code', model);
+			data.append('api_paste_private', 1);
+			data.append('api_paste_name', formResult.name)
+			data.append('api_paste_expire_date', '40M')
+			data.append('api_user_key', formResult.user_key)
+
+			//settings.sketchfab_token.value = formResult.token
+
+
+			$.ajax({
+				url: 'https://pastebin.com/api/api_post.php',
+				data: data,
+				cache: false,
+				contentType: false,
+				processData: false,
+				type: 'POST',
+				success: function(response) {
+					cl(response);
+					Blockbench.showMessageBox({
+						title: tl('message.sketchfab.success'),
+						message: `[${formResult.name} on Sketchfab](https://sketchfab.com/models/${response.uid})`,
+						icon: 'icon-sketchfab',
+					})
+				},
+				error: function(response) {
+					cl(response);
+					Blockbench.showQuickMessage('message.sketchfab.error', 1500)
+					console.error(response);
+				}
+			})
+
+			dialog.hide()
+		}
+	})
+	dialog.show()
+}*/
 //Json
 function compileJSON(object, options) {
 	var output = ''

@@ -675,7 +675,9 @@ const Canvas = {
 			vs[6], vs[4],
 			vs[1], vs[3]
 		]
-		return new THREE.Line(geometry, Canvas.outlineMaterial)
+		var line = new THREE.Line(geometry, Canvas.outlineMaterial);
+		line.no_export = true;
+		return line;
 	},
 	buildOutline(obj) {
 		if (obj.visibility == false) return;
@@ -807,6 +809,7 @@ const Canvas = {
 
 		var lines = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({color: gizmo_colors.grid}));
 		lines.geometry.translate(-cube.origin[0], -cube.origin[1], -cube.origin[2]);
+		lines.no_export = true;
 
 		return lines;
 	}
