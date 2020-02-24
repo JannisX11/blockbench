@@ -6,20 +6,22 @@ var codec = new Codec('modded_entity', {
 	remember: true,
 	compile(options) {
 		function F(num) {
-			var s = trimFloatNumber(num) + '';
-			if (!s.includes('.')) {
-				s += '.0';
-			}
-			return s+'F';
+			return trimFloatNumber(num) + 'F';
 		}
 
 		var bone_nr = 1
 		var model_id = Project.geometry_name.replace(/[\s-]+/g, '_') || 'custom_model';
+        var model_plain = model_id.endsWith('Model') ? model_id.slice(0, -5) : model_id;
 		var all_groups = getAllGroups();
 		var renderers = {};
 
-		var ver = settings.class_export_version.value == '1.14' ? 1 : 0;
-		var rendererName = ver == 1 ? 'RendererModel' : 'ModelRenderer'
+		var ver;
+        switch(settings.class_export_version.value) {
+            case '1.14': ver = 1; break;
+            case '1.15': ver = 2; break;
+            default: ver = 0; break;
+        }
+		var rendererName = ver == 0 ? 'RendererModel' : 'ModelRenderer'
 
 		var loose_cubes = []
 		Outliner.root.forEach(obj => {
@@ -69,7 +71,7 @@ var codec = new Codec('modded_entity', {
 				origin[0] += g.parent.origin[0]
 				origin[1] += g.parent.origin[1]
 				origin[2] -= g.parent.origin[2]
-			} else {
+			} else if(ver < 2) {
 				origin[1] += 24
 			}
 			//origin
@@ -80,22 +82,38 @@ var codec = new Codec('modded_entity', {
 			//Boxes
 			g.children.forEach((obj) => {
 				if (obj.export === false || obj.type !== 'cube') return;
-				var values = [
-					''+id,
-					Math.floor(obj.uv_offset[0]),
-					Math.floor(obj.uv_offset[1]),
-					F(g.origin[0] - obj.to[0]),
-					F(-obj.from[1] - obj.size(1, true) + g.origin[1]),
-					F(obj.from[2] - g.origin[2]),
-					obj.size(0, true),
-					obj.size(1, true),
-					obj.size(2, true),
-					F(obj.inflate),
-					obj.mirror_uv
-				]
-				bone.lines.push(
-					`${id}.cubeList.add(new ModelBox(${ values.join(', ') }));`
-				)
+
+                if(ver < 2) {
+                    var values = [
+                        ''+id,
+                        Math.floor(obj.uv_offset[0]),
+                        Math.floor(obj.uv_offset[1]),
+                        F(g.origin[0] - obj.to[0]),
+                        F(-obj.from[1] - obj.size(1, true) + g.origin[1]),
+                        F(obj.from[2] - g.origin[2]),
+                        obj.size(0, true),
+                        obj.size(1, true),
+                        obj.size(2, true),
+                        F(obj.inflate),
+                        obj.mirror_uv
+                    ]
+                    bone.lines.push(
+                        `${id}.cubeList.add(new ModelBox(${ values.join(', ') }));`
+                    )
+                } else {
+                    var values = [
+                        F(obj.from[0]),
+                        F(obj.from[1]),
+                        F(obj.from[2]),
+                        F(obj.size(0, false)),
+                        F(obj.size(1, false)),
+                        F(obj.size(2, false)),
+                        F(obj.inflate)
+                    ]
+                    bone.lines.push(
+                        `${id}.func_228301_a_(${values.join(', ') });`
+                    )
+                }
 			})
 
 			renderers[id] = bone;
@@ -105,19 +123,33 @@ var codec = new Codec('modded_entity', {
 
 		var model = (settings.credit.value
 				? '//'+settings.credit.value+'\n'
-				: '')+
-			'//Paste this code into your mod.\n' +
-			'\nimport org.lwjgl.opengl.GL11;'+
+				: '') + '//Paste this code into your mod.\n';
+
+        if(ver < 2) {
+			model += '\nimport org.lwjgl.opengl.GL11;'+
 			'\nimport net.minecraft.client.model.ModelBase;'+
 			'\nimport net.minecraft.client.model.ModelBox;'+
 			`\nimport net.minecraft.client.model.${rendererName};`+
 			'\nimport net.minecraft.client.renderer.GlStateManager;'+
 			'\nimport net.minecraft.entity.Entity;\n';
+        } else {
+            model += '\nimport com.mojang.blaze3d.matrix.MatrixStack;'+
+            '\nimport com.mojang.blaze3d.vertex.IVertexBuilder;'+
+            '\nimport net.minecraft.client.renderer.entity.model.EntityModel;'+
+            '\nimport net.minecraft.client.renderer.model.ModelRenderer;'+
+            '\nimport net.minecraftforge.api.distmarker.Dist;'+
+            '\nimport net.minecraftforge.api.distmarker.OnlyIn;\n';
+        }
+
+
 		if (ver == 1) {
 			model += '\npublic class '+model_id+' extends EntityModel {';
-		} else {
+		} else if(ver == 0) {
 			model += '\npublic class '+model_id+' extends ModelBase {';
-		}
+		} else {
+            model += '\n@OnlyIn(Dist.CLIENT)'+
+            '\npublic class '+model_plain+'Model extends EntityModel<'+model_plain+'Entity> {';
+        }
 
 		for (var r_id in renderers) {
 			model += `\n	private final ${rendererName} ${r_id};`;
@@ -132,24 +164,41 @@ var codec = new Codec('modded_entity', {
 			model += `\n		${renderers[r_id].lines.join('\n		')}\n`;
 		}
 
-		model +=
-			 '	}\n'+
-			 '\n	@Override'+
+		model += '	}\n';
+
+        if(ver < 2) {
+			 model +=
+             '\n	@Override'+
 			 '\n	public void render(Entity entity, float f, float f1, float f2, float f3, float f4, float f5) {'
 		
-		for (var r_id in renderers) {
-			if (renderers[r_id].rootBone) {
-				model += `\n		${r_id}.render(f5);`;
-			}
-		}
-		model +=
-			 '\n	}'+
-			 `\n	public void setRotationAngle(${rendererName} modelRenderer, float x, float y, float z) {`+
-			 '\n		modelRenderer.rotateAngleX = x;'+
-			 '\n		modelRenderer.rotateAngleY = y;'+
-			 '\n		modelRenderer.rotateAngleZ = z;'+
-			 '\n	}'+
-			 '\n}';
+            for (var r_id in renderers) {
+                if (renderers[r_id].rootBone) {
+                    model += `\n		${r_id}.render(f5);`;
+                }
+            }
+            model +=
+                 '\n	}'+
+                 `\n	public void setRotationAngle(${rendererName} modelRenderer, float x, float y, float z) {`+
+                 '\n		modelRenderer.rotateAngleX = x;'+
+                 '\n		modelRenderer.rotateAngleY = y;'+
+                 '\n		modelRenderer.rotateAngleZ = z;'+
+                 '\n	}'+
+                 '\n}';
+        } else {
+            model +=
+                '\n    @Override'+
+                `\n    public void func_225597_a_(${model_plain}Entity entity, float f1, float f2, float f3, float f4, float f5) {}\n`+
+                '\n    @Override'+
+                '\n    public void func_225598_a_(MatrixStack stack, IVertexBuilder builder, int i1, int i2, float f1, float f2, float f3, float f4) {';
+            for (var r_id in renderers) {
+                if(renderers[r_id].rootBone) {
+                    model += `\n        ${r_id}.func_228309_a_(stack, builder, i1, i2, f1, f2, f3, f4);`;
+                }
+            }
+
+            model += '\n    }\n}';
+        }
+
 		return model;
 	},
 	parse(model, path, add) {

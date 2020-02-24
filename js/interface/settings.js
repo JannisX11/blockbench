@@ -146,6 +146,7 @@ const Settings = {
 		new Setting('class_export_version', {category: 'export', value: '1.12', type: 'select', options: {
 			'1.12': '1.12',
 			'1.14': '1.14',
+			'1.15': '1.15',
 		}});
 		new Setting('sketchfab_token', {category: 'export', value: '', type: 'text'});
 		new Setting('credit', {category: 'export', value: 'Made with Blockbench', type: 'text'});
