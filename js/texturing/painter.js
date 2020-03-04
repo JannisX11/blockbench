@@ -2,11 +2,9 @@ const Painter = {
 	currentPixel: [-1, -1],
 	brushChanges: false,
 	current: {/*texture, image*/},
-	background_color: new ColorPicker({
-		id: 'background_color',
-		name: 'data.color',
-		private: true,
-	}),
+	selection: {},
+	mirror_painting: false,
+	lock_alpha: false,
 	edit(texture, cb, options) {
 		if (!options.no_undo) {
 			Undo.initEdit({textures: [texture], bitmap: true})
@@ -16,38 +14,40 @@ const Painter = {
 			texture.mode = 'bitmap'
 			texture.saved = false
 		}
-		var instance = Painter.current[options.method === 'canvas' ? 'canvas' : 'image']
-		Painter.current[options.method === 'canvas' ? 'image' : 'canvas'] = undefined
+		var instance = Painter.current[options.method === 'jimp' ? 'image' : 'canvas']
+		Painter.current[options.method === 'jimp' ? 'canvas' : 'image'] = undefined
+
+		var edit_name = options.no_undo ? null : (options.edit_name || 'edit texture');
 
 		if (options.use_cache &&
 			texture === Painter.current.texture &&
 			typeof instance === 'object'
 		) {
 			//IS CACHED
-			if (options.method !== 'canvas') {
+			if (options.method === 'jimp') {
 				instance = cb(instance) || instance
 			} else {
-				cb(instance)
+				instance = cb(instance) || instance
 			}
 			if (options.no_update === true) {
 				return;
 			}
 
-			if (options.method !== 'canvas') {
+			if (options.method === 'jimp') {
 				Painter.current.image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
 					texture.updateSource(dataUrl)
 					if (!options.no_undo) {
-						Undo.finishEdit('edit_texture')
+						Undo.finishEdit(edit_name)
 					}
 				})
 			} else {
 				texture.updateSource(instance.toDataURL())
 				if (!options.no_undo) {
-					Undo.finishEdit('edit_texture')
+					Undo.finishEdit(edit_name)
 				}
 			}
 		} else {
-			if (options.method !== 'canvas') {
+			if (options.method === 'jimp') {
 				Painter.current.texture = texture
 				Jimp.read(Buffer.from(texture.source.replace('data:image/png;base64,', ''), 'base64')).then(function(image) {
 					image = cb(image) || image
@@ -55,36 +55,42 @@ const Painter = {
 					image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
 						texture.updateSource(dataUrl)
 						if (!options.no_undo) {
-							Undo.finishEdit('edit_texture')
+							Undo.finishEdit(edit_name)
 						}
 					})
 				})
 			} else {
 				Painter.current.texture = texture
 				var c = Painter.current.canvas = Painter.getCanvas(texture)
-				cb(c)
+				c = cb(c) || c;
 
 				texture.updateSource(c.toDataURL())
 				if (!options.no_undo) {
-					Undo.finishEdit('edit_texture')
+					Undo.finishEdit(edit_name)
 				}
 			}
 		}
 	},
-	setAlphaMatrix(tex, x, y, val) {
+
+	//alpha
+	setAlphaMatrix(texture, x, y, val) {
 		if (!Painter.current.alpha_matrix) Painter.current.alpha_matrix = {}
 		var mx = Painter.current.alpha_matrix;
-		if (!mx[tex.uuid]) mx[tex.uuid] = {};
-		if (!mx[tex.uuid][x]) mx[tex.uuid][x] = {};
-		mx[tex.uuid][x][y] = val
+		if (!mx[texture.uuid]) mx[texture.uuid] = {};
+		if (!mx[texture.uuid][x]) mx[texture.uuid][x] = {};
+		if (mx[texture.uuid][x][y]) {
+			val = Math.max(val, mx[texture.uuid][x][y])
+		}
+		mx[texture.uuid][x][y] = val
 	},
-	getAlphaMatrix(tex, x, y) {
+	getAlphaMatrix(texture, x, y) {
 		return Painter.current.alpha_matrix
-			&& Painter.current.alpha_matrix[tex.uuid]
-			&& Painter.current.alpha_matrix[tex.uuid][x]
-			&& Painter.current.alpha_matrix[tex.uuid][x][y];
+			&& Painter.current.alpha_matrix[texture.uuid]
+			&& Painter.current.alpha_matrix[texture.uuid][x]
+			&& Painter.current.alpha_matrix[texture.uuid][x][y];
 	},
-	startBrushCanvas(data, e) {
+	// Preview Brush
+	startPaintToolCanvas(data, e) {
 		if (!data && Toolbox.selected.id == 'color_picker') {
 			var preview = quad_previews.current
 			if (preview && preview.background && preview.background.imgtag) {
@@ -112,30 +118,35 @@ const Painter = {
 			Blockbench.showQuickMessage('message.untextured')
 			return;
 		}
-		var x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth )
-		var y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight )
-		Painter.startBrush(texture, x, y, data.cube.faces[data.face].uv, e, data)
+		let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0.5 : 0;
+		var x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth + offset )
+		var y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight + offset )
+		Painter.startPaintTool(texture, x, y, data.cube.faces[data.face].uv, e, data)
 
 		if (Toolbox.selected.id !== 'color_picker') {
-			addEventListeners(document, 'mousemove touchmove', Painter.moveBrushCanvas, false );
-			addEventListeners(document, 'mouseup touchend', Painter.stopBrushCanvas, false );
+			addEventListeners(document, 'mousemove touchmove', Painter.movePaintToolCanvas, false );
+			addEventListeners(document, 'mouseup touchend', Painter.stopPaintToolCanvas, false );
 		}
 	},
-	moveBrushCanvas(event) {
+	movePaintToolCanvas(event) {
 		convertTouchEvent(event);
 		var data = Canvas.raycast(event)
 		if (data) {
 			var texture = data.cube.faces[data.face].getTexture()
 			if (texture) {
 				var x, y, new_face;
-				x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth );
-				y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight );
+				let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0.5 : 0;
+				x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth + offset );
+				y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight + offset );
 				if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
 
 				if (x === Painter.current.x && y === Painter.current.y) {
 					return
 				}
 				if (Painter.current.face !== data.face || Painter.current.cube !== data.cube) {
+					if (Toolbox.selected.id === 'draw_shape_tool') {
+						return;
+					}
 					Painter.current.x = x
 					Painter.current.y = y
 					Painter.current.face = data.face
@@ -145,7 +156,292 @@ const Painter = {
 						Undo.current_save.addTexture(texture)
 					}
 				}
-				Painter.drawBrushLine(texture, x, y, event, new_face, data.cube.faces[data.face].uv)
+				Painter.movePaintTool(texture, x, y, event, new_face, data.cube.faces[data.face].uv)
+			}
+		}
+	},
+	stopPaintToolCanvas() {
+		removeEventListeners(document, 'mousemove touchmove', Painter.movePaintToolCanvas, false );
+		removeEventListeners(document, 'mouseup touchend', Painter.stopPaintToolCanvas, false );
+		Painter.stopPaintTool();
+	},
+	// Paint Tool Main
+	startPaintTool(texture, x, y, uvTag, event, data) {
+		//Called directly by startPaintToolCanvas and startBrushUV
+		if (Toolbox.selected.id === 'color_picker') {
+			Painter.colorPicker(texture, x, y)
+		} else if (Toolbox.selected.id === 'draw_shape_tool') {
+
+			Undo.initEdit({textures: [texture], bitmap: true});
+			Painter.brushChanges = false;
+			Painter.painting = true;
+			Painter.current = {
+				cube: data && data.cube,
+				face: data && data.face,
+				x, y,
+				clear: document.createElement('canvas'),
+			}
+			Painter.startPixel = [x, y];
+			Painter.current.clear.width = texture.width;
+			Painter.current.clear.height = texture.height;
+			Painter.current.clear.getContext('2d').drawImage(texture.img, 0, 0);
+
+		} else {
+			Undo.initEdit({textures: [texture], bitmap: true});
+			Painter.brushChanges = false;
+			Painter.painting = true;
+
+			if (data) {
+				var is_line = event.shiftKey && Painter.current.cube == data.cube && Painter.current.face == data.face
+				Painter.current.cube = data.cube;
+				Painter.current.face = data.face;
+			} else {
+				//uv editor
+				var is_line = event.shiftKey;
+			}
+
+			if (is_line) {
+				Painter.drawBrushLine(texture, x, y, event, false, uvTag);
+			} else {
+				Painter.current.x = Painter.current.y = 0
+				Painter.useBrush(texture, x, y, event, uvTag)
+			}
+			Painter.current.x = x;
+			Painter.current.y = y;
+		}
+	},
+	movePaintTool(texture, x, y, event, new_face, uv) {
+		// Called directly from movePaintToolCanvas and moveBrushUV
+		if (Toolbox.selected.id === 'draw_shape_tool') {
+
+			Painter.useShapeTool(texture, x, y, event, uv)
+
+		} else {
+			Painter.drawBrushLine(texture, x, y, event, new_face, uv)
+		}
+		Painter.current.x = x;
+		Painter.current.y = y;
+	},
+	stopPaintTool() {
+		//Called directly by stopPaintToolCanvas and stopBrushUV
+		if (Painter.brushChanges) {
+			Undo.finishEdit('paint');
+			Painter.brushChanges = false;
+		}
+		delete Painter.current.alpha_matrix;
+		Painter.painting = false;
+		Painter.currentPixel = [-1, -1];
+	},
+	// Tools
+	useBrush(texture, x, y, event, uvTag, no_update, is_opposite) {
+		if (Painter.currentPixel[0] === x && Painter.currentPixel[1] === y) return;
+		Painter.currentPixel = [x, y]
+		Painter.brushChanges = true;
+		let uvFactorX = 1 / Project.texture_width * texture.img.naturalWidth;
+		let uvFactorY = 1 / Project.texture_height * texture.img.naturalHeight;
+
+		if (Painter.mirror_painting && !is_opposite) {
+			Painter.runMirrorBrush(texture, x, y, event, uvTag);
+		}
+
+		texture.edit(function(canvas) {
+			var ctx = canvas.getContext('2d')
+			ctx.save()
+
+			var color = tinycolor(ColorPanel.get()).toRgb();
+			var size = BarItems.slider_brush_size.get();
+			let softness = BarItems.slider_brush_softness.get()/100;
+			let b_opacity = BarItems.slider_brush_opacity.get()/100;
+			let tool = Toolbox.selected.id;
+
+			ctx.beginPath();
+			if (uvTag) {
+				var rect = Painter.editing_area = [
+					uvTag[0] * uvFactorX,
+					uvTag[1] * uvFactorY,
+					uvTag[2] * uvFactorX,
+					uvTag[3] * uvFactorY
+				]
+			} else {
+				var rect = Painter.editing_area = [0, 0, texture.img.naturalWidth, texture.img.naturalHeight]
+			}
+			for (var t = 0; t < 2; t++) {
+				if (rect[t] > rect[t+2]) {
+					[rect[t], rect[t+2]] = [rect[t+2], rect[t]]
+				}
+				rect[t] = Math.round(rect[t])
+				rect[t+2] = Math.round(rect[t+2])
+			}
+			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
+			ctx.rect(rect[0], rect[1], w, h)
+
+			if (tool === 'fill_tool') {
+
+				ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
+
+				var fill_mode = BarItems.fill_mode.get()
+				var cube = Painter.current.cube;
+				if (cube && fill_mode === 'cube') {
+					for (var face in cube.faces) {
+						var tag = cube.faces[face]
+						if (tag.texture === Painter.current.texture.uuid) {
+							var rect = getRectangle(
+								Math.floor(tag.uv[0] * uvFactorX),
+								Math.floor(tag.uv[1] * uvFactorY),
+								Math.ceil(tag.uv[2]  * uvFactorX),
+								Math.ceil(tag.uv[3]  * uvFactorY)
+							)
+							ctx.rect(rect.ax, rect.ay, rect.x, rect.y)
+							ctx.fill()
+						}
+					}
+
+				} else if (fill_mode === 'face') {
+					ctx.fill()
+				} else {
+
+					var pxcol = [];
+					var map = {}
+					Painter.scanCanvas(ctx, x, y, 1, 1, (x, y, px) => {
+						px.forEach((val, i) => {
+							pxcol[i] = val
+						})
+					})
+					Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
+						if (pxcol.equals(px)) {
+							if (!map[x]) map[x] = {}
+							map[x][y] = true
+						}
+					})
+					var scan_value = true;
+					if (fill_mode === 'color_connected') {
+						function checkPx(x, y) {
+							if (map[x] && map[x][y]) {
+								map[x][y] = false;
+
+								checkPx(x+1, y)
+								checkPx(x-1, y)
+								checkPx(x, y+1)
+								checkPx(x, y-1)
+							}
+						}
+						checkPx(x, y)
+						scan_value = false;
+					}
+					Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
+						if (map[x] && map[x][y] === scan_value) {
+							var pxcolor = {
+								r: px[0],
+								g: px[1],
+								b: px[2],
+								a: px[3]/255
+							}
+							var result_color = Painter.combineColors(pxcolor, color, b_opacity);
+							px[0] = result_color.r
+							px[1] = result_color.g
+							px[2] = result_color.b
+							if (!Painter.lock_alpha) px[3] = result_color.a*255
+						}
+					})
+				}
+			} else {
+				ctx.clip()
+				if (event.touches && event.touches[0] && event.touches[0].force) {
+					var touch = event.touches[0];
+					if (touch.force == 1) touch.force == Painter.current.force || 0;
+					Painter.current.force = touch.force;
+
+					if (settings.brush_opacity_modifier.value == 'pressure' && touch.force) {
+						b_opacity = Math.clamp(b_opacity * touch.force*1.25, 0, 100);
+						//m_opacity = Math.clamp(m_opacity * touch.force*1.25, 0, 100);
+
+					} else if (settings.brush_opacity_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
+						var modifier = Math.clamp(1.5 / (touch.altitudeAngle + 0.3), 1, 4)/2;
+						b_opacity = Math.clamp(b_opacity * modifier, 0, 100);
+						//m_opacity = Math.clamp(m_opacity * modifier, 0, 100);
+					}
+					if (settings.brush_size_modifier.value == 'pressure' && touch.force) {
+						size = Math.clamp(touch.force * size * 2, 1, 20);
+
+					} else if (settings.brush_size_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
+						size *= Math.clamp(1.5 / (touch.altitudeAngle + 0.3), 1, 4);
+					}
+				}
+
+				if (tool === 'brush_tool') {
+					Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity, px, py) {
+						var a = b_opacity * opacity;
+						var before = Painter.getAlphaMatrix(texture, px, py)
+						Painter.setAlphaMatrix(texture, px, py, a);
+						//if (before) a = Math.clamp(a-before, 0, 1);
+						if (a > before) {
+							a = (a - before) / (1 - before);
+						} else if (before) {
+							a = 0;
+						}
+						var result_color = Painter.combineColors(pxcolor, color, a);
+						if (Painter.lock_alpha) result_color.a = pxcolor.a
+						return result_color;
+					})
+				} else if (tool === 'eraser') {
+					Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity) {
+						if (!Painter.lock_alpha) {
+							var a = b_opacity;
+							return {
+								r: pxcolor.r,
+								g: pxcolor.g,
+								b: pxcolor.b,
+								a: pxcolor.a*(1-a)
+							};
+						}
+					})
+				}
+				ctx.restore();
+			}
+			Painter.editing_area = undefined;
+
+		}, {no_undo: true, use_cache: true, no_update});
+	},
+	runMirrorBrush(texture, x, y, event, uvTag) {
+		if (uvTag && Painter.current.cube) {
+			let mirror_cube = Painter.getMirrorCube(Painter.current.cube);
+			if (mirror_cube) {
+
+				let uvFactorX = 1 / Project.texture_width * texture.img.naturalWidth;
+				let uvFactorY = 1 / Project.texture_height * texture.img.naturalHeight;
+
+				let face = Painter.current.face;
+				let side_face = (face === 'west' || face === 'east')
+				if (side_face) face = Face.opposite[face];
+				face = mirror_cube.faces[face];
+
+				if (side_face &&
+					uvTag[1] === face.uv[1] && uvTag[3] === face.uv[3] &&
+					Math.min(uvTag[0], uvTag[2]) === Math.min(face.uv[0], face.uv[2])
+					//same face
+				) return;
+
+				//calculate original point
+				var point_on_uv = [
+					x - Math.min(uvTag[0], uvTag[2]) * uvFactorX,
+					y - Math.min(uvTag[1], uvTag[3]) * uvFactorY,
+				]
+				//calculate new point
+				if (face.uv[0] > face.uv[0+2] == uvTag[0] > uvTag[0+2]) {
+					point_on_uv[0] = Math.max(face.uv[0], face.uv[0+2]) * uvFactorX - point_on_uv[0] - 1;
+				} else {
+					point_on_uv[0] = Math.min(face.uv[0], face.uv[0+2]) * uvFactorX + point_on_uv[0];
+				}
+				if (face.uv[1] > face.uv[1+2] == uvTag[1] > uvTag[1+2]) {
+					point_on_uv[1] = Math.min(face.uv[1], face.uv[1+2]) * uvFactorY + point_on_uv[1];
+				} else {
+					point_on_uv[1] = Math.max(face.uv[1], face.uv[1+2]) * uvFactorY - point_on_uv[1] - 1;
+				}
+
+				let cube = Painter.current.cube;
+				Painter.current.cube = mirror_cube;
+				Painter.useBrush(texture, ...point_on_uv, event, face.uv, true, true);
+				Painter.current.cube = cube;
 			}
 		}
 	},
@@ -168,48 +464,129 @@ const Painter = {
 			Painter.useBrush(texture, x, y, event, uv, i < length-1);
 			i++;
 		}
-		Painter.current.x = end_x;
-		Painter.current.y = end_y;
 	},
-	stopBrushCanvas() {
-		removeEventListeners(document, 'mousemove touchmove', Painter.moveBrushCanvas, false );
-		removeEventListeners(document, 'mouseup touchend', Painter.stopBrushCanvas, false );
-		Painter.stopBrush();
-	},
-	startBrush(texture, x, y, uvTag, event, data) {
-		if (Toolbox.selected.id === 'color_picker') {
-			Painter.colorPicker(texture, x, y)
-		} else {
-			Undo.initEdit({textures: [texture], bitmap: true});
-			Painter.brushChanges = false;
-			Painter.painting = true;
+	useShapeTool(texture, x, y, event, uvTag) {
+		Painter.brushChanges = true;
 
-			if (data) {
-				var is_line = event.shiftKey && Painter.current.cube == data.cube && Painter.current.face == data.face
-				Painter.current.cube = data.cube;
-				Painter.current.face = data.face;
+		texture.edit(function(canvas) {
+			var ctx = canvas.getContext('2d')
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			ctx.drawImage(Painter.current.clear, 0, 0)
+
+			let color = tinycolor(ColorPanel.get()).toRgb();
+			let b_opacity = BarItems.slider_brush_opacity.get()/100;
+			var width = BarItems.slider_brush_size.get();
+			let shape = BarItems.draw_shape_type.get();
+			let hollow = shape.substr(-1) == 'h';
+			shape = shape.replace(/_h$/, '');
+
+			if (uvTag) {
+				var rect = Painter.editing_area = [
+					uvTag[0] / Project.texture_width * texture.img.naturalWidth,
+					uvTag[1] / Project.texture_height * texture.img.naturalHeight,
+					uvTag[2] / Project.texture_width * texture.img.naturalWidth,
+					uvTag[3] / Project.texture_height * texture.img.naturalHeight
+				]
 			} else {
-				//uv editor
-				var is_line = event.shiftKey;
+				var rect = Painter.editing_area = [0, 0, texture.img.naturalWidth, texture.img.naturalHeight]
+			}
+			for (var t = 0; t < 2; t++) {
+				if (rect[t] > rect[t+2]) {
+					[rect[t], rect[t+2]] = [rect[t+2], rect[t]]
+				}
+				rect[t] = Math.round(rect[t])
+				rect[t+2] = Math.round(rect[t+2])
+			}
+			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
+
+
+			
+			let diff_x = x - Painter.startPixel[0];
+			let diff_y = y - Painter.startPixel[1];
+
+			if (event.shiftKey) {
+				let clamp = Math.floor((Math.abs(diff_x) + Math.abs(diff_y))/2);
+				diff_x = diff_x>0 ? clamp : -clamp;
+				diff_y = diff_y>0 ? clamp : -clamp;
 			}
 
-			if (is_line) {
-				Painter.drawBrushLine(texture, x, y, event, false, uvTag);
-			} else {
-				Painter.current.x = Painter.current.y = 0
-				Painter.useBrush(texture, x, y, event, uvTag)
-				Painter.current.x = x;
-				Painter.current.y = y;
+			if (shape === 'rectangle') {
+				ctx.strokeStyle = ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
+				ctx.lineWidth = width;
+				ctx.beginPath();
+				var rect = getRectangle(Painter.startPixel[0], Painter.startPixel[1], Painter.startPixel[0]+diff_x, Painter.startPixel[1]+diff_y);
+				
+				if (hollow) {
+					ctx.rect(rect.ax+(width%2 ? 0.5 : 1), rect.ay+(width%2 ? 0.5 : 1), rect.x, rect.y);
+					ctx.stroke();
+				} else {
+					ctx.rect(rect.ax, rect.ay, rect.x+1, rect.y+1);
+					ctx.fill();
+				}
+			} else if (shape === 'ellipse') {
+				Painter.modifyCanvasSection(ctx, rect[0], rect[1], w, h, (changePixel) => {
+					//changePixel(0, 0, editPx)
+					function editPx(pxcolor) {
+						return Painter.combineColors(pxcolor, color, b_opacity);
+					}
+					if (hollow) {
+						let r_min = Math.trunc(-width/2);
+						let r_max = Math.ceil(width/2);
+						for (var diff_x_m = diff_x+r_min; diff_x_m < diff_x+r_max; diff_x_m++) {
+							for (var diff_y_m = diff_y+r_min; diff_y_m < diff_y+r_max; diff_y_m++) {
+								for (var i = 0; i < Math.abs(diff_x_m); i++) {
+									for (var j = 0; j < 4; j++) {
+										changePixel(
+											Painter.startPixel[0] + (j<2?1:-1) * i,
+											Painter.startPixel[1] + (j%2?1:-1) * Math.round(Math.cos(Math.asin(i / Math.abs(diff_x_m))) * diff_y_m),
+											editPx
+										)
+									}
+								}
+								for (var i = 0; i < Math.abs(diff_y_m); i++) {
+									for (var j = 0; j < 4; j++) {
+										changePixel(
+											Painter.startPixel[0] + (j<2?1:-1) * Math.round(Math.sin(Math.acos(i / Math.abs(diff_y_m))) * diff_x_m),
+											Painter.startPixel[1] + (j%2?1:-1) * i,
+											editPx
+										)
+									}
+								}
+							}
+						}
+					} else {
+						diff_x = Math.clamp(diff_x, -64, 64);
+						diff_y = Math.clamp(diff_y, -64, 64);
+						for (var i = 0; i <= Math.abs(diff_x); i++) {
+							let radius = Math.round(Math.cos(Math.asin(i / Math.abs(diff_x))) * Math.abs(diff_y))
+							for (var k = 0; k <= radius; k++) {
+								for (var j = 0; j < 4; j++) {
+									changePixel(
+										Painter.startPixel[0] + (j<2?1:-1) * i,
+										Painter.startPixel[1] + (j%2?1:-1) * k,
+										editPx
+									)
+								}
+							}
+						}
+						for (var i = 0; i <= Math.abs(diff_y); i++) {
+							let radius = Math.round(Math.sin(Math.acos(i / Math.abs(diff_y))) * Math.abs(diff_x))
+							for (var k = 0; k <= radius; k++) {
+								for (var j = 0; j < 4; j++) {
+									changePixel(
+										Painter.startPixel[0] + (j<2?1:-1) * k,
+										Painter.startPixel[1] + (j%2?1:-1) * i,
+										editPx
+									)
+								}
+							}
+						}
+					}
+				})
 			}
-		}
-	},
-	getCanvas(texture) {
-		var c = document.createElement('canvas')
-		var ctx = c.getContext('2d');
-		c.width = texture.width;
-		c.height = texture.height;
-		ctx.drawImage(texture instanceof Texture ? texture.img : texture, 0, 0)
-		return c;
+			//Painter.editing_area = undefined;
+
+		}, {no_undo: true, use_cache: true});
 	},
 	colorPicker(texture, x, y) {
 		var ctx = Painter.getCanvas(texture).getContext('2d')
@@ -223,175 +600,15 @@ const Painter = {
 			ColorPanel.set(t)
 		})
 	},
-	useBrush(texture, x, y, event, uvTag, no_update) {
-		if ((Painter.currentPixel[0] !== x || Painter.currentPixel[1] !== y)) {
-			Painter.currentPixel = [x, y]
-			Painter.brushChanges = true;
-
-			texture.edit(function(canvas) {
-				var ctx = canvas.getContext('2d')
-				ctx.save()
-
-				var color = tinycolor(ColorPanel.get()).toRgb();
-				var size = BarItems.slider_brush_size.get();
-				let softness = BarItems.slider_brush_softness.get()/100;
-				let b_opacity = BarItems.slider_brush_opacity.get()/100;
-				let m_opacity = BarItems.slider_brush_min_opacity.value/100;
-				let tool = Toolbox.selected.id;
-				let noise = BarItems.brush_mode.get() == 'noise';
-
-				ctx.beginPath();
-				if (uvTag) {
-					var rect = Painter.editing_area = [
-						uvTag[0] / Project.texture_width * texture.img.naturalWidth,
-						uvTag[1] / Project.texture_height * texture.img.naturalHeight,
-						uvTag[2] / Project.texture_width * texture.img.naturalWidth,
-						uvTag[3] / Project.texture_height * texture.img.naturalHeight
-					]
-				} else {
-					var rect = Painter.editing_area = [0, 0, texture.img.naturalWidth, texture.img.naturalHeight]
-				}
-				for (var t = 0; t < 2; t++) {
-					if (rect[t] > rect[t+2]) {
-						[rect[t], rect[t+2]] = [rect[t+2], rect[t]]
-					}
-					rect[t] = Math.round(rect[t])
-					rect[t+2] = Math.round(rect[t+2])
-				}
-				var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
-				ctx.rect(rect[0], rect[1], w, h)
-
-				if (tool === 'fill_tool') {
-
-					ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
-
-					var fill_mode = BarItems.fill_mode.get()
-					var cube = Painter.current.cube;
-					if (cube && fill_mode === 'cube') {
-						for (var face in cube.faces) {
-							var tag = cube.faces[face]
-							if (tag.texture === Painter.current.texture.uuid) {
-								var rect = getRectangle(
-									Math.floor(tag.uv[0] / Project.texture_width * texture.img.naturalWidth),
-									Math.floor(tag.uv[1] / Project.texture_height * texture.img.naturalHeight),
-									Math.ceil(tag.uv[2] / Project.texture_width * texture.img.naturalWidth),
-									Math.ceil(tag.uv[3] / Project.texture_height * texture.img.naturalHeight)
-								)
-								ctx.rect(rect.ax, rect.ay, rect.x, rect.y)
-								ctx.fill()
-							}
-						}
-
-					} else if (fill_mode === 'face') {
-						ctx.fill()
-					} else {
-
-						var pxcol = [];
-						var map = {}
-						Painter.scanCanvas(ctx, x, y, 1, 1, (x, y, px) => {
-							px.forEach((val, i) => {
-								pxcol[i] = val
-							})
-						})
-						Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
-							if (pxcol.equals(px)) {
-								if (!map[x]) map[x] = {}
-								map[x][y] = true
-							}
-						})
-						function checkPx(x, y) {
-							if (map[x] && map[x][y]) {
-								map[x][y] = false;
-
-								checkPx(x+1, y)
-								checkPx(x-1, y)
-								checkPx(x, y+1)
-								checkPx(x, y-1)
-							}
-						}
-						checkPx(x, y)
-						Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
-							if (map[x] && map[x][y] === false) {
-								var pxcolor = {
-									r: px[0],
-									g: px[1],
-									b: px[2],
-									a: px[3]/255
-								}
-								var result_color = Painter.combineColors(pxcolor, color, b_opacity);
-								px[0] = result_color.r
-								px[1] = result_color.g
-								px[2] = result_color.b
-								px[3] = result_color.a*255
-							}
-						})
-					}
-				} else {
-					ctx.clip()
-					if (event.touches && event.touches[0] && event.touches[0].force) {
-						var touch = event.touches[0];
-						if (touch.force == 1) touch.force == Painter.current.force || 0;
-						Painter.current.force = touch.force;
-
-						if (settings.brush_opacity_modifier.value == 'pressure' && touch.force) {
-							b_opacity = Math.clamp(b_opacity * touch.force*1.25, 0, 100);
-							m_opacity = Math.clamp(m_opacity * touch.force*1.25, 0, 100);
-
-						} else if (settings.brush_opacity_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
-							var modifier = Math.clamp(1.5 / (touch.altitudeAngle + 0.3), 1, 4)/2;
-							b_opacity = Math.clamp(b_opacity * modifier, 0, 100);
-							m_opacity = Math.clamp(m_opacity * modifier, 0, 100);
-						}
-						if (settings.brush_size_modifier.value == 'pressure' && touch.force) {
-							size = Math.clamp(touch.force * size * 2, 1, 20);
-
-						} else if (settings.brush_size_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
-							size *= Math.clamp(1.5 / (touch.altitudeAngle + 0.3), 1, 4);
-						}
-					}
-
-					if (tool === 'brush_tool') {
-						Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity, px, py) {
-							if (pxcolor.a == 0 && window.alphalock) return pxcolor;
-							var a = noise
-								  ? Math.randomab(m_opacity, b_opacity) * opacity
-								  : b_opacity * opacity;
-							var before = Painter.getAlphaMatrix(texture, px, py)
-							Painter.setAlphaMatrix(texture, px, py, a);
-							if (before) a = Math.clamp(a-before, 0, 1);
-							var result_color = Painter.combineColors(pxcolor, color, a);
-							return result_color;
-						})
-					} else if (tool === 'eraser') {
-						Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity) {
-							var a = noise
-								  ? Math.randomab(m_opacity, b_opacity)
-								  : b_opacity;
-							return {r: pxcolor.r, g: pxcolor.g, b: pxcolor.b, a: pxcolor.a*(1-a)};
-						})
-					}
-					ctx.restore();
-				}
-				Painter.editing_area = undefined;
-
-			}, {method: 'canvas', no_undo: true, use_cache: true, no_update});
-		}
-	},
-	stopBrush() {
-		if (Painter.brushChanges) {
-			Undo.finishEdit('paint');
-			Painter.brushChanges = false;
-		}
-		delete Painter.current.alpha_matrix;
-		Painter.painting = false;
-		Painter.currentPixel = [-1, -1];
-	},
+	// Util
 	combineColors(base, added, opacity) {
-		if (typeof base === 'number') base = Jimp.intToRGBA(base)
-		if (typeof added === 'number') added = Jimp.intToRGBA(added)
+		if (Math.isNumber(base)) base = Jimp.intToRGBA(base)
+		if (Math.isNumber(added)) added = Jimp.intToRGBA(added)
+
+		if (added.a*opacity == 1) return added
 
 		var original_a = added.a
-		added.a = (added.a)*opacity
+		added.a = added.a*opacity
 
 		var mix = {};
 		mix.a = limitNumber(1 - (1 - added.a) * (1 - base.a), 0, 1); // alpha
@@ -402,25 +619,77 @@ const Painter = {
 		added.a = original_a
 		return mix;
 	},
+	getMirrorCube(cube) {
+		let center = Format.centered_grid ? 0 : 8;
+		if (cube.from[0]-center === center-cube.to[0] && !cube.rotation[1] && !cube.rotation[2]) {
+			return cube;
+		} else {
+			for (var cube2 of Cube.all) {
+				if (
+					cube.from[2] === cube2.from[2] && cube.to[2] === cube2.to[2] &&
+					cube.from[1] === cube2.from[1] && cube.to[1] === cube2.to[1] &&
+					cube.size(0) === cube2.size(0) && cube.to[0]-center === center-cube2.from[0]
+				) {
+					return cube2;
+				}
+			}
+		}
+		return false;
+	},
 	updateNslideValues() {
 		BarItems.slider_brush_size.update()
 		BarItems.slider_brush_softness.update()
 		BarItems.slider_brush_opacity.update()
-		BarItems.slider_brush_min_opacity.update()
+	},
+	getCanvas(texture) {
+		var c = document.createElement('canvas')
+		var ctx = c.getContext('2d');
+		c.width = texture.width;
+		c.height = texture.height;
+		ctx.drawImage(texture instanceof Texture ? texture.img : texture, 0, 0)
+		return c;
 	},
 	scanCanvas(ctx, x, y, w, h, cb) {
 		var arr = ctx.getImageData(x, y, w, h)
 		for (var i = 0; i < arr.data.length; i += 4) {
 			var pixel = arr.data.slice(i, i+4)
 
-			var px = (i/4) % w
-			var py = Math.floor((i/4) / w)
-			pixel = cb(x+px, y+py, pixel)||pixel
+			var px = x + (i/4) % w
+			var py = y + Math.floor((i/4) / w)
+			if (px >= ctx.canvas.width || px < 0 || py >= ctx.canvas.height || py < 0) continue;
+			pixel = cb(px, py, pixel)||pixel
 
 			pixel.forEach((p, pi) => {
 				arr.data[i+pi] = p
 			})
 		}
+		ctx.putImageData(arr, x, y)
+	},
+	modifyCanvasSection(ctx, x, y, w, h, cb) {
+		var arr = ctx.getImageData(x, y, w, h)
+		var processed = [];
+
+		cb((px, py, editPx) => {
+			//changePixel
+			px = Math.floor(px)-x;
+			py = Math.floor(py)-y;
+			if (px < 0 || px >= w) return;
+			if (py < 0 || py >= h) return;
+			let start = (px + py*w) * 4;
+			if (processed.includes(start)) return;
+			processed.push(start);
+			var result_color = editPx({
+				r: arr.data[start+0],
+				g: arr.data[start+1],
+				b: arr.data[start+2],
+				a: arr.data[start+3]/255
+			})
+			arr.data[start+0] = result_color.r
+			arr.data[start+1] = result_color.g
+			arr.data[start+2] = result_color.b
+			arr.data[start+3] = result_color.a*255
+		})
+
 		ctx.putImageData(arr, x, y)
 	},
 	drawRectangle(image, color, rect) {
@@ -432,57 +701,9 @@ const Painter = {
 			this.bitmap.data[idx + 3] = color.a
 		});
 	},
-	editFace(image, x, y, editPx) {
-		var x = Math.floor(Painter.editing_area[0]-0.5)
-		var y = Math.floor(Painter.editing_area[1]-0.5)
-		var width  = Math.floor(Painter.editing_area[2]+1.5) - Math.floor(Painter.editing_area[0])
-		var height = Math.floor(Painter.editing_area[3]+1.5) - Math.floor(Painter.editing_area[1])
-		image.scan(x, y, width, height, function (px, py, idx) {
-
-			if (px >= this.bitmap.width ||
-				px < 0 ||
-				py >= this.bitmap.height ||
-				py < 0
-			) {
-				return;
-			}
-			if (
-				typeof Painter.editing_area === 'object' &&
-				(
-					px+0.2 < Painter.editing_area[0] ||
-					py+0.2 < Painter.editing_area[1] ||
-					px+0.2 >= Painter.editing_area[2] ||
-					py+0.2 >= Painter.editing_area[3] 
-				)
-			) {
-				return;
-			}
-
-			var result_color = editPx({
-				r:this.bitmap.data[idx+0],
-				g:this.bitmap.data[idx+1],
-				b:this.bitmap.data[idx+2],
-				a:this.bitmap.data[idx+3]/255
-			})
-			this.bitmap.data[idx+0] = result_color.r
-			this.bitmap.data[idx+1] = result_color.g
-			this.bitmap.data[idx+2] = result_color.b
-			this.bitmap.data[idx+3] = result_color.a*255
-
-		});
-	},
 	editCircle(ctx, x, y, r, s, editPx) {
-		r = Math.round(r)
-
-		Painter.scanCanvas(ctx, x-r-1, y-r-1, 2*r+3, 2*r+3, function (px, py, pixel) {
-
-			if (px >= ctx.canvas.width ||
-				px < 0 ||
-				py >= ctx.canvas.height ||
-				py < 0
-			) {
-				return;
-			}
+		r = Math.round(r+1)/2
+		Painter.scanCanvas(ctx, x-r-2, y-r-2, 2*r+4, 2*r+4, function (px, py, pixel) {
 			if (
 				settings.paint_side_restrict.value &&
 				Painter.editing_area && 
@@ -504,7 +725,7 @@ const Painter = {
 			if (s*r != 0) {
 				var pos_on_gradient = (distance-(1-s)*r) / (s*r)
 			} else {
-				var pos_on_gradient = Math.floor(distance/r)
+				var pos_on_gradient = Math.floor((distance*1.2)/r)
 			}
 
 			var opacity = limitNumber(1-pos_on_gradient, 0, 1)
@@ -559,709 +780,7 @@ const Painter = {
 		})
 	}
 }
-const TextureGenerator = {
-	face_data: {
-		up:		{c1: '#b4d4e1', c2: '#ecf8fd', place: t => {return {x: t.posx+t.z, 		y: t.posy, 		w: t.x, 	h: t.z}}},
-		down:	{c1: '#536174', c2: '#6e788c', place: t => {return {x: t.posx+t.z+t.x, 	y: t.posy, 		w: t.x, 	h: t.z}}},
-		east:	{c1: '#43e88d', c2: '#7BFFA3', place: t => {return {x: t.posx, 			y: t.posy+t.z, 	w: t.z, 	h: t.y}}},
-		north:	{c1: '#5bbcf4', c2: '#7BD4FF', place: t => {return {x: t.posx+t.z, 		y: t.posy+t.z, 	w: t.x, 	h: t.y}}},
-		west:	{c1: '#f48686', c2: '#FFA7A4', place: t => {return {x: t.posx+t.z+t.x, 	y: t.posy+t.z, 	w: t.z, 	h: t.y}}},
-		south:	{c1: '#f8dd72', c2: '#FFF899', place: t => {return {x: t.posx+t.z+t.x+t.z,y: t.posy+t.z, 	w: t.x, 	h: t.y}}},
-	},
-	addBitmapDialog() {
-		var dialog = new Dialog({
-			id: 'add_bitmap',
-			title: tl('action.create_texture'),
-			form: {
-				name: 		{label: 'generic.name', value: 'texture'},
-				folder: 	{label: 'dialog.create_texture.folder'},
-				template:	{label: 'dialog.create_texture.template', type: 'checkbox', condition: Cube.all.length}
-			},
-			onConfirm: function(results) {
-				results.particle = 'auto';
-				dialog.hide()
-				if (results.template) {
-					var dialog2 = new Dialog({
-						id: 'texture_template',
-						title: tl('dialog.create_texture.template'),
-						form: {
-							compress: 	{label: 'dialog.create_texture.compress', type: 'checkbox', value: true, condition: Project.box_uv},
-							power: 		{label: 'dialog.create_texture.power', type: 'checkbox', value: true},
-							double_use: {label: 'dialog.create_texture.double_use', type: 'checkbox', value: true, condition: Project.box_uv},
-							box_uv: 	{label: 'dialog.project.box_uv', type: 'checkbox', value: false, condition: !Project.box_uv},
-							color: 		{label: 'data.color', type: 'color', colorpicker: Painter.background_color},
-							resolution: {label: 'dialog.create_texture.resolution', type: 'select', value: 16, options: {
-								16: '16',
-								32: '32',
-								64: '64',
-								128: '128',
-								256: '256',
-								512: '512',
-							}},
-						},
-						onConfirm: function(results2) {
-							$.extend(results, results2)
-							TextureGenerator.addBitmap(results)
-							dialog2.hide()
-						}
-					}).show()
-					if (Painter.background_color.get().toHex8() === 'ffffffff') {
-						Painter.background_color.set('#00000000')
-					}
-				} else {
-					var dialog2 = new Dialog({
-						id: 'texture_simple',
-						title: tl('action.create_texture'),
-						form: {
-							color: 		{label: 'data.color', type: 'color', colorpicker: Painter.background_color},
-							resolution: {label: 'dialog.create_texture.resolution', type: 'number', value: 16, min: 16, max: 2048},
-						},
-						onConfirm: function(results2) {
-							$.extend(results, results2)
-							TextureGenerator.addBitmap(results)
-							dialog2.hide()
-						}
-					}).show()
-				}
-			}
-		}).show()
-	},
-	addBitmap(options, after) {
-		if (typeof options !== 'object') {
-			options = {}
-		}
-		if (isNaN(options.resolution) || !options.resolution) {
-			options.resolution = 16
-		}
-		if (options.color === undefined) {
-			options.color = new tinycolor().toRgb()
-		}
-		if (Format.single_texture) {
-			options.texture = textures[0]
-		}
-		var texture = new Texture({
-			mode: 'bitmap',
-			keep_size: true,
-			res: options.resolution,
-			name: options.name ? options.name : 'texture',
-			folder: options.folder ? options.folder : 'block'
-		})
-		function makeTexture(dataUrl) {
-			texture.fromDataURL(dataUrl).add(false)
-			switch (options.particle) {
-				case 'auto':
-				texture.fillParticle();
-				break;
-				case true:
-				texture.enableParticle();
-				break;
-			}
-			if (typeof after === 'function') {
-				after(texture)
-			}
-			if (!options.template) {
-				Undo.finishEdit('create blank texture', {textures: [texture], bitmap: true})
-			}
-			return texture;
-		}
-		if (options.template === true) {
-			Undo.initEdit({
-				textures: Format.single_texture ? textures : [],
-				elements: Format.single_texture ? Cube.all : Cube.selected,
-				uv_only: true,
-				uv_mode: true
-			})
-			if (Project.box_uv || options.box_uv) {
-				TextureGenerator.generateTemplate(options, makeTexture)
-			} else {
-				TextureGenerator.generateFaceTemplate(options, makeTexture)
-			}
-		} else {
-			Undo.initEdit({textures: []})
-			TextureGenerator.generateBlank(options.resolution, options.resolution, options.color, makeTexture)
-		}
-	},
-	generateBlank(height, width, color, cb) {
-		var canvas = document.createElement('canvas')
-		canvas.width = width;
-		canvas.height = height;
-		var ctx = canvas.getContext('2d')
 
-		ctx.fillStyle = new tinycolor(color).toRgbString()
-		ctx.fillRect(0, 0, width, height)
-
-		cb(canvas.toDataURL())
-	},
-	boxUVCubeTemplate: function(obj, min_size) {
-		this.x = obj.size(0, true) || min_size;
-		this.y = obj.size(1, true) || min_size;
-		this.z = obj.size(2, true) || min_size;
-		this.posx = obj.uv_offset[0];
-		this.posy = obj.uv_offset[1];
-		this.obj = obj;
-		this.template_size = (obj.size(2, true) + obj.size(1, true))+ (obj.size(2, true) + obj.size(0, true))*2;
-
-		this.height = this.z + this.y;
-		this.width = 2* (this.x + this.z);
-		return this;	
-	},
-	generateTemplate(options, cb) {
-		var res = options.resolution;
-		var background_color = options.color;
-		var texture = options.texture;
-		var min_size = Project.box_uv ? 0 : 1;
-		var res_multiple = res / 16
-		var templates = [];
-		var doubles = {};
-		var extend_x = 0;
-		var extend_y = 0;
-		var avg_size = 0;
-		var cubes = Format.single_texture ? Cube.all.slice() : Cube.selected.slice()
-
-		var i = cubes.length-1
-		while (i >= 0) {
-			let obj = cubes[i]
-			if (obj.visibility === true) {
-				var template = new TextureGenerator.boxUVCubeTemplate(obj, min_size);
-				if (options.double_use && Project.box_uv && textures.length) {
-					var double_key = [...obj.uv_offset, ...obj.size(undefined, true), ].join('_')
-					if (doubles[double_key]) {
-						doubles[double_key].push(template)
-						doubles[double_key][0].duplicates = doubles[double_key];
-						i--;
-						continue;
-					} else {
-						doubles[double_key] = [template]
-					}
-				}
-				templates.push(template)
-				avg_size += templates[templates.length-1].template_size
-			}
-			i--;
-		}
-		templates.sort(function(a,b) {
-			return b.template_size - a.template_size;
-		})
-		//Cancel if no cubes
-		if (templates.length == 0) {
-			Blockbench.showMessage('No valid cubes', 'center')
-			return;
-		}
-
-
-		if (options.compress) {
-
-			var fill_map = {}
-			function occupy(x, y) {
-				if (!fill_map[x]) fill_map[x] = {}
-				fill_map[x][y] = true
-			}
-			function check(x, y) {
-				return fill_map[x] && fill_map[x][y]
-			}
-			function forTemplatePixel(tpl, sx, sy, cb) {
-				for (var x = 0; x < tpl.width; x++) {		
-					for (var y = 0; y < tpl.height; y++) {
-						if (y >= tpl.z || (x >= tpl.z && x < (tpl.z + 2*tpl.x))) {
-							if (cb(sx+x, sy+y)) return;
-						}
-					}
-				}
-			}
-			function place(tpl, x, y) {
-				var works = true;
-				forTemplatePixel(tpl, x, y, (tx, ty) => {
-					if (check(tx, ty)) {
-						works = false;
-						return true;
-					}
-				})
-				if (works) {
-					forTemplatePixel(tpl, x, y, occupy)
-					tpl.posx = x;
-					tpl.posy = y;
-					extend_x = Math.max(extend_x, x + tpl.width);
-					extend_y = Math.max(extend_y, y + tpl.height);
-					return true;
-				}
-			}
-			templates.forEach(tpl => {
-				var vert = extend_x > extend_y;
-				//Scan for empty spot
-				for (var line = 0; line < 2e3; line++) {	
-					for (var x = 0; x <= line; x++) {
-						if (place(tpl, x, line)) return;
-					}
-					for (var y = 0; y < line; y++) {
-						if (place(tpl, line, y)) return;
-					}
-				}
-			})
-		} else {
-			//OLD -------------------------------------------
-			var lines = [[]]
-			var line_length = Math.sqrt(cubes.length/2)
-			avg_size /= templates.length
-			var o = 0
-			var i = 0
-			var ox = 0
-			templates.forEach(function(tpl) {
-				if (ox >= line_length) {
-					o = ox = 0
-					i++
-					lines[i] = []
-				}
-				lines[i][o] = tpl
-				o++;
-				ox += tpl.template_size/avg_size
-			})
-
-			lines.forEach(function(temps) {
-
-				var x_pos = 0
-				var y_pos = 0 //Y Position of current area relative to this bone
-				var filled_x_pos = 0;
-				var max_height = 0
-				//Find the maximum height of the line
-				temps.forEach(function(t) {
-					max_height = Math.max(max_height, t.height)
-				})
-				//Place
-				temps.forEach(function(t) {
-					if (y_pos > 0 && (y_pos + t.height) <= max_height) {
-						//same column
-						t.posx = x_pos
-						t.posy = y_pos + extend_y
-						filled_x_pos = Math.max(filled_x_pos, x_pos+t.width)
-						y_pos += t.height
-					} else {
-						//new column
-						x_pos = filled_x_pos
-						y_pos = t.height
-						t.posx = x_pos
-						t.posy = extend_y
-						filled_x_pos = Math.max(filled_x_pos, x_pos+t.width)
-					}
-					//size of widest bone
-					extend_x = Math.max(extend_x, filled_x_pos)
-				})
-				extend_y += max_height
-			})
-		}
-		
-		var max_size = Math.max(extend_x, extend_y)
-		if (options.power) {
-			max_size = Math.getNextPower(max_size, 16);
-		} else {
-			max_size = Math.ceil(max_size/16)*16;
-		}
-
-		if (background_color.getAlpha() != 0) {
-			background_color = background_color.toRgbString()
-		}
-		var canvas = document.createElement('canvas')
-		canvas.width = canvas.height = max_size*res_multiple;
-		var ctx = canvas.getContext('2d')
-		ctx.imageSmoothingEnabled = false;
-
-		
-		//Drawing
-		Project.texture_width = Project.texture_height = max_size;
-
-		templates.forEach(function(t) {
-			t.obj.uv_offset[0] = t.posx;
-			t.obj.uv_offset[1] = t.posy;
-			t.obj.mirror_uv = false;
-			TextureGenerator.paintCubeBoxTemplate(t.obj, texture, canvas, t);
-		})
-		var dataUrl = canvas.toDataURL()
-		var texture = cb(dataUrl)
-		if (texture && !Project.single_texture) {
-			templates.forEach(function(t) {
-				t.obj.applyTexture(texture, true)
-				t.obj.autouv = 0
-			})
-		}
-		if (options.box_uv && !Project.box_uv) {
-			Project.box_uv = true;
-		}
-		updateSelection()
-		Undo.finishEdit('create template', {
-			textures: [texture],
-			bitmap: true,
-			elements: Format.single_texture ? Cube.all : Cube.selected,
-			uv_only: true,
-			uv_mode: true
-		})
-	},
-	boxUVdrawTemplateRectangle(border_color, color, face, coords, texture, canvas) {
-		if (typeof background_color === 'string') {
-			border_color = background_color
-			color = undefined
-		}
-		var res_multiple = canvas.width/Project.texture_width;
-		var ctx = canvas.getContext('2d');
-		ctx.fillStyle = border_color;
-		ctx.fillRect(
-			coords.x*res_multiple,
-			coords.y*res_multiple,
-			coords.w*res_multiple,
-			coords.h*res_multiple
-		)
-		if (coords.w*res_multiple > 2 && coords.h*res_multiple > 2 && color) {
-			ctx.fillStyle = color
-			ctx.fillRect(
-				coords.x * res_multiple + 1,
-				coords.y * res_multiple + 1,
-				coords.w * res_multiple - 2,
-				coords.h * res_multiple - 2
-			)
-		}
-	},
-	boxUVdrawTexture(face, coords, texture, canvas) {
-		if (!Format.single_texture) {
-			if (face.texture === undefined || face.texture === null) return false;
-			texture = face.getTexture()
-		}
-		if (!texture || !texture.img) return false;
-
-		var ctx = canvas.getContext('2d');
-		var res_multiple = canvas.width/Project.texture_width;
-		ctx.save()
-		var uv = face.uv.slice();
-
-		if (face.direction === 'up') {
-			uv = [uv[2], uv[3], uv[0], uv[1]]
-		} else if (face.direction === 'down') {
-			uv = [uv[2], uv[1], uv[0], uv[3]]
-		}
-
-		var src = getRectangle(uv[0], uv[1], uv[2], uv[3])
-		var flip = [
-			uv[0] > uv[2] ? -1 : 1,
-			uv[1] > uv[3] ? -1 : 1
-		]
-		if (flip[0] + flip[1] < 1) {
-			ctx.scale(flip[0], flip[1])
-		}
-		if (face.rotation) {
-			ctx.rotate(Math.degToRad(face.rotation))
-			let rot = face.rotation
-
-			if (rot <= 180) flip[1] *= -1;
-			if (rot >= 180) flip[0] *= -1;
-			
-			while (rot > 0) {
-				[coords.x, coords.y] = [coords.y, coords.x];
-				[coords.w, coords.h] = [coords.h, coords.w];
-				rot -= 90;
-			}
-		}
-		ctx.drawImage(
-			texture.img,
-			src.ax/Project.texture_width * texture.img.naturalWidth,
-			src.ay/Project.texture_height * texture.img.naturalHeight,
-			src.x /Project.texture_width * texture.img.naturalWidth,
-			src.y /Project.texture_height * texture.img.naturalHeight,
-			coords.x*res_multiple*flip[0],
-			coords.y*res_multiple*flip[1],
-			coords.w*res_multiple*flip[0],
-			coords.h*res_multiple*flip[1]
-		)
-		ctx.restore()
-		return true;
-	},
-	paintCubeBoxTemplate(cube, texture, canvas, template) {
-
-		if (!template) {
-			template = new TextureGenerator.boxUVCubeTemplate(cube, Project.box_uv ? 0 : 1);
-		}
-		
-		for (var face in TextureGenerator.face_data) {
-			let d = TextureGenerator.face_data[face]
-			
-			if (!cube.faces[face].texture ||
-				!TextureGenerator.boxUVdrawTexture(cube.faces[face], d.place(template), texture, canvas)
-			) {
-				TextureGenerator.boxUVdrawTemplateRectangle(d.c1, d.c2, cube.faces[face], d.place(template), texture, canvas)
-			}
-		}
-
-		if (template && template.duplicates) {
-			template.duplicates.forEach(t_2 => {
-				t_2.obj.uv_offset[0] = cube.uv_offset[0];
-				t_2.obj.uv_offset[1] = cube.uv_offset[1];
-				if (t_2.obj !== cube) {
-					t_2.obj.mirror_uv = t_2.obj.mirror_uv != cube.mirror_uv;
-				}
-			})
-		}
-
-		if (!Project.box_uv) {
-			var size = cube.size(undefined, true);
-			size.forEach((n, i) => {
-				size[i] = n;
-			})
-			
-			var face_list = [   
-				{face: 'north', fIndex: 10,	from: [size[2], size[2]],			 	size: [size[0],  size[1]]},
-				{face: 'east', fIndex: 0,	from: [0, size[2]],				   		size: [size[2],  size[1]]},
-				{face: 'south', fIndex: 8,	from: [size[2]*2 + size[0], size[2]], 	size: [size[0],  size[1]]},
-				{face: 'west', fIndex: 2,	from: [size[2] + size[0], size[2]],   	size: [size[2],  size[1]]},
-				{face: 'up', fIndex: 4,		from: [size[2]+size[0], size[2]],	 	size: [-size[0], -size[2]]},
-				{face: 'down', fIndex: 6,	from: [size[2]+size[0]*2, 0],		 	size: [-size[0], size[2]]}
-			]
-			face_list.forEach(function(f) {
-				cube.faces[f.face].uv[0] = (f.from[0]		   + Math.floor(cube.uv_offset[0]+0.0000001)) / canvas.width  * Project.texture_width;
-				cube.faces[f.face].uv[1] = (f.from[1]		   + Math.floor(cube.uv_offset[1]+0.0000001)) / canvas.height * Project.texture_height;
-				cube.faces[f.face].uv[2] = (f.from[0]+f.size[0]+ Math.floor(cube.uv_offset[0]+0.0000001)) / canvas.width  * Project.texture_width;
-				cube.faces[f.face].uv[3] = (f.from[1]+f.size[1]+ Math.floor(cube.uv_offset[1]+0.0000001)) / canvas.height * Project.texture_height;
-				cube.faces[f.face].rotation = 0;
-			})
-		}
-	},
-	generateFaceTemplate(options, cb) {
-
-		var res_multiple = options.resolution / 16;
-		var background_color = options.color;
-		var texture = options.texture;
-
-		var face_list = [];
-		function faceRect(cube, face_key, tex, x, y) {
-			this.cube = cube;
-			this.width  = Math.abs(x) * res_multiple;
-			this.height = Math.abs(y) * res_multiple;
-			this.width  = (this.width  >= 0.01 && this.width  < 1) ? 1 : Math.round(this.width );
-			this.height = (this.height >= 0.01 && this.height < 1) ? 1 : Math.round(this.height);
-			this.size = this.width * this.height;
-			this.face_key = face_key;
-			this.texture = tex
-			this.face = cube.faces[face_key];
-			face_list.push(this);
-		}
-
-		var cube_array = Format.single_texture ? Cube.all : Cube.selected;
-		cube_array.forEach(cube => {
-			var fi = 0;
-			for (var face_key in cube.faces) {
-				var face = cube.faces[face_key];
-				var tex = face.getTexture();
-				if (tex !== null) {
-					var x = 0;
-					var y = 0;
-					switch (face_key) {
-						case 'north': x = cube.size(0); y = cube.size(1); break;
-						case 'east':  x = cube.size(2); y = cube.size(1); break;
-						case 'south': x = cube.size(0); y = cube.size(1); break;
-						case 'west':  x = cube.size(2); y = cube.size(1); break;
-						case 'up':	  x = cube.size(0); y = cube.size(2); break;
-						case 'down':  x = cube.size(0); y = cube.size(2); break;
-					}
-					new faceRect(cube, face_key, tex, x, y)
-				}
-			}
-		})
-
-		if (face_list.length == 0) {
-			Blockbench.showMessage('No valid cubes', 'center')
-			return;
-		}
-
-		var extend_x = 0;
-		var extend_y = 0;
-
-
-		if (true) {
-
-			face_list.sort(function(a,b) {
-				return b.size - a.size;
-			})
-
-			var fill_map = {}
-			function occupy(x, y) {
-				if (!fill_map[x]) fill_map[x] = {}
-				fill_map[x][y] = true
-			}
-			function check(x, y) {
-				return fill_map[x] && fill_map[x][y]
-			}
-			function forTemplatePixel(tpl, sx, sy, cb) {
-				for (var x = 0; x < tpl.width; x++) {		
-					for (var y = 0; y < tpl.height; y++) {
-						if (cb(sx+x, sy+y)) return;
-					}
-				}
-			}
-			function place(tpl, x, y) {
-				var works = true;
-				forTemplatePixel(tpl, x, y, (tx, ty) => {
-					if (check(tx, ty)) {
-						works = false;
-						return true;
-					}
-				})
-				if (works) {
-					forTemplatePixel(tpl, x, y, occupy)
-					tpl.posx = x;
-					tpl.posy = y;
-					extend_x = Math.max(extend_x, x + tpl.width);
-					extend_y = Math.max(extend_y, y + tpl.height);
-					return true;
-				}
-			}
-			face_list.forEach(tpl => {
-				var vert = extend_x > extend_y;
-				//Scan for empty spot
-				for (var line = 0; line < 2e3; line++) {	
-					for (var x = 0; x <= line; x++) {
-						if (place(tpl, x, line)) return;
-					}
-					for (var y = 0; y < line; y++) {
-						if (place(tpl, line, y)) return;
-					}
-				}
-			})
-		}
-		
-		var max_size = Math.max(extend_x*res_multiple, extend_y*res_multiple)
-		if (options.power) {
-			max_size = Math.getNextPower(max_size, 16);
-		} else {
-			max_size = Math.ceil(max_size/16)*16;
-		}
-
-		if (background_color.getAlpha() != 0) {
-			background_color = background_color.toRgbString()
-		}
-		var canvas = document.createElement('canvas')
-		canvas.width = canvas.height = max_size;
-		var ctx = canvas.getContext('2d')
-		ctx.imageSmoothingEnabled = false;
-
-		
-		function drawTemplateRectangle(border_color, color, face, coords) {
-			if (typeof background_color === 'string') {
-				border_color = background_color
-				color = undefined
-			}
-			ctx.fillStyle = border_color
-			ctx.fillRect(
-				coords.x*res_multiple,
-				coords.y*res_multiple,
-				coords.w*res_multiple,
-				coords.h*res_multiple
-			)
-			if (coords.w*res_multiple > 2 && coords.h*res_multiple > 2 && color) {
-				ctx.fillStyle = color
-				ctx.fillRect(
-					coords.x * res_multiple + 1,
-					coords.y * res_multiple + 1,
-					coords.w * res_multiple - 2,
-					coords.h * res_multiple - 2
-				)
-			}
-		}
-		function drawTexture(face, coords) {
-			if (!Format.single_texture) {
-				if (face.texture === undefined || face.texture === null) return false;
-				texture = face.getTexture()
-			} else {
-				texture = textures[0];
-			}
-			if (!texture || !texture.img) return false;
-
-			ctx.save()
-			var uv = face.uv.slice();
-
-			if (face.direction === 'up') {
-				uv = [uv[2], uv[3], uv[0], uv[1]]
-			} else if (face.direction === 'down') {
-				uv = [uv[2], uv[1], uv[0], uv[3]]
-			}
-
-			var src = getRectangle(uv[0], uv[1], uv[2], uv[3])
-			var flip = [
-				uv[0] > uv[2] ? -1 : 1,
-				uv[1] > uv[3] ? -1 : 1
-			]
-			if (flip[0] + flip[1] < 1) {
-				ctx.scale(flip[0], flip[1])
-			}
-			if (face.rotation) {
-				ctx.rotate(Math.degToRad(face.rotation))
-				let rot = face.rotation
-
-				if (rot <= 180) flip[1] *= -1;
-				if (rot >= 180) flip[0] *= -1;
-				
-				while (rot > 0) {
-					[coords.x, coords.y] = [coords.y, coords.x];
-					[coords.w, coords.h] = [coords.h, coords.w];
-					rot -= 90;
-				}
-			}
-			ctx.drawImage(
-				texture.img,
-				src.ax/Project.texture_width * texture.img.naturalWidth,
-				src.ay/Project.texture_height * texture.img.naturalHeight,
-				src.x /Project.texture_width * texture.img.naturalWidth,
-				src.y /Project.texture_height * texture.img.naturalHeight,
-				coords.x*res_multiple*flip[0],
-				coords.y*res_multiple*flip[1],
-				coords.w*res_multiple*flip[0],
-				coords.h*res_multiple*flip[1]
-			)
-			ctx.restore()
-			return true;
-		}
-
-		//Drawing
-		face_list.forEach(function(ftemp) {
-			let cube = ftemp.cube
-			var pos = {
-				x: ftemp.posx,
-				y: ftemp.posy,
-				w: ftemp.width,
-				h: ftemp.height
-			}
-			var d = TextureGenerator.face_data[ftemp.face_key];			
-			if (!ftemp.texture ||
-				!drawTexture(ftemp.face, pos)
-			) {
-				drawTemplateRectangle(d.c1, d.c2, ftemp.face, pos)
-			}
-			var flip_rotation = ftemp.face.rotation % 180 != 0;
-			ftemp.face.extend({
-				rotation: 0,
-				uv: flip_rotation ? [pos.y, pos.x] : [pos.x, pos.y]
-			})
-			ftemp.face.uv_size = flip_rotation ? [pos.h, pos.w] : [pos.w, pos.h];
-		})
-		var dataUrl = canvas.toDataURL()
-		var texture = cb(dataUrl)
-		Project.texture_width = Project.texture_height = max_size / res_multiple;
-		if (texture && !Format.single_texture) {
-			cube_array.forEach(function(cube) {
-				for (var key in cube.faces) {
-					if (cube.faces[key].texture !== null) {
-						cube.faces[key].texture = texture.uuid;
-					}
-				}
-				Canvas.adaptObjectFaces(cube)
-				Canvas.updateUV(cube)
-				cube.autouv = 0
-			})
-		}
-		updateSelection()
-		Undo.finishEdit('create template', {
-			textures: [texture],
-			bitmap: true,
-			elements: cube_array,
-			uv_only: true,
-			uv_mode: true
-		})
-	}
-}
 
 BARS.defineActions(function() {
 
@@ -1274,18 +793,15 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
+		brushTool: true,
 		allowWireframe: false,
 		keybind: new Keybind({key: 66}),
 		modes: ['paint'],
 		onCanvasClick: function(data) {
-			Painter.startBrushCanvas(data, data.event)
+			Painter.startPaintToolCanvas(data, data.event)
 		},
 		onSelect: function() {
 			Painter.updateNslideValues()
-			$('.UVEditor').find('#uv_size').hide()
-		},
-		onUnselect: function() {
-			$('.UVEditor').find('#uv_size').show()
 		}
 	})
 	new Tool('fill_tool', {
@@ -1300,14 +816,10 @@ BARS.defineActions(function() {
 		allowWireframe: false,
 		modes: ['paint'],
 		onCanvasClick: function(data) {
-			Painter.startBrushCanvas(data, data.event)
+			Painter.startPaintToolCanvas(data, data.event)
 		},
 		onSelect: function() {
 			Painter.updateNslideValues()
-			$('.UVEditor').find('#uv_size').hide()
-		},
-		onUnselect: function() {
-			$('.UVEditor').find('#uv_size').show()
 		}
 	})
 	new Tool('eraser', {
@@ -1318,18 +830,15 @@ BARS.defineActions(function() {
 		transformerMode: 'hidden',
 		cursor: 'crosshair',
 		paintTool: true,
+		brushTool: true,
 		allowWireframe: false,
 		modes: ['paint'],
 		keybind: new Keybind({key: 69}),
 		onCanvasClick: function(data) {
-			Painter.startBrushCanvas(data, data.event)
+			Painter.startPaintToolCanvas(data, data.event)
 		},
 		onSelect: function() {
 			Painter.updateNslideValues()
-			$('.UVEditor').find('#uv_size').hide()
-		},
-		onUnselect: function() {
-			$('.UVEditor').find('#uv_size').show()
 		}
 	})
 	new Tool('color_picker', {
@@ -1343,61 +852,114 @@ BARS.defineActions(function() {
 		allowWireframe: false,
 		modes: ['paint'],
 		onCanvasClick: function(data) {
-			Painter.startBrushCanvas(data, data.event)
+			Painter.startPaintToolCanvas(data, data.event)
 		},
 		onSelect: function() {
 			Painter.updateNslideValues()
-			$('.UVEditor').find('#uv_size').hide()
-		},
-		onUnselect: function() {
-			$('.UVEditor').find('#uv_size').show()
 		}
 	})
+	new Tool('draw_shape_tool', {
+		icon: 'fas.fa-shapes',
+		category: 'tools',
+		toolbar: 'brush',
+		alt_tool: 'color_picker',
+		cursor: 'crosshair',
+		selectFace: true,
+		transformerMode: 'hidden',
+		paintTool: true,
+		allowWireframe: false,
+		modes: ['paint'],
+		condition: {modes: ['paint']},
+		keybind: new Keybind({key: 85}),
+		onCanvasClick: function(data) {
+			Painter.startPaintToolCanvas(data, data.event)
+		},
+		onSelect: function() {
+			Painter.updateNslideValues()
+		}
+	})
+	new Tool('copy_paste_tool', {
+		icon: 'fa-vector-square',
+		category: 'tools',
+		toolbar: 'brush',
+		alt_tool: 'color_picker',
+		cursor: 'crosshair',
+		selectFace: true,
+		transformerMode: 'hidden',
+		paintTool: true,
+		allowWireframe: false,
+		modes: ['paint'],
+		condition: {modes: ['paint']},
+		keybind: new Keybind({key: 77})
+	})
 
-	new BarSelect('brush_mode', {
-		condition: () => Toolbox && (Toolbox.selected.id === 'brush_tool' || Toolbox.selected.id === 'eraser'),
+	new BarSelect('draw_shape_type', {
+		category: 'paint',
+		condition: () => Toolbox && Toolbox.selected.id === 'draw_shape_tool',
 		onChange() {
 			BARS.updateConditions();
 			Painter.updateNslideValues()
 		},
 		options: {
-			brush: true,
-			noise: true
+			rectangle: true,
+			rectangle_h: true,
+			ellipse: true,
+			ellipse_h: true,
 		}
 	})
 	new BarSelect('fill_mode', {
+		category: 'paint',
 		condition: () => Toolbox && Toolbox.selected.id === 'fill_tool',
 		options: {
 			face: true,
+			cube: true,
+			color_connected: true,
 			color: true,
-			cube: true
+		}
+	})
+	new Action('mirror_painting', {
+		label: true,
+		icon: 'check_box_outline_blank',
+		category: 'paint',
+		condition: () => Modes.paint,
+		click: function () {
+			Painter.mirror_painting = !Painter.mirror_painting;
+			this.setIcon(Painter.mirror_painting ? 'check_box' : 'check_box_outline_blank')
+		}
+	})
+	new Action('lock_alpha', {
+		icon: 'fas.fa-unlock',
+		category: 'paint',
+		condition: () => Modes.paint,
+		click: function () {
+			Painter.lock_alpha = !Painter.lock_alpha;
+			this.setIcon(Painter.lock_alpha ? 'fas.fa-lock' : 'fas.fa-unlock')
 		}
 	})
 
 	new Action('painting_grid', {
 		name: tl('settings.painting_grid'),
 		description: tl('settings.painting_grid.desc'),
-		label: true,
 		icon: 'check_box',
+		icon_states: ['grid_off', 'grid_on'],
 		category: 'view',
 		condition: () => Modes.paint,
 		keybind: new Keybind({key: 71}),
 		linked_setting: 'painting_grid',
 		click: function () {
 			BarItems.painting_grid.toggleLinkedSetting()
-			Cube.all.forEach(cube => {
-				Canvas.buildGridBox(cube)
-			})
 		}
 	})
 
 	new NumSlider('slider_brush_size', {
-		condition: () => (Toolbox && ['brush_tool', 'eraser'].includes(Toolbox.selected.id)),
+		condition: () => (Toolbox && ['brush_tool', 'eraser', 'draw_shape_tool'].includes(Toolbox.selected.id)),
+		category: 'paint',
 		settings: {
 			min: 1, max: 20, interval: 1, default: 1,
 		}
 	})
 	new NumSlider('slider_brush_softness', {
+		category: 'paint',
 		condition: () => (Toolbox && ['brush_tool', 'eraser'].includes(Toolbox.selected.id)),
 		settings: {
 			min: 0, max: 100, default: 0,
@@ -1415,26 +977,10 @@ BARS.defineActions(function() {
 		}
 	})
 	new NumSlider('slider_brush_opacity', {
-		condition: () => (Toolbox && ['brush_tool', 'eraser', 'fill_tool'].includes(Toolbox.selected.id)),
+		category: 'paint',
+		condition: () => (Toolbox && ['brush_tool', 'eraser', 'fill_tool', 'draw_shape_tool'].includes(Toolbox.selected.id)),
 		settings: {
 			min: 0, max: 100, default: 100,
-			interval: function(event) {
-				if (event.shiftKey && event.ctrlOrCmd) {
-					return 0.25;
-				} else if (event.shiftKey) {
-					return 5;
-				} else if (event.ctrlOrCmd) {
-					return 1;
-				} else {
-					return 10;
-				}
-			}
-		}
-	})
-	new NumSlider('slider_brush_min_opacity', {
-		condition: () => (Toolbox && ['brush_tool', 'eraser'].includes(Toolbox.selected.id) && BarItems.brush_mode.value == 'noise'),
-		settings: {
-			min: 0, max: 100, default: 50,
 			interval: function(event) {
 				if (event.shiftKey && event.ctrlOrCmd) {
 					return 0.25;

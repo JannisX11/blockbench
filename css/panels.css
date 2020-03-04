@@ -482,6 +482,13 @@
 		font-size: 15px;
 		float: right;
 	}
+	#cubes_list .outliner_object i.icon-open-state {
+	    opacity: 0.7;
+	}
+	#cubes_list .outliner_object i.icon-open-state:hover {
+	    opacity: 1;
+	}
+
 	.outliner_object i.ec_0 {
 		color: #A2EBFF; /*light_blue*/
 	}
@@ -840,7 +847,7 @@
 		color: var(--color-light);
 	}
 	#timeline_body li > .animator_channel_bar .channel_head {
-		padding-left: 34px;
+		padding-left: 16px;
 	}
 	.channel_head .text_button {
 		width: 26px;
@@ -851,6 +858,9 @@
 	}
 	.animator_channel_bar .channel_head .text_button {
 		float: right;
+	}
+	.animator_channel_bar .channel_head .text_button .channel_mute {
+		font-size: 11pt;
 	}
 	.animator.selected .animator_head_bar {
 		background-color: var(--color-selected);
@@ -962,13 +972,8 @@
 		cursor: move;
 		box-sizing: border-box;
 		z-index: 1;
-		box-shadow: 0 0 0 1.5px var(--color-text);
-	}
-	#uv_frame:hover #uv_size {
-		box-shadow: 0 0 0 1.5px white;
-	}
-	#uv_frame:hover #uv_size.dark_frame {
-		box-shadow: 0 0 0 1.5px black;
+		box-shadow: 0 0 0 1.5px #ffffff;
+		mix-blend-mode: difference;
 	}
 	.uv_size_handle {
 		position: absolute;
@@ -1032,6 +1037,53 @@
 	#uv_size .ui-resizable-nw:before {
 		top: 1px;
 		left: 1px;
+	}
+
+	#texture_selection_rect {
+		position: absolute;
+		pointer-events: none;
+		border: 1px dashed white;
+		mix-blend-mode: difference;
+	}
+	#texture_pasting_overlay {
+		position: absolute;
+	}
+	#texture_pasting_overlay::before {
+		content: "";
+		display: block;
+		position: absolute;
+		border: 1px dashed white;
+		pointer-events: none;
+		z-index: 6;
+		width: 100%;
+		height: 100%;
+	}
+	#texture_pasting_overlay > canvas {
+		box-shadow: 1px 1px 20px black;
+		cursor: move;
+		z-index: 5;
+		float: left;
+	}
+	#texture_pasting_overlay > div.control {
+		background-color: var(--color-bright_ui);
+		position: absolute;
+		box-shadow: 1px 1px 15px rgba(0, 0, 0, 0.5);
+		width: 30px;
+		height: 30px;
+		bottom: -30px;
+		width: max-content;
+	}
+	#texture_pasting_overlay > div.control > div {
+		width: 30px;
+		height: 30px;
+		padding: 3px;
+		float: left;
+		color: var(--color-accent_text);
+		text-align: center;
+	}
+	#texture_pasting_overlay > div.control > div:hover {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
 	}
 
 /*Edit Session UI*/

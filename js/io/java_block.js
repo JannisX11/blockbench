@@ -22,8 +22,8 @@ var codec = new Codec('java_block', {
 					element.name = s.name
 				}
 			}
-			element.from = s.from.slice()
-			element.to = s.to.slice()
+			element.from = s.from.slice();
+			element.to = s.to.slice();
 			if (s.inflate) {
 				for (var i = 0; i < 3; i++) {
 					element.from[i] -= s.inflate;
@@ -86,8 +86,8 @@ var codec = new Codec('java_block', {
 						if (s.faces[face].cullface) {
 							tag.cullface = s.faces[face].cullface
 						}
-						if (s.faces[face].tint) {
-							tag.tintindex = 0
+						if (s.faces[face].tint >= 0) {
+							tag.tintindex = s.faces[face].tint
 						}
 						e_faces[face] = tag
 					}
@@ -168,6 +168,14 @@ var codec = new Codec('java_block', {
 				message: tl('message.model_clipping.message', [largerCubesNr])
 			})
 		}
+		if (options.prevent_dialog !== true && clear_elements.length && ['item/generated', 'item/handheld'].includes(Project.parent)) {
+			Blockbench.showMessageBox({
+				translateKey: 'invalid_builtin_parent',
+				icon: 'info',
+				message: tl('message.invalid_builtin_parent.message', [Project.parent])
+			})
+			Project.parent = '';
+		}
 
 		var blockmodel = {}
 		if (checkExport('comment', settings.credit.value)) {
@@ -218,6 +226,7 @@ var codec = new Codec('java_block', {
 				blockmodel.groups = groups
 			}
 		}
+		this.dispatchEvent('compile', {model: blockmodel, options});
 		if (options.raw) {
 			return blockmodel
 		} else {
@@ -234,6 +243,8 @@ var codec = new Codec('java_block', {
 		}
 		Formats.java_block.select()
 		Settings.save()
+
+		this.dispatchEvent('parse', {model});
 
 		var previous_length = add ? elements.length : 0
 		var previous_texture_length = add ? textures.length : 0
@@ -338,8 +349,8 @@ var codec = new Codec('java_block', {
 							}
 							new_face.texture = t.uuid;
 						}
-						if (read_face.tintindex !== undefined) {
-							new_face.tint = true;
+						if (typeof read_face.tintindex == 'number') {
+							new_face.tint = read_face.tintindex;
 						}
 					}
 				}

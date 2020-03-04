@@ -2,6 +2,7 @@ const electron = require('electron').remote;
 const {clipboard, shell, nativeImage} = require('electron');
 const app = electron.app;
 const fs = require('fs');
+const NodeBuffer = require('buffer');
 const zlib = require('zlib');
 const exec = require('child_process').exec;
 const originalFs = require('original-fs');
@@ -113,12 +114,17 @@ function addRecentProject(data) {
 		}
 		i--;
 	}
-	recent_projects.splice(0, 0, {
+	let project = {
 		name: data.name,
 		path: data.path,
 		icon: data.icon,
 		day: new Date().dayOfYear()
-	})
+	}
+	// main_preview.screenshot({width: 200, height: 120}, url => {
+	// 	project.thumbnail = url;
+	// 	updateRecentProjects()
+	// })
+	recent_projects.splice(0, 0, project)
 	app.addRecentDocument(data.path)
 	if (recent_projects.length > Math.clamp(settings.recent_projects.value, 0, 256)) {
 		recent_projects.pop()

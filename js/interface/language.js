@@ -64,19 +64,23 @@ function getStringWidth(string, size) {
 	if (code && Language.options[code]) {
 		Language.code = code
 		document.body.parentNode.attributes.lang.value = Language.code;
-	}
-	$.ajax({
-		dataType: "json",
-		url: 'lang/'+Language+'.json',
-		async: false, 
-		success: function(data) {
-			Language.data = data;
-			
+	} 
+
+	var request = new XMLHttpRequest();
+	request.overrideMimeType("application/json");
+	request.open('GET', 'lang/'+Language+'.json', false);
+	request.send(null); 
+	if (request.status === 200) {
+		try {
+			Language.data = JSON.parse(request.responseText);
+		} catch (err) {
+
+		} finally {
 			if (!Language.loading_steps) {
 				Language.loading_steps = true;
 			} else {
 				translateUI()
 			}
 		}
-	});
+	}
 })();

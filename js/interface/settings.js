@@ -78,14 +78,24 @@ const Settings = {
 		new Setting('recent_projects', {value: 12, max: 128, min: 0, type: 'number', condition: isApp});
 		new Setting('backup_interval', {value: 10, type: 'number', condition: isApp});
 		new Setting('backup_retain', {value: 30, type: 'number', condition: isApp});
+
+		//Interface
+		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number'});
+		new Setting('control_size',  		{category: 'interface', value: 10, type: 'number'});
+		new Setting('seethrough_outline', 	{category: 'interface', value: false});
+		new Setting('outliner_colors', 		{category: 'interface', value: false});
+		new Setting('preview_checkerboard',	{category: 'interface', value: false, onChange() {
+			$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
+		}});
+		new Setting('uv_checkerboard', 		{category: 'interface', value: false, onChange() {
+			$('#UVEditor_main_uv').toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
+		}});
 		
 		//Preview 
-		new Setting('origin_size',  	{category: 'preview', value: 10, type: 'number'});
-		new Setting('control_size',  	{category: 'preview', value: 10, type: 'number'});
-		new Setting('seethrough_outline', {category: 'preview', value: false});
 		new Setting('brightness',  		{category: 'preview', value: 50, type: 'number'});
-		new Setting('shading', 	  		{category: 'preview', value: true},);
-		new Setting('outliner_colors', 	{category: 'preview', value: false},);
+		new Setting('shading', 	  		{category: 'preview', value: true, onChange() {
+			setShading()
+		}});
 		new Setting('texture_fps',   	{category: 'preview', value: 2, type: 'number', onChange() {
 			TextureAnimator.updateSpeed()
 		}});
@@ -94,7 +104,6 @@ const Settings = {
 		
 		//Edit
 		new Setting('undo_limit',    		{category: 'edit', value: 256, type: 'number'});
-		new Setting('local_move',    		{category: 'edit', value: true});
 		new Setting('canvas_unselect',  	{category: 'edit', value: false});
 		new Setting('highlight_cubes',  	{category: 'edit', value: true, onChange() {
 			updateCubeHighlights();
@@ -107,7 +116,11 @@ const Settings = {
 		new Setting('full_grid',	{category: 'grid', value: false});
 		new Setting('large_box',	{category: 'grid', value: false});
 		new Setting('display_grid',	{category: 'grid', value: false});
-		new Setting('painting_grid',{category: 'grid', value: true});
+		new Setting('painting_grid',{category: 'grid', value: true, onChange() {
+			Cube.all.forEach(cube => {
+				Canvas.buildGridBox(cube)
+			})
+		}});
 		
 		//Snapping
 		new Setting('edit_size',	{category: 'snapping', value: 16, type: 'number'});
@@ -196,13 +209,8 @@ const Settings = {
 			||hasSettingChanged('large_box') || hasSettingChanged('display_grid') || hasSettingChanged('edit_size')) {
 			buildGrid()
 		}
-		if (hasSettingChanged('painting_grid')) {
-			Cube.all.forEach(cube => {
-				Canvas.buildGridBox(cube)
-			})
-		}
 		Canvas.outlineMaterial.depthTest = !settings.seethrough_outline.value
-		if (hasSettingChanged('shading') || hasSettingChanged('brightness')) {
+		if (hasSettingChanged('brightness')) {
 			setShading()
 		}
 		for (var id in settings) {

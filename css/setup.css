@@ -152,6 +152,12 @@
 	  -moz-osx-font-smoothing: grayscale;
 	}
 
+	.icon-gizmo:before {
+	  content: "\e922";
+	}
+	.icon-gltf:before {
+	  content: "\e923";
+	}
 	.icon-format_bedrock_legacy:before {
 	  content: "\e91a";
 	}
@@ -257,6 +263,7 @@
 
 
 
+
 	.material-icons {
 		font-family: 'Material Icons';
 		font-weight: normal;
@@ -275,7 +282,7 @@
 	}
 	i.fa_big {
 		font-size: 15pt;
-		height: 28px;
+		height: 22px;
 		width: 22px;
 		text-align: center;
 		vertical-align: text-top;
@@ -398,8 +405,6 @@
 		outline: none;
 	}
 	button {
-		height: 30px;
-		width: 40px;
 		border: none;
 		background: var(--color-button);
 		display: inline-block;
@@ -407,7 +412,7 @@
 		vertical-align: middle;
 		cursor: default;
 		outline: none;
-		height: 35px;
+		height: 32px;
 		min-width: 100px;
 		width: auto;
 		color: var(--color-text);
@@ -450,6 +455,9 @@
 	select:hover{
 		color: var(--color-light);
 	}
+	select:focus{
+	    text-decoration: underline;
+	}
 	select option {
 		-webkit-appearance: none;
 		background-color: var(--color-back);
@@ -466,6 +474,34 @@
 		cursor: default;
 		resize: none;
 		outline: none;
+	}
+	bb-select {
+		display: block;
+		position: relative;
+		background-color: var(--color-button);
+		text-align: left;
+		height: 30px;
+		min-width: 50px;
+		padding-top: 4px;
+		padding-left: 10px;
+	    padding-right: 28px;
+	    color: var(--color-text);
+	}
+	bb-select:hover{
+		color: var(--color-light);
+	}
+
+	bb-select::before {
+		content: "\f0d7";
+		font-family: 'Font Awesome 5 Free';
+		font-weight: 900;
+		display: block;
+		position: absolute;
+		height: 12px;
+		width: 16px;
+	    pointer-events: none;
+	    right: 6px;
+	    top: 3px;
 	}
 	input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button, {
 		-webkit-appeareance: none;
@@ -498,6 +534,9 @@
 		content: "\f14a";
 		font-family: 'Font Awesome 5 Free';
     	font-weight: 600;
+	}
+	input[type=checkbox]:focus, input[type=radio]:focus {
+		color: var(--color-light);
 	}
 	input[type=checkbox][disabled=disabled] {
 		opacity: 0.6;

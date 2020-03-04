@@ -11,6 +11,7 @@ function parseGeometry(data) {
 			data = pe_list_data[0]
 		}
 	}
+	codec.dispatchEvent('parse', {model: data.object});
 	Project.geometry_name = data.name.replace(/^geometry\./, '');
 	Project.texture_width = data.object.texturewidth || 64;
 	Project.texture_height = data.object.textureheight || 64;
@@ -43,7 +44,7 @@ function parseGeometry(data) {
 				b.cubes.forEach(function(s) {
 					var base_cube = new Cube({name: b.name, autouv: 0, color: bi%8})
 					if (s.origin) {
-						base_cube.from = s.origin
+						base_cube.from.V3_set(s.origin);
 						base_cube.from[0] = -(base_cube.from[0] + s.size[0])
 						if (s.size) {
 							base_cube.to[0] = s.size[0] + base_cube.from[0]
@@ -166,23 +167,23 @@ var codec = new Codec('bedrock_old', {
 				if (obj.export) {
 					if (obj instanceof Cube) {
 
-						var cube = new oneLiner()
-						cube.origin = obj.from.slice()
-						cube.size = obj.size()
-						cube.origin[0] = -(cube.origin[0] + cube.size[0])
-						cube.uv = obj.uv_offset
+						var template = new oneLiner()
+						template.origin = obj.from.slice()
+						template.size = obj.size()
+						template.origin[0] = -(template.origin[0] + template.size[0])
+						template.uv = obj.uv_offset
 						if (obj.inflate && typeof obj.inflate === 'number') {
-							cube.inflate = obj.inflate
+							template.inflate = obj.inflate
 						}
 						if (obj.mirror_uv === !bone.mirror) {
-							cube.mirror = obj.mirror_uv
+							template.mirror = obj.mirror_uv
 						}
 						//Visible Bounds
 						var mesh = obj.mesh
 						if (mesh) {
 							visible_box.expandByObject(mesh)
 						}
-						cubes.push(cube)
+						cubes.push(template)
 						cube_count++;
 
 					} else if (obj instanceof Locator) {
@@ -226,6 +227,7 @@ var codec = new Codec('bedrock_old', {
 		if (bones.length) {
 			entitymodel.bones = bones
 		}
+		this.dispatchEvent('compile', {model: entitymodel, options});
 
 		if (options.raw) {
 			return entitymodel

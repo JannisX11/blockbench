@@ -77,11 +77,9 @@ class ModelFormat {
 		}
 		var center = Format.centered_grid ? 8 : 0;
 		previews.forEach(preview => {
-			if (preview.isOrtho) {
-				preview.setOrthographicCamera(preview.angle);
+			if (preview.isOrtho && typeof preview.angle == 'number') {
+				preview.loadAnglePreset(DefaultCameraPresets[preview.angle+1])
 			}
-			preview.camOrtho.position.y += center - preview.controls.target.y;
-			preview.controls.target.set(0, center, 0);
 		})
 		updateSelection()
 		Modes.vue.$forceUpdate()
@@ -121,7 +119,7 @@ class ModelFormat {
 		//Bone Rig
 		if (!Format.bone_rig && old_format.bone_rig) {
 			Group.all.forEach(group => {
-				group.rotation = [0, 0, 0];
+				group.rotation.V3_set(0, 0, 0);
 			})
 		}
 		if (Format.bone_rig && !old_format.bone_rig) {
@@ -145,7 +143,7 @@ class ModelFormat {
 		//Rotate Cubes
 		if (!Format.rotate_cubes && old_format.rotate_cubes) {
 			Cube.all.forEach(cube => {
-				cube.rotation = [0, 0, 0];
+				cube.rotation.V3_set(0, 0, 0)
 			})
 		}
 
@@ -192,7 +190,7 @@ class ModelFormat {
 				if (!cube.rotation.allEqual(0)) {
 					var axis = (cube.rotation_axis && getAxisNumber(cube.rotation_axis)) || 0;
 					var angle = limitNumber( Math.round(cube.rotation[axis]/22.5)*22.5, -45, 45 );
-					cube.rotation = [0, 0, 0];
+					cube.rotation.V3_set(0, 0, 0)
 					cube.rotation[axis] = angle;
 				}
 			})
@@ -217,6 +215,7 @@ class Codec {
 		this.id = id;
 		Codecs[id] = this;
 		this.name = data.name || 'Unknown Format';
+		this.events = {};
 		Merge.function(this, data, 'load');
 		Merge.function(this, data, 'compile');
 		Merge.function(this, data, 'parse');
@@ -252,6 +251,7 @@ class Codec {
 
 	//Export
 	compile() {
+		this.dispatchEvent('compile', {content: ''})
 		return '';
 	}
 	export() {
@@ -306,10 +306,27 @@ class Codec {
 		}
 		Blockbench.showQuickMessage(tl('message.save_file', [name]));
 	}
+	//Events
+	dispatchEvent(event_name, data) {
+		var list = this.events[event_name]
+		if (!list) return;
+		for (var i = 0; i < list.length; i++) {
+			if (typeof list[i] === 'function') {
+				list[i](data)
+			}
+		}
+	}
+	on(event_name, cb) {
+		if (!this.events[event_name]) {
+			this.events[event_name] = []
+		}
+		this.events[event_name].safePush(cb)
+	}
 }
 
 //New
 function resetProject() {
+	Blockbench.dispatchEvent('reset_project');
 	if (Toolbox.selected.id !== 'move_tool') BarItems.move_tool.select();
 	Format = 0;
 	elements.length = 0;
@@ -648,10 +665,9 @@ function uploadSketchfabModel() {
 			name: {label: 'dialog.sketchfab_uploader.name'},
 			description: {label: 'dialog.sketchfab_uploader.description', type: 'textarea'},
 			tags: {label: 'dialog.sketchfab_uploader.tags', placeholder: 'Tag1 Tag2'},
-			animations: {label: 'dialog.sketchfab_uploader.animations', value: true, type: 'checkbox', conditions: (Format.animation_mode && Animator.animations.length)},
+			animations: {label: 'dialog.sketchfab_uploader.animations', value: true, type: 'checkbox', condition: (Format.animation_mode && Animator.animations.length)},
+			//color: {type: 'color', label: 'dialog.sketchfab_uploader.color'},
 			draft: {label: 'dialog.sketchfab_uploader.draft', type: 'checkbox'},
-			// isPublished (draft)
-			// options.background.color = '#ffffff' (Background Color)
 			// Category
 			divider: '_',
 			private: {label: 'dialog.sketchfab_uploader.private', type: 'checkbox'},
@@ -672,6 +688,7 @@ function uploadSketchfabModel() {
 			data.append('description', formResult.description)
 			data.append('tags', formResult.tags)
 			data.append('isPublished', !formResult.draft)
+			//data.append('background', JSON.stringify({color: formResult.color.toHexString()}))
 			data.append('private', formResult.private)
 			data.append('password', formResult.password)
 			data.append('source', 'blockbench')
@@ -714,8 +731,8 @@ function uploadSketchfabModel() {
 						Blockbench.showMessageBox({
 							title: tl('message.sketchfab.success'),
 							message:
-								`[${formResult.name} on Sketchfab](https://sketchfab.com/models/${response.uid})\n\n&nbsp;\n\n`+
-								tl('message.sketchfab.setup_guide', '[Sketchfab Setup and Common Issues](https://blockbench.net/2020/01/22/sketchfab-setup-and-common-issues/)'),
+								`[${formResult.name} on Sketchfab](https://sketchfab.com/models/${response.uid})`, //\n\n&nbsp;\n\n`+
+								//tl('message.sketchfab.setup_guide', '[Sketchfab Setup and Common Issues](https://blockbench.net/2020/01/22/sketchfab-setup-and-common-issues/)'),
 							icon: 'icon-sketchfab',
 						})
 					},
@@ -731,75 +748,6 @@ function uploadSketchfabModel() {
 	})
 	dialog.show()
 }
-/*function uploadPastebinModel() {
-	if (elements.length === 0) {
-		return;
-	}
-	var dialog = new Dialog({
-		id: 'sketchfab_uploader',
-		title: 'dialog.sketchfab_uploader.title',
-		width: 540,
-		form: {
-			token: {label: 'dialog.sketchfab_uploader.token', value: settings.sketchfab_token.value},
-			about_token: {type: 'text', text: tl('dialog.sketchfab_uploader.about_token', ['[sketchfab.com/settings/password](https://sketchfab.com/settings/password)'])},
-			name: {label: 'dialog.sketchfab_uploader.name'},
-			description: {label: 'dialog.sketchfab_uploader.description', type: 'textarea'},
-			tags: {label: 'dialog.sketchfab_uploader.tags', placeholder: 'Tag1 Tag2'},
-			draft: {label: 'dialog.sketchfab_uploader.draft', type: 'checkbox'},
-			// isPublished (draft)
-			// options.background.color = '#ffffff' (Background Color)
-			// Category
-			divider: '_',
-			private: {label: 'dialog.sketchfab_uploader.private', type: 'checkbox'},
-			password: {label: 'dialog.sketchfab_uploader.password'},
-		},
-		onConfirm: function(formResult) {
-
-			if (formResult.token && !formResult.name) {
-				Blockbench.showQuickMessage('message.sketchfab.name_or_token', 1800)
-				return;
-			}
-			var model = Codecs.project.compile({compressed: true})
-
-			var data = new FormData()
-			data.append('api_option', 'paste');
-			data.append('api_dev_key', '');
-			data.append('api_paste_code', model);
-			data.append('api_paste_private', 1);
-			data.append('api_paste_name', formResult.name)
-			data.append('api_paste_expire_date', '40M')
-			data.append('api_user_key', formResult.user_key)
-
-			//settings.sketchfab_token.value = formResult.token
-
-
-			$.ajax({
-				url: 'https://pastebin.com/api/api_post.php',
-				data: data,
-				cache: false,
-				contentType: false,
-				processData: false,
-				type: 'POST',
-				success: function(response) {
-					cl(response);
-					Blockbench.showMessageBox({
-						title: tl('message.sketchfab.success'),
-						message: `[${formResult.name} on Sketchfab](https://sketchfab.com/models/${response.uid})`,
-						icon: 'icon-sketchfab',
-					})
-				},
-				error: function(response) {
-					cl(response);
-					Blockbench.showQuickMessage('message.sketchfab.error', 1500)
-					console.error(response);
-				}
-			})
-
-			dialog.hide()
-		}
-	})
-	dialog.show()
-}*/
 //Json
 function compileJSON(object, options) {
 	var output = ''
@@ -816,7 +764,7 @@ function compileJSON(object, options) {
 		var out = ''
 		if (typeof o === 'string') {
 			//String
-			out += '"' + o.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\t/g, '\\t') + '"'
+			out += '"' + o.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n|\r\n/g, '\\n').replace(/\t/g, '\\t') + '"'
 		} else if (typeof o === 'boolean') {
 			//Boolean
 			out += (o ? 'true' : 'false')
@@ -827,7 +775,7 @@ function compileJSON(object, options) {
 		} else if (o === null || o === Infinity || o === -Infinity) {
 			//Null
 			out += 'null'
-		} else if (typeof o === 'object' && o.constructor.name === 'Array') {
+		} else if (typeof o === 'object' && o instanceof Array) {
 			//Array
 			var has_content = false
 			out += '['
@@ -924,11 +872,13 @@ BARS.defineActions(function() {
 		centered_grid: false,
 		optional_box_uv: true,
 		uv_rotation: true,
+		animation_mode: true,
 	})
 	//Project
 	new Action('project_window', {
 		icon: 'featured_play_list',
 		category: 'file',
+		condition: () => Format,
 		click: function () {
 
 			var dialog = new Dialog({
@@ -1156,7 +1106,8 @@ BARS.defineActions(function() {
 			click: function() {
 				var archive = new JSZip();
 				var content = Format.codec.compile()
-				archive.file((Project.name||'model')+'.json', content)
+				var name = `${Format.codec.fileName()}.${Format.codec.extension}`
+				archive.file(name, content)
 				textures.forEach(tex => {
 					if (tex.mode === 'bitmap') {
 						archive.file(pathToName(tex.name) + '.png', tex.source.replace('data:image/png;base64,', ''), {base64: true});

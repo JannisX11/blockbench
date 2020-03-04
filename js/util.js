@@ -168,6 +168,10 @@ Math.trimDeg = function(a) {
 Math.isPowerOfTwo = function(x) {
 	return (x > 1) && ((x & (x - 1)) == 0);
 }
+Math._numbertype = 'number';
+Math.isNumber = function(x) {
+	return typeof x == Math._numbertype;
+}
 Math.randomab = function(a, b) {
 	return a + Math.random()*(b-a);
 }
@@ -379,6 +383,53 @@ Array.prototype.overlap = function(arr2) {
 	return count;
 }
 
+//Array Vector
+Array.prototype.V3_set = function(x, y, z) {
+	if (x instanceof Array) return this.V3_set(...x);
+	if (y === undefined && z === undefined) z = y = x;
+	this[0] = parseFloat(x)||0;
+	this[1] = parseFloat(y)||0;
+	this[2] = parseFloat(z)||0;
+	return this;
+}
+Array.prototype.V3_add = function(x, y, z) {
+	if (x instanceof Array) return this.V3_add(...x);
+	if (x instanceof THREE.Vector3) return this.V3_add(x.x, x.y, x.z);
+	this[0] += parseFloat(x)||0;
+	this[1] += parseFloat(y)||0;
+	this[2] += parseFloat(z)||0;
+	return this;
+}
+Array.prototype.V3_subtract = function(x, y, z) {
+	if (x instanceof Array) return this.V3_subtract(...x);
+	if (x instanceof THREE.Vector3) return this.V3_subtract(x.x, x.y, x.z);
+	this[0] -= parseFloat(x)||0;
+	this[1] -= parseFloat(y)||0;
+	this[2] -= parseFloat(z)||0;
+	return this;
+}
+Array.prototype.V3_multiply = function(x, y, z) {
+	if (x instanceof Array) return this.V3_multiply(...x);
+	if (x instanceof THREE.Vector3) return this.V3_multiply(x.x, x.y, x.z);
+	if (y === undefined && z === undefined) z = y = x;
+	this[0] *= parseFloat(x)||0;
+	this[1] *= parseFloat(y)||0;
+	this[2] *= parseFloat(z)||0;
+	return this;
+}
+Array.prototype.V3_divide = function(x, y, z) {
+	if (x instanceof Array) return this.V3_divide(...x);
+	if (x instanceof THREE.Vector3) return this.V3_divide(x.x, x.y, x.z);
+	if (y === undefined && z === undefined) z = y = x;
+	this[0] /= parseFloat(x)||1;
+	this[1] /= parseFloat(y)||1;
+	this[2] /= parseFloat(z)||1;
+	return this;
+}
+Array.prototype.V3_toThree = function() {
+	return new THREE.Vector3(this[0], this[1], this[2]);
+}
+
 //Object
 Object.defineProperty(Array.prototype, "equals", {enumerable: false});
 
@@ -468,6 +519,11 @@ var Merge = {
 	function: function(obj, source, index) {
 		if (typeof source[index] === 'function') {
 			obj[index] = source[index]
+		}
+	},
+	arrayVector: function(obj, source, index) {
+		if (source[index] instanceof Array) {
+			obj[index].V3_set(source[index]);
 		}
 	}
 }

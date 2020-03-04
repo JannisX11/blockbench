@@ -4,10 +4,9 @@ class Group extends OutlinerElement {
 		super()
 		this.name = Format.bone_rig ? 'bone' : 'group'
 		this.children = []
-		if (Format.centered_grid) {
-			this.origin = [0, 0, 0];
-		} else {
-			this.origin = [8, 8, 8];
+		this.origin = [0, 0, 0];
+		if (!Format.centered_grid) {
+			this.origin.V3_set(8, 8, 8);
 		}
 		this.rotation = [0, 0, 0];
 		this.reset = false;
@@ -240,30 +239,22 @@ class Group extends OutlinerElement {
 		dq.applyQuaternion(q)
 		shift.sub(dq)
 		shift.applyQuaternion(q.inverse())
-		this.origin = origin.slice();
+		this.origin.V3_set(origin);
 
 		function iterateChild(obj) {
 			if (obj instanceof Group) {
-				obj.origin[0] += shift.x;
-				obj.origin[1] += shift.y;
-				obj.origin[2] += shift.z;
+				obj.origin.V3_add(shift);
 				obj.children.forEach(child => iterateChild(child));
 
 			} else {
 				if (obj.movable) {
-					obj.from[0] += shift.x;
-					obj.from[1] += shift.y;
-					obj.from[2] += shift.z;
+					obj.from.V3_add(shift);
 				}
 				if (obj.resizable) {
-					obj.to[0] += shift.x;
-					obj.to[1] += shift.y;
-					obj.to[2] += shift.z;
+					obj.to.V3_add(shift);
 				}
 				if (obj.rotatable) {
-					obj.origin[0] += shift.x;
-					obj.origin[1] += shift.y;
-					obj.origin[2] += shift.z;
+					obj.origin.V3_add(shift);
 				}
 			}
 		}
@@ -310,8 +301,8 @@ class Group extends OutlinerElement {
 	getChildlessCopy() {
 		var base_group = new Group();
 		base_group.name = this.name;
-		base_group.origin = this.origin.slice();
-		base_group.rotation = this.rotation.slice();
+		base_group.origin.V3_set(this.origin);
+		base_group.rotation.V3_set(this.rotation);
 		base_group.shade = this.shade;
 		base_group.reset = this.reset;
 		base_group.visibility = this.visibility;
@@ -335,7 +326,7 @@ class Group extends OutlinerElement {
 		}
 		obj.origin = this.origin.slice()
 		
-		if (this.rotation.join('_') !== '0_0_0') {
+		if (!this.rotation.allEqual(0)) {
 			obj.rotation = this.rotation.slice()
 		}
 		if (this.reset) {

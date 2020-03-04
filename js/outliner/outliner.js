@@ -987,16 +987,6 @@ BARS.defineActions(function() {
 			Undo.finishEdit('sort_outliner')
 		}
 	})
-	new Action('local_move', {
-		icon: 'check_box',
-		category: 'edit',
-		condition: () => Modes.edit,
-		linked_setting: 'local_move',
-		click: function () {
-			BarItems.local_move.toggleLinkedSetting()
-			updateSelection()
-		}
-	})
 	new Action('element_colors', {
 		icon: 'check_box',
 		category: 'edit',

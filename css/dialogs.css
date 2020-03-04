@@ -70,6 +70,11 @@
 		margin-bottom: 4px;
 		height: auto;
 	}
+	.dialog_bar::after {
+		content: "";
+		clear: both;
+		display: block;
+	}
 	.dialog_bar.narrow {
 		min-height: 30px;
 	}
@@ -483,15 +488,6 @@
 		float: left;
 		min-width: 155px;
 		margin-left: 1px;
-		margin-right: 8px;
-	}
-	label.in_toolbar {
-		text-align: left;
-		color: var(--color-text);
-		padding: 8px;
-		padding-top: 3px;
-		padding-bottom: 0;
-		min-width: 155px;
 		margin-right: 8px;
 	}
 

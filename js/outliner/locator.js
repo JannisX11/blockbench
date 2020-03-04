@@ -2,7 +2,7 @@
 class Locator extends NonGroup {
 	constructor(data, uuid) {
 		super(data, uuid);
-		this.from = [0, 0, 0];
+		this.from = new Array().V3_set(0, 0, 0);
 		this.name = 'locator';
 		this.export = true;
 
@@ -14,11 +14,7 @@ class Locator extends NonGroup {
 		Merge.string(this, object, 'name');
 		this.sanitizeName();
 		Merge.boolean(this, object, 'export');
-		if (object.from) {
-			Merge.number(this.from, object.from, 0);
-			Merge.number(this.from, object.from, 1);
-			Merge.number(this.from, object.from, 2);
-		}
+		Merge.arrayVector(this, object, 'from');
 		return this;
 	}
 	getUndoCopy() {
@@ -75,10 +71,7 @@ class Locator extends NonGroup {
 				this.parent.mesh.getWorldQuaternion(rotation);
 				m.applyQuaternion(rotation.inverse());
 			}
-
-			this.from[0] += m.x;
-			this.from[1] += m.y;
-			this.from[2] += m.z;
+			this.from.V3_add(m);
 		} else {
 			this.from[axis] += val
 		}

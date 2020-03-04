@@ -220,6 +220,8 @@ function parseGeometry(data) {
 			data = pe_list_data[0]
 		}
 	}
+	codec.dispatchEvent('parse', {model: data.object});
+
 	Project.geometry_name = (data.object.description.identifier && data.object.description.identifier.replace(/^geometry\./, '')) || '';
 	Project.texture_width = 16;
 	Project.texture_height = 16;
@@ -271,7 +273,7 @@ function parseGeometry(data) {
 					})
 					base_cube.origin[0] *= -1;
 					if (s.origin) {
-						base_cube.from = s.origin
+						base_cube.from.V3_set(s.origin)
 						base_cube.from[0] = -(base_cube.from[0] + s.size[0])
 						if (s.size) {
 							base_cube.to[0] = s.size[0] + base_cube.from[0]
@@ -433,38 +435,38 @@ var codec = new Codec('bedrock', {
 			for (var obj of g.children) {
 				if (obj.export) {
 					if (obj instanceof Cube) {
-						var cube = {
+						var template = {
 							origin: obj.from.slice(),
 							size: obj.size(),
 							inflate: obj.inflate||undefined,
 						}
 						if (Project.box_uv) {
-							cube = new oneLiner(cube);
+							template = new oneLiner(template);
 						}
-						cube.origin[0] = -(cube.origin[0] + cube.size[0])
+						template.origin[0] = -(template.origin[0] + template.size[0])
 
 
 						if (!obj.rotation.allEqual(0)) {
-							cube.pivot = obj.origin.slice();
-							cube.pivot[0] *= -1;
+							template.pivot = obj.origin.slice();
+							template.pivot[0] *= -1;
 							
-							cube.rotation = obj.rotation.slice();
-							cube.rotation.forEach(function(br, axis) {
-								if (axis != 2) cube.rotation[axis] *= -1
+							template.rotation = obj.rotation.slice();
+							template.rotation.forEach(function(br, axis) {
+								if (axis != 2) template.rotation[axis] *= -1
 							})
 						}
 
 						if (Project.box_uv) {
-							cube.uv = obj.uv_offset;
+							template.uv = obj.uv_offset;
 							if (obj.mirror_uv === !bone.mirror) {
-								cube.mirror = obj.mirror_uv
+								template.mirror = obj.mirror_uv
 							}
 						} else {
-							cube.uv = {};
+							template.uv = {};
 							for (var key in obj.faces) {
 								var face = obj.faces[key];
 								if (face.texture !== null) {
-									cube.uv[key] = new oneLiner({
+									template.uv[key] = new oneLiner({
 										uv: [
 											face.uv[0],
 											face.uv[1],
@@ -475,10 +477,10 @@ var codec = new Codec('bedrock', {
 										]
 									});
 									if (key == 'up') {
-										cube.uv[key].uv[0] += cube.uv[key].uv_size[0];
-										cube.uv[key].uv[1] += cube.uv[key].uv_size[1];
-										cube.uv[key].uv_size[0] *= -1;
-										cube.uv[key].uv_size[1] *= -1;
+										template.uv[key].uv[0] += template.uv[key].uv_size[0];
+										template.uv[key].uv[1] += template.uv[key].uv_size[1];
+										template.uv[key].uv_size[0] *= -1;
+										template.uv[key].uv_size[1] *= -1;
 									}
 								}
 							}
@@ -488,7 +490,7 @@ var codec = new Codec('bedrock', {
 						if (mesh) {
 							visible_box.expandByObject(mesh)
 						}
-						cubes.push(cube)
+						cubes.push(template)
 
 					} else if (obj instanceof Locator) {
 
@@ -532,6 +534,7 @@ var codec = new Codec('bedrock', {
 		if (bones.length) {
 			entitymodel.bones = bones
 		}
+		this.dispatchEvent('compile', {model: main_tag, options});
 
 		if (options.raw) {
 			return main_tag

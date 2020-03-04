@@ -15,6 +15,7 @@ var codec = new Codec('optifine_entity', {
 		entitymodel.models = []
 
 		Outliner.root.forEach(function(g) {
+			if (g instanceof Group == false) return;
 			//Bone
 			var bone = {
 				part: g.name,
@@ -129,6 +130,8 @@ var codec = new Codec('optifine_entity', {
 			entitymodel.models.push(bone)
 		})
 
+		this.dispatchEvent('compile', {entitymodel, options});
+
 		if (options.raw) {
 			return entitymodel
 		} else {
@@ -136,6 +139,7 @@ var codec = new Codec('optifine_entity', {
 		}
 	},
 	parse(model, path) {
+		this.dispatchEvent('parse', {model});
 		if (model.textureSize) {
 			Project.texture_width = parseInt(model.textureSize[0])||16;
 			Project.texture_height = parseInt(model.textureSize[1])||16;

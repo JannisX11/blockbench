@@ -177,6 +177,7 @@ var codec = new Codec('obj', {
 			mtl: mtlOutput,
 			images: materials
 		}
+		this.dispatchEvent('compile', {model: output, mtl: mtlOutput, images: materials});
 		return options.all_files ? _obj_export : output;
 	},
 	write(content, path) {

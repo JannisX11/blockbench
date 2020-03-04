@@ -300,11 +300,10 @@ var Undo = {
 					var tex = Undo.getItemByUUID(textures, uuid)
 					if (tex) {
 						var require_reload = tex.mode !== save.textures[uuid].mode;
-						tex.extend(save.textures[uuid]).updateMaterial()
+						tex.extend(save.textures[uuid]).updateSource()
+						tex.keep_size = true;
 						if (require_reload || reference.textures[uuid] === true) {
 							tex.load()
-						} else {
-							tex.updateMaterial()
 						}
 					}
 				} else {

@@ -1,33 +1,50 @@
 
 const Clipbench = {
 	elements: [],
-	getCopyType(paste) {
-		var p = Prop.active_panel;
-		var text = window.getSelection()+'';
+	types: {
+		text: 'text',
+		face_dialog: 'face_dialog',
+		display_slot: 'display_slot',
+		keyframe: 'keyframe',
+		face: 'face',
+		texture: 'texture',
+		outliner: 'outliner',
+		texture_selection: 'texture_selection',
+	},
+	getCopyType(mode, check) {
+		// mode: 1 = copy, 2 = paste
+		let p = Prop.active_panel;
+		let text;
+		if (!check) {
+			text = window.getSelection()+'';
+		}
 		if (text) {
-			return 'text';
+			return Clipbench.types.text;
+		}
+		if (Painter.selection.canvas && Toolbox.selected.id == 'copy_paste_tool') {
+			return Clipbench.types.texture_selection;
 		}
 		if (open_dialog == 'uv_dialog') {
-			return 'face_dialog'
+			return Clipbench.types.face_dialog
 		}
 		if (display_mode) {
-			return 'display_slot'
+			return Clipbench.types.display_slot
 		}
-		if (Animator.open && Timeline.animators.length && (Timeline.selected.length || paste)) {
-			return 'keyframe'
+		if (Animator.open && Timeline.animators.length && (Timeline.selected.length || mode === 2)) {
+			return Clipbench.types.keyframe
 		}
 		if ((p == 'uv' || p == 'preview') && Modes.edit) {
-			return 'face';
+			return Clipbench.types.face;
 		}
-		if (p == 'textures' && isApp && (textures.selected || paste)) {
-			return 'texture';
+		if (p == 'textures' && isApp && (textures.selected || mode === 2)) {
+			return Clipbench.types.texture;
 		}
 		if (p == 'outliner' && Modes.edit) {
-			return 'outliner';
+			return Clipbench.types.outliner;
 		}
 	},
 	copy(event, cut) {
-		switch (Clipbench.getCopyType()) {
+		switch (Clipbench.getCopyType(1)) {
 			case 'text':
 				Clipbench.setText(window.getSelection()+'');
 				break;
@@ -69,9 +86,12 @@ const Clipbench = {
 		}
 	},
 	paste(event) {
-		switch (Clipbench.getCopyType(true)) {
+		switch (Clipbench.getCopyType(2)) {
 			case 'text':
 				Clipbench.setText(window.getSelection()+'');
+				break;
+			case 'texture_selection':
+				main_uv.addPastingOverlay();
 				break;
 			case 'face_dialog':
 				uv_dialog.paste(event)
@@ -185,7 +205,7 @@ BARS.defineActions(function() {
 		icon: 'fa-copy',
 		category: 'edit',
 		work_in_dialog: true,
-		condition: () => Clipbench.getCopyType(),
+		condition: () => Clipbench.getCopyType(1, true),
 		keybind: new Keybind({key: 67, ctrl: true, shift: null}),
 		click: function (event) {Clipbench.copy(event)}
 	})
@@ -193,7 +213,7 @@ BARS.defineActions(function() {
 		icon: 'fa-cut',
 		category: 'edit',
 		work_in_dialog: true,
-		condition: () => Clipbench.getCopyType(),
+		condition: () => Clipbench.getCopyType(1, true),
 		keybind: new Keybind({key: 88, ctrl: true, shift: null}),
 		click: function (event) {Clipbench.copy(event, true)}
 	})
@@ -201,7 +221,7 @@ BARS.defineActions(function() {
 		icon: 'fa-clipboard',
 		category: 'edit',
 		work_in_dialog: true,
-		condition: () => Clipbench.getCopyType(true),
+		condition: () => Clipbench.getCopyType(2, true),
 		keybind: new Keybind({key: 86, ctrl: true, shift: null}),
 		click: function (event) {Clipbench.paste(event)}
 	})

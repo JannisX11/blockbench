@@ -153,7 +153,11 @@ class Menu {
 					entry = $(`<li title="${s.description||''}">${tl(s.name)}</li>`)
 					entry.prepend(icon)
 					if (typeof s.click === 'function') {
-						entry.click(function(e) {s.click(context, e)})
+						entry.click(function(e) {
+							if (e.target == this) {
+								s.click(context, e)
+							}
+						})
 					}
 					//Submenu
 					if (typeof s.children == 'function' || typeof s.children == 'object') {
@@ -205,7 +209,7 @@ class Menu {
 				position = scope.label
 			}
 			var offset_left = $(position).offset().left;
-			var offset_top  = $(position).offset().top + $(position).height()+3;
+			var offset_top  = $(position).offset().top + $(position).height();
 		}
 
 		if (offset_left > $(window).width() - el_width) {
@@ -312,6 +316,21 @@ class Menu {
 			}
 		}
 		traverse(this.structure, 0)
+	}
+	deleteItem(rm_item) {
+		var scope = this;
+
+		function traverse(arr, layer) {
+			arr.forEachReverse((item, i) => {
+				if (item === rm_item || item === rm_item.id) {
+					arr.splice(i, 1)
+				} else if (item && item.children instanceof Array) {
+					traverse(item.children)
+				}
+			})
+		}
+		traverse(this.structure, 0)
+		rm_item.menus.remove(scope)
 	}
 }
 class BarMenu extends Menu {
@@ -455,9 +474,7 @@ const MenuBar = {
 			'_',
 			'select_window',
 			'select_all',
-			'invert_selection',
-			'_',
-			'local_move',
+			'invert_selection'
 		])
 		new BarMenu('transform', [
 			'scale',
@@ -594,8 +611,9 @@ const MenuBar = {
 				'zoom_reset'
 			]},
 			'_',
+			'toggle_shading',
 			'toggle_wireframe',
-			'toggle_checkerboard',
+			'preview_checkerboard',
 			'painting_grid',
 			'toggle_quad_view',
 			{name: 'menu.view.screenshot', id: 'screenshot', icon: 'camera_alt', children: [
@@ -609,16 +627,35 @@ const MenuBar = {
 			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', click: () => {
 				Blockbench.openLink('http://discord.blockbench.net');
 			}},
+			{name: 'menu.help.quickstart', id: 'discord', icon: 'fas.fa-directions', click: () => {
+				Blockbench.openLink('https://blockbench.net/quickstart/');
+			}},
 			{name: 'menu.help.report_issue', id: 'report_issue', icon: 'bug_report', click: () => {
 				Blockbench.openLink('https://github.com/JannisX11/blockbench/issues');
-			}},
-			{name: 'menu.help.plugin_documentation', id: 'plugin_documentation', icon: 'fa-book', click: () => {
-				Blockbench.openLink('https://jannisx11.github.io/blockbench-docs/');
 			}},
 			'_',
 			{name: 'menu.help.search_action', description: BarItems.action_control.description, id: 'search_action', icon: 'search', click: ActionControl.select},
 			'_',
 			'update_window',
+			{name: 'menu.help.developer', id: 'developer', icon: 'fas.fa-wrench', children: [
+				'reload_plugins',
+				{name: 'menu.help.plugin_documentation', id: 'plugin_documentation', icon: 'fa-book', click: () => {
+					Blockbench.openLink('https://jannisx11.github.io/blockbench-docs/');
+				}},
+				{name: 'menu.help.developer.dev_tools', icon: 'fas.fa-tools', condition: isApp, click: () => {
+					currentwindow.toggleDevTools()
+				}},
+				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
+					if (confirm(tl('menu.help.developer.reset_storage.confirm'))) {
+						localStorage.clear()
+						console.log('Cleared Local Storage')
+					}
+				}},
+				{name: 'menu.help.developer.cache_reload', icon: 'cached', condition: !isApp, click: () => {
+					window.location.reload(true)
+				}},
+				'reload',
+			]},
 			{name: 'menu.help.donate', id: 'donate', icon: 'fas.fa-hand-holding-usd', click: () => {
 				Blockbench.openLink('https://blockbench.net/donate/');
 			}},

@@ -20,16 +20,16 @@
 	<style type="text/css" id="theme_css"></style>
 </head>
 <body spellcheck="false">
-	<div id="loading_error_message" style="display: none;">
-		<div>An error occurred while loading Blockbench</div>
-		<button onclick="Blockbench.reload()" class="large" style="margin-right: auto; margin-left: auto;">Reload</button>
-		<button onclick="window.close()" class="large" style="margin-right: auto; margin-left: auto;">Quit</button>
-	</div>
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '3.3.1';
+		const appVersion = '3.4.0';
 	</script>
+	<div id="loading_error_message" style="display: none;">
+		<div>An error occurred while loading Blockbench</div>
+		<button onclick="isApp ? Blockbench.reload() : window.location.reload(true)" class="large" style="margin-right: auto; margin-left: auto;">Reload</button>
+		<button onclick="window.close()" class="large" style="margin-right: auto; margin-left: auto;">Quit</button>
+	</div>
 		<script src="lib/vue.min.js"></script>
 		<script src="lib/vue_sortable.js"></script>
 		<script src="lib/jquery.js"></script>
@@ -44,8 +44,9 @@
 		<script src="lib/peer.min.js"></script>
 		<script src="lib/marked.min.js"></script>
 		<script src="lib/spectrum.js"></script>
-		<script src="lib/three.js"></script>
+		<script src="lib/three.min.js"></script>
 		<script src="lib/three_custom.js"></script>
+		<script src="lib/GLTFExporter.js"></script>
 		<!--script src="lib/fik.min.js"></script-->
 		<script src="lib/molang.js"></script>
 		<script src="js/preview/OrbitControls.js"></script>
@@ -85,6 +86,7 @@
 		<script src="js/texturing/uv.js"></script>
 		<script src="js/interface/interface.js"></script>
 		<script src="js/texturing/painter.js"></script>
+		<script src="js/texturing/texture_generator.js"></script>
 		<script src="js/texturing/color.js"></script>
 		<script src="js/display_mode.js"></script>
 		<script src="js/animations.js"></script>
@@ -96,6 +98,7 @@
 		<script src="js/io/bedrock.js"></script>
 		<script src="js/io/bedrock_old.js"></script>
 		<script src="js/io/obj.js"></script>
+		<script src="js/io/gltf.js"></script>
 		<script src="js/io/modded_entity.js"></script>
 		<script src="js/io/optifine_jem.js"></script>
 		<script src="js/io/optifine_jpm.js"></script>
@@ -353,12 +356,20 @@
 			<input type="number" id="scaling_origin_y" class="dark_bordered medium_width" oninput="scaleAll()">
 			<label for="scaling_origin_z" class="inline_label tl">Z</label>
 			<input type="number" id="scaling_origin_z" class="dark_bordered medium_width" oninput="scaleAll()">
+			<div class="tool" style="float: none" onclick="setScaleAllPivot('origin')">
+				<div class="tooltip tl">dialog.scale.element_pivot</div>
+				<i class="material-icons">center_focus_strong</i>
+			</div>
+			<div class="tool" style="float: none" onclick="setScaleAllPivot('selection')">
+				<div class="tooltip tl">dialog.scale.selection_center</div>
+				<i class="material-icons">filter_tilt_shift</i>
+			</div>
 		</div>
 
 		<label class="tl">dialog.scale.scale</label>
 		<div class="dialog_bar" style="height: 32px;">
 			<input type="range" id="model_scale_range" value="1" min="0" max="4" step="0.02" oninput="modelScaleSync()">
-			<input type="number" class="f_left" id="model_scale_label" min="0" max="4" step="0.02" value="1" oninput="modelScaleSync(true)">
+			<input type="number" class="f_left dark_bordered" id="model_scale_label" min="0" max="4" step="0.02" value="1" oninput="modelScaleSync(true)">
 		</div>
 
 		<div class="dialog_bar narrow" id="scaling_clipping_warning"></div>
@@ -459,7 +470,7 @@
 		<div class="dialog_bar borderless tab_bar" id="settings_tab_bar">
 			<div class="tl tab open" id="setting" onclick="setSettingsTab('setting')">dialog.settings.settings</div>
 			<div class="tl tab" id="keybindings" onclick="setSettingsTab('keybindings')">dialog.settings.keybinds</div>
-			<div class="tl tab" id="layout_settings" onclick="setSettingsTab('layout_settings')">dialog.settings.layout</div>
+			<div class="tl tab" id="layout_settings" onclick="setSettingsTab('layout_settings')">dialog.settings.theme</div>
 			<div class="tl tab" id="credits" onclick="setSettingsTab('credits')">dialog.settings.about</div>
 		</div>
 
@@ -547,7 +558,7 @@
 		</div>
 
 		<div id="layout_settings" class="hidden tab_content">
-			<h2 class="tl i_b">dialog.settings.layout</h2>
+			<h2 class="tl i_b">dialog.settings.theme</h2>
 			<div class="bar next_to_title" id="layout_title_bar"></div>
 			<div class="y_scrollable" id="theme_editor">
 				<div id="color_wrapper">
@@ -714,7 +725,7 @@
 				v-on:click="mode.select()"
 			>{{ mode.name }}</li>
 		</ul>
-	</div id="main_toolbar">
+	</div>
 	<div id="left_bar" class="sidebar">
 		<div id="uv" class="panel selection_only">
 			<div class="bar next_to_title" id="uv_title_bar">
@@ -947,12 +958,15 @@
 					<input type="radio" name="tab" id="radio_color_palette" value="palette" v-model="open_tab">
 					<label class="tl" for="radio_color_palette">panel.color.palette</label>
 
+					<input type="radio" name="tab" id="radio_color_both" value="both" v-model="open_tab">
+					<label class="tl" for="radio_color_both">panel.color.both</label>
+
 				</div>
-				<div v-show="open_tab == 'picker'">
+				<div v-show="open_tab == 'picker' || open_tab == 'both'">
 					<input id="main_colorpicker">
 					<div class="toolbar_wrapper color_picker"></div>
 				</div>
-				<div v-show="open_tab == 'palette'">
+				<div v-show="open_tab == 'palette' || open_tab == 'both'">
 					<div class="toolbar_wrapper palette"></div>
 					<ul id="palette_list" class="list" v-sortable="{onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
 						<li
@@ -1047,6 +1061,16 @@
 							</div>
 							<div class="animator_channel_bar" v-bind:style="{width: (size*length + head_width)+'px'}" v-for="channel in animator.channels" v-if="animator.expanded && (!focus_channel || channel == focus_channel)">
 								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
+									<div class="text_button" v-on:click.stop="animator.toggleMuted(channel)">
+										<template v-if="channel === 'sound'">
+											<i class="channel_mute fas fa-volume-mute" v-if="animator.muted[channel]"></i>
+											<i class="channel_mute fas fa-volume-up" v-else></i>
+										</template>
+										<template v-else-if="channel !== 'timeline'">
+											<i class="channel_mute fas fa-eye-slash" v-if="animator.muted[channel]"></i>
+											<i class="channel_mute fas fa-eye" v-else></i>
+										</template>
+									</div>
 									<span>{{ tl('timeline.'+channel) }}</span>
 									<div class="text_button" v-on:click.stop="animator.createKeyframe(null, Timeline.time, channel, true)">
 										<i class="material-icons">add</i>
@@ -1081,6 +1105,12 @@
 				<section id="start-files">
 					<left>
 						<h2 class="tl">mode.start.new</h2>
+						<div class="bar next_to_title" id="uv_title_bar">
+							<div class="tool" onclick="Blockbench.openLink('https://blockbench.net/quickstart/')">
+								<div class="tooltip tl">menu.help.quickstart</div>
+								<i class="fa_big fas fa-directions"></i>
+							</div>
+						</div>
 						<ul>
 							<li v-for="format in formats" v-if="format.show_on_start_screen" v-on:click="format.new()">
 								<span class="icon_wrapper f_left" v-html="Blockbench.getIconNode(format.icon).outerHTML"></span>
@@ -1091,11 +1121,18 @@
 					</left>
 					<right>
 						<h2 class="tl">mode.start.recent</h2>
-						<ul>
+						<ul v-if="true">
 							<li v-on:click="openProject(project, $event)" v-for="project in recent" v-bind:title="project.path" class="recent_project">
 								<span class="icon_wrapper" v-html="Blockbench.getIconNode(project.icon).outerHTML"></span>
 								<span class="recent_project_name">{{ project.name }}</span>
 								<span class="recent_project_date">{{ getDate(project) }}</span>
+							</li>
+							<div v-if="recent.length == 0">{{ tl('mode.start.no_recents') }}</div>
+						</ul>
+						<ul v-else>
+							<li v-on:click="openProject(project, $event)" v-for="project in recent" v-bind:title="project.path" class="recent_project thumbnail" :style="{'background-image': `url('${project.thumbnail}')`}">
+
+								<span class="recent_project_name">{{ project.name }}</span>
 							</li>
 							<div v-if="recent.length == 0">{{ tl('mode.start.no_recents') }}</div>
 						</ul>

@@ -51,6 +51,11 @@ const Blockbench = {
 		} else if (icon instanceof HTMLElement) {
 			//Node
 			node = icon
+		} else if (icon === null) {
+			//Node
+			node = document.createElement('i');
+			node.classList.add('fa_big', 'icon');
+			
 		} else if (icon.substr(0, 2) === 'fa') {
 			//Font Awesome
 			node = document.createElement('i');
@@ -330,132 +335,136 @@ const Blockbench = {
 				var results = [];
 				var result_count = 0;
 				var i = 0;
-				while (i < input.files.length) {
-					(function() {
-						var file = input.files[i]
-						var reader = new FileReader()
-						reader.i = i
-						reader.onloadend = function() {
-
-							if (reader.result.byteLength) {
-								var arr = new Uint8Array(reader.result)
-								var targa_loader = new Targa()
-								targa_loader.load(arr)
-								var result = targa_loader.getDataURL()
-							} else {
-								var result = reader.result
-							}
-							results[this.i] = {
-								name: file.name,
-								path: file.name,
-								content: result
-							}
-							result_count++;
-							if (result_count === input.files.length) {
-								cb(results)
-							}
-						}
-						let readtype = options.readtype;
-						if (typeof readtype == 'function') {
-							readtype = readtype(file.name);
-						}
-						if (readtype === 'image') {
-							if (pathToExtension(file.name) === 'tga') {
-								reader.readAsArrayBuffer(file)
-							} else {
-								reader.readAsDataURL(file)
-							}
-						} else if (readtype === 'buffer') {
-							reader.readAsArrayBuffer(file)
-						} else /*text*/ {
-							reader.readAsText(file)
-						}
-						i++;
-					})()
-				}
+				Blockbench.read(input.files, options, cb)
 			}).click()
 		}
 	},
-	read(paths, options, cb) {
-		if (!isApp || paths == undefined) return false;
-		if (typeof paths == 'string') paths = [paths];
+	read(files, options, cb) {
+		if (files == undefined) return false;
+		if (typeof files == 'string') files = [files];
 
 		var results = [];
 		var result_count = 0;
 		var i = 0;
 		var errant;
-		while (i < paths.length) {
-			(function() {
-				var this_i = i;
-				var file = paths[i]
-				let readtype = options.readtype;
-				if (typeof readtype == 'function') {
-					readtype = readtype(file);
-				}
+		if (isApp) {
+			while (i < files.length) {
+				(function() {
+					var this_i = i;
+					var file = files[i]
+					let readtype = options.readtype;
+					if (typeof readtype == 'function') {
+						readtype = readtype(file);
+					}
 
-				if (readtype === 'image') {
-					//
-					var extension = pathToExtension(file)
-					if (extension === 'tga') {
-						var targa_loader = new Targa()
-						targa_loader.open(file, () => {
+					if (readtype === 'image') {
+						//
+						var extension = pathToExtension(file)
+						if (extension === 'tga') {
+							var targa_loader = new Targa()
+							targa_loader.open(file, () => {
 
+								results[this_i] = {
+									name: pathToName(file, true),
+									path: file,
+									content: targa_loader.getDataURL()
+								}
+							
+								result_count++;
+								if (result_count === files.length) {
+									cb(results)
+								}
+							})
+
+						} else {
+							results[this_i] = {
+								name: pathToName(file, true),
+								path: file
+							}
+							result_count++;
+							if (result_count === files.length) {
+								cb(results)
+							}
+						}
+					} else /*text*/ {
+						var load = function (err, data) {
+							if (err) {
+								console.log(err)
+								if (!errant && options.errorbox !== false) {
+									Blockbench.showMessageBox({
+										translateKey: 'file_not_found',
+										icon: 'error_outline'
+									})
+								}
+								errant = true
+								return;
+							}
+							if ((readtype != 'buffer' && readtype != 'binary') && data.charCodeAt(0) === 0xFEFF) {
+								data = data.substr(1)
+							}
 							results[this_i] = {
 								name: pathToName(file, true),
 								path: file,
-								content: targa_loader.getDataURL()
+								content: data
 							}
-						
 							result_count++;
-							if (result_count === paths.length) {
+							if (result_count === files.length) {
 								cb(results)
 							}
-						})
+						}
+						if (readtype === 'buffer' || readtype === 'binary') {
+							fs.readFile(file, load);
+						} else {
+							fs.readFile(file, 'utf8', load);
+						}
+					}
+				})()
+				i++;
+			}
+		} else {
+			while (i < files.length) {
+				(function() {
+					var file = files[i]
+					var reader = new FileReader()
+					reader.i = i
+					reader.onloadend = function() {
 
-					} else {
-						results[this_i] = {
-							name: pathToName(file, true),
-							path: file
+						if (reader.result.byteLength && pathToExtension(file.name) === 'tga') {
+							var arr = new Uint8Array(reader.result)
+							var targa_loader = new Targa()
+							targa_loader.load(arr)
+							var result = targa_loader.getDataURL()
+						} else {
+							var result = reader.result
+						}
+						results[this.i] = {
+							name: file.name,
+							path: file.name,
+							content: result
 						}
 						result_count++;
-						if (result_count === paths.length) {
+						if (result_count === files.length) {
 							cb(results)
 						}
 					}
-				} else /*text*/ {
-					var load = function (err, data) {
-						if (err) {
-							console.log(err)
-							if (!errant && options.errorbox !== false) {
-								Blockbench.showMessageBox({
-									translateKey: 'file_not_found',
-									icon: 'error_outline'
-								})
-							}
-							errant = true
-							return;
-						}
-						if (readtype != 'buffer' && data.charCodeAt(0) === 0xFEFF) {
-							data = data.substr(1)
-						}
-						results[this_i] = {
-							name: pathToName(file, true),
-							path: file,
-							content: data
-						}
-						result_count++;
-						if (result_count === paths.length) {
-							cb(results)
-						}
+					let readtype = options.readtype;
+					if (typeof readtype == 'function') {
+						readtype = readtype(file.name);
 					}
-					if (readtype === 'buffer') {
-						fs.readFile(file, load);
-					} else {
-						fs.readFile(file, 'utf8', load);
+					if (readtype === 'image') {
+						if (pathToExtension(file.name) === 'tga') {
+							reader.readAsArrayBuffer(file)
+						} else {
+							reader.readAsDataURL(file)
+						}
+					} else if (readtype === 'buffer' || readtype === 'binary') {
+						reader.readAsArrayBuffer(file)
+					} else /*text*/ {
+						reader.readAsText(file)
 					}
-				}
-			})()
-			i++;
+					i++;
+				})()
+			}
 		}
 	},
 	export(options, cb) {
@@ -484,7 +493,7 @@ const Blockbench = {
 				download.click();
 				if (Blockbench.browser === 'firefox') document.body.removeChild(download);
 
-			} else if (options.savetype === 'zip' || options.savetype === 'buffer') {
+			} else if (options.savetype === 'zip' || options.savetype === 'buffer' || options.savetype === 'binary') {
 				saveAs(options.content, file_name)
 
 			} else {
@@ -546,13 +555,12 @@ const Blockbench = {
 			options.custom_writer(options.content, file_path)
 
 		} else {
-			//text or buffer
+			//text or binary
 			fs.writeFileSync(file_path, options.content)
 			if (cb) {
 				cb(file_path)
 			}
 		}
-
 	},
 	//Flags
 	addFlag(flag) {
@@ -640,77 +648,17 @@ document.body.ondrop = function(event) {
 		var result_count = 0;
 		var i = 0;
 		var errant;
-		while (i < fileNames.length) {
-
-			if (isApp) {
-
-				if (handler.readtype === 'image') {
-					var path = fileNames[i].path
-					//
-					results[i] = {
-						name: pathToName(path, true),
-						path: path
-					}
-					result_count++;
-					if (result_count === fileNames.length) {
-						handler.cb(results, event)
-					}
-				} else /*text*/ {
-					(function() {
-						var path = fileNames[i].path
-						var this_i = i;
-						var data;
-						try {
-							data = fs.readFileSync(path, 'utf-8')
-						} catch (err) {
-							console.log(err)
-							if (!errant && handler.errorbox !== false) {
-								Blockbench.showMessageBox({
-									translateKey: 'file_not_found',
-									icon: 'error_outline'
-								})
-							}
-							errant = true
-						}
-						if (data) {
-							results[this_i] = {
-								name: pathToName(path, true),
-								path: path,
-								content: data
-							}
-							result_count++;
-							if (result_count === fileNames.length) {
-								handler.cb(results, event)
-							}
-						}
-					})()
-				}
-			} else {
-
-				(function() {
-					var file = fileNames[i]
-					var reader = new FileReader()
-					reader.i = i
-					reader.onloadend = function() {
-						results[this.i] = {
-							name: file.name,
-							path: file.name,
-							content: reader.result
-						}
-						result_count++;
-						if (result_count === fileNames.length) {
-							handler.cb(results, event)
-						}
-					}
-					if (handler.readtype === 'image') {
-						reader.readAsDataURL(file)
-					} else /*text*/ {
-						reader.readAsText(file)
-					}
-				})()
+		var paths = []
+		if (isApp) {
+			for (var file of fileNames) {
+				paths.push(file.path)
 			}
-			i++;
+		} else {
+			paths = fileNames
 		}
+		Blockbench.read(paths, handler, (content) => {
+			handler.cb(content, event)
+		})
 	})
 }
 document.body.ondragenter = function(event) {
@@ -762,7 +710,7 @@ function forDragHandlers(event, cb) {
 				el = parent
 			}
 		}
-		handler.extensions.includes( pathToExtension(event.dataTransfer.files[0].name))
+		handler.extensions.includes( pathToExtension(event.dataTransfer.files[0].name).toLowerCase())
 		var name = event.dataTransfer.files[0].name;
 		if (el && handler.extensions.filter(ex => {
 			return name.substr(-ex.length) == ex;

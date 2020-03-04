@@ -30,7 +30,7 @@ class Face {
 		}
 		Merge.string(this, object, 'cullface')
 		Merge.number(this, object, 'rotation')
-		Merge.boolean(this, object, 'tint')
+		Merge.number(this, object, 'tint')
 		if (object.uv) {
 			Merge.number(this.uv, object.uv, 0)
 			Merge.number(this.uv, object.uv, 1)
@@ -45,11 +45,11 @@ class Face {
 		this.texture = false;
 		this.cullface = '';
 		this.enabled = true;
-		this.tint = false;
+		this.tint = -1;
 		return this;
 	}
 	getTexture() {
-		if (Format.single_texture && Project.box_uv) {
+		if (Format.single_texture && Project.box_uv && this.texture !== null) {
 			return textures[0];
 		}
 		if (typeof this.texture === 'string') {
@@ -69,8 +69,8 @@ class Face {
 		} else if (tex instanceof Texture) {
 			copy.texture = textures.indexOf(tex)
 		}
-		if (this.tint) {
-			copy.tint = true;
+		if (this.tint !== -1) {
+			copy.tint = this.tint;
 		}
 		if (this.cullface) {
 			copy.cullface = this.cullface;
@@ -80,6 +80,14 @@ class Face {
 		}
 		return copy;
 	}
+}
+Face.opposite = {
+	north: 'south',
+	south: 'north',
+	east: 'west',
+	west: 'east',
+	down: 'up',
+	up: 'down'
 }
 
 class Cube extends NonGroup {
@@ -94,11 +102,10 @@ class Cube extends NonGroup {
 		this.color = Math.floor(Math.random()*8)
 		this.uv_offset = [0,0]
 		this.inflate = 0;
-		this.rotation = [0, 0, 0]
-		if (Format.centered_grid) {
-			this.origin = [0, 0, 0]	
-		} else {
-			this.origin = [8, 8, 8]	
+		this.rotation = [0, 0, 0];
+		this.origin = [0, 0, 0];
+		if (!Format.centered_grid) {
+			this.origin.V3_set(8, 8, 8);
 		}
 		this.visibility = true;
 		this.autouv = 0
@@ -150,7 +157,7 @@ class Cube extends NonGroup {
 			if (object.rotation.angle && object.rotation.axis) {
 				var axis = getAxisNumber(object.rotation.axis)
 				if (axis >= 0) {
-					this.rotation = [0, 0, 0]
+					this.rotation.V3_set(0)
 					this.rotation[axis] = object.rotation.angle
 				}
 			}
@@ -193,7 +200,9 @@ class Cube extends NonGroup {
 		super.init();
 		if (Format.single_texture && textures[0]) {
 			for (var face in this.faces) {
-				this.faces[face].texture = textures[0].uuid
+				if (this.faces[face].texture !== null) {
+					this.faces[face].texture = textures[0].uuid
+				}
 			}
 		}
 		if (!this.parent || (this.parent === 'root' && Outliner.root.indexOf(this) === -1)) {
@@ -290,11 +299,9 @@ class Cube extends NonGroup {
 		if (!this.rotation.allEqual(0)) el.rotation = this.rotation;
 		el.origin = this.origin;
 		if (!this.uv_offset.allEqual(0)) el.uv_offset = this.uv_offset;
-		if (!meta || !meta.box_uv) {
-			el.faces = {}
-			for (var face in this.faces) {
-				el.faces[face] = this.faces[face].getSaveCopy()
-			}
+		el.faces = {}
+		for (var face in this.faces) {
+			el.faces[face] = this.faces[face].getSaveCopy()
 		}
 		el.uuid = this.uuid
 		return el;
@@ -335,10 +342,10 @@ class Cube extends NonGroup {
 				case 1: [this.from[2], this.to[2]] = [this.to[2], this.from[2]]; break;
 				case 2: [this.from[1], this.to[1]] = [this.to[1], this.from[1]]; break;
 			}
-			this.from = rotateCoord(this.from, 1, origin)
-			this.to = rotateCoord(this.to, 1, origin)
+			this.from.V3_set(rotateCoord(this.from, 1, origin))
+			this.to.V3_set(rotateCoord(this.to, 1, origin))
 			if (origin != this.origin) {
-				this.origin = rotateCoord(this.origin, 1, origin)
+				this.origin.V3_set(rotateCoord(this.origin, 1, origin))
 			}
 			if (!Project.box_uv) {
 				if (axis === 0) {
@@ -483,7 +490,7 @@ class Cube extends NonGroup {
 
 		this.moveVector(shift)
 
-		this.origin = origin.slice();
+		this.origin.V3_set(origin);
 
 		Canvas.adaptObjectPosition(this)
 		return this;
@@ -677,12 +684,8 @@ class Cube extends NonGroup {
 			this.mesh.getWorldQuaternion(rotation);
 			m.applyQuaternion(rotation.inverse());
 
-			this.from[0] += m.x;
-			this.from[1] += m.y;
-			this.from[2] += m.z;
-			this.to[0]	+= m.x;
-			this.to[1]	+= m.y;
-			this.to[2]	+= m.z;
+			this.from.V3_add(m.x, m.y, m.z);
+			this.to.V3_add(m.x, m.y, m.z);
 
 		} else {
 			this.to[axis] += val;

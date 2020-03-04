@@ -1415,6 +1415,13 @@ window.displayReferenceObjects = {
 }
 DisplayMode.slots = displayReferenceObjects.slots
 
+const display_angle_preset = {
+	projection: 'perspective',
+	position: [-80, 40, -30],
+	target: [0, 8, 0],
+	default: true
+}
+
 enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes the scene etc
 	display_mode = true;
 
@@ -1428,8 +1435,7 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 		quad_previews.enabled_before = true
 	}
 	display_preview.fullscreen()
-	display_preview.setNormalCamera()
-	display_preview.camPers.position.set(-80, 40, -30)
+	display_preview.loadAnglePreset(display_angle_preset)
 	display_preview.camPers.setFocalLength(45)
 	
 	$('body').addClass('display_mode')
@@ -1599,7 +1605,7 @@ function loadDisp(key) {	//Loads The Menu and slider values, common for all Radi
 	display_slot = key
 
 	if (key !== 'gui' && display_preview.isOrtho === true) {
-		display_preview.setNormalCamera()
+		display_preview.loadAnglePreset(display_angle_preset)
 	}
 	display_preview.controls.enabled = true;
 	ground_animation = false;
@@ -1618,54 +1624,76 @@ function loadDisp(key) {	//Loads The Menu and slider values, common for all Radi
 }
 DisplayMode.loadThirdRight = function() {	//Loader
 	loadDisp('thirdperson_righthand')
-	display_preview.camPers.position.set(-44, 40, -44)
-	display_preview.controls.target.set(0, 14, 0)
+	display_preview.loadAnglePreset({
+		position: [-44, 40, -44],
+		target: [0, 14, 0],
+		focal_length: 45,
+	})
 	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
 }
 DisplayMode.loadThirdLeft = function() {	//Loader
 	loadDisp('thirdperson_lefthand')
 	display_preview.camPers.position.set(-44, 40, -44)
 	display_preview.controls.target.set(0, 14, 0)
+	display_preview.loadAnglePreset({
+		position: [-44, 40, -44],
+		target: [0, 14, 0],
+		focal_length: 45,
+	})
 	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
 }
 DisplayMode.loadFirstRight = function() {	//Loader
 	loadDisp('firstperson_righthand')
-	display_preview.camPers.setFocalLength(12)
-	display_preview.camPers.position.set(0, 0, 32.4)
-	display_preview.controls.target.set(0,0,0)
+	display_preview.loadAnglePreset({
+		position: [0, 0, 32.4],
+		target: [0, 0, 0],
+		focal_length: 12,
+	})
 	display_preview.controls.enabled = false
 	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
 DisplayMode.loadFirstLeft = function() {	//Loader
 	loadDisp('firstperson_lefthand')
-	display_preview.camPers.setFocalLength(12)
-	display_preview.camPers.position.set(0, 0, 32.4)
-	display_preview.controls.target.set(0,0,0)
+	display_preview.loadAnglePreset({
+		position: [0, 0, 32.4],
+		target: [0, 0, 0],
+		focal_length: 12,
+	})
 	display_preview.controls.enabled = false
 	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
 DisplayMode.loadHead = function() {		//Loader
 	loadDisp('head')
-	display_preview.camPers.position.set(-30, 40, -30)
-	display_preview.controls.target.set(0, 22, 0)
+	display_preview.loadAnglePreset({
+		position: [-30, 40, -30],
+		target: [0, 22, 0],
+		focal_length: 45,
+	})
 	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
 }
 DisplayMode.loadGUI = function() {		//Loader
 	loadDisp('gui')
 	setDisplayArea(0, 0, 0, 0, 0, 0, 0.4, 0.4, 0.4)
-	display_preview.camOrtho.zoom = 1
-	display_preview.controls.target.set(0,0,0)
-	display_preview.setOrthographicCamera(2)
-	display_preview.camOrtho.position.set(0,0,32)
+
+	display_preview.loadAnglePreset({
+		projection: 'orthographic',
+		position: [0, 0, 32],
+		target: [0, 0, 0],
+		locked_angle: 2,
+		zoom: 1,
+	})
 	displayReferenceObjects.bar(['inventory_nine', 'inventory_full', 'hud'])
 	BarItems.gui_light.set(Project.front_gui_light ? 'front' : 'side');
 }
 DisplayMode.loadGround = function() {		//Loader
 	loadDisp('ground')
-	display_preview.camPers.position.set(-40, 37, -40)
-	display_preview.controls.target.set(0, 11, 0)
+	display_preview.loadAnglePreset({
+		position: [-40, 37, -40],
+		target: [0, 11, 0],
+		focal_length: 45,
+	})
 	setDisplayArea(0, 12, 0, 0, 0, 0, 1, 1, 1)
 	ground_animation = true;
 	ground_timer = 0
@@ -1673,8 +1701,11 @@ DisplayMode.loadGround = function() {		//Loader
 }
 DisplayMode.loadFixed = function() {		//Loader
 	loadDisp('fixed')
-	display_preview.camPers.position.set(-24, 18, -50)
-	display_preview.controls.target.set(0, 1, -5)
+	display_preview.loadAnglePreset({
+		position: [-24, 18, -50],
+		target: [0, 1, -5],
+		focal_length: 45,
+	})
 	setDisplayArea(0, 0, -8.5, 0, 0, 0, 0.5, 0.5, 0.5)
 	displayReferenceObjects.bar(['frame'])
 }

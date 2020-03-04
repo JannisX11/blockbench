@@ -161,7 +161,7 @@
 					child.updateMatrix();
 
 					var tempGeometry = child.geometry.clone();
-					tempGeometry.applyMatrix( child.matrix );
+					tempGeometry.applyMatrix4( child.matrix );
 					child.geometry = tempGeometry;
 
 					child.position.set( 0, 0, 0 );
@@ -235,15 +235,15 @@
 		arrowGeometry.merge( mesh.geometry, mesh.matrix );
 
 		var lineXGeometry = new THREE.BufferGeometry();
-		lineXGeometry.addAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  1, 0, 0 ], 3 ) );
+		lineXGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  1, 0, 0 ], 3 ) );
 		lineXGeometry.name = 'gizmo_x'
 
 		var lineYGeometry = new THREE.BufferGeometry();
-		lineYGeometry.addAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  0, 1, 0 ], 3 ) );
+		lineYGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  0, 1, 0 ], 3 ) );
 		lineYGeometry.name = 'gizmo_y'
 
 		var lineZGeometry = new THREE.BufferGeometry();
-		lineZGeometry.addAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  0, 0, 1 ], 3 ) );
+		lineZGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  0, 0, 1 ], 3 ) );
 		lineZGeometry.name = 'gizmo_z'
 
 		this.handleGizmos = {
@@ -311,13 +311,13 @@
 		arrowGeometry.merge( mesh.geometry, mesh.matrix );
 
 		var lineXGeometry = new THREE.BufferGeometry();
-		lineXGeometry.addAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  1, 0, 0 ], 3 ) );
+		lineXGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  1, 0, 0 ], 3 ) );
 
 		var lineYGeometry = new THREE.BufferGeometry();
-		lineYGeometry.addAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  0, 1, 0 ], 3 ) );
+		lineYGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  0, 1, 0 ], 3 ) );
 
 		var lineZGeometry = new THREE.BufferGeometry();
-		lineZGeometry.addAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  0, 0, 1 ], 3 ) );
+		lineZGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  0, 0, 1 ], 3 ) );
 
 		this.handleGizmos = {
 			X: [
@@ -411,7 +411,7 @@
 
 			}
 
-			geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+			geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
 			return geometry;
 
 		};
@@ -834,6 +834,50 @@
 		display_gui_rotation.rotation.set(0.2, 0.2, 0);
 		display_gui_rotation.updateMatrixWorld();
 
+		this.getTransformSpace = function() {
+			if (!selected.length) return;
+
+			let input_space = BarItems.transform_space.get()
+
+			if (input_space == 'local' && selected[0].rotatable && Toolbox.selected.id !== 'pivot_tool') {
+				let is_local = true;
+				if (Format.bone_rig) {
+					for (var el of selected) {
+						if (el.parent !== selected[0].parent) {
+							is_local = false;
+							break;
+						}
+					}
+				}
+				if (is_local) {
+					for (var el of selected) {
+						if (el.rotation !== selected[0].rotation &&
+						  !(el.rotation instanceof Array && el.rotation.equals(selected[0].rotation))
+						) {
+							is_local = false;
+							break;
+						}
+					}
+				}
+				if (is_local) return 2;
+			}
+			if (input_space !== 'global' && Format.bone_rig) {
+				// Bone Space
+				if (Format.bone_rig && Group.selected && Group.selected.parent instanceof Group && Group.selected.matchesSelection()) {
+					return Group.selected.parent;
+				}
+				let bone = selected[0].parent;
+				for (var el of selected) {
+					if (el.parent !== bone) {
+						bone = 0;
+						break;
+					}
+				}
+				return bone;
+			}
+			return 0;
+		}
+
 		this.center = function() {
 			delete Transformer.rotation_ref;
 			if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
@@ -867,11 +911,22 @@
 						Transformer.position.fromArray(center)
 					}
 
+					let space = Transformer.getTransformSpace();
 					//Rotation
-					if (rotation_tool) {
+					if (Toolbox.selected.id === 'rotate_tool') {
 						Transformer.rotation_ref = rotation_object.mesh.parent;
 
-					} else if (Group.selected && !Blockbench.globalMovement) {
+					} else if (space === 2 || Toolbox.selected.id == 'resize_tool') {
+						Transformer.rotation_ref = selected[0].mesh;
+					
+					} else if (space instanceof Group) {
+						Transformer.rotation_ref = space.mesh;
+
+					}
+
+
+
+					/* else if (Group.selected && !Blockbench.globalMovement) {
 						Transformer.rotation_ref = rotation_object.mesh;
 
 					} else if (Group.selected && Blockbench.globalMovement && Group.selected.parent && Format.bone_rig) {
@@ -882,7 +937,7 @@
 
 					} else if (!Blockbench.globalMovement && Locator.selected[0]) {
 						Transformer.rotation_ref = Locator.selected[0].parent.mesh;
-					}
+					}*/
 				}
 
 			} else if (Modes.display) {
@@ -936,7 +991,7 @@
 			}
 			line.scale[axis] = long ? 20000 : 1;
 			if (Toolbox.selected.transformerMode !== 'rotate') {
-				line.position[axis] = long ? -10000 : (scope.direction?0:-1);
+				line.position[axis] = long ? -10000 : ((scope.direction || Toolbox.selected.transformerMode !== 'scale')?0:-1);
 			} else {
 				line.base_scale[axis] = long ? 20000 : 1;
 			}
@@ -1193,6 +1248,7 @@
 				]
 				var angle = Math.radToDeg( rotations[axisNumber] )
 			}
+			let transform_space = Transformer.getTransformSpace()
 
 			if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
 
@@ -1200,6 +1256,7 @@
 
 					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
 					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
+
 
 					if (originalValue === null) {
 						originalValue = point[axis];
@@ -1226,17 +1283,23 @@
 							})
 						}
 						if (!overlapping) {
+							displayDistance(point[axis] - originalValue);
+
+							moveElementsInSpace(difference, axisNumber)
+
+
+							/*
 							if (_has_groups && Blockbench.globalMovement) {
 								Group.selected.forEachChild(g => {
 									g.origin[axisNumber] += difference
 								}, Group, true)
 							}
-							displayDistance(point[axis] - originalValue);
 							selected.forEach(function(obj, i) {
 								if (obj.movable) {
 									obj.move(difference, axisNumber, _has_groups||!Format.bone_rig)
 								}
 							})
+							*/
 							scope.updateSelection()
 						}
 						previousValue = point[axis]
@@ -1308,7 +1371,21 @@
 							}
 						} else {
 							var origin = Transformer.rotation_object.origin.slice()
-							origin[axisNumber] += difference;
+							if (transform_space == 0) {
+								
+
+								let vec = new THREE.Vector3();
+								vec[axis] = difference;
+
+								var rotation = new THREE.Quaternion();
+								Transformer.rotation_object.mesh.parent.getWorldQuaternion(rotation);
+								vec.applyQuaternion(rotation.inverse());
+
+								origin.V3_add(vec.x, vec.y, vec.z);
+
+							} else {
+								origin[axisNumber] += difference;
+							}
 							selected.forEach(obj => {
 								if (obj.transferOrigin) {
 									obj.transferOrigin(origin);

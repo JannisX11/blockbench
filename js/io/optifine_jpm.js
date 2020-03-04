@@ -66,7 +66,7 @@ var part_codec = new Codec('optifine_part', {
 		if (submodels.length) {
 			jpm.submodels = submodels
 		}
-
+		this.dispatchEvent('compile', {model: jpm, options});
 
 		if (options.raw) {
 			return jpm
@@ -75,6 +75,8 @@ var part_codec = new Codec('optifine_part', {
 		}
 	},
 	parse(model, path, add) {
+		this.dispatchEvent('parse', {model});
+		
 		Project.box_uv = false;
 		var new_cubes = [];
 		var box_uv_changed = false;

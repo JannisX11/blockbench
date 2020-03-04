@@ -59,7 +59,7 @@ const Canvas = {
 		color: gizmo_colors.wire,
 		wireframe: true
 	}),
-	transparentMaterial: new THREE.MeshBasicMaterial({visible: false}),
+	transparentMaterial: new THREE.MeshBasicMaterial({visible: false, name: 'invisible'}),
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
 	face_order: ['east', 'west', 'up', 'down', 'south', 'north'],
 	//Misc
@@ -304,31 +304,29 @@ const Canvas = {
 	updateAllBones() {
 
 		Group.all.forEach((obj) => {
-			let mesh = obj.mesh
-			if (mesh) {
+			let bone = obj.mesh
+			if (bone) {
 
-				mesh.rotation.reorder('ZYX')
-				obj.rotation.forEach(function(n, i) {
-					mesh.rotation[getAxisLetter(i)] = Math.PI / (180 / n);
-				})
-				mesh.position.fromArray(obj.origin)
-				mesh.scale.x = mesh.scale.y = mesh.scale.z = 1
+				bone.rotation.reorder('ZYX')
+				bone.rotation.setFromDegreeArray(obj.rotation);
+				bone.position.fromArray(obj.origin)
+				bone.scale.x = bone.scale.y = bone.scale.z = 1
 
 				if (obj.parent.type === 'group') {
 
-					mesh.position.x -=  obj.parent.origin[0]
-					mesh.position.y -=  obj.parent.origin[1]
-					mesh.position.z -=  obj.parent.origin[2]
+					bone.position.x -=  obj.parent.origin[0]
+					bone.position.y -=  obj.parent.origin[1]
+					bone.position.z -=  obj.parent.origin[2]
 
-					var parent_mesh = obj.parent.mesh
-					parent_mesh.add(mesh)
+					var parent_bone = obj.parent.mesh
+					parent_bone.add(bone)
 				} else {
-					scene.add(mesh)
+					scene.add(bone)
 				}
-				mesh.updateMatrixWorld()
+				bone.updateMatrixWorld()
 
-				mesh.fix_position = mesh.position.clone()
-				mesh.fix_rotation = mesh.rotation.clone()
+				bone.fix_position = bone.position.clone()
+				bone.fix_rotation = bone.rotation.clone()
 			}
 		})
 	},
@@ -805,7 +803,7 @@ const Canvas = {
 
 
 		var geometry = new THREE.BufferGeometry();
-		geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+		geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
 
 		var lines = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({color: gizmo_colors.grid}));
 		lines.geometry.translate(-cube.origin[0], -cube.origin[1], -cube.origin[2]);

@@ -14,7 +14,6 @@ class Texture {
 		this.source = ''
 		this.selected = false
 		this.show_icon = true
-		this.dark_box = false
 		this.error = 0;
 		//Data
 		this.img = 0;
@@ -69,7 +68,6 @@ class Texture {
 		var size_control = {};
 
 		this.img.onload = function() {
-			
 			if (!this.src) return;
 			this.tex.needsUpdate = true;
 			scope.width = img.naturalWidth;
@@ -78,9 +76,6 @@ class Texture {
 			if (scope.isDefault) {
 				console.log('Successfully loaded '+scope.name+' from default pack')
 			}
-
-			var average_color = getAverageRGB(this)
-			scope.dark_box = (average_color.r + average_color.g + average_color.b) >= 383
 
 
 			//Width / Animation
@@ -93,40 +88,43 @@ class Texture {
 				}
 			}
 
-			if (Project.box_uv && Format.single_texture && !scope.keep_size) {
+			if (Project.box_uv && Format.single_texture) {
 
-				let pw = Project.texture_width;
-				let ph = Project.texture_height;
-				let nw = img.naturalWidth;
-				let nh = img.naturalHeight;
+				if (!scope.keep_size) {
+					let pw = Project.texture_width;
+					let ph = Project.texture_height;
+					let nw = img.naturalWidth;
+					let nh = img.naturalHeight;
 
-				//texture is unlike project
-				var unlike = (pw != nw || ph != nh);
-				//Resolution of this texture has changed
-				var changed = size_control.old_width && (size_control.old_width != nw || size_control.old_height != nh);
-				//Resolution could be a multiple of project size
-				var multi = !(
-					(pw%nw || ph%nh) &&
-					(nw%pw || nh%ph)
-				)
+					//texture is unlike project
+					var unlike = (pw != nw || ph != nh);
+					//Resolution of this texture has changed
+					var changed = size_control.old_width && (size_control.old_width != nw || size_control.old_height != nh);
+					//Resolution could be a multiple of project size
+					var multi = !(
+						(pw%nw || ph%nh) &&
+						(nw%pw || nh%ph)
+					)
 
 
-				if (unlike && changed) {
-					Blockbench.showMessageBox({
-						translateKey: 'update_res',
-						icon: 'photo_size_select_small',
-						buttons: [tl('message.update_res.update'), tl('dialog.cancel')],
-						confirm: 0,
-						cancel: 1
-					}, function(result) {
-						if (result === 0) {
-							setProjectResolution(img.naturalWidth, img.naturalHeight)
-							if (selected.length) {
-								main_uv.loadData()
+					if (unlike && changed) {
+						Blockbench.showMessageBox({
+							translateKey: 'update_res',
+							icon: 'photo_size_select_small',
+							buttons: [tl('message.update_res.update'), tl('dialog.cancel')],
+							confirm: 0,
+							cancel: 1
+						}, function(result) {
+							if (result === 0) {
+								setProjectResolution(img.naturalWidth, img.naturalHeight)
+								if (selected.length) {
+									main_uv.loadData()
+								}
 							}
-						}
-					})
+						})
+					}
 				}
+				delete scope.keep_size;
 				size_control.old_width = img.naturalWidth
 				size_control.old_height = img.naturalHeight
 			}
@@ -201,6 +199,7 @@ class Texture {
 		Merge.boolean(this, data, 'particle')
 		Merge.string(this, data, 'mode')
 		Merge.boolean(this, data, 'saved')
+		Merge.boolean(this, data, 'keep_size')
 		if (this.mode === 'bitmap') {
 			Merge.string(this, data, 'source')
 		} else if (data.path) {
@@ -327,7 +326,7 @@ class Texture {
 	}
 	fromDefaultPack() {
 		if (isApp && settings.default_path && settings.default_path.value) {
-			if (Project.single_texture) {
+			if (Format.single_texture) {
 				var path = BedrockEntityManager.findEntityTexture(Project.geometry_name, 'raw')
 				if (path) {
 					this.isDefault = true;
@@ -363,6 +362,7 @@ class Texture {
 		return this;
 	}
 	updateSource(dataUrl) {
+		if (!dataUrl) dataUrl = this.source;
 		this.source = dataUrl;
 		this.img.src = dataUrl;
 		this.updateMaterial();
@@ -393,9 +393,8 @@ class Texture {
 			img.tex.magFilter = THREE.NearestFilter
 			img.tex.minFilter = THREE.NearestFilter
 			img.tex.needsUpdate = true;
-			scope.img = img
-			Canvas.materials[scope.uuid].map = tex
 
+			Canvas.materials[scope.uuid].map = tex
 		}
 		return this;
 	}
@@ -440,8 +439,9 @@ class Texture {
 		if (single) {
 			tex_version++;
 		}
-		this.source = this.source.replace(/\?\d+$/, '?' + tex_version);
-		this.load();
+		this.source = this.source.replace(/\?\d+$/, '?' + tex_version)
+		this.img.src = this.source;
+		this.updateMaterial();
 		TickUpdates.main_uv = true;
 		TickUpdates.texture_list = true;
 	}
@@ -547,6 +547,8 @@ class Texture {
 				}
 			})
 		}
+		TickUpdates.selection = true;
+		
 		if (undo) {
 			Undo.finishEdit('add_texture', {textures: [this]})
 		}
@@ -681,6 +683,101 @@ class Texture {
 			$('#texture_edit .tool.bitmap_only').show()
 		}
 	}
+	resizeDialog() {
+		let scope = this;
+		let dialog = new Dialog({
+			id: 'resize_texture',
+			title: 'menu.texture.resize',
+			form: {
+				width: {
+					label: 'dialog.project.width',
+					type: 'number',
+					value: this.width,
+					min: 1
+				},
+				height: {
+					label: 'dialog.project.height',
+					type: 'number',
+					value: this.height,
+					min: 1
+				},
+				fill: {label: 'dialog.resize_texture.fill', type: 'select', default: 'transparent', options: {
+					transparent: 'dialog.resize_texture.fill.transparent',
+					color: 'dialog.resize_texture.fill.color',
+					repeat: 'dialog.resize_texture.fill.repeat',
+					stretch: 'dialog.resize_texture.fill.stretch'
+				}}
+				/*
+				width
+				height
+				fill
+					transparent
+					color
+					repeat
+					stretch
+				*/
+			},
+			onConfirm: function(formResult) {
+
+				let old_width = scope.width;
+				let old_height = scope.height;
+
+				scope.edit((canvas) => {
+
+					let new_canvas = document.createElement('canvas')
+						new_canvas.width = formResult.width;
+						new_canvas.height = formResult.height;
+					let new_ctx = new_canvas.getContext('2d')
+						new_ctx.imageSmoothingEnabled = false;
+
+					switch (formResult.fill) {
+						case 'transparent':
+							new_ctx.drawImage(canvas, 0, 0, scope.width, scope.height);
+							break;
+						case 'color':
+							new_ctx.fillStyle = ColorPanel.get();
+							new_ctx.fillRect(0, 0, formResult.width, formResult.height)
+							new_ctx.clearRect(0, 0, scope.width, scope.height)
+							new_ctx.drawImage(canvas, 0, 0, scope.width, scope.height);
+							break;
+						case 'repeat':
+							for (var x = 0; x < formResult.width; x += scope.width) {		
+								for (var y = 0; y < formResult.height; y += scope.height) {
+									new_ctx.drawImage(canvas, x, y, scope.width, scope.height);
+								}
+							}
+							break;
+						case 'stretch':
+							new_ctx.drawImage(canvas, 0, 0, formResult.width, formResult.height);
+							break;
+					}
+
+					if (Painter.current && Painter.current.canvas) {
+						delete Painter.current.canvas;
+					}
+					scope.keep_size = true;
+					if (formResult.fill !== 'stretch' && Format.single_texture) {
+						Undo.current_save.uv_mode = {
+							box_uv: Project.box_uv,
+							width:  Project.texture_width,
+							height: Project.texture_height
+						}
+						Undo.current_save.aspects.uv_mode = true;
+
+						Project.texture_width = Project.texture_width * (formResult.width / old_width);
+						Project.texture_height = Project.texture_height * (formResult.height / old_height);
+						Canvas.updateAllUVs()
+					}
+					return new_canvas
+
+				})
+
+				dialog.hide()
+			}
+		})
+		dialog.show()
+		return this;
+	}
 	//Export
 	javaTextureLink() {
 		var link = this.name.replace(/\.png$/, '')
@@ -806,6 +903,12 @@ class Texture {
 						texture.enableParticle()
 					}
 				}
+			},
+			'_',
+			{
+				icon: 'photo_size_select_large',
+				name: 'menu.texture.resize',
+				click(texture) {texture.resizeDialog()}
 			},
 			'_',
 			{

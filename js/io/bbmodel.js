@@ -5,9 +5,8 @@ var codec = new Codec('project', {
 	extension: 'bbmodel',
 	remember: true,
 	load(model, file) {
-
-		var name = pathToName(file.path, true)
 		newProject(model.meta.type||'free');
+		var name = pathToName(file.path, true);
 		if (file.path && isApp && !file.no_file ) {
 			ModelMeta.save_path = file.path;
 			ModelMeta.name = pathToName(name, false);
@@ -100,6 +99,7 @@ var codec = new Codec('project', {
 		}
 
 		Blockbench.dispatchEvent('save_project', {model});
+		this.dispatchEvent('compile', {model, options})
 
 		if (options.raw) {
 			return model;
@@ -142,6 +142,7 @@ var codec = new Codec('project', {
 		}
 
 		Blockbench.dispatchEvent('load_project', {model, path});
+		this.dispatchEvent('parse', {model})
 
 		Project.name = model.name;
 		if (model.geo_name) {
@@ -178,12 +179,12 @@ var codec = new Codec('project', {
 
 				var copy = NonGroup.fromSave(element, true)
 				for (var face in copy.faces) {
-					if (!Project.box_uv) {
-						var texture = textures[element.faces[face].texture]
+					if (!Format.single_texture) {
+						var texture = element.faces[face].texture && textures[element.faces[face].texture]
 						if (texture) {
 							copy.faces[face].texture = texture.uuid
 						}
-					} else if (textures[0]) {
+					} else if (textures[0] && copy.faces[face].texture !== null) {
 						copy.faces[face].texture = textures[0].uuid
 					}
 				}

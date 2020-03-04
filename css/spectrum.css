@@ -312,7 +312,6 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
 .sp-input-container {
     float: left;
     width: 64%;
-    margin-bottom: 4px;
     margin-top: -3px;
 }
 .sp-input {
@@ -458,6 +457,9 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
     margin-right: 5px;
     vertical-align: middle;
     text-decoration:none;
+}
+.sp-choose {
+    vertical-align: middle;
 }
 
 

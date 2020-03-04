@@ -19,6 +19,75 @@ var gizmo_colors = {
 	wire: new THREE.Color(0x576f82),
 	outline: new THREE.Color(0x3e90ff)
 }
+const DefaultCameraPresets = [
+	{
+		name: 'menu.preview.angle.initial',
+		projection: 'perspective',
+		position: [-40, 32, -40],
+		target: [0, 8, 0],
+		default: true
+	},
+	{
+		name: 'direction.top',
+		projection: 'orthographic',
+		color: 'y',
+		position: [0, 64, 0],
+		target: [0, 0, 0],
+		zoom: 0.5,
+		locked_angle: 0,
+		default: true
+	},
+	{
+		name: 'direction.bottom',
+		projection: 'orthographic',
+		color: 'y',
+		position: [0, -64, 0],
+		target: [0, 0, 0],
+		zoom: 0.5,
+		locked_angle: 1,
+		default: true
+	},
+	{
+		name: 'direction.south',
+		projection: 'orthographic',
+		color: 'z',
+		position: [0, 0, 64],
+		target: [0, 0, 0],
+		zoom: 0.5,
+		locked_angle: 2,
+		default: true
+	},
+	{
+		name: 'direction.north',
+		projection: 'orthographic',
+		color: 'z',
+		position: [0, 0, -64],
+		target: [0, 0, 0],
+		zoom: 0.5,
+		locked_angle: 3,
+		default: true
+	},
+	{
+		name: 'direction.east',
+		projection: 'orthographic',
+		color: 'x',
+		position: [64, 0, 0],
+		target: [0, 0, 0],
+		zoom: 0.5,
+		locked_angle: 4,
+		default: true
+	},
+	{
+		name: 'direction.west',
+		projection: 'orthographic',
+		color: 'x',
+		position: [-64, 0, 0],
+		target: [0, 0, 0],
+		zoom: 0.5,
+		locked_angle: 5,
+		default: true
+	}
+]
 
 class Preview {
 	constructor(data) {
@@ -34,11 +103,12 @@ class Preview {
 		this.width = 0;
 		//Cameras
 		this.isOrtho = false
+		this.angle = null;
 		this.camPers = new THREE.PerspectiveCamera(45, 16 / 9, 1, 30000)
-		this.camOrtho = new THREE.OrthographicCamera(-600,  600, -400, 400, 0.5, 200);
+		this.camOrtho = new THREE.OrthographicCamera(-600,  600, -400, 400, -200, 20000);
 		this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'y'}]
 		this.camOrtho.axis = null
-		this.camOrtho.zoom = 0.4
+		this.camOrtho.zoom = 0.5
 		this.camPers.preview = this.camOrtho.preview = this;
 		for (var i = 4; i <= 6; i++) {
 			this.camPers.layers.enable(i);
@@ -78,7 +148,8 @@ class Preview {
 			}
 		}
 
-		this.resetCamera(true)
+		this.camPers.position.fromArray(DefaultCameraPresets[0].position)
+		this.controls.target.fromArray(DefaultCameraPresets[0].target);
 
 		//Keybinds
 		this.controls.mouseButtons.ZOOM = undefined;
@@ -155,11 +226,8 @@ class Preview {
 		var canvas_offset = $(this.canvas).offset()
 		this.mouse.x = ((event.clientX - canvas_offset.left) / this.width) * 2 - 1;
 		this.mouse.y = - ((event.clientY - canvas_offset.top) / this.height) * 2 + 1;
-		if (this.isOrtho === true) {
-			this.raycaster.setFromCamera( this.mouse, this.camOrtho );
-		} else {
-			this.raycaster.setFromCamera( this.mouse, this.camPers );
-		}
+		this.raycaster.setFromCamera( this.mouse, this.camera );
+
 		var objects = []
 		scene.traverse(function(s) {
 			if (s.isElement === true) {
@@ -215,104 +283,164 @@ class Preview {
 			display_mode
 				? display_scene
 				: scene,
-			this.isOrtho
-				? this.camOrtho
-				: this.camPers
+			this.camera
 		)
 	}
 	//Camera
 	get camera() {
 		return this.isOrtho ? this.camOrtho : this.camPers;
 	}
-	setNormalCamera() {
-		this.isOrtho = false;
-		this.camOrtho.axis = null
+	setProjectionMode(ortho) {
+
+		let position = this.camera.position;
+		this.isOrtho = !!ortho;
 		this.resize()
-		this.controls.object = this.camPers;
-		if (Transformer.camera == this.camOrtho) {
-			Transformer.camera = this.camPers;
+		this.controls.object = this.camera;
+		this.camera.position.copy(position);
+		if (this.isOrtho) {
+			this.camera.zoom = 0.5;
+			this.camOrtho.updateProjectionMatrix()
+		}
+		if (Transformer && Transformer.camera !== this.camera) {
+			Transformer.camera = this.camera;
 			Transformer.update();
 		}
-		this.controls.enableRotate = true;
+		this.setLockedAngle()
 		this.controls.updateSceneScale();
-		this.loadBackground()
+		return this;
 	}
-	setOrthographicCamera(angle) {
-		this.isOrtho = true;
-		this.angle = angle
-		this.controls.object = this.camOrtho;
-		if (Transformer.camera == this.camPers) {
-			Transformer.camera = this.camOrtho;
-		}
-		this.controls.enableRotate = false;
-		this.controls.target.set(0, 0, 0);
+	setNormalCamera() {
+		//Deprecated
+		this.setProjectionMode(false)
+		return this;
+	}
+	setLockedAngle(angle) {
+		if (typeof angle === 'number' && this.isOrtho) {
 
-		//Angle
-		//if (angle === undefined) return;
-		var dist = 64
-		switch (angle) {
-			case 0:
-			this.camOrtho.axis = 'y'
-			this.camOrtho.position.set(0,dist,0)
-			this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'z'}]
-			break;
-			case 1:
-			this.camOrtho.axis = 'y'
-			this.camOrtho.position.set(0,-dist,0)
-			this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: true, a: 'z'}]
-			break;
-			case 2:
-			this.camOrtho.axis = 'z'
-			this.camOrtho.position.set(0,0,dist)
-			this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: true, a: 'y'}]
-			break;
-			case 3:
-			this.camOrtho.axis = 'z'
-			this.camOrtho.position.set(0,0,-dist)
-			this.camOrtho.backgroundHandle = [{n: true, a: 'x'}, {n: true, a: 'y'}]
-			break;
-			case 4:
-			this.camOrtho.axis = 'x'
-			this.camOrtho.position.set(dist,0,0)
-			this.camOrtho.backgroundHandle = [{n: true, a: 'z'}, {n: true, a: 'y'}]
-			break;
-			case 5:
-			this.camOrtho.axis = 'x'
-			this.camOrtho.position.set(-dist,0,0)
-			this.camOrtho.backgroundHandle = [{n: false, a: 'z'}, {n: true, a: 'y'}]
-			break;
-			case undefined:
-			this.camOrtho.axis = null;
-			angle = 1;
-			this.camOrtho.position.copy(this.camPers.position);
-			this.controls.enableRotate = true;
-			break;
-		}
-		this.loadBackground();
+			this.angle = angle
+			this.controls.enableRotate = false;
 
-		var layer = getAxisNumber(this.camOrtho.axis)+1;
-		this.camOrtho.layers.set(0);
-		this.camOrtho.layers.enable(layer);
-		for (var i = 1; i <= 3; i++) {
-			if (i != layer) {
-				this.camOrtho.layers.enable(i+3);
+			var dist = 64
+			switch (angle) {
+				case 0:
+				this.camOrtho.axis = 'y'
+				//this.camOrtho.position.set(0,dist,0)
+				this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'z'}]
+				break;
+				case 1:
+				this.camOrtho.axis = 'y'
+				//this.camOrtho.position.set(0,-dist,0)
+				this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: true, a: 'z'}]
+				break;
+				case 2:
+				this.camOrtho.axis = 'z'
+				//this.camOrtho.position.set(0,0,dist)
+				this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: true, a: 'y'}]
+				break;
+				case 3:
+				this.camOrtho.axis = 'z'
+				//this.camOrtho.position.set(0,0,-dist)
+				this.camOrtho.backgroundHandle = [{n: true, a: 'x'}, {n: true, a: 'y'}]
+				break;
+				case 4:
+				this.camOrtho.axis = 'x'
+				//this.camOrtho.position.set(dist,0,0)
+				this.camOrtho.backgroundHandle = [{n: true, a: 'z'}, {n: true, a: 'y'}]
+				break;
+				case 5:
+				this.camOrtho.axis = 'x'
+				//this.camOrtho.position.set(-dist,0,0)
+				this.camOrtho.backgroundHandle = [{n: false, a: 'z'}, {n: true, a: 'y'}]
+				break;
 			}
+			this.loadBackground();
+
+			var layer = getAxisNumber(this.camOrtho.axis)+1;
+			this.camOrtho.layers.set(0);
+			this.camOrtho.layers.enable(layer);
+			for (var i = 1; i <= 3; i++) {
+				if (i != layer) {
+					this.camOrtho.layers.enable(i+3);
+				}
+			}
+
+		} else {
+
+			this.angle = null;
+			this.camOrtho.axis = null
+			this.camOrtho.layers.set(0);
+			this.camOrtho.layers.enable(4);
+			this.camOrtho.layers.enable(5);
+			this.camOrtho.layers.enable(6);
+			this.resize()
+			this.controls.enableRotate = true;
+			this.loadBackground()
 		}
 
 		Transformer.update();
-		this.resize()
-		this.controls.updateSceneScale();
+		this.loadBackground()
 		return this;
 	}
-	resetCamera(init) {
-		var dis = 40;
-		this.controls.target.set(0, 8+scene.position.y, 0);
-		this.camPers.position.set(-dis, dis*0.8, -dis)
-		if (!init) {
-			this.setNormalCamera()
+	loadAnglePreset(preset) {
+		if (!preset) return;
+		this.camera.position.fromArray(preset.position);
+		this.controls.target.fromArray(preset.target);
+		if (preset.projection !== 'unset') {
+			this.setProjectionMode(preset.projection == 'orthographic')
 		}
+		if (this.isOrtho && preset.zoom) {
+			this.camera.zoom = preset.zoom;
+			this.camera.updateProjectionMatrix()
+		}
+		if (!this.isOrtho) {
+			this.camera.setFocalLength(preset.focal_length||45);
+		}
+		this.setLockedAngle(preset.locked_angle)
 		return this;
 	}
+	newAnglePreset() {
+		let scope = this;
+
+		let dialog = new Dialog({
+			id: 'save_angle',
+			title: 'menu.preview.save_angle',
+			width: 540,
+			form: {
+				name: {label: 'generic.name'},
+				projection: {label: 'dialog.save_angle.projection', type: 'select', default: 'unset', options: {
+					unset: 'generic.unset',
+					perspective: 'dialog.save_angle.projection.perspective',
+					orthographic: 'dialog.save_angle.projection.orthographic'
+				}}
+			},
+			onConfirm: function(formResult) {
+
+				if (!formResult.name) return;
+
+				let preset = {
+					name: formResult.name,
+					projection: formResult.projection,
+					position: scope.camera.position.toArray(),
+					target: scope.controls.target.toArray(),
+				}
+				if (this.isOrtho) preset.zoom = this.camOrtho.zoom;
+
+				let presets = localStorage.getItem('camera_presets');
+				try {
+					presets = JSON.parse(presets)||[]
+				} catch (err) {
+					presets = [];
+				}
+				presets.push(preset);
+				localStorage.setItem('camera_presets', JSON.stringify(presets))
+
+				dialog.hide()
+			}
+		})
+		dialog.show()
+		return this;
+	}
+	//Orientation
 	getFacingDirection() {
 		var vec = new THREE.Vector3()
 		this.controls.object.getWorldDirection(vec)
@@ -389,7 +517,7 @@ class Preview {
 			Toolbox.selected.onCanvasClick(0)
 		}
 
-		if (this.isOrtho && this.camOrtho.axis || this.movingBackground) {
+		if (this.angle !== null && this.camOrtho.axis || this.movingBackground) {
 			this.startSelRect(event)
 		} else {
 			return false;
@@ -546,7 +674,7 @@ class Preview {
 				cube.selectLow()
 			}
 		})
-		updateSelection()
+		TickUpdates.selection = true;
 	}
 	stopSelRect(event) {
 		var scope = this;
@@ -578,7 +706,7 @@ class Preview {
 			} else {
 				this.background = canvas_scenes.normal
 			}
-		} else if (this.isOrtho) {
+		} else if (this.angle !== null) {
 			this.background = canvas_scenes['ortho'+this.angle]
 		} else {
 			this.background = canvas_scenes.normal
@@ -600,10 +728,10 @@ class Preview {
 	updateBackground() {
 		if (!this.background) return;
 		var bg = this.background
-		var zoom = (this.isOrtho === true && bg.lock === true) ? this.camOrtho.zoom : 1
+		var zoom = (this.angle !== null && bg.lock === true) ? this.camOrtho.zoom : 1
 		var pos_x = 0;
 		var pos_y = 0;
-		if (this.isOrtho === true && bg.lock !== false) {
+		if (this.angle !== null && bg.lock !== false) {
 			pos_x = this.camOrtho.backgroundHandle[0].n === true ? 1 : -1
 			pos_x *= this.controls.target[this.camOrtho.backgroundHandle[0].a] * zoom * 40
 			pos_y = this.camOrtho.backgroundHandle[1].n === true ? 1 : -1
@@ -748,14 +876,12 @@ class Preview {
 	}
 }
 	Preview.prototype.menu = new Menu([
-		{icon: 'photo_camera', name: 'menu.preview.screenshot', click: function(preview) {
-			preview.screenshot()
-		}},
+		'screenshot_model',
 		{icon: 'icon-player', name: 'settings.display_skin', condition: () => (display_mode && displayReferenceObjects.active.id === 'player'), click: function() {
 			changeDisplaySkin()
 		}},
-		'toggle_checkerboard',
-		{icon: 'wallpaper', name: 'menu.preview.background', children: function(preview) {
+		'preview_checkerboard',
+		{icon: 'wallpaper', name: 'menu.preview.background', children(preview) {
 			var has_background = !!preview.background.image
 			return [
 				{icon: 'folder', name: 'menu.preview.background.load', click: function(preview) {
@@ -785,38 +911,60 @@ class Preview {
 				}},
 				{
 					name: 'menu.preview.background.lock',
-					condition: (has_background && preview.background.lock !== null && preview.isOrtho),
+					condition: (has_background && preview.background.lock !== null && preview.angle !== null),
 					icon: preview.background.lock?'check_box':'check_box_outline_blank', 
 					click: function(preview) {
 					preview.background.lock = !preview.background.lock
 					preview.updateBackground()
 				}},
-				{icon: 'clear', name: 'menu.preview.background.remove', condition: has_background, click: function(preview) {
+				{icon: 'clear', name: 'generic.remove', condition: has_background, click: function(preview) {
 					preview.clearBackground()
 				}}
 			]
 		}},
-		{icon: 'videocam', name: 'menu.preview.perspective', condition: function(preview) {return !preview.movingBackground && !Modes.display}, children: function(preview) {
-			function getBtn(angle, pers) {
-				var condition = (pers && !preview.isOrtho)
-							 || (!pers && angle === preview.angle && preview.isOrtho);
-				return condition ? 'radio_button_checked' : 'radio_button_unchecked'
-			}
-			return [
-				{icon: getBtn(0, true), name: 'menu.preview.perspective.normal', click: function(preview) {preview.setNormalCamera()}},
-				'camera_reset',
-				{icon: getBtn(0), name: 'direction.top',	color: 'y', click: function(preview) {preview.setOrthographicCamera(0)}},
-				{icon: getBtn(1), name: 'direction.bottom',	color: 'y', click: function(preview) {preview.setOrthographicCamera(1)}},
-				{icon: getBtn(2), name: 'direction.south',	color: 'z', click: function(preview) {preview.setOrthographicCamera(2)}},
-				{icon: getBtn(3), name: 'direction.north', 	color: 'z', click: function(preview) {preview.setOrthographicCamera(3)}},
-				{icon: getBtn(4), name: 'direction.east', 	color: 'x', click: function(preview) {preview.setOrthographicCamera(4)}},
-				{icon: getBtn(5), name: 'direction.west', 	color: 'x', click: function(preview) {preview.setOrthographicCamera(5)}}
-			]
+		'_',
+		{icon: 'add_a_photo', name: 'menu.preview.save_angle', condition(preview) {return !preview.movingBackground && !Modes.display}, click(preview) {
+			preview.newAnglePreset()
 		}},
+		{icon: 'videocam', name: 'menu.preview.angle', condition(preview) {return !preview.movingBackground && !Modes.display}, children: function(preview) {
+			var children = [
+			]
+			let presets = localStorage.getItem('camera_presets')
+			presets = (presets && JSON.parse(presets)) || [];
+			let all_presets = [...DefaultCameraPresets, ...presets];
+
+			all_presets.forEach(preset => {
+				let icon = typeof preset.locked_angle !== 'number' ? 'videocam' : (preset.locked_angle == preview.angle ? 'radio_button_checked' : 'radio_button_unchecked'); 
+				children.push({
+					name: preset.name,
+					color: preset.color,
+					id: preset.name,
+					icon,
+					click: preset.default ? () => {
+						preview.loadAnglePreset(preset)
+					} : null,
+					children: !preset.default && [
+						{icon: 'check_circle', name: 'menu.preview.angle.load', click() {
+							preview.loadAnglePreset(preset)
+						}},
+						{icon: 'delete', name: 'generic.delete', click() {
+							presets.remove(preset)
+							localStorage.setItem('camera_presets', JSON.stringify(presets))
+						}}
+					]
+				})
+			})
+
+			return children;
+		}},
+		{icon: (preview) => (preview.isOrtho ? 'check_box' : 'check_box_outline_blank'), name: 'menu.preview.orthographic', click: function(preview) {
+			preview.setProjectionMode(!preview.isOrtho);
+		}},
+		'_',
 		{icon: 'widgets', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !Modes.display && !Animator.open}, click: function() {
 			openQuadView()
 		}},
-		{icon: 'web_asset', name: 'menu.preview.fullview', condition: function(preview) {return quad_previews.enabled && !preview.movingBackground && !Modes.display}, click: function(preview) {
+		{icon: 'web_asset', name: 'menu.preview.maximize', condition: function(preview) {return quad_previews.enabled && !preview.movingBackground && !Modes.display}, click: function(preview) {
 			preview.fullscreen()
 		}},
 		{icon: 'cancel', color: 'x', name: 'menu.preview.stop_drag', condition: function(preview) {return preview.movingBackground;}, click: function(preview) {
@@ -853,14 +1001,18 @@ const Screencam = {
 	recording_timelapse: false,
 	fullScreen(options, cb) {
 		setTimeout(function() {
-			currentwindow.capturePage(function(screenshot) {
+			currentwindow.capturePage().then(function(screenshot) {
 				var dataUrl = screenshot.toDataURL()
+
+				if (!(options && options.width && options.height)) {
+					Screencam.returnScreenshot(dataUrl, cb)
+					return;
+				}
+
 				dataUrl = dataUrl.replace('data:image/png;base64,','')
 				Jimp.read(Buffer.from(dataUrl, 'base64')).then(function(image) { 
 
-					if (options && options.width && options.height) {
-						image.contain(options.width, options.height)
-					}
+					image.contain(options.width, options.height)
 
 					image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
 						Screencam.returnScreenshot(dataUrl, cb)
@@ -915,47 +1067,35 @@ const Screencam = {
 		quad_previews.current.screenshot(options, cb)
 	},
 	createGif(options, cb) {
-		if (typeof options !== 'object') {
-			options = {}
-		}
-		/*
-		var images = [];
-		var preview = quad_previews.current;
-		var interval = setInterval(function() {
+		if (typeof options !== 'object') options = {}
+		if (!options.length_mode) options.length_mode = 'seconds';
+		if (!options.length) options.length = 1;
 
-			var shot = preview.canvas.toDataURL()
-			images.push(shot);
-
-			if (images.length >= options.length/1000*options.fps) {
-				clearInterval(interval);
-				gifshot.createGIF({
-					images,
-					frameDuration: 10/options.fps,
-					progressCallback: cl,
-					text: 'BLOCKBENCH'
-				}, obj => {
-					Screencam.returnScreenshot(obj.image, cb);
-				})
-			}
-		}, 1000/options.fps)
-		//Does not support transparency
-		*/
-		
-		if (!options.length) {
-			options.length = 1000;
-		}
 		var preview = quad_previews.current;
+		var animation = Animator.selected;
 		var interval = options.fps ? (1000/options.fps) : 100;
-		var gif = new GIF({
+		var frames = 0;
+		const gif = new GIF({
 			repeat: options.repeat,
 			quality: options.quality,
-			transparent: 0x000000,
+			background: {r: 30, g: 0, b: 255},
+			transparent: 0x1e01ff,
 		});
-		var frame_count = (options.length/interval);
 
 		if (options.turnspeed) {
 			preview.controls.autoRotate = true;
 			preview.controls.autoRotateSpeed = options.turnspeed;
+			preview.controls.autoRotateProgress = 0;
+		} else if (options.length_mode == 'turntable') {
+			options.length_mode = 'seconds'
+		}
+
+		if (options.play && animation) {
+			Timeline.time = 0;
+			Timeline.start()
+			if (!animation.length) options.length_mode = 'seconds';
+		} else if (options.length_mode == 'animation') {
+			options.length_mode = 'seconds'
 		}
 
 		if (!options.silent) {
@@ -963,9 +1103,21 @@ const Screencam = {
 			gif.on('progress', Blockbench.setProgress);
 		}
 
-		var frames = 0;
+		function getProgress() {
+			switch (options.length_mode) {
+				case 'seconds': return interval*frames/(options.length*1000); break;
+				case 'frames': return frames/options.length; break;
+				case 'turntable': return Math.abs(preview.controls.autoRotateProgress) / (2*Math.PI); break;
+				case 'animation': return Timeline.time / (animation.length-(interval/1000)); break;
+			}
+		}
+
 		var loop = setInterval(() => {
 			frames++;
+			if (getProgress() >= 1) {
+				endRecording()
+				return;
+			}
 			Canvas.withoutGizmos(function() {
 				var img = new Image();
 				preview.render();
@@ -974,10 +1126,12 @@ const Screencam = {
 					gif.addFrame(img, {delay: interval});
 				}
 			})
-			Blockbench.setProgress(interval*frames/options.length);
+
+			Blockbench.setProgress(getProgress());
+
 		}, interval)
 
-		var endTimer = setTimeout(() => {
+		function endRecording() {
 			gif.render();
 			clearInterval(loop)
 			if (!options.silent) {
@@ -989,7 +1143,7 @@ const Screencam = {
 			if (options.turnspeed) {
 				preview.controls.autoRotate = false;
 			}
-		}, options.length)
+		}
 
 		gif.on('finished', blob => {
 			var reader = new FileReader();
@@ -1202,10 +1356,10 @@ function initCanvas() {
 	setShading()
 
 	quad_previews = {
-		one: new Preview({id: 'one'}).setOrthographicCamera(0),
+		one: new Preview({id: 'one'}).loadAnglePreset(DefaultCameraPresets[1]),
 		two: main_preview,
-		three: new Preview({id: 'three'}).setOrthographicCamera(2),
-		four: new Preview({id: 'four'}).setOrthographicCamera(4),
+		three: new Preview({id: 'three'}).loadAnglePreset(DefaultCameraPresets[3]),
+		four: new Preview({id: 'four'}).loadAnglePreset(DefaultCameraPresets[5]),
 		current: main_preview
 	}
 
@@ -1260,6 +1414,7 @@ function initCanvas() {
 
 	rot_origin.rotation.reorder('ZYX')
 	rot_origin.base_scale = new THREE.Vector3(1, 1, 1);
+	rot_origin.no_export = true;
 
 	setupGrid = true;
 	
@@ -1441,10 +1596,10 @@ function buildGrid() {
 	});
 
 	scene.add(Canvas.side_grids.z)
-	Canvas.side_grids.z.name = 'side_grid_y'
+	Canvas.side_grids.z.name = 'side_grid_z'
 	Canvas.side_grids.z.visible = !Modes.display;
 	Canvas.side_grids.z.rotation.z = Math.PI/2;
-	Canvas.side_grids.z.rotation.y = 1.6
+	Canvas.side_grids.z.rotation.y = Math.PI/2
 	Canvas.side_grids.z.position.y = Format.centered_grid ? 8 : 0;
 	Canvas.side_grids.z.children.forEach(el => {
 		el.layers.set(3)
@@ -1466,17 +1621,32 @@ BARS.defineActions(function() {
 			Blockbench.showQuickMessage('message.wireframe.' + (Prop.wireframe ? 'enabled' : 'disabled'))
 		}
 	})
-	new Action('toggle_checkerboard', {
-		icon: 'fa-chess-board',
+	new Action('preview_checkerboard', {
+		name: tl('settings.preview_checkerboard'),
+		description: tl('settings.preview_checkerboard.desc'),
 		category: 'view',
+		linked_setting: 'preview_checkerboard',
 		keybind: new Keybind({key: 84}),
 		click: function () {
-			if (Prop.active_panel == 'uv') {
-				var val = $('#uv_viewport').toggleClass('checkerboard').hasClass('checkerboard');
-			} else {
-				var val = $('#center').toggleClass('checkerboard').hasClass('checkerboard');
-			}
-			Blockbench.showQuickMessage('message.checkerboard.' + (val ? 'enabled' : 'disabled'))
+			this.toggleLinkedSetting()
+		}
+	})
+	new Action('uv_checkerboard', {
+		name: tl('settings.uv_checkerboard'),
+		description: tl('settings.uv_checkerboard.desc'),
+		category: 'view',
+		linked_setting: 'uv_checkerboard',
+		click: function () {
+			this.toggleLinkedSetting()
+		}
+	})
+	new Action('toggle_shading', {
+		name: tl('settings.shading'),
+		description: tl('settings.shading.desc'),
+		category: 'view',
+		linked_setting: 'shading',
+		click: function () {
+			this.toggleLinkedSetting()
 		}
 	})
 
@@ -1495,6 +1665,12 @@ BARS.defineActions(function() {
 				title: tl('dialog.create_gif.title'),
 				draggable: true,
 				form: {
+					length_mode: {label: 'dialog.create_gif.length_mode', type: 'select', default: 'seconds', options: {
+						seconds: 'dialog.create_gif.length_mode.seconds',
+						frames: 'dialog.create_gif.length_mode.frames',
+						animation: 'dialog.create_gif.length_mode.animation',
+						turntable: 'dialog.create_gif.length_mode.turntable',
+					}},
 					length: {label: 'dialog.create_gif.length', type: 'number', value: 10, step: 0.25},
 					fps: 	{label: 'dialog.create_gif.fps', type: 'number', value: 10},
 					quality:{label: 'dialog.create_gif.compression', type: 'number', value: 20, min: 1, max: 80},
@@ -1502,13 +1678,12 @@ BARS.defineActions(function() {
 					play: 	{label: 'dialog.create_gif.play', type: 'checkbox', condition: Animator.open},
 				},
 				onConfirm: function(formData) {
-					if (formData.play) {
-						Timeline.start()
-					}
 					Screencam.createGif({
-						length: limitNumber(formData.length, 0.1, 240)*1000,
+						length_mode: formData.length_mode,
+						length: limitNumber(formData.length, 0.1, 24000),
 						fps: limitNumber(formData.fps, 0.5, 30),
 						quality: limitNumber(formData.quality, 0, 30),
+						play: formData.play,
 						turnspeed: formData.turn,
 					}, Screencam.returnScreenshot)
 					this.hide()
@@ -1560,98 +1735,98 @@ BARS.defineActions(function() {
 			main_preview.toggleFullscreen()
 		}
 	})
-	new Action('camera_reset', {
-		name: 'menu.preview.perspective.reset',
-		description: 'menu.preview.perspective.reset',
-		icon: 'videocam',
+
+	new Action('toggle_camera_projection', {
+		icon: 'switch_video',
 		category: 'view',
-		keybind: new Keybind({key: 96}),
-		click: function () {
-			quad_previews.current.resetCamera()
-		}
-	})
-	new Action('camera_normal', {
-		name: 'menu.preview.perspective.normal',
-		description: 'menu.preview.perspective.normal',
-		icon: 'videocam',
-		category: 'view',
-		condition: _ => !Modes.display,
+		condition: _ => (!preview.movingBackground || !Modes.display),
 		keybind: new Keybind({key: 101}),
 		click: function () {
-			quad_previews.current.setNormalCamera()
+			quad_previews.current.setProjectionMode(!quad_previews.current.isOrtho);
 		}
 	})
-
+	new Action('camera_initial', {
+		name: tl('action.load_camera_angle', tl('menu.preview.angle.initial')),
+		description: tl('action.load_camera_angle.desc', tl('menu.preview.angle.initial')),
+		icon: 'videocam',
+		color: 'y',
+		category: 'view',
+		condition: _ => !Modes.display,
+		keybind: new Keybind({key: 97}),
+		click: function () {
+			quad_previews.current.loadAnglePreset(DefaultCameraPresets[0])
+		}
+	})
 	new Action('camera_top', {
-		name: 'direction.top',
-		description: 'direction.top',
+		name: tl('action.load_camera_angle', tl('direction.top')),
+		description: tl('action.load_camera_angle.desc', tl('direction.top')),
 		icon: 'videocam',
 		color: 'y',
 		category: 'view',
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 104}),
 		click: function () {
-			quad_previews.current.setOrthographicCamera(0)
+			quad_previews.current.loadAnglePreset(DefaultCameraPresets[1])
 		}
 	})
 	new Action('camera_bottom', {
-		name: 'direction.bottom',
-		description: 'direction.bottom',
+		name: tl('action.load_camera_angle', tl('direction.bottom')),
+		description: tl('action.load_camera_angle.desc', tl('direction.bottom')),
 		icon: 'videocam',
 		color: 'y',
 		category: 'view',
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 98}),
 		click: function () {
-			quad_previews.current.setOrthographicCamera(1)
+			quad_previews.current.loadAnglePreset(DefaultCameraPresets[2])
 		}
 	})
 	new Action('camera_south', {
-		name: 'direction.south',
-		description: 'direction.south',
+		name: tl('action.load_camera_angle', tl('direction.south')),
+		description: tl('action.load_camera_angle.desc', tl('direction.south')),
 		icon: 'videocam',
 		color: 'z',
 		category: 'view',
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 100}),
 		click: function () {
-			quad_previews.current.setOrthographicCamera(2)
+			quad_previews.current.loadAnglePreset(DefaultCameraPresets[3])
 		}
 	})
 	new Action('camera_north', {
-		name: 'direction.north',
-		description: 'direction.north',
+		name: tl('action.load_camera_angle', tl('direction.north')),
+		description: tl('action.load_camera_angle.desc', tl('direction.north')),
 		icon: 'videocam',
 		color: 'z',
 		category: 'view',
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 102}),
 		click: function () {
-			quad_previews.current.setOrthographicCamera(3)
+			quad_previews.current.loadAnglePreset(DefaultCameraPresets[4])
 		}
 	})
 	new Action('camera_east', {
-		name: 'direction.east',
-		description: 'direction.east',
+		name: tl('action.load_camera_angle', tl('direction.east')),
+		description: tl('action.load_camera_angle.desc', tl('direction.east')),
 		icon: 'videocam',
 		color: 'x',
 		category: 'view',
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 103}),
 		click: function () {
-			quad_previews.current.setOrthographicCamera(4)
+			quad_previews.current.loadAnglePreset(DefaultCameraPresets[5])
 		}
 	})
 	new Action('camera_west', {
-		name: 'direction.west',
-		description: 'direction.west',
+		name: tl('action.load_camera_angle', tl('direction.west')),
+		description: tl('action.load_camera_angle.desc', tl('direction.west')),
 		icon: 'videocam',
 		color: 'x',
 		category: 'view',
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 105}),
 		click: function () {
-			quad_previews.current.setOrthographicCamera(5)
+			quad_previews.current.loadAnglePreset(DefaultCameraPresets[6])
 		}
 	})
 })

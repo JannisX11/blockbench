@@ -113,7 +113,9 @@ THREE.OrbitControls = function ( object, preview ) {
 
 			if ( scope.autoRotate && state === STATE.NONE ) {
 
-				rotateLeft( getAutoRotationAngle() );
+				let auto_rot_angle = getAutoRotationAngle()
+				scope.autoRotateProgress += auto_rot_angle;
+				rotateLeft( auto_rot_angle );
 
 			}
 
@@ -454,8 +456,6 @@ THREE.OrbitControls = function ( object, preview ) {
 	}
 
 	function handleKeyDown( event ) {
-
-		//console.log( 'handleKeyDown' );
 
 		switch ( event.keyCode ) {
 

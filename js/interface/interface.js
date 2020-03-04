@@ -306,6 +306,9 @@ function setupInterface() {
 	}
 	$('.edit_session_active').hide()
 
+	$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
+	$('#UVEditor_main_uv').toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
+
 	$('.sidebar').droppable({
 		accept: 'h3',
 		scope: 'panel',

@@ -5,6 +5,7 @@ class UVEditor {
 		this.size = 320;
 		this.zoom = 1;
 		this.grid = 1;
+		this.max_zoom = 16;
 		this.auto_grid = true;
 		this.texture = false;
 		this.headline = headline
@@ -24,7 +25,7 @@ class UVEditor {
 		if (this.jquery.main) {
 			this.jquery.main.detach()
 		}
-		this.jquery.main = $('<div class="UVEditor" id="UVEditor_'+scope.id+'"></div>')
+		this.jquery.main = $('<div class="UVEditor" id="UVEditor_' + scope.id + '"></div>')
 		if (this.headline) {
 			this.jquery.main.append('<div class="uv_headline"><div class="uv_title">'+capitalizeFirstLetter(scope.id)+'</div><div class="tool"><i class="material-icons">fullscreen</i><div class="tooltip">Fullscreen</div></div></div>')
 			this.jquery.main.find('div.uv_headline > .tool').click(function() {
@@ -35,7 +36,7 @@ class UVEditor {
 				uv_dialog.select(scope.id, event)
 			})
 		}
-		this.jquery.viewport = $('<div id="uv_viewport"></div>')
+		this.jquery.viewport = $('<div id="uv_viewport" class="checkerboard_target"></div>')
 		this.jquery.transform_info = $('<div class="uv_transform_info"></div>')
 		this.jquery.main.append(this.jquery.transform_info)
 		this.jquery.main.append(this.jquery.viewport)
@@ -79,7 +80,7 @@ class UVEditor {
 				get: function() {
 					if (Project.box_uv && Cube.selected[0]) {
 						return trimFloatNumber(Cube.selected[0].uv_offset[0])
-					} else {
+					} else if (Cube.selected[0]) {
 						var face_uv = Cube.selected[0].faces[scope.face].uv
 						if (face_uv) {
 							return trimFloatNumber(face_uv[0])
@@ -102,7 +103,7 @@ class UVEditor {
 				get: function() {
 					if (Project.box_uv && Cube.selected[0]) {
 						return trimFloatNumber(Cube.selected[0].uv_offset[1])
-					} else {
+					} else if (Cube.selected[0]) {
 						var face_uv = Cube.selected[0].faces[scope.face].uv
 						if (face_uv) {
 							return trimFloatNumber(face_uv[1])
@@ -206,8 +207,8 @@ class UVEditor {
 				p.left = limitNumber(p.left, 0, scope.inner_width-scope.jquery.size.width()+1);
 				p.top = limitNumber(p.top, 0, scope.inner_height-scope.jquery.size.height()+1);
 				
-				p.left = p.left - p.left % (scope.inner_width / main_uv.getResolution(0) / scope.grid);
-				p.top  = p.top  - p.top  % (scope.inner_height / main_uv.getResolution(1) / scope.grid);
+				p.left = p.left - p.left % (scope.inner_width / scope.getResolution(0) / scope.grid);
+				p.top  = p.top  - p.top  % (scope.inner_height / scope.getResolution(1) / scope.grid);
 
 				scope.save();
 				scope.displaySliders();
@@ -262,14 +263,14 @@ class UVEditor {
 
 		this.jquery.viewport.on('mousedown touchstart', function(event) {
 			if (Toolbox.selected.paintTool && (event.which === 1 || (event.touches && event.touches.length == 1))) {
-				scope.startBrush(event)
+				scope.startPaintTool(event)
 			}
 		})
 		this.jquery.viewport.on('mousewheel', function(e) {
 			if (e.ctrlOrCmd) {
 				var n = (event.deltaY < 0) ? 0.1 : -0.1;
 				n *= scope.zoom
-				var number = limitNumber(scope.zoom + n, 1.0, 4.0)
+				var number = limitNumber(scope.zoom + n, 1, scope.max_zoom)
 				if (Math.abs(number - scope.zoom) > 0.001) {
 					this.scrollLeft += (scope.inner_width * n / 2) * (event.offsetX / scope.jquery.frame.width());
 					this.scrollTop  += (scope.inner_width * n / 2) * (event.offsetY / scope.jquery.frame.height());
@@ -305,15 +306,16 @@ class UVEditor {
 		//Paint brush outline
 		var brush_outline = $('<div id="uv_brush_outline"></div>');
 		scope.jquery.frame.on('mouseenter mousemove', e => {
-			if (Modes.paint && (['brush_tool', 'eraser'].includes(Toolbox.selected.id))) {
+			if (Modes.paint && Toolbox.selected.brushTool) {
 				scope.jquery.frame.append(brush_outline);
-				var pixel_size = main_uv.getPixelSize();
+				var pixel_size = scope.inner_width / (scope.texture ? scope.texture.width : Project.texture_width);
 				//pos
-				let left = (0.5 + Math.floor(e.offsetX / pixel_size)) * pixel_size;
-				let top =  (0.5 + Math.floor(e.offsetY / pixel_size)) * pixel_size;
+				let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0.5 : 0;
+				let left = (0.5 - offset + Math.floor(e.offsetX / pixel_size + offset)) * pixel_size;
+				let top =  (0.5 - offset + Math.floor(e.offsetY / pixel_size + offset)) * pixel_size;
 				brush_outline.css('left', left+'px').css('top', top+'px');
 				//size
-				var radius = (BarItems.slider_brush_size.get()-0.5) * pixel_size;
+				var radius = (BarItems.slider_brush_size.get()/2) * pixel_size;
 				brush_outline.css('padding', radius+'px').css('margin', (-radius)+'px');
 			}
 		})
@@ -340,12 +342,21 @@ class UVEditor {
 		convertTouchEvent(event);
 		var multiplier = (Project.box_uv && tex) ? tex.width/Project.texture_width : 1
 		var pixel_size = scope.inner_width / tex.width
-		return {
-			x: Math.floor(event.offsetX/scope.getPixelSize()*multiplier),
-			y: Math.floor(event.offsetY/scope.getPixelSize()*multiplier)
+
+		if (Toolbox.selected.id === 'copy_paste_tool') {
+			return {
+				x: Math.round(event.offsetX/pixel_size*1),
+				y: Math.round(event.offsetY/pixel_size*1)
+			}
+		} else {
+			let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0.5 : 0;
+			return {
+				x: Math.floor(event.offsetX/pixel_size*1 + offset),
+				y: Math.floor(event.offsetY/pixel_size*1 + offset)
+			}
 		}
 	}
-	startBrush(event) {
+	startPaintTool(event) {
 		var scope = this;
 		Painter.active_uv_editor = scope;
 
@@ -353,24 +364,26 @@ class UVEditor {
 		if (texture) {
 			var coords = scope.getBrushCoordinates(event, texture)
 
-			Painter.startBrush(texture, coords.x, coords.y, undefined, event)
+			if (Toolbox.selected.id !== 'copy_paste_tool') {
+				Painter.startPaintTool(texture, coords.x, coords.y, undefined, event)
+			} else {
+				this.startSelection(texture, coords.x, coords.y, event)
+			}
 		}
 		if (Toolbox.selected.id !== 'color_picker' && texture) {
-			addEventListeners(scope.jquery.frame.get(0), 'mousemove touchmove', scope.moveBrush, false );
+			addEventListeners(scope.jquery.frame.get(0), 'mousemove touchmove', scope.movePaintTool, false );
 			addEventListeners(document, 'mouseup touchend', scope.stopBrush, false );
 		}
 	}
-	moveBrush(event) {
+	movePaintTool(event) {
 		var scope = Painter.active_uv_editor;
 		var texture = scope.getTexture()
 		if (!texture) {
 			Blockbench.showQuickMessage('message.untextured')
 		} else {
-			var x, y, new_face;
-			x = scope.getBrushCoordinates(event, texture).x
-			y = scope.getBrushCoordinates(event, texture).y
+			var new_face;
+			var {x, y} = scope.getBrushCoordinates(event, texture);
 			if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
-
 
 			if (x === Painter.current.x && y === Painter.current.y) {
 				return
@@ -380,18 +393,209 @@ class UVEditor {
 				Painter.current.y = y
 				Painter.current.face = scope.face
 				new_face = true;
-				if (texture !== Painter.current.texture) {
+				if (texture !== Painter.current.texture && Undo.current_save) {
 					Undo.current_save.addTexture(texture)
 				}
 			}
-			Painter.drawBrushLine(texture, x, y, event, new_face)
+			if (Toolbox.selected.id !== 'copy_paste_tool') {
+				Painter.movePaintTool(texture, x, y, event, new_face)
+			} else {
+				scope.dragSelection(texture, x, y, event)
+			}
 		}
 	}
 	stopBrush(event) {
 		var scope = Painter.active_uv_editor;
-		removeEventListeners( scope.jquery.frame.get(0), 'mousemove touchmove', scope.moveBrush, false );
+		removeEventListeners( scope.jquery.frame.get(0), 'mousemove touchmove', scope.movePaintTool, false );
 		removeEventListeners( document, 'mouseup touchend', scope.stopBrush, false );
-		Painter.stopBrush()
+		if (Toolbox.selected.id !== 'copy_paste_tool') {
+			Painter.stopPaintTool()
+		} else {
+			scope.stopSelection()
+		}
+	}
+	// Copy Paste Tool
+	startSelection(texture, x, y, event) {
+		if (Painter.selection.overlay && event.target && event.target.id === 'uv_frame') {
+			this.removePastingOverlay()
+		}
+		delete Painter.selection.calcrect;
+		if (!Painter.selection.overlay) {
+			this.jquery.frame.find('#texture_selection_rect').detach();
+			let rect = $(`<div id="texture_selection_rect"></div>`);
+			this.jquery.frame.append(rect)
+			Painter.selection.rect = rect;
+			Painter.selection.start_x = x;
+			Painter.selection.start_y = y;
+		} else {
+			Painter.selection.start_x = Painter.selection.x;
+			Painter.selection.start_y = Painter.selection.y;
+			Painter.selection.start_event = event;
+		}
+	}
+	dragSelection(texture, x, y, event) {
+		let m = this.inner_width / this.texture.width;
+
+		if (!Painter.selection.overlay) {
+			let calcrect = getRectangle(Painter.selection.start_x, Painter.selection.start_y, x, y)
+			Painter.selection.calcrect = calcrect;
+			Painter.selection.x = calcrect.ax;
+			Painter.selection.y = calcrect.ay;
+			Painter.selection.rect
+				.css('left', 	calcrect.ax*m + 'px')
+				.css('top', 	calcrect.ay*m + 'px')
+				.css('width', 	calcrect.x *m + 'px')
+				.css('height', 	calcrect.y *m + 'px')
+		} else if (this.texture && Painter.selection.canvas) {
+			Painter.selection.x = Painter.selection.start_x + Math.round((event.clientX - Painter.selection.start_event.clientX) / m);
+			Painter.selection.y = Painter.selection.start_y + Math.round((event.clientY - Painter.selection.start_event.clientY) / m);
+			Painter.selection.x = Math.clamp(Painter.selection.x, 0, this.texture.width-Painter.selection.canvas.width)
+			Painter.selection.y = Math.clamp(Painter.selection.y, 0, this.texture.height-Painter.selection.canvas.height)
+			this.updatePastingOverlay()
+		}
+	}
+	stopSelection() {
+		if (Painter.selection.rect) {
+			Painter.selection.rect.detach()
+		}
+		if (Painter.selection.overlay || !Painter.selection.calcrect) return;
+		if (Painter.selection.calcrect.x == 0 || Painter.selection.calcrect.y == 0) return;
+
+		let calcrect = Painter.selection.calcrect;
+		var canvas = document.createElement('canvas')
+		var ctx = canvas.getContext('2d');
+		canvas.width = calcrect.x;
+		canvas.height = calcrect.y;
+		ctx.drawImage(this.texture.img, -calcrect.ax, -calcrect.ay)
+
+		if (isApp) {
+			let image = nativeImage.createFromDataURL(canvas.toDataURL())
+			clipboard.writeImage(image)
+		}
+		Painter.selection.canvas = canvas;
+
+		this.addPastingOverlay();
+	}
+	addPastingOverlay() {
+		if (Painter.selection.overlay) return;
+		let scope = this;
+		let overlay = $(`<div id="texture_pasting_overlay">
+			<div class="control">
+				<div class="button_place" title="${tl('uv_editor.copy_paste_tool.place')}"><i class="material-icons">check_circle</i></div>
+				<div class="button_cut" title="${tl('uv_editor.copy_paste_tool.cut')}"><i class="fas fa-cut"></i></div>
+				<div class="button_mirror_x" title="${tl('uv_editor.copy_paste_tool.mirror_x')}"><i class="icon-mirror_x icon"></i></div>
+				<div class="button_mirror_y" title="${tl('uv_editor.copy_paste_tool.mirror_y')}"><i class="icon-mirror_y icon"></i></div>
+				<div class="button_rotate" title="${tl('uv_editor.copy_paste_tool.rotate')}"><i class="material-icons">rotate_right</i></div>
+			</div>
+		</div>`)
+
+		open_interface = {
+			confirm() {
+				scope.removePastingOverlay()
+				if (scope.texture) {
+					scope.texture.edit((canvas) => {
+						var ctx = canvas.getContext('2d');
+						ctx.drawImage(Painter.selection.canvas, Painter.selection.x, Painter.selection.y)
+					})
+				}
+			},
+			hide() {
+				scope.removePastingOverlay()
+			}
+		}
+		overlay.find('.button_place').click(open_interface.confirm);
+		//overlay.find('.button_cancel').click(open_interface.hide);
+
+		function getCanvasCopy() {
+			var temp_canvas = document.createElement('canvas')
+			var temp_ctx = temp_canvas.getContext('2d');
+			temp_canvas.width = Painter.selection.canvas.width;
+			temp_canvas.height = Painter.selection.canvas.height;
+			temp_ctx.drawImage(Painter.selection.canvas, 0, 0)
+			return temp_canvas
+		}
+		overlay.find('.button_cut').click(e => {
+
+				scope.removePastingOverlay()
+				scope.texture.edit((canvas) => {
+					var ctx = canvas.getContext('2d');
+					ctx.clearRect(Painter.selection.x, Painter.selection.y, Painter.selection.canvas.width, Painter.selection.canvas.height);
+				})
+
+		})
+		overlay.find('.button_mirror_x').click(e => {
+			let temp_canvas = getCanvasCopy()
+
+			let ctx = Painter.selection.canvas.getContext('2d');
+			ctx.save();
+			ctx.translate(ctx.canvas.width, 0);
+			ctx.scale(-1, 1);
+
+			ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+			ctx.drawImage(temp_canvas, ctx.canvas.width, 0, -ctx.canvas.width, ctx.canvas.height);
+			ctx.restore();
+		})
+		overlay.find('.button_mirror_y').click(e => {
+			let temp_canvas = getCanvasCopy()
+
+			let ctx = Painter.selection.canvas.getContext('2d');
+			ctx.save();
+			ctx.translate(0, ctx.canvas.height);
+			ctx.scale(1, -1);
+
+			ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+			ctx.drawImage(temp_canvas, 0, ctx.canvas.height, ctx.canvas.width, -ctx.canvas.height);
+			ctx.restore();
+		})
+		overlay.find('.button_rotate').click(e => {
+			let temp_canvas = getCanvasCopy()
+
+			let ctx = Painter.selection.canvas.getContext('2d');
+			[ctx.canvas.width, ctx.canvas.height] = [ctx.canvas.height, ctx.canvas.width]
+			ctx.save();
+			ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+			ctx.translate(ctx.canvas.width/2,ctx.canvas.height/2);
+			ctx.rotate(Math.PI/2);
+
+			ctx.drawImage(temp_canvas,-temp_canvas.width/2,-temp_canvas.height/2);
+
+			//ctx.rotate(-Math.PI/2);
+
+			ctx.restore();
+			scope.updateSize()
+		})
+		overlay.append(Painter.selection.canvas)
+		Painter.selection.overlay = overlay;
+		this.jquery.frame.append(overlay)
+		Painter.selection.x = Math.clamp(Painter.selection.x, 0, this.texture.width-Painter.selection.canvas.width)
+		Painter.selection.y = Math.clamp(Painter.selection.y, 0, this.texture.height-Painter.selection.canvas.height)
+		this.updateSize()
+
+
+		function hideOverlay(event) {
+			if (!Painter.selection.overlay) {
+				removeEventListeners(document, 'mousedown touchstart', hideOverlay)
+			} else if (Painter.selection.overlay.has(event.target).length == 0) {
+				scope.removePastingOverlay()
+			}
+		}
+		addEventListeners(document, 'mousedown touchstart', hideOverlay)
+	}
+	removePastingOverlay() {
+		Painter.selection.overlay.detach();
+		delete Painter.selection.overlay;
+		open_interface = false;
+	}
+	updatePastingOverlay() {
+		let m = this.inner_width/this.texture.width
+		$(Painter.selection.canvas)
+			.css('width', Painter.selection.canvas.width * m)
+			.css('height', Painter.selection.canvas.height * m)
+		Painter.selection.overlay
+			.css('left', Painter.selection.x * m)
+			.css('top', Painter.selection.y * m);
+		return this;
 	}
 	//Get
 	get inner_width() {
@@ -442,7 +646,7 @@ class UVEditor {
 		for (var id in this.sliders) {
 			this.sliders[id].setWidth(size/(Project.box_uv?2:4)-1)
 		}
-		if (!cancel_load) {
+		if (!cancel_load && old_size !== size) {
 			this.loadData();
 		} else {
 			this.updateSize();
@@ -492,6 +696,9 @@ class UVEditor {
 		} else {
 			this.img.style.objectPosition = `0 0`;
 		}
+		if (Painter.selection.overlay && this.texture) {
+			this.updatePastingOverlay()
+		}
 
 		if (this.zoom > 1) {
 			this.jquery.viewport.css('overflow', 'scroll scroll')
@@ -508,9 +715,6 @@ class UVEditor {
 			this.loadData()
 		}
 		return this;
-	}
-	setFrameColor(black) {
-		this.jquery.size.toggleClass('dark_frame', black === true)
 	}
 	setToMainSlot() {
 		var scope = this;
@@ -546,8 +750,8 @@ class UVEditor {
 		}
 		var matches = [];
 		var face_match;
-		var u = event.offsetX / main_uv.inner_width * this.getResolution(0);
-		var v = event.offsetY / main_uv.inner_height * this.getResolution(1);
+		var u = event.offsetX / this.inner_width * this.getResolution(0);
+		var v = event.offsetY / this.inner_height * this.getResolution(1);
 		Cube.all.forEach(cube => {
 			for (var face in cube.faces) {
 				var uv = cube.faces[face].uv
@@ -564,8 +768,6 @@ class UVEditor {
 			if (!Project.box_uv) {
 				main_uv.setFace(face_match);
 			}
-			//if (!event.ctrlOrCmd && !event.shiftKey) {
-			//}
 			selected.empty();
 			matches.forEach(s => {
 				selected.safePush(s)
@@ -671,12 +873,10 @@ class UVEditor {
 			main_uv.img.src = '';
 			this.img.style.display = 'none';
 			this.texture = false;
-			this.setFrameColor()
 		} else {
 			this.img.src = tex.source;
 			this.img.style.display = 'block';
 			this.texture = tex;
-			this.setFrameColor(tex.dark_box);
 			if (!Project.box_uv && this.auto_grid) {
 				this.grid = tex.width / Project.texture_width;
 			}
@@ -870,7 +1070,8 @@ class UVEditor {
 		if (!Cube.selected.length) return;
 		var face = Cube.selected[0].faces[this.face]
 		BarItems.cullface.set(face.cullface||'off')
-		BarItems.face_tint.setIcon(face.tint ? 'check_box' : 'check_box_outline_blank')
+		BarItems.face_tint.setIcon(face.tint !== -1 ? 'check_box' : 'check_box_outline_blank')
+		BarItems.slider_face_tint.update()
 	}
 	updateDragHandle() {
 		var pos = this.jquery.size.position()
@@ -1156,9 +1357,7 @@ class UVEditor {
 		var val = BarItems.cullface.get()
 		if (val === 'off') val = false
 		this.forCubes(obj => {
-			if (val) {
-				obj.faces[scope.face].cullface = val || '';
-			}
+			obj.faces[scope.face].cullface = val || '';
 		})
 		if (val) {
 			this.message('uv_editor.cullface_on')
@@ -1169,17 +1368,25 @@ class UVEditor {
 	}
 	switchTint(event) {
 		var scope = this;
-		var val = !Cube.selected[0].faces[scope.face].tint
+		var val = Cube.selected[0].faces[scope.face].tint === -1 ? 0 : -1;
 
-		if (event === true || event === false) val = event
+		if (event === 0 || event === false) val = event
 		this.forCubes(obj => {
 			obj.faces[scope.face].tint = val
 		})
-		if (val) {
+		if (val !== -1) {
 			this.message('uv_editor.tint_on')
 		} else {
 			this.message('uv_editor.tint_off')
 		}
+		this.displayTools()
+	}
+	setTint(event, val) {
+		var scope = this;
+
+		this.forCubes(obj => {
+			obj.faces[scope.face].tint = val
+		})
 		this.displayTools()
 	}
 	rotate() {
@@ -1335,7 +1542,7 @@ class UVEditor {
 			'zoom_out',
 			'zoom_reset'
 		]},
-		'toggle_checkerboard',
+		'uv_checkerboard',
 		'_',
 		'copy',
 		'paste',
@@ -1478,6 +1685,7 @@ class UVEditor {
 		}}
 	])
 
+
 function switchBoxUV(state) {
 	BARS.updateConditions()
 	if (state) {
@@ -1572,19 +1780,19 @@ const uv_dialog = {
 		uv_dialog.selection = []
 		uv_dialog.updateSelection()
 	},
-	forSelection: function(cb, event) {
+	forSelection: function(cb, event, ...args) {
 		if (open_dialog === false) {
-			main_uv[cb](event)
+			main_uv[cb](event, ...args)
 		} else if (uv_dialog.single) {
-			uv_dialog.editors.single[cb]()
+			uv_dialog.editors.single[cb](...args)
 		} else {
 			if (uv_dialog.selection.length > 0) {
 				uv_dialog.selection.forEach(function(s) {
-					uv_dialog.editors[s][cb]()
+					uv_dialog.editors[s][cb](...args)
 				})
 			} else {
 				uv_dialog.allFaces.forEach(function(s) {
-					uv_dialog.editors[s][cb]()
+					uv_dialog.editors[s][cb](...args)
 				})
 			}
 		}
@@ -1963,6 +2171,29 @@ BARS.defineActions(function() {
 			Undo.finishEdit('tint')
 		}
 	})
+	new NumSlider('slider_face_tint', {
+		category: 'uv',
+		condition: () => !Project.box_uv && Cube.selected.length,
+		getInterval(event) {
+			return 1;
+		},
+		get: function() {
+			return Cube.selected[0] && Cube.selected[0].faces[main_uv.face].tint
+		},
+		change: function(modify) {
+			let number = Math.clamp(Math.round(modify(this.get())), -1)
+
+			uv_dialog.forSelection('setTint', event, number)
+		},
+		onBefore: function() {
+			Undo.initEdit({elements: Cube.selected, uv_only: true})
+		},
+		onAfter: function() {
+			Undo.finishEdit('set face tint')
+		}
+	})
+
+
 	new Action('toggle_uv_overlay', {
 		condition: () => Project.box_uv,
 		icon: 'crop_landscape',//'crop_landscape'

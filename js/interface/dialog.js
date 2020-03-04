@@ -85,13 +85,13 @@ function Dialog(settings) {
 
 					switch (data.type) {
 						default:
-							bar.append(`<input class="dark_bordered half" type="text" id="${form_id}" value="${data.value||''}" placeholder="${data.placeholder||''}">`)
+							bar.append(`<input class="dark_bordered half focusable_input" type="text" id="${form_id}" value="${data.value||''}" placeholder="${data.placeholder||''}">`)
 							break;
 						case 'textarea':
-							bar.append(`<textarea style="height: ${data.height||150}px;" id="${form_id}"></textarea>`)
+							bar.append(`<textarea class="focusable_input" style="height: ${data.height||150}px;" id="${form_id}"></textarea>`)
 							break;
 						case 'select':
-							var el = $(`<div class="bar_select half"><select id="${form_id}"></select></div>`)
+							var el = $(`<div class="bar_select half"><select class="focusable_input" id="${form_id}"></select></div>`)
 							var sel = el.find('select')
 							for (var key in data.options) {
 								var name = tl(data.options[key])
@@ -104,7 +104,7 @@ function Dialog(settings) {
 							for (var key in data.options) {
 								var name = tl(data.options[key])
 								el.append(`<div class="form_bar_radio">
-									<input type="radio" name="${form_id}_radio" id="${key}" ${data.default === key ? 'selected' : ''}>
+									<input type="radio" class="focusable_input" name="${form_id}_radio" id="${key}" ${data.default === key ? 'selected' : ''}>
 									<label for="${key}">${name}</label>
 								</div>`)
 							}
@@ -116,12 +116,13 @@ function Dialog(settings) {
 							bar.addClass('small_text')
 							break;
 						case 'number':
-							bar.append(`<input class="dark_bordered half" type="number" id="${form_id}" value="${data.value||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
+							bar.append(`<input class="dark_bordered half focusable_input" type="number" id="${form_id}" value="${data.value||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
 							break;
 						case 'color':
 							if (!data.colorpicker) {
 								data.colorpicker = new ColorPicker({
 									id: 'cp_'+form_id,
+									name: tl(data.label),
 									label: false,
 									private: true
 								})
@@ -129,14 +130,14 @@ function Dialog(settings) {
 							bar.append(data.colorpicker.getNode())
 							break;
 						case 'checkbox':
-							bar.append(`<input type="checkbox" id="${form_id}"${data.value ? ' checked' : ''}>`)
+							bar.append(`<input type="checkbox" class="focusable_input" id="${form_id}"${data.value ? ' checked' : ''}>`)
 							break;
 						case 'file':
 						case 'folder':
 						case 'save':
 							if (data.type == 'folder' && !isApp) break;
 
-							var input = $(`<input class="dark_bordered half" type="text" id="${form_id}" value="${data.value||''}" disabled>`);
+							var input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" value="${data.value||''}" disabled>`);
 							bar.append(input);
 							bar.addClass('form_bar_file');
 
@@ -154,7 +155,6 @@ function Dialog(settings) {
 							})
 
 							bar.on('click', e => {
-								cl(e.target);
 								function fileCB(files) {
 									data.value = files[0].path;
 									input.val(data.value);
@@ -189,7 +189,7 @@ function Dialog(settings) {
 						case 'folder':
 					}
 					if (data.readonly) {
-						bar.find('input').attr('readonly', 'readonly')
+						bar.find('input').attr('readonly', 'readonly').removeClass('focusable_input')
 					}
 					jq_dialog.append(bar)
 				}
@@ -287,6 +287,9 @@ function Dialog(settings) {
 		if (this.width) {
 			jq_dialog.css('width', this.width+'px')
 		}
+		let first_focus = jq_dialog.find('.focusable_input').first()
+		if (first_focus) first_focus.focus()
+
 		open_dialog = scope.id
 		open_interface = scope
 		Prop.active_panel = 'dialog'

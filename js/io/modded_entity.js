@@ -150,10 +150,13 @@ var codec = new Codec('modded_entity', {
 			 '\n		modelRenderer.rotateAngleZ = z;'+
 			 '\n	}'+
 			 '\n}';
+
+		this.dispatchEvent('compile', {model, options});
 		return model;
 	},
 	parse(model, path, add) {
-		// WIP //
+		this.dispatchEvent('parse', {model});
+
 		var lines = [];
 		model.split('\n').forEach(l => {
 			l = l.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, '').trim().replace(/;$/, '');
@@ -288,9 +291,8 @@ var codec = new Codec('modded_entity', {
 				if (parseScheme('$v.addChild($v)', line.replace(/\(this\./g, '('))) {
 					var child = bones[match[1]], parent = bones[match[0]];
 					child.addTo(parent);
-					child.origin[0] += parent.origin[0];
-					child.origin[1] += parent.origin[1] - 24;
-					child.origin[2] += parent.origin[2];
+					child.origin.V3_add(parent.origin)
+					child.origin[1] -= 24;
 					child.children.forEach(cube => {
 						if (cube instanceof Cube) {
 							cube.from[0] += parent.origin[0]; cube.to[0] += parent.origin[0];

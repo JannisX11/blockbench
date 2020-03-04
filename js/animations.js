@@ -288,6 +288,10 @@ class GeneralAnimator {
 		this.expanded = false;
 		this.selected = false;
 		this.uuid = uuid || guid();
+		this.muted = {};
+		this.channels.forEach(channel => {
+			this.muted[channel] = false;
+		})
 	}
 	select() {
 		var scope = this;
@@ -368,6 +372,9 @@ class GeneralAnimator {
 		}
 		result = before ? before : this.createKeyframe(null, Timeline.time, channel, false, false);
 		return {before, result};
+	}
+	toggleMuted(channel) {
+		this.muted[channel] = !this.muted[channel];
 	}
 	scrollTo() {
 		var el = $(`#timeline_body_inner > li[uuid=${this.uuid}]`).get(0)
@@ -604,9 +611,9 @@ class BoneAnimator extends GeneralAnimator {
 		if (!this.doRender()) return;
 		this.getGroup()
 
-		this.displayRotation(this.interpolate(time, 'rotation'))
-		this.displayPosition(this.interpolate(time, 'position'))
-		this.displayScale(this.interpolate(time, 'scale'))
+		if (!this.muted.rotation) this.displayRotation(this.interpolate(time, 'rotation'))
+		if (!this.muted.position) this.displayPosition(this.interpolate(time, 'position'))
+		if (!this.muted.scale) this.displayScale(this.interpolate(time, 'scale'))
 	}
 }
 	BoneAnimator.prototype.channels = ['rotation', 'position', 'scale']
@@ -630,25 +637,27 @@ class EffectAnimator extends GeneralAnimator {
 		return this;
 	}
 	displayFrame() {
-		this.sound.forEach(kf => {
-			var diff = kf.time - Timeline.time;
-			if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100)) {
-				if (kf.file && !kf.cooldown) {
-					 var media = new Audio(kf.file);
-					 media.volume = Math.clamp(settings.volume.value/100, 0, 1);
-					 media.play();
-					 Timeline.playing_sounds.push(media);
-					 media.onended = function() {
-					 	Timeline.playing_sounds.remove(media);
-					 }
+		if (!this.muted.sound) {
+			this.sound.forEach(kf => {
+				var diff = kf.time - Timeline.time;
+				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100)) {
+					if (kf.file && !kf.cooldown) {
+						 var media = new Audio(kf.file);
+						 media.volume = Math.clamp(settings.volume.value/100, 0, 1);
+						 media.play();
+						 Timeline.playing_sounds.push(media);
+						 media.onended = function() {
+						 	Timeline.playing_sounds.remove(media);
+						 }
 
-					 kf.cooldown = true;
-					 setTimeout(() => {
-					 	delete kf.cooldown;
-					 }, 400)
-				} 
-			}
-		})
+						 kf.cooldown = true;
+						 setTimeout(() => {
+						 	delete kf.cooldown;
+						 }, 400)
+					} 
+				}
+			})
+		}
 	}
 }
 	EffectAnimator.prototype.channels = ['particle', 'sound', 'timeline']
@@ -781,7 +790,7 @@ class Keyframe {
 					this.set(l, negate(this.get(l)))
 				}
 			}
-		} else if (this.channel == 'position' || this.channel == 'scale') {
+		} else if (this.channel == 'position') {
 			let l = getAxisLetter(axis)
 			this.set(l, negate(this.get(l)))
 		}
@@ -1156,11 +1165,11 @@ const Animator = {
 		selected.length = 0
 		Canvas.updateAllBones()
 
-		if (quad_previews.enabled) {
-			quad_previews.enabled_before = true
-		}
-		main_preview.fullscreen()
-		main_preview.setNormalCamera()
+		//if (quad_previews.enabled) {
+		//	quad_previews.enabled_before = true
+		//}
+		//main_preview.fullscreen()
+		//main_preview.setNormalCamera()
 
 		$('body').addClass('animation_mode')
 		if (!Animator.timeline_node) {
@@ -1189,12 +1198,12 @@ const Animator = {
 		Timeline.pause()
 		Animator.open = false;
 		$('body').removeClass('animation_mode')
-		resizeWindow()
-		updateInterface()
+		//resizeWindow()
+		//updateInterface()
 		Toolbars.element_origin.toPlace()
-		if (quad_previews.enabled_before) {
-			openQuadView()
-		}
+		//if (quad_previews.enabled_before) {
+		//	openQuadView()
+		//}
 		Canvas.updateAllBones()
 	},
 	showDefaultPose(no_matrix_update) {
@@ -1206,7 +1215,6 @@ const Animator = {
 
 			if (!no_matrix_update) group.mesh.updateMatrixWorld()
 		})
-		console.trace('default')
 	},
 	preview() {
 		Animator.showDefaultPose(true);
@@ -1864,6 +1872,7 @@ const Timeline = {
 				Timeline.start()
 			} else {
 				Timeline.pause()
+				Animator.preview()
 			}
 		}
 	},
@@ -2057,6 +2066,10 @@ BARS.defineActions(function() {
 	new NumSlider('slider_animation_length', {
 		category: 'animation',
 		condition: () => Animator.open && Animator.selected,
+		getInterval(event) {
+			if (event && event.shiftKey) return 1;
+			return 1/Math.clamp(settings.animation_snap.value, 1, 120)
+		},
 		get: function() {
 			return Animator.selected.length
 		},
@@ -2107,6 +2120,10 @@ BARS.defineActions(function() {
 	new NumSlider('slider_keyframe_time', {
 		category: 'animation',
 		condition: () => Animator.open && Timeline.selected.length,
+		getInterval(event) {
+			if (event && event.shiftKey) return 1;
+			return 1/Math.clamp(settings.animation_snap.value, 1, 120)
+		},
 		get: function() {
 			return Timeline.selected[0] ? Timeline.selected[0].time : 0
 		},
@@ -2319,7 +2336,7 @@ BARS.defineActions(function() {
 		icon: 'flag',
 		category: 'animation',
 		condition: {modes: ['animate']},
-		keybind: new Keybind({key: 77}),
+		keybind: new Keybind({ctrl: true, key: 77}),
 		click: function (event) {
 			if (!Animator.selected) {
 				Blockbench.showQuickMessage('message.no_animation_selected')

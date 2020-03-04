@@ -5,13 +5,14 @@
 var codec = new Codec('gltf', {
 	name: 'GLTF Model',
 	extension: 'gltf',
-	compile(options = 0, cb) {
+	compile(options = 0, callback) {
+		let scope = this;
 		let exporter = new THREE.GLTFExporter();
 		let animations = [];
 		let gl_scene = new THREE.Scene();
 		gl_scene.name = 'blockbench_export'
 
-		scene.children.forEach(object => {
+		scene.children.forEachReverse(object => {
 			if (object.isGroup || object.isElement) {
 				gl_scene.add(object);
 			}
@@ -31,7 +32,8 @@ var codec = new Codec('gltf', {
 							if (animator[channel] && animator[channel].length) {
 								let times = [];
 								let values = [];
-								animator[channel].forEach(kf => {
+								let keyframes = animator[channel].slice();
+								keyframes.forEach(kf => {
 									times.push(kf.time);
 									Timeline.time = kf.time;
 									kf.getFixed().toArray(values, values.length);
@@ -59,9 +61,10 @@ var codec = new Codec('gltf', {
 		}
 		exporter.parse(gl_scene, (json) => {
 
-			cb(JSON.stringify(json));
+			scope.dispatchEvent('compile', {model: json, options});
+			callback(JSON.stringify(json));
 
-			gl_scene.children.forEach(object => {
+			gl_scene.children.forEachReverse(object => {
 				if (object.isGroup || object.isElement) {
 					scene.add(object);
 				}
@@ -93,7 +96,7 @@ var codec = new Codec('gltf', {
 BARS.defineActions(function() {
 	codec.export_action = new Action({
 		id: 'export_gltf',
-		icon: 'fas.fa-ring',
+		icon: 'icon-gltf',
 		category: 'file',
 		click: function () {
 			codec.export()

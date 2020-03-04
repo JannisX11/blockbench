@@ -84,7 +84,7 @@
 	input.medium_width {
 		width: 64px;
 	}
-	.checkerboard {
+	.checkerboard, .checkerboard_trigger .checkerboard_target {
 		--color-checker_offset: rgba(0, 0, 0, 0.16);
 		background-color: var(--color-checkerboard) !important;
 		background-image: linear-gradient(45deg, var(--color-checkerboard) 25%, transparent 25%),
@@ -93,6 +93,10 @@
 						  linear-gradient(-45deg, var(--color-checker_offset) 75%, var(--color-checkerboard) 75%);
 		background-size: 30px 30px;
 		background-position: 0 0, 0 15px, 15px -15px, -15px 0px;
+	}
+	body[mode=start] div#center.checkerboard {
+		background-image: none;
+		background-color: var(--color-dark) !important;
 	}
 
 /*General*/
@@ -104,7 +108,8 @@
 		margin-right: 5px;
 	}
 	.toolbar_label {
-		margin-top: 4px;
+		padding: 2px;
+		margin-left: 4px;
 	}
 	.bar {
 		height: 30px;
@@ -156,12 +161,15 @@
 		right: 0;
 		top: 420px;
 		z-index: 100;
-		min-width: 100px;
-		max-width: 200px;
+		min-width: 150px;
+		max-width: 250px;
+		width: min-content;
+		padding: 0 12px;
 		background-color: var(--color-bright_ui);
 		color: var(--color-accent_text);
 		box-shadow: 0 0 2px black;
 		text-align: center;
+		overflow-wrap: break-word;
 		cursor: default;
 		pointer-events: none;
 	}
@@ -264,7 +272,7 @@
 		padding: 0 8px;
 		padding-top: 2px;
 		display: inline-block;
-		height: 100%;
+		height: 29px;
 		font-weight: normal;
 	}
 	li.menu_bar_point.opened {
@@ -335,7 +343,7 @@
 	}
 	.tool {
 		height: 30px;
-		width: 38px;
+		width: 36px;
 		margin-left: 1px;
 		margin-right: 1px;
 		background: transparent;
@@ -361,6 +369,9 @@
 	}
 	.tool.widget.bar_text {
 		padding: 2px 3px;
+	}
+	.tool.has_label {
+		width: auto;
 	}
 
 	.tool:hover {
@@ -424,11 +435,11 @@
 		padding-right: 5px;
 		padding-top: 2px;
 		color: var(--color-accent_text);
-		margin-top: 32px;
+		margin-top: 30px;
 		display: none;
 		background: var(--color-bright_ui);
 		white-space: nowrap;
-		z-index: 125;
+		z-index: 18;
 		box-shadow: 0 0.4px 3.5px rgba(0, 0, 0, 0.6);
 	}
 	.tool:hover > .tooltip:not(:hover) {
@@ -457,8 +468,8 @@
 		margin-top: -28px;
 	}
 	.contextMenu li {
-		height: 32px;
-		padding: 5px;
+		height: 30px;
+		padding: 4px;
 		padding-left: 34px;
 		padding-right: 8px;
 	}
@@ -474,18 +485,18 @@
 		text-rendering: auto;
 		-webkit-font-smoothing: antialiased;
 		float: right;
-		margin-top: 2px;
 		margin-right: -12px;
+		pointer-events: none;
 	}
 	.contextMenu li.focused, .contextMenu li.parent.opened {
 		background-color: var(--color-accent);
 	}
 	.contextMenu li i {
 		float: left;
-		margin-bottom: -5px;
-		margin-top: 1px;
+		margin-top: 1px; 
 		margin-right: 4px;
 		margin-left: -28px;
+		pointer-events: none;
 	}
 	.contextMenu li img {
 		cursor: default;
@@ -522,6 +533,12 @@
 	#start_screen h3 {
 		margin: 0;
 	}
+	#start_screen .bar.next_to_title {
+		margin-top: -40px;
+		margin-right: -12px;
+		position: relative;
+		float: right;
+	}
 	#start_screen .recent_project {
 		margin: 2px 0;
 		display: flex;
@@ -547,6 +564,34 @@
 		height: 26px;
 		margin-left: -20px;
 		background: linear-gradient(90deg, transparent, var(--color-ui));
+	}
+
+	#start_screen .recent_project.thumbnail {
+		width: 242px;
+		height: 150px;
+
+		width: 168px;
+		height: 128px;
+		position: relative;
+		float: left;
+		background-color: var(--color-back);
+		margin: 1px;
+		background-size: 150px;
+		background-repeat: no-repeat;
+	}
+	#start_screen .recent_project.thumbnail:hover {
+		background-color: var(--color-ui);
+	}
+	#start_screen .recent_project.thumbnail .recent_project_name {
+		font-size: 1em;
+		overflow-x: hidden;
+		flex-shrink: 1;
+		flex-grow: 1;
+		height: 24px;
+		right: 6px;
+		left: 6px;
+		bottom: 0;
+		position: absolute;
 	}
 
 	#start_screen > content {
@@ -631,10 +676,10 @@
 		color: var(--color-light);
 	}
 	#start-files left {
-		width: 40%;
+		width: 36%;
 	}
 	#start-files right {
-		width: 60%;
+		width: 64%;
 		border-left: 1px solid var(--color-border);
 	}
 	#start_screen left > ul {

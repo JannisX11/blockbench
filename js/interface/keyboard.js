@@ -57,6 +57,10 @@ class Keybind {
 				Keybinds.save();
 				TickUpdates.keybind_conflicts = true;
 			}
+
+			if (BarItems[this.action] instanceof Action) {
+				BarItems[this.action].updateHoverTitle()
+			}
 		}
 		return this;
 	}
@@ -218,9 +222,9 @@ class Keybind {
 }
 Keybinds.no_overlap = function(k1, k2) {
 	if (typeof k1.condition !== 'object' || typeof k1.condition !== 'object') return false;
-	if (k1.condition.modes && k2.condition.modes && k1.condition.modes.overlap(k2.condition.modes) == 0) return true;
-	if (k1.condition.tools && k2.condition.tools && k1.condition.tools.overlap(k2.condition.tools) == 0) return true;
-	if (k1.condition.formats && k2.condition.formats && k1.condition.formats.overlap(k2.condition.formats) == 0) return true;
+	if (k1.condition && k2.condition.modes && k1.condition.modes.overlap(k2.condition.modes) == 0) return true;
+	if (k1.condition && k2.condition.tools && k1.condition.tools.overlap(k2.condition.tools) == 0) return true;
+	if (k1.condition && k2.condition.formats && k1.condition.formats.overlap(k2.condition.formats) == 0) return true;
 	return false;
 }
 function updateKeybindConflicts() {

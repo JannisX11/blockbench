@@ -16,7 +16,7 @@ function origin2geometry() {
 		position.forEach(function(p, pi) {
 			position[pi] = p / Group.selected.children.length
 		})
-		Group.selected.origin = position
+		Group.selected.origin.V3_set(position)
 
 	} else if (Cube.selected) {
 		Undo.initEdit({elements: Cube.selected})
@@ -47,12 +47,6 @@ function getSelectionCenter() {
 	selected.forEach(obj => {
 		var m = obj.mesh
 		if (m) {
-
-			var pos = obj.getWorldCenter()
-			center[0] += pos.x
-			center[1] += pos.y
-			center[2] += pos.z
-		} else if (!m && obj.from) {
 			var pos = obj.getWorldCenter();
 			center[0] += pos.x
 			center[1] += pos.y
@@ -70,7 +64,7 @@ function getSelectionCenter() {
 	return center;
 }
 function isMovementGlobal() {
-	if (selected.length === 0 || (!settings.local_move.value && Toolbox.selected.id !== 'resize_tool')) {
+	if (selected.length === 0 || (Toolbox.selected.id !== 'resize_tool')) {
 		return true;
 	}
 	if (Format.rotate_cubes) {
@@ -158,18 +152,9 @@ function moveCubesRelative(difference, index, event) { //Multiple
     if (event) {
     	difference *= canvasGridSize(event.shiftKey, event.ctrlOrCmd);
     }
-    
-	if (_has_groups && Blockbench.globalMovement) {
-		Group.selected.forEachChild(g => {
-			g.origin[axes[index]] += difference
-		}, Group, true)
 
-	}
+    moveElementsInSpace(difference, axes[index]) 
 
-    Cube.selected.forEach(cube => {
-        cube.move(difference, axes[index], _has_groups||!Format.bone_rig)
-    })
-    Canvas.updatePositions()
 	Undo.finishEdit('move')
 }
 //Rotate
@@ -387,9 +372,7 @@ const Vertexsnap = {
 					cube_pos.applyQuaternion(q);
 				}
 				if (Format.rotate_cubes) {
-					obj.origin[0] += cube_pos.getComponent(0);
-					obj.origin[1] += cube_pos.getComponent(1);
-					obj.origin[2] += cube_pos.getComponent(2);
+					obj.origin.V3_add(cube_pos);
 				}
 				var in_box = obj.moveVector(cube_pos.toArray());
 				if (!in_box && Format.canvas_limit && !settings.deactivate_size_limit.value) {
@@ -503,9 +486,9 @@ function modelScaleSync(label) {
 function cancelScaleAll() {
 	selected.forEach(function(obj) {
 		if (obj === undefined) return;
-		if (obj.from) obj.from = obj.before.from;
-		if (obj.to) obj.to = obj.before.to;
-		if (obj.origin) obj.origin = obj.before.origin;
+		if (obj.from) obj.from.V3_set(obj.before.from);
+		if (obj.to) obj.to.V3_set(obj.before.to);
+		if (obj.origin) obj.origin.V3_set(obj.before.origin);
 		delete obj.before
 		if (Project.box_uv) {
 			Canvas.updateUV(obj)
@@ -521,6 +504,18 @@ function cancelScaleAll() {
 	}
 	Canvas.updatePositions()
 	hideDialog()
+}
+function setScaleAllPivot(mode) {
+	if (mode === 'selection') {
+		var center = getSelectionCenter()
+	} else {
+		var center = Cube.selected[0] && Cube.selected[0].origin;
+	}
+	if (center) {
+		$('input#scaling_origin_x').val(center[0]);
+		$('input#scaling_origin_y').val(center[1]);
+		$('input#scaling_origin_z').val(center[2]);
+	}
 }
 function scaleAllSelectOverflow() {
 	cancelScaleAll()
@@ -557,6 +552,85 @@ function centerCubes(axis, update) {
 		Canvas.updatePositions()
 	}
 }
+
+//Move
+function moveElementsInSpace(difference, axis) {
+	let space = Transformer.getTransformSpace()
+	let group = Format.bone_rig && Group.selected && Group.selected.matchesSelection() && Group.selected;
+	var group_m;
+
+	if (group) {
+		if (space === 0) {
+			group_m = new THREE.Vector3();
+			group_m[getAxisLetter(axis)] = difference;
+
+			var rotation = new THREE.Quaternion();
+			group.mesh.parent.getWorldQuaternion(rotation);
+			group_m.applyQuaternion(rotation.inverse());
+
+			group.forEachChild(g => {
+				g.origin.V3_add(group_m.x, group_m.y, group_m.z);
+			}, Group, true)
+
+		} else if (space === 2) {
+			group_m = new THREE.Vector3();
+			group_m[getAxisLetter(axis)] = difference;
+
+			var rotation = new THREE.Quaternion();
+			group.mesh.getWorldQuaternion(rotation);
+			group_m.applyQuaternion(rotation);
+
+			group.forEachChild(g => {
+				g.origin.V3_add(group_m.x, group_m.y, group_m.z);
+			}, Group, true)
+
+		} else {
+			group.forEachChild(g => {
+				g.origin[axis] += difference
+			}, Group, true)
+		}
+	}
+
+	selected.forEach(el => {
+		
+		if (space == 2 && !group_m) {
+			if (el.movable) el.from[axis] += difference;
+			if (el.resizable) el.to[axis] += difference;
+			
+		} else if (space instanceof Group) {
+			if (el.movable) el.from[axis] += difference;
+			if (el.resizable) el.to[axis] += difference;
+			if (el.rotatable) el.origin[axis] += difference;
+		} else {
+			if (group_m) {
+				var m = group_m
+			} else {
+				var m = new THREE.Vector3();
+				m[getAxisLetter(axis)] = difference;
+	
+				var rotation = new THREE.Quaternion();
+				if (el.mesh) {
+					el.mesh.getWorldQuaternion(rotation);
+				} else if (el.parent instanceof Group) {
+					el.parent.mesh.getWorldQuaternion(rotation);
+				}
+				m.applyQuaternion(rotation.inverse());
+			}
+
+			if (el.movable) el.from.V3_add(m.x, m.y, m.z);
+			if (el.resizable) el.to.V3_add(m.x, m.y, m.z);
+			if (group) {
+				if (el.rotatable) el.origin.V3_add(m.x, m.y, m.z);
+			}
+		}
+		if (el instanceof Cube) {
+			el.mapAutoUV()
+			Canvas.adaptObjectPosition(el);
+		}
+	})
+	TickUpdates.selection = true;
+}
+
 //Rotate
 function getRotationInterval(event) {
 	if (Format.rotation_limit) {
@@ -626,7 +700,7 @@ function rotateOnAxis(modify, axis) {
 	}*/
 	Cube.selected.forEach(function(obj, i) {
 		if (obj.rotation.allEqual(0)) {
-			obj.origin = origin.slice()
+			obj.origin.V3_set(origin)
 		}
 		var obj_val = modify(obj.rotation[axis]);
 		obj_val = Math.trimDeg(obj_val)
@@ -651,6 +725,25 @@ function rotateOnAxis(modify, axis) {
 }
 
 BARS.defineActions(function() {
+
+
+	new BarSelect('transform_space', {
+		condition: () => Modes.edit,
+		category: 'transform',
+		options: {
+			global: true,
+			bone: {condition: () => Format.bone_rig, name: true},
+			local: true
+		},
+		onChange() {
+			updateSelection();
+		}
+	})
+	let grid_locked_interval = function(event) {
+		event = event||0;
+		return canvasGridSize(event.shiftKey, event.ctrlOrCmd);
+	}
+
 	function moveOnAxis(modify, axis) {
 		selected.forEach(function(obj, i) {
 			if (obj.movable) {
@@ -679,7 +772,9 @@ BARS.defineActions(function() {
 		name: tl('action.slider_pos', ['X']),
 		description: tl('action.slider_pos.desc', ['X']),
 		color: 'x',
+		category: 'transform',
 		condition: () => (selected.length && Modes.edit),
+		getInterval: grid_locked_interval,
 		get: function() {
 			return selected[0].from[0]
 		},
@@ -697,7 +792,9 @@ BARS.defineActions(function() {
 		name: tl('action.slider_pos', ['Y']),
 		description: tl('action.slider_pos.desc', ['Y']),
 		color: 'y',
+		category: 'transform',
 		condition: () => (selected.length && Modes.edit),
+		getInterval: grid_locked_interval,
 		get: function() {
 			return selected[0].from[1]
 		},
@@ -715,7 +812,9 @@ BARS.defineActions(function() {
 		name: tl('action.slider_pos', ['Z']),
 		description: tl('action.slider_pos.desc', ['Z']),
 		color: 'z',
+		category: 'transform',
 		condition: () => (selected.length && Modes.edit),
+		getInterval: grid_locked_interval,
 		get: function() {
 			return selected[0].from[2]
 		},
@@ -742,7 +841,9 @@ BARS.defineActions(function() {
 		name: tl('action.slider_size', ['X']),
 		description: tl('action.slider_size.desc', ['X']),
 		color: 'x',
+		category: 'transform',
 		condition: () => (Cube.selected.length && Modes.edit),
+		getInterval: grid_locked_interval,
 		get: function() {
 			return Cube.selected[0].to[0] - Cube.selected[0].from[0]
 		},
@@ -760,7 +861,9 @@ BARS.defineActions(function() {
 		name: tl('action.slider_size', ['Y']),
 		description: tl('action.slider_size.desc', ['Y']),
 		color: 'y',
+		category: 'transform',
 		condition: () => (Cube.selected.length && Modes.edit),
+		getInterval: grid_locked_interval,
 		get: function() {
 			return Cube.selected[0].to[1] - Cube.selected[0].from[1]
 		},
@@ -778,7 +881,9 @@ BARS.defineActions(function() {
 		name: tl('action.slider_size', ['Z']),
 		description: tl('action.slider_size.desc', ['Z']),
 		color: 'z',
+		category: 'transform',
 		condition: () => (Cube.selected.length && Modes.edit),
+		getInterval: grid_locked_interval,
 		get: function() {
 			return Cube.selected[0].to[2] - Cube.selected[0].from[2]
 		},
@@ -794,7 +899,9 @@ BARS.defineActions(function() {
 	})
 	//Inflate
 	new NumSlider('slider_inflate', {
+		category: 'transform',
 		condition: function() {return Cube.selected.length && Modes.edit},
+		getInterval: grid_locked_interval,
 		get: function() {
 			return Cube.selected[0].inflate
 		},
@@ -826,6 +933,7 @@ BARS.defineActions(function() {
 		name: tl('action.slider_rotation', ['X']),
 		description: tl('action.slider_rotation.desc', ['X']),
 		color: 'x',
+		category: 'transform',
 		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -851,6 +959,7 @@ BARS.defineActions(function() {
 		name: tl('action.slider_rotation', ['Y']),
 		description: tl('action.slider_rotation.desc', ['Y']),
 		color: 'y',
+		category: 'transform',
 		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -876,6 +985,7 @@ BARS.defineActions(function() {
 		name: tl('action.slider_rotation', ['Z']),
 		description: tl('action.slider_rotation.desc', ['Z']),
 		color: 'z',
+		category: 'transform',
 		condition: () => (Modes.edit && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -930,7 +1040,9 @@ BARS.defineActions(function() {
 		name: tl('action.slider_origin', ['X']),
 		description: tl('action.slider_origin.desc', ['X']),
 		color: 'x',
+		category: 'transform',
 		condition: () => (Modes.edit || Modes.animate) && getRotationObject(),
+		getInterval: grid_locked_interval,
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.origin[0];
@@ -953,7 +1065,9 @@ BARS.defineActions(function() {
 		name: tl('action.slider_origin', ['Y']),
 		description: tl('action.slider_origin.desc', ['Y']),
 		color: 'y',
+		category: 'transform',
 		condition: () => (Modes.edit || Modes.animate) && getRotationObject(),
+		getInterval: grid_locked_interval,
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.origin[1];
@@ -976,7 +1090,9 @@ BARS.defineActions(function() {
 		name: tl('action.slider_origin', ['Z']),
 		description: tl('action.slider_origin.desc', ['Z']),
 		color: 'z',
+		category: 'transform',
 		condition: () => (Modes.edit || Modes.animate) && getRotationObject(),
+		getInterval: grid_locked_interval,
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.origin[2];
@@ -999,6 +1115,7 @@ BARS.defineActions(function() {
 	new Action('scale', {
 		icon: 'settings_overscan',
 		category: 'transform',
+		condition: () => (Modes.edit && selected.length),
 		click: function () {
 			$('#model_scale_range, #model_scale_label').val(1)
 			$('#scaling_clipping_warning').text('')

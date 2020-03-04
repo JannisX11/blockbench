@@ -59,7 +59,8 @@ class BarItem {
 		}
 		$(action.node).attr('title', action.description)
 		if (in_bar) {
-			$(action.node).prepend('<label class="f_left in_toolbar">'+action.name+':</label>')
+			$(action.node).prepend('<label class="f_left toolbar_label">'+action.name+':</label>')
+			$(this.node).addClass('has_label')
 		} else {
 			$(action.node).prepend('<div class="tooltip">'+action.name+'</div>')
 			.on('mouseenter', function() {
@@ -175,12 +176,14 @@ class Action extends BarItem {
 		//Node
 		this.click = data.click
 		this.icon_node = Blockbench.getIconNode(this.icon, this.color)
+		this.icon_states = data.icon_states;
 		this.node = $(`<div class="tool ${this.id}"></div>`).get(0)
 		this.nodes = [this.node]
 		this.menus = [];
-		this.menu_node = $(`<li title="${this.description||''}">${this.name}</li>`).get(0)
+		this.menu_node = $(`<li>${this.name}</li>`).get(0)
 		$(this.node).add(this.menu_node).append(this.icon_node)
-		this.addLabel()
+		this.addLabel(data.label)
+		this.updateHoverTitle()
 		$(this.node).click(function(e) {scope.trigger(e)})
 
 		if (data.linked_setting) {
@@ -213,6 +216,21 @@ class Action extends BarItem {
 		}
 		return false;
 	}
+	updateHoverTitle() {
+		var text = this.description || '';
+		if (this.keybind.label) {
+			if (text) {
+				text = `${text} (${this.keybind.label})`;
+			} else {
+				text = this.keybind.label;
+			}
+		}
+		this.menu_node.title = text;
+		this.nodes.forEach(node => {
+			node.title = text;
+		});
+		return this;
+	}
 	setIcon(icon) {
 		var scope = this;
 		this.icon = icon
@@ -225,10 +243,16 @@ class Action extends BarItem {
 	}
 	toggleLinkedSetting(change) {
 		if (this.linked_setting && settings[this.linked_setting]) {
+			let setting = settings[this.linked_setting];
 			if (change !== false) {
-				settings[this.linked_setting].value = !settings[this.linked_setting].value
+				setting.value = !setting.value
 			}
-			this.setIcon(settings[this.linked_setting].value ? 'check_box' : 'check_box_outline_blank')
+			if (this.icon_states) {
+				this.setIcon(setting.value ? this.icon_states[1] : this.icon_states[0]);
+			} else {
+				this.setIcon(setting.value ? 'check_box' : 'check_box_outline_blank');
+			}
+			if (setting.onChange) setting.onChange(setting.value)
 		}
 	}
 	delete() {
@@ -236,8 +260,7 @@ class Action extends BarItem {
 		for (var i = this.menus.length-1; i >= 0; i--) {
 			var m = this.menus[i]
 			if (m.menu) {
-				m.path += (m.path ? '.' : '') + this.id; 
-				m.menu.removeAction(m.path)
+				m.menu.deleteItem(this)
 			}
 		}
 	}
@@ -258,6 +281,7 @@ class Tool extends Action {
 		this.cursor = data.cursor;
 		this.selectCubes = data.selectCubes !== false;
 		this.paintTool = data.paintTool;
+		this.brushTool = data.brushTool;
 		this.transformerMode = data.transformerMode;
 		this.animation_channel = data.animation_channel;
 		this.allowWireframe = data.allowWireframe !== false;
@@ -300,7 +324,7 @@ class Tool extends Action {
 		$('#preview').css('cursor', (this.cursor ? this.cursor : 'default'))
 		$('.tool.sel').removeClass('sel')
 		$('.tool.'+this.id).addClass('sel')
-		updateSelection()
+						TickUpdates.selection = true;
 		return this;
 	}
 	trigger(event) {
@@ -359,8 +383,16 @@ class NumSlider extends Widget {
 		} else {
 			this.interval = function(event) {
 				event = event||0;
-				return canvasGridSize(event.shiftKey, event.ctrlOrCmd);
-			};
+				if (!event.shiftKey && !event.ctrlKey) {
+					return 1
+				} else if (event.ctrlKey && event.shiftKey) {
+					return 0.025
+				} else if (event.ctrlKey) {
+					return 0.1
+				} else if (event.shiftKey)  {
+					return 0.25
+				}
+			}
 		}
 		if (typeof data.getInterval === 'function') {
 			this.interval = data.getInterval;
@@ -667,36 +699,59 @@ class BarSelect extends Widget {
 		var scope = this;
 		this.type = 'select'
 		this.icon = 'list'
-		this.node = $('<div class="tool widget bar_select"><div class="bar_select_wrapper"><select></select></div></div>').get(0)
+		this.node = $('<div class="tool widget bar_select"><bb-select></bb-select></div>').get(0)
+		var select = $(this.node).find('bb-select')
 		if (data.width) {
-			$(this.node).children('select').css('width', data.width+'px')
+			select.css('width', data.width+'px')
 		}
+		select.click(event => {
+			scope.open(event)
+		});
 		this.value = data.value
-		this.values = []
-		var select = $(this.node).find('select')
+		this.values = [];
+		this.options = data.options;
 		if (data.options) {
 			for (var key in data.options) {
 				if (!this.value) {
 					this.value = key
 				}
-				var name = data.options[key]
-				if (name === true) {
-					name = tl('action.'+this.id+'.'+key)
-				}
-				select.append(`<option id="${key}" ${key == this.value ? 'selected' : ''}>${name}</option>`)
 				this.values.push(key);
 			}
 		}
+		this.set(this.value)
 		this.addLabel()
 		if (typeof data.onChange === 'function') {
 			this.onChange = data.onChange
 		}
-		$(this.node).find('select').change(function(event) {
-			scope.change(event)
-		})
 		$(this.node).on('mousewheel', event => {
 			scope.trigger(event.originalEvent);
 		})
+	}
+	open(event) {
+		let scope = this;
+		let items = [];
+		for (var key in this.options) {
+			let val = this.options[key];
+			if (val) {
+				(function() {
+					var save_key = key;
+					items.push({
+						name: scope.getNameFor(key),
+						icon: val.icon || ((scope.value == save_key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
+						condition: val.condition,
+						click: (e) => {
+							scope.set(save_key);
+							if (scope.onChange) {
+								scope.onChange(scope, e);
+							}
+						}
+					})
+				})()
+			}
+		}
+		let menu = new Menu(items);
+		menu.node.style['min-width'] = this.node.clientWidth+'px';
+		menu.open(this.node, this);
 	}
 	trigger(event) {
 		if (!event) event = 0;
@@ -712,17 +767,23 @@ class BarSelect extends Widget {
 			}
 
 			var index = this.values.indexOf(this.value)
-			if (event.type === 'mousewheel' || event.type === 'wheel') {
-				index += event.deltaY < 0 ? -1 : 1;
-			} else {
-				index++;
-				if (index >= this.values.length) index = 0;
-			}
-			if (index >= 0 && index < this.values.length) {
-				this.set(this.values[index]);
-				if (this.onChange) {
-					this.onChange(this, event);
+			function advance() {
+				if (event.type === 'mousewheel' || event.type === 'wheel') {
+					index += event.deltaY < 0 ? -1 : 1;
+				} else {
+					index++;
+					if (index >= scope.values.length) index = 0;
 				}
+			}
+			for (var i = 0; i < 40; i++) {
+				advance()
+				if (index < 0 || index >= this.values.length) return;
+				let opt = this.options[this.values[index]];
+				if (opt && Condition(opt.condition)) break;
+			}
+			this.set(this.values[index]);
+			if (this.onChange) {
+				this.onChange(this, event);
 			}
 			
 			scope.uses++;
@@ -737,9 +798,18 @@ class BarSelect extends Widget {
 		}
 		return this;
 	}
-	set(id) {
-		this.value = id
-		$(this.nodes).find('option#'+id).prop('selected', true).siblings().prop('selected', false);
+	getNameFor(key) {
+		let val = this.options[key];
+		let name = tl(val === true || (val && val.name === true)
+				? ('action.'+this.id+'.'+key) 
+				: (val.name || val)
+			);
+		return name;
+	}
+	set(key) {
+		this.value = key;
+		let name = this.getNameFor(key);
+		$(this.node).find('bb-select').text(name)
 		return this;
 	}
 	get() {
@@ -842,6 +912,7 @@ class Toolbar {
 	constructor(data) {
 		var scope = this;
 		this.children = [];
+		this.condition_cache = [];
 		if (data) {
 			this.id = data.id
 			this.narrow = !!data.narrow
@@ -912,6 +983,7 @@ class Toolbar {
 		})
 		BARS.list.currentBar = this.children;
 		showDialog('toolbar_edit');
+		$('#toolbar_edit #action_search_bar').val('');
 		return this;
 	}
 	add(action, position) {
@@ -945,6 +1017,23 @@ class Toolbar {
 	}
 	update() {
 		var scope = this;
+
+		//scope.condition_cache.empty();
+		let needsUpdate = scope.condition_cache.length !== scope.children.length;
+		scope.condition_cache.length = scope.children.length;
+
+		this.children.forEach(function(item, i) {
+			let value = null;
+			if (typeof item === 'object') {
+				value = !!Condition(item.condition)
+			}
+			if (!needsUpdate && value !== scope.condition_cache[i]) {
+				needsUpdate = true;
+			}
+			scope.condition_cache[i] = value;
+		})
+		if (!needsUpdate) return this;
+
 		var content = $(this.node).find('.content')
 		content.find('> .tool').detach()
 		var separators = content.find('> .toolbar_separator').detach()
@@ -954,7 +1043,7 @@ class Toolbar {
 			if (typeof item === 'string') {
 				var last = content.find('> :last-child')
 				if (last.length === 0 || last.hasClass('toolbar_separator') || i == scope.children.length-1) {
-					return
+					return this;
 				}
 				var sep = separators[sep_nr]
 				if (sep) {
@@ -964,7 +1053,7 @@ class Toolbar {
 					content.append('<div class="toolbar_separator"></div>')
 				}
 			} else if (typeof item === 'object') {
-				if (BARS.condition( item.condition )) {
+				if (scope.condition_cache[i]) {
 					content.append(item.getNode())
 					item.toolbars.safePush(scope)
 				} else {
@@ -1052,7 +1141,7 @@ const BARS = {
 
 		//Tools
 			new Tool('move_tool', {
-				icon: 'fas.fa-hand-paper',
+				icon: 'icon-gizmo',
 				category: 'tools',
 				selectFace: true,
 				transformerMode: 'translate',
@@ -1148,7 +1237,7 @@ const BARS = {
 				category: 'file',
 				condition: () => isApp,
 				click: function (e) {
-					shell.showItemInFolder(app.getPath('userData')+osfs+'backups'+osfs+'.')
+					shell.openItem(app.getPath('userData')+osfs+'backups')
 				}
 			})
 			new Action('settings_window', {
@@ -1166,8 +1255,12 @@ const BARS = {
 			new Action('reload', {
 				icon: 'refresh',
 				category: 'file',
-				condition: () => Blockbench.hasFlag('dev'),
-				click: function () {Blockbench.reload()}
+				condition: isApp,
+				click: function () {
+					if (Blockbench.hasFlag('dev') || confirm(tl('message.close_warning.web'))) {
+						Blockbench.reload()
+					}
+				}
 			})
 
 		//Edit Generic
@@ -1191,7 +1284,7 @@ const BARS = {
 				click: function () {
 					if (Prop.active_panel == 'textures' && textures.selected) {
 						textures.selected.remove()
-					} else if (Prop.active_panel == 'color' && ColorPanel.vue._data.open_tab == 'palette') {
+					} else if (Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue._data.open_tab)) {
 						if (ColorPanel.vue._data.palette.includes(ColorPanel.vue._data.main_color)) {
 							ColorPanel.vue._data.palette.remove(ColorPanel.vue._data.main_color)
 						}
@@ -1213,7 +1306,7 @@ const BARS = {
 						array.forEach(function(s) {
 							s.remove(false)
 						})
-						updateSelection()
+						TickUpdates.selection = true;
 						Undo.finishEdit('delete elements')
 
 					} else if (Prop.active_panel == 'animations' && Animator.selected) {
@@ -1331,15 +1424,6 @@ const BARS = {
 			default_place: true
 		})
 
-		//update 3.3
-		if (!Toolbars.outliner.children.includes(BarItems.toggle_skin_layer)) {
-			Toolbars.outliner.add(BarItems.toggle_skin_layer, -1)
-		}
-		//update 3.3.1
-		if (!Toolbars.outliner.children.includes(BarItems.cube_counter)) {
-			Toolbars.outliner.add(BarItems.cube_counter)
-		}
-
 		Toolbars.texturelist = new Toolbar({
 			id: 'texturelist',
 			children: [
@@ -1361,20 +1445,28 @@ const BARS = {
 				'brush_tool',
 				'fill_tool',
 				'eraser',
-				'color_picker'
+				'color_picker',
+				'draw_shape_tool',
+				'copy_paste_tool'
 			],
 			vertical: Blockbench.isMobile,
 			default_place: true
 		})
 
+		// update 3.4
+		if (!Toolbars.tools.children.includes(BarItems.draw_shape_tool)) {
+			Toolbars.tools.add(BarItems.draw_shape_tool, -1)
+		}
+		if (!Toolbars.tools.children.includes(BarItems.copy_paste_tool)) {
+			Toolbars.tools.add(BarItems.copy_paste_tool, -1)
+		}
 
 		Toolbars.element_position = new Toolbar({
 			id: 'element_position',
 			children: [
 				'slider_pos_x',
 				'slider_pos_y',
-				'slider_pos_z',
-				'local_move'
+				'slider_pos_z'
 			],
 			default_place: !Blockbench.isMobile
 		})
@@ -1533,26 +1625,24 @@ const BARS = {
 			],
 			default_place: true
 		})
-		//update 3.3
-		if (!Toolbars.timeline.children.includes(BarItems.add_marker)) {
-			Toolbars.timeline.add(BarItems.add_marker, 3)
-		}
 		//Tools
 		Toolbars.main_tools = new Toolbar({
 			id: 'main_tools',
 			children: [
+				'transform_space'
 			]
 		})
 		Toolbars.brush = new Toolbar({
 			id: 'brush',
 			children: [
-				'brush_mode',
 				'fill_mode',
+				'draw_shape_type',
 				'_',
 				'slider_brush_size',
 				'slider_brush_opacity',
-				'slider_brush_min_opacity',
 				'slider_brush_softness',
+				'mirror_painting',
+				'lock_alpha',
 				'_',
 				'painting_grid',
 			]

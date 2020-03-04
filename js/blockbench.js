@@ -100,6 +100,10 @@ function updateNslideValues() {
 		BarItems.slider_size_z.update()
 
 		BarItems.slider_inflate.update()
+
+		if (!Project.box_uv) {
+			BarItems.slider_face_tint.update()
+		}
 	}
 	if (selected.length || (Format.bone_rig && Group.selected)) {
 		BarItems.slider_origin_x.update()
@@ -142,7 +146,7 @@ function setProjectResolution(width, height, modify_uv) {
 		]
 		function shiftCube(cube, axis) {
 			if (Project.box_uv) {
-				obj.uv_offset[axis] *= multiplier[axis];
+				cube.uv_offset[axis] *= multiplier[axis];
 			} else {
 				for (var face in cube.faces) {
 					var uv = cube.faces[face];
@@ -238,7 +242,7 @@ function selectAll() {
 			elements.forEach(obj => {
 				obj.selectLow()
 			})
-			updateSelection()
+			TickUpdates.selection = true;
 		} else {
 			unselectAll()
 		}
@@ -251,7 +255,7 @@ function unselectAll() {
 	Group.all.forEach(function(s) {
 		s.selected = false
 	})
-	updateSelection()
+	TickUpdates.selection = true;
 }
 function createSelection() {
 	if ($('#selgen_new').is(':checked')) {
@@ -346,7 +350,7 @@ class Mode extends KeybindItem {
 		} else {
 			BarItems.move_tool.select()
 		}
-		updateSelection()
+		TickUpdates.selection = true;
 	}
 	trigger() {
 		if (Condition(this.condition)) {
@@ -403,11 +407,15 @@ BARS.defineActions(function() {
 			BarItems.slider_color_s.update();
 			BarItems.slider_color_v.update();
 
+			$('.UVEditor').find('#uv_size').hide()
+			three_grid.visible = false;
 		},
 		onUnselect: () => {
 			Cube.all.forEach(cube => {
 				Canvas.buildGridBox(cube)
 			})
+			$('.UVEditor').find('#uv_size').show();
+			three_grid.visible = true;
 		},
 	})
 	new Mode({
@@ -447,7 +455,7 @@ BARS.defineActions(function() {
 setInterval(function() {
 	if (Outliner.root.length || textures.length) {
 		try {
-			var model = Codecs.project.compile();
+			var model = Codecs.project.compile({compressed: true});
 			localStorage.setItem('backup_model', model)
 		} catch (err) {
 			console.log('Unable to create backup. ', err)
@@ -457,33 +465,37 @@ setInterval(function() {
 //Misc
 const TickUpdates = {
 	Run() {
-		if (TickUpdates.outliner) {
-			delete TickUpdates.outliner;
-			loadOutlinerDraggable()
-		}
-		if (TickUpdates.selection) {
-			delete TickUpdates.selection;
-			updateSelection()
-		}
-		if (TickUpdates.main_uv) {
-			delete TickUpdates.main_uv;
-			main_uv.loadData()
-		}
-		if (TickUpdates.texture_list) {
-			delete TickUpdates.texture_list;
-			loadTextureDraggable();
-		}
-		if (TickUpdates.keyframes) {
-			delete TickUpdates.keyframes;
-			Vue.nextTick(Timeline.update)
-		}
-		if (TickUpdates.keyframe_selection) {
-			delete TickUpdates.keyframe_selection;
-			Vue.nextTick(updateKeyframeSelection)
-		}
-		if (TickUpdates.keybind_conflicts) {
-			delete TickUpdates.keybind_conflicts;
-			updateKeybindConflicts();
+		try {
+			if (TickUpdates.outliner) {
+				delete TickUpdates.outliner;
+				loadOutlinerDraggable()
+			}
+			if (TickUpdates.selection) {
+				delete TickUpdates.selection;
+				updateSelection()
+			}
+			if (TickUpdates.main_uv) {
+				delete TickUpdates.main_uv;
+				main_uv.loadData()
+			}
+			if (TickUpdates.texture_list) {
+				delete TickUpdates.texture_list;
+				loadTextureDraggable();
+			}
+			if (TickUpdates.keyframes) {
+				delete TickUpdates.keyframes;
+				Vue.nextTick(Timeline.update)
+			}
+			if (TickUpdates.keyframe_selection) {
+				delete TickUpdates.keyframe_selection;
+				Vue.nextTick(updateKeyframeSelection)
+			}
+			if (TickUpdates.keybind_conflicts) {
+				delete TickUpdates.keybind_conflicts;
+				updateKeybindConflicts();
+			}
+		} catch (err) {
+			console.error(err);
 		}
 	}
 }
