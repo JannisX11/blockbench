@@ -218,7 +218,7 @@ class Action extends BarItem {
 	}
 	updateHoverTitle() {
 		var text = this.description || '';
-		if (this.keybind.label) {
+		if (this && this.keybind && this.keybind.label) {
 			if (text) {
 				text = `${text} (${this.keybind.label})`;
 			} else {
