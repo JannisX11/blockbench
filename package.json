@@ -81,6 +81,6 @@
 	"devDependencies": {
 		"async": "^2.4.1",
 		"electron": "8.0.2",
-		"electron-builder": "^22.3.2"
+		"electron-builder": "^21.2.0"
 	}
 }
