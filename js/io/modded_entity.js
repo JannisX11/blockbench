@@ -104,15 +104,10 @@ var codec = new Codec('modded_entity', {
 
 
 		var model = (settings.credit.value
-				? '//'+settings.credit.value+'\n'
+				? '// '+settings.credit.value+'\n'
 				: '')+
-			'//Paste this code into your mod.\n' +
-			'\nimport org.lwjgl.opengl.GL11;'+
-			'\nimport net.minecraft.client.model.ModelBase;'+
-			'\nimport net.minecraft.client.model.ModelBox;'+
-			`\nimport net.minecraft.client.model.${rendererName};`+
-			'\nimport net.minecraft.client.renderer.GlStateManager;'+
-			'\nimport net.minecraft.entity.Entity;\n';
+			'// Paste this code into your mod.\n' +
+			'// Make sure to generate all required imports\n'
 		if (ver == 1) {
 			model += '\npublic class '+model_id+' extends EntityModel {';
 		} else {

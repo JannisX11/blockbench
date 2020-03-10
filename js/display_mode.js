@@ -1460,6 +1460,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	display_area.updateMatrixWorld()
 	display_base.updateMatrixWorld()
 	lights.rotation.set(0, 0, 0);
+	if (scene.parent) scene.parent.remove(scene)
 
 	display_mode = false;
 	main_preview.fullscreen()

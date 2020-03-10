@@ -411,6 +411,7 @@ function setupDragHandlers() {
 				var tex = textures.findInArray('uuid', texture_li.attr('texid'))
 				if (tex) {
 					tex.fromFile(files[0])
+					TickUpdates.selection = true;
 					return;
 				}
 			}
@@ -888,7 +889,7 @@ BARS.defineActions(function() {
 				form: {
 					format: {type: 'text', label: 'data.format', text: Format.name||'unknown'},
 					name: {label: 'dialog.project.name', value: Project.name},
-					parent: {label: 'dialog.project.parent', value: Project.parent, condition: !Format.bone_rig},
+					parent: {label: 'dialog.project.parent', value: Project.parent, condition: !Format.bone_rig, list: ['paro', 'foo', 'bar']},
 					geometry_name: {label: 'dialog.project.geoname', value: Project.geometry_name, condition: Format.bone_rig},
 					ambientocclusion: {label: 'dialog.project.ao', type: 'checkbox', value: Project.ambientocclusion, condition: Format.id == 'java_block'},
 					box_uv: {label: 'dialog.project.box_uv', type: 'checkbox', value: Project.box_uv, condition: Format.optional_box_uv},

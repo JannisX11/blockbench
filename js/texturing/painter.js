@@ -373,7 +373,6 @@ const Painter = {
 						var a = b_opacity * opacity;
 						var before = Painter.getAlphaMatrix(texture, px, py)
 						Painter.setAlphaMatrix(texture, px, py, a);
-						//if (before) a = Math.clamp(a-before, 0, 1);
 						if (a > before) {
 							a = (a - before) / (1 - before);
 						} else if (before) {
@@ -385,15 +384,12 @@ const Painter = {
 					})
 				} else if (tool === 'eraser') {
 					Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity) {
-						if (!Painter.lock_alpha) {
-							var a = b_opacity;
-							return {
-								r: pxcolor.r,
-								g: pxcolor.g,
-								b: pxcolor.b,
-								a: pxcolor.a*(1-a)
-							};
-						}
+						return {
+							r: pxcolor.r,
+							g: pxcolor.g,
+							b: pxcolor.b,
+							a: Painter.lock_alpha ? pxcolor.a : (pxcolor.a*(1-b_opacity))
+						};
 					})
 				}
 				ctx.restore();
@@ -626,6 +622,7 @@ const Painter = {
 		} else {
 			for (var cube2 of Cube.all) {
 				if (
+					cube.inflate === cube2.inflate &&
 					cube.from[2] === cube2.from[2] && cube.to[2] === cube2.to[2] &&
 					cube.from[1] === cube2.from[1] && cube.to[1] === cube2.to[1] &&
 					cube.size(0) === cube2.size(0) && cube.to[0]-center === center-cube2.from[0]
@@ -703,7 +700,7 @@ const Painter = {
 	},
 	editCircle(ctx, x, y, r, s, editPx) {
 		r = Math.round(r+1)/2
-		Painter.scanCanvas(ctx, x-r-2, y-r-2, 2*r+4, 2*r+4, function (px, py, pixel) {
+		Painter.scanCanvas(ctx, x-Math.ceil(r)-2, y-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
 			if (
 				settings.paint_side_restrict.value &&
 				Painter.editing_area && 
@@ -718,8 +715,8 @@ const Painter = {
 				return;
 			}
 
-			px -= x;
-			py -= y;
+			px -= x - r%1;
+			py -= y - r%1;
 
 			var distance = Math.sqrt(px*px + py*py)
 			if (s*r != 0) {

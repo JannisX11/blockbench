@@ -296,10 +296,7 @@ class Texture {
 		this.startWatcher()
 		Painter.current = {}
 		
-		if (!isApp && Project.dataURLTextures) {
-			this.loadEmpty()
-
-		} else if (EditSession.active) {
+		if (EditSession.active) {
 			this.load(() => {
 				var before = {textures: {}}
 				before.textures[scope.uuid] = true;
@@ -362,6 +359,7 @@ class Texture {
 		return this;
 	}
 	updateSource(dataUrl) {
+		// Update the source, only used when source is secure + base64 
 		if (!dataUrl) dataUrl = this.source;
 		this.source = dataUrl;
 		this.img.src = dataUrl;
@@ -440,8 +438,7 @@ class Texture {
 			tex_version++;
 		}
 		this.source = this.source.replace(/\?\d+$/, '?' + tex_version)
-		this.img.src = this.source;
-		this.updateMaterial();
+		this.load();
 		TickUpdates.main_uv = true;
 		TickUpdates.texture_list = true;
 	}
@@ -803,7 +800,7 @@ class Texture {
 				var image = nativeImage.createFromDataURL(scope.source).toPNG()
 			}
 			tex_version++;
-			if (!as && this.path && this.path.substr(1,1) === ':') {
+			if (!as && this.path && this.path.substr(1,1) === ':' && fs.existsSync(this.path)) {
 				fs.writeFile(this.path, image, function (err) {
 					scope.fromPath(scope.path)
 				})

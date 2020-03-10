@@ -30,7 +30,7 @@ const Clipbench = {
 		if (display_mode) {
 			return Clipbench.types.display_slot
 		}
-		if (Animator.open && Timeline.animators.length && (Timeline.selected.length || mode === 2)) {
+		if (Animator.open && Timeline.animators.length && (Timeline.selected.length || mode === 2) && ['keyframe', 'timeline'].includes(p)) {
 			return Clipbench.types.keyframe
 		}
 		if ((p == 'uv' || p == 'preview') && Modes.edit) {

@@ -502,6 +502,8 @@ class NonGroup extends OutlinerElement {
 				break;
 		}
 	}
+	NonGroup.selected = selected;
+	NonGroup.all = elements;
 
 Array.prototype.findRecursive = function(key1, val) {
 	var i = 0

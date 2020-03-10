@@ -2792,7 +2792,7 @@ skin_presets.panda = `{
 	"textureheight": 64,
 	"eyes": [
 		[11, 19, 2, 1],
-		[18, 19, 2, 1],
+		[18, 19, 2, 1]
 	],
 	"bones": [
 		{

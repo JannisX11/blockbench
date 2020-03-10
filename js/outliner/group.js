@@ -407,8 +407,8 @@ class Group extends OutlinerElement {
 		}},
 		*/
 		'rename',
-		{icon: 'sort_by_alpha', name: 'menu.group.sort', click: function(group) {group.sortContent()}},
-		{icon: 'fa-leaf', name: 'menu.group.resolve', click: function(group) {
+		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
+		{icon: 'fa-leaf', name: 'menu.group.resolve', condition: {modes: ['edit']}, click: function(group) {
 			Undo.initEdit({outliner: true})
 			group.resolve()
 			Undo.finishEdit('group resolve')

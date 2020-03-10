@@ -45,8 +45,7 @@ function getSelectionCenter() {
 	var center = [0, 0, 0]
 	var i = 0;
 	selected.forEach(obj => {
-		var m = obj.mesh
-		if (m) {
+		if (obj.getWorldCenter) {
 			var pos = obj.getWorldCenter();
 			center[0] += pos.x
 			center[1] += pos.y
@@ -1316,34 +1315,37 @@ BARS.defineActions(function() {
 	new Action('toggle_visibility', {
 		icon: 'visibility',
 		category: 'transform',
+		condition: {modes: ['edit']},
 		click: function () {toggleCubeProperty('visibility')}
 	})
 	new Action('toggle_export', {
 		icon: 'save',
 		category: 'transform',
+		condition: {modes: ['edit']},
 		click: function () {toggleCubeProperty('export')}
 	})
 	new Action('toggle_autouv', {
 		icon: 'fullscreen_exit',
 		category: 'transform',
+		condition: {modes: ['edit']},
 		click: function () {toggleCubeProperty('autouv')}
 	})
 	new Action('toggle_shade', {
 		icon: 'wb_sunny',
 		category: 'transform',
-		condition: () => !Project.box_uv,
+		condition: () => !Project.box_uv && Modes.edit,
 		click: function () {toggleCubeProperty('shade')}
 	})
 	new Action('toggle_mirror_uv', {
 		icon: 'icon-mirror_x',
 		category: 'transform',
-		condition: () => Project.box_uv,
+		condition: () => Project.box_uv && Modes.edit,
 		click: function () {toggleCubeProperty('shade')}
 	})
 	new Action('update_autouv', {
 		icon: 'brightness_auto',
 		category: 'transform',
-		condition: () => !Project.box_uv,
+		condition: () => !Project.box_uv && Modes.edit,
 		click: function () {
 			if (Cube.selected.length) {
 				Undo.initEdit({elements: Cube.selected[0].forSelected(), selection: true})
@@ -1357,6 +1359,7 @@ BARS.defineActions(function() {
 	new Action('origin_to_geometry', {
 		icon: 'filter_center_focus',
 		category: 'transform',
+		condition: {modes: ['edit']},
 		click: function () {origin2geometry()}
 	})
 	new Action('rescale_toggle', {

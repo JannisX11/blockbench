@@ -180,7 +180,7 @@ var codec = new Codec('project', {
 				var copy = NonGroup.fromSave(element, true)
 				for (var face in copy.faces) {
 					if (!Format.single_texture) {
-						var texture = element.faces[face].texture && textures[element.faces[face].texture]
+						var texture = element.faces[face].texture !== null && textures[element.faces[face].texture]
 						if (texture) {
 							copy.faces[face].texture = texture.uuid
 						}

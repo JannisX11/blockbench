@@ -553,7 +553,9 @@ class Preview {
 		if (this.static_rclick && (event.which === 3 || (event.type == 'touchend' && this.rclick_cooldown == true))) {
 			var data = this.raycast(event)
 			if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data && data.cube) {
-				data.cube.showContextMenu(event)
+				if (!Modes.animate) {
+					data.cube.showContextMenu(event)
+				}
 			} else {
 				this.menu.open(event, this)
 			}
@@ -1586,7 +1588,7 @@ function buildGrid() {
 		x: side_grid,
 		z: side_grid.clone()
 	}
-	scene.add(Canvas.side_grids.x)
+	three_grid.add(Canvas.side_grids.x)
 	Canvas.side_grids.x.name = 'side_grid_x'
 	Canvas.side_grids.x.visible = !Modes.display;
 	Canvas.side_grids.x.rotation.z = Math.PI/2;
@@ -1595,7 +1597,7 @@ function buildGrid() {
 		el.layers.set(1)
 	});
 
-	scene.add(Canvas.side_grids.z)
+	three_grid.add(Canvas.side_grids.z)
 	Canvas.side_grids.z.name = 'side_grid_z'
 	Canvas.side_grids.z.visible = !Modes.display;
 	Canvas.side_grids.z.rotation.z = Math.PI/2;

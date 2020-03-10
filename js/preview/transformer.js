@@ -923,21 +923,6 @@
 						Transformer.rotation_ref = space.mesh;
 
 					}
-
-
-
-					/* else if (Group.selected && !Blockbench.globalMovement) {
-						Transformer.rotation_ref = rotation_object.mesh;
-
-					} else if (Group.selected && Blockbench.globalMovement && Group.selected.parent && Format.bone_rig) {
-						Transformer.rotation_ref = Group.selected.parent.mesh;
-						
-					} else if (!Blockbench.globalMovement && Cube.selected[0] && Cube.selected[0].mesh) {
-						Transformer.rotation_ref = Cube.selected[0].mesh;
-
-					} else if (!Blockbench.globalMovement && Locator.selected[0]) {
-						Transformer.rotation_ref = Locator.selected[0].parent.mesh;
-					}*/
 				}
 
 			} else if (Modes.display) {
@@ -964,9 +949,10 @@
 				Group.selected.mesh.getWorldPosition(this.position);
 				if (Toolbox.selected.id == 'resize_tool') {
 					Transformer.rotation_ref = Group.selected.mesh;
-				} else if (!Toolbox.selected.id == 'move_tool' || !Group.selected.ik_enabled) {
+				} else {
 					Transformer.rotation_ref = Group.selected.mesh.parent;
 				}
+
 			}
 		}
 		function displayDistance(number) {

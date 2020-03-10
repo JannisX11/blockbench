@@ -33,6 +33,7 @@ var codec = new Codec('gltf', {
 								let times = [];
 								let values = [];
 								let keyframes = animator[channel].slice();
+								keyframes.sort((a, b) => a.time - b.time)
 								keyframes.forEach(kf => {
 									times.push(kf.time);
 									Timeline.time = kf.time;

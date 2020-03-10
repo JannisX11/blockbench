@@ -1,3 +1,4 @@
 /dist/
 index.php
 package-lock.json
+node_modules/

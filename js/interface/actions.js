@@ -1632,6 +1632,10 @@ const BARS = {
 				'transform_space'
 			]
 		})
+		// update 3.4.1
+		if (!Toolbars.main_tools.children.includes(BarItems.transform_space)) {
+			Toolbars.main_tools.add(BarItems.transform_space, -1)
+		}
 		Toolbars.brush = new Toolbar({
 			id: 'brush',
 			children: [

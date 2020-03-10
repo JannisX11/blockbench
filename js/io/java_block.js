@@ -312,7 +312,19 @@ var codec = new Codec('java_block', {
 				base_cube = new Cube(obj)
 				if (obj.__comment) base_cube.name = obj.__comment
 				//Faces
-				var uv_stated = false;
+				var faces_without_uv = false;
+				for (var key in base_cube.faces) {
+					if (obj.faces[key] && !obj.faces[key].uv) {
+						faces_without_uv = true;
+					}
+				}
+				if (faces_without_uv) {
+					base_cube.autouv = 2
+					base_cube.mapAutoUV()
+				} else {
+					base_cube.autouv = 0;
+				}
+
 				for (var key in base_cube.faces) {
 					var read_face = obj.faces[key];
 					var new_face = base_cube.faces[key];
@@ -322,10 +334,9 @@ var codec = new Codec('java_block', {
 						new_face.uv = [0,0,0,0]
 					} else {
 						if (typeof read_face.uv === 'object') {
-							uv_stated = true
 
 							new_face.uv.forEach((n, i) => {
-								new_face.uv[i] *= main_uv.getResolution(i%2) / 16;
+								new_face.uv[i] = read_face.uv[i] * main_uv.getResolution(i%2) / 16;
 							})
 						}
 						if (read_face.texture === '#missing') {
@@ -354,12 +365,7 @@ var codec = new Codec('java_block', {
 						}
 					}
 				}
-				if (!uv_stated) {
-					base_cube.autouv = 2
-					base_cube.mapAutoUV()
-				} else {
-					base_cube.autouv = 0;
-				}
+
 				if (!add) {
 					Outliner.root.push(base_cube)
 					base_cube.parent = 'root'

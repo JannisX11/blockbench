@@ -85,7 +85,15 @@ function Dialog(settings) {
 
 					switch (data.type) {
 						default:
-							bar.append(`<input class="dark_bordered half focusable_input" type="text" id="${form_id}" value="${data.value||''}" placeholder="${data.placeholder||''}">`)
+							bar.append(`<input class="dark_bordered half focusable_input" type="text" id="${form_id}" value="${data.value||''}" placeholder="${data.placeholder||''}" ${data.list ? `list="${scope.id}_${form_id}_list"` : ''}>`)
+							if (data.list) {
+								let id = `${scope.id}_${form_id}_list`
+								let list = $(`<datalist id="${scope.id}_${form_id}_list"></datalist>`)
+								for (let value of data.list) {
+									list.append(`<option value="${value}">`)
+								}
+								bar.append(list)
+							}
 							break;
 						case 'textarea':
 							bar.append(`<textarea class="focusable_input" style="height: ${data.height||150}px;" id="${form_id}"></textarea>`)

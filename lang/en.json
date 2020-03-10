@@ -228,7 +228,7 @@
 	"dialog.project.title": "Project",
 	"dialog.project.name": "File Name",
 	"dialog.project.parent": "Parent Model",
-	"dialog.project.geoname": "Mob Geometry Name",
+	"dialog.project.geoname": "Model Identifier",
 	"dialog.project.openparent": "Open Parent",
 	"dialog.project.ao": "Ambient Occlusion",
 	"dialog.project.box_uv": "Box UV",

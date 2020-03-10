@@ -992,6 +992,9 @@
 		cursor: default;
 		pointer-events: none;
 		z-index: 5;
+		color: white;
+		mix-blend-mode: difference;
+		font-weight: 300;
 	}
 	.panel .bar.next_to_title {
 		margin-top: -30px;
@@ -1231,5 +1234,7 @@
 	}
 	.panel#color .sp-container.sp-flat {
 		overflow: visible;
+		margin: 2px 4px 0 4px;
+		width: calc(100% - 8px);
 	}
 

@@ -1225,6 +1225,7 @@ const Animator = {
 					animation.getBoneAnimator(group).displayFrame(Timeline.time)
 				}
 			})
+			group.mesh.updateMatrixWorld()
 		})
 
 		Animator.animations.forEach(animation => {
