@@ -111,7 +111,7 @@ var codec = new Codec('modded_entity', {
                         F(obj.inflate)
                     ]
                     bone.lines.push(
-                        `${id}.func_228301_a_(${values.join(', ') });`
+                        `${id}.addBox(${values.join(', ') });`
                     )
                 }
 			})
@@ -187,12 +187,12 @@ var codec = new Codec('modded_entity', {
         } else {
             model +=
                 '\n    @Override'+
-                `\n    public void func_225597_a_(${model_plain}Entity entity, float f1, float f2, float f3, float f4, float f5) {}\n`+
+                `\n    public void setRotationAngles(${model_plain}Entity entity, float f1, float f2, float f3, float f4, float f5) {}\n`+
                 '\n    @Override'+
-                '\n    public void func_225598_a_(MatrixStack stack, IVertexBuilder builder, int i1, int i2, float f1, float f2, float f3, float f4) {';
+                '\n    public void render(MatrixStack stack, IVertexBuilder builder, int i1, int i2, float f1, float f2, float f3, float f4) {';
             for (var r_id in renderers) {
                 if(renderers[r_id].rootBone) {
-                    model += `\n        ${r_id}.func_228309_a_(stack, builder, i1, i2, f1, f2, f3, f4);`;
+                    model += `\n        ${r_id}.render(stack, builder, i1, i2, f1, f2, f3, f4);`;
                 }
             }
 
