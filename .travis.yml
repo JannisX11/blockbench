@@ -4,7 +4,7 @@ dist: trusty
 language: node_js
 node_js: "10"
 
-matrix:
+jobs:
   include:
     - name: "macOS + Win Portable"
       os: osx
@@ -17,8 +17,9 @@ matrix:
       script:
         - electron-builder -w --x64 --publish=always
         - electron-builder -w --ia32 --publish=always -c.productName='Blockbench_32bit'
-      provider: releases
-      file: dist/win-unpacked/resources/app.asar
+      deploy:
+        provider: releases
+        file: dist/win-unpacked/resources/app.asar
 
     - name: "Linux"
       os: linux
