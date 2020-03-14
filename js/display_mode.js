@@ -1428,6 +1428,7 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	selected.empty()
 	updateSelection()
 
+	display_base.add(scene)
 	if (!display_preview) {
 		display_preview = new Preview({id: 'display'})
 	}

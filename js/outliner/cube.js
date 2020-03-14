@@ -731,11 +731,12 @@ class Cube extends NonGroup {
 	resize(val, axis, negative, allow_negative) {
 		var before = this.oldScale != undefined ? this.oldScale : this.size(axis);
 		var modify = val instanceof Function ? val : n => (n+val)
-		if (Format.integer_size && Project.box_uv) {
-			val = Math.ceil(val);
-		}
+
 		if (!negative) {
 			var pos = limitToBox(this.from[axis] + modify(before), this.inflate);
+			if (Format.integer_size && Project.box_uv) {
+				pos = Math.round(pos);
+			}
 			if (pos >= this.from[axis] || settings.negative_size.value || allow_negative) {
 				this.to[axis] = pos;
 			} else {

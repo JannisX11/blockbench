@@ -1243,7 +1243,6 @@ function initCanvas() {
 
 	display_scene.add(display_area)
 	display_area.add(display_base)
-	display_base.add(scene)
 
 	scene.name = 'scene'
 	display_base.name = 'display_base'
@@ -1593,6 +1592,7 @@ function buildGrid() {
 	Canvas.side_grids.x.visible = !Modes.display;
 	Canvas.side_grids.x.rotation.z = Math.PI/2;
 	Canvas.side_grids.x.position.y = Format.centered_grid ? 8 : 0;
+	Canvas.side_grids.z.position.y = -512
 	Canvas.side_grids.x.children.forEach(el => {
 		el.layers.set(1)
 	});
@@ -1603,6 +1603,7 @@ function buildGrid() {
 	Canvas.side_grids.z.rotation.z = Math.PI/2;
 	Canvas.side_grids.z.rotation.y = Math.PI/2
 	Canvas.side_grids.z.position.y = Format.centered_grid ? 8 : 0;
+	Canvas.side_grids.z.position.z = -512
 	Canvas.side_grids.z.children.forEach(el => {
 		el.layers.set(3)
 	});

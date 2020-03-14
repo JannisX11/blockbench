@@ -439,6 +439,7 @@ class Texture {
 		}
 		this.source = this.source.replace(/\?\d+$/, '?' + tex_version)
 		this.load();
+		this.updateMaterial()
 		TickUpdates.main_uv = true;
 		TickUpdates.texture_list = true;
 	}
@@ -995,17 +996,18 @@ function loadTextureDraggable() {
 		setTimeout(function() {
 			$('li.texture:not(.ui-draggable)').draggable({
 				revertDuration: 0,
+				cursorAt: { left: 2, top: -5 },
+				revert: 'invalid',
+				appendTo: 'body',
+				zIndex: 19,
+				distance: 12,
+				delay: 120,
 				helper: function(e) {
 					var t = $(e.target)
 					if (!t.hasClass('texture')) t = t.parent()
 					if (!t.hasClass('texture')) t = t.parent()
 					return t.find('.texture_icon_wrapper').clone().addClass('texture_drag_helper').attr('texid', t.attr('texid'))
 				},
-				cursorAt: { left: 2, top: -5 },
-				revert: 'invalid',
-				appendTo: 'body',
-				zIndex: 19,
-				distance: 4,
 				drag: function(event, ui) {
 					$('.outliner_node[order]').attr('order', null)
 					var tar = $('#cubes_list li .drag_hover.outliner_node').deepest()

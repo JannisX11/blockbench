@@ -214,6 +214,7 @@ class Menu {
 
 		if (offset_left > $(window).width() - el_width) {
 			offset_left -= el_width
+			if (position && position.clientWidth) offset_left += position.clientWidth;
 		}
 		if (offset_top  > $(window).height() - el_height ) {
 			offset_top -= el_height
@@ -565,7 +566,8 @@ const MenuBar = {
 							icon: 'label',
 							name: p.name,
 							click: function() {
-								display_presets.splice(display_presets.indexOf(p),1)
+								display_presets.splice(display_presets.indexOf(p), 1);
+								localStorage.setItem('display_presets', JSON.stringify(display_presets))
 							}
 						})
 					}

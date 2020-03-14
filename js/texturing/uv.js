@@ -304,23 +304,23 @@ class UVEditor {
 			}
 		})
 		//Paint brush outline
-		var brush_outline = $('<div id="uv_brush_outline"></div>');
+		this.brush_outline = $('<div id="uv_brush_outline"></div>');
 		scope.jquery.frame.on('mouseenter mousemove', e => {
 			if (Modes.paint && Toolbox.selected.brushTool) {
-				scope.jquery.frame.append(brush_outline);
+				scope.jquery.frame.append(this.brush_outline);
 				var pixel_size = scope.inner_width / (scope.texture ? scope.texture.width : Project.texture_width);
 				//pos
 				let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0.5 : 0;
 				let left = (0.5 - offset + Math.floor(e.offsetX / pixel_size + offset)) * pixel_size;
 				let top =  (0.5 - offset + Math.floor(e.offsetY / pixel_size + offset)) * pixel_size;
-				brush_outline.css('left', left+'px').css('top', top+'px');
+				this.brush_outline.css('left', left+'px').css('top', top+'px');
 				//size
 				var radius = (BarItems.slider_brush_size.get()/2) * pixel_size;
-				brush_outline.css('padding', radius+'px').css('margin', (-radius)+'px');
+				this.brush_outline.css('padding', radius+'px').css('margin', (-radius)+'px');
 			}
 		})
 		scope.jquery.frame.on('mouseleave', e => {
-			brush_outline.detach();
+			this.brush_outline.detach();
 		})
 		this.setSize(this.size)
 		return this;
@@ -330,11 +330,8 @@ class UVEditor {
 		var box = $('<div class="uv_message_box">' + msg + '</div>')
 		this.jquery.main.append(box)
 		setTimeout(function() {
-			box.fadeOut(200)
-			setTimeout(function() {
-				box.remove()
-			}, 300)
-		}, 1000)
+			box.remove()
+		}, 1200)
 	}
 	//Brush
 	getBrushCoordinates(event, tex) {

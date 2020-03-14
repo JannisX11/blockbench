@@ -659,6 +659,10 @@ function loadOutlinerDraggable() {
 		$('li.outliner_node:not(.ui-droppable) > div.outliner_object').draggable({
 			delay: 120,
 			revertDuration: 50,
+			revert: 'invalid',
+			appendTo: 'body',
+			zIndex: 19,
+			cursorAt: {left: 5},
 			helper: function() {
 				var item = Outliner.root.findRecursive('uuid', $(this).attr('id'))
 				var helper = $(this).clone()
@@ -672,10 +676,6 @@ function loadOutlinerDraggable() {
 				})
 				return helper;
 			},
-			revert: 'invalid',
-			appendTo: 'body',
-			zIndex: 19,
-			cursorAt: {left: 5},
 			drag: function(event, ui) {
 				$('.outliner_node[order]').attr('order', null)
 				if ($('#cubes_list.drag_hover').length === 0) {

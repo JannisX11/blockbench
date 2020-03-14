@@ -27,7 +27,7 @@
 
 	dialog {
 		width: 540px;
-		min-width: 370px;
+		min-width: min(370px, 100%);
 		height: auto;
 		background-color: var(--color-ui);
 		color: inherit;
@@ -57,7 +57,7 @@
 		margin-left: auto;
 	}
 	.dialog:not(.ui-resizable) {
-		min-width: 400px;
+		min-width: min(400px, 100%);
 		max-width: 660px;
 	}
 	.dialog.paddinged {
@@ -173,11 +173,6 @@
 	}
 
 /*Settings Dialog*/
-	dialog#settings {
-		min-width: 400px;
-    	max-width: 640px;
-    	width: 100%;
-	}
 	#settings_tab_bar {
 		margin: -24px;
 		margin-bottom: 0;
@@ -212,6 +207,7 @@
 		width: 100%;
 		max-height: 600px;
 		overflow-y: scroll;
+		clear: both;
 	}
 	#settingslist li > ul {
 		margin-left: 24px;
@@ -279,6 +275,12 @@
 	}
 
 	/*Keybinds*/
+	#keybindlist {
+		max-height: 600px;
+		padding-bottom: 25px;
+		overflow-y: scroll;
+		clear: both;
+	}
 	#keybindlist .tool {
 		height: 30px;
 		width: 25px;
@@ -314,11 +316,6 @@
 	}
 	#keybindlist > li > ul > li {
 		position: relative;
-	}
-	#keybindlist {
-		max-height: 600px;
-		padding-bottom: 25px;
-		overflow-y: scroll;
 	}
 	#keybindlist > li {
 		width: 100%;
