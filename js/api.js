@@ -299,6 +299,7 @@ const Blockbench = {
 			//startpath
 			//title
 			//errorbox
+			//resource_id
 
 		if (isApp) {
 			var properties = []
@@ -308,6 +309,9 @@ const Blockbench = {
 			if (options.extensions[0] === 'image/*') {
 				options.type = 'Images'
 				options.extensions = ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif']
+			}
+			if (!options.startpath && options.resource_id) {
+				options.startpath = StateMemory.dialog_paths[options.resource_id]
 			}
 
 			ElecDialogs.showOpenDialog(
@@ -323,6 +327,11 @@ const Blockbench = {
 					defaultPath: options.startpath
 				},
 			function (fileNames) {
+				if (!fileNames) return;
+				if (options.resource_id) {
+					StateMemory.dialog_paths[options.resource_id] = PathModule.dirname(fileNames[0])
+					StateMemory.save('dialog_paths')
+				}
 				Blockbench.read(fileNames, options, cb)
 			})
 		} else {
@@ -478,6 +487,7 @@ const Blockbench = {
 			savetype
 			project_file
 			custom_writer
+			resource_id
 		*/
 		if (Blockbench.isWeb) {
 			var file_name = options.name + (options.extensions ? '.'+options.extensions[0] : '')
@@ -504,6 +514,12 @@ const Blockbench = {
 				cb(file_name)
 			}
 		} else {
+			if (!options.startpath && options.resource_id) {
+				options.startpath = StateMemory.dialog_paths[options.resource_id]
+				if (options.name) {
+					options.startpath += osfs + options.name + (options.extensions ? '.'+options.extensions[0] : '');
+				}
+			}
 			ElecDialogs.showSaveDialog(currentwindow, {
 				dontAddToRecent: true,
 				filters: [ {
@@ -515,6 +531,10 @@ const Blockbench = {
 					: options.name
 			}, function (file_path) {
 				if (!file_path) return;
+				if (options.resource_id) {
+					StateMemory.dialog_paths[options.resource_id] = PathModule.dirname(file_path)
+					StateMemory.save('dialog_paths')
+				}
 				var extension = pathToExtension(file_path);
 				if (!extension && options.extensions && options.extensions[0]) {
 					file_path += '.'+options.extensions[0]
@@ -634,6 +654,38 @@ if (isApp) {
 	}
 	if (Blockbench.platform.includes('win32') === true) osfs = '\\';
 }
+
+
+
+const StateMemory = {
+	init(key, type) {
+		let saved = localStorage.getItem(`StateMemory.${key}`)
+		if (typeof saved == 'string') {
+			try {
+				saved = JSON.parse(saved)
+			} catch (err) {
+				localStorage.clearItem(`StateMemory.${key}`)
+			}
+		}
+		if ( saved !== null && (typeof saved == type || (type == 'array' && saved instanceof Array)) ) {
+			StateMemory[key] = saved;
+		} else {
+			StateMemory[key] = (() => {switch (type) {
+				case 'string': return ''; break;
+				case 'number': return 0; break;
+				case 'boolean': return false; break;
+				case 'object': return {}; break;
+				case 'array': return []; break;
+			}})();
+		}
+	},
+	save(key) {
+		let serialized = JSON.stringify(StateMemory[key])
+		localStorage.setItem(`StateMemory.${key}`, serialized)
+	}
+}
+
+
 
 document.ondragover = function(event) {
 	event.preventDefault()

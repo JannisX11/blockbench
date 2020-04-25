@@ -38,6 +38,12 @@ var codec = new Codec('project', {
 			model.ambientocclusion = Project.ambientocclusion
 			model.front_gui_light = Project.front_gui_light;
 		}
+		if (Format.id == 'bedrock' || Format.id == 'bedrock_legacy') {
+			model.visible_box = Project.visible_box
+		}
+		if (Format.id == 'modded_entity') {
+			model.modded_entity_version = Project.modded_entity_version
+		}
 		model.resolution = {
 			width: Project.texture_width || 16,
 			height: Project.texture_height || 16,
@@ -156,6 +162,12 @@ var codec = new Codec('project', {
 		if (model.front_gui_light !== undefined) {
 			Project.front_gui_light = !!model.front_gui_light;
 		}
+		if (model.visible_box) {
+			Project.visible_box.splice(0, Infinity, ...model.visible_box)
+		}
+		if (model.modded_entity_version) {
+			Project.modded_entity_version = model.modded_entity_version
+		}
 		if (model.resolution !== undefined) {
 			Project.texture_width = model.resolution.width;
 			Project.texture_height = model.resolution.height;
@@ -179,12 +191,12 @@ var codec = new Codec('project', {
 
 				var copy = NonGroup.fromSave(element, true)
 				for (var face in copy.faces) {
-					if (!Format.single_texture) {
+					if (!Format.single_texture && element.faces) {
 						var texture = element.faces[face].texture !== null && textures[element.faces[face].texture]
 						if (texture) {
 							copy.faces[face].texture = texture.uuid
 						}
-					} else if (textures[0] && copy.faces[face].texture !== null) {
+					} else if (textures[0] && copy.faces && copy.faces[face].texture !== null) {
 						copy.faces[face].texture = textures[0].uuid
 					}
 				}

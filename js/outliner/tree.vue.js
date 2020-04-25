@@ -6,8 +6,8 @@
 			`<div v-on:contextmenu.prevent.stop="node.showContextMenu($event)"
 				class="outliner_object" v-on:dblclick.stop.self="renameOutliner()"
 				v-on:click="node.select($event, true)" v-on:touchstart="node.select($event)" :title="node.title"
-				v-bind:class="{ cube: node.type === \'cube\', group: node.type === \'group\', selected: node.selected }"
-				v-bind:style="{'padding-left': (node.getDepth ? limitNumber(node.getDepth(), 0, (Interface.Panels.outliner.width-124) / 16) * 16 : 0)+'px'}"
+				v-bind:class="{ cube: node.type === 'cube', group: node.type === 'group', selected: node.selected }"
+				v-bind:style="{'padding-left': getIndentation(node) + 'px'}"
 			>` +
 				//Opener
 				
@@ -16,15 +16,16 @@
 				//Main
 				'<i :class="node.icon + (settings.outliner_colors.value ? \' ec_\'+node.color : \'\')" v-on:dblclick.stop="if (node.children && node.children.length) {node.isOpen = !node.isOpen;}"></i>' +
 				'<input type="text" class="cube_name tab_target" v-model="node.name" disabled>' +
-				'<a v-for="btn in node.buttons" class="ml5" href="javascript:" :title="btn.title" v-on:click.stop="btnClick(btn, node)" v-bind:class="{advanced_option: btn.advanced_option}">' +
+				'<a v-for="btn in node.buttons" class="ml5" href="javascript:" :title="btn.title" v-on:click.stop="btnClick(btn, node)" v-bind:class="{advanced_option: btn.advanced_option && (btn.id !== \'locked\' || !node.isIconEnabled(btn))}">' +
 					'<i v-if="node.isIconEnabled(btn) === true" :class="btn.icon"></i>' +
 					'<i v-else-if="node.isIconEnabled(btn) === \'alt\'" :class="btn.icon_alt"></i>' +
-					'<i v-else :class="btn.icon_off"></i>' +
+					'<i v-else :class="[btn.icon_off, \'icon_off\']"></i>' +
 				'</a>' +
 			'</div>' +
 			//Other Entries
 			'<ul v-show="node.isOpen">' +
 				'<vue-tree-item v-for="item in node.children" :node="item" v-key="item.uuid"></vue-tree-item>' +
+				`<div class="outliner_line_guide" v-if="node == Group.selected" v-bind:style="{left: getIndentation(node) + 'px'}"></div>` +
 			'</ul>' +
 		'</li>',
 		props: {
@@ -51,6 +52,9 @@
 				if (typeof btn.click === 'function') {
 					btn.click(node);
 				}
+			},
+			getIndentation(node) {
+				return node.getDepth ? (limitNumber(node.getDepth(), 0, (Interface.Panels.outliner.width-124) / 16) * 16) : 0;
 			}
 		},
 		watch: {

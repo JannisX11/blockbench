@@ -116,9 +116,10 @@ class ResizeLine {
 		var jq = $('<div class="resizer '+(data.horizontal ? 'horizontal' : 'vertical')+'"></div>')
 		this.node = jq.get(0)
 		jq.draggable({
-			axis: this.horizontal ? 'y' : 'y',
+			axis: this.horizontal ? 'y' : 'x',
 			containment: '#page_wrapper',
 			revert: true,
+			revertDuration: 0,
 			start: function(e, u) {
 				scope.before = data.get()
 			},
@@ -126,7 +127,7 @@ class ResizeLine {
 				if (scope.horizontal) {
 					data.set(scope.before, u.position.top - u.originalPosition.top)
 				} else {
-					data.set(scope.before, (e.clientX - u.position.left))
+					data.set(scope.before, (u.position.left - u.originalPosition.left))
 				}
 				updateInterface()
 			},
@@ -189,13 +190,14 @@ var Interface = {
 			},
 			get: function() {return Interface.data.left_bar_width},
 			set: function(o, diff) {
-				Interface.data.left_bar_width = limitNumber(o + diff, 128, $(window).width()- 240 - Interface.data.right_bar_width)
+				let calculated = limitNumber(o + diff, 128, $(window).width()- 120 - Interface.data.right_bar_width)
+				Interface.data.left_bar_width = Math.snapToValues(calculated, [Interface.default_data.left_bar_width], 16);
 			},
 			position: function(line) {
 				line.setPosition({
-					top: 32,
+					top: 26,
 					bottom: 0,
-					left: Interface.data.left_bar_width-3
+					left: Interface.data.left_bar_width+2
 				})
 			}
 		}),
@@ -210,13 +212,14 @@ var Interface = {
 			},
 			get: function() {return Interface.data.right_bar_width},
 			set: function(o, diff) {
-				Interface.data.right_bar_width = limitNumber(o - diff, 128, $(window).width()- 240 - Interface.data.left_bar_width)
+				let calculated = limitNumber(o - diff, 128, $(window).width()- 120 - Interface.data.left_bar_width);
+				Interface.data.right_bar_width = Math.snapToValues(calculated, [Interface.default_data.right_bar_width], 12);
 			},
 			position: function(line) {
 				line.setPosition({
-					top: 32,
+					top: 56,
 					bottom: 0,
-					right: Interface.data.right_bar_width-3
+					right: Interface.data.right_bar_width-2
 				})
 			}
 		}),
@@ -307,7 +310,6 @@ function setupInterface() {
 	$('.edit_session_active').hide()
 
 	$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
-	$('#UVEditor_main_uv').toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
 
 	$('.sidebar').droppable({
 		accept: 'h3',
@@ -846,7 +848,7 @@ var documentReady = new Promise((resolve, reject) => {
 
 
 		//Electron
-		if (isApp && !compareVersions(process.versions.electron, '4.0.0')) {
+		if (isApp && !compareVersions(process.versions.electron, '6.0.0')) {
 			addStartScreenSection({
 				graphic: {type: 'icon', icon: 'fas.fa-atom'},
 				text: [
@@ -869,8 +871,21 @@ var documentReady = new Promise((resolve, reject) => {
 				last: true
 			})
 		}
+		//Twitter
+		if (Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
+			addStartScreenSection({
+				color: '#1da1f2',
+				text_color: '#ffffff',
+				graphic: {type: 'icon', icon: 'fab.fa-twitter'},
+				text: [
+					{type: 'h1', text: 'Blockbench on Twitter'},
+					{text: 'Follow Blockbench on Twitter for the latest news as well as cool models from the community! [twitter.com/blockbench](https://twitter.com/blockbench/)'}
+				],
+				last: true
+			})
+		}
 		//Donation reminder
-		if (Blockbench.startup_count % 12 === 11) {
+		if (Blockbench.startup_count % 20 === 19) {
 			addStartScreenSection({
 				graphic: {type: 'icon', icon: 'fas.fa-heart'},
 				text: [

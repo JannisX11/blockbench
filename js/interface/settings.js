@@ -17,6 +17,7 @@ class Setting {
 				case 'toggle': this.value = true; break;
 				case 'number': this.value = 0; break;
 				case 'text': this.value = ''; break;
+				case 'password': this.value = ''; break;
 				case 'select': this.value; break;
 				case 'click': this.value = false; break;
 			}
@@ -37,6 +38,9 @@ class Setting {
 		}
 		if (this.type == 'select') {
 			this.options = data.options;
+		}
+		if (this.type == 'password') {
+			this.hidden = true;
 		}
 		if (typeof data.onChange == 'function') {
 			this.onChange = data.onChange
@@ -88,7 +92,7 @@ const Settings = {
 			$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 		}});
 		new Setting('uv_checkerboard', 		{category: 'interface', value: false, onChange() {
-			$('#UVEditor_main_uv').toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
+			$('.UVEditor').toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
 		}});
 		
 		//Preview 
@@ -111,12 +115,13 @@ const Settings = {
 		new Setting('deactivate_size_limit',{category: 'edit', value: false});
 		
 		//Grid
-		new Setting('base_grid',	{category: 'grid', value: true,});
-		new Setting('large_grid', 	{category: 'grid', value: false});
-		new Setting('full_grid',	{category: 'grid', value: false});
-		new Setting('large_box',	{category: 'grid', value: false});
-		new Setting('display_grid',	{category: 'grid', value: false});
-		new Setting('painting_grid',{category: 'grid', value: true, onChange() {
+		new Setting('base_grid',		{category: 'grid', value: true,});
+		new Setting('large_grid', 		{category: 'grid', value: false});
+		new Setting('full_grid',		{category: 'grid', value: false});
+		new Setting('large_box',		{category: 'grid', value: false});
+		new Setting('large_grid_size',	{category: 'grid', value: 3, type: 'number'});
+		new Setting('display_grid',		{category: 'grid', value: false});
+		new Setting('painting_grid',	{category: 'grid', value: true, onChange() {
 			Cube.all.forEach(cube => {
 				Canvas.buildGridBox(cube)
 			})
@@ -130,7 +135,8 @@ const Settings = {
 		new Setting('animation_snap',{category: 'snapping', value: 25, type: 'number'});
 
 		//Paint
-		new Setting('paint_side_restrict', {category: 'paint', value: true});
+		new Setting('paint_side_restrict',	{category: 'paint', value: true});
+		//new Setting('layered_textures',		{category: 'paint', value: false});
 		new Setting('brush_opacity_modifier', {category: 'paint', value: 'pressure', type: 'select', options: {
 			'pressure': tl('settings.brush_modifier.pressure'),
 			'tilt': tl('settings.brush_modifier.tilt'),
@@ -149,18 +155,13 @@ const Settings = {
 		new Setting('default_path', {category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
 		
 		//Dialogs
-		new Setting('dialog_unsaved_textures', {category: 'dialogs', value: true});
 		new Setting('dialog_larger_cubes', {category: 'dialogs', value: true});
 		new Setting('dialog_rotation_limit', {category: 'dialogs', value: true});
 		
 		//Export
 		new Setting('minifiedout', {category: 'export', value: false});
 		new Setting('export_groups', {category: 'export', value: true});
-		new Setting('class_export_version', {category: 'export', value: '1.12', type: 'select', options: {
-			'1.12': '1.12',
-			'1.14': '1.14',
-		}});
-		new Setting('sketchfab_token', {category: 'export', value: '', type: 'text'});
+		new Setting('sketchfab_token', {category: 'export', value: '', type: 'password'});
 		new Setting('credit', {category: 'export', value: 'Made with Blockbench', type: 'text'});
 	},
 	addCategory(id, data) {
@@ -181,18 +182,20 @@ const Settings = {
 		setSettingsTab('setting')
 	},
 	saveLocalStorages() {
-		localStorage.setItem('canvas_scenes', JSON.stringify(canvas_scenes))
 		var settings_copy = {}
 		for (var key in settings) {
 			settings_copy[key] = {value: settings[key].value}
 		}
 		localStorage.setItem('settings', JSON.stringify(settings_copy) )
+
+		localStorage.setItem('canvas_scenes', JSON.stringify(canvas_scenes))
 		localStorage.setItem('colors', JSON.stringify({
 			palette: ColorPanel.vue._data.palette,
 			history: ColorPanel.vue._data.history,
 		}))
 	},
 	save() {
+		Settings.saveLocalStorages()
 		function hasSettingChanged(id) {
 			return (settings[id].value !== Settings.old[id])
 		}
@@ -205,7 +208,7 @@ const Settings = {
 				action.toggleLinkedSetting(false)
 			}
 		}
-		if (hasSettingChanged('base_grid') || hasSettingChanged('large_grid') || hasSettingChanged('full_grid')
+		if (hasSettingChanged('base_grid') || hasSettingChanged('large_grid') || hasSettingChanged('full_grid') || hasSettingChanged('large_grid_size')
 			||hasSettingChanged('large_box') || hasSettingChanged('display_grid') || hasSettingChanged('edit_size')) {
 			buildGrid()
 		}
@@ -264,8 +267,13 @@ const Settings = {
 	},
 	old: {}
 }
-$(window).on('unload', Settings.saveLocalStorages)
 Settings.setup()
+
+window.onunload = function() {
+	if (!Blockbench.hasFlag('no_localstorage_saving')) {
+		Settings.saveLocalStorages()
+	}
+}
 
 onVueSetup(function() {
 	Settings.structure.search_results = {

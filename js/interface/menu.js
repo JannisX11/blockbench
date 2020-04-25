@@ -81,7 +81,7 @@ class Menu {
 					} else if (index >= MenuBar.keys.length) {
 						index = 0;
 					}
-					MenuBar.menues[MenuBar.keys[index]].open()
+					MenuBar.menus[MenuBar.keys[index]].open()
 				}
 			} else {
 				obj.find('> li:first-child').addClass('focused')
@@ -113,6 +113,30 @@ class Menu {
 
 		ctxmenu.children().detach()
 
+		function createChildList(object, node) {
+
+			if (typeof object.children == 'function') {
+				var list = object.children(context)
+			} else {
+				var list = object.children
+			}
+			if (list.length) {
+				node.addClass('parent')
+					.find('ul.contextMenu.sub').detach()
+				var childlist = $('<ul class="contextMenu sub"></ul>')
+				node.append(childlist)
+				list.forEach(function(s2, i) {
+					getEntry(s2, childlist)
+				})
+				var last = childlist.children().last()
+				if (last.length && last.hasClass('menu_separator')) {
+					last.remove()
+				}
+				return childlist.children().length;
+			}
+			return 0;
+		}
+
 		function getEntry(s, parent) {
 
 			var entry;
@@ -129,15 +153,20 @@ class Menu {
 				if (!s) {
 					return;
 				}
-				entry = s.menu_node
+				entry = $(s.menu_node)
 				if (BARS.condition(s.condition)) {
 
-					if (!entry.hasMenuEvents) {
-						entry.hasMenuEvents = true
-						entry.addEventListener('click', (e) => {s.trigger(e)})
-						$(entry).on('mouseenter mousedown', function(e) {
-							scope.hover(this, e)
-						})
+					entry.off('click')
+					entry.off('mouseenter mousedown')
+					entry.on('mouseenter mousedown', function(e) {
+						scope.hover(this, e)
+					})
+					//Submenu
+					if (typeof s.children == 'function' || typeof s.children == 'object') {
+						createChildList(s, entry)
+					} else {
+						entry.on('click', (e) => {s.trigger(e)})
+						//entry[0].addEventListener('click', )
 					}
 					parent.append(entry)
 				}
@@ -161,24 +190,7 @@ class Menu {
 					}
 					//Submenu
 					if (typeof s.children == 'function' || typeof s.children == 'object') {
-						if (typeof s.children == 'function') {
-							var list = s.children(context)
-						} else {
-							var list = s.children
-						}
-						if (list.length) {
-							entry.addClass('parent')
-							var childlist = $('<ul class="contextMenu sub"></ul>')
-							entry.append(childlist)
-							list.forEach(function(s2, i) {
-								getEntry(s2, childlist)
-							})
-							var last = childlist.children().last()
-							child_count = childlist.children().length;
-							if (last.length && last.hasClass('menu_separator')) {
-								last.remove()
-							}
-						}
+						child_count = createChildList(s, entry)
 					}
 					if (child_count !== 0 || typeof s.click === 'function') {
 						parent.append(entry)
@@ -204,6 +216,11 @@ class Menu {
 		if (position && position.clientX !== undefined) {
 			var offset_left = position.clientX
 			var offset_top  = position.clientY+1
+
+		} else if (position == document.body) {
+			var offset_left = (document.body.clientWidth-el_width)/2
+			var offset_top  = (document.body.clientHeight-el_height)/2
+
 		} else {
 			if (!position && scope.type === 'bar_menu') {
 				position = scope.label
@@ -338,7 +355,7 @@ class BarMenu extends Menu {
 	constructor(id, structure, condition) {
 		super()
 		var scope = this;
-		MenuBar.menues[id] = this
+		MenuBar.menus[id] = this
 		this.type = 'bar_menu'
 		this.id = id
 		this.children = [];
@@ -367,9 +384,10 @@ class BarMenu extends Menu {
 	}
 }
 const MenuBar = {
-	menues: {},
+	menus: {},
 	open: undefined,
 	setup() {
+		MenuBar.menues = MenuBar.menus;
 		new BarMenu('file', [
 			'project_window',
 			'_',
@@ -470,6 +488,7 @@ const MenuBar = {
 			'add_cube',
 			'add_group',
 			'add_locator',
+			'unlock_everything',
 			'duplicate',
 			'delete',
 			'_',
@@ -500,6 +519,7 @@ const MenuBar = {
 			]},
 			{name: 'menu.transform.properties', id: 'properties', icon: 'navigate_next', children: [
 				'toggle_visibility',
+				'toggle_locked',
 				'toggle_export',
 				'toggle_autouv',
 				'toggle_shade',
@@ -514,66 +534,7 @@ const MenuBar = {
 			'paste',
 			'_',
 			'add_display_preset',
-			{name: 'menu.display.preset', icon: 'fa-list', children: function() {
-				var presets = []
-				display_presets.forEach(function(p) {
-					var icon = 'label'
-					if (p.fixed) {
-						switch(p.id) {
-							case 'item': icon = 'filter_vintage'; break;
-							case 'block': icon = 'fa-cube'; break;
-							case 'handheld': icon = 'build'; break;
-							case 'rod': icon = 'remove'; break;
-						}
-					}
-					presets.push({
-						icon: icon,
-						name: p.id ? tl('display.preset.'+p.id) : p.name,
-						click: function() {
-							DisplayMode.applyPreset(p)
-						}
-					})
-				})
-				return presets;
-			}},
-			{name: 'menu.display.preset_all', icon: 'fa-list', children: function() {
-				var presets = []
-				display_presets.forEach(function(p) {
-					var icon = 'label'
-					if (p.fixed) {
-						switch(p.id) {
-							case 'item': icon = 'filter_vintage'; break;
-							case 'block': icon = 'fa-cube'; break;
-							case 'handheld': icon = 'build'; break;
-							case 'rod': icon = 'remove'; break;
-						}
-					}
-					presets.push({
-						icon: icon,
-						name: p.id ? tl('display.preset.'+p.id) : p.name,
-						click: function() {
-							DisplayMode.applyPreset(p, true)
-						}
-					})
-				})
-				return presets;
-			}},
-			{name: 'menu.display.remove_preset', icon: 'fa-list', children: function() {
-				var presets = []
-				display_presets.forEach(function(p) { 
-					if (!p.fixed) {
-						presets.push({
-							icon: 'label',
-							name: p.name,
-							click: function() {
-								display_presets.splice(display_presets.indexOf(p), 1);
-								localStorage.setItem('display_presets', JSON.stringify(display_presets))
-							}
-						})
-					}
-				})
-				return presets;
-			}}
+			'apply_display_preset'
 		], () => Modes.display)
 		
 		new BarMenu('filter', [
@@ -650,7 +611,9 @@ const MenuBar = {
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
 					if (confirm(tl('menu.help.developer.reset_storage.confirm'))) {
 						localStorage.clear()
+						Blockbench.addFlag('no_localstorage_saving')
 						console.log('Cleared Local Storage')
+						window.location.reload(true)
 					}
 				}},
 				{name: 'menu.help.developer.cache_reload', icon: 'cached', condition: !isApp, click: () => {
@@ -672,10 +635,10 @@ const MenuBar = {
 		var bar = $('#menu_bar')
 		bar.children().detach()
 		this.keys = []
-		for (var menu in MenuBar.menues) {
-			if (MenuBar.menues.hasOwnProperty(menu)) {
-				if (MenuBar.menues[menu].conditionMet()) {
-					bar.append(MenuBar.menues[menu].label)
+		for (var menu in MenuBar.menus) {
+			if (MenuBar.menus.hasOwnProperty(menu)) {
+				if (MenuBar.menus[menu].conditionMet()) {
+					bar.append(MenuBar.menus[menu].label)
 					this.keys.push(menu)
 				}
 			}
@@ -686,7 +649,7 @@ const MenuBar = {
 	addAction(action, path) {
 		if (path) {
 			path = path.split('.')
-			var menu = MenuBar.menues[path.splice(0, 1)[0]]
+			var menu = MenuBar.menus[path.splice(0, 1)[0]]
 			if (menu) {
 				menu.addAction(action, path.join('.'))
 			}
@@ -695,7 +658,7 @@ const MenuBar = {
 	removeAction(path) {
 		if (path) {
 			path = path.split('.')
-			var menu = MenuBar.menues[path.splice(0, 1)[0]]
+			var menu = MenuBar.menus[path.splice(0, 1)[0]]
 			if (menu) {
 				menu.removeAction(path.join('.'))
 			}

@@ -4,6 +4,7 @@ const Outliner = {
 	elements: elements,
 	selected: selected,
 	buttons: {
+		/*
 		remove: {
 			id: 'remove',
 			title: tl('generic.delete'),
@@ -23,6 +24,7 @@ const Outliner = {
 				Undo.finishEdit('remove', {elements: [], outliner: true, selection: true})
 			}
 		},
+		*/
 		visibility: {
 			id: 'visibility',
 			title: tl('switches.visibility'),
@@ -30,7 +32,20 @@ const Outliner = {
 			icon_off: ' fa fa-eye-slash',
 			advanced_option: false,
 			click: function(obj) {
+				if (obj.locked) return;
 				obj.toggle('visibility')
+			}
+		},
+		locked: {
+			id: 'locked',
+			title: tl('switches.lock'),
+			icon: ' fas fa-lock',
+			icon_off: ' fas fa-lock-open',
+			advanced_option: true,
+			click: function(obj) {
+				if (obj.locked && Format.force_lock) return;
+				obj.toggle('locked')
+				updateSelection()
 			}
 		},
 		export: {
@@ -40,6 +55,7 @@ const Outliner = {
 			icon_off: ' far fa-window-close',
 			advanced_option: true,
 			click: function(obj) {
+				if (obj.locked) return;
 				obj.toggle('export')
 			}
 		},
@@ -50,8 +66,12 @@ const Outliner = {
 			get icon_off() {return Project.box_uv ? 'fas fa-star-half-alt' : 'far fa-star'},
 			advanced_option: true,
 			click: function(obj) {
+				if (obj.locked) return;
 				obj.toggle('shade')
 				Canvas.updateUVs()
+				if (obj instanceof Cube && obj.visibility && !obj.selected) {
+					Canvas.updateUV(obj);
+				}
 			}
 		},
 		autouv: {
@@ -62,6 +82,7 @@ const Outliner = {
 			icon_alt: ' fa fa-magic',
 			advanced_option: true,
 			click: function(obj) {
+				if (obj.locked) return;
 				var state = obj.autouv+1
 				if (state > 2) state = 0
 
@@ -84,6 +105,8 @@ var markerColors = [
 class OutlinerElement {
 	constructor(uuid) {
 		this.uuid = uuid || guid()
+		this.export = true;
+		this.locked = false;
 	}
 	init() {
 		this.constructor.all.safePush(this);
@@ -298,6 +321,9 @@ class OutlinerElement {
 			case 'export': 
 				return this.export
 				break;
+			case 'locked': 
+				return this.locked
+				break;
 			case 'shading': 
 				return this.shade
 				break;
@@ -352,6 +378,7 @@ class NonGroup extends OutlinerElement {
 	}
 	showContextMenu(event) {
 		Prop.active_panel = 'outliner'
+		if (this.locked) return this;
 		if (!this.selected) {
 			this.select()
 		}
@@ -381,8 +408,8 @@ class NonGroup extends OutlinerElement {
 		if (val === undefined) {
 			var val = !this[key]
 		}
-		this.forSelected((cube) => {
-			cube[key] = val
+		this.forSelected((el) => {
+			el[key] = val
 		}, 'toggle '+key)
 		if (key === 'visibility') {
 			Canvas.updateVisibility()
@@ -640,13 +667,10 @@ function parseGroups(array, importGroup, startIndex) {
 }
 //Outliner
 function loadOutlinerDraggable() {
-	if (Blockbench.isMobile) {
-		return;
-	}
 	function getOrder(loc, obj) {
 		if (!obj) {
 			return;
-		} else if (obj.type === 'group') {
+		} else if (obj instanceof Group) {
 			if (loc < 8) return -1;
 			if (loc > 24) return 1;
 		} else {
@@ -663,6 +687,12 @@ function loadOutlinerDraggable() {
 			appendTo: 'body',
 			zIndex: 19,
 			cursorAt: {left: 5},
+			start(event, ui) {
+				if (event.target && event.target.parentNode) {
+					var element = Outliner.root.findRecursive('uuid', event.target.parentNode.id)
+					if (!element || element.locked) return false;
+				}
+			},
 			helper: function() {
 				var item = Outliner.root.findRecursive('uuid', $(this).attr('id'))
 				var helper = $(this).clone()
@@ -682,7 +712,7 @@ function loadOutlinerDraggable() {
 					var tar = $('#cubes_list li .drag_hover.outliner_node').last()
 					var element = Outliner.root.findRecursive('uuid', tar.attr('id'))
 					if (element) {
-						var location = event.clientY - tar.position().top
+						var location = event.clientY - tar.offset().top
 						var order = getOrder(location, element)
 						tar.attr('order', order)
 					}
@@ -701,7 +731,7 @@ function loadOutlinerDraggable() {
 			addClasses: false,
 			drop: function(event, ui) {
 				$('.outliner_node[order]').attr('order', null)
-				var location = event.clientY - $(event.target).position().top
+				var location = event.clientY - $(event.target).offset().top
 				$('.drag_hover').removeClass('drag_hover')
 				var target = Outliner.root.findRecursive('uuid', $(event.target).attr('id'))
 
@@ -954,11 +984,11 @@ BARS.defineActions(function() {
 				width: 300,
 				singleButton: true,
 				form: {
-					cubes: {type: 'text', label: tl('dialog.model_stats.cubes'), text: ''+Cube.all.length },
-					locators: {type: 'text', label: tl('dialog.model_stats.locators'), text: ''+Locator.all.length, condition: Format.locators },
-					groups: {type: 'text', label: tl('dialog.model_stats.groups'), text: ''+Group.all.length },
-					vertices: {type: 'text', label: tl('dialog.model_stats.vertices'), text: ''+Cube.all.length*8 },
-					faces: {type: 'text', label: tl('dialog.model_stats.faces'), text: ''+face_count },
+					cubes: {type: 'info', label: tl('dialog.model_stats.cubes'), text: ''+Cube.all.length },
+					locators: {type: 'info', label: tl('dialog.model_stats.locators'), text: ''+Locator.all.length, condition: Format.locators },
+					groups: {type: 'info', label: tl('dialog.model_stats.groups'), text: ''+Group.all.length },
+					vertices: {type: 'info', label: tl('dialog.model_stats.vertices'), text: ''+Cube.all.length*8 },
+					faces: {type: 'info', label: tl('dialog.model_stats.faces'), text: ''+face_count },
 				}
 			})
 			dialog.show()
@@ -987,6 +1017,21 @@ BARS.defineActions(function() {
 				return sort_collator.compare(a.name, b.name)
 			});
 			Undo.finishEdit('sort_outliner')
+		}
+	})
+	new Action('unlock_everything', {
+		icon: 'fas.fa-key',
+		category: 'edit',
+		click: function () {
+			let locked = Outliner.elements.filter(el => el.locked);
+			let locked_groups = Group.all.filter(group => group.locked)
+			if (locked.length + locked_groups.length == 0) return;
+
+			Undo.initEdit({outliner: locked_groups.length > 0, elements: locked});
+			[...locked, ...locked_groups].forEach(el => {
+				el.locked = false;
+			})
+			Undo.finishEdit('unlock_everything')
 		}
 	})
 	new Action('element_colors', {

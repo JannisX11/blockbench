@@ -207,6 +207,46 @@ window.BedrockEntityManager = {
 }
 }
 
+function calculateVisibleBox() {
+	var visible_box = new THREE.Box3()
+	Cube.all.forEach(cube => {
+		if (cube.export && cube.mesh) {
+			visible_box.expandByObject(cube.mesh);
+		}
+	})
+
+	var offset = new THREE.Vector3(8,8,8);
+	visible_box.max.add(offset);
+	visible_box.min.add(offset);
+
+	// Width
+	var radius = Math.max(
+		visible_box.max.x,
+		visible_box.max.z,
+		-visible_box.min.x,
+		-visible_box.min.z
+	)
+	if (Math.abs(radius) === Infinity) {
+		radius = 0
+	}
+	let width = Math.ceil((radius*2) / 16)
+		width = Math.max(width, Project.visible_box[0]);
+	Project.visible_box[0] = width;
+
+	// Height
+	let height = Math.ceil(Math.abs(visible_box.max.y - visible_box.min.y) / 16)
+	if (height === Infinity) height = 0;
+		height = Math.max(height, Project.visible_box[1]);
+	
+	// Y
+	let y = height/2 + Math.floor(visible_box.min.y / 16)
+	if (y === Infinity) y = 0;
+		y = Math.min(y, Project.visible_box[2]);
+
+	Project.visible_box.replace([width, height, y])
+	return Project.visible_box;
+}
+
 (function() {
 
 function parseGeometry(data) {
@@ -221,16 +261,25 @@ function parseGeometry(data) {
 		}
 	}
 	codec.dispatchEvent('parse', {model: data.object});
+	let {description} = data.object;
 
-	Project.geometry_name = (data.object.description.identifier && data.object.description.identifier.replace(/^geometry\./, '')) || '';
+	Project.geometry_name = (description.identifier && description.identifier.replace(/^geometry\./, '')) || '';
 	Project.texture_width = 16;
 	Project.texture_height = 16;
 
-	if (data.object.description.texture_width !== undefined) {
-		Project.texture_width = data.object.description.texture_width;
+	if (typeof description.visible_bounds_width == 'number' && typeof description.visible_bounds_height == 'number') {
+		Project.visible_box[0] = Math.max(Project.visible_box[0], description.visible_bounds_width);
+		Project.visible_box[1] = Math.max(Project.visible_box[1], description.visible_bounds_height);
+		if (description.visible_bounds_offset && typeof description.visible_bounds_offset[1] == 'number') {
+			Project.visible_box[2] = Math.min(Project.visible_box[2], description.visible_bounds_offset[1]);
+		}
 	}
-	if (data.object.description.texture_height !== undefined) {
-		Project.texture_height = data.object.description.texture_height;
+
+	if (description.texture_width !== undefined) {
+		Project.texture_width = description.texture_width;
+	}
+	if (description.texture_height !== undefined) {
+		Project.texture_height = description.texture_height;
 	}
 
 	var bones = {}
@@ -367,6 +416,7 @@ function parseGeometry(data) {
 }
 
 
+
 var codec = new Codec('bedrock', {
 	name: 'Bedrock Model',
 	extension: 'json',
@@ -385,7 +435,6 @@ var codec = new Codec('bedrock', {
 			texture_height: Project.texture_height || 16,
 		}
 		var bones = []
-		var visible_box = new THREE.Box3()
 
 		var groups = getAllGroups();
 		var loose_cubes = [];
@@ -485,11 +534,6 @@ var codec = new Codec('bedrock', {
 								}
 							}
 						}
-						//Visible Bounds
-						var mesh = obj.mesh
-						if (mesh) {
-							visible_box.expandByObject(mesh)
-						}
 						cubes.push(template)
 
 					} else if (obj instanceof Locator) {
@@ -510,26 +554,11 @@ var codec = new Codec('bedrock', {
 		})
 
 		if (bones.length && options.visible_box !== false) {
-			var offset = new THREE.Vector3(8,8,8)
-			visible_box.max.add(offset)
-			visible_box.min.add(offset)
-			//Width
-			var radius = Math.max(
-				visible_box.max.x,
-				visible_box.max.z,
-				-visible_box.min.x,
-				-visible_box.min.z
-			) * 0.9
-			if (Math.abs(radius) === Infinity) {
-				radius = 0
-			}
-			entitymodel.description.visible_bounds_width = Math.ceil((radius*2) / 16)
-			//Height
-			entitymodel.description.visible_bounds_height = Math.ceil(((visible_box.max.y - visible_box.min.y) * 0.9) / 16)
-			if (Math.abs(entitymodel.description.visible_bounds_height) === Infinity) {
-				entitymodel.description.visible_bounds_height = 0;
-			}
-			entitymodel.description.visible_bounds_offset = [0, entitymodel.description.visible_bounds_height/2 , 0]
+
+			let visible_box = calculateVisibleBox();
+			entitymodel.description.visible_bounds_width = visible_box[0];
+			entitymodel.description.visible_bounds_height = visible_box[1];
+			entitymodel.description.visible_bounds_offset = [0, visible_box[2] , 0]
 		}
 		if (bones.length) {
 			entitymodel.bones = bones
@@ -777,6 +806,7 @@ var format = new ModelFormat({
 		
 	}
 })
+//Object.defineProperty(format, 'single_texture', {get: _ => !settings.layered_textures.value})
 codec.format = format;
 
 BARS.defineActions(function() {

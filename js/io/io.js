@@ -27,6 +27,7 @@ class ModelFormat {
 		this.box_uv = false;
 		this.optional_box_uv = false;
 		this.single_texture = false;
+		this.animated_textures = false;
 		this.bone_rig = false;
 		this.centered_grid = false;
 		this.rotate_cubes = false;
@@ -47,6 +48,7 @@ class ModelFormat {
 		Merge.boolean(this, data, 'box_uv');
 		Merge.boolean(this, data, 'optional_box_uv');
 		Merge.boolean(this, data, 'single_texture');
+		Merge.boolean(this, data, 'animated_textures');
 		Merge.boolean(this, data, 'bone_rig');
 		Merge.boolean(this, data, 'centered_grid');
 		Merge.boolean(this, data, 'rotate_cubes');
@@ -80,6 +82,9 @@ class ModelFormat {
 			if (preview.isOrtho && typeof preview.angle == 'number') {
 				preview.loadAnglePreset(DefaultCameraPresets[preview.angle+1])
 			}
+		})
+		uv_dialog.all_editors.forEach(editor => {
+			editor.img.style.objectFit = Format.animated_textures ? 'cover' : 'fill';
 		})
 		updateSelection()
 		Modes.vue.$forceUpdate()
@@ -257,6 +262,7 @@ class Codec {
 	export() {
 		var scope = this;
 		Blockbench.export({
+			resource_id: 'model',
 			type: scope.name,
 			extensions: [scope.extension],
 			name: scope.fileName(),
@@ -324,60 +330,6 @@ class Codec {
 	}
 }
 
-//New
-function resetProject() {
-	Blockbench.dispatchEvent('reset_project');
-	if (Toolbox.selected.id !== 'move_tool') BarItems.move_tool.select();
-	Format = 0;
-	elements.length = 0;
-	Outliner.root.purge();
-	Canvas.materials.length = 0;
-	textures.length = 0;
-	selected.length = 0;
-
-	Screencam.stopTimelapse();
-
-	Group.all.empty();
-	Group.selected = undefined;
-	Cube.all.empty();
-	Cube.selected.empty();
-	Locator.all.empty();
-	Locator.selected.empty();
-
-	Blockbench.display_settings = display = {};
-	Project.name = Project.parent = Project.geometry_name = Project.description	 = '';
-	Project.texture_width = Project.texture_height = 16;
-	Project.ambientocclusion = true;
-	Project.front_gui_light = false;
-	ModelMeta.save_path = ModelMeta.export_path = ModelMeta.animation_path = ModelMeta.name = '';
-	ModelMeta.saved = true;
-	Prop.project_saved = true;
-	Prop.added_models = 0;
-	Canvas.updateAll();
-	Outliner.vue.$forceUpdate();
-	texturelist.$forceUpdate();
-	Undo.history.length = 0;
-	Undo.index = 0;
-	Undo.current_save = null;
-	Painter.current = {};
-	Animator.animations.purge();
-	Timeline.animators.purge();
-	Animator.selected = undefined;
-	$('#var_placeholder_area').val('');
-}
-function newProject(format, force) {
-	if (force || showSaveDialog()) {
-		resetProject();
-		Modes.options.edit.select();
-		if (format instanceof ModelFormat) {
-			format.select();
-		}
-		Blockbench.dispatchEvent('new_project');
-		return true;
-	} else {
-		return false;
-	}
-}
 
 //Import
 function setupDragHandlers() {
@@ -399,7 +351,7 @@ function setupDragHandlers() {
 		'plugin',
 		{extensions: ['bbplugin', 'js']},
 		function(files) {
-			loadPluginFromFile(files[0])
+			new Plugin().loadFromFile(files[0], true)
 		}
 	)
 	Blockbench.addDragHandler(
@@ -661,8 +613,8 @@ function uploadSketchfabModel() {
 		title: 'dialog.sketchfab_uploader.title',
 		width: 540,
 		form: {
-			token: {label: 'dialog.sketchfab_uploader.token', value: settings.sketchfab_token.value},
-			about_token: {type: 'text', text: tl('dialog.sketchfab_uploader.about_token', ['[sketchfab.com/settings/password](https://sketchfab.com/settings/password)'])},
+			token: {label: 'dialog.sketchfab_uploader.token', value: settings.sketchfab_token.value, type: 'password'},
+			about_token: {type: 'info', text: tl('dialog.sketchfab_uploader.about_token', ['[sketchfab.com/settings/password](https://sketchfab.com/settings/password)'])},
 			name: {label: 'dialog.sketchfab_uploader.name'},
 			description: {label: 'dialog.sketchfab_uploader.description', type: 'textarea'},
 			tags: {label: 'dialog.sketchfab_uploader.tags', placeholder: 'Tag1 Tag2'},
@@ -695,24 +647,6 @@ function uploadSketchfabModel() {
 			data.append('source', 'blockbench')
 
 			settings.sketchfab_token.value = formResult.token
-
-
-			/*
-
-			var archive = new JSZip();
-			var model_data = Codecs.obj.compile({all_files: true})
-			archive.file('model.obj', model_data.obj)
-			archive.file('model.mtl', model_data.mtl)
-			for (var key in model_data.images) {
-				var tex = model_data.images[key];
-				if (tex) {
-					archive.file(pathToName(tex.name) + '.png', tex.getBase64(), {base64: true});
-				}
-			}
-			archive.generateAsync({type: 'blob'}).then(blob => {
-				var file = new File([blob], 'model.zip', {type: 'application/x-zip-compressed'})
-			*/
-
 
 			Codecs.gltf.compile({animations: formResult.animations}, (content) => {
 
@@ -870,142 +804,12 @@ BARS.defineActions(function() {
 		icon: 'icon-format_free',
 		rotate_cubes: true,
 		bone_rig: true,
-		centered_grid: false,
+		centered_grid: true,
 		optional_box_uv: true,
 		uv_rotation: true,
 		animation_mode: true,
 	})
-	//Project
-	new Action('project_window', {
-		icon: 'featured_play_list',
-		category: 'file',
-		condition: () => Format,
-		click: function () {
 
-			var dialog = new Dialog({
-				id: 'project',
-				title: 'dialog.project.title',
-				width: 540,
-				form: {
-					format: {type: 'text', label: 'data.format', text: Format.name||'unknown'},
-					name: {label: 'dialog.project.name', value: Project.name},
-					parent: {label: 'dialog.project.parent', value: Project.parent, condition: !Format.bone_rig, list: ['paro', 'foo', 'bar']},
-					geometry_name: {label: 'dialog.project.geoname', value: Project.geometry_name, condition: Format.bone_rig},
-					ambientocclusion: {label: 'dialog.project.ao', type: 'checkbox', value: Project.ambientocclusion, condition: Format.id == 'java_block'},
-					box_uv: {label: 'dialog.project.box_uv', type: 'checkbox', value: Project.box_uv, condition: Format.optional_box_uv},
-					texture_width: {
-						label: 'dialog.project.width',
-						type: 'number',
-						value: Project.texture_width,
-						min: 1
-					},
-					texture_height: {
-						label: 'dialog.project.height',
-						type: 'number',
-						value: Project.texture_height,
-						min: 1
-					},
-				},
-				onConfirm: function(formResult) {
-					var save;
-					if (Project.box_uv != formResult.box_uv ||
-						Project.texture_width != formResult.texture_width ||
-						Project.texture_height != formResult.texture_height
-					) {
-						if (!Project.box_uv && !formResult.box_uv
-							&& (Project.texture_width != formResult.texture_width
-							|| Project.texture_height != formResult.texture_height)
-						) {
-							save = Undo.initEdit({uv_only: true, elements: Cube.all, uv_mode: true})
-							Cube.all.forEach(cube => {
-								for (var key in cube.faces) {
-									var uv = cube.faces[key].uv;
-									uv[0] *= formResult.texture_width / Project.texture_width;
-									uv[2] *= formResult.texture_width / Project.texture_width;
-									uv[1] *= formResult.texture_height / Project.texture_height;
-									uv[3] *= formResult.texture_height / Project.texture_height;
-								}
-							})
-						} else {
-							save = Undo.initEdit({uv_mode: true})
-						}
-						Project.texture_width = formResult.texture_width;
-						Project.texture_height = formResult.texture_height;
-
-						if (Format.optional_box_uv) Project.box_uv = formResult.box_uv;
-						Canvas.updateAllUVs()
-						updateSelection()
-					}
-
-					Project.name = formResult.name;
-					Project.parent = formResult.parent;
-					Project.geometry_name = formResult.geometry_name;
-					Project.ambientocclusion = formResult.ambientocclusion;
-
-					if (save) {
-						Undo.finishEdit('change global UV')
-					}
-
-					BARS.updateConditions()
-					if (EditSession.active) {
-						EditSession.sendAll('change_project_meta', JSON.stringify(Project));
-					}
-					dialog.hide()
-				}
-			})
-			dialog.show()
-		}
-	})
-	new Action('close_project', {
-		icon: 'cancel_presentation',
-		category: 'file',
-		condition: () => (!EditSession.active || EditSession.hosting) && Format,
-		click: function () {
-			if (showSaveDialog()) {
-				resetProject()
-				Modes.options.start.select()
-				Modes.vue.$forceUpdate()
-				Blockbench.dispatchEvent('close_project');
-			}
-		}
-	})
-	new Action('convert_project', {
-		icon: 'fas.fa-file-import',
-		category: 'file',
-		condition: () => (!EditSession.active || EditSession.hosting),
-		click: function () {
-
-			var options = {};
-			for (var key in Formats) {
-				if (key !== Format.id && key !== 'skin') {
-					options[key] = Formats[key].name;
-				}
-			}
-
-			var dialog = new Dialog({
-				id: 'convert_project',
-				title: 'dialog.convert_project.title',
-				width: 540,
-				form: {
-					text: {type: 'text', text: 'dialog.convert_project.text'},
-					format: {
-						label: 'data.format',
-						type: 'select',
-						default: Format.id,
-						options,
-					},
-				},
-				onConfirm: function(formResult) {
-					var format = Formats[formResult.format]
-					if (format && format != Format) {
-						format.convertTo()
-					}
-					dialog.hide()
-				}
-			})
-			dialog.show()
-		}
-	})
 	//Import
 	new Action('open_model', {
 		icon: 'assessment',
@@ -1023,6 +827,7 @@ BARS.defineActions(function() {
 				}
 			}
 			Blockbench.import({
+				resource_id: 'model',
 				extensions: ['json', 'jem', 'jpm', 'java', 'bbmodel'],
 				type: 'Model',
 				startpath
@@ -1037,6 +842,7 @@ BARS.defineActions(function() {
 		condition: _ => (Format.id == 'java_block'),
 		click: function () {
 			Blockbench.import({
+				resource_id: 'model',
 				extensions: ['json'],
 				type: 'JSON Model',
 				multiple: true,
@@ -1054,6 +860,7 @@ BARS.defineActions(function() {
 		condition: _ => !Project.box_uv,
 		click: function () {
 			Blockbench.import({
+				resource_id: 'texture',
 				extensions: ['png'],
 				type: 'PNG Texture',
 				readtype: 'image'

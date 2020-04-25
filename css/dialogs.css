@@ -32,7 +32,7 @@
 		background-color: var(--color-ui);
 		color: inherit;
 		border: none;
-		box-shadow: 0 0px 40px #000;
+		box-shadow: 0 0px 40px rgba(0, 0, 0, 0.5);
 		left: unset;
 		right: unset;
 		bottom: unset;
@@ -69,6 +69,7 @@
 		margin-top: 4px;
 		margin-bottom: 4px;
 		height: auto;
+		clear: both;
 	}
 	.dialog_bar::after {
 		content: "";
@@ -88,6 +89,12 @@
 	}
 	.dialog_bar input[type=checkbox] {
 		padding: 0 4px;
+	}
+	.dialog_vector_group {
+		display: flex;
+	}
+	.dialog_vector_group > input {
+		min-width: 30px;
 	}
 	.tab_bar {
 		height: 30px;
@@ -173,6 +180,9 @@
 	}
 
 /*Settings Dialog*/
+	dialog#settings {
+		width: min(100%, 600px);
+	}
 	#settings_tab_bar {
 		margin: -24px;
 		margin-bottom: 0;
@@ -254,7 +264,7 @@
 		padding-left: 4px;
 		border: 1px solid var(--color-border);
 	}
-	#settingslist input[type=text] {
+	#settingslist input[type=text], #settingslist input[type=password] {
 		padding: 10px;
 		margin-left: 5px;
 	}
@@ -265,13 +275,21 @@
 	#settingslist div.bar_select select {
 		width: 100%;
 	}
-	#settingslist li li i {
+	#settingslist li li .setting_icon i {
 		font-size: 26pt;
 		width: 34px;
 		margin-top: -6px;
 	}
-	#settingslist li li:hover i {
+	#settingslist li li:hover .setting_icon i {
 		color: var(--color-light);
+	}
+	.password_toggle {
+		display: inline-block;
+		margin-left: 4px;
+		margin-top: -1px;
+		width: 24px;
+		text-align: center;
+		vertical-align: text-bottom;
 	}
 
 	/*Keybinds*/
@@ -355,6 +373,9 @@
 	.prism-editor-wrapper .prism-editor__line-numbers {
 		background-color: var(--color-back) !important;
 		height: 56px;
+	}
+	#css_editor {
+		border: 1px solid var(--color-border);
 	}
 
 	/*About*/
@@ -695,6 +716,47 @@
 		top: 30px;
 	}
 
+
+
+/*Toolbar Dialog*/
+	#bar_item_list {
+		max-height: 400px;
+		margin-bottom: 20px;
+		overflow-y: scroll;
+		min-height: 80px;
+		border: 1px solid var(--color-border);
+		border-right: none;
+	}
+	#bar_item_list li {
+		padding: 4px; 
+	}
+	#bar_item_list li:hover {
+		color: var(--color-light);
+	}
+	#bar_item_list li div.icon_wrapper {
+		display: inline-block;
+		height: 26px;
+		vertical-align: text-top;
+	}
+	#bar_item_list li:not(:hover) div.icon_wrapper.add, #bar_item_list li:hover div.icon_wrapper.normal {
+		display: none;
+	}
+	#bar_items_current {
+		background-color: var(--color-back);
+		overflow: hidden;
+		height: auto;
+		min-height: 34px;
+		border: 1px solid var(--color-border);
+	}
+	#bar_items_current li {
+		min-width: 20px;
+	}
+	#bar_items_current li .toolbar_separator {
+		width: 12px;
+		background-color: var(--color-button);
+		border: 1px solid var(--color-border);
+	}
+
 /*Action Control*/
 	#action_selector {
 		position: absolute;
@@ -707,7 +769,7 @@
 		top: 200px;
 		width: 360px;
 		height: 42px;
-		box-shadow: 0 0 5px black;
+		box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 	}
 	#action_selector > input {
 		width: 100%;
@@ -727,7 +789,7 @@
 		color: var(--color-text);
 		width: 340px;
 		margin-left: 8px;
-		box-shadow: 0 0 5px black;
+		box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 	}
 	#action_selector > div > ul {
 		background-color: var(--color-bright_ui);

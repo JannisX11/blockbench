@@ -19,7 +19,7 @@ jobs:
         - electron-builder -w --ia32 --publish=always -c.productName='Blockbench_32bit'
       deploy:
         provider: releases
-        api_key: GH_TOKEN
+        api_key: $GH_TOKEN
         skip_cleanup: true
         file: dist/win-unpacked/resources/app.asar
 

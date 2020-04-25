@@ -14,7 +14,7 @@ const Plugins = {
 	devReload() {
 		var reloads = 0;
 		for (var i = Plugins.all.length-1; i >= 0; i--) {
-			if (Plugins.all[i].fromFile) {
+			if (Plugins.all[i].source == 'file') {
 				Plugins.all[i].reload()
 				reloads++;
 			}
@@ -28,6 +28,8 @@ const Plugins = {
 		});
 	}
 }
+StateMemory.init('installed_plugins', 'array')
+Plugins.installed = StateMemory.installed_plugins;
 
 class Plugin {
 	constructor(id, data) {
@@ -41,6 +43,7 @@ class Plugin {
 		this.icon = '';
 		this.variant = '';
 		this.min_version = '';
+		this.source = 'store'
 
 		this.extend(data)
 
@@ -79,7 +82,7 @@ class Plugin {
 				scope.uninstall()
 			}
 		})
-		Plugins.installed.safePush(scope.id)
+		this.remember()
 		scope.installed = true;
 		return scope;
 	}
@@ -127,9 +130,9 @@ class Plugin {
 		localStorage.setItem('plugin_dev_path', file.path)
 		Plugins.all.safePush(this)
 
-		scope.fromFile = true
+		scope.source = 'file'
 		if (isApp) {
-			$.getScript(file.path, function() {
+			$.getScript(file.path, () => {
 				if (window.plugin_data) {
 					scope.id = (plugin_data && plugin_data.id)||pathToName(file.path)
 					scope.extend(plugin_data)
@@ -137,8 +140,7 @@ class Plugin {
 				}
 				scope.installed = true
 				scope.path = file.path
-				Plugins.installed.safePush(scope.path)
-				saveInstalledPlugins()
+				this.remember()
 				Plugins.sort()
 			})
 		} else {
@@ -154,14 +156,52 @@ class Plugin {
 				scope.bindGlobalData()
 			}
 			scope.installed = true
-			Plugins.installed.safePush(scope.path)
-			saveInstalledPlugins()
+			this.remember()
 			Plugins.sort()
 		}
 		return this;
 	}
+	loadFromURL(url, first) {
+		if (first) {
+			if (isApp) {
+				if (!confirm(tl('message.load_plugin_app'))) return;
+			} else {
+				if (!confirm(tl('message.load_plugin_web'))) return;
+			}
+		}
+
+		this.id = pathToName(url)
+		Plugins.registered[this.id] = this;
+		localStorage.setItem('plugin_dev_path', url)
+		Plugins.all.safePush(this)
+
+		this.source = 'url';
+		$.getScript(url, () => {
+			if (window.plugin_data) {
+				this.id = (plugin_data && plugin_data.id)||pathToName(url)
+				this.extend(plugin_data)
+				this.bindGlobalData()
+			}
+			this.installed = true
+			this.path = url
+			this.remember()
+			Plugins.sort()
+		})
+		return this;
+	}
+	remember(id = this.id, path = this.path) {
+		if (Plugins.installed.find(plugin => plugin.id == this.id)) {
+			return this;
+		}
+		Plugins.installed.push({
+			id: id,
+			path: path,
+			source: this.source
+		})
+		StateMemory.save('installed_plugins')
+		return this;
+	}
 	uninstall() {
-		var scope = this;
 		try {
 			this.unload();
 			if (this.onuninstall) {
@@ -171,14 +211,16 @@ class Plugin {
 			console.log('Error in unload or uninstall method: ', err);
 		}
 		delete Plugins.registered[this.id];
-		Plugins.installed.remove(this.fromFile ? this.path : this.id);
+		let in_installed = Plugins.installed.find(plugin => plugin.id == this.id);
+		Plugins.installed.remove(in_installed);
+		StateMemory.save('installed_plugins')
 		this.installed = false;
 
-		if (isApp && this.fromFile) {
+		if (isApp && this.source !== 'store') {
 			Plugins.all.remove(this)
 
 		} else if (isApp) {
-			var filepath = Plugins.path + scope.id + '.js'
+			var filepath = Plugins.path + this.id + '.js'
 			if (fs.existsSync(filepath)) {
 				fs.unlink(filepath, (err) => {
 					if (err) {
@@ -187,7 +229,7 @@ class Plugin {
 				});
 			}
 		}
-		saveInstalledPlugins()
+		StateMemory.save('installed_plugins')
 		return this;
 	}
 	unload() {
@@ -197,12 +239,21 @@ class Plugin {
 		return this;
 	}
 	reload() {
-		if (!isApp) return this;
+		if (!isApp && this.source == 'file') return this;
+
 		this.unload()
 		Plugins.all.remove(this)
-		//---------------
-		this.loadFromFile({path: this.path}, false)
+
+		if (this.source == 'file') {
+			this.loadFromFile({path: this.path}, false)
+
+		} else if (this.source == 'url') {
+			this.loadFromURL(this.path, false)
+		}
 		return this;
+	}
+	isReloadable() {
+		return (this.source == 'file' && isApp) || (this.source == 'url')
 	}
 	isInstallable() {
 		var scope = this;
@@ -281,26 +332,47 @@ function loadInstalledPlugins() {
 		Plugins.loadingStep = true
 		return;
 	}
-	var storage_data = localStorage.getItem('installed_plugins')
-	if (storage_data !== null) {
-		Plugins.installed = JSON.parse(storage_data)
+	if (localStorage.getItem('installed_plugins')) {
+		var legacy_plugins = JSON.parse(localStorage.getItem('installed_plugins'))
+		if (legacy_plugins instanceof Array) {
+			legacy_plugins.forEach((string, i) => {
+				if (typeof string == 'string') {
+					if (string.match(/\.js$/)) {
+						Plugins.installed[i] = {
+							id: string.split(/[\\/]/).last().replace(/\.js$/, ''),
+							path: string,
+							source: 'file'
+						}
+					} else {
+						Plugins.installed[i] = {
+							id: string,
+							source: 'store'
+						}
+					}
+				}
+			})
+		}
+		StateMemory.save('installed_plugins')
+		localStorage.removeItem('installed_plugins')
 	}
-	if (Plugins.json !== undefined) {
+
+	if (Plugins.json instanceof Object) {
 		//From Store
 		for (var id in Plugins.json) {
 			var plugin = new Plugin(id, Plugins.json[id])
-			if (Plugins.installed.includes(id)) {
+			if (Plugins.installed.find(plugin => {
+				return plugin.id == id && plugin.source == 'store'
+			})) {
 				plugin.download()
 			}
 		}
 		Plugins.sort();
 	} else if (Plugins.installed.length > 0 && isApp) {
 		//Offline
-		Plugins.installed.forEach(function(id) {
+		Plugins.installed.forEach(function(plugin) {
 
-			if (id.substr(-3) !== '.js') {
-				//downloaded public plugin
-				var plugin = new Plugin(id).install(false, function() {
+			if (plugin.source == 'store') {
+				var plugin = new Plugin(plugin.id).install(false, function() {
 					this.extend(window.plugin_data)
 					Plugins.sort()
 				})
@@ -309,22 +381,28 @@ function loadInstalledPlugins() {
 	}
 	if (Plugins.installed.length > 0) {
 		var loaded = []
-		Plugins.installed.forEach(function(id) {
+		Plugins.installed.forEachReverse(function(plugin) {
 
-			if (id && id.substr(-3) === '.js') {
+			if (plugin.source == 'file') {
 				//Dev Plugins
-				if (isApp && fs.existsSync(id)) {
-					var plugin = new Plugin(id).loadFromFile({path: id}, false)
-					loaded.push(pathToName(id))
+				if (isApp && fs.existsSync(plugin.path)) {
+					var plugin = new Plugin(plugin.id).loadFromFile({path: plugin.path}, false)
+					loaded.push('Local: '+ plugin.id || plugin.path)
 				} else {
-					Plugins.installed.remove(id)
+					Plugins.installed.remove(plugin)
 				}
-			} else if (id) {
-				loaded.push(id)
+
+			} else if (plugin.source == 'url') {
+				var plugin = new Plugin(plugin.id).loadFromFile({path: plugin.path}, false)
+				loaded.push('URL: '+ plugin.id || plugin.path)
+
+			} else {
+				loaded.push('Store: '+ plugin.id)
 			}
 		})
 		console.log(`Loaded ${loaded.length} plugin${pluralS(loaded.length)}`, loaded)
 	}
+	StateMemory.save('installed_plugins')
 	
 	Plugins.Vue = new Vue({
 		el: '#plugin_list',
@@ -352,12 +430,6 @@ function loadInstalledPlugins() {
 			}
 		}
 	})
-}
-function saveInstalledPlugins() {
-	localStorage.setItem('installed_plugins', JSON.stringify(Plugins.installed))
-}
-function loadPluginFromFile(file) {
-	var plugin = new Plugin().loadFromFile(file, true)
 }
 function switchPluginTabs(installed) {
 	$('#plugins .tab_bar > .open').removeClass('open')
@@ -391,13 +463,21 @@ BARS.defineActions(function() {
 		icon: 'fa-file-code',
 		category: 'blockbench',
 		click: function () {
-			var startpath = localStorage.getItem('plugin_dev_path') || undefined;
 			Blockbench.import({
+				resource_id: 'dev_plugin',
 				extensions: ['js'],
 				type: 'Blockbench Plugin',
-				startpath
 			}, function(files) {
-				loadPluginFromFile(files[0])
+				new Plugin().loadFromFile(files[0], true)
+			})
+		}
+	})
+	new Action('load_plugin_from_url', {
+		icon: 'cloud_download',
+		category: 'blockbench',
+		click: function () {
+			Blockbench.textPrompt('URL', '', url => {
+				new Plugin().loadFromURL(url, true)
 			})
 		}
 	})

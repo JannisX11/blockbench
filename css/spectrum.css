@@ -150,10 +150,6 @@ License: MIT
     height: 28px;
 }
 
-.sp-container:not(.sp-alpha-enabled) .sp-top {
-    /*margin-bottom: -20px;*/
-}
-
 /* Don't allow text selection */
 .sp-container, .sp-replacer, .sp-preview, .sp-dragger, .sp-slider, .sp-alpha, .sp-clear, .sp-alpha-handle, .sp-container.sp-dragging .sp-input, .sp-container button  {
     -webkit-user-select:none;
@@ -444,12 +440,6 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
 
 
 /* Buttons: http://hellohappy.org/css3-buttons/ */
-.sp-container button {
-
-}
-.sp-container button:hover {
-
-}
 .sp-cancel {
     font-size: 11px;
     margin:0;

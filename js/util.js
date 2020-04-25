@@ -162,6 +162,9 @@ Math.lerp = function(a,b,m) {
 Math.isBetween = function(n, a, b) {
    return (n - a) * (n - b) <= 0
 }
+Math.epsilon = function(a, b, epsilon) {
+	return Math.abs(b - a) < epsilon
+}
 Math.trimDeg = function(a) {
 	return (a+180*15)%360-180
 }
@@ -181,12 +184,22 @@ Math.areMultiples = function(n1, n2) {
 		(n2/n1)%1 === 0
 	)
 }
-Math.getNextPower =function(num, min) {
+Math.getNextPower = function(num, min) {
 	var i = min ? min : 2
 	while (i < num && i < 4000) {
 		i *= 2
 	}
 	return i;
+}
+Math.snapToValues = function(val, snap_points, epsilon = 12) {
+	let snaps = snap_points.slice().sort((a, b) => {
+		return Math.abs(val-a) - Math.abs(val-b)
+	})
+	if (Math.abs(snaps[0] - val) < epsilon) {
+		return snaps[0]
+	} else {
+		return val
+	}
 }
 function trimFloatNumber(val) {
 	if (val == '') return val;
@@ -332,11 +345,15 @@ Array.prototype.remove = function (item) { {
 	}		
 }
 Array.prototype.empty = function() {
-	this.length = 0;
+	this.splice(0, Infinity);
 	return this;
 }
 Array.prototype.purge = function() {
 	this.splice(0, Infinity);
+	return this;
+}
+Array.prototype.replace = function(items) {
+	this.splice(0, Infinity, ...items);
 	return this;
 }
 Array.prototype.findInArray = function(key, value) {

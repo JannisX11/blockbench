@@ -29,39 +29,7 @@ var Prop = {
 	connections 	: 0,
 	facing		 	: 'north'
 }
-const Project = {
-	name			: '',
-	parent			: '',
-	geometry_name	: '',
-	description	   	: '',
-	_box_uv 		: false,
-	get box_uv() {return Project._box_uv},
-	set box_uv(v) {
-		if (Project._box_uv != v) {
-			Project._box_uv = v;
-			switchBoxUV(v);
-		}
-	},
-	get texture_width() {return Project._texture_width},
-	get texture_height() {return Project._texture_height},
-	set texture_width(n) {
-		n = parseInt(n)||16
-		Vue.nextTick(updateProjectResolution)
-		Project._texture_width = n;
-	},
-	set texture_height(n) {
-		n = parseInt(n)||16
-		Vue.nextTick(updateProjectResolution)
-		Project._texture_height = n;
-	},
-	_texture_width	: 16,
-	_texture_height	: 16,
-	ambientocclusion: true,
-	front_gui_light: false,
-	get optional_box_uv() {
-		return Format.optional_box_uv;
-	}
-}
+
 const mouse_pos = {x:0,y:0}
 const sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
 
@@ -175,12 +143,13 @@ function updateProjectResolution() {
 //Selections
 function updateSelection() {
 	elements.forEach(obj => {
-		if (selected.includes(obj) && !obj.selected) {
+		if (selected.includes(obj) && !obj.selected && !obj.locked) {
 			obj.selectLow()
-		} else if (!selected.includes(obj) && obj.selected) {
+		} else if ((!selected.includes(obj) || obj.locked) && obj.selected) {
 			obj.unselect()
 		}
 	})
+	if (Group.selected && Group.selected.locked) Group.selected.unselect()
 
 	Cube.all.forEach(cube => {
 		if (cube.visibility) {
@@ -221,7 +190,6 @@ function updateSelection() {
 
 	BarItems.cube_counter.update();
 	updateNslideValues();
-	Blockbench.globalMovement = isMovementGlobal();
 	updateCubeHighlights();
 	Canvas.updateOrigin();
 	Transformer.updateSelection();
@@ -298,7 +266,7 @@ function createSelection() {
 setInterval(function() {
 	if (Outliner.root.length || textures.length) {
 		try {
-			var model = Codecs.project.compile({compressed: true});
+			var model = Codecs.project.compile({compressed: false});
 			localStorage.setItem('backup_model', model)
 		} catch (err) {
 			console.log('Unable to create backup. ', err)

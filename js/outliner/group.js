@@ -12,6 +12,7 @@ class Group extends OutlinerElement {
 		this.reset = false;
 		this.shade = true;
 		this.selected = false;
+		this.locked = false;
 		this.visibility = true;
 		this.export = true;
 		this.autouv = 0;
@@ -44,6 +45,7 @@ class Group extends OutlinerElement {
 		}
 		Merge.number(this, object, 'autouv')
 		Merge.boolean(this, object, 'export')
+		Merge.boolean(this, object, 'locked')
 		Merge.boolean(this, object, 'visibility')
 		return this;
 	}
@@ -69,7 +71,7 @@ class Group extends OutlinerElement {
 	}
 	select(event) {
 		var scope = this;
-		if (Blockbench.hasFlag('renaming')) return this;
+		if (Blockbench.hasFlag('renaming') || this.locked) return this;
 		if (!event) event = true
 		var allSelected = Group.selected === this && selected.length && this.matchesSelection()
 
@@ -223,6 +225,7 @@ class Group extends OutlinerElement {
 	}
 	showContextMenu(event) {
 		Prop.active_panel = 'outliner'
+		if (this.locked) return this;
 		this.select(event)
 		this.menu.open(event, this)
 		return this;
@@ -305,6 +308,7 @@ class Group extends OutlinerElement {
 		base_group.rotation.V3_set(this.rotation);
 		base_group.shade = this.shade;
 		base_group.reset = this.reset;
+		base_group.locked = this.locked;
 		base_group.visibility = this.visibility;
 		base_group.export = this.export;
 		base_group.autouv = this.autouv;
@@ -321,6 +325,7 @@ class Group extends OutlinerElement {
 			obj.uuid = this.uuid;
 			obj.export = this.export;
 			obj.isOpen = this.isOpen === true;
+			obj.locked = this.locked;
 			obj.visibility = this.visibility;
 			obj.autouv = this.autouv;
 		}
@@ -383,10 +388,10 @@ class Group extends OutlinerElement {
 	Group.prototype.type = 'group';
 	Group.prototype.icon = 'fa fa-folder';
 	Group.prototype.isParent = true;
-	Group.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
+	Group.prototype.name_regex = () => Format.bone_rig ? 'a-z0-9_' : false;
 	Group.prototype.buttons = [
-		Outliner.buttons.remove,
 		Outliner.buttons.visibility,
+		Outliner.buttons.locked,
 		Outliner.buttons.export,
 		Outliner.buttons.shading,
 		Outliner.buttons.autouv

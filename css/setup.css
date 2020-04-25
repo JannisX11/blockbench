@@ -22,7 +22,7 @@
 		width: 6px;
 		height: 6px;
 	}
-	 
+
 	::-webkit-scrollbar-track {
 		background: var(--color-ui);
 	}
@@ -138,7 +138,6 @@
 	[class^="icon-"]:not(.fa), [class*=" icon-"]:not(.fa) {
 	  /* use !important to prevent issues with browser extensions that change fonts */
 	  font-family: 'icomoon' !important;
-	  speak: none;
 	  font-style: normal;
 	  font-weight: normal;
 	  font-variant: normal;
@@ -147,7 +146,6 @@
 	  font-size: 1.4em;
 	  max-width: 24px;
 
-	   Better Font Rendering =========== 
 	  -webkit-font-smoothing: antialiased;
 	  -moz-osx-font-smoothing: grayscale;
 	}
@@ -399,7 +397,7 @@
 		appearance: none;
 		border: none;
 		background: transparent;
-		color: var(--color-text)
+		color: var(--color-text);
 		font-size: 1em;
 		font-family: inherit;
 		outline: none;
@@ -419,6 +417,7 @@
 		padding-right: 16px;
 		padding-left: 16px;
 		font-weight: normal;
+		cursor: pointer;
 	}
 	button.disabled {
 		opacity: 0.5;
@@ -503,12 +502,15 @@
 	    right: 6px;
 	    top: 3px;
 	}
-	input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button, {
+	input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button {
 		-webkit-appeareance: none;
 	}
 	input[type=range] {
 		background-color: var(--color-back);
 		height: 30px;
+	}
+	input[type=password] {
+		font-size: 1.2em;
 	}
 
 	input[type=range]::-webkit-slider-thumb {

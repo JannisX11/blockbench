@@ -172,6 +172,7 @@ class Action extends BarItem {
 			this.linked_setting = data.linked_setting
 		}
 		if (data.condition) this.condition = data.condition
+		this.children = data.children;
 
 		//Node
 		this.click = data.click
@@ -751,7 +752,7 @@ class BarSelect extends Widget {
 		}
 		let menu = new Menu(items);
 		menu.node.style['min-width'] = this.node.clientWidth+'px';
-		menu.open(this.node, this);
+		menu.open(event.target, this);
 	}
 	trigger(event) {
 		if (!event) event = 0;
@@ -1518,8 +1519,13 @@ const BARS = {
 				'export_palette',
 				'generate_palette',
 				'sort_palette',
+				'load_palette',
 			]
 		})
+		//update 3.5
+		if (!Toolbars.palette.children.includes(BarItems.load_palette)) {
+			Toolbars.palette.add(BarItems.load_palette)
+		}
 		Toolbars.color_picker = new Toolbar({
 			id: 'color_picker',
 			children: [
@@ -1538,14 +1544,11 @@ const BARS = {
 				'copy',
 				'paste',
 				'add_display_preset',
+				'apply_display_preset',
 				'gui_light'
 			],
 			default_place: true
 		})
-		//update 3.3.1
-		if (!Toolbars.display.children.includes(BarItems.gui_light)) {
-			Toolbars.display.add(BarItems.gui_light)
-		}
 		//UV
 		Toolbars.main_uv = new Toolbar({
 			id: 'main_uv',
@@ -1682,6 +1685,7 @@ const BARS = {
 
 		BarItems.reset_keybindings.toElement('#keybinds_title_bar')
 		BarItems.load_plugin.toElement('#plugins_header_bar')
+		BarItems.load_plugin_from_url.toElement('#plugins_header_bar')
 		BarItems.uv_dialog.toElement('#uv_title_bar')
 		BarItems.uv_dialog_full.toElement('#uv_title_bar')
 		BarItems.toggle_chat.toElement('#chat_title_bar')

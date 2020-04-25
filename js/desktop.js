@@ -7,6 +7,7 @@ const zlib = require('zlib');
 const exec = require('child_process').exec;
 const originalFs = require('original-fs');
 const https = require('https');
+const PathModule = require('path')
 
 const currentwindow = electron.getCurrentWindow();
 const ElecDialogs = {};
@@ -49,7 +50,9 @@ function initializeDesktopApp() {
 		shell.openExternal(event.target.href);
 		return true;
 	});
-	if (compareVersions('5.0.0', process.versions.electron)) {
+	if (currentwindow.webContents.zoomLevel !== undefined) {
+		Prop.zoom = 100 + currentwindow.webContents.zoomLevel*12
+	} else if (compareVersions('5.0.0', process.versions.electron)) {
 		Prop.zoom = 100 + currentwindow.webContents._getZoomLevel()*12
 	} else {
 		Prop.zoom = 100 + currentwindow.webContents.getZoomLevel()*12
@@ -114,6 +117,7 @@ function addRecentProject(data) {
 		}
 		i--;
 	}
+	if (data.name.length > 48) data.name = data.name.substr(0, 20) + '...' + data.name.substr(-20);
 	let project = {
 		name: data.name,
 		path: data.path,
@@ -214,7 +218,7 @@ function installUpdate() {
 
 	var file = originalFs.createWriteStream(asar_path);
 
-	var request = https.get("https://blockbench.net/api/app.asar", function(response) {
+	https.get("https://blockbench.net/api/app.asar", function(response) {
 		response.pipe(file);
 
 		total_bytes = parseInt(response.headers['content-length']);
@@ -252,12 +256,12 @@ function changeImageEditor(texture, from_settings) {
 			var path;
 			if (Blockbench.platform == 'darwin') {
 				switch (id) {
-					case 'ps':  path = '/Applications/Adobe Photoshop CC 2019/Adobe Photoshop CC 2019.app'; break;
+					case 'ps':  path = '/Applications/Adobe Photoshop CC 2020/Adobe Photoshop CC 2020.app'; break;
 					case 'gimp':path = '/Applications/Gimp-2.10.app'; break;
 				}
 			} else {
 				switch (id) {
-					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop CC 2019\\Photoshop.exe'; break;
+					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop CC 2020\\Photoshop.exe'; break;
 					case 'gimp':path = 'C:\\Program Files\\GIMP 2\\bin\\gimp-2.10.exe'; break;
 					case 'pdn': path = 'C:\\Program Files\\paint.net\\PaintDotNet.exe'; break;
 				}

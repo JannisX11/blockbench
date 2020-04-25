@@ -33,6 +33,9 @@ function initializeWebApp() {
 			}
 		})
 	}
+	if (Blockbench.browser == 'firefox') {
+		document.body.style.imageRendering = 'crisp-edges'
+	}
 
 }
 setInterval(function() {

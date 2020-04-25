@@ -210,6 +210,7 @@ var codec = new Codec('obj', {
 		var scope = this;
 		if (isApp) {
 			Blockbench.export({
+				resource_id: 'obj',
 				type: this.name,
 				extensions: [this.extension],
 				name: this.fileName(),

@@ -1,6 +1,8 @@
 
 CustomTheme.setup()
 
+StateMemory.init('dialog_paths', 'object')
+
 initCanvas()
 animate()
 
@@ -116,5 +118,7 @@ if (isApp) {
 Modes.options.start.select()
 
 loadInstalledPlugins();
+
+document.getElementById('page_wrapper').classList.remove('hidden')
 
 Blockbench.setup_successful = true;

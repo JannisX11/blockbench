@@ -20,6 +20,12 @@ class UVEditor {
 			this.setGrid(BarItems.uv_grid.get().replace(/x/, ''));
 		}
 	}
+	get width() {
+		return this.size;
+	}
+	set width(v) {
+		this.size = v;
+	}
 	buildDom(toolbar) {
 		var scope = this
 		if (this.jquery.main) {
@@ -47,6 +53,7 @@ class UVEditor {
 				</div>
 			</div>`);
 		this.img = new Image();
+		this.img.style.objectFit = Format.animated_textures ? 'cover' : 'fill';
 		this.jquery.frame.append(this.img)
 		this.jquery.size  = this.jquery.frame.find('div#uv_size')
 		this.jquery.viewport.append(this.jquery.frame)
@@ -56,6 +63,7 @@ class UVEditor {
 		if (Toolbox.selected.paintTool) {
 			this.jquery.size.hide()
 		}
+		this.jquery.main.toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
 
 		this.jquery.sliders = $('<div class="bar" style="margin-left: 2px;"></div>')
 
@@ -271,13 +279,17 @@ class UVEditor {
 				var n = (event.deltaY < 0) ? 0.1 : -0.1;
 				n *= scope.zoom
 				var number = limitNumber(scope.zoom + n, 1, scope.max_zoom)
-				if (Math.abs(number - scope.zoom) > 0.001) {
-					this.scrollLeft += (scope.inner_width * n / 2) * (event.offsetX / scope.jquery.frame.width());
-					this.scrollTop  += (scope.inner_width * n / 2) * (event.offsetY / scope.jquery.frame.height());
-				}
+				let old_zoom = scope.zoom;
+
+
 				scope.setZoom(number)
 				event.preventDefault()
 				e.preventDefault()
+
+				let zoom_diff = scope.zoom - old_zoom;
+				this.scrollLeft += ((this.scrollLeft + event.offsetX) * zoom_diff) / old_zoom
+				this.scrollTop  += ((this.scrollTop  + event.offsetY) * zoom_diff) / old_zoom
+
 				return false;
 			}
 		})
@@ -306,24 +318,28 @@ class UVEditor {
 		//Paint brush outline
 		this.brush_outline = $('<div id="uv_brush_outline"></div>');
 		scope.jquery.frame.on('mouseenter mousemove', e => {
-			if (Modes.paint && Toolbox.selected.brushTool) {
-				scope.jquery.frame.append(this.brush_outline);
-				var pixel_size = scope.inner_width / (scope.texture ? scope.texture.width : Project.texture_width);
-				//pos
-				let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0.5 : 0;
-				let left = (0.5 - offset + Math.floor(e.offsetX / pixel_size + offset)) * pixel_size;
-				let top =  (0.5 - offset + Math.floor(e.offsetY / pixel_size + offset)) * pixel_size;
-				this.brush_outline.css('left', left+'px').css('top', top+'px');
-				//size
-				var radius = (BarItems.slider_brush_size.get()/2) * pixel_size;
-				this.brush_outline.css('padding', radius+'px').css('margin', (-radius)+'px');
-			}
+			this.updateBrushOutline(e)
 		})
 		scope.jquery.frame.on('mouseleave', e => {
-			this.brush_outline.detach();
 		})
 		this.setSize(this.size)
 		return this;
+	}
+	updateBrushOutline(e) {
+		if (Modes.paint && Toolbox.selected.brushTool) {
+			this.jquery.frame.append(this.brush_outline);
+			var pixel_size = this.inner_width / (this.texture ? this.texture.width : Project.texture_width);
+			//pos
+			let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0.5 : 0;
+			let left = (0.5 - offset + Math.floor(e.offsetX / pixel_size + offset)) * pixel_size;
+			let top =  (0.5 - offset + Math.floor(e.offsetY / pixel_size + offset)) * pixel_size;
+			this.brush_outline.css('left', left+'px').css('top', top+'px');
+			//size
+			var radius = (BarItems.slider_brush_size.get()/2) * pixel_size;
+			this.brush_outline.css('padding', radius+'px').css('margin', (-radius)+'px');
+		} else {
+			this.brush_outline.detach();
+		}
 	}
 	message(msg, vars) {
 		msg = tl(msg, vars)
@@ -703,12 +719,12 @@ class UVEditor {
 			this.jquery.viewport.css('overflow', 'hidden')
 		}
 	}
-	setFace(face, update) {
+	setFace(face, update = true) {
 		this.face = face
 		if (this.id === 'main_uv') {
 			$('input#'+face+'_radio').prop("checked", true)
 		}
-		if (update !== false) {
+		if (update) {
 			this.loadData()
 		}
 		return this;
@@ -867,7 +883,7 @@ class UVEditor {
 		}
 		var tex = face ? face.getTexture() : textures[0];
 		if (!tex || typeof tex !== 'object' || (tex.error && tex.error != 2)) {
-			main_uv.img.src = '';
+			this.img.src = '';
 			this.img.style.display = 'none';
 			this.texture = false;
 		} else {
@@ -1795,9 +1811,9 @@ const uv_dialog = {
 		}
 	},
 	updateSelection: function() {
-		$('#uv_dialog_all .UVEditor .uv_headline').removeClass('selected')
+		$('#uv_dialog_all .UVEditor').removeClass('selected')
 		uv_dialog.selection.forEach(function(id) {
-			$('#uv_dialog_all #UVEditor_'+id+' .uv_headline').addClass('selected')
+			$('#uv_dialog_all #UVEditor_'+id).addClass('selected')
 		})
 	},
 	openDialog: function() {

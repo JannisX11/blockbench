@@ -489,10 +489,64 @@ const Canvas = {
 		}
 		iterate(el, elmesh)
 	},
+	getLayeredMaterial() {
+		var vertShader = `
+			varying vec2 vUv;
+
+			void main()
+			{
+			    vUv = uv;
+			    vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+			    gl_Position = projectionMatrix * mvPosition;
+			}`
+		var fragShader = `
+			#ifdef GL_ES
+			precision highp float;
+			#endif
+
+			uniform sampler2D tOne;
+			uniform sampler2D tSec;
+
+			varying vec2 vUv;
+
+			void main(void)
+			{
+			    vec3 c;
+			    vec4 Ca = texture2D(tOne, vUv);
+			    vec4 Cb = texture2D(tSec, vUv);
+			    c = Ca.rgb * Ca.a + Cb.rgb * Cb.a * (1.0 - Ca.a);  // blending equation
+			    gl_FragColor= vec4(c, 1.0);
+			}`
+
+		var uniforms = {
+		  tOne: { type: "t", value: textures[1].getMaterial().map },
+		  tSec: { type: "t", value: textures[0].getMaterial().map }
+		};
+
+		var material_shh = new THREE.ShaderMaterial({
+		  uniforms: uniforms,
+		  vertexShader: vertShader,
+		  fragmentShader: fragShader
+		});
+		return material_shh;
+		/*
+		todo:
+			Issues:
+			Painting is one pixel delayed
+			Painting doesn't occur on selected texture
+			needs setting
+			needs to work with 0-3+ textures
+		*/
+	},
 	adaptObjectFaces(cube, mesh) {
 		if (!mesh) mesh = cube.mesh
 		if (!mesh) return;
-		if (!Prop.wireframe) {
+		if (Prop.wireframe) {
+			mesh.material = Canvas.wireframeMaterial
+		/*} else if (settings.layered_textures.value && Format && Format.id.includes('bedrock')) {
+			mesh.material = Canvas.getLayeredMaterial();*/
+
+		} else {
 			var materials = []
 			Canvas.face_order.forEach(function(face) {
 
@@ -509,8 +563,6 @@ const Canvas = {
 				}
 			})
 			mesh.material = materials
-		} else {
-			mesh.material = Canvas.wireframeMaterial
 		}
 	},
 	updateUV(obj, animation) {

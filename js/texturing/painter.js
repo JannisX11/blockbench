@@ -112,7 +112,7 @@ const Painter = {
 				}
 			}
 		}
-		if (!data) return;
+		if (!data || (data.cube && data.cube.locked)) return;
 		var texture = data.cube.faces[data.face].getTexture()
 		if (!texture || (texture.error && texture.error !== 2)) {
 			Blockbench.showQuickMessage('message.untextured')
@@ -131,7 +131,7 @@ const Painter = {
 	movePaintToolCanvas(event) {
 		convertTouchEvent(event);
 		var data = Canvas.raycast(event)
-		if (data) {
+		if (data && data.cube && !data.cube.locked) {
 			var texture = data.cube.faces[data.face].getTexture()
 			if (texture) {
 				var x, y, new_face;
@@ -204,7 +204,7 @@ const Painter = {
 				Painter.drawBrushLine(texture, x, y, event, false, uvTag);
 			} else {
 				Painter.current.x = Painter.current.y = 0
-				Painter.useBrush(texture, x, y, event, uvTag)
+				Painter.useBrushlike(texture, x, y, event, uvTag)
 			}
 			Painter.current.x = x;
 			Painter.current.y = y;
@@ -233,7 +233,7 @@ const Painter = {
 		Painter.currentPixel = [-1, -1];
 	},
 	// Tools
-	useBrush(texture, x, y, event, uvTag, no_update, is_opposite) {
+	useBrushlike(texture, x, y, event, uvTag, no_update, is_opposite) {
 		if (Painter.currentPixel[0] === x && Painter.currentPixel[1] === y) return;
 		Painter.currentPixel = [x, y]
 		Painter.brushChanges = true;
@@ -247,12 +247,6 @@ const Painter = {
 		texture.edit(function(canvas) {
 			var ctx = canvas.getContext('2d')
 			ctx.save()
-
-			var color = tinycolor(ColorPanel.get()).toRgb();
-			var size = BarItems.slider_brush_size.get();
-			let softness = BarItems.slider_brush_softness.get()/100;
-			let b_opacity = BarItems.slider_brush_opacity.get()/100;
-			let tool = Toolbox.selected.id;
 
 			ctx.beginPath();
 			if (uvTag) {
@@ -275,128 +269,158 @@ const Painter = {
 			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
 			ctx.rect(rect[0], rect[1], w, h)
 
-			if (tool === 'fill_tool') {
-
-				ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
-
-				var fill_mode = BarItems.fill_mode.get()
-				var cube = Painter.current.cube;
-				if (cube && fill_mode === 'cube') {
-					for (var face in cube.faces) {
-						var tag = cube.faces[face]
-						if (tag.texture === Painter.current.texture.uuid) {
-							var rect = getRectangle(
-								Math.floor(tag.uv[0] * uvFactorX),
-								Math.floor(tag.uv[1] * uvFactorY),
-								Math.ceil(tag.uv[2]  * uvFactorX),
-								Math.ceil(tag.uv[3]  * uvFactorY)
-							)
-							ctx.rect(rect.ax, rect.ay, rect.x, rect.y)
-							ctx.fill()
-						}
-					}
-
-				} else if (fill_mode === 'face') {
-					ctx.fill()
-				} else {
-
-					var pxcol = [];
-					var map = {}
-					Painter.scanCanvas(ctx, x, y, 1, 1, (x, y, px) => {
-						px.forEach((val, i) => {
-							pxcol[i] = val
-						})
-					})
-					Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
-						if (pxcol.equals(px)) {
-							if (!map[x]) map[x] = {}
-							map[x][y] = true
-						}
-					})
-					var scan_value = true;
-					if (fill_mode === 'color_connected') {
-						function checkPx(x, y) {
-							if (map[x] && map[x][y]) {
-								map[x][y] = false;
-
-								checkPx(x+1, y)
-								checkPx(x-1, y)
-								checkPx(x, y+1)
-								checkPx(x, y-1)
-							}
-						}
-						checkPx(x, y)
-						scan_value = false;
-					}
-					Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
-						if (map[x] && map[x][y] === scan_value) {
-							var pxcolor = {
-								r: px[0],
-								g: px[1],
-								b: px[2],
-								a: px[3]/255
-							}
-							var result_color = Painter.combineColors(pxcolor, color, b_opacity);
-							px[0] = result_color.r
-							px[1] = result_color.g
-							px[2] = result_color.b
-							if (!Painter.lock_alpha) px[3] = result_color.a*255
-						}
-					})
-				}
+			if (Toolbox.selected.id === 'fill_tool') {
+				Painter.useFilltool(texture, ctx, x, y, { rect, uvFactorX, uvFactorY, w, h })
 			} else {
-				ctx.clip()
-				if (event.touches && event.touches[0] && event.touches[0].force) {
-					var touch = event.touches[0];
-					if (touch.force == 1) touch.force == Painter.current.force || 0;
-					Painter.current.force = touch.force;
-
-					if (settings.brush_opacity_modifier.value == 'pressure' && touch.force) {
-						b_opacity = Math.clamp(b_opacity * touch.force*1.25, 0, 100);
-						//m_opacity = Math.clamp(m_opacity * touch.force*1.25, 0, 100);
-
-					} else if (settings.brush_opacity_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
-						var modifier = Math.clamp(1.5 / (touch.altitudeAngle + 0.3), 1, 4)/2;
-						b_opacity = Math.clamp(b_opacity * modifier, 0, 100);
-						//m_opacity = Math.clamp(m_opacity * modifier, 0, 100);
-					}
-					if (settings.brush_size_modifier.value == 'pressure' && touch.force) {
-						size = Math.clamp(touch.force * size * 2, 1, 20);
-
-					} else if (settings.brush_size_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
-						size *= Math.clamp(1.5 / (touch.altitudeAngle + 0.3), 1, 4);
-					}
-				}
-
-				if (tool === 'brush_tool') {
-					Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity, px, py) {
-						var a = b_opacity * opacity;
-						var before = Painter.getAlphaMatrix(texture, px, py)
-						Painter.setAlphaMatrix(texture, px, py, a);
-						if (a > before) {
-							a = (a - before) / (1 - before);
-						} else if (before) {
-							a = 0;
-						}
-						var result_color = Painter.combineColors(pxcolor, color, a);
-						if (Painter.lock_alpha) result_color.a = pxcolor.a
-						return result_color;
-					})
-				} else if (tool === 'eraser') {
-					Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity) {
-						return {
-							r: pxcolor.r,
-							g: pxcolor.g,
-							b: pxcolor.b,
-							a: Painter.lock_alpha ? pxcolor.a : (pxcolor.a*(1-b_opacity))
-						};
-					})
-				}
-				ctx.restore();
+				Painter.useBrush(texture, ctx, x, y, event)
 			}
 			Painter.editing_area = undefined;
 
+
 		}, {no_undo: true, use_cache: true, no_update});
+	},
+	useBrush(texture, ctx, x, y, event) {
+
+		var color = tinycolor(ColorPanel.get()).toRgb();
+		var size = BarItems.slider_brush_size.get();
+		let softness = BarItems.slider_brush_softness.get()/100;
+		let b_opacity = BarItems.slider_brush_opacity.get()/100;
+		let tool = Toolbox.selected.id;
+
+		ctx.clip()
+		if (event.touches && event.touches[0] && event.touches[0].force) {
+
+			// Stylus
+			var touch = event.touches[0];
+			if (touch.force == 1) touch.force == Painter.current.force || 0;
+			Painter.current.force = touch.force;
+
+			if (settings.brush_opacity_modifier.value == 'pressure' && touch.force) {
+				b_opacity = Math.clamp(b_opacity * touch.force*1.25, 0, 100);
+
+			} else if (settings.brush_opacity_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
+				var modifier = Math.clamp(1.5 / (touch.altitudeAngle + 0.3), 1, 4)/2;
+				b_opacity = Math.clamp(b_opacity * modifier, 0, 100);
+			}
+			if (settings.brush_size_modifier.value == 'pressure' && touch.force) {
+				size = Math.clamp(touch.force * size * 2, 1, 20);
+
+			} else if (settings.brush_size_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
+				size *= Math.clamp(1.5 / (touch.altitudeAngle + 0.3), 1, 4);
+			}
+		}
+
+		if (tool === 'brush_tool') {
+			Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity, px, py) {
+				var a = b_opacity * opacity;
+				var before = Painter.getAlphaMatrix(texture, px, py)
+				Painter.setAlphaMatrix(texture, px, py, a);
+				if (a > before) {
+					a = (a - before) / (1 - before);
+				} else if (before) {
+					a = 0;
+				}
+				var result_color = Painter.combineColors(pxcolor, color, a);
+				if (Painter.lock_alpha) result_color.a = pxcolor.a
+				return result_color;
+			})
+		} else if (tool === 'eraser') {
+			Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity, px, py) {
+				if (Painter.lock_alpha) return pxcolor;
+
+				var a = b_opacity * opacity;
+
+				var before = Painter.getAlphaMatrix(texture, px, py)
+				Painter.setAlphaMatrix(texture, px, py, a);
+
+				if (a > before) {
+					a = (a - before) / (1 - before);
+				} else if (before) {
+					a = 0;
+				}
+				pxcolor.a = Math.clamp(pxcolor.a * (1-a), 0, 1);
+				return pxcolor;
+
+			})
+		}
+		ctx.restore();
+	},
+	useFilltool(texture, ctx, x, y, area) {
+		
+		var color = tinycolor(ColorPanel.get()).toRgb();
+		let b_opacity = BarItems.slider_brush_opacity.get()/100;
+		let tool = Toolbox.selected.id;
+
+		let {rect, uvFactorX, uvFactorY, w, h} = area;
+
+		ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
+
+		var fill_mode = BarItems.fill_mode.get()
+		var cube = Painter.current.cube;
+		if (cube && fill_mode === 'cube') {
+			for (var face in cube.faces) {
+				var tag = cube.faces[face]
+				ctx.beginPath();
+				if (tag.texture === Painter.current.texture.uuid) {
+					var face_rect = getRectangle(
+						Math.floor(tag.uv[0] * uvFactorX),
+						Math.floor(tag.uv[1] * uvFactorY),
+						Math.ceil(tag.uv[2]  * uvFactorX),
+						Math.ceil(tag.uv[3]  * uvFactorY)
+					)
+					ctx.rect(face_rect.ax, face_rect.ay, face_rect.x, face_rect.y)
+					ctx.fill()
+				}
+			}
+
+		} else if (fill_mode === 'face') {
+			ctx.fill()
+		} else {
+
+			var pxcol = [];
+			var map = {}
+			Painter.scanCanvas(ctx, x, y, 1, 1, (x, y, px) => {
+				px.forEach((val, i) => {
+					pxcol[i] = val
+				})
+			})
+			Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
+				if (pxcol.equals(px)) {
+					if (!map[x]) map[x] = {}
+					map[x][y] = true
+				}
+			})
+			var scan_value = true;
+			if (fill_mode === 'color_connected') {
+				function checkPx(x, y) {
+					if (map[x] && map[x][y]) {
+						map[x][y] = false;
+
+						checkPx(x+1, y)
+						checkPx(x-1, y)
+						checkPx(x, y+1)
+						checkPx(x, y-1)
+					}
+				}
+				checkPx(x, y)
+				scan_value = false;
+			}
+			Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
+				if (map[x] && map[x][y] === scan_value) {
+					var pxcolor = {
+						r: px[0],
+						g: px[1],
+						b: px[2],
+						a: px[3]/255
+					}
+					var result_color = Painter.combineColors(pxcolor, color, b_opacity);
+					px[0] = result_color.r
+					px[1] = result_color.g
+					px[2] = result_color.b
+					if (!Painter.lock_alpha) px[3] = result_color.a*255
+				}
+			})
+		}
 	},
 	runMirrorBrush(texture, x, y, event, uvTag) {
 		if (uvTag && Painter.current.cube) {
@@ -436,7 +460,7 @@ const Painter = {
 
 				let cube = Painter.current.cube;
 				Painter.current.cube = mirror_cube;
-				Painter.useBrush(texture, ...point_on_uv, event, face.uv, true, true);
+				Painter.useBrushlike(texture, ...point_on_uv, event, face.uv, true, true);
 				Painter.current.cube = cube;
 			}
 		}
@@ -457,7 +481,7 @@ const Painter = {
 		while (i <= length) {
 			x = Math.round(start_x + diff_x / length * i)
 			y = Math.round(start_y + diff_y / length * i)
-			Painter.useBrush(texture, x, y, event, uv, i < length-1);
+			Painter.useBrushlike(texture, x, y, event, uv, i < length-1);
 			i++;
 		}
 	},
@@ -617,15 +641,16 @@ const Painter = {
 	},
 	getMirrorCube(cube) {
 		let center = Format.centered_grid ? 0 : 8;
+		let e = 0.002
 		if (cube.from[0]-center === center-cube.to[0] && !cube.rotation[1] && !cube.rotation[2]) {
 			return cube;
 		} else {
 			for (var cube2 of Cube.all) {
 				if (
 					cube.inflate === cube2.inflate &&
-					cube.from[2] === cube2.from[2] && cube.to[2] === cube2.to[2] &&
-					cube.from[1] === cube2.from[1] && cube.to[1] === cube2.to[1] &&
-					cube.size(0) === cube2.size(0) && cube.to[0]-center === center-cube2.from[0]
+					Math.epsilon(cube.from[2], cube2.from[2], e) && Math.epsilon(cube.to[2], cube2.to[2], e) &&
+					Math.epsilon(cube.from[1], cube2.from[1], e) && Math.epsilon(cube.to[1], cube2.to[1], e) &&
+					Math.epsilon(cube.size(0), cube2.size(0), e) && Math.epsilon(cube.to[0]-center, center-cube2.from[0], e)
 				) {
 					return cube2;
 				}
@@ -957,7 +982,7 @@ BARS.defineActions(function() {
 		condition: () => (Toolbox && ['brush_tool', 'eraser', 'draw_shape_tool'].includes(Toolbox.selected.id)),
 		category: 'paint',
 		settings: {
-			min: 1, max: 20, interval: 1, default: 1,
+			min: 1, max: 50, interval: 1, default: 1,
 		}
 	})
 	new NumSlider('slider_brush_softness', {

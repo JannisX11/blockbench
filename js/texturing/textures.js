@@ -80,15 +80,10 @@ class Texture {
 
 			//Width / Animation
 			if (img.naturalWidth !== img.naturalHeight && Format.id == 'java_block') {
-				if (img.naturalHeight % img.naturalWidth !== 0) {
-					scope.error = 2;
-					Blockbench.showQuickMessage('message.square_textures')
-				} else {
-					BARS.updateConditions()
-				}
+				BARS.updateConditions()
 			}
 
-			if (Project.box_uv && Format.single_texture) {
+			if (Project.box_uv && Format.single_texture && !scope.error) {
 
 				if (!scope.keep_size) {
 					let pw = Project.texture_width;
@@ -101,13 +96,12 @@ class Texture {
 					//Resolution of this texture has changed
 					var changed = size_control.old_width && (size_control.old_width != nw || size_control.old_height != nh);
 					//Resolution could be a multiple of project size
-					var multi = !(
-						(pw%nw || ph%nh) &&
-						(nw%pw || nh%ph)
+					var multi = (
+						(pw%nw == 0 || nw%pw == 0) &&
+						(ph%nh == 0 || nh%ph == 0)
 					)
 
-
-					if (unlike && changed) {
+					if (unlike && changed && !multi) {
 						Blockbench.showMessageBox({
 							translateKey: 'update_res',
 							icon: 'photo_size_select_small',
@@ -129,11 +123,6 @@ class Texture {
 				size_control.old_height = img.naturalHeight
 			}
 
-
-
-			if ($('.dialog#texture_edit:visible').length > 0 && scope.selected === true) {
-				scope.openMenu()
-			}
 			TextureAnimator.updateButton()
 			Canvas.updateAllFaces(scope)
 			if (typeof scope.load_callback === 'function') {
@@ -141,7 +130,7 @@ class Texture {
 				delete scope.load_callback;
 			}
 		}
-		this.img.onerror = function() {
+		this.img.onerror = function(error) {
 			if (isApp &&
 				!scope.isDefault &&
 				scope.mode !== 'bitmap' &&
@@ -166,7 +155,7 @@ class Texture {
 			case 0: return ''; break;
 			case 1: return tl('texture.error.file'); break;
 			//case 1: return tl('texture.error.invalid'); break;
-			case 2: return tl('texture.error.ratio'); break;
+			//case 2: return tl('texture.error.ratio'); break;
 			case 3: return tl('texture.error.parent'); break;
 		}
 	}
@@ -402,6 +391,7 @@ class Texture {
 
 		function _replace() {
 			Blockbench.import({
+				resource_id: 'texture',
 				extensions: ['png', 'tga'],
 				type: 'PNG Texture',
 				readtype: 'image',
@@ -453,21 +443,21 @@ class Texture {
 		var scope = this;
 		this.stopWatcher();
 
-		fs.watchFile(scope.path, {interval: 50}, function(curr, prev) {
-			if (curr.mtime !== prev.mtime) {
-				if (fs.existsSync(scope.path)) {
+		let timeout;
+		this.watcher = fs.watch(scope.path, (eventType) => {
+			if (eventType == 'change') {
+				if (timeout) clearTimeout(timeout)
+				timeout = setTimeout(() => {
 					scope.reloadTexture();
-				} else {
-					scope.stopWatcher();
-				}
+				}, 60)
 			}
 		})
 	}
 	stopWatcher() {
-		if (this.mode !== 'link' || !isApp || !fs.existsSync(this.path)) {
-			return;
+		if (isApp && this.watcher) {
+			this.watcher.close()
 		}
-		fs.unwatchFile(this.path)
+		return this;
 	}
 	generateFolder(path) {
 		var scope = this
@@ -499,6 +489,9 @@ class Texture {
 		}
 		return this;
 	}
+	getMaterial() {
+		return Canvas.materials[this.uuid]
+	}
 	//Management
 	select(event) {
 		textures.forEach(s => {
@@ -509,6 +502,7 @@ class Texture {
 		}
 		this.selected = true
 		textures.selected = this
+		this.scrollTo()
 		return this;
 	}
 	add(undo) {
@@ -655,31 +649,54 @@ class Texture {
 	openMenu() {
 		var scope = this
 		scope.select()
-		showDialog('texture_edit')
+
+		let title = `${scope.name} (${scope.width} x ${scope.height})`;
+		var path = '';
 
 		if (scope.path) {
 			var arr = scope.path.split(osfs)
 			arr.splice(-1)
-			var path = arr.join('<span class="slash">/</span>') + '<span class="slash">/</span><span class="accent_color">' + scope.name + '</span>'
-			$('#texture_edit #te_path').html(path)
-		} else {
-			$('#texture_edit #te_path').html('')
+			path = arr.join('<span class="slash">/</span>') + '<span class="slash">/</span><span class="accent_color">' + scope.name + '</span>'
 		}
 
-		$('#texture_edit #te_title').text(scope.name + ' ('+scope.img.naturalWidth+' x '+scope.img.naturalHeight+')')
-		$('#texture_edit input#te_variable').val(scope.id)
-		$('#texture_edit input#te_name').val(scope.name)
-		$('#texture_edit input#te_folder').val(scope.folder)
-		$('#texture_edit input#te_namespace').val(scope.namespace)
-		$('#texture_menu_thumbnail').html(scope.img)
+		var dialog = new Dialog({
+			id: 'texture_edit',
+			title,
+			lines: [
+				`<div style="height: 140px;">
+					<div id="texture_menu_thumbnail">${scope.img.outerHTML}</div>
+					<p class="multiline_text" id="te_path">${path}</p>
+				</div>`
+			],
+			form: {
+				name: 		{label: 'generic.name', value: scope.name},
+				variable: 	{label: 'dialog.texture.variable', value: scope.id, condition: () => Format.id === 'java_block'},
+				folder: 	{label: 'dialog.texture.folder', value: scope.folder, condition: () => Format.id === 'java_block'},
+				namespace: 	{label: 'dialog.texture.namespace', value: scope.namespace, condition: () => Format.id === 'java_block'},
+			},
+			onConfirm: function(results) {
 
-		if (scope.mode === 'link') {
-			$('#texture_edit .tool.link_only').show()
-			$('#texture_edit .tool.bitmap_only').hide()
-		} else {
-			$('#texture_edit .tool.link_only').hide()
-			$('#texture_edit .tool.bitmap_only').show()
-		}
+				dialog.hide();
+				if (
+					(scope.name === results.name) &&
+					(results.variable === undefined || scope.id === results.variable) &&
+					(results.folder === undefined || scope.folder === results.folder) &&
+					(results.namespace === undefined || scope.namespace === results.namespace)
+				) {
+					return;
+				}
+
+				Undo.initEdit({textures: [scope]})
+
+				scope.name = results.name;
+				if (results.variable !== undefined) scope.id = results.variable;
+				if (results.folder !== undefined) scope.folder = results.folder;
+				if (results.namespace !== undefined) scope.namespace = results.namespace;
+				
+
+				Undo.finishEdit('texture_edit')
+			}
+		}).show()
 	}
 	resizeDialog() {
 		let scope = this;
@@ -776,6 +793,22 @@ class Texture {
 		dialog.show()
 		return this;
 	}
+	scrollTo() {
+		var el = $(`#texture_list > li[texid=${this.uuid}]`)
+		if (el.length === 0 || textures.length < 2) return;
+
+		var outliner_pos = $('#texture_list').offset().top
+		var el_pos = el.offset().top
+		if (el_pos > outliner_pos && el_pos + 48 < $('#texture_list').height() + outliner_pos) return;
+
+		var multiple = el_pos > outliner_pos ? 0.5 : 0.2
+		var scroll_amount = el_pos  + $('#texture_list').scrollTop() - outliner_pos - 20
+		scroll_amount -= $('#texture_list').height()*multiple - 15
+
+		$('#texture_list').animate({
+			scrollTop: scroll_amount
+		}, 200);
+	}
 	//Export
 	javaTextureLink() {
 		var link = this.name.replace(/\.png$/, '')
@@ -819,6 +852,7 @@ class Texture {
 					find_path = arr.join(osfs)
 				} 
 				Blockbench.export({
+					resource_id: 'texture',
 					type: 'PNG Texture',
 					extensions: ['png'],
 					name: scope.name,
@@ -968,29 +1002,6 @@ function saveTextures() {
 		}
 	})
 }
-function saveTextureMenu() {
-	hideDialog()
-	var tex = textures.selected
-
-	var name = $('#texture_edit input#te_name').val(),
-		id = $('#texture_edit input#te_variable').val(),
-		folder = $('#texture_edit input#te_folder').val(),
-		namespace = $('#texture_edit input#te_namespace').val();
-		
-	if (!(
-		tex.name === name &&
-		tex.id === id &&
-		tex.folder === folder &&
-		tex.namespace === namespace)
-	) {
-		Undo.initEdit({textures})
-		tex.name = name;
-		tex.id = id;
-		tex.folder = folder;
-		tex.namespace = namespace;
-		Undo.finishEdit('texture_edit')
-	}
-}
 function loadTextureDraggable() {
 	Vue.nextTick(function() {
 		setTimeout(function() {
@@ -1045,14 +1056,6 @@ function unselectTextures() {
 		s.selected = false;
 	})
 	textures.selected = false
-}
-function getTextureById(id) {
-	if (id === undefined || id === false) return;
-	if (id == null) {
-		return {material: transparentMaterial};
-	}
-	id = id.replace('#', '');
-	return $.grep(textures, function(e) {return e.id == id})[0];
 }
 function getTexturesById(id) {
 	if (id === undefined) return;
@@ -1183,6 +1186,7 @@ BARS.defineActions(function() {
 				start_path = arr.join(osfs)
 			}
 			Blockbench.import({
+				resource_id: 'texture',
 				readtype: 'image',
 				type: 'PNG Texture',
 				extensions: ['png', 'tga'],

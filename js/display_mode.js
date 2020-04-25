@@ -1778,6 +1778,7 @@ window.changeDisplaySkin = function() {
 	}, function(result) {
 		if (result === 0) {
 			Blockbench.import({
+				resource_id: 'minecraft_skin',
 				extensions: ['png'],
 				type: 'PNG Player Skin',
 				readtype: 'image'
@@ -1937,6 +1938,51 @@ BARS.defineActions(function() {
 		condition: () => display_mode,
 		click: function () {showDialog('create_preset')}
 	})
+	new Action('apply_display_preset', {
+		icon: 'fa-list',
+		category: 'display',
+		condition: () => display_mode,
+		click: function (e) {
+			new Menu(this.children()).open(e.target)
+		},
+		children: function() {
+			var presets = []
+			display_presets.forEach(function(p) {
+				var icon = 'label'
+				if (p.fixed) {
+					switch(p.id) {
+						case 'item': icon = 'filter_vintage'; break;
+						case 'block': icon = 'fa-cube'; break;
+						case 'handheld': icon = 'build'; break;
+						case 'rod': icon = 'remove'; break;
+					}
+				}
+				presets.push({
+					icon: icon,
+					name: p.id ? tl('display.preset.'+p.id) : p.name,
+					children: [
+						{name: 'action.apply_display_preset.here', icon: 'done', click() {
+							DisplayMode.applyPreset(p)
+						}},
+						{name: 'action.apply_display_preset.everywhere', icon: 'done_all', click() {
+							DisplayMode.applyPreset(p, true)
+						}},
+						{
+							icon: 'delete',
+							name: 'generic.delete',
+							condition: !p.fixed,
+							click: function() {
+								display_presets.splice(display_presets.indexOf(p), 1);
+								localStorage.setItem('display_presets', JSON.stringify(display_presets))
+							}
+						}
+					]
+				})
+			})
+			return presets;
+		}
+	})
+
 	new BarSelect('gui_light', {
 		options: {
 			side: true,

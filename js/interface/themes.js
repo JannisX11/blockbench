@@ -15,6 +15,7 @@ const CustomTheme = {
 		button: '#3a3f4b',
 		bright_ui: '#f4f3ff',
 		accent: '#3e90ff',
+		frame: '#181a1f',
 		text: '#cacad4',
 		light: '#f4f3ff',
 		accent_text: '#000006',
@@ -61,7 +62,7 @@ const CustomTheme = {
 							var hex = CustomTheme.data.colors[key];
 							document.body.style.setProperty('--color-'+key, hex);
 						}
-						$('meta[name=theme-color]').attr('content', CustomTheme.data.colors.border);
+						$('meta[name=theme-color]').attr('content', CustomTheme.data.colors.frame);
 
 						var c_outline = parseInt('0x'+CustomTheme.data.colors.accent.replace('#', ''))
 						if (c_outline !== gizmo_colors.outline.getHex()) {
@@ -197,6 +198,7 @@ BARS.defineActions(function() {
 		category: 'blockbench',
 		click: function () {
 			Blockbench.import({
+				resource_id: 'theme',
 				extensions: ['bbstyle', 'bbtheme'],
 				type: 'Blockbench Theme'
 			}, function(files) {
@@ -209,6 +211,7 @@ BARS.defineActions(function() {
 		category: 'blockbench',
 		click: function () {
 			Blockbench.export({
+				resource_id: 'theme',
 				type: 'Blockbench Theme',
 				extensions: ['bbtheme'],
 				content: autoStringify(CustomTheme.data)

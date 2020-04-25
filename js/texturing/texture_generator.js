@@ -371,14 +371,23 @@ const TextureGenerator = {
 			coords.w*res_multiple,
 			coords.h*res_multiple
 		)
-		if (coords.w*res_multiple > 2 && coords.h*res_multiple > 2 && color) {
-			ctx.fillStyle = color
-			ctx.fillRect(
-				coords.x * res_multiple + 1,
-				coords.y * res_multiple + 1,
-				coords.w * res_multiple - 2,
-				coords.h * res_multiple - 2
-			)
+		if (coords.w*res_multiple > 2 && coords.h*res_multiple > 2) {
+			if (color == null) {
+				ctx.clearRect(
+					coords.x * res_multiple + 1,
+					coords.y * res_multiple + 1,
+					coords.w * res_multiple - 2,
+					coords.h * res_multiple - 2
+				)
+			} else if (color) {
+				ctx.fillStyle = color
+				ctx.fillRect(
+					coords.x * res_multiple + 1,
+					coords.y * res_multiple + 1,
+					coords.w * res_multiple - 2,
+					coords.h * res_multiple - 2
+				)
+			}
 		}
 	},
 	boxUVdrawTexture(face, coords, texture, canvas) {
@@ -423,9 +432,9 @@ const TextureGenerator = {
 		ctx.drawImage(
 			texture.img,
 			src.ax/Project.texture_width * texture.img.naturalWidth,
-			src.ay/Project.texture_height * texture.img.naturalHeight,
+			src.ay/Project.texture_width * texture.img.naturalWidth,
 			src.x /Project.texture_width * texture.img.naturalWidth,
-			src.y /Project.texture_height * texture.img.naturalHeight,
+			src.y /Project.texture_width * texture.img.naturalWidth,
 			coords.x*res_multiple*flip[0],
 			coords.y*res_multiple*flip[1],
 			coords.w*res_multiple*flip[0],
@@ -434,7 +443,7 @@ const TextureGenerator = {
 		ctx.restore()
 		return true;
 	},
-	paintCubeBoxTemplate(cube, texture, canvas, template) {
+	paintCubeBoxTemplate(cube, texture, canvas, template, transparent) {
 
 		if (!template) {
 			template = new TextureGenerator.boxUVCubeTemplate(cube, Project.box_uv ? 0 : 1);
@@ -446,7 +455,7 @@ const TextureGenerator = {
 			if (!cube.faces[face].texture ||
 				!TextureGenerator.boxUVdrawTexture(cube.faces[face], d.place(template), texture, canvas)
 			) {
-				TextureGenerator.boxUVdrawTemplateRectangle(d.c1, d.c2, cube.faces[face], d.place(template), texture, canvas)
+				TextureGenerator.boxUVdrawTemplateRectangle(d.c1, transparent ? null : d.c2, cube.faces[face], d.place(template), texture, canvas)
 			}
 		}
 
@@ -688,13 +697,15 @@ const TextureGenerator = {
 				w: ftemp.width,
 				h: ftemp.height
 			}
-			var d = TextureGenerator.face_data[ftemp.face_key];			
+			var d = TextureGenerator.face_data[ftemp.face_key];
+			var flip_rotation = false	
 			if (!ftemp.texture ||
 				!drawTexture(ftemp.face, pos)
 			) {
 				drawTemplateRectangle(d.c1, d.c2, ftemp.face, pos)
+			} else {
+				flip_rotation = ftemp.face.rotation % 180 != 0;
 			}
-			var flip_rotation = ftemp.face.rotation % 180 != 0;
 			ftemp.face.extend({
 				rotation: 0,
 				uv: flip_rotation ? [pos.y, pos.x] : [pos.x, pos.y]

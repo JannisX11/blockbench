@@ -16,6 +16,14 @@ function parseGeometry(data) {
 	Project.texture_width = data.object.texturewidth || 64;
 	Project.texture_height = data.object.textureheight || 64;
 
+	if (typeof data.object.visible_bounds_width == 'number' && typeof data.object.visible_bounds_height == 'number') {
+		Project.visible_box[0] = Math.max(Project.visible_box[0], data.object.visible_bounds_width);
+		Project.visible_box[1] = Math.max(Project.visible_box[1], data.object.visible_bounds_height);
+		if (data.object.visible_bounds_offset && typeof data.object.visible_bounds_offset[1] == 'number') {
+			Project.visible_box[2] = Math.min(Project.visible_box[2], data.object.visible_bounds_offset[1]);
+		}
+	}
+
 	var bones = {}
 
 	if (data.object.bones) {
@@ -203,26 +211,11 @@ var codec = new Codec('bedrock_old', {
 		})
 
 		if (bones.length && options.visible_box !== false) {
-			var offset = new THREE.Vector3(8,8,8)
-			visible_box.max.add(offset)
-			visible_box.min.add(offset)
-			//Width
-			var radius = Math.max(
-				visible_box.max.x,
-				visible_box.max.z,
-				-visible_box.min.x,
-				-visible_box.min.z
-			) * 0.9
-			if (Math.abs(radius) === Infinity) {
-				radius = 0
-			}
-			entitymodel.visible_bounds_width = Math.ceil((radius*2) / 16)
-			//Height
-			entitymodel.visible_bounds_height = Math.ceil(((visible_box.max.y - visible_box.min.y) * 0.9) / 16)
-			if (Math.abs(entitymodel.visible_bounds_height) === Infinity) {
-				entitymodel.visible_bounds_height = 0;
-			}
-			entitymodel.visible_bounds_offset = [0, entitymodel.visible_bounds_height/2 , 0]
+
+			let visible_box = calculateVisibleBox();
+			entitymodel.visible_bounds_width = visible_box[0];
+			entitymodel.visible_bounds_height = visible_box[1];
+			entitymodel.visible_bounds_offset = [0, visible_box[2] , 0]
 		}
 		if (bones.length) {
 			entitymodel.bones = bones
@@ -258,18 +251,12 @@ var codec = new Codec('bedrock_old', {
 			pe_list._data.search_text = ''
 		}
 
-		function rotateOriginCoord(pivot, y, z) {
-			return [
-				pivot[1] - pivot[2] + z,
-				pivot[2] - y + pivot[1]
-			]
-		}
 		function create_thumbnail(model_entry, isize) {
 			var included_bones = []
 			model_entry.object.bones.forEach(function(b) {
 				included_bones.push(b.name)
 			})
-			var thumbnail = new Jimp(48, 48, 0x00000000, function(err, image) {
+			new Jimp(48, 48, 0x00000000, function(err, image) {
 				model_entry.object.bones.forEach(function(b) {
 					//var rotate_bone = false;
 					//if (b.name === 'body' &&
@@ -400,6 +387,7 @@ var codec = new Codec('bedrock_old', {
 	export() {
 		var scope = this;
 		Blockbench.export({
+			resource_id: 'model',
 			type: this.name,
 			extensions: [this.extension],
 			name: this.fileName(),
@@ -492,6 +480,7 @@ var format = new ModelFormat({
 		
 	}
 })
+//Object.defineProperty(format, 'single_texture', {get: _ => !settings.layered_textures.value})
 codec.format = format;
 
 BARS.defineActions(function() {

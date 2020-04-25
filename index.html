@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 	<title>Blockbench</title>
-    <meta charset="utf-8" />
+	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="theme-color" content="#181a1f">
 	<meta name="robots" content="noindex">
@@ -15,6 +15,7 @@
 	<link rel="stylesheet" href="css/prism.css">
 	<link rel="stylesheet" href="css/setup.css">
 	<link rel="stylesheet" href="css/general.css">
+	<link rel="stylesheet" href="css/window.css">
 	<link rel="stylesheet" href="css/panels.css">
 	<link rel="stylesheet" href="css/dialogs.css">
 	<style type="text/css" id="theme_css"></style>
@@ -23,10 +24,11 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '3.4.2';
+		const appVersion = '3.5.0';
 	</script>
 	<div id="loading_error_message" style="display: none;">
 		<div>An error occurred while loading Blockbench</div>
+		<div id="loading_error_detail"></div>
 		<button onclick="isApp ? Blockbench.reload() : window.location.reload(true)" class="large" style="margin-right: auto; margin-left: auto;">Reload</button>
 		<button onclick="window.close()" class="large" style="margin-right: auto; margin-left: auto;">Quit</button>
 	</div>
@@ -93,6 +95,7 @@
 		<script src="js/animations.js"></script>
 		<script src="js/plugin_loader.js"></script>
 
+		<script src="js/io/project.js"></script>
 		<script src="js/io/io.js"></script>
 		<script src="js/io/bbmodel.js"></script>
 		<script src="js/io/java_block.js"></script>
@@ -128,7 +131,7 @@
 		<div class="progress_bar" id="update_bar">
 			<div class="progress_bar_inner"></div>
 		</div>
-		<div class="dialog_bar">
+		<div class="dialog_bar" hidden>
 			<button type="button" class="cancel_btn confirm_btn uc_btn tl" onclick="hideDialog()">dialog.close</button>
 		</div>
 		<div class="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
@@ -158,10 +161,10 @@
 					<i v-else class="material-icons plugin_expand_icon">expand_more</i>
 					{{ plugin.title }}
 				</div>
-				<div class="button_bar" v-if="plugin.isInstallable() == true">
+				<div class="button_bar" v-if="plugin.installed || plugin.isInstallable() == true">
 					<button type="button" class="" v-on:click="plugin.uninstall()" v-if="plugin.installed"><i class="material-icons">delete</i><span class="tl">dialog.plugins.uninstall</span></button>
 					<button type="button" class="" v-on:click="plugin.download(true)" v-else><i class="material-icons">add</i><span class="tl">dialog.plugins.install</span></button>
-					<button type="button" class="local_only" v-on:click="plugin.reload()" v-if="plugin.installed && plugin.fromFile && isApp"><i class="material-icons">refresh</i><span class="tl">dialog.plugins.reload</span></button>
+					<button type="button" v-on:click="plugin.reload()" v-if="plugin.installed && plugin.isReloadable()"><i class="material-icons">refresh</i><span class="tl">dialog.plugins.reload</span></button>
 				</div>
 				<div class="button_bar tiny tl" v-else>{{ plugin.isInstallable() }}</div>
 
@@ -174,8 +177,8 @@
 			<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && showAll === true" id="plugin_available_empty">dialog.plugins.none_available</div>
 		</ul>
 
-		<div class="dialog_bar">
-			<button type="button" class="cancel_btn confirm_btn uc_btn tl" onclick="saveInstalledPlugins();hideDialog();">dialog.close</button>
+		<div class="dialog_bar" hidden>
+			<button type="button" class="cancel_btn confirm_btn uc_btn tl" onclick="hideDialog();">dialog.close</button>
 		</div>
 		<div class="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</dialog>
@@ -238,7 +241,7 @@
 		</ul>
 
 		<div class="dialog_bar">
-			<button type="button" class="cancel_btn confirm_btn uc_btn tl" onclick="saveInstalledPlugins();hideDialog();">dialog.close</button>
+			<button type="button" class="cancel_btn confirm_btn uc_btn tl" onclick="hideDialog();">dialog.close</button>
 		</div>
 		<div class="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</dialog>
@@ -291,46 +294,6 @@
 		<div class="dialog_bar">
 			<button type="button" class="confirm_btn tl" onclick="Extruder.startConversion()">Scan and Import</button>
 			<button type="button" class="cancel_btn tl" onclick="hideDialog()">dialog.cancel</button>
-		</div>
-		<div class="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
-	</dialog>
-
-	<dialog class="dialog draggable paddinged" id="texture_edit">
-		<div class="dialog_handle tl" id="te_title">data.texture</div>
-
-		<div id="texture_menu_thumbnail"></div>
-
-		<div class="bar">
-			<div class="tool link_only" onclick="textures.selected.reopen()"><div class="tooltip tl">menu.texture.change</div><i class="material-icons">file_upload</i></div>
-			<div class="tool link_only" onclick="textures.selected.refresh(true)"><div class="tooltip tl">menu.texture.refresh</div><i class="material-icons">refresh</i></div>
-			<div class="tool link_only" onclick="textures.selected.openFolder()"><div class="tooltip tl">menu.texture.folder</div><i class="material-icons">folder</i></div>
-			<div class="tool" onclick="textures.selected.remove()"><div class="tooltip tl">generic.delete</div><i class="material-icons">delete</i></div>
-		</div>
-
-		<p class="multiline_text" id="te_path">path</p>
-
-		<div class="dialog_bar narrow bitmap_only"><label class="tl">generic.name</label> </div>
-		<div class="dialog_bar bitmap_only">
-			<input type="text" class="input_wide dark_bordered" id="te_name">
-		</div>
-
-		<div class="dialog_bar narrow"><label class="tl">dialog.texture.variable</label> </div>
-		<div class="dialog_bar">
-			<input type="text" class="input_wide dark_bordered" id="te_variable">
-		</div>
-
-		<div class="dialog_bar narrow"><label class="tl">dialog.texture.folder</label> </div>
-		<div class="dialog_bar">
-			<input type="text" class="input_wide dark_bordered" id="te_folder">
-		</div>
-
-		<div class="dialog_bar narrow"><label class="tl">dialog.texture.namespace</label> </div>
-		<div class="dialog_bar">
-			<input type="text" class="input_wide dark_bordered" id="te_namespace">
-		</div>
-
-		<div class="dialog_bar">
-			<button type="button" class="confirm_btn cancel_btn" onclick="saveTextureMenu()">Close</button>
 		</div>
 		<div class="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</dialog>
@@ -511,6 +474,15 @@
 							<template v-if="setting.type === 'text'">
 								<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.value" v-on:input="saveSettings()">
 							</template>
+
+							<template v-if="setting.type === 'password'">
+								<input :type="setting.hidden ? 'password' : 'text'" class="dark_bordered" style="width: calc(96% - 28px);" v-model="setting.value" v-on:input="saveSettings()">
+								<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
+									<i class="fas fa-eye-slash" v-if="setting.hidden"></i>
+									<i class="fas fa-eye" v-else></i>
+								</div>
+							</template>
+
 							<template v-else-if="setting.type === 'select'">
 								<div class="bar_select">
 									<select v-model="setting.value">
@@ -625,7 +597,7 @@
 			</p>
 		</div>
 
-		<div class="dialog_bar">
+		<div class="dialog_bar" hidden>
 			<button type="button" class="confirm_btn cancel_btn tl" onclick="Settings.save()">dialog.close</button>
 		</div>
 		<div class="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
@@ -673,21 +645,6 @@
 
 	<div id="plugin_dialog_wrapper"></div>
 
-	<dialog id="action_selector" v-if="open">
-		<input type="text" v-model="search_input" autocomplete="off" autosave="off" autocorrect="off" spellcheck="off" autocapitalize="off">
-		<i class="material-icons" id="action_search_bar_icon">search</i>
-		<div>
-			<ul>
-				<li v-for="(item, i) in actions" v-on:click="ActionControl.click(item, $event)" v-bind:class="{selected: i === index}" v-on:mouseenter="index = i">
-					<div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
-					<div class="name">{{ item.name }}</div>
-					<label>{{ item.keybind.label }}</label>
-				</li>
-			</ul>
-			<div class="small_text" v-if="actions[index]">{{ Pressing.alt ? actions[index].keybind.label : actions[index].description }}</div>
-		</div>
-	</dialog>
-
 	<header>
 		<ul id="mac_window_menu" hidden></ul>
 		<div id="title" class="app-drag-region">
@@ -704,7 +661,22 @@
 		<button id="web_download_button" hidden><a class="tl" href="https://blockbench.net/downloads">web.download_app</a></button>
 	</header>
 
-	<div id="page_wrapper">
+	<div id="page_wrapper" class="hidden">
+
+	<dialog id="action_selector" v-if="open">
+		<input type="text" v-model="search_input" autocomplete="off" autosave="off" autocorrect="off" spellcheck="off" autocapitalize="off">
+		<i class="material-icons" id="action_search_bar_icon">search</i>
+		<div>
+			<ul>
+				<li v-for="(item, i) in actions" v-on:click="ActionControl.click(item, $event)" v-bind:class="{selected: i === index}" v-on:mouseenter="index = i">
+					<div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
+					<div class="name">{{ item.name }}</div>
+					<label>{{ item.keybind.label }}</label>
+				</li>
+			</ul>
+			<div class="small_text" v-if="actions[index]">{{ Pressing.alt ? actions[index].keybind.label : actions[index].description }}</div>
+		</div>
+	</dialog>
 
 	<div id="blackout" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"></div>
 
@@ -973,7 +945,7 @@
 						<li
 							class="color" v-for="color in palette"
 							:title="color" :key="color"
-							:class="{selected: color == main_color}"
+							:class="{selected: color == main_color, contrast: isDarkColor(color)}"
 							@click="setColor(color)"
 							@mouseenter="hover_color = color"
 							@mouseleave="hover_color = ''"
@@ -1017,11 +989,17 @@
 					<div id="timeline_corner" v-bind:style="{width: head_width+'px'}"></div>
 					<div id="timeline_time_wrapper">
 						<div id="timeline_time" v-bind:style="{width: (size*length)+'px', left: -scroll_left+'px'}">
-							<div v-for="t in timecodes" class="timeline_timecode" v-bind:style="{left: (t.time * size) + 'px'}">
-								{{ t.text }}
+							<div v-for="t in timecodes" class="timeline_timecode" v-bind:style="{left: (t.time * size) + 'px', width: (t.width * size) + 'px'}">
+								<span>{{ t.text }}</span>
+								<div class="substeps">
+									<div v-for="n in Math.ceil(t.substeps)"></div>
+								</div>
 							</div>
 							<div id="timeline_playhead"
 								v-bind:style="{left: (playhead * size) + 'px'}"
+							></div>
+							<div id="timeline_endbracket"
+								v-bind:style="{left: (animation_length * size) + 'px'}"
 							></div>
 							<div
 								v-for="marker in markers"
@@ -1040,9 +1018,9 @@
 						></div>
 						<li v-for="animator in animators" class="animator" :class="{selected: animator.selected}" :uuid="animator.uuid" v-on:click="animator.select();">
 							<div class="animator_head_bar">
-								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
+								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}"  v-on:dblclick.stop="toggleAnimator(animator)">
 									<div class="text_button" v-on:click.stop="toggleAnimator(animator)">
-										<i class="icon-open-state fa" v-bind:class="{'fa-caret-right': !animator.expanded, 'fa-caret-down': animator.expanded}"></i>
+										<i class="icon-open-state fa" v-bind:class="{'fa-angle-right': !animator.expanded, 'fa-angle-down': animator.expanded}"></i>
 									</div>
 									<span v-on:click.stop="animator.select();">{{animator.name}}</span>
 									<div class="text_button" v-on:click.stop="removeAnimator(animator)">
@@ -1060,7 +1038,11 @@
 									</keyframe>
 								</div>
 							</div>
-							<div class="animator_channel_bar" v-bind:style="{width: (size*length + head_width)+'px'}" v-for="channel in animator.channels" v-if="animator.expanded && (!focus_channel || channel == focus_channel)">
+							<div class="animator_channel_bar"
+								v-bind:style="{width: (size*length + head_width)+'px'}"
+								v-for="channel in animator.channels"
+								v-if="animator.expanded && (!focus_channel || channel == focus_channel || focus_channel == 'used' && animator[channel].length)"
+							>
 								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
 									<div class="text_button" v-on:click.stop="animator.toggleMuted(channel)">
 										<template v-if="channel === 'sound'">
@@ -1109,7 +1091,7 @@
 						<div class="bar next_to_title" id="uv_title_bar">
 							<div class="tool" onclick="Blockbench.openLink('https://blockbench.net/quickstart/')">
 								<div class="tooltip tl">menu.help.quickstart</div>
-								<i class="fa_big fas fa-directions"></i>
+								<i class="fas fa-question-circle"></i>
 							</div>
 						</div>
 						<ul>

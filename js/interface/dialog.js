@@ -72,7 +72,7 @@ function Dialog(settings) {
 		}
 		if (scope.form) {
 			for (var form_id in scope.form) {
-				var data = scope.form[form_id]
+				let data = scope.form[form_id]
 				if (data === '_') {
 					jq_dialog.append('<hr />')
 					
@@ -94,10 +94,25 @@ function Dialog(settings) {
 								}
 								bar.append(list)
 							}
+							if (data.type == 'password') {
+								bar.append(`<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
+										<i class="fas fa-eye-slash"></i>
+									</div>`)
+								let input = bar.find('input').attr('type', 'password')
+								let hidden = true;
+								let this_bar = bar;
+								this_bar.find('.password_toggle').click(e => {
+									hidden = !hidden;
+									input.attr('type', hidden ? 'password' : 'text');
+									this_bar.find('.password_toggle i')[0].className = hidden ? 'fas fa-eye-slash' : 'fas fa-eye';
+								})
+							}
 							break;
 						case 'textarea':
 							bar.append(`<textarea class="focusable_input" style="height: ${data.height||150}px;" id="${form_id}"></textarea>`)
 							break;
+
+
 						case 'select':
 							var el = $(`<div class="bar_select half"><select class="focusable_input" id="${form_id}"></select></div>`)
 							var sel = el.find('select')
@@ -107,6 +122,8 @@ function Dialog(settings) {
 							}
 							bar.append(el)
 							break;
+
+
 						case 'radio':
 							var el = $(`<div class="half form_part_radio" id="${form_id}"></div>`)
 							for (var key in data.options) {
@@ -118,14 +135,31 @@ function Dialog(settings) {
 							}
 							bar.append(el)
 							break;
-						case 'text':
+
+
+						case 'info':
 							data.text = marked(tl(data.text))
 							bar.append(`<p>${data.text}</p>`)
 							bar.addClass('small_text')
 							break;
+
+
 						case 'number':
-							bar.append(`<input class="dark_bordered half focusable_input" type="number" id="${form_id}" value="${data.value||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
+							bar.append(`<input class="dark_bordered half focusable_input" type="number" id="${form_id}"
+								value="${data.value||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
 							break;
+
+
+						case 'vector':
+							let group = $(`<div class="dialog_vector_group half"></div>`)
+							bar.append(group)
+							for (var i = 0; i < (data.dimensions || 3); i++) {
+								group.append(`<input class="dark_bordered focusable_input" type="number" id="${form_id}_${i}"
+									value="${data.value ? data.value[i]: 0}" step="${data.step||1}" min="${data.min}" max="${data.max}">`)
+							}
+							break;
+
+
 						case 'color':
 							if (!data.colorpicker) {
 								data.colorpicker = new ColorPicker({
@@ -137,9 +171,13 @@ function Dialog(settings) {
 							}
 							bar.append(data.colorpicker.getNode())
 							break;
+
+
 						case 'checkbox':
 							bar.append(`<input type="checkbox" class="focusable_input" id="${form_id}"${data.value ? ' checked' : ''}>`)
 							break;
+
+
 						case 'file':
 						case 'folder':
 						case 'save':
@@ -170,6 +208,7 @@ function Dialog(settings) {
 								switch (data.type) {
 									case 'file':
 										Blockbench.import({
+											resource_id: data.resource_id,
 											extensions: data.extensions,
 											type: data.filetype,
 											startpath: data.value
@@ -185,6 +224,7 @@ function Dialog(settings) {
 										break;
 									case 'save':
 										Blockbench.export({
+											resource_id: data.resource_id,
 											extensions: data.extensions,
 											type: data.filetype,
 											startpath: data.value,
@@ -194,7 +234,6 @@ function Dialog(settings) {
 								}
 							})
 
-						case 'folder':
 					}
 					if (data.readonly) {
 						bar.find('input').attr('readonly', 'readonly').removeClass('focusable_input')
@@ -223,7 +262,7 @@ function Dialog(settings) {
 
 		} else if (this.singleButton) {
 
-			jq_dialog.append('<div class="dialog_bar">' +
+			jq_dialog.append('<div class="dialog_bar" hidden>' +
 				'<button type="button" class="cancel_btn confirm_btn"'+ (this.confirmEnabled ? '' : ' disabled') +'>'+tl('dialog.close')+'</button>' +
 			'</div>')
 
@@ -247,7 +286,7 @@ function Dialog(settings) {
 							default:
 								result[form_id] = jq_dialog.find('input#'+form_id).val()
 								break;
-							case 'text':
+							case 'info':
 								break;
 							case 'textarea':
 								result[form_id] = jq_dialog.find('textarea#'+form_id).val()
@@ -260,6 +299,13 @@ function Dialog(settings) {
 								break;
 							case 'number':
 								result[form_id] = Math.clamp(parseFloat(jq_dialog.find('input#'+form_id).val())||0, data.min, data.max)
+								break;
+							case 'vector':
+								result[form_id] = [];
+								for (var i = 0; i < (data.dimensions || 3); i++) {
+									let num = Math.clamp(parseFloat(jq_dialog.find(`input#${form_id}_${i}`).val())||0, data.min, data.max)
+									result[form_id].push(num)
+								}
 								break;
 							case 'color':
 								result[form_id] = data.colorpicker.get();

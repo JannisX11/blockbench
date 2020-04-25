@@ -917,7 +917,7 @@
 						Transformer.rotation_ref = rotation_object.mesh.parent;
 
 					} else if (space === 2 || Toolbox.selected.id == 'resize_tool') {
-						Transformer.rotation_ref = selected[0].mesh;
+						Transformer.rotation_ref = selected[0] && selected[0].mesh;
 					
 					} else if (space instanceof Group) {
 						Transformer.rotation_ref = space.mesh;
@@ -1273,19 +1273,6 @@
 
 							moveElementsInSpace(difference, axisNumber)
 
-
-							/*
-							if (_has_groups && Blockbench.globalMovement) {
-								Group.selected.forEachChild(g => {
-									g.origin[axisNumber] += difference
-								}, Group, true)
-							}
-							selected.forEach(function(obj, i) {
-								if (obj.movable) {
-									obj.move(difference, axisNumber, _has_groups||!Format.bone_rig)
-								}
-							})
-							*/
 							scope.updateSelection()
 						}
 						previousValue = point[axis]

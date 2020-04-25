@@ -9,7 +9,7 @@ var codec = new Codec('java_block', {
 		var clear_elements = []
 		var textures_used = []
 		var element_index_lut = []
-		var largerCubesNr = 0;
+		var overflow_cubes = [];
 
 		function computeCube(s) {
 			if (s.export == false) return;
@@ -100,7 +100,7 @@ var codec = new Codec('java_block', {
 			element.faces = e_faces
 
 			function inVd(n) {
-				return n > 32 || n < -16
+				return n < -16 || n > 32; 
 			}
 			if (inVd(element.from[0]) ||
 				inVd(element.from[1]) ||
@@ -109,7 +109,7 @@ var codec = new Codec('java_block', {
 				inVd(element.to[1]) ||
 				inVd(element.to[2])
 			) {
-				largerCubesNr++;
+				overflow_cubes.push(s);
 			}
 			if (Object.keys(element.faces).length) {
 				clear_elements.push(element)
@@ -155,17 +155,17 @@ var codec = new Codec('java_block', {
 			}
 		})
 
-		//if (options.prevent_dialog !== true && hasUnsavedTextures && settings.dialog_unsaved_textures.value) {
-		//	Blockbench.showMessageBox({
-		//		translateKey: 'unsaved_textures',
-		//		icon: 'broken_image',
-		//	})
-		//}
-		if (options.prevent_dialog !== true && largerCubesNr > 0 && settings.dialog_larger_cubes.value) {
+		if (options.prevent_dialog !== true && overflow_cubes.length > 0 && settings.dialog_larger_cubes.value) {
 			Blockbench.showMessageBox({
 				translateKey: 'model_clipping',
 				icon: 'settings_overscan',
-				message: tl('message.model_clipping.message', [largerCubesNr])
+				message: tl('message.model_clipping.message', [overflow_cubes.length]),
+				buttons: ['dialog.scale.select_overflow', 'dialog.ok']
+			}, (result) => {
+				if (result == 0) {
+					selected.splice(0, Infinity, ...overflow_cubes)
+					updateSelection();
+				}
 			})
 		}
 		if (options.prevent_dialog !== true && clear_elements.length && ['item/generated', 'item/handheld'].includes(Project.parent)) {
@@ -246,7 +246,6 @@ var codec = new Codec('java_block', {
 
 		this.dispatchEvent('parse', {model});
 
-		var previous_length = add ? elements.length : 0
 		var previous_texture_length = add ? textures.length : 0
 		var new_cubes = [];
 		var new_textures = [];
@@ -445,6 +444,7 @@ var format = new ModelFormat({
 	rotation_limit: true,
 	optional_box_uv: true,
 	uv_rotation: true,
+	animated_textures: true,
 	display_mode: true,
 	codec
 })

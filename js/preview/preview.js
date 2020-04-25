@@ -86,6 +86,22 @@ const DefaultCameraPresets = [
 		zoom: 0.5,
 		locked_angle: 5,
 		default: true
+	},
+	{
+		name: 'camera_angle.isometric_right',
+		projection: 'orthographic',
+		position: [-64, 64*0.8165, -64],
+		target: [0, 0, 0],
+		zoom: 0.5,
+		default: true
+	},
+	{
+		name: 'camera_angle.isometric_left',
+		projection: 'orthographic',
+		position: [64, 64*0.8165, -64],
+		target: [0, 0, 0],
+		zoom: 0.5,
+		default: true
 	}
 ]
 
@@ -155,12 +171,30 @@ class Preview {
 		this.controls.mouseButtons.ZOOM = undefined;
 
 		//Renderer
-		this.renderer = new THREE.WebGLRenderer({
-			canvas: this.canvas,
-			antialias: true,
-			alpha: true,
-			preserveDrawingBuffer: true
-		});
+		try {
+			this.renderer = new THREE.WebGLRenderer({
+				canvas: this.canvas,
+				antialias: true,
+				alpha: true,
+				preserveDrawingBuffer: true
+			});
+		} catch (err) {
+			document.querySelector('#loading_error_detail').innerHTML = 'Error creating WebGL context. Try to update your graphics drivers.';
+			if (isApp) {
+				var {BrowserWindow} = require('electron').remote
+				new BrowserWindow({
+					icon:'icon.ico',
+					backgroundColor: '#ffffff',
+					title: 'Blockbench GPU Information',
+					webPreferences: {
+						webgl: true,
+						webSecurity: true,
+						nodeIntegration: true
+					}
+				}).loadURL('chrome://gpu')
+			}
+			throw err;
+		}
 		this.renderer.setClearColor( 0x000000, 0 )
 		this.renderer.setSize(500, 400);
 
@@ -243,7 +277,18 @@ class Preview {
 		}
 		var intersects = this.raycaster.intersectObjects( objects );
 		if (intersects.length > 0) {
-			var intersect = intersects[0].object
+			if (intersects.length > 1 && Toolbox.selected.id == 'vertex_snap_tool') {
+				var intersect;
+				for (var sct of intersects) {
+					if (sct.object.isVertex) {
+						intersect = sct.object;
+						break;
+					}
+				}
+				if (!intersect) intersect = intersects[0].object;
+			} else {
+				var intersect = intersects[0].object
+			}
 			if (intersect.isElement) {
 				this.controls.hasMoved = true
 				var obj = elements.findInArray('uuid', intersects[0].object.name)
@@ -400,6 +445,14 @@ class Preview {
 	}
 	newAnglePreset() {
 		let scope = this;
+		let position = scope.camera.position.toArray();
+		let target = scope.controls.target.toArray();
+		position.forEach((v, i) => {
+			position[i] = Math.round(v*100)/100
+		})
+		target.forEach((v, i) => {
+			target[i] = Math.round(v*100)/100
+		})
 
 		let dialog = new Dialog({
 			id: 'save_angle',
@@ -411,7 +464,9 @@ class Preview {
 					unset: 'generic.unset',
 					perspective: 'dialog.save_angle.projection.perspective',
 					orthographic: 'dialog.save_angle.projection.orthographic'
-				}}
+				}},
+				position: {label: 'dialog.save_angle.position', type: 'vector', dimensions: 3, value: position},
+				target: {label: 'dialog.save_angle.target', type: 'vector', dimensions: 3, value: target},
 			},
 			onConfirm: function(formResult) {
 
@@ -420,8 +475,8 @@ class Preview {
 				let preset = {
 					name: formResult.name,
 					projection: formResult.projection,
-					position: scope.camera.position.toArray(),
-					target: scope.controls.target.toArray(),
+					position: formResult.position,
+					target: formResult.target,
 				}
 				if (this.isOrtho) preset.zoom = this.camOrtho.zoom;
 
@@ -488,7 +543,15 @@ class Preview {
 		var data = this.raycast(event);
 		if (data) {
 			//this.static_rclick = false
-			if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data.type === 'cube') {
+			if (data.cube && data.cube.locked) {
+				$('#preview').css('cursor', 'not-allowed')
+				function resetCursor() {
+					$('#preview').css('cursor', (Toolbox.selected.cursor ? Toolbox.selected.cursor : 'default'))
+					removeEventListeners(document, 'mouseup touchend', resetCursor, false)
+				}
+				addEventListeners(document, 'mouseup touchend', resetCursor, false)
+
+			} else if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data.type === 'cube') {
 				if (Toolbox.selected.selectFace) {
 					main_uv.setFace(data.face, false)
 				}
@@ -524,8 +587,10 @@ class Preview {
 		}
 	}
 	mousemove(event) {
-		var data = this.raycast(event);
-		if (Settings.get('highlight_cubes')) updateCubeHighlights(data && data.cube);
+		if (Settings.get('highlight_cubes')) {
+			var data = this.raycast(event);
+			updateCubeHighlights(data && data.cube);
+		}
 	}
 	raycastMouseCoords(x,y) {
 		var scope = this;
@@ -888,6 +953,7 @@ class Preview {
 			return [
 				{icon: 'folder', name: 'menu.preview.background.load', click: function(preview) {
 					Blockbench.import({
+						resource_id: 'preview_background',
 						extensions: ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'],
 						type: 'Image',
 						readtype: 'image'
@@ -1044,13 +1110,23 @@ const Screencam = {
 				cancel: 0
 			}, function(result) {
 				if (result === 1) {
-					Blockbench.export()
-					ElecDialogs.showSaveDialog(currentwindow, {filters: [ {name: tl('data.image'), extensions: [is_gif ? 'gif' : 'png']} ]}, function (fileName) {
-						if (fileName === undefined) {
-							return;
-						}
-						fs.writeFile(fileName, Buffer(dataUrl.split(',')[1], 'base64'), err => {})
-					})
+					if (is_gif) {
+						Blockbench.export({
+							resource_id: 'screenshot',
+							extensions: ['gif'],
+							type: tl('data.image'),
+							savetype: 'binary',
+							content: Buffer(dataUrl.split(',')[1], 'base64')
+						})
+					} else {
+						Blockbench.export({
+							resource_id: 'screenshot',
+							extensions: ['png'],
+							type: tl('data.image'),
+							savetype: 'image',
+							content: dataUrl
+						})
+					}
 				} else if (result === 2) {
 					clipboard.writeImage(screenshot)
 				}
@@ -1318,7 +1394,7 @@ function initCanvas() {
 	Sun = new THREE.AmbientLight( 0xffffff );
 	Sun.name = 'sun'
 	scene.add(Sun);
-	Sun.intensity = 0.44
+	Sun.intensity = 0.5
 
 	lights = new THREE.Object3D()
 	lights.name = 'lights'
@@ -1328,7 +1404,14 @@ function initCanvas() {
 	light_top.position.set(8, 100, 8)
 	lights.add(light_top);
 	
-	light_top.intensity = 0.66
+	light_top.intensity = 0.45
+	
+	var light_bottom = new THREE.DirectionalLight();
+	light_bottom.name = 'light_bottom'
+	light_bottom.position.set(8, 100, 8)
+	lights.add(light_bottom);
+	
+	light_bottom.intensity = 0.11
 
 	var light_north = new THREE.DirectionalLight();
 	light_north.name = 'light_north'
@@ -1340,7 +1423,7 @@ function initCanvas() {
 	light_south.position.set(8, 8, 100)
 	lights.add(light_south);
 
-	light_north.intensity = light_south.intensity = 0.44
+	light_north.intensity = light_south.intensity = 0.33
 
 	var light_west = new THREE.DirectionalLight();
 	light_west.name = 'light_west'
@@ -1491,7 +1574,6 @@ function buildGrid() {
 		three_grid.add(line)
 	}
 	//Axis Lines
-	if (settings.base_grid.value || settings.full_grid.value)
 	if (Format.centered_grid || !settings.full_grid.value) {
 		var length = Format.centered_grid
 			? (settings.full_grid.value ? 24 : 8)
@@ -1508,7 +1590,8 @@ function buildGrid() {
 
 	if (settings.full_grid.value === true) {
 		//Grid
-		var grid = new THREE.GridHelper(48, 48/canvasGridSize(), gizmo_colors.grid)
+		let size = settings.large_grid_size.value*16;
+		var grid = new THREE.GridHelper(size, size/canvasGridSize(), gizmo_colors.grid)
 		if (Format.centered_grid) {
 			grid.position.set(0,0,0)
 		} else { 
@@ -1522,9 +1605,9 @@ function buildGrid() {
 		geometry = new THREE.PlaneGeometry(5, 5)
 		var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
 		if (Format.centered_grid) {
-			north_mark.position.set(0,0,-27)
+			north_mark.position.set(0,0, -3 - size/2)
 		} else {
-			north_mark.position.set(8,0,-19)
+			north_mark.position.set(8, 0, 5 - size/2)
 		}
 		north_mark.rotation.x = Math.PI / -2
 		three_grid.add(north_mark)
@@ -1532,7 +1615,8 @@ function buildGrid() {
 	} else {
 		if (settings.large_grid.value === true) {
 			//Grid
-			var grid = new THREE.GridHelper(48, 3, gizmo_colors.grid)
+			let size = settings.large_grid_size.value
+			var grid = new THREE.GridHelper(size*16, size, gizmo_colors.grid)
 			if (Format.centered_grid) {
 				grid.position.set(0,0,0)
 			} else { 

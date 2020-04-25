@@ -109,7 +109,6 @@ class Cube extends NonGroup {
 		}
 		this.visibility = true;
 		this.autouv = 0
-		this.export = true;
 		this.parent = 'root';
 
 		this.faces = {
@@ -133,6 +132,7 @@ class Cube extends NonGroup {
 		Merge.number(this, object, 'autouv')
 		Merge.number(this, object, 'color')
 		Merge.boolean(this, object, 'export')
+		Merge.boolean(this, object, 'locked')
 		Merge.boolean(this, object, 'visibility')
 		if (object.from) {
 			Merge.number(this.from, object.from, 0)
@@ -292,6 +292,7 @@ class Cube extends NonGroup {
 			autouv: this.autouv,
 			color: this.color
 		}
+		el.locked = this.locked;
 		if (!this.visibility) el.visibility = false;
 		if (!this.export) el.export = false;
 		if (!this.shade) el.shade = false;
@@ -666,40 +667,6 @@ class Cube extends NonGroup {
 			Canvas.updateUV(scope)
 		}
 	}
-	move(val, axis, move_origin) {
-
-		var size = this.size(axis);
-		val+= this.from[axis];
-		var in_box = val;
-		val = limitToBox(limitToBox(val, -this.inflate) + size, this.inflate) - size;
-		in_box = Math.abs(in_box - val) < 1e-4;
-		val -= this.from[axis];
-
-		//Move
-		if (Blockbench.globalMovement && Format.bone_rig && !move_origin) {
-			var m = new THREE.Vector3();
-			m[getAxisLetter(axis)] = val;
-
-			var rotation = new THREE.Quaternion();
-			this.mesh.getWorldQuaternion(rotation);
-			m.applyQuaternion(rotation.inverse());
-
-			this.from.V3_add(m.x, m.y, m.z);
-			this.to.V3_add(m.x, m.y, m.z);
-
-		} else {
-			this.to[axis] += val;
-			this.from[axis] += val;
-		}
-		//Origin
-		if (Blockbench.globalMovement && move_origin) {
-			this.origin[axis] += val;
-		}
-		this.mapAutoUV()
-		Canvas.adaptObjectPosition(this);
-		TickUpdates.selection = true;
-		return in_box;
-	}
 	moveVector(arr, axis) {
 		if (typeof arr == 'number') {
 			var n = arr;
@@ -734,8 +701,8 @@ class Cube extends NonGroup {
 
 		if (!negative) {
 			var pos = limitToBox(this.from[axis] + modify(before), this.inflate);
-			if (Format.integer_size && Project.box_uv) {
-				pos = Math.round(pos);
+			if (Format.integer_size) {
+				pos = Math.round(pos-this.from[axis])+this.from[axis];
 			}
 			if (pos >= this.from[axis] || settings.negative_size.value || allow_negative) {
 				this.to[axis] = pos;
@@ -744,6 +711,9 @@ class Cube extends NonGroup {
 			}
 		} else {
 			var pos = limitToBox(this.to[axis] + modify(-before), this.inflate);
+			if (Format.integer_size) {
+				pos = Math.round(pos-this.to[axis])+this.to[axis];
+			}
 			if (pos <= this.to[axis] || settings.negative_size.value || allow_negative) {
 				this.from[axis] = pos;
 			} else {
@@ -811,8 +781,8 @@ class Cube extends NonGroup {
 		'delete'
 	]);
 	Cube.prototype.buttons = [
-		Outliner.buttons.remove,
 		Outliner.buttons.visibility,
+		Outliner.buttons.locked,
 		Outliner.buttons.export,
 		Outliner.buttons.shading,
 		Outliner.buttons.autouv

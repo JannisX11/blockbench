@@ -4,7 +4,6 @@ class Locator extends NonGroup {
 		super(data, uuid);
 		this.from = new Array().V3_set(0, 0, 0);
 		this.name = 'locator';
-		this.export = true;
 
 		if (data) {
 			this.extend(data);
@@ -13,6 +12,7 @@ class Locator extends NonGroup {
 	extend(object) {
 		Merge.string(this, object, 'name');
 		this.sanitizeName();
+		Merge.boolean(this, object, 'locked')
 		Merge.boolean(this, object, 'export');
 		Merge.arrayVector(this, object, 'from');
 		return this;
@@ -28,6 +28,7 @@ class Locator extends NonGroup {
 		var el = {
 			name: this.name,
 			export: this.export ? undefined : false,
+			locked: this.locked,
 			from: this.from,
 			uuid: this.uuid,
 			type: 'locator'
@@ -61,32 +62,15 @@ class Locator extends NonGroup {
 
 		return pos;
 	}
-	move(val, axis) {
-
-		if (Blockbench.globalMovement) {
-			var m = new THREE.Vector3();
-			m[getAxisLetter(axis)] = val;
-			if (this.parent instanceof Group) {
-				var rotation = new THREE.Quaternion();
-				this.parent.mesh.getWorldQuaternion(rotation);
-				m.applyQuaternion(rotation.inverse());
-			}
-			this.from.V3_add(m);
-		} else {
-			this.from[axis] += val
-		}
-		TickUpdates.selection = true;
-		return this;
-	}
 }
 	Locator.prototype.title = tl('data.locator');
 	Locator.prototype.type = 'locator';
 	Locator.prototype.icon = 'fa fa-anchor';
-	Locator.prototype.name_regex = 'a-zA-Z0-9_'
+	Locator.prototype.name_regex = 'a-z0-9_'
 	Locator.prototype.movable = true;
 	Locator.prototype.visibility = true;
 	Locator.prototype.buttons = [
-		Outliner.buttons.remove,
+		Outliner.buttons.locked,
 		Outliner.buttons.export
 	];
 	Locator.prototype.needsUniqueName = true;

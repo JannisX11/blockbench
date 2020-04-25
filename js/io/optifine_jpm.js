@@ -241,6 +241,7 @@ BARS.defineActions(function() {
 		condition: () => (Format.id == 'optifine_entity' || Format.id == 'optifine_part'),
 		click: function () {
 			Blockbench.import({
+				resource_id: 'model',
 				extensions: ['jpm'],
 				type: 'JPM Entity Part Model',
 				multiple: true,
