@@ -11,7 +11,7 @@ Website and download: [blockbench.net](https://www.blockbench.net)
 
 I am not actively using this repository to develop Blockbench. Therefore, I currently won't accept pull requests, sorry!
 If you want something implemented in Blockbench, please write a plugin, create an issue labeled [Suggestion], or contact me on Discord.
-If you want to Blockbench translations, please visit [blockbench.net/translations](https://blockbench.net/translations/). Thank you!
+If you want to contribute Blockbench translations, please visit [blockbench.net/translations](https://blockbench.net/translations/). Thank you!
 
 ## Plugins
 
