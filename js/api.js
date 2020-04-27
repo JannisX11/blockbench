@@ -92,43 +92,6 @@ const Blockbench = {
 			}
 		}
 		return node
-		/*
-		if (icon === undefined) {
-			//Missing
-			jq = $('<i class="material-icons icon">help_outline</i>')
-		} else if (icon instanceof HTMLElement) {
-			//Node
-			jq = $(icon)
-		} else if (icon.substr(0, 2) === 'fa') {
-			//Font Awesome
-			if (icon.substr(3, 1) == '.') {
-				jq = $(`<i class="icon ${icon.substr(0, 3)} fa_big ${icon.substr(4)}"></i>`)
-			} else {
-				jq = $('<i class="icon fa fa_big ' + icon + '"></i>')
-			}
-		} else if (icon.substr(0, 5) === 'icon-') {
-			//Icomoon
-			jq = $('<i class="' + icon + '"></i>')
-		} else if (icon.substr(0, 14) === 'data:image/png') {
-			//Data URL
-			jq = $('<img class="icon" src="'+icon+'">')
-		} else {
-			//Material Icon
-			jq = $('<i class="material-icons icon">' + icon + '</i>')
-		}
-		if (color) {
-			if (color === 'x') {
-				jq.addClass('color_x')
-			} else if (color === 'y') {
-				jq.addClass('color_y')
-			} else if (color === 'z') {
-				jq.addClass('color_z')
-			} else if (typeof color === 'string') {
-				jq.css('color', color)
-			}
-		}
-		return jq.get(0)
-		*/
 	},
 	showQuickMessage(message, time) {
 		$('#quick_message_box').remove()

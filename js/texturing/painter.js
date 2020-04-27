@@ -449,6 +449,7 @@ const Painter = {
 				//calculate new point
 				if (face.uv[0] > face.uv[0+2] == uvTag[0] > uvTag[0+2]) {
 					point_on_uv[0] = Math.max(face.uv[0], face.uv[0+2]) * uvFactorX - point_on_uv[0] - 1;
+					if (BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool) point_on_uv[0] += 1
 				} else {
 					point_on_uv[0] = Math.min(face.uv[0], face.uv[0+2]) * uvFactorX + point_on_uv[0];
 				}

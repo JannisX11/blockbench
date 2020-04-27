@@ -216,10 +216,14 @@ class Cube extends NonGroup {
 	}
 	size(axis, floored) {
 		var scope = this;
+		let epsilon = 0.0000001;
 		function getA(axis) {
-			if (floored === true) {
-				var n = Math.floor(0.0000001 + scope.to[axis] - scope.from[axis]) 
-				return n;
+			if (floored == TextureGenerator && Format.id === 'modded_entity') {
+				return Math.ceil(scope.to[axis] - scope.from[axis] - epsilon);
+
+			} else if (floored && Format.id !== 'modded_entity') {
+				return Math.floor(scope.to[axis] - scope.from[axis] + epsilon);
+
 			} else {
 				return scope.to[axis] - scope.from[axis]
 			}

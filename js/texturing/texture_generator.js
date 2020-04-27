@@ -138,13 +138,13 @@ const TextureGenerator = {
 	},
 	//constructor
 	boxUVCubeTemplate: function(obj, min_size) {
-		this.x = obj.size(0, true) || min_size;
-		this.y = obj.size(1, true) || min_size;
-		this.z = obj.size(2, true) || min_size;
+		this.x = obj.size(0, TextureGenerator) || min_size;
+		this.y = obj.size(1, 'template') || min_size;
+		this.z = obj.size(2, TextureGenerator) || min_size;
 		this.posx = obj.uv_offset[0];
 		this.posy = obj.uv_offset[1];
 		this.obj = obj;
-		this.template_size = (obj.size(2, true) + obj.size(1, true))+ (obj.size(2, true) + obj.size(0, true))*2;
+		this.template_size = (obj.size(2, TextureGenerator) + obj.size(1, 'template'))+ (obj.size(2, TextureGenerator) + obj.size(0, TextureGenerator))*2;
 
 		this.height = this.z + this.y;
 		this.width = 2* (this.x + this.z);
@@ -170,7 +170,7 @@ const TextureGenerator = {
 			if (obj.visibility === true) {
 				var template = new TextureGenerator.boxUVCubeTemplate(obj, min_size);
 				if (options.double_use && Project.box_uv && textures.length) {
-					var double_key = [...obj.uv_offset, ...obj.size(undefined, true), ].join('_')
+					var double_key = [...obj.uv_offset, ...obj.size(undefined, TextureGenerator), ].join('_')
 					if (doubles[double_key]) {
 						// improve chances that original is not mirrored
 						if (doubles[double_key][0].obj.mirror_uv && !obj.mirror_uv) {

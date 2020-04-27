@@ -382,8 +382,9 @@ var codec = new Codec('modded_entity', {
 			} else if (scope == 1) {
 				line = line.replace(/public |static |final |private |void /g, '').trim();
 				if (line.substr(0, 13) == 'ModelRenderer' || line.substr(0, 13) == 'RendererModel') {
-					bones[line.split(' ')[1]] = new Group({
-						name: line.split(' ')[1],
+					let name = line.split(' ')[1];
+					bones[name] = new Group({
+						name,
 						origin: [0, 24, 0]
 					}).init();
 				} else if (line.substr(0, geo_name.length) == geo_name) {

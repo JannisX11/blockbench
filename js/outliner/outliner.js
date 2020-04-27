@@ -298,7 +298,7 @@ class OutlinerElement {
 		var name = this.name.replace(/\d+$/, '').replace(/\s+/g, '_');
 		function check(n) {
 			for (var i = 0; i < others.length; i++) {
-				if (others[i] !== scope && others[i].name == n) return false;
+				if (others[i] !== scope && others[i].name.toLowerCase() == n.toLowerCase()) return false;
 			}
 			return true;
 		}

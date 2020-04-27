@@ -388,7 +388,7 @@ class Group extends OutlinerElement {
 	Group.prototype.type = 'group';
 	Group.prototype.icon = 'fa fa-folder';
 	Group.prototype.isParent = true;
-	Group.prototype.name_regex = () => Format.bone_rig ? 'a-z0-9_' : false;
+	Group.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
 	Group.prototype.buttons = [
 		Outliner.buttons.visibility,
 		Outliner.buttons.locked,
@@ -403,14 +403,6 @@ class Group extends OutlinerElement {
 		'duplicate',
 		'_',
 		'add_locator',
-		/*
-		{icon: 'content_copy', name: 'menu.group.duplicate', click: function(group) {
-			var cubes_before = elements.length
-			Undo.initEdit({outliner: true, elements: [], selection: true})
-			group.duplicate().sortInBefore(this, 1).select()
-			Undo.finishEdit('duplicate_group', {outliner: true, elements: elements.slice(cubes_before), selection: true})
-		}},
-		*/
 		'rename',
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
 		{icon: 'fa-leaf', name: 'menu.group.resolve', condition: {modes: ['edit']}, click: function(group) {
@@ -418,6 +410,7 @@ class Group extends OutlinerElement {
 			group.resolve()
 			Undo.finishEdit('group resolve')
 		}},
+		'delete'
 	]);
 	Group.selected;
 	Group.all = [];

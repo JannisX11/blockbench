@@ -297,7 +297,7 @@ function parseGeometry(data) {
 				material: b.material
 			}).init()
 			group.createUniqueName();
-			bones[group.name] = group
+			bones[b.name] = group
 			if (b.pivot) {
 				group.origin[0] *= -1
 			}

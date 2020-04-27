@@ -745,7 +745,7 @@
 	"action.delete.desc": "Deletes the selected cubes or group",
 	"action.sort_outliner": "Sort Outliner",
 	"action.sort_outliner.desc": "Sort the outliner alphabetically",
-	"action.unlock_everything": "Unlock Everything",
+	"action.unlock_everything": "Unlock All",
 	"action.unlock_everything.desc": "Unlock all groups and elements in the outliner.",
 	"action.element_colors": "Cube Colors",
 	"action.element_colors.desc": "Show cube colors in the outliner",

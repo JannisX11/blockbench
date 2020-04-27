@@ -33,6 +33,7 @@ const Language = {
 		fr: 'Fran\u00E7ais (French)',
 		it: 'Italiano (Italian)',
 		ja: '\u65E5\u672C\u8A9E (Japanese)',//日本語
+		ko: '\uD55C\uAD6D\uC5B4 (Korean)',//日本語
 		nl: 'Nederlands (Dutch)',
 		pl: 'Polski (Polish)',
 		pt: 'Portugu\u00EAs (Portuguese)',
