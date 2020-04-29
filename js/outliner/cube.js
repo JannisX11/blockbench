@@ -218,12 +218,8 @@ class Cube extends NonGroup {
 		var scope = this;
 		let epsilon = 0.0000001;
 		function getA(axis) {
-			if (floored == TextureGenerator && Format.id === 'modded_entity') {
-				return Math.ceil(scope.to[axis] - scope.from[axis] - epsilon);
-
-			} else if (floored && Format.id !== 'modded_entity') {
+			if (floored) {
 				return Math.floor(scope.to[axis] - scope.from[axis] + epsilon);
-
 			} else {
 				return scope.to[axis] - scope.from[axis]
 			}

@@ -99,7 +99,6 @@ const Templates = {
 		name: '1.15',
 		flip_y: true,
 		integer_size: false,
-		radians: true,
 		file: 
 		   `// Made with Blockbench %(bb_version)
 			// Exported for Minecraft version 1.15
@@ -214,17 +213,11 @@ var codec = new Codec('modded_entity', {
 
 					.replace(/\n\?\(has_rotation\).+/, group.rotation.allEqual(0) ? '' : Templates.keepLine)
 
-				if (Templates.get('radians')) {
-					snippet = snippet
-						.replace(R('rx'), F(Math.degToRad(-group.rotation[0])))
-						.replace(R('ry'), F(Math.degToRad(-group.rotation[1])))
-						.replace(R('rz'), F(Math.degToRad(group.rotation[2])))
-				} else {
-					snippet = snippet
-						.replace(R('rx'), F(-group.rotation[0]))
-						.replace(R('ry'), F(-group.rotation[1]))
-						.replace(R('rz'), F(group.rotation[2]))
-				}
+
+				snippet = snippet
+					.replace(R('rx'), F(Math.degToRad(-group.rotation[0])))
+					.replace(R('ry'), F(Math.degToRad(-group.rotation[1])))
+					.replace(R('rz'), F(Math.degToRad(group.rotation[2])))
 
 
 				var origin = group.origin.slice();
@@ -282,9 +275,9 @@ var codec = new Codec('modded_entity', {
 
 							} else {
 								c_snippet = c_snippet
-									.replace(R('dx'), F(cube.size(0)) )
-									.replace(R('dy'), F(cube.size(1)) )
-									.replace(R('dz'), F(cube.size(2)) )
+									.replace(R('dx'), F(cube.size(0, true)) )
+									.replace(R('dy'), F(cube.size(1, true)) )
+									.replace(R('dz'), F(cube.size(2, true)) )
 							}
 
 							cube_snippets.push(c_snippet);
@@ -302,6 +295,8 @@ var codec = new Codec('modded_entity', {
 			let group_snippets = [];
 			for (var group of all_groups) {
 				if (group instanceof Group === false || !group.export) continue;
+				if (!Templates.get('render_subgroups') && group.parent instanceof Group) continue;
+
 				let snippet = Templates.get('renderer')
 					.replace(R('bone'), group.name)
 				group_snippets.push(snippet);
@@ -485,9 +480,9 @@ var codec = new Codec('modded_entity', {
 					})
 					cube.extend({
 						to: [
-							cube.from[0] + match[7],
-							cube.from[1] + match[8],
-							cube.from[2] + match[9],
+							cube.from[0] + Math.floor(match[7]),
+							cube.from[1] + Math.floor(match[8]),
+							cube.from[2] + Math.floor(match[9]),
 						]
 					});
 					cube.addTo(bones[match[0]]).init();
@@ -511,9 +506,9 @@ var codec = new Codec('modded_entity', {
 					})
 					cube.extend({
 						to: [
-							cube.from[0] + match[4],
-							cube.from[1] + match[5],
-							cube.from[2] + match[6],
+							cube.from[0] + Math.floor(match[4]),
+							cube.from[1] + Math.floor(match[5]),
+							cube.from[2] + Math.floor(match[6]),
 						]
 					});
 					cube.addTo(bones[match[0]]).init();
@@ -535,9 +530,9 @@ var codec = new Codec('modded_entity', {
 					})
 					cube.extend({
 						to: [
-							cube.from[0] + match[6],
-							cube.from[1] + match[7],
-							cube.from[2] + match[8],
+							cube.from[0] + Math.floor(match[6]),
+							cube.from[1] + Math.floor(match[7]),
+							cube.from[2] + Math.floor(match[8]),
 						]
 					});
 					cube.addTo(bones[match[0]]).init();
@@ -634,8 +629,9 @@ var format = new ModelFormat({
 	single_texture: true,
 	bone_rig: true,
 	centered_grid: true,
+	integer_size: true
 })
-Object.defineProperty(format, 'integer_size', {get: _ => Templates.get('integer_size')})
+//Object.defineProperty(format, 'integer_size', {get: _ => Templates.get('integer_size')})
 codec.format = format;
 
 

@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Model editing and animation software",
-	"version": "3.5.1",
+	"version": "3.5.2",
 	"license": "MIT",
 	"author": {
 		"name": "JannisX11",
@@ -80,7 +80,6 @@
 		"beta": "electron-builder --windows portable"
 	},
 	"devDependencies": {
-		"async": "^2.4.1",
 		"electron": "8.2.1",
 		"electron-builder": "^21.2.0"
 	}

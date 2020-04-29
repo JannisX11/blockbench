@@ -793,6 +793,18 @@
 		width: 7px;
 		background-color:  var(--color-text);
 	}
+	#uv_size .ui-resizable-se,
+	#uv_size .ui-resizable-sw,
+	#uv_size .ui-resizable-ne,
+	#uv_size .ui-resizable-nw {
+		height: 9px;
+		width: 9px;
+	}
+	#uv_size .ui-resizable-se {right: -6px; bottom: -6px; z-index: 91 !important;}
+	#uv_size .ui-resizable-sw {left: -6px; bottom: -6px;}
+	#uv_size .ui-resizable-ne {right: -6px; top: -6px;}
+	#uv_size .ui-resizable-nw {left: -6px; top: -6px;}
+
 	#uv_frame:hover #uv_size .ui-resizable-handle:before {
 		background-color: white;
 	}
@@ -803,20 +815,20 @@
 		background-color: var(--color-accent);
 	}
 	#uv_size .ui-resizable-se:before {
-		bottom: 1px;
-		right: 1px;
+		bottom: 2px;
+		right: 2px;
 	}
 	#uv_size .ui-resizable-sw:before {
-		bottom: 1px;
-		left: 1px;
+		bottom: 2px;
+		left: 2px;
 	}
 	#uv_size .ui-resizable-ne:before {
-		top: 1px;
-		right: 1px;
+		top: 2px;
+		right: 2px;
 	}
 	#uv_size .ui-resizable-nw:before {
-		top: 1px;
-		left: 1px;
+		top: 2px;
+		left: 2px;
 	}
 
 	#texture_selection_rect {

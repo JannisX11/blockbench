@@ -306,7 +306,6 @@ class GeneralAnimator {
 		})
 	}
 	select() {
-		if (this.getGroup().locked) return;
 		var scope = this;
 		TickUpdates.keyframes = true;
 		for (var key in Animator.selected.animators) {
@@ -436,6 +435,8 @@ class BoneAnimator extends GeneralAnimator {
 		return this.group
 	}
 	select(group_is_selected) {
+		if (this.getGroup().locked) return this;
+
 		var duplicates;
 		for (var key in this.animation.animators) {
 			this.animation.animators[key].selected = false;

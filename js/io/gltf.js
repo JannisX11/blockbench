@@ -1,7 +1,7 @@
 (function() {
 
 function buildAnimationTracks() {
-	let tracks = [];
+	let anims = [];
 	Animator.animations.forEach(animation => {
 
 		let tracks = [];
@@ -87,12 +87,12 @@ function buildAnimationTracks() {
 		}
 		if (tracks.length) {
 			let clip = new THREE.AnimationClip(animation.name, animation.length, tracks)
-			tracks.push(clip);
+			anims.push(clip);
 		} else {
 			console.log(`Skip export of animation ${animation.name} - No tracks generated`)
 		}
 	})
-	return tracks;
+	return anims;
 }
 
 var codec = new Codec('gltf', {
@@ -116,7 +116,6 @@ var codec = new Codec('gltf', {
 		if (options.animations !== false) {
 			animations = buildAnimationTracks();
 		}
-
 		exporter.parse(gl_scene, (json) => {
 
 			scope.dispatchEvent('compile', {model: json, options});

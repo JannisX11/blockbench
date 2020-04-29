@@ -1092,7 +1092,7 @@
     "action.load_plugin_from_url": "Load Plugin from URL",
     "action.load_plugin_from_url.desc": "Load a plugin from a server by specifying the URL",
     "action.cube_counter.desc": "Displays the current number of cubes and other statistics",
-    "action.unlock_everything": "Unlock Everything",
+    "action.unlock_everything": "Unlock All",
     "action.unlock_everything.desc": "Unlock all groups and elements in the outliner.",
     "action.load_palette": "Load Palette",
     "action.load_palette.desc": "Load one of the built-in palette presets",

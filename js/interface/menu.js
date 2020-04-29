@@ -159,7 +159,9 @@ class Menu {
 					entry.off('click')
 					entry.off('mouseenter mousedown')
 					entry.on('mouseenter mousedown', function(e) {
-						scope.hover(this, e)
+						if (this == e.target) {
+							scope.hover(this, e)
+						}
 					})
 					//Submenu
 					if (typeof s.children == 'function' || typeof s.children == 'object') {
@@ -171,7 +173,7 @@ class Menu {
 					parent.append(entry)
 				}
 			} else if (typeof s === 'object') {
-
+				
 				if (BARS.condition(s.condition, context)) {
 					let child_count;
 					if (typeof s.icon === 'function') {
@@ -182,8 +184,8 @@ class Menu {
 					entry = $(`<li title="${s.description||''}">${tl(s.name)}</li>`)
 					entry.prepend(icon)
 					if (typeof s.click === 'function') {
-						entry.click(function(e) {
-							if (e.target == this) {
+						entry.click(e => {
+							if (e.target == entry.get(0)) {
 								s.click(context, e)
 							}
 						})

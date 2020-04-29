@@ -355,13 +355,13 @@ function loadInstalledPlugins() {
 		StateMemory.save('installed_plugins')
 		localStorage.removeItem('installed_plugins')
 	}
-
+	Plugins.installed.replace(Plugins.installed.filter(p => p !== null))
 	if (Plugins.json instanceof Object) {
 		//From Store
 		for (var id in Plugins.json) {
 			var plugin = new Plugin(id, Plugins.json[id])
-			if (Plugins.installed.find(plugin => {
-				return plugin.id == id && plugin.source == 'store'
+			if (Plugins.installed.find(p => {
+				return p && p.id == id && p.source == 'store'
 			})) {
 				plugin.download()
 			}

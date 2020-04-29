@@ -357,6 +357,9 @@ function parseGeometry(data) {
 								if (key == 'up') {
 									face.uv = [face.uv[2], face.uv[3], face.uv[0], face.uv[1]]
 								}
+								if (key == 'down') {
+									face.uv = [face.uv[0], face.uv[3], face.uv[2], face.uv[1]]
+								}
 							} else {
 								face.texture = null;
 								face.uv = [0, 0, 0, 0]
@@ -529,6 +532,10 @@ var codec = new Codec('bedrock', {
 										template.uv[key].uv[0] += template.uv[key].uv_size[0];
 										template.uv[key].uv[1] += template.uv[key].uv_size[1];
 										template.uv[key].uv_size[0] *= -1;
+										template.uv[key].uv_size[1] *= -1;
+									}
+									if (key == 'down') {
+										template.uv[key].uv[1] += template.uv[key].uv_size[1];
 										template.uv[key].uv_size[1] *= -1;
 									}
 								}

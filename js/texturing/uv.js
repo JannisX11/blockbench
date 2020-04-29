@@ -185,6 +185,8 @@ class UVEditor {
 			handles: "all",
 			maxHeight: 320,
 			maxWidth: 320,
+			minWidth: 0,
+			minHeight: 0,
 			containment: 'parent',
 			start: function(event, ui) {
 				Undo.initEdit({elements: Cube.selected, uv_only: true})
@@ -430,7 +432,11 @@ class UVEditor {
 	// Copy Paste Tool
 	startSelection(texture, x, y, event) {
 		if (Painter.selection.overlay && event.target && event.target.id === 'uv_frame') {
-			this.removePastingOverlay()
+			if (open_interface) {
+				open_interface.confirm()
+			} else {
+				this.removePastingOverlay()
+			}
 		}
 		delete Painter.selection.calcrect;
 		if (!Painter.selection.overlay) {
@@ -495,6 +501,7 @@ class UVEditor {
 		let overlay = $(`<div id="texture_pasting_overlay">
 			<div class="control">
 				<div class="button_place" title="${tl('uv_editor.copy_paste_tool.place')}"><i class="material-icons">check_circle</i></div>
+				<div class="button_cancel" title="${tl('dialog.cancel')}"><i class="material-icons">cancel</i></div>
 				<div class="button_cut" title="${tl('uv_editor.copy_paste_tool.cut')}"><i class="fas fa-cut"></i></div>
 				<div class="button_mirror_x" title="${tl('uv_editor.copy_paste_tool.mirror_x')}"><i class="icon-mirror_x icon"></i></div>
 				<div class="button_mirror_y" title="${tl('uv_editor.copy_paste_tool.mirror_y')}"><i class="icon-mirror_y icon"></i></div>
@@ -517,7 +524,7 @@ class UVEditor {
 			}
 		}
 		overlay.find('.button_place').click(open_interface.confirm);
-		//overlay.find('.button_cancel').click(open_interface.hide);
+		overlay.find('.button_cancel').click(open_interface.hide);
 
 		function getCanvasCopy() {
 			var temp_canvas = document.createElement('canvas')
@@ -586,14 +593,21 @@ class UVEditor {
 		this.updateSize()
 
 
-		function hideOverlay(event) {
+		function clickElsewhere(event) {
 			if (!Painter.selection.overlay) {
-				removeEventListeners(document, 'mousedown touchstart', hideOverlay)
+				removeEventListeners(document, 'mousedown touchstart', clickElsewhere)
 			} else if (Painter.selection.overlay.has(event.target).length == 0) {
-				scope.removePastingOverlay()
+				open_interface.confirm()
 			}
+			/*
+			if (!Painter.selection.overlay) {
+				removeEventListeners(document, 'mousedown touchstart', clickElsewhere)
+			} else if (Painter.selection.overlay.has(event.target).length == 0) {
+				open_interface.confirm()
+			}
+			*/
 		}
-		addEventListeners(document, 'mousedown touchstart', hideOverlay)
+		addEventListeners(document, 'mousedown touchstart', clickElsewhere)
 	}
 	removePastingOverlay() {
 		Painter.selection.overlay.detach();
@@ -1025,7 +1039,7 @@ class UVEditor {
 	displayAllMappingOverlays(force_reload) {
 		var scope = this;
 		var cycle = bbuid(4)
-		if (this.showing_overlays) {
+		if (this.showing_overlays && Project.box_uv) {
 			Cube.all.forEach(cube => {
 				var size = cube.size(undefined, true)
 				var hash = `${cube.uv_offset[0]}_${cube.uv_offset[1]}_${size[0]}_${size[1]}_${size[2]}`
@@ -1714,7 +1728,7 @@ function switchBoxUV(state) {
 		})
 	}
 	$('#uv_panel_sides').toggle(!state)
-	main_uv.setGrid(1).setSize(main_uv.size)
+	main_uv.setGrid(1).setSize(main_uv.size).displayAllMappingOverlays();
 	Canvas.updateAllUVs()
 }
 
