@@ -231,10 +231,11 @@
 		margin-left: auto;
 	}
 	#windows_window_menu li {
-		display: inline-block;
+		display: block;
 		width: 42px;
 		height: 100%;
 		text-align: center;
+		float: left;
 	}
 	#windows_window_menu li:hover {
 		color: var(--color-light);
@@ -390,6 +391,7 @@
 	}
 	#start_screen .recent_project_date {
 		flex-shrink: 0;
+		position: relative;
 	}
 	span.recent_project_date:before {
 		content: "";
@@ -468,6 +470,7 @@
 	}
 	#start_screen right {
 		flex-grow: 1;
+		width: 62%;
 	}
 	#start_screen i.start_screen_close_button {
 		position: absolute;

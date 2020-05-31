@@ -551,9 +551,9 @@ class BoneAnimator extends GeneralAnimator {
 	displayPosition(arr) {
 		var bone = this.group.mesh
 		if (arr) {
-			var offset = new THREE.Vector3().fromArray(arr);
-			offset.x *= -1;
-			bone.position.add(offset)
+			bone.position.x += -arr[0];
+			bone.position.y += arr[1];
+			bone.position.z += arr[2];
 		}
 		return this;
 	}
@@ -1045,6 +1045,7 @@ class Keyframe {
 			$('#keyframe_bar_x, #keyframe_bar_y, #keyframe_bar_z, #keyframe_bar_w').hide()
 		}
 		BARS.updateConditions()
+		Blockbench.dispatchEvent('update_keyframe_selection');
 	}
 	function selectAllKeyframes() {
 		if (!Animator.selected) return;
@@ -1534,9 +1535,15 @@ const Timeline = {
 					kf.selected = false;
 					if (kf.time > min_time &&
 						kf.time < max_time &&
-						(kf.channel == focus || !focus)
+						(kf.channel == focus || !focus || focus == 'used')
 					) {
 						var channel_index = focus ? 0 : animator.channels.indexOf(kf.channel);
+						if (focus == 'used') {
+							for (var channel of animator.channels) {
+								if (kf.channel == channel) break;
+								channel_index++;
+							}
+						}
 						height = offset + channel_index*24 + 36;
 						if (height > rect.ay && height < rect.by) {
 							kf.selected = true;

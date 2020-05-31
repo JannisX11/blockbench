@@ -174,13 +174,11 @@ var codec = new Codec('modded_entity', {
 			if (cube.parent == 'root') loose_cubes.push(cube)
 		})
 		if (loose_cubes.length) {
-			all_groups.push({
+			all_groups.push(new Group({
 				name: 'bb_main',
-				rotation: [0, 0, 0],
-				origin: [0, 0, 0],
-				parent: 'root',
-				children: loose_cubes
-			})
+				children: loose_cubes,
+				is_catch_bone: true
+			}))
 		}
 
 		let model = Templates.get('file');
@@ -193,7 +191,7 @@ var codec = new Codec('modded_entity', {
 		model = model.replace(R('fields'), () => {
 			let group_snippets = [];
 			for (var group of all_groups) {
-				if (group instanceof Group === false || !group.export) continue;
+				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export) continue;
 				let snippet = Templates.get('field')
 					.replace(R('bone'), group.name)
 				group_snippets.push(snippet);
@@ -206,7 +204,7 @@ var codec = new Codec('modded_entity', {
 			let group_snippets = [];
 			for (var group of all_groups) {
 
-				if (group instanceof Group === false || !group.export) continue;
+				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export) continue;
 				let snippet = Templates.get('bone')
 
 					.replace(R('bone'), group.name)
@@ -294,7 +292,7 @@ var codec = new Codec('modded_entity', {
 		model = model.replace(R('renderers'), () => {
 			let group_snippets = [];
 			for (var group of all_groups) {
-				if (group instanceof Group === false || !group.export) continue;
+				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export) continue;
 				if (!Templates.get('render_subgroups') && group.parent instanceof Group) continue;
 
 				let snippet = Templates.get('renderer')
@@ -613,6 +611,7 @@ var codec = new Codec('modded_entity', {
 				}
 			}
 		})
+		Project.geometry_name = geo_name;
 		Canvas.updateAll();
 	},
 	fileName() {

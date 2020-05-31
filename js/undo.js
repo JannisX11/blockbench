@@ -207,6 +207,14 @@ var Undo = {
 	},
 	loadSave(save, reference, mode) {
 		var is_session = mode === 'session';
+		
+		if (save.uv_mode) {
+			Project.box_uv = save.uv_mode.box_uv;
+			Project.texture_width = save.uv_mode.width;
+			Project.texture_height = save.uv_mode.height;
+			Canvas.updateAllUVs()
+		}
+
 		if (save.elements) {
 			for (var uuid in save.elements) {
 				if (save.elements.hasOwnProperty(uuid)) {
@@ -327,12 +335,6 @@ var Undo = {
 			}
 		}
 
-		if (save.uv_mode) {
-			Project.box_uv = save.uv_mode.box_uv;
-			Project.texture_width = save.uv_mode.width;
-			Project.texture_height = save.uv_mode.height;
-			Canvas.updateAllUVs()
-		}
 
 		if (save.animations) {
 			for (var uuid in save.animations) {

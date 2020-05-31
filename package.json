@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Model editing and animation software",
-	"version": "3.5.2",
+	"version": "3.5.3",
 	"license": "MIT",
 	"author": {
 		"name": "JannisX11",
@@ -67,7 +67,8 @@
 			"artifactName": "${productName}_${version}.${ext}",
 			"target": [
 				"deb",
-				"rpm"
+				"rpm",
+				"appImage"
 			],
 			"category": "3DGraphics"
 		}

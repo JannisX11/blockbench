@@ -54,6 +54,7 @@ class Texture {
 		img.tex = tex;
 		img.tex.magFilter = THREE.NearestFilter
 		img.tex.minFilter = THREE.NearestFilter
+		img.tex.name = this.name;
 
 		var mat = new THREE.MeshLambertMaterial({
 			color: 0xffffff,
@@ -63,7 +64,8 @@ class Texture {
 			transparent: true,
 			alphaTest: 0.2
 		});
-		Canvas.materials[this.uuid] = mat
+		mat.name = this.name;
+		Canvas.materials[this.uuid] = mat;
 
 		var size_control = {};
 
@@ -143,7 +145,7 @@ class Texture {
 		}
 	}
 	get frameCount() {
-		if (1/this.ratio % 1 === 0) {
+		if (this.ratio !== 1 && this.ratio !== (Project.texture_width / Project.texture_height) && 1/this.ratio % 1 === 0) {
 			return 1/this.ratio
 		}
 	}
@@ -186,7 +188,7 @@ class Texture {
 		Merge.string(this, data, 'namespace')
 		Merge.string(this, data, 'id')
 		Merge.boolean(this, data, 'particle')
-		Merge.string(this, data, 'mode')
+		Merge.string(this, data, 'mode', mode => (mode === 'bitmap' || mode === 'link'))
 		Merge.boolean(this, data, 'saved')
 		Merge.boolean(this, data, 'keep_size')
 		if (this.mode === 'bitmap') {
@@ -373,12 +375,14 @@ class Texture {
 			img.src = scope.source
 		} catch(err) {
 		}
+		Canvas.materials[scope.uuid].name = this.name;
 		img.onload = function() {
 			Canvas.materials[scope.uuid].map.dispose()
 			var tex = new THREE.Texture(img)
 			img.tex = tex;
 			img.tex.magFilter = THREE.NearestFilter
 			img.tex.minFilter = THREE.NearestFilter
+			img.tex.name = scope.name;
 			img.tex.needsUpdate = true;
 
 			Canvas.materials[scope.uuid].map = tex
@@ -1256,7 +1260,6 @@ BARS.defineActions(function() {
 		icon: 'play_arrow',
 		category: 'textures',
 		condition: function() {
-			if (Project.box_uv) return false;
 			var i = 0;
 			var show = false;
 			while (i < textures.length) {

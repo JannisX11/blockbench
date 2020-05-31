@@ -573,6 +573,7 @@ class Preview {
 			}
 			if (typeof Toolbox.selected.onCanvasClick === 'function') {
 				Toolbox.selected.onCanvasClick(data)
+				Blockbench.dispatchEvent('canvas_click', data)
 			}
 			return true;
 		}

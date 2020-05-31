@@ -28,7 +28,7 @@ class Face {
 		} else if (typeof object.texture === 'string') {
 			Merge.string(this, object, 'texture')
 		}
-		Merge.string(this, object, 'cullface')
+		Merge.string(this, object, 'cullface', (val) => uv_dialog.allFaces.includes(val))
 		Merge.number(this, object, 'rotation')
 		Merge.number(this, object, 'tint')
 		if (object.uv) {
@@ -186,7 +186,7 @@ class Cube extends NonGroup {
 			Merge.number(this.origin, object.origin, 2)
 		}
 		Merge.boolean(this, object, 'rescale')
-		Merge.string(this, object, 'rotation_axis')
+		Merge.string(this, object, 'rotation_axis', (v) => (v === 'x' || v === 'y' || v === 'z'))
 		if (object.faces) {
 			for (var face in this.faces) {
 				if (this.faces.hasOwnProperty(face) && object.faces.hasOwnProperty(face)) {
@@ -476,7 +476,7 @@ class Cube extends NonGroup {
 		Canvas.adaptObjectFaces(this)
 		Canvas.updateUV(this)
 	}
-	transferOrigin(origin) {
+	transferOrigin(origin, update = true) {
 		if (!this.mesh) return;
 		var q = new THREE.Quaternion().copy(this.mesh.quaternion)
 		var shift = new THREE.Vector3(
@@ -488,8 +488,8 @@ class Cube extends NonGroup {
 		dq.applyQuaternion(q)
 		shift.sub(dq)
 		shift.applyQuaternion(q.inverse())
-
-		this.moveVector(shift)
+		
+		this.moveVector(shift, null, update)
 
 		this.origin.V3_set(origin);
 
@@ -559,7 +559,6 @@ class Cube extends NonGroup {
 			var all_faces = ['north', 'south', 'west', 'east', 'up', 'down']
 			all_faces.forEach(function(side) {
 				var uv = scope.faces[side].uv.slice()
-				var texture = scope.faces[side]
 				switch (side) {
 					case 'north':
 					uv = [
@@ -610,6 +609,7 @@ class Cube extends NonGroup {
 					];
 					break;
 				}
+				//var texture = scope.faces[side]
 				//var fr_u = 16 / Project.texture_width;
 				//var fr_v = 16 / Project.texture_height;
 				//uv.forEach(function(s, uvi) {
@@ -667,7 +667,7 @@ class Cube extends NonGroup {
 			Canvas.updateUV(scope)
 		}
 	}
-	moveVector(arr, axis) {
+	moveVector(arr, axis, update = true) {
 		if (typeof arr == 'number') {
 			var n = arr;
 			arr = [0, 0, 0];
@@ -690,8 +690,10 @@ class Cube extends NonGroup {
 			scope.from[i] += val;
 			scope.to[i] += val;
 		})
-		this.mapAutoUV()
-		Canvas.adaptObjectPosition(this);
+		if (update) {
+			this.mapAutoUV()
+			Canvas.adaptObjectPosition(this);
+		}
 		TickUpdates.selection = true;
 		return in_box;
 	}

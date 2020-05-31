@@ -212,13 +212,19 @@ const Canvas = {
 		})
 	},
 	getRenderSide() {
-		var side = Format.id === 'java_block' ? 0 : 2;
-		if (display_mode) {
-			if (['thirdperson_righthand', 'thirdperson_lefthand', 'head'].includes(display_slot)) {
-				side = 2;
+		if (settings.render_sides.value == 'auto') {
+			var side = Format.id === 'java_block' ? THREE.FrontSide : THREE.DoubleSide;
+			if (display_mode) {
+				if (['thirdperson_righthand', 'thirdperson_lefthand', 'head'].includes(display_slot)) {
+					side = THREE.DoubleSide;
+				}
 			}
+			return side;
+		} else if (settings.render_sides.value == 'front') {
+			return THREE.FrontSide;
+		} else {
+			return THREE.DoubleSide;
 		}
-		return side;
 	},
 	updateRenderSides() {
 		var side = Canvas.getRenderSide();
@@ -631,7 +637,19 @@ const Canvas = {
 					uv[si+2] -= margin
 				}
 
-				Canvas.updateUVFace(mesh.geometry.faceVertexUvs[0], f.fIndex, {uv: uv}, 0)
+				stretch = 1;
+				frame = 0;
+				if (obj.faces[f.face].texture && obj.faces[f.face].texture !== null) {
+					var tex = obj.faces[f.face].getTexture()
+					if (tex instanceof Texture && tex.frameCount !== 1) {
+						stretch = tex.frameCount
+						if (animation === true && tex.currentFrame) {
+							frame = tex.currentFrame
+						}
+					}
+				}
+
+				Canvas.updateUVFace(mesh.geometry.faceVertexUvs[0], f.fIndex, {uv: uv}, frame, stretch)
 			})
 
 		} else {
@@ -640,32 +658,27 @@ const Canvas = {
 			var stretch = 1
 			var frame = 0
 			for (var face in obj) {
-				if (obj.hasOwnProperty(face)) {
-					stretch = 1
-					frame = 0
-					if (obj[face].texture && obj[face].texture !== null) {
-						var tex = obj[face].getTexture()
-						if (tex instanceof Texture && tex.frameCount !== 1) {
-							stretch = tex.frameCount
-							if (animation === true && tex.currentFrame) {
-								frame = tex.currentFrame
-							}
+				stretch = 1;
+				frame = 0;
+				if (obj[face].texture && obj[face].texture !== null) {
+					var tex = obj[face].getTexture()
+					if (tex instanceof Texture && tex.frameCount !== 1) {
+						stretch = tex.frameCount
+						if (animation === true && tex.currentFrame) {
+							frame = tex.currentFrame
 						}
 					}
-					Canvas.updateUVFace(mesh.geometry.faceVertexUvs[0], Canvas.face_order.indexOf(face)*2, obj[face], frame, stretch)
 				}
+				Canvas.updateUVFace(mesh.geometry.faceVertexUvs[0], Canvas.face_order.indexOf(face)*2, obj[face], frame, stretch)
 			}
 
 		}
 		mesh.geometry.elementsNeedUpdate = true;
 		return mesh.geometry
 	},
-	updateUVFace(vertex_uvs, index, face, frame, stretch) {
-		if (stretch === undefined) {
-			stretch = -1
-		} else {
-			stretch = stretch*(-1)
-		}
+	updateUVFace(vertex_uvs, index, face, frame = 0, stretch = 1) {
+		stretch *= -1
+
 		if (!vertex_uvs[index]) vertex_uvs[index] = [];
 		if (!vertex_uvs[index+1]) vertex_uvs[index+1] = [];
 		var arr = [

@@ -100,6 +100,23 @@ const Settings = {
 		new Setting('shading', 	  		{category: 'preview', value: true, onChange() {
 			setShading()
 		}});
+		new Setting('render_sides', 	{category: 'preview', value: 'auto', type: 'select', options: {
+			'auto': tl('settings.render_sides.auto'),
+			'front': tl('settings.render_sides.front'),
+			'double': tl('settings.render_sides.double'),
+		}, onChange() {
+			Canvas.updateRenderSides();
+		}});
+		/*
+		new Setting('transparency',		{category: 'preview', value: true, onChange() {
+			for (var uuid in Canvas.materials) {
+				let material = Canvas.materials[uuid]
+				if (material instanceof THREE.Material) {
+					material.transparent = settings.transparency.value
+				}
+			}
+		}});
+		*/
 		new Setting('texture_fps',   	{category: 'preview', value: 2, type: 'number', onChange() {
 			TextureAnimator.updateSpeed()
 		}});

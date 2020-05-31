@@ -259,7 +259,7 @@ var format = new ModelFormat({
 	centered_grid: true,
 	codec
 })
-Object.defineProperty(format, 'integer_size', {get: _ => Format.box_uv})
+Object.defineProperty(format, 'integer_size', {get: _ => Project.box_uv})
 codec.format = format;
 
 

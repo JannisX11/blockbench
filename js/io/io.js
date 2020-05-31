@@ -212,6 +212,9 @@ class ModelFormat {
 		updateSelection()
 		EditSession.initNewModel()
 	}
+	delete() {
+		delete Formats[this.id];
+	}
 }
 const Codecs = {};
 class Codec {

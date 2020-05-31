@@ -277,20 +277,27 @@ class UVEditor {
 			}
 		})
 		this.jquery.viewport.on('mousewheel', function(e) {
-			if (e.ctrlOrCmd) {
+			let event = e.originalEvent;
+			event.stopPropagation()
+
+			if (event.ctrlOrCmd) {
 				var n = (event.deltaY < 0) ? 0.1 : -0.1;
 				n *= scope.zoom
 				var number = limitNumber(scope.zoom + n, 1, scope.max_zoom)
 				let old_zoom = scope.zoom;
 
-
 				scope.setZoom(number)
 				event.preventDefault()
-				e.preventDefault()
+
+				let offset = scope.jquery.viewport.offset()
+				let offsetX = event.clientX - offset.left;
+				let offsetY = event.clientY - offset.top;
 
 				let zoom_diff = scope.zoom - old_zoom;
-				this.scrollLeft += ((this.scrollLeft + event.offsetX) * zoom_diff) / old_zoom
-				this.scrollTop  += ((this.scrollTop  + event.offsetY) * zoom_diff) / old_zoom
+				this.scrollLeft += ((this.scrollLeft + offsetX) * zoom_diff) / old_zoom
+				this.scrollTop  += ((this.scrollTop  + offsetY) * zoom_diff) / old_zoom
+
+				scope.updateBrushOutline(e)
 
 				return false;
 			}
@@ -298,6 +305,7 @@ class UVEditor {
 		.on('scroll', e => {
 			scope.updateDragHandle()
 		})
+
 		var dMWCoords = {x: 0, y: 0}
 		function dragMouseWheel(e) {
 			e.currentTarget.scrollLeft -= (e.pageX - dMWCoords.x)
@@ -1143,15 +1151,18 @@ class UVEditor {
 				uvTag[axis] = value
 				uvTag[axis+2] = value + size
 			} else {
+				let minimum = 0;
 				if (axis === 0) {
-					var size = (obj.size(0) + obj.size(2))*2
+					var size = (obj.size(0) + (obj.size(1) ? obj.size(2) : 0))*2
+					if (obj.size(1) == 0) minimum = -obj.size(2);
 				} else {
 					var size = obj.size(2) + obj.size(1)
+					if (obj.size(0) == 0) minimum = -obj.size(2);
 				}
 				var value = modify(obj.uv_offset[axis])
 
-				value = limitNumber(value, 0, limit)
-				value = limitNumber(value + size, 0, limit) - size
+				value = limitNumber(value, minimum, limit)
+				value = limitNumber(value + size, minimum, limit) - size
 				obj.uv_offset[axis] = value
 			}
 			Canvas.updateUV(obj)

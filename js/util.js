@@ -50,7 +50,7 @@ class oneLiner {
 		}
 	}
 }
-var cl = console.log
+var templog = console.log
 var asyncLoop = function(o){
 	var i=-1;
 	var async_loop = function(){
@@ -518,13 +518,12 @@ var Merge = {
 			}
 		}
 	},
-	string: function(obj, source, index) {
-		if (source[index] !== undefined) {
+	string: function(obj, source, index, validate) {
+		if (source[index] || typeof source[index] === 'string') {
 			var val = source[index]
-			if (typeof val === 'string') {
+			if (typeof val !== 'string') val = val.toString();
+			if (validate instanceof Function === false || validate(val)) {
 				obj[index] = val
-			} else {
-				obj[index] = val+''
 			}
 		}
 	},

@@ -23,7 +23,7 @@ var part_codec = new Codec('optifine_part', {
 			if (s.export === false) return;
 			var box = {};
 			var originalOrigin = s.origin.slice();
-			s.transferOrigin([0, 0, 0])
+			s.transferOrigin([0, 0, 0], false)
 			box.coordinates = [
 				-s.to[0], 
 				-s.from[1] - s.size(1), 
@@ -58,7 +58,7 @@ var part_codec = new Codec('optifine_part', {
 			} else {
 				boxes.push(box)
 			}
-			s.transferOrigin(originalOrigin)
+			s.transferOrigin(originalOrigin, false)
 		})
 		if (boxes.length) {
 			jpm.boxes = boxes
@@ -220,6 +220,7 @@ var part_format = new ModelFormat({
 		optional_box_uv: true,
 		codec: part_codec
 })
+Object.defineProperty(part_format, 'integer_size', {get: _ => Project.box_uv})
 part_codec.format = part_format;
 
 

@@ -428,7 +428,7 @@ class NumSlider extends Widget {
 				}
 				scope.sliding = true;
 				scope.pre = 0;
-				scope.left = ui.position.left
+				scope.sliding_start_pos = event.clientX;
 				scope.last_value = scope.value
 			},
 			drag: function(event, ui) {
@@ -519,7 +519,7 @@ class NumSlider extends Widget {
 		}
 	}
 	slide(event, ui) {
-		var offset = Math.round((event.clientX-this.left)/30)-1
+		var offset = Math.round((event.clientX - this.sliding_start_pos)/30)
 		var difference = (offset - this.pre) * this.getInterval(event);
 		this.pre = offset;
 
@@ -803,11 +803,15 @@ class BarSelect extends Widget {
 		let val = this.options[key];
 		let name = tl(val === true || (val && val.name === true)
 				? ('action.'+this.id+'.'+key) 
-				: (val.name || val)
+				: ((val && val.name) || val)
 			);
 		return name;
 	}
 	set(key) {
+		if (this.options[key] == undefined) {
+			console.warn(`Option ${key} does not exist in BarSelect ${this.id}`)
+			return this;
+		}
 		this.value = key;
 		let name = this.getNameFor(key);
 		$(this.node).find('bb-select').text(name)

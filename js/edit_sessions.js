@@ -16,7 +16,7 @@ const EditSession = {
 			Prop.session = true;
 			EditSession.setState(true);
 
-			var client = EditSession.self = new EditSession.Client({
+			EditSession.self = new EditSession.Client({
 				id: EditSession.peer.id,
 				name: EditSession.username,
 				hosting: true
@@ -51,6 +51,9 @@ const EditSession = {
 					data: model
 				})
 			})
+		})
+		peer.on('error', error => {
+			console.log('Error creating edit session:', error)
 		})
 	},
 	join() {

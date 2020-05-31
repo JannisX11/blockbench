@@ -570,6 +570,7 @@ const Blockbench = {
 			this.events[event_name] = []
 		}
 		this.events[event_name].safePush(cb)
+		return Blockbench;
 	},
 	on(event_name, cb) {
 		return Blockbench.addListener(event_name, cb) 

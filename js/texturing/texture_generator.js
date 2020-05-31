@@ -200,7 +200,6 @@ const TextureGenerator = {
 			return;
 		}
 
-
 		if (options.compress) {
 
 			var fill_map = {}
@@ -318,6 +317,7 @@ const TextureGenerator = {
 
 		
 		//Drawing
+		TextureGenerator.old_project_resolution = [Project.texture_width, Project.texture_height]
 		TextureGenerator.changeProjectResolution(max_size, max_size);
 
 		templates.forEach(function(t) {
@@ -337,6 +337,7 @@ const TextureGenerator = {
 			}
 			TextureGenerator.paintCubeBoxTemplate(t.obj, texture, canvas, t);
 		})
+
 		var dataUrl = canvas.toDataURL()
 		var texture = cb(dataUrl)
 		if (texture && !Project.single_texture) {
@@ -431,10 +432,10 @@ const TextureGenerator = {
 		}
 		ctx.drawImage(
 			texture.img,
-			src.ax/Project.texture_width * texture.img.naturalWidth,
-			src.ay/Project.texture_width * texture.img.naturalWidth,
-			src.x /Project.texture_width * texture.img.naturalWidth,
-			src.y /Project.texture_width * texture.img.naturalWidth,
+			src.ax/TextureGenerator.old_project_resolution[0] * texture.img.naturalWidth,
+			src.ay/TextureGenerator.old_project_resolution[1] * texture.img.naturalHeight,
+			src.x /TextureGenerator.old_project_resolution[0] * texture.img.naturalWidth,
+			src.y /TextureGenerator.old_project_resolution[1] * texture.img.naturalHeight,
 			coords.x*res_multiple*flip[0],
 			coords.y*res_multiple*flip[1],
 			coords.w*res_multiple*flip[0],

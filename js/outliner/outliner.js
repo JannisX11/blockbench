@@ -295,6 +295,7 @@ class OutlinerElement {
 				others.safePush(g)
 			})
 		}
+		let zero_based = this.name.match(/[^\d]0$/) !== null;
 		var name = this.name.replace(/\d+$/, '').replace(/\s+/g, '_');
 		function check(n) {
 			for (var i = 0; i < others.length; i++) {
@@ -305,7 +306,7 @@ class OutlinerElement {
 		if (check(this.name)) {
 			return this.name;
 		}
-		for (var num = 2; num < 8e3; num++) {
+		for (var num = zero_based ? 1 : 2; num < 8e3; num++) {
 			if (check(name+num)) {
 				scope.name = name+num;
 				return scope.name;

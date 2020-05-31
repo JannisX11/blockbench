@@ -1109,5 +1109,10 @@
     "menu.palette.load.empty": "Blank",
     "switches.lock": "Lock",
     "camera_angle.isometric_right": "Isometric Right",
-    "camera_angle.isometric_left": "Isometric Left"
+    "camera_angle.isometric_left": "Isometric Left",
+    "settings.render_sides": "Render Sides",
+    "settings.render_sides.desc": "Select which side of a face is rendered",
+    "settings.render_sides.auto": "Auto",
+    "settings.render_sides.front": "Outside",
+    "settings.render_sides.double": "Inside and Outside"
 }
