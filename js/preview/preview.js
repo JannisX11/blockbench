@@ -1575,16 +1575,13 @@ function buildGrid() {
 		three_grid.add(line)
 	}
 	//Axis Lines
-	if (Format.centered_grid || !settings.full_grid.value) {
+	if (settings.base_grid.value) {
 		var length = Format.centered_grid
 			? (settings.full_grid.value ? 24 : 8)
 			: 16
 		setupAxisLine(new THREE.Vector3( 0, 0.001, 0), length, 'x')
 		setupAxisLine(new THREE.Vector3( 0, 0.001, 0), length, 'z')
 
-	} else {
-		setupAxisLine(new THREE.Vector3( -16, 0.001, -16), 48, 'x')
-		setupAxisLine(new THREE.Vector3( -16, 0.001, -16), 48, 'z')
 	}
 
 	var side_grid = new THREE.Object3D()

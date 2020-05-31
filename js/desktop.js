@@ -205,6 +205,14 @@ function refreshUpdateDialog() {
 	})
 }
 function installUpdate() {
+
+	Blockbench.showMessageBox({
+		title: 'Updater',
+		icon: 'update',
+		message: 'The built-in updater is currently unavailable. Please download updates from https://blockbench.net/downloads for now!',
+	})
+	return;
+
 	console.log('Starting Update')
 	var received_bytes = 0;
 	var total_bytes = 0;

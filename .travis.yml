@@ -2,7 +2,6 @@ sudo: required
 dist: trusty
 
 language: node_js
-node_js: "10"
 
 jobs:
   include:
@@ -35,7 +34,7 @@ cache:
     - node_modules
 
 install:
-  - nvm install 10
+  - nvm install 12.17.0
   - npm install electron-builder
 
 notifications:
