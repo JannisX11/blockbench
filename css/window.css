@@ -53,9 +53,6 @@
 		flex-grow: 1;
 		min-height: 133px;
 	}
-	.panel:not(:last-child) {
-		padding-bottom: 8px;
-	}
 
 	h3.panel_handle {
 		width: 100%;
@@ -63,6 +60,9 @@
 		padding: 6px 12px;
 		background: var(--color-ui);
 		margin: 0;
+		text-transform: uppercase;
+		opacity: 0.6;
+		font-size: 1.1em;
 	}
 	.panel p {
 		margin-left: 12px;
@@ -217,6 +217,7 @@
 		margin-left: auto;
 		height: 100%;
 		padding: 0;
+		cursor: pointer;
 	}
 	#web_download_button a {
 		text-decoration: none !important;
@@ -378,6 +379,7 @@
 	#start_screen .recent_project {
 		margin: 2px 0;
 		display: flex;
+		cursor: pointer;
 	}
 	#start_screen .recent_project .icon_wrapper {
 		flex-shrink: 0;
@@ -403,32 +405,65 @@
 		background: linear-gradient(90deg, transparent, var(--color-ui));
 	}
 
-	#start_screen .recent_project.thumbnail {
-		width: 242px;
-		height: 150px;
+	#start_screen_list_type {
+		height: 30px;
+		position: absolute;
+		top: 32px;
+		right: 20px;
+	}
+	#start_screen_list_type li.selected {
+		border-bottom: 3px solid var(--color-accent);
+	}
 
-		width: 168px;
-		height: 128px;
+	#start_screen .recent_project.thumbnail {
+		width: 180px;
+		height: 130px;
 		position: relative;
 		float: left;
+		margin: 2px;
 		background-color: var(--color-back);
-		margin: 1px;
-		background-size: 150px;
+		cursor: pointer;
+	}
+	#start_screen .recent_project.thumbnail .thumbnail_image {
+		width: 180px;
+		height: 100px;
+		background-size: 180px;
 		background-repeat: no-repeat;
+		cursor: pointer;
 	}
 	#start_screen .recent_project.thumbnail:hover {
-		background-color: var(--color-ui);
+		background-color: var(--color-accent);
 	}
 	#start_screen .recent_project.thumbnail .recent_project_name {
 		font-size: 1em;
 		overflow-x: hidden;
-		flex-shrink: 1;
-		flex-grow: 1;
-		height: 24px;
-		right: 6px;
-		left: 6px;
+		height: 30px;
+		right: 0px;
+		left: 0px;
 		bottom: 0;
+		margin: 0;
+		padding-top: 4px;
 		position: absolute;
+		text-align: center;
+		background-color: var(--color-ui);
+	}
+	#start_screen .recent_project.thumbnail .icon_wrapper {
+		position: absolute;
+		display: none;
+		pointer-events: none;
+		padding: 2px;
+		color: var(--color-accent_text);
+		background-color: var(--color-accent);
+	}
+	#start_screen .recent_project.thumbnail:hover .recent_project_name {
+		color: var(--color-accent_text);
+		background-color: transparent;
+	}
+	#start-files ul.redact li.recent_project.thumbnail .thumbnail_image {
+		background: transparent !important;
+	}
+	#start_screen .recent_project.thumbnail:hover .icon_wrapper {
+		display: block;
 	}
 
 	#start_screen > content {
@@ -513,20 +548,24 @@
 	#start-files li:hover {
 		color: var(--color-light);
 	}
-	#start-files left {
+	#start_screen section#start-files left {
 		width: 38%;
+		overflow-y: hidden;
+		padding: 20px 24px 10px 24px
 	}
 	#start-files right {
 		border-left: 1px solid var(--color-border);
 	}
 	#start_screen left > ul {
-		margin-bottom: 16px;
+		height: calc(100% - 46px);
+		overflow-y: auto;
 	}
 	#start_screen right i {
 		vertical-align: sub;
 	}
 	#start-files left li {
 		padding: 4px 0;
+		cursor: pointer;
 	}
 	#start-files left span.icon_wrapper {
 		height: 22px;

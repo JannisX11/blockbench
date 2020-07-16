@@ -4,17 +4,15 @@ class Texture {
 	constructor(data, uuid) {
 		var scope = this;
 		//Info
-		this.id = '';
-		this.name = 'texture'
-		this.folder = '';
-		this.namespace = '';
-		this.path = ''
-		this.particle = false
+		for (var key in Texture.properties) {
+			Texture.properties[key].reset(this);
+		}
 		//meta
 		this.source = ''
 		this.selected = false
 		this.show_icon = true
 		this.error = 0;
+		this.visible = true;
 		//Data
 		this.img = 0;
 		this.width = 0;
@@ -62,7 +60,7 @@ class Texture {
 			vertexColors: THREE.FaceColors,
 			map: tex,
 			transparent: true,
-			alphaTest: 0.2
+			alphaTest: 0.05
 		});
 		mat.name = this.name;
 		Canvas.materials[this.uuid] = mat;
@@ -145,7 +143,7 @@ class Texture {
 		}
 	}
 	get frameCount() {
-		if (this.ratio !== 1 && this.ratio !== (Project.texture_width / Project.texture_height) && 1/this.ratio % 1 === 0) {
+		if (Format.animated_textures && this.ratio !== 1 && this.ratio !== (Project.texture_width / Project.texture_height) && 1/this.ratio % 1 === 0) {
 			return 1/this.ratio
 		}
 	}
@@ -162,32 +160,27 @@ class Texture {
 		}
 	}
 	getUndoCopy(bitmap) {
-		var copy = {
-			path: this.path,
-			name: this.name,
-			folder: this.folder,
-			namespace: this.namespace,
-			id: this.id,
-			particle: this.particle,
-			selected: this.selected,
-			mode: this.mode,
-			saved: this.saved,
-			uuid: this.uuid,
-			old_width: this.old_width,
-			old_height: this.old_height
+		var copy = {}
+		for (var key in Texture.properties) {
+			Texture.properties[key].copy(this, copy)
 		}
+		copy.visible = this.visible;
+		copy.selected = this.selected;
+		copy.mode = this.mode;
+		copy.saved = this.saved;
+		copy.uuid = this.uuid;
+		copy.old_width = this.old_width;
+		copy.old_height = this.old_height;
 		if (bitmap || this.mode === 'bitmap') {
 			copy.source = this.source
 		}
 		return copy
 	}
 	extend(data) {
-		Merge.string(this, data, 'path')
-		Merge.string(this, data, 'name')
-		Merge.string(this, data, 'folder')
-		Merge.string(this, data, 'namespace')
-		Merge.string(this, data, 'id')
-		Merge.boolean(this, data, 'particle')
+		for (var key in Texture.properties) {
+			Texture.properties[key].merge(this, data)
+		}
+		Merge.boolean(this, data, 'visible')
 		Merge.string(this, data, 'mode', mode => (mode === 'bitmap' || mode === 'link'))
 		Merge.boolean(this, data, 'saved')
 		Merge.boolean(this, data, 'keep_size')
@@ -370,23 +363,12 @@ class Texture {
 	}
 	updateMaterial() {
 		var scope = this;
-		var img = new Image()
-		try {
-			img.src = scope.source
-		} catch(err) {
-		}
+		
 		Canvas.materials[scope.uuid].name = this.name;
-		img.onload = function() {
-			Canvas.materials[scope.uuid].map.dispose()
-			var tex = new THREE.Texture(img)
-			img.tex = tex;
-			img.tex.magFilter = THREE.NearestFilter
-			img.tex.minFilter = THREE.NearestFilter
-			img.tex.name = scope.name;
-			img.tex.needsUpdate = true;
+		Canvas.materials[scope.uuid].map.name = scope.name;
+		Canvas.materials[scope.uuid].map.image.src = scope.source;
+		Canvas.materials[scope.uuid].map.needsUpdate = true;
 
-			Canvas.materials[scope.uuid].map = tex
-		}
 		return this;
 	}
 	reopen(force) {
@@ -505,8 +487,14 @@ class Texture {
 			Prop.active_panel = 'textures'
 		}
 		this.selected = true
-		textures.selected = this
-		this.scrollTo()
+		Texture.selected = this;
+		this.scrollTo();
+		if (Project.layered_textures) {
+			Canvas.updatePaintingGrid()
+		} else if (Format.single_texture) {
+			Canvas.updateAllFaces()
+			TickUpdates.selection = true;
+		}
 		return this;
 	}
 	add(undo) {
@@ -526,22 +514,10 @@ class Texture {
 		loadTextureDraggable()
 
 		if (Format.single_texture && Cube.all.length) {
-			Cube.all.forEach(function(s) {
-				uv_dialog.allFaces.forEach(function(side) {
-					if (s.faces[side].texture !== null) {
-						s.faces[side].texture = scope.uuid;
-					}
-				})
-			})
 			Canvas.updateAllFaces()
 			if (selected.length) {
 				main_uv.loadData()
 			}
-			textures.forEach(function (t, i) {
-				if (t !== scope) {
-					textures.splice(i, 1)
-				}
-			})
 		}
 		TickUpdates.selection = true;
 		
@@ -555,7 +531,9 @@ class Texture {
 			Undo.initEdit({textures: [this]})
 		}
 		this.stopWatcher()
-		if (textures.selected == this) textures.selected = false;
+		if (Texture.selected == this) {
+			Texture.selected = undefined;
+		}
 		textures.splice(textures.indexOf(this), 1)
 		if (!no_update) {
 			Canvas.updateAllFaces()
@@ -567,6 +545,23 @@ class Texture {
 			BARS.updateConditions()
 			Undo.finishEdit('remove_textures', {textures: []})
 		}
+	}
+	toggleVisibility() {
+		if (!Project.layered_textures) {
+			this.visible = true;
+			return this;
+		}
+		this.visible = !this.visible;
+		let c = 0;
+		Texture.all.forEach(tex => {
+			if (tex.visible) {
+				c++;
+				if (c >= 3 && tex !== this) {
+					tex.visible = false;
+				}
+			}
+		})
+		Canvas.updateLayeredTextures();
 	}
 	//Use
 	enableParticle() {
@@ -669,7 +664,7 @@ class Texture {
 			lines: [
 				`<div style="height: 140px;">
 					<div id="texture_menu_thumbnail">${scope.img.outerHTML}</div>
-					<p class="multiline_text" id="te_path">${path}</p>
+					<p class="multiline_text" id="te_path">${settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : path}</p>
 				</div>`
 			],
 			form: {
@@ -998,6 +993,29 @@ class Texture {
 			}
 	])
 	Texture.all = textures;
+	Texture.getDefault = function() {
+		if (Texture.selected && Texture.all.includes(Texture.selected)) {
+			return Texture.selected;
+		} else if (Texture.selected) {
+			Texture.selected = undefined;
+		}
+		if (Project.layered_textures && Texture.all.length > 1) {
+			var i = 0;
+			for (var i = Texture.all.length-1; i >= 0; i--) {
+				if (Texture.all[i].visible) {
+					return Texture.all[i]
+				}
+			}
+		}
+		return Texture.all[0]
+	}
+	new Property(Texture, 'string', 'path')
+	new Property(Texture, 'string', 'name')
+	new Property(Texture, 'string', 'folder')
+	new Property(Texture, 'string', 'namespace')
+	new Property(Texture, 'string', 'id')
+	new Property(Texture, 'boolean', 'particle')
+
 
 function saveTextures() {
 	textures.forEach(function(t) {
@@ -1024,30 +1042,64 @@ function loadTextureDraggable() {
 					return t.find('.texture_icon_wrapper').clone().addClass('texture_drag_helper').attr('texid', t.attr('texid'))
 				},
 				drag: function(event, ui) {
+					
 					$('.outliner_node[order]').attr('order', null)
-					var tar = $('#cubes_list li .drag_hover.outliner_node').deepest()
-					var element = Outliner.root.findRecursive('uuid', tar.attr('id'))
-					if (element) {
-						tar.attr('order', '0')
+					$('.texture[order]').attr('order', null)
+					if ($('#cubes_list.drag_hover').length === 0 && $('#cubes_list li .drag_hover.outliner_node').length) {
+						var tar = $('#cubes_list li .drag_hover.outliner_node').last()
+						var element = Outliner.root.findRecursive('uuid', tar.attr('id'))
+						if (element) {
+							tar.attr('order', '0')
+						}
+					} else if ($('#texture_list li:hover').length) {
+						let node = $('#texture_list > .texture:hover')
+						if (node.length) {
+							var target_tex = Texture.all.findInArray('uuid', node.attr('texid'));
+							index = Texture.all.indexOf(target_tex);
+							let offset = event.clientY - node[0].offsetTop;
+							if (offset > 24) {
+								node.attr('order', '1')
+							} else {
+								node.attr('order', '-1')
+							}
+						}
 					}
 				},
 				stop: function(event, ui) {
 					setTimeout(function() {
-						if ($('canvas.preview:hover').length > 0) {
+						$('.texture[order]').attr('order', null)
+						var tex = textures.findInArray('uuid', ui.helper.attr('texid'));
+						if (!tex) return;
+						if ($('.preview:hover').length > 0) {
 							var data = Canvas.raycast(event)
 							if (data.cube && data.face) {
-								var tex = textures.findInArray('uuid', ui.helper.attr('texid'));
 								var cubes_list = data.cube.selected ? Cube.selected : [data.cube];
-								Undo.initEdit({elements: cubes_list})
-								if (tex) {
+								if (tex && cubes_list) {
+									Undo.initEdit({elements: cubes_list})
 									cubes_list.forEach(cube => {
 										if (cube instanceof Cube) {
 											cube.applyTexture(tex, data.shiftKey || [data.face])
 										}
 									})
+									Undo.finishEdit('apply texture')
 								}
-								Undo.finishEdit('apply texture')
 							}
+						} else if ($('#texture_list:hover').length > 0) {
+							let index = Texture.all.length-1
+							let node = $('#texture_list > .texture:hover')
+							if (node.length) {
+								var target_tex = Texture.all.findInArray('uuid', node.attr('texid'));
+								index = Texture.all.indexOf(target_tex);
+								let own_index = Texture.all.indexOf(tex)
+								if (own_index == index) return;
+								if (own_index < index) index--;
+								if (event.clientY - node[0].offsetTop > 24) index++;
+							}
+							Undo.initEdit({texture_order: true})
+							Texture.all.remove(tex)
+							Texture.all.splice(index, 0, tex)
+							Canvas.updateLayeredTextures()
+							Undo.finishEdit('reorder textures')
 						}
 					}, 10)
 				}
@@ -1059,7 +1111,8 @@ function unselectTextures() {
 	textures.forEach(function(s) {
 		s.selected = false;
 	})
-	textures.selected = false
+	Texture.selected = undefined;
+	Canvas.updateLayeredTextures()
 }
 function getTexturesById(id) {
 	if (id === undefined) return;
@@ -1088,6 +1141,17 @@ Clipbench.pasteTextures = function() {
 		}, 40)
 	}
 }
+
+Object.defineProperty(textures, selected, {
+	get() {
+		console.warn('textures.selected is deprecated. Please use Texture.selected instead.')
+		return Texture.selected;
+	},
+	set(tex) {
+		console.warn('textures.selected is deprecated. Please use Texture.selected instead.')
+		Texture.selected = tex;
+	}
+})
 
 TextureAnimator = {
 	isPlaying: false,
@@ -1166,7 +1230,9 @@ TextureAnimator = {
 onVueSetup(function() {
 	texturelist = new Vue({
 		el: '#texture_list',
-		data: {textures}
+		data: {
+			textures: Texture.all
+		}
 	})
 	texturelist._data.elements = textures
 })
@@ -1260,12 +1326,13 @@ BARS.defineActions(function() {
 		icon: 'play_arrow',
 		category: 'textures',
 		condition: function() {
+			if (!Format.animated_textures) return false;
 			var i = 0;
 			var show = false;
 			while (i < textures.length) {
 				if (textures[i].frameCount > 1) {
 					show = true;
-					i = textures.length
+					break;
 				}
 				i++;
 			}

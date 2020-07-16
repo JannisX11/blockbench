@@ -199,6 +199,9 @@ var codec = new Codec('java_block', {
 		if (checkExport('front_gui_light', Project.front_gui_light)) {
 			blockmodel.gui_light = 'front';
 		}
+		if (checkExport('overrides', Project.overrides)) {
+			blockmodel.overrides = Project.overrides;
+		}
 		if (checkExport('display', Object.keys(display).length >= 1)) {
 			var new_display = {}
 			var entries = 0;
@@ -263,6 +266,10 @@ var codec = new Codec('java_block', {
 		if (model.display !== undefined) {
 			DisplayMode.loadJSON(model.display)
 		}
+		if (model.overrides instanceof Array) {
+			Project.overrides = model.overrides.slice();
+		}
+
 		var texture_ids = {}
 		var texture_paths = {}
 		if (model.textures) {
@@ -398,8 +405,8 @@ var codec = new Codec('java_block', {
 				from: [0, 0, 7.5],
 				to:   [16, 16, 7.8],
 				faces: {
-					north: {uv: [16,0,0,16], texture: textures[0].uuid || null},
-					south: {uv: [0,0,16,16], texture: textures[0].uuid || null},
+					north: {uv: [16,0,0,16], texture: Texture.getDefault().uuid || null},
+					south: {uv: [0,0,16,16], texture: Texture.getDefault().uuid || null},
 					east:  {uv: [0,0,0,0], texture: null},
 					west:  {uv: [0,0,0,0], texture: null},
 					up:	   {uv: [0,0,0,0], texture: null},
@@ -429,6 +436,7 @@ var codec = new Codec('java_block', {
 		if (model.gui_light === 'front') {
 			Project.front_gui_light = true;
 		}
+		this.dispatchEvent('parsed', {model});
 		if (add) {
 			Undo.finishEdit('add block model')
 		}

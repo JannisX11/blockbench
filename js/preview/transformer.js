@@ -579,7 +579,7 @@
 		this.children[2].children[0].children[6].renderOrder -= 9
 		this.children[2].scale.set(0.8, 0.8, 0.8)
 
-
+		/*
 		function updateLayers(obj) {
 			if (obj.name.includes('X')) {
 				obj.layers.set(4)
@@ -593,6 +593,7 @@
 		}
 		this.children[0].children[0].children.forEach(updateLayers)
 		this.children[1].children[0].children.forEach(updateLayers)
+		*/
 
 		//Vars
 			var changeEvent = { type: "change" };
@@ -605,44 +606,16 @@
 
 			var point = new THREE.Vector3();
 			var offset = new THREE.Vector3();
-
-			var rotation = new THREE.Vector3();
-			var offsetRotation = new THREE.Vector3();
 			var scale = 1;
-
-			var lookAtMatrix = new THREE.Matrix4();
 			var eye = new THREE.Vector3();
 
 			var tempMatrix = new THREE.Matrix4();
-			var tempVector = new THREE.Vector3();
-			var tempQuaternion = new THREE.Quaternion();
-			var unitX = new THREE.Vector3( 1, 0, 0 );
-			var unitY = new THREE.Vector3( 0, 1, 0 );
-			var unitZ = new THREE.Vector3( 0, 0, 1 );
-
-			var quaternionXYZ = new THREE.Quaternion();
-			var quaternionX = new THREE.Quaternion();
-			var quaternionY = new THREE.Quaternion();
-			var quaternionZ = new THREE.Quaternion();
-			var quaternionE = new THREE.Quaternion();
-
-			var oldRotationMatrix = new THREE.Vector4()
-			var oldRotationArray = []
-			var parentRotationArray = []
-			var oldScale = 0;
-			var oldScaleTranslation = 0;
-			var positionSnapOffset = new THREE.Vector3()
 			var originalValue = null;
 			var previousValue = 0;
-			var tempScale = 1;
-
-			var parentRotationMatrix  = new THREE.Matrix4();
 
 			var worldPosition = new THREE.Vector3();
 			var worldRotation = new THREE.Euler();
-			var worldRotationMatrix  = new THREE.Matrix4();
 			var camPosition = new THREE.Vector3();
-			var camRotation = new THREE.Euler();
 
 
 		this.attach = function ( object ) {
@@ -738,7 +711,7 @@
 			if (scope.elements.length == 0) return;
 
 			if (object) {
-				worldRotation.setFromRotationMatrix( tempMatrix.extractRotation( object.matrixWorld ) );
+				if (!this.dragging) worldRotation.setFromRotationMatrix( tempMatrix.extractRotation( object.matrixWorld ) );
 				if (Toolbox.selected.transformerMode === 'rotate') {
 					_gizmo[ _mode ].update( worldRotation, eye );
 					this.rotation.set(0, 0, 0);
@@ -777,14 +750,6 @@
 				this.canvas.removeEventListener( "mousemove", onPointerHover );
 				this.canvas.removeEventListener( "touchmove", onPointerHover );
 
-				this.canvas.removeEventListener( "mousemove", onPointerMove );
-				this.canvas.removeEventListener( "touchmove", onPointerMove );
-
-				this.canvas.removeEventListener( "mouseup", onPointerUp );
-				this.canvas.removeEventListener( "mouseout", onPointerUp );
-				this.canvas.removeEventListener( "touchend", onPointerUp );
-				this.canvas.removeEventListener( "touchcancel", onPointerUp );
-				this.canvas.removeEventListener( "touchleave", onPointerUp );
 			}
 			this.canvas = canvas;
 			this.canvas.addEventListener( "mousedown", onPointerDown, false );
@@ -792,15 +757,8 @@
 
 			this.canvas.addEventListener( "mousemove", onPointerHover, false );
 			this.canvas.addEventListener( "touchmove", onPointerHover, {passive: true} );
+			
 
-			this.canvas.addEventListener( "mousemove", onPointerMove, false );
-			this.canvas.addEventListener( "touchmove", onPointerMove, {passive: true} );
-
-			this.canvas.addEventListener( "mouseup", onPointerUp, false );
-			this.canvas.addEventListener( "mouseout", onPointerUp, false );
-			this.canvas.addEventListener( "touchend", onPointerUp, {passive: true} );
-			this.canvas.addEventListener( "touchcancel", onPointerUp, {passive: true} );
-			this.canvas.addEventListener( "touchleave", onPointerUp, {passive: true} );
 		}
 		this.setCanvas(domElement)
 		this.simulateMouseDown = function(e) {
@@ -837,7 +795,9 @@
 		this.getTransformSpace = function() {
 			if (!selected.length) return;
 
-			let input_space = BarItems.transform_space.get()
+			let input_space = Toolbox.selected == BarItems.rotate_tool ? BarItems.rotation_space.get() : BarItems.transform_space.get()
+
+			if (Toolbox.selected == BarItems.rotate_tool && Format.rotation_limit) return 2;
 
 			if (input_space == 'local' && selected[0].rotatable && Toolbox.selected.id !== 'pivot_tool') {
 				let is_local = true;
@@ -913,11 +873,11 @@
 
 					let space = Transformer.getTransformSpace();
 					//Rotation
-					if (Toolbox.selected.id === 'rotate_tool') {
-						Transformer.rotation_ref = rotation_object.mesh.parent;
-
-					} else if (space === 2 || Toolbox.selected.id == 'resize_tool') {
+					if (space === 2 || Toolbox.selected.id == 'resize_tool') {
 						Transformer.rotation_ref = selected[0] && selected[0].mesh;
+						if (Toolbox.selected.id == 'rotate_tool' && Group.selected) {
+							Transformer.rotation_ref = Group.selected.mesh;
+						}
 					
 					} else if (space instanceof Group) {
 						Transformer.rotation_ref = space.mesh;
@@ -990,17 +950,17 @@
 
 			var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 			var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children );
-			if (intersect) {
-				//scope.dragging = true
-			}
+
 			if (_dragging === true) return;
 			scope.hoverAxis = null;
 
 			if ( intersect ) {
 				scope.hoverAxis = intersect.object.name;
+				/*
 				if (scope.camera.axis && (scope.hoverAxis.toLowerCase() === scope.camera.axis) === (_mode !== 'rotate')) {
 					scope.hoverAxis = null;
 				}
+				*/
 				event.preventDefault();
 			}
 			if ( scope.axis !== scope.hoverAxis ) {
@@ -1010,6 +970,8 @@
 			}
 		}
 		function onPointerDown( event ) {
+			
+			document.addEventListener( "mouseup", onPointerUp, false );
 
 			if ( scope.elements.length === 0 || _dragging === true || ( event.button !== undefined && event.button !== 0  ) ) return;
 			var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
@@ -1018,17 +980,21 @@
 				var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children );
 				if ( intersect ) {
 					scope.dragging = true
+					document.addEventListener( "touchend", onPointerUp, {passive: true} );
+					document.addEventListener( "touchcancel", onPointerUp, {passive: true} );
+					document.addEventListener( "touchleave", onPointerUp, {passive: true} );
+
+					document.addEventListener( "mousemove", onPointerMove, false );
+					document.addEventListener( "touchmove", onPointerMove, {passive: true} );
 
 					Transformer.getWorldPosition(worldPosition)
-					if (scope.camera.axis && (scope.hoverAxis && scope.hoverAxis.toLowerCase() === scope.camera.axis) === (_mode !== 'rotate')) return;
+					//if (scope.camera.axis && (scope.hoverAxis && scope.hoverAxis.toLowerCase() === scope.camera.axis) === (_mode !== 'rotate')) return;
 					event.preventDefault();
 					event.stopPropagation();
 					scope.dispatchEvent( mouseDownEvent );
 
 					scope.axis = intersect.object.name;
 					scope.update();
-					tempScale = 1
-					oldScaleTranslation = 0;
 					eye.copy( camPosition ).sub( worldPosition ).normalize();
 					_gizmo[ _mode ].setActivePlane( scope.axis, eye );
 					var planeIntersect = intersectObjects( pointer, [ _gizmo[ _mode ].activePlane ] );
@@ -1510,8 +1476,15 @@
 			scope.dispatchEvent( objectChangeEvent );
 		}
 		function onPointerUp( event ) {
-			event.preventDefault(); // Prevent MouseEvent on mobile
+			//event.preventDefault(); // Prevent MouseEvent on mobile
+			document.removeEventListener( "mouseup", onPointerUp );
 			scope.dragging = false
+
+			document.removeEventListener( "mousemove", onPointerMove );
+			document.removeEventListener( "touchmove", onPointerMove );
+			document.removeEventListener( "touchend", onPointerUp );
+			document.removeEventListener( "touchcancel", onPointerUp );
+			document.removeEventListener( "touchleave", onPointerUp );
 
 			if ( event.button !== undefined && event.button !== 0 && event.button !== 2 ) return;
 

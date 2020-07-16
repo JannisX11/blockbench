@@ -1,6 +1,6 @@
 (function() {
 	$.getScript("lib/file_saver.js");
-	$.getScript('https://rawgit.com/nodeca/pako/master/dist/pako.js', function() {
+	$.getScript('https://rawgit.com/nodeca/pako/master/dist/pako.min.js', function() {
 		window.zlib = pako
 	})
 })()
@@ -47,6 +47,7 @@ window.onbeforeunload = function() {
 	if (Prop.project_saved === false && elements.length > 0) {
 		return 'Unsaved Changes';
 	} else {
+		Blockbench.dispatchEvent('before_closing')
 		EditSession.quit()
 	}
 }

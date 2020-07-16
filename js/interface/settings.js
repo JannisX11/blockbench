@@ -79,9 +79,10 @@ const Settings = {
 		//General
 		new Setting('language', {value: 'en', type: 'select', options: Language.options});
 		new Setting('username', {value: '', type: 'text'});
-		new Setting('recent_projects', {value: 12, max: 128, min: 0, type: 'number', condition: isApp});
-		new Setting('backup_interval', {value: 10, type: 'number', condition: isApp});
-		new Setting('backup_retain', {value: 30, type: 'number', condition: isApp});
+		new Setting('streamer_mode', {value: false, onChange() {
+			StartScreen.vue._data.redact_names = settings.streamer_mode.value;
+			updateStreamerModeNotification();
+		}});
 
 		//Interface
 		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number'});
@@ -98,7 +99,7 @@ const Settings = {
 		//Preview 
 		new Setting('brightness',  		{category: 'preview', value: 50, type: 'number'});
 		new Setting('shading', 	  		{category: 'preview', value: true, onChange() {
-			setShading()
+			updateShading()
 		}});
 		new Setting('render_sides', 	{category: 'preview', value: 'auto', type: 'select', options: {
 			'auto': tl('settings.render_sides.auto'),
@@ -139,9 +140,7 @@ const Settings = {
 		new Setting('large_grid_size',	{category: 'grid', value: 3, type: 'number'});
 		new Setting('display_grid',		{category: 'grid', value: false});
 		new Setting('painting_grid',	{category: 'grid', value: true, onChange() {
-			Cube.all.forEach(cube => {
-				Canvas.buildGridBox(cube)
-			})
+			Canvas.updatePaintingGrid();
 		}});
 		
 		//Snapping
@@ -175,11 +174,18 @@ const Settings = {
 		new Setting('dialog_larger_cubes', {category: 'dialogs', value: true});
 		new Setting('dialog_rotation_limit', {category: 'dialogs', value: true});
 		
+		//Application
+		new Setting('recent_projects', {category: 'application', value: 12, max: 128, min: 0, type: 'number', condition: isApp});
+		new Setting('backup_interval', {category: 'application', value: 10, type: 'number', condition: isApp});
+		new Setting('backup_retain', {category: 'application', value: 30, type: 'number', condition: isApp});
+		new Setting('automatic_updates', {category: 'application', value: true, condition: isApp});
+		
 		//Export
 		new Setting('minifiedout', {category: 'export', value: false});
 		new Setting('export_groups', {category: 'export', value: true});
 		new Setting('sketchfab_token', {category: 'export', value: '', type: 'password'});
 		new Setting('credit', {category: 'export', value: 'Made with Blockbench', type: 'text'});
+
 	},
 	addCategory(id, data) {
 		if (!data) data = 0;
@@ -189,14 +195,24 @@ const Settings = {
 			items: {}
 		}
 	},
-	open() {
+	open(options = 0) {
 		for (var sett in settings) {
 			if (settings.hasOwnProperty(sett)) {
 				Settings.old[sett] = settings[sett].value
 			}
 		}
 		showDialog('settings')
-		setSettingsTab('setting')
+
+		setSettingsTab(options.tab || 'setting');
+
+		if (options.search) {
+			$('dialog#settings div.search_bar input').val(options.search);
+			if (options.tab == 'keybindings') {
+				Keybinds.updateSearch()
+			} else {
+				Settings.updateSearch()
+			}
+		}
 	},
 	saveLocalStorages() {
 		var settings_copy = {}
@@ -231,7 +247,7 @@ const Settings = {
 		}
 		Canvas.outlineMaterial.depthTest = !settings.seethrough_outline.value
 		if (hasSettingChanged('brightness')) {
-			setShading()
+			updateShading()
 		}
 		for (var id in settings) {
 			var setting = settings[id];
@@ -286,9 +302,20 @@ const Settings = {
 }
 Settings.setup()
 
-window.onunload = function() {
-	if (!Blockbench.hasFlag('no_localstorage_saving')) {
-		Settings.saveLocalStorages()
+function updateStreamerModeNotification() {
+	$('#start_screen section#streamer_mode').detach()
+
+	if (settings.streamer_mode.value) {
+		addStartScreenSection('streamer_mode', {
+			graphic: {type: 'icon', icon: 'live_tv'},
+			color: 'var(--color-stream)',
+			text_color: 'var(--color-light)',
+			text: [
+				{type: 'h1', text: tl('interface.streamer_mode_on'), click() {
+					Settings.open({search: 'streamer_mode'})
+				}}
+			]
+		})
 	}
 }
 

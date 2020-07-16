@@ -74,13 +74,14 @@ const codec = new Codec('skin_model', {
 		this.dispatchEvent('compile', {model: entitymodel, options});
 		return entitymodel
 	},
-	parse(data, resolution, texture_path, pose = true) {
+	parse(data, resolution, texture_path, pose = true, layer_template) {
 		this.dispatchEvent('parse', {model: data});
 		Project.geometry_name = data.name;
 		Project.texture_width = data.texturewidth || 64;
 		Project.texture_height = data.textureheight || 64;
 
 		var bones = {}
+		var template_cubes = {};
 
 		if (data.bones) {
 			var included_bones = []
@@ -129,6 +130,7 @@ const codec = new Codec('skin_model', {
 							base_cube.mirror_uv = s.mirror === true
 						}
 						base_cube.addTo(group).init()
+						template_cubes[Cube.all.indexOf(base_cube)] = s;
 					})
 				}
 				if (b.children) {
@@ -161,7 +163,14 @@ const codec = new Codec('skin_model', {
 		if (texture_path) {
 			var texture = new Texture().fromPath(texture_path).add(false);
 		} else {
-			var texture = generateTemplate(Project.texture_width*resolution, Project.texture_height*resolution, data.name, data.eyes)
+			var texture = generateTemplate(
+				Project.texture_width*resolution,
+				Project.texture_height*resolution,
+				template_cubes,
+				data.name,
+				data.eyes,
+				layer_template
+			)
 		}
 		texture.load_callback = function() {
 			Modes.options.paint.select();
@@ -199,7 +208,7 @@ format.new = function() {
 	}
 }
 
-function generateTemplate(width = 64, height = 64, name = 'name', eyes) {
+function generateTemplate(width = 64, height = 64, cubes, name = 'name', eyes, layer_template) {
 
 	var texture = new Texture({
 		mode: 'bitmap',
@@ -210,8 +219,11 @@ function generateTemplate(width = 64, height = 64, name = 'name', eyes) {
 	canvas.width = width;
 	canvas.height = height;
 
-	Cube.all.forEach(cube => {
-		TextureGenerator.paintCubeBoxTemplate(cube, texture, canvas, null, !!cube.inflate);
+	Cube.all.forEach((cube, i) => {
+		let template_cube = cubes[i];
+		if (layer_template || !template_cube.layer) {
+			TextureGenerator.paintCubeBoxTemplate(cube, texture, canvas, null, template_cube.layer);
+		}
 	})
 	if (eyes) {
 		var res_multiple = canvas.width/Project.texture_width;
@@ -322,13 +334,14 @@ const skin_dialog = new Dialog({
 			extensions: ['png'],
 			filetype: 'PNG',
 		},
-		pose: {type: 'checkbox', label: 'dialog.skin.pose', value: true}
+		pose: {type: 'checkbox', label: 'dialog.skin.pose', value: true},
+		layer_template: {type: 'checkbox', label: 'dialog.skin.layer_template', value: true}
 	},
 	draggable: true,
 	onConfirm(result) {
 		if (newProject(format)) {
 			var model = JSON.parse(skin_presets[result.model]);
-			codec.parse(model, result.resolution/16, result.texture, result.pose);
+			codec.parse(model, result.resolution/16, result.texture, result.pose, result.layer_template);
 		}
 		this.hide();
 	},
@@ -344,7 +357,7 @@ BARS.defineActions(function() {
 	new Action('toggle_skin_layer', {
 		icon: 'layers_clear',
 		category: 'edit',
-		condition: () => Format.id == 'skin',
+		condition: {formats: ['skin']},
 		click: function () {
 			var edited = [];
 			Cube.all.forEach(cube => {
@@ -380,7 +393,7 @@ skin_presets.steve = `{
 			"pose": [-6, 5, 0],
 			"cubes": [
 				{"name": "Head", "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [0, 0]},
-				{"name": "Hat Layer", "visibility": false, "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [32, 0], "inflate": 0.5}
+				{"name": "Hat Layer", "visibility": false, "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [32, 0], "inflate": 0.5, "layer": true}
 			]
 		},
 		{
@@ -389,7 +402,7 @@ skin_presets.steve = `{
 			"pivot": [0, 24, 0],
 			"cubes": [
 				{"name": "Body", "origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 16]},
-				{"name": "Body Layer", "visibility": false, "origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 32], "inflate": 0.25}
+				{"name": "Body Layer", "visibility": false, "origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 32], "inflate": 0.25, "layer": true}
 			]
 		},
 		{
@@ -399,7 +412,7 @@ skin_presets.steve = `{
 			"pose": [-10, 0, 0],
 			"cubes": [
 				{"name": "Right Arm", "origin": [-8, 12, -2], "size": [4, 12, 4], "uv": [40, 16]},
-				{"name": "Right Arm Layer", "visibility": false, "origin": [-8, 12, -2], "size": [4, 12, 4], "uv": [40, 32], "inflate": 0.25}
+				{"name": "Right Arm Layer", "visibility": false, "origin": [-8, 12, -2], "size": [4, 12, 4], "uv": [40, 32], "inflate": 0.25, "layer": true}
 			]
 		},
 		{
@@ -409,7 +422,7 @@ skin_presets.steve = `{
 			"pose": [12, 0, 0],
 			"cubes": [
 				{"name": "Left Arm", "origin": [4, 12, -2], "size": [4, 12, 4], "uv": [32, 48]},
-				{"name": "Left Arm Layer", "visibility": false, "origin": [4, 12, -2], "size": [4, 12, 4], "uv": [48, 48], "inflate": 0.25}
+				{"name": "Left Arm Layer", "visibility": false, "origin": [4, 12, -2], "size": [4, 12, 4], "uv": [48, 48], "inflate": 0.25, "layer": true}
 			]
 		},
 		{
@@ -419,7 +432,7 @@ skin_presets.steve = `{
 			"pose": [11, 0, 2],
 			"cubes": [
 				{"name": "Right Leg", "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 16]},
-				{"name": "Right Leg Layer", "visibility": false, "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 32], "inflate": 0.25}
+				{"name": "Right Leg Layer", "visibility": false, "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 32], "inflate": 0.25, "layer": true}
 			]
 		},
 		{
@@ -429,7 +442,7 @@ skin_presets.steve = `{
 			"pose": [-10, 0, -2],
 			"cubes": [
 				{"name": "Left Leg", "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [16, 48]},
-				{"name": "Left Leg Layer", "visibility": false, "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [0, 48], "inflate": 0.25}
+				{"name": "Left Leg Layer", "visibility": false, "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [0, 48], "inflate": 0.25, "layer": true}
 			]
 		}
 	]
@@ -450,7 +463,7 @@ skin_presets.alex = `{
 			"pose": [-6, 5, 0],
 			"cubes": [
 				{"name": "Head", "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [0, 0]},
-				{"name": "Hat Layer", "visibility": false, "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [32, 0], "inflate": 0.5}
+				{"name": "Hat Layer", "visibility": false, "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [32, 0], "inflate": 0.5, "layer": true}
 			]
 		},
 		{
@@ -459,7 +472,7 @@ skin_presets.alex = `{
 			"pivot": [0, 24, 0],
 			"cubes": [
 				{"name": "Body", "origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 16]},
-				{"name": "Body Layer", "visibility": false, "origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 32], "inflate": 0.25}
+				{"name": "Body Layer", "visibility": false, "origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 32], "inflate": 0.25, "layer": true}
 			]
 		},
 		{
@@ -469,7 +482,7 @@ skin_presets.alex = `{
 			"pose": [-10, 0, 0],
 			"cubes": [
 				{"name": "Right Arm", "origin": [-7, 12, -2], "size": [3, 12, 4], "uv": [40, 16]},
-				{"name": "Right Arm Layer", "visibility": false, "origin": [-7, 12, -2], "size": [3, 12, 4], "uv": [40, 32], "inflate": 0.25}
+				{"name": "Right Arm Layer", "visibility": false, "origin": [-7, 12, -2], "size": [3, 12, 4], "uv": [40, 32], "inflate": 0.25, "layer": true}
 			]
 		},
 		{
@@ -479,7 +492,7 @@ skin_presets.alex = `{
 			"pose": [12, 0, 0],
 			"cubes": [
 				{"name": "Left Arm", "origin": [4, 12, -2], "size": [3, 12, 4], "uv": [32, 48]},
-				{"name": "Left Arm Layer", "visibility": false, "origin": [4, 12, -2], "size": [3, 12, 4], "uv": [48, 48], "inflate": 0.25}
+				{"name": "Left Arm Layer", "visibility": false, "origin": [4, 12, -2], "size": [3, 12, 4], "uv": [48, 48], "inflate": 0.25, "layer": true}
 			]
 		},
 		{
@@ -489,7 +502,7 @@ skin_presets.alex = `{
 			"pose": [11, 0, 2],
 			"cubes": [
 				{"name": "Right Leg", "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 16]},
-				{"name": "Right Leg Layer", "visibility": false, "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 32], "inflate": 0.25}
+				{"name": "Right Leg Layer", "visibility": false, "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 32], "inflate": 0.25, "layer": true}
 			]
 		},
 		{
@@ -499,7 +512,7 @@ skin_presets.alex = `{
 			"pose": [-10, 0, -2],
 			"cubes": [
 				{"name": "Left Leg", "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [16, 48]},
-				{"name": "Left Leg Layer", "visibility": false, "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [0, 48], "inflate": 0.25}
+				{"name": "Left Leg Layer", "visibility": false, "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [0, 48], "inflate": 0.25, "layer": true}
 			]
 		}
 	]
@@ -1804,7 +1817,7 @@ skin_presets.enderman = `{
 			"pivot": [0, 24, 0],
 			"cubes": [
 				{"name": "head", "origin": [-4, 40, -4], "size": [8, 8, 8], "uv": [0, 0], "inflate": -0.5},
-				{"name": "head layer", "origin": [-4, 38, -4], "size": [8, 8, 8], "uv": [0, 16], "inflate": -0.5}
+				{"name": "head layer", "origin": [-4, 38, -4], "size": [8, 8, 8], "uv": [0, 16], "inflate": -0.5, "layer": true}
 			]
 		},
 		{
@@ -4002,7 +4015,7 @@ skin_presets.silverfish = `{
 			"parent": "bodyPart_1",
 			"pivot": [0, 5, -1.5],
 			"cubes": [
-				{"name": "bodyLayer_2", "origin": [-3, 0, -3], "size": [6, 5, 2], "uv": [20, 18]}
+				{"name": "bodyLayer_2", "origin": [-3, 0, -3], "size": [6, 5, 2], "uv": [20, 18], "layer": true}
 			]
 		},
 		{
@@ -4026,7 +4039,7 @@ skin_presets.silverfish = `{
 			"parent": "bodyPart_4",
 			"pivot": [0, 4, 7],
 			"cubes": [
-				{"name": "bodyLayer_1", "origin": [-3, 0, 5.5], "size": [6, 4, 3], "uv": [20, 11]}
+				{"name": "bodyLayer_1", "origin": [-3, 0, 5.5], "size": [6, 4, 3], "uv": [20, 11], "layer": true}
 			]
 		},
 		{
@@ -4050,7 +4063,7 @@ skin_presets.silverfish = `{
 			"parent": "bodyPart_2",
 			"pivot": [0, 8, 1],
 			"cubes": [
-				{"name": "bodyLayer_0", "origin": [-5, 0, -0.5], "size": [10, 8, 3], "uv": [20, 0]}
+				{"name": "bodyLayer_0", "origin": [-5, 0, -0.5], "size": [10, 8, 3], "uv": [20, 0], "layer": true}
 			]
 		}
 	]
@@ -4157,10 +4170,10 @@ skin_presets.slime = `{
 			"name": "outer",
 			"pivot": [0, 24, 0],
 			"cubes": [
-				{"name": "cube layer", "visibility": false, "origin": [-4, 0, -4], "size": [8, 8, 8], "uv": [0, 0]},
-				{"name": "eye0 layer", "visibility": false, "origin": [-3.3, 4, -3.5], "size": [2, 2, 2], "uv": [32, 0]},
-				{"name": "eye1 layer", "visibility": false, "origin": [1.3, 4, -3.5], "size": [2, 2, 2], "uv": [32, 4]},
-				{"name": "mouth layer", "visibility": false, "origin": [0, 2, -3.5], "size": [1, 1, 1], "uv": [32, 8]}
+				{"name": "cube layer", "visibility": false, "origin": [-4, 0, -4], "size": [8, 8, 8], "uv": [0, 0], "layer": true},
+				{"name": "eye0 layer", "visibility": false, "origin": [-3.3, 4, -3.5], "size": [2, 2, 2], "uv": [32, 0], "layer": true},
+				{"name": "eye1 layer", "visibility": false, "origin": [1.3, 4, -3.5], "size": [2, 2, 2], "uv": [32, 4], "layer": true},
+				{"name": "mouth layer", "visibility": false, "origin": [0, 2, -3.5], "size": [1, 1, 1], "uv": [32, 8], "layer": true}
 			]
 		}
 	]

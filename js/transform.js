@@ -41,10 +41,11 @@ function origin2geometry() {
 	Canvas.updatePositions()
 	Undo.finishEdit('origin to geometry')
 }
-function getSelectionCenter() {
+function getSelectionCenter(all = false) {
 	var center = [0, 0, 0]
 	var i = 0;
-	selected.forEach(obj => {
+	let items = (selected.length == 0 || all) ? elements : selected;
+	items.forEach(obj => {
 		if (obj.getWorldCenter) {
 			var pos = obj.getWorldCenter();
 			center[0] += pos.x
@@ -52,13 +53,13 @@ function getSelectionCenter() {
 			center[2] += pos.z
 		}
 	})
-	for (var i = 0; i < 3; i++) {
-		center[i] = center[i] / selected.length
+	if (items.length) {
+		for (var i = 0; i < 3; i++) {
+			center[i] = center[i] / items.length
+		}
 	}
 	if (!Format.centered_grid) {
-		center[0] += 8;
-		center[1] += 8;
-		center[2] += 8;
+		center.V3_add(8, 8, 8)
 	}
 	return center;
 }
@@ -645,26 +646,68 @@ function getRotationInterval(event) {
 	} else if (event.shiftKey && event.ctrlOrCmd) {
 		return 0.25;
 	} else if (event.shiftKey) {
-		return 45;
+		return 22.5;
 	} else if (event.ctrlOrCmd) {
 		return 1;
 	} else {
-		return 5;
+		return 2.5;
 	}
 }
 function getRotationObject() {
 	if (Format.bone_rig && Group.selected) return Group.selected;
 	if (Format.rotate_cubes && Cube.selected.length) return Cube.selected;
 }
-function rotateOnAxis(modify, axis) {
+function rotateOnAxis(modify, axis, slider) {
+	var things;
+	if (Format.bone_rig && Group.selected) {
+		things = [Group.selected]
+	} else if (Format.rotate_cubes && Cube.selected.length) {
+		things = Cube.selected;
+	}
+	if (!things) return;
+	/*
 	if (Format.bone_rig && Group.selected) {	
 		if (!Group.selected) return;
-		var value = modify(Group.selected.rotation[axis]);
-		Group.selected.rotation[axis] = Math.trimDeg(value)
-		Canvas.updateAllBones()
-		return
+		let obj = Group.selected.mesh
+
+		if (typeof space == 'object') {
+			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)
+			let rotWorldMatrix = new THREE.Matrix4();
+			rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(modify(0)))
+			rotWorldMatrix.multiply(obj.matrix)
+			obj.matrix.copy(rotWorldMatrix)
+			obj.setRotationFromMatrix(rotWorldMatrix)
+			let e = obj.rotation;
+			Group.selected.rotation[0] = Math.radToDeg(e.x);
+			Group.selected.rotation[1] = Math.radToDeg(e.y);
+			Group.selected.rotation[2] = Math.radToDeg(e.z);
+			Canvas.updateAllBones()
+
+		} else if (space == 0) {
+			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)
+			let rotWorldMatrix = new THREE.Matrix4();
+			rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(modify(0)))
+			rotWorldMatrix.multiply(obj.matrixWorld)
+
+			let inverse = new THREE.Matrix4().getInverse(obj.parent.matrixWorld)
+			rotWorldMatrix.premultiply(inverse)
+
+			obj.matrix.copy(rotWorldMatrix)
+			obj.setRotationFromMatrix(rotWorldMatrix)
+			let e = obj.rotation;
+			Group.selected.rotation[0] = Math.radToDeg(e.x);
+			Group.selected.rotation[1] = Math.radToDeg(e.y);
+			Group.selected.rotation[2] = Math.radToDeg(e.z);
+			Canvas.updateAllBones()
+
+		} else {
+			var value = modify(Group.selected.rotation[axis]);
+			Group.selected.rotation[axis] = Math.trimDeg(value)
+			Canvas.updateAllBones()
+		}
+		return;
 	}
-	if (!Format.rotate_cubes) return;
+	*/
 	//Warning
 	if (Format.rotation_limit && settings.dialog_rotation_limit.value) {
 		var i = 0;
@@ -692,19 +735,13 @@ function rotateOnAxis(modify, axis) {
 		}
 	}
 	var axis_letter = getAxisLetter(axis)
-	var origin = Cube.selected[0].origin
-	Cube.selected.forEach(function(obj, i) {
+	var origin =things[0].origin
+	things.forEach(function(obj, i) {
 		if (!obj.rotation.allEqual(0)) {
 			origin = obj.origin
 		}
 	})
 	/*
-	if (origin.allEqual(8)) {
-		origin = getSelectionCenter()
-		origin.forEach((n, ni) => {
-			origin[ni] = Math.round(n*2)/2
-		})
-	}*/
 	Cube.selected.forEach(function(obj, i) {
 		if (obj.rotation.allEqual(0)) {
 			obj.origin.V3_set(origin)
@@ -729,18 +766,95 @@ function rotateOnAxis(modify, axis) {
 		obj.rotation[axis] = obj_val
 		obj.rotation_axis = axis_letter
 	})
+	*/
+	let space = Transformer.getTransformSpace()
+	things.forEach(obj => {
+		let mesh = obj.mesh;
+		if (obj instanceof Cube) {
+			if (obj.rotation.allEqual(0)) {
+				obj.origin.V3_set(origin)
+			}
+		}
+
+		if (slider || space == 2) {
+			var obj_val = modify(obj.rotation[axis]);
+			obj_val = Math.trimDeg(obj_val)
+			if (Format.rotation_limit) {
+				//Limit To 1 Axis
+				obj.rotation[(axis+1)%3] = 0
+				obj.rotation[(axis+2)%3] = 0
+				//Limit Angle
+				obj_val = Math.round(obj_val/22.5)*22.5
+				if (obj_val > 45 || obj_val < -45) {
+	
+					let f = obj_val > 45
+					obj.roll(axis, f!=(axis==1) ? 1 : 3)
+					obj_val = f ? -22.5 : 22.5;
+				}
+			}
+			obj.rotation[axis] = obj_val
+			if (obj instanceof Cube) {
+				obj.rotation_axis = axis_letter
+			}
+
+		} else if (space instanceof Group) {
+			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)
+			let rotWorldMatrix = new THREE.Matrix4();
+			rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(modify(0)))
+			rotWorldMatrix.multiply(mesh.matrix)
+			mesh.matrix.copy(rotWorldMatrix)
+			mesh.setRotationFromMatrix(rotWorldMatrix)
+			let e = mesh.rotation;
+			obj.rotation[0] = Math.radToDeg(e.x);
+			obj.rotation[1] = Math.radToDeg(e.y);
+			obj.rotation[2] = Math.radToDeg(e.z);
+
+		} else if (space == 0) {
+			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)
+			let rotWorldMatrix = new THREE.Matrix4();
+			rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(modify(0)))
+			rotWorldMatrix.multiply(mesh.matrixWorld)
+
+			let inverse = new THREE.Matrix4().getInverse(mesh.parent.matrixWorld)
+			rotWorldMatrix.premultiply(inverse)
+
+			mesh.matrix.copy(rotWorldMatrix)
+			mesh.setRotationFromMatrix(rotWorldMatrix)
+			let e = mesh.rotation;
+			obj.rotation[0] = Math.radToDeg(e.x);
+			obj.rotation[1] = Math.radToDeg(e.y);
+			obj.rotation[2] = Math.radToDeg(e.z);
+			
+		}
+		if (obj instanceof Group) {
+			Canvas.updateAllBones()
+		}
+	})
 }
 
 BARS.defineActions(function() {
 
 
 	new BarSelect('transform_space', {
-		condition: () => Modes.edit,
+		condition: {modes: ['edit'], tools: ['move_tool', 'pivot_tool']},
 		category: 'transform',
 		options: {
 			global: true,
 			bone: {condition: () => Format.bone_rig, name: true},
 			local: true
+		},
+		onChange() {
+			updateSelection();
+		}
+	})
+	new BarSelect('rotation_space', {
+		condition: {modes: ['edit'], tools: ['rotate_tool']},
+		category: 'transform',
+		value: 'local',
+		options: {
+			global: 'action.transform_space.global',
+			bone: {condition: () => Format.bone_rig, name: true, name: 'action.transform_space.bone'},
+			local: 'action.transform_space.local'
 		},
 		onChange() {
 			updateSelection();
@@ -951,7 +1065,7 @@ BARS.defineActions(function() {
 			}
 		},
 		change: function(modify) {
-			rotateOnAxis(modify, 0)
+			rotateOnAxis(modify, 0, true)
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
@@ -977,7 +1091,7 @@ BARS.defineActions(function() {
 			}
 		},
 		change: function(modify) {
-			rotateOnAxis(modify, 1)
+			rotateOnAxis(modify, 1, true)
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
@@ -1003,7 +1117,7 @@ BARS.defineActions(function() {
 			}
 		},
 		change: function(modify) {
-			rotateOnAxis(modify, 2)
+			rotateOnAxis(modify, 2, true)
 			Canvas.updatePositions()
 		},
 		onBefore: function() {

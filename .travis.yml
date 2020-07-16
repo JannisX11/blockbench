@@ -2,31 +2,29 @@ sudo: required
 dist: trusty
 
 language: node_js
+node:
+  - 12
 
 jobs:
   include:
-    - name: "macOS + Win Portable"
+    - name: "macOS"
       os: osx
+      osx_image: "xcode11.3"
       script:
-        - electron-builder --publish=always
-        - electron-builder --windows portable --x64 --publish=always -c.productName='Blockbench_portable'
+        - electron-builder --publish=onTagOrDraft
 
     - name: "Windows"
       os: osx
+      osx_image: "xcode11.3"
       script:
-        - electron-builder -w --x64 --publish=always
-        - electron-builder -w --ia32 --publish=always -c.productName='Blockbench_32bit'
-      deploy:
-        provider: releases
-        api_key: $GH_TOKEN
-        skip_cleanup: true
-        file: dist/win-unpacked/resources/app.asar
+        - electron-builder --windows portable --x64 --publish=onTagOrDraft -c.productName='Blockbench_portable'
+        - electron-builder -w --ia32 --x64 --publish=onTagOrDraft
 
     - name: "Linux"
       os: linux
       script:
         - sudo apt-get install rpm
-        - electron-builder --publish=always
+        - electron-builder --publish=onTagOrDraft
 
 
 cache:
@@ -34,8 +32,7 @@ cache:
     - node_modules
 
 install:
-  - nvm install 12.17.0
-  - npm install electron-builder
+  - npm install
 
 notifications:
   email: false

@@ -47,6 +47,7 @@ function colorDistance(color1, color2) {
 onVueSetup(() => {
 	ColorPanel = Interface.Panels.color = new Panel({
 		id: 'color',
+		icon: 'palette',
 		condition: () => Modes.id === 'paint',
 		toolbars: {
 			picker: Toolbars.color_picker,

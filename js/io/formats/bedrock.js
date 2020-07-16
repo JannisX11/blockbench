@@ -84,23 +84,48 @@ window.BedrockEntityManager = {
 					new Texture({keep_size: true}).fromPath(valid_textures_list[0]).add()
 
 				} else if (valid_textures_list.length > 1) {
-					var dialog_list = '';
-					valid_textures_list.forEach((path, i) => {
-						dialog_list += `<li title="${pathToName(path, true)}" arr_index="${i}"></li>`;
-					})
-					var dialog = new Dialog({
-						title: tl('data.texture'),
-						id: 'select_texture',
-						lines: [`<ul id="import_texture_list" class="y_scrollable">${dialog_list}</ul>`],
-						singleButton: true
-					}).show()
-					$('#import_texture_list li').each((i, el) => {
-						$(el).css('background-image', `url("${ valid_textures_list[i].replace(/\\/g, '/') }?${Math.round(Math.random()*1e6)}")`)
-						.click(() => {
-							dialog.hide();
-							new Texture({keep_size: true}).fromPath(valid_textures_list[i]).add()
-						});
-					})
+					setTimeout(() => {
+						var dialog_list = '';
+						valid_textures_list.forEach((path, i) => {
+							dialog_list += `<li title="${pathToName(path, true)}" arr_index="${i}"></li>`;
+						})
+						let selected_textures = [];
+						var dialog = new Dialog({
+							title: tl('data.texture'),
+							id: 'select_texture',
+							lines: [`<ul id="import_texture_list" class="y_scrollable">${dialog_list}</ul>`],
+							buttons: ['dialog.import', 'dialog.select_texture.import_all', 'dialog.cancel'],
+							confirmIndex: 0,
+							cancelIndex: 2,
+							onButton(index) {
+								dialog.hide();
+								if (index == 1) {
+									valid_textures_list.forEach(path => {
+										new Texture({keep_size: true}).fromPath(path).add()
+									})
+								} else if (index == 0) {
+									selected_textures.forEach(i => {
+										new Texture({keep_size: true}).fromPath(valid_textures_list[i]).add()
+									})
+								}
+							}
+						}).show()
+						$('#import_texture_list li').each((i, el) => {
+							$(el).css('background-image', `url("${ valid_textures_list[i].replace(/\\/g, '/') }?${Math.round(Math.random()*1e6)}")`)
+							.click(function() {
+								if (selected_textures.includes(i)) {
+									selected_textures.remove(i)
+								} else {
+									selected_textures.push(i)
+								}
+								$(this).toggleClass('selected')
+							})
+							.dblclick(function() {
+								selected_textures.replace([i])
+								dialog.confirm()
+							})
+						})
+					}, 2)
 				}
 			}
 
@@ -209,10 +234,12 @@ window.BedrockEntityManager = {
 
 function calculateVisibleBox() {
 	var visible_box = new THREE.Box3()
-	Cube.all.forEach(cube => {
-		if (cube.export && cube.mesh) {
-			visible_box.expandByObject(cube.mesh);
-		}
+	Canvas.withoutGizmos(() => {
+		Cube.all.forEach(cube => {
+			if (cube.export && cube.mesh) {
+				visible_box.expandByObject(cube.mesh);
+			}
+		})
 	})
 
 	var offset = new THREE.Vector3(8,8,8);
@@ -249,175 +276,288 @@ function calculateVisibleBox() {
 
 (function() {
 
-function parseGeometry(data) {
-	if (data === undefined) {
-		pe_list_data.forEach(function(s) {
-			if (s.selected === true) {
-				data = s
-			}
+// Parse
+
+	function parseCube(s, group) {
+		var base_cube = new Cube({
+			name: s.name || group.name,
+			autouv: 0,
+			color: Group.all.indexOf(group)%8,
+			rotation: s.rotation,
+			origin: s.pivot
 		})
-		if (data == undefined) {
-			data = pe_list_data[0]
-		}
-	}
-	codec.dispatchEvent('parse', {model: data.object});
-	let {description} = data.object;
-
-	Project.geometry_name = (description.identifier && description.identifier.replace(/^geometry\./, '')) || '';
-	Project.texture_width = 16;
-	Project.texture_height = 16;
-
-	if (typeof description.visible_bounds_width == 'number' && typeof description.visible_bounds_height == 'number') {
-		Project.visible_box[0] = Math.max(Project.visible_box[0], description.visible_bounds_width);
-		Project.visible_box[1] = Math.max(Project.visible_box[1], description.visible_bounds_height);
-		if (description.visible_bounds_offset && typeof description.visible_bounds_offset[1] == 'number') {
-			Project.visible_box[2] = Math.min(Project.visible_box[2], description.visible_bounds_offset[1]);
-		}
-	}
-
-	if (description.texture_width !== undefined) {
-		Project.texture_width = description.texture_width;
-	}
-	if (description.texture_height !== undefined) {
-		Project.texture_height = description.texture_height;
-	}
-
-	var bones = {}
-
-	if (data.object.bones) {
-		var included_bones = []
-		data.object.bones.forEach(function(b) {
-			included_bones.push(b.name)
+		base_cube.rotation.forEach(function(br, axis) {
+			if (axis != 2) base_cube.rotation[axis] *= -1
 		})
-		data.object.bones.forEach(function(b, bi) {
-			var group = new Group({
-				name: b.name,
-				origin: b.pivot,
-				rotation: b.rotation,
-				material: b.material
-			}).init()
-			group.createUniqueName();
-			bones[b.name] = group
-			if (b.pivot) {
-				group.origin[0] *= -1
+		base_cube.origin[0] *= -1;
+		if (s.origin) {
+			base_cube.from.V3_set(s.origin)
+			base_cube.from[0] = -(base_cube.from[0] + s.size[0])
+			if (s.size) {
+				base_cube.to[0] = s.size[0] + base_cube.from[0]
+				base_cube.to[1] = s.size[1] + base_cube.from[1]
+				base_cube.to[2] = s.size[2] + base_cube.from[2]
 			}
-			group.rotation.forEach(function(br, axis) {
-				if (axis !== 2) group.rotation[axis] *= -1
-			})
-			
-			group.mirror_uv = b.mirror === true
-			group.reset = b.reset === true
-
-			if (b.cubes) {
-				b.cubes.forEach(function(s) {
-					var base_cube = new Cube({
-						name: s.name || b.name,
-						autouv: 0,
-						color: bi%8,
-						rotation: s.rotation,
-						origin: s.pivot
+		}
+		if (s.uv instanceof Array) {
+			base_cube.uv_offset[0] = s.uv[0]
+			base_cube.uv_offset[1] = s.uv[1]
+			Project.box_uv = true;
+		} else if (s.uv) {
+			Project.box_uv = false;
+			for (var key in base_cube.faces) {
+				var face = base_cube.faces[key]
+				if (s.uv[key]) {
+					face.extend({
+						uv: [
+							s.uv[key].uv[0],
+							s.uv[key].uv[1]
+						]
 					})
-					base_cube.rotation.forEach(function(br, axis) {
-						if (axis != 2) base_cube.rotation[axis] *= -1
-					})
-					base_cube.origin[0] *= -1;
-					if (s.origin) {
-						base_cube.from.V3_set(s.origin)
-						base_cube.from[0] = -(base_cube.from[0] + s.size[0])
-						if (s.size) {
-							base_cube.to[0] = s.size[0] + base_cube.from[0]
-							base_cube.to[1] = s.size[1] + base_cube.from[1]
-							base_cube.to[2] = s.size[2] + base_cube.from[2]
-						}
-					}
-					if (s.uv instanceof Array) {
-						base_cube.uv_offset[0] = s.uv[0]
-						base_cube.uv_offset[1] = s.uv[1]
-						Project.box_uv = true;
-					} else if (s.uv) {
-						Project.box_uv = false;
-						for (var key in base_cube.faces) {
-							var face = base_cube.faces[key]
-							if (s.uv[key]) {
-								face.extend({
-									uv: [
-										s.uv[key].uv[0],
-										s.uv[key].uv[1]
-									]
-								})
-								if (s.uv[key].uv_size) {
-									face.uv_size = [
-										s.uv[key].uv_size[0],
-										s.uv[key].uv_size[1]
-									]
-								} else {
-									base_cube.autouv = 1;
-									base_cube.mapAutoUV();
-								}
-								if (key == 'up') {
-									face.uv = [face.uv[2], face.uv[3], face.uv[0], face.uv[1]]
-								}
-								if (key == 'down') {
-									face.uv = [face.uv[0], face.uv[3], face.uv[2], face.uv[1]]
-								}
-							} else {
-								face.texture = null;
-								face.uv = [0, 0, 0, 0]
-							}
-						}
-						
-					}
-					if (s.inflate && typeof s.inflate === 'number') {
-						base_cube.inflate = s.inflate;
-					}
-					if (s.mirror === undefined) {
-						base_cube.mirror_uv = group.mirror_uv;
+					if (s.uv[key].uv_size) {
+						face.uv_size = [
+							s.uv[key].uv_size[0],
+							s.uv[key].uv_size[1]
+						]
 					} else {
-						base_cube.mirror_uv = s.mirror === true;
+						base_cube.autouv = 1;
+						base_cube.mapAutoUV();
 					}
-					base_cube.addTo(group).init()
-				})
-			}
-			if (b.locators) {
-				for (var key in b.locators) {
-					var coords = b.locators[key];
-					coords[0] *= -1
-					var locator = new Locator({from: coords, name: key}).addTo(group).init();
-				}
-			}
-			if (b.children) {
-				b.children.forEach(function(cg) {
-					cg.addTo(group);
-				})
-			}
-			var parent_group = 'root';
-			if (b.parent) {
-				if (bones[b.parent]) {
-					parent_group = bones[b.parent]
+					if (key == 'up' || key == 'down') {
+						face.uv = [face.uv[2], face.uv[3], face.uv[0], face.uv[1]]
+					}
 				} else {
-					data.object.bones.forEach(function(ib) {
-						if (ib.name === b.parent) {
-							ib.children && ib.children.length ? ib.children.push(group) : ib.children = [group]
-						}
-					})
+					face.texture = null;
+					face.uv = [0, 0, 0, 0]
 				}
 			}
-			group.addTo(parent_group)
+			
+		}
+		if (s.inflate && typeof s.inflate === 'number') {
+			base_cube.inflate = s.inflate;
+		}
+		if (s.mirror === undefined) {
+			base_cube.mirror_uv = group.mirror_uv;
+		} else {
+			base_cube.mirror_uv = s.mirror === true;
+		}
+		base_cube.addTo(group).init()
+	}
+	function parseBone(b, bones) {
+		var group = new Group({
+			name: b.name,
+			origin: b.pivot,
+			rotation: b.rotation,
+			material: b.material
+		}).init()
+		group.createUniqueName();
+		bones[b.name] = group
+		if (b.pivot) {
+			group.origin[0] *= -1
+		}
+		group.rotation.forEach(function(br, axis) {
+			if (axis !== 2) group.rotation[axis] *= -1
 		})
-	}
-	pe_list_data.length = 0;
-	hideDialog()
+		
+		group.mirror_uv = b.mirror === true
+		group.reset = b.reset === true
 
-	loadTextureDraggable()
-	Canvas.updateAllBones()
-	setProjectTitle()
-	if (isApp && Project.geometry_name) {
-		BedrockEntityManager.initEntity()
+		if (b.cubes) {
+			b.cubes.forEach(function(s) {
+				parseCube(s, group)
+			})
+		}
+		if (b.locators) {
+			for (var key in b.locators) {
+				var coords = b.locators[key];
+				coords[0] *= -1
+				new Locator({from: coords, name: key}).addTo(group).init();
+			}
+		}
+		if (b.children) {
+			b.children.forEach(function(cg) {
+				cg.addTo(group);
+			})
+		}
+		var parent_group = 'root';
+		if (b.parent) {
+			if (bones[b.parent]) {
+				parent_group = bones[b.parent]
+			} else {
+				data.object.bones.forEach(function(ib) {
+					if (ib.name === b.parent) {
+						ib.children && ib.children.length ? ib.children.push(group) : ib.children = [group]
+					}
+				})
+			}
+		}
+		group.addTo(parent_group)
 	}
-	updateSelection()
-	EditSession.initNewModel()
-}
+	function parseGeometry(data) {
+		if (data === undefined) {
+			pe_list_data.forEach(function(s) {
+				if (s.selected === true) {
+					data = s
+				}
+			})
+			if (data == undefined) {
+				data = pe_list_data[0]
+			}
+		}
+		codec.dispatchEvent('parse', {model: data.object});
+		let {description} = data.object;
 
+		Project.geometry_name = (description.identifier && description.identifier.replace(/^geometry\./, '')) || '';
+		Project.texture_width = 16;
+		Project.texture_height = 16;
+
+		if (typeof description.visible_bounds_width == 'number' && typeof description.visible_bounds_height == 'number') {
+			Project.visible_box[0] = Math.max(Project.visible_box[0], description.visible_bounds_width);
+			Project.visible_box[1] = Math.max(Project.visible_box[1], description.visible_bounds_height);
+			if (description.visible_bounds_offset && typeof description.visible_bounds_offset[1] == 'number') {
+				Project.visible_box[2] = Math.min(Project.visible_box[2], description.visible_bounds_offset[1]);
+			}
+		}
+
+		if (description.texture_width !== undefined) {
+			Project.texture_width = description.texture_width;
+		}
+		if (description.texture_height !== undefined) {
+			Project.texture_height = description.texture_height;
+		}
+
+		var bones = {}
+
+		if (data.object.bones) {
+			var included_bones = []
+			data.object.bones.forEach(function(b) {
+				included_bones.push(b.name)
+			})
+			data.object.bones.forEach(function(b) {
+				parseBone(b, bones)
+			})
+		}
+
+		codec.dispatchEvent('parsed', {model: data.object});
+
+		pe_list_data.length = 0;
+		hideDialog()
+
+		loadTextureDraggable()
+		Canvas.updateAllBones()
+		setProjectTitle()
+		if (isApp && Project.geometry_name) {
+			BedrockEntityManager.initEntity()
+		}
+		updateSelection()
+		EditSession.initNewModel()
+	}
+
+// Compile
+
+	function compileCube(obj, bone) {
+		var template = {
+			origin: obj.from.slice(),
+			size: obj.size(),
+			inflate: obj.inflate||undefined,
+		}
+		if (Project.box_uv) {
+			template = new oneLiner(template);
+		}
+		template.origin[0] = -(template.origin[0] + template.size[0])
+
+		if (!obj.rotation.allEqual(0)) {
+			template.pivot = obj.origin.slice();
+			template.pivot[0] *= -1;
+			
+			template.rotation = obj.rotation.slice();
+			template.rotation.forEach(function(br, axis) {
+				if (axis != 2) template.rotation[axis] *= -1
+			})
+		}
+
+		if (Project.box_uv) {
+			template.uv = obj.uv_offset;
+			if (obj.mirror_uv === !bone.mirror) {
+				template.mirror = obj.mirror_uv
+			}
+		} else {
+			template.uv = {};
+			for (var key in obj.faces) {
+				var face = obj.faces[key];
+				if (face.texture !== null) {
+					template.uv[key] = new oneLiner({
+						uv: [
+							face.uv[0],
+							face.uv[1],
+						],
+						uv_size: [
+							face.uv_size[0],
+							face.uv_size[1],
+						]
+					});
+					if (key == 'up' || key == 'down') {
+						template.uv[key].uv[0] += template.uv[key].uv_size[0];
+						template.uv[key].uv[1] += template.uv[key].uv_size[1];
+						template.uv[key].uv_size[0] *= -1;
+						template.uv[key].uv_size[1] *= -1;
+					}
+				}
+			}
+		}
+		return template;
+	}
+	function compileGroup(g) {
+		if (g.type !== 'group') return;
+		//Bone
+		var bone = {}
+		bone.name = g.name
+		if (g.parent.type === 'group') {
+			bone.parent = g.parent.name
+		}
+		bone.pivot = g.origin.slice()
+		bone.pivot[0] *= -1
+		if (!g.rotation.allEqual(0)) {
+			bone.rotation = g.rotation.slice()
+			bone.rotation[0] *= -1;
+			bone.rotation[1] *= -1;
+		}
+		if (g.reset) {
+			bone.reset = true
+		}
+		if (g.mirror_uv) {
+			bone.mirror = true
+		}
+		if (g.material) {
+			bone.material = g.material
+		}
+		//Cubes
+		var cubes = []
+		var locators = {};
+
+		for (var obj of g.children) {
+			if (obj.export) {
+				if (obj instanceof Cube) {
+
+					let template = compileCube(obj, bone);
+					cubes.push(template);
+
+				} else if (obj instanceof Locator) {
+
+					locators[obj.name] = obj.from.slice();
+					locators[obj.name][0] *= -1;
+				}
+			}
+		}
+
+		if (cubes.length) {
+			bone.cubes = cubes
+		}
+		if (Object.keys(locators).length) {
+			bone.locators = locators
+		}
+		return bone;
+	}
 
 
 var codec = new Codec('bedrock', {
@@ -457,106 +597,7 @@ var codec = new Codec('bedrock', {
 			})
 		}
 		groups.forEach(function(g) {
-			if (g.type !== 'group') return;
-			//Bone
-			var bone = {}
-			bone.name = g.name
-			if (g.parent.type === 'group') {
-				bone.parent = g.parent.name
-			}
-			bone.pivot = g.origin.slice()
-			bone.pivot[0] *= -1
-			if (!g.rotation.allEqual(0)) {
-				bone.rotation = g.rotation.slice()
-				bone.rotation[0] *= -1;
-				bone.rotation[1] *= -1;
-			}
-			if (g.reset) {
-				bone.reset = true
-			}
-			if (g.mirror_uv) {
-				bone.mirror = true
-			}
-			if (g.material) {
-				bone.material = g.material
-			}
-			//Cubes
-			var cubes = []
-			var locators = {};
-
-			for (var obj of g.children) {
-				if (obj.export) {
-					if (obj instanceof Cube) {
-						var template = {
-							origin: obj.from.slice(),
-							size: obj.size(),
-							inflate: obj.inflate||undefined,
-						}
-						if (Project.box_uv) {
-							template = new oneLiner(template);
-						}
-						template.origin[0] = -(template.origin[0] + template.size[0])
-
-
-						if (!obj.rotation.allEqual(0)) {
-							template.pivot = obj.origin.slice();
-							template.pivot[0] *= -1;
-							
-							template.rotation = obj.rotation.slice();
-							template.rotation.forEach(function(br, axis) {
-								if (axis != 2) template.rotation[axis] *= -1
-							})
-						}
-
-						if (Project.box_uv) {
-							template.uv = obj.uv_offset;
-							if (obj.mirror_uv === !bone.mirror) {
-								template.mirror = obj.mirror_uv
-							}
-						} else {
-							template.uv = {};
-							for (var key in obj.faces) {
-								var face = obj.faces[key];
-								if (face.texture !== null) {
-									template.uv[key] = new oneLiner({
-										uv: [
-											face.uv[0],
-											face.uv[1],
-										],
-										uv_size: [
-											face.uv_size[0],
-											face.uv_size[1],
-										]
-									});
-									if (key == 'up') {
-										template.uv[key].uv[0] += template.uv[key].uv_size[0];
-										template.uv[key].uv[1] += template.uv[key].uv_size[1];
-										template.uv[key].uv_size[0] *= -1;
-										template.uv[key].uv_size[1] *= -1;
-									}
-									if (key == 'down') {
-										template.uv[key].uv[1] += template.uv[key].uv_size[1];
-										template.uv[key].uv_size[1] *= -1;
-									}
-								}
-							}
-						}
-						cubes.push(template)
-
-					} else if (obj instanceof Locator) {
-
-						locators[obj.name] = obj.from.slice();
-						locators[obj.name][0] *= -1;
-					}
-				}
-			}
-
-			if (cubes.length) {
-				bone.cubes = cubes
-			}
-			if (Object.keys(locators).length) {
-				bone.locators = locators
-			}
+			let bone = compileGroup(g);
 			bones.push(bone)
 		})
 
@@ -653,15 +694,6 @@ var codec = new Codec('bedrock', {
 			})
 			var thumbnail = new Jimp(48, 48, 0x00000000, function(err, image) {
 				model_entry.object.bones.forEach(function(b) {
-					//var rotate_bone = false;
-					//if (b.name === 'body' &&
-					//	(included_bones.includes('leg3') || model_entry.name.includes('chicken') || model_entry.name.includes('ocelot')) &&
-					//	included_bones.includes('leg4') === false &&
-					//	!model_entry.name.includes('creeper') &&
-					//	( b.rotation === undefined ||b.rotation.join('_') === '0_0_0')
-					//) {
-					//	rotate_bone = true;
-					//}
 					var rotation = b.rotation
 					if (!rotation || rotation[0] === undefined) {
 						if (entityMode.hardcodes[model_entry.name] && entityMode.hardcodes[model_entry.name][b.name]) {
@@ -796,6 +828,13 @@ var codec = new Codec('bedrock', {
 	}
 })
 
+codec.parseCube = parseCube;
+codec.parseBone = parseBone;
+codec.parseGeometry = parseGeometry;
+codec.compileCube = compileCube;
+codec.compileGroup = compileGroup;
+
+
 var format = new ModelFormat({
 	id: 'bedrock',
 	extension: 'json',
@@ -806,6 +845,7 @@ var format = new ModelFormat({
 	single_texture: true,
 	bone_rig: true,
 	centered_grid: true,
+	animated_textures: true,
 	animation_mode: true,
 	locators: true,
 	codec,

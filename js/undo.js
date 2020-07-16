@@ -17,9 +17,6 @@ var Undo = {
 		}
 		- This still causes issues, for example with different texture selections
 		*/
-		if (aspects.textures && aspects.textures.length == 0 && Format.single_texture && textures.length == 1) {
-			aspects.textures[0] = textures[0];
-		}
 		Undo.current_save = new Undo.save(aspects)
 		return Undo.current_save;
 	},
@@ -155,15 +152,21 @@ var Undo = {
 		}
 
 		if (aspects.group) {
-			this.group = aspects.group.getChildlessCopy()
-			this.group.uuid = aspects.group.uuid
+			this.group = aspects.group.getChildlessCopy(true)
 		}
 
 		if (aspects.textures) {
 			this.textures = {}
-			aspects.textures.forEach(function(t) {
+			aspects.textures.forEach(t => {
 				var tex = t.getUndoCopy(aspects.bitmap)
-				scope.textures[t.uuid] = tex
+				this.textures[t.uuid] = tex
+			})
+		}
+
+		if (aspects.texture_order && Texture.all.length) {
+			this.texture_order = [];
+			Texture.all.forEach(tex => {
+				this.texture_order.push(tex.uuid);
 			})
 		}
 
@@ -321,14 +324,25 @@ var Undo = {
 			}
 			for (var uuid in reference.textures) {
 				if (!save.textures[uuid]) {
-					var tex = Undo.getItemByUUID(textures, uuid)
+					var tex = Undo.getItemByUUID(Texture.all, uuid)
 					if (tex) {
-						textures.splice(textures.indexOf(tex), 1)
+						Texture.all.splice(Texture.all.indexOf(tex), 1)
+					}
+					if (Texture.selected == tex) {
+						Texture.selected = textures.selected = undefined;
 					}
 				}
 			}
 			Canvas.updateAllFaces()
 		}
+
+		if (save.texture_order) {
+			Texture.all.sort((a, b) => {
+				return save.texture_order.indexOf(a.uuid) - save.texture_order.indexOf(b.uuid);
+			})
+			Canvas.updateLayeredTextures()
+		}
+
 		if (save.settings) {
 			for (var key in save.settings) {
 				settings[key].value = save.settings[key]

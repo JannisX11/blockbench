@@ -8,8 +8,8 @@ var codec = new Codec('optifine_entity', {
 		if (options === undefined) options = {}
 		var entitymodel = {}
 		var geo_code = 'geometry.'+Project.geometry_name
-		if (textures[0]) {
-			entitymodel.texture = textures[0].name
+		if (Texture.getDefault()) {
+			entitymodel.texture = Texture.getDefault().name
 		}
 		entitymodel.textureSize = [Project.texture_width, Project.texture_height];
 		entitymodel.models = []
@@ -127,6 +127,11 @@ var codec = new Codec('optifine_entity', {
 				})
 			}
 			populate(bone, g, 0)
+
+			if (g.cem_animations.length) {
+				bone.animations = g.cem_animations;
+			}
+
 			entitymodel.models.push(bone)
 		})
 
@@ -155,7 +160,8 @@ var codec = new Codec('optifine_entity', {
 					name: b.part,
 					origin: b.translate,
 					rotation: b.rotate,
-					mirror_uv: (b.mirrorTexture && b.mirrorTexture.includes('u'))
+					mirror_uv: (b.mirrorTexture && b.mirrorTexture.includes('u')),
+					cem_animations: b.animations
 				})
 				group.origin[1] *= -1;
 				group.origin[2] *= -1;
@@ -238,11 +244,12 @@ var codec = new Codec('optifine_entity', {
 			})
 		}
 		loadOutlinerDraggable()
-		Canvas.updateAll()
 		if (model.texture) {
 			var path = path.replace(/\\[\w .-]+$/, '\\'+model.texture)
 			new Texture().fromPath(path).add(false)
 		}
+		this.dispatchEvent('parsed', {model});
+		Canvas.updateAll()
 	}
 })
 

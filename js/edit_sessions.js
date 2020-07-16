@@ -2,12 +2,19 @@ const EditSession = {
 	active: false,
 	hosting: false,
 	BBKey: '1h3sq3hoj6vfkh',
+	ip: '104.248.38.177',
 	clients: {},
 	placeholder_names: ['R2D2', 'Tin Man', 'C3PO', 'WALL-E', 'EVE', 'BB-8', 'B1 Battle Droid', 'ASIMO', 'Atlas'],
 	start() {
 		if (EditSession.active) return;
 
-		var peer = EditSession.peer = new Peer({key: '1h3sq3hoj6vfkh'});
+		var peer = EditSession.peer = new Peer({
+			key: 'edit_session',
+			host: EditSession.ip,
+			port: 9000,
+			path: '/sessions',
+			secure: true
+		});
 		EditSession.username = $('#edit_session_username').val() || EditSession.placeholder_names.random();
 		settings.username.value = EditSession.username;
 
@@ -53,45 +60,58 @@ const EditSession = {
 			})
 		})
 		peer.on('error', error => {
-			console.log('Error creating edit session:', error)
+			console.error('Error in edit session:', error)
 		})
 	},
 	join() {
 		if (EditSession.active) return;
 
-		EditSession.hosting = false;
-		EditSession.peer = new Peer({key: '1h3sq3hoj6vfkh'});
 		var token = $('#edit_session_token').val()
-		EditSession.username = $('#edit_session_username').val() || EditSession.placeholder_names.random();
-		settings.username.value = EditSession.username;
-		if (!token || !EditSession._matchToken(token)) {
-			Blockbench.showMessageBox({
-				translateKey: 'invalid_session',
-				icon: 'cloud_off',
-				buttons: [tl('dialog.ok')],
-			}, result => {
-				showDialog('edit_sessions');
-			})
-			return;
-		}
 
-		EditSession.token = token;
-		var conn = EditSession.peer.connect(token, {metadata: {username: EditSession.username}});
+		EditSession.hosting = false;
+		EditSession.peer = new Peer({
+			key: 'edit_session',
+			host: EditSession.ip,
+			port: 9000,
+			path: '/sessions',
+			secure: true
+		});
+		EditSession.peer.on('open', function() {
 
-		conn.on('error', (e) => {
-			Blockbench.showMessageBox({
-				translateKey: 'invalid_session',
-				icon: 'cloud_off',
-				buttons: [tl('dialog.ok')],
+			EditSession.username = $('#edit_session_username').val() || EditSession.placeholder_names.random();
+			settings.username.value = EditSession.username;
+			if (!token || !EditSession._matchToken(token)) {
+				Blockbench.showMessageBox({
+					translateKey: 'invalid_session',
+					icon: 'cloud_off',
+					buttons: [tl('dialog.ok')],
+				}, result => {
+					showDialog('edit_sessions');
+				})
+				return;
+			}
+			EditSession.token = token;
+			var conn = EditSession.peer.connect(token, {metadata: {username: EditSession.username}});
+
+			conn.on('error', (err) => {
+				console.error('peer join error', err)
+				Blockbench.showMessageBox({
+					translateKey: 'invalid_session',
+					icon: 'cloud_off',
+					buttons: [tl('dialog.ok')],
+				})
+				EditSession.quit()
 			})
-			EditSession.quit()
+			conn.on('open', () => {
+				hideDialog()
+				EditSession.host = conn;
+				EditSession.setState(true);
+				EditSession.initConnection(conn)
+				Blockbench.dispatchEvent('join_session', {conn})
+			})
 		})
-		conn.on('open', () => {
-			hideDialog()
-			EditSession.host = conn;
-			EditSession.setState(true);
-			EditSession.initConnection(conn)
-			Blockbench.dispatchEvent('join_session', {conn})
+		EditSession.peer.on('error', error => {
+			console.error('Error in edit session:', error)
 		})
 	},
 	quit() {
@@ -393,12 +413,6 @@ Chat.Message = class {
 		return (!prev) || (prev.author !== this.author);
 	}
 }
-onVueSetup(function() {
-	Chat.vue = new Vue({
-		el: '#chat_history',
-		data: Chat
-	})
-})
 
 BARS.defineActions(function() {
 	new Action('edit_session', {

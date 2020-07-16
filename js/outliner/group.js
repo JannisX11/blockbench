@@ -1,14 +1,14 @@
 
 class Group extends OutlinerElement {
-	constructor(data) {
-		super()
+	constructor(data, uuid) {
+		super(uuid)
+
+		for (var key in Group.properties) {
+			Group.properties[key].reset(this);
+		}
+
 		this.name = Format.bone_rig ? 'bone' : 'group'
 		this.children = []
-		this.origin = [0, 0, 0];
-		if (!Format.centered_grid) {
-			this.origin.V3_set(8, 8, 8);
-		}
-		this.rotation = [0, 0, 0];
 		this.reset = false;
 		this.shade = true;
 		this.selected = false;
@@ -28,11 +28,15 @@ class Group extends OutlinerElement {
 		}
 	}
 	extend(object) {
+		for (var key in Group.properties) {
+			Group.properties[key].merge(this, object)
+		}
 		Merge.string(this, object, 'name')
 		this.sanitizeName();
 		Merge.boolean(this, object, 'shade')
 		Merge.boolean(this, object, 'mirror_uv')
 		Merge.boolean(this, object, 'reset')
+		/*
 		if (object.origin) {
 			Merge.number(this.origin, object.origin, 0)
 			Merge.number(this.origin, object.origin, 1)
@@ -42,7 +46,7 @@ class Group extends OutlinerElement {
 			Merge.number(this.rotation, object.rotation, 0)
 			Merge.number(this.rotation, object.rotation, 1)
 			Merge.number(this.rotation, object.rotation, 2)
-		}
+		}*/
 		Merge.number(this, object, 'autouv')
 		Merge.boolean(this, object, 'export')
 		Merge.boolean(this, object, 'locked')
@@ -213,11 +217,11 @@ class Group extends OutlinerElement {
 		}
 	}
 	resolve() {
-		var scope = this;
-		var array = this.children.slice().reverse();
+		var array = this.children.slice();
+		var index = this.getParentArray().indexOf(this)
 
-		array.forEach(function(s, i) {
-			s.addTo(scope.parent)
+		array.forEach((s, i) => {
+			s.addTo(this.parent, index)
 		})
 		TickUpdates.outliner = true;
 		this.remove(false);
@@ -277,7 +281,7 @@ class Group extends OutlinerElement {
 	}
 	duplicate() {
 		var copied_groups = [];
-		var copy = this.getChildlessCopy()
+		var copy = this.getChildlessCopy(false)
 		delete copy.parent;
 		copied_groups.push(copy)
 		copy.sortInBefore(this, 1).init()
@@ -293,16 +297,18 @@ class Group extends OutlinerElement {
 		return copy;
 	}
 	getSaveCopy() {
-		var scope = this;
-		var base_group = this.getChildlessCopy();
+		var base_group = this.getChildlessCopy(true);
 		for (var child of this.children) {
 			base_group.children.push(child.getSaveCopy());
 		}
 		delete base_group.parent;
 		return base_group;
 	}
-	getChildlessCopy() {
-		var base_group = new Group();
+	getChildlessCopy(keep_uuid) {
+		var base_group = new Group({name: this.name}, keep_uuid ? this.uuid : null);
+		for (var key in Group.properties) {
+			Group.properties[key].copy(this, base_group)
+		}
 		base_group.name = this.name;
 		base_group.origin.V3_set(this.origin);
 		base_group.rotation.V3_set(this.rotation);
@@ -318,6 +324,9 @@ class Group extends OutlinerElement {
 		var obj = {
 			name: this.name
 		}
+		for (var key in Group.properties) {
+			Group.properties[key].copy(this, obj)
+		}
 		if (this.shade == false) {
 			obj.shade = false
 		}
@@ -329,10 +338,9 @@ class Group extends OutlinerElement {
 			obj.visibility = this.visibility;
 			obj.autouv = this.autouv;
 		}
-		obj.origin = this.origin.slice()
 		
-		if (!this.rotation.allEqual(0)) {
-			obj.rotation = this.rotation.slice()
+		if (this.rotation.allEqual(0)) {
+			delete obj.rotation;
 		}
 		if (this.reset) {
 			obj.reset = true
@@ -414,6 +422,13 @@ class Group extends OutlinerElement {
 	]);
 	Group.selected;
 	Group.all = [];
+
+	new Property(Group, 'vector', 'origin', {default() {
+		return Format.centered_grid ? [0, 0, 0] : [8, 8, 8]
+	}});
+	new Property(Group, 'vector', 'rotation');
+	new Property(Group, 'array', 'cem_animations', {condition: () => Format.id == 'optifine_entity'});
+
 
 function getCurrentGroup() {
 	if (Group.selected) {

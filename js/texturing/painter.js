@@ -288,7 +288,7 @@ const Painter = {
 		let tool = Toolbox.selected.id;
 
 		ctx.clip()
-		if (event.touches && event.touches[0] && event.touches[0].force) {
+		if (event.touches && event.touches[0] && event.touches[0].touchType == 'stylus' && event.touches[0].force) {
 
 			// Stylus
 			var touch = event.touches[0];
@@ -361,7 +361,7 @@ const Painter = {
 			for (var face in cube.faces) {
 				var tag = cube.faces[face]
 				ctx.beginPath();
-				if (tag.texture === Painter.current.texture.uuid) {
+				if (tag.getTexture() === texture) {
 					var face_rect = getRectangle(
 						Math.floor(tag.uv[0] * uvFactorX),
 						Math.floor(tag.uv[1] * uvFactorY),

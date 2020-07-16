@@ -12,7 +12,7 @@ function I(num) {
 }
 const Templates = {
 	'1.12': {
-		name: '1.12',
+		name: 'Forge 1.12',
 		flip_y: true,
 		integer_size: true,
 		file:
@@ -54,7 +54,7 @@ const Templates = {
 	},
 
 	'1.14': {
-		name: '1.14',
+		name: 'Forge 1.14',
 		flip_y: true,
 		integer_size: true,
 		file: 
@@ -96,7 +96,7 @@ const Templates = {
 	},
 
 	'1.15': {
-		name: '1.15',
+		name: 'Forge 1.15',
 		flip_y: true,
 		integer_size: false,
 		file: 
@@ -174,11 +174,12 @@ var codec = new Codec('modded_entity', {
 			if (cube.parent == 'root') loose_cubes.push(cube)
 		})
 		if (loose_cubes.length) {
-			all_groups.push(new Group({
+			let group = new Group({
 				name: 'bb_main',
-				children: loose_cubes,
 				is_catch_bone: true
-			}))
+			});
+			all_groups.push(group)
+			group.children.replace(loose_cubes)
 		}
 
 		let model = Templates.get('file');
@@ -302,8 +303,9 @@ var codec = new Codec('modded_entity', {
 			return group_snippets.join('\n\t\t')
 		});
 
-		this.dispatchEvent('compile', {model, options});
-		return model;
+		let event = {model, options};
+		this.dispatchEvent('compile', event);
+		return event.model;
 	},
 	parse(model, path, add) {
 		this.dispatchEvent('parse', {model});
@@ -612,6 +614,7 @@ var codec = new Codec('modded_entity', {
 			}
 		})
 		Project.geometry_name = geo_name;
+		this.dispatchEvent('parsed', {model});
 		Canvas.updateAll();
 	},
 	fileName() {

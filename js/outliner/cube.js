@@ -1,7 +1,8 @@
 
 class Face {
-	constructor(direction, data) {
+	constructor(direction, data, cube) {
 		this.direction = direction || 'north';
+		this.cube = cube;
 		this.reset()
 		this.uv = [0, 0, canvasGridSize(), canvasGridSize()]
 		if (data) {
@@ -49,8 +50,8 @@ class Face {
 		return this;
 	}
 	getTexture() {
-		if (Format.single_texture && Project.box_uv && this.texture !== null) {
-			return textures[0];
+		if (Format.single_texture && this.texture !== null) {
+			return Texture.getDefault();
 		}
 		if (typeof this.texture === 'string') {
 			return textures.findInArray('uuid', this.texture)
@@ -94,7 +95,6 @@ class Cube extends NonGroup {
 	constructor(data, uuid) {
 		super(data, uuid)
 		let size = canvasGridSize();
-		this.name = 'cube';
 		this.from = [0, 0, 0];
 		this.to = [size, size, size];
 		this.shade = true;
@@ -111,20 +111,27 @@ class Cube extends NonGroup {
 		this.autouv = 0
 		this.parent = 'root';
 
+		for (var key in Cube.properties) {
+			Cube.properties[key].reset(this);
+		}
+
 		this.faces = {
-			north: 	new Face('north'),
-			east: 	new Face('east'),
-			south: 	new Face('south'),
-			west: 	new Face('west'),
-			up: 	new Face('up'),
-			down: 	new Face('down')
+			north: 	new Face('north', null, this),
+			east: 	new Face('east', null, this),
+			south: 	new Face('south', null, this),
+			west: 	new Face('west', null, this),
+			up: 	new Face('up', null, this),
+			down: 	new Face('down', null, this)
 		}
 		if (data && typeof data === 'object') {
 			this.extend(data)
 		}
 	}
 	extend(object) {
-		Merge.string(this, object, 'name')
+		for (var key in Cube.properties) {
+			Cube.properties[key].merge(this, object)
+		}
+
 		this.sanitizeName();
 		Merge.boolean(this, object, 'shade')
 		Merge.boolean(this, object, 'mirror_uv')
@@ -198,10 +205,10 @@ class Cube extends NonGroup {
 	}
 	init() {
 		super.init();
-		if (Format.single_texture && textures[0]) {
+		if (Format.single_texture && Texture.getDefault()) {
 			for (var face in this.faces) {
 				if (this.faces[face].texture !== null) {
-					this.faces[face].texture = textures[0].uuid
+					this.faces[face].texture = Texture.getDefault().uuid
 				}
 			}
 		}
@@ -284,14 +291,18 @@ class Cube extends NonGroup {
 		delete copy.parent;
 		return copy;
 	}
-	getSaveCopy(meta) {
-		var el = {
-			name: this.name,
-			from: this.from,
-			to: this.to,
-			autouv: this.autouv,
-			color: this.color
+	getSaveCopy() {
+		var el = {}
+		
+		for (var key in Cube.properties) {
+			Cube.properties[key].copy(this, el)
 		}
+
+		el.from = this.from;
+		el.to = this.to;
+		el.autouv = this.autouv;
+		el.color = this.color;
+
 		el.locked = this.locked;
 		if (!this.visibility) el.visibility = false;
 		if (!this.export) el.export = false;
@@ -792,6 +803,9 @@ class Cube extends NonGroup {
 	Cube.selected = [];
 	Cube.all = [];
 
+	new Property(Cube, 'string', 'name', {default: 'cube'})
+
+
 
 BARS.defineActions(function() {
 	new Action({
@@ -811,7 +825,7 @@ BARS.defineActions(function() {
 
 			if (textures.length && Format.single_texture) {
 				for (var face in base_cube.faces) {
-					base_cube.faces[face].texture = textures[0].uuid
+					base_cube.faces[face].texture = Texture.getDefault().uuid
 				}
 				main_uv.loadData()
 			}

@@ -279,9 +279,10 @@
 		text-rendering: optimizeLegibility;
 	}
 	i.fa_big {
-		font-size: 15pt;
+		font-size: 14pt;
 		height: 22px;
 		width: 22px;
+		padding-top: 1px;
 		text-align: center;
 		vertical-align: text-top;
 	}
@@ -314,6 +315,7 @@
 		--color-checkerboard: #2f3339;
 
 		--color-close: #d62e3f;
+		--color-stream: #6442A4;
 		--color-axis-x: #d50a0a;
 		--color-axis-y: #23d400;
 		--color-axis-z: #0894ed;
@@ -482,8 +484,8 @@
 		height: 30px;
 		min-width: 50px;
 		padding-top: 4px;
-		padding-left: 10px;
-	    padding-right: 28px;
+		padding-left: 8px;
+	    padding-right: 24px;
 	    color: var(--color-text);
 	}
 	bb-select:hover{
@@ -499,7 +501,7 @@
 		height: 12px;
 		width: 16px;
 	    pointer-events: none;
-	    right: 6px;
+	    right: 3px;
 	    top: 3px;
 	}
 	input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button {

@@ -2,7 +2,7 @@ class Animation {
 	constructor(data) {
 		this.name = '';
 		this.uuid = guid()
-		this.loop = false;
+		this.loop = 'once';
 		this.playing = false;
 		this.override = false;
 		this.selected = false;
@@ -16,7 +16,7 @@ class Animation {
 	}
 	extend(data) {
 		Merge.string(this, data, 'name')
-		Merge.boolean(this, data, 'loop')
+		Merge.string(this, data, 'loop', val => ['once', 'loop', 'hold'].includes(val))
 		Merge.boolean(this, data, 'override')
 		Merge.string(this, data, 'anim_time_update')
 		Merge.number(this, data, 'length')
@@ -235,11 +235,20 @@ class Animation {
 		}
 		return len
 	}
+	setLoop(value, undo) {
+		if ((value == 'once' || value == 'loop' || value == 'hold') && value !== this.loop) {
+			if (undo) Undo.initEdit({animations: [this]})
+			this.loop = value;
+			if (undo) Undo.finishEdit('change animation loop mode')
+		}
+	}
 }
 	Animation.prototype.menu = new Menu([
-		{name: 'menu.animation.loop', icon: (a) => (a.loop?'check_box':'check_box_outline_blank'), click: function(animation) {
-			animation.loop = !animation.loop
-		}},
+		{name: 'menu.animation.loop', icon: 'loop', children: [
+			{name: 'menu.animation.loop.once', icon: animation => (animation.loop == 'once' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('once', true)}},
+			{name: 'menu.animation.loop.hold', icon: animation => (animation.loop == 'hold' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('hold', true)}},
+			{name: 'menu.animation.loop.loop', icon: animation => (animation.loop == 'loop' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('loop', true)}},
+		]},
 		{name: 'menu.animation.override', icon: (a) => (a.override?'check_box':'check_box_outline_blank'), click: function(animation) {
 			animation.override = !animation.override
 		}},
@@ -250,14 +259,6 @@ class Animation {
 		'duplicate',
 		'rename',
 		'delete',
-		/*
-			rename
-			Loop: checkbox
-			Override: checkbox
-			anim_time_update:
-				WalkPosition
-			delete
-		*/
 	])
 class TimelineMarker {
 	constructor(data) {
@@ -773,8 +774,8 @@ class Keyframe {
 
 			var end = value.match(/(\+|-)\s*\d*(\.\d+)?\s*$/)
 			if (end) {
-				var number = (parseFloat( end[0] ) + amount)+''
-				value = value.substr(0, end.index) + (number.substr(0,1)=='-'?'':'+') + trimFloatNumber(number)
+				var number = (parseFloat( end[0] ) + amount)
+				value = value.substr(0, end.index) + ((number.toString()).substr(0,1)=='-'?'':'+') + trimFloatNumber(number)
 			} else {
 				value = trimFloatNumber(amount) +(value.substr(0,1)=='-'?'':'+')+ value
 			}
@@ -1263,7 +1264,7 @@ const Animator = {
 				var a = json.animations[ani_name]
 				var animation = new Animation({
 					name: ani_name,
-					loop: a.loop,
+					loop: a.loop && (a.loop == 'hold_on_last_frame' ? 'hold' : 'loop'),
 					override: a.override_previous_animation,
 					anim_time_update: a.anim_time_update,
 					length: a.animation_length,
@@ -1275,7 +1276,8 @@ const Animator = {
 				if (a.bones) {
 					for (var bone_name in a.bones) {
 						var b = a.bones[bone_name]
-						var group = Group.all.findInArray('name', bone_name)
+						bone_name = bone_name.toLowerCase();
+						var group = Group.all.find(group => group.name.toLowerCase() == bone_name)
 						if (group) {
 							var ba = new BoneAnimator(group.uuid, animation);
 							animation.animators[group.uuid] = ba;
@@ -1362,7 +1364,13 @@ const Animator = {
 		var animations = {}
 		Animator.animations.forEach(function(a) {
 			var ani_tag = animations[a.name] = {};
-			if (a.getMaxLength() == 0 || a.loop) ani_tag.loop = true;
+
+			if (a.loop == 'hold') {
+				ani_tag.loop = 'hold_on_last_frame';
+			} else if (a.loop == 'loop' || a.getMaxLength() == 0) {
+				ani_tag.loop = true;
+			}
+
 			if (a.length) ani_tag.animation_length = a.length;
 			if (a.override) ani_tag.override_previous_animation = true;
 			if (a.anim_time_update) ani_tag.anim_time_update = a.anim_time_update;
@@ -1561,10 +1569,12 @@ const Timeline = {
 			var lef = mouse_pos.x - R.panel_offset[0] - body.scrollLeft - Timeline.vue._data.head_width;
 			var rig = body.clientWidth - (mouse_pos.x - R.panel_offset[0] - body.scrollLeft);
 
-			if (top < 0) body.scrollTop  = body.scrollTop  - 5;
-			if (bot < 0) body.scrollTop  = Math.clamp(body.scrollTop  + 5, 0, body_inner.clientHeight - body.clientHeight + 3);
-			if (lef < 0) body.scrollLeft = body.scrollLeft - 5;
-			if (rig < 0) body.scrollLeft = Math.clamp(body.scrollLeft + 5, 0, body_inner.clientWidth - body.clientWidth);
+			let speed = 15;
+
+			if (top < 0) body.scrollTop  = body.scrollTop  - speed;
+			if (bot < 0) body.scrollTop  = Math.clamp(body.scrollTop  + speed, 0, body_inner.clientHeight - body.clientHeight + 3);
+			if (lef < 0) body.scrollLeft = body.scrollLeft - speed;
+			if (rig < 0) body.scrollLeft = Math.clamp(body.scrollLeft + speed, 0, body_inner.clientWidth - body.clientWidth);
 		},
 		end(e) {
 			if (!Timeline.selector.selecting) return false;
@@ -1629,16 +1639,22 @@ const Timeline = {
 
 			if (e.target.id == 'timeline_endbracket') {
 
-				Timeline.dragging_endbracket = true;
-				Undo.initEdit({animations: [Animator.selected]});
+				if (Animator.selected) {
+					Timeline.dragging_endbracket = true;
+					Undo.initEdit({animations: [Animator.selected]});
+				} else {
+					Blockbench.showQuickMessage('message.no_animation_selected');
+				}
 
 			} else {
 
 				convertTouchEvent(e);
 				Timeline.dragging_playhead = true;
-				let time = (e.offsetX) / Timeline.vue._data.size
-				Timeline.setTime(Timeline.snapTime(time))
-				Animator.preview()
+				
+				let offset = e.clientX - $('#timeline_time').offset().left;
+				let time = Timeline.snapTime(offset / Timeline.vue._data.size);
+				Timeline.setTime(time);
+				Animator.preview();
 			}
 		})
 		$(document).on('mousemove touchmove', e => {
@@ -1803,8 +1819,6 @@ const Timeline = {
 			drag: function(event, ui) {
 				var difference = (ui.position.left - ui.originalPosition.left - 8) / Timeline.vue._data.size;
 				var id = $(ui.helper).attr('id')
-				var snap_value = false
-				var nearest
 
 				for (var kf of Timeline.selected) {
 					var t = limitNumber(kf.time_before + difference, 0, 256)
@@ -1899,30 +1913,33 @@ const Timeline = {
 		Timeline.pause()
 		Timeline.playing = true
 		BarItems.play_animation.setIcon('pause')
+		Timeline.interval = setInterval(Timeline.loop, 100/6)
 		Timeline.loop()
 	},
 	loop() {
 		Animator.preview()
 		if (Animator.selected && Timeline.time < (Animator.selected.length||1e3)) {
 			
-			Animator.interval = setTimeout(Timeline.loop, 100/6)
 			Timeline.setTime(Timeline.time + (1/60) * (Timeline.playback_speed/100))
 		} else {
-			Timeline.setTime(0)
-			if (Animator.selected && Animator.selected.loop) {
-				Timeline.start()
-			} else {
+			if (Animator.selected.loop == 'once') {
+				Timeline.setTime(0)
 				Timeline.pause()
 				Animator.preview()
+			} else if (Animator.selected.loop == 'hold') {
+				Timeline.pause()
+			} else {
+				Timeline.setTime(0)
+				Timeline.start()
 			}
 		}
 	},
 	pause() {
 		Timeline.playing = false;
 		BarItems.play_animation.setIcon('play_arrow')
-		if (Animator.interval) {
-			clearInterval(Animator.interval)
-			Animator.interval = false
+		if (Timeline.interval) {
+			clearInterval(Timeline.interval)
+			Timeline.interval = false
 		}
 		Timeline.playing_sounds.forEach(media => {
 			if (!media.paused) {
@@ -2191,14 +2208,6 @@ BARS.defineActions(function() {
 			Undo.finishEdit('move keyframes')
 		}
 	})
-	/*
-	new BarSlider('volume', {
-		category: 'animation',
-		min: 0, max: 100, step: 5, width: 80,
-		onChange: function(slider) {
-			Animator.volume = slider.get();
-		}
-	})*/
 	new Action('reset_keyframe', {
 		icon: 'replay',
 		category: 'animation',
@@ -2206,7 +2215,7 @@ BARS.defineActions(function() {
 		click: function () {
 			Undo.initEdit({keyframes: Timeline.selected})
 			Timeline.selected.forEach((kf) => {
-				var n = kf.channel === 'scale' ? 1 : 0;
+				var n = kf.channel === 'scale' ? '1' : '0';
 				kf.extend({
 					x: n,
 					y: n,
@@ -2225,11 +2234,14 @@ BARS.defineActions(function() {
 		condition: () => Animator.open && Timeline.selected.length,
 		click: function () {
 			Undo.initEdit({keyframes: Timeline.selected})
+			let time_before = Timeline.time;
 			Timeline.selected.forEach((kf) => {
 				if (kf.animator.fillValues) {
+					Timeline.time = kf.time;
 					kf.animator.fillValues(kf, null, false);
 				}
 			})
+			Timeline.time = time_before;
 			Undo.finishEdit('reset keyframes')
 			updateKeyframeSelection()
 		}
@@ -2348,6 +2360,28 @@ BARS.defineActions(function() {
 			if (kf) {
 				kf.select().callPlayhead()
 			}
+		}
+	})
+
+	new Action('jump_to_timeline_start', {
+		icon: 'skip_previous',
+		category: 'animation',
+		condition: {modes: ['animate']},
+		keybind: new Keybind({key: 36}),
+		click: function () {
+			Timeline.setTime(0)
+			Animator.preview()
+		}
+	})
+
+	new Action('jump_to_timeline_end', {
+		icon: 'skip_next',
+		category: 'animation',
+		condition: {modes: ['animate']},
+		keybind: new Keybind({key: 35}),
+		click: function () {
+			Timeline.setTime(Animator.selected ? Animator.selected.length : 0)
+			Animator.preview()
 		}
 	})
 

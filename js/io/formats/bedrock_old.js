@@ -102,6 +102,9 @@ function parseGeometry(data) {
 			group.addTo(parent_group)
 		})
 	}
+
+	codec.dispatchEvent('parsed', {model: data.object});
+
 	pe_list_data.length = 0;
 	hideDialog()
 
@@ -258,15 +261,6 @@ var codec = new Codec('bedrock_old', {
 			})
 			new Jimp(48, 48, 0x00000000, function(err, image) {
 				model_entry.object.bones.forEach(function(b) {
-					//var rotate_bone = false;
-					//if (b.name === 'body' &&
-					//	(included_bones.includes('leg3') || model_entry.name.includes('chicken') || model_entry.name.includes('ocelot')) &&
-					//	included_bones.includes('leg4') === false &&
-					//	!model_entry.name.includes('creeper') &&
-					//	( b.rotation === undefined ||b.rotation.join('_') === '0_0_0')
-					//) {
-					//	rotate_bone = true;
-					//}
 					var rotation = b.rotation
 					if (!rotation || rotation[0] === undefined) {
 						if (entityMode.hardcodes[model_entry.name] && entityMode.hardcodes[model_entry.name][b.name]) {
@@ -473,6 +467,7 @@ var format = new ModelFormat({
 	single_texture: true,
 	bone_rig: true,
 	centered_grid: true,
+	animated_textures: true,
 	animation_mode: true,
 	locators: true,
 	codec,

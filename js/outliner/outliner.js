@@ -139,10 +139,7 @@ class OutlinerElement {
 		TickUpdates.outliner = true;
 		return this;
 	}
-	addTo(group) {
-		//Remove
-		var index = -1;
-
+	addTo(group, index = -1) {
 		//Resolve Group Argument
 		if (group === undefined) {
 			group = 'root'
@@ -639,7 +636,7 @@ function parseGroups(array, importGroup, startIndex) {
 					}
 				}
 			} else {
-				var obj = new Group(array[i])
+				var obj = new Group(array[i], array[i].uuid)
 				obj.parent = addGroup
 				obj.isOpen = !!array[i].isOpen
 				if (array[i].uuid) {

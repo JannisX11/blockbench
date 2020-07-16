@@ -1,3 +1,6 @@
+.panel {
+    padding-bottom: 4px;
+}
 
 /*Display*/
 
@@ -276,6 +279,7 @@
 
 /*Textures*/
 	.texture {
+		display: flex;
 		height: 48px;
 		white-space: nowrap;
 		position: relative;
@@ -289,7 +293,6 @@
 	}
 	.texture > i {
 		margin-top: 12px;
-		float: right;
 	}
 	.texture > i.clickable:hover {
 		color: var(--color-light);
@@ -297,12 +300,14 @@
 	.texture > i:not(.clickable) {
 		opacity: 0.5;
 	}
-	.texture > * {
-		float: left;
+	.texture i.icon_off {
+		opacity: 0.56;
 	}
 	div.texture_icon_wrapper {
 		height: 48px;
 		width: 48px;
+		flex-grow: 0;
+		flex-shrink: 0;
 		overflow: hidden;
 		position: relative;
 	}
@@ -317,11 +322,14 @@
 		width: 48px;
 		height: 48px;
 	}
+	.texture_description_wrapper {
+		flex-grow: 1;
+
+	}
 	.texture_name {
 		margin-top: 2px;
 		margin-left: 6px;
 		margin-right: 4px;
-		width: calc(100% - 82px);
 		overflow: hidden;
 		cursor: default;
 	}
@@ -332,15 +340,12 @@
 		margin-top: -3px;
 		margin-left: 6px;
 		margin-right: 4px;
-		width: calc(100% - 82px);
+		width: 100%;
 		height: 20px;
 		overflow: hidden;
 		font-size: 0.9em;
 		opacity: 0.6;
 		cursor: default;
-	}
-	.texture.particle .texture_name, .texture.particle .texture_res {
-		width: calc(100% - 106px);
 	}
 	.texture_error {
 		position: absolute;
@@ -356,6 +361,33 @@
 		margin-left: -26px;
 		margin-top: 24px;
 		text-shadow: 0 0 5px #000;
+	}
+	.texture[order]::before {
+		content: '';
+		height: 2px;
+		left: 0;
+		right: 0;
+		background: var(--color-accent);
+		z-index: 3;
+		display: block;
+		position: absolute;
+	}
+	.texture[order] {
+		position: relative;
+	}
+	.texture[order="-1"]::before {
+		margin-top: -1px;
+	}
+	.texture[order="1"]::before {
+		bottom: 0px;
+	}
+	.texture[order="0"]::before {
+		width: 5px;
+		height: 30px;
+		margin-left: 0;
+		border-top-right-radius: 4px;
+		border-bottom-right-radius: 4px;
+
 	}
 
 /*Animations*/
@@ -450,8 +482,8 @@
 	}
 	#timeline_playhead {
 		position: absolute;
-		pointer-events: none;
 		z-index: 3;
+		cursor: ew-resize;
 
 		height: 26px;
 		width: 18px;
@@ -472,22 +504,12 @@
 		pointer-events: none;
 		margin-left: -1px;
 		margin-top: -2px;
-		height: 17px;
-	}
-	#timeline_playhead_line {
-		content: "";
-		display: block;
-		position: absolute;
-		height: 100%;
-		width: 2px;
-		z-index: 2;
-		background-color: var(--color-accent);
-		pointer-events: none;
+		height: 5000px;
 	}
 	#timeline_endbracket {
 		position: absolute;
-		z-index: 3;
-		cursor: pointer;
+		z-index: 2;
+		cursor: col-resize;
 
 		height: 26px;
 	    width: 8px;
@@ -497,6 +519,13 @@
 	    border: 1px solid var(--color-accent);
 	    border-left-width: 0;
 	    border-right-width: 2px;
+	}
+	div#timeline_endbracket::after {
+		content: "";
+		width: 16px;
+		height: 100%;
+		display: block;
+		margin-left: -2px;
 	}
 
 	#timeline_body .keyframe {
@@ -881,8 +910,9 @@
 /*Chat*/
 	#chat {
 		z-index: 16;
-		min-height: 180px;
+		min-height: 86px;
 		flex-grow: 0;
+		flex-shrink: 0;
 	}
 	#chat_history {
 		background: var(--color-back);

@@ -1,4 +1,5 @@
-var scene, main_preview, previews,
+var scene,
+	main_preview, MediaPreview,
 	Sun, lights,
 	emptyMaterials,
 	outlines,
@@ -114,9 +115,20 @@ class Preview {
 		//Node
 		this.canvas = document.createElement('canvas')
 		this.canvas.preview = this;
-		this.canvas.className = 'preview';
 		this.height = 0;
 		this.width = 0;
+		this.node = document.createElement('div')
+		this.node.className = 'preview';
+		this.node.appendChild(this.canvas);
+		let menu = $(`<div class="tool preview_menu"> <i class="material-icons">more_vert</i> </div>`)[0]
+			menu.onclick = (event) => {
+				this.menu.open(menu, this)
+			}
+		BarItem.prototype.addLabel(false, {
+			name: tl('data.preview'),
+			node: menu
+		})
+		this.node.appendChild(menu)
 		//Cameras
 		this.isOrtho = false
 		this.angle = null;
@@ -228,21 +240,23 @@ class Preview {
 			}
 			scope.loadBackground()
 		})
-
-		previews.push(this)
+		Preview.all.push(this);
 	}
 	//Render
-	resize() {
-		if (!this.canvas.isConnected) return;
-		this.height = this.canvas.parentElement.clientHeight;
-		this.width  = this.canvas.parentElement.clientWidth;
+	resize(width, height) {
+		if (this.canvas.isConnected && this !== MediaPreview) {
+			this.height = this.node.parentElement.clientHeight;
+			this.width  = this.node.parentElement.clientWidth;
+		} else if (height && width) {
+			this.height = height;
+			this.width = width;
+		} else {
+			return this;
+		}
 
 		if (this.isOrtho === false) {
 			this.camPers.aspect = this.width / this.height
 			this.camPers.updateProjectionMatrix();
-			if (Transformer) {
-				Transformer.update()
-			}
 		} else {
 			this.camOrtho.right = this.width / 80
 			this.camOrtho.left = this.camOrtho.right*-1
@@ -251,8 +265,14 @@ class Preview {
 			this.camOrtho.updateProjectionMatrix();
 		}
 		this.renderer.setSize(this.width, this.height);
-		this.renderer.setPixelRatio(window.devicePixelRatio);
-		this.updateBackground()
+
+		if (this.canvas.isConnected) {
+			this.renderer.setPixelRatio(window.devicePixelRatio);
+			this.updateBackground()
+			if (Transformer) {
+				Transformer.update()
+			}
+		}
 		return this;
 	}
 	raycast(event) {
@@ -322,7 +342,6 @@ class Preview {
 		}
 	}
 	render() {
-		if (this.canvas.isConnected === false) return;
 		this.controls.update()
 		this.renderer.render(
 			display_mode
@@ -346,10 +365,6 @@ class Preview {
 			this.camera.zoom = 0.5;
 			this.camOrtho.updateProjectionMatrix()
 		}
-		if (Transformer && Transformer.camera !== this.camera) {
-			Transformer.camera = this.camera;
-			Transformer.update();
-		}
 		this.setLockedAngle()
 		this.controls.updateSceneScale();
 		return this;
@@ -365,36 +380,29 @@ class Preview {
 			this.angle = angle
 			this.controls.enableRotate = false;
 
-			var dist = 64
 			switch (angle) {
 				case 0:
 				this.camOrtho.axis = 'y'
-				//this.camOrtho.position.set(0,dist,0)
 				this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'z'}]
 				break;
 				case 1:
 				this.camOrtho.axis = 'y'
-				//this.camOrtho.position.set(0,-dist,0)
 				this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: true, a: 'z'}]
 				break;
 				case 2:
 				this.camOrtho.axis = 'z'
-				//this.camOrtho.position.set(0,0,dist)
 				this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: true, a: 'y'}]
 				break;
 				case 3:
 				this.camOrtho.axis = 'z'
-				//this.camOrtho.position.set(0,0,-dist)
 				this.camOrtho.backgroundHandle = [{n: true, a: 'x'}, {n: true, a: 'y'}]
 				break;
 				case 4:
 				this.camOrtho.axis = 'x'
-				//this.camOrtho.position.set(dist,0,0)
 				this.camOrtho.backgroundHandle = [{n: true, a: 'z'}, {n: true, a: 'y'}]
 				break;
 				case 5:
 				this.camOrtho.axis = 'x'
-				//this.camOrtho.position.set(-dist,0,0)
 				this.camOrtho.backgroundHandle = [{n: false, a: 'z'}, {n: true, a: 'y'}]
 				break;
 			}
@@ -602,6 +610,8 @@ class Preview {
 		return scope.raycaster.ray.origin
 	}
 	occupyTransformer(event) {
+		if (this == MediaPreview || Transformer.dragging) return this;
+
 		Transformer.camera = this.isOrtho ? this.camOrtho : this.camPers
 		Transformer.orbit_controls = this.controls
 		Transformer.setCanvas(this.canvas)
@@ -655,7 +665,7 @@ class Preview {
 		};
 		if (!Modes.edit) return;
 
-		$(this.canvas).parent().append(this.selection.box)
+		$(this.node).append(this.selection.box)
 		this.selection.activated = settings.canvas_unselect.value;
 		this.selection.old_selected = selected.slice();
 
@@ -880,10 +890,18 @@ class Preview {
 		Canvas.withoutGizmos(function() {
 
 			scope.render()
-			var dataUrl = scope.canvas.toDataURL()
 
 			if (options.crop == false && !options.width && !options.height) {
+				var dataUrl = scope.canvas.toDataURL()
 				Screencam.returnScreenshot(dataUrl, cb)
+				return;
+			}
+			
+			if (options.crop !== false && !(display_mode && display_slot === 'gui') && !options.width && !options.height) {
+				let frame = new CanvasFrame(scope.canvas);
+				frame.autoCrop()
+				Screencam.returnScreenshot(frame.canvas.toDataURL(), cb)
+				return;
 			}
 
 			dataUrl = dataUrl.replace('data:image/png;base64,','')
@@ -922,10 +940,10 @@ class Preview {
 		$('#preview').empty()
 
 		var wrapper = $('<div class="single_canvas_wrapper"></div>')
-		wrapper.append(this.canvas)
+		wrapper.append(this.node)
 		$('#preview').append(wrapper)
 		
-		previews.forEach(function(prev) {
+		Preview.all.forEach(function(prev) {
 			if (prev.canvas.isConnected) {
 				prev.resize()
 			}
@@ -992,6 +1010,7 @@ class Preview {
 			]
 		}},
 		'_',
+		'focus_on_selection',
 		{icon: 'add_a_photo', name: 'menu.preview.save_angle', condition(preview) {return !preview.movingBackground && !Modes.display}, click(preview) {
 			preview.newAnglePreset()
 		}},
@@ -1041,25 +1060,27 @@ class Preview {
 		}}
 	])
 
+Preview.all = [];
+
 function openQuadView() {
 	quad_previews.enabled = true;
 
 	$('#preview').empty()
 	
 	var wrapper1 = $('<div class="quad_canvas_wrapper qcw_x qcw_y"></div>')
-	wrapper1.append(quad_previews.one.canvas)
+	wrapper1.append(quad_previews.one.node)
 	$('#preview').append(wrapper1)
 	
 	var wrapper2 = $('<div class="quad_canvas_wrapper qcw_y"></div>')
-	wrapper2.append(quad_previews.two.canvas)
+	wrapper2.append(quad_previews.two.node)
 	$('#preview').append(wrapper2)
 	
 	var wrapper3 = $('<div class="quad_canvas_wrapper qcw_x"></div>')
-	wrapper3.append(quad_previews.three.canvas)
+	wrapper3.append(quad_previews.three.node)
 	$('#preview').append(wrapper3)
 	
 	var wrapper4 = $('<div class="quad_canvas_wrapper"></div>')
-	wrapper4.append(quad_previews.four.canvas)
+	wrapper4.append(quad_previews.four.node)
 	$('#preview').append(wrapper4)
 	
 	updateInterface()
@@ -1309,8 +1330,6 @@ const Screencam = {
 
 //Init/Update
 function initCanvas() {
-
-	previews = []
 	
 	//Objects
 	scene = new THREE.Scene();
@@ -1383,6 +1402,8 @@ function initCanvas() {
 	}
 	active_scene = canvas_scenes.normal
 
+	MediaPreview = new Preview({id: 'media'})
+
 	main_preview = new Preview({id: 'main'}).fullscreen()
 
 	//TransformControls
@@ -1400,45 +1421,45 @@ function initCanvas() {
 	lights = new THREE.Object3D()
 	lights.name = 'lights'
 	
-	var light_top = new THREE.DirectionalLight();
-	light_top.name = 'light_top'
-	light_top.position.set(8, 100, 8)
-	lights.add(light_top);
+	lights.top = new THREE.DirectionalLight();
+	lights.top.name = 'light_top'
+	lights.top.position.set(0, 100, 0)
+	lights.add(lights.top);
 	
-	light_top.intensity = 0.45
+	lights.top.intensity = 0.41
 	
-	var light_bottom = new THREE.DirectionalLight();
-	light_bottom.name = 'light_bottom'
-	light_bottom.position.set(8, 100, 8)
-	lights.add(light_bottom);
+	lights.bottom = new THREE.DirectionalLight();
+	lights.bottom.name = 'light_bottom'
+	lights.bottom.position.set(0, -100, 0)
+	lights.add(lights.bottom);
 	
-	light_bottom.intensity = 0.11
+	lights.bottom.intensity = -0.02
 
-	var light_north = new THREE.DirectionalLight();
-	light_north.name = 'light_north'
-	light_north.position.set(8, 8, -100)
-	lights.add(light_north);
+	lights.north = new THREE.DirectionalLight();
+	lights.north.name = 'light_north'
+	lights.north.position.set(0, 0, -100)
+	lights.add(lights.north);
 
-	var light_south = new THREE.DirectionalLight();
-	light_south.name = 'light_south'
-	light_south.position.set(8, 8, 100)
-	lights.add(light_south);
+	lights.south = new THREE.DirectionalLight();
+	lights.south.name = 'light_south'
+	lights.south.position.set(0, 0, 100)
+	lights.add(lights.south);
 
-	light_north.intensity = light_south.intensity = 0.33
+	lights.north.intensity = lights.south.intensity = 0.3
 
-	var light_west = new THREE.DirectionalLight();
-	light_west.name = 'light_west'
-	light_west.position.set(-100, 8, 8)
-	lights.add(light_west);
+	lights.west = new THREE.DirectionalLight();
+	lights.west.name = 'light_west'
+	lights.west.position.set(-100, 0, 0)
+	lights.add(lights.west);
 
-	var light_east = new THREE.DirectionalLight();
-	light_east.name = 'light_east'
-	light_east.position.set(100, 8, 8)
-	lights.add(light_east);
+	lights.east = new THREE.DirectionalLight();
+	lights.east.name = 'light_east'
+	lights.east.position.set(100, 0, 0)
+	lights.add(lights.east);
 
-	light_west.intensity = light_east.intensity = 0.22
+	lights.west.intensity = lights.east.intensity = 0.1
 
-	setShading()
+	updateShading()
 
 	quad_previews = {
 		one: new Preview({id: 'one'}).loadAnglePreset(DefaultCameraPresets[1]),
@@ -1508,8 +1529,10 @@ function initCanvas() {
 function animate() {
 	TickUpdates.Run()
 	requestAnimationFrame( animate );
-	previews.forEach(function(prev) {
-		prev.render()
+	Preview.all.forEach(function(prev) {
+		if (prev.canvas.isConnected) {
+			prev.render()
+		}
 	})
 	framespersecond++;
 	if (display_mode === true && ground_animation === true && !Transformer.hoverAxis) {
@@ -1517,14 +1540,16 @@ function animate() {
 	}
 }
 
-function setShading() {
+function updateShading() {
+	Canvas.updateLayeredTextures();
 	scene.remove(lights)
 	display_scene.remove(lights)
-	Sun.intensity = settings.brightness.value/100;
+	Sun.intensity = settings.brightness.value/50;
 	if (settings.shading.value === true) {
-		(display_mode ? display_scene : scene).add(lights)
-	} else {
-		Sun.intensity *= (1/0.6)
+		Sun.intensity *= 0.5;
+		let parent = display_mode ? display_scene : scene;
+		parent.add(lights);
+		lights.position.copy(parent.position).multiplyScalar(-1);
 	}
 }
 function updateCubeHighlights(hover_cube, force_off) {
@@ -1533,8 +1558,13 @@ function updateCubeHighlights(hover_cube, force_off) {
 			var mesh = cube.mesh;
 			mesh.geometry.faces.forEach(face => {
 				var b_before = face.color.b;
-				if (Settings.get('highlight_cubes') && (hover_cube == cube || cube.selected) && Modes.edit && !force_off) {
-					face.color.setRGB(1.3, 1.32, 1.34);
+				if (
+					Settings.get('highlight_cubes') &&
+					((hover_cube == cube && !Transformer.dragging) || cube.selected) &&
+					Modes.edit &&
+					!force_off
+				) {
+					face.color.setRGB(1.25, 1.28, 1.3);
 				} else {
 					face.color.setRGB(1, 1, 1);
 				}
@@ -1674,7 +1704,7 @@ function buildGrid() {
 	Canvas.side_grids.x.visible = !Modes.display;
 	Canvas.side_grids.x.rotation.z = Math.PI/2;
 	Canvas.side_grids.x.position.y = Format.centered_grid ? 8 : 0;
-	Canvas.side_grids.z.position.y = -512
+	Canvas.side_grids.z.position.z = 0
 	Canvas.side_grids.x.children.forEach(el => {
 		el.layers.set(1)
 	});
@@ -1685,7 +1715,7 @@ function buildGrid() {
 	Canvas.side_grids.z.rotation.z = Math.PI/2;
 	Canvas.side_grids.z.rotation.y = Math.PI/2
 	Canvas.side_grids.z.position.y = Format.centered_grid ? 8 : 0;
-	Canvas.side_grids.z.position.z = -512
+	Canvas.side_grids.z.position.z = 0
 	Canvas.side_grids.z.children.forEach(el => {
 		el.layers.set(3)
 	});
@@ -1818,6 +1848,17 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 9}),
 		click: function () {
 			main_preview.toggleFullscreen()
+		}
+	})
+	new Action('focus_on_selection', {
+		icon: 'center_focus_weak',
+		category: 'view',
+		condition: () => !Modes.display,
+		keybind: new Keybind({key: 191}),
+		click: function () {
+			let center = getSelectionCenter();
+			if (!Format.centered_grid) center.V3_subtract(8, 8, 8)
+			quad_previews.current.controls.target.fromArray(center);
 		}
 	})
 

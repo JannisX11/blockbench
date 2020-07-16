@@ -278,9 +278,11 @@ class UVEditor {
 		})
 		this.jquery.viewport.on('mousewheel', function(e) {
 			let event = e.originalEvent;
-			event.stopPropagation()
 
 			if (event.ctrlOrCmd) {
+
+				event.stopPropagation()
+
 				var n = (event.deltaY < 0) ? 0.1 : -0.1;
 				n *= scope.zoom
 				var number = limitNumber(scope.zoom + n, 1, scope.max_zoom)
@@ -365,19 +367,18 @@ class UVEditor {
 		convertTouchEvent(event);
 		var multiplier = (Project.box_uv && tex) ? tex.width/Project.texture_width : 1
 		var pixel_size = scope.inner_width / tex.width
+		var result = {};
 
 		if (Toolbox.selected.id === 'copy_paste_tool') {
-			return {
-				x: Math.round(event.offsetX/pixel_size*1),
-				y: Math.round(event.offsetY/pixel_size*1)
-			}
+			result.x = Math.round(event.offsetX/pixel_size*1);
+			result.y = Math.round(event.offsetY/pixel_size*1);
 		} else {
 			let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0.5 : 0;
-			return {
-				x: Math.floor(event.offsetX/pixel_size*1 + offset),
-				y: Math.floor(event.offsetY/pixel_size*1 + offset)
-			}
+			result.x = Math.floor(event.offsetX/pixel_size*1 + offset);
+			result.y = Math.floor(event.offsetY/pixel_size*1 + offset);
 		}
+		if (tex.frameCount) result.y += (tex.height / tex.frameCount) * tex.currentFrame;
+		return result;
 	}
 	startPaintTool(event) {
 		var scope = this;
@@ -666,7 +667,7 @@ class UVEditor {
 		}
 	}
 	getTexture() {
-		if (Format.single_texture) return textures[0];
+		if (Format.single_texture) return Texture.getDefault();
 		return Cube.selected[0].faces[this.face].getTexture();
 	}
 	//Set
@@ -736,9 +737,9 @@ class UVEditor {
 		}
 
 		if (this.zoom > 1) {
-			this.jquery.viewport.css('overflow', 'scroll scroll')
+			this.jquery.viewport.addClass('zoomed').css('overflow', 'scroll scroll')
 		} else {
-			this.jquery.viewport.css('overflow', 'hidden')
+			this.jquery.viewport.removeClass('zoomed').css('overflow', 'hidden')
 		}
 	}
 	setFace(face, update = true) {
@@ -754,9 +755,9 @@ class UVEditor {
 	setToMainSlot() {
 		var scope = this;
 		$('.panel#uv').append(this.jquery.main)
-		this.jquery.main.on('mousewheel', function(e) {
+		$('.panel#uv').on('mousewheel', function(e) {
 
-			if (!Project.box_uv && !e.ctrlOrCmd) {
+			if (!Project.box_uv && !e.ctrlOrCmd && $('#uv_panel_sides:hover, #uv_viewport:not(.zoomed):hover').length) {
 				var faceIDs = {'north': 0, 'south': 1, 'west': 2, 'east': 3, 'up': 4, 'down': 5}
 				var id = faceIDs[scope.face]
 				event.deltaY > 0 ? id++ : id--;
@@ -903,7 +904,7 @@ class UVEditor {
 		if (!face && Cube.selected.length) {
 			var face = Cube.selected[0].faces[this.face];
 		}
-		var tex = face ? face.getTexture() : textures[0];
+		var tex = face ? face.getTexture() : Texture.getDefault();
 		if (!tex || typeof tex !== 'object' || (tex.error && tex.error != 2)) {
 			this.img.src = '';
 			this.img.style.display = 'none';
@@ -2057,7 +2058,7 @@ BARS.defineActions(function() {
 	new BarSelect('uv_grid', { 
 		category: 'uv',
 		condition: () => !Project.box_uv && Cube.selected.length,
-		width: 60,
+		min_width: 68,
 		value: 'auto',
 		options: {
 			'auto': 'Pixel',

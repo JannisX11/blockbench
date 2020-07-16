@@ -36,7 +36,7 @@ class ModelFormat {
 		this.canvas_limit = false;
 		this.rotation_limit = false;
 		this.uv_rotation = false;
-		this.display_mode = false;
+		this.ro_mode = false;
 		this.animation_mode = false;
 
 		this.codec = data.codec;
@@ -77,8 +77,7 @@ class ModelFormat {
 		} else {
 			scene.position.set(-8, -8, -8);
 		}
-		var center = Format.centered_grid ? 8 : 0;
-		previews.forEach(preview => {
+		Preview.all.forEach(preview => {
 			if (preview.isOrtho && typeof preview.angle == 'number') {
 				preview.loadAnglePreset(DefaultCameraPresets[preview.angle+1])
 			}
@@ -88,6 +87,7 @@ class ModelFormat {
 		})
 		updateSelection()
 		Modes.vue.$forceUpdate()
+		updateShading();
 		Canvas.updateRenderSides()
 		return this;
 	}
@@ -107,19 +107,6 @@ class ModelFormat {
 		var old_format = Format
 		this.select(true)
 		Modes.options.edit.select()
-		//Single Texture
-		if (Format.single_texture && !old_format.single_texture) {
-			if (textures.length > 1) {
-				textures.splice(1)
-			}
-			if (textures.length) {
-				var tex = textures[0]
-				tex.particle = false
-				if (tex.img.naturalWidth !== tex.img.naturalWidth && tex.error) {
-					tex.error = false
-				}
-			}
-		}
 
 		//Bone Rig
 		if (!Format.bone_rig && old_format.bone_rig) {
@@ -811,6 +798,7 @@ BARS.defineActions(function() {
 		optional_box_uv: true,
 		uv_rotation: true,
 		animation_mode: true,
+		codec: Codecs.project
 	})
 
 	//Import

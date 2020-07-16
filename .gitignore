@@ -1,4 +1,4 @@
 /dist/
 index.php
-package-lock.json
+electron-builder.env
 node_modules/

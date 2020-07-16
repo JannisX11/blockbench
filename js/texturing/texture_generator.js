@@ -16,6 +16,7 @@ const TextureGenerator = {
 		var dialog = new Dialog({
 			id: 'add_bitmap',
 			title: tl('action.create_texture'),
+			width: 412,
 			form: {
 				name: 		{label: 'generic.name', value: 'texture'},
 				folder: 	{label: 'dialog.create_texture.folder'},
@@ -28,6 +29,7 @@ const TextureGenerator = {
 					var dialog2 = new Dialog({
 						id: 'texture_template',
 						title: tl('dialog.create_texture.template'),
+						width: 412,
 						form: {
 							compress: 	{label: 'dialog.create_texture.compress', type: 'checkbox', value: true, condition: Project.box_uv},
 							power: 		{label: 'dialog.create_texture.power', type: 'checkbox', value: true},
@@ -81,7 +83,7 @@ const TextureGenerator = {
 			options.color = new tinycolor().toRgb()
 		}
 		if (Format.single_texture) {
-			options.texture = textures[0]
+			options.texture = Texture.getDefault()
 		}
 		var texture = new Texture({
 			mode: 'bitmap',
@@ -514,7 +516,7 @@ const TextureGenerator = {
 			face_list.push(this);
 		}
 
-		var cube_array = Format.single_texture ? Cube.all : Cube.selected;
+		var cube_array = (Format.single_texture ? Cube.all : Cube.selected).filter(cube => cube.visibility);
 		cube_array.forEach(cube => {
 			var fi = 0;
 			for (var face_key in cube.faces) {
@@ -640,7 +642,7 @@ const TextureGenerator = {
 				if (face.texture === undefined || face.texture === null) return false;
 				texture = face.getTexture()
 			} else {
-				texture = textures[0];
+				texture = Texture.getDefault();
 			}
 			if (!texture || !texture.img) return false;
 

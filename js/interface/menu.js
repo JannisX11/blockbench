@@ -181,7 +181,7 @@ class Menu {
 					} else {
 						var icon = Blockbench.getIconNode(s.icon, s.color)
 					}
-					entry = $(`<li title="${s.description||''}">${tl(s.name)}</li>`)
+					entry = $(`<li title="${s.description||''}" menu_item="${s.id}">${tl(s.name)}</li>`)
 					entry.prepend(icon)
 					if (typeof s.click === 'function') {
 						entry.click(e => {
@@ -418,11 +418,12 @@ const MenuBar = {
 				condition: function() {return isApp && recent_projects.length && (!EditSession.active || EditSession.hosting)},
 				children: function() {
 					var arr = []
+					let redact = settings.streamer_mode.value;
 					recent_projects.forEach(function(p) {
 						arr.push({
-							name: p.name,
+							name: redact ? `[${tl('generic.redacted')}]` : p.name,
 							path: p.path,
-							description: p.path,
+							description: redact ? '' : p.path,
 							icon: p.icon,
 							click: function(c, event) {
 								Blockbench.read([p.path], {}, files => {
@@ -434,8 +435,8 @@ const MenuBar = {
 					return arr
 				}
 			},
-
 			'open_model',
+			'_',
 			'save_project',
 			'save_project_as',
 			'convert_project',
@@ -581,6 +582,7 @@ const MenuBar = {
 			'preview_checkerboard',
 			'painting_grid',
 			'toggle_quad_view',
+			'focus_on_selection',
 			{name: 'menu.view.screenshot', id: 'screenshot', icon: 'camera_alt', children: [
 				'screenshot_model',
 				'screenshot_app',
@@ -589,6 +591,8 @@ const MenuBar = {
 			]},
 		])
 		new BarMenu('help', [
+			{name: 'menu.help.search_action', description: BarItems.action_control.description, id: 'search_action', icon: 'search', click: ActionControl.select},
+			'_',
 			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', click: () => {
 				Blockbench.openLink('http://discord.blockbench.net');
 			}},
@@ -599,9 +603,8 @@ const MenuBar = {
 				Blockbench.openLink('https://github.com/JannisX11/blockbench/issues');
 			}},
 			'_',
-			{name: 'menu.help.search_action', description: BarItems.action_control.description, id: 'search_action', icon: 'search', click: ActionControl.select},
+			'open_backup_folder',
 			'_',
-			'update_window',
 			{name: 'menu.help.developer', id: 'developer', icon: 'fas.fa-wrench', children: [
 				'reload_plugins',
 				{name: 'menu.help.plugin_documentation', id: 'plugin_documentation', icon: 'fa-book', click: () => {
@@ -627,8 +630,7 @@ const MenuBar = {
 				Blockbench.openLink('https://blockbench.net/donate/');
 			}},
 			{name: 'menu.help.about', id: 'about', icon: 'info', click: () => {
-				Settings.open();
-				setSettingsTab('credits');
+				Settings.open({tab: 'credits'});
 			}}
 		])
 		MenuBar.update()

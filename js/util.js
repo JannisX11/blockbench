@@ -29,7 +29,7 @@ const Condition = function(condition, context) {
 	} else if (typeof condition === 'object') {
 		if (condition.modes instanceof Array && condition.modes.includes(Modes.id) === false) return false;
 		if (condition.formats instanceof Array && Format && condition.formats.includes(Format.id) === false) return false;
-		if (condition.tools instanceof Array && condition.tools.includes(Toolbox.selected.id) === false) return false;
+		if (condition.tools instanceof Array && window.Toolbox && condition.tools.includes(Toolbox.selected.id) === false) return false;
 
 		if (condition.method instanceof Function) {
 			return condition.method(context);
@@ -572,6 +572,17 @@ function pathToExtension(path) {
 	if (!matches || !matches.length) return '';
 	return matches[0].replace('.', '').toLowerCase()
 }
+Object.defineProperty(String.prototype, 'hashCode', {
+	value() {
+		var hash = 0, i, chr;
+		for (i = 0; i < this.length; i++) {
+			chr   = this.charCodeAt(i);
+			hash  = ((hash << 5) - hash) + chr;
+			hash |= 0;
+		}
+		return hash;
+	}
+});
 
 //Color
 tinycolor.prototype.toInt = function() {

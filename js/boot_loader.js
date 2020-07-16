@@ -66,12 +66,11 @@ if (!isApp) {
 	*/
 }
 
-
-
-
-
-
-
+Blockbench.on('before_closing', (event) => {
+	if (!Blockbench.hasFlag('no_localstorage_saving')) {
+		Settings.saveLocalStorages()
+	}
+})
 
 setInterval(function() {
 	Prop.fps = framespersecond;
@@ -105,6 +104,8 @@ $('#cubes_list').contextmenu(function(event) {
 $('#texture_list').contextmenu(function(event) {
 	Interface.Panels.textures.menu.show(event)
 })
+
+updateProjectResolution()
 
 setupInterface()
 setupDragHandlers()

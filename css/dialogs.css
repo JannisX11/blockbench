@@ -32,7 +32,7 @@
 		background-color: var(--color-ui);
 		color: inherit;
 		border: none;
-		box-shadow: 0 0px 40px rgba(0, 0, 0, 0.5);
+		box-shadow: 0 0px 8px rgba(0, 0, 0, 0.64);
 		left: unset;
 		right: unset;
 		bottom: unset;
@@ -65,11 +65,18 @@
 		padding-bottom: 12px;
 	}
 	.dialog_bar {
+		position: relative;
 		min-height: 30px;
 		margin-top: 4px;
 		margin-bottom: 4px;
 		height: auto;
 		clear: both;
+	}
+	.dialog_bar.form_bar {
+		display: flex;
+	}
+	.dialog_bar.form_bar .half {
+		flex-grow: 1;
 	}
 	.dialog_bar::after {
 		content: "";
@@ -81,6 +88,7 @@
 	}
 	.dialog_bar.button_bar {
 		text-align: right;
+		margin-top: 12px;
 	}
 	.dialog_bar button.large {
 		margin-bottom: 0;
@@ -164,6 +172,7 @@
 		margin-left: -28px;
 		margin-top: 4px;
 		opacity: 0.75;
+		right: 42px;
 	}
 	dialog .form_bar_file:hover > .material-icons {
 		opacity: 1;
@@ -427,13 +436,33 @@
 	#import_texture_list li {
 		height: 112px;
 		width: 112px;
-		margin: 4px;
+		margin: 3px;
+		position: relative;
 		display: inline-block;
 		background-repeat: no-repeat;
 		background-size: contain;
+		box-sizing: content-box;
+		border: 1px solid transparent;
 	}
 	#import_texture_list li:hover {
 		background-color: var(--color-selected);;
+	}
+	#import_texture_list li.selected {
+		border-color: var(--color-accent);
+	}
+	#import_texture_list li.selected::after {
+		position: absolute;
+		content: "\f00c";
+		font-family: 'Font Awesome 5 Free';
+		font-weight: 600;
+		color: var(--color-accent);
+		background-color: var(--color-ui);
+		height: 19px;
+		margin-right: 0;
+		margin-left: 100px;
+		margin-top: -10px;
+		border-bottom-left-radius: 8px;
+		padding-left: 2px;
 	}
 	body.entity_mode button.entity_mode_uv_button {
 		display: block;
@@ -507,6 +536,7 @@
 		min-width: 155px;
 		margin-left: 1px;
 		margin-right: 8px;
+		flex-shrink: 0;
 	}
 
 	/*PE Import Dialog*/
@@ -708,9 +738,6 @@
 		padding: 12px;
 		height: 42px;
 		padding-top: 5px;
-	}
-	#uv_dialog h2.dialog_handle.entity_mode_only {
-		margin: 0;
 	}
 	#uv_dialog_all .UVEditor .uv_transform_info {
 		top: 30px;

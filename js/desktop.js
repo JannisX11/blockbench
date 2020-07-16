@@ -1,5 +1,5 @@
 const electron = require('electron').remote;
-const {clipboard, shell, nativeImage} = require('electron');
+const {clipboard, shell, nativeImage, ipcRenderer} = require('electron');
 const app = electron.app;
 const fs = require('fs');
 const NodeBuffer = require('buffer');
@@ -7,7 +7,7 @@ const zlib = require('zlib');
 const exec = require('child_process').exec;
 const originalFs = require('original-fs');
 const https = require('https');
-const PathModule = require('path')
+const PathModule = require('path');
 
 const currentwindow = electron.getCurrentWindow();
 const ElecDialogs = {};
@@ -57,10 +57,15 @@ function initializeDesktopApp() {
 	} else {
 		Prop.zoom = 100 + currentwindow.webContents.getZoomLevel()*12
 	}
-	if (fs.existsSync(app.getPath('userData')+osfs+'backups') === false) {
-		fs.mkdirSync( app.getPath('userData')+osfs+'backups')
+
+	function makeUtilFolder(name) {
+		let path = PathModule.join(app.getPath('userData'), name)
+		if (!fs.existsSync(path)) fs.mkdirSync(path)
 	}
+	['backups', 'thumbnails'].forEach(makeUtilFolder)
+
 	createBackup(true)
+
 	$('.web_only').remove()
 	if (__dirname.includes('C:\\xampp\\htdocs\\blockbench')) {
 		Blockbench.addFlag('dev')
@@ -124,16 +129,61 @@ function addRecentProject(data) {
 		icon: data.icon,
 		day: new Date().dayOfYear()
 	}
-	// main_preview.screenshot({width: 200, height: 120}, url => {
-	// 	project.thumbnail = url;
-	// 	updateRecentProjects()
-	// })
 	recent_projects.splice(0, 0, project)
 	app.addRecentDocument(data.path)
 	if (recent_projects.length > Math.clamp(settings.recent_projects.value, 0, 256)) {
 		recent_projects.pop()
 	}
 	updateRecentProjects()
+}
+function updateRecentProjectThumbnail() {
+	if (elements.length == 0) return;
+	let path = ModelMeta.export_path || ModelMeta.save_path;
+	let project = recent_projects.find(p => p.path == path);
+	if (!project) return;
+
+	MediaPreview.resize(180, 100)
+	MediaPreview.loadAnglePreset(DefaultCameraPresets[0])
+	let center = getSelectionCenter(true);
+	MediaPreview.controls.target.fromArray(center);
+	MediaPreview.controls.target.add(scene.position);
+
+	let box = Canvas.getModelSize();
+	let size = Math.max(box[0], box[1]*2)
+	MediaPreview.camera.position.multiplyScalar(size/50)
+	
+	MediaPreview.screenshot({crop: false}, url => {
+		let hash = project.path.hashCode().toString().replace(/^-/, '0');
+		let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`)
+		Blockbench.writeFile(path, {
+			savetype: 'image',
+			content: url
+		})
+		let store_path = project.path;
+		project.path = '';
+		project.path = store_path;
+	})
+
+	// Clean old files
+	if (Math.random() < 0.2) {
+		let folder_path = PathModule.join(app.getPath('userData'), 'thumbnails')
+		let existing_names = [];
+		recent_projects.forEach(project => {
+			let hash = project.path.hashCode().toString().replace(/^-/, '0');
+			existing_names.safePush(hash)
+		})
+		fs.readdir(folder_path, (err, files) => {
+			if (!err) {
+				files.forEach((name, i) => {
+					if (existing_names.includes(name.replace(/\..+$/, '')) == false) {
+						try {
+							fs.unlinkSync(folder_path +osfs+ name)
+						} catch (err) {console.log(err)}
+					}
+				})
+			}
+		})
+	}
 }
 
 //Window Controls
@@ -146,107 +196,6 @@ currentwindow.on('enter-full-screen', e => updateWindowState(e, 'screen'));
 currentwindow.on('leave-full-screen', e => updateWindowState(e, 'screen'));
 currentwindow.on('ready-to-show', e => updateWindowState(e, 'load'));
 
-//Updates
-//Called on start to show message
-function getLatestVersion() {
-	if (process.platform == 'linux') return;
-	$.getJSON('https://raw.githubusercontent.com/JannisX11/blockbench/master/package.json', (data) => {
-		if (data.version) {
-			latest_version = data.version
-			checkForUpdates()
-		}
-	}).fail(function() {
-		latest_version = false
-	})
-}
-function checkForUpdates(instant) {
-	showDialog('updater')
-	setProgressBar('update_bar', 0, 1)
-	var data;
-	if (latest_version === false) {
-
-		data =  `<div class="tool" onclick="refreshUpdateDialog()">
-				<i class="material-icons">refresh</i>
-				<div class="tooltip">${tl('dialog.update.refresh')}</div>
-				</div>
-				<div class="dialog_bar narrow">
-				<i class="material-icons blue_icon">cloud_off</i>${tl('dialog.update.no_connection')}
-				</div>`;
-
-	} else if (latest_version !== appVersion) {
-		data = 
-			`<div class="dialog_bar narrow">${tl('dialog.update.latest')}: ${latest_version}</div>
-			<div class="dialog_bar narrow">${tl('dialog.update.installed')}: ${appVersion}</div>
-			<div class=""><button type="button" class="uc_btn" id="update_button" onclick="installUpdate()">${tl('dialog.update.update')}</button></div>`;
-
-		if (instant) {
-			setTimeout(function() {
-				installUpdate()
-			}, 60)
-		}
-	} else {
-		data = 
-			`<div class="tool" onclick="refreshUpdateDialog()">
-				<i class="material-icons">refresh</i>
-				<div class="tooltip">${tl('dialog.update.refresh')}</div>
-			</div>
-			<div class="dialog_bar narrow">
-			<i class="material-icons blue_icon">check</i>
-			${tl('dialog.update.up_to_date')}
-			</div>`;
-	}
-	$('#updater_content').html(data)
-}
-function refreshUpdateDialog() {
-	currentwindow.webContents.session.clearCache(function() {
-		data = '<div class="dialog_bar narrow"><i class="material-icons blue_icon spinning">refresh</i>'+tl('dialog.update.connecting')+'</div>'
-		$('#updater_content').html(data)
-		getLatestVersion()
-	})
-}
-function installUpdate() {
-
-	Blockbench.showMessageBox({
-		title: 'Updater',
-		icon: 'update',
-		message: 'The built-in updater is currently unavailable. Please download updates from https://blockbench.net/downloads for now!',
-	})
-	return;
-
-	console.log('Starting Update')
-	var received_bytes = 0;
-	var total_bytes = 0;
-
-	$('.uc_btn').css('visibility', 'hidden')
-
-	var asar_path = __dirname;
-	if (asar_path.includes('.asar') === false) {
-		asar_path = asar_path + osfs+'resources'+osfs+'app.asar';
-	}
-
-	var file = originalFs.createWriteStream(asar_path);
-
-	https.get("https://blockbench.net/api/app.asar", function(response) {
-		response.pipe(file);
-
-		total_bytes = parseInt(response.headers['content-length']);
-
-		response.on('end', updateInstallationEnd)
-		response.on('data', function(chunk) {
-			received_bytes += chunk.length;
-			setProgressBar('update_bar', received_bytes / total_bytes, 1);
-		})
-	});
-}
-function updateInstallationEnd() {
-	hideDialog();
-	if (showSaveDialog()) {
-		app.relaunch()
-		app.exit()
-	} else {
-		Blockbench.showQuickMessage('message.restart_to_update');
-	}
-}
 //Image Editor
 function changeImageEditor(texture, from_settings) {
 	var dialog = new Dialog({
@@ -389,7 +338,12 @@ function createBackup(init) {
 	})
 }
 //Close
+
 window.onbeforeunload = function() {
+	try {
+		updateRecentProjectThumbnail()
+	} catch(err) {}
+
 	if (!Blockbench.hasFlag('allow_closing')) {
 		setTimeout(function() {
 			showSaveDialog(true)
@@ -397,6 +351,7 @@ window.onbeforeunload = function() {
 		return true;
 	}
 }
+
 function showSaveDialog(close) {
 	if (Blockbench.hasFlag('allow_reload')) {
 		close = false
@@ -443,4 +398,82 @@ function closeBlockbenchWindow() {
 	EditSession.quit()
 	
 	return currentwindow.close();
-}
+};
+
+
+(function() {
+
+	let update_available_promise = new Promise((resolve, reject) => {
+		ipcRenderer.on('update-available', (event, arg) => {
+			resolve({event, arg})
+		})
+	})
+	
+	Promise.all([update_available_promise, documentReady]).then(results => {
+		if (settings.automatic_updates.value) {
+			ipcRenderer.send('allow-auto-update');
+
+			let icon_node = Blockbench.getIconNode('donut_large');
+			icon_node.classList.add('spinning');
+			let click_action;
+
+			let update_status = {
+				name: tl('menu.help.updating', [0]),
+				id: 'update_status',
+				icon: icon_node,
+				click() {
+					if (click_action) click_action()
+				}
+			};
+			MenuBar.menus.help.addAction('_');
+			MenuBar.menus.help.addAction(update_status);
+			function updateText(text) {
+				update_status.name = text;
+				$('li[menu_item=update_status]').each((i, node) => {
+					node.childNodes.forEach(child => {
+						if (child.nodeName == '#text') {
+							child.textContent = text;
+						}
+					})
+				});
+			}
+
+			ipcRenderer.on('update-progress', (event, status) => {
+				updateText(tl('menu.help.updating', [Math.round(status.percent)]));
+			})
+			ipcRenderer.on('update-error', (event, err) => {
+				updateText(tl('menu.help.update_failed'));
+				icon_node.textContent = 'warning';
+				icon_node.classList.remove('spinning')
+				click_action = function() {
+					currentwindow.openDevTools()
+				}
+				console.error(err);
+			})
+			ipcRenderer.on('update-downloaded', (event) => {
+				updateText(tl('menu.help.update_ready'));
+				icon_node.textContent = 'system_update_alt';
+				icon_node.classList.remove('spinning')
+				click_action = function() {
+					app.relaunch();
+					app.quit();
+				}
+			})
+
+		} else {
+			addStartScreenSection({
+				color: 'var(--color-back)',
+				graphic: {type: 'icon', icon: 'update'},
+				text: [
+					{type: 'h1', text: tl('message.update_notification.title')},
+					{text: tl('message.update_notification.message')},
+					{type: 'button', text: tl('generic.enable'), click: (e) => {
+						Settings.open({search: 'automatic_updates'})
+					}}
+				]
+			})
+		}
+	})
+})()
+
+

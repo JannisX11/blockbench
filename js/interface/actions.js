@@ -705,6 +705,9 @@ class BarSelect extends Widget {
 		if (data.width) {
 			select.css('width', data.width+'px')
 		}
+		if (data.min_width) {
+			select.css('min-width', data.min_width+'px')
+		}
 		select.click(event => {
 			scope.open(event)
 		});
@@ -925,10 +928,10 @@ class Toolbar {
 			this.default_children = data.children.slice()
 		}
 		var jq = $(`<div class="toolbar">
-			<div class="content"></div>
 			<div class="tool toolbar_menu">
 				<i class="material-icons">${this.vertical ? 'more_horiz' : 'more_vert'}</i>
 			</div>
+			<div class="content"></div>
 		</div>`)
 		this.node = jq.get(0)
 		BarItem.prototype.addLabel(false, {
@@ -1251,12 +1254,6 @@ const BARS = {
 				keybind: new Keybind({key: 69, ctrl: true}),
 				click: function () {Settings.open()}
 			})
-			new Action('update_window', {
-				icon: 'update',
-				category: 'blockbench',
-				condition: isApp,
-				click: function () {checkForUpdates()}
-			})
 			new Action('reload', {
 				icon: 'refresh',
 				category: 'file',
@@ -1287,8 +1284,8 @@ const BARS = {
 				//condition: () => (Modes.edit && (selected.length || Group.selected)),
 				keybind: new Keybind({key: 46}),
 				click: function () {
-					if (Prop.active_panel == 'textures' && textures.selected) {
-						textures.selected.remove()
+					if (Prop.active_panel == 'textures' && Texture.selected) {
+						Texture.selected.remove()
 					} else if (Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue._data.open_tab)) {
 						if (ColorPanel.vue._data.palette.includes(ColorPanel.vue._data.main_color)) {
 							ColorPanel.vue._data.palette.remove(ColorPanel.vue._data.main_color)
@@ -1425,8 +1422,7 @@ const BARS = {
 				'outliner_toggle',
 				'toggle_skin_layer',
 				'cube_counter'
-			],
-			default_place: true
+			]
 		})
 
 		Toolbars.texturelist = new Toolbar({
@@ -1436,8 +1432,7 @@ const BARS = {
 				'create_texture',
 				'reload_textures',
 				'animated_textures'
-			],
-			default_place: true
+			]
 		})
 		Toolbars.tools = new Toolbar({
 			id: 'tools',
@@ -1454,7 +1449,7 @@ const BARS = {
 				'draw_shape_tool',
 				'copy_paste_tool'
 			],
-			vertical: Blockbench.isMobile,
+			vertical: Blockbench.isMobile == true,
 			default_place: true
 		})
 
@@ -1472,8 +1467,7 @@ const BARS = {
 				'slider_pos_x',
 				'slider_pos_y',
 				'slider_pos_z'
-			],
-			default_place: !Blockbench.isMobile
+			]
 		})
 		Toolbars.element_size = new Toolbar({
 			id: 'element_size',
@@ -1482,8 +1476,7 @@ const BARS = {
 				'slider_size_y',
 				'slider_size_z',
 				'slider_inflate'
-			],
-			default_place: !Blockbench.isMobile
+			]
 		})
 		Toolbars.element_origin = new Toolbar({
 			id: 'element_origin',
@@ -1492,8 +1485,7 @@ const BARS = {
 				'slider_origin_y',
 				'slider_origin_z',
 				'origin_to_geometry'
-			],
-			default_place: !Blockbench.isMobile
+			]
 		})
 		Toolbars.element_rotation = new Toolbar({
 			id: 'element_rotation',
@@ -1502,8 +1494,7 @@ const BARS = {
 				'slider_rotation_y',
 				'slider_rotation_z',
 				'rescale_toggle'
-			],
-			default_place: !Blockbench.isMobile
+			]
 		})
 		/*
 		Toolbars.bone_ik = new Toolbar({
@@ -1550,8 +1541,7 @@ const BARS = {
 				'add_display_preset',
 				'apply_display_preset',
 				'gui_light'
-			],
-			default_place: true
+			]
 		})
 		//UV
 		Toolbars.main_uv = new Toolbar({
@@ -1566,8 +1556,7 @@ const BARS = {
 				//Box
 				'toggle_uv_overlay',
 				'toggle_mirror_uv',
-			],
-			default_place: true
+			]
 		})
 		Toolbars.uv_dialog = new Toolbar({
 			id: 'uv_dialog',
@@ -1605,8 +1594,7 @@ const BARS = {
 			children: [
 				'add_animation',
 				'slider_animation_length',
-			],
-			default_place: true
+			]
 		})
 		Toolbars.keyframe = new Toolbar({
 			id: 'keyframe',
@@ -1614,8 +1602,7 @@ const BARS = {
 				'slider_keyframe_time',
 				'change_keyframe_file',
 				'reset_keyframe'
-			],
-			default_place: true
+			]
 		})
 		Toolbars.timeline = new Toolbar({
 			id: 'timeline',
@@ -1636,12 +1623,13 @@ const BARS = {
 		Toolbars.main_tools = new Toolbar({
 			id: 'main_tools',
 			children: [
-				'transform_space'
+				'transform_space',
+				'rotation_space'
 			]
 		})
-		// update 3.4.1
-		if (!Toolbars.main_tools.children.includes(BarItems.transform_space)) {
-			Toolbars.main_tools.add(BarItems.transform_space, -1)
+		// update 3.6
+		if (!Toolbars.main_tools.children.includes(BarItems.rotation_space)) {
+			Toolbars.main_tools.add(BarItems.rotation_space, -1)
 		}
 		Toolbars.brush = new Toolbar({
 			id: 'brush',
@@ -1692,7 +1680,6 @@ const BARS = {
 		BarItems.load_plugin_from_url.toElement('#plugins_header_bar')
 		BarItems.uv_dialog.toElement('#uv_title_bar')
 		BarItems.uv_dialog_full.toElement('#uv_title_bar')
-		BarItems.toggle_chat.toElement('#chat_title_bar')
 	},
 	setupVue() {
 		BARS.list = new Vue({

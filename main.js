@@ -1,6 +1,8 @@
-const {app, BrowserWindow, Menu} = require('electron')
+const {app, BrowserWindow, Menu, ipcMain} = require('electron')
 const path = require('path')
 const url = require('url')
+const { autoUpdater } = require('electron-updater');
+const { arch, platform } = require('os');
 
 let orig_win;
 
@@ -26,35 +28,71 @@ function createWindow(second_instance) {
 	if (!orig_win) orig_win = win;
 	var index_path = path.join(__dirname, 'index.html')
 	if (process.platform === 'darwin') {
-		var template = [{ 
-			label: 'File', 
-			submenu: [{ 
-				label: 'Quit', 
-				accelerator: 'CmdOrCtrl+Q', 
-				click: function() { 
-					app.quit(); 
-				} 
-			}] 
-		}, { 
-			label: 'Edit',
-			submenu: [{
-				label: 'Cut',
-				accelerator: 'CmdOrCtrl+X',
-				selector: 'cut:'
-			}, {
-				label: 'Copy',
-				accelerator: 'CmdOrCtrl+C',
-				selector: 'copy:'
-			}, {
-				label: 'Paste',
-				accelerator: 'CmdOrCtrl+V',
-				selector: 'paste:'
-			}, {
-				label: 'Select All',
-				accelerator: 'CmdOrCtrl+A',
-				selector: 'selectAll:'
-			}]
-		}]
+
+		let template = [
+			{
+				"label": "Blockbench",
+				"submenu": [
+					{
+						"role": "hide"
+					},
+					{
+						"role": "hideothers"
+					},
+					{
+						"role": "unhide"
+					},
+					{
+						"type": "separator"
+					},
+					{
+						"label": "Quit",
+						"accelerator": "Command+Q"
+					}
+				]
+			},
+			{
+				"label": "Edit",
+				"submenu": [
+					{
+						"role": "cut"
+					},
+					{
+						"role": "copy"
+					},
+					{
+						"role": "paste"
+					},
+					{
+						"role": "selectall"
+					}
+				]
+			},
+			{
+				"label": "Window",
+				"role": "window",
+				"submenu": [
+					{
+						"label": "Toggle Full Screen",
+						"accelerator": "Ctrl+Command+F"
+					},
+					{
+						"role": "minimize"
+					},
+					{
+						"role": "close"
+					},
+					{
+						"type": "separator"
+					},
+					{
+						"role": "front"
+					}
+				]
+			}
+		]
+
+
 		var osxMenu = Menu.buildFromTemplate(template);
 		Menu.setApplicationMenu(osxMenu)
 	} else {
@@ -84,8 +122,39 @@ app.on('second-instance', function (event, argv, cwd) {
 })
 
 app.commandLine.appendSwitch('ignore-gpu-blacklist')
+app.commandLine.appendSwitch('enable-accelerated-video')
 
-app.on('ready', createWindow)
+
+
+app.on('ready', () => {
+
+	createWindow()
+
+	autoUpdater.autoInstallOnAppQuit = true;
+	autoUpdater.autoDownload = false;
+
+	autoUpdater.on('update-available', (a) => {
+		console.log('update-available', a)
+		ipcMain.on('allow-auto-update', () => {
+			autoUpdater.downloadUpdate()
+		})
+		orig_win.webContents.send('update-available');
+	})
+	autoUpdater.on('update-downloaded', (a) => {
+		console.log('update-downloaded', a)
+		orig_win.webContents.send('update-downloaded', a)
+	})
+	autoUpdater.on('error', (a) => {
+		console.log('update-error', a)
+		orig_win.webContents.send('update-error', a)
+	})
+	autoUpdater.on('download-progress', (a) => {
+		console.log('update-progress', a)
+		orig_win.webContents.send('update-progress', a)
+	})
+
+	autoUpdater.checkForUpdates()
+})
 
 app.on('window-all-closed', () => {
 	app.quit()

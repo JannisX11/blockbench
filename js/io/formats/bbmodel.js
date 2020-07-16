@@ -1,5 +1,7 @@
 (function() {
 
+let FORMATV = '3.6';
+
 var codec = new Codec('project', {
 	name: 'Blockbench Project',
 	extension: 'bbmodel',
@@ -22,27 +24,18 @@ var codec = new Codec('project', {
 		if (!options) options = 0;
 		var model = {
 			meta: {
-				format_version: '3.2',
+				format_version: FORMATV,
 				model_format: Format.id,
 				box_uv: Project.box_uv
-			},
-			name: Project.name,
+			}
 		}
-		if (Format.bone_rig) {
-			model.geo_name = Project.geometry_name
+		
+		for (var key in ModelProject.properties) {
+			ModelProject.properties[key].copy(Project, model)
 		}
-		if (Project.parent) {
-			model.parent = Project.parent;
-		}
-		if (Format.id == 'java_block') {
-			model.ambientocclusion = Project.ambientocclusion
-			model.front_gui_light = Project.front_gui_light;
-		}
-		if (Format.id == 'bedrock' || Format.id == 'bedrock_legacy') {
-			model.visible_box = Project.visible_box
-		}
-		if (Format.id == 'modded_entity') {
-			model.modded_entity_version = Project.modded_entity_version
+
+		if (Project.overrides) {
+			model.overrides = Project.overrides;
 		}
 		model.resolution = {
 			width: Project.texture_width || 16,
@@ -128,7 +121,7 @@ var codec = new Codec('project', {
 		if (!model.meta.format_version) {
 			model.meta.format_version = model.meta.format;
 		}
-		if (compareVersions(model.meta.format_version, '3.2')) {
+		if (compareVersions(model.meta.format_version, FORMATV)) {
 			Blockbench.showMessageBox({
 				translateKey: 'outdated_client',
 				icon: 'error',
@@ -143,30 +136,20 @@ var codec = new Codec('project', {
 		} else {
 			Formats.java_block.select()
 		}
-		if (model.meta.box_uv !== undefined && Format.optional_box_uv) {
-			Project.box_uv = model.meta.box_uv
-		}
 
 		Blockbench.dispatchEvent('load_project', {model, path});
 		this.dispatchEvent('parse', {model})
 
-		Project.name = model.name;
-		if (model.geo_name) {
-			Project.geometry_name = model.geo_name;
-		} else if (model.parent) {
-			Project.parent = model.parent;
+		if (model.meta.box_uv !== undefined && Format.optional_box_uv) {
+			Project.box_uv = model.meta.box_uv
 		}
-		if (model.ambientocclusion !== undefined) {
-			Project.ambientocclusion = !!model.ambientocclusion;
+
+		for (var key in ModelProject.properties) {
+			ModelProject.properties[key].merge(Project, model)
 		}
-		if (model.front_gui_light !== undefined) {
-			Project.front_gui_light = !!model.front_gui_light;
-		}
-		if (model.visible_box) {
-			Project.visible_box.splice(0, Infinity, ...model.visible_box)
-		}
-		if (model.modded_entity_version) {
-			Project.modded_entity_version = model.modded_entity_version
+
+		if (model.overrides) {
+			Project.overrides = model.overrides;
 		}
 		if (model.resolution !== undefined) {
 			Project.texture_width = model.resolution.width;
@@ -176,10 +159,10 @@ var codec = new Codec('project', {
 		if (model.textures) {
 			model.textures.forEach(tex => {
 				var tex_copy = new Texture(tex, tex.uuid).add(false);
-				if (isApp && tex.path && fs.existsSync(tex.path)) {
-					tex_copy.fromPath(tex.path)
-				} else {
+				if (tex.source && tex.source.substr(0, 5) == 'data:') {
 					tex_copy.fromDataURL(tex.source)
+				} else if (isApp && tex.path && fs.existsSync(tex.path)) {
+					tex_copy.fromPath(tex.path)
 				}
 			})
 		}
@@ -196,8 +179,8 @@ var codec = new Codec('project', {
 						if (texture) {
 							copy.faces[face].texture = texture.uuid
 						}
-					} else if (textures[0] && copy.faces && copy.faces[face].texture !== null) {
-						copy.faces[face].texture = textures[0].uuid
+					} else if (Texture.getDefault() && copy.faces && copy.faces[face].texture !== null) {
+						copy.faces[face].texture = Texture.getDefault().uuid
 					}
 				}
 				copy.init()
@@ -238,6 +221,7 @@ var codec = new Codec('project', {
 			Undo.history = model.history.slice()
 			Undo.index = model.history_index;
 		}
+		this.dispatchEvent('parsed', {model})
 		Canvas.updateAll()
 	}
 })

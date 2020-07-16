@@ -36,7 +36,7 @@ const Clipbench = {
 		if ((p == 'uv' || p == 'preview') && Modes.edit) {
 			return Clipbench.types.face;
 		}
-		if (p == 'textures' && isApp && (textures.selected || mode === 2)) {
+		if (p == 'textures' && isApp && (Texture.selected || mode === 2)) {
 			return Clipbench.types.texture;
 		}
 		if (p == 'outliner' && Modes.edit) {
@@ -66,7 +66,7 @@ const Clipbench = {
 				main_uv.copy(event);
 				break;
 			case 'texture':
-				Clipbench.setTexture(textures.selected);
+				Clipbench.setTexture(Texture.selected);
 				if (cut) {
 					BarItems.delete.trigger();
 				}

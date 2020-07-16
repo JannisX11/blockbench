@@ -313,7 +313,7 @@ class refModel {
 				transparent: true,
 				vertexColors: THREE.FaceColors,
 				side: 2,
-				alphaTest: 0.2
+				alphaTest: 0.05
 			});
 		}
 
@@ -1390,7 +1390,6 @@ window.displayReferenceObjects = {
 	clear: function() {
 		display_scene.remove(displayReferenceObjects.active.model)
 		displayReferenceObjects.active = false
-		$('#donation_hint').hide()
 	},
 	ref_indexes: {
 		thirdperson_righthand: 0,
@@ -1444,7 +1443,7 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 
 
 	buildGrid()
-	setShading()
+	updateShading()
 	DisplayMode.loadThirdRight()
 
 	display_area.updateMatrixWorld()
@@ -1475,7 +1474,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	}
 	scene.add(Transformer)
 	buildGrid()
-	setShading()
+	updateShading()
 	Canvas.updateRenderSides()
 }
 function axisIndex(index) {
@@ -1823,23 +1822,13 @@ function updateDisplaySkin() {
 		}
 		var mat = displayReferenceObjects.refmodels.player.material
 
-
-		var img = new Image()
-		try {
-			img.src = skin
-		} catch(err) {
-		}
-		img.onload = function() {
-			mat.map.dispose()
-			var tex = new THREE.Texture(img)
-			img.tex = tex;
-			img.tex.magFilter = THREE.NearestFilter
-			img.tex.minFilter = THREE.NearestFilter
-			this.tex.needsUpdate = true;
-			mat.map = tex;
-
+		mat.map.image.src = skin;
+		mat.map.needsUpdate = true;
+		mat.map.onUpdate = function() {
+			mat.map.onUpdate = null;
 			displayReferenceObjects.refmodels.player.setModelVariant(slim ? 'alex' : 'steve')
-		}
+		};
+
 	}
 	if (!val || typeof val !== 'string') {
 		setPSkin('assets/player_skin.png')

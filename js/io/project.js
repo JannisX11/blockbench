@@ -1,86 +1,140 @@
-const Project = {
-	name			: '',
-	parent			: '',
-	geometry_name	: '',
-	description	   	: '',
-	_box_uv 		: false,
-	get box_uv() {return Project._box_uv},
+class ModelProject {
+	constructor() {
+		for (var key in ModelProject.properties) {
+			ModelProject.properties[key].reset(this);
+		}
+
+		this._box_uv = false;
+		this._texture_width = 16;
+		this._texture_height = 16;
+	}
+	extend() {
+		for (var key in ModelProject.properties) {
+			ModelProject.properties[key].merge(this, object)
+		}
+	}
+	get box_uv() {return Project._box_uv}
 	set box_uv(v) {
 		if (Project._box_uv != v) {
 			Project._box_uv = v;
 			switchBoxUV(v);
 		}
-	},
-	get texture_width() {return Project._texture_width},
-	get texture_height() {return Project._texture_height},
+	}
+	get texture_width() {return this._texture_width}
+	get texture_height() {return this._texture_height}
 	set texture_width(n) {
 		n = parseInt(n)||16
 		Vue.nextTick(updateProjectResolution)
-		Project._texture_width = n;
-	},
+		this._texture_width = n;
+	}
 	set texture_height(n) {
 		n = parseInt(n)||16
 		Vue.nextTick(updateProjectResolution)
-		Project._texture_height = n;
-	},
-	_texture_width	: 16,
-	_texture_height	: 16,
-	ambientocclusion: true,
-	front_gui_light: false,
-	visible_box: [1, 1, 0], /*width, height, y*/
-	modded_entity_version: '1.15',
+		this._texture_height = n;
+	}
 	get optional_box_uv() {
 		return Format.optional_box_uv;
 	}
+	reset() {
+		Blockbench.dispatchEvent('reset_project');
+		if (isApp) updateRecentProjectThumbnail()
+		if (Toolbox.selected.id !== 'move_tool') BarItems.move_tool.select();
+	
+		Screencam.stopTimelapse();
+	
+		Format = 0;
+		Outliner.elements.empty();
+		Outliner.root.purge();
+		Canvas.materials;
+		selected.empty();
+		Group.all.empty();
+		Group.selected = undefined;
+		Cube.all.empty();
+		Cube.selected.empty();
+		Locator.all.empty();
+		Locator.selected.empty();
+		Texture.all.empty();
+		Texture.selected = undefined;
+	
+		for (var key in ModelProject.properties) {
+			ModelProject.properties[key].reset(this)
+		}
+		this.texture_width = this.texture_height = 16;
+		this.overrides = null;
+	
+		Blockbench.display_settings = display = {};
+		ModelMeta.save_path = ModelMeta.export_path = ModelMeta.animation_path = ModelMeta.name = '';
+		ModelMeta.saved = true;
+		Prop.project_saved = true;
+		Prop.added_models = 0;
+		Canvas.updateAll();
+		Outliner.vue.$forceUpdate();
+		texturelist.$forceUpdate();
+		Undo.history.empty();
+		Undo.index = 0;
+		Undo.current_save = null;
+		Painter.current = {};
+		Animator.animations.purge();
+		Timeline.animators.purge();
+		Animator.selected = undefined;
+		$('#var_placeholder_area').val('');
+	}
 }
+new Property(ModelProject, 'string', 'name', {
+	label: 'dialog.project.name'
+});
+new Property(ModelProject, 'string', 'parent', {
+	label: 'dialog.project.parent',
+	condition: {formats: ['java_block']
+}});
+new Property(ModelProject, 'string', 'geometry_name', {
+	label: 'dialog.project.geoname',
+	condition: () => Format.bone_rig
+});
+new Property(ModelProject, 'string', 'modded_entity_version', {
+	label: 'dialog.project.modded_entity_version',
+	default: '1.15',
+	condition: {formats: ['modded_entity']},
+	options() {
+		let options = {}
+		for (var key in Codecs.modded_entity.templates) {
+			if (Codecs.modded_entity.templates[key] instanceof Function == false) {
+				options[key] = Codecs.modded_entity.templates[key].name;
+			}
+		}
+		return options;
+	}
+});
+new Property(ModelProject, 'boolean', 'ambientocclusion', {
+	label: 'dialog.project.ao',
+	default: true,
+	condition: {formats: ['java_block']}
+});
+new Property(ModelProject, 'boolean', 'front_gui_light', {
+	exposed: false,
+	condition: () => Format.display_mode});
+new Property(ModelProject, 'vector', 'visible_box', {
+	exposed: false,
+	default: [1, 1, 0]
+});
+new Property(ModelProject, 'boolean', 'layered_textures', {
+	label: 'dialog.project.layered_textures',
+	condition() {return Format.single_texture}
+});
+
+
+const Project = new ModelProject();
 
 
 //New
 function resetProject() {
-	Blockbench.dispatchEvent('reset_project');
-	if (Toolbox.selected.id !== 'move_tool') BarItems.move_tool.select();
-	Format = 0;
-	elements.length = 0;
-	Outliner.root.purge();
-	Canvas.materials.length = 0;
-	textures.length = 0;
-	selected.length = 0;
-
-	Screencam.stopTimelapse();
-
-	Group.all.empty();
-	Group.selected = undefined;
-	Cube.all.empty();
-	Cube.selected.empty();
-	Locator.all.empty();
-	Locator.selected.empty();
-
-	Blockbench.display_settings = display = {};
-	Project.name = Project.parent = Project.geometry_name = Project.description	 = '';
-	Project.texture_width = Project.texture_height = 16;
-	Project.ambientocclusion = true;
-	Project.front_gui_light = false;
-	Project.modded_entity_version = '1.15';
-	Project.visible_box.splice(0, Infinity, ...[1, 1, 0])
-	ModelMeta.save_path = ModelMeta.export_path = ModelMeta.animation_path = ModelMeta.name = '';
-	ModelMeta.saved = true;
-	Prop.project_saved = true;
-	Prop.added_models = 0;
-	Canvas.updateAll();
-	Outliner.vue.$forceUpdate();
-	texturelist.$forceUpdate();
-	Undo.history.length = 0;
-	Undo.index = 0;
-	Undo.current_save = null;
-	Painter.current = {};
-	Animator.animations.purge();
-	Timeline.animators.purge();
-	Animator.selected = undefined;
-	$('#var_placeholder_area').val('');
+	Project.reset()
 }
 function newProject(format, force) {
 	if (force || showSaveDialog()) {
-		resetProject();
+		if (Format) {
+			Project.reset();
+		}
 		Modes.options.edit.select();
 		if (format instanceof ModelFormat) {
 			format.select();
@@ -101,39 +155,46 @@ BARS.defineActions(function() {
 		condition: () => Format,
 		click: function () {
 
-			let modded_entity_options = {}
-			for (var key in Codecs.modded_entity.templates) {
-				if (Codecs.modded_entity.templates[key] instanceof Function == false) {
-					modded_entity_options[key] = Codecs.modded_entity.templates[key].name;
+			let form = {
+				format: {type: 'info', label: 'data.format', text: Format.name||'unknown'}
+			}
+			
+			for (var key in ModelProject.properties) {
+				let property = ModelProject.properties[key];
+				if (property.exposed == false || !Condition(property.condition)) continue;
+
+				let entry = form[property.name] = {
+					label: property.label,
+					value: Project[property.name],
+					type: property.type
+				}
+				if (property.type == 'boolean') entry.type = 'checkbox';
+				if (property.type == 'string') entry.type = 'text';
+				if (property.options) {
+					entry.options = typeof property.options == 'function' ? property.options() : property.options;
+					entry.type = 'select';
 				}
 			}
+
+			form.box_uv = {label: 'dialog.project.box_uv', type: 'checkbox', value: Project.box_uv, condition: Format.optional_box_uv};
+			form.texture_width = {
+				label: 'dialog.project.width',
+				type: 'number',
+				value: Project.texture_width,
+				min: 1
+			};
+			form.texture_height = {
+				label: 'dialog.project.height',
+				type: 'number',
+				value: Project.texture_height,
+				min: 1
+			};
+
 			var dialog = new Dialog({
 				id: 'project',
 				title: 'dialog.project.title',
-				width: 540,
-				form: {
-					format: {type: 'info', label: 'data.format', text: Format.name||'unknown'},
-					name: {label: 'dialog.project.name', value: Project.name},
-
-					parent: {label: 'dialog.project.parent', value: Project.parent, condition: !Format.bone_rig, list: ['paro', 'foo', 'bar']},
-					geometry_name: {label: 'dialog.project.geoname', value: Project.geometry_name, condition: Format.bone_rig},
-					modded_entity_version: {label: 'dialog.project.modded_entity_version', type: 'select', default: Project.modded_entity_version, options: modded_entity_options, condition: Format.id == 'modded_entity'},
-					ambientocclusion: {label: 'dialog.project.ao', type: 'checkbox', value: Project.ambientocclusion, condition: Format.id == 'java_block'},
-
-					box_uv: {label: 'dialog.project.box_uv', type: 'checkbox', value: Project.box_uv, condition: Format.optional_box_uv},
-					texture_width: {
-						label: 'dialog.project.width',
-						type: 'number',
-						value: Project.texture_width,
-						min: 1
-					},
-					texture_height: {
-						label: 'dialog.project.height',
-						type: 'number',
-						value: Project.texture_height,
-						min: 1
-					},
-				},
+				width: 500,
+				form,
 				onConfirm: function(formResult) {
 					var save;
 					if (Project.box_uv != formResult.box_uv ||
@@ -165,11 +226,20 @@ BARS.defineActions(function() {
 						updateSelection()
 					}
 
-					Project.name = formResult.name;
-					Project.parent = formResult.parent;
-					Project.geometry_name = formResult.geometry_name;
-					Project.ambientocclusion = formResult.ambientocclusion;
-					if (formResult.modded_entity_version) Project.modded_entity_version = formResult.modded_entity_version;
+					if (Format.single_texture) {
+						if (Project.layered_textures !== formResult.layered_textures && Texture.all.length >= 2) {
+							Project.layered_textures = formResult.layered_textures;
+							Texture.all.forEach((tex, i) => {
+								tex.visible = i < 3
+							})
+							texturelist.$forceUpdate()
+							Canvas.updateLayeredTextures();
+						}
+					}
+					
+					for (var key in ModelProject.properties) {
+						ModelProject.properties[key].merge(Project, formResult);
+					}
 
 					if (save) {
 						Undo.finishEdit('change global UV')

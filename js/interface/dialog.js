@@ -30,6 +30,7 @@ function Dialog(settings) {
 	this.cancelEnabled = settings.cancelEnabled === false ? false : true
 	this.onConfirm = settings.onConfirm ? settings.onConfirm : this.hide
 	this.onCancel = settings.onCancel ? settings.onCancel : this.hide
+	this.onButton = settings.onButton;
 
 	this.object;
 
@@ -77,7 +78,7 @@ function Dialog(settings) {
 					jq_dialog.append('<hr />')
 					
 				} else if (data && Condition(data.condition)) {
-					var bar = $(`<div class="dialog_bar form_bar_${form_id}"></div>`)
+					var bar = $(`<div class="dialog_bar form_bar form_bar_${form_id}"></div>`)
 					if (data.label) {
 						bar.append(`<label class="name_space_left" for="${form_id}">${tl(data.label)+(data.nocolon?'':':')}</label>`)
 						max_label_width = Math.max(getStringWidth(tl(data.label)), max_label_width)
@@ -118,7 +119,7 @@ function Dialog(settings) {
 							var sel = el.find('select')
 							for (var key in data.options) {
 								var name = tl(data.options[key])
-								sel.append(`<option id="${key}" ${data.default === key ? 'selected' : ''}>${name}</option>`)
+								sel.append(`<option id="${key}" ${(data.value === key || data.default === key) ? 'selected' : ''}>${name}</option>`)
 							}
 							bar.append(el)
 							break;
@@ -247,28 +248,35 @@ function Dialog(settings) {
 		}
 		if (this.buttons) {
 
-
 			var buttons = []
 
 			scope.buttons.forEach(function(b, i) {
 				var btn = $('<button type="button">'+tl(b)+'</button> ')
 				buttons.push(btn)
+				if (typeof scope.onButton == 'function') {
+					btn.click((event) => {
+						scope.onButton(i);
+					})
+				}
 			})
 			buttons[scope.confirmIndex] && buttons[scope.confirmIndex].addClass('confirm_btn')
 			buttons[scope.cancelIndex] && buttons[scope.cancelIndex].addClass('cancel_btn')
-			jq_dialog.append($('<div class="dialog_bar button_bar"></div>').append(buttons))
-
-
+			let bar = $('<div class="dialog_bar button_bar"></div>');
+			jq_dialog.append(bar);
+			buttons.forEach((button, i) => {
+				if (i) bar.append('&nbsp;')
+				bar.append(button)
+			})
 
 		} else if (this.singleButton) {
 
-			jq_dialog.append('<div class="dialog_bar" hidden>' +
+			jq_dialog.append('<div class="dialog_bar button_bar" hidden>' +
 				'<button type="button" class="cancel_btn confirm_btn"'+ (this.confirmEnabled ? '' : ' disabled') +'>'+tl('dialog.close')+'</button>' +
 			'</div>')
 
 		} else {
 
-			jq_dialog.append(`<div class="dialog_bar">
+			jq_dialog.append(`<div class="dialog_bar button_bar">
 				<button type="button" class="confirm_btn${this.confirmEnabled ? '' : ' disabled'}">${tl('dialog.confirm')}</button>&nbsp;
 				<button type="button" class="cancel_btn${this.cancelEnabled ? '' : ' disabled'}">${tl('dialog.cancel')}</button>
 			</div>`)

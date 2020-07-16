@@ -7,8 +7,8 @@ var part_codec = new Codec('optifine_part', {
 	compile(options) {
 		if (options === undefined) options = {}
 		var jpm = {}
-		if (textures[0]) {
-			jpm.texture = pathToName(textures[0].name, false)
+		if (Texture.getDefault()) {
+			jpm.texture = pathToName(Texture.getDefault().name, false)
 		}
 		jpm.textureSize = [Project.texture_width, Project.texture_height]
 
@@ -203,6 +203,7 @@ var part_codec = new Codec('optifine_part', {
 			Undo.finishEdit('add jpm model')
 		}
 		addSubmodel(model)
+		this.dispatchEvent('parsed', {model});
 		Canvas.updateAll()
 	}
 })

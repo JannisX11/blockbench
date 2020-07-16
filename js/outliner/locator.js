@@ -2,19 +2,22 @@
 class Locator extends NonGroup {
 	constructor(data, uuid) {
 		super(data, uuid);
-		this.from = new Array().V3_set(0, 0, 0);
-		this.name = 'locator';
+
+		for (var key in Locator.properties) {
+			Locator.properties[key].reset(this);
+		}
 
 		if (data) {
 			this.extend(data);
 		}
 	}
 	extend(object) {
-		Merge.string(this, object, 'name');
+		for (var key in Locator.properties) {
+			Locator.properties[key].merge(this, object)
+		}
 		this.sanitizeName();
 		Merge.boolean(this, object, 'locked')
 		Merge.boolean(this, object, 'export');
-		Merge.arrayVector(this, object, 'from');
 		return this;
 	}
 	getUndoCopy() {
@@ -25,14 +28,14 @@ class Locator extends NonGroup {
 		return copy;
 	}
 	getSaveCopy() {
-		var el = {
-			name: this.name,
-			export: this.export ? undefined : false,
-			locked: this.locked,
-			from: this.from,
-			uuid: this.uuid,
-			type: 'locator'
-		};
+		let el = {};
+		for (var key in Locator.properties) {
+			Locator.properties[key].copy(this, el)
+		}
+		el.export = this.export ? undefined : false;
+		el.locked = this.locked;
+		el.uuid = this.uuid;
+		el.type = 'locator';
 		return el;
 	}
 	init() {
@@ -81,6 +84,9 @@ class Locator extends NonGroup {
 		])
 	Locator.selected = [];
 	Locator.all = [];
+	
+	new Property(Locator, 'string', 'name', {default: 'locator'})
+	new Property(Locator, 'vector', 'from')
 
 BARS.defineActions(function() {
 	new Action('add_locator', {

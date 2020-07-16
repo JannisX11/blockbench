@@ -81,6 +81,7 @@ BARS.defineActions(function() {
 		center_windows: ['start_screen'],
 		hide_toolbars: true,
 		onSelect: function () {
+			if (Format && isApp) updateRecentProjectThumbnail()
 		},
 		onUnselect: function () {
 		}

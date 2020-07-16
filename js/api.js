@@ -28,7 +28,7 @@ const Blockbench = {
 		localStorage.removeItem('backup_model')
 		if (isApp) {
 			Blockbench.addFlag('allow_closing')
-			Blockbench.flags.push('allow_reload')
+			Blockbench.addFlag('allow_reload')
 			currentwindow.reload()
 		} else {
 			location.reload()
@@ -287,7 +287,9 @@ const Blockbench = {
 						extensions: options.extensions
 					}],
 					properties: (properties.length && Blockbench.platform !== 'darwin')?properties:undefined,
-					defaultPath: options.startpath
+					defaultPath: settings.streamer_mode.value
+						? app.getPath('desktop')
+						: options.startpath
 				},
 			function (fileNames) {
 				if (!fileNames) return;
@@ -489,9 +491,11 @@ const Blockbench = {
 					name: options.type,
 					extensions: options.extensions
 				} ],
-				defaultPath: (options.startpath && options.startpath !== 'Unknown')
-					? options.startpath.replace(/\.\w+$/, '')
-					: options.name
+				defaultPath: settings.streamer_mode.value
+					? app.getPath('desktop')
+					: ((options.startpath && options.startpath !== 'Unknown')
+						? options.startpath.replace(/\.\w+$/, '')
+						: options.name)
 			}, function (file_path) {
 				if (!file_path) return;
 				if (options.resource_id) {

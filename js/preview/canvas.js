@@ -73,7 +73,7 @@ const Canvas = {
 	},
 	getCurrentPreview() {
 		if (quad_previews.current) return quad_previews.current;
-		var canvas = $('canvas.preview:hover').get(0)
+		var canvas = $('.preview:hover').get(0)
 		if (canvas) return canvas.preview
 	},
 	withoutGizmos(cb) {
@@ -87,10 +87,14 @@ const Canvas = {
 			edit(rot_origin)
 			edit(Vertexsnap.vertexes)
 			Cube.selected.forEach(function(obj) {
-				var m = obj.mesh
-				if (m && m.outline) {
-					edit(m.outline)
-				}
+				var m = obj.mesh;
+				if (!m) return;
+				if (m.outline) edit(m.outline);
+			})
+			Cube.all.forEach(function(obj) {
+				var m = obj.mesh;
+				if (!m) return;
+				if (m.grid_box) edit(m.grid_box);
 			})
 		}
 		editVis(obj => {
@@ -189,7 +193,7 @@ const Canvas = {
 				if (texture) {
 				 	used = false;
 					for (var face in obj.faces) {
-						if (obj.faces[face].texture === texture.uuid) {
+						if (obj.faces[face].getTexture() == texture) {
 				 			used = true;
 						}
 					}
@@ -234,6 +238,9 @@ const Canvas = {
 				mat.side = side
 			}
 		})
+		if (Project.layered_textures && Canvas.layered_material) {
+			Canvas.layered_material.side = side;
+		}
 		emptyMaterials.forEach(function(mat) {
 			mat.side = side
 		})
@@ -495,13 +502,44 @@ const Canvas = {
 		}
 		iterate(el, elmesh)
 	},
-	getLayeredMaterial() {
+	getLayeredMaterial(layers) {
+		if (Canvas.layered_material && !layers) return Canvas.layered_material;
+		// https://codepen.io/Fyrestar/pen/YmpXYr
 		var vertShader = `
+			uniform bool SHADE;
+
 			varying vec2 vUv;
+			varying float light;
+			varying float lift;
+
+			float AMBIENT = 0.5;
+			float XFAC = -0.15;
+			float ZFAC = 0.05;
 
 			void main()
 			{
-			    vUv = uv;
+
+				if (SHADE) {
+
+					vec3 N = vec3( modelMatrix * vec4(normal, 0.0) );
+
+
+					float yLight = (1.0+N.y) * 0.5;
+					light = yLight * (1.0-AMBIENT) + N.x*N.x * XFAC + N.z*N.z * ZFAC + AMBIENT;
+
+				} else {
+
+					light = 1.0;
+
+				}
+
+				if (color.b == 1.25) {
+					lift = 0.1;
+				} else {
+					lift = 0.0;
+				}
+				
+				vUv = uv;
 			    vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
 			    gl_Position = projectionMatrix * mvPosition;
 			}`
@@ -510,47 +548,70 @@ const Canvas = {
 			precision highp float;
 			#endif
 
-			uniform sampler2D tOne;
-			uniform sampler2D tSec;
+			uniform sampler2D t0;
+			uniform sampler2D t1;
+			uniform sampler2D t2;
+
+			uniform bool SHADE;
 
 			varying vec2 vUv;
+			varying float light;
+			varying float lift;
 
 			void main(void)
 			{
-			    vec3 c;
-			    vec4 Ca = texture2D(tOne, vUv);
-			    vec4 Cb = texture2D(tSec, vUv);
-			    c = Ca.rgb * Ca.a + Cb.rgb * Cb.a * (1.0 - Ca.a);  // blending equation
-			    gl_FragColor= vec4(c, 1.0);
+			    vec4 Ca = texture2D(t0, vUv);
+			    vec4 Cb = texture2D(t1, vUv);
+			    vec4 Cc = texture2D(t2, vUv);
+				
+				vec3 ctemp = Ca.rgb * Ca.a + Cb.rgb * Cb.a * (1.0 - Ca.a);
+				vec4 ctemp4 = vec4(ctemp, Ca.a + (1.0 - Ca.a) * Cb.a);
+
+				vec3 c = ctemp4.rgb + Cc.rgb * Cc.a * (1.0 - ctemp4.a);
+				gl_FragColor= vec4(lift + c * light, ctemp4.a + (1.0 - ctemp4.a) * Cc.a);
+				
+				if (gl_FragColor.a < 0.05) discard;
 			}`
 
 		var uniforms = {
-		  tOne: { type: "t", value: textures[1].getMaterial().map },
-		  tSec: { type: "t", value: textures[0].getMaterial().map }
+			SHADE: {type: 'bool', value: settings.shading.value},
+			t0: {type: 't', value: null},
+			t1: {type: 't', value: null},
+			t2: {type: 't', value: null}
 		};
+		let i = 0;
+		if (layers instanceof Array == false) layers = Texture.all;
+		layers.forEachReverse(texture => {
+			if (texture.visible && i < 3) {
+				uniforms[`t${i}`].value = texture.getMaterial().map;
+				i++;
+			}
+		})
 
 		var material_shh = new THREE.ShaderMaterial({
 		  uniforms: uniforms,
 		  vertexShader: vertShader,
-		  fragmentShader: fragShader
+		  fragmentShader: fragShader,
+		  side: Canvas.getRenderSide(),
+		  vertexColors: THREE.FaceColors,
+		  transparent: true
 		});
+		Canvas.layered_material = material_shh;
 		return material_shh;
-		/*
-		todo:
-			Issues:
-			Painting is one pixel delayed
-			Painting doesn't occur on selected texture
-			needs setting
-			needs to work with 0-3+ textures
-		*/
+	},
+	updateLayeredTextures() {
+		delete Canvas.layered_material;
+		if (Format.single_texture && Texture.all.length >= 2) {
+			Canvas.updateAllFaces();
+		}
 	},
 	adaptObjectFaces(cube, mesh) {
 		if (!mesh) mesh = cube.mesh
 		if (!mesh) return;
 		if (Prop.wireframe) {
 			mesh.material = Canvas.wireframeMaterial
-		/*} else if (settings.layered_textures.value && Format && Format.id.includes('bedrock')) {
-			mesh.material = Canvas.getLayeredMaterial();*/
+		} else if (Format.single_texture && Project.layered_textures && Texture.all.length >= 2) {
+			mesh.material = Canvas.getLayeredMaterial();
 
 		} else {
 			var materials = []
@@ -571,7 +632,7 @@ const Canvas = {
 			mesh.material = materials
 		}
 	},
-	updateUV(obj, animation) {
+	updateUV(obj, animation = true) {
 		if (Prop.wireframe === true) return;
 		var mesh = obj.mesh
 		if (mesh === undefined) return;
@@ -848,7 +909,8 @@ const Canvas = {
 			var height = end[1]-start[1];
 			var step = Math.abs( height / uv_size[1] );
 			uv_offset[1] *= step;
-			if (texture) step *= Project.texture_height / texture.height;
+			let tex_height = texture.frameCount ? (texture.height / texture.frameCount) : texture.height;
+			if (texture) step *= Project.texture_height / tex_height;
 			if (step < epsilon) step = epsilon;
 
 			for (var line = start[1] - uv_offset[1]; line <= end[1]; line += step) {
@@ -875,5 +937,41 @@ const Canvas = {
 		lines.no_export = true;
 
 		return lines;
+	},
+	updatePaintingGrid() {
+		Cube.all.forEach(cube => {
+			Canvas.buildGridBox(cube)
+		})
+	},
+
+	getModelSize() {
+		var visible_box = new THREE.Box3()
+		Canvas.withoutGizmos(() => {
+			Cube.all.forEach(cube => {
+				if (cube.export && cube.mesh) {
+					visible_box.expandByObject(cube.mesh);
+				}
+			})
+		})
+	
+		var offset = new THREE.Vector3(8,8,8);
+		visible_box.max.add(offset);
+		visible_box.min.add(offset);
+	
+		// Width
+		var radius = Math.max(
+			visible_box.max.x,
+			visible_box.max.z,
+			-visible_box.min.x,
+			-visible_box.min.z
+		)
+		if (Math.abs(radius) === Infinity) {
+			radius = 0
+		}
+		let width = radius*2
+		let height = Math.abs(visible_box.max.y - visible_box.min.y)
+		if (height === Infinity) height = 0;
+		
+		return [width, height]
 	}
 }

@@ -100,8 +100,28 @@
 	}
 
 /*UI Elements*/
-	canvas.preview {
+	div.preview {
+		height: 100%;
+		width: 100%;
+		position: relative;
+		cursor: inherit;
+	}
+	.preview > canvas {
 		background-repeat: no-repeat;
+	}
+	.preview .preview_menu {
+		position: absolute;
+		right: -1px;
+		top: 0;
+		width: 20px;
+		background-color: var(--color-dark);
+	}
+	.checkerboard .tool.preview_menu {
+		background-color: var(--color-checkerboard);
+	}
+	.preview .preview_menu > i {
+		width: 20px;
+		margin-left: -2px;
 	}
 	.text_padding {
 		margin-left: 5px;
@@ -138,7 +158,6 @@
 	}
 	.list {
 		background-color: var(--color-back);
-		height: calc(100% - 86px);
 		width: 100%;
 		overflow-y: scroll;
 		flex-grow: 1;

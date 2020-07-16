@@ -2,109 +2,7 @@ const StartScreen = {};
 var ColorPanel;
 
 //Panels
-class Panel {
-	constructor(data) {
-		var scope = this;
-		this.type = 'panel'
-		this.id = data.id || 'new_panel'
-		this.menu = data.menu
-		this.title = data.title || tl('panel.'+this.id)
-		this.condition = data.condition
-		this.onResize = data.onResize
-		this.node = $('.panel#'+this.id).get(0)// || $('<div class="panel" id="'+this.id+'"></div>')[0]
-		if (data.toolbars) {
-			this.toolbars = data.toolbars
-		}
-		this.handle = $('<h3 class="panel_handle">'+this.title+'</h3>').get(0)
-		if (!Blockbench.isMobile) {
-			$(this.handle).draggable({
-				revertDuration: 0,
-				cursorAt: { left: 24, top: 24 },
-				helper: 'clone',
-				revert: true,
-				appendTo: 'body',
-				zIndex: 19,
-				scope: 'panel',
-				start: function() {
-					Interface.panel = scope;
-				},
-				stop: function(e, ui) {
-					if (!ui) return;
-					if (Math.abs(ui.position.top - ui.originalPosition.top) + Math.abs(ui.position.left - ui.originalPosition.left) < 180) return;
-					var target = Interface.panel
-					if (typeof target === 'string') {
-						scope.moveTo(target)
-					} else if (target.type === 'panel') {
-						var target_pos = $(target.node).offset().top
-						var target_height = $(target.node).height()
-						var before = ui.position.top < target_pos + target_height / 2
-						if (target && target !== scope) {
-							scope.moveTo(target, before)
-						} else {
-							if (e.clientX > window.innerWidth - 200) {
-								scope.moveTo('right_bar')
-							} else if (e.clientX < 200) {
-								scope.moveTo('left_bar')
-							}
-						}
-					}
-					saveInterfaceRearrangement()
-					updateInterface()
-				}
-			})
-		}
-		$(this.node)
-			.droppable({
-				accept: 'h3',
-				scope: 'panel',
-				tolerance: 'pointer',
-				drop: function(e, ui) {
-					Interface.panel = scope;
-				}
-			})
-			.click((event) => {
-				setActivePanel(this.id)
-			})
-			.contextmenu((event) => {
-				setActivePanel(this.id)
-			})
-			.prepend(this.handle)
-	}
-	moveTo(ref_panel, before) {
-		var scope = this
-		if (typeof ref_panel === 'string') {
-			if (ref_panel === 'left_bar') {
-				$('#left_bar').append(scope.node)
-			} else {
-				$('#right_bar').append(scope.node)
-			}
-		} else {
-			if (before) {
-				$(ref_panel.node).before(scope.node)
-			} else {
-				$(ref_panel.node).after(scope.node)
-			}
-		}
-		if (this.onResize) {
-			this.onResize()
-		}
-		updateInterface()
-	}
-	update() {
-		var show = BARS.condition(this.condition)
-		if (show) {
-			$(this.node).show()
-			if (Interface.data.left_bar.includes(this.id)) {
-				this.width = Interface.data.left_bar_width
-			} else if (Interface.data.right_bar.includes(this.id)) {
-				this.width = Interface.data.right_bar_width
-			}
-			if (this.onResize) this.onResize()
-		} else {
-			$(this.node).hide()
-		}
-	}
-}
+
 class ResizeLine {
 	constructor(data) {
 		var scope = this;
@@ -168,7 +66,7 @@ class ResizeLine {
 	}
 }
 
-var Interface = {
+const Interface = {
 	default_data: {
 		left_bar_width: 332,
 		right_bar_width: 314,
@@ -182,11 +80,11 @@ var Interface = {
 		left: new ResizeLine({
 			id: 'left',
 			condition: function() {
-				var i = 0;
-				Interface.data.left_bar.forEach(p => {
-					if (Interface.Panels[p] && BARS.condition(Interface.Panels[p].condition)) {i++;}
-				})
-				return i;
+				for (let p of Interface.data.left_bar) {
+					if (Interface.Panels[p] && BARS.condition(Interface.Panels[p].condition)) {
+						return true;
+					}
+				}
 			},
 			get: function() {return Interface.data.left_bar_width},
 			set: function(o, diff) {
@@ -204,11 +102,11 @@ var Interface = {
 		right: new ResizeLine({
 			id: 'right',
 			condition: function() {
-				var i = 0;
-				Interface.data.right_bar.forEach(p => {
-					if (Interface.Panels[p] && BARS.condition(Interface.Panels[p].condition)) {i++;}
-				})
-				return i;
+				for (let p of Interface.data.right_bar) {
+					if (Interface.Panels[p] && BARS.condition(Interface.Panels[p].condition)) {
+						return true;
+					}
+				}
 			},
 			get: function() {return Interface.data.right_bar_width},
 			set: function(o, diff) {
@@ -290,15 +188,6 @@ function setupInterface() {
 		var old_data = Interface.data
 		if (interface_data.left_bar) Interface.data.left_bar = interface_data.left_bar;
 		if (interface_data.right_bar) Interface.data.right_bar = interface_data.right_bar;
-		for (key in Interface.Panels) {
-			if (!Interface.data.left_bar.includes(key) && !Interface.data.right_bar.includes(key)) {
-				if (old_data.left_bar.includes(key)) {
-					Interface.data.left_bar.push(key)
-				} else {
-					Interface.data.right_bar.push(key)
-				}
-			}
-		}
 		$.extend(true, Interface.data, interface_data)
 	} catch (err) {}
 
@@ -311,135 +200,7 @@ function setupInterface() {
 
 	$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 
-	$('.sidebar').droppable({
-		accept: 'h3',
-		scope: 'panel',
-		tolerance: 'pointer',
-		drop: function(e, ui) {
-			Interface.panel = $(this).attr('id');
-		}
-	})
-
-
-	//Panels
-	Interface.Panels.uv = new Panel({
-		id: 'uv',
-		condition: () => Modes.id === 'edit' || Modes.id === 'paint',
-		toolbars: {
-			bottom: Toolbars.main_uv
-		},
-		onResize: function() {
-			var size = limitNumber($(this.node).width()-10, 64, 1200)
-			size = Math.floor(size/16)*16
-			main_uv.setSize(size)
-		}
-	})
-	Interface.Panels.textures = new Panel({
-		id: 'textures',
-		condition: () => Modes.id === 'edit' || Modes.id === 'paint',
-		toolbars: {
-			head: Toolbars.textures
-		},
-		menu: new Menu([
-			'import_texture',
-			'create_texture',
-			'reload_textures',
-			'change_textures_folder',
-			'save_textures'
-		])
-	})
-	Interface.Panels.element = new Panel({
-		id: 'element',
-		condition: () => Modes.edit,
-		toolbars: {
-			element_position: Toolbars.element_position,
-			element_size: Toolbars.element_size,
-			element_origin: Toolbars.element_origin,
-			element_rotation: Toolbars.element_rotation,
-		}
-	})
-	Interface.Panels.bone = new Panel({
-		id: 'bone',
-		condition: () => Modes.animate,
-		toolbars: {
-			//bone_ik: Toolbars.bone_ik,
-		}
-	})
-	Interface.Panels.outliner = new Panel({
-		id: 'outliner',
-		condition: () => Modes.id === 'edit' || Modes.id === 'paint' || Modes.id === 'animate',
-		toolbars: {
-			head: Toolbars.outliner
-		},
-		onResize: t => {
-			getAllOutlinerObjects().forEach(o => o.updateElement())
-		},
-		menu: new Menu([
-			'add_cube',
-			'add_group',
-			'_',
-			'sort_outliner',
-			'select_all',
-			'collapse_groups',
-			'element_colors',
-			'outliner_toggle'
-		])
-	})
-	Interface.Panels.chat = new Panel({
-		id: 'chat',
-		condition: function() {return EditSession.active},
-		toolbars: {},
-		onResize: t => {
-		},
-		menu: new Menu([
-		])
-	})
-	Interface.Panels.animations = new Panel({
-		id: 'animations',
-		condition: () => Animator.open,
-		toolbars: {
-			head: Toolbars.animations
-		}
-	})
-	Interface.Panels.keyframe = new Panel({
-		id: 'keyframe',
-		condition: () => Animator.open,
-		toolbars: {
-			head: Toolbars.keyframe
-		}
-	})
-	Interface.Panels.variable_placeholders = new Panel({
-		id: 'variable_placeholders',
-		condition: () => Animator.open,
-		toolbars: {
-		}
-	})
-	Interface.Panels.display = new Panel({
-		id: 'display',
-		condition: function() {return display_mode},
-		toolbars: {
-			head: Toolbars.textures
-		}
-	})
-	Interface.data.left_bar.forEach((id) => {
-		if (Interface.Panels[id]) {
-			$('#left_bar').append(Interface.Panels[id].node)
-		}
-	})
-	Interface.data.right_bar.forEach((id) => {
-		if (Interface.Panels[id]) {
-			$('#right_bar').append(Interface.Panels[id].node)
-		}
-	})
-
-
-	Interface.status_bar.menu = new Menu([
-		'project_window',
-		'open_model_folder',
-		'open_backup_folder',
-		'save',
-		'timelapse',
-	])
+	setupPanels()
 
 	for (var key in Interface.Resizers) {
 		var resizer = Interface.Resizers[key]
@@ -531,19 +292,6 @@ function setupInterface() {
 	})
 	updateInterface()
 }
-function saveInterfaceRearrangement() {
-	Interface.data.left_bar.length = 0
-	$('#left_bar > .panel').each((i, obj) => {
-		let id = $(obj).attr('id');
-		Interface.data.left_bar.push(id);
-	})
-	Interface.data.right_bar.length = 0
-	$('#right_bar > .panel').each((i, obj) => {
-		let id = $(obj).attr('id');
-		Interface.data.right_bar.push(id);
-	})
-	localStorage.setItem('interface_data', JSON.stringify(Interface.data))
-}
 
 function updateInterface() {
 	BARS.updateConditions()
@@ -581,7 +329,7 @@ function updateInterfacePanels() {
 }
 
 function resizeWindow(event) {
-	if (!previews || (event && event.target && event.target !== window)) {
+	if (!Preview.all || (event && event.target && event.target !== window)) {
 		return;
 	}
 	if (Animator.open) {
@@ -591,7 +339,7 @@ function resizeWindow(event) {
 	if (Interface.data) {
 		updateInterfacePanels()
 	}
-	previews.forEach(function(prev) {
+	Preview.all.forEach(function(prev) {
 		if (prev.canvas.isConnected) {
 			prev.resize()
 		}
@@ -609,9 +357,6 @@ function resizeWindow(event) {
 }
 $(window).on('resize orientationchange', resizeWindow)
 
-function setActivePanel(panel) {
-	Prop.active_panel = panel
-}
 function setProjectTitle(title) {
 	if (Format.bone_rig && Project.geometry_name) {
 		title = Project.geometry_name
@@ -705,6 +450,30 @@ function setSettingsTab(tab) {
 		//Layout
 
 		$('#theme_editor').css('max-height', ($(window).height() - 420) +'px')
+	} else if (tab == 'credits') {
+		// About
+
+		$('#version_tag').text(appVersion)
+		if (isApp) {
+			jQuery.ajax({
+				url: 'https://api.github.com/repos/JannisX11/blockbench/releases/latest',
+				cache: false,
+				type: 'GET',
+				success(release) {
+					let v = release.tag_name.replace(/^v/, '');
+					if (compareVersions(v, appVersion)) {
+						$('#version_tag').text(`${appVersion} (${tl('about.version.update_available', [v])})`)
+					} else if (compareVersions(appVersion, v)) {
+						$('#version_tag').text(`${appVersion} (Pre-release)`)
+					} else {
+						$('#version_tag').text(`${appVersion} (${tl('about.version.up_to_date')}😄)`)
+					}
+				},
+				error(err) {
+
+				}
+			})
+		}
 	}
 }
 
@@ -731,8 +500,12 @@ $(document).keyup(function(event) {
 })
 
 //Start Screen
-function addStartScreenSection(data) {
-	var obj = $('<section></section>')
+function addStartScreenSection(id, data) {
+	if (typeof id == 'object') {
+		data = id;
+		id = '';
+	}
+	var obj = $(`<section id="${id}"></section>`)
 	if (typeof data.graphic === 'object') {
 		var left = $('<left class="graphic"></left>')
 		obj.append(left)
@@ -802,16 +575,10 @@ function addStartScreenSection(data) {
 	}
 }
 
-var documentReady = new Promise((resolve, reject) => {
-	$(document).ready(function() {
-		resolve()
-	})
-});
 
 
 (function() {
 	var news_call = $.getJSON('https://blockbench.net/api/news/news.json')
-	var version_call = $.getJSON('https://raw.githubusercontent.com/JannisX11/blockbench/master/package.json')
 	Promise.all([news_call, documentReady]).then((data) => {
 		if (!data || !data[0]) return;
 		data = data[0];
@@ -844,6 +611,9 @@ var documentReady = new Promise((resolve, reject) => {
 					}}
 				]
 			})
+		}
+		if (settings.streamer_mode.value) {
+			updateStreamerModeNotification()
 		}
 
 
@@ -884,49 +654,21 @@ var documentReady = new Promise((resolve, reject) => {
 				last: true
 			})
 		}
-		//Donation reminder
-		if (Blockbench.startup_count % 20 === 19) {
-			addStartScreenSection({
-				graphic: {type: 'icon', icon: 'fas.fa-heart'},
-				text: [
-					{type: 'h1', text: 'Donation'},
-					{text: 'Are you enjoying Blockbench? Consider donating to the project. Blockbench is 100% donation funded.'},
-					{text: '[Donate](https://blockbench.net/donate)'}
-				],
-				last: true
-			})
-		}
-	})
-
-	Promise.all([version_call, documentReady]).then((data) => {
-		if (data[0] && data[0].version) {
-			latest_version = data[0].version;
-			if (isApp && compareVersions(latest_version, appVersion)) {
-
-				addStartScreenSection({
-					color: 'var(--color-back)',
-					graphic: {type: 'icon', icon: 'update'},
-					text: [
-						{type: 'h1', text: tl('message.update_notification.title')},
-						{text: tl('message.update_notification.message', [latest_version])},
-						{type: 'button', text: tl('message.update_notification.install'), click: (e) => {
-							checkForUpdates(true)
-						}}
-					]
-				})
-			}
-		}
 	})
 
 })()
 
 onVueSetup(function() {
 	
+	StateMemory.init('start_screen_list_type', 'string')
 	StartScreen.vue = new Vue({
 		el: '#start_screen',
 		data: {
 			formats: Formats,
-			recent: isApp ? recent_projects : []
+			recent: isApp ? recent_projects : [],
+			list_type: StateMemory.start_screen_list_type || 'list',
+			redact_names: settings.streamer_mode.value,
+			isApp
 		},
 		methods: {
 			getDate(p) {
@@ -950,6 +692,18 @@ onVueSetup(function() {
 					loadModelFile(files[0]);
 				})
 				//readFile(p.path, !event.shiftKey)
+			},
+			getThumbnail(model_path) {
+				let hash = model_path.hashCode().toString().replace(/^-/, '0');
+				let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`);
+				if (!fs.existsSync(path)) return 'none'
+				path = `url('${path.replace(/\\/g, '/')}?${Math.round(Math.random()*255)}')`;
+				return path;
+			},
+			setListType(type) {
+				this.list_type = type;
+				StateMemory.start_screen_list_type = type;
+				StateMemory.save('start_screen_list_type')
 			}
 		}
 	})

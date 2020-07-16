@@ -19,7 +19,7 @@ function getMtlFace(obj, index) {
 	} else if (!tex || typeof tex === 'string') {
 		return 'usemtl none\n'
 	} else {
-		return 'usemtl ' + tex.id + '\n';
+		return 'usemtl m_' + tex.id + '\n';
 	}
 }
 
@@ -164,7 +164,7 @@ var codec = new Codec('obj', {
 		for (var key in materials) {
 			if (materials.hasOwnProperty(key) && materials[key]) {
 				var tex = materials[key];
-				mtlOutput += 'newmtl ' +key+ '\n'
+				mtlOutput += 'newmtl m_' +key+ '\n'
 				mtlOutput += `map_Kd ${tex.name} \n`;
 			}
 		}
@@ -214,7 +214,6 @@ var codec = new Codec('obj', {
 				type: this.name,
 				extensions: [this.extension],
 				name: this.fileName(),
-				startpath: this.startPath(),
 				custom_writer: (a, b) => scope.write(a, b),
 			})
 
