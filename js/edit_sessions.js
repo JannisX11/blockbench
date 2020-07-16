@@ -311,6 +311,7 @@ EditSession.Client = class {
 		this.conn.send(tag)
 	}
 	disconnect(e) {
+		if (!EditSession.clients[this.id]) return;
 		Blockbench.dispatchEvent('user_leaves_session', this)
 		delete EditSession.peer.connections[this.conn.peer];
 		delete EditSession.clients[this.id];
