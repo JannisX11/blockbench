@@ -277,7 +277,7 @@ class Cube extends NonGroup {
 		}
 		delete this;
 	}
-	getUndoCopy(aspects) {
+	getUndoCopy(aspects = 0) {
 		var copy = new Cube(this)
 		if (aspects.uv_only) {
 			copy = {
@@ -285,6 +285,9 @@ class Cube extends NonGroup {
 				faces: copy.faces,
 				mirror_uv: copy.mirror_uv,
 			}
+		}
+		for (let face_id in copy.faces) {
+			copy.faces[face_id] = copy.faces[face_id].getSaveCopy()
 		}
 		copy.uuid = this.uuid
 		copy.type = this.type;
