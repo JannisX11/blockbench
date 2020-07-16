@@ -72,8 +72,7 @@ const EditSession = {
 			key: 'edit_session',
 			host: EditSession.ip,
 			port: 9000,
-			path: '/sessions',
-			secure: true
+			path: '/sessions'
 		});
 		EditSession.peer.on('open', function() {
 

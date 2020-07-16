@@ -551,7 +551,7 @@
 	#start_screen section#start-files left {
 		width: 38%;
 		overflow-y: hidden;
-		padding: 20px 24px 10px 24px
+		padding: 20px 24px 0px 24px
 	}
 	#start-files right {
 		border-left: 1px solid var(--color-border);
