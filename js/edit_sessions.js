@@ -12,8 +12,7 @@ const EditSession = {
 			key: 'edit_session',
 			host: EditSession.ip,
 			port: 9000,
-			path: '/sessions',
-			secure: true
+			path: '/sessions'
 		});
 		EditSession.username = $('#edit_session_username').val() || EditSession.placeholder_names.random();
 		settings.username.value = EditSession.username;

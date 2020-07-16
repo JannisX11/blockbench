@@ -5,6 +5,8 @@ language: node_js
 node:
   - 12
 
+if: branch = master
+
 jobs:
   include:
     - name: "macOS"
