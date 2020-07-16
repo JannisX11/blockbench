@@ -310,6 +310,7 @@
 	}
 	.toolbar_wrapper > .toolbar.vertical {
 		width: 40px;
+		flex-direction: column-reverse;
 	}
 	.toolbar_wrapper > .toolbar.vertical .tool {
 		height: 36px;

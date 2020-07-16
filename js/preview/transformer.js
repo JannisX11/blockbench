@@ -1012,9 +1012,9 @@
 						Canvas.outlineObjects(selected)
 						extendTransformLine(true);
 					}
+					_dragging = true;
 				}
 			}
-			_dragging = true;
 		}
 		function beforeFirstChange(event) {
 			if (scope.hasChanged) return;

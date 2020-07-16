@@ -741,37 +741,12 @@ function rotateOnAxis(modify, axis, slider) {
 			origin = obj.origin
 		}
 	})
-	/*
-	Cube.selected.forEach(function(obj, i) {
-		if (obj.rotation.allEqual(0)) {
-			obj.origin.V3_set(origin)
-		}
-		var obj_val = modify(obj.rotation[axis]);
-		obj_val = Math.trimDeg(obj_val)
-		if (Format.rotation_limit) {
-			//Limit To 1 Axis
-			obj.rotation[(axis+1)%3] = 0
-			obj.rotation[(axis+2)%3] = 0
-			//Limit Angle
-			obj_val = Math.round(obj_val/22.5)*22.5
-			if (obj_val > 45 || obj_val < -45) {
 
-				let f = obj_val > 45
-				obj.roll(axis, f!=(axis==1) ? 1 : 3)
-				obj_val = f ? -22.5 : 22.5;
-			}
-		} else {
-			obj_val = Math.trimDeg(obj_val)
-		}
-		obj.rotation[axis] = obj_val
-		obj.rotation_axis = axis_letter
-	})
-	*/
 	let space = Transformer.getTransformSpace()
 	things.forEach(obj => {
 		let mesh = obj.mesh;
-		if (obj instanceof Cube) {
-			if (obj.rotation.allEqual(0)) {
+		if (obj instanceof Cube && !Format.bone_rig) {
+			if (obj.origin.allEqual(0)) {
 				obj.origin.V3_set(origin)
 			}
 		}
