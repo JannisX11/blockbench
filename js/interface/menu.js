@@ -35,11 +35,12 @@ class Menu {
 				}
 			}
 
-			if (offset.top + el_height > $(window).height()) {
+			let window_height = $(window).height() - 26;
+
+			if (offset.top + el_height > window_height) {
 				childlist.css('margin-top', 4-childlist.height() + 'px')
-				if (childlist.offset().top < 0) {
-					var space = $(window).height() - $(window).height()
-					childlist.offset({top: space/2})
+				if (childlist.offset().top < 26) {
+					childlist.offset({top: 26})
 				}
 			}
 			if (el_height > $(window).height()) {
@@ -214,6 +215,7 @@ class Menu {
 
 		var el_width = ctxmenu.width()
 		var el_height = ctxmenu.height()
+		let window_height = $(window).height() - 26;
 
 		if (position && position.clientX !== undefined) {
 			var offset_left = position.clientX
@@ -235,12 +237,17 @@ class Menu {
 			offset_left -= el_width
 			if (position && position.clientWidth) offset_left += position.clientWidth;
 		}
-		if (offset_top  > $(window).height() - el_height ) {
+		if (offset_top  > window_height - el_height ) {
 			offset_top -= el_height
 		}
+		offset_top = Math.clamp(offset_top, 26)
 
 		ctxmenu.css('left', offset_left+'px')
 		ctxmenu.css('top',  offset_top +'px')
+
+		if (el_height > window_height) {
+			ctxmenu.css('height', window_height+'px').css('overflow-y', 'scroll')
+		}
 
 		$(scope.node).filter(':not(.tx)').addClass('tx').click(function(ev) {
 			if (
