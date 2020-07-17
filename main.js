@@ -2,7 +2,6 @@ const {app, BrowserWindow, Menu, ipcMain} = require('electron')
 const path = require('path')
 const url = require('url')
 const { autoUpdater } = require('electron-updater');
-const { arch, platform } = require('os');
 
 let orig_win;
 
@@ -46,8 +45,7 @@ function createWindow(second_instance) {
 						"type": "separator"
 					},
 					{
-						"label": "Quit",
-						"accelerator": "Command+Q"
+                        "role": "quit"
 					}
 				]
 			},
