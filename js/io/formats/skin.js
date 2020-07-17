@@ -335,7 +335,7 @@ const skin_dialog = new Dialog({
 			filetype: 'PNG',
 		},
 		pose: {type: 'checkbox', label: 'dialog.skin.pose', value: true},
-		layer_template: {type: 'checkbox', label: 'dialog.skin.layer_template', value: true}
+		layer_template: {type: 'checkbox', label: 'dialog.skin.layer_template', value: false}
 	},
 	draggable: true,
 	onConfirm(result) {
@@ -478,21 +478,21 @@ skin_presets.alex = `{
 		{
 			"name": "Right Arm",
 			"color": 5,
-			"pivot": [-5, 22, 0],
+			"pivot": [-5, 21.5, 0],
 			"pose": [-10, 0, 0],
 			"cubes": [
-				{"name": "Right Arm", "origin": [-7, 12, -2], "size": [3, 12, 4], "uv": [40, 16]},
-				{"name": "Right Arm Layer", "visibility": false, "origin": [-7, 12, -2], "size": [3, 12, 4], "uv": [40, 32], "inflate": 0.25, "layer": true}
+				{"name": "Right Arm", "origin": [-7, 11.5, -2], "size": [3, 12, 4], "uv": [40, 16]},
+				{"name": "Right Arm Layer", "visibility": false, "origin": [-7, 11.5, -2], "size": [3, 12, 4], "uv": [40, 32], "inflate": 0.25, "layer": true}
 			]
 		},
 		{
 			"name": "Left Arm",
 			"color": 0,
-			"pivot": [5, 22, 0],
+			"pivot": [5, 21.5, 0],
 			"pose": [12, 0, 0],
 			"cubes": [
-				{"name": "Left Arm", "origin": [4, 12, -2], "size": [3, 12, 4], "uv": [32, 48]},
-				{"name": "Left Arm Layer", "visibility": false, "origin": [4, 12, -2], "size": [3, 12, 4], "uv": [48, 48], "inflate": 0.25, "layer": true}
+				{"name": "Left Arm", "origin": [4, 11.5, -2], "size": [3, 12, 4], "uv": [32, 48]},
+				{"name": "Left Arm Layer", "visibility": false, "origin": [4, 11.5, -2], "size": [3, 12, 4], "uv": [48, 48], "inflate": 0.25, "layer": true}
 			]
 		},
 		{
