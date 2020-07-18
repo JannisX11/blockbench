@@ -685,7 +685,7 @@ class Texture {
 					return;
 				}
 
-				Undo.initEdit({textures: [scope]})
+				Undo.initEdit({textures: [scope], selected_texture: true})
 
 				scope.name = results.name;
 				if (results.variable !== undefined) scope.id = results.variable;
@@ -981,9 +981,9 @@ class Texture {
 				icon: 'delete',
 				name: 'generic.delete',
 				click: function(texture) {
-					Undo.initEdit({textures: [texture], bitmap: true})
+					Undo.initEdit({textures: [texture], selected_texture: true, bitmap: true})
 					texture.remove()
-					Undo.initEdit({textures: [], bitmap: true})
+					Undo.finishEdit('delete texture', {textures: [], selected_texture: true, bitmap: true})
 			}},
 			'_',
 			{

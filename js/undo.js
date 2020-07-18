@@ -130,6 +130,8 @@ var Undo = {
 		var scope = this;
 		this.aspects = aspects;
 
+		templog(aspects)
+
 		if (aspects.selection) {
 			this.selection = []
 			selected.forEach(function(obj) {
@@ -168,6 +170,10 @@ var Undo = {
 			Texture.all.forEach(tex => {
 				this.texture_order.push(tex.uuid);
 			})
+		}
+
+		if (aspects.selected_texture && Texture.all.length) {
+			this.selected_texture = Texture.selected ? Texture.selected.uuid : null;
 		}
 
 		if (aspects.settings) {
@@ -341,6 +347,13 @@ var Undo = {
 				return save.texture_order.indexOf(a.uuid) - save.texture_order.indexOf(b.uuid);
 			})
 			Canvas.updateLayeredTextures()
+		}
+
+		if (save.selected_texture) {
+			let tex = Texture.all.find(tex => tex.uuid == save.selected_texture);
+			if (tex instanceof Texture) tex.select()
+		} else if (save.selected_texture == null) {
+			unselectTextures()
 		}
 
 		if (save.settings) {

@@ -106,15 +106,16 @@ const TextureGenerator = {
 				after(texture)
 			}
 			if (!options.template) {
-				Undo.finishEdit('create blank texture', {textures: [texture], bitmap: true})
+				Undo.finishEdit('create blank texture', {textures: [texture], selected_texture: true, bitmap: true})
 			}
 			return texture;
 		}
 		if (options.template === true) {
 			Undo.initEdit({
-				textures: Format.single_texture ? textures : [],
+				textures: [],
 				elements: Format.single_texture ? Cube.all : Cube.selected,
 				uv_only: true,
+				selected_texture: true,
 				uv_mode: true
 			})
 			if (Project.box_uv || options.box_uv) {
@@ -123,7 +124,7 @@ const TextureGenerator = {
 				TextureGenerator.generateFaceTemplate(options, makeTexture)
 			}
 		} else {
-			Undo.initEdit({textures: []})
+			Undo.initEdit({textures: [], selected_texture: true})
 			TextureGenerator.generateBlank(options.resolution, options.resolution, options.color, makeTexture)
 		}
 	},
@@ -356,6 +357,7 @@ const TextureGenerator = {
 			textures: [texture],
 			bitmap: true,
 			elements: cubes,
+			selected_texture: true,
 			uv_only: true,
 			uv_mode: true
 		})
@@ -455,7 +457,7 @@ const TextureGenerator = {
 		for (var face in TextureGenerator.face_data) {
 			let d = TextureGenerator.face_data[face]
 			
-			if (!cube.faces[face].texture ||
+			if (!cube.faces[face].getTexture() ||
 				!TextureGenerator.boxUVdrawTexture(cube.faces[face], d.place(template), texture, canvas)
 			) {
 				TextureGenerator.boxUVdrawTemplateRectangle(d.c1, transparent ? null : d.c2, cube.faces[face], d.place(template), texture, canvas)
@@ -744,6 +746,7 @@ const TextureGenerator = {
 			textures: [texture],
 			bitmap: true,
 			elements: cube_array,
+			selected_texture: true,
 			uv_only: true,
 			uv_mode: true
 		})

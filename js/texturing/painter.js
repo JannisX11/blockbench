@@ -172,7 +172,7 @@ const Painter = {
 			Painter.colorPicker(texture, x, y)
 		} else if (Toolbox.selected.id === 'draw_shape_tool') {
 
-			Undo.initEdit({textures: [texture], bitmap: true});
+			Undo.initEdit({textures: [texture], selected_texture: true, bitmap: true});
 			Painter.brushChanges = false;
 			Painter.painting = true;
 			Painter.current = {
@@ -187,7 +187,7 @@ const Painter = {
 			Painter.current.clear.getContext('2d').drawImage(texture.img, 0, 0);
 
 		} else {
-			Undo.initEdit({textures: [texture], bitmap: true});
+			Undo.initEdit({textures: [texture], selected_texture: true, bitmap: true});
 			Painter.brushChanges = false;
 			Painter.painting = true;
 
