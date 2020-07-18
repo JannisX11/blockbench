@@ -81,6 +81,12 @@ class Face {
 		}
 		return copy;
 	}
+	getUndoCopy() {
+		var copy = new Face(this.direction, this);
+		delete copy.cube;
+		delete copy.direction;
+		return copy;
+	}
 }
 Face.opposite = {
 	north: 'south',
@@ -287,7 +293,7 @@ class Cube extends NonGroup {
 			}
 		}
 		for (let face_id in copy.faces) {
-			copy.faces[face_id] = copy.faces[face_id].getSaveCopy()
+			copy.faces[face_id] = copy.faces[face_id].getUndoCopy()
 		}
 		copy.uuid = this.uuid
 		copy.type = this.type;
