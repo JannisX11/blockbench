@@ -93,7 +93,7 @@ const TextureGenerator = {
 			folder: options.folder ? options.folder : 'block'
 		})
 		function makeTexture(dataUrl) {
-			texture.fromDataURL(dataUrl).add(false)
+			texture.fromDataURL(dataUrl).add(false).select()
 			switch (options.particle) {
 				case 'auto':
 				texture.fillParticle();
