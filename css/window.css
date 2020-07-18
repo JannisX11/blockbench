@@ -369,6 +369,9 @@
 	}
 	#start_screen h3 {
 		margin: 0;
+		padding-bottom: 0;
+		height: auto;
+		font-size: 18px;
 	}
 	#start_screen .bar.next_to_title {
 		margin-top: -40px;
@@ -557,7 +560,7 @@
 		border-left: 1px solid var(--color-border);
 	}
 	#start_screen left > ul {
-		height: calc(100% - 46px);
+		height: calc(100% - 60px);
 		overflow-y: auto;
 	}
 	#start_screen right i {
@@ -571,9 +574,9 @@
 		height: 22px;
 	}
 	#start-files left i {
-		font-size: 20pt;
+		font-size: 19pt;
 		height: 22px;
-		margin: 2px 12px 0px 0;
+		margin: 2px 8px 0px 0;
 		display: inline-block;
 	}
 
