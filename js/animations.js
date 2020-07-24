@@ -1986,7 +1986,8 @@ Molang.variableHandler = function (variable) {
 	var i = 0;
 	while (i < inputs.length) {
 		let key, val;
-		[key, val] = inputs[i].replace(/[\s;]/g, '').split('=')
+		[key, val] = inputs[i].split(/=(.+)/);
+		key = key.replace(/[\s;]/g, '');
 		if (key === variable) {
 			return Molang.parse(val)
 		}
