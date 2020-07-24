@@ -18,13 +18,17 @@ if (isApp === false) {
 		Blockbench.browser = 'safari'
 	} else if (!!document.documentMode) {
 		Blockbench.browser = 'internet_explorer'
-	} else if (!!window.StyleMedia) {
+	} else if (!!window.chrome && window.navigator.userAgent.toLowerCase().includes('edg')) {
 		Blockbench.browser = 'edge'
+	} else if (!!window.StyleMedia) {
+		Blockbench.browser = 'proprietary_edge'
+	} else if (!!window.chrome && !window.chrome.webstore) {
+		Blockbench.browser = 'chromium'
 	}
-	if (navigator.appVersion.indexOf("Win") != -1) 	OSName = 'Windows';
-	if (navigator.appVersion.indexOf("Mac") != -1) 	OSName = 'MacOS';
-	if (navigator.appVersion.indexOf("Linux") != -1)OSName = 'Linux';
-	if (['edge', 'internet_explorer'].includes(Blockbench.browser)) {
+	if (navigator.appVersion.indexOf("Win") != -1) 	 Blockbench.operating_system = 'Windows';
+	if (navigator.appVersion.indexOf("Mac") != -1) 	 Blockbench.operating_system = 'MacOS';
+	if (navigator.appVersion.indexOf("Linux") != -1) Blockbench.operating_system = 'Linux';
+	if (['proprietary_edge', 'internet_explorer'].includes(Blockbench.browser)) {
 		alert(capitalizeFirstLetter(Blockbench.browser)+' does not support Blockbench')
 	}
 	$('.local_only').remove()
