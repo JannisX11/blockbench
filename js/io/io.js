@@ -871,8 +871,8 @@ BARS.defineActions(function() {
 		click: function () {
 			if (isApp) {
 				saveTextures()
-				if (Format.codec && Format.codec.compile) {
-					if (ModelMeta.export_path) {
+				if (Format) {
+					if (ModelMeta.export_path && Format.codec && Format.codec.compile) {
 						Format.codec.write(Format.codec.compile(), ModelMeta.export_path)
 					} else if (ModelMeta.save_path) {
 						Codecs.project.write(Codecs.project.compile(), ModelMeta.save_path);
