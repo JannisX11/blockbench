@@ -412,15 +412,15 @@ function scaleAll(save, size) {
 			if ($('#model_scale_'+getAxisLetter(i)+'_axis').is(':checked')) {
 
 				if (obj.from) {
-					obj.from[i] = (obj.before.from[i] - ogn) * size;
+					obj.from[i] = (obj.before.from[i] - obj.inflate - ogn) * size;
 					if (obj.from[i] + ogn > 32 || obj.from[i] + ogn < -16) overflow.push(obj);
-					obj.from[i] = limitToBox(obj.from[i] + ogn, -obj.inflate);
+					obj.from[i] = limitToBox(obj.from[i] + obj.inflate + ogn, -obj.inflate);
 				}
 
 				if (obj.to) {
-					obj.to[i] = (obj.before.to[i] - ogn) * size;
+					obj.to[i] = (obj.before.to[i] + obj.inflate - ogn) * size;
 					if (obj.to[i] + ogn > 32 || obj.to[i] + ogn < -16) overflow.push(obj);
-					obj.to[i] = limitToBox(obj.to[i] + ogn, obj.inflate);
+					obj.to[i] = limitToBox(obj.to[i] - obj.inflate + ogn, obj.inflate);
 					if (Format.integer_size) {
 						obj.to[i] = obj.from[i] + Math.round(obj.to[i] - obj.from[i])
 					}

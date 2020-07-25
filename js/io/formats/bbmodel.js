@@ -25,6 +25,7 @@ var codec = new Codec('project', {
 		var model = {
 			meta: {
 				format_version: FORMATV,
+				creation_time: Math.round(new Date().getTime()/1000),
 				model_format: Format.id,
 				box_uv: Project.box_uv
 			}

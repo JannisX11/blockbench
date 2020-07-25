@@ -394,6 +394,11 @@ function loadModelFile(file) {
 			}
 		}
 		EditSession.initNewModel()
+		if (!Format) {
+			Modes.options.start.select()
+			Modes.vue.$forceUpdate()
+			Blockbench.dispatchEvent('close_project');
+		}
 	}
 }
 var Extruder = {
