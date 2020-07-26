@@ -817,7 +817,9 @@ class BarSelect extends Widget {
 		}
 		this.value = key;
 		let name = this.getNameFor(key);
-		$(this.node).find('bb-select').text(name)
+		this.nodes.forEach(node => {
+			$(node).find('bb-select').text(name)
+		})
 		return this;
 	}
 	get() {
