@@ -1382,7 +1382,7 @@ const Animator = {
 
 					animator.sound.forEach(kf => {
 						if (!ani_tag.sound_effects) ani_tag.sound_effects = {};
-						let timecode = Math.clamp(trimFloatNumber(Math.round(kf.time*60)/60), 0) + '';
+						let timecode = trimFloatNumber(Timeline.snapTime(kf.time));
 						if (!timecode.includes('.')) {
 							timecode += '.0';
 						}
@@ -1392,7 +1392,7 @@ const Animator = {
 					})
 					animator.particle.forEach(kf => {
 						if (!ani_tag.particle_effects) ani_tag.particle_effects = {};
-						let timecode = Math.clamp(trimFloatNumber(Math.round(kf.time*60)/60), 0) + '';
+						let timecode = trimFloatNumber(Timeline.snapTime(kf.time));
 						if (!timecode.includes('.')) {
 							timecode += '.0';
 						}
@@ -1406,7 +1406,7 @@ const Animator = {
 					})
 					animator.timeline.forEach(kf => {
 						if (!ani_tag.timeline) ani_tag.timeline = {};
-						let timecode = Math.clamp(trimFloatNumber(Math.round(kf.time*60)/60), 0) + '';
+						let timecode = trimFloatNumber(Timeline.snapTime(kf.time));
 						if (!timecode.includes('.')) {
 							timecode += '.0';
 						}
@@ -1423,7 +1423,7 @@ const Animator = {
 						if (!channels[kf.channel]) {
 							channels[kf.channel] = {};
 						}
-						let timecode = Math.clamp(trimFloatNumber(Math.round(kf.time*60)/60), 0) + '';
+						let timecode = trimFloatNumber(Timeline.snapTime(kf.time));
 						if (!timecode.includes('.')) {
 							timecode = timecode + '.0';
 						}
