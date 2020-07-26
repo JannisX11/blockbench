@@ -820,6 +820,9 @@ class BarSelect extends Widget {
 		this.nodes.forEach(node => {
 			$(node).find('bb-select').text(name)
 		})
+		if (!this.nodes.includes(this.node)) {
+			$(this.node).find('bb-select').text(name)
+		}
 		return this;
 	}
 	get() {
