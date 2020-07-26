@@ -130,8 +130,6 @@ var Undo = {
 		var scope = this;
 		this.aspects = aspects;
 
-		templog(aspects)
-
 		if (aspects.selection) {
 			this.selection = []
 			selected.forEach(function(obj) {

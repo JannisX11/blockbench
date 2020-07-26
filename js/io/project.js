@@ -135,10 +135,10 @@ function newProject(format, force) {
 		if (Format) {
 			Project.reset();
 		}
-		Modes.options.edit.select();
 		if (format instanceof ModelFormat) {
 			format.select();
 		}
+		Modes.options.edit.select();
 		Blockbench.dispatchEvent('new_project');
 		return true;
 	} else {

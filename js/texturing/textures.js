@@ -992,6 +992,7 @@ class Texture {
 				click: function(texture) { texture.openMenu()}
 			}
 	])
+	Texture.prototype.currentFrame = 0;
 	Texture.all = textures;
 	Texture.getDefault = function() {
 		if (Texture.selected && Texture.all.includes(Texture.selected)) {
@@ -1184,9 +1185,7 @@ TextureAnimator = {
 		var animated_tex = []
 		textures.forEach(function(tex, i) {
 			if (tex.frameCount > 1) {
-				if (tex.currentFrame === undefined) {
-					tex.currentFrame = 0
-				} else if (tex.currentFrame >= tex.frameCount-1) {
+				if (tex.currentFrame >= tex.frameCount-1) {
 					tex.currentFrame = 0
 				} else {
 					tex.currentFrame++;

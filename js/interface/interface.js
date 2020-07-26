@@ -588,7 +588,18 @@ function addStartScreenSection(id, data) {
 			addStartScreenSection(data.new_version)
 		}
 		if (data.psa) {
-			addStartScreenSection(data.psa)
+			(function() {
+				if (typeof data.psa.version == 'string') {
+					if (data.psa.version.includes('-')) {
+						limits = data.psa.version.split('-');
+						if (limits[0] && compareVersions(limits[0], Blockbench.version)) return;
+						if (limits[1] && compareVersions(Blockbench.version, limits[1])) return;
+					} else {
+						if (data.psa.version != Blockbench.version) return;
+					}
+				}
+				addStartScreenSection(data.psa)
+			})()
 		}
 
 	})
@@ -628,21 +639,10 @@ function addStartScreenSection(id, data) {
 				]
 			})
 		}
-		//Discord
-		if (Blockbench.startup_count < 6) {
-			addStartScreenSection({
-				color: '#7289da',
-				text_color: '#ffffff',
-				graphic: {type: 'icon', icon: 'fab.fa-discord'},
-				text: [
-					{type: 'h1', text: 'Discord Server'},
-					{text: 'You need help with modeling or you want to chat about Blockbench? Join the [Modeling Discord](https://discord.gg/WVHg5kH)!'}
-				],
-				last: true
-			})
-		}
 		//Twitter
+		let twitter_ad;
 		if (Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
+			twitter_ad = true;
 			addStartScreenSection({
 				color: '#1da1f2',
 				text_color: '#ffffff',
@@ -650,6 +650,19 @@ function addStartScreenSection(id, data) {
 				text: [
 					{type: 'h1', text: 'Blockbench on Twitter'},
 					{text: 'Follow Blockbench on Twitter for the latest news as well as cool models from the community! [twitter.com/blockbench](https://twitter.com/blockbench/)'}
+				],
+				last: true
+			})
+		}
+		//Discord
+		if (Blockbench.startup_count < 6 && !twitter_ad) {
+			addStartScreenSection({
+				color: '#7289da',
+				text_color: '#ffffff',
+				graphic: {type: 'icon', icon: 'fab.fa-discord'},
+				text: [
+					{type: 'h1', text: 'Discord Server'},
+					{text: 'You need help with modeling or you want to chat about Blockbench? Join the [Modeling Discord](https://discord.gg/WVHg5kH)!'}
 				],
 				last: true
 			})

@@ -28,7 +28,7 @@ const Condition = function(condition, context) {
 		return condition(context)
 	} else if (typeof condition === 'object') {
 		if (condition.modes instanceof Array && condition.modes.includes(Modes.id) === false) return false;
-		if (condition.formats instanceof Array && Format && condition.formats.includes(Format.id) === false) return false;
+		if (condition.formats instanceof Array && condition.formats.includes(Format.id) === false) return false;
 		if (condition.tools instanceof Array && window.Toolbox && condition.tools.includes(Toolbox.selected.id) === false) return false;
 
 		if (condition.method instanceof Function) {
