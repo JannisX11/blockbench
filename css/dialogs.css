@@ -545,6 +545,9 @@
         margin-bottom: 20px;
         overflow-y: scroll;
     }
+    #pe_list li {
+        overflow: hidden;
+    }
     #pe_list li > * {
         margin: 0;
         margin-left: 12px;
