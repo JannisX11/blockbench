@@ -588,7 +588,18 @@ function addStartScreenSection(id, data) {
 			addStartScreenSection(data.new_version)
 		}
 		if (data.psa) {
-			addStartScreenSection(data.psa)
+			(function() {
+				if (typeof data.psa.version == 'string') {
+					if (data.psa.version.includes('-')) {
+						limits = data.psa.version.split('-');
+						if (limits[0] && compareVersions(limits[0], Blockbench.version)) return;
+						if (limits[1] && compareVersions(Blockbench.version, limits[1])) return;
+					} else {
+						if (data.psa.version != Blockbench.version) return;
+					}
+				}
+				addStartScreenSection(data.psa)
+			})()
 		}
 
 	})
