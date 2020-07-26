@@ -853,6 +853,13 @@ class Keyframe {
 			)
 		}
 	}
+	getTimecodeString() {
+		let timecode = trimFloatNumber(Timeline.snapTime(this.time)).toString();
+		if (!timecode.includes('.')) {
+			timecode += '.0';
+		}
+		return timecode;
+	}
 	replaceOthers(save) {
 		var scope = this;
 		var arr = this.animator[this.channel];
@@ -1156,6 +1163,7 @@ class Keyframe {
 				}
 				if (animator) {
 					var kf = animator.createKeyframe(data, Timeline.time + data.time_offset, data.channel, false, false)
+					if (!kf) return;
 					keyframes.push(kf);
 					kf.selected = true;
 					Timeline.selected.push(kf);
@@ -1382,20 +1390,14 @@ const Animator = {
 
 					animator.sound.forEach(kf => {
 						if (!ani_tag.sound_effects) ani_tag.sound_effects = {};
-						let timecode = trimFloatNumber(Timeline.snapTime(kf.time));
-						if (!timecode.includes('.')) {
-							timecode += '.0';
-						}
+						let timecode = kf.getTimecodeString();
 						ani_tag.sound_effects[timecode] = {
 							effect: kf.effect
 						};
 					})
 					animator.particle.forEach(kf => {
 						if (!ani_tag.particle_effects) ani_tag.particle_effects = {};
-						let timecode = trimFloatNumber(Timeline.snapTime(kf.time));
-						if (!timecode.includes('.')) {
-							timecode += '.0';
-						}
+						let timecode = kf.getTimecodeString();
 						let script = kf.script || undefined;
 						if (script && !script.match(/;$/)) script += ';';
 						ani_tag.particle_effects[timecode] = {
@@ -1406,10 +1408,7 @@ const Animator = {
 					})
 					animator.timeline.forEach(kf => {
 						if (!ani_tag.timeline) ani_tag.timeline = {};
-						let timecode = trimFloatNumber(Timeline.snapTime(kf.time));
-						if (!timecode.includes('.')) {
-							timecode += '.0';
-						}
+						let timecode = kf.getTimecodeString();
 						ani_tag.timeline[timecode] = kf.instructions.split('\n');
 					})
 
@@ -1423,10 +1422,7 @@ const Animator = {
 						if (!channels[kf.channel]) {
 							channels[kf.channel] = {};
 						}
-						let timecode = trimFloatNumber(Timeline.snapTime(kf.time));
-						if (!timecode.includes('.')) {
-							timecode = timecode + '.0';
-						}
+						let timecode = kf.getTimecodeString();
 						channels[kf.channel][timecode] = kf.getArray()
 					})
 					//Sorting keyframes
