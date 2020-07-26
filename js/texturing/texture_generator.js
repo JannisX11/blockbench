@@ -58,9 +58,10 @@ const TextureGenerator = {
 					var dialog2 = new Dialog({
 						id: 'texture_simple',
 						title: tl('action.create_texture'),
+						width: 400,
 						form: {
 							color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
-							resolution: {label: 'dialog.create_texture.resolution', type: 'number', value: 16, min: 16, max: 2048},
+							resolution: {label: 'dialog.create_texture.resolution', type: 'vector', dimensions: 2, value: [16, 16], min: 16, max: 2048},
 						},
 						onConfirm: function(results2) {
 							$.extend(results, results2)
@@ -76,8 +77,8 @@ const TextureGenerator = {
 		if (typeof options !== 'object') {
 			options = {}
 		}
-		if (isNaN(options.resolution) || !options.resolution) {
-			options.resolution = 16
+		if (!options.resolution || isNaN(options.resolution[0]) || isNaN(options.resolution[1])) {
+			options.resolution = [16, 16]
 		}
 		if (options.color === undefined) {
 			options.color = new tinycolor().toRgb()
@@ -88,7 +89,6 @@ const TextureGenerator = {
 		var texture = new Texture({
 			mode: 'bitmap',
 			keep_size: true,
-			res: options.resolution,
 			name: options.name ? options.name : 'texture',
 			folder: options.folder ? options.folder : 'block'
 		})
@@ -125,7 +125,7 @@ const TextureGenerator = {
 			}
 		} else {
 			Undo.initEdit({textures: [], selected_texture: true})
-			TextureGenerator.generateBlank(options.resolution, options.resolution, options.color, makeTexture)
+			TextureGenerator.generateBlank(options.resolution[1], options.resolution[0], options.color, makeTexture)
 		}
 	},
 	generateBlank(height, width, color, cb) {

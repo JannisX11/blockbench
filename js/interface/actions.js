@@ -1453,14 +1453,6 @@ const BARS = {
 			default_place: true
 		})
 
-		// update 3.4
-		if (!Toolbars.tools.children.includes(BarItems.draw_shape_tool)) {
-			Toolbars.tools.add(BarItems.draw_shape_tool, -1)
-		}
-		if (!Toolbars.tools.children.includes(BarItems.copy_paste_tool)) {
-			Toolbars.tools.add(BarItems.copy_paste_tool, -1)
-		}
-
 		Toolbars.element_position = new Toolbar({
 			id: 'element_position',
 			children: [
@@ -1517,10 +1509,6 @@ const BARS = {
 				'load_palette',
 			]
 		})
-		//update 3.5
-		if (!Toolbars.palette.children.includes(BarItems.load_palette)) {
-			Toolbars.palette.add(BarItems.load_palette)
-		}
 		Toolbars.color_picker = new Toolbar({
 			id: 'color_picker',
 			children: [
