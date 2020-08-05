@@ -20,6 +20,7 @@ class Mode extends KeybindItem {
 			Modes.previous_id = Modes.selected.id;
 		}
 		if (typeof Modes.selected.onUnselect === 'function') {
+			Blockbench.dispatchEvent('unselect_mode', {mode: Modes.selected})
 			Modes.selected.onUnselect()
 		}
 		if (Modes.selected.selected) {
@@ -27,6 +28,7 @@ class Mode extends KeybindItem {
 		}
 		this.selected = true;
 		Modes.id = this.id
+		Mode.selected = this;
 		Modes.selected = this;
 		Modes[Modes.selected.id] = true;
 
@@ -54,6 +56,7 @@ class Mode extends KeybindItem {
 			BarItems.move_tool.select()
 		}
 		TickUpdates.selection = true;
+		Blockbench.dispatchEvent('select_mode', {mode: this})
 	}
 	trigger() {
 		if (Condition(this.condition)) {

@@ -1265,7 +1265,7 @@ const Animator = {
 		Blockbench.dispatchEvent('display_animation_frame')
 	},
 	loadFile(file) {
-		var json = autoParseJSON(file.content)
+		var json = file.json || autoParseJSON(file.content);
 		if (json && typeof json.animations === 'object') {
 			for (var ani_name in json.animations) {
 				//Animation
@@ -1910,6 +1910,9 @@ const Timeline = {
 		Timeline.playing = true
 		BarItems.play_animation.setIcon('pause')
 		Timeline.interval = setInterval(Timeline.loop, 100/6)
+		if (Animator.selected.loop == 'hold' && Timeline.time >= (Animator.selected.length||1e3)) {
+			Timeline.setTime(0)
+		}
 		Timeline.loop()
 	},
 	loop() {
@@ -1920,8 +1923,8 @@ const Timeline = {
 		} else {
 			if (Animator.selected.loop == 'once') {
 				Timeline.setTime(0)
-				Timeline.pause()
 				Animator.preview()
+				Timeline.pause()
 			} else if (Animator.selected.loop == 'hold') {
 				Timeline.pause()
 			} else {

@@ -245,10 +245,13 @@ BARS.defineActions(function() {
 						Undo.finishEdit('change global UV')
 					}
 
+					Blockbench.dispatchEvent('update_project_settings', formResult);
+
 					BARS.updateConditions()
 					if (EditSession.active) {
 						EditSession.sendAll('change_project_meta', JSON.stringify(Project));
 					}
+					
 					dialog.hide()
 				}
 			})
