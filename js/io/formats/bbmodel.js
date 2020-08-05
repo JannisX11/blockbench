@@ -26,6 +26,7 @@ var codec = new Codec('project', {
 			meta: {
 				format_version: FORMATV,
 				creation_time: Math.round(new Date().getTime()/1000),
+				backup: options.backup ? true : undefined,
 				model_format: Format.id,
 				box_uv: Project.box_uv
 			}
@@ -160,10 +161,10 @@ var codec = new Codec('project', {
 		if (model.textures) {
 			model.textures.forEach(tex => {
 				var tex_copy = new Texture(tex, tex.uuid).add(false);
-				if (tex.source && tex.source.substr(0, 5) == 'data:') {
-					tex_copy.fromDataURL(tex.source)
-				} else if (isApp && tex.path && fs.existsSync(tex.path)) {
+				if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
 					tex_copy.fromPath(tex.path)
+				} else if (tex.source && tex.source.substr(0, 5) == 'data:') {
+					tex_copy.fromDataURL(tex.source)
 				}
 			})
 		}
@@ -233,7 +234,7 @@ BARS.defineActions(function() {
 		category: 'file',
 		keybind: new Keybind({key: 83, ctrl: true, alt: true}),
 		click: function () {
-			saveTextures()
+			saveTextures(true)
 			if (isApp && ModelMeta.save_path) {
 				codec.write(codec.compile(), ModelMeta.save_path);
 			} else {
@@ -247,7 +248,7 @@ BARS.defineActions(function() {
 		category: 'file',
 		keybind: new Keybind({key: 83, ctrl: true, alt: true, shift: true}),
 		click: function () {
-			saveTextures()
+			saveTextures(true)
 			codec.export()
 		}
 	})

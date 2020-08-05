@@ -833,7 +833,7 @@ class Texture {
 				var image = nativeImage.createFromDataURL(scope.source).toPNG()
 			}
 			tex_version++;
-			if (!as && this.path && this.path.substr(1,1) === ':' && fs.existsSync(this.path)) {
+			if (!as && this.path && fs.existsSync(this.path)) {
 				fs.writeFile(this.path, image, function (err) {
 					scope.fromPath(scope.path)
 				})
@@ -1018,10 +1018,11 @@ class Texture {
 	new Property(Texture, 'boolean', 'particle')
 
 
-function saveTextures() {
-	textures.forEach(function(t) {
-		if (!t.saved) {
-			t.save()
+function saveTextures(lazy = false) {
+	textures.forEach(function(tex) {
+		if (!tex.saved) {
+			if (lazy && isApp && (!tex.path || !fs.existsSync(tex.path))) return;
+			tex.save()
 		}
 	})
 }

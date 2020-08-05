@@ -326,7 +326,7 @@ function createBackup(init) {
 	}
 	if (init || elements.length === 0) return;
 
-	var model = Codecs.project.compile({compressed: true})
+	var model = Codecs.project.compile({compressed: true, backup: true})
 	localStorage.setItem('backup_model', model)
 	var file_name = 'backup_'+d.getDate()+'.'+(d.getMonth()+1)+'.'+(d.getYear()-100)+'_'+d.getHours()+'.'+d.getMinutes()
 	var file_path = folder_path+osfs+file_name+'.bbmodel'
