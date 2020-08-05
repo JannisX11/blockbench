@@ -87,6 +87,7 @@ class ModelFormat {
 		})
 		updateSelection()
 		Modes.vue.$forceUpdate()
+		updateInterfacePanels()
 		updateShading();
 		Canvas.updateRenderSides()
 		return this;
@@ -698,13 +699,13 @@ function compileJSON(object, options) {
 		} else if (typeof o === 'boolean') {
 			//Boolean
 			out += (o ? 'true' : 'false')
+		} else if (o === null || o === Infinity || o === -Infinity) {
+			//Null
+			out += 'null'
 		} else if (typeof o === 'number') {
 			//Number
 			o = (Math.round(o*100000)/100000).toString()
 			out += o
-		} else if (o === null || o === Infinity || o === -Infinity) {
-			//Null
-			out += 'null'
 		} else if (typeof o === 'object' && o instanceof Array) {
 			//Array
 			var has_content = false
