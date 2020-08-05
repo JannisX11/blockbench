@@ -19,7 +19,7 @@ const TextureGenerator = {
 			width: 412,
 			form: {
 				name: 		{label: 'generic.name', value: 'texture'},
-				folder: 	{label: 'dialog.create_texture.folder'},
+				folder: 	{label: 'dialog.create_texture.folder', condition: Format.id == 'java_block'},
 				template:	{label: 'dialog.create_texture.template', type: 'checkbox', condition: Cube.all.length}
 			},
 			onConfirm: function(results) {

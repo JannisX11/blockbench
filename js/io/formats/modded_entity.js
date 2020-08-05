@@ -338,7 +338,7 @@ var codec = new Codec('modded_entity', {
 					switch (key) {
 						case 'v': key_regex = '^[a-zA-Z_][a-zA-Z0-9_]+'; break;
 						case 'i': key_regex = '^-?\\d+'; break;
-						case 'f': key_regex = '^-?\\d+\\.?\\d*F'; break;
+						case 'f': key_regex = '^-?\\d+\\.?\\d*[Ff]'; break;
 						case 'd': key_regex = '^-?\\d+\\.?\\d*'; break;
 						case 'b': key_regex = '^true|false'; break;
 					}
