@@ -904,6 +904,7 @@ class Preview {
 				return;
 			}
 
+			var dataUrl = scope.canvas.toDataURL()
 			dataUrl = dataUrl.replace('data:image/png;base64,','')
 			Jimp.read(Buffer.from(dataUrl, 'base64')).then(function(image) { 
 				

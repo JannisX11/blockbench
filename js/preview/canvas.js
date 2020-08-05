@@ -650,9 +650,9 @@ const Canvas = {
 				{face: 'up', fIndex: 4,		from: [size[2]+size[0], size[2]],	 	size: [-size[0], -size[2]]},
 				{face: 'down', fIndex: 6,	from: [size[2]+size[0]*2, 0],		 	size: [-size[0], size[2]]}
 			]
-			var cube_mirror  = obj.shade === false
+			var cube_mirror  = obj.mirror_uv
 
-			if (cube_mirror) {
+			if (obj.mirror_uv) {
 				face_list.forEach(function(f) {
 					f.from[0] += f.size[0]
 					f.size[0] *= -1

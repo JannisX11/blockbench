@@ -343,7 +343,7 @@ function calculateVisibleBox() {
 		}
 		base_cube.addTo(group).init()
 	}
-	function parseBone(b, bones) {
+	function parseBone(b, bones, parent_list) {
 		var group = new Group({
 			name: b.name,
 			origin: b.pivot,
@@ -384,7 +384,7 @@ function calculateVisibleBox() {
 			if (bones[b.parent]) {
 				parent_group = bones[b.parent]
 			} else {
-				data.object.bones.forEach(function(ib) {
+				parent_list.forEach(function(ib) {
 					if (ib.name === b.parent) {
 						ib.children && ib.children.length ? ib.children.push(group) : ib.children = [group]
 					}
@@ -434,7 +434,7 @@ function calculateVisibleBox() {
 				included_bones.push(b.name)
 			})
 			data.object.bones.forEach(function(b) {
-				parseBone(b, bones)
+				parseBone(b, bones, data.object.bones)
 			})
 		}
 
