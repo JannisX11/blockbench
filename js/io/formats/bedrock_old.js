@@ -20,7 +20,7 @@ function parseGeometry(data) {
 		Project.visible_box[0] = Math.max(Project.visible_box[0], data.object.visible_bounds_width);
 		Project.visible_box[1] = Math.max(Project.visible_box[1], data.object.visible_bounds_height);
 		if (data.object.visible_bounds_offset && typeof data.object.visible_bounds_offset[1] == 'number') {
-			Project.visible_box[2] = Math.min(Project.visible_box[2], data.object.visible_bounds_offset[1]);
+			Project.visible_box[2] = data.object.visible_bounds_offset[1];
 		}
 	}
 

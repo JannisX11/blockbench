@@ -257,20 +257,19 @@ function calculateVisibleBox() {
 		radius = 0
 	}
 	let width = Math.ceil((radius*2) / 16)
-		width = Math.max(width, Project.visible_box[0]);
+	width = Math.max(width, Project.visible_box[0]);
 	Project.visible_box[0] = width;
 
-	// Height
-	let height = Math.ceil(Math.abs(visible_box.max.y - visible_box.min.y) / 16)
-	if (height === Infinity) height = 0;
-		height = Math.max(height, Project.visible_box[1]);
-	
-	// Y
-	let y = height/2 + Math.floor(visible_box.min.y / 16)
-	if (y === Infinity) y = 0;
-		y = Math.min(y, Project.visible_box[2]);
+	//Height
+	let y_min = Math.floor(visible_box.min.y / 16);
+	let y_max = Math.ceil(visible_box.max.y / 16);
+	if (y_min === Infinity) y_min = 0;
+	if (y_max === Infinity) y_max = 0;
+	y_min = Math.min(y_min, Project.visible_box[2] - Project.visible_box[1]/2);
+	y_max = Math.max(y_max, Project.visible_box[2] + Project.visible_box[1]/2);
 
-	Project.visible_box.replace([width, height, y])
+	Project.visible_box.replace([width, y_max-y_min, (y_max+y_min) / 2])
+
 	return Project.visible_box;
 }
 
@@ -415,7 +414,7 @@ function calculateVisibleBox() {
 			Project.visible_box[0] = Math.max(Project.visible_box[0], description.visible_bounds_width);
 			Project.visible_box[1] = Math.max(Project.visible_box[1], description.visible_bounds_height);
 			if (description.visible_bounds_offset && typeof description.visible_bounds_offset[1] == 'number') {
-				Project.visible_box[2] = Math.min(Project.visible_box[2], description.visible_bounds_offset[1]);
+				Project.visible_box[2] = description.visible_bounds_offset[1];
 			}
 		}
 
