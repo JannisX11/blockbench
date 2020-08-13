@@ -122,7 +122,11 @@ if (isApp) {
 
 Modes.options.start.select()
 
-loadInstalledPlugins();
+loadInstalledPlugins().then(plugins => {
+	if (isApp) {
+		loadOpenWithBlockbenchFile()
+	}
+})
 
 document.getElementById('page_wrapper').classList.remove('hidden')
 

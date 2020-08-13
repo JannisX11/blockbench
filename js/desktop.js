@@ -71,15 +71,6 @@ function initializeDesktopApp() {
 		Blockbench.addFlag('dev')
 	}
 
-	//Load Model
-	if (electron.process.argv.length >= 2) {
-		var extension = pathToExtension(electron.process.argv.last())
-		if (['json', 'bbmodel', 'jem'].includes(extension)) {
-			Blockbench.read([electron.process.argv.last()], {}, (files) => {
-				loadModelFile(files[0])
-			})
-		}
-	}
 	if (Blockbench.platform == 'darwin') {
 		//Placeholder
 		$('#mac_window_menu').show()
@@ -93,6 +84,17 @@ function initializeDesktopApp() {
 		$('#windows_window_menu').show()
 	}
 
+}
+//Load Model
+function loadOpenWithBlockbenchFile() {
+	if (electron.process.argv.length >= 2) {
+		var extension = pathToExtension(electron.process.argv.last())
+		if (['json', 'bbmodel', 'jem'].includes(extension)) {
+			Blockbench.read([electron.process.argv.last()], {}, (files) => {
+				loadModelFile(files[0])
+			})
+		}
+	}
 }
 (function() {
 	console.log('Electron '+process.versions.electron+', Node '+process.versions.node)

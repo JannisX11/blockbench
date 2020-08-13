@@ -67,24 +67,27 @@ class Plugin {
 		Merge.function(this, data, 'onuninstall')
 		return this;
 	}
-	install(first, cb) {
+	async install(first, cb) {
 		var scope = this;
 		Plugins.registered[this.id] = this;
-		$.getScript(Plugins.path + scope.id + '.js', function() {
-			if (cb) cb.bind(scope)()
-			scope.bindGlobalData(first)
-			if (first && scope.oninstall) {
-				scope.oninstall()
-			}
-		}).fail(function() {
-			if (isApp) {
-				console.log('Could not find file of plugin "'+scope.id+'". Uninstalling it instead.')
-				scope.uninstall()
-			}
+		return await new Promise((resolve, reject) => {
+			$.getScript(Plugins.path + scope.id + '.js', function() {
+				if (cb) cb.bind(scope)()
+				scope.bindGlobalData(first)
+				if (first && scope.oninstall) {
+					scope.oninstall()
+				}
+				resolve()
+			}).fail(function() {
+				if (isApp) {
+					console.log('Could not find file of plugin "'+scope.id+'". Uninstalling it instead.')
+					scope.uninstall()
+					reject()
+				}
+			})
+			this.remember()
+			scope.installed = true;
 		})
-		this.remember()
-		scope.installed = true;
-		return scope;
 	}
 	bindGlobalData() {
 		var scope = this;
@@ -97,24 +100,26 @@ class Plugin {
 		window.onInstall = window.onUninstall = window.plugin_data = undefined
 		return this;
 	}
-	download(first) {
+	async download(first) {
 		var scope = this;
 		if (!isApp) {
-			scope.install()
-			return this;
+			return await scope.install()
 		}
-		var file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
-		var request = https.get('https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins/'+this.id+'.js', function(response) {
-			response.pipe(file);
-			response.on('end', function() {
-				setTimeout(function() {
-					scope.install(first)
-				}, 50)
-			})
+		return await new Promise((resolve, reject) => {
+			var file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
+			var request = https.get('https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins/'+this.id+'.js', function(response) {
+				response.pipe(file);
+				response.on('end', function() {
+					setTimeout(async function() {
+						await scope.install(first);
+						resolve()
+					}, 50)
+				})
+			});
 		});
 		return this;
 	}
-	loadFromFile(file, first) {
+	async loadFromFile(file, first) {
 		var scope = this;
 		if (!isApp && !first) return this;
 		if (first) {
@@ -129,37 +134,40 @@ class Plugin {
 		Plugins.registered[this.id] = this;
 		localStorage.setItem('plugin_dev_path', file.path)
 		Plugins.all.safePush(this)
-
 		scope.source = 'file'
-		if (isApp) {
-			$.getScript(file.path, () => {
-				if (window.plugin_data) {
-					scope.id = (plugin_data && plugin_data.id)||pathToName(file.path)
+
+		return await new Promise((resolve, reject) => {
+
+			if (isApp) {
+				$.getScript(file.path, () => {
+					if (window.plugin_data) {
+						scope.id = (plugin_data && plugin_data.id)||pathToName(file.path)
+						scope.extend(plugin_data)
+						scope.bindGlobalData()
+					}
+					scope.installed = true
+					scope.path = file.path
+					this.remember()
+					Plugins.sort()
+					resolve()
+				}).fail(reject)
+			} else {
+				try {
+					eval(file.content);
+				} catch (err) {
+					reject(err)
+				}
+				if (!Plugins.registered && window.plugin_data) {
+					scope.id = (plugin_data && plugin_data.id)||scope.id
 					scope.extend(plugin_data)
 					scope.bindGlobalData()
 				}
 				scope.installed = true
-				scope.path = file.path
 				this.remember()
 				Plugins.sort()
-			})
-		} else {
-			try {
-				eval(file.content);
-			} catch (err) {
-				throw err;
-				return;
+				resolve()
 			}
-			if (!Plugins.registered && window.plugin_data) {
-				scope.id = (plugin_data && plugin_data.id)||scope.id
-				scope.extend(plugin_data)
-				scope.bindGlobalData()
-			}
-			scope.installed = true
-			this.remember()
-			Plugins.sort()
-		}
-		return this;
+		})
 	}
 	loadFromURL(url, first) {
 		if (first) {
@@ -327,7 +335,8 @@ $.getJSON(Plugins.apipath, function(data) {
 	loadInstalledPlugins()
 })
 
-function loadInstalledPlugins() {
+async function loadInstalledPlugins() {
+	const install_promises = [];
 	if (!Plugins.loadingStep) {
 		Plugins.loadingStep = true
 		return;
@@ -363,7 +372,7 @@ function loadInstalledPlugins() {
 			if (Plugins.installed.find(p => {
 				return p && p.id == id && p.source == 'store'
 			})) {
-				plugin.download()
+				install_promises.push(plugin.download())
 			}
 		}
 		Plugins.sort();
@@ -372,10 +381,11 @@ function loadInstalledPlugins() {
 		Plugins.installed.forEach(function(plugin) {
 
 			if (plugin.source == 'store') {
-				var plugin = new Plugin(plugin.id).install(false, function() {
+				var promise = new Plugin(plugin.id).install(false, function() {
 					this.extend(window.plugin_data)
 					Plugins.sort()
 				})
+				install_promises.push(promise);
 			}
 		})
 	}
@@ -386,14 +396,16 @@ function loadInstalledPlugins() {
 			if (plugin.source == 'file') {
 				//Dev Plugins
 				if (isApp && fs.existsSync(plugin.path)) {
-					var plugin = new Plugin(plugin.id).loadFromFile({path: plugin.path}, false)
+					var instance = new Plugin(plugin.id);
+					install_promises.push(instance.loadFromFile({path: plugin.path}, false));
 					loaded.push('Local: '+ plugin.id || plugin.path)
 				} else {
 					Plugins.installed.remove(plugin)
 				}
 
 			} else if (plugin.source == 'url') {
-				var plugin = new Plugin(plugin.id).loadFromFile({path: plugin.path}, false)
+				var instance = new Plugin(plugin.id);
+				install_promises.push(instance.loadFromFile({path: plugin.path}, false));
 				loaded.push('URL: '+ plugin.id || plugin.path)
 
 			} else {
@@ -430,6 +442,11 @@ function loadInstalledPlugins() {
 			}
 		}
 	})
+
+	install_promises.forEach(promise => {
+		promise.catch(console.error);
+	})
+	return await Promise.allSettled(install_promises);
 }
 function switchPluginTabs(installed) {
 	$('#plugins .tab_bar > .open').removeClass('open')
