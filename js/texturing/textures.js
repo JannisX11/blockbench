@@ -147,6 +147,9 @@ class Texture {
 			return 1/this.ratio
 		}
 	}
+	get display_height() {
+		return this.height / (this.frameCount || 1);
+	}
 	get ratio() {
 		return this.width / this.height;
 	}
@@ -1198,13 +1201,13 @@ TextureAnimator = {
 		if (animated_tex.includes(main_uv.texture)) {
 			main_uv.img.style.objectPosition = `0 -${main_uv.texture.currentFrame * main_uv.inner_height}px`;
 		}
-		elements.forEach(function(obj) {
+		Cube.all.forEach(function(cube) {
 			var update = false
-			for (var face in obj.faces) {
-				update = update || animated_tex.includes(obj.faces[face].getTexture());
+			for (var face in cube.faces) {
+				update = update || animated_tex.includes(cube.faces[face].getTexture());
 			}
 			if (update) {
-				Canvas.updateUV(obj, true)
+				Canvas.updateUV(cube, true)
 			}
 		})
 	},

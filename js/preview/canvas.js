@@ -632,15 +632,15 @@ const Canvas = {
 			mesh.material = materials
 		}
 	},
-	updateUV(obj, animation = true) {
+	updateUV(cube, animation = true) {
 		if (Prop.wireframe === true) return;
-		var mesh = obj.mesh
+		var mesh = cube.mesh
 		if (mesh === undefined) return;
 		mesh.geometry.faceVertexUvs[0] = [];
 
 		if (Project.box_uv) {
 
-			var size = obj.size(undefined, true)
+			var size = cube.size(undefined, true)
 			
 			var face_list = [   
 				{face: 'north', fIndex: 10,	from: [size[2], size[2]],			 	size: [size[0],  size[1]]},
@@ -650,9 +650,9 @@ const Canvas = {
 				{face: 'up', fIndex: 4,		from: [size[2]+size[0], size[2]],	 	size: [-size[0], -size[2]]},
 				{face: 'down', fIndex: 6,	from: [size[2]+size[0]*2, 0],		 	size: [-size[0], size[2]]}
 			]
-			var cube_mirror  = obj.mirror_uv
+			var cube_mirror  = cube.mirror_uv
 
-			if (obj.mirror_uv) {
+			if (cube.mirror_uv) {
 				face_list.forEach(function(f) {
 					f.from[0] += f.size[0]
 					f.size[0] *= -1
@@ -674,19 +674,19 @@ const Canvas = {
 			face_list.forEach(function(f) {
 
 				var uv= [
-					f.from[0]			 +  obj.uv_offset[0],
-					f.from[1]			 +  obj.uv_offset[1],
-					f.from[0] + f.size[0] + obj.uv_offset[0],
-					f.from[1] + f.size[1] + obj.uv_offset[1]
+					f.from[0]			 +  cube.uv_offset[0],
+					f.from[1]			 +  cube.uv_offset[1],
+					f.from[0] + f.size[0] + cube.uv_offset[0],
+					f.from[1] + f.size[1] + cube.uv_offset[1]
 				]
 				uv.forEach(function(s, si) {
 					uv[si] *= 1
 				})
 
-				obj.faces[f.face].uv[0] = uv[0]
-				obj.faces[f.face].uv[1] = uv[1]
-				obj.faces[f.face].uv[2] = uv[2]
-				obj.faces[f.face].uv[3] = uv[3]
+				cube.faces[f.face].uv[0] = uv[0]
+				cube.faces[f.face].uv[1] = uv[1]
+				cube.faces[f.face].uv[2] = uv[2]
+				cube.faces[f.face].uv[3] = uv[3]
 
 				//Fight Bleeding
 				for (var si = 0; si < 2; si++) {
@@ -700,8 +700,8 @@ const Canvas = {
 
 				stretch = 1;
 				frame = 0;
-				if (obj.faces[f.face].texture && obj.faces[f.face].texture !== null) {
-					var tex = obj.faces[f.face].getTexture()
+				if (cube.faces[f.face].texture && cube.faces[f.face].texture !== null) {
+					var tex = cube.faces[f.face].getTexture()
 					if (tex instanceof Texture && tex.frameCount !== 1) {
 						stretch = tex.frameCount
 						if (animation === true && tex.currentFrame) {
@@ -715,22 +715,19 @@ const Canvas = {
 
 		} else {
 		
-			var obj = obj.faces
 			var stretch = 1
 			var frame = 0
-			for (var face in obj) {
+			for (var face in cube.faces) {
 				stretch = 1;
 				frame = 0;
-				if (obj[face].texture && obj[face].texture !== null) {
-					var tex = obj[face].getTexture()
-					if (tex instanceof Texture && tex.frameCount !== 1) {
-						stretch = tex.frameCount
-						if (animation === true && tex.currentFrame) {
-							frame = tex.currentFrame
-						}
+				let tex = cube.faces[face].getTexture();
+				if (tex instanceof Texture && tex.frameCount !== 1) {
+					stretch = tex.frameCount
+					if (animation === true && tex.currentFrame) {
+						frame = tex.currentFrame
 					}
 				}
-				Canvas.updateUVFace(mesh.geometry.faceVertexUvs[0], Canvas.face_order.indexOf(face)*2, obj[face], frame, stretch)
+				Canvas.updateUVFace(mesh.geometry.faceVertexUvs[0], Canvas.face_order.indexOf(face)*2, cube.faces[face], frame, stretch)
 			}
 
 		}

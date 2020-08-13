@@ -237,8 +237,8 @@ const Painter = {
 		if (Painter.currentPixel[0] === x && Painter.currentPixel[1] === y) return;
 		Painter.currentPixel = [x, y]
 		Painter.brushChanges = true;
-		let uvFactorX = 1 / Project.texture_width * texture.img.naturalWidth;
-		let uvFactorY = 1 / Project.texture_height * texture.img.naturalHeight;
+		let uvFactorX = 1 / Project.texture_width * texture.width;
+		let uvFactorY = 1 / Project.texture_height * texture.display_height;
 
 		if (Painter.mirror_painting && !is_opposite) {
 			Painter.runMirrorBrush(texture, x, y, event, uvTag);
@@ -250,11 +250,12 @@ const Painter = {
 
 			ctx.beginPath();
 			if (uvTag) {
+				let anim_offset = texture.display_height * texture.currentFrame;
 				var rect = Painter.editing_area = [
 					uvTag[0] * uvFactorX,
-					uvTag[1] * uvFactorY,
+					uvTag[1] * uvFactorY + anim_offset,
 					uvTag[2] * uvFactorX,
-					uvTag[3] * uvFactorY
+					uvTag[3] * uvFactorY + anim_offset
 				]
 			} else {
 				var rect = Painter.editing_area = [0, 0, texture.img.naturalWidth, texture.img.naturalHeight]
