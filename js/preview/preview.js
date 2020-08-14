@@ -437,7 +437,18 @@ class Preview {
 	loadAnglePreset(preset) {
 		if (!preset) return;
 		this.camera.position.fromArray(preset.position);
-		this.controls.target.fromArray(preset.target);
+		if (preset.target) {
+			this.controls.target.fromArray(preset.target);
+		} else if (preset.rotation) {
+			
+			this.controls.target.set(0, 0, 16).applyEuler(new THREE.Euler(
+				Math.degToRad(preset.rotation[0]),
+				Math.degToRad(preset.rotation[1]),
+				Math.degToRad(preset.rotation[2]),
+				'ZYX'
+			));
+            this.controls.target.add(this.camera.position);
+		}
 		if (preset.projection !== 'unset') {
 			this.setProjectionMode(preset.projection == 'orthographic')
 		}
@@ -1158,7 +1169,8 @@ const Screencam = {
 			new Dialog({
 				title: tl('message.screenshot.right_click'), 
 				id: 'screenie', 
-				lines: ['<img src="'+dataUrl+'" width="600px" class="allow_default_menu"></img>'],
+				width: 500,
+				lines: ['<img src="'+dataUrl+'" width="452px" class="allow_default_menu"></img>'],
 				draggable: true,
 				singleButton: true
 			}).show()

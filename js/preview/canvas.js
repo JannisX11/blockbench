@@ -107,7 +107,11 @@ const Canvas = {
 		}
 		updateCubeHighlights(null, true);
 
-		cb()
+		try {
+			cb()
+		} catch(err) {
+			console.error(err)
+		}
 
 		editVis(obj => {
 			obj.visible = obj.was_visible
