@@ -491,6 +491,7 @@ var codec = new Codec('modded_entity', {
 				if (parseScheme('$v.addBox($f, $f, $f, $i, $i, $i)', line)
 				 || parseScheme('$v.addBox($f, $f, $f, $i, $i, $i, $v)', line)
 				 || parseScheme('$v.addBox($f, $f, $f, $i, $i, $i, $f)', line)
+				 || parseScheme('$v.addBox($f, $f, $f, $f, $f, $f, $f, $f, $f)', line)
 				) {
 					var group = bones[match[0]];
 					var cube = new Cube({
