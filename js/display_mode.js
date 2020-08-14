@@ -1477,17 +1477,6 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	updateShading()
 	Canvas.updateRenderSides()
 }
-function axisIndex(index) {
-	if (typeof index === 'number') {
-		if (index === 0) return 'x';
-		if (index === 1) return 'y';
-		if (index === 2) return 'z';
-	} else {
-		if (index === 'x') return 0;
-		if (index === 'y') return 1;
-		if (index === 'z') return 2;
-	}
-}
 function resetDisplayBase() {
 	display_base.rotation.x = Math.PI / (180 / 0.1);
 	display_base.rotation.y = Math.PI / (180 / 0.1);
@@ -1643,12 +1632,21 @@ DisplayMode.loadThirdLeft = function() {	//Loader
 	})
 	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
 }
+function getOptimalFocalLength() {
+	if (display_preview.camera.aspect > 1.7) {
+		return 18 / display_preview.camera.aspect;
+	} else if (display_preview.camera.aspect > 1.0) {
+		return 16.57 + -3.57 * display_preview.camera.aspect;
+	} else {
+		return 13 * display_preview.camera.aspect;
+	}
+}
 DisplayMode.loadFirstRight = function() {	//Loader
 	loadDisp('firstperson_righthand')
 	display_preview.loadAnglePreset({
 		position: [0, 0, 32.4],
 		target: [0, 0, 0],
-		focal_length: 12,
+		focal_length: getOptimalFocalLength(),
 	})
 	display_preview.controls.enabled = false
 	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
@@ -1659,7 +1657,7 @@ DisplayMode.loadFirstLeft = function() {	//Loader
 	display_preview.loadAnglePreset({
 		position: [0, 0, 32.4],
 		target: [0, 0, 0],
-		focal_length: 12,
+		focal_length: getOptimalFocalLength(),
 	})
 	display_preview.controls.enabled = false
 	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
