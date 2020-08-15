@@ -275,7 +275,7 @@ class refModel {
 			case 'monitor':
 				this.onload = function() {
 					var side = display_slot.includes('left') ? -1 : 1;
-					setDisplayArea(side*9, -8.4, 20.8, 0, 0, 0, 1,1,1)
+					setDisplayArea(side*9.039, -8.318, 20.8, 0, 0, 0, 1,1,1)
 				}
 				break;
 			case 'bow':
@@ -295,7 +295,7 @@ class refModel {
 	buildModel(things, texture) {
 		var scope = this;
 		if (texture === 'black') {
-			var mat = new THREE.MeshBasicMaterial({color: 0x000000});
+			var mat = new THREE.MeshBasicMaterial({color: 0x101013});
 		} else {
 			var img = new Image();
 			img.src = texture;
