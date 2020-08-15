@@ -29,7 +29,7 @@ class Face {
 		} else if (typeof object.texture === 'string') {
 			Merge.string(this, object, 'texture')
 		}
-		Merge.string(this, object, 'cullface', (val) => uv_dialog.allFaces.includes(val))
+		Merge.string(this, object, 'cullface', (val) => (uv_dialog.allFaces.includes(val) || val == ''))
 		Merge.number(this, object, 'rotation')
 		Merge.number(this, object, 'tint')
 		if (object.uv) {
