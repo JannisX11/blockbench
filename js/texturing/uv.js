@@ -918,7 +918,9 @@ class UVEditor {
 			}
 		}
 		if (!tex || typeof tex !== 'object') {
-			//unselectTextures()
+			if (!Format.single_texture) {
+				unselectTextures()
+			}
 		} else {
 			tex.select()
 		}
