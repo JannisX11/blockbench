@@ -918,7 +918,7 @@ class UVEditor {
 			}
 		}
 		if (!tex || typeof tex !== 'object') {
-			unselectTextures()
+			//unselectTextures()
 		} else {
 			tex.select()
 		}
