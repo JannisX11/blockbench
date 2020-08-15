@@ -228,7 +228,7 @@ var codec = new Codec('optifine_entity', {
 							}
 							var group = new Group({
 								name: subsub.id || `${b.part}_sub_${subcount}`,
-								origin: subsub.translate || submodel.translate,
+								origin: subsub.translate || (depth >= 1 ? submodel.translate : undefined),
 								rotation: subsub.rotate,
 								mirror_uv: (subsub.mirrorTexture && subsub.mirrorTexture.includes('u'))
 							})
