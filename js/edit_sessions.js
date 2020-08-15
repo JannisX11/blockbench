@@ -50,7 +50,7 @@ const EditSession = {
 					type: 'chat_message',
 					data: {text: tl('edit_session.welcome', [EditSession.username]), color: 'yellow'}
 				})
-				var model = Codecs.project.compile({uuids: true, bitmaps: true, history: true})
+				var model = Codecs.project.compile({uuids: true, bitmaps: true, backup: true, history: true})
 				client.send({
 					type: 'init_model',
 					fromHost: EditSession.hosting,
@@ -191,7 +191,7 @@ const EditSession = {
 	},
 	initNewModel(force) {	
 		if (EditSession.active && EditSession.hosting) {
-			var model = Codecs.project.compile({uuids: true, bitmaps: true, flag: force ? 'force' : null})
+			var model = Codecs.project.compile({uuids: true, bitmaps: true, backup: true, flag: force ? 'force' : null})
 			if (force) {
 				model.flag = 'force'
 			}
