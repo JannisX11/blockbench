@@ -207,10 +207,14 @@ function selectAll() {
 		selectAllKeyframes()
 	} else if (Modes.edit || Modes.paint) {
 		if (selected.length < elements.length) {
-			elements.forEach(obj => {
-				obj.selectLow()
-			})
-			TickUpdates.selection = true;
+			if (Outliner.root.length == 1) {
+				Outliner.root[0].select();
+			} else {
+				elements.forEach(obj => {
+					obj.selectLow()
+				})
+				TickUpdates.selection = true;
+			}
 		} else {
 			unselectAll()
 		}
