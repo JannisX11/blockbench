@@ -744,7 +744,8 @@ class Keyframe {
 		if (!this[axis]) {
 			return this.transform ? 0 : '';
 		} else if (!isNaN(this[axis])) {
-			return parseFloat(this[axis])
+			let num = parseFloat(this[axis]);
+			return isNaN(num) ? 0 : num;
 		} else {
 			return this[axis]
 		}
