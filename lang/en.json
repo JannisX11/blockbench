@@ -452,6 +452,8 @@
 	"settings.shading": "Shading",
 	"settings.shading.desc": "Enable shading",
 	"settings.render_sides": "Render Sides",
+	"settings.fov": "FOV",
+	"settings.fov.desc": "Camera Field of View. Default is 45",
 	"settings.render_sides.desc": "Select which side of a face is rendered",
 	"settings.render_sides.auto": "Auto",
 	"settings.render_sides.front": "Outside",

@@ -369,6 +369,10 @@ class Preview {
 		this.controls.updateSceneScale();
 		return this;
 	}
+	setFOV(fov) {
+		this.camPers.fov = fov;
+		this.camPers.updateProjectionMatrix();
+	}
 	setNormalCamera() {
 		//Deprecated
 		this.setProjectionMode(false)
