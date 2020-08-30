@@ -428,6 +428,8 @@ class Group extends OutlinerElement {
 	}});
 	new Property(Group, 'vector', 'rotation');
 	new Property(Group, 'array', 'cem_animations', {condition: () => Format.id == 'optifine_entity'});
+	new Property(Group, 'boolean', 'ik_enabled', {condition: () => Format.animation_mode});
+	new Property(Group, 'number', 'ik_chain_length', {condition: () => Format.animation_mode});
 
 
 function getCurrentGroup() {

@@ -1493,7 +1493,6 @@ const BARS = {
 				'rescale_toggle'
 			]
 		})
-		/*
 		Toolbars.bone_ik = new Toolbar({
 			id: 'bone_ik',
 			children: [
@@ -1501,7 +1500,7 @@ const BARS = {
 				'slider_ik_chain_length'
 			],
 			default_place: !Blockbench.isMobile
-		})*/
+		})
 
 
 		Toolbars.palette = new Toolbar({

@@ -2521,7 +2521,7 @@ BARS.defineActions(function() {
 			Timeline.vue._data.focus_channel = val != 'all' ? val : null;
 		}
 	})
-	/*
+
 	//Inverse Kinematics
 	new Action('ik_enabled', {
 		icon: 'check_box_outline_blank',
@@ -2553,6 +2553,6 @@ BARS.defineActions(function() {
 		onAfter: function() {
 			Undo.finishEdit('move keyframes')
 		}
-	})*/
+	})
 
 })

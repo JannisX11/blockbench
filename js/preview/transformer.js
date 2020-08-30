@@ -1049,7 +1049,10 @@
 				var undo_keyframes = [];
 				var animator = Animator.selected.getBoneAnimator();
 				if (animator && Toolbox.selected.id === 'move_tool' && Group.selected.ik_enabled && Group.selected.ik_chain_length) {
-					/*
+
+
+
+
 					var bone = Group.selected;
 					for (var i = Group.selected.ik_chain_length; i > 0; i--) {
 						bone = bone.parent;
@@ -1063,18 +1066,12 @@
 					}
 					Undo.initEdit({keyframes: undo_keyframes})
 
-					var solver = new FIK.Structure3D(scene);
-
-					var chain = new FIK.Chain3D();
-					var start = new FIK.V3(0, 0, 0);
-					var endLoc = new FIK.V3(0, 2, 0);
-
-					var basebone;
 
 
-					var bones = [];
+					let basebone;
+					let bones = [];
 					var bone = Group.selected;
-					for (var i = Group.selected.ik_chain_length; i >= 0; i--) {
+					for (let i = Group.selected.ik_chain_length; i >= 0; i--) {
 						if (bone instanceof Group) {
 							bones.push(bone);
 							bone = bone.parent;
@@ -1082,29 +1079,35 @@
 					}
 
 					bones.reverse();
-					var parent_bone;
+					console.log(bones)
+
+					let solver = new FIK.Structure3D(scene);
+					let chain = new FIK.Chain3D();
+
+					let parent_bone;
 					bones.forEach((bone, i) => {
 
-						var copy_bone = new THREE.Bone();
-						var startPoint = new FIK.V3(0,0,0).copy(bone.mesh.getWorldPosition(new THREE.Vector3()))
+						if (!bones[i+1]) return;
 
-						var bone = new FIK.Bone3D(startPoint, startPoint)
-						chain.addBone(bone)
+						let startPoint = new FIK.V3(0,0,0).copy(bone.mesh.getWorldPosition(new THREE.Vector3()))
+						let endPoint = new FIK.V3(0,0,0).copy(bones[i+1].mesh.getWorldPosition(new THREE.Vector3()))
+						console.log(startPoint, endPoint)
+
+						let fik_bone = new FIK.Bone3D(startPoint, endPoint)
+						chain.addBone(fik_bone)
 						if (!basebone) {
-							basebone = bone;
+							basebone = fik_bone;
 						}
 					})
 
-
-				    //chain.addBone(new FIK.Bone3D(new FIK.V3(1, 2, 0), new FIK.V3(0, 6, 0), undefined, 1, 0x00FF00));
-				    //chain.addBone(new FIK.Bone3D(new FIK.V3(0, 6, 0), new FIK.V3(0, 9, 0), undefined, 1, 0x0000FF));
-				    var target = new FIK.V3()
+				    let target = new FIK.V3()
 
 				    solver.add(chain, target, true);
-				    Transformer.solver = solver
+					Transformer.solver = solver
+					
 
-				    /*
-
+				    
+					/*
 					var ik_solver = Transformer.ik_solver = {};
 
 
@@ -1385,16 +1388,16 @@
 						//scope.keyframes[0].select()
 
 
-						/*
-						var ik_solver = Transformer.ik_solver;
+						var solver = Transformer.solver;
+						console.log(solver)
 
-						ik_solver.target.position.copy(planeIntersect.point);
+						solver.targets[0].copy(planeIntersect.point);
 
 						main_preview.render()
 
-						ik_solver.ik.solve();
+						solver.update();
 
-						ik_solver.copy_bones.forEach((copy_bone, i) => {
+						[].forEach((copy_bone, i) => {
 							var keyframe = scope.keyframes[i];
 							if (keyframe) {
 								var bone = copy_bone.original;
@@ -1408,7 +1411,10 @@
 							}
 						})
 
-						*/
+
+
+
+
 
 					} else {
 						scope.keyframes[0].offset(axis, difference);
