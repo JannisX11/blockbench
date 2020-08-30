@@ -37,6 +37,9 @@ class Property {
         if (options.label) this.label = options.label;
         if (options.options) this.options = options.options;
     }
+    delete() {
+        delete this.class.properties[this.name];
+    }
     merge(instance, data) {
         if (data[this.name] == undefined || !Condition(this.condition)) return;
 
