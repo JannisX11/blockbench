@@ -347,6 +347,10 @@ setInterval(() => {
 	}
 }, 100)
 
+function getFocusedTextInput() {
+	return $('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus').get(0)
+}
+
 $(document).on('keydown mousedown', function(e) {
 	if (Keybinds.recording || e.which < 4) return;
 	//Shift
@@ -358,7 +362,7 @@ $(document).on('keydown mousedown', function(e) {
 	}
 
 	var used = false;
-	var input_focus = $('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus').get(0)
+	var input_focus = getFocusedTextInput()
 
 	if (input_focus) {
 		//User Editing Anything
