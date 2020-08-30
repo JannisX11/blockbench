@@ -1051,7 +1051,7 @@
 				if (animator && Toolbox.selected.id === 'move_tool' && Group.selected.ik_enabled && Group.selected.ik_chain_length) {
 
 
-
+					Transformer.bones = [];
 
 					var bone = Group.selected;
 					for (var i = Group.selected.ik_chain_length; i > 0; i--) {
@@ -1066,8 +1066,6 @@
 					}
 					Undo.initEdit({keyframes: undo_keyframes})
 
-
-
 					let basebone;
 					let bones = [];
 					var bone = Group.selected;
@@ -1077,83 +1075,34 @@
 							bone = bone.parent;
 						}
 					}
-
 					bones.reverse();
-					console.log(bones)
 
 					let solver = new FIK.Structure3D(scene);
 					let chain = new FIK.Chain3D();
 
-					let parent_bone;
 					bones.forEach((bone, i) => {
 
 						if (!bones[i+1]) return;
 
 						let startPoint = new FIK.V3(0,0,0).copy(bone.mesh.getWorldPosition(new THREE.Vector3()))
 						let endPoint = new FIK.V3(0,0,0).copy(bones[i+1].mesh.getWorldPosition(new THREE.Vector3()))
-						console.log(startPoint, endPoint)
 
-						let fik_bone = new FIK.Bone3D(startPoint, endPoint)
-						chain.addBone(fik_bone)
+						let ik_bone = new FIK.Bone3D(startPoint, endPoint)
+						chain.addBone(ik_bone)
+						Transformer.bones.push({
+							bone,
+							ik_bone,
+							last_rotation: new THREE.Euler().copy(bone.mesh.rotation)
+						})
 						if (!basebone) {
-							basebone = fik_bone;
+							basebone = ik_bone;
 						}
 					})
 
 				    let target = new FIK.V3()
 
 				    solver.add(chain, target, true);
-					Transformer.solver = solver
-					
-
-				    
-					/*
-					var ik_solver = Transformer.ik_solver = {};
-
-
-					ik_solver.ik = new THREE.IK();
-					ik_solver.chain = new THREE.IKChain();
-					ik_solver.target = new THREE.Object3D();
-					ik_solver.copy_bones = [];
-					scene.add(ik_solver.target)
-
-					var bones = [];
-					var bone = Group.selected;
-					for (var i = Group.selected.ik_chain_length; i >= 0; i--) {
-						if (bone instanceof Group) {
-							bones.push(bone);
-							bone = bone.parent;
-						}
-					}
-					//build proxy chain
-					bones.reverse();
-					var parent_bone;
-					bones.forEach((bone, i) => {
-						var copy_bone = new THREE.Bone();
-						if (!ik_solver.root_bone) {
-							ik_solver.root_bone = copy_bone;
-							bone.mesh.getWorldPosition(copy_bone.position)
-						} else {
-							parent_bone.add(copy_bone);
-							copy_bone.position.z = bone.mesh.position.length();
-							parent_bone.quaternion.setFromUnitVectors(new THREE.Vector3().copy(bone.mesh.position).normalize(), THREE.NormalZ);
-						}
-						ik_solver.chain.add(new THREE.IKJoint(copy_bone), {target: i == bones.length-1 ? ik_solver.target : null});
-						copy_bone.original = bone;
-						ik_solver.copy_bones.push(copy_bone)
-						copy_bone.last_rotation = new THREE.Euler().copy(copy_bone.rotation);
-						parent_bone = copy_bone;
-					})
-
-
-					ik_solver.ik.add(ik_solver.chain);
-					scene.add(ik_solver.root_bone);
-					
-					ik_solver.helper = new THREE.IKHelper(ik_solver.ik);
-					scene.add(ik_solver.helper);
-
-					setTimeout(_ => ik_solver.ik.solve(), 80)*/
-
+					Transformer.ik_solver = solver;
 
 
 				} else if (animator) {
@@ -1380,40 +1329,37 @@
 					}
 					if (Group.selected.ik_enabled) {
 
-						Transformer.position.x += 1
-						Transformer.solver.update();
+						//Transformer.position.x += 1
 
 
-						//scope.keyframes[0].offset(axis, difference);
-						//scope.keyframes[0].select()
-
-
-						var solver = Transformer.solver;
-						console.log(solver)
+						var solver = Transformer.ik_solver;
 
 						solver.targets[0].copy(planeIntersect.point);
 
 						main_preview.render()
 
 						solver.update();
+						console.log(solver)
 
-						[].forEach((copy_bone, i) => {
+						Transformer.bones.forEach((bone, i) => {
 							var keyframe = scope.keyframes[i];
 							if (keyframe) {
-								var bone = copy_bone.original;
-								var animator = Animator.selected.getBoneAnimator(bone);
 
-								keyframe.offset('x', Math.radToDeg(copy_bone.last_rotation.x - copy_bone.rotation.x));
-								keyframe.offset('y', Math.radToDeg(copy_bone.last_rotation.y - copy_bone.rotation.y));
-								keyframe.offset('z', Math.radToDeg(copy_bone.last_rotation.z - copy_bone.rotation.z));
+								let mesh_chain = solver.meshChains[0][i];
+								let euler = new THREE.Euler().copy(mesh_chain.rotation);
 
-								copy_bone.last_rotation.copy(copy_bone.rotation);
+								keyframe.offset('x', Math.radToDeg(bone.last_rotation.x - euler.x));
+								keyframe.offset('y', Math.radToDeg(bone.last_rotation.y - euler.y));
+								keyframe.offset('z', Math.radToDeg(bone.last_rotation.z - euler.z));
+								console.log(
+									[Math.round(Math.radToDeg(bone.last_rotation.x)), Math.round(Math.radToDeg(euler.x))],
+									[Math.round(Math.radToDeg(bone.last_rotation.y)), Math.round(Math.radToDeg(euler.y))],
+									[Math.round(Math.radToDeg(bone.last_rotation.z)), Math.round(Math.radToDeg(euler.z))],
+								)
+
+								bone.last_rotation.copy(euler);
 							}
 						})
-
-
-
-
 
 
 					} else {
