@@ -511,6 +511,8 @@
 	"settings.animation_snap": "Animation Snap",
 	"settings.animation_snap.desc": "Snap interval for keyframes in the animation timeline in steps per second",
 
+	"settings.sync_color": "Sync Color",
+	"settings.sync_color.desc": "Synchronize the color between different Blockbench instances",
 	"settings.paint_side_restrict": "Restrict Brush to Side",
 	"settings.paint_side_restrict.desc": "Restrict brushes to only paint on the current side",
 	"settings.image_editor": "Image Editor",
