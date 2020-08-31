@@ -1347,6 +1347,14 @@
 
 								let mesh_chain = solver.meshChains[0][i];
 								let euler = new THREE.Euler().copy(mesh_chain.rotation);
+								if (Transformer.bones[i-1]) {
+									let q = new THREE.Quaternion().copy(mesh_chain.quaternion);
+									let q2 = new THREE.Quaternion().copy(solver.meshChains[0][i-1].quaternion).inverse();
+									q.multiply(q2)
+									euler.setFromQuaternion(q)
+								} else {
+									euler.set(0, 0, 0)
+								}
 
 								keyframe.offset('x', Math.radToDeg(bone.last_rotation.x - euler.x));
 								keyframe.offset('y', Math.radToDeg(bone.last_rotation.y - euler.y));
