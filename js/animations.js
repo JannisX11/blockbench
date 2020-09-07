@@ -1,3 +1,12 @@
+class AnimationFile {
+	constructor(data) {
+		this.path = '';
+	}
+	extend(data) {
+
+	}
+}
+
 class Animation {
 	constructor(data) {
 		this.name = '';
@@ -243,6 +252,7 @@ class Animation {
 		}
 	}
 }
+	Animation.all = [];
 	Animation.prototype.menu = new Menu([
 		{name: 'menu.animation.loop', icon: 'loop', children: [
 			{name: 'menu.animation.loop.once', icon: animation => (animation.loop == 'once' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('once', true)}},
@@ -260,6 +270,8 @@ class Animation {
 		'rename',
 		'delete',
 	])
+	new Property(Animation, 'boolean', 'saved')
+
 class TimelineMarker {
 	constructor(data) {
 		this.time = 0;
@@ -1181,6 +1193,7 @@ const Animator = {
 	possible_channels: {rotation: true, position: true, scale: true, sound: true, particle: true, timeline: true},
 	open: false,
 	animations: [],
+	files: Animation.all,
 	frame: 0,
 	interval: false,
 	join() {
