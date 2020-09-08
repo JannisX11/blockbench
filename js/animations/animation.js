@@ -10,8 +10,8 @@ class Animation {
 		this.length = 0;
 		this.animators = {};
 		this.markers = [];
-		for (var key in Locator.properties) {
-			Locator.properties[key].reset(this);
+		for (var key in Animation.properties) {
+			Animation.properties[key].reset(this);
 		}
 		if (typeof data === 'object') {
 			this.extend(data)
@@ -413,7 +413,7 @@ class Animation {
 		'rename',
 		'delete',
 	])
-	new Property(Animation, 'boolean', 'saved')
+	new Property(Animation, 'boolean', 'saved', {default: true})
 	new Property(Animation, 'string', 'path')
 
 

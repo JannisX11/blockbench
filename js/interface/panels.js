@@ -304,12 +304,13 @@ function setupPanels() {
 		component: {
 			name: 'panel-animations',
 			data() { return {
-				animations: Animator.animations
+				animations: Animator.animations,
+				files_folded: {}
 			}},
 			methods: {
-				sort(event) {
-					let item = Animator.animations.splice(event.oldIndex, 1)[0];
-					Animator.animations.splice(event.newIndex, 0, item);
+				toggle(key) {
+					this.files_folded[key] = !this.files_folded[key];
+					this.$forceUpdate();
 				}
 			},
 			computed: {
@@ -329,10 +330,13 @@ function setupPanels() {
 			template: `
 				<div>
 					<div class="toolbar_wrapper animations"></div>
-					<ul id="animations_list" class="list" v-sortable="{onUpdate: sort, fallbackTolerance: 10, animation: 0, handle: ':not(.animation_play_toggle)'}">
-						<li v-for="(file, key) in files" :key="key">
-							<div>{{ file.name }}</div>
-							<ul>	
+					<ul id="animations_list" class="list">
+						<li v-for="(file, key) in files" :key="key" class="animation_file">
+							<div class="animation_file_head" v-on:dblclick.stop="toggle(key)">
+								<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
+								{{ file.name }}
+							</div>
+							<ul v-if="!files_folded[key]">	
 								<li
 									v-for="animation in file.animations"
 									v-bind:class="{ selected: animation.selected }"
@@ -345,6 +349,10 @@ function setupPanels() {
 								>
 									<i class="material-icons">movie</i>
 									<input class="animation_name" v-model="animation.name" disabled="true">
+									<div class="animation_save_button" v-bind:class="{clickable: !animation.saved}" v-on:click.stop="animation.save()">
+										<i v-if="animation.saved" class="material-icons">check_circle</i>
+										<i v-else class="material-icons">save</i>
+									</div>
 									<div class="animation_play_toggle" v-on:click.stop="animation.togglePlayingState()">
 										<i v-if="animation.playing" class="fa_big far fa-play-circle"></i>
 										<i v-else class="fa_big far fa-circle"></i>
