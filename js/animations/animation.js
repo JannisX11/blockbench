@@ -35,7 +35,7 @@ class Animation {
 		if (data.animators instanceof Object) {
 			for (var key in data.animators) {
 				var group = Group.all.findInArray( isUUID(key) ? 'uuid' : 'name', key )
-				if (group) {
+				if (group) { // todo
 					var ba = this.getBoneAnimator(group)
 					var kfs = data.animators[key]
 					if (kfs && ba) {
@@ -57,7 +57,6 @@ class Animation {
 		return this;
 	}
 	getUndoCopy(options, save) {
-		var scope = this;
 		var copy = {
 			uuid: this.uuid,
 			name: this.name,
@@ -77,7 +76,7 @@ class Animation {
 				if (kfs && kfs.length) {
 					if (options && options.bone_names && this.animators[uuid] instanceof BoneAnimator) {
 						var group = this.animators[uuid].getGroup();
-						uuid = group ? group.name : '';
+						uuid = group ? group.name : this.animators[uuid].name;
 					}
 					copy.animators[uuid] = [];
 					kfs.forEach(kf => {
@@ -91,19 +90,19 @@ class Animation {
 	compileBedrockAnimation() {
 		let ani_tag = {};
 
-		if (a.loop == 'hold') {
+		if (this.loop == 'hold') {
 			ani_tag.loop = 'hold_on_last_frame';
-		} else if (a.loop == 'loop' || a.getMaxLength() == 0) {
+		} else if (this.loop == 'loop' || this.getMaxLength() == 0) {
 			ani_tag.loop = true;
 		}
 
-		if (a.length) ani_tag.animation_length = a.length;
-		if (a.override) ani_tag.override_previous_animation = true;
-		if (a.anim_time_update) ani_tag.anim_time_update = a.anim_time_update;
+		if (this.length) ani_tag.animation_length = this.length;
+		if (this.override) ani_tag.override_previous_animation = true;
+		if (this.anim_time_update) ani_tag.anim_time_update = this.anim_time_update;
 		ani_tag.bones = {};
 
-		for (var uuid in a.animators) {
-			var animator = a.animators[uuid];
+		for (var uuid in this.animators) {
+			var animator = this.animators[uuid];
 			if (animator instanceof EffectAnimator) {
 
 				animator.sound.forEach(kf => {
@@ -130,13 +129,13 @@ class Animation {
 					ani_tag.timeline[timecode] = kf.instructions.split('\n');
 				})
 
-			} else if (a.animators[uuid].keyframes.length && a.animators[uuid].getGroup()) {
+			} else if (animator.keyframes.length) {
 
-				var group = a.animators[uuid].group; 
-				var bone_tag = ani_tag.bones[group.name] = {};
+				var group = animator.getGroup(); 
+				var bone_tag = ani_tag.bones[group ? group.name : animator.name] = {};
 				var channels = {};
 				//Saving Keyframes
-				a.animators[uuid].keyframes.forEach(function(kf) {
+				animator.keyframes.forEach(function(kf) {
 					if (!channels[kf.channel]) {
 						channels[kf.channel] = {};
 					}
@@ -531,9 +530,10 @@ class GeneralAnimator {
 	}
 }
 class BoneAnimator extends GeneralAnimator {
-	constructor(uuid, animation) {
+	constructor(uuid, animation, name) {
 		super(uuid, animation);
 		this.uuid = uuid;
+		this._name = name;
 
 		this.rotation = [];
 		this.position = [];
@@ -542,7 +542,10 @@ class BoneAnimator extends GeneralAnimator {
 	get name() {
 		var group = this.getGroup();
 		if (group) return group.name;
-		return '';
+		return this._name;
+	}
+	set name(name) {
+		this._name = name;
 	}
 	get keyframes() {
 		return [...this.rotation, ...this.position, ...this.scale];
@@ -550,7 +553,6 @@ class BoneAnimator extends GeneralAnimator {
 	getGroup() {
 		this.group = Group.all.findInArray('uuid', this.uuid)
 		if (!this.group) {
-			console.log('no group found for '+this.uuid)
 			if (this.animation && this.animation.animators[this.uuid] && this.animation.animators[this.uuid].type == 'bone') {
 				delete this.animation.bones[this.uuid];
 			}
@@ -1006,28 +1008,28 @@ const Animator = {
 				if (a.bones) {
 					for (var bone_name in a.bones) {
 						var b = a.bones[bone_name]
-						bone_name = bone_name.toLowerCase();
-						var group = Group.all.find(group => group.name.toLowerCase() == bone_name)
-						if (group) {
-							var ba = new BoneAnimator(group.uuid, animation);
-							animation.animators[group.uuid] = ba;
-							//Channels
-							for (var channel in b) {
-								if (Animator.possible_channels[channel]) {
-									if (typeof b[channel] === 'string' || typeof b[channel] === 'number' || b[channel] instanceof Array) {
+						let lowercase_bone_name = bone_name.toLowerCase();
+						var group = Group.all.find(group => group.name.toLowerCase() == lowercase_bone_name)
+						let uuid = group ? group.uuid : guid();
+
+						var ba = new BoneAnimator(uuid, animation, bone_name);
+						animation.animators[uuid] = ba;
+						//Channels
+						for (var channel in b) {
+							if (Animator.possible_channels[channel]) {
+								if (typeof b[channel] === 'string' || typeof b[channel] === 'number' || b[channel] instanceof Array) {
+									ba.addKeyframe({
+										time: 0,
+										channel,
+										values: b[channel],
+									})
+								} else if (typeof b[channel] === 'object') {
+									for (var timestamp in b[channel]) {
 										ba.addKeyframe({
-											time: 0,
+											time: parseFloat(timestamp),
 											channel,
-											values: b[channel],
-										})
-									} else if (typeof b[channel] === 'object') {
-										for (var timestamp in b[channel]) {
-											ba.addKeyframe({
-												time: parseFloat(timestamp),
-												channel,
-												values: b[channel][timestamp],
-											});
-										}
+											values: b[channel][timestamp],
+										});
 									}
 								}
 							}
