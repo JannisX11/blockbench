@@ -43,19 +43,7 @@ const codec = new Codec('skin_model', {
 				if (obj.export) {
 					if (obj instanceof Cube) {
 
-						var template = new oneLiner()
-						template.name = obj.name;
-						if (obj.visibility == false) template.visibility = false;
-						template.origin = obj.from.slice()
-						template.size = obj.size()
-						template.origin[0] = -(template.origin[0] + template.size[0])
-						template.uv = obj.uv_offset
-						if (obj.inflate && typeof obj.inflate === 'number') {
-							template.inflate = obj.inflate
-						}
-						if (obj.mirror_uv === !bone.mirror) {
-							template.mirror = obj.mirror_uv
-						}
+						let template = Codecs.bedrock.compileCube(obj);
 						cubes.push(template)
 						cube_count++;
 
@@ -106,31 +94,11 @@ const codec = new Codec('skin_model', {
 				group.reset = b.reset === true
 
 				if (b.cubes) {
-					b.cubes.forEach(function(s) {
-						var base_cube = new Cube({name: s.name, visibility: s.visibility, autouv: 0, color: b.color})
-						if (s.origin) {
-							base_cube.from.V3_set(s.origin)
-							base_cube.from[0] = -(base_cube.from[0] + s.size[0])
-							if (s.size) {
-								base_cube.to[0] = s.size[0] + base_cube.from[0]
-								base_cube.to[1] = s.size[1] + base_cube.from[1]
-								base_cube.to[2] = s.size[2] + base_cube.from[2]
-							}
-						}
-						if (s.uv) {
-							base_cube.uv_offset[0] = s.uv[0]
-							base_cube.uv_offset[1] = s.uv[1]
-						}
-						if (s.inflate && typeof s.inflate === 'number') {
-							base_cube.inflate = s.inflate
-						}
-						if (s.mirror === undefined) {
-							base_cube.mirror_uv = group.mirror_uv
-						} else {
-							base_cube.mirror_uv = s.mirror === true
-						}
-						base_cube.addTo(group).init()
-						template_cubes[Cube.all.indexOf(base_cube)] = s;
+					b.cubes.forEach(function(cube) {
+
+						let base_cube = Codecs.bedrock.parseCube(cube, group);
+						template_cubes[Cube.all.indexOf(base_cube)] = cube;
+
 					})
 				}
 				if (b.children) {
@@ -175,17 +143,17 @@ const codec = new Codec('skin_model', {
 		texture.load_callback = function() {
 			Modes.options.paint.select();
 		}
+		if (data.camera_angle) {
+			main_preview.loadAnglePreset(DefaultCameraPresets.find(p => p.id == data.camera_angle))
+		}
 		loadTextureDraggable()
 		Canvas.updateAllBones()
 		setProjectTitle()
-		if (isApp && Project.geometry_name) {
-			//BedrockEntityManager.initEntity()
-		}
 		updateSelection()
 		EditSession.initNewModel()
 	},
 })
-codec.compile = null;
+//codec.compile = null;
 
 
 const format = new ModelFormat({
@@ -254,6 +222,8 @@ const skin_dialog = new Dialog({
 			options: {
 				steve: 'Steve',
 				alex: 'Alex',
+				flat_texture: 'Texture',
+				block: 'Block',
 				armor_main: 'Armor (Main)',
 				armor_leggings: 'Armor (Leggings)',
 				armor_stand: 'Armor Stand',
@@ -519,6 +489,54 @@ skin_presets.alex = `{
 		}
 	]
 }`;
+
+skin_presets.flat_texture = `{
+	"name": "flat_texture",
+	"camera_angle": "top",
+	"texturewidth": 16,
+	"textureheight": 16,
+	"bones": [
+		{
+			"name": "block",
+			"pivot": [0, 0, 0],
+			"cubes": [
+				{
+					"origin": [-8, 0, -8],
+					"size": [16, 1, 16],
+					"uv": {
+						"up": {"uv": [16, 16], "uv_size": [-16, -16]}
+					}
+				}
+			]
+		}
+	]
+}`;
+skin_presets.block = `{
+	"name": "block",
+	"texturewidth": 16,
+	"textureheight": 16,
+	"bones": [
+		{
+			"name": "block",
+			"pivot": [0, 0, 0],
+			"cubes": [
+				{
+					"origin": [-8, 0, -8],
+					"size": [16, 16, 16],
+					"uv": {
+						"north": {"uv": [0, 0], "uv_size": [16, 16]},
+						"east": {"uv": [0, 0], "uv_size": [16, 16]},
+						"south": {"uv": [0, 0], "uv_size": [16, 16]},
+						"west": {"uv": [0, 0], "uv_size": [16, 16]},
+						"up": {"uv": [16, 16], "uv_size": [-16, -16]},
+						"down": {"uv": [16, 16], "uv_size": [-16, -16]}
+					}
+				}
+			]
+		}
+	]
+}`;
+
 skin_presets.armor_main = `{
 	"name": "armor_main",
 	"texturewidth": 64,

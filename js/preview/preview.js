@@ -23,6 +23,7 @@ var gizmo_colors = {
 const DefaultCameraPresets = [
 	{
 		name: 'menu.preview.angle.initial',
+		id: 'initial',
 		projection: 'perspective',
 		position: [-40, 32, -40],
 		target: [0, 8, 0],
@@ -30,6 +31,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'direction.top',
+		id: 'top',
 		projection: 'orthographic',
 		color: 'y',
 		position: [0, 64, 0],
@@ -40,6 +42,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'direction.bottom',
+		id: 'bottom',
 		projection: 'orthographic',
 		color: 'y',
 		position: [0, -64, 0],
@@ -50,6 +53,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'direction.south',
+		id: 'south',
 		projection: 'orthographic',
 		color: 'z',
 		position: [0, 0, 64],
@@ -60,6 +64,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'direction.north',
+		id: 'north',
 		projection: 'orthographic',
 		color: 'z',
 		position: [0, 0, -64],
@@ -70,6 +75,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'direction.east',
+		id: 'east',
 		projection: 'orthographic',
 		color: 'x',
 		position: [64, 0, 0],
@@ -80,6 +86,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'direction.west',
+		id: 'west',
 		projection: 'orthographic',
 		color: 'x',
 		position: [-64, 0, 0],
@@ -90,6 +97,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'camera_angle.isometric_right',
+		id: 'isometric_right',
 		projection: 'orthographic',
 		position: [-64, 64*0.8165, -64],
 		target: [0, 0, 0],
@@ -98,6 +106,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'camera_angle.isometric_left',
+		id: 'isometric_left',
 		projection: 'orthographic',
 		position: [64, 64*0.8165, -64],
 		target: [0, 0, 0],

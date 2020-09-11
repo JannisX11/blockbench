@@ -340,7 +340,8 @@ function calculateVisibleBox() {
 		} else {
 			base_cube.mirror_uv = s.mirror === true;
 		}
-		base_cube.addTo(group).init()
+		base_cube.addTo(group).init();
+		return base_cube;
 	}
 	function parseBone(b, bones, parent_list) {
 		var group = new Group({
