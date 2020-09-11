@@ -255,7 +255,7 @@ class Animation {
 		if (selected_bone) {
 			selected_bone.select();
 		}
-		Animator.preview();
+		if (Modes.animate) Animator.preview();
 		return this;
 	}
 	setLength(len) {
@@ -803,25 +803,9 @@ class EffectAnimator extends GeneralAnimator {
 }
 	EffectAnimator.prototype.channels = ['particle', 'sound', 'timeline']
 
-//Misc Functions
-	function findBedrockAnimation() {
-		var animation_path = ModelMeta.export_path.split(osfs)
-		var index = animation_path.lastIndexOf('models')
-		animation_path.splice(index)
-		var path1 = [...animation_path, 'animations', pathToName(ModelMeta.export_path)+'.json'].join(osfs)
-		var path2 = [...animation_path, 'animations', pathToName(ModelMeta.export_path).replace('.geo', '')+'.animation.json'].join(osfs)
-		if (fs.existsSync(path1)) {
-			Blockbench.read([path1], {}, (files) => {
-				Animator.loadFile(files[0])
-			})
-		} else if (fs.existsSync(path2)) {
-			Blockbench.read([path2], {}, (files) => {
-				Animator.loadFile(files[0])
-			})
-		}
-	}
 //Clipbench
-	Clipbench.setKeyframes = function() {
+Object.assign(Clipbench, {
+	setKeyframes() {
 
 		var keyframes = Timeline.selected;
 
@@ -853,8 +837,8 @@ class EffectAnimator extends GeneralAnimator {
 		if (isApp) {
 			clipboard.writeHTML(JSON.stringify({type: 'keyframes', content: Clipbench.keyframes}))
 		}
-	}
-	Clipbench.pasteKeyframes = function() {
+	},
+	pasteKeyframes() {
 		if (isApp) {
 			var raw = clipboard.readHTML()
 			try {
@@ -897,6 +881,7 @@ class EffectAnimator extends GeneralAnimator {
 			Undo.finishEdit('paste keyframes');
 		}
 	}
+})
 
 const Animator = {
 	possible_channels: {rotation: true, position: true, scale: true, sound: true, particle: true, timeline: true},
@@ -932,10 +917,6 @@ const Animator = {
 		}
 		if (!Animator.selected && Animator.animations.length) {
 			Animator.animations[0].select()
-		}
-		if (isApp && !ModelMeta.animation_path && !Animator.animations.length && ModelMeta.export_path) {
-			//Load
-			findBedrockAnimation()
 		}
 		Animator.preview()
 	},
@@ -986,11 +967,12 @@ const Animator = {
 		}
 		Blockbench.dispatchEvent('display_animation_frame')
 	},
-	loadFile(file) {
+	loadFile(file, animation_filter) {
 		var json = file.json || autoParseJSON(file.content);
 		let path = file.path;
 		if (json && typeof json.animations === 'object') {
 			for (var ani_name in json.animations) {
+				if (animation_filter && !animation_filter.includes(ani_name)) continue;
 				//Animation
 				var a = json.animations[ani_name]
 				var animation = new Animation({
