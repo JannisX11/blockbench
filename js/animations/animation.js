@@ -1087,6 +1087,7 @@ const Animator = {
 Molang.global_variables = {
 	'true': 1,
 	'false': 0,
+	'query.delta_time': (1/60),
 	get 'query.anim_time'() {
 		return Timeline.time;
 	},

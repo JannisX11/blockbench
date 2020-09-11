@@ -493,8 +493,12 @@ const Timeline = {
 	loop() {
 		Animator.preview()
 		if (Animator.selected && Timeline.time < (Animator.selected.length||1e3)) {
-			
-			Timeline.setTime(Timeline.time + (1/60) * (Timeline.playback_speed/100))
+
+			let new_time = (Animator.selected && Animator.selected.anim_time_update)
+						 ? Molang.parse(Animator.selected.anim_time_update)
+						 : Timeline.time + (1/60);
+			Timeline.setTime(new_time * (Timeline.playback_speed/100));
+
 		} else {
 			if (Animator.selected.loop == 'once') {
 				Timeline.setTime(0)
