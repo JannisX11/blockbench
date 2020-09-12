@@ -172,9 +172,12 @@ onVueSetup(() => {
 		var value = new tinycolor(color)
 		ColorPanel.vue._data.main_color = value.toHexString();
 	}
-	ColorPanel.set = function(color) {
+	ColorPanel.set = function(color, no_sync) {
 		ColorPanel.change(color)
 		ColorPanel.addToHistory(ColorPanel.vue._data.main_color)
+		if (!no_sync && isApp && settings.sync_color.value) {
+			ipcRenderer.send('change-main-color', ColorPanel.vue._data.main_color);
+		}
 	}
 	ColorPanel.get = function() {
 		ColorPanel.addToHistory(ColorPanel.vue._data.main_color);
@@ -197,6 +200,12 @@ onVueSetup(() => {
 
 		//$(this).animate({scrollLeft: current + delta}, 200)
 	})
+
+	if (isApp) {
+		ipcRenderer.on('set-main-color', (event, arg) => {
+			ColorPanel.set(arg, true);
+		})
+	}	
 
 	ColorPanel.importPalette = function(file) {
 

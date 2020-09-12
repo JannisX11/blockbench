@@ -666,7 +666,8 @@
 
 				scale = worldPosition.distanceTo( camPosition )/6
 					  * (settings.control_size.value / 20)
-					  * (1000 / scope.camera.preview.height);
+					  * (1000 / scope.camera.preview.height)
+					  * Settings.get('fov') / 45;
 
 			} else if ( scope.camera instanceof THREE.OrthographicCamera ) {
 
@@ -696,7 +697,7 @@
 			if ( scope.camera instanceof THREE.PerspectiveCamera ) {
 
 				eye.copy( camPosition ).sub( worldPosition ).normalize();
-				scale = rot_origin.getWorldPosition(new THREE.Vector3()).distanceTo( camPosition ) / 16 * (settings.origin_size.value / 20);
+				scale = rot_origin.getWorldPosition(new THREE.Vector3()).distanceTo( camPosition ) / 16 * (settings.origin_size.value / 20) * Settings.get('fov') / 45;;
 
 			} else if ( scope.camera instanceof THREE.OrthographicCamera ) {
 

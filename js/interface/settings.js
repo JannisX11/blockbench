@@ -101,6 +101,9 @@ const Settings = {
 		new Setting('shading', 	  		{category: 'preview', value: true, onChange() {
 			updateShading()
 		}});
+		new Setting('fov', 		  		{category: 'preview', value: 45, type: 'number', onChange(val) {
+			Preview.all.forEach(preview => preview.setFOV(val));
+		}});
 		new Setting('render_sides', 	{category: 'preview', value: 'auto', type: 'select', options: {
 			'auto': tl('settings.render_sides.auto'),
 			'front': tl('settings.render_sides.front'),
@@ -151,8 +154,8 @@ const Settings = {
 		new Setting('animation_snap',{category: 'snapping', value: 25, type: 'number'});
 
 		//Paint
+		new Setting('sync_color',	{category: 'paint', value: false});
 		new Setting('paint_side_restrict',	{category: 'paint', value: true});
-		//new Setting('layered_textures',		{category: 'paint', value: false});
 		new Setting('brush_opacity_modifier', {category: 'paint', value: 'pressure', type: 'select', options: {
 			'pressure': tl('settings.brush_modifier.pressure'),
 			'tilt': tl('settings.brush_modifier.tilt'),

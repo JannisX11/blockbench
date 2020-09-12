@@ -311,6 +311,7 @@
 	"dialog.create_texture.compress": "Compress Template",
 	"dialog.create_texture.power": "Power-of-2 Size",
 	"dialog.create_texture.double_use": "Keep Multi Texture Occupancy",
+	"dialog.create_texture.padding": "Padding",
 	"dialog.create_texture.resolution": "Resolution",
 
 	"dialog.create_gif.title": "Record GIF",
@@ -452,6 +453,8 @@
 	"settings.shading": "Shading",
 	"settings.shading.desc": "Enable shading",
 	"settings.render_sides": "Render Sides",
+	"settings.fov": "FOV",
+	"settings.fov.desc": "Camera Field of View. Default is 45",
 	"settings.render_sides.desc": "Select which side of a face is rendered",
 	"settings.render_sides.auto": "Auto",
 	"settings.render_sides.front": "Outside",
@@ -509,6 +512,8 @@
 	"settings.animation_snap": "Animation Snap",
 	"settings.animation_snap.desc": "Snap interval for keyframes in the animation timeline in steps per second",
 
+	"settings.sync_color": "Sync Color",
+	"settings.sync_color.desc": "Synchronize the color between different Blockbench instances",
 	"settings.paint_side_restrict": "Restrict Brush to Side",
 	"settings.paint_side_restrict.desc": "Restrict brushes to only paint on the current side",
 	"settings.image_editor": "Image Editor",
@@ -1094,6 +1099,7 @@
 	"menu.animation.loop.loop": "Loop",
 	"menu.animation.override": "Override",
 	"menu.animation.anim_time_update": "Update Variable",
+	"menu.animation.save": "Save",
 
 	"menu.keyframe.quaternion": "Quaternion",
 

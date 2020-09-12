@@ -304,34 +304,75 @@ function setupPanels() {
 		component: {
 			name: 'panel-animations',
 			data() { return {
-				animations: Animator.animations
+				animations: Animator.animations,
+				files_folded: {}
 			}},
 			methods: {
-				sort(event) {
-					let item = Animator.animations.splice(event.oldIndex, 1)[0];
-					Animator.animations.splice(event.newIndex, 0, item);
+				toggle(key) {
+					this.files_folded[key] = !this.files_folded[key];
+					this.$forceUpdate();
+				},
+				saveFile(key, file) {
+					if (key && isApp) {
+						file.animations.forEach(animation => {
+							animation.save();
+						})
+					} else {
+						
+					}
+				}
+			},
+			computed: {
+				files() {
+					let files = {};
+					this.animations.forEach(animation => {
+						let key = animation.path || '';
+						if (!files[key]) files[key] = {
+							animations: [],
+							name: animation.path ? pathToName(animation.path, true) : 'Unsaved',
+							saved: true
+						};
+						if (!animation.saved) files[key].saved = false;
+						files[key].animations.push(animation);
+					})
+					return files;
 				}
 			},
 			template: `
 				<div>
 					<div class="toolbar_wrapper animations"></div>
-					<ul id="animations_list" class="list" v-sortable="{onUpdate: sort, fallbackTolerance: 10, animation: 0, handle: ':not(.animation_play_toggle)'}">
-						<li
-							v-for="animation in animations"
-							v-bind:class="{ selected: animation.selected }"
-							v-bind:anim_id="animation.uuid"
-							class="animation"
-							v-on:click.stop="animation.select()"
-							v-on:dblclick.stop="animation.rename()"
-							:key="animation.uuid"
-							@contextmenu.prevent.stop="animation.showContextMenu($event)"
-						>
-							<i class="material-icons">movie</i>
-							<input class="animation_name" v-model="animation.name" disabled="true">
-							<div class="animation_play_toggle" v-on:click.stop="animation.togglePlayingState()">
-								<i v-if="animation.playing" class="fa_big far fa-play-circle"></i>
-								<i v-else class="fa_big far fa-circle"></i>
+					<ul id="animations_list" class="list">
+						<li v-for="(file, key) in files" :key="key" class="animation_file">
+							<div class="animation_file_head" v-on:click.stop="toggle(key)">
+								<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
+								{{ file.name }}
+								<div class="animation_file_save_button" v-if="!file.saved" v-on:click.stop="saveFile(key, file)">
+									<i class="material-icons">save</i>
+								</div>
 							</div>
+							<ul v-if="!files_folded[key]">	
+								<li
+									v-for="animation in file.animations"
+									v-bind:class="{ selected: animation.selected }"
+									v-bind:anim_id="animation.uuid"
+									class="animation"
+									v-on:click.stop="animation.select()"
+									v-on:dblclick.stop="animation.rename()"
+									:key="animation.uuid"
+									@contextmenu.prevent.stop="animation.showContextMenu($event)"
+								>
+									<i class="material-icons">movie</i>
+									<input class="animation_name" v-model="animation.name" disabled="true">
+									<div class="animation_save_button" v-bind:class="{clickable: !animation.saved}" v-on:click.stop="animation.save()">
+										<i v-if="animation.saved" class="material-icons">check_circle</i>
+										<i v-else class="material-icons">save</i>
+									</div>
+									<div class="animation_play_toggle" v-on:click.stop="animation.togglePlayingState()">
+										<i v-if="animation.playing" class="fa_big far fa-play-circle"></i>
+										<i v-else class="fa_big far fa-circle"></i>
+									</div>
+								</li>
+							</ul>
 						</li>
 					</ul>
 				</div>

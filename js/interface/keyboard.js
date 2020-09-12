@@ -335,17 +335,39 @@ onVueSetup(function() {
 	}
 })
 
-setInterval(() => {
-	var focus = document.hasFocus();
-	if (Pressing.shift && !focus) Pressing.shift = false;
-	if (Pressing.alt && !focus) {
+window.addEventListener('blur', event => {
+	if (Pressing.alt) {
 		if (Toolbox.original && Toolbox.original.alt_tool) {
 			Toolbox.original.select()
 			delete Toolbox.original;
 		}
-		Pressing.alt = false;
 	}
-}, 100)
+	Pressing.shift = false;
+	Pressing.alt = false;
+	Pressing.ctrl = false;
+})
+
+window.addEventListener('focus', event => {
+	function click_func(event) {
+		if (event.altKey && Toolbox.selected.alt_tool && !Toolbox.original && !open_interface) {
+			var orig = Toolbox.selected;
+			var alt = BarItems[Toolbox.selected.alt_tool];
+			if (alt && Condition(alt)) {
+				alt.select()
+				Toolbox.original = orig;
+			}
+		}
+		remove_func();
+	}
+	let removed = false
+	function remove_func() {
+		if (removed) return;
+		removed = true;
+		removeEventListeners(window, 'keydown mousedown', click_func, true);
+	}
+	addEventListeners(window, 'keydown mousedown', click_func, true);
+	setTimeout(remove_func, 100);
+})
 
 function getFocusedTextInput() {
 	return $('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus').get(0)

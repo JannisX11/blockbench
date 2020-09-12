@@ -4,6 +4,7 @@ const url = require('url')
 const { autoUpdater } = require('electron-updater');
 
 let orig_win;
+let all_wins = [];
 
 function createWindow(second_instance) {
 	if (app.requestSingleInstanceLock && !app.requestSingleInstanceLock()) {
@@ -25,6 +26,7 @@ function createWindow(second_instance) {
 		}
 	})
 	if (!orig_win) orig_win = win;
+	all_wins.push(win);
 	var index_path = path.join(__dirname, 'index.html')
 	if (process.platform === 'darwin') {
 
@@ -106,10 +108,11 @@ function createWindow(second_instance) {
 		slashes: true
 	}))
 	win.on('closed', () => {
-		win = null
+		win = null;
+		all_wins.splice(all_wins.indexOf(win), 1);
 	})
 	if (second_instance === true) {
-		win.webContents.second_instance = true
+		win.webContents.second_instance = true;
 
 	}
 }
@@ -122,7 +125,12 @@ app.on('second-instance', function (event, argv, cwd) {
 app.commandLine.appendSwitch('ignore-gpu-blacklist')
 app.commandLine.appendSwitch('enable-accelerated-video')
 
-
+ipcMain.on('change-main-color', (event, arg) => {
+	all_wins.forEach(win => {
+		if (win.isDestroyed() || win.webContents == event.sender.webContents) return;
+		win.webContents.send('set-main-color', arg)
+	})
+})
 
 app.on('ready', () => {
 
