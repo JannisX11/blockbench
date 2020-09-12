@@ -582,7 +582,7 @@
 		color: var(--color-grid);
 	}
 	#timeline_body .keyframe.selected {
-		color: var(--color-accent);
+		color: var(--color-accent) !important;
 		z-index: 4;
 	}
 

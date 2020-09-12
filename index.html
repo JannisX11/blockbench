@@ -1038,7 +1038,7 @@
 								<div class="keyframe_section">
 									<keyframe
 										v-for="keyframe in animator[channel]"
-										v-bind:style="{left: (8 + keyframe.time * size) + 'px'}"
+										v-bind:style="{left: (8 + keyframe.time * size) + 'px', color: getColor(keyframe.color)}"
 										class="keyframe"
 										v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
 										v-bind:id="keyframe.uuid"

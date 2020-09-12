@@ -1005,9 +1005,7 @@ const Animator = {
 					override: a.override_previous_animation,
 					anim_time_update: a.anim_time_update,
 					length: a.animation_length,
-					blend_weight: a.blend_weight,
-					//particle_effects: a.particle_effects,
-					//sound_effects: a.sound_effects,
+					blend_weight: a.blend_weight
 				}).add()
 				//Bones
 				if (a.bones) {

@@ -3,6 +3,7 @@ class Keyframe {
 		this.type = 'keyframe'
 		this.channel = 'rotation';
 		this.time = 0;
+		this.color = -1;
 		this.selected = 0;
 		this.x = '0';
 		this.y = '0';
@@ -26,6 +27,7 @@ class Keyframe {
 	}
 	extend(data) {
 		Merge.number(this, data, 'time')
+		Merge.number(this, data, 'color')
 
 		if (this.transform) {
 			if (data.values != undefined) {
@@ -257,12 +259,30 @@ class Keyframe {
 		}
 		Timeline.selected.remove(this)
 	}
+	forSelected(fc, undo_tag) {
+		if (Timeline.selected.length <= 1 || !Timeline.selected.includes(this)) {
+			var edited = [this]
+		} else {
+			var edited = Timeline.selected
+		}
+		if (undo_tag) {
+			Undo.initEdit({keyframes: edited})
+		}
+		for (var i = 0; i < edited.length; i++) {
+			fc(edited[i])
+		}
+		if (undo_tag) {
+			Undo.finishEdit(undo_tag)
+		}
+		return edited;
+	}
 	getUndoCopy(save) {
 		var copy = {
 			animator: save ? undefined : this.animator && this.animator.uuid,
 			uuid: save && this.uuid,
 			channel: this.channel,
 			time: this.time,
+			color: this.color,
 			x: this.x,
 			y: this.y,
 			z: this.z,
@@ -306,6 +326,17 @@ class Keyframe {
 		},*/
 		'change_keyframe_file',
 		'_',
+		{name: 'menu.cube.color', icon: 'color_lens', children: [
+			{icon: 'bubble_chart', name: 'generic.unset', click: function(kf) {kf.forSelected(kf2 => {kf2.color = -1}, 'change color')}},
+			{icon: 'bubble_chart', color: markerColors[0].standard, name: 'cube.color.'+markerColors[0].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 0}, 'change color')}},
+			{icon: 'bubble_chart', color: markerColors[1].standard, name: 'cube.color.'+markerColors[1].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 1}, 'change color')}},
+			{icon: 'bubble_chart', color: markerColors[2].standard, name: 'cube.color.'+markerColors[2].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 2}, 'change color')}},
+			{icon: 'bubble_chart', color: markerColors[3].standard, name: 'cube.color.'+markerColors[3].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 3}, 'change color')}},
+			{icon: 'bubble_chart', color: markerColors[4].standard, name: 'cube.color.'+markerColors[4].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 4}, 'change color')}},
+			{icon: 'bubble_chart', color: markerColors[5].standard, name: 'cube.color.'+markerColors[5].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 5}, 'change color')}},
+			{icon: 'bubble_chart', color: markerColors[6].standard, name: 'cube.color.'+markerColors[6].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 6}, 'change color')}},
+			{icon: 'bubble_chart', color: markerColors[7].standard, name: 'cube.color.'+markerColors[7].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 7}, 'change color')}}
+		]},
 		'copy',
 		'delete',
 	])

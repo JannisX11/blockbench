@@ -568,6 +568,10 @@ onVueSetup(function() {
 			},
 			removeAnimator(animator) {
 				Timeline.animators.remove(animator);
+			},
+			getColor(index) {
+				if (index == -1 || index == undefined) return;
+				return markerColors[index].standard;
 			}
 		}
 	})
