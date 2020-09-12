@@ -311,6 +311,7 @@
 	"dialog.create_texture.compress": "Compress Template",
 	"dialog.create_texture.power": "Power-of-2 Size",
 	"dialog.create_texture.double_use": "Keep Multi Texture Occupancy",
+	"dialog.create_texture.padding": "Padding",
 	"dialog.create_texture.resolution": "Resolution",
 
 	"dialog.create_gif.title": "Record GIF",

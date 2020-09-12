@@ -1553,8 +1553,8 @@ function initCanvas() {
 	resizeWindow()
 }
 function animate() {
-	TickUpdates.Run()
 	requestAnimationFrame( animate );
+	TickUpdates.Run()
 	Preview.all.forEach(function(prev) {
 		if (prev.canvas.isConnected) {
 			prev.render()
