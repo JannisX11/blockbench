@@ -651,12 +651,14 @@ BARS.defineActions(function() {
 				startpath: Timeline.selected[0].file
 			}, function(files) {
 
+				let {path} = files[0];
 				Undo.initEdit({keyframes: Timeline.selected})
 				Timeline.selected.forEach((kf) => {
 					if (kf.channel == 'sound') {
-						kf.file = files[0].path;
+						kf.file = path;
 					}
 				})
+				Timeline.visualizeAudioFile(path);
 				Undo.finishEdit('changed keyframe audio file')
 			})
 		}

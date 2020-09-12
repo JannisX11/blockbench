@@ -823,6 +823,31 @@ class EffectAnimator extends GeneralAnimator {
 			})
 		}
 	}
+	startPreviousSounds() {
+		if (!this.muted.sound) {
+			this.sound.forEach(kf => {
+				if (kf.file && !kf.cooldown) {
+					var diff = kf.time - Timeline.time;
+					if (diff < 0 && Timeline.waveforms[kf.file] && Timeline.waveforms[kf.file].duration > -diff) {
+						var media = new Audio(kf.file);
+						window._media = media
+						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
+						media.currentTime = -diff;
+						media.play();
+						Timeline.playing_sounds.push(media);
+						media.onended = function() {
+							Timeline.playing_sounds.remove(media);
+						}
+
+						kf.cooldown = true;
+						setTimeout(() => {
+							delete kf.cooldown;
+						}, 400)
+					} 
+				}
+			})
+		}
+	}
 }
 	EffectAnimator.prototype.channels = ['particle', 'sound', 'timeline']
 

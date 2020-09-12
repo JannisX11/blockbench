@@ -564,7 +564,7 @@
 		z-index: 3;
 		text-align: center;
 		width: 13.5px;
-		height: 22px;
+		height: 23px;
 	}
 	#timeline_body .keyframe i {
 		margin-top: 2px;
@@ -717,6 +717,18 @@
 	}
 	#timeline_empty_head {
 		flex-grow: 1;
+	}
+
+	.keyframe .keyframe_waveform {
+		height: 23px;
+		width: 8000px;
+		position: absolute;
+		top: 0;
+	}
+	.keyframe .keyframe_waveform > polygon {
+		fill: var(--color-grid);
+		stroke: none;
+		stroke-width: 0;
 	}
 
 

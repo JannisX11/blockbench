@@ -1048,6 +1048,9 @@
 										@contextmenu.prevent="keyframe.showContextMenu($event)"
 									>
 										<i class="material-icons">stop</i>
+										<svg class="keyframe_waveform" v-if="keyframe.channel == 'sound' && keyframe.file && waveforms[keyframe.file]" :style="{width: waveforms[keyframe.file].duration * size}">
+											<polygon :points="getWaveformPoints(waveforms[keyframe.file].samples, size)"></polygon>
+										</svg>
 									</keyframe>
 								</div>
 							</div>

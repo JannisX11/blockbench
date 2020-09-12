@@ -488,6 +488,13 @@ const Timeline = {
 		if (Animator.selected.loop == 'hold' && Timeline.time >= (Animator.selected.length||1e3)) {
 			Timeline.setTime(0)
 		}
+		if (Timeline.time > 0) {
+			Animator.animations.forEach(animation => {
+				if (animation.playing && animation.animators.effects) {
+					animation.animators.effects.startPreviousSounds();
+				}
+			})
+		}
 		Timeline.loop()
 	},
 	loop() {
@@ -526,6 +533,47 @@ const Timeline = {
 		})
 		Timeline.playing_sounds.empty();
 	},
+
+	waveforms: {},
+	waveform_sample_rate: 60,
+	async visualizeAudioFile(path) {
+
+		if (!Timeline.waveforms[path]) {
+			Timeline.waveforms[path] = {
+				samples: [],
+				duration: 0
+			};
+		}
+		let {samples} = Timeline.waveforms[path];
+
+		let audioContext = new AudioContext()
+		let response = await fetch(path);
+		let arrayBuffer = await response.arrayBuffer();
+		let audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+		let data_array = audioBuffer.getChannelData(0);
+
+		Timeline.waveforms[path].duration = audioBuffer.duration;
+		
+		// Sample
+		let sample_count = Math.ceil(audioBuffer.duration * Timeline.waveform_sample_rate);
+		samples.splice(0, samples.length);
+		for (var i = 0; i < sample_count; i++) {
+			samples.push(0);
+		}
+		for (var i = 0; i < data_array.length; i++) {
+			let sample_index = Math.floor((i / data_array.length) * sample_count);
+			samples[sample_index] += Math.abs(data_array[i]);
+		}
+
+		// Normalize
+		let max = Math.max(...samples);
+		samples.forEach((v, i) => samples[i] = v / max);
+		
+		Timeline.vue.$forceUpdate();
+
+		return samples;
+	},
+
 	get keyframes() {
 		var keyframes = [];
 		Timeline.animators.forEach(animator => {
@@ -559,6 +607,7 @@ onVueSetup(function() {
 			timecodes: [],
 			animators: Timeline.animators,
 			markers: [],
+			waveforms: Timeline.waveforms,
 			focus_channel: null,
 			playhead: Timeline.time
 		},
@@ -572,6 +621,15 @@ onVueSetup(function() {
 			getColor(index) {
 				if (index == -1 || index == undefined) return;
 				return markerColors[index].standard;
+			},
+			getWaveformPoints(samples, size) {
+				let height = 23;
+				let points = [`0,${height}`];
+				samples.forEach((sample, i) => {
+					points.push(`${(i + 0.5) / Timeline.waveform_sample_rate * size},${(1 - sample) * height}`);
+				})
+				points.push(`${(samples.length) / Timeline.waveform_sample_rate * size},${height}`)
+				return points.join(' ');
 			}
 		}
 	})
