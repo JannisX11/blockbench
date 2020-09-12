@@ -394,13 +394,16 @@
 	.panel#animations #animations_list {
 		min-height: 126px;
 		max-height: 294px;
+		padding-bottom: 12px;
 	}
 	.animation {
-		height: 42px;
+		height: 38px;
+		display: flex;
 		white-space: nowrap;
 		position: relative;
 		vertical-align: middle;
 		padding: 8px;
+		padding-left: 16px;
 		box-sizing: border-box;
 	}
 	.animation:hover {
@@ -410,14 +413,15 @@
 		background: var(--color-selected);
 	}
 	.animation > i {
-		margin-top: 2px;
 		margin-right: 4px;
 	}
 	.animation > * {
-		float: left;
+		flex-grow: 0;
+		flex-shrink: 0;
 	}
 	.animation > .animation_name {
-		width: calc(100% - 50px);
+		flex-grow: 1;
+		flex-shrink: 1;
 		user-select: none;
 	}
 	.animation .animation_play_toggle {
@@ -427,6 +431,32 @@
 	.animation .animation_play_toggle:hover {
 		color: var(--color-light);
 	}
+	.animation .animation_save_button {
+		width: 22px;
+		color: var(--color-text);
+	}
+	.animation .animation_save_button:hover {
+		color: var(--color-light);
+	}
+	.animation .animation_save_button:not(.clickable) {
+		opacity: 0.5;
+		color: var(--color-text) !important;
+	}
+
+	.animation_file_head {
+		height: 28px;
+		padding: 2px;
+		display: flex;
+	}
+	.animation_file_head:hover {
+		color: var(--color-light);
+	}
+	.animation_file_head > .icon-open-state {
+		text-align: center;
+		width: 21px;
+		margin-top: 4px;
+	}
+
 	.panel#keyframe .tabs_small label {
 		font-size: 1em;
 		height: 30px;

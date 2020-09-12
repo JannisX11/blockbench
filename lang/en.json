@@ -1099,6 +1099,7 @@
 	"menu.animation.loop.loop": "Loop",
 	"menu.animation.override": "Override",
 	"menu.animation.anim_time_update": "Update Variable",
+	"menu.animation.save": "Save",
 
 	"menu.keyframe.quaternion": "Quaternion",
 
