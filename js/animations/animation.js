@@ -172,57 +172,58 @@ class Animation {
 		return ani_tag;
 	}
 	save() {
-		if (isApp) {
+		let content = {
+			format_version: '1.8.0',
+			animations: {
+				[this.name]: this.compileBedrockAnimation()
+			}
+		}
+		if (isApp && this.path && fs.existsSync(this.path)) {
 			//overwrite path
-			if (scope.mode === 'link') {
-				var image = nativeImage.createFromPath(scope.source.replace(/\?\d+$/, '')).toPNG()
-			} else {
-				var image = nativeImage.createFromDataURL(scope.source).toPNG()
-			}
-			tex_version++;
-			if (!as && this.path && fs.existsSync(this.path)) {
-				fs.writeFile(this.path, image, function (err) {
-					scope.fromPath(scope.path)
-				})
-			} else {
-				var find_path;
-				if (Format.bone_rig && Project.geometry_name) {
-					find_path = BedrockEntityManager.findEntityTexture(Project.geometry_name, true)
+
+			let data;
+			try {
+				data = fs.readFileSync(this.path, 'utf-8');
+				data = autoParseJSON(data, false);
+				if (typeof data.animations !== 'object') {
+					throw 'Incompatible format'
 				}
-				if (!find_path && ModelMeta.export_path) {
-					var arr = ModelMeta.export_path.split(osfs);
-					var index = arr.lastIndexOf('models');
-					if (index > 1) arr.splice(index, 256, 'textures')
-					if (scope.folder) arr = arr.concat(scope.folder.split('/'));
-					arr.push(scope.name)
-					find_path = arr.join(osfs)
-				} 
-				Blockbench.export({
-					resource_id: 'texture',
-					type: 'PNG Texture',
-					extensions: ['png'],
-					name: scope.name,
-					content: image,
-					startpath: find_path,
-					savetype: 'image'
-				}, function(path) {
-					scope.fromPath(path)
+
+			} catch (err) {
+				data = null;
+				var answer = ElecDialogs.showMessageBox(currentwindow, {
+					type: 'warning',
+					buttons: [
+						tl('message.bedrock_overwrite_error.overwrite'),
+						tl('dialog.cancel')
+					],
+					title: 'Blockbench',
+					message: tl('message.bedrock_overwrite_error.message'),
+					detail: err+'',
+					noLink: false
 				})
+				if (answer === 1) {
+					return;
+				}
 			}
+
+			if (data) {
+				let animation = content.animations[this.name];
+				content = data;
+				content.animations[this.name] = animation;
+			}
+			Blockbench.writeFile(this.path, {content: compileJSON(content)}, () => {
+				this.saved = true;
+			});
+
 		} else {
 			//Download
-			let content = {
-				format_version: '1.8.0',
-				animations: {
-					[this.name]: this.compileBedrockAnimation()
-				}
-			}
 			Blockbench.export({
 				resource_id: 'animation',
 				type: 'JSON Animation',
 				extensions: ['json'],
 				name: (Project.geometry_name||'model')+'.animation',
-				startpath: path,
+				startpath: this.path,
 				content: compileJSON(content),
 			}, () => {
 				this.saved = true;
@@ -408,6 +409,14 @@ class Animation {
 			animation.editUpdateVariable()
 		}},
 		'_',
+		{
+			name: 'menu.animation.save',
+			id: 'save',
+			icon: 'save',
+			click(animation) {
+				animation.save();
+			}
+		},
 		'duplicate',
 		'rename',
 		'delete',
@@ -415,6 +424,20 @@ class Animation {
 	new Property(Animation, 'boolean', 'saved', {default: true})
 	new Property(Animation, 'string', 'path')
 
+Blockbench.on('finish_edit', event => {
+	if (event.aspects.animations && event.aspects.animations.length) {
+		event.aspects.animations.forEach(animation => {
+			animation.saved = false;
+		})
+	}
+	if (event.aspects.keyframes && event.aspects.keyframes.length) {
+		event.aspects.keyframes.forEach(kf => {
+			if (kf.animator && kf.animator.animation) {
+				kf.animator.animation.saved = false;
+			}
+		})
+	}
+})
 
 class GeneralAnimator {
 	constructor(uuid, animation) {

@@ -497,7 +497,7 @@ const Timeline = {
 			let new_time = (Animator.selected && Animator.selected.anim_time_update)
 						 ? Molang.parse(Animator.selected.anim_time_update)
 						 : Timeline.time + (1/60);
-			Timeline.setTime(new_time * (Timeline.playback_speed/100));
+			Timeline.setTime(Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100));
 
 		} else {
 			if (Animator.selected.loop == 'once') {
