@@ -1145,7 +1145,7 @@ Molang.global_variables = {
 	}
 }
 Molang.variableHandler = function (variable) {
-	var inputs = $('#var_placeholder_area').val().split('\n')
+	var inputs = Interface.Panels.variable_placeholders.inside_vue._data.text.split('\n');
 	var i = 0;
 	while (i < inputs.length) {
 		let key, val;

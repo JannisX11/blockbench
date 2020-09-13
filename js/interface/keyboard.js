@@ -384,11 +384,14 @@ $(document).on('keydown mousedown', function(e) {
 
 	if (input_focus) {
 		//User Editing Anything
+
+		//Tab
 		if (e.which == 9 && !open_dialog) {
-			var all_inputs = $('.tab_target:visible')
+			var all_inputs = $('.tab_target:visible:not(.prism-editor-wrapper), .prism-editor-wrapper.tab_target:visible > pre[contenteditable="true"]')
 			var index = all_inputs.index(input_focus)+1;
 			if (index >= all_inputs.length) index = 0;
 			var next = $(all_inputs.get(index))
+
 			if (next.length) {
 				if (next.hasClass('cube_name')) {
 					var target = Outliner.root.findRecursive('uuid', next.parent().parent().attr('id'))
@@ -404,7 +407,7 @@ $(document).on('keydown mousedown', function(e) {
 						next.click();
 					}, 50)
 				} else {
-					next.click();
+					next.focus().click();
 				}
 				return;
 			}

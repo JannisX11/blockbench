@@ -261,11 +261,18 @@ const Timeline = {
 			}
 		})
 		//Keyframe inputs
-		$('.keyframe_input').click(e => {
-			Undo.initEdit({keyframes: Timeline.selected})
-		}).focusout(e => {
-			Undo.finishEdit('edit keyframe')
+		
+		document.addEventListener('focus', event => {
+			if (event.target && event.target.parentElement && event.target.parentElement.classList.contains('keyframe_input')) {
+				Undo.initEdit({keyframes: Timeline.selected})
+			}
+		}, true)
+		document.addEventListener('focusout', event => {
+			if (event.target && event.target.parentElement && event.target.parentElement.classList.contains('keyframe_input')) {
+				Undo.finishEdit('edit keyframe')
+			}
 		})
+		
 		//Enter Time
 		$('#timeline_corner').click(e => {
 			if ($('#timeline_corner').attr('contenteditable') == 'true') return;

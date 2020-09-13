@@ -477,9 +477,9 @@
 		flex-shrink: 1;
 	}
 
-
-
-
+	.prism-editor-wrapper {
+		caret-color: var(--color-text);
+	}
 	.molang_input {
 		overflow-y: hidden;
 		min-height: 30px;
@@ -512,18 +512,6 @@
 	.molang_input pre .token.selector {
 		color: #92dcff;
 	}
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

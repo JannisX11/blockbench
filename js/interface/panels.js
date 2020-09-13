@@ -5,6 +5,7 @@ class Panel {
 		this.id = data.id || 'new_panel';
 		this.icon = data.icon;
 		this.menu = data.menu;
+		this.growable = data.growable;
 		this.name = tl(data.name ? data.name : `panel.${this.id}`);
 		this.selection_only = data.selection_only == true;
 		this.condition = data.condition;
@@ -395,7 +396,16 @@ function setupPanels() {
 			}},
 			methods: {
 				updateInput(axis, value) {
+					console.log(this.keyframes[0].x)
 					updateKeyframeValue(axis, value)
+				},
+				getKeyframeInfos() {
+					let list =  [tl('timeline.'+this.channel)];
+					if (this.keyframes.length > 1) list.push(this.keyframes.length);
+					/*if (this.keyframes[0].color >= 0) {
+						list.push(tl(`cube.color.${markerColors[this.keyframes[0].color].name}`))
+					}*/
+					return list.join(', ')
 				}
 			},
 			computed: {
@@ -418,7 +428,7 @@ function setupPanels() {
 
 					<template v-if="channel != false">
 
-						<p id="keyframe_type_label">{{ tl('panel.keyframe.type', [tl('timeline.'+channel)]) }}</p>
+						<p id="keyframe_type_label">{{ tl('panel.keyframe.type', [getKeyframeInfos()]) }}</p>
 
 						<div class="bar flex" id="keyframe_bar_x" v-if="keyframes[0].animator instanceof BoneAnimator">
 							<label class="color_x" style="font-weight: bolder">X</label>
@@ -439,7 +449,7 @@ function setupPanels() {
 						</div>
 						<div class="bar flex" id="keyframe_bar_locator" v-if="channel == 'particle'">
 							<label>{{ tl('data.locator') }}</label>
-							<input type="text" class="dark_bordered code keyframe_input tab_target" v-model="keyframes[0].locator" @input="updateInput('locator', $event)">
+							<input @focus="focus()" @focusout="focusout()" type="text" class="dark_bordered code keyframe_input tab_target" v-model="keyframes[0].locator" @input="updateInput('locator', $event)">
 						</div>
 						<div class="bar flex" id="keyframe_bar_script" v-if="channel == 'particle'">
 							<label>{{ tl('timeline.pre_effect_script') }}</label>
@@ -458,7 +468,29 @@ function setupPanels() {
 		id: 'variable_placeholders',
 		icon: 'fas.fa-stream',
 		condition: {modes: ['animate']},
+		growable: true,
 		toolbars: {
+		},
+		component: {
+			name: 'panel-placeholders',
+			components: {VuePrismEditor},
+			data() { return {
+				text: ''
+			}},
+			template: `
+				<div style="flex-grow: 1; display: flex; flex-direction: column;">
+					<p>{{ tl('panel.variable_placeholders.info') }}</p>
+					<vue-prism-editor
+						id="var_placeholder_area"
+						class="molang_input dark_bordered tab_target"
+						v-model="text"
+						language="molang"
+						:line-numbers="false"
+						style="flex-grow: 1;"
+						onkeyup="Animator.preview()"
+					/>
+				</div>
+			`
 		}
 	})
 	Interface.Panels.display = new Panel({

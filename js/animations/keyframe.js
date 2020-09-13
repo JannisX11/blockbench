@@ -351,6 +351,11 @@ function updateKeyframeValue(axis, value) {
 	}
 }
 function updateKeyframeSelection() {
+	Timeline.keyframes.forEach(kf => {
+		if (kf.selected && !Timeline.selected.includes(kf)) {
+			kf.selected = false;
+		}
+	})
 	if (Timeline.selected.length) {
 		BarItems.slider_keyframe_time.update()
 	}
