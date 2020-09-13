@@ -1502,6 +1502,7 @@ function initCanvas() {
 	img.tex = tex;
 	img.tex.magFilter = THREE.NearestFilter
 	img.tex.minFilter = THREE.NearestFilter
+	img.tex.wrapS = img.tex.wrapT = THREE.RepeatWrapping;
 	img.onload = function() {
 		this.tex.needsUpdate = true;
 	}
