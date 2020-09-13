@@ -342,9 +342,7 @@ class Keyframe {
 	])
 
 // Misc Functions
-function updateKeyframeValue(obj) {
-	var axis = $(obj).attr('axis');
-	var value = $(obj).val();
+function updateKeyframeValue(axis, value) {
 	Timeline.selected.forEach(function(kf) {
 		kf.set(axis, value);
 	})
@@ -353,57 +351,8 @@ function updateKeyframeValue(obj) {
 	}
 }
 function updateKeyframeSelection() {
-	var multi_channel = false;
-	var channel = false;
-	Timeline.selected.forEach((kf) => {
-		if (channel === false) {
-			channel = kf.channel
-		} else if (channel !== kf.channel) {
-			multi_channel = true
-		}
-	})
-	$('.panel#keyframe .bar').hide();
-
-	if (Timeline.selected.length && !multi_channel) {
-		var first = Timeline.selected[0]
-
-		$('#keyframe_type_label').text(tl('panel.keyframe.type', [tl('timeline.'+first.channel)] ))
-
-		if (first.animator instanceof BoneAnimator) {
-			function _gt(axis) {
-				var n = first.get(axis);
-				if (typeof n == 'number') return trimFloatNumber(n);
-				return n;
-			}
-			$('#keyframe_bar_x, #keyframe_bar_y, #keyframe_bar_z').show();
-			$('#keyframe_bar_w').toggle(first.channel === 'rotation' && first.isQuaternion)
-
-			$('#keyframe_bar_x input').val(_gt('x'));
-			$('#keyframe_bar_y input').val(_gt('y'));
-			$('#keyframe_bar_z input').val(_gt('z'));
-			if (first.channel === 'rotation' && first.isQuaternion) {
-				$('#keyframe_bar_w input').val(_gt('w'));
-			}
-		} else if (first.channel == 'particle') {
-			$('#keyframe_bar_effect').show();
-			$('#keyframe_bar_effect input').val(first.get('effect'));
-			$('#keyframe_bar_locator').show();
-			$('#keyframe_bar_locator input').val(first.get('locator'));
-			$('#keyframe_bar_script').show();
-			$('#keyframe_bar_script input').val(first.get('script'));
-
-		} else if (first.channel == 'sound') {
-			$('#keyframe_bar_effect').show();
-			$('#keyframe_bar_effect input').val(first.get('effect'));
-
-		} else if (first.channel == 'timeline') {
-			$('#keyframe_bar_instructions').show();
-			$('#keyframe_bar_instructions textarea').val(first.get('instructions'));
-		}
+	if (Timeline.selected.length) {
 		BarItems.slider_keyframe_time.update()
-	} else {
-		$('#keyframe_type_label').text('')
-		$('#keyframe_bar_x, #keyframe_bar_y, #keyframe_bar_z, #keyframe_bar_w').hide()
 	}
 	BARS.updateConditions()
 	Blockbench.dispatchEvent('update_keyframe_selection');

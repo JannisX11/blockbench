@@ -457,10 +457,15 @@
 		margin-top: 4px;
 	}
 
+/* Keyframe Panel */
 	.panel#keyframe .tabs_small label {
 		font-size: 1em;
 		height: 30px;
 		width: 25%;
+	}
+	.panel#keyframe .bar.flex {
+		height: auto;
+		min-height: 30px;
 	}
 	.panel .bar.flex label {
 		margin: 3px 8px;
@@ -468,8 +473,59 @@
 	    text-align: center;
 	}
 	.panel#keyframe .bar input.dark_bordered {
-		width: calc(100% - 45px);
+		width: 100%;
+		flex-shrink: 1;
 	}
+
+
+
+
+	.molang_input {
+		overflow-y: hidden;
+		min-height: 30px;
+		height: auto;
+	}
+	.molang_input pre {
+		padding: 2px;
+		min-height: 28px;
+		background-color: transparent;
+		cursor: default;
+	}
+	.molang_input pre code {
+		color: #bec2ca;
+		padding: 0;
+		cursor: auto;
+	}
+
+	.molang_input pre .token.punctuation {
+		color: #5ba8c5
+	}
+	.molang_input pre .token.operator, .molang_input pre .token.keyword {
+		color: #fc2f40
+	}
+	.molang_input pre .token.number, .molang_input pre .token.boolean {
+		color: #b99cff
+	}
+	.molang_input pre .token.function-name {
+		color: #94e400
+	}
+	.molang_input pre .token.selector {
+		color: #92dcff;
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*Timeline*/
 	#timeline {

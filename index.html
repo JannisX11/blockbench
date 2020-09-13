@@ -42,6 +42,7 @@
 		<script src="lib/gif.js"></script>
 		<script src="lib/prism.js"></script>
 		<script src="lib/VuePrismEditor.min.js"></script>
+		<script src="lib/molang-prism-syntax.js"></script>
 		<script src="lib/lzutf8.js"></script>
 		<script src="lib/peer.min.js"></script>
 		<script src="lib/marked.min.js"></script>
@@ -803,42 +804,6 @@
 		</div>
 
 
-		<div id="keyframe" class="panel">
-			<div class="toolbar_wrapper keyframe"></div>
-			<p class="tl" id="keyframe_type_label"></p>
-			<div class="bar flex" id="keyframe_bar_x">
-				<label class="color_x" style="font-weight: bolder">X</label>
-				<input type="text" id="keyframe_x" class="dark_bordered code keyframe_input tab_target" axis="x" oninput="updateKeyframeValue(this)">
-			</div>
-			<div class="bar flex" id="keyframe_bar_y">
-				<label class="color_y" style="font-weight: bolder">Y</label>
-				<input type="text" id="keyframe_y" class="dark_bordered code keyframe_input tab_target" axis="y" oninput="updateKeyframeValue(this)">
-			</div>
-			<div class="bar flex" id="keyframe_bar_z">
-				<label class="color_z" style="font-weight: bolder">Z</label>
-				<input type="text" id="keyframe_z" class="dark_bordered code keyframe_input tab_target" axis="z" oninput="updateKeyframeValue(this)">
-			</div>
-			<div class="bar flex" id="keyframe_bar_w">
-				<label>W</label>
-				<input type="text" id="keyframe_w" class="dark_bordered code keyframe_input tab_target" axis="w" oninput="updateKeyframeValue(this)">
-			</div>
-			<div class="bar flex" id="keyframe_bar_effect">
-				<label class="tl">data.effect</label>
-				<input type="text" id="keyframe_effect" class="dark_bordered code keyframe_input tab_target" axis="effect" oninput="updateKeyframeValue(this)">
-			</div>
-			<div class="bar flex" id="keyframe_bar_locator">
-				<label class="tl">data.locator</label>
-				<input type="text" id="keyframe_locator" class="dark_bordered code keyframe_input tab_target" axis="locator" oninput="updateKeyframeValue(this)">
-			</div>
-			<div class="bar flex" id="keyframe_bar_script">
-				<label class="tl">timeline.pre_effect_script</label>
-				<input type="text" id="keyframe_script" class="dark_bordered code keyframe_input tab_target" axis="script" oninput="updateKeyframeValue(this)">
-			</div>
-			<div class="bar" id="keyframe_bar_instructions">
-				<label class="tl">timeline.timeline</label>
-				<textarea id="keyframe_instructions" style="height: 90px;" class="code keyframe_input tab_target" axis="instructions" oninput="updateKeyframeValue(this)"></textarea>
-			</div>
-		</div>
 
 		<div id="variable_placeholders" class="panel grow">
 			<p class="tl">panel.variable_placeholders.info</p>
