@@ -1,51 +1,40 @@
-function Dialog(settings) {
-	var scope = this;
-	this.title = settings.title
-	this.lines = settings.lines
-	this.form = settings.form
-	this.id = settings.id
-	this.width = settings.width
-	this.fadeTime = settings.fadeTime
-	this.draggable = settings.draggable
-	this.singleButton = settings.singleButton
-	this.buttons = settings.buttons
-	this.fadeTime = settings.fadeTime||0;
-	this.confirmIndex = settings.confirmIndex||0;
-	this.cancelIndex = settings.cancelIndex !== undefined ? settings.cancelIndex : 1;
-
-
-	this.hide = function() {
-		$('#blackout').fadeOut(this.fadeTime)
-		$(scope.object).fadeOut(this.fadeTime)
-			.find('.tool').detach()
-		open_dialog = false;
-		open_interface = false;
-		Prop.active_panel = undefined
-		setTimeout(function() {
-			$(scope.object).remove()
-		},this.fadeTime)
+class Dialog {
+	constructor(options) {
+		this.id = options.id
+		this.title = options.title
+		this.lines = options.lines
+		this.form = options.form
+		this.width = options.width
+		this.fadeTime = options.fadeTime
+		this.draggable = options.draggable
+		this.singleButton = options.singleButton
+		this.buttons = options.buttons
+		this.fadeTime = options.fadeTime||0;
+		this.confirmIndex = options.confirmIndex||0;
+		this.cancelIndex = options.cancelIndex !== undefined ? options.cancelIndex : 1;
+	
+		this.confirmEnabled = options.confirmEnabled === false ? false : true
+		this.cancelEnabled = options.cancelEnabled === false ? false : true
+		this.onConfirm = options.onConfirm ? options.onConfirm : this.hide
+		this.onCancel = options.onCancel ? options.onCancel : this.hide
+		this.onButton = options.onButton;
+	
+		this.object;
 	}
-
-	this.confirmEnabled = settings.confirmEnabled === false ? false : true
-	this.cancelEnabled = settings.cancelEnabled === false ? false : true
-	this.onConfirm = settings.onConfirm ? settings.onConfirm : this.hide
-	this.onCancel = settings.onCancel ? settings.onCancel : this.hide
-	this.onButton = settings.onButton;
-
-	this.object;
-
-	this.confirm = function() {
+	confirm() {
 		$(this.object).find('.confirm_btn:not([disabled])').click()
 	}
-	this.cancel = function() {
+	cancel() {
 		$(this.object).find('.cancel_btn:not([disabled])').click()
 	}
-	this.show = function() {
-		var jq_dialog = $(`<dialog class="dialog paddinged" id="${scope.id}"><div class="dialog_handle">${tl(scope.title)}</div></dialog>`)
-		scope.object = jq_dialog.get(0)
+	show() {
+		let scope = this;
+
+		var jq_dialog = $(`<dialog class="dialog paddinged" id="${this.id}"><div class="dialog_handle">${tl(this.title)}</div></dialog>`)
+		this.object = jq_dialog.get(0)
 		var max_label_width = 0;
-		if (scope.lines) {
-			scope.lines.forEach(function(l) {
+		if (this.lines) {
+			this.lines.forEach(l => {
 				if (typeof l === 'object' && (l.label || l.widget)) {
 
 					var bar = $('<div class="dialog_bar"></div>')
@@ -71,9 +60,9 @@ function Dialog(settings) {
 				}
 			})
 		}
-		if (scope.form) {
-			for (var form_id in scope.form) {
-				let data = scope.form[form_id]
+		if (this.form) {
+			for (var form_id in this.form) {
+				let data = this.form[form_id]
 				if (data === '_') {
 					jq_dialog.append('<hr />')
 					
@@ -86,10 +75,9 @@ function Dialog(settings) {
 
 					switch (data.type) {
 						default:
-							bar.append(`<input class="dark_bordered half focusable_input" type="text" id="${form_id}" value="${data.value||''}" placeholder="${data.placeholder||''}" ${data.list ? `list="${scope.id}_${form_id}_list"` : ''}>`)
+							bar.append(`<input class="dark_bordered half focusable_input" type="text" id="${form_id}" value="${data.value||''}" placeholder="${data.placeholder||''}" ${data.list ? `list="${this.id}_${form_id}_list"` : ''}>`)
 							if (data.list) {
-								let id = `${scope.id}_${form_id}_list`
-								let list = $(`<datalist id="${scope.id}_${form_id}_list"></datalist>`)
+								let list = $(`<datalist id="${this.id}_${form_id}_list"></datalist>`)
 								for (let value of data.list) {
 									list.append(`<option value="${value}">`)
 								}
@@ -219,7 +207,7 @@ function Dialog(settings) {
 										ElecDialogs.showOpenDialog(currentwindow, {
 											properties: ['openDirectory'],
 											defaultPath: data.value
-										}, function(filePaths) {
+										}, (filePaths) => {
 											if (filePaths) fileCB([{ path: filePaths[0] }]);
 										})
 										break;
@@ -250,17 +238,17 @@ function Dialog(settings) {
 
 			var buttons = []
 
-			scope.buttons.forEach(function(b, i) {
+			this.buttons.forEach((b, i) => {
 				var btn = $('<button type="button">'+tl(b)+'</button> ')
 				buttons.push(btn)
-				if (typeof scope.onButton == 'function') {
+				if (typeof this.onButton == 'function') {
 					btn.click((event) => {
-						scope.onButton(i);
+						this.onButton(i);
 					})
 				}
 			})
-			buttons[scope.confirmIndex] && buttons[scope.confirmIndex].addClass('confirm_btn')
-			buttons[scope.cancelIndex] && buttons[scope.cancelIndex].addClass('cancel_btn')
+			buttons[this.confirmIndex] && buttons[this.confirmIndex].addClass('confirm_btn')
+			buttons[this.cancelIndex] && buttons[this.cancelIndex].addClass('cancel_btn')
 			let bar = $('<div class="dialog_bar button_bar"></div>');
 			jq_dialog.append(bar);
 			buttons.forEach((button, i) => {
@@ -357,8 +345,19 @@ function Dialog(settings) {
 		Prop.active_panel = 'dialog'
 		return this;
 	}
-	this.getFormBar = function(form_id) {
-		var bar = $(scope.object).find(`.form_bar_${form_id}`)
-		if (bar) return bar;
+	hide() {
+		$('#blackout').fadeOut(this.fadeTime)
+		$(this.object).fadeOut(this.fadeTime)
+			.find('.tool').detach()
+		open_dialog = false;
+		open_interface = false;
+		Prop.active_panel = undefined
+		setTimeout(() => {
+			$(this.object).remove()
+		}, this.fadeTime)
+	}
+	getFormBar(form_id) {
+		var bar = $(this.object).find(`.form_bar_${form_id}`)
+		if (bar.length) return bar;
 	}
 }
