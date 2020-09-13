@@ -7,6 +7,7 @@ class Animation {
 		this.override = false;
 		this.selected = false;
 		this.anim_time_update = '';
+		this.blend_weight = '';
 		this.length = 0;
 		this.animators = {};
 		this.markers = [];
@@ -25,6 +26,7 @@ class Animation {
 		Merge.string(this, data, 'loop', val => ['once', 'loop', 'hold'].includes(val))
 		Merge.boolean(this, data, 'override')
 		Merge.string(this, data, 'anim_time_update')
+		Merge.string(this, data, 'blend_weight')
 		Merge.number(this, data, 'length')
 		if (typeof data.length == 'number') {
 			this.setLength(this.length)
@@ -63,6 +65,7 @@ class Animation {
 			loop: this.loop,
 			override: this.override,
 			anim_time_update: this.anim_time_update,
+			blend_weight: this.blend_weight,
 			length: this.length,
 			selected: this.selected,
 		}
@@ -99,6 +102,7 @@ class Animation {
 		if (this.length) ani_tag.animation_length = this.length;
 		if (this.override) ani_tag.override_previous_animation = true;
 		if (this.anim_time_update) ani_tag.anim_time_update = this.anim_time_update;
+		if (this.blend_weight) ani_tag.blend_weight = this.blend_weight;
 		ani_tag.bones = {};
 
 		for (var uuid in this.animators) {
@@ -307,11 +311,22 @@ class Animation {
 	}
 	editUpdateVariable() {
 		var scope = this;
-		Blockbench.textPrompt('message.animation_update_var', scope.anim_time_update, function(name) {
-			if (name !== scope.anim_time_update) {
+		Blockbench.textPrompt('menu.animation.anim_time_update', scope.anim_time_update, function(value) {
+			if (value !== scope.anim_time_update) {
 				Undo.initEdit({animations: [scope]})
-				scope.anim_time_update = name
+				scope.anim_time_update = value
 				Undo.finishEdit('change animation variable')
+			}
+		})
+		return this;
+	}
+	editBlendWeight() {
+		var scope = this;
+		Blockbench.textPrompt('menu.animation.blend_weight', scope.blend_weight, function(value) {
+			if (value !== scope.blend_weight) {
+				Undo.initEdit({animations: [scope]})
+				scope.blend_weight = value
+				Undo.finishEdit('change animation blend weight')
 			}
 		})
 		return this;
@@ -407,6 +422,9 @@ class Animation {
 		}},
 		{name: 'menu.animation.anim_time_update', icon: 'update', click: function(animation) {
 			animation.editUpdateVariable()
+		}},
+		{name: 'menu.animation.blend_weight', icon: 'fa-blender', click: function(animation) {
+			animation.editBlendWeight()
 		}},
 		'_',
 		{
@@ -680,37 +698,37 @@ class BoneAnimator extends GeneralAnimator {
 			return (mesh && mesh.fix_rotation)
 		}
 	}
-	displayRotation(arr) {
+	displayRotation(arr, multiplier) {
 		var bone = this.group.mesh
 
 		if (!arr) {
 		} else if (arr.length === 4) {
 			var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
-			bone.rotation.x -= added_rotation.x
-			bone.rotation.y -= added_rotation.y
-			bone.rotation.z += added_rotation.z
+			bone.rotation.x -= added_rotation.x * multiplier
+			bone.rotation.y -= added_rotation.y * multiplier
+			bone.rotation.z += added_rotation.z * multiplier
 		} else {
 			arr.forEach((n, i) => {
-				bone.rotation[getAxisLetter(i)] += Math.degToRad(n) * (i == 2 ? 1 : -1)
+				bone.rotation[getAxisLetter(i)] += Math.degToRad(n) * (i == 2 ? 1 : -1) * multiplier
 			})
 		}
 		return this;
 	}
-	displayPosition(arr) {
+	displayPosition(arr, multiplier) {
 		var bone = this.group.mesh
 		if (arr) {
-			bone.position.x += -arr[0];
-			bone.position.y += arr[1];
-			bone.position.z += arr[2];
+			bone.position.x -= arr[0] * multiplier;
+			bone.position.y += arr[1] * multiplier;
+			bone.position.z += arr[2] * multiplier;
 		}
 		return this;
 	}
-	displayScale(arr) {
+	displayScale(arr, multiplier) {
 		if (!arr) return this;
 		var bone = this.group.mesh;
-		bone.scale.x *= arr[0] || 0.00001;
-		bone.scale.y *= arr[1] || 0.00001;
-		bone.scale.z *= arr[2] || 0.00001;
+		bone.scale.x *= (1 + (arr[0] - 1) * multiplier) || 0.00001;
+		bone.scale.y *= (1 + (arr[1] - 1) * multiplier) || 0.00001;
+		bone.scale.z *= (1 + (arr[2] - 1) * multiplier) || 0.00001;
 		return this;
 	}
 	interpolate(channel, allow_expression) {
@@ -770,13 +788,13 @@ class BoneAnimator extends GeneralAnimator {
 		}
 		return result
 	}
-	displayFrame() {
+	displayFrame(multiplier = 1) {
 		if (!this.doRender()) return;
 		this.getGroup()
 
-		if (!this.muted.rotation) this.displayRotation(this.interpolate('rotation'))
-		if (!this.muted.position) this.displayPosition(this.interpolate('position'))
-		if (!this.muted.scale) this.displayScale(this.interpolate('scale'))
+		if (!this.muted.rotation) this.displayRotation(this.interpolate('rotation'), multiplier)
+		if (!this.muted.position) this.displayPosition(this.interpolate('position'), multiplier)
+		if (!this.muted.scale) this.displayScale(this.interpolate('scale'), multiplier)
 	}
 }
 	BoneAnimator.prototype.channels = ['rotation', 'position', 'scale']
@@ -991,17 +1009,19 @@ const Animator = {
 		})
 	},
 	preview() {
+		// Bones
 		Animator.showDefaultPose(true);
-
 		Group.all.forEach(group => {
 			Animator.animations.forEach(animation => {
+				let multiplier = animation.blend_weight ? Math.clamp(Molang.parse(animation.blend_weight), 0, Infinity) : 1;
 				if (animation.playing) {
-					animation.getBoneAnimator(group).displayFrame()
+					animation.getBoneAnimator(group).displayFrame(multiplier)
 				}
 			})
 			group.mesh.updateMatrixWorld()
 		})
 
+		// Effects
 		Animator.animations.forEach(animation => {
 			if (animation.playing) {
 				if (animation.animators.effects) {
@@ -1029,8 +1049,8 @@ const Animator = {
 					loop: a.loop && (a.loop == 'hold_on_last_frame' ? 'hold' : 'loop'),
 					override: a.override_previous_animation,
 					anim_time_update: a.anim_time_update,
-					length: a.animation_length,
-					blend_weight: a.blend_weight
+					blend_weight: a.blend_weight,
+					length: a.animation_length
 				}).add()
 				//Bones
 				if (a.bones) {

@@ -198,7 +198,6 @@
 	"message.restart_to_update": "Restart Blockbench to apply changes",
 	"message.save_file": "Saved as %0",
 	"message.save_obj": "Saved as .obj model",
-	"message.animation_update_var": "Animation Update Variable",
 	"message.untextured": "This surface does not have a texture",
 	"message.sketchfab.name_or_token": "Please enter your Sketchfab token and a name",
 	"message.sketchfab.success": "Uploaded model successfully",
@@ -1098,7 +1097,8 @@
 	"menu.animation.loop.hold": "Hold On Last Frame",
 	"menu.animation.loop.loop": "Loop",
 	"menu.animation.override": "Override",
-	"menu.animation.anim_time_update": "Update Variable",
+	"menu.animation.anim_time_update": "Anim Time Update Variable",
+	"menu.animation.blend_weight": "Blend Weight",
 	"menu.animation.save": "Save",
 
 	"menu.keyframe.quaternion": "Quaternion",
