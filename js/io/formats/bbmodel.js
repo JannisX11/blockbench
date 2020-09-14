@@ -70,6 +70,9 @@ var codec = new Codec('project', {
 				model.animations.push(a.getUndoCopy({bone_names: true}, true))
 			})
 		}
+		if (Interface.Panels.variable_placeholders.inside_vue._data.text) {
+			model.animation_variable_placeholders = Interface.Panels.variable_placeholders.inside_vue._data.text;
+		}
 
 		if (Format.display_mode && Object.keys(display).length >= 1) {
 			var new_display = {}
@@ -215,6 +218,9 @@ var codec = new Codec('project', {
 				base_ani.uuid = ani.uuid;
 				base_ani.extend(ani).add();
 			})
+		}
+		if (model.animation_variable_placeholders) {
+			Interface.Panels.variable_placeholders.inside_vue._data.text = model.animation_variable_placeholders;
 		}
 		if (model.display !== undefined) {
 			DisplayMode.loadJSON(model.display)

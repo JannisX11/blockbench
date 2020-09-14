@@ -196,11 +196,11 @@ const Timeline = {
 			time = Timeline.time;
 		}
 		if (!animation) animation = Animator.selected;
-		var fps = Math.clamp(animation.snapping, 1, 120);
+		var fps = Math.clamp(animation ? animation.snapping : settings.animation_snap.value, 1, 120);
 		return Math.clamp(Math.round(time*fps)/fps, 0);
 	},
 	getStep() {
-		return 1/Math.clamp(Animator.selected.snapping, 1, 120);
+		return 1/Math.clamp(Animator.selected ? Animator.selected.snapping : settings.animation_snap.value, 1, 120);
 	},
 	setup() {
 		$('#timeline_body').mousedown(Timeline.selector.down)
