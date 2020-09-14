@@ -22,7 +22,8 @@ function createWindow(second_instance) {
 		webPreferences: {
 			webgl: true,
 			webSecurity: true,
-			nodeIntegration: true
+			nodeIntegration: true,
+			enableRemoteModule: true
 		}
 	})
 	if (!orig_win) orig_win = win;
@@ -158,8 +159,7 @@ app.on('ready', () => {
 		console.log('update-progress', a)
 		orig_win.webContents.send('update-progress', a)
 	})
-
-	autoUpdater.checkForUpdates()
+	autoUpdater.checkForUpdates().catch(err => {})
 })
 
 app.on('window-all-closed', () => {

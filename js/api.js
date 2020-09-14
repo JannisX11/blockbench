@@ -316,6 +316,7 @@ const Blockbench = {
 	read(files, options, cb) {
 		if (files == undefined) return false;
 		if (typeof files == 'string') files = [files];
+		console.log(files)
 
 		var results = [];
 		var result_count = 0;
@@ -329,6 +330,8 @@ const Blockbench = {
 					let readtype = options.readtype;
 					if (typeof readtype == 'function') {
 						readtype = readtype(file);
+					} else if (readtype != 'buffer' && readtype != 'binary') {
+						readtype = 'text';
 					}
 
 					if (readtype === 'image') {
@@ -361,18 +364,7 @@ const Blockbench = {
 							}
 						}
 					} else /*text*/ {
-						var load = function (err, data) {
-							if (err) {
-								console.log(err)
-								if (!errant && options.errorbox !== false) {
-									Blockbench.showMessageBox({
-										translateKey: 'file_not_found',
-										icon: 'error_outline'
-									})
-								}
-								errant = true
-								return;
-							}
+						var load = function (data) {
 							if ((readtype != 'buffer' && readtype != 'binary') && data.charCodeAt(0) === 0xFEFF) {
 								data = data.substr(1)
 							}
@@ -386,10 +378,21 @@ const Blockbench = {
 								cb(results)
 							}
 						}
-						if (readtype === 'buffer' || readtype === 'binary') {
-							fs.readFile(file, load);
-						} else {
-							fs.readFile(file, 'utf8', load);
+						var read_files;
+						try {
+							read_files = fs.readFileSync(file, readtype == 'text' ? 'utf8' : undefined);
+						} catch(err) {
+							console.log(err)
+							if (!errant && options.errorbox !== false) {
+								Blockbench.showMessageBox({
+									translateKey: 'file_not_found',
+									icon: 'error_outline'
+								})
+							}
+							errant = true;
+							return;
+						} finally {
+							load(read_files);
 						}
 					}
 				})()
