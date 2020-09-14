@@ -104,8 +104,8 @@ class Animation {
 
 		if (this.length) ani_tag.animation_length = this.length;
 		if (this.override) ani_tag.override_previous_animation = true;
-		if (this.anim_time_update) ani_tag.anim_time_update = this.anim_time_update;
-		if (this.blend_weight) ani_tag.blend_weight = this.blend_weight;
+		if (this.anim_time_update) ani_tag.anim_time_update = this.anim_time_update.replace(/\n/g, '');
+		if (this.blend_weight) ani_tag.blend_weight = this.blend_weight.replace(/\n/g, '');
 		ani_tag.bones = {};
 
 		for (var uuid in this.animators) {
@@ -421,7 +421,7 @@ class Animation {
 			})
 		}
 		if (timecodes.length > 1) {
-			for (var i = 10; i <= 80; i++) {
+			for (var i = 10; i <= 100; i++) {
 				let works = true;
 				for (var timecode of timecodes) {
 					let factor = (timecode * i) % 1;
@@ -437,6 +437,84 @@ class Animation {
 			}
 		}
 	}
+	propertiesDialog() {
+		let vue_data = {
+			anim_time_update: this.anim_time_update,
+			blend_weight: this.blend_weight,
+		}
+		let dialog = new Dialog({
+			id: 'animation_properties',
+			title: this.name,
+			form_first: true,
+			form: {
+				name: {label: 'generic.name', value: this.name},
+				path: {
+					label: 'menu.animation.file',
+					value: this.path,
+					type: 'file',
+					extensions: ['json'],
+					filetype: 'JSON Animation',
+					condition: isApp
+				},
+				loop: {
+					label: 'menu.animation.loop',
+					type: 'select',
+					value: this.loop,
+					options: {
+						once: 'menu.animation.loop.once',
+						hold: 'menu.animation.loop.hold',
+						loop: 'menu.animation.loop.loop',
+					},
+				},
+				override: {label: 'menu.animation.override', type: 'checkbox', value: this.override},
+				snapping: {label: 'menu.animation.snapping', type: 'number', value: this.snapping, step: 1, min: 10, max: 100},
+				line: '_',
+			},
+			lines: [
+				`<div id="animation_properties_vue">
+					<label>${tl('menu.animation.anim_time_update')}</label>
+					<div class="dialog_bar">
+						<vue-prism-editor class="molang_input dark_bordered" v-model="anim_time_update" language="molang" :line-numbers="false" />
+					</div>
+					<label>${tl('menu.animation.blend_weight')}</label>
+					<div class="dialog_bar">
+						<vue-prism-editor class="molang_input dark_bordered" v-model="blend_weight" language="molang" :line-numbers="false" />
+					</div>
+				</div>`
+			],
+			onConfirm: form_data => {
+				console.log(form_data, vue_data)
+				dialog.hide()
+				if (
+					form_data.loop != this.loop
+					|| form_data.name != this.name
+					|| (isApp && form_data.path != this.path)
+					|| form_data.loop != this.loop
+					|| form_data.override != this.override
+					|| form_data.snapping != this.snapping
+					|| vue_data.anim_time_update != this.anim_time_update
+					|| vue_data.blend_weight != this.blend_weight
+				) {
+					Undo.initEdit({animations: [this]});
+					this.loop = form_data.loop;
+					this.name = form_data.name;
+					if (isApp) this.path = form_data.path;
+					this.loop = form_data.loop;
+					this.override = form_data.override;
+					this.snapping = Math.clamp(form_data.snapping, 10, 100);
+					this.anim_time_update = vue_data.anim_time_update;
+					this.blend_weight = vue_data.blend_weight;
+					Undo.finishEdit('edit animation properties');
+				}
+			}
+		})
+		dialog.show();
+		new Vue({
+			el: 'dialog#animation_properties #animation_properties_vue',
+			components: {VuePrismEditor},
+			data: vue_data
+		})
+	}
 }
 	Animation.all = [];
 	Animation.prototype.menu = new Menu([
@@ -445,15 +523,6 @@ class Animation {
 			{name: 'menu.animation.loop.hold', icon: animation => (animation.loop == 'hold' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('hold', true)}},
 			{name: 'menu.animation.loop.loop', icon: animation => (animation.loop == 'loop' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('loop', true)}},
 		]},
-		{name: 'menu.animation.override', icon: (a) => (a.override?'check_box':'check_box_outline_blank'), click: function(animation) {
-			animation.override = !animation.override
-		}},
-		{name: 'menu.animation.anim_time_update', icon: 'update', click: function(animation) {
-			animation.editUpdateVariable()
-		}},
-		{name: 'menu.animation.blend_weight', icon: 'fa-blender', click: function(animation) {
-			animation.editBlendWeight()
-		}},
 		'_',
 		{
 			name: 'menu.animation.save',
@@ -464,8 +533,11 @@ class Animation {
 			}
 		},
 		'duplicate',
-		'rename',
 		'delete',
+		'_',
+		{name: 'menu.animation.properties', icon: 'list', click: function(animation) {
+			animation.propertiesDialog();
+		}}
 	])
 	new Property(Animation, 'boolean', 'saved', {default: true})
 	new Property(Animation, 'string', 'path')
@@ -1076,8 +1148,12 @@ const Animator = {
 					path,
 					loop: a.loop && (a.loop == 'hold_on_last_frame' ? 'hold' : 'loop'),
 					override: a.override_previous_animation,
-					anim_time_update: a.anim_time_update,
-					blend_weight: a.blend_weight,
+					anim_time_update: (typeof a.anim_time_update == 'string'
+						? a.anim_time_update.replace(/;(?!$)/, ';\n')
+						: a.anim_time_update),
+					blend_weight: (typeof a.blend_weight == 'string'
+						? a.blend_weight.replace(/;(?!$)/, ';\n')
+						: a.blend_weight),
 					length: a.animation_length
 				}).add()
 				//Bones
@@ -1223,7 +1299,7 @@ BARS.defineActions(function() {
 		click: function () {
 			var animation = new Animation({
 				name: 'animation.' + (Project.geometry_name||'model') + '.new'
-			}).add(true).rename()
+			}).add(true).propertiesDialog()
 
 		}
 	})

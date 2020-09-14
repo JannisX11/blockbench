@@ -358,7 +358,7 @@ function setupPanels() {
 									v-bind:anim_id="animation.uuid"
 									class="animation"
 									v-on:click.stop="animation.select()"
-									v-on:dblclick.stop="animation.rename()"
+									v-on:dblclick.stop="animation.propertiesDialog()"
 									:key="animation.uuid"
 									@contextmenu.prevent.stop="animation.showContextMenu($event)"
 								>

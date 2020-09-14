@@ -146,9 +146,9 @@ class Keyframe {
 	}
 	getArray() {
 		var arr = [
-			this.get('x'),
-			this.get('y'),
-			this.get('z'),
+			this.get('x').replace(/\n/g, ''),
+			this.get('y').replace(/\n/g, ''),
+			this.get('z').replace(/\n/g, ''),
 		]
 		return arr;
 	}

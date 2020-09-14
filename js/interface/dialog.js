@@ -1,4 +1,207 @@
-class Dialog {
+(function() {
+
+function buildForm(dialog) {
+	let jq_dialog = $(dialog.object)
+	for (var form_id in dialog.form) {
+		let data = dialog.form[form_id]
+		if (data === '_') {
+			jq_dialog.append('<hr />')
+			
+		} else if (data && Condition(data.condition)) {
+			var bar = $(`<div class="dialog_bar form_bar form_bar_${form_id}"></div>`)
+			if (data.label) {
+				bar.append(`<label class="name_space_left" for="${form_id}">${tl(data.label)+(data.nocolon?'':':')}</label>`)
+				dialog.max_label_width = Math.max(getStringWidth(tl(data.label)), dialog.max_label_width)
+			}
+
+			switch (data.type) {
+				default:
+					bar.append(`<input class="dark_bordered half focusable_input" type="text" id="${form_id}" value="${data.value||''}" placeholder="${data.placeholder||''}" ${data.list ? `list="${dialog.id}_${form_id}_list"` : ''}>`)
+					if (data.list) {
+						let list = $(`<datalist id="${dialog.id}_${form_id}_list"></datalist>`)
+						for (let value of data.list) {
+							list.append(`<option value="${value}">`)
+						}
+						bar.append(list)
+					}
+					if (data.type == 'password') {
+						bar.append(`<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
+								<i class="fas fa-eye-slash"></i>
+							</div>`)
+						let input = bar.find('input').attr('type', 'password')
+						let hidden = true;
+						let this_bar = bar;
+						this_bar.find('.password_toggle').click(e => {
+							hidden = !hidden;
+							input.attr('type', hidden ? 'password' : 'text');
+							this_bar.find('.password_toggle i')[0].className = hidden ? 'fas fa-eye-slash' : 'fas fa-eye';
+						})
+					}
+					break;
+				case 'textarea':
+					bar.append(`<textarea class="focusable_input" style="height: ${data.height||150}px;" id="${form_id}"></textarea>`)
+					break;
+
+
+				case 'select':
+					var el = $(`<div class="bar_select half"><select class="focusable_input" id="${form_id}"></select></div>`)
+					var sel = el.find('select')
+					for (var key in data.options) {
+						var name = tl(data.options[key])
+						sel.append(`<option id="${key}" ${(data.value === key || (data.default || data.value) === key) ? 'selected' : ''}>${name}</option>`)
+					}
+					bar.append(el)
+					break;
+
+
+				case 'radio':
+					var el = $(`<div class="half form_part_radio" id="${form_id}"></div>`)
+					for (var key in data.options) {
+						var name = tl(data.options[key])
+						el.append(`<div class="form_bar_radio">
+							<input type="radio" class="focusable_input" name="${form_id}_radio" id="${key}" ${(data.default || data.value) === key ? 'selected' : ''}>
+							<label for="${key}">${name}</label>
+						</div>`)
+					}
+					bar.append(el)
+					break;
+
+
+				case 'info':
+					data.text = marked(tl(data.text))
+					bar.append(`<p>${data.text}</p>`)
+					bar.addClass('small_text')
+					break;
+
+
+				case 'number':
+					bar.append(`<input class="dark_bordered half focusable_input" type="number" id="${form_id}"
+						value="${data.value||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
+					break;
+
+
+				case 'vector':
+					let group = $(`<div class="dialog_vector_group half"></div>`)
+					bar.append(group)
+					for (var i = 0; i < (data.dimensions || 3); i++) {
+						group.append(`<input class="dark_bordered focusable_input" type="number" id="${form_id}_${i}"
+							value="${data.value ? data.value[i]: 0}" step="${data.step||1}" min="${data.min}" max="${data.max}">`)
+					}
+					break;
+
+
+				case 'color':
+					if (!data.colorpicker) {
+						data.colorpicker = new ColorPicker({
+							id: 'cp_'+form_id,
+							name: tl(data.label),
+							label: false,
+							private: true
+						})
+					}
+					bar.append(data.colorpicker.getNode())
+					break;
+
+
+				case 'checkbox':
+					bar.append(`<input type="checkbox" class="focusable_input" id="${form_id}"${data.value ? ' checked' : ''}>`)
+					break;
+
+
+				case 'file':
+				case 'folder':
+				case 'save':
+					if (data.type == 'folder' && !isApp) break;
+
+					var input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" value="${data.value||''}" disabled>`);
+					bar.append(input);
+					bar.addClass('form_bar_file');
+
+					switch (data.type) {
+						case 'file': 	bar.append('<i class="material-icons">insert_drive_file</i>'); break;
+						case 'folder':	bar.append('<i class="material-icons">folder</i>'); break;
+						case 'save':	bar.append('<i class="material-icons">save</i>'); break;
+					}
+					let remove_button = $('<div class="tool" style="float: none; vertical-align: top;"><i class="material-icons">clear</i></div>');
+					bar.append(remove_button);
+					remove_button.on('click', e => {
+						e.stopPropagation();
+						data.value = '';
+						input.val('');
+					})
+
+					bar.on('click', e => {
+						function fileCB(files) {
+							data.value = files[0].path;
+							input.val(data.value);
+						}
+						switch (data.type) {
+							case 'file':
+								Blockbench.import({
+									resource_id: data.resource_id,
+									extensions: data.extensions,
+									type: data.filetype,
+									startpath: data.value
+								}, fileCB);
+								break;
+							case 'folder':
+								ElecDialogs.showOpenDialog(currentwindow, {
+									properties: ['openDirectory'],
+									defaultPath: data.value
+								}, (filePaths) => {
+									if (filePaths) fileCB([{ path: filePaths[0] }]);
+								})
+								break;
+							case 'save':
+								Blockbench.export({
+									resource_id: data.resource_id,
+									extensions: data.extensions,
+									type: data.filetype,
+									startpath: data.value,
+									custom_writer: () => {},
+								}, fileCB);
+								break;
+						}
+					})
+
+			}
+			if (data.readonly) {
+				bar.find('input').attr('readonly', 'readonly').removeClass('focusable_input')
+			}
+			jq_dialog.append(bar)
+		}
+	}
+}
+function buildLines(dialog) {
+	let jq_dialog = $(dialog.object)
+	dialog.lines.forEach(l => {
+		if (typeof l === 'object' && (l.label || l.widget)) {
+
+			var bar = $('<div class="dialog_bar"></div>')
+			if (l.label) {
+				bar.append('<label class="name_space_left">'+tl(l.label)+(l.nocolon?'':':')+'</label>')
+				dialog.max_label_width = Math.max(getStringWidth(tl(l.label)), dialog.max_label_width)
+			}
+			if (l.node) {
+				bar.append(l.node)
+			} else if (l.widget) {
+				var widget = l.widget
+				if (typeof l.widget === 'string') {
+					widget = BarItems[l.widget]
+				} else if (typeof l.widget === 'function') {
+					widget = l.widget()
+				}
+				bar.append(widget.getNode())
+				dialog.max_label_width = Math.max(getStringWidth(widget.name), dialog.max_label_width)
+			}
+			jq_dialog.append(bar)
+		} else {
+			jq_dialog.append(l)
+		}
+	})
+}
+
+window.Dialog = class Dialog {
 	constructor(options) {
 		this.id = options.id
 		this.title = options.title
@@ -10,6 +213,7 @@ class Dialog {
 		this.singleButton = options.singleButton
 		this.buttons = options.buttons
 		this.fadeTime = options.fadeTime||0;
+		this.form_first = options.form_first;
 		this.confirmIndex = options.confirmIndex||0;
 		this.cancelIndex = options.cancelIndex !== undefined ? options.cancelIndex : 1;
 	
@@ -32,207 +236,18 @@ class Dialog {
 
 		var jq_dialog = $(`<dialog class="dialog paddinged" id="${this.id}"><div class="dialog_handle">${tl(this.title)}</div></dialog>`)
 		this.object = jq_dialog.get(0)
-		var max_label_width = 0;
-		if (this.lines) {
-			this.lines.forEach(l => {
-				if (typeof l === 'object' && (l.label || l.widget)) {
+		this.max_label_width = 0;
 
-					var bar = $('<div class="dialog_bar"></div>')
-					if (l.label) {
-						bar.append('<label class="name_space_left">'+tl(l.label)+(l.nocolon?'':':')+'</label>')
-						max_label_width = Math.max(getStringWidth(tl(l.label)), max_label_width)
-					}
-					if (l.node) {
-						bar.append(l.node)
-					} else if (l.widget) {
-						var widget = l.widget
-						if (typeof l.widget === 'string') {
-							widget = BarItems[l.widget]
-						} else if (typeof l.widget === 'function') {
-							widget = l.widget()
-						}
-						bar.append(widget.getNode())
-						max_label_width = Math.max(getStringWidth(widget.name), max_label_width)
-					}
-					jq_dialog.append(bar)
-				} else {
-					jq_dialog.append(l)
-				}
-			})
+		if (this.form_first) {
+			if (this.form) buildForm(this);
+			if (this.lines) buildLines(this);
+		} else {
+			if (this.lines) buildLines(this);
+			if (this.form) buildForm(this);
 		}
-		if (this.form) {
-			for (var form_id in this.form) {
-				let data = this.form[form_id]
-				if (data === '_') {
-					jq_dialog.append('<hr />')
-					
-				} else if (data && Condition(data.condition)) {
-					var bar = $(`<div class="dialog_bar form_bar form_bar_${form_id}"></div>`)
-					if (data.label) {
-						bar.append(`<label class="name_space_left" for="${form_id}">${tl(data.label)+(data.nocolon?'':':')}</label>`)
-						max_label_width = Math.max(getStringWidth(tl(data.label)), max_label_width)
-					}
 
-					switch (data.type) {
-						default:
-							bar.append(`<input class="dark_bordered half focusable_input" type="text" id="${form_id}" value="${data.value||''}" placeholder="${data.placeholder||''}" ${data.list ? `list="${this.id}_${form_id}_list"` : ''}>`)
-							if (data.list) {
-								let list = $(`<datalist id="${this.id}_${form_id}_list"></datalist>`)
-								for (let value of data.list) {
-									list.append(`<option value="${value}">`)
-								}
-								bar.append(list)
-							}
-							if (data.type == 'password') {
-								bar.append(`<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
-										<i class="fas fa-eye-slash"></i>
-									</div>`)
-								let input = bar.find('input').attr('type', 'password')
-								let hidden = true;
-								let this_bar = bar;
-								this_bar.find('.password_toggle').click(e => {
-									hidden = !hidden;
-									input.attr('type', hidden ? 'password' : 'text');
-									this_bar.find('.password_toggle i')[0].className = hidden ? 'fas fa-eye-slash' : 'fas fa-eye';
-								})
-							}
-							break;
-						case 'textarea':
-							bar.append(`<textarea class="focusable_input" style="height: ${data.height||150}px;" id="${form_id}"></textarea>`)
-							break;
-
-
-						case 'select':
-							var el = $(`<div class="bar_select half"><select class="focusable_input" id="${form_id}"></select></div>`)
-							var sel = el.find('select')
-							for (var key in data.options) {
-								var name = tl(data.options[key])
-								sel.append(`<option id="${key}" ${(data.value === key || data.default === key) ? 'selected' : ''}>${name}</option>`)
-							}
-							bar.append(el)
-							break;
-
-
-						case 'radio':
-							var el = $(`<div class="half form_part_radio" id="${form_id}"></div>`)
-							for (var key in data.options) {
-								var name = tl(data.options[key])
-								el.append(`<div class="form_bar_radio">
-									<input type="radio" class="focusable_input" name="${form_id}_radio" id="${key}" ${data.default === key ? 'selected' : ''}>
-									<label for="${key}">${name}</label>
-								</div>`)
-							}
-							bar.append(el)
-							break;
-
-
-						case 'info':
-							data.text = marked(tl(data.text))
-							bar.append(`<p>${data.text}</p>`)
-							bar.addClass('small_text')
-							break;
-
-
-						case 'number':
-							bar.append(`<input class="dark_bordered half focusable_input" type="number" id="${form_id}"
-								value="${data.value||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
-							break;
-
-
-						case 'vector':
-							let group = $(`<div class="dialog_vector_group half"></div>`)
-							bar.append(group)
-							for (var i = 0; i < (data.dimensions || 3); i++) {
-								group.append(`<input class="dark_bordered focusable_input" type="number" id="${form_id}_${i}"
-									value="${data.value ? data.value[i]: 0}" step="${data.step||1}" min="${data.min}" max="${data.max}">`)
-							}
-							break;
-
-
-						case 'color':
-							if (!data.colorpicker) {
-								data.colorpicker = new ColorPicker({
-									id: 'cp_'+form_id,
-									name: tl(data.label),
-									label: false,
-									private: true
-								})
-							}
-							bar.append(data.colorpicker.getNode())
-							break;
-
-
-						case 'checkbox':
-							bar.append(`<input type="checkbox" class="focusable_input" id="${form_id}"${data.value ? ' checked' : ''}>`)
-							break;
-
-
-						case 'file':
-						case 'folder':
-						case 'save':
-							if (data.type == 'folder' && !isApp) break;
-
-							var input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" value="${data.value||''}" disabled>`);
-							bar.append(input);
-							bar.addClass('form_bar_file');
-
-							switch (data.type) {
-								case 'file': 	bar.append('<i class="material-icons">insert_drive_file</i>'); break;
-								case 'folder':	bar.append('<i class="material-icons">folder</i>'); break;
-								case 'save':	bar.append('<i class="material-icons">save</i>'); break;
-							}
-							let remove_button = $('<div class="tool" style="float: none; vertical-align: top;"><i class="material-icons">clear</i></div>');
-							bar.append(remove_button);
-							remove_button.on('click', e => {
-								e.stopPropagation();
-								data.value = '';
-								input.val('');
-							})
-
-							bar.on('click', e => {
-								function fileCB(files) {
-									data.value = files[0].path;
-									input.val(data.value);
-								}
-								switch (data.type) {
-									case 'file':
-										Blockbench.import({
-											resource_id: data.resource_id,
-											extensions: data.extensions,
-											type: data.filetype,
-											startpath: data.value
-										}, fileCB);
-										break;
-									case 'folder':
-										ElecDialogs.showOpenDialog(currentwindow, {
-											properties: ['openDirectory'],
-											defaultPath: data.value
-										}, (filePaths) => {
-											if (filePaths) fileCB([{ path: filePaths[0] }]);
-										})
-										break;
-									case 'save':
-										Blockbench.export({
-											resource_id: data.resource_id,
-											extensions: data.extensions,
-											type: data.filetype,
-											startpath: data.value,
-											custom_writer: () => {},
-										}, fileCB);
-										break;
-								}
-							})
-
-					}
-					if (data.readonly) {
-						bar.find('input').attr('readonly', 'readonly').removeClass('focusable_input')
-					}
-					jq_dialog.append(bar)
-				}
-			}
-		}
-		if (max_label_width) {
-			document.styleSheets[0].insertRule('.dialog#'+this.id+' .dialog_bar label {width: '+(max_label_width+8)+'px}')
+		if (this.max_label_width) {
+			document.styleSheets[0].insertRule('.dialog#'+this.id+' .dialog_bar label {width: '+(this.max_label_width+8)+'px}')
 		}
 		if (this.buttons) {
 
@@ -361,3 +376,7 @@ class Dialog {
 		if (bar.length) return bar;
 	}
 }
+
+
+
+})()

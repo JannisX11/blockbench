@@ -1092,7 +1092,7 @@
 	"menu.toolbar.edit": "Customize",
 	"menu.toolbar.reset": "Reset",
 
-	"menu.animation.loop": "Loop",
+	"menu.animation.loop": "Loop Mode",
 	"menu.animation.loop.once": "Play Once",
 	"menu.animation.loop.hold": "Hold On Last Frame",
 	"menu.animation.loop.loop": "Loop",
@@ -1100,6 +1100,9 @@
 	"menu.animation.anim_time_update": "Anim Time Update Variable",
 	"menu.animation.blend_weight": "Blend Weight",
 	"menu.animation.save": "Save",
+	"menu.animation.properties": "Properties...",
+	"menu.animation.file": "File",
+	"menu.animation.snapping": "Snapping",
 
 	"menu.keyframe.quaternion": "Quaternion",
 
