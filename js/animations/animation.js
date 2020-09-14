@@ -9,6 +9,7 @@ class Animation {
 		this.anim_time_update = '';
 		this.blend_weight = '';
 		this.length = 0;
+		this.snapping = settings.animation_snap.value;
 		this.animators = {};
 		this.markers = [];
 		for (var key in Animation.properties) {
@@ -28,6 +29,7 @@ class Animation {
 		Merge.string(this, data, 'anim_time_update')
 		Merge.string(this, data, 'blend_weight')
 		Merge.number(this, data, 'length')
+		Merge.number(this, data, 'snapping')
 		if (typeof data.length == 'number') {
 			this.setLength(this.length)
 		}
@@ -67,6 +69,7 @@ class Animation {
 			anim_time_update: this.anim_time_update,
 			blend_weight: this.blend_weight,
 			length: this.length,
+			snapping: this.snapping,
 			selected: this.selected,
 		}
 		for (var key in Animation.properties) {
@@ -407,6 +410,31 @@ class Animation {
 			if (undo) Undo.initEdit({animations: [this]})
 			this.loop = value;
 			if (undo) Undo.finishEdit('change animation loop mode')
+		}
+	}
+	calculateSnappingFromKeyframes() {
+		let timecodes = [];
+		for (var key in this.animators) {
+			let animator = this.animators[key];
+			animator.keyframes.forEach(kf => {
+				timecodes.safePush(kf.time);
+			})
+		}
+		if (timecodes.length > 1) {
+			for (var i = 10; i <= 80; i++) {
+				let works = true;
+				for (var timecode of timecodes) {
+					let factor = (timecode * i) % 1;
+					if (factor > 0.01 && factor < 0.99) {
+						works = false;
+						break;
+					}
+				}
+				if (works) {
+					this.snapping = i;
+					return this.snapping;
+				}
+			}
 		}
 	}
 }
@@ -1128,6 +1156,7 @@ const Animator = {
 						})
 					}
 				}
+				animation.calculateSnappingFromKeyframes();
 				if (!Animator.selected) {
 					animation.select()
 				}

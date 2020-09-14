@@ -190,16 +190,17 @@ const Timeline = {
 		if ((f+'').length === 1) {f = '0'+f}
 		$('#timeline_corner').text(m + ':' + s  + ':' + f)
 	},
-	snapTime(time) {
+	snapTime(time, animation) {
 		//return time;
 		if (time == undefined || isNaN(time)) {
 			time = Timeline.time;
 		}
-		var fps = Math.clamp(settings.animation_snap.value, 1, 120);
+		if (!animation) animation = Animator.selected;
+		var fps = Math.clamp(animation.snapping, 1, 120);
 		return Math.clamp(Math.round(time*fps)/fps, 0);
 	},
 	getStep() {
-		return 1/Math.clamp(settings.animation_snap.value, 1, 120);
+		return 1/Math.clamp(Animator.selected.snapping, 1, 120);
 	},
 	setup() {
 		$('#timeline_body').mousedown(Timeline.selector.down)

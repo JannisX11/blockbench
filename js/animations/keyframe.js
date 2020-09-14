@@ -177,7 +177,7 @@ class Keyframe {
 		}
 	}
 	getTimecodeString() {
-		let timecode = trimFloatNumber(Timeline.snapTime(this.time)).toString();
+		let timecode = trimFloatNumber(Timeline.snapTime(this.time, this.animator.animation)).toString();
 		if (!timecode.includes('.')) {
 			timecode += '.0';
 		}
@@ -517,7 +517,7 @@ BARS.defineActions(function() {
 		condition: () => Animator.open && Animator.selected,
 		getInterval(event) {
 			if (event && event.shiftKey) return 1;
-			return 1/Math.clamp(settings.animation_snap.value, 1, 120)
+			return Timeline.getStep()
 		},
 		get: function() {
 			return Animator.selected.length
@@ -537,7 +537,7 @@ BARS.defineActions(function() {
 		condition: () => Animator.open && Timeline.selected.length,
 		getInterval(event) {
 			if (event && event.shiftKey) return 1;
-			return 1/Math.clamp(settings.animation_snap.value, 1, 120)
+			return Timeline.getStep()
 		},
 		get: function() {
 			return Timeline.selected[0] ? Timeline.selected[0].time : 0
