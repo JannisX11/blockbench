@@ -1093,7 +1093,13 @@
 						Transformer.bones.push({
 							bone,
 							ik_bone,
-							last_rotation: new THREE.Euler().copy(bone.mesh.rotation)
+							last_rotation: new THREE.Euler().copy(bone.mesh.rotation),
+							ik_bone,
+							last_diff: new THREE.Vector3(
+								bones[i+1].origin[0] - bone.origin[0],
+								bones[i+1].origin[1] - bone.origin[1],
+								bones[i+1].origin[2] - bone.origin[2]
+							)
 						})
 						if (!basebone) {
 							basebone = ik_bone;
@@ -1330,9 +1336,6 @@
 					}
 					if (Group.selected.ik_enabled) {
 
-						//Transformer.position.x += 1
-
-
 						var solver = Transformer.ik_solver;
 
 						solver.targets[0].copy(planeIntersect.point);
@@ -1346,27 +1349,27 @@
 							var keyframe = scope.keyframes[i];
 							if (keyframe) {
 
-								let mesh_chain = solver.meshChains[0][i];
-								let euler = new THREE.Euler().copy(mesh_chain.rotation);
-								if (Transformer.bones[i-1]) {
-									let q = new THREE.Quaternion().copy(mesh_chain.quaternion);
-									let q2 = new THREE.Quaternion().copy(solver.meshChains[0][i-1].quaternion).inverse();
-									q.multiply(q2)
-									euler.setFromQuaternion(q)
-								} else {
-									euler.set(0, 0, 0)
-								}
+								let euler = new THREE.Euler()
+								let q = new THREE.Quaternion()
+								let diff = new THREE.Vector3().copy(solver.chains[0].bones[i].end).sub(solver.chains[0].bones[i].start)
+								if (Transformer.bones[i-1]) diff.applyQuaternion( Transformer.bones[i-1].bone.mesh.getWorldQuaternion(q).inverse() )
 
-								keyframe.offset('x', Math.radToDeg(bone.last_rotation.x - euler.x));
-								keyframe.offset('y', Math.radToDeg(bone.last_rotation.y - euler.y));
-								keyframe.offset('z', Math.radToDeg(bone.last_rotation.z - euler.z));
-								console.log(
-									[Math.round(Math.radToDeg(bone.last_rotation.x)), Math.round(Math.radToDeg(euler.x))],
-									[Math.round(Math.radToDeg(bone.last_rotation.y)), Math.round(Math.radToDeg(euler.y))],
-									[Math.round(Math.radToDeg(bone.last_rotation.z)), Math.round(Math.radToDeg(euler.z))],
-								)
+								let v1 = new THREE.Vector3().copy(diff).normalize();
+								let v2 = new THREE.Vector3().copy(bone.last_diff).normalize();
+								v1.x *= -1;
+								v2.x *= -1;
 
-								bone.last_rotation.copy(euler);
+								q.setFromUnitVectors(v1, v2)
+								euler.setFromQuaternion(q)
+
+								keyframe.offset('x', Math.radToDeg(euler.x));
+								keyframe.offset('y', Math.radToDeg(euler.y));
+								keyframe.offset('z', Math.radToDeg(euler.z));
+
+								console.log(diff, bone.last_diff)
+								console.log(Math.round(Math.radToDeg(euler.x)), Math.round(Math.radToDeg(euler.y)), Math.round(Math.radToDeg(euler.z)))
+
+								bone.last_diff.copy(diff)
 							}
 						})
 
