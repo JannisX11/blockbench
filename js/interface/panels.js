@@ -321,6 +321,14 @@ function setupPanels() {
 					} else {
 						
 					}
+				},
+				addAnimation(path) {
+					let other_animation = Animation.all.find(a => a.path == path)
+					console.log(path, other_animation)
+					new Animation({
+						name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
+						path
+					}).add(true).propertiesDialog()
 				}
 			},
 			computed: {
@@ -347,8 +355,11 @@ function setupPanels() {
 							<div class="animation_file_head" v-on:click.stop="toggle(key)">
 								<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
 								<label>{{ file.name }}</label>
-								<div class="animation_file_save_button" v-if="!file.saved" v-on:click.stop="saveFile(key, file)">
+								<div class="in_list_button" v-if="!file.saved" v-on:click.stop="saveFile(key, file)">
 									<i class="material-icons">save</i>
+								</div>
+								<div class="in_list_button" v-on:click.stop="addAnimation(key)">
+									<i class="material-icons">add</i>
 								</div>
 							</div>
 							<ul v-if="!files_folded[key]">	
@@ -364,13 +375,13 @@ function setupPanels() {
 								>
 									<i class="material-icons">movie</i>
 									<label>{{ animation.name }}</label>
-									<div class="animation_play_toggle" v-on:click.stop="animation.togglePlayingState()">
-										<i v-if="animation.playing" class="fa_big far fa-play-circle"></i>
-										<i v-else class="fa_big far fa-circle"></i>
-									</div>
-									<div class="animation_save_button" v-bind:class="{clickable: !animation.saved}" v-on:click.stop="animation.save()">
+									<div class="in_list_button" v-bind:class="{unclickable: animation.saved}" v-on:click.stop="animation.save()">
 										<i v-if="animation.saved" class="material-icons">check_circle</i>
 										<i v-else class="material-icons">save</i>
+									</div>
+									<div class="in_list_button" v-on:click.stop="animation.togglePlayingState()">
+										<i v-if="animation.playing" class="fa_big far fa-play-circle"></i>
+										<i v-else class="fa_big far fa-circle"></i>
 									</div>
 								</li>
 							</ul>

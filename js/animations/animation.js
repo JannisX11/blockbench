@@ -1090,12 +1090,6 @@ const Animator = {
 		selected.empty()
 		Canvas.updateAllBones()
 
-		//if (quad_previews.enabled) {
-		//	quad_previews.enabled_before = true
-		//}
-		//main_preview.fullscreen()
-		//main_preview.setNormalCamera()
-
 		$('body').addClass('animation_mode')
 		if (!Animator.timeline_node) {
 			Animator.timeline_node = $('#timeline').get(0)
@@ -1363,7 +1357,7 @@ BARS.defineActions(function() {
 		category: 'animation',
 		condition: {modes: ['animate']},
 		click: function () {
-			var animation = new Animation({
+			new Animation({
 				name: 'animation.' + (Project.geometry_name||'model') + '.new'
 			}).add(true).propertiesDialog()
 

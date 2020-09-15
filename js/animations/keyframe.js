@@ -225,7 +225,7 @@ class Keyframe {
 			}
 		}
 		Timeline.selected.safePush(this);
-		if (Timeline.selected.length == 1 && Timeline.selected[0].Animation.selected == false) {
+		if (Timeline.selected.length == 1 && Timeline.selected[0].animator.selected == false) {
 			Timeline.selected[0].animator.select()
 		}
 
