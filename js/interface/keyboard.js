@@ -86,6 +86,7 @@ class Keybind {
 		return this;
 	}
 	getText() {
+		if (this.key < 0) return '';
 		var modifiers = []
 
 		if (this.ctrl) 	modifiers.push(tl('keys.ctrl'))	
@@ -147,6 +148,7 @@ class Keybind {
 			case  36: return 'pos1'; break;
 			case  44: return 'printscreen'; break;
 			case  19: return 'pause'; break;
+			case 1001: return 'mousewheel'; break;
 			default : return String.fromCharCode(key).toLowerCase(); break;
 		}
 	}
@@ -168,7 +170,7 @@ class Keybind {
 	}
 	isTriggered(event) {
 		return (
-			this.key 	=== event.which &&
+			(this.key 	=== event.which || (this.key == 1001 && event instanceof MouseEvent)) &&
 			(this.ctrl 	=== event.ctrlKey 	|| this.ctrl == null 	) &&
 			(this.shift === event.shiftKey 	|| this.shift == null	) &&
 			(this.alt 	=== event.altKey 	|| this.alt == null 	) &&
@@ -184,10 +186,15 @@ class Keybind {
 		overlay.find('> div').css('margin-top', top+'px')
 
 		function onActivate(event) {
+			event = event.originalEvent;
 
 			if (event.target && event.target.tagName === 'BUTTON') return;
 
-			scope.key 	= event.which
+			if (event instanceof WheelEvent) {
+				scope.key = 1001
+			} else {
+				scope.key = event.which
+			}
 			if (scope.ctrl 	!== null) scope.ctrl 	= event.ctrlKey
 			if (scope.shift !== null) scope.shift 	= event.shiftKey
 			if (scope.alt 	!== null) scope.alt 	= event.altKey
@@ -206,8 +213,9 @@ class Keybind {
 				}
 			})
 		overlay.on('mousedown', onActivate)
+		overlay.on('mousewheel', onActivate)
 
-		overlay.on('keydown keypress keyup click click dblclick mouseup', function(event) {
+		overlay.on('keydown keypress keyup click click dblclick mouseup mousewheel', function(event) {
 			event.preventDefault()
 		})
 		return this;
@@ -215,7 +223,7 @@ class Keybind {
 	stopRecording() {
 		var scope = this;
 		Keybinds.recording = false
-		$('#overlay_message_box').hide().off('mousedown')
+		$('#overlay_message_box').hide().off('mousedown mousewheel')
 		$('#keybind_input_box').off('keyup keydown')
 		return this;
 	}
@@ -369,6 +377,10 @@ window.addEventListener('focus', event => {
 	setTimeout(remove_func, 100);
 })
 
+function getInputFocusElement() {
+	return $('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus').get(0)
+}
+
 $(document).on('keydown mousedown', function(e) {
 	if (Keybinds.recording || e.which < 4) return;
 	//Shift
@@ -380,7 +392,7 @@ $(document).on('keydown mousedown', function(e) {
 	}
 
 	var used = false;
-	var input_focus = $('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus').get(0)
+	var input_focus = getInputFocusElement()
 
 	if (input_focus) {
 		//User Editing Anything
@@ -493,6 +505,26 @@ $(document).on('keydown mousedown', function(e) {
 		e.preventDefault()
 	}
 })
+document.addEventListener('wheel', (e) => {
+	if (getInputFocusElement()) return;
+	let used = false;
+	Keybinds.actions.forEach(function(action) {
+		if (
+			action.keybind &&
+			(!open_dialog || action.work_in_dialog) &&
+			typeof action.trigger === 'function' &&
+			action.keybind.isTriggered(e)
+		) {
+			if (action.trigger(e)) {
+				used = true
+			}
+		}
+	})
+	if (used) {
+		e.stopPropagation()
+	}
+
+}, true)
 
 $(document).keyup(function(e) {
 	if (Pressing.alt && ActionControl.open) {

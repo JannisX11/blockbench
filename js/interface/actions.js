@@ -400,6 +400,7 @@ class NumSlider extends Widget {
 		}
 		if (this.keybind) {
 			this.keybind.shift = null;
+			this.keybind.label = this.keybind.getText();
 		}
 		var scope = this;
 		var css_color = 'xyz'.includes(this.color) ? `var(--color-axis-${this.color})` : this.color;
@@ -585,15 +586,17 @@ class NumSlider extends Widget {
 		}
 	}
 	trigger(event) {
+		if (!Condition(this.condition)) return false;
 		if (typeof this.onBefore === 'function') {
 			this.onBefore()
 		}
-		var difference = this.getInterval(false) * event.shiftKey ? -1 : 1;
+		var difference = this.getInterval(false) * (event.shiftKey != event.deltaY > 0) ? -1 : 1;
 		this.change(n => n + difference)
 		this.update()
 		if (typeof this.onAfter === 'function') {
 			this.onAfter(difference)
 		}
+		return true;
 	}
 	setValue(value, trim) {
 		if (typeof value === 'string') {
@@ -860,8 +863,9 @@ class BarText extends Widget {
 		return this;
 	}
 	trigger(event) {
+		if (!Condition(this.condition)) return false;
 		Blockbench.showQuickMessage(this.text)
-		return this;
+		return true;
 	}
 }
 class ColorPicker extends Widget {
@@ -1898,6 +1902,8 @@ const Keybinds = {
 		localStorage.setItem('keybindings', JSON.stringify(Keybinds.stored))
 	},
 	reset() {
+		let answer = confirm(tl('message.reset_keybindings'));
+		if (!answer) return;
 		for (var category in Keybinds.structure) {
 			var entries = Keybinds.structure[category].actions
 			if (entries && entries.length) {

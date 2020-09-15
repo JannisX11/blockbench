@@ -488,8 +488,7 @@ const MenuBar = {
 			'_',
 			'settings_window',
 			'plugins_window',
-			'edit_session',
-			'reload'
+			'edit_session'
 		])
 		new BarMenu('edit', [
 			'undo',
