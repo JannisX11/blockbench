@@ -1198,7 +1198,7 @@ const Screencam = {
 		if (!options.length) options.length = 1;
 
 		var preview = quad_previews.current;
-		var animation = Animator.selected;
+		var animation = Animation.selected;
 		var interval = options.fps ? (1000/options.fps) : 100;
 		var frames = 0;
 		const gif = new GIF({

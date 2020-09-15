@@ -241,7 +241,7 @@ class Animation {
 	select() {
 		var scope = this;
 		Prop.active_panel = 'animations';
-		if (this == Animator.selected) return;
+		if (this == Animation.selected) return;
 		var selected_bone = Group.selected;
 		Animator.animations.forEach(function(a) {
 			a.selected = a.playing = false;
@@ -252,7 +252,7 @@ class Animation {
 		Timeline.vue._data.animation_length = this.length;
 		this.selected = true;
 		this.playing = true;
-		Animator.selected = this;
+		Animation.selected = this;
 		unselectAll();
 		BarItems.slider_animation_length.update();
 
@@ -269,7 +269,7 @@ class Animation {
 	setLength(len) {
 		len = limitNumber(len, 0, 1e4)
 		this.length = len;
-		if (Animator.selected == this) {
+		if (Animation.selected == this) {
 			Timeline.vue._data.animation_length = this.length;
 			BarItems.slider_animation_length.update()
 		}
@@ -377,8 +377,8 @@ class Animation {
 		if (undo) {
 			Undo.initEdit({animations: [this]})
 		}
-		if (Animator.selected === this) {
-			Animator.selected = false
+		if (Animation.selected === this) {
+			Animation.selected = null
 		}
 		Animator.animations.remove(this)
 		if (undo) {
@@ -418,7 +418,7 @@ class Animation {
 			}
 		}
 		this.setLength(len)
-		if (this == Animator.selected) {
+		if (this == Animation.selected) {
 			BarItems.slider_animation_length.update()
 		}
 		return len
@@ -535,6 +535,7 @@ class Animation {
 	}
 }
 	Animation.all = [];
+	Animation.selected = null;
 	Animation.prototype.menu = new Menu([
 		{name: 'menu.animation.loop', icon: 'loop', children: [
 			{name: 'menu.animation.loop.once', icon: animation => (animation.loop == 'once' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('once', true)}},
@@ -598,8 +599,8 @@ class GeneralAnimator {
 	select() {
 		var scope = this;
 		TickUpdates.keyframes = true;
-		for (var key in Animator.selected.animators) {
-			Animator.selected.animators[key].selected = false;
+		for (var key in Animation.selected.animators) {
+			Animation.selected.animators[key].selected = false;
 		}
 		this.selected = true;
 		Timeline.selected_animator = this;
@@ -1043,7 +1044,7 @@ Object.assign(Clipbench, {
 		}
 		if (Clipbench.keyframes && Clipbench.keyframes.length) {
 
-			if (!Animator.selected) return;
+			if (!Animation.selected) return;
 			var keyframes = [];
 			Undo.initEdit({keyframes});
 			Timeline.selected.empty();
@@ -1053,7 +1054,7 @@ Object.assign(Clipbench, {
 			Clipbench.keyframes.forEach(function(data, i) {
 
 				if (data.animator) {
-					var animator = Animator.selected.animators[data.animator];
+					var animator = Animation.selected.animators[data.animator];
 					if (animator && !Timeline.animators.includes(animator)) {
 						animator.addToTimeline();
 					}
@@ -1080,6 +1081,7 @@ const Animator = {
 	possible_channels: {rotation: true, position: true, scale: true, sound: true, particle: true, timeline: true},
 	open: false,
 	animations: Animation.all,
+	get selected() {return Animation.selected},
 	frame: 0,
 	interval: false,
 	join() {
@@ -1108,7 +1110,7 @@ const Animator = {
 			outlines.children.empty()
 			Canvas.updateAllPositions()
 		}
-		if (!Animator.selected && Animator.animations.length) {
+		if (!Animation.selected && Animator.animations.length) {
 			Animator.animations[0].select()
 		}
 		Animator.preview()
@@ -1261,7 +1263,7 @@ const Animator = {
 					}
 				}
 				animation.calculateSnappingFromKeyframes();
-				if (!Animator.selected) {
+				if (!Animation.selected) {
 					animation.select()
 				}
 				new_animations.push(animation)

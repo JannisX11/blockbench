@@ -30,7 +30,7 @@ TimelineMarker.prototype.menu = new Menu([
 	{icon: 'flag', color: markerColors[6].standard, name: 'cube.color.'+markerColors[6].name, click: function(marker) {marker.color = 6;}},
 	{icon: 'flag', color: markerColors[7].standard, name: 'cube.color.'+markerColors[7].name, click: function(marker) {marker.color = 7;}},
 	{icon: 'delete', name: 'generic.delete', click: function(marker) {
-		if (Animator.selected) Animator.selected.markers.remove(marker);
+		if (Animation.selected) Animation.selected.markers.remove(marker);
 	}}
 ])
 
@@ -41,7 +41,7 @@ const Timeline = {
 	playback_speed: 100,
 	time: 0,
 	get second() {return Timeline.time},
-	get animation_length() {return Animator.selected ? Animator.selected.length : 0;},
+	get animation_length() {return Animation.selected ? Animation.selected.length : 0;},
 	playing: false,
 	selector: {
 		start: [0, 0],
@@ -195,12 +195,12 @@ const Timeline = {
 		if (time == undefined || isNaN(time)) {
 			time = Timeline.time;
 		}
-		if (!animation) animation = Animator.selected;
+		if (!animation) animation = Animation.selected;
 		var fps = Math.clamp(animation ? animation.snapping : settings.animation_snap.value, 1, 120);
 		return Math.clamp(Math.round(time*fps)/fps, 0);
 	},
 	getStep() {
-		return 1/Math.clamp(Animator.selected ? Animator.selected.snapping : settings.animation_snap.value, 1, 120);
+		return 1/Math.clamp(Animation.selected ? Animation.selected.snapping : settings.animation_snap.value, 1, 120);
 	},
 	setup() {
 		$('#timeline_body').mousedown(Timeline.selector.down)
@@ -211,9 +211,9 @@ const Timeline = {
 
 			if (e.target.id == 'timeline_endbracket') {
 
-				if (Animator.selected) {
+				if (Animation.selected) {
 					Timeline.dragging_endbracket = true;
-					Undo.initEdit({animations: [Animator.selected]});
+					Undo.initEdit({animations: [Animation.selected]});
 				} else {
 					Blockbench.showQuickMessage('message.no_animation_selected');
 				}
@@ -245,7 +245,7 @@ const Timeline = {
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Timeline.snapTime(offset / Timeline.vue._data.size)
 				
-				Animator.selected.setLength(time)
+				Animation.selected.setLength(time)
 				Timeline.revealTime(time)
 
 			}
@@ -477,7 +477,7 @@ const Timeline = {
 		$('#timeline_time').css('left', -scroll_amount+'px')
 	},
 	unselect(e) {
-		if (!Animator.selected) return;
+		if (!Animation.selected) return;
 		Timeline.keyframes.forEach((kf) => {
 			if (kf.selected) {
 				Timeline.selected.remove(kf)
@@ -487,13 +487,13 @@ const Timeline = {
 		TickUpdates.keyframe_selection = true;
 	},
 	start() {
-		if (!Animator.selected) return;
-		Animator.selected.getMaxLength()
+		if (!Animation.selected) return;
+		Animation.selected.getMaxLength()
 		Timeline.pause()
 		Timeline.playing = true
 		BarItems.play_animation.setIcon('pause')
 		Timeline.interval = setInterval(Timeline.loop, 100/6)
-		if (Animator.selected.loop == 'hold' && Timeline.time >= (Animator.selected.length||1e3)) {
+		if (Animation.selected.loop == 'hold' && Timeline.time >= (Animation.selected.length||1e3)) {
 			Timeline.setTime(0)
 		}
 		if (Timeline.time > 0) {
@@ -507,19 +507,19 @@ const Timeline = {
 	},
 	loop() {
 		Animator.preview()
-		if (Animator.selected && Timeline.time < (Animator.selected.length||1e3)) {
+		if (Animation.selected && Timeline.time < (Animation.selected.length||1e3)) {
 
-			let new_time = (Animator.selected && Animator.selected.anim_time_update)
-						 ? Molang.parse(Animator.selected.anim_time_update)
+			let new_time = (Animation.selected && Animation.selected.anim_time_update)
+						 ? Molang.parse(Animation.selected.anim_time_update)
 						 : Timeline.time + (1/60);
 			Timeline.setTime(Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100));
 
 		} else {
-			if (Animator.selected.loop == 'once') {
+			if (Animation.selected.loop == 'once') {
 				Timeline.setTime(0)
 				Animator.preview()
 				Timeline.pause()
-			} else if (Animator.selected.loop == 'hold') {
+			} else if (Animation.selected.loop == 'hold') {
 				Timeline.pause()
 			} else {
 				Timeline.setTime(0)
@@ -652,7 +652,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		click: function () {
 			
-			if (!Animator.selected) {
+			if (!Animation.selected) {
 				Blockbench.showQuickMessage('message.no_animation_selected')
 				return;
 			}
@@ -720,7 +720,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		keybind: new Keybind({key: 35}),
 		click: function () {
-			Timeline.setTime(Animator.selected ? Animator.selected.length : 0)
+			Timeline.setTime(Animation.selected ? Animation.selected.length : 0)
 			Animator.preview()
 		}
 	})
@@ -730,9 +730,9 @@ BARS.defineActions(function() {
 		category: 'animation',
 		condition: {modes: ['animate']},
 		click: function () {
-			if (!Animator.selected) return;
-			for (var uuid in Animator.selected.animators) {
-				var ba = Animator.selected.animators[uuid]
+			if (!Animation.selected) return;
+			for (var uuid in Animation.selected.animators) {
+				var ba = Animation.selected.animators[uuid]
 			    if (ba && ba.keyframes.length) {
 			        ba.addToTimeline();
 			    }
@@ -765,11 +765,11 @@ BARS.defineActions(function() {
 		category: 'animation',
 		condition: {modes: ['animate']},
 		click: function () {
-			if (!Animator.selected) return;
-			if (!Animator.selected.animators.effects) {
-				var ea = Animator.selected.animators.effects = new EffectAnimator(Animator.selected);
+			if (!Animation.selected) return;
+			if (!Animation.selected.animators.effects) {
+				var ea = Animation.selected.animators.effects = new EffectAnimator(Animation.selected);
 			}
-			Animator.selected.animators.effects.select()
+			Animation.selected.animators.effects.select()
 		}
 	})
 	new BarSelect('timeline_focus', {
@@ -791,23 +791,23 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		keybind: new Keybind({ctrl: true, key: 77}),
 		click: function (event) {
-			if (!Animator.selected) {
+			if (!Animation.selected) {
 				Blockbench.showQuickMessage('message.no_animation_selected')
 				return;
 			}
 			var time = Timeline.snapTime();
 			var original_marker;
-			for (var m of Animator.selected.markers) {
+			for (var m of Animation.selected.markers) {
 				if (Math.abs(m.time - time) < 0.01) {
 					original_marker = m;
 					break;
 				}
 			}
 			if (original_marker) {
-				Animator.selected.markers.remove(original_marker);
+				Animation.selected.markers.remove(original_marker);
 			} else {
 				let marker = new TimelineMarker({time});
-				Animator.selected.markers.push(marker);
+				Animation.selected.markers.push(marker);
 			}
 		}
 	})

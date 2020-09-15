@@ -76,7 +76,7 @@ class ModelProject {
 		Painter.current = {};
 		Animator.animations.purge();
 		Timeline.animators.purge();
-		Animator.selected = undefined;
+		Animation.selected = undefined;
 		$('#var_placeholder_area').val('');
 	}
 }

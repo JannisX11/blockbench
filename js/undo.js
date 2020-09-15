@@ -65,7 +65,7 @@ var Undo = {
 		if (!arr || arr.length == 0) return;
 		if (!Undo.current_save.keyframes) {
 			Undo.current_save.keyframes = {
-				animation: Animator.selected.uuid
+				animation: Animation.selected.uuid
 			}
 		}
 		arr.forEach(kf => {
@@ -192,9 +192,9 @@ var Undo = {
 				scope.animations[a.uuid] = a.getUndoCopy();
 			})
 		}
-		if (aspects.keyframes && Animator.selected && Timeline.animators.length) {
+		if (aspects.keyframes && Animation.selected && Timeline.animators.length) {
 			this.keyframes = {
-				animation: Animator.selected.uuid
+				animation: Animation.selected.uuid
 			}
 			aspects.keyframes.forEach(kf => {
 				scope.keyframes[kf.uuid] = kf.getUndoCopy()
@@ -385,7 +385,7 @@ var Undo = {
 		}
 
 		if (save.keyframes) {
-			var animation = Animator.selected;
+			var animation = Animation.selected;
 			if (!animation || animation.uuid !== save.keyframes.animation) {
 				animation = Animator.animations.findInArray('uuid', save.keyframes.animation)
 				if (animation.select && Animator.open && is_session) {

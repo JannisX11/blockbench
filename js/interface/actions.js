@@ -1282,8 +1282,8 @@ const BARS = {
 				click: function () {
 					if (Modes.edit || Modes.paint) {
 						renameOutliner()
-					} else if (Prop.active_panel == 'animations' && Animator.selected) {
-						Animator.selected.rename()
+					} else if (Prop.active_panel == 'animations' && Animation.selected) {
+						Animation.selected.rename()
 					}
 				}
 			})
@@ -1320,8 +1320,8 @@ const BARS = {
 						TickUpdates.selection = true;
 						Undo.finishEdit('delete elements')
 
-					} else if (Prop.active_panel == 'animations' && Animator.selected) {
-						Animator.selected.remove(true)
+					} else if (Prop.active_panel == 'animations' && Animation.selected) {
+						Animation.selected.remove(true)
 
 					} else if (Animator.open) {
 						removeSelectedKeyframes()
@@ -1331,15 +1331,15 @@ const BARS = {
 			new Action('duplicate', {
 				icon: 'content_copy',
 				category: 'edit',
-				condition: () => (Animator.selected && Modes.animate) || (Modes.edit && (selected.length || Group.selected)),
+				condition: () => (Animation.selected && Modes.animate) || (Modes.edit && (selected.length || Group.selected)),
 				keybind: new Keybind({key: 68, ctrl: true}),
 				click: function () {
 					if (Modes.animate) {
-						if (Animator.selected && Prop.active_panel == 'animations') {
-							var copy = Animator.selected.getUndoCopy();
+						if (Animation.selected && Prop.active_panel == 'animations') {
+							var copy = Animation.selected.getUndoCopy();
 							var animation = new Animation(copy);
 							animation.createUniqueName();
-							Animator.animations.splice(Animator.animations.indexOf(Animator.selected)+1, 0, animation)
+							Animator.animations.splice(Animator.animations.indexOf(Animation.selected)+1, 0, animation)
 							animation.add(true).select();
 						}
 					} else if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {

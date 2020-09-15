@@ -1048,14 +1048,14 @@
 				}
 				scope.keyframes = [];
 				var undo_keyframes = [];
-				var animator = Animator.selected.getBoneAnimator();
+				var animator = Animation.selected.getBoneAnimator();
 				if (animator && Toolbox.selected.id === 'move_tool' && Group.selected.ik_enabled && Group.selected.ik_chain_length) {
 					/*
 					var bone = Group.selected;
 					for (var i = Group.selected.ik_chain_length; i > 0; i--) {
 						bone = bone.parent;
 						if (bone instanceof Group) {
-							var animator = Animator.selected.getBoneAnimator(bone);
+							var animator = Animation.selected.getBoneAnimator(bone);
 							animator.addToTimeline();
 							var {before, result} = animator.getOrMakeKeyframe('rotation');
 							scope.keyframes[i-1] = result;
@@ -1346,7 +1346,7 @@
 				}
 			} else if (Modes.animate) {
 
-				if (!Animator.selected) {
+				if (!Animation.selected) {
 					Blockbench.showQuickMessage('message.no_animation_selected')
 				}
 				if (Toolbox.selected.id === 'rotate_tool') {
@@ -1367,7 +1367,7 @@
 					originalValue = value;
 				}
 
-				if (value !== previousValue && Animator.selected && Animator.selected.getBoneAnimator()) {
+				if (value !== previousValue && Animation.selected && Animation.selected.getBoneAnimator()) {
 					beforeFirstChange(event)
 					var difference = value - (previousValue||0)
 					if (Toolbox.selected.id === 'rotate_tool' && Math.abs(difference) > 120) {
@@ -1399,7 +1399,7 @@
 							var keyframe = scope.keyframes[i];
 							if (keyframe) {
 								var bone = copy_bone.original;
-								var animator = Animator.selected.getBoneAnimator(bone);
+								var animator = Animation.selected.getBoneAnimator(bone);
 
 								keyframe.offset('x', Math.radToDeg(copy_bone.last_rotation.x - copy_bone.rotation.x));
 								keyframe.offset('y', Math.radToDeg(copy_bone.last_rotation.y - copy_bone.rotation.y));

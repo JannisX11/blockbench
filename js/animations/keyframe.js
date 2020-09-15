@@ -225,7 +225,7 @@ class Keyframe {
 			}
 		}
 		Timeline.selected.safePush(this);
-		if (Timeline.selected.length == 1 && Timeline.selected[0].animator.selected == false) {
+		if (Timeline.selected.length == 1 && Timeline.selected[0].Animation.selected == false) {
 			Timeline.selected[0].animator.select()
 		}
 
@@ -366,7 +366,7 @@ function updateKeyframeSelection() {
 	Blockbench.dispatchEvent('update_keyframe_selection');
 }
 function selectAllKeyframes() {
-	if (!Animator.selected) return;
+	if (!Animation.selected) return;
 	var state = Timeline.selected.length !== Timeline.keyframes.length
 	Timeline.keyframes.forEach((kf) => {
 		if (state && !kf.selected) {
@@ -517,19 +517,19 @@ BARS.defineActions(function() {
 
 	new NumSlider('slider_animation_length', {
 		category: 'animation',
-		condition: () => Animator.open && Animator.selected,
+		condition: () => Animator.open && Animation.selected,
 		getInterval(event) {
 			if (event && event.shiftKey) return 1;
 			return Timeline.getStep()
 		},
 		get: function() {
-			return Animator.selected.length
+			return Animation.selected.length
 		},
 		change: function(modify) {
-			Animator.selected.setLength(limitNumber(modify(Animator.selected.length), 0, 1e4))
+			Animation.selected.setLength(limitNumber(modify(Animation.selected.length), 0, 1e4))
 		},
 		onBefore: function() {
-			Undo.initEdit({animations: [Animator.selected]});
+			Undo.initEdit({animations: [Animation.selected]});
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change Animation Length')
