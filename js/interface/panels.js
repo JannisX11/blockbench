@@ -346,7 +346,7 @@ function setupPanels() {
 						<li v-for="(file, key) in files" :key="key" class="animation_file">
 							<div class="animation_file_head" v-on:click.stop="toggle(key)">
 								<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
-								{{ file.name }}
+								<label>{{ file.name }}</label>
 								<div class="animation_file_save_button" v-if="!file.saved" v-on:click.stop="saveFile(key, file)">
 									<i class="material-icons">save</i>
 								</div>
@@ -363,14 +363,14 @@ function setupPanels() {
 									@contextmenu.prevent.stop="animation.showContextMenu($event)"
 								>
 									<i class="material-icons">movie</i>
-									<input class="animation_name" v-model="animation.name" disabled="true">
-									<div class="animation_save_button" v-bind:class="{clickable: !animation.saved}" v-on:click.stop="animation.save()">
-										<i v-if="animation.saved" class="material-icons">check_circle</i>
-										<i v-else class="material-icons">save</i>
-									</div>
+									<label>{{ animation.name }}</label>
 									<div class="animation_play_toggle" v-on:click.stop="animation.togglePlayingState()">
 										<i v-if="animation.playing" class="fa_big far fa-play-circle"></i>
 										<i v-else class="fa_big far fa-circle"></i>
+									</div>
+									<div class="animation_save_button" v-bind:class="{clickable: !animation.saved}" v-on:click.stop="animation.save()">
+										<i v-if="animation.saved" class="material-icons">check_circle</i>
+										<i v-else class="material-icons">save</i>
 									</div>
 								</li>
 							</ul>

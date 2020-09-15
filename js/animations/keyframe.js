@@ -146,10 +146,13 @@ class Keyframe {
 	}
 	getArray() {
 		var arr = [
-			this.get('x').replace(/\n/g, ''),
-			this.get('y').replace(/\n/g, ''),
-			this.get('z').replace(/\n/g, ''),
+			this.get('x'),
+			this.get('y'),
+			this.get('z'),
 		]
+		arr.forEach((n, i) => {
+			if (n.replace) arr[i] = n.replace(/\n/g, '');
+		})
 		return arr;
 	}
 	getFixed() {

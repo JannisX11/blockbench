@@ -419,10 +419,10 @@
 		flex-grow: 0;
 		flex-shrink: 0;
 	}
-	.animation > .animation_name {
+	.animation > label {
 		flex-grow: 1;
 		flex-shrink: 1;
-		user-select: none;
+		overflow: hidden;
 	}
 	.animation .animation_play_toggle {
 		width: 22px;
@@ -446,6 +446,7 @@
 	.animation_file_head {
 		height: 28px;
 		padding: 2px;
+		padding-right: 8px;
 		display: flex;
 	}
 	.animation_file_head:hover {
@@ -455,6 +456,11 @@
 		text-align: center;
 		width: 21px;
 		margin-top: 4px;
+	}
+	.animation_file_head > label {
+		flex-grow: 1;
+		flex-shrink: 1;
+		overflow: hidden;
 	}
 
 /* Keyframe Panel */
