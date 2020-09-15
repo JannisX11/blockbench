@@ -4,27 +4,6 @@ const Outliner = {
 	elements: elements,
 	selected: selected,
 	buttons: {
-		/*
-		remove: {
-			id: 'remove',
-			title: tl('generic.delete'),
-			icon: ' fa fa-times',
-			icon_off: ' fa fa-times',
-			advanced_option: false,
-			click: function(obj) {
-				if (obj.type === 'group') {
-					obj.remove(true);
-					return;
-				}
-				Undo.initEdit({elements: obj.forSelected(), outliner: true, selection: true})
-				obj.forSelected().slice().forEach(cube => {
-					cube.remove();
-				})
-				updateSelection()
-				Undo.finishEdit('remove', {elements: [], outliner: true, selection: true})
-			}
-		},
-		*/
 		visibility: {
 			id: 'visibility',
 			title: tl('switches.visibility'),

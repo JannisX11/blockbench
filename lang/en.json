@@ -177,6 +177,9 @@
 	"message.image_editor_missing.title": "Default Image Editor",
 	"message.image_editor_missing.message": "Select the executable file of your image editor.",
 	"message.image_editor_missing.detail": "Blockbench couldn't find an image editor on your computer. Select the executable file of your preferred image editor.",
+	
+	"message.delete_animation.title": "Delete Animation",
+	"message.delete_animation.message": "The animation was removed from Blockbench. Do you also want to delete the animation from the file that is was saved in?",
 
 	"message.display_skin.title": "Display Skin",
 	"message.display_skin.message": "Select a skin file from your computer or enter a player name",
@@ -246,7 +249,6 @@
 	"dialog.texture.variable": "Variable",
 	"dialog.texture.namespace": "Namespace",
 	"dialog.texture.folder": "Folder",
-	
 
 	"dialog.resize_texture.fill": "Fill with",
 	"dialog.resize_texture.fill.transparent": "Transparent",
@@ -304,6 +306,8 @@
 	"dialog.entitylist.text": "Select the model you want to import",
 	"dialog.entitylist.bones": "Bones",
 	"dialog.entitylist.cubes": "Cubes",
+	
+	"dialog.animation_import.title": "Select Animations to Import",
 
 	"dialog.create_texture.folder": "Folder",
 	"dialog.create_texture.template": "Template",
@@ -1103,6 +1107,7 @@
 	"menu.animation.properties": "Properties...",
 	"menu.animation.file": "File",
 	"menu.animation.snapping": "Snapping",
+	"menu.animation.open_location": "Open File Location",
 
 	"menu.keyframe.quaternion": "Quaternion",
 

@@ -382,7 +382,25 @@ class Animation {
 		}
 		Animator.animations.remove(this)
 		if (undo) {
-			Undo.finishEdit('remove animation', {animation: null})
+			Undo.finishEdit('remove animation', {animations: []})
+
+			if (isApp && this.path && fs.existsSync(this.path)) {
+				Blockbench.showMessageBox({
+					translateKey: 'delete_animation',
+					icon: 'movie',
+                    buttons: ['generic.delete', 'dialog.cancel']
+				}, (result) => {
+					if (result == 0) {
+						let content = fs.readFileSync(this.path, 'utf-8');
+						let json = autoParseJSON(content, false);
+						if (json && json.animations && json.animations[this.name]) {
+							delete json.animations[this.name];
+							Blockbench.writeFile(this.path, {content: compileJSON(json)});
+							Undo.history.last().before.animations[this.uuid].saved = false
+						}
+					}
+				})
+			}
 		}
 		Blockbench.dispatchEvent('remove_animation', {animations: [this]})
 		return this;
@@ -530,6 +548,15 @@ class Animation {
 			icon: 'save',
 			click(animation) {
 				animation.save();
+			}
+		},
+		{
+			name: 'menu.animation.open_location',
+			id: 'open_location',
+			icon: 'folder',
+			condition(animation) {return isApp && animation.path && fs.existsSync(animation.path)},
+			click(animation) {
+				shell.showItemInFolder(animation.path);
 			}
 		},
 		'duplicate',
@@ -1138,6 +1165,7 @@ const Animator = {
 	loadFile(file, animation_filter) {
 		var json = file.json || autoParseJSON(file.content);
 		let path = file.path;
+		let new_animations = [];
 		if (json && typeof json.animations === 'object') {
 			for (var ani_name in json.animations) {
 				if (animation_filter && !animation_filter.includes(ani_name)) continue;
@@ -1236,8 +1264,10 @@ const Animator = {
 				if (!Animator.selected) {
 					animation.select()
 				}
+				new_animations.push(animation)
 			}
 		}
+		return new_animations
 	},
 	buildFile(options) {
 		if (typeof options !== 'object') {
@@ -1252,6 +1282,39 @@ const Animator = {
 			format_version: '1.8.0',
 			animations: animations
 		}
+	},
+	importFile(file) {
+		let form = {};
+		let json = autoParseJSON(file.content)
+		for (var key in json.animations) {
+			form[key.hashCode()] = {label: key, type: 'checkbox', value: true}
+		}
+		file.json = json;
+		if (Object.keys(json.animations) <= 1) {
+			Undo.initEdit({animations: []})
+			let new_animations = Animator.loadFile(file);
+			Undo.finishEdit('import animations', {animations: new_animations})
+			return;
+		}
+		console.log(form)
+		let dialog = new Dialog({
+			id: 'animation_import',
+			title: 'dialog.animation_import.title',
+			form,
+			onConfirm(form_result) {
+				dialog.hide();
+				let names = [];
+				for (var key in json.animations) {
+					if (form_result[key.hashCode()]) {
+						names.push(key);
+					}
+				}
+				Undo.initEdit({animations: []})
+				let new_animations = Animator.loadFile(file, names);
+				Undo.finishEdit('import animations', {animations: new_animations})
+			}
+		})
+		dialog.show();
 	}
 }
 
@@ -1288,7 +1351,8 @@ Blockbench.addDragHandler('animation', {
 	readtype: 'text',
 	condition: {modes: ['animate']},
 }, function(files) {
-	Animator.loadFile(files[0])
+	console.log(files)
+	Animator.importFile(files[0])
 })
 
 BARS.defineActions(function() {
@@ -1322,7 +1386,7 @@ BARS.defineActions(function() {
 				type: 'JSON Animation',
 				startpath: path
 			}, function(files) {
-				Animator.loadFile(files[0])
+				Animator.importFile(files[0])
 			})
 		}
 	})
