@@ -1375,9 +1375,9 @@
 								q.setFromUnitVectors(v1, v2)
 								euler.setFromQuaternion(q)
 
-								keyframe.offset('x', Math.radToDeg(euler.x));
-								keyframe.offset('y', Math.radToDeg(euler.y));
-								keyframe.offset('z', Math.radToDeg(euler.z));
+								keyframe.offset('x', Math.clamp(Math.radToDeg(euler.x), -12, 12));
+								keyframe.offset('y', Math.clamp(Math.radToDeg(euler.y), -12, 12));
+								keyframe.offset('z', Math.clamp(Math.radToDeg(euler.z), -12, 12));
 
 								Animator.preview()
 							}
