@@ -74,7 +74,7 @@ const Interface = {
 		quad_view_y: 50,
 		timeline_height: 260,
 		left_bar: ['uv', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
-		right_bar: ['color', 'outliner', 'chat']
+		right_bar: ['element', 'bone', 'color', 'outliner', 'chat']
 	},
 	Resizers: {
 		left: new ResizeLine({
