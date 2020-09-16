@@ -1317,7 +1317,12 @@ const Animator = {
 Molang.global_variables = {
 	'true': 1,
 	'false': 0,
-	'query.delta_time': (1/60),
+	get 'query.delta_time'() {
+		let timecode = new Date().getMilliseconds();
+		let time = (timecode - Timeline.last_frame_timecode + 1) / 1000;
+		if (time < 0) time += 1;
+		return time;
+	},
 	get 'query.anim_time'() {
 		return Timeline.time;
 	},
