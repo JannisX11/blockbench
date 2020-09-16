@@ -7,16 +7,18 @@ function buildForm(dialog) {
 		if (data === '_') {
 			jq_dialog.append('<hr />')
 			
-		} else if (data && Condition(data.condition)) {
+		} else {
 			var bar = $(`<div class="dialog_bar form_bar form_bar_${form_id}"></div>`)
 			if (data.label) {
 				bar.append(`<label class="name_space_left" for="${form_id}">${tl(data.label)+(data.nocolon?'':':')}</label>`)
 				dialog.max_label_width = Math.max(getStringWidth(tl(data.label)), dialog.max_label_width)
 			}
+			var input_element;
 
 			switch (data.type) {
 				default:
-					bar.append(`<input class="dark_bordered half focusable_input" type="text" id="${form_id}" value="${data.value||''}" placeholder="${data.placeholder||''}" ${data.list ? `list="${dialog.id}_${form_id}_list"` : ''}>`)
+					input_element = $(`<input class="dark_bordered half focusable_input" type="text" id="${form_id}" value="${data.value||''}" placeholder="${data.placeholder||''}" ${data.list ? `list="${dialog.id}_${form_id}_list"` : ''}>`)
+					bar.append(input_element)
 					if (data.list) {
 						let list = $(`<datalist id="${dialog.id}_${form_id}_list"></datalist>`)
 						for (let value of data.list) {
@@ -28,29 +30,39 @@ function buildForm(dialog) {
 						bar.append(`<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
 								<i class="fas fa-eye-slash"></i>
 							</div>`)
-						let input = bar.find('input').attr('type', 'password')
+						input_element.attr('type', 'password')
 						let hidden = true;
 						let this_bar = bar;
 						this_bar.find('.password_toggle').click(e => {
 							hidden = !hidden;
-							input.attr('type', hidden ? 'password' : 'text');
+							input_element.attr('type', hidden ? 'password' : 'text');
 							this_bar.find('.password_toggle i')[0].className = hidden ? 'fas fa-eye-slash' : 'fas fa-eye';
 						})
 					}
+					input_element.on('input', () => {
+						dialog.updateFormConditions()
+					})
 					break;
 				case 'textarea':
-					bar.append(`<textarea class="focusable_input" style="height: ${data.height||150}px;" id="${form_id}"></textarea>`)
+					input_element = $(`<textarea class="focusable_input" style="height: ${data.height||150}px;" id="${form_id}"></textarea>`);
+					bar.append(input_element)
+					input_element.on('input', () => {
+						dialog.updateFormConditions()
+					})
 					break;
 
 
 				case 'select':
 					var el = $(`<div class="bar_select half"><select class="focusable_input" id="${form_id}"></select></div>`)
-					var sel = el.find('select')
+					input_element = el.find('select')
 					for (var key in data.options) {
 						var name = tl(data.options[key])
-						sel.append(`<option id="${key}" ${(data.value === key || (data.default || data.value) === key) ? 'selected' : ''}>${name}</option>`)
+						input_element.append(`<option id="${key}" ${(data.value === key || (data.default || data.value) === key) ? 'selected' : ''}>${name}</option>`)
 					}
 					bar.append(el)
+					input_element.on('change', () => {
+						dialog.updateFormConditions()
+					})
 					break;
 
 
@@ -62,6 +74,10 @@ function buildForm(dialog) {
 							<input type="radio" class="focusable_input" name="${form_id}_radio" id="${key}" ${(data.default || data.value) === key ? 'selected' : ''}>
 							<label for="${key}">${name}</label>
 						</div>`)
+						input_element = el.find(`input#${key}`);
+						input_element.on('change', () => {
+							dialog.updateFormConditions()
+						})
 					}
 					bar.append(el)
 					break;
@@ -75,8 +91,12 @@ function buildForm(dialog) {
 
 
 				case 'number':
-					bar.append(`<input class="dark_bordered half focusable_input" type="number" id="${form_id}"
+					input_element = $(`<input class="dark_bordered half focusable_input" type="number" id="${form_id}"
 						value="${data.value||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
+					bar.append(input_element)
+					input_element.on('change', () => {
+						dialog.updateFormConditions()
+					})
 					break;
 
 
@@ -84,8 +104,12 @@ function buildForm(dialog) {
 					let group = $(`<div class="dialog_vector_group half"></div>`)
 					bar.append(group)
 					for (var i = 0; i < (data.dimensions || 3); i++) {
-						group.append(`<input class="dark_bordered focusable_input" type="number" id="${form_id}_${i}"
+						input_element = $(`<input class="dark_bordered focusable_input" type="number" id="${form_id}_${i}"
 							value="${data.value ? data.value[i]: 0}" step="${data.step||1}" min="${data.min}" max="${data.max}">`)
+						group.append(input_element)
+						input_element.on('input', () => {
+							dialog.updateFormConditions()
+						})
 					}
 					break;
 
@@ -99,12 +123,19 @@ function buildForm(dialog) {
 							private: true
 						})
 					}
+					data.colorpicker.onChange = function() {
+						dialog.updateFormConditions()
+					};
 					bar.append(data.colorpicker.getNode())
 					break;
 
 
 				case 'checkbox':
-					bar.append(`<input type="checkbox" class="focusable_input" id="${form_id}"${data.value ? ' checked' : ''}>`)
+					input_element = $(`<input type="checkbox" class="focusable_input" id="${form_id}"${data.value ? ' checked' : ''}>`)
+					bar.append(input_element)
+					input_element.on('change', () => {
+						dialog.updateFormConditions()
+					})
 					break;
 
 
@@ -134,6 +165,7 @@ function buildForm(dialog) {
 						function fileCB(files) {
 							data.value = files[0].path;
 							input.val(data.value);
+							dialog.updateFormConditions()
 						}
 						switch (data.type) {
 							case 'file':
@@ -169,8 +201,10 @@ function buildForm(dialog) {
 				bar.find('input').attr('readonly', 'readonly').removeClass('focusable_input')
 			}
 			jq_dialog.append(bar)
+			data.bar = bar;
 		}
 	}
+	dialog.updateFormConditions()
 }
 function buildLines(dialog) {
 	let jq_dialog = $(dialog.object)
@@ -231,6 +265,59 @@ window.Dialog = class Dialog {
 	cancel() {
 		$(this.object).find('.cancel_btn:not([disabled])').click()
 	}
+	updateFormConditions() {
+		let form_result = this.getFormResult();
+		for (var form_id in this.form) {
+			let data = this.form[form_id];
+			if (typeof data == 'object' && data.bar) {
+				let show = Condition(data.condition, form_result);
+				data.bar.toggle(show);
+			}
+		}
+	}
+	getFormResult() {
+		var result = {}
+		if (this.form) {
+			for (var form_id in this.form) {
+				var data = this.form[form_id]
+				if (typeof data === 'object') {
+					switch (data.type) {
+						default:
+							result[form_id] = data.bar.find('input#'+form_id).val()
+							break;
+						case 'info':
+							break;
+						case 'textarea':
+							result[form_id] = data.bar.find('textarea#'+form_id).val()
+							break;
+						case 'select':
+							result[form_id] = data.bar.find('select#'+form_id+' > option:selected').attr('id')
+							break;
+						case 'radio':
+							result[form_id] = data.bar.find('.form_part_radio#'+form_id+' input:checked').attr('id')
+							break;
+						case 'number':
+							result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id).val())||0, data.min, data.max)
+							break;
+						case 'vector':
+							result[form_id] = [];
+							for (var i = 0; i < (data.dimensions || 3); i++) {
+								let num = Math.clamp(parseFloat(data.bar.find(`input#${form_id}_${i}`).val())||0, data.min, data.max)
+								result[form_id].push(num)
+							}
+							break;
+						case 'color':
+							result[form_id] = data.colorpicker.get();
+							break;
+						case 'checkbox':
+							result[form_id] = data.bar.find('input#'+form_id).is(':checked')
+							break;
+					}
+				}
+			}
+		}
+		return result;
+	}
 	show() {
 		let scope = this;
 
@@ -288,47 +375,8 @@ window.Dialog = class Dialog {
 		jq_dialog.append('<div class="dialog_close_button" onclick="$(\'.dialog#\'+open_dialog).find(\'.cancel_btn:not([disabled])\').click()"><i class="material-icons">clear</i></div>')
 		var confirmFn = function(e) {
 
-			var result = {}
-			if (scope.form) {
-				for (var form_id in scope.form) {
-					var data = scope.form[form_id]
-					if (typeof data === 'object') {
-						switch (data.type) {
-							default:
-								result[form_id] = jq_dialog.find('input#'+form_id).val()
-								break;
-							case 'info':
-								break;
-							case 'textarea':
-								result[form_id] = jq_dialog.find('textarea#'+form_id).val()
-								break;
-							case 'select':
-								result[form_id] = jq_dialog.find('select#'+form_id+' > option:selected').attr('id')
-								break;
-							case 'radio':
-								result[form_id] = jq_dialog.find('.form_part_radio#'+form_id+' input:checked').attr('id')
-								break;
-							case 'number':
-								result[form_id] = Math.clamp(parseFloat(jq_dialog.find('input#'+form_id).val())||0, data.min, data.max)
-								break;
-							case 'vector':
-								result[form_id] = [];
-								for (var i = 0; i < (data.dimensions || 3); i++) {
-									let num = Math.clamp(parseFloat(jq_dialog.find(`input#${form_id}_${i}`).val())||0, data.min, data.max)
-									result[form_id].push(num)
-								}
-								break;
-							case 'color':
-								result[form_id] = data.colorpicker.get();
-								break;
-							case 'checkbox':
-								result[form_id] = jq_dialog.find('input#'+form_id).is(':checked')
-								break;
-						}
-					}
-				}
-			}
-			scope.onConfirm(result, e)
+			let result = scope.getFormResult();
+			scope.onConfirm(result, e);
 		}
 		confirmFn.bind(this)
 		if (this.confirmEnabled) $(this.object).find('.confirm_btn').click(confirmFn)
@@ -377,6 +425,11 @@ window.Dialog = class Dialog {
 	}
 }
 
+new Dialog({
+	form: {
+		input: {type: 'text', label: 'Hi', value: 'text', condition(form) {}}
+	}
+})
 
 
 })()
