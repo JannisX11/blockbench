@@ -605,6 +605,7 @@
 			var pointerVector = new THREE.Vector2();
 
 			var point = new THREE.Vector3();
+			var originalPoint = new THREE.Vector3();
 			var offset = new THREE.Vector3();
 			var scale = 1;
 			var eye = new THREE.Vector3();
@@ -1017,7 +1018,7 @@
 				}
 			}
 		}
-		function beforeFirstChange(event) {
+		function beforeFirstChange(event, point) {
 			if (scope.hasChanged) return;
 
 			if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
@@ -1053,6 +1054,7 @@
 
 
 					Transformer.bones = [];
+					originalPoint.copy(point);
 
 					var bone = Group.selected;
 					for (var i = Group.selected.ik_chain_length; i > 0; i--) {
@@ -1111,6 +1113,9 @@
 				    solver.add(chain, target, true);
 					Transformer.ik_solver = solver;
 
+					Transformer.ik_solver.meshChains[0].forEach(mesh => {
+						mesh.visible = false;
+					})
 
 				} else if (animator) {
 
@@ -1326,7 +1331,7 @@
 				}
 
 				if (value !== previousValue && Animator.selected && Animator.selected.getBoneAnimator()) {
-					beforeFirstChange(event)
+					beforeFirstChange(event, planeIntersect.point)
 					var difference = value - (previousValue||0)
 					if (Toolbox.selected.id === 'rotate_tool' && Math.abs(difference) > 120) {
 						difference = 0;
@@ -1338,22 +1343,30 @@
 
 						var solver = Transformer.ik_solver;
 
-						solver.targets[0].copy(planeIntersect.point);
+						console.log(originalPoint)
+						point.copy(originalPoint)
+						point[axis] = planeIntersect.point[axis];
+						solver.targets[0].copy(point);
 
 						main_preview.render()
 
 						solver.update();
 						console.log(solver)
 
+						Animator.preview()
 						Transformer.bones.forEach((bone, i) => {
 							var keyframe = scope.keyframes[i];
 							if (keyframe) {
 
 								let euler = new THREE.Euler()
 								let q = new THREE.Quaternion()
-								let diff = new THREE.Vector3().copy(solver.chains[0].bones[i].end).sub(solver.chains[0].bones[i].start)
-								if (Transformer.bones[i-1]) diff.applyQuaternion( Transformer.bones[i-1].bone.mesh.getWorldQuaternion(q).inverse() )
-
+								
+								let start = new THREE.Vector3().copy(solver.chains[0].bones[i].start)
+								let end = new THREE.Vector3().copy(solver.chains[0].bones[i].end)
+								Transformer.bones[i].bone.mesh.worldToLocal(start)
+								Transformer.bones[i].bone.mesh.worldToLocal(end)
+								let diff = new THREE.Vector3().copy(end).sub(start)
+								
 								let v1 = new THREE.Vector3().copy(diff).normalize();
 								let v2 = new THREE.Vector3().copy(bone.last_diff).normalize();
 								v1.x *= -1;
@@ -1366,10 +1379,7 @@
 								keyframe.offset('y', Math.radToDeg(euler.y));
 								keyframe.offset('z', Math.radToDeg(euler.z));
 
-								console.log(diff, bone.last_diff)
-								console.log(Math.round(Math.radToDeg(euler.x)), Math.round(Math.radToDeg(euler.y)), Math.round(Math.radToDeg(euler.z)))
-
-								bone.last_diff.copy(diff)
+								Animator.preview()
 							}
 						})
 
@@ -1489,6 +1499,13 @@
 
 				} else if (Modes.id === 'display') {
 					Undo.finishEdit('edit display slot')
+				}
+				
+				if (Modes.animate && Toolbox.selected.id === 'move_tool' && Group.selected.ik_enabled && Group.selected.ik_chain_length) {
+					Transformer.ik_solver.meshChains[0].forEach(mesh => {
+						scene.remove(mesh)
+					})
+					delete Transformer.ik_solver;
 				}
 			}
 			_dragging = false;
