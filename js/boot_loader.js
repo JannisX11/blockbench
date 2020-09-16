@@ -41,6 +41,7 @@ BARS.setupVue()
 MenuBar.setup()
 translateUI()
 
+console.log(`Three.js r${THREE.REVISION}`)
 console.log('%cBlockbench ' + appVersion + (isApp
 	? (' Desktop (' + Blockbench.operating_system +')')
 	: (' Web ('+capitalizeFirstLetter(Blockbench.browser)+')')),
