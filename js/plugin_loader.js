@@ -6,7 +6,6 @@ const Plugins = {
 	json: undefined,	//Json from website
 	all: [],			//Vue Object Data
 	registered: {},
-	loadingStep: false,
 	updateSearch() {
 		Plugins.Vue._data.showAll = !Plugins.Vue._data.showAll
 		Plugins.Vue._data.showAll = !Plugins.Vue._data.showAll
@@ -326,21 +325,25 @@ if (isApp) {
 } else {
 	Plugins.path = 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/';
 }
-$.getJSON(Plugins.apipath, function(data) {
-	Plugins.json = data
-	loadInstalledPlugins()
-}).fail(function() {
-	console.log('Could not connect to plugin server')
-	$('#plugin_available_empty').text('Could not connect to plugin server')
-	loadInstalledPlugins()
+
+Plugins.loading_promise = new Promise((resolve, reject) => {
+	$.getJSON(Plugins.apipath, function(data) {
+		Plugins.json = data
+		resolve();
+		Plugins.loading_promise.resolved = true;
+	}).fail(function() {
+		console.log('Could not connect to plugin server')
+		$('#plugin_available_empty').text('Could not connect to plugin server')
+		resolve();
+		Plugins.loading_promise.resolved = true;
+	})
 })
 
 async function loadInstalledPlugins() {
-	const install_promises = [];
-	if (!Plugins.loadingStep) {
-		Plugins.loadingStep = true
-		return;
+	if (!Plugins.loading_promise.resolved) {
+		await Plugins.loading_promise;
 	}
+	const install_promises = [];
 	if (localStorage.getItem('installed_plugins')) {
 		var legacy_plugins = JSON.parse(localStorage.getItem('installed_plugins'))
 		if (legacy_plugins instanceof Array) {
