@@ -882,7 +882,7 @@ BARS.defineActions(function() {
 						Format.codec.write(Format.codec.compile(), ModelMeta.export_path)
 					} else if (ModelMeta.save_path) {
 						Codecs.project.write(Codecs.project.compile(), ModelMeta.save_path);
-					} else {
+					} else if (Format.codec) {
 						Format.codec.export()
 					}
 				}
