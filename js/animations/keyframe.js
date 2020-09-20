@@ -5,6 +5,8 @@ class Keyframe {
 		this.time = 0;
 		this.color = -1;
 		this.selected = 0;
+		this.data_points = [{}]
+		/*
 		this.x = '0';
 		this.y = '0';
 		this.z = '0';
@@ -15,15 +17,28 @@ class Keyframe {
 		this.locator = '';
 		this.script = '';
 		this.instructions = '';
+		*/
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		if (typeof data === 'object') {
 			Merge.string(this, data, 'channel')
 			this.transform = this.channel === 'rotation' || this.channel === 'position' || this.channel === 'scale';
 			this.extend(data)
+			
 			if (this.channel === 'scale' && data.x == undefined && data.y == undefined && data.z == undefined) {
+
 				this.x = this.y = this.z = 1;
 			}
 		}
+		/**					 POS FX
+		 * points			|1	|-1
+		 * instances		|0	|1
+		 * entries			|0	|1
+		 * parts			|0	|1
+		 * versions			|0	|0
+		 * variants			|0	|0
+		 * variations		|1	|0
+		 * sides			|1	|1
+		 */
 	}
 	extend(data) {
 		Merge.number(this, data, 'time')
@@ -75,18 +90,20 @@ class Keyframe {
 	calc(axis) {
 		return Molang.parse(this[axis])
 	}
-	set(axis, value) {
-		this[axis] = value;
+	set(axis, value, data_point = 0) {
+		if (this.data_points[data_point]) {
+			this.data_points[data_point][axis] = value;
+		}
 		return this;
 	}
-	offset(axis, amount) {
+	offset(axis, amount, data_point = 0) {
 		var value = this.get(axis)
 		if (!value || value === '0') {
-			this.set(axis, amount)
+			this.set(axis, amount, data_point)
 			return amount;
 		}
 		if (typeof value === 'number') {
-			this.set(axis, value+amount)
+			this.set(axis, value+amount, data_point)
 			return value+amount
 		}
 		var start = value.match(/^-?\s*\d*(\.\d+)?\s*(\+|-)/)
@@ -103,7 +120,7 @@ class Keyframe {
 				value = trimFloatNumber(amount) +(value.substr(0,1)=='-'?'':'+')+ value
 			}
 		}
-		this.set(axis, value)
+		this.set(axis, value, data_point)
 		return value;
 	}
 	flip(axis) {
@@ -127,6 +144,7 @@ class Keyframe {
 			for (var i = 0; i < 3; i++) {
 				if (i != axis) {
 					let l = getAxisLetter(i)
+					this.data_points.forEach(this.data_points)
 					this.set(l, negate(this.get(l)))
 				}
 			}
@@ -345,9 +363,9 @@ class Keyframe {
 	])
 
 // Misc Functions
-function updateKeyframeValue(axis, value) {
+function updateKeyframeValue(axis, value, data_point) {
 	Timeline.selected.forEach(function(kf) {
-		kf.set(axis, value);
+		kf.set(axis, value, data_point);
 	})
 	if (!['effect', 'locator', 'script'].includes(axis)) {
 		Animator.preview();
