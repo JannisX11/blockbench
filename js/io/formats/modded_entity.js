@@ -183,8 +183,9 @@ var codec = new Codec('modded_entity', {
 			group.children.replace(loose_cubes)
 		}
 
-		all_groups.forEach((group, group_i) => {
+		all_groups.slice().forEach(group => {
 			let subgroups = [];
+			let group_i = all_groups.indexOf(group);
 			group.children.forEachReverse(cube => {
 				if (!cube.rotation.allEqual(0)) {
 					let sub = subgroups.find(s => {
@@ -355,7 +356,6 @@ var codec = new Codec('modded_entity', {
 		function parseScheme(scheme, input) {
 			scheme = scheme.replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\./g, '\\.');
 			var parts = scheme.split('$');
-			var regexstring = '';
 			var results = [];
 			var location = 0;
 			var i = 0;
