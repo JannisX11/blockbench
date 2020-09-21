@@ -114,17 +114,23 @@ function createWindow(second_instance) {
 	})
 	if (second_instance === true) {
 		win.webContents.second_instance = true;
-
 	}
+	return win;
 }
+
+app.commandLine.appendSwitch('ignore-gpu-blacklist')
+app.commandLine.appendSwitch('enable-accelerated-video')
 
 app.on('second-instance', function (event, argv, cwd) {
 	process.argv = argv
 	createWindow(true)
 })
-
-app.commandLine.appendSwitch('ignore-gpu-blacklist')
-app.commandLine.appendSwitch('enable-accelerated-video')
+app.on('open-file', function (event, path) {
+	process.argv[process.argv.length-1 || 1] = path;
+	if (orig_win) {
+		createWindow(true)
+	}
+})
 
 ipcMain.on('change-main-color', (event, arg) => {
 	all_wins.forEach(win => {
