@@ -905,25 +905,6 @@ function toggleCubeProperty(key) {
 }
 
 
-onVueSetup(function() {
-	Outliner.vue = new Vue({
-		el: '#cubes_list',
-		data: {
-			option: {
-				root: {
-					name: 'Model',
-					isParent: true,
-					isOpen: true,
-					selected: false,
-					onOpened: function () {},
-					select: function() {},
-					children: Outliner.root
-				}
-			}
-		}
-	})
-})
-
 BARS.defineActions(function() {
 	new Action('outliner_toggle', {
 		icon: 'view_stream',
@@ -1054,5 +1035,72 @@ BARS.defineActions(function() {
 		condition: () => !Modes.display,
 		keybind: new Keybind({key: 65, ctrl: true}),
 		click: function () {selectAll()}
+	})
+})
+
+Interface.definePanels(function() {
+
+	Interface.Panels.outliner = new Panel({
+		id: 'outliner',
+		icon: 'list_alt',
+		condition: {modes: ['edit', 'paint', 'animate']},
+		toolbars: {
+			head: Toolbars.outliner
+		},
+		growable: true,
+		onResize: t => {
+			getAllOutlinerObjects().forEach(o => o.updateElement())
+		},
+		component: {
+			name: 'panel-keyframe',
+			components: {VuePrismEditor},
+			data() { return {
+				root: {
+					name: 'Model',
+					isParent: true,
+					isOpen: true,
+					selected: false,
+					onOpened: function () {},
+					select: function() {},
+					children: Outliner.root
+				}
+			}},
+			methods: {
+				openMenu(event) {
+					Interface.Panels.outliner.menu.show(event)
+				}
+			},
+			template: `
+				<div>
+					<div class="toolbar_wrapper outliner"></div>
+					<ul id="cubes_list" class="list" @contextmenu.stop.prevent="openMenu($event)">
+						<vue-tree :root="root"></vue-tree>
+					</ul>
+				</div>
+			`
+		},
+		menu: new Menu([
+			'add_cube',
+			'add_group',
+			'_',
+			'sort_outliner',
+			'select_all',
+			'collapse_groups',
+			'element_colors',
+			'outliner_toggle'
+		])
+	})
+	Outliner.vue = Interface.Panels.outliner.inside_vue;
+
+	$('#cubes_list').droppable({
+		greedy: true,
+		accept: 'div.outliner_object',
+		tolerance: 'pointer',
+		hoverClass: 'drag_hover',
+		drop: function(event, ui) {
+			var item = Outliner.root.findRecursive('uuid', $(ui.draggable).parent().attr('id'))
+			console.log('drop')
+			dropOutlinerObjects(item, undefined, event)
+		}
 	})
 })

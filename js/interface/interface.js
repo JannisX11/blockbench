@@ -167,6 +167,10 @@ const Interface = {
 	status_bar: {},
 	Panels: {}
 }
+Interface.panel_definers = []
+Interface.definePanels = function(callback) {
+	Interface.panel_definers.push(callback);
+}
 
 //Misc
 function unselectInterface(event) {

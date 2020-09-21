@@ -91,25 +91,6 @@ onVueSetup.funcs.forEach((func) => {
 	}
 })
 
-$('#cubes_list').droppable({
-	greedy: true,
-	accept: 'div.outliner_object',
-	tolerance: 'pointer',
-	hoverClass: 'drag_hover',
-	drop: function(event, ui) {
-		var item = Outliner.root.findRecursive('uuid', $(ui.draggable).parent().attr('id'))
-		dropOutlinerObjects(item, undefined, event)
-	}
-})
-$('#cubes_list').contextmenu(function(event) {
-	event.stopPropagation();
-	event.preventDefault();
-	Interface.Panels.outliner.menu.show(event)
-})
-$('#texture_list').contextmenu(function(event) {
-	Interface.Panels.textures.menu.show(event)
-})
-
 updateProjectResolution()
 
 setupInterface()

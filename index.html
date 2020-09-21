@@ -69,7 +69,6 @@
 		<script src="js/interface/dialog.js"></script>
 		<script src="js/copy_paste.js"></script>
 		<script src="js/undo.js"></script>
-		<script src="js/edit_sessions.js"></script>
 
 		<script type="text/javascript">
 			if (isApp === true) {
@@ -81,6 +80,9 @@
 
 		<script src="js/api.js"></script>
 		<script src="js/file_system.js"></script>
+		<script src="js/interface/panels.js"></script>
+		<script src="js/interface/interface.js"></script>
+		<script src="js/edit_sessions.js"></script>
 		<script src="js/outliner/outliner.js"></script>
 		<script src="js/outliner/group.js"></script>
 		<script src="js/outliner/cube.js"></script>
@@ -91,8 +93,6 @@
 		<script src="js/transform.js"></script>
 		<script src="js/texturing/textures.js"></script>
 		<script src="js/texturing/uv.js"></script>
-		<script src="js/interface/panels.js"></script>
-		<script src="js/interface/interface.js"></script>
 		<script src="js/texturing/painter.js"></script>
 		<script src="js/texturing/texture_generator.js"></script>
 		<script src="js/texturing/color.js"></script>
@@ -735,117 +735,6 @@
 			</div>
 		</div>
 
-		<div id="display" class="panel">
-			<div class="toolbar_wrapper display"></div>
-			<p class="tl">display.slot</p>
-			<div id="display_bar" class="bar tabs_small icon_bar">
-				<input class="hidden" type="radio" name="display" id="thirdperson_righthand" checked>
-				<label class="tool" for="thirdperson_righthand" onclick="DisplayMode.loadThirdRight()"><div class="tooltip tl">display.slot.third_right</div><i class="material-icons">accessibility</i></label>
-				<input class="hidden" type="radio" name="display" id="thirdperson_lefthand">
-				<label class="tool" for="thirdperson_lefthand" onclick="DisplayMode.loadThirdLeft()"><div class="tooltip tl">display.slot.third_left</div><i class="material-icons">accessibility</i></label>
-
-				<input class="hidden" type="radio" name="display" id="firstperson_righthand">
-				<label class="tool" for="firstperson_righthand" onclick="DisplayMode.loadFirstRight()"><div class="tooltip tl">display.slot.first_right</div><i class="material-icons">person</i></label>
-				<input class="hidden" type="radio" name="display" id="firstperson_lefthand">
-				<label class="tool" for="firstperson_lefthand" onclick="DisplayMode.loadFirstLeft()"><div class="tooltip tl">display.slot.first_left</div><i class="material-icons">person</i></label>
-
-				<input class="hidden" type="radio" name="display" id="head">
-				<label class="tool" for="head" onclick="DisplayMode.loadHead()"><div class="tooltip tl">display.slot.head</div><i class="material-icons">sentiment_satisfied</i></label>
-
-				<input class="hidden" type="radio" name="display" id="ground">
-				<label class="tool" for="ground" onclick="DisplayMode.loadGround()"><div class="tooltip tl">display.slot.ground</div><i class="icon-ground"></i></label>
-
-				<input class="hidden" type="radio" name="display" id="fixed">
-				<label class="tool" for="fixed" onclick="DisplayMode.loadFixed()"><div class="tooltip tl">display.slot.frame</div><i class="material-icons">filter_frames</i></label>
-
-				<input class="hidden" type="radio" name="display" id="gui">
-				<label class="tool" for="gui" onclick="DisplayMode.loadGUI()"><div class="tooltip tl">display.slot.gui</div><i class="material-icons">border_style</i></label>
-			</div>
-			<p class="reference_model_bar tl">display.reference</p>
-			<div id="display_ref_bar" class="bar tabs_small reference_model_bar">
-			</div>
-
-			<div id="display_sliders">
-				
-				<p class="tl">display.rotation</p><div class="tool head_right" v-on:click="resetChannel('rotation')"><i class="material-icons">replay</i></div>
-				<div class="bar slider_input_combo" v-for="axis in axes">
-					<input type="range" class="tool disp_range" v-model.number="slot.rotation[axis]" v-bind:trigger_type="'rotation.'+axis"
-						min="-180" max="180" step="1" value="0"
-						@input="change(axis, 'rotation')" @mousedown="start" @change="save">
-					<input lang="en" type="number" class="tool disp_text" v-model.number="slot.rotation[axis]" min="-180" max="180" step="0.5" value="0" @input="change(axis, 'rotation');save()" @mousedown="start">
-					<div class="color_corner" :style="{'border-color': `var(--color-axis-${getAxisLetter(axis)})`}"></div>
-				</div>
-				
-				<p class="tl">display.translation</p><div class="tool head_right" v-on:click="resetChannel('translation')"><i class="material-icons">replay</i></div>
-				<div class="bar slider_input_combo" v-for="axis in axes">
-					<input type="range" class="tool disp_range" v-model.number="slot.translation[axis]" v-bind:trigger_type="'translation.'+axis"
-						v-bind:min="Math.abs(slot.translation[axis]) < 10 ? -20 : (slot.translation[axis] > 0 ? -70*3+10 : -80)"
-						v-bind:max="Math.abs(slot.translation[axis]) < 10 ?  20 : (slot.translation[axis] < 0 ? 70*3-10 : 80)"
-						v-bind:step="Math.abs(slot.translation[axis]) < 10 ? 0.25 : 1"
-						value="0" @input="change(axis, 'translation')" @mousedown="start" @change="save">
-					<input lang="en" type="number" class="tool disp_text" v-model.number="slot.translation[axis]" min="-80" max="80" step="0.5" value="0" @input="change(axis, 'translation');save()" @mousedown="start">
-					<div class="color_corner" :style="{'border-color': `var(--color-axis-${getAxisLetter(axis)})`}"></div>
-				</div>
-
-				<p class="tl">display.scale</p><div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>
-				<div class="bar slider_input_combo" v-for="axis in axes">
-					<div class="tool display_scale_invert" v-on:click="invert(axis)">
-						<div class="tooltip tl">display.mirror</div>
-						<i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i>
-					</div>
-					<input type="range" class="tool disp_range scaleRange" v-model.number="slot.scale[axis]" v-bind:trigger_type="'scale.'+axis" v-bind:id="'scale_range_'+axis"
-						v-bind:min="slot.scale[axis] > 1 ? -2 : 0"
-						v-bind:max="slot.scale[axis] > 1 ? 4 : 2"
-						step="0.01"
-						value="0" @input="change(axis, 'scale')" @mousedown="start" @change="save">
-					<input type="number" class="tool disp_text" v-model.number="slot.scale[axis]" min="0" max="4" step="0.01" value="0" @input="change(axis, 'scale');save()" @mousedown="start">
-					<div class="color_corner" :style="{'border-color': `var(--color-axis-${getAxisLetter(axis)})`}"></div>
-				</div>
-			</div>
-		</div>
-
-
-		<div id="textures" class="panel grow">
-			<div class="toolbar_wrapper texturelist"></div>
-			<ul id="texture_list" class="list">
-				<li
-					v-for="texture in textures"
-					v-bind:class="{ selected: texture.selected, particle: texture.particle}"
-					v-bind:texid="texture.uuid"
-					:key="texture.uuid"
-					class="texture"
-					v-on:click.stop="texture.select($event)"
-					v-on:dblclick="texture.openMenu($event)"
-					@contextmenu.prevent.stop="texture.showContextMenu($event)"
-				>
-					<div class="texture_icon_wrapper">
-						<img v-bind:texid="texture.id" v-bind:src="texture.source" class="texture_icon" width="48px" alt="" v-if="texture.show_icon" />
-						<i class="material-icons texture_error" v-bind:title="texture.getErrorMessage()" v-if="texture.error">error_outline</i>
-						<i class="texture_movie fa fa_big fa-film" title="Animated Texture" v-if="texture.frameCount > 1"></i>
-					</div>
-					<div class="texture_description_wrapper">
-						<div class="texture_name">{{ texture.name }}</div>
-						<div class="texture_res">{{ texture.error
-							? texture.getErrorMessage()
-							: texture.width + ' x ' + texture.height + 'px'
-						}}</div>
-					</div>
-					<i class="material-icons texture_visibility_icon" v-if="texture.particle">bubble_chart</i>
-					<i class="material-icons texture_particle_icon clickable"
-						v-bind:class="{icon_off: !texture.visible}"
-						v-if="Project.layered_textures"
-						@click="texture.toggleVisibility()"
-						@dblclick.stop
-					>
-						{{ texture.visible ? 'visibility' : 'visibility_off' }}
-					</i>
-					<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture.saved}" @click="texture.save()">
-						<template v-if="texture.saved">check_circle</template>
-						<template v-else>save</template>
-					</i>
-				</li>
-			</ul>
-		</div>
 	</div>
 	<div id="right_bar" class="sidebar">
 
@@ -911,12 +800,6 @@
 			</div>
 		</div>
 
-		<div id="outliner" class="panel grow">
-			<div class="toolbar_wrapper outliner"></div>
-			<ul id="cubes_list" class="list">
-				<vue-tree :option="option"></vue-tree>
-			</ul>
-		</div>
 	</div>
 	<div id="center">
 		<div id="preview">

@@ -44,7 +44,7 @@ function colorDistance(color1, color2) {
 			'#ea323c','#c42430','#891e2b','#571c27',
 		]
 	}
-onVueSetup(() => {
+Interface.definePanels(() => {
 	ColorPanel = Interface.Panels.color = new Panel({
 		id: 'color',
 		icon: 'palette',

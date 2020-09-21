@@ -1460,3 +1460,133 @@ BARS.defineActions(function() {
 	})*/
 
 })
+
+Interface.definePanels(function() {
+
+	Interface.Panels.animations = new Panel({
+		id: 'animations',
+		icon: 'movie',
+		condition: {modes: ['animate']},
+		toolbars: {
+			head: Toolbars.animations
+		},
+		component: {
+			name: 'panel-animations',
+			data() { return {
+				animations: Animator.animations,
+				files_folded: {}
+			}},
+			methods: {
+				toggle(key) {
+					this.files_folded[key] = !this.files_folded[key];
+					this.$forceUpdate();
+				},
+				saveFile(key, file) {
+					if (key && isApp) {
+						file.animations.forEach(animation => {
+							animation.save();
+						})
+					} else {
+						
+					}
+				},
+				addAnimation(path) {
+					let other_animation = Animation.all.find(a => a.path == path)
+					console.log(path, other_animation)
+					new Animation({
+						name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
+						path
+					}).add(true).propertiesDialog()
+				}
+			},
+			computed: {
+				files() {
+					let files = {};
+					this.animations.forEach(animation => {
+						let key = animation.path || '';
+						if (!files[key]) files[key] = {
+							animations: [],
+							name: animation.path ? pathToName(animation.path, true) : 'Unsaved',
+							saved: true
+						};
+						if (!animation.saved) files[key].saved = false;
+						files[key].animations.push(animation);
+					})
+					return files;
+				}
+			},
+			template: `
+				<div>
+					<div class="toolbar_wrapper animations"></div>
+					<ul id="animations_list" class="list">
+						<li v-for="(file, key) in files" :key="key" class="animation_file">
+							<div class="animation_file_head" v-on:click.stop="toggle(key)">
+								<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
+								<label>{{ file.name }}</label>
+								<div class="in_list_button" v-if="!file.saved" v-on:click.stop="saveFile(key, file)">
+									<i class="material-icons">save</i>
+								</div>
+								<div class="in_list_button" v-on:click.stop="addAnimation(key)">
+									<i class="material-icons">add</i>
+								</div>
+							</div>
+							<ul v-if="!files_folded[key]">	
+								<li
+									v-for="animation in file.animations"
+									v-bind:class="{ selected: animation.selected }"
+									v-bind:anim_id="animation.uuid"
+									class="animation"
+									v-on:click.stop="animation.select()"
+									v-on:dblclick.stop="animation.propertiesDialog()"
+									:key="animation.uuid"
+									@contextmenu.prevent.stop="animation.showContextMenu($event)"
+								>
+									<i class="material-icons">movie</i>
+									<label>{{ animation.name }}</label>
+									<div class="in_list_button" v-bind:class="{unclickable: animation.saved}" v-on:click.stop="animation.save()">
+										<i v-if="animation.saved" class="material-icons">check_circle</i>
+										<i v-else class="material-icons">save</i>
+									</div>
+									<div class="in_list_button" v-on:click.stop="animation.togglePlayingState()">
+										<i v-if="animation.playing" class="fa_big far fa-play-circle"></i>
+										<i v-else class="fa_big far fa-circle"></i>
+									</div>
+								</li>
+							</ul>
+						</li>
+					</ul>
+				</div>
+			`
+		}
+	})
+
+	Interface.Panels.variable_placeholders = new Panel({
+		id: 'variable_placeholders',
+		icon: 'fas.fa-stream',
+		condition: {modes: ['animate']},
+		growable: true,
+		toolbars: {
+		},
+		component: {
+			name: 'panel-placeholders',
+			components: {VuePrismEditor},
+			data() { return {
+				text: ''
+			}},
+			template: `
+				<div style="flex-grow: 1; display: flex; flex-direction: column;">
+					<p>{{ tl('panel.variable_placeholders.info') }}</p>
+					<vue-prism-editor
+						id="var_placeholder_area"
+						class="molang_input dark_bordered tab_target"
+						v-model="text"
+						language="molang"
+						:line-numbers="false"
+						style="flex-grow: 1;"
+						onkeyup="Animator.preview()"
+					/>
+				</div>
+			`
+		}
+	})
+})

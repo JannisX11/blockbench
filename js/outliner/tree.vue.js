@@ -77,11 +77,14 @@
 	Vue.component('vue-tree-item', VueTreeItem);
 
 	var VueTree = Vue.extend({
-		template: '<div class="vue-tree"><ul>' +
-		'<tree-item :node.sync="option.root"></tree-item>' +
-		'</ul></div>',
+		template: `
+			<div class="vue-tree">
+				<ul>
+					<tree-item :node.sync="root"></tree-item>
+				</ul>
+			</div>`,
 		props: {
-			option: {
+			root: {
 				type: Object
 			}
 		},
@@ -90,4 +93,5 @@
 		}
 	});
 	Vue.component('vue-tree', VueTree);
+
 })();

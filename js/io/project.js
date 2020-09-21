@@ -69,7 +69,7 @@ class ModelProject {
 		Prop.added_models = 0;
 		Canvas.updateAll();
 		Outliner.vue.$forceUpdate();
-		texturelist.$forceUpdate();
+		Interface.Panels.textures.inside_vue.$forceUpdate();
 		Undo.history.empty();
 		Undo.index = 0;
 		Undo.current_save = null;
@@ -232,7 +232,7 @@ BARS.defineActions(function() {
 							Texture.all.forEach((tex, i) => {
 								tex.visible = i < 3
 							})
-							texturelist.$forceUpdate()
+							Interface.Panels.textures.inside_vue.$forceUpdate()
 							Canvas.updateLayeredTextures();
 						}
 					}

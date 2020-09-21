@@ -1864,60 +1864,6 @@ function updateDisplaySkin() {
 	//displayReferenceObjects.refmodels.player.material
 }
 
-onVueSetup(function() {
-	DisplayMode.vue = new Vue({
-		el: '#display_sliders',
-		data: {
-			axes: [0, 1, 2],
-			slot: new DisplaySlot()
-		},
-		methods: {
-			isMirrored: (axis) => {
-				if (display[display_slot]) {
-					return display[display_slot].scale[axis] < 0;
-				}
-			},
-			change: (axis, channel) => {
-				if (channel === 'scale') {
-					var val = limitNumber(DisplayMode.slot.scale[axis], 0, 4)
-					DisplayMode.slot.scale[axis] = val;
-					if (Pressing.shift) {
-						DisplayMode.slot.scale[0] = val;
-						DisplayMode.slot.scale[1] = val;
-						DisplayMode.slot.scale[2] = val;
-					}
-				} else if (channel === 'translation') {
-					DisplayMode.slot.translation[axis] = limitNumber(DisplayMode.slot.translation[axis], -80, 80)||0;
-				} else {
-					DisplayMode.slot.rotation[axis] = Math.trimDeg(DisplayMode.slot.rotation[axis])||0;
-				}
-				DisplayMode.updateDisplayBase()
-			},
-			resetChannel: (channel) => {
-				var v = channel === 'scale' ? 1 : 0;
-				Undo.initEdit({display_slots: [display_slot]})
-				DisplayMode.slot.extend({[channel]: [v, v, v]})
-				if (channel === 'scale') {
-				DisplayMode.slot.extend({mirror: [false, false, false]})
-				}
-				Undo.finishEdit('reset display')
-			},
-			invert: (axis) => {
-				Undo.initEdit({display_slots: [display_slot]})
-				DisplayMode.slot.mirror[axis] = !DisplayMode.slot.mirror[axis];
-				DisplayMode.slot.update()
-				Undo.finishEdit('mirror display')
-			},
-			start: () => {
-				Undo.initEdit({display_slots: [display_slot]})
-			},
-			save: () => {
-				Undo.finishEdit('change_display')
-			}
-		}
-	})
-})
-
 BARS.defineActions(function() {
 	new Action('add_display_preset', {
 		icon: 'add',
@@ -1981,6 +1927,141 @@ BARS.defineActions(function() {
 			DisplayMode.updateGUILight();
 		}
 	})
+})
+
+Interface.definePanels(function() {
+	
+	Interface.Panels.display = new Panel({
+		id: 'display',
+		icon: 'tune',
+		condition: {modes: ['display']},
+		toolbars: {
+			head: Toolbars.display
+		},
+		component: {
+			name: 'panel-keyframe',
+			components: {VuePrismEditor},
+			data() {return {
+				axes: [0, 1, 2],
+				slot: new DisplaySlot()
+			}},
+			methods: {
+				isMirrored: (axis) => {
+					if (display[display_slot]) {
+						return display[display_slot].scale[axis] < 0;
+					}
+				},
+				change: (axis, channel) => {
+					if (channel === 'scale') {
+						var val = limitNumber(DisplayMode.slot.scale[axis], 0, 4)
+						DisplayMode.slot.scale[axis] = val;
+						if (Pressing.shift) {
+							DisplayMode.slot.scale[0] = val;
+							DisplayMode.slot.scale[1] = val;
+							DisplayMode.slot.scale[2] = val;
+						}
+					} else if (channel === 'translation') {
+						DisplayMode.slot.translation[axis] = limitNumber(DisplayMode.slot.translation[axis], -80, 80)||0;
+					} else {
+						DisplayMode.slot.rotation[axis] = Math.trimDeg(DisplayMode.slot.rotation[axis])||0;
+					}
+					DisplayMode.updateDisplayBase()
+				},
+				resetChannel: (channel) => {
+					var v = channel === 'scale' ? 1 : 0;
+					Undo.initEdit({display_slots: [display_slot]})
+					DisplayMode.slot.extend({[channel]: [v, v, v]})
+					if (channel === 'scale') {
+					DisplayMode.slot.extend({mirror: [false, false, false]})
+					}
+					Undo.finishEdit('reset display')
+				},
+				invert: (axis) => {
+					Undo.initEdit({display_slots: [display_slot]})
+					DisplayMode.slot.mirror[axis] = !DisplayMode.slot.mirror[axis];
+					DisplayMode.slot.update()
+					Undo.finishEdit('mirror display')
+				},
+				start: () => {
+					Undo.initEdit({display_slots: [display_slot]})
+				},
+				save: () => {
+					Undo.finishEdit('change_display')
+				}
+			},
+			template: `
+				<div>
+					<div class="toolbar_wrapper display"></div>
+					<p>${ tl('display.slot') }</p>
+					<div id="display_bar" class="bar tabs_small icon_bar">
+						<input class="hidden" type="radio" name="display" id="thirdperson_righthand" checked>
+						<label class="tool" for="thirdperson_righthand" onclick="DisplayMode.loadThirdRight()"><div class="tooltip">${ tl('display.slot.third_right') }</div><i class="material-icons">accessibility</i></label>
+						<input class="hidden" type="radio" name="display" id="thirdperson_lefthand">
+						<label class="tool" for="thirdperson_lefthand" onclick="DisplayMode.loadThirdLeft()"><div class="tooltip">${ tl('display.slot.third_left') }</div><i class="material-icons">accessibility</i></label>
+		
+						<input class="hidden" type="radio" name="display" id="firstperson_righthand">
+						<label class="tool" for="firstperson_righthand" onclick="DisplayMode.loadFirstRight()"><div class="tooltip">${ tl('display.slot.first_right') }</div><i class="material-icons">person</i></label>
+						<input class="hidden" type="radio" name="display" id="firstperson_lefthand">
+						<label class="tool" for="firstperson_lefthand" onclick="DisplayMode.loadFirstLeft()"><div class="tooltip">${ tl('display.slot.first_left') }</div><i class="material-icons">person</i></label>
+		
+						<input class="hidden" type="radio" name="display" id="head">
+						<label class="tool" for="head" onclick="DisplayMode.loadHead()"><div class="tooltip">${ tl('display.slot.head') }</div><i class="material-icons">sentiment_satisfied</i></label>
+		
+						<input class="hidden" type="radio" name="display" id="ground">
+						<label class="tool" for="ground" onclick="DisplayMode.loadGround()"><div class="tooltip">${ tl('display.slot.ground') }</div><i class="icon-ground"></i></label>
+		
+						<input class="hidden" type="radio" name="display" id="fixed">
+						<label class="tool" for="fixed" onclick="DisplayMode.loadFixed()"><div class="tooltip">${ tl('display.slot.frame') }</div><i class="material-icons">filter_frames</i></label>
+		
+						<input class="hidden" type="radio" name="display" id="gui">
+						<label class="tool" for="gui" onclick="DisplayMode.loadGUI()"><div class="tooltip">${ tl('display.slot.gui') }</div><i class="material-icons">border_style</i></label>
+					</div>
+					<p class="reference_model_bar">${ tl('display.reference') }</p>
+					<div id="display_ref_bar" class="bar tabs_small reference_model_bar">
+					</div>
+		
+					<div id="display_sliders">
+						
+						<p>${ tl('display.rotation') }</p><div class="tool head_right" v-on:click="resetChannel('rotation')"><i class="material-icons">replay</i></div>
+						<div class="bar slider_input_combo" v-for="axis in axes">
+							<input type="range" class="tool disp_range" v-model.number="slot.rotation[axis]" v-bind:trigger_type="'rotation.'+axis"
+								min="-180" max="180" step="1" value="0"
+								@input="change(axis, 'rotation')" @mousedown="start" @change="save">
+							<input lang="en" type="number" class="tool disp_text" v-model.number="slot.rotation[axis]" min="-180" max="180" step="0.5" value="0" @input="change(axis, 'rotation');save()" @mousedown="start">
+							<div class="color_corner" :style="{'border-color': \`var(--color-axis-\${getAxisLetter(axis)})\`}"></div>
+						</div>
+						
+						<p>${ tl('display.translation') }</p><div class="tool head_right" v-on:click="resetChannel('translation')"><i class="material-icons">replay</i></div>
+						<div class="bar slider_input_combo" v-for="axis in axes">
+							<input type="range" class="tool disp_range" v-model.number="slot.translation[axis]" v-bind:trigger_type="'translation.'+axis"
+								v-bind:min="Math.abs(slot.translation[axis]) < 10 ? -20 : (slot.translation[axis] > 0 ? -70*3+10 : -80)"
+								v-bind:max="Math.abs(slot.translation[axis]) < 10 ?  20 : (slot.translation[axis] < 0 ? 70*3-10 : 80)"
+								v-bind:step="Math.abs(slot.translation[axis]) < 10 ? 0.25 : 1"
+								value="0" @input="change(axis, 'translation')" @mousedown="start" @change="save">
+							<input lang="en" type="number" class="tool disp_text" v-model.number="slot.translation[axis]" min="-80" max="80" step="0.5" value="0" @input="change(axis, 'translation');save()" @mousedown="start">
+							<div class="color_corner" :style="{'border-color': \`var(--color-axis-\${getAxisLetter(axis)})\`}"></div>
+						</div>
+		
+						<p>${ tl('display.scale') }</p><div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>
+						<div class="bar slider_input_combo" v-for="axis in axes">
+							<div class="tool display_scale_invert" v-on:click="invert(axis)">
+								<div class="tooltip">${ tl('display.mirror') }</div>
+								<i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i>
+							</div>
+							<input type="range" class="tool disp_range scaleRange" v-model.number="slot.scale[axis]" v-bind:trigger_type="'scale.'+axis" v-bind:id="'scale_range_'+axis"
+								v-bind:min="slot.scale[axis] > 1 ? -2 : 0"
+								v-bind:max="slot.scale[axis] > 1 ? 4 : 2"
+								step="0.01"
+								value="0" @input="change(axis, 'scale')" @mousedown="start" @change="save">
+							<input type="number" class="tool disp_text" v-model.number="slot.scale[axis]" min="0" max="4" step="0.01" value="0" @input="change(axis, 'scale');save()" @mousedown="start">
+							<div class="color_corner" :style="{'border-color': \`var(--color-axis-\${getAxisLetter(axis)})\`}"></div>
+						</div>
+					</div>
+				</div>
+			`
+		},
+	})
+	DisplayMode.vue = Interface.Panels.display.inside_vue;
 })
 
 })()
