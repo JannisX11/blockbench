@@ -175,6 +175,7 @@ const Settings = {
 		
 		//Dialogs
 		new Setting('dialog_larger_cubes', {category: 'dialogs', value: true});
+		new Setting('dialog_drag_background', {category: 'dialogs', value: true});
 		new Setting('dialog_rotation_limit', {category: 'dialogs', value: true});
 		
 		//Application

@@ -854,6 +854,19 @@ class Preview {
 		this.background.x = limitNumber(this.background.x, 0, this.width-30)
 		this.background.y = limitNumber(this.background.y, 0, this.height-30)
 		this.loadBackground()
+		Settings.saveLocalStorages()
+		return this;
+	}
+	restoreBackground() {
+		this.loadBackground()
+		if (this.background && this.background.defaults) {
+			this.background.image = this.background.defaults.image || false;
+			this.background.size = this.background.defaults.size || 1000
+			this.background.x = this.background.defaults.x || 0
+			this.background.y = this.background.defaults.y || 0
+		}
+		this.loadBackground()
+		Settings.saveLocalStorages()
 		return this;
 	}
 	startMovingBackground() {
@@ -863,15 +876,26 @@ class Preview {
 		this.movingBackground = true;
 		this.controls.enabled_before = this.controls.enabled
 		this.controls.enabled = false
-		Blockbench.showMessageBox({
-			translateKey: 'drag_background',
-			icon: 'open_with'
-		})
+
+		if (settings.dialog_drag_background.value) {
+			Blockbench.showMessageBox({
+				translateKey: 'drag_background',
+				icon: 'open_with',
+				buttons: ['dialog.ok', 'dialog.dontshowagain']
+			}, function(r) {
+				if (r === 1) {
+					settings.dialog_drag_background.value = false
+					Settings.save()
+				}
+			})
+		}
 	}
 	stopMovingBackground() {
 		this.movingBackground = false;
 		this.controls.enabled = this.controls.enabled_before
 		delete this.controls.enabled_before
+		Settings.saveLocalStorages()
+		return this;
 	}
 	backgroundPositionDialog() {
 		var scope = this;
@@ -902,6 +926,7 @@ class Preview {
 				if (!isNaN(coords[2])) { scope.background.size	= coords[2] }
 
 				scope.updateBackground()
+				Settings.saveLocalStorages()
 			}
 		})
 		dialog.show()
@@ -1005,6 +1030,7 @@ class Preview {
 						if (files) {
 							preview.background.image = isApp ? files[0].path : files[0].content
 							preview.loadBackground()
+							Settings.saveLocalStorages()
 						}
 					}, 'image', false)
 				}},
@@ -1013,6 +1039,7 @@ class Preview {
 					if (image.length > 32) {
 						preview.background.image = image;
 						preview.loadBackground();
+						Settings.saveLocalStorages()
 					}
 				}},
 				{icon: 'photo_size_select_large', name: 'menu.preview.background.position', condition: has_background, click: function(preview) {
@@ -1031,6 +1058,10 @@ class Preview {
 				}},
 				{icon: 'clear', name: 'generic.remove', condition: has_background, click: function(preview) {
 					preview.clearBackground()
+				}},
+				{icon: 'restore', name: 'generic.restore', condition: (preview) => (preview.background && preview.background.defaults.image), click: function(preview) {
+					// ToDo: condition, save local storage, name and icon
+					preview.restoreBackground()
 				}}
 			]
 		}},
@@ -1387,6 +1418,7 @@ function initCanvas() {
 		this.x = data.x||0
 		this.y = data.y||0
 		this.lock = data.lock||false
+		this.defaults = Object.assign({}, this);
 	}
 
 	canvas_scenes = {

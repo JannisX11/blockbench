@@ -42,6 +42,8 @@
 	"generic.enable": "Enable",
 	"generic.disable": "Disable",
 	"generic.redacted": "Redacted",
+	"generic.reset": "Reset",
+	"generic.restore": "Restore",
 
 	"dates.today": "Today",
 	"dates.yesterday": "Yesterday",
@@ -534,6 +536,8 @@
 
 	"settings.dialog_larger_cubes": "Model Too Large",
 	"settings.dialog_larger_cubes.desc": "Show \"Model Too Large\" dialog",
+	"settings.dialog_drag_background": "Position Background",
+	"settings.dialog_drag_background.desc": "Show \"Position Background\" dialog",
 	"settings.dialog_rotation_limit": "Rotation Limits",
 	"settings.dialog_rotation_limit.desc": "Show \"Rotation Limits\" dialog",
 
