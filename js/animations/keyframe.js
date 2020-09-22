@@ -1,10 +1,13 @@
 class Keyframe {
 	constructor(data, uuid) {
 		this.type = 'keyframe'
-		this.channel = 'rotation';
-		this.time = 0;
-		this.color = -1;
 		this.selected = 0;
+
+		for (var key in Keyframe.properties) {
+			Keyframe.properties[key].reset(this);
+		}
+		
+		this.channel = 'rotation';
 		this.x = '0';
 		this.y = '0';
 		this.z = '0';
@@ -26,8 +29,9 @@ class Keyframe {
 		}
 	}
 	extend(data) {
-		Merge.number(this, data, 'time')
-		Merge.number(this, data, 'color')
+		for (var key in Keyframe.properties) {
+			Keyframe.properties[key].merge(this, data)
+		}
 
 		if (this.transform) {
 			if (data.values != undefined) {
@@ -284,11 +288,12 @@ class Keyframe {
 			animator: save ? undefined : this.animator && this.animator.uuid,
 			uuid: save && this.uuid,
 			channel: this.channel,
-			time: this.time,
-			color: this.color,
 			x: this.x,
 			y: this.y,
 			z: this.z,
+		}
+		for (var key in Keyframe.properties) {
+			Keyframe.properties[key].copy(this, save)
 		}
 		if (this.transform) {
 			copy.x = this.x;
@@ -343,6 +348,8 @@ class Keyframe {
 		'copy',
 		'delete',
 	])
+	new Property(Keyframe, 'number', 'time')
+	new Property(Keyframe, 'number', 'color', {default: -1})
 
 // Misc Functions
 function updateKeyframeValue(axis, value) {
