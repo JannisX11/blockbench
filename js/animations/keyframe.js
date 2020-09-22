@@ -293,7 +293,7 @@ class Keyframe {
 			z: this.z,
 		}
 		for (var key in Keyframe.properties) {
-			Keyframe.properties[key].copy(this, save)
+			Keyframe.properties[key].copy(this, copy)
 		}
 		if (this.transform) {
 			copy.x = this.x;

@@ -292,9 +292,9 @@ class Preview {
 		this.raycaster.setFromCamera( this.mouse, this.camera );
 
 		var objects = []
-		scene.traverse(function(s) {
-			if (s.isElement === true) {
-				objects.push(s)
+		Cube.all.forEach(cube => {
+			if (cube.visibility && !cube.locked) {
+				objects.push(cube.mesh);
 			}
 		})
 		if (Vertexsnap.vertexes.children.length) {
