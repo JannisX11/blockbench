@@ -6,6 +6,27 @@
 		flex-grow: 1;
 		display: flex;
 		flex-direction: column;
+		overflow: hidden;
+	}
+
+	.panel[order]::before {
+		content: '';
+		height: 2px;
+		left: 0;
+		right: 0;
+		background: var(--color-accent);
+		z-index: 3;
+		display: block;
+		position: absolute;
+	}
+	.panel[order] {
+		position: relative;
+	}
+	.panel[order="-1"]::before {
+		margin-top: -2px;
+	}
+	.panel[order="1"]::before {
+		bottom: 0px;
 	}
 
 /*Display*/

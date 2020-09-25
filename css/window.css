@@ -68,6 +68,7 @@
 		margin-left: 12px;
 	}
 	body > h3.panel_handle {
+		pointer-events: none;
 		box-shadow: 0 0 16px black;
 		width: auto;
 	}

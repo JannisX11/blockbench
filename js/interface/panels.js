@@ -59,7 +59,20 @@ class Panel {
 				start: function() {
 					Interface.panel = scope;
 				},
+				drag(e, ui) {
+					$('.panel[order]').attr('order', null)
+					let target_panel = $('div.panel:hover').get(0);
+					if (!target_panel) return;
+					let top = $(target_panel).offset().top;
+					let height = target_panel.clientHeight;
+					if (e.clientY > top + height/2) {
+						$(target_panel).attr('order', 1);
+					} else {
+						$(target_panel).attr('order', -1);
+					}
+				},
 				stop: function(e, ui) {
+					$('.panel[order]').attr('order', null)
 					if (!ui) return;
 					if (Math.abs(ui.position.top - ui.originalPosition.top) + Math.abs(ui.position.left - ui.originalPosition.left) < 180) return;
 					let target = Interface.panel

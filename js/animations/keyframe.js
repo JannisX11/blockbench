@@ -350,6 +350,7 @@ class Keyframe {
 	])
 	new Property(Keyframe, 'number', 'time')
 	new Property(Keyframe, 'number', 'color', {default: -1})
+	Keyframe.selected = [];
 
 // Misc Functions
 function updateKeyframeValue(axis, value) {

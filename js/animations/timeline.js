@@ -36,7 +36,7 @@ TimelineMarker.prototype.menu = new Menu([
 
 const Timeline = {
 	animators: [],
-	selected: [],//frames
+	selected: Keyframe.selected,//frames
 	playing_sounds: [],
 	playback_speed: 100,
 	time: 0,
