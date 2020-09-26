@@ -1237,12 +1237,12 @@ const Animator = {
 						animation.animators.effects = new EffectAnimator(animation);
 					}
 					for (var timestamp in a.sound_effects) {
-						var sound = a.sound_effects[timestamp];
-						if (sound instanceof Array) sound = sound[0];
+						var sounds = a.sound_effects[timestamp];
+						if (sounds instanceof Array === false) sounds = [sounds];
 						animation.animators.effects.addKeyframe({
 							channel: 'sound',
 							time: parseFloat(timestamp),
-							effect: sound.effect,
+							data_points: sounds
 						})
 					}
 				}
@@ -1251,14 +1251,15 @@ const Animator = {
 						animation.animators.effects = new EffectAnimator(animation);
 					}
 					for (var timestamp in a.particle_effects) {
-						var particle = a.particle_effects[timestamp];
-						if (particle instanceof Array) particle = particle[0];
+						var particles = a.particle_effects[timestamp];
+						if (particles instanceof Array === false) particles = [particles];
+						particles.forEach(particle => {
+							if (particle) particle.script = particle.pre_effect_script;
+						})
 						animation.animators.effects.addKeyframe({
 							channel: 'particle',
 							time: parseFloat(timestamp),
-							effect: particle.effect,
-							locator: particle.locator,
-							script: particle.pre_effect_script,
+							data_points: particles
 						})
 					}
 				}
@@ -1272,7 +1273,7 @@ const Animator = {
 						animation.animators.effects.addKeyframe({
 							channel: 'timeline',
 							time: parseFloat(timestamp),
-							instructions
+							data_points: [{instructions}]
 						})
 					}
 				}

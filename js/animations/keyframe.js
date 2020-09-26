@@ -9,8 +9,27 @@ class KeyframeDataPoint {
 			case 'timeline': 	this.instructions = ''; break;
 		}
 	}
+	extend(data) {
+		if (data.values) {
+			data.x = data.values.x;
+			data.y = data.values.y;
+			data.z = data.values.z;
+			data.effect = data.values.effect;
+			data.locator = data.values.locator;
+			data.script = data.values.script;
+			data.file = data.values.file;
+			data.instructions = data.values.instructions;
+		}
+		if (this.x != undefined) Merge.string(this, data, 'x')
+		if (this.y != undefined) Merge.string(this, data, 'y')
+		if (this.z != undefined) Merge.string(this, data, 'z')
+		if (this.effect != undefined) 		Merge.string(this, data, 'effect')
+		if (this.locator != undefined) 		Merge.string(this, data, 'locator')
+		if (this.script != undefined) 		Merge.string(this, data, 'script')
+		if (this.file != undefined) 		Merge.string(this, data, 'file')
+		if (this.instructions != undefined)	Merge.string(this, data, 'instructions')
+	}
 	get x_string() {
-		console.log(this.x)
 		return typeof this.x == 'number' ? trimFloatNumber(this.x) : this.x;
 	}
 	set x_string(val) {
@@ -46,7 +65,6 @@ class Keyframe {
 			this.transform = this.channel === 'rotation' || this.channel === 'position' || this.channel === 'scale';
 			this.data_points.push(new KeyframeDataPoint(this));
 			this.extend(data)
-			console.log(data, this.get('x'))
 		}
 	}
 	extend(data) {
@@ -60,36 +78,7 @@ class Keyframe {
 					this.data_points.push(new KeyframeDataPoint(this));
 				}
 				let this_point = this.data_points[i];
-				if (this.transform) {
-					/*
-					if (point.values != undefined) {
-						if (typeof point.values == 'number' || typeof point.values == 'string') {
-							point.x = point.y = point.z = point.values;
-
-						} else if (point.values instanceof Array) {
-							point.x = point.values[0];
-							point.y = point.values[1];
-							point.z = point.values[2];
-							point.w = point.values[3];
-						}
-					}*/
-					Merge.string(this_point, point, 'x')
-					Merge.string(this_point, point, 'y')
-					Merge.string(this_point, point, 'z')
-				} else {
-					if (data.values) {
-						data.effect = data.values.effect;
-						data.locator = data.values.locator;
-						data.script = data.values.script;
-						data.file = data.values.file;
-						data.instructions = data.values.instructions;
-					}
-					Merge.string(this_point, data, 'effect')
-					Merge.string(this_point, data, 'locator')
-					Merge.string(this_point, data, 'script')
-					Merge.string(this_point, data, 'file')
-					Merge.string(this_point, data, 'instructions')
-				}
+				this_point.extend(point)
 			})
 		}
 		return this;
@@ -712,6 +701,27 @@ Interface.definePanels(function() {
 						list.push(tl(`cube.color.${markerColors[this.keyframes[0].color].name}`))
 					}*/
 					return list.join(', ')
+				},
+				addDataPoint() {
+					Undo.initEdit({keyframes: Timeline.selected})
+					Timeline.selected.forEach(kf => {
+						if ((kf.transform && kf.data_points.length <= 1) || kf.channel == 'particle' || kf.channel == 'sound') {
+							kf.data_points.push(new KeyframeDataPoint(kf))
+							kf.data_points.last().extend(kf.data_points[0])
+						}
+					})
+					Animator.preview()
+					Undo.finishEdit('add keyframe data point')
+				},
+				removeDataPoint(data_point) {
+					Undo.initEdit({keyframes: Timeline.selected})
+					Timeline.selected.forEach(kf => {
+						if (kf.data_points.length >= 2) {
+							kf.data_points.splice(data_point, 1);
+						}
+					})
+					Animator.preview()
+					Undo.finishEdit('remove keyframe data point')
 				}
 			},
 			computed: {
@@ -734,9 +744,27 @@ Interface.definePanels(function() {
 
 					<template v-if="channel != false">
 
-						<p id="keyframe_type_label">{{ tl('panel.keyframe.type', [getKeyframeInfos()]) }}</p>
+						<div id="keyframe_type_label">
+							<label>{{ tl('panel.keyframe.type', [getKeyframeInfos()]) }}</label>
+							<div
+								class="in_list_button"
+								v-if="(keyframes[0].transform && keyframes[0].data_points.length <= 1) || channel == 'particle' || channel == 'sound'"
+								v-on:click.stop="addDataPoint()"
+								title="${ tl('panel.keyframe.add_data_point') }"
+							>
+								<i class="material-icons">add</i>
+							</div>
+						</div>
 
-						<div v-for="(data_point, data_point_i) of keyframes[0].data_points">
+						<div v-for="(data_point, data_point_i) of keyframes[0].data_points" class="keyframe_data_point">
+
+							<div class="keyframe_data_point_header" v-if="keyframes[0].data_points.length > 1">
+								<label>{{ keyframes[0].transform ? tl('panel.keyframe.' + (data_point_i ? 'post' : 'pre')) : (data_point_i + 1) }}</label>
+								<div class="flex_fill_line"></div>
+								<div class="in_list_button" v-on:click.stop="removeDataPoint(data_point)" title="${ tl('panel.keyframe.remove_data_point') }">
+									<i class="material-icons">clear</i>
+								</div>
+							</div>
 
 							<div class="bar flex" id="keyframe_bar_x" v-if="keyframes[0].animator instanceof BoneAnimator">
 								<label class="color_x" style="font-weight: bolder">X</label>
@@ -752,20 +780,20 @@ Interface.definePanels(function() {
 							</div>
 
 							<div class="bar flex" id="keyframe_bar_effect" v-if="channel == 'particle' || channel == 'sound'">
-								<label>{{ tl('data.effect') }}</label>
-								<input type="text" class="dark_bordered code keyframe_input tab_target" v-model="data_point.effect" @input="updateInput('effect', $event)">
+								<label>${ tl('data.effect') }</label>
+								<input type="text" class="dark_bordered code keyframe_input tab_target" v-model="data_point.effect" @input="updateInput('effect', $event.target.value, data_point_i)">
 							</div>
 							<div class="bar flex" id="keyframe_bar_locator" v-if="channel == 'particle'">
-								<label>{{ tl('data.locator') }}</label>
-								<input @focus="focus()" @focusout="focusout()" type="text" class="dark_bordered code keyframe_input tab_target" v-model="data_point.locator" @input="updateInput('locator', $event)">
+								<label>${ tl('data.locator') }</label>
+								<input @focus="focus()" @focusout="focusout()" type="text" class="dark_bordered code keyframe_input tab_target" v-model="data_point.locator" @input="updateInput('locator', $event.target.value, data_point_i)">
 							</div>
 							<div class="bar flex" id="keyframe_bar_script" v-if="channel == 'particle'">
-								<label>{{ tl('timeline.pre_effect_script') }}</label>
-								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.script" @change="updateInput('script', $event)" language="molang" :line-numbers="false" />
+								<label>${ tl('timeline.pre_effect_script') }</label>
+								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.script" @change="updateInput('script', $event, data_point_i)" language="molang" :line-numbers="false" />
 							</div>
 							<div class="bar" id="keyframe_bar_instructions" v-if="channel == 'timeline'">
-								<label>{{ tl('timeline.timeline') }}</label>
-								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.instructions" @change="updateInput('instructions', $event)" language="molang" :line-numbers="false" />
+								<label>${ tl('timeline.timeline') }</label>
+								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.instructions" @change="updateInput('instructions', $event, data_point_i)" language="molang" :line-numbers="false" />
 							</div>
 						</div>
 					</template>

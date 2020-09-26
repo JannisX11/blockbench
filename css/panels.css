@@ -497,14 +497,40 @@
 		height: 30px;
 		width: 25%;
 	}
+	#keyframe_type_label {
+		display: flex;
+		padding: 4px 8px;
+    	height: 30px;
+	}
+	#keyframe_type_label label {
+		flex: 1 0 40px;
+	}
+	.keyframe_data_point_header {
+		display: flex;
+		padding: 2px 8px;
+		height: 26px;
+	}
+	.keyframe_data_point_header label {
+		flex: 0 0 auto;
+	}
+	.flex_fill_line {
+		flex: 1 0 0;
+		border-bottom: 2px solid var(--color-text);
+		height: 0;
+		margin: 0 10px;
+		margin-top: 11px;
+		opacity: 0.5;
+	}
 	.panel#keyframe .bar.flex {
 		height: auto;
 		min-height: 30px;
 	}
-	.panel .bar.flex label {
-		margin: 3px 8px;
-	    min-width: 20px;
-	    text-align: center;
+	.panel#keyframe .bar.flex label {
+		padding: 3px 10px;
+		min-width: 20px;
+		text-align: center;
+		flex-shrink: 0;
+		background-color: var(--color-button);
 	}
 	.panel#keyframe .bar input.dark_bordered {
 		width: 100%;
@@ -521,8 +547,10 @@
 	}
 	.molang_input pre {
 		padding: 2px;
+		height: 100%;
 		min-height: 28px;
 		background-color: transparent;
+		border-radius: 0;
 		cursor: default;
 	}
 	.molang_input pre code {

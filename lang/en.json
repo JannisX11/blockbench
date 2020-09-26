@@ -1156,6 +1156,10 @@
 	"panel.animations": "Animations",
 	"panel.keyframe": "Keyframe",
 	"panel.keyframe.type": "Keyframe (%0)",
+	"panel.keyframe.add_data_point": "Add Keyframe Data Point",
+	"panel.keyframe.remove_data_point": "Remove Data Point",
+	"panel.keyframe.pre": "Pre",
+	"panel.keyframe.post": "Post",
 	"panel.variable_placeholders": "Variable Placeholders",
 	"panel.variable_placeholders.info": "List the variables you want to preview via name=value",
 
