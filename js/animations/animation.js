@@ -115,9 +115,7 @@ class Animation {
 				animator.sound.forEach(kf => {
 					if (!ani_tag.sound_effects) ani_tag.sound_effects = {};
 					let timecode = kf.getTimecodeString();
-					ani_tag.sound_effects[timecode] = {
-						effect: kf.effect
-					};
+					ani_tag.sound_effects[timecode] = kf.compileBedrockKeyframe();
 				})
 				animator.particle.forEach(kf => {
 					if (!ani_tag.particle_effects) ani_tag.particle_effects = {};
@@ -133,7 +131,7 @@ class Animation {
 				animator.timeline.forEach(kf => {
 					if (!ani_tag.timeline) ani_tag.timeline = {};
 					let timecode = kf.getTimecodeString();
-					ani_tag.timeline[timecode] = kf.instructions.split('\n');
+					ani_tag.timeline[timecode] = kf.compileBedrockAnimation()
 				})
 
 			} else if (animator.keyframes.length) {
@@ -147,7 +145,7 @@ class Animation {
 						channels[kf.channel] = {};
 					}
 					let timecode = kf.getTimecodeString();
-					channels[kf.channel][timecode] = kf.getArray()
+					channels[kf.channel][timecode] = kf.compileBedrockKeyframe()
 				})
 				//Sorting keyframes
 				for (var channel in Animator.possible_channels) {

@@ -1,36 +1,30 @@
 class Keyframe {
 	constructor(data, uuid) {
 		this.type = 'keyframe'
+		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
+		this.channel == 'rotation'
 		this.selected = 0;
-		this.data_points = [{}]
+		this.data_points = []
 
 		for (var key in Keyframe.properties) {
 			Keyframe.properties[key].reset(this);
 		}
-		/*
 
-		this.channel = 'rotation';
-		this.x = '0';
-		this.y = '0';
-		this.z = '0';
-		this.w = '0';
-		this.isQuaternion = false;
-		this.effect = '';
-		this.file = '';
-		this.locator = '';
-		this.script = '';
-		this.instructions = '';
-		*/
-		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		if (typeof data === 'object') {
 			Merge.string(this, data, 'channel')
 			this.transform = this.channel === 'rotation' || this.channel === 'position' || this.channel === 'scale';
+			this.data_points.push(this.createDefaultDataPoint());
 			this.extend(data)
-			
-			if (this.channel === 'scale' && data.x == undefined && data.y == undefined && data.z == undefined) {
-
-				this.x = this.y = this.z = 1;
-			}
+		}
+	}
+	createDefaultDataPoint() {
+		switch (this.channel) {
+			case 'rotation': 	return {x: '0', y: '0', z: '0'};
+			case 'position': 	return {x: '0', y: '0', z: '0'};
+			case 'scale': 		return {x: '1', y: '1', z: '1'};
+			case 'particle': 	return {effect: '', locator: '', script: '', file: ''};
+			case 'sound': 		return {effect: '', file: ''};
+			case 'timeline': 	return {instructions: ''};
 		}
 	}
 	extend(data) {
@@ -40,7 +34,9 @@ class Keyframe {
 
 		if (data.data_points && data.data_points.length) {
 			data.data_points.forEach((point, i) => {
-				if (!this.data_points[i]) this.data_points.push({});
+				if (!this.data_points[i]) {
+					this.data_points.push(this.createDefaultDataPoint());
+				}
 				let this_point = this.data_points[i];
 				if (this.transform) {
 					if (point.values != undefined) {
@@ -57,8 +53,6 @@ class Keyframe {
 					Merge.string(this_point, point, 'x')
 					Merge.string(this_point, point, 'y')
 					Merge.string(this_point, point, 'z')
-					Merge.string(this_point, point, 'w')
-					Merge.boolean(this_point, point, 'isQuaternion')
 				} else {
 					if (data.values) {
 						data.effect = data.values.effect;
@@ -158,45 +152,47 @@ class Keyframe {
 		return this;
 	}
 	getLerp(other, axis, amount, allow_expression) {
-		if (allow_expression && this.get(axis) === other.get(axis)) {
+		let this_data_point = (this.data_points.length > 1 && this.time < other.time) ? 1 : 0;
+		let other_data_point = (other.data_points.length > 1 && this.time > other.time) ? 1 : 0;
+		if (allow_expression && this.get(axis, this_data_point) === other.get(axis, other_data_point)) {
 			return this.get(axis)
 		} else {
-			let calc = this.calc(axis)
-			return calc + (other.calc(axis) - calc) * amount
+			let calc = this.calc(axis, this_data_point);
+			return calc + (other.calc(axis, other_data_point) - calc) * amount;
 		}
 	}
-	getArray() {
+	getArray(data_point = 0) {
 		var arr = [
-			this.get('x'),
-			this.get('y'),
-			this.get('z'),
+			this.get('x', data_point),
+			this.get('y', data_point),
+			this.get('z', data_point),
 		]
 		arr.forEach((n, i) => {
 			if (n.replace) arr[i] = n.replace(/\n/g, '');
 		})
 		return arr;
 	}
-	getFixed() {
+	getFixed(data_point = 0) {
 		if (this.channel === 'rotation') {
 			let fix = this.animator.group.mesh.fix_rotation;
 			return new THREE.Quaternion().setFromEuler(new THREE.Euler(
-				fix.x - Math.degToRad(this.calc('x')),
-				fix.y - Math.degToRad(this.calc('y')),
-				fix.z + Math.degToRad(this.calc('z')),
+				fix.x - Math.degToRad(this.calc('x', data_point)),
+				fix.y - Math.degToRad(this.calc('y', data_point)),
+				fix.z + Math.degToRad(this.calc('z', data_point)),
 				'ZYX'
 			));
 		} else if (this.channel === 'position') {
 			let fix = this.animator.group.mesh.fix_position;
 			return new THREE.Vector3(
-				fix.x - this.calc('x'),
-				fix.y + this.calc('y'),
-				fix.z + this.calc('z')
+				fix.x - this.calc('x', data_point),
+				fix.y + this.calc('y', data_point),
+				fix.z + this.calc('z', data_point)
 			)
 		} else if (this.channel === 'scale') {
 			return new THREE.Vector3(
-				this.calc('x'),
-				this.calc('y'),
-				this.calc('z')
+				this.calc('x', data_point),
+				this.calc('y', data_point),
+				this.calc('z', data_point)
 			)
 		}
 	}
@@ -207,10 +203,31 @@ class Keyframe {
 		}
 		return timecode;
 	}
+	compileBedrockKeyframe() {
+		if (this.transform) {
+			if (this.data_points.length == 1) {
+				return this.getArray()
+			} else {
+				return {
+					pre:  this.getArray(0),
+					psot: this.getArray(1),
+				}
+			}
+		} else if (this.channel == 'timeline') {
+			return this.instructions.split('\n');
+		} else {
+			let points = [];
+			this.data_points.forEach(data_point => {
+				if (data_point.effect || data_point.instructions) {
+					points.push()
+				}
+			})
+			return points.length <= 1 ? points[0] : points;
+		}
+	}
 	replaceOthers(save) {
 		var scope = this;
 		var arr = this.animator[this.channel];
-		var replaced;
 		arr.forEach(kf => {
 			if (kf != scope && Math.abs(kf.time - scope.time) < 0.0001) {
 				save.push(kf);
@@ -305,32 +322,14 @@ class Keyframe {
 			animator: save ? undefined : this.animator && this.animator.uuid,
 			uuid: save && this.uuid,
 			channel: this.channel,
-			x: this.x,
-			y: this.y,
-			z: this.z,
+			data_points: []
 		}
 		for (var key in Keyframe.properties) {
 			Keyframe.properties[key].copy(this, copy)
 		}
-		if (this.transform) {
-			copy.x = this.x;
-			copy.y = this.y;
-			copy.z = this.z;
-			if (this.channel == 'rotation' && this.isQuaternion) {
-				copy.w = this.w
-			}
-		} else if (this.channel == 'particle') {
-			copy.effect = this.effect;
-			copy.locator = this.locator;
-			copy.script = this.script;
-
-		} else if (this.channel == 'sound') {
-			copy.effect = this.effect;
-			copy.file = this.file;
-
-		} else if (this.channel == 'timeline') {
-			copy.instructions = this.instructions;
-		}
+		this.data_points.forEach(data_point => {
+			data_point.push(Object.assign({}, data_point))
+		})
 		return copy;
 	}
 }
@@ -590,13 +589,7 @@ BARS.defineActions(function() {
 		click: function () {
 			Undo.initEdit({keyframes: Timeline.selected})
 			Timeline.selected.forEach((kf) => {
-				var n = kf.channel === 'scale' ? '1' : '0';
-				kf.extend({
-					x: n,
-					y: n,
-					z: n,
-					w: kf.isQuaternion ? 0 : undefined
-				})
+				kf.data_points.replace([kf.createDefaultDataPoint()]);
 			})
 			Undo.finishEdit('reset keyframes')
 			updateKeyframeSelection()
@@ -624,7 +617,7 @@ BARS.defineActions(function() {
 	new Action('change_keyframe_file', {
 		icon: 'fa-file-audio',
 		category: 'animation',
-		condition: () => (Animator.open && Timeline.selected.length && Timeline.selected[0].channel == 'sound' && isApp),
+		condition: () => (isApp && Animator.open && Timeline.selected.length && Timeline.selected[0].channel == 'sound'),
 		click: function () {
 			Blockbench.import({
 				resource_id: 'animation_audio',
@@ -633,11 +626,14 @@ BARS.defineActions(function() {
 				startpath: Timeline.selected[0].file
 			}, function(files) {
 
+				// Todo: move to panel
 				let {path} = files[0];
 				Undo.initEdit({keyframes: Timeline.selected})
 				Timeline.selected.forEach((kf) => {
 					if (kf.channel == 'sound') {
-						kf.file = path;
+						kf.data_points.forEach(data_point => {
+							data_point.file = path;
+						})
 					}
 				})
 				Timeline.visualizeAudioFile(path);
@@ -684,7 +680,6 @@ Interface.definePanels(function() {
 			}},
 			methods: {
 				updateInput(axis, value) {
-					console.log(this.keyframes[0].x)
 					updateKeyframeValue(axis, value)
 				},
 				getKeyframeInfos() {
