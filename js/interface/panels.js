@@ -17,8 +17,17 @@ class Panel {
 		}
         // Vue
         if (data.component) {
-            data.component.name = 'inside-vue'
-            $(`.sidebar#${data.default_side||'left'}_bar`).append(`<div id="mount-panel-${this.id}"></div>`)
+			data.component.name = 'inside-vue'
+			let bar = $(`.sidebar#${data.default_side||'left'}_bar`);
+			let node = $(`<div id="mount-panel-${this.id}"></div>`);
+
+			if (data.insert_before && bar.find(`> .panel#${data.insert_before}`).length) {
+				node.insertBefore(bar.find(`> .panel#${data.insert_before}`));
+			} else if (data.insert_after && bar.find(`> .panel#${data.insert_after}`).length) {
+				node.insertAfter(bar.find(`> .panel#${data.insert_after}`));
+			} else {
+				bar.append(node)
+			}
 
             this.vue = new Vue({
                 components: {
