@@ -17,8 +17,17 @@ class Panel {
 		}
         // Vue
         if (data.component) {
-            data.component.name = 'inside-vue'
-            $(`.sidebar#${data.default_side||'left'}_bar`).append(`<div id="mount-panel-${this.id}"></div>`)
+			data.component.name = 'inside-vue'
+			let bar = $(`.sidebar#${data.default_side||'left'}_bar`);
+			let node = $(`<div id="mount-panel-${this.id}"></div>`);
+
+			if (data.insert_before && bar.find(`> .panel#${data.insert_before}`).length) {
+				node.insertBefore(bar.find(`> .panel#${data.insert_before}`));
+			} else if (data.insert_after && bar.find(`> .panel#${data.insert_after}`).length) {
+				node.insertAfter(bar.find(`> .panel#${data.insert_after}`));
+			} else {
+				bar.append(node)
+			}
 
             this.vue = new Vue({
                 components: {
@@ -59,7 +68,20 @@ class Panel {
 				start: function() {
 					Interface.panel = scope;
 				},
+				drag(e, ui) {
+					$('.panel[order]').attr('order', null)
+					let target_panel = $('div.panel:hover').get(0);
+					if (!target_panel) return;
+					let top = $(target_panel).offset().top;
+					let height = target_panel.clientHeight;
+					if (e.clientY > top + height/2) {
+						$(target_panel).attr('order', 1);
+					} else {
+						$(target_panel).attr('order', -1);
+					}
+				},
 				stop: function(e, ui) {
+					$('.panel[order]').attr('order', null)
 					if (!ui) return;
 					if (Math.abs(ui.position.top - ui.originalPosition.top) + Math.abs(ui.position.left - ui.originalPosition.left) < 180) return;
 					let target = Interface.panel
@@ -181,36 +203,7 @@ function setupPanels() {
 		}
 	})
 
-
 	//Panels
-	Interface.Panels.uv = new Panel({
-		id: 'uv',
-		icon: 'photo_size_select_large',
-		condition: {modes: ['edit', 'paint']},
-		toolbars: {
-			bottom: Toolbars.main_uv
-		},
-		onResize: function() {
-			let size = limitNumber($(this.node).width()-10, 64, 1200)
-			size = Math.floor(size/16)*16
-			main_uv.setSize(size)
-		}
-	})
-	Interface.Panels.textures = new Panel({
-		id: 'textures',
-		icon: 'fas.fa-images',
-		condition: {modes: ['edit', 'paint']},
-		toolbars: {
-			head: Toolbars.texturelist
-		},
-		menu: new Menu([
-			'import_texture',
-			'create_texture',
-			'reload_textures',
-			'change_textures_folder',
-			'save_textures'
-		])
-	})
 	Interface.Panels.element = new Panel({
 		id: 'element',
 		icon: 'fas.fa-cube',
@@ -515,7 +508,6 @@ function setupPanels() {
 		}
 	})
 
-
 	Interface.data.left_bar.forEach((id) => {
 		if (Interface.Panels[id]) {
 			$('#left_bar').append(Interface.Panels[id].node)
@@ -536,6 +528,7 @@ function setupPanels() {
 		'timelapse',
 	])
 }
+
 
 
 function setActivePanel(panel) {

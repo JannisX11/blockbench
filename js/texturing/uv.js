@@ -2246,3 +2246,21 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Interface.definePanels(function() {
+	
+	Interface.Panels.uv = new Panel({
+		id: 'uv',
+		icon: 'photo_size_select_large',
+		selection_only: true,
+		condition: {modes: ['edit', 'paint']},
+		toolbars: {
+			bottom: Toolbars.main_uv
+		},
+		onResize: function() {
+			let size = limitNumber($(this.node).width()-10, 64, 1200)
+			size = Math.floor(size/16)*16
+			main_uv.setSize(size)
+		}
+	})
+})

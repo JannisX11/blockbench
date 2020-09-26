@@ -414,34 +414,60 @@ class NumSlider extends Widget {
 		this.jq_outer = $(this.node)
 		this.jq_inner = this.jq_outer.find('.nslide');
 
-		//Slide
-		this.jq_inner.draggable({
-			revert: true,
-			axis: 'x',
-			revertDuration: 0,
-			helper: function () {return '<div id="nslide_head"><span id="nslide_offset"></span></div>'},
-			opacity: 0.8,
-			appendTo: 'body',
-			cursor: "none",
-			start: function(event, ui) {
-				if (typeof scope.onBefore === 'function') {
-					scope.onBefore()
+		this.jq_inner
+		.on('mousedown touchstart', async (event) => {
+			if (scope.jq_inner.hasClass('editing')) return;
+			
+			let drag_event = await new Promise((resolve, reject) => {
+				function move(e2) {
+					removeEventListeners(document, 'mousemove touchmove', move);
+					removeEventListeners(document, 'mouseup touchend', stop);
+					resolve(e2);
 				}
-				scope.sliding = true;
-				scope.pre = 0;
-				scope.sliding_start_pos = event.clientX;
-				scope.last_value = scope.value
-			},
-			drag: function(event, ui) {
-				scope.slide(event, ui)
-			},
-			stop: function() {
-				delete scope.sliding;
+				function stop(e2) {
+					removeEventListeners(document, 'mousemove touchmove', move);
+					removeEventListeners(document, 'mouseup touchend', stop);
+					if (event.target == event.target) scope.startInput(event)
+					resolve(false);
+				}
+				addEventListeners(document, 'mousemove touchmove', move);
+				addEventListeners(document, 'mouseup touchend', stop);
+			})
+			if (!drag_event) return;
+
+			if (typeof scope.onBefore === 'function') {
+				scope.onBefore()
+			}
+			convertTouchEvent(drag_event)
+			let clientX = drag_event.clientX;
+			scope.sliding = true;
+			scope.pre = 0;
+			scope.sliding_start_pos = drag_event.clientX;
+			scope.last_value = scope.value
+
+			if (!drag_event.touches) scope.jq_inner.get(0).requestPointerLock();
+
+			function move(e) {
+				convertTouchEvent(e)
+				if (drag_event.touches) {
+					clientX = e.clientX;
+				} else {
+					clientX += Math.clamp(e.movementX, -5, 5);
+				}
+				scope.slide(clientX, e)
+			}
+			function stop(e) {
+				removeEventListeners(document, 'mousemove touchmove', move);
+				removeEventListeners(document, 'mouseup touchend', stop);
+				document.exitPointerLock()
 				Blockbench.setStatusBarText();
+				delete scope.sliding;
 				if (typeof scope.onAfter === 'function') {
 					scope.onAfter(scope.value - scope.last_value)
 				}
 			}
+			addEventListeners(document, 'mousemove touchmove', move);
+			addEventListeners(document, 'mouseup touchend', stop);
 		})
 		//Input
 		.keypress(function (e) {
@@ -464,14 +490,6 @@ class NumSlider extends Widget {
 		})
 		.focusout(function() {
 			scope.stopInput()
-		})
-		.click(function(event) {
-			if (event.target != this) return;
-			scope.jq_inner.find('.nslide_arrow').remove()
-			scope.jq_inner.attr('contenteditable', 'true')
-			scope.jq_inner.addClass('editing')
-			scope.jq_inner.focus()
-			document.execCommand('selectAll')
 		})
 		.dblclick(function(event) {
 			if (event.target != this) return;
@@ -501,6 +519,13 @@ class NumSlider extends Widget {
 			scope.jq_outer.find('.nslide_arrow').remove()
 		})
 	}
+	startInput(e) {
+		this.jq_inner.find('.nslide_arrow').remove()
+		this.jq_inner.attr('contenteditable', 'true')
+		this.jq_inner.addClass('editing')
+		this.jq_inner.focus()
+		document.execCommand('selectAll')
+	}
 	setWidth(width) {
 		if (width) {
 			this.width = width
@@ -519,8 +544,8 @@ class NumSlider extends Widget {
 			return 0;
 		}
 	}
-	slide(event, ui) {
-		var offset = Math.round((event.clientX - this.sliding_start_pos)/30)
+	slide(clientX, event) {
+		var offset = Math.round((clientX - this.sliding_start_pos)/30)
 		var difference = (offset - this.pre) * this.getInterval(event);
 		this.pre = offset;
 
@@ -535,7 +560,6 @@ class NumSlider extends Widget {
 	}
 	stopInput() {
 		if (!this.jq_inner.hasClass('editing')) return;
-		var scope = this;
 		var text = this.jq_inner.text();
 		if (this.last_value !== text) {
 			var first_token = text.substr(0, 1);

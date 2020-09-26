@@ -1,12 +1,15 @@
 class Keyframe {
 	constructor(data, uuid) {
 		this.type = 'keyframe'
-		this.channel = 'rotation';
-		this.time = 0;
-		this.color = -1;
 		this.selected = 0;
 		this.data_points = [{}]
+
+		for (var key in Keyframe.properties) {
+			Keyframe.properties[key].reset(this);
+		}
 		/*
+
+		this.channel = 'rotation';
 		this.x = '0';
 		this.y = '0';
 		this.z = '0';
@@ -31,8 +34,9 @@ class Keyframe {
 		}
 	}
 	extend(data) {
-		Merge.number(this, data, 'time')
-		Merge.number(this, data, 'color')
+		for (var key in Keyframe.properties) {
+			Keyframe.properties[key].merge(this, data)
+		}
 
 		if (data.data_points && data.data_points.length) {
 			data.data_points.forEach((point, i) => {
@@ -301,11 +305,12 @@ class Keyframe {
 			animator: save ? undefined : this.animator && this.animator.uuid,
 			uuid: save && this.uuid,
 			channel: this.channel,
-			time: this.time,
-			color: this.color,
 			x: this.x,
 			y: this.y,
 			z: this.z,
+		}
+		for (var key in Keyframe.properties) {
+			Keyframe.properties[key].copy(this, copy)
 		}
 		if (this.transform) {
 			copy.x = this.x;
@@ -360,6 +365,9 @@ class Keyframe {
 		'copy',
 		'delete',
 	])
+	new Property(Keyframe, 'number', 'time')
+	new Property(Keyframe, 'number', 'color', {default: -1})
+	Keyframe.selected = [];
 
 // Misc Functions
 function updateKeyframeValue(axis, value, data_point) {
@@ -655,6 +663,95 @@ BARS.defineActions(function() {
 			Undo.finishEdit('reverse keyframes')
 			updateKeyframeSelection()
 			Animator.preview()
+		}
+	})
+})
+
+Interface.definePanels(function() {
+	
+	Interface.Panels.keyframe = new Panel({
+		id: 'keyframe',
+		icon: 'timeline',
+		condition: {modes: ['animate']},
+		toolbars: {
+			head: Toolbars.keyframe
+		},
+		component: {
+			name: 'panel-keyframe',
+			components: {VuePrismEditor},
+			data() { return {
+				keyframes: Timeline.selected
+			}},
+			methods: {
+				updateInput(axis, value) {
+					console.log(this.keyframes[0].x)
+					updateKeyframeValue(axis, value)
+				},
+				getKeyframeInfos() {
+					let list =  [tl('timeline.'+this.channel)];
+					if (this.keyframes.length > 1) list.push(this.keyframes.length);
+					/*if (this.keyframes[0].color >= 0) {
+						list.push(tl(`cube.color.${markerColors[this.keyframes[0].color].name}`))
+					}*/
+					return list.join(', ')
+				}
+			},
+			computed: {
+				channel() {
+					var channel = false;
+					for (var kf of this.keyframes) {
+						if (channel === false) {
+							channel = kf.channel
+						} else if (channel !== kf.channel) {
+							channel = false
+							break;
+						}
+					}
+					return channel;
+				}
+			},
+			template: `
+				<div>
+					<div class="toolbar_wrapper keyframe"></div>
+
+					<template v-if="channel != false">
+
+						<div v-for="data_point of keyframe[0].data_points">
+							<p id="keyframe_type_label">{{ tl('panel.keyframe.type', [getKeyframeInfos()]) }}</p>
+
+							<div class="bar flex" id="keyframe_bar_x" v-if="data_point.animator instanceof BoneAnimator">
+								<label class="color_x" style="font-weight: bolder">X</label>
+								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" :value="data_point.x.toString()" v-model="data_point.x" @change="updateInput('x', $event)" language="molang" :line-numbers="false" />
+							</div>
+							<div class="bar flex" id="keyframe_bar_y" v-if="data_point.animator instanceof BoneAnimator">
+								<label class="color_y" style="font-weight: bolder">Y</label>
+								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" :value="data_point.y.toString()" v-model="data_point.y" @change="updateInput('y', $event)" language="molang" :line-numbers="false" />
+							</div>
+							<div class="bar flex" id="keyframe_bar_z" v-if="data_point.animator instanceof BoneAnimator">
+								<label class="color_z" style="font-weight: bolder">Z</label>
+								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" :value="data_point.z.toString()" v-model="data_point.z" @change="updateInput('z', $event)" language="molang" :line-numbers="false" />
+							</div>
+
+							<div class="bar flex" id="keyframe_bar_effect" v-if="channel == 'particle' || channel == 'sound'">
+								<label>{{ tl('data.effect') }}</label>
+								<input type="text" class="dark_bordered code keyframe_input tab_target" v-model="data_point.effect" @input="updateInput('effect', $event)">
+							</div>
+							<div class="bar flex" id="keyframe_bar_locator" v-if="channel == 'particle'">
+								<label>{{ tl('data.locator') }}</label>
+								<input @focus="focus()" @focusout="focusout()" type="text" class="dark_bordered code keyframe_input tab_target" v-model="data_point.locator" @input="updateInput('locator', $event)">
+							</div>
+							<div class="bar flex" id="keyframe_bar_script" v-if="channel == 'particle'">
+								<label>{{ tl('timeline.pre_effect_script') }}</label>
+								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.script" @change="updateInput('script', $event)" language="molang" :line-numbers="false" />
+							</div>
+							<div class="bar" id="keyframe_bar_instructions" v-if="channel == 'timeline'">
+								<label>{{ tl('timeline.timeline') }}</label>
+								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.instructions" @change="updateInput('instructions', $event)" language="molang" :line-numbers="false" />
+							</div>
+						</div>
+					</template>
+				</div>
+			`
 		}
 	})
 })

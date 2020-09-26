@@ -32,6 +32,7 @@ class Property {
 
         if (typeof options.merge == 'function') this.merge = options.merge;
         if (typeof options.reset == 'function') this.reset = options.reset;
+        if (typeof options.merge_validation == 'function') this.merge_validation = options.merge_validation;
         if (options.condition) this.condition = options.condition;
         if (options.exposed == false) this.exposed = false;
         if (options.label) this.label = options.label;
