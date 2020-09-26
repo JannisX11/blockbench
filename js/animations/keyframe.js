@@ -222,18 +222,31 @@ class Keyframe {
 			} else {
 				return {
 					pre:  this.getArray(0),
-					psot: this.getArray(1),
+					post: this.getArray(1),
 				}
 			}
 		} else if (this.channel == 'timeline') {
-			return this.instructions.split('\n');
+			let instructions = [];
+			this.data_points.forEach(data_point => {
+				if (data_point.instructions) {
+					instructions.push(...data_point.instructions.split('\n'));
+				}
+			})
+			return instructions.length <= 1 ? instructions[0] : instructions;
 		} else {
 			let points = [];
 			this.data_points.forEach(data_point => {
-				if (data_point.effect || data_point.instructions) {
-					points.push()
+				if (data_point.effect) {
+					let script = kf.script || undefined;
+					if (script && !script.match(/;$/)) script += ';';
+					points.push({
+						effect: data_point.effect,
+						locator: data_point.locator || undefined,
+						pre_effect_script: script,
+					})
 				}
 			})
+			console.log(points)
 			return points.length <= 1 ? points[0] : points;
 		}
 	}
@@ -756,46 +769,48 @@ Interface.definePanels(function() {
 							</div>
 						</div>
 
-						<div v-for="(data_point, data_point_i) of keyframes[0].data_points" class="keyframe_data_point">
+						<ul class="list">
 
-							<div class="keyframe_data_point_header" v-if="keyframes[0].data_points.length > 1">
-								<label>{{ keyframes[0].transform ? tl('panel.keyframe.' + (data_point_i ? 'post' : 'pre')) : (data_point_i + 1) }}</label>
-								<div class="flex_fill_line"></div>
-								<div class="in_list_button" v-on:click.stop="removeDataPoint(data_point)" title="${ tl('panel.keyframe.remove_data_point') }">
-									<i class="material-icons">clear</i>
+							<div v-for="(data_point, data_point_i) of keyframes[0].data_points" class="keyframe_data_point">
+
+								<div class="keyframe_data_point_header" v-if="keyframes[0].data_points.length > 1">
+									<label>{{ keyframes[0].transform ? tl('panel.keyframe.' + (data_point_i ? 'post' : 'pre')) : (data_point_i + 1) }}</label>
+									<div class="flex_fill_line"></div>
+									<div class="in_list_button" v-on:click.stop="removeDataPoint(data_point)" title="${ tl('panel.keyframe.remove_data_point') }">
+										<i class="material-icons">clear</i>
+									</div>
+								</div>
+
+								<div class="bar flex" id="keyframe_bar_x" v-if="keyframes[0].animator instanceof BoneAnimator">
+									<label class="color_x" style="font-weight: bolder">X</label>
+									<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.x_string" @change="updateInput('x', $event, data_point_i)" language="molang" :line-numbers="false" />
+								</div>
+								<div class="bar flex" id="keyframe_bar_y" v-if="keyframes[0].animator instanceof BoneAnimator">
+									<label class="color_y" style="font-weight: bolder">Y</label>
+									<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.y_string" @change="updateInput('y', $event, data_point_i)" language="molang" :line-numbers="false" />
+								</div>
+								<div class="bar flex" id="keyframe_bar_z" v-if="keyframes[0].animator instanceof BoneAnimator">
+									<label class="color_z" style="font-weight: bolder">Z</label>
+									<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.z_string" @change="updateInput('z', $event, data_point_i)" language="molang" :line-numbers="false" />
+								</div>
+
+								<div class="bar flex" id="keyframe_bar_effect" v-if="channel == 'particle' || channel == 'sound'">
+									<label>${ tl('data.effect') }</label>
+									<input type="text" class="dark_bordered code keyframe_input tab_target" v-model="data_point.effect" @input="updateInput('effect', $event.target.value, data_point_i)">
+								</div>
+								<div class="bar flex" id="keyframe_bar_locator" v-if="channel == 'particle'">
+									<label>${ tl('data.locator') }</label>
+									<input  type="text" class="dark_bordered code keyframe_input tab_target" v-model="data_point.locator" @input="updateInput('locator', $event.target.value, data_point_i)">
+								</div>
+								<div class="bar flex" id="keyframe_bar_script" v-if="channel == 'particle'">
+									<label>${ tl('timeline.pre_effect_script') }</label>
+									<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.script" @change="updateInput('script', $event, data_point_i)" language="molang" :line-numbers="false" />
+								</div>
+								<div class="bar" id="keyframe_bar_instructions" v-if="channel == 'timeline'">
+									<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.instructions" @change="updateInput('instructions', $event, data_point_i)" language="molang" :line-numbers="false" />
 								</div>
 							</div>
-
-							<div class="bar flex" id="keyframe_bar_x" v-if="keyframes[0].animator instanceof BoneAnimator">
-								<label class="color_x" style="font-weight: bolder">X</label>
-								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.x_string" @change="updateInput('x', $event, data_point_i)" language="molang" :line-numbers="false" />
-							</div>
-							<div class="bar flex" id="keyframe_bar_y" v-if="keyframes[0].animator instanceof BoneAnimator">
-								<label class="color_y" style="font-weight: bolder">Y</label>
-								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.y_string" @change="updateInput('y', $event, data_point_i)" language="molang" :line-numbers="false" />
-							</div>
-							<div class="bar flex" id="keyframe_bar_z" v-if="keyframes[0].animator instanceof BoneAnimator">
-								<label class="color_z" style="font-weight: bolder">Z</label>
-								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.z_string" @change="updateInput('z', $event, data_point_i)" language="molang" :line-numbers="false" />
-							</div>
-
-							<div class="bar flex" id="keyframe_bar_effect" v-if="channel == 'particle' || channel == 'sound'">
-								<label>${ tl('data.effect') }</label>
-								<input type="text" class="dark_bordered code keyframe_input tab_target" v-model="data_point.effect" @input="updateInput('effect', $event.target.value, data_point_i)">
-							</div>
-							<div class="bar flex" id="keyframe_bar_locator" v-if="channel == 'particle'">
-								<label>${ tl('data.locator') }</label>
-								<input @focus="focus()" @focusout="focusout()" type="text" class="dark_bordered code keyframe_input tab_target" v-model="data_point.locator" @input="updateInput('locator', $event.target.value, data_point_i)">
-							</div>
-							<div class="bar flex" id="keyframe_bar_script" v-if="channel == 'particle'">
-								<label>${ tl('timeline.pre_effect_script') }</label>
-								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.script" @change="updateInput('script', $event, data_point_i)" language="molang" :line-numbers="false" />
-							</div>
-							<div class="bar" id="keyframe_bar_instructions" v-if="channel == 'timeline'">
-								<label>${ tl('timeline.timeline') }</label>
-								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.instructions" @change="updateInput('instructions', $event, data_point_i)" language="molang" :line-numbers="false" />
-							</div>
-						</div>
+						</ul>
 					</template>
 				</div>
 			`

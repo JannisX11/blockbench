@@ -114,24 +114,15 @@ class Animation {
 
 				animator.sound.forEach(kf => {
 					if (!ani_tag.sound_effects) ani_tag.sound_effects = {};
-					let timecode = kf.getTimecodeString();
-					ani_tag.sound_effects[timecode] = kf.compileBedrockKeyframe();
+					ani_tag.sound_effects[kf.getTimecodeString()] = kf.compileBedrockKeyframe();
 				})
 				animator.particle.forEach(kf => {
 					if (!ani_tag.particle_effects) ani_tag.particle_effects = {};
-					let timecode = kf.getTimecodeString();
-					let script = kf.script || undefined;
-					if (script && !script.match(/;$/)) script += ';';
-					ani_tag.particle_effects[timecode] = {
-						effect: kf.effect,
-						locator: kf.locator || undefined,
-						pre_effect_script: kf.script || undefined
-					};
+					ani_tag.particle_effects[kf.getTimecodeString()] = kf.compileBedrockKeyframe();
 				})
 				animator.timeline.forEach(kf => {
 					if (!ani_tag.timeline) ani_tag.timeline = {};
-					let timecode = kf.getTimecodeString();
-					ani_tag.timeline[timecode] = kf.compileBedrockAnimation()
+					ani_tag.timeline[kf.getTimecodeString()] = kf.compileBedrockKeyframe()
 				})
 
 			} else if (animator.keyframes.length) {
@@ -1269,7 +1260,7 @@ const Animator = {
 					}
 					for (var timestamp in a.timeline) {
 						var entry = a.timeline[timestamp];
-						var instructions = entry.join('\n');
+						var instructions = entry instanceof Array ? entry.join('\n') : entry;
 						animation.animators.effects.addKeyframe({
 							channel: 'timeline',
 							time: parseFloat(timestamp),
@@ -1513,7 +1504,6 @@ Interface.definePanels(function() {
 				},
 				addAnimation(path) {
 					let other_animation = Animation.all.find(a => a.path == path)
-					console.log(path, other_animation)
 					new Animation({
 						name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
 						path

@@ -526,7 +526,7 @@
 		min-height: 30px;
 	}
 	.panel#keyframe .bar.flex label {
-		padding: 3px 10px;
+		padding: 3px 8px;
 		min-width: 20px;
 		text-align: center;
 		flex-shrink: 0;
@@ -535,6 +535,11 @@
 	.panel#keyframe .bar input.dark_bordered {
 		width: 100%;
 		flex-shrink: 1;
+	}
+	.panel#keyframe .list {
+		max-height: 260px;
+		overflow-y: auto;
+		background-color: transparent;
 	}
 
 	.prism-editor-wrapper {
