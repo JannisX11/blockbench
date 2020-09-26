@@ -543,6 +543,8 @@
 
 	"settings.minifiedout": "Minified Export",
 	"settings.minifiedout.desc": "Write JSON file in one line",
+	"settings.minify_bbmodel": "Minified Project Files",
+	"settings.minify_bbmodel.desc": "Write .bbmodel files minified into one line",
 	"settings.export_groups": "Export Groups",
 	"settings.export_groups.desc": "Save groups in block or item model files",
 	"settings.credit": "Credit Comment",
