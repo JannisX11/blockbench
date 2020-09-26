@@ -265,7 +265,7 @@ const Timeline = {
 		
 		document.addEventListener('focus', event => {
 			if (event.target && event.target.parentElement && event.target.parentElement.classList.contains('keyframe_input')) {
-				Undo.initEdit({keyframes: Timeline.selected})
+				Undo.initEdit({keyframes: Timeline.selected.slice()})
 			}
 		}, true)
 		document.addEventListener('focusout', event => {

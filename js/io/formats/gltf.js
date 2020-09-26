@@ -55,6 +55,7 @@ function buildAnimationTracks() {
 
 								for (var step = 1; step < steps; step++) {
 
+									// todo: update for data points
 									Timeline.time = kf.time + (next.time - kf.time) * (step/steps);
 									let values = animator.interpolate(channel, false)
 									let new_keyframe = new Keyframe({

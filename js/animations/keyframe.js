@@ -71,8 +71,8 @@ class Keyframe {
 		for (var key in Keyframe.properties) {
 			Keyframe.properties[key].merge(this, data)
 		}
-
 		if (data.data_points && data.data_points.length) {
+			this.data_points.splice(data.data_points.length);
 			data.data_points.forEach((point, i) => {
 				if (!this.data_points[i]) {
 					this.data_points.push(new KeyframeDataPoint(this));
