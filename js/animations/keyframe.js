@@ -29,66 +29,64 @@ class Keyframe {
 				this.x = this.y = this.z = 1;
 			}
 		}
-		/**					 POS FX
-		 * points			|1	|-1
-		 * instances		|0	|1
-		 * entries			|0	|1
-		 * parts			|0	|1
-		 * versions			|0	|0
-		 * variants			|0	|0
-		 * variations		|1	|0
-		 * sides			|1	|1
-		 */
 	}
 	extend(data) {
 		Merge.number(this, data, 'time')
 		Merge.number(this, data, 'color')
 
-		if (this.transform) {
-			if (data.values != undefined) {
-				if (typeof data.values == 'number' || typeof data.values == 'string') {
-					data.x = data.y = data.z = data.values;
+		if (data.data_points && data.data_points.length) {
+			data.data_points.forEach((point, i) => {
+				if (!this.data_points[i]) this.data_points.push({});
+				let this_point = this.data_points[i];
+				if (this.transform) {
+					if (point.values != undefined) {
+						if (typeof point.values == 'number' || typeof point.values == 'string') {
+							point.x = point.y = point.z = point.values;
 
-				} else if (data.values instanceof Array) {
-					data.x = data.values[0];
-					data.y = data.values[1];
-					data.z = data.values[2];
-					data.w = data.values[3];
+						} else if (point.values instanceof Array) {
+							point.x = point.values[0];
+							point.y = point.values[1];
+							point.z = point.values[2];
+							point.w = point.values[3];
+						}
+					}
+					Merge.string(this_point, point, 'x')
+					Merge.string(this_point, point, 'y')
+					Merge.string(this_point, point, 'z')
+					Merge.string(this_point, point, 'w')
+					Merge.boolean(this_point, point, 'isQuaternion')
+				} else {
+					if (data.values) {
+						data.effect = data.values.effect;
+						data.locator = data.values.locator;
+						data.script = data.values.script;
+						data.file = data.values.file;
+						data.instructions = data.values.instructions;
+					}
+					Merge.string(this_point, data, 'effect')
+					Merge.string(this_point, data, 'locator')
+					Merge.string(this_point, data, 'script')
+					Merge.string(this_point, data, 'file')
+					Merge.string(this_point, data, 'instructions')
 				}
-			}
-			Merge.string(this, data, 'x')
-			Merge.string(this, data, 'y')
-			Merge.string(this, data, 'z')
-			Merge.string(this, data, 'w')
-			Merge.boolean(this, data, 'isQuaternion')
-		} else {
-			if (data.values) {
-				data.effect = data.values.effect;
-				data.locator = data.values.locator;
-				data.script = data.values.script;
-				data.file = data.values.file;
-				data.instructions = data.values.instructions;
-			}
-			Merge.string(this, data, 'effect')
-			Merge.string(this, data, 'locator')
-			Merge.string(this, data, 'script')
-			Merge.string(this, data, 'file')
-			Merge.string(this, data, 'instructions')
+			})
 		}
 		return this;
 	}
-	get(axis) {
-		if (!this[axis]) {
+	get(axis, data_point = 0) {
+		data_point = this.data_points[data_point];
+		if (!data_point || !data_point[axis]) {
 			return this.transform ? 0 : '';
-		} else if (!isNaN(this[axis])) {
-			let num = parseFloat(this[axis]);
+		} else if (!isNaN(data_point[axis])) {
+			let num = parseFloat(data_point[axis]);
 			return isNaN(num) ? 0 : num;
 		} else {
-			return this[axis]
+			return data_point[axis]
 		}
 	}
-	calc(axis) {
-		return Molang.parse(this[axis])
+	calc(axis, data_point = 0) {
+		data_point = this.data_points[data_point];
+		return Molang.parse(data_point && data_point[axis])
 	}
 	set(axis, value, data_point = 0) {
 		if (this.data_points[data_point]) {
@@ -124,7 +122,7 @@ class Keyframe {
 		return value;
 	}
 	flip(axis) {
-		if (!this.transform) return this;
+		if (!this.transform || this.channel == 'scale') return this;
 		function negate(value) {
 			if (!value || value === '0') {
 				return value;
@@ -140,18 +138,19 @@ class Keyframe {
 				return `-(${value})`;
 			}
 		}
-		if (this.channel == 'rotation') {
-			for (var i = 0; i < 3; i++) {
-				if (i != axis) {
-					let l = getAxisLetter(i)
-					this.data_points.forEach(this.data_points)
-					this.set(l, negate(this.get(l)))
+		this.data_points.forEach((data_point, data_point_i) => {
+			if (this.channel == 'rotation') {
+				for (var i = 0; i < 3; i++) {
+					if (i != axis) {
+						let l = getAxisLetter(i)
+						this.set(l, negate(this.get(l, data_point_i)), data_point_i)
+					}
 				}
+			} else if (this.channel == 'position') {
+				let l = getAxisLetter(axis)
+				this.set(l, negate(this.get(l, data_point_i)), data_point_i)
 			}
-		} else if (this.channel == 'position') {
-			let l = getAxisLetter(axis)
-			this.set(l, negate(this.get(l)))
-		}
+		})
 		return this;
 	}
 	getLerp(other, axis, amount, allow_expression) {
