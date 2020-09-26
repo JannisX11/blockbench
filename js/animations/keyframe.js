@@ -1,3 +1,34 @@
+class KeyframeDataPoint {
+	constructor(keyframe) {
+		switch (keyframe.channel) {
+			case 'rotation': 	this.x = this.y = this.z = '0'; break;
+			case 'position': 	this.x = this.y = this.z = '0'; break;
+			case 'scale': 		this.x = this.y = this.z = '1'; break;
+			case 'particle': 	this.effect = this.locator = this.script = this.file = ''; break;
+			case 'sound': 		this.effect = this.file = ''; break;
+			case 'timeline': 	this.instructions = ''; break;
+		}
+	}
+	get x_string() {
+		console.log(this.x)
+		return typeof this.x == 'number' ? trimFloatNumber(this.x) : this.x;
+	}
+	set x_string(val) {
+		this.x = val;
+	}
+	get y_string() {
+		return typeof this.y == 'number' ? trimFloatNumber(this.y) : this.y;
+	}
+	set y_string(val) {
+		this.y = val;
+	}
+	get z_string() {
+		return typeof this.z == 'number' ? trimFloatNumber(this.z) : this.z;
+	}
+	set z_string(val) {
+		this.z = val;
+	}
+}
 class Keyframe {
 	constructor(data, uuid) {
 		this.type = 'keyframe'
@@ -13,18 +44,9 @@ class Keyframe {
 		if (typeof data === 'object') {
 			Merge.string(this, data, 'channel')
 			this.transform = this.channel === 'rotation' || this.channel === 'position' || this.channel === 'scale';
-			this.data_points.push(this.createDefaultDataPoint());
+			this.data_points.push(new KeyframeDataPoint(this));
 			this.extend(data)
-		}
-	}
-	createDefaultDataPoint() {
-		switch (this.channel) {
-			case 'rotation': 	return {x: '0', y: '0', z: '0'};
-			case 'position': 	return {x: '0', y: '0', z: '0'};
-			case 'scale': 		return {x: '1', y: '1', z: '1'};
-			case 'particle': 	return {effect: '', locator: '', script: '', file: ''};
-			case 'sound': 		return {effect: '', file: ''};
-			case 'timeline': 	return {instructions: ''};
+			console.log(data, this.get('x'))
 		}
 	}
 	extend(data) {
@@ -35,10 +57,11 @@ class Keyframe {
 		if (data.data_points && data.data_points.length) {
 			data.data_points.forEach((point, i) => {
 				if (!this.data_points[i]) {
-					this.data_points.push(this.createDefaultDataPoint());
+					this.data_points.push(new KeyframeDataPoint(this));
 				}
 				let this_point = this.data_points[i];
 				if (this.transform) {
+					/*
 					if (point.values != undefined) {
 						if (typeof point.values == 'number' || typeof point.values == 'string') {
 							point.x = point.y = point.z = point.values;
@@ -49,7 +72,7 @@ class Keyframe {
 							point.z = point.values[2];
 							point.w = point.values[3];
 						}
-					}
+					}*/
 					Merge.string(this_point, point, 'x')
 					Merge.string(this_point, point, 'y')
 					Merge.string(this_point, point, 'z')
@@ -328,7 +351,7 @@ class Keyframe {
 			Keyframe.properties[key].copy(this, copy)
 		}
 		this.data_points.forEach(data_point => {
-			data_point.push(Object.assign({}, data_point))
+			copy.data_points.push(Object.assign({}, data_point))
 		})
 		return copy;
 	}
@@ -589,7 +612,7 @@ BARS.defineActions(function() {
 		click: function () {
 			Undo.initEdit({keyframes: Timeline.selected})
 			Timeline.selected.forEach((kf) => {
-				kf.data_points.replace([kf.createDefaultDataPoint()]);
+				kf.data_points.replace([new KeyframeDataPoint(kf)]);
 			})
 			Undo.finishEdit('reset keyframes')
 			updateKeyframeSelection()
@@ -679,8 +702,8 @@ Interface.definePanels(function() {
 				keyframes: Timeline.selected
 			}},
 			methods: {
-				updateInput(axis, value) {
-					updateKeyframeValue(axis, value)
+				updateInput(axis, value, data_point) {
+					updateKeyframeValue(axis, value, data_point)
 				},
 				getKeyframeInfos() {
 					let list =  [tl('timeline.'+this.channel)];
@@ -711,20 +734,21 @@ Interface.definePanels(function() {
 
 					<template v-if="channel != false">
 
-						<div v-for="data_point of keyframe[0].data_points">
-							<p id="keyframe_type_label">{{ tl('panel.keyframe.type', [getKeyframeInfos()]) }}</p>
+						<p id="keyframe_type_label">{{ tl('panel.keyframe.type', [getKeyframeInfos()]) }}</p>
 
-							<div class="bar flex" id="keyframe_bar_x" v-if="data_point.animator instanceof BoneAnimator">
+						<div v-for="(data_point, data_point_i) of keyframes[0].data_points">
+
+							<div class="bar flex" id="keyframe_bar_x" v-if="keyframes[0].animator instanceof BoneAnimator">
 								<label class="color_x" style="font-weight: bolder">X</label>
-								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" :value="data_point.x.toString()" v-model="data_point.x" @change="updateInput('x', $event)" language="molang" :line-numbers="false" />
+								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.x_string" @change="updateInput('x', $event, data_point_i)" language="molang" :line-numbers="false" />
 							</div>
-							<div class="bar flex" id="keyframe_bar_y" v-if="data_point.animator instanceof BoneAnimator">
+							<div class="bar flex" id="keyframe_bar_y" v-if="keyframes[0].animator instanceof BoneAnimator">
 								<label class="color_y" style="font-weight: bolder">Y</label>
-								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" :value="data_point.y.toString()" v-model="data_point.y" @change="updateInput('y', $event)" language="molang" :line-numbers="false" />
+								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.y_string" @change="updateInput('y', $event, data_point_i)" language="molang" :line-numbers="false" />
 							</div>
-							<div class="bar flex" id="keyframe_bar_z" v-if="data_point.animator instanceof BoneAnimator">
+							<div class="bar flex" id="keyframe_bar_z" v-if="keyframes[0].animator instanceof BoneAnimator">
 								<label class="color_z" style="font-weight: bolder">Z</label>
-								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" :value="data_point.z.toString()" v-model="data_point.z" @change="updateInput('z', $event)" language="molang" :line-numbers="false" />
+								<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.z_string" @change="updateInput('z', $event, data_point_i)" language="molang" :line-numbers="false" />
 							</div>
 
 							<div class="bar flex" id="keyframe_bar_effect" v-if="channel == 'particle' || channel == 'sound'">

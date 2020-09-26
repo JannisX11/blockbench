@@ -1180,6 +1180,28 @@ const Animator = {
 				}).add()
 				//Bones
 				if (a.bones) {
+					function getKeyframeDataPoints(source) {
+						if (source instanceof Array) {
+							return [{
+								x: source[0],
+								y: source[1],
+								z: source[2],
+							}]
+						} else if (['number', 'string'].includes(typeof source)) {
+							return [{
+								x: source, y: source, z: source
+							}]
+						} else if (typeof source == 'object') {
+							let points = [];
+							if (source.pre) {
+								points.push(getKeyframeDataPoints(source.pre)[0])
+							}
+							if (source.post) {
+								points.push(getKeyframeDataPoints(source.post)[0])
+							}
+							return points;
+						}
+					}
 					for (var bone_name in a.bones) {
 						var b = a.bones[bone_name]
 						let lowercase_bone_name = bone_name.toLowerCase();
@@ -1195,14 +1217,14 @@ const Animator = {
 									ba.addKeyframe({
 										time: 0,
 										channel,
-										values: b[channel],
+										data_points: getKeyframeDataPoints(b[channel]),
 									})
 								} else if (typeof b[channel] === 'object') {
 									for (var timestamp in b[channel]) {
 										ba.addKeyframe({
 											time: parseFloat(timestamp),
 											channel,
-											values: b[channel][timestamp],
+											data_points: getKeyframeDataPoints(b[channel][timestamp]),
 										});
 									}
 								}
