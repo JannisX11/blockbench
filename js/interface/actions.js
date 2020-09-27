@@ -286,6 +286,7 @@ class Tool extends Action {
 		this.transformerMode = data.transformerMode;
 		this.animation_channel = data.animation_channel;
 		this.allowWireframe = data.allowWireframe !== false;
+		this.tool_settings = {};
 
 		if (!this.condition) {
 			this.condition = function() {
@@ -370,6 +371,7 @@ class NumSlider extends Widget {
 		this.value = 0;
 		this.width = 69;
 		this.uniqueNode = true;
+		if (data.tool_setting) this.tool_setting = data.tool_setting;
 		if (typeof data.get === 'function') this.get = data.get;
 		this.onBefore = data.onBefore;
 		this.onAfter = data.onAfter;
@@ -642,11 +644,20 @@ class NumSlider extends Widget {
 		if (this.settings && typeof this.settings.min === 'number') {
 			num = limitNumber(num, this.settings.min, this.settings.max)
 		}
-		this.value = num
+		this.value = num;
+		if (this.tool_setting) {
+			Toolbox.selected.tool_settings[this.tool_setting] = num;
+		}
 	}
 	get() {
 		//Solo Sliders only
-		return parseFloat(this.value);
+		if (this.tool_setting) {
+			return Toolbox.selected.tool_settings[this.tool_setting] != undefined
+				 ? Toolbox.selected.tool_settings[this.tool_setting]
+				 : (this.settings.default||0)
+		} else {
+			return parseFloat(this.value);
+		}
 	}
 	update() {
 		if (!BARS.condition(this.condition)) return;

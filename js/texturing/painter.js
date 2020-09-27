@@ -982,6 +982,7 @@ BARS.defineActions(function() {
 
 	new NumSlider('slider_brush_size', {
 		condition: () => (Toolbox && ['brush_tool', 'eraser', 'draw_shape_tool'].includes(Toolbox.selected.id)),
+		tool_setting: 'brush_size',
 		category: 'paint',
 		settings: {
 			min: 1, max: 50, interval: 1, default: 1,
@@ -990,6 +991,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_brush_softness', {
 		category: 'paint',
 		condition: () => (Toolbox && ['brush_tool', 'eraser'].includes(Toolbox.selected.id)),
+		tool_setting: 'brush_softness',
 		settings: {
 			min: 0, max: 100, default: 0,
 			interval: function(event) {
@@ -1008,6 +1010,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_brush_opacity', {
 		category: 'paint',
 		condition: () => (Toolbox && ['brush_tool', 'eraser', 'fill_tool', 'draw_shape_tool'].includes(Toolbox.selected.id)),
+		tool_setting: 'brush_opacity',
 		settings: {
 			min: 0, max: 100, default: 100,
 			interval: function(event) {
