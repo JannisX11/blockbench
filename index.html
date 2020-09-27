@@ -892,8 +892,8 @@
 									>
 										<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
 										<i class="material-icons" v-else>stop</i>
-										<svg class="keyframe_waveform" v-if="keyframe.channel == 'sound' && keyframe.file && waveforms[keyframe.file]" :style="{width: waveforms[keyframe.file].duration * size}">
-											<polygon :points="getWaveformPoints(waveforms[keyframe.file].samples, size)"></polygon>
+										<svg class="keyframe_waveform" v-if="keyframe.channel == 'sound' && keyframe.data_points[0].file && waveforms[keyframe.data_points[0].file]" :style="{width: waveforms[keyframe.data_points[0].file].duration * size}">
+											<polygon :points="getWaveformPoints(waveforms[keyframe.data_points[0].file].samples, size)"></polygon>
 										</svg>
 									</keyframe>
 								</div>

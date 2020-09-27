@@ -671,7 +671,7 @@ BARS.defineActions(function() {
 				resource_id: 'animation_audio',
 				extensions: ['ogg'],
 				type: 'Audio File',
-				startpath: Timeline.selected[0].file
+				startpath: Timeline.selected[0].data_points[0]?.file
 			}, function(files) {
 
 				// Todo: move to panel

@@ -970,20 +970,20 @@ class EffectAnimator extends GeneralAnimator {
 			this.sound.forEach(kf => {
 				var diff = kf.time - Timeline.time;
 				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100)) {
-					if (kf.file && !kf.cooldown) {
-						 var media = new Audio(kf.file);
-						 window._media = media
-						 media.volume = Math.clamp(settings.volume.value/100, 0, 1);
-						 media.play();
-						 Timeline.playing_sounds.push(media);
-						 media.onended = function() {
-						 	Timeline.playing_sounds.remove(media);
-						 }
+					if (kf.data_points[0]?.file && !kf.cooldown) {
+						var media = new Audio(kf.data_points[0]?.file);
+						window._media = media
+						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
+						media.play().catch(() => {});
+						Timeline.playing_sounds.push(media);
+						media.onended = function() {
+							Timeline.playing_sounds.remove(media);
+						}
 
-						 kf.cooldown = true;
-						 setTimeout(() => {
-						 	delete kf.cooldown;
-						 }, 400)
+						kf.cooldown = true;
+						setTimeout(() => {
+							delete kf.cooldown;
+						}, 400)
 					} 
 				}
 			})
@@ -992,14 +992,14 @@ class EffectAnimator extends GeneralAnimator {
 	startPreviousSounds() {
 		if (!this.muted.sound) {
 			this.sound.forEach(kf => {
-				if (kf.file && !kf.cooldown) {
+				if (kf.data_points[0]?.file && !kf.cooldown) {
 					var diff = kf.time - Timeline.time;
-					if (diff < 0 && Timeline.waveforms[kf.file] && Timeline.waveforms[kf.file].duration > -diff) {
-						var media = new Audio(kf.file);
+					if (diff < 0 && Timeline.waveforms[kf.data_points[0]?.file] && Timeline.waveforms[kf.data_points[0]?.file].duration > -diff) {
+						var media = new Audio(kf.data_points[0]?.file);
 						window._media = media
 						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 						media.currentTime = -diff;
-						media.play();
+						media.play().catch(() => {});
 						Timeline.playing_sounds.push(media);
 						media.onended = function() {
 							Timeline.playing_sounds.remove(media);
