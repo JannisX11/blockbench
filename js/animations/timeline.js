@@ -146,6 +146,8 @@ const Timeline = {
 			if (bot < 0) body.scrollTop  = Math.clamp(body.scrollTop  + speed, 0, body_inner.clientHeight - body.clientHeight + 3);
 			if (lef < 0) body.scrollLeft = body.scrollLeft - speed;
 			if (rig < 0) body.scrollLeft = Math.clamp(body.scrollLeft + speed, 0, body_inner.clientWidth - body.clientWidth);
+
+			updateKeyframeSelection()
 		},
 		end(e) {
 			if (!Timeline.selector.selecting) return false;

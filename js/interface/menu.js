@@ -147,61 +147,103 @@ class Menu {
 				if (last.length && !last.hasClass('menu_separator')) {
 					parent.append(entry)
 				}
-			} else if (typeof s === 'string' || s instanceof Action) {
-				if (typeof s === 'string') {
-					s = BarItems[s]
-				}
-				if (!s) {
-					return;
-				}
-				entry = $(s.menu_node)
-				if (BARS.condition(s.condition)) {
+				return;
+			}
+			if (typeof s == 'string' && BarItems[s]) {
+				s = BarItems[s];
+			}
+			if (!Condition(s.condition, context)) return;
 
-					entry.off('click')
-					entry.off('mouseenter mousedown')
-					entry.on('mouseenter mousedown', function(e) {
-						if (this == e.target) {
-							scope.hover(this, e)
-						}
-					})
-					//Submenu
-					if (typeof s.children == 'function' || typeof s.children == 'object') {
-						createChildList(s, entry)
-					} else {
-						entry.on('click', (e) => {s.trigger(e)})
-						//entry[0].addEventListener('click', )
+			if (s instanceof Action) {
+
+				entry = $(s.menu_node)
+
+				entry.off('click')
+				entry.off('mouseenter mousedown')
+				entry.on('mouseenter mousedown', function(e) {
+					if (this == e.target) {
+						scope.hover(this, e)
 					}
+				})
+				//Submenu
+				if (typeof s.children == 'function' || typeof s.children == 'object') {
+					createChildList(s, entry)
+				} else {
+					entry.on('click', (e) => {s.trigger(e)})
+					//entry[0].addEventListener('click', )
+				}
+				parent.append(entry)
+
+			} else if (s instanceof BarSelect) {
+				
+				if (typeof s.icon === 'function') {
+					var icon = Blockbench.getIconNode(s.icon(context), s.color)
+				} else {
+					var icon = Blockbench.getIconNode(s.icon, s.color)
+				}
+				entry = $(`<li title="${s.description||''}" menu_item="${s.id}">${tl(s.name)}</li>`)
+				entry.prepend(icon)
+
+				//Submenu
+				var children = [];
+				for (var key in s.options) {
+
+					let val = s.options[key];
+					if (val) {
+						(function() {
+							var save_key = key;
+							children.push({
+								name: s.getNameFor(key),
+								id: key,
+								icon: val.icon || ((s.value == save_key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
+								condition: val.condition,
+								click: (e) => {
+									s.set(save_key);
+									if (s.onChange) {
+										s.onChange(s, e);
+									}
+								}
+							})
+						})()
+					}
+				}
+
+				let child_count = createChildList({children}, entry)
+
+				if (child_count !== 0 || typeof s.click === 'function') {
 					parent.append(entry)
 				}
+				entry.mouseenter(function(e) {
+					scope.hover(this, e)
+				})
+
 			} else if (typeof s === 'object') {
 				
-				if (BARS.condition(s.condition, context)) {
-					let child_count;
-					if (typeof s.icon === 'function') {
-						var icon = Blockbench.getIconNode(s.icon(context), s.color)
-					} else {
-						var icon = Blockbench.getIconNode(s.icon, s.color)
-					}
-					entry = $(`<li title="${s.description||''}" menu_item="${s.id}">${tl(s.name)}</li>`)
-					entry.prepend(icon)
-					if (typeof s.click === 'function') {
-						entry.click(e => {
-							if (e.target == entry.get(0)) {
-								s.click(context, e)
-							}
-						})
-					}
-					//Submenu
-					if (typeof s.children == 'function' || typeof s.children == 'object') {
-						child_count = createChildList(s, entry)
-					}
-					if (child_count !== 0 || typeof s.click === 'function') {
-						parent.append(entry)
-					}
-					entry.mouseenter(function(e) {
-						scope.hover(this, e)
+				let child_count;
+				if (typeof s.icon === 'function') {
+					var icon = Blockbench.getIconNode(s.icon(context), s.color)
+				} else {
+					var icon = Blockbench.getIconNode(s.icon, s.color)
+				}
+				entry = $(`<li title="${s.description||''}" menu_item="${s.id}">${tl(s.name)}</li>`)
+				entry.prepend(icon)
+				if (typeof s.click === 'function') {
+					entry.click(e => {
+						if (e.target == entry.get(0)) {
+							s.click(context, e)
+						}
 					})
 				}
+				//Submenu
+				if (typeof s.children == 'function' || typeof s.children == 'object') {
+					child_count = createChildList(s, entry)
+				}
+				if (child_count !== 0 || typeof s.click === 'function') {
+					parent.append(entry)
+				}
+				entry.mouseenter(function(e) {
+					scope.hover(this, e)
+				})
 			}
 		}
 

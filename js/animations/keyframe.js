@@ -218,11 +218,19 @@ class Keyframe {
 	compileBedrockKeyframe() {
 		if (this.transform) {
 			if (this.data_points.length == 1) {
-				return this.getArray()
+				if (this.interpolation == 'linear') {
+					return this.getArray();
+				} else {
+					return {
+						post: this.getArray(),
+						lerp_mode: this.interpolation,
+					}
+				}
 			} else {
 				return {
 					pre:  this.getArray(0),
 					post: this.getArray(1),
+					lerp_mode: this.interpolation != 'linear' ? this.interpolation : undefined,
 				}
 			}
 		} else if (this.channel == 'timeline') {
@@ -237,7 +245,7 @@ class Keyframe {
 			let points = [];
 			this.data_points.forEach(data_point => {
 				if (data_point.effect) {
-					let script = kf.script || undefined;
+					let script = this.script || undefined;
 					if (script && !script.match(/;$/)) script += ';';
 					points.push({
 						effect: data_point.effect,
@@ -375,6 +383,8 @@ class Keyframe {
 		},*/
 		'change_keyframe_file',
 		'_',
+		// todo: integrate
+		'keyframe_interpolation',
 		{name: 'menu.cube.color', icon: 'color_lens', children: [
 			{icon: 'bubble_chart', name: 'generic.unset', click: function(kf) {kf.forSelected(kf2 => {kf2.color = -1}, 'change color')}},
 			{icon: 'bubble_chart', color: markerColors[0].standard, name: 'cube.color.'+markerColors[0].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 0}, 'change color')}},
@@ -391,6 +401,7 @@ class Keyframe {
 	])
 	new Property(Keyframe, 'number', 'time')
 	new Property(Keyframe, 'number', 'color', {default: -1})
+	new Property(Keyframe, 'string', 'interpolation', {default: 'linear'})
 	Keyframe.selected = [];
 
 // Misc Functions
@@ -410,6 +421,7 @@ function updateKeyframeSelection() {
 	})
 	if (Timeline.selected.length) {
 		BarItems.slider_keyframe_time.update()
+		BarItems.keyframe_interpolation.set(Timeline.selected[0].interpolation)
 	}
 	BARS.updateConditions()
 	Blockbench.dispatchEvent('update_keyframe_selection');
@@ -564,26 +576,6 @@ BARS.defineActions(function() {
 		}
 	})
 
-	new NumSlider('slider_animation_length', {
-		category: 'animation',
-		condition: () => Animator.open && Animation.selected,
-		getInterval(event) {
-			if (event && event.shiftKey) return 1;
-			return Timeline.getStep()
-		},
-		get: function() {
-			return Animation.selected.length
-		},
-		change: function(modify) {
-			Animation.selected.setLength(limitNumber(modify(Animation.selected.length), 0, 1e4))
-		},
-		onBefore: function() {
-			Undo.initEdit({animations: [Animation.selected]});
-		},
-		onAfter: function() {
-			Undo.finishEdit('Change Animation Length')
-		}
-	})
 	new NumSlider('slider_keyframe_time', {
 		category: 'animation',
 		condition: () => Animator.open && Timeline.selected.length,
@@ -605,6 +597,21 @@ BARS.defineActions(function() {
 		},
 		onAfter: function() {
 			Undo.finishEdit('move keyframes')
+		}
+	})
+	new BarSelect('keyframe_interpolation', {
+		category: 'animation',
+		condition: () => Animator.open && Timeline.selected.length,
+		options: {
+			linear: true,
+			catmullrom: true,
+		},
+		onChange: function(sel, event) {
+			Undo.initEdit({keyframes: Timeline.selected})
+			Timeline.selected.forEach((kf) => {
+				kf.interpolation = sel.value;
+			})
+			Undo.finishEdit('change keyframes interpolation')
 		}
 	})
 	new Action('reset_keyframe', {

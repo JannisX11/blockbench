@@ -1621,6 +1621,7 @@ const BARS = {
 			id: 'keyframe',
 			children: [
 				'slider_keyframe_time',
+				'keyframe_interpolation',
 				'change_keyframe_file',
 				'reset_keyframe'
 			]

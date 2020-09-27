@@ -1215,6 +1215,7 @@ const Animator = {
 										ba.addKeyframe({
 											time: parseFloat(timestamp),
 											channel,
+											interpolation: b[channel][timestamp].lerp_mode,
 											data_points: getKeyframeDataPoints(b[channel][timestamp]),
 										});
 									}
@@ -1369,6 +1370,26 @@ Blockbench.addDragHandler('animation', {
 })
 
 BARS.defineActions(function() {
+	new NumSlider('slider_animation_length', {
+		category: 'animation',
+		condition: () => Animator.open && Animation.selected,
+		getInterval(event) {
+			if (event && event.shiftKey) return 1;
+			return Timeline.getStep()
+		},
+		get: function() {
+			return Animation.selected.length
+		},
+		change: function(modify) {
+			Animation.selected.setLength(limitNumber(modify(Animation.selected.length), 0, 1e4))
+		},
+		onBefore: function() {
+			Undo.initEdit({animations: [Animation.selected]});
+		},
+		onAfter: function() {
+			Undo.finishEdit('Change Animation Length')
+		}
+	})
 	new Action('add_animation', {
 		icon: 'fa-plus-circle',
 		category: 'animation',
