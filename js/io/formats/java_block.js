@@ -140,11 +140,7 @@ var codec = new Codec('java_block', {
 		}
 		var isTexturesOnlyModel = clear_elements.length === 0 && checkExport('parent', Project.parent != '')
 		var texturesObj = {}
-		var hasUnsavedTextures = false
 		textures.forEach(function(t, i){
-			if (t.mode === 'bitmap') {
-				hasUnsavedTextures = true
-			}
 			var link = t.javaTextureLink()
 			if (t.particle) {
 				texturesObj.particle = link

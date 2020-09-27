@@ -333,30 +333,22 @@ const Timeline = {
 
 		$('#timeline_vue').on('mousewheel scroll', function(e) {
 			e.preventDefault()
-			var body = $('#timeline_body').get(0)
+			let event = e.originalEvent;
+			let body = $('#timeline_body').get(0)
 			if (event.shiftKey) {
 				body.scrollLeft += event.deltaY/4
 
 			} else if  (event.ctrlOrCmd) {
 
-				let mouse_pos = event.clientX - $(this).offset().left;
-
+				let offset = $('#timeline_body_inner').offset()
+				let offsetX = event.clientX - offset.left - Timeline.vue._data.head_width;
+				
 				var zoom = 1 - event.deltaY/600
 				let original_size = Timeline.vue._data.size
-				Timeline.vue._data.size = limitNumber(Timeline.vue._data.size * zoom, 10, 1000)
-				//let val = ((body.scrollLeft + mouse_pos) * (Timeline.vue._data.size - original_size) ) / 128
-
-				let size_ratio = Timeline.vue._data.size / original_size
-				let offset = mouse_pos - body.scrollLeft - 180
-				let val = (size_ratio-1) * offset;
-				// todo: optimize zooming in
-				body.scrollLeft += val
-				/*
-				Timeline.vue._data.size = limitNumber(Timeline.vue._data.size * zoom, 10, 1000)
-				body.scrollLeft *= zoom
-				let l = (event.offsetX / body.clientWidth) * 500 * (event.deltaY<0?1:-0.2)
-				body.scrollLeft += l
-				*/
+				let updated_size = limitNumber(Timeline.vue._data.size * zoom, 10, 1000)
+				Timeline.vue._data.size = updated_size;
+				
+				body.scrollLeft += (updated_size - original_size) * (offsetX / original_size)
 
 			} else {
 				body.scrollTop += event.deltaY/6.25

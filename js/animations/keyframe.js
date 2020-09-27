@@ -267,7 +267,6 @@ class Keyframe {
 					})
 				}
 			})
-			console.log(points)
 			return points.length <= 1 ? points[0] : points;
 		}
 	}
@@ -366,10 +365,10 @@ class Keyframe {
 	getUndoCopy(save) {
 		var copy = {
 			animator: save ? undefined : this.animator && this.animator.uuid,
-			uuid: save && this.uuid,
 			channel: this.channel,
 			data_points: []
 		}
+		if (save) copy.uuid = this.uuid;
 		for (var key in Keyframe.properties) {
 			Keyframe.properties[key].copy(this, copy)
 		}
@@ -618,7 +617,7 @@ BARS.defineActions(function() {
 	})
 	new BarSelect('keyframe_interpolation', {
 		category: 'animation',
-		condition: () => Animator.open && Timeline.selected.length,
+		condition: () => Animator.open && Timeline.selected.length && Timeline.selected.find(kf => kf.transform),
 		options: {
 			linear: true,
 			catmullrom: true,
@@ -626,7 +625,7 @@ BARS.defineActions(function() {
 		onChange: function(sel, event) {
 			Undo.initEdit({keyframes: Timeline.selected})
 			Timeline.selected.forEach((kf) => {
-				kf.interpolation = sel.value;
+				if (kf.transform) kf.interpolation = sel.value;
 			})
 			Undo.finishEdit('change keyframes interpolation')
 		}

@@ -1099,7 +1099,6 @@ Interface.definePanels(function() {
 		hoverClass: 'drag_hover',
 		drop: function(event, ui) {
 			var item = Outliner.root.findRecursive('uuid', $(ui.draggable).parent().attr('id'))
-			console.log('drop')
 			dropOutlinerObjects(item, undefined, event)
 		}
 	})

@@ -38,19 +38,35 @@ class Animation {
 		}
 		if (data.animators instanceof Object) {
 			for (var key in data.animators) {
-				var group = Group.all.findInArray( isUUID(key) ? 'uuid' : 'name', key )
-				if (group) { // todo
-					var ba = this.getBoneAnimator(group)
-					var kfs = data.animators[key]
-					if (kfs && ba) {
-						ba.rotation.empty();
-						ba.position.empty();
-						ba.scale.empty();
-						kfs.forEach(kf_data => {
-							ba.addKeyframe(kf_data, kf_data.uuid);
-						})
+				let animator_blueprint = data.animators[key];
+				// Update to 3.7
+				if (animator_blueprint instanceof Array) {
+					animator_blueprint = {
+						keyframes: animator_blueprint
 					}
 				}
+				var kfs = animator_blueprint.keyframes;
+				
+
+				var animator;
+				if (!this.animators[key]) {
+					if (key == 'effects') {
+						animator = this.animators[key] = new EffectAnimator(this);
+					} else {
+						animator = this.animators[key] = new BoneAnimator(isUUID(key) ? key : guid(), this, animator_blueprint.name)
+					}
+				} else {
+					animator = this.animators[key];
+					animator.channels.forEach(channel => {
+						animator[channel].empty()
+					})
+				}
+				if (kfs && animator) {
+					kfs.forEach(kf_data => {
+						animator.addKeyframe(kf_data, kf_data.uuid);
+					})
+				}
+
 			}
 		}
 		if (data.markers instanceof Array) {
@@ -78,15 +94,15 @@ class Animation {
 		if (Object.keys(this.animators).length) {
 			copy.animators = {}
 			for (var uuid in this.animators) {
-				var kfs = this.animators[uuid].keyframes
+				let ba = this.animators[uuid]
+				var kfs = ba.keyframes
 				if (kfs && kfs.length) {
-					if (options && options.bone_names && this.animators[uuid] instanceof BoneAnimator) {
-						var group = this.animators[uuid].getGroup();
-						uuid = group ? group.name : this.animators[uuid].name;
+					let ba_copy = copy.animators[uuid] = {
+						name: ba.name,
+						keyframes: []
 					}
-					copy.animators[uuid] = [];
 					kfs.forEach(kf => {
-						copy.animators[uuid].push(kf.getUndoCopy(save));
+						ba_copy.keyframes.push(kf.getUndoCopy(save));
 					})
 				}
 			}
@@ -490,7 +506,6 @@ class Animation {
 				</div>`
 			],
 			onConfirm: form_data => {
-				console.log(form_data, vue_data)
 				dialog.hide()
 				if (
 					form_data.loop != this.loop
@@ -667,6 +682,8 @@ class GeneralAnimator {
 	}
 	toggleMuted(channel) {
 		this.muted[channel] = !this.muted[channel];
+		if (this instanceof BoneAnimator) Animator.preview();
+		return this;
 	}
 	scrollTo() {
 		var el = $(`#timeline_body_inner > li[uuid=${this.uuid}]`).get(0)
@@ -718,13 +735,13 @@ class BoneAnimator extends GeneralAnimator {
 		return this.group
 	}
 	select(group_is_selected) {
-		if (this.getGroup().locked) return this;
+		if (!this.getGroup() || this.group.locked) return this;
 
 		var duplicates;
 		for (var key in this.animation.animators) {
 			this.animation.animators[key].selected = false;
 		}
-		if (group_is_selected !== true) {
+		if (group_is_selected !== true && this.group) {
 			this.group.select();
 		}
 		function iterate(arr) {
@@ -785,7 +802,6 @@ class BoneAnimator extends GeneralAnimator {
 			})
 		} else if (values == null) {
 			var ref = this.interpolate(keyframe.channel, allow_expression)
-			console.log(ref)
 			if (ref) {
 				let e = 1e2
 				ref.forEach((r, i) => {
@@ -1320,7 +1336,6 @@ const Animator = {
 			Undo.finishEdit('import animations', {animations: new_animations})
 			return;
 		}
-		console.log(form)
 		let dialog = new Dialog({
 			id: 'animation_import',
 			title: 'dialog.animation_import.title',
@@ -1380,7 +1395,6 @@ Blockbench.addDragHandler('animation', {
 	readtype: 'text',
 	condition: {modes: ['animate']},
 }, function(files) {
-	console.log(files)
 	Animator.importFile(files[0])
 })
 
