@@ -106,7 +106,9 @@ Modes.options.start.select()
 
 loadInstalledPlugins().then(plugins => {
 	if (isApp) {
-		loadOpenWithBlockbenchFile()
+		loadOpenWithBlockbenchFile();
+	} else {
+		loadInfoFromURL();
 	}
 })
 
