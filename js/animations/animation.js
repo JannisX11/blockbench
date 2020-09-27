@@ -769,21 +769,23 @@ class BoneAnimator extends GeneralAnimator {
 
 		if (values instanceof Array) {
 			keyframe.extend({
-				x: values[0],
-				y: values[1],
-				z: values[2]
+				data_points: [{
+					x: values[0],
+					y: values[1],
+					z: values[2]
+				}]
 			})
-			if (values[3]) {
-				keyframe.extend({w: values[3], isQuaternion: true})
-			}
 		} else if (typeof values === 'number' || typeof values === 'string') {
 			keyframe.extend({
-				x: values,
-				y: values,
-				z: values
+				data_points: [{
+					x: values,
+					y: values,
+					z: values
+				}]
 			})
 		} else if (values == null) {
 			var ref = this.interpolate(keyframe.channel, allow_expression)
+			console.log(ref)
 			if (ref) {
 				let e = 1e2
 				ref.forEach((r, i) => {
@@ -792,11 +794,11 @@ class BoneAnimator extends GeneralAnimator {
 					}
 				})
 				keyframe.extend({
-					x: ref[0],
-					y: ref[1],
-					z: ref[2],
-					w: ref.length === 4 ? ref[3] : undefined,
-					isQuaternion: ref.length === 4
+					data_points: [{
+						x: ref[0],
+						y: ref[1],
+						z: ref[2],
+					}]
 				})
 			}
 		} else {
@@ -879,9 +881,9 @@ class BoneAnimator extends GeneralAnimator {
 			//
 		} else {
 			let no_interpolations = Blockbench.hasFlag('no_interpolations')
+			let alpha = Math.lerp(before.time, after.time, time)
 
 			if (no_interpolations || (before.interpolation == Keyframe.interpolation.linear && after.interpolation == Keyframe.interpolation.linear)) {
-				let alpha = Math.lerp(before.time, after.time, time)
 				if (no_interpolations) {
 					alpha = Math.round(alpha)
 				}
@@ -898,9 +900,9 @@ class BoneAnimator extends GeneralAnimator {
 				let after_plus = sorted[before_index+2];
 
 				result = [
-					before.getCatmullromLerp(before_plus, before, after, after_plus, 'x'),
-					before.getCatmullromLerp(before_plus, before, after, after_plus, 'y'),
-					before.getCatmullromLerp(before_plus, before, after, after_plus, 'z'),
+					before.getCatmullromLerp(before_plus, before, after, after_plus, 'x', alpha),
+					before.getCatmullromLerp(before_plus, before, after, after_plus, 'y', alpha),
+					before.getCatmullromLerp(before_plus, before, after, after_plus, 'z', alpha),
 				]
 			}
 		}

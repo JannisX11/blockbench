@@ -684,6 +684,11 @@
 		margin-left: -3px;
 		pointer-events: none;
 	}
+	#timeline_body .keyframe i.keyframe_icon_smaller {
+		font-size: 11pt;
+		margin-top: 4px;
+		margin-left: -1px;
+	}
 	#timeline_body .animator_head_bar .keyframe {
 		z-index: 1;
 	}

@@ -173,7 +173,7 @@ class Keyframe {
 			return calc + (other.calc(axis, other_data_point) - calc) * amount;
 		}
 	}
-	getCatmullromLerp(before_plus, before, after, after_plus, axis) {
+	getCatmullromLerp(before_plus, before, after, after_plus, axis, alpha) {
 		var vectors = [];
 
 		if (before_plus) vectors.push(new THREE.Vector2(before_plus.time, before_plus.calc(axis, 0)))
@@ -182,7 +182,7 @@ class Keyframe {
 		if (after_plus) vectors.push(new THREE.Vector2(after_plus.time, after_plus.calc(axis, 0)))
 
 		var curve = new THREE.SplineCurve(vectors);
-		let time = Math.lerp(vectors[0].x, vectors.last().x, Timeline.time)
+		let time = (alpha + (before_plus ? 1 : 0)) / (vectors.length-1);
 
 		return curve.getPoint(time).y;
 	}
