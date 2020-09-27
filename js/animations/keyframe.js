@@ -30,19 +30,19 @@ class KeyframeDataPoint {
 		if (this.instructions != undefined)	Merge.string(this, data, 'instructions')
 	}
 	get x_string() {
-		return typeof this.x == 'number' ? trimFloatNumber(this.x) : this.x;
+		return typeof this.x == 'number' ? trimFloatNumber(this.x) || '0' : this.x;
 	}
 	set x_string(val) {
 		this.x = val;
 	}
 	get y_string() {
-		return typeof this.y == 'number' ? trimFloatNumber(this.y) : this.y;
+		return typeof this.y == 'number' ? trimFloatNumber(this.y) || '0' : this.y;
 	}
 	set y_string(val) {
 		this.y = val;
 	}
 	get z_string() {
-		return typeof this.z == 'number' ? trimFloatNumber(this.z) : this.z;
+		return typeof this.z == 'number' ? trimFloatNumber(this.z) || '0' : this.z;
 	}
 	set z_string(val) {
 		this.z = val;
@@ -172,6 +172,19 @@ class Keyframe {
 			let calc = this.calc(axis, this_data_point);
 			return calc + (other.calc(axis, other_data_point) - calc) * amount;
 		}
+	}
+	getCatmullromLerp(before_plus, before, after, after_plus, axis) {
+		var vectors = [];
+
+		if (before_plus) vectors.push(new THREE.Vector2(before_plus.time, before_plus.calc(axis, 0)))
+		if (before) 	vectors.push(new THREE.Vector2(before.time, before.calc(axis, 0)))
+		if (after) 		vectors.push(new THREE.Vector2(after.time, after.calc(axis, 0)))
+		if (after_plus) vectors.push(new THREE.Vector2(after_plus.time, after_plus.calc(axis, 0)))
+
+		var curve = new THREE.SplineCurve(vectors);
+		let time = Math.lerp(vectors[0].x, vectors.last().x, Timeline.time)
+
+		return curve.getPoint(time).y;
 	}
 	getArray(data_point = 0) {
 		var arr = [
@@ -403,6 +416,10 @@ class Keyframe {
 	new Property(Keyframe, 'number', 'color', {default: -1})
 	new Property(Keyframe, 'string', 'interpolation', {default: 'linear'})
 	Keyframe.selected = [];
+	Keyframe.interpolation = {
+		linear: 'linear',
+		catmullrom: 'catmullrom',
+	}
 
 // Misc Functions
 function updateKeyframeValue(axis, value, data_point) {

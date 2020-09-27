@@ -878,17 +878,30 @@ class BoneAnimator extends GeneralAnimator {
 		} else if (!before && !after) {
 			//
 		} else {
-			let alpha = Math.lerp(before.time, after.time, time)
-			if (Blockbench.hasFlag('no_interpolations')) {
-				alpha = Math.round(alpha)
-			}
-			result = [
-				before.getLerp(after, 'x', alpha, allow_expression),
-				before.getLerp(after, 'y', alpha, allow_expression),
-				before.getLerp(after, 'z', alpha, allow_expression)
-			]
-			if (before.isQuaternion && after.isQuaternion) {
-				result[3] = before.getLerp(after, 'q', alpha, allow_expression)
+			let no_interpolations = Blockbench.hasFlag('no_interpolations')
+
+			if (no_interpolations || (before.interpolation == Keyframe.interpolation.linear && after.interpolation == Keyframe.interpolation.linear)) {
+				let alpha = Math.lerp(before.time, after.time, time)
+				if (no_interpolations) {
+					alpha = Math.round(alpha)
+				}
+				result = [
+					before.getLerp(after, 'x', alpha, allow_expression),
+					before.getLerp(after, 'y', alpha, allow_expression),
+					before.getLerp(after, 'z', alpha, allow_expression)
+				]
+			} else {
+
+				let sorted = this[channel].slice().sort((kf1, kf2) => (kf1.time - kf2.time));
+				let before_index = sorted.indexOf(before);
+				let before_plus = sorted[before_index-1];
+				let after_plus = sorted[before_index+2];
+
+				result = [
+					before.getCatmullromLerp(before_plus, before, after, after_plus, 'x'),
+					before.getCatmullromLerp(before_plus, before, after, after_plus, 'y'),
+					before.getCatmullromLerp(before_plus, before, after, after_plus, 'z'),
+				]
 			}
 		}
 		if (result && result.type === 'keyframe') {
