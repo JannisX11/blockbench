@@ -103,7 +103,6 @@ class ModelFormat {
 		Undo.history.length = 0;
 		Undo.index = 0;
 		ModelMeta.export_path = '';
-		ModelMeta.animation_path = '';
 
 		var old_format = Format
 		this.select(true)
@@ -192,7 +191,6 @@ class ModelFormat {
 		//Animation Mode
 		if (!Format.animation_mode && old_format.animation_mode) {
 			Animator.animations.length = 0;
-			ModelMeta.animation_path = '';
 		}
 		Canvas.updateAllPositions()
 		Canvas.updateAllBones()
@@ -886,14 +884,8 @@ BARS.defineActions(function() {
 						Format.codec.export()
 					}
 				}
-				if (Format.animation_mode) {
-					if (ModelMeta.animation_path) {
-						Blockbench.writeFile(ModelMeta.animation_path, {
-							content: autoStringify(Animator.buildFile())
-						})
-					} else if (Animator.animations.length) {
-						BarItems.export_animation_file.trigger()
-					}
+				if (Format.animation_mode && Animation.all.length) {
+					BarItems.save_all_animations.trigger();
 				}
 			} else {
 				saveTextures()

@@ -237,7 +237,8 @@ class Animation {
 				name: (Project.geometry_name||'model')+'.animation',
 				startpath: this.path,
 				content: compileJSON(content),
-			}, () => {
+			}, (real_path) => {
+				this.path == real_path;
 				this.saved = true;
 			})
 		}
@@ -1309,14 +1310,13 @@ const Animator = {
 		}
 		return new_animations
 	},
-	buildFile(options) {
-		if (typeof options !== 'object') {
-			options = false
-		}
+	buildFile(path) {
 		var animations = {}
 		Animator.animations.forEach(function(a) {
-			let ani_tag = a.compileBedrockAnimation();
-			animations[a.name] = ani_tag;
+			if (a.path == path) {
+				let ani_tag = a.compileBedrockAnimation();
+				animations[a.name] = ani_tag;
+			}
 		})
 		return {
 			format_version: '1.8.0',
@@ -1354,6 +1354,44 @@ const Animator = {
 			}
 		})
 		dialog.show();
+	},
+	exportAnimationFile(path) {
+		let filter_path = path || '';
+		let content = Animator.buildFile(filter_path, true);
+
+		if (isApp && !path) {
+			path = ModelMeta.export_path
+			var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
+			var m_index = path.search(exp)
+			if (m_index > 3) {
+				path = path.substr(0, m_index) + osfs + 'animations' + osfs +  pathToName(ModelMeta.export_path, true)
+			}
+			path = path.replace(/(\.geo)?\.json$/, '.animation.json')
+		}
+
+		if (isApp && path && fs.existsSync(path)) {
+			Animator.animations.forEach(function(a) {
+				if (a.path == filter_path) {
+					a.save();
+				}
+			})
+		} else {
+			Blockbench.export({
+				resource_id: 'animation',
+				type: 'JSON Animation',
+				extensions: ['json'],
+				name: (Project.geometry_name||'model')+'.animation',
+				startpath: path,
+				content: autoStringify(content),
+			}, new_path => {
+				Animator.animations.forEach(function(a) {
+					if (a.path == filter_path) {
+						a.path = new_path;
+						a.saved = true;
+					}
+				})
+			})
+		}
 	}
 }
 
@@ -1453,37 +1491,17 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	new Action('export_animation_file', {
+	new Action('save_all_animations', {
 		icon: 'save',
 		category: 'animation',
 		click: function () {
-			var content = autoStringify(Animator.buildFile())
-			var path = ModelMeta.animation_path
-
-			if (isApp && !path) {
-				path = ModelMeta.export_path
-				var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
-				var m_index = path.search(exp)
-				if (m_index > 3) {
-					path = path.substr(0, m_index) + osfs + 'animations' + osfs +  pathToName(ModelMeta.export_path, true)
-				}
-				if (path.match(/\.geo\.json$/)) {
-					path = path.replace(/\.geo\.json$/, '.animation.json')
-				} else {
-					path = path.replace(/\.json$/, '.animation.json')
-				}
-			}
-			Blockbench.export({
-				resource_id: 'animation',
-				type: 'JSON Animation',
-				extensions: ['json'],
-				name: (Project.geometry_name||'model')+'.animation',
-				startpath: path,
-				content: content,
-			}, (real_path) => {
-				ModelMeta.animation_path = real_path;
+			let paths = [];
+			Animation.all.forEach(animation => {
+				paths.safePush(animation.path);
 			})
-
+			paths.forEach(path => {
+				Animator.exportAnimationFile(path);
+			})
 		}
 	})
 
@@ -1543,14 +1561,8 @@ Interface.definePanels(function() {
 					this.files_folded[key] = !this.files_folded[key];
 					this.$forceUpdate();
 				},
-				saveFile(key, file) {
-					if (key && isApp) {
-						file.animations.forEach(animation => {
-							animation.save();
-						})
-					} else {
-						
-					}
+				saveFile(path) {
+					Animator.exportAnimationFile(path)
 				},
 				addAnimation(path) {
 					let other_animation = Animation.all.find(a => a.path == path)

@@ -63,7 +63,7 @@ class ModelProject {
 		this.overrides = null;
 	
 		Blockbench.display_settings = display = {};
-		ModelMeta.save_path = ModelMeta.export_path = ModelMeta.animation_path = ModelMeta.name = '';
+		ModelMeta.save_path = ModelMeta.export_path = ModelMeta.name = '';
 		ModelMeta.saved = true;
 		Prop.project_saved = true;
 		Prop.added_models = 0;

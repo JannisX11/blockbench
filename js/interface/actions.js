@@ -569,7 +569,7 @@ class NumSlider extends Widget {
 			if (typeof this.onBefore === 'function') {
 				this.onBefore()
 			}
-
+			text = text.replace(/(?<=\d),(?=\d)/, '.');
 			if (text.match(/^-?\d*(\.\d+)?$/gm)) {
 				var number = parseFloat(text);
 				if (isNaN(number)) {
