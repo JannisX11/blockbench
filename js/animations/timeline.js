@@ -789,6 +789,7 @@ BARS.defineActions(function() {
 				{name: 'timeline.rotation',	icon: channels.rotation ? on : off, click() {channels.rotation = !channels.rotation}},
 				{name: 'timeline.position',	icon: channels.position ? on : off, click() {channels.position = !channels.position}},
 				{name: 'timeline.scale', 	icon: channels.scale 	? on : off, click() {channels.scale	 = !channels.scale}},
+				'_',
 				{name: 'action.timeline_focus.hide_empty', icon: channels.hide_empty ? on : off, click() {channels.hide_empty	 = !channels.hide_empty}},
 			]
 		}
