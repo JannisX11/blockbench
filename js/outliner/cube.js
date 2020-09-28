@@ -289,6 +289,7 @@ class Cube extends NonGroup {
 				uv_offset: copy.uv_offset,
 				faces: copy.faces,
 				mirror_uv: copy.mirror_uv,
+				autouv: copy.autouv,
 			}
 		}
 		for (let face_id in copy.faces) {

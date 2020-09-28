@@ -17,6 +17,7 @@ class Texture {
 		this.img = 0;
 		this.width = 0;
 		this.height = 0;
+		this.currentFrame = 0;
 		this.saved = true;
 
 		this.mode = isApp ? 'link' : 'bitmap';
@@ -785,6 +786,7 @@ class Texture {
 						Project.texture_height = Project.texture_height * (formResult.height / old_height);
 						Canvas.updateAllUVs()
 					}
+					updateSelection()
 					return new_canvas
 
 				})
@@ -995,7 +997,6 @@ class Texture {
 				click: function(texture) { texture.openMenu()}
 			}
 	])
-	Texture.prototype.currentFrame = 0;
 	Texture.all = textures;
 	Texture.getDefault = function() {
 		if (Texture.selected && Texture.all.includes(Texture.selected)) {
@@ -1356,6 +1357,17 @@ Interface.definePanels(function() {
 			methods: {
 				openMenu(event) {
 					Interface.Panels.textures.menu.show(event)
+				},
+				getDescription(texture) {
+					if (texture.error) {
+						return texture.getErrorMessage()
+					} else {
+						let message = texture.width + ' x ' + texture.height + 'px';
+						if (texture.frameCount > 1) {
+							message += ` - ${texture.currentFrame+1}/${texture.frameCount}`
+						}
+						return message;
+					}
 				}
 			},
 			template: `
@@ -1379,10 +1391,7 @@ Interface.definePanels(function() {
 							</div>
 							<div class="texture_description_wrapper">
 								<div class="texture_name">{{ texture.name }}</div>
-								<div class="texture_res">{{ texture.error
-									? texture.getErrorMessage()
-									: texture.width + ' x ' + texture.height + 'px'
-								}}</div>
+								<div class="texture_res">{{ getDescription(texture) }}</div>
 							</div>
 							<i class="material-icons texture_visibility_icon" v-if="texture.particle">bubble_chart</i>
 							<i class="material-icons texture_particle_icon clickable"
