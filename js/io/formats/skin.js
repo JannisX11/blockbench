@@ -184,18 +184,25 @@ function generateTemplate(width = 64, height = 64, cubes, name = 'name', eyes, l
 	})
 
 	var canvas = document.createElement('canvas')
+	var ctx = canvas.getContext('2d');
 	canvas.width = width;
 	canvas.height = height;
 
-	Cube.all.forEach((cube, i) => {
-		let template_cube = cubes[i];
-		if (layer_template || !template_cube.layer) {
-			TextureGenerator.paintCubeBoxTemplate(cube, texture, canvas, null, template_cube.layer);
-		}
-	})
+	if (Project.box_uv) {
+		Cube.all.forEach((cube, i) => {
+			let template_cube = cubes[i];
+			if (layer_template || !template_cube.layer) {
+				TextureGenerator.paintCubeBoxTemplate(cube, texture, canvas, null, template_cube.layer);
+			}
+		})
+	} else if (cubes[0] && !cubes[0].layer) {
+		ctx.fillStyle = TextureGenerator.face_data.up.c1;
+		ctx.fillRect(0, 0, width, height)
+		ctx.fillStyle = TextureGenerator.face_data.up.c2;
+		ctx.fillRect(1, 1, width-2, height-2)
+	}
 	if (eyes) {
 		var res_multiple = canvas.width/Project.texture_width;
-		var ctx = canvas.getContext('2d');
 		ctx.fillStyle = '#cdefff';
 		eyes.forEach(eye => {
 			ctx.fillRect(
@@ -503,6 +510,7 @@ skin_presets.flat_texture = `{
 				{
 					"origin": [-8, 0, -8],
 					"size": [16, 1, 16],
+					"layer": true,
 					"uv": {
 						"up": {"uv": [16, 16], "uv_size": [-16, -16]}
 					}

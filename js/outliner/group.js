@@ -101,8 +101,8 @@ class Group extends OutlinerElement {
 			})
 		}
 		if (Animator.open) {
-			if (Animator.selected) {
-				Animator.selected.getBoneAnimator().select(true)
+			if (Animation.selected) {
+				Animation.selected.getBoneAnimator().select(true)
 			}
 		}
 		updateSelection()
@@ -145,8 +145,8 @@ class Group extends OutlinerElement {
 	}
 	unselect() {
 		if (this.selected === false) return;
-		if (Animator.open && Animator.selected) {
-			var ba = Animator.selected.animators[this.uuid];
+		if (Animator.open && Animation.selected) {
+			var ba = Animation.selected.animators[this.uuid];
 			if (ba) {
 				ba.selected = false
 			}

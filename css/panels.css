@@ -1,6 +1,33 @@
-.panel {
-    padding-bottom: 4px;
-}
+/*Panel*/
+	.panel {
+		padding-bottom: 4px;
+	}
+	.panel.grow > .panel_inside {
+		flex-grow: 1;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	.panel[order]::before {
+		content: '';
+		height: 2px;
+		left: 0;
+		right: 0;
+		background: var(--color-accent);
+		z-index: 3;
+		display: block;
+		position: absolute;
+	}
+	.panel[order] {
+		position: relative;
+	}
+	.panel[order="-1"]::before {
+		margin-top: -2px;
+	}
+	.panel[order="1"]::before {
+		bottom: 0px;
+	}
 
 /*Display*/
 
@@ -419,33 +446,35 @@
 		flex-grow: 0;
 		flex-shrink: 0;
 	}
-	.animation > .animation_name {
+	.animation > label {
 		flex-grow: 1;
 		flex-shrink: 1;
-		user-select: none;
+		overflow: hidden;
 	}
-	.animation .animation_play_toggle {
+	.in_list_button {
 		width: 22px;
 		color: var(--color-text);
 	}
-	.animation .animation_play_toggle:hover {
+	.in_list_button:hover {
 		color: var(--color-light);
 	}
-	.animation .animation_save_button {
+	.in_list_button {
 		width: 22px;
 		color: var(--color-text);
 	}
-	.animation .animation_save_button:hover {
+	.in_list_button:hover {
 		color: var(--color-light);
 	}
-	.animation .animation_save_button:not(.clickable) {
+	.in_list_button.unclickable {
 		opacity: 0.5;
 		color: var(--color-text) !important;
+		pointer-events: none;
 	}
 
 	.animation_file_head {
 		height: 28px;
 		padding: 2px;
+		padding-right: 8px;
 		display: flex;
 	}
 	.animation_file_head:hover {
@@ -456,20 +485,102 @@
 		width: 21px;
 		margin-top: 4px;
 	}
+	.animation_file_head > label {
+		flex-grow: 1;
+		flex-shrink: 1;
+		overflow: hidden;
+	}
 
+/* Keyframe Panel */
 	.panel#keyframe .tabs_small label {
 		font-size: 1em;
 		height: 30px;
 		width: 25%;
 	}
-	.panel .bar.flex label {
-		margin: 3px 8px;
-	    min-width: 20px;
-	    text-align: center;
+	#keyframe_type_label {
+		display: flex;
+		padding: 4px 8px;
+    	height: 30px;
+	}
+	#keyframe_type_label label {
+		flex: 1 0 40px;
+	}
+	.keyframe_data_point_header {
+		display: flex;
+		padding: 2px 8px;
+		height: 26px;
+	}
+	.keyframe_data_point_header label {
+		flex: 0 0 auto;
+	}
+	.flex_fill_line {
+		flex: 1 0 0;
+		border-bottom: 2px solid var(--color-text);
+		height: 0;
+		margin: 0 10px;
+		margin-top: 11px;
+		opacity: 0.5;
+	}
+	.panel#keyframe .bar.flex {
+		height: auto;
+		min-height: 30px;
+	}
+	.panel#keyframe .bar.flex label {
+		padding: 3px 8px;
+		min-width: 20px;
+		text-align: center;
+		flex-shrink: 0;
+		background-color: var(--color-button);
 	}
 	.panel#keyframe .bar input.dark_bordered {
-		width: calc(100% - 45px);
+		width: 100%;
+		flex-shrink: 1;
 	}
+	.panel#keyframe .list {
+		max-height: 260px;
+		overflow-y: auto;
+		background-color: transparent;
+	}
+
+	.prism-editor-wrapper {
+		caret-color: var(--color-text);
+	}
+	.molang_input {
+		overflow-y: hidden;
+		min-height: 30px;
+		height: auto;
+	}
+	.molang_input pre {
+		padding: 2px;
+		height: 100%;
+		min-height: 28px;
+		background-color: transparent;
+		border-radius: 0;
+		cursor: default;
+	}
+	.molang_input pre code {
+		color: #bec2ca;
+		padding: 0;
+		cursor: auto;
+	}
+
+	.molang_input pre .token.punctuation {
+		color: #5ba8c5
+	}
+	.molang_input pre .token.operator, .molang_input pre .token.keyword {
+		color: #fc2f40
+	}
+	.molang_input pre .token.number, .molang_input pre .token.boolean {
+		color: #b99cff
+	}
+	.molang_input pre .token.function-name {
+		color: #94e400
+	}
+	.molang_input pre .token.selector {
+		color: #92dcff;
+	}
+
+
 
 /*Timeline*/
 	#timeline {
@@ -564,7 +675,7 @@
 		z-index: 3;
 		text-align: center;
 		width: 13.5px;
-		height: 22px;
+		height: 23px;
 	}
 	#timeline_body .keyframe i {
 		margin-top: 2px;
@@ -573,8 +684,14 @@
 		margin-left: -3px;
 		pointer-events: none;
 	}
+	#timeline_body .keyframe i.keyframe_icon_smaller {
+		font-size: 11pt;
+		margin-top: 4px;
+		margin-left: -1px;
+	}
 	#timeline_body .animator_head_bar .keyframe {
 		z-index: 1;
+		pointer-events: none;
 	}
 	#timeline_body .animator_head_bar .keyframe i {
 		transform: none;
@@ -582,7 +699,7 @@
 		color: var(--color-grid);
 	}
 	#timeline_body .keyframe.selected {
-		color: var(--color-accent);
+		color: var(--color-accent) !important;
 		z-index: 4;
 	}
 
@@ -717,6 +834,18 @@
 	}
 	#timeline_empty_head {
 		flex-grow: 1;
+	}
+
+	.keyframe .keyframe_waveform {
+		height: 23px;
+		width: 8000px;
+		position: absolute;
+		top: 0;
+	}
+	.keyframe .keyframe_waveform > polygon {
+		fill: var(--color-grid);
+		stroke: none;
+		stroke-width: 0;
 	}
 
 

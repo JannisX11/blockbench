@@ -428,3 +428,39 @@ BARS.defineActions(function() {
 		click: () => (Chat.toggle())
 	})
 })
+
+Interface.definePanels(function() {
+
+	Interface.Panels.chat = new Panel({
+		id: 'chat',
+		icon: 'chat',
+		condition: {method() {return EditSession.active}},
+		toolbars: {},
+		onResize: t => {
+		},
+		menu: new Menu([
+			'toggle_chat'
+		]),
+		component: {
+			data() {return Chat},
+			template: `
+				<div>
+					<div class="bar next_to_title" id="chat_title_bar"></div>
+					<ul id="chat_history" v-if="expanded">
+						<li v-for="msg in history">
+							<b v-if="msg.showAuthor()" v-bind:class="{self: msg.self}">{{ msg.author }}:</b>
+							<span class="text" v-bind:style="{color: msg.hex || 'inherit'}" v-html="msg.html"></span>
+							<span class="timestamp">{{ msg.timestamp }}</span>
+						</li>
+					</ul>
+					<div id="chat_bar">
+						<input type="text" id="chat_input" class="dark_bordered f_left" maxlength="512">
+						<i class="material-icons" onclick="Chat.send()">send</i>
+					</div>
+				</div>
+			`
+		}
+	})
+	BarItems.toggle_chat.toElement('#chat_title_bar')
+	
+})

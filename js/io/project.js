@@ -63,20 +63,20 @@ class ModelProject {
 		this.overrides = null;
 	
 		Blockbench.display_settings = display = {};
-		ModelMeta.save_path = ModelMeta.export_path = ModelMeta.animation_path = ModelMeta.name = '';
+		ModelMeta.save_path = ModelMeta.export_path = ModelMeta.name = '';
 		ModelMeta.saved = true;
 		Prop.project_saved = true;
 		Prop.added_models = 0;
 		Canvas.updateAll();
 		Outliner.vue.$forceUpdate();
-		texturelist.$forceUpdate();
+		Interface.Panels.textures.inside_vue.$forceUpdate();
 		Undo.history.empty();
 		Undo.index = 0;
 		Undo.current_save = null;
 		Painter.current = {};
 		Animator.animations.purge();
 		Timeline.animators.purge();
-		Animator.selected = undefined;
+		Animation.selected = undefined;
 		$('#var_placeholder_area').val('');
 	}
 }
@@ -232,7 +232,7 @@ BARS.defineActions(function() {
 							Texture.all.forEach((tex, i) => {
 								tex.visible = i < 3
 							})
-							texturelist.$forceUpdate()
+							Interface.Panels.textures.inside_vue.$forceUpdate()
 							Canvas.updateLayeredTextures();
 						}
 					}

@@ -286,6 +286,7 @@ class Tool extends Action {
 		this.transformerMode = data.transformerMode;
 		this.animation_channel = data.animation_channel;
 		this.allowWireframe = data.allowWireframe !== false;
+		this.tool_settings = {};
 
 		if (!this.condition) {
 			this.condition = function() {
@@ -370,6 +371,7 @@ class NumSlider extends Widget {
 		this.value = 0;
 		this.width = 69;
 		this.uniqueNode = true;
+		if (data.tool_setting) this.tool_setting = data.tool_setting;
 		if (typeof data.get === 'function') this.get = data.get;
 		this.onBefore = data.onBefore;
 		this.onAfter = data.onAfter;
@@ -400,6 +402,7 @@ class NumSlider extends Widget {
 		}
 		if (this.keybind) {
 			this.keybind.shift = null;
+			this.keybind.label = this.keybind.getText();
 		}
 		var scope = this;
 		var css_color = 'xyz'.includes(this.color) ? `var(--color-axis-${this.color})` : this.color;
@@ -413,34 +416,60 @@ class NumSlider extends Widget {
 		this.jq_outer = $(this.node)
 		this.jq_inner = this.jq_outer.find('.nslide');
 
-		//Slide
-		this.jq_inner.draggable({
-			revert: true,
-			axis: 'x',
-			revertDuration: 0,
-			helper: function () {return '<div id="nslide_head"><span id="nslide_offset"></span></div>'},
-			opacity: 0.8,
-			appendTo: 'body',
-			cursor: "none",
-			start: function(event, ui) {
-				if (typeof scope.onBefore === 'function') {
-					scope.onBefore()
+		this.jq_inner
+		.on('mousedown touchstart', async (event) => {
+			if (scope.jq_inner.hasClass('editing')) return;
+			
+			let drag_event = await new Promise((resolve, reject) => {
+				function move(e2) {
+					removeEventListeners(document, 'mousemove touchmove', move);
+					removeEventListeners(document, 'mouseup touchend', stop);
+					resolve(e2);
 				}
-				scope.sliding = true;
-				scope.pre = 0;
-				scope.sliding_start_pos = event.clientX;
-				scope.last_value = scope.value
-			},
-			drag: function(event, ui) {
-				scope.slide(event, ui)
-			},
-			stop: function() {
-				delete scope.sliding;
+				function stop(e2) {
+					removeEventListeners(document, 'mousemove touchmove', move);
+					removeEventListeners(document, 'mouseup touchend', stop);
+					if (event.target == event.target) scope.startInput(event)
+					resolve(false);
+				}
+				addEventListeners(document, 'mousemove touchmove', move);
+				addEventListeners(document, 'mouseup touchend', stop);
+			})
+			if (!drag_event) return;
+
+			if (typeof scope.onBefore === 'function') {
+				scope.onBefore()
+			}
+			convertTouchEvent(drag_event)
+			let clientX = drag_event.clientX;
+			scope.sliding = true;
+			scope.pre = 0;
+			scope.sliding_start_pos = drag_event.clientX;
+			scope.last_value = scope.value
+
+			if (!drag_event.touches) scope.jq_inner.get(0).requestPointerLock();
+
+			function move(e) {
+				convertTouchEvent(e)
+				if (drag_event.touches) {
+					clientX = e.clientX;
+				} else {
+					clientX += Math.clamp(e.movementX, -5, 5);
+				}
+				scope.slide(clientX, e)
+			}
+			function stop(e) {
+				removeEventListeners(document, 'mousemove touchmove', move);
+				removeEventListeners(document, 'mouseup touchend', stop);
+				document.exitPointerLock()
 				Blockbench.setStatusBarText();
+				delete scope.sliding;
 				if (typeof scope.onAfter === 'function') {
 					scope.onAfter(scope.value - scope.last_value)
 				}
 			}
+			addEventListeners(document, 'mousemove touchmove', move);
+			addEventListeners(document, 'mouseup touchend', stop);
 		})
 		//Input
 		.keypress(function (e) {
@@ -463,14 +492,6 @@ class NumSlider extends Widget {
 		})
 		.focusout(function() {
 			scope.stopInput()
-		})
-		.click(function(event) {
-			if (event.target != this) return;
-			scope.jq_inner.find('.nslide_arrow').remove()
-			scope.jq_inner.attr('contenteditable', 'true')
-			scope.jq_inner.addClass('editing')
-			scope.jq_inner.focus()
-			document.execCommand('selectAll')
 		})
 		.dblclick(function(event) {
 			if (event.target != this) return;
@@ -500,6 +521,13 @@ class NumSlider extends Widget {
 			scope.jq_outer.find('.nslide_arrow').remove()
 		})
 	}
+	startInput(e) {
+		this.jq_inner.find('.nslide_arrow').remove()
+		this.jq_inner.attr('contenteditable', 'true')
+		this.jq_inner.addClass('editing')
+		this.jq_inner.focus()
+		document.execCommand('selectAll')
+	}
 	setWidth(width) {
 		if (width) {
 			this.width = width
@@ -518,8 +546,8 @@ class NumSlider extends Widget {
 			return 0;
 		}
 	}
-	slide(event, ui) {
-		var offset = Math.round((event.clientX - this.sliding_start_pos)/30)
+	slide(clientX, event) {
+		var offset = Math.round((clientX - this.sliding_start_pos)/30)
 		var difference = (offset - this.pre) * this.getInterval(event);
 		this.pre = offset;
 
@@ -534,7 +562,6 @@ class NumSlider extends Widget {
 	}
 	stopInput() {
 		if (!this.jq_inner.hasClass('editing')) return;
-		var scope = this;
 		var text = this.jq_inner.text();
 		if (this.last_value !== text) {
 			var first_token = text.substr(0, 1);
@@ -542,7 +569,7 @@ class NumSlider extends Widget {
 			if (typeof this.onBefore === 'function') {
 				this.onBefore()
 			}
-
+			text = text.replace(/(?<=\d),(?=\d)/, '.');
 			if (text.match(/^-?\d*(\.\d+)?$/gm)) {
 				var number = parseFloat(text);
 				if (isNaN(number)) {
@@ -585,15 +612,17 @@ class NumSlider extends Widget {
 		}
 	}
 	trigger(event) {
+		if (!Condition(this.condition)) return false;
 		if (typeof this.onBefore === 'function') {
 			this.onBefore()
 		}
-		var difference = this.getInterval(false) * event.shiftKey ? -1 : 1;
+		var difference = this.getInterval(false) * (event.shiftKey != event.deltaY > 0) ? -1 : 1;
 		this.change(n => n + difference)
 		this.update()
 		if (typeof this.onAfter === 'function') {
 			this.onAfter(difference)
 		}
+		return true;
 	}
 	setValue(value, trim) {
 		if (typeof value === 'string') {
@@ -615,11 +644,20 @@ class NumSlider extends Widget {
 		if (this.settings && typeof this.settings.min === 'number') {
 			num = limitNumber(num, this.settings.min, this.settings.max)
 		}
-		this.value = num
+		this.value = num;
+		if (this.tool_setting) {
+			Toolbox.selected.tool_settings[this.tool_setting] = num;
+		}
 	}
 	get() {
 		//Solo Sliders only
-		return parseFloat(this.value);
+		if (this.tool_setting) {
+			return Toolbox.selected.tool_settings[this.tool_setting] != undefined
+				 ? Toolbox.selected.tool_settings[this.tool_setting]
+				 : (this.settings.default||0)
+		} else {
+			return parseFloat(this.value);
+		}
 	}
 	update() {
 		if (!BARS.condition(this.condition)) return;
@@ -860,8 +898,9 @@ class BarText extends Widget {
 		return this;
 	}
 	trigger(event) {
+		if (!Condition(this.condition)) return false;
 		Blockbench.showQuickMessage(this.text)
-		return this;
+		return true;
 	}
 }
 class ColorPicker extends Widget {
@@ -1278,8 +1317,8 @@ const BARS = {
 				click: function () {
 					if (Modes.edit || Modes.paint) {
 						renameOutliner()
-					} else if (Prop.active_panel == 'animations' && Animator.selected) {
-						Animator.selected.rename()
+					} else if (Prop.active_panel == 'animations' && Animation.selected) {
+						Animation.selected.rename()
 					}
 				}
 			})
@@ -1316,8 +1355,8 @@ const BARS = {
 						TickUpdates.selection = true;
 						Undo.finishEdit('delete elements')
 
-					} else if (Prop.active_panel == 'animations' && Animator.selected) {
-						Animator.selected.remove(true)
+					} else if (Prop.active_panel == 'animations' && Animation.selected) {
+						Animation.selected.remove(true)
 
 					} else if (Animator.open) {
 						removeSelectedKeyframes()
@@ -1327,15 +1366,15 @@ const BARS = {
 			new Action('duplicate', {
 				icon: 'content_copy',
 				category: 'edit',
-				condition: () => (Animator.selected && Modes.animate) || (Modes.edit && (selected.length || Group.selected)),
+				condition: () => (Animation.selected && Modes.animate) || (Modes.edit && (selected.length || Group.selected)),
 				keybind: new Keybind({key: 68, ctrl: true}),
 				click: function () {
 					if (Modes.animate) {
-						if (Animator.selected && Prop.active_panel == 'animations') {
-							var copy = Animator.selected.getUndoCopy();
+						if (Animation.selected && Prop.active_panel == 'animations') {
+							var copy = Animation.selected.getUndoCopy();
 							var animation = new Animation(copy);
 							animation.createUniqueName();
-							Animator.animations.splice(Animator.animations.indexOf(Animator.selected)+1, 0, animation)
+							Animator.animations.splice(Animator.animations.indexOf(Animation.selected)+1, 0, animation)
 							animation.add(true).select();
 						}
 					} else if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {
@@ -1592,6 +1631,7 @@ const BARS = {
 			id: 'keyframe',
 			children: [
 				'slider_keyframe_time',
+				'keyframe_interpolation',
 				'change_keyframe_file',
 				'reset_keyframe'
 			]
@@ -1897,6 +1937,8 @@ const Keybinds = {
 		localStorage.setItem('keybindings', JSON.stringify(Keybinds.stored))
 	},
 	reset() {
+		let answer = confirm(tl('message.reset_keybindings'));
+		if (!answer) return;
 		for (var category in Keybinds.structure) {
 			var entries = Keybinds.structure[category].actions
 			if (entries && entries.length) {

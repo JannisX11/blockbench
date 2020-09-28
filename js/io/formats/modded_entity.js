@@ -175,12 +175,47 @@ var codec = new Codec('modded_entity', {
 		})
 		if (loose_cubes.length) {
 			let group = new Group({
-				name: 'bb_main',
-				is_catch_bone: true
+				name: 'bb_main'
 			});
+			group.is_catch_bone = true;
+			group.createUniqueName()
 			all_groups.push(group)
 			group.children.replace(loose_cubes)
 		}
+
+		all_groups.slice().forEach(group => {
+			let subgroups = [];
+			let group_i = all_groups.indexOf(group);
+			group.children.forEachReverse(cube => {
+				if (!cube.rotation.allEqual(0)) {
+					let sub = subgroups.find(s => {
+						if (!s.rotation.equals(cube.rotation)) return false;
+						if (s.rotation.filter(n => n).length > 1) {
+							return s.origin.equals(cube.origin)
+						} else {
+							for (var i = 0; i < 3; i++) {
+								if (s.rotation[i] == 0 && s.origin[i] != cube.origin[i]) return false;
+							}
+							return true;
+						}
+					})
+					if (!sub) {
+						sub = new Group({
+							rotation: cube.rotation,
+							origin: cube.origin,
+							name: `${cube.name}_r1`
+						})
+						sub.parent = group;
+						sub.is_rotation_subgroup = true;
+						sub.createUniqueName(all_groups)
+						subgroups.push(sub)
+						group_i++;
+						all_groups.splice(group_i, 0, sub);
+					}
+					sub.children.push(cube);
+				}
+			})
+		})
 
 		let model = Templates.get('file');
 
@@ -243,7 +278,7 @@ var codec = new Codec('modded_entity', {
 
 						let cube_snippets = [];
 						for (var cube of group.children) {
-							if (cube instanceof Cube === false || !cube.export) continue;
+							if (cube instanceof Cube === false || !cube.export || (!cube.rotation.allEqual(0) && !group.is_rotation_subgroup)) continue;
 
 							let c_snippet = Templates.get('cube')
 								.replace(R('bone'), group.name)
@@ -321,7 +356,6 @@ var codec = new Codec('modded_entity', {
 		function parseScheme(scheme, input) {
 			scheme = scheme.replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\./g, '\\.');
 			var parts = scheme.split('$');
-			var regexstring = '';
 			var results = [];
 			var location = 0;
 			var i = 0;
@@ -632,6 +666,7 @@ var format = new ModelFormat({
 	single_texture: true,
 	bone_rig: true,
 	centered_grid: true,
+	rotate_cubes: true,
 	integer_size: true
 })
 //Object.defineProperty(format, 'integer_size', {get: _ => Templates.get('integer_size')})

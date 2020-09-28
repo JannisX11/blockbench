@@ -17,6 +17,7 @@ class Texture {
 		this.img = 0;
 		this.width = 0;
 		this.height = 0;
+		this.currentFrame = 0;
 		this.saved = true;
 
 		this.mode = isApp ? 'link' : 'bitmap';
@@ -785,6 +786,7 @@ class Texture {
 						Project.texture_height = Project.texture_height * (formResult.height / old_height);
 						Canvas.updateAllUVs()
 					}
+					updateSelection()
 					return new_canvas
 
 				})
@@ -995,7 +997,6 @@ class Texture {
 				click: function(texture) { texture.openMenu()}
 			}
 	])
-	Texture.prototype.currentFrame = 0;
 	Texture.all = textures;
 	Texture.getDefault = function() {
 		if (Texture.selected && Texture.all.includes(Texture.selected)) {
@@ -1230,16 +1231,6 @@ TextureAnimator = {
 	}
 }
 
-onVueSetup(function() {
-	texturelist = new Vue({
-		el: '#texture_list',
-		data: {
-			textures: Texture.all
-		}
-	})
-	texturelist._data.elements = textures
-})
-
 BARS.defineActions(function() {
 	new Action('import_texture', {
 		icon: 'library_add',
@@ -1344,5 +1335,88 @@ BARS.defineActions(function() {
 		click: function () {
 			TextureAnimator.toggle()
 		}
+	})
+})
+
+Interface.definePanels(function() {
+
+	Interface.Panels.textures = new Panel({
+		id: 'textures',
+		icon: 'fas.fa-images',
+		growable: true,
+		condition: {modes: ['edit', 'paint']},
+		toolbars: {
+			head: Toolbars.texturelist
+		},
+		component: {
+			name: 'panel-keyframe',
+			components: {VuePrismEditor},
+			data() { return {
+				textures: Texture.all
+			}},
+			methods: {
+				openMenu(event) {
+					Interface.Panels.textures.menu.show(event)
+				},
+				getDescription(texture) {
+					if (texture.error) {
+						return texture.getErrorMessage()
+					} else {
+						let message = texture.width + ' x ' + texture.height + 'px';
+						if (texture.frameCount > 1) {
+							message += ` - ${texture.currentFrame+1}/${texture.frameCount}`
+						}
+						return message;
+					}
+				}
+			},
+			template: `
+				<div>
+					<div class="toolbar_wrapper texturelist"></div>
+					<ul id="texture_list" class="list" @contextmenu.stop.prevent="openMenu($event)">
+						<li
+							v-for="texture in textures"
+							v-bind:class="{ selected: texture.selected, particle: texture.particle}"
+							v-bind:texid="texture.uuid"
+							:key="texture.uuid"
+							class="texture"
+							v-on:click.stop="texture.select($event)"
+							v-on:dblclick="texture.openMenu($event)"
+							@contextmenu.prevent.stop="texture.showContextMenu($event)"
+						>
+							<div class="texture_icon_wrapper">
+								<img v-bind:texid="texture.id" v-bind:src="texture.source" class="texture_icon" width="48px" alt="" v-if="texture.show_icon" />
+								<i class="material-icons texture_error" v-bind:title="texture.getErrorMessage()" v-if="texture.error">error_outline</i>
+								<i class="texture_movie fa fa_big fa-film" title="Animated Texture" v-if="texture.frameCount > 1"></i>
+							</div>
+							<div class="texture_description_wrapper">
+								<div class="texture_name">{{ texture.name }}</div>
+								<div class="texture_res">{{ getDescription(texture) }}</div>
+							</div>
+							<i class="material-icons texture_visibility_icon" v-if="texture.particle">bubble_chart</i>
+							<i class="material-icons texture_particle_icon clickable"
+								v-bind:class="{icon_off: !texture.visible}"
+								v-if="Project.layered_textures"
+								@click="texture.toggleVisibility()"
+								@dblclick.stop
+							>
+								{{ texture.visible ? 'visibility' : 'visibility_off' }}
+							</i>
+							<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture.saved}" @click="texture.save()">
+								<template v-if="texture.saved">check_circle</template>
+								<template v-else>save</template>
+							</i>
+						</li>
+					</ul>
+				</div>
+			`
+		},
+		menu: new Menu([
+			'import_texture',
+			'create_texture',
+			'reload_textures',
+			'change_textures_folder',
+			'save_textures'
+		])
 	})
 })

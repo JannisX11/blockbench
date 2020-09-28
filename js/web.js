@@ -14,6 +14,13 @@ function initializeWebApp() {
 	if (!Blockbench.isMobile) {
 		$('#web_download_button').show()
 	}
+
+	if (Blockbench.browser == 'firefox') {
+		document.body.style.imageRendering = 'crisp-edges'
+	}
+}
+
+function loadInfoFromURL() {
 	if (location.hash.substr(1, 8) == 'session=') {
 		EditSession.dialog()
 		$('#edit_session_token').val(location.hash.substr(9))
@@ -33,11 +40,8 @@ function initializeWebApp() {
 			}
 		})
 	}
-	if (Blockbench.browser == 'firefox') {
-		document.body.style.imageRendering = 'crisp-edges'
-	}
-
 }
+
 setInterval(function() {
 	Prop.zoom = Math.round(devicePixelRatio*100)
 }, 500)

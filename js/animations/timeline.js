@@ -30,18 +30,18 @@ TimelineMarker.prototype.menu = new Menu([
 	{icon: 'flag', color: markerColors[6].standard, name: 'cube.color.'+markerColors[6].name, click: function(marker) {marker.color = 6;}},
 	{icon: 'flag', color: markerColors[7].standard, name: 'cube.color.'+markerColors[7].name, click: function(marker) {marker.color = 7;}},
 	{icon: 'delete', name: 'generic.delete', click: function(marker) {
-		if (Animator.selected) Animator.selected.markers.remove(marker);
+		if (Animation.selected) Animation.selected.markers.remove(marker);
 	}}
 ])
 
 const Timeline = {
 	animators: [],
-	selected: [],//frames
+	selected: Keyframe.selected,//frames
 	playing_sounds: [],
 	playback_speed: 100,
 	time: 0,
 	get second() {return Timeline.time},
-	get animation_length() {return Animator.selected ? Animator.selected.length : 0;},
+	get animation_length() {return Animation.selected ? Animation.selected.length : 0;},
 	playing: false,
 	selector: {
 		start: [0, 0],
@@ -93,7 +93,7 @@ const Timeline = {
 				.css('top', rect.ay + 'px');
 			//Keyframes
 			var epsilon = 6;
-			var focus = Timeline.vue._data.focus_channel;
+			let {channels} = Timeline.vue._data;
 			rect.ax -= epsilon;
 			rect.ay -= epsilon;
 			rect.bx += epsilon;
@@ -114,15 +114,18 @@ const Timeline = {
 					kf.selected = false;
 					if (kf.time > min_time &&
 						kf.time < max_time &&
-						(kf.channel == focus || !focus || focus == 'used')
+						channels[kf.channel] != false &&
+						(!channels.hide_empty || animator[kf.channel].length)
 					) {
-						var channel_index = focus ? 0 : animator.channels.indexOf(kf.channel);
-						if (focus == 'used') {
-							for (var channel of animator.channels) {
-								if (kf.channel == channel) break;
+						var channel_index = 0 //animator.channels.indexOf(kf.channel);
+						
+						for (var channel of animator.channels) {
+							if (kf.channel == channel) break;
+							if (channels[channel] != false && (!channels.hide_empty || animator[channel].length)) {
 								channel_index++;
 							}
 						}
+
 						height = offset + channel_index*24 + 36;
 						if (height > rect.ay && height < rect.by) {
 							kf.selected = true;
@@ -146,6 +149,8 @@ const Timeline = {
 			if (bot < 0) body.scrollTop  = Math.clamp(body.scrollTop  + speed, 0, body_inner.clientHeight - body.clientHeight + 3);
 			if (lef < 0) body.scrollLeft = body.scrollLeft - speed;
 			if (rig < 0) body.scrollLeft = Math.clamp(body.scrollLeft + speed, 0, body_inner.clientWidth - body.clientWidth);
+
+			updateKeyframeSelection()
 		},
 		end(e) {
 			if (!Timeline.selector.selecting) return false;
@@ -190,16 +195,17 @@ const Timeline = {
 		if ((f+'').length === 1) {f = '0'+f}
 		$('#timeline_corner').text(m + ':' + s  + ':' + f)
 	},
-	snapTime(time) {
+	snapTime(time, animation) {
 		//return time;
 		if (time == undefined || isNaN(time)) {
 			time = Timeline.time;
 		}
-		var fps = Math.clamp(settings.animation_snap.value, 1, 120);
+		if (!animation) animation = Animation.selected;
+		var fps = Math.clamp(animation ? animation.snapping : settings.animation_snap.value, 1, 120);
 		return Math.clamp(Math.round(time*fps)/fps, 0);
 	},
 	getStep() {
-		return 1/Math.clamp(settings.animation_snap.value, 1, 120);
+		return 1/Math.clamp(Animation.selected ? Animation.selected.snapping : settings.animation_snap.value, 1, 120);
 	},
 	setup() {
 		$('#timeline_body').mousedown(Timeline.selector.down)
@@ -210,9 +216,9 @@ const Timeline = {
 
 			if (e.target.id == 'timeline_endbracket') {
 
-				if (Animator.selected) {
+				if (Animation.selected) {
 					Timeline.dragging_endbracket = true;
-					Undo.initEdit({animations: [Animator.selected]});
+					Undo.initEdit({animations: [Animation.selected]});
 				} else {
 					Blockbench.showQuickMessage('message.no_animation_selected');
 				}
@@ -244,7 +250,7 @@ const Timeline = {
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Timeline.snapTime(offset / Timeline.vue._data.size)
 				
-				Animator.selected.setLength(time)
+				Animation.selected.setLength(time)
 				Timeline.revealTime(time)
 
 			}
@@ -261,11 +267,18 @@ const Timeline = {
 			}
 		})
 		//Keyframe inputs
-		$('.keyframe_input').click(e => {
-			Undo.initEdit({keyframes: Timeline.selected})
-		}).focusout(e => {
-			Undo.finishEdit('edit keyframe')
+		
+		document.addEventListener('focus', event => {
+			if (event.target && event.target.parentElement && event.target.parentElement.classList.contains('keyframe_input')) {
+				Undo.initEdit({keyframes: Timeline.selected.slice()})
+			}
+		}, true)
+		document.addEventListener('focusout', event => {
+			if (event.target && event.target.parentElement && event.target.parentElement.classList.contains('keyframe_input')) {
+				Undo.finishEdit('edit keyframe')
+			}
 		})
+		
 		//Enter Time
 		$('#timeline_corner').click(e => {
 			if ($('#timeline_corner').attr('contenteditable') == 'true') return;
@@ -323,30 +336,22 @@ const Timeline = {
 
 		$('#timeline_vue').on('mousewheel scroll', function(e) {
 			e.preventDefault()
-			var body = $('#timeline_body').get(0)
+			let event = e.originalEvent;
+			let body = $('#timeline_body').get(0)
 			if (event.shiftKey) {
 				body.scrollLeft += event.deltaY/4
 
 			} else if  (event.ctrlOrCmd) {
 
-				let mouse_pos = event.clientX - $(this).offset().left;
-
+				let offset = $('#timeline_body_inner').offset()
+				let offsetX = event.clientX - offset.left - Timeline.vue._data.head_width;
+				
 				var zoom = 1 - event.deltaY/600
 				let original_size = Timeline.vue._data.size
-				Timeline.vue._data.size = limitNumber(Timeline.vue._data.size * zoom, 10, 1000)
-				//let val = ((body.scrollLeft + mouse_pos) * (Timeline.vue._data.size - original_size) ) / 128
-
-				let size_ratio = Timeline.vue._data.size / original_size
-				let offset = mouse_pos - body.scrollLeft - 180
-				let val = (size_ratio-1) * offset;
-				// todo: optimize zooming in
-				body.scrollLeft += val
-				/*
-				Timeline.vue._data.size = limitNumber(Timeline.vue._data.size * zoom, 10, 1000)
-				body.scrollLeft *= zoom
-				let l = (event.offsetX / body.clientWidth) * 500 * (event.deltaY<0?1:-0.2)
-				body.scrollLeft += l
-				*/
+				let updated_size = limitNumber(Timeline.vue._data.size * zoom, 10, 1000)
+				Timeline.vue._data.size = updated_size;
+				
+				body.scrollLeft += (updated_size - original_size) * (offsetX / original_size)
 
 			} else {
 				body.scrollTop += event.deltaY/6.25
@@ -417,6 +422,7 @@ const Timeline = {
 	},
 	getMaxLength() {
 		var max_length = ($('#timeline_body').width()-8) / Timeline.vue._data.size;
+		if (Animation.selected) max_length = Math.max(max_length, Animation.selected.length)
 		Timeline.keyframes.forEach((kf) => {
 			max_length = Math.max(max_length, kf.time)
 		})
@@ -450,15 +456,13 @@ const Timeline = {
 		while (substeps > 8) {
 			substeps /= 2;
 		}
-		//substeps = Math.round(substeps)
-
 
 		var i = 0;
 		while (i < Timeline.vue._data.length) {
 			Timeline.vue._data.timecodes.push({
 				time: i,
 				width: step,
-				substeps: substeps,
+				substeps,
 				text: Math.round(i*100)/100
 			})
 			i += step;
@@ -469,7 +473,7 @@ const Timeline = {
 		$('#timeline_time').css('left', -scroll_amount+'px')
 	},
 	unselect(e) {
-		if (!Animator.selected) return;
+		if (!Animation.selected) return;
 		Timeline.keyframes.forEach((kf) => {
 			if (kf.selected) {
 				Timeline.selected.remove(kf)
@@ -479,32 +483,39 @@ const Timeline = {
 		TickUpdates.keyframe_selection = true;
 	},
 	start() {
-		if (!Animator.selected) return;
-		Animator.selected.getMaxLength()
+		if (!Animation.selected) return;
+		Animation.selected.getMaxLength()
 		Timeline.pause()
 		Timeline.playing = true
 		BarItems.play_animation.setIcon('pause')
+		Timeline.last_frame_timecode = new Date().getMilliseconds();
 		Timeline.interval = setInterval(Timeline.loop, 100/6)
-		if (Animator.selected.loop == 'hold' && Timeline.time >= (Animator.selected.length||1e3)) {
+		if (Animation.selected.loop == 'hold' && Timeline.time >= (Animation.selected.length||1e3)) {
 			Timeline.setTime(0)
+		}
+		if (Timeline.time > 0) {
+			Animator.animations.forEach(animation => {
+				if (animation.playing && animation.animators.effects) {
+					animation.animators.effects.startPreviousSounds();
+				}
+			})
 		}
 		Timeline.loop()
 	},
 	loop() {
 		Animator.preview()
-		if (Animator.selected && Timeline.time < (Animator.selected.length||1e3)) {
+		if (Animation.selected && Timeline.time < (Animation.selected.length||1e3)) {
 
-			let new_time = (Animator.selected && Animator.selected.anim_time_update)
-						 ? Molang.parse(Animator.selected.anim_time_update)
-						 : Timeline.time + (1/60);
+			let new_time = Molang.parse( (Animation.selected && Animation.selected.anim_time_update) || 'query.anim_time + query.delta_time')
 			Timeline.setTime(Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100));
+			Timeline.last_frame_timecode = new Date().getMilliseconds();
 
 		} else {
-			if (Animator.selected.loop == 'once') {
+			if (Animation.selected.loop == 'once') {
 				Timeline.setTime(0)
 				Animator.preview()
 				Timeline.pause()
-			} else if (Animator.selected.loop == 'hold') {
+			} else if (Animation.selected.loop == 'hold') {
 				Timeline.pause()
 			} else {
 				Timeline.setTime(0)
@@ -526,6 +537,47 @@ const Timeline = {
 		})
 		Timeline.playing_sounds.empty();
 	},
+
+	waveforms: {},
+	waveform_sample_rate: 60,
+	async visualizeAudioFile(path) {
+
+		if (!Timeline.waveforms[path]) {
+			Timeline.waveforms[path] = {
+				samples: [],
+				duration: 0
+			};
+		}
+		let {samples} = Timeline.waveforms[path];
+
+		let audioContext = new AudioContext()
+		let response = await fetch(path);
+		let arrayBuffer = await response.arrayBuffer();
+		let audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+		let data_array = audioBuffer.getChannelData(0);
+
+		Timeline.waveforms[path].duration = audioBuffer.duration;
+		
+		// Sample
+		let sample_count = Math.ceil(audioBuffer.duration * Timeline.waveform_sample_rate);
+		samples.splice(0, samples.length);
+		for (var i = 0; i < sample_count; i++) {
+			samples.push(0);
+		}
+		for (var i = 0; i < data_array.length; i++) {
+			let sample_index = Math.floor((i / data_array.length) * sample_count);
+			samples[sample_index] += Math.abs(data_array[i]);
+		}
+
+		// Normalize
+		let max = Math.max(...samples);
+		samples.forEach((v, i) => samples[i] = v / max);
+		
+		Timeline.vue.$forceUpdate();
+
+		return samples;
+	},
+
 	get keyframes() {
 		var keyframes = [];
 		Timeline.animators.forEach(animator => {
@@ -559,8 +611,15 @@ onVueSetup(function() {
 			timecodes: [],
 			animators: Timeline.animators,
 			markers: [],
+			waveforms: Timeline.waveforms,
 			focus_channel: null,
-			playhead: Timeline.time
+			playhead: Timeline.time,
+			channels: {
+				rotation: true,
+				position: true,
+				scale: true,
+				hide_empty: false,
+			}
 		},
 		methods: {
 			toggleAnimator(animator) {
@@ -568,6 +627,19 @@ onVueSetup(function() {
 			},
 			removeAnimator(animator) {
 				Timeline.animators.remove(animator);
+			},
+			getColor(index) {
+				if (index == -1 || index == undefined) return;
+				return markerColors[index].standard;
+			},
+			getWaveformPoints(samples, size) {
+				let height = 23;
+				let points = [`0,${height}`];
+				samples.forEach((sample, i) => {
+					points.push(`${(i + 0.5) / Timeline.waveform_sample_rate * size},${(1 - sample) * height}`);
+				})
+				points.push(`${(samples.length) / Timeline.waveform_sample_rate * size},${height}`)
+				return points.join(' ');
 			}
 		}
 	})
@@ -582,7 +654,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		click: function () {
 			
-			if (!Animator.selected) {
+			if (!Animation.selected) {
 				Blockbench.showQuickMessage('message.no_animation_selected')
 				return;
 			}
@@ -650,7 +722,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		keybind: new Keybind({key: 35}),
 		click: function () {
-			Timeline.setTime(Animator.selected ? Animator.selected.length : 0)
+			Timeline.setTime(Animation.selected ? Animation.selected.length : 0)
 			Animator.preview()
 		}
 	})
@@ -660,9 +732,9 @@ BARS.defineActions(function() {
 		category: 'animation',
 		condition: {modes: ['animate']},
 		click: function () {
-			if (!Animator.selected) return;
-			for (var uuid in Animator.selected.animators) {
-				var ba = Animator.selected.animators[uuid]
+			if (!Animation.selected) return;
+			for (var uuid in Animation.selected.animators) {
+				var ba = Animation.selected.animators[uuid]
 			    if (ba && ba.keyframes.length) {
 			        ba.addToTimeline();
 			    }
@@ -695,24 +767,31 @@ BARS.defineActions(function() {
 		category: 'animation',
 		condition: {modes: ['animate']},
 		click: function () {
-			if (!Animator.selected) return;
-			if (!Animator.selected.animators.effects) {
-				var ea = Animator.selected.animators.effects = new EffectAnimator(Animator.selected);
+			if (!Animation.selected) return;
+			if (!Animation.selected.animators.effects) {
+				var ea = Animation.selected.animators.effects = new EffectAnimator(Animation.selected);
 			}
-			Animator.selected.animators.effects.select()
+			Animation.selected.animators.effects.select()
 		}
 	})
-	new BarSelect('timeline_focus', {
-		options: {
-			all: true,
-			used: true,
-			rotation: tl('timeline.rotation'),
-			position: tl('timeline.position'),
-			scale: tl('timeline.scale'),
+	new Action('timeline_focus', {
+		icon: 'fas.fa-filter',
+		category: 'animation',
+		condition: {modes: ['animate']},
+		click: function (e) {
+			new Menu(this.children()).open(e.target)
 		},
-		onChange: function(slider) {
-			var val = slider.get();
-			Timeline.vue._data.focus_channel = val != 'all' ? val : null;
+		children: function() {
+			let on = 'fas.fa-check-square';
+			let off = 'far.fa-square';
+			let {channels} = Timeline.vue._data;
+			return [
+				{name: 'timeline.rotation',	icon: channels.rotation ? on : off, click() {channels.rotation = !channels.rotation}},
+				{name: 'timeline.position',	icon: channels.position ? on : off, click() {channels.position = !channels.position}},
+				{name: 'timeline.scale', 	icon: channels.scale 	? on : off, click() {channels.scale	 = !channels.scale}},
+				'_',
+				{name: 'action.timeline_focus.hide_empty', icon: channels.hide_empty ? on : off, click() {channels.hide_empty	 = !channels.hide_empty}},
+			]
 		}
 	})
 	new Action('add_marker', {
@@ -721,23 +800,23 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		keybind: new Keybind({ctrl: true, key: 77}),
 		click: function (event) {
-			if (!Animator.selected) {
+			if (!Animation.selected) {
 				Blockbench.showQuickMessage('message.no_animation_selected')
 				return;
 			}
 			var time = Timeline.snapTime();
 			var original_marker;
-			for (var m of Animator.selected.markers) {
+			for (var m of Animation.selected.markers) {
 				if (Math.abs(m.time - time) < 0.01) {
 					original_marker = m;
 					break;
 				}
 			}
 			if (original_marker) {
-				Animator.selected.markers.remove(original_marker);
+				Animation.selected.markers.remove(original_marker);
 			} else {
 				let marker = new TimelineMarker({time});
-				Animator.selected.markers.push(marker);
+				Animation.selected.markers.push(marker);
 			}
 		}
 	})

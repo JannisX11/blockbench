@@ -2,7 +2,6 @@ var osfs = '/'
 var selected = [];
 var prev_side = 'north';
 var uv_clipboard;
-var outliner, texturelist;
 var pe_list_data = []
 var open_dialog = false;
 var open_interface = false;

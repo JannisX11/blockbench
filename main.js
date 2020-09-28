@@ -22,7 +22,8 @@ function createWindow(second_instance) {
 		webPreferences: {
 			webgl: true,
 			webSecurity: true,
-			nodeIntegration: true
+			nodeIntegration: true,
+			enableRemoteModule: true
 		}
 	})
 	if (!orig_win) orig_win = win;
@@ -113,17 +114,23 @@ function createWindow(second_instance) {
 	})
 	if (second_instance === true) {
 		win.webContents.second_instance = true;
-
 	}
+	return win;
 }
+
+app.commandLine.appendSwitch('ignore-gpu-blacklist')
+app.commandLine.appendSwitch('enable-accelerated-video')
 
 app.on('second-instance', function (event, argv, cwd) {
 	process.argv = argv
 	createWindow(true)
 })
-
-app.commandLine.appendSwitch('ignore-gpu-blacklist')
-app.commandLine.appendSwitch('enable-accelerated-video')
+app.on('open-file', function (event, path) {
+	process.argv[process.argv.length-1 || 1] = path;
+	if (orig_win) {
+		createWindow(true)
+	}
+})
 
 ipcMain.on('change-main-color', (event, arg) => {
 	all_wins.forEach(win => {
@@ -136,30 +143,36 @@ app.on('ready', () => {
 
 	createWindow()
 
-	autoUpdater.autoInstallOnAppQuit = true;
-	autoUpdater.autoDownload = false;
+	if (process.execPath && process.execPath.match(/electron\.\w+$/)) {
 
-	autoUpdater.on('update-available', (a) => {
-		console.log('update-available', a)
-		ipcMain.on('allow-auto-update', () => {
-			autoUpdater.downloadUpdate()
+		console.log('[Blockbench] Launching in development mode')
+
+	} else {
+
+		autoUpdater.autoInstallOnAppQuit = true;
+		autoUpdater.autoDownload = false;
+
+		autoUpdater.on('update-available', (a) => {
+			console.log('update-available', a)
+			ipcMain.on('allow-auto-update', () => {
+				autoUpdater.downloadUpdate()
+			})
+			orig_win.webContents.send('update-available');
 		})
-		orig_win.webContents.send('update-available');
-	})
-	autoUpdater.on('update-downloaded', (a) => {
-		console.log('update-downloaded', a)
-		orig_win.webContents.send('update-downloaded', a)
-	})
-	autoUpdater.on('error', (a) => {
-		console.log('update-error', a)
-		orig_win.webContents.send('update-error', a)
-	})
-	autoUpdater.on('download-progress', (a) => {
-		console.log('update-progress', a)
-		orig_win.webContents.send('update-progress', a)
-	})
-
-	autoUpdater.checkForUpdates()
+		autoUpdater.on('update-downloaded', (a) => {
+			console.log('update-downloaded', a)
+			orig_win.webContents.send('update-downloaded', a)
+		})
+		autoUpdater.on('error', (a) => {
+			console.log('update-error', a)
+			orig_win.webContents.send('update-error', a)
+		})
+		autoUpdater.on('download-progress', (a) => {
+			console.log('update-progress', a)
+			orig_win.webContents.send('update-progress', a)
+		})
+		autoUpdater.checkForUpdates().catch(err => {})
+	}
 })
 
 app.on('window-all-closed', () => {
