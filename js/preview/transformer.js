@@ -911,6 +911,8 @@
 				Group.selected.mesh.getWorldPosition(this.position);
 				if (Toolbox.selected.id == 'resize_tool') {
 					Transformer.rotation_ref = Group.selected.mesh;
+				} else if (Toolbox.selected.id == 'move_tool' && Group.selected.ik_enabled && Group.selected.ik_chain_length) {
+					delete Transformer.rotation_ref;
 				} else {
 					Transformer.rotation_ref = Group.selected.mesh.parent;
 				}
@@ -1359,8 +1361,6 @@
 						Transformer.bones.forEach((bone, i) => {
 							var keyframe = scope.keyframes[i];
 							if (keyframe) {
-
-								var bone = copy_bone.original;
 
 								let euler = new THREE.Euler()
 								let q = new THREE.Quaternion()
