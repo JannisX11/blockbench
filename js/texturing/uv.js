@@ -861,7 +861,7 @@ class UVEditor {
 			})
 
 		} else {
-			var trim = v => Math.round(v*1000+0.3)/1000;
+			var trim = v => Math.round(v * this.grid) / this.grid;
 			var pixelSize = this.inner_width/this.getResolution(0);
 
 			var position = this.jquery.size.position()

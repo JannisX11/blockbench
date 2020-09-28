@@ -701,7 +701,7 @@ var codec = new Codec('bedrock', {
 	},
 	parse(data, path) {
 		pe_list_data.length = 0
-		Formats.bedrock.select()
+		if (Format != Formats.bedrock) Formats.bedrock.select()
 
 		var geometries = []
 		for (var geo of data['minecraft:geometry']) {
