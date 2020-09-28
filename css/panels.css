@@ -691,6 +691,7 @@
 	}
 	#timeline_body .animator_head_bar .keyframe {
 		z-index: 1;
+		pointer-events: none;
 	}
 	#timeline_body .animator_head_bar .keyframe i {
 		transform: none;

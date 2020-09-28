@@ -846,21 +846,23 @@
 										<i class="material-icons">remove</i>
 									</div>
 								</div>
-								<div class="keyframe_section" v-if="!animator.expanded">
-									<keyframe
-										v-for="keyframe in animator.keyframes"
-										v-bind:style="{left: (8 + keyframe.time * size) + 'px'}"
-										class="keyframe"
-										v-bind:id="'_'+keyframe.uuid"
-									>
-										<i class="material-icons">lens</i>
-									</keyframe>
+								<div class="keyframe_section">
+									<template v-for="channel in animator.channels" v-if="!(animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length))">
+										<keyframe
+											v-for="keyframe in animator[channel]"
+											v-bind:style="{left: (8 + keyframe.time * size) + 'px'}"
+											class="keyframe"
+											v-bind:id="'_'+keyframe.uuid"
+										>
+											<i class="material-icons">lens</i>
+										</keyframe>
+									</template>
 								</div>
 							</div>
 							<div class="animator_channel_bar"
 								v-bind:style="{width: (size*length + head_width)+'px'}"
 								v-for="channel in animator.channels"
-								v-if="animator.expanded && (!focus_channel || channel == focus_channel || focus_channel == 'used' && animator[channel].length)"
+								v-if="animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length)"
 							>
 								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
 									<div class="text_button" v-on:click.stop="animator.toggleMuted(channel)">

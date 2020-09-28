@@ -93,7 +93,7 @@ const Timeline = {
 				.css('top', rect.ay + 'px');
 			//Keyframes
 			var epsilon = 6;
-			var focus = Timeline.vue._data.focus_channel;
+			let {channels} = Timeline.vue._data;
 			rect.ax -= epsilon;
 			rect.ay -= epsilon;
 			rect.bx += epsilon;
@@ -114,15 +114,18 @@ const Timeline = {
 					kf.selected = false;
 					if (kf.time > min_time &&
 						kf.time < max_time &&
-						(kf.channel == focus || !focus || focus == 'used')
+						channels[kf.channel] != false &&
+						(!channels.hide_empty || animator[kf.channel].length)
 					) {
-						var channel_index = focus ? 0 : animator.channels.indexOf(kf.channel);
-						if (focus == 'used') {
-							for (var channel of animator.channels) {
-								if (kf.channel == channel) break;
+						var channel_index = 0 //animator.channels.indexOf(kf.channel);
+						
+						for (var channel of animator.channels) {
+							if (kf.channel == channel) break;
+							if (channels[channel] != false && (!channels.hide_empty || animator[channel].length)) {
 								channel_index++;
 							}
 						}
+
 						height = offset + channel_index*24 + 36;
 						if (height > rect.ay && height < rect.by) {
 							kf.selected = true;
@@ -419,6 +422,7 @@ const Timeline = {
 	},
 	getMaxLength() {
 		var max_length = ($('#timeline_body').width()-8) / Timeline.vue._data.size;
+		if (Animation.selected) max_length = Math.max(max_length, Animation.selected.length)
 		Timeline.keyframes.forEach((kf) => {
 			max_length = Math.max(max_length, kf.time)
 		})
@@ -452,15 +456,13 @@ const Timeline = {
 		while (substeps > 8) {
 			substeps /= 2;
 		}
-		//substeps = Math.round(substeps)
-
 
 		var i = 0;
 		while (i < Timeline.vue._data.length) {
 			Timeline.vue._data.timecodes.push({
 				time: i,
 				width: step,
-				substeps: substeps,
+				substeps,
 				text: Math.round(i*100)/100
 			})
 			i += step;
@@ -611,7 +613,13 @@ onVueSetup(function() {
 			markers: [],
 			waveforms: Timeline.waveforms,
 			focus_channel: null,
-			playhead: Timeline.time
+			playhead: Timeline.time,
+			channels: {
+				rotation: true,
+				position: true,
+				scale: true,
+				hide_empty: false,
+			}
 		},
 		methods: {
 			toggleAnimator(animator) {
@@ -766,17 +774,23 @@ BARS.defineActions(function() {
 			Animation.selected.animators.effects.select()
 		}
 	})
-	new BarSelect('timeline_focus', {
-		options: {
-			all: true,
-			used: true,
-			rotation: tl('timeline.rotation'),
-			position: tl('timeline.position'),
-			scale: tl('timeline.scale'),
+	new Action('timeline_focus', {
+		icon: 'fas.fa-filter',
+		category: 'animation',
+		condition: {modes: ['animate']},
+		click: function (e) {
+			new Menu(this.children()).open(e.target)
 		},
-		onChange: function(slider) {
-			var val = slider.get();
-			Timeline.vue._data.focus_channel = val != 'all' ? val : null;
+		children: function() {
+			let on = 'fas.fa-check-square';
+			let off = 'far.fa-square';
+			let {channels} = Timeline.vue._data;
+			return [
+				{name: 'timeline.rotation',	icon: channels.rotation ? on : off, click() {channels.rotation = !channels.rotation}},
+				{name: 'timeline.position',	icon: channels.position ? on : off, click() {channels.position = !channels.position}},
+				{name: 'timeline.scale', 	icon: channels.scale 	? on : off, click() {channels.scale	 = !channels.scale}},
+				{name: 'action.timeline_focus.hide_empty', icon: channels.hide_empty ? on : off, click() {channels.hide_empty	 = !channels.hide_empty}},
+			]
 		}
 	})
 	new Action('add_marker', {
