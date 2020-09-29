@@ -509,26 +509,12 @@ const MenuBar = {
 			]},
 			'export_over',
 			'export_asset_archive',
-
-			/*
-			'open_model',
-			{name: 'menu.file.import', id: 'import', icon: 'insert_drive_file', children: [
-				'add_model',
-				'extrude_texture'
-			]},
-			{name: 'menu.file.export', id: 'export', icon: 'insert_drive_file', children: [
-				'export_blockmodel',
-				'export_entity',
-				'export_class_entity',
-				'export_optifine_part',
-				'export_optifine_full',
-				'export_obj',
-			]},
-			'upload_sketchfab'
-			'save',
-			*/
 			'_',
-			'settings_window',
+			{name: 'menu.file.preferences', id: 'preferences', icon: 'tune', children: [
+				'settings_window',
+				'keybindings_window',
+				'theme_window',
+			]},
 			'plugins_window',
 			'edit_session'
 		])

@@ -1022,6 +1022,7 @@
 	"menu.file.recent": "Recent",
 	"menu.file.import": "Import",
 	"menu.file.export": "Export",
+	"menu.file.preferences": "Preferences",
 	"menu.transform.rotate": "Rotate",
 	"menu.transform.flip": "Flip",
 	"menu.transform.center": "Center",

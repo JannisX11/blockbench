@@ -1298,6 +1298,20 @@ const BARS = {
 				keybind: new Keybind({key: 69, ctrl: true}),
 				click: function () {Settings.open()}
 			})
+			new Action('keybindings_window', {
+				name: tl('dialog.settings.keybinds') + '...',
+				icon: 'keyboard',
+				category: 'blockbench',
+				keybind: new Keybind({key: 69, ctrl: true}),
+				click: function () {Settings.open({tab: 'keybindings'})}
+			})
+			new Action('theme_window', {
+				name: tl('dialog.settings.theme') + '...',
+				icon: 'style',
+				category: 'blockbench',
+				keybind: new Keybind({key: 69, ctrl: true}),
+				click: function () {Settings.open({tab: 'layout_settings'})}
+			})
 			new Action('reload', {
 				icon: 'refresh',
 				category: 'file',
