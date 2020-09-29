@@ -213,6 +213,7 @@
 	"message.add_to_palette": "Added to palette",
 	"message.size_modifiers": "Hold down Ctrl or Shift to transform in smaller increments.",
 	"message.reset_keybindings": "Are you sure you want to reset all keybindings?",
+	"message.no_animation_to_import": "No animations to import",
 
 	"message.wireframe.enabled": "Wireframe view enabled",
 	"message.wireframe.disabled": "Wireframe view disabled",

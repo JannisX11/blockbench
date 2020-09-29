@@ -884,7 +884,9 @@ class Preview {
 			Blockbench.showMessageBox({
 				translateKey: 'drag_background',
 				icon: 'open_with',
-				buttons: ['dialog.ok', 'dialog.dontshowagain']
+				buttons: ['dialog.ok', 'dialog.dontshowagain'],
+				confirm: 0,
+				cancel: 0,
 			}, function(r) {
 				if (r === 1) {
 					settings.dialog_drag_background.value = false

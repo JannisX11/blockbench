@@ -1520,7 +1520,9 @@ BARS.defineActions(function() {
 					title: tl('message.cleared_blank_faces.title'),
 					icon: 'rotate_right',
 					message: tl('message.cleared_blank_faces.message', [empty_cubes.length]),
-					buttons: ['generic.remove', 'dialog.cancel']
+					buttons: ['generic.remove', 'dialog.cancel'],
+					confirm: 0,
+					cancel: 1,
 				}, function(r) {
 					empty_cubes.forEach(cube => {
 						if (r == 0) {

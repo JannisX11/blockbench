@@ -84,7 +84,6 @@ const EditSession = {
 				Blockbench.showMessageBox({
 					translateKey: 'invalid_session',
 					icon: 'cloud_off',
-					buttons: [tl('dialog.ok')],
 				}, result => {
 					showDialog('edit_sessions');
 				})
@@ -98,7 +97,6 @@ const EditSession = {
 				Blockbench.showMessageBox({
 					translateKey: 'invalid_session',
 					icon: 'cloud_off',
-					buttons: [tl('dialog.ok')],
 				})
 				EditSession.quit()
 			})

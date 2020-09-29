@@ -114,7 +114,7 @@ class Keyframe {
 			this.set(axis, value+amount, data_point)
 			return value+amount
 		}
-		var start = value.match(/^-?\s*\d*(\.\d+)?\s*(\+|-)/)
+		var start = value.match(/^-?\s*\d+(\.\d+)?\s*(\+|-)/)
 		if (start) {
 			var number = parseFloat( start[0].substr(0, start[0].length-1) ) + amount
 			value = trimFloatNumber(number) + value.substr(start[0].length-1)

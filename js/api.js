@@ -145,7 +145,7 @@ const Blockbench = {
 	showMessageBox(options, cb) {
 
 		if (options.confirm === undefined) options.confirm = 0
-		if (options.cancel === undefined) options.cancel = 0
+		if (options.cancel === undefined) options.cancel = options?.buttons?.length ? options.buttons.length-1 : 0;
 		if (!options.buttons) options.buttons = [tl('dialog.ok')]
 
 		if (options.translateKey) {

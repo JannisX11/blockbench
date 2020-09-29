@@ -192,7 +192,6 @@ class Animation {
 		}
 		if (isApp && this.path && fs.existsSync(this.path)) {
 			//overwrite path
-
 			let data;
 			try {
 				data = fs.readFileSync(this.path, 'utf-8');
@@ -224,8 +223,9 @@ class Animation {
 				content = data;
 				content.animations[this.name] = animation;
 			}
-			Blockbench.writeFile(this.path, {content: compileJSON(content)}, () => {
+			Blockbench.writeFile(this.path, {content: compileJSON(content)}, (real_path) => {
 				this.saved = true;
+				this.path = real_path;
 			});
 
 		} else {
@@ -372,7 +372,9 @@ class Animation {
 				Blockbench.showMessageBox({
 					translateKey: 'delete_animation',
 					icon: 'movie',
-                    buttons: ['generic.delete', 'dialog.cancel']
+                    buttons: ['generic.delete', 'dialog.cancel'],
+					confirm: 0,
+					cancel: 1,
 				}, (result) => {
 					if (result == 0) {
 						let content = fs.readFileSync(this.path, 'utf-8');
@@ -740,7 +742,6 @@ class BoneAnimator extends GeneralAnimator {
 			Blockbench.showMessageBox({
 				translateKey: 'duplicate_groups',
 				icon: 'folder',
-				buttons: ['dialog.ok'],
 			});
 		}
 		super.select();
@@ -1305,34 +1306,53 @@ const Animator = {
 	importFile(file) {
 		let form = {};
 		let json = autoParseJSON(file.content)
+		let keys = [];
 		for (var key in json.animations) {
-			form[key.hashCode()] = {label: key, type: 'checkbox', value: true}
-		}
-		file.json = json;
-		if (Object.keys(json.animations) <= 1) {
-			Undo.initEdit({animations: []})
-			let new_animations = Animator.loadFile(file);
-			Undo.finishEdit('import animations', {animations: new_animations})
-			return;
-		}
-		let dialog = new Dialog({
-			id: 'animation_import',
-			title: 'dialog.animation_import.title',
-			form,
-			onConfirm(form_result) {
-				dialog.hide();
-				let names = [];
-				for (var key in json.animations) {
-					if (form_result[key.hashCode()]) {
-						names.push(key);
+			console.log(key)
+			// Test if already loaded
+			if (isApp && file.path) {
+				let is_already_loaded = false
+				for (var anim of Animation.all) {
+					if (anim.path == file.path && anim.name == key) {
+						is_already_loaded = true;
+						break;
 					}
 				}
-				Undo.initEdit({animations: []})
-				let new_animations = Animator.loadFile(file, names);
-				Undo.finishEdit('import animations', {animations: new_animations})
+				if (is_already_loaded) {console.log(`${key} already exists`);continue;}
 			}
-		})
-		dialog.show();
+			form[key.hashCode()] = {label: key, type: 'checkbox', value: true};
+			keys.push(key);
+		}
+		console.log(keys.join(', '))
+		file.json = json;
+		if (keys.length == 0) {
+			Blockbench.showQuickMessage('message.no_animation_to_import');
+
+		} else if (keys.length == 1) {
+			Undo.initEdit({animations: []})
+			let new_animations = Animator.loadFile(file, keys);
+			Undo.finishEdit('import animations', {animations: new_animations})
+
+		} else {
+			let dialog = new Dialog({
+				id: 'animation_import',
+				title: 'dialog.animation_import.title',
+				form,
+				onConfirm(form_result) {
+					dialog.hide();
+					let names = [];
+					for (var key of keys) {
+						if (form_result[key.hashCode()]) {
+							names.push(key);
+						}
+					}
+					Undo.initEdit({animations: []})
+					let new_animations = Animator.loadFile(file, names);
+					Undo.finishEdit('import animations', {animations: new_animations})
+				}
+			})
+			dialog.show();
+		}
 	},
 	exportAnimationFile(path) {
 		let filter_path = path || '';
