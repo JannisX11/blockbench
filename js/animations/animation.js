@@ -318,28 +318,6 @@ class Animation {
 		})
 		return this;
 	}
-	editUpdateVariable() {
-		var scope = this;
-		Blockbench.textPrompt('menu.animation.anim_time_update', scope.anim_time_update, function(value) {
-			if (value !== scope.anim_time_update) {
-				Undo.initEdit({animations: [scope]})
-				scope.anim_time_update = value
-				Undo.finishEdit('change animation variable')
-			}
-		})
-		return this;
-	}
-	editBlendWeight() {
-		var scope = this;
-		Blockbench.textPrompt('menu.animation.blend_weight', scope.blend_weight, function(value) {
-			if (value !== scope.blend_weight) {
-				Undo.initEdit({animations: [scope]})
-				scope.blend_weight = value
-				Undo.finishEdit('change animation blend weight')
-			}
-		})
-		return this;
-	}
 	togglePlayingState(state) {
 		if (!this.selected) {
 			this.playing = state !== undefined ? state : !this.playing;
@@ -521,12 +499,13 @@ class Animation {
 					Undo.initEdit({animations: [this]});
 					this.loop = form_data.loop;
 					this.name = form_data.name;
+					this.createUniqueName();
 					if (isApp) this.path = form_data.path;
 					this.loop = form_data.loop;
 					this.override = form_data.override;
 					this.snapping = Math.clamp(form_data.snapping, 10, 100);
-					this.anim_time_update = vue_data.anim_time_update;
-					this.blend_weight = vue_data.blend_weight;
+					this.anim_time_update = vue_data.anim_time_update.trim().replace(/\n/g, '');
+					this.blend_weight = vue_data.blend_weight.trim().replace(/\n/g, '');
 					Undo.finishEdit('edit animation properties');
 				}
 			}

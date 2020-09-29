@@ -663,10 +663,6 @@ THREE.OrbitControls = function ( object, preview ) {
 		scope.dispatchEvent( endEvent );
 		state = STATE.NONE;
 
-		if (scope.hasMoved === false && settings.canvas_unselect.value) {
-			unselectAll()
-		}
-
 	}
 	this.stopMovement = function(event) {
 		onMouseUp()

@@ -612,6 +612,9 @@ class Preview {
 		if (typeof Toolbox.selected.onCanvasClick === 'function') {
 			Toolbox.selected.onCanvasClick(0)
 		}
+		if (!data && this.controls.hasMoved === false && settings.canvas_unselect.value) {
+			unselectAll()
+		}
 
 		if (this.angle !== null && this.camOrtho.axis || this.movingBackground) {
 			this.startSelRect(event)
