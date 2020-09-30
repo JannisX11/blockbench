@@ -27,7 +27,7 @@ function buildForm(dialog) {
 						bar.append(list)
 					}
 					if (data.type == 'password') {
-						bar.append(`<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
+						bar.append(`<div class="password_toggle">
 								<i class="fas fa-eye-slash"></i>
 							</div>`)
 						input_element.attr('type', 'password')
@@ -424,12 +424,5 @@ window.Dialog = class Dialog {
 		if (bar.length) return bar;
 	}
 }
-
-new Dialog({
-	form: {
-		input: {type: 'text', label: 'Hi', value: 'text', condition(form) {}}
-	}
-})
-
 
 })()

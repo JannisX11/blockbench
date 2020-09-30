@@ -442,6 +442,7 @@ class Animation {
 		}
 	}
 	propertiesDialog() {
+		let vue;
 		let vue_data = {
 			anim_time_update: this.anim_time_update,
 			blend_weight: this.blend_weight,
@@ -487,7 +488,8 @@ class Animation {
 				</div>`
 			],
 			onConfirm: form_data => {
-				dialog.hide()
+				dialog.hide();
+				vue.$destroy();
 				if (
 					form_data.loop != this.loop
 					|| form_data.name != this.name
@@ -510,12 +512,16 @@ class Animation {
 					this.blend_weight = vue_data.blend_weight.trim().replace(/\n/g, '');
 					Undo.finishEdit('edit animation properties');
 				}
+			},
+			onCancel() {
+				dialog.hide();
+				vue.$destroy();
 			}
 		})
 		dialog.show();
-		new Vue({
+		vue = new Vue({
 			el: 'dialog#animation_properties #animation_properties_vue',
-			components: {VuePrismEditor},
+
 			data: vue_data
 		})
 	}
@@ -1105,7 +1111,7 @@ const Animator = {
 			outlines.children.empty()
 			Canvas.updateAllPositions()
 		}
-		if (!Animation.selected && Animator.animations.length) {
+		if (Animator.animations.length) {
 			Animator.animations[0].select()
 		}
 		Animator.preview()
@@ -1282,7 +1288,7 @@ const Animator = {
 					}
 				}
 				animation.calculateSnappingFromKeyframes();
-				if (!Animation.selected) {
+				if (!Animation.selected && Animator.open) {
 					animation.select()
 				}
 				new_animations.push(animation)
@@ -1641,7 +1647,6 @@ Interface.definePanels(function() {
 		},
 		component: {
 			name: 'panel-placeholders',
-			components: {VuePrismEditor},
 			data() { return {
 				text: ''
 			}},

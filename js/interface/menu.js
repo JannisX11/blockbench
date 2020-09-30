@@ -270,6 +270,8 @@ class Menu {
 		} else {
 			if (!position && scope.type === 'bar_menu') {
 				position = scope.label
+			} else if (position && position.parentElement.classList.contains('tool')) {
+				position = position.parentElement;
 			}
 			var offset_left = $(position).offset().left;
 			var offset_top  = $(position).offset().top + $(position).height();

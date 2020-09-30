@@ -1939,8 +1939,7 @@ Interface.definePanels(function() {
 			head: Toolbars.display
 		},
 		component: {
-			name: 'panel-keyframe',
-			components: {VuePrismEditor},
+			name: 'panel-display',
 			data() {return {
 				axes: [0, 1, 2],
 				slot: new DisplaySlot()

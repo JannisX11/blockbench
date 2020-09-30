@@ -1276,10 +1276,6 @@ const Screencam = {
 
 		var loop = setInterval(() => {
 			frames++;
-			if (getProgress() >= 1) {
-				endRecording()
-				return;
-			}
 			Canvas.withoutGizmos(function() {
 				var img = new Image();
 				preview.render();
@@ -1288,8 +1284,11 @@ const Screencam = {
 					gif.addFrame(img, {delay: interval});
 				}
 			})
-
 			Blockbench.setProgress(getProgress());
+			if (getProgress() >= 1) {
+				endRecording()
+				return;
+			}
 
 		}, interval)
 
