@@ -344,6 +344,7 @@ function calculateVisibleBox() {
 				var face = base_cube.faces[key]
 				if (s.uv[key]) {
 					face.extend({
+						material_name: s.uv[key].material_instance,
 						uv: [
 							s.uv[key].uv[0],
 							s.uv[key].uv[1]
@@ -532,6 +533,9 @@ function calculateVisibleBox() {
 							face.uv_size[1],
 						]
 					});
+					if (face.material_name) {
+						template.uv[key].material_instance = face.material_name;
+					}
 					if (key == 'up' || key == 'down') {
 						template.uv[key].uv[0] += template.uv[key].uv_size[0];
 						template.uv[key].uv[1] += template.uv[key].uv_size[1];

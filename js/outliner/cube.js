@@ -85,6 +85,7 @@ class Face {
 new Property(Face, 'number', 'rotation', {default: 0});
 new Property(Face, 'number', 'tint', {default: -1});
 new Property(Face, 'string', 'cullface', {merge_validation: (val) => (uv_dialog.allFaces.includes(val) || val == '')});
+new Property(Face, 'string', 'material_name');
 new Property(Face, 'boolean', 'enabled', {default: true});
 
 Face.opposite = {
@@ -799,6 +800,7 @@ class Cube extends NonGroup {
 			})
 			return arr;
 		}},
+		'edit_material_instances',
 		'toggle_visibility',
 		'delete'
 	]);
@@ -863,6 +865,49 @@ BARS.defineActions(function() {
 				}
 			})
 			return base_cube
+		}
+	})
+
+	new Action({
+		id: 'edit_material_instances',
+		icon: 'fas.fa-adjust',
+		category: 'edit',
+		condition: {modes: ['edit'], formats: ['bedrock'], method: () => !Project.box_uv && Cube.selected.length},
+		click: function () {
+			let form = {};
+
+			let first = Cube.selected[0];
+			for (var key in first.faces) {
+				let face = first.faces[key];
+				if (face.texture != null) {
+					form[key] = {
+						label: `face.${key}`,
+						value: face.material_name
+					}
+				}
+			}
+
+			let dialog = new Dialog({
+				id: 'material_instances',
+				title: 'dialog.material_instances.title',
+				width: 460,
+				form,
+				onConfirm: form_data => {
+					dialog.hide();
+					
+					Undo.initEdit({elements: Cube.selected});
+					Cube.selected.forEach(cube => {
+						for (var key in cube.faces) {
+							let face = cube.faces[key];
+							if (face.texture != null && typeof form_data[key] == 'string') {
+								face.material_name = form_data[key];
+							}
+						}
+					})
+					Undo.finishEdit('edit material instances')
+				}
+			})
+			dialog.show();
 		}
 	})
 })

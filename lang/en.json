@@ -290,6 +290,8 @@
 	"dialog.scale.confirm": "Scale",
 	"dialog.scale.select_overflow": "Select Overflow",
 
+	"dialog.material_instances.title": "Material Instances",
+
 	"dialog.plugins.title": "Plugins",
 	"dialog.plugins.installed": "Installed",
 	"dialog.plugins.available": "Available",
@@ -831,6 +833,8 @@
 	"action.rename.desc": "Change the name of the selected cubes",
 	"action.update_autouv": "Update Auto UV",
 	"action.update_autouv.desc": "Update the auto UV mapping of the selected cubes",
+	"action.edit_material_instances": "Edit Material Instances",
+	"action.edit_material_instances.desc": "Edit material instance names for bedrock block geometries",
 
 	"action.add_display_preset": "New Preset",
 	"action.add_display_preset.desc": "Add a new display setting preset",
