@@ -34,6 +34,9 @@ const Blockbench = {
 			location.reload()
 		}
 	},
+	isNewerThan(version) {
+		return compareVersions(Blockbench.version, version);
+	},
 	registerEdit() {
 		console.warn('Blockbench.registerEdit is outdated. Please use Undo.initEdit and Undo.finishEdit')
 	},

@@ -786,10 +786,10 @@ class Texture {
 						Project.texture_height = Project.texture_height * (formResult.height / old_height);
 						Canvas.updateAllUVs()
 					}
-					updateSelection()
 					return new_canvas
 
 				})
+				setTimeout(updateSelection, 100);
 
 				dialog.hide()
 			}

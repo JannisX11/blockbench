@@ -1376,7 +1376,7 @@ const Animator = {
 
 		if (isApp && path && fs.existsSync(path)) {
 			Animator.animations.forEach(function(a) {
-				if (a.path == filter_path) {
+				if (a.path == filter_path && !a.saved) {
 					a.save();
 				}
 			})
@@ -1600,7 +1600,7 @@ Interface.definePanels(function() {
 						<li v-for="(file, key) in files" :key="key" class="animation_file">
 							<div class="animation_file_head" v-on:click.stop="toggle(key)">
 								<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
-								<label>{{ file.name }}</label>
+								<label :title="key">{{ file.name }}</label>
 								<div class="in_list_button" v-if="!file.saved" v-on:click.stop="saveFile(key, file)">
 									<i class="material-icons">save</i>
 								</div>
@@ -1620,7 +1620,7 @@ Interface.definePanels(function() {
 									@contextmenu.prevent.stop="animation.showContextMenu($event)"
 								>
 									<i class="material-icons">movie</i>
-									<label>{{ animation.name }}</label>
+									<label :title="animation.name">{{ animation.name }}</label>
 									<div class="in_list_button" v-bind:class="{unclickable: animation.saved}" v-on:click.stop="animation.save()">
 										<i v-if="animation.saved" class="material-icons">check_circle</i>
 										<i v-else class="material-icons">save</i>
