@@ -527,6 +527,11 @@ var Merge = {
 			}
 		}
 	},
+	molang: function(obj, source, index) {
+		if (['string', 'number'].includes(typeof source[index])) {
+			obj[index] = source[index];
+		}
+	},
 	boolean: function(obj, source, index, validate) {
 		if (source[index] !== undefined) {
 			if (validate instanceof Function === false || validate(source[index])) {

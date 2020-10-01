@@ -1,53 +1,35 @@
 class KeyframeDataPoint {
 	constructor(keyframe) {
-		switch (keyframe.channel) {
-			case 'rotation': 	this.x = this.y = this.z = '0'; break;
-			case 'position': 	this.x = this.y = this.z = '0'; break;
-			case 'scale': 		this.x = this.y = this.z = '1'; break;
-			case 'particle': 	this.effect = this.locator = this.script = this.file = ''; break;
-			case 'sound': 		this.effect = this.file = ''; break;
-			case 'timeline': 	this.instructions = ''; break;
+		this.keyframe = keyframe;
+		for (var key in KeyframeDataPoint.properties) {
+			KeyframeDataPoint.properties[key].reset(this);
 		}
 	}
 	extend(data) {
 		if (data.values) {
-			data.x = data.values.x;
-			data.y = data.values.y;
-			data.z = data.values.z;
-			data.effect = data.values.effect;
-			data.locator = data.values.locator;
-			data.script = data.values.script;
-			data.file = data.values.file;
-			data.instructions = data.values.instructions;
+			Object.assign(data, data.values)
 		}
-		if (this.x != undefined) Merge.string(this, data, 'x')
-		if (this.y != undefined) Merge.string(this, data, 'y')
-		if (this.z != undefined) Merge.string(this, data, 'z')
-		if (this.effect != undefined) 		Merge.string(this, data, 'effect')
-		if (this.locator != undefined) 		Merge.string(this, data, 'locator')
-		if (this.script != undefined) 		Merge.string(this, data, 'script')
-		if (this.file != undefined) 		Merge.string(this, data, 'file')
-		if (this.instructions != undefined)	Merge.string(this, data, 'instructions')
+		for (var key in KeyframeDataPoint.properties) {
+			KeyframeDataPoint.properties[key].merge(this, data)
+		}
 	}
-	get x_string() {
-		return typeof this.x == 'number' ? trimFloatNumber(this.x) || '0' : this.x;
-	}
-	set x_string(val) {
-		this.x = val;
-	}
-	get y_string() {
-		return typeof this.y == 'number' ? trimFloatNumber(this.y) || '0' : this.y;
-	}
-	set y_string(val) {
-		this.y = val;
-	}
-	get z_string() {
-		return typeof this.z == 'number' ? trimFloatNumber(this.z) || '0' : this.z;
-	}
-	set z_string(val) {
-		this.z = val;
+	getUndoCopy() {
+		var copy = {}
+		for (var key in KeyframeDataPoint.properties) {
+			KeyframeDataPoint.properties[key].copy(this, copy)
+		}
+		return copy;
 	}
 }
+new Property(KeyframeDataPoint, 'molang', 'x', {condition: point => point.keyframe.transform});
+new Property(KeyframeDataPoint, 'molang', 'y', {condition: point => point.keyframe.transform});
+new Property(KeyframeDataPoint, 'molang', 'z', {condition: point => point.keyframe.transform});
+new Property(KeyframeDataPoint, 'molang', 'w', {condition: point => point.keyframe.transform});
+new Property(KeyframeDataPoint, 'string', 'effect', {condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
+new Property(KeyframeDataPoint, 'string', 'locator', {condition: point => 'particle' == point.keyframe.channel});
+new Property(KeyframeDataPoint, 'molang', 'script', {condition: point => ['particle', 'timeline'].includes(point.keyframe.channel)});
+new Property(KeyframeDataPoint, 'string', 'file', {condition: point => ['particle', 'sound'].includes(point.keyframe.channel), exposed: false});
+
 class Keyframe {
 	constructor(data, uuid) {
 		this.type = 'keyframe'
@@ -247,13 +229,13 @@ class Keyframe {
 				}
 			}
 		} else if (this.channel == 'timeline') {
-			let instructions = [];
+			let scripts = [];
 			this.data_points.forEach(data_point => {
-				if (data_point.instructions) {
-					instructions.push(...data_point.instructions.split('\n'));
+				if (data_point.script) {
+					scripts.push(...data_point.script.split('\n'));
 				}
 			})
-			return instructions.length <= 1 ? instructions[0] : instructions;
+			return scripts.length <= 1 ? scripts[0] : scripts;
 		} else {
 			let points = [];
 			this.data_points.forEach(data_point => {
@@ -373,7 +355,7 @@ class Keyframe {
 			Keyframe.properties[key].copy(this, copy)
 		}
 		this.data_points.forEach(data_point => {
-			copy.data_points.push(Object.assign({}, data_point))
+			copy.data_points.push(data_point.getUndoCopy())
 		})
 		return copy;
 	}
@@ -724,7 +706,20 @@ Interface.definePanels(function() {
 			name: 'panel-keyframe',
 			components: {VuePrismEditor},
 			data() { return {
-				keyframes: Timeline.selected
+				keyframes: Timeline.selected,
+				channel_colors: {
+					x: 'color_x',
+					y: 'color_y',
+					z: 'color_z',
+				},
+				channel_names: {
+					x: 'X',
+					y: 'Y',
+					z: 'Z',
+					effect: tl('data.effect'),
+					locator: tl('data.locator'),
+					script: tl('timeline.pre_effect_script'),
+				}
 			}},
 			methods: {
 				updateInput(axis, value, data_point) {
@@ -804,33 +799,28 @@ Interface.definePanels(function() {
 									</div>
 								</div>
 
-								<div class="bar flex" id="keyframe_bar_x" v-if="keyframes[0].animator instanceof BoneAnimator">
-									<label class="color_x" style="font-weight: bolder">X</label>
-									<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.x_string" @change="updateInput('x', $event, data_point_i)" language="molang" :line-numbers="false" />
-								</div>
-								<div class="bar flex" id="keyframe_bar_y" v-if="keyframes[0].animator instanceof BoneAnimator">
-									<label class="color_y" style="font-weight: bolder">Y</label>
-									<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.y_string" @change="updateInput('y', $event, data_point_i)" language="molang" :line-numbers="false" />
-								</div>
-								<div class="bar flex" id="keyframe_bar_z" v-if="keyframes[0].animator instanceof BoneAnimator">
-									<label class="color_z" style="font-weight: bolder">Z</label>
-									<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.z_string" @change="updateInput('z', $event, data_point_i)" language="molang" :line-numbers="false" />
-								</div>
-
-								<div class="bar flex" id="keyframe_bar_effect" v-if="channel == 'particle' || channel == 'sound'">
-									<label>${ tl('data.effect') }</label>
-									<input type="text" class="dark_bordered code keyframe_input tab_target" v-model="data_point.effect" @input="updateInput('effect', $event.target.value, data_point_i)">
-								</div>
-								<div class="bar flex" id="keyframe_bar_locator" v-if="channel == 'particle'">
-									<label>${ tl('data.locator') }</label>
-									<input  type="text" class="dark_bordered code keyframe_input tab_target" v-model="data_point.locator" @input="updateInput('locator', $event.target.value, data_point_i)">
-								</div>
-								<div class="bar flex" id="keyframe_bar_script" v-if="channel == 'particle'">
-									<label>${ tl('timeline.pre_effect_script') }</label>
-									<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.script" @change="updateInput('script', $event, data_point_i)" language="molang" :line-numbers="false" />
-								</div>
-								<div class="bar" id="keyframe_bar_instructions" v-if="channel == 'timeline'">
-									<vue-prism-editor class="molang_input dark_bordered keyframe_input tab_target" v-model="data_point.instructions" @change="updateInput('instructions', $event, data_point_i)" language="molang" :line-numbers="false" />
+								<div
+									v-for="(property, key) in data_point.constructor.properties"
+									v-if="property.exposed != false && Condition(property.condition, data_point)"
+									class="bar flex"
+									:id="'keyframe_bar_' + property.name"
+								>
+									<label :class="[channel_colors[key]]" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}">{{ channel_names[key] }}</label>
+									<vue-prism-editor 
+										v-if="property.type == 'molang'"
+										class="molang_input dark_bordered keyframe_input tab_target"
+										v-model="data_point[key+'_string']"
+										@change="updateInput(key, $event, data_point_i)"
+										language="molang"
+										:line-numbers="false"
+									/>
+									<input
+										v-else
+										type="text"
+										class="dark_bordered code keyframe_input tab_target"
+										v-model="data_point[key]"
+										@input="updateInput(key, $event.target.value, data_point_i)"
+									/>
 								</div>
 							</div>
 						</ul>

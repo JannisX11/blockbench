@@ -1279,11 +1279,11 @@ const Animator = {
 					}
 					for (var timestamp in a.timeline) {
 						var entry = a.timeline[timestamp];
-						var instructions = entry instanceof Array ? entry.join('\n') : entry;
+						var script = entry instanceof Array ? entry.join('\n') : entry;
 						animation.animators.effects.addKeyframe({
 							channel: 'timeline',
 							time: parseFloat(timestamp),
-							data_points: [{instructions}]
+							data_points: [{script}]
 						})
 					}
 				}
