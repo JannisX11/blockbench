@@ -321,15 +321,8 @@ class Preview {
 			if (intersect.isElement) {
 				this.controls.hasMoved = true
 				var obj = elements.findInArray('uuid', intersects[0].object.name)
-				switch (Math.floor( intersects[0].faceIndex / 2 )) {
-					case 5: var face = 'north'; break;
-					case 0: var face = 'east';  break;
-					case 4: var face = 'south'; break;
-					case 1: var face = 'west';  break;
-					case 2: var face = 'up';	break;
-					case 3: var face = 'down';  break;
-					default:var face = 'north'; break;
-				}
+				let face = Canvas.face_order[intersects[0].face.materialIndex];
+
 				return {
 					event: event,
 					type: 'cube',
