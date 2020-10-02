@@ -161,8 +161,8 @@ const Canvas = {
 	},
 	updateVisibility() {
 		Cube.all.forEach(function(cube) {
-			cube.mesh.visible = cube.visibility == true;
-			if (cube.visibility) {
+			if (cube.visibility && !cube.mesh.visible) {
+				cube.mesh.visible = true;
 				Canvas.adaptObjectFaces(cube, cube.mesh)
 				if (!Prop.wireframe) {
 					Canvas.updateUV(cube);
@@ -170,25 +170,11 @@ const Canvas = {
 				if (Modes.paint && settings.painting_grid.value) {
 					Canvas.buildGridBox(cube);
 				}
+			} else if (!cube.visibility) {
+				cube.mesh.visible = false;
 			}
-			/*
-			var mesh = s.mesh
-			if (s.visibility == true) {
-				if (!mesh) {
-					Canvas.addCube(s)
-				} else if (!scene.children.includes(mesh)) {
-					scene.add(mesh)
-					Canvas.adaptObjectPosition(s, mesh)
-					Canvas.adaptObjectFaces(s, mesh)
-					if (!Prop.wireframe) {
-						Canvas.updateUV(s)
-					}
-				}
-			} else if (mesh && mesh.parent) {
-				mesh.parent.remove(mesh)
-			}*/
 		})
-		updateSelection()
+		TickUpdates.selection = true;
 	},
 	updateAllFaces(texture) {
 		Cube.all.forEach(function(obj) {
@@ -396,14 +382,15 @@ const Canvas = {
 	addCube(obj) {
 		//This does NOT remove old cubes
 		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1))
-		Canvas.adaptObjectFaces(obj, mesh)
-
-		Canvas.adaptObjectPosition(obj, mesh)
+		Canvas.meshes[obj.uuid] = mesh;
 		mesh.name = obj.uuid;
 		mesh.type = 'cube';
 		mesh.isElement = true;
+
+		Canvas.adaptObjectFaces(obj, mesh)
+		Canvas.adaptObjectPosition(obj, mesh)
+		
 		//scene.add(mesh)
-		Canvas.meshes[obj.uuid] = mesh;
 		if (Prop.wireframe === false) {
 			Canvas.updateUV(obj);
 		}
@@ -472,6 +459,7 @@ const Canvas = {
 		let {mesh} = cube;
 		let {geometry} = mesh;
 		if (!mesh.geometry.all_faces) mesh.geometry.all_faces = mesh.geometry.faces.slice();
+		mesh.geometry.faces.empty()
 
 		geometry.all_faces.forEach(face => {
 			let bb_face = cube.faces[Canvas.face_order[face.materialIndex]];
@@ -629,6 +617,9 @@ const Canvas = {
 	adaptObjectFaces(cube, mesh) {
 		if (!mesh) mesh = cube.mesh
 		if (!mesh) return;
+
+		Canvas.adaptObjectFaceGeo(cube);
+
 		if (Prop.wireframe) {
 			mesh.material = Canvas.wireframeMaterial
 		} else if (Format.single_texture && Project.layered_textures && Texture.all.length >= 2) {
@@ -658,8 +649,6 @@ const Canvas = {
 		var mesh = cube.mesh
 		if (mesh === undefined) return;
 		mesh.geometry.faceVertexUvs[0] = [];
-
-		Canvas.adaptObjectFaceGeo(cube);
 
 		if (Project.box_uv) {
 

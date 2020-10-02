@@ -235,6 +235,7 @@ var Undo = {
 						new_element.extend(element)
 						if (new_element.type == 'cube') {
 							Canvas.adaptObjectPosition(new_element)
+							Canvas.adaptObjectFaceGeo(new_element)
 							Canvas.adaptObjectFaces(new_element)
 							Canvas.updateUV(new_element)
 						}
