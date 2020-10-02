@@ -1,17 +1,8 @@
 (function() {
 var _obj_export;
 function getMtlFace(obj, index) {
-	if (index % 2 == 1) index--;
-	var key = 'north'
-	switch (index) {
-		case 10:  key = 'north'; break;
-		case 0:   key = 'east';  break;
-		case 8:  key = 'south';  break;
-		case 2:   key = 'west';  break;
-		case 4:	 key = 'up';  break;
-		case 6:   key = 'down';  break;
-	}
-
+	//if (index % 2 == 1) index--;
+	var key = Canvas.face_order[index];
 	var tex = obj.faces[key].getTexture()
 
 	if (tex === null) {
@@ -132,10 +123,10 @@ var codec = new Codec('obj', {
 
 			for ( var i = 0, j = 1, l = faces.length; i < l; i ++, j += 3 ) {
 
-				var f_mat = getMtlFace(element, i)
+				var face = faces[ i ];
+				var f_mat = getMtlFace(element, face.materialIndex)
 				if (f_mat) {
 
-					var face = faces[ i ];
 					if (i % 2 === 0) {
 						output += f_mat
 					}
