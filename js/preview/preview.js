@@ -683,7 +683,7 @@ class Preview {
 			}
 			return
 		};
-		if (!Modes.edit) return;
+		if (!Modes.edit || event.type == 'touchstart') return;
 
 		$(this.node).append(this.selection.box)
 		this.selection.activated = settings.canvas_unselect.value;

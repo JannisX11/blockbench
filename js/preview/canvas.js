@@ -672,14 +672,14 @@ const Canvas = {
 				
 				var p = {}
 
-				p.from = face_list[1].from.slice()
-				p.size = face_list[1].size.slice()
+				p.from = face_list[0].from.slice()
+				p.size = face_list[0].size.slice()
 
-				face_list[1].from = face_list[3].from.slice()
-				face_list[1].size = face_list[3].size.slice()
+				face_list[0].from = face_list[1].from.slice()
+				face_list[0].size = face_list[1].size.slice()
 
-				face_list[3].from = p.from.slice()
-				face_list[3].size = p.size.slice()
+				face_list[1].from = p.from.slice()
+				face_list[1].size = p.size.slice()
 
 			}
 			let fIndex = 0;

@@ -774,7 +774,7 @@ class Texture {
 						delete Painter.current.canvas;
 					}
 					scope.keep_size = true;
-					if (formResult.fill !== 'stretch' && Format.single_texture) {
+					if (formResult.fill !== 'stretch' && (Format.single_texture || Texture.all.length == 1)) {
 						Undo.current_save.uv_mode = {
 							box_uv: Project.box_uv,
 							width:  Project.texture_width,
