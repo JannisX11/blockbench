@@ -484,7 +484,7 @@ class Texture {
 	}
 	//Management
 	select(event) {
-		textures.forEach(s => {
+		Texture.all.forEach(s => {
 			if (s.selected) s.selected = false;
 		})
 		if (event) {
@@ -495,7 +495,7 @@ class Texture {
 		this.scrollTo();
 		if (Project.layered_textures) {
 			Canvas.updatePaintingGrid()
-		} else if (Format.single_texture) {
+		} else if (Format.single_texture && Texture.all.length > 1) {
 			Canvas.updateAllFaces()
 			TickUpdates.selection = true;
 		}

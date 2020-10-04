@@ -211,6 +211,7 @@ class Group extends OutlinerElement {
 		})
 		TickUpdates.selection = true
 		this.constructor.all.remove(this);
+		delete OutlinerElement.uuids[this.uuid];
 		if (undo) {
 			cubes.length = 0
 			Undo.finishEdit('removed_group')

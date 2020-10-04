@@ -227,7 +227,7 @@ var Undo = {
 				if (save.elements.hasOwnProperty(uuid)) {
 					var element = save.elements[uuid]
 
-					var new_element = elements.findInArray('uuid', uuid)
+					var new_element = OutlinerElement.uuids[uuid]
 					if (new_element) {
 						for (var face in new_element.faces) {
 							new_element.faces[face].reset()
@@ -246,7 +246,7 @@ var Undo = {
 			}
 			for (var uuid in reference.elements) {
 				if (reference.elements.hasOwnProperty(uuid) && !save.elements.hasOwnProperty(uuid)) {
-					var obj = elements.findInArray('uuid', uuid)
+					var obj = OutlinerElement.uuids[uuid]
 					if (obj) {
 						obj.remove()
 					}
@@ -277,7 +277,7 @@ var Undo = {
 
 		if (save.selection_group && !is_session) {
 			Group.selected = undefined
-			var sel_group = Group.all.findInArray('uuid', save.selection_group)
+			var sel_group = OutlinerElement.uuids[save.selection_group]
 			if (sel_group) {
 				sel_group.select()
 			}
@@ -293,7 +293,7 @@ var Undo = {
 		}
 
 		if (save.group) {
-			var group = Group.all.findInArray('uuid', save.group.uuid)
+			var group = OutlinerElement.uuids[save.group.uuid]
 			if (group) {
 				if (is_session) {
 					delete save.group.isOpen;

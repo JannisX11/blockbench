@@ -918,10 +918,10 @@ class UVEditor {
 			}
 		}
 		if (!tex || typeof tex !== 'object') {
-			if (!Format.single_texture) {
+			if (!Format.single_texture && Texture.selected) {
 				unselectTextures()
 			}
-		} else {
+		} else if (Texture.selected != tex) {
 			tex.select()
 		}
 		this.setSize(this.size, true)

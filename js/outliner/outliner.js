@@ -84,6 +84,7 @@ var markerColors = [
 class OutlinerElement {
 	constructor(uuid) {
 		this.uuid = uuid || guid()
+		OutlinerElement.uuids[this.uuid] = this;
 		this.export = true;
 		this.locked = false;
 	}
@@ -211,6 +212,7 @@ class OutlinerElement {
 	}
 	remove() {
 		this.constructor.all.remove(this);
+		delete OutlinerElement.uuids[this.uuid];
 		this.removeFromParent()
 	}
 	rename() {
@@ -336,6 +338,7 @@ class OutlinerElement {
 		this.shade = !val;
 	}
 }
+OutlinerElement.uuids = {};
 class NonGroup extends OutlinerElement {
 	constructor(data, uuid) {
 		super(uuid);

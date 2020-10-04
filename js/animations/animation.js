@@ -714,7 +714,7 @@ class BoneAnimator extends GeneralAnimator {
 		return [...this.rotation, ...this.position, ...this.scale];
 	}
 	getGroup() {
-		this.group = Group.all.findInArray('uuid', this.uuid)
+		this.group = OutlinerElement.uuids[this.uuid]
 		if (!this.group) {
 			if (this.animation && this.animation.animators[this.uuid] && this.animation.animators[this.uuid].type == 'bone') {
 				delete this.animation.bones[this.uuid];

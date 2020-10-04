@@ -266,7 +266,7 @@ const Canvas = {
 			Canvas.adaptObjectPosition(obj)
 		})
 		if (leave_selection !== true) {
-			updateSelection()
+			TickUpdates.selection = true;
 		}
 	},
 	updateSelectedFaces() {
