@@ -549,8 +549,8 @@ const Canvas = {
 				}
 				
 				vUv = uv;
-			    vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-			    gl_Position = projectionMatrix * mvPosition;
+				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+				gl_Position = projectionMatrix * mvPosition;
 			}`
 		var fragShader = `
 			#ifdef GL_ES
@@ -569,9 +569,9 @@ const Canvas = {
 
 			void main(void)
 			{
-			    vec4 Ca = texture2D(t0, vUv);
-			    vec4 Cb = texture2D(t1, vUv);
-			    vec4 Cc = texture2D(t2, vUv);
+				vec4 Ca = texture2D(t0, vUv);
+				vec4 Cb = texture2D(t1, vUv);
+				vec4 Cc = texture2D(t2, vUv);
 				
 				vec3 ctemp = Ca.rgb * Ca.a + Cb.rgb * Cb.a * (1.0 - Ca.a);
 				vec4 ctemp4 = vec4(ctemp, Ca.a + (1.0 - Ca.a) * Cb.a);

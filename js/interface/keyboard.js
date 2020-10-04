@@ -424,21 +424,21 @@ $(document).on('keydown mousedown', function(e) {
 				return;
 			}
 		}
-	    if (Blockbench.hasFlag('renaming')) {
-	        if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-	            stopRenameOutliner()
-	        } else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
-	            stopRenameOutliner(false)
-	        }
-	        return;
-	    }
-	    if ($('input#chat_input:focus').length && EditSession.active) {
-	    	if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-		    	Chat.send();
-		    	return;
-		    }
-	    }
-	    if ($('pre.prism-editor__code:focus').length) return;
+		if (Blockbench.hasFlag('renaming')) {
+			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
+				stopRenameOutliner()
+			} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
+				stopRenameOutliner(false)
+			}
+			return;
+		}
+		if ($('input#chat_input:focus').length && EditSession.active) {
+			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
+				Chat.send();
+				return;
+			}
+		}
+		if ($('pre.prism-editor__code:focus').length) return;
 		if (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
 			$(document).click()
 		}

@@ -37,7 +37,7 @@ const CustomTheme = {
 			el: '#theme_editor',
 			data: CustomTheme.data,
 			components: {
-			    VuePrismEditor
+				VuePrismEditor
 			},
 			watch: {
 				main_font() {

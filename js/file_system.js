@@ -279,7 +279,7 @@ Object.assign(Blockbench, {
 		if (options.savetype === 'zip') {
 			var fileReader = new FileReader();
 			fileReader.onload = function(event) {
-			    var buffer = Buffer.from(new Uint8Array(this.result));
+				var buffer = Buffer.from(new Uint8Array(this.result));
 				fs.writeFileSync(file_path, buffer)
 				if (cb) {
 					cb(file_path)

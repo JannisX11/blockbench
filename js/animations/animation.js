@@ -372,7 +372,7 @@ class Animation {
 				Blockbench.showMessageBox({
 					translateKey: 'delete_animation',
 					icon: 'movie',
-                    buttons: ['generic.delete', 'dialog.cancel'],
+					buttons: ['generic.delete', 'dialog.cancel'],
 					confirm: 0,
 					cancel: 1,
 				}, (result) => {

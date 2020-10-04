@@ -35,7 +35,7 @@ const TextureGenerator = {
 							power: 		{label: 'dialog.create_texture.power', type: 'checkbox', value: true},
 							double_use: {label: 'dialog.create_texture.double_use', type: 'checkbox', value: true, condition: Project.box_uv},
 							box_uv: 	{label: 'dialog.project.box_uv', type: 'checkbox', value: false, condition: !Project.box_uv},
-							padding:    {label: 'dialog.create_texture.padding', type: 'checkbox', value: false},
+							padding:	{label: 'dialog.create_texture.padding', type: 'checkbox', value: false},
 							color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
 							resolution: {label: 'dialog.create_texture.resolution', type: 'select', value: 16, options: {
 								16: '16',

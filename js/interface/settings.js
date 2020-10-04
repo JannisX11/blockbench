@@ -128,7 +128,7 @@ const Settings = {
 		new Setting('display_skin',  	{category: 'preview', value: false, type: 'click', condition: isApp, icon: 'icon-player', click: function() { changeDisplaySkin() }});
 		
 		//Edit
-		new Setting('undo_limit',    		{category: 'edit', value: 256, type: 'number'});
+		new Setting('undo_limit',			{category: 'edit', value: 256, type: 'number'});
 		new Setting('canvas_unselect',  	{category: 'edit', value: false});
 		new Setting('highlight_cubes',  	{category: 'edit', value: true, onChange() {
 			updateCubeHighlights();

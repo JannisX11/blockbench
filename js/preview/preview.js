@@ -453,7 +453,7 @@ class Preview {
 				Math.degToRad(preset.rotation[2]),
 				'ZYX'
 			));
-            this.controls.target.add(this.camera.position);
+			this.controls.target.add(this.camera.position);
 		}
 		if (preset.projection !== 'unset') {
 			this.setProjectionMode(preset.projection == 'orthographic')

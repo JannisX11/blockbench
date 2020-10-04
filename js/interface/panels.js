@@ -12,11 +12,11 @@ class Panel {
 		this.onResize = data.onResize;
 		if (data.toolbars) {
 			this.toolbars = data.toolbars;
-        } else {
+		} else {
 			this.toolbars = {};
 		}
-        // Vue
-        if (data.component) {
+		// Vue
+		if (data.component) {
 			data.component.name = 'inside-vue'
 			let bar = $(`.sidebar#${data.default_side||'left'}_bar`);
 			let node = $(`<div id="mount-panel-${this.id}"></div>`);
@@ -29,13 +29,13 @@ class Panel {
 				bar.append(node)
 			}
 
-            this.vue = new Vue({
-                components: {
-                    'inside-vue': data.component
-                },
+			this.vue = new Vue({
+				components: {
+					'inside-vue': data.component
+				},
 				template: `<div class="panel ${this.selection_only ? 'selection_only' : ''} ${this.growable ? 'grow' : ''}" id="${this.id}">
 					<h3 class="panel_handle">${this.name}</h3>
-                    <inside-vue class="panel_inside" ref="inside"></inside-vue>
+					<inside-vue class="panel_inside" ref="inside"></inside-vue>
 				</div>`,
 				mounted() {
 					Vue.nextTick(() => {
@@ -49,7 +49,7 @@ class Panel {
 			this.node = $('.panel#'+this.id).get(0)
 			this.handle = $(this.node).find('h3.panel_handle').get(0)
 			
-        } else {
+		} else {
 			this.node = $('.panel#'+this.id).get(0)
 			this.handle = $('<h3 class="panel_handle">'+this.name+'</h3>').get(0)
 			$(this.node).prepend(this.handle)
@@ -187,7 +187,7 @@ class Panel {
 	}
 	delete() {
 		delete Interface.Panels[this.id];
-        $(this.node).detach()
+		$(this.node).detach()
 	}
 }
 

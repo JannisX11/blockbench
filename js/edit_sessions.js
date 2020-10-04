@@ -460,5 +460,5 @@ Interface.definePanels(function() {
 		}
 	})
 	BarItems.toggle_chat.toElement('#chat_title_bar')
-	
+
 })

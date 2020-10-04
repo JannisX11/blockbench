@@ -289,7 +289,7 @@ const Timeline = {
 				times.push('00')
 			}
 			var node = $('#timeline_corner').get(0).childNodes[0]
-			var selection = window.getSelection();        
+			var selection = window.getSelection();
 			var range = document.createRange();
 
 			var sel = [0, node.length]
@@ -735,9 +735,9 @@ BARS.defineActions(function() {
 			if (!Animation.selected) return;
 			for (var uuid in Animation.selected.animators) {
 				var ba = Animation.selected.animators[uuid]
-			    if (ba && ba.keyframes.length) {
-			        ba.addToTimeline();
-			    }
+				if (ba && ba.keyframes.length) {
+					ba.addToTimeline();
+				}
 			}
 
 		}
@@ -748,7 +748,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		click: function () {
 			for (var animator of Timeline.animators) {
-			    animator.expanded = false;
+				animator.expanded = false;
 			}
 
 		}
