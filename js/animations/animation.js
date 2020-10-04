@@ -1091,6 +1091,7 @@ const Animator = {
 	get selected() {return Animation.selected},
 	frame: 0,
 	interval: false,
+	MolangParser: new Molang(),
 	join() {
 
 		Animator.open = true;
@@ -1143,7 +1144,7 @@ const Animator = {
 		Animator.showDefaultPose(true);
 		Group.all.forEach(group => {
 			Animator.animations.forEach(animation => {
-				let multiplier = animation.blend_weight ? Math.clamp(Molang.parse(animation.blend_weight), 0, Infinity) : 1;
+				let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
 				if (animation.playing) {
 					animation.getBoneAnimator(group).displayFrame(multiplier)
 				}
@@ -1400,7 +1401,7 @@ const Animator = {
 	}
 }
 
-Molang.global_variables = {
+Animator.MolangParser.global_variables = {
 	'true': 1,
 	'false': 0,
 	get 'query.delta_time'() {
@@ -1419,7 +1420,7 @@ Molang.global_variables = {
 		return Timeline.time;
 	}
 }
-Molang.variableHandler = function (variable) {
+Animator.MolangParser.variableHandler = function (variable) {
 	var inputs = Interface.Panels.variable_placeholders.inside_vue._data.text.split('\n');
 	var i = 0;
 	while (i < inputs.length) {
@@ -1427,7 +1428,7 @@ Molang.variableHandler = function (variable) {
 		[key, val] = inputs[i].split(/=(.+)/);
 		key = key.replace(/[\s;]/g, '');
 		if (key === variable) {
-			return Molang.parse(val)
+			return Animator.MolangParser.parse(val)
 		}
 		i++;
 	}

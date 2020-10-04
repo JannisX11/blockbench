@@ -586,9 +586,9 @@ class NumSlider extends Widget {
 					n++;
 
 					if ('+*/'.includes(first_token)) {
-						return Molang.parse(val + text, variables)
+						return NumSlider.MolangParser.parse(val + text, variables)
 					} else {
-						return Molang.parse(text, variables)
+						return NumSlider.MolangParser.parse(text, variables)
 					}
 				});
 			}
@@ -671,6 +671,8 @@ class NumSlider extends Widget {
 		}
 	}
 }
+NumSlider.MolangParser = new Molang()
+
 class BarSlider extends Widget {
 	constructor(id, data) {
 		if (typeof id == 'object') {

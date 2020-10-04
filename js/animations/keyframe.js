@@ -78,7 +78,7 @@ class Keyframe {
 	}
 	calc(axis, data_point = 0) {
 		data_point = this.data_points[data_point];
-		return Molang.parse(data_point && data_point[axis])
+		return Animator.MolangParser.parse(data_point && data_point[axis])
 	}
 	set(axis, value, data_point = 0) {
 		if (this.data_points[data_point]) {

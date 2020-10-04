@@ -506,7 +506,7 @@ const Timeline = {
 		Animator.preview()
 		if (Animation.selected && Timeline.time < (Animation.selected.length||1e3)) {
 
-			let new_time = Molang.parse( (Animation.selected && Animation.selected.anim_time_update) || 'query.anim_time + query.delta_time')
+			let new_time = Animator.MolangParser.parse( (Animation.selected && Animation.selected.anim_time_update) || 'query.anim_time + query.delta_time')
 			Timeline.setTime(Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100));
 			Timeline.last_frame_timecode = new Date().getMilliseconds();
 
