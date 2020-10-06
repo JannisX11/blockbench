@@ -1102,6 +1102,24 @@ Object.assign(Clipbench, {
 	}
 })
 
+if (isApp) {
+	Wintersky.fetchTexture = function(config) {
+		console.log(`trying to fetch texture with ${config.file_path} and ${config.particle_texture_path}`)
+		if (config.file_path && config.particle_texture_path) {
+
+			let path_arr = config.file_path.split(PathModule.sep);
+			let particle_index = path_arr.indexOf('particles')
+			path_arr.splice(particle_index)
+			let filePath = PathModule.join(path_arr.join(PathModule.sep), config.particle_texture_path.replace(/\.png$/, '')+'.png')
+
+			if (fs.existsSync(filePath)) {
+				return filePath;
+			}
+		}
+	}
+}
+
+
 const Animator = {
 	possible_channels: {rotation: true, position: true, scale: true, sound: true, particle: true, timeline: true},
 	open: false,

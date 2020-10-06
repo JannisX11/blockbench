@@ -588,7 +588,7 @@ const Timeline = {
 		} else {
 			Timeline.particle_emitters[path] = [];
 		}
-		let emitter = new Wintersky.Emitter(json_content);
+		let emitter = new Wintersky.Emitter(json_content, {path});
 		emitter.loop_mode = 'once';
 		Timeline.particle_emitters[path].push(emitter);
 	},
