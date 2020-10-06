@@ -954,12 +954,12 @@ class EffectAnimator extends GeneralAnimator {
 	}
 	displayFrame() {
 		if (!this.muted.sound) {
+			// Sounds
 			this.sound.forEach(kf => {
 				var diff = kf.time - Timeline.time;
 				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100)) {
 					if (kf.data_points[0]?.file && !kf.cooldown) {
 						var media = new Audio(kf.data_points[0]?.file);
-						window._media = media
 						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 						media.play().catch(() => {});
 						Timeline.playing_sounds.push(media);
@@ -974,6 +974,25 @@ class EffectAnimator extends GeneralAnimator {
 					} 
 				}
 			})
+			// Particles
+			this.particle.forEach(kf => {
+				var diff = Timeline.time - kf.time;
+				if (diff >= 0) {
+					for (var data_point of kf.data_points) {
+						if (data_point?.file && Timeline.particle_emitters[data_point.file]) {
+
+							let emitter = Timeline.particle_emitters[data_point.file][0];
+							var locator = data_point.locator && Locator.all.find(l => l.name == data_point.locator)
+							if (locator && locator.parent instanceof Group) {
+								locator.parent.mesh.add(emitter.space);
+							} else {
+								scene.add(emitter.space);
+							}
+							emitter.jumpTo(diff);
+						} 
+					}
+				}
+			})
 		}
 	}
 	startPreviousSounds() {
@@ -983,7 +1002,6 @@ class EffectAnimator extends GeneralAnimator {
 					var diff = kf.time - Timeline.time;
 					if (diff < 0 && Timeline.waveforms[kf.data_points[0]?.file] && Timeline.waveforms[kf.data_points[0]?.file].duration > -diff) {
 						var media = new Audio(kf.data_points[0]?.file);
-						window._media = media
 						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 						media.currentTime = -diff;
 						media.play().catch(() => {});
@@ -1089,14 +1107,14 @@ const Animator = {
 	open: false,
 	animations: Animation.all,
 	get selected() {return Animation.selected},
-	frame: 0,
-	interval: false,
 	MolangParser: new Molang(),
 	join() {
 
 		Animator.open = true;
 		selected.empty()
 		Canvas.updateAllBones()
+
+		scene.add(Wintersky.space);
 
 		$('body').addClass('animation_mode')
 		if (!Animator.timeline_node) {
@@ -1121,12 +1139,11 @@ const Animator = {
 		Timeline.pause()
 		Animator.open = false;
 		$('body').removeClass('animation_mode')
-		//resizeWindow()
-		//updateInterface()
+
+		scene.remove(Wintersky.space);
+
 		Toolbars.element_origin.toPlace()
-		//if (quad_previews.enabled_before) {
-		//	openQuadView()
-		//}
+
 		Canvas.updateAllBones()
 	},
 	showDefaultPose(no_matrix_update) {
