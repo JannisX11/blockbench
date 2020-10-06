@@ -462,6 +462,8 @@
 	"settings.brightness.desc": "Brightness of the preview. Default is 50",
 	"settings.shading": "Shading",
 	"settings.shading.desc": "Enable shading",
+	"settings.antialiasing": "Anti-aliasing",
+	"settings.antialiasing.desc": "Toggle anti-aliasing in the preview. Restart Blockbench to apply changes",
 	"settings.render_sides": "Render Sides",
 	"settings.fov": "FOV",
 	"settings.fov.desc": "Camera Field of View. Default is 45",

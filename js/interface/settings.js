@@ -101,6 +101,7 @@ const Settings = {
 		new Setting('shading', 	  		{category: 'preview', value: true, onChange() {
 			updateShading()
 		}});
+		new Setting('antialiasing', 	{category: 'preview', value: true});
 		new Setting('fov', 		  		{category: 'preview', value: 45, type: 'number', onChange(val) {
 			Preview.all.forEach(preview => preview.setFOV(val));
 		}});

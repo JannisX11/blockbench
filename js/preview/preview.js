@@ -195,7 +195,7 @@ class Preview {
 		try {
 			this.renderer = new THREE.WebGLRenderer({
 				canvas: this.canvas,
-				antialias: true,
+				antialias: Settings.get('antialiasing'),
 				alpha: true,
 				preserveDrawingBuffer: true
 			});
