@@ -458,8 +458,8 @@ const Canvas = {
 	adaptObjectFaceGeo(cube) {
 		let {mesh} = cube;
 		let {geometry} = mesh;
-		if (!mesh.geometry.all_faces) mesh.geometry.all_faces = mesh.geometry.faces.slice();
-		mesh.geometry.faces.empty()
+		if (!geometry.all_faces) geometry.all_faces = geometry.faces.slice();
+		geometry.faces.empty()
 
 		geometry.all_faces.forEach(face => {
 			let bb_face = cube.faces[Canvas.face_order[face.materialIndex]];
@@ -471,6 +471,10 @@ const Canvas = {
 				geometry.faces.push(face);
 			}
 		})
+		if (geometry.faces.length == 0) {
+			// Keek down face if no faces enabled
+			geometry.faces.push(geometry.all_faces[6], geometry.all_faces[7]);
+		}
 		geometry.elementsNeedUpdate = true;
 	},
 	ascendElementPosition(el, elmesh) {
