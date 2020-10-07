@@ -995,6 +995,8 @@
 	"action.next_keyframe.desc": "Jump to the next keyframe",
 	"action.jump_to_timeline_start": "Jump to Animation Start",
 	"action.jump_to_timeline_end": "Jump to Animation End",
+	"action.timeline_frame_back": "Jump 1 Frame Back",
+	"action.timeline_frame_forth": "Jump 1 Frame Forth",
 	"action.bring_up_all_animations": "Bring Up All Animators",
 	"action.bring_up_all_animations.desc": "Brings all modified animators into the timeline",
 	"action.fold_all_animations": "Fold All Animators",

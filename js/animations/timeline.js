@@ -726,6 +726,28 @@ BARS.defineActions(function() {
 			Animator.preview()
 		}
 	})
+	new Action('timeline_frame_back', {
+		icon: 'arrow_back',
+		category: 'animation',
+		condition: {modes: ['animate']},
+		keybind: new Keybind({key: 188}),
+		click: function (e) {
+			let time = Timeline.snapTime(limitNumber(Timeline.time - Timeline.getStep(), 0, 1e4));
+			Timeline.setTime(time);
+			Animator.preview()
+		}
+	})
+	new Action('timeline_frame_forth', {
+		icon: 'arrow_forward',
+		category: 'animation',
+		condition: {modes: ['animate']},
+		keybind: new Keybind({key: 190}),
+		click: function (e) {
+			let time = Timeline.snapTime(limitNumber(Timeline.time + Timeline.getStep(), 0, 1e4));
+			Timeline.setTime(time);
+			Animator.preview()
+		}
+	})
 
 	new Action('bring_up_all_animations', {
 		icon: 'fa-sort-amount-up',
