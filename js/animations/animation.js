@@ -980,15 +980,17 @@ class EffectAnimator extends GeneralAnimator {
 				var diff = Timeline.time - kf.time;
 				if (diff >= 0) {
 					for (var data_point of kf.data_points) {
-						if (data_point?.file && Timeline.particle_emitters[data_point.file]) {
+						if (data_point?.file && Timeline.particle_effects[data_point.file]) {
 
-							let emitter = Timeline.particle_emitters[data_point.file][0];
+							let emitter = Timeline.particle_effects[data_point.file].emitters.find(emitter => !emitter.global_space.parent);
+							if (!emitter) emitter = Timeline.particle_effects[data_point.file].emitters[0].clone();
+
 							var locator = data_point.locator && Locator.all.find(l => l.name == data_point.locator)
 							if (locator && locator.parent instanceof Group) {
-								locator.parent.mesh.add(emitter.space);
-							} else {
-								scene.add(emitter.space);
+								locator.parent.mesh.add(emitter.local_space);
+								emitter.local_space.position.fromArray(locator.from);
 							}
+							scene.add(emitter.global_space);
 							emitter.jumpTo(diff);
 						} 
 					}
@@ -1160,6 +1162,7 @@ const Animator = {
 		$('body').removeClass('animation_mode')
 
 		scene.remove(Wintersky.space);
+		Animator.resetParticles(true);
 
 		Toolbars.element_origin.toPlace()
 
@@ -1175,6 +1178,15 @@ const Animator = {
 			if (!no_matrix_update) group.mesh.updateMatrixWorld()
 		})
 	},
+	resetParticles(optimized) {
+		for (var path in Timeline.particle_effects) {
+			let {emitters} = Timeline.particle_effects[path];
+			emitters.forEach(emitter => {
+				if (emitter.local_space.parent) emitter.local_space.parent.remove(emitter.local_space);
+				if (emitter.global_space.parent) emitter.global_space.parent.remove(emitter.global_space);
+			})
+		}
+	},
 	preview() {
 		// Bones
 		Animator.showDefaultPose(true);
@@ -1189,6 +1201,7 @@ const Animator = {
 		})
 
 		// Effects
+		Animator.resetParticles(true);
 		Animator.animations.forEach(animation => {
 			if (animation.playing) {
 				if (animation.animators.effects) {
