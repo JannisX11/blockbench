@@ -11,7 +11,7 @@ class Property {
 		this.name = name;
 		this.type = type;
 
-		if (options.default) {
+		if (options.default != undefined) {
 			this.default = options.default;
 		} else {
 			switch (this.type) {

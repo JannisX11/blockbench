@@ -21,14 +21,13 @@ class KeyframeDataPoint {
 		return copy;
 	}
 }
-new Property(KeyframeDataPoint, 'molang', 'x', {condition: point => point.keyframe.transform});
-new Property(KeyframeDataPoint, 'molang', 'y', {condition: point => point.keyframe.transform});
-new Property(KeyframeDataPoint, 'molang', 'z', {condition: point => point.keyframe.transform});
-new Property(KeyframeDataPoint, 'molang', 'w', {condition: point => point.keyframe.transform});
-new Property(KeyframeDataPoint, 'string', 'effect', {condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
-new Property(KeyframeDataPoint, 'string', 'locator', {condition: point => 'particle' == point.keyframe.channel});
-new Property(KeyframeDataPoint, 'molang', 'script', {condition: point => ['particle', 'timeline'].includes(point.keyframe.channel)});
-new Property(KeyframeDataPoint, 'string', 'file', {condition: point => ['particle', 'sound'].includes(point.keyframe.channel), exposed: false});
+new Property(KeyframeDataPoint, 'molang', 'x', {label: 'X', condition: point => point.keyframe.transform});
+new Property(KeyframeDataPoint, 'molang', 'y', {label: 'Y', condition: point => point.keyframe.transform});
+new Property(KeyframeDataPoint, 'molang', 'z', {label: 'Z', condition: point => point.keyframe.transform});
+new Property(KeyframeDataPoint, 'string', 'effect', {label: tl('data.effect'), condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
+new Property(KeyframeDataPoint, 'string', 'locator',{label: tl('data.locator'), condition: point => 'particle' == point.keyframe.channel});
+new Property(KeyframeDataPoint, 'molang', 'script', {label: tl('timeline.pre_effect_script'), condition: point => ['particle', 'timeline'].includes(point.keyframe.channel), default: ''});
+new Property(KeyframeDataPoint, 'string', 'file', 	{exposed: false, condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
 
 class Keyframe {
 	constructor(data, uuid) {
@@ -711,14 +710,6 @@ Interface.definePanels(function() {
 					x: 'color_x',
 					y: 'color_y',
 					z: 'color_z',
-				},
-				channel_names: {
-					x: 'X',
-					y: 'Y',
-					z: 'Z',
-					effect: tl('data.effect'),
-					locator: tl('data.locator'),
-					script: tl('timeline.pre_effect_script'),
 				}
 			}},
 			methods: {
@@ -805,7 +796,7 @@ Interface.definePanels(function() {
 									class="bar flex"
 									:id="'keyframe_bar_' + property.name"
 								>
-									<label :class="[channel_colors[key]]" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}">{{ channel_names[key] }}</label>
+									<label :class="[channel_colors[key]]" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}">{{ property.label }}</label>
 									<vue-prism-editor 
 										v-if="property.type == 'molang'"
 										class="molang_input dark_bordered keyframe_input tab_target"
