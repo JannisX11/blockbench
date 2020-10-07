@@ -954,7 +954,6 @@ class EffectAnimator extends GeneralAnimator {
 	}
 	displayFrame() {
 		if (!this.muted.sound) {
-			// Sounds
 			this.sound.forEach(kf => {
 				var diff = kf.time - Timeline.time;
 				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100)) {
@@ -974,7 +973,9 @@ class EffectAnimator extends GeneralAnimator {
 					} 
 				}
 			})
-			// Particles
+		}
+		
+		if (!this.muted.particle) {
 			this.particle.forEach(kf => {
 				var diff = Timeline.time - kf.time;
 				if (diff >= 0) {
