@@ -989,6 +989,9 @@ class EffectAnimator extends GeneralAnimator {
 							if (locator && locator.parent instanceof Group) {
 								locator.parent.mesh.add(emitter.local_space);
 								emitter.local_space.position.fromArray(locator.from);
+								emitter.parent_mode = 'locator';
+							} else {
+								emitter.parent_mode = 'entity';
 							}
 							scene.add(emitter.global_space);
 							emitter.jumpTo(diff);
