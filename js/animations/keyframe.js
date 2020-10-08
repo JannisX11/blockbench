@@ -693,6 +693,9 @@ BARS.defineActions(function() {
 })
 
 Interface.definePanels(function() {
+
+	let locator_suggestion_list = $('<datalist id="locator_suggestion_list" hidden></datalist>');
+	$(document.body).append(locator_suggestion_list);
 	
 	Interface.Panels.keyframe = new Panel({
 		id: 'keyframe',
@@ -744,6 +747,12 @@ Interface.definePanels(function() {
 					})
 					Animator.preview()
 					Undo.finishEdit('remove keyframe data point')
+				},
+				updateLocatorSuggestionList() {
+					locator_suggestion_list.empty();
+					Locator.all.forEach(locator => {
+						locator_suggestion_list.append(`<option value="${locator.name}">`);
+					})
 				}
 			},
 			computed: {
@@ -810,6 +819,8 @@ Interface.definePanels(function() {
 										type="text"
 										class="dark_bordered code keyframe_input tab_target"
 										v-model="data_point[key]"
+										:list="key == 'locator' && 'locator_suggestion_list'"
+										@focus="key == 'locator' && updateLocatorSuggestionList()"
 										@input="updateInput(key, $event.target.value, data_point_i)"
 									/>
 								</div>
