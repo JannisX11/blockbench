@@ -41,6 +41,7 @@ class ModelProject {
 		if (Toolbox.selected.id !== 'move_tool') BarItems.move_tool.select();
 	
 		Screencam.stopTimelapse();
+		BedrockEntityManager.reset();
 	
 		Format = 0;
 		for (var uuid in OutlinerElement.uuids) {

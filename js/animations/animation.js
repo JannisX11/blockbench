@@ -1136,6 +1136,10 @@ const Animator = {
 	get selected() {return Animation.selected},
 	MolangParser: new Molang(),
 	join() {
+		
+		if ((Format.id == 'bedrock' || Format.id == 'bedrock_old') && !BedrockEntityManager.initialized_animations) {
+			BedrockEntityManager.initAnimations();
+		}
 
 		Animator.open = true;
 		selected.empty()

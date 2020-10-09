@@ -130,44 +130,50 @@ window.BedrockEntityManager = {
 				}
 			}
 
-			// Animations
-			var anim_list = BedrockEntityManager.client_entity.description.animations
-			if (anim_list instanceof Object) {
-				let animation_names = [];
-				for (var key in anim_list) {
-					if (anim_list[key].match && anim_list[key].match(/^animation\./)) {
-						animation_names.push(anim_list[key]);
-					}
-				}
-				// get all paths in folder
-				let anim_files = [];
-				function searchFolder(path) {
-					try {
-						var files = fs.readdirSync(path);	
-						for (var name of files) {
-							var new_path = path + osfs + name;
-							if (name.match(/\.json$/)) {
-								anim_files.push(new_path);
-							} else if (!name.includes('.')) {
-								searchFolder(new_path);
-							}
-						}
-					} catch (err) {}
-				}
-				searchFolder(PathModule.join(BedrockEntityManager.root_path, 'animations'));
-
-				anim_files.forEach(path => {
-					try {
-						let content = fs.readFileSync(path, 'utf8');
-						Animator.loadFile({path, content}, animation_names);
-					} catch (err) {}
-				})
-			}
-
-
 		} else {
 			BedrockEntityManager.findEntityTexture(Project.geometry_name)
 		}
+	},
+	initAnimations() {
+
+		var anim_list = BedrockEntityManager.client_entity.description.animations
+		if (anim_list instanceof Object) {
+			let animation_names = [];
+			for (var key in anim_list) {
+				if (anim_list[key].match && anim_list[key].match(/^animation\./)) {
+					animation_names.push(anim_list[key]);
+				}
+			}
+			// get all paths in folder
+			let anim_files = [];
+			function searchFolder(path) {
+				try {
+					var files = fs.readdirSync(path);	
+					for (var name of files) {
+						var new_path = path + osfs + name;
+						if (name.match(/\.json$/)) {
+							anim_files.push(new_path);
+						} else if (!name.includes('.')) {
+							searchFolder(new_path);
+						}
+					}
+				} catch (err) {}
+			}
+			searchFolder(PathModule.join(BedrockEntityManager.root_path, 'animations'));
+
+			anim_files.forEach(path => {
+				try {
+					let content = fs.readFileSync(path, 'utf8');
+					Animator.loadFile({path, content}, animation_names);
+				} catch (err) {}
+			})
+		}
+		BedrockEntityManager.initialized_animations = true;
+	},
+	reset() {
+		delete BedrockEntityManager.initialized_animations;
+		delete BedrockEntityManager.client_entity;
+		delete BedrockEntityManager.root_path;
 	},
 	findEntityTexture(mob, return_path) {
 		if (!mob) return;
