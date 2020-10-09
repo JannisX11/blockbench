@@ -20,12 +20,6 @@ class UVEditor {
 			this.setGrid(BarItems.uv_grid.get().replace(/x/, ''));
 		}
 	}
-	get width() {
-		return this.size;
-	}
-	set width(v) {
-		this.size = v;
-	}
 	buildDom(toolbar) {
 		var scope = this
 		if (this.jquery.main) {
@@ -197,8 +191,8 @@ class UVEditor {
 			},
 			stop: function(event, ui) {
 				dragging_not_clicking = true;
-				Undo.finishEdit('uv_change')
 				scope.disableAutoUV()
+				Undo.finishEdit('uv_change')
 				scope.updateDragHandle(ui.position)
 			}
 		})
@@ -216,9 +210,12 @@ class UVEditor {
 
 				p.left = limitNumber(p.left, 0, scope.inner_width-scope.jquery.size.width()+1);
 				p.top = limitNumber(p.top, 0, scope.inner_height-scope.jquery.size.height()+1);
-				
-				p.left = p.left - p.left % (scope.inner_width / scope.getResolution(0) / scope.grid);
-				p.top  = p.top  - p.top  % (scope.inner_height / scope.getResolution(1) / scope.grid);
+
+				let step_x = (scope.inner_width / scope.getResolution(0) / scope.grid);
+				let step_y = (scope.inner_height / scope.getResolution(1) / scope.grid);
+
+				p.left = Math.round(p.left / step_x) * step_x;
+				p.top  = Math.round(p.top  / step_y) * step_y;
 
 				scope.save();
 				scope.displaySliders();
@@ -226,8 +223,8 @@ class UVEditor {
 			},
 			stop: function(event, ui) {
 				scope.save()
-				Undo.finishEdit('uv_change')
 				scope.disableAutoUV()
+				Undo.finishEdit('uv_change')
 				scope.updateDragHandle(ui.position)
 				if (Project.box_uv) {
 					scope.displayAllMappingOverlays()
@@ -634,6 +631,12 @@ class UVEditor {
 		return this;
 	}
 	//Get
+	get width() {
+		return this.size;
+	}
+	set width(v) {
+		this.size = v;
+	}
 	get inner_width() {
 		return this.size*this.zoom;
 	}
@@ -687,6 +690,9 @@ class UVEditor {
 		} else {
 			this.updateSize();
 		}
+		// compensate offset
+		this.jquery.viewport.get(0).scrollLeft = Math.round(this.jquery.viewport.get(0).scrollLeft * (size / old_size));
+		this.jquery.viewport.get(0).scrollTop  = Math.round(this.jquery.viewport.get(0).scrollTop  * (size / old_size));
 		return this;
 	}
 	setZoom(zoom) {
