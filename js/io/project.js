@@ -37,11 +37,13 @@ class ModelProject {
 	}
 	reset() {
 		Blockbench.dispatchEvent('reset_project');
-		if (isApp) updateRecentProjectThumbnail()
+		if (isApp) {
+			updateRecentProjectThumbnail();
+			BedrockEntityManager.reset();
+		}
 		if (Toolbox.selected.id !== 'move_tool') BarItems.move_tool.select();
 	
 		Screencam.stopTimelapse();
-		BedrockEntityManager.reset();
 	
 		Format = 0;
 		for (var uuid in OutlinerElement.uuids) {
