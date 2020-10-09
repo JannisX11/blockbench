@@ -1585,6 +1585,9 @@ function initCanvas() {
 function animate() {
 	requestAnimationFrame( animate );
 	TickUpdates.Run()
+	if (quad_previews.current) {
+		Wintersky.updateFacingRotation(quad_previews.current.camera);
+	}
 	Preview.all.forEach(function(prev) {
 		if (prev.canvas.isConnected) {
 			prev.render()

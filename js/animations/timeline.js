@@ -577,7 +577,7 @@ const Timeline = {
 
 		return samples;
 	},
-
+	
 	get keyframes() {
 		var keyframes = [];
 		Timeline.animators.forEach(animator => {

@@ -50,6 +50,9 @@ console.log('%cBlockbench ' + appVersion + (isApp
 var startups = parseInt(localStorage.getItem('startups')||0);
 localStorage.setItem('startups', startups+1);
 
+Wintersky.global_options.scale = 16;
+Wintersky.global_options.loop_mode = 'once';
+Wintersky.global_options.parent_mode = 'entity';
 
 if (isApp) {
 	updateRecentProjects()

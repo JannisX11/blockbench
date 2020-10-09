@@ -646,28 +646,51 @@ BARS.defineActions(function() {
 	new Action('change_keyframe_file', {
 		icon: 'fa-file-audio',
 		category: 'animation',
-		condition: () => (isApp && Animator.open && Timeline.selected.length && Timeline.selected[0].channel == 'sound'),
+		condition: () => (isApp && Animator.open && Timeline.selected.length && ['sound', 'particle'].includes(Timeline.selected[0].channel)),
 		click: function () {
-			Blockbench.import({
-				resource_id: 'animation_audio',
-				extensions: ['ogg'],
-				type: 'Audio File',
-				startpath: Timeline.selected[0].data_points[0]?.file
-			}, function(files) {
 
-				// Todo: move to panel
-				let {path} = files[0];
-				Undo.initEdit({keyframes: Timeline.selected})
-				Timeline.selected.forEach((kf) => {
-					if (kf.channel == 'sound') {
-						kf.data_points.forEach(data_point => {
-							data_point.file = path;
-						})
-					}
+			if (Timeline.selected[0].channel == 'particle') {
+				Blockbench.import({
+					resource_id: 'animation_particle',
+					extensions: ['json'],
+					type: 'Bedrock Particle',
+					startpath: Timeline.selected[0].data_points[0]?.file
+				}, function(files) {
+
+					let {path} = files[0];
+					Undo.initEdit({keyframes: Timeline.selected})
+					Timeline.selected.forEach((kf) => {
+						if (kf.channel == 'particle') {
+							kf.data_points.forEach(data_point => {
+								data_point.file = path;
+							})
+						}
+					})
+					Animator.loadParticleEmitter(path, files[0].content);
+					Undo.finishEdit('changed keyframe audio file')
+				})	
+			} else {
+				Blockbench.import({
+					resource_id: 'animation_audio',
+					extensions: ['ogg'],
+					type: 'Audio File',
+					startpath: Timeline.selected[0].data_points[0]?.file
+				}, function(files) {
+
+					// Todo: move to panel
+					let {path} = files[0];
+					Undo.initEdit({keyframes: Timeline.selected})
+					Timeline.selected.forEach((kf) => {
+						if (kf.channel == 'sound') {
+							kf.data_points.forEach(data_point => {
+								data_point.file = path;
+							})
+						}
+					})
+					Timeline.visualizeAudioFile(path);
+					Undo.finishEdit('changed keyframe audio file')
 				})
-				Timeline.visualizeAudioFile(path);
-				Undo.finishEdit('changed keyframe audio file')
-			})
+			}
 		}
 	})
 	new Action('reverse_keyframes', {
