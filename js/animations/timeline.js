@@ -577,28 +577,7 @@ const Timeline = {
 
 		return samples;
 	},
-
-	particle_effects: {},
-	loadParticleEmitter(path, content) {
-		let json_content = autoParseJSON(content);
-		if (!json_content || !json_content.particle_effect) return;
-
-		if (Timeline.particle_effects[path]) {
-			Timeline.particle_effects[path].config.reset().setFromJSON(json_content);
-			Timeline.particle_effects[path].emitters.forEach(emitter => {
-				emitter.updateConfig();
-			})
-		} else {
-			Timeline.particle_effects[path] = {
-				config: new Wintersky.Config(json_content, {path}),
-				emitters: []
-			};
-			let emitter = new Wintersky.Emitter(Timeline.particle_effects[path].config);
-			emitter.loop_mode = 'once';
-			Timeline.particle_effects[path].emitters.push(emitter);
-		}
-	},
-
+	
 	get keyframes() {
 		var keyframes = [];
 		Timeline.animators.forEach(animator => {

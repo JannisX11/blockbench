@@ -979,11 +979,15 @@ class EffectAnimator extends GeneralAnimator {
 			this.particle.forEach(kf => {
 				var diff = Timeline.time - kf.time;
 				if (diff >= 0) {
+					let i = 0;
 					for (var data_point of kf.data_points) {
-						if (data_point?.file && Timeline.particle_effects[data_point.file]) {
+						let particle_effect = data_point.file && Animator.particle_effects[data_point.file]
+						if (particle_effect) {
 
-							let emitter = Timeline.particle_effects[data_point.file].emitters.find(emitter => !emitter.global_space.parent);
-							if (!emitter) emitter = Timeline.particle_effects[data_point.file].emitters[0].clone();
+							let emitter = particle_effect.emitters[kf.uuid + i];
+							if (!emitter) {
+								emitter = particle_effect.emitters[kf.uuid + i] = new Wintersky.Emitter(particle_effect.config);
+							}
 
 							var locator = data_point.locator && Locator.all.find(l => l.name == data_point.locator)
 							if (locator && locator.parent instanceof Group) {
@@ -996,6 +1000,7 @@ class EffectAnimator extends GeneralAnimator {
 							scene.add(emitter.global_space);
 							emitter.jumpTo(diff);
 						} 
+						i++;
 					}
 				}
 			})
@@ -1110,9 +1115,7 @@ Object.assign(Clipbench, {
 
 if (isApp) {
 	Wintersky.fetchTexture = function(config) {
-		console.log(`trying to fetch texture with ${config.file_path} and ${config.particle_texture_path}`)
 		if (config.file_path && config.particle_texture_path) {
-
 			let path_arr = config.file_path.split(PathModule.sep);
 			let particle_index = path_arr.indexOf('particles')
 			path_arr.splice(particle_index)
@@ -1182,12 +1185,14 @@ const Animator = {
 		})
 	},
 	resetParticles(optimized) {
-		for (var path in Timeline.particle_effects) {
-			let {emitters} = Timeline.particle_effects[path];
-			emitters.forEach(emitter => {
+		for (var path in Animator.particle_effects) {
+			let {emitters} = Animator.particle_effects[path];
+
+			for (var uuid in emitters) {
+				let emitter = emitters[uuid];
 				if (emitter.local_space.parent) emitter.local_space.parent.remove(emitter.local_space);
 				if (emitter.global_space.parent) emitter.global_space.parent.remove(emitter.global_space);
-			})
+			}
 		}
 	},
 	preview() {
@@ -1217,6 +1222,24 @@ const Animator = {
 			Transformer.center()
 		}
 		Blockbench.dispatchEvent('display_animation_frame')
+	},
+	particle_effects: {},
+	loadParticleEmitter(path, content) {
+		let json_content = autoParseJSON(content);
+		if (!json_content || !json_content.particle_effect) return;
+
+		if (Animator.particle_effects[path]) {
+			Animator.particle_effects[path].config.reset().setFromJSON(json_content, {path});
+			for (var uuid in Animator.particle_effects[path].emitters) {
+				let emitter = Animator.particle_effects[path].emitters[uuid];
+				emitter.updateConfig();
+			}
+		} else {
+			Animator.particle_effects[path] = {
+				config: new Wintersky.Config(json_content, {path}),
+				emitters: {}
+			};
+		}
 	},
 	loadFile(file, animation_filter) {
 		var json = file.json || autoParseJSON(file.content);

@@ -667,7 +667,7 @@ BARS.defineActions(function() {
 							})
 						}
 					})
-					Timeline.loadParticleEmitter(path, files[0].content);
+					Animator.loadParticleEmitter(path, files[0].content);
 					Undo.finishEdit('changed keyframe audio file')
 				})	
 			} else {
