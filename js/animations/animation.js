@@ -959,6 +959,7 @@ class EffectAnimator extends GeneralAnimator {
 				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100)) {
 					if (kf.data_points[0]?.file && !kf.cooldown) {
 						var media = new Audio(kf.data_points[0]?.file);
+						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
 						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 						media.play().catch(() => {});
 						Timeline.playing_sounds.push(media);
@@ -1013,6 +1014,7 @@ class EffectAnimator extends GeneralAnimator {
 					var diff = kf.time - Timeline.time;
 					if (diff < 0 && Timeline.waveforms[kf.data_points[0]?.file] && Timeline.waveforms[kf.data_points[0]?.file].duration > -diff) {
 						var media = new Audio(kf.data_points[0]?.file);
+						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
 						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 						media.currentTime = -diff;
 						media.play().catch(() => {});
