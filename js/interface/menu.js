@@ -619,6 +619,7 @@ const MenuBar = {
 			]},
 			'_',
 			'toggle_shading',
+			'toggle_motion_trails',
 			'toggle_wireframe',
 			'preview_checkerboard',
 			'painting_grid',

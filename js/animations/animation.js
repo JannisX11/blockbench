@@ -1153,7 +1153,7 @@ const Animator = {
 		Canvas.updateAllBones()
 
 		scene.add(Wintersky.space);
-		scene.add(Animator.motion_trail);
+		if (settings.motion_trails.value) scene.add(Animator.motion_trail);
 		Animator.motion_trail.no_export = true;
 
 		$('body').addClass('animation_mode')

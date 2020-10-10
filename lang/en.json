@@ -454,6 +454,8 @@
 	"settings.origin_size.desc": "Size of the pivot point marker",
 	"settings.control_size": "Axis Control Size",
 	"settings.control_size.desc": "Size of the 3 axis control tool",
+	"settings.motion_trails": "Motion Trails",
+	"settings.motion_trails.desc": "Show motion trails in the animation editor",
 	"settings.display_skin": "Display Skin",
 	"settings.display_skin.desc": "Skin used for the display reference player model",
 	"settings.seethrough_outline": "X-Ray Outlines",

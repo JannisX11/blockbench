@@ -1823,6 +1823,15 @@ BARS.defineActions(function() {
 			this.toggleLinkedSetting()
 		}
 	})
+	new Action('toggle_motion_trails', {
+		name: tl('settings.motion_trails'),
+		description: tl('settings.motion_trails.desc'),
+		category: 'view',
+		linked_setting: 'motion_trails',
+		click: function () {
+			this.toggleLinkedSetting()
+		}
+	})
 
 	new Action('screenshot_model', {
 		icon: 'fa-cubes',

@@ -87,6 +87,11 @@ const Settings = {
 		//Interface
 		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number'});
 		new Setting('control_size',  		{category: 'interface', value: 10, type: 'number'});
+		new Setting('motion_trails',  		{category: 'interface', value: true, onChange() {
+			if (Animator.open) {
+				scene[this.value ? 'add' : 'remove'](Animator.motion_trail);
+			}
+		}});
 		new Setting('seethrough_outline', 	{category: 'interface', value: false});
 		new Setting('outliner_colors', 		{category: 'interface', value: false});
 		new Setting('preview_checkerboard',	{category: 'interface', value: false, onChange() {

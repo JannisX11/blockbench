@@ -420,7 +420,9 @@ function updateKeyframeSelection() {
 		BarItems.slider_keyframe_time.update()
 		BarItems.keyframe_interpolation.set(Timeline.selected[0].interpolation)
 	}
-	if (Group.selected) Animator.showMotionTrail();
+	if (settings.motion_trails.value && Group.selected) {
+		Animator.showMotionTrail();
+	}
 	BARS.updateConditions()
 	Blockbench.dispatchEvent('update_keyframe_selection');
 }
