@@ -420,7 +420,7 @@ function updateKeyframeSelection() {
 		BarItems.slider_keyframe_time.update()
 		BarItems.keyframe_interpolation.set(Timeline.selected[0].interpolation)
 	}
-	if (settings.motion_trails.value && Group.selected) {
+	if (settings.motion_trails.value && Modes.animate && Animation.selected && Group.selected) {
 		Animator.showMotionTrail();
 	}
 	BARS.updateConditions()
@@ -612,6 +612,7 @@ BARS.defineActions(function() {
 				if (kf.transform) kf.interpolation = sel.value;
 			})
 			Undo.finishEdit('change keyframes interpolation')
+			updateKeyframeSelection();
 		}
 	})
 	new Action('reset_keyframe', {

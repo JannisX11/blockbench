@@ -136,7 +136,7 @@ window.BedrockEntityManager = {
 	},
 	initAnimations() {
 
-		var anim_list = BedrockEntityManager.client_entity.description.animations
+		var anim_list = BedrockEntityManager?.client_entity?.description?.animations
 		if (anim_list instanceof Object) {
 			let animation_names = [];
 			for (var key in anim_list) {

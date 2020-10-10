@@ -732,6 +732,11 @@ class BoneAnimator extends GeneralAnimator {
 		if (group_is_selected !== true && this.group) {
 			this.group.select();
 		}
+		Group.all.forEach(group => {
+			if (group.name == group.selected.name && group != Group.selected) {
+				duplicates = true;
+			}
+		})
 		function iterate(arr) {
 			arr.forEach((it) => {
 				if (it.type === 'group' && !duplicates) {
@@ -1229,6 +1234,11 @@ const Animator = {
 			if (g.parent instanceof Group) iterate(g.parent);
 		}
 		iterate(target)
+		let keyframes = {};
+		let ba = Animation.selected.getBoneAnimator();
+		ba.position.forEach(kf => {
+			keyframes[Math.round(kf.time / step)] = kf;
+		})
 
 		function displayTime(time) {
 			Timeline.time = time;
@@ -1258,11 +1268,32 @@ const Animator = {
 		Animator.motion_trail.add(line);
 
 		let dot_geo = new THREE.OctahedronGeometry(0.2);
+		let keyframe_geo = new THREE.OctahedronGeometry(1.0);
 		let dot_material = new THREE.MeshBasicMaterial({color: gizmo_colors.outline});
-		geometry.vertices.forEach(vertex => {
-			let mesh = new THREE.Mesh(dot_geo, dot_material);
-			mesh.position.copy(vertex);
-			Animator.motion_trail.add(mesh);
+		geometry.vertices.forEach((vertex, i) => {
+			let keyframe = keyframes[i];
+			if (keyframe) {
+				let mesh = new THREE.Mesh(keyframe_geo, dot_material);
+				mesh.position.copy(vertex);
+				Animator.motion_trail.add(mesh);
+				mesh.isKeyframe = true;
+				mesh.keyframeUUID = keyframe.uuid;
+			} else {
+				let mesh = new THREE.Mesh(dot_geo, dot_material);
+				mesh.position.copy(vertex);
+				Animator.motion_trail.add(mesh);
+			}
+		})
+		Animator.updateMotionTrailScale();
+	},
+	updateMotionTrailScale() {
+		Animator.motion_trail.children.forEach((object) => {
+			if (object.isLine) return;
+			var scaleVector = new THREE.Vector3();
+			var scale = scaleVector.subVectors(object.position, Preview.selected.camera.position).length() / 500;
+			scale = (Math.sqrt(scale)/3 + scale/1.4) * 3.8
+			if (Blockbench.isMobile) scale *= 4;
+			object.scale.set(scale, scale, scale)
 		})
 	},
 	preview() {
@@ -1544,6 +1575,11 @@ const Animator = {
 		}
 	}
 }
+Blockbench.on('update_camera_position', e => {
+	if (Animator.open && settings.motion_trails.value && Group.selected) {
+		Animator.updateMotionTrailScale();
+	}
+})
 
 Animator.MolangParser.global_variables = {
 	'true': 1,

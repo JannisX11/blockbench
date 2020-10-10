@@ -392,6 +392,11 @@ const Vertexsnap = {
 		})
 	}
 }
+Blockbench.on('update_camera_position', e => {
+	if (Toolbox && Toolbox.selected.id == 'vertex_snap_tool') {
+		Vertexsnap.updateVertexSize();
+	}
+})
 //Scale
 function scaleAll(save, size) {
 	if (save === true) {

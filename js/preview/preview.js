@@ -304,6 +304,13 @@ class Preview {
 				}
 			})
 		}
+		if (Animator.open && settings.motion_trails.value && Group.selected) {
+			Animator.motion_trail.children.forEach(object => {
+				if (object.isKeyframe === true) {
+					objects.push(object)
+				}
+			})
+		}
 		var intersects = this.raycaster.intersectObjects( objects );
 		if (intersects.length > 0) {
 			if (intersects.length > 1 && Toolbox.selected.id == 'vertex_snap_tool') {
@@ -337,6 +344,14 @@ class Preview {
 					intersects: intersects,
 					cube: intersect.cube,
 					vertex: intersect
+				}
+			} else if (intersect.isKeyframe) {
+				let keyframe = Timeline.keyframes.find(kf => kf.uuid == intersect.keyframeUUID);
+				return {
+					event: event,
+					type: 'keyframe',
+					intersects: intersects,
+					keyframe: keyframe
 				}
 			}
 		} else {
@@ -562,7 +577,7 @@ class Preview {
 				this.rclick_cooldown = true;
 			}, 420)
 		}
-		quad_previews.current = this;
+		Preview.selected = this;
 		if (Transformer.hoverAxis !== null || (!Keybinds.extra.preview_select.keybind.isTriggered(event) && event.which !== 0)) return;
 
 		var data = this.raycast(event);
@@ -594,6 +609,11 @@ class Preview {
 					}
 				} else {
 					data.cube.select(event)
+				}
+			} else if (Animator.open && data.type == 'keyframe') {
+				if (data.keyframe instanceof Keyframe) {
+					data.keyframe.select(event).callPlayhead();
+					updateSelection();
 				}
 			}
 			if (typeof Toolbox.selected.onCanvasClick === 'function') {
@@ -983,7 +1003,7 @@ class Preview {
 		if (quad_previews.current) {
 			quad_previews.current.controls.stopMovement()
 		}
-		quad_previews.current = this;
+		Preview.selected = this;
 		quad_previews.enabled = false;
 		$('#preview').empty()
 
@@ -1517,6 +1537,9 @@ function initCanvas() {
 	updateShading()
 
 	quad_previews = {
+		get current() {return Preview.selected},
+		set current(p) {Preview.selected = p},
+
 		one: new Preview({id: 'one'}).loadAnglePreset(DefaultCameraPresets[1]),
 		two: main_preview,
 		three: new Preview({id: 'three'}).loadAnglePreset(DefaultCameraPresets[3]),
