@@ -86,6 +86,7 @@ const Canvas = {
 			edit(outlines)
 			edit(rot_origin)
 			edit(Vertexsnap.vertexes)
+			edit(Animator.motion_trail)
 			Cube.selected.forEach(function(obj) {
 				var m = obj.mesh;
 				if (!m) return;
@@ -326,12 +327,12 @@ const Canvas = {
 				} else {
 					scene.add(bone)
 				}
-				bone.updateMatrixWorld()
 
 				bone.fix_position = bone.position.clone()
 				bone.fix_rotation = bone.rotation.clone()
 			}
 		})
+		scene.updateMatrixWorld();
 	},
 	updateOrigin() {
 		if (rot_origin.parent) {

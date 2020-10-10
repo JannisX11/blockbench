@@ -1447,7 +1447,6 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	DisplayMode.loadThirdRight()
 
 	display_area.updateMatrixWorld()
-	display_base.updateMatrixWorld()
 	Transformer.center()
 	if (outlines.children.length) {
 		outlines.children.length = 0
@@ -1458,7 +1457,6 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	resetDisplayBase()
 	setDisplayArea(0,0,0, 0,0,0, 1,1,1)
 	display_area.updateMatrixWorld()
-	display_base.updateMatrixWorld()
 	lights.rotation.set(0, 0, 0);
 	if (scene.parent) scene.parent.remove(scene)
 

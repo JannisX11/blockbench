@@ -1141,6 +1141,7 @@ const Animator = {
 	animations: Animation.all,
 	get selected() {return Animation.selected},
 	MolangParser: new Molang(),
+	motion_trail: new THREE.Object3D(),
 	join() {
 		
 		if ((Format.id == 'bedrock' || Format.id == 'bedrock_old') && !BedrockEntityManager.initialized_animations) {
@@ -1152,6 +1153,8 @@ const Animator = {
 		Canvas.updateAllBones()
 
 		scene.add(Wintersky.space);
+		scene.add(Animator.motion_trail);
+		Animator.motion_trail.no_export = true;
 
 		$('body').addClass('animation_mode')
 		if (!Animator.timeline_node) {
@@ -1178,6 +1181,7 @@ const Animator = {
 		$('body').removeClass('animation_mode')
 
 		scene.remove(Wintersky.space);
+		scene.remove(Animator.motion_trail);
 		Animator.resetParticles(true);
 
 		Toolbars.element_origin.toPlace()
@@ -1191,8 +1195,8 @@ const Animator = {
 			bone.position.copy(bone.fix_position)
 			bone.scale.x = bone.scale.y = bone.scale.z = 1;
 
-			if (!no_matrix_update) group.mesh.updateMatrixWorld()
 		})
+		if (!no_matrix_update) scene.updateMatrixWorld()
 	},
 	resetParticles(optimized) {
 		for (var path in Animator.particle_effects) {
@@ -1205,6 +1209,64 @@ const Animator = {
 			}
 		}
 	},
+	showMotionTrail() {
+		let target = Group.selected;
+		let animation = Animation.selected;
+		let currentTime = Timeline.time;
+		let step = Timeline.getStep();
+		let max_time = Math.max(Timeline.time, animation.length);
+		if (!max_time) max_time = 1;
+		let start_time = 0;
+		if (max_time > 20) {
+			start_time = Math.clamp(currentTime - 8, 0, Infinity);
+			max_time = Math.min(max_time, currentTime + 8);
+		}
+		let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
+		let geometry = new THREE.Geometry();
+		let bone_stack = [];
+		let iterate = g => {
+			bone_stack.push(g);
+			if (g.parent instanceof Group) iterate(g.parent);
+		}
+		iterate(target)
+
+		function displayTime(time) {
+			Timeline.time = time;
+			bone_stack.forEach(group => {
+				var mesh = group.mesh;
+				mesh.rotation.copy(mesh.fix_rotation)
+				mesh.position.copy(mesh.fix_position)
+				mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
+				animation.getBoneAnimator(group).displayFrame(multiplier);
+			})
+			target.mesh.updateWorldMatrix(true, false)
+		}
+
+		for (var time = start_time; time <= max_time; time += step) {
+			displayTime(time);
+			let position = new THREE.Vector3().copy(target.mesh.position);
+			target.mesh.localToWorld(position);
+			geometry.vertices.push(position);
+		}
+		
+		displayTime(currentTime);
+
+		var line = new THREE.Line(geometry, Canvas.outlineMaterial);
+		line.no_export = true;
+		Animator.motion_trail.children.forEachReverse(child => {
+			Animator.motion_trail.remove(child);
+		})
+		Animator.motion_trail.add(line);
+
+		let dot_geo = new THREE.OctahedronGeometry(0.2);
+		let dot_material = new THREE.MeshBasicMaterial({color: gizmo_colors.outline});
+		geometry.vertices.forEach(vertex => {
+			let mesh = new THREE.Mesh(dot_geo, dot_material);
+			mesh.position.copy(vertex);
+			Animator.motion_trail.add(mesh);
+		})
+		console.log('trail')
+	},
 	preview() {
 		// Bones
 		Animator.showDefaultPose(true);
@@ -1215,8 +1277,8 @@ const Animator = {
 					animation.getBoneAnimator(group).displayFrame(multiplier)
 				}
 			})
-			group.mesh.updateMatrixWorld()
 		})
+		scene.updateMatrixWorld()
 
 		// Effects
 		Animator.resetParticles(true);
@@ -1415,7 +1477,6 @@ const Animator = {
 			form[key.hashCode()] = {label: key, type: 'checkbox', value: true};
 			keys.push(key);
 		}
-		console.log(keys.join(', '))
 		file.json = json;
 		if (keys.length == 0) {
 			Blockbench.showQuickMessage('message.no_animation_to_import');
