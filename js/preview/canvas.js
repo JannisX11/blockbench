@@ -296,7 +296,7 @@ const Canvas = {
 
 			var line = Canvas.getOutlineMesh(mesh)
 
-			mesh.getWorldPosition(line.position)
+			THREE.fastWorldPosition(mesh, line.position)
 			line.position.sub(scene.position)
 			line.rotation.setFromQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()))
 			mesh.getWorldScale(line.scale)
@@ -477,44 +477,6 @@ const Canvas = {
 			geometry.faces.push(geometry.all_faces[6], geometry.all_faces[7]);
 		}
 		geometry.elementsNeedUpdate = true;
-	},
-	ascendElementPosition(el, elmesh) {
-		function iterate(obj, mesh) {
-			//Iterate inside (cube) > outside
-			if (!mesh) {
-				mesh = obj.mesh
-			}
-			if (obj.type === 'group') {
-				mesh.rotation.reorder('ZYX')
-				obj.rotation.forEach(function(n, i) {
-					mesh.rotation[getAxisLetter(i)] = Math.PI / (180 / n) * (i == 2 ? -1 : 1)
-				})
-				mesh.updateMatrixWorld()
-			}
-			mesh.fix_rotation = mesh.rotation.clone()
-
-			if (obj.type === 'group') {
-				mesh.position.fromArray(obj.origin)
-				mesh.scale.x = mesh.scale.y = mesh.scale.z = 1
-			}
-
-			if (typeof obj.parent === 'object') {
-
-				mesh.position.x -=  obj.parent.origin[0]
-				mesh.position.y -=  obj.parent.origin[1]
-				mesh.position.z -=  obj.parent.origin[2]
-			}
-			mesh.fix_position = mesh.position.clone()
-
-			if (typeof obj.parent === 'object') {
-				var parent_mesh = iterate(obj.parent)
-				parent_mesh.add(mesh)
-			} else {
-				scene.add(mesh)
-			}
-			return mesh
-		}
-		iterate(el, elmesh)
 	},
 	getLayeredMaterial(layers) {
 		if (Canvas.layered_material && !layers) return Canvas.layered_material;

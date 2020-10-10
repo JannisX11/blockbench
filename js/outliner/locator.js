@@ -55,7 +55,7 @@ class Locator extends NonGroup {
 		var pos = new THREE.Vector3();
 		var q = new THREE.Quaternion();
 		if (this.parent instanceof Group) {
-			this.parent.mesh.getWorldPosition(pos);
+			THREE.fastWorldPosition(this.parent.mesh, pos);
 			this.parent.mesh.getWorldQuaternion(q);
 			var offset2 = new THREE.Vector3().fromArray(this.parent.origin).applyQuaternion(q);
 			pos.sub(offset2);

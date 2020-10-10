@@ -531,7 +531,7 @@ class Cube extends NonGroup {
 		if (m) {
 			var r = m.getWorldQuaternion(new THREE.Quaternion())
 			pos.applyQuaternion(r)
-			pos.add(m.getWorldPosition(new THREE.Vector3()))
+			pos.add(THREE.fastWorldPosition(m, new THREE.Vector3()))
 		}
 		return pos;
 	}

@@ -1244,8 +1244,7 @@ const Animator = {
 
 		for (var time = start_time; time <= max_time; time += step) {
 			displayTime(time);
-			let position = new THREE.Vector3().copy(target.mesh.position);
-			target.mesh.localToWorld(position);
+			let position = THREE.fastWorldPosition(target.mesh, new THREE.Vector3());
 			geometry.vertices.push(position);
 		}
 		
@@ -1265,7 +1264,6 @@ const Animator = {
 			mesh.position.copy(vertex);
 			Animator.motion_trail.add(mesh);
 		})
-		console.log('trail')
 	},
 	preview() {
 		// Bones

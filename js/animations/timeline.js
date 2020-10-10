@@ -524,6 +524,7 @@ const Timeline = {
 		}
 	},
 	pause() {
+		Animator.preview();
 		Timeline.playing = false;
 		BarItems.play_animation.setIcon('play_arrow')
 		if (Timeline.interval) {
