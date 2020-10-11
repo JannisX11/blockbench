@@ -205,6 +205,10 @@ function setupInterface() {
 	$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 
 	setupPanels()
+	
+	if (Blockbench.isMobile) {
+		setupMobilePanelSelector()
+	}
 
 	for (var key in Interface.Resizers) {
 		var resizer = Interface.Resizers[key]

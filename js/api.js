@@ -1,6 +1,6 @@
 const Blockbench = {
 	isWeb: !isApp,
-	isMobile: window.innerWidth <= 480,
+	isMobile: window.innerWidth <= 640,
 	version: appVersion,
 	platform: 'web',
 	flags: [],

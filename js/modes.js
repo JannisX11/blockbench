@@ -47,6 +47,10 @@ class Mode extends KeybindItem {
 		if (typeof this.onSelect === 'function') {
 			this.onSelect()
 		}
+		if (Blockbench.isMobile) {
+			Interface.PanelSelectorVue.$forceUpdate();
+			Interface.PanelSelectorVue.select(null);
+		}
 
 		updateInterface()
 		Canvas.updateRenderSides()

@@ -39,7 +39,7 @@
 		display: none;
 	}
 
-	@media (max-device-width: 480px) {
+	@media (max-device-width: 640px) {
 		dialog {
 			width: 100% !important;
 		}
@@ -868,7 +868,7 @@
 		height: 26px;
 		vertical-align: text-top;
 	}
-	@media (max-device-width: 480px) {
+	@media (max-device-width: 640px) {
 		dialog#action_selector {
 			top: 26px;
 		}

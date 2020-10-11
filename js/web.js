@@ -71,112 +71,46 @@ function showSaveDialog(close) {
 	}
 }
 
-
-BARS.defineActions(function() {
+function setupMobilePanelSelector() {
 	if (Blockbench.isMobile) {
-		var page_wrapper = $('#page_wrapper')
-		new Action('sidebar_left', {
-			icon: 'burst_mode',
-			category: 'view',
-			condition: () => !Modes.start,
-			click: function () {
-				page_wrapper.removeClass('show_right')
-				page_wrapper.toggleClass('show_left')
-				var s = page_wrapper.hasClass('show_left')
-
-				$('#left_bar').css('margin-left', '-400px')
-				$('#left_bar').animate({'margin-left': 0}, 160)
-
-				this.nodes.forEach(n => {
-					$(n).toggleClass('sel', s)
-				})
-				BarItems.sidebar_right.nodes.forEach(n => {
-					$(n).removeClass('sel')
-				})
-				updateInterfacePanels()
-				resizeWindow()
-			}
-		})
-		new Action('sidebar_right', {
-			icon: 'view_list',
-			category: 'view',
-			condition: () => !Modes.start,
-			click: function () {
-				page_wrapper.removeClass('show_left')
-				page_wrapper.toggleClass('show_right')
-				var s = page_wrapper.hasClass('show_right')
-
-				$('#right_bar').css('margin-left', '400px')
-				$('#right_bar').animate({'margin-left': 0}, 160)
-
-				this.nodes.forEach(n => {
-					$(n).toggleClass('sel', s)
-				})
-				BarItems.sidebar_left.nodes.forEach(n => {
-					$(n).removeClass('sel')
-				})
-				updateInterfacePanels()
-				resizeWindow()
-			}
-		})
-		$('.panel#element').detach();
-		var swiping;
-		var height = 0;
-		var start_x = 0;
-		var edge = 20;
-		var swipe_min = 60;
-		document.addEventListener('touchstart', (event) => {
-			if (event.changedTouches.length == 1) {
-				var touch = event.changedTouches[0];
-				height = touch.clientY;
-				start_x = touch.clientX;
-				if (touch.clientX < edge) {
-					swiping = 'left';
-				} else if (document.body.clientWidth - touch.clientX < edge) {
-					swiping = 'right';
-				}
-			}
-		}, false)
-		document.addEventListener('touchend', (event) => {
-			if (event.changedTouches.length == 1) {
-				var touch = event.changedTouches[0];
-				var delta_height = Math.abs(height - touch.clientY);
-				if (start_x < edge && touch.clientX > swipe_min && delta_height < 30) {
-					if (page_wrapper.hasClass('show_right')) {
-						BarItems.sidebar_right.trigger(event);
-					} else {
-						BarItems.sidebar_left.trigger(event);
-					}
-				} else if (
-					document.body.clientWidth - start_x < edge &&
-					(document.body.clientWidth - touch.clientX) > swipe_min &&
-					delta_height < 30
-				) {
-					if (page_wrapper.hasClass('show_left')) {
-						BarItems.sidebar_left.trigger(event);
-					} else {
-						BarItems.sidebar_right.trigger(event);
-					}
-				} else if (
-					document.body.clientWidth - start_x < 40 &&
-					document.body.clientWidth - touch.clientX < 40 &&
-					delta_height < 10 &&
-					event.target == page_wrapper[0] &&
-					(page_wrapper.hasClass('show_left') || page_wrapper.hasClass('show_right'))
-				) {
-					page_wrapper.removeClass('show_left')
-					page_wrapper.removeClass('show_right')
-
-					BarItems.sidebar_left.nodes.forEach(n => {
-						$(n).removeClass('sel')
+		Interface.PanelSelectorVue = new Vue({
+			el: '#panel_selector_bar',
+			data: {
+				all_panels: Interface.Panels,
+				selected: null,
+			},
+			computed: {
+				panels() {
+					let arr = [];
+					arr.push({
+						icon: '3d_rotation',
+						name: tl('data.preview'),
+						id: 'preview'
 					})
-					updateInterfacePanels()
-					resizeWindow()
+					for (var id in this.all_panels) {
+						let panel = this.all_panels[id];
+						if (Condition(panel.condition)) {
+							console.log(id)
+							arr.push(panel)
+						}
+					}
+					return arr;
+				}
+			},
+			methods: {
+				select(panel) {
+					this.selected = panel && panel.id;
+					let overlay = $('#mobile_panel_overlay');
+					$('#left_bar').append(overlay.children());
+					if (panel instanceof Panel) {
+						overlay.append(panel.node);
+						if (panel.onResize) panel.onResize();
+						overlay.show();
+					} else {
+						overlay.hide();
+					}
 				}
 			}
-			height = 0;
-			swiping = undefined;
-		}, false)
+		})
 	}
-})
-
+}

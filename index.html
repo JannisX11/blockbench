@@ -65,6 +65,10 @@
 		<script src="js/interface/themes.js"></script>
 		<script src="js/blockbench.js"></script>
 		<script src="js/modes.js"></script>
+		<script src="js/api.js"></script>
+		<script src="js/file_system.js"></script>
+		<script src="js/interface/panels.js"></script>
+		<script src="js/interface/interface.js"></script>
 		<script src="js/interface/keyboard.js"></script>
 		<script src="js/interface/settings.js"></script>
 		<script src="js/interface/dialog.js"></script>
@@ -79,10 +83,6 @@
 			}
 		</script>
 
-		<script src="js/api.js"></script>
-		<script src="js/file_system.js"></script>
-		<script src="js/interface/panels.js"></script>
-		<script src="js/interface/interface.js"></script>
 		<script src="js/edit_sessions.js"></script>
 		<script src="js/outliner/outliner.js"></script>
 		<script src="js/outliner/group.js"></script>
@@ -960,6 +960,7 @@
 				</section>
 			</content>
 		</div>
+		<div id="mobile_panel_overlay" hidden></div>
 	</div>
 	<div id="status_bar" @contextmenu="Interface.status_bar.menu.show(event)">
 		
@@ -992,6 +993,15 @@
 			{{ Prop.connections }} Clients
 		</div>
 		<div id="status_progress" v-if="Prop.progress" v-bind:style="{width: Prop.progress*100+'%'}"></div>
+	</div>
+
+	<div id="panel_selector_bar" hidden>
+		<div class="panel_selector" :class="{selected: selected == null}" @click="select(null)">
+			<div class="icon_wrapper"><i class="material-icons icon">3d_rotation</i></div>
+		</div>
+		<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in all_panels" v-if="Condition(panel.condition)" @click="select(panel)">
+			<div class="icon_wrapper" v-html="Blockbench.getIconNode(panel.icon).outerHTML"></div>
+		</div>
 	</div>
 	
 	</div>

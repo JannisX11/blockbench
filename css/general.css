@@ -199,7 +199,7 @@
 		pointer-events: none;
 	}
 
-	@media (max-device-width: 480px) {
+	@media (max-device-width: 640px) {
 		#quick_message_box {
 			bottom: 26px;
 			top: unset;
