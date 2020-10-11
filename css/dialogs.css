@@ -639,7 +639,7 @@
 		height: auto;
 		float: right;
 		margin-left: -1px;
-		margin-top: 6px;
+		margin-top: 0;
 		text-align: right;
 	}
 	#plugin_list li .button_bar.tiny {
@@ -668,6 +668,7 @@
 		font-size: 1.34em;
 		padding-top: 8px;
 		margin-bottom: -5px;
+		height: 48px;
 	}
 	#plugin_list li .title i {
 		font-size: 0.9em;

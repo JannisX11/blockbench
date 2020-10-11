@@ -174,7 +174,7 @@
 					<button type="button" class="" v-on:click="plugin.download(true)" v-else><i class="material-icons">add</i><span class="tl">dialog.plugins.install</span></button>
 					<button type="button" v-on:click="plugin.reload()" v-if="plugin.installed && plugin.isReloadable()"><i class="material-icons">refresh</i><span class="tl">dialog.plugins.reload</span></button>
 				</div>
-				<div class="button_bar tiny tl" v-else>{{ plugin.isInstallable() }}</div>
+				<div class="button_bar tiny tl" v-if="plugin.isInstallable() != true">{{ plugin.isInstallable() }}</div>
 
 				<div class="author">{{ tl('dialog.plugins.author', [plugin.author]) }}</div>
 				<div class="description">{{ plugin.description }}</div>

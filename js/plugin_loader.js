@@ -43,6 +43,7 @@ class Plugin {
 		this.icon = '';
 		this.variant = '';
 		this.min_version = '';
+		this.max_version = '';
 		this.source = 'store'
 
 		this.extend(data)
@@ -60,6 +61,7 @@ class Plugin {
 		Merge.string(this, data, 'icon')
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
+		Merge.string(this, data, 'max_version')
 
 		Merge.function(this, data, 'onload')
 		Merge.function(this, data, 'onunload')
@@ -272,8 +274,12 @@ class Plugin {
 				isApp !== (scope.variant === 'web')
 			);
 		if (result && scope.min_version) {
-			result = compareVersions(scope.min_version, appVersion) ? 'outdated' : true
-		} else if (result === false) {
+			result = Blockbench.isOlderThan(scope.min_version) ? 'outdated_client' : true;
+		}
+		if (result && scope.max_version) {
+			result = Blockbench.isNewerThan(scope.max_version) ? 'outdated_plugin' : true
+		}
+		if (result === false) {
 			result = (scope.variant === 'web') ? 'web_only' : 'app_only'
 		}
 		return (result === true) ? true : tl('dialog.plugins.'+result);
@@ -310,8 +316,10 @@ Plugin.register = function(id, data) {
 	if (!plugin) return;
 	plugin.extend(data)
 	if (data.icon) plugin.icon = Blockbench.getIconNode(data.icon)
-	if (plugin.onload instanceof Function) {
-		plugin.onload()
+	if (plugin.isInstallable() == true) {
+		if (plugin.onload instanceof Function) {
+			plugin.onload()
+		}
 	}
 	return plugin;
 }
