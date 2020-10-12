@@ -43,7 +43,7 @@ const codec = new Codec('skin_model', {
 				if (obj.export) {
 					if (obj instanceof Cube) {
 
-						let template = Codecs.bedrock.compileCube(obj);
+						let template = Codecs.bedrock.compileCube(obj, g);
 						cubes.push(template)
 						cube_count++;
 
@@ -2505,70 +2505,71 @@ skin_presets.guardian = `{
 skin_presets.hoglin = `{
 	"name": "hoglin",
 	"texturewidth": 128,
-	"textureheight": 128,
+	"textureheight": 64,
 	"bones": [
 		{
+			"name": "body",
+			"pivot": [0, 19, -3],
+			"cubes": [
+				{"origin": [-8, 11, -7], "size": [16, 14, 26], "inflate": 0.02, "uv": [1, 1]},
+				{"origin": [0, 22, -10], "size": [0, 10, 19], "inflate": 0.02, "uv": [90, 33]}
+			]
+		},
+		{
 			"name": "head",
-			"pivot": [0, 19, -13],
+			"parent": "body",
+			"pivot": [0, 22, -5],
 			"rotation": [50, 0, 0],
 			"cubes": [
-				{"name": "head", "origin": [-7, 17, -29], "size": [14, 6, 19], "uv": [1, 42]},
-				{"name": "head", "origin": [6, 18, -23], "size": [2, 11, 2], "uv": [6, 45]},
-				{"name": "head", "origin": [-8, 18, -23], "size": [2, 11, 2], "uv": [6, 45]}
+				{"origin": [-7, 21, -24], "size": [14, 6, 19], "uv": [61, 1]},
+				{"origin": [-8, 22, -19], "size": [2, 11, 2], "uv": [1, 13]},
+				{"origin": [6, 22, -19], "size": [2, 11, 2], "uv": [1, 13]}
 			]
 		},
 		{
-			"name": "ear_right",
+			"name": "right_ear",
 			"parent": "head",
-			"pivot": [-6, 23, -14],
-			"rotation": [0, 0, -35],
+			"pivot": [-7, 27, -7],
+			"rotation": [0, 0, -50],
 			"cubes": [
-				{"name": "cube", "origin": [-13, 22, -17], "size": [6, 1, 4], "uv": [4, 16]}
+				{"origin": [-13, 26, -10], "size": [6, 1, 4], "uv": [1, 1]}
 			]
 		},
 		{
-			"name": "ear_left",
+			"name": "left_ear",
 			"parent": "head",
-			"pivot": [6, 23, -14],
-			"rotation": [0, 0, 35],
+			"pivot": [7, 27, -7],
+			"rotation": [0, 0, 50],
 			"cubes": [
-				{"name": "cube", "origin": [7, 22, -17], "size": [6, 1, 4], "uv": [4, 21]}
+				{"origin": [7, 26, -10], "size": [6, 1, 4], "uv": [1, 6]}
 			]
 		},
 		{
-			"name": "body",
-			"pivot": [0, 19, 2],
+			"name": "leg_back_right",
+			"pivot": [6, 8, 17],
 			"cubes": [
-				{"name": "body", "origin": [-8, 10, -13], "size": [16, 14, 26], "uv": [1, 1]},
-				{"name": "body", "origin": [0, 21, -16], "size": [0, 10, 21], "uv": [3, 65]}
+				{"origin": [-8, 0, 13], "size": [5, 11, 5], "uv": [21, 45]}
 			]
 		},
 		{
-			"name": "leg0",
-			"pivot": [-5, 11, 10],
+			"name": "leg_back_left",
+			"pivot": [-6, 8, 17],
 			"cubes": [
-				{"name": "leg0", "origin": [-7.5, 0, 7.5], "size": [5, 11, 5], "uv": [51, 43]}
+				{"origin": [3, 0, 13], "size": [5, 11, 5], "uv": [0, 45]}
 			]
 		},
 		{
-			"name": "leg1",
-			"pivot": [5, 11, 10],
+			"name": "leg_front_right",
+			"pivot": [-6, 12, -3],
 			"cubes": [
-				{"name": "leg1", "origin": [2.5, 0, 7.5], "size": [5, 11, 5], "uv": [72, 43]}
+				{"origin": [-8, 0, -6], "size": [6, 14, 6], "uv": [66, 42]}
 			]
 		},
 		{
-			"name": "leg2",
-			"pivot": [-3.5, 14, -8.5],
+			"name": "leg_front_left",
+			"pivot": [6, 12, -3],
 			"cubes": [
-				{"name": "leg2", "origin": [-7, 0, -11.5], "size": [6, 14, 6], "uv": [46, 75]}
-			]
-		},
-		{
-			"name": "leg3",
-			"pivot": [3.5, 14, -8.5],
-			"cubes": [
-				{"name": "leg3", "origin": [1, 0, -11.5], "size": [6, 14, 6], "uv": [71, 75]}
+				{"origin": [2, 0, -6], "size": [6, 14, 6], "uv": [41, 42]}
 			]
 		}
 	]

@@ -228,43 +228,6 @@ function unselectAll() {
 	})
 	TickUpdates.selection = true;
 }
-function createSelection() {
-	if ($('#selgen_new').is(':checked')) {
-		selected.length = 0
-	}
-	if (Group.selected) {
-		Group.selected.unselect()
-	}
-	var name_seg = $('#selgen_name').val().toUpperCase()
-	var tex_seg = $('#selgen_texture').val().toLowerCase()
-	var rdm = $('#selgen_random').val()/100
-
-	var array = elements
-	if ($('#selgen_group').is(':checked') && Group.selected) {
-		array = Group.selected.children
-	}
-
-	array.forEach(function(obj) {
-		if (obj.name.toUpperCase().includes(name_seg) === false) return;
-		if (obj instanceof Cube && tex_seg && !Format.single_texture) {
-			var has_tex = false;
-			for (var key in obj.faces) {
-				var tex = obj.faces[key].getTexture();
-				if (tex && tex.name.includes(tex_seg)) {
-					has_tex = true
-				}
-			}
-			if (!has_tex) return;
-		}
-		if (Math.random() > rdm) return;
-		selected.push(obj)
-	})
-	updateSelection()
-	if (selected.length) {
-		selected[0].showInOutliner()
-	}
-	hideDialog()
-}
 //Backup
 setInterval(function() {
 	if (Outliner.root.length || textures.length) {

@@ -1010,8 +1010,72 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 70, ctrl: true}),
 		condition: () => Modes.edit || Modes.paivnt,
 		click: function () {
-			showDialog('selection_creator')
-			$('#selgen_name').focus()
+			let color_options = {
+				'-1': 'generic.all'
+			}
+			markerColors.forEach((color, i) => {
+				color_options[i] = 'cube.color.' + color.name;
+			})
+			let dialog = new Dialog({
+				id: 'selection_creator',
+				title: 'dialog.select.title',
+				form_first: true,
+				form: {
+					new: {label: 'dialog.select.new', type: 'checkbox', value: true},
+					group: {label: 'dialog.select.group', type: 'checkbox'},
+					name: {label: 'dialog.select.name', type: 'text'},
+					texture: {label: 'data.texture', type: 'text'},
+					color: {label: 'menu.cube.color', type: 'select', value: '-1', options: color_options}
+				},
+				lines: [
+					`<div class="dialog_bar form_bar">
+						<label class="name_space_left tl">dialog.select.random</label>
+						<input type="range" min="0" max="100" step="1" value="100" class="tool half" style="width: 100%;" id="selgen_random">
+					</div>`
+				],
+				onConfirm(formData) {
+					if (formData.new) {
+						selected.length = 0
+					}
+					let selected_group = Group.selected;
+					if (Group.selected) {
+						Group.selected.unselect()
+					}
+					var name_seg = formData.name.toUpperCase()
+					var tex_seg = formData.texture.toLowerCase()
+					var rdm = $('#selgen_random').val()/100
+				
+					var array = Outliner.elements;
+					if ($('#selgen_group').is(':checked') && selected_group) {
+						array = selected_group.children
+					}
+				
+					array.forEach(function(obj) {
+						if (obj.name.toUpperCase().includes(name_seg) === false) return;
+						if (obj instanceof Cube && tex_seg && !Format.single_texture) {
+							var has_tex = false;
+							for (var key in obj.faces) {
+								var tex = obj.faces[key].getTexture();
+								if (tex && tex.name.includes(tex_seg)) {
+									has_tex = true
+								}
+							}
+							if (!has_tex) return;
+						}
+						if (formData.color != '-1') {
+							if (obj instanceof Cube == false || obj.color.toString() != formData.color) return;
+						}
+						if (Math.random() > rdm) return;
+						selected.push(obj)
+					})
+					updateSelection()
+					if (selected.length) {
+						selected[0].showInOutliner()
+					}
+					this.hide()
+				}
+			}).show()
+			$('.dialog#selection_creator .form_bar_name > input').focus()
 		}
 	})
 	new Action('invert_selection', {

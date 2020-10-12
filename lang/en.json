@@ -37,6 +37,7 @@
 	"generic.search": "Search",
 	"generic.help": "Help",
 	"generic.name": "Name",
+	"generic.all": "All",
 	"generic.none": "None",
 	"generic.unset": "Unset",
 	"generic.enable": "Enable",
