@@ -21,9 +21,9 @@ class KeyframeDataPoint {
 		return copy;
 	}
 }
-new Property(KeyframeDataPoint, 'molang', 'x', {label: 'X', condition: point => point.keyframe.transform});
-new Property(KeyframeDataPoint, 'molang', 'y', {label: 'Y', condition: point => point.keyframe.transform});
-new Property(KeyframeDataPoint, 'molang', 'z', {label: 'Z', condition: point => point.keyframe.transform});
+new Property(KeyframeDataPoint, 'molang', 'x', { label: 'X', condition: point => point.keyframe.transform, default: point => (point && point.keyframe.channel == 'scale' ? '1' : '0') });
+new Property(KeyframeDataPoint, 'molang', 'y', { label: 'Y', condition: point => point.keyframe.transform, default: point => (point && point.keyframe.channel == 'scale' ? '1' : '0') });
+new Property(KeyframeDataPoint, 'molang', 'z', { label: 'Z', condition: point => point.keyframe.transform, default: point => (point && point.keyframe.channel == 'scale' ? '1' : '0') });
 new Property(KeyframeDataPoint, 'string', 'effect', {label: tl('data.effect'), condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
 new Property(KeyframeDataPoint, 'string', 'locator',{label: tl('data.locator'), condition: point => 'particle' == point.keyframe.channel});
 new Property(KeyframeDataPoint, 'molang', 'script', {label: tl('timeline.pre_effect_script'), condition: point => ['particle', 'timeline'].includes(point.keyframe.channel), default: ''});

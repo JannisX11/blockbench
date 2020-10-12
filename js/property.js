@@ -37,7 +37,7 @@ class Property {
 		if (this.isMolang) {
 			Object.defineProperty(target_class.prototype, `${name}_string`, {
 				get() {
-					return typeof this[name] == 'number' ? trimFloatNumber(this[name]) || scope.default : this[name];
+					return typeof this[name] == 'number' ? trimFloatNumber(this[name]) || scope.getDefault(this) : this[name];
 				},
 				set(val) {
 					this[name] = val;
@@ -52,6 +52,13 @@ class Property {
 		if (options.exposed == false) this.exposed = false;
 		if (options.label) this.label = options.label;
 		if (options.options) this.options = options.options;
+	}
+	getDefault(instance) {
+		if (typeof this.default == 'function') {
+			return this.default(instance);
+		} else {
+			return this.default;
+		}
 	}
 	merge(instance, data) {
 		if (data[this.name] == undefined || !Condition(this.condition, instance)) return;
@@ -90,11 +97,8 @@ class Property {
 	}
 	reset(instance) {
 		if (instance[this.name] == undefined && !Condition(this.condition, instance)) return;
-		if (typeof this.default == 'function') {
-			var dft = this.default(instance);
-		} else {
-			var dft = this.default;
-		}
+		var dft = this.getDefault(instance)
+
 		if (this.isArray || this.isVector || this.isVector2) {
 			if (instance[this.name] instanceof Array == false) {
 				instance[this.name] = [];
