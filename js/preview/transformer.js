@@ -912,6 +912,7 @@
 				if (Toolbox.selected.id == 'resize_tool') {
 					Transformer.rotation_ref = Group.selected.mesh;
 				} else if (Toolbox.selected.id == 'move_tool' && Group.selected.ik_enabled && Group.selected.ik_chain_length) {
+					if (Transformer.dragging && Transformer.ik_target) Transformer.position.copy(Transformer.ik_target);
 					delete Transformer.rotation_ref;
 				} else {
 					Transformer.rotation_ref = Group.selected.mesh.parent;
@@ -1110,9 +1111,10 @@
 						}
 					})
 
-				    let target = new FIK.V3()
+					//let target = new FIK.V3()
+					Transformer.ik_target = new THREE.Vector3().copy(Transformer.position);
 
-				    solver.add(chain, target, true);
+				    solver.add(chain, Transformer.ik_target , true);
 					Transformer.ik_solver = solver;
 
 					Transformer.ik_solver.meshChains[0].forEach(mesh => {
@@ -1340,24 +1342,14 @@
 					if (Toolbox.selected.id === 'rotate_tool' && Math.abs(difference) > 120) {
 						difference = 0;
 					}
-					if (axis == 'x' && Toolbox.selected.id === 'move_tool') {
-						difference *= -1
-					}
 					if (Group.selected.ik_enabled) {
 
-						var solver = Transformer.ik_solver;
-
-						console.log(originalPoint)
-						point.copy(originalPoint)
-						point[axis] = planeIntersect.point[axis];
-						solver.targets[0].copy(point);
-
+						Transformer.ik_target[axis] += difference
+						
 						main_preview.render()
-
-						solver.update();
-						console.log(solver)
-
+						Transformer.ik_solver.update();
 						Animator.preview()
+
 						Transformer.bones.forEach((bone, i) => {
 							var keyframe = scope.keyframes[i];
 							if (keyframe) {
@@ -1365,8 +1357,8 @@
 								let euler = new THREE.Euler()
 								let q = new THREE.Quaternion()
 								
-								let start = new THREE.Vector3().copy(solver.chains[0].bones[i].start)
-								let end = new THREE.Vector3().copy(solver.chains[0].bones[i].end)
+								let start = new THREE.Vector3().copy(Transformer.ik_solver.chains[0].bones[i].start)
+								let end = new THREE.Vector3().copy(Transformer.ik_solver.chains[0].bones[i].end)
 								Transformer.bones[i].bone.mesh.worldToLocal(start)
 								Transformer.bones[i].bone.mesh.worldToLocal(end)
 								let diff = new THREE.Vector3().copy(end).sub(start)
@@ -1389,6 +1381,9 @@
 
 
 					} else {
+						if (axis == 'x' && Toolbox.selected.id === 'move_tool') {
+							difference *= -1
+						}
 						scope.keyframes[0].offset(axis, difference);
 						scope.keyframes[0].select()
 					}
