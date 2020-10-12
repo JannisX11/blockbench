@@ -116,10 +116,10 @@ const DefaultCameraPresets = [
 ]
 
 class Preview {
-	constructor(data) {
+	constructor(options = 0) {
 		var scope = this;
-		if (data && data.id) {
-			this.id = data.id
+		if (options && options.id) {
+			this.id = options.id
 		}
 		//Node
 		this.canvas = document.createElement('canvas')
@@ -195,7 +195,7 @@ class Preview {
 		try {
 			this.renderer = new THREE.WebGLRenderer({
 				canvas: this.canvas,
-				antialias: Settings.get('antialiasing'),
+				antialias: typeof options.antialias == 'boolean' ? options.antialias : Settings.get('antialiasing'),
 				alpha: true,
 				preserveDrawingBuffer: true
 			});

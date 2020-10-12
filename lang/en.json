@@ -197,8 +197,8 @@
 	"message.display_skin_model.slim": "Slim",
 
 	"message.invalid_plugin": "Invalid Plugin File, See Console",
-	"message.load_plugin_app": "Do you want to allow this plugin to make changes to your PC? Only load plugins from people you trust.",
-	"message.load_plugin_web": "Do you want to load this plugin? Only load plugins from people you trust.",
+	"message.load_plugin_app": "Do you want to allow this plugin to make changes to your PC? Only load plugins from authors you trust.",
+	"message.load_plugin_web": "Do you want to load this plugin? Only load plugins from authors you trust.",
 	"message.plugin_reload": "Reloaded %0 local plugins",
 	"message.install_plugin": "Installing the plugin %0",
 	"message.preset_no_info": "Preset does not contain information for this slot",
