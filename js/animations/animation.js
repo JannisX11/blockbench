@@ -184,52 +184,69 @@ class Animation {
 		return ani_tag;
 	}
 	save() {
+		if (isApp && !this.path) {
+			Blockbench.export({
+				resource_id: 'animation',
+				type: 'JSON Animation',
+				extensions: ['json'],
+				name: (Project.geometry_name||'model')+'.animation',
+				startpath: this.path,
+				custom_writer: (content, path) => {
+					if (!path) return
+					this.path = path;
+					this.save();
+				}
+			})
+			return;
+		}
 		let content = {
 			format_version: '1.8.0',
 			animations: {
 				[this.name]: this.compileBedrockAnimation()
 			}
 		}
-		if (isApp && this.path && fs.existsSync(this.path)) {
-			//overwrite path
-			let data;
-			try {
-				data = fs.readFileSync(this.path, 'utf-8');
-				data = autoParseJSON(data, false);
-				if (typeof data.animations !== 'object') {
-					throw 'Incompatible format'
-				}
+		if (isApp && this.path) {
+			if (fs.existsSync(this.path)) {
+				//overwrite path
+				let data;
+				try {
+					data = fs.readFileSync(this.path, 'utf-8');
+					data = autoParseJSON(data, false);
+					if (typeof data.animations !== 'object') {
+						throw 'Incompatible format'
+					}
 
-			} catch (err) {
-				data = null;
-				var answer = ElecDialogs.showMessageBox(currentwindow, {
-					type: 'warning',
-					buttons: [
-						tl('message.bedrock_overwrite_error.overwrite'),
-						tl('dialog.cancel')
-					],
-					title: 'Blockbench',
-					message: tl('message.bedrock_overwrite_error.message'),
-					detail: err+'',
-					noLink: false
-				})
-				if (answer === 1) {
-					return;
+				} catch (err) {
+					data = null;
+					var answer = ElecDialogs.showMessageBox(currentwindow, {
+						type: 'warning',
+						buttons: [
+							tl('message.bedrock_overwrite_error.overwrite'),
+							tl('dialog.cancel')
+						],
+						title: 'Blockbench',
+						message: tl('message.bedrock_overwrite_error.message'),
+						detail: err+'',
+						noLink: false
+					})
+					if (answer === 1) {
+						return;
+					}
+				}
+				if (data) {
+					let animation = content.animations[this.name];
+					content = data;
+					content.animations[this.name] = animation;
 				}
 			}
-
-			if (data) {
-				let animation = content.animations[this.name];
-				content = data;
-				content.animations[this.name] = animation;
-			}
+			// Write
 			Blockbench.writeFile(this.path, {content: compileJSON(content)}, (real_path) => {
 				this.saved = true;
 				this.path = real_path;
 			});
 
 		} else {
-			//Download
+			// Web Download
 			Blockbench.export({
 				resource_id: 'animation',
 				type: 'JSON Animation',
@@ -568,12 +585,8 @@ Blockbench.on('finish_edit', event => {
 			animation.saved = false;
 		})
 	}
-	if (event.aspects.keyframes && event.aspects.keyframes.length) {
-		event.aspects.keyframes.forEach(kf => {
-			if (kf.animator && kf.animator.animation) {
-				kf.animator.animation.saved = false;
-			}
-		})
+	if (event.aspects.keyframes && event.aspects.keyframes instanceof Array && Animation.selected) {
+		Animation.selected.saved = false;
 	}
 })
 
