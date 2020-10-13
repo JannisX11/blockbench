@@ -1333,7 +1333,7 @@ const Animator = {
 		})
 
 		if (Group.selected) {
-			Transformer.center()
+			Transformer.updateSelection()
 		}
 		Blockbench.dispatchEvent('display_animation_frame')
 	},

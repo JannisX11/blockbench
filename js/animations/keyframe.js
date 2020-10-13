@@ -422,6 +422,10 @@ function updateKeyframeSelection() {
 	}
 	if (settings.motion_trails.value && Modes.animate && Animation.selected && Group.selected) {
 		Animator.showMotionTrail();
+	} else if (Animator.motion_trail.parent) {
+		Animator.motion_trail.children.forEachReverse(child => {
+			Animator.motion_trail.remove(child);
+		})
 	}
 	BARS.updateConditions()
 	Blockbench.dispatchEvent('update_keyframe_selection');

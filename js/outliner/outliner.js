@@ -749,8 +749,6 @@ function loadOutlinerDraggable() {
 	})
 }
 function dropOutlinerObjects(item, target, event, order) {
-	if (Format.bone_rig && item instanceof Group == false && target instanceof OutlinerElement == false) return;
-
 	if (item.type === 'group' && target && target.parent) {
 		var is_parent = false;
 		function iterate(g) {

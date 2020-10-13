@@ -506,7 +506,13 @@ const Timeline = {
 		Animator.preview()
 		if (Animation.selected && Timeline.time < (Animation.selected.length||1e3)) {
 
-			let new_time = Animator.MolangParser.parse( (Animation.selected && Animation.selected.anim_time_update) || 'query.anim_time + query.delta_time')
+			var new_time;
+			if (Animation.selected?.anim_time_update) {
+				var new_time = Animator.MolangParser.parse(Animation.selected.anim_time_update);
+			}
+			if (new_time == undefined || new_time <= Timeline.time) {
+				var new_time = Animator.MolangParser.parse('query.anim_time + query.delta_time')
+			}
 			Timeline.setTime(Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100));
 			Timeline.last_frame_timecode = new Date().getMilliseconds();
 
