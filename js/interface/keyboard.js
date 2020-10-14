@@ -39,7 +39,7 @@ class Keybind {
 			shift: false,
 			alt: false,
 			meta: false
-		})
+		}).save();
 		return this;
 	}
 	save(save) {
@@ -59,7 +59,7 @@ class Keybind {
 			}
 
 			if (BarItems[this.action] instanceof Action) {
-				BarItems[this.action].updateHoverTitle()
+				BarItems[this.action].updateKeybindingLabel()
 			}
 		}
 		return this;
@@ -226,6 +226,9 @@ class Keybind {
 		$('#overlay_message_box').hide().off('mousedown mousewheel')
 		$('#keybind_input_box').off('keyup keydown')
 		return this;
+	}
+	toString() {
+		return this.label
 	}
 }
 Keybinds.no_overlap = function(k1, k2) {

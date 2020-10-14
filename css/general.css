@@ -419,23 +419,41 @@
 	.tooltip {
 		position: absolute;
 		height: 28px;
+		width: fit-content;
 		padding-left: 5px;
 		padding-right: 5px;
 		padding-top: 2px;
 		color: var(--color-accent_text);
 		margin-top: 30px;
-		display: none;
 		background: var(--color-bright_ui);
 		white-space: nowrap;
 		z-index: 18;
 		box-shadow: 0 0.4px 3.5px rgba(0, 0, 0, 0.6);
+		pointer-events: none;
+		visibility: hidden;
 	}
-	.tool:hover > .tooltip:not(:hover) {
-		display: block;
+	.tool:hover > .tooltip {
+		visibility: visible;
 	}
 	.tooltip_shift {
-		display: inline;
 		display: none;
+	}
+	.tooltip_description {
+		position: absolute;
+		background-color: var(--color-ui);
+		color: var(--color-text);
+		padding: 2px 6px;
+		box-shadow: 0 0 4px black;
+		margin-top: 4px;
+		font-size: 0.84em;
+		margin-left: -6px;
+		opacity: 0;
+	}
+	.tool:hover > .tooltip .tooltip_description {
+		transition-property: opacity;
+		transition-duration: 200ms;
+		transition-delay: 600ms;
+		opacity: 1;
 	}
 
 /*(Context-)Menu*/
@@ -443,6 +461,7 @@
 		position: absolute;
 		display: block;
 		height: auto;
+		width: fit-content;
 		min-width: 110px;
 		background-color: var(--color-bright_ui);
 		color: var(--color-accent_text);
@@ -507,5 +526,13 @@
 		width: 100%;
 		padding: 0;
 		background-color: var(--color-text);
+	}
+
+
+	.keybinding_label {
+		float: right;
+		font-size: 0.84em;
+		padding: 2px 0 2px 8px;
+		opacity: 0.6;
 	}
 

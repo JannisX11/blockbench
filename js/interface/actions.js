@@ -57,15 +57,22 @@ class BarItem {
 		if (!action || this instanceof BarItem) {
 			action = this;
 		}
-		$(action.node).attr('title', action.description)
+		//$(action.node).attr('title', action.description)
 		if (in_bar) {
 			$(action.node).prepend('<label class="f_left toolbar_label">'+action.name+':</label>')
 			$(this.node).addClass('has_label')
 		} else {
-			$(action.node).prepend('<div class="tooltip">'+action.name+'</div>')
+			$(action.node).prepend(
+				`<div class="tooltip">
+					${action.name}
+					<label class="keybinding_label">${action.keybind || ''}</label>
+					<div class="tooltip_description">${this.description || ''}</div>
+				</div>`
+			)
 			.on('mouseenter', function() {
 
-				var tooltip = $(this).find('div.tooltip')
+				var tooltip = $(this).find('div.tooltip');
+				var description = tooltip.find('.tooltip_description');
 				if ($(this).parent().parent().hasClass('vertical')) {
 					tooltip.css('margin', '0')
 					if ($(this).offset().left > window.innerWidth/2) {
@@ -74,15 +81,27 @@ class BarItem {
 						tooltip.css('margin-left', '34px')
 					}
 				} else {
-					if (!tooltip || typeof tooltip.offset() !== 'object') return;
+					if (!tooltip.length) return;
 
 					tooltip.css('margin-left', '0')
-					var offset = tooltip.offset()
+					var offset = tooltip?.offset()
 					offset.right = offset.left + parseInt(tooltip.css('width').replace(/px/, '')) - $(window).width()
 
 					if (offset.right > 4) {
 						tooltip.css('margin-left', -offset.right+'px')
 					}
+
+					// description
+					if (!description.length) return;
+
+					description.css('margin-left', '-6px')
+					var offset = description?.offset()
+					offset.right = offset.left + parseInt(description.css('width').replace(/px/, '')) - $(window).width()
+
+					if (offset.right > 4) {
+						description.css('margin-left', -offset.right+'px')
+					}
+
 				}
 			})
 		}
@@ -181,10 +200,10 @@ class Action extends BarItem {
 		this.node = $(`<div class="tool ${this.id}"></div>`).get(0)
 		this.nodes = [this.node]
 		this.menus = [];
-		this.menu_node = $(`<li>${this.name}</li>`).get(0)
-		$(this.node).add(this.menu_node).append(this.icon_node)
+		this.menu_node = $(`<li title="${this.description||''}"><span>${this.name}</span><label class="keybinding_label">${this.keybind || ''}</label></li>`).get(0)
+		$(this.node).add(this.menu_node).prepend(this.icon_node)
 		this.addLabel(data.label)
-		this.updateHoverTitle()
+		this.updateKeybindingLabel()
 		$(this.node).click(function(e) {scope.trigger(e)})
 
 		if (data.linked_setting) {
@@ -217,18 +236,10 @@ class Action extends BarItem {
 		}
 		return false;
 	}
-	updateHoverTitle() {
-		var text = this.description || '';
-		if (this && this.keybind && this.keybind.label) {
-			if (text) {
-				text = `${text} (${this.keybind.label})`;
-			} else {
-				text = this.keybind.label;
-			}
-		}
-		this.menu_node.title = text;
+	updateKeybindingLabel() {
+		$(this.menu_node).find('.keybinding_label').text(this.keybind || '');
 		this.nodes.forEach(node => {
-			node.title = text;
+			$(node).find('.keybinding_label').text(this.keybind || '');
 		});
 		return this;
 	}
