@@ -17,10 +17,10 @@ function parseGeometry(data) {
 	Project.texture_height = data.object.textureheight || 64;
 
 	if (typeof data.object.visible_bounds_width == 'number' && typeof data.object.visible_bounds_height == 'number') {
-		Project.visible_box[0] = Math.max(Project.visible_box[0], data.object.visible_bounds_width);
-		Project.visible_box[1] = Math.max(Project.visible_box[1], data.object.visible_bounds_height);
+		Project.visible_box[0] = Math.max(Project.visible_box[0], data.object.visible_bounds_width || 0);
+		Project.visible_box[1] = Math.max(Project.visible_box[1], data.object.visible_bounds_height || 0);
 		if (data.object.visible_bounds_offset && typeof data.object.visible_bounds_offset[1] == 'number') {
-			Project.visible_box[2] = data.object.visible_bounds_offset[1];
+			Project.visible_box[2] = data.object.visible_bounds_offset[1] || 0;
 		}
 	}
 
@@ -216,9 +216,9 @@ var codec = new Codec('bedrock_old', {
 		if (bones.length && options.visible_box !== false) {
 
 			let visible_box = calculateVisibleBox();
-			entitymodel.visible_bounds_width = visible_box[0];
-			entitymodel.visible_bounds_height = visible_box[1];
-			entitymodel.visible_bounds_offset = [0, visible_box[2] , 0]
+			entitymodel.visible_bounds_width = visible_box[0] || 0;
+			entitymodel.visible_bounds_height = visible_box[1] || 0;
+			entitymodel.visible_bounds_offset = [0, visible_box[2] || 0, 0]
 		}
 		if (bones.length) {
 			entitymodel.bones = bones

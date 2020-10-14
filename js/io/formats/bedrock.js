@@ -455,10 +455,10 @@ function calculateVisibleBox() {
 		Project.texture_height = 16;
 
 		if (typeof description.visible_bounds_width == 'number' && typeof description.visible_bounds_height == 'number') {
-			Project.visible_box[0] = Math.max(Project.visible_box[0], description.visible_bounds_width);
-			Project.visible_box[1] = Math.max(Project.visible_box[1], description.visible_bounds_height);
+			Project.visible_box[0] = Math.max(Project.visible_box[0], description.visible_bounds_width || 0);
+			Project.visible_box[1] = Math.max(Project.visible_box[1], description.visible_bounds_height || 0);
 			if (description.visible_bounds_offset && typeof description.visible_bounds_offset[1] == 'number') {
-				Project.visible_box[2] = description.visible_bounds_offset[1];
+				Project.visible_box[2] = description.visible_bounds_offset[1] || 0;
 			}
 		}
 
@@ -650,9 +650,9 @@ var codec = new Codec('bedrock', {
 		if (bones.length && options.visible_box !== false) {
 
 			let visible_box = calculateVisibleBox();
-			entitymodel.description.visible_bounds_width = visible_box[0];
-			entitymodel.description.visible_bounds_height = visible_box[1];
-			entitymodel.description.visible_bounds_offset = [0, visible_box[2] , 0]
+			entitymodel.description.visible_bounds_width = visible_box[0] || 0;
+			entitymodel.description.visible_bounds_height = visible_box[1] || 0;
+			entitymodel.description.visible_bounds_offset = [0, visible_box[2] || 0 , 0]
 		}
 		if (bones.length) {
 			entitymodel.bones = bones
