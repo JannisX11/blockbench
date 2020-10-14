@@ -1515,8 +1515,10 @@
 
 						if (Toolbox.selected.id == 'pivot_tool') {
 							Undo.finishEdit('move pivot')
+						} else if (Toolbox.selected.id == 'rotate_tool') {
+							Undo.finishEdit('rotate selection')
 						} else {
-							Undo.finishEdit('move elements')
+							Undo.finishEdit('move selection')
 						}
 					}
 					updateSelection()

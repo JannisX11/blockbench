@@ -84,11 +84,11 @@ var markerColors = [
 class OutlinerElement {
 	constructor(uuid) {
 		this.uuid = uuid || guid()
-		OutlinerElement.uuids[this.uuid] = this;
 		this.export = true;
 		this.locked = false;
 	}
 	init() {
+		OutlinerElement.uuids[this.uuid] = this;
 		this.constructor.all.safePush(this);
 		return this;
 	}
@@ -212,7 +212,7 @@ class OutlinerElement {
 	}
 	remove() {
 		this.constructor.all.remove(this);
-		delete OutlinerElement.uuids[this.uuid];
+		if (OutlinerElement.uuids[this.uuid] == this) delete OutlinerElement.uuids[this.uuid];
 		this.removeFromParent()
 	}
 	rename() {

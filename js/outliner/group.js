@@ -220,12 +220,55 @@ class Group extends OutlinerElement {
 	resolve() {
 		var array = this.children.slice();
 		var index = this.getParentArray().indexOf(this)
-
-		array.forEach((s, i) => {
-			s.addTo(this.parent, index)
+		let all_elements = [];
+		this.forEachChild(obj => {
+			if (obj instanceof Group == false) {
+				all_elements.push(obj);
+			}
 		})
-		TickUpdates.outliner = true;
+
+		Undo.initEdit({outliner: true, elements: all_elements})
+
+		array.forEach((obj, i) => {
+			obj.addTo(this.parent, index)
+			
+			if ((obj instanceof Cube && Format.rotate_cubes) || (obj instanceof Group && Format.bone_rig)) {
+				let quat = new THREE.Quaternion().copy(obj.mesh.quaternion);
+				quat.premultiply(obj.mesh.parent.quaternion);
+				let e = new THREE.Euler().setFromQuaternion(quat, obj.mesh.rotation.order);
+				obj.extend({
+					rotation: [
+						Math.roundTo(Math.radToDeg(e.x), 4),
+						Math.roundTo(Math.radToDeg(e.y), 4),
+						Math.roundTo(Math.radToDeg(e.z), 4),
+					]
+				})
+			}
+			if (obj.mesh) {
+				let pos = new THREE.Vector3().copy(obj.mesh.position);
+				pos.applyQuaternion(this.mesh.quaternion).sub(obj.mesh.position);
+				let diff = pos.toArray();
+
+				if (obj.movable) obj.from.V3_add(diff);
+				if (obj.resizable) obj.to.V3_add(diff);
+				if (obj.rotatable || obj instanceof Group) obj.origin.V3_add(diff);
+
+				if (obj instanceof Group) {
+					obj.forEachChild(child => {
+						if (child.movable) child.from.V3_add(diff);
+						if (child.resizable) child.to.V3_add(diff);
+						if (obj.rotatable || obj instanceof Group) child.origin.V3_add(diff);
+					})
+				}
+			}
+		})
+		Canvas.updateAllPositions();
+		if (Format.bone_rig) {
+			Canvas.updateAllBones();
+		}
 		this.remove(false);
+		Undo.finishEdit('resolve group')
+		TickUpdates.outliner = true;
 		return array;
 	}
 	showContextMenu(event) {
@@ -414,11 +457,7 @@ class Group extends OutlinerElement {
 		'add_locator',
 		'rename',
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
-		{icon: 'fa-leaf', name: 'menu.group.resolve', condition: {modes: ['edit']}, click: function(group) {
-			Undo.initEdit({outliner: true})
-			group.resolve()
-			Undo.finishEdit('group resolve')
-		}},
+		{icon: 'fa-leaf', name: 'menu.group.resolve', condition: {modes: ['edit']}, click: function(group) {group.resolve()}},
 		'delete'
 	]);
 	Group.selected;

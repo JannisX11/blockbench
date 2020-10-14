@@ -301,10 +301,8 @@ var Undo = {
 				group.extend(save.group)
 				if (Format.bone_rig) {
 					group.forEachChild(function(obj) {
-						if (obj.type === 'cube') {
-							Canvas.adaptObjectPosition(obj)
-						}
-					})
+						Canvas.adaptObjectPosition(obj)
+					}, Cube)
 				}
 			}
 		}
