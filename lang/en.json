@@ -1011,7 +1011,10 @@
 	"action.timeline_focus": "Filter Channels",
 	"action.timeline_focus.desc": "Select the animation channels to display in the timeline",
 	"action.timeline_focus.hide_empty": "Hide empty channels",
-
+	"action.ik_enabled": "Enable IK",
+	"action.ik_enabled.desc": "Enable Inverse Kinematics for this bone",
+	"action.slider_ik_chain_length": "IK Chain Length",
+	"action.slider_ik_chain_length.desc": "Upwards length of the IK bone chain",
 
 	"timeline.rotation": "Rotation",
 	"timeline.position": "Position",
@@ -1187,6 +1190,7 @@
 	"panel.element.rotation": "Rotation",
 
 	"panel.bone": "Bone",
+	"panel.bone.ik": "Inverse Kinematics (Experimental)",
 
 	"uv_editor.title": "UV Editor",
 	"uv_editor.all_faces": "All",

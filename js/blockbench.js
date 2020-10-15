@@ -87,8 +87,8 @@ function updateNslideValues() {
 		}
 	}
 	if (Modes.animate && Group.selected) {
-		//BarItems.slider_ik_chain_length.update();
-		//BarItems.ik_enabled.setIcon(Group.selected.ik_enabled ? 'check_box' : 'check_box_outline_blank')
+		BarItems.slider_ik_chain_length.update();
+		BarItems.ik_enabled.setIcon(Group.selected.ik_enabled ? 'check_box' : 'check_box_outline_blank')
 	}
 }
 function setProjectResolution(width, height, modify_uv) {

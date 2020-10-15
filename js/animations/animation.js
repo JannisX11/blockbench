@@ -1704,7 +1704,6 @@ BARS.defineActions(function() {
 		}
 	})
 
-	/*
 	//Inverse Kinematics
 	new Action('ik_enabled', {
 		icon: 'check_box_outline_blank',
@@ -1729,6 +1728,7 @@ BARS.defineActions(function() {
 		},
 		change: function(modify) {
 			Group.selected.ik_chain_length = modify(Group.selected.ik_chain_length);
+			updateSelection()
 		},
 		onBefore: function() {
 			Undo.initEdit({keyframes: Timeline.selected})
@@ -1736,8 +1736,7 @@ BARS.defineActions(function() {
 		onAfter: function() {
 			Undo.finishEdit('move keyframes')
 		}
-	})*/
-
+	})
 })
 
 Interface.definePanels(function() {

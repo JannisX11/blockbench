@@ -605,6 +605,7 @@
 			var pointerVector = new THREE.Vector2();
 
 			var point = new THREE.Vector3();
+			var originalPoint = new THREE.Vector3();
 			var offset = new THREE.Vector3();
 			var scale = 1;
 			var eye = new THREE.Vector3();
@@ -910,6 +911,9 @@
 				Group.selected.mesh.getWorldPosition(this.position);
 				if (Toolbox.selected.id == 'resize_tool') {
 					Transformer.rotation_ref = Group.selected.mesh;
+				} else if (Toolbox.selected.id == 'move_tool' && Group.selected.ik_enabled && Group.selected.ik_chain_length) {
+					if (Transformer.dragging && Transformer.ik_target) Transformer.position.copy(Transformer.ik_target);
+					delete Transformer.rotation_ref;
 				} else {
 					Transformer.rotation_ref = Group.selected.mesh.parent;
 				}
@@ -1017,7 +1021,7 @@
 				}
 			}
 		}
-		function beforeFirstChange(event) {
+		function beforeFirstChange(event, point) {
 			if (scope.hasChanged) return;
 
 			if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
@@ -1050,109 +1054,72 @@
 				var undo_keyframes = [];
 				var animator = Animation.selected.getBoneAnimator();
 				if (animator && Toolbox.selected.id === 'move_tool' && Group.selected.ik_enabled && Group.selected.ik_chain_length) {
-					/*
+
+
+					Transformer.bones = [];
+					originalPoint.copy(point);
+
 					var bone = Group.selected;
-					for (var i = Group.selected.ik_chain_length; i > 0; i--) {
-						bone = bone.parent;
+					for (var i = Group.selected.ik_chain_length; i >= 0; i--) {
 						if (bone instanceof Group) {
 							var animator = Animation.selected.getBoneAnimator(bone);
 							animator.addToTimeline();
 							var {before, result} = animator.getOrMakeKeyframe('rotation');
-							scope.keyframes[i-1] = result;
+							scope.keyframes[i] = result;
 							if (before) undo_keyframes.push(before);
 						}
+						bone = bone.parent;
 					}
 					Undo.initEdit({keyframes: undo_keyframes})
 
-					var solver = new FIK.Structure3D(scene);
-
-					var chain = new FIK.Chain3D();
-					var start = new FIK.V3(0, 0, 0);
-					var endLoc = new FIK.V3(0, 2, 0);
-
-					var basebone;
-
-
-					var bones = [];
+					let basebone;
+					let bones = [];
 					var bone = Group.selected;
-					for (var i = Group.selected.ik_chain_length; i >= 0; i--) {
+					for (let i = Group.selected.ik_chain_length; i >= 0; i--) {
 						if (bone instanceof Group) {
 							bones.push(bone);
 							bone = bone.parent;
 						}
 					}
-
 					bones.reverse();
-					var parent_bone;
+
+					let solver = new FIK.Structure3D(scene);
+					let chain = new FIK.Chain3D();
+
 					bones.forEach((bone, i) => {
 
-						var copy_bone = new THREE.Bone();
-						var startPoint = new FIK.V3(0,0,0).copy(bone.mesh.getWorldPosition(new THREE.Vector3()))
+						if (!bones[i+1]) return;
 
-						var bone = new FIK.Bone3D(startPoint, startPoint)
-						chain.addBone(bone)
+						let startPoint = new FIK.V3(0,0,0).copy(bone.mesh.getWorldPosition(new THREE.Vector3()))
+						let endPoint = new FIK.V3(0,0,0).copy(bones[i+1].mesh.getWorldPosition(new THREE.Vector3()))
+
+						let ik_bone = new FIK.Bone3D(startPoint, endPoint)
+						chain.addBone(ik_bone)
+						Transformer.bones.push({
+							bone,
+							ik_bone,
+							last_rotation: new THREE.Euler().copy(bone.mesh.rotation),
+							ik_bone,
+							last_diff: new THREE.Vector3(
+								bones[i+1].origin[0] - bone.origin[0],
+								bones[i+1].origin[1] - bone.origin[1],
+								bones[i+1].origin[2] - bone.origin[2]
+							)
+						})
 						if (!basebone) {
-							basebone = bone;
+							basebone = ik_bone;
 						}
 					})
 
+					Transformer.original_target_rotation = Group.selected.mesh.getWorldQuaternion(new THREE.Quaternion());
+					Transformer.ik_target = new THREE.Vector3().copy(Transformer.position);
 
-				    //chain.addBone(new FIK.Bone3D(new FIK.V3(1, 2, 0), new FIK.V3(0, 6, 0), undefined, 1, 0x00FF00));
-				    //chain.addBone(new FIK.Bone3D(new FIK.V3(0, 6, 0), new FIK.V3(0, 9, 0), undefined, 1, 0x0000FF));
-				    var target = new FIK.V3()
+				    solver.add(chain, Transformer.ik_target , true);
+					Transformer.ik_solver = solver;
 
-				    solver.add(chain, target, true);
-				    Transformer.solver = solver
-
-				    /*
-
-					var ik_solver = Transformer.ik_solver = {};
-
-
-					ik_solver.ik = new THREE.IK();
-					ik_solver.chain = new THREE.IKChain();
-					ik_solver.target = new THREE.Object3D();
-					ik_solver.copy_bones = [];
-					scene.add(ik_solver.target)
-
-					var bones = [];
-					var bone = Group.selected;
-					for (var i = Group.selected.ik_chain_length; i >= 0; i--) {
-						if (bone instanceof Group) {
-							bones.push(bone);
-							bone = bone.parent;
-						}
-					}
-					//build proxy chain
-					bones.reverse();
-					var parent_bone;
-					bones.forEach((bone, i) => {
-						var copy_bone = new THREE.Bone();
-						if (!ik_solver.root_bone) {
-							ik_solver.root_bone = copy_bone;
-							bone.mesh.getWorldPosition(copy_bone.position)
-						} else {
-							parent_bone.add(copy_bone);
-							copy_bone.position.z = bone.mesh.position.length();
-							parent_bone.quaternion.setFromUnitVectors(new THREE.Vector3().copy(bone.mesh.position).normalize(), THREE.NormalZ);
-						}
-						ik_solver.chain.add(new THREE.IKJoint(copy_bone), {target: i == bones.length-1 ? ik_solver.target : null});
-						copy_bone.original = bone;
-						ik_solver.copy_bones.push(copy_bone)
-						copy_bone.last_rotation = new THREE.Euler().copy(copy_bone.rotation);
-						parent_bone = copy_bone;
+					Transformer.ik_solver.meshChains[0].forEach(mesh => {
+						mesh.visible = false;
 					})
-
-
-					ik_solver.ik.add(ik_solver.chain);
-					scene.add(ik_solver.root_bone);
-					
-					ik_solver.helper = new THREE.IKHelper(ik_solver.ik);
-					scene.add(ik_solver.helper);
-
-					setTimeout(_ => ik_solver.ik.solve(), 80)*/
-
-
 
 				} else if (animator) {
 
@@ -1358,53 +1325,69 @@
 					originalValue = value;
 				}
 
+
 				if (value !== previousValue && Animation.selected && Animation.selected.getBoneAnimator()) {
-					beforeFirstChange(event)
+					beforeFirstChange(event, planeIntersect.point)
+
 					var difference = value - (previousValue||0)
 					if (Toolbox.selected.id === 'rotate_tool' && Math.abs(difference) > 120) {
 						difference = 0;
 					}
-					if (axis == 'x' && Toolbox.selected.id === 'move_tool') {
-						difference *= -1
-					}
 					if (Group.selected.ik_enabled) {
 
-						Transformer.position.x += 1
-						Transformer.solver.update();
-
-
-						//scope.keyframes[0].offset(axis, difference);
-						//scope.keyframes[0].select()
-
-
-						/*
-						var ik_solver = Transformer.ik_solver;
-
-						ik_solver.target.position.copy(planeIntersect.point);
+						Transformer.ik_target[axis] += difference
 
 						main_preview.render()
+						Transformer.ik_solver.update();
+						let lim = 12;
 
-						ik_solver.ik.solve();
-
-						ik_solver.copy_bones.forEach((copy_bone, i) => {
+						Transformer.bones.forEach((bone, i) => {
 							var keyframe = scope.keyframes[i];
 							if (keyframe) {
-								var bone = copy_bone.original;
-								var animator = Animation.selected.getBoneAnimator(bone);
 
-								keyframe.offset('x', Math.radToDeg(copy_bone.last_rotation.x - copy_bone.rotation.x));
-								keyframe.offset('y', Math.radToDeg(copy_bone.last_rotation.y - copy_bone.rotation.y));
-								keyframe.offset('z', Math.radToDeg(copy_bone.last_rotation.z - copy_bone.rotation.z));
+								let euler = new THREE.Euler()
+								let q = new THREE.Quaternion()
+								
+								let start = new THREE.Vector3().copy(Transformer.ik_solver.chains[0].bones[i].start)
+								let end = new THREE.Vector3().copy(Transformer.ik_solver.chains[0].bones[i].end)
+								Transformer.bones[i].bone.mesh.worldToLocal(start)
+								Transformer.bones[i].bone.mesh.worldToLocal(end)
+								let diff = new THREE.Vector3().copy(end).sub(start)
+								
+								let v1 = new THREE.Vector3().copy(diff).normalize();
+								let v2 = new THREE.Vector3().copy(bone.last_diff).normalize();
+								v1.x *= -1;
+								v2.x *= -1;
 
-								copy_bone.last_rotation.copy(copy_bone.rotation);
+								q.setFromUnitVectors(v1, v2)
+								euler.setFromQuaternion(q)
+
+								keyframe.offset('x', Math.clamp(Math.radToDeg(euler.x), -lim, lim));
+								keyframe.offset('y', Math.clamp(Math.radToDeg(euler.y), -lim, lim));
+								keyframe.offset('z', Math.clamp(Math.radToDeg(euler.z), -lim, lim));
+
+								Animator.preview()
 							}
 						})
+						let last_keyframe = Transformer.keyframes.last();
+						
+						let group_parent_rot = Group.selected.mesh.parent.getWorldQuaternion(new THREE.Quaternion());
+						let diff_rot = new THREE.Quaternion().copy(Transformer.original_target_rotation);
+						diff_rot.premultiply(group_parent_rot.inverse());
+						let diff_rot_e = new THREE.Euler().setFromQuaternion(diff_rot, 'ZYX');
 
-						*/
+						last_keyframe.offset('x', Math.clamp( Math.radToDeg(Group.selected.mesh.rotation.x - diff_rot_e.x), -lim, lim));
+						last_keyframe.offset('y', Math.clamp( Math.radToDeg(Group.selected.mesh.rotation.y - diff_rot_e.y), -lim, lim));
+						last_keyframe.offset('z', Math.clamp(-Math.radToDeg(Group.selected.mesh.rotation.z - diff_rot_e.z), -lim, lim));
+						Animator.preview()
+
 
 					} else {
+						if (axis == 'x' && Toolbox.selected.id === 'move_tool') {
+							difference *= -1
+						}
 						scope.keyframes[0].offset(axis, difference);
-						scope.keyframes[0].select()
+						scope.keyframes[0].select();
 					}
 					displayDistance(value - originalValue);
 
@@ -1519,6 +1502,14 @@
 
 				} else if (Modes.id === 'display') {
 					Undo.finishEdit('edit display slot')
+				}
+				
+				if (Modes.animate && Toolbox.selected.id === 'move_tool' && Group.selected.ik_enabled && Group.selected.ik_chain_length && Transformer.ik_solver) {
+					Transformer.ik_solver.meshChains[0].forEach(mesh => {
+						scene.remove(mesh)
+					})
+					delete Transformer.ik_solver;
+					updateSelection()
 				}
 			}
 			_dragging = false;

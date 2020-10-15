@@ -16,7 +16,7 @@ const Clipbench = {
 		let p = Prop.active_panel;
 		let text;
 		if (!check) {
-			text = window.getSelection()+'';
+			text = getFocusedTextInput() && window.getSelection()+'';
 		}
 		if (text) {
 			return Clipbench.types.text;
@@ -30,7 +30,7 @@ const Clipbench = {
 		if (display_mode) {
 			return Clipbench.types.display_slot
 		}
-		if (Animator.open && Timeline.animators.length && (Timeline.selected.length || mode === 2) && ['keyframe', 'timeline'].includes(p)) {
+		if (Animator.open && Timeline.animators.length && (Timeline.selected.length || mode === 2) && ['keyframe', 'timeline', 'preview'].includes(p)) {
 			return Clipbench.types.keyframe
 		}
 		if ((p == 'uv' || p == 'preview') && Modes.edit) {
