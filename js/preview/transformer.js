@@ -1060,15 +1060,15 @@
 					originalPoint.copy(point);
 
 					var bone = Group.selected;
-					for (var i = Group.selected.ik_chain_length; i > 0; i--) {
-						bone = bone.parent;
+					for (var i = Group.selected.ik_chain_length; i >= 0; i--) {
 						if (bone instanceof Group) {
 							var animator = Animation.selected.getBoneAnimator(bone);
 							animator.addToTimeline();
 							var {before, result} = animator.getOrMakeKeyframe('rotation');
-							scope.keyframes[i-1] = result;
+							scope.keyframes[i] = result;
 							if (before) undo_keyframes.push(before);
 						}
+						bone = bone.parent;
 					}
 					Undo.initEdit({keyframes: undo_keyframes})
 
@@ -1111,7 +1111,7 @@
 						}
 					})
 
-					//let target = new FIK.V3()
+					Transformer.original_target_rotation = Group.selected.mesh.getWorldQuaternion(new THREE.Quaternion());
 					Transformer.ik_target = new THREE.Vector3().copy(Transformer.position);
 
 				    solver.add(chain, Transformer.ik_target , true);
@@ -1345,10 +1345,10 @@
 					if (Group.selected.ik_enabled) {
 
 						Transformer.ik_target[axis] += difference
-						
+
 						main_preview.render()
 						Transformer.ik_solver.update();
-						Animator.preview()
+						let lim = 12;
 
 						Transformer.bones.forEach((bone, i) => {
 							var keyframe = scope.keyframes[i];
@@ -1371,13 +1371,24 @@
 								q.setFromUnitVectors(v1, v2)
 								euler.setFromQuaternion(q)
 
-								keyframe.offset('x', Math.clamp(Math.radToDeg(euler.x), -12, 12));
-								keyframe.offset('y', Math.clamp(Math.radToDeg(euler.y), -12, 12));
-								keyframe.offset('z', Math.clamp(Math.radToDeg(euler.z), -12, 12));
+								keyframe.offset('x', Math.clamp(Math.radToDeg(euler.x), -lim, lim));
+								keyframe.offset('y', Math.clamp(Math.radToDeg(euler.y), -lim, lim));
+								keyframe.offset('z', Math.clamp(Math.radToDeg(euler.z), -lim, lim));
 
 								Animator.preview()
 							}
 						})
+						let last_keyframe = Transformer.keyframes.last();
+						
+						let group_parent_rot = Group.selected.mesh.parent.getWorldQuaternion(new THREE.Quaternion());
+						let diff_rot = new THREE.Quaternion().copy(Transformer.original_target_rotation);
+						diff_rot.premultiply(group_parent_rot.inverse());
+						let diff_rot_e = new THREE.Euler().setFromQuaternion(diff_rot, 'ZYX');
+
+						last_keyframe.offset('x', Math.clamp( Math.radToDeg(Group.selected.mesh.rotation.x - diff_rot_e.x), -lim, lim));
+						last_keyframe.offset('y', Math.clamp( Math.radToDeg(Group.selected.mesh.rotation.y - diff_rot_e.y), -lim, lim));
+						last_keyframe.offset('z', Math.clamp(-Math.radToDeg(Group.selected.mesh.rotation.z - diff_rot_e.z), -lim, lim));
+						Animator.preview()
 
 
 					} else {
@@ -1385,7 +1396,7 @@
 							difference *= -1
 						}
 						scope.keyframes[0].offset(axis, difference);
-						scope.keyframes[0].select()
+						scope.keyframes[0].select();
 					}
 					displayDistance(value - originalValue);
 
@@ -1500,11 +1511,12 @@
 					Undo.finishEdit('edit display slot')
 				}
 				
-				if (Modes.animate && Toolbox.selected.id === 'move_tool' && Group.selected.ik_enabled && Group.selected.ik_chain_length) {
+				if (Modes.animate && Toolbox.selected.id === 'move_tool' && Group.selected.ik_enabled && Group.selected.ik_chain_length && Transformer.ik_solver) {
 					Transformer.ik_solver.meshChains[0].forEach(mesh => {
 						scene.remove(mesh)
 					})
 					delete Transformer.ik_solver;
+					updateSelection()
 				}
 			}
 			_dragging = false;
