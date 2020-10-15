@@ -354,9 +354,11 @@ const TextureGenerator = {
 
 		var dataUrl = canvas.toDataURL()
 		var texture = cb(dataUrl)
-		if (texture && !Project.single_texture) {
+		if (texture) {
 			cubes.forEach(function(cube) {
-				cube.applyTexture(texture, true);
+				if (!Format.single_texture) {
+					cube.applyTexture(texture, true);
+				}
 				cube.autouv = 0;
 			})
 		}
@@ -745,16 +747,18 @@ const TextureGenerator = {
 
 		TextureGenerator.changeProjectResolution(max_size / res_multiple, max_size / res_multiple);
 
-		if (texture && !Format.single_texture) {
+		if (texture) {
 			cube_array.forEach(function(cube) {
-				for (var key in cube.faces) {
-					if (cube.faces[key].texture !== null) {
-						cube.faces[key].texture = texture.uuid;
+				if (!Format.single_texture) {
+					for (var key in cube.faces) {
+						if (cube.faces[key].texture !== null) {
+							cube.faces[key].texture = texture.uuid;
+						}
 					}
+					Canvas.adaptObjectFaces(cube)
+					Canvas.updateUV(cube)
 				}
-				Canvas.adaptObjectFaces(cube)
-				Canvas.updateUV(cube)
-				cube.autouv = 0
+				cube.autouv = 0;
 			})
 		}
 		updateSelection()
