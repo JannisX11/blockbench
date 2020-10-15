@@ -1300,32 +1300,23 @@
 						beforeFirstChange(event)
 
 						var difference = point[axis] - previousValue
+						var origin = Transformer.rotation_object.origin.slice()
 
-						if (Format.bone_rig && Group.selected) {
-							if (Modes.edit) {
-								var origin = Group.selected.origin.slice();
-								origin[axisNumber] += difference;
-								Group.selected.transferOrigin(origin, true);
-							} else if (Modes.animate) {
-								Group.selected.origin[axisNumber] += difference;
-							}
+						if (transform_space == 0) {
+							let vec = new THREE.Vector3();
+							var rotation = new THREE.Quaternion();
+							vec[axis] = difference;
+							Transformer.rotation_object.mesh.parent.getWorldQuaternion(rotation);
+							vec.applyQuaternion(rotation.inverse());
+							origin.V3_add(vec.x, vec.y, vec.z);
+
 						} else {
-							var origin = Transformer.rotation_object.origin.slice()
-							if (transform_space == 0) {
-								
-
-								let vec = new THREE.Vector3();
-								vec[axis] = difference;
-
-								var rotation = new THREE.Quaternion();
-								Transformer.rotation_object.mesh.parent.getWorldQuaternion(rotation);
-								vec.applyQuaternion(rotation.inverse());
-
-								origin.V3_add(vec.x, vec.y, vec.z);
-
-							} else {
-								origin[axisNumber] += difference;
-							}
+							origin[axisNumber] += difference;
+						}
+						
+						if (Format.bone_rig && Group.selected) {
+							Group.selected.transferOrigin(origin, true);
+						} else {
 							selected.forEach(obj => {
 								if (obj.transferOrigin) {
 									obj.transferOrigin(origin);
