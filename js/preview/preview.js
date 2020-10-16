@@ -668,10 +668,12 @@ class Preview {
 		Prop.active_panel = 'preview';
 		if (this.static_rclick && (event.which === 3 || (event.type == 'touchend' && this.rclick_cooldown == true))) {
 			var data = this.raycast(event)
-			if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data && data.cube) {
-				if (!Modes.animate) {
-					data.cube.showContextMenu(event)
-				}
+			if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data && data.cube && !Modes.animate) {
+				data.cube.showContextMenu(event);
+
+			} else if (data.type == 'keyframe') {
+				data.keyframe.showContextMenu(event);
+
 			} else {
 				this.menu.open(event, this)
 			}

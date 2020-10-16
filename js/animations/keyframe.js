@@ -316,6 +316,7 @@ class Keyframe {
 	showContextMenu(event) {
 		if (!this.selected) {
 			this.select();
+			updateKeyframeSelection();
 		}
 		this.menu.open(event, this);
 		return this;

@@ -90,7 +90,6 @@ function setupMobilePanelSelector() {
 					for (var id in this.all_panels) {
 						let panel = this.all_panels[id];
 						if (Condition(panel.condition)) {
-							console.log(id)
 							arr.push(panel)
 						}
 					}

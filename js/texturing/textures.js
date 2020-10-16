@@ -78,7 +78,6 @@ class Texture {
 				console.log('Successfully loaded '+scope.name+' from default pack')
 			}
 
-
 			//Width / Animation
 			if (img.naturalWidth !== img.naturalHeight && Format.id == 'java_block') {
 				BARS.updateConditions()

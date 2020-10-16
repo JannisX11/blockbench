@@ -1304,7 +1304,7 @@ const Animator = {
 			if (object.isLine) return;
 			var scaleVector = new THREE.Vector3();
 			var scale = scaleVector.subVectors(object.position, Preview.selected.camera.position).length() / 500;
-			scale = (Math.sqrt(scale)/3 + scale/1.4) * 3.8
+			scale = (Math.sqrt(scale)/3 + scale/1.4) * 4
 			if (Blockbench.isMobile) scale *= 4;
 			object.scale.set(scale, scale, scale)
 		})
@@ -1504,7 +1504,6 @@ const Animator = {
 		let json = autoParseJSON(file.content)
 		let keys = [];
 		for (var key in json.animations) {
-			console.log(key)
 			// Test if already loaded
 			if (isApp && file.path) {
 				let is_already_loaded = false
