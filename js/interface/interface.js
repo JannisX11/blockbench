@@ -74,7 +74,7 @@ const Interface = {
 		quad_view_y: 50,
 		timeline_height: 260,
 		left_bar: ['uv', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
-		right_bar: ['color', 'outliner', 'chat']
+		right_bar: ['element', 'bone', 'color', 'outliner', 'chat']
 	},
 	Resizers: {
 		left: new ResizeLine({
@@ -167,6 +167,10 @@ const Interface = {
 	status_bar: {},
 	Panels: {}
 }
+Interface.panel_definers = []
+Interface.definePanels = function(callback) {
+	Interface.panel_definers.push(callback);
+}
 
 //Misc
 function unselectInterface(event) {
@@ -201,6 +205,10 @@ function setupInterface() {
 	$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 
 	setupPanels()
+	
+	if (Blockbench.isMobile) {
+		setupMobilePanelSelector()
+	}
 
 	for (var key in Interface.Resizers) {
 		var resizer = Interface.Resizers[key]

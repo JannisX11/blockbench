@@ -5,6 +5,11 @@ class Face {
 		this.cube = cube;
 		this.reset()
 		this.uv = [0, 0, canvasGridSize(), canvasGridSize()]
+		
+		for (var key in Face.properties) {
+			Face.properties[key].reset(this);
+		}
+
 		if (data) {
 			this.extend(data)
 		}
@@ -19,34 +24,30 @@ class Face {
 		this.uv[2] = arr[0] + this.uv[0];
 		this.uv[3] = arr[1] + this.uv[1];
 	}
-	extend(object) {
-		if (object.texture === null) {
-			this.texture = null;
-		} else if (object.texture === false) {
-			this.texture = false;
-		} else if (textures.includes(object.texture)) {
-			this.texture = object.texture.uuid;
-		} else if (typeof object.texture === 'string') {
-			Merge.string(this, object, 'texture')
+	extend(data) {
+		for (var key in Face.properties) {
+			Face.properties[key].merge(this, data)
 		}
-		Merge.string(this, object, 'cullface', (val) => (uv_dialog.allFaces.includes(val) || val == ''))
-		Merge.number(this, object, 'rotation')
-		Merge.number(this, object, 'tint')
-		if (object.uv) {
-			Merge.number(this.uv, object.uv, 0)
-			Merge.number(this.uv, object.uv, 1)
-			Merge.number(this.uv, object.uv, 2)
-			Merge.number(this.uv, object.uv, 3)
+		if (data.texture === null) {
+			this.texture = null;
+		} else if (data.texture === false) {
+			this.texture = false;
+		} else if (textures.includes(data.texture)) {
+			this.texture = data.texture.uuid;
+		} else if (typeof data.texture === 'string') {
+			Merge.string(this, data, 'texture')
+		}
+		if (data.uv) {
+			Merge.number(this.uv, data.uv, 0)
+			Merge.number(this.uv, data.uv, 1)
+			Merge.number(this.uv, data.uv, 2)
+			Merge.number(this.uv, data.uv, 3)
 		}
 		return this;
 	}
 	reset() {
 		this.uv = [0, 0, 0, 0];
-		this.rotation = 0;
 		this.texture = false;
-		this.cullface = '';
-		this.enabled = true;
-		this.tint = -1;
 		return this;
 	}
 	getTexture() {
@@ -63,21 +64,14 @@ class Face {
 		var copy = new oneLiner({
 			uv: this.uv,
 		})
-		if (this.rotation) copy.rotation = this.rotation;
+		for (var key in Face.properties) {
+			if (this[key] != Face.properties[key].default) Face.properties[key].copy(this, copy);
+		}
 		var tex = this.getTexture()
 		if (tex === null) {
 			copy.texture = null;
 		} else if (tex instanceof Texture) {
 			copy.texture = textures.indexOf(tex)
-		}
-		if (this.tint !== -1) {
-			copy.tint = this.tint;
-		}
-		if (this.cullface) {
-			copy.cullface = this.cullface;
-		}
-		if (!this.enabled) {
-			copy.enabled = false;
 		}
 		return copy;
 	}
@@ -88,6 +82,12 @@ class Face {
 		return copy;
 	}
 }
+new Property(Face, 'number', 'rotation', {default: 0});
+new Property(Face, 'number', 'tint', {default: -1});
+new Property(Face, 'string', 'cullface', {merge_validation: (val) => (uv_dialog.allFaces.includes(val) || val == '')});
+new Property(Face, 'string', 'material_name');
+new Property(Face, 'boolean', 'enabled', {default: true});
+
 Face.opposite = {
 	north: 'south',
 	south: 'north',
@@ -290,6 +290,7 @@ class Cube extends NonGroup {
 				uv_offset: copy.uv_offset,
 				faces: copy.faces,
 				mirror_uv: copy.mirror_uv,
+				autouv: copy.autouv,
 			}
 		}
 		for (let face_id in copy.faces) {
@@ -530,7 +531,7 @@ class Cube extends NonGroup {
 		if (m) {
 			var r = m.getWorldQuaternion(new THREE.Quaternion())
 			pos.applyQuaternion(r)
-			pos.add(m.getWorldPosition(new THREE.Vector3()))
+			pos.add(THREE.fastWorldPosition(m, new THREE.Vector3()))
 		}
 		return pos;
 	}
@@ -799,6 +800,7 @@ class Cube extends NonGroup {
 			})
 			return arr;
 		}},
+		'edit_material_instances',
 		'toggle_visibility',
 		'delete'
 	]);
@@ -863,6 +865,49 @@ BARS.defineActions(function() {
 				}
 			})
 			return base_cube
+		}
+	})
+
+	new Action({
+		id: 'edit_material_instances',
+		icon: 'fas.fa-adjust',
+		category: 'edit',
+		condition: {modes: ['edit'], formats: ['bedrock'], method: () => !Project.box_uv && Cube.selected.length},
+		click: function () {
+			let form = {};
+
+			let first = Cube.selected[0];
+			for (var key in first.faces) {
+				let face = first.faces[key];
+				if (face.texture != null) {
+					form[key] = {
+						label: `face.${key}`,
+						value: face.material_name
+					}
+				}
+			}
+
+			let dialog = new Dialog({
+				id: 'material_instances',
+				title: 'dialog.material_instances.title',
+				width: 460,
+				form,
+				onConfirm: form_data => {
+					dialog.hide();
+					
+					Undo.initEdit({elements: Cube.selected});
+					Cube.selected.forEach(cube => {
+						for (var key in cube.faces) {
+							let face = cube.faces[key];
+							if (face.texture != null && typeof form_data[key] == 'string') {
+								face.material_name = form_data[key];
+							}
+						}
+					})
+					Undo.finishEdit('edit material instances')
+				}
+			})
+			dialog.show();
 		}
 	})
 })

@@ -46,7 +46,7 @@
 	::selection {
 		background: var(--color-accent);
 	}
-	@media (max-device-width: 480px) {
+	@media (max-device-width: 640px) {
 		::-webkit-scrollbar {
 			width: 0;
 			height: 0;

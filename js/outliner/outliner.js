@@ -4,27 +4,6 @@ const Outliner = {
 	elements: elements,
 	selected: selected,
 	buttons: {
-		/*
-		remove: {
-			id: 'remove',
-			title: tl('generic.delete'),
-			icon: ' fa fa-times',
-			icon_off: ' fa fa-times',
-			advanced_option: false,
-			click: function(obj) {
-				if (obj.type === 'group') {
-					obj.remove(true);
-					return;
-				}
-				Undo.initEdit({elements: obj.forSelected(), outliner: true, selection: true})
-				obj.forSelected().slice().forEach(cube => {
-					cube.remove();
-				})
-				updateSelection()
-				Undo.finishEdit('remove', {elements: [], outliner: true, selection: true})
-			}
-		},
-		*/
 		visibility: {
 			id: 'visibility',
 			title: tl('switches.visibility'),
@@ -109,6 +88,7 @@ class OutlinerElement {
 		this.locked = false;
 	}
 	init() {
+		OutlinerElement.uuids[this.uuid] = this;
 		this.constructor.all.safePush(this);
 		return this;
 	}
@@ -232,6 +212,7 @@ class OutlinerElement {
 	}
 	remove() {
 		this.constructor.all.remove(this);
+		if (OutlinerElement.uuids[this.uuid] == this) delete OutlinerElement.uuids[this.uuid];
 		this.removeFromParent()
 	}
 	rename() {
@@ -357,6 +338,7 @@ class OutlinerElement {
 		this.shade = !val;
 	}
 }
+OutlinerElement.uuids = {};
 class NonGroup extends OutlinerElement {
 	constructor(data, uuid) {
 		super(uuid);
@@ -767,8 +749,6 @@ function loadOutlinerDraggable() {
 	})
 }
 function dropOutlinerObjects(item, target, event, order) {
-	if (Format.bone_rig && item instanceof Group == false && target instanceof OutlinerElement == false) return;
-
 	if (item.type === 'group' && target && target.parent) {
 		var is_parent = false;
 		function iterate(g) {
@@ -926,25 +906,6 @@ function toggleCubeProperty(key) {
 }
 
 
-onVueSetup(function() {
-	Outliner.vue = new Vue({
-		el: '#cubes_list',
-		data: {
-			option: {
-				root: {
-					name: 'Model',
-					isParent: true,
-					isOpen: true,
-					selected: false,
-					onOpened: function () {},
-					select: function() {},
-					children: Outliner.root
-				}
-			}
-		}
-	})
-})
-
 BARS.defineActions(function() {
 	new Action('outliner_toggle', {
 		icon: 'view_stream',
@@ -1047,8 +1008,72 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 70, ctrl: true}),
 		condition: () => Modes.edit || Modes.paivnt,
 		click: function () {
-			showDialog('selection_creator')
-			$('#selgen_name').focus()
+			let color_options = {
+				'-1': 'generic.all'
+			}
+			markerColors.forEach((color, i) => {
+				color_options[i] = 'cube.color.' + color.name;
+			})
+			let dialog = new Dialog({
+				id: 'selection_creator',
+				title: 'dialog.select.title',
+				form_first: true,
+				form: {
+					new: {label: 'dialog.select.new', type: 'checkbox', value: true},
+					group: {label: 'dialog.select.group', type: 'checkbox'},
+					name: {label: 'dialog.select.name', type: 'text'},
+					texture: {label: 'data.texture', type: 'text'},
+					color: {label: 'menu.cube.color', type: 'select', value: '-1', options: color_options}
+				},
+				lines: [
+					`<div class="dialog_bar form_bar">
+						<label class="name_space_left tl">dialog.select.random</label>
+						<input type="range" min="0" max="100" step="1" value="100" class="tool half" style="width: 100%;" id="selgen_random">
+					</div>`
+				],
+				onConfirm(formData) {
+					if (formData.new) {
+						selected.length = 0
+					}
+					let selected_group = Group.selected;
+					if (Group.selected) {
+						Group.selected.unselect()
+					}
+					var name_seg = formData.name.toUpperCase()
+					var tex_seg = formData.texture.toLowerCase()
+					var rdm = $('#selgen_random').val()/100
+				
+					var array = Outliner.elements;
+					if ($('#selgen_group').is(':checked') && selected_group) {
+						array = selected_group.children
+					}
+				
+					array.forEach(function(obj) {
+						if (obj.name.toUpperCase().includes(name_seg) === false) return;
+						if (obj instanceof Cube && tex_seg && !Format.single_texture) {
+							var has_tex = false;
+							for (var key in obj.faces) {
+								var tex = obj.faces[key].getTexture();
+								if (tex && tex.name.includes(tex_seg)) {
+									has_tex = true
+								}
+							}
+							if (!has_tex) return;
+						}
+						if (formData.color != '-1') {
+							if (obj instanceof Cube == false || obj.color.toString() != formData.color) return;
+						}
+						if (Math.random() > rdm) return;
+						selected.push(obj)
+					})
+					updateSelection()
+					if (selected.length) {
+						selected[0].showInOutliner()
+					}
+					this.hide()
+				}
+			}).show()
+			$('.dialog#selection_creator .form_bar_name > input').focus()
 		}
 	})
 	new Action('invert_selection', {
@@ -1075,5 +1100,71 @@ BARS.defineActions(function() {
 		condition: () => !Modes.display,
 		keybind: new Keybind({key: 65, ctrl: true}),
 		click: function () {selectAll()}
+	})
+})
+
+Interface.definePanels(function() {
+
+	Interface.Panels.outliner = new Panel({
+		id: 'outliner',
+		icon: 'list_alt',
+		condition: {modes: ['edit', 'paint', 'animate']},
+		toolbars: {
+			head: Toolbars.outliner
+		},
+		growable: true,
+		onResize: t => {
+			getAllOutlinerObjects().forEach(o => o.updateElement())
+		},
+		component: {
+			name: 'panel-keyframe',
+			components: {VuePrismEditor},
+			data() { return {
+				root: {
+					name: 'Model',
+					isParent: true,
+					isOpen: true,
+					selected: false,
+					onOpened: function () {},
+					select: function() {},
+					children: Outliner.root
+				}
+			}},
+			methods: {
+				openMenu(event) {
+					Interface.Panels.outliner.menu.show(event)
+				}
+			},
+			template: `
+				<div>
+					<div class="toolbar_wrapper outliner"></div>
+					<ul id="cubes_list" class="list" @contextmenu.stop.prevent="openMenu($event)">
+						<vue-tree :root="root"></vue-tree>
+					</ul>
+				</div>
+			`
+		},
+		menu: new Menu([
+			'add_cube',
+			'add_group',
+			'_',
+			'sort_outliner',
+			'select_all',
+			'collapse_groups',
+			'element_colors',
+			'outliner_toggle'
+		])
+	})
+	Outliner.vue = Interface.Panels.outliner.inside_vue;
+
+	$('#cubes_list').droppable({
+		greedy: true,
+		accept: 'div.outliner_object',
+		tolerance: 'pointer',
+		hoverClass: 'drag_hover',
+		drop: function(event, ui) {
+			var item = Outliner.root.findRecursive('uuid', $(ui.draggable).parent().attr('id'))
+			dropOutlinerObjects(item, undefined, event)
+		}
 	})
 })

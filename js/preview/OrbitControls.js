@@ -76,9 +76,7 @@ THREE.OrbitControls = function ( object, preview ) {
 			scope.preview.updateBackground()
 		}
 		Transformer.update()
-		if (Toolbox && Toolbox.selected.id == 'vertex_snap_tool') {
-			Vertexsnap.updateVertexSize();
-		}
+		Blockbench.dispatchEvent('update_camera_position', {preview: scope.preview})
 	};
 
 	this.onUpdate = function(call) {
@@ -662,10 +660,6 @@ THREE.OrbitControls = function ( object, preview ) {
 		document.removeEventListener( 'mouseup', onMouseUp, false );
 		scope.dispatchEvent( endEvent );
 		state = STATE.NONE;
-
-		if (scope.hasMoved === false && settings.canvas_unselect.value) {
-			unselectAll()
-		}
 
 	}
 	this.stopMovement = function(event) {

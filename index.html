@@ -24,7 +24,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '3.6.6';
+		const appVersion = '3.7.0';
 	</script>
 	<div id="loading_error_message" style="display: none;">
 		<div>An error occurred while loading Blockbench</div>
@@ -42,6 +42,7 @@
 		<script src="lib/gif.js"></script>
 		<script src="lib/prism.js"></script>
 		<script src="lib/VuePrismEditor.min.js"></script>
+		<script src="lib/molang-prism-syntax.js"></script>
 		<script src="lib/lzutf8.js"></script>
 		<script src="lib/peer.min.js"></script>
 		<script src="lib/marked.min.js"></script>
@@ -50,8 +51,10 @@
 		<script src="lib/three_custom.js"></script>
 		<script src="lib/GLTFExporter.js"></script>
 		<script src="lib/CanvasFrame.js"></script>
-		<!--script src="lib/fik.min.js"></script-->
-		<script src="lib/molang.js"></script>
+		<script src="lib/fik.min.js"></script>
+		<script src="lib/molang.umd.js"></script>
+		<script src="lib/wintersky.umd.js"></script>
+
 		<script src="js/preview/OrbitControls.js"></script>
 		<script src="js/outliner/tree.vue.js"></script>
 		
@@ -63,12 +66,15 @@
 		<script src="js/interface/themes.js"></script>
 		<script src="js/blockbench.js"></script>
 		<script src="js/modes.js"></script>
+		<script src="js/api.js"></script>
+		<script src="js/file_system.js"></script>
+		<script src="js/interface/panels.js"></script>
+		<script src="js/interface/interface.js"></script>
 		<script src="js/interface/keyboard.js"></script>
 		<script src="js/interface/settings.js"></script>
 		<script src="js/interface/dialog.js"></script>
 		<script src="js/copy_paste.js"></script>
 		<script src="js/undo.js"></script>
-		<script src="js/edit_sessions.js"></script>
 
 		<script type="text/javascript">
 			if (isApp === true) {
@@ -78,7 +84,7 @@
 			}
 		</script>
 
-		<script src="js/api.js"></script>
+		<script src="js/edit_sessions.js"></script>
 		<script src="js/outliner/outliner.js"></script>
 		<script src="js/outliner/group.js"></script>
 		<script src="js/outliner/cube.js"></script>
@@ -89,17 +95,17 @@
 		<script src="js/transform.js"></script>
 		<script src="js/texturing/textures.js"></script>
 		<script src="js/texturing/uv.js"></script>
-		<script src="js/interface/panels.js"></script>
-		<script src="js/interface/interface.js"></script>
 		<script src="js/texturing/painter.js"></script>
 		<script src="js/texturing/texture_generator.js"></script>
 		<script src="js/texturing/color.js"></script>
 		<script src="js/display_mode.js"></script>
-		<script src="js/animations.js"></script>
+		<script src="js/animations/animation.js"></script>
+		<script src="js/animations/keyframe.js"></script>
+		<script src="js/animations/timeline.js"></script>
 		<script src="js/plugin_loader.js"></script>
 
-		<script src="js/io/project.js"></script>
 		<script src="js/io/io.js"></script>
+		<script src="js/io/project.js"></script>
 		<script src="js/io/formats/bbmodel.js"></script>
 		<script src="js/io/formats/java_block.js"></script>
 		<script src="js/io/formats/bedrock.js"></script>
@@ -169,7 +175,7 @@
 					<button type="button" class="" v-on:click="plugin.download(true)" v-else><i class="material-icons">add</i><span class="tl">dialog.plugins.install</span></button>
 					<button type="button" v-on:click="plugin.reload()" v-if="plugin.installed && plugin.isReloadable()"><i class="material-icons">refresh</i><span class="tl">dialog.plugins.reload</span></button>
 				</div>
-				<div class="button_bar tiny tl" v-else>{{ plugin.isInstallable() }}</div>
+				<div class="button_bar tiny tl" v-if="plugin.isInstallable() != true">{{ plugin.isInstallable() }}</div>
 
 				<div class="author">{{ tl('dialog.plugins.author', [plugin.author]) }}</div>
 				<div class="description">{{ plugin.description }}</div>
@@ -393,41 +399,6 @@
 		</div>
 		<div class="dialog_bar button_bar">
 			<button type="button" class="tl confirm_btn" onclick="DisplayMode.createPreset()">dialog.display_preset.create</button>
-			<button type="button" class="tl cancel_btn" onclick="hideDialog()">dialog.cancel</button>
-		</div>
-		<div class="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
-	</dialog>
-
-	<dialog class="dialog draggable paddinged" id="selection_creator">
-		<div class="dialog_handle tl">dialog.select.title</div>
-
-		<div class="dialog_bar">
-			<input type="checkbox" id="selgen_new" checked>
-			<label class="name_space_left tl" for="selgen_new">dialog.select.new</label>
-		</div>
-
-		<div class="dialog_bar">
-			<input type="checkbox" id="selgen_group">
-			<label class="name_space_left tl" for="selgen_group">dialog.select.group</label>
-		</div>
-
-		<div class="dialog_bar">
-			<label class="name_space_left tl">dialog.select.name</label>
-			<input type="text" class="dark_bordered half" id="selgen_name">
-		</div>
-
-		<div class="dialog_bar">
-			<label class="name_space_left tl">data.texture</label>
-			<input type="text" class="dark_bordered half" id="selgen_texture">
-		</div>
-
-		<div class="dialog_bar">
-			<label class="name_space_left tl">dialog.select.random</label>
-			<input type="range" min="0" max="100" step="1" value="100" class="tool half" id="selgen_random">
-		</div>
-
-		<div class="dialog_bar button_bar">
-			<button type="button" class="tl confirm_btn" onclick="createSelection()">dialog.select.select</button>
 			<button type="button" class="tl cancel_btn" onclick="hideDialog()">dialog.cancel</button>
 		</div>
 		<div class="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
@@ -731,159 +702,6 @@
 			</div>
 		</div>
 
-		<div id="display" class="panel">
-			<div class="toolbar_wrapper display"></div>
-			<p class="tl">display.slot</p>
-			<div id="display_bar" class="bar tabs_small icon_bar">
-				<input class="hidden" type="radio" name="display" id="thirdperson_righthand" checked>
-				<label class="tool" for="thirdperson_righthand" onclick="DisplayMode.loadThirdRight()"><div class="tooltip tl">display.slot.third_right</div><i class="material-icons">accessibility</i></label>
-				<input class="hidden" type="radio" name="display" id="thirdperson_lefthand">
-				<label class="tool" for="thirdperson_lefthand" onclick="DisplayMode.loadThirdLeft()"><div class="tooltip tl">display.slot.third_left</div><i class="material-icons">accessibility</i></label>
-
-				<input class="hidden" type="radio" name="display" id="firstperson_righthand">
-				<label class="tool" for="firstperson_righthand" onclick="DisplayMode.loadFirstRight()"><div class="tooltip tl">display.slot.first_right</div><i class="material-icons">person</i></label>
-				<input class="hidden" type="radio" name="display" id="firstperson_lefthand">
-				<label class="tool" for="firstperson_lefthand" onclick="DisplayMode.loadFirstLeft()"><div class="tooltip tl">display.slot.first_left</div><i class="material-icons">person</i></label>
-
-				<input class="hidden" type="radio" name="display" id="head">
-				<label class="tool" for="head" onclick="DisplayMode.loadHead()"><div class="tooltip tl">display.slot.head</div><i class="material-icons">sentiment_satisfied</i></label>
-
-				<input class="hidden" type="radio" name="display" id="ground">
-				<label class="tool" for="ground" onclick="DisplayMode.loadGround()"><div class="tooltip tl">display.slot.ground</div><i class="icon-ground"></i></label>
-
-				<input class="hidden" type="radio" name="display" id="fixed">
-				<label class="tool" for="fixed" onclick="DisplayMode.loadFixed()"><div class="tooltip tl">display.slot.frame</div><i class="material-icons">filter_frames</i></label>
-
-				<input class="hidden" type="radio" name="display" id="gui">
-				<label class="tool" for="gui" onclick="DisplayMode.loadGUI()"><div class="tooltip tl">display.slot.gui</div><i class="material-icons">border_style</i></label>
-			</div>
-			<p class="reference_model_bar tl">display.reference</p>
-			<div id="display_ref_bar" class="bar tabs_small reference_model_bar">
-			</div>
-
-			<div id="display_sliders">
-				
-				<p class="tl">display.rotation</p><div class="tool head_right" v-on:click="resetChannel('rotation')"><i class="material-icons">replay</i></div>
-				<div class="bar slider_input_combo" v-for="axis in axes">
-					<input type="range" class="tool disp_range" v-model.number="slot.rotation[axis]" v-bind:trigger_type="'rotation.'+axis"
-						min="-180" max="180" step="1" value="0"
-						@input="change(axis, 'rotation')" @mousedown="start" @change="save">
-					<input lang="en" type="number" class="tool disp_text" v-model.number="slot.rotation[axis]" min="-180" max="180" step="0.5" value="0" @input="change(axis, 'rotation');save()" @mousedown="start">
-					<div class="color_corner" :style="{'border-color': `var(--color-axis-${getAxisLetter(axis)})`}"></div>
-				</div>
-				
-				<p class="tl">display.translation</p><div class="tool head_right" v-on:click="resetChannel('translation')"><i class="material-icons">replay</i></div>
-				<div class="bar slider_input_combo" v-for="axis in axes">
-					<input type="range" class="tool disp_range" v-model.number="slot.translation[axis]" v-bind:trigger_type="'translation.'+axis"
-						v-bind:min="Math.abs(slot.translation[axis]) < 10 ? -20 : (slot.translation[axis] > 0 ? -70*3+10 : -80)"
-						v-bind:max="Math.abs(slot.translation[axis]) < 10 ?  20 : (slot.translation[axis] < 0 ? 70*3-10 : 80)"
-						v-bind:step="Math.abs(slot.translation[axis]) < 10 ? 0.25 : 1"
-						value="0" @input="change(axis, 'translation')" @mousedown="start" @change="save">
-					<input lang="en" type="number" class="tool disp_text" v-model.number="slot.translation[axis]" min="-80" max="80" step="0.5" value="0" @input="change(axis, 'translation');save()" @mousedown="start">
-					<div class="color_corner" :style="{'border-color': `var(--color-axis-${getAxisLetter(axis)})`}"></div>
-				</div>
-
-				<p class="tl">display.scale</p><div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>
-				<div class="bar slider_input_combo" v-for="axis in axes">
-					<div class="tool display_scale_invert" v-on:click="invert(axis)">
-						<div class="tooltip tl">display.mirror</div>
-						<i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i>
-					</div>
-					<input type="range" class="tool disp_range scaleRange" v-model.number="slot.scale[axis]" v-bind:trigger_type="'scale.'+axis" v-bind:id="'scale_range_'+axis"
-						v-bind:min="slot.scale[axis] > 1 ? -2 : 0"
-						v-bind:max="slot.scale[axis] > 1 ? 4 : 2"
-						step="0.01"
-						value="0" @input="change(axis, 'scale')" @mousedown="start" @change="save">
-					<input type="number" class="tool disp_text" v-model.number="slot.scale[axis]" min="0" max="4" step="0.01" value="0" @input="change(axis, 'scale');save()" @mousedown="start">
-					<div class="color_corner" :style="{'border-color': `var(--color-axis-${getAxisLetter(axis)})`}"></div>
-				</div>
-			</div>
-		</div>
-
-
-		<div id="keyframe" class="panel">
-			<div class="toolbar_wrapper keyframe"></div>
-			<p class="tl" id="keyframe_type_label"></p>
-			<div class="bar flex" id="keyframe_bar_x">
-				<label class="color_x" style="font-weight: bolder">X</label>
-				<input type="text" id="keyframe_x" class="dark_bordered code keyframe_input tab_target" axis="x" oninput="updateKeyframeValue(this)">
-			</div>
-			<div class="bar flex" id="keyframe_bar_y">
-				<label class="color_y" style="font-weight: bolder">Y</label>
-				<input type="text" id="keyframe_y" class="dark_bordered code keyframe_input tab_target" axis="y" oninput="updateKeyframeValue(this)">
-			</div>
-			<div class="bar flex" id="keyframe_bar_z">
-				<label class="color_z" style="font-weight: bolder">Z</label>
-				<input type="text" id="keyframe_z" class="dark_bordered code keyframe_input tab_target" axis="z" oninput="updateKeyframeValue(this)">
-			</div>
-			<div class="bar flex" id="keyframe_bar_w">
-				<label>W</label>
-				<input type="text" id="keyframe_w" class="dark_bordered code keyframe_input tab_target" axis="w" oninput="updateKeyframeValue(this)">
-			</div>
-			<div class="bar flex" id="keyframe_bar_effect">
-				<label class="tl">data.effect</label>
-				<input type="text" id="keyframe_effect" class="dark_bordered code keyframe_input tab_target" axis="effect" oninput="updateKeyframeValue(this)">
-			</div>
-			<div class="bar flex" id="keyframe_bar_locator">
-				<label class="tl">data.locator</label>
-				<input type="text" id="keyframe_locator" class="dark_bordered code keyframe_input tab_target" axis="locator" oninput="updateKeyframeValue(this)">
-			</div>
-			<div class="bar flex" id="keyframe_bar_script">
-				<label class="tl">timeline.pre_effect_script</label>
-				<input type="text" id="keyframe_script" class="dark_bordered code keyframe_input tab_target" axis="script" oninput="updateKeyframeValue(this)">
-			</div>
-			<div class="bar" id="keyframe_bar_instructions">
-				<label class="tl">timeline.timeline</label>
-				<textarea id="keyframe_instructions" style="height: 90px;" class="code keyframe_input tab_target" axis="instructions" oninput="updateKeyframeValue(this)"></textarea>
-			</div>
-		</div>
-
-		<div id="variable_placeholders" class="panel grow">
-			<p class="tl">panel.variable_placeholders.info</p>
-			<textarea id="var_placeholder_area" class="code tab_target" style="flex-grow: 1;" onkeyup="Animator.preview()"></textarea>
-		</div>
-
-		<div id="textures" class="panel grow">
-			<div class="toolbar_wrapper texturelist"></div>
-			<ul id="texture_list" class="list">
-				<li
-					v-for="texture in textures"
-					v-bind:class="{ selected: texture.selected, particle: texture.particle}"
-					v-bind:texid="texture.uuid"
-					:key="texture.uuid"
-					class="texture"
-					v-on:click.stop="texture.select($event)"
-					v-on:dblclick="texture.openMenu($event)"
-					@contextmenu.prevent.stop="texture.showContextMenu($event)"
-				>
-					<div class="texture_icon_wrapper">
-						<img v-bind:texid="texture.id" v-bind:src="texture.source" class="texture_icon" width="48px" alt="" v-if="texture.show_icon" />
-						<i class="material-icons texture_error" v-bind:title="texture.getErrorMessage()" v-if="texture.error">error_outline</i>
-						<i class="texture_movie fa fa_big fa-film" title="Animated Texture" v-if="texture.frameCount > 1"></i>
-					</div>
-					<div class="texture_description_wrapper">
-						<div class="texture_name">{{ texture.name }}</div>
-						<div class="texture_res">{{ texture.error
-							? texture.getErrorMessage()
-							: texture.width + ' x ' + texture.height + 'px'
-						}}</div>
-					</div>
-					<i class="material-icons texture_visibility_icon" v-if="texture.particle">bubble_chart</i>
-					<i class="material-icons texture_particle_icon clickable"
-						v-bind:class="{icon_off: !texture.visible}"
-						v-if="Project.layered_textures"
-						@click="texture.toggleVisibility()"
-						@dblclick.stop
-					>
-						{{ texture.visible ? 'visibility' : 'visibility_off' }}
-					</i>
-					<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture.saved}" @click="texture.save()">
-						<template v-if="texture.saved">check_circle</template>
-						<template v-else>save</template>
-					</i>
-				</li>
-			</ul>
-		</div>
 	</div>
 	<div id="right_bar" class="sidebar">
 
@@ -949,12 +767,6 @@
 			</div>
 		</div>
 
-		<div id="outliner" class="panel grow">
-			<div class="toolbar_wrapper outliner"></div>
-			<ul id="cubes_list" class="list">
-				<vue-tree :option="option"></vue-tree>
-			</ul>
-		</div>
 	</div>
 	<div id="center">
 		<div id="preview">
@@ -1001,21 +813,23 @@
 										<i class="material-icons">remove</i>
 									</div>
 								</div>
-								<div class="keyframe_section" v-if="!animator.expanded">
-									<keyframe
-										v-for="keyframe in animator.keyframes"
-										v-bind:style="{left: (8 + keyframe.time * size) + 'px'}"
-										class="keyframe"
-										v-bind:id="'_'+keyframe.uuid"
-									>
-										<i class="material-icons">lens</i>
-									</keyframe>
+								<div class="keyframe_section">
+									<template v-for="channel in animator.channels" v-if="!(animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length))">
+										<keyframe
+											v-for="keyframe in animator[channel]"
+											v-bind:style="{left: (8 + keyframe.time * size) + 'px'}"
+											class="keyframe"
+											v-bind:id="'_'+keyframe.uuid"
+										>
+											<i class="material-icons">lens</i>
+										</keyframe>
+									</template>
 								</div>
 							</div>
 							<div class="animator_channel_bar"
 								v-bind:style="{width: (size*length + head_width)+'px'}"
 								v-for="channel in animator.channels"
-								v-if="animator.expanded && (!focus_channel || channel == focus_channel || focus_channel == 'used' && animator[channel].length)"
+								v-if="animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length)"
 							>
 								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
 									<div class="text_button" v-on:click.stop="animator.toggleMuted(channel)">
@@ -1036,7 +850,7 @@
 								<div class="keyframe_section">
 									<keyframe
 										v-for="keyframe in animator[channel]"
-										v-bind:style="{left: (8 + keyframe.time * size) + 'px'}"
+										v-bind:style="{left: (8 + keyframe.time * size) + 'px', color: getColor(keyframe.color)}"
 										class="keyframe"
 										v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
 										v-bind:id="keyframe.uuid"
@@ -1045,7 +859,11 @@
 										:title="tl('timeline.'+keyframe.channel)"
 										@contextmenu.prevent="keyframe.showContextMenu($event)"
 									>
-										<i class="material-icons">stop</i>
+										<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
+										<i class="material-icons" v-else>stop</i>
+										<svg class="keyframe_waveform" v-if="keyframe.channel == 'sound' && keyframe.data_points[0].file && waveforms[keyframe.data_points[0].file]" :style="{width: waveforms[keyframe.data_points[0].file].duration * size}">
+											<polygon :points="getWaveformPoints(waveforms[keyframe.data_points[0].file].samples, size)"></polygon>
+										</svg>
 									</keyframe>
 								</div>
 							</div>
@@ -1108,6 +926,7 @@
 				</section>
 			</content>
 		</div>
+		<div id="mobile_panel_overlay" hidden></div>
 	</div>
 	<div id="status_bar" @contextmenu="Interface.status_bar.menu.show(event)">
 		
@@ -1140,6 +959,15 @@
 			{{ Prop.connections }} Clients
 		</div>
 		<div id="status_progress" v-if="Prop.progress" v-bind:style="{width: Prop.progress*100+'%'}"></div>
+	</div>
+
+	<div id="panel_selector_bar" hidden>
+		<div class="panel_selector" :class="{selected: selected == null}" @click="select(null)">
+			<div class="icon_wrapper"><i class="material-icons icon">3d_rotation</i></div>
+		</div>
+		<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in all_panels" v-if="Condition(panel.condition)" @click="select(panel)">
+			<div class="icon_wrapper" v-html="Blockbench.getIconNode(panel.icon).outerHTML"></div>
+		</div>
 	</div>
 	
 	</div>

@@ -39,7 +39,7 @@ class Keybind {
 			shift: false,
 			alt: false,
 			meta: false
-		})
+		}).save();
 		return this;
 	}
 	save(save) {
@@ -59,7 +59,7 @@ class Keybind {
 			}
 
 			if (BarItems[this.action] instanceof Action) {
-				BarItems[this.action].updateHoverTitle()
+				BarItems[this.action].updateKeybindingLabel()
 			}
 		}
 		return this;
@@ -86,6 +86,7 @@ class Keybind {
 		return this;
 	}
 	getText() {
+		if (this.key < 0) return '';
 		var modifiers = []
 
 		if (this.ctrl) 	modifiers.push(tl('keys.ctrl'))	
@@ -147,6 +148,7 @@ class Keybind {
 			case  36: return 'pos1'; break;
 			case  44: return 'printscreen'; break;
 			case  19: return 'pause'; break;
+			case 1001: return 'mousewheel'; break;
 			default : return String.fromCharCode(key).toLowerCase(); break;
 		}
 	}
@@ -168,7 +170,7 @@ class Keybind {
 	}
 	isTriggered(event) {
 		return (
-			this.key 	=== event.which &&
+			(this.key 	=== event.which || (this.key == 1001 && event instanceof MouseEvent)) &&
 			(this.ctrl 	=== event.ctrlKey 	|| this.ctrl == null 	) &&
 			(this.shift === event.shiftKey 	|| this.shift == null	) &&
 			(this.alt 	=== event.altKey 	|| this.alt == null 	) &&
@@ -184,10 +186,15 @@ class Keybind {
 		overlay.find('> div').css('margin-top', top+'px')
 
 		function onActivate(event) {
+			event = event.originalEvent;
 
 			if (event.target && event.target.tagName === 'BUTTON') return;
 
-			scope.key 	= event.which
+			if (event instanceof WheelEvent) {
+				scope.key = 1001
+			} else {
+				scope.key = event.which
+			}
 			if (scope.ctrl 	!== null) scope.ctrl 	= event.ctrlKey
 			if (scope.shift !== null) scope.shift 	= event.shiftKey
 			if (scope.alt 	!== null) scope.alt 	= event.altKey
@@ -206,8 +213,9 @@ class Keybind {
 				}
 			})
 		overlay.on('mousedown', onActivate)
+		overlay.on('mousewheel', onActivate)
 
-		overlay.on('keydown keypress keyup click click dblclick mouseup', function(event) {
+		overlay.on('keydown keypress keyup click click dblclick mouseup mousewheel', function(event) {
 			event.preventDefault()
 		})
 		return this;
@@ -215,9 +223,12 @@ class Keybind {
 	stopRecording() {
 		var scope = this;
 		Keybinds.recording = false
-		$('#overlay_message_box').hide().off('mousedown')
+		$('#overlay_message_box').hide().off('mousedown mousewheel')
 		$('#keybind_input_box').off('keyup keydown')
 		return this;
+	}
+	toString() {
+		return this.label
 	}
 }
 Keybinds.no_overlap = function(k1, k2) {
@@ -335,19 +346,41 @@ onVueSetup(function() {
 	}
 })
 
-setInterval(() => {
-	var focus = document.hasFocus();
-	if (Pressing.shift && !focus) Pressing.shift = false;
-	if (Pressing.alt && !focus) {
+window.addEventListener('blur', event => {
+	if (Pressing.alt) {
 		if (Toolbox.original && Toolbox.original.alt_tool) {
 			Toolbox.original.select()
 			delete Toolbox.original;
 		}
-		Pressing.alt = false;
 	}
-}, 100)
+	Pressing.shift = false;
+	Pressing.alt = false;
+	Pressing.ctrl = false;
+})
 
-function getFocusedTextInput() {
+window.addEventListener('focus', event => {
+	function click_func(event) {
+		if (event.altKey && Toolbox.selected.alt_tool && !Toolbox.original && !open_interface) {
+			var orig = Toolbox.selected;
+			var alt = BarItems[Toolbox.selected.alt_tool];
+			if (alt && Condition(alt)) {
+				alt.select()
+				Toolbox.original = orig;
+			}
+		}
+		remove_func();
+	}
+	let removed = false
+	function remove_func() {
+		if (removed) return;
+		removed = true;
+		removeEventListeners(window, 'keydown mousedown', click_func, true);
+	}
+	addEventListeners(window, 'keydown mousedown', click_func, true);
+	setTimeout(remove_func, 100);
+})
+
+function getInputFocusElement() {
 	return $('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus').get(0)
 }
 
@@ -362,15 +395,18 @@ $(document).on('keydown mousedown', function(e) {
 	}
 
 	var used = false;
-	var input_focus = getFocusedTextInput()
+	var input_focus = getInputFocusElement()
 
 	if (input_focus) {
 		//User Editing Anything
+
+		//Tab
 		if (e.which == 9 && !open_dialog) {
-			var all_inputs = $('.tab_target:visible')
+			var all_inputs = $('.tab_target:visible:not(.prism-editor-wrapper), .prism-editor-wrapper.tab_target:visible > pre[contenteditable="true"]')
 			var index = all_inputs.index(input_focus)+1;
 			if (index >= all_inputs.length) index = 0;
 			var next = $(all_inputs.get(index))
+
 			if (next.length) {
 				if (next.hasClass('cube_name')) {
 					var target = Outliner.root.findRecursive('uuid', next.parent().parent().attr('id'))
@@ -386,26 +422,26 @@ $(document).on('keydown mousedown', function(e) {
 						next.click();
 					}, 50)
 				} else {
-					next.click();
+					next.focus().click();
 				}
 				return;
 			}
 		}
-	    if (Blockbench.hasFlag('renaming')) {
-	        if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-	            stopRenameOutliner()
-	        } else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
-	            stopRenameOutliner(false)
-	        }
-	        return;
-	    }
-	    if ($('input#chat_input:focus').length && EditSession.active) {
-	    	if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-		    	Chat.send();
-		    	return;
-		    }
-	    }
-	    if ($('pre.prism-editor__code:focus').length) return;
+		if (Blockbench.hasFlag('renaming')) {
+			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
+				stopRenameOutliner()
+			} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
+				stopRenameOutliner(false)
+			}
+			return;
+		}
+		if ($('input#chat_input:focus').length && EditSession.active) {
+			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
+				Chat.send();
+				return;
+			}
+		}
+		if ($('pre.prism-editor__code:focus').length) return;
 		if (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
 			$(document).click()
 		}
@@ -472,6 +508,26 @@ $(document).on('keydown mousedown', function(e) {
 		e.preventDefault()
 	}
 })
+document.addEventListener('wheel', (e) => {
+	if (getInputFocusElement()) return;
+	let used = false;
+	Keybinds.actions.forEach(function(action) {
+		if (
+			action.keybind &&
+			(!open_dialog || action.work_in_dialog) &&
+			typeof action.trigger === 'function' &&
+			action.keybind.isTriggered(e)
+		) {
+			if (action.trigger(e)) {
+				used = true
+			}
+		}
+	})
+	if (used) {
+		e.stopPropagation()
+	}
+
+}, true)
 
 $(document).keyup(function(e) {
 	if (Pressing.alt && ActionControl.open) {

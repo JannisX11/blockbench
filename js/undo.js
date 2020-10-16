@@ -65,7 +65,7 @@ var Undo = {
 		if (!arr || arr.length == 0) return;
 		if (!Undo.current_save.keyframes) {
 			Undo.current_save.keyframes = {
-				animation: Animator.selected.uuid
+				animation: Animation.selected.uuid
 			}
 		}
 		arr.forEach(kf => {
@@ -192,9 +192,9 @@ var Undo = {
 				scope.animations[a.uuid] = a.getUndoCopy();
 			})
 		}
-		if (aspects.keyframes && Animator.selected && Timeline.animators.length) {
+		if (aspects.keyframes && Animation.selected && Timeline.animators.length) {
 			this.keyframes = {
-				animation: Animator.selected.uuid
+				animation: Animation.selected.uuid
 			}
 			aspects.keyframes.forEach(kf => {
 				scope.keyframes[kf.uuid] = kf.getUndoCopy()
@@ -227,7 +227,7 @@ var Undo = {
 				if (save.elements.hasOwnProperty(uuid)) {
 					var element = save.elements[uuid]
 
-					var new_element = elements.findInArray('uuid', uuid)
+					var new_element = OutlinerElement.uuids[uuid]
 					if (new_element) {
 						for (var face in new_element.faces) {
 							new_element.faces[face].reset()
@@ -235,6 +235,7 @@ var Undo = {
 						new_element.extend(element)
 						if (new_element.type == 'cube') {
 							Canvas.adaptObjectPosition(new_element)
+							Canvas.adaptObjectFaceGeo(new_element)
 							Canvas.adaptObjectFaces(new_element)
 							Canvas.updateUV(new_element)
 						}
@@ -245,7 +246,7 @@ var Undo = {
 			}
 			for (var uuid in reference.elements) {
 				if (reference.elements.hasOwnProperty(uuid) && !save.elements.hasOwnProperty(uuid)) {
-					var obj = elements.findInArray('uuid', uuid)
+					var obj = OutlinerElement.uuids[uuid]
 					if (obj) {
 						obj.remove()
 					}
@@ -276,7 +277,7 @@ var Undo = {
 
 		if (save.selection_group && !is_session) {
 			Group.selected = undefined
-			var sel_group = Group.all.findInArray('uuid', save.selection_group)
+			var sel_group = OutlinerElement.uuids[save.selection_group]
 			if (sel_group) {
 				sel_group.select()
 			}
@@ -292,7 +293,7 @@ var Undo = {
 		}
 
 		if (save.group) {
-			var group = Group.all.findInArray('uuid', save.group.uuid)
+			var group = OutlinerElement.uuids[save.group.uuid]
 			if (group) {
 				if (is_session) {
 					delete save.group.isOpen;
@@ -300,10 +301,8 @@ var Undo = {
 				group.extend(save.group)
 				if (Format.bone_rig) {
 					group.forEachChild(function(obj) {
-						if (obj.type === 'cube') {
-							Canvas.adaptObjectPosition(obj)
-						}
-					})
+						Canvas.adaptObjectPosition(obj)
+					}, Cube)
 				}
 			}
 		}
@@ -385,7 +384,7 @@ var Undo = {
 		}
 
 		if (save.keyframes) {
-			var animation = Animator.selected;
+			var animation = Animation.selected;
 			if (!animation || animation.uuid !== save.keyframes.animation) {
 				animation = Animator.animations.findInArray('uuid', save.keyframes.animation)
 				if (animation.select && Animator.open && is_session) {

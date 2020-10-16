@@ -20,12 +20,6 @@ class UVEditor {
 			this.setGrid(BarItems.uv_grid.get().replace(/x/, ''));
 		}
 	}
-	get width() {
-		return this.size;
-	}
-	set width(v) {
-		this.size = v;
-	}
 	buildDom(toolbar) {
 		var scope = this
 		if (this.jquery.main) {
@@ -197,8 +191,8 @@ class UVEditor {
 			},
 			stop: function(event, ui) {
 				dragging_not_clicking = true;
-				Undo.finishEdit('uv_change')
 				scope.disableAutoUV()
+				Undo.finishEdit('uv_change')
 				scope.updateDragHandle(ui.position)
 			}
 		})
@@ -216,9 +210,12 @@ class UVEditor {
 
 				p.left = limitNumber(p.left, 0, scope.inner_width-scope.jquery.size.width()+1);
 				p.top = limitNumber(p.top, 0, scope.inner_height-scope.jquery.size.height()+1);
-				
-				p.left = p.left - p.left % (scope.inner_width / scope.getResolution(0) / scope.grid);
-				p.top  = p.top  - p.top  % (scope.inner_height / scope.getResolution(1) / scope.grid);
+
+				let step_x = (scope.inner_width / scope.getResolution(0) / scope.grid);
+				let step_y = (scope.inner_height / scope.getResolution(1) / scope.grid);
+
+				p.left = Math.round(p.left / step_x) * step_x;
+				p.top  = Math.round(p.top  / step_y) * step_y;
 
 				scope.save();
 				scope.displaySliders();
@@ -226,8 +223,8 @@ class UVEditor {
 			},
 			stop: function(event, ui) {
 				scope.save()
-				Undo.finishEdit('uv_change')
 				scope.disableAutoUV()
+				Undo.finishEdit('uv_change')
 				scope.updateDragHandle(ui.position)
 				if (Project.box_uv) {
 					scope.displayAllMappingOverlays()
@@ -634,6 +631,12 @@ class UVEditor {
 		return this;
 	}
 	//Get
+	get width() {
+		return this.size;
+	}
+	set width(v) {
+		this.size = v;
+	}
 	get inner_width() {
 		return this.size*this.zoom;
 	}
@@ -687,6 +690,9 @@ class UVEditor {
 		} else {
 			this.updateSize();
 		}
+		// compensate offset
+		this.jquery.viewport.get(0).scrollLeft = Math.round(this.jquery.viewport.get(0).scrollLeft * (size / old_size));
+		this.jquery.viewport.get(0).scrollTop  = Math.round(this.jquery.viewport.get(0).scrollTop  * (size / old_size));
 		return this;
 	}
 	setZoom(zoom) {
@@ -861,7 +867,7 @@ class UVEditor {
 			})
 
 		} else {
-			var trim = v => Math.round(v*1000+0.3)/1000;
+			var trim = v => Math.round(v * this.grid) / this.grid;
 			var pixelSize = this.inner_width/this.getResolution(0);
 
 			var position = this.jquery.size.position()
@@ -918,10 +924,10 @@ class UVEditor {
 			}
 		}
 		if (!tex || typeof tex !== 'object') {
-			if (!Format.single_texture) {
+			if (!Format.single_texture && Texture.selected) {
 				unselectTextures()
 			}
-		} else {
+		} else if (Texture.selected != tex) {
 			tex.select()
 		}
 		this.setSize(this.size, true)
@@ -2243,6 +2249,24 @@ BARS.defineActions(function() {
 			main_uv.showing_overlays = !main_uv.showing_overlays
 			BarItems.toggle_uv_overlay.setIcon(main_uv.showing_overlays ? 'view_quilt' : 'crop_landscape')
 			main_uv.displayAllMappingOverlays()
+		}
+	})
+})
+
+Interface.definePanels(function() {
+	
+	Interface.Panels.uv = new Panel({
+		id: 'uv',
+		icon: 'photo_size_select_large',
+		selection_only: true,
+		condition: {modes: ['edit', 'paint']},
+		toolbars: {
+			bottom: Toolbars.main_uv
+		},
+		onResize: function() {
+			let size = limitNumber($(this.node).width()-10, 64, 1200)
+			size = Math.floor(size/16)*16
+			main_uv.setSize(size)
 		}
 	})
 })

@@ -527,19 +527,30 @@ var Merge = {
 			}
 		}
 	},
-	boolean: function(obj, source, index) {
+	molang: function(obj, source, index) {
+		if (['string', 'number'].includes(typeof source[index])) {
+			obj[index] = source[index];
+		}
+	},
+	boolean: function(obj, source, index, validate) {
 		if (source[index] !== undefined) {
-			obj[index] = source[index]
+			if (validate instanceof Function === false || validate(source[index])) {
+				obj[index] = source[index]
+			}
 		}
 	},
-	function: function(obj, source, index) {
+	function: function(obj, source, index, validate) {
 		if (typeof source[index] === 'function') {
-			obj[index] = source[index]
+			if (validate instanceof Function === false || validate(source[index])) {
+				obj[index] = source[index]
+			}
 		}
 	},
-	arrayVector: function(obj, source, index) {
+	arrayVector: function(obj, source, index, validate) {
 		if (source[index] instanceof Array) {
-			obj[index].V3_set(source[index]);
+			if (validate instanceof Function === false || validate(source[index])) {
+				obj[index].V3_set(source[index]);
+			}
 		}
 	}
 }

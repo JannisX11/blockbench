@@ -41,6 +41,7 @@ BARS.setupVue()
 MenuBar.setup()
 translateUI()
 
+console.log(`Three.js r${THREE.REVISION}`)
 console.log('%cBlockbench ' + appVersion + (isApp
 	? (' Desktop (' + Blockbench.operating_system +')')
 	: (' Web ('+capitalizeFirstLetter(Blockbench.browser)+')')),
@@ -49,6 +50,9 @@ console.log('%cBlockbench ' + appVersion + (isApp
 var startups = parseInt(localStorage.getItem('startups')||0);
 localStorage.setItem('startups', startups+1);
 
+Wintersky.global_options.scale = 16;
+Wintersky.global_options.loop_mode = 'once';
+Wintersky.global_options.parent_mode = 'entity';
 
 if (isApp) {
 	updateRecentProjects()
@@ -90,25 +94,6 @@ onVueSetup.funcs.forEach((func) => {
 	}
 })
 
-$('#cubes_list').droppable({
-	greedy: true,
-	accept: 'div.outliner_object',
-	tolerance: 'pointer',
-	hoverClass: 'drag_hover',
-	drop: function(event, ui) {
-		var item = Outliner.root.findRecursive('uuid', $(ui.draggable).parent().attr('id'))
-		dropOutlinerObjects(item, undefined, event)
-	}
-})
-$('#cubes_list').contextmenu(function(event) {
-	event.stopPropagation();
-	event.preventDefault();
-	Interface.Panels.outliner.menu.show(event)
-})
-$('#texture_list').contextmenu(function(event) {
-	Interface.Panels.textures.menu.show(event)
-})
-
 updateProjectResolution()
 
 setupInterface()
@@ -124,7 +109,9 @@ Modes.options.start.select()
 
 loadInstalledPlugins().then(plugins => {
 	if (isApp) {
-		loadOpenWithBlockbenchFile()
+		loadOpenWithBlockbenchFile();
+	} else {
+		loadInfoFromURL();
 	}
 })
 

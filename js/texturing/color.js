@@ -44,7 +44,7 @@ function colorDistance(color1, color2) {
 			'#ea323c','#c42430','#891e2b','#571c27',
 		]
 	}
-onVueSetup(() => {
+Interface.definePanels(() => {
 	ColorPanel = Interface.Panels.color = new Panel({
 		id: 'color',
 		icon: 'palette',
@@ -172,9 +172,12 @@ onVueSetup(() => {
 		var value = new tinycolor(color)
 		ColorPanel.vue._data.main_color = value.toHexString();
 	}
-	ColorPanel.set = function(color) {
+	ColorPanel.set = function(color, no_sync) {
 		ColorPanel.change(color)
 		ColorPanel.addToHistory(ColorPanel.vue._data.main_color)
+		if (!no_sync && isApp && settings.sync_color.value) {
+			ipcRenderer.send('change-main-color', ColorPanel.vue._data.main_color);
+		}
 	}
 	ColorPanel.get = function() {
 		ColorPanel.addToHistory(ColorPanel.vue._data.main_color);
@@ -197,6 +200,12 @@ onVueSetup(() => {
 
 		//$(this).animate({scrollLeft: current + delta}, 200)
 	})
+
+	if (isApp) {
+		ipcRenderer.on('set-main-color', (event, arg) => {
+			ColorPanel.set(arg, true);
+		})
+	}	
 
 	ColorPanel.importPalette = function(file) {
 
@@ -221,94 +230,94 @@ onVueSetup(() => {
 
 		if (extension === 'ase') {
 			let colorContents = file.content;
-		    let colorBuffer = Buffer.from(colorContents);
-		    let signature = colorBuffer.toString('utf-8', 0, 4);
-		    let versionMajor = colorBuffer.slice(4, 6).readInt16BE(0);
-		    let versionMin = colorBuffer.slice(6, 8).readInt16BE(0);
-		    let count = colorBuffer.slice(8, 12).readInt32BE(0);
+			let colorBuffer = Buffer.from(colorContents);
+			let signature = colorBuffer.toString('utf-8', 0, 4);
+			let versionMajor = colorBuffer.slice(4, 6).readInt16BE(0);
+			let versionMin = colorBuffer.slice(6, 8).readInt16BE(0);
+			let count = colorBuffer.slice(8, 12).readInt32BE(0);
 
-		    if (colorBuffer.length > 12 && signature !== 'ASEF' && versionMajor !== 1 && versionMin !== 0) {
-		        console.log('Invalid ASE swatch file');
-		        return;
-		    }
+			if (colorBuffer.length > 12 && signature !== 'ASEF' && versionMajor !== 1 && versionMin !== 0) {
+				console.log('Invalid ASE swatch file');
+				return;
+			}
 
-		    let i = 12;
-		    while (i < colorBuffer.length) {
+			let i = 12;
+			while (i < colorBuffer.length) {
 
-		        let blockLength;
-		        let blockType = colorBuffer.slice(i, i + 2).readInt16BE(0).toString(16);
-		        i += 2;
+				let blockLength;
+				let blockType = colorBuffer.slice(i, i + 2).readInt16BE(0).toString(16);
+				i += 2;
 
-		        // Ignore group start c001, end c002
-		        if (blockType === 'c001') {
-		            blockLength = colorBuffer.slice(i, i + 4).readInt32BE(0);
-		            i += blockLength;
-		        }
-		        if (blockType === 'c002') {
-		            i += 2;
-		        }
+				// Ignore group start c001, end c002
+				if (blockType === 'c001') {
+					blockLength = colorBuffer.slice(i, i + 4).readInt32BE(0);
+					i += blockLength;
+				}
+				if (blockType === 'c002') {
+					i += 2;
+				}
 
-		        // Color entry, start 0001
-		        if (blockType === '1') {
-		            blockLength = colorBuffer.slice(i, i + 4).readInt32BE(0);
-		            let nameLength = colorBuffer.slice(i + 4, i + 6).readUInt16BE(0);
-		            let colorName = '';
-		            let color;
-		            for (let j = 0; j < nameLength * 2 - 2; j += 2) {
-		                colorName += String.fromCodePoint(colorBuffer.slice(i + 6 + j, i + 8 + j).readInt16BE(0));
-		            }
-		            let _i = i + 6 + nameLength * 2;
-		            let colorModel = colorBuffer.slice(_i, _i + 4).toString('utf-8', 0, 4);
-		            _i += 4;
-		            if (colorModel === 'RGB ') {
-		                let r = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-		                _i += 4;
-		                let g = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-		                _i += 4;
-		                let b = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+				// Color entry, start 0001
+				if (blockType === '1') {
+					blockLength = colorBuffer.slice(i, i + 4).readInt32BE(0);
+					let nameLength = colorBuffer.slice(i + 4, i + 6).readUInt16BE(0);
+					let colorName = '';
+					let color;
+					for (let j = 0; j < nameLength * 2 - 2; j += 2) {
+						colorName += String.fromCodePoint(colorBuffer.slice(i + 6 + j, i + 8 + j).readInt16BE(0));
+					}
+					let _i = i + 6 + nameLength * 2;
+					let colorModel = colorBuffer.slice(_i, _i + 4).toString('utf-8', 0, 4);
+					_i += 4;
+					if (colorModel === 'RGB ') {
+						let r = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						_i += 4;
+						let g = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						_i += 4;
+						let b = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
 
-		                color = new tinycolor({r: r*255, g: g*255, b: b*255})
-		                //nscolor = color.colorWithRGBA(r * 255, g * 255, b * 255, 1.0);
-		            } else if (colorModel === 'CMYK') {
-		                let c = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-		                _i += 4;
-		                let m = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-		                _i += 4;
-		                let y = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-		                _i += 4;
-		                let k = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-		                //nscolor = color.colorWithCMYKA(c * 100, m * 100, y * 100, k * 100, 1.0);
-		                color = new tinycolor({
+						color = new tinycolor({r: r*255, g: g*255, b: b*255})
+						//nscolor = color.colorWithRGBA(r * 255, g * 255, b * 255, 1.0);
+					} else if (colorModel === 'CMYK') {
+						let c = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						_i += 4;
+						let m = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						_i += 4;
+						let y = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						_i += 4;
+						let k = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						//nscolor = color.colorWithCMYKA(c * 100, m * 100, y * 100, k * 100, 1.0);
+						color = new tinycolor({
 							r: 255 * (1 - c) * (1 - k),
 							g: 255 * (1 - m) * (1 - k),
 							b: 255 * (1 - y) * (1 - k)
-		                })
+						})
 
-		            } else if (colorModel === 'LAB ') {
-		                let l = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-		                _i += 4;
-		                let a = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-		                _i += 4;
-		                let b = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-		                //nscolor = color.colorWithLABA(l * 100, a * 100, b * 100, 1.0);
-		            } else if (colorModel === 'Gray') {
-		                let g = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-		                color = new tinycolor({r: g*255, g: g*255, b: g*255})
-		            }
+					} else if (colorModel === 'LAB ') {
+						let l = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						_i += 4;
+						let a = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						_i += 4;
+						let b = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						//nscolor = color.colorWithLABA(l * 100, a * 100, b * 100, 1.0);
+					} else if (colorModel === 'Gray') {
+						let g = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						color = new tinycolor({r: g*255, g: g*255, b: g*255})
+					}
 
-		            colors.push(color.toHexString());
+					colors.push(color.toHexString());
 
-		            i += blockLength;
-		        }
-		    }
+					i += blockLength;
+				}
+			}
 		} else if (extension === 'aco') {
 
 			let colorContents = file.content;
 			let colorBuffer = Buffer.from(colorContents);
 
 			if (colorBuffer.length < 4) {
-			    UI.message('Invalid ACO file');
-			    return;
+				UI.message('Invalid ACO file');
+				return;
 			}
 
 			let version = colorBuffer.slice(0, 2).readUInt16BE(0);
@@ -317,71 +326,71 @@ onVueSetup(() => {
 			// version 1
 			let i;
 			if (version === 1 && (colorBuffer.length - 4) / 10 === count) {
-			    i = 4;
-			    while (i < colorBuffer.length) {
-			        let colorSpace = colorBuffer.slice(i, i + 2).readUInt16BE(0);
-			        let r = colorBuffer.slice(i + 2, i + 4).readUInt16BE(0);
-			        let g = colorBuffer.slice(i + 4, i + 6).readUInt16BE(0);
-			        let b = colorBuffer.slice(i + 6, i + 8).readUInt16BE(0);
-			        let z = colorBuffer.slice(i + 8, i + 10).readUInt16BE(0);
+				i = 4;
+				while (i < colorBuffer.length) {
+					let colorSpace = colorBuffer.slice(i, i + 2).readUInt16BE(0);
+					let r = colorBuffer.slice(i + 2, i + 4).readUInt16BE(0);
+					let g = colorBuffer.slice(i + 4, i + 6).readUInt16BE(0);
+					let b = colorBuffer.slice(i + 6, i + 8).readUInt16BE(0);
+					let z = colorBuffer.slice(i + 8, i + 10).readUInt16BE(0);
 
-			        if (colorSpace === 0) {
-		            	let color = new tinycolor({
-		            		r: Math.floor(r/255),
-		            		g: Math.floor(g/255),
-		            		b: Math.floor(b/255)
-		            	})
-		            	colors.push(color.toHexString());
-		            }
-			        i += 10;
-			    }
+					if (colorSpace === 0) {
+						let color = new tinycolor({
+							r: Math.floor(r/255),
+							g: Math.floor(g/255),
+							b: Math.floor(b/255)
+						})
+						colors.push(color.toHexString());
+					}
+					i += 10;
+				}
 			}
 			// version 2
 			if (
-			    (version === 2) ||
-			    (
-			        version === 1 &&
-			        colorBuffer.length > count * 10 + 8 &&
-			        colorBuffer.slice(4 + count * 10, 6 + count * 10).readUInt16BE(0) === 2 &&
-			        colorBuffer.slice(6 + count * 10, 8 + count * 10).readUInt16BE(0) === count
-			    )
+				(version === 2) ||
+				(
+					version === 1 &&
+					colorBuffer.length > count * 10 + 8 &&
+					colorBuffer.slice(4 + count * 10, 6 + count * 10).readUInt16BE(0) === 2 &&
+					colorBuffer.slice(6 + count * 10, 8 + count * 10).readUInt16BE(0) === count
+				)
 			) {
-			    i = 4 + count * 10 + 4;
-			    if (version === 2) {
-			        i = 4;
-			    }
-			    while (i < colorBuffer.length) {
-			        let colorSpace = colorBuffer.slice(i, i + 2).readUInt16BE(0);
-			        let r = colorBuffer.slice(i + 2, i + 4).readUInt16BE(0);
-			        let g = colorBuffer.slice(i + 4, i + 6).readUInt16BE(0);
-			        let b = colorBuffer.slice(i + 6, i + 8).readUInt16BE(0);
-			        let z = colorBuffer.slice(i + 8, i + 10).readUInt16BE(0);
-			        let colorName = '';
-			        let nameLength = colorBuffer.slice(i + 12, i + 14).readUInt16BE(0);
-			        /*for (let j = 0; j < nameLength * 2 - 2; j += 2) {
-			            colorName += String.fromCodePoint(colorBuffer.slice(i + 14 + j, i + 16 + j).readUInt16BE(0));
-			        }*/
-			        // colorspace: [0: RGB, 1: HSB (hsv), 2: CMYK, 7: Lab, 8: Gray]
-			        if (colorSpace === 0) {
-		            	let color = new tinycolor({
-		            		r: Math.floor(r/255),
-		            		g: Math.floor(g/255),
-		            		b: Math.floor(b/255)
-		            	})
-		            	colors.push(color.toHexString());
-		            }
-			        i += 14 + nameLength * 2;
-			    }
+				i = 4 + count * 10 + 4;
+				if (version === 2) {
+					i = 4;
+				}
+				while (i < colorBuffer.length) {
+					let colorSpace = colorBuffer.slice(i, i + 2).readUInt16BE(0);
+					let r = colorBuffer.slice(i + 2, i + 4).readUInt16BE(0);
+					let g = colorBuffer.slice(i + 4, i + 6).readUInt16BE(0);
+					let b = colorBuffer.slice(i + 6, i + 8).readUInt16BE(0);
+					let z = colorBuffer.slice(i + 8, i + 10).readUInt16BE(0);
+					let colorName = '';
+					let nameLength = colorBuffer.slice(i + 12, i + 14).readUInt16BE(0);
+					/*for (let j = 0; j < nameLength * 2 - 2; j += 2) {
+						colorName += String.fromCodePoint(colorBuffer.slice(i + 14 + j, i + 16 + j).readUInt16BE(0));
+					}*/
+					// colorspace: [0: RGB, 1: HSB (hsv), 2: CMYK, 7: Lab, 8: Gray]
+					if (colorSpace === 0) {
+						let color = new tinycolor({
+							r: Math.floor(r/255),
+							g: Math.floor(g/255),
+							b: Math.floor(b/255)
+						})
+						colors.push(color.toHexString());
+					}
+					i += 14 + nameLength * 2;
+				}
 			}
 
 		} else if (extension === 'act') {
 
 			let colorContents = file.content;
-		    let colorBuffer = Buffer.from(colorContents);
-		    let maxLength = Math.min(colorBuffer.length, 768);
-		    if (colorBuffer.length === 772) {
-		    	maxLength = colorBuffer[769]*3
-		    }
+			let colorBuffer = Buffer.from(colorContents);
+			let maxLength = Math.min(colorBuffer.length, 768);
+			if (colorBuffer.length === 772) {
+				maxLength = colorBuffer[769]*3
+			}
 
 			for (var i = 0; i < maxLength; i += 3) {
 				let color = new tinycolor({

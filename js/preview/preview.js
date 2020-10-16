@@ -23,6 +23,7 @@ var gizmo_colors = {
 const DefaultCameraPresets = [
 	{
 		name: 'menu.preview.angle.initial',
+		id: 'initial',
 		projection: 'perspective',
 		position: [-40, 32, -40],
 		target: [0, 8, 0],
@@ -30,6 +31,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'direction.top',
+		id: 'top',
 		projection: 'orthographic',
 		color: 'y',
 		position: [0, 64, 0],
@@ -40,6 +42,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'direction.bottom',
+		id: 'bottom',
 		projection: 'orthographic',
 		color: 'y',
 		position: [0, -64, 0],
@@ -50,6 +53,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'direction.south',
+		id: 'south',
 		projection: 'orthographic',
 		color: 'z',
 		position: [0, 0, 64],
@@ -60,6 +64,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'direction.north',
+		id: 'north',
 		projection: 'orthographic',
 		color: 'z',
 		position: [0, 0, -64],
@@ -70,6 +75,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'direction.east',
+		id: 'east',
 		projection: 'orthographic',
 		color: 'x',
 		position: [64, 0, 0],
@@ -80,6 +86,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'direction.west',
+		id: 'west',
 		projection: 'orthographic',
 		color: 'x',
 		position: [-64, 0, 0],
@@ -90,6 +97,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'camera_angle.isometric_right',
+		id: 'isometric_right',
 		projection: 'orthographic',
 		position: [-64, 64*0.8165, -64],
 		target: [0, 0, 0],
@@ -98,6 +106,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'camera_angle.isometric_left',
+		id: 'isometric_left',
 		projection: 'orthographic',
 		position: [64, 64*0.8165, -64],
 		target: [0, 0, 0],
@@ -107,10 +116,10 @@ const DefaultCameraPresets = [
 ]
 
 class Preview {
-	constructor(data) {
+	constructor(options = 0) {
 		var scope = this;
-		if (data && data.id) {
-			this.id = data.id
+		if (options && options.id) {
+			this.id = options.id
 		}
 		//Node
 		this.canvas = document.createElement('canvas')
@@ -186,7 +195,7 @@ class Preview {
 		try {
 			this.renderer = new THREE.WebGLRenderer({
 				canvas: this.canvas,
-				antialias: true,
+				antialias: typeof options.antialias == 'boolean' ? options.antialias : Settings.get('antialiasing'),
 				alpha: true,
 				preserveDrawingBuffer: true
 			});
@@ -283,15 +292,22 @@ class Preview {
 		this.raycaster.setFromCamera( this.mouse, this.camera );
 
 		var objects = []
-		scene.traverse(function(s) {
-			if (s.isElement === true) {
-				objects.push(s)
+		Cube.all.forEach(cube => {
+			if (cube.visibility && !cube.locked) {
+				objects.push(cube.mesh);
 			}
 		})
 		if (Vertexsnap.vertexes.children.length) {
 			Vertexsnap.vertexes.children.forEach(function(s) {
 				if (s.isVertex === true) {
 					objects.push(s)
+				}
+			})
+		}
+		if (Animator.open && settings.motion_trails.value && Group.selected) {
+			Animator.motion_trail.children.forEach(object => {
+				if (object.isKeyframe === true) {
+					objects.push(object)
 				}
 			})
 		}
@@ -311,16 +327,9 @@ class Preview {
 			}
 			if (intersect.isElement) {
 				this.controls.hasMoved = true
-				var obj = elements.findInArray('uuid', intersects[0].object.name)
-				switch (Math.floor( intersects[0].faceIndex / 2 )) {
-					case 5: var face = 'north'; break;
-					case 0: var face = 'east';  break;
-					case 4: var face = 'south'; break;
-					case 1: var face = 'west';  break;
-					case 2: var face = 'up';	break;
-					case 3: var face = 'down';  break;
-					default:var face = 'north'; break;
-				}
+				var obj = OutlinerElement.uuids[intersects[0].object.name]
+				let face = Canvas.face_order[intersects[0].face.materialIndex];
+
 				return {
 					event: event,
 					type: 'cube',
@@ -335,6 +344,14 @@ class Preview {
 					intersects: intersects,
 					cube: intersect.cube,
 					vertex: intersect
+				}
+			} else if (intersect.isKeyframe) {
+				let keyframe = Timeline.keyframes.find(kf => kf.uuid == intersect.keyframeUUID);
+				return {
+					event: event,
+					type: 'keyframe',
+					intersects: intersects,
+					keyframe: keyframe
 				}
 			}
 		} else {
@@ -368,6 +385,10 @@ class Preview {
 		this.setLockedAngle()
 		this.controls.updateSceneScale();
 		return this;
+	}
+	setFOV(fov) {
+		this.camPers.fov = fov;
+		this.camPers.updateProjectionMatrix();
 	}
 	setNormalCamera() {
 		//Deprecated
@@ -447,7 +468,7 @@ class Preview {
 				Math.degToRad(preset.rotation[2]),
 				'ZYX'
 			));
-            this.controls.target.add(this.camera.position);
+			this.controls.target.add(this.camera.position);
 		}
 		if (preset.projection !== 'unset') {
 			this.setProjectionMode(preset.projection == 'orthographic')
@@ -556,7 +577,7 @@ class Preview {
 				this.rclick_cooldown = true;
 			}, 420)
 		}
-		quad_previews.current = this;
+		Preview.selected = this;
 		if (Transformer.hoverAxis !== null || (!Keybinds.extra.preview_select.keybind.isTriggered(event) && event.which !== 0)) return;
 
 		var data = this.raycast(event);
@@ -589,6 +610,11 @@ class Preview {
 				} else {
 					data.cube.select(event)
 				}
+			} else if (Animator.open && data.type == 'keyframe') {
+				if (data.keyframe instanceof Keyframe) {
+					data.keyframe.select(event).callPlayhead();
+					updateSelection();
+				}
 			}
 			if (typeof Toolbox.selected.onCanvasClick === 'function') {
 				Toolbox.selected.onCanvasClick(data)
@@ -598,6 +624,9 @@ class Preview {
 		}
 		if (typeof Toolbox.selected.onCanvasClick === 'function') {
 			Toolbox.selected.onCanvasClick(0)
+		}
+		if (!data && this.controls.hasMoved === false && settings.canvas_unselect.value) {
+			unselectAll()
 		}
 
 		if (this.angle !== null && this.camOrtho.axis || this.movingBackground) {
@@ -639,10 +668,12 @@ class Preview {
 		Prop.active_panel = 'preview';
 		if (this.static_rclick && (event.which === 3 || (event.type == 'touchend' && this.rclick_cooldown == true))) {
 			var data = this.raycast(event)
-			if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data && data.cube) {
-				if (!Modes.animate) {
-					data.cube.showContextMenu(event)
-				}
+			if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data && data.cube && !Modes.animate) {
+				data.cube.showContextMenu(event);
+
+			} else if (data.type == 'keyframe') {
+				data.keyframe.showContextMenu(event);
+
 			} else {
 				this.menu.open(event, this)
 			}
@@ -674,7 +705,7 @@ class Preview {
 			}
 			return
 		};
-		if (!Modes.edit) return;
+		if (!Modes.edit || event.type == 'touchstart') return;
 
 		$(this.node).append(this.selection.box)
 		this.selection.activated = settings.canvas_unselect.value;
@@ -841,6 +872,19 @@ class Preview {
 		this.background.x = limitNumber(this.background.x, 0, this.width-30)
 		this.background.y = limitNumber(this.background.y, 0, this.height-30)
 		this.loadBackground()
+		Settings.saveLocalStorages()
+		return this;
+	}
+	restoreBackground() {
+		this.loadBackground()
+		if (this.background && this.background.defaults) {
+			this.background.image = this.background.defaults.image || false;
+			this.background.size = this.background.defaults.size || 1000
+			this.background.x = this.background.defaults.x || 0
+			this.background.y = this.background.defaults.y || 0
+		}
+		this.loadBackground()
+		Settings.saveLocalStorages()
 		return this;
 	}
 	startMovingBackground() {
@@ -850,15 +894,28 @@ class Preview {
 		this.movingBackground = true;
 		this.controls.enabled_before = this.controls.enabled
 		this.controls.enabled = false
-		Blockbench.showMessageBox({
-			translateKey: 'drag_background',
-			icon: 'open_with'
-		})
+
+		if (settings.dialog_drag_background.value) {
+			Blockbench.showMessageBox({
+				translateKey: 'drag_background',
+				icon: 'open_with',
+				buttons: ['dialog.ok', 'dialog.dontshowagain'],
+				confirm: 0,
+				cancel: 0,
+			}, function(r) {
+				if (r === 1) {
+					settings.dialog_drag_background.value = false
+					Settings.save()
+				}
+			})
+		}
 	}
 	stopMovingBackground() {
 		this.movingBackground = false;
 		this.controls.enabled = this.controls.enabled_before
 		delete this.controls.enabled_before
+		Settings.saveLocalStorages()
+		return this;
 	}
 	backgroundPositionDialog() {
 		var scope = this;
@@ -889,6 +946,7 @@ class Preview {
 				if (!isNaN(coords[2])) { scope.background.size	= coords[2] }
 
 				scope.updateBackground()
+				Settings.saveLocalStorages()
 			}
 		})
 		dialog.show()
@@ -947,7 +1005,7 @@ class Preview {
 		if (quad_previews.current) {
 			quad_previews.current.controls.stopMovement()
 		}
-		quad_previews.current = this;
+		Preview.selected = this;
 		quad_previews.enabled = false;
 		$('#preview').empty()
 
@@ -992,6 +1050,7 @@ class Preview {
 						if (files) {
 							preview.background.image = isApp ? files[0].path : files[0].content
 							preview.loadBackground()
+							Settings.saveLocalStorages()
 						}
 					}, 'image', false)
 				}},
@@ -1000,6 +1059,7 @@ class Preview {
 					if (image.length > 32) {
 						preview.background.image = image;
 						preview.loadBackground();
+						Settings.saveLocalStorages()
 					}
 				}},
 				{icon: 'photo_size_select_large', name: 'menu.preview.background.position', condition: has_background, click: function(preview) {
@@ -1018,6 +1078,10 @@ class Preview {
 				}},
 				{icon: 'clear', name: 'generic.remove', condition: has_background, click: function(preview) {
 					preview.clearBackground()
+				}},
+				{icon: 'restore', name: 'generic.restore', condition: (preview) => (preview.background && preview.background.defaults.image), click: function(preview) {
+					// ToDo: condition, save local storage, name and icon
+					preview.restoreBackground()
 				}}
 			]
 		}},
@@ -1185,7 +1249,7 @@ const Screencam = {
 		if (!options.length) options.length = 1;
 
 		var preview = quad_previews.current;
-		var animation = Animator.selected;
+		var animation = Animation.selected;
 		var interval = options.fps ? (1000/options.fps) : 100;
 		var frames = 0;
 		const gif = new GIF({
@@ -1227,10 +1291,6 @@ const Screencam = {
 
 		var loop = setInterval(() => {
 			frames++;
-			if (getProgress() >= 1) {
-				endRecording()
-				return;
-			}
 			Canvas.withoutGizmos(function() {
 				var img = new Image();
 				preview.render();
@@ -1239,8 +1299,11 @@ const Screencam = {
 					gif.addFrame(img, {delay: interval});
 				}
 			})
-
 			Blockbench.setProgress(getProgress());
+			if (getProgress() >= 1) {
+				endRecording()
+				return;
+			}
 
 		}, interval)
 
@@ -1374,6 +1437,7 @@ function initCanvas() {
 		this.x = data.x||0
 		this.y = data.y||0
 		this.lock = data.lock||false
+		this.defaults = Object.assign({}, this);
 	}
 
 	canvas_scenes = {
@@ -1475,6 +1539,9 @@ function initCanvas() {
 	updateShading()
 
 	quad_previews = {
+		get current() {return Preview.selected},
+		set current(p) {Preview.selected = p},
+
 		one: new Preview({id: 'one'}).loadAnglePreset(DefaultCameraPresets[1]),
 		two: main_preview,
 		three: new Preview({id: 'three'}).loadAnglePreset(DefaultCameraPresets[3]),
@@ -1489,6 +1556,7 @@ function initCanvas() {
 	img.tex = tex;
 	img.tex.magFilter = THREE.NearestFilter
 	img.tex.minFilter = THREE.NearestFilter
+	img.tex.wrapS = img.tex.wrapT = THREE.RepeatWrapping;
 	img.onload = function() {
 		this.tex.needsUpdate = true;
 	}
@@ -1540,8 +1608,11 @@ function initCanvas() {
 	resizeWindow()
 }
 function animate() {
-	TickUpdates.Run()
 	requestAnimationFrame( animate );
+	TickUpdates.Run()
+	if (quad_previews.current) {
+		Wintersky.updateFacingRotation(quad_previews.current.camera);
+	}
 	Preview.all.forEach(function(prev) {
 		if (prev.canvas.isConnected) {
 			prev.render()
@@ -1773,6 +1844,15 @@ BARS.defineActions(function() {
 		description: tl('settings.shading.desc'),
 		category: 'view',
 		linked_setting: 'shading',
+		click: function () {
+			this.toggleLinkedSetting()
+		}
+	})
+	new Action('toggle_motion_trails', {
+		name: tl('settings.motion_trails'),
+		description: tl('settings.motion_trails.desc'),
+		category: 'view',
+		linked_setting: 'motion_trails',
 		click: function () {
 			this.toggleLinkedSetting()
 		}

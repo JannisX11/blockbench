@@ -140,11 +140,7 @@ var codec = new Codec('java_block', {
 		}
 		var isTexturesOnlyModel = clear_elements.length === 0 && checkExport('parent', Project.parent != '')
 		var texturesObj = {}
-		var hasUnsavedTextures = false
 		textures.forEach(function(t, i){
-			if (t.mode === 'bitmap') {
-				hasUnsavedTextures = true
-			}
 			var link = t.javaTextureLink()
 			if (t.particle) {
 				texturesObj.particle = link
@@ -160,7 +156,9 @@ var codec = new Codec('java_block', {
 				translateKey: 'model_clipping',
 				icon: 'settings_overscan',
 				message: tl('message.model_clipping.message', [overflow_cubes.length]),
-				buttons: ['dialog.scale.select_overflow', 'dialog.ok']
+				buttons: ['dialog.scale.select_overflow', 'dialog.ok'],
+				confirm: 1,
+				cancel: 1,
 			}, (result) => {
 				if (result == 0) {
 					selected.splice(0, Infinity, ...overflow_cubes)

@@ -35,6 +35,7 @@ const TextureGenerator = {
 							power: 		{label: 'dialog.create_texture.power', type: 'checkbox', value: true},
 							double_use: {label: 'dialog.create_texture.double_use', type: 'checkbox', value: true, condition: Project.box_uv},
 							box_uv: 	{label: 'dialog.project.box_uv', type: 'checkbox', value: false, condition: !Project.box_uv},
+							padding:	{label: 'dialog.create_texture.padding', type: 'checkbox', value: false},
 							color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
 							resolution: {label: 'dialog.create_texture.resolution', type: 'select', value: 16, options: {
 								16: '16',
@@ -214,9 +215,14 @@ const TextureGenerator = {
 				return fill_map[x] && fill_map[x][y]
 			}
 			function forTemplatePixel(tpl, sx, sy, cb) {
-				for (var x = 0; x < tpl.width; x++) {		
-					for (var y = 0; y < tpl.height; y++) {
-						if (y >= tpl.z || (x >= tpl.z && x < (tpl.z + 2*tpl.x))) {
+				let w = tpl.width;
+				let h = tpl.height;
+				if (options.padding) {
+					w++; h++;
+				}
+				for (var x = 0; x < w; x++) {		
+					for (var y = 0; y < h; y++) {
+						if (y >= tpl.z || (x >= tpl.z && x < (tpl.z + 2*tpl.x + (options.padding ? 1 : 0)))) {
 							if (cb(sx+x, sy+y)) return;
 						}
 					}
@@ -278,23 +284,28 @@ const TextureGenerator = {
 				var max_height = 0
 				//Find the maximum height of the line
 				temps.forEach(function(t) {
-					max_height = Math.max(max_height, t.height)
+					max_height = Math.max(max_height, t.height + (options.padding ? 1 : 0))
 				})
 				//Place
 				temps.forEach(function(t) {
-					if (y_pos > 0 && (y_pos + t.height) <= max_height) {
+					let w = t.width;
+					let h = t.height;
+					if (options.padding) {
+						w++; h++;
+					} 
+					if (y_pos > 0 && (y_pos + h) <= max_height) {
 						//same column
 						t.posx = x_pos
 						t.posy = y_pos + extend_y
-						filled_x_pos = Math.max(filled_x_pos, x_pos+t.width)
-						y_pos += t.height
+						filled_x_pos = Math.max(filled_x_pos, x_pos + w)
+						y_pos += h
 					} else {
 						//new column
 						x_pos = filled_x_pos
-						y_pos = t.height
+						y_pos = h
 						t.posx = x_pos
 						t.posy = extend_y
-						filled_x_pos = Math.max(filled_x_pos, x_pos+t.width)
+						filled_x_pos = Math.max(filled_x_pos, x_pos + w)
 					}
 					//size of widest bone
 					extend_x = Math.max(extend_x, filled_x_pos)
@@ -343,9 +354,11 @@ const TextureGenerator = {
 
 		var dataUrl = canvas.toDataURL()
 		var texture = cb(dataUrl)
-		if (texture && !Project.single_texture) {
+		if (texture) {
 			cubes.forEach(function(cube) {
-				cube.applyTexture(texture, true);
+				if (!Format.single_texture) {
+					cube.applyTexture(texture, true);
+				}
 				cube.autouv = 0;
 			})
 		}
@@ -361,6 +374,17 @@ const TextureGenerator = {
 			uv_only: true,
 			uv_mode: true
 		})
+		// Warning
+		if (cubes.find(cube => {
+			let size = cube.size();
+			return (size[0] > 0.001 && size[0] < 0.999) || (size[1] > 0.001 && size[1] < 0.999) || (size[2] > 0.001 && size[2] < 0.999)
+		})) {
+			Blockbench.showMessageBox({
+				title: 'message.small_face_dimensions.title',
+				message: tl('message.small_face_dimensions.message') + (Format.optional_box_uv ? '\n\n' + tl('message.small_face_dimensions.face_uv') : ''),
+				icon: 'warning',
+			})
+		}
 	},
 	boxUVdrawTemplateRectangle(border_color, color, face, coords, texture, canvas) {
 		if (typeof background_color === 'string') {
@@ -564,8 +588,13 @@ const TextureGenerator = {
 				return fill_map[x] && fill_map[x][y]
 			}
 			function forTemplatePixel(tpl, sx, sy, cb) {
-				for (var x = 0; x < tpl.width; x++) {		
-					for (var y = 0; y < tpl.height; y++) {
+				let w = tpl.width;
+				let h = tpl.height;
+				if (options.padding) {
+					w++; h++;
+				}
+				for (var x = 0; x < w; x++) {		
+					for (var y = 0; y < h; y++) {
 						if (cb(sx+x, sy+y)) return;
 					}
 				}
@@ -729,16 +758,18 @@ const TextureGenerator = {
 
 		TextureGenerator.changeProjectResolution(max_size / res_multiple, max_size / res_multiple);
 
-		if (texture && !Format.single_texture) {
+		if (texture) {
 			cube_array.forEach(function(cube) {
-				for (var key in cube.faces) {
-					if (cube.faces[key].texture !== null) {
-						cube.faces[key].texture = texture.uuid;
+				if (!Format.single_texture) {
+					for (var key in cube.faces) {
+						if (cube.faces[key].texture !== null) {
+							cube.faces[key].texture = texture.uuid;
+						}
 					}
+					Canvas.adaptObjectFaces(cube)
+					Canvas.updateUV(cube)
 				}
-				Canvas.adaptObjectFaces(cube)
-				Canvas.updateUV(cube)
-				cube.autouv = 0
+				cube.autouv = 0;
 			})
 		}
 		updateSelection()

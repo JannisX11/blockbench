@@ -39,7 +39,7 @@
 		display: none;
 	}
 
-	@media (max-device-width: 480px) {
+	@media (max-device-width: 640px) {
 		dialog {
 			width: 100% !important;
 		}
@@ -131,8 +131,7 @@
 		padding-bottom: 16px;
 	}
 	.dialog p {
-		margin-top: 8px;
-		margin-bottom: 8px;
+		margin: 4px 0;
 	}
 	.dialog h3 {
 		margin-left: 16px;
@@ -295,7 +294,7 @@
 	.password_toggle {
 		display: inline-block;
 		margin-left: 4px;
-		margin-top: -1px;
+		margin-top: 4px;
 		width: 24px;
 		text-align: center;
 		vertical-align: text-bottom;
@@ -534,6 +533,7 @@
 	label.name_space_left {
 		float: left;
 		min-width: 155px;
+		margin-top: 4px;
 		margin-left: 1px;
 		margin-right: 8px;
 		flex-shrink: 0;
@@ -639,7 +639,7 @@
 		height: auto;
 		float: right;
 		margin-left: -1px;
-		margin-top: 6px;
+		margin-top: 0;
 		text-align: right;
 	}
 	#plugin_list li .button_bar.tiny {
@@ -668,6 +668,7 @@
 		font-size: 1.34em;
 		padding-top: 8px;
 		margin-bottom: -5px;
+		height: 48px;
 	}
 	#plugin_list li .title i {
 		font-size: 0.9em;
@@ -868,7 +869,7 @@
 		height: 26px;
 		vertical-align: text-top;
 	}
-	@media (max-device-width: 480px) {
+	@media (max-device-width: 640px) {
 		dialog#action_selector {
 			top: 26px;
 		}

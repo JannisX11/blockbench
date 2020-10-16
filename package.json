@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Model editing and animation software",
-	"version": "3.6.6",
+	"version": "3.7.0",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -94,8 +94,8 @@
 		"webapp": "git checkout gh-pages && git merge master && git push && git checkout master"
 	},
 	"devDependencies": {
-		"electron": "8.2.4",
-		"electron-builder": "^21.2.0",
+		"electron": "^8.5.2",
+		"electron-builder": "^22.8.1",
 		"electron-notarize": "^1.0.0"
 	},
 	"dependencies": {

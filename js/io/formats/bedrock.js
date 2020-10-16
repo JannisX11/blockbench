@@ -65,6 +65,7 @@ window.BedrockEntityManager = {
 		BedrockEntityManager.client_entity = BedrockEntityManager.getEntityFile();
 		if (BedrockEntityManager.client_entity && BedrockEntityManager.client_entity.description) {
 
+			// Textures
 			var tex_list = BedrockEntityManager.client_entity.description.textures
 			if (tex_list instanceof Object) {
 				var valid_textures_list = [];
@@ -132,6 +133,47 @@ window.BedrockEntityManager = {
 		} else {
 			BedrockEntityManager.findEntityTexture(Project.geometry_name)
 		}
+	},
+	initAnimations() {
+
+		var anim_list = BedrockEntityManager?.client_entity?.description?.animations
+		if (anim_list instanceof Object) {
+			let animation_names = [];
+			for (var key in anim_list) {
+				if (anim_list[key].match && anim_list[key].match(/^animation\./)) {
+					animation_names.push(anim_list[key]);
+				}
+			}
+			// get all paths in folder
+			let anim_files = [];
+			function searchFolder(path) {
+				try {
+					var files = fs.readdirSync(path);	
+					for (var name of files) {
+						var new_path = path + osfs + name;
+						if (name.match(/\.json$/)) {
+							anim_files.push(new_path);
+						} else if (!name.includes('.')) {
+							searchFolder(new_path);
+						}
+					}
+				} catch (err) {}
+			}
+			searchFolder(PathModule.join(BedrockEntityManager.root_path, 'animations'));
+
+			anim_files.forEach(path => {
+				try {
+					let content = fs.readFileSync(path, 'utf8');
+					Animator.loadFile({path, content}, animation_names);
+				} catch (err) {}
+			})
+		}
+		BedrockEntityManager.initialized_animations = true;
+	},
+	reset() {
+		delete BedrockEntityManager.initialized_animations;
+		delete BedrockEntityManager.client_entity;
+		delete BedrockEntityManager.root_path;
 	},
 	findEntityTexture(mob, return_path) {
 		if (!mob) return;
@@ -308,6 +350,7 @@ function calculateVisibleBox() {
 				var face = base_cube.faces[key]
 				if (s.uv[key]) {
 					face.extend({
+						material_name: s.uv[key].material_instance,
 						uv: [
 							s.uv[key].uv[0],
 							s.uv[key].uv[1]
@@ -340,7 +383,8 @@ function calculateVisibleBox() {
 		} else {
 			base_cube.mirror_uv = s.mirror === true;
 		}
-		base_cube.addTo(group).init()
+		base_cube.addTo(group).init();
+		return base_cube;
 	}
 	function parseBone(b, bones, parent_list) {
 		var group = new Group({
@@ -411,10 +455,10 @@ function calculateVisibleBox() {
 		Project.texture_height = 16;
 
 		if (typeof description.visible_bounds_width == 'number' && typeof description.visible_bounds_height == 'number') {
-			Project.visible_box[0] = Math.max(Project.visible_box[0], description.visible_bounds_width);
-			Project.visible_box[1] = Math.max(Project.visible_box[1], description.visible_bounds_height);
+			Project.visible_box[0] = Math.max(Project.visible_box[0], description.visible_bounds_width || 0);
+			Project.visible_box[1] = Math.max(Project.visible_box[1], description.visible_bounds_height || 0);
 			if (description.visible_bounds_offset && typeof description.visible_bounds_offset[1] == 'number') {
-				Project.visible_box[2] = description.visible_bounds_offset[1];
+				Project.visible_box[2] = description.visible_bounds_offset[1] || 0;
 			}
 		}
 
@@ -495,6 +539,9 @@ function calculateVisibleBox() {
 							face.uv_size[1],
 						]
 					});
+					if (face.material_name) {
+						template.uv[key].material_instance = face.material_name;
+					}
 					if (key == 'up' || key == 'down') {
 						template.uv[key].uv[0] += template.uv[key].uv_size[0];
 						template.uv[key].uv[1] += template.uv[key].uv_size[1];
@@ -603,9 +650,9 @@ var codec = new Codec('bedrock', {
 		if (bones.length && options.visible_box !== false) {
 
 			let visible_box = calculateVisibleBox();
-			entitymodel.description.visible_bounds_width = visible_box[0];
-			entitymodel.description.visible_bounds_height = visible_box[1];
-			entitymodel.description.visible_bounds_offset = [0, visible_box[2] , 0]
+			entitymodel.description.visible_bounds_width = visible_box[0] || 0;
+			entitymodel.description.visible_bounds_height = visible_box[1] || 0;
+			entitymodel.description.visible_bounds_offset = [0, visible_box[2] || 0 , 0]
 		}
 		if (bones.length) {
 			entitymodel.bones = bones
@@ -664,7 +711,7 @@ var codec = new Codec('bedrock', {
 	},
 	parse(data, path) {
 		pe_list_data.length = 0
-		Formats.bedrock.select()
+		if (Format != Formats.bedrock) Formats.bedrock.select()
 
 		var geometries = []
 		for (var geo of data['minecraft:geometry']) {

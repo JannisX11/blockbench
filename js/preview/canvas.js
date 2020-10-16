@@ -86,6 +86,7 @@ const Canvas = {
 			edit(outlines)
 			edit(rot_origin)
 			edit(Vertexsnap.vertexes)
+			edit(Animator.motion_trail)
 			Cube.selected.forEach(function(obj) {
 				var m = obj.mesh;
 				if (!m) return;
@@ -161,8 +162,8 @@ const Canvas = {
 	},
 	updateVisibility() {
 		Cube.all.forEach(function(cube) {
-			cube.mesh.visible = cube.visibility == true;
-			if (cube.visibility) {
+			if (cube.visibility && !cube.mesh.visible) {
+				cube.mesh.visible = true;
 				Canvas.adaptObjectFaces(cube, cube.mesh)
 				if (!Prop.wireframe) {
 					Canvas.updateUV(cube);
@@ -170,25 +171,11 @@ const Canvas = {
 				if (Modes.paint && settings.painting_grid.value) {
 					Canvas.buildGridBox(cube);
 				}
+			} else if (!cube.visibility) {
+				cube.mesh.visible = false;
 			}
-			/*
-			var mesh = s.mesh
-			if (s.visibility == true) {
-				if (!mesh) {
-					Canvas.addCube(s)
-				} else if (!scene.children.includes(mesh)) {
-					scene.add(mesh)
-					Canvas.adaptObjectPosition(s, mesh)
-					Canvas.adaptObjectFaces(s, mesh)
-					if (!Prop.wireframe) {
-						Canvas.updateUV(s)
-					}
-				}
-			} else if (mesh && mesh.parent) {
-				mesh.parent.remove(mesh)
-			}*/
 		})
-		updateSelection()
+		TickUpdates.selection = true;
 	},
 	updateAllFaces(texture) {
 		Cube.all.forEach(function(obj) {
@@ -280,7 +267,7 @@ const Canvas = {
 			Canvas.adaptObjectPosition(obj)
 		})
 		if (leave_selection !== true) {
-			updateSelection()
+			TickUpdates.selection = true;
 		}
 	},
 	updateSelectedFaces() {
@@ -309,7 +296,7 @@ const Canvas = {
 
 			var line = Canvas.getOutlineMesh(mesh)
 
-			mesh.getWorldPosition(line.position)
+			THREE.fastWorldPosition(mesh, line.position)
 			line.position.sub(scene.position)
 			line.rotation.setFromQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()))
 			mesh.getWorldScale(line.scale)
@@ -340,12 +327,12 @@ const Canvas = {
 				} else {
 					scene.add(bone)
 				}
-				bone.updateMatrixWorld()
 
 				bone.fix_position = bone.position.clone()
 				bone.fix_rotation = bone.rotation.clone()
 			}
 		})
+		scene.updateMatrixWorld();
 	},
 	updateOrigin() {
 		if (rot_origin.parent) {
@@ -396,21 +383,22 @@ const Canvas = {
 	addCube(obj) {
 		//This does NOT remove old cubes
 		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1))
-		Canvas.adaptObjectFaces(obj, mesh)
-
-		Canvas.adaptObjectPosition(obj, mesh)
+		Canvas.meshes[obj.uuid] = mesh;
 		mesh.name = obj.uuid;
 		mesh.type = 'cube';
 		mesh.isElement = true;
+
+		Canvas.adaptObjectFaces(obj, mesh)
+		Canvas.adaptObjectPosition(obj, mesh)
+		
 		//scene.add(mesh)
-		Canvas.meshes[obj.uuid] = mesh;
 		if (Prop.wireframe === false) {
 			Canvas.updateUV(obj);
 		}
 		mesh.visible = obj.visibility;
 		Canvas.buildOutline(obj);
 	},
-	adaptObjectPosition(cube, mesh, parent) {		
+	adaptObjectPosition(cube, mesh) {		
 		if (!mesh || mesh > 0) mesh = cube.mesh
 
 		var from = cube.from.slice()
@@ -468,43 +456,27 @@ const Canvas = {
 		Canvas.buildOutline(cube)
 		mesh.updateMatrixWorld()
 	},
-	ascendElementPosition(el, elmesh) {
-		function iterate(obj, mesh) {
-			//Iterate inside (cube) > outside
-			if (!mesh) {
-				mesh = obj.mesh
-			}
-			if (obj.type === 'group') {
-				mesh.rotation.reorder('ZYX')
-				obj.rotation.forEach(function(n, i) {
-					mesh.rotation[getAxisLetter(i)] = Math.PI / (180 / n) * (i == 2 ? -1 : 1)
-				})
-				mesh.updateMatrixWorld()
-			}
-			mesh.fix_rotation = mesh.rotation.clone()
+	adaptObjectFaceGeo(cube) {
+		let {mesh} = cube;
+		let {geometry} = mesh;
+		if (!geometry.all_faces) geometry.all_faces = geometry.faces.slice();
+		geometry.faces.empty()
 
-			if (obj.type === 'group') {
-				mesh.position.fromArray(obj.origin)
-				mesh.scale.x = mesh.scale.y = mesh.scale.z = 1
-			}
+		geometry.all_faces.forEach(face => {
+			let bb_face = cube.faces[Canvas.face_order[face.materialIndex]];
 
-			if (typeof obj.parent === 'object') {
-
-				mesh.position.x -=  obj.parent.origin[0]
-				mesh.position.y -=  obj.parent.origin[1]
-				mesh.position.z -=  obj.parent.origin[2]
+			if (bb_face && bb_face.texture == null && geometry.faces.includes(face)) {
+				geometry.faces.remove(face);
+			} else
+			if (bb_face && bb_face.texture != null && !geometry.faces.includes(face)) {
+				geometry.faces.push(face);
 			}
-			mesh.fix_position = mesh.position.clone()
-
-			if (typeof obj.parent === 'object') {
-				var parent_mesh = iterate(obj.parent)
-				parent_mesh.add(mesh)
-			} else {
-				scene.add(mesh)
-			}
-			return mesh
+		})
+		if (geometry.faces.length == 0) {
+			// Keek down face if no faces enabled
+			geometry.faces.push(geometry.all_faces[6], geometry.all_faces[7]);
 		}
-		iterate(el, elmesh)
+		geometry.elementsNeedUpdate = true;
 	},
 	getLayeredMaterial(layers) {
 		if (Canvas.layered_material && !layers) return Canvas.layered_material;
@@ -544,8 +516,8 @@ const Canvas = {
 				}
 				
 				vUv = uv;
-			    vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-			    gl_Position = projectionMatrix * mvPosition;
+				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+				gl_Position = projectionMatrix * mvPosition;
 			}`
 		var fragShader = `
 			#ifdef GL_ES
@@ -564,9 +536,9 @@ const Canvas = {
 
 			void main(void)
 			{
-			    vec4 Ca = texture2D(t0, vUv);
-			    vec4 Cb = texture2D(t1, vUv);
-			    vec4 Cc = texture2D(t2, vUv);
+				vec4 Ca = texture2D(t0, vUv);
+				vec4 Cb = texture2D(t1, vUv);
+				vec4 Cc = texture2D(t2, vUv);
 				
 				vec3 ctemp = Ca.rgb * Ca.a + Cb.rgb * Cb.a * (1.0 - Ca.a);
 				vec4 ctemp4 = vec4(ctemp, Ca.a + (1.0 - Ca.a) * Cb.a);
@@ -612,6 +584,9 @@ const Canvas = {
 	adaptObjectFaces(cube, mesh) {
 		if (!mesh) mesh = cube.mesh
 		if (!mesh) return;
+
+		Canvas.adaptObjectFaceGeo(cube);
+
 		if (Prop.wireframe) {
 			mesh.material = Canvas.wireframeMaterial
 		} else if (Format.single_texture && Project.layered_textures && Texture.all.length >= 2) {
@@ -647,14 +622,13 @@ const Canvas = {
 			var size = cube.size(undefined, true)
 			
 			var face_list = [   
-				{face: 'north', fIndex: 10,	from: [size[2], size[2]],			 	size: [size[0],  size[1]]},
-				{face: 'east', fIndex: 0,	from: [0, size[2]],				   		size: [size[2],  size[1]]},
-				{face: 'south', fIndex: 8,	from: [size[2]*2 + size[0], size[2]], 	size: [size[0],  size[1]]},
-				{face: 'west', fIndex: 2,	from: [size[2] + size[0], size[2]],   	size: [size[2],  size[1]]},
-				{face: 'up', fIndex: 4,		from: [size[2]+size[0], size[2]],	 	size: [-size[0], -size[2]]},
-				{face: 'down', fIndex: 6,	from: [size[2]+size[0]*2, 0],		 	size: [-size[0], size[2]]}
+				{face: 'east',	from: [0, size[2]],				   		size: [size[2],  size[1]]},
+				{face: 'west',	from: [size[2] + size[0], size[2]],   	size: [size[2],  size[1]]},
+				{face: 'up', 	from: [size[2]+size[0], size[2]],	 	size: [-size[0], -size[2]]},
+				{face: 'down',	from: [size[2]+size[0]*2, 0],		 	size: [-size[0], size[2]]},
+				{face: 'south',	from: [size[2]*2 + size[0], size[2]], 	size: [size[0],  size[1]]},
+				{face: 'north',	from: [size[2], size[2]],			 	size: [size[0],  size[1]]},
 			]
-			var cube_mirror  = cube.mirror_uv
 
 			if (cube.mirror_uv) {
 				face_list.forEach(function(f) {
@@ -665,17 +639,20 @@ const Canvas = {
 				
 				var p = {}
 
-				p.from = face_list[1].from.slice()
-				p.size = face_list[1].size.slice()
+				p.from = face_list[0].from.slice()
+				p.size = face_list[0].size.slice()
 
-				face_list[1].from = face_list[3].from.slice()
-				face_list[1].size = face_list[3].size.slice()
+				face_list[0].from = face_list[1].from.slice()
+				face_list[0].size = face_list[1].size.slice()
 
-				face_list[3].from = p.from.slice()
-				face_list[3].size = p.size.slice()
+				face_list[1].from = p.from.slice()
+				face_list[1].size = p.size.slice()
 
 			}
+			let fIndex = 0;
 			face_list.forEach(function(f) {
+
+				if (cube.faces[f.face].texture == null) return;
 
 				var uv= [
 					f.from[0]			 +  cube.uv_offset[0],
@@ -714,14 +691,21 @@ const Canvas = {
 					}
 				}
 
-				Canvas.updateUVFace(mesh.geometry.faceVertexUvs[0], f.fIndex, {uv: uv}, frame, stretch)
+				Canvas.updateUVFace(mesh.geometry.faceVertexUvs[0], fIndex, {uv: uv}, frame, stretch)
+
+				fIndex += 2;
 			})
 
 		} else {
 		
 			var stretch = 1
 			var frame = 0
-			for (var face in cube.faces) {
+			let fIndex = 0
+
+			Canvas.face_order.forEach(face => {
+
+				if (cube.faces[face].texture == null) return;
+
 				stretch = 1;
 				frame = 0;
 				let tex = cube.faces[face].getTexture();
@@ -731,8 +715,9 @@ const Canvas = {
 						frame = tex.currentFrame
 					}
 				}
-				Canvas.updateUVFace(mesh.geometry.faceVertexUvs[0], Canvas.face_order.indexOf(face)*2, cube.faces[face], frame, stretch)
-			}
+				Canvas.updateUVFace(mesh.geometry.faceVertexUvs[0], fIndex, cube.faces[face], frame, stretch)
+				fIndex += 2;
+			})
 
 		}
 		mesh.geometry.elementsNeedUpdate = true;

@@ -5,27 +5,37 @@ class Panel {
 		this.id = data.id || 'new_panel';
 		this.icon = data.icon;
 		this.menu = data.menu;
+		this.growable = data.growable;
 		this.name = tl(data.name ? data.name : `panel.${this.id}`);
 		this.selection_only = data.selection_only == true;
 		this.condition = data.condition;
 		this.onResize = data.onResize;
 		if (data.toolbars) {
 			this.toolbars = data.toolbars;
-        } else {
+		} else {
 			this.toolbars = {};
 		}
-        // Vue
-        if (data.component) {
-            data.component.name = 'inside-vue'
-            $(`.sidebar#${data.default_side||'left'}_bar`).append(`<div id="mount-panel-${this.id}"></div>`)
+		// Vue
+		if (data.component) {
+			data.component.name = 'inside-vue'
+			let bar = $(`.sidebar#${data.default_side||'left'}_bar`);
+			let node = $(`<div id="mount-panel-${this.id}"></div>`);
 
-            this.vue = new Vue({
-                components: {
-                    'inside-vue': data.component
-                },
+			if (data.insert_before && bar.find(`> .panel#${data.insert_before}`).length) {
+				node.insertBefore(bar.find(`> .panel#${data.insert_before}`));
+			} else if (data.insert_after && bar.find(`> .panel#${data.insert_after}`).length) {
+				node.insertAfter(bar.find(`> .panel#${data.insert_after}`));
+			} else {
+				bar.append(node)
+			}
+
+			this.vue = new Vue({
+				components: {
+					'inside-vue': data.component
+				},
 				template: `<div class="panel ${this.selection_only ? 'selection_only' : ''} ${this.growable ? 'grow' : ''}" id="${this.id}">
 					<h3 class="panel_handle">${this.name}</h3>
-                    <inside-vue class="panel_inside" ref="inside"></inside-vue>
+					<inside-vue class="panel_inside" ref="inside"></inside-vue>
 				</div>`,
 				mounted() {
 					Vue.nextTick(() => {
@@ -39,7 +49,7 @@ class Panel {
 			this.node = $('.panel#'+this.id).get(0)
 			this.handle = $(this.node).find('h3.panel_handle').get(0)
 			
-        } else {
+		} else {
 			this.node = $('.panel#'+this.id).get(0)
 			this.handle = $('<h3 class="panel_handle">'+this.name+'</h3>').get(0)
 			$(this.node).prepend(this.handle)
@@ -58,7 +68,20 @@ class Panel {
 				start: function() {
 					Interface.panel = scope;
 				},
+				drag(e, ui) {
+					$('.panel[order]').attr('order', null)
+					let target_panel = $('div.panel:hover').get(0);
+					if (!target_panel) return;
+					let top = $(target_panel).offset().top;
+					let height = target_panel.clientHeight;
+					if (e.clientY > top + height/2) {
+						$(target_panel).attr('order', 1);
+					} else {
+						$(target_panel).attr('order', -1);
+					}
+				},
 				stop: function(e, ui) {
+					$('.panel[order]').attr('order', null)
 					if (!ui) return;
 					if (Math.abs(ui.position.top - ui.originalPosition.top) + Math.abs(ui.position.left - ui.originalPosition.left) < 180) return;
 					let target = Interface.panel
@@ -164,7 +187,7 @@ class Panel {
 	}
 	delete() {
 		delete Interface.Panels[this.id];
-        $(this.node).detach()
+		$(this.node).detach()
 	}
 }
 
@@ -180,36 +203,7 @@ function setupPanels() {
 		}
 	})
 
-
 	//Panels
-	Interface.Panels.uv = new Panel({
-		id: 'uv',
-		icon: 'photo_size_select_large',
-		condition: {modes: ['edit', 'paint']},
-		toolbars: {
-			bottom: Toolbars.main_uv
-		},
-		onResize: function() {
-			let size = limitNumber($(this.node).width()-10, 64, 1200)
-			size = Math.floor(size/16)*16
-			main_uv.setSize(size)
-		}
-	})
-	Interface.Panels.textures = new Panel({
-		id: 'textures',
-		icon: 'fas.fa-images',
-		condition: {modes: ['edit', 'paint']},
-		toolbars: {
-			head: Toolbars.texturelist
-		},
-		menu: new Menu([
-			'import_texture',
-			'create_texture',
-			'reload_textures',
-			'change_textures_folder',
-			'save_textures'
-		])
-	})
 	Interface.Panels.element = new Panel({
 		id: 'element',
 		icon: 'fas.fa-cube',
@@ -228,140 +222,25 @@ function setupPanels() {
 		condition: {modes: ['animate']},
 		selection_only: true,
 		toolbars: {
-			//bone_ik: Toolbars.bone_ik,
+			bone_ik: Toolbars.bone_ik,
 		},
 		component: {
 			template: `
 				<div>
 					<p>${ tl('panel.element.origin') }</p>
 					<div class="toolbar_wrapper bone_origin"></div>
-					<!--p>${ tl('panel.bone.ik') }</p>
-					<div class="toolbar_wrapper bone_ik"></div-->
+					<p>${ tl('panel.bone.ik') }</p>
+					<div class="toolbar_wrapper bone_ik"></div>
 				</div>
 			`
-		}
-	})
-	Interface.Panels.outliner = new Panel({
-		id: 'outliner',
-		icon: 'list_alt',
-		condition: {modes: ['edit', 'paint', 'animate']},
-		toolbars: {
-			head: Toolbars.outliner
-		},
-		onResize: t => {
-			getAllOutlinerObjects().forEach(o => o.updateElement())
-		},
-		menu: new Menu([
-			'add_cube',
-			'add_group',
-			'_',
-			'sort_outliner',
-			'select_all',
-			'collapse_groups',
-			'element_colors',
-			'outliner_toggle'
-		])
-	})
-	Interface.Panels.chat = new Panel({
-		id: 'chat',
-		icon: 'chat',
-		condition: {method() {return EditSession.active}},
-		toolbars: {},
-		onResize: t => {
-		},
-		menu: new Menu([
-			'toggle_chat'
-		]),
-		component: {
-			data() {return Chat},
-			template: `
-				<div>
-					<div class="bar next_to_title" id="chat_title_bar"></div>
-					<ul id="chat_history" v-if="expanded">
-						<li v-for="msg in history">
-							<b v-if="msg.showAuthor()" v-bind:class="{self: msg.self}">{{ msg.author }}:</b>
-							<span class="text" v-bind:style="{color: msg.hex || 'inherit'}" v-html="msg.html"></span>
-							<span class="timestamp">{{ msg.timestamp }}</span>
-						</li>
-					</ul>
-					<div id="chat_bar">
-						<input type="text" id="chat_input" class="dark_bordered f_left" maxlength="512">
-						<i class="material-icons" onclick="Chat.send()">send</i>
-					</div>
-				</div>
-			`
-		}
-	})
-	BarItems.toggle_chat.toElement('#chat_title_bar')
-
-	Interface.Panels.animations = new Panel({
-		id: 'animations',
-		icon: 'movie',
-		condition: {modes: ['animate']},
-		toolbars: {
-			head: Toolbars.animations
-		},
-		component: {
-			name: 'panel-animations',
-			data() { return {
-				animations: Animator.animations
-			}},
-			methods: {
-				sort(event) {
-					let item = Animator.animations.splice(event.oldIndex, 1)[0];
-					Animator.animations.splice(event.newIndex, 0, item);
-				}
-			},
-			template: `
-				<div>
-					<div class="toolbar_wrapper animations"></div>
-					<ul id="animations_list" class="list" v-sortable="{onUpdate: sort, fallbackTolerance: 10, animation: 0, handle: ':not(.animation_play_toggle)'}">
-						<li
-							v-for="animation in animations"
-							v-bind:class="{ selected: animation.selected }"
-							v-bind:anim_id="animation.uuid"
-							class="animation"
-							v-on:click.stop="animation.select()"
-							v-on:dblclick.stop="animation.rename()"
-							:key="animation.uuid"
-							@contextmenu.prevent.stop="animation.showContextMenu($event)"
-						>
-							<i class="material-icons">movie</i>
-							<input class="animation_name" v-model="animation.name" disabled="true">
-							<div class="animation_play_toggle" v-on:click.stop="animation.togglePlayingState()">
-								<i v-if="animation.playing" class="fa_big far fa-play-circle"></i>
-								<i v-else class="fa_big far fa-circle"></i>
-							</div>
-						</li>
-					</ul>
-				</div>
-			`
-		}
-	})
-	Interface.Panels.keyframe = new Panel({
-		id: 'keyframe',
-		icon: 'timeline',
-		condition: {modes: ['animate']},
-		toolbars: {
-			head: Toolbars.keyframe
-		}
-	})
-	Interface.Panels.variable_placeholders = new Panel({
-		id: 'variable_placeholders',
-		icon: 'fas.fa-stream',
-		condition: {modes: ['animate']},
-		toolbars: {
-		}
-	})
-	Interface.Panels.display = new Panel({
-		id: 'display',
-		icon: 'tune',
-		condition: {modes: ['display']},
-		toolbars: {
-			head: Toolbars.display
 		}
 	})
 
+	Interface.panel_definers.forEach((definer) => {
+		if (typeof definer === 'function') {
+			definer()
+		}
+	})
 
 	Interface.data.left_bar.forEach((id) => {
 		if (Interface.Panels[id]) {
@@ -383,6 +262,7 @@ function setupPanels() {
 		'timelapse',
 	])
 }
+
 
 
 function setActivePanel(panel) {

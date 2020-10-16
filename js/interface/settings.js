@@ -87,6 +87,11 @@ const Settings = {
 		//Interface
 		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number'});
 		new Setting('control_size',  		{category: 'interface', value: 10, type: 'number'});
+		new Setting('motion_trails',  		{category: 'interface', value: true, onChange() {
+			if (Animator.open) {
+				scene[this.value ? 'add' : 'remove'](Animator.motion_trail);
+			}
+		}});
 		new Setting('seethrough_outline', 	{category: 'interface', value: false});
 		new Setting('outliner_colors', 		{category: 'interface', value: false});
 		new Setting('preview_checkerboard',	{category: 'interface', value: false, onChange() {
@@ -100,6 +105,10 @@ const Settings = {
 		new Setting('brightness',  		{category: 'preview', value: 50, type: 'number'});
 		new Setting('shading', 	  		{category: 'preview', value: true, onChange() {
 			updateShading()
+		}});
+		new Setting('antialiasing', 	{category: 'preview', value: true});
+		new Setting('fov', 		  		{category: 'preview', value: 45, type: 'number', onChange(val) {
+			Preview.all.forEach(preview => preview.setFOV(val));
 		}});
 		new Setting('render_sides', 	{category: 'preview', value: 'auto', type: 'select', options: {
 			'auto': tl('settings.render_sides.auto'),
@@ -125,7 +134,7 @@ const Settings = {
 		new Setting('display_skin',  	{category: 'preview', value: false, type: 'click', condition: isApp, icon: 'icon-player', click: function() { changeDisplaySkin() }});
 		
 		//Edit
-		new Setting('undo_limit',    		{category: 'edit', value: 256, type: 'number'});
+		new Setting('undo_limit',			{category: 'edit', value: 256, type: 'number'});
 		new Setting('canvas_unselect',  	{category: 'edit', value: false});
 		new Setting('highlight_cubes',  	{category: 'edit', value: true, onChange() {
 			updateCubeHighlights();
@@ -151,8 +160,8 @@ const Settings = {
 		new Setting('animation_snap',{category: 'snapping', value: 25, type: 'number'});
 
 		//Paint
+		new Setting('sync_color',	{category: 'paint', value: false});
 		new Setting('paint_side_restrict',	{category: 'paint', value: true});
-		//new Setting('layered_textures',		{category: 'paint', value: false});
 		new Setting('brush_opacity_modifier', {category: 'paint', value: 'pressure', type: 'select', options: {
 			'pressure': tl('settings.brush_modifier.pressure'),
 			'tilt': tl('settings.brush_modifier.tilt'),
@@ -172,6 +181,7 @@ const Settings = {
 		
 		//Dialogs
 		new Setting('dialog_larger_cubes', {category: 'dialogs', value: true});
+		new Setting('dialog_drag_background', {category: 'dialogs', value: true});
 		new Setting('dialog_rotation_limit', {category: 'dialogs', value: true});
 		
 		//Application
@@ -182,6 +192,7 @@ const Settings = {
 		
 		//Export
 		new Setting('minifiedout', {category: 'export', value: false});
+		new Setting('minify_bbmodel', {category: 'export', value: true});
 		new Setting('export_groups', {category: 'export', value: true});
 		new Setting('sketchfab_token', {category: 'export', value: '', type: 'password'});
 		new Setting('credit', {category: 'export', value: 'Made with Blockbench', type: 'text'});

@@ -43,19 +43,7 @@ const codec = new Codec('skin_model', {
 				if (obj.export) {
 					if (obj instanceof Cube) {
 
-						var template = new oneLiner()
-						template.name = obj.name;
-						if (obj.visibility == false) template.visibility = false;
-						template.origin = obj.from.slice()
-						template.size = obj.size()
-						template.origin[0] = -(template.origin[0] + template.size[0])
-						template.uv = obj.uv_offset
-						if (obj.inflate && typeof obj.inflate === 'number') {
-							template.inflate = obj.inflate
-						}
-						if (obj.mirror_uv === !bone.mirror) {
-							template.mirror = obj.mirror_uv
-						}
+						let template = Codecs.bedrock.compileCube(obj, g);
 						cubes.push(template)
 						cube_count++;
 
@@ -106,31 +94,11 @@ const codec = new Codec('skin_model', {
 				group.reset = b.reset === true
 
 				if (b.cubes) {
-					b.cubes.forEach(function(s) {
-						var base_cube = new Cube({name: s.name, visibility: s.visibility, autouv: 0, color: b.color})
-						if (s.origin) {
-							base_cube.from.V3_set(s.origin)
-							base_cube.from[0] = -(base_cube.from[0] + s.size[0])
-							if (s.size) {
-								base_cube.to[0] = s.size[0] + base_cube.from[0]
-								base_cube.to[1] = s.size[1] + base_cube.from[1]
-								base_cube.to[2] = s.size[2] + base_cube.from[2]
-							}
-						}
-						if (s.uv) {
-							base_cube.uv_offset[0] = s.uv[0]
-							base_cube.uv_offset[1] = s.uv[1]
-						}
-						if (s.inflate && typeof s.inflate === 'number') {
-							base_cube.inflate = s.inflate
-						}
-						if (s.mirror === undefined) {
-							base_cube.mirror_uv = group.mirror_uv
-						} else {
-							base_cube.mirror_uv = s.mirror === true
-						}
-						base_cube.addTo(group).init()
-						template_cubes[Cube.all.indexOf(base_cube)] = s;
+					b.cubes.forEach(function(cube) {
+
+						let base_cube = Codecs.bedrock.parseCube(cube, group);
+						template_cubes[Cube.all.indexOf(base_cube)] = cube;
+
 					})
 				}
 				if (b.children) {
@@ -175,17 +143,17 @@ const codec = new Codec('skin_model', {
 		texture.load_callback = function() {
 			Modes.options.paint.select();
 		}
+		if (data.camera_angle) {
+			main_preview.loadAnglePreset(DefaultCameraPresets.find(p => p.id == data.camera_angle))
+		}
 		loadTextureDraggable()
 		Canvas.updateAllBones()
 		setProjectTitle()
-		if (isApp && Project.geometry_name) {
-			//BedrockEntityManager.initEntity()
-		}
 		updateSelection()
 		EditSession.initNewModel()
 	},
 })
-codec.compile = null;
+//codec.compile = null;
 
 
 const format = new ModelFormat({
@@ -216,18 +184,25 @@ function generateTemplate(width = 64, height = 64, cubes, name = 'name', eyes, l
 	})
 
 	var canvas = document.createElement('canvas')
+	var ctx = canvas.getContext('2d');
 	canvas.width = width;
 	canvas.height = height;
 
-	Cube.all.forEach((cube, i) => {
-		let template_cube = cubes[i];
-		if (layer_template || !template_cube.layer) {
-			TextureGenerator.paintCubeBoxTemplate(cube, texture, canvas, null, template_cube.layer);
-		}
-	})
+	if (Project.box_uv) {
+		Cube.all.forEach((cube, i) => {
+			let template_cube = cubes[i];
+			if (layer_template || !template_cube.layer) {
+				TextureGenerator.paintCubeBoxTemplate(cube, texture, canvas, null, template_cube.layer);
+			}
+		})
+	} else if (cubes[0] && !cubes[0].layer) {
+		ctx.fillStyle = TextureGenerator.face_data.up.c1;
+		ctx.fillRect(0, 0, width, height)
+		ctx.fillStyle = TextureGenerator.face_data.up.c2;
+		ctx.fillRect(1, 1, width-2, height-2)
+	}
 	if (eyes) {
 		var res_multiple = canvas.width/Project.texture_width;
-		var ctx = canvas.getContext('2d');
 		ctx.fillStyle = '#cdefff';
 		eyes.forEach(eye => {
 			ctx.fillRect(
@@ -254,6 +229,10 @@ const skin_dialog = new Dialog({
 			options: {
 				steve: 'Steve',
 				alex: 'Alex',
+				flat_texture: 'Texture',
+				block: 'Block',
+				armor_main: 'Armor (Main)',
+				armor_leggings: 'Armor (Leggings)',
 				armor_stand: 'Armor Stand',
 				bat: 'Bat',
 				bee: 'Bee',
@@ -513,6 +492,148 @@ skin_presets.alex = `{
 			"cubes": [
 				{"name": "Left Leg", "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [16, 48]},
 				{"name": "Left Leg Layer", "visibility": false, "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [0, 48], "inflate": 0.25, "layer": true}
+			]
+		}
+	]
+}`;
+
+skin_presets.flat_texture = `{
+	"name": "flat_texture",
+	"camera_angle": "top",
+	"texturewidth": 16,
+	"textureheight": 16,
+	"bones": [
+		{
+			"name": "block",
+			"pivot": [0, 0, 0],
+			"cubes": [
+				{
+					"origin": [-8, 0, -8],
+					"size": [16, 1, 16],
+					"layer": true,
+					"uv": {
+						"up": {"uv": [16, 16], "uv_size": [-16, -16]}
+					}
+				}
+			]
+		}
+	]
+}`;
+skin_presets.block = `{
+	"name": "block",
+	"texturewidth": 16,
+	"textureheight": 16,
+	"bones": [
+		{
+			"name": "block",
+			"pivot": [0, 0, 0],
+			"cubes": [
+				{
+					"origin": [-8, 0, -8],
+					"size": [16, 16, 16],
+					"uv": {
+						"north": {"uv": [0, 0], "uv_size": [16, 16]},
+						"east": {"uv": [0, 0], "uv_size": [16, 16]},
+						"south": {"uv": [0, 0], "uv_size": [16, 16]},
+						"west": {"uv": [0, 0], "uv_size": [16, 16]},
+						"up": {"uv": [16, 16], "uv_size": [-16, -16]},
+						"down": {"uv": [16, 16], "uv_size": [-16, -16]}
+					}
+				}
+			]
+		}
+	]
+}`;
+
+skin_presets.armor_main = `{
+	"name": "armor_main",
+	"texturewidth": 64,
+	"textureheight": 32,
+	"bones": [
+		{
+			"name": "Head",
+			"color": 1,
+			"pivot": [0, 24, 0],
+			"pose": [-6, 5, 0],
+			"cubes": [
+				{"name": "Helmet", "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [0, 0], "inflate": 1, "layer": true}
+			]
+		},
+		{
+			"name": "Body",
+			"color": 3,
+			"pivot": [0, 24, 0],
+			"cubes": [
+				{"name": "Chestplate", "origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 16], "inflate": 1.01, "layer": true}
+			]
+		},
+		{
+			"name": "Right Arm",
+			"color": 5,
+			"pivot": [-5, 22, 0],
+			"pose": [-10, 0, 0],
+			"cubes": [
+				{"name": "Right Arm Armor", "origin": [-8, 12, -2], "size": [4, 12, 4], "uv": [40, 16], "inflate": 1, "layer": true}
+			]
+		},
+		{
+			"name": "Left Arm",
+			"color": 0,
+			"pivot": [5, 22, 0],
+			"pose": [12, 0, 0],
+			"cubes": [
+				{"name": "Left Arm Armor", "origin": [4, 12, -2], "size": [4, 12, 4], "uv": [40, 16], "inflate": 1, "layer": true, "mirror": true}
+			]
+		},
+		{
+			"name": "Right Leg",
+			"color": 6,
+			"pivot": [-1.9, 12, 0],
+			"pose": [11, 0, 2],
+			"cubes": [
+				{"name": "Right Boot", "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 16], "inflate": 1.0, "layer": true}
+			]
+		},
+		{
+			"name": "Left Leg",
+			"color": 7,
+			"pivot": [1.9, 12, 0],
+			"pose": [-10, 0, -2],
+			"cubes": [
+				{"name": "Left Boot", "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [0, 16], "inflate": 1.0, "layer": true, "mirror": true}
+			]
+		}
+	]
+}`;
+skin_presets.armor_leggings = `{
+	"name": "armor_leggings",
+	"texturewidth": 64,
+	"textureheight": 32,
+	"bones": [
+		{
+			"name": "Body",
+			"color": 3,
+			"pivot": [0, 24, 0],
+			"cubes": [
+				{"name": "Belt", "origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 16], "inflate": 0.51, "layer": true}
+			]
+		},
+		{
+			"name": "Right Leg",
+			"color": 6,
+			"pivot": [-1.9, 12, 0],
+			"pose": [11, 0, 2],
+			"cubes": [
+				{"name": "Right Leg Armor", "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 16], "inflate": 0.5, "layer": true}
+			]
+		},
+		{
+			"name": "Left Leg",
+			"color": 7,
+			"pivot": [1.9, 12, 0],
+			"pose": [-10, 0, -2],
+			"cubes": [
+				{"name": "Left Leg Armor", "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [0, 16], "inflate": 0.5, "layer": true, "mirror": true}
 			]
 		}
 	]
@@ -2384,70 +2505,71 @@ skin_presets.guardian = `{
 skin_presets.hoglin = `{
 	"name": "hoglin",
 	"texturewidth": 128,
-	"textureheight": 128,
+	"textureheight": 64,
 	"bones": [
 		{
+			"name": "body",
+			"pivot": [0, 19, -3],
+			"cubes": [
+				{"origin": [-8, 11, -7], "size": [16, 14, 26], "inflate": 0.02, "uv": [1, 1]},
+				{"origin": [0, 22, -10], "size": [0, 10, 19], "inflate": 0.02, "uv": [90, 33]}
+			]
+		},
+		{
 			"name": "head",
-			"pivot": [0, 19, -13],
+			"parent": "body",
+			"pivot": [0, 22, -5],
 			"rotation": [50, 0, 0],
 			"cubes": [
-				{"name": "head", "origin": [-7, 17, -29], "size": [14, 6, 19], "uv": [1, 42]},
-				{"name": "head", "origin": [6, 18, -23], "size": [2, 11, 2], "uv": [6, 45]},
-				{"name": "head", "origin": [-8, 18, -23], "size": [2, 11, 2], "uv": [6, 45]}
+				{"origin": [-7, 21, -24], "size": [14, 6, 19], "uv": [61, 1]},
+				{"origin": [-8, 22, -19], "size": [2, 11, 2], "uv": [1, 13]},
+				{"origin": [6, 22, -19], "size": [2, 11, 2], "uv": [1, 13]}
 			]
 		},
 		{
-			"name": "ear_right",
+			"name": "right_ear",
 			"parent": "head",
-			"pivot": [-6, 23, -14],
-			"rotation": [0, 0, -35],
+			"pivot": [-7, 27, -7],
+			"rotation": [0, 0, -50],
 			"cubes": [
-				{"name": "cube", "origin": [-13, 22, -17], "size": [6, 1, 4], "uv": [4, 16]}
+				{"origin": [-13, 26, -10], "size": [6, 1, 4], "uv": [1, 1]}
 			]
 		},
 		{
-			"name": "ear_left",
+			"name": "left_ear",
 			"parent": "head",
-			"pivot": [6, 23, -14],
-			"rotation": [0, 0, 35],
+			"pivot": [7, 27, -7],
+			"rotation": [0, 0, 50],
 			"cubes": [
-				{"name": "cube", "origin": [7, 22, -17], "size": [6, 1, 4], "uv": [4, 21]}
+				{"origin": [7, 26, -10], "size": [6, 1, 4], "uv": [1, 6]}
 			]
 		},
 		{
-			"name": "body",
-			"pivot": [0, 19, 2],
+			"name": "leg_back_right",
+			"pivot": [6, 8, 17],
 			"cubes": [
-				{"name": "body", "origin": [-8, 10, -13], "size": [16, 14, 26], "uv": [1, 1]},
-				{"name": "body", "origin": [0, 21, -16], "size": [0, 10, 21], "uv": [3, 65]}
+				{"origin": [-8, 0, 13], "size": [5, 11, 5], "uv": [21, 45]}
 			]
 		},
 		{
-			"name": "leg0",
-			"pivot": [-5, 11, 10],
+			"name": "leg_back_left",
+			"pivot": [-6, 8, 17],
 			"cubes": [
-				{"name": "leg0", "origin": [-7.5, 0, 7.5], "size": [5, 11, 5], "uv": [51, 43]}
+				{"origin": [3, 0, 13], "size": [5, 11, 5], "uv": [0, 45]}
 			]
 		},
 		{
-			"name": "leg1",
-			"pivot": [5, 11, 10],
+			"name": "leg_front_right",
+			"pivot": [-6, 12, -3],
 			"cubes": [
-				{"name": "leg1", "origin": [2.5, 0, 7.5], "size": [5, 11, 5], "uv": [72, 43]}
+				{"origin": [-8, 0, -6], "size": [6, 14, 6], "uv": [66, 42]}
 			]
 		},
 		{
-			"name": "leg2",
-			"pivot": [-3.5, 14, -8.5],
+			"name": "leg_front_left",
+			"pivot": [6, 12, -3],
 			"cubes": [
-				{"name": "leg2", "origin": [-7, 0, -11.5], "size": [6, 14, 6], "uv": [46, 75]}
-			]
-		},
-		{
-			"name": "leg3",
-			"pivot": [3.5, 14, -8.5],
-			"cubes": [
-				{"name": "leg3", "origin": [1, 0, -11.5], "size": [6, 14, 6], "uv": [71, 75]}
+				{"origin": [2, 0, -6], "size": [6, 14, 6], "uv": [41, 42]}
 			]
 		}
 	]

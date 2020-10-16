@@ -68,6 +68,7 @@
 		margin-left: 12px;
 	}
 	body > h3.panel_handle {
+		pointer-events: none;
 		box-shadow: 0 0 16px black;
 		width: auto;
 	}
@@ -79,6 +80,7 @@
 		min-width: 100px;
 		display: flex;
 		flex-direction: column;
+		position: relative;
 	}
 	div#center > div {
 		max-height: 100%;
@@ -257,15 +259,16 @@
 	}
 
 /*Mobile*/
-@media (max-device-width: 480px) {
+@media (max-device-width: 640px) {
 
 	#page_wrapper {
 		display: grid;
-		grid-template-rows: auto minmax(200px, 5000px) 26px;
+		grid-template-rows: auto minmax(200px, 5000px) 26px 36px;
 		grid-template-areas: 
 			"toolbar"
 			"center"
-			"status_bar";
+			"status_bar"
+			"panel_selector";
 		grid-template-columns: auto !important;
 		border: none;
 	}
@@ -278,7 +281,7 @@
 	#main_toolbar > div.tools {
 		position: absolute;
 		z-index: 2;
-		bottom: 26px;
+		bottom: 62px;
 		right: 0px;
 	}
 	#main_toolbar > div.mobile_side {
@@ -290,6 +293,10 @@
 	#main_toolbar > div.tool_options {
 		background-color: var(--color-back);
 	}
+	.preview .preview_menu {
+		left: 0;
+		right: unset;
+	}
 	.resizer.vertical {
 		display: none;
 	}
@@ -300,25 +307,40 @@
 		width: calc(100% - 40px);
 		display: none;
 	}
-	/*Left*/
-	#page_wrapper.show_left {
-		grid-template-areas: "toolbar" "left_bar" "status_bar";
+
+	#panel_selector_bar {
+		display: flex;
+		grid-area: panel_selector;
 	}
-	#page_wrapper.show_left #center {
+	#panel_selector_bar .panel_selector {
+		height: 36px;
+		flex: 36px 1 0;
+		text-align: center;
+		cursor: default;
+		color: var(--color-text);
+	}
+	#panel_selector_bar .panel_selector.selected {
+		border-bottom: 3px solid var(--color-accent);
+	}
+	.panel_selector:only-child {
 		display: none;
 	}
-	#page_wrapper.show_left #left_bar {
-		display: flex;
+	#panel_selector_bar .panel_selector .icon_wrapper {
+		margin-top: 6px;
 	}
-	/*Right*/
-	#page_wrapper.show_right {
-		grid-template-areas: "toolbar" "right_bar" "status_bar";
+
+	div#mobile_panel_overlay {
+		position: absolute;
+		z-index: 19;
+		top: 0;
+		left: 0;
+		right: 40px;
+		bottom: 0;
+		
+		background: var(--color-ui);
 	}
-	#page_wrapper.show_right #center {
-		display: none;
-	}
-	#page_wrapper.show_right #right_bar {
-		display: flex;
+	div#mobile_panel_overlay > .panel {
+		height: 100%;
 	}
 }
 
@@ -519,7 +541,7 @@
 	#start_screen i.start_screen_close_button:not(:hover) {
 		opacity: 0.8;
 	}
-	@media (max-device-width: 480px) {
+	@media (max-device-width: 640px) {
 		#start_screen {
 			width: calc(100% - 40px);
 		}

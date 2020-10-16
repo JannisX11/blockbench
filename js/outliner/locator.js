@@ -28,15 +28,15 @@ class Locator extends NonGroup {
 		return copy;
 	}
 	getSaveCopy() {
-		let el = {};
+		let save = {};
 		for (var key in Locator.properties) {
-			Locator.properties[key].copy(this, el)
+			Locator.properties[key].copy(this, save)
 		}
-		el.export = this.export ? undefined : false;
-		el.locked = this.locked;
-		el.uuid = this.uuid;
-		el.type = 'locator';
-		return el;
+		save.export = this.export ? undefined : false;
+		save.locked = this.locked;
+		save.uuid = this.uuid;
+		save.type = 'locator';
+		return save;
 	}
 	init() {
 		if (this.parent instanceof Group == false) {
@@ -55,7 +55,7 @@ class Locator extends NonGroup {
 		var pos = new THREE.Vector3();
 		var q = new THREE.Quaternion();
 		if (this.parent instanceof Group) {
-			this.parent.mesh.getWorldPosition(pos);
+			THREE.fastWorldPosition(this.parent.mesh, pos);
 			this.parent.mesh.getWorldQuaternion(q);
 			var offset2 = new THREE.Vector3().fromArray(this.parent.origin).applyQuaternion(q);
 			pos.sub(offset2);

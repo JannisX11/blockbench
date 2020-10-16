@@ -87,37 +87,37 @@ function moveCubesRelative(difference, index, event) { //Multiple
 	var _has_groups = Format.bone_rig && Group.selected && Group.selected.matchesSelection() && Toolbox.selected.transformerMode == 'translate';
 
 	Undo.initEdit({elements: Cube.selected, outliner: _has_groups})
-    var axes = []
-    // < >
-    // PageUpDown
-    // ^ v
-    var facing = quad_previews.current.getFacingDirection()
-    var height = quad_previews.current.getFacingHeight()
-    switch (facing) {
-        case 'north': axes = [0, 2, 1]; break;
-        case 'south': axes = [0, 2, 1]; break;
-        case 'west':  axes = [2, 0, 1]; break;
-        case 'east':  axes = [2, 0, 1]; break;
-    }
+	var axes = []
+	// < >
+	// PageUpDown
+	// ^ v
+	var facing = quad_previews.current.getFacingDirection()
+	var height = quad_previews.current.getFacingHeight()
+	switch (facing) {
+		case 'north': axes = [0, 2, 1]; break;
+		case 'south': axes = [0, 2, 1]; break;
+		case 'west':  axes = [2, 0, 1]; break;
+		case 'east':  axes = [2, 0, 1]; break;
+	}
 
-    if (height !== 'middle') {
-        if (index === 1) {
-            index = 2
-        } else if (index === 2) {
-            index = 1
-        }
-    }
-    if (facing === 'south' && (index === 0 || index === 1))  difference *= -1
-    if (facing === 'west'  && index === 0)  difference *= -1
-    if (facing === 'east'  && index === 1)  difference *= -1
-    if (index === 2 && height !== 'down') difference *= -1
-    if (index === 1 && height === 'up') difference *= -1
+	if (height !== 'middle') {
+		if (index === 1) {
+			index = 2
+		} else if (index === 2) {
+			index = 1
+		}
+	}
+	if (facing === 'south' && (index === 0 || index === 1))  difference *= -1
+	if (facing === 'west'  && index === 0)  difference *= -1
+	if (facing === 'east'  && index === 1)  difference *= -1
+	if (index === 2 && height !== 'down') difference *= -1
+	if (index === 1 && height === 'up') difference *= -1
 
-    if (event) {
-    	difference *= canvasGridSize(event.shiftKey, event.ctrlOrCmd);
-    }
+	if (event) {
+		difference *= canvasGridSize(event.shiftKey, event.ctrlOrCmd);
+	}
 
-    moveElementsInSpace(difference, axes[index]) 
+	moveElementsInSpace(difference, axes[index]) 
 
 	Undo.finishEdit('move')
 }
@@ -392,6 +392,11 @@ const Vertexsnap = {
 		})
 	}
 }
+Blockbench.on('update_camera_position', e => {
+	if (Toolbox && Toolbox.selected.id == 'vertex_snap_tool') {
+		Vertexsnap.updateVertexSize();
+	}
+})
 //Scale
 function scaleAll(save, size) {
 	if (save === true) {
@@ -1520,7 +1525,9 @@ BARS.defineActions(function() {
 					title: tl('message.cleared_blank_faces.title'),
 					icon: 'rotate_right',
 					message: tl('message.cleared_blank_faces.message', [empty_cubes.length]),
-					buttons: ['generic.remove', 'dialog.cancel']
+					buttons: ['generic.remove', 'dialog.cancel'],
+					confirm: 0,
+					cancel: 1,
 				}, function(r) {
 					empty_cubes.forEach(cube => {
 						if (r == 0) {

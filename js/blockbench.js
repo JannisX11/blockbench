@@ -2,7 +2,6 @@ var osfs = '/'
 var selected = [];
 var prev_side = 'north';
 var uv_clipboard;
-var outliner, texturelist;
 var pe_list_data = []
 var open_dialog = false;
 var open_interface = false;
@@ -88,8 +87,8 @@ function updateNslideValues() {
 		}
 	}
 	if (Modes.animate && Group.selected) {
-		//BarItems.slider_ik_chain_length.update();
-		//BarItems.ik_enabled.setIcon(Group.selected.ik_enabled ? 'check_box' : 'check_box_outline_blank')
+		BarItems.slider_ik_chain_length.update();
+		BarItems.ik_enabled.setIcon(Group.selected.ik_enabled ? 'check_box' : 'check_box_outline_blank')
 	}
 }
 function setProjectResolution(width, height, modify_uv) {
@@ -228,43 +227,6 @@ function unselectAll() {
 		s.selected = false
 	})
 	TickUpdates.selection = true;
-}
-function createSelection() {
-	if ($('#selgen_new').is(':checked')) {
-		selected.length = 0
-	}
-	if (Group.selected) {
-		Group.selected.unselect()
-	}
-	var name_seg = $('#selgen_name').val().toUpperCase()
-	var tex_seg = $('#selgen_texture').val().toLowerCase()
-	var rdm = $('#selgen_random').val()/100
-
-	var array = elements
-	if ($('#selgen_group').is(':checked') && Group.selected) {
-		array = Group.selected.children
-	}
-
-	array.forEach(function(obj) {
-		if (obj.name.toUpperCase().includes(name_seg) === false) return;
-		if (obj instanceof Cube && tex_seg && !Format.single_texture) {
-			var has_tex = false;
-			for (var key in obj.faces) {
-				var tex = obj.faces[key].getTexture();
-				if (tex && tex.name.includes(tex_seg)) {
-					has_tex = true
-				}
-			}
-			if (!has_tex) return;
-		}
-		if (Math.random() > rdm) return;
-		selected.push(obj)
-	})
-	updateSelection()
-	if (selected.length) {
-		selected[0].showInOutliner()
-	}
-	hideDialog()
 }
 //Backup
 setInterval(function() {
