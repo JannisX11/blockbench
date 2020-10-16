@@ -374,6 +374,17 @@ const TextureGenerator = {
 			uv_only: true,
 			uv_mode: true
 		})
+		// Warning
+		if (cubes.find(cube => {
+			let size = cube.size();
+			return (size[0] > 0.001 && size[0] < 0.999) || (size[1] > 0.001 && size[1] < 0.999) || (size[2] > 0.001 && size[2] < 0.999)
+		})) {
+			Blockbench.showMessageBox({
+				title: 'message.small_face_dimensions.title',
+				message: tl('message.small_face_dimensions.message') + (Format.optional_box_uv ? '\n\n' + tl('message.small_face_dimensions.face_uv') : ''),
+				icon: 'warning',
+			})
+		}
 	},
 	boxUVdrawTemplateRectangle(border_color, color, face, coords, texture, canvas) {
 		if (typeof background_color === 'string') {
