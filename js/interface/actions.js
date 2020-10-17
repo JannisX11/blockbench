@@ -94,7 +94,7 @@ class BarItem {
 					// description
 					if (!description.length) return;
 
-					description.css('margin-left', '-6px')
+					description.css('margin-left', '-5px')
 					var offset = description?.offset()
 					offset.right = offset.left + parseInt(description.css('width').replace(/px/, '')) - $(window).width()
 

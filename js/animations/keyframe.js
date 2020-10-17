@@ -653,7 +653,7 @@ BARS.defineActions(function() {
 		}
 	})
 	new Action('change_keyframe_file', {
-		icon: 'fa-file-audio',
+		icon: 'fa-file',
 		category: 'animation',
 		condition: () => (isApp && Animator.open && Timeline.selected.length && ['sound', 'particle'].includes(Timeline.selected[0].channel)),
 		click: function () {

@@ -1227,12 +1227,11 @@ const Animator = {
 			}
 		}
 	},
-	showMotionTrail() {
-		let target = Group.selected;
+	showMotionTrail(target = Group.selected) {
 		let animation = Animation.selected;
 		let currentTime = Timeline.time;
 		let step = Timeline.getStep();
-		let max_time = Math.max(Timeline.time, animation.length);
+		let max_time = Math.max(Timeline.time, animation.getMaxLength());
 		if (!max_time) max_time = 1;
 		let start_time = 0;
 		if (max_time > 20) {
