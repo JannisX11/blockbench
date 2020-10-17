@@ -472,9 +472,10 @@
 	}
 	.contextMenu.sub {
 		display: none;
-		margin-top: -28px;
+		margin-top: -4px;
 	}
 	.contextMenu li {
+		display: flex;
 		height: 30px;
 		padding: 4px;
 		padding-left: 34px;
@@ -483,7 +484,7 @@
 	.contextMenu li.parent {
 		padding-right: 20px;
 	}
-	.contextMenu li.parent::before {
+	.contextMenu li.parent::after {
 		content: "\f105";
 		display: block;
 		font-family: 'Font Awesome 5 Free';
@@ -491,7 +492,6 @@
 		font-size: inherit;
 		text-rendering: auto;
 		-webkit-font-smoothing: antialiased;
-		float: right;
 		margin-right: -12px;
 		pointer-events: none;
 	}
@@ -499,7 +499,6 @@
 		background-color: var(--color-accent);
 	}
 	.contextMenu li i {
-		float: left;
 		margin-top: 1px; 
 		margin-right: 4px;
 		margin-left: -28px;
@@ -515,6 +514,9 @@
 		margin-left: -23px;
 		margin-right: 8px;
 	}
+	.contextMenu li span {
+		flex: 1 0 auto;
+	}
 	.contextMenu li.focused > .contextMenu.sub {
 		display: block;
 	}
@@ -528,11 +530,12 @@
 		background-color: var(--color-text);
 	}
 
-
 	.keybinding_label {
-		float: right;
+		pointer-events: none;
 		font-size: 0.84em;
 		padding: 2px 0 2px 8px;
 		opacity: 0.6;
+		flex-grow: 0;
+		flex-shrink: 0;
 	}
 

@@ -12,6 +12,9 @@ class Keybind {
 				keys.meta = true;
 				keys.ctrl = undefined;
 			}
+			if (typeof keys.key == 'string') {
+				keys.key = keys.key.toUpperCase().charCodeAt(0)
+			}
 			this.set(keys)
 		}
 	}
@@ -447,10 +450,7 @@ $(document).on('keydown mousedown', function(e) {
 		}
 	}
 	//Hardcoded Keys
-	if (e.ctrlKey === true && e.shiftKey === true && e.which == 73 && isApp) {
-		electron.getCurrentWindow().toggleDevTools()
-		used = true
-	} else if (e.which === 18 && Toolbox.selected.alt_tool && !Toolbox.original && !open_interface) {
+	if (e.which === 18 && Toolbox.selected.alt_tool && !Toolbox.original && !open_interface) {
 		//Alt Tool
 		var orig = Toolbox.selected;
 		var alt = BarItems[Toolbox.selected.alt_tool]

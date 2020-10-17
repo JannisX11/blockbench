@@ -1315,14 +1315,12 @@ const BARS = {
 				name: tl('dialog.settings.keybinds') + '...',
 				icon: 'keyboard',
 				category: 'blockbench',
-				keybind: new Keybind({key: 69, ctrl: true}),
 				click: function () {Settings.open({tab: 'keybindings'})}
 			})
 			new Action('theme_window', {
 				name: tl('dialog.settings.theme') + '...',
 				icon: 'style',
 				category: 'blockbench',
-				keybind: new Keybind({key: 69, ctrl: true}),
 				click: function () {Settings.open({tab: 'layout_settings'})}
 			})
 			new Action('reload', {
@@ -1430,8 +1428,17 @@ const BARS = {
 				category: 'blockbench',
 				click: function () {Keybinds.reset()}
 			})
-
-
+			new Action('open_dev_tools', {
+				name: 'menu.help.developer.dev_tools',
+				icon: 'fas.fa-tools',
+				condition: isApp,
+				keybind: new Keybind({ctrl: true, shift: true, key: 'i'}),
+				work_in_dialog: true,
+				click: () => {
+					currentwindow.toggleDevTools();
+				}
+			})
+			
 
 		//View
 			new Action('fullscreen', {

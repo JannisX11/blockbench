@@ -181,7 +181,7 @@ class Menu {
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = $(`<li title="${s.description||''}" menu_item="${s.id}">${tl(s.name)}</li>`)
+				entry = $(`<li title="${s.description||''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`)
 				entry.prepend(icon)
 
 				//Submenu
@@ -225,7 +225,7 @@ class Menu {
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = $(`<li title="${s.description||''}" menu_item="${s.id}">${tl(s.name)}</li>`)
+				entry = $(`<li title="${s.description||''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`)
 				entry.prepend(icon)
 				if (typeof s.click === 'function') {
 					entry.click(e => {
@@ -577,8 +577,6 @@ const MenuBar = {
 		], () => Modes.display)
 		
 		new BarMenu('filter', [
-			'plugins_window',
-			'_',
 			'remove_blank_faces',
 			/*
 			plaster
@@ -652,9 +650,7 @@ const MenuBar = {
 				{name: 'menu.help.plugin_documentation', id: 'plugin_documentation', icon: 'fa-book', click: () => {
 					Blockbench.openLink('https://jannisx11.github.io/blockbench-docs/');
 				}},
-				{name: 'menu.help.developer.dev_tools', icon: 'fas.fa-tools', condition: isApp, click: () => {
-					currentwindow.toggleDevTools()
-				}},
+				'open_dev_tools',
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
 					if (confirm(tl('menu.help.developer.reset_storage.confirm'))) {
 						localStorage.clear()
@@ -663,7 +659,7 @@ const MenuBar = {
 						window.location.reload(true)
 					}
 				}},
-				{name: 'menu.help.developer.cache_reload', icon: 'cached', condition: !isApp, click: () => {
+				{name: 'menu.help.developer.cache_reload', id: 'cache_reload', icon: 'cached', condition: !isApp, click: () => {
 					window.location.reload(true)
 				}},
 				'reload',
