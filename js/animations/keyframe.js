@@ -65,6 +65,7 @@ class Keyframe {
 		return this;
 	}
 	get(axis, data_point = 0) {
+		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
 		data_point = this.data_points[data_point];
 		if (!data_point || !data_point[axis]) {
 			return this.transform ? 0 : '';
@@ -76,16 +77,19 @@ class Keyframe {
 		}
 	}
 	calc(axis, data_point = 0) {
+		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
 		data_point = this.data_points[data_point];
 		return Animator.MolangParser.parse(data_point && data_point[axis])
 	}
 	set(axis, value, data_point = 0) {
+		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
 		if (this.data_points[data_point]) {
 			this.data_points[data_point][axis] = value;
 		}
 		return this;
 	}
 	offset(axis, amount, data_point = 0) {
+		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
 		var value = this.get(axis)
 		if (!value || value === '0') {
 			this.set(axis, amount, data_point)
@@ -157,10 +161,10 @@ class Keyframe {
 	getCatmullromLerp(before_plus, before, after, after_plus, axis, alpha) {
 		var vectors = [];
 
-		if (before_plus) vectors.push(new THREE.Vector2(before_plus.time, before_plus.calc(axis, 0)))
-		if (before) 	vectors.push(new THREE.Vector2(before.time, before.calc(axis, 0)))
+		if (before_plus && before.data_points.length == 1) vectors.push(new THREE.Vector2(before_plus.time, before_plus.calc(axis, 1)))
+		if (before) 	vectors.push(new THREE.Vector2(before.time, before.calc(axis, 1)))
 		if (after) 		vectors.push(new THREE.Vector2(after.time, after.calc(axis, 0)))
-		if (after_plus) vectors.push(new THREE.Vector2(after_plus.time, after_plus.calc(axis, 0)))
+		if (after_plus && after.data_points.length == 1) vectors.push(new THREE.Vector2(after_plus.time, after_plus.calc(axis, 0)))
 
 		var curve = new THREE.SplineCurve(vectors);
 		let time = (alpha + (before_plus ? 1 : 0)) / (vectors.length-1);

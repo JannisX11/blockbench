@@ -45,15 +45,19 @@ class Animation {
 						keyframes: animator_blueprint
 					}
 				}
-				var kfs = animator_blueprint.keyframes;
-				
-
+				var kfs = animator_blueprint.keyframes;			
 				var animator;
 				if (!this.animators[key]) {
 					if (key == 'effects') {
 						animator = this.animators[key] = new EffectAnimator(this);
 					} else {
-						animator = this.animators[key] = new BoneAnimator(isUUID(key) ? key : guid(), this, animator_blueprint.name)
+						let uuid = isUUID(key) && key;
+						if (!uuid) {
+							let lowercase_bone_name = key.toLowerCase();
+							uuid = Group.all.find(group => group.name.toLowerCase() == lowercase_bone_name)?.uuid;
+							if (!uuid) uuid = guid();
+						}
+						animator = this.animators[uuid] = new BoneAnimator(uuid, this, animator_blueprint.name)
 					}
 				} else {
 					animator = this.animators[key];
@@ -873,10 +877,10 @@ class BoneAnimator extends GeneralAnimator {
 	}
 	interpolate(channel, allow_expression) {
 		let time = Timeline.time;
-		var i = 0;
 		var before = false
 		var after = false
 		var result = false
+		let epsilon = 1/1200;
 		for (var keyframe of this[channel]) {
 
 			if (keyframe.time < time) {
@@ -890,9 +894,9 @@ class BoneAnimator extends GeneralAnimator {
 			}
 			i++;
 		}
-		if (before && Math.abs(before.time - time) < 1/1200) {
+		if (before && Math.epsilon(before.time, time, epsilon)) {
 			result = before
-		} else if (after && Math.abs(after.time - time) < 1/1200) {
+		} else if (after && Math.epsilon(after.time, time, epsilon)) {
 			result = after
 		} else if (before && !after) {
 			result = before
@@ -927,17 +931,15 @@ class BoneAnimator extends GeneralAnimator {
 				]
 			}
 		}
-		if (result && result.type === 'keyframe') {
+		if (result && result instanceof Keyframe) {
 			let keyframe = result
 			let method = allow_expression ? 'get' : 'calc'
+			let dp_index = (keyframe.time > time || Math.epsilon(keyframe.time, time, epsilon)) ? 0 : keyframe.data_points.length-1;
 			result = [
-				keyframe[method]('x'),
-				keyframe[method]('y'),
-				keyframe[method]('z')
+				keyframe[method]('x', dp_index),
+				keyframe[method]('y', dp_index),
+				keyframe[method]('z', dp_index)
 			]
-			if (keyframe.isQuaternion)	 	{
-				result[3] = keyframe[method]('w')
-			}
 		}
 		return result
 	}
