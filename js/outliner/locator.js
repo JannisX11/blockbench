@@ -49,6 +49,13 @@ class Locator extends NonGroup {
 	flip(axis, center) {
 		var offset = this.from[axis] - center
 		this.from[axis] = center - offset;
+		// Name
+		if (axis == 0 && this.name.includes('right')) {
+			this.name = this.name.replace(/right/g, 'left').replace(/2$/, '');
+		} else if (axis == 0 && this.name.includes('left')) {
+			this.name = this.name.replace(/left/g, 'right').replace(/2$/, '');
+		}
+		this.createUniqueName();
 		return this;
 	}
 	getWorldCenter() {
