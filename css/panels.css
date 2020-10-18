@@ -562,6 +562,10 @@
 		color: #bec2ca;
 		padding: 0;
 		cursor: auto;
+		display: inline-block;
+		width: 100%;
+		min-height: 24px;
+		vertical-align: top;
 	}
 
 	.molang_input pre .token.punctuation {

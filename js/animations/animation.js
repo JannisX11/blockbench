@@ -471,6 +471,7 @@ class Animation {
 		let dialog = new Dialog({
 			id: 'animation_properties',
 			title: this.name,
+			width: 640,
 			form_first: true,
 			form: {
 				name: {label: 'generic.name', value: this.name},
