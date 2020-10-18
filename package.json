@@ -95,7 +95,7 @@
 	},
 	"devDependencies": {
 		"electron": "^8.5.2",
-		"electron-builder": "^22.8.1",
+		"electron-builder": "^22.9.1",
 		"electron-notarize": "^1.0.0"
 	},
 	"dependencies": {
