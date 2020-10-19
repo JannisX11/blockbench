@@ -481,6 +481,8 @@
 	"settings.render_sides.double": "Inside and Outside",
 	"settings.texture_fps": "Animated Texture FPS",
 	"settings.texture_fps.desc": "Frames per second for animated textures",
+	"settings.particle_tick_rate": "Particle Tick Rate",
+	"settings.particle_tick_rate.desc": "Tick rate for particle effects in ticks per second. Default is 30",
 	"settings.volume": "Volume",
 	"settings.volume.desc": "Volume control for sound effects in animations",
 	"settings.outliner_colors": "Outliner Colors",

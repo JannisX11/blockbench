@@ -130,6 +130,9 @@ const Settings = {
 		new Setting('texture_fps',   	{category: 'preview', value: 2, type: 'number', onChange() {
 			TextureAnimator.updateSpeed()
 		}});
+		new Setting('particle_tick_rate',{category: 'preview', value: 30, type: 'number', onChange() {
+			Wintersky.global_options.tick_rate = this.value;
+		}});
 		new Setting('volume',  	  		{category: 'preview', value: 80, type: 'number'});
 		new Setting('display_skin',  	{category: 'preview', value: false, type: 'click', condition: isApp, icon: 'icon-player', click: function() { changeDisplaySkin() }});
 		

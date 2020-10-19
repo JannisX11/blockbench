@@ -1175,6 +1175,7 @@ const Animator = {
 		Canvas.updateAllBones()
 
 		scene.add(Wintersky.space);
+		Wintersky.global_options.tick_rate = settings.particle_tick_rate.value;
 		if (settings.motion_trails.value) scene.add(Animator.motion_trail);
 		Animator.motion_trail.no_export = true;
 
