@@ -1690,12 +1690,13 @@ const BARS = {
 			id: 'main_tools',
 			children: [
 				'transform_space',
-				'rotation_space'
+				'rotation_space',
+				'lock_motion_trail'
 			]
 		})
-		// update 3.6
-		if (!Toolbars.main_tools.children.includes(BarItems.rotation_space)) {
-			Toolbars.main_tools.add(BarItems.rotation_space, -1)
+		// update 3.7
+		if (!Toolbars.main_tools.children.includes(BarItems.lock_motion_trail)) {
+			Toolbars.main_tools.add(BarItems.lock_motion_trail, -1)
 		}
 		Toolbars.brush = new Toolbar({
 			id: 'brush',

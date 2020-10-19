@@ -1019,6 +1019,8 @@
 	"action.ik_enabled.desc": "Enable Inverse Kinematics for this bone",
 	"action.slider_ik_chain_length": "IK Chain Length",
 	"action.slider_ik_chain_length.desc": "Upwards length of the IK bone chain",
+	"action.lock_motion_trail": "Lock Motion Trail",
+	"action.lock_motion_trail.desc": "Lock the motion trail to the currently selected group",
 
 	"timeline.rotation": "Rotation",
 	"timeline.position": "Position",

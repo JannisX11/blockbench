@@ -1163,6 +1163,7 @@ const Animator = {
 	get selected() {return Animation.selected},
 	MolangParser: new Molang(),
 	motion_trail: new THREE.Object3D(),
+	motion_trail_lock: false,
 	join() {
 		
 		if ((Format.id == 'bedrock' || Format.id == 'bedrock_old') && !BedrockEntityManager.initialized_animations) {
@@ -1230,7 +1231,11 @@ const Animator = {
 			}
 		}
 	},
-	showMotionTrail(target = Group.selected) {
+	showMotionTrail(target) {
+		if (!target) {
+			target = Animator.motion_trail_lock && Group.all.find(g => g.uuid == Animator.motion_trail_lock);
+			if (!target) target = Group.selected;
+		}
 		let animation = Animation.selected;
 		let currentTime = Timeline.time;
 		let step = Timeline.getStep();
@@ -1282,7 +1287,7 @@ const Animator = {
 		})
 		Animator.motion_trail.add(line);
 
-		let dot_geo = new THREE.OctahedronGeometry(0.2);
+		let dot_geo = new THREE.OctahedronGeometry(0.25);
 		let keyframe_geo = new THREE.OctahedronGeometry(1.0);
 		let dot_material = new THREE.MeshBasicMaterial({color: gizmo_colors.outline});
 		geometry.vertices.forEach((vertex, i) => {
@@ -1305,8 +1310,7 @@ const Animator = {
 		Animator.motion_trail.children.forEach((object) => {
 			if (object.isLine) return;
 			var scaleVector = new THREE.Vector3();
-			var scale = scaleVector.subVectors(object.position, Preview.selected.camera.position).length() / 500;
-			scale = (Math.sqrt(scale)/3 + scale/1.4) * 4
+			var scale = scaleVector.subVectors(object.position, Preview.selected.camera.position).length() / 86;
 			if (Blockbench.isMobile) scale *= 4;
 			object.scale.set(scale, scale, scale)
 		})
@@ -1709,7 +1713,8 @@ BARS.defineActions(function() {
 	new Action('ik_enabled', {
 		icon: 'check_box_outline_blank',
 		category: 'animation',
-		click: function () {
+		condition: () => Animator.open && Group.selected,
+		click() {
 			Group.selected.ik_enabled = !Group.selected.ik_enabled;
 			updateNslideValues();
 			Transformer.updateSelection();
@@ -1736,6 +1741,22 @@ BARS.defineActions(function() {
 		},
 		onAfter: function() {
 			Undo.finishEdit('move keyframes')
+		}
+	})
+
+	// Motion Trail
+	new Action('lock_motion_trail', {
+		icon: 'lock_open',
+		category: 'animation',
+		condition: () => Animator.open && Group.selected,
+		click() {
+			if (Animator.motion_trail_lock) {
+				Animator.motion_trail_lock = false;
+				Animator.showMotionTrail();
+			} else if (Group.selected) {
+				Animator.motion_trail_lock = Group.selected.uuid;
+			}
+			this.setIcon(Animator.motion_trail_lock ? 'lock' : 'lock_open');
 		}
 	})
 })
