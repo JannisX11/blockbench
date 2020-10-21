@@ -275,6 +275,7 @@
 	#settingslist input[type=text], #settingslist input[type=password] {
 		padding: 10px;
 		margin-left: 5px;
+		vertical-align: bottom;
 	}
 	#settingslist div.bar_select {
 		margin: 8px;
