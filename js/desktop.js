@@ -89,7 +89,7 @@ function initializeDesktopApp() {
 function loadOpenWithBlockbenchFile() {
 	if (electron.process.argv.length >= 2) {
 		var extension = pathToExtension(electron.process.argv.last())
-		if (['json', 'bbmodel', 'jem'].includes(extension)) {
+		if (Codec.getAllExtensions().includes(extension)) {
 			Blockbench.read([electron.process.argv.last()], {}, (files) => {
 				loadModelFile(files[0])
 			})

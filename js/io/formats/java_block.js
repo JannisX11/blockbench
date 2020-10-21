@@ -4,6 +4,13 @@ var codec = new Codec('java_block', {
 	name: 'Java Block/Item Model',
 	remember: true,
 	extension: 'json',
+	load_filter: {
+		type: 'json',
+		extensions: ['json'],
+		condition(model) {
+			return model.parent || model.elements || model.textures;
+		}
+	},
 	compile(options) {
 		if (options === undefined) options = {}
 		var clear_elements = []

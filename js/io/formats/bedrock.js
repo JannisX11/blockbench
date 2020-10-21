@@ -610,6 +610,13 @@ var codec = new Codec('bedrock', {
 	name: 'Bedrock Model',
 	extension: 'json',
 	remember: true,
+	load_filter: {
+		type: 'json',
+		extensions: ['json'],
+		condition(model) {
+			return model.format_version && !compareVersions('1.12.0', model.format_version)
+		}
+	},
 	compile(options) {
 		if (options === undefined) options = {}
 

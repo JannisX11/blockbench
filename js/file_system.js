@@ -303,7 +303,7 @@ Object.assign(Blockbench, {
 			cb: cb,
 			condition: options.condition
 		}
-		if (options.extensions && options.extensions.length) {
+		if (options.extensions) {
 			entry.extensions = options.extensions
 		}
 		if (options.addClass !== false) entry.addClass = true;
@@ -395,9 +395,10 @@ function forDragHandlers(event, cb) {
 				el = parent
 			}
 		}
-		handler.extensions.includes( pathToExtension(event.dataTransfer.files[0].name).toLowerCase())
+		let extensions = typeof handler.extensions == 'function' ? handler.extensions() : handler.extensions;
+		extensions.includes( pathToExtension(event.dataTransfer.files[0].name).toLowerCase());
 		var name = event.dataTransfer.files[0].name;
-		if (el && handler.extensions.filter(ex => {
+		if (el && extensions.filter(ex => {
 			return name.substr(-ex.length) == ex;
 		}).length) {
 			cb(handler, el)

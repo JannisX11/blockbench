@@ -123,6 +123,14 @@ var codec = new Codec('bedrock_old', {
 	name: 'Bedrock Entity Model',
 	extension: 'json',
 	remember: true,
+	load_filter: {
+		type: 'json',
+		extensions: ['json'],
+		condition(model) {
+			return (model.format_version && compareVersions('1.12.0', model.format_version)) ||
+				Object.keys(model).find(s => s.match(/^geometry\./));
+		}
+	},
 	compile(options) {
 		if (options === undefined) options = {}
 		var entitymodel = {}

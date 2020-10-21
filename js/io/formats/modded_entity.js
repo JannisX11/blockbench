@@ -163,6 +163,10 @@ var codec = new Codec('modded_entity', {
 	name: 'Java Class',
 	extension: 'java',
 	remember: true,
+	load_filter: {
+		type: 'text',
+		extensions: ['java']
+	},
 	compile(options) {
 
 		let R = Templates.getVariableRegex;

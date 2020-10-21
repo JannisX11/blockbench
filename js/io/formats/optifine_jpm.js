@@ -4,6 +4,10 @@ var part_codec = new Codec('optifine_part', {
 	name: 'OptiFine Part',
 	extension: 'jpm',
 	remember: true,
+	load_filter: {
+		type: 'json',
+		extensions: ['jpm']
+	},
 	compile(options) {
 		if (options === undefined) options = {}
 		var jpm = {}

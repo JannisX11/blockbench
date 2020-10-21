@@ -6,6 +6,10 @@ var codec = new Codec('project', {
 	name: 'Blockbench Project',
 	extension: 'bbmodel',
 	remember: true,
+	load_filter: {
+		type: 'json',
+		extensions: ['bbmodel']
+	},
 	load(model, file) {
 		newProject(model.meta.type||'free');
 		var name = pathToName(file.path, true);

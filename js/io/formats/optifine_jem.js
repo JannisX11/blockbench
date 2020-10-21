@@ -4,6 +4,13 @@ var codec = new Codec('optifine_entity', {
 	name: 'OptiFine JEM',
 	extension: 'jem',
 	remember: true,
+	load_filter: {
+		type: 'json',
+		extensions: ['jem'],
+		condition(file) {
+			return file?.models != undefined;
+		}
+	},
 	compile(options) {
 		if (options === undefined) options = {}
 		var entitymodel = {}

@@ -221,6 +221,7 @@ class Codec {
 		Merge.function(this, data, 'afterDownload');
 		Merge.string(this, data, 'extension');
 		Merge.boolean(this, data, 'remember');
+		this.load_filter = data.load_filter;
 		this.export_action = data.export_action;
 	}
 	//Import
@@ -318,13 +319,22 @@ class Codec {
 		this.events[event_name].safePush(cb)
 	}
 }
+Codec.getAllExtensions = function() {
+	let extensions = [];
+	for (var id in Codecs) {
+		if (Codecs[id].load_filter?.extensions) {
+			extensions.safePush(...Codecs[id].load_filter.extensions);
+		}
+	}
+	return extensions;
+}
 
 
 //Import
 function setupDragHandlers() {
 	Blockbench.addDragHandler(
 		'model',
-		{extensions: ['json', 'jem', 'jpm', 'java', 'bbmodel']},
+		{extensions: Codec.getAllExtensions},
 		function(files) {
 			loadModelFile(files[0])
 		}
@@ -365,33 +375,32 @@ function setupDragHandlers() {
 function loadModelFile(file) {
 	if (showSaveDialog()) {
 		resetProject();
-		
-		var extension = pathToExtension(file.path);
- 		if (extension == 'java') {
-			Codecs.modded_entity.load(file.content, file)
-		} else {
-			var model = autoParseJSON(file.content);
-			if (extension == 'bbmodel') {
-				Codecs.project.load(model, file)
 
-			} else if (extension == 'json') {
-				if (model.parent || model.elements || model.textures) {
-					Codecs.java_block.load(model, file)
-
-				} else if (model.format_version && !compareVersions('1.12.0', model.format_version)) {
-					Codecs.bedrock.load(model, file)
-				} else if (
-					model.format_version ||
-					Object.keys(model).filter((s) => s.match(/^geometry\./)).length
-				) {
-					Codecs.bedrock_old.load(model, file)
+		(function() {
+			var extension = pathToExtension(file.path);
+			// Text
+			for (var id in Codecs) {
+				let codec = Codecs[id];
+				if (codec.load_filter && codec.load_filter.type == 'text') {
+					if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, file.content)) {
+						codec.load(file.content, file);
+						return;
+					}
 				}
-			} else if (extension == 'jem') {
-				Codecs.optifine_entity.load(model, file)
-			} else if (extension == 'jpm') {
-				Codecs.optifine_part.load(model, file)
 			}
-		}
+			// JSON
+			var model = autoParseJSON(file.content);
+			for (var id in Codecs) {
+				let codec = Codecs[id];
+				if (codec.load_filter && codec.load_filter.type == 'json') {
+					if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, model)) {
+						codec.load(model, file);
+						return;
+					}
+				}
+			}
+		})();
+
 		EditSession.initNewModel()
 		if (!Format) {
 			Modes.options.start.select()
@@ -823,7 +832,7 @@ BARS.defineActions(function() {
 			}
 			Blockbench.import({
 				resource_id: 'model',
-				extensions: ['json', 'jem', 'jpm', 'java', 'bbmodel'],
+				extensions: Codec.getAllExtensions(),
 				type: 'Model',
 				startpath
 			}, function(files) {

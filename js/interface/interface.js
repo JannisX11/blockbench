@@ -712,7 +712,6 @@ onVueSetup(function() {
 				Blockbench.read([p.path], {}, files => {
 					loadModelFile(files[0]);
 				})
-				//readFile(p.path, !event.shiftKey)
 			},
 			getThumbnail(model_path) {
 				let hash = model_path.hashCode().toString().replace(/^-/, '0');
