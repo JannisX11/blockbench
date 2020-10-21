@@ -814,6 +814,13 @@
 			return 0;
 		}
 
+		this.isIKMovement = function() {
+			return Modes.animate
+				&& Toolbox.selected.id === 'move_tool'
+				&& Group.selected?.ik_enabled
+				&& Group.selected?.ik_chain_length
+				&& Group.selected.parent instanceof Group;
+		}
 		this.center = function() {
 			delete Transformer.rotation_ref;
 			if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
@@ -885,7 +892,7 @@
 				Group.selected.mesh.getWorldPosition(this.position);
 				if (Toolbox.selected.id == 'resize_tool') {
 					Transformer.rotation_ref = Group.selected.mesh;
-				} else if (Toolbox.selected.id == 'move_tool' && Group.selected.ik_enabled && Group.selected.ik_chain_length) {
+				} else if (scope.isIKMovement()) {
 					if (Transformer.dragging && Transformer.ik_target) Transformer.position.copy(Transformer.ik_target);
 					delete Transformer.rotation_ref;
 				} else {
@@ -1027,7 +1034,7 @@
 				scope.keyframes = [];
 				var undo_keyframes = [];
 				var animator = Animation.selected.getBoneAnimator();
-				if (animator && Toolbox.selected.id === 'move_tool' && Group.selected.ik_enabled && Group.selected.ik_chain_length) {
+				if (animator && scope.isIKMovement()) {
 
 
 					Transformer.bones = [];
@@ -1309,7 +1316,7 @@
 					if (Toolbox.selected.id === 'rotate_tool' && Math.abs(difference) > 120) {
 						difference = 0;
 					}
-					if (Group.selected.ik_enabled && Group.selected.ik_chain_length) {
+					if (scope.isIKMovement()) {
 
 						Transformer.ik_target[axis] += difference
 
@@ -1483,7 +1490,7 @@
 					Undo.finishEdit('edit display slot')
 				}
 				
-				if (Modes.animate && Toolbox.selected.id === 'move_tool' && Group.selected.ik_enabled && Group.selected.ik_chain_length && Transformer.ik_solver) {
+				if (Modes.animate && Transformer.isIKMovement() && Transformer.ik_solver) {
 					Transformer.ik_solver.meshChains[0].forEach(mesh => {
 						scene.remove(mesh)
 					})
