@@ -61,6 +61,11 @@ class Keyframe {
 				let this_point = this.data_points[i];
 				this_point.extend(point)
 			})
+		} else {
+			// Direct extending
+			for (var key in KeyframeDataPoint.properties) {
+				KeyframeDataPoint.properties[key].merge(this.data_points[0], data)
+			}
 		}
 		return this;
 	}
