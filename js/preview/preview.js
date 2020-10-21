@@ -141,7 +141,7 @@ class Preview {
 		//Cameras
 		this.isOrtho = false
 		this.angle = null;
-		this.camPers = new THREE.PerspectiveCamera(45, 16 / 9, 1, 30000)
+		this.camPers = new THREE.PerspectiveCamera(settings.fov.value, 16 / 9, 1, 30000)
 		this.camOrtho = new THREE.OrthographicCamera(-600,  600, -400, 400, -200, 20000);
 		this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'y'}]
 		this.camOrtho.axis = null
@@ -681,6 +681,18 @@ class Preview {
 		clearTimeout(this.rclick_cooldown);
 		delete this.rclick_cooldown;
 		return this;
+	}
+	calculateControlScale(position) {
+		if (this.isOrtho) {
+			return 0.35 / this.camera.zoom;
+		} else {
+			var scaleVector = new THREE.Vector3();
+			var scale = scaleVector.subVectors(position, this.camera.position).length() / 4;
+			scale *= this.camera.fov / this.height;
+			if (Blockbench.isMobile) scale *= 2;
+			return scale;
+		}
+
 	}
 	//Selection Rectangle
 	startSelRect(event) {

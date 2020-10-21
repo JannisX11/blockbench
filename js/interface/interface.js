@@ -206,7 +206,7 @@ function setupInterface() {
 
 	setupPanels()
 	
-	if (Blockbench.isMobile) {
+	if (Blockbench.isMobile && window.setupMobilePanelSelector) {
 		setupMobilePanelSelector()
 	}
 
@@ -361,7 +361,8 @@ function resizeWindow(event) {
 			dialog.css('top', limitNumber(window.innerHeight-dialog.outerHeight(), 0, 4e3) + 'px')
 		}
 	}
-	BARS.updateToolToolbar()
+	BARS.updateToolToolbar();
+	Blockbench.dispatchEvent('resize_window', event);
 }
 $(window).on('resize orientationchange', resizeWindow)
 

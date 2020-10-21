@@ -1,6 +1,6 @@
 const Blockbench = {
 	isWeb: !isApp,
-	isMobile: window.innerWidth <= 640,
+	isMobile: !isApp && window.innerWidth <= 640,
 	version: appVersion,
 	platform: 'web',
 	flags: [],
@@ -278,11 +278,13 @@ const Blockbench = {
 			}
 		}
 	},
-	addListener(event_name, cb) {
-		if (!this.events[event_name]) {
-			this.events[event_name] = []
-		}
-		this.events[event_name].safePush(cb)
+	addListener(event_names, cb) {
+		event_names.split(' ').forEach(event_name => {
+			if (!this.events[event_name]) {
+				this.events[event_name] = [];
+			}
+			this.events[event_name].safePush(cb);
+		})
 		return Blockbench;
 	},
 	on(event_name, cb) {

@@ -64,16 +64,15 @@ const Canvas = {
 	face_order: ['east', 'west', 'up', 'down', 'south', 'north'],
 	//Misc
 	raycast(event) {
-		var preview = Canvas.getCurrentPreview()
+		var preview = Canvas.getHoveredPreview()
 		if (preview) {
 			return preview.raycast(event)
 		} else {
 			return false
 		}
 	},
-	getCurrentPreview() {
-		if (quad_previews.current) return quad_previews.current;
-		var canvas = $('.preview:hover').get(0)
+	getHoveredPreview() {
+		var canvas = $('.preview canvas:hover').get(0)
 		if (canvas) return canvas.preview
 	},
 	withoutGizmos(cb) {

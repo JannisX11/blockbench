@@ -1310,9 +1310,7 @@ const Animator = {
 	updateMotionTrailScale() {
 		Animator.motion_trail.children.forEach((object) => {
 			if (object.isLine) return;
-			var scaleVector = new THREE.Vector3();
-			var scale = scaleVector.subVectors(object.position, Preview.selected.camera.position).length() / 86;
-			if (Blockbench.isMobile) scale *= 4;
+			let scale = Preview.selected?.calculateControlScale(object.position) * 0.6;
 			object.scale.set(scale, scale, scale)
 		})
 	},

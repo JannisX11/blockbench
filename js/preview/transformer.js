@@ -657,27 +657,10 @@
 		};
 		this.getScale = function() {
 
-			var scope = Transformer;
-			scope.camera.updateMatrixWorld();
-			camPosition.setFromMatrixPosition( scope.camera.matrixWorld );
-			//camRotation.setFromRotationMatrix( tempMatrix.extractRotation( scope.camera.matrixWorld ) );
-			//eye.copy( camPosition ).sub( worldPosition ).normalize();
-			//this.position.copy( worldPosition );
-			if ( scope.camera instanceof THREE.PerspectiveCamera ) {
+			Transformer.camera.updateMatrixWorld();
+			camPosition.setFromMatrixPosition( Transformer.camera.matrixWorld );
 
-				scale = worldPosition.distanceTo( camPosition )/6
-					  * (settings.control_size.value / 20)
-					  * (1000 / scope.camera.preview.height)
-					  * Settings.get('fov') / 45;
-
-			} else if ( scope.camera instanceof THREE.OrthographicCamera ) {
-
-				eye.copy( camPosition ).normalize();
-				scale = (6 / scope.camera.zoom) * (settings.control_size.value / 20);
-
-			}
-			scale *= (1000+scope.camera.preview.height)/2000
-			return scale;
+			return Transformer.camera.preview.calculateControlScale(worldPosition) * settings.control_size.value * 0.74;
 		}
 		this.setScale = function(sc) {
 			Transformer.scale.set(sc,sc,sc)
@@ -694,17 +677,8 @@
 			this.getWorldPosition(worldPosition)
 			this.setScale(this.getScale());
 
-			//Origin
-			if ( scope.camera instanceof THREE.PerspectiveCamera ) {
-
-				eye.copy( camPosition ).sub( worldPosition ).normalize();
-				scale = rot_origin.getWorldPosition(new THREE.Vector3()).distanceTo( camPosition ) / 16 * (settings.origin_size.value / 20) * Settings.get('fov') / 45;;
-
-			} else if ( scope.camera instanceof THREE.OrthographicCamera ) {
-
-				eye.copy( camPosition ).normalize();
-				scale = (6 / scope.camera.zoom) * (settings.origin_size.value / 50);
-			}
+			// Origin
+			let scale = scope.camera.preview.calculateControlScale(rot_origin.getWorldPosition(new THREE.Vector3())) * settings.origin_size.value * 0.2;
 			rot_origin.scale.set( scale, scale, scale );
 			if (rot_origin.base_scale) {
 				rot_origin.scale.multiply(rot_origin.base_scale);

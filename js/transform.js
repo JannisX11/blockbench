@@ -384,15 +384,12 @@ const Vertexsnap = {
 	},
 	updateVertexSize: function() {
 		Vertexsnap.vertexes.children.forEach(function(v,i) {
-			var scaleVector = new THREE.Vector3();
-			var scale = scaleVector.subVectors(v.position, Transformer.camera.position).length() / 500;
-			scale = (Math.sqrt(scale)/3 + scale/1.4) * 1.7
-			if (Blockbench.isMobile) scale *= 4;
-			v.scale.set(scale, scale, scale)
+			let scale = Preview.selected?.calculateControlScale(v.position) * 0.6;
+			v.scale.set(scale, scale, scale);
 		})
 	}
 }
-Blockbench.on('update_camera_position', e => {
+Blockbench.on('update_camera_position resize_window', e => {
 	if (Toolbox && Toolbox.selected.id == 'vertex_snap_tool') {
 		Vertexsnap.updateVertexSize();
 	}
