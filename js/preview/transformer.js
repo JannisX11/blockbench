@@ -1061,7 +1061,8 @@
 
 					var bone = Group.selected;
 					for (var i = Group.selected.ik_chain_length; i >= 0; i--) {
-						if (bone instanceof Group) {
+						if (bone instanceof Group == false) break;
+						if (bone != Group.selected || Blockbench.hasFlag('ik_counter_rotate_target')) {
 							var animator = Animation.selected.getBoneAnimator(bone);
 							animator.addToTimeline();
 							var {before, result} = animator.getOrMakeKeyframe('rotation');
@@ -1076,6 +1077,7 @@
 					let bones = [];
 					var bone = Group.selected;
 					for (let i = Group.selected.ik_chain_length; i >= 0; i--) {
+						if (bone instanceof Group == false) break;
 						if (bone instanceof Group) {
 							bones.push(bone);
 							bone = bone.parent;
@@ -1333,7 +1335,7 @@
 					if (Toolbox.selected.id === 'rotate_tool' && Math.abs(difference) > 120) {
 						difference = 0;
 					}
-					if (Group.selected.ik_enabled) {
+					if (Group.selected.ik_enabled && Group.selected.ik_chain_length) {
 
 						Transformer.ik_target[axis] += difference
 
@@ -1369,17 +1371,20 @@
 								Animator.preview()
 							}
 						})
-						let last_keyframe = Transformer.keyframes.last();
-						
-						let group_parent_rot = Group.selected.mesh.parent.getWorldQuaternion(new THREE.Quaternion());
-						let diff_rot = new THREE.Quaternion().copy(Transformer.original_target_rotation);
-						diff_rot.premultiply(group_parent_rot.inverse());
-						let diff_rot_e = new THREE.Euler().setFromQuaternion(diff_rot, 'ZYX');
 
-						last_keyframe.offset('x', Math.clamp( Math.radToDeg(Group.selected.mesh.rotation.x - diff_rot_e.x), -lim, lim));
-						last_keyframe.offset('y', Math.clamp( Math.radToDeg(Group.selected.mesh.rotation.y - diff_rot_e.y), -lim, lim));
-						last_keyframe.offset('z', Math.clamp(-Math.radToDeg(Group.selected.mesh.rotation.z - diff_rot_e.z), -lim, lim));
-						Animator.preview()
+						if (Blockbench.hasFlag('ik_counter_rotate_target')) {
+							let last_keyframe = Transformer.keyframes.last();
+							
+							let group_parent_rot = Group.selected.mesh.parent.getWorldQuaternion(new THREE.Quaternion());
+							let diff_rot = new THREE.Quaternion().copy(Transformer.original_target_rotation);
+							diff_rot.premultiply(group_parent_rot.inverse());
+							let diff_rot_e = new THREE.Euler().setFromQuaternion(diff_rot, 'ZYX');
+
+							last_keyframe.offset('x', Math.clamp( Math.radToDeg(Group.selected.mesh.rotation.x - diff_rot_e.x), -lim, lim));
+							last_keyframe.offset('y', Math.clamp( Math.radToDeg(Group.selected.mesh.rotation.y - diff_rot_e.y), -lim, lim));
+							last_keyframe.offset('z', Math.clamp(-Math.radToDeg(Group.selected.mesh.rotation.z - diff_rot_e.z), -lim, lim));
+							Animator.preview()
+						}
 
 
 					} else {

@@ -1734,7 +1734,7 @@ BARS.defineActions(function() {
 			}
 		},
 		change: function(modify) {
-			Group.selected.ik_chain_length = modify(Group.selected.ik_chain_length);
+			Group.selected.ik_chain_length = Math.clamp(modify(Group.selected.ik_chain_length), 0, 64);
 			updateSelection()
 		},
 		onBefore: function() {
