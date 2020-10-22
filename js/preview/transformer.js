@@ -769,7 +769,7 @@
 		display_gui_rotation.updateMatrixWorld();
 
 		this.getTransformSpace = function() {
-			if (!selected.length) return;
+			if (!selected.length && (!Group.selected || Toolbox.selected.id !== 'pivot_tool' || !Format.bone_rig)) return;
 
 			let input_space = Toolbox.selected == BarItems.rotate_tool ? BarItems.rotation_space.get() : BarItems.transform_space.get()
 

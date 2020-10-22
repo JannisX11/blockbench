@@ -169,6 +169,7 @@ function updateSelection() {
 		if (Format.bone_rig && Group.selected) {
 			$('.selection_only').css('visibility', 'hidden')
 			$('.selection_only#element').css('visibility', 'visible')
+			$('.selection_only#bone').css('visibility', 'visible')
 		} else {
 			$('.selection_only').css('visibility', 'hidden')
 			if (Locator.selected.length) {
