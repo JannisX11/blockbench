@@ -386,20 +386,23 @@ const Timeline = {
 
 				Undo.initEdit({keyframes: Timeline.selected})
 				Timeline.dragging_keyframes = true;
+				Timeline.dragging_range = [Infinity, 0];
 
-				var i = 0;
 				for (var kf of Timeline.selected) {
-					kf.time_before = kf.time
+					kf.time_before = kf.time;
+					Timeline.dragging_range[0] = Math.min(Timeline.dragging_range[0], kf.time);
+					Timeline.dragging_range[1] = Math.max(Timeline.dragging_range[1], kf.time);
 				}
 			},
 			drag: function(event, ui) {
-				var difference = (ui.position.left - ui.originalPosition.left - 8) / Timeline.vue._data.size;
-				var id = $(ui.helper).attr('id')
+				var difference = Math.clamp((ui.position.left - ui.originalPosition.left - 8) / Timeline.vue._data.size, -256, 256);
+				let [min, max] = Timeline.dragging_range;
 
 				for (var kf of Timeline.selected) {
-					var t = limitNumber(kf.time_before + difference, 0, 256)
-					if (kf.uuid === id) {
-						ui.position.left = t * Timeline.vue._data.size + 8
+					if (event.ctrlKey) {
+						var t = min + (kf.time_before - min) * ((max-min+difference) / (max-min));
+					} else {
+						var t = kf.time_before + difference;
 					}
 					kf.time = Timeline.snapTime(t);
 				}
@@ -412,6 +415,7 @@ const Timeline = {
 					delete kf.time_before;
 					kf.replaceOthers(deleted);
 				}
+				delete Timeline.dragging_range;
 				Undo.addKeyframeCasualties(deleted);
 				Undo.finishEdit('drag keyframes')
 				setTimeout(() => {
