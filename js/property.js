@@ -37,7 +37,7 @@ class Property {
 		if (this.isMolang) {
 			Object.defineProperty(target_class.prototype, `${name}_string`, {
 				get() {
-					return typeof this[name] == 'number' ? trimFloatNumber(this[name]) || scope.getDefault(this) : this[name];
+					return typeof this[name] == 'number' ? trimFloatNumber(this[name]) || '0' : this[name];
 				},
 				set(val) {
 					this[name] = val;
