@@ -397,14 +397,31 @@ const Timeline = {
 			drag: function(event, ui) {
 				var difference = Math.clamp((ui.position.left - ui.originalPosition.left - 8) / Timeline.vue._data.size, -256, 256);
 				let [min, max] = Timeline.dragging_range;
+				let id = event.target?.id;
+				let target = Timeline.selected.find(kf => kf.uuid == id);
+				if (event.ctrlKey) {
+					var time_factor = (target && target.time_before < (min + max) / 2)
+						? ((max-min-difference) / (max-min))
+						: ((max-min+difference) / (max-min));
+					time_factor = Math.roundTo(time_factor, 2);
+				}
 
 				for (var kf of Timeline.selected) {
 					if (event.ctrlKey) {
-						var t = min + (kf.time_before - min) * ((max-min+difference) / (max-min));
+						if (target && target.time_before < (min + max) / 2) {
+							var t = max - (kf.time_before - max) * -time_factor;
+						} else {
+							var t = min + (kf.time_before - min) * time_factor;
+						}
 					} else {
 						var t = kf.time_before + difference;
 					}
 					kf.time = Timeline.snapTime(t);
+				}
+				if (event.ctrlKey) {
+					Blockbench.setStatusBarText(Math.round(time_factor * 100) + '%');
+				} else {
+					Blockbench.setStatusBarText(trimFloatNumber(difference));
 				}
 				BarItems.slider_keyframe_time.update()
 				Animator.preview()
@@ -416,6 +433,7 @@ const Timeline = {
 					kf.replaceOthers(deleted);
 				}
 				delete Timeline.dragging_range;
+				Blockbench.setStatusBarText();
 				Undo.addKeyframeCasualties(deleted);
 				Undo.finishEdit('drag keyframes')
 				setTimeout(() => {
