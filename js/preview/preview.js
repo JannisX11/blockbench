@@ -230,7 +230,7 @@ class Preview {
 		addEventListeners(this.canvas, 'mousedown touchstart', 	function(event) { scope.click(event)}, { passive: false })
 		addEventListeners(this.canvas, 'mousemove touchmove', 	function(event) { scope.static_rclick = false}, false)
 		addEventListeners(this.canvas, 'mousemove', 			function(event) { scope.mousemove(event)}, false)
-		addEventListeners(this.canvas, 'mouseup touchend',		function(event) { scope.showContextMenu(event)}, false)
+		addEventListeners(this.canvas, 'mouseup touchend',		function(event) { scope.mouseup(event)}, false)
 		addEventListeners(this.canvas, 'dblclick', 				function(event) {Toolbox.toggleTransforms(event)}, false)
 		addEventListeners(this.canvas, 'mouseenter touchstart', function(event) { scope.occupyTransformer(event)}, false)
 
@@ -625,9 +625,6 @@ class Preview {
 		if (typeof Toolbox.selected.onCanvasClick === 'function') {
 			Toolbox.selected.onCanvasClick(0)
 		}
-		if (!data && this.controls.hasMoved === false && settings.canvas_unselect.value) {
-			unselectAll()
-		}
 
 		if (this.angle !== null && this.camOrtho.axis || this.movingBackground) {
 			this.startSelRect(event)
@@ -640,6 +637,13 @@ class Preview {
 			var data = this.raycast(event);
 			updateCubeHighlights(data && data.cube);
 		}
+	}
+	mouseup(event) {
+		this.showContextMenu(event);
+		if (this.controls.hasMoved === false && settings.canvas_unselect.value) {
+			unselectAll();
+		}
+		return this;
 	}
 	raycastMouseCoords(x,y) {
 		var scope = this;
