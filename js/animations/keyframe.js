@@ -386,7 +386,6 @@ class Keyframe {
 		},*/
 		'change_keyframe_file',
 		'_',
-		// todo: integrate
 		'keyframe_interpolation',
 		{name: 'menu.cube.color', icon: 'color_lens', children: [
 			{icon: 'bubble_chart', name: 'generic.unset', click: function(kf) {kf.forSelected(kf2 => {kf2.color = -1}, 'change color')}},

@@ -465,7 +465,7 @@ class NumSlider extends Widget {
 				if (drag_event.touches) {
 					clientX = e.clientX;
 				} else {
-					clientX += Math.clamp(e.movementX, -5, 5);
+					clientX += Math.clamp(e.movementX, -160, 160);
 				}
 				scope.slide(clientX, e)
 			}
