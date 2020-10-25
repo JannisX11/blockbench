@@ -684,6 +684,13 @@
 				rot_origin.scale.multiply(rot_origin.base_scale);
 			}
 			
+			// Update Eye Position
+			if ( scope.camera instanceof THREE.PerspectiveCamera ) {
+				eye.copy( camPosition ).sub( worldPosition ).normalize();
+			} else if ( scope.camera instanceof THREE.OrthographicCamera ) {
+				eye.copy( camPosition ).normalize();
+			}
+
 			if (scope.elements.length == 0) return;
 
 			if (object) {
