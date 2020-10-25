@@ -494,7 +494,7 @@ class Animation {
 					},
 				},
 				override: {label: 'menu.animation.override', type: 'checkbox', value: this.override},
-				snapping: {label: 'menu.animation.snapping', type: 'number', value: this.snapping, step: 1, min: 10, max: 100},
+				snapping: {label: 'menu.animation.snapping', type: 'number', value: this.snapping, step: 1, min: 10, max: 500},
 				line: '_',
 			},
 			lines: [
@@ -529,7 +529,7 @@ class Animation {
 					if (isApp) this.path = form_data.path;
 					this.loop = form_data.loop;
 					this.override = form_data.override;
-					this.snapping = Math.clamp(form_data.snapping, 10, 100);
+					this.snapping = Math.clamp(form_data.snapping, 10, 500);
 					this.anim_time_update = vue_data.anim_time_update.trim().replace(/\n/g, '');
 					this.blend_weight = vue_data.blend_weight.trim().replace(/\n/g, '');
 					Undo.finishEdit('edit animation properties');
@@ -1256,10 +1256,13 @@ const Animator = {
 		}
 		iterate(target)
 		let keyframes = {};
-		let ba = Animation.selected.getBoneAnimator();
-		ba.position.forEach(kf => {
-			keyframes[Math.round(kf.time / step)] = kf;
-		})
+		if (Group.selected) {
+			let ba = Animation.selected.getBoneAnimator();
+			let channel = target == Group.selected ? ba.position : (ba[Toolbox.selected.animation_channel] || ba.position)
+			channel.forEach(kf => {
+				keyframes[Math.round(kf.time / step)] = kf;
+			})
+		}
 
 		function displayTime(time) {
 			Timeline.time = time;

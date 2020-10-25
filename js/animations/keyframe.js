@@ -430,7 +430,7 @@ function updateKeyframeSelection() {
 		BarItems.slider_keyframe_time.update()
 		BarItems.keyframe_interpolation.set(Timeline.selected[0].interpolation)
 	}
-	if (settings.motion_trails.value && Modes.animate && Animation.selected && Group.selected) {
+	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || Animator.motion_trail_lock)) {
 		Animator.showMotionTrail();
 	} else if (Animator.motion_trail.parent) {
 		Animator.motion_trail.children.forEachReverse(child => {

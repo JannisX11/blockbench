@@ -83,6 +83,7 @@ class ModelProject {
 		Animator.animations.purge();
 		Timeline.animators.purge();
 		Animation.selected = undefined;
+		delete Animator.motion_trail_lock;
 		$('#var_placeholder_area').val('');
 	}
 }

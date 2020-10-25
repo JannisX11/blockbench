@@ -421,7 +421,7 @@ const Timeline = {
 				if (event.ctrlKey) {
 					Blockbench.setStatusBarText(Math.round(time_factor * 100) + '%');
 				} else {
-					Blockbench.setStatusBarText(trimFloatNumber(difference));
+					Blockbench.setStatusBarText(trimFloatNumber(Timeline.snapTime(difference)));
 				}
 				BarItems.slider_keyframe_time.update()
 				Animator.preview()
