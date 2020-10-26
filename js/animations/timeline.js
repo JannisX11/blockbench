@@ -397,7 +397,7 @@ const Timeline = {
 			drag: function(event, ui) {
 				var difference = Math.clamp((ui.position.left - ui.originalPosition.left - 8) / Timeline.vue._data.size, -256, 256);
 				let [min, max] = Timeline.dragging_range;
-				let id = event.target?.id;
+				let id = event.target && event.target.id;
 				let target = Timeline.selected.find(kf => kf.uuid == id);
 				if (event.ctrlKey) {
 					var time_factor = (target && target.time_before < (min + max) / 2)
@@ -529,7 +529,7 @@ const Timeline = {
 		if (Animation.selected && Timeline.time < (Animation.selected.length||1e3)) {
 
 			var new_time;
-			if (Animation.selected?.anim_time_update) {
+			if (Animation.selected && Animation.selected.anim_time_update) {
 				var new_time = Animator.MolangParser.parse(Animation.selected.anim_time_update);
 			}
 			if (new_time == undefined || new_time <= Timeline.time) {

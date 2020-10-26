@@ -383,8 +383,9 @@ const Vertexsnap = {
 		Vertexsnap.step1 = true
 	},
 	updateVertexSize: function() {
+		if (!Preview.selected) return;
 		Vertexsnap.vertexes.children.forEach(function(v,i) {
-			let scale = Preview.selected?.calculateControlScale(v.position) * 0.6;
+			let scale = Preview.selected.calculateControlScale(v.position) * 0.6;
 			v.scale.set(scale, scale, scale);
 		})
 	}

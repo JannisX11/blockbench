@@ -671,7 +671,7 @@ BARS.defineActions(function() {
 					resource_id: 'animation_particle',
 					extensions: ['json'],
 					type: 'Bedrock Particle',
-					startpath: Timeline.selected[0].data_points[0]?.file
+					startpath: Timeline.selected[0].data_points[0].file
 				}, function(files) {
 
 					let {path} = files[0];
@@ -691,7 +691,7 @@ BARS.defineActions(function() {
 					resource_id: 'animation_audio',
 					extensions: ['ogg'],
 					type: 'Audio File',
-					startpath: Timeline.selected[0].data_points[0]?.file
+					startpath: Timeline.selected[0].data_points[0].file
 				}, function(files) {
 
 					// Todo: move to panel

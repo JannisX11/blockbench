@@ -322,7 +322,7 @@ class Codec {
 Codec.getAllExtensions = function() {
 	let extensions = [];
 	for (var id in Codecs) {
-		if (Codecs[id].load_filter?.extensions) {
+		if (Codecs[id].load_filter && Codecs[id].load_filter.extensions) {
 			extensions.safePush(...Codecs[id].load_filter.extensions);
 		}
 	}

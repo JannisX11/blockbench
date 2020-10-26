@@ -8,7 +8,7 @@ var codec = new Codec('optifine_entity', {
 		type: 'json',
 		extensions: ['jem'],
 		condition(file) {
-			return file?.models != undefined;
+			return file && file.models != undefined;
 		}
 	},
 	compile(options) {

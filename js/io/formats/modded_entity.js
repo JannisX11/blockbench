@@ -156,7 +156,7 @@ const Templates = {
 }
 
 function getIdentifier() {
-	return Project.geometry_name?.replace(/[\s-]+/g, '_') || 'custom_model';
+	return (Project.geometry_name && Project.geometry_name.replace(/[\s-]+/g, '_')) || 'custom_model';
 }
 
 var codec = new Codec('modded_entity', {

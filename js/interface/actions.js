@@ -84,7 +84,7 @@ class BarItem {
 					if (!tooltip.length) return;
 
 					tooltip.css('margin-left', '0')
-					var offset = tooltip?.offset()
+					var offset = tooltip && tooltip.offset()
 					offset.right = offset.left + parseInt(tooltip.css('width').replace(/px/, '')) - $(window).width()
 
 					if (offset.right > 4) {
@@ -95,7 +95,7 @@ class BarItem {
 					if (!description.length) return;
 
 					description.css('margin-left', '-5px')
-					var offset = description?.offset()
+					var offset = description.offset()
 					offset.right = offset.left + parseInt(description.css('width').replace(/px/, '')) - $(window).width()
 
 					if (offset.right > 4) {

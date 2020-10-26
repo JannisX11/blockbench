@@ -54,8 +54,8 @@ class Animation {
 						let uuid = isUUID(key) && key;
 						if (!uuid) {
 							let lowercase_bone_name = key.toLowerCase();
-							uuid = Group.all.find(group => group.name.toLowerCase() == lowercase_bone_name)?.uuid;
-							if (!uuid) uuid = guid();
+							let group_match = Group.all.find(group => group.name.toLowerCase() == lowercase_bone_name)
+							uuid = group_match ? group_match.uuid : guid();
 						}
 						animator = this.animators[uuid] = new BoneAnimator(uuid, this, animator_blueprint.name)
 					}
@@ -978,8 +978,8 @@ class EffectAnimator extends GeneralAnimator {
 			this.sound.forEach(kf => {
 				var diff = kf.time - Timeline.time;
 				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100)) {
-					if (kf.data_points[0]?.file && !kf.cooldown) {
-						var media = new Audio(kf.data_points[0]?.file);
+					if (kf.data_points[0].file && !kf.cooldown) {
+						var media = new Audio(kf.data_points[0].file);
 						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
 						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 						media.play().catch(() => {});
@@ -1015,9 +1015,9 @@ class EffectAnimator extends GeneralAnimator {
 							if (locator && locator.parent instanceof Group) {
 								locator.parent.mesh.add(emitter.local_space);
 								emitter.local_space.position.set(
-									locator.from[0] - (locator.parent.origin?.[0] || 0),
-									locator.from[1] - (locator.parent.origin?.[1] || 0),
-									locator.from[2] - (locator.parent.origin?.[2] || 0)
+									locator.from[0] - ((locator.parent.origin && locator.parent.origin[0]) || 0),
+									locator.from[1] - ((locator.parent.origin && locator.parent.origin[1]) || 0),
+									locator.from[2] - ((locator.parent.origin && locator.parent.origin[2]) || 0)
 								)
 								emitter.parent_mode = 'locator';
 							} else {
@@ -1035,10 +1035,10 @@ class EffectAnimator extends GeneralAnimator {
 	startPreviousSounds() {
 		if (!this.muted.sound) {
 			this.sound.forEach(kf => {
-				if (kf.data_points[0]?.file && !kf.cooldown) {
+				if (kf.data_points[0].file && !kf.cooldown) {
 					var diff = kf.time - Timeline.time;
-					if (diff < 0 && Timeline.waveforms[kf.data_points[0]?.file] && Timeline.waveforms[kf.data_points[0]?.file].duration > -diff) {
-						var media = new Audio(kf.data_points[0]?.file);
+					if (diff < 0 && Timeline.waveforms[kf.data_points[0].file] && Timeline.waveforms[kf.data_points[0].file].duration > -diff) {
+						var media = new Audio(kf.data_points[0].file);
 						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
 						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 						media.currentTime = -diff;
@@ -1311,9 +1311,10 @@ const Animator = {
 		Animator.updateMotionTrailScale();
 	},
 	updateMotionTrailScale() {
+		if (!Preview.selected) return;
 		Animator.motion_trail.children.forEach((object) => {
 			if (object.isLine) return;
-			let scale = Preview.selected?.calculateControlScale(object.position) * 0.6;
+			let scale = Preview.selected.calculateControlScale(object.position) * 0.6;
 			object.scale.set(scale, scale, scale)
 		})
 	},

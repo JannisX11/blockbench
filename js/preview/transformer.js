@@ -824,8 +824,9 @@
 		this.isIKMovement = function() {
 			return Modes.animate
 				&& Toolbox.selected.id === 'move_tool'
-				&& Group.selected?.ik_enabled
-				&& Group.selected?.ik_chain_length
+				&& Group.selected
+				&& Group.selected.ik_enabled
+				&& Group.selected.ik_chain_length
 				&& Group.selected.parent instanceof Group;
 		}
 		this.center = function() {

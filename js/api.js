@@ -148,10 +148,10 @@ const Blockbench = {
 			Blockbench.showQuickMessage(message)
 		}
 	},
-	showMessageBox(options, cb) {
+	showMessageBox(options = 0, cb) {
 
 		if (options.confirm === undefined) options.confirm = 0
-		if (options.cancel === undefined) options.cancel = options?.buttons?.length ? options.buttons.length-1 : 0;
+		if (options.cancel === undefined) options.cancel = (options.buttons && options.buttons.length) ? options.buttons.length-1 : 0;
 		if (!options.buttons) options.buttons = [tl('dialog.ok')]
 
 		if (options.translateKey) {
