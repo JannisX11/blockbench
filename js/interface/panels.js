@@ -207,7 +207,7 @@ function setupPanels() {
 	Interface.Panels.element = new Panel({
 		id: 'element',
 		icon: 'fas.fa-cube',
-		condition: isApp && {modes: ['edit']},
+		condition: !Blockbench.isMobile && {modes: ['edit']},
 		selection_only: true,
 		toolbars: {
 			element_position: 	!Blockbench.isMobile && Toolbars.element_position,
@@ -219,7 +219,7 @@ function setupPanels() {
 	Interface.Panels.bone = new Panel({
 		id: 'bone',
 		icon: 'fas.fa-bone',
-		condition: isApp && {modes: ['animate']},
+		condition: !Blockbench.isMobile && {modes: ['animate']},
 		selection_only: true,
 		toolbars: {
 			bone_ik: Toolbars.bone_ik,
