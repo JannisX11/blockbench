@@ -1597,7 +1597,7 @@ const Animator = {
 	}
 }
 Blockbench.on('update_camera_position', e => {
-	if (Animator.open && settings.motion_trails.value && Group.selected) {
+	if (Animator.open && settings.motion_trails.value && (Group.selected || Animator.motion_trail_lock)) {
 		Animator.updateMotionTrailScale();
 	}
 })
