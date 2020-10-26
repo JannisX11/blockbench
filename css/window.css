@@ -287,8 +287,8 @@
 	#main_toolbar > div.mobile_side {
 		position: absolute;
 		z-index: 2;
-		top: 86px;
 		right: 0px;
+		margin-top: 30px;
 	}
 	#main_toolbar > div.tool_options {
 		background-color: var(--color-back);
@@ -336,7 +336,7 @@
 		left: 0;
 		right: 40px;
 		bottom: 0;
-		
+		overflow-y: auto;
 		background: var(--color-ui);
 	}
 	div#mobile_panel_overlay > .panel {

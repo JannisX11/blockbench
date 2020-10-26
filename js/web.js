@@ -105,6 +105,7 @@ function setupMobilePanelSelector() {
 						overlay.append(panel.node);
 						if (panel.onResize) panel.onResize();
 						overlay.show();
+						$(panel.node).show();
 					} else {
 						overlay.hide();
 					}

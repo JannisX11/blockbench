@@ -693,7 +693,6 @@ class Preview {
 			var scaleVector = new THREE.Vector3();
 			var scale = scaleVector.subVectors(position, this.camera.position).length() / 4;
 			scale *= this.camera.fov / this.height;
-			if (Blockbench.isMobile) scale *= 2;
 			return scale;
 		}
 

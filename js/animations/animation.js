@@ -1166,7 +1166,7 @@ const Animator = {
 	motion_trail_lock: false,
 	join() {
 		
-		if ((Format.id == 'bedrock' || Format.id == 'bedrock_old') && !BedrockEntityManager.initialized_animations) {
+		if (isApp && (Format.id == 'bedrock' || Format.id == 'bedrock_old') && !BedrockEntityManager.initialized_animations) {
 			BedrockEntityManager.initAnimations();
 		}
 

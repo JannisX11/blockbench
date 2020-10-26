@@ -662,7 +662,6 @@
 			<p>Download and run <a style="color: #75b1ff" href="https://blockbench.net/downloads/">the installer</a> to update manually. Your custom settings will remain untouched.</p>
 		</div>
 		<div class="toolbar_wrapper narrow tools"></div>
-		<div class="toolbar_wrapper narrow mobile_side"></div>
 
 		<div class="toolbar_wrapper narrow tool_options"></div>
 		<ul id="mode_selector">
@@ -673,6 +672,7 @@
 				v-on:click="mode.select()"
 			>{{ mode.name }}</li>
 		</ul>
+		<div class="toolbar_wrapper narrow mobile_side"></div>
 	</div>
 	<div id="left_bar" class="sidebar">
 
@@ -976,7 +976,7 @@
 	<script>
 		if (!Blockbench || !Blockbench.setup_successful) {
 			document.getElementById('loading_error_message').style.display = 'block'
-			if (typeof require !== undefined) {
+			if (window.require) {
 				require('electron').remote.getCurrentWindow().webContents.openDevTools()
 			}
 		} else {
