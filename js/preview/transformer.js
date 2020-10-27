@@ -776,13 +776,14 @@
 		display_gui_rotation.updateMatrixWorld();
 
 		this.getTransformSpace = function() {
-			if (!selected.length && (!Group.selected || Toolbox.selected.id !== 'pivot_tool' || !Format.bone_rig)) return;
+			var rotation_tool = Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool'
+			if (!selected.length && (!Group.selected || !rotation_tool || !Format.bone_rig)) return;
 
 			let input_space = Toolbox.selected == BarItems.rotate_tool ? BarItems.rotation_space.get() : BarItems.transform_space.get()
 
 			if (Toolbox.selected == BarItems.rotate_tool && Format.rotation_limit) return 2;
 
-			if (input_space == 'local' && selected[0].rotatable && Toolbox.selected.id !== 'pivot_tool') {
+			if (input_space == 'local' && rotation_tool && selected.length && selected[0].rotatable) {
 				let is_local = true;
 				if (Format.bone_rig) {
 					for (var el of selected) {
@@ -809,7 +810,7 @@
 				if (Format.bone_rig && Group.selected && Group.selected.parent instanceof Group && Group.selected.matchesSelection()) {
 					return Group.selected.parent;
 				}
-				let bone = selected[0].parent;
+				let bone = selected.length ? selected[0].parent : Group.selected;
 				for (var el of selected) {
 					if (el.parent !== bone) {
 						bone = 0;
@@ -1027,7 +1028,7 @@
 				var rotate_group = Format.bone_rig && Group.selected && (Toolbox.selected.transformerMode == 'rotate' || Toolbox.selected.id == 'pivot_tool');
 
 				if (rotate_group) {
-					Undo.initEdit({elements: selected, group: Group.selected})
+					Undo.initEdit({group: Group.selected})
 				} else if (_has_groups) {
 					Undo.initEdit({elements: selected, outliner: true})
 				} else {

@@ -42,6 +42,10 @@ function origin2geometry() {
 	Undo.finishEdit('origin to geometry')
 }
 function getSelectionCenter(all = false) {
+	if (Group.selected && selected.length == 0 && !all) {
+		let vec = THREE.fastWorldPosition(Group.selected.mesh, new THREE.Vector3());
+		return vec.toArray();
+	}
 	var center = [0, 0, 0]
 	var i = 0;
 	let items = (selected.length == 0 || all) ? elements : selected;
