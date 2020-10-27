@@ -422,7 +422,7 @@ $(document).on('keydown mousedown', function(e) {
 
 				} else if (next.hasClass('nslide')) {
 					setTimeout(() => {
-						next.click();
+						BarItems[next.attr('n-action')].startInput(e);
 					}, 50)
 				} else {
 					next.focus().click();
