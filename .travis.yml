@@ -13,7 +13,7 @@ jobs:
       os: osx
       osx_image: "xcode11.3"
       script:
-        - electron-builder --publish=onTagOrDraft
+        - electron-builder --publish=always
 
     - name: "Windows"
       os: osx
