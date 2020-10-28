@@ -18,11 +18,15 @@ function buildAnimationTracks() {
 						// Sampling calculated (molang) values
 						let contains_script
 						for (var kf of keyframes) {
+							if (kf.interpolation != 'linear') {
+								contains_script = true; break;
+							}
 							for (var data_point of kf.data_points) {
 								if (isNaN(data_point.x) || isNaN(data_point.y) || isNaN(data_point.z)) {
 									contains_script = true; break;
 								}
 							}
+							if (contains_script) break;
 						}
 						if (contains_script) {
 							var last_values;
