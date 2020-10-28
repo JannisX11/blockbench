@@ -171,11 +171,11 @@ class Animation {
 								bone_tag[channel] = channels[channel][timecodes[0]][0];
 							}
 						} else {
-							timecodes.sort().forEach((time) => {
+							timecodes.sort((a, b) => parseFloat(a) - parseFloat(b)).forEach((timecode) => {
 								if (!bone_tag[channel]) {
 									bone_tag[channel] = {}
 								}
-								bone_tag[channel][time] = channels[channel][time]
+								bone_tag[channel][timecode] = channels[channel][timecode];
 							})
 						}
 					}
