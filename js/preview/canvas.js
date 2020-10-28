@@ -72,8 +72,8 @@ const Canvas = {
 		}
 	},
 	getHoveredPreview() {
-		var canvas = $('.preview canvas:hover').get(0)
-		if (canvas) return canvas.preview
+		var canvas = $('.preview canvas:hover').get(0);
+		return canvas ? canvas.preview : Preview.selected;
 	},
 	withoutGizmos(cb) {
 
