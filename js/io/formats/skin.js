@@ -97,6 +97,7 @@ const codec = new Codec('skin_model', {
 					b.cubes.forEach(function(cube) {
 
 						let base_cube = Codecs.bedrock.parseCube(cube, group);
+						console.log(base_cube.rotation, cube.rotation)
 						template_cubes[Cube.all.indexOf(base_cube)] = cube;
 
 					})
@@ -164,6 +165,7 @@ const format = new ModelFormat({
 	centered_grid: true,
 	single_texture: true,
 	integer_size: true,
+	rotate_cubes: true,
 	codec,
 	onActivation() {
 		Modes.options.paint.select();
@@ -257,6 +259,7 @@ const skin_dialog = new Dialog({
 				fox_bedrock: 'Fox (Bedrock)',
 				fox_java: 'Fox (Java)',
 				ghast: 'Ghast',
+				goat: 'Goat',
 				guardian: 'Guardian',
 				hoglin: 'Hoglin',
 				horse: 'Horse',
@@ -2339,6 +2342,61 @@ skin_presets.ghast = `{
 		}
 	]
 }`;
+skin_presets.goat = `{
+	"name": "goat",
+	"texturewidth": 64,
+	"textureheight": 64,
+	"bones": [
+		{
+			"name": "left_back_leg",
+			"pivot": [1, 10, 4],
+			"cubes": [
+				{"origin": [1, 0, 4], "size": [3, 6, 3], "uv": [36, 29]}
+			]
+		},
+		{
+			"name": "right_back_leg",
+			"pivot": [-3, 10, 4],
+			"cubes": [
+				{"origin": [-3, 0, 4], "size": [3, 6, 3], "uv": [49, 29]}
+			]
+		},
+		{
+			"name": "right_front_leg",
+			"pivot": [-3, 10, -6],
+			"cubes": [
+				{"origin": [-3, 0, -6], "size": [3, 10, 3], "uv": [49, 2]}
+			]
+		},
+		{
+			"name": "left_front_leg",
+			"pivot": [1, 10, -6],
+			"cubes": [
+				{"origin": [1, 0, -6], "size": [3, 10, 3], "uv": [35, 2]}
+			]
+		},
+		{
+			"name": "body",
+			"pivot": [0, 0, 0],
+			"cubes": [
+				{"origin": [-4, 6, -7], "size": [9, 11, 16], "uv": [1, 1]},
+				{"origin": [-5, 4, -8], "size": [11, 14, 11], "uv": [0, 28]}
+			]
+		},
+		{
+			"name": "head",
+			"pivot": [1, 10, 0],
+			"cubes": [
+				{"origin": [-2, 15, -16], "size": [5, 7, 10], "pivot": [1, 18, -8], "rotation": [55, 0, 0], "uv": [34, 46]},
+				{"origin": [-1.99, 19, -10], "size": [2, 7, 2], "uv": [12, 55]},
+				{"origin": [0.99, 19, -10], "size": [2, 7, 2], "uv": [12, 55]},
+				{"origin": [3, 19, -10], "size": [3, 2, 1], "uv": [2, 61], "mirror": true},
+				{"origin": [-5, 19, -10], "size": [3, 2, 1], "uv": [2, 61]},
+				{"origin": [0.5, 6, -14], "size": [0, 7, 5], "uv": [23, 52]}
+			]
+		}
+	]
+}`
 skin_presets.guardian = `{
 	"name": "guardian",
 	"texturewidth": 64,
