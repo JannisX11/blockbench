@@ -92,7 +92,7 @@ const Painter = {
 	// Preview Brush
 	startPaintToolCanvas(data, e) {
 		if (!data && Toolbox.selected.id == 'color_picker') {
-			var preview = quad_previews.current
+			var preview = Preview.selected;
 			if (preview && preview.background && preview.background.imgtag) {
 				
 				var ctx = Painter.getCanvas(preview.background.imgtag).getContext('2d')

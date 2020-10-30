@@ -1561,7 +1561,9 @@ function initCanvas() {
 		two: main_preview,
 		three: new Preview({id: 'three'}).loadAnglePreset(DefaultCameraPresets[3]),
 		four: new Preview({id: 'four'}).loadAnglePreset(DefaultCameraPresets[5]),
-		current: main_preview
+		get current() {
+			return Preview.selected;
+		}
 	}
 
 	//emptyMaterial
@@ -1877,7 +1879,7 @@ BARS.defineActions(function() {
 		icon: 'fa-cubes',
 		category: 'view',
 		keybind: new Keybind({key: 80, ctrl: true}),
-		click: function () {quad_previews.current.screenshot()}
+		click: function () {Preview.selected.screenshot()}
 	})
 	new Action('record_model_gif', {
 		icon: 'local_movies',
