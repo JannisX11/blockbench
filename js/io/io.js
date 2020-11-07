@@ -426,7 +426,7 @@ var Extruder = {
 		showDialog('image_extruder')
 
 		Extruder.ext_img = new Image()
-		Extruder.ext_img.src = isApp ? file.path : file.content
+		Extruder.ext_img.src = isApp ? file.path.replace(/#/g, '%23') : file.content
 		Extruder.image_file = file
 		Extruder.ext_img.style.imageRendering = 'pixelated'
 		ctx.imageSmoothingEnabled = false;

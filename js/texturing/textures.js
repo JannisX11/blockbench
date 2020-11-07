@@ -190,7 +190,7 @@ class Texture {
 		if (this.mode === 'bitmap') {
 			Merge.string(this, data, 'source')
 		} else if (data.path) {
-			this.source = this.path + '?' + tex_version;
+			this.source = this.path.replace(/#/g, '%23') + '?' + tex_version;
 		}
 		return this;
 	}
@@ -277,7 +277,7 @@ class Texture {
 		if (path.includes('data:image')) {
 			this.source = path
 		} else {
-			this.source = path + '?' + tex_version
+			this.source = path.replace(/#/g, '%23') + '?' + tex_version
 		}
 		this.generateFolder(path)
 		this.startWatcher()

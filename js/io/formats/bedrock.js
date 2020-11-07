@@ -112,7 +112,7 @@ window.BedrockEntityManager = {
 							}
 						}).show()
 						$('#import_texture_list li').each((i, el) => {
-							$(el).css('background-image', `url("${ valid_textures_list[i].replace(/\\/g, '/') }?${Math.round(Math.random()*1e6)}")`)
+							$(el).css('background-image', `url("${ valid_textures_list[i].replace(/\\/g, '/').replace(/#/g, '%23') }?${Math.round(Math.random()*1e6)}")`)
 							.click(function() {
 								if (selected_textures.includes(i)) {
 									selected_textures.remove(i)

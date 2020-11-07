@@ -852,8 +852,8 @@ class Preview {
 		this.getBackground()
 		if (this.background && this.background.image) {
 			if (!this.background.imgtag) this.background.imgtag = new Image();
-			this.background.imgtag.src = this.background.image;
-			$(this.canvas).css('background-image', 'url("'+this.background.image.split('\\').join('/')+'")')
+			this.background.imgtag.src = this.background.image.replace(/#/g, '%23');
+			$(this.canvas).css('background-image', `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`)
 		} else {
 			$(this.canvas).css('background-image', 'none')
 		}

@@ -213,8 +213,8 @@ Interface.definePanels(() => {
 
 
 		if (extension == 'png') {
-			var img = new Image(file.content);
-			img.src = file.content || file.path;
+			var img = new Image();
+			img.src = file.content || file.path.replace(/#/g, '%23');
 			img.onload = function() {
 				var c = document.createElement('canvas');
 				var ctx = c.getContext('2d');
