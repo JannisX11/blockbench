@@ -100,6 +100,17 @@ function loadOpenWithBlockbenchFile() {
 	console.log('Electron '+process.versions.electron+', Node '+process.versions.node)
 })()
 
+window.confirm = function(message, title) {
+	let index = electron.dialog.showMessageBoxSync(currentwindow, {
+		title: title || electron.app.name,
+		detail: message,
+		type: 'none',
+		noLink: true,
+		buttons: [tl('dialog.ok'), tl('dialog.cancel')]
+	});
+	return index == 0;
+}
+
 //Recent Projects
 function updateRecentProjects() {
 	if (recent_projects === undefined) {
