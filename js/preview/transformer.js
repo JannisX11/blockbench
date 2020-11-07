@@ -783,7 +783,7 @@
 
 			if (Toolbox.selected == BarItems.rotate_tool && Format.rotation_limit) return 2;
 
-			if (input_space == 'local' && rotation_tool && selected.length && selected[0].rotatable) {
+			if (input_space == 'local' && selected.length && selected[0].rotatable && (!Format.bone_rig || !Group.selected) && Toolbox.selected.id !== 'pivot_tool') {
 				let is_local = true;
 				if (Format.bone_rig) {
 					for (var el of selected) {
@@ -807,8 +807,12 @@
 			}
 			if (input_space !== 'global' && Format.bone_rig) {
 				// Bone Space
-				if (Format.bone_rig && Group.selected && Group.selected.parent instanceof Group && Group.selected.matchesSelection()) {
-					return Group.selected.parent;
+				if (Format.bone_rig && Group.selected && Group.selected.matchesSelection()) {
+					if (Group.selected.parent instanceof Group) {
+						return Group.selected.parent;
+					} else {
+						return 0;
+					}
 				}
 				let bone = selected.length ? selected[0].parent : Group.selected;
 				for (var el of selected) {
