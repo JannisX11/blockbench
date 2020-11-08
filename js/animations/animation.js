@@ -1427,6 +1427,13 @@ const Animator = {
 										channel,
 										data_points: getKeyframeDataPoints(b[channel]),
 									})
+								} else if (typeof b[channel] === 'object' && b[channel].post) {
+									ba.addKeyframe({
+										time: 0,
+										channel,
+										interpolation: b[channel].lerp_mode,
+										data_points: getKeyframeDataPoints(b[channel]),
+									});
 								} else if (typeof b[channel] === 'object') {
 									for (var timestamp in b[channel]) {
 										ba.addKeyframe({
