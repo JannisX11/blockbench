@@ -805,6 +805,10 @@
 				}
 				if (is_local) return 2;
 			}
+			if (input_space === 'local' && Format.bone_rig && Group.selected) {
+				// Local Space
+				return 2;
+			}
 			if (input_space !== 'global' && Format.bone_rig) {
 				// Bone Space
 				if (Format.bone_rig && Group.selected && Group.selected.matchesSelection()) {
