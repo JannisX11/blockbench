@@ -1145,6 +1145,8 @@
 	"menu.animation.snapping": "Snapping",
 	"menu.animation.open_location": "Open File Location",
 
+	"menu.animation_file.unload": "Unload Animation File",
+
 	"menu.keyframe.quaternion": "Quaternion",
 
 	"web.download_app": "Download App",

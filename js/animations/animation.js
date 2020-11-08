@@ -378,7 +378,7 @@ class Animation {
 		}
 		return this;
 	}
-	remove(undo) {
+	remove(undo, remove_from_file = true) {
 		if (undo) {
 			Undo.initEdit({animations: [this]})
 		}
@@ -389,7 +389,7 @@ class Animation {
 		if (undo) {
 			Undo.finishEdit('remove animation', {animations: []})
 
-			if (isApp && this.path && fs.existsSync(this.path)) {
+			if (isApp && remove_from_file && this.path && fs.existsSync(this.path)) {
 				Blockbench.showMessageBox({
 					translateKey: 'delete_animation',
 					icon: 'movie',
@@ -575,10 +575,27 @@ class Animation {
 			}
 		},
 		'duplicate',
+		'rename',
 		'delete',
 		'_',
 		{name: 'menu.animation.properties', icon: 'list', click: function(animation) {
 			animation.propertiesDialog();
+		}}
+	])
+	Animation.prototype.file_menu = new Menu([
+		{name: 'menu.animation_file.unload', icon: 'clear_all', click: function(id) {
+			let animations_to_remove = [];
+			Animation.all.forEach(animation => {
+				if (animation.path == id && animation.saved) {
+					animations_to_remove.push(animation);
+				}
+			})
+			if (!animations_to_remove.length) return;
+			Undo.initEdit({animations: animations_to_remove})
+			animations_to_remove.forEach(animation => {
+				animation.remove(false, false);
+			})
+			Undo.finishEdit('remove animation', {animations: []})
 		}}
 	])
 	new Property(Animation, 'boolean', 'saved', {default: true})
@@ -1800,6 +1817,9 @@ Interface.definePanels(function() {
 						name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
 						path
 					}).add(true).propertiesDialog()
+				},
+				showFileContextMenu(event, id) {
+					Animation.prototype.file_menu.open(event, id);
 				}
 			},
 			computed: {
@@ -1822,7 +1842,7 @@ Interface.definePanels(function() {
 				<div>
 					<div class="toolbar_wrapper animations"></div>
 					<ul id="animations_list" class="list">
-						<li v-for="(file, key) in files" :key="key" class="animation_file">
+						<li v-for="(file, key) in files" :key="key" class="animation_file" @contextmenu.prevent.stop="showFileContextMenu($event, key)">
 							<div class="animation_file_head" v-on:click.stop="toggle(key)">
 								<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
 								<label :title="key">{{ file.name }}</label>
