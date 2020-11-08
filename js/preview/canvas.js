@@ -588,8 +588,13 @@ const Canvas = {
 
 		if (Prop.wireframe) {
 			mesh.material = Canvas.wireframeMaterial
+
 		} else if (Format.single_texture && Project.layered_textures && Texture.all.length >= 2) {
 			mesh.material = Canvas.getLayeredMaterial();
+
+		} else if (Format.single_texture) {
+			let tex = Texture.getDefault();
+			mesh.material = tex ? tex.getMaterial() : emptyMaterials[cube.color];
 
 		} else {
 			var materials = []
@@ -607,6 +612,7 @@ const Canvas = {
 					}
 				}
 			})
+			if (materials.allEqual(materials[0])) materials = materials[0];
 			mesh.material = materials
 		}
 	},
