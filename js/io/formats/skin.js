@@ -97,7 +97,6 @@ const codec = new Codec('skin_model', {
 					b.cubes.forEach(function(cube) {
 
 						let base_cube = Codecs.bedrock.parseCube(cube, group);
-						console.log(base_cube.rotation, cube.rotation)
 						template_cubes[Cube.all.indexOf(base_cube)] = cube;
 
 					})
