@@ -1174,5 +1174,6 @@
     "settings.particle_tick_rate": "Particle Tick Rate",
     "settings.particle_tick_rate.desc": "Tick rate for particle effects in ticks per second. Default is 30",
     "action.lock_motion_trail": "Lock Motion Trail",
-    "action.lock_motion_trail.desc": "Lock the motion trail to the currently selected group"
+    "action.lock_motion_trail.desc": "Lock the motion trail to the currently selected group",
+    "menu.animation_file.unload": "Unload Animation File"
 }
