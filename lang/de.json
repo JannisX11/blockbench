@@ -1174,5 +1174,6 @@
     "settings.particle_tick_rate": "Partikel Tickrate",
     "settings.particle_tick_rate.desc": "Tickrate für Partkeleffekte in Ticks pro Sekunde. Standardwert ist 30",
     "action.lock_motion_trail": "Bewegungspfad feststellen",
-    "action.lock_motion_trail.desc": "Sperrt den Bewegungspfad auf die momentan ausgewählte Gruppe"
+    "action.lock_motion_trail.desc": "Sperrt den Bewegungspfad auf die momentan ausgewählte Gruppe",
+    "menu.animation_file.unload": "Unload Animation File"
 }
