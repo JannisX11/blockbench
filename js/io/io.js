@@ -945,4 +945,66 @@ BARS.defineActions(function() {
 			uploadSketchfabModel()
 		}
 	})
+
+
+	new Action('share_model', {
+		name: 'Share',
+		icon: 'share',
+		condition: () => Cube.all.length,
+		click() {
+			var dialog = new Dialog({
+				id: 'share',
+				title: 'Share Model',
+				form: {
+					expire_time: {label: 'Expire Time', type: 'select', default: '2d', options: {
+						'10m': '10 Minutes',
+						'1h': '1 Hour',
+						'1d': '1 Day',
+						'2d': '2 Days',
+						'1w': '1 Week',
+					}},
+				},
+				onConfirm: function(formResult) {
+		
+					let expire_time = formResult.expire_time;
+					let model = Codecs.project.compile({compressed: false});
+
+					$.ajax({
+						url: 'https://blckbn.ch/api/model',
+						data: JSON.stringify({ expire_time, model }),
+						cache: false,
+						contentType: 'application/json; charset=utf-8',
+						dataType: 'json',
+						type: 'POST',
+						success: function(response) {
+							let link = `https://blckbn.ch/${response.id}`
+							console.log(response, link)
+
+
+							if (isApp) {
+								clipboard.writeText(link)
+								Blockbench.showQuickMessage('Link copied to Clipboard')
+							} else {
+								Blockbench.showMessageBox({
+									title: 'Model uploaded',
+									message: `[${link}](${link})`,
+								})
+							}
+						},
+						error: function(response) {
+							console.log(response);
+							Blockbench.showQuickMessage('Error uploading', 1500)
+							console.error(response);
+						}
+					})
+		
+					dialog.hide()
+				}
+			})
+			dialog.show()
+		}
+	})
+
+
+
 })
