@@ -39,6 +39,13 @@ function loadInfoFromURL() {
 				Codecs.project.load(model, {path: ''});
 			}
 		})
+	} else if (location.hash.substr(1, 2) == 'm=') {
+		$.getJSON(`https://blckbn.ch/api/models/${location.hash.substr(3)}`, (model) => {
+			if (showSaveDialog()) {
+				resetProject();
+				Codecs.project.load(model, {path: ''});
+			}
+		})
 	}
 }
 
