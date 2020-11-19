@@ -40,7 +40,7 @@ class Plugin {
 		this.description = '';
 		this.about = '';
 		this.icon = '';
-		this.variant = '';
+		this.variant = 'both';
 		this.min_version = '';
 		this.max_version = '';
 		this.source = 'store'
@@ -146,10 +146,13 @@ class Plugin {
 						scope.extend(plugin_data)
 						scope.bindGlobalData()
 					}
-					scope.installed = true
-					scope.path = file.path
-					this.remember()
-					Plugins.sort()
+					if (first && scope.oninstall) {
+						scope.oninstall()
+					}
+					scope.installed = true;
+					scope.path = file.path;
+					this.remember();
+					Plugins.sort();
 					resolve()
 				}).fail(reject)
 			} else {

@@ -440,6 +440,9 @@
 	button.minor:hover {
 		color: var(--color-light) !important;
 	}
+	button > i {
+		pointer-events: none;
+	}
 	select {
 		-webkit-appearance: none;
 		appearance: none;
