@@ -1044,6 +1044,7 @@
 
 	"menu.file.new": "New",
 	"menu.file.recent": "Recent",
+	"menu.file.recent.clear": "Clear Recent Files",
 	"menu.file.import": "Import",
 	"menu.file.export": "Export",
 	"menu.file.preferences": "Preferences",

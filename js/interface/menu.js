@@ -483,6 +483,16 @@ const MenuBar = {
 							}
 						})
 					})
+					if (arr.length) {
+						arr.push('_', {
+							name: 'menu.file.recent.clear',
+							icon: 'clear',
+							click: function(c, event) {
+								recent_projects.empty();
+								updateRecentProjects();
+							}
+						})
+					}
 					return arr
 				}
 			},
