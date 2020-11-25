@@ -123,6 +123,23 @@
 	#cubes_list {
 		padding-top: 1px;
 	}
+	@media (max-device-width: 640px) {
+		#cubes_list > div.vue-tree {
+			width: calc(100% - 25px);
+		}
+		ul#cubes_list::before {
+			display: block;
+			content: "\f338";
+			position: absolute;
+			top: 50%;
+			font-family: 'Font Awesome 5 Free';
+			font-weight: 900;
+			font-size: 28px;
+			opacity: 0.2;
+			pointer-events: none;
+			right: 6px;
+		}
+	}
 	#cubes_list > div.vue-tree > ul > li > *:not(ul) {
 		display: none;
 	}
