@@ -1045,6 +1045,16 @@ class Preview {
 			openQuadView()
 		}
 	}
+	delete() {
+		this.renderer.dispose();
+		this.canvas.remove();
+		this.node.remove();
+		Blockbench.removeDragHandler('preview_'+this.id)
+		if (Preview.selected == this) {
+			Preview.selected = Preview.all.find(preview => preview.canvas.isConnected);
+		}
+		Preview.all.remove(this);
+	}
 }
 	Preview.prototype.menu = new Menu([
 		'screenshot_model',

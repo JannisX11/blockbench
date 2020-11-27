@@ -205,6 +205,7 @@ class ModelFormat {
 	}
 	delete() {
 		delete Formats[this.id];
+		if (this.codec && this.codec.format == this) delete this.codec.format;
 	}
 }
 const Codecs = {};
@@ -322,6 +323,11 @@ class Codec {
 			this.events[event_name] = []
 		}
 		this.events[event_name].safePush(cb)
+	}
+	//Delete
+	delete() {
+		delete Codecs[this.id];
+		if (this.format && this.format.codec == this) delete this.format.codec;
 	}
 }
 Codec.getAllExtensions = function() {

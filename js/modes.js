@@ -14,7 +14,6 @@ class Mode extends KeybindItem {
 		Modes.options[this.id] = this;
 	}
 	select() {
-		var scope = this;
 		if (Modes.selected) {
 			delete Modes[Modes.selected.id];
 			Modes.previous_id = Modes.selected.id;
@@ -27,7 +26,6 @@ class Mode extends KeybindItem {
 			Modes.selected.selected = false
 		}
 		this.selected = true;
-		Modes.id = this.id
 		Mode.selected = this;
 		Modes.selected = this;
 		Modes[Modes.selected.id] = true;
@@ -67,9 +65,17 @@ class Mode extends KeybindItem {
 			this.select()
 		}
 	}
+	delete() {
+		if (Mode.selected == this) {
+			Modes.options.start.select();
+		}
+		delete Modes.options[this.id];
+	}
 }
 const Modes = {
-	id: 'edit',
+	get id() {
+		return Mode.selected ? Mode.selected.id : 'edit'
+	},
 	selected: false,
 	options: {},
 };

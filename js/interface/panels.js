@@ -187,7 +187,7 @@ class Panel {
 	}
 	delete() {
 		delete Interface.Panels[this.id];
-		$(this.node).detach()
+		this.node.remove()
 	}
 }
 
