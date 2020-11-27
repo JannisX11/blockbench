@@ -246,9 +246,10 @@
 	"dialog.project.modded_entity_version": "Export Version",
 	"dialog.project.ao": "Ambient Occlusion",
 	"dialog.project.layered_textures": "Layered Textures",
-	"dialog.project.box_uv": "Box UV",
-	"dialog.project.width": "Texture Width",
-	"dialog.project.height": "Texture Height",
+	"dialog.project.uv_mode": "UV Mode",
+	"dialog.project.uv_mode.box_uv": "Box UV",
+	"dialog.project.uv_mode.face_uv": "Per-face UV",
+	"dialog.project.texture_size": "Texture Size",
 
 	"dialog.convert_project.title": "Convert Project",
 	"dialog.convert_project.text": "Are you sure you want to convert this project? You cannot undo this step.",
