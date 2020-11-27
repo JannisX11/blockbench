@@ -860,7 +860,7 @@ class BoneAnimator extends GeneralAnimator {
 			return (mesh && mesh.fix_rotation)
 		}
 	}
-	displayRotation(arr, multiplier) {
+	displayRotation(arr, multiplier = 1) {
 		var bone = this.group.mesh
 
 		if (!arr) {
@@ -876,7 +876,7 @@ class BoneAnimator extends GeneralAnimator {
 		}
 		return this;
 	}
-	displayPosition(arr, multiplier) {
+	displayPosition(arr, multiplier = 1) {
 		var bone = this.group.mesh
 		if (arr) {
 			bone.position.x -= arr[0] * multiplier;
@@ -885,7 +885,7 @@ class BoneAnimator extends GeneralAnimator {
 		}
 		return this;
 	}
-	displayScale(arr, multiplier) {
+	displayScale(arr, multiplier = 1) {
 		if (!arr) return this;
 		var bone = this.group.mesh;
 		bone.scale.x *= (1 + (arr[0] - 1) * multiplier) || 0.00001;

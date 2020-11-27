@@ -258,6 +258,19 @@ const Blockbench = {
 			}
 		})
 	},
+	//CSS
+	addCSS(css) {
+		let style_node = document.createElement('style');
+        style_node.type ='text/css';
+        style_node.appendChild(document.createTextNode(css));
+		document.getElementsByTagName('head')[0].appendChild(style_node);
+		function deletableStyle(node) {
+			this.delete = function() {
+				node.remove();
+			}
+		}
+		return new deletableStyle(style_node);
+	},
 	//Flags
 	addFlag(flag) {
 		this.flags[flag] = true
