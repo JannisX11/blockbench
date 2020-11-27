@@ -136,6 +136,11 @@ class ModelFormat {
 				Project.geometry_name = Project.name;
 			}
 		}
+		if (Format.bone_rig) {
+			Group.all.forEach(group => {
+				group.createUniqueName();
+			})
+		}
 
 		//Rotate Cubes
 		if (!Format.rotate_cubes && old_format.rotate_cubes) {
