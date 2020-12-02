@@ -209,11 +209,9 @@ BARS.defineActions(function() {
 				form,
 				onConfirm: function(formResult) {
 					var save;
-					console.log(formResult);
-
 					let box_uv = formResult.uv_mode == 'box_uv';
-					let texture_width = formResult.texture_size[0];
-					let texture_height = formResult.texture_size[1];
+					let texture_width = Math.clamp(formResult.texture_size[0], 1, Infinity);
+					let texture_height = Math.clamp(formResult.texture_size[1], 1, Infinity);
 
 					if (Project.box_uv != box_uv ||
 						Project.texture_width != texture_width ||
