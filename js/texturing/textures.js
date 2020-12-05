@@ -1348,8 +1348,7 @@ Interface.definePanels(function() {
 			head: Toolbars.texturelist
 		},
 		component: {
-			name: 'panel-keyframe',
-			components: {VuePrismEditor},
+			name: 'panel-textures',
 			data() { return {
 				textures: Texture.all
 			}},

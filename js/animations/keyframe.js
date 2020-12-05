@@ -852,6 +852,7 @@ Interface.definePanels(function() {
 										v-model="data_point[key+'_string']"
 										@change="updateInput(key, $event, data_point_i)"
 										language="molang"
+										ignoreTabKey="true"
 										:line-numbers="false"
 									/>
 									<input

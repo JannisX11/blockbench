@@ -425,6 +425,7 @@ $(document).on('keydown mousedown', function(e) {
 						BarItems[next.attr('n-action')].startInput(e);
 					}, 50)
 				} else {
+					event.preventDefault();
 					next.focus().click();
 				}
 				return;
@@ -446,7 +447,7 @@ $(document).on('keydown mousedown', function(e) {
 		}
 		if ($('pre.prism-editor__code:focus').length) return;
 		if (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
-			$(document).click()
+			$(document).trigger('click')
 		}
 	}
 	//Hardcoded Keys

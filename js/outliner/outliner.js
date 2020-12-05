@@ -1117,8 +1117,7 @@ Interface.definePanels(function() {
 			getAllOutlinerObjects().forEach(o => o.updateElement())
 		},
 		component: {
-			name: 'panel-keyframe',
-			components: {VuePrismEditor},
+			name: 'panel-outliner',
 			data() { return {
 				root: {
 					name: 'Model',
