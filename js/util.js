@@ -165,7 +165,7 @@ Math.lerp = function(a,b,m) {
 	return (m-a) / (b-a)
 }
 Math.isBetween = function(number, limit1, limit2) {
-   return (n - a) * (n - b) <= 0
+   return (number - limit1) * (number - limit2) <= 0
 }
 Math.epsilon = function(a, b, epsilon) {
 	return Math.abs(b - a) < epsilon

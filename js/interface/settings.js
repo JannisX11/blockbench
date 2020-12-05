@@ -26,6 +26,7 @@ class Setting {
 		this.category = data.category || 'general';
 		this.name = data.name || tl(`settings.${id}`);
 		this.description = data.description || tl(`settings.${id}.desc`);
+		this.launch_setting = data.launch_setting || false;
 
 		if (this.type == 'number') {
 			this.min = data.min;
@@ -192,6 +193,7 @@ const Settings = {
 		new Setting('backup_interval', {category: 'application', value: 10, type: 'number', condition: isApp});
 		new Setting('backup_retain', {category: 'application', value: 30, type: 'number', condition: isApp});
 		new Setting('automatic_updates', {category: 'application', value: true, condition: isApp});
+		new Setting('hardware_acceleration', {category: 'application', value: true, condition: isApp, launch_setting: true});
 		
 		//Export
 		new Setting('minifiedout', {category: 'export', value: false});
@@ -235,11 +237,15 @@ const Settings = {
 		}
 		localStorage.setItem('settings', JSON.stringify(settings_copy) )
 
-		localStorage.setItem('canvas_scenes', JSON.stringify(canvas_scenes))
-		localStorage.setItem('colors', JSON.stringify({
-			palette: ColorPanel.vue._data.palette,
-			history: ColorPanel.vue._data.history,
-		}))
+		if (window.canvas_scenes) {
+			localStorage.setItem('canvas_scenes', JSON.stringify(canvas_scenes))
+		}
+		if (window.ColorPanel) {
+			localStorage.setItem('colors', JSON.stringify({
+				palette: ColorPanel.vue._data.palette,
+				history: ColorPanel.vue._data.history,
+			}))
+		}
 	},
 	save() {
 		Settings.saveLocalStorages()
@@ -267,6 +273,9 @@ const Settings = {
 			var setting = settings[id];
 			if (setting.onChange && hasSettingChanged(id)) {
 				setting.onChange(setting.value);
+			}
+			if (isApp && setting.launch_setting && hasSettingChanged(id)) {
+				ipcRenderer.send('edit-launch-setting', {key: id, value: setting.value})
 			}
 		}
 		Blockbench.dispatchEvent('update_settings');

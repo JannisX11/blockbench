@@ -200,8 +200,22 @@ class Preview {
 				preserveDrawingBuffer: true
 			});
 		} catch (err) {
-			document.querySelector('#loading_error_detail').innerHTML = 'Error creating WebGL context. Try to update your graphics drivers.';
+			let error_element = document.querySelector('#loading_error_detail')
+			error_element.innerHTML = `Error creating WebGL context. Try to update your graphics drivers.`
+
 			if (isApp) {
+				window.restartWithoutHardwareAcceleration = function() {
+
+					ipcRenderer.send('edit-launch-setting', {key: 'hardware_acceleration', value: false});
+					settings.hardware_acceleration = false;
+					Settings.saveLocalStorages();
+
+					electron.app.relaunch()
+					electron.app.quit()
+				}
+				error_element.innerHTML = error_element.innerHTML +
+					'\nAlternatively, try to <a href onclick="restartWithoutHardwareAcceleration()">Restart without Hardware Acceleration.</a>'
+				
 				var {BrowserWindow} = require('electron').remote
 				new BrowserWindow({
 					icon:'icon.ico',
