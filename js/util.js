@@ -18,6 +18,11 @@ function compareVersions(string1/*new*/, string2/*old*/) {
 	}
 	return false;
 }
+/**
+ * 
+ * @param {*} condition Input condition. Can be undefined, a boolean, a function or a condition object
+ * @param {*} context 
+ */
 const Condition = function(condition, context) {
 	if (condition !== undefined && condition !== null && condition.condition !== undefined) {
 		condition = condition.condition
@@ -159,7 +164,7 @@ Math.roundTo = function(num, digits) {
 Math.lerp = function(a,b,m) {
 	return (m-a) / (b-a)
 }
-Math.isBetween = function(n, a, b) {
+Math.isBetween = function(number, limit1, limit2) {
    return (n - a) * (n - b) <= 0
 }
 Math.epsilon = function(a, b, epsilon) {

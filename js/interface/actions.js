@@ -45,13 +45,7 @@ class BarItem {
 		}
 	}
 	conditionMet() {
-		if (this.condition === undefined) {
-			return true;
-		} else if (typeof this.condition === 'function') {
-			return this.condition()
-		} else {
-			return !!this.condition
-		}
+		return Condition(this.condition)
 	}
 	addLabel(in_bar, action) {
 		if (!action || this instanceof BarItem) {
