@@ -464,15 +464,11 @@ class Animation {
 	}
 	propertiesDialog() {
 		let vue;
-		let vue_data = {
-			anim_time_update: this.anim_time_update,
-			blend_weight: this.blend_weight,
-		}
 		let dialog = new Dialog({
 			id: 'animation_properties',
 			title: this.name,
 			width: 640,
-			form_first: true,
+			part_order: ['form', 'component'],
 			form: {
 				name: {label: 'generic.name', value: this.name},
 				path: {
@@ -497,21 +493,26 @@ class Animation {
 				snapping: {label: 'menu.animation.snapping', type: 'number', value: this.snapping, step: 1, min: 10, max: 500},
 				line: '_',
 			},
-			lines: [
-				`<div id="animation_properties_vue">
-					<label>${tl('menu.animation.anim_time_update')}</label>
-					<div class="dialog_bar">
-						<vue-prism-editor class="molang_input dark_bordered" v-model="anim_time_update" language="molang" :line-numbers="false" />
-					</div>
-					<label>${tl('menu.animation.blend_weight')}</label>
-					<div class="dialog_bar">
-						<vue-prism-editor class="molang_input dark_bordered" v-model="blend_weight" language="molang" :line-numbers="false" />
-					</div>
-				</div>`
-			],
+			component: {
+				components: {VuePrismEditor},
+				data: {
+					anim_time_update: this.anim_time_update,
+					blend_weight: this.blend_weight,
+				},
+				template: 
+					`<div id="animation_properties_vue">
+						<label>{{ tl('menu.animation.anim_time_update') }}</label>
+						<div class="dialog_bar">
+							<vue-prism-editor class="molang_input dark_bordered" v-model="anim_time_update" language="molang" :line-numbers="false" />
+						</div>
+						<label>${tl('menu.animation.blend_weight')}</label>
+						<div class="dialog_bar">
+							<vue-prism-editor class="molang_input dark_bordered" v-model="blend_weight" language="molang" :line-numbers="false" />
+						</div>
+					</div>`
+			},
 			onConfirm: form_data => {
-				dialog.hide();
-				vue.$destroy();
+				dialog.hide().delete();
 				if (
 					form_data.loop != this.loop
 					|| form_data.name != this.name
@@ -536,16 +537,11 @@ class Animation {
 				}
 			},
 			onCancel() {
-				dialog.hide();
-				vue.$destroy();
+				dialog.hide().delete();
 			}
 		})
 		dialog.show();
-		vue = new Vue({
-			el: 'dialog#animation_properties #animation_properties_vue',
-
-			data: vue_data
-		})
+		vue = new Vue()
 	}
 }
 	Animation.all = [];

@@ -816,8 +816,6 @@ class Cube extends NonGroup {
 
 	new Property(Cube, 'string', 'name', {default: 'cube'})
 
-
-
 BARS.defineActions(function() {
 	new Action({
 		id: 'add_cube',

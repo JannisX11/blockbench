@@ -28,7 +28,9 @@
 	dialog {
 		width: 540px;
 		min-width: min(370px, 100%);
+		max-height: calc(100% - 40px);
 		height: auto;
+		flex-direction: column;
 		background-color: var(--color-ui);
 		color: inherit;
 		border: none;
@@ -37,6 +39,11 @@
 		right: unset;
 		bottom: unset;
 		display: none;
+	}
+	dialog > content {
+		display: block;
+		overflow-y: auto;
+		flex: 1 1 auto;
 	}
 
 	@media (max-device-width: 640px) {
@@ -89,6 +96,7 @@
 	.dialog_bar.button_bar {
 		text-align: right;
 		margin-top: 12px;
+		flex: 0 0 auto;
 	}
 	.dialog_bar button.large {
 		margin-bottom: 0;
@@ -145,6 +153,7 @@
 		height: 30px;
 		margin-bottom: 20px;
 		font-size: 1.12em;
+		flex: 0 0 auto;
 	}
 	.dialog.paddinged .dialog_handle {
 		margin-top: -24px;

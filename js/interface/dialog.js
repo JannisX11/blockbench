@@ -1,11 +1,11 @@
 (function() {
 
 function buildForm(dialog) {
-	let jq_dialog = $(dialog.object)
+	let dialog_content = $(dialog.object).find('.dialog_content')
 	for (var form_id in dialog.form) {
 		let data = dialog.form[form_id]
 		if (data === '_') {
-			jq_dialog.append('<hr />')
+			dialog_content.append('<hr />')
 			
 		} else {
 			var bar = $(`<div class="dialog_bar form_bar form_bar_${form_id}"></div>`)
@@ -201,7 +201,7 @@ function buildForm(dialog) {
 			if (data.readonly) {
 				bar.find('input').attr('readonly', 'readonly').removeClass('focusable_input')
 			}
-			jq_dialog.append(bar)
+			dialog_content.append(bar)
 			data.bar = bar;
 		}
 	}
@@ -235,19 +235,32 @@ function buildLines(dialog) {
 		}
 	})
 }
+function buildComponent(dialog) {
+	let dialog_content = $(dialog.object).find('.dialog_content')
+	let mount = $(`<div />`).appendTo(dialog_content)
+	dialog.component.name = 'dialog-content'
+	dialog.content_vue = new Vue(dialog.component).$mount(mount.get(0));
+}
+
 
 window.Dialog = class Dialog {
-	constructor(options) {
+	constructor(id, options) {
+		if (typeof id == 'object') {
+			options = id;
+			id = options.id;
+		}
 		this.id = options.id
 		this.title = options.title
+		
 		this.lines = options.lines
 		this.form = options.form
+		this.component = options.component
+		this.part_order = options.part_order || (options.form_first ? ['form', 'lines', 'component'] : ['lines', 'form', 'component'])
+
 		this.width = options.width
-		this.fadeTime = options.fadeTime
 		this.draggable = options.draggable
 		this.singleButton = options.singleButton
 		this.buttons = options.buttons
-		this.fadeTime = options.fadeTime||0;
 		this.form_first = options.form_first;
 		this.confirmIndex = options.confirmIndex||0;
 		this.cancelIndex = options.cancelIndex !== undefined ? options.cancelIndex : 1;
@@ -319,20 +332,21 @@ window.Dialog = class Dialog {
 		}
 		return result;
 	}
-	show() {
+	build() {
 		let scope = this;
-
-		var jq_dialog = $(`<dialog class="dialog paddinged" id="${this.id}"><div class="dialog_handle">${tl(this.title)}</div></dialog>`)
+		var jq_dialog = $(`<dialog class="dialog paddinged" id="${this.id}">
+				<div class="dialog_handle">${tl(this.title)}</div>
+				<content class="dialog_content"></content>
+			</dialog>`)
 		this.object = jq_dialog.get(0)
 		this.max_label_width = 0;
 
-		if (this.form_first) {
-			if (this.form) buildForm(this);
-			if (this.lines) buildLines(this);
-		} else {
-			if (this.lines) buildLines(this);
-			if (this.form) buildForm(this);
-		}
+
+		this.part_order.forEach(part => {
+			if (part == 'form' && this.form) buildForm(this);
+			if (part == 'lines' && this.lines) buildLines(this);
+			if (part == 'component' && this.component) buildComponent(this);
+		})
 
 		if (this.max_label_width) {
 			document.styleSheets[0].insertRule('.dialog#'+this.id+' .dialog_bar label {width: '+(this.max_label_width+8)+'px}')
@@ -393,32 +407,47 @@ window.Dialog = class Dialog {
 			jq_dialog.css('left', x+'px')
 			jq_dialog.css('position', 'absolute')
 		}
-		$('#plugin_dialog_wrapper').append(jq_dialog)
-		$('.dialog').hide(0)
-		$('#blackout').fadeIn(scope.fadeTime)
-		jq_dialog.fadeIn(scope.fadeTime)
-		jq_dialog.css('top', limitNumber($(window).height()/2-jq_dialog.height()/2, 0, 100)+'px')
-		if (this.width) {
-			jq_dialog.css('width', this.width+'px')
+		return this;
+	}
+	show() {
+		if (!this.object) {
+			this.build();
 		}
-		let first_focus = jq_dialog.find('.focusable_input').first()
-		if (first_focus) first_focus.focus()
 
-		open_dialog = scope.id
-		open_interface = scope
-		Prop.active_panel = 'dialog'
+		let jq_dialog = $(this.object);
+
+		$('#plugin_dialog_wrapper').append(jq_dialog);
+		$('.dialog').hide(0);
+		$('#blackout').fadeIn(0);
+		jq_dialog.show().css('display', 'flex');
+		jq_dialog.css('top', limitNumber($(window).height()/2-jq_dialog.height()/2, 0, 100)+'px');
+		if (this.width) {
+			jq_dialog.css('width', this.width+'px');
+		}
+		let first_focus = jq_dialog.find('.focusable_input').first();
+		if (first_focus) first_focus.focus();
+
+		open_dialog = this.id;
+		open_interface = this;
+		Prop.active_panel = 'dialog';
 		return this;
 	}
 	hide() {
-		$('#blackout').fadeOut(this.fadeTime)
-		$(this.object).fadeOut(this.fadeTime)
+		$('#blackout').fadeOut(0)
+		$(this.object).fadeOut(0)
 			.find('.tool').detach()
 		open_dialog = false;
 		open_interface = false;
 		Prop.active_panel = undefined
-		setTimeout(() => {
-			$(this.object).remove()
-		}, this.fadeTime)
+		$(this.object).detach()
+		return this;
+	}
+	delete() {
+		$(this.object).remove()
+		if (this.content_vue) {
+			this.content_vue.$destroy();
+			delete this.content_vue;
+		}
 	}
 	getFormBar(form_id) {
 		var bar = $(this.object).find(`.form_bar_${form_id}`)
