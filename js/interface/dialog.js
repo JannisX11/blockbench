@@ -13,6 +13,9 @@ function buildForm(dialog) {
 				bar.append(`<label class="name_space_left" for="${form_id}">${tl(data.label)+(data.nocolon?'':':')}</label>`)
 				dialog.max_label_width = Math.max(getStringWidth(tl(data.label)), dialog.max_label_width)
 			}
+			if (data.description) {
+				bar.attr('title', tl(data.description))
+			}
 			var input_element;
 
 			switch (data.type) {
