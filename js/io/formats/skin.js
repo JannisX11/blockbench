@@ -68,6 +68,8 @@ const codec = new Codec('skin_model', {
 		Project.texture_width = data.texturewidth || 64;
 		Project.texture_height = data.textureheight || 64;
 
+		Formats.skin.rotate_cubes = data.rotate_cubes == true;
+
 		var bones = {}
 		var template_cubes = {};
 
@@ -2343,6 +2345,7 @@ skin_presets.ghast = `{
 }`;
 skin_presets.goat = `{
 	"name": "goat",
+	"rotate_cubes": true,
 	"texturewidth": 64,
 	"textureheight": 64,
 	"bones": [
