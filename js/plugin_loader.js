@@ -104,7 +104,7 @@ class Plugin {
 	async download(first) {
 		var scope = this;
 		if (!isApp) {
-			return await scope.install()
+			return await scope.install(first)
 		}
 		return await new Promise((resolve, reject) => {
 			var file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
@@ -173,7 +173,7 @@ class Plugin {
 			}
 		})
 	}
-	loadFromURL(url, first) {
+	async loadFromURL(url, first) {
 		if (first) {
 			if (isApp) {
 				if (!confirm(tl('message.load_plugin_app'))) return;
@@ -188,16 +188,32 @@ class Plugin {
 		Plugins.all.safePush(this)
 
 		this.source = 'url';
-		$.getScript(url, () => {
-			if (window.plugin_data) {
-				this.id = (plugin_data && plugin_data.id)||pathToName(url)
-				this.extend(plugin_data)
-				this.bindGlobalData()
-			}
-			this.installed = true
-			this.path = url
-			this.remember()
-			Plugins.sort()
+		await new Promise((resolve, reject) => {
+			$.getScript(url, () => {
+				if (window.plugin_data) {
+					this.id = (plugin_data && plugin_data.id)||pathToName(url)
+					this.extend(plugin_data)
+					this.bindGlobalData()
+				}
+				this.installed = true
+				this.path = url
+				this.remember()
+				Plugins.sort()
+				// Save
+				if (isApp) {
+					var file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
+					https.get(url, (response) => {
+						response.pipe(file);
+						response.on('end', resolve)
+					}).on('error', reject);
+				} else {
+					resolve()
+				}
+			}).fail(() => {
+				if (isApp) {
+					this.install().then(resolve).catch(resolve)
+				}
+			})
 		})
 		return this;
 	}
@@ -230,8 +246,8 @@ class Plugin {
 
 		if (isApp && this.source !== 'store') {
 			Plugins.all.remove(this)
-
-		} else if (isApp) {
+		}
+		if (isApp && this.source != 'file') {
 			var filepath = Plugins.path + this.id + '.js'
 			if (fs.existsSync(filepath)) {
 				fs.unlink(filepath, (err) => {
@@ -355,6 +371,7 @@ async function loadInstalledPlugins() {
 		await Plugins.loading_promise;
 	}
 	const install_promises = [];
+	// Legacy Plugins Import
 	if (localStorage.getItem('installed_plugins')) {
 		var legacy_plugins = JSON.parse(localStorage.getItem('installed_plugins'))
 		if (legacy_plugins instanceof Array) {
@@ -379,6 +396,7 @@ async function loadInstalledPlugins() {
 		localStorage.removeItem('installed_plugins')
 	}
 	Plugins.installed.replace(Plugins.installed.filter(p => p !== null))
+
 	if (Plugins.json instanceof Object) {
 		//From Store
 		for (var id in Plugins.json) {
@@ -419,7 +437,7 @@ async function loadInstalledPlugins() {
 
 			} else if (plugin.source == 'url') {
 				var instance = new Plugin(plugin.id);
-				install_promises.push(instance.loadFromFile({path: plugin.path}, false));
+				install_promises.push(instance.loadFromURL(plugin.path, false));
 				loaded.push('URL: '+ plugin.id || plugin.path)
 
 			} else {

@@ -1420,12 +1420,14 @@ const BARS = {
 			new Action('reset_keybindings', {
 				icon: 'replay',
 				category: 'blockbench',
+				work_in_dialog: true,
 				click: function () {Keybinds.reset()}
 			})
 			new Action('open_dev_tools', {
 				name: 'menu.help.developer.dev_tools',
 				icon: 'fas.fa-tools',
 				condition: isApp,
+				work_in_dialog: true,
 				keybind: new Keybind({ctrl: true, shift: true, key: 'i'}),
 				work_in_dialog: true,
 				click: () => {
@@ -1439,6 +1441,7 @@ const BARS = {
 				icon: 'fullscreen',
 				category: 'view',
 				condition: isApp,
+				work_in_dialog: true,
 				keybind: new Keybind({key: 122}),
 				click: function () {
 					currentwindow.setFullScreen(!currentwindow.isFullScreen())
@@ -1447,16 +1450,19 @@ const BARS = {
 			new Action('zoom_in', {
 				icon: 'zoom_in',
 				category: 'view',
+				work_in_dialog: true,
 				click: function () {setZoomLevel('in')}
 			})
 			new Action('zoom_out', {
 				icon: 'zoom_out',
 				category: 'view',
+				work_in_dialog: true,
 				click: function () {setZoomLevel('out')}
 			})
 			new Action('zoom_reset', {
 				icon: 'zoom_out_map',
 				category: 'view',
+				work_in_dialog: true,
 				click: function () {setZoomLevel('reset')}
 			})
 
