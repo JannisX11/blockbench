@@ -914,7 +914,7 @@ BARS.defineActions(function() {
 				}
 			} else {
 				saveTextures()
-				if (Format.codec && Format.codec.compile) {
+				if (Format.codec && Format.codec.compile && Format.id != 'skin') {
 					Format.codec.export()
 				}
 			}
