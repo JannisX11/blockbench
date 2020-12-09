@@ -162,9 +162,6 @@
 		overflow-y: scroll;
 		flex-grow: 1;
 	}
-	#left_bar .list {
-		width: calc(100% - 2px);
-	}
 	.list::-webkit-scrollbar-track {
 		background: var(--color-back);
 	}

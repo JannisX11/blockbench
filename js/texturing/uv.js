@@ -676,7 +676,7 @@ class UVEditor {
 	//Set
 	setSize(input_size, cancel_load) {
 		var old_size = this.size;
-		var size = input_size - (input_size % 16);
+		var size = input_size;
 		this.size = size;
 		this.jquery.frame.width(this.inner_width);
 		this.jquery.viewport.width(size+8);
@@ -697,7 +697,7 @@ class UVEditor {
 	}
 	setZoom(zoom) {
 		var zoomed_size = this.size * zoom;
-		var size = zoomed_size - (zoomed_size % 16);
+		var size = zoomed_size;
 		this.zoom = size/this.size
 		this.updateSize();
 		this.displayFrame();
@@ -2265,7 +2265,7 @@ Interface.definePanels(function() {
 		},
 		onResize: function() {
 			let size = limitNumber($(this.node).width()-10, 64, 1200)
-			size = Math.floor(size/16)*16
+			size = Math.floor(size)
 			main_uv.setSize(size)
 		}
 	})

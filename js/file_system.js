@@ -136,9 +136,8 @@ Object.assign(Blockbench, {
 							}
 							errant = true;
 							return;
-						} finally {
-							load(read_files);
 						}
+						load(read_files);
 					}
 				})()
 				i++;

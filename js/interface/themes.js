@@ -21,7 +21,7 @@ const CustomTheme = {
 		accent_text: '#000006',
 		grid: '#495061',
 		wireframe: '#576f82',
-		checkerboard: '#2f3339',
+		checkerboard: '#1c2026',
 	},
 	setup() {
 
