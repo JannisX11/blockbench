@@ -23,7 +23,7 @@ Object.assign(Blockbench, {
 				options.startpath = StateMemory.dialog_paths[options.resource_id]
 			}
 
-			ElecDialogs.showOpenDialog(
+			let fileNames = electron.dialog.showOpenDialogSync(
 				currentwindow,
 				{
 					title: options.title ? options.title : '',
@@ -36,15 +36,14 @@ Object.assign(Blockbench, {
 					defaultPath: settings.streamer_mode.value
 						? app.getPath('desktop')
 						: options.startpath
-				},
-			function (fileNames) {
-				if (!fileNames) return;
-				if (options.resource_id) {
-					StateMemory.dialog_paths[options.resource_id] = PathModule.dirname(fileNames[0])
-					StateMemory.save('dialog_paths')
 				}
-				Blockbench.read(fileNames, options, cb)
-			})
+			)
+			if (!fileNames) return;
+			if (options.resource_id) {
+				StateMemory.dialog_paths[options.resource_id] = PathModule.dirname(fileNames[0])
+				StateMemory.save('dialog_paths')
+			}
+			Blockbench.read(fileNames, options, cb)
 		} else {
 			$('<input '+
 				'type="file'+
@@ -232,7 +231,7 @@ Object.assign(Blockbench, {
 					options.startpath += osfs + options.name + (options.extensions ? '.'+options.extensions[0] : '');
 				}
 			}
-			ElecDialogs.showSaveDialog(currentwindow, {
+			let file_path = electron.dialog.showSaveDialogSync(currentwindow, {
 				dontAddToRecent: true,
 				filters: [ {
 					name: options.type,
@@ -243,18 +242,17 @@ Object.assign(Blockbench, {
 					: ((options.startpath && options.startpath !== 'Unknown')
 						? options.startpath.replace(/\.\w+$/, '')
 						: options.name)
-			}, function (file_path) {
-				if (!file_path) return;
-				if (options.resource_id) {
-					StateMemory.dialog_paths[options.resource_id] = PathModule.dirname(file_path)
-					StateMemory.save('dialog_paths')
-				}
-				var extension = pathToExtension(file_path);
-				if (!extension && options.extensions && options.extensions[0]) {
-					file_path += '.'+options.extensions[0]
-				}
-				Blockbench.writeFile(file_path, options, cb)
 			})
+			if (!file_path) return;
+			if (options.resource_id) {
+				StateMemory.dialog_paths[options.resource_id] = PathModule.dirname(file_path)
+				StateMemory.save('dialog_paths')
+			}
+			var extension = pathToExtension(file_path);
+			if (!extension && options.extensions && options.extensions[0]) {
+				file_path += '.'+options.extensions[0]
+			}
+			Blockbench.writeFile(file_path, options, cb)
 		}
 	},
 	writeFile(file_path, options, cb) {
@@ -275,7 +273,10 @@ Object.assign(Blockbench, {
 				options.content = nativeImage.createFromPath(options.content).toPNG()
 			}
 		}
-		if (options.savetype === 'zip') {
+		if (options.custom_writer) {
+			options.custom_writer(options.content, file_path)
+
+		} else if (options.savetype === 'zip') {
 			var fileReader = new FileReader();
 			fileReader.onload = function(event) {
 				var buffer = Buffer.from(new Uint8Array(this.result));
@@ -285,8 +286,6 @@ Object.assign(Blockbench, {
 				}
 			};
 			fileReader.readAsArrayBuffer(options.content);
-		} else if (options.custom_writer) {
-			options.custom_writer(options.content, file_path)
 
 		} else {
 			//text or binary

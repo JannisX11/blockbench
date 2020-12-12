@@ -222,7 +222,7 @@ class Animation {
 
 				} catch (err) {
 					data = null;
-					var answer = ElecDialogs.showMessageBox(currentwindow, {
+					var answer = electron.dialog.showMessageBoxSync(currentwindow, {
 						type: 'warning',
 						buttons: [
 							tl('message.bedrock_overwrite_error.overwrite'),

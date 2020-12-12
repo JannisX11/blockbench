@@ -10,13 +10,14 @@ const https = require('https');
 const PathModule = require('path');
 
 const currentwindow = electron.getCurrentWindow();
-const ElecDialogs = {};
 var dialog_win	 = null,
 	latest_version = false,
 	recent_projects= undefined;
 
 app.setAppUserModelId('blockbench')
 
+// Deprecated
+const ElecDialogs = {};
 if (electron.dialog.showMessageBoxSync) {
 	ElecDialogs.showMessageBox = function(a, b, cb) {
 		if (!cb) cb = b;
@@ -109,6 +110,12 @@ window.confirm = function(message, title) {
 		buttons: [tl('dialog.ok'), tl('dialog.cancel')]
 	});
 	return index == 0;
+}
+window.alert = function(message, title) {
+	electron.dialog.showMessageBoxSync(electron.getCurrentWindow(), {
+		title: title || electron.app.name,
+		detail: message
+	});
 }
 
 //Recent Projects
@@ -273,7 +280,7 @@ function selectImageEditorFile(texture) {
 }
 //Default Pack
 function openDefaultTexturePath() {
-	var answer = ElecDialogs.showMessageBox(currentwindow, {
+	var answer = electron.dialog.showMessageBoxSync(currentwindow, {
 		type: 'info',
 		buttons: (
 			settings.default_path.value ? 	[tl('dialog.cancel'), tl('dialog.continue'), tl('generic.remove')]
@@ -376,7 +383,7 @@ function showSaveDialog(close) {
 		}
 	})
 	if ((window.Prop && Prop.project_saved === false && (elements.length > 0 || Group.all.length > 0)) || unsaved_textures) {
-		var answer = ElecDialogs.showMessageBox(currentwindow, {
+		var answer = electron.dialog.showMessageBoxSync(currentwindow, {
 			type: 'question',
 			buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
 			title: 'Blockbench',

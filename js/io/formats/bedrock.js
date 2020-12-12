@@ -690,7 +690,7 @@ var codec = new Codec('bedrock', {
 				i++;
 			}
 		} catch (err) {
-			var answer = ElecDialogs.showMessageBox(currentwindow, {
+			var answer = electron.dialog.showMessageBox(currentwindow, {
 				type: 'warning',
 				buttons: [
 					tl('message.bedrock_overwrite_error.overwrite'),

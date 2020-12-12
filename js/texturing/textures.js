@@ -631,7 +631,7 @@ class Texture {
 					require('child_process').spawn(settings.image_editor.value, [this.path])
 				}
 			} else {
-				var answer = ElecDialogs.showMessageBox(currentwindow, {
+				electron.dialog.showMessageBoxSync(currentwindow, {
 					type: 'info',
 					noLink: true,
 					title: tl('message.image_editor_missing.title'),
@@ -1298,21 +1298,20 @@ BARS.defineActions(function() {
 			path.splice(-1)
 			path = path.join(osfs)
 
-			ElecDialogs.showOpenDialog(currentwindow, {
+			let filePaths = electron.dialog.showOpenDialogSync(currentwindow, {
 				properties: ['openDirectory'],
 				defaultPath: path
-			}, function(filePaths) {
-				if (filePaths && filePaths.length) {
-					var new_path = filePaths[0]
-					Undo.initEdit({textures})
-					textures.forEach(function(t) {
-						if (typeof t.path === 'string' && t.path.includes(path)) {
-							t.fromPath(t.path.replace(path, new_path))
-						} 
-					})
-					Undo.finishEdit('folder_changed')
-				}
 			})
+			if (filePaths && filePaths.length) {
+				var new_path = filePaths[0]
+				Undo.initEdit({textures})
+				textures.forEach(function(t) {
+					if (typeof t.path === 'string' && t.path.includes(path)) {
+						t.fromPath(t.path.replace(path, new_path))
+					} 
+				})
+				Undo.finishEdit('folder_changed')
+			}
 		}
 	})
 	new Action('animated_textures', {

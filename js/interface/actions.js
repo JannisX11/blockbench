@@ -317,7 +317,7 @@ class Tool extends Action {
 		}
 		if (Prop.wireframe && !this.allowWireframe) {
 			Prop.wireframe = false
-			Canvas.updateAll()
+			Canvas.updateAllFaces()
 		}
 		if (this.toolbar && Toolbars[this.toolbar]) {
 			Toolbars[this.toolbar].toPlace('tool_options')

@@ -414,7 +414,7 @@ var codec = new Codec('bedrock_old', {
 				obj = JSON.parse(data.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, ''))
 			} catch (err) {
 				err = err+''
-				var answer = ElecDialogs.showMessageBox(currentwindow, {
+				var answer = electron.dialog.showMessageBoxSync(currentwindow, {
 					type: 'warning',
 					buttons: [
 						tl('message.bedrock_overwrite_error.backup_overwrite'),
