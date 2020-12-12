@@ -331,7 +331,13 @@ Plugin.register = function(id, data) {
 			Plugins.registered[id] = plugin;
 		}
 	}
-	if (!plugin) return;
+	if (!plugin) {
+		console.log(id, )
+		Blockbench.showMessageBox({
+			translateKey: 'load_plugin_failed',
+			message: tl('message.load_plugin_failed.message', [id])
+		})
+	};
 	plugin.extend(data)
 	if (data.icon) plugin.icon = Blockbench.getIconNode(data.icon)
 	if (plugin.isInstallable() == true) {

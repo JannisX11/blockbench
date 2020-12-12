@@ -52,6 +52,12 @@
 		}
 	}
 
+	dialog p > code {
+		background-color: var(--color-back);
+		border: 1px solid var(--color-border);
+		user-select: text;
+	}
+
 	.dialog {
 		position: fixed;
 		z-index: 20;

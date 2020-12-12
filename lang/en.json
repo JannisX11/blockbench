@@ -235,6 +235,10 @@
 	"message.import_palette.replace_palette": "Replace old palette",
 	"message.import_palette.threshold": "Merge Threshold",
 
+	
+	"message.load_plugin_failed.title": "Failed to load plugin",
+	"message.load_plugin_failed.message": "Ensure that the base file name of the plugin matches the plugin ID `%0`, as specified in Plugin.register().",
+
 	"message.invalid_session.title": "Invalid Session Token",
 	"message.invalid_session.message": "The session you are trying to join has expired or the token provided is invalid.",
 
