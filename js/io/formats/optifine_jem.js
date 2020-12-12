@@ -256,7 +256,7 @@ var codec = new Codec('optifine_entity', {
 			new Texture().fromPath(path).add(false)
 		}
 		this.dispatchEvent('parsed', {model});
-		Canvas.updateAll()
+		Canvas.updateAllBones()
 	}
 })
 

@@ -655,7 +655,7 @@ var codec = new Codec('modded_entity', {
 		})
 		Project.geometry_name = geo_name;
 		this.dispatchEvent('parsed', {model});
-		Canvas.updateAll();
+		Canvas.updateAllBones();
 	},
 	fileName() {
 		return getIdentifier();

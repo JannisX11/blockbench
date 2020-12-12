@@ -215,10 +215,6 @@ var codec = new Codec('project', {
 				iterate(model.outliner)
 			}
 			parseGroups(model.outliner)
-			if (model.meta.bone_rig) {
-				Canvas.updateAllBones()
-				Canvas.updateAllPositions()
-			}
 		}
 		if (model.animations) {
 			model.animations.forEach(ani => {
@@ -237,8 +233,9 @@ var codec = new Codec('project', {
 			Undo.history = model.history.slice()
 			Undo.index = model.history_index;
 		}
+		Canvas.updateAllBones()
+		Canvas.updateAllPositions()
 		this.dispatchEvent('parsed', {model})
-		Canvas.updateAll()
 	}
 })
 
