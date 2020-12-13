@@ -1515,10 +1515,10 @@ const Animator = {
 		}
 		return new_animations
 	},
-	buildFile(path) {
+	buildFile(path_filter, name_filter) {
 		var animations = {}
 		Animator.animations.forEach(function(a) {
-			if (a.path == path) {
+			if ((!path_filter || a.path == path_filter) && (!name_filter || !name_filter.length || name_filter.includes(a.name))) {
 				let ani_tag = a.compileBedrockAnimation();
 				animations[a.name] = ani_tag;
 			}
@@ -1716,6 +1716,41 @@ BARS.defineActions(function() {
 			}, function(files) {
 				Animator.importFile(files[0])
 			})
+		}
+	})
+	new Action('export_animation_file', {
+		icon: 'movie',
+		category: 'animation',
+		click: function () {
+			let form = {};
+			let keys = [];
+			let animations = Animation.all.slice()
+			if (Format.animation_files) animations.sort((a1, a2) => a1.path.hashCode() - a2.path.hashCode())
+			animations.forEach(animation => {
+				let key = animation.name;
+				keys.push(key)
+				form[key.hashCode()] = {label: key, type: 'checkbox', value: true};
+			})
+
+			let dialog = new Dialog({
+				id: 'animation_export',
+				title: 'dialog.animation_export.title',
+				form,
+				onConfirm(form_result) {
+					dialog.hide();
+					keys = keys.filter(key => form_result[key.hashCode()])
+					let content = Animator.buildFile(null, keys)
+
+					Blockbench.export({
+						resource_id: 'animation',
+						type: 'JSON Animation',
+						extensions: ['json'],
+						name: (Project.geometry_name||'model')+'.animation',
+						content: autoStringify(content),
+					})
+				}
+			})
+			dialog.show();
 		}
 	})
 	new Action('save_all_animations', {

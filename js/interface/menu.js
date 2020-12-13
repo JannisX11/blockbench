@@ -615,6 +615,7 @@ const MenuBar = {
 			'_',
 			'load_animation_file',
 			'save_all_animations',
+			'export_animation_file'
 		], () => Animator.open)
 
 

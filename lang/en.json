@@ -326,6 +326,7 @@
 	"dialog.entitylist.cubes": "Cubes",
 	
 	"dialog.animation_import.title": "Select Animations to Import",
+	"dialog.animation_export.title": "Select Animations to Export",
 
 	"dialog.create_texture.folder": "Folder",
 	"dialog.create_texture.template": "Template",
@@ -978,6 +979,8 @@
 	"action.play_animation.desc": "Preview the selected animation",
 	"action.save_all_animations": "Save All Animations",
 	"action.save_all_animations.desc": "Save all currently loaded animations",
+	"action.export_animation_file": "Export Animations...",
+	"action.export_animation_file.desc": "Export a selection of animations into a new file",
 	"action.slider_animation_length": "Animation Length",
 	"action.slider_animation_length.desc": "Change the length of the selected animation",
 	"action.slider_keyframe_time": "Timecode",
