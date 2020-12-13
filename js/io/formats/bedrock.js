@@ -899,6 +899,7 @@ var format = new ModelFormat({
 	bone_rig: true,
 	centered_grid: true,
 	animated_textures: true,
+	animation_files: true,
 	animation_mode: true,
 	locators: true,
 	codec,
