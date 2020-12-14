@@ -44,14 +44,14 @@ function buildForm(dialog) {
 						})
 					}
 					input_element.on('input', () => {
-						dialog.updateFormConditions()
+						dialog.updateFormValues()
 					})
 					break;
 				case 'textarea':
 					input_element = $(`<textarea class="focusable_input" style="height: ${data.height||150}px;" id="${form_id}"></textarea>`);
 					bar.append(input_element)
 					input_element.on('input', () => {
-						dialog.updateFormConditions()
+						dialog.updateFormValues()
 					})
 					break;
 
@@ -65,7 +65,7 @@ function buildForm(dialog) {
 					}
 					bar.append(el)
 					input_element.on('change', () => {
-						dialog.updateFormConditions()
+						dialog.updateFormValues()
 					})
 					break;
 
@@ -80,7 +80,7 @@ function buildForm(dialog) {
 						</div>`)
 						input_element = el.find(`input#${key}`);
 						input_element.on('change', () => {
-							dialog.updateFormConditions()
+							dialog.updateFormValues()
 						})
 					}
 					bar.append(el)
@@ -99,7 +99,7 @@ function buildForm(dialog) {
 						value="${data.value||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
 					bar.append(input_element)
 					input_element.on('change', () => {
-						dialog.updateFormConditions()
+						dialog.updateFormValues()
 					})
 					break;
 
@@ -112,7 +112,7 @@ function buildForm(dialog) {
 							value="${data.value ? data.value[i]: 0}" step="${data.step||1}" min="${data.min}" max="${data.max}">`)
 						group.append(input_element)
 						input_element.on('input', () => {
-							dialog.updateFormConditions()
+							dialog.updateFormValues()
 						})
 					}
 					break;
@@ -128,7 +128,7 @@ function buildForm(dialog) {
 						})
 					}
 					data.colorpicker.onChange = function() {
-						dialog.updateFormConditions()
+						dialog.updateFormValues()
 					};
 					bar.append(data.colorpicker.getNode())
 					break;
@@ -138,7 +138,7 @@ function buildForm(dialog) {
 					input_element = $(`<input type="checkbox" class="focusable_input" id="${form_id}"${data.value ? ' checked' : ''}>`)
 					bar.append(input_element)
 					input_element.on('change', () => {
-						dialog.updateFormConditions()
+						dialog.updateFormValues()
 					})
 					break;
 
@@ -169,7 +169,7 @@ function buildForm(dialog) {
 						function fileCB(files) {
 							data.value = files[0].path;
 							input.val(data.value);
-							dialog.updateFormConditions()
+							dialog.updateFormValues()
 						}
 						switch (data.type) {
 							case 'file':
@@ -207,7 +207,7 @@ function buildForm(dialog) {
 			data.bar = bar;
 		}
 	}
-	dialog.updateFormConditions()
+	dialog.updateFormValues(true)
 }
 function buildLines(dialog) {
 	let jq_dialog = $(dialog.object)
@@ -272,6 +272,7 @@ window.Dialog = class Dialog {
 		this.onConfirm = options.onConfirm ? options.onConfirm : this.hide
 		this.onCancel = options.onCancel ? options.onCancel : this.hide
 		this.onButton = options.onButton;
+		this.onFormChange = options.onFormChange;
 	
 		this.object;
 	}
@@ -281,7 +282,7 @@ window.Dialog = class Dialog {
 	cancel() {
 		$(this.object).find('.cancel_btn:not([disabled])').click()
 	}
-	updateFormConditions() {
+	updateFormValues(initial) {
 		let form_result = this.getFormResult();
 		for (var form_id in this.form) {
 			let data = this.form[form_id];
@@ -289,6 +290,9 @@ window.Dialog = class Dialog {
 				let show = Condition(data.condition, form_result);
 				data.bar.toggle(show);
 			}
+		}
+		if (!initial && typeof this.onFormChange == 'function') {
+			this.onFormChange(form_result)
 		}
 	}
 	getFormResult() {
@@ -412,6 +416,12 @@ window.Dialog = class Dialog {
 		return this;
 	}
 	show() {
+		// Hide previous
+		if (window.open_interface && typeof open_interface.hide == 'function') {
+			open_interface.hide();
+		}
+		$('.dialog').hide(0);
+
 		if (!this.object) {
 			this.build();
 		}
@@ -419,7 +429,6 @@ window.Dialog = class Dialog {
 		let jq_dialog = $(this.object);
 
 		$('#plugin_dialog_wrapper').append(jq_dialog);
-		$('.dialog').hide(0);
 		$('#blackout').fadeIn(0);
 		jq_dialog.show().css('display', 'flex');
 		jq_dialog.css('top', limitNumber($(window).height()/2-jq_dialog.height()/2, 0, 100)+'px');
