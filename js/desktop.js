@@ -11,8 +11,18 @@ const PathModule = require('path');
 
 const currentwindow = electron.getCurrentWindow();
 var dialog_win	 = null,
-	latest_version = false,
-	recent_projects= undefined;
+	latest_version = false;
+const recent_projects = (function() {
+	let array = [];
+	var raw = localStorage.getItem('recent_projects')
+	if (raw) {
+		try {
+			array = JSON.parse(raw).slice().reverse()
+		} catch (err) {}
+	}
+	return array
+})();
+
 
 app.setAppUserModelId('blockbench')
 
@@ -120,16 +130,6 @@ window.alert = function(message, title) {
 
 //Recent Projects
 function updateRecentProjects() {
-	if (recent_projects === undefined) {
-		//Setup
-		recent_projects = []
-		var raw = localStorage.getItem('recent_projects')
-		if (raw) {
-			try {
-				recent_projects = JSON.parse(raw).slice().reverse()
-			} catch (err) {}
-		}
-	}
 	//Set Local Storage
 	localStorage.setItem('recent_projects', JSON.stringify(recent_projects.slice().reverse()))
 }

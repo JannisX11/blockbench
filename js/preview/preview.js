@@ -492,6 +492,7 @@ class Preview {
 			this.camera.updateProjectionMatrix()
 		}
 		if (!this.isOrtho) {
+			// should be FOV and should be an option on saving
 			this.camera.setFocalLength(preset.focal_length||45);
 		}
 		this.setLockedAngle(preset.locked_angle)

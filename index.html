@@ -771,9 +771,9 @@
 
 	</div>
 	<div id="center">
-		<div id="preview">
+		<div id="preview" class="center_window">
 		</div>
-		<div id="timeline">
+		<div id="timeline" class="center_window">
 			<div class="toolbar_wrapper timeline"></div>
 			<div id="timeline_vue">
 				<div id="timeline_header">
@@ -877,60 +877,12 @@
 				</div>
 			</div>
 		</div>
-		<div id="start_screen">
-			<content>
-				<section id="start-files">
-					<left>
-						<h2 class="tl">mode.start.new</h2>
-						<div class="bar next_to_title" id="uv_title_bar">
-							<div class="tool" onclick="Blockbench.openLink('https://blockbench.net/quickstart/')">
-								<div class="tooltip tl">menu.help.quickstart</div>
-								<i class="fas fa-question-circle"></i>
-							</div>
-						</div>
-						<ul>
-							<li v-for="format in formats" v-if="format.show_on_start_screen" v-on:click="format.new()">
-								<span class="icon_wrapper f_left" v-html="Blockbench.getIconNode(format.icon).outerHTML"></span>
-								<h3>{{ format.name }}</h3>
-								<p>{{ format.description }}</p>
-							</li>
-						</ul>
-					</left>
-					<right>
-						<h2 class="tl">mode.start.recent</h2>
-						<div id="start_screen_list_type" v-if="isApp && !redact_names">
-							<li class="tool" v-bind:class="{selected: list_type == 'list'}" v-on:click="setListType('list')">
-								<i class="material-icons">list</i>
-							</li>
-							<li class="tool" v-bind:class="{selected: list_type == 'grid'}" v-on:click="setListType('grid')">
-								<i class="material-icons">view_module</i>
-							</li>
-						</div>
-						<div v-if="redact_names">{{ '['+tl('generic.redacted')+']' }}</div>
-						<ul v-else-if="list_type == 'list'">
-							<li v-on:click="openProject(project, $event)" v-for="project in recent" v-key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project">
-								<span class="icon_wrapper" v-html="Blockbench.getIconNode(project.icon).outerHTML"></span>
-								<span class="recent_project_name">{{ redact_names ? `[${tl('generic.redacted')}]` : project.name }}</span>
-								<span class="recent_project_date">{{ getDate(project) }}</span>
-							</li>
-							<div v-if="recent.length == 0">{{ tl('mode.start.no_recents') }}</div>
-						</ul>
-						<ul :class="{redact: redact_names}" v-else>
-							<li v-on:click="openProject(project, $event)" v-for="project in recent" v-key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project thumbnail">
-								<div class="thumbnail_image" :style="{'background-image': getThumbnail(project.path)}"></div>
-								<span class="recent_project_name">{{ redact_names ? `[${tl('generic.redacted')}]` : project.name }}</span>
-								<span class="icon_wrapper" v-html="Blockbench.getIconNode(project.icon).outerHTML"></span>
-							</li>
-							<div v-if="recent.length == 0">{{ tl('mode.start.no_recents') }}</div>
-						</ul>
-						<button class="tl" style="margin-top: 20px;" onclick="BarItems.open_model.trigger()">action.open_model</button>
-					</right>
-				</section>
-			</content>
-		</div>
+
 		<div id="mobile_panel_overlay" hidden></div>
 	</div>
 	<div id="status_bar" @contextmenu="Interface.status_bar.menu.show(event)">
+
+		<div class="sidebar_toggle_button" onclick="Interface.toggleSidebar('left')"></div>
 		
 		<div class="f_left" v-if="settings.streamer_mode.value"
 			style="background-color: var(--color-stream); color: var(--color-light);"
@@ -960,6 +912,9 @@
 		<div class="f_right" v-if="Prop.session">
 			{{ Prop.connections }} Clients
 		</div>
+
+		<div class="sidebar_toggle_button" onclick="Interface.toggleSidebar('right')"></div>
+
 		<div id="status_progress" v-if="Prop.progress" v-bind:style="{width: Prop.progress*100+'%'}"></div>
 	</div>
 

@@ -387,8 +387,12 @@
 
 
 /*Start Screen*/
-	#start_screen {
+	#mode_screen_start {
 		flex-grow: 1;
+	}
+	#start_screen {
+		height: 100%;
+		width: 100%;
 	}
 	#start_screen h3 {
 		margin: 0;
