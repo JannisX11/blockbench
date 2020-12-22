@@ -191,7 +191,7 @@ var codec = new Codec('modded_entity', {
 			let subgroups = [];
 			let group_i = all_groups.indexOf(group);
 			group.children.forEachReverse(cube => {
-				if (cube instanceof Cube == false) return;
+				if (cube instanceof Cube == false || !cube.export) return;
 				if (!cube.rotation.allEqual(0)) {
 					let sub = subgroups.find(s => {
 						if (!s.rotation.equals(cube.rotation)) return false;
