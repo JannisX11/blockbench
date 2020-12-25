@@ -15,6 +15,7 @@
 		height: 30px;
 		width: 30px;
 		padding: 4px;
+		cursor: pointer;
 	}
 	.dialog_close_button:hover {
 		color: var(--color-light);
