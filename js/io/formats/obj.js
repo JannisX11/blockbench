@@ -21,7 +21,12 @@ var codec = new Codec('obj', {
 		if (!options) options = 0;
 
 		var old_scene_position = new THREE.Vector3().copy(scene.position);
-		scene.position.set(0,0,0)
+		scene.position.set(0,0,0);
+
+		/**
+		Based on: three.js obj exporter, MIT license
+		https://github.com/mrdoob/three.js/blob/dev/examples/js/exporters/OBJExporter.js
+		*/
 
 		var output = '# Made in Blockbench '+appVersion+'\n';
 		var materials = {};
