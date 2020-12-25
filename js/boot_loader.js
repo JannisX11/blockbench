@@ -60,7 +60,6 @@ if (isApp) {
 
 
 if (!isApp) {
-	/*
 	async function registerSW() {
 		if ('serviceWorker' in navigator) {
 			try {
@@ -71,7 +70,6 @@ if (!isApp) {
 		}
 	}
 	registerSW();
-	*/
 }
 
 Blockbench.on('before_closing', (event) => {

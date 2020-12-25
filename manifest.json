@@ -13,9 +13,10 @@
 			"sizes": "1024x1024"
 		}
 	],
-	"start_url": "/index.html",
+	"start_url": "",
 	"background_color": "#21252b",
 	"theme_color": "#3e90ff",
 	"display": "standalone",
+	"display_override": ["tabbed", "minimal-ui"],
 	"orientation": "portrait"
 }

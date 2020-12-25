@@ -1,13 +1,30 @@
-const cacheName = 'blockbench_3.2.0';
+const cacheName = 'blockbench_3.8.0';
 const staticAssets = [
-	'./',
 	'./index.html',
-	'./css/',
-	'./js',
-	'./lib',
-	'./font',
-	'./lang',
-	'./assets',
+	'./lang/de.json',
+	'./lang/en.json',
+	'./lang/es.json',
+	'./lang/fr.json',
+	'./lang/it.json',
+	'./lang/ja.json',
+	'./lang/ko.json',
+	'./lang/nl.json',
+	'./lang/pl.json',
+	'./lang/pt.json',
+	'./lang/ru.json',
+	'./lang/sv.json',
+	'./lang/zh.json',
+	'./assets/armor_stand.png',
+	'./assets/brush.png',
+	'./assets/hud.png',
+	'./assets/inventory_full.png',
+	'./assets/inventory_nine.png',
+	'./assets/item_frame.png',
+	'./assets/logo_cutout.svg',
+	'./assets/missing.png',
+	'./assets/north.png',
+	'./assets/player_skin.png',
+	'./assets/zombie.png',
 	'./favicon.png',
 	'./manifest.json',
 ];
@@ -26,7 +43,7 @@ self.addEventListener('fetch', async (event) => {
 	var req = event.request;
 	var url = new URL(req.url);
 
-	if (url.origin == 'location.origin') {
+	if (url.origin == location.origin) {
 		event.respondWith(cacheFirst(req));
 	} else {
 		event.respondWith(networkAndCache(req));
