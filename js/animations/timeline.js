@@ -181,10 +181,12 @@ const Timeline = {
 		Timeline.revealTime(seconds)
 	},
 	revealTime(time) {
-		var scroll = $('#timeline_body').scrollLeft()
-		var playhead = time * Timeline.vue._data.size + 8
+		var scroll = $('#timeline_body').scrollLeft();
+		var playhead = time * Timeline.vue._data.size + 8;
 		if (playhead < scroll || playhead > scroll + $('#timeline_body').width() - Timeline.vue._data.head_width) {
-			$('#timeline_body').scrollLeft(playhead-16)
+			$('#timeline_body').scrollLeft(playhead-16);
+		} else if (time == 0) {
+			$('#timeline_body').scrollLeft(0);
 		}
 	},
 	setTimecode(time) {

@@ -9,7 +9,7 @@ class Animation {
 		this.anim_time_update = '';
 		this.blend_weight = '';
 		this.length = 0;
-		this.snapping = settings.animation_snap.value;
+		this.snapping = Math.clamp(settings.animation_snap.value, 10, 500);
 		this.animators = {};
 		this.markers = [];
 		for (var key in Animation.properties) {
@@ -30,6 +30,7 @@ class Animation {
 		Merge.string(this, data, 'blend_weight')
 		Merge.number(this, data, 'length')
 		Merge.number(this, data, 'snapping')
+		this.snapping = Math.clamp(this.snapping, 10, 500);
 		if (typeof data.length == 'number') {
 			this.setLength(this.length)
 		}
@@ -520,19 +521,22 @@ class Animation {
 					|| form_data.loop != this.loop
 					|| form_data.override != this.override
 					|| form_data.snapping != this.snapping
-					|| vue_data.anim_time_update != this.anim_time_update
-					|| vue_data.blend_weight != this.blend_weight
+					|| dialog.component.data.anim_time_update != this.anim_time_update
+					|| dialog.component.data.blend_weight != this.blend_weight
 				) {
 					Undo.initEdit({animations: [this]});
-					this.loop = form_data.loop;
-					this.name = form_data.name;
+
+					this.extend({
+						loop: form_data.loop,
+						name: form_data.name,
+						override: form_data.override,
+						snapping: form_data.snapping,
+						anim_time_update: dialog.component.data.anim_time_update.trim().replace(/\n/g, ''),
+						blend_weight: dialog.component.data.blend_weight.trim().replace(/\n/g, ''),
+					})
 					this.createUniqueName();
 					if (isApp) this.path = form_data.path;
-					this.loop = form_data.loop;
-					this.override = form_data.override;
-					this.snapping = Math.clamp(form_data.snapping, 10, 500);
-					this.anim_time_update = vue_data.anim_time_update.trim().replace(/\n/g, '');
-					this.blend_weight = vue_data.blend_weight.trim().replace(/\n/g, '');
+
 					Undo.finishEdit('edit animation properties');
 				}
 			},
