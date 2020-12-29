@@ -805,11 +805,11 @@ class Cube extends NonGroup {
 		'delete'
 	]);
 	Cube.prototype.buttons = [
-		Outliner.buttons.visibility,
-		Outliner.buttons.locked,
-		Outliner.buttons.export,
+		Outliner.buttons.autouv,
 		Outliner.buttons.shading,
-		Outliner.buttons.autouv
+		Outliner.buttons.export,
+		Outliner.buttons.locked,
+		Outliner.buttons.visibility,
 	];
 	Cube.selected = [];
 	Cube.all = [];

@@ -80,8 +80,8 @@ class Locator extends NonGroup {
 	Locator.prototype.movable = true;
 	Locator.prototype.visibility = true;
 	Locator.prototype.buttons = [
+		Outliner.buttons.export,
 		Outliner.buttons.locked,
-		Outliner.buttons.export
 	];
 	Locator.prototype.needsUniqueName = true;
 	Locator.prototype.menu = new Menu([

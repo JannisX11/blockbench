@@ -130,8 +130,9 @@
 		margin-bottom: 180px;
 	}
 	.outliner_node .outliner_object i, .outliner_object i[class^="icon-"] {
+		flex: 0 0 20px;
 		text-align: center;
-		width: 21px;
+		padding-top: 4px;
 	}
 	.outliner_node .outliner_object i.icon_off {
 		opacity: 0.56;
@@ -142,6 +143,7 @@
 		float: left;
 	}
 	.outliner_object {
+		display: flex;
 		width: 100%;
 		padding: 2px;
 		box-sizing: border-box;
@@ -213,20 +215,18 @@
 	#cubes_list > div > ul > li.outliner_node.parent_li {
 		border: none !important;
 	}
-	.outliner_object input.cube_name {
-		width: calc(100% - 84px);
+	.outliner_object > input {
+		width: 0;
+		flex: 1 0 0;
 		padding-right: 5px;
 		padding-left: 5px;
 		pointer-events: none;
 	}
-	.outliner_object input.cube_name.renaming {
+	.outliner_object > input.renaming {
 		pointer-events: auto;
 	}
-	.outliner_object a {
-		width: 21px;
-		display: inline-block;
+	i.outliner_toggle {
 		font-size: 15px;
-		float: right;
 	}
 	i.icon-open-state {
 	    opacity: 0.7;
@@ -265,7 +265,7 @@
 		background-color: var(--color-selected);
 		box-shadow: 0 0.4px 3.5px rgba(0, 0, 0, 0.6);
 	}
-	body > .outliner_object a {
+	body > .outliner_object .outliner_toggle {
 		display: none;
 	}
 	div#outliner_stats {
@@ -273,12 +273,6 @@
 		margin-right: 16px;
 		margin-top: 4px;
 		font-weight: normal;
-	}
-	#outliner.more_options input.cube_name {
-		width: calc(100% - 148px);
-	}
-	#outliner:not(.more_options) a.advanced_option {
-		display: none;
 	}
 	#particle_label {
 		float: right;

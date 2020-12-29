@@ -442,11 +442,11 @@ class Group extends OutlinerElement {
 	Group.prototype.isParent = true;
 	Group.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
 	Group.prototype.buttons = [
-		Outliner.buttons.visibility,
-		Outliner.buttons.locked,
-		Outliner.buttons.export,
+		Outliner.buttons.autouv,
 		Outliner.buttons.shading,
-		Outliner.buttons.autouv
+		Outliner.buttons.export,
+		Outliner.buttons.locked,
+		Outliner.buttons.visibility,
 	];
 	Group.prototype.needsUniqueName = () => Format.bone_rig;
 	Group.prototype.menu = new Menu([

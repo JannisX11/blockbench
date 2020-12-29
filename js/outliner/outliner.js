@@ -913,14 +913,11 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 115}),
 		click: function () {
 			
-			var state = !$('.panel#outliner').hasClass('more_options')
-			if (state) {
-				$('.panel#outliner').addClass('more_options')
-				BarItems.outliner_toggle.setIcon('dns')
-			} else {
-				$('.panel#outliner').removeClass('more_options')
-				BarItems.outliner_toggle.setIcon('view_stream')
-			}
+			Outliner.vue._data.show_advanced_toggles = !Outliner.vue._data.show_advanced_toggles;
+			BarItems.outliner_toggle.setIcon(Outliner.vue._data.show_advanced_toggles
+				? 'dns'
+				: 'view_stream'
+			)
 		}
 	})
 	new BarText('cube_counter', {
@@ -1127,7 +1124,8 @@ Interface.definePanels(function() {
 					onOpened: function () {},
 					select: function() {},
 					children: Outliner.root
-				}
+				},
+				show_advanced_toggles: false
 			}},
 			methods: {
 				openMenu(event) {
@@ -1138,7 +1136,7 @@ Interface.definePanels(function() {
 				<div>
 					<div class="toolbar_wrapper outliner"></div>
 					<ul id="cubes_list" class="list" @contextmenu.stop.prevent="openMenu($event)">
-						<vue-tree :root="root"></vue-tree>
+						<vue-tree :root="root" :show_advanced_toggles="show_advanced_toggles"></vue-tree>
 					</ul>
 				</div>
 			`

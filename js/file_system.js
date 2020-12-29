@@ -111,7 +111,6 @@ Object.assign(Blockbench, {
 						}
 					} else /*text*/ {
 						var data;
-						console.log(file)
 						try {
 							data = fs.readFileSync(file, readtype == 'text' ? 'utf8' : undefined);
 						} catch(err) {
