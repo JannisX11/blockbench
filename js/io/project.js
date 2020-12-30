@@ -126,6 +126,7 @@ new Property(ModelProject, 'vector', 'visible_box', {
 });
 new Property(ModelProject, 'boolean', 'layered_textures', {
 	label: 'dialog.project.layered_textures',
+	description: 'dialog.project.layered_textures.desc',
 	condition() {return Format.single_texture}
 });
 
@@ -172,6 +173,7 @@ BARS.defineActions(function() {
 
 				let entry = form[property.name] = {
 					label: property.label,
+					description: property.description,
 					value: Project[property.name],
 					type: property.type
 				}
