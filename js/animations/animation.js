@@ -1841,7 +1841,7 @@ Interface.definePanels(function() {
 			template: `
 				<div>
 					<div class="toolbar_wrapper animations"></div>
-					<ul id="animations_list" class="list">
+					<ul id="animations_list" class="list mobile_scrollbar">
 						<li v-for="(file, key) in files" :key="key" class="animation_file" @contextmenu.prevent.stop="showFileContextMenu($event, key)">
 							<div class="animation_file_head" v-on:click.stop="toggle(key)">
 								<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
