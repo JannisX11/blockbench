@@ -500,38 +500,6 @@ function getAllGroups() {
 	iterate(Outliner.root)
 	return ta;
 }
-function addGroup() {
-	Undo.initEdit({outliner: true});
-	var add_group = Group.selected
-	if (!add_group && selected.length) {
-		add_group = Cube.selected.last()
-	}
-	var base_group = new Group({
-		origin: add_group ? add_group.origin : undefined
-	})
-	base_group.addTo(add_group)
-	base_group.isOpen = true
-
-	if (Format.bone_rig) {
-		base_group.createUniqueName()
-	}
-	if (add_group instanceof NonGroup && selected.length > 1) {
-		selected.forEach(function(s, i) {
-			s.addTo(base_group)
-		})
-	}
-	base_group.init().select()
-	Undo.finishEdit('add_group');
-	loadOutlinerDraggable()
-	Vue.nextTick(function() {
-		updateSelection()
-		if (settings.create_rename.value) {
-			base_group.rename()
-		}
-		base_group.showInOutliner()
-		Blockbench.dispatchEvent( 'add_group', {object: base_group} )
-	})
-}
 window.__defineGetter__('selected_group', () => {
 	console.warn('selected_group is deprecated. Please use Group.selected instead.')
 	return Group.selected
@@ -545,7 +513,36 @@ BARS.defineActions(function() {
 		condition: () => Modes.edit,
 		keybind: new Keybind({key: 71, ctrl: true}),
 		click: function () {
-			addGroup();
+			Undo.initEdit({outliner: true});
+			var add_group = Group.selected
+			if (!add_group && selected.length) {
+				add_group = Cube.selected.last()
+			}
+			var base_group = new Group({
+				origin: add_group ? add_group.origin : undefined
+			})
+			base_group.addTo(add_group)
+			base_group.isOpen = true
+		
+			if (Format.bone_rig) {
+				base_group.createUniqueName()
+			}
+			if (add_group instanceof NonGroup && selected.length > 1) {
+				selected.forEach(function(s, i) {
+					s.addTo(base_group)
+				})
+			}
+			base_group.init().select()
+			Undo.finishEdit('add_group');
+			loadOutlinerDraggable()
+			Vue.nextTick(function() {
+				updateSelection()
+				if (settings.create_rename.value) {
+					base_group.rename()
+				}
+				base_group.showInOutliner()
+				Blockbench.dispatchEvent( 'add_group', {object: base_group} )
+			})
 		}
 	})
 	new Action({

@@ -857,7 +857,6 @@ BARS.defineActions(function() {
 			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 
 			Vue.nextTick(function() {
-				updateSelection()
 				if (settings.create_rename.value) {
 					base_cube.rename()
 				}

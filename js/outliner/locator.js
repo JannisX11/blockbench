@@ -107,6 +107,11 @@ BARS.defineActions(function() {
 			locator.select().createUniqueName();
 			objs.push(locator);
 			Undo.finishEdit('add locator');
+			Vue.nextTick(function() {
+				if (settings.create_rename.value) {
+					locator.rename();
+				}
+			})
 		}
 	})
 })
