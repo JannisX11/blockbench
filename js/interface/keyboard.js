@@ -412,7 +412,8 @@ $(document).on('keydown mousedown', function(e) {
 
 			if (next.length) {
 				if (next.hasClass('cube_name')) {
-					var target = Outliner.root.findRecursive('uuid', next.parent().parent().attr('id'))
+					let uuid = next.parent().parent().attr('id');
+					var target = OutlinerElement.uuids[uuid];
 					if (target) {
 						stopRenameOutliner();
 						setTimeout(() => {

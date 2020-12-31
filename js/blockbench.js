@@ -140,7 +140,7 @@ function updateProjectResolution() {
 }
 
 //Selections
-function updateSelection() {
+function updateSelection(options = {}) {
 	elements.forEach(obj => {
 		if (selected.includes(obj) && !obj.selected && !obj.locked) {
 			obj.selectLow()
@@ -190,7 +190,7 @@ function updateSelection() {
 
 	BarItems.cube_counter.update();
 	updateNslideValues();
-	updateCubeHighlights();
+	if (settings.highlight_cubes.value) updateCubeHighlights();
 	Canvas.updateOrigin();
 	Transformer.updateSelection();
 	Transformer.update();

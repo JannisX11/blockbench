@@ -275,6 +275,7 @@ class Cube extends NonGroup {
 				}
 				delete Canvas.meshes[this.uuid]
 				mesh.geometry.dispose()
+				if (mesh.outline && mesh.outline.geometry) mesh.outline.geometry.dispose()
 			}
 		}
 		delete Canvas.meshes[this.uuid]

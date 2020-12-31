@@ -51,7 +51,12 @@ class ModelProject {
 		}
 		Outliner.elements.empty();
 		Outliner.root.purge();
-		Canvas.materials;
+		for (var key in Canvas.materials) {
+			delete Canvas.materials[key];
+		}
+		for (var key in Canvas.bones) {
+			delete Canvas.bones[key];
+		}
 		selected.empty();
 		Group.all.empty();
 		Group.selected = undefined;

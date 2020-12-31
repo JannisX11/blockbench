@@ -650,7 +650,7 @@ class Preview {
 	mousemove(event) {
 		if (Settings.get('highlight_cubes')) {
 			var data = this.raycast(event);
-			updateCubeHighlights(data && data.cube);
+			if (settings.highlight_cubes.value) updateCubeHighlights(data && data.cube);
 		}
 	}
 	mouseup(event) {

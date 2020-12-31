@@ -538,6 +538,7 @@ class Texture {
 			Texture.selected = undefined;
 		}
 		textures.splice(textures.indexOf(this), 1)
+		delete Canvas.materials[this.uuid];
 		if (!no_update) {
 			Canvas.updateAllFaces()
 			TextureAnimator.updateButton()

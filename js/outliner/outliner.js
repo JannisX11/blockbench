@@ -598,7 +598,7 @@ function parseGroups(array, importGroup, startIndex) {
 				if (typeof array[i] === 'number') {
 					var obj = elements[array[i] + (startIndex ? startIndex : 0) ]
 				} else {
-					var obj = elements.findRecursive('uuid', array[i])
+					var obj = OutlinerElement.uuids[array[i]];
 				}
 				if (obj) {
 					obj.removeFromParent()

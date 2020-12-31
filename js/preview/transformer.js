@@ -859,7 +859,7 @@
 						return;
 					}
 					this.rotation_object = rotation_object;
-					if (Format.bone_rig && !Modes.animate) {
+					if (_has_groups && Format.bone_rig && !Modes.animate) {
 						Canvas.updateAllBones()
 					}
 					//Center
@@ -1207,7 +1207,7 @@
 
 							moveElementsInSpace(difference, axisNumber)
 
-							scope.updateSelection()
+							updateSelection()
 						}
 						previousValue = point[axis]
 						scope.hasChanged = true

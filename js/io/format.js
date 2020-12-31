@@ -107,7 +107,7 @@ class ModelFormat {
 	}
 	convertTo() {
 
-		Undo.history.length = 0;
+		Undo.history.empty();
 		Undo.index = 0;
 		ModelMeta.export_path = '';
 
