@@ -19,7 +19,7 @@ const CustomTheme = {
 		text: '#cacad4',
 		light: '#f4f3ff',
 		accent_text: '#000006',
-		subtle_text: '#7f8189',
+		subtle_text: '#848891',
 		grid: '#495061',
 		wireframe: '#576f82',
 		checkerboard: '#1c2026',

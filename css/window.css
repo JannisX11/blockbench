@@ -600,8 +600,12 @@
 	#start-files left span.icon_wrapper {
 		height: 22px;
 	}
+	#start-files left li p {
+		font-size: 0.94em;
+		color: var(--color-subtle_text);
+	}
 	#start-files left i {
-		font-size: 19pt;
+		font-size: 18pt;
 		height: 22px;
 		margin: 2px 8px 0px 0;
 		display: inline-block;

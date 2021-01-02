@@ -63,7 +63,7 @@
 
 	"format.free": "Generic Model",
 	"format.free.desc": "Model without restrictions for game engines, rendering etc.",
-	"format.skin": "Skin",
+	"format.skin": "Minecraft Skin",
 	"format.skin.desc": "Edit player and entity skins",
 	"format.java_block": "Java Block/Item",
 	"format.java_block.desc": "Block model for Java Edition. Size and rotations are limited.",

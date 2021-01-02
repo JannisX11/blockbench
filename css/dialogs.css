@@ -275,11 +275,10 @@
 	#settingslist .setting_name {
 		font-size: 1.1em;
 		height: 24px;
-		color: var(--color-light);
 	}
 	#settingslist .setting_description {
-		font-size: 0.9em;
-		color: var(--color-text);
+		font-size: 0.94em;
+		color: var(--color-subtle_text);
 	}
 	#settingslist input[type=number] {
 		height: 28px;
@@ -336,7 +335,7 @@
 		height: 30px;
 		background-color: var(--color-button);
 		border: 1px solid var(--color-border);
-		font-size: 0.9em;
+		font-size: 0.94em;
 		overflow: hidden;
 		white-space: nowrap;
 		display: inline-block;
@@ -382,7 +381,8 @@
 	}
 	.color_field p {
 		margin: 0;
-		font-size: 0.9em;
+		font-size: 0.94em;
+		color: var(--color-subtle_text);
 	}
 	.color_field h4 {
 		margin: 0;
@@ -710,7 +710,7 @@
 		clear: both;
 	}
 	#plugin_list .description {
-		font-size: 0.9em;
+		font-size: 0.94em;
 		max-height: 48px;
 		margin-right: 12px;
 	}
