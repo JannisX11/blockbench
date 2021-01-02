@@ -135,7 +135,7 @@
 		padding-top: 4px;
 	}
 	.outliner_node .outliner_object i.icon_off {
-		opacity: 0.56;
+		color: var(--color-subtle_text);
 	}
 	.outliner_opener_placeholder {
 		width: 18px;
@@ -319,10 +319,10 @@
 		color: var(--color-light);
 	}
 	.texture > i:not(.clickable) {
-		opacity: 0.5;
+		color: var(--color-subtle_text);
 	}
 	.texture i.icon_off {
-		opacity: 0.56;
+		color: var(--color-subtle_text);
 	}
 	div.texture_icon_wrapper {
 		height: 48px;
@@ -365,7 +365,7 @@
 		height: 20px;
 		overflow: hidden;
 		font-size: 0.9em;
-		opacity: 0.6;
+		color: var(--color-subtle_text);
 		cursor: default;
 	}
 	.texture_error {
@@ -460,8 +460,7 @@
 		color: var(--color-light);
 	}
 	.in_list_button.unclickable {
-		opacity: 0.5;
-		color: var(--color-text) !important;
+		color: var(--color-subtle_text) !important;
 		pointer-events: none;
 	}
 
@@ -1105,7 +1104,7 @@
 		user-select: text;
 	}
 	#chat_history li span.timestamp {
-		opacity: 0.6;
+		color: var(--color-subtle_text);
 		font-size: 0.8em;
 		float: right;
 		clear: both;

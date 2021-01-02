@@ -308,6 +308,7 @@
 		--color-text: #cacad4;
 		--color-light: #f4f3ff;
 		--color-accent_text: #000006;
+		--color-subtle_text: #7f8189;
 		--color-bright_ui: #f4f3ff;
 		--color-grid: #495061;
 		--color-checkerboard: #1c2026;
@@ -544,7 +545,7 @@
 		color: var(--color-light);
 	}
 	input[type=checkbox][disabled=disabled] {
-		opacity: 0.6;
+		color: var(--color-subtle_text);
 	}
 	input[type=radio]::before {
 		content: "\f111";
@@ -556,7 +557,7 @@
 		content: "\f192";
 	}
 	input[type=radio][disabled=disabled] {
-		opacity: 0.6;
+		color: var(--color-subtle_text);
 	}
 
 	div.nslide {

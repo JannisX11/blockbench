@@ -660,7 +660,7 @@
 		text-align: right;
 	}
 	#plugin_list li .button_bar.tiny {
-		opacity: 0.6;
+		color: var(--color-subtle_text);
 		font-size: 0.86em;
 		padding-right: 2px;
 	}
@@ -705,7 +705,7 @@
 	}
 
 	#plugin_list .author {
-		opacity: 0.6;
+		color: var(--color-subtle_text);
 		font-size: 0.86em;
 		clear: both;
 	}
@@ -723,7 +723,7 @@
 	.no_plugin_message {
 		text-align: center;
 		margin-top: 30px;
-		opacity: 0.5;
+		color: var(--color-subtle_text);
 	}
 	.search_bar {
 		float: right;

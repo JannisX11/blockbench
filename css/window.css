@@ -59,9 +59,9 @@
 		height: auto;
 		padding: 6px 12px;
 		background: var(--color-ui);
+		color: var(--color-subtle_text);
 		margin: 0;
 		text-transform: uppercase;
-		opacity: 0.6;
 		font-size: 1.1em;
 	}
 	.panel p {

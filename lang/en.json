@@ -426,6 +426,8 @@
 	"layout.color.light.desc": "Highlighted text",
 	"layout.color.accent_text": "Accent Text",
 	"layout.color.accent_text.desc": "Text on bright or accent elements",
+	"layout.color.subtle_text": "Subtle Text",
+	"layout.color.subtle_text.desc": "Secondary text color with less contrast",
 	"layout.color.checkerboard": "Checkerboard",
 	"layout.color.checkerboard.desc": "Background of canvas and UV editor",
 	"layout.font.main": "Main Font",
