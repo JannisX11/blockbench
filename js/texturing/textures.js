@@ -1370,14 +1370,14 @@ Interface.definePanels(function() {
 			head: Toolbars.texturelist
 		},
 		onResize() {
-			Interface.Panels.textures.inside_vue._data.currentFrame += 1;
-			Interface.Panels.textures.inside_vue._data.currentFrame -= 1;
+			this.inside_vue._data.currentFrame += 1;
+			this.inside_vue._data.currentFrame -= 1;
 		},
 		component: {
 			name: 'panel-textures',
 			data() { return {
 				textures: Texture.all,
-				currentFrame: 5,
+				currentFrame: 0,
 			}},
 			methods: {
 				openMenu(event) {
@@ -1398,7 +1398,7 @@ Interface.definePanels(function() {
 					let scope = this;
 					if (!this.$refs.timeline) return;
 
-					let timeline_offset = $(this.$refs.timeline).offset().left + 10;
+					let timeline_offset = $(this.$refs.timeline).offset().left + 8;
 					let timeline_width = this.$refs.timeline.clientWidth - 8;
 					let maxFrameCount = this.maxFrameCount;
 

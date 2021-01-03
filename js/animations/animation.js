@@ -96,6 +96,9 @@ class Animation {
 		for (var key in Animation.properties) {
 			Animation.properties[key].copy(this, copy)
 		}
+		if (this.markers.length) {
+			copy.markers = this.markers.map(marker => marker.getUndoCopy());
+		}
 		if (Object.keys(this.animators).length) {
 			copy.animators = {}
 			for (var uuid in this.animators) {

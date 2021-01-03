@@ -10,6 +10,12 @@ class TimelineMarker {
 		Merge.number(this, data, 'color');
 		Merge.number(this, data, 'time');
 	}
+	getUndoCopy() {
+		return {
+			color: this.color,
+			time: this.time,
+		}
+	}
 	callPlayhead() {
 		Timeline.setTime(this.time)
 		Animator.preview()
