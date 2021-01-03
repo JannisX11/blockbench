@@ -1215,8 +1215,11 @@ const Animator = {
 			outlines.children.empty()
 			Canvas.updateAllPositions()
 		}
-		if (Animator.animations.length) {
-			Animator.animations[0].select()
+		if (Animation.all.length && !Animation.all.includes(Animation.selected)) {
+			Animation.all[0].select();
+		}
+		if (Group.selected) {
+			Group.selected.select();
 		}
 		Animator.preview()
 	},
