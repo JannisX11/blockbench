@@ -110,9 +110,6 @@ class Cube extends NonGroup {
 		this.inflate = 0;
 		this.rotation = [0, 0, 0];
 		this.origin = [0, 0, 0];
-		if (!Format.centered_grid) {
-			this.origin.V3_set(8, 8, 8);
-		}
 		this.visibility = true;
 		this.autouv = 0
 		this.parent = 'root';
