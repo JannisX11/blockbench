@@ -512,7 +512,7 @@ const Timeline = {
 		Timeline.pause()
 		Timeline.playing = true
 		BarItems.play_animation.setIcon('pause')
-		Timeline.last_frame_timecode = new Date().getMilliseconds();
+		Timeline.last_frame_timecode = Date.now();
 		Timeline.interval = setInterval(Timeline.loop, 100/6)
 		if (Animation.selected.loop == 'hold' && Timeline.time >= (Animation.selected.length||1e3)) {
 			Timeline.setTime(0)
@@ -538,7 +538,7 @@ const Timeline = {
 				var new_time = Animator.MolangParser.parse('query.anim_time + query.delta_time')
 			}
 			Timeline.setTime(Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100));
-			Timeline.last_frame_timecode = new Date().getMilliseconds();
+			Timeline.last_frame_timecode = Date.now();
 
 		} else {
 			if (Animation.selected.loop == 'once') {

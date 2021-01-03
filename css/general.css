@@ -133,7 +133,6 @@
 	}
 	.bar {
 		height: 30px;
-		margin-top: 2px;
 	}
 	.bar > * {
 		float: left;

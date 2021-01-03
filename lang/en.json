@@ -927,6 +927,8 @@
 
 	"action.animated_textures": "Play Animated Textures",
 	"action.animated_textures.desc": "Play and pause the preview of animated textures",
+	"action.animated_texture_frame": "Animated Texture Frame",
+	"action.animated_texture_frame.desc": "Set the current frame of the animated texture",
 	"action.origin_to_geometry": "Center Pivot",
 	"action.origin_to_geometry.desc": "Set the pivot point to the center of the selection",
 	"action.rescale_toggle": "Toggle Rescale",
