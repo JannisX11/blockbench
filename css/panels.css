@@ -462,7 +462,6 @@
 		position: relative;
 		vertical-align: middle;
 		padding: 8px;
-		padding-left: 16px;
 		box-sizing: border-box;
 	}
 	.animation:hover {
@@ -470,6 +469,9 @@
 	}
 	.animation.selected {
 		background: var(--color-selected);
+	}
+	ul.indented .animation {
+		padding-left: 16px;
 	}
 	.animation > i {
 		margin-right: 4px;
@@ -855,13 +857,16 @@
 	.animator_channel_bar .channel_head .text_button .channel_mute {
 		font-size: 11pt;
 	}
+	.animator_channel_bar .channel_head .text_button .fa-eye-slash {
+		color: var(--color-subtle_text);
+	}
 	.channel_head span {
 		flex-grow: 1;
 		flex-shrink: 1;
 		overflow: hidden;
 	}
 	.animator_channel_bar .channel_head span {
-		opacity: 0.75
+		color: var(--color-subtle_text);
 	}
 	.keyframe_section {
 		flex-grow: 1;

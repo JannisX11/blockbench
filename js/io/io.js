@@ -549,7 +549,7 @@ BARS.defineActions(function() {
 						Format.codec.export()
 					}
 				}
-				if (Format.animation_mode && Animation.all.length) {
+				if (Format.animation_mode && Format.animation_files && Animation.all.length) {
 					BarItems.save_all_animations.trigger();
 				}
 			} else {

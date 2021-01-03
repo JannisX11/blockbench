@@ -481,7 +481,7 @@ class Animation {
 					type: 'file',
 					extensions: ['json'],
 					filetype: 'JSON Animation',
-					condition: isApp
+					condition: Animation.properties.path.condition
 				},
 				loop: {
 					label: 'menu.animation.loop',
@@ -564,6 +564,7 @@ class Animation {
 			name: 'menu.animation.save',
 			id: 'save',
 			icon: 'save',
+			condition: () => Format.animation_files,
 			click(animation) {
 				animation.save();
 			}
@@ -572,7 +573,7 @@ class Animation {
 			name: 'menu.animation.open_location',
 			id: 'open_location',
 			icon: 'folder',
-			condition(animation) {return isApp && animation.path && fs.existsSync(animation.path)},
+			condition(animation) {return isApp && Format.animation_files && animation.path && fs.existsSync(animation.path)},
 			click(animation) {
 				shell.showItemInFolder(animation.path);
 			}
@@ -601,10 +602,11 @@ class Animation {
 			Undo.finishEdit('remove animation', {animations: []})
 		}}
 	])
-	new Property(Animation, 'boolean', 'saved', {default: true})
-	new Property(Animation, 'string', 'path')
+	new Property(Animation, 'boolean', 'saved', {default: true, condition: () => Format.animation_files})
+	new Property(Animation, 'string', 'path', {condition: () => isApp && Format.animation_files})
 
 Blockbench.on('finish_edit', event => {
+	if (!Format.animation_files) return;
 	if (event.aspects.animations && event.aspects.animations.length) {
 		event.aspects.animations.forEach(animation => {
 			animation.saved = false;
@@ -1704,7 +1706,7 @@ BARS.defineActions(function() {
 	new Action('load_animation_file', {
 		icon: 'fa-file-video',
 		category: 'animation',
-		condition: {modes: ['animate']},
+		condition: {modes: ['animate'], method: () => Format.animation_files},
 		click: function () {
 			var path = ModelMeta.export_path
 			if (isApp) {
@@ -1762,6 +1764,7 @@ BARS.defineActions(function() {
 	new Action('save_all_animations', {
 		icon: 'save',
 		category: 'animation',
+		condition: () => Format.animation_files,
 		click: function () {
 			let paths = [];
 			Animation.all.forEach(animation => {
@@ -1837,8 +1840,9 @@ Interface.definePanels(function() {
 		component: {
 			name: 'panel-animations',
 			data() { return {
-				animations: Animator.animations,
-				files_folded: {}
+				animations: Animation.all,
+				files_folded: {},
+				animation_files_enabled: true
 			}},
 			methods: {
 				toggle(key) {
@@ -1861,6 +1865,15 @@ Interface.definePanels(function() {
 			},
 			computed: {
 				files() {
+					if (!this.animation_files_enabled) {
+						return {
+							'': {
+								animations: this.animations,
+								name: '',
+								hide_head: true
+							}
+						}
+					}
 					let files = {};
 					this.animations.forEach(animation => {
 						let key = animation.path || '';
@@ -1880,17 +1893,17 @@ Interface.definePanels(function() {
 					<div class="toolbar_wrapper animations"></div>
 					<ul id="animations_list" class="list">
 						<li v-for="(file, key) in files" :key="key" class="animation_file" @contextmenu.prevent.stop="showFileContextMenu($event, key)">
-							<div class="animation_file_head" v-on:click.stop="toggle(key)">
+							<div class="animation_file_head" v-if="!file.hide_head" v-on:click.stop="toggle(key)">
 								<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
 								<label :title="key">{{ file.name }}</label>
-								<div class="in_list_button" v-if="!file.saved" v-on:click.stop="saveFile(key, file)">
+								<div class="in_list_button" v-if="animation_files_enabled && !file.saved" v-on:click.stop="saveFile(key, file)">
 									<i class="material-icons">save</i>
 								</div>
 								<div class="in_list_button" v-on:click.stop="addAnimation(key)">
 									<i class="material-icons">add</i>
 								</div>
 							</div>
-							<ul v-if="!files_folded[key]">	
+							<ul v-if="!files_folded[key]" :class="{indented: !file.hide_head}">
 								<li
 									v-for="animation in file.animations"
 									v-bind:class="{ selected: animation.selected }"
@@ -1903,7 +1916,7 @@ Interface.definePanels(function() {
 								>
 									<i class="material-icons">movie</i>
 									<label :title="animation.name">{{ animation.name }}</label>
-									<div class="in_list_button" v-bind:class="{unclickable: animation.saved}" v-on:click.stop="animation.save()">
+									<div v-if="animation_files_enabled"  class="in_list_button" v-bind:class="{unclickable: animation.saved}" v-on:click.stop="animation.save()">
 										<i v-if="animation.saved" class="material-icons">check_circle</i>
 										<i v-else class="material-icons">save</i>
 									</div>

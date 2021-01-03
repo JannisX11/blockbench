@@ -87,6 +87,7 @@ class ModelFormat {
 		uv_dialog.all_editors.forEach(editor => {
 			editor.img.style.objectFit = Format.animated_textures ? 'cover' : 'fill';
 		})
+		Interface.Panels.animations.inside_vue._data.animation_files_enabled = this.animation_files;
 		for (var key in ModelProject.properties) {
 			if (Project[key] == undefined) {
 				ModelProject.properties[key].reset(Project);
