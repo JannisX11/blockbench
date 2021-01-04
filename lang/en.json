@@ -16,6 +16,7 @@
 
 	"data.cube": "Cube",
 	"data.locator": "Locator",
+	"data.null_object": "Null Object",
 	"data.group": "Group",
 	"data.texture": "Texture",
 	"data.origin": "Pivot",
@@ -780,6 +781,8 @@
 	"action.add_cube.desc": "Adds a new cube",
 	"action.add_locator": "Add Locator",
 	"action.add_locator.desc": "Adds a new locator to control positions of particles, leashes etc",
+	"action.add_null_object": "Add Null Object",
+	"action.add_null_object.desc": "Adds a new null object",
 	"action.add_group": "Add Group",
 	"action.add_group.desc": "Adds a new group or bone",
 	"action.outliner_toggle": "Toggle More Options",
