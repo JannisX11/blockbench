@@ -1377,7 +1377,10 @@ const Animator = {
 		if (!json_content || !json_content.particle_effect) return;
 
 		if (Animator.particle_effects[path]) {
-			Animator.particle_effects[path].config.reset().setFromJSON(json_content, {path});
+			Animator.particle_effects[path].config
+				.reset()
+				.setFromJSON(json_content, {path})
+				.set('file_path', path);
 			for (var uuid in Animator.particle_effects[path].emitters) {
 				let emitter = Animator.particle_effects[path].emitters[uuid];
 				emitter.updateConfig();
@@ -1945,6 +1948,7 @@ Interface.definePanels(function() {
 		},
 		component: {
 			name: 'panel-placeholders',
+			components: {VuePrismEditor},
 			data() { return {
 				text: ''
 			}},
