@@ -181,11 +181,10 @@ function buildForm(dialog) {
 								}, fileCB);
 								break;
 							case 'folder':
-								let filePaths = electron.dialog.showOpenDialog(currentwindow, {
-									properties: ['openDirectory'],
-									defaultPath: data.value
+								let path = Blockbench.pickDirectory({
+									startpath: data.value,
 								})
-								if (filePaths) fileCB([{ path: filePaths[0] }]);
+								if (path) fileCB([{path}]);
 								break;
 							case 'save':
 								Blockbench.export({

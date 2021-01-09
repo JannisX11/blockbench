@@ -1308,12 +1308,12 @@ BARS.defineActions(function() {
 			path.splice(-1)
 			path = path.join(osfs)
 
-			let filePaths = electron.dialog.showOpenDialogSync(currentwindow, {
-				properties: ['openDirectory'],
-				defaultPath: path
+			let dirPath = Blockbench.pickDirectory({
+				resource_id: 'texture',
+				startpath: path,
 			})
-			if (filePaths && filePaths.length) {
-				var new_path = filePaths[0]
+			if (dirPath && dirPath.length) {
+				var new_path = dirPath[0]
 				Undo.initEdit({textures})
 				textures.forEach(function(t) {
 					if (typeof t.path === 'string' && t.path.includes(path)) {
