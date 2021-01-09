@@ -504,7 +504,8 @@ const MenuBar = {
 			'close_project',
 			'_',
 			{name: 'menu.file.import', id: 'import', icon: 'insert_drive_file', children: [
-				'add_model',
+				'import_project',
+				'import_java_block_model',
 				'import_optifine_part',
 				'extrude_texture'
 			]},

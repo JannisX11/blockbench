@@ -2,6 +2,56 @@
 
 let FORMATV = '3.6';
 
+function processHeader(model) {
+	if (!model.meta) {
+		Blockbench.showMessageBox({
+			translateKey: 'invalid_model',
+			icon: 'error',
+		})
+		return;
+	}
+	if (!model.meta.format_version) {
+		model.meta.format_version = model.meta.format;
+	}
+	if (compareVersions(model.meta.format_version, FORMATV)) {
+		Blockbench.showMessageBox({
+			translateKey: 'outdated_client',
+			icon: 'error',
+		})
+		return;
+	}
+}
+function processCompatibility(model) {
+
+	if (!model.meta.model_format) {
+		if (model.meta.bone_rig) {
+			model.meta.model_format = 'bedrock_old';
+		} else {
+			model.meta.model_format = 'java_block';
+		}
+	}
+
+	if (model.cubes && !model.elements) {
+		model.elements = model.cubes;
+	}
+
+	if (model.outliner) {
+		if (compareVersions('3.2', model.meta.format_version)) {
+			//Fix Z-axis inversion pre 3.2
+			function iterate(list) {
+				for (var child of list) {
+					if (typeof child == 'object' ) {
+						iterate(child.children);
+						if (child.rotation) child.rotation[2] *= -1;
+					}
+				}
+			}
+			iterate(model.outliner)
+		}
+		parseGroups(model.outliner)
+	}
+}
+
 var codec = new Codec('project', {
 	name: 'Blockbench Project',
 	extension: 'bbmodel',
@@ -124,30 +174,13 @@ var codec = new Codec('project', {
 		}
 	},
 	parse(model, path) {
-		if (!model.meta) {
-			Blockbench.showMessageBox({
-				translateKey: 'invalid_model',
-				icon: 'error',
-			})
-			return;
-		}
-		if (!model.meta.format_version) {
-			model.meta.format_version = model.meta.format;
-		}
-		if (compareVersions(model.meta.format_version, FORMATV)) {
-			Blockbench.showMessageBox({
-				translateKey: 'outdated_client',
-				icon: 'error',
-			})
-			return;
-		}
+
+		processHeader(model);
+		processCompatibility(model);
+
 		if (model.meta.model_format) {
 			var format = Formats[model.meta.model_format]||Formats.free;
 			format.select()
-		} else if (model.meta.bone_rig) {
-			Formats.bedrock_old.select()
-		} else {
-			Formats.java_block.select()
 		}
 
 		Blockbench.dispatchEvent('load_project', {model, path});
@@ -179,10 +212,8 @@ var codec = new Codec('project', {
 				}
 			})
 		}
-		if (model.cubes && !model.elements) {
-			model.elements = model.cubes;
-		}
 		if (model.elements) {
+			let default_texture = Texture.getDefault();
 			model.elements.forEach(function(element) {
 
 				var copy = NonGroup.fromSave(element, true)
@@ -192,8 +223,8 @@ var codec = new Codec('project', {
 						if (texture) {
 							copy.faces[face].texture = texture.uuid
 						}
-					} else if (Texture.getDefault() && copy.faces && copy.faces[face].texture !== null) {
-						copy.faces[face].texture = Texture.getDefault().uuid
+					} else if (default_texture && copy.faces && copy.faces[face].texture !== null) {
+						copy.faces[face].texture = default_texture.uuid
 					}
 				}
 				copy.init()
@@ -202,18 +233,6 @@ var codec = new Codec('project', {
 			loadOutlinerDraggable()
 		}
 		if (model.outliner) {
-			if (compareVersions('3.2', model.meta.format_version)) {
-				//Fix Z-axis inversion pre 3.2
-				function iterate(list) {
-					for (var child of list) {
-						if (typeof child == 'object' ) {
-							iterate(child.children);
-							if (child.rotation) child.rotation[2] *= -1;
-						}
-					}
-				}
-				iterate(model.outliner)
-			}
 			parseGroups(model.outliner)
 		}
 		if (model.animations) {
@@ -232,6 +251,89 @@ var codec = new Codec('project', {
 		if (model.history) {
 			Undo.history = model.history.slice()
 			Undo.index = model.history_index;
+		}
+		Canvas.updateAllBones()
+		Canvas.updateAllPositions()
+		this.dispatchEvent('parsed', {model})
+	},
+	merge(model, path) {
+
+		/**
+		 * Todo
+		 * 
+		 * texture merging
+		 * UV handling
+		 * Outliner issue
+		 * undo
+		 */
+
+		processHeader(model);
+		processCompatibility(model);
+
+		Blockbench.dispatchEvent('merge_project', {model, path});
+		this.dispatchEvent('merge', {model})
+
+
+		if (model.overrides instanceof Array && Project.overrides instanceof Array) {
+			Project.overrides.push(...model.overrides);
+		}
+
+		let width = model.resolution.width || Project.texture_width;
+		let height = model.resolution.height || Project.texture_height;
+
+		function loadTexture(tex) {
+			var tex_copy = new Texture(tex, tex.uuid).add(false);
+			if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
+				tex_copy.fromPath(tex.path)
+			} else if (tex.source && tex.source.substr(0, 5) == 'data:') {
+				tex_copy.fromDataURL(tex.source)
+			}
+		}
+
+		if (model.textures && (!Format.single_texture || Texture.all.length == 0)) {
+			model.textures.forEach(loadTexture)
+		}
+
+		if (model.elements) {
+			let default_texture = Texture.getDefault();
+			model.elements.forEach(function(element) {
+
+				var copy = NonGroup.fromSave(element, true)
+				for (var face in copy.faces) {
+					if (!Format.single_texture && element.faces) {
+						var texture = element.faces[face].texture !== null && textures[element.faces[face].texture]
+						if (texture) {
+							copy.faces[face].texture = texture.uuid
+						}
+					} else if (default_texture && copy.faces && copy.faces[face].texture !== null) {
+						copy.faces[face].texture = default_texture.uuid
+					}
+				}
+				copy.init()
+				
+			})
+			loadOutlinerDraggable()
+		}
+		if (model.outliner) {
+			parseGroups(model.outliner)
+		}
+		if (model.animations) {
+			model.animations.forEach(ani => {
+				var base_ani = new Animation()
+				base_ani.uuid = ani.uuid;
+				base_ani.extend(ani).add();
+			})
+		}
+		if (model.animation_variable_placeholders) {
+			let vue = Interface.Panels.variable_placeholders.inside_vue;
+			if (vue._data.text) {
+				vue._data.text = vue._data.text + '\n\n' + model.animation_variable_placeholders;
+			} else {
+				vue._data.text = model.animation_variable_placeholders;
+			}
+		}
+		if (model.display !== undefined) {
+			DisplayMode.loadJSON(model.display)
 		}
 		Canvas.updateAllBones()
 		Canvas.updateAllPositions()
@@ -261,6 +363,24 @@ BARS.defineActions(function() {
 		click: function () {
 			saveTextures(true)
 			codec.export()
+		}
+	})
+
+	new Action('import_project', {
+		icon: 'icon-blockbench_file',
+		category: 'file',
+		click: function () {
+			Blockbench.import({
+				resource_id: 'model',
+				extensions: [codec.extension],
+				type: codec.name,
+				multiple: true,
+			}, function(files) {
+				files.forEach(file => {
+					var model = autoParseJSON(file.content);
+					codec.merge(model);
+				})
+			})
 		}
 	})
 })

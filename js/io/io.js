@@ -496,24 +496,6 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	new Action('add_model', {
-		icon: 'assessment',
-		category: 'file',
-		condition: _ => (Format.id == 'java_block'),
-		click: function () {
-			Blockbench.import({
-				resource_id: 'model',
-				extensions: ['json'],
-				type: 'JSON Model',
-				multiple: true,
-			}, function(files) {
-				files.forEach(file => {
-					var model = autoParseJSON(file.content)
-					Codecs.java_block.parse(model, file.path, true)
-				})
-			})
-		}
-	})
 	new Action('extrude_texture', {
 		icon: 'eject',
 		category: 'file',

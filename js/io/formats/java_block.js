@@ -473,6 +473,24 @@ BARS.defineActions(function() {
 			codec.export();
 		}
 	})
+	new Action('import_java_block_model', {
+		icon: 'assessment',
+		category: 'file',
+		condition: () => Format == format,
+		click: function () {
+			Blockbench.import({
+				resource_id: 'model',
+				extensions: ['json'],
+				type: codec.name,
+				multiple: true,
+			}, function(files) {
+				files.forEach(file => {
+					var model = autoParseJSON(file.content)
+					codec.parse(model, file.path, true)
+				})
+			})
+		}
+	})
 })
 
 })()

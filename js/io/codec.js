@@ -9,6 +9,7 @@ class Codec {
 		Merge.function(this, data, 'load');
 		Merge.function(this, data, 'compile');
 		Merge.function(this, data, 'parse');
+		Merge.function(this, data, 'merge');
 		Merge.function(this, data, 'write');
 		Merge.function(this, data, 'overwrite');
 		Merge.function(this, data, 'export');
