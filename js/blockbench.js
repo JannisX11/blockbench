@@ -25,7 +25,9 @@ var Prop = {
 	progress		: 0,
 	session 		: false,
 	connections 	: 0,
-	facing		 	: 'north'
+	facing		 	: 'north',
+	show_right_bar  : true,
+	show_left_bar   : true,
 }
 
 const mouse_pos = {x:0,y:0}

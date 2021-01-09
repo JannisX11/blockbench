@@ -614,19 +614,22 @@
 /*Status Bar*/
 	#status_bar {
 		position: relative;
-		display: block;
+		display: flex;
 		background: var(--color-back);
 	}
 	#status_bar > div {
-		float: left;
 		padding-left:  6px;
 		padding-right: 6px;
-	}
-	#status_bar > div#status_fps {
-		float: right;
+		padding-top: 1px;
+		flex-shrink: 0;
 	}
 	#status_bar > div#status_saved {
 		padding-top: 2px;
+	}
+	#status_bar > div#status_name {
+		width: 0;
+		flex-grow: 1;
+		overflow: hidden;
 	}
 	#status_bar #status_progress {
 		position: absolute;
@@ -634,4 +637,16 @@
 		background: var(--color-accent);
 		bottom: 0;
 		left: 0;
+	}
+	#status_bar .sidebar_toggle_button {
+		cursor: pointer;
+		padding: 2px;
+		padding-right: 0;
+		padding-left: 0;
+	}
+	.sidebar_toggle_button > i {
+		cursor: inherit;
+	}
+	.sidebar_toggle_button:hover {
+		color: var(--color-light);
 	}

@@ -883,7 +883,9 @@
 	</div>
 	<div id="status_bar" @contextmenu="Interface.status_bar.menu.show(event)">
 
-		<div class="sidebar_toggle_button" onclick="Interface.toggleSidebar('left')"></div>
+		<div class="sidebar_toggle_button" onclick="Interface.toggleSidebar('left')" :title="tl('status_bar.toggle_sidebar')">
+			<i class="material-icons">{{Prop.show_left_bar ? 'chevron_left' : 'chevron_right'}}</i>
+		</div>
 		
 		<div class="f_left" v-if="settings.streamer_mode.value"
 			style="background-color: var(--color-stream); color: var(--color-light);"
@@ -911,7 +913,9 @@
 			{{ Prop.connections }} Clients
 		</div>
 
-		<div class="sidebar_toggle_button" onclick="Interface.toggleSidebar('right')"></div>
+		<div class="sidebar_toggle_button" onclick="Interface.toggleSidebar('right')" :title="tl('status_bar.toggle_sidebar')">
+			<i class="material-icons">{{Prop.show_right_bar ? 'chevron_right' : 'chevron_left'}}</i>
+		</div>
 
 		<div id="status_progress" v-if="Prop.progress" v-bind:style="{width: Prop.progress*100+'%'}"></div>
 	</div>

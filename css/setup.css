@@ -357,7 +357,7 @@
 		color: inherit;
 	}
 	i {
-		cursor: default;
+		cursor: inherit;
 	}
 
 	b {
