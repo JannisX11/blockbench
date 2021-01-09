@@ -217,16 +217,14 @@ class ModelFormat {
 	}
 }
 
-BARS.defineActions(function() {
-	new ModelFormat({
-		id: 'free',
-		icon: 'icon-format_free',
-		rotate_cubes: true,
-		bone_rig: true,
-		centered_grid: true,
-		optional_box_uv: true,
-		uv_rotation: true,
-		animation_mode: true,
-		codec: Codecs.project
-	})
+new ModelFormat({
+	id: 'free',
+	icon: 'icon-format_free',
+	rotate_cubes: true,
+	bone_rig: true,
+	centered_grid: true,
+	optional_box_uv: true,
+	uv_rotation: true,
+	animation_mode: true,
+	codec: Codecs.project
 })

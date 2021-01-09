@@ -220,6 +220,9 @@
 		margin-top: 5px;
 		float: left;
 	}
+	#settings h3 > i.settings_expand_icon {
+		opacity: 0.7;
+	}
 	#settings h3:hover {
 		color: var(--color-light);
 	}
@@ -249,7 +252,7 @@
 	#settingslist li li {
 		padding: 5px 0;
 	}
-	#settingslist li li:hover {
+	#settingslist li li:hover input[type=checkbox] {
 		color: var(--color-light);
 	}
 	#settingslist li > .setting_element {
@@ -330,10 +333,10 @@
 	}
 	#keybindlist li > div.keybindslot {
 		width: calc(48% - 32px);
-		padding: 2px;
+		padding: 4px;
 		padding-left: 8px;
 		height: 30px;
-		background-color: var(--color-button);
+		background-color: var(--color-back);
 		border: 1px solid var(--color-border);
 		font-size: 0.94em;
 		overflow: hidden;
@@ -341,7 +344,6 @@
 		display: inline-block;
 	}
 	#keybindlist li > div.keybindslot:hover {
-		background-color: var(--color-selected);
 		color: var(--color-light);
 	}
 	#keybindlist li > div.keybindslot.conflict {
@@ -351,13 +353,14 @@
 		background: transparent;
 		width: calc(52% - 28px);
 		text-align: right;
-		padding: 2px;
+		padding: 4px;
 		padding-left: 8px;
 		vertical-align: top;
 		display: inline-block;
 	}
 	#keybindlist > li > ul > li {
 		position: relative;
+		display: flex;
 	}
 	#keybindlist > li {
 		width: 100%;
@@ -633,9 +636,11 @@
 		min-height: 80px;
 	}
 	#plugin_list li {
-		border: 1px solid var(--color-border);
 		height: 128px;
 		overflow-y: hidden;
+		margin: 8px;
+		background-color: var(--color-ui);
+		margin-right: 2px;
 	}
 	#plugin_list li.expanded {
 		min-height: 128px;
