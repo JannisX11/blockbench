@@ -110,9 +110,6 @@ class Cube extends NonGroup {
 		this.inflate = 0;
 		this.rotation = [0, 0, 0];
 		this.origin = [0, 0, 0];
-		if (!Format.centered_grid) {
-			this.origin.V3_set(8, 8, 8);
-		}
 		this.visibility = true;
 		this.autouv = 0
 		this.parent = 'root';
@@ -275,6 +272,7 @@ class Cube extends NonGroup {
 				}
 				delete Canvas.meshes[this.uuid]
 				mesh.geometry.dispose()
+				if (mesh.outline && mesh.outline.geometry) mesh.outline.geometry.dispose()
 			}
 		}
 		delete Canvas.meshes[this.uuid]
@@ -805,11 +803,11 @@ class Cube extends NonGroup {
 		'delete'
 	]);
 	Cube.prototype.buttons = [
-		Outliner.buttons.visibility,
-		Outliner.buttons.locked,
-		Outliner.buttons.export,
+		Outliner.buttons.autouv,
 		Outliner.buttons.shading,
-		Outliner.buttons.autouv
+		Outliner.buttons.export,
+		Outliner.buttons.locked,
+		Outliner.buttons.visibility,
 	];
 	Cube.selected = [];
 	Cube.all = [];
@@ -857,7 +855,6 @@ BARS.defineActions(function() {
 			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 
 			Vue.nextTick(function() {
-				updateSelection()
 				if (settings.create_rename.value) {
 					base_cube.rename()
 				}

@@ -66,7 +66,9 @@ class BarItem {
 			.on('mouseenter', function() {
 
 				var tooltip = $(this).find('div.tooltip');
+				if (!tooltip.length) return;
 				var description = tooltip.find('.tooltip_description');
+
 				if ($(this).parent().parent().hasClass('vertical')) {
 					tooltip.css('margin', '0')
 					if ($(this).offset().left > window.innerWidth/2) {
@@ -75,7 +77,6 @@ class BarItem {
 						tooltip.css('margin-left', '34px')
 					}
 				} else {
-					if (!tooltip.length) return;
 
 					tooltip.css('margin-left', '0')
 					var offset = tooltip && tooltip.offset()
@@ -83,7 +84,7 @@ class BarItem {
 
 					if (offset.right > 4) {
 						tooltip.css('margin-left', -offset.right+'px')
-					}
+					}				
 
 					// description
 					if (!description.length) return;
@@ -96,6 +97,11 @@ class BarItem {
 						description.css('margin-left', -offset.right+'px')
 					}
 
+					// height
+					if ((window.innerHeight - offset.top) < 28) {
+						tooltip.css('margin-top', -tooltip.height()+'px');
+						description.css('margin-top', '-51px');
+					}
 				}
 			})
 		}
@@ -415,11 +421,12 @@ class NumSlider extends Widget {
 							<div class="nslide_overlay">
 								<div class="color_corner" style="border-color: ${css_color}"></div>
 							</div>
-							<div class="tooltip">${this.name}</div>
 							<div class="nslide tab_target" n-action="${this.id}"></div>
 					  	</div>`).get(0);
 		this.jq_outer = $(this.node)
 		this.jq_inner = this.jq_outer.find('.nslide');
+
+		this.addLabel(data.label);
 
 		this.jq_inner
 		.on('mousedown touchstart', async (event) => {
@@ -1508,8 +1515,7 @@ const BARS = {
 			children: [
 				'import_texture',
 				'create_texture',
-				'reload_textures',
-				'animated_textures'
+				'reload_textures'
 			]
 		})
 		Toolbars.tools = new Toolbar({

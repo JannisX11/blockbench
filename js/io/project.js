@@ -51,7 +51,12 @@ class ModelProject {
 		}
 		Outliner.elements.empty();
 		Outliner.root.purge();
-		Canvas.materials;
+		for (var key in Canvas.materials) {
+			delete Canvas.materials[key];
+		}
+		for (var key in Canvas.bones) {
+			delete Canvas.bones[key];
+		}
 		selected.empty();
 		Group.all.empty();
 		Group.selected = undefined;
@@ -126,6 +131,7 @@ new Property(ModelProject, 'vector', 'visible_box', {
 });
 new Property(ModelProject, 'boolean', 'layered_textures', {
 	label: 'dialog.project.layered_textures',
+	description: 'dialog.project.layered_textures.desc',
 	condition() {return Format.single_texture}
 });
 
@@ -172,6 +178,7 @@ BARS.defineActions(function() {
 
 				let entry = form[property.name] = {
 					label: property.label,
+					description: property.description,
 					value: Project[property.name],
 					type: property.type
 				}

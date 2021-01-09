@@ -1,10 +1,10 @@
 
-class Locator extends NonGroup {
+class NullObject extends NonGroup {
 	constructor(data, uuid) {
 		super(data, uuid);
 
-		for (var key in Locator.properties) {
-			Locator.properties[key].reset(this);
+		for (var key in NullObject.properties) {
+			NullObject.properties[key].reset(this);
 		}
 
 		if (data) {
@@ -12,16 +12,16 @@ class Locator extends NonGroup {
 		}
 	}
 	extend(object) {
-		for (var key in Locator.properties) {
-			Locator.properties[key].merge(this, object)
+		for (var key in NullObject.properties) {
+			NullObject.properties[key].merge(this, object)
 		}
 		this.sanitizeName();
 		Merge.boolean(this, object, 'locked')
-		Merge.boolean(this, object, 'export');
+		//Merge.boolean(this, object, 'export');
 		return this;
 	}
 	getUndoCopy() {
-		var copy = new Locator(this)
+		var copy = new NullObject(this)
 		copy.uuid = this.uuid
 		copy.type = this.type;
 		delete copy.parent;
@@ -29,13 +29,13 @@ class Locator extends NonGroup {
 	}
 	getSaveCopy() {
 		let save = {};
-		for (var key in Locator.properties) {
-			Locator.properties[key].copy(this, save)
+		for (var key in NullObject.properties) {
+			NullObject.properties[key].copy(this, save)
 		}
-		save.export = this.export ? undefined : false;
+		//save.export = this.export ? undefined : false;
 		save.locked = this.locked;
 		save.uuid = this.uuid;
-		save.type = 'locator';
+		save.type = 'null_object';
 		return save;
 	}
 	init() {
@@ -73,43 +73,43 @@ class Locator extends NonGroup {
 		return pos;
 	}
 }
-	Locator.prototype.title = tl('data.locator');
-	Locator.prototype.type = 'locator';
-	Locator.prototype.icon = 'fa fa-anchor';
-	Locator.prototype.name_regex = 'a-z0-9_'
-	Locator.prototype.movable = true;
-	Locator.prototype.visibility = true;
-	Locator.prototype.buttons = [
-		Outliner.buttons.export,
+	NullObject.prototype.title = tl('data.null_object');
+	NullObject.prototype.type = 'null_object';
+	NullObject.prototype.icon = 'fa far fa-circle';
+	//NullObject.prototype.name_regex = 'a-z0-9_'
+	NullObject.prototype.movable = true;
+	NullObject.prototype.visibility = true;
+	NullObject.prototype.buttons = [
+		//Outliner.buttons.export,
 		Outliner.buttons.locked,
 	];
-	Locator.prototype.needsUniqueName = true;
-	Locator.prototype.menu = new Menu([
+	//NullObject.prototype.needsUniqueName = true;
+	NullObject.prototype.menu = new Menu([
 			'copy',
 			'rename',
 			'delete'
 		])
-	Locator.selected = [];
-	Locator.all = [];
+	NullObject.selected = [];
+	NullObject.all = [];
 	
-	new Property(Locator, 'string', 'name', {default: 'locator'})
-	new Property(Locator, 'vector', 'from')
+	new Property(NullObject, 'string', 'name', {default: 'null_object'})
+	new Property(NullObject, 'vector', 'from')
 
 BARS.defineActions(function() {
-	new Action('add_locator', {
-		icon: 'fa-anchor',
+	new Action('add_null_object', {
+		icon: 'far.fa-circle',
 		category: 'edit',
-		condition: () => {return Format.locators && Modes.edit},
+		condition: () => {return Format.animation_mode},
 		click: function () {
 			var objs = []
 			Undo.initEdit({elements: objs, outliner: true});
-			var locator = new Locator().addTo(Group.selected||selected[0]).init();
-			locator.select().createUniqueName();
-			objs.push(locator);
-			Undo.finishEdit('add locator');
+			var null_object = new NullObject().addTo(Group.selected||selected[0]).init();
+			null_object.select();
+			objs.push(null_object);
+			Undo.finishEdit('add null_object');
 			Vue.nextTick(function() {
 				if (settings.create_rename.value) {
-					locator.rename();
+					null_object.rename();
 				}
 			})
 		}

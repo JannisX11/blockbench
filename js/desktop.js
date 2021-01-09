@@ -289,14 +289,14 @@ function openDefaultTexturePath() {
 	if (answer === 0) {
 		return;
 	} else if (answer === 1) {
-		 ElecDialogs.showOpenDialog(currentwindow, {
+
+		let path = Blockbench.pickDirectory({
 			title: tl('message.default_textures.select'),
-			properties: ['openDirectory'],
-		}, function(filePaths) {
-			if (filePaths) {
-				settings.default_path.value = filePaths[0]
-			}
-		})
+			resource_id: 'texture',
+		});
+		if (path) {
+			settings.default_path.value = path;
+		}
 	} else {
 		settings.default_path.value = false
 	}

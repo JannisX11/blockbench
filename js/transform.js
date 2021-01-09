@@ -121,7 +121,8 @@ function moveCubesRelative(difference, index, event) { //Multiple
 		difference *= canvasGridSize(event.shiftKey, event.ctrlOrCmd);
 	}
 
-	moveElementsInSpace(difference, axes[index]) 
+	moveElementsInSpace(difference, axes[index]);
+	updateSelection();
 
 	Undo.finishEdit('move')
 }
@@ -643,7 +644,6 @@ function moveElementsInSpace(difference, axis) {
 			Canvas.adaptObjectPosition(el);
 		}
 	})
-	TickUpdates.selection = true;
 }
 
 //Rotate

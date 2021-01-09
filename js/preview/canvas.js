@@ -120,7 +120,7 @@ const Canvas = {
 		if (display_mode && ground_anim_before) {
 			ground_animation = ground_anim_before
 		}
-		updateCubeHighlights();
+		if (settings.highlight_cubes.value) updateCubeHighlights();
 	},
 	//Main updaters
 	clear() {
@@ -402,11 +402,13 @@ const Canvas = {
 
 		var from = cube.from.slice()
 		from.forEach((v, i) => {
-			from[i] -= cube.inflate
+			from[i] -= cube.inflate;
+			from[i] -= cube.origin[i];
 		})
 		var to = cube.to.slice()
 		to.forEach((v, i) => {
 			to[i] += cube.inflate
+			to[i] -= cube.origin[i];
 			if (from[i] === to[i]) {
 				to[i] += 0.001
 			}
@@ -416,7 +418,7 @@ const Canvas = {
 
 		mesh.scale.set(1, 1, 1)
 		mesh.position.set(cube.origin[0], cube.origin[1], cube.origin[2])
-		mesh.geometry.translate(-cube.origin[0], -cube.origin[1], -cube.origin[2])
+		//mesh.geometry.translate(-cube.origin[0], -cube.origin[1], -cube.origin[2])
 		mesh.rotation.set(0, 0, 0)
 		mesh.geometry.computeBoundingSphere()
 

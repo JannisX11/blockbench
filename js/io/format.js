@@ -87,6 +87,7 @@ class ModelFormat {
 		uv_dialog.all_editors.forEach(editor => {
 			editor.img.style.objectFit = Format.animated_textures ? 'cover' : 'fill';
 		})
+		Interface.Panels.animations.inside_vue._data.animation_files_enabled = this.animation_files;
 		for (var key in ModelProject.properties) {
 			if (Project[key] == undefined) {
 				ModelProject.properties[key].reset(Project);
@@ -107,7 +108,7 @@ class ModelFormat {
 	}
 	convertTo() {
 
-		Undo.history.length = 0;
+		Undo.history.empty();
 		Undo.index = 0;
 		ModelMeta.export_path = '';
 
@@ -216,16 +217,14 @@ class ModelFormat {
 	}
 }
 
-BARS.defineActions(function() {
-	new ModelFormat({
-		id: 'free',
-		icon: 'icon-format_free',
-		rotate_cubes: true,
-		bone_rig: true,
-		centered_grid: true,
-		optional_box_uv: true,
-		uv_rotation: true,
-		animation_mode: true,
-		codec: Codecs.project
-	})
+new ModelFormat({
+	id: 'free',
+	icon: 'icon-format_free',
+	rotate_cubes: true,
+	bone_rig: true,
+	centered_grid: true,
+	optional_box_uv: true,
+	uv_rotation: true,
+	animation_mode: true,
+	codec: Codecs.project
 })

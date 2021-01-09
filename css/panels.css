@@ -1,7 +1,4 @@
 /*Panel*/
-	.panel {
-		padding-bottom: 4px;
-	}
 	.panel.grow > .panel_inside {
 		flex-grow: 1;
 		display: flex;
@@ -42,7 +39,6 @@
 		height: 30px;
 		cursor: default;
 		text-align: center;
-		font-size: 0.9em;
 		flex-grow: 1;
 		overflow: hidden;
 	}
@@ -74,6 +70,7 @@
 		position: relative;
 		display: flex;
 		margin-right: 2px;
+		margin-top: 2px;
 	}
 	.bar.slider_input_combo input.tool[type="range"] {
 		float: none;
@@ -130,11 +127,12 @@
 		margin-bottom: 180px;
 	}
 	.outliner_node .outliner_object i, .outliner_object i[class^="icon-"] {
+		flex: 0 0 20px;
 		text-align: center;
-		width: 21px;
+		padding-top: 4px;
 	}
 	.outliner_node .outliner_object i.icon_off {
-		opacity: 0.56;
+		color: var(--color-subtle_text);
 	}
 	.outliner_opener_placeholder {
 		width: 18px;
@@ -142,6 +140,7 @@
 		float: left;
 	}
 	.outliner_object {
+		display: flex;
 		width: 100%;
 		padding: 2px;
 		box-sizing: border-box;
@@ -213,20 +212,18 @@
 	#cubes_list > div > ul > li.outliner_node.parent_li {
 		border: none !important;
 	}
-	.outliner_object input.cube_name {
-		width: calc(100% - 84px);
+	.outliner_object > input {
+		width: 0;
+		flex: 1 0 0;
 		padding-right: 5px;
 		padding-left: 5px;
 		pointer-events: none;
 	}
-	.outliner_object input.cube_name.renaming {
+	.outliner_object > input.renaming {
 		pointer-events: auto;
 	}
-	.outliner_object a {
-		width: 21px;
-		display: inline-block;
+	i.outliner_toggle {
 		font-size: 15px;
-		float: right;
 	}
 	i.icon-open-state {
 	    opacity: 0.7;
@@ -265,7 +262,7 @@
 		background-color: var(--color-selected);
 		box-shadow: 0 0.4px 3.5px rgba(0, 0, 0, 0.6);
 	}
-	body > .outliner_object a {
+	body > .outliner_object .outliner_toggle {
 		display: none;
 	}
 	div#outliner_stats {
@@ -273,12 +270,6 @@
 		margin-right: 16px;
 		margin-top: 4px;
 		font-weight: normal;
-	}
-	#outliner.more_options input.cube_name {
-		width: calc(100% - 148px);
-	}
-	#outliner:not(.more_options) a.advanced_option {
-		display: none;
 	}
 	#particle_label {
 		float: right;
@@ -325,10 +316,10 @@
 		color: var(--color-light);
 	}
 	.texture > i:not(.clickable) {
-		opacity: 0.5;
+		color: var(--color-subtle_text);
 	}
 	.texture i.icon_off {
-		opacity: 0.56;
+		color: var(--color-subtle_text);
 	}
 	div.texture_icon_wrapper {
 		height: 48px;
@@ -371,7 +362,7 @@
 		height: 20px;
 		overflow: hidden;
 		font-size: 0.9em;
-		opacity: 0.6;
+		color: var(--color-subtle_text);
 		cursor: default;
 	}
 	.texture_error {
@@ -414,7 +405,48 @@
 		margin-left: 0;
 		border-top-right-radius: 4px;
 		border-bottom-right-radius: 4px;
+	}
 
+	#texture_animation_playback {
+		display: flex;
+	}
+	#texture_animation_timeline {
+		display: flex;
+		position: relative;
+		width: 0;
+		flex-grow: 1;
+		padding-left: 6px;
+		padding-right: 2px;
+		background-color: var(--color-back);
+		border: 1px solid var(--color-border);
+	}
+	#texture_animation_timeline .texture_animation_frame {
+		flex-grow: 1;
+		width: 1px;
+		height: 8px;
+		margin-top: 20px;
+		border-left: 1px solid var(--color-text);
+		opacity: 0.3;
+		pointer-events: none;
+	}
+	#texture_animation_timeline #animated_texture_playhead {
+		position: absolute;
+		height: 28px;
+		border-style: solid;
+		border-width: 8px;
+		border-color: transparent;
+		border-top-color: var(--color-accent);
+		border-radius: 3px;
+		margin-left: -2px;
+		pointer-events: none;
+	}
+	#texture_animation_timeline #animated_texture_playhead::before {
+		position: absolute;
+		content: "";
+		height: 28px;
+		border-left: 2px solid var(--color-accent);
+		top: -8px;
+		left: -1px;
 	}
 
 /*Animations*/
@@ -430,7 +462,6 @@
 		position: relative;
 		vertical-align: middle;
 		padding: 8px;
-		padding-left: 16px;
 		box-sizing: border-box;
 	}
 	.animation:hover {
@@ -438,6 +469,9 @@
 	}
 	.animation.selected {
 		background: var(--color-selected);
+	}
+	ul.indented .animation {
+		padding-left: 16px;
 	}
 	.animation > i {
 		margin-right: 4px;
@@ -466,8 +500,7 @@
 		color: var(--color-light);
 	}
 	.in_list_button.unclickable {
-		opacity: 0.5;
-		color: var(--color-text) !important;
+		color: var(--color-subtle_text) !important;
 		pointer-events: none;
 	}
 
@@ -492,6 +525,9 @@
 	}
 
 /* Keyframe Panel */
+	.panel#keyframe .bar {
+		margin-top: 2px;
+	}
 	.panel#keyframe .tabs_small label {
 		font-size: 1em;
 		height: 30px;
@@ -821,13 +857,16 @@
 	.animator_channel_bar .channel_head .text_button .channel_mute {
 		font-size: 11pt;
 	}
+	.animator_channel_bar .channel_head .text_button .fa-eye-slash {
+		color: var(--color-subtle_text);
+	}
 	.channel_head span {
 		flex-grow: 1;
 		flex-shrink: 1;
 		overflow: hidden;
 	}
 	.animator_channel_bar .channel_head span {
-		opacity: 0.75
+		color: var(--color-subtle_text);
 	}
 	.keyframe_section {
 		flex-grow: 1;
@@ -1111,7 +1150,7 @@
 		user-select: text;
 	}
 	#chat_history li span.timestamp {
-		opacity: 0.6;
+		color: var(--color-subtle_text);
 		font-size: 0.8em;
 		float: right;
 		clear: both;

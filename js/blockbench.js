@@ -56,7 +56,7 @@ function canvasGridSize(shift, ctrl) {
 }
 function updateNslideValues() {
 
-	if (selected.length) {
+	if (Outliner.selected.length) {
 		BarItems.slider_pos_x.update()
 		BarItems.slider_pos_y.update()
 		BarItems.slider_pos_z.update()
@@ -71,7 +71,7 @@ function updateNslideValues() {
 			BarItems.slider_face_tint.update()
 		}
 	}
-	if (selected.length || (Format.bone_rig && Group.selected)) {
+	if (Outliner.selected.length || (Format.bone_rig && Group.selected)) {
 		BarItems.slider_origin_x.update()
 		BarItems.slider_origin_y.update()
 		BarItems.slider_origin_z.update()
@@ -82,12 +82,15 @@ function updateNslideValues() {
 		if (Format.bone_rig) {
 			BarItems.bone_reset_toggle.setIcon(Group.selected && Group.selected.reset ? 'check_box' : 'check_box_outline_blank')
 		} else {
-			BarItems.rescale_toggle.setIcon(selected[0].rescale ? 'check_box' : 'check_box_outline_blank')
+			BarItems.rescale_toggle.setIcon(Outliner.selected[0].rescale ? 'check_box' : 'check_box_outline_blank')
 		}
 	}
 	if (Modes.animate && Group.selected) {
 		BarItems.slider_ik_chain_length.update();
 		BarItems.ik_enabled.setIcon(Group.selected.ik_enabled ? 'check_box' : 'check_box_outline_blank')
+	}
+	if (Texture.all.length) {
+		BarItems.animated_texture_frame.update();
 	}
 }
 function setProjectResolution(width, height, modify_uv) {
@@ -139,7 +142,7 @@ function updateProjectResolution() {
 }
 
 //Selections
-function updateSelection() {
+function updateSelection(options = {}) {
 	elements.forEach(obj => {
 		if (selected.includes(obj) && !obj.selected && !obj.locked) {
 			obj.selectLow()
@@ -189,7 +192,7 @@ function updateSelection() {
 
 	BarItems.cube_counter.update();
 	updateNslideValues();
-	updateCubeHighlights();
+	if (settings.highlight_cubes.value) updateCubeHighlights();
 	Canvas.updateOrigin();
 	Transformer.updateSelection();
 	Transformer.update();

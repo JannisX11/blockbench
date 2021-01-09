@@ -538,6 +538,7 @@ class Texture {
 			Texture.selected = undefined;
 		}
 		textures.splice(textures.indexOf(this), 1)
+		delete Canvas.materials[this.uuid];
 		if (!no_update) {
 			Canvas.updateAllFaces()
 			TextureAnimator.updateButton()
@@ -1186,30 +1187,39 @@ TextureAnimator = {
 		}
 	},
 	nextFrame() {
-		var animated_tex = []
-		textures.forEach(function(tex, i) {
+		var animated_textures = []
+		textures.forEach(tex => {
 			if (tex.frameCount > 1) {
 				if (tex.currentFrame >= tex.frameCount-1) {
 					tex.currentFrame = 0
 				} else {
 					tex.currentFrame++;
 				}
-				$($('.texture').get(i)).find('img').css('margin-top', (tex.currentFrame*-48)+'px')
-				animated_tex.push(tex)
+				animated_textures.push(tex)
 			}
 		})
-		if (animated_tex.includes(main_uv.texture)) {
+		TextureAnimator.update(animated_textures);
+	},
+	update(animated_textures) {
+		let maxFrame = 0;
+		animated_textures.forEach(tex => {
+			$(`.texture[texid="${tex.uuid}"]`).find('img').css('margin-top', (tex.currentFrame*-48)+'px');
+			maxFrame = Math.max(maxFrame, tex.currentFrame);
+		})
+		if (animated_textures.includes(main_uv.texture)) {
 			main_uv.img.style.objectPosition = `0 -${main_uv.texture.currentFrame * main_uv.inner_height}px`;
 		}
-		Cube.all.forEach(function(cube) {
+		Cube.all.forEach(cube => {
 			var update = false
 			for (var face in cube.faces) {
-				update = update || animated_tex.includes(cube.faces[face].getTexture());
+				update = update || animated_textures.includes(cube.faces[face].getTexture());
 			}
 			if (update) {
 				Canvas.updateUV(cube, true)
 			}
 		})
+		BarItems.animated_texture_frame.update();
+		Interface.Panels.textures.inside_vue._data.currentFrame = maxFrame;
 	},
 	reset() {
 		TextureAnimator.stop();
@@ -1298,12 +1308,12 @@ BARS.defineActions(function() {
 			path.splice(-1)
 			path = path.join(osfs)
 
-			let filePaths = electron.dialog.showOpenDialogSync(currentwindow, {
-				properties: ['openDirectory'],
-				defaultPath: path
+			let dirPath = Blockbench.pickDirectory({
+				resource_id: 'texture',
+				startpath: path,
 			})
-			if (filePaths && filePaths.length) {
-				var new_path = filePaths[0]
+			if (dirPath && dirPath.length) {
+				var new_path = dirPath[0]
 				Undo.initEdit({textures})
 				textures.forEach(function(t) {
 					if (typeof t.path === 'string' && t.path.includes(path)) {
@@ -1314,24 +1324,37 @@ BARS.defineActions(function() {
 			}
 		}
 	})
+
+	function textureAnimationCondition() {
+		return Format.animated_textures && Texture.all.find(tex => tex.frameCount > 1);
+	}
 	new Action('animated_textures', {
 		icon: 'play_arrow',
 		category: 'textures',
-		condition: function() {
-			if (!Format.animated_textures) return false;
-			var i = 0;
-			var show = false;
-			while (i < textures.length) {
-				if (textures[i].frameCount > 1) {
-					show = true;
-					break;
-				}
-				i++;
-			}
-			return show;
-		},
+		condition: textureAnimationCondition,
 		click: function () {
 			TextureAnimator.toggle()
+		}
+	})
+	function getSliderTexture() {
+		return [Texture.getDefault(), ...Texture.all].find(tex => tex && tex.frameCount > 1);
+	}
+	new NumSlider('animated_texture_frame', {
+		category: 'textures',
+		condition: textureAnimationCondition,
+		getInterval(event) {
+			return 1;
+		},
+		get: function() {
+			let tex = getSliderTexture()
+			return tex ? tex.currentFrame+1 : 0;
+		},
+		change: function(modify) {
+			let tex = getSliderTexture()
+			if (tex) {
+				tex.currentFrame = Math.clamp(modify(tex.currentFrame+1), 1, tex.frameCount) - 1;
+				TextureAnimator.update([tex]);
+			}
 		}
 	})
 })
@@ -1346,10 +1369,15 @@ Interface.definePanels(function() {
 		toolbars: {
 			head: Toolbars.texturelist
 		},
+		onResize() {
+			this.inside_vue._data.currentFrame += 1;
+			this.inside_vue._data.currentFrame -= 1;
+		},
 		component: {
 			name: 'panel-textures',
 			data() { return {
-				textures: Texture.all
+				textures: Texture.all,
+				currentFrame: 0,
 			}},
 			methods: {
 				openMenu(event) {
@@ -1365,6 +1393,48 @@ Interface.definePanels(function() {
 						}
 						return message;
 					}
+				},
+				slideTimelinePointer(e1) {
+					let scope = this;
+					if (!this.$refs.timeline) return;
+
+					let timeline_offset = $(this.$refs.timeline).offset().left + 8;
+					let timeline_width = this.$refs.timeline.clientWidth - 8;
+					let maxFrameCount = this.maxFrameCount;
+
+					function slide(e2) {
+						convertTouchEvent(e2);
+						let pos = e2.clientX - timeline_offset;
+
+						scope.currentFrame = Math.clamp(Math.round((pos / timeline_width) * maxFrameCount), 0, maxFrameCount-1);
+
+						let textures = Texture.all.filter(tex => tex.frameCount > 1);
+						textures.forEach(tex => {
+							tex.currentFrame = scope.currentFrame % tex.frameCount;
+						})
+						TextureAnimator.update(textures);
+					}
+					function off(e3) {
+						removeEventListeners(document, 'mousemove touchmove', slide);
+						removeEventListeners(document, 'mouseup touchend', off);
+					}
+					addEventListeners(document, 'mousemove touchmove', slide);
+					addEventListeners(document, 'mouseup touchend', off);
+					slide(e1);
+				},
+				getPlayheadPos() {
+					if (!this.$refs.timeline) return 0;
+					let width = this.$refs.timeline.clientWidth - 8;
+					return Math.clamp((this.currentFrame / this.maxFrameCount) * width, 0, width);
+				}
+			},
+			computed: {
+				maxFrameCount() {
+					let count = 0;
+					this.textures.forEach(tex => {
+						if (tex.frameCount > count) count = tex.frameCount;
+					});
+					return count;
 				}
 			},
 			template: `
@@ -1405,8 +1475,19 @@ Interface.definePanels(function() {
 							</i>
 						</li>
 					</ul>
+					<div id="texture_animation_playback" class="bar" v-show="maxFrameCount">
+						<div class="tool_wrapper"></div>
+						<div id="texture_animation_timeline" ref="timeline" @mousedown="slideTimelinePointer">
+							<div class="texture_animation_frame" v-for="i in maxFrameCount"></div>
+							<div id="animated_texture_playhead" :style="{left: getPlayheadPos() + 'px'}"></div>
+						</div>
+					</div>
 				</div>
-			`
+			`,
+			mounted() {
+				BarItems.animated_textures.toElement('#texture_animation_playback .tool_wrapper')
+				BarItems.animated_texture_frame.setWidth(52).toElement('#texture_animation_playback .tool_wrapper')
+			}
 		},
 		menu: new Menu([
 			'import_texture',

@@ -112,8 +112,6 @@
 		font-weight: 400;
 		src: local('Material Icons'),
 			local('MaterialIcons-Regular'),
-			url(../font/MaterialIcons-Regular.woff2) format('woff2'),
-			url(../font/MaterialIcons-Regular.woff) format('woff'),
 			url(../font/MaterialIcons-Regular.ttf) format('truetype');
 	}
 	@font-face {
@@ -310,6 +308,7 @@
 		--color-text: #cacad4;
 		--color-light: #f4f3ff;
 		--color-accent_text: #000006;
+		--color-subtle_text: #848891;
 		--color-bright_ui: #f4f3ff;
 		--color-grid: #495061;
 		--color-checkerboard: #1c2026;
@@ -546,7 +545,7 @@
 		color: var(--color-light);
 	}
 	input[type=checkbox][disabled=disabled] {
-		opacity: 0.6;
+		color: var(--color-subtle_text);
 	}
 	input[type=radio]::before {
 		content: "\f111";
@@ -558,7 +557,7 @@
 		content: "\f192";
 	}
 	input[type=radio][disabled=disabled] {
-		opacity: 0.6;
+		color: var(--color-subtle_text);
 	}
 
 	div.nslide {

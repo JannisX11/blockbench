@@ -211,6 +211,7 @@ class Group extends OutlinerElement {
 		})
 		TickUpdates.selection = true
 		this.constructor.all.remove(this);
+		delete Canvas.bones[this.uuid];
 		delete OutlinerElement.uuids[this.uuid];
 		if (undo) {
 			cubes.length = 0
@@ -442,11 +443,11 @@ class Group extends OutlinerElement {
 	Group.prototype.isParent = true;
 	Group.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
 	Group.prototype.buttons = [
-		Outliner.buttons.visibility,
-		Outliner.buttons.locked,
-		Outliner.buttons.export,
+		Outliner.buttons.autouv,
 		Outliner.buttons.shading,
-		Outliner.buttons.autouv
+		Outliner.buttons.export,
+		Outliner.buttons.locked,
+		Outliner.buttons.visibility,
 	];
 	Group.prototype.needsUniqueName = () => Format.bone_rig;
 	Group.prototype.menu = new Menu([
@@ -500,38 +501,6 @@ function getAllGroups() {
 	iterate(Outliner.root)
 	return ta;
 }
-function addGroup() {
-	Undo.initEdit({outliner: true});
-	var add_group = Group.selected
-	if (!add_group && selected.length) {
-		add_group = Cube.selected.last()
-	}
-	var base_group = new Group({
-		origin: add_group ? add_group.origin : undefined
-	})
-	base_group.addTo(add_group)
-	base_group.isOpen = true
-
-	if (Format.bone_rig) {
-		base_group.createUniqueName()
-	}
-	if (add_group instanceof NonGroup && selected.length > 1) {
-		selected.forEach(function(s, i) {
-			s.addTo(base_group)
-		})
-	}
-	base_group.init().select()
-	Undo.finishEdit('add_group');
-	loadOutlinerDraggable()
-	Vue.nextTick(function() {
-		updateSelection()
-		if (settings.create_rename.value) {
-			base_group.rename()
-		}
-		base_group.showInOutliner()
-		Blockbench.dispatchEvent( 'add_group', {object: base_group} )
-	})
-}
 window.__defineGetter__('selected_group', () => {
 	console.warn('selected_group is deprecated. Please use Group.selected instead.')
 	return Group.selected
@@ -545,7 +514,36 @@ BARS.defineActions(function() {
 		condition: () => Modes.edit,
 		keybind: new Keybind({key: 71, ctrl: true}),
 		click: function () {
-			addGroup();
+			Undo.initEdit({outliner: true});
+			var add_group = Group.selected
+			if (!add_group && selected.length) {
+				add_group = Cube.selected.last()
+			}
+			var base_group = new Group({
+				origin: add_group ? add_group.origin : undefined
+			})
+			base_group.addTo(add_group)
+			base_group.isOpen = true
+		
+			if (Format.bone_rig) {
+				base_group.createUniqueName()
+			}
+			if (add_group instanceof NonGroup && selected.length > 1) {
+				selected.forEach(function(s, i) {
+					s.addTo(base_group)
+				})
+			}
+			base_group.init().select()
+			Undo.finishEdit('add_group');
+			loadOutlinerDraggable()
+			Vue.nextTick(function() {
+				updateSelection()
+				if (settings.create_rename.value) {
+					base_group.rename()
+				}
+				base_group.showInOutliner()
+				Blockbench.dispatchEvent( 'add_group', {object: base_group} )
+			})
 		}
 	})
 	new Action({

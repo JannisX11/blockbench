@@ -1,5 +1,4 @@
 (function () {
-	'use strict';
 	var VueTreeItem = Vue.extend({
 		template: 
 		'<li class="outliner_node" v-bind:class="{ parent_li: node.children && node.children.length > 0}" v-bind:id="node.uuid">' +
@@ -14,21 +13,26 @@
 				'<i v-if="node.children && node.children.length > 0 && (!Animator.open || node.children.some(o => o instanceof Group || o instanceof Locator))" v-on:click.stop="toggle(node)" class="icon-open-state fa" :class=\'{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}\'></i>' +
 				'<i v-else class="outliner_opener_placeholder"></i>' +
 				//Main
-				'<i :class="node.icon + (settings.outliner_colors.value ? \' ec_\'+node.color : \'\')" v-on:dblclick.stop="if (node.children && node.children.length) {node.isOpen = !node.isOpen;}"></i>' +
+				'<i :class="node.icon + ((settings.outliner_colors.value && node.color) ? \' ec_\'+node.color : \'\')" v-on:dblclick.stop="if (node.children && node.children.length) {node.isOpen = !node.isOpen;}"></i>' +
 				'<input type="text" class="cube_name tab_target" v-model="node.name" disabled>' +
-				'<a v-for="btn in node.buttons" class="ml5" href="javascript:" :title="btn.title" v-on:click.stop="btnClick(btn, node)" v-bind:class="{advanced_option: btn.advanced_option && (btn.id !== \'locked\' || !node.isIconEnabled(btn))}">' +
-					'<i v-if="node.isIconEnabled(btn) === true" :class="btn.icon"></i>' +
-					'<i v-else-if="node.isIconEnabled(btn) === \'alt\'" :class="btn.icon_alt"></i>' +
-					'<i v-else :class="[btn.icon_off, \'icon_off\']"></i>' +
-				'</a>' +
+
+
+				`<i v-for="btn in node.buttons"
+					v-if="(!btn.advanced_option || show_advanced_toggles || (btn.id === \'locked\' && node.isIconEnabled(btn)))"
+					class="outliner_toggle"
+					:class="getBtnClasses(btn, node)"
+					:title="btn.title"
+					v-on:click.stop="btnClick(btn, node)"
+				></i>` +
 			'</div>' +
 			//Other Entries
-			'<ul v-show="node.isOpen">' +
-				'<vue-tree-item v-for="item in node.children" :node="item" v-key="item.uuid"></vue-tree-item>' +
+			'<ul v-if="node.isOpen">' +
+				'<vue-tree-item v-for="item in node.children" :node="item" :show_advanced_toggles="show_advanced_toggles" v-key="item.uuid"></vue-tree-item>' +
 				`<div class="outliner_line_guide" v-if="node == Group.selected" v-bind:style="{left: getIndentation(node) + 'px'}"></div>` +
 			'</ul>' +
 		'</li>',
 		props: {
+			show_advanced_toggles: Boolean,
 			node: {
 				type: Object
 			}
@@ -46,6 +50,16 @@
 					node.isOpen = !node.isOpen;
 				} else {
 					Vue.set(node, 'isOpen', true);
+				}
+			},
+			getBtnClasses: function (btn, node) {
+				let value = node.isIconEnabled(btn);
+				if (value === true) {
+					return [btn.icon];
+				} else if (value === false) {
+					return [btn.icon_off, 'icon_off'];
+				} else {
+					return [btn.icon_alt];
 				}
 			},
 			btnClick: function (btn, node) {
@@ -80,10 +94,11 @@
 		template: `
 			<div class="vue-tree">
 				<ul>
-					<tree-item :node.sync="root"></tree-item>
+					<tree-item :node.sync="root" :show_advanced_toggles="show_advanced_toggles"></tree-item>
 				</ul>
 			</div>`,
 		props: {
+			show_advanced_toggles: Boolean,
 			root: {
 				type: Object
 			}

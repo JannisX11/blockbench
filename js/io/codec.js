@@ -114,6 +114,11 @@ class Codec {
 		}
 		this.events[event_name].safePush(cb)
 	}
+	removeListener(event_name, cb) {
+		if (this.events[event_name]) {
+			this.events[event_name].remove(cb);
+		}
+	}
 	//Delete
 	delete() {
 		delete Codecs[this.id];

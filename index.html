@@ -89,6 +89,7 @@
 		<script src="js/outliner/group.js"></script>
 		<script src="js/outliner/cube.js"></script>
 		<script src="js/outliner/locator.js"></script>
+		<script src="js/outliner/null_object.js"></script>
 		<script src="js/preview/preview.js"></script>
 		<script src="js/preview/canvas.js"></script>
 		<script src="js/preview/transformer.js"></script>
@@ -104,8 +105,8 @@
 		<script src="js/animations/timeline.js"></script>
 		<script src="js/plugin_loader.js"></script>
 
-		<script src="js/io/format.js"></script>
 		<script src="js/io/codec.js"></script>
+		<script src="js/io/format.js"></script>
 		<script src="js/io/project.js"></script>
 		<script src="js/io/io.js"></script>
 		<script src="js/io/formats/bbmodel.js"></script>
@@ -235,7 +236,7 @@
 			</li> 
 		</ul>
 
-		<div class="bar">
+		<div class="bar" style="margin: 4px 0;">
 			<div class="search_bar">
 				<input type="text" class="dark_bordered" id="action_search_bar" oninput="BARS.list.updateSearch()">
 				<i class="material-icons" id="plugin_search_bar_icon">search</i>
@@ -427,7 +428,7 @@
 
 				<li v-for="category in structure" v-if="!category.hidden">
 					<h3 v-on:click="toggleCategory(category)">
-						<i class="material-icons">{{ category.open ? 'expand_more' : 'navigate_next' }}</i>
+						<i class="material-icons settings_expand_icon">{{ category.open ? 'expand_more' : 'navigate_next' }}</i>
 						{{ category.name }}
 					</h3>
 					<ul v-if="category.open">
@@ -485,7 +486,7 @@
 			<ul id="keybindlist">
 				<li v-for="category in structure" v-if="!category.hidden">
 					<h3 v-on:click="toggleCategory(category)">
-						<i class="material-icons f_left">{{ category.open ? 'expand_more' : 'navigate_next' }}</i>
+						<i class="material-icons f_left settings_expand_icon">{{ category.open ? 'expand_more' : 'navigate_next' }}</i>
 						{{ category.name }}
 						<i class="material-icons f_right" v-if="category.conflict" style="color: var(--color-close);">fiber_manual_record</i>
 					</h3>

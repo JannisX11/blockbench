@@ -59,9 +59,9 @@
 		height: auto;
 		padding: 6px 12px;
 		background: var(--color-ui);
+		color: var(--color-subtle_text);
 		margin: 0;
 		text-transform: uppercase;
-		opacity: 0.6;
 		font-size: 1.1em;
 	}
 	.panel p {
@@ -600,8 +600,12 @@
 	#start-files left span.icon_wrapper {
 		height: 22px;
 	}
+	#start-files left li p {
+		font-size: 0.94em;
+		color: var(--color-subtle_text);
+	}
 	#start-files left i {
-		font-size: 19pt;
+		font-size: 18pt;
 		height: 22px;
 		margin: 2px 8px 0px 0;
 		display: inline-block;
