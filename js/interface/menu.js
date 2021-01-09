@@ -621,11 +621,6 @@ const MenuBar = {
 
 		new BarMenu('view', [
 			'fullscreen',
-			{name: 'menu.view.zoom', id: 'zoom', condition: isApp, icon: 'search', children: [
-				'zoom_in',
-				'zoom_out',
-				'zoom_reset'
-			]},
 			'_',
 			'toggle_shading',
 			'toggle_motion_trails',

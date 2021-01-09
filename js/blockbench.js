@@ -22,7 +22,6 @@ var Prop = {
 	recording		: null,
 	project_saved 	: true,
 	fps				: 0,
-	zoom			: 100,
 	progress		: 0,
 	session 		: false,
 	connections 	: 0,

@@ -86,6 +86,11 @@ const Settings = {
 		}});
 
 		//Interface
+		new Setting('interface_scale', 		{category: 'interface', value: 100, min: 40, max: 200, type: 'number', condition: isApp, onChange() {
+			var factor = Math.clamp(settings.interface_scale.value, 40, 200) / 100;
+			currentwindow.webContents.setZoomFactor(factor)
+			resizeWindow()
+		}});
 		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number'});
 		new Setting('control_size',  		{category: 'interface', value: 10, type: 'number'});
 		new Setting('motion_trails',  		{category: 'interface', value: true, onChange() {

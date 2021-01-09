@@ -462,6 +462,8 @@
 	"settings.streamer_mode": "Streamer Mode",
 	"settings.streamer_mode.desc": "Hides sensitive information like recent models",
 
+	"settings.interface_scale": "Interface Scale",
+	"settings.interface_scale.desc": "Scale of the entire Blockbench interface",
 	"settings.origin_size": "Pivot Marker",
 	"settings.origin_size.desc": "Size of the pivot point marker",
 	"settings.control_size": "Axis Control Size",

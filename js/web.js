@@ -42,10 +42,6 @@ function loadInfoFromURL() {
 	}
 }
 
-setInterval(function() {
-	Prop.zoom = Math.round(devicePixelRatio*100)
-}, 500)
-
 //Misc
 window.onbeforeunload = function() {
 	if (Prop.project_saved === false && elements.length > 0) {

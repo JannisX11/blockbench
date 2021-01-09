@@ -392,7 +392,8 @@ function setZoomLevel(mode) {
 		zoom = limitNumber(zoom, 1, 4)
 		main_uv.setZoom(zoom)
 
-	} else if (isApp) {
+	}
+	/* else if (isApp) {
 		switch (mode) {
 			case 'in':	Prop.zoom += 5;  break;
 			case 'out':   Prop.zoom -= 5;  break;
@@ -401,7 +402,7 @@ function setZoomLevel(mode) {
 		var level = (Prop.zoom - 100) / 12
 		currentwindow.webContents.setZoomLevel(level)
 		resizeWindow()
-	}
+	}*/
 }
 
 //Dialogs
