@@ -223,8 +223,15 @@ class Texture {
 			link = spaces[1]
 			path_array[path_array.length-1] = this.namespace
 		}
-		path_array.push('textures', link.replace(/\//g, osfs))
-		var path = path_array.join(osfs)+'.png'
+
+		if (path_array.includes('cit')) {
+			path_array.pop();
+			path_array.push(link.replace(/^\.*\//, '').replace(/\//g, osfs)+'.png')
+		} else {
+			path_array.push('textures', link.replace(/\//g, osfs)+'.png');
+		}
+		var path = path_array.join(osfs);
+
 		if (path && can_load) {
 			this.fromPath(path)
 		} else {
@@ -449,19 +456,33 @@ class Texture {
 		return this;
 	}
 	generateFolder(path) {
-		var scope = this
-		if (path.includes(osfs+'textures'+osfs)) {
-			var arr = path.split(osfs+'textures'+osfs)
+		if (path.includes(osfs+'optifine'+osfs+'cit'+osfs)) {
 
-			var arr1 = arr[0].split(osfs)
-			scope.namespace = arr1[arr1.length-1]
+			if (ModelMeta.export_path) {
+				let model_arr = ModelMeta.export_path.split(osfs).slice(0, -1);
+				let tex_arr = path.split(osfs).slice(0, -1);
+				let index = 0;
+				tex_arr.find((dir, i) => {
+					if (dir != model_arr[i]) return true;
+					index++;
+				})
+				this.folder = ['.', ...tex_arr.slice(index)].join('/');
+			} else {
+				this.folder = '.';
+			}
 
-			var arr2 = arr[arr.length-1].split(osfs)
-			arr2.pop()
-			scope.folder = arr2.join('/')
+		} else if (path.includes(osfs+'textures'+osfs)) {
+			var arr = path.split(osfs+'textures'+osfs);
+
+			var arr1 = arr[0].split(osfs);
+			this.namespace = arr1[arr1.length-1];
+
+			var arr2 = arr[arr.length-1].split(osfs);
+			arr2.pop();
+			this.folder = arr2.join('/');
 		} else {
 			var arr = path.split(osfs)
-			scope.folder = arr[arr.length-2]
+			this.folder = arr[arr.length-2]
 			if (Format.id === 'java_block' && isApp) {
 				Blockbench.showMessageBox({
 					translateKey: 'loose_texture',
@@ -469,9 +490,9 @@ class Texture {
 					buttons: [tl('message.loose_texture.change'), tl('dialog.ok')],
 					confirm: 0,
 					cancel: 1
-				}, function(result) {
+				}, result => {
 					if (result === 0) {
-						scope.reopen()
+						this.reopen()
 					}
 				})
 			}
