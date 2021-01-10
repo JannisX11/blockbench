@@ -15,6 +15,7 @@ class Mode extends KeybindItem {
 		this.center_windows = data.center_windows||[];
 		this.hide_toolbars = data.hide_toolbars
 		this.hide_sidebars = data.hide_sidebars
+		this.hide_status_bar = data.hide_status_bar
 
 		this.condition = data.condition;
 		this.onSelect = data.onSelect;
@@ -61,11 +62,8 @@ class Mode extends KeybindItem {
 			$(obj).toggle(this.center_windows.includes(obj.id));
 		})
 
-		if (this.hide_toolbars) {
-			$('#main_toolbar .toolbar_wrapper').css('visibility', 'hidden')
-		} else {
-			$('#main_toolbar .toolbar_wrapper').css('visibility', 'visible')
-		}
+		$('#main_toolbar .toolbar_wrapper').css('visibility', this.hide_toolbars ? 'hidden' : 'visible');
+		$('#status_bar').css('display', this.hide_status_bar ? 'none' : 'flex');
 
 		if (typeof this.onSelect === 'function') {
 			this.onSelect()
@@ -119,6 +117,7 @@ BARS.defineActions(function() {
 		category: 'navigate',
 		hide_toolbars: true,
 		hide_sidebars: true,
+		hide_status_bar: true,
 		component: {
 			data: {
 				formats: Formats,
