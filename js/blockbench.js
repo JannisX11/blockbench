@@ -43,17 +43,13 @@ function onVueSetup(func) {
 }
 function canvasGridSize(shift, ctrl) {
 	if (!shift && !ctrl) {
-		return 16 / limitNumber(settings.edit_size.value, 1, 512)
+		return 16 / Math.clamp(settings.edit_size.value, 1, 512)
 	} else if (ctrl && shift) {
-		var basic = 16 / limitNumber(settings.edit_size.value, 1, 512)
-		var control = 16 / limitNumber(settings.ctrl_size.value, 1, 4096)
-		var shift = 16 / limitNumber(settings.shift_size.value, 1, 4096)
-		control = basic / control
-		return shift / control
+		return 16 / Math.clamp(settings.ctrl_shift_size.value, 1, 4096)
 	} else if (ctrl) {
-		return 16 / limitNumber(settings.ctrl_size.value, 1, 4096)
+		return 16 / Math.clamp(settings.ctrl_size.value, 1, 4096)
 	} else {
-		return 16 / limitNumber(settings.shift_size.value, 1, 4096)
+		return 16 / Math.clamp(settings.shift_size.value, 1, 4096)
 	}
 }
 function updateNslideValues() {

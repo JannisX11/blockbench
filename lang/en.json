@@ -542,6 +542,8 @@
 	"settings.shift_size.desc": "Resolution of the grid while holding shift",
 	"settings.ctrl_size": "Control Resolution",
 	"settings.ctrl_size.desc": "Resolution of the grid while holding control",
+	"settings.ctrl_shift_size": "Control + Shift Resolution",
+	"settings.ctrl_shift_size.desc": "Resolution of the grid while holding control and shift",
 	"settings.negative_size": "Negative Size",
 	"settings.negative_size.desc": "Allow the resize tool to use negative sizes",
 	"settings.animation_snap": "Animation Snap",

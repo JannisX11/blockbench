@@ -165,6 +165,7 @@ const Settings = {
 		new Setting('edit_size',	{category: 'snapping', value: 16, type: 'number'});
 		new Setting('shift_size', 	{category: 'snapping', value: 64, type: 'number'});
 		new Setting('ctrl_size',	{category: 'snapping', value: 160, type: 'number'});
+		new Setting('ctrl_shift_size',	{category: 'snapping', value: 640, type: 'number'});
 		new Setting('negative_size',{category: 'snapping', value: false});
 		new Setting('animation_snap',{category: 'snapping', value: 24, type: 'number'});
 
