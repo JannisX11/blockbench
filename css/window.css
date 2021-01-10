@@ -354,7 +354,7 @@
 		padding: 0 8px;
 		padding-top: 2px;
 		display: inline-block;
-		height: 29px;
+		height: 28px;
 		font-weight: normal;
 	}
 	li.menu_bar_point.opened {
@@ -502,7 +502,7 @@
 		margin-top: 40px;
 		max-width: 1000px;
 		height: auto;
-		max-height: calc(100% - 80px);
+		max-height: calc(100% - 50px);
 		margin-left: auto;
 		margin-right: auto;
 		background-color: var(--color-ui);

@@ -1,4 +1,21 @@
 var open_menu;
+
+function handleMenuOverflow(node) {
+	node = node.get(0);
+	if (!node) return;
+	// Todo: mobile support
+	node.addEventListener('wheel', e => {
+		e.stopPropagation();
+		let top = parseInt(node.style.top);
+		let offset = top - $(node).offset().top;
+		top = Math.clamp(
+			top - e.deltaY,
+			window.innerHeight - node.clientHeight + offset,
+			offset + 26
+		);
+		node.style.top = `${top}px`;
+	})
+}
 class Menu {
 	constructor(structure) {
 		var scope = this;
@@ -35,16 +52,19 @@ class Menu {
 				}
 			}
 
-			let window_height = $(window).height() - 26;
+			let window_height = window.innerHeight - 26;
 
-			if (offset.top + el_height > window_height) {
-				childlist.css('margin-top', 4-childlist.height() + 'px')
+			if (el_height > window_height) {
+				childlist.css('margin-top', '0').css('top', '0')
+				childlist.css('top', (-childlist.offset().top + 26) + 'px')
+				handleMenuOverflow(childlist);
+
+			} else if (offset.top + el_height > window_height) {
+				console.log('b')
+				childlist.css('margin-top', 26-childlist.height() + 'px')
 				if (childlist.offset().top < 26) {
 					childlist.offset({top: 26})
 				}
-			}
-			if (el_height > $(window).height()) {
-				childlist.css('height', $(window).height()+'px').css('overflow-y', 'scroll')
 			}
 		}
 	}
@@ -170,7 +190,6 @@ class Menu {
 					createChildList(s, entry)
 				} else {
 					entry.on('click', (e) => {s.trigger(e)})
-					//entry[0].addEventListener('click', )
 				}
 				parent.append(entry)
 
@@ -257,7 +276,7 @@ class Menu {
 
 		var el_width = ctxmenu.width()
 		var el_height = ctxmenu.height()
-		let window_height = $(window).height() - 26;
+		let window_height = window.innerHeight - 26;
 
 		if (position && position.clientX !== undefined) {
 			var offset_left = position.clientX
@@ -290,7 +309,7 @@ class Menu {
 		ctxmenu.css('top',  offset_top +'px')
 
 		if (el_height > window_height) {
-			ctxmenu.css('height', window_height+'px').css('overflow-y', 'scroll')
+			handleMenuOverflow(ctxmenu);
 		}
 
 		$(scope.node).filter(':not(.tx)').addClass('tx').click(function(ev) {
