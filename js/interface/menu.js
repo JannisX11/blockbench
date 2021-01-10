@@ -537,6 +537,7 @@ const MenuBar = {
 			'add_cube',
 			'add_group',
 			'add_locator',
+			'rename',
 			'unlock_everything',
 			'duplicate',
 			'delete',
@@ -572,8 +573,7 @@ const MenuBar = {
 				'toggle_export',
 				'toggle_autouv',
 				'toggle_shade',
-				'toggle_mirror_uv',
-				'rename'
+				'toggle_mirror_uv'
 			]}
 
 		], () => Modes.edit)

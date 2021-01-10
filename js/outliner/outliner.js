@@ -1135,7 +1135,7 @@ Interface.definePanels(function() {
 			template: `
 				<div>
 					<div class="toolbar_wrapper outliner"></div>
-					<ul id="cubes_list" class="list" @contextmenu.stop.prevent="openMenu($event)">
+					<ul id="cubes_list" class="list mobile_scrollbar" @contextmenu.stop.prevent="openMenu($event)">
 						<vue-tree :root="root" :show_advanced_toggles="show_advanced_toggles"></vue-tree>
 					</ul>
 				</div>

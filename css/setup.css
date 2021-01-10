@@ -54,6 +54,13 @@
 		* {
 			scrollbar-width: none;
 		}
+		.mobile_scrollbar {
+			scrollbar-width: thin;
+		}
+		.mobile_scrollbar::-webkit-scrollbar {
+			width: 12px;
+			height: 12px;
+		}
 	}
 	/*Assistant Font*/
 	@font-face {

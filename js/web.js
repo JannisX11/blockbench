@@ -99,9 +99,9 @@ function setupMobilePanelSelector() {
 					$('#left_bar').append(overlay.children());
 					if (panel instanceof Panel) {
 						overlay.append(panel.node);
-						if (panel.onResize) panel.onResize();
 						overlay.show();
 						$(panel.node).show();
+						if (panel.onResize) panel.onResize();
 					} else {
 						overlay.hide();
 					}
