@@ -209,7 +209,7 @@ function buildForm(dialog) {
 	dialog.updateFormValues(true)
 }
 function buildLines(dialog) {
-	let jq_dialog = $(dialog.object)
+	let dialog_content = $(dialog.object).find('.dialog_content')
 	dialog.lines.forEach(l => {
 		if (typeof l === 'object' && (l.label || l.widget)) {
 
@@ -230,9 +230,9 @@ function buildLines(dialog) {
 				bar.append(widget.getNode())
 				dialog.max_label_width = Math.max(getStringWidth(widget.name), dialog.max_label_width)
 			}
-			jq_dialog.append(bar)
+			dialog_content.append(bar)
 		} else {
-			jq_dialog.append(l)
+			dialog_content.append(l)
 		}
 	})
 }
