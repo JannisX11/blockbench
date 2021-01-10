@@ -356,6 +356,36 @@ BARS.defineActions(function() {
 			Canvas.updateVisibility()
 		}
 	})
+	
+	let exploded_view = false;
+	let explode_skin_model = new Action('explode_skin_model', {
+		icon: () => exploded_view ? 'close_fullscreen' : 'open_in_full',
+		category: 'edit',
+		condition: {formats: ['skin']},
+		click: function () {
+			exploded_view = !exploded_view;
+			
+			Undo.initEdit({elements: Cube.all});
+			Cube.all.forEach(cube => {
+				let center = [
+					cube.from[0] + (cube.to[0] - cube.from[0]) / 2,
+					cube.from[1],
+					cube.from[2] + (cube.to[2] - cube.from[2]) / 2,
+				]
+				let offset = cube.name.toLowerCase().includes('leg') ? 1 : 0.5;
+				center.V3_multiply(exploded_view ? offset : -offset/(1+offset));
+				cube.from.V3_add(center);
+				cube.to.V3_add(center);
+			})
+			Undo.finishEdit('explode_skin_model');
+			Canvas.updateAllPositions();
+			this.setIcon(this.icon);
+		}
+	})
+	Blockbench.on('reset_project', () => {
+		exploded_view = false;
+		explode_skin_model.setIcon(explode_skin_model.icon)
+	})
 })
 
 skin_presets.steve = `{
@@ -1250,10 +1280,6 @@ skin_presets.cod = `{
 	"name": "cod",
 	"texturewidth": 32,
 	"textureheight": 32,
-	"eyes": [
-		[7, 9],
-		[11, 9]
-	],
 	"bones": [
 		{
 			"name": "body",

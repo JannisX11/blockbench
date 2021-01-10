@@ -1509,6 +1509,9 @@ const BARS = {
 				'cube_counter'
 			]
 		})
+		if (!Toolbars.outliner.children.includes(BarItems.explode_skin_model)) {
+			Toolbars.outliner.add(BarItems.explode_skin_model, -1)
+		}
 
 		Toolbars.texturelist = new Toolbar({
 			id: 'texturelist',

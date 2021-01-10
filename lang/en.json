@@ -688,6 +688,8 @@
 	"action.copy_paste_tool.desc": "Tool to copy and paste selections of textures",
 	"action.toggle_skin_layer": "Toggle Skin Layer",
 	"action.toggle_skin_layer.desc": "Toggle the hat and clothing layer of the skin model",
+	"action.explode_skin_model": "Explode Skin Model",
+	"action.explode_skin_model.desc": "Toggles an explosion view that allows you to edit covered faces",
 
 	"action.vertex_snap_tool": "Vertex Snap",
 	"action.vertex_snap_tool.desc": "Move one cube to another cube by connecting two vertices",
