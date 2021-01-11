@@ -220,15 +220,8 @@ class Keyframe {
 	}
 	compileBedrockKeyframe() {
 		if (this.transform) {
-			if (this.data_points.length == 1) {
-				if (this.interpolation == 'linear') {
-					return this.getArray();
-				} else {
-					return {
-						post: this.getArray(),
-						lerp_mode: this.interpolation,
-					}
-				}
+			if (this.data_points.length == 1 && this.interpolation == 'linear') {
+				return this.getArray();
 			} else {
 				return {
 					pre:  this.getArray(0),

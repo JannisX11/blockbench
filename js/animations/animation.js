@@ -1432,7 +1432,7 @@ const Animator = {
 							if (source.pre) {
 								points.push(getKeyframeDataPoints(source.pre)[0])
 							}
-							if (source.post) {
+							if (source.post && !(source.pre instanceof Array && source.post instanceof Array && source.post.equals(source.pre))) {
 								points.push(getKeyframeDataPoints(source.post)[0])
 							}
 							return points;
