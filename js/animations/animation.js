@@ -1369,7 +1369,10 @@ const Animator = {
 		if (!json_content || !json_content.particle_effect) return;
 
 		if (Animator.particle_effects[path]) {
-			Animator.particle_effects[path].config.reset().setFromJSON(json_content, {path});
+			Animator.particle_effects[path].config
+				.reset()
+				.setFromJSON(json_content, {path})
+				.set('file_path', path);
 			for (var uuid in Animator.particle_effects[path].emitters) {
 				let emitter = Animator.particle_effects[path].emitters[uuid];
 				emitter.updateConfig();
@@ -1421,7 +1424,7 @@ const Animator = {
 							if (source.pre) {
 								points.push(getKeyframeDataPoints(source.pre)[0])
 							}
-							if (source.post) {
+							if (source.post && !(source.pre instanceof Array && source.post instanceof Array && source.post.equals(source.pre))) {
 								points.push(getKeyframeDataPoints(source.post)[0])
 							}
 							return points;
@@ -1841,7 +1844,7 @@ Interface.definePanels(function() {
 			template: `
 				<div>
 					<div class="toolbar_wrapper animations"></div>
-					<ul id="animations_list" class="list">
+					<ul id="animations_list" class="list mobile_scrollbar">
 						<li v-for="(file, key) in files" :key="key" class="animation_file" @contextmenu.prevent.stop="showFileContextMenu($event, key)">
 							<div class="animation_file_head" v-on:click.stop="toggle(key)">
 								<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
@@ -1892,6 +1895,7 @@ Interface.definePanels(function() {
 		},
 		component: {
 			name: 'panel-placeholders',
+			components: {VuePrismEditor},
 			data() { return {
 				text: ''
 			}},

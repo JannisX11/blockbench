@@ -28,6 +28,7 @@
 	dialog {
 		width: 540px;
 		min-width: min(370px, 100%);
+		max-height: calc(100% - 50px);
 		height: auto;
 		background-color: var(--color-ui);
 		color: inherit;

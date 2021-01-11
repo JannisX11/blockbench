@@ -1372,7 +1372,7 @@ Interface.definePanels(function() {
 			template: `
 				<div>
 					<div class="toolbar_wrapper texturelist"></div>
-					<ul id="texture_list" class="list" @contextmenu.stop.prevent="openMenu($event)">
+					<ul id="texture_list" class="list mobile_scrollbar" @contextmenu.stop.prevent="openMenu($event)">
 						<li
 							v-for="texture in textures"
 							v-bind:class="{ selected: texture.selected, particle: texture.particle}"

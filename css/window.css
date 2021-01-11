@@ -336,6 +336,7 @@
 		left: 0;
 		right: 40px;
 		bottom: 0;
+		overflow-x: hidden;
 		overflow-y: auto;
 		background: var(--color-ui);
 	}
