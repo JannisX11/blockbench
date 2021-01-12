@@ -760,8 +760,8 @@ class UVEditor {
 	}
 	setToMainSlot() {
 		var scope = this;
-		$('.panel#uv').append(this.jquery.main)
-		$('.panel#uv').on('mousewheel', function(e) {
+		$('.panel#uv > .panel_inside').append(this.jquery.main)
+		$('.panel#uv > .panel_inside').on('mousewheel', function(e) {
 
 			if (!Project.box_uv && !e.ctrlOrCmd && $('#uv_panel_sides:hover, #uv_viewport:not(.zoomed):hover').length) {
 				var faceIDs = {'north': 0, 'south': 1, 'west': 2, 'east': 3, 'up': 4, 'down': 5}

@@ -686,28 +686,30 @@
 	<div id="left_bar" class="sidebar">
 
 		<div id="uv" class="panel selection_only">
-			<div class="bar next_to_title" id="uv_title_bar">
-				<div id="project_resolution_status" onclick="BarItems.project_window.trigger()"></div>
-			</div>
-			<div id="uv_panel_sides" onclick="main_uv.loadSelectedFace()" class="bar tabs_small">
+			<div class="panel_inside">
+				<div class="bar next_to_title" id="uv_title_bar">
+					<div id="project_resolution_status" onclick="BarItems.project_window.trigger()"></div>
+				</div>
+				<div id="uv_panel_sides" onclick="main_uv.loadSelectedFace()" class="bar tabs_small">
 
-				<input type="radio" name="side" id="north_radio" checked>
-				<label class="tl" for="north_radio">face.north</label>
+					<input type="radio" name="side" id="north_radio" checked>
+					<label class="tl" for="north_radio">face.north</label>
 
-				<input type="radio" name="side" id="south_radio">
-				<label class="tl" for="south_radio">face.south</label>
-				
-				<input type="radio" name="side" id="west_radio">
-				<label class="tl" for="west_radio">face.west</label>
+					<input type="radio" name="side" id="south_radio">
+					<label class="tl" for="south_radio">face.south</label>
+					
+					<input type="radio" name="side" id="west_radio">
+					<label class="tl" for="west_radio">face.west</label>
 
-				<input type="radio" name="side" id="east_radio">
-				<label class="tl" for="east_radio">face.east</label>
+					<input type="radio" name="side" id="east_radio">
+					<label class="tl" for="east_radio">face.east</label>
 
-				<input type="radio" name="side" id="up_radio">
-				<label class="tl" for="up_radio">face.up</label>
+					<input type="radio" name="side" id="up_radio">
+					<label class="tl" for="up_radio">face.up</label>
 
-				<input type="radio" name="side" id="down_radio">
-				<label class="tl" for="down_radio">face.down</label>
+					<input type="radio" name="side" id="down_radio">
+					<label class="tl" for="down_radio">face.down</label>
+				</div>
 			</div>
 		</div>
 
@@ -715,18 +717,20 @@
 	<div id="right_bar" class="sidebar">
 
 		<div id="element" class="panel selection_only">
-			<p class="tl">panel.element.position</p>
-			<div class="toolbar_wrapper element_position"></div>
-			<p class="tl">panel.element.size</p>
-			<div class="toolbar_wrapper element_size"></div>
-			<p class="tl">panel.element.origin</p>
-			<div class="toolbar_wrapper element_origin"></div>
-			<p class="tl">panel.element.rotation</p>
-			<div class="toolbar_wrapper element_rotation"></div>
+			<div class="panel_inside">
+				<p class="tl">panel.element.position</p>
+				<div class="toolbar_wrapper element_position"></div>
+				<p class="tl">panel.element.size</p>
+				<div class="toolbar_wrapper element_size"></div>
+				<p class="tl">panel.element.origin</p>
+				<div class="toolbar_wrapper element_origin"></div>
+				<p class="tl">panel.element.rotation</p>
+				<div class="toolbar_wrapper element_rotation"></div>
+			</div>
 		</div>
 
 		<div id="color" class="panel">
-			<div id="color_panel_wrapper">
+			<div id="color_panel_wrapper" class="panel_inside">
 				<div id="color_panel_head">
 					<div class="main" v-bind:style="{'background-color': hover_color || main_color}"></div>
 					<div class="side">

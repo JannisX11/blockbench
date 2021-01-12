@@ -1008,7 +1008,8 @@
 		font-weight: 300;
 	}
 	.panel .bar.next_to_title {
-		margin-top: -30px;
+		margin-top: -34px;
+		margin-right: 32px;
 		position: relative;
 		float: right;
 		pointer-events: none;
