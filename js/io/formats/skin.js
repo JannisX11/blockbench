@@ -5352,7 +5352,7 @@ skin_presets.zombie = `{
 			"name": "head",
 			"parent": "body",
 			"pivot": [0, 24, 0],
-			"rotation": [3, -10, 0],
+			"pose": [3, -10, 0],
 			"cubes": [
 				{"name": "head", "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [0, 0]},
 				{"name": "hat", "visibility": false, "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [32, 0], "inflate": 0.5}
@@ -5362,7 +5362,7 @@ skin_presets.zombie = `{
 			"name": "rightArm",
 			"parent": "body",
 			"pivot": [-5, 22, 0],
-			"rotation": [-80, -5, 0],
+			"pose": [-80, -5, 0],
 			"cubes": [
 				{"name": "rightArm", "origin": [-8, 12, -2], "size": [4, 12, 4], "uv": [40, 16]}
 			]
@@ -5376,7 +5376,7 @@ skin_presets.zombie = `{
 			"name": "leftArm",
 			"parent": "body",
 			"pivot": [5, 22, 0],
-			"rotation": [-75, 5, 0],
+			"pose": [-75, 5, 0],
 			"mirror": true,
 			"cubes": [
 				{"name": "leftArm", "origin": [4, 12, -2], "size": [4, 12, 4], "uv": [40, 16]}
@@ -5386,7 +5386,7 @@ skin_presets.zombie = `{
 			"name": "rightLeg",
 			"parent": "body",
 			"pivot": [-1.9, 12, 0],
-			"rotation": [-25, 0, 5],
+			"pose": [-25, 0, 5],
 			"cubes": [
 				{"name": "rightLeg", "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 16]}
 			]
@@ -5395,7 +5395,7 @@ skin_presets.zombie = `{
 			"name": "leftLeg",
 			"parent": "body",
 			"pivot": [1.9, 12, 0],
-			"rotation": [20, 0, 0],
+			"pose": [20, 0, 0],
 			"mirror": true,
 			"cubes": [
 				{"name": "leftLeg", "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [0, 16]}
