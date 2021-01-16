@@ -1307,7 +1307,8 @@ const Animator = {
 			geometry.vertices.push(position);
 		}
 		
-		displayTime(currentTime);
+		Timeline.time = currentTime;
+		Animator.preview();
 
 		var line = new THREE.Line(geometry, Canvas.outlineMaterial);
 		line.no_export = true;

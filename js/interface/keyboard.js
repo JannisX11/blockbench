@@ -189,7 +189,13 @@ class Keybind {
 		overlay.find('> div').css('margin-top', top+'px')
 
 		function onActivate(event) {
-			event = event.originalEvent;
+			if (event.originalEvent) event = event.originalEvent;
+
+			document.removeEventListener('keyup', onActivate)
+			document.removeEventListener('keydown', onActivateDown)
+			overlay.off('mousedown', onActivate)
+			overlay.off('mousewheel', onActivate)
+			overlay.off('keydown keypress keyup click click dblclick mouseup mousewheel', preventDefault)
 
 			if (event.target && event.target.tagName === 'BUTTON') return;
 
@@ -208,19 +214,21 @@ class Keybind {
 
 			scope.stopRecording()
 		}
+		function onActivateDown(event) {
+			if (event.metaKey && event.which != 91) {
+				onActivate(event)
+			}
+		}
+		function preventDefault(event) {
+			event.preventDefault();
+		}
 
-		input.focus().on('keyup', onActivate)
-			.on('keydown', event => {
-				if (event.metaKey && event.which != 91) {
-					onActivate(event)
-				}
-			})
+		document.addEventListener('keyup', onActivate)
+		document.addEventListener('keydown', onActivateDown)
 		overlay.on('mousedown', onActivate)
 		overlay.on('mousewheel', onActivate)
 
-		overlay.on('keydown keypress keyup click click dblclick mouseup mousewheel', function(event) {
-			event.preventDefault()
-		})
+		overlay.on('keydown keypress keyup click click dblclick mouseup mousewheel', preventDefault)
 		return this;
 	}
 	stopRecording() {
@@ -235,10 +243,10 @@ class Keybind {
 	}
 }
 Keybinds.no_overlap = function(k1, k2) {
-	if (typeof k1.condition !== 'object' || typeof k1.condition !== 'object') return false;
-	if (k1.condition && k2.condition.modes && k1.condition.modes.overlap(k2.condition.modes) == 0) return true;
-	if (k1.condition && k2.condition.tools && k1.condition.tools.overlap(k2.condition.tools) == 0) return true;
-	if (k1.condition && k2.condition.formats && k1.condition.formats.overlap(k2.condition.formats) == 0) return true;
+	if (typeof k1.condition !== 'object' || typeof k2.condition !== 'object') return false;
+	if (k1.condition.modes && k2.condition.modes && k1.condition.modes.overlap(k2.condition.modes) == 0) return true;
+	if (k1.condition.tools && k2.condition.tools && k1.condition.tools.overlap(k2.condition.tools) == 0) return true;
+	if (k1.condition.formats && k2.condition.formats && k1.condition.formats.overlap(k2.condition.formats) == 0) return true;
 	return false;
 }
 function updateKeybindConflicts() {
