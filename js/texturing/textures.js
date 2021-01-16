@@ -1158,14 +1158,24 @@ Clipbench.setTexture = function(texture) {
 	clipboard.writeImage(img)
 }
 Clipbench.pasteTextures = function() {
-	if (!isApp) return;
-	var img = clipboard.readImage()
-	if (img) {
-		var dataUrl = img.toDataURL()
+	function loadImage(dataUrl) {
 		var texture = new Texture({name: 'pasted', folder: 'block' }).fromDataURL(dataUrl).fillParticle().add(true)
 		setTimeout(function() {
 			texture.openMenu()
 		}, 40)
+	}
+	if (isApp) {
+		var image = clipboard.readImage().toDataURL();
+		loadImage(image);
+	} else {
+		navigator.clipboard.read().then(content => {
+			if (content && content[0] && content[0].types.includes('image/png')) {
+				content[0].getType('image/png').then(blob => {
+					let url = URL.createObjectURL(blob);
+					loadImage(url);
+				})
+			}
+		}).catch(() => {})
 	}
 }
 
@@ -1511,6 +1521,7 @@ Interface.definePanels(function() {
 			}
 		},
 		menu: new Menu([
+			'paste',
 			'import_texture',
 			'create_texture',
 			'reload_textures',

@@ -36,7 +36,7 @@ const Clipbench = {
 		if ((p == 'uv' || p == 'preview') && Modes.edit) {
 			return Clipbench.types.face;
 		}
-		if (p == 'textures' && isApp && (Texture.selected || mode === 2)) {
+		if (p == 'textures' && (Texture.selected || mode === 2)) {
 			return Clipbench.types.texture;
 		}
 		if (p == 'outliner' && Modes.edit) {
@@ -138,6 +138,8 @@ const Clipbench = {
 	setText(text) {
 		if (isApp) {
 			clipboard.writeText(text)
+		} else if (navigator.clipboard) {
+			navigator.clipboard.writeText(text);
 		} else {
 			document.execCommand('copy')
 		}

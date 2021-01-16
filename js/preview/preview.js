@@ -1094,12 +1094,26 @@ class Preview {
 						}
 					}, 'image', false)
 				}},
-				{icon: 'fa-clipboard', name: 'menu.preview.background.clipboard', condition: isApp, click: function(preview) {
-					var image = clipboard.readImage().toDataURL();
-					if (image.length > 32) {
-						preview.background.image = image;
-						preview.loadBackground();
-						Settings.saveLocalStorages()
+				{icon: 'fa-clipboard', name: 'menu.preview.background.clipboard', click: function(preview) {
+					function loadImage(image) {
+						if (image.length > 32) {
+							preview.background.image = image;
+							preview.loadBackground();
+							Settings.saveLocalStorages()
+						}
+					}
+					if (isApp) {
+						var image = clipboard.readImage().toDataURL();
+						loadImage(image);
+					} else {
+						navigator.clipboard.read().then(content => {
+							if (content && content[0] && content[0].types.includes('image/png')) {
+								content[0].getType('image/png').then(blob => {
+									let url = URL.createObjectURL(blob);
+									loadImage(url);
+								})
+							}
+						})
 					}
 				}},
 				{icon: 'photo_size_select_large', name: 'menu.preview.background.position', condition: has_background, click: function(preview) {
