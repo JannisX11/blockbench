@@ -678,7 +678,110 @@ onVueSetup(function() {
 				points.push(`${(samples.length) / Timeline.waveform_sample_rate * size},${height}`)
 				return points.join(' ');
 			}
-		}
+		},
+		template: `
+			<div id="timeline_vue">
+				<div id="timeline_header">
+					<div id="timeline_corner" v-bind:style="{width: head_width+'px'}"></div>
+					<div id="timeline_time_wrapper">
+						<div id="timeline_time" v-bind:style="{width: (size*length)+'px', left: -scroll_left+'px'}">
+							<div v-for="t in timecodes" class="timeline_timecode" v-bind:style="{left: (t.time * size) + 'px', width: (t.width * size) + 'px'}">
+								<span>{{ t.text }}</span>
+								<div class="substeps">
+									<div v-for="n in Math.ceil(t.substeps)"></div>
+								</div>
+							</div>
+							<div id="timeline_playhead"
+								v-bind:style="{left: (playhead * size) + 'px'}"
+							></div>
+							<div id="timeline_endbracket"
+								v-bind:style="{left: (animation_length * size) + 'px'}"
+							></div>
+							<div
+								v-for="marker in markers"
+								class="timeline_marker"
+								v-bind:style="{left: (marker.time * size) + 'px', 'border-color': markerColors[marker.color].standard}"
+								@contextmenu.prevent="marker.showContextMenu($event)"
+								v-on:click="marker.callPlayhead()"
+							></div>
+						</div>
+					</div>
+				</div>
+				<div id="timeline_body">
+					<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="Timeline.showMenu($event)">
+						<li v-for="animator in animators" class="animator" :class="{selected: animator.selected}" :uuid="animator.uuid" v-on:click="animator.select();">
+							<div class="animator_head_bar">
+								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}"  v-on:dblclick.stop="toggleAnimator(animator)">
+									<div class="text_button" v-on:click.stop="toggleAnimator(animator)">
+										<i class="icon-open-state fa" v-bind:class="{'fa-angle-right': !animator.expanded, 'fa-angle-down': animator.expanded}"></i>
+									</div>
+									<span v-on:click.stop="animator.select();">{{animator.name}}</span>
+									<div class="text_button" v-on:click.stop="removeAnimator(animator)">
+										<i class="material-icons">remove</i>
+									</div>
+								</div>
+								<div class="keyframe_section">
+									<template v-for="channel in animator.channels" v-if="!(animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length))">
+										<keyframe
+											v-for="keyframe in animator[channel]"
+											v-bind:style="{left: (8 + keyframe.time * size) + 'px'}"
+											class="keyframe"
+											v-bind:id="'_'+keyframe.uuid"
+										>
+											<i class="material-icons">lens</i>
+										</keyframe>
+									</template>
+								</div>
+							</div>
+							<div class="animator_channel_bar"
+								v-bind:style="{width: (size*length + head_width)+'px'}"
+								v-for="channel in animator.channels"
+								v-if="animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length)"
+							>
+								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
+									<div class="text_button" v-on:click.stop="animator.toggleMuted(channel)">
+										<template v-if="channel === 'sound'">
+											<i class="channel_mute fas fa-volume-mute" v-if="animator.muted[channel]"></i>
+											<i class="channel_mute fas fa-volume-up" v-else></i>
+										</template>
+										<template v-else-if="channel !== 'timeline'">
+											<i class="channel_mute fas fa-eye-slash" v-if="animator.muted[channel]"></i>
+											<i class="channel_mute fas fa-eye" v-else></i>
+										</template>
+									</div>
+									<span>{{ tl('timeline.'+channel) }}</span>
+									<div class="text_button" v-on:click.stop="animator.createKeyframe(null, Timeline.time, channel, true)">
+										<i class="material-icons">add</i>
+									</div>
+								</div>
+								<div class="keyframe_section">
+									<keyframe
+										v-for="keyframe in animator[channel]"
+										v-bind:style="{left: (8 + keyframe.time * size) + 'px', color: getColor(keyframe.color)}"
+										class="keyframe"
+										v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
+										v-bind:id="keyframe.uuid"
+										v-on:click.stop="keyframe.select($event)"
+										v-on:dblclick="keyframe.callPlayhead()"
+										:title="tl('timeline.'+keyframe.channel)"
+										@contextmenu.prevent="keyframe.showContextMenu($event)"
+									>
+										<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
+										<i class="material-icons" v-else>stop</i>
+										<svg class="keyframe_waveform" v-if="keyframe.channel == 'sound' && keyframe.data_points[0].file && waveforms[keyframe.data_points[0].file]" :style="{width: waveforms[keyframe.data_points[0].file].duration * size}">
+											<polygon :points="getWaveformPoints(waveforms[keyframe.data_points[0].file].samples, size)"></polygon>
+										</svg>
+									</keyframe>
+								</div>
+							</div>
+						</li>
+						<div id="timeline_empty_head" class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
+						</div>
+						<div id="timeline_selector" class="selection_rectangle"></div>
+					</div>
+				</div>
+			</div>
+		`
 	})
 })
 
