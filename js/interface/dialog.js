@@ -4,6 +4,7 @@ function buildForm(dialog) {
 	let dialog_content = $(dialog.object).find('.dialog_content')
 	for (var form_id in dialog.form) {
 		let data = dialog.form[form_id]
+		form_id = form_id.replace(/"/g, '');
 		if (data === '_') {
 			dialog_content.append('<hr />')
 			
@@ -20,39 +21,55 @@ function buildForm(dialog) {
 
 			switch (data.type) {
 				default:
-					input_element = $(`<input class="dark_bordered half focusable_input" type="text" id="${form_id}" value="${data.value||''}" placeholder="${data.placeholder||''}" ${data.list ? `list="${dialog.id}_${form_id}_list"` : ''}>`)
-					bar.append(input_element)
-					if (data.list) {
-						let list = $(`<datalist id="${dialog.id}_${form_id}_list"></datalist>`)
-						for (let value of data.list) {
-							list.append(`<option value="${value}">`)
+					input_element = Object.assign(document.createElement('input'), {
+						type: 'text',
+						className: 'dark_bordered half focusable_input',
+						id: form_id,
+						value: data.value||'',
+						placeholder: data.placeholder||'',
+						oninput() {
+							dialog.updateFormValues()
 						}
-						bar.append(list)
+					});
+					bar.append(input_element)
+
+					if (data.list) {
+						input_element.list = `${dialog.id}_${form_id}_list`;
+						let list = $(`<datalist id="${input_element.list}"></datalist>`);
+						for (let value of data.list) {
+							let node = document.createElement('option');
+							node.value = value;
+							list.append(node);
+						}
+						bar.append(list);
 					}
 					if (data.type == 'password') {
 						bar.append(`<div class="password_toggle">
 								<i class="fas fa-eye-slash"></i>
 							</div>`)
-						input_element.attr('type', 'password')
+						input_element.type = 'password';
 						let hidden = true;
 						let this_bar = bar;
 						let this_input_element = input_element;
-						this_bar.find('.password_toggle').click(e => {
+						this_bar.find('.password_toggle').on('click', e => {
 							hidden = !hidden;
 							this_input_element.attr('type', hidden ? 'password' : 'text');
 							this_bar.find('.password_toggle i')[0].className = hidden ? 'fas fa-eye-slash' : 'fas fa-eye';
 						})
 					}
-					input_element.on('input', () => {
-						dialog.updateFormValues()
-					})
 					break;
 				case 'textarea':
-					input_element = $(`<textarea class="focusable_input" style="height: ${data.height||150}px;" id="${form_id}"></textarea>`);
+					input_element = Object.assign(document.createElement('textarea'), {
+						className: 'focusable_input',
+						id: form_id,
+						value: data.value||'',
+						placeholder: data.placeholder||'',
+						oninput() {
+							dialog.updateFormValues()
+						}
+					});
+					input_element.style.height = (data.height || 150) + 'px';
 					bar.append(input_element)
-					input_element.on('input', () => {
-						dialog.updateFormValues()
-					})
 					break;
 
 
@@ -96,7 +113,7 @@ function buildForm(dialog) {
 
 				case 'number':
 					input_element = $(`<input class="dark_bordered half focusable_input" type="number" id="${form_id}"
-						value="${data.value||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
+						value="${parseFloat(data.value)||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
 					bar.append(input_element)
 					input_element.on('change', () => {
 						dialog.updateFormValues()
@@ -109,7 +126,7 @@ function buildForm(dialog) {
 					bar.append(group)
 					for (var i = 0; i < (data.dimensions || 3); i++) {
 						input_element = $(`<input class="dark_bordered focusable_input" type="number" id="${form_id}_${i}"
-							value="${data.value ? data.value[i]: 0}" step="${data.step||1}" min="${data.min}" max="${data.max}">`)
+							value="${data.value ? parseFloat(data.value[i]): 0}" step="${data.step||1}" min="${data.min}" max="${data.max}">`)
 						group.append(input_element)
 						input_element.on('input', () => {
 							dialog.updateFormValues()
@@ -148,7 +165,8 @@ function buildForm(dialog) {
 				case 'save':
 					if (data.type == 'folder' && !isApp) break;
 
-					var input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" value="${data.value||''}" disabled>`);
+					var input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" disabled>`);
+					input[0].value = data.value;
 					bar.append(input);
 					bar.addClass('form_bar_file');
 
