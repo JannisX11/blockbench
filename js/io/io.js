@@ -356,7 +356,6 @@ function uploadSketchfabModel() {
 }
 //Json
 function compileJSON(object, options) {
-	var output = ''
 	if (typeof options !== 'object') options = {}
 	function newLine(tabs) {
 		if (options.small === true) {return '';}
@@ -366,11 +365,14 @@ function compileJSON(object, options) {
 		}
 		return s;
 	}
+	function escape(string) {
+		return string.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n|\r\n/g, '\\n').replace(/\t/g, '\\t')
+	}
 	function handleVar(o, tabs) {
 		var out = ''
 		if (typeof o === 'string') {
 			//String
-			out += '"' + o.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n|\r\n/g, '\\n').replace(/\t/g, '\\t') + '"'
+			out += '"' + escape(o) + '"'
 		} else if (typeof o === 'boolean') {
 			//Boolean
 			out += (o ? 'true' : 'false')
@@ -408,7 +410,7 @@ function compileJSON(object, options) {
 					if (compiled) {
 						if (has_content) {out += ',' + (breaks || options.small?'':' ')}
 						if (breaks) {out += newLine(tabs)}
-						out += '"' + key + '":' + (options.small === true ? '' : ' ')
+						out += '"' + escape(key) + '":' + (options.small === true ? '' : ' ')
 						out += compiled
 						has_content = true
 					}
