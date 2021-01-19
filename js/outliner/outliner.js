@@ -420,15 +420,14 @@ class NonGroup extends OutlinerElement {
 		return copy;
 	}
 	select(event, isOutlinerClick) {
-		var scope = this;
-		if (scope === undefined || Modes.animate) return false;
+		if (Modes.animate && this.constructor != NullObject) return false;
 		//Shiftv
 		var just_selected = []
-		if (event && event.shiftKey === true && scope.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && isOutlinerClick) {
+		if (event && event.shiftKey === true && this.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && isOutlinerClick) {
 			var starting_point;
 			var last_selected = selected[selected.length-1]
-			scope.getParentArray().forEach(function(s, i) {
-				if (s === last_selected || s === scope) {
+			this.getParentArray().forEach((s, i) => {
+				if (s === last_selected || s === this) {
 					if (starting_point) {
 						starting_point = false
 					} else {
@@ -456,22 +455,22 @@ class NonGroup extends OutlinerElement {
 
 		//Control
 		} else if (event && !Modes.paint && (event.ctrlOrCmd || event.shiftKey )) {
-			if (selected.includes(scope)) {
-				selected = selected.filter(function(e) {
-					return e !== scope
+			if (selected.includes(this)) {
+				selected = selected.filter((e) => {
+					return e !== this
 				})
 			} else {
-				scope.selectLow()
-				just_selected.push(scope)
+				this.selectLow()
+				just_selected.push(this)
 			}
 
 		//Normal
 		} else {
 			selected.forEachReverse(obj => obj.unselect())
 			if (Group.selected) Group.selected.unselect()
-			scope.selectLow()
-			just_selected.push(scope)
-			scope.showInOutliner()
+			this.selectLow()
+			just_selected.push(this)
+			this.showInOutliner()
 		}
 		if (Group.selected) {
 			Group.selected.unselect()
