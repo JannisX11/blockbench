@@ -651,6 +651,9 @@ onVueSetup(function() {
 			waveforms: Timeline.waveforms,
 			focus_channel: null,
 			playhead: Timeline.time,
+			graph_editor_open: false,
+			graph_editor_channel: 'rotation',
+			graph_editor_axis: 'x',
 			channels: {
 				rotation: true,
 				position: true,
@@ -677,6 +680,35 @@ onVueSetup(function() {
 				})
 				points.push(`${(samples.length) / Timeline.waveform_sample_rate * size},${height}`)
 				return points.join(' ');
+			},
+			getGraph() {
+				let ba = Animation.selected.getBoneAnimator();
+				let original_time = Timeline.time;
+				let step = Timeline.getStep() * this.size;
+				let timeline_offset = (this.scroll_left - 9);
+				let clientWidth = this.$refs.graph_editor ? this.$refs.graph_editor.clientWidth : 400;
+				let clientHeight = this.$refs.graph_editor ? this.$refs.graph_editor.clientHeight : 400;
+				let points = [];
+				let min = -1;
+				let max =  1;
+
+				
+				for (let time = timeline_offset; time < timeline_offset + clientWidth; time += step) {
+					Timeline.time = time / this.size;
+					let value = ba.interpolate(this.graph_editor_channel, false, this.graph_editor_axis);
+					points.push(value);
+					min = Math.min(min, value);
+					max = Math.max(max, value);
+				}
+				Timeline.time = original_time;
+
+				let string = '';
+				points.forEach((value, i) => {
+					let y = clientHeight - ((value-min) / (max-min)) * clientHeight;
+					string += `${string.length ? 'L' : 'M'}${i*step} ${y} `
+				})
+
+				return string;
 			}
 		},
 		template: `
@@ -720,7 +752,7 @@ onVueSetup(function() {
 										<i class="material-icons">remove</i>
 									</div>
 								</div>
-								<div class="keyframe_section">
+								<div class="keyframe_section" v-if="!graph_editor_open">
 									<template v-for="channel in animator.channels" v-if="!(animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length))">
 										<keyframe
 											v-for="keyframe in animator[channel]"
@@ -754,7 +786,7 @@ onVueSetup(function() {
 										<i class="material-icons">add</i>
 									</div>
 								</div>
-								<div class="keyframe_section">
+								<div class="keyframe_section" v-if="!graph_editor_open">
 									<keyframe
 										v-for="keyframe in animator[channel]"
 										v-bind:style="{left: (8 + keyframe.time * size) + 'px', color: getColor(keyframe.color)}"
@@ -779,6 +811,11 @@ onVueSetup(function() {
 						</div>
 						<div id="timeline_selector" class="selection_rectangle"></div>
 					</div>
+				</div>
+				<div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{left: head_width + 'px'}">
+					<svg>
+						<path :d="getGraph()" :style="{stroke: 'var(--color-axis-' + graph_editor_axis + ')'}"></path>
+					</svg>
 				</div>
 			</div>
 		`

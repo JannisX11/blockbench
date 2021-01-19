@@ -633,6 +633,7 @@
 	}
 	#timeline_vue {
 		height: calc(100% - 30px);
+		position: relative;
 	}
 	#timeline_body {
 		overflow-y: scroll;
@@ -822,7 +823,6 @@
 	#timeline_body li > div {
 		height: 24px;
 		display: flex;
-		border-bottom: 1px solid var(--color-border);
 	}
 	.channel_head {
 		position: relative;
@@ -871,6 +871,7 @@
 	.keyframe_section {
 		flex-grow: 1;
 		position: relative;
+		border-bottom: 1px solid var(--color-border);
 	}
 	.animator_channel_bar > .keyframe_section {
 		background-color: var(--color-ui);
@@ -892,6 +893,22 @@
 		fill: var(--color-grid);
 		stroke: none;
 		stroke-width: 0;
+	}
+
+	#timeline_graph_editor {
+		position: absolute;
+		top: 28px;
+		bottom: 9px;
+		right: 6px;
+	}
+	#timeline_graph_editor svg {
+		width: 100%;
+		height: 100%;
+	}
+	#timeline_graph_editor svg path {
+		stroke: #f72858;
+		stroke-width: 2px;
+		fill: none;
 	}
 
 
