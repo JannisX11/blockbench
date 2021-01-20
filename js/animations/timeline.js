@@ -57,6 +57,7 @@ const Timeline = {
 			if (e.which !== 1 || (
 				!e.target.classList.contains('keyframe_section') &&
 				!e.target.classList.contains('animator_head_bar') &&
+				e.target.id !== 'timeline_graph_editor' &&
 				e.target.id !== 'timeline_body_inner'
 			)) {
 				return
@@ -123,16 +124,20 @@ const Timeline = {
 						channels[kf.channel] != false &&
 						(!channels.hide_empty || animator[kf.channel].length)
 					) {
-						var channel_index = 0 //animator.channels.indexOf(kf.channel);
-						
-						for (var channel of animator.channels) {
-							if (kf.channel == channel) break;
-							if (channels[channel] != false && (!channels.hide_empty || animator[channel].length)) {
-								channel_index++;
-							}
-						}
+						if (!Timeline.vue.graph_editor_open) {
 
-						height = offset + channel_index*24 + 36;
+							var channel_index = 0 //animator.channels.indexOf(kf.channel);
+							for (var channel of animator.channels) {
+								if (kf.channel == channel) break;
+								if (channels[channel] != false && (!channels.hide_empty || animator[channel].length)) {
+									channel_index++;
+								}
+							}
+							var height = offset + channel_index*24 + 36;
+
+						} else {
+							var height = Timeline.vue.graph_offset - (kf.display_value || 0) * Timeline.vue.graph_size + Timeline.vue.scroll_top;
+						}
 						if (height > rect.ay && height < rect.by) {
 							kf.selected = true;
 							Timeline.selected.push(kf);
@@ -369,6 +374,7 @@ const Timeline = {
 		});
 		$('#timeline_body').on('scroll', e => {
 			Timeline.vue._data.scroll_left = $('#timeline_body').scrollLeft()||0;
+			Timeline.vue._data.scroll_top = $('#timeline_body').scrollTop()||0;
 		})
 
 		BarItems.slider_animation_speed.update()
@@ -644,6 +650,7 @@ onVueSetup(function() {
 			length: 10,
 			animation_length: 0,
 			scroll_left: 0,
+			scroll_top: 0,
 			head_width: 180,
 			timecodes: [],
 			animators: Timeline.animators,
@@ -657,12 +664,18 @@ onVueSetup(function() {
 			graph_editor_axis: 'x',
 			graph_offset: 200,
 			graph_size: 200,
+			graph_keyframe_values: new Map(),
 
 			channels: {
 				rotation: true,
 				position: true,
 				scale: true,
 				hide_empty: false,
+			}
+		},
+		computed: {
+			graph_editor_animator() {
+				return this.animators.find(animator => animator.selected && animator instanceof BoneAnimator);
 			}
 		},
 		methods: {
@@ -686,34 +699,40 @@ onVueSetup(function() {
 				return points.join(' ');
 			},
 			getGraph() {
-				let ba = Animation.selected.getBoneAnimator();
+				let ba = this.graph_editor_animator;
 				let original_time = Timeline.time;
 				let step = Timeline.getStep() * this.size;
 				step = Math.clamp(step, 1, 5)
-				let timeline_offset = this.scroll_left - 9;
-				let timeline_offset_rounded = Math.round(timeline_offset/step)*step;
 				let clientWidth = this.$refs.graph_editor ? this.$refs.graph_editor.clientWidth : 400;
-				let clientHeight = this.$refs.graph_editor ? this.$refs.graph_editor.clientHeight : 400;
+				let clientHeight = this.$refs.timeline_body ? this.$refs.timeline_body.clientHeight : 400;
 				let points = [];
 				let min = -1;
 				let max =  1;
 
-				for (let time = timeline_offset_rounded; time < timeline_offset + clientWidth; time += step) {
+				for (let time = 0; time < clientWidth; time += step) {
 					Timeline.time = time / this.size;
 					let value = ba.interpolate(this.graph_editor_channel, false, this.graph_editor_axis);
 					points.push(value);
 					min = Math.min(min, value);
 					max = Math.max(max, value);
 				}
-				Timeline.time = original_time;
 
 				let padding = 30
 				this.graph_size = (clientHeight - 2*padding) / (max-min);
 				this.graph_offset = clientHeight - padding + (this.graph_size * min);
 
+				this.graph_keyframe_values.clear();
+				ba[this.graph_editor_channel].forEach(kf => {
+
+					Timeline.time = kf.time;
+					let value = ba.interpolate(this.graph_editor_channel, false, this.graph_editor_axis);
+					kf.display_value = value;
+				})
+				Timeline.time = original_time;
+
 				let string = '';
 				points.forEach((value, i) => {
-					string += `${string.length ? 'L' : 'M'}${i*step - timeline_offset + timeline_offset_rounded} ${this.graph_offset - value * this.graph_size} `
+					string += `${string.length ? 'L' : 'M'}${i*step} ${this.graph_offset - value * this.graph_size} `
 				})
 
 				return string;
@@ -752,7 +771,7 @@ onVueSetup(function() {
 						</div>
 					</div>
 				</div>
-				<div id="timeline_body">
+				<div id="timeline_body" ref="timeline_body">
 					<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="Timeline.showMenu($event)">
 						<li v-for="animator in animators" class="animator" :class="{selected: animator.selected}" :uuid="animator.uuid" v-on:click="animator.select();">
 							<div class="animator_head_bar">
@@ -827,13 +846,27 @@ onVueSetup(function() {
 						<div id="timeline_empty_head" class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
 						</div>
 						<div id="timeline_selector" class="selection_rectangle"></div>
+						<div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{left: head_width + 'px', top: scroll_top + 'px'}">
+							<svg>
+								<path :d="\`M0 \${graph_offset} L10000 \${graph_offset}\`" style="stroke: var(--color-grid);"></path>
+								<path :d="getGraph()" :style="{stroke: 'var(--color-axis-' + graph_editor_axis + ')'}"></path>
+							</svg>
+							<keyframe
+								v-for="keyframe in graph_editor_animator[graph_editor_channel]"
+								v-bind:style="{left: (10 + keyframe.time * size) + 'px', top: (graph_offset - keyframe.display_value * graph_size - 8) + 'px', color: getColor(keyframe.color)}"
+								class="keyframe graph_keyframe"
+								v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
+								v-bind:id="keyframe.uuid"
+								v-on:click.stop="keyframe.select($event)"
+								v-on:dblclick="keyframe.callPlayhead()"
+								:title="tl('timeline.'+keyframe.channel)"
+								@contextmenu.prevent="keyframe.showContextMenu($event)"
+							>
+								<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
+								<i class="material-icons" v-else>stop</i>
+							</keyframe>
+						</div>
 					</div>
-				</div>
-				<div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{left: head_width + 'px'}">
-					<svg>
-						<path :d="\`M0 \${graph_offset} L10000 \${graph_offset}\`" style="stroke: var(--color-grid);"></path>
-						<path :d="getGraph()" :style="{stroke: 'var(--color-axis-' + graph_editor_axis + ')'}"></path>
-					</svg>
 				</div>
 			</div>
 		`
