@@ -634,6 +634,7 @@
 	#timeline_vue {
 		height: calc(100% - 30px);
 		position: relative;
+		overflow: hidden;
 	}
 	#timeline_body {
 		overflow-y: scroll;
@@ -755,15 +756,24 @@
 		position: relative;
 	}
 	#timeline_corner {
+		display: flex;
+		justify-content: space-between;
 		width: 144px;
 		flex-shrink: 0;
-		font-family: var(--font-code);
 		background-color: var(--color-back);
+		z-index: 4;
+	}
+	#timeline_timestamp {
+		font-family: var(--font-code);
 		padding: 3px;
 		padding-left: 8px;
 		overflow: hidden;
-		background-color: var(--color-back);
-		z-index: 4;
+	}
+	#timeline_corner > .tool {
+		height: 26px;
+	}
+	#timeline_corner > .tool > i {
+		margin-top: 3px;
 	}
 	#timeline_time_wrapper {
 		height: 100%;
@@ -824,6 +834,12 @@
 		height: 24px;
 		display: flex;
 	}
+	li.animator {
+		width: fit-content;
+	}
+	#timeline_vue.graph_editor li.animator > div {
+		width: fit-content !important;
+	}
 	.channel_head {
 		position: relative;
 		display: flex;
@@ -843,6 +859,9 @@
 	}
 	.animator.selected .channel_head {
 	    border-left-color: var(--color-accent);
+	}
+	.channel_head.selected {
+		background-color: var(--color-selected);
 	}
 	.channel_head .text_button {
 		width: 26px;
@@ -865,7 +884,7 @@
 		flex-shrink: 1;
 		overflow: hidden;
 	}
-	.animator_channel_bar .channel_head span {
+	.animator_channel_bar .channel_head:not(.selected) span {
 		color: var(--color-subtle_text);
 	}
 	.keyframe_section {
@@ -897,6 +916,7 @@
 
 	#timeline_graph_editor {
 		position: absolute;
+		pointer-events: none;
 		top: 28px;
 		bottom: 9px;
 		right: 6px;

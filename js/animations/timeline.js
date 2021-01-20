@@ -189,7 +189,7 @@ const Timeline = {
 	revealTime(time) {
 		var scroll = $('#timeline_body').scrollLeft();
 		var playhead = time * Timeline.vue._data.size + 8;
-		if (playhead < scroll || playhead > scroll + $('#timeline_body').width() - Timeline.vue._data.head_width) {
+		if (playhead < scroll || playhead > scroll + $('#timeline_vue').width() - Timeline.vue._data.head_width) {
 			$('#timeline_body').scrollLeft(playhead-16);
 		} else if (time == 0) {
 			$('#timeline_body').scrollLeft(0);
@@ -201,7 +201,7 @@ const Timeline = {
 		let f = Math.floor((time%1) * 100)
 		if ((s+'').length === 1) {s = '0'+s}
 		if ((f+'').length === 1) {f = '0'+f}
-		$('#timeline_corner').text(m + ':' + s  + ':' + f)
+		$('#timeline_timestamp').text(m + ':' + s  + ':' + f)
 	},
 	snapTime(time, animation) {
 		//return time;
@@ -288,15 +288,15 @@ const Timeline = {
 		})
 		
 		//Enter Time
-		$('#timeline_corner').click(e => {
-			if ($('#timeline_corner').attr('contenteditable') == 'true') return;
+		$('#timeline_timestamp').click(e => {
+			if ($('#timeline_timestamp').attr('contenteditable') == 'true') return;
 
-			$('#timeline_corner').attr('contenteditable', true).focus().select()
-			var times = $('#timeline_corner').text().split(':')
+			$('#timeline_timestamp').attr('contenteditable', true).focus().select()
+			var times = $('#timeline_timestamp').text().split(':')
 			while (times.length < 3) {
 				times.push('00')
 			}
-			var node = $('#timeline_corner').get(0).childNodes[0]
+			var node = $('#timeline_timestamp').get(0).childNodes[0]
 			var selection = window.getSelection();
 			var range = document.createRange();
 
@@ -317,12 +317,12 @@ const Timeline = {
 		})
 		.on('focusout keydown', e => {
 			if (e.type === 'focusout' || Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
-				$('#timeline_corner').attr('contenteditable', false)
+				$('#timeline_timestamp').attr('contenteditable', false)
 				Timeline.setTimecode(Timeline.time)
 			}
 		})
 		.on('keyup', e => {
-			var times = $('#timeline_corner').text().split(':')
+			var times = $('#timeline_timestamp').text().split(':')
 			times.forEach((t, i) => {
 				times[i] = parseInt(t)
 				if (isNaN(times[i])) {
@@ -451,7 +451,7 @@ const Timeline = {
 		})
 	},
 	getMaxLength() {
-		var max_length = ($('#timeline_body').width()-8) / Timeline.vue._data.size;
+		var max_length = ($('#timeline_vue').width()-8) / Timeline.vue._data.size;
 		if (Animation.selected) max_length = Math.max(max_length, Animation.selected.length)
 		Timeline.keyframes.forEach((kf) => {
 			max_length = Math.max(max_length, kf.time)
@@ -651,9 +651,13 @@ onVueSetup(function() {
 			waveforms: Timeline.waveforms,
 			focus_channel: null,
 			playhead: Timeline.time,
+
 			graph_editor_open: false,
 			graph_editor_channel: 'rotation',
 			graph_editor_axis: 'x',
+			graph_offset: 200,
+			graph_size: 200,
+
 			channels: {
 				rotation: true,
 				position: true,
@@ -685,15 +689,16 @@ onVueSetup(function() {
 				let ba = Animation.selected.getBoneAnimator();
 				let original_time = Timeline.time;
 				let step = Timeline.getStep() * this.size;
-				let timeline_offset = (this.scroll_left - 9);
+				step = Math.clamp(step, 1, 5)
+				let timeline_offset = this.scroll_left - 9;
+				let timeline_offset_rounded = Math.round(timeline_offset/step)*step;
 				let clientWidth = this.$refs.graph_editor ? this.$refs.graph_editor.clientWidth : 400;
 				let clientHeight = this.$refs.graph_editor ? this.$refs.graph_editor.clientHeight : 400;
 				let points = [];
 				let min = -1;
 				let max =  1;
 
-				
-				for (let time = timeline_offset; time < timeline_offset + clientWidth; time += step) {
+				for (let time = timeline_offset_rounded; time < timeline_offset + clientWidth; time += step) {
 					Timeline.time = time / this.size;
 					let value = ba.interpolate(this.graph_editor_channel, false, this.graph_editor_axis);
 					points.push(value);
@@ -702,19 +707,27 @@ onVueSetup(function() {
 				}
 				Timeline.time = original_time;
 
+				let padding = 30
+				this.graph_size = (clientHeight - 2*padding) / (max-min);
+				this.graph_offset = clientHeight - padding + (this.graph_size * min);
+
 				let string = '';
 				points.forEach((value, i) => {
-					let y = clientHeight - ((value-min) / (max-min)) * clientHeight;
-					string += `${string.length ? 'L' : 'M'}${i*step} ${y} `
+					string += `${string.length ? 'L' : 'M'}${i*step - timeline_offset + timeline_offset_rounded} ${this.graph_offset - value * this.graph_size} `
 				})
 
 				return string;
 			}
 		},
 		template: `
-			<div id="timeline_vue">
+			<div id="timeline_vue" :class="{graph_editor: graph_editor_open}">
 				<div id="timeline_header">
-					<div id="timeline_corner" v-bind:style="{width: head_width+'px'}"></div>
+					<div id="timeline_corner" v-bind:style="{width: head_width+'px'}">
+						<div id="timeline_timestamp"></div>
+						<div class="text_button tool" :class="{sel: graph_editor_open}" v-on:click.stop="graph_editor_open = !graph_editor_open">
+							<i class="material-icons">timeline</i>
+						</div>
+					</div>
 					<div id="timeline_time_wrapper">
 						<div id="timeline_time" v-bind:style="{width: (size*length)+'px', left: -scroll_left+'px'}">
 							<div v-for="t in timecodes" class="timeline_timecode" v-bind:style="{left: (t.time * size) + 'px', width: (t.width * size) + 'px'}">
@@ -743,7 +756,7 @@ onVueSetup(function() {
 					<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="Timeline.showMenu($event)">
 						<li v-for="animator in animators" class="animator" :class="{selected: animator.selected}" :uuid="animator.uuid" v-on:click="animator.select();">
 							<div class="animator_head_bar">
-								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}"  v-on:dblclick.stop="toggleAnimator(animator)">
+								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)">
 									<div class="text_button" v-on:click.stop="toggleAnimator(animator)">
 										<i class="icon-open-state fa" v-bind:class="{'fa-angle-right': !animator.expanded, 'fa-angle-down': animator.expanded}"></i>
 									</div>
@@ -770,7 +783,11 @@ onVueSetup(function() {
 								v-for="channel in animator.channels"
 								v-if="animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length)"
 							>
-								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
+								<div class="channel_head"
+									:class="{selected: graph_editor_open && animator.selected && graph_editor_channel == channel}"
+									v-bind:style="{left: scroll_left+'px', width: head_width+'px'}"
+									@click.stop="animator.select(); graph_editor_channel = channel;"
+								>
 									<div class="text_button" v-on:click.stop="animator.toggleMuted(channel)">
 										<template v-if="channel === 'sound'">
 											<i class="channel_mute fas fa-volume-mute" v-if="animator.muted[channel]"></i>
@@ -814,6 +831,7 @@ onVueSetup(function() {
 				</div>
 				<div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{left: head_width + 'px'}">
 					<svg>
+						<path :d="\`M0 \${graph_offset} L10000 \${graph_offset}\`" style="stroke: var(--color-grid);"></path>
 						<path :d="getGraph()" :style="{stroke: 'var(--color-axis-' + graph_editor_axis + ')'}"></path>
 					</svg>
 				</div>

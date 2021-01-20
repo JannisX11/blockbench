@@ -95,7 +95,6 @@
 	#center {
 		grid-area: center;
 		background-color: var(--color-dark);
-		overflow: hidden;
 		min-width: 100px;
 		display: flex;
 		flex-direction: column;
