@@ -831,8 +831,8 @@
 		display: none;
 	}
 	#timeline_body li > div {
-		height: 24px;
 		display: flex;
+		min-height: 24px;
 	}
 	li.animator {
 		width: fit-content;
@@ -844,12 +844,31 @@
 		position: relative;
 		display: flex;
 		width: 144px;
-		height: calc(100% + 1px);
 		background-color: var(--color-ui);
 		border-right: 1px solid var(--color-border);
 	    border-left: 2px solid transparent;
 		box-shadow: 1px 8px 10px 0 #00000038;
 		z-index: 5;
+	}
+	#timeline_vue.graph_editor .channel_head {
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+	.channel_axis_selector {
+		height: 24px;
+		display: flex;
+	}
+	.channel_axis_selector > div {
+		font-weight: bolder;
+		text-align: center;
+		width: 20px;
+		height: 24px;
+	}
+	.channel_axis_selector > div.selected {
+		border-bottom: 3px solid var(--color-accent);
+	}
+	.channel_axis_selector > div:hover {
+		filter: brightness(1.4);
 	}
 	#timeline_body li > .animator_head_bar .channel_head:hover {
 		color: var(--color-light);
@@ -940,6 +959,10 @@
 	#timeline_graph_editor .keyframe > i {
 		margin-top: 0px;
 		font-size: 16px;
+	}
+	#timeline_graph_editor .keyframe > i.keyframe_icon_smaller {
+		font-size: 12px;
+		margin-top: 2px;
 	}
 
 

@@ -428,9 +428,6 @@ var Undo = {
 						}
 					}
 				}
-				if (added) {
-					Vue.nextTick(Timeline.update)
-				}
 				updateKeyframeSelection()
 			}
 		}

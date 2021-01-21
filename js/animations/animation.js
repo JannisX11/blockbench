@@ -630,7 +630,6 @@ class GeneralAnimator {
 	}
 	select() {
 		var scope = this;
-		TickUpdates.keyframes = true;
 		for (var key in Animation.selected.animators) {
 			Animation.selected.animators[key].selected = false;
 		}
@@ -685,7 +684,6 @@ class GeneralAnimator {
 		if (select !== false) {
 			keyframe.select();
 		}
-		TickUpdates.keyframes = true;
 
 		var deleted = [];
 		delete keyframe.time_before;
@@ -1208,7 +1206,6 @@ const Animator = {
 		if (!Timeline.is_setup) {
 			Timeline.setup()
 		}
-		TickUpdates.keyframes = true;
 		if (outlines.children.length) {
 			outlines.children.empty()
 			Canvas.updateAllPositions()
