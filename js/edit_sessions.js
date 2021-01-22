@@ -324,12 +324,7 @@ EditSession.Client = class {
 
 const Chat = {
 	history: [],
-	expanded: true,
 	maxlength: 512,
-	toggle() {
-		this.expanded = !this.expanded;
-		BarItems.toggle_chat.setIcon( Chat.expanded ? 'keyboard_arrow_down' : 'keyboard_arrow_up' )
-	},
 	send(text) {
 		if (typeof text !== 'string') {
 			text = $('input#chat_input').val()
@@ -444,7 +439,7 @@ Interface.definePanels(function() {
 			template: `
 				<div>
 					<div class="bar next_to_title" id="chat_title_bar"></div>
-					<ul id="chat_history" v-if="expanded">
+					<ul id="chat_history">
 						<li v-for="msg in history">
 							<b v-if="msg.showAuthor()" v-bind:class="{self: msg.self}">{{ msg.author }}:</b>
 							<span class="text" v-bind:style="{color: msg.hex || 'inherit'}" v-html="msg.html"></span>

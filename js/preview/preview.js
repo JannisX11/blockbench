@@ -1863,7 +1863,7 @@ function buildGrid() {
 
 BARS.defineActions(function() {
 	new Action('toggle_wireframe', {
-		icon: 'border_clear',
+		icon: 'check_box_outline_blank',
 		category: 'view',
 		keybind: new Keybind({key: 90}),
 		condition: () => Toolbox && Toolbox.selected && Toolbox.selected.allowWireframe,
@@ -1874,6 +1874,7 @@ BARS.defineActions(function() {
 				Animator.preview()
 			}
 			Blockbench.showQuickMessage('message.wireframe.' + (Prop.wireframe ? 'enabled' : 'disabled'))
+			this.setIcon(Prop.wireframe ? 'check_box' : 'check_box_outline_blank')
 		}
 	})
 	new Action('preview_checkerboard', {
