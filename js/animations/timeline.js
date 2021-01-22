@@ -606,7 +606,10 @@ onVueSetup(function() {
 			},
 			zero_line() {
 				let height = this.graph_offset;
-				//if (this.graph_editor_channel == 'scale') height -= this.graph_size;
+				return `M0 ${height} L10000 ${height}`
+			},
+			one_line() {
+				let height = this.graph_offset - this.graph_size;
 				return `M0 ${height} L10000 ${height}`
 			},
 			graph() {
@@ -618,19 +621,24 @@ onVueSetup(function() {
 				let step = 2;
 				let clientWidth = this.$refs.timeline_body ? this.$refs.timeline_body.clientWidth : 400;
 				let clientHeight = this.$refs.timeline_body ? this.$refs.timeline_body.clientHeight : 400;
+				let keyframes = ba[this.graph_editor_channel];
 				let points = [];
-				let min = -1;
-				let max =  1;
+				let min = -1, max = 1;
 
 				for (let time = Math.clamp(this.scroll_left - 9, 0, Infinity); time < (clientWidth + this.scroll_left - this.head_width); time += step) {
 					Timeline.time = time / this.size;
+					let snap_kf = keyframes.find(kf => Timeline.time <= kf.time && Timeline.time > kf.time - step / this.size );
+					if (snap_kf) {
+						Timeline.time = snap_kf.time;
+					}
 					let value = ba.interpolate(this.graph_editor_channel, false, this.graph_editor_axis);
 					points.push(value);
 					min = Math.min(min, value);
 					max = Math.max(max, value);
+					if (snap_kf) snap_kf.display_value = value;
 				}
 
-				ba[this.graph_editor_channel].forEach(kf => {
+				/*keyframes.forEach(kf => {
 					if (kf.time >= this.scroll_left / this.size && kf.time <= (clientWidth + this.scroll_left - this.head_width) / this.size) {
 						Timeline.time = kf.time;
 						let value = ba.interpolate(this.graph_editor_channel, false, this.graph_editor_axis);
@@ -638,11 +646,11 @@ onVueSetup(function() {
 						min = Math.min(min, value);
 						max = Math.max(max, value);
 					}
-				})
+				})*/
 				Timeline.time = original_time;
 
 				let padding = 16;
-				this.graph_size = (clientHeight - 2*padding) / (max-min);
+				this.graph_size = (clientHeight - 2*padding) / Math.clamp(max-min, 3, 1e4);
 				this.graph_offset = clientHeight - padding + (this.graph_size * min);
 
 				let string = '';
@@ -687,6 +695,7 @@ onVueSetup(function() {
 				convertTouchEvent(e1);
 
 				let dragging_range = [Infinity, 0];
+				let dragging_restriction;
 				let originalValue;
 				let previousValue = 0;
 
@@ -703,6 +712,30 @@ onVueSetup(function() {
 					kf.time_before = kf.time;
 					dragging_range[0] = Math.min(dragging_range[0], kf.time);
 					dragging_range[1] = Math.max(dragging_range[1], kf.time);
+				}
+
+				if (Timeline.vue.graph_editor_open) {
+					// Find dragging restriction
+					dragging_restriction = [-Infinity, Infinity];
+					let ba = this.graph_editor_animator || 0;
+					let all_keyframes = ba[this.graph_editor_channel];
+					if (all_keyframes) {
+
+						let frst_keyframe;
+						let last_keyframe;
+						Timeline.selected.forEach(kf => {
+							if (!frst_keyframe || frst_keyframe.time > kf.time) frst_keyframe = kf;
+							if (!last_keyframe || last_keyframe.time < kf.time) last_keyframe = kf;
+						})
+						let prvs_keyframe;
+						let next_keyframe;
+						all_keyframes.forEach(kf => {
+							if (kf.time < frst_keyframe.time && (!prvs_keyframe || prvs_keyframe.time < kf.time)) prvs_keyframe = kf;
+							if (kf.time > last_keyframe.time && (!next_keyframe || next_keyframe.time > kf.time)) next_keyframe = kf;
+						})
+						if (prvs_keyframe) dragging_restriction[0] = prvs_keyframe.time;
+						if (next_keyframe) dragging_restriction[1] = next_keyframe.time;
+					}
 				}
 
 
@@ -723,6 +756,29 @@ onVueSetup(function() {
 							: ((max-min+difference) / (max-min));
 						time_factor = Math.roundTo(time_factor, 2);
 					}
+
+					// Value
+					let value_diff = 0;
+					if (Timeline.vue.graph_editor_open) {
+						value = -offset[1] / Timeline.vue.graph_size;
+						if (Toolbox.selected.id === 'rotate_tool') {
+							var round_num = getRotationInterval(e2);
+						} else {
+							if (Toolbox.selected.id === 'resize_tool') {
+								round_num = 0.1;
+							} else {
+								var round_num = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
+							}
+						}
+						value = Math.round(value/round_num)*round_num
+						previousValue = previousValue ?? value;
+						originalValue = originalValue ?? value;
+
+						if (value !== previousValue) {
+							value_diff = value - (previousValue||0);
+							previousValue = value;
+						}
+					}
 	
 					for (var kf of Timeline.selected) {
 						if (e2.ctrlKey) {
@@ -734,32 +790,15 @@ onVueSetup(function() {
 						} else {
 							var t = kf.time_before + difference;
 						}
-						kf.time = Timeline.snapTime(t);
+						if (dragging_restriction) {
+							let step = Timeline.getStep();
+							kf.time = Timeline.snapTime(Math.clamp(t, dragging_restriction[0] + step, dragging_restriction[1] - step))
+						} else {
+							kf.time = Timeline.snapTime(t);
+						}
 
 						if (Timeline.vue.graph_editor_open) {
-
-
-							let value = -offset[1] / Timeline.vue.graph_size;
-							if (Toolbox.selected.id === 'rotate_tool') {
-								var round_num = getRotationInterval(e2);
-							} else {
-								if (Toolbox.selected.id === 'resize_tool') {
-									round_num = 0.1;
-								} else {
-									var round_num = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
-								}
-							}
-							value = Math.round(value/round_num)*round_num
-							if (previousValue === undefined) previousValue = value
-							if (originalValue === null) {
-								originalValue = value;
-							}
-
-							if (value !== previousValue) {
-								var difference = value - (previousValue||0)
-								kf.offset(Timeline.vue.graph_editor_axis, difference);
-								previousValue = value
-							}
+							kf.offset(Timeline.vue.graph_editor_axis, value_diff);
 						}
 					}
 					if (e2.ctrlKey) {
@@ -909,6 +948,7 @@ onVueSetup(function() {
 						<div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{left: head_width + 'px', top: scroll_top + 'px'}">
 							<svg :style="{'margin-left': clamp(scroll_left, 9, Infinity) + 'px'}">
 								<path :d="zero_line" style="stroke: var(--color-grid);"></path>
+								<path :d="one_line" style="stroke: var(--color-grid); stroke-dasharray: 6;" v-if="graph_editor_channel == 'scale'"></path>
 								<path :d="graph" :style="{stroke: 'var(--color-axis-' + graph_editor_axis + ')'}"></path>
 							</svg>
 							<keyframe
