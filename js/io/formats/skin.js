@@ -359,14 +359,12 @@ BARS.defineActions(function() {
 		}
 	})
 	
-	let exploded_view = false;
-	let explode_skin_model = new Action('explode_skin_model', {
-		icon: () => exploded_view ? 'close_fullscreen' : 'open_in_full',
+	let explode_skin_model = new Toggle('explode_skin_model', {
+		icon: () => 'open_in_full',
 		category: 'edit',
 		condition: {formats: ['skin']},
-		click: function () {
-			exploded_view = !exploded_view;
-			
+		value: false,
+		onChange(exploded_view) {
 			Undo.initEdit({elements: Cube.all});
 			Cube.all.forEach(cube => {
 				let center = [
@@ -385,8 +383,8 @@ BARS.defineActions(function() {
 		}
 	})
 	Blockbench.on('reset_project', () => {
-		exploded_view = false;
-		explode_skin_model.setIcon(explode_skin_model.icon)
+		explode_skin_model.value = false;
+		explode_skin_model.updateEnabledState();
 	})
 })
 

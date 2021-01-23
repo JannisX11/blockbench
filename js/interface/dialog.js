@@ -166,7 +166,7 @@ function buildForm(dialog) {
 					if (data.type == 'folder' && !isApp) break;
 
 					var input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" disabled>`);
-					input[0].value = data.value;
+					input[0].value = data.value || '';
 					bar.append(input);
 					bar.addClass('form_bar_file');
 
