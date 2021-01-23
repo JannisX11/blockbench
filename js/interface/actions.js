@@ -1090,7 +1090,6 @@ class Toolbar {
 		this.menu.open(event, this)
 	}
 	editMenu() {
-		var scope = this;
 		BARS.editing_bar = this;
 		this.children.forEach(function(c, ci) {
 		})
@@ -1100,6 +1099,7 @@ class Toolbar {
 		return this;
 	}
 	add(action, position) {
+		if (action instanceof BarItem && this.children.includes(action)) return this;
 		if (position === undefined) position = this.children.length
 		if (typeof action === 'object' && action.uniqueNode && action.toolbars.length) {
 			for (var i = action.toolbars.length-1; i >= 0; i--) {
@@ -1111,7 +1111,7 @@ class Toolbar {
 		if (typeof action === 'object') {
 			action.toolbars.safePush(this)
 		}
-		this.update()
+		this.update().save();
 		return this;
 	}
 	remove(action) {
@@ -1121,7 +1121,7 @@ class Toolbar {
 			if (item === action || item.id === action) {
 				item.toolbars.remove(this)
 				this.children.splice(i, 1)
-				this.update()
+				this.update().save();
 				return this;
 			}
 			i--;
@@ -1729,6 +1729,7 @@ const BARS = {
 		Toolbars.timeline = new Toolbar({
 			id: 'timeline',
 			children: [
+				'timeline_graph_editor',
 				'timeline_focus',
 				'clear_timeline',
 				'select_effect_animator',
@@ -1741,6 +1742,9 @@ const BARS = {
 			],
 			default_place: true
 		})
+		Blockbench.onUpdateTo('3.8', () => {
+			Toolbars.timeline.add(BarItems.timeline_graph_editor, 0);
+		})
 		//Tools
 		Toolbars.main_tools = new Toolbar({
 			id: 'main_tools',
@@ -1750,8 +1754,8 @@ const BARS = {
 				'lock_motion_trail'
 			]
 		})
-		Blockbench.onUpdateTo('3.5', () => {
-			Toolbars.main_tools.add(BarItems.lock_motion_trail, -1)
+		Blockbench.onUpdateTo('3.7', () => {
+			Toolbars.main_tools.add(BarItems.lock_motion_trail, -1);
 		})
 		Toolbars.brush = new Toolbar({
 			id: 'brush',

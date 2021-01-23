@@ -1037,6 +1037,8 @@
 	"action.clear_timeline.desc": "Clear all unselected bones from the timeline",
 	"action.select_effect_animator": "Animate Effects",
 	"action.select_effect_animator.desc": "Opens timeline to add sound and particle effects",
+	"action.timeline_graph_editor": "Toggle Graph Editor",
+	"action.timeline_graph_editor.desc": "Toggle the timeline between graph editor view and keyframe view",
 	"action.timeline_focus": "Filter Channels",
 	"action.timeline_focus.desc": "Select the animation channels to display in the timeline",
 	"action.timeline_focus.hide_empty": "Hide empty channels",

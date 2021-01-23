@@ -310,10 +310,7 @@ const Blockbench = {
 		this.events[event_name].remove(cb);
 	},
 	onUpdateTo(version, callback) {
-		if (version.split('.').length == 2) {
-			version += '.999'
-		}
-		if (compareVersions(version, LastVersion) && !Blockbench.isOlderThan(version)) {
+		if (LastVersion && compareVersions(version, LastVersion) && !Blockbench.isOlderThan(version)) {
 			callback(LastVersion);
 		}
 	}

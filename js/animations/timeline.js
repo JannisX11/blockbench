@@ -668,12 +668,6 @@ onVueSetup(function() {
 			removeAnimator(animator) {
 				Timeline.animators.remove(animator);
 			},
-			toggleGraphEditor() {
-				this.graph_editor_open = !this.graph_editor_open;
-				if (this.graph_editor_open && Timeline.selected.length) {
-					this.graph_editor_channel = Timeline.selected[0].channel;
-				}
-			},
 			getColor(index) {
 				if (index == -1 || index == undefined) return;
 				return markerColors[index].standard;
@@ -698,6 +692,7 @@ onVueSetup(function() {
 				let dragging_restriction;
 				let originalValue;
 				let previousValue = 0;
+				let time_stretching = !Timeline.vue.graph_editor_open && e1.ctrlKey && Timeline.selected.length > 1;
 
 				if (!clicked.selected && !e1.shiftKey && Timeline.selected.length != 0) {
 					clicked.select()
@@ -750,7 +745,7 @@ onVueSetup(function() {
 					var difference = Math.clamp(offset[0] / Timeline.vue._data.size, -256, 256);
 					let [min, max] = dragging_range;
 					
-					if (e2.ctrlKey) {
+					if (time_stretching) {
 						var time_factor = (clicked && clicked.time_before < (min + max) / 2)
 							? ((max-min-difference) / (max-min))
 							: ((max-min+difference) / (max-min));
@@ -758,17 +753,14 @@ onVueSetup(function() {
 					}
 
 					// Value
+					let value = 0;
 					let value_diff = 0;
 					if (Timeline.vue.graph_editor_open) {
 						value = -offset[1] / Timeline.vue.graph_size;
-						if (Toolbox.selected.id === 'rotate_tool') {
-							var round_num = getRotationInterval(e2);
+						if (Toolbox.selected.id === 'resize_tool') {
+							round_num = 0.1;
 						} else {
-							if (Toolbox.selected.id === 'resize_tool') {
-								round_num = 0.1;
-							} else {
-								var round_num = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
-							}
+							var round_num = canvasGridSize(e2.shiftKey, e2.ctrlOrCmd)
 						}
 						value = Math.round(value/round_num)*round_num
 						previousValue = previousValue ?? value;
@@ -781,7 +773,7 @@ onVueSetup(function() {
 					}
 	
 					for (var kf of Timeline.selected) {
-						if (e2.ctrlKey) {
+						if (time_stretching) {
 							if (clicked && clicked.time_before < (min + max) / 2) {
 								var t = max - (kf.time_before - max) * -time_factor;
 							} else {
@@ -801,10 +793,14 @@ onVueSetup(function() {
 							kf.offset(Timeline.vue.graph_editor_axis, value_diff);
 						}
 					}
-					if (e2.ctrlKey) {
+					if (time_stretching) {
 						Blockbench.setStatusBarText(Math.round(time_factor * 100) + '%');
 					} else {
-						Blockbench.setStatusBarText(trimFloatNumber(Timeline.snapTime(difference)));
+						let text = trimFloatNumber(Math.round(difference * Animation.selected.snapping));
+						if (Timeline.vue.graph_editor_open) {
+							text += `s ⨉ ${trimFloatNumber(value - originalValue)}`
+						}
+						Blockbench.setStatusBarText(text);
 					}
 					BarItems.slider_keyframe_time.update()
 					Animator.preview()
@@ -836,9 +832,6 @@ onVueSetup(function() {
 				<div id="timeline_header">
 					<div id="timeline_corner" v-bind:style="{width: head_width+'px'}">
 						<div id="timeline_timestamp"></div>
-						<div class="text_button tool" :class="{sel: graph_editor_open}" v-on:click.stop="toggleGraphEditor()">
-							<i class="material-icons">timeline</i>
-						</div>
 					</div>
 					<div id="timeline_time_wrapper">
 						<div id="timeline_time" v-bind:style="{width: (size*length)+'px', left: -scroll_left+'px'}">
@@ -976,6 +969,18 @@ onVueSetup(function() {
 
 
 BARS.defineActions(function() {
+	new Toggle('timeline_graph_editor', {
+		icon: 'timeline',
+		category: 'animation',
+		condition: {modes: ['animate']},
+		keybind: new Keybind({key: 114}),
+		onChange(state) {
+			Timeline.vue.graph_editor_open = state;
+			if (Timeline.vue.graph_editor_open && Timeline.selected.length) {
+				Timeline.vue.graph_editor_channel = Timeline.selected[0].channel;
+			}
+		}
+	})
 	new Action('play_animation', {
 		icon: 'play_arrow',
 		category: 'animation',
