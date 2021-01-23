@@ -414,12 +414,6 @@ BARS.defineActions(function() {
 		category: 'blockbench',
 		click: EditSession.dialog
 	})
-	new Action('toggle_chat', {
-		icon: 'keyboard_arrow_down',
-		condition: () => EditSession.active,
-		category: 'blockbench',
-		click: () => (Chat.toggle())
-	})
 })
 
 Interface.definePanels(function() {
@@ -431,14 +425,10 @@ Interface.definePanels(function() {
 		toolbars: {},
 		onResize: t => {
 		},
-		menu: new Menu([
-			'toggle_chat'
-		]),
 		component: {
 			data() {return Chat},
 			template: `
 				<div>
-					<div class="bar next_to_title" id="chat_title_bar"></div>
 					<ul id="chat_history">
 						<li v-for="msg in history">
 							<b v-if="msg.showAuthor()" v-bind:class="{self: msg.self}">{{ msg.author }}:</b>
@@ -454,6 +444,5 @@ Interface.definePanels(function() {
 			`
 		}
 	})
-	BarItems.toggle_chat.toElement('#chat_title_bar')
 
 })

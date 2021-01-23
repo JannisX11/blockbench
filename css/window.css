@@ -70,7 +70,7 @@
 		width: auto;
 	}
 	h3.panel_handle > label {
-		flex: 0 1 0;
+		flex: 0 1 auto;
 		font-size: 1.1em;
 		text-transform: uppercase;
 		color: var(--color-subtle_text);

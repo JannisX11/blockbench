@@ -750,8 +750,6 @@
 	"action.action_control.desc": "Search and execute any available action",
 	"action.edit_session": "Edit Session...",
 	"action.edit_session.desc": "Connect to an edit session to collaborate with other users",
-	"action.toggle_chat": "Toggle Chat",
-	"action.toggle_chat.desc": "Toggle the visibility of the chat history",
 
 	"action.reset_keybindings": "Reset Keybindings",
 	"action.reset_keybindings.desc": "Reset all keybindings to Blockbench's defaults",

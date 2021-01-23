@@ -1116,7 +1116,6 @@
 /*Chat*/
 	#chat {
 		z-index: 16;
-		min-height: 86px;
 		flex-grow: 0;
 		flex-shrink: 0;
 	}
