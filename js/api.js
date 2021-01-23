@@ -1,3 +1,5 @@
+const LastVersion = localStorage.getItem('last_version') || localStorage.getItem('welcomed_version') || appVersion;
+
 const Blockbench = {
 	isWeb: !isApp,
 	isMobile: !isApp && window.innerWidth <= 640,
@@ -307,14 +309,20 @@ const Blockbench = {
 		if (!this.events[event_name]) return;
 		this.events[event_name].remove(cb);
 	},
+	onUpdateTo(version, callback) {
+		if (version.split('.').length == 2) {
+			version += '.999'
+		}
+		if (compareVersions(version, LastVersion) && !Blockbench.isOlderThan(version)) {
+			callback(LastVersion);
+		}
+	}
 };
 
 (function() {
-	var last_welcome = localStorage.getItem('welcomed_version');
-	if (!last_welcome || last_welcome.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
+	if (!LastVersion || LastVersion.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
 		Blockbench.addFlag('after_update');
 	}
-	localStorage.setItem('welcomed_version', appVersion);
 })();
 
 if (isApp) {

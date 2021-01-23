@@ -1750,10 +1750,9 @@ const BARS = {
 				'lock_motion_trail'
 			]
 		})
-		// update 3.7
-		if (!Toolbars.main_tools.children.includes(BarItems.lock_motion_trail)) {
+		Blockbench.onUpdateTo('3.5', () => {
 			Toolbars.main_tools.add(BarItems.lock_motion_trail, -1)
-		}
+		})
 		Toolbars.brush = new Toolbar({
 			id: 'brush',
 			children: [
