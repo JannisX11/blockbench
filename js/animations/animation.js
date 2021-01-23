@@ -630,7 +630,6 @@ class GeneralAnimator {
 	}
 	select() {
 		var scope = this;
-		TickUpdates.keyframes = true;
 		for (var key in Animation.selected.animators) {
 			Animation.selected.animators[key].selected = false;
 		}
@@ -685,7 +684,6 @@ class GeneralAnimator {
 		if (select !== false) {
 			keyframe.select();
 		}
-		TickUpdates.keyframes = true;
 
 		var deleted = [];
 		delete keyframe.time_before;
@@ -898,12 +896,21 @@ class BoneAnimator extends GeneralAnimator {
 		bone.scale.z *= (1 + (arr[2] - 1) * multiplier) || 0.00001;
 		return this;
 	}
-	interpolate(channel, allow_expression) {
+	interpolate(channel, allow_expression, axis) {
 		let time = Timeline.time;
 		var before = false
 		var after = false
 		var result = false
 		let epsilon = 1/1200;
+
+		function mapAxes(cb) {
+			if (axis) {
+				return cb(axis);
+			} else {
+				return ['x', 'y', 'z'].map(cb);
+			}
+		}
+
 		for (var keyframe of this[channel]) {
 
 			if (keyframe.time < time) {
@@ -935,11 +942,7 @@ class BoneAnimator extends GeneralAnimator {
 				if (no_interpolations) {
 					alpha = Math.round(alpha)
 				}
-				result = [
-					before.getLerp(after, 'x', alpha, allow_expression),
-					before.getLerp(after, 'y', alpha, allow_expression),
-					before.getLerp(after, 'z', alpha, allow_expression)
-				]
+				return mapAxes(axis => before.getLerp(after, axis, alpha, allow_expression));
 			} else {
 
 				let sorted = this[channel].slice().sort((kf1, kf2) => (kf1.time - kf2.time));
@@ -947,24 +950,17 @@ class BoneAnimator extends GeneralAnimator {
 				let before_plus = sorted[before_index-1];
 				let after_plus = sorted[before_index+2];
 
-				result = [
-					before.getCatmullromLerp(before_plus, before, after, after_plus, 'x', alpha),
-					before.getCatmullromLerp(before_plus, before, after, after_plus, 'y', alpha),
-					before.getCatmullromLerp(before_plus, before, after, after_plus, 'z', alpha),
-				]
+				return mapAxes(axis => before.getCatmullromLerp(before_plus, before, after, after_plus, axis, alpha));
 			}
 		}
 		if (result && result instanceof Keyframe) {
 			let keyframe = result
 			let method = allow_expression ? 'get' : 'calc'
 			let dp_index = (keyframe.time > time || Math.epsilon(keyframe.time, time, epsilon)) ? 0 : keyframe.data_points.length-1;
-			result = [
-				keyframe[method]('x', dp_index),
-				keyframe[method]('y', dp_index),
-				keyframe[method]('z', dp_index)
-			]
+
+			return mapAxes(axis => keyframe[method](axis, dp_index));
 		}
-		return result
+		return false;
 	}
 	displayFrame(multiplier = 1) {
 		if (!this.doRender()) return;
@@ -1210,7 +1206,6 @@ const Animator = {
 		if (!Timeline.is_setup) {
 			Timeline.setup()
 		}
-		TickUpdates.keyframes = true;
 		if (outlines.children.length) {
 			outlines.children.empty()
 			Canvas.updateAllPositions()

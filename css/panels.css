@@ -633,6 +633,8 @@
 	}
 	#timeline_vue {
 		height: calc(100% - 30px);
+		position: relative;
+		overflow: hidden;
 	}
 	#timeline_body {
 		overflow-y: scroll;
@@ -712,7 +714,7 @@
 		margin-left: -2px;
 	}
 
-	#timeline_body .keyframe {
+	#timeline .keyframe {
 		position: absolute;
 		margin-left: -6px;
 		z-index: 3;
@@ -720,14 +722,14 @@
 		width: 13.5px;
 		height: 23px;
 	}
-	#timeline_body .keyframe i {
+	#timeline .keyframe i {
 		margin-top: 2px;
 		transform: rotate(45deg);
 		font-size: 14pt;
 		margin-left: -3px;
 		pointer-events: none;
 	}
-	#timeline_body .keyframe i.keyframe_icon_smaller {
+	#timeline .keyframe i.keyframe_icon_smaller {
 		font-size: 11pt;
 		margin-top: 4px;
 		margin-left: -1px;
@@ -741,7 +743,7 @@
 		font-size: 6pt;
 		color: var(--color-grid);
 	}
-	#timeline_body .keyframe.selected {
+	#timeline .keyframe.selected {
 		color: var(--color-accent) !important;
 		z-index: 4;
 	}
@@ -754,15 +756,24 @@
 		position: relative;
 	}
 	#timeline_corner {
+		display: flex;
+		justify-content: space-between;
 		width: 144px;
 		flex-shrink: 0;
-		font-family: var(--font-code);
 		background-color: var(--color-back);
+		z-index: 4;
+	}
+	#timeline_timestamp {
+		font-family: var(--font-code);
 		padding: 3px;
 		padding-left: 8px;
 		overflow: hidden;
-		background-color: var(--color-back);
-		z-index: 4;
+	}
+	#timeline_corner > .tool {
+		height: 26px;
+	}
+	#timeline_corner > .tool > i {
+		margin-top: 3px;
 	}
 	#timeline_time_wrapper {
 		height: 100%;
@@ -820,20 +831,44 @@
 		display: none;
 	}
 	#timeline_body li > div {
-		height: 24px;
 		display: flex;
-		border-bottom: 1px solid var(--color-border);
+		min-height: 24px;
+	}
+	li.animator {
+		width: fit-content;
+	}
+	#timeline_vue.graph_editor li.animator > div {
+		width: fit-content !important;
 	}
 	.channel_head {
 		position: relative;
 		display: flex;
 		width: 144px;
-		height: calc(100% + 1px);
 		background-color: var(--color-ui);
 		border-right: 1px solid var(--color-border);
 	    border-left: 2px solid transparent;
 		box-shadow: 1px 8px 10px 0 #00000038;
 		z-index: 5;
+	}
+	#timeline_vue.graph_editor .channel_head {
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+	.channel_axis_selector {
+		height: 24px;
+		display: flex;
+	}
+	.channel_axis_selector > div {
+		font-weight: bolder;
+		text-align: center;
+		width: 20px;
+		height: 24px;
+	}
+	.channel_axis_selector > div.selected {
+		border-bottom: 3px solid var(--color-accent);
+	}
+	.channel_axis_selector > div:hover {
+		filter: brightness(1.4);
 	}
 	#timeline_body li > .animator_head_bar .channel_head:hover {
 		color: var(--color-light);
@@ -843,6 +878,9 @@
 	}
 	.animator.selected .channel_head {
 	    border-left-color: var(--color-accent);
+	}
+	.channel_head.selected {
+		background-color: var(--color-selected);
 	}
 	.channel_head .text_button {
 		width: 26px;
@@ -865,12 +903,13 @@
 		flex-shrink: 1;
 		overflow: hidden;
 	}
-	.animator_channel_bar .channel_head span {
+	.animator_channel_bar .channel_head:not(.selected) span {
 		color: var(--color-subtle_text);
 	}
 	.keyframe_section {
 		flex-grow: 1;
 		position: relative;
+		border-bottom: 1px solid var(--color-border);
 	}
 	.animator_channel_bar > .keyframe_section {
 		background-color: var(--color-ui);
@@ -892,6 +931,38 @@
 		fill: var(--color-grid);
 		stroke: none;
 		stroke-width: 0;
+	}
+
+	#timeline_graph_editor {
+		position: absolute;
+		top: 0px;
+		bottom: 0px;
+		left: 0px;
+		right: 0px;
+	}
+	#timeline_graph_editor svg {
+		width: 100%;
+		height: 100%;
+		margin-left: 9px;
+		pointer-events: none;
+	}
+	#timeline_graph_editor svg path {
+		stroke: #f72858;
+		stroke-width: 2px;
+		fill: none;
+	}
+	#timeline_graph_editor .keyframe {
+		height: 16px;
+		width: 11px;
+		font-size: 10px;
+	}
+	#timeline_graph_editor .keyframe > i {
+		margin-top: 0px;
+		font-size: 16px;
+	}
+	#timeline_graph_editor .keyframe > i.keyframe_icon_smaller {
+		font-size: 12px;
+		margin-top: 2px;
 	}
 
 

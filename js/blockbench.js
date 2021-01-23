@@ -260,10 +260,6 @@ const TickUpdates = {
 				delete TickUpdates.texture_list;
 				loadTextureDraggable();
 			}
-			if (TickUpdates.keyframes) {
-				delete TickUpdates.keyframes;
-				Vue.nextTick(Timeline.update)
-			}
 			if (TickUpdates.keyframe_selection) {
 				delete TickUpdates.keyframe_selection;
 				Vue.nextTick(updateKeyframeSelection)

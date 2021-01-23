@@ -786,6 +786,11 @@ Interface.definePanels(function() {
 					Locator.all.forEach(locator => {
 						locator_suggestion_list.append(`<option value="${locator.name}">`);
 					})
+				},
+				focusAxis(axis) {
+					if (Timeline.vue.graph_editor_open && 'xyz'.includes(axis)) {
+						Timeline.vue.graph_editor_axis = axis;
+					}
 				}
 			},
 			computed: {
@@ -844,6 +849,7 @@ Interface.definePanels(function() {
 										class="molang_input dark_bordered keyframe_input tab_target"
 										v-model="data_point[key+'_string']"
 										@change="updateInput(key, $event, data_point_i)"
+										@focus="focusAxis(key)"
 										language="molang"
 										ignoreTabKey="true"
 										:line-numbers="false"
