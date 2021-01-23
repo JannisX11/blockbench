@@ -1862,12 +1862,13 @@ function buildGrid() {
 }
 
 BARS.defineActions(function() {
-	new Action('toggle_wireframe', {
-		icon: 'check_box_outline_blank',
+	new Toggle('toggle_wireframe', {
+		icon: 'border_clear',
 		category: 'view',
 		keybind: new Keybind({key: 90}),
 		condition: () => Toolbox && Toolbox.selected && Toolbox.selected.allowWireframe,
-		click: function () {
+		default: false,
+		onChange: function (state) {
 			Prop.wireframe = !Prop.wireframe
 			Canvas.updateAllFaces()
 			if (Modes.id === 'animate') {
@@ -1877,42 +1878,30 @@ BARS.defineActions(function() {
 			this.setIcon(Prop.wireframe ? 'check_box' : 'check_box_outline_blank')
 		}
 	})
-	new Action('preview_checkerboard', {
-		name: tl('settings.preview_checkerboard'),
-		description: tl('settings.preview_checkerboard.desc'),
+	new Toggle('preview_checkerboard', {
+		icon: 'fas.fa-chess-board',
 		category: 'view',
 		linked_setting: 'preview_checkerboard',
-		keybind: new Keybind({key: 84}),
-		click: function () {
-			this.toggleLinkedSetting()
-		}
+		keybind: new Keybind({key: 84})
 	})
-	new Action('uv_checkerboard', {
-		name: tl('settings.uv_checkerboard'),
-		description: tl('settings.uv_checkerboard.desc'),
+	new Toggle('uv_checkerboard', {
+		icon: 'fas.fa-chess-board',
 		category: 'view',
-		linked_setting: 'uv_checkerboard',
-		click: function () {
-			this.toggleLinkedSetting()
-		}
+		linked_setting: 'uv_checkerboard'
 	})
-	new Action('toggle_shading', {
+	new Toggle('toggle_shading', {
 		name: tl('settings.shading'),
 		description: tl('settings.shading.desc'),
+		icon: 'wb_sunny',
 		category: 'view',
-		linked_setting: 'shading',
-		click: function () {
-			this.toggleLinkedSetting()
-		}
+		linked_setting: 'shading'
 	})
-	new Action('toggle_motion_trails', {
+	new Toggle('toggle_motion_trails', {
 		name: tl('settings.motion_trails'),
 		description: tl('settings.motion_trails.desc'),
+		icon: 'gesture',
 		category: 'view',
-		linked_setting: 'motion_trails',
-		click: function () {
-			this.toggleLinkedSetting()
-		}
+		linked_setting: 'motion_trails'
 	})
 
 	new Action('screenshot_model', {

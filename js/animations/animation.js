@@ -1819,18 +1819,17 @@ BARS.defineActions(function() {
 	})
 
 	// Motion Trail
-	new Action('lock_motion_trail', {
+	new Toggle('lock_motion_trail', {
 		icon: 'lock_open',
 		category: 'animation',
 		condition: () => Animator.open && Group.selected,
-		click() {
-			if (Animator.motion_trail_lock) {
+		onChange(value) {
+			if (value && Group.selected) {
+				Animator.motion_trail_lock = Group.selected.uuid;
+			} else {
 				Animator.motion_trail_lock = false;
 				Animator.showMotionTrail();
-			} else if (Group.selected) {
-				Animator.motion_trail_lock = Group.selected.uuid;
 			}
-			this.setIcon(Animator.motion_trail_lock ? 'lock' : 'lock_open');
 		}
 	})
 })

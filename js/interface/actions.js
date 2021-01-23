@@ -187,14 +187,15 @@ class Action extends BarItem {
 		this.icon = data.icon
 
 		if (data.linked_setting) {
-			this.description = tl('settings.'+data.linked_setting+'.desc')
-			this.linked_setting = data.linked_setting
+			if (!data.name) this.name = tl(`settings.${data.linked_setting}`);
+			if (!data.description) this.description = tl(`settings.${data.linked_setting}.desc`);
+			this.linked_setting = data.linked_setting;
 		}
 		if (data.condition) this.condition = data.condition
 		this.children = data.children;
 
 		//Node
-		this.click = data.click
+		if (!this.click) this.click = data.click
 		this.icon_node = Blockbench.getIconNode(this.icon, this.color)
 		this.icon_states = data.icon_states;
 		this.node = $(`<div class="tool ${this.id}"></div>`).get(0)
@@ -205,10 +206,6 @@ class Action extends BarItem {
 		this.addLabel(data.label)
 		this.updateKeybindingLabel()
 		$(this.node).click(function(e) {scope.trigger(e)})
-
-		if (data.linked_setting) {
-			this.toggleLinkedSetting(false)
-		}
 	}
 	trigger(event) {
 		var scope = this;
@@ -311,8 +308,14 @@ class Tool extends Action {
 	}
 	select() {
 		if (this === Toolbox.selected) return;
-		if (Toolbox.selected && Toolbox.selected.onUnselect && typeof Toolbox.selected.onUnselect == 'function') {
-			Toolbox.selected.onUnselect()
+		if (Toolbox.selected) {
+			Toolbox.selected.nodes.forEach(node => {
+				node.classList.remove('enabled')
+			})
+			Toolbox.selected.menu_node.classList.remove('enabled')
+			if (typeof Toolbox.selected.onUnselect == 'function') {
+				Toolbox.selected.onUnselect()
+			}
 		}
 		Toolbox.selected = this;
 		delete Toolbox.original;
@@ -335,9 +338,11 @@ class Tool extends Action {
 			this.onSelect()
 		}
 		$('#preview').css('cursor', (this.cursor ? this.cursor : 'default'))
-		$('.tool.sel').removeClass('sel')
-		$('.tool.'+this.id).addClass('sel')
-						TickUpdates.selection = true;
+		this.nodes.forEach(node => {
+			node.classList.add('enabled')
+		})
+		this.menu_node.classList.add('enabled')
+		TickUpdates.selection = true;
 		return this;
 	}
 	trigger(event) {
@@ -356,6 +361,48 @@ class Tool extends Action {
 			}
 		}
 		return false;
+	}
+}
+class Toggle extends Action {
+	constructor(id, data) {
+		super(id, data);
+		this.type = 'toggle';
+		this.value = data.default || false;
+		if (this.linked_setting && settings[this.linked_setting]) {
+			this.value = settings[this.linked_setting].value;
+		}
+		this.onChange = data.onChange;
+
+		this.menu_icon_node = Blockbench.getIconNode('check_box_outline_blank');
+		$(this.menu_node).find('.icon').replaceWith(this.menu_icon_node);
+
+		this.updateEnabledState();
+	}
+	click() {
+		this.value = !this.value;
+		if (this.linked_setting && settings[this.linked_setting]) {
+			let setting = settings[this.linked_setting];
+			setting.value = this.value;
+			if (setting.onChange) setting.onChange(setting.value);
+		}
+		if (this.onChange) this.onChange(this.value);
+
+		this.updateEnabledState();
+	}
+	setIcon(icon) {
+		if (icon) {
+			this.icon = icon;
+			this.icon_node = Blockbench.getIconNode(this.icon);
+			this.nodes.forEach(n => {
+				$(n).find('.icon').replaceWith($(this.icon_node).clone());
+			})
+		}
+	}
+	updateEnabledState() {
+		this.nodes.forEach(node => {
+			node.classList.toggle('enabled', this.value);
+		})
+		this.menu_icon_node.innerText = this.value ? 'check_box' : 'check_box_outline_blank';
 	}
 }
 class Widget extends BarItem {

@@ -2241,14 +2241,13 @@ BARS.defineActions(function() {
 	})
 
 
-	new Action('toggle_uv_overlay', {
+	new Toggle('toggle_uv_overlay', {
 		condition: () => Project.box_uv,
-		icon: 'crop_landscape',//'crop_landscape'
+		icon: 'view_quilt',
 		category: 'uv',
-		click: function () {
-			main_uv.showing_overlays = !main_uv.showing_overlays
-			BarItems.toggle_uv_overlay.setIcon(main_uv.showing_overlays ? 'view_quilt' : 'crop_landscape')
-			main_uv.displayAllMappingOverlays()
+		onChange(value) {
+			main_uv.showing_overlays = value;
+			main_uv.displayAllMappingOverlays();
 		}
 	})
 })

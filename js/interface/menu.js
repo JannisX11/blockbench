@@ -629,6 +629,7 @@ const MenuBar = {
 				'flip_z'
 			]},
 			'delete',
+			'lock_motion_trail',
 			'_',
 			'select_effect_animator',
 			'_',

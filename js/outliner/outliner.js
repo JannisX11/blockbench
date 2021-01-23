@@ -906,17 +906,12 @@ function toggleCubeProperty(key) {
 
 
 BARS.defineActions(function() {
-	new Action('outliner_toggle', {
-		icon: 'view_stream',
+	new Toggle('outliner_toggle', {
+		icon: 'dns',
 		category: 'edit',
 		keybind: new Keybind({key: 115}),
-		click: function () {
-			
-			Outliner.vue._data.show_advanced_toggles = !Outliner.vue._data.show_advanced_toggles;
-			BarItems.outliner_toggle.setIcon(Outliner.vue._data.show_advanced_toggles
-				? 'dns'
-				: 'view_stream'
-			)
+		onChange: function (value) {
+			Outliner.vue._data.show_advanced_toggles = value;
 		}
 	})
 	new BarText('cube_counter', {
@@ -989,14 +984,10 @@ BARS.defineActions(function() {
 			Undo.finishEdit('unlock_everything')
 		}
 	})
-	new Action('element_colors', {
-		icon: 'check_box',
+	new Toggle('element_colors', {
 		category: 'edit',
-		linked_setting: 'outliner_colors',
-		click: function () {
-			BarItems.element_colors.toggleLinkedSetting()
-			updateSelection()
-		}
+		icon: 'palette',
+		linked_setting: 'outliner_colors'
 	})
 	new Action('select_window', {
 		icon: 'filter_list',
