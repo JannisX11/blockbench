@@ -1033,12 +1033,12 @@
 					})
 				}
 				_has_groups = Format.bone_rig && Group.selected && Group.selected.matchesSelection() && Toolbox.selected.transformerMode == 'translate';
-				var rotate_group = Format.bone_rig && Group.selected && (Toolbox.selected.transformerMode == 'rotate' || Toolbox.selected.id == 'pivot_tool');
+				var rotate_group = Format.bone_rig && Group.selected && (Toolbox.selected.transformerMode == 'rotate');
 
 				if (rotate_group) {
 					Undo.initEdit({group: Group.selected})
 				} else if (_has_groups) {
-					Undo.initEdit({elements: selected, outliner: true})
+					Undo.initEdit({elements: selected, outliner: true, selection: true})
 				} else {
 					Undo.initEdit({elements: selected})
 				}
@@ -1292,6 +1292,7 @@
 						}
 						displayDistance(point[axis] - originalValue);
 						Canvas.updatePositions(true);
+						Canvas.updateAllBones();
 						if (Modes.animate) {
 							Animator.preview();
 						}

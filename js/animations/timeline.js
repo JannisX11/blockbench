@@ -555,7 +555,7 @@ const Timeline = {
 			Timeline.animators.forEach(animator => {
 				keyframes.push(...animator.keyframes)
 			})
-		} else if (Timeline.vue.graph_editor_animator) {
+		} else if (Timeline.vue.graph_editor_animator && Timeline.vue.graph_editor_animator[Timeline.vue.graph_editor_channel]) {
 			keyframes.push(...Timeline.vue.graph_editor_animator[Timeline.vue.graph_editor_channel])
 		}
 		return keyframes;
@@ -949,21 +949,23 @@ onVueSetup(function() {
 								<path :d="one_line" style="stroke: var(--color-grid); stroke-dasharray: 6;" v-if="graph_editor_channel == 'scale'"></path>
 								<path :d="graph" :style="{stroke: 'var(--color-axis-' + graph_editor_axis + ')'}"></path>
 							</svg>
-							<keyframe
-								v-for="keyframe in graph_editor_animator[graph_editor_channel]"
-								v-bind:style="{left: (10 + keyframe.time * size) + 'px', top: (graph_offset - keyframe.display_value * graph_size - 8) + 'px', color: getColor(keyframe.color)}"
-								class="keyframe graph_keyframe"
-								v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
-								v-bind:id="keyframe.uuid"
-								v-on:click.stop="keyframe.select($event)"
-								v-on:dblclick="keyframe.callPlayhead()"
-								:title="trimFloatNumber(keyframe.time) + ' ⨉ ' + keyframe.display_value"
-								@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
-								@contextmenu.prevent="keyframe.showContextMenu($event)"
-							>
-								<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
-								<i class="material-icons" v-else>stop</i>
-							</keyframe>
+							<template v-if="graph_editor_animator">
+								<keyframe
+									v-for="keyframe in graph_editor_animator[graph_editor_channel]"
+									v-bind:style="{left: (10 + keyframe.time * size) + 'px', top: (graph_offset - keyframe.display_value * graph_size - 8) + 'px', color: getColor(keyframe.color)}"
+									class="keyframe graph_keyframe"
+									v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
+									v-bind:id="keyframe.uuid"
+									v-on:click.stop="keyframe.select($event)"
+									v-on:dblclick="keyframe.callPlayhead()"
+									:title="trimFloatNumber(keyframe.time) + ' ⨉ ' + keyframe.display_value"
+									@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
+									@contextmenu.prevent="keyframe.showContextMenu($event)"
+								>
+									<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
+									<i class="material-icons" v-else>stop</i>
+								</keyframe>
+							</template>
 						</div>
 					</div>
 				</div>
