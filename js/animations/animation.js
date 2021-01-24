@@ -1007,8 +1007,8 @@ class EffectAnimator extends GeneralAnimator {
 		keyframe.animator = this;
 		return this;
 	}
-	displayFrame() {
-		if (!this.muted.sound) {
+	displayFrame(in_loop) {
+		if (in_loop && !this.muted.sound) {
 			this.sound.forEach(kf => {
 				var diff = kf.time - Timeline.time;
 				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100)) {
@@ -1355,7 +1355,7 @@ const Animator = {
 			object.scale.set(scale, scale, scale)
 		})
 	},
-	preview() {
+	preview(in_loop) {
 		// Bones
 		Animator.showDefaultPose(true);
 		Group.all.forEach(group => {
@@ -1373,7 +1373,7 @@ const Animator = {
 		Animator.animations.forEach(animation => {
 			if (animation.playing) {
 				if (animation.animators.effects) {
-					animation.animators.effects.displayFrame();
+					animation.animators.effects.displayFrame(in_loop);
 				}
 			}
 		})

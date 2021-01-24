@@ -449,7 +449,9 @@ const Timeline = {
 	start() {
 		if (!Animation.selected) return;
 		Animation.selected.getMaxLength()
-		Timeline.pause()
+		if (Timeline.playing) {
+			Timeline.pause()
+		}
 		Timeline.playing = true
 		BarItems.play_animation.setIcon('pause')
 		Timeline.last_frame_timecode = Date.now();
@@ -467,7 +469,7 @@ const Timeline = {
 		Timeline.loop()
 	},
 	loop() {
-		Animator.preview()
+		Animator.preview(true);
 		if (Animation.selected && Timeline.time < (Animation.selected.length||1e3)) {
 
 			var new_time;
