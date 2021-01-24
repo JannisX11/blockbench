@@ -318,8 +318,10 @@ function updateInterface() {
 }
 function updateInterfacePanels() {
 
-	$('.sidebar#left_bar').css('display', Prop.show_left_bar ? 'flex' : 'none');
-	$('.sidebar#right_bar').css('display', Prop.show_right_bar ? 'flex' : 'none');
+	if (!Blockbench.isMobile) {
+		$('.sidebar#left_bar').css('display', Prop.show_left_bar ? 'flex' : 'none');
+		$('.sidebar#right_bar').css('display', Prop.show_right_bar ? 'flex' : 'none');
+	}
 
 	$('#page_wrapper').css(
 		'grid-template-columns',
@@ -699,7 +701,8 @@ onVueSetup(function() {
 	new Vue({
 		el: '#status_bar',
 		data: {
-			Prop
+			Prop,
+			isMobile: Blockbench.isMobile
 		}
 	})
 })

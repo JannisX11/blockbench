@@ -732,7 +732,7 @@
 	"action.export_obj.desc": "Export a Wavefront OBJ model for rendering",
 	"action.export_gltf": "Export As glTF",
 	"action.export_gltf.desc": "Export model and animations as glTF file to use in other 3D applications",
-	"action.upload_sketchfab": "Sketchfab Upload",
+	"action.upload_sketchfab": "Upload to Sketchfab",
 	"action.upload_sketchfab.desc": "Upload your model to Sketchfab",
 
 	"action.save_project": "Save Project",

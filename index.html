@@ -793,7 +793,7 @@
 	</div>
 	<div id="status_bar" @contextmenu="Interface.status_bar.menu.show(event)">
 
-		<div class="sidebar_toggle_button" onclick="Interface.toggleSidebar('left')" :title="tl('status_bar.toggle_sidebar')">
+		<div class="sidebar_toggle_button" v-if="!isMobile" onclick="Interface.toggleSidebar('left')" :title="tl('status_bar.toggle_sidebar')">
 			<i class="material-icons">{{Prop.show_left_bar ? 'chevron_left' : 'chevron_right'}}</i>
 		</div>
 		
@@ -823,7 +823,7 @@
 			{{ Prop.connections }} Clients
 		</div>
 
-		<div class="sidebar_toggle_button" onclick="Interface.toggleSidebar('right')" :title="tl('status_bar.toggle_sidebar')">
+		<div class="sidebar_toggle_button" v-if="!isMobile" onclick="Interface.toggleSidebar('right')" :title="tl('status_bar.toggle_sidebar')">
 			<i class="material-icons">{{Prop.show_right_bar ? 'chevron_right' : 'chevron_left'}}</i>
 		</div>
 
