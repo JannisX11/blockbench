@@ -698,11 +698,53 @@ function addStartScreenSection(id, data) {
 })()
 
 onVueSetup(function() {
-	new Vue({
+	Interface.status_bar.vue = new Vue({
 		el: '#status_bar',
 		data: {
 			Prop,
 			isMobile: Blockbench.isMobile
-		}
+		},
+		methods: {
+			toggleSidebar: Interface.toggleSidebar
+		},
+		template: `
+			<div id="status_bar" @contextmenu="Interface.status_bar.menu.show(event)">
+				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('left')" :title="tl('status_bar.toggle_sidebar')">
+					<i class="material-icons">{{Prop.show_left_bar ? 'chevron_left' : 'chevron_right'}}</i>
+				</div>
+				
+				<div class="f_left" v-if="settings.streamer_mode.value"
+					style="background-color: var(--color-stream); color: var(--color-light);"
+					@click="Settings.open({search: 'streamer_mode'})"
+					v-bind:title="tl('interface.streamer_mode_on')"
+				>
+					<i class="material-icons">live_tv</i>
+				</div>
+				<div id="status_saved">
+					<i class="material-icons" v-if="Prop.project_saved" v-bind:title="tl('status_bar.saved')">check</i>
+					<i class="material-icons" v-else v-bind:title="tl('status_bar.unsaved')">close</i>
+				</div>
+				<div v-html="Blockbench.getIconNode(Format.icon).outerHTML" v-bind:title="Format.name"></div>
+				<div v-if="Prop.recording" v-html="Blockbench.getIconNode('fiber_manual_record').outerHTML" style="color: var(--color-close)" v-bind:title="tl('status_bar.recording')"></div>
+
+
+				<div id="status_name">
+					{{ Prop.file_name }}
+				</div>
+				<div id="status_message" class="hidden"></div>
+				<div class="f_right">
+					{{ Prop.fps }} FPS
+				</div>
+				<div class="f_right" v-if="Prop.session">
+					{{ Prop.connections }} Clients
+				</div>
+
+				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('right')" :title="tl('status_bar.toggle_sidebar')">
+					<i class="material-icons">{{Prop.show_right_bar ? 'chevron_right' : 'chevron_left'}}</i>
+				</div>
+
+				<div id="status_progress" v-if="Prop.progress" v-bind:style="{width: Prop.progress*100+'%'}"></div>
+			</div>
+		`
 	})
 })

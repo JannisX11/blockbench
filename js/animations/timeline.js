@@ -803,7 +803,7 @@ onVueSetup(function() {
 					} else {
 						let text = trimFloatNumber(Math.round(difference * Animation.selected.snapping));
 						if (Timeline.vue.graph_editor_open) {
-							text += `s ⨉ ${trimFloatNumber(value - originalValue)}`
+							text += ` ⨉ ${trimFloatNumber(value - originalValue)}`
 						}
 						Blockbench.setStatusBarText(text);
 					}
@@ -957,7 +957,7 @@ onVueSetup(function() {
 								v-bind:id="keyframe.uuid"
 								v-on:click.stop="keyframe.select($event)"
 								v-on:dblclick="keyframe.callPlayhead()"
-								:title="tl('timeline.'+keyframe.channel)"
+								:title="trimFloatNumber(keyframe.time) + ' ⨉ ' + keyframe.display_value"
 								@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
 								@contextmenu.prevent="keyframe.showContextMenu($event)"
 							>
