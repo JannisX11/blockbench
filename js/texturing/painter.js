@@ -947,12 +947,22 @@ BARS.defineActions(function() {
 		}
 	})
 	new Toggle('mirror_painting', {
-		//label: true,
 		icon: 'flip',
 		category: 'paint',
 		condition: () => Modes.paint,
 		onChange: function (value) {
 			Painter.mirror_painting = value;
+			if (value) {
+				let size = 16*16;
+				var grid = new THREE.GridHelper(size, 16*2, gizmo_colors.outline);
+				grid.rotation.z = Math.PI/2;
+				grid.position.y = size/2;
+				scene.add(grid);
+				setTimeout(() => {
+					scene.remove(grid);
+					grid.geometry.dispose();
+				}, 1000)
+			}
 		}
 	})
 	new Toggle('lock_alpha', {
