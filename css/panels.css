@@ -765,7 +765,7 @@
 	}
 	#timeline_timestamp {
 		font-family: var(--font-code);
-		padding: 3px;
+		padding: 2px;
 		padding-left: 8px;
 		overflow: hidden;
 	}
@@ -856,13 +856,15 @@
 	}
 	.channel_axis_selector {
 		height: 24px;
+		margin-right: 1px;
 		display: flex;
 	}
 	.channel_axis_selector > div {
 		font-weight: bolder;
 		text-align: center;
-		width: 20px;
-		height: 24px;
+		width: 22px;
+		height: inherit;
+		padding-top: 2px;
 	}
 	.channel_axis_selector > div.selected {
 		border-bottom: 3px solid var(--color-accent);

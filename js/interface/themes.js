@@ -160,6 +160,11 @@ const CustomTheme = {
 				CustomTheme.data.colors[key] = legacy_colors[key].hex;
 			}
 		}
+		Blockbench.onUpdateTo('3.8', () => {
+			if (CustomTheme.data.colors.checkerboard == '#2f3339') {
+				CustomTheme.data.colors.checkerboard = CustomTheme.defaultColors.checkerboard;
+			}
+		})
 	},
 	import(file) {
 		var data = JSON.parse(file.content)

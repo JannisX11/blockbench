@@ -670,13 +670,14 @@ class GeneralAnimator {
 		});
 		keyframes.push(keyframe);
 
+		keyframe.channel = channel;
+		keyframe.time = time;
+
 		if (value) {
 			keyframe.extend(value);
 		} else if (this.fillValues) {
 			this.fillValues(keyframe, value, true);
 		}
-		keyframe.channel = channel;
-		keyframe.time = time;
 
 		this[channel].push(keyframe);
 		keyframe.animator = this;
@@ -831,7 +832,10 @@ class BoneAnimator extends GeneralAnimator {
 				}]
 			})
 		} else if (values == null) {
+			let original_time = Timeline.time;
+			Timeline.time = keyframe.time;
 			var ref = this.interpolate(keyframe.channel, allow_expression)
+			Timeline.time = original_time;
 			if (ref) {
 				let e = 1e2
 				ref.forEach((r, i) => {
@@ -847,6 +851,15 @@ class BoneAnimator extends GeneralAnimator {
 					}]
 				})
 			}
+			let closest;
+			this[keyframe.channel].forEach(kf => {
+				if (!closest || Math.abs(kf.time - keyframe.time) < Math.abs(closest.time - keyframe.time)) {
+					closest = kf;
+				}
+			});
+			keyframe.extend({
+				interpolation: closest && closest.interpolation
+			})
 		} else {
 			keyframe.extend(values)
 		}

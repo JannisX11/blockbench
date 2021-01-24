@@ -35,6 +35,7 @@ TimelineMarker.prototype.menu = new Menu([
 	{icon: 'flag', color: markerColors[5].standard, name: 'cube.color.'+markerColors[5].name, click: function(marker) {marker.color = 5;}},
 	{icon: 'flag', color: markerColors[6].standard, name: 'cube.color.'+markerColors[6].name, click: function(marker) {marker.color = 6;}},
 	{icon: 'flag', color: markerColors[7].standard, name: 'cube.color.'+markerColors[7].name, click: function(marker) {marker.color = 7;}},
+	'_',
 	{icon: 'delete', name: 'generic.delete', click: function(marker) {
 		if (Animation.selected) Animation.selected.markers.remove(marker);
 	}}
@@ -426,6 +427,10 @@ const Timeline = {
 			})
 			i += step;
 		}
+
+		if (Timeline.vue.graph_editor_open) {
+			Timeline.vue.graph_size += 1e-5;
+		}
 	},
 	updateScroll(e) {
 		$('.channel_head').css('left', scroll_amount+'px')
@@ -573,12 +578,12 @@ onVueSetup(function() {
 	Timeline.vue = new Vue({
 		el: '#timeline_vue',
 		data: {
-			size: 150,
+			size: 200,
 			length: 10,
 			animation_length: 0,
 			scroll_left: 0,
 			scroll_top: 0,
-			head_width: 200,
+			head_width: 196,
 			timecodes: [],
 			animators: Timeline.animators,
 			markers: [],
@@ -832,6 +837,11 @@ onVueSetup(function() {
 				<div id="timeline_header">
 					<div id="timeline_corner" v-bind:style="{width: head_width+'px'}">
 						<div id="timeline_timestamp"></div>
+						<div class="channel_axis_selector" v-if="graph_editor_open">
+							<div @click="graph_editor_axis = 'x';" :class="{selected: graph_editor_axis == 'x'}" style="color: var(--color-axis-x);">X</div>
+							<div @click="graph_editor_axis = 'y';" :class="{selected: graph_editor_axis == 'y'}" style="color: var(--color-axis-y);">Y</div>
+							<div @click="graph_editor_axis = 'z';" :class="{selected: graph_editor_axis == 'z'}" style="color: var(--color-axis-z);">Z</div>
+						</div>
 					</div>
 					<div id="timeline_time_wrapper">
 						<div id="timeline_time" v-bind:style="{width: (size*length)+'px', left: -scroll_left+'px'}">
@@ -904,11 +914,6 @@ onVueSetup(function() {
 										</template>
 									</div>
 									<span>{{ tl('timeline.'+channel) }}</span>
-									<div class="channel_axis_selector" v-if="graph_editor_open && animator.selected && graph_editor_channel == channel">
-										<div @click="graph_editor_axis = 'x';" :class="{selected: graph_editor_axis == 'x'}" style="color: var(--color-axis-x);">X</div>
-										<div @click="graph_editor_axis = 'y';" :class="{selected: graph_editor_axis == 'y'}" style="color: var(--color-axis-y);">Y</div>
-										<div @click="graph_editor_axis = 'z';" :class="{selected: graph_editor_axis == 'z'}" style="color: var(--color-axis-z);">Z</div>
-									</div>
 									<div class="text_button" v-on:click.stop="animator.createKeyframe(null, Timeline.time, channel, true)">
 										<i class="material-icons">add</i>
 									</div>
