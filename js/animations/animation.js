@@ -16,7 +16,10 @@ class Animation {
 			Animation.properties[key].reset(this);
 		}
 		if (typeof data === 'object') {
-			this.extend(data)
+			this.extend(data);
+			if (isApp && data.name) {
+				this.saved_name = data.name;
+			}
 		}
 	}
 	extend(data) {
@@ -244,12 +247,14 @@ class Animation {
 				if (data) {
 					let animation = content.animations[this.name];
 					content = data;
+					delete content.animations[this.saved_name];
 					content.animations[this.name] = animation;
 				}
 			}
 			// Write
 			Blockbench.writeFile(this.path, {content: compileJSON(content)}, (real_path) => {
 				this.saved = true;
+				this.saved_name = this.name;
 				this.path = real_path;
 			});
 
@@ -467,7 +472,6 @@ class Animation {
 		}
 	}
 	propertiesDialog() {
-		let vue;
 		let dialog = new Dialog({
 			id: 'animation_properties',
 			title: this.name,
@@ -548,7 +552,6 @@ class Animation {
 			}
 		})
 		dialog.show();
-		vue = new Vue()
 	}
 }
 	Animation.all = [];
@@ -1603,7 +1606,6 @@ const Animator = {
 	},
 	exportAnimationFile(path) {
 		let filter_path = path || '';
-		let content = Animator.buildFile(filter_path, true);
 
 		if (isApp && !path) {
 			path = ModelMeta.export_path
@@ -1622,6 +1624,7 @@ const Animator = {
 				}
 			})
 		} else {
+			let content = Animator.buildFile(filter_path, true);
 			Blockbench.export({
 				resource_id: 'animation',
 				type: 'JSON Animation',
