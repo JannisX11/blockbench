@@ -630,9 +630,11 @@
 		display: block;
 		height: 300px;
 		background-color: var(--color-ui);
+		display: flex;
+		flex-direction: column;
 	}
 	#timeline_vue {
-		height: calc(100% - 30px);
+		flex-grow: 1;
 		position: relative;
 		overflow: hidden;
 	}

@@ -585,7 +585,7 @@ onVueSetup(function() {
 			animation_length: 0,
 			scroll_left: 0,
 			scroll_top: 0,
-			head_width: 196,
+			head_width: Blockbench.isMobile ? 140 : 196,
 			timecodes: [],
 			animators: Timeline.animators,
 			markers: [],
