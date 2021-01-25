@@ -304,9 +304,9 @@ const Canvas = {
 			outlines.add(line)
 		})
 	},
-	updateAllBones() {
+	updateAllBones(bones = Group.all) {
 
-		Group.all.forEach((obj) => {
+		bones.forEach((obj) => {
 			let bone = obj.mesh
 			if (bone) {
 

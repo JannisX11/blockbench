@@ -71,6 +71,7 @@ class Group extends OutlinerElement {
 		if (typeof this.parent !== 'object') {
 			this.addTo();
 		}
+		Canvas.updateAllBones([this]);
 		return this;
 	}
 	select(event) {

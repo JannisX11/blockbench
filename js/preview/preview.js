@@ -1462,7 +1462,7 @@ const Screencam = {
 function initCanvas() {
 	
 	//Objects
-	scene = new THREE.Scene();
+	scene = Canvas.scene = new THREE.Scene();
 	display_scene = new THREE.Scene();
 	display_area = new THREE.Object3D();
 	display_base = new THREE.Object3D();
