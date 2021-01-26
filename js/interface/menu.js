@@ -338,13 +338,7 @@ class Menu {
 		return this;
 	}
 	conditionMet() {
-		if (this.condition === undefined) {
-			return true;
-		} else if (typeof this.condition === 'function') {
-			return this.condition()
-		} else {
-			return !!this.condition
-		}
+		return Condition(this.condition);
 	}
 	addAction(action, path) {
 
@@ -424,16 +418,17 @@ class Menu {
 	}
 }
 class BarMenu extends Menu {
-	constructor(id, structure, condition) {
+	constructor(id, structure, options = {}) {
 		super()
 		var scope = this;
 		MenuBar.menus[id] = this
 		this.type = 'bar_menu'
 		this.id = id
 		this.children = [];
-		this.condition = condition
+		this.condition = options.condition
 		this.node = $('<ul class="contextMenu"></ul>')[0]
-		this.label = $('<li class="menu_bar_point">'+tl('menu.'+id)+'</li>')[0]
+		this.name = tl(options.name || `menu.${id}`);
+		this.label = $(`<li class="menu_bar_point">${this.name}</li>`)[0]
 		$(this.label).click(function() {
 			if (open_menu === scope) {
 				scope.hide()
@@ -595,7 +590,9 @@ const MenuBar = {
 				'toggle_mirror_uv'
 			]}
 
-		], () => Modes.edit)
+		], {
+			condition: {modes: ['edit']}
+		})
 
 		new BarMenu('display', [
 			'copy',
@@ -603,7 +600,9 @@ const MenuBar = {
 			'_',
 			'add_display_preset',
 			'apply_display_preset'
-		], () => Modes.display)
+		], {
+			condition: {modes: ['display']}
+		})
 		
 		new BarMenu('filter', [
 			'remove_blank_faces',
@@ -636,7 +635,9 @@ const MenuBar = {
 			'load_animation_file',
 			'save_all_animations',
 			'export_animation_file'
-		], () => Animator.open)
+		], {
+			condition: {modes: ['animate']}
+		})
 
 
 		new BarMenu('view', [
@@ -712,8 +713,6 @@ const MenuBar = {
 				}
 			}
 		}
-	},
-	getNode(data) {	
 	},
 	addAction(action, path) {
 		if (path) {
