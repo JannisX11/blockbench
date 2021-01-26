@@ -706,6 +706,21 @@ var codec = new Codec('bedrock', {
 			}
 		}
 		if (data && index !== undefined) {
+
+			data['minecraft:geometry'].forEach(geo => {
+				if (geo.bones instanceof Array) {
+					geo.bones.forEach(bone => {
+						if (bone.cubes instanceof Array) {
+							bone.cubes.forEach((cube, ci) => {
+								if (cube.uv instanceof Array) {
+									bone.cubes[ci] = new oneLiner(cube);
+								}
+							})
+						}
+					})
+				}
+			})
+
 			var model = this.compile({raw: true})['minecraft:geometry'][0]
 			if (index != undefined) {
 				data['minecraft:geometry'][index] = model

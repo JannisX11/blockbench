@@ -411,7 +411,7 @@ var codec = new Codec('bedrock_old', {
 		}
 		if (data) {
 			try {
-				obj = JSON.parse(data.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, ''))
+				obj = autoParseJSON(data, false)
 			} catch (err) {
 				err = err+''
 				var answer = electron.dialog.showMessageBoxSync(currentwindow, {
