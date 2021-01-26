@@ -161,7 +161,7 @@ const Blockbench = {
 			if (!options.message) options.message = tl('message.'+options.translateKey+'.message')
 		}
 
-		var jq_dialog = $('<dialog class="dialog paddinged" style="width: auto;" id="message_box"><div class="dialog_handle">'+options.title+'</div></dialog>')
+		var jq_dialog = $('<dialog class="dialog paddinged" style="width: auto;" id="message_box"><div class="dialog_handle">'+tl(options.title)+'</div></dialog>')
 
 		jq_dialog.append('<div class="dialog_bar" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
 			marked(tl(options.message))+'</div>'
