@@ -123,6 +123,7 @@ const Settings = {
 		}, onChange() {
 			Canvas.updateRenderSides();
 		}});
+		new Setting('background_rendering', 	{category: 'preview', value: true});
 		/*
 		new Setting('transparency',		{category: 'preview', value: true, onChange() {
 			for (var uuid in Canvas.materials) {

@@ -455,7 +455,6 @@ const Timeline = {
 		Timeline.playing = true
 		BarItems.play_animation.setIcon('pause')
 		Timeline.last_frame_timecode = Date.now();
-		Timeline.interval = setInterval(Timeline.loop, 100/6)
 		if (Animation.selected.loop == 'hold' && Timeline.time >= (Animation.selected.length||1e3)) {
 			Timeline.setTime(0)
 		}

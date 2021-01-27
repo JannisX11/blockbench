@@ -1707,7 +1707,12 @@ function initCanvas() {
 }
 function animate() {
 	requestAnimationFrame( animate );
-	TickUpdates.Run()
+	if (!settings.background_rendering.value && !document.hasFocus()) return;
+	TickUpdates.Run();
+
+	if (Animator.open && Timeline.playing) {
+		Timeline.loop();
+	}
 	if (quad_previews.current) {
 		Wintersky.updateFacingRotation(quad_previews.current.camera);
 	}

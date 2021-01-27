@@ -1655,7 +1655,7 @@ Animator.MolangParser.global_variables = {
 	get 'query.delta_time'() {
 		let time = (Date.now() - Timeline.last_frame_timecode + 1) / 1000;
 		if (time < 0) time += 1;
-		return time;
+		return Math.clamp(time, 0, 0.1);
 	},
 	get 'query.anim_time'() {
 		return Timeline.time;
