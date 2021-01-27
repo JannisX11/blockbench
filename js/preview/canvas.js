@@ -331,7 +331,13 @@ const Canvas = {
 				bone.fix_rotation = bone.rotation.clone()
 			}
 		})
-		scene.updateMatrixWorld();
+		if (bones == Group.all) {
+			scene.updateMatrixWorld();
+		} else {
+			bones.forEach(bone => {
+				bone.mesh.updateMatrixWorld();
+			})
+		}
 	},
 	updateOrigin() {
 		if (rot_origin.parent) {
@@ -413,8 +419,7 @@ const Canvas = {
 				to[i] += 0.001
 			}
 		})
-		mesh.geometry.from(from)
-		mesh.geometry.to(to)
+		mesh.geometry.setShape(from, to)
 
 		mesh.scale.set(1, 1, 1)
 		mesh.position.set(cube.origin[0], cube.origin[1], cube.origin[2])
@@ -458,8 +463,10 @@ const Canvas = {
 		mesh.updateMatrixWorld()
 	},
 	adaptObjectFaceGeo(cube) {
+		return;
 		let {mesh} = cube;
 		let {geometry} = mesh;
+		console.log(geometry)
 		if (!geometry.all_faces) geometry.all_faces = geometry.faces.slice();
 		geometry.faces.empty()
 
@@ -619,6 +626,7 @@ const Canvas = {
 		}
 	},
 	updateUV(cube, animation = true) {
+		return;
 		if (Prop.wireframe === true) return;
 		var mesh = cube.mesh
 		if (mesh === undefined) return;
@@ -780,9 +788,10 @@ const Canvas = {
 	},
 	//Outline
 	getOutlineMesh(mesh) {
-		var vs = mesh.geometry.vertices
-		var geometry = new THREE.Geometry()
-		geometry.vertices = [
+		var vs = [0,1,2,3,4,5,6,7].map(i => {
+			return mesh.geometry.attributes.position.array.slice(i*3, 3)
+		});
+		let points = [
 			vs[2], vs[3],
 			vs[6], vs[7],
 			vs[2], vs[0],
@@ -792,6 +801,7 @@ const Canvas = {
 			vs[6], vs[4],
 			vs[1], vs[3]
 		]
+		var geometry = new THREE.BufferGeometry().setFromPoints(points);
 		var line = new THREE.Line(geometry, Canvas.outlineMaterial);
 		line.no_export = true;
 		return line;

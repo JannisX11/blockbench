@@ -1774,15 +1774,20 @@ function buildGrid() {
 
 	function setupAxisLine(origin, length, axis) {
 		var color = 'rgb'[getAxisNumber(axis)]
-		var geometry = new THREE.Geometry();
 		var material = new THREE.LineBasicMaterial({color: gizmo_colors[color]});
+		var dest = new THREE.Vector3().copy(origin);
+		dest[axis] += length;
+		let points = [
+			origin,
+			dest
+		];
+		let geometry = new THREE.BufferGeometry().setFromPoints(points)
+		
 
-		var dest = new THREE.Vector3().copy(origin)
-		dest[axis] += length
-		geometry.vertices.push(origin)
-		geometry.vertices.push(dest)
+		//geometry.vertices.push(origin)
+		//geometry.vertices.push(dest)
 
-		var line = new THREE.Line( geometry, material);
+		var line = new THREE.Line(geometry, material);
 		line.name = 'axis_line_'+axis;
 		three_grid.add(line)
 	}
