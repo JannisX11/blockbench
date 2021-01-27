@@ -1714,8 +1714,12 @@ const BARS = {
 			id: 'animations',
 			children: [
 				'add_animation',
+				'load_animation_file',
 				'slider_animation_length',
 			]
+		})
+		Blockbench.onUpdateTo('3.8', () => {
+			Toolbars.animations.add(BarItems.load_animation_file, 1);
 		})
 		Toolbars.keyframe = new Toolbar({
 			id: 'keyframe',
