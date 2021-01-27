@@ -333,6 +333,7 @@
 
 	"dialog.create_texture.folder": "Folder",
 	"dialog.create_texture.template": "Template",
+	"dialog.create_texture.rearrange_uv": "Rearrange UV",
 	"dialog.create_texture.compress": "Compress Template",
 	"dialog.create_texture.power": "Power-of-2 Size",
 	"dialog.create_texture.double_use": "Keep Multi Texture Occupancy",
