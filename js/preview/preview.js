@@ -1458,6 +1458,48 @@ const Screencam = {
 	}
 }
 
+window.addEventListener("gamepadconnected", function(event) {
+	if (event.gamepad.id.includes('SpaceMouse')) {
+
+		let interval = setInterval(() => {
+			let gamepad = navigator.getGamepads()[event.gamepad.index];
+			let preview = Preview.selected;
+			if (!document.hasFocus() || !preview || !gamepad || !gamepad.axes || gamepad.axes.allEqual(0) || gamepad.axes.find(v => isNaN(v)) != undefined) return;
+
+			let offset = new THREE.Vector3(
+				gamepad.axes[0],
+				-gamepad.axes[2],
+				gamepad.axes[1],
+			)
+			offset.multiplyScalar(4);
+			offset.applyQuaternion(preview.camera.quaternion);
+
+			preview.controls.target.add(offset);
+			preview.camera.position.add(offset);
+
+			let camera_diff = new THREE.Vector3().copy(preview.controls.target).sub(preview.camera.position);
+			let axes = [
+				gamepad.axes[3] / -40,
+				gamepad.axes[5] / -40,
+			];
+			camera_diff.applyAxisAngle(THREE.NormalY, axes[1]);
+			let tilt_axis = new THREE.Vector3().copy(camera_diff).normalize();
+			tilt_axis.applyAxisAngle(THREE.NormalY, Math.PI/2);
+			tilt_axis.y = 0;
+			camera_diff.applyAxisAngle(tilt_axis, axes[0]);
+
+			preview.controls.target.copy(camera_diff).add(preview.camera.position);
+
+		}, 16)
+
+		window.addEventListener("gamepadconnected", function(event2) {
+			if (event2.gamepad.id == event.gamepad.id && event2.gamepad.index == event.gamepad.index) {
+				clearInterval(interval);
+			}
+		})
+	}
+});
+
 //Init/Update
 function initCanvas() {
 	
