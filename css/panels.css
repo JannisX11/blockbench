@@ -120,10 +120,7 @@
 	#cubes_list {
 		padding-top: 1px;
 	}
-	#cubes_list > div.vue-tree > ul > li > *:not(ul) {
-		display: none;
-	}
-	#cubes_list > div > ul > li > ul > li:last-child {
+	#cubes_list > li:last-child {
 		margin-bottom: 180px;
 	}
 	.outliner_node .outliner_object i, .outliner_object i[class^="icon-"] {
