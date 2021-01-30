@@ -1,5 +1,5 @@
 
-class Group extends OutlinerElement {
+class Group extends OutlinerNode {
 	constructor(data, uuid) {
 		super(uuid)
 
@@ -213,7 +213,7 @@ class Group extends OutlinerElement {
 		TickUpdates.selection = true
 		this.constructor.all.remove(this);
 		delete Canvas.bones[this.uuid];
-		delete OutlinerElement.uuids[this.uuid];
+		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
 			cubes.length = 0
 			Undo.finishEdit('removed_group')
@@ -414,7 +414,7 @@ class Group extends OutlinerElement {
 		var cubes = []
 		this.forEachChild(obj => {
 			cubes.push(obj)
-		}, NonGroup)
+		}, OutlinerElement)
 		Undo.initEdit({outliner: true, elements: cubes})
 		this.forEachChild(function(s) {
 			s[key] = val
@@ -527,7 +527,7 @@ BARS.defineActions(function() {
 			if (Format.bone_rig) {
 				base_group.createUniqueName()
 			}
-			if (add_group instanceof NonGroup && selected.length > 1) {
+			if (add_group instanceof OutlinerElement && selected.length > 1) {
 				selected.forEach(function(s, i) {
 					s.addTo(base_group)
 				})

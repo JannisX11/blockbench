@@ -98,7 +98,7 @@ Face.opposite = {
 	up: 'down'
 }
 
-class Cube extends NonGroup {
+class Cube extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 		let size = canvasGridSize();

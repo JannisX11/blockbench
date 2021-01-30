@@ -1,5 +1,5 @@
 
-class NullObject extends NonGroup {
+class NullObject extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid);
 

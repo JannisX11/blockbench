@@ -1137,7 +1137,7 @@ function loadTextureDraggable() {
 							$('.drag_hover').removeClass('drag_hover');
 							if (!target_node) return;
 							let uuid = target_node.id;
-							var target = OutlinerElement.uuids[uuid];
+							var target = OutlinerNode.uuids[uuid];
 
 							var array = [];
 		

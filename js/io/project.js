@@ -47,8 +47,8 @@ class ModelProject {
 		Screencam.stopTimelapse();
 	
 		Format = 0;
-		for (var uuid in OutlinerElement.uuids) {
-			delete OutlinerElement.uuids[uuid];
+		for (var uuid in OutlinerNode.uuids) {
+			delete OutlinerNode.uuids[uuid];
 		}
 		Outliner.elements.empty();
 		Outliner.root.purge();

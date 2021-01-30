@@ -81,14 +81,14 @@ var markerColors = [
 	{pastel: "#7BFFA3", standard: "#00CE71", name: 'green'},
 	{pastel: "#BDFFA6", standard: "#AFFF62", name: 'lime'}
 ]
-class OutlinerElement {
+class OutlinerNode {
 	constructor(uuid) {
 		this.uuid = uuid || guid()
 		this.export = true;
 		this.locked = false;
 	}
 	init() {
-		OutlinerElement.uuids[this.uuid] = this;
+		OutlinerNode.uuids[this.uuid] = this;
 		this.constructor.all.safePush(this);
 		return this;
 	}
@@ -208,7 +208,7 @@ class OutlinerElement {
 	}
 	remove() {
 		this.constructor.all.remove(this);
-		if (OutlinerElement.uuids[this.uuid] == this) delete OutlinerElement.uuids[this.uuid];
+		if (OutlinerNode.uuids[this.uuid] == this) delete OutlinerNode.uuids[this.uuid];
 		this.removeFromParent()
 	}
 	rename() {
@@ -334,8 +334,8 @@ class OutlinerElement {
 		this.shade = !val;
 	}
 }
-OutlinerElement.uuids = {};
-class NonGroup extends OutlinerElement {
+OutlinerNode.uuids = {};
+class OutlinerElement extends OutlinerNode {
 	constructor(data, uuid) {
 		super(uuid);
 		this.parent = 'root';
@@ -492,8 +492,8 @@ class NonGroup extends OutlinerElement {
 		return this;
 	}
 }
-	NonGroup.prototype.isParent = false;
-	NonGroup.fromSave = function(obj, keep_uuid) {
+	OutlinerElement.prototype.isParent = false;
+	OutlinerElement.fromSave = function(obj, keep_uuid) {
 		switch (obj.type) {
 			case 'locator':
 				return new Locator(obj, keep_uuid ? obj.uuid : 0).init()
@@ -503,8 +503,8 @@ class NonGroup extends OutlinerElement {
 				break;
 		}
 	}
-	NonGroup.selected = selected;
-	NonGroup.all = elements;
+	OutlinerElement.selected = selected;
+	OutlinerElement.all = elements;
 
 Array.prototype.findRecursive = function(key1, val) {
 	var i = 0
@@ -592,7 +592,7 @@ function parseGroups(array, importGroup, startIndex) {
 				if (typeof array[i] === 'number') {
 					var obj = elements[array[i] + (startIndex ? startIndex : 0) ]
 				} else {
-					var obj = OutlinerElement.uuids[array[i]];
+					var obj = OutlinerNode.uuids[array[i]];
 				}
 				if (obj) {
 					obj.removeFromParent()
@@ -715,7 +715,7 @@ function dropOutlinerObjects(item, target, event, order) {
 		iterate(target)
 		if (is_parent) return;
 	}
-	if (item instanceof NonGroup && selected.includes( item )) {
+	if (item instanceof OutlinerElement && selected.includes( item )) {
 		var items = selected.slice();
 	} else {
 		var items = [item];
@@ -1137,7 +1137,7 @@ Interface.definePanels(function() {
 				return [];
 			}
 		}
-		return [OutlinerElement.uuids[target_node.id], target_node];
+		return [OutlinerNode.uuids[target_node.id], target_node];
 	}
 	function getOrder(loc, obj) {
 		if (!obj) {

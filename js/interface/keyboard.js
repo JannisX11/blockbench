@@ -421,7 +421,7 @@ $(document).on('keydown mousedown', function(e) {
 			if (next.length) {
 				if (next.hasClass('cube_name')) {
 					let uuid = next.parent().parent().attr('id');
-					var target = OutlinerElement.uuids[uuid];
+					var target = OutlinerNode.uuids[uuid];
 					if (target) {
 						stopRenameOutliner();
 						setTimeout(() => {

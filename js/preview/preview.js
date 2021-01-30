@@ -341,7 +341,7 @@ class Preview {
 			}
 			if (intersect.isElement) {
 				this.controls.hasMoved = true
-				var obj = OutlinerElement.uuids[intersects[0].object.name]
+				var obj = OutlinerNode.uuids[intersects[0].object.name]
 				let face = Canvas.face_order[intersects[0].face.materialIndex];
 
 				return {

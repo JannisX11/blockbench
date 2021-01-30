@@ -227,7 +227,7 @@ var Undo = {
 				if (save.elements.hasOwnProperty(uuid)) {
 					var element = save.elements[uuid]
 
-					var new_element = OutlinerElement.uuids[uuid]
+					var new_element = OutlinerNode.uuids[uuid]
 					if (new_element) {
 						for (var face in new_element.faces) {
 							new_element.faces[face].reset()
@@ -240,13 +240,13 @@ var Undo = {
 							Canvas.updateUV(new_element)
 						}
 					} else {
-						new_element = NonGroup.fromSave(element, true);
+						new_element = OutlinerElement.fromSave(element, true);
 					}
 				}
 			}
 			for (var uuid in reference.elements) {
 				if (reference.elements.hasOwnProperty(uuid) && !save.elements.hasOwnProperty(uuid)) {
-					var obj = OutlinerElement.uuids[uuid]
+					var obj = OutlinerNode.uuids[uuid]
 					if (obj) {
 						obj.remove()
 					}
@@ -276,7 +276,7 @@ var Undo = {
 
 		if (save.selection_group && !is_session) {
 			Group.selected = undefined
-			var sel_group = OutlinerElement.uuids[save.selection_group]
+			var sel_group = OutlinerNode.uuids[save.selection_group]
 			if (sel_group) {
 				sel_group.select()
 			}
@@ -292,7 +292,7 @@ var Undo = {
 		}
 
 		if (save.group) {
-			var group = OutlinerElement.uuids[save.group.uuid]
+			var group = OutlinerNode.uuids[save.group.uuid]
 			if (group) {
 				if (is_session) {
 					delete save.group.isOpen;

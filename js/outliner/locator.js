@@ -1,5 +1,5 @@
 
-class Locator extends NonGroup {
+class Locator extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid);
 

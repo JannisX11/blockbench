@@ -185,7 +185,7 @@ var codec = new Codec('project', {
 		if (model.elements) {
 			model.elements.forEach(function(element) {
 
-				var copy = NonGroup.fromSave(element, true)
+				var copy = OutlinerElement.fromSave(element, true)
 				for (var face in copy.faces) {
 					if (!Format.single_texture && element.faces) {
 						var texture = element.faces[face].texture !== null && textures[element.faces[face].texture]
