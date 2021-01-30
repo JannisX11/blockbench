@@ -43,7 +43,6 @@ class NullObject extends NonGroup {
 			this.addTo(Group.selected)
 		}
 		super.init();
-		TickUpdates.outliner = true;
 		return this;
 	}
 	flip(axis, center) {

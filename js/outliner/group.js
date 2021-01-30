@@ -270,7 +270,6 @@ class Group extends OutlinerElement {
 		}
 		this.remove(false);
 		Undo.finishEdit('resolve group')
-		TickUpdates.outliner = true;
 		return array;
 	}
 	showContextMenu(event) {
@@ -338,8 +337,7 @@ class Group extends OutlinerElement {
 			child.duplicate().addTo(copy)
 		}
 		copy.isOpen = true;
-		Canvas.updatePositions()
-		TickUpdates.outliner = true;
+		Canvas.updatePositions();
 		return copy;
 	}
 	getSaveCopy() {
@@ -536,7 +534,6 @@ BARS.defineActions(function() {
 			}
 			base_group.init().select()
 			Undo.finishEdit('add_group');
-			loadOutlinerDraggable()
 			Vue.nextTick(function() {
 				updateSelection()
 				if (settings.create_rename.value) {

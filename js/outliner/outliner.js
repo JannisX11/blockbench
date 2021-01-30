@@ -115,13 +115,11 @@ class OutlinerElement {
 		else {
 			arr.splice(index+index_mod, 0, this)
 		}
-
-		TickUpdates.outliner = true;
 		return this;
 	}
 	addTo(group, index = -1) {
 		//Resolve Group Argument
-		if (group === undefined) {
+		if (!group) {
 			group = 'root'
 		} else if (group !== 'root') {
 			if (group.type !== 'group') {
@@ -153,8 +151,6 @@ class OutlinerElement {
 			arr.splice(index, 0, this)
 		}
 
-		//Loading
-		TickUpdates.outliner = true;
 		return this;
 	}
 	removeFromParent() {
@@ -415,7 +411,6 @@ class NonGroup extends OutlinerElement {
 		if (Condition(copy.needsUniqueName)) {
 			copy.createUniqueName()
 		}
-		TickUpdates.outliner = true;
 		TickUpdates.selection = true;
 		return copy;
 	}
@@ -646,6 +641,7 @@ function parseGroups(array, importGroup, startIndex) {
 }
 //Outliner
 function loadOutlinerDraggable() {
+	return;
 	function getOrder(loc, obj) {
 		if (!obj) {
 			return;
@@ -659,45 +655,6 @@ function loadOutlinerDraggable() {
 		return 0;
 	}
 	Vue.nextTick(function() {
-		$('li.outliner_node:not(.ui-droppable) > div.outliner_object').draggable({
-			delay: 120,
-			revertDuration: 50,
-			revert: 'invalid',
-			appendTo: 'body',
-			zIndex: 19,
-			cursorAt: {left: 5},
-			start(event, ui) {
-				if (event.target && event.target.parentNode) {
-					var element = Outliner.root.findRecursive('uuid', event.target.parentNode.id)
-					if (!element || element.locked) return false;
-				}
-			},
-			helper: function() {
-				var item = Outliner.root.findRecursive('uuid', $(this).attr('id'))
-				var helper = $(this).clone()
-				if (selected.length > 1) {
-					helper.append('<div class="outliner_drag_number">'+selected.length+'</div>')
-				}
-				helper.addClass('')
-				helper.on('mousewheel', function() {
-					var delta = event.deltaY * 1 + $('#cubes_list').scrollTop()
-					$('#cubes_list').animate({scrollTop: delta}, 10);
-				})
-				return helper;
-			},
-			drag: function(event, ui) {
-				$('.outliner_node[order]').attr('order', null)
-				if ($('#cubes_list.drag_hover').length === 0) {
-					var tar = $('#cubes_list li .drag_hover.outliner_node').last()
-					var element = Outliner.root.findRecursive('uuid', tar.attr('id'))
-					if (element) {
-						var location = event.clientY - tar.offset().top
-						var order = getOrder(location, element)
-						tar.attr('order', order)
-					}
-				}
-			}
-		})
 		$('li.outliner_node:not(.ui-droppable)').droppable({
 			greedy: true,
 			accept: function(s) { 
@@ -813,7 +770,6 @@ function dropOutlinerObjects(item, target, event, order) {
 			}
 		}
 	})
-	loadOutlinerDraggable()
 	if (Format.bone_rig) {
 		Canvas.updateAllBones()
 	}
@@ -1170,6 +1126,31 @@ Interface.definePanels(function() {
 	});
 	Vue.component('vue-tree-item', VueTreeItem);
 
+	function eventTargetToNode(target) {
+		let target_node = target;
+		let i = 0;
+		while (target_node && target_node.classList && !target_node.classList.contains('outliner_node')) {
+			if (i < 4 && target_node) {
+				target_node = target_node.parentNode;
+				i++;
+			} else {
+				return [];
+			}
+		}
+		return [OutlinerElement.uuids[target_node.id], target_node];
+	}
+	function getOrder(loc, obj) {
+		if (!obj) {
+			return;
+		} else if (obj instanceof Group) {
+			if (loc < 8) return -1;
+			if (loc > 24) return 1;
+		} else {
+			if (loc < 16) return -1;
+			return 1;
+		}
+		return 0;
+	}
 
 	Interface.Panels.outliner = new Panel({
 		id: 'outliner',
@@ -1191,12 +1172,123 @@ Interface.definePanels(function() {
 			methods: {
 				openMenu(event) {
 					Interface.Panels.outliner.menu.show(event)
+				},
+				dragNode(e1) {
+					convertTouchEvent(e1);
+					let scope = this;
+					
+					let [item] = eventTargetToNode(e1.target);
+					if (!item || item.locked) {
+						function off(e2) {
+							removeEventListeners(document, 'mouseup touchend', off);
+							if (e2.target && e2.target.id == 'cubes_list') unselectAll();
+						}
+						addEventListeners(document, 'mouseup touchend', off);
+						return;
+					};
+
+					let active = false;
+					let helper;
+					let timeout;
+					let drop_target, drop_target_node, order;
+					let last_event = e1;
+
+					function move(e2) {
+						convertTouchEvent(e2);
+						let offset = [
+							e2.clientX - e1.clientX,
+							e2.clientY - e1.clientY,
+						]
+						if (!active) {
+							let distance = Math.sqrt(Math.pow(offset[0], 2) + Math.pow(offset[1], 2))
+							if (Blockbench.isTouch) {
+								if (distance > 20 && timeout) {
+									clearTimeout(timeout);
+									timeout = null;
+								} else {
+									document.getElementById('cubes_list').scrollTop += last_event.clientY - e2.clientY;
+								}
+							} else if (distance > 6) {
+								active = true;
+							}
+						} else {
+							if (e2) e2.preventDefault();
+
+							if (!helper) {
+								helper = document.createElement('div');
+								helper.id = 'outliner_drag_helper';
+								let icon = document.createElement('i');		icon.className = item.icon;	helper.append(icon);
+								let span = document.createElement('span');	span.innerText = item.name;	helper.append(span);
+								
+								if (item instanceof Group == false && Outliner.selected.length > 1) {
+									let counter = document.createElement('div');
+									counter.classList.add('outliner_drag_number');
+									counter.textContent = Outliner.selected.length.toString();
+									helper.append(counter);
+								}
+								document.body.append(helper);
+							}
+							helper.style.left = `${e2.clientX}px`;
+							helper.style.top = `${e2.clientY}px`;
+
+							// drag
+							$('.drag_hover').removeClass('drag_hover');
+							$('.outliner_node[order]').attr('order', null);
+
+							let target = document.elementFromPoint(e2.clientX, e2.clientY);
+							[drop_target, drop_target_node] = eventTargetToNode(target);
+							if (drop_target) {
+								var location = e2.clientY - $(drop_target_node).offset().top;
+								order = getOrder(location, drop_target)
+								drop_target_node.setAttribute('order', order)
+								drop_target_node.classList.add('drag_hover');
+
+							} else if ($('#cubes_list').is(':hover')) {
+								$('#cubes_list').addClass('drag_hover');
+							}
+						}
+						last_event = e2;
+					}
+					function off(e2) {
+						if (helper) helper.remove();
+						removeEventListeners(document, 'mousemove touchmove', move);
+						removeEventListeners(document, 'mouseup touchend', off);
+						$('.drag_hover').removeClass('drag_hover');
+						$('.outliner_node[order]').attr('order', null);
+						if (Blockbench.isTouch) clearTimeout(timeout);
+
+						if (active) {
+							convertTouchEvent(e2);
+							let target = document.elementFromPoint(e2.clientX, e2.clientY);
+							[drop_target] = eventTargetToNode(target);
+							if (drop_target) {
+								dropOutlinerObjects(item, drop_target, e2, order);
+							} else if ($('#cubes_list').is(':hover')) {
+								dropOutlinerObjects(item, undefined, e2);
+							}
+						}
+					}
+
+					if (Blockbench.isTouch) {
+						timeout = setTimeout(() => {
+							active = true;
+							move(e1);
+						}, 400)
+					}
+
+					addEventListeners(document, 'mousemove touchmove', move, {passive: false});
+					addEventListeners(document, 'mouseup touchend', off, {passive: false});
 				}
 			},
 			template: `
 				<div>
 					<div class="toolbar_wrapper outliner"></div>
-					<ul id="cubes_list" class="list mobile_scrollbar" @contextmenu.stop.prevent="openMenu($event)">
+					<ul id="cubes_list"
+						class="list mobile_scrollbar"
+						@contextmenu.stop.prevent="openMenu($event)"
+						@mousedown="dragNode($event)"
+						@touchstart="dragNode($event)"
+					>
 						<vue-tree-item v-for="item in root" :node="item" :show_advanced_toggles="show_advanced_toggles" v-key="item.uuid"></vue-tree-item>
 					</ul>
 				</div>
@@ -1214,15 +1306,4 @@ Interface.definePanels(function() {
 		])
 	})
 	Outliner.vue = Interface.Panels.outliner.inside_vue;
-
-	$('#cubes_list').droppable({
-		greedy: true,
-		accept: 'div.outliner_object',
-		tolerance: 'pointer',
-		hoverClass: 'drag_hover',
-		drop: function(event, ui) {
-			var item = Outliner.root.findRecursive('uuid', $(ui.draggable).parent().attr('id'))
-			dropOutlinerObjects(item, undefined, event)
-		}
-	})
 })

@@ -252,7 +252,6 @@ var Undo = {
 					}
 				}
 			}
-			loadOutlinerDraggable()
 			Canvas.updateVisibility()
 		}
 

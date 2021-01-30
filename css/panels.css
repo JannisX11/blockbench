@@ -151,10 +151,10 @@
 	.outliner_object:hover {
 		color: var(--color-light);
 	}
-	#cubes_list.drag_hover > .vue-tree {
+	#cubes_list.drag_hover > li:last-child {
 		position: relative;
 	}
-	#cubes_list.drag_hover > .vue-tree > ul::before {
+	#cubes_list.drag_hover > li:last-child::after {
 		content: '';
 		width: calc(100% - 12px);
 		height: 2px;
@@ -205,9 +205,20 @@
 		border-bottom-right-radius: 4px;
 
 	}
-	/*Cancel Dragover for main list*/
-	#cubes_list > div > ul > li.outliner_node.parent_li {
-		border: none !important;
+	#outliner_drag_helper {
+		position: absolute;
+		width: auto;
+		min-width: 150px;
+		height: 28px;
+		pointer-events: none;
+		background-color: var(--color-selected);
+		box-shadow: 0 0.4px 3.5px rgba(0, 0, 0, 0.6);
+		display: flex;
+		padding: 2px 15px 2px 8px;
+		z-index: 18;
+	}
+	#outliner_drag_helper > i {
+		padding: 4px;
 	}
 	.outliner_object > input {
 		width: 0;
@@ -252,15 +263,6 @@
 	}
 	.outliner_object i.ec_7 {
 		color: #BDFFA6; /*lime*/
-	}
-	body > .outliner_object {
-		width: 180px;
-		padding-left: 0 !important;
-		background-color: var(--color-selected);
-		box-shadow: 0 0.4px 3.5px rgba(0, 0, 0, 0.6);
-	}
-	body > .outliner_object .outliner_toggle {
-		display: none;
 	}
 	div#outliner_stats {
 		float: right;

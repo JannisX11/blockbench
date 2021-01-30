@@ -159,11 +159,11 @@ function selectAll() {
 	if (Modes.animate) {
 		selectAllKeyframes()
 	} else if (Modes.edit || Modes.paint) {
-		if (selected.length < elements.length) {
+		if (Outliner.selected.length < Outliner.elements.length) {
 			if (Outliner.root.length == 1) {
 				Outliner.root[0].select();
 			} else {
-				elements.forEach(obj => {
+				Outliner.elements.forEach(obj => {
 					obj.selectLow()
 				})
 				TickUpdates.selection = true;
@@ -197,10 +197,6 @@ setInterval(function() {
 const TickUpdates = {
 	Run() {
 		try {
-			if (TickUpdates.outliner) {
-				delete TickUpdates.outliner;
-				loadOutlinerDraggable()
-			}
 			if (TickUpdates.selection) {
 				delete TickUpdates.selection;
 				updateSelection()

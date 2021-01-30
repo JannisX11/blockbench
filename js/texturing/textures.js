@@ -1070,14 +1070,17 @@ function loadTextureDraggable() {
 				},
 				drag: function(event, ui) {
 					
-					$('.outliner_node[order]').attr('order', null)
+					$('.outliner_node[order]').attr('order', null);
+					$('.drag_hover').removeClass('drag_hover');
 					$('.texture[order]').attr('order', null)
-					if ($('#cubes_list.drag_hover').length === 0 && $('#cubes_list li .drag_hover.outliner_node').length) {
-						var tar = $('#cubes_list li .drag_hover.outliner_node').last()
+					if ($('#cubes_list li.outliner_node:hover').length) {
+						var tar = $('#cubes_list li.outliner_node:hover').last()
+						tar.addClass('drag_hover').attr('order', '0');
+						/*
 						var element = Outliner.root.findRecursive('uuid', tar.attr('id'))
 						if (element) {
 							tar.attr('order', '0')
-						}
+						}*/
 					} else if ($('#texture_list li:hover').length) {
 						let node = $('#texture_list > .texture:hover')
 						if (node.length) {
@@ -1094,7 +1097,8 @@ function loadTextureDraggable() {
 				},
 				stop: function(event, ui) {
 					setTimeout(function() {
-						$('.texture[order]').attr('order', null)
+						$('.texture[order]').attr('order', null);
+						$('.outliner_node[order]').attr('order', null);
 						var tex = textures.findInArray('uuid', ui.helper.attr('texid'));
 						if (!tex) return;
 						if ($('.preview:hover').length > 0) {
@@ -1127,6 +1131,33 @@ function loadTextureDraggable() {
 							Texture.all.splice(index, 0, tex)
 							Canvas.updateLayeredTextures()
 							Undo.finishEdit('reorder textures')
+						} else if ($('#cubes_list:hover')) {
+
+							var target_node = $('#cubes_list li.outliner_node.drag_hover').last().get(0);
+							$('.drag_hover').removeClass('drag_hover');
+							if (!target_node) return;
+							let uuid = target_node.id;
+							var target = OutlinerElement.uuids[uuid];
+
+							var array = [];
+		
+							if (target.type === 'group') {
+								target.forEachChild(function(cube) {
+									array.push(cube)
+								}, Cube)
+							} else {
+								array = selected.includes(target) ? selected : [target];
+							}
+							Undo.initEdit({elements: array, uv_only: true})
+							array.forEach(function(cube) {
+								for (var face in cube.faces) {
+									cube.faces[face].texture = tex.uuid;
+								}
+							})
+							Undo.finishEdit('drop texture')
+		
+							main_uv.loadData()
+							Canvas.updateAllFaces()
 						}
 					}, 10)
 				}

@@ -257,14 +257,9 @@ function setupInterface() {
 
 
 	//Clickbinds
-	$('header'	  ).click( 	function() { setActivePanel('header'  )})
-	$('#preview'	).click(function() { setActivePanel('preview' )})
+	$('header'	).click(function() { setActivePanel('header'  )})
+	$('#preview').click(function() { setActivePanel('preview' )})
 
-	$('ul#cubes_list').click(function(event) {
-		if (event.target === document.getElementById('cubes_list')) {
-			unselectAll()
-		}
-	})
 	$('#texture_list').click(function(){
 		unselectTextures()
 	})

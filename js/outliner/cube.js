@@ -222,7 +222,6 @@ class Cube extends NonGroup {
 		if (!this.mesh || !this.mesh.parent) {
 			Canvas.addCube(this)
 		}
-		TickUpdates.outliner = true;
 		return this;
 	}
 	size(axis, floored) {
@@ -851,7 +850,6 @@ BARS.defineActions(function() {
 			if (Group.selected) Group.selected.unselect()
 			base_cube.select()
 			Canvas.updateSelected()
-			loadOutlinerDraggable()
 			Undo.finishEdit('add_cube', {outliner: true, elements: selected, selection: true});
 			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 

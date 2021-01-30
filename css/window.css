@@ -349,7 +349,7 @@
 
 	div#mobile_panel_overlay {
 		position: absolute;
-		z-index: 19;
+		z-index: 12;
 		top: 0;
 		left: 0;
 		right: 40px;
@@ -566,7 +566,7 @@
 	}
 	@media (max-device-width: 640px) {
 		#start_screen {
-			width: calc(100% - 40px);
+			width: 100%;
 		}
 		#start_screen > content {
 			margin-top: 0px;

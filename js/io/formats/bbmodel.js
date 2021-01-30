@@ -199,7 +199,6 @@ var codec = new Codec('project', {
 				copy.init()
 				
 			})
-			loadOutlinerDraggable()
 		}
 		if (model.outliner) {
 			if (compareVersions('3.2', model.meta.format_version)) {
