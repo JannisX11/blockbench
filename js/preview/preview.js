@@ -1471,7 +1471,7 @@ window.addEventListener("gamepadconnected", function(event) {
 				-gamepad.axes[2],
 				gamepad.axes[1],
 			)
-			offset.multiplyScalar(4);
+			offset.multiplyScalar(3);
 			offset.applyQuaternion(preview.camera.quaternion);
 
 			preview.controls.target.add(offset);
@@ -1489,6 +1489,8 @@ window.addEventListener("gamepadconnected", function(event) {
 			camera_diff.applyAxisAngle(tilt_axis, axes[0]);
 
 			preview.controls.target.copy(camera_diff).add(preview.camera.position);
+
+			main_preview.controls.updateSceneScale();
 
 		}, 16)
 

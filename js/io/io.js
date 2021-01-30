@@ -251,13 +251,12 @@ var Extruder = {
 							north:	{uv:[(rect.x2+1)*scale_i, rect.y*scale_i, rect.x*scale_i, (rect.y+1)*scale_i], texture: texture},
 							south:	{uv:[rect.x*scale_i, rect.y2*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture},
 							east:	{uv:[rect.x2*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 90},
-							west:	{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 270}
+							west:	{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 270},
 						}
 					}).init()
 					selected.push(current_cube)
 					cube_nr++;
 				}
-
 
 				ext_x++;
 			}

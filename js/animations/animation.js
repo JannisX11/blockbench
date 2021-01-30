@@ -673,14 +673,14 @@ class GeneralAnimator {
 		});
 		keyframes.push(keyframe);
 
-		keyframe.channel = channel;
-		keyframe.time = time;
-
 		if (value) {
 			keyframe.extend(value);
 		} else if (this.fillValues) {
 			this.fillValues(keyframe, value, true);
 		}
+
+		keyframe.channel = channel;
+		keyframe.time = time;
 
 		this[channel].push(keyframe);
 		keyframe.animator = this;
@@ -688,7 +688,6 @@ class GeneralAnimator {
 		if (select !== false) {
 			keyframe.select();
 		}
-
 		var deleted = [];
 		delete keyframe.time_before;
 		keyframe.replaceOthers(deleted);

@@ -1232,7 +1232,7 @@ const BARS = {
 		//Extras
 			new KeybindItem('preview_select', {
 				category: 'navigate',
-				keybind: new Keybind({key: Blockbench.isMobile ? 0 : 1, ctrl: null, shift: null, alt: null})
+				keybind: new Keybind({key: Blockbench.isTouch ? 0 : 1, ctrl: null, shift: null, alt: null})
 			})
 			new KeybindItem('preview_rotate', {
 				category: 'navigate',

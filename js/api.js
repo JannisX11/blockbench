@@ -3,6 +3,7 @@ const LastVersion = localStorage.getItem('last_version') || localStorage.getItem
 const Blockbench = {
 	isWeb: !isApp,
 	isMobile: !isApp && window.innerWidth <= 640,
+	isTouch: 'ontouchend' in document,
 	version: appVersion,
 	platform: 'web',
 	flags: [],
