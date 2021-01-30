@@ -426,7 +426,7 @@ window.Dialog = class Dialog {
 				handle: ".dialog_handle",
 				containment: '#page_wrapper'
 			})
-			var x = Math.clamp(($(window).width()-540)/2, 0, 2000)
+			var x = Math.clamp((window.innerWidth-540)/2, 0, 2000)
 			jq_dialog.css('left', x+'px')
 			jq_dialog.css('position', 'absolute')
 		}
@@ -448,7 +448,7 @@ window.Dialog = class Dialog {
 		$('#plugin_dialog_wrapper').append(jq_dialog);
 		$('#blackout').fadeIn(0);
 		jq_dialog.show().css('display', 'flex');
-		jq_dialog.css('top', limitNumber($(window).height()/2-jq_dialog.height()/2, 0, 100)+'px');
+		jq_dialog.css('top', limitNumber(window.innerHeight/2-jq_dialog.height()/2, 0, 100)+'px');
 		if (this.width) {
 			jq_dialog.css('width', this.width+'px');
 		}

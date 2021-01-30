@@ -40,7 +40,7 @@ class Menu {
 			var offset = childlist.offset()
 			var el_height = childlist.height()
 
-			if (offset.left + el_width > $(window).width()) {
+			if (offset.left + el_width > window.innerWidth) {
 				if (Blockbench.isMobile) {
 					childlist.css('visibility', 'hidden');
 					setTimeout(() => {
@@ -296,7 +296,7 @@ class Menu {
 			var offset_top  = $(position).offset().top + $(position).height();
 		}
 
-		if (offset_left > $(window).width() - el_width) {
+		if (offset_left > window.innerWidth - el_width) {
 			offset_left -= el_width
 			if (position && position.clientWidth) offset_left += position.clientWidth;
 		}

@@ -202,7 +202,7 @@ const Blockbench = {
 			handle: ".dialog_handle",
 			containment: '#page_wrapper'
 		})
-		var x = ($(window).width()-540)/2
+		var x = (window.innerWidth-540)/2
 		jq_dialog.css('left', x+'px')
 		jq_dialog.css('position', 'absolute')
 
@@ -211,7 +211,7 @@ const Blockbench = {
 		$('#blackout').show()
 		jq_dialog.show()
 
-		jq_dialog.css('top', limitNumber($(window).height()/2-jq_dialog.height()/2 - 140, 0, 2000)+'px')
+		jq_dialog.css('top', limitNumber(window.innerHeight/2-jq_dialog.height()/2 - 140, 0, 2000)+'px')
 		if (options.width) {
 			jq_dialog.css('width', options.width+'px')
 		} else {

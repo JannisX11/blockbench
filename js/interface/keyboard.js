@@ -184,8 +184,7 @@ class Keybind {
 		var scope = this;
 		Keybinds.recording = this;
 		var overlay = $('#overlay_message_box').show()
-		var input = overlay.find('#keybind_input_box')
-		var top = limitNumber($(window).height()/2 - 200, 30, 800)
+		var top = limitNumber(window.innerHeight/2 - 200, 30, 800)
 		overlay.find('> div').css('margin-top', top+'px')
 
 		function onActivate(event) {

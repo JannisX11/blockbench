@@ -80,7 +80,7 @@ class BarItem {
 
 					tooltip.css('margin-left', '0')
 					var offset = tooltip && tooltip.offset()
-					offset.right = offset.left + parseInt(tooltip.css('width').replace(/px/, '')) - $(window).width()
+					offset.right = offset.left + parseInt(tooltip.css('width').replace(/px/, '')) - window.innerWidth
 
 					if (offset.right > 4) {
 						tooltip.css('margin-left', -offset.right+'px')
@@ -91,7 +91,7 @@ class BarItem {
 
 					description.css('margin-left', '-5px')
 					var offset = description.offset()
-					offset.right = offset.left + parseInt(description.css('width').replace(/px/, '')) - $(window).width()
+					offset.right = offset.left + parseInt(description.css('width').replace(/px/, '')) - window.innerWidth
 
 					if (offset.right > 4) {
 						description.css('margin-left', -offset.right+'px')
@@ -1934,26 +1934,6 @@ const BARS = {
 		uv_dialog.all_editors.forEach((editor) => {
 			editor.updateInterface()
 		})
-		BARS.updateToolToolbar()
-	},
-	updateToolToolbar() {
-		if (!Toolbars || !Toolbars[Toolbox.selected.toolbar]) return;
-		Toolbars[Toolbox.selected.toolbar].children.forEach(function(action) {
-			if (action.type === 'numslider') {
-				action.setWidth(40)
-			}
-		})
-		var tool_toolbar = $('#main_toolbar .tool_options')
-		if (tool_toolbar.find('.toolbar').length > 0) {
-			var sliders = tool_toolbar.find('.tool.nslide_tool').length
-			var space = tool_toolbar.width()-50
-			var width = limitNumber(space / sliders, 40, 72)
-			Toolbars[Toolbox.selected.toolbar].children.forEach(function(action) {
-				if (action.type === 'numslider') {
-					action.setWidth(width)
-				}
-			})
-		}
 	}
 }
 const ActionControl = {

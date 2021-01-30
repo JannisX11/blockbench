@@ -95,7 +95,7 @@ const Interface = {
 			},
 			get: function() {return Interface.data.left_bar_width},
 			set: function(o, diff) {
-				let calculated = limitNumber(o + diff, 128, $(window).width()- 120 - Interface.data.right_bar_width)
+				let calculated = limitNumber(o + diff, 128, window.innerWidth- 120 - Interface.data.right_bar_width)
 				Interface.data.left_bar_width = Math.snapToValues(calculated, [Interface.default_data.left_bar_width], 16);
 			},
 			position: function(line) {
@@ -118,7 +118,7 @@ const Interface = {
 			},
 			get: function() {return Interface.data.right_bar_width},
 			set: function(o, diff) {
-				let calculated = limitNumber(o - diff, 128, $(window).width()- 120 - Interface.data.left_bar_width);
+				let calculated = limitNumber(o - diff, 128, window.innerWidth- 120 - Interface.data.left_bar_width);
 				Interface.data.right_bar_width = Math.snapToValues(calculated, [Interface.default_data.right_bar_width], 12);
 			},
 			position: function(line) {
@@ -246,7 +246,7 @@ function setupInterface() {
 			tooltip.css('right', 'auto')
 		}
 
-		if ((tooltip.offset().left + tooltip.width()) - $(window).width() > 4) {
+		if ((tooltip.offset().left + tooltip.width()) - window.innerWidth > 4) {
 			tooltip.css('right', '-4px')
 		} else if ($(this).parent().css('position') == 'relative') {
 			tooltip.css('right', '0')
@@ -372,7 +372,6 @@ function resizeWindow(event) {
 			dialog.css('top', limitNumber(window.innerHeight-dialog.outerHeight(), 0, 4e3) + 'px')
 		}
 	}
-	BARS.updateToolToolbar();
 	Blockbench.dispatchEvent('resize_window', event);
 }
 $(window).on('resize orientationchange', resizeWindow)
@@ -438,11 +437,11 @@ function showDialog(dialog) {
 			handle: ".dialog_handle",
 			containment: '#page_wrapper'
 		})
-		var x = ($(window).width()-obj.outerWidth()) / 2;
-		var top = ($(window).height() - obj.outerHeight()) / 2;
+		var x = (window.innerWidth-obj.outerWidth()) / 2;
+		var top = (window.innerHeight - obj.outerHeight()) / 2;
 		obj.css('left', x+'px')
 		obj.css('top', 'px')
-		obj.css('max-height', ($(window).height()-128)+'px')
+		obj.css('max-height', (window.innerHeight-128)+'px')
 	}
 }
 function hideDialog() {
@@ -459,18 +458,18 @@ function setSettingsTab(tab) {
 	$('#settings .tab_content#'+tab).removeClass('hidden')
 	if (tab === 'keybindings') {
 		//Keybinds
-		$('#keybindlist').css('max-height', ($(window).height() - 420) +'px')
+		$('#keybindlist').css('max-height', (window.innerHeight - 420) +'px')
 		$('#keybind_search_bar').focus()
 
 	} else if (tab === 'setting') {
 		//Settings
-		$('#settingslist').css('max-height', ($(window).height() - 420) +'px')
+		$('#settingslist').css('max-height', (window.innerHeight - 420) +'px')
 		$('#settings_search_bar').focus()
 
 	} else if (tab === 'layout_settings') {
 		//Layout
 
-		$('#theme_editor').css('max-height', ($(window).height() - 420) +'px')
+		$('#theme_editor').css('max-height', (window.innerHeight - 420) +'px')
 	} else if (tab == 'credits') {
 		// About
 

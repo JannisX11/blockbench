@@ -718,15 +718,16 @@ class GeneralAnimator {
 		var el = $(`#timeline_body_inner > li[uuid=${this.uuid}]`).get(0)
 		if (el) {
 			var offset = el.offsetTop;
-			var timeline = $('#timeline_body').scrollTop();
-			var height = $('#timeline_body').height();
+			var timeline = document.getElementById('timeline_body');
+			var scroll_top = timeline.scrollTop;
+			var height = timeline.clientHeight;
 			if (offset < timeline) {
-				$('#timeline_body').animate({
+				$(timeline).animate({
 					scrollTop: offset
 				}, 200);
 			}
-			if (offset + el.clientHeight > timeline + height) {
-				$('#timeline_body').animate({
+			if (offset + el.clientHeight > scroll_top + height) {
+				$(timeline).animate({
 					scrollTop: offset - (height-el.clientHeight-20)
 				}, 200);
 			}
@@ -755,7 +756,7 @@ class BoneAnimator extends GeneralAnimator {
 		return [...this.rotation, ...this.position, ...this.scale];
 	}
 	getGroup() {
-		this.group = OutlinerNode.uuids[this.uuid]
+		this.group = OutlinerElement.uuids[this.uuid]
 		if (!this.group) {
 			if (this.animation && this.animation.animators[this.uuid] && this.animation.animators[this.uuid].type == 'bone') {
 				delete this.animation.bones[this.uuid];

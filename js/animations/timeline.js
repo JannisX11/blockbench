@@ -381,7 +381,8 @@ const Timeline = {
 		Timeline.setTime(0)
 	},
 	getMaxLength() {
-		var max_length = ($('#timeline_vue').width()-8) / Timeline.vue._data.size;
+		let width = (document.getElementById('timeline_vue')||0).clientWidth;
+		var max_length = (width-8) / Timeline.vue._data.size;
 		if (Animation.selected) max_length = Math.max(max_length, Animation.selected.length)
 		Timeline.keyframes.forEach((kf) => {
 			max_length = Math.max(max_length, kf.time)

@@ -880,7 +880,7 @@ var codec = new Codec('bedrock', {
 			})
 		}
 		showDialog('entity_import')
-		$('#pe_list').css('max-height', ($(window).height() - 320) +'px')
+		$('#pe_list').css('max-height', (window.innerHeight - 320) +'px')
 		$('input#pe_search_bar').select()
 		$('#entity_import .confirm_btn').off('click')
 		$('#entity_import .confirm_btn').on('click', (e) => {
