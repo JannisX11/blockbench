@@ -1651,8 +1651,8 @@ const BARS = {
 				'rescale_toggle'
 			]
 		})
-		Toolbars.bone_ik = new Toolbar({
-			id: 'bone_ik',
+		Toolbars.inverse_kinematics = new Toolbar({
+			id: 'inverse_kinematics',
 			children: [
 				'ik_enabled',
 				'slider_ik_chain_length'

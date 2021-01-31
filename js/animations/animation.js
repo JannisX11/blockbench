@@ -756,7 +756,7 @@ class BoneAnimator extends GeneralAnimator {
 		return [...this.rotation, ...this.position, ...this.scale];
 	}
 	getGroup() {
-		this.group = OutlinerElement.uuids[this.uuid]
+		this.group = OutlinerNode.uuids[this.uuid];
 		if (!this.group) {
 			if (this.animation && this.animation.animators[this.uuid] && this.animation.animators[this.uuid].type == 'bone') {
 				delete this.animation.bones[this.uuid];
@@ -1205,7 +1205,6 @@ const Animator = {
 		}
 
 		Animator.open = true;
-		selected.empty()
 		Canvas.updateAllBones()
 
 		scene.add(Wintersky.space);
@@ -1270,9 +1269,10 @@ const Animator = {
 	},
 	showMotionTrail(target) {
 		if (!target) {
-			target = Animator.motion_trail_lock && Group.all.find(g => g.uuid == Animator.motion_trail_lock);
-			if (!target) target = Group.selected;
+			target = Animator.motion_trail_lock && OutlinerNode.uuids[Animator.motion_trail_lock];
+			if (!target) target = Group.selected || NullObject.selected[0];
 		}
+		let target_bone = target instanceof Group ? target : target.parent;
 		let animation = Animation.selected;
 		let currentTime = Timeline.time;
 		let step = Timeline.getStep();
@@ -1290,10 +1290,12 @@ const Animator = {
 			bone_stack.push(g);
 			if (g.parent instanceof Group) iterate(g.parent);
 		}
-		iterate(target)
+		iterate(target_bone)
+		
 		let keyframes = {};
-		if (Group.selected) {
-			let ba = Animation.selected.getBoneAnimator();
+		let keyframe_source = Group.selected || (NullObject.selected[0] && NullObject.selected[0].parent)
+		if (keyframe_source instanceof Group) {
+			let ba = Animation.selected.getBoneAnimator(keyframe_source);
 			let channel = target == Group.selected ? ba.position : (ba[Toolbox.selected.animation_channel] || ba.position)
 			channel.forEach(kf => {
 				keyframes[Math.round(kf.time / step)] = kf;
@@ -1309,12 +1311,14 @@ const Animator = {
 				mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
 				animation.getBoneAnimator(group).displayFrame(multiplier);
 			})
-			target.mesh.updateWorldMatrix(true, false)
+			target_bone.mesh.updateWorldMatrix(true, false)
 		}
 
 		for (var time = start_time; time <= max_time; time += step) {
 			displayTime(time);
-			let position = THREE.fastWorldPosition(target.mesh, new THREE.Vector3());
+			let position = target instanceof Group
+						 ? THREE.fastWorldPosition(target.mesh, new THREE.Vector3())
+						 : target.getWorldCenter();
 			geometry.vertices.push(position);
 		}
 		
@@ -1378,7 +1382,7 @@ const Animator = {
 			}
 		})
 
-		if (Group.selected) {
+		if (Group.selected || NullObject.selected[0]) {
 			Transformer.updateSelection()
 		}
 		Blockbench.dispatchEvent('display_animation_frame')
@@ -1644,7 +1648,7 @@ const Animator = {
 	}
 }
 Blockbench.on('update_camera_position', e => {
-	if (Animator.open && settings.motion_trails.value && (Group.selected || Animator.motion_trail_lock)) {
+	if (Animator.open && settings.motion_trails.value && (Group.selected || NullObject.selected[0] || Animator.motion_trail_lock)) {
 		Animator.updateMotionTrailScale();
 	}
 })
@@ -1798,18 +1802,18 @@ BARS.defineActions(function() {
 	new Action('ik_enabled', {
 		icon: 'check_box_outline_blank',
 		category: 'animation',
-		condition: () => Animator.open && Group.selected,
+		condition: () => Animator.open && NullObject.selected[0] && !Group.selected,
 		click() {
-			Group.selected.ik_enabled = !Group.selected.ik_enabled;
+			NullObject.selected[0].ik_enabled = !NullObject.selected[0].ik_enabled;
 			updateNslideValues();
 			Transformer.updateSelection();
 		}
 	})
 	new NumSlider('slider_ik_chain_length', {
 		category: 'animation',
-		condition: () => Animator.open && Group.selected,
+		condition: () => Animator.open && NullObject.selected[0] && !Group.selected,
 		get: function() {
-			return Group.selected.ik_chain_length||0;
+			return NullObject.selected[0].ik_chain_length||0;
 		},
 		settings: {
 			min: 0, max: 64, default: 0,
@@ -1818,7 +1822,7 @@ BARS.defineActions(function() {
 			}
 		},
 		change: function(modify) {
-			Group.selected.ik_chain_length = Math.clamp(modify(Group.selected.ik_chain_length), 0, 64);
+			NullObject.selected[0].ik_chain_length = Math.clamp(modify(NullObject.selected[0].ik_chain_length), 0, 64);
 			updateSelection()
 		},
 		onBefore: function() {
@@ -1833,10 +1837,10 @@ BARS.defineActions(function() {
 	new Toggle('lock_motion_trail', {
 		icon: 'lock_open',
 		category: 'animation',
-		condition: () => Animator.open && Group.selected,
+		condition: () => Animator.open && (Group.selected || NullObject.selected[0]),
 		onChange(value) {
-			if (value && Group.selected) {
-				Animator.motion_trail_lock = Group.selected.uuid;
+			if (value && (Group.selected || NullObject.selected[0])) {
+				Animator.motion_trail_lock = Group.selected ? Group.selected.uuid : NullObject.selected[0].uuid;
 			} else {
 				Animator.motion_trail_lock = false;
 				Animator.showMotionTrail();

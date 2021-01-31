@@ -83,9 +83,9 @@ function updateNslideValues() {
 			BarItems.rescale_toggle.setIcon(Outliner.selected[0].rescale ? 'check_box' : 'check_box_outline_blank')
 		}
 	}
-	if (Modes.animate && Group.selected) {
+	if (Modes.animate && NullObject.selected[0]) {
 		BarItems.slider_ik_chain_length.update();
-		BarItems.ik_enabled.setIcon(Group.selected.ik_enabled ? 'check_box' : 'check_box_outline_blank')
+		BarItems.ik_enabled.setIcon(NullObject.selected[0].ik_enabled ? 'check_box' : 'check_box_outline_blank')
 	}
 	if (Texture.all.length) {
 		BarItems.animated_texture_frame.update();
@@ -122,12 +122,14 @@ function updateSelection(options = {}) {
 		if (Format.bone_rig && Group.selected) {
 			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
 			document.querySelectorAll('.selection_only#element').forEach(node => node.style.setProperty('visibility', 'visible'));
-			document.querySelectorAll('.selection_only#bone').forEach(node => node.style.setProperty('visibility', 'visible'));
 		} else {
 			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
-			if (Locator.selected.length) {
+			if (Outliner.selected.length) {
 				document.querySelectorAll('.selection_only#element').forEach(node => node.style.setProperty('visibility', 'visible'));
 			}
+		}
+		if (Group.selected || NullObject.selected[0]) {
+			document.querySelectorAll('.selection_only#bone').forEach(node => node.style.setProperty('visibility', 'visible'));
 		}
 		if (Format.single_texture && Modes.paint) {
 			document.querySelectorAll('.selection_only#uv').forEach(node => node.style.setProperty('visibility', 'visible'));

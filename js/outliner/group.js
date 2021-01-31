@@ -18,8 +18,6 @@ class Group extends OutlinerNode {
 		this.autouv = 0;
 		this.parent = 'root';
 		this.isOpen = false;
-		this.ik_enabled = false;
-		this.ik_chain_length = 0;
 
 		if (typeof data === 'object') {
 			this.extend(data)
@@ -468,8 +466,6 @@ class Group extends OutlinerNode {
 	}});
 	new Property(Group, 'vector', 'rotation');
 	new Property(Group, 'array', 'cem_animations', {condition: () => Format.id == 'optifine_entity'});
-	new Property(Group, 'boolean', 'ik_enabled', {condition: () => Format.animation_mode});
-	new Property(Group, 'number', 'ik_chain_length', {condition: () => Format.animation_mode});
 
 
 function getCurrentGroup() {

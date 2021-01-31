@@ -551,6 +551,7 @@ const MenuBar = {
 			'add_cube',
 			'add_group',
 			'add_locator',
+			'add_null_object',
 			'rename',
 			'unlock_everything',
 			'duplicate',

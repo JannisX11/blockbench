@@ -413,8 +413,12 @@ function calculateVisibleBox() {
 		if (b.locators) {
 			for (var key in b.locators) {
 				var coords = b.locators[key];
-				coords[0] *= -1
-				new Locator({from: coords, name: key}).addTo(group).init();
+				coords[0] *= -1;
+				if (key.substr(0, 6) == '_null_') {
+					new NullObject({from: coords, name: key.substr(6)}).addTo(group).init();
+				} else {
+					new Locator({from: coords, name: key}).addTo(group).init();
+				}
 			}
 		}
 		if (b.children) {
@@ -588,10 +592,11 @@ function calculateVisibleBox() {
 					let template = compileCube(obj, bone);
 					cubes.push(template);
 
-				} else if (obj instanceof Locator) {
-
-					locators[obj.name] = obj.from.slice();
-					locators[obj.name][0] *= -1;
+				} else if (obj instanceof Locator || obj instanceof NullObject) {
+					let key = obj.name;
+					if (obj instanceof NullObject) key = '_null_' + key;
+					locators[key] = obj.from.slice();
+					locators[key][0] *= -1;
 				}
 			}
 		}

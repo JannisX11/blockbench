@@ -2,6 +2,8 @@
 class NullObject extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid);
+		this.ik_enabled = false;
+		this.ik_chain_length = 0;
 
 		for (var key in NullObject.properties) {
 			NullObject.properties[key].reset(this);
@@ -93,12 +95,14 @@ class NullObject extends OutlinerElement {
 	
 	new Property(NullObject, 'string', 'name', {default: 'null_object'})
 	new Property(NullObject, 'vector', 'from')
+	new Property(NullObject, 'boolean', 'ik_enabled', {condition: () => Format.animation_mode});
+	new Property(NullObject, 'number', 'ik_chain_length', {condition: () => Format.animation_mode});
 
 BARS.defineActions(function() {
 	new Action('add_null_object', {
 		icon: 'far.fa-circle',
 		category: 'edit',
-		condition: () => {return Format.animation_mode},
+		condition: () => Format.animation_mode,
 		click: function () {
 			var objs = []
 			Undo.initEdit({elements: objs, outliner: true});

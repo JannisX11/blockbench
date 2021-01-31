@@ -227,7 +227,7 @@ function setupPanels() {
 		condition: !Blockbench.isMobile && {modes: ['animate']},
 		selection_only: true,
 		toolbars: {
-			bone_ik: Toolbars.bone_ik,
+			inverse_kinematics: Toolbars.inverse_kinematics,
 		},
 		component: {
 			template: `
@@ -235,7 +235,7 @@ function setupPanels() {
 					<p>${ tl('panel.element.origin') }</p>
 					<div class="toolbar_wrapper bone_origin"></div>
 					<p>${ tl('panel.bone.ik') }</p>
-					<div class="toolbar_wrapper bone_ik"></div>
+					<div class="toolbar_wrapper inverse_kinematics"></div>
 				</div>
 			`
 		}
