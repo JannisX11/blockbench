@@ -1138,7 +1138,7 @@ class UVEditor {
 	updateInterface() {
 		for (var key in this.sliders) {
 			var slider = this.sliders[key]
-			$(slider.node).css('display', BARS.condition(slider.condition)?'block':'none')
+			slider.node.style.setProperty('display', BARS.condition(slider.condition)?'block':'none')
 		}
 		this.jquery.size.resizable('option', 'disabled', Project.box_uv)
 	}

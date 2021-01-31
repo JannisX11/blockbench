@@ -165,8 +165,8 @@ class Preview {
 				var tag = scope.annotations[key];
 				if (tag.object.visible) {
 					var pos = tag.object.toScreenPosition(scope.camera, scope.canvas);
-					$(tag.node).css('left', pos.x+'px');
-					$(tag.node).css('top', pos.y+'px');
+					tag.node.style.setProperty('left', pos.x+'px');
+					tag.node.style.setProperty('top', pos.y+'px');
 				}
 			}
 		}
@@ -236,7 +236,7 @@ class Preview {
 		this.loadBackground()
 
 		this.selection = {
-			box: $('<div id="selection_box", class="selection_rectangle"></div>') 
+			box: $('<div id="selection_box" class="selection_rectangle"></div>') 
 		}
 
 		this.raycaster = new THREE.Raycaster()
@@ -868,9 +868,9 @@ class Preview {
 		if (this.background && this.background.image) {
 			if (!this.background.imgtag) this.background.imgtag = new Image();
 			this.background.imgtag.src = this.background.image.replace(/#/g, '%23');
-			$(this.canvas).css('background-image', `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`)
+			this.canvas.style.setProperty('background-image', `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`)
 		} else {
-			$(this.canvas).css('background-image', 'none')
+			this.canvas.style.setProperty('background-image', 'none')
 		}
 		this.updateBackground()
 		return this;
@@ -890,9 +890,9 @@ class Preview {
 		pos_x += (bg.x * zoom) + this.width/2 - ( bg.size * zoom) / 2
 		pos_y += (bg.y * zoom) + this.height/2 -((bg.size / bg.ratio||1) * zoom) / 2
 
-		$(this.canvas).css('background-position-x', pos_x + 'px')
-		$(this.canvas).css('background-position-y', pos_y + 'px')
-		$(this.canvas).css('background-size',  bg.size * zoom +'px')
+		this.canvas.style.setProperty('background-position-x', pos_x + 'px')
+		this.canvas.style.setProperty('background-position-y', pos_y + 'px')
+		this.canvas.style.setProperty('background-size',  bg.size * zoom +'px')
 		return this;
 	}
 	clearBackground() {

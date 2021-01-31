@@ -117,20 +117,20 @@ function updateSelection(options = {}) {
 		}
 	}
 	if (Cube.selected.length) {
-		$('.selection_only').css('visibility', 'visible')
+		document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'visible'));
 	} else {
 		if (Format.bone_rig && Group.selected) {
-			$('.selection_only').css('visibility', 'hidden')
-			$('.selection_only#element').css('visibility', 'visible')
-			$('.selection_only#bone').css('visibility', 'visible')
+			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
+			document.querySelectorAll('.selection_only#element').forEach(node => node.style.setProperty('visibility', 'visible'));
+			document.querySelectorAll('.selection_only#bone').forEach(node => node.style.setProperty('visibility', 'visible'));
 		} else {
-			$('.selection_only').css('visibility', 'hidden')
+			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
 			if (Locator.selected.length) {
-				$('.selection_only#element').css('visibility', 'visible')
+				document.querySelectorAll('.selection_only#element').forEach(node => node.style.setProperty('visibility', 'visible'));
 			}
 		}
 		if (Format.single_texture && Modes.paint) {
-			$('.selection_only#uv').css('visibility', 'visible')
+			document.querySelectorAll('.selection_only#uv').forEach(node => node.style.setProperty('visibility', 'visible'));
 		}
 	}
 	if (Cube.selected.length || (Format.single_texture && Modes.paint)) {

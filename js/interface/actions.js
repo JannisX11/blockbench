@@ -51,20 +51,33 @@ class BarItem {
 		if (!action || this instanceof BarItem) {
 			action = this;
 		}
-		//$(action.node).attr('title', action.description)
-		if (in_bar) {
-			$(action.node).prepend('<label class="f_left toolbar_label">'+action.name+':</label>')
-			$(this.node).addClass('has_label')
-		} else {
-			$(action.node).prepend(
-				`<div class="tooltip">
-					${action.name}
-					<label class="keybinding_label">${action.keybind || ''}</label>
-					<div class="tooltip_description">${this.description || ''}</div>
-				</div>`
-			)
-			.on('mouseenter', function() {
 
+		if (in_bar) {
+			let label = document.createElement('label');
+			label.classList.add('f_left', 'toolbar_label')
+			label.innerText = action.name;
+			this.node.classList.add('has_label')
+			this.node.prepend(label)
+		} else {
+			let tooltip = document.createElement('div');
+			tooltip.className = 'tooltip';
+			tooltip.innerText = action.name;
+			
+			let label = document.createElement('label');
+			label.className = 'keybinding_label';
+			label.innerText = action.keybind || '';
+			tooltip.append(label);
+
+			if (action.description) {
+				let description = document.createElement('div');
+				description.className = 'tooltip_description';
+				description.innerText = action.description;
+				tooltip.append(description);
+			}
+
+			action.node.prepend(tooltip);
+
+			action.node.addEventListener('mouseenter', () => {
 				var tooltip = $(this).find('div.tooltip');
 				if (!tooltip.length) return;
 				var description = tooltip.find('.tooltip_description');
@@ -198,14 +211,28 @@ class Action extends BarItem {
 		if (!this.click) this.click = data.click
 		this.icon_node = Blockbench.getIconNode(this.icon, this.color)
 		this.icon_states = data.icon_states;
-		this.node = $(`<div class="tool ${this.id}"></div>`).get(0)
+		this.node = document.createElement('div');
+		this.node.classList.add('tool', this.id);
+		this.node.append(this.icon_node);
 		this.nodes = [this.node]
 		this.menus = [];
-		this.menu_node = $(`<li title="${this.description||''}"><span>${this.name}</span><label class="keybinding_label">${this.keybind || ''}</label></li>`).get(0)
-		$(this.node).add(this.menu_node).prepend(this.icon_node)
+		
+		this.menu_node = document.createElement('li');
+		this.menu_node.title = this.description || '';
+		this.menu_node.append(this.icon_node.cloneNode(true));
+		let span = document.createElement('span');
+		span.innerText = this.name;
+		this.menu_node.append(span);
+		let label = document.createElement('label');
+		label.classList.add('keybinding_label')
+		label.innerText = this.keybind || '';
+		this.menu_node.append(label);
+
 		this.addLabel(data.label)
 		this.updateKeybindingLabel()
-		$(this.node).click(function(e) {scope.trigger(e)})
+		this.node.onclick = (e) => {
+			scope.trigger(e)
+		}
 	}
 	trigger(event) {
 		var scope = this;
@@ -222,11 +249,11 @@ class Action extends BarItem {
 			scope.uses++;
 
 			$(scope.nodes).each(function() {
-				$(this).css('color', 'var(--color-light)')
+				this.style.setProperty('color', 'var(--color-light)')
 			})
 			setTimeout(function() {
 				$(scope.nodes).each(function() {
-					$(this).css('color', '')
+					this.style.setProperty('color', '')
 				})
 			}, 200)
 			return true;
@@ -304,7 +331,9 @@ class Tool extends Action {
 		this.onCanvasClick = data.onCanvasClick;
 		this.onSelect = data.onSelect;
 		this.onUnselect = data.onUnselect;
-		$(this.node).click(function() {scope.select()})
+		this.node.onclick = () => {
+			scope.select();
+		}
 	}
 	select() {
 		if (this === Toolbox.selected) return;
@@ -1923,7 +1952,7 @@ const BARS = {
 		})
 	},
 	updateConditions() {
-		var open_input = $('input[type="text"]:focus, input[type="number"]:focus, div[contenteditable="true"]:focus')[0]
+		var open_input = document.querySelector('input[type="text"]:focus, input[type="number"]:focus, div[contenteditable="true"]:focus');
 		for (var key in Toolbars) {
 			if (Toolbars.hasOwnProperty(key) &&
 				(!open_input || $(Toolbars[key].node).has(open_input).length === 0)

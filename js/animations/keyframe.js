@@ -727,8 +727,8 @@ BARS.defineActions(function() {
 
 Interface.definePanels(function() {
 
-	let locator_suggestion_list = $('<datalist id="locator_suggestion_list" hidden></datalist>');
-	$(document.body).append(locator_suggestion_list);
+	let locator_suggestion_list = $('<datalist id="locator_suggestion_list" hidden></datalist>').get(0);
+	document.body.append(locator_suggestion_list);
 	
 	Interface.Panels.keyframe = new Panel({
 		id: 'keyframe',
