@@ -54,10 +54,8 @@
 		<script src="lib/fik.min.js"></script>
 		<script src="lib/molang.umd.js"></script>
 		<script src="lib/wintersky.umd.js"></script>
-
-		<script src="js/preview/OrbitControls.js"></script>
-		<script src="js/outliner/tree.vue.js"></script>
 		
+		<script src="js/preview/OrbitControls.js"></script>
 		<script src="js/util.js"></script>
 		<script src="js/property.js"></script>
 		<script src="js/interface/language.js"></script>
@@ -105,8 +103,8 @@
 		<script src="js/animations/timeline.js"></script>
 		<script src="js/plugin_loader.js"></script>
 
-		<script src="js/io/format.js"></script>
 		<script src="js/io/codec.js"></script>
+		<script src="js/io/format.js"></script>
 		<script src="js/io/project.js"></script>
 		<script src="js/io/io.js"></script>
 		<script src="js/io/formats/bbmodel.js"></script>
@@ -236,7 +234,7 @@
 			</li> 
 		</ul>
 
-		<div class="bar">
+		<div class="bar" style="margin: 4px 0;">
 			<div class="search_bar">
 				<input type="text" class="dark_bordered" id="action_search_bar" oninput="BARS.list.updateSearch()">
 				<i class="material-icons" id="plugin_search_bar_icon">search</i>
@@ -428,7 +426,7 @@
 
 				<li v-for="category in structure" v-if="!category.hidden">
 					<h3 v-on:click="toggleCategory(category)">
-						<i class="material-icons">{{ category.open ? 'expand_more' : 'navigate_next' }}</i>
+						<i class="material-icons settings_expand_icon">{{ category.open ? 'expand_more' : 'navigate_next' }}</i>
 						{{ category.name }}
 					</h3>
 					<ul v-if="category.open">
@@ -486,7 +484,7 @@
 			<ul id="keybindlist">
 				<li v-for="category in structure" v-if="!category.hidden">
 					<h3 v-on:click="toggleCategory(category)">
-						<i class="material-icons f_left">{{ category.open ? 'expand_more' : 'navigate_next' }}</i>
+						<i class="material-icons f_left settings_expand_icon">{{ category.open ? 'expand_more' : 'navigate_next' }}</i>
 						{{ category.name }}
 						<i class="material-icons f_right" v-if="category.conflict" style="color: var(--color-close);">fiber_manual_record</i>
 					</h3>
@@ -551,25 +549,31 @@
 			</div>
 			<p><b class="tl">about.version</b> <span id="version_tag"></span></p>
 			<p><b class="tl">about.creator</b> JannisX11</p>
-			<p><b class="tl">about.website</b> <a class="open-in-browser" href="http://blockbench.net">blockbench.net</a></p>
+			<p><b class="tl">about.website</b> <a class="open-in-browser" href="https://blockbench.net">blockbench.net</a></p>
 			<p><b class="tl">about.bugtracker</b> <a class="open-in-browser" href="https://github.com/JannisX11/blockbench/issues">github.com/JannisX11/blockbench</a></p>
 			<p class="local_only tl">about.electron</p>
 			<p class="tl">about.vertex_snap</p>
-			<p><b class="tl">about.icons</b> <a href="https://material.io/icons/" class="open-in-browser">material.io/icons</a> &amp; <a href="http://fontawesome.io/icons/" class="open-in-browser">fontawesome</a></p>
+			<p><b class="tl">about.icons</b> <a href="https://material.io/icons/" class="open-in-browser">material.io/icons</a> &amp; <a href="https://fontawesome.io/icons/" class="open-in-browser">fontawesome</a></p>
 			<p><b class="tl">about.libraries</b>
-				<a class="open-in-browser" href="https://jquery.com">jQuery</a>,
-				<a class="open-in-browser" href="https://jqueryui.com">jQuery UI</a>,
-				<a class="open-in-browser" href="http://touchpunch.furf.com">jQuery UI Touch Punch</a>,
-				<a class="open-in-browser" href="https://vuejs.org">VueJS</a>,
+				<a class="open-in-browser" href="https://vuejs.org">Vue</a>,
 				<a class="open-in-browser" href="https://github.com/weibangtuo/vue-tree">Vue Tree</a>,
 				<a class="open-in-browser" href="https://github.com/sagalbot/vue-sortable">Vue Sortable</a>,
 				<a class="open-in-browser" href="https://threejs.org">ThreeJS</a>,
+				<a class="open-in-browser" href="https://github.com/lo-th/fullik">Full IK</a>,
 				<a class="open-in-browser" href="https://github.com/oliver-moran/jimp">Jimp</a>,
 				<a class="open-in-browser" href="https://bgrins.github.io/spectrum">Spectrum</a>,
 				<a class="open-in-browser" href="https://github.com/jnordberg/gif.js">gif.js</a>,
 				<a class="open-in-browser" href="https://stuk.github.io/jszip/">JSZip</a>,
 				<a class="open-in-browser" href="https://github.com/rotemdan/lzutf8.js">LZ-UTF8</a>,
+				<a class="open-in-browser" href="https://jquery.com">jQuery</a>,
+				<a class="open-in-browser" href="https://jqueryui.com">jQuery UI</a>,
+				<a class="open-in-browser" href="https://github.com/furf/jquery-ui-touch-punch">jQuery UI Touch Punch</a>,
+				<a class="open-in-browser" href="https://peerjs.com">PeerJS</a>,
 				<a class="open-in-browser" href="https://github.com/markedjs/marked">Marked</a>
+				<a class="open-in-browser" href="https://prismjs.com">Prism</a>
+				<a class="open-in-browser" href="https://github.com/koca/vue-prism-editor">Vue Prism Editor</a>
+				<a class="open-in-browser" href="https://github.com/JannisX11/molangjs">MolangJS</a>
+				<a class="open-in-browser" href="https://github.com/JannisX11/wintersky">Wintersky</a>
 			</p>
 		</div>
 
@@ -680,28 +684,30 @@
 	<div id="left_bar" class="sidebar">
 
 		<div id="uv" class="panel selection_only">
-			<div class="bar next_to_title" id="uv_title_bar">
-				<div id="project_resolution_status" onclick="BarItems.project_window.trigger()"></div>
-			</div>
-			<div id="uv_panel_sides" onclick="main_uv.loadSelectedFace()" class="bar tabs_small">
+			<div class="panel_inside">
+				<div class="bar next_to_title" id="uv_title_bar">
+					<div id="project_resolution_status" onclick="BarItems.project_window.trigger()"></div>
+				</div>
+				<div id="uv_panel_sides" onclick="main_uv.loadSelectedFace()" class="bar tabs_small">
 
-				<input type="radio" name="side" id="north_radio" checked>
-				<label class="tl" for="north_radio">face.north</label>
+					<input type="radio" name="side" id="north_radio" checked>
+					<label class="tl" for="north_radio">face.north</label>
 
-				<input type="radio" name="side" id="south_radio">
-				<label class="tl" for="south_radio">face.south</label>
-				
-				<input type="radio" name="side" id="west_radio">
-				<label class="tl" for="west_radio">face.west</label>
+					<input type="radio" name="side" id="south_radio">
+					<label class="tl" for="south_radio">face.south</label>
+					
+					<input type="radio" name="side" id="west_radio">
+					<label class="tl" for="west_radio">face.west</label>
 
-				<input type="radio" name="side" id="east_radio">
-				<label class="tl" for="east_radio">face.east</label>
+					<input type="radio" name="side" id="east_radio">
+					<label class="tl" for="east_radio">face.east</label>
 
-				<input type="radio" name="side" id="up_radio">
-				<label class="tl" for="up_radio">face.up</label>
+					<input type="radio" name="side" id="up_radio">
+					<label class="tl" for="up_radio">face.up</label>
 
-				<input type="radio" name="side" id="down_radio">
-				<label class="tl" for="down_radio">face.down</label>
+					<input type="radio" name="side" id="down_radio">
+					<label class="tl" for="down_radio">face.down</label>
+				</div>
 			</div>
 		</div>
 
@@ -709,18 +715,20 @@
 	<div id="right_bar" class="sidebar">
 
 		<div id="element" class="panel selection_only">
-			<p class="tl">panel.element.position</p>
-			<div class="toolbar_wrapper element_position"></div>
-			<p class="tl">panel.element.size</p>
-			<div class="toolbar_wrapper element_size"></div>
-			<p class="tl">panel.element.origin</p>
-			<div class="toolbar_wrapper element_origin"></div>
-			<p class="tl">panel.element.rotation</p>
-			<div class="toolbar_wrapper element_rotation"></div>
+			<div class="panel_inside">
+				<p class="tl">panel.element.position</p>
+				<div class="toolbar_wrapper element_position"></div>
+				<p class="tl">panel.element.size</p>
+				<div class="toolbar_wrapper element_size"></div>
+				<p class="tl">panel.element.origin</p>
+				<div class="toolbar_wrapper element_origin"></div>
+				<p class="tl">panel.element.rotation</p>
+				<div class="toolbar_wrapper element_rotation"></div>
+			</div>
 		</div>
 
 		<div id="color" class="panel">
-			<div id="color_panel_wrapper">
+			<div id="color_panel_wrapper" class="panel_inside">
 				<div id="color_panel_head">
 					<div class="main" v-bind:style="{'background-color': hover_color || main_color}"></div>
 					<div class="side">
@@ -736,7 +744,7 @@
 					</div>
 				</div>
 
-				<div id="uv_panel_sides" onclick="main_uv.loadSelectedFace()" class="bar tabs_small">
+				<div id="uv_panel_sides" class="bar tabs_small">
 
 					<input type="radio" name="tab" id="radio_color_picker" value="picker" v-model="open_tab">
 					<label class="tl" for="radio_color_picker">panel.color.picker</label>
@@ -776,148 +784,12 @@
 		</div>
 		<div id="timeline" class="center_window">
 			<div class="toolbar_wrapper timeline"></div>
-			<div id="timeline_vue">
-				<div id="timeline_header">
-					<div id="timeline_corner" v-bind:style="{width: head_width+'px'}"></div>
-					<div id="timeline_time_wrapper">
-						<div id="timeline_time" v-bind:style="{width: (size*length)+'px', left: -scroll_left+'px'}">
-							<div v-for="t in timecodes" class="timeline_timecode" v-bind:style="{left: (t.time * size) + 'px', width: (t.width * size) + 'px'}">
-								<span>{{ t.text }}</span>
-								<div class="substeps">
-									<div v-for="n in Math.ceil(t.substeps)"></div>
-								</div>
-							</div>
-							<div id="timeline_playhead"
-								v-bind:style="{left: (playhead * size) + 'px'}"
-							></div>
-							<div id="timeline_endbracket"
-								v-bind:style="{left: (animation_length * size) + 'px'}"
-							></div>
-							<div
-								v-for="marker in markers"
-								class="timeline_marker"
-								v-bind:style="{left: (marker.time * size) + 'px', 'border-color': markerColors[marker.color].standard}"
-								@contextmenu.prevent="marker.showContextMenu($event)"
-								v-on:click="marker.callPlayhead()"
-							></div>
-						</div>
-					</div>
-				</div>
-				<div id="timeline_body">
-					<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="Timeline.showMenu($event)">
-						<li v-for="animator in animators" class="animator" :class="{selected: animator.selected}" :uuid="animator.uuid" v-on:click="animator.select();">
-							<div class="animator_head_bar">
-								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}"  v-on:dblclick.stop="toggleAnimator(animator)">
-									<div class="text_button" v-on:click.stop="toggleAnimator(animator)">
-										<i class="icon-open-state fa" v-bind:class="{'fa-angle-right': !animator.expanded, 'fa-angle-down': animator.expanded}"></i>
-									</div>
-									<span v-on:click.stop="animator.select();">{{animator.name}}</span>
-									<div class="text_button" v-on:click.stop="removeAnimator(animator)">
-										<i class="material-icons">remove</i>
-									</div>
-								</div>
-								<div class="keyframe_section">
-									<template v-for="channel in animator.channels" v-if="!(animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length))">
-										<keyframe
-											v-for="keyframe in animator[channel]"
-											v-bind:style="{left: (8 + keyframe.time * size) + 'px'}"
-											class="keyframe"
-											v-bind:id="'_'+keyframe.uuid"
-										>
-											<i class="material-icons">lens</i>
-										</keyframe>
-									</template>
-								</div>
-							</div>
-							<div class="animator_channel_bar"
-								v-bind:style="{width: (size*length + head_width)+'px'}"
-								v-for="channel in animator.channels"
-								v-if="animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length)"
-							>
-								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
-									<div class="text_button" v-on:click.stop="animator.toggleMuted(channel)">
-										<template v-if="channel === 'sound'">
-											<i class="channel_mute fas fa-volume-mute" v-if="animator.muted[channel]"></i>
-											<i class="channel_mute fas fa-volume-up" v-else></i>
-										</template>
-										<template v-else-if="channel !== 'timeline'">
-											<i class="channel_mute fas fa-eye-slash" v-if="animator.muted[channel]"></i>
-											<i class="channel_mute fas fa-eye" v-else></i>
-										</template>
-									</div>
-									<span>{{ tl('timeline.'+channel) }}</span>
-									<div class="text_button" v-on:click.stop="animator.createKeyframe(null, Timeline.time, channel, true)">
-										<i class="material-icons">add</i>
-									</div>
-								</div>
-								<div class="keyframe_section">
-									<keyframe
-										v-for="keyframe in animator[channel]"
-										v-bind:style="{left: (8 + keyframe.time * size) + 'px', color: getColor(keyframe.color)}"
-										class="keyframe"
-										v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
-										v-bind:id="keyframe.uuid"
-										v-on:click.stop="keyframe.select($event)"
-										v-on:dblclick="keyframe.callPlayhead()"
-										:title="tl('timeline.'+keyframe.channel)"
-										@contextmenu.prevent="keyframe.showContextMenu($event)"
-									>
-										<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
-										<i class="material-icons" v-else>stop</i>
-										<svg class="keyframe_waveform" v-if="keyframe.channel == 'sound' && keyframe.data_points[0].file && waveforms[keyframe.data_points[0].file]" :style="{width: waveforms[keyframe.data_points[0].file].duration * size}">
-											<polygon :points="getWaveformPoints(waveforms[keyframe.data_points[0].file].samples, size)"></polygon>
-										</svg>
-									</keyframe>
-								</div>
-							</div>
-						</li>
-						<div id="timeline_empty_head" class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
-						</div>
-						<div id="timeline_selector" class="selection_rectangle"></div>
-					</div>
-				</div>
-			</div>
+			<div id="timeline_vue"></div>
 		</div>
 
 		<div id="mobile_panel_overlay" hidden></div>
 	</div>
-	<div id="status_bar" @contextmenu="Interface.status_bar.menu.show(event)">
-
-		<div class="sidebar_toggle_button" onclick="Interface.toggleSidebar('left')"></div>
-		
-		<div class="f_left" v-if="settings.streamer_mode.value"
-			style="background-color: var(--color-stream); color: var(--color-light);"
-			@click="Settings.open({search: 'streamer_mode'})"
-			v-bind:title="tl('interface.streamer_mode_on')"
-		>
-			<i class="material-icons">live_tv</i>
-		</div>
-		<div id="status_saved">
-			<i class="material-icons" v-if="Prop.project_saved" v-bind:title="tl('status_bar.saved')">check</i>
-			<i class="material-icons" v-else v-bind:title="tl('status_bar.unsaved')">close</i>
-		</div>
-		<div v-html="Blockbench.getIconNode(Format.icon).outerHTML" v-bind:title="Format.name"></div>
-		<div v-if="Prop.recording" v-html="Blockbench.getIconNode('fiber_manual_record').outerHTML" style="color: var(--color-close)" v-bind:title="tl('status_bar.recording')"></div>
-
-
-		<div id="status_name">
-			{{ Prop.file_name }}
-		</div>
-		<div id="status_message" class="hidden"></div>
-		<div class="f_right">
-			{{ Prop.zoom }}%
-		</div>
-		<div class="f_right">
-			{{ Prop.fps }} FPS
-		</div>
-		<div class="f_right" v-if="Prop.session">
-			{{ Prop.connections }} Clients
-		</div>
-
-		<div class="sidebar_toggle_button" onclick="Interface.toggleSidebar('right')"></div>
-
-		<div id="status_progress" v-if="Prop.progress" v-bind:style="{width: Prop.progress*100+'%'}"></div>
-	</div>
+	<div id="status_bar"></div>
 
 	<div id="panel_selector_bar" hidden>
 		<div class="panel_selector" :class="{selected: selected == null}" @click="select(null)">

@@ -55,28 +55,46 @@
 	}
 
 	h3.panel_handle {
+		display: flex;
 		width: 100%;
 		height: auto;
-		padding: 6px 12px;
-		background: var(--color-ui);
-		color: var(--color-subtle_text);
 		margin: 0;
-		text-transform: uppercase;
-		font-size: 1.1em;
-	}
-	.panel p {
-		margin-left: 12px;
+		padding: 0;
+		font-size: inherit;
+		background: var(--color-ui);
+		place-content: space-between;
 	}
 	body > h3.panel_handle {
 		pointer-events: none;
 		box-shadow: 0 0 16px black;
 		width: auto;
 	}
+	h3.panel_handle > label {
+		flex: 0 1 auto;
+		font-size: 1.1em;
+		text-transform: uppercase;
+		color: var(--color-subtle_text);
+		margin: 6px 8px;
+		padding: 0px 4px;
+		cursor: move;
+	}
+	h3.panel_handle > .tool.panel_folding_button {
+		flex: 0 0 auto;
+		margin-top: 4px;
+		opacity: 0.7;
+		cursor: pointer;
+	}
+	h3.panel_handle > .tool.panel_folding_button:hover {
+		opacity: 1;
+	}
+
+	.panel p {
+		margin-left: 12px;
+	}
 
 	#center {
 		grid-area: center;
 		background-color: var(--color-dark);
-		overflow: hidden;
 		min-width: 100px;
 		display: flex;
 		flex-direction: column;
@@ -331,11 +349,12 @@
 
 	div#mobile_panel_overlay {
 		position: absolute;
-		z-index: 19;
+		z-index: 12;
 		top: 0;
 		left: 0;
 		right: 40px;
 		bottom: 0;
+		overflow-x: hidden;
 		overflow-y: auto;
 		background: var(--color-ui);
 	}
@@ -353,7 +372,7 @@
 		padding: 0 8px;
 		padding-top: 2px;
 		display: inline-block;
-		height: 29px;
+		height: 28px;
 		font-weight: normal;
 	}
 	li.menu_bar_point.opened {
@@ -501,7 +520,7 @@
 		margin-top: 40px;
 		max-width: 1000px;
 		height: auto;
-		max-height: calc(100% - 80px);
+		max-height: calc(100% - 50px);
 		margin-left: auto;
 		margin-right: auto;
 		background-color: var(--color-ui);
@@ -547,7 +566,7 @@
 	}
 	@media (max-device-width: 640px) {
 		#start_screen {
-			width: calc(100% - 40px);
+			width: 100%;
 		}
 		#start_screen > content {
 			margin-top: 0px;
@@ -614,19 +633,22 @@
 /*Status Bar*/
 	#status_bar {
 		position: relative;
-		display: block;
+		display: flex;
 		background: var(--color-back);
 	}
 	#status_bar > div {
-		float: left;
 		padding-left:  6px;
 		padding-right: 6px;
-	}
-	#status_bar > div#status_fps {
-		float: right;
+		padding-top: 1px;
+		flex-shrink: 0;
 	}
 	#status_bar > div#status_saved {
 		padding-top: 2px;
+	}
+	#status_bar > div#status_name {
+		width: 0;
+		flex-grow: 1;
+		overflow: hidden;
 	}
 	#status_bar #status_progress {
 		position: absolute;
@@ -634,4 +656,16 @@
 		background: var(--color-accent);
 		bottom: 0;
 		left: 0;
+	}
+	#status_bar .sidebar_toggle_button {
+		cursor: pointer;
+		padding: 2px;
+		padding-right: 0;
+		padding-left: 0;
+	}
+	.sidebar_toggle_button > i {
+		cursor: inherit;
+	}
+	.sidebar_toggle_button:hover {
+		color: var(--color-light);
 	}

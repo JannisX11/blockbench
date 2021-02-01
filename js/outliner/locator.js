@@ -1,5 +1,5 @@
 
-class Locator extends NonGroup {
+class Locator extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid);
 
@@ -43,7 +43,6 @@ class Locator extends NonGroup {
 			this.addTo(Group.selected)
 		}
 		super.init();
-		TickUpdates.outliner = true;
 		return this;
 	}
 	flip(axis, center) {

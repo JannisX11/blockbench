@@ -68,6 +68,8 @@ const codec = new Codec('skin_model', {
 		Project.texture_width = data.texturewidth || 64;
 		Project.texture_height = data.textureheight || 64;
 
+		Formats.skin.rotate_cubes = data.rotate_cubes == true;
+
 		var bones = {}
 		var template_cubes = {};
 
@@ -355,6 +357,34 @@ BARS.defineActions(function() {
 			Undo.finishEdit('toggle skin layer');
 			Canvas.updateVisibility()
 		}
+	})
+	
+	let explode_skin_model = new Toggle('explode_skin_model', {
+		icon: () => 'open_in_full',
+		category: 'edit',
+		condition: {formats: ['skin']},
+		value: false,
+		onChange(exploded_view) {
+			Undo.initEdit({elements: Cube.all});
+			Cube.all.forEach(cube => {
+				let center = [
+					cube.from[0] + (cube.to[0] - cube.from[0]) / 2,
+					cube.from[1],
+					cube.from[2] + (cube.to[2] - cube.from[2]) / 2,
+				]
+				let offset = cube.name.toLowerCase().includes('leg') ? 1 : 0.5;
+				center.V3_multiply(exploded_view ? offset : -offset/(1+offset));
+				cube.from.V3_add(center);
+				cube.to.V3_add(center);
+			})
+			Undo.finishEdit('explode_skin_model');
+			Canvas.updateAllPositions();
+			this.setIcon(this.icon);
+		}
+	})
+	Blockbench.on('reset_project', () => {
+		explode_skin_model.value = false;
+		explode_skin_model.updateEnabledState();
 	})
 })
 
@@ -1250,10 +1280,6 @@ skin_presets.cod = `{
 	"name": "cod",
 	"texturewidth": 32,
 	"textureheight": 32,
-	"eyes": [
-		[7, 9],
-		[11, 9]
-	],
 	"bones": [
 		{
 			"name": "body",
@@ -2343,6 +2369,7 @@ skin_presets.ghast = `{
 }`;
 skin_presets.goat = `{
 	"name": "goat",
+	"rotate_cubes": true,
 	"texturewidth": 64,
 	"textureheight": 64,
 	"bones": [
@@ -5323,7 +5350,7 @@ skin_presets.zombie = `{
 			"name": "head",
 			"parent": "body",
 			"pivot": [0, 24, 0],
-			"rotation": [3, -10, 0],
+			"pose": [3, -10, 0],
 			"cubes": [
 				{"name": "head", "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [0, 0]},
 				{"name": "hat", "visibility": false, "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [32, 0], "inflate": 0.5}
@@ -5333,7 +5360,7 @@ skin_presets.zombie = `{
 			"name": "rightArm",
 			"parent": "body",
 			"pivot": [-5, 22, 0],
-			"rotation": [-80, -5, 0],
+			"pose": [-80, -5, 0],
 			"cubes": [
 				{"name": "rightArm", "origin": [-8, 12, -2], "size": [4, 12, 4], "uv": [40, 16]}
 			]
@@ -5347,7 +5374,7 @@ skin_presets.zombie = `{
 			"name": "leftArm",
 			"parent": "body",
 			"pivot": [5, 22, 0],
-			"rotation": [-75, 5, 0],
+			"pose": [-75, 5, 0],
 			"mirror": true,
 			"cubes": [
 				{"name": "leftArm", "origin": [4, 12, -2], "size": [4, 12, 4], "uv": [40, 16]}
@@ -5357,7 +5384,7 @@ skin_presets.zombie = `{
 			"name": "rightLeg",
 			"parent": "body",
 			"pivot": [-1.9, 12, 0],
-			"rotation": [-25, 0, 5],
+			"pose": [-25, 0, 5],
 			"cubes": [
 				{"name": "rightLeg", "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 16]}
 			]
@@ -5366,7 +5393,7 @@ skin_presets.zombie = `{
 			"name": "leftLeg",
 			"parent": "body",
 			"pivot": [1.9, 12, 0],
-			"rotation": [20, 0, 0],
+			"pose": [20, 0, 0],
 			"mirror": true,
 			"cubes": [
 				{"name": "leftLeg", "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [0, 16]}

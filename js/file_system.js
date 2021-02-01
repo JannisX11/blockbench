@@ -58,6 +58,44 @@ Object.assign(Blockbench, {
 			}).click()
 		}
 	},
+	pickDirectory(options) {
+		if (typeof options !== 'object') {options = {}}
+		/**
+		 	resource_id
+			startpath
+			title
+		 */
+
+		if (isApp) {
+
+			if (!options.startpath && options.resource_id) {
+				options.startpath = StateMemory.dialog_paths[options.resource_id]
+			}
+
+			let dirNames = electron.dialog.showOpenDialogSync(currentwindow, {
+				title: options.title ? options.title : '',
+				dontAddToRecent: true,
+				properties: ['openDirectory'],
+				defaultPath: settings.streamer_mode.value
+					? app.getPath('desktop')
+					: options.startpath
+			})
+
+			if (!dirNames) return null;
+
+			if (options.resource_id) {
+				StateMemory.dialog_paths[options.resource_id] = PathModule.dirname(dirNames[0]);
+				StateMemory.save('dialog_paths');
+			}
+
+			return dirNames[0];
+
+		} else {
+
+			console.warn('Picking directories is currently not supported in the web app');
+
+		}
+	},
 	read(files, options, cb) {
 		if (files == undefined) return false;
 		if (typeof files == 'string') files = [files];

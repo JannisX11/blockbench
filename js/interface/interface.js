@@ -76,10 +76,17 @@ const Interface = {
 		left_bar: ['uv', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
 		right_bar: ['element', 'bone', 'color', 'outliner', 'chat']
 	},
+	get left_bar_width() {
+		return Prop.show_left_bar ? Interface.data.left_bar_width : 0;
+	},
+	get right_bar_width() {
+		return Prop.show_right_bar ? Interface.data.right_bar_width : 0;
+	},
 	Resizers: {
 		left: new ResizeLine({
 			id: 'left',
 			condition: function() {
+				if (!Prop.show_left_bar) return false;
 				for (let p of Interface.data.left_bar) {
 					if (Interface.Panels[p] && BARS.condition(Interface.Panels[p].condition)) {
 						return true;
@@ -88,7 +95,7 @@ const Interface = {
 			},
 			get: function() {return Interface.data.left_bar_width},
 			set: function(o, diff) {
-				let calculated = limitNumber(o + diff, 128, $(window).width()- 120 - Interface.data.right_bar_width)
+				let calculated = limitNumber(o + diff, 128, window.innerWidth- 120 - Interface.data.right_bar_width)
 				Interface.data.left_bar_width = Math.snapToValues(calculated, [Interface.default_data.left_bar_width], 16);
 			},
 			position: function(line) {
@@ -102,6 +109,7 @@ const Interface = {
 		right: new ResizeLine({
 			id: 'right',
 			condition: function() {
+				if (!Prop.show_right_bar) return false;
 				for (let p of Interface.data.right_bar) {
 					if (Interface.Panels[p] && BARS.condition(Interface.Panels[p].condition)) {
 						return true;
@@ -110,7 +118,7 @@ const Interface = {
 			},
 			get: function() {return Interface.data.right_bar_width},
 			set: function(o, diff) {
-				let calculated = limitNumber(o - diff, 128, $(window).width()- 120 - Interface.data.left_bar_width);
+				let calculated = limitNumber(o - diff, 128, window.innerWidth- 120 - Interface.data.left_bar_width);
 				Interface.data.right_bar_width = Math.snapToValues(calculated, [Interface.default_data.right_bar_width], 12);
 			},
 			position: function(line) {
@@ -131,7 +139,7 @@ const Interface = {
 				line.setPosition({
 					top: 32,
 					bottom: p ? window.innerHeight - (p.clientHeight + p.offsetTop) : 0,
-					left: Interface.data.left_bar_width + $('#preview').width()*Interface.data.quad_view_x/100
+					left: Interface.left_bar_width + $('#preview').width()*Interface.data.quad_view_x/100
 				}
 			)}
 		}),
@@ -144,8 +152,8 @@ const Interface = {
 				Interface.data.quad_view_y = limitNumber(o + diff/$('#preview').height()*100, 5, 95)
 			},
 			position: function(line) {line.setPosition({
-				left: Interface.data.left_bar_width+2,
-				right: Interface.data.right_bar_width+2,
+				left: Interface.left_bar_width+2,
+				right: Interface.right_bar_width+2,
 				top: $('#preview').offset().top + $('#preview').height()*Interface.data.quad_view_y/100
 			})}
 		}),
@@ -158,14 +166,19 @@ const Interface = {
 				Interface.data.timeline_height = limitNumber(o - diff, 150, document.body.clientHeight-120)
 			},
 			position: function(line) {line.setPosition({
-				left: Interface.data.left_bar_width+2,
-				right: Interface.data.right_bar_width+2,
+				left: Interface.left_bar_width+2,
+				right: Interface.right_bar_width+2,
 				top: $('#timeline').offset().top
 			})}
 		})
 	},
 	status_bar: {},
-	Panels: {}
+	Panels: {},
+	toggleSidebar(side) {
+		let status = !Prop[`show_${side}_bar`];
+		Prop[`show_${side}_bar`] = status;
+		resizeWindow();
+	}
 }
 Interface.panel_definers = []
 Interface.definePanels = function(callback) {
@@ -233,7 +246,7 @@ function setupInterface() {
 			tooltip.css('right', 'auto')
 		}
 
-		if ((tooltip.offset().left + tooltip.width()) - $(window).width() > 4) {
+		if ((tooltip.offset().left + tooltip.width()) - window.innerWidth > 4) {
 			tooltip.css('right', '-4px')
 		} else if ($(this).parent().css('position') == 'relative') {
 			tooltip.css('right', '0')
@@ -244,14 +257,9 @@ function setupInterface() {
 
 
 	//Clickbinds
-	$('header'	  ).click( 	function() { setActivePanel('header'  )})
-	$('#preview'	).click(function() { setActivePanel('preview' )})
+	$('header'	).click(function() { setActivePanel('header'  )})
+	$('#preview').click(function() { setActivePanel('preview' )})
 
-	$('ul#cubes_list').click(function(event) {
-		if (event.target === document.getElementById('cubes_list')) {
-			unselectAll()
-		}
-	})
 	$('#texture_list').click(function(){
 		unselectTextures()
 	})
@@ -304,7 +312,14 @@ function updateInterface() {
 	localStorage.setItem('interface_data', JSON.stringify(Interface.data))
 }
 function updateInterfacePanels() {
-	$('#page_wrapper').css(
+
+	if (!Blockbench.isMobile) {
+		$('.sidebar#left_bar').css('display', Prop.show_left_bar ? 'flex' : 'none');
+		$('.sidebar#right_bar').css('display', Prop.show_right_bar ? 'flex' : 'none');
+	}
+	let page = document.getElementById('page_wrapper');
+
+	page.style.setProperty(
 		'grid-template-columns',
 		Interface.data.left_bar_width+'px auto '+ Interface.data.right_bar_width +'px'
 	)
@@ -312,10 +327,11 @@ function updateInterfacePanels() {
 		var panel = Interface.Panels[key]
 		panel.update()
 	}
-	var left_width = $('.sidebar#left_bar > .panel:visible').length ? Interface.data.left_bar_width : 0
-	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.data.right_bar_width : 0
+	var left_width = $('.sidebar#left_bar > .panel:visible').length ? Interface.left_bar_width : 0;
+	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.right_bar_width : 0;
+
 	if (!left_width || !right_width) {
-		$('#page_wrapper').css(
+		page.style.setProperty(
 			'grid-template-columns',
 			left_width+'px auto '+ right_width +'px'
 		)
@@ -357,7 +373,6 @@ function resizeWindow(event) {
 			dialog.css('top', limitNumber(window.innerHeight-dialog.outerHeight(), 0, 4e3) + 'px')
 		}
 	}
-	BARS.updateToolToolbar();
 	Blockbench.dispatchEvent('resize_window', event);
 }
 $(window).on('resize orientationchange', resizeWindow)
@@ -392,7 +407,8 @@ function setZoomLevel(mode) {
 		zoom = limitNumber(zoom, 1, 4)
 		main_uv.setZoom(zoom)
 
-	} else if (isApp) {
+	}
+	/* else if (isApp) {
 		switch (mode) {
 			case 'in':	Prop.zoom += 5;  break;
 			case 'out':   Prop.zoom -= 5;  break;
@@ -401,7 +417,7 @@ function setZoomLevel(mode) {
 		var level = (Prop.zoom - 100) / 12
 		currentwindow.webContents.setZoomLevel(level)
 		resizeWindow()
-	}
+	}*/
 }
 
 //Dialogs
@@ -422,11 +438,11 @@ function showDialog(dialog) {
 			handle: ".dialog_handle",
 			containment: '#page_wrapper'
 		})
-		var x = ($(window).width()-obj.outerWidth()) / 2;
-		var top = ($(window).height() - obj.outerHeight()) / 2;
+		var x = (window.innerWidth-obj.outerWidth()) / 2;
+		var top = (window.innerHeight - obj.outerHeight()) / 2;
 		obj.css('left', x+'px')
 		obj.css('top', 'px')
-		obj.css('max-height', ($(window).height()-128)+'px')
+		obj.css('max-height', (window.innerHeight-128)+'px')
 	}
 }
 function hideDialog() {
@@ -443,18 +459,18 @@ function setSettingsTab(tab) {
 	$('#settings .tab_content#'+tab).removeClass('hidden')
 	if (tab === 'keybindings') {
 		//Keybinds
-		$('#keybindlist').css('max-height', ($(window).height() - 420) +'px')
+		$('#keybindlist').css('max-height', (window.innerHeight - 420) +'px')
 		$('#keybind_search_bar').focus()
 
 	} else if (tab === 'setting') {
 		//Settings
-		$('#settingslist').css('max-height', ($(window).height() - 420) +'px')
+		$('#settingslist').css('max-height', (window.innerHeight - 420) +'px')
 		$('#settings_search_bar').focus()
 
 	} else if (tab === 'layout_settings') {
 		//Layout
 
-		$('#theme_editor').css('max-height', ($(window).height() - 420) +'px')
+		$('#theme_editor').css('max-height', (window.innerHeight - 420) +'px')
 	} else if (tab == 'credits') {
 		// About
 
@@ -677,10 +693,53 @@ function addStartScreenSection(id, data) {
 })()
 
 onVueSetup(function() {
-	new Vue({
+	Interface.status_bar.vue = new Vue({
 		el: '#status_bar',
 		data: {
-			Prop
-		}
+			Prop,
+			isMobile: Blockbench.isMobile
+		},
+		methods: {
+			toggleSidebar: Interface.toggleSidebar
+		},
+		template: `
+			<div id="status_bar" @contextmenu="Interface.status_bar.menu.show(event)">
+				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('left')" :title="tl('status_bar.toggle_sidebar')">
+					<i class="material-icons">{{Prop.show_left_bar ? 'chevron_left' : 'chevron_right'}}</i>
+				</div>
+				
+				<div class="f_left" v-if="settings.streamer_mode.value"
+					style="background-color: var(--color-stream); color: var(--color-light);"
+					@click="Settings.open({search: 'streamer_mode'})"
+					v-bind:title="tl('interface.streamer_mode_on')"
+				>
+					<i class="material-icons">live_tv</i>
+				</div>
+				<div id="status_saved">
+					<i class="material-icons" v-if="Prop.project_saved" v-bind:title="tl('status_bar.saved')">check</i>
+					<i class="material-icons" v-else v-bind:title="tl('status_bar.unsaved')">close</i>
+				</div>
+				<div v-html="Blockbench.getIconNode(Format.icon).outerHTML" v-bind:title="Format.name"></div>
+				<div v-if="Prop.recording" v-html="Blockbench.getIconNode('fiber_manual_record').outerHTML" style="color: var(--color-close)" v-bind:title="tl('status_bar.recording')"></div>
+
+
+				<div id="status_name">
+					{{ Prop.file_name }}
+				</div>
+				<div id="status_message" class="hidden"></div>
+				<div class="f_right">
+					{{ Prop.fps }} FPS
+				</div>
+				<div class="f_right" v-if="Prop.session">
+					{{ Prop.connections }} Clients
+				</div>
+
+				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('right')" :title="tl('status_bar.toggle_sidebar')">
+					<i class="material-icons">{{Prop.show_right_bar ? 'chevron_right' : 'chevron_left'}}</i>
+				</div>
+
+				<div id="status_progress" v-if="Prop.progress" v-bind:style="{width: Prop.progress*100+'%'}"></div>
+			</div>
+		`
 	})
 })

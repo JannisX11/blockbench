@@ -54,6 +54,13 @@
 		* {
 			scrollbar-width: none;
 		}
+		.mobile_scrollbar {
+			scrollbar-width: thin;
+		}
+		.mobile_scrollbar::-webkit-scrollbar {
+			width: 12px;
+			height: 12px;
+		}
 	}
 	/*Assistant Font*/
 	@font-face {
@@ -315,7 +322,7 @@
 
 		--color-close: #d62e3f;
 		--color-stream: #6442A4;
-		--color-axis-x: #d50a0a;
+		--color-axis-x: #ff1242;
 		--color-axis-y: #23d400;
 		--color-axis-z: #0894ed;
 
@@ -357,7 +364,7 @@
 		color: inherit;
 	}
 	i {
-		cursor: default;
+		cursor: inherit;
 	}
 
 	b {

@@ -343,7 +343,7 @@
 		margin-top: 4px;
 	}
 
-	.tool.sel {
+	.tool.enabled {
 		border-bottom: 3px solid var(--color-accent);
 	}
 

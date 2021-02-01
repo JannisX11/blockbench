@@ -280,8 +280,10 @@ var codec = new Codec('java_block', {
 		if (model.textures) {
 			//Create Path Array to fetch textures
 			var path_arr = path.split(osfs)
-			var index = path_arr.length - path_arr.indexOf('models')
-			path_arr.splice(-index)
+			if (!path_arr.includes('cit')) {
+				var index = path_arr.length - path_arr.indexOf('models')
+				path_arr.splice(-index)
+			}
 
 			var texture_arr = model.textures
 

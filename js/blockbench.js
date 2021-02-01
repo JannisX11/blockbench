@@ -22,11 +22,12 @@ var Prop = {
 	recording		: null,
 	project_saved 	: true,
 	fps				: 0,
-	zoom			: 100,
 	progress		: 0,
 	session 		: false,
 	connections 	: 0,
-	facing		 	: 'north'
+	facing		 	: 'north',
+	show_right_bar  : true,
+	show_left_bar   : true,
 }
 
 const mouse_pos = {x:0,y:0}
@@ -42,17 +43,13 @@ function onVueSetup(func) {
 }
 function canvasGridSize(shift, ctrl) {
 	if (!shift && !ctrl) {
-		return 16 / limitNumber(settings.edit_size.value, 1, 512)
+		return 16 / Math.clamp(settings.edit_size.value, 1, 512)
 	} else if (ctrl && shift) {
-		var basic = 16 / limitNumber(settings.edit_size.value, 1, 512)
-		var control = 16 / limitNumber(settings.ctrl_size.value, 1, 4096)
-		var shift = 16 / limitNumber(settings.shift_size.value, 1, 4096)
-		control = basic / control
-		return shift / control
+		return 16 / Math.clamp(settings.ctrl_shift_size.value, 1, 4096)
 	} else if (ctrl) {
-		return 16 / limitNumber(settings.ctrl_size.value, 1, 4096)
+		return 16 / Math.clamp(settings.ctrl_size.value, 1, 4096)
 	} else {
-		return 16 / limitNumber(settings.shift_size.value, 1, 4096)
+		return 16 / Math.clamp(settings.shift_size.value, 1, 4096)
 	}
 }
 function updateNslideValues() {
@@ -86,60 +83,13 @@ function updateNslideValues() {
 			BarItems.rescale_toggle.setIcon(Outliner.selected[0].rescale ? 'check_box' : 'check_box_outline_blank')
 		}
 	}
-	if (Modes.animate && Group.selected) {
+	if (Modes.animate && NullObject.selected[0]) {
 		BarItems.slider_ik_chain_length.update();
-		BarItems.ik_enabled.setIcon(Group.selected.ik_enabled ? 'check_box' : 'check_box_outline_blank')
+		BarItems.ik_enabled.setIcon(NullObject.selected[0].ik_enabled ? 'check_box' : 'check_box_outline_blank')
 	}
 	if (Texture.all.length) {
 		BarItems.animated_texture_frame.update();
 	}
-}
-function setProjectResolution(width, height, modify_uv) {
-	if (Project.texture_width / width != Project.texture_width / height) {
-		modify_uv = false;
-	}
-
-	Undo.initEdit({uv_mode: true, elements: Cube.all, uv_only: true})
-
-	let old_res = {
-		x: Project.texture_width,
-		y: Project.texture_height
-	}
-	Project.texture_width = width;
-	Project.texture_height = height;
-
-
-	if (modify_uv) {
-		var multiplier = [
-			Project.texture_width/old_res.x,
-			Project.texture_height/old_res.y
-		]
-		function shiftCube(cube, axis) {
-			if (Project.box_uv) {
-				cube.uv_offset[axis] *= multiplier[axis];
-			} else {
-				for (var face in cube.faces) {
-					var uv = cube.faces[face];
-					uv[axis] *= multiplier[axis];
-					uv[axis+2] *= multiplier[axis];
-				}
-			}
-		}
-		if (old_res.x != Project.texture_width && Math.areMultiples(old_res.x, Project.texture_width)) {
-			Cube.all.forEach(cube => shiftCube(cube, 0));
-		}
-		if (old_res.y != Project.texture_height &&  Math.areMultiples(old_res.x, Project.texture_width)) {
-			Cube.all.forEach(cube => shiftCube(cube, 1));
-		}
-	}
-	Undo.finishEdit('Changed project resolution')
-	Canvas.updateAllUVs()
-	if (selected.length) {
-		main_uv.loadData()
-	}
-}
-function updateProjectResolution() {
-	$('#project_resolution_status').text(`${Project.texture_width} ⨉ ${Project.texture_height}`);
 }
 
 //Selections
@@ -167,20 +117,22 @@ function updateSelection(options = {}) {
 		}
 	}
 	if (Cube.selected.length) {
-		$('.selection_only').css('visibility', 'visible')
+		document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'visible'));
 	} else {
 		if (Format.bone_rig && Group.selected) {
-			$('.selection_only').css('visibility', 'hidden')
-			$('.selection_only#element').css('visibility', 'visible')
-			$('.selection_only#bone').css('visibility', 'visible')
+			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
+			document.querySelectorAll('.selection_only#element').forEach(node => node.style.setProperty('visibility', 'visible'));
 		} else {
-			$('.selection_only').css('visibility', 'hidden')
-			if (Locator.selected.length) {
-				$('.selection_only#element').css('visibility', 'visible')
+			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
+			if (Outliner.selected.length) {
+				document.querySelectorAll('.selection_only#element').forEach(node => node.style.setProperty('visibility', 'visible'));
 			}
 		}
+		if (Group.selected || NullObject.selected[0]) {
+			document.querySelectorAll('.selection_only#bone').forEach(node => node.style.setProperty('visibility', 'visible'));
+		}
 		if (Format.single_texture && Modes.paint) {
-			$('.selection_only#uv').css('visibility', 'visible')
+			document.querySelectorAll('.selection_only#uv').forEach(node => node.style.setProperty('visibility', 'visible'));
 		}
 	}
 	if (Cube.selected.length || (Format.single_texture && Modes.paint)) {
@@ -209,11 +161,11 @@ function selectAll() {
 	if (Modes.animate) {
 		selectAllKeyframes()
 	} else if (Modes.edit || Modes.paint) {
-		if (selected.length < elements.length) {
+		if (Outliner.selected.length < Outliner.elements.length) {
 			if (Outliner.root.length == 1) {
 				Outliner.root[0].select();
 			} else {
-				elements.forEach(obj => {
+				Outliner.elements.forEach(obj => {
 					obj.selectLow()
 				})
 				TickUpdates.selection = true;
@@ -247,10 +199,6 @@ setInterval(function() {
 const TickUpdates = {
 	Run() {
 		try {
-			if (TickUpdates.outliner) {
-				delete TickUpdates.outliner;
-				loadOutlinerDraggable()
-			}
 			if (TickUpdates.selection) {
 				delete TickUpdates.selection;
 				updateSelection()
@@ -262,10 +210,6 @@ const TickUpdates = {
 			if (TickUpdates.texture_list) {
 				delete TickUpdates.texture_list;
 				loadTextureDraggable();
-			}
-			if (TickUpdates.keyframes) {
-				delete TickUpdates.keyframes;
-				Vue.nextTick(Timeline.update)
 			}
 			if (TickUpdates.keyframe_selection) {
 				delete TickUpdates.keyframe_selection;

@@ -379,7 +379,7 @@ var codec = new Codec('bedrock_old', {
 			})
 		}
 		showDialog('entity_import')
-		$('#pe_list').css('max-height', ($(window).height() - 320) +'px')
+		$('#pe_list').css('max-height', (window.innerHeight - 320) +'px')
 		$('input#pe_search_bar').select()
 		$('#entity_import .confirm_btn').off('click')
 		$('#entity_import .confirm_btn').on('click', (e) => {
@@ -411,7 +411,7 @@ var codec = new Codec('bedrock_old', {
 		}
 		if (data) {
 			try {
-				obj = JSON.parse(data.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, ''))
+				obj = autoParseJSON(data, false)
 			} catch (err) {
 				err = err+''
 				var answer = electron.dialog.showMessageBoxSync(currentwindow, {

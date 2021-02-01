@@ -820,6 +820,7 @@ BARS.defineActions(function() {
 	new BarSelect('transform_space', {
 		condition: {modes: ['edit'], tools: ['move_tool', 'pivot_tool']},
 		category: 'transform',
+		value: 'local',
 		options: {
 			global: true,
 			bone: {condition: () => Format.bone_rig, name: true},

@@ -503,7 +503,7 @@ BARS.defineActions(function() {
 		category: 'blockbench',
 		click: function () {
 			showDialog('plugins');
-			$('#plugin_list').css('max-height', limitNumber($(window).height()-300, 80, 600)+'px');
+			$('#plugin_list').css('max-height', limitNumber(window.innerHeight-300, 80, 600)+'px');
 			$('dialog#plugins #plugin_search_bar').trigger('focus')
 		}
 	})

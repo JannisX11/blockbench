@@ -223,8 +223,15 @@ class Texture {
 			link = spaces[1]
 			path_array[path_array.length-1] = this.namespace
 		}
-		path_array.push('textures', link.replace(/\//g, osfs))
-		var path = path_array.join(osfs)+'.png'
+
+		if (path_array.includes('cit')) {
+			path_array.pop();
+			path_array.push(link.replace(/^\.*\//, '').replace(/\//g, osfs)+'.png')
+		} else {
+			path_array.push('textures', link.replace(/\//g, osfs)+'.png');
+		}
+		var path = path_array.join(osfs);
+
 		if (path && can_load) {
 			this.fromPath(path)
 		} else {
@@ -449,19 +456,33 @@ class Texture {
 		return this;
 	}
 	generateFolder(path) {
-		var scope = this
-		if (path.includes(osfs+'textures'+osfs)) {
-			var arr = path.split(osfs+'textures'+osfs)
+		if (path.includes(osfs+'optifine'+osfs+'cit'+osfs)) {
 
-			var arr1 = arr[0].split(osfs)
-			scope.namespace = arr1[arr1.length-1]
+			if (ModelMeta.export_path) {
+				let model_arr = ModelMeta.export_path.split(osfs).slice(0, -1);
+				let tex_arr = path.split(osfs).slice(0, -1);
+				let index = 0;
+				tex_arr.find((dir, i) => {
+					if (dir != model_arr[i]) return true;
+					index++;
+				})
+				this.folder = ['.', ...tex_arr.slice(index)].join('/');
+			} else {
+				this.folder = '.';
+			}
 
-			var arr2 = arr[arr.length-1].split(osfs)
-			arr2.pop()
-			scope.folder = arr2.join('/')
+		} else if (path.includes(osfs+'textures'+osfs)) {
+			var arr = path.split(osfs+'textures'+osfs);
+
+			var arr1 = arr[0].split(osfs);
+			this.namespace = arr1[arr1.length-1];
+
+			var arr2 = arr[arr.length-1].split(osfs);
+			arr2.pop();
+			this.folder = arr2.join('/');
 		} else {
 			var arr = path.split(osfs)
-			scope.folder = arr[arr.length-2]
+			this.folder = arr[arr.length-2]
 			if (Format.id === 'java_block' && isApp) {
 				Blockbench.showMessageBox({
 					translateKey: 'loose_texture',
@@ -469,9 +490,9 @@ class Texture {
 					buttons: [tl('message.loose_texture.change'), tl('dialog.ok')],
 					confirm: 0,
 					cancel: 1
-				}, function(result) {
+				}, result => {
 					if (result === 0) {
-						scope.reopen()
+						this.reopen()
 					}
 				})
 			}
@@ -1049,14 +1070,17 @@ function loadTextureDraggable() {
 				},
 				drag: function(event, ui) {
 					
-					$('.outliner_node[order]').attr('order', null)
+					$('.outliner_node[order]').attr('order', null);
+					$('.drag_hover').removeClass('drag_hover');
 					$('.texture[order]').attr('order', null)
-					if ($('#cubes_list.drag_hover').length === 0 && $('#cubes_list li .drag_hover.outliner_node').length) {
-						var tar = $('#cubes_list li .drag_hover.outliner_node').last()
+					if ($('#cubes_list li.outliner_node:hover').length) {
+						var tar = $('#cubes_list li.outliner_node:hover').last()
+						tar.addClass('drag_hover').attr('order', '0');
+						/*
 						var element = Outliner.root.findRecursive('uuid', tar.attr('id'))
 						if (element) {
 							tar.attr('order', '0')
-						}
+						}*/
 					} else if ($('#texture_list li:hover').length) {
 						let node = $('#texture_list > .texture:hover')
 						if (node.length) {
@@ -1073,7 +1097,8 @@ function loadTextureDraggable() {
 				},
 				stop: function(event, ui) {
 					setTimeout(function() {
-						$('.texture[order]').attr('order', null)
+						$('.texture[order]').attr('order', null);
+						$('.outliner_node[order]').attr('order', null);
 						var tex = textures.findInArray('uuid', ui.helper.attr('texid'));
 						if (!tex) return;
 						if ($('.preview:hover').length > 0) {
@@ -1106,6 +1131,33 @@ function loadTextureDraggable() {
 							Texture.all.splice(index, 0, tex)
 							Canvas.updateLayeredTextures()
 							Undo.finishEdit('reorder textures')
+						} else if ($('#cubes_list:hover')) {
+
+							var target_node = $('#cubes_list li.outliner_node.drag_hover').last().get(0);
+							$('.drag_hover').removeClass('drag_hover');
+							if (!target_node) return;
+							let uuid = target_node.id;
+							var target = OutlinerNode.uuids[uuid];
+
+							var array = [];
+		
+							if (target.type === 'group') {
+								target.forEachChild(function(cube) {
+									array.push(cube)
+								}, Cube)
+							} else {
+								array = selected.includes(target) ? selected : [target];
+							}
+							Undo.initEdit({elements: array, uv_only: true})
+							array.forEach(function(cube) {
+								for (var face in cube.faces) {
+									cube.faces[face].texture = tex.uuid;
+								}
+							})
+							Undo.finishEdit('drop texture')
+		
+							main_uv.loadData()
+							Canvas.updateAllFaces()
 						}
 					}, 10)
 				}
@@ -1137,14 +1189,24 @@ Clipbench.setTexture = function(texture) {
 	clipboard.writeImage(img)
 }
 Clipbench.pasteTextures = function() {
-	if (!isApp) return;
-	var img = clipboard.readImage()
-	if (img) {
-		var dataUrl = img.toDataURL()
+	function loadImage(dataUrl) {
 		var texture = new Texture({name: 'pasted', folder: 'block' }).fromDataURL(dataUrl).fillParticle().add(true)
 		setTimeout(function() {
 			texture.openMenu()
 		}, 40)
+	}
+	if (isApp) {
+		var image = clipboard.readImage().toDataURL();
+		loadImage(image);
+	} else {
+		navigator.clipboard.read().then(content => {
+			if (content && content[0] && content[0].types.includes('image/png')) {
+				content[0].getType('image/png').then(blob => {
+					let url = URL.createObjectURL(blob);
+					loadImage(url);
+				})
+			}
+		}).catch(() => {})
 	}
 }
 
@@ -1308,12 +1370,12 @@ BARS.defineActions(function() {
 			path.splice(-1)
 			path = path.join(osfs)
 
-			let filePaths = electron.dialog.showOpenDialogSync(currentwindow, {
-				properties: ['openDirectory'],
-				defaultPath: path
+			let dirPath = Blockbench.pickDirectory({
+				resource_id: 'texture',
+				startpath: path,
 			})
-			if (filePaths && filePaths.length) {
-				var new_path = filePaths[0]
+			if (dirPath && dirPath.length) {
+				var new_path = dirPath[0]
 				Undo.initEdit({textures})
 				textures.forEach(function(t) {
 					if (typeof t.path === 'string' && t.path.includes(path)) {
@@ -1440,7 +1502,7 @@ Interface.definePanels(function() {
 			template: `
 				<div>
 					<div class="toolbar_wrapper texturelist"></div>
-					<ul id="texture_list" class="list" @contextmenu.stop.prevent="openMenu($event)">
+					<ul id="texture_list" class="list mobile_scrollbar" @contextmenu.stop.prevent="openMenu($event)">
 						<li
 							v-for="texture in textures"
 							v-bind:class="{ selected: texture.selected, particle: texture.particle}"
@@ -1490,6 +1552,7 @@ Interface.definePanels(function() {
 			}
 		},
 		menu: new Menu([
+			'paste',
 			'import_texture',
 			'create_texture',
 			'reload_textures',

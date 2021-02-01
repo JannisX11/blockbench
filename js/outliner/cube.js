@@ -47,6 +47,7 @@ class Face {
 	}
 	reset() {
 		this.uv = [0, 0, 0, 0];
+		this.rotation = 0;
 		this.texture = false;
 		return this;
 	}
@@ -97,7 +98,7 @@ Face.opposite = {
 	up: 'down'
 }
 
-class Cube extends NonGroup {
+class Cube extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 		let size = canvasGridSize();
@@ -221,7 +222,6 @@ class Cube extends NonGroup {
 		if (!this.mesh || !this.mesh.parent) {
 			Canvas.addCube(this)
 		}
-		TickUpdates.outliner = true;
 		return this;
 	}
 	size(axis, floored) {
@@ -850,7 +850,6 @@ BARS.defineActions(function() {
 			if (Group.selected) Group.selected.unselect()
 			base_cube.select()
 			Canvas.updateSelected()
-			loadOutlinerDraggable()
 			Undo.finishEdit('add_cube', {outliner: true, elements: selected, selection: true});
 			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 

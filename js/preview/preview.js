@@ -165,8 +165,8 @@ class Preview {
 				var tag = scope.annotations[key];
 				if (tag.object.visible) {
 					var pos = tag.object.toScreenPosition(scope.camera, scope.canvas);
-					$(tag.node).css('left', pos.x+'px');
-					$(tag.node).css('top', pos.y+'px');
+					tag.node.style.setProperty('left', pos.x+'px');
+					tag.node.style.setProperty('top', pos.y+'px');
 				}
 			}
 		}
@@ -236,7 +236,7 @@ class Preview {
 		this.loadBackground()
 
 		this.selection = {
-			box: $('<div id="selection_box", class="selection_rectangle"></div>') 
+			box: $('<div id="selection_box" class="selection_rectangle"></div>') 
 		}
 
 		this.raycaster = new THREE.Raycaster()
@@ -341,7 +341,7 @@ class Preview {
 			}
 			if (intersect.isElement) {
 				this.controls.hasMoved = true
-				var obj = OutlinerElement.uuids[intersects[0].object.name]
+				var obj = OutlinerNode.uuids[intersects[0].object.name]
 				let face = Canvas.face_order[intersects[0].face.materialIndex];
 
 				return {
@@ -868,9 +868,9 @@ class Preview {
 		if (this.background && this.background.image) {
 			if (!this.background.imgtag) this.background.imgtag = new Image();
 			this.background.imgtag.src = this.background.image.replace(/#/g, '%23');
-			$(this.canvas).css('background-image', `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`)
+			this.canvas.style.setProperty('background-image', `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`)
 		} else {
-			$(this.canvas).css('background-image', 'none')
+			this.canvas.style.setProperty('background-image', 'none')
 		}
 		this.updateBackground()
 		return this;
@@ -890,9 +890,9 @@ class Preview {
 		pos_x += (bg.x * zoom) + this.width/2 - ( bg.size * zoom) / 2
 		pos_y += (bg.y * zoom) + this.height/2 -((bg.size / bg.ratio||1) * zoom) / 2
 
-		$(this.canvas).css('background-position-x', pos_x + 'px')
-		$(this.canvas).css('background-position-y', pos_y + 'px')
-		$(this.canvas).css('background-size',  bg.size * zoom +'px')
+		this.canvas.style.setProperty('background-position-x', pos_x + 'px')
+		this.canvas.style.setProperty('background-position-y', pos_y + 'px')
+		this.canvas.style.setProperty('background-size',  bg.size * zoom +'px')
 		return this;
 	}
 	clearBackground() {
@@ -1094,12 +1094,26 @@ class Preview {
 						}
 					}, 'image', false)
 				}},
-				{icon: 'fa-clipboard', name: 'menu.preview.background.clipboard', condition: isApp, click: function(preview) {
-					var image = clipboard.readImage().toDataURL();
-					if (image.length > 32) {
-						preview.background.image = image;
-						preview.loadBackground();
-						Settings.saveLocalStorages()
+				{icon: 'fa-clipboard', name: 'menu.preview.background.clipboard', click: function(preview) {
+					function loadImage(image) {
+						if (image.length > 32) {
+							preview.background.image = image;
+							preview.loadBackground();
+							Settings.saveLocalStorages()
+						}
+					}
+					if (isApp) {
+						var image = clipboard.readImage().toDataURL();
+						loadImage(image);
+					} else {
+						navigator.clipboard.read().then(content => {
+							if (content && content[0] && content[0].types.includes('image/png')) {
+								content[0].getType('image/png').then(blob => {
+									let url = URL.createObjectURL(blob);
+									loadImage(url);
+								})
+							}
+						})
 					}
 				}},
 				{icon: 'photo_size_select_large', name: 'menu.preview.background.position', condition: has_background, click: function(preview) {
@@ -1444,11 +1458,55 @@ const Screencam = {
 	}
 }
 
+window.addEventListener("gamepadconnected", function(event) {
+	if (event.gamepad.id.includes('SpaceMouse')) {
+
+		let interval = setInterval(() => {
+			let gamepad = navigator.getGamepads()[event.gamepad.index];
+			let preview = Preview.selected;
+			if (!document.hasFocus() || !preview || !gamepad || !gamepad.axes || gamepad.axes.allEqual(0) || gamepad.axes.find(v => isNaN(v)) != undefined) return;
+
+			let offset = new THREE.Vector3(
+				gamepad.axes[0],
+				-gamepad.axes[2],
+				gamepad.axes[1],
+			)
+			offset.multiplyScalar(3);
+			offset.applyQuaternion(preview.camera.quaternion);
+
+			preview.controls.target.add(offset);
+			preview.camera.position.add(offset);
+
+			let camera_diff = new THREE.Vector3().copy(preview.controls.target).sub(preview.camera.position);
+			let axes = [
+				gamepad.axes[3] / -40,
+				gamepad.axes[5] / -40,
+			];
+			camera_diff.applyAxisAngle(THREE.NormalY, axes[1]);
+			let tilt_axis = new THREE.Vector3().copy(camera_diff).normalize();
+			tilt_axis.applyAxisAngle(THREE.NormalY, Math.PI/2);
+			tilt_axis.y = 0;
+			camera_diff.applyAxisAngle(tilt_axis, axes[0]);
+
+			preview.controls.target.copy(camera_diff).add(preview.camera.position);
+
+			main_preview.controls.updateSceneScale();
+
+		}, 16)
+
+		window.addEventListener("gamepadconnected", function(event2) {
+			if (event2.gamepad.id == event.gamepad.id && event2.gamepad.index == event.gamepad.index) {
+				clearInterval(interval);
+			}
+		})
+	}
+});
+
 //Init/Update
 function initCanvas() {
 	
 	//Objects
-	scene = new THREE.Scene();
+	scene = Canvas.scene = new THREE.Scene();
 	display_scene = new THREE.Scene();
 	display_area = new THREE.Object3D();
 	display_base = new THREE.Object3D();
@@ -1651,7 +1709,12 @@ function initCanvas() {
 }
 function animate() {
 	requestAnimationFrame( animate );
-	TickUpdates.Run()
+	if (!settings.background_rendering.value && !document.hasFocus()) return;
+	TickUpdates.Run();
+
+	if (Animator.open && Timeline.playing) {
+		Timeline.loop();
+	}
 	if (quad_previews.current) {
 		Wintersky.updateFacingRotation(quad_previews.current.camera);
 	}
@@ -1848,56 +1911,46 @@ function buildGrid() {
 }
 
 BARS.defineActions(function() {
-	new Action('toggle_wireframe', {
+	new Toggle('toggle_wireframe', {
 		icon: 'border_clear',
 		category: 'view',
 		keybind: new Keybind({key: 90}),
 		condition: () => Toolbox && Toolbox.selected && Toolbox.selected.allowWireframe,
-		click: function () {
+		default: false,
+		onChange: function (state) {
 			Prop.wireframe = !Prop.wireframe
 			Canvas.updateAllFaces()
 			if (Modes.id === 'animate') {
 				Animator.preview()
 			}
 			Blockbench.showQuickMessage('message.wireframe.' + (Prop.wireframe ? 'enabled' : 'disabled'))
+			this.setIcon(Prop.wireframe ? 'check_box' : 'check_box_outline_blank')
 		}
 	})
-	new Action('preview_checkerboard', {
-		name: tl('settings.preview_checkerboard'),
-		description: tl('settings.preview_checkerboard.desc'),
+	new Toggle('preview_checkerboard', {
+		icon: 'fas.fa-chess-board',
 		category: 'view',
 		linked_setting: 'preview_checkerboard',
-		keybind: new Keybind({key: 84}),
-		click: function () {
-			this.toggleLinkedSetting()
-		}
+		keybind: new Keybind({key: 84})
 	})
-	new Action('uv_checkerboard', {
-		name: tl('settings.uv_checkerboard'),
-		description: tl('settings.uv_checkerboard.desc'),
+	new Toggle('uv_checkerboard', {
+		icon: 'fas.fa-chess-board',
 		category: 'view',
-		linked_setting: 'uv_checkerboard',
-		click: function () {
-			this.toggleLinkedSetting()
-		}
+		linked_setting: 'uv_checkerboard'
 	})
-	new Action('toggle_shading', {
+	new Toggle('toggle_shading', {
 		name: tl('settings.shading'),
 		description: tl('settings.shading.desc'),
+		icon: 'wb_sunny',
 		category: 'view',
-		linked_setting: 'shading',
-		click: function () {
-			this.toggleLinkedSetting()
-		}
+		linked_setting: 'shading'
 	})
-	new Action('toggle_motion_trails', {
+	new Toggle('toggle_motion_trails', {
 		name: tl('settings.motion_trails'),
 		description: tl('settings.motion_trails.desc'),
+		icon: 'gesture',
 		category: 'view',
-		linked_setting: 'motion_trails',
-		click: function () {
-			this.toggleLinkedSetting()
-		}
+		linked_setting: 'motion_trails'
 	})
 
 	new Action('screenshot_model', {

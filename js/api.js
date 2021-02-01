@@ -1,6 +1,9 @@
+const LastVersion = localStorage.getItem('last_version') || localStorage.getItem('welcomed_version') || appVersion;
+
 const Blockbench = {
 	isWeb: !isApp,
 	isMobile: !isApp && window.innerWidth <= 640,
+	isTouch: 'ontouchend' in document,
 	version: appVersion,
 	platform: 'web',
 	flags: [],
@@ -159,7 +162,7 @@ const Blockbench = {
 			if (!options.message) options.message = tl('message.'+options.translateKey+'.message')
 		}
 
-		var jq_dialog = $('<dialog class="dialog paddinged" style="width: auto;" id="message_box"><div class="dialog_handle">'+options.title+'</div></dialog>')
+		var jq_dialog = $('<dialog class="dialog paddinged" style="width: auto;" id="message_box"><div class="dialog_handle">'+tl(options.title)+'</div></dialog>')
 
 		jq_dialog.append('<div class="dialog_bar" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
 			marked(tl(options.message))+'</div>'
@@ -199,7 +202,7 @@ const Blockbench = {
 			handle: ".dialog_handle",
 			containment: '#page_wrapper'
 		})
-		var x = ($(window).width()-540)/2
+		var x = (window.innerWidth-540)/2
 		jq_dialog.css('left', x+'px')
 		jq_dialog.css('position', 'absolute')
 
@@ -208,7 +211,7 @@ const Blockbench = {
 		$('#blackout').show()
 		jq_dialog.show()
 
-		jq_dialog.css('top', limitNumber($(window).height()/2-jq_dialog.height()/2 - 140, 0, 2000)+'px')
+		jq_dialog.css('top', limitNumber(window.innerHeight/2-jq_dialog.height()/2 - 140, 0, 2000)+'px')
 		if (options.width) {
 			jq_dialog.css('width', options.width+'px')
 		} else {
@@ -307,14 +310,17 @@ const Blockbench = {
 		if (!this.events[event_name]) return;
 		this.events[event_name].remove(cb);
 	},
+	onUpdateTo(version, callback) {
+		if (LastVersion && compareVersions(version, LastVersion) && !Blockbench.isOlderThan(version)) {
+			callback(LastVersion);
+		}
+	}
 };
 
 (function() {
-	var last_welcome = localStorage.getItem('welcomed_version');
-	if (!last_welcome || last_welcome.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
+	if (!LastVersion || LastVersion.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
 		Blockbench.addFlag('after_update');
 	}
-	localStorage.setItem('welcomed_version', appVersion);
 })();
 
 if (isApp) {

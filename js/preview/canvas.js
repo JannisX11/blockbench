@@ -304,9 +304,9 @@ const Canvas = {
 			outlines.add(line)
 		})
 	},
-	updateAllBones() {
+	updateAllBones(bones = Group.all) {
 
-		Group.all.forEach((obj) => {
+		bones.forEach((obj) => {
 			let bone = obj.mesh
 			if (bone) {
 
@@ -331,7 +331,13 @@ const Canvas = {
 				bone.fix_rotation = bone.rotation.clone()
 			}
 		})
-		scene.updateMatrixWorld();
+		if (bones == Group.all) {
+			scene.updateMatrixWorld();
+		} else {
+			bones.forEach(bone => {
+				bone.mesh.updateMatrixWorld();
+			})
+		}
 	},
 	updateOrigin() {
 		if (rot_origin.parent) {

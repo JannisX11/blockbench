@@ -46,7 +46,7 @@ var codec = new Codec('obj', {
 			var nbNormals = 0;
 
 			var geometry = mesh.geometry;
-			var element  = OutlinerElement.uuids[mesh.name];
+			var element  = OutlinerNode.uuids[mesh.name];
 
 			if (!element) return;
 			if (element.export === false) return;

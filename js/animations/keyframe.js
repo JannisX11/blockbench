@@ -220,15 +220,8 @@ class Keyframe {
 	}
 	compileBedrockKeyframe() {
 		if (this.transform) {
-			if (this.data_points.length == 1) {
-				if (this.interpolation == 'linear') {
-					return this.getArray();
-				} else {
-					return {
-						post: this.getArray(),
-						lerp_mode: this.interpolation,
-					}
-				}
+			if (this.data_points.length == 1 && this.interpolation == 'linear') {
+				return this.getArray();
 			} else {
 				return {
 					pre:  this.getArray(0),
@@ -429,7 +422,7 @@ function updateKeyframeSelection() {
 		BarItems.slider_keyframe_time.update()
 		BarItems.keyframe_interpolation.set(Timeline.selected[0].interpolation)
 	}
-	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || Animator.motion_trail_lock)) {
+	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || NullObject.selected[0] || Animator.motion_trail_lock)) {
 		Animator.showMotionTrail();
 	} else if (Animator.motion_trail.parent) {
 		Animator.motion_trail.children.forEachReverse(child => {
@@ -734,8 +727,8 @@ BARS.defineActions(function() {
 
 Interface.definePanels(function() {
 
-	let locator_suggestion_list = $('<datalist id="locator_suggestion_list" hidden></datalist>');
-	$(document.body).append(locator_suggestion_list);
+	let locator_suggestion_list = $('<datalist id="locator_suggestion_list" hidden></datalist>').get(0);
+	document.body.append(locator_suggestion_list);
 	
 	Interface.Panels.keyframe = new Panel({
 		id: 'keyframe',
@@ -793,6 +786,11 @@ Interface.definePanels(function() {
 					Locator.all.forEach(locator => {
 						locator_suggestion_list.append(`<option value="${locator.name}">`);
 					})
+				},
+				focusAxis(axis) {
+					if (Timeline.vue.graph_editor_open && 'xyz'.includes(axis)) {
+						Timeline.vue.graph_editor_axis = axis;
+					}
 				}
 			},
 			computed: {
@@ -851,6 +849,7 @@ Interface.definePanels(function() {
 										class="molang_input dark_bordered keyframe_input tab_target"
 										v-model="data_point[key+'_string']"
 										@change="updateInput(key, $event, data_point_i)"
+										@focus="focusAxis(key)"
 										language="molang"
 										ignoreTabKey="true"
 										:line-numbers="false"
