@@ -244,7 +244,8 @@ BARS.defineActions(function() {
 			BarItems.slider_color_s.update();
 			BarItems.slider_color_v.update();
 
-			$('.UVEditor').find('#uv_size').hide()
+			$('.UVEditor').find('#uv_size').hide();
+			$('.bar.uv_editor_sliders').hide();
 			three_grid.visible = false;
 		},
 		onUnselect: () => {
@@ -252,6 +253,7 @@ BARS.defineActions(function() {
 				Canvas.buildGridBox(cube)
 			})
 			$('.UVEditor').find('#uv_size').show();
+			$('.bar.uv_editor_sliders').show();
 			three_grid.visible = true;
 		},
 	})

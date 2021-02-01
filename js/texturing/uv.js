@@ -59,7 +59,7 @@ class UVEditor {
 		}
 		this.jquery.main.toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
 
-		this.jquery.sliders = $('<div class="bar" style="margin-left: 2px;"></div>')
+		this.jquery.sliders = $('<div class="bar uv_editor_sliders" style="margin-left: 2px;"></div>')
 
 		this.jquery.main.append(this.jquery.sliders)
 		var onBefore = function() {
@@ -307,18 +307,18 @@ class UVEditor {
 
 		var dMWCoords = {x: 0, y: 0}
 		function dragMouseWheel(e) {
-			e.currentTarget.scrollLeft -= (e.pageX - dMWCoords.x)
-			e.currentTarget.scrollTop -= (e.pageY - dMWCoords.y)
+			scope.jquery.viewport[0].scrollLeft -= (e.pageX - dMWCoords.x)
+			scope.jquery.viewport[0].scrollTop -= (e.pageY - dMWCoords.y)
 			dMWCoords = {x: e.pageX, y: e.pageY}
 		}
 		function dragMouseWheelStop(e) {
-			scope.jquery.viewport.off('mousemove', dragMouseWheel)
-			$(document).off('mouseup', dragMouseWheelStop)
+			removeEventListeners(document, 'mousemove touchmove', dragMouseWheel);
+			removeEventListeners(document, 'mouseup touchend', dragMouseWheelStop);
 		}
 		scope.jquery.viewport.on('mousedown touchstart', function(e) {
 			if (e.which === 2) {
-				scope.jquery.viewport.on('mousemove touchmove', dragMouseWheel)
-				$(document).on('mouseup touchend', dragMouseWheelStop)
+				addEventListeners(document, 'mousemove touchmove', dragMouseWheel);
+				addEventListeners(document, 'mouseup touchend', dragMouseWheelStop);
 				dMWCoords = {x: e.pageX, y: e.pageY}
 				e.preventDefault();
 				return false;
@@ -330,6 +330,7 @@ class UVEditor {
 			this.updateBrushOutline(e)
 		})
 		scope.jquery.frame.on('mouseleave', e => {
+			this.brush_outline.detach();
 		})
 		this.setSize(this.size)
 		return this;
@@ -365,7 +366,6 @@ class UVEditor {
 	getBrushCoordinates(event, tex) {
 		var scope = this;
 		convertTouchEvent(event);
-		var multiplier = (Project.box_uv && tex) ? tex.width/Project.texture_width : 1
 		var pixel_size = scope.inner_width / tex.width
 		var result = {};
 

@@ -224,7 +224,28 @@ const Timeline = {
 		return 1/Math.clamp(Animation.selected ? Animation.selected.snapping : settings.animation_snap.value, 1, 120);
 	},
 	setup() {
-		$('#timeline_body').mousedown(Timeline.selector.down)
+		$('#timeline_body').on('mousedown', e => {
+			if (e.which === 2) {
+				let pos = [e.clientX, e.clientY];
+				let timeline = e.currentTarget;
+				function move(e2) {
+					timeline.scrollLeft += pos[0] - e2.clientX;
+					if (!Timeline.vue.graph_editor_open) {
+						timeline.scrollTop += pos[1] - e2.clientY;
+					}
+					pos = [e2.clientX, e2.clientY];
+				}
+				function stop(e2) {
+					document.removeEventListener('mousemove', move);
+					document.removeEventListener('mouseup', stop);
+				}
+				document.addEventListener('mousemove', move);
+				document.addEventListener('mouseup', stop);
+				e.preventDefault();
+			} else {
+				Timeline.selector.down(e);
+			}
+		})
 
 		$('#timeline_time').on('mousedown touchstart', e => {
 			if (e.which !== 1 && !event.changedTouches) return;
