@@ -580,9 +580,7 @@ function moveElementsInSpace(difference, axis) {
 			group_m = new THREE.Vector3();
 			group_m[getAxisLetter(axis)] = difference;
 
-			var rotation = new THREE.Quaternion();
-			group.mesh.getWorldQuaternion(rotation);
-			group_m.applyQuaternion(rotation);
+			group_m.applyQuaternion(group.mesh.quaternion);
 
 			group.forEachChild(g => {
 				g.origin.V3_add(group_m.x, group_m.y, group_m.z);
