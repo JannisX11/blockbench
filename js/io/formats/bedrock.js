@@ -113,18 +113,18 @@ window.BedrockEntityManager = {
 						}).show()
 						$('#import_texture_list li').each((i, el) => {
 							el.style.setProperty('background-image', `url("${ valid_textures_list[i].replace(/\\/g, '/').replace(/#/g, '%23') }?${Math.round(Math.random()*1e6)}")`)
-							.click(function() {
+							el.onclick = function() {
 								if (selected_textures.includes(i)) {
 									selected_textures.remove(i)
 								} else {
 									selected_textures.push(i)
 								}
 								$(this).toggleClass('selected')
-							})
-							.dblclick(function() {
+							}
+							el.ondblclick = function() {
 								selected_textures.replace([i])
 								dialog.confirm()
-							})
+							}
 						})
 					}, 2)
 				}
