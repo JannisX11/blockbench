@@ -188,6 +188,11 @@ class Preview {
 		this.camPers.position.fromArray(DefaultCameraPresets[0].position)
 		this.controls.target.fromArray(DefaultCameraPresets[0].target);
 
+		if (!Blockbench.isMobile) {
+			this.gimbal_controls = new GimbalControls(this);
+			this.node.append(this.gimbal_controls.node);
+		}
+
 		//Keybinds
 		this.controls.mouseButtons.ZOOM = undefined;
 
@@ -1214,6 +1219,106 @@ function openQuadView() {
 	$('#preview').append(wrapper4)
 	
 	updateInterface()
+}
+
+
+class GimbalControls {
+	constructor(preview, options = {}) {
+		let scope = this;
+		this.preview = preview;
+		this.node = document.createElement('div');
+		this.node.classList.add('gimbal_controls');
+
+		let svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		this.node.append(svg);
+		this.lines = {
+			x: document.createElementNS('http://www.w3.org/2000/svg', 'path'),
+			y: document.createElementNS('http://www.w3.org/2000/svg', 'path'),
+			z: document.createElementNS('http://www.w3.org/2000/svg', 'path'),
+		}
+		for (let axis in this.lines) {
+			this.lines[axis].setAttribute('axis', axis);
+			svg.append(this.lines[axis]);
+		}
+
+		this.sides = {
+			top: {axis: 'y', sign: 1, label: 'Y'},
+			bottom: {axis: 'y', sign: -1},
+			east: {axis: 'x', sign: 1, label: 'X'},
+			west: {axis: 'x', sign: -1},
+			south: {axis: 'z', sign: 1, label: 'Z'},
+			north: {axis: 'z', sign: -1},
+		}
+		for (let key in this.sides) {
+			let side = this.sides[key];
+			side.node = document.createElement('div');
+			side.node.classList.add('gimbal_controls_side');
+			side.node.setAttribute('axis', side.axis);
+			if (side.label) side.node.innerText = side.label;
+
+			let preset = DefaultCameraPresets.find(p => p.id == key);
+			side.node.addEventListener('click', e => {
+				this.preview.loadAnglePreset(preset);
+			})
+			this.node.append(side.node);
+		}
+
+		// Interact
+		addEventListeners(this.node, 'mousedown touchstart', e1 => {
+			if (!scope.preview.controls.enableRotate) return;
+			convertTouchEvent(e1);
+			let last_event = e1;
+
+			function move(e2) {
+				scope.node.classList.add('mouse_active');
+				convertTouchEvent(e2);
+				scope.preview.controls.rotateLeft((e2.clientX - last_event.clientX) / 24);
+				scope.preview.controls.rotateUp((e2.clientY - last_event.clientY) / 24);
+				last_event = e2;
+			}
+			function off(e2) {
+				removeEventListeners(document, 'mousemove touchmove', move);
+				removeEventListeners(document, 'mouseup touchend', off);
+				scope.node.classList.remove('mouse_active');
+			}
+			addEventListeners(document, 'mousemove touchmove', move);
+			addEventListeners(document, 'mouseup touchend', off);
+		})
+		this.node.addEventListener('dblclick', e => {
+			this.preview.setProjectionMode(!this.preview.isOrtho);
+		})
+
+		this.preview.controls.onUpdate(e => this.update(e));
+
+		this.update();
+	}
+	update() {
+		let background = 'background';
+		let x = this.preview.controls.getPolarAngle();
+		let y = this.preview.controls.getAzimuthalAngle();
+		let mid = 40;
+		let rad = 28;
+		let scale = 0.16;
+		let offset = {
+			x: [Math.cos(y), Math.cos(x)*Math.sin(y), Math.sin(y)],
+			y: [0, -Math.sin(x), Math.cos(x)],
+			z: [-Math.sin(y), Math.cos(x)*Math.cos(y), Math.cos(y)],
+		}
+
+		for (let key in this.sides) {
+			let side = this.sides[key];
+			let vec = offset[side.axis];
+			side.node.style.left = `${mid + side.sign * rad * vec[0]}px`;
+			side.node.style.top = `${mid + side.sign * rad * vec[1]}px`;
+			side.node.style.setProperty('transform', `scale(${1 + scale * side.sign * vec[2]})`);
+			side.node.classList.toggle(background, vec[2] * side.sign < 0);
+		}
+
+		for (let axis in this.lines) {
+			let vec = offset[axis];
+			this.lines[axis].setAttribute('d', `M${mid} ${mid} L${mid + rad*vec[0]} ${mid + rad*vec[1]}`)
+		}
+	}
 }
 
 
