@@ -100,10 +100,10 @@ const Settings = {
 		}});
 		new Setting('seethrough_outline', 	{category: 'interface', value: false});
 		new Setting('outliner_colors', 		{category: 'interface', value: false});
-		new Setting('preview_checkerboard',	{category: 'interface', value: false, onChange() {
+		new Setting('preview_checkerboard',	{category: 'interface', value: true, onChange() {
 			$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 		}});
-		new Setting('uv_checkerboard', 		{category: 'interface', value: false, onChange() {
+		new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange() {
 			$('.UVEditor').toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
 		}});
 		

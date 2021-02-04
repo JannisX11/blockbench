@@ -1265,18 +1265,23 @@ class GimbalControls {
 
 		// Interact
 		addEventListeners(this.node, 'mousedown touchstart', e1 => {
-			if (!scope.preview.controls.enableRotate) return;
+			if (!scope.preview.controls.enableRotate && scope.preview.angle == null) return;
 			convertTouchEvent(e1);
 			let last_event = e1;
 
 			function move(e2) {
-				scope.node.classList.add('mouse_active');
 				convertTouchEvent(e2);
-				scope.preview.controls.rotateLeft((e2.clientX - last_event.clientX) / 24);
-				scope.preview.controls.rotateUp((e2.clientY - last_event.clientY) / 24);
+				scope.node.classList.add('mouse_active');
+				if (!e1.touches && last_event == e1) scope.node.requestPointerLock();
+				if (scope.preview.angle != null) {
+					scope.preview.setProjectionMode(false);
+				}
+				scope.preview.controls.rotateLeft((e1.touches ? (e2.clientX - last_event.clientX) : Math.clamp(e2.movementX, -5, 5)) / 40);
+				scope.preview.controls.rotateUp((e1.touches ? (e2.clientY - last_event.clientY) : Math.clamp(e2.movementY, -5, 5)) / 40);
 				last_event = e2;
 			}
 			function off(e2) {
+				document.exitPointerLock()
 				removeEventListeners(document, 'mousemove touchmove', move);
 				removeEventListeners(document, 'mouseup touchend', off);
 				scope.node.classList.remove('mouse_active');
