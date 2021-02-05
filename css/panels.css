@@ -84,6 +84,9 @@
 		flex-grow: 0;
 		flex-shrink: 0;
 	}
+	.tool.display_scale_invert {
+		position: relative;
+	}
 
 	input#preset_name {
 		background-color: var(--color-back);

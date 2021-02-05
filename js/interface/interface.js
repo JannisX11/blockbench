@@ -68,7 +68,7 @@ class ResizeLine {
 
 const Interface = {
 	default_data: {
-		left_bar_width: 332,
+		left_bar_width: 366,
 		right_bar_width: 314,
 		quad_view_x: 50,
 		quad_view_y: 50,

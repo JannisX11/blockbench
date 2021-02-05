@@ -728,7 +728,7 @@
 		z-index: 0;
 		filter: brightness(0.7);
 	}
-	.gimbal_controls_side:hover {
+	.gimbal_controls:not(.mouse_active) .gimbal_controls_side:hover {
 		background-color: var(--color-bright_ui) !important;
 		filter: brightness(1);
 	}
