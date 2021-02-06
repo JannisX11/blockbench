@@ -292,16 +292,12 @@ class OutlinerNode {
 		switch (btn.id) {
 			case 'visibility': 
 				return this.visibility
-				break;
 			case 'export': 
 				return this.export
-				break;
 			case 'locked': 
 				return this.locked
-				break;
 			case 'shading': 
 				return this.shade
-				break;
 			case 'autouv': 
 				if (!this.autouv) {
 					return false
@@ -310,7 +306,6 @@ class OutlinerNode {
 				} else {
 					return 'alt'
 				}
-				break;
 		}
 		return true;
 	}
@@ -522,31 +517,6 @@ Array.prototype.findRecursive = function(key1, val) {
 	return undefined;
 }
 
-function forOutlinerSelection(item, cb) {
-	if (selected.length > 1 && selected.includes(item)) {
-		var items = selected
-	} else {
-		var items = [item]
-	}
-	items.forEach(function(item) {
-		cb(item)
-	})
-}
-function getAllOutlinerObjects() {
-	var ta = []
-	function iterate(array) {
-		var i = 0;
-		while (i < array.length) {
-			ta.push(array[i])
-			if (array[i].children && array[i].children.length > 0) {
-				iterate(array[i].children)
-			}
-			i++;
-		}
-	}
-	iterate(Outliner.root)
-	return ta;
-}
 function compileGroups(undo, lut) {
 	var result = []
 	function iterate(array, save_array) {
@@ -639,71 +609,8 @@ function parseGroups(array, importGroup, startIndex) {
 		iterate(array, Outliner.root, 'root');
 	}
 }
-//Outliner
-function loadOutlinerDraggable() {
-	return;
-	function getOrder(loc, obj) {
-		if (!obj) {
-			return;
-		} else if (obj instanceof Group) {
-			if (loc < 8) return -1;
-			if (loc > 24) return 1;
-		} else {
-			if (loc < 16) return -1;
-			return 1;
-		}
-		return 0;
-	}
-	Vue.nextTick(function() {
-		$('li.outliner_node:not(.ui-droppable)').droppable({
-			greedy: true,
-			accept: function(s) { 
-				if (s.hasClass('outliner_object') || s.hasClass('texture')) { 
-					return true;
-				}
-			},
-			tolerance: 'pointer',
-			hoverClass: 'drag_hover',
-			addClasses: false,
-			drop: function(event, ui) {
-				$('.outliner_node[order]').attr('order', null)
-				var location = event.clientY - $(event.target).offset().top
-				$('.drag_hover').removeClass('drag_hover')
-				var target = Outliner.root.findRecursive('uuid', $(event.target).attr('id'))
 
-				if ($(ui.draggable).hasClass('outliner_object')) {
-					//Object
-					var item = Outliner.root.findRecursive('uuid', $(ui.draggable).parent().attr('id'))
-					var order = getOrder(location, target)
-					dropOutlinerObjects(item, target, event, order)
-
-				} else if ($(ui.draggable).hasClass('texture')) {
-					//Texture
-					var uuid = $(ui.helper).attr('texid')
-					var array = [];
-
-					if (target.type === 'group') {
-						target.forEachChild(function(cube) {
-							array.push(cube)
-						}, Cube)
-					} else {
-						array = selected.includes(target) ? selected : [target];
-					}
-					Undo.initEdit({elements: array, uv_only: true})
-					array.forEach(function(cube) {
-						for (var face in cube.faces) {
-							cube.faces[face].texture = uuid
-						}
-					})
-					Undo.finishEdit('drop texture')
-
-					main_uv.loadData()
-					Canvas.updateAllFaces()
-				}
-			}
-		})
-	})
-}
+// Dropping
 function dropOutlinerObjects(item, target, event, order) {
 	if (item.type === 'group' && target && target.parent) {
 		var is_parent = false;
@@ -1054,7 +961,7 @@ Interface.definePanels(function() {
 			`<div
 				class="outliner_object"
 				v-bind:class="{ cube: node.type === 'cube', group: node.type === 'group', selected: node.selected }"
-				v-bind:style="{'padding-left': getIndentation(node) + 'px'}"
+				v-bind:style="{'padding-left': indentation + 'px'}"
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
 				@click="node.select($event, true)"
 				@touchstart="node.select($event)" :title="node.title"
@@ -1079,14 +986,20 @@ Interface.definePanels(function() {
 			'</div>' +
 			//Other Entries
 			'<ul v-if="node.isOpen">' +
-				'<vue-tree-item v-for="item in node.children" :node="item" :show_advanced_toggles="show_advanced_toggles" v-key="item.uuid"></vue-tree-item>' +
+				'<vue-tree-item v-for="item in node.children" :node="item" :width="width" :show_advanced_toggles="show_advanced_toggles" v-key="item.uuid"></vue-tree-item>' +
 				`<div class="outliner_line_guide" v-if="node == Group.selected" v-bind:style="{left: getIndentation(node) + 'px'}"></div>` +
 			'</ul>' +
 		'</li>',
 		props: {
 			show_advanced_toggles: Boolean,
+			width: Number,
 			node: {
 				type: Object
+			}
+		},
+		computed: {
+			indentation() {
+				return this.node.getDepth ? (limitNumber(this.node.getDepth(), 0, (this.width-100) / 16) * 16) : 0;
 			}
 		},
 		methods: {
@@ -1118,9 +1031,6 @@ Interface.definePanels(function() {
 				if (typeof btn.click === 'function') {
 					btn.click(node);
 				}
-			},
-			getIndentation(node) {
-				return node.getDepth ? (limitNumber(node.getDepth(), 0, (Interface.Panels.outliner.width-124) / 16) * 16) : 0;
 			}
 		}
 	});
@@ -1160,13 +1070,14 @@ Interface.definePanels(function() {
 			head: Toolbars.outliner
 		},
 		growable: true,
-		onResize: t => {
-			getAllOutlinerObjects().forEach(o => o.updateElement())
+		onResize() {
+			if (this.inside_vue) this.inside_vue.width = this.width;
 		},
 		component: {
 			name: 'panel-outliner',
 			data() { return {
 				root: Outliner.root,
+				width: 300,
 				show_advanced_toggles: false
 			}},
 			methods: {
@@ -1289,7 +1200,7 @@ Interface.definePanels(function() {
 						@mousedown="dragNode($event)"
 						@touchstart="dragNode($event)"
 					>
-						<vue-tree-item v-for="item in root" :node="item" :show_advanced_toggles="show_advanced_toggles" v-key="item.uuid"></vue-tree-item>
+						<vue-tree-item v-for="item in root" :node="item" :width="width" :show_advanced_toggles="show_advanced_toggles" v-key="item.uuid"></vue-tree-item>
 					</ul>
 				</div>
 			`
