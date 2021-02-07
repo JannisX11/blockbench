@@ -9,49 +9,28 @@ const Outliner = {
 			title: tl('switches.visibility'),
 			icon: ' fa fa-eye',
 			icon_off: ' fa fa-eye-slash',
-			advanced_option: false,
-			click: function(obj) {
-				if (obj.locked) return;
-				obj.toggle('visibility')
-			}
+			advanced_option: false
 		},
 		locked: {
 			id: 'locked',
 			title: tl('switches.lock'),
 			icon: ' fas fa-lock',
 			icon_off: ' fas fa-lock-open',
-			advanced_option: true,
-			click: function(obj) {
-				if (obj.locked && Format.force_lock) return;
-				obj.toggle('locked')
-				updateSelection()
-			}
+			advanced_option: true
 		},
 		export: {
 			id: 'export',
 			title: tl('switches.export'),
 			icon: ' fa fa-camera',
 			icon_off: ' far fa-window-close',
-			advanced_option: true,
-			click: function(obj) {
-				if (obj.locked) return;
-				obj.toggle('export')
-			}
+			advanced_option: true
 		},
-		shading: {
-			id: 'shading',
-			get title() {return Project.box_uv ? tl('switches.mirror') : tl('switches.shading')},
+		shade: {
+			id: 'shade',
+			get title() {return Project.box_uv ? tl('switches.mirror') : tl('switches.shade')},
 			get icon() {return Project.box_uv ? 'fa fa-star' : 'fa fa-star'},
 			get icon_off() {return Project.box_uv ? 'fas fa-star-half-alt' : 'far fa-star'},
-			advanced_option: true,
-			click: function(obj) {
-				if (obj.locked) return;
-				obj.toggle('shade')
-				Canvas.updateUVs()
-				if (obj instanceof Cube && obj.visibility && !obj.selected) {
-					Canvas.updateUV(obj);
-				}
-			}
+			advanced_option: true
 		},
 		autouv: {
 			id: 'autouv',
@@ -59,14 +38,7 @@ const Outliner = {
 			icon: ' fa fa-thumbtack',
 			icon_off: ' far fa-times-circle',
 			icon_alt: ' fa fa-magic',
-			advanced_option: true,
-			click: function(obj) {
-				if (obj.locked) return;
-				var state = obj.autouv+1
-				if (state > 2) state = 0
-
-				obj.toggle('autouv', state)
-			}
+			advanced_option: true
 		}
 	}
 }
@@ -296,7 +268,7 @@ class OutlinerNode {
 				return this.export
 			case 'locked': 
 				return this.locked
-			case 'shading': 
+			case 'shade': 
 				return this.shade
 			case 'autouv': 
 				if (!this.autouv) {
@@ -374,18 +346,6 @@ class OutlinerElement extends OutlinerNode {
 			}
 		}
 		return edited;
-	}
-	toggle(key, val) {
-		if (val === undefined) {
-			var val = !this[key]
-		}
-		this.forSelected((el) => {
-			el[key] = val
-		}, 'toggle '+key)
-		if (key === 'visibility') {
-			Canvas.updateVisibility()
-		}
-		return this;
 	}
 	duplicate() {
 		var copy = new this.constructor(this);
@@ -744,27 +704,27 @@ function stopRenameOutliner(save) {
 	}
 }
 function toggleCubeProperty(key) {
-	if (!Cube.selected.length) return;
-	var state = Cube.selected[0][key]
+	let affected = Outliner.selected.filter(element => element[key] != undefined);
+	if (!affected.length) return;
+	var state = affected[0][key];
 	if (typeof state === 'number') {
-		state++;
-		if (state === 3) {
-			state = 0
-		}
+		state = (state+1) % 3;
 	} else {
 		state = !state
 	}
-	Undo.initEdit({elements: Cube.selected})
-	Cube.selected.forEach(cube => {
-		cube[key] = state;
+	Undo.initEdit({elements: affected})
+	affected.forEach(element => {
+		if (element[key] != undefined) {
+			element[key] = state;
+		}
 	})
 	if (key === 'visibility') {
 		Canvas.updateVisibility()
 	}
 	if (key === 'shade' && Project.box_uv) {
-		Canvas.updateUVs()
+		Canvas.updateUVs();
 	}
-	Undo.finishEdit('toggle_prop')
+	Undo.finishEdit('toggle property')
 }
 
 
@@ -969,7 +929,7 @@ Interface.definePanels(function() {
 			>` +
 				//Opener
 				
-				'<i v-if="node.children && node.children.length > 0 && (!Animator.open || node.children.some(o => o instanceof Group || o instanceof Locator))" v-on:click.stop="toggle(node)" class="icon-open-state fa" :class=\'{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}\'></i>' +
+				'<i v-if="node.children && node.children.length > 0 && (!Animator.open || node.children.some(o => o instanceof Group || o instanceof Locator))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class=\'{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}\'></i>' +
 				'<i v-else class="outliner_opener_placeholder"></i>' +
 				//Main
 				'<i :class="node.icon + ((settings.outliner_colors.value && node.color >= 0) ? \' ec_\'+node.color : \'\')" v-on:dblclick.stop="if (node.children && node.children.length) {node.isOpen = !node.isOpen;}"></i>' +
@@ -981,13 +941,14 @@ Interface.definePanels(function() {
 					class="outliner_toggle"
 					:class="getBtnClasses(btn, node)"
 					:title="btn.title"
-					v-on:click.stop="btnClick(btn, node)"
+					:toggle="btn.id"
+					@click.stop
 				></i>` +
 			'</div>' +
 			//Other Entries
 			'<ul v-if="node.isOpen">' +
 				'<vue-tree-item v-for="item in node.children" :node="item" :width="width" :show_advanced_toggles="show_advanced_toggles" v-key="item.uuid"></vue-tree-item>' +
-				`<div class="outliner_line_guide" v-if="node == Group.selected" v-bind:style="{left: getIndentation(node) + 'px'}"></div>` +
+				`<div class="outliner_line_guide" v-if="node == Group.selected" v-bind:style="{left: indentation + 'px'}"></div>` +
 			'</ul>' +
 		'</li>',
 		props: {
@@ -1010,13 +971,6 @@ Interface.definePanels(function() {
 					return node.closedIcon || node.icon;
 				}
 			},
-			toggle: function (node) {
-				if (node.hasOwnProperty('isOpen')) {
-					node.isOpen = !node.isOpen;
-				} else {
-					Vue.set(node, 'isOpen', true);
-				}
-			},
 			getBtnClasses: function (btn, node) {
 				let value = node.isIconEnabled(btn);
 				if (value === true) {
@@ -1025,11 +979,6 @@ Interface.definePanels(function() {
 					return [btn.icon_off, 'icon_off'];
 				} else {
 					return [btn.icon_alt];
-				}
-			},
-			btnClick: function (btn, node) {
-				if (typeof btn.click === 'function') {
-					btn.click(node);
 				}
 			}
 		}
@@ -1084,9 +1033,67 @@ Interface.definePanels(function() {
 				openMenu(event) {
 					Interface.Panels.outliner.menu.show(event)
 				},
+				dragToggle(e1) {
+					let [original] = eventTargetToNode(e1.target);
+					let affected = [];
+					let affected_groups = [];
+					let key = e1.target.getAttribute('toggle');
+					let previous_values = {};
+					let value = original[key];
+					value = (typeof value == 'number') ? (value+1) % 3 : !value;
+
+					function move(e2) {
+						convertTouchEvent(e2);
+						if (e2.target.classList.contains('outliner_toggle') && e2.target.getAttribute('toggle') == key) {
+							let [node] = eventTargetToNode(e2.target);
+							if (!affected.includes(node) && (!node.locked || key == 'locked')) {
+								let new_affected = [node];
+								if (node instanceof Group) {
+									node.forEachChild(node => new_affected.push(node))
+									affected_groups.push(node);
+								}
+								new_affected.forEach(node => {
+									affected.push(node);
+									previous_values[node.uuid] = node[key];
+									node[key] = value;
+									if (key == 'autouv' && node instanceof Cube) Canvas.updateUV(node);
+								})
+								// Update
+								if (key == 'visibility') Canvas.updateVisibility();
+								if (key == 'locked') updateSelection();
+							}
+						}
+					}
+					function off(e2) {
+						if (affected.length) {
+							affected.forEach(node => {
+								node[key] = previous_values[node.uuid];
+							})
+							Undo.initEdit({elements: affected.filter(node => node instanceof OutlinerElement), outliner: affected_groups.length > 0})
+							affected.forEach(node => {
+								node[key] = value;
+								if (key == 'shade') node.updateElement();
+							})
+							Undo.finishEdit(`toggle ${key} property`)
+						}
+						removeEventListeners(document, 'mousemove touchmove', move);
+						removeEventListeners(document, 'mouseup touchend', off);
+					}
+					addEventListeners(document, 'mousemove touchmove', move, {passive: false});
+					addEventListeners(document, 'mouseup touchend', off, {passive: false});
+
+					move(e1);
+
+					e1.preventDefault()
+
+				},
 				dragNode(e1) {
 					convertTouchEvent(e1);
-					let scope = this;
+
+					if (e1.target.classList.contains('outliner_toggle')) {
+						this.dragToggle(e1);
+						return false;
+					}
 					
 					let [item] = eventTargetToNode(e1.target);
 					if (!item || item.locked) {

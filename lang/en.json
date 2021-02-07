@@ -1194,7 +1194,7 @@
 	"switches.visibility": "Visibility",
 	"switches.lock": "Lock",
 	"switches.export": "Export",
-	"switches.shading": "Shade",
+	"switches.shade": "Shade",
 	"switches.mirror": "Mirror UV",
 	"switches.autouv": "Auto UV",
 
