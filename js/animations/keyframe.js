@@ -223,11 +223,11 @@ class Keyframe {
 			if (this.data_points.length == 1 && this.interpolation == 'linear') {
 				return this.getArray();
 			} else {
-				return {
+				return new oneLiner({
+					lerp_mode: this.interpolation != 'linear' ? this.interpolation : undefined,
 					pre:  this.getArray(0),
 					post: this.getArray(1),
-					lerp_mode: this.interpolation != 'linear' ? this.interpolation : undefined,
-				}
+				})
 			}
 		} else if (this.channel == 'timeline') {
 			let scripts = [];
@@ -294,13 +294,15 @@ class Keyframe {
 		if (Timeline.selected.length == 1 && Timeline.selected[0].animator.selected == false) {
 			Timeline.selected[0].animator.select()
 		}
+		this.selected = true
+		TickUpdates.keyframe_selection = true;
+
+		if (this.transform) Timeline.vue.graph_editor_channel = this.channel;
 
 		var select_tool = true;
 		Timeline.selected.forEach(kf => {
 			if (kf.channel != scope.channel) select_tool = false;
 		})
-		this.selected = true
-		TickUpdates.keyframe_selection = true;
 		if (select_tool) {
 			switch (this.channel) {
 				case 'rotation': BarItems.rotate_tool.select(); break;
@@ -717,6 +719,9 @@ BARS.defineActions(function() {
 			Undo.initEdit({keyframes: Timeline.selected})
 			Timeline.selected.forEach((kf) => {
 				kf.time = end + start - kf.time;
+				if (kf.transform && kf.data_points.length > 1) {
+					kf.data_points.reverse();
+				}
 			})
 			Undo.finishEdit('reverse keyframes')
 			updateKeyframeSelection()

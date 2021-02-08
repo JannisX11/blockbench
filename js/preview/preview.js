@@ -1268,6 +1268,7 @@ class GimbalControls {
 			if (!scope.preview.controls.enableRotate && scope.preview.angle == null) return;
 			convertTouchEvent(e1);
 			let last_event = e1;
+			let move_calls = 0;
 
 			function move(e2) {
 				convertTouchEvent(e2);
@@ -1276,9 +1277,11 @@ class GimbalControls {
 				if (scope.preview.angle != null) {
 					scope.preview.setProjectionMode(false);
 				}
-				scope.preview.controls.rotateLeft((e1.touches ? (e2.clientX - last_event.clientX) : Math.clamp(e2.movementX, -5, 5)) / 40);
-				scope.preview.controls.rotateUp((e1.touches ? (e2.clientY - last_event.clientY) : Math.clamp(e2.movementY, -5, 5)) / 40);
+				let limit = move_calls <= 2 ? 1 : 32;
+				scope.preview.controls.rotateLeft((e1.touches ? (e2.clientX - last_event.clientX) : Math.clamp(e2.movementX, -limit, limit)) / 40);
+				scope.preview.controls.rotateUp((e1.touches ? (e2.clientY - last_event.clientY) : Math.clamp(e2.movementY, -limit, limit)) / 40);
 				last_event = e2;
+				move_calls++;
 			}
 			function off(e2) {
 				document.exitPointerLock()
