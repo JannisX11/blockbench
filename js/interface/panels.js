@@ -10,6 +10,7 @@ class Panel {
 		this.selection_only = data.selection_only == true;
 		this.condition = data.condition;
 		this.onResize = data.onResize;
+		this.folded = false;
 		if (data.toolbars) {
 			this.toolbars = data.toolbars;
 		} else {
@@ -34,7 +35,6 @@ class Panel {
 					'inside-vue': data.component
 				},
 				template: `<div class="panel ${this.selection_only ? 'selection_only' : ''} ${this.growable ? 'grow' : ''}" id="${this.id}">
-					<h3 class="panel_handle">${this.name}</h3>
 					<inside-vue class="panel_inside" ref="inside"></inside-vue>
 				</div>`,
 				mounted() {
@@ -46,14 +46,18 @@ class Panel {
 
 			this.inside_vue = this.vue.$refs.inside;
 			
-			this.node = $('.panel#'+this.id).get(0)
-			this.handle = $(this.node).find('h3.panel_handle').get(0)
-			
-		} else {
-			this.node = $('.panel#'+this.id).get(0)
-			this.handle = $('<h3 class="panel_handle">'+this.name+'</h3>').get(0)
-			$(this.node).prepend(this.handle)
 		}
+		this.node = $('.panel#'+this.id).get(0)
+		this.handle = $(`<h3 class="panel_handle">
+			<label>${this.name}</label>
+			<div class="tool panel_folding_button"><i class="material-icons">expand_more</i></div>
+		</h3>`).get(0)
+		this.handle.lastElementChild.addEventListener('click', (e) => {
+			this.folded = !this.folded;
+			$(this.node).find('> .panel_inside').css('display', this.folded ? 'none' : '');
+			$(this.handle).find('> .panel_folding_button > i').text(this.folded ? 'expand_less' : 'expand_more');
+		})
+		$(this.node).prepend(this.handle)
 
 
 		if (!Blockbench.isMobile) {
@@ -65,6 +69,7 @@ class Panel {
 				appendTo: 'body',
 				zIndex: 19,
 				scope: 'panel',
+				handle: '> label',
 				start: function() {
 					Interface.panel = scope;
 				},
@@ -222,7 +227,7 @@ function setupPanels() {
 		condition: !Blockbench.isMobile && {modes: ['animate']},
 		selection_only: true,
 		toolbars: {
-			bone_ik: Toolbars.bone_ik,
+			inverse_kinematics: Toolbars.inverse_kinematics,
 		},
 		component: {
 			template: `
@@ -230,7 +235,7 @@ function setupPanels() {
 					<p>${ tl('panel.element.origin') }</p>
 					<div class="toolbar_wrapper bone_origin"></div>
 					<p>${ tl('panel.bone.ik') }</p>
-					<div class="toolbar_wrapper bone_ik"></div>
+					<div class="toolbar_wrapper inverse_kinematics"></div>
 				</div>
 			`
 		}

@@ -58,23 +58,63 @@ Object.assign(Blockbench, {
 			}).click()
 		}
 	},
+	pickDirectory(options) {
+		if (typeof options !== 'object') {options = {}}
+		/**
+		 	resource_id
+			startpath
+			title
+		 */
+
+		if (isApp) {
+
+			if (!options.startpath && options.resource_id) {
+				options.startpath = StateMemory.dialog_paths[options.resource_id]
+			}
+
+			let dirNames = electron.dialog.showOpenDialogSync(currentwindow, {
+				title: options.title ? options.title : '',
+				dontAddToRecent: true,
+				properties: ['openDirectory'],
+				defaultPath: settings.streamer_mode.value
+					? app.getPath('desktop')
+					: options.startpath
+			})
+
+			if (!dirNames) return null;
+
+			if (options.resource_id) {
+				StateMemory.dialog_paths[options.resource_id] = PathModule.dirname(dirNames[0]);
+				StateMemory.save('dialog_paths');
+			}
+
+			return dirNames[0];
+
+		} else {
+
+			console.warn('Picking directories is currently not supported in the web app');
+
+		}
+	},
 	read(files, options, cb) {
 		if (files == undefined) return false;
 		if (typeof files == 'string') files = [files];
 
 		var results = [];
 		var result_count = 0;
-		var i = 0;
+		var index = 0;
 		var errant;
 		if (isApp) {
-			while (i < files.length) {
+			while (index < files.length) {
 				(function() {
-					var this_i = i;
-					var file = files[i]
+					var this_i = index;
+					var file = files[index]
 					let readtype = options.readtype;
 					if (typeof readtype == 'function') {
 						readtype = readtype(file);
-					} else if (readtype != 'buffer' && readtype != 'binary') {
+					}
+					var binary = (readtype === 'buffer' || readtype === 'binary');
+					if (!readtype) {
 						readtype = 'text';
 					}
 
@@ -108,23 +148,9 @@ Object.assign(Blockbench, {
 							}
 						}
 					} else /*text*/ {
-						var load = function (data) {
-							if ((readtype != 'buffer' && readtype != 'binary') && data.charCodeAt(0) === 0xFEFF) {
-								data = data.substr(1)
-							}
-							results[this_i] = {
-								name: pathToName(file, true),
-								path: file,
-								content: data
-							}
-							result_count++;
-							if (result_count === files.length) {
-								cb(results)
-							}
-						}
-						var read_files;
+						var data;
 						try {
-							read_files = fs.readFileSync(file, readtype == 'text' ? 'utf8' : undefined);
+							data = fs.readFileSync(file, readtype == 'text' ? 'utf8' : undefined);
 						} catch(err) {
 							console.log(err)
 							if (!errant && options.errorbox !== false) {
@@ -136,10 +162,29 @@ Object.assign(Blockbench, {
 							errant = true;
 							return;
 						}
-						load(read_files);
+						if (binary) {
+							var ab = new ArrayBuffer(data.length);
+							var view = new Uint8Array(ab);
+							for (var i = 0; i < data.length; ++i) {
+								view[i] = data[i];
+							}
+							data = ab;
+						}
+						if (!binary && data.charCodeAt(0) === 0xFEFF) {
+							data = data.substr(1)
+						}
+						results[this_i] = {
+							name: pathToName(file, true),
+							path: file,
+							content: data
+						}
+						result_count++;
+						if (result_count === files.length) {
+							cb(results)
+						}
 					}
 				})()
-				i++;
+				index++;
 			}
 		} else {
 			while (i < files.length) {

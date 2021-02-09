@@ -141,7 +141,7 @@ class Preview {
 		//Cameras
 		this.isOrtho = false
 		this.angle = null;
-		this.camPers = new THREE.PerspectiveCamera(settings.fov.value, 16 / 9, 1, 30000)
+		this.camPers = new THREE.PerspectiveCamera(settings.fov.value, 16 / 9, 0.1, 30000)
 		this.camOrtho = new THREE.OrthographicCamera(-600,  600, -400, 400, -200, 20000);
 		this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'y'}]
 		this.camOrtho.axis = null
@@ -165,8 +165,8 @@ class Preview {
 				var tag = scope.annotations[key];
 				if (tag.object.visible) {
 					var pos = tag.object.toScreenPosition(scope.camera, scope.canvas);
-					$(tag.node).css('left', pos.x+'px');
-					$(tag.node).css('top', pos.y+'px');
+					tag.node.style.setProperty('left', pos.x+'px');
+					tag.node.style.setProperty('top', pos.y+'px');
 				}
 			}
 		}
@@ -187,6 +187,11 @@ class Preview {
 
 		this.camPers.position.fromArray(DefaultCameraPresets[0].position)
 		this.controls.target.fromArray(DefaultCameraPresets[0].target);
+
+		if (!Blockbench.isMobile) {
+			this.gimbal_controls = new GimbalControls(this);
+			this.node.append(this.gimbal_controls.node);
+		}
 
 		//Keybinds
 		this.controls.mouseButtons.ZOOM = undefined;
@@ -236,7 +241,7 @@ class Preview {
 		this.loadBackground()
 
 		this.selection = {
-			box: $('<div id="selection_box", class="selection_rectangle"></div>') 
+			box: $('<div id="selection_box" class="selection_rectangle"></div>') 
 		}
 
 		this.raycaster = new THREE.Raycaster()
@@ -341,7 +346,7 @@ class Preview {
 			}
 			if (intersect.isElement) {
 				this.controls.hasMoved = true
-				var obj = OutlinerElement.uuids[intersects[0].object.name]
+				var obj = OutlinerNode.uuids[intersects[0].object.name]
 				let face = Canvas.face_order[intersects[0].face.materialIndex];
 
 				return {
@@ -650,7 +655,7 @@ class Preview {
 	mousemove(event) {
 		if (Settings.get('highlight_cubes')) {
 			var data = this.raycast(event);
-			updateCubeHighlights(data && data.cube);
+			if (settings.highlight_cubes.value) updateCubeHighlights(data && data.cube);
 		}
 	}
 	mouseup(event) {
@@ -868,9 +873,9 @@ class Preview {
 		if (this.background && this.background.image) {
 			if (!this.background.imgtag) this.background.imgtag = new Image();
 			this.background.imgtag.src = this.background.image.replace(/#/g, '%23');
-			$(this.canvas).css('background-image', `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`)
+			this.canvas.style.setProperty('background-image', `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`)
 		} else {
-			$(this.canvas).css('background-image', 'none')
+			this.canvas.style.setProperty('background-image', 'none')
 		}
 		this.updateBackground()
 		return this;
@@ -890,9 +895,9 @@ class Preview {
 		pos_x += (bg.x * zoom) + this.width/2 - ( bg.size * zoom) / 2
 		pos_y += (bg.y * zoom) + this.height/2 -((bg.size / bg.ratio||1) * zoom) / 2
 
-		$(this.canvas).css('background-position-x', pos_x + 'px')
-		$(this.canvas).css('background-position-y', pos_y + 'px')
-		$(this.canvas).css('background-size',  bg.size * zoom +'px')
+		this.canvas.style.setProperty('background-position-x', pos_x + 'px')
+		this.canvas.style.setProperty('background-position-y', pos_y + 'px')
+		this.canvas.style.setProperty('background-size',  bg.size * zoom +'px')
 		return this;
 	}
 	clearBackground() {
@@ -1094,12 +1099,26 @@ class Preview {
 						}
 					}, 'image', false)
 				}},
-				{icon: 'fa-clipboard', name: 'menu.preview.background.clipboard', condition: isApp, click: function(preview) {
-					var image = clipboard.readImage().toDataURL();
-					if (image.length > 32) {
-						preview.background.image = image;
-						preview.loadBackground();
-						Settings.saveLocalStorages()
+				{icon: 'fa-clipboard', name: 'menu.preview.background.clipboard', click: function(preview) {
+					function loadImage(image) {
+						if (image.length > 32) {
+							preview.background.image = image;
+							preview.loadBackground();
+							Settings.saveLocalStorages()
+						}
+					}
+					if (isApp) {
+						var image = clipboard.readImage().toDataURL();
+						loadImage(image);
+					} else {
+						navigator.clipboard.read().then(content => {
+							if (content && content[0] && content[0].types.includes('image/png')) {
+								content[0].getType('image/png').then(blob => {
+									let url = URL.createObjectURL(blob);
+									loadImage(url);
+								})
+							}
+						})
 					}
 				}},
 				{icon: 'photo_size_select_large', name: 'menu.preview.background.position', condition: has_background, click: function(preview) {
@@ -1200,6 +1219,114 @@ function openQuadView() {
 	$('#preview').append(wrapper4)
 	
 	updateInterface()
+}
+
+
+class GimbalControls {
+	constructor(preview, options = {}) {
+		let scope = this;
+		this.preview = preview;
+		this.node = document.createElement('div');
+		this.node.classList.add('gimbal_controls');
+
+		let svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		this.node.append(svg);
+		this.lines = {
+			x: document.createElementNS('http://www.w3.org/2000/svg', 'path'),
+			y: document.createElementNS('http://www.w3.org/2000/svg', 'path'),
+			z: document.createElementNS('http://www.w3.org/2000/svg', 'path'),
+		}
+		for (let axis in this.lines) {
+			this.lines[axis].setAttribute('axis', axis);
+			svg.append(this.lines[axis]);
+		}
+
+		this.sides = {
+			top: {axis: 'y', sign: 1, label: 'Y'},
+			bottom: {axis: 'y', sign: -1},
+			east: {axis: 'x', sign: 1, label: 'X'},
+			west: {axis: 'x', sign: -1},
+			south: {axis: 'z', sign: 1, label: 'Z'},
+			north: {axis: 'z', sign: -1},
+		}
+		for (let key in this.sides) {
+			let side = this.sides[key];
+			side.node = document.createElement('div');
+			side.node.classList.add('gimbal_controls_side');
+			side.node.setAttribute('axis', side.axis);
+			if (side.label) side.node.innerText = side.label;
+
+			let preset = DefaultCameraPresets.find(p => p.id == key);
+			side.node.addEventListener('click', e => {
+				this.preview.loadAnglePreset(preset);
+			})
+			this.node.append(side.node);
+		}
+
+		// Interact
+		addEventListeners(this.node, 'mousedown touchstart', e1 => {
+			if (!scope.preview.controls.enableRotate && scope.preview.angle == null) return;
+			convertTouchEvent(e1);
+			let last_event = e1;
+			let move_calls = 0;
+
+			function move(e2) {
+				convertTouchEvent(e2);
+				scope.node.classList.add('mouse_active');
+				if (!e1.touches && last_event == e1) scope.node.requestPointerLock();
+				if (scope.preview.angle != null) {
+					scope.preview.setProjectionMode(false);
+				}
+				let limit = move_calls <= 2 ? 1 : 32;
+				scope.preview.controls.rotateLeft((e1.touches ? (e2.clientX - last_event.clientX) : Math.clamp(e2.movementX, -limit, limit)) / 40);
+				scope.preview.controls.rotateUp((e1.touches ? (e2.clientY - last_event.clientY) : Math.clamp(e2.movementY, -limit, limit)) / 40);
+				last_event = e2;
+				move_calls++;
+			}
+			function off(e2) {
+				document.exitPointerLock()
+				removeEventListeners(document, 'mousemove touchmove', move);
+				removeEventListeners(document, 'mouseup touchend', off);
+				scope.node.classList.remove('mouse_active');
+			}
+			addEventListeners(document, 'mousemove touchmove', move);
+			addEventListeners(document, 'mouseup touchend', off);
+		})
+		this.node.addEventListener('dblclick', e => {
+			this.preview.setProjectionMode(!this.preview.isOrtho);
+		})
+
+		this.preview.controls.onUpdate(e => this.update(e));
+
+		this.update();
+	}
+	update() {
+		let background = 'background';
+		let x = this.preview.controls.getPolarAngle();
+		let y = this.preview.controls.getAzimuthalAngle();
+		let mid = 40;
+		let rad = 28;
+		let scale = 0.16;
+		let offset = {
+			x: [Math.cos(y), Math.cos(x)*Math.sin(y), Math.sin(y)],
+			y: [0, -Math.sin(x), Math.cos(x)],
+			z: [-Math.sin(y), Math.cos(x)*Math.cos(y), Math.cos(y)],
+		}
+
+		for (let key in this.sides) {
+			let side = this.sides[key];
+			let vec = offset[side.axis];
+			side.node.style.left = `${mid + side.sign * rad * vec[0]}px`;
+			side.node.style.top = `${mid + side.sign * rad * vec[1]}px`;
+			side.node.style.setProperty('transform', `scale(${1 + scale * side.sign * vec[2]})`);
+			side.node.classList.toggle(background, vec[2] * side.sign < 0);
+		}
+
+		for (let axis in this.lines) {
+			let vec = offset[axis];
+			this.lines[axis].setAttribute('d', `M${mid} ${mid} L${mid + rad*vec[0]} ${mid + rad*vec[1]}`)
+		}
+	}
 }
 
 
@@ -1444,11 +1571,55 @@ const Screencam = {
 	}
 }
 
+window.addEventListener("gamepadconnected", function(event) {
+	if (event.gamepad.id.includes('SpaceMouse')) {
+
+		let interval = setInterval(() => {
+			let gamepad = navigator.getGamepads()[event.gamepad.index];
+			let preview = Preview.selected;
+			if (!document.hasFocus() || !preview || !gamepad || !gamepad.axes || gamepad.axes.allEqual(0) || gamepad.axes.find(v => isNaN(v)) != undefined) return;
+
+			let offset = new THREE.Vector3(
+				gamepad.axes[0],
+				-gamepad.axes[2],
+				gamepad.axes[1],
+			)
+			offset.multiplyScalar(3);
+			offset.applyQuaternion(preview.camera.quaternion);
+
+			preview.controls.target.add(offset);
+			preview.camera.position.add(offset);
+
+			let camera_diff = new THREE.Vector3().copy(preview.controls.target).sub(preview.camera.position);
+			let axes = [
+				gamepad.axes[3] / -40,
+				gamepad.axes[5] / -40,
+			];
+			camera_diff.applyAxisAngle(THREE.NormalY, axes[1]);
+			let tilt_axis = new THREE.Vector3().copy(camera_diff).normalize();
+			tilt_axis.applyAxisAngle(THREE.NormalY, Math.PI/2);
+			tilt_axis.y = 0;
+			camera_diff.applyAxisAngle(tilt_axis, axes[0]);
+
+			preview.controls.target.copy(camera_diff).add(preview.camera.position);
+
+			main_preview.controls.updateSceneScale();
+
+		}, 16)
+
+		window.addEventListener("gamepadconnected", function(event2) {
+			if (event2.gamepad.id == event.gamepad.id && event2.gamepad.index == event.gamepad.index) {
+				clearInterval(interval);
+			}
+		})
+	}
+});
+
 //Init/Update
 function initCanvas() {
 	
 	//Objects
-	scene = new THREE.Scene();
+	scene = Canvas.scene = new THREE.Scene();
 	display_scene = new THREE.Scene();
 	display_area = new THREE.Object3D();
 	display_base = new THREE.Object3D();
@@ -1651,7 +1822,12 @@ function initCanvas() {
 }
 function animate() {
 	requestAnimationFrame( animate );
-	TickUpdates.Run()
+	if (!settings.background_rendering.value && !document.hasFocus()) return;
+	TickUpdates.Run();
+
+	if (Animator.open && Timeline.playing) {
+		Timeline.loop();
+	}
 	if (quad_previews.current) {
 		Wintersky.updateFacingRotation(quad_previews.current.camera);
 	}
@@ -1735,8 +1911,8 @@ function buildGrid() {
 		var length = Format.centered_grid
 			? (settings.full_grid.value ? 24 : 8)
 			: 16
-		setupAxisLine(new THREE.Vector3( 0, 0.001, 0), length, 'x')
-		setupAxisLine(new THREE.Vector3( 0, 0.001, 0), length, 'z')
+		setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'x')
+		setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'z')
 
 	}
 
@@ -1848,56 +2024,46 @@ function buildGrid() {
 }
 
 BARS.defineActions(function() {
-	new Action('toggle_wireframe', {
+	new Toggle('toggle_wireframe', {
 		icon: 'border_clear',
 		category: 'view',
 		keybind: new Keybind({key: 90}),
 		condition: () => Toolbox && Toolbox.selected && Toolbox.selected.allowWireframe,
-		click: function () {
+		default: false,
+		onChange: function (state) {
 			Prop.wireframe = !Prop.wireframe
 			Canvas.updateAllFaces()
 			if (Modes.id === 'animate') {
 				Animator.preview()
 			}
 			Blockbench.showQuickMessage('message.wireframe.' + (Prop.wireframe ? 'enabled' : 'disabled'))
+			this.setIcon(Prop.wireframe ? 'check_box' : 'check_box_outline_blank')
 		}
 	})
-	new Action('preview_checkerboard', {
-		name: tl('settings.preview_checkerboard'),
-		description: tl('settings.preview_checkerboard.desc'),
+	new Toggle('preview_checkerboard', {
+		icon: 'fas.fa-chess-board',
 		category: 'view',
 		linked_setting: 'preview_checkerboard',
-		keybind: new Keybind({key: 84}),
-		click: function () {
-			this.toggleLinkedSetting()
-		}
+		keybind: new Keybind({key: 84})
 	})
-	new Action('uv_checkerboard', {
-		name: tl('settings.uv_checkerboard'),
-		description: tl('settings.uv_checkerboard.desc'),
+	new Toggle('uv_checkerboard', {
+		icon: 'fas.fa-chess-board',
 		category: 'view',
-		linked_setting: 'uv_checkerboard',
-		click: function () {
-			this.toggleLinkedSetting()
-		}
+		linked_setting: 'uv_checkerboard'
 	})
-	new Action('toggle_shading', {
+	new Toggle('toggle_shading', {
 		name: tl('settings.shading'),
 		description: tl('settings.shading.desc'),
+		icon: 'wb_sunny',
 		category: 'view',
-		linked_setting: 'shading',
-		click: function () {
-			this.toggleLinkedSetting()
-		}
+		linked_setting: 'shading'
 	})
-	new Action('toggle_motion_trails', {
+	new Toggle('toggle_motion_trails', {
 		name: tl('settings.motion_trails'),
 		description: tl('settings.motion_trails.desc'),
+		icon: 'gesture',
 		category: 'view',
-		linked_setting: 'motion_trails',
-		click: function () {
-			this.toggleLinkedSetting()
-		}
+		linked_setting: 'motion_trails'
 	})
 
 	new Action('screenshot_model', {

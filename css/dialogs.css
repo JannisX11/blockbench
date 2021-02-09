@@ -15,6 +15,7 @@
 		height: 30px;
 		width: 30px;
 		padding: 4px;
+		cursor: pointer;
 	}
 	.dialog_close_button:hover {
 		color: var(--color-light);
@@ -219,6 +220,9 @@
 		margin-top: 5px;
 		float: left;
 	}
+	#settings h3 > i.settings_expand_icon {
+		opacity: 0.7;
+	}
 	#settings h3:hover {
 		color: var(--color-light);
 	}
@@ -248,7 +252,7 @@
 	#settingslist li li {
 		padding: 5px 0;
 	}
-	#settingslist li li:hover {
+	#settingslist li li:hover input[type=checkbox] {
 		color: var(--color-light);
 	}
 	#settingslist li > .setting_element {
@@ -274,11 +278,10 @@
 	#settingslist .setting_name {
 		font-size: 1.1em;
 		height: 24px;
-		color: var(--color-light);
 	}
 	#settingslist .setting_description {
-		font-size: 0.9em;
-		color: var(--color-text);
+		font-size: 0.94em;
+		color: var(--color-subtle_text);
 	}
 	#settingslist input[type=number] {
 		height: 28px;
@@ -330,18 +333,17 @@
 	}
 	#keybindlist li > div.keybindslot {
 		width: calc(48% - 32px);
-		padding: 2px;
+		padding: 4px;
 		padding-left: 8px;
 		height: 30px;
-		background-color: var(--color-button);
+		background-color: var(--color-back);
 		border: 1px solid var(--color-border);
-		font-size: 0.9em;
+		font-size: 0.94em;
 		overflow: hidden;
 		white-space: nowrap;
 		display: inline-block;
 	}
 	#keybindlist li > div.keybindslot:hover {
-		background-color: var(--color-selected);
 		color: var(--color-light);
 	}
 	#keybindlist li > div.keybindslot.conflict {
@@ -351,13 +353,14 @@
 		background: transparent;
 		width: calc(52% - 28px);
 		text-align: right;
-		padding: 2px;
+		padding: 4px;
 		padding-left: 8px;
 		vertical-align: top;
 		display: inline-block;
 	}
 	#keybindlist > li > ul > li {
 		position: relative;
+		display: flex;
 	}
 	#keybindlist > li {
 		width: 100%;
@@ -381,7 +384,8 @@
 	}
 	.color_field p {
 		margin: 0;
-		font-size: 0.9em;
+		font-size: 0.94em;
+		color: var(--color-subtle_text);
 	}
 	.color_field h4 {
 		margin: 0;
@@ -632,9 +636,11 @@
 		min-height: 80px;
 	}
 	#plugin_list li {
-		border: 1px solid var(--color-border);
 		height: 128px;
 		overflow-y: hidden;
+		margin: 8px;
+		background-color: var(--color-ui);
+		margin-right: 2px;
 	}
 	#plugin_list li.expanded {
 		min-height: 128px;
@@ -659,7 +665,7 @@
 		text-align: right;
 	}
 	#plugin_list li .button_bar.tiny {
-		opacity: 0.6;
+		color: var(--color-subtle_text);
 		font-size: 0.86em;
 		padding-right: 2px;
 	}
@@ -704,12 +710,12 @@
 	}
 
 	#plugin_list .author {
-		opacity: 0.6;
+		color: var(--color-subtle_text);
 		font-size: 0.86em;
 		clear: both;
 	}
 	#plugin_list .description {
-		font-size: 0.9em;
+		font-size: 0.94em;
 		max-height: 48px;
 		margin-right: 12px;
 	}
@@ -722,7 +728,7 @@
 	.no_plugin_message {
 		text-align: center;
 		margin-top: 30px;
-		opacity: 0.5;
+		color: var(--color-subtle_text);
 	}
 	.search_bar {
 		float: right;

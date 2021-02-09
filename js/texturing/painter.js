@@ -946,38 +946,40 @@ BARS.defineActions(function() {
 			color: true,
 		}
 	})
-	new Action('mirror_painting', {
-		label: true,
-		icon: 'check_box_outline_blank',
+	new Toggle('mirror_painting', {
+		icon: 'flip',
 		category: 'paint',
 		condition: () => Modes.paint,
-		click: function () {
-			Painter.mirror_painting = !Painter.mirror_painting;
-			this.setIcon(Painter.mirror_painting ? 'check_box' : 'check_box_outline_blank')
+		onChange: function (value) {
+			Painter.mirror_painting = value;
+			if (value) {
+				let size = 16*16;
+				var grid = new THREE.GridHelper(size, 16*2, gizmo_colors.outline);
+				grid.rotation.z = Math.PI/2;
+				grid.position.y = size/2;
+				scene.add(grid);
+				setTimeout(() => {
+					scene.remove(grid);
+					grid.geometry.dispose();
+				}, 1000)
+			}
 		}
 	})
-	new Action('lock_alpha', {
-		icon: 'fas.fa-unlock',
+	new Toggle('lock_alpha', {
+		icon: 'fas.fa-chess-board',
 		category: 'paint',
 		condition: () => Modes.paint,
-		click: function () {
+		onChange: function () {
 			Painter.lock_alpha = !Painter.lock_alpha;
-			this.setIcon(Painter.lock_alpha ? 'fas.fa-lock' : 'fas.fa-unlock')
 		}
 	})
 
-	new Action('painting_grid', {
-		name: tl('settings.painting_grid'),
-		description: tl('settings.painting_grid.desc'),
-		icon: 'check_box',
-		icon_states: ['grid_off', 'grid_on'],
+	new Toggle('painting_grid', {
+		icon: 'grid_on',
 		category: 'view',
 		condition: () => Modes.paint,
 		keybind: new Keybind({key: 71}),
-		linked_setting: 'painting_grid',
-		click: function () {
-			BarItems.painting_grid.toggleLinkedSetting()
-		}
+		linked_setting: 'painting_grid'
 	})
 
 	new NumSlider('slider_brush_size', {

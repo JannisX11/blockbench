@@ -19,6 +19,7 @@ const CustomTheme = {
 		text: '#cacad4',
 		light: '#f4f3ff',
 		accent_text: '#000006',
+		subtle_text: '#848891',
 		grid: '#495061',
 		wireframe: '#576f82',
 		checkerboard: '#1c2026',
@@ -159,6 +160,11 @@ const CustomTheme = {
 				CustomTheme.data.colors[key] = legacy_colors[key].hex;
 			}
 		}
+		Blockbench.onUpdateTo('3.8', () => {
+			if (CustomTheme.data.colors.checkerboard == '#2f3339') {
+				CustomTheme.data.colors.checkerboard = CustomTheme.defaultColors.checkerboard;
+			}
+		})
 	},
 	import(file) {
 		var data = JSON.parse(file.content)

@@ -94,7 +94,7 @@
 		"webapp": "git checkout gh-pages && git merge master && git push && git checkout master"
 	},
 	"devDependencies": {
-		"@types/jquery": "^3.5.4",
+		"blockbench-types": "^3.7.2",
 		"electron": "^8.5.5",
 		"electron-builder": "^22.9.1",
 		"electron-notarize": "^1.0.0",

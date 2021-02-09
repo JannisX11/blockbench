@@ -19,6 +19,9 @@ const recent_projects = (function() {
 		try {
 			array = JSON.parse(raw).slice().reverse()
 		} catch (err) {}
+		array = array.filter(project => {
+			return fs.existsSync(project.path);
+		})
 	}
 	return array
 })();
@@ -61,13 +64,6 @@ function initializeDesktopApp() {
 		shell.openExternal(event.target.href);
 		return true;
 	});
-	if (currentwindow.webContents.zoomLevel !== undefined) {
-		Prop.zoom = 100 + currentwindow.webContents.zoomLevel*12
-	} else if (compareVersions('5.0.0', process.versions.electron)) {
-		Prop.zoom = 100 + currentwindow.webContents._getZoomLevel()*12
-	} else {
-		Prop.zoom = 100 + currentwindow.webContents.getZoomLevel()*12
-	}
 
 	function makeUtilFolder(name) {
 		let path = PathModule.join(app.getPath('userData'), name)
@@ -81,6 +77,8 @@ function initializeDesktopApp() {
 	if (__dirname.includes('C:\\xampp\\htdocs\\blockbench')) {
 		Blockbench.addFlag('dev')
 	}
+
+	settings.interface_scale.onChange();
 
 	if (Blockbench.platform == 'darwin') {
 		//Placeholder
@@ -294,14 +292,14 @@ function openDefaultTexturePath() {
 	if (answer === 0) {
 		return;
 	} else if (answer === 1) {
-		 ElecDialogs.showOpenDialog(currentwindow, {
+
+		let path = Blockbench.pickDirectory({
 			title: tl('message.default_textures.select'),
-			properties: ['openDirectory'],
-		}, function(filePaths) {
-			if (filePaths) {
-				settings.default_path.value = filePaths[0]
-			}
-		})
+			resource_id: 'texture',
+		});
+		if (path) {
+			settings.default_path.value = path;
+		}
 	} else {
 		settings.default_path.value = false
 	}

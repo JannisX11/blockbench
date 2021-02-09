@@ -113,7 +113,7 @@ THREE.OrbitControls = function ( object, preview ) {
 
 				let auto_rot_angle = getAutoRotationAngle()
 				scope.autoRotateProgress += auto_rot_angle;
-				rotateLeft( auto_rot_angle );
+				scope.rotateLeft( auto_rot_angle );
 
 			}
 
@@ -253,12 +253,12 @@ THREE.OrbitControls = function ( object, preview ) {
 
 	}
 
-	function rotateLeft( angle ) {
+	this.rotateLeft = function( angle ) {
 
 		sphericalDelta.theta -= angle;
 	}
 
-	function rotateUp( angle ) {
+	this.rotateUp = function( angle ) {
 
 		sphericalDelta.phi -= angle;
 
@@ -397,10 +397,10 @@ THREE.OrbitControls = function ( object, preview ) {
 		var element = scope.domElement === document ? scope.domElement.body : scope.domElement;
 
 		// rotating across whole screen goes 360 degrees around
-		rotateLeft( 2 * Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed );
+		scope.rotateLeft( 2 * Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed );
 
 		// rotating up and down along whole screen attempts to go 360, but limited to 180
-		rotateUp( 2 * Math.PI * rotateDelta.y / element.clientHeight * scope.rotateSpeed );
+		scope.rotateUp( 2 * Math.PI * rotateDelta.y / element.clientHeight * scope.rotateSpeed );
 
 		rotateStart.copy( rotateEnd );
 
@@ -514,10 +514,10 @@ THREE.OrbitControls = function ( object, preview ) {
 		var element = scope.domElement === document ? scope.domElement.body : scope.domElement;
 
 		// rotating across whole screen goes 360 degrees around
-		rotateLeft( 2 * Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed );
+		scope.rotateLeft( 2 * Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed );
 
 		// rotating up and down along whole screen attempts to go 360, but limited to 180
-		rotateUp( 2 * Math.PI * rotateDelta.y / element.clientHeight * scope.rotateSpeed );
+		scope.rotateUp( 2 * Math.PI * rotateDelta.y / element.clientHeight * scope.rotateSpeed );
 
 		rotateStart.copy( rotateEnd );
 

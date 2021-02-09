@@ -251,13 +251,12 @@ var Extruder = {
 							north:	{uv:[(rect.x2+1)*scale_i, rect.y*scale_i, rect.x*scale_i, (rect.y+1)*scale_i], texture: texture},
 							south:	{uv:[rect.x*scale_i, rect.y2*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture},
 							east:	{uv:[rect.x2*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 90},
-							west:	{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 270}
+							west:	{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 270},
 						}
 					}).init()
 					selected.push(current_cube)
 					cube_nr++;
 				}
-
 
 				ext_x++;
 			}
@@ -356,7 +355,6 @@ function uploadSketchfabModel() {
 }
 //Json
 function compileJSON(object, options) {
-	var output = ''
 	if (typeof options !== 'object') options = {}
 	function newLine(tabs) {
 		if (options.small === true) {return '';}
@@ -366,11 +364,14 @@ function compileJSON(object, options) {
 		}
 		return s;
 	}
+	function escape(string) {
+		return string.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n|\r\n/g, '\\n').replace(/\t/g, '\\t')
+	}
 	function handleVar(o, tabs) {
 		var out = ''
 		if (typeof o === 'string') {
 			//String
-			out += '"' + o.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n|\r\n/g, '\\n').replace(/\t/g, '\\t') + '"'
+			out += '"' + escape(o) + '"'
 		} else if (typeof o === 'boolean') {
 			//Boolean
 			out += (o ? 'true' : 'false')
@@ -408,7 +409,7 @@ function compileJSON(object, options) {
 					if (compiled) {
 						if (has_content) {out += ',' + (breaks || options.small?'':' ')}
 						if (breaks) {out += newLine(tabs)}
-						out += '"' + key + '":' + (options.small === true ? '' : ' ')
+						out += '"' + escape(key) + '":' + (options.small === true ? '' : ' ')
 						out += compiled
 						has_content = true
 					}
@@ -549,7 +550,7 @@ BARS.defineActions(function() {
 						Format.codec.export()
 					}
 				}
-				if (Format.animation_mode && Animation.all.length) {
+				if (Format.animation_mode && Format.animation_files && Animation.all.length) {
 					BarItems.save_all_animations.trigger();
 				}
 			} else {

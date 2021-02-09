@@ -36,7 +36,7 @@ const Clipbench = {
 		if ((p == 'uv' || p == 'preview') && Modes.edit) {
 			return Clipbench.types.face;
 		}
-		if (p == 'textures' && isApp && (Texture.selected || mode === 2)) {
+		if (p == 'textures' && (Texture.selected || mode === 2)) {
 			return Clipbench.types.texture;
 		}
 		if (p == 'outliner' && Modes.edit) {
@@ -138,6 +138,8 @@ const Clipbench = {
 	setText(text) {
 		if (isApp) {
 			clipboard.writeText(text)
+		} else if (navigator.clipboard) {
+			navigator.clipboard.writeText(text);
 		} else {
 			document.execCommand('copy')
 		}
@@ -178,7 +180,7 @@ const Clipbench = {
 						})
 					}
 				} else {
-					var el = NonGroup.fromSave(obj).addTo(parent).selectLow();
+					var el = OutlinerElement.fromSave(obj).addTo(parent).selectLow();
 					el.createUniqueName();
 					if (el instanceof Cube) {
 						Canvas.adaptObjectPosition(el);
@@ -190,7 +192,7 @@ const Clipbench = {
 
 		} else if (Clipbench.elements && Clipbench.elements.length) {
 			Clipbench.elements.forEach(function(obj) {
-				var el = NonGroup.fromSave(obj).addTo(target).selectLow();
+				var el = OutlinerElement.fromSave(obj).addTo(target).selectLow();
 				el.createUniqueName();
 			})
 			Canvas.updatePositions();

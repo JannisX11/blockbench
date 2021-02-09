@@ -51,6 +51,7 @@ class Property {
 		if (options.condition) this.condition = options.condition;
 		if (options.exposed == false) this.exposed = false;
 		if (options.label) this.label = options.label;
+		if (options.description) this.description = options.description;
 		if (options.options) this.options = options.options;
 	}
 	delete() {

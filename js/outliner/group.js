@@ -1,5 +1,5 @@
 
-class Group extends OutlinerElement {
+class Group extends OutlinerNode {
 	constructor(data, uuid) {
 		super(uuid)
 
@@ -18,8 +18,6 @@ class Group extends OutlinerElement {
 		this.autouv = 0;
 		this.parent = 'root';
 		this.isOpen = false;
-		this.ik_enabled = false;
-		this.ik_chain_length = 0;
 
 		if (typeof data === 'object') {
 			this.extend(data)
@@ -71,6 +69,7 @@ class Group extends OutlinerElement {
 		if (typeof this.parent !== 'object') {
 			this.addTo();
 		}
+		Canvas.updateAllBones([this]);
 		return this;
 	}
 	select(event) {
@@ -211,7 +210,8 @@ class Group extends OutlinerElement {
 		})
 		TickUpdates.selection = true
 		this.constructor.all.remove(this);
-		delete OutlinerElement.uuids[this.uuid];
+		delete Canvas.bones[this.uuid];
+		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
 			cubes.length = 0
 			Undo.finishEdit('removed_group')
@@ -268,7 +268,6 @@ class Group extends OutlinerElement {
 		}
 		this.remove(false);
 		Undo.finishEdit('resolve group')
-		TickUpdates.outliner = true;
 		return array;
 	}
 	showContextMenu(event) {
@@ -336,8 +335,7 @@ class Group extends OutlinerElement {
 			child.duplicate().addTo(copy)
 		}
 		copy.isOpen = true;
-		Canvas.updatePositions()
-		TickUpdates.outliner = true;
+		Canvas.updatePositions();
 		return copy;
 	}
 	getSaveCopy() {
@@ -407,26 +405,6 @@ class Group extends OutlinerElement {
 			i++;
 		}
 	}
-	toggle(key, val) {
-		if (val === undefined) {
-			var val = !this[key]
-		}
-		var cubes = []
-		this.forEachChild(obj => {
-			cubes.push(obj)
-		}, NonGroup)
-		Undo.initEdit({outliner: true, elements: cubes})
-		this.forEachChild(function(s) {
-			s[key] = val
-			s.updateElement()
-		})
-		this[key] = val;
-		this.updateElement()
-		if (key === 'visibility') {
-			Canvas.updateVisibility()
-		}
-		Undo.finishEdit('toggle')
-	}
 	setAutoUV(val) {
 		this.forEachChild(function(s) {
 			s.autouv = val;
@@ -442,11 +420,11 @@ class Group extends OutlinerElement {
 	Group.prototype.isParent = true;
 	Group.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
 	Group.prototype.buttons = [
-		Outliner.buttons.visibility,
-		Outliner.buttons.locked,
+		Outliner.buttons.autouv,
+		Outliner.buttons.shade,
 		Outliner.buttons.export,
-		Outliner.buttons.shading,
-		Outliner.buttons.autouv
+		Outliner.buttons.locked,
+		Outliner.buttons.visibility,
 	];
 	Group.prototype.needsUniqueName = () => Format.bone_rig;
 	Group.prototype.menu = new Menu([
@@ -468,8 +446,6 @@ class Group extends OutlinerElement {
 	}});
 	new Property(Group, 'vector', 'rotation');
 	new Property(Group, 'array', 'cem_animations', {condition: () => Format.id == 'optifine_entity'});
-	new Property(Group, 'boolean', 'ik_enabled', {condition: () => Format.animation_mode});
-	new Property(Group, 'number', 'ik_chain_length', {condition: () => Format.animation_mode});
 
 
 function getCurrentGroup() {
@@ -500,38 +476,6 @@ function getAllGroups() {
 	iterate(Outliner.root)
 	return ta;
 }
-function addGroup() {
-	Undo.initEdit({outliner: true});
-	var add_group = Group.selected
-	if (!add_group && selected.length) {
-		add_group = Cube.selected.last()
-	}
-	var base_group = new Group({
-		origin: add_group ? add_group.origin : undefined
-	})
-	base_group.addTo(add_group)
-	base_group.isOpen = true
-
-	if (Format.bone_rig) {
-		base_group.createUniqueName()
-	}
-	if (add_group instanceof NonGroup && selected.length > 1) {
-		selected.forEach(function(s, i) {
-			s.addTo(base_group)
-		})
-	}
-	base_group.init().select()
-	Undo.finishEdit('add_group');
-	loadOutlinerDraggable()
-	Vue.nextTick(function() {
-		updateSelection()
-		if (settings.create_rename.value) {
-			base_group.rename()
-		}
-		base_group.showInOutliner()
-		Blockbench.dispatchEvent( 'add_group', {object: base_group} )
-	})
-}
 window.__defineGetter__('selected_group', () => {
 	console.warn('selected_group is deprecated. Please use Group.selected instead.')
 	return Group.selected
@@ -545,7 +489,35 @@ BARS.defineActions(function() {
 		condition: () => Modes.edit,
 		keybind: new Keybind({key: 71, ctrl: true}),
 		click: function () {
-			addGroup();
+			Undo.initEdit({outliner: true});
+			var add_group = Group.selected
+			if (!add_group && selected.length) {
+				add_group = Cube.selected.last()
+			}
+			var base_group = new Group({
+				origin: add_group ? add_group.origin : undefined
+			})
+			base_group.addTo(add_group)
+			base_group.isOpen = true
+		
+			if (Format.bone_rig) {
+				base_group.createUniqueName()
+			}
+			if (add_group instanceof OutlinerElement && selected.length > 1) {
+				selected.forEach(function(s, i) {
+					s.addTo(base_group)
+				})
+			}
+			base_group.init().select()
+			Undo.finishEdit('add_group');
+			Vue.nextTick(function() {
+				updateSelection()
+				if (settings.create_rename.value) {
+					base_group.rename()
+				}
+				base_group.showInOutliner()
+				Blockbench.dispatchEvent( 'add_group', {object: base_group} )
+			})
 		}
 	})
 	new Action({

@@ -42,10 +42,6 @@ function loadInfoFromURL() {
 	}
 }
 
-setInterval(function() {
-	Prop.zoom = Math.round(devicePixelRatio*100)
-}, 500)
-
 //Misc
 window.onbeforeunload = function() {
 	if (Prop.project_saved === false && elements.length > 0) {
@@ -103,9 +99,9 @@ function setupMobilePanelSelector() {
 					$('#left_bar').append(overlay.children());
 					if (panel instanceof Panel) {
 						overlay.append(panel.node);
-						if (panel.onResize) panel.onResize();
 						overlay.show();
 						$(panel.node).show();
+						if (panel.onResize) panel.onResize();
 					} else {
 						overlay.hide();
 					}

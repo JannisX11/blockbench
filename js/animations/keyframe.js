@@ -220,21 +220,14 @@ class Keyframe {
 	}
 	compileBedrockKeyframe() {
 		if (this.transform) {
-			if (this.data_points.length == 1) {
-				if (this.interpolation == 'linear') {
-					return this.getArray();
-				} else {
-					return {
-						post: this.getArray(),
-						lerp_mode: this.interpolation,
-					}
-				}
+			if (this.data_points.length == 1 && this.interpolation == 'linear') {
+				return this.getArray();
 			} else {
-				return {
+				return new oneLiner({
+					lerp_mode: this.interpolation != 'linear' ? this.interpolation : undefined,
 					pre:  this.getArray(0),
 					post: this.getArray(1),
-					lerp_mode: this.interpolation != 'linear' ? this.interpolation : undefined,
-				}
+				})
 			}
 		} else if (this.channel == 'timeline') {
 			let scripts = [];
@@ -301,13 +294,15 @@ class Keyframe {
 		if (Timeline.selected.length == 1 && Timeline.selected[0].animator.selected == false) {
 			Timeline.selected[0].animator.select()
 		}
+		this.selected = true
+		TickUpdates.keyframe_selection = true;
+
+		if (this.transform) Timeline.vue.graph_editor_channel = this.channel;
 
 		var select_tool = true;
 		Timeline.selected.forEach(kf => {
 			if (kf.channel != scope.channel) select_tool = false;
 		})
-		this.selected = true
-		TickUpdates.keyframe_selection = true;
 		if (select_tool) {
 			switch (this.channel) {
 				case 'rotation': BarItems.rotate_tool.select(); break;
@@ -429,7 +424,7 @@ function updateKeyframeSelection() {
 		BarItems.slider_keyframe_time.update()
 		BarItems.keyframe_interpolation.set(Timeline.selected[0].interpolation)
 	}
-	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || Animator.motion_trail_lock)) {
+	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || NullObject.selected[0] || Animator.motion_trail_lock)) {
 		Animator.showMotionTrail();
 	} else if (Animator.motion_trail.parent) {
 		Animator.motion_trail.children.forEachReverse(child => {
@@ -724,6 +719,9 @@ BARS.defineActions(function() {
 			Undo.initEdit({keyframes: Timeline.selected})
 			Timeline.selected.forEach((kf) => {
 				kf.time = end + start - kf.time;
+				if (kf.transform && kf.data_points.length > 1) {
+					kf.data_points.reverse();
+				}
 			})
 			Undo.finishEdit('reverse keyframes')
 			updateKeyframeSelection()
@@ -734,8 +732,8 @@ BARS.defineActions(function() {
 
 Interface.definePanels(function() {
 
-	let locator_suggestion_list = $('<datalist id="locator_suggestion_list" hidden></datalist>');
-	$(document.body).append(locator_suggestion_list);
+	let locator_suggestion_list = $('<datalist id="locator_suggestion_list" hidden></datalist>').get(0);
+	document.body.append(locator_suggestion_list);
 	
 	Interface.Panels.keyframe = new Panel({
 		id: 'keyframe',
@@ -789,10 +787,15 @@ Interface.definePanels(function() {
 					Undo.finishEdit('remove keyframe data point')
 				},
 				updateLocatorSuggestionList() {
-					locator_suggestion_list.empty();
+					locator_suggestion_list.innerHTML = '';
 					Locator.all.forEach(locator => {
 						locator_suggestion_list.append(`<option value="${locator.name}">`);
 					})
+				},
+				focusAxis(axis) {
+					if (Timeline.vue.graph_editor_open && 'xyz'.includes(axis)) {
+						Timeline.vue.graph_editor_axis = axis;
+					}
 				}
 			},
 			computed: {
@@ -851,6 +854,7 @@ Interface.definePanels(function() {
 										class="molang_input dark_bordered keyframe_input tab_target"
 										v-model="data_point[key+'_string']"
 										@change="updateInput(key, $event, data_point_i)"
+										@focus="focusAxis(key)"
 										language="molang"
 										ignoreTabKey="true"
 										:line-numbers="false"

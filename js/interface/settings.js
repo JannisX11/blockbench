@@ -86,6 +86,11 @@ const Settings = {
 		}});
 
 		//Interface
+		new Setting('interface_scale', 		{category: 'interface', value: 100, min: 40, max: 200, type: 'number', condition: isApp, onChange() {
+			var factor = Math.clamp(settings.interface_scale.value, 40, 200) / 100;
+			currentwindow.webContents.setZoomFactor(factor)
+			resizeWindow()
+		}});
 		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number'});
 		new Setting('control_size',  		{category: 'interface', value: 10, type: 'number'});
 		new Setting('motion_trails',  		{category: 'interface', value: true, onChange() {
@@ -95,10 +100,10 @@ const Settings = {
 		}});
 		new Setting('seethrough_outline', 	{category: 'interface', value: false});
 		new Setting('outliner_colors', 		{category: 'interface', value: false});
-		new Setting('preview_checkerboard',	{category: 'interface', value: false, onChange() {
+		new Setting('preview_checkerboard',	{category: 'interface', value: true, onChange() {
 			$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 		}});
-		new Setting('uv_checkerboard', 		{category: 'interface', value: false, onChange() {
+		new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange() {
 			$('.UVEditor').toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
 		}});
 		
@@ -118,6 +123,7 @@ const Settings = {
 		}, onChange() {
 			Canvas.updateRenderSides();
 		}});
+		new Setting('background_rendering', 	{category: 'preview', value: true});
 		/*
 		new Setting('transparency',		{category: 'preview', value: true, onChange() {
 			for (var uuid in Canvas.materials) {
@@ -160,8 +166,9 @@ const Settings = {
 		new Setting('edit_size',	{category: 'snapping', value: 16, type: 'number'});
 		new Setting('shift_size', 	{category: 'snapping', value: 64, type: 'number'});
 		new Setting('ctrl_size',	{category: 'snapping', value: 160, type: 'number'});
+		new Setting('ctrl_shift_size',	{category: 'snapping', value: 640, type: 'number'});
 		new Setting('negative_size',{category: 'snapping', value: false});
-		new Setting('animation_snap',{category: 'snapping', value: 25, type: 'number'});
+		new Setting('animation_snap',{category: 'snapping', value: 24, type: 'number'});
 
 		//Paint
 		new Setting('sync_color',	{category: 'paint', value: false});

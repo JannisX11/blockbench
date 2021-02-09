@@ -103,6 +103,8 @@ if (isApp) {
 	initializeWebApp();
 }
 
+localStorage.setItem('last_version', Blockbench.version);
+
 Modes.options.start.select()
 
 loadInstalledPlugins().then(plugins => {

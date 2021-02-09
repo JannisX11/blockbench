@@ -59,7 +59,7 @@ class UVEditor {
 		}
 		this.jquery.main.toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
 
-		this.jquery.sliders = $('<div class="bar" style="margin-left: 2px;"></div>')
+		this.jquery.sliders = $('<div class="bar uv_editor_sliders" style="margin-left: 2px;"></div>')
 
 		this.jquery.main.append(this.jquery.sliders)
 		var onBefore = function() {
@@ -307,18 +307,18 @@ class UVEditor {
 
 		var dMWCoords = {x: 0, y: 0}
 		function dragMouseWheel(e) {
-			e.currentTarget.scrollLeft -= (e.pageX - dMWCoords.x)
-			e.currentTarget.scrollTop -= (e.pageY - dMWCoords.y)
+			scope.jquery.viewport[0].scrollLeft -= (e.pageX - dMWCoords.x)
+			scope.jquery.viewport[0].scrollTop -= (e.pageY - dMWCoords.y)
 			dMWCoords = {x: e.pageX, y: e.pageY}
 		}
 		function dragMouseWheelStop(e) {
-			scope.jquery.viewport.off('mousemove', dragMouseWheel)
-			$(document).off('mouseup', dragMouseWheelStop)
+			removeEventListeners(document, 'mousemove touchmove', dragMouseWheel);
+			removeEventListeners(document, 'mouseup touchend', dragMouseWheelStop);
 		}
 		scope.jquery.viewport.on('mousedown touchstart', function(e) {
 			if (e.which === 2) {
-				scope.jquery.viewport.on('mousemove touchmove', dragMouseWheel)
-				$(document).on('mouseup touchend', dragMouseWheelStop)
+				addEventListeners(document, 'mousemove touchmove', dragMouseWheel);
+				addEventListeners(document, 'mouseup touchend', dragMouseWheelStop);
 				dMWCoords = {x: e.pageX, y: e.pageY}
 				e.preventDefault();
 				return false;
@@ -330,6 +330,7 @@ class UVEditor {
 			this.updateBrushOutline(e)
 		})
 		scope.jquery.frame.on('mouseleave', e => {
+			this.brush_outline.detach();
 		})
 		this.setSize(this.size)
 		return this;
@@ -337,15 +338,18 @@ class UVEditor {
 	updateBrushOutline(e) {
 		if (Modes.paint && Toolbox.selected.brushTool) {
 			this.jquery.frame.append(this.brush_outline);
+			let outline = this.brush_outline.get(0);
 			var pixel_size = this.inner_width / (this.texture ? this.texture.width : Project.texture_width);
 			//pos
 			let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0.5 : 0;
 			let left = (0.5 - offset + Math.floor(e.offsetX / pixel_size + offset)) * pixel_size;
 			let top =  (0.5 - offset + Math.floor(e.offsetY / pixel_size + offset)) * pixel_size;
-			this.brush_outline.css('left', left+'px').css('top', top+'px');
+			outline.style.left = left+'px'
+			outline.style.top = top+'px';
 			//size
 			var radius = (BarItems.slider_brush_size.get()/2) * pixel_size;
-			this.brush_outline.css('padding', radius+'px').css('margin', (-radius)+'px');
+			outline.style.padding = radius+'px'
+			outline.style.margin = (-radius)+'px';
 		} else {
 			this.brush_outline.detach();
 		}
@@ -362,7 +366,6 @@ class UVEditor {
 	getBrushCoordinates(event, tex) {
 		var scope = this;
 		convertTouchEvent(event);
-		var multiplier = (Project.box_uv && tex) ? tex.width/Project.texture_width : 1
 		var pixel_size = scope.inner_width / tex.width
 		var result = {};
 
@@ -760,8 +763,8 @@ class UVEditor {
 	}
 	setToMainSlot() {
 		var scope = this;
-		$('.panel#uv').append(this.jquery.main)
-		$('.panel#uv').on('mousewheel', function(e) {
+		$('.panel#uv > .panel_inside').append(this.jquery.main)
+		$('.panel#uv > .panel_inside').on('mousewheel', function(e) {
 
 			if (!Project.box_uv && !e.ctrlOrCmd && $('#uv_panel_sides:hover, #uv_viewport:not(.zoomed):hover').length) {
 				var faceIDs = {'north': 0, 'south': 1, 'west': 2, 'east': 3, 'up': 4, 'down': 5}
@@ -845,7 +848,7 @@ class UVEditor {
 		this.displaySliders()
 		this.updateDragHandle()
 		if (Project.box_uv) {
-			this.displayAllMappingOverlays()
+			//this.displayAllMappingOverlays()
 		}
 		if (this !== main_uv && this.face === main_uv.face) {
 			main_uv.loadData()
@@ -1020,7 +1023,8 @@ class UVEditor {
 	}
 	getMappingOverlay(cube, absolute) {
 		var scope = this;
-		var sides = $('<div class="mapping_overlay_cube"></div>');
+		var sides = document.createElement('div');
+		sides.classList.add('mapping_overlay_cube');
 		var pixels = scope.getPixelSize();
 		if (!cube) cube = Cube.selected[0];
 		function addElement(x, y, width, height, n, color) {
@@ -1033,16 +1037,17 @@ class UVEditor {
 			width  = limitNumber(width *pixels + x, 0, scope.inner_width)  - x;
 			height = limitNumber(height*pixels + y, 0, scope.inner_height)- y;
 
-			var size_data = [x/pixels, y/pixels, width/pixels, height/pixels].join(',');
-
-			sides.append($(`<div class="uv_mapping_overlay"
-				style="left: ${x}px; top: ${y}px;
-				height: ${height}px; width: ${width}px;
-				background: ${color};" data-sizes="${size_data}"></div>`))
+			let face = document.createElement('div');
+			face.classList.add('uv_mapping_overlay');
+			face.style.left = x+'px'; face.style.top = y+'px';
+			face.style.height = height+'px'; face.style.width = width+'px';
+			face.style.background = color;
+			face.dataset.sizes = [x/pixels, y/pixels, width/pixels, height/pixels].join(',');
+			sides.append(face);
 		}
 		var size = cube.size(undefined, true);
 
-		sides.attr('size_hash', `${cube.uv_offset[0]}_${cube.uv_offset[1]}_${size[0]}_${size[1]}_${size[2]}`)
+		sides.setAttribute('size_hash', `${cube.uv_offset[0]}_${cube.uv_offset[1]}_${size[0]}_${size[1]}_${size[2]}`)
 
 		addElement(size[2], 0, size[0], size[2],				'#b4d4e1', '#ecf8fd')
 		addElement(size[2]+size[0], 0, size[0], size[2],		'#536174', '#6e788c')
@@ -1065,7 +1070,7 @@ class UVEditor {
 				var c = scope.jquery.frame.find(`> .mapping_overlay_cube:not(.${cycle})[size_hash="${hash}"]`).first()
 				if (force_reload || !c.length) {
 					var sides = scope.getMappingOverlay(cube, true)
-					sides.addClass(cycle)
+					sides.classList.add(cycle)
 					scope.jquery.frame.append(sides)
 				} else {
 					c.addClass(cycle)
@@ -1087,16 +1092,15 @@ class UVEditor {
 				var c = scope.jquery.frame.find(`> .mapping_overlay_cube[size_hash="${hash}"]`).first()
 				
 				c.children().each((i, side) => {
-					side = $(side)
-					var data = side.attr('data-sizes');
+					var data = side.dataset.sizes;
 					data = data.split(',');
 					data.forEach((s, i) => {
 						data[i] = parseInt(s);
 					})
-					side.css('left',	(data[0] * pixels)+'px')
-						.css('top',		(data[1] * pixels)+'px')
-						.css('width',	(data[2] * pixels)+'px')
-						.css('height',	(data[3] * pixels)+'px')
+					side.style.left 	= (data[0] * pixels)+'px';
+					side.style.top 		= (data[1] * pixels)+'px';
+					side.style.width 	= (data[2] * pixels)+'px';
+					side.style.height	= (data[3] * pixels)+'px';
 				})
 			})
 		}
@@ -1119,21 +1123,22 @@ class UVEditor {
 	}
 	updateDragHandle() {
 		var pos = this.jquery.size.position()
-		var handle = this.jquery.size.find('div.uv_size_handle')
+		var handle = this.jquery.size.find('div.uv_size_handle').get(0);
+		if (!handle) return;
 
 		var left = limitNumber(this.jquery.viewport.get(0).scrollLeft, 0, this.size*(this.zoom-1)) - pos.left;
 		var top = limitNumber(this.jquery.viewport.get(0).scrollTop, 0, (this.height||this.size)*(this.zoom-1)) - pos.top;
-		handle.css('left', left +'px')
-		handle.css('top',  top  +'px')
+		handle.style.left = left +'px';
+		handle.style.top = top +'px';
 
-		handle.width(this.size)
-		handle.height(this.height||this.size)
+		handle.style.width = this.size + 'px';
+		handle.style.height = (this.height||this.size) + 'px';
 		return this;
 	}
 	updateInterface() {
 		for (var key in this.sliders) {
 			var slider = this.sliders[key]
-			$(slider.node).css('display', BARS.condition(slider.condition)?'block':'none')
+			slider.node.style.setProperty('display', BARS.condition(slider.condition)?'block':'none')
 		}
 		this.jquery.size.resizable('option', 'disabled', Project.box_uv)
 	}
@@ -1773,7 +1778,7 @@ const uv_dialog = {
 			up:	new UVEditor('up', true).appendTo('#uv_dialog_all'),
 			down:  new UVEditor('down', true).appendTo('#uv_dialog_all')
 		}
-		var size = $(window).height() - 200
+		var size = window.innerHeight - 200
 		uv_dialog.editors.single.setSize(size)
 		uv_dialog.editors.single.jquery.main.css('margin-left', 'auto').css('margin-right', 'auto')//.css('width', (size+10)+'px')
 		uv_dialog.editors.up.jquery.main.css('margin-left', '276px').css('clear', 'both')
@@ -1861,8 +1866,8 @@ const uv_dialog = {
 	},
 	centerDialog: function() {
 		var obj = $('.dialog#uv_dialog')
-		obj.css('left', (($(window).width()-obj.width())/2) +'px')
-		obj.css('top', (($(window).height() - obj.height()) / 2) + 'px')
+		obj.css('left', ((window.innerWidth-obj.width())/2) +'px')
+		obj.css('top', ((window.innerHeight - obj.height()) / 2) + 'px')
 	},
 	openAll: function() {
 		uv_dialog.openDialog()
@@ -1903,7 +1908,7 @@ const uv_dialog = {
 			uv_dialog.selection = [tab]
 			//BarItems.uv_grid.set(uv_dialog.editors.single.gridSelectOption)
 
-			var max_size = $(window).height() - 200
+			var max_size = window.innerHeight - 200
 			if (max_size < uv_dialog.editors.single.size ) {
 				uv_dialog.editors.single.setSize(max_size)
 				uv_dialog.editors.single.jquery.main.css('margin-left', 'auto').css('margin-right', 'auto').css('width', max_size+'px')
@@ -1942,7 +1947,7 @@ const uv_dialog = {
 			var centerUp = false
 			size.y -= menu_gap;
 			if (size.x < size.y/1.2) {
-				var editor_size = limitNumber(size.x / 2 - 35, 80, $(window).height()/3-120)
+				var editor_size = limitNumber(size.x / 2 - 35, 80, window.innerHeight/3-120)
 				editor_size = limitNumber(editor_size, 80, (size.y-64)/3 - 50)
 			} else {
 				//4 x 2
@@ -2241,14 +2246,13 @@ BARS.defineActions(function() {
 	})
 
 
-	new Action('toggle_uv_overlay', {
+	new Toggle('toggle_uv_overlay', {
 		condition: () => Project.box_uv,
-		icon: 'crop_landscape',//'crop_landscape'
+		icon: 'view_quilt',
 		category: 'uv',
-		click: function () {
-			main_uv.showing_overlays = !main_uv.showing_overlays
-			BarItems.toggle_uv_overlay.setIcon(main_uv.showing_overlays ? 'view_quilt' : 'crop_landscape')
-			main_uv.displayAllMappingOverlays()
+		onChange(value) {
+			main_uv.showing_overlays = value;
+			main_uv.displayAllMappingOverlays();
 		}
 	})
 })
@@ -2264,7 +2268,7 @@ Interface.definePanels(function() {
 			bottom: Toolbars.main_uv
 		},
 		onResize: function() {
-			let size = limitNumber($(this.node).width()-10, 64, 1200)
+			let size = limitNumber(this.node.clientWidth - 10, 64, 1200)
 			size = Math.floor(size)
 			main_uv.setSize(size)
 		}

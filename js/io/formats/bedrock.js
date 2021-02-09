@@ -112,19 +112,19 @@ window.BedrockEntityManager = {
 							}
 						}).show()
 						$('#import_texture_list li').each((i, el) => {
-							$(el).css('background-image', `url("${ valid_textures_list[i].replace(/\\/g, '/').replace(/#/g, '%23') }?${Math.round(Math.random()*1e6)}")`)
-							.click(function() {
+							el.style.setProperty('background-image', `url("${ valid_textures_list[i].replace(/\\/g, '/').replace(/#/g, '%23') }?${Math.round(Math.random()*1e6)}")`)
+							el.onclick = function() {
 								if (selected_textures.includes(i)) {
 									selected_textures.remove(i)
 								} else {
 									selected_textures.push(i)
 								}
 								$(this).toggleClass('selected')
-							})
-							.dblclick(function() {
+							}
+							el.ondblclick = function() {
 								selected_textures.replace([i])
 								dialog.confirm()
-							})
+							}
 						})
 					}, 2)
 				}
@@ -413,8 +413,12 @@ function calculateVisibleBox() {
 		if (b.locators) {
 			for (var key in b.locators) {
 				var coords = b.locators[key];
-				coords[0] *= -1
-				new Locator({from: coords, name: key}).addTo(group).init();
+				coords[0] *= -1;
+				if (key.substr(0, 6) == '_null_') {
+					new NullObject({from: coords, name: key.substr(6)}).addTo(group).init();
+				} else {
+					new Locator({from: coords, name: key}).addTo(group).init();
+				}
 			}
 		}
 		if (b.children) {
@@ -588,10 +592,11 @@ function calculateVisibleBox() {
 					let template = compileCube(obj, bone);
 					cubes.push(template);
 
-				} else if (obj instanceof Locator) {
-
-					locators[obj.name] = obj.from.slice();
-					locators[obj.name][0] *= -1;
+				} else if (obj instanceof Locator || obj instanceof NullObject) {
+					let key = obj.name;
+					if (obj instanceof NullObject) key = '_null_' + key;
+					locators[key] = obj.from.slice();
+					locators[key][0] *= -1;
 				}
 			}
 		}
@@ -706,6 +711,21 @@ var codec = new Codec('bedrock', {
 			}
 		}
 		if (data && index !== undefined) {
+
+			data['minecraft:geometry'].forEach(geo => {
+				if (geo.bones instanceof Array) {
+					geo.bones.forEach(bone => {
+						if (bone.cubes instanceof Array) {
+							bone.cubes.forEach((cube, ci) => {
+								if (cube.uv instanceof Array) {
+									bone.cubes[ci] = new oneLiner(cube);
+								}
+							})
+						}
+					})
+				}
+			})
+
 			var model = this.compile({raw: true})['minecraft:geometry'][0]
 			if (index != undefined) {
 				data['minecraft:geometry'][index] = model
@@ -865,7 +885,7 @@ var codec = new Codec('bedrock', {
 			})
 		}
 		showDialog('entity_import')
-		$('#pe_list').css('max-height', ($(window).height() - 320) +'px')
+		$('#pe_list').css('max-height', (window.innerHeight - 320) +'px')
 		$('input#pe_search_bar').select()
 		$('#entity_import .confirm_btn').off('click')
 		$('#entity_import .confirm_btn').on('click', (e) => {

@@ -36,22 +36,28 @@ class ModelProject {
 		return Format.optional_box_uv;
 	}
 	reset() {
+		if (isApp) updateRecentProjectThumbnail();
+
 		Blockbench.dispatchEvent('reset_project');
-		if (isApp) {
-			updateRecentProjectThumbnail();
-			BedrockEntityManager.reset();
-		}
+		
+		if (isApp) BedrockEntityManager.reset();
+
 		if (Toolbox.selected.id !== 'move_tool') BarItems.move_tool.select();
 	
 		Screencam.stopTimelapse();
 	
 		Format = 0;
-		for (var uuid in OutlinerElement.uuids) {
-			delete OutlinerElement.uuids[uuid];
+		for (var uuid in OutlinerNode.uuids) {
+			delete OutlinerNode.uuids[uuid];
 		}
 		Outliner.elements.empty();
 		Outliner.root.purge();
-		Canvas.materials;
+		for (var key in Canvas.materials) {
+			delete Canvas.materials[key];
+		}
+		for (var key in Canvas.bones) {
+			delete Canvas.bones[key];
+		}
 		selected.empty();
 		Group.all.empty();
 		Group.selected = undefined;
@@ -59,6 +65,7 @@ class ModelProject {
 		Cube.selected.empty();
 		Locator.all.empty();
 		Locator.selected.empty();
+		Texture.all.forEach(tex => tex.stopWatcher());
 		Texture.all.empty();
 		Texture.selected = undefined;
 	
@@ -126,6 +133,7 @@ new Property(ModelProject, 'vector', 'visible_box', {
 });
 new Property(ModelProject, 'boolean', 'layered_textures', {
 	label: 'dialog.project.layered_textures',
+	description: 'dialog.project.layered_textures.desc',
 	condition() {return Format.single_texture}
 });
 
@@ -153,6 +161,55 @@ function newProject(format, force) {
 	}
 }
 
+// Resolution
+function setProjectResolution(width, height, modify_uv) {
+	if (Project.texture_width / width != Project.texture_width / height) {
+		modify_uv = false;
+	}
+
+	Undo.initEdit({uv_mode: true, elements: Cube.all, uv_only: true})
+
+	let old_res = {
+		x: Project.texture_width,
+		y: Project.texture_height
+	}
+	Project.texture_width = width;
+	Project.texture_height = height;
+
+
+	if (modify_uv) {
+		var multiplier = [
+			Project.texture_width/old_res.x,
+			Project.texture_height/old_res.y
+		]
+		function shiftCube(cube, axis) {
+			if (Project.box_uv) {
+				cube.uv_offset[axis] *= multiplier[axis];
+			} else {
+				for (var face in cube.faces) {
+					var uv = cube.faces[face];
+					uv[axis] *= multiplier[axis];
+					uv[axis+2] *= multiplier[axis];
+				}
+			}
+		}
+		if (old_res.x != Project.texture_width && Math.areMultiples(old_res.x, Project.texture_width)) {
+			Cube.all.forEach(cube => shiftCube(cube, 0));
+		}
+		if (old_res.y != Project.texture_height &&  Math.areMultiples(old_res.x, Project.texture_width)) {
+			Cube.all.forEach(cube => shiftCube(cube, 1));
+		}
+	}
+	Undo.finishEdit('Changed project resolution')
+	Canvas.updateAllUVs()
+	if (selected.length) {
+		main_uv.loadData()
+	}
+}
+function updateProjectResolution() {
+	document.querySelector('#project_resolution_status').textContent = `${Project.texture_width} ⨉ ${Project.texture_height}`;
+}
+
 
 BARS.defineActions(function() {
 
@@ -172,6 +229,7 @@ BARS.defineActions(function() {
 
 				let entry = form[property.name] = {
 					label: property.label,
+					description: property.description,
 					value: Project[property.name],
 					type: property.type
 				}
