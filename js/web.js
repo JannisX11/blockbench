@@ -11,7 +11,7 @@ function initializeWebApp() {
 		event.preventDefault();
 		window.open(event.target.href, '_blank');
 	});
-	if (!Blockbench.isMobile) {
+	if (!Blockbench.isMobile && !Blockbench.isPWA) {
 		$('#web_download_button').show()
 	}
 

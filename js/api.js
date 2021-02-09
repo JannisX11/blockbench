@@ -4,6 +4,7 @@ const Blockbench = {
 	isWeb: !isApp,
 	isMobile: !isApp && window.innerWidth <= 640,
 	isTouch: 'ontouchend' in document,
+	isPWA: navigator.standalone || window.matchMedia('(display-mode: standalone)').matches,
 	version: appVersion,
 	platform: 'web',
 	flags: [],

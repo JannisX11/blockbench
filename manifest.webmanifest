@@ -1,4 +1,5 @@
 {
+	"$schema": "https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/web-manifest.json",
 	"short_name": "Blockbench",
 	"name": "Blockbench",
 	"icons": [
@@ -13,7 +14,7 @@
 			"sizes": "1024x1024"
 		}
 	],
-	"start_url": "",
+	"start_url": "./index.html",
 	"background_color": "#21252b",
 	"theme_color": "#3e90ff",
 	"display": "standalone",
