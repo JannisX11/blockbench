@@ -141,7 +141,7 @@ class Preview {
 		//Cameras
 		this.isOrtho = false
 		this.angle = null;
-		this.camPers = new THREE.PerspectiveCamera(settings.fov.value, 16 / 9, 1, 30000)
+		this.camPers = new THREE.PerspectiveCamera(settings.fov.value, 16 / 9, 0.1, 30000)
 		this.camOrtho = new THREE.OrthographicCamera(-600,  600, -400, 400, -200, 20000);
 		this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'y'}]
 		this.camOrtho.axis = null
@@ -1911,8 +1911,8 @@ function buildGrid() {
 		var length = Format.centered_grid
 			? (settings.full_grid.value ? 24 : 8)
 			: 16
-		setupAxisLine(new THREE.Vector3( 0, 0.001, 0), length, 'x')
-		setupAxisLine(new THREE.Vector3( 0, 0.001, 0), length, 'z')
+		setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'x')
+		setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'z')
 
 	}
 

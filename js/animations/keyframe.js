@@ -787,7 +787,7 @@ Interface.definePanels(function() {
 					Undo.finishEdit('remove keyframe data point')
 				},
 				updateLocatorSuggestionList() {
-					locator_suggestion_list.empty();
+					locator_suggestion_list.innerHTML = '';
 					Locator.all.forEach(locator => {
 						locator_suggestion_list.append(`<option value="${locator.name}">`);
 					})
