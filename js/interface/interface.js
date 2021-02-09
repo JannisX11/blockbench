@@ -195,11 +195,8 @@ function setupInterface() {
 		$.extend(true, Interface.data, interface_data)
 	} catch (err) {}
 
-	if (!Language.loading_steps) {
-		Language.loading_steps = true;
-	} else {
-		translateUI()
-	}
+	translateUI()
+	
 	$('.edit_session_active').hide()
 
 	$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
@@ -481,6 +478,17 @@ function setSettingsTab(tab) {
 		}
 	}
 }
+
+function getStringWidth(string, size) {
+	var a = $('<label style="position: absolute">'+string+'</label>')
+	if (size && size !== 16) {
+		a.css('font-size', size+'pt')
+	}
+	$('body').append(a.css('visibility', 'hidden'))
+	var width = a.width()
+	a.detach()
+	return width;
+};
 
 //UI Edit
 function setProgressBar(id, val, time) {
