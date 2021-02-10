@@ -645,20 +645,7 @@
 
 	<div id="page_wrapper" class="hidden">
 
-	<dialog id="action_selector" v-if="open">
-		<input type="text" v-model="search_input" autocomplete="off" autosave="off" autocorrect="off" spellcheck="off" autocapitalize="off">
-		<i class="material-icons" id="action_search_bar_icon">search</i>
-		<div>
-			<ul>
-				<li v-for="(item, i) in actions" v-on:click="ActionControl.click(item, $event)" v-bind:class="{selected: i === index}" v-on:mouseenter="index = i">
-					<div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
-					<div class="name">{{ item.name }}</div>
-					<label>{{ item.keybind.label }}</label>
-				</li>
-			</ul>
-			<div class="small_text" v-if="actions[index]">{{ Pressing.alt ? actions[index].keybind.label : actions[index].description }}</div>
-		</div>
-	</dialog>
+	<dialog id="action_selector"></dialog>
 
 	<div id="blackout" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"></div>
 

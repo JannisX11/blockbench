@@ -844,7 +844,7 @@
 		margin-left: 8px;
 		box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 	}
-	#action_selector > div > ul {
+	#action_selector ul {
 		background-color: var(--color-bright_ui);
 		color: var(--color-accent_text);
 		min-height: 20px;
@@ -861,7 +861,7 @@
 		font-size: 0.94em
 	}
 	#action_selector ul > li {
-		height: 32px;
+		height: 30px;
 		padding: 4px;
 		overflow: hidden;
 		display: flex;
@@ -871,7 +871,7 @@
 		flex-grow: 0;
 		flex-shrink: 0;
 	}
-	#action_selector ul > li div.name {
+	#action_selector ul > li span {
 		padding-left: 4px;
 		flex-grow: 1;
 		flex-shrink: 0;

@@ -1948,7 +1948,24 @@ const BARS = {
 					}
 					return list;
 				}
-			}
+			},
+			template: `
+				<dialog id="action_selector" v-if="open">
+					<input type="text" v-model="search_input" autocomplete="off" autosave="off" autocorrect="off" spellcheck="off" autocapitalize="off">
+					<i class="material-icons" id="action_search_bar_icon">search</i>
+					<div>
+						<ul>
+							<li v-for="(item, i) in actions"
+								v-html="item.menu_node.innerHTML"
+								:class="{selected: i === index}"
+								@click="ActionControl.click(item, $event)"
+								@mouseenter="index = i"
+							></li>
+						</ul>
+						<div class="small_text" v-if="actions[index]">{{ Pressing.alt ? actions[index].keybind.label : actions[index].description }}</div>
+					</div>
+				</dialog>
+			`
 		})
 	},
 	updateConditions() {
