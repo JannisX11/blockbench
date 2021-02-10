@@ -400,9 +400,14 @@ var codec = new Codec('java_block', {
 		if (import_group) {
 			import_group.addTo().select()
 		}
+		let item_parents = [
+			'item/generated', 	'minecraft:item/generated',
+			'item/handheld', 	'minecraft:item/handheld',
+			'item/handheld_rod','minecraft:item/handheld_rod',
+		]
 		if (
 			!model.elements &&
-			(model.parent == 'item/generated' || model.parent == 'item/handheld' || model.parent == 'item/handheld_rod') &&
+			item_parents.includes(model.parent) &&
 			model.textures &&
 			typeof model.textures.layer0 === 'string'
 		) {
