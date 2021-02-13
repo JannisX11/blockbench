@@ -825,7 +825,7 @@ onVueSetup(function() {
 							kf.time = Timeline.snapTime(t);
 						}
 
-						if (Timeline.vue.graph_editor_open) {
+						if (Timeline.vue.graph_editor_open && value_diff) {
 							kf.offset(Timeline.vue.graph_editor_axis, value_diff);
 						}
 					}

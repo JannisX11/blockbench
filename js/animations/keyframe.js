@@ -106,8 +106,12 @@ class Keyframe {
 		}
 		var start = value.match(/^-?\s*\d+(\.\d+)?\s*(\+|-)/)
 		if (start) {
-			var number = parseFloat( start[0].substr(0, start[0].length-1) ) + amount
-			value = trimFloatNumber(number) + value.substr(start[0].length-1)
+			var number = parseFloat( start[0].substr(0, start[0].length-1) ) + amount;
+			if (number == 0) {
+				value = value.substr(start[0].length + (value[start[0].length-1] == '+' ? 0 : -1));
+			} else {
+				value = trimFloatNumber(number) + (start[0].substr(-2, 1) == ' ' ? ' ' : '') + value.substr(start[0].length-1);
+			}
 		} else {
 
 			var end = value.match(/(\+|-)\s*\d*(\.\d+)?\s*$/)
