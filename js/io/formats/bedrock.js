@@ -638,21 +638,20 @@ var codec = new Codec('bedrock', {
 		var bones = []
 
 		var groups = getAllGroups();
-		var loose_cubes = [];
+		var loose_elements = [];
 		Outliner.root.forEach(obj => {
-			if (obj.type === 'cube') {
-				loose_cubes.push(obj)
+			if (obj instanceof OutlinerElement) {
+				loose_elements.push(obj)
 			}
 		})
-		if (loose_cubes.length) {
-			groups.splice(0, 0, {
-				type: 'group',
-				parent: 'root',
-				name: 'unknown_bone',
-				origin: [0, 0, 0],
-				rotation: [0, 0, 0],
-				children: loose_cubes
-			})
+		if (loose_elements.length) {
+			let group = new Group({
+				name: 'bb_main'
+			});
+			group.children.push(...loose_elements);
+			group.is_catch_bone = true;
+			group.createUniqueName();
+			groups.splice(0, 0, group);
 		}
 		groups.forEach(function(g) {
 			let bone = compileGroup(g);
