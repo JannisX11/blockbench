@@ -962,8 +962,9 @@ BARS.defineActions(function() {
 						'1d': '1 Day',
 						'2d': '2 Days',
 						'1w': '1 Week',
-					}},
+					}}
 				},
+				buttons: ['Share', 'dialog.cancel'],
 				onConfirm: function(formResult) {
 		
 					let expire_time = formResult.expire_time;
