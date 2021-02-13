@@ -731,6 +731,8 @@
 	"action.export_optifine_full.desc": "Export a full OptiFine entity model",
 	"action.export_optifine_part": "Export OptiFine Part",
 	"action.export_optifine_part.desc": "Export a single part for an OptiFine entity model",
+	"action.export_minecraft_skin": "Export Minecraft Skin",
+	"action.export_minecraft_skin.desc": "Export the Minecraft skin as a PNG texture",
 	"action.export_obj": "Export OBJ Model",
 	"action.export_obj.desc": "Export a Wavefront OBJ model for rendering",
 	"action.export_gltf": "Export As glTF",

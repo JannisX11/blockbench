@@ -529,6 +529,7 @@ const MenuBar = {
 				'export_class_entity',
 				'export_optifine_full',
 				'export_optifine_part',
+				'export_minecraft_skin',
 				'export_obj',
 				'export_gltf',
 				'upload_sketchfab',
