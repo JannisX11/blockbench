@@ -37,7 +37,7 @@ const DefaultCameraPresets = [
 		position: [0, 64, 0],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 0,
+		locked_angle: 'top',
 		default: true
 	},
 	{
@@ -48,7 +48,7 @@ const DefaultCameraPresets = [
 		position: [0, -64, 0],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 1,
+		locked_angle: 'bottom',
 		default: true
 	},
 	{
@@ -59,7 +59,7 @@ const DefaultCameraPresets = [
 		position: [0, 0, 64],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 2,
+		locked_angle: 'south',
 		default: true
 	},
 	{
@@ -70,7 +70,7 @@ const DefaultCameraPresets = [
 		position: [0, 0, -64],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 3,
+		locked_angle: 'north',
 		default: true
 	},
 	{
@@ -81,7 +81,7 @@ const DefaultCameraPresets = [
 		position: [64, 0, 0],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 4,
+		locked_angle: 'east',
 		default: true
 	},
 	{
@@ -92,7 +92,7 @@ const DefaultCameraPresets = [
 		position: [-64, 0, 0],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 5,
+		locked_angle: 'west',
 		default: true
 	},
 	{
@@ -415,33 +415,33 @@ class Preview {
 		return this;
 	}
 	setLockedAngle(angle) {
-		if (typeof angle === 'number' && this.isOrtho) {
+		if (typeof angle === 'string' && this.isOrtho) {
 
 			this.angle = angle
 			this.controls.enableRotate = false;
 
 			switch (angle) {
-				case 0:
+				case 'top':
 				this.camOrtho.axis = 'y'
 				this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'z'}]
 				break;
-				case 1:
+				case 'bottom':
 				this.camOrtho.axis = 'y'
 				this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: true, a: 'z'}]
 				break;
-				case 2:
+				case 'south':
 				this.camOrtho.axis = 'z'
 				this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: true, a: 'y'}]
 				break;
-				case 3:
+				case 'north':
 				this.camOrtho.axis = 'z'
 				this.camOrtho.backgroundHandle = [{n: true, a: 'x'}, {n: true, a: 'y'}]
 				break;
-				case 4:
+				case 'east':
 				this.camOrtho.axis = 'x'
 				this.camOrtho.backgroundHandle = [{n: true, a: 'z'}, {n: true, a: 'y'}]
 				break;
-				case 5:
+				case 'west':
 				this.camOrtho.axis = 'x'
 				this.camOrtho.backgroundHandle = [{n: false, a: 'z'}, {n: true, a: 'y'}]
 				break;
@@ -862,7 +862,7 @@ class Preview {
 				this.background = canvas_scenes.normal
 			}
 		} else if (this.angle !== null) {
-			this.background = canvas_scenes['ortho'+this.angle]
+			this.background = canvas_scenes['ortho_'+this.angle]
 		} else {
 			this.background = canvas_scenes.normal
 		}
@@ -1157,7 +1157,7 @@ class Preview {
 			let all_presets = [...DefaultCameraPresets, ...presets];
 
 			all_presets.forEach(preset => {
-				let icon = typeof preset.locked_angle !== 'number' ? 'videocam' : (preset.locked_angle == preview.angle ? 'radio_button_checked' : 'radio_button_unchecked'); 
+				let icon = typeof preset.locked_angle ? 'videocam' : (preset.locked_angle == preview.angle ? 'radio_button_checked' : 'radio_button_unchecked'); 
 				children.push({
 					name: preset.name,
 					color: preset.color,
@@ -1242,12 +1242,12 @@ class GimbalControls {
 		}
 
 		this.sides = {
-			top: {axis: 'y', sign: 1, label: 'Y'},
-			bottom: {axis: 'y', sign: -1},
-			east: {axis: 'x', sign: 1, label: 'X'},
-			west: {axis: 'x', sign: -1},
-			south: {axis: 'z', sign: 1, label: 'Z'},
-			north: {axis: 'z', sign: -1},
+			top: {opposite: 'bottom', axis: 'y', sign: 1, label: 'Y'},
+			bottom: {opposite: 'top', axis: 'y', sign: -1},
+			east: {opposite: 'west', axis: 'x', sign: 1, label: 'X'},
+			west: {opposite: 'east', axis: 'x', sign: -1},
+			south: {opposite: 'north', axis: 'z', sign: 1, label: 'Z'},
+			north: {opposite: 'south', axis: 'z', sign: -1},
 		}
 		for (let key in this.sides) {
 			let side = this.sides[key];
@@ -1256,8 +1256,9 @@ class GimbalControls {
 			side.node.setAttribute('axis', side.axis);
 			if (side.label) side.node.innerText = side.label;
 
-			let preset = DefaultCameraPresets.find(p => p.id == key);
 			side.node.addEventListener('click', e => {
+				let preset_key = key == this.preview.angle ? side.opposite : key;
+				let preset = DefaultCameraPresets.find(p => p.id == preset_key);
 				this.preview.loadAnglePreset(preset);
 			})
 			this.node.append(side.node);
@@ -1653,12 +1654,12 @@ function initCanvas() {
 
 	canvas_scenes = {
 		normal: 			new DScene({name: 'menu.preview.perspective.normal', lock: null}),
-		ortho0: 			new DScene({name: 'direction.top', lock: true}),
-		ortho1: 			new DScene({name: 'direction.bottom', lock: true}),
-		ortho2: 			new DScene({name: 'direction.south', lock: true}),
-		ortho3: 			new DScene({name: 'direction.north', lock: true}),
-		ortho4: 			new DScene({name: 'direction.east', lock: true}),
-		ortho5: 			new DScene({name: 'direction.west', lock: true}),
+		ortho_top: 			new DScene({name: 'direction.top', lock: true}),
+		ortho_bottom: 		new DScene({name: 'direction.bottom', lock: true}),
+		ortho_south: 		new DScene({name: 'direction.south', lock: true}),
+		ortho_north: 		new DScene({name: 'direction.north', lock: true}),
+		ortho_east: 		new DScene({name: 'direction.east', lock: true}),
+		ortho_west: 		new DScene({name: 'direction.west', lock: true}),
 
 		monitor: 			new DScene({name: 'display.reference.monitor' }),
 
