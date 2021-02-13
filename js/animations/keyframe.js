@@ -412,6 +412,7 @@ function updateKeyframeValue(axis, value, data_point) {
 	})
 	if (!['effect', 'locator', 'script'].includes(axis)) {
 		Animator.preview();
+		updateKeyframeSelection();
 	}
 }
 function updateKeyframeSelection() {
@@ -467,7 +468,7 @@ BARS.defineActions(function() {
 		icon: 'add_circle',
 		category: 'animation',
 		condition: {modes: ['animate']},
-		keybind: new Keybind({key: 81, shift: null}),
+		keybind: new Keybind({key: 'q', shift: null}),
 		click: function (event) {
 			var animator = Timeline.selected_animator;
 			if (!animator) return;

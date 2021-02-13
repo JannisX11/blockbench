@@ -696,6 +696,14 @@ onVueSetup(function() {
 			removeAnimator(animator) {
 				Timeline.animators.remove(animator);
 			},
+			selectChannel(animator, channel) {
+				if (this.graph_editor_channel == channel) return;
+				animator.select();
+				if (animator[channel].length == 1 && Math.epsilon(animator[channel][0].time, Timeline.time, 0.002)) {
+					animator[channel][0].select();
+				}
+				this.graph_editor_channel = channel;
+			},
 			getColor(index) {
 				if (index == -1 || index == undefined) return;
 				return markerColors[index].standard;
@@ -924,7 +932,7 @@ onVueSetup(function() {
 								<div class="channel_head"
 									:class="{selected: graph_editor_open && animator.selected && graph_editor_channel == channel}"
 									v-bind:style="{left: scroll_left+'px', width: head_width+'px'}"
-									@click.stop="animator.select(); graph_editor_channel = channel;"
+									@click.stop="selectChannel(animator, channel);"
 								>
 									<div class="text_button" v-on:click.stop="animator.toggleMuted(channel)">
 										<template v-if="channel === 'sound'">
