@@ -113,6 +113,9 @@
 	.dialog_bar input[type=checkbox] {
 		padding: 0 4px;
 	}
+	.dialog_bar .tool {
+		position: relative;
+	}
 	.dialog_vector_group {
 		display: flex;
 	}
