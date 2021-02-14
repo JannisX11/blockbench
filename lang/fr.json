@@ -935,9 +935,9 @@
     "action.add_to_palette": "Ajouter à la palette",
     "action.add_to_palette.desc": "Ajoute la couleur sélectionnée à la palette",
     "action.import_palette": "Importer la palette",
-    "action.import_palette.desc": "Importer un fichier .bbpalette",
+    "action.import_palette.desc": "Import a palette file",
     "action.export_palette": "Exporter la palette",
-    "action.export_palette.desc": "Exporter en tant que fichier .bbpalette",
+    "action.export_palette.desc": "Exporter en tant que fichier .GPL",
     "action.generate_palette": "Générer une palette",
     "action.generate_palette.desc": "Génère une palette à partir d'une texture",
     "action.sort_palette": "Trier palette",
@@ -1175,5 +1175,5 @@
     "settings.particle_tick_rate.desc": "Fréquence de rafraîchissement des effets de particules, en rafraîchissements par seconde. 30 par défaut.",
     "action.lock_motion_trail": "Verrouiller trajectoire",
     "action.lock_motion_trail.desc": "Verrouille la ligne de trajectoire au groupe actuellement sélectionné",
-    "menu.animation_file.unload": "Unload Animation File"
+    "menu.animation_file.unload": "Décharger fichier d'animation"
 }

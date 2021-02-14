@@ -937,7 +937,7 @@
     "action.import_palette": "Palette importieren",
     "action.import_palette.desc": "Eine Farbpalette aus einer Datei importieren",
     "action.export_palette": "Palette exportieren",
-    "action.export_palette.desc": "Exportiert die Palette als eine .bbpalette-Datei",
+    "action.export_palette.desc": "Exportiert die Palette als eine .GPL-Datei",
     "action.generate_palette": "Palette generieren",
     "action.generate_palette.desc": "Erstellt eine Palette aus einer Textur",
     "action.sort_palette": "Palette sortieren",
@@ -1175,5 +1175,5 @@
     "settings.particle_tick_rate.desc": "Tickrate für Partkeleffekte in Ticks pro Sekunde. Standardwert ist 30",
     "action.lock_motion_trail": "Bewegungspfad feststellen",
     "action.lock_motion_trail.desc": "Sperrt den Bewegungspfad auf die momentan ausgewählte Gruppe",
-    "menu.animation_file.unload": "Unload Animation File"
+    "menu.animation_file.unload": "Entlade Animationsdatei"
 }
