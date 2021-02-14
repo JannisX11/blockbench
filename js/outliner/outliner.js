@@ -1088,6 +1088,7 @@ Interface.definePanels(function() {
 
 				},
 				dragNode(e1) {
+					if (getFocusedTextInput()) return;
 					convertTouchEvent(e1);
 
 					if (e1.target.classList.contains('outliner_toggle')) {

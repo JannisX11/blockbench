@@ -391,7 +391,7 @@ window.addEventListener('focus', event => {
 })
 
 function getFocusedTextInput() {
-	return $('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus').get(0)
+	return document.querySelector('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus');
 }
 
 $(document).on('keydown mousedown', function(e) {

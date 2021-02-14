@@ -198,7 +198,7 @@
 		margin-top: -1px;
 	}
 	.drag_hover[order="1"]::before {
-		bottom: 0px;
+		bottom: -1px;
 	}
 	.drag_hover[order="0"]::before {
 		width: 5px;
