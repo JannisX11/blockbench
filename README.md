@@ -35,3 +35,12 @@ To launch Blockbench from source, you can clone the repository, navigate to the 
 ## Plugins
 
 Blockbench supports Javascript-based plugins. Learn more about creating plugins on [https://documentation.blockbench.net](https://documentation.blockbench.net).
+
+
+
+## License
+
+* The Blockbench source-code is licensed under the GPL license version 3. See `LICENSE.MD`.
+* Modifications to the source code can be made under the terms of that license.
+* Blockbench plugins (external scripts) and themes (theme files to customize the design) that interact with the Blockbench API are an exception. Plugins and themes can be created and/or published as open source, proprietary or paid software.
+* Assets created with Blockbench (models, textures, animations, screenshots etc.) are your own!
