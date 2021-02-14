@@ -1408,6 +1408,19 @@ const Animator = {
 				config: new Wintersky.Config(json_content, {path}),
 				emitters: {}
 			};
+			if (isApp) {
+				let timeout;
+				this.watcher = fs.watch(path, (eventType) => {
+					if (eventType == 'change') {
+						if (timeout) clearTimeout(timeout)
+						timeout = setTimeout(() => {
+							Blockbench.read(path, {errorbox: false}, (files) => {
+								Animator.loadParticleEmitter(path, files[0].content);
+							})
+						}, 60)
+					}
+				})
+			}
 		}
 	},
 	loadFile(file, animation_filter) {
@@ -1652,6 +1665,15 @@ const Animator = {
 Blockbench.on('update_camera_position', e => {
 	if (Animator.open && settings.motion_trails.value && (Group.selected || NullObject.selected[0] || Animator.motion_trail_lock)) {
 		Animator.updateMotionTrailScale();
+	}
+})
+Blockbench.on('reset_project', () => {
+	for (let path in Animator.particle_effects) {
+		let effect = Animator.particle_effects[path];
+		if (isApp && effect.watcher) {
+			effect.watcher.close()
+		}
+		delete Animator.particle_effects[path];
 	}
 })
 
