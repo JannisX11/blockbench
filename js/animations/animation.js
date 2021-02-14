@@ -1207,12 +1207,12 @@ const Animator = {
 		Animator.open = true;
 		Canvas.updateAllBones()
 
+		Outliner.vue.options.hidden_types.push('cube');
 		scene.add(Wintersky.space);
 		Wintersky.global_options.tick_rate = settings.particle_tick_rate.value;
 		if (settings.motion_trails.value) scene.add(Animator.motion_trail);
 		Animator.motion_trail.no_export = true;
 
-		$('body').addClass('animation_mode')
 		if (!Animator.timeline_node) {
 			Animator.timeline_node = $('#timeline').get(0)
 		}
@@ -1238,7 +1238,7 @@ const Animator = {
 	leave() {
 		Timeline.pause()
 		Animator.open = false;
-		$('body').removeClass('animation_mode')
+		Outliner.vue.options.hidden_types.remove('cube');
 
 		scene.remove(Wintersky.space);
 		scene.remove(Animator.motion_trail);

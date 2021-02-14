@@ -734,7 +734,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		keybind: new Keybind({key: 115}),
 		onChange: function (value) {
-			Outliner.vue._data.show_advanced_toggles = value;
+			Outliner.vue._data.options.show_advanced_toggles = value;
 		}
 	})
 	new BarText('cube_counter', {
@@ -929,7 +929,7 @@ Interface.definePanels(function() {
 			>` +
 				//Opener
 				
-				'<i v-if="node.children && node.children.length > 0 && (!Animator.open || node.children.some(o => o instanceof Group || o instanceof Locator))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class=\'{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}\'></i>' +
+				'<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class=\'{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}\'></i>' +
 				'<i v-else class="outliner_opener_placeholder"></i>' +
 				//Main
 				'<i :class="node.icon + ((settings.outliner_colors.value && node.color >= 0) ? \' ec_\'+node.color : \'\')" v-on:dblclick.stop="if (node.children && node.children.length) {node.isOpen = !node.isOpen;}"></i>' +
@@ -937,7 +937,7 @@ Interface.definePanels(function() {
 
 
 				`<i v-for="btn in node.buttons"
-					v-if="(!btn.advanced_option || show_advanced_toggles || (btn.id === \'locked\' && node.isIconEnabled(btn)))"
+					v-if="(!btn.advanced_option || options.show_advanced_toggles || (btn.id === \'locked\' && node.isIconEnabled(btn)))"
 					class="outliner_toggle"
 					:class="getBtnClasses(btn, node)"
 					:title="btn.title"
@@ -947,13 +947,12 @@ Interface.definePanels(function() {
 			'</div>' +
 			//Other Entries
 			'<ul v-if="node.isOpen">' +
-				'<vue-tree-item v-for="item in node.children" :node="item" :width="width" :show_advanced_toggles="show_advanced_toggles" v-key="item.uuid"></vue-tree-item>' +
+				'<vue-tree-item v-for="item in visible_children" :node="item" :options="options" v-key="item.uuid"></vue-tree-item>' +
 				`<div class="outliner_line_guide" v-if="node == Group.selected" v-bind:style="{left: indentation + 'px'}"></div>` +
 			'</ul>' +
 		'</li>',
 		props: {
-			show_advanced_toggles: Boolean,
-			width: Number,
+			options: Object,
 			node: {
 				type: Object
 			}
@@ -961,6 +960,13 @@ Interface.definePanels(function() {
 		computed: {
 			indentation() {
 				return this.node.getDepth ? (limitNumber(this.node.getDepth(), 0, (this.width-100) / 16) * 16) : 0;
+			},
+			visible_children() {
+				if (!this.options.hidden_types.length) {
+					return this.node.children;
+				} else {
+					return this.node.children.filter(node => !this.options.hidden_types.includes(node.type));
+				}
 			}
 		},
 		methods: {
@@ -1026,8 +1032,11 @@ Interface.definePanels(function() {
 			name: 'panel-outliner',
 			data() { return {
 				root: Outliner.root,
-				width: 300,
-				show_advanced_toggles: false
+				options: {
+					width: 300,
+					show_advanced_toggles: false,
+					hidden_types: []
+				}
 			}},
 			methods: {
 				openMenu(event) {
@@ -1208,7 +1217,7 @@ Interface.definePanels(function() {
 						@mousedown="dragNode($event)"
 						@touchstart="dragNode($event)"
 					>
-						<vue-tree-item v-for="item in root" :node="item" :width="width" :show_advanced_toggles="show_advanced_toggles" v-key="item.uuid"></vue-tree-item>
+						<vue-tree-item v-for="item in root" :node="item" :options="options" v-key="item.uuid"></vue-tree-item>
 					</ul>
 				</div>
 			`
