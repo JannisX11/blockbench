@@ -17,8 +17,8 @@ class Animation {
 		}
 		if (typeof data === 'object') {
 			this.extend(data);
-			if (isApp && data.name) {
-				this.saved_name = data.name;
+			if (isApp && Format.animation_files && data.saved_name) {
+				this.saved_name = data.saved_name;
 			}
 		}
 	}
@@ -1436,6 +1436,7 @@ const Animator = {
 				var a = json.animations[ani_name]
 				var animation = new Animation({
 					name: ani_name,
+					saved_name: ani_name,
 					path,
 					loop: a.loop && (a.loop == 'hold_on_last_frame' ? 'hold' : 'loop'),
 					override: a.override_previous_animation,

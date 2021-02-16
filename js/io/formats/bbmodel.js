@@ -220,6 +220,9 @@ var codec = new Codec('project', {
 				var base_ani = new Animation()
 				base_ani.uuid = ani.uuid;
 				base_ani.extend(ani).add();
+				if (isApp && Format.animation_files) {
+					base_ani.saved_name = base_ani.name;
+				}
 			})
 		}
 		if (model.animation_variable_placeholders) {
