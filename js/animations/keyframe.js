@@ -794,7 +794,9 @@ Interface.definePanels(function() {
 				updateLocatorSuggestionList() {
 					locator_suggestion_list.innerHTML = '';
 					Locator.all.forEach(locator => {
-						locator_suggestion_list.append(`<option value="${locator.name}">`);
+						let option = document.createElement('option');
+						option.value = locator.name;
+						locator_suggestion_list.append(option);
 					})
 				},
 				focusAxis(axis) {
