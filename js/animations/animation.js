@@ -816,7 +816,7 @@ class BoneAnimator extends GeneralAnimator {
 		}
 		return this;
 	}
-	fillValues(keyframe, values, allow_expression) {
+	fillValues(keyframe, values, allow_expression, round = true) {
 
 		if (values instanceof Array) {
 			keyframe.extend({
@@ -840,12 +840,14 @@ class BoneAnimator extends GeneralAnimator {
 			var ref = this.interpolate(keyframe.channel, allow_expression)
 			Timeline.time = original_time;
 			if (ref) {
-				let e = 1e2
-				ref.forEach((r, i) => {
-					if (!isNaN(r)) {
-						ref[i] = Math.round(parseFloat(r)*e)/e
-					}
-				})
+				if (round) {
+					let e = keyframe.channel == 'scale' ? 1e4 : 1e2
+					ref.forEach((r, i) => {
+						if (!isNaN(r)) {
+							ref[i] = Math.round(parseFloat(r)*e)/e
+						}
+					})
+				}
 				keyframe.extend({
 					data_points: [{
 						x: ref[0],

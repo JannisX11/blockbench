@@ -652,7 +652,7 @@ BARS.defineActions(function() {
 			Timeline.selected.forEach((kf) => {
 				if (kf.animator.fillValues) {
 					Timeline.time = kf.time;
-					kf.animator.fillValues(kf, null, false);
+					kf.animator.fillValues(kf, null, false, false);
 				}
 			})
 			Timeline.time = time_before;
