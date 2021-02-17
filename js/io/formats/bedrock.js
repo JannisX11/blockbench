@@ -77,7 +77,7 @@ window.BedrockEntityManager = {
 							path+'.tga'
 						])
 						if (path) {
-							valid_textures_list.push(path);
+							valid_textures_list.safePush(path);
 						}
 					}
 				}
