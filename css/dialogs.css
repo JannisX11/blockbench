@@ -427,15 +427,6 @@
 	}
 
 /*Specific Dialogs*/
-	.dialog#updater .dialog_bar.narrow {
-		padding-top: 3px;
-	}
-	button#update_button {
-		margin-right: 12px;
-		float: right;
-		margin-top: -64px;
-		width: 240px;
-	}
 	.dialog#texture_edit p.multiline_text {
 		width: 344px;
 		min-height: 51px;

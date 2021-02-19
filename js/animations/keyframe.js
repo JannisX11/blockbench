@@ -656,7 +656,7 @@ BARS.defineActions(function() {
 				}
 			})
 			Timeline.time = time_before;
-			Undo.finishEdit('reset keyframes')
+			Undo.finishEdit('resolve keyframes')
 			updateKeyframeSelection()
 		}
 	})

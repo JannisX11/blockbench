@@ -1835,8 +1835,6 @@ const BARS = {
 		BarItems.move_tool.select()
 
 		BarItems.reset_keybindings.toElement('#keybinds_title_bar')
-		BarItems.load_plugin.toElement('#plugins_header_bar')
-		BarItems.load_plugin_from_url.toElement('#plugins_header_bar')
 		BarItems.uv_dialog.toElement('#uv_title_bar')
 		BarItems.uv_dialog_full.toElement('#uv_title_bar')
 	},
@@ -1844,7 +1842,7 @@ const BARS = {
 		BARS.list = new Vue({
 			el: '#toolbar_edit',
 			data: {
-				showAll: true,
+				show_all: true,
 				items: BarItems,
 				currentBar: []
 			},
@@ -1856,7 +1854,7 @@ const BARS = {
 						name: tl('data.separator'),
 						type: 'separator'
 					}]
-					if (this.showAll == false) {
+					if (this.show_all == false) {
 						return list
 					}
 					for (var key in BarItems) {
@@ -1909,8 +1907,8 @@ const BARS = {
 			}
 		})
 		BARS.list.updateSearch = function() {	
-			BARS.list._data.showAll = !BARS.list._data.showAll
-			BARS.list._data.showAll = !BARS.list._data.showAll
+			BARS.list._data.show_all = !BARS.list._data.show_all
+			BARS.list._data.show_all = !BARS.list._data.show_all
 		}
 
 		ActionControl.vue = new Vue({

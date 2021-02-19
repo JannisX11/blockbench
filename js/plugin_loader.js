@@ -6,10 +6,6 @@ const Plugins = {
 	json: undefined,	//Json from website
 	all: [],			//Vue Object Data
 	registered: {},
-	updateSearch() {
-		Plugins.Vue._data.showAll = !Plugins.Vue._data.showAll
-		Plugins.Vue._data.showAll = !Plugins.Vue._data.showAll
-	},
 	devReload() {
 		var reloads = 0;
 		for (var i = Plugins.all.length-1; i >= 0; i--) {
@@ -454,32 +450,6 @@ async function loadInstalledPlugins() {
 	}
 	StateMemory.save('installed_plugins')
 	
-	Plugins.Vue = new Vue({
-		el: '#plugin_list',
-		data: {
-			showAll: false,
-			items: Plugins.all
-		},
-		computed: {
-			plugin_search() {
-				var name = $('#plugin_search_bar').val().toUpperCase()
-				return this.items.filter(item => {
-					if (this.showAll !== item.installed) {
-						if (name.length > 0) {
-							return (
-								item.id.toUpperCase().includes(name) ||
-								item.title.toUpperCase().includes(name) ||
-								item.description.toUpperCase().includes(name) ||
-								item.author.toUpperCase().includes(name)
-							)
-						}
-						return true;
-					}
-					return false;
-				})
-			}
-		}
-	})
 
 	install_promises.forEach(promise => {
 		promise.catch(console.error);
@@ -490,19 +460,95 @@ function switchPluginTabs(installed) {
 	$('#plugins .tab_bar > .open').removeClass('open')
 	if (installed) {
 		$('#installed_plugins').addClass('open')
-		Plugins.Vue._data.showAll = false
+		Plugins.dialog.content_vue._data.show_all = false
 	} else {
 		$('#all_plugins').addClass('open')
-		Plugins.Vue._data.showAll = true
+		Plugins.dialog.content_vue._data.show_all = true
 	}
 }
 
 BARS.defineActions(function() {
+
+	Plugins.dialog = new Dialog({
+		id: 'plugins',
+		title: 'dialog.plugins.title',
+		component: {
+			data: {
+				show_all: false,
+				search_term: '',
+				items: Plugins.all
+			},
+			computed: {
+				plugin_search() {
+					var name = this.search_term.toUpperCase()
+					return this.items.filter(item => {
+						if (this.show_all !== item.installed) {
+							if (name.length > 0) {
+								return (
+									item.id.toUpperCase().includes(name) ||
+									item.title.toUpperCase().includes(name) ||
+									item.description.toUpperCase().includes(name) ||
+									item.author.toUpperCase().includes(name)
+								)
+							}
+							return true;
+						}
+						return false;
+					})
+				}
+			},
+			template: `
+				<div>
+					<div class="bar">
+						<div class="tab_bar">
+							<div class="open" onclick="switchPluginTabs(true)" id="installed_plugins">${tl('dialog.plugins.installed')}</div>
+							<div onclick="switchPluginTabs(false)" id="all_plugins">${tl('dialog.plugins.available')}</div>
+						</div>
+						<div class="search_bar">
+							<input type="text" class="dark_bordered" id="plugin_search_bar" v-model="search_term">
+							<i class="material-icons" id="plugin_search_bar_icon">search</i>
+						</div>
+					</div>
+					<ul class="list" id="plugin_list">
+						<li v-for="plugin in plugin_search" v-bind:plugin="plugin.id" v-bind:class="{testing: plugin.fromFile, expanded: plugin.expanded}">
+							<div class="title" v-on:click="plugin.toggleInfo()">
+								<div class="icon_wrapper plugin_icon normal" v-html="Blockbench.getIconNode(plugin.icon, plugin.color).outerHTML"></div>
+
+								<i v-if="plugin.expanded" class="material-icons plugin_expand_icon">expand_less</i>
+								<i v-else class="material-icons plugin_expand_icon">expand_more</i>
+								{{ plugin.title }}
+							</div>
+							<div class="button_bar" v-if="plugin.installed || plugin.isInstallable() == true">
+								<button type="button" class="" v-on:click="plugin.uninstall()" v-if="plugin.installed"><i class="material-icons">delete</i><span class="tl">${tl('dialog.plugins.uninstall')}</span></button>
+								<button type="button" class="" v-on:click="plugin.download(true)" v-else><i class="material-icons">add</i><span class="tl">${tl('dialog.plugins.install')}</span></button>
+								<button type="button" v-on:click="plugin.reload()" v-if="plugin.installed && plugin.isReloadable()"><i class="material-icons">refresh</i><span class="tl">${tl('dialog.plugins.reload')}</span></button>
+							</div>
+							<div class="button_bar tiny" v-if="plugin.isInstallable() != true">{{ plugin.isInstallable() }}</div>
+
+							<div class="author">{{ tl('dialog.plugins.author', [plugin.author]) }}</div>
+							<div class="description">{{ plugin.description }}</div>
+							<div v-if="plugin.expanded" class="about" v-html="marked(plugin.about)"><button>a</button></div>
+							<div v-if="plugin.expanded" v-on:click="plugin.toggleInfo()" style="text-decoration: underline;">${tl('dialog.plugins.show_less')}</div>
+						</li>
+						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && show_all === false">${tl('dialog.plugins.none_installed')}</div>
+						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && show_all === true" id="plugin_available_empty">${tl('dialog.plugins.none_available')}</div>
+					</ul>
+				</div>
+			`
+		}
+	})
+
 	new Action('plugins_window', {
 		icon: 'extension',
 		category: 'blockbench',
 		click: function () {
-			showDialog('plugins');
+			Plugins.dialog.show();
+			if (!Plugins.dialog.button_bar) {
+				Plugins.dialog.button_bar = $(`<div class="bar next_to_title" id="plugins_header_bar"></div>`)[0];
+				Plugins.dialog.object.firstElementChild.after(Plugins.dialog.button_bar);
+				BarItems.load_plugin.toElement('#plugins_header_bar');
+				BarItems.load_plugin_from_url.toElement('#plugins_header_bar');
+			}
 			$('#plugin_list').css('max-height', limitNumber(window.innerHeight-300, 80, 600)+'px');
 			$('dialog#plugins #plugin_search_bar').trigger('focus')
 		}
