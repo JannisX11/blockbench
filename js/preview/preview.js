@@ -150,6 +150,7 @@ class Preview {
 		for (var i = 4; i <= 6; i++) {
 			this.camPers.layers.enable(i);
 		}
+		this.side_view_target = new THREE.Vector3();
 
 		//Controls
 		this.controls = new THREE.OrbitControls(this.camPers, this);
@@ -157,6 +158,13 @@ class Preview {
 		this.controls.maxDistance = 3960;
 		this.controls.enableKeys = false;
 		this.controls.zoomSpeed = 1.5;
+		this.controls.onUpdate(() => {
+			if (this.angle != null) {
+				if (this.camOrtho.axis != 'x') this.side_view_target.x = this.controls.target.x;
+				if (this.camOrtho.axis != 'y') this.side_view_target.y = this.controls.target.y;
+				if (this.camOrtho.axis != 'z') this.side_view_target.z = this.controls.target.z;
+			}
+		})
 
 		//Annotations
 		this.annotations = {};
@@ -390,16 +398,24 @@ class Preview {
 	get camera() {
 		return this.isOrtho ? this.camOrtho : this.camPers;
 	}
-	setProjectionMode(ortho) {
+	setProjectionMode(ortho, toggle) {
 
 		let position = this.camera.position;
 		this.isOrtho = !!ortho;
 		this.resize()
 		this.controls.object = this.camera;
 		this.camera.position.copy(position);
-		if (this.isOrtho) {
-			this.camera.zoom = 0.5;
-			this.camOrtho.updateProjectionMatrix()
+		if (toggle) {
+			let perspective_distance = this.camPers.position.distanceTo(this.controls.target);
+			let factor = 0.72 * this.camPers.getFocalLength();
+			if (this.isOrtho) {
+				this.camera.zoom = factor / perspective_distance;
+			} else {
+				let target_distance = factor / this.camOrtho.zoom;
+				let cam_offset = new THREE.Vector3().copy(this.camPers.position).sub(this.controls.target);
+				cam_offset.multiplyScalar(target_distance / perspective_distance);
+				this.camPers.position.copy(cam_offset).add(this.controls.target);
+			}
 		}
 		this.setLockedAngle()
 		this.controls.updateSceneScale();
@@ -456,6 +472,15 @@ class Preview {
 					this.camOrtho.layers.enable(i+3);
 				}
 			}
+			if (this.camOrtho.axis != 'x') {
+				this.controls.target.x = this.camOrtho.position.x = this.side_view_target.x;
+			}
+			if (this.camOrtho.axis != 'y') {
+				this.controls.target.y = this.camOrtho.position.y = this.side_view_target.y;
+			}
+			if (this.camOrtho.axis != 'z') {
+				this.controls.target.z = this.camOrtho.position.z = this.side_view_target.z;
+			}
 
 		} else {
 
@@ -491,8 +516,8 @@ class Preview {
 		}
 		if (preset.projection !== 'unset') {
 			this.setProjectionMode(preset.projection == 'orthographic')
-		}
-		if (this.isOrtho && preset.zoom) {
+		} 
+		if (this.isOrtho && preset.zoom && !preset.locked_angle) {
 			this.camera.zoom = preset.zoom;
 			this.camera.updateProjectionMatrix()
 		}
@@ -1181,7 +1206,7 @@ class Preview {
 			return children;
 		}},
 		{icon: (preview) => (preview.isOrtho ? 'check_box' : 'check_box_outline_blank'), name: 'menu.preview.orthographic', click: function(preview) {
-			preview.setProjectionMode(!preview.isOrtho);
+			preview.setProjectionMode(!preview.isOrtho, true);
 		}},
 		'_',
 		{icon: 'widgets', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !Modes.display && !Animator.open}, click: function() {
@@ -1276,7 +1301,7 @@ class GimbalControls {
 				scope.node.classList.add('mouse_active');
 				if (!e1.touches && last_event == e1) scope.node.requestPointerLock();
 				if (scope.preview.angle != null) {
-					scope.preview.setProjectionMode(false);
+					scope.preview.setProjectionMode(false, true);
 				}
 				let limit = move_calls <= 2 ? 1 : 32;
 				scope.preview.controls.rotateLeft((e1.touches ? (e2.clientX - last_event.clientX) : Math.clamp(e2.movementX, -limit, limit)) / 40);
@@ -1294,7 +1319,8 @@ class GimbalControls {
 			addEventListeners(document, 'mouseup touchend', off);
 		})
 		this.node.addEventListener('dblclick', e => {
-			this.preview.setProjectionMode(!this.preview.isOrtho);
+			if (e.target != this.node) return;
+			this.preview.setProjectionMode(!this.preview.isOrtho, true);
 		})
 
 		this.preview.controls.onUpdate(e => this.update(e));
@@ -2170,7 +2196,7 @@ BARS.defineActions(function() {
 		condition: _ => (!preview.movingBackground || !Modes.display),
 		keybind: new Keybind({key: 101}),
 		click: function () {
-			quad_previews.current.setProjectionMode(!quad_previews.current.isOrtho);
+			quad_previews.current.setProjectionMode(!quad_previews.current.isOrtho, true);
 		}
 	})
 	new Action('camera_initial', {

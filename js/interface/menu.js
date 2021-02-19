@@ -60,7 +60,6 @@ class Menu {
 				handleMenuOverflow(childlist);
 
 			} else if (offset.top + el_height > window_height) {
-				console.log('b')
 				childlist.css('margin-top', 26-childlist.height() + 'px')
 				if (childlist.offset().top < 26) {
 					childlist.offset({top: 26})
