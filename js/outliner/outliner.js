@@ -513,7 +513,7 @@ function compileGroups(undo, lut) {
 	iterate(Outliner.root, result)
 	return result;
 }
-function parseGroups(array, importGroup, startIndex) {
+function parseGroups(array, import_reference, startIndex) {
 	function iterate(array, save_array, addGroup) {
 		var i = 0;
 		while (i < array.length) {
@@ -552,10 +552,12 @@ function parseGroups(array, importGroup, startIndex) {
 			i++;
 		}
 	}
-	if (importGroup && startIndex !== undefined) {
-		iterate(array, importGroup.children, importGroup)
+	if (import_reference instanceof Group && startIndex !== undefined) {
+		iterate(array, import_reference.children, import_reference)
 	} else {
-		Group.all.empty();
+		if (!import_reference) {
+			Group.all.empty();
+		}
 		iterate(array, Outliner.root, 'root');
 	}
 }

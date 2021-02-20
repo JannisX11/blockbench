@@ -264,8 +264,6 @@ var codec = new Codec('project', {
 		 * 
 		 * texture merging
 		 * UV handling
-		 * Outliner issue
-		 * undo
 		 */
 
 		processHeader(model);
@@ -273,7 +271,24 @@ var codec = new Codec('project', {
 
 		Blockbench.dispatchEvent('merge_project', {model, path});
 		this.dispatchEvent('merge', {model})
+		Prop.added_models++;
 
+		let new_elements = [];
+		let new_textures = [];
+		let new_animations = [];
+		Undo.initEdit({
+			elements: new_elements,
+			textures: new_textures,
+			animations: Format.animation_mode && new_animations,
+			outliner: true,
+			selection: true,
+			uv_mode: true,
+			display_slots: Format.display_mode && displayReferenceObjects.slots
+		})
+
+		if (Format.optional_box_uv) {
+			Project.box_uv = model.meta.box_uv;
+		}
 
 		if (model.overrides instanceof Array && Project.overrides instanceof Array) {
 			Project.overrides.push(...model.overrides);
@@ -289,6 +304,7 @@ var codec = new Codec('project', {
 			} else if (tex.source && tex.source.substr(0, 5) == 'data:') {
 				tex_copy.fromDataURL(tex.source)
 			}
+			new_textures.push(tex_copy);
 		}
 
 		if (model.textures && (!Format.single_texture || Texture.all.length == 0)) {
@@ -296,12 +312,13 @@ var codec = new Codec('project', {
 		}
 
 		if (model.elements) {
-			let default_texture = Texture.getDefault();
+			let default_texture = new_textures[0] || Texture.getDefault();
+			let format = Formats[model.meta.model_format] || Format
 			model.elements.forEach(function(element) {
 
 				var copy = OutlinerElement.fromSave(element, true)
 				for (var face in copy.faces) {
-					if (!Format.single_texture && element.faces) {
+					if (!format.single_texture && element.faces) {
 						var texture = element.faces[face].texture !== null && textures[element.faces[face].texture]
 						if (texture) {
 							copy.faces[face].texture = texture.uuid
@@ -311,17 +328,18 @@ var codec = new Codec('project', {
 					}
 				}
 				copy.init()
-				
+				new_elements.push(copy);
 			})
 		}
 		if (model.outliner) {
-			parseGroups(model.outliner)
+			parseGroups(model.outliner, true);
 		}
-		if (model.animations) {
+		if (model.animations && Format.animation_mode) {
 			model.animations.forEach(ani => {
 				var base_ani = new Animation()
 				base_ani.uuid = ani.uuid;
 				base_ani.extend(ani).add();
+				new_animations.push(base_ani);
 			})
 		}
 		if (model.animation_variable_placeholders) {
@@ -335,6 +353,7 @@ var codec = new Codec('project', {
 		if (model.display !== undefined) {
 			DisplayMode.loadJSON(model.display)
 		}
+		Undo.finishEdit('merge project')
 		Canvas.updateAllBones()
 		Canvas.updateAllPositions()
 		this.dispatchEvent('parsed', {model})
