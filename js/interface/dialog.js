@@ -1,5 +1,24 @@
 (function() {
 
+Vue.component('search-bar', {
+	props: {
+		value: String
+	},
+	methods: {
+		change(text) {
+			this.$emit('input', text)
+		},
+		reset() {
+			this.value = '';
+			this.$emit('input', '');
+		}
+	},
+	template: `<div class="search_bar">
+			<input type="text" class="dark_bordered" :value="value" @input="change($event.target.value)">
+			<i class="material-icons" :class="{light_on_hover: !!value}" @click="reset()">{{ value ? 'clear' : 'search' }}</i>
+		</div>`,
+})
+
 function buildForm(dialog) {
 	let dialog_content = $(dialog.object).find('.dialog_content')
 	for (var form_id in dialog.form) {
@@ -447,7 +466,7 @@ window.Dialog = class Dialog {
 
 		let jq_dialog = $(this.object);
 
-		$('#plugin_dialog_wrapper').append(jq_dialog);
+		$('#dialog_wrapper').append(jq_dialog);
 		$('#blackout').show();
 		jq_dialog.show().css('display', 'flex');
 		jq_dialog.css('top', limitNumber(window.innerHeight/2-jq_dialog.height()/2, 0, 100)+'px');

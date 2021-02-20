@@ -1124,7 +1124,7 @@ class Toolbar {
 		})
 		BARS.list.currentBar = this.children;
 		showDialog('toolbar_edit');
-		$('#toolbar_edit #action_search_bar').val('');
+		
 		return this;
 	}
 	add(action, position) {
@@ -1841,21 +1841,18 @@ const BARS = {
 		BARS.list = new Vue({
 			el: '#toolbar_edit',
 			data: {
-				show_all: true,
 				items: BarItems,
-				currentBar: []
+				currentBar: [],
+				search_term: ''
 			},
 			computed: {
 				searchedBarItems() {
-					var name = $('#action_search_bar').val().toUpperCase()
+					var name = this.search_term.toUpperCase()
 					var list = [{
 						icon: 'bookmark',
 						name: tl('data.separator'),
 						type: 'separator'
 					}]
-					if (this.show_all == false) {
-						return list
-					}
 					for (var key in BarItems) {
 						var item = BarItems[key]
 						if (name.length == 0 ||
@@ -1905,10 +1902,6 @@ const BARS = {
 				}
 			}
 		})
-		BARS.list.updateSearch = function() {	
-			BARS.list._data.show_all = !BARS.list._data.show_all
-			BARS.list._data.show_all = !BARS.list._data.show_all
-		}
 
 		ActionControl.vue = new Vue({
 			el: '#action_selector',

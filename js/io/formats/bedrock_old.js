@@ -256,7 +256,7 @@ var codec = new Codec('bedrock_old', {
 
 		$('#pe_search_bar').val('')
 		if (pe_list && pe_list._data) {
-			pe_list._data.search_text = ''
+			pe_list._data.search_term = ''
 		}
 
 		function create_thumbnail(model_entry, isize) {
@@ -350,7 +350,7 @@ var codec = new Codec('bedrock_old', {
 			pe_list = new Vue({
 				el: '#pe_list',
 				data: {
-					search_text: '',
+					search_term: '',
 					list: pe_list_data
 				},
 				methods: {
@@ -367,9 +367,8 @@ var codec = new Codec('bedrock_old', {
 				},
 				computed: {
 					searched() {
-						var scope = this;
 						return this.list.filter(item => {
-							return item.name.toUpperCase().includes(scope.search_text)
+							return item.name.toUpperCase().includes(this.search_term)
 						})
 					}
 				}

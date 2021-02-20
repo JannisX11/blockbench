@@ -142,7 +142,6 @@
 	}
 
 
-
 	.dialog .tab_content {
 		height: calc(100% - 90px);
 		width: 100%;
@@ -613,6 +612,7 @@
 		vertical-align: text-bottom;
 	}
 	.dialog.draggable .bar.next_to_title {
+		width: max-content;
 		margin-top: -51px;
 		margin-left: 111px;
 		float: left;
@@ -625,7 +625,6 @@
 	}
 	#plugin_list {
 		max-height: 600px;
-		margin-bottom: 20px;
 		overflow-y: scroll;
 		min-height: 80px;
 	}

@@ -174,10 +174,7 @@
 		</ul>
 
 		<div class="bar" style="margin: 4px 0;">
-			<div class="search_bar">
-				<input type="text" class="dark_bordered" id="action_search_bar" oninput="BARS.list.updateSearch()">
-				<i class="material-icons" id="plugin_search_bar_icon">search</i>
-			</div>
+			<search-bar v-model="search_term"></search-bar>
 		</div>
 
 		<ul class="list" id="bar_item_list">
@@ -198,7 +195,7 @@
 		<div class="dialog_handle tl">dialog.entitylist.title</div>
 		<div class="dialog_bar narrow tl">dialog.entitylist.text</div>
 			<div class="search_bar">
-				<input type="text" class="dark_bordered" id="pe_search_bar" oninput="pe_list._data.search_text = $(this).val().toUpperCase()">
+				<input type="text" class="dark_bordered" id="pe_search_bar" oninput="pe_list._data.search_term = $(this).val().toUpperCase()">
 				<i class="material-icons" id="plugin_search_bar_icon">search</i>
 			</div>
 		<ul id="pe_list" class="list">
@@ -564,7 +561,7 @@
 		<div class="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</dialog>
 
-	<div id="plugin_dialog_wrapper"></div>
+	<div id="dialog_wrapper"></div>
 
 	<header>
 		<ul id="mac_window_menu" hidden></ul>

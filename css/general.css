@@ -268,6 +268,9 @@
 		color: var(--color-light);
 		text-shadow: 0 0 5px black;
 	}
+	.light_on_hover:hover {
+		color: var(--color-light);
+	}
 
 	.spinning {
 		-webkit-animation: spin 2s linear infinite;

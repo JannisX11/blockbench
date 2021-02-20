@@ -498,16 +498,13 @@ BARS.defineActions(function() {
 				}
 			},
 			template: `
-				<div>
+				<div style="margin-top: 10px;">
 					<div class="bar">
 						<div class="tab_bar">
 							<div class="open" onclick="switchPluginTabs(true)" id="installed_plugins">${tl('dialog.plugins.installed')}</div>
 							<div onclick="switchPluginTabs(false)" id="all_plugins">${tl('dialog.plugins.available')}</div>
 						</div>
-						<div class="search_bar">
-							<input type="text" class="dark_bordered" id="plugin_search_bar" v-model="search_term">
-							<i class="material-icons" id="plugin_search_bar_icon">search</i>
-						</div>
+						<search-bar id="plugin_search_bar" v-model="search_term"></search-bar>
 					</div>
 					<ul class="list" id="plugin_list">
 						<li v-for="plugin in plugin_search" v-bind:plugin="plugin.id" v-bind:class="{testing: plugin.fromFile, expanded: plugin.expanded}">
@@ -550,7 +547,7 @@ BARS.defineActions(function() {
 				BarItems.load_plugin_from_url.toElement('#plugins_header_bar');
 			}
 			$('#plugin_list').css('max-height', limitNumber(window.innerHeight-300, 80, 600)+'px');
-			$('dialog#plugins #plugin_search_bar').trigger('focus')
+			$('dialog#plugins #plugin_search_bar input').trigger('focus')
 		}
 	})
 	new Action('reload_plugins', {
