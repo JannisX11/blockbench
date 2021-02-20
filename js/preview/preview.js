@@ -2183,9 +2183,15 @@ BARS.defineActions(function() {
 		category: 'view',
 		condition: () => !Modes.display,
 		click: function () {
+			let preview = quad_previews.current;
 			let center = getSelectionCenter();
-			if (!Format.centered_grid) center.V3_subtract(8, 8, 8)
-			quad_previews.current.controls.target.fromArray(center);
+			if (!Format.centered_grid) center.V3_subtract(8, 8, 8);
+			let difference = new THREE.Vector3().copy(preview.controls.target);
+			preview.controls.target.fromArray(center);
+			if (preview.angle != null) {
+				difference.sub(preview.controls.target);
+				preview.camera.position.sub(difference);
+			}
 		}
 	})
 
