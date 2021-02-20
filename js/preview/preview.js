@@ -2054,7 +2054,7 @@ BARS.defineActions(function() {
 	new Toggle('toggle_wireframe', {
 		icon: 'border_clear',
 		category: 'view',
-		keybind: new Keybind({key: 90}),
+		keybind: new Keybind({key: 'z'}),
 		condition: () => Toolbox && Toolbox.selected && Toolbox.selected.allowWireframe,
 		default: false,
 		onChange: function (state) {
@@ -2071,7 +2071,7 @@ BARS.defineActions(function() {
 		icon: 'fas.fa-chess-board',
 		category: 'view',
 		linked_setting: 'preview_checkerboard',
-		keybind: new Keybind({key: 84})
+		keybind: new Keybind({key: 't'})
 	})
 	new Toggle('uv_checkerboard', {
 		icon: 'fas.fa-chess-board',
@@ -2096,7 +2096,7 @@ BARS.defineActions(function() {
 	new Action('screenshot_model', {
 		icon: 'fa-cubes',
 		category: 'view',
-		keybind: new Keybind({key: 80, ctrl: true}),
+		keybind: new Keybind({key: 'p', ctrl: true}),
 		click: function () {Preview.selected.screenshot()}
 	})
 	new Action('record_model_gif', {
@@ -2182,7 +2182,6 @@ BARS.defineActions(function() {
 		icon: 'center_focus_weak',
 		category: 'view',
 		condition: () => !Modes.display,
-		keybind: new Keybind({key: 191}),
 		click: function () {
 			let center = getSelectionCenter();
 			if (!Format.centered_grid) center.V3_subtract(8, 8, 8)

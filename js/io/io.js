@@ -475,7 +475,7 @@ BARS.defineActions(function() {
 	new Action('open_model', {
 		icon: 'assessment',
 		category: 'file',
-		keybind: new Keybind({key: 79, ctrl: true}),
+		keybind: new Keybind({key: 'o', ctrl: true}),
 		condition: () => (!EditSession.active || EditSession.hosting),
 		click: function () {
 			var startpath;
@@ -537,7 +537,7 @@ BARS.defineActions(function() {
 	new Action('export_over', {
 		icon: 'save',
 		category: 'file',
-		keybind: new Keybind({key: 83, ctrl: true}),
+		keybind: new Keybind({key: 's', ctrl: true}),
 		click: function () {
 			if (isApp) {
 				saveTextures()

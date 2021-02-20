@@ -487,7 +487,7 @@ BARS.defineActions(function() {
 		icon: 'create_new_folder',
 		category: 'edit',
 		condition: () => Modes.edit,
-		keybind: new Keybind({key: 71, ctrl: true}),
+		keybind: new Keybind({key: 'g', ctrl: true}),
 		click: function () {
 			Undo.initEdit({outliner: true});
 			var add_group = Group.selected

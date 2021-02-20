@@ -472,7 +472,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => (!open_dialog || open_dialog === 'uv_dialog' || open_dialog === 'toolbar_edit'),
 		work_in_dialog: true,
-		keybind: new Keybind({key: 90, ctrl: true}),
+		keybind: new Keybind({key: 'z', ctrl: true}),
 		click: Undo.undo
 	})
 	new Action('redo', {
@@ -480,7 +480,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => (!open_dialog || open_dialog === 'uv_dialog' || open_dialog === 'toolbar_edit'),
 		work_in_dialog: true,
-		keybind: new Keybind({key: 89, ctrl: true}),
+		keybind: new Keybind({key: 'y', ctrl: true}),
 		click: Undo.redo
 	})
 })

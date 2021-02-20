@@ -1291,7 +1291,7 @@ const BARS = {
 				toolbar: Blockbench.isMobile ? 'element_position' : 'main_tools',
 				alt_tool: 'resize_tool',
 				modes: ['edit', 'display', 'animate'],
-				keybind: new Keybind({key: 86}),
+				keybind: new Keybind({key: 'v'}),
 			})
 			new Tool('resize_tool', {
 				icon: 'open_with',
@@ -1302,7 +1302,7 @@ const BARS = {
 				toolbar: Blockbench.isMobile ? 'element_size' : 'main_tools',
 				alt_tool: 'move_tool',
 				modes: ['edit', 'display', 'animate'],
-				keybind: new Keybind({key: 83}),
+				keybind: new Keybind({key: 's'}),
 			})
 			new Tool('rotate_tool', {
 				icon: 'sync',
@@ -1313,7 +1313,7 @@ const BARS = {
 				toolbar: Blockbench.isMobile ? 'element_rotation' : 'main_tools',
 				alt_tool: 'pivot_tool',
 				modes: ['edit', 'display', 'animate'],
-				keybind: new Keybind({key: 82})
+				keybind: new Keybind({key: 'r'})
 			})
 			new Tool('pivot_tool', {
 				icon: 'gps_fixed',
@@ -1322,7 +1322,7 @@ const BARS = {
 				toolbar: Blockbench.isMobile ? 'element_origin' : 'main_tools',
 				alt_tool: 'rotate_tool',
 				modes: ['edit', 'animate'],
-				keybind: new Keybind({key: 80}),
+				keybind: new Keybind({key: 'p'}),
 			})
 			new Tool('vertex_snap_tool', {
 				icon: 'icon-vertexsnap',
@@ -1332,7 +1332,7 @@ const BARS = {
 				selectCubes: true,
 				cursor: 'copy',
 				modes: ['edit'],
-				keybind: new Keybind({key: 88}),
+				keybind: new Keybind({key: 'x'}),
 				onCanvasClick(data) {
 					Vertexsnap.canvasClick(data)
 				},
@@ -1385,7 +1385,6 @@ const BARS = {
 			new Action('settings_window', {
 				icon: 'settings',
 				category: 'blockbench',
-				keybind: new Keybind({key: 69, ctrl: true}),
 				click: function () {Settings.open()}
 			})
 			new Action('keybindings_window', {
@@ -1469,7 +1468,7 @@ const BARS = {
 				icon: 'content_copy',
 				category: 'edit',
 				condition: () => (Animation.selected && Modes.animate) || (Modes.edit && (selected.length || Group.selected)),
-				keybind: new Keybind({key: 68, ctrl: true}),
+				keybind: new Keybind({key: 'd', ctrl: true}),
 				click: function () {
 					if (Modes.animate) {
 						if (Animation.selected && Prop.active_panel == 'animations') {
@@ -1553,7 +1552,7 @@ const BARS = {
 			new Action('action_control', {
 				icon: 'fullscreen',
 				category: 'blockbench',
-				keybind: new Keybind({key: 70}),
+				keybind: new Keybind({key: 'f'}),
 				click: function () {
 					ActionControl.select()
 				}

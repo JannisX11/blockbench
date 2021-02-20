@@ -815,7 +815,7 @@ BARS.defineActions(function() {
 	new Action('select_window', {
 		icon: 'filter_list',
 		category: 'edit',
-		keybind: new Keybind({key: 70, ctrl: true}),
+		keybind: new Keybind({key: 'f', ctrl: true}),
 		condition: () => Modes.edit || Modes.paivnt,
 		click: function () {
 			let color_options = {
@@ -889,7 +889,7 @@ BARS.defineActions(function() {
 	new Action('invert_selection', {
 		icon: 'swap_vert',
 		category: 'edit',
-		keybind: new Keybind({key: 73, ctrl: true}),
+		keybind: new Keybind({key: 'i', ctrl: true}),
 		condition: () => Modes.edit || Modes.paint,
 		click: function () {
 			elements.forEach(function(s) {
@@ -908,7 +908,7 @@ BARS.defineActions(function() {
 		icon: 'select_all',
 		category: 'edit',
 		condition: () => !Modes.display,
-		keybind: new Keybind({key: 65, ctrl: true}),
+		keybind: new Keybind({key: 'a', ctrl: true}),
 		click: function () {selectAll()}
 	})
 })

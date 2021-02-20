@@ -1306,7 +1306,7 @@ BARS.defineActions(function() {
 	new Action('import_texture', {
 		icon: 'library_add',
 		category: 'textures',
-		keybind: new Keybind({key: 84, ctrl: true}),
+		keybind: new Keybind({key: 't', ctrl: true}),
 		click: function () {
 			var start_path;
 			if (!isApp) {} else
@@ -1341,7 +1341,7 @@ BARS.defineActions(function() {
 	new Action('create_texture', {
 		icon: 'icon-create_bitmap',
 		category: 'textures',
-		keybind: new Keybind({key: 84, ctrl: true, shift: true}),
+		keybind: new Keybind({key: 't', ctrl: true, shift: true}),
 		click: function () {
 			TextureGenerator.addBitmapDialog()
 		}

@@ -819,7 +819,7 @@ BARS.defineActions(function() {
 		id: 'add_cube',
 		icon: 'add_box',
 		category: 'edit',
-		keybind: new Keybind({key: 78, ctrl: true}),
+		keybind: new Keybind({key: 'n', ctrl: true}),
 		condition: () => Modes.edit,
 		click: function () {
 			

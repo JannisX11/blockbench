@@ -1196,7 +1196,7 @@ BARS.defineActions(function() {
 		icon: 'flag',
 		category: 'animation',
 		condition: {modes: ['animate']},
-		keybind: new Keybind({ctrl: true, key: 77}),
+		keybind: new Keybind({ctrl: true, key: 'm'}),
 		click: function (event) {
 			if (!Animation.selected) {
 				Blockbench.showQuickMessage('message.no_animation_selected')
