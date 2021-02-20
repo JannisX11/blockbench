@@ -1,4 +1,4 @@
-var open_menu;
+var open_menu = null;
 
 function handleMenuOverflow(node) {
 	node = node.get(0);
@@ -333,7 +333,7 @@ class Menu {
 	}
 	hide() {
 		$(this.node).detach()
-		open_menu = undefined;
+		open_menu = null;
 		return this;
 	}
 	conditionMet() {

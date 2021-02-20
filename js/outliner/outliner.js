@@ -1141,6 +1141,9 @@ Interface.definePanels(function() {
 							}
 						} else {
 							if (e2) e2.preventDefault();
+							
+							if (open_menu) open_menu.hide();
+							Blockbench.showQuickMessage('TEST')
 
 							if (!helper) {
 								helper = document.createElement('div');
@@ -1185,7 +1188,7 @@ Interface.definePanels(function() {
 						$('.outliner_node[order]').attr('order', null);
 						if (Blockbench.isTouch) clearTimeout(timeout);
 
-						if (active) {
+						if (active && !open_menu) {
 							convertTouchEvent(e2);
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
 							[drop_target] = eventTargetToNode(target);
@@ -1201,7 +1204,7 @@ Interface.definePanels(function() {
 						timeout = setTimeout(() => {
 							active = true;
 							move(e1);
-						}, 400)
+						}, 320)
 					}
 
 					addEventListeners(document, 'mousemove touchmove', move, {passive: false});
