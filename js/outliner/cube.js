@@ -196,7 +196,6 @@ class Cube extends OutlinerElement {
 			Merge.number(this.origin, object.origin, 1)
 			Merge.number(this.origin, object.origin, 2)
 		}
-		Merge.boolean(this, object, 'rescale')
 		Merge.string(this, object, 'rotation_axis', (v) => (v === 'x' || v === 'y' || v === 'z'))
 		if (object.faces) {
 			for (var face in this.faces) {
@@ -813,6 +812,7 @@ class Cube extends OutlinerElement {
 	Cube.all = [];
 
 	new Property(Cube, 'string', 'name', {default: 'cube'})
+	new Property(Cube, 'boolean', 'rescale')
 
 BARS.defineActions(function() {
 	new Action({

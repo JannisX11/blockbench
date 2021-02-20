@@ -128,8 +128,8 @@ const Clipbench = {
 			Clipbench.elements = []
 			return;
 		}
-		arr.forEach(function(obj) {
-			Clipbench.elements.push(obj.getSaveCopy())
+		arr.forEach(function(element) {
+			Clipbench.elements.push(element.getSaveCopy())
 		})
 		if (isApp) {
 			clipboard.writeHTML(JSON.stringify({type: 'elements', content: Clipbench.elements}))
