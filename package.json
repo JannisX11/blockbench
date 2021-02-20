@@ -67,7 +67,6 @@
 			]
 		},
 		"win": {
-			"artifactName": "${productName}_${arch}_${version}.${ext}",
 			"target": "nsis"
 		},
 		"linux": {

@@ -19,8 +19,11 @@ jobs:
       os: osx
       osx_image: "xcode11.3"
       script:
-        - electron-builder --windows portable --x64 --publish=onTagOrDraft -c.productName='Blockbench_portable'
-        - electron-builder -w --ia32 --x64 --publish=onTagOrDraft
+        - electron-builder -w --x64 --publish=onTagOrDraft
+        - node ./scripts/rename_ia32.js
+        - electron-builder -w --ia32 --publish=onTagOrDraft
+        - node ./scripts/rename_portable.js
+        - electron-builder --windows portable --x64 --publish=onTagOrDraft
 
     - name: "Linux"
       os: linux
