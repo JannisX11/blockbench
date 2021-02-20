@@ -37,7 +37,7 @@ const DefaultCameraPresets = [
 		position: [0, 64, 0],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 0,
+		locked_angle: 'top',
 		default: true
 	},
 	{
@@ -48,7 +48,7 @@ const DefaultCameraPresets = [
 		position: [0, -64, 0],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 1,
+		locked_angle: 'bottom',
 		default: true
 	},
 	{
@@ -59,7 +59,7 @@ const DefaultCameraPresets = [
 		position: [0, 0, 64],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 2,
+		locked_angle: 'south',
 		default: true
 	},
 	{
@@ -70,7 +70,7 @@ const DefaultCameraPresets = [
 		position: [0, 0, -64],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 3,
+		locked_angle: 'north',
 		default: true
 	},
 	{
@@ -81,7 +81,7 @@ const DefaultCameraPresets = [
 		position: [64, 0, 0],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 4,
+		locked_angle: 'east',
 		default: true
 	},
 	{
@@ -92,7 +92,7 @@ const DefaultCameraPresets = [
 		position: [-64, 0, 0],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 5,
+		locked_angle: 'west',
 		default: true
 	},
 	{
@@ -141,7 +141,7 @@ class Preview {
 		//Cameras
 		this.isOrtho = false
 		this.angle = null;
-		this.camPers = new THREE.PerspectiveCamera(settings.fov.value, 16 / 9, 1, 30000)
+		this.camPers = new THREE.PerspectiveCamera(settings.fov.value, 16 / 9, 0.1, 30000)
 		this.camOrtho = new THREE.OrthographicCamera(-600,  600, -400, 400, -200, 20000);
 		this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'y'}]
 		this.camOrtho.axis = null
@@ -150,6 +150,7 @@ class Preview {
 		for (var i = 4; i <= 6; i++) {
 			this.camPers.layers.enable(i);
 		}
+		this.side_view_target = new THREE.Vector3();
 
 		//Controls
 		this.controls = new THREE.OrbitControls(this.camPers, this);
@@ -157,6 +158,13 @@ class Preview {
 		this.controls.maxDistance = 3960;
 		this.controls.enableKeys = false;
 		this.controls.zoomSpeed = 1.5;
+		this.controls.onUpdate(() => {
+			if (this.angle != null) {
+				if (this.camOrtho.axis != 'x') this.side_view_target.x = this.controls.target.x;
+				if (this.camOrtho.axis != 'y') this.side_view_target.y = this.controls.target.y;
+				if (this.camOrtho.axis != 'z') this.side_view_target.z = this.controls.target.z;
+			}
+		})
 
 		//Annotations
 		this.annotations = {};
@@ -187,6 +195,11 @@ class Preview {
 
 		this.camPers.position.fromArray(DefaultCameraPresets[0].position)
 		this.controls.target.fromArray(DefaultCameraPresets[0].target);
+
+		if (!Blockbench.isMobile) {
+			this.gimbal_controls = new GimbalControls(this);
+			this.node.append(this.gimbal_controls.node);
+		}
 
 		//Keybinds
 		this.controls.mouseButtons.ZOOM = undefined;
@@ -385,16 +398,24 @@ class Preview {
 	get camera() {
 		return this.isOrtho ? this.camOrtho : this.camPers;
 	}
-	setProjectionMode(ortho) {
+	setProjectionMode(ortho, toggle) {
 
 		let position = this.camera.position;
 		this.isOrtho = !!ortho;
 		this.resize()
 		this.controls.object = this.camera;
 		this.camera.position.copy(position);
-		if (this.isOrtho) {
-			this.camera.zoom = 0.5;
-			this.camOrtho.updateProjectionMatrix()
+		if (toggle) {
+			let perspective_distance = this.camPers.position.distanceTo(this.controls.target);
+			let factor = 0.72 * this.camPers.getFocalLength();
+			if (this.isOrtho) {
+				this.camera.zoom = factor / perspective_distance;
+			} else {
+				let target_distance = factor / this.camOrtho.zoom;
+				let cam_offset = new THREE.Vector3().copy(this.camPers.position).sub(this.controls.target);
+				cam_offset.multiplyScalar(target_distance / perspective_distance);
+				this.camPers.position.copy(cam_offset).add(this.controls.target);
+			}
 		}
 		this.setLockedAngle()
 		this.controls.updateSceneScale();
@@ -410,33 +431,33 @@ class Preview {
 		return this;
 	}
 	setLockedAngle(angle) {
-		if (typeof angle === 'number' && this.isOrtho) {
+		if (typeof angle === 'string' && this.isOrtho) {
 
 			this.angle = angle
 			this.controls.enableRotate = false;
 
 			switch (angle) {
-				case 0:
+				case 'top':
 				this.camOrtho.axis = 'y'
 				this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'z'}]
 				break;
-				case 1:
+				case 'bottom':
 				this.camOrtho.axis = 'y'
 				this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: true, a: 'z'}]
 				break;
-				case 2:
+				case 'south':
 				this.camOrtho.axis = 'z'
 				this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: true, a: 'y'}]
 				break;
-				case 3:
+				case 'north':
 				this.camOrtho.axis = 'z'
 				this.camOrtho.backgroundHandle = [{n: true, a: 'x'}, {n: true, a: 'y'}]
 				break;
-				case 4:
+				case 'east':
 				this.camOrtho.axis = 'x'
 				this.camOrtho.backgroundHandle = [{n: true, a: 'z'}, {n: true, a: 'y'}]
 				break;
-				case 5:
+				case 'west':
 				this.camOrtho.axis = 'x'
 				this.camOrtho.backgroundHandle = [{n: false, a: 'z'}, {n: true, a: 'y'}]
 				break;
@@ -450,6 +471,15 @@ class Preview {
 				if (i != layer) {
 					this.camOrtho.layers.enable(i+3);
 				}
+			}
+			if (this.camOrtho.axis != 'x') {
+				this.controls.target.x = this.camOrtho.position.x = this.side_view_target.x;
+			}
+			if (this.camOrtho.axis != 'y') {
+				this.controls.target.y = this.camOrtho.position.y = this.side_view_target.y;
+			}
+			if (this.camOrtho.axis != 'z') {
+				this.controls.target.z = this.camOrtho.position.z = this.side_view_target.z;
 			}
 
 		} else {
@@ -486,8 +516,8 @@ class Preview {
 		}
 		if (preset.projection !== 'unset') {
 			this.setProjectionMode(preset.projection == 'orthographic')
-		}
-		if (this.isOrtho && preset.zoom) {
+		} 
+		if (this.isOrtho && preset.zoom && !preset.locked_angle) {
 			this.camera.zoom = preset.zoom;
 			this.camera.updateProjectionMatrix()
 		}
@@ -857,7 +887,7 @@ class Preview {
 				this.background = canvas_scenes.normal
 			}
 		} else if (this.angle !== null) {
-			this.background = canvas_scenes['ortho'+this.angle]
+			this.background = canvas_scenes['ortho_'+this.angle]
 		} else {
 			this.background = canvas_scenes.normal
 		}
@@ -1152,7 +1182,7 @@ class Preview {
 			let all_presets = [...DefaultCameraPresets, ...presets];
 
 			all_presets.forEach(preset => {
-				let icon = typeof preset.locked_angle !== 'number' ? 'videocam' : (preset.locked_angle == preview.angle ? 'radio_button_checked' : 'radio_button_unchecked'); 
+				let icon = typeof preset.locked_angle ? 'videocam' : (preset.locked_angle == preview.angle ? 'radio_button_checked' : 'radio_button_unchecked'); 
 				children.push({
 					name: preset.name,
 					color: preset.color,
@@ -1176,7 +1206,7 @@ class Preview {
 			return children;
 		}},
 		{icon: (preview) => (preview.isOrtho ? 'check_box' : 'check_box_outline_blank'), name: 'menu.preview.orthographic', click: function(preview) {
-			preview.setProjectionMode(!preview.isOrtho);
+			preview.setProjectionMode(!preview.isOrtho, true);
 		}},
 		'_',
 		{icon: 'widgets', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !Modes.display && !Animator.open}, click: function() {
@@ -1214,6 +1244,116 @@ function openQuadView() {
 	$('#preview').append(wrapper4)
 	
 	updateInterface()
+}
+
+
+class GimbalControls {
+	constructor(preview, options = {}) {
+		let scope = this;
+		this.preview = preview;
+		this.node = document.createElement('div');
+		this.node.classList.add('gimbal_controls');
+
+		let svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		this.node.append(svg);
+		this.lines = {
+			x: document.createElementNS('http://www.w3.org/2000/svg', 'path'),
+			y: document.createElementNS('http://www.w3.org/2000/svg', 'path'),
+			z: document.createElementNS('http://www.w3.org/2000/svg', 'path'),
+		}
+		for (let axis in this.lines) {
+			this.lines[axis].setAttribute('axis', axis);
+			svg.append(this.lines[axis]);
+		}
+
+		this.sides = {
+			top: {opposite: 'bottom', axis: 'y', sign: 1, label: 'Y'},
+			bottom: {opposite: 'top', axis: 'y', sign: -1},
+			east: {opposite: 'west', axis: 'x', sign: 1, label: 'X'},
+			west: {opposite: 'east', axis: 'x', sign: -1},
+			south: {opposite: 'north', axis: 'z', sign: 1, label: 'Z'},
+			north: {opposite: 'south', axis: 'z', sign: -1},
+		}
+		for (let key in this.sides) {
+			let side = this.sides[key];
+			side.node = document.createElement('div');
+			side.node.classList.add('gimbal_controls_side');
+			side.node.setAttribute('axis', side.axis);
+			if (side.label) side.node.innerText = side.label;
+
+			side.node.addEventListener('click', e => {
+				let preset_key = key == this.preview.angle ? side.opposite : key;
+				let preset = DefaultCameraPresets.find(p => p.id == preset_key);
+				this.preview.loadAnglePreset(preset);
+			})
+			this.node.append(side.node);
+		}
+
+		// Interact
+		addEventListeners(this.node, 'mousedown touchstart', e1 => {
+			if (!scope.preview.controls.enableRotate && scope.preview.angle == null) return;
+			convertTouchEvent(e1);
+			let last_event = e1;
+			let move_calls = 0;
+
+			function move(e2) {
+				convertTouchEvent(e2);
+				scope.node.classList.add('mouse_active');
+				if (!e1.touches && last_event == e1) scope.node.requestPointerLock();
+				if (scope.preview.angle != null) {
+					scope.preview.setProjectionMode(false, true);
+				}
+				let limit = move_calls <= 2 ? 1 : 32;
+				scope.preview.controls.rotateLeft((e1.touches ? (e2.clientX - last_event.clientX) : Math.clamp(e2.movementX, -limit, limit)) / 40);
+				scope.preview.controls.rotateUp((e1.touches ? (e2.clientY - last_event.clientY) : Math.clamp(e2.movementY, -limit, limit)) / 40);
+				last_event = e2;
+				move_calls++;
+			}
+			function off(e2) {
+				document.exitPointerLock()
+				removeEventListeners(document, 'mousemove touchmove', move);
+				removeEventListeners(document, 'mouseup touchend', off);
+				scope.node.classList.remove('mouse_active');
+			}
+			addEventListeners(document, 'mousemove touchmove', move);
+			addEventListeners(document, 'mouseup touchend', off);
+		})
+		this.node.addEventListener('dblclick', e => {
+			if (e.target != this.node) return;
+			this.preview.setProjectionMode(!this.preview.isOrtho, true);
+		})
+
+		this.preview.controls.onUpdate(e => this.update(e));
+
+		this.update();
+	}
+	update() {
+		let background = 'background';
+		let x = this.preview.controls.getPolarAngle();
+		let y = this.preview.controls.getAzimuthalAngle();
+		let mid = 40;
+		let rad = 28;
+		let scale = 0.16;
+		let offset = {
+			x: [Math.cos(y), Math.cos(x)*Math.sin(y), Math.sin(y)],
+			y: [0, -Math.sin(x), Math.cos(x)],
+			z: [-Math.sin(y), Math.cos(x)*Math.cos(y), Math.cos(y)],
+		}
+
+		for (let key in this.sides) {
+			let side = this.sides[key];
+			let vec = offset[side.axis];
+			side.node.style.left = `${mid + side.sign * rad * vec[0]}px`;
+			side.node.style.top = `${mid + side.sign * rad * vec[1]}px`;
+			side.node.style.setProperty('transform', `scale(${1 + scale * side.sign * vec[2]})`);
+			side.node.classList.toggle(background, vec[2] * side.sign < 0);
+		}
+
+		for (let axis in this.lines) {
+			let vec = offset[axis];
+			this.lines[axis].setAttribute('d', `M${mid} ${mid} L${mid + rad*vec[0]} ${mid + rad*vec[1]}`)
+		}
+	}
 }
 
 
@@ -1540,12 +1680,12 @@ function initCanvas() {
 
 	canvas_scenes = {
 		normal: 			new DScene({name: 'menu.preview.perspective.normal', lock: null}),
-		ortho0: 			new DScene({name: 'direction.top', lock: true}),
-		ortho1: 			new DScene({name: 'direction.bottom', lock: true}),
-		ortho2: 			new DScene({name: 'direction.south', lock: true}),
-		ortho3: 			new DScene({name: 'direction.north', lock: true}),
-		ortho4: 			new DScene({name: 'direction.east', lock: true}),
-		ortho5: 			new DScene({name: 'direction.west', lock: true}),
+		ortho_top: 			new DScene({name: 'direction.top', lock: true}),
+		ortho_bottom: 		new DScene({name: 'direction.bottom', lock: true}),
+		ortho_south: 		new DScene({name: 'direction.south', lock: true}),
+		ortho_north: 		new DScene({name: 'direction.north', lock: true}),
+		ortho_east: 		new DScene({name: 'direction.east', lock: true}),
+		ortho_west: 		new DScene({name: 'direction.west', lock: true}),
 
 		monitor: 			new DScene({name: 'display.reference.monitor' }),
 
@@ -1798,8 +1938,8 @@ function buildGrid() {
 		var length = Format.centered_grid
 			? (settings.full_grid.value ? 24 : 8)
 			: 16
-		setupAxisLine(new THREE.Vector3( 0, 0.001, 0), length, 'x')
-		setupAxisLine(new THREE.Vector3( 0, 0.001, 0), length, 'z')
+		setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'x')
+		setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'z')
 
 	}
 
@@ -1914,7 +2054,7 @@ BARS.defineActions(function() {
 	new Toggle('toggle_wireframe', {
 		icon: 'border_clear',
 		category: 'view',
-		keybind: new Keybind({key: 90}),
+		keybind: new Keybind({key: 'z'}),
 		condition: () => Toolbox && Toolbox.selected && Toolbox.selected.allowWireframe,
 		default: false,
 		onChange: function (state) {
@@ -1931,7 +2071,7 @@ BARS.defineActions(function() {
 		icon: 'fas.fa-chess-board',
 		category: 'view',
 		linked_setting: 'preview_checkerboard',
-		keybind: new Keybind({key: 84})
+		keybind: new Keybind({key: 't'})
 	})
 	new Toggle('uv_checkerboard', {
 		icon: 'fas.fa-chess-board',
@@ -1956,7 +2096,7 @@ BARS.defineActions(function() {
 	new Action('screenshot_model', {
 		icon: 'fa-cubes',
 		category: 'view',
-		keybind: new Keybind({key: 80, ctrl: true}),
+		keybind: new Keybind({key: 'p', ctrl: true}),
 		click: function () {Preview.selected.screenshot()}
 	})
 	new Action('record_model_gif', {
@@ -2042,7 +2182,6 @@ BARS.defineActions(function() {
 		icon: 'center_focus_weak',
 		category: 'view',
 		condition: () => !Modes.display,
-		keybind: new Keybind({key: 191}),
 		click: function () {
 			let center = getSelectionCenter();
 			if (!Format.centered_grid) center.V3_subtract(8, 8, 8)
@@ -2056,7 +2195,7 @@ BARS.defineActions(function() {
 		condition: _ => (!preview.movingBackground || !Modes.display),
 		keybind: new Keybind({key: 101}),
 		click: function () {
-			quad_previews.current.setProjectionMode(!quad_previews.current.isOrtho);
+			quad_previews.current.setProjectionMode(!quad_previews.current.isOrtho, true);
 		}
 	})
 	new Action('camera_initial', {

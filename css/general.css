@@ -168,12 +168,6 @@
 		list-style: initial;
 		margin-left: 20px;
 	}
-	body.animation_mode #cubes_list {
-		height: calc(100% - 50px);
-	}
-	body.animation_mode #cubes_list .outliner_object.cube {
-		display: none;
-	}
 	#quick_message_box {
 		position: absolute;
 		margin-left: auto;
@@ -273,6 +267,9 @@
 		min-width: 15px;
 		color: var(--color-light);
 		text-shadow: 0 0 5px black;
+	}
+	.light_on_hover:hover {
+		color: var(--color-light);
 	}
 
 	.spinning {

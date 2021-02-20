@@ -82,7 +82,7 @@ Object.defineProperty($.Event.prototype, 'ctrlOrCmd', {
 
 function convertTouchEvent(event) {
 	if (event && event.changedTouches && event.changedTouches.length && event.offsetX == undefined) {
-		event.preventDefault();
+		//event.preventDefault();
 		event.clientX = event.changedTouches[0].clientX;
 		event.clientY = event.changedTouches[0].clientY;
 		event.offsetX = event.changedTouches[0].clientX;

@@ -405,26 +405,6 @@ class Group extends OutlinerNode {
 			i++;
 		}
 	}
-	toggle(key, val) {
-		if (val === undefined) {
-			var val = !this[key]
-		}
-		var cubes = []
-		this.forEachChild(obj => {
-			cubes.push(obj)
-		}, OutlinerElement)
-		Undo.initEdit({outliner: true, elements: cubes})
-		this.forEachChild(function(s) {
-			s[key] = val
-			s.updateElement()
-		})
-		this[key] = val;
-		this.updateElement()
-		if (key === 'visibility') {
-			Canvas.updateVisibility()
-		}
-		Undo.finishEdit('toggle')
-	}
 	setAutoUV(val) {
 		this.forEachChild(function(s) {
 			s.autouv = val;
@@ -441,7 +421,7 @@ class Group extends OutlinerNode {
 	Group.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
 	Group.prototype.buttons = [
 		Outliner.buttons.autouv,
-		Outliner.buttons.shading,
+		Outliner.buttons.shade,
 		Outliner.buttons.export,
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
@@ -507,7 +487,7 @@ BARS.defineActions(function() {
 		icon: 'create_new_folder',
 		category: 'edit',
 		condition: () => Modes.edit,
-		keybind: new Keybind({key: 71, ctrl: true}),
+		keybind: new Keybind({key: 'g', ctrl: true}),
 		click: function () {
 			Undo.initEdit({outliner: true});
 			var add_group = Group.selected

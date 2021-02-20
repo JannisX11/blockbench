@@ -819,7 +819,7 @@ BARS.defineActions(function() {
 		paintTool: true,
 		brushTool: true,
 		allowWireframe: false,
-		keybind: new Keybind({key: 66}),
+		keybind: new Keybind({key: 'b'}),
 		modes: ['paint'],
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
@@ -862,7 +862,7 @@ BARS.defineActions(function() {
 		brushTool: true,
 		allowWireframe: false,
 		modes: ['paint'],
-		keybind: new Keybind({key: 69}),
+		keybind: new Keybind({key: 'e'}),
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
 		},
@@ -899,7 +899,7 @@ BARS.defineActions(function() {
 		allowWireframe: false,
 		modes: ['paint'],
 		condition: {modes: ['paint']},
-		keybind: new Keybind({key: 85}),
+		keybind: new Keybind({key: 'u'}),
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
 		},
@@ -919,7 +919,7 @@ BARS.defineActions(function() {
 		allowWireframe: false,
 		modes: ['paint'],
 		condition: {modes: ['paint']},
-		keybind: new Keybind({key: 77})
+		keybind: new Keybind({key: 'm'})
 	})
 
 	new BarSelect('draw_shape_type', {
@@ -978,7 +978,7 @@ BARS.defineActions(function() {
 		icon: 'grid_on',
 		category: 'view',
 		condition: () => Modes.paint,
-		keybind: new Keybind({key: 71}),
+		keybind: new Keybind({key: 'g'}),
 		linked_setting: 'painting_grid'
 	})
 

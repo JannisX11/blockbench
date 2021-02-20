@@ -1,5 +1,24 @@
 (function() {
 
+Vue.component('search-bar', {
+	props: {
+		value: String
+	},
+	methods: {
+		change(text) {
+			this.$emit('input', text)
+		},
+		reset() {
+			this.value = '';
+			this.$emit('input', '');
+		}
+	},
+	template: `<div class="search_bar">
+			<input type="text" class="dark_bordered" :value="value" @input="change($event.target.value)">
+			<i class="material-icons" :class="{light_on_hover: !!value}" @click="reset()">{{ value ? 'clear' : 'search' }}</i>
+		</div>`,
+})
+
 function buildForm(dialog) {
 	let dialog_content = $(dialog.object).find('.dialog_content')
 	for (var form_id in dialog.form) {
@@ -165,7 +184,7 @@ function buildForm(dialog) {
 				case 'save':
 					if (data.type == 'folder' && !isApp) break;
 
-					var input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" disabled>`);
+					let input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" disabled>`);
 					input[0].value = data.value || '';
 					bar.append(input);
 					bar.addClass('form_bar_file');
@@ -277,6 +296,7 @@ window.Dialog = class Dialog {
 		this.part_order = options.part_order || (options.form_first ? ['form', 'lines', 'component'] : ['lines', 'form', 'component'])
 
 		this.width = options.width
+		this.padding = options.padding != false;
 		this.draggable = options.draggable
 		this.singleButton = options.singleButton
 		this.buttons = options.buttons
@@ -357,12 +377,13 @@ window.Dialog = class Dialog {
 	}
 	build() {
 		let scope = this;
-		var jq_dialog = $(`<dialog class="dialog paddinged" id="${this.id}">
+		var jq_dialog = $(`<dialog class="dialog" id="${this.id}">
 				<div class="dialog_handle">${tl(this.title)}</div>
 				<content class="dialog_content"></content>
 			</dialog>`)
 		this.object = jq_dialog.get(0)
 		this.max_label_width = 0;
+		if (this.padding) this.object.classList.add('paddinged');
 
 
 		this.part_order.forEach(part => {
@@ -437,7 +458,7 @@ window.Dialog = class Dialog {
 		if (window.open_interface && typeof open_interface.hide == 'function') {
 			open_interface.hide();
 		}
-		$('.dialog').hide(0);
+		$('.dialog').hide();
 
 		if (!this.object) {
 			this.build();
@@ -445,8 +466,8 @@ window.Dialog = class Dialog {
 
 		let jq_dialog = $(this.object);
 
-		$('#plugin_dialog_wrapper').append(jq_dialog);
-		$('#blackout').fadeIn(0);
+		$('#dialog_wrapper').append(jq_dialog);
+		$('#blackout').show();
 		jq_dialog.show().css('display', 'flex');
 		jq_dialog.css('top', limitNumber(window.innerHeight/2-jq_dialog.height()/2, 0, 100)+'px');
 		if (this.width) {
@@ -461,12 +482,11 @@ window.Dialog = class Dialog {
 		return this;
 	}
 	hide() {
-		$('#blackout').fadeOut(0)
-		$(this.object).fadeOut(0)
-			.find('.tool').detach()
+		$('#blackout').hide();
+		$(this.object).hide();
 		open_dialog = false;
 		open_interface = false;
-		Prop.active_panel = undefined
+		Prop.active_panel = undefined;
 		$(this.object).detach()
 		return this;
 	}

@@ -500,7 +500,11 @@ const Timeline = {
 			if (new_time == undefined || new_time <= Timeline.time) {
 				var new_time = Animator.MolangParser.parse('query.anim_time + query.delta_time')
 			}
-			Timeline.setTime(Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100));
+			let time = Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100)
+			if (Animation.selected.loop == 'hold') {
+				time = Math.clamp(time, 0, Animation.selected.length);
+			}
+			Timeline.setTime(time);
 			Timeline.last_frame_timecode = Date.now();
 
 		} else {
@@ -696,6 +700,14 @@ onVueSetup(function() {
 			removeAnimator(animator) {
 				Timeline.animators.remove(animator);
 			},
+			selectChannel(animator, channel) {
+				if (this.graph_editor_channel == channel) return;
+				animator.select();
+				if (animator[channel].length == 1 && Math.epsilon(animator[channel][0].time, Timeline.time, 0.002)) {
+					animator[channel][0].select();
+				}
+				this.graph_editor_channel = channel;
+			},
 			getColor(index) {
 				if (index == -1 || index == undefined) return;
 				return markerColors[index].standard;
@@ -817,7 +829,7 @@ onVueSetup(function() {
 							kf.time = Timeline.snapTime(t);
 						}
 
-						if (Timeline.vue.graph_editor_open) {
+						if (Timeline.vue.graph_editor_open && value_diff) {
 							kf.offset(Timeline.vue.graph_editor_axis, value_diff);
 						}
 					}
@@ -924,7 +936,7 @@ onVueSetup(function() {
 								<div class="channel_head"
 									:class="{selected: graph_editor_open && animator.selected && graph_editor_channel == channel}"
 									v-bind:style="{left: scroll_left+'px', width: head_width+'px'}"
-									@click.stop="animator.select(); graph_editor_channel = channel;"
+									@click.stop="selectChannel(animator, channel);"
 								>
 									<div class="text_button" v-on:click.stop="animator.toggleMuted(channel)">
 										<template v-if="channel === 'sound'">
@@ -1184,7 +1196,7 @@ BARS.defineActions(function() {
 		icon: 'flag',
 		category: 'animation',
 		condition: {modes: ['animate']},
-		keybind: new Keybind({ctrl: true, key: 77}),
+		keybind: new Keybind({ctrl: true, key: 'm'}),
 		click: function (event) {
 			if (!Animation.selected) {
 				Blockbench.showQuickMessage('message.no_animation_selected')

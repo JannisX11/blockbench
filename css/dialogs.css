@@ -113,6 +113,9 @@
 	.dialog_bar input[type=checkbox] {
 		padding: 0 4px;
 	}
+	.dialog_bar .tool {
+		position: relative;
+	}
 	.dialog_vector_group {
 		display: flex;
 	}
@@ -137,7 +140,6 @@
 	.tab_bar > *:hover {
 		color: var(--color-light);
 	}
-
 
 
 	.dialog .tab_content {
@@ -424,15 +426,6 @@
 	}
 
 /*Specific Dialogs*/
-	.dialog#updater .dialog_bar.narrow {
-		padding-top: 3px;
-	}
-	button#update_button {
-		margin-right: 12px;
-		float: right;
-		margin-top: -64px;
-		width: 240px;
-	}
 	.dialog#texture_edit p.multiline_text {
 		width: 344px;
 		min-height: 51px;
@@ -619,6 +612,7 @@
 		vertical-align: text-bottom;
 	}
 	.dialog.draggable .bar.next_to_title {
+		width: max-content;
 		margin-top: -51px;
 		margin-left: 111px;
 		float: left;
@@ -631,7 +625,6 @@
 	}
 	#plugin_list {
 		max-height: 600px;
-		margin-bottom: 20px;
 		overflow-y: scroll;
 		min-height: 80px;
 	}
@@ -844,7 +837,7 @@
 		margin-left: 8px;
 		box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 	}
-	#action_selector > div > ul {
+	#action_selector ul {
 		background-color: var(--color-bright_ui);
 		color: var(--color-accent_text);
 		min-height: 20px;
@@ -861,7 +854,7 @@
 		font-size: 0.94em
 	}
 	#action_selector ul > li {
-		height: 32px;
+		height: 30px;
 		padding: 4px;
 		overflow: hidden;
 		display: flex;
@@ -871,7 +864,7 @@
 		flex-grow: 0;
 		flex-shrink: 0;
 	}
-	#action_selector ul > li div.name {
+	#action_selector ul > li span {
 		padding-left: 4px;
 		flex-grow: 1;
 		flex-shrink: 0;

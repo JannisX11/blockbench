@@ -128,8 +128,8 @@ const Clipbench = {
 			Clipbench.elements = []
 			return;
 		}
-		arr.forEach(function(obj) {
-			Clipbench.elements.push(obj.getSaveCopy())
+		arr.forEach(function(element) {
+			Clipbench.elements.push(element.getSaveCopy())
 		})
 		if (isApp) {
 			clipboard.writeHTML(JSON.stringify({type: 'elements', content: Clipbench.elements}))
@@ -208,7 +208,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		work_in_dialog: true,
 		condition: () => Clipbench.getCopyType(1, true),
-		keybind: new Keybind({key: 67, ctrl: true, shift: null}),
+		keybind: new Keybind({key: 'c', ctrl: true, shift: null}),
 		click: function (event) {Clipbench.copy(event)}
 	})
 	new Action('cut', {
@@ -216,7 +216,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		work_in_dialog: true,
 		condition: () => Clipbench.getCopyType(1, true),
-		keybind: new Keybind({key: 88, ctrl: true, shift: null}),
+		keybind: new Keybind({key: 'x', ctrl: true, shift: null}),
 		click: function (event) {Clipbench.copy(event, true)}
 	})
 	new Action('paste', {
@@ -224,7 +224,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		work_in_dialog: true,
 		condition: () => Clipbench.getCopyType(2, true),
-		keybind: new Keybind({key: 86, ctrl: true, shift: null}),
+		keybind: new Keybind({key: 'v', ctrl: true, shift: null}),
 		click: function (event) {Clipbench.paste(event)}
 	})
 })

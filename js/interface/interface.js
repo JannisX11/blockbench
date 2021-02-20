@@ -68,7 +68,7 @@ class ResizeLine {
 
 const Interface = {
 	default_data: {
-		left_bar_width: 332,
+		left_bar_width: 366,
 		right_bar_width: 314,
 		quad_view_x: 50,
 		quad_view_y: 50,
@@ -423,12 +423,12 @@ function setZoomLevel(mode) {
 //Dialogs
 function showDialog(dialog) {
 	var obj = $('.dialog#'+dialog)
-	$('.dialog').hide(0)
+	$('.dialog').hide()
 	if (open_menu) {
 		open_menu.hide()
 	}
-	$('#blackout').fadeIn(0)
-	obj.fadeIn(0)
+	$('#blackout').show()
+	obj.show()
 	open_dialog = dialog
 	open_interface = dialog
 	Prop.active_panel = 'dialog'
@@ -446,8 +446,8 @@ function showDialog(dialog) {
 	}
 }
 function hideDialog() {
-	$('#blackout').fadeOut(0)
-	$('.dialog').fadeOut(0)
+	$('#blackout').hide()
+	$('.dialog').hide()
 	open_dialog = false;
 	open_interface = false;
 	Prop.active_panel = undefined
@@ -469,8 +469,8 @@ function setSettingsTab(tab) {
 
 	} else if (tab === 'layout_settings') {
 		//Layout
-
 		$('#theme_editor').css('max-height', (window.innerHeight - 420) +'px')
+		if (!CustomTheme.dialog_is_setup) CustomTheme.setupDialog()
 	} else if (tab == 'credits') {
 		// About
 

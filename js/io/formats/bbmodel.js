@@ -238,6 +238,9 @@ var codec = new Codec('project', {
 				var base_ani = new Animation()
 				base_ani.uuid = ani.uuid;
 				base_ani.extend(ani).add();
+				if (isApp && Format.animation_files) {
+					base_ani.saved_name = base_ani.name;
+				}
 			})
 		}
 		if (model.animation_variable_placeholders) {
@@ -342,7 +345,7 @@ BARS.defineActions(function() {
 	codec.export_action = new Action('save_project', {
 		icon: 'save',
 		category: 'file',
-		keybind: new Keybind({key: 83, ctrl: true, alt: true}),
+		keybind: new Keybind({key: 's', ctrl: true, alt: true}),
 		click: function () {
 			saveTextures(true)
 			if (isApp && ModelMeta.save_path) {
@@ -356,7 +359,7 @@ BARS.defineActions(function() {
 	new Action('save_project_as', {
 		icon: 'save',
 		category: 'file',
-		keybind: new Keybind({key: 83, ctrl: true, alt: true, shift: true}),
+		keybind: new Keybind({key: 's', ctrl: true, alt: true, shift: true}),
 		click: function () {
 			saveTextures(true)
 			codec.export()

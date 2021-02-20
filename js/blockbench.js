@@ -141,6 +141,9 @@ function updateSelection(options = {}) {
 	}
 	if (Modes.animate) {
 		updateKeyframeSelection();
+		if (Timeline.selected_animator && !Timeline.selected_animator.selected) {
+			Timeline.selected_animator = null;
+		}
 	}
 
 	BarItems.cube_counter.update();

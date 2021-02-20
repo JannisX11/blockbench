@@ -137,25 +137,23 @@ var codec = new Codec('bedrock_old', {
 		entitymodel.texturewidth = Project.texture_width;
 		entitymodel.textureheight = Project.texture_height;
 		var bones = []
-		var cube_count = 0;
 		var visible_box = new THREE.Box3()
 
 		var groups = getAllGroups();
-		var loose_cubes = [];
+		var loose_elements = [];
 		Outliner.root.forEach(obj => {
-			if (obj.type === 'cube') {
-				loose_cubes.push(obj)
+			if (obj.type === 'cube' || obj.type == 'locator') {
+				loose_elements.push(obj)
 			}
 		})
-		if (loose_cubes.length) {
-			groups.splice(0, 0, {
-				type: 'group',
-				parent: 'root',
-				name: 'unknown_bone',
-				origin: [0, 0, 0],
-				rotation: [0],
-				children: loose_cubes
-			})
+		if (loose_elements.length) {
+			let group = new Group({
+				name: 'bb_main'
+			});
+			group.children.push(...loose_elements);
+			group.is_catch_bone = true;
+			group.createUniqueName();
+			groups.splice(0, 0, group);
 		}
 
 		groups.forEach(function(g) {
@@ -203,7 +201,6 @@ var codec = new Codec('bedrock_old', {
 							visible_box.expandByObject(mesh)
 						}
 						cubes.push(template)
-						cube_count++;
 
 					} else if (obj instanceof Locator) {
 
@@ -259,7 +256,7 @@ var codec = new Codec('bedrock_old', {
 
 		$('#pe_search_bar').val('')
 		if (pe_list && pe_list._data) {
-			pe_list._data.search_text = ''
+			pe_list._data.search_term = ''
 		}
 
 		function create_thumbnail(model_entry, isize) {
@@ -353,7 +350,7 @@ var codec = new Codec('bedrock_old', {
 			pe_list = new Vue({
 				el: '#pe_list',
 				data: {
-					search_text: '',
+					search_term: '',
 					list: pe_list_data
 				},
 				methods: {
@@ -370,9 +367,8 @@ var codec = new Codec('bedrock_old', {
 				},
 				computed: {
 					searched() {
-						var scope = this;
 						return this.list.filter(item => {
-							return item.name.toUpperCase().includes(scope.search_text)
+							return item.name.toUpperCase().includes(this.search_term)
 						})
 					}
 				}

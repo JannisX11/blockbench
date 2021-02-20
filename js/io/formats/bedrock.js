@@ -77,7 +77,7 @@ window.BedrockEntityManager = {
 							path+'.tga'
 						])
 						if (path) {
-							valid_textures_list.push(path);
+							valid_textures_list.safePush(path);
 						}
 					}
 				}
@@ -113,18 +113,18 @@ window.BedrockEntityManager = {
 						}).show()
 						$('#import_texture_list li').each((i, el) => {
 							el.style.setProperty('background-image', `url("${ valid_textures_list[i].replace(/\\/g, '/').replace(/#/g, '%23') }?${Math.round(Math.random()*1e6)}")`)
-							.click(function() {
+							el.onclick = function() {
 								if (selected_textures.includes(i)) {
 									selected_textures.remove(i)
 								} else {
 									selected_textures.push(i)
 								}
 								$(this).toggleClass('selected')
-							})
-							.dblclick(function() {
+							}
+							el.ondblclick = function() {
 								selected_textures.replace([i])
 								dialog.confirm()
-							})
+							}
 						})
 					}, 2)
 				}
@@ -638,21 +638,20 @@ var codec = new Codec('bedrock', {
 		var bones = []
 
 		var groups = getAllGroups();
-		var loose_cubes = [];
+		var loose_elements = [];
 		Outliner.root.forEach(obj => {
-			if (obj.type === 'cube') {
-				loose_cubes.push(obj)
+			if (obj instanceof OutlinerElement) {
+				loose_elements.push(obj)
 			}
 		})
-		if (loose_cubes.length) {
-			groups.splice(0, 0, {
-				type: 'group',
-				parent: 'root',
-				name: 'unknown_bone',
-				origin: [0, 0, 0],
-				rotation: [0, 0, 0],
-				children: loose_cubes
-			})
+		if (loose_elements.length) {
+			let group = new Group({
+				name: 'bb_main'
+			});
+			group.children.push(...loose_elements);
+			group.is_catch_bone = true;
+			group.createUniqueName();
+			groups.splice(0, 0, group);
 		}
 		groups.forEach(function(g) {
 			let bone = compileGroup(g);

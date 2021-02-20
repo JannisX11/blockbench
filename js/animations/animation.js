@@ -17,8 +17,8 @@ class Animation {
 		}
 		if (typeof data === 'object') {
 			this.extend(data);
-			if (isApp && data.name) {
-				this.saved_name = data.name;
+			if (isApp && Format.animation_files && data.saved_name) {
+				this.saved_name = data.saved_name;
 			}
 		}
 	}
@@ -169,7 +169,7 @@ class Animation {
 				for (var channel in Animator.possible_channels) {
 					if (channels[channel]) {
 						let timecodes = Object.keys(channels[channel])
-						if (timecodes.length === 1) {
+						if (timecodes.length === 1 && animator.keyframes[0].data_points.length == 1) {
 							bone_tag[channel] = channels[channel][timecodes[0]]
 							if (channel == 'scale' &&
 								channels[channel][timecodes[0]] instanceof Array &&
@@ -816,7 +816,7 @@ class BoneAnimator extends GeneralAnimator {
 		}
 		return this;
 	}
-	fillValues(keyframe, values, allow_expression) {
+	fillValues(keyframe, values, allow_expression, round = true) {
 
 		if (values instanceof Array) {
 			keyframe.extend({
@@ -840,12 +840,14 @@ class BoneAnimator extends GeneralAnimator {
 			var ref = this.interpolate(keyframe.channel, allow_expression)
 			Timeline.time = original_time;
 			if (ref) {
-				let e = 1e2
-				ref.forEach((r, i) => {
-					if (!isNaN(r)) {
-						ref[i] = Math.round(parseFloat(r)*e)/e
-					}
-				})
+				if (round) {
+					let e = keyframe.channel == 'scale' ? 1e4 : 1e2
+					ref.forEach((r, i) => {
+						if (!isNaN(r)) {
+							ref[i] = Math.round(parseFloat(r)*e)/e
+						}
+					})
+				}
 				keyframe.extend({
 					data_points: [{
 						x: ref[0],
@@ -1207,12 +1209,12 @@ const Animator = {
 		Animator.open = true;
 		Canvas.updateAllBones()
 
+		Outliner.vue.options.hidden_types.push('cube');
 		scene.add(Wintersky.space);
 		Wintersky.global_options.tick_rate = settings.particle_tick_rate.value;
 		if (settings.motion_trails.value) scene.add(Animator.motion_trail);
 		Animator.motion_trail.no_export = true;
 
-		$('body').addClass('animation_mode')
 		if (!Animator.timeline_node) {
 			Animator.timeline_node = $('#timeline').get(0)
 		}
@@ -1227,6 +1229,8 @@ const Animator = {
 		}
 		if (Animation.all.length && !Animation.all.includes(Animation.selected)) {
 			Animation.all[0].select();
+		} else if (!Animation.all.length) {
+			Timeline.selected.empty();
 		}
 		if (Group.selected) {
 			Group.selected.select();
@@ -1236,7 +1240,7 @@ const Animator = {
 	leave() {
 		Timeline.pause()
 		Animator.open = false;
-		$('body').removeClass('animation_mode')
+		Outliner.vue.options.hidden_types.remove('cube');
 
 		scene.remove(Wintersky.space);
 		scene.remove(Animator.motion_trail);
@@ -1406,6 +1410,19 @@ const Animator = {
 				config: new Wintersky.Config(json_content, {path}),
 				emitters: {}
 			};
+			if (isApp) {
+				let timeout;
+				this.watcher = fs.watch(path, (eventType) => {
+					if (eventType == 'change') {
+						if (timeout) clearTimeout(timeout)
+						timeout = setTimeout(() => {
+							Blockbench.read(path, {errorbox: false}, (files) => {
+								Animator.loadParticleEmitter(path, files[0].content);
+							})
+						}, 60)
+					}
+				})
+			}
 		}
 	},
 	loadFile(file, animation_filter) {
@@ -1419,6 +1436,7 @@ const Animator = {
 				var a = json.animations[ani_name]
 				var animation = new Animation({
 					name: ani_name,
+					saved_name: ani_name,
 					path,
 					loop: a.loop && (a.loop == 'hold_on_last_frame' ? 'hold' : 'loop'),
 					override: a.override_previous_animation,
@@ -1650,6 +1668,15 @@ const Animator = {
 Blockbench.on('update_camera_position', e => {
 	if (Animator.open && settings.motion_trails.value && (Group.selected || NullObject.selected[0] || Animator.motion_trail_lock)) {
 		Animator.updateMotionTrailScale();
+	}
+})
+Blockbench.on('reset_project', () => {
+	for (let path in Animator.particle_effects) {
+		let effect = Animator.particle_effects[path];
+		if (isApp && effect.watcher) {
+			effect.watcher.close()
+		}
+		delete Animator.particle_effects[path];
 	}
 })
 

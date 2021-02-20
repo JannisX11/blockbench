@@ -122,37 +122,38 @@ class Keybind {
 			return tl('keys.mouse', [key])
 		}
 		switch (key) {
-			case   1: return 'leftclick'; break;
-			case   2: return 'middleclick'; break;
-			case   3: return 'rightclick'; break;
-			case   9: return 'tab'; break;
-			case   8: return 'backspace'; break;
-			case  13: return 'enter'; break;
-			case  27: return 'escape'; break;
-			case  46: return 'delete'; break;
-			case  46: return 'caps'; break;
-			case  16: return 'shift'; break;
-			case  17: return 'control'; break;
-			case  18: return 'alt'; break;
-			case  32: return 'space'; break;
-			case  93: return 'menu'; break;
-			case 187: return 'plus'; break;
-			case 188: return 'comma'; break;
-			case 190: return 'point'; break;
-			case 189: return 'minus'; break;
-			case 191: return 'cross'; break;
-			case  37: return 'left'; break;
-			case  38: return 'up'; break;
-			case  39: return 'right'; break;
-			case  40: return 'down'; break;
-			case  33: return 'pageup'; break;
-			case  34: return 'pagedown'; break;
-			case  35: return 'end'; break;
-			case  36: return 'pos1'; break;
-			case  44: return 'printscreen'; break;
-			case  19: return 'pause'; break;
-			case 1001: return 'mousewheel'; break;
-			default : return String.fromCharCode(key).toLowerCase(); break;
+			case   1: return 'leftclick';
+			case   2: return 'middleclick';
+			case   3: return 'rightclick';
+			case   9: return 'tab';
+			case   8: return 'backspace';
+			case  13: return 'enter';
+			case  27: return 'escape';
+			case  46: return 'delete';
+			case  46: return 'caps';
+			case  16: return 'shift';
+			case  17: return 'control';
+			case  18: return 'alt';
+			case  32: return 'space';
+			case  93: return 'menu';
+			case  37: return 'left';
+			case  38: return 'up';
+			case  39: return 'right';
+			case  40: return 'down';
+			case  33: return 'pageup';
+			case  34: return 'pagedown';
+			case  35: return 'end';
+			case  36: return 'pos1';
+			case  44: return 'printscreen';
+			case  19: return 'pause';
+			case 1001: return 'mousewheel';
+
+			case 187: return '+';
+			case 188: return ',';
+			case 190: return '.';
+			case 189: return '-';
+			case 191: return '#';
+			default : return String.fromCharCode(key).toLowerCase();
 		}
 	}
 	hasKey() {
@@ -391,7 +392,7 @@ window.addEventListener('focus', event => {
 })
 
 function getFocusedTextInput() {
-	return $('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus').get(0)
+	return document.querySelector('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus');
 }
 
 $(document).on('keydown mousedown', function(e) {

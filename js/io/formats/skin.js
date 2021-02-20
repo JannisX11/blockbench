@@ -358,6 +358,15 @@ BARS.defineActions(function() {
 			Canvas.updateVisibility()
 		}
 	})
+	new Action({
+		id: 'export_minecraft_skin',
+		icon: 'icon-player',
+		category: 'file',
+		condition: () => Format == format && Texture.all[0],
+		click: function () {
+			Texture.all[0].save(true);
+		}
+	})
 	
 	let explode_skin_model = new Toggle('explode_skin_model', {
 		icon: () => 'open_in_full',

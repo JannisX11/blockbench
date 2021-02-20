@@ -874,7 +874,7 @@
 					let space = Transformer.getTransformSpace();
 					//Rotation
 					if (space === 2 || Toolbox.selected.id == 'resize_tool') {
-						Transformer.rotation_ref = selected[0] && selected[0].mesh;
+						Transformer.rotation_ref = Group.selected ? Group.selected.mesh : (selected[0] && selected[0].mesh);
 						if (Toolbox.selected.id == 'rotate_tool' && Group.selected) {
 							Transformer.rotation_ref = Group.selected.mesh;
 						}

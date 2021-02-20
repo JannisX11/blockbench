@@ -95,34 +95,36 @@ const CustomTheme = {
 		})
 		Vue.nextTick(function() {
 			CustomTheme.fetchFromStorage();
-
-			var wrapper = $('#color_wrapper');
-			for (var key in CustomTheme.defaultColors) {
-				(() => {
-					var scope_key = key;
-					var hex = CustomTheme.data.colors[scope_key];
-					var last_color = hex;
-					var field = wrapper.find('#color_field_'+scope_key);
-
-					field.spectrum({
-						preferredFormat: "hex",
-						color: hex,
-						showAlpha: false,
-						showInput: true,
-						move(c) {
-							CustomTheme.data.colors[scope_key] = c.toHexString();
-						},
-						change(c) {
-							last_color = c.toHexString();
-						},
-						hide(c) {
-							CustomTheme.data.colors[scope_key] = last_color;
-							field.spectrum('set', last_color);
-						}
-					});
-				})()
-			}
 		})
+	},
+	setupDialog() {
+		var wrapper = $('#color_wrapper');
+		for (var key in CustomTheme.defaultColors) {
+			(() => {
+				var scope_key = key;
+				var hex = CustomTheme.data.colors[scope_key];
+				var last_color = hex;
+				var field = wrapper.find('#color_field_'+scope_key);
+
+				field.spectrum({
+					preferredFormat: "hex",
+					color: hex,
+					showAlpha: false,
+					showInput: true,
+					move(c) {
+						CustomTheme.data.colors[scope_key] = c.toHexString();
+					},
+					change(c) {
+						last_color = c.toHexString();
+					},
+					hide(c) {
+						CustomTheme.data.colors[scope_key] = last_color;
+						field.spectrum('set', last_color);
+					}
+				});
+			})()
+		}
+		CustomTheme.dialog_is_setup = true;
 	},
 	fetchFromStorage() {
 		var legacy_colors = 0;

@@ -225,13 +225,11 @@ BARS.defineActions(function() {
 		default_tool: 'move_tool',
 		category: 'navigate',
 		condition: () => Format,
-		keybind: new Keybind({key: 49})
 	})
 	new Mode('paint', {
 		default_tool: 'brush_tool',
 		category: 'navigate',
 		condition: () => Format,
-		keybind: new Keybind({key: 50}),
 		onSelect: () => {
 			if (Modes.previous_id == 'animate') {
 				Animator.preview();
@@ -261,7 +259,6 @@ BARS.defineActions(function() {
 		selectCubes: false,
 		default_tool: 'move_tool',
 		category: 'navigate',
-		keybind: new Keybind({key: 51}),
 		condition: () => Format.display_mode,
 		onSelect: () => {
 			enterDisplaySettings()
@@ -274,7 +271,6 @@ BARS.defineActions(function() {
 		default_tool: 'move_tool',
 		category: 'navigate',
 		center_windows: ['preview', 'timeline'],
-		keybind: new Keybind({key: 52}),
 		condition: () => Format.animation_mode,
 		onSelect: () => {
 			Animator.join()

@@ -19,6 +19,9 @@ const recent_projects = (function() {
 		try {
 			array = JSON.parse(raw).slice().reverse()
 		} catch (err) {}
+		array = array.filter(project => {
+			return fs.existsSync(project.path);
+		})
 	}
 	return array
 })();

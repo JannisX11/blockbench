@@ -106,8 +106,12 @@ class Keyframe {
 		}
 		var start = value.match(/^-?\s*\d+(\.\d+)?\s*(\+|-)/)
 		if (start) {
-			var number = parseFloat( start[0].substr(0, start[0].length-1) ) + amount
-			value = trimFloatNumber(number) + value.substr(start[0].length-1)
+			var number = parseFloat( start[0].substr(0, start[0].length-1) ) + amount;
+			if (number == 0) {
+				value = value.substr(start[0].length + (value[start[0].length-1] == '+' ? 0 : -1));
+			} else {
+				value = trimFloatNumber(number) + (start[0].substr(-2, 1) == ' ' ? ' ' : '') + value.substr(start[0].length-1);
+			}
 		} else {
 
 			var end = value.match(/(\+|-)\s*\d*(\.\d+)?\s*$/)
@@ -223,11 +227,11 @@ class Keyframe {
 			if (this.data_points.length == 1 && this.interpolation == 'linear') {
 				return this.getArray();
 			} else {
-				return {
+				return new oneLiner({
+					lerp_mode: this.interpolation != 'linear' ? this.interpolation : undefined,
 					pre:  this.getArray(0),
 					post: this.getArray(1),
-					lerp_mode: this.interpolation != 'linear' ? this.interpolation : undefined,
-				}
+				})
 			}
 		} else if (this.channel == 'timeline') {
 			let scripts = [];
@@ -294,13 +298,15 @@ class Keyframe {
 		if (Timeline.selected.length == 1 && Timeline.selected[0].animator.selected == false) {
 			Timeline.selected[0].animator.select()
 		}
+		this.selected = true
+		TickUpdates.keyframe_selection = true;
+
+		if (this.transform) Timeline.vue.graph_editor_channel = this.channel;
 
 		var select_tool = true;
 		Timeline.selected.forEach(kf => {
 			if (kf.channel != scope.channel) select_tool = false;
 		})
-		this.selected = true
-		TickUpdates.keyframe_selection = true;
 		if (select_tool) {
 			switch (this.channel) {
 				case 'rotation': BarItems.rotate_tool.select(); break;
@@ -410,6 +416,7 @@ function updateKeyframeValue(axis, value, data_point) {
 	})
 	if (!['effect', 'locator', 'script'].includes(axis)) {
 		Animator.preview();
+		updateKeyframeSelection();
 	}
 }
 function updateKeyframeSelection() {
@@ -465,7 +472,7 @@ BARS.defineActions(function() {
 		icon: 'add_circle',
 		category: 'animation',
 		condition: {modes: ['animate']},
-		keybind: new Keybind({key: 81, shift: null}),
+		keybind: new Keybind({key: 'q', shift: null}),
 		click: function (event) {
 			var animator = Timeline.selected_animator;
 			if (!animator) return;
@@ -645,11 +652,11 @@ BARS.defineActions(function() {
 			Timeline.selected.forEach((kf) => {
 				if (kf.animator.fillValues) {
 					Timeline.time = kf.time;
-					kf.animator.fillValues(kf, null, false);
+					kf.animator.fillValues(kf, null, false, false);
 				}
 			})
 			Timeline.time = time_before;
-			Undo.finishEdit('reset keyframes')
+			Undo.finishEdit('resolve keyframes')
 			updateKeyframeSelection()
 		}
 	})
@@ -717,6 +724,9 @@ BARS.defineActions(function() {
 			Undo.initEdit({keyframes: Timeline.selected})
 			Timeline.selected.forEach((kf) => {
 				kf.time = end + start - kf.time;
+				if (kf.transform && kf.data_points.length > 1) {
+					kf.data_points.reverse();
+				}
 			})
 			Undo.finishEdit('reverse keyframes')
 			updateKeyframeSelection()
@@ -782,9 +792,11 @@ Interface.definePanels(function() {
 					Undo.finishEdit('remove keyframe data point')
 				},
 				updateLocatorSuggestionList() {
-					locator_suggestion_list.empty();
+					locator_suggestion_list.innerHTML = '';
 					Locator.all.forEach(locator => {
-						locator_suggestion_list.append(`<option value="${locator.name}">`);
+						let option = document.createElement('option');
+						option.value = locator.name;
+						locator_suggestion_list.append(option);
 					})
 				},
 				focusAxis(axis) {

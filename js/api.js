@@ -206,7 +206,7 @@ const Blockbench = {
 		jq_dialog.css('left', x+'px')
 		jq_dialog.css('position', 'absolute')
 
-		$('#plugin_dialog_wrapper').append(jq_dialog)
+		$('#dialog_wrapper').append(jq_dialog)
 		$('.dialog').hide()
 		$('#blackout').show()
 		jq_dialog.show()

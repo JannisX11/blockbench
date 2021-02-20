@@ -1,4 +1,4 @@
-var open_menu;
+var open_menu = null;
 
 function handleMenuOverflow(node) {
 	node = node.get(0);
@@ -60,7 +60,6 @@ class Menu {
 				handleMenuOverflow(childlist);
 
 			} else if (offset.top + el_height > window_height) {
-				console.log('b')
 				childlist.css('margin-top', 26-childlist.height() + 'px')
 				if (childlist.offset().top < 26) {
 					childlist.offset({top: 26})
@@ -334,7 +333,7 @@ class Menu {
 	}
 	hide() {
 		$(this.node).detach()
-		open_menu = undefined;
+		open_menu = null;
 		return this;
 	}
 	conditionMet() {
@@ -530,6 +529,7 @@ const MenuBar = {
 				'export_class_entity',
 				'export_optifine_full',
 				'export_optifine_part',
+				'export_minecraft_skin',
 				'export_obj',
 				'export_gltf',
 				'upload_sketchfab',

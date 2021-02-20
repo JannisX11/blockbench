@@ -65,6 +65,7 @@ class ModelProject {
 		Cube.selected.empty();
 		Locator.all.empty();
 		Locator.selected.empty();
+		Texture.all.forEach(tex => tex.stopWatcher());
 		Texture.all.empty();
 		Texture.selected = undefined;
 	
