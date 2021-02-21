@@ -420,10 +420,8 @@
 		font-size: 18px;
 	}
 	#start_screen .bar.next_to_title {
-		margin-top: -40px;
-		margin-right: -12px;
-		position: relative;
-		float: right;
+		position: absolute;
+		right: 8px;
 	}
 	#start_screen .recent_project {
 		margin: 2px 0;
@@ -600,13 +598,16 @@
 	#start_screen section#start-files left {
 		width: 38%;
 		overflow: hidden;
-		padding: 20px 24px 0px 24px
+		padding: 20px 24px 0px 24px;
+		position: relative;
+		display: flex;
+		flex-direction: column;
 	}
 	#start-files right {
 		border-left: 1px solid var(--color-border);
 	}
 	#start_screen left > ul {
-		height: calc(100% - 60px);
+		margin-bottom: 16px;
 		overflow-y: auto;
 	}
 	#start_screen right i {
@@ -621,6 +622,7 @@
 	}
 	#start-files left li p {
 		font-size: 0.94em;
+		line-height: normal;
 		color: var(--color-subtle_text);
 	}
 	#start-files left i {
