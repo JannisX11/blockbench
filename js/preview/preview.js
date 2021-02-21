@@ -407,7 +407,7 @@ class Preview {
 		this.camera.position.copy(position);
 		if (toggle) {
 			let perspective_distance = this.camPers.position.distanceTo(this.controls.target);
-			let factor = 0.72 * this.camPers.getFocalLength();
+			let factor = 0.64 * devicePixelRatio * this.camPers.getFocalLength();
 			if (this.isOrtho) {
 				this.camera.zoom = factor / perspective_distance;
 			} else {
@@ -685,7 +685,7 @@ class Preview {
 	}
 	mouseup(event) {
 		this.showContextMenu(event);
-		if (this.controls.hasMoved === false && settings.canvas_unselect.value) {
+		if (this.controls.hasMoved === false && !this.selection.activated && settings.canvas_unselect.value) {
 			unselectAll();
 		}
 		return this;
@@ -857,7 +857,6 @@ class Preview {
 		TickUpdates.selection = true;
 	}
 	stopSelRect(event) {
-		var scope = this;
 		document.removeEventListener('mousemove', this.sr_move_f)
 		document.removeEventListener('mouseup',	this.sr_stop_f)
 		if (this.movingBackground) {
