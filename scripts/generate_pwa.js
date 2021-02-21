@@ -13,7 +13,6 @@ workbox.generateSW({
 		'./css/**/*',
 		'./assets/**/*',
 		'./font/*',
-		'./lang/*',
 	],
 	swDest: './service_worker.js',
 	sourcemap: false
