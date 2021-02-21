@@ -121,6 +121,8 @@
 	}
 	.dialog_vector_group > input {
 		min-width: 30px;
+		flex-grow: 1;
+		flex-shrink: 1;
 	}
 	.tab_bar {
 		height: 30px;

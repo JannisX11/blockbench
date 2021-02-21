@@ -16,62 +16,43 @@ const TextureGenerator = {
 		var dialog = new Dialog({
 			id: 'add_bitmap',
 			title: tl('action.create_texture'),
-			width: 412,
+			width: 480,
 			form: {
 				name: 		{label: 'generic.name', value: 'texture'},
 				folder: 	{label: 'dialog.create_texture.folder', condition: Format.id == 'java_block'},
-				template:	{label: 'dialog.create_texture.template', type: 'checkbox', condition: Cube.all.length}
+				template:	{label: 'dialog.create_texture.template', type: 'checkbox', condition: Cube.all.length},
+
+				rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', type: 'checkbox', value: true, condition: (form) => (form.template)},
+				compress: 	{label: 'dialog.create_texture.compress', type: 'checkbox', value: true, condition: (form) => (form.template && Project.box_uv && form.rearrange_uv)},
+				power: 		{label: 'dialog.create_texture.power', type: 'checkbox', value: true, condition: (form) => (form.template && form.rearrange_uv)},
+				double_use: {label: 'dialog.create_texture.double_use', type: 'checkbox', value: true, condition: (form) => (form.template && Project.box_uv && form.rearrange_uv)},
+				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.template && !Project.box_uv)},
+				padding:	{label: 'dialog.create_texture.padding', type: 'checkbox', value: false, condition: (form) => (form.template && form.rearrange_uv)},
+
+				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
+
+				resolution: {label: 'dialog.create_texture.resolution', type: 'select', value: 16, condition: (form) => (form.template), options: {
+					16: '16',
+					32: '32',
+					64: '64',
+					128: '128',
+					256: '256',
+					512: '512',
+				}},
+				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (!form.template), dimensions: 2, value: [16, 16], min: 16, max: 2048},
+			},
+			onFormChange(form) {
+				if (form.template && TextureGenerator.background_color.get().toHex8() === 'ffffffff') {
+					TextureGenerator.background_color.set('#00000000')
+				}
 			},
 			onConfirm: function(results) {
 				results.particle = 'auto';
-				dialog.hide()
-				if (results.template) {
-					var dialog2 = new Dialog({
-						id: 'texture_template',
-						title: tl('dialog.create_texture.template'),
-						width: 412,
-						form: {
-							rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', type: 'checkbox', value: true},
-							compress: 	{label: 'dialog.create_texture.compress', type: 'checkbox', value: true, condition: (form) => (Project.box_uv && form.rearrange_uv)},
-							power: 		{label: 'dialog.create_texture.power', type: 'checkbox', value: true, condition: (form) => (form.rearrange_uv)},
-							double_use: {label: 'dialog.create_texture.double_use', type: 'checkbox', value: true, condition: (form) => (Project.box_uv && form.rearrange_uv)},
-							box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: !Project.box_uv},
-							padding:	{label: 'dialog.create_texture.padding', type: 'checkbox', value: false, condition: (form) => (form.rearrange_uv)},
-							color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
-							resolution: {label: 'dialog.create_texture.resolution', type: 'select', value: 16, options: {
-								16: '16',
-								32: '32',
-								64: '64',
-								128: '128',
-								256: '256',
-								512: '512',
-							}},
-						},
-						onConfirm: function(results2) {
-							$.extend(results, results2)
-							TextureGenerator.addBitmap(results)
-							dialog2.hide()
-						}
-					}).show()
-					if (TextureGenerator.background_color.get().toHex8() === 'ffffffff') {
-						TextureGenerator.background_color.set('#00000000')
-					}
-				} else {
-					var dialog2 = new Dialog({
-						id: 'texture_simple',
-						title: tl('action.create_texture'),
-						width: 400,
-						form: {
-							color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
-							resolution: {label: 'dialog.create_texture.resolution', type: 'vector', dimensions: 2, value: [16, 16], min: 16, max: 2048},
-						},
-						onConfirm: function(results2) {
-							$.extend(results, results2)
-							TextureGenerator.addBitmap(results)
-							dialog2.hide()
-						}
-					}).show()
+				if (!results.template) {
+					results.resolution = results.resolution_vec;
 				}
+				dialog.hide()
+				TextureGenerator.addBitmap(results)
 			}
 		}).show()
 	},

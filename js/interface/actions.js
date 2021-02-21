@@ -1800,7 +1800,6 @@ const BARS = {
 				'slider_brush_softness',
 				'mirror_painting',
 				'lock_alpha',
-				'_',
 				'painting_grid',
 			]
 		})
