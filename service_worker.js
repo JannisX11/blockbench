@@ -13,7 +13,7 @@ const staticAssets = [
 	'./assets/player_skin.png',
 	'./assets/zombie.png',
 	'./favicon.png',
-	'./manifest.json',
+	'./manifest.webmanifest',
 ];
 
 self.addEventListener('install', async (event) => {

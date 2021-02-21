@@ -4299,8 +4299,7 @@ readers do not read off random characters that represent icons */
   font-style: normal;
   font-weight: normal;
   font-display: auto;
-  src: url("../font/fa-brands-400.eot");
-  src: url("../font/fa-brands-400.eot?#iefix") format("embedded-opentype"), url("../font/fa-brands-400.woff2") format("woff2"), url("../font/fa-brands-400.woff") format("woff"), url("../font/fa-brands-400.ttf") format("truetype"), url("../font/fa-brands-400.svg#fontawesome") format("svg"); }
+  src: url("../font/fa-brands-400.woff2") format("woff2")}
 
 .fa {
   font-family: 'Font Awesome 5 Free';
@@ -4313,8 +4312,7 @@ readers do not read off random characters that represent icons */
   font-style: normal;
   font-weight: 400;
   font-display: auto;
-  src: url("../font/fa-regular-400.eot");
-  src: url("../font/fa-regular-400.eot?#iefix") format("embedded-opentype"), url("../font/fa-regular-400.woff2") format("woff2"), url("../font/fa-regular-400.woff") format("woff"), url("../font/fa-regular-400.ttf") format("truetype"), url("../font/fa-regular-400.svg#fontawesome") format("svg"); }
+  src: url("../font/fa-regular-400.woff2") format("woff2")}
 
 .far {
   font-family: 'Font Awesome 5 Free';
@@ -4324,8 +4322,7 @@ readers do not read off random characters that represent icons */
   font-style: normal;
   font-weight: 900;
   font-display: auto;
-  src: url("../font/fa-solid-900.eot");
-  src: url("../font/fa-solid-900.eot?#iefix") format("embedded-opentype"), url("../font/fa-solid-900.woff2") format("woff2"), url("../font/fa-solid-900.woff") format("woff"), url("../font/fa-solid-900.ttf") format("truetype"), url("../font/fa-solid-900.svg#fontawesome") format("svg"); }
+  src: url("../font/fa-solid-900.woff2") format("woff2")}
 
 .fas {
   font-family: 'Font Awesome 5 Free';

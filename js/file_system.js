@@ -250,21 +250,27 @@ Object.assign(Blockbench, {
 			if (options.custom_writer) {
 				options.custom_writer(options.content, file_name)
 				
-			} else if (options.savetype === 'image') {
-
-				var download = document.createElement('a');
-				download.href = options.content
-				download.download = file_name;
-				if (Blockbench.browser === 'firefox') document.body.appendChild(download);
-				download.click();
-				if (Blockbench.browser === 'firefox') document.body.removeChild(download);
-
-			} else if (options.savetype === 'zip' || options.savetype === 'buffer' || options.savetype === 'binary') {
-				saveAs(options.content, file_name)
-
 			} else {
-				var blob = new Blob([options.content], {type: "text/plain;charset=utf-8"});
-				saveAs(blob, file_name, {autoBOM: true})
+
+				let a = document.createElement('a');
+
+				if (options.savetype === 'image') {
+					a.href = options.content;
+
+				} else if (options.savetype === 'zip' || options.savetype === 'buffer' || options.savetype === 'binary') {
+					let blob = new Blob(data, {type: "octet/stream"});
+					a.href = window.URL.createObjectURL(blob);
+
+				} else {
+					a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(options.content);
+				}
+
+				a.download = file_name;
+				
+				if (Blockbench.browser === 'firefox') document.body.appendChild(a);
+				a.click();
+				if (Blockbench.browser === 'firefox') document.body.removeChild(a);
+
 			}
 			if (typeof cb === 'function') {
 				cb(file_name)
