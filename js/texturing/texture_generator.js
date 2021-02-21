@@ -35,7 +35,7 @@ const TextureGenerator = {
 							compress: 	{label: 'dialog.create_texture.compress', type: 'checkbox', value: true, condition: (form) => (Project.box_uv && form.rearrange_uv)},
 							power: 		{label: 'dialog.create_texture.power', type: 'checkbox', value: true, condition: (form) => (form.rearrange_uv)},
 							double_use: {label: 'dialog.create_texture.double_use', type: 'checkbox', value: true, condition: (form) => (Project.box_uv && form.rearrange_uv)},
-							box_uv: 	{label: 'dialog.project.box_uv', type: 'checkbox', value: false, condition: !Project.box_uv},
+							box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: !Project.box_uv},
 							padding:	{label: 'dialog.create_texture.padding', type: 'checkbox', value: false, condition: (form) => (form.rearrange_uv)},
 							color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
 							resolution: {label: 'dialog.create_texture.resolution', type: 'select', value: 16, options: {
@@ -543,10 +543,10 @@ const TextureGenerator = {
 		function faceRect(cube, face_key, tex, x, y) {
 			this.cube = cube;
 			if (options.rearrange_uv) {
-				this.width  = Math.abs(x);
-				this.height = Math.abs(y);
-				this.width  = (this.width  >= 0.01 && this.width  < 1) ? 1 : Math.round(this.width );
-				this.height = (this.height >= 0.01 && this.height < 1) ? 1 : Math.round(this.height);
+				this.width  = Math.abs(x) * res_multiple;
+				this.height = Math.abs(y) * res_multiple;
+				this.width  = ((this.width  >= 0.01 && this.width  < 1) ? 1 : Math.round(this.width)) / res_multiple;
+				this.height = ((this.height >= 0.01 && this.height < 1) ? 1 : Math.round(this.height)) / res_multiple;
 			} else {
 				this.posx = cube.faces[face_key].uv[0], cube.faces[face_key].uv[0+2];
 				this.posy = cube.faces[face_key].uv[1], cube.faces[face_key].uv[1+2];
