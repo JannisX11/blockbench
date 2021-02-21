@@ -33,10 +33,8 @@
 			"assets/",
 			"build/",
 			"css/",
-			"font/",
-			"js",
-			"lib",
-			"lang",
+			"js/",
+			"lib/",
 			"main.js",
 			"index.html",
 			"package.json",
@@ -87,16 +85,23 @@
 		]
 	},
 	"scripts": {
+		"bundle": "webpack --config webpack.config.js",
+		"bundle-watch": "webpack --config webpack.config.js --watch",
 		"dev": "electron .",
 		"dist": "electron-builder",
 		"beta": "electron-builder --windows portable",
+		"pwa": "node ./scripts/generate_pwa.js",
+		"prepublish": "npm run bundle && npm run pwa",
 		"webapp": "git checkout gh-pages && git merge master && git push && git checkout master"
 	},
 	"devDependencies": {
 		"blockbench-types": "^3.7.2",
 		"electron": "^8.5.5",
 		"electron-builder": "^22.9.1",
-		"electron-notarize": "^1.0.0"
+		"electron-notarize": "^1.0.0",
+		"webpack": "^5.21.2",
+		"webpack-cli": "^4.5.0",
+		"workbox-build": "^6.1.0"
 	},
 	"dependencies": {
 		"electron-updater": "^4.3.1"
