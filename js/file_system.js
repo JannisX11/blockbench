@@ -104,6 +104,7 @@ Object.assign(Blockbench, {
 		var result_count = 0;
 		var index = 0;
 		var errant;
+		var i = 0;
 		if (isApp) {
 			while (index < files.length) {
 				(function() {
