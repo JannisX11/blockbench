@@ -1060,7 +1060,12 @@ Interface.definePanels(function() {
 								if (node instanceof Group) {
 									node.forEachChild(node => new_affected.push(node))
 									affected_groups.push(node);
+								} else if (node.selected && selected.length > 1) {
+									selected.forEach(el => {
+										if (node[key] != undefined) new_affected.safePush(el);
+									})
 								}
+								console.log(selected.length, affected.length, node.selected)
 								new_affected.forEach(node => {
 									affected.push(node);
 									previous_values[node.uuid] = node[key];
