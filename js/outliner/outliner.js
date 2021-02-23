@@ -406,9 +406,9 @@ class OutlinerElement extends OutlinerNode {
 		//Control
 		} else if (event && !Modes.paint && (event.ctrlOrCmd || event.shiftKey )) {
 			if (selected.includes(this)) {
-				selected = selected.filter((e) => {
+				selected.replace(selected.filter((e) => {
 					return e !== this
-				})
+				}))
 			} else {
 				this.selectLow()
 				just_selected.push(this)
@@ -704,7 +704,7 @@ function stopRenameOutliner(save) {
 	}
 }
 function toggleCubeProperty(key) {
-	let affected = Outliner.selected.filter(element => element[key] != undefined);
+	let affected = selected.filter(element => element[key] != undefined);
 	if (!affected.length) return;
 	var state = affected[0][key];
 	if (typeof state === 'number') {

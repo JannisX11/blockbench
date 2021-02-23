@@ -74,13 +74,15 @@ class Plugin {
 				if (first && scope.oninstall) {
 					scope.oninstall()
 				}
+				if (first) Blockbench.showQuickMessage(tl('message.installed_plugin', [this.title]));
 				resolve()
 			}).fail(function() {
 				if (isApp) {
 					console.log('Could not find file of plugin "'+scope.id+'". Uninstalling it instead.')
 					scope.uninstall()
-					reject()
 				}
+				if (first) Blockbench.showQuickMessage(tl('message.installed_plugin_fail', [this.title]));
+				reject()
 			})
 			this.remember()
 			scope.installed = true;
@@ -456,16 +458,6 @@ async function loadInstalledPlugins() {
 	})
 	return await Promise.allSettled(install_promises);
 }
-function switchPluginTabs(installed) {
-	$('#plugins .tab_bar > .open').removeClass('open')
-	if (installed) {
-		$('#installed_plugins').addClass('open')
-		Plugins.dialog.content_vue._data.show_all = false
-	} else {
-		$('#all_plugins').addClass('open')
-		Plugins.dialog.content_vue._data.show_all = true
-	}
-}
 
 BARS.defineActions(function() {
 
@@ -474,7 +466,7 @@ BARS.defineActions(function() {
 		title: 'dialog.plugins.title',
 		component: {
 			data: {
-				show_all: false,
+				tab: 'installed',
 				search_term: '',
 				items: Plugins.all
 			},
@@ -482,7 +474,7 @@ BARS.defineActions(function() {
 				plugin_search() {
 					var name = this.search_term.toUpperCase()
 					return this.items.filter(item => {
-						if (this.show_all !== item.installed) {
+						if ((this.tab == 'installed') == item.installed) {
 							if (name.length > 0) {
 								return (
 									item.id.toUpperCase().includes(name) ||
@@ -501,8 +493,8 @@ BARS.defineActions(function() {
 				<div style="margin-top: 10px;">
 					<div class="bar">
 						<div class="tab_bar">
-							<div class="open" onclick="switchPluginTabs(true)" id="installed_plugins">${tl('dialog.plugins.installed')}</div>
-							<div onclick="switchPluginTabs(false)" id="all_plugins">${tl('dialog.plugins.available')}</div>
+							<div :class="{open: tab == 'installed'}" @click="tab = 'installed'">${tl('dialog.plugins.installed')}</div>
+							<div :class="{open: tab == 'available'}" @click="tab = 'available'">${tl('dialog.plugins.available')}</div>
 						</div>
 						<search-bar id="plugin_search_bar" v-model="search_term"></search-bar>
 					</div>
@@ -527,8 +519,8 @@ BARS.defineActions(function() {
 							<div v-if="plugin.expanded" class="about" v-html="marked(plugin.about)"><button>a</button></div>
 							<div v-if="plugin.expanded" v-on:click="plugin.toggleInfo()" style="text-decoration: underline;">${tl('dialog.plugins.show_less')}</div>
 						</li>
-						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && show_all === false">${tl('dialog.plugins.none_installed')}</div>
-						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && show_all === true" id="plugin_available_empty">${tl('dialog.plugins.none_available')}</div>
+						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>
+						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'" id="plugin_available_empty">${tl('dialog.plugins.none_available')}</div>
 					</ul>
 				</div>
 			`
@@ -540,6 +532,8 @@ BARS.defineActions(function() {
 		category: 'blockbench',
 		click: function () {
 			Plugins.dialog.show();
+			let none_installed = !Plugins.all.find(plugin => plugin.installed);
+			if (none_installed) Plugins.dialog.content_vue.tab = 'available';
 			if (!Plugins.dialog.button_bar) {
 				Plugins.dialog.button_bar = $(`<div class="bar next_to_title" id="plugins_header_bar"></div>`)[0];
 				Plugins.dialog.object.firstElementChild.after(Plugins.dialog.button_bar);
