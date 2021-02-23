@@ -1065,12 +1065,11 @@ Interface.definePanels(function() {
 										if (node[key] != undefined) new_affected.safePush(el);
 									})
 								}
-								console.log(selected.length, affected.length, node.selected)
 								new_affected.forEach(node => {
 									affected.push(node);
 									previous_values[node.uuid] = node[key];
 									node[key] = value;
-									if (key == 'autouv' && node instanceof Cube) Canvas.updateUV(node);
+									if (key == 'shade' && node instanceof Cube) Canvas.updateUV(node);
 								})
 								// Update
 								if (key == 'visibility') Canvas.updateVisibility();
