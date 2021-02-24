@@ -123,7 +123,7 @@ const Timeline = {
 					if (kf.time > min_time &&
 						kf.time < max_time &&
 						channels[kf.channel] != false &&
-						(!Timeline.vue.graph_editor_open || kf.channel == Timeline.vue.graph_editor_channel) &&
+						(!Timeline.vue.graph_editor_open || (kf.channel == Timeline.vue.graph_editor_channel && animator.selected)) &&
 						(!channels.hide_empty || animator[kf.channel].length)
 					) {
 						if (!Timeline.vue.graph_editor_open) {
@@ -701,7 +701,7 @@ onVueSetup(function() {
 				Timeline.animators.remove(animator);
 			},
 			selectChannel(animator, channel) {
-				if (this.graph_editor_channel == channel) return;
+				if (this.graph_editor_channel == channel && animator.selected) return;
 				animator.select();
 				if (animator[channel].length == 1 && Math.epsilon(animator[channel][0].time, Timeline.time, 0.002)) {
 					animator[channel][0].select();
