@@ -948,23 +948,23 @@ BARS.defineActions(function() {
 
 
 	new Action('share_model', {
-		name: 'Share',
 		icon: 'share',
 		condition: () => Cube.all.length,
 		click() {
 			var dialog = new Dialog({
-				id: 'share',
-				title: 'Share Model',
+				id: 'share_model',
+				title: 'dialog.share_model.title',
 				form: {
-					expire_time: {label: 'Expire Time', type: 'select', default: '2d', options: {
-						'10m': '10 Minutes',
-						'1h': '1 Hour',
-						'1d': '1 Day',
-						'2d': '2 Days',
-						'1w': '1 Week',
-					}}
+					expire_time: {label: 'dialog.share_model.expire_time', type: 'select', default: '2d', options: {
+						'10m': tl('dates.minutes', [10]),
+						'1h': tl('dates.hour', [1]),
+						'1d': tl('dates.day', [1]),
+						'2d': tl('dates.days', [2]),
+						'1w': tl('dates.week', [1]),
+					}},
+					info: {type: 'info', text: 'The model will be stored on the Blockbench servers during the duration specified above. [Learn how your data is protected](https://blockbench.net/blockbench-model-sharing-service/)'}
 				},
-				buttons: ['Share', 'dialog.cancel'],
+				buttons: ['generic.share', 'dialog.cancel'],
 				onConfirm: function(formResult) {
 		
 					let expire_time = formResult.expire_time;
@@ -979,22 +979,19 @@ BARS.defineActions(function() {
 						type: 'POST',
 						success: function(response) {
 							let link = `https://blckbn.ch/${response.id}`
-							console.log(response, link)
 
-
-							if (isApp) {
-								clipboard.writeText(link)
-								Blockbench.showQuickMessage('Link copied to Clipboard')
+							if (isApp || navigator.clipboard) {
+								Clipbench.setText(link);
+								Blockbench.showQuickMessage('dialog.share_model.copied_to_clipboard');
 							} else {
 								Blockbench.showMessageBox({
-									title: 'Model uploaded',
+									title: 'dialog.share_model.title',
 									message: `[${link}](${link})`,
 								})
 							}
 						},
 						error: function(response) {
-							console.log(response);
-							Blockbench.showQuickMessage('Error uploading', 1500)
+							Blockbench.showQuickMessage('dialog.share_model.failed', 1500)
 							console.error(response);
 						}
 					})
