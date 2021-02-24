@@ -597,4 +597,64 @@ BARS.defineActions(function() {
 			uploadSketchfabModel()
 		}
 	})
+
+
+	new Action('share_model', {
+		icon: 'share',
+		condition: () => Cube.all.length,
+		click() {
+			var dialog = new Dialog({
+				id: 'share_model',
+				title: 'dialog.share_model.title',
+				form: {
+					expire_time: {label: 'dialog.share_model.expire_time', type: 'select', default: '2d', options: {
+						'10m': tl('dates.minutes', [10]),
+						'1h': tl('dates.hour', [1]),
+						'1d': tl('dates.day', [1]),
+						'2d': tl('dates.days', [2]),
+						'1w': tl('dates.week', [1]),
+					}},
+					info: {type: 'info', text: 'The model will be stored on the Blockbench servers during the duration specified above. [Learn how your data is protected](https://blockbench.net/blockbench-model-sharing-service/)'}
+				},
+				buttons: ['generic.share', 'dialog.cancel'],
+				onConfirm: function(formResult) {
+		
+					let expire_time = formResult.expire_time;
+					let model = Codecs.project.compile({compressed: false});
+
+					$.ajax({
+						url: 'https://blckbn.ch/api/model',
+						data: JSON.stringify({ expire_time, model }),
+						cache: false,
+						contentType: 'application/json; charset=utf-8',
+						dataType: 'json',
+						type: 'POST',
+						success: function(response) {
+							let link = `https://blckbn.ch/${response.id}`
+
+							if (isApp || navigator.clipboard) {
+								Clipbench.setText(link);
+								Blockbench.showQuickMessage('dialog.share_model.copied_to_clipboard');
+							} else {
+								Blockbench.showMessageBox({
+									title: 'dialog.share_model.title',
+									message: `[${link}](${link})`,
+								})
+							}
+						},
+						error: function(response) {
+							Blockbench.showQuickMessage('dialog.share_model.failed', 1500)
+							console.error(response);
+						}
+					})
+		
+					dialog.hide()
+				}
+			})
+			dialog.show()
+		}
+	})
+
+
+
 })

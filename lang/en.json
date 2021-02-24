@@ -34,6 +34,7 @@
 	"generic.rename": "Rename",
 	"generic.import": "Import",
 	"generic.export": "Export",
+	"generic.share": "Share",
 	"generic.download": "Download",
 	"generic.search": "Search",
 	"generic.help": "Help",
@@ -51,6 +52,17 @@
 	"dates.yesterday": "Yesterday",
 	"dates.this_week": "This Week",
 	"dates.weeks_ago": "%0 weeks ago",
+
+	"dates.minute": "%0 Minute",
+	"dates.minutes": "%0 Minutes",
+	"dates.hour": "%0 Hour",
+	"dates.hours": "%0 Hours",
+	"dates.day": "%0 Day",
+	"dates.days": "%0 Days",
+	"dates.week": "%0 Week",
+	"dates.weeks": "%0 Weeks",
+	"dates.year": "%0 Year",
+	"dates.years": "%0 Years",
 
 	"mode.start": "Start",
 	"mode.edit": "Edit",
@@ -377,6 +389,11 @@
 	"dialog.sketchfab_uploader.draft": "Draft",
 	"dialog.sketchfab_uploader.private": "Private (Pro)",
 	"dialog.sketchfab_uploader.password": "Password (Pro)",
+
+	"dialog.share_model.title": "Share Model",
+	"dialog.share_model.expire_time": "Expire Time",
+	"dialog.share_model.copied_to_clipboard": "Link copied to clipboard",
+	"dialog.share_model.failed": "Failed to upload model",
 
 	"dialog.model_stats.title": "Model Stats",
 	"dialog.model_stats.cubes": "Cubes",
@@ -740,6 +757,8 @@
 	"action.export_gltf.desc": "Export model and animations as glTF file to use in other 3D applications",
 	"action.upload_sketchfab": "Upload to Sketchfab",
 	"action.upload_sketchfab.desc": "Upload your model to Sketchfab",
+	"action.share_model": "Share...",
+	"action.share_model.desc": "Generate a short link to share your model",
 
 	"action.save_project": "Save Project",
 	"action.save_project.desc": "Saves the current model as a project file",

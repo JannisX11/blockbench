@@ -2,7 +2,7 @@ const EditSession = {
 	active: false,
 	hosting: false,
 	BBKey: '1h3sq3hoj6vfkh',
-	ip: '104.248.38.177',
+	ip: 'blckbn.ch',
 	clients: {},
 	placeholder_names: ['R2D2', 'Tin Man', 'C3PO', 'WALL-E', 'EVE', 'BB-8', 'B1 Battle Droid', 'ASIMO', 'Atlas'],
 	start() {

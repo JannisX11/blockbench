@@ -532,6 +532,7 @@ const MenuBar = {
 				'export_obj',
 				'export_gltf',
 				'upload_sketchfab',
+				'share_model',
 			]},
 			'export_over',
 			'export_asset_archive',
