@@ -174,7 +174,7 @@ var codec = new Codec('bedrock_old', {
 				]
 			}
 			if (g.reset) bone.reset = true;
-			if (g.mirror_uv) bone.mirror = true;
+			if (g.mirror_uv && Project.box_uv) bone.mirror = true;
 			if (g.material) bone.material = g.material;
 
 			//Elements

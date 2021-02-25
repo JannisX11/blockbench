@@ -848,7 +848,7 @@ class UVEditor {
 		this.displaySliders()
 		this.updateDragHandle()
 		if (Project.box_uv) {
-			//this.displayAllMappingOverlays()
+			this.displayAllMappingOverlays()
 		}
 		if (this !== main_uv && this.face === main_uv.face) {
 			main_uv.loadData()
@@ -1042,7 +1042,7 @@ class UVEditor {
 			face.style.left = x+'px'; face.style.top = y+'px';
 			face.style.height = height+'px'; face.style.width = width+'px';
 			face.style.background = color;
-			face.dataset.sizes = [x/pixels, y/pixels, width/pixels, height/pixels].join(',');
+			face.dataset.sizes = [x/pixels, y/pixels, width/pixels, height/pixels].map(v => Math.round(v)).join(',');
 			sides.append(face);
 		}
 		var size = cube.size(undefined, true);
@@ -1060,20 +1060,20 @@ class UVEditor {
 	}
 	displayAllMappingOverlays(force_reload) {
 		var scope = this;
-		var cycle = bbuid(4)
+		var cycle = 'C'+bbuid(4)
 		if (this.showing_overlays && Project.box_uv) {
 			Cube.all.forEach(cube => {
 				var size = cube.size(undefined, true)
 				var hash = `${cube.uv_offset[0]}_${cube.uv_offset[1]}_${size[0]}_${size[1]}_${size[2]}`
-				if (scope.jquery.frame.find(`> .mapping_overlay_cube.${cycle}[size_hash="${hash}"]`).length) return;
+				if (scope.jquery.frame[0].querySelector(`:scope > .mapping_overlay_cube.${cycle}[size_hash="${hash}"]`)) return;
 
-				var c = scope.jquery.frame.find(`> .mapping_overlay_cube:not(.${cycle})[size_hash="${hash}"]`).first()
-				if (force_reload || !c.length) {
+				var c = scope.jquery.frame[0].querySelector(`:scope > .mapping_overlay_cube:not(.${cycle})[size_hash="${hash}"]`)
+				if (force_reload || !c) {
 					var sides = scope.getMappingOverlay(cube, true)
 					sides.classList.add(cycle)
 					scope.jquery.frame.append(sides)
 				} else {
-					c.addClass(cycle)
+					c.classList.add(cycle)
 				}
 			})
 			$(`.mapping_overlay_cube:not(.${cycle})`).remove()
@@ -1089,19 +1089,21 @@ class UVEditor {
 			Cube.all.forEach(cube => {
 				var size = cube.size(undefined, true)
 				var hash = `${cube.uv_offset[0]}_${cube.uv_offset[1]}_${size[0]}_${size[1]}_${size[2]}`
-				var c = scope.jquery.frame.find(`> .mapping_overlay_cube[size_hash="${hash}"]`).first()
+				var c = scope.jquery.frame[0].querySelector(`:scope > .mapping_overlay_cube[size_hash="${hash}"]`);
 				
-				c.children().each((i, side) => {
-					var data = side.dataset.sizes;
-					data = data.split(',');
-					data.forEach((s, i) => {
-						data[i] = parseInt(s);
+				if (c) {
+					c.childNodes.forEach(side => {
+						var data = side.dataset.sizes;
+						data = data.split(',');
+						data.forEach((s, i) => {
+							data[i] = parseInt(s);
+						})
+						side.style.left 	= (data[0] * pixels)+'px';
+						side.style.top 		= (data[1] * pixels)+'px';
+						side.style.width 	= (data[2] * pixels)+'px';
+						side.style.height	= (data[3] * pixels)+'px';
 					})
-					side.style.left 	= (data[0] * pixels)+'px';
-					side.style.top 		= (data[1] * pixels)+'px';
-					side.style.width 	= (data[2] * pixels)+'px';
-					side.style.height	= (data[3] * pixels)+'px';
-				})
+				}
 			})
 		}
 	}
