@@ -733,6 +733,7 @@ onVueSetup(function() {
 				let originalValue;
 				let previousValue = 0;
 				let time_stretching = !Timeline.vue.graph_editor_open && e1.ctrlKey && Timeline.selected.length > 1;
+				let values_changed = false;
 
 				if (!clicked.selected && !e1.shiftKey && Timeline.selected.length != 0) {
 					clicked.select()
@@ -822,15 +823,20 @@ onVueSetup(function() {
 						} else {
 							var t = kf.time_before + difference;
 						}
+						let old_time = kf.time;
 						if (dragging_restriction) {
 							let step = Timeline.getStep();
-							kf.time = Timeline.snapTime(Math.clamp(t, dragging_restriction[0] + step, dragging_restriction[1] - step))
+							kf.time = Timeline.snapTime(Math.clamp(t, dragging_restriction[0] + step, dragging_restriction[1] - step));
 						} else {
 							kf.time = Timeline.snapTime(t);
+						}
+						if (old_time == kf.time) {
+							values_changed = true;
 						}
 
 						if (Timeline.vue.graph_editor_open && value_diff) {
 							kf.offset(Timeline.vue.graph_editor_axis, value_diff);
+							values_changed = true;
 						}
 					}
 					if (time_stretching) {
@@ -856,8 +862,12 @@ onVueSetup(function() {
 						kf.replaceOthers(deleted);
 					}
 					Blockbench.setStatusBarText();
-					Undo.addKeyframeCasualties(deleted);
-					Undo.finishEdit('drag keyframes')
+					if (values_changed) {
+						Undo.addKeyframeCasualties(deleted);
+						Undo.finishEdit('drag keyframes');
+					} else {
+						Undo.cancelEdit();
+					}
 					setTimeout(() => {
 						Timeline.dragging_keyframes = false;
 					}, 20)
