@@ -501,7 +501,7 @@
 	"settings.brightness": "Brightness",
 	"settings.brightness.desc": "Brightness of the preview. Default is 50",
 	"settings.shading": "Shading",
-	"settings.shading.desc": "Enable shading",
+	"settings.shading.desc": "Enable shading in the preview",
 	"settings.antialiasing": "Anti-aliasing",
 	"settings.antialiasing.desc": "Toggle anti-aliasing in the preview. Restart Blockbench to apply changes",
 	"settings.render_sides": "Render Sides",

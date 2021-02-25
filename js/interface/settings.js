@@ -265,7 +265,10 @@ const Settings = {
 		for (var key in BarItems) {
 			var action = BarItems[key]
 			if (action.linked_setting) {
-				action.toggleLinkedSetting(false)
+				if (settings[action.linked_setting] && action.value != settings[action.linked_setting].value) {
+					action.value = settings[action.linked_setting].value;
+					action.updateEnabledState();
+				}
 			}
 		}
 		if (hasSettingChanged('base_grid') || hasSettingChanged('large_grid') || hasSettingChanged('full_grid') || hasSettingChanged('large_grid_size')
@@ -377,7 +380,7 @@ onVueSetup(function() {
 		},
 		methods: {
 			saveSettings() {
-				localStorage.setItem('settings', JSON.stringify(settings))
+				Settings.saveLocalStorages();
 			},
 			toggleCategory(category) {
 				if (!category.open) {

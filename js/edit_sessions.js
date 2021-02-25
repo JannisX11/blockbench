@@ -13,7 +13,7 @@ const EditSession = {
 			host: EditSession.ip,
 			port: 9000,
 			path: '/sessions',
-			secure: false
+			secure: true
 		});
 		EditSession.username = $('#edit_session_username').val() || EditSession.placeholder_names.random();
 		settings.username.value = EditSession.username;
@@ -74,7 +74,7 @@ const EditSession = {
 			host: EditSession.ip,
 			port: 9000,
 			path: '/sessions',
-			secure: false
+			secure: true
 		});
 		EditSession.peer.on('open', function() {
 

@@ -277,20 +277,6 @@ class Action extends BarItem {
 			$(n).find('.icon').replaceWith($(scope.icon_node).clone())
 		})
 	}
-	toggleLinkedSetting(change) {
-		if (this.linked_setting && settings[this.linked_setting]) {
-			let setting = settings[this.linked_setting];
-			if (change !== false) {
-				setting.value = !setting.value
-			}
-			if (this.icon_states) {
-				this.setIcon(setting.value ? this.icon_states[1] : this.icon_states[0]);
-			} else {
-				this.setIcon(setting.value ? 'check_box' : 'check_box_outline_blank');
-			}
-			if (setting.onChange) setting.onChange(setting.value)
-		}
-	}
 	delete() {
 		super.delete();
 		for (var i = this.menus.length-1; i >= 0; i--) {
@@ -413,6 +399,7 @@ class Toggle extends Action {
 			let setting = settings[this.linked_setting];
 			setting.value = this.value;
 			if (setting.onChange) setting.onChange(setting.value);
+			Settings.saveLocalStorages();
 		}
 		if (this.onChange) this.onChange(this.value);
 

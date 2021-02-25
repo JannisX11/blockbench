@@ -1848,7 +1848,7 @@ function initCanvas() {
 }
 function animate() {
 	requestAnimationFrame( animate );
-	if (!settings.background_rendering.value && !document.hasFocus()) return;
+	if (!settings.background_rendering.value && !document.hasFocus() && !document.querySelector('#preview:hover')) return;
 	TickUpdates.Run();
 
 	if (Animator.open && Timeline.playing) {
