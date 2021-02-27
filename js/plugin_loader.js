@@ -68,7 +68,7 @@ class Plugin {
 		var scope = this;
 		Plugins.registered[this.id] = this;
 		return await new Promise((resolve, reject) => {
-			$.getScript(Plugins.path + scope.id + '.js', function() {
+			$.getScript(Plugins.path + scope.id + '.js', () => {
 				if (cb) cb.bind(scope)()
 				scope.bindGlobalData(first)
 				if (first && scope.oninstall) {
@@ -76,7 +76,7 @@ class Plugin {
 				}
 				if (first) Blockbench.showQuickMessage(tl('message.installed_plugin', [this.title]));
 				resolve()
-			}).fail(function() {
+			}).fail(() => {
 				if (isApp) {
 					console.log('Could not find file of plugin "'+scope.id+'". Uninstalling it instead.')
 					scope.uninstall()

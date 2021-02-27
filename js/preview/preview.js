@@ -1290,7 +1290,7 @@ class GimbalControls {
 
 		// Interact
 		addEventListeners(this.node, 'mousedown touchstart', e1 => {
-			if (!scope.preview.controls.enableRotate && scope.preview.angle == null) return;
+			if (!scope.preview.controls.enableRotate || !scope.preview.controls.enabled || scope.preview.angle != null) return;
 			convertTouchEvent(e1);
 			let last_event = e1;
 			let move_calls = 0;

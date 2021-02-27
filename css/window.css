@@ -596,7 +596,6 @@
 	}
 	#start_screen section#start-files left {
 		width: 38%;
-		overflow: hidden;
 		padding: 20px 24px 0px 24px;
 		position: relative;
 		display: flex;
