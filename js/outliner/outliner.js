@@ -1147,7 +1147,6 @@ Interface.definePanels(function() {
 							if (e2) e2.preventDefault();
 							
 							if (open_menu) open_menu.hide();
-							Blockbench.showQuickMessage('TEST')
 
 							if (!helper) {
 								helper = document.createElement('div');

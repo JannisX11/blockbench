@@ -206,7 +206,6 @@
 		margin-left: 0;
 		border-top-right-radius: 4px;
 		border-bottom-right-radius: 4px;
-
 	}
 	#outliner_drag_helper {
 		position: absolute;
@@ -524,6 +523,41 @@
 		flex-grow: 1;
 		flex-shrink: 1;
 		overflow: hidden;
+	}
+
+	.animation[order]::before {
+		content: '';
+		height: 2px;
+		left: 0;
+		right: 0;
+		background: var(--color-accent);
+		z-index: 3;
+		display: block;
+		position: absolute;
+	}
+	.animation[order] {
+		position: relative;
+	}
+	.animation[order="-1"]::before {
+		margin-top: -9px;
+	}
+	.animation[order="1"]::before {
+		bottom: -1px;
+	}
+	#animation_drag_helper {
+		position: absolute;
+		height: 38px;
+		display: flex;
+		white-space: nowrap;
+		vertical-align: middle;
+		padding: 8px;
+		box-sizing: border-box;
+		width: auto;
+		min-width: 150px;
+		pointer-events: none;
+		background-color: var(--color-selected);
+		box-shadow: 0 0.4px 3.5px rgba(0, 0, 0, 0.6);
+		z-index: 18;
 	}
 
 /* Keyframe Panel */

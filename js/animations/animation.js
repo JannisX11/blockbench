@@ -247,8 +247,33 @@ class Animation {
 				if (data) {
 					let animation = content.animations[this.name];
 					content = data;
-					delete content.animations[this.saved_name];
+					if (this.saved_name) delete content.animations[this.saved_name];
 					content.animations[this.name] = animation;
+
+					// Sort
+					let file_keys = Object.keys(content.animations);
+					let anim_keys = Animation.all.filter(anim => anim.path == this.path).map(anim => anim.name);
+					let changes = false;
+					let index = 0;
+
+					anim_keys.forEach(key => {
+						let key_index = file_keys.indexOf(key);
+						if (key_index < index) {
+							file_keys.splice(key_index, 1);
+							file_keys.splice(index, 0, key);
+							changes = true;
+
+						} else if (key_index >= 0) {
+							index = key_index;
+						}
+					})
+					if (changes) {
+						let sorted_animations = {};
+						file_keys.forEach(key => {
+							sorted_animations[key] = content.animations[key];
+						})
+						content.animations = sorted_animations;
+					}
 				}
 			}
 			// Write
@@ -1878,6 +1903,29 @@ BARS.defineActions(function() {
 
 Interface.definePanels(function() {
 
+	function eventTargetToAnim(target) {
+		let target_node = target;
+		let i = 0;
+		while (target_node && target_node.classList && !target_node.classList.contains('animation')) {
+			if (i < 3 && target_node) {
+				target_node = target_node.parentNode;
+				i++;
+			} else {
+				return [];
+			}
+		}
+		return [Animation.all.find(anim => anim.uuid == target_node.attributes.anim_id.value), target_node];
+	}
+	function getOrder(loc, obj) {
+		if (!obj) {
+			return;
+		} else {
+			if (loc < 16) return -1;
+			return 1;
+		}
+		return 0;
+	}
+
 	Interface.Panels.animations = new Panel({
 		id: 'animations',
 		icon: 'movie',
@@ -1909,6 +1957,112 @@ Interface.definePanels(function() {
 				},
 				showFileContextMenu(event, id) {
 					Animation.prototype.file_menu.open(event, id);
+				},
+				dragAnimation(e1) {
+					if (getFocusedTextInput()) return;
+					convertTouchEvent(e1);
+					
+					let [anim] = eventTargetToAnim(e1.target);
+					if (!anim || anim.locked) {
+						function off(e2) {
+							removeEventListeners(document, 'mouseup touchend', off);
+						}
+						addEventListeners(document, 'mouseup touchend', off);
+						return;
+					};
+
+					let active = false;
+					let helper;
+					let timeout;
+					let drop_target, drop_target_node, order;
+					let last_event = e1;
+
+					function move(e2) {
+						convertTouchEvent(e2);
+						let offset = [
+							e2.clientX - e1.clientX,
+							e2.clientY - e1.clientY,
+						]
+						if (!active) {
+							let distance = Math.sqrt(Math.pow(offset[0], 2) + Math.pow(offset[1], 2))
+							if (Blockbench.isTouch) {
+								if (distance > 20 && timeout) {
+									clearTimeout(timeout);
+									timeout = null;
+								} else {
+									document.getElementById('animations_list').scrollTop += last_event.clientY - e2.clientY;
+								}
+							} else if (distance > 6) {
+								active = true;
+							}
+						} else {
+							if (e2) e2.preventDefault();
+							
+							if (open_menu) open_menu.hide();
+
+							if (!helper) {
+								helper = document.createElement('div');
+								helper.id = 'animation_drag_helper';
+								let icon = document.createElement('i');		icon.className = 'material-icons'; icon.innerText = 'movie'; helper.append(icon);
+								let span = document.createElement('span');	span.innerText = anim.name;	helper.append(span);
+								document.body.append(helper);
+							}
+							helper.style.left = `${e2.clientX}px`;
+							helper.style.top = `${e2.clientY}px`;
+
+							// drag
+							$('.drag_hover').removeClass('drag_hover');
+							$('.animation[order]').attr('order', null);
+
+							let target = document.elementFromPoint(e2.clientX, e2.clientY);
+							[drop_target, drop_target_node] = eventTargetToAnim(target);
+							if (drop_target) {
+								var location = e2.clientY - $(drop_target_node).offset().top;
+								order = getOrder(location, drop_target)
+								drop_target_node.setAttribute('order', order)
+								drop_target_node.classList.add('drag_hover');
+							}
+						}
+						last_event = e2;
+					}
+					function off(e2) {
+						if (helper) helper.remove();
+						removeEventListeners(document, 'mousemove touchmove', move);
+						removeEventListeners(document, 'mouseup touchend', off);
+						$('.drag_hover').removeClass('drag_hover');
+						$('.animation[order]').attr('order', null);
+						if (Blockbench.isTouch) clearTimeout(timeout);
+
+						if (active && !open_menu) {
+							convertTouchEvent(e2);
+							let target = document.elementFromPoint(e2.clientX, e2.clientY);
+							[target_anim] = eventTargetToAnim(target);
+							if (!target_anim || target_anim == anim ) return;
+
+							let index = Animation.all.indexOf(target_anim);
+							if (Animation.all.indexOf(anim) < index) index--;
+							if (order == 1) index++;
+							if (Animation.all[index] == anim && anim.path == target_anim.path) return;
+							
+							Undo.initEdit({animations: [anim]});
+
+							anim.path = target_anim.path;
+							Animation.all.remove(anim);
+							Animation.all.splice(index, 0, anim);
+
+							Undo.finishEdit('reorder animations');
+						}
+					}
+
+					if (Blockbench.isTouch) {
+						timeout = setTimeout(() => {
+							active = true;
+							move(e1);
+						}, 320)
+					}
+
+					addEventListeners(document, 'mousemove touchmove', move, {passive: false});
+					addEventListeners(document, 'mouseup touchend', off, {passive: false});
 				}
 			},
 			computed: {
@@ -1939,7 +2093,12 @@ Interface.definePanels(function() {
 			template: `
 				<div>
 					<div class="toolbar_wrapper animations"></div>
-					<ul id="animations_list" class="list mobile_scrollbar">
+					<ul
+						id="animations_list"
+						class="list mobile_scrollbar"
+						@mousedown="dragAnimation($event)"
+						@touchstart="dragAnimation($event)"
+					>
 						<li v-for="(file, key) in files" :key="key" class="animation_file" @contextmenu.prevent.stop="showFileContextMenu($event, key)">
 							<div class="animation_file_head" v-if="!file.hide_head" v-on:click.stop="toggle(key)">
 								<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
