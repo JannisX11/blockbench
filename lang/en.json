@@ -75,7 +75,7 @@
 	"mode.start.no_recents": "No recently opened models",
 
 	"format.free": "Generic Model",
-	"format.free.desc": "Model without restrictions for game engines, rendering etc.",
+	"format.free.desc": "Model without restrictions. For game engines, rendering etc.",
 	"format.skin": "Minecraft Skin",
 	"format.skin.desc": "Edit player and entity skins",
 	"format.java_block": "Java Block/Item",

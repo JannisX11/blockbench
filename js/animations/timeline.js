@@ -303,18 +303,6 @@ const Timeline = {
 				delete Timeline.dragging_endbracket
 			}
 		})
-		//Keyframe inputs
-		
-		document.addEventListener('focus', event => {
-			if (event.target && event.target.parentElement && event.target.parentElement.classList.contains('keyframe_input')) {
-				Undo.initEdit({keyframes: Timeline.selected.slice()})
-			}
-		}, true)
-		document.addEventListener('focusout', event => {
-			if (event.target && event.target.parentElement && event.target.parentElement.classList.contains('keyframe_input')) {
-				Undo.finishEdit('edit keyframe')
-			}
-		})
 		
 		//Enter Time
 		$('#timeline_timestamp').click(e => {
@@ -727,53 +715,62 @@ onVueSetup(function() {
 			},
 			dragKeyframes(clicked, e1) {
 				convertTouchEvent(e1);
-
-				let dragging_range = [Infinity, 0];
+				let dragging_range;
 				let dragging_restriction;
 				let originalValue;
-				let previousValue = 0;
-				let time_stretching = !Timeline.vue.graph_editor_open && e1.ctrlKey && Timeline.selected.length > 1;
-				let values_changed = false;
+				let previousValue;
+				let time_stretching;
+				let values_changed;
+				let is_setup = false;
 
-				if (!clicked.selected && !e1.shiftKey && Timeline.selected.length != 0) {
-					clicked.select()
-				} else if (clicked && !clicked.selected) {
-					clicked.select({shiftKey: true})
-				}
+				function setup() {
+					dragging_range = [Infinity, 0];
+					dragging_restriction;
+					originalValue;
+					previousValue = 0;
+					time_stretching = !Timeline.vue.graph_editor_open && e1.ctrlKey && Timeline.selected.length > 1;
+					values_changed = false;
 
-				Undo.initEdit({keyframes: Timeline.selected});
-				Timeline.dragging_keyframes = true;
-
-				for (var kf of Timeline.selected) {
-					kf.time_before = kf.time;
-					dragging_range[0] = Math.min(dragging_range[0], kf.time);
-					dragging_range[1] = Math.max(dragging_range[1], kf.time);
-				}
-
-				if (Timeline.vue.graph_editor_open) {
-					// Find dragging restriction
-					dragging_restriction = [-Infinity, Infinity];
-					let ba = this.graph_editor_animator || 0;
-					let all_keyframes = ba[this.graph_editor_channel];
-					if (all_keyframes) {
-
-						let frst_keyframe;
-						let last_keyframe;
-						Timeline.selected.forEach(kf => {
-							if (!frst_keyframe || frst_keyframe.time > kf.time) frst_keyframe = kf;
-							if (!last_keyframe || last_keyframe.time < kf.time) last_keyframe = kf;
-						})
-						let prvs_keyframe;
-						let next_keyframe;
-						all_keyframes.forEach(kf => {
-							if (kf.time < frst_keyframe.time && (!prvs_keyframe || prvs_keyframe.time < kf.time)) prvs_keyframe = kf;
-							if (kf.time > last_keyframe.time && (!next_keyframe || next_keyframe.time > kf.time)) next_keyframe = kf;
-						})
-						if (prvs_keyframe) dragging_restriction[0] = prvs_keyframe.time;
-						if (next_keyframe) dragging_restriction[1] = next_keyframe.time;
+					if (!clicked.selected && !e1.shiftKey && Timeline.selected.length != 0) {
+						clicked.select()
+					} else if (clicked && !clicked.selected) {
+						clicked.select({shiftKey: true})
 					}
-				}
 
+					Undo.initEdit({keyframes: Timeline.selected});
+					Timeline.dragging_keyframes = true;
+
+					for (var kf of Timeline.selected) {
+						kf.time_before = kf.time;
+						dragging_range[0] = Math.min(dragging_range[0], kf.time);
+						dragging_range[1] = Math.max(dragging_range[1], kf.time);
+					}
+
+					if (Timeline.vue.graph_editor_open) {
+						// Find dragging restriction
+						dragging_restriction = [-Infinity, Infinity];
+						let ba = this.graph_editor_animator || 0;
+						let all_keyframes = ba[this.graph_editor_channel];
+						if (all_keyframes) {
+
+							let frst_keyframe;
+							let last_keyframe;
+							Timeline.selected.forEach(kf => {
+								if (!frst_keyframe || frst_keyframe.time > kf.time) frst_keyframe = kf;
+								if (!last_keyframe || last_keyframe.time < kf.time) last_keyframe = kf;
+							})
+							let prvs_keyframe;
+							let next_keyframe;
+							all_keyframes.forEach(kf => {
+								if (kf.time < frst_keyframe.time && (!prvs_keyframe || prvs_keyframe.time < kf.time)) prvs_keyframe = kf;
+								if (kf.time > last_keyframe.time && (!next_keyframe || next_keyframe.time > kf.time)) next_keyframe = kf;
+							})
+							if (prvs_keyframe) dragging_restriction[0] = prvs_keyframe.time;
+							if (next_keyframe) dragging_restriction[1] = next_keyframe.time;
+						}
+					}
+					is_setup = true;
+				}
 
 				function slide(e2) {
 					convertTouchEvent(e2);
@@ -781,6 +778,14 @@ onVueSetup(function() {
 						e2.clientX - e1.clientX,
 						e2.clientY - e1.clientY,
 					]
+					if (!is_setup) {
+						console.log(Math.pow(offset[0], 2) + Math.pow(offset[1], 2))
+						if (Math.pow(offset[0], 2) + Math.pow(offset[1], 2) > 40) {
+							setup();
+						} else {
+							return;
+						}
+					}
 					
 					// Time
 					var difference = Math.clamp(offset[0] / Timeline.vue._data.size, -256, 256);
@@ -856,21 +861,23 @@ onVueSetup(function() {
 					removeEventListeners(document, 'mousemove touchmove', slide);
 					removeEventListeners(document, 'mouseup touchend', off);
 
-					var deleted = []
-					for (var kf of Timeline.selected) {
-						delete kf.time_before;
-						kf.replaceOthers(deleted);
+					if (is_setup) {
+						var deleted = []
+						for (var kf of Timeline.selected) {
+							delete kf.time_before;
+							kf.replaceOthers(deleted);
+						}
+						Blockbench.setStatusBarText();
+						if (values_changed) {
+							Undo.addKeyframeCasualties(deleted);
+							Undo.finishEdit('drag keyframes');
+						} else {
+							Undo.cancelEdit();
+						}
+						setTimeout(() => {
+							Timeline.dragging_keyframes = false;
+						}, 20);
 					}
-					Blockbench.setStatusBarText();
-					if (values_changed) {
-						Undo.addKeyframeCasualties(deleted);
-						Undo.finishEdit('drag keyframes');
-					} else {
-						Undo.cancelEdit();
-					}
-					setTimeout(() => {
-						Timeline.dragging_keyframes = false;
-					}, 20)
 				}
 				addEventListeners(document, 'mousemove touchmove', slide);
 				addEventListeners(document, 'mouseup touchend', off);

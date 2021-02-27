@@ -721,7 +721,7 @@ class GeneralAnimator {
 			var timeline = document.getElementById('timeline_body');
 			var scroll_top = timeline.scrollTop;
 			var height = timeline.clientHeight;
-			if (offset < timeline) {
+			if (offset < scroll_top) {
 				$(timeline).animate({
 					scrollTop: offset
 				}, 200);

@@ -401,7 +401,6 @@ var Undo = {
 						i++;
 					}
 				}
-				var added = 0;
 				for (var uuid in save.keyframes) {
 					if (uuid.length === 36 && save.keyframes.hasOwnProperty(uuid)) {
 						var data = save.keyframes[uuid];
@@ -412,7 +411,6 @@ var Undo = {
 							kf.extend(data)
 						} else {
 							animator.addKeyframe(data, uuid);
-							added++;
 						}
 					}
 				}

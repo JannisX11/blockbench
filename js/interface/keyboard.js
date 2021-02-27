@@ -435,7 +435,8 @@ $(document).on('keydown mousedown', function(e) {
 					}, 50)
 				} else {
 					event.preventDefault();
-					next.focus().click();
+					next.trigger('focus').trigger('click');
+					document.execCommand('selectAll')
 				}
 				return;
 			}

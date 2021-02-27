@@ -358,6 +358,9 @@ class Keyframe {
 			channel: this.channel,
 			data_points: []
 		}
+		if (!save && this.animator instanceof EffectAnimator) {
+			copy.animator = 'effects';
+		}
 		if (save) copy.uuid = this.uuid;
 		for (var key in Keyframe.properties) {
 			Keyframe.properties[key].copy(this, copy)
@@ -881,6 +884,29 @@ Interface.definePanels(function() {
 					</template>
 				</div>
 			`
+		}
+	})
+
+	let keyframe_edit_value;
+	function isTarget(target) {
+		return target && (target.classList.contains('keyframe_input') || (target.parentElement && target.parentElement.classList.contains('keyframe_input')));
+	}
+	document.addEventListener('focus', event => {
+		if (isTarget(event.target)) {
+
+			keyframe_edit_value = event.target.value || event.target.innerText;
+			Undo.initEdit({keyframes: Timeline.selected.slice()})
+		}
+	}, true)
+	document.addEventListener('focusout', event => {
+		if (isTarget(event.target)) {
+
+			let val = event.target.value || event.target.innerText;
+			if (val != keyframe_edit_value) {
+				Undo.finishEdit('edit keyframe');
+			} else {
+				Undo.cancelEdit();
+			}
 		}
 	})
 })

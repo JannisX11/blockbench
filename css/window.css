@@ -492,7 +492,6 @@
 		padding-top: 4px;
 		position: absolute;
 		text-align: center;
-		background-color: var(--color-ui);
 	}
 	#start_screen .recent_project.thumbnail .icon_wrapper {
 		position: absolute;

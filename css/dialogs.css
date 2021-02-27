@@ -727,6 +727,7 @@
 	}
 	.search_bar {
 		float: right;
+		position: relative;
 	}
 	.search_bar input {
 		float: right;
@@ -735,7 +736,7 @@
 	.search_bar i {
 		float: right;
 		position: absolute;
-		right: 26px;
+		right: 6px;
 		margin-top: 6px;
 	}
 
