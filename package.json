@@ -35,6 +35,7 @@
 			"css/",
 			"js/",
 			"lib/",
+			"font/",
 			"main.js",
 			"index.html",
 			"package.json",

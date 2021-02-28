@@ -266,7 +266,8 @@ const Timeline = {
 				Timeline.dragging_playhead = true;
 				
 				let offset = e.clientX - $('#timeline_time').offset().left;
-				let time = Timeline.snapTime(offset / Timeline.vue._data.size);
+				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
+				if (!e.ctrlKey) time = Timeline.snapTime(time);
 				Timeline.setTime(time);
 				Animator.preview();
 			}
@@ -276,7 +277,8 @@ const Timeline = {
 
 				convertTouchEvent(e);
 				let offset = e.clientX - $('#timeline_time').offset().left;
-				let time = Timeline.snapTime(offset / Timeline.vue._data.size)
+				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
+				if (!e.ctrlKey) time = Timeline.snapTime(time);
 				if (Timeline.time != time) {
 					Timeline.setTime(time)
 					Animator.preview()
