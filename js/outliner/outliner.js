@@ -513,7 +513,7 @@ function compileGroups(undo, lut) {
 	iterate(Outliner.root, result)
 	return result;
 }
-function parseGroups(array, importGroup, startIndex) {
+function parseGroups(array, import_reference, startIndex) {
 	function iterate(array, save_array, addGroup) {
 		var i = 0;
 		while (i < array.length) {
@@ -528,20 +528,12 @@ function parseGroups(array, importGroup, startIndex) {
 					obj.removeFromParent()
 					save_array.push(obj)
 					obj.parent = addGroup
-					if (Blockbench.hasFlag('importing') && typeof addGroup === 'object') {
-						if (obj instanceof Cube) {
-							if (addGroup.autouv !== undefined) {
-								obj.autouv = addGroup.autouv
-								if (obj.autouv === true) obj.autouv = 1
-								if (obj.autouv === false) obj.autouv = 0
-							}
-							if (addGroup.visibility !== undefined) {
-								obj.visibility = addGroup.visibility
-							}
-						}
-					}
 				}
 			} else {
+				if (OutlinerNode.uuids[array[i].uuid] instanceof Group) {
+					OutlinerNode.uuids[array[i].uuid].removeFromParent();
+					delete OutlinerNode.uuids[array[i].uuid];
+				}
 				var obj = new Group(array[i], array[i].uuid)
 				obj.parent = addGroup
 				obj.isOpen = !!array[i].isOpen
@@ -560,12 +552,12 @@ function parseGroups(array, importGroup, startIndex) {
 			i++;
 		}
 	}
-	if (importGroup && startIndex !== undefined) {
-		iterate(array, importGroup.children, importGroup)
+	if (import_reference instanceof Group && startIndex !== undefined) {
+		iterate(array, import_reference.children, import_reference)
 	} else {
-		Outliner.root.length = 1;
-		Outliner.root.splice(0, 1);
-		Group.all.empty();
+		if (!import_reference) {
+			Group.all.empty();
+		}
 		iterate(array, Outliner.root, 'root');
 	}
 }
