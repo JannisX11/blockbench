@@ -228,25 +228,6 @@
 		display: none !important;
 	}
 
-	#center_tip {
-		top: 0;
-		left: 0;
-		right: 0;
-		margin: auto;
-		min-width: 200px;
-		max-width: 100%;
-		position: absolute;
-		text-align: center;
-		background-color: var(--color-accent);
-		color: var(--color-accent_text);
-		width: max-content;
-		padding: 3px 8px;
-	}
-	#center_tip i {
-		vertical-align: text-bottom;
-		margin-right: 6px;
-	}
-
 	.annotation {
 		min-width: 40px;
 		max-width: 100%;

@@ -119,17 +119,63 @@ const Blockbench = {
 			}, 1)
 		}, time ? time : 1000)
 	},
-	showCenterTip(message, time) {
-		$('#center_tip').remove()
-		var center_tip = $(`<div id="center_tip"><i class="material-icons">info</i>${tl(message)}</div>`) 
-		$('#preview').append(center_tip)
-		
-		setTimeout(function() {
-			center_tip.fadeOut(0)
-			setTimeout(function() {
-				center_tip.remove()
-			}, 1)
-		}, time ? time : 7500)
+	/**
+	 * 
+	 * @param {object} options Options
+	 * @param {string} options.text Text Message
+	 * @param {string} [options.icon] Blockbench icon string
+	 * @param {number} [options.expire] Expire time in miliseconds
+	 * @param {string} [options.color] Background color, accepts any CSS color string
+	 * @param {function click(event)} [options.click] Method to run on click. Return `true` to close toast
+	 * 
+	 */
+	showToastNotification(options) {
+		let notification = document.createElement('li');
+		notification.className = 'toast_notification';
+		if (options.icon) {
+			let icon = Blockbench.getIconNode(options.icon);
+			notification.append(icon);
+		}
+		let text = document.createElement('span');
+		text.innerText = tl(options.text);
+		notification.append(text);
+
+		let close_button = document.createElement('div');
+		close_button.innerHTML = '<i class="material-icons">clear</i>';
+		close_button.className = 'toast_close_button';
+		close_button.addEventListener('click', (event) => {
+			notification.remove();
+		})
+		notification.append(close_button);
+
+		if (options.color) {
+			notification.style.backgroundColor = options.color;
+		}
+		if (typeof options.click == 'function') {
+			notification.addEventListener('click', (event) => {
+				if (event.target == close_button || event.target.parentElement == close_button) return;
+				let result = options.click(event);
+				if (result == true) {
+					notification.remove();
+				}
+			})
+			notification.style.cursor = 'pointer';
+		}
+
+		if (options.expire) {
+			setTimeout(() => {
+				notification.remove();
+			}, options.expire);
+		}
+
+		document.getElementById('toast_notification_list').append(notification);
+
+		function deletableToast(node) {
+			this.delete = function() {
+				node.remove();
+			}
+		}
+		return new deletableToast(notification);
 	},
 	showStatusMessage(message, time) {
 		Blockbench.setStatusBarText(tl(message))

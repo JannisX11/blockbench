@@ -1508,7 +1508,10 @@
 			if (scope.hasChanged && Blockbench.startup_count <= 1 && !Blockbench.hasFlag('size_modifier_message')) {
 				Blockbench.addFlag('size_modifier_message');
 				setTimeout(() => {
-					Blockbench.showCenterTip('message.size_modifiers', 8000);
+					Blockbench.showToastNotification({
+						text: 'message.size_modifiers',
+						expire: 10000
+					});
 				}, 5000);
 			}
 

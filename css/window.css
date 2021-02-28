@@ -161,6 +161,39 @@
 	    opacity: 0.2;
 	}*/
 
+/* Toast Notification */
+	#toast_notification_list {
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: 0;
+		z-index: 8;
+	}
+	.toast_notification {
+		position: relative;
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+		min-height: 30px;
+		margin: 2px;
+		padding: 3px 28px 3px 10px;
+		width: calc(100% - 4px);
+		box-shadow: 0.4px 0.4px 4px rgba(0, 0, 0, 0.7);
+	}
+	.toast_notification .icon {
+		float: left;
+	}
+	.toast_close_button {
+		position: absolute;
+		right: 0px;
+		top: 0px;
+		height: 30px;
+		width: 30px;
+		padding: 4px;
+		cursor: pointer;
+	}
+	.toast_close_button:hover {
+		color: var(--color-light);
+	}
 
 
 /*Head Bars*/

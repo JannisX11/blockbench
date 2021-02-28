@@ -785,8 +785,8 @@ class Preview {
 			if (event.shiftKey) {
 				this.background.size = limitNumber( this.background.before.size + (event.offsetY - this.selection.start_y), 0, 10e3)
 			} else {
-				this.background.x = this.background.before.x + (event.offsetX - this.selection.start_x)/this.camOrtho.zoom
-				this.background.y = this.background.before.y + (event.offsetY - this.selection.start_y)/this.camOrtho.zoom
+				this.background.x = this.background.before.x + (event.offsetX - this.selection.start_x);
+				this.background.y = this.background.before.y + (event.offsetY - this.selection.start_y);
 			}
 			this.updateBackground()
 			return;
@@ -954,20 +954,14 @@ class Preview {
 		this.controls.enabled_before = this.controls.enabled
 		this.controls.enabled = false
 
-		if (settings.dialog_drag_background.value) {
-			Blockbench.showMessageBox({
-				translateKey: 'drag_background',
-				icon: 'open_with',
-				buttons: ['dialog.ok', 'dialog.dontshowagain'],
-				confirm: 0,
-				cancel: 0,
-			}, function(r) {
-				if (r === 1) {
-					settings.dialog_drag_background.value = false
-					Settings.save()
-				}
-			})
-		}
+		Blockbench.showToastNotification({
+			text: 'message.drag_background',
+			icon: 'open_with',
+			click: () => {
+				this.stopMovingBackground();
+				return true;
+			}
+		})
 	}
 	stopMovingBackground() {
 		this.movingBackground = false;

@@ -155,9 +155,7 @@
 	"message.child_model_only.title": "Empty Child Model",
 	"message.child_model_only.message": "This file is a child of %0 and does not contain a model.",
 
-	"message.drag_background.title": "Position Background",
-	"message.drag_background.message": "Drag the background to move its position. Hold shift and drag up and down to change its size.",
-	"message.set_background_position.title": "Background Position",
+	"message.drag_background": "Drag the background to move its position. Hold shift and drag up and down to change its size. Click here to save the position.",
 
 	"message.unsaved_textures.title": "Unsaved Textures",
 	"message.unsaved_textures.message": "Your model has unsaved textures. Make sure to save them and paste them into your resource pack in the correct folder.",
@@ -587,8 +585,6 @@
 
 	"settings.dialog_larger_cubes": "Model Too Large",
 	"settings.dialog_larger_cubes.desc": "Show \"Model Too Large\" dialog",
-	"settings.dialog_drag_background": "Position Background",
-	"settings.dialog_drag_background.desc": "Show \"Position Background\" dialog",
 	"settings.dialog_rotation_limit": "Rotation Limits",
 	"settings.dialog_rotation_limit.desc": "Show \"Rotation Limits\" dialog",
 
