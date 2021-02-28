@@ -1275,6 +1275,7 @@ class GimbalControls {
 			if (side.label) side.node.innerText = side.label;
 
 			side.node.addEventListener('click', e => {
+				if (!this.preview.controls.enabled) return;
 				let preset_key = key == this.preview.angle ? side.opposite : key;
 				let preset = DefaultCameraPresets.find(p => p.id == preset_key);
 				this.preview.loadAnglePreset(preset);
@@ -1284,7 +1285,7 @@ class GimbalControls {
 
 		// Interact
 		addEventListeners(this.node, 'mousedown touchstart', e1 => {
-			if (!scope.preview.controls.enableRotate || !scope.preview.controls.enabled || scope.preview.angle != null) return;
+			if ((!scope.preview.controls.enableRotate && scope.preview.angle == null) || !scope.preview.controls.enabled) return;
 			convertTouchEvent(e1);
 			let last_event = e1;
 			let move_calls = 0;
