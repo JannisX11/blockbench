@@ -520,7 +520,8 @@ class NumSlider extends Widget {
 			scope.sliding = true;
 			scope.pre = 0;
 			scope.sliding_start_pos = drag_event.clientX;
-			scope.last_value = scope.value
+			scope.last_value = scope.value;
+			let move_calls = 0;
 
 			if (!drag_event.touches) scope.jq_inner.get(0).requestPointerLock();
 
@@ -529,9 +530,11 @@ class NumSlider extends Widget {
 				if (drag_event.touches) {
 					clientX = e.clientX;
 				} else {
-					clientX += Math.clamp(e.movementX, -160, 160);
+					let limit = move_calls <= 2 ? 1 : 160;
+					clientX += Math.clamp(e.movementX, -limit, limit);
 				}
-				scope.slide(clientX, e)
+				scope.slide(clientX, e);
+				move_calls++;
 			}
 			function stop(e) {
 				removeEventListeners(document, 'mousemove touchmove', move);

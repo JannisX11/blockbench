@@ -169,7 +169,7 @@ class Animation {
 				for (var channel in Animator.possible_channels) {
 					if (channels[channel]) {
 						let timecodes = Object.keys(channels[channel])
-						if (timecodes.length === 1 && animator.keyframes[0].data_points.length == 1) {
+						if (timecodes.length === 1 && animator[channel][0].data_points.length == 1) {
 							bone_tag[channel] = channels[channel][timecodes[0]]
 							if (channel == 'scale' &&
 								channels[channel][timecodes[0]] instanceof Array &&
