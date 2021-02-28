@@ -728,16 +728,11 @@ class Texture {
 			id: 'resize_texture',
 			title: 'menu.texture.resize',
 			form: {
-				width: {
-					label: 'dialog.project.width',
-					type: 'number',
-					value: this.width,
-					min: 1
-				},
-				height: {
-					label: 'dialog.project.height',
-					type: 'number',
-					value: this.height,
+				size: {
+					label: 'dialog.project.texture_size',
+					type: 'vector',
+					dimensions: 2,
+					value: [this.width, this.height],
 					min: 1
 				},
 				fill: {label: 'dialog.resize_texture.fill', type: 'select', default: 'transparent', options: {
@@ -746,15 +741,6 @@ class Texture {
 					repeat: 'dialog.resize_texture.fill.repeat',
 					stretch: 'dialog.resize_texture.fill.stretch'
 				}}
-				/*
-				width
-				height
-				fill
-					transparent
-					color
-					repeat
-					stretch
-				*/
 			},
 			onConfirm: function(formResult) {
 
@@ -764,9 +750,9 @@ class Texture {
 				scope.edit((canvas) => {
 
 					let new_canvas = document.createElement('canvas')
-						new_canvas.width = formResult.width;
-						new_canvas.height = formResult.height;
-					let new_ctx = new_canvas.getContext('2d')
+						new_canvas.width = formResult.size[0];
+						new_canvas.height = formResult.size[1];
+					let new_ctx = new_canvas.getContext('2d');
 						new_ctx.imageSmoothingEnabled = false;
 
 					switch (formResult.fill) {
@@ -775,19 +761,19 @@ class Texture {
 							break;
 						case 'color':
 							new_ctx.fillStyle = ColorPanel.get();
-							new_ctx.fillRect(0, 0, formResult.width, formResult.height)
+							new_ctx.fillRect(0, 0, formResult.size[0], formResult.size[1])
 							new_ctx.clearRect(0, 0, scope.width, scope.height)
 							new_ctx.drawImage(canvas, 0, 0, scope.width, scope.height);
 							break;
 						case 'repeat':
-							for (var x = 0; x < formResult.width; x += scope.width) {		
-								for (var y = 0; y < formResult.height; y += scope.height) {
+							for (var x = 0; x < formResult.size[0]; x += scope.width) {		
+								for (var y = 0; y < formResult.size[1]; y += scope.height) {
 									new_ctx.drawImage(canvas, x, y, scope.width, scope.height);
 								}
 							}
 							break;
 						case 'stretch':
-							new_ctx.drawImage(canvas, 0, 0, formResult.width, formResult.height);
+							new_ctx.drawImage(canvas, 0, 0, formResult.size[0], formResult.size[1]);
 							break;
 					}
 
@@ -803,8 +789,8 @@ class Texture {
 						}
 						Undo.current_save.aspects.uv_mode = true;
 
-						Project.texture_width = Project.texture_width * (formResult.width / old_width);
-						Project.texture_height = Project.texture_height * (formResult.height / old_height);
+						Project.texture_width = Project.texture_width * (formResult.size[0] / old_width);
+						Project.texture_height = Project.texture_height * (formResult.size[1] / old_height);
 						Canvas.updateAllUVs()
 					}
 					return new_canvas
