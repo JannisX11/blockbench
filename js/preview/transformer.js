@@ -805,7 +805,7 @@
 				}
 				if (is_local) return 2;
 			}
-			if (input_space === 'local' && Format.bone_rig && Group.selected) {
+			if (input_space === 'local' && Format.bone_rig && Group.selected && Toolbox.selected == BarItems.rotate_tool) {
 				// Local Space
 				return 2;
 			}
@@ -827,6 +827,7 @@
 				}
 				return bone;
 			}
+			// Global Space
 			return 0;
 		}
 

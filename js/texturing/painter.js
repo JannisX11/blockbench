@@ -855,6 +855,7 @@ BARS.defineActions(function() {
 		icon: 'fa-eraser',
 		category: 'tools',
 		toolbar: 'brush',
+		alt_tool: 'color_picker',
 		selectFace: true,
 		transformerMode: 'hidden',
 		cursor: 'crosshair',

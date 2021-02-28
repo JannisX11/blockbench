@@ -1272,6 +1272,7 @@ class GimbalControls {
 			side.node = document.createElement('div');
 			side.node.classList.add('gimbal_controls_side');
 			side.node.setAttribute('axis', side.axis);
+			side.node.title = tl(`direction.${key}`);
 			if (side.label) side.node.innerText = side.label;
 
 			side.node.addEventListener('click', e => {
