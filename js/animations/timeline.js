@@ -781,7 +781,6 @@ onVueSetup(function() {
 						e2.clientY - e1.clientY,
 					]
 					if (!is_setup) {
-						console.log(Math.pow(offset[0], 2) + Math.pow(offset[1], 2))
 						if (Math.pow(offset[0], 2) + Math.pow(offset[1], 2) > 40) {
 							setup();
 						} else {

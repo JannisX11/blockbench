@@ -258,12 +258,14 @@ class Animation {
 
 					anim_keys.forEach(key => {
 						let key_index = file_keys.indexOf(key);
-						if (key_index < index) {
+						if (key_index == -1) {
+							//Skip
+						} else if (key_index < index) {
 							file_keys.splice(key_index, 1);
 							file_keys.splice(index, 0, key);
 							changes = true;
 
-						} else if (key_index >= 0) {
+						} else {
 							index = key_index;
 						}
 					})
