@@ -120,6 +120,10 @@ const CustomTheme = {
 					hide(c) {
 						CustomTheme.data.colors[scope_key] = last_color;
 						field.spectrum('set', last_color);
+					},
+					beforeShow(a, b) {
+						last_color = CustomTheme.data.colors[scope_key];
+						field.spectrum('set', last_color);
 					}
 				});
 			})()
