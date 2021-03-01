@@ -18,7 +18,6 @@ function handleMenuOverflow(node) {
 }
 class Menu {
 	constructor(structure) {
-		var scope = this;
 		this.children = [];
 		this.node = $('<ul class="contextMenu"></ul>')[0]
 		this.structure = structure
@@ -73,7 +72,8 @@ class Menu {
 		var obj = $(this.node)
 		if (e.which >= 37 && e.which <= 40) {
 
-			if (obj.find('li.focused').length) {
+			let is_menu_bar = scope.type === 'bar_menu' && e.which%2;
+			if (obj.find('li.focused').length || is_menu_bar) {
 				var old = obj.find('li.focused'), next;
 				switch (e.which) {
 					case 37: next = old.parent('ul').parent('li'); 					break;//<
@@ -93,7 +93,7 @@ class Menu {
 				if (next && next.length) {
 					old.removeClass('focused')
 					scope.hover(next.get(0))
-				} else if (scope.type === 'bar_menu' && e.which%2) {
+				} else if (is_menu_bar) {
 					var index = MenuBar.keys.indexOf(scope.id)
 					index += (e.which == 39 ? 1 : -1)
 					if (index < 0) {
@@ -177,6 +177,7 @@ class Menu {
 
 				entry = $(s.menu_node)
 
+				entry.removeClass('focused')
 				entry.off('click')
 				entry.off('mouseenter mousedown')
 				entry.on('mouseenter mousedown', function(e) {

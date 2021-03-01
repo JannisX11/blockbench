@@ -12,6 +12,12 @@
 			"src": "icon.png",
 			"type": "image/png",
 			"sizes": "1024x1024"
+		},
+		{
+			"src": "icon_full.png",
+			"type": "image/png",
+			"sizes": "256x256",
+			"purpose": "maskable"
 		}
 	],
 	"start_url": "./index.html",
