@@ -20,17 +20,8 @@ const TextureGenerator = {
 			form: {
 				name: 		{label: 'generic.name', value: 'texture'},
 				folder: 	{label: 'dialog.create_texture.folder', condition: Format.id == 'java_block'},
-				template:	{label: 'dialog.create_texture.template', type: 'checkbox', condition: Cube.all.length},
-
-				rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', type: 'checkbox', value: true, condition: (form) => (form.template)},
-				compress: 	{label: 'dialog.create_texture.compress', type: 'checkbox', value: true, condition: (form) => (form.template && Project.box_uv && form.rearrange_uv)},
-				power: 		{label: 'dialog.create_texture.power', type: 'checkbox', value: true, condition: (form) => (form.template && form.rearrange_uv)},
-				double_use: {label: 'dialog.create_texture.double_use', type: 'checkbox', value: true, condition: (form) => (form.template && Project.box_uv && form.rearrange_uv)},
-				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.template && !Project.box_uv)},
-				padding:	{label: 'dialog.create_texture.padding', type: 'checkbox', value: false, condition: (form) => (form.template && form.rearrange_uv)},
 
 				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
-
 				resolution: {label: 'dialog.create_texture.resolution', type: 'select', value: 16, condition: (form) => (form.template), options: {
 					16: '16',
 					32: '32',
@@ -40,6 +31,17 @@ const TextureGenerator = {
 					512: '512',
 				}},
 				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (!form.template), dimensions: 2, value: [16, 16], min: 16, max: 2048},
+
+				section2:    "_",
+				template:	{label: 'dialog.create_texture.template', type: 'checkbox', condition: Cube.all.length},
+
+				rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', type: 'checkbox', value: true, condition: (form) => (form.template)},
+				compress: 	{label: 'dialog.create_texture.compress', type: 'checkbox', value: true, condition: (form) => (form.template && Project.box_uv && form.rearrange_uv)},
+				power: 		{label: 'dialog.create_texture.power', type: 'checkbox', value: true, condition: (form) => (form.template && form.rearrange_uv)},
+				double_use: {label: 'dialog.create_texture.double_use', type: 'checkbox', value: true, condition: (form) => (form.template && Project.box_uv && form.rearrange_uv)},
+				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.template && !Project.box_uv)},
+				padding:	{label: 'dialog.create_texture.padding', type: 'checkbox', value: false, condition: (form) => (form.template && form.rearrange_uv)},
+
 			},
 			onFormChange(form) {
 				if (form.template && TextureGenerator.background_color.get().toHex8() === 'ffffffff') {

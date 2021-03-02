@@ -53,9 +53,7 @@ class Panel {
 			<div class="tool panel_folding_button"><i class="material-icons">expand_more</i></div>
 		</h3>`).get(0)
 		this.handle.lastElementChild.addEventListener('click', (e) => {
-			this.folded = !this.folded;
-			$(this.node).find('> .panel_inside').css('display', this.folded ? 'none' : '');
-			$(this.handle).find('> .panel_folding_button > i').text(this.folded ? 'expand_less' : 'expand_more');
+			this.fold();
 		})
 		$(this.node).prepend(this.handle)
 
@@ -88,14 +86,14 @@ class Panel {
 				stop: function(e, ui) {
 					$('.panel[order]').attr('order', null)
 					if (!ui) return;
-					if (Math.abs(ui.position.top - ui.originalPosition.top) + Math.abs(ui.position.left - ui.originalPosition.left) < 180) return;
+					if (Math.abs(ui.position.top - ui.originalPosition.top) + Math.abs(ui.position.left - ui.originalPosition.left) < 30) return;
 					let target = Interface.panel
 					if (typeof target === 'string') {
 						scope.moveTo(target)
 					} else if (target.type === 'panel') {
 						let target_pos = $(target.node).offset().top
-						let target_height = $(target.node).height()
-						let before = ui.position.top < target_pos + target_height / 2
+						let target_height = target.node.clientHeight;
+						let before = e.clientY < target_pos + target_height / 2
 						if (target && target !== scope) {
 							scope.moveTo(target, before)
 						} else {
@@ -155,6 +153,11 @@ class Panel {
 		}
 
 		Interface.Panels[this.id] = this;
+	}
+	fold(state = !this.folded) {
+		this.folded = !!state;
+		$(this.handle).find('> .panel_folding_button > i').text(state ? 'expand_less' : 'expand_more');
+		this.node.classList.toggle('folded', state);
 	}
 	moveTo(ref_panel, before) {
 		let scope = this

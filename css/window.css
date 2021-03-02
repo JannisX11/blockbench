@@ -47,51 +47,6 @@
 		grid-area: right_bar;
 	}
 
-	.panel.grow {
-		display: flex;
-		flex-direction: column;
-		flex-grow: 1;
-		min-height: 133px;
-	}
-
-	h3.panel_handle {
-		display: flex;
-		width: 100%;
-		height: auto;
-		margin: 0;
-		padding: 0;
-		font-size: inherit;
-		background: var(--color-ui);
-		place-content: space-between;
-	}
-	body > h3.panel_handle {
-		pointer-events: none;
-		box-shadow: 0 0 16px black;
-		width: auto;
-	}
-	h3.panel_handle > label {
-		flex: 0 1 auto;
-		font-size: 1.1em;
-		text-transform: uppercase;
-		color: var(--color-subtle_text);
-		margin: 6px 8px;
-		padding: 0px 4px;
-		cursor: move;
-	}
-	h3.panel_handle > .tool.panel_folding_button {
-		flex: 0 0 auto;
-		margin-top: 4px;
-		opacity: 0.7;
-		cursor: pointer;
-	}
-	h3.panel_handle > .tool.panel_folding_button:hover {
-		opacity: 1;
-	}
-
-	.panel p {
-		margin-left: 12px;
-	}
-
 	#center {
 		grid-area: center;
 		background-color: var(--color-dark);
