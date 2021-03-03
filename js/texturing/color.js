@@ -154,7 +154,10 @@ Interface.definePanels(() => {
 			},
 			open_tab(tab) {
 				StateMemory.color_picker_tab = tab;
-				StateMemory.save('color_picker_tab')
+				StateMemory.save('color_picker_tab');
+				Vue.nextTick(() => {
+					$('#main_colorpicker').spectrum('reflow');
+				})
 			}
 		}
 	})
