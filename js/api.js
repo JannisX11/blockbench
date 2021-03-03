@@ -22,7 +22,7 @@ const Blockbench = {
 		return Cube.selected
 	},
 	get textures() {
-		console.warn('Blockbench.textures is deprecated. Please just use textures instead.')
+		console.warn('Blockbench.textures is deprecated. Please use Texture.all instead.')
 		return textures;
 	},
 	edit(aspects, cb) {
@@ -283,11 +283,14 @@ const Blockbench = {
 		})
 	},
 	addMenuEntry(name, icon, click) {
-		var action = new Action(name, {icon: icon, name: name, click: click})
+		console.warn('Blockbench.addMenuEntry is deprecated. Please use Actions instead.')
+		let id = name.replace(/\s/g, '').toLowerCase();
+		var action = new Action(id, {icon: icon, name: name, click: click})
 		MenuBar.addAction(action, 'filter')
 	},
 	removeMenuEntry(name) {
-		MenuBar.removeAction('filter.'+name)
+		let id = name.replace(/\s/g, '').toLowerCase();
+		MenuBar.removeAction('filter.'+id);
 	},
 	openLink(link) {
 		if (isApp) {

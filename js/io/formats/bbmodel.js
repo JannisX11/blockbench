@@ -286,8 +286,8 @@ var codec = new Codec('project', {
 			display_slots: Format.display_mode && displayReferenceObjects.slots
 		})
 
-		if (Format.optional_box_uv) {
-			Project.box_uv = model.meta.box_uv;
+		if (Format.optional_box_uv && Project.box_uv && !model.meta.box_uv) {
+			Project.box_uv = false;
 		}
 
 		if (model.overrides instanceof Array && Project.overrides instanceof Array) {
@@ -317,14 +317,25 @@ var codec = new Codec('project', {
 			model.elements.forEach(function(element) {
 
 				var copy = OutlinerElement.fromSave(element, true)
-				for (var face in copy.faces) {
-					if (!format.single_texture && element.faces) {
-						var texture = element.faces[face].texture !== null && textures[element.faces[face].texture]
-						if (texture) {
-							copy.faces[face].texture = texture.uuid
+				if (copy instanceof Cube) {
+					console.log(copy.faces.north.texture, element.faces.north.texture);
+					for (var face in copy.faces) {
+						if (!format.single_texture && element.faces) {
+							var texture = element.faces[face].texture !== null && new_textures[element.faces[face].texture]
+							if (texture) {
+								copy.faces[face].texture = texture.uuid
+							}
+							console.log('a', texture)
+						} else if (default_texture && copy.faces && copy.faces[face].texture !== null) {
+							copy.faces[face].texture = default_texture.uuid
+							console.log('b', default_texture)
 						}
-					} else if (default_texture && copy.faces && copy.faces[face].texture !== null) {
-						copy.faces[face].texture = default_texture.uuid
+						if (!Project.box_uv) {
+							copy.faces[face].uv[0] *= Project.texture_width / width;
+							copy.faces[face].uv[2] *= Project.texture_width / width;
+							copy.faces[face].uv[1] *= Project.texture_height / height;
+							copy.faces[face].uv[3] *= Project.texture_height / height;
+						}
 					}
 				}
 				copy.init()
@@ -341,6 +352,9 @@ var codec = new Codec('project', {
 				base_ani.extend(ani).add();
 				new_animations.push(base_ani);
 			})
+		}
+		if (Format.bone_rig) {
+			Group.all.forEachReverse(group => group.createUniqueName());
 		}
 		if (model.animation_variable_placeholders) {
 			let vue = Interface.Panels.variable_placeholders.inside_vue;

@@ -96,6 +96,9 @@ class Plugin {
 		if (onUninstall) {
 			scope.onuninstall = onUninstall
 		}
+		if (window.plugin_data) {
+			console.warn(`plugin_data is deprecated. Please use Plugin.register instead. (${plugin_data.id || 'unknown plugin'})`)
+		}
 		window.onInstall = window.onUninstall = window.plugin_data = undefined
 		return this;
 	}
