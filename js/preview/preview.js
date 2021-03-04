@@ -141,7 +141,7 @@ class Preview {
 		//Cameras
 		this.isOrtho = false
 		this.angle = null;
-		this.camPers = new THREE.PerspectiveCamera(settings.fov.value, 16 / 9, 0.1, 30000)
+		this.camPers = new THREE.PerspectiveCamera(settings.fov.value, 16 / 9, settings.camera_near_plane.value||1, 30000);
 		this.camOrtho = new THREE.OrthographicCamera(-600,  600, -400, 400, -200, 20000);
 		this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'y'}]
 		this.camOrtho.axis = null

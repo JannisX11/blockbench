@@ -116,6 +116,12 @@ const Settings = {
 		new Setting('fov', 		  		{category: 'preview', value: 45, type: 'number', onChange(val) {
 			Preview.all.forEach(preview => preview.setFOV(val));
 		}});
+		new Setting('camera_near_plane',{category: 'preview', value: 1, type: 'number', onChange(val) {
+			Preview.all.forEach(preview => {
+				preview.camPers.near = val;
+				preview.camPers.updateProjectionMatrix();
+			});
+		}});
 		new Setting('render_sides', 	{category: 'preview', value: 'auto', type: 'select', options: {
 			'auto': tl('settings.render_sides.auto'),
 			'front': tl('settings.render_sides.front'),

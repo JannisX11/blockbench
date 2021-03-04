@@ -506,6 +506,8 @@
 	"settings.render_sides": "Render Sides",
 	"settings.fov": "FOV",
 	"settings.fov.desc": "Camera Field of View. Default is 45",
+	"settings.camera_near_plane": "Camera Near Plane",
+	"settings.camera_near_plane.desc": "The minimum distance from the camera where objects render. Higher values decrease Z-fighting. Default is 1.",
 	"settings.render_sides.desc": "Select which side of a face is rendered",
 	"settings.render_sides.auto": "Auto",
 	"settings.render_sides.front": "Outside",
