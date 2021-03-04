@@ -472,10 +472,10 @@ const Canvas = {
 		geometry.all_faces.forEach(face => {
 			let bb_face = cube.faces[Canvas.face_order[face.materialIndex]];
 
-			if (bb_face && bb_face.texture == null && geometry.faces.includes(face)) {
+			if (bb_face && bb_face.texture === null && geometry.faces.includes(face)) {
 				geometry.faces.remove(face);
 			} else
-			if (bb_face && bb_face.texture != null && !geometry.faces.includes(face)) {
+			if (bb_face && bb_face.texture !== null && !geometry.faces.includes(face)) {
 				geometry.faces.push(face);
 			}
 		})

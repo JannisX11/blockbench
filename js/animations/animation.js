@@ -861,7 +861,7 @@ class BoneAnimator extends GeneralAnimator {
 					z: values
 				}]
 			})
-		} else if (values == null) {
+		} else if (values === null) {
 			let original_time = Timeline.time;
 			Timeline.time = keyframe.time;
 			var ref = this.interpolate(keyframe.channel, allow_expression)

@@ -348,7 +348,7 @@ var Undo = {
 		if (save.selected_texture) {
 			let tex = Texture.all.find(tex => tex.uuid == save.selected_texture);
 			if (tex instanceof Texture) tex.select()
-		} else if (save.selected_texture == null) {
+		} else if (save.selected_texture === null) {
 			unselectTextures()
 		}
 

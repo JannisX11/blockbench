@@ -93,13 +93,13 @@ class Keybind {
 		var modifiers = []
 
 		if (this.ctrl) 	modifiers.push(tl('keys.ctrl'))	
-		if (this.ctrl == null) 	modifiers.push(`[${tl('keys.ctrl')}]`)
+		if (this.ctrl === null) 	modifiers.push(`[${tl('keys.ctrl')}]`)
 		if (this.shift) modifiers.push(tl('keys.shift'))	
-		if (this.shift == null) modifiers.push(`[${tl('keys.shift')}]`)
+		if (this.shift === null) modifiers.push(`[${tl('keys.shift')}]`)
 		if (this.alt) 	modifiers.push(tl('keys.alt'))	
-		if (this.alt == null) 	modifiers.push(`[${tl('keys.alt')}]`)
+		if (this.alt === null) 	modifiers.push(`[${tl('keys.alt')}]`)
 		if (this.meta) 	modifiers.push(tl('keys.meta'))	
-		if (this.meta == null) 	modifiers.push(`[${tl('keys.meta')}]`)
+		if (this.meta === null) 	modifiers.push(`[${tl('keys.meta')}]`)
 
 		var char = this.getCode()
 		var char_tl = tl('keys.'+char)
