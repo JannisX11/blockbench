@@ -315,17 +315,14 @@ var codec = new Codec('project', {
 
 				var copy = OutlinerElement.fromSave(element, true)
 				if (copy instanceof Cube) {
-					console.log(copy.faces.north.texture, element.faces.north.texture);
 					for (var face in copy.faces) {
 						if (!format.single_texture && element.faces) {
 							var texture = element.faces[face].texture !== null && new_textures[element.faces[face].texture]
 							if (texture) {
 								copy.faces[face].texture = texture.uuid
 							}
-							console.log('a', texture)
 						} else if (default_texture && copy.faces && copy.faces[face].texture !== null) {
 							copy.faces[face].texture = default_texture.uuid
-							console.log('b', default_texture)
 						}
 						if (!Project.box_uv) {
 							copy.faces[face].uv[0] *= Project.texture_width / width;

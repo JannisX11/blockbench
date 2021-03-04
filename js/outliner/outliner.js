@@ -556,6 +556,9 @@ function parseGroups(array, import_reference, startIndex) {
 		iterate(array, import_reference.children, import_reference)
 	} else {
 		if (!import_reference) {
+			Group.all.forEach(group => {
+				group.removeFromParent();
+			})
 			Group.all.empty();
 		}
 		iterate(array, Outliner.root, 'root');
