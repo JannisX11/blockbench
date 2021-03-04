@@ -259,13 +259,6 @@ var codec = new Codec('project', {
 	},
 	merge(model, path) {
 
-		/**
-		 * Todo
-		 * 
-		 * texture merging
-		 * UV handling
-		 */
-
 		processHeader(model);
 		processCompatibility(model);
 
@@ -298,6 +291,10 @@ var codec = new Codec('project', {
 		let height = model.resolution.height || Project.texture_height;
 
 		function loadTexture(tex) {
+			if (isApp && Texture.all.find(tex2 => tex.path == tex2.path)) {
+				new_textures.push(Texture.all.find(tex2 => tex.path == tex2.path));
+				return;
+			}
 			var tex_copy = new Texture(tex, tex.uuid).add(false);
 			if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
 				tex_copy.fromPath(tex.path)

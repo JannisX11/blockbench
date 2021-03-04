@@ -612,7 +612,7 @@ class NumSlider extends Widget {
 		} else {
 			width = this.width
 		}
-		$(this.node).width(width)
+		this.node.style.width = width + 'px';
 		return this;
 	}
 	getInterval(e) {

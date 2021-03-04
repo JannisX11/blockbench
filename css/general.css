@@ -54,6 +54,9 @@
 	.small_text {
 		font-size: 0.94em;
 	}
+	.subtle {
+		color: var(--color-subtle_text);
+	}
 	.color_x {
 		color: var(--color-axis-x);
 	}

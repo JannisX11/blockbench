@@ -40,43 +40,6 @@ function setupDragHandlers() {
 		}
 	)
 }
-function loadModelFile(file) {
-	if (showSaveDialog()) {
-		resetProject();
-
-		(function() {
-			var extension = pathToExtension(file.path);
-			// Text
-			for (var id in Codecs) {
-				let codec = Codecs[id];
-				if (codec.load_filter && codec.load_filter.type == 'text') {
-					if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, file.content)) {
-						codec.load(file.content, file);
-						return;
-					}
-				}
-			}
-			// JSON
-			var model = autoParseJSON(file.content);
-			for (var id in Codecs) {
-				let codec = Codecs[id];
-				if (codec.load_filter && codec.load_filter.type == 'json') {
-					if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, model)) {
-						codec.load(model, file);
-						return;
-					}
-				}
-			}
-		})();
-
-		EditSession.initNewModel()
-		if (!Format) {
-			Modes.options.start.select()
-			Modes.vue.$forceUpdate()
-			Blockbench.dispatchEvent('close_project');
-		}
-	}
-}
 var Extruder = {
 	drawImage: function(file) {
 		Extruder.canvas = $('#extrusion_canvas').get(0)

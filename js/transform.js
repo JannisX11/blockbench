@@ -591,6 +591,7 @@ function moveElementsInSpace(difference, axis) {
 				g.origin[axis] += difference
 			}, Group, true)
 		}
+		Canvas.updateAllBones([Group.selected]);
 	}
 
 	selected.forEach(el => {
