@@ -18,6 +18,11 @@ function compareVersions(string1/*new*/, string2/*old*/) {
 	}
 	return false;
 }
+/**
+ * 
+ * @param {*} condition Input condition. Can be undefined, a boolean, a function or a condition object
+ * @param {*} context 
+ */
 const Condition = function(condition, context) {
 	if (condition !== undefined && condition !== null && condition.condition !== undefined) {
 		condition = condition.condition
@@ -77,7 +82,7 @@ Object.defineProperty($.Event.prototype, 'ctrlOrCmd', {
 
 function convertTouchEvent(event) {
 	if (event && event.changedTouches && event.changedTouches.length && event.offsetX == undefined) {
-		event.preventDefault();
+		//event.preventDefault();
 		event.clientX = event.changedTouches[0].clientX;
 		event.clientY = event.changedTouches[0].clientY;
 		event.offsetX = event.changedTouches[0].clientX;
@@ -159,8 +164,8 @@ Math.roundTo = function(num, digits) {
 Math.lerp = function(a,b,m) {
 	return (m-a) / (b-a)
 }
-Math.isBetween = function(n, a, b) {
-   return (n - a) * (n - b) <= 0
+Math.isBetween = function(number, limit1, limit2) {
+   return (number - limit1) * (number - limit2) <= 0
 }
 Math.epsilon = function(a, b, epsilon) {
 	return Math.abs(b - a) < epsilon

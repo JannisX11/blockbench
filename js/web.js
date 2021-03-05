@@ -1,17 +1,10 @@
-(function() {
-	$.getScript("lib/file_saver.js");
-	$.getScript('https://rawgit.com/nodeca/pako/master/dist/pako.min.js', function() {
-		window.zlib = pako
-	})
-})()
-
 function initializeWebApp() {
 	
 	$(document.body).on('click', 'a[href]', (event) => {
 		event.preventDefault();
 		window.open(event.target.href, '_blank');
 	});
-	if (!Blockbench.isMobile) {
+	if (!Blockbench.isTouch && !Blockbench.isPWA) {
 		$('#web_download_button').show()
 	}
 
@@ -19,6 +12,9 @@ function initializeWebApp() {
 		document.body.style.imageRendering = 'crisp-edges'
 	}
 }
+window.matchMedia('(display-mode: standalone)').addEventListener('change', (evt) => {
+	if (!Blockbench.isMobile) $('#web_download_button').toggle(!evt.matches);
+});
 
 function loadInfoFromURL() {
 	if (location.hash.substr(1, 8) == 'session=') {
@@ -39,12 +35,15 @@ function loadInfoFromURL() {
 				Codecs.project.load(model, {path: ''});
 			}
 		})
+	} else if (location.hash.substr(1, 2) == 'm=') {
+		$.getJSON(`https://blckbn.ch/api/models/${location.hash.substr(3)}`, (model) => {
+			if (showSaveDialog()) {
+				resetProject();
+				Codecs.project.load(model, {path: ''});
+			}
+		})
 	}
 }
-
-setInterval(function() {
-	Prop.zoom = Math.round(devicePixelRatio*100)
-}, 500)
 
 //Misc
 window.onbeforeunload = function() {

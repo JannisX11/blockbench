@@ -36,22 +36,28 @@ class ModelProject {
 		return Format.optional_box_uv;
 	}
 	reset() {
+		if (isApp) updateRecentProjectThumbnail();
+
 		Blockbench.dispatchEvent('reset_project');
-		if (isApp) {
-			updateRecentProjectThumbnail();
-			BedrockEntityManager.reset();
-		}
+		
+		if (isApp) BedrockEntityManager.reset();
+
 		if (Toolbox.selected.id !== 'move_tool') BarItems.move_tool.select();
 	
 		Screencam.stopTimelapse();
 	
 		Format = 0;
-		for (var uuid in OutlinerElement.uuids) {
-			delete OutlinerElement.uuids[uuid];
+		for (var uuid in OutlinerNode.uuids) {
+			delete OutlinerNode.uuids[uuid];
 		}
 		Outliner.elements.empty();
 		Outliner.root.purge();
-		Canvas.materials;
+		for (var key in Canvas.materials) {
+			delete Canvas.materials[key];
+		}
+		for (var key in Canvas.bones) {
+			delete Canvas.bones[key];
+		}
 		selected.empty();
 		Group.all.empty();
 		Group.selected = undefined;
@@ -59,6 +65,7 @@ class ModelProject {
 		Cube.selected.empty();
 		Locator.all.empty();
 		Locator.selected.empty();
+		Texture.all.forEach(tex => tex.stopWatcher());
 		Texture.all.empty();
 		Texture.selected = undefined;
 	
@@ -126,6 +133,7 @@ new Property(ModelProject, 'vector', 'visible_box', {
 });
 new Property(ModelProject, 'boolean', 'layered_textures', {
 	label: 'dialog.project.layered_textures',
+	description: 'dialog.project.layered_textures.desc',
 	condition() {return Format.single_texture}
 });
 
@@ -153,6 +161,55 @@ function newProject(format, force) {
 	}
 }
 
+// Resolution
+function setProjectResolution(width, height, modify_uv) {
+	if (Project.texture_width / width != Project.texture_width / height) {
+		modify_uv = false;
+	}
+
+	Undo.initEdit({uv_mode: true, elements: Cube.all, uv_only: true})
+
+	let old_res = {
+		x: Project.texture_width,
+		y: Project.texture_height
+	}
+	Project.texture_width = width;
+	Project.texture_height = height;
+
+
+	if (modify_uv) {
+		var multiplier = [
+			Project.texture_width/old_res.x,
+			Project.texture_height/old_res.y
+		]
+		function shiftCube(cube, axis) {
+			if (Project.box_uv) {
+				cube.uv_offset[axis] *= multiplier[axis];
+			} else {
+				for (var face in cube.faces) {
+					var uv = cube.faces[face];
+					uv[axis] *= multiplier[axis];
+					uv[axis+2] *= multiplier[axis];
+				}
+			}
+		}
+		if (old_res.x != Project.texture_width && Math.areMultiples(old_res.x, Project.texture_width)) {
+			Cube.all.forEach(cube => shiftCube(cube, 0));
+		}
+		if (old_res.y != Project.texture_height &&  Math.areMultiples(old_res.x, Project.texture_width)) {
+			Cube.all.forEach(cube => shiftCube(cube, 1));
+		}
+	}
+	Undo.finishEdit('Changed project resolution')
+	Canvas.updateAllUVs()
+	if (selected.length) {
+		main_uv.loadData()
+	}
+}
+function updateProjectResolution() {
+	document.querySelector('#project_resolution_status').textContent = `${Project.texture_width} ⨉ ${Project.texture_height}`;
+}
+
 
 BARS.defineActions(function() {
 
@@ -172,6 +229,7 @@ BARS.defineActions(function() {
 
 				let entry = form[property.name] = {
 					label: property.label,
+					description: property.description,
 					value: Project[property.name],
 					type: property.type
 				}
@@ -183,17 +241,22 @@ BARS.defineActions(function() {
 				}
 			}
 
-			form.box_uv = {label: 'dialog.project.box_uv', type: 'checkbox', value: Project.box_uv, condition: Format.optional_box_uv};
-			form.texture_width = {
-				label: 'dialog.project.width',
-				type: 'number',
-				value: Project.texture_width,
-				min: 1
+			form.uv_mode = {
+				label: 'dialog.project.uv_mode',
+				type: 'select',
+				condition: Format.optional_box_uv,
+				options: {
+					face_uv: 'dialog.project.uv_mode.face_uv',
+					box_uv: 'dialog.project.uv_mode.box_uv',
+				},
+				value: Project.box_uv ? 'box_uv' : 'face_uv',
 			};
-			form.texture_height = {
-				label: 'dialog.project.height',
-				type: 'number',
-				value: Project.texture_height,
+
+			form.texture_size = {
+				label: 'dialog.project.texture_size',
+				type: 'vector',
+				dimensions: 2,
+				value: [Project.texture_width, Project.texture_height],
 				min: 1
 			};
 
@@ -204,31 +267,35 @@ BARS.defineActions(function() {
 				form,
 				onConfirm: function(formResult) {
 					var save;
-					if (Project.box_uv != formResult.box_uv ||
-						Project.texture_width != formResult.texture_width ||
-						Project.texture_height != formResult.texture_height
+					let box_uv = formResult.uv_mode == 'box_uv';
+					let texture_width = Math.clamp(formResult.texture_size[0], 1, Infinity);
+					let texture_height = Math.clamp(formResult.texture_size[1], 1, Infinity);
+
+					if (Project.box_uv != box_uv ||
+						Project.texture_width != texture_width ||
+						Project.texture_height != texture_height
 					) {
-						if (!Project.box_uv && !formResult.box_uv
-							&& (Project.texture_width != formResult.texture_width
-							|| Project.texture_height != formResult.texture_height)
+						if (!Project.box_uv && !box_uv
+							&& (Project.texture_width != texture_width
+							|| Project.texture_height != texture_height)
 						) {
 							save = Undo.initEdit({uv_only: true, elements: Cube.all, uv_mode: true})
 							Cube.all.forEach(cube => {
 								for (var key in cube.faces) {
 									var uv = cube.faces[key].uv;
-									uv[0] *= formResult.texture_width / Project.texture_width;
-									uv[2] *= formResult.texture_width / Project.texture_width;
-									uv[1] *= formResult.texture_height / Project.texture_height;
-									uv[3] *= formResult.texture_height / Project.texture_height;
+									uv[0] *= texture_width / Project.texture_width;
+									uv[2] *= texture_width / Project.texture_width;
+									uv[1] *= texture_height / Project.texture_height;
+									uv[3] *= texture_height / Project.texture_height;
 								}
 							})
 						} else {
 							save = Undo.initEdit({uv_mode: true})
 						}
-						Project.texture_width = formResult.texture_width;
-						Project.texture_height = formResult.texture_height;
+						Project.texture_width = texture_width;
+						Project.texture_height = texture_height;
 
-						if (Format.optional_box_uv) Project.box_uv = formResult.box_uv;
+						if (Format.optional_box_uv) Project.box_uv = box_uv;
 						Canvas.updateAllUVs()
 						updateSelection()
 					}

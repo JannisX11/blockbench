@@ -23,7 +23,7 @@ Object.assign(Blockbench, {
 				options.startpath = StateMemory.dialog_paths[options.resource_id]
 			}
 
-			ElecDialogs.showOpenDialog(
+			let fileNames = electron.dialog.showOpenDialogSync(
 				currentwindow,
 				{
 					title: options.title ? options.title : '',
@@ -36,15 +36,14 @@ Object.assign(Blockbench, {
 					defaultPath: settings.streamer_mode.value
 						? app.getPath('desktop')
 						: options.startpath
-				},
-			function (fileNames) {
-				if (!fileNames) return;
-				if (options.resource_id) {
-					StateMemory.dialog_paths[options.resource_id] = PathModule.dirname(fileNames[0])
-					StateMemory.save('dialog_paths')
 				}
-				Blockbench.read(fileNames, options, cb)
-			})
+			)
+			if (!fileNames) return;
+			if (options.resource_id) {
+				StateMemory.dialog_paths[options.resource_id] = PathModule.dirname(fileNames[0])
+				StateMemory.save('dialog_paths')
+			}
+			Blockbench.read(fileNames, options, cb)
 		} else {
 			$('<input '+
 				'type="file'+
@@ -59,23 +58,64 @@ Object.assign(Blockbench, {
 			}).click()
 		}
 	},
+	pickDirectory(options) {
+		if (typeof options !== 'object') {options = {}}
+		/**
+		 	resource_id
+			startpath
+			title
+		 */
+
+		if (isApp) {
+
+			if (!options.startpath && options.resource_id) {
+				options.startpath = StateMemory.dialog_paths[options.resource_id]
+			}
+
+			let dirNames = electron.dialog.showOpenDialogSync(currentwindow, {
+				title: options.title ? options.title : '',
+				dontAddToRecent: true,
+				properties: ['openDirectory'],
+				defaultPath: settings.streamer_mode.value
+					? app.getPath('desktop')
+					: options.startpath
+			})
+
+			if (!dirNames) return null;
+
+			if (options.resource_id) {
+				StateMemory.dialog_paths[options.resource_id] = PathModule.dirname(dirNames[0]);
+				StateMemory.save('dialog_paths');
+			}
+
+			return dirNames[0];
+
+		} else {
+
+			console.warn('Picking directories is currently not supported in the web app');
+
+		}
+	},
 	read(files, options, cb) {
 		if (files == undefined) return false;
 		if (typeof files == 'string') files = [files];
 
 		var results = [];
 		var result_count = 0;
-		var i = 0;
+		var index = 0;
 		var errant;
+		var i = 0;
 		if (isApp) {
-			while (i < files.length) {
+			while (index < files.length) {
 				(function() {
-					var this_i = i;
-					var file = files[i]
+					var this_i = index;
+					var file = files[index]
 					let readtype = options.readtype;
 					if (typeof readtype == 'function') {
 						readtype = readtype(file);
-					} else if (readtype != 'buffer' && readtype != 'binary') {
+					}
+					var binary = (readtype === 'buffer' || readtype === 'binary');
+					if (!readtype) {
 						readtype = 'text';
 					}
 
@@ -109,23 +149,9 @@ Object.assign(Blockbench, {
 							}
 						}
 					} else /*text*/ {
-						var load = function (data) {
-							if ((readtype != 'buffer' && readtype != 'binary') && data.charCodeAt(0) === 0xFEFF) {
-								data = data.substr(1)
-							}
-							results[this_i] = {
-								name: pathToName(file, true),
-								path: file,
-								content: data
-							}
-							result_count++;
-							if (result_count === files.length) {
-								cb(results)
-							}
-						}
-						var read_files;
+						var data;
 						try {
-							read_files = fs.readFileSync(file, readtype == 'text' ? 'utf8' : undefined);
+							data = fs.readFileSync(file, readtype == 'text' ? 'utf8' : undefined);
 						} catch(err) {
 							console.log(err)
 							if (!errant && options.errorbox !== false) {
@@ -136,12 +162,30 @@ Object.assign(Blockbench, {
 							}
 							errant = true;
 							return;
-						} finally {
-							load(read_files);
+						}
+						if (binary) {
+							var ab = new ArrayBuffer(data.length);
+							var view = new Uint8Array(ab);
+							for (var i = 0; i < data.length; ++i) {
+								view[i] = data[i];
+							}
+							data = ab;
+						}
+						if (!binary && data.charCodeAt(0) === 0xFEFF) {
+							data = data.substr(1)
+						}
+						results[this_i] = {
+							name: pathToName(file, true),
+							path: file,
+							content: data
+						}
+						result_count++;
+						if (result_count === files.length) {
+							cb(results)
 						}
 					}
 				})()
-				i++;
+				index++;
 			}
 		} else {
 			while (i < files.length) {
@@ -207,21 +251,27 @@ Object.assign(Blockbench, {
 			if (options.custom_writer) {
 				options.custom_writer(options.content, file_name)
 				
-			} else if (options.savetype === 'image') {
-
-				var download = document.createElement('a');
-				download.href = options.content
-				download.download = file_name;
-				if (Blockbench.browser === 'firefox') document.body.appendChild(download);
-				download.click();
-				if (Blockbench.browser === 'firefox') document.body.removeChild(download);
-
-			} else if (options.savetype === 'zip' || options.savetype === 'buffer' || options.savetype === 'binary') {
-				saveAs(options.content, file_name)
-
 			} else {
-				var blob = new Blob([options.content], {type: "text/plain;charset=utf-8"});
-				saveAs(blob, file_name, {autoBOM: true})
+
+				let a = document.createElement('a');
+
+				if (options.savetype === 'image') {
+					a.href = options.content;
+
+				} else if (options.savetype === 'zip' || options.savetype === 'buffer' || options.savetype === 'binary') {
+					let blob = new Blob(data, {type: "octet/stream"});
+					a.href = window.URL.createObjectURL(blob);
+
+				} else {
+					a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(options.content);
+				}
+
+				a.download = file_name;
+				
+				if (Blockbench.browser === 'firefox') document.body.appendChild(a);
+				a.click();
+				if (Blockbench.browser === 'firefox') document.body.removeChild(a);
+
 			}
 			if (typeof cb === 'function') {
 				cb(file_name)
@@ -233,7 +283,7 @@ Object.assign(Blockbench, {
 					options.startpath += osfs + options.name + (options.extensions ? '.'+options.extensions[0] : '');
 				}
 			}
-			ElecDialogs.showSaveDialog(currentwindow, {
+			let file_path = electron.dialog.showSaveDialogSync(currentwindow, {
 				dontAddToRecent: true,
 				filters: [ {
 					name: options.type,
@@ -244,18 +294,17 @@ Object.assign(Blockbench, {
 					: ((options.startpath && options.startpath !== 'Unknown')
 						? options.startpath.replace(/\.\w+$/, '')
 						: options.name)
-			}, function (file_path) {
-				if (!file_path) return;
-				if (options.resource_id) {
-					StateMemory.dialog_paths[options.resource_id] = PathModule.dirname(file_path)
-					StateMemory.save('dialog_paths')
-				}
-				var extension = pathToExtension(file_path);
-				if (!extension && options.extensions && options.extensions[0]) {
-					file_path += '.'+options.extensions[0]
-				}
-				Blockbench.writeFile(file_path, options, cb)
 			})
+			if (!file_path) return;
+			if (options.resource_id) {
+				StateMemory.dialog_paths[options.resource_id] = PathModule.dirname(file_path)
+				StateMemory.save('dialog_paths')
+			}
+			var extension = pathToExtension(file_path);
+			if (!extension && options.extensions && options.extensions[0]) {
+				file_path += '.'+options.extensions[0]
+			}
+			Blockbench.writeFile(file_path, options, cb)
 		}
 	},
 	writeFile(file_path, options, cb) {
@@ -276,7 +325,10 @@ Object.assign(Blockbench, {
 				options.content = nativeImage.createFromPath(options.content).toPNG()
 			}
 		}
-		if (options.savetype === 'zip') {
+		if (options.custom_writer) {
+			options.custom_writer(options.content, file_path)
+
+		} else if (options.savetype === 'zip') {
 			var fileReader = new FileReader();
 			fileReader.onload = function(event) {
 				var buffer = Buffer.from(new Uint8Array(this.result));
@@ -286,8 +338,6 @@ Object.assign(Blockbench, {
 				}
 			};
 			fileReader.readAsArrayBuffer(options.content);
-		} else if (options.custom_writer) {
-			options.custom_writer(options.content, file_path)
 
 		} else {
 			//text or binary

@@ -2,7 +2,7 @@ const EditSession = {
 	active: false,
 	hosting: false,
 	BBKey: '1h3sq3hoj6vfkh',
-	ip: '104.248.38.177',
+	ip: 'blckbn.ch',
 	clients: {},
 	placeholder_names: ['R2D2', 'Tin Man', 'C3PO', 'WALL-E', 'EVE', 'BB-8', 'B1 Battle Droid', 'ASIMO', 'Atlas'],
 	start() {
@@ -13,7 +13,7 @@ const EditSession = {
 			host: EditSession.ip,
 			port: 9000,
 			path: '/sessions',
-			secure: false
+			secure: true
 		});
 		EditSession.username = $('#edit_session_username').val() || EditSession.placeholder_names.random();
 		settings.username.value = EditSession.username;
@@ -74,7 +74,7 @@ const EditSession = {
 			host: EditSession.ip,
 			port: 9000,
 			path: '/sessions',
-			secure: false
+			secure: true
 		});
 		EditSession.peer.on('open', function() {
 
@@ -324,12 +324,7 @@ EditSession.Client = class {
 
 const Chat = {
 	history: [],
-	expanded: true,
 	maxlength: 512,
-	toggle() {
-		this.expanded = !this.expanded;
-		BarItems.toggle_chat.setIcon( Chat.expanded ? 'keyboard_arrow_down' : 'keyboard_arrow_up' )
-	},
 	send(text) {
 		if (typeof text !== 'string') {
 			text = $('input#chat_input').val()
@@ -419,12 +414,6 @@ BARS.defineActions(function() {
 		category: 'blockbench',
 		click: EditSession.dialog
 	})
-	new Action('toggle_chat', {
-		icon: 'keyboard_arrow_down',
-		condition: () => EditSession.active,
-		category: 'blockbench',
-		click: () => (Chat.toggle())
-	})
 })
 
 Interface.definePanels(function() {
@@ -436,15 +425,11 @@ Interface.definePanels(function() {
 		toolbars: {},
 		onResize: t => {
 		},
-		menu: new Menu([
-			'toggle_chat'
-		]),
 		component: {
 			data() {return Chat},
 			template: `
 				<div>
-					<div class="bar next_to_title" id="chat_title_bar"></div>
-					<ul id="chat_history" v-if="expanded">
+					<ul id="chat_history">
 						<li v-for="msg in history">
 							<b v-if="msg.showAuthor()" v-bind:class="{self: msg.self}">{{ msg.author }}:</b>
 							<span class="text" v-bind:style="{color: msg.hex || 'inherit'}" v-html="msg.html"></span>
@@ -459,6 +444,5 @@ Interface.definePanels(function() {
 			`
 		}
 	})
-	BarItems.toggle_chat.toElement('#chat_title_bar')
 
 })

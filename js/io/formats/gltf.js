@@ -162,7 +162,8 @@ var codec = new Codec('gltf', {
 			trs: true,
 			truncateDrawRange: false,
 			forcePowerOfTwoTextures: true,
-			exportFaceColors: false
+			scale_factor: 1/16,
+			exportFaceColors: false,
 		});
 	},
 	export() {

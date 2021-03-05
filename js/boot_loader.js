@@ -44,7 +44,7 @@ translateUI()
 console.log(`Three.js r${THREE.REVISION}`)
 console.log('%cBlockbench ' + appVersion + (isApp
 	? (' Desktop (' + Blockbench.operating_system +')')
-	: (' Web ('+capitalizeFirstLetter(Blockbench.browser)+')')),
+	: (' Web ('+capitalizeFirstLetter(Blockbench.browser) + (Blockbench.isPWA ? ', PWA)' : ')'))),
 	'background-color: #3e90ff; color: black; padding: 4px;'
 )
 var startups = parseInt(localStorage.getItem('startups')||0);
@@ -60,7 +60,6 @@ if (isApp) {
 
 
 if (!isApp) {
-	/*
 	async function registerSW() {
 		if ('serviceWorker' in navigator) {
 			try {
@@ -71,7 +70,6 @@ if (!isApp) {
 		}
 	}
 	registerSW();
-	*/
 }
 
 Blockbench.on('before_closing', (event) => {
@@ -104,6 +102,8 @@ if (isApp) {
 } else {
 	initializeWebApp();
 }
+
+localStorage.setItem('last_version', Blockbench.version);
 
 Modes.options.start.select()
 

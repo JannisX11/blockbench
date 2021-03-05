@@ -2014,7 +2014,7 @@ Interface.definePanels(function() {
 						<label class="tool" for="gui" onclick="DisplayMode.loadGUI()"><div class="tooltip">${ tl('display.slot.gui') }</div><i class="material-icons">border_style</i></label>
 					</div>
 					<p class="reference_model_bar">${ tl('display.reference') }</p>
-					<div id="display_ref_bar" class="bar tabs_small reference_model_bar">
+					<div id="display_ref_bar" class="bar tabs_small icon_bar reference_model_bar">
 					</div>
 		
 					<div id="display_sliders">

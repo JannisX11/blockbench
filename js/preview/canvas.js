@@ -120,7 +120,7 @@ const Canvas = {
 		if (display_mode && ground_anim_before) {
 			ground_animation = ground_anim_before
 		}
-		updateCubeHighlights();
+		if (settings.highlight_cubes.value) updateCubeHighlights();
 	},
 	//Main updaters
 	clear() {
@@ -304,9 +304,9 @@ const Canvas = {
 			outlines.add(line)
 		})
 	},
-	updateAllBones() {
+	updateAllBones(bones = Group.all) {
 
-		Group.all.forEach((obj) => {
+		bones.forEach((obj) => {
 			let bone = obj.mesh
 			if (bone) {
 
@@ -331,7 +331,13 @@ const Canvas = {
 				bone.fix_rotation = bone.rotation.clone()
 			}
 		})
-		scene.updateMatrixWorld();
+		if (bones == Group.all) {
+			scene.updateMatrixWorld();
+		} else {
+			bones.forEach(bone => {
+				bone.mesh.updateMatrixWorld();
+			})
+		}
 	},
 	updateOrigin() {
 		if (rot_origin.parent) {
@@ -402,11 +408,13 @@ const Canvas = {
 
 		var from = cube.from.slice()
 		from.forEach((v, i) => {
-			from[i] -= cube.inflate
+			from[i] -= cube.inflate;
+			from[i] -= cube.origin[i];
 		})
 		var to = cube.to.slice()
 		to.forEach((v, i) => {
 			to[i] += cube.inflate
+			to[i] -= cube.origin[i];
 			if (from[i] === to[i]) {
 				to[i] += 0.001
 			}
@@ -416,7 +424,7 @@ const Canvas = {
 
 		mesh.scale.set(1, 1, 1)
 		mesh.position.set(cube.origin[0], cube.origin[1], cube.origin[2])
-		mesh.geometry.translate(-cube.origin[0], -cube.origin[1], -cube.origin[2])
+		//mesh.geometry.translate(-cube.origin[0], -cube.origin[1], -cube.origin[2])
 		mesh.rotation.set(0, 0, 0)
 		mesh.geometry.computeBoundingSphere()
 
@@ -464,10 +472,10 @@ const Canvas = {
 		geometry.all_faces.forEach(face => {
 			let bb_face = cube.faces[Canvas.face_order[face.materialIndex]];
 
-			if (bb_face && bb_face.texture == null && geometry.faces.includes(face)) {
+			if (bb_face && bb_face.texture === null && geometry.faces.includes(face)) {
 				geometry.faces.remove(face);
 			} else
-			if (bb_face && bb_face.texture != null && !geometry.faces.includes(face)) {
+			if (bb_face && bb_face.texture !== null && !geometry.faces.includes(face)) {
 				geometry.faces.push(face);
 			}
 		})
