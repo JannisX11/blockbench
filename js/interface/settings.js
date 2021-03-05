@@ -214,6 +214,10 @@ const Settings = {
 		new Setting('sketchfab_token', {category: 'export', value: '', type: 'password'});
 		new Setting('credit', {category: 'export', value: 'Made with Blockbench', type: 'text'});
 
+		Blockbench.onUpdateTo('3.8', () => {
+			settings.preview_checkerboard.value = true;
+			settings.uv_checkerboard.value = true;
+		})
 	},
 	addCategory(id, data) {
 		if (!data) data = 0;

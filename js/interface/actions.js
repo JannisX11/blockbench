@@ -1558,7 +1558,7 @@ const BARS = {
 		//
 		Toolbars = {}
 		var stored = localStorage.getItem('toolbars')
-		if (stored && !Blockbench.hasFlag('after_update')) {
+		if (stored) {
 			stored = JSON.parse(stored)
 			if (typeof stored === 'object') {
 				BARS.stored = stored;
