@@ -224,11 +224,15 @@ class Keyframe {
 	}
 	compileBedrockKeyframe() {
 		if (this.transform) {
-			if (this.data_points.length == 1 && this.interpolation == 'linear') {
+			if (this.interpolation != 'linear') {
+				return {
+					post: this.getArray(),
+					lerp_mode: this.interpolation,
+				}
+			} else if (this.data_points.length == 1) {
 				return this.getArray();
 			} else {
 				return new oneLiner({
-					lerp_mode: this.interpolation != 'linear' ? this.interpolation : undefined,
 					pre:  this.getArray(0),
 					post: this.getArray(1),
 				})

@@ -12,7 +12,7 @@ function I(num) {
 }
 const Templates = {
 	'1.12': {
-		name: 'Forge 1.12',
+		name: 'Forge 1.7 - 1.13',
 		flip_y: true,
 		integer_size: true,
 		file:
@@ -96,7 +96,7 @@ const Templates = {
 	},
 
 	'1.15': {
-		name: 'Forge 1.15',
+		name: 'Forge 1.15 - 1.16',
 		flip_y: true,
 		integer_size: false,
 		file: 
