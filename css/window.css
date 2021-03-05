@@ -659,7 +659,7 @@
 	}
 
 /* Preview */
-	.gimbal_controls {
+	.orbit_gizmo {
 		position: absolute;
 		border-radius: 50%;
 		width: 80px;
@@ -669,22 +669,22 @@
 		opacity: 0.6;
 		overflow: hidden;
 	}
-	.gimbal_controls:hover, .gimbal_controls.mouse_active {
+	.orbit_gizmo:hover, .orbit_gizmo.mouse_active {
 		background-color: #00000040;
 		opacity: 1;
 	}
-	.gimbal_controls > svg {
+	.orbit_gizmo > svg {
 		width: 100%;
 		height: 100%;
 		display: block;
 		pointer-events: none;
 		filter: brightness(0.7);
 	}
-	.gimbal_controls > svg path {
+	.orbit_gizmo > svg path {
 		stroke-width: 2px;
 		fill: none;
 	}
-	.gimbal_controls_side {
+	.orbit_gizmo_side {
 		color: var(--color-accent_text);
 		position: absolute;
 		width: 16px;
@@ -697,26 +697,26 @@
 		line-height: 16px;
 		font-family: var(--font-code);
 	}
-	.gimbal_controls.mouse_active .gimbal_controls_side {
+	.orbit_gizmo.mouse_active .orbit_gizmo_side {
 		pointer-events: none;
 	}
-	.gimbal_controls_side[axis="x"], .gimbal_controls > svg path[axis="x"] {
+	.orbit_gizmo_side[axis="x"], .orbit_gizmo > svg path[axis="x"] {
 		background-color: var(--color-axis-x);
 		stroke: var(--color-axis-x);
 	}
-	.gimbal_controls_side[axis="y"], .gimbal_controls > svg path[axis="y"] {
+	.orbit_gizmo_side[axis="y"], .orbit_gizmo > svg path[axis="y"] {
 		background-color: var(--color-axis-y);
 		stroke: var(--color-axis-y);
 	}
-	.gimbal_controls_side[axis="z"], .gimbal_controls > svg path[axis="z"] {
+	.orbit_gizmo_side[axis="z"], .orbit_gizmo > svg path[axis="z"] {
 		background-color: var(--color-axis-z);
 		stroke: var(--color-axis-z);
 	}
-	.gimbal_controls_side.background {
+	.orbit_gizmo_side.background {
 		z-index: 0;
 		filter: brightness(0.7);
 	}
-	.gimbal_controls:not(.mouse_active) .gimbal_controls_side:hover {
+	.orbit_gizmo:not(.mouse_active) .orbit_gizmo_side:hover {
 		background-color: var(--color-bright_ui) !important;
 		filter: brightness(1);
 	}

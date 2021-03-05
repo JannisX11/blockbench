@@ -559,7 +559,7 @@ BARS.defineActions(function() {
 						'2d': tl('dates.days', [2]),
 						'1w': tl('dates.week', [1]),
 					}},
-					info: {type: 'info', text: 'The model will be stored on the Blockbench servers during the duration specified above. [Learn how your data is protected](https://blockbench.net/blockbench-model-sharing-service/)'}
+					info: {type: 'info', text: 'The model will be stored on the Blockbench servers for the duration specified above. [Learn more](https://blockbench.net/blockbench-model-sharing-service/)'}
 				},
 				buttons: ['generic.share', 'dialog.cancel'],
 				onConfirm: function(formResult) {
@@ -577,15 +577,27 @@ BARS.defineActions(function() {
 						success: function(response) {
 							let link = `https://blckbn.ch/${response.id}`
 
-							if (isApp || navigator.clipboard) {
-								Clipbench.setText(link);
-								Blockbench.showQuickMessage('dialog.share_model.copied_to_clipboard');
-							} else {
-								Blockbench.showMessageBox({
-									title: 'dialog.share_model.title',
-									message: `[${link}](${link})`,
-								})
-							}
+							let link_dialog = new Dialog({
+								id: 'share_model_link',
+								title: 'dialog.share_model.title',
+								form: {
+									link: {type: 'text', value: link}
+								},
+								buttons: ['action.copy', 'dialog.close'],
+								onConfirm() {
+									link_dialog.hide();
+									if (isApp || navigator.clipboard) {
+										Clipbench.setText(link);
+										Blockbench.showQuickMessage('dialog.share_model.copied_to_clipboard');
+									} else {
+										Blockbench.showMessageBox({
+											title: 'dialog.share_model.title',
+											message: `[${link}](${link})`,
+										})
+									}
+								}
+							}).show();
+
 						},
 						error: function(response) {
 							Blockbench.showQuickMessage('dialog.share_model.failed', 1500)

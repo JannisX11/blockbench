@@ -197,8 +197,8 @@ class Preview {
 		this.controls.target.fromArray(DefaultCameraPresets[0].target);
 
 		if (!Blockbench.isMobile) {
-			this.gimbal_controls = new GimbalControls(this);
-			this.node.append(this.gimbal_controls.node);
+			this.orbit_gizmo = new OrbitGizmo(this);
+			this.node.append(this.orbit_gizmo.node);
 		}
 
 		//Keybinds
@@ -1240,12 +1240,12 @@ function openQuadView() {
 }
 
 
-class GimbalControls {
+class OrbitGizmo {
 	constructor(preview, options = {}) {
 		let scope = this;
 		this.preview = preview;
 		this.node = document.createElement('div');
-		this.node.classList.add('gimbal_controls');
+		this.node.classList.add('orbit_gizmo');
 
 		let svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 		this.node.append(svg);
@@ -1270,7 +1270,7 @@ class GimbalControls {
 		for (let key in this.sides) {
 			let side = this.sides[key];
 			side.node = document.createElement('div');
-			side.node.classList.add('gimbal_controls_side');
+			side.node.classList.add('orbit_gizmo_side');
 			side.node.setAttribute('axis', side.axis);
 			side.node.title = tl(`direction.${key}`);
 			if (side.label) side.node.innerText = side.label;
