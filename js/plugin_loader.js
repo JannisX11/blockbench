@@ -333,7 +333,6 @@ Plugin.register = function(id, data) {
 		}
 	}
 	if (!plugin) {
-		console.log(id, )
 		Blockbench.showMessageBox({
 			translateKey: 'load_plugin_failed',
 			message: tl('message.load_plugin_failed.message', [id])
