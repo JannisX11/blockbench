@@ -26,6 +26,7 @@ class Setting {
 		this.category = data.category || 'general';
 		this.name = data.name || tl(`settings.${id}`);
 		this.description = data.description || tl(`settings.${id}.desc`);
+		this.launch_setting = data.launch_setting || false;
 
 		if (this.type == 'number') {
 			this.min = data.min;
@@ -85,6 +86,11 @@ const Settings = {
 		}});
 
 		//Interface
+		new Setting('interface_scale', 		{category: 'interface', value: 100, min: 40, max: 200, type: 'number', condition: isApp, onChange() {
+			var factor = Math.clamp(settings.interface_scale.value, 40, 200) / 100;
+			currentwindow.webContents.setZoomFactor(factor)
+			resizeWindow()
+		}});
 		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number'});
 		new Setting('control_size',  		{category: 'interface', value: 10, type: 'number'});
 		new Setting('motion_trails',  		{category: 'interface', value: true, onChange() {
@@ -94,10 +100,10 @@ const Settings = {
 		}});
 		new Setting('seethrough_outline', 	{category: 'interface', value: false});
 		new Setting('outliner_colors', 		{category: 'interface', value: false});
-		new Setting('preview_checkerboard',	{category: 'interface', value: false, onChange() {
+		new Setting('preview_checkerboard',	{category: 'interface', value: true, onChange() {
 			$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 		}});
-		new Setting('uv_checkerboard', 		{category: 'interface', value: false, onChange() {
+		new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange() {
 			$('.UVEditor').toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
 		}});
 		
@@ -110,6 +116,12 @@ const Settings = {
 		new Setting('fov', 		  		{category: 'preview', value: 45, type: 'number', onChange(val) {
 			Preview.all.forEach(preview => preview.setFOV(val));
 		}});
+		new Setting('camera_near_plane',{category: 'preview', value: 1, type: 'number', onChange(val) {
+			Preview.all.forEach(preview => {
+				preview.camPers.near = val;
+				preview.camPers.updateProjectionMatrix();
+			});
+		}});
 		new Setting('render_sides', 	{category: 'preview', value: 'auto', type: 'select', options: {
 			'auto': tl('settings.render_sides.auto'),
 			'front': tl('settings.render_sides.front'),
@@ -117,6 +129,7 @@ const Settings = {
 		}, onChange() {
 			Canvas.updateRenderSides();
 		}});
+		new Setting('background_rendering', 	{category: 'preview', value: true});
 		/*
 		new Setting('transparency',		{category: 'preview', value: true, onChange() {
 			for (var uuid in Canvas.materials) {
@@ -159,8 +172,9 @@ const Settings = {
 		new Setting('edit_size',	{category: 'snapping', value: 16, type: 'number'});
 		new Setting('shift_size', 	{category: 'snapping', value: 64, type: 'number'});
 		new Setting('ctrl_size',	{category: 'snapping', value: 160, type: 'number'});
+		new Setting('ctrl_shift_size',	{category: 'snapping', value: 640, type: 'number'});
 		new Setting('negative_size',{category: 'snapping', value: false});
-		new Setting('animation_snap',{category: 'snapping', value: 25, type: 'number'});
+		new Setting('animation_snap',{category: 'snapping', value: 24, type: 'number'});
 
 		//Paint
 		new Setting('sync_color',	{category: 'paint', value: false});
@@ -184,7 +198,6 @@ const Settings = {
 		
 		//Dialogs
 		new Setting('dialog_larger_cubes', {category: 'dialogs', value: true});
-		new Setting('dialog_drag_background', {category: 'dialogs', value: true});
 		new Setting('dialog_rotation_limit', {category: 'dialogs', value: true});
 		
 		//Application
@@ -192,6 +205,7 @@ const Settings = {
 		new Setting('backup_interval', {category: 'application', value: 10, type: 'number', condition: isApp});
 		new Setting('backup_retain', {category: 'application', value: 30, type: 'number', condition: isApp});
 		new Setting('automatic_updates', {category: 'application', value: true, condition: isApp});
+		new Setting('hardware_acceleration', {category: 'application', value: true, condition: isApp, launch_setting: true});
 		
 		//Export
 		new Setting('minifiedout', {category: 'export', value: false});
@@ -200,6 +214,10 @@ const Settings = {
 		new Setting('sketchfab_token', {category: 'export', value: '', type: 'password'});
 		new Setting('credit', {category: 'export', value: 'Made with Blockbench', type: 'text'});
 
+		Blockbench.onUpdateTo('3.8', () => {
+			settings.preview_checkerboard.value = true;
+			settings.uv_checkerboard.value = true;
+		})
 	},
 	addCategory(id, data) {
 		if (!data) data = 0;
@@ -235,11 +253,15 @@ const Settings = {
 		}
 		localStorage.setItem('settings', JSON.stringify(settings_copy) )
 
-		localStorage.setItem('canvas_scenes', JSON.stringify(canvas_scenes))
-		localStorage.setItem('colors', JSON.stringify({
-			palette: ColorPanel.vue._data.palette,
-			history: ColorPanel.vue._data.history,
-		}))
+		if (window.canvas_scenes) {
+			localStorage.setItem('canvas_scenes', JSON.stringify(canvas_scenes))
+		}
+		if (window.ColorPanel) {
+			localStorage.setItem('colors', JSON.stringify({
+				palette: ColorPanel.vue._data.palette,
+				history: ColorPanel.vue._data.history,
+			}))
+		}
 	},
 	save() {
 		Settings.saveLocalStorages()
@@ -252,7 +274,10 @@ const Settings = {
 		for (var key in BarItems) {
 			var action = BarItems[key]
 			if (action.linked_setting) {
-				action.toggleLinkedSetting(false)
+				if (settings[action.linked_setting] && action.value != settings[action.linked_setting].value) {
+					action.value = settings[action.linked_setting].value;
+					action.updateEnabledState();
+				}
 			}
 		}
 		if (hasSettingChanged('base_grid') || hasSettingChanged('large_grid') || hasSettingChanged('full_grid') || hasSettingChanged('large_grid_size')
@@ -267,6 +292,9 @@ const Settings = {
 			var setting = settings[id];
 			if (setting.onChange && hasSettingChanged(id)) {
 				setting.onChange(setting.value);
+			}
+			if (isApp && setting.launch_setting && hasSettingChanged(id)) {
+				ipcRenderer.send('edit-launch-setting', {key: id, value: setting.value})
 			}
 		}
 		Blockbench.dispatchEvent('update_settings');
@@ -361,7 +389,7 @@ onVueSetup(function() {
 		},
 		methods: {
 			saveSettings() {
-				localStorage.setItem('settings', JSON.stringify(settings))
+				Settings.saveLocalStorages();
 			},
 			toggleCategory(category) {
 				if (!category.open) {

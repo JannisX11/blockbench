@@ -77,7 +77,7 @@ window.BedrockEntityManager = {
 							path+'.tga'
 						])
 						if (path) {
-							valid_textures_list.push(path);
+							valid_textures_list.safePush(path);
 						}
 					}
 				}
@@ -112,19 +112,19 @@ window.BedrockEntityManager = {
 							}
 						}).show()
 						$('#import_texture_list li').each((i, el) => {
-							$(el).css('background-image', `url("${ valid_textures_list[i].replace(/\\/g, '/').replace(/#/g, '%23') }?${Math.round(Math.random()*1e6)}")`)
-							.click(function() {
+							el.style.setProperty('background-image', `url("${ valid_textures_list[i].replace(/\\/g, '/').replace(/#/g, '%23') }?${Math.round(Math.random()*1e6)}")`)
+							el.onclick = function() {
 								if (selected_textures.includes(i)) {
 									selected_textures.remove(i)
 								} else {
 									selected_textures.push(i)
 								}
 								$(this).toggleClass('selected')
-							})
-							.dblclick(function() {
+							}
+							el.ondblclick = function() {
 								selected_textures.replace([i])
 								dialog.confirm()
-							})
+							}
 						})
 					}, 2)
 				}
@@ -413,8 +413,12 @@ function calculateVisibleBox() {
 		if (b.locators) {
 			for (var key in b.locators) {
 				var coords = b.locators[key];
-				coords[0] *= -1
-				new Locator({from: coords, name: key}).addTo(group).init();
+				coords[0] *= -1;
+				if (key.substr(0, 6) == '_null_') {
+					new NullObject({from: coords, name: key.substr(6)}).addTo(group).init();
+				} else {
+					new Locator({from: coords, name: key}).addTo(group).init();
+				}
 			}
 		}
 		if (b.children) {
@@ -571,7 +575,7 @@ function calculateVisibleBox() {
 		if (g.reset) {
 			bone.reset = true
 		}
-		if (g.mirror_uv) {
+		if (g.mirror_uv && Project.box_uv) {
 			bone.mirror = true
 		}
 		if (g.material) {
@@ -588,10 +592,11 @@ function calculateVisibleBox() {
 					let template = compileCube(obj, bone);
 					cubes.push(template);
 
-				} else if (obj instanceof Locator) {
-
-					locators[obj.name] = obj.from.slice();
-					locators[obj.name][0] *= -1;
+				} else if (obj instanceof Locator || obj instanceof NullObject) {
+					let key = obj.name;
+					if (obj instanceof NullObject) key = '_null_' + key;
+					locators[key] = obj.from.slice();
+					locators[key][0] *= -1;
 				}
 			}
 		}
@@ -633,21 +638,20 @@ var codec = new Codec('bedrock', {
 		var bones = []
 
 		var groups = getAllGroups();
-		var loose_cubes = [];
+		var loose_elements = [];
 		Outliner.root.forEach(obj => {
-			if (obj.type === 'cube') {
-				loose_cubes.push(obj)
+			if (obj instanceof OutlinerElement) {
+				loose_elements.push(obj)
 			}
 		})
-		if (loose_cubes.length) {
-			groups.splice(0, 0, {
-				type: 'group',
-				parent: 'root',
-				name: 'unknown_bone',
-				origin: [0, 0, 0],
-				rotation: [0, 0, 0],
-				children: loose_cubes
-			})
+		if (loose_elements.length) {
+			let group = new Group({
+				name: 'bb_main'
+			});
+			group.children.push(...loose_elements);
+			group.is_catch_bone = true;
+			group.createUniqueName();
+			groups.splice(0, 0, group);
 		}
 		groups.forEach(function(g) {
 			let bone = compileGroup(g);
@@ -690,7 +694,7 @@ var codec = new Codec('bedrock', {
 				i++;
 			}
 		} catch (err) {
-			var answer = ElecDialogs.showMessageBox(currentwindow, {
+			var answer = electron.dialog.showMessageBox(currentwindow, {
 				type: 'warning',
 				buttons: [
 					tl('message.bedrock_overwrite_error.overwrite'),
@@ -706,6 +710,21 @@ var codec = new Codec('bedrock', {
 			}
 		}
 		if (data && index !== undefined) {
+
+			data['minecraft:geometry'].forEach(geo => {
+				if (geo.bones instanceof Array) {
+					geo.bones.forEach(bone => {
+						if (bone.cubes instanceof Array) {
+							bone.cubes.forEach((cube, ci) => {
+								if (cube.uv instanceof Array) {
+									bone.cubes[ci] = new oneLiner(cube);
+								}
+							})
+						}
+					})
+				}
+			})
+
 			var model = this.compile({raw: true})['minecraft:geometry'][0]
 			if (index != undefined) {
 				data['minecraft:geometry'][index] = model
@@ -865,7 +884,7 @@ var codec = new Codec('bedrock', {
 			})
 		}
 		showDialog('entity_import')
-		$('#pe_list').css('max-height', ($(window).height() - 320) +'px')
+		$('#pe_list').css('max-height', (window.innerHeight - 320) +'px')
 		$('input#pe_search_bar').select()
 		$('#entity_import .confirm_btn').off('click')
 		$('#entity_import .confirm_btn').on('click', (e) => {
@@ -899,6 +918,7 @@ var format = new ModelFormat({
 	bone_rig: true,
 	centered_grid: true,
 	animated_textures: true,
+	animation_files: true,
 	animation_mode: true,
 	locators: true,
 	codec,

@@ -10,13 +10,27 @@ const https = require('https');
 const PathModule = require('path');
 
 const currentwindow = electron.getCurrentWindow();
-const ElecDialogs = {};
 var dialog_win	 = null,
-	latest_version = false,
-	recent_projects= undefined;
+	latest_version = false;
+const recent_projects = (function() {
+	let array = [];
+	var raw = localStorage.getItem('recent_projects')
+	if (raw) {
+		try {
+			array = JSON.parse(raw).slice().reverse()
+		} catch (err) {}
+		array = array.filter(project => {
+			return fs.existsSync(project.path);
+		})
+	}
+	return array
+})();
+
 
 app.setAppUserModelId('blockbench')
 
+// Deprecated
+const ElecDialogs = {};
 if (electron.dialog.showMessageBoxSync) {
 	ElecDialogs.showMessageBox = function(a, b, cb) {
 		if (!cb) cb = b;
@@ -50,13 +64,6 @@ function initializeDesktopApp() {
 		shell.openExternal(event.target.href);
 		return true;
 	});
-	if (currentwindow.webContents.zoomLevel !== undefined) {
-		Prop.zoom = 100 + currentwindow.webContents.zoomLevel*12
-	} else if (compareVersions('5.0.0', process.versions.electron)) {
-		Prop.zoom = 100 + currentwindow.webContents._getZoomLevel()*12
-	} else {
-		Prop.zoom = 100 + currentwindow.webContents.getZoomLevel()*12
-	}
 
 	function makeUtilFolder(name) {
 		let path = PathModule.join(app.getPath('userData'), name)
@@ -70,6 +77,8 @@ function initializeDesktopApp() {
 	if (__dirname.includes('C:\\xampp\\htdocs\\blockbench')) {
 		Blockbench.addFlag('dev')
 	}
+
+	settings.interface_scale.onChange();
 
 	if (Blockbench.platform == 'darwin') {
 		//Placeholder
@@ -110,19 +119,15 @@ window.confirm = function(message, title) {
 	});
 	return index == 0;
 }
+window.alert = function(message, title) {
+	electron.dialog.showMessageBoxSync(electron.getCurrentWindow(), {
+		title: title || electron.app.name,
+		detail: message
+	});
+}
 
 //Recent Projects
 function updateRecentProjects() {
-	if (recent_projects === undefined) {
-		//Setup
-		recent_projects = []
-		var raw = localStorage.getItem('recent_projects')
-		if (raw) {
-			try {
-				recent_projects = JSON.parse(raw).slice().reverse()
-			} catch (err) {}
-		}
-	}
 	//Set Local Storage
 	localStorage.setItem('recent_projects', JSON.stringify(recent_projects.slice().reverse()))
 }
@@ -273,7 +278,7 @@ function selectImageEditorFile(texture) {
 }
 //Default Pack
 function openDefaultTexturePath() {
-	var answer = ElecDialogs.showMessageBox(currentwindow, {
+	var answer = electron.dialog.showMessageBoxSync(currentwindow, {
 		type: 'info',
 		buttons: (
 			settings.default_path.value ? 	[tl('dialog.cancel'), tl('dialog.continue'), tl('generic.remove')]
@@ -287,14 +292,14 @@ function openDefaultTexturePath() {
 	if (answer === 0) {
 		return;
 	} else if (answer === 1) {
-		 ElecDialogs.showOpenDialog(currentwindow, {
+
+		let path = Blockbench.pickDirectory({
 			title: tl('message.default_textures.select'),
-			properties: ['openDirectory'],
-		}, function(filePaths) {
-			if (filePaths) {
-				settings.default_path.value = filePaths[0]
-			}
-		})
+			resource_id: 'texture',
+		});
+		if (path) {
+			settings.default_path.value = path;
+		}
 	} else {
 		settings.default_path.value = false
 	}
@@ -376,7 +381,7 @@ function showSaveDialog(close) {
 		}
 	})
 	if ((window.Prop && Prop.project_saved === false && (elements.length > 0 || Group.all.length > 0)) || unsaved_textures) {
-		var answer = ElecDialogs.showMessageBox(currentwindow, {
+		var answer = electron.dialog.showMessageBoxSync(currentwindow, {
 			type: 'question',
 			buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
 			title: 'Blockbench',

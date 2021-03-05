@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Model editing and animation software",
-	"version": "3.7.5",
+	"version": "3.8.0",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -33,10 +33,9 @@
 			"assets/",
 			"build/",
 			"css/",
+			"js/",
+			"lib/",
 			"font/",
-			"js",
-			"lib",
-			"lang",
 			"main.js",
 			"index.html",
 			"package.json",
@@ -67,7 +66,6 @@
 			]
 		},
 		"win": {
-			"artifactName": "${productName}_${arch}_${version}.${ext}",
 			"target": "nsis"
 		},
 		"linux": {
@@ -88,15 +86,23 @@
 		]
 	},
 	"scripts": {
+		"bundle": "webpack --config webpack.config.js",
+		"bundle-watch": "webpack --config webpack.config.js --watch",
 		"dev": "electron .",
 		"dist": "electron-builder",
 		"beta": "electron-builder --windows portable",
+		"pwa": "node ./scripts/generate_pwa.js",
+		"prepublish": "npm run bundle && npm run pwa",
 		"webapp": "git checkout gh-pages && git merge master && git push && git checkout master"
 	},
 	"devDependencies": {
-		"electron": "^8.5.2",
-		"electron-builder": "^22.9.1",
-		"electron-notarize": "^1.0.0"
+		"blockbench-types": "^3.7.2",
+		"electron": "^8.5.5",
+		"electron-builder": "^22.10.5",
+		"electron-notarize": "^1.0.0",
+		"webpack": "^5.21.2",
+		"webpack-cli": "^4.5.0",
+		"workbox-build": "^6.1.0"
 	},
 	"dependencies": {
 		"electron-updater": "^4.3.1"

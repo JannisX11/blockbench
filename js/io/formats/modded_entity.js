@@ -12,7 +12,7 @@ function I(num) {
 }
 const Templates = {
 	'1.12': {
-		name: 'Forge 1.12',
+		name: 'Forge 1.7 - 1.13',
 		flip_y: true,
 		integer_size: true,
 		file:
@@ -96,7 +96,7 @@ const Templates = {
 	},
 
 	'1.15': {
-		name: 'Forge 1.15',
+		name: 'Forge 1.15 - 1.16',
 		flip_y: true,
 		integer_size: false,
 		file: 
@@ -191,7 +191,7 @@ var codec = new Codec('modded_entity', {
 			let subgroups = [];
 			let group_i = all_groups.indexOf(group);
 			group.children.forEachReverse(cube => {
-				if (cube instanceof Cube == false) return;
+				if (cube instanceof Cube == false || !cube.export) return;
 				if (!cube.rotation.allEqual(0)) {
 					let sub = subgroups.find(s => {
 						if (!s.rotation.equals(cube.rotation)) return false;
@@ -655,7 +655,7 @@ var codec = new Codec('modded_entity', {
 		})
 		Project.geometry_name = geo_name;
 		this.dispatchEvent('parsed', {model});
-		Canvas.updateAll();
+		Canvas.updateAllBones();
 	},
 	fileName() {
 		return getIdentifier();

@@ -121,7 +121,8 @@ function moveCubesRelative(difference, index, event) { //Multiple
 		difference *= canvasGridSize(event.shiftKey, event.ctrlOrCmd);
 	}
 
-	moveElementsInSpace(difference, axes[index]) 
+	moveElementsInSpace(difference, axes[index]);
+	updateSelection();
 
 	Undo.finishEdit('move')
 }
@@ -579,9 +580,7 @@ function moveElementsInSpace(difference, axis) {
 			group_m = new THREE.Vector3();
 			group_m[getAxisLetter(axis)] = difference;
 
-			var rotation = new THREE.Quaternion();
-			group.mesh.getWorldQuaternion(rotation);
-			group_m.applyQuaternion(rotation);
+			group_m.applyQuaternion(group.mesh.quaternion);
 
 			group.forEachChild(g => {
 				g.origin.V3_add(group_m.x, group_m.y, group_m.z);
@@ -592,6 +591,7 @@ function moveElementsInSpace(difference, axis) {
 				g.origin[axis] += difference
 			}, Group, true)
 		}
+		Canvas.updateAllBones([Group.selected]);
 	}
 
 	selected.forEach(el => {
@@ -643,7 +643,6 @@ function moveElementsInSpace(difference, axis) {
 			Canvas.adaptObjectPosition(el);
 		}
 	})
-	TickUpdates.selection = true;
 }
 
 //Rotate
@@ -820,6 +819,7 @@ BARS.defineActions(function() {
 	new BarSelect('transform_space', {
 		condition: {modes: ['edit'], tools: ['move_tool', 'pivot_tool']},
 		category: 'transform',
+		value: 'local',
 		options: {
 			global: true,
 			bone: {condition: () => Format.bone_rig, name: true},
@@ -1466,7 +1466,7 @@ BARS.defineActions(function() {
 	new Action('origin_to_geometry', {
 		icon: 'filter_center_focus',
 		category: 'transform',
-		condition: {modes: ['edit']},
+		condition: {modes: ['edit', 'animate']},
 		click: function () {origin2geometry()}
 	})
 	new Action('rescale_toggle', {
