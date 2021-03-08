@@ -668,7 +668,7 @@ class Preview {
 			return true;
 		}
 		if (typeof Toolbox.selected.onCanvasClick === 'function') {
-			Toolbox.selected.onCanvasClick(0)
+			Toolbox.selected.onCanvasClick({event})
 		}
 
 		if (this.angle !== null && this.camOrtho.axis || this.movingBackground) {

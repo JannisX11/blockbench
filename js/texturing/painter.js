@@ -91,15 +91,17 @@ const Painter = {
 	},
 	// Preview Brush
 	startPaintToolCanvas(data, e) {
-		if (!data && Toolbox.selected.id == 'color_picker') {
+		if (!data.intersects && Toolbox.selected.id == 'color_picker') {
 			var preview = Preview.selected;
 			if (preview && preview.background && preview.background.imgtag) {
 				
+				let bg_pos = preview.canvas.style.backgroundPosition.split(' ').map(v => parseFloat(v));
+				let bg_size = parseFloat(preview.canvas.style.backgroundSize);
 				var ctx = Painter.getCanvas(preview.background.imgtag).getContext('2d')
-				var pixel_ratio = main_preview.background.imgtag.width / main_preview.background.size;
-				var x = (event.offsetX - preview.width/2 - preview.background.x) * pixel_ratio + main_preview.background.imgtag.width/2
-				var y = (event.offsetY - preview.height/2 - preview.background.y)* pixel_ratio
-				if (x >= 0 && y >= 0 && x < main_preview.background.imgtag.width && y < main_preview.background.imgtag.height) {
+				var pixel_ratio = preview.background.imgtag.width / bg_size;
+				var x = (e.offsetX - bg_pos[0]) * pixel_ratio
+				var y = (e.offsetY - bg_pos[1]) * pixel_ratio
+				if (x >= 0 && y >= 0 && x < preview.background.imgtag.width && y < preview.background.imgtag.height) {
 					Painter.scanCanvas(ctx, x, y, 1, 1, (x, y, px) => {
 						var t = tinycolor({
 							r: px[0],
@@ -112,7 +114,7 @@ const Painter = {
 				}
 			}
 		}
-		if (!data || (data.cube && data.cube.locked)) return;
+		if (!data.intersects || (data.cube && data.cube.locked)) return;
 		var texture = data.cube.faces[data.face].getTexture()
 		if (!texture || (texture.error && texture.error !== 2)) {
 			Blockbench.showQuickMessage('message.untextured')
