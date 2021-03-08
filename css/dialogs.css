@@ -115,6 +115,7 @@
 	}
 	.dialog_bar .tool {
 		position: relative;
+		margin: 0;
 	}
 	.dialog_vector_group {
 		display: flex;
@@ -123,6 +124,9 @@
 		min-width: 30px;
 		flex-grow: 1;
 		flex-shrink: 1;
+	}
+	.dialog_vector_group > input:not(:last-child) {
+		margin-right: 3px;
 	}
 	.tab_bar {
 		height: 30px;
