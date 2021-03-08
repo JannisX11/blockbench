@@ -33,8 +33,6 @@ var Prop = {
 const mouse_pos = {x:0,y:0}
 const sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
 
-$.ajaxSetup({ cache: false });
-
 function onVueSetup(func) {
 	if (!onVueSetup.funcs) {
 		onVueSetup.funcs = []

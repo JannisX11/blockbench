@@ -58,7 +58,6 @@ if (isApp) {
 	updateRecentProjects()
 }
 
-
 if (!isApp) {
 	async function registerSW() {
 		if ('serviceWorker' in navigator) {
@@ -70,6 +69,10 @@ if (!isApp) {
 		}
 	}
 	registerSW();
+}
+
+if (!Blockbench.isWeb || !Blockbench.isPWA) {
+	$.ajaxSetup({ cache: false });
 }
 
 Blockbench.on('before_closing', (event) => {
