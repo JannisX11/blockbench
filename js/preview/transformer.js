@@ -860,9 +860,7 @@
 						return;
 					}
 					this.rotation_object = rotation_object;
-					if (_has_groups && Format.bone_rig && !Modes.animate) {
-						Canvas.updateAllBones()
-					}
+					
 					//Center
 					if (Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool') {
 						rotation_object.mesh.getWorldPosition(this.position)
