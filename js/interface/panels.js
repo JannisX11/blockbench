@@ -50,15 +50,17 @@ class Panel {
 		this.node = $('.panel#'+this.id).get(0)
 		this.handle = $(`<h3 class="panel_handle">
 			<label>${this.name}</label>
-			<div class="tool panel_folding_button"><i class="material-icons">expand_more</i></div>
 		</h3>`).get(0)
-		this.handle.lastElementChild.addEventListener('click', (e) => {
-			this.fold();
-		})
+
 		$(this.node).prepend(this.handle)
 
-
 		if (!Blockbench.isMobile) {
+			let fold_button = $(`<div class="tool panel_folding_button"><i class="material-icons">expand_more</i></div>`)[0];
+			this.handle.append(fold_button);
+			fold_button.addEventListener('click', (e) => {
+				this.fold();
+			})
+
 			$(this.handle).draggable({
 				revertDuration: 0,
 				cursorAt: { left: 24, top: 24 },

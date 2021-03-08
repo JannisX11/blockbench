@@ -177,6 +177,7 @@ function mirrorSelected(axis) {
 							group.name = group.name.replace(/left/g, 'right').replace(/2/, '');
 						}
 					}
+					Canvas.updateAllBones([group]);
 				}
 				flipGroup(Group.selected)
 				Group.selected.forEachChild(flipGroup)
@@ -1307,7 +1308,7 @@ BARS.defineActions(function() {
 		color: 'x',
 		category: 'transform',
 		click: function () {
-				mirrorSelected(0);
+			mirrorSelected(0);
 		}
 	})
 	new Action('flip_y', {

@@ -1931,6 +1931,7 @@ Interface.definePanels(function() {
 	Interface.Panels.animations = new Panel({
 		id: 'animations',
 		icon: 'movie',
+		growable: true,
 		condition: {modes: ['animate']},
 		toolbars: {
 			head: Toolbars.animations

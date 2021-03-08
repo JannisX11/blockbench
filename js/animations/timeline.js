@@ -810,8 +810,8 @@ onVueSetup(function() {
 							var round_num = canvasGridSize(e2.shiftKey, e2.ctrlOrCmd)
 						}
 						value = Math.round(value/round_num)*round_num
-						previousValue = previousValue ?? value;
-						originalValue = originalValue ?? value;
+						previousValue = previousValue == undefined ? value : previousValue;
+						originalValue = originalValue == undefined ? value : originalValue;
 
 						if (value !== previousValue) {
 							value_diff = value - (previousValue||0);

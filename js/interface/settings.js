@@ -290,6 +290,7 @@ const Settings = {
 		}
 		for (var id in settings) {
 			var setting = settings[id];
+			if (!Condition(setting.condition)) return;
 			if (setting.onChange && hasSettingChanged(id)) {
 				setting.onChange(setting.value);
 			}
@@ -307,7 +308,7 @@ const Settings = {
 			var items = {};
 			for (var key in settings) {
 				var setting = settings[key];
-				if (Condition(setting)) {
+				if (Condition(setting.condition)) {
 					var name = tl('settings.'+key).toLowerCase();
 					var desc = tl('settings.'+key+'.desc').toLowerCase();
 					var missmatch = false;
