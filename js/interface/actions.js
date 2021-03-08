@@ -137,6 +137,9 @@ class BarItem {
 			i++;
 		}
 		var clone = $(scope.node).clone(true, true).get(0);
+		clone.onclick = (e) => {
+			scope.trigger(e)
+		}
 		scope.nodes.push(clone);
 		return clone;
 	}
