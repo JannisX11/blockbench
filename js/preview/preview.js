@@ -1286,7 +1286,7 @@ class OrbitGizmo {
 
 		// Interact
 		addEventListeners(this.node, 'mousedown touchstart', e1 => {
-			if ((!scope.preview.controls.enableRotate && scope.preview.angle == null) || !scope.preview.controls.enabled) return;
+			if ((!scope.preview.controls.enableRotate && scope.preview.angle == null) || !scope.preview.controls.enabled || (scope.preview.force_locked_angle && scope.preview.locked_angle !== null)) return;
 			convertTouchEvent(e1);
 			let last_event = e1;
 			let move_calls = 0;
@@ -1348,6 +1348,12 @@ class OrbitGizmo {
 			let vec = offset[axis];
 			this.lines[axis].setAttribute('d', `M${mid} ${mid} L${mid + rad*vec[0]} ${mid + rad*vec[1]}`)
 		}
+	}
+	hide() {
+		this.node.style.display = 'none';
+	}
+	unhide() {
+		this.node.style.display = 'block';
 	}
 }
 

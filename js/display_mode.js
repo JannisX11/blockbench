@@ -1598,11 +1598,13 @@ function loadDisp(key) {	//Loads The Menu and slider values, common for all Radi
 	display_preview.controls.enabled = true;
 	ground_animation = false;
 	$('#display_crosshair').detach()
+	display_preview.orbit_gizmo.unhide();
 	display_preview.camPers.setFocalLength(45)
 
 	if (display[key] == undefined) {
 		display[key] = new DisplaySlot()
 	}
+	display_preview.force_locked_angle = false;
 	DisplayMode.vue._data.slot = display[key]
 	DisplayMode.slot = display[key]
 	DisplayMode.updateDisplayBase();
@@ -1647,6 +1649,7 @@ DisplayMode.loadFirstRight = function() {	//Loader
 		focal_length: getOptimalFocalLength(),
 	})
 	display_preview.controls.enabled = false
+	display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
@@ -1658,6 +1661,7 @@ DisplayMode.loadFirstLeft = function() {	//Loader
 		focal_length: getOptimalFocalLength(),
 	})
 	display_preview.controls.enabled = false
+	display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
@@ -1678,9 +1682,10 @@ DisplayMode.loadGUI = function() {		//Loader
 		projection: 'orthographic',
 		position: [0, 0, 32],
 		target: [0, 0, 0],
-		locked_angle: 2,
+		locked_angle: 'south',
 		zoom: 1,
 	})
+	display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['inventory_nine', 'inventory_full', 'hud'])
 	BarItems.gui_light.set(Project.front_gui_light ? 'front' : 'side');
 }
