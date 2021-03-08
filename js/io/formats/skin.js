@@ -315,6 +315,7 @@ const skin_dialog = new Dialog({
 			label: 'dialog.skin.texture',
 			type: 'file',
 			extensions: ['png'],
+			readtype: 'image',
 			filetype: 'PNG',
 		},
 		pose: {type: 'checkbox', label: 'dialog.skin.pose', value: true},
@@ -3358,7 +3359,7 @@ skin_presets.pig = `{
 }`;
 skin_presets.piglin = `{
 	"name": "piglin",
-	"texturewidth": 128,
+	"texturewidth": 64,
 	"textureheight": 64,
 	"eyes": [
 		[10, 11, 1, 1],
@@ -3382,7 +3383,7 @@ skin_presets.piglin = `{
 			"pivot": [4.5, 30, 0],
 			"rotation": [0, 0, -25],
 			"cubes": [
-				{"name": "Head", "origin": [4.5, 25, -2], "size": [1, 5, 4], "uv": [57, 38]}
+				{"name": "Head", "origin": [4.5, 25, -2], "size": [1, 5, 4], "uv": [51, 6]}
 			]
 		},
 		{
@@ -3391,7 +3392,7 @@ skin_presets.piglin = `{
 			"pivot": [-4.5, 30, 0],
 			"rotation": [0, 0, 25],
 			"cubes": [
-				{"name": "Head", "origin": [-5.5, 25, -2], "size": [1, 5, 4], "uv": [57, 22]}
+				{"name": "Head", "origin": [-5.5, 25, -2], "size": [1, 5, 4], "uv": [39, 6]}
 			]
 		},
 		{

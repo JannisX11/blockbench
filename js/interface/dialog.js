@@ -205,6 +205,7 @@ function buildForm(dialog) {
 					bar.on('click', e => {
 						function fileCB(files) {
 							data.value = files[0].path;
+							data.content = files[0].content;
 							input.val(data.value);
 							dialog.updateFormValues()
 						}
@@ -214,7 +215,8 @@ function buildForm(dialog) {
 									resource_id: data.resource_id,
 									extensions: data.extensions,
 									type: data.filetype,
-									startpath: data.value
+									startpath: data.value,
+									readtype: data.readtype
 								}, fileCB);
 								break;
 							case 'folder':
@@ -368,6 +370,9 @@ window.Dialog = class Dialog {
 							break;
 						case 'checkbox':
 							result[form_id] = data.bar.find('input#'+form_id).is(':checked')
+							break;
+						case 'file':
+							result[form_id] = isApp ? data.value : data.content;
 							break;
 					}
 				}
