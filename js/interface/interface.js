@@ -373,6 +373,10 @@ function resizeWindow(event) {
 	Blockbench.dispatchEvent('resize_window', event);
 }
 $(window).on('resize orientationchange', resizeWindow)
+window.addEventListener('resize', resizeWindow);
+window.addEventListener('orientationchange', () => {
+	setTimeout(resizeWindow, 100)
+});
 
 function setProjectTitle(title) {
 	if (Format.bone_rig && Project.geometry_name) {

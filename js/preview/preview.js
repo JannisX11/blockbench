@@ -614,15 +614,18 @@ class Preview {
 	click(event) {
 		event.preventDefault();
 		$(':focus').blur();
+		if (open_menu) open_menu.hide();
 		unselectInterface(event);
 		convertTouchEvent(event);
+		Preview.selected = this;
 		this.static_rclick = event.which === 3 || event.type == 'touchstart';
+		
 		if (event.type == 'touchstart') {
 			this.rclick_cooldown = setTimeout(() => {
 				this.rclick_cooldown = true;
 			}, 420)
+			Transformer.dispatchPointerHover(event);
 		}
-		Preview.selected = this;
 		if (Transformer.hoverAxis !== null || (!Keybinds.extra.preview_select.keybind.isTriggered(event) && event.which !== 0)) return;
 
 		var data = this.raycast(event);
@@ -1294,7 +1297,7 @@ class OrbitGizmo {
 			function move(e2) {
 				convertTouchEvent(e2);
 				scope.node.classList.add('mouse_active');
-				if (!e1.touches && last_event == e1) scope.node.requestPointerLock();
+				if (!e1.touches && last_event == e1 && scope.node.requestPointerLock) scope.node.requestPointerLock();
 				if (scope.preview.angle != null) {
 					scope.preview.setProjectionMode(false, true);
 				}
@@ -1305,13 +1308,13 @@ class OrbitGizmo {
 				move_calls++;
 			}
 			function off(e2) {
-				document.exitPointerLock()
+				if (document.exitPointerLock) document.exitPointerLock()
 				removeEventListeners(document, 'mousemove touchmove', move);
 				removeEventListeners(document, 'mouseup touchend', off);
 				scope.node.classList.remove('mouse_active');
 			}
-			addEventListeners(document, 'mousemove touchmove', move);
 			addEventListeners(document, 'mouseup touchend', off);
+			addEventListeners(document, 'mousemove touchmove', move);
 		})
 		this.node.addEventListener('dblclick', e => {
 			if (e.target != this.node) return;

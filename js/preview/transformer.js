@@ -1145,7 +1145,6 @@
 			var planeIntersect = intersectObjects( pointer, [ _gizmo[ _mode ].activePlane ] );
 			if (!planeIntersect) return;
 
-			event.preventDefault();
 			event.stopPropagation();
 
 			var axis = scope.axis.substr(-1).toLowerCase()
@@ -1535,6 +1534,7 @@
 			var intersections = ray.intersectObjects( objects, true );
 			return intersections[ 0 ] ? intersections[ 0 ] : false;
 		}
+		this.dispatchPointerHover = onPointerHover;
 	};
 	THREE.TransformControls.prototype = Object.create( THREE.Object3D.prototype );
 	THREE.TransformControls.prototype.constructor = THREE.TransformControls;
