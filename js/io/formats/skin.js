@@ -375,7 +375,7 @@ BARS.defineActions(function() {
 		condition: {formats: ['skin']},
 		value: false,
 		onChange(exploded_view) {
-			Undo.initEdit({elements: Cube.all});
+			Undo.initEdit({elements: Cube.all, exploded_view: !exploded_view});
 			Cube.all.forEach(cube => {
 				let center = [
 					cube.from[0] + (cube.to[0] - cube.from[0]) / 2,
@@ -387,7 +387,7 @@ BARS.defineActions(function() {
 				cube.from.V3_add(center);
 				cube.to.V3_add(center);
 			})
-			Undo.finishEdit('explode_skin_model');
+			Undo.finishEdit('explode_skin_model', {elements: Cube.all, exploded_view: exploded_view});
 			Canvas.updateAllPositions();
 			this.setIcon(this.icon);
 		}
@@ -395,6 +395,12 @@ BARS.defineActions(function() {
 	Blockbench.on('reset_project', () => {
 		explode_skin_model.value = false;
 		explode_skin_model.updateEnabledState();
+	})
+	Blockbench.on('load_undo_save', data => {
+		if (data.save.exploded_view !== undefined) {
+			explode_skin_model.value = data.save.exploded_view;
+			explode_skin_model.updateEnabledState();
+		}
 	})
 })
 
