@@ -683,7 +683,7 @@ class UVEditor {
 		this.size = size;
 		this.jquery.frame[0].style.width = (this.inner_width) + 'px';
 		this.jquery.viewport[0].style.width = (size+8) + 'px';
-		this.jquery.main[0].style.width = (size+8) + 'px';
+		this.jquery.main[0].style.width = (size + (this.id == 'main_uv' ? 8 : 10)) + 'px';
 
 		for (var id in this.sliders) {
 			this.sliders[id].setWidth(size/(Project.box_uv?2:4)-1)

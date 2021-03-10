@@ -478,8 +478,10 @@ window.Dialog = class Dialog {
 		if (this.width) {
 			jq_dialog.css('width', this.width+'px');
 		}
-		let first_focus = jq_dialog.find('.focusable_input').first();
-		if (first_focus) first_focus.focus();
+		if (!Blockbench.isTouch) {
+			let first_focus = jq_dialog.find('.focusable_input').first();
+			if (first_focus) first_focus.trigger('focus');
+		}
 
 		open_dialog = this.id;
 		open_interface = this;

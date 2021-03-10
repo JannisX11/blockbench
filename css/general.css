@@ -284,6 +284,7 @@
 		height: 100%;
 		overflow-x: hidden;
 		overflow-y: auto;
+		flex-grow: 1;
 	}
 	.toolbar_wrapper > .toolbar.vertical {
 		width: 40px;

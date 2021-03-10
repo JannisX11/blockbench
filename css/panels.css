@@ -559,9 +559,10 @@
 		padding: 2px;
 		padding-right: 8px;
 		display: flex;
+		color: var(--color-subtle_text);
 	}
 	.animation_file_head:hover {
-		color: var(--color-light);
+		color: var(--color-text);
 	}
 	.animation_file_head > .icon-open-state {
 		text-align: center;

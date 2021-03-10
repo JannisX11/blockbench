@@ -632,13 +632,13 @@ const TextureGenerator = {
 				})
 			}
 			
-			var max_size = Math.max(extend_x*res_multiple, extend_y*res_multiple)
+			var max_size = Math.max(extend_x, extend_y)
 			if (options.power) {
 				max_size = Math.getNextPower(max_size, 16);
 			} else {
 				max_size = Math.ceil(max_size/16)*16;
 			}
-			new_resolution = [max_size*res_multiple, max_size*res_multiple];
+			new_resolution = [max_size, max_size];
 		} else {
 			new_resolution = [Project.texture_width, Project.texture_height];
 		}

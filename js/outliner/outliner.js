@@ -1050,7 +1050,7 @@ Interface.definePanels(function() {
 						convertTouchEvent(e2);
 						if (e2.target.classList.contains('outliner_toggle') && e2.target.getAttribute('toggle') == key) {
 							let [node] = eventTargetToNode(e2.target);
-							if (!affected.includes(node) && (!node.locked || key == 'locked')) {
+							if (!affected.includes(node) && (!node.locked || key == 'locked' || key == 'visibility')) {
 								let new_affected = [node];
 								if (node instanceof Group) {
 									node.forEachChild(node => new_affected.push(node))

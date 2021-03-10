@@ -768,6 +768,9 @@
 	#uv_dialog_all .UVEditor .uv_transform_info {
 		top: 30px;
 	}
+	#uv_dialog #uv_viewport {
+		margin-left: -8px;
+	}
 
 
 

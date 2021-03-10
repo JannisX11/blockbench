@@ -211,6 +211,10 @@ var Undo = {
 				}
 			})
 		}
+
+		if (aspects.exploded_view !== undefined) {
+			this.exploded_view = !!aspects.exploded_view;
+		}
 	},
 	loadSave(save, reference, mode) {
 		var is_session = mode === 'session';
@@ -441,6 +445,9 @@ var Undo = {
 				display[slot].extend(data).update()
 			}
 		}
+
+		Blockbench.dispatchEvent('load_undo_save', {save, reference, mode})
+
 		if (open_dialog == 'uv_dialog') {
 			for (var key in uv_dialog.editors) {
 				if (uv_dialog.editors[key]) {
