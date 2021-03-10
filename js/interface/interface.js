@@ -346,7 +346,7 @@ function updateInterfacePanels() {
 }
 
 function resizeWindow(event) {
-	if (!Preview.all || (event && event.target && event.target !== window)) {
+	if (!window.Preview || !Preview.all || (event && event.target && event.target !== window)) {
 		return;
 	}
 	if (Animator.open) {

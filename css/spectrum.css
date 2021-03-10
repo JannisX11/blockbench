@@ -292,8 +292,7 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
 
 .sp-container {
     border-radius: 0;
-    background-color: var(--color-back);
-    border: solid 1px var(--color-border);
+    background-color: var(--color-ui);
     box-shadow: 0 0 6px rgba(0, 0, 0, 0.9);
     padding: 0;
 }
