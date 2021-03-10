@@ -264,15 +264,40 @@ function setupInterface() {
 		setActivePanel('timeline');
 	})
 	$(document).on('mousedown touchstart', unselectInterface)
+
+	window.addEventListener('resize', resizeWindow);
+	window.addEventListener('orientationchange', () => {
+		setTimeout(resizeWindow, 100)
+	});
 	
 	$('.context_handler').on('click', function() {
 		$(this).addClass('ctx')
 	})
-	$(document).contextmenu(function(event) {
+
+	Interface.text_edit_menu = new Menu([
+		{
+			id: 'copy',
+			name: 'Copy',
+			icon: 'fa-copy',
+			click() {
+				document.execCommand('copy');
+			}
+		},
+		{
+			id: 'paste',
+			name: 'Paste',
+			icon: 'fa-paste',
+			click() {
+				document.execCommand('paste');
+			}
+		}
+	])
+
+	$(document).on('contextmenu', function(event) {
 		if (!$(event.target).hasClass('allow_default_menu')) {
-			/*if (event.target.nodeName === 'INPUT' && $(event.target).is(':focus')) {
+			if (event.target.nodeName === 'INPUT' && $(event.target).is(':focus')) {
 				Interface.text_edit_menu.open(event, event.target)
-			}*/
+			}
 			return false;
 		}
 	})
@@ -346,7 +371,7 @@ function updateInterfacePanels() {
 }
 
 function resizeWindow(event) {
-	if (!window.Preview || !Preview.all || (event && event.target && event.target !== window)) {
+	if (!Preview.all || (event && event.target && event.target !== window)) {
 		return;
 	}
 	if (Animator.open) {
@@ -372,11 +397,6 @@ function resizeWindow(event) {
 	}
 	Blockbench.dispatchEvent('resize_window', event);
 }
-
-window.addEventListener('resize', resizeWindow);
-window.addEventListener('orientationchange', () => {
-	setTimeout(resizeWindow, 100)
-});
 
 function setProjectTitle(title) {
 	if (Format.bone_rig && Project.geometry_name) {
