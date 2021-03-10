@@ -254,12 +254,15 @@ Object.assign(Blockbench, {
 			} else {
 
 				let a = document.createElement('a');
+				a.target = '_blank'
 
 				if (options.savetype === 'image') {
 					a.href = options.content;
 
 				} else if (options.savetype === 'zip' || options.savetype === 'buffer' || options.savetype === 'binary') {
-					let blob = new Blob(data, {type: "octet/stream"});
+					let blob = options.content instanceof Blob
+							 ? options.content
+							 : new Blob(options.content, {type: "octet/stream"});
 					a.href = window.URL.createObjectURL(blob);
 
 				} else {
@@ -269,7 +272,12 @@ Object.assign(Blockbench, {
 				a.download = file_name;
 				
 				if (Blockbench.browser === 'firefox') document.body.appendChild(a);
-				a.click();
+				var event = document.createEvent("MouseEvents");
+					event.initMouseEvent(
+							"click", true, false, window, 0, 0, 0, 0, 0
+							, false, false, false, false, 0, null
+					);
+				a.dispatchEvent(event);
 				if (Blockbench.browser === 'firefox') document.body.removeChild(a);
 
 			}

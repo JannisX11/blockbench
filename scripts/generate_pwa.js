@@ -6,7 +6,6 @@ workbox.generateSW({
 	globPatterns: [
 		'./index.html',
 		'./favicon.png',
-		'./service_worker.js',
 
 		'./js/**/*',
 		'./lib/**/*',

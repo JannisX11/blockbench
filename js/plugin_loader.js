@@ -119,7 +119,6 @@ class Plugin {
 				})
 			});
 		});
-		return this;
 	}
 	async loadFromFile(file, first) {
 		var scope = this;
