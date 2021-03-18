@@ -452,8 +452,6 @@ window.Dialog = class Dialog {
 				handle: ".dialog_handle",
 				containment: '#page_wrapper'
 			})
-			var x = Math.clamp((window.innerWidth-540)/2, 0, 2000)
-			jq_dialog.css('left', x+'px')
 			jq_dialog.css('position', 'absolute')
 		}
 		return this;
@@ -477,6 +475,10 @@ window.Dialog = class Dialog {
 		jq_dialog.css('top', limitNumber(window.innerHeight/2-jq_dialog.height()/2, 0, 100)+'px');
 		if (this.width) {
 			jq_dialog.css('width', this.width+'px');
+		}
+		if (this.draggable !== false) {
+			var x = Math.clamp((window.innerWidth-this.object.clientWidth)/2, 0, 2000)
+			jq_dialog.css('left', x+'px')
 		}
 		if (!Blockbench.isTouch) {
 			let first_focus = jq_dialog.find('.focusable_input').first();
