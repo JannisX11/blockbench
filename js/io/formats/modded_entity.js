@@ -17,7 +17,7 @@ const Templates = {
 		integer_size: true,
 		file:
 		   `// Made with Blockbench %(bb_version)
-			// Exported for Minecraft version 1.12
+			// Exported for Minecraft version 1.7 - 1.12
 			// Paste this class into your mod and generate all required imports
 
 
@@ -101,7 +101,7 @@ const Templates = {
 		integer_size: false,
 		file: 
 		   `// Made with Blockbench %(bb_version)
-			// Exported for Minecraft version 1.15
+			// Exported for Minecraft version 1.15 - 1.16
 			// Paste this class into your mod and generate all required imports
 
 
