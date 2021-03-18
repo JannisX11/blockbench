@@ -106,6 +106,10 @@ function buildAnimationTracks() {
 						if (channel === 'rotation') {
 							trackType = THREE.QuaternionKeyframeTrack;
 							channel = 'quaternion';
+						} else if (channel == 'position') {
+							values.forEach((val, i) => {
+								values[i] = val/16;
+							})
 						}
 						let track = new trackType(animator.group.mesh.uuid+'.'+channel, times, values, interpolation);
 						tracks.push(track);
