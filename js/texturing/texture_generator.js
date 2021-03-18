@@ -235,12 +235,12 @@ const TextureGenerator = {
 				templates.forEach(tpl => {
 					var vert = extend_x > extend_y;
 					//Scan for empty spot
-					for (var line = 0; line < 2e3; line++) {	
-						for (var x = 0; x <= line; x++) {
-							if (place(tpl, x, line)) return;
-						}
-						for (var y = 0; y < line; y++) {
-							if (place(tpl, line, y)) return;
+
+					for (var line = 0; line < 2e3; line++) {
+						for (var space = 0; space <= line; space++) {
+							if (place(tpl, space, line)) return;
+							if (space == line) continue;
+							if (place(tpl, line, space)) return;
 						}
 					}
 				})
@@ -619,14 +619,12 @@ const TextureGenerator = {
 					}
 				}
 				face_list.forEach(tpl => {
-					var vert = extend_x > extend_y;
 					//Scan for empty spot
-					for (var line = 0; line < 2e3; line++) {	
-						for (var x = 0; x <= line; x++) {
-							if (place(tpl, x, line)) return;
-						}
-						for (var y = 0; y < line; y++) {
-							if (place(tpl, line, y)) return;
+					for (var line = 0; line < 2e3; line++) {
+						for (var space = 0; space <= line; space++) {
+							if (place(tpl, space, line)) return;
+							if (space == line) continue;
+							if (place(tpl, line, space)) return;
 						}
 					}
 				})
