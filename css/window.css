@@ -190,7 +190,7 @@
 		font-family: montserrat, arial, sans-serif;
 		color: var(--color-light);
 		vertical-align: top;
-		min-width: 62px;
+		min-width: 50px;
 		margin-top: -0.6px;
 	}
 	div#title i {
@@ -364,11 +364,8 @@
 		font-weight: normal;
 	}
 	li.menu_bar_point.opened {
-		color: var(--color-light);
+		color: var(--color-accent_text);
 		background: var(--color-accent);
-	}
-	li.menu_bar_point:hover {
-		color: var(--color-light);
 	}
 
 	#mode_selector {
