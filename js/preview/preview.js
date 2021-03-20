@@ -957,7 +957,7 @@ class Preview {
 		this.controls.enabled_before = this.controls.enabled
 		this.controls.enabled = false
 
-		Blockbench.showToastNotification({
+		this.position_toast = Blockbench.showToastNotification({
 			text: 'message.drag_background',
 			icon: 'open_with',
 			click: () => {
@@ -970,6 +970,10 @@ class Preview {
 		this.movingBackground = false;
 		this.controls.enabled = this.controls.enabled_before
 		delete this.controls.enabled_before
+		if (this.position_toast) {
+			this.position_toast.delete();
+			delete this.position_toast;
+		}
 		Settings.saveLocalStorages()
 		return this;
 	}
