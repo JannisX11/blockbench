@@ -93,6 +93,8 @@ function initializeDesktopApp() {
 		$('#windows_window_menu').show()
 	}
 
+	ipcRenderer.send('app-loaded')
+
 }
 //Load Model
 function loadOpenWithBlockbenchFile() {
@@ -419,77 +421,69 @@ function closeBlockbenchWindow() {
 };
 
 
-(function() {
+ipcRenderer.on('update-available', (event, arg) => {
+	console.log('Found new update')
+	if (settings.automatic_updates.value) {
+		ipcRenderer.send('allow-auto-update');
 
-	let update_available_promise = new Promise((resolve, reject) => {
-		ipcRenderer.on('update-available', (event, arg) => {
-			resolve({event, arg})
-		})
-	})
-	
-	Promise.all([update_available_promise, documentReady]).then(results => {
-		if (settings.automatic_updates.value) {
-			ipcRenderer.send('allow-auto-update');
+		let icon_node = Blockbench.getIconNode('donut_large');
+		icon_node.classList.add('spinning');
+		let click_action;
 
-			let icon_node = Blockbench.getIconNode('donut_large');
-			icon_node.classList.add('spinning');
-			let click_action;
-
-			let update_status = {
-				name: tl('menu.help.updating', [0]),
-				id: 'update_status',
-				icon: icon_node,
-				click() {
-					if (click_action) click_action()
-				}
-			};
-			MenuBar.menus.help.addAction('_');
-			MenuBar.menus.help.addAction(update_status);
-			function updateText(text) {
-				update_status.name = text;
-				$('li[menu_item=update_status]').each((i, node) => {
-					node.childNodes.forEach(child => {
-						if (child.nodeName == '#text') {
-							child.textContent = text;
-						}
-					})
-				});
+		let update_status = {
+			name: tl('menu.help.updating', [0]),
+			id: 'update_status',
+			icon: icon_node,
+			click() {
+				if (click_action) click_action()
 			}
-
-			ipcRenderer.on('update-progress', (event, status) => {
-				updateText(tl('menu.help.updating', [Math.round(status.percent)]));
-			})
-			ipcRenderer.on('update-error', (event, err) => {
-				updateText(tl('menu.help.update_failed'));
-				icon_node.textContent = 'warning';
-				icon_node.classList.remove('spinning')
-				click_action = function() {
-					currentwindow.openDevTools()
-				}
-				console.error(err);
-			})
-			ipcRenderer.on('update-downloaded', (event) => {
-				updateText(tl('menu.help.update_ready'));
-				icon_node.textContent = 'system_update_alt';
-				icon_node.classList.remove('spinning')
-				click_action = function() {
-					app.relaunch();
-					app.quit();
-				}
-			})
-
-		} else {
-			addStartScreenSection({
-				color: 'var(--color-back)',
-				graphic: {type: 'icon', icon: 'update'},
-				text: [
-					{type: 'h1', text: tl('message.update_notification.title')},
-					{text: tl('message.update_notification.message')},
-					{type: 'button', text: tl('generic.enable'), click: (e) => {
-						Settings.open({search: 'automatic_updates'})
-					}}
-				]
-			})
+		};
+		MenuBar.menus.help.addAction('_');
+		MenuBar.menus.help.addAction(update_status);
+		function updateText(text) {
+			update_status.name = text;
+			$('li[menu_item=update_status]').each((i, node) => {
+				node.childNodes.forEach(child => {
+					if (child.nodeName == '#text') {
+						child.textContent = text;
+					}
+				})
+			});
 		}
-	})
-})()
+
+		ipcRenderer.on('update-progress', (event, status) => {
+			updateText(tl('menu.help.updating', [Math.round(status.percent)]));
+		})
+		ipcRenderer.on('update-error', (event, err) => {
+			updateText(tl('menu.help.update_failed'));
+			icon_node.textContent = 'warning';
+			icon_node.classList.remove('spinning')
+			click_action = function() {
+				currentwindow.openDevTools()
+			}
+			console.error(err);
+		})
+		ipcRenderer.on('update-downloaded', (event) => {
+			updateText(tl('menu.help.update_ready'));
+			icon_node.textContent = 'system_update_alt';
+			icon_node.classList.remove('spinning')
+			click_action = function() {
+				app.relaunch();
+				app.quit();
+			}
+		})
+
+	} else {
+		addStartScreenSection({
+			color: 'var(--color-back)',
+			graphic: {type: 'icon', icon: 'update'},
+			text: [
+				{type: 'h1', text: tl('message.update_notification.title')},
+				{text: tl('message.update_notification.message')},
+				{type: 'button', text: tl('generic.enable'), click: (e) => {
+					Settings.open({search: 'automatic_updates'})
+				}}
+			]
+		})
+	}
+})
