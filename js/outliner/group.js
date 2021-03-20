@@ -445,6 +445,7 @@ class Group extends OutlinerNode {
 		return Format.centered_grid ? [0, 0, 0] : [8, 8, 8]
 	}});
 	new Property(Group, 'vector', 'rotation');
+	new Property(Group, 'string', 'bedrock_binding', {condition: () => Format.id == 'bedrock'});
 	new Property(Group, 'array', 'cem_animations', {condition: () => Format.id == 'optifine_entity'});
 
 

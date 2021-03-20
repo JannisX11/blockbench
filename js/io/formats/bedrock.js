@@ -391,7 +391,8 @@ function calculateVisibleBox() {
 			name: b.name,
 			origin: b.pivot,
 			rotation: b.rotation,
-			material: b.material
+			material: b.material,
+			bedrock_binding: b.binding,
 		}).init()
 		group.createUniqueName();
 		bones[b.name] = group
@@ -571,6 +572,9 @@ function calculateVisibleBox() {
 			bone.rotation = g.rotation.slice()
 			bone.rotation[0] *= -1;
 			bone.rotation[1] *= -1;
+		}
+		if (g.bedrock_binding) {
+			bone.binding = g.bedrock_binding
 		}
 		if (g.reset) {
 			bone.reset = true
