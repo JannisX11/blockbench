@@ -1219,5 +1219,5 @@
     "action.import_project.desc": "Import another project from a .bbmodel file into the current project",
     "dialog.toolbar_edit.hidden_tools": "Some tools might be hidden because they are not available in the current mode, format, or situation.",
     "settings.camera_near_plane": "Camera Near Plane",
-    "settings.camera_near_plane.desc": "The minimum distance from the camera where objects render. Higher values decrease Z-fighting. Default is 1."
+    "settings.camera_near_plane.desc": "1"
 }
