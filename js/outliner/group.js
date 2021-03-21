@@ -257,7 +257,7 @@ class Group extends OutlinerNode {
 					obj.forEachChild(child => {
 						if (child.movable) child.from.V3_add(diff);
 						if (child.resizable) child.to.V3_add(diff);
-						if (obj.rotatable || obj instanceof Group) child.origin.V3_add(diff);
+						if (child.rotatable || child instanceof Group) child.origin.V3_add(diff);
 					})
 				}
 			}

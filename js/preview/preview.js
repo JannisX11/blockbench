@@ -199,6 +199,76 @@ class Preview {
 		if (!Blockbench.isMobile) {
 			this.orbit_gizmo = new OrbitGizmo(this);
 			this.node.append(this.orbit_gizmo.node);
+
+			let date = new Date();
+			let that_day = [1, 4];
+			if (date.getDate() == that_day[0] && date.getMonth() == that_day[1]-1) {
+				let blocky = document.createElement('div');
+				blocky.className = 'blocky';
+				function blink() {
+					blocky.classList.add('blink');
+					setTimeout(() => {
+						blocky.classList.remove('blink');
+						setTimeout(blink, Math.randomab(3000, 5000));
+					}, Math.randomab(140, 400));
+				}
+				blink();
+				this.node.append(blocky);
+				let win = $(`<div>
+					<i class="material-icons" id="blocky_close_button" title="Close">clear</i>
+					<p id="blocky_main_text"></p>
+					<div id="blocky_actions" class="contextMenu"></div>
+					<button id="blocky_hide_button">Disable Blocky</button>
+				</div>`)[0];
+				blocky.append(win);
+
+				function showBlocky() {
+					win.style.display = 'block';
+
+					let actions, text;
+					if (Modes.paint) {
+						actions = ['create_texture', 'import_palette', 'lock_alpha'];
+						text = `It looks like you're painting a texture.\nWould you like help?`;
+					} else if (Modes.animate) {
+						actions = ['add_animation', 'add_keyframe', 'play_animation'];
+						text = `It looks like you're making an animation.\nWould you like help?`;
+					} else {
+						actions = ['open_model', 'add_cube', 'add_group'];
+						text = `It looks like you're making a model.\nWould you like help?`;
+					}
+
+					win.children.blocky_actions.innerHTML = '';
+					actions.forEach(id => {
+						let action = BarItems[id];
+						var clone = $(action.menu_node).clone(true, true).get(0);
+						clone.onclick = (e) => {
+							if (!Condition(action.condition)) return;
+							action.trigger(e)
+						}
+						win.children.blocky_actions.append(clone);
+					})
+					win.children.blocky_main_text.innerText = text;
+				}
+				blocky.addEventListener('click', (event) => {
+					if (event.target == blocky) {
+						showBlocky();
+					}
+				})
+				Blockbench.on('select_mode', (e) => {
+					if (win.style.display === 'block') showBlocky();
+				})
+				blocky.addEventListener('mouseenter', e => {
+					if (win.style.display !== 'block') {
+						$(blocky).effect('bounce');
+					}
+				})
+				win.children.blocky_close_button.addEventListener('click', event => {
+					win.style.display = 'none';
+				})
+				win.children.blocky_hide_button.addEventListener('click', event => {
+					blocky.remove();
+				})
+			}
 		}
 
 		//Keybinds
@@ -1416,6 +1486,7 @@ const Screencam = {
 							extensions: ['gif'],
 							type: tl('data.image'),
 							savetype: 'binary',
+							name: Project.name.replace(/\.geo$/, ''),
 							content: Buffer(dataUrl.split(',')[1], 'base64')
 						})
 					} else {
@@ -1424,6 +1495,7 @@ const Screencam = {
 							extensions: ['png'],
 							type: tl('data.image'),
 							savetype: 'image',
+							name: Project.name.replace(/\.geo$/, ''),
 							content: dataUrl
 						})
 					}
