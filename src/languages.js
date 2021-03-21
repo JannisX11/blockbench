@@ -1,4 +1,5 @@
 
+import cz from './../lang/cz.json';
 import de from './../lang/de.json';
 import en from './../lang/en.json';
 import es from './../lang/es.json';
@@ -14,6 +15,7 @@ import sv from './../lang/sv.json';
 import zh from './../lang/zh.json';
 
 const data = {
+	cz: cz,
 	de: de,
 	en: en,
 	es: es,
@@ -60,6 +62,7 @@ window.Language = {
 	code: 'en',
 	options: {
 		en: 'English',
+		cz: 'Čeština (Czech)',
 		de: 'Deutsch (German)',
 		es: 'Espa\u00F1ol (Spanish)',
 		fr: 'Fran\u00E7ais (French)',
