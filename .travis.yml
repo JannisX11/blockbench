@@ -5,7 +5,7 @@ language: node_js
 node:
   - 12
 
-if: branch = master
+if: branch = master AND commit_message =~ ci-build
 
 jobs:
   include:

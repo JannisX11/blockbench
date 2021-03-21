@@ -257,7 +257,7 @@ class Group extends OutlinerNode {
 					obj.forEachChild(child => {
 						if (child.movable) child.from.V3_add(diff);
 						if (child.resizable) child.to.V3_add(diff);
-						if (obj.rotatable || obj instanceof Group) child.origin.V3_add(diff);
+						if (child.rotatable || child instanceof Group) child.origin.V3_add(diff);
 					})
 				}
 			}
@@ -445,6 +445,7 @@ class Group extends OutlinerNode {
 		return Format.centered_grid ? [0, 0, 0] : [8, 8, 8]
 	}});
 	new Property(Group, 'vector', 'rotation');
+	new Property(Group, 'string', 'bedrock_binding', {condition: () => Format.id == 'bedrock'});
 	new Property(Group, 'array', 'cem_animations', {condition: () => Format.id == 'optifine_entity'});
 
 

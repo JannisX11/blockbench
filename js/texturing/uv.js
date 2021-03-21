@@ -186,7 +186,7 @@ class UVEditor {
 				Undo.initEdit({elements: Cube.selected, uv_only: true})
 			},
 			resize: function(event, ui) {
-				scope.save()
+				scope.save(false)
 				scope.displaySliders()
 			},
 			stop: function(event, ui) {
@@ -217,12 +217,12 @@ class UVEditor {
 				p.left = Math.round(p.left / step_x) * step_x;
 				p.top  = Math.round(p.top  / step_y) * step_y;
 
-				scope.save();
+				scope.save(true);
 				scope.displaySliders();
 				return true;
 			},
 			stop: function(event, ui) {
-				scope.save()
+				scope.save(true)
 				scope.disableAutoUV()
 				Undo.finishEdit('uv_change')
 				scope.updateDragHandle(ui.position)
@@ -854,7 +854,7 @@ class UVEditor {
 			main_uv.loadData()
 		}
 	}
-	save() {
+	save(pos_only) {
 		if (!Modes.edit) return;
 		var scope = this;
 		//Save UV from Frame to object
@@ -887,10 +887,19 @@ class UVEditor {
 			if (uvTag[1] > uvTag[3]) {
 				top2 = [top, top = top2][0];
 			}
-			var uvArr = [left, top, left2, top2]
 
 			Cube.selected.forEach(function(obj) {
-				obj.faces[scope.face].uv = uvArr.slice()
+				let {uv} = obj.faces[scope.face];
+				if (pos_only) {
+					let diff_x = left > left2 ? left2 - uv[2] : left - uv[0];
+					let diff_y = top  > top2  ? top2  - uv[3] : top  - uv[1];
+					uv[0] += diff_x;
+					uv[1] += diff_y;
+					uv[2] += diff_x;
+					uv[3] += diff_y;
+				} else {
+					uv.replace([left, top, left2, top2])
+				}
 				Canvas.updateUV(obj)
 			})
 		}

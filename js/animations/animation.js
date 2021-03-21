@@ -1594,7 +1594,7 @@ const Animator = {
 	buildFile(path_filter, name_filter) {
 		var animations = {}
 		Animator.animations.forEach(function(a) {
-			if ((!path_filter || a.path == path_filter) && (!name_filter || !name_filter.length || name_filter.includes(a.name))) {
+			if ((typeof path_filter != 'string' || a.path == path_filter) && (!name_filter || !name_filter.length || name_filter.includes(a.name))) {
 				let ani_tag = a.compileBedrockAnimation();
 				animations[a.name] = ani_tag;
 			}
