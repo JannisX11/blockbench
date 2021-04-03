@@ -4,6 +4,13 @@ var codec = new Codec('optifine_entity', {
 	name: 'OptiFine JEM',
 	extension: 'jem',
 	remember: true,
+	load_filter: {
+		type: 'json',
+		extensions: ['jem'],
+		condition(file) {
+			return file && file.models != undefined;
+		}
+	},
 	compile(options) {
 		if (options === undefined) options = {}
 		var entitymodel = {}
@@ -243,13 +250,12 @@ var codec = new Codec('optifine_entity', {
 				readContent(b, group, 0)
 			})
 		}
-		loadOutlinerDraggable()
 		if (model.texture) {
 			var path = path.replace(/\\[\w .-]+$/, '\\'+model.texture)
 			new Texture().fromPath(path).add(false)
 		}
 		this.dispatchEvent('parsed', {model});
-		Canvas.updateAll()
+		Canvas.updateAllBones()
 	}
 })
 

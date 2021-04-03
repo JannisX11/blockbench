@@ -1,5 +1,5 @@
 
-class Locator extends NonGroup {
+class Locator extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid);
 
@@ -43,19 +43,25 @@ class Locator extends NonGroup {
 			this.addTo(Group.selected)
 		}
 		super.init();
-		TickUpdates.outliner = true;
 		return this;
 	}
 	flip(axis, center) {
 		var offset = this.from[axis] - center
 		this.from[axis] = center - offset;
+		// Name
+		if (axis == 0 && this.name.includes('right')) {
+			this.name = this.name.replace(/right/g, 'left').replace(/2$/, '');
+		} else if (axis == 0 && this.name.includes('left')) {
+			this.name = this.name.replace(/left/g, 'right').replace(/2$/, '');
+		}
+		this.createUniqueName();
 		return this;
 	}
 	getWorldCenter() {
 		var pos = new THREE.Vector3();
 		var q = new THREE.Quaternion();
 		if (this.parent instanceof Group) {
-			this.parent.mesh.getWorldPosition(pos);
+			THREE.fastWorldPosition(this.parent.mesh, pos);
 			this.parent.mesh.getWorldQuaternion(q);
 			var offset2 = new THREE.Vector3().fromArray(this.parent.origin).applyQuaternion(q);
 			pos.sub(offset2);
@@ -73,8 +79,8 @@ class Locator extends NonGroup {
 	Locator.prototype.movable = true;
 	Locator.prototype.visibility = true;
 	Locator.prototype.buttons = [
+		Outliner.buttons.export,
 		Outliner.buttons.locked,
-		Outliner.buttons.export
 	];
 	Locator.prototype.needsUniqueName = true;
 	Locator.prototype.menu = new Menu([
@@ -100,6 +106,11 @@ BARS.defineActions(function() {
 			locator.select().createUniqueName();
 			objs.push(locator);
 			Undo.finishEdit('add locator');
+			Vue.nextTick(function() {
+				if (settings.create_rename.value) {
+					locator.rename();
+				}
+			})
 		}
 	})
 })

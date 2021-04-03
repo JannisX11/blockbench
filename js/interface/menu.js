@@ -1,7 +1,23 @@
-var open_menu;
+var open_menu = null;
+
+function handleMenuOverflow(node) {
+	node = node.get(0);
+	if (!node) return;
+	// Todo: mobile support
+	node.addEventListener('wheel', e => {
+		e.stopPropagation();
+		let top = parseInt(node.style.top);
+		let offset = top - $(node).offset().top;
+		top = Math.clamp(
+			top - e.deltaY,
+			window.innerHeight - node.clientHeight + offset,
+			offset + 26
+		);
+		node.style.top = `${top}px`;
+	})
+}
 class Menu {
 	constructor(structure) {
-		var scope = this;
 		this.children = [];
 		this.node = $('<ul class="contextMenu"></ul>')[0]
 		this.structure = structure
@@ -23,7 +39,7 @@ class Menu {
 			var offset = childlist.offset()
 			var el_height = childlist.height()
 
-			if (offset.left + el_width > $(window).width()) {
+			if (offset.left + el_width > window.innerWidth) {
 				if (Blockbench.isMobile) {
 					childlist.css('visibility', 'hidden');
 					setTimeout(() => {
@@ -35,16 +51,18 @@ class Menu {
 				}
 			}
 
-			let window_height = $(window).height() - 26;
+			let window_height = window.innerHeight - 26;
 
-			if (offset.top + el_height > window_height) {
-				childlist.css('margin-top', 4-childlist.height() + 'px')
+			if (el_height > window_height) {
+				childlist.css('margin-top', '0').css('top', '0')
+				childlist.css('top', (-childlist.offset().top + 26) + 'px')
+				handleMenuOverflow(childlist);
+
+			} else if (offset.top + el_height > window_height) {
+				childlist.css('margin-top', 26-childlist.height() + 'px')
 				if (childlist.offset().top < 26) {
 					childlist.offset({top: 26})
 				}
-			}
-			if (el_height > $(window).height()) {
-				childlist.css('height', $(window).height()+'px').css('overflow-y', 'scroll')
 			}
 		}
 	}
@@ -54,7 +72,8 @@ class Menu {
 		var obj = $(this.node)
 		if (e.which >= 37 && e.which <= 40) {
 
-			if (obj.find('li.focused').length) {
+			let is_menu_bar = scope.type === 'bar_menu' && e.which%2;
+			if (obj.find('li.focused').length || is_menu_bar) {
 				var old = obj.find('li.focused'), next;
 				switch (e.which) {
 					case 37: next = old.parent('ul').parent('li'); 					break;//<
@@ -74,7 +93,7 @@ class Menu {
 				if (next && next.length) {
 					old.removeClass('focused')
 					scope.hover(next.get(0))
-				} else if (scope.type === 'bar_menu' && e.which%2) {
+				} else if (is_menu_bar) {
 					var index = MenuBar.keys.indexOf(scope.id)
 					index += (e.which == 39 ? 1 : -1)
 					if (index < 0) {
@@ -158,6 +177,7 @@ class Menu {
 
 				entry = $(s.menu_node)
 
+				entry.removeClass('focused')
 				entry.off('click')
 				entry.off('mouseenter mousedown')
 				entry.on('mouseenter mousedown', function(e) {
@@ -170,7 +190,6 @@ class Menu {
 					createChildList(s, entry)
 				} else {
 					entry.on('click', (e) => {s.trigger(e)})
-					//entry[0].addEventListener('click', )
 				}
 				parent.append(entry)
 
@@ -181,7 +200,7 @@ class Menu {
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = $(`<li title="${s.description||''}" menu_item="${s.id}">${tl(s.name)}</li>`)
+				entry = $(`<li title="${s.description||''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`)
 				entry.prepend(icon)
 
 				//Submenu
@@ -225,7 +244,7 @@ class Menu {
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = $(`<li title="${s.description||''}" menu_item="${s.id}">${tl(s.name)}</li>`)
+				entry = $(`<li title="${s.description||''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`)
 				entry.prepend(icon)
 				if (typeof s.click === 'function') {
 					entry.click(e => {
@@ -257,7 +276,7 @@ class Menu {
 
 		var el_width = ctxmenu.width()
 		var el_height = ctxmenu.height()
-		let window_height = $(window).height() - 26;
+		let window_height = window.innerHeight - 26;
 
 		if (position && position.clientX !== undefined) {
 			var offset_left = position.clientX
@@ -277,7 +296,7 @@ class Menu {
 			var offset_top  = $(position).offset().top + $(position).height();
 		}
 
-		if (offset_left > $(window).width() - el_width) {
+		if (offset_left > window.innerWidth - el_width) {
 			offset_left -= el_width
 			if (position && position.clientWidth) offset_left += position.clientWidth;
 		}
@@ -290,7 +309,7 @@ class Menu {
 		ctxmenu.css('top',  offset_top +'px')
 
 		if (el_height > window_height) {
-			ctxmenu.css('height', window_height+'px').css('overflow-y', 'scroll')
+			handleMenuOverflow(ctxmenu);
 		}
 
 		$(scope.node).filter(':not(.tx)').addClass('tx').click(function(ev) {
@@ -315,17 +334,11 @@ class Menu {
 	}
 	hide() {
 		$(this.node).detach()
-		open_menu = undefined;
+		open_menu = null;
 		return this;
 	}
 	conditionMet() {
-		if (this.condition === undefined) {
-			return true;
-		} else if (typeof this.condition === 'function') {
-			return this.condition()
-		} else {
-			return !!this.condition
-		}
+		return Condition(this.condition);
 	}
 	addAction(action, path) {
 
@@ -405,16 +418,17 @@ class Menu {
 	}
 }
 class BarMenu extends Menu {
-	constructor(id, structure, condition) {
+	constructor(id, structure, options = {}) {
 		super()
 		var scope = this;
 		MenuBar.menus[id] = this
 		this.type = 'bar_menu'
 		this.id = id
 		this.children = [];
-		this.condition = condition
+		this.condition = options.condition
 		this.node = $('<ul class="contextMenu"></ul>')[0]
-		this.label = $('<li class="menu_bar_point">'+tl('menu.'+id)+'</li>')[0]
+		this.name = tl(options.name || `menu.${id}`);
+		this.label = $(`<li class="menu_bar_point">${this.name}</li>`)[0]
 		$(this.label).click(function() {
 			if (open_menu === scope) {
 				scope.hide()
@@ -483,6 +497,16 @@ const MenuBar = {
 							}
 						})
 					})
+					if (arr.length) {
+						arr.push('_', {
+							name: 'menu.file.recent.clear',
+							icon: 'clear',
+							click: function(c, event) {
+								recent_projects.empty();
+								updateRecentProjects();
+							}
+						})
+					}
 					return arr
 				}
 			},
@@ -494,7 +518,8 @@ const MenuBar = {
 			'close_project',
 			'_',
 			{name: 'menu.file.import', id: 'import', icon: 'insert_drive_file', children: [
-				'add_model',
+				'import_project',
+				'import_java_block_model',
 				'import_optifine_part',
 				'extrude_texture'
 			]},
@@ -505,9 +530,11 @@ const MenuBar = {
 				'export_class_entity',
 				'export_optifine_full',
 				'export_optifine_part',
+				'export_minecraft_skin',
 				'export_obj',
 				'export_gltf',
 				'upload_sketchfab',
+				'share_model',
 			]},
 			'export_over',
 			'export_asset_archive',
@@ -527,6 +554,8 @@ const MenuBar = {
 			'add_cube',
 			'add_group',
 			'add_locator',
+			'add_null_object',
+			'rename',
 			'unlock_everything',
 			'duplicate',
 			'delete',
@@ -562,11 +591,12 @@ const MenuBar = {
 				'toggle_export',
 				'toggle_autouv',
 				'toggle_shade',
-				'toggle_mirror_uv',
-				'rename'
+				'toggle_mirror_uv'
 			]}
 
-		], () => Modes.edit)
+		], {
+			condition: {modes: ['edit']}
+		})
 
 		new BarMenu('display', [
 			'copy',
@@ -574,11 +604,11 @@ const MenuBar = {
 			'_',
 			'add_display_preset',
 			'apply_display_preset'
-		], () => Modes.display)
+		], {
+			condition: {modes: ['display']}
+		})
 		
 		new BarMenu('filter', [
-			'plugins_window',
-			'_',
 			'remove_blank_faces',
 			/*
 			plaster
@@ -602,26 +632,27 @@ const MenuBar = {
 				'flip_z'
 			]},
 			'delete',
+			'lock_motion_trail',
 			'_',
 			'select_effect_animator',
 			'_',
 			'load_animation_file',
 			'save_all_animations',
-		], () => Animator.open)
+			'export_animation_file'
+		], {
+			condition: {modes: ['animate']}
+		})
 
 
 		new BarMenu('view', [
 			'fullscreen',
-			{name: 'menu.view.zoom', id: 'zoom', condition: isApp, icon: 'search', children: [
-				'zoom_in',
-				'zoom_out',
-				'zoom_reset'
-			]},
 			'_',
 			'toggle_shading',
+			'toggle_motion_trails',
 			'toggle_wireframe',
 			'preview_checkerboard',
 			'painting_grid',
+			'_',
 			'toggle_quad_view',
 			'focus_on_selection',
 			{name: 'menu.view.screenshot', id: 'screenshot', icon: 'camera_alt', children: [
@@ -651,9 +682,7 @@ const MenuBar = {
 				{name: 'menu.help.plugin_documentation', id: 'plugin_documentation', icon: 'fa-book', click: () => {
 					Blockbench.openLink('https://jannisx11.github.io/blockbench-docs/');
 				}},
-				{name: 'menu.help.developer.dev_tools', icon: 'fas.fa-tools', condition: isApp, click: () => {
-					currentwindow.toggleDevTools()
-				}},
+				'open_dev_tools',
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
 					if (confirm(tl('menu.help.developer.reset_storage.confirm'))) {
 						localStorage.clear()
@@ -662,7 +691,7 @@ const MenuBar = {
 						window.location.reload(true)
 					}
 				}},
-				{name: 'menu.help.developer.cache_reload', icon: 'cached', condition: !isApp, click: () => {
+				{name: 'menu.help.developer.cache_reload', id: 'cache_reload', icon: 'cached', condition: !isApp, click: () => {
 					window.location.reload(true)
 				}},
 				'reload',
@@ -688,8 +717,6 @@ const MenuBar = {
 				}
 			}
 		}
-	},
-	getNode(data) {	
 	},
 	addAction(action, path) {
 		if (path) {

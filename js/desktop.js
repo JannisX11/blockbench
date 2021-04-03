@@ -10,13 +10,27 @@ const https = require('https');
 const PathModule = require('path');
 
 const currentwindow = electron.getCurrentWindow();
-const ElecDialogs = {};
 var dialog_win	 = null,
-	latest_version = false,
-	recent_projects= undefined;
+	latest_version = false;
+const recent_projects = (function() {
+	let array = [];
+	var raw = localStorage.getItem('recent_projects')
+	if (raw) {
+		try {
+			array = JSON.parse(raw).slice().reverse()
+		} catch (err) {}
+		array = array.filter(project => {
+			return fs.existsSync(project.path);
+		})
+	}
+	return array
+})();
+
 
 app.setAppUserModelId('blockbench')
 
+// Deprecated
+const ElecDialogs = {};
 if (electron.dialog.showMessageBoxSync) {
 	ElecDialogs.showMessageBox = function(a, b, cb) {
 		if (!cb) cb = b;
@@ -50,13 +64,6 @@ function initializeDesktopApp() {
 		shell.openExternal(event.target.href);
 		return true;
 	});
-	if (currentwindow.webContents.zoomLevel !== undefined) {
-		Prop.zoom = 100 + currentwindow.webContents.zoomLevel*12
-	} else if (compareVersions('5.0.0', process.versions.electron)) {
-		Prop.zoom = 100 + currentwindow.webContents._getZoomLevel()*12
-	} else {
-		Prop.zoom = 100 + currentwindow.webContents.getZoomLevel()*12
-	}
 
 	function makeUtilFolder(name) {
 		let path = PathModule.join(app.getPath('userData'), name)
@@ -71,6 +78,8 @@ function initializeDesktopApp() {
 		Blockbench.addFlag('dev')
 	}
 
+	settings.interface_scale.onChange();
+
 	if (Blockbench.platform == 'darwin') {
 		//Placeholder
 		$('#mac_window_menu').show()
@@ -84,12 +93,14 @@ function initializeDesktopApp() {
 		$('#windows_window_menu').show()
 	}
 
+	ipcRenderer.send('app-loaded')
+
 }
 //Load Model
 function loadOpenWithBlockbenchFile() {
 	if (electron.process.argv.length >= 2) {
 		var extension = pathToExtension(electron.process.argv.last())
-		if (['json', 'bbmodel', 'jem'].includes(extension)) {
+		if (Codec.getAllExtensions().includes(extension)) {
 			Blockbench.read([electron.process.argv.last()], {}, (files) => {
 				loadModelFile(files[0])
 			})
@@ -100,18 +111,25 @@ function loadOpenWithBlockbenchFile() {
 	console.log('Electron '+process.versions.electron+', Node '+process.versions.node)
 })()
 
+window.confirm = function(message, title) {
+	let index = electron.dialog.showMessageBoxSync(currentwindow, {
+		title: title || electron.app.name,
+		detail: message,
+		type: 'none',
+		noLink: true,
+		buttons: [tl('dialog.ok'), tl('dialog.cancel')]
+	});
+	return index == 0;
+}
+window.alert = function(message, title) {
+	electron.dialog.showMessageBoxSync(electron.getCurrentWindow(), {
+		title: title || electron.app.name,
+		detail: message
+	});
+}
+
 //Recent Projects
 function updateRecentProjects() {
-	if (recent_projects === undefined) {
-		//Setup
-		recent_projects = []
-		var raw = localStorage.getItem('recent_projects')
-		if (raw) {
-			try {
-				recent_projects = JSON.parse(raw).slice().reverse()
-			} catch (err) {}
-		}
-	}
 	//Set Local Storage
 	localStorage.setItem('recent_projects', JSON.stringify(recent_projects.slice().reverse()))
 }
@@ -262,7 +280,7 @@ function selectImageEditorFile(texture) {
 }
 //Default Pack
 function openDefaultTexturePath() {
-	var answer = ElecDialogs.showMessageBox(currentwindow, {
+	var answer = electron.dialog.showMessageBoxSync(currentwindow, {
 		type: 'info',
 		buttons: (
 			settings.default_path.value ? 	[tl('dialog.cancel'), tl('dialog.continue'), tl('generic.remove')]
@@ -276,14 +294,14 @@ function openDefaultTexturePath() {
 	if (answer === 0) {
 		return;
 	} else if (answer === 1) {
-		 ElecDialogs.showOpenDialog(currentwindow, {
+
+		let path = Blockbench.pickDirectory({
 			title: tl('message.default_textures.select'),
-			properties: ['openDirectory'],
-		}, function(filePaths) {
-			if (filePaths) {
-				settings.default_path.value = filePaths[0]
-			}
-		})
+			resource_id: 'texture',
+		});
+		if (path) {
+			settings.default_path.value = path;
+		}
 	} else {
 		settings.default_path.value = false
 	}
@@ -365,7 +383,7 @@ function showSaveDialog(close) {
 		}
 	})
 	if ((window.Prop && Prop.project_saved === false && (elements.length > 0 || Group.all.length > 0)) || unsaved_textures) {
-		var answer = ElecDialogs.showMessageBox(currentwindow, {
+		var answer = electron.dialog.showMessageBoxSync(currentwindow, {
 			type: 'question',
 			buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
 			title: 'Blockbench',
@@ -403,79 +421,69 @@ function closeBlockbenchWindow() {
 };
 
 
-(function() {
+ipcRenderer.on('update-available', (event, arg) => {
+	console.log('Found new update')
+	if (settings.automatic_updates.value) {
+		ipcRenderer.send('allow-auto-update');
 
-	let update_available_promise = new Promise((resolve, reject) => {
-		ipcRenderer.on('update-available', (event, arg) => {
-			resolve({event, arg})
-		})
-	})
-	
-	Promise.all([update_available_promise, documentReady]).then(results => {
-		if (settings.automatic_updates.value) {
-			ipcRenderer.send('allow-auto-update');
+		let icon_node = Blockbench.getIconNode('donut_large');
+		icon_node.classList.add('spinning');
+		let click_action;
 
-			let icon_node = Blockbench.getIconNode('donut_large');
-			icon_node.classList.add('spinning');
-			let click_action;
-
-			let update_status = {
-				name: tl('menu.help.updating', [0]),
-				id: 'update_status',
-				icon: icon_node,
-				click() {
-					if (click_action) click_action()
-				}
-			};
-			MenuBar.menus.help.addAction('_');
-			MenuBar.menus.help.addAction(update_status);
-			function updateText(text) {
-				update_status.name = text;
-				$('li[menu_item=update_status]').each((i, node) => {
-					node.childNodes.forEach(child => {
-						if (child.nodeName == '#text') {
-							child.textContent = text;
-						}
-					})
-				});
+		let update_status = {
+			name: tl('menu.help.updating', [0]),
+			id: 'update_status',
+			icon: icon_node,
+			click() {
+				if (click_action) click_action()
 			}
-
-			ipcRenderer.on('update-progress', (event, status) => {
-				updateText(tl('menu.help.updating', [Math.round(status.percent)]));
-			})
-			ipcRenderer.on('update-error', (event, err) => {
-				updateText(tl('menu.help.update_failed'));
-				icon_node.textContent = 'warning';
-				icon_node.classList.remove('spinning')
-				click_action = function() {
-					currentwindow.openDevTools()
-				}
-				console.error(err);
-			})
-			ipcRenderer.on('update-downloaded', (event) => {
-				updateText(tl('menu.help.update_ready'));
-				icon_node.textContent = 'system_update_alt';
-				icon_node.classList.remove('spinning')
-				click_action = function() {
-					app.relaunch();
-					app.quit();
-				}
-			})
-
-		} else {
-			addStartScreenSection({
-				color: 'var(--color-back)',
-				graphic: {type: 'icon', icon: 'update'},
-				text: [
-					{type: 'h1', text: tl('message.update_notification.title')},
-					{text: tl('message.update_notification.message')},
-					{type: 'button', text: tl('generic.enable'), click: (e) => {
-						Settings.open({search: 'automatic_updates'})
-					}}
-				]
-			})
+		};
+		MenuBar.menus.help.addAction('_');
+		MenuBar.menus.help.addAction(update_status);
+		function updateText(text) {
+			update_status.name = text;
+			$('li[menu_item=update_status]').each((i, node) => {
+				node.childNodes.forEach(child => {
+					if (child.nodeName == '#text') {
+						child.textContent = text;
+					}
+				})
+			});
 		}
-	})
-})()
 
+		ipcRenderer.on('update-progress', (event, status) => {
+			updateText(tl('menu.help.updating', [Math.round(status.percent)]));
+		})
+		ipcRenderer.on('update-error', (event, err) => {
+			updateText(tl('menu.help.update_failed'));
+			icon_node.textContent = 'warning';
+			icon_node.classList.remove('spinning')
+			click_action = function() {
+				currentwindow.openDevTools()
+			}
+			console.error(err);
+		})
+		ipcRenderer.on('update-downloaded', (event) => {
+			updateText(tl('menu.help.update_ready'));
+			icon_node.textContent = 'system_update_alt';
+			icon_node.classList.remove('spinning')
+			click_action = function() {
+				app.relaunch();
+				app.quit();
+			}
+		})
 
+	} else {
+		addStartScreenSection({
+			color: 'var(--color-back)',
+			graphic: {type: 'icon', icon: 'update'},
+			text: [
+				{type: 'h1', text: tl('message.update_notification.title')},
+				{text: tl('message.update_notification.message')},
+				{type: 'button', text: tl('generic.enable'), click: (e) => {
+					Settings.open({search: 'automatic_updates'})
+				}}
+			]
+		})
+	}
+})

@@ -18,11 +18,15 @@ function buildAnimationTracks() {
 						// Sampling calculated (molang) values
 						let contains_script
 						for (var kf of keyframes) {
+							if (kf.interpolation != 'linear') {
+								contains_script = true; break;
+							}
 							for (var data_point of kf.data_points) {
 								if (isNaN(data_point.x) || isNaN(data_point.y) || isNaN(data_point.z)) {
 									contains_script = true; break;
 								}
 							}
+							if (contains_script) break;
 						}
 						if (contains_script) {
 							var last_values;
@@ -102,6 +106,10 @@ function buildAnimationTracks() {
 						if (channel === 'rotation') {
 							trackType = THREE.QuaternionKeyframeTrack;
 							channel = 'quaternion';
+						} else if (channel == 'position') {
+							values.forEach((val, i) => {
+								values[i] = val/16;
+							})
 						}
 						let track = new trackType(animator.group.mesh.uuid+'.'+channel, times, values, interpolation);
 						tracks.push(track);
@@ -158,7 +166,8 @@ var codec = new Codec('gltf', {
 			trs: true,
 			truncateDrawRange: false,
 			forcePowerOfTwoTextures: true,
-			exportFaceColors: false
+			scale_factor: 1/16,
+			exportFaceColors: false,
 		});
 	},
 	export() {

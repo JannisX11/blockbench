@@ -1447,7 +1447,6 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	DisplayMode.loadThirdRight()
 
 	display_area.updateMatrixWorld()
-	display_base.updateMatrixWorld()
 	Transformer.center()
 	if (outlines.children.length) {
 		outlines.children.length = 0
@@ -1458,7 +1457,6 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	resetDisplayBase()
 	setDisplayArea(0,0,0, 0,0,0, 1,1,1)
 	display_area.updateMatrixWorld()
-	display_base.updateMatrixWorld()
 	lights.rotation.set(0, 0, 0);
 	if (scene.parent) scene.parent.remove(scene)
 
@@ -1600,11 +1598,13 @@ function loadDisp(key) {	//Loads The Menu and slider values, common for all Radi
 	display_preview.controls.enabled = true;
 	ground_animation = false;
 	$('#display_crosshair').detach()
+	display_preview.orbit_gizmo.unhide();
 	display_preview.camPers.setFocalLength(45)
 
 	if (display[key] == undefined) {
 		display[key] = new DisplaySlot()
 	}
+	display_preview.force_locked_angle = false;
 	DisplayMode.vue._data.slot = display[key]
 	DisplayMode.slot = display[key]
 	DisplayMode.updateDisplayBase();
@@ -1649,6 +1649,7 @@ DisplayMode.loadFirstRight = function() {	//Loader
 		focal_length: getOptimalFocalLength(),
 	})
 	display_preview.controls.enabled = false
+	display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
@@ -1660,6 +1661,7 @@ DisplayMode.loadFirstLeft = function() {	//Loader
 		focal_length: getOptimalFocalLength(),
 	})
 	display_preview.controls.enabled = false
+	display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
@@ -1680,9 +1682,10 @@ DisplayMode.loadGUI = function() {		//Loader
 		projection: 'orthographic',
 		position: [0, 0, 32],
 		target: [0, 0, 0],
-		locked_angle: 2,
+		locked_angle: 'south',
 		zoom: 1,
 	})
+	display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['inventory_nine', 'inventory_full', 'hud'])
 	BarItems.gui_light.set(Project.front_gui_light ? 'front' : 'side');
 }
@@ -2016,7 +2019,7 @@ Interface.definePanels(function() {
 						<label class="tool" for="gui" onclick="DisplayMode.loadGUI()"><div class="tooltip">${ tl('display.slot.gui') }</div><i class="material-icons">border_style</i></label>
 					</div>
 					<p class="reference_model_bar">${ tl('display.reference') }</p>
-					<div id="display_ref_bar" class="bar tabs_small reference_model_bar">
+					<div id="display_ref_bar" class="bar tabs_small icon_bar reference_model_bar">
 					</div>
 		
 					<div id="display_sliders">

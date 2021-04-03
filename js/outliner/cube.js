@@ -47,6 +47,7 @@ class Face {
 	}
 	reset() {
 		this.uv = [0, 0, 0, 0];
+		this.rotation = 0;
 		this.texture = false;
 		return this;
 	}
@@ -85,6 +86,7 @@ class Face {
 new Property(Face, 'number', 'rotation', {default: 0});
 new Property(Face, 'number', 'tint', {default: -1});
 new Property(Face, 'string', 'cullface', {merge_validation: (val) => (uv_dialog.allFaces.includes(val) || val == '')});
+new Property(Face, 'string', 'material_name');
 new Property(Face, 'boolean', 'enabled', {default: true});
 
 Face.opposite = {
@@ -96,7 +98,7 @@ Face.opposite = {
 	up: 'down'
 }
 
-class Cube extends NonGroup {
+class Cube extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 		let size = canvasGridSize();
@@ -109,9 +111,6 @@ class Cube extends NonGroup {
 		this.inflate = 0;
 		this.rotation = [0, 0, 0];
 		this.origin = [0, 0, 0];
-		if (!Format.centered_grid) {
-			this.origin.V3_set(8, 8, 8);
-		}
 		this.visibility = true;
 		this.autouv = 0
 		this.parent = 'root';
@@ -197,7 +196,6 @@ class Cube extends NonGroup {
 			Merge.number(this.origin, object.origin, 1)
 			Merge.number(this.origin, object.origin, 2)
 		}
-		Merge.boolean(this, object, 'rescale')
 		Merge.string(this, object, 'rotation_axis', (v) => (v === 'x' || v === 'y' || v === 'z'))
 		if (object.faces) {
 			for (var face in this.faces) {
@@ -223,7 +221,6 @@ class Cube extends NonGroup {
 		if (!this.mesh || !this.mesh.parent) {
 			Canvas.addCube(this)
 		}
-		TickUpdates.outliner = true;
 		return this;
 	}
 	size(axis, floored) {
@@ -274,6 +271,7 @@ class Cube extends NonGroup {
 				}
 				delete Canvas.meshes[this.uuid]
 				mesh.geometry.dispose()
+				if (mesh.outline && mesh.outline.geometry) mesh.outline.geometry.dispose()
 			}
 		}
 		delete Canvas.meshes[this.uuid]
@@ -530,7 +528,7 @@ class Cube extends NonGroup {
 		if (m) {
 			var r = m.getWorldQuaternion(new THREE.Quaternion())
 			pos.applyQuaternion(r)
-			pos.add(m.getWorldPosition(new THREE.Vector3()))
+			pos.add(THREE.fastWorldPosition(m, new THREE.Vector3()))
 		}
 		return pos;
 	}
@@ -799,29 +797,29 @@ class Cube extends NonGroup {
 			})
 			return arr;
 		}},
+		'edit_material_instances',
 		'toggle_visibility',
 		'delete'
 	]);
 	Cube.prototype.buttons = [
-		Outliner.buttons.visibility,
-		Outliner.buttons.locked,
+		Outliner.buttons.autouv,
+		Outliner.buttons.shade,
 		Outliner.buttons.export,
-		Outliner.buttons.shading,
-		Outliner.buttons.autouv
+		Outliner.buttons.locked,
+		Outliner.buttons.visibility,
 	];
 	Cube.selected = [];
 	Cube.all = [];
 
 	new Property(Cube, 'string', 'name', {default: 'cube'})
-
-
+	new Property(Cube, 'boolean', 'rescale')
 
 BARS.defineActions(function() {
 	new Action({
 		id: 'add_cube',
 		icon: 'add_box',
 		category: 'edit',
-		keybind: new Keybind({key: 78, ctrl: true}),
+		keybind: new Keybind({key: 'n', ctrl: true}),
 		condition: () => Modes.edit,
 		click: function () {
 			
@@ -852,17 +850,58 @@ BARS.defineActions(function() {
 			if (Group.selected) Group.selected.unselect()
 			base_cube.select()
 			Canvas.updateSelected()
-			loadOutlinerDraggable()
 			Undo.finishEdit('add_cube', {outliner: true, elements: selected, selection: true});
 			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 
 			Vue.nextTick(function() {
-				updateSelection()
 				if (settings.create_rename.value) {
 					base_cube.rename()
 				}
 			})
 			return base_cube
+		}
+	})
+
+	new Action({
+		id: 'edit_material_instances',
+		icon: 'fas.fa-adjust',
+		category: 'edit',
+		condition: {modes: ['edit'], formats: ['bedrock'], method: () => !Project.box_uv && Cube.selected.length},
+		click: function () {
+			let form = {};
+
+			let first = Cube.selected[0];
+			for (var key in first.faces) {
+				let face = first.faces[key];
+				if (face.texture != null) {
+					form[key] = {
+						label: `face.${key}`,
+						value: face.material_name
+					}
+				}
+			}
+
+			let dialog = new Dialog({
+				id: 'material_instances',
+				title: 'dialog.material_instances.title',
+				width: 460,
+				form,
+				onConfirm: form_data => {
+					dialog.hide();
+					
+					Undo.initEdit({elements: Cube.selected});
+					Cube.selected.forEach(cube => {
+						for (var key in cube.faces) {
+							let face = cube.faces[key];
+							if (face.texture != null && typeof form_data[key] == 'string') {
+								face.material_name = form_data[key];
+							}
+						}
+					})
+					Undo.finishEdit('edit material instances')
+				}
+			})
+			dialog.show();
 		}
 	})
 })

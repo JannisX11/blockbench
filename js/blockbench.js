@@ -22,17 +22,16 @@ var Prop = {
 	recording		: null,
 	project_saved 	: true,
 	fps				: 0,
-	zoom			: 100,
 	progress		: 0,
 	session 		: false,
 	connections 	: 0,
-	facing		 	: 'north'
+	facing		 	: 'north',
+	show_right_bar  : true,
+	show_left_bar   : true,
 }
 
 const mouse_pos = {x:0,y:0}
 const sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
-
-$.ajaxSetup({ cache: false });
 
 function onVueSetup(func) {
 	if (!onVueSetup.funcs) {
@@ -42,22 +41,18 @@ function onVueSetup(func) {
 }
 function canvasGridSize(shift, ctrl) {
 	if (!shift && !ctrl) {
-		return 16 / limitNumber(settings.edit_size.value, 1, 512)
+		return 16 / Math.clamp(settings.edit_size.value, 1, 512)
 	} else if (ctrl && shift) {
-		var basic = 16 / limitNumber(settings.edit_size.value, 1, 512)
-		var control = 16 / limitNumber(settings.ctrl_size.value, 1, 4096)
-		var shift = 16 / limitNumber(settings.shift_size.value, 1, 4096)
-		control = basic / control
-		return shift / control
+		return 16 / Math.clamp(settings.ctrl_shift_size.value, 1, 4096)
 	} else if (ctrl) {
-		return 16 / limitNumber(settings.ctrl_size.value, 1, 4096)
+		return 16 / Math.clamp(settings.ctrl_size.value, 1, 4096)
 	} else {
-		return 16 / limitNumber(settings.shift_size.value, 1, 4096)
+		return 16 / Math.clamp(settings.shift_size.value, 1, 4096)
 	}
 }
 function updateNslideValues() {
 
-	if (selected.length) {
+	if (Outliner.selected.length) {
 		BarItems.slider_pos_x.update()
 		BarItems.slider_pos_y.update()
 		BarItems.slider_pos_z.update()
@@ -72,7 +67,7 @@ function updateNslideValues() {
 			BarItems.slider_face_tint.update()
 		}
 	}
-	if (selected.length || (Format.bone_rig && Group.selected)) {
+	if (Outliner.selected.length || (Format.bone_rig && Group.selected)) {
 		BarItems.slider_origin_x.update()
 		BarItems.slider_origin_y.update()
 		BarItems.slider_origin_z.update()
@@ -83,64 +78,20 @@ function updateNslideValues() {
 		if (Format.bone_rig) {
 			BarItems.bone_reset_toggle.setIcon(Group.selected && Group.selected.reset ? 'check_box' : 'check_box_outline_blank')
 		} else {
-			BarItems.rescale_toggle.setIcon(selected[0].rescale ? 'check_box' : 'check_box_outline_blank')
+			BarItems.rescale_toggle.setIcon(Outliner.selected[0].rescale ? 'check_box' : 'check_box_outline_blank')
 		}
 	}
-	if (Modes.animate && Group.selected) {
-		//BarItems.slider_ik_chain_length.update();
-		//BarItems.ik_enabled.setIcon(Group.selected.ik_enabled ? 'check_box' : 'check_box_outline_blank')
+	if (Modes.animate && NullObject.selected[0]) {
+		BarItems.slider_ik_chain_length.update();
+		BarItems.ik_enabled.setIcon(NullObject.selected[0].ik_enabled ? 'check_box' : 'check_box_outline_blank')
 	}
-}
-function setProjectResolution(width, height, modify_uv) {
-	if (Project.texture_width / width != Project.texture_width / height) {
-		modify_uv = false;
+	if (Texture.all.length) {
+		BarItems.animated_texture_frame.update();
 	}
-
-	Undo.initEdit({uv_mode: true, elements: Cube.all, uv_only: true})
-
-	let old_res = {
-		x: Project.texture_width,
-		y: Project.texture_height
-	}
-	Project.texture_width = width;
-	Project.texture_height = height;
-
-
-	if (modify_uv) {
-		var multiplier = [
-			Project.texture_width/old_res.x,
-			Project.texture_height/old_res.y
-		]
-		function shiftCube(cube, axis) {
-			if (Project.box_uv) {
-				cube.uv_offset[axis] *= multiplier[axis];
-			} else {
-				for (var face in cube.faces) {
-					var uv = cube.faces[face];
-					uv[axis] *= multiplier[axis];
-					uv[axis+2] *= multiplier[axis];
-				}
-			}
-		}
-		if (old_res.x != Project.texture_width && Math.areMultiples(old_res.x, Project.texture_width)) {
-			Cube.all.forEach(cube => shiftCube(cube, 0));
-		}
-		if (old_res.y != Project.texture_height &&  Math.areMultiples(old_res.x, Project.texture_width)) {
-			Cube.all.forEach(cube => shiftCube(cube, 1));
-		}
-	}
-	Undo.finishEdit('Changed project resolution')
-	Canvas.updateAllUVs()
-	if (selected.length) {
-		main_uv.loadData()
-	}
-}
-function updateProjectResolution() {
-	$('#project_resolution_status').text(`${Project.texture_width} ⨉ ${Project.texture_height}`);
 }
 
 //Selections
-function updateSelection() {
+function updateSelection(options = {}) {
 	elements.forEach(obj => {
 		if (selected.includes(obj) && !obj.selected && !obj.locked) {
 			obj.selectLow()
@@ -164,19 +115,22 @@ function updateSelection() {
 		}
 	}
 	if (Cube.selected.length) {
-		$('.selection_only').css('visibility', 'visible')
+		document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'visible'));
 	} else {
 		if (Format.bone_rig && Group.selected) {
-			$('.selection_only').css('visibility', 'hidden')
-			$('.selection_only#element').css('visibility', 'visible')
+			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
+			document.querySelectorAll('.selection_only#element').forEach(node => node.style.setProperty('visibility', 'visible'));
 		} else {
-			$('.selection_only').css('visibility', 'hidden')
-			if (Locator.selected.length) {
-				$('.selection_only#element').css('visibility', 'visible')
+			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
+			if (Outliner.selected.length) {
+				document.querySelectorAll('.selection_only#element').forEach(node => node.style.setProperty('visibility', 'visible'));
 			}
 		}
+		if (Group.selected || NullObject.selected[0]) {
+			document.querySelectorAll('.selection_only#bone').forEach(node => node.style.setProperty('visibility', 'visible'));
+		}
 		if (Format.single_texture && Modes.paint) {
-			$('.selection_only#uv').css('visibility', 'visible')
+			document.querySelectorAll('.selection_only#uv').forEach(node => node.style.setProperty('visibility', 'visible'));
 		}
 	}
 	if (Cube.selected.length || (Format.single_texture && Modes.paint)) {
@@ -185,11 +139,14 @@ function updateSelection() {
 	}
 	if (Modes.animate) {
 		updateKeyframeSelection();
+		if (Timeline.selected_animator && !Timeline.selected_animator.selected) {
+			Timeline.selected_animator = null;
+		}
 	}
 
 	BarItems.cube_counter.update();
 	updateNslideValues();
-	updateCubeHighlights();
+	if (settings.highlight_cubes.value) updateCubeHighlights();
 	Canvas.updateOrigin();
 	Transformer.updateSelection();
 	Transformer.update();
@@ -205,11 +162,11 @@ function selectAll() {
 	if (Modes.animate) {
 		selectAllKeyframes()
 	} else if (Modes.edit || Modes.paint) {
-		if (selected.length < elements.length) {
+		if (Outliner.selected.length < Outliner.elements.length) {
 			if (Outliner.root.length == 1) {
 				Outliner.root[0].select();
 			} else {
-				elements.forEach(obj => {
+				Outliner.elements.forEach(obj => {
 					obj.selectLow()
 				})
 				TickUpdates.selection = true;
@@ -228,43 +185,6 @@ function unselectAll() {
 	})
 	TickUpdates.selection = true;
 }
-function createSelection() {
-	if ($('#selgen_new').is(':checked')) {
-		selected.length = 0
-	}
-	if (Group.selected) {
-		Group.selected.unselect()
-	}
-	var name_seg = $('#selgen_name').val().toUpperCase()
-	var tex_seg = $('#selgen_texture').val().toLowerCase()
-	var rdm = $('#selgen_random').val()/100
-
-	var array = elements
-	if ($('#selgen_group').is(':checked') && Group.selected) {
-		array = Group.selected.children
-	}
-
-	array.forEach(function(obj) {
-		if (obj.name.toUpperCase().includes(name_seg) === false) return;
-		if (obj instanceof Cube && tex_seg && !Format.single_texture) {
-			var has_tex = false;
-			for (var key in obj.faces) {
-				var tex = obj.faces[key].getTexture();
-				if (tex && tex.name.includes(tex_seg)) {
-					has_tex = true
-				}
-			}
-			if (!has_tex) return;
-		}
-		if (Math.random() > rdm) return;
-		selected.push(obj)
-	})
-	updateSelection()
-	if (selected.length) {
-		selected[0].showInOutliner()
-	}
-	hideDialog()
-}
 //Backup
 setInterval(function() {
 	if (Outliner.root.length || textures.length) {
@@ -280,10 +200,6 @@ setInterval(function() {
 const TickUpdates = {
 	Run() {
 		try {
-			if (TickUpdates.outliner) {
-				delete TickUpdates.outliner;
-				loadOutlinerDraggable()
-			}
 			if (TickUpdates.selection) {
 				delete TickUpdates.selection;
 				updateSelection()
@@ -295,10 +211,6 @@ const TickUpdates = {
 			if (TickUpdates.texture_list) {
 				delete TickUpdates.texture_list;
 				loadTextureDraggable();
-			}
-			if (TickUpdates.keyframes) {
-				delete TickUpdates.keyframes;
-				Vue.nextTick(Timeline.update)
 			}
 			if (TickUpdates.keyframe_selection) {
 				delete TickUpdates.keyframe_selection;

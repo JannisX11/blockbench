@@ -15,6 +15,7 @@
 		height: 30px;
 		width: 30px;
 		padding: 4px;
+		cursor: pointer;
 	}
 	.dialog_close_button:hover {
 		color: var(--color-light);
@@ -28,7 +29,9 @@
 	dialog {
 		width: 540px;
 		min-width: min(370px, 100%);
+		max-height: calc(100% - 40px);
 		height: auto;
+		flex-direction: column;
 		background-color: var(--color-ui);
 		color: inherit;
 		border: none;
@@ -38,11 +41,22 @@
 		bottom: unset;
 		display: none;
 	}
+	dialog > content {
+		display: block;
+		overflow-y: auto;
+		flex: 1 1 auto;
+	}
 
-	@media (max-device-width: 480px) {
+	@media (max-device-width: 640px) {
 		dialog {
 			width: 100% !important;
 		}
+	}
+
+	dialog p > code {
+		background-color: var(--color-back);
+		border: 1px solid var(--color-border);
+		user-select: text;
 	}
 
 	.dialog {
@@ -89,6 +103,7 @@
 	.dialog_bar.button_bar {
 		text-align: right;
 		margin-top: 12px;
+		flex: 0 0 auto;
 	}
 	.dialog_bar button.large {
 		margin-bottom: 0;
@@ -98,11 +113,20 @@
 	.dialog_bar input[type=checkbox] {
 		padding: 0 4px;
 	}
+	.dialog_bar .tool {
+		position: relative;
+		margin: 0;
+	}
 	.dialog_vector_group {
 		display: flex;
 	}
 	.dialog_vector_group > input {
 		min-width: 30px;
+		flex-grow: 1;
+		flex-shrink: 1;
+	}
+	.dialog_vector_group > input:not(:last-child) {
+		margin-right: 3px;
 	}
 	.tab_bar {
 		height: 30px;
@@ -122,7 +146,6 @@
 	.tab_bar > *:hover {
 		color: var(--color-light);
 	}
-
 
 
 	.dialog .tab_content {
@@ -145,6 +168,7 @@
 		height: 30px;
 		margin-bottom: 20px;
 		font-size: 1.12em;
+		flex: 0 0 auto;
 	}
 	.dialog.paddinged .dialog_handle {
 		margin-top: -24px;
@@ -204,6 +228,9 @@
 		margin-top: 5px;
 		float: left;
 	}
+	#settings h3 > i.settings_expand_icon {
+		opacity: 0.7;
+	}
 	#settings h3:hover {
 		color: var(--color-light);
 	}
@@ -233,7 +260,7 @@
 	#settingslist li li {
 		padding: 5px 0;
 	}
-	#settingslist li li:hover {
+	#settingslist li li:hover input[type=checkbox] {
 		color: var(--color-light);
 	}
 	#settingslist li > .setting_element {
@@ -259,11 +286,10 @@
 	#settingslist .setting_name {
 		font-size: 1.1em;
 		height: 24px;
-		color: var(--color-light);
 	}
 	#settingslist .setting_description {
-		font-size: 0.9em;
-		color: var(--color-text);
+		font-size: 0.94em;
+		color: var(--color-subtle_text);
 	}
 	#settingslist input[type=number] {
 		height: 28px;
@@ -275,6 +301,7 @@
 	#settingslist input[type=text], #settingslist input[type=password] {
 		padding: 10px;
 		margin-left: 5px;
+		vertical-align: bottom;
 	}
 	#settingslist div.bar_select {
 		margin: 8px;
@@ -314,18 +341,17 @@
 	}
 	#keybindlist li > div.keybindslot {
 		width: calc(48% - 32px);
-		padding: 2px;
+		padding: 4px;
 		padding-left: 8px;
 		height: 30px;
-		background-color: var(--color-button);
+		background-color: var(--color-back);
 		border: 1px solid var(--color-border);
-		font-size: 0.9em;
+		font-size: 0.94em;
 		overflow: hidden;
 		white-space: nowrap;
 		display: inline-block;
 	}
 	#keybindlist li > div.keybindslot:hover {
-		background-color: var(--color-selected);
 		color: var(--color-light);
 	}
 	#keybindlist li > div.keybindslot.conflict {
@@ -335,13 +361,14 @@
 		background: transparent;
 		width: calc(52% - 28px);
 		text-align: right;
-		padding: 2px;
+		padding: 4px;
 		padding-left: 8px;
 		vertical-align: top;
 		display: inline-block;
 	}
 	#keybindlist > li > ul > li {
 		position: relative;
+		display: flex;
 	}
 	#keybindlist > li {
 		width: 100%;
@@ -365,7 +392,8 @@
 	}
 	.color_field p {
 		margin: 0;
-		font-size: 0.9em;
+		font-size: 0.94em;
+		color: var(--color-subtle_text);
 	}
 	.color_field h4 {
 		margin: 0;
@@ -404,15 +432,6 @@
 	}
 
 /*Specific Dialogs*/
-	.dialog#updater .dialog_bar.narrow {
-		padding-top: 3px;
-	}
-	button#update_button {
-		margin-right: 12px;
-		float: right;
-		margin-top: -64px;
-		width: 240px;
-	}
 	.dialog#texture_edit p.multiline_text {
 		width: 344px;
 		min-height: 51px;
@@ -599,6 +618,7 @@
 		vertical-align: text-bottom;
 	}
 	.dialog.draggable .bar.next_to_title {
+		width: max-content;
 		margin-top: -51px;
 		margin-left: 111px;
 		float: left;
@@ -611,14 +631,15 @@
 	}
 	#plugin_list {
 		max-height: 600px;
-		margin-bottom: 20px;
 		overflow-y: scroll;
 		min-height: 80px;
 	}
 	#plugin_list li {
-		border: 1px solid var(--color-border);
 		height: 128px;
 		overflow-y: hidden;
+		margin: 8px;
+		background-color: var(--color-ui);
+		margin-right: 2px;
 	}
 	#plugin_list li.expanded {
 		min-height: 128px;
@@ -639,11 +660,11 @@
 		height: auto;
 		float: right;
 		margin-left: -1px;
-		margin-top: 6px;
+		margin-top: 0;
 		text-align: right;
 	}
 	#plugin_list li .button_bar.tiny {
-		opacity: 0.6;
+		color: var(--color-subtle_text);
 		font-size: 0.86em;
 		padding-right: 2px;
 	}
@@ -668,6 +689,7 @@
 		font-size: 1.34em;
 		padding-top: 8px;
 		margin-bottom: -5px;
+		height: 48px;
 	}
 	#plugin_list li .title i {
 		font-size: 0.9em;
@@ -687,12 +709,12 @@
 	}
 
 	#plugin_list .author {
-		opacity: 0.6;
+		color: var(--color-subtle_text);
 		font-size: 0.86em;
 		clear: both;
 	}
 	#plugin_list .description {
-		font-size: 0.9em;
+		font-size: 0.94em;
 		max-height: 48px;
 		margin-right: 12px;
 	}
@@ -705,10 +727,11 @@
 	.no_plugin_message {
 		text-align: center;
 		margin-top: 30px;
-		opacity: 0.5;
+		color: var(--color-subtle_text);
 	}
 	.search_bar {
 		float: right;
+		position: relative;
 	}
 	.search_bar input {
 		float: right;
@@ -717,8 +740,8 @@
 	.search_bar i {
 		float: right;
 		position: absolute;
-		right: 26px;
-		margin-top: 6px;
+		right: 6px;
+		margin-top: 5px;
 	}
 
 /*UV*/
@@ -744,6 +767,9 @@
 	}
 	#uv_dialog_all .UVEditor .uv_transform_info {
 		top: 30px;
+	}
+	#uv_dialog #uv_viewport {
+		margin-left: -8px;
 	}
 
 
@@ -821,7 +847,7 @@
 		margin-left: 8px;
 		box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 	}
-	#action_selector > div > ul {
+	#action_selector ul {
 		background-color: var(--color-bright_ui);
 		color: var(--color-accent_text);
 		min-height: 20px;
@@ -838,7 +864,7 @@
 		font-size: 0.94em
 	}
 	#action_selector ul > li {
-		height: 32px;
+		height: 30px;
 		padding: 4px;
 		overflow: hidden;
 		display: flex;
@@ -848,7 +874,7 @@
 		flex-grow: 0;
 		flex-shrink: 0;
 	}
-	#action_selector ul > li div.name {
+	#action_selector ul > li span {
 		padding-left: 4px;
 		flex-grow: 1;
 		flex-shrink: 0;
@@ -868,7 +894,7 @@
 		height: 26px;
 		vertical-align: text-top;
 	}
-	@media (max-device-width: 480px) {
+	@media (max-device-width: 640px) {
 		dialog#action_selector {
 			top: 26px;
 		}

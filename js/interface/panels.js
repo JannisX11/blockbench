@@ -10,13 +10,14 @@ class Panel {
 		this.selection_only = data.selection_only == true;
 		this.condition = data.condition;
 		this.onResize = data.onResize;
+		this.folded = false;
 		if (data.toolbars) {
 			this.toolbars = data.toolbars;
-        } else {
+		} else {
 			this.toolbars = {};
 		}
-        // Vue
-        if (data.component) {
+		// Vue
+		if (data.component) {
 			data.component.name = 'inside-vue'
 			let bar = $(`.sidebar#${data.default_side||'left'}_bar`);
 			let node = $(`<div id="mount-panel-${this.id}"></div>`);
@@ -29,13 +30,12 @@ class Panel {
 				bar.append(node)
 			}
 
-            this.vue = new Vue({
-                components: {
-                    'inside-vue': data.component
-                },
+			this.vue = new Vue({
+				components: {
+					'inside-vue': data.component
+				},
 				template: `<div class="panel ${this.selection_only ? 'selection_only' : ''} ${this.growable ? 'grow' : ''}" id="${this.id}">
-					<h3 class="panel_handle">${this.name}</h3>
-                    <inside-vue class="panel_inside" ref="inside"></inside-vue>
+					<inside-vue class="panel_inside" ref="inside"></inside-vue>
 				</div>`,
 				mounted() {
 					Vue.nextTick(() => {
@@ -46,17 +46,21 @@ class Panel {
 
 			this.inside_vue = this.vue.$refs.inside;
 			
-			this.node = $('.panel#'+this.id).get(0)
-			this.handle = $(this.node).find('h3.panel_handle').get(0)
-			
-        } else {
-			this.node = $('.panel#'+this.id).get(0)
-			this.handle = $('<h3 class="panel_handle">'+this.name+'</h3>').get(0)
-			$(this.node).prepend(this.handle)
 		}
+		this.node = $('.panel#'+this.id).get(0)
+		this.handle = $(`<h3 class="panel_handle">
+			<label>${this.name}</label>
+		</h3>`).get(0)
 
+		$(this.node).prepend(this.handle)
 
 		if (!Blockbench.isMobile) {
+			let fold_button = $(`<div class="tool panel_folding_button"><i class="material-icons">expand_more</i></div>`)[0];
+			this.handle.append(fold_button);
+			fold_button.addEventListener('click', (e) => {
+				this.fold();
+			})
+
 			$(this.handle).draggable({
 				revertDuration: 0,
 				cursorAt: { left: 24, top: 24 },
@@ -65,6 +69,7 @@ class Panel {
 				appendTo: 'body',
 				zIndex: 19,
 				scope: 'panel',
+				handle: '> label',
 				start: function() {
 					Interface.panel = scope;
 				},
@@ -83,14 +88,14 @@ class Panel {
 				stop: function(e, ui) {
 					$('.panel[order]').attr('order', null)
 					if (!ui) return;
-					if (Math.abs(ui.position.top - ui.originalPosition.top) + Math.abs(ui.position.left - ui.originalPosition.left) < 180) return;
+					if (Math.abs(ui.position.top - ui.originalPosition.top) + Math.abs(ui.position.left - ui.originalPosition.left) < 30) return;
 					let target = Interface.panel
 					if (typeof target === 'string') {
 						scope.moveTo(target)
 					} else if (target.type === 'panel') {
 						let target_pos = $(target.node).offset().top
-						let target_height = $(target.node).height()
-						let before = ui.position.top < target_pos + target_height / 2
+						let target_height = target.node.clientHeight;
+						let before = e.clientY < target_pos + target_height / 2
 						if (target && target !== scope) {
 							scope.moveTo(target, before)
 						} else {
@@ -151,6 +156,11 @@ class Panel {
 
 		Interface.Panels[this.id] = this;
 	}
+	fold(state = !this.folded) {
+		this.folded = !!state;
+		$(this.handle).find('> .panel_folding_button > i').text(state ? 'expand_less' : 'expand_more');
+		this.node.classList.toggle('folded', state);
+	}
 	moveTo(ref_panel, before) {
 		let scope = this
 		if (typeof ref_panel === 'string') {
@@ -187,7 +197,7 @@ class Panel {
 	}
 	delete() {
 		delete Interface.Panels[this.id];
-        $(this.node).detach()
+		this.node.remove()
 	}
 }
 
@@ -207,7 +217,7 @@ function setupPanels() {
 	Interface.Panels.element = new Panel({
 		id: 'element',
 		icon: 'fas.fa-cube',
-		condition: {modes: ['edit']},
+		condition: !Blockbench.isMobile && {modes: ['edit']},
 		selection_only: true,
 		toolbars: {
 			element_position: 	!Blockbench.isMobile && Toolbars.element_position,
@@ -219,18 +229,18 @@ function setupPanels() {
 	Interface.Panels.bone = new Panel({
 		id: 'bone',
 		icon: 'fas.fa-bone',
-		condition: {modes: ['animate']},
+		condition: !Blockbench.isMobile && {modes: ['animate']},
 		selection_only: true,
 		toolbars: {
-			//bone_ik: Toolbars.bone_ik,
+			inverse_kinematics: Toolbars.inverse_kinematics,
 		},
 		component: {
 			template: `
 				<div>
 					<p>${ tl('panel.element.origin') }</p>
 					<div class="toolbar_wrapper bone_origin"></div>
-					<!--p>${ tl('panel.bone.ik') }</p>
-					<div class="toolbar_wrapper bone_ik"></div-->
+					<p>${ tl('panel.bone.ik') }</p>
+					<div class="toolbar_wrapper inverse_kinematics"></div>
 				</div>
 			`
 		}

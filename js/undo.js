@@ -211,6 +211,10 @@ var Undo = {
 				}
 			})
 		}
+
+		if (aspects.exploded_view !== undefined) {
+			this.exploded_view = !!aspects.exploded_view;
+		}
 	},
 	loadSave(save, reference, mode) {
 		var is_session = mode === 'session';
@@ -227,7 +231,7 @@ var Undo = {
 				if (save.elements.hasOwnProperty(uuid)) {
 					var element = save.elements[uuid]
 
-					var new_element = elements.findInArray('uuid', uuid)
+					var new_element = OutlinerNode.uuids[uuid]
 					if (new_element) {
 						for (var face in new_element.faces) {
 							new_element.faces[face].reset()
@@ -235,23 +239,23 @@ var Undo = {
 						new_element.extend(element)
 						if (new_element.type == 'cube') {
 							Canvas.adaptObjectPosition(new_element)
+							Canvas.adaptObjectFaceGeo(new_element)
 							Canvas.adaptObjectFaces(new_element)
 							Canvas.updateUV(new_element)
 						}
 					} else {
-						new_element = NonGroup.fromSave(element, true);
+						new_element = OutlinerElement.fromSave(element, true);
 					}
 				}
 			}
 			for (var uuid in reference.elements) {
 				if (reference.elements.hasOwnProperty(uuid) && !save.elements.hasOwnProperty(uuid)) {
-					var obj = elements.findInArray('uuid', uuid)
+					var obj = OutlinerNode.uuids[uuid]
 					if (obj) {
 						obj.remove()
 					}
 				}
 			}
-			loadOutlinerDraggable()
 			Canvas.updateVisibility()
 		}
 
@@ -276,7 +280,7 @@ var Undo = {
 
 		if (save.selection_group && !is_session) {
 			Group.selected = undefined
-			var sel_group = Group.all.findInArray('uuid', save.selection_group)
+			var sel_group = OutlinerNode.uuids[save.selection_group]
 			if (sel_group) {
 				sel_group.select()
 			}
@@ -292,7 +296,7 @@ var Undo = {
 		}
 
 		if (save.group) {
-			var group = Group.all.findInArray('uuid', save.group.uuid)
+			var group = OutlinerNode.uuids[save.group.uuid]
 			if (group) {
 				if (is_session) {
 					delete save.group.isOpen;
@@ -300,10 +304,8 @@ var Undo = {
 				group.extend(save.group)
 				if (Format.bone_rig) {
 					group.forEachChild(function(obj) {
-						if (obj.type === 'cube') {
-							Canvas.adaptObjectPosition(obj)
-						}
-					})
+						Canvas.adaptObjectPosition(obj)
+					}, Cube)
 				}
 			}
 		}
@@ -350,7 +352,7 @@ var Undo = {
 		if (save.selected_texture) {
 			let tex = Texture.all.find(tex => tex.uuid == save.selected_texture);
 			if (tex instanceof Texture) tex.select()
-		} else if (save.selected_texture == null) {
+		} else if (save.selected_texture === null) {
 			unselectTextures()
 		}
 
@@ -403,7 +405,6 @@ var Undo = {
 						i++;
 					}
 				}
-				var added = 0;
 				for (var uuid in save.keyframes) {
 					if (uuid.length === 36 && save.keyframes.hasOwnProperty(uuid)) {
 						var data = save.keyframes[uuid];
@@ -414,7 +415,6 @@ var Undo = {
 							kf.extend(data)
 						} else {
 							animator.addKeyframe(data, uuid);
-							added++;
 						}
 					}
 				}
@@ -428,9 +428,6 @@ var Undo = {
 							kf.remove()
 						}
 					}
-				}
-				if (added) {
-					Vue.nextTick(Timeline.update)
 				}
 				updateKeyframeSelection()
 			}
@@ -448,6 +445,9 @@ var Undo = {
 				display[slot].extend(data).update()
 			}
 		}
+
+		Blockbench.dispatchEvent('load_undo_save', {save, reference, mode})
+
 		if (open_dialog == 'uv_dialog') {
 			for (var key in uv_dialog.editors) {
 				if (uv_dialog.editors[key]) {
@@ -477,7 +477,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => (!open_dialog || open_dialog === 'uv_dialog' || open_dialog === 'toolbar_edit'),
 		work_in_dialog: true,
-		keybind: new Keybind({key: 90, ctrl: true}),
+		keybind: new Keybind({key: 'z', ctrl: true}),
 		click: Undo.undo
 	})
 	new Action('redo', {
@@ -485,7 +485,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => (!open_dialog || open_dialog === 'uv_dialog' || open_dialog === 'toolbar_edit'),
 		work_in_dialog: true,
-		keybind: new Keybind({key: 89, ctrl: true}),
+		keybind: new Keybind({key: 'y', ctrl: true}),
 		click: Undo.redo
 	})
 })

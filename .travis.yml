@@ -5,7 +5,7 @@ language: node_js
 node:
   - 12
 
-if: branch = master
+if: branch = master AND commit_message =~ ci-build
 
 jobs:
   include:
@@ -13,14 +13,15 @@ jobs:
       os: osx
       osx_image: "xcode11.3"
       script:
-        - electron-builder --publish=onTagOrDraft
+        - electron-builder --publish=always
 
     - name: "Windows"
       os: osx
       osx_image: "xcode11.3"
       script:
-        - electron-builder --windows portable --x64 --publish=onTagOrDraft -c.productName='Blockbench_portable'
-        - electron-builder -w --ia32 --x64 --publish=onTagOrDraft
+        - electron-builder -w --x64 --ia32 --publish=onTagOrDraft
+        - node ./scripts/rename_portable.js
+        - electron-builder --windows portable --ia32 --publish=onTagOrDraft
 
     - name: "Linux"
       os: linux

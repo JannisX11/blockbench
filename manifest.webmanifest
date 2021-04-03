@@ -1,0 +1,29 @@
+{
+	"$schema": "https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/web-manifest.json",
+	"short_name": "Blockbench",
+	"name": "Blockbench",
+	"icons": [
+		{
+			"src": "favicon.png",
+			"type": "image/png",
+			"sizes": "128x128"
+		},
+		{
+			"src": "icon.png",
+			"type": "image/png",
+			"sizes": "1024x1024"
+		},
+		{
+			"src": "icon_full.png",
+			"type": "image/png",
+			"sizes": "256x256",
+			"purpose": "maskable"
+		}
+	],
+	"start_url": "./index.html",
+	"background_color": "#21252b",
+	"theme_color": "#3e90ff",
+	"display": "standalone",
+	"display_override": ["tabbed", "minimal-ui"],
+	"orientation": "portrait-primary"
+}

@@ -12,6 +12,9 @@ class Keybind {
 				keys.meta = true;
 				keys.ctrl = undefined;
 			}
+			if (typeof keys.key == 'string') {
+				keys.key = keys.key.toUpperCase().charCodeAt(0)
+			}
 			this.set(keys)
 		}
 	}
@@ -39,7 +42,7 @@ class Keybind {
 			shift: false,
 			alt: false,
 			meta: false
-		})
+		}).save();
 		return this;
 	}
 	save(save) {
@@ -59,7 +62,7 @@ class Keybind {
 			}
 
 			if (BarItems[this.action] instanceof Action) {
-				BarItems[this.action].updateHoverTitle()
+				BarItems[this.action].updateKeybindingLabel()
 			}
 		}
 		return this;
@@ -90,13 +93,13 @@ class Keybind {
 		var modifiers = []
 
 		if (this.ctrl) 	modifiers.push(tl('keys.ctrl'))	
-		if (this.ctrl == null) 	modifiers.push(`[${tl('keys.ctrl')}]`)
+		if (this.ctrl === null) 	modifiers.push(`[${tl('keys.ctrl')}]`)
 		if (this.shift) modifiers.push(tl('keys.shift'))	
-		if (this.shift == null) modifiers.push(`[${tl('keys.shift')}]`)
+		if (this.shift === null) modifiers.push(`[${tl('keys.shift')}]`)
 		if (this.alt) 	modifiers.push(tl('keys.alt'))	
-		if (this.alt == null) 	modifiers.push(`[${tl('keys.alt')}]`)
+		if (this.alt === null) 	modifiers.push(`[${tl('keys.alt')}]`)
 		if (this.meta) 	modifiers.push(tl('keys.meta'))	
-		if (this.meta == null) 	modifiers.push(`[${tl('keys.meta')}]`)
+		if (this.meta === null) 	modifiers.push(`[${tl('keys.meta')}]`)
 
 		var char = this.getCode()
 		var char_tl = tl('keys.'+char)
@@ -119,37 +122,38 @@ class Keybind {
 			return tl('keys.mouse', [key])
 		}
 		switch (key) {
-			case   1: return 'leftclick'; break;
-			case   2: return 'middleclick'; break;
-			case   3: return 'rightclick'; break;
-			case   9: return 'tab'; break;
-			case   8: return 'backspace'; break;
-			case  13: return 'enter'; break;
-			case  27: return 'escape'; break;
-			case  46: return 'delete'; break;
-			case  46: return 'caps'; break;
-			case  16: return 'shift'; break;
-			case  17: return 'control'; break;
-			case  18: return 'alt'; break;
-			case  32: return 'space'; break;
-			case  93: return 'menu'; break;
-			case 187: return 'plus'; break;
-			case 188: return 'comma'; break;
-			case 190: return 'point'; break;
-			case 189: return 'minus'; break;
-			case 191: return 'cross'; break;
-			case  37: return 'left'; break;
-			case  38: return 'up'; break;
-			case  39: return 'right'; break;
-			case  40: return 'down'; break;
-			case  33: return 'pageup'; break;
-			case  34: return 'pagedown'; break;
-			case  35: return 'end'; break;
-			case  36: return 'pos1'; break;
-			case  44: return 'printscreen'; break;
-			case  19: return 'pause'; break;
-			case 1001: return 'mousewheel'; break;
-			default : return String.fromCharCode(key).toLowerCase(); break;
+			case   1: return 'leftclick';
+			case   2: return 'middleclick';
+			case   3: return 'rightclick';
+			case   9: return 'tab';
+			case   8: return 'backspace';
+			case  13: return 'enter';
+			case  27: return 'escape';
+			case  46: return 'delete';
+			case  46: return 'caps';
+			case  16: return 'shift';
+			case  17: return 'control';
+			case  18: return 'alt';
+			case  32: return 'space';
+			case  93: return 'menu';
+			case  37: return 'left';
+			case  38: return 'up';
+			case  39: return 'right';
+			case  40: return 'down';
+			case  33: return 'pageup';
+			case  34: return 'pagedown';
+			case  35: return 'end';
+			case  36: return 'pos1';
+			case  44: return 'printscreen';
+			case  19: return 'pause';
+			case 1001: return 'mousewheel';
+
+			case 187: return '+';
+			case 188: return ',';
+			case 190: return '.';
+			case 189: return '-';
+			case 191: return '#';
+			default : return String.fromCharCode(key).toLowerCase();
 		}
 	}
 	hasKey() {
@@ -181,12 +185,17 @@ class Keybind {
 		var scope = this;
 		Keybinds.recording = this;
 		var overlay = $('#overlay_message_box').show()
-		var input = overlay.find('#keybind_input_box')
-		var top = limitNumber($(window).height()/2 - 200, 30, 800)
+		var top = limitNumber(window.innerHeight/2 - 200, 30, 800)
 		overlay.find('> div').css('margin-top', top+'px')
 
 		function onActivate(event) {
-			event = event.originalEvent;
+			if (event.originalEvent) event = event.originalEvent;
+
+			document.removeEventListener('keyup', onActivate)
+			document.removeEventListener('keydown', onActivateDown)
+			overlay.off('mousedown', onActivate)
+			overlay.off('mousewheel', onActivate)
+			overlay.off('keydown keypress keyup click click dblclick mouseup mousewheel', preventDefault)
 
 			if (event.target && event.target.tagName === 'BUTTON') return;
 
@@ -205,19 +214,21 @@ class Keybind {
 
 			scope.stopRecording()
 		}
+		function onActivateDown(event) {
+			if (event.metaKey && event.which != 91) {
+				onActivate(event)
+			}
+		}
+		function preventDefault(event) {
+			event.preventDefault();
+		}
 
-		input.focus().on('keyup', onActivate)
-			.on('keydown', event => {
-				if (event.metaKey && event.which != 91) {
-					onActivate(event)
-				}
-			})
+		document.addEventListener('keyup', onActivate)
+		document.addEventListener('keydown', onActivateDown)
 		overlay.on('mousedown', onActivate)
 		overlay.on('mousewheel', onActivate)
 
-		overlay.on('keydown keypress keyup click click dblclick mouseup mousewheel', function(event) {
-			event.preventDefault()
-		})
+		overlay.on('keydown keypress keyup click click dblclick mouseup mousewheel', preventDefault)
 		return this;
 	}
 	stopRecording() {
@@ -227,12 +238,15 @@ class Keybind {
 		$('#keybind_input_box').off('keyup keydown')
 		return this;
 	}
+	toString() {
+		return this.label
+	}
 }
 Keybinds.no_overlap = function(k1, k2) {
-	if (typeof k1.condition !== 'object' || typeof k1.condition !== 'object') return false;
-	if (k1.condition && k2.condition.modes && k1.condition.modes.overlap(k2.condition.modes) == 0) return true;
-	if (k1.condition && k2.condition.tools && k1.condition.tools.overlap(k2.condition.tools) == 0) return true;
-	if (k1.condition && k2.condition.formats && k1.condition.formats.overlap(k2.condition.formats) == 0) return true;
+	if (typeof k1.condition !== 'object' || typeof k2.condition !== 'object') return false;
+	if (k1.condition.modes && k2.condition.modes && k1.condition.modes.overlap(k2.condition.modes) == 0) return true;
+	if (k1.condition.tools && k2.condition.tools && k1.condition.tools.overlap(k2.condition.tools) == 0) return true;
+	if (k1.condition.formats && k2.condition.formats && k1.condition.formats.overlap(k2.condition.formats) == 0) return true;
 	return false;
 }
 function updateKeybindConflicts() {
@@ -377,8 +391,8 @@ window.addEventListener('focus', event => {
 	setTimeout(remove_func, 100);
 })
 
-function getInputFocusElement() {
-	return $('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus').get(0)
+function getFocusedTextInput() {
+	return document.querySelector('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus');
 }
 
 $(document).on('keydown mousedown', function(e) {
@@ -392,7 +406,7 @@ $(document).on('keydown mousedown', function(e) {
 	}
 
 	var used = false;
-	var input_focus = getInputFocusElement()
+	var input_focus = getFocusedTextInput()
 
 	if (input_focus) {
 		//User Editing Anything
@@ -406,7 +420,8 @@ $(document).on('keydown mousedown', function(e) {
 
 			if (next.length) {
 				if (next.hasClass('cube_name')) {
-					var target = Outliner.root.findRecursive('uuid', next.parent().parent().attr('id'))
+					let uuid = next.parent().parent().attr('id');
+					var target = OutlinerNode.uuids[uuid];
 					if (target) {
 						stopRenameOutliner();
 						setTimeout(() => {
@@ -416,38 +431,37 @@ $(document).on('keydown mousedown', function(e) {
 
 				} else if (next.hasClass('nslide')) {
 					setTimeout(() => {
-						next.click();
+						BarItems[next.attr('n-action')].startInput(e);
 					}, 50)
 				} else {
-					next.focus().click();
+					event.preventDefault();
+					next.trigger('focus').trigger('click');
+					document.execCommand('selectAll')
 				}
 				return;
 			}
 		}
-	    if (Blockbench.hasFlag('renaming')) {
-	        if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-	            stopRenameOutliner()
-	        } else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
-	            stopRenameOutliner(false)
-	        }
-	        return;
-	    }
-	    if ($('input#chat_input:focus').length && EditSession.active) {
-	    	if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-		    	Chat.send();
-		    	return;
-		    }
-	    }
-	    if ($('pre.prism-editor__code:focus').length) return;
+		if (Blockbench.hasFlag('renaming')) {
+			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
+				stopRenameOutliner()
+			} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
+				stopRenameOutliner(false)
+			}
+			return;
+		}
+		if ($('input#chat_input:focus').length && EditSession.active) {
+			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
+				Chat.send();
+				return;
+			}
+		}
+		if ($('pre.prism-editor__code:focus').length) return;
 		if (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
-			$(document).click()
+			$(document).trigger('click')
 		}
 	}
 	//Hardcoded Keys
-	if (e.ctrlKey === true && e.shiftKey === true && e.which == 73 && isApp) {
-		electron.getCurrentWindow().toggleDevTools()
-		used = true
-	} else if (e.which === 18 && Toolbox.selected.alt_tool && !Toolbox.original && !open_interface) {
+	if (e.which === 18 && Toolbox.selected.alt_tool && !Toolbox.original && !open_interface) {
 		//Alt Tool
 		var orig = Toolbox.selected;
 		var alt = BarItems[Toolbox.selected.alt_tool]
@@ -506,7 +520,7 @@ $(document).on('keydown mousedown', function(e) {
 	}
 })
 document.addEventListener('wheel', (e) => {
-	if (getInputFocusElement()) return;
+	if (getFocusedTextInput()) return;
 	let used = false;
 	Keybinds.actions.forEach(function(action) {
 		if (

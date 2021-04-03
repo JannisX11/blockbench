@@ -2,9 +2,36 @@ const {app, BrowserWindow, Menu, ipcMain} = require('electron')
 const path = require('path')
 const url = require('url')
 const { autoUpdater } = require('electron-updater');
+const fs = require('fs');
 
 let orig_win;
 let all_wins = [];
+
+const LaunchSettings = {
+	path: path.join(app.getPath('userData'), 'launch_settings.json'),
+	settings: {},
+	get(key) {
+		return this.settings[key]
+	},
+	set(key, value) {
+		this.settings[key] = value;
+		let content = JSON.stringify(this.settings, null, '\t');
+		fs.writeFileSync(this.path, content);
+	},
+	load() {
+		try {
+			if (fs.existsSync(this.path)) {
+				let content = fs.readFileSync(this.path, 'utf-8');
+				this.settings = JSON.parse(content);
+			}
+		} catch (error) {}
+		return this;
+	}
+}.load();
+
+if (LaunchSettings.get('hardware_acceleration') == false) {
+	app.disableHardwareAcceleration();
+}
 
 function createWindow(second_instance) {
 	if (app.requestSingleInstanceLock && !app.requestSingleInstanceLock()) {
@@ -138,41 +165,47 @@ ipcMain.on('change-main-color', (event, arg) => {
 		win.webContents.send('set-main-color', arg)
 	})
 })
+ipcMain.on('edit-launch-setting', (event, arg) => {
+	LaunchSettings.set(arg.key, arg.value);
+})
 
 app.on('ready', () => {
 
 	createWindow()
 
-	if (process.execPath && process.execPath.match(/electron\.\w+$/)) {
+	ipcMain.on('app-loaded', () => {
 
-		console.log('[Blockbench] Launching in development mode')
+		if (process.execPath && process.execPath.match(/electron\.\w+$/)) {
 
-	} else {
-
-		autoUpdater.autoInstallOnAppQuit = true;
-		autoUpdater.autoDownload = false;
-
-		autoUpdater.on('update-available', (a) => {
-			console.log('update-available', a)
-			ipcMain.on('allow-auto-update', () => {
-				autoUpdater.downloadUpdate()
+			console.log('[Blockbench] App launched in development mode')
+	
+		} else {
+	
+			autoUpdater.autoInstallOnAppQuit = true;
+			autoUpdater.autoDownload = false;
+	
+			autoUpdater.on('update-available', (a) => {
+				console.log('update-available', a)
+				ipcMain.on('allow-auto-update', () => {
+					autoUpdater.downloadUpdate()
+				})
+				orig_win.webContents.send('update-available');
 			})
-			orig_win.webContents.send('update-available');
-		})
-		autoUpdater.on('update-downloaded', (a) => {
-			console.log('update-downloaded', a)
-			orig_win.webContents.send('update-downloaded', a)
-		})
-		autoUpdater.on('error', (a) => {
-			console.log('update-error', a)
-			orig_win.webContents.send('update-error', a)
-		})
-		autoUpdater.on('download-progress', (a) => {
-			console.log('update-progress', a)
-			orig_win.webContents.send('update-progress', a)
-		})
-		autoUpdater.checkForUpdates().catch(err => {})
-	}
+			autoUpdater.on('update-downloaded', (a) => {
+				console.log('update-downloaded', a)
+				orig_win.webContents.send('update-downloaded', a)
+			})
+			autoUpdater.on('error', (a) => {
+				console.log('update-error', a)
+				orig_win.webContents.send('update-error', a)
+			})
+			autoUpdater.on('download-progress', (a) => {
+				console.log('update-progress', a)
+				orig_win.webContents.send('update-progress', a)
+			})
+			autoUpdater.checkForUpdates().catch(err => {})
+		}
+	})
 })
 
 app.on('window-all-closed', () => {

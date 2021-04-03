@@ -4,6 +4,13 @@ var codec = new Codec('java_block', {
 	name: 'Java Block/Item Model',
 	remember: true,
 	extension: 'json',
+	load_filter: {
+		type: 'json',
+		extensions: ['json'],
+		condition(model) {
+			return model.parent || model.elements || model.textures;
+		}
+	},
 	compile(options) {
 		if (options === undefined) options = {}
 		var clear_elements = []
@@ -33,7 +40,7 @@ var codec = new Codec('java_block', {
 			if (s.shade === false) {
 				element.shade = false
 			}
-			if (!s.rotation.allEqual(0) || !s.origin.allEqual(8)) {
+			if (!s.rotation.allEqual(0) || !s.origin.allEqual(0)) {
 				var axis = s.rotationAxis()||'y';
 				element.rotation = new oneLiner({
 					angle: s.rotation[getAxisNumber(axis)],
@@ -273,8 +280,10 @@ var codec = new Codec('java_block', {
 		if (model.textures) {
 			//Create Path Array to fetch textures
 			var path_arr = path.split(osfs)
-			var index = path_arr.length - path_arr.indexOf('models')
-			path_arr.splice(-index)
+			if (!path_arr.includes('cit')) {
+				var index = path_arr.length - path_arr.indexOf('models')
+				path_arr.splice(-index)
+			}
 
 			var texture_arr = model.textures
 
@@ -391,9 +400,14 @@ var codec = new Codec('java_block', {
 		if (import_group) {
 			import_group.addTo().select()
 		}
+		let item_parents = [
+			'item/generated', 	'minecraft:item/generated',
+			'item/handheld', 	'minecraft:item/handheld',
+			'item/handheld_rod','minecraft:item/handheld_rod',
+		]
 		if (
 			!model.elements &&
-			(model.parent == 'item/generated' || model.parent == 'item/handheld' || model.parent == 'item/handheld_rod') &&
+			item_parents.includes(model.parent) &&
 			model.textures &&
 			typeof model.textures.layer0 === 'string'
 		) {
@@ -464,6 +478,24 @@ BARS.defineActions(function() {
 		condition: () => Format == format,
 		click: function () {
 			codec.export();
+		}
+	})
+	new Action('import_java_block_model', {
+		icon: 'assessment',
+		category: 'file',
+		condition: () => Format == format,
+		click: function () {
+			Blockbench.import({
+				resource_id: 'model',
+				extensions: ['json'],
+				type: codec.name,
+				multiple: true,
+			}, function(files) {
+				files.forEach(file => {
+					var model = autoParseJSON(file.content)
+					codec.parse(model, file.path, true)
+				})
+			})
 		}
 	})
 })

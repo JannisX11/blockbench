@@ -17,10 +17,10 @@ function parseGeometry(data) {
 	Project.texture_height = data.object.textureheight || 64;
 
 	if (typeof data.object.visible_bounds_width == 'number' && typeof data.object.visible_bounds_height == 'number') {
-		Project.visible_box[0] = Math.max(Project.visible_box[0], data.object.visible_bounds_width);
-		Project.visible_box[1] = Math.max(Project.visible_box[1], data.object.visible_bounds_height);
+		Project.visible_box[0] = Math.max(Project.visible_box[0], data.object.visible_bounds_width || 0);
+		Project.visible_box[1] = Math.max(Project.visible_box[1], data.object.visible_bounds_height || 0);
 		if (data.object.visible_bounds_offset && typeof data.object.visible_bounds_offset[1] == 'number') {
-			Project.visible_box[2] = data.object.visible_bounds_offset[1];
+			Project.visible_box[2] = data.object.visible_bounds_offset[1] || 0;
 		}
 	}
 
@@ -123,31 +123,37 @@ var codec = new Codec('bedrock_old', {
 	name: 'Bedrock Entity Model',
 	extension: 'json',
 	remember: true,
+	load_filter: {
+		type: 'json',
+		extensions: ['json'],
+		condition(model) {
+			return (model.format_version && compareVersions('1.12.0', model.format_version)) ||
+				Object.keys(model).find(s => s.match(/^geometry\./));
+		}
+	},
 	compile(options) {
 		if (options === undefined) options = {}
 		var entitymodel = {}
 		entitymodel.texturewidth = Project.texture_width;
 		entitymodel.textureheight = Project.texture_height;
 		var bones = []
-		var cube_count = 0;
 		var visible_box = new THREE.Box3()
 
 		var groups = getAllGroups();
-		var loose_cubes = [];
+		var loose_elements = [];
 		Outliner.root.forEach(obj => {
-			if (obj.type === 'cube') {
-				loose_cubes.push(obj)
+			if (obj.type === 'cube' || obj.type == 'locator') {
+				loose_elements.push(obj)
 			}
 		})
-		if (loose_cubes.length) {
-			groups.splice(0, 0, {
-				type: 'group',
-				parent: 'root',
-				name: 'unknown_bone',
-				origin: [0, 0, 0],
-				rotation: [0],
-				children: loose_cubes
-			})
+		if (loose_elements.length) {
+			let group = new Group({
+				name: 'bb_main'
+			});
+			group.children.push(...loose_elements);
+			group.is_catch_bone = true;
+			group.createUniqueName();
+			groups.splice(0, 0, group);
 		}
 
 		groups.forEach(function(g) {
@@ -168,7 +174,7 @@ var codec = new Codec('bedrock_old', {
 				]
 			}
 			if (g.reset) bone.reset = true;
-			if (g.mirror_uv) bone.mirror = true;
+			if (g.mirror_uv && Project.box_uv) bone.mirror = true;
 			if (g.material) bone.material = g.material;
 
 			//Elements
@@ -195,7 +201,6 @@ var codec = new Codec('bedrock_old', {
 							visible_box.expandByObject(mesh)
 						}
 						cubes.push(template)
-						cube_count++;
 
 					} else if (obj instanceof Locator) {
 
@@ -216,9 +221,9 @@ var codec = new Codec('bedrock_old', {
 		if (bones.length && options.visible_box !== false) {
 
 			let visible_box = calculateVisibleBox();
-			entitymodel.visible_bounds_width = visible_box[0];
-			entitymodel.visible_bounds_height = visible_box[1];
-			entitymodel.visible_bounds_offset = [0, visible_box[2] , 0]
+			entitymodel.visible_bounds_width = visible_box[0] || 0;
+			entitymodel.visible_bounds_height = visible_box[1] || 0;
+			entitymodel.visible_bounds_offset = [0, visible_box[2] || 0, 0]
 		}
 		if (bones.length) {
 			entitymodel.bones = bones
@@ -251,7 +256,7 @@ var codec = new Codec('bedrock_old', {
 
 		$('#pe_search_bar').val('')
 		if (pe_list && pe_list._data) {
-			pe_list._data.search_text = ''
+			pe_list._data.search_term = ''
 		}
 
 		function create_thumbnail(model_entry, isize) {
@@ -345,7 +350,7 @@ var codec = new Codec('bedrock_old', {
 			pe_list = new Vue({
 				el: '#pe_list',
 				data: {
-					search_text: '',
+					search_term: '',
 					list: pe_list_data
 				},
 				methods: {
@@ -362,16 +367,15 @@ var codec = new Codec('bedrock_old', {
 				},
 				computed: {
 					searched() {
-						var scope = this;
 						return this.list.filter(item => {
-							return item.name.toUpperCase().includes(scope.search_text)
+							return item.name.toUpperCase().includes(this.search_term)
 						})
 					}
 				}
 			})
 		}
 		showDialog('entity_import')
-		$('#pe_list').css('max-height', ($(window).height() - 320) +'px')
+		$('#pe_list').css('max-height', (window.innerHeight - 320) +'px')
 		$('input#pe_search_bar').select()
 		$('#entity_import .confirm_btn').off('click')
 		$('#entity_import .confirm_btn').on('click', (e) => {
@@ -403,10 +407,10 @@ var codec = new Codec('bedrock_old', {
 		}
 		if (data) {
 			try {
-				obj = JSON.parse(data.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, ''))
+				obj = autoParseJSON(data, false)
 			} catch (err) {
 				err = err+''
-				var answer = ElecDialogs.showMessageBox(currentwindow, {
+				var answer = electron.dialog.showMessageBoxSync(currentwindow, {
 					type: 'warning',
 					buttons: [
 						tl('message.bedrock_overwrite_error.backup_overwrite'),
@@ -468,6 +472,7 @@ var format = new ModelFormat({
 	bone_rig: true,
 	centered_grid: true,
 	animated_textures: true,
+	animation_files: true,
 	animation_mode: true,
 	locators: true,
 	codec,

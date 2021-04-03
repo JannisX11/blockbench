@@ -54,6 +54,9 @@
 	.small_text {
 		font-size: 0.94em;
 	}
+	.subtle {
+		color: var(--color-subtle_text);
+	}
 	.color_x {
 		color: var(--color-axis-x);
 	}
@@ -133,7 +136,6 @@
 	}
 	.bar {
 		height: 30px;
-		margin-top: 2px;
 	}
 	.bar > * {
 		float: left;
@@ -162,21 +164,12 @@
 		overflow-y: scroll;
 		flex-grow: 1;
 	}
-	#left_bar .list {
-		width: calc(100% - 2px);
-	}
 	.list::-webkit-scrollbar-track {
 		background: var(--color-back);
 	}
 	ul.list_style li {
 		list-style: initial;
 		margin-left: 20px;
-	}
-	body.animation_mode #cubes_list {
-		height: calc(100% - 50px);
-	}
-	body.animation_mode #cubes_list .outliner_object.cube {
-		display: none;
 	}
 	#quick_message_box {
 		position: absolute;
@@ -199,7 +192,7 @@
 		pointer-events: none;
 	}
 
-	@media (max-device-width: 480px) {
+	@media (max-device-width: 640px) {
 		#quick_message_box {
 			bottom: 26px;
 			top: unset;
@@ -238,25 +231,6 @@
 		display: none !important;
 	}
 
-	#center_tip {
-		top: 0;
-		left: 0;
-		right: 0;
-		margin: auto;
-		min-width: 200px;
-		max-width: 100%;
-		position: absolute;
-		text-align: center;
-		background-color: var(--color-accent);
-		color: var(--color-accent_text);
-		width: max-content;
-		padding: 3px 8px;
-	}
-	#center_tip i {
-		vertical-align: text-bottom;
-		margin-right: 6px;
-	}
-
 	.annotation {
 		min-width: 40px;
 		max-width: 100%;
@@ -277,6 +251,9 @@
 		min-width: 15px;
 		color: var(--color-light);
 		text-shadow: 0 0 5px black;
+	}
+	.light_on_hover:hover {
+		color: var(--color-light);
 	}
 
 	.spinning {
@@ -307,6 +284,7 @@
 		height: 100%;
 		overflow-x: hidden;
 		overflow-y: auto;
+		flex-grow: 1;
 	}
 	.toolbar_wrapper > .toolbar.vertical {
 		width: 40px;
@@ -347,7 +325,7 @@
 		margin-top: 4px;
 	}
 
-	.tool.sel {
+	.tool.enabled {
 		border-bottom: 3px solid var(--color-accent);
 	}
 
@@ -419,23 +397,41 @@
 	.tooltip {
 		position: absolute;
 		height: 28px;
+		width: fit-content;
 		padding-left: 5px;
 		padding-right: 5px;
 		padding-top: 2px;
 		color: var(--color-accent_text);
 		margin-top: 30px;
-		display: none;
 		background: var(--color-bright_ui);
 		white-space: nowrap;
 		z-index: 18;
 		box-shadow: 0 0.4px 3.5px rgba(0, 0, 0, 0.6);
+		pointer-events: none;
+		visibility: hidden;
 	}
-	.tool:hover > .tooltip:not(:hover) {
-		display: block;
+	.tool:hover > .tooltip {
+		visibility: visible;
 	}
 	.tooltip_shift {
-		display: inline;
 		display: none;
+	}
+	.tooltip_description {
+		position: absolute;
+		background-color: var(--color-ui);
+		color: var(--color-text);
+		border: 1px solid var(--color-bright_ui);
+		padding: 2px 6px;
+		margin-top: 1px;
+		font-size: 0.84em;
+		margin-left: -5px;
+		opacity: 0;
+	}
+	.tool:hover > .tooltip .tooltip_description {
+		transition-property: opacity;
+		transition-duration: 200ms;
+		transition-delay: 600ms;
+		opacity: 1;
 	}
 
 /*(Context-)Menu*/
@@ -443,6 +439,7 @@
 		position: absolute;
 		display: block;
 		height: auto;
+		width: fit-content;
 		min-width: 110px;
 		background-color: var(--color-bright_ui);
 		color: var(--color-accent_text);
@@ -453,9 +450,10 @@
 	}
 	.contextMenu.sub {
 		display: none;
-		margin-top: -28px;
+		margin-top: -4px;
 	}
 	.contextMenu li {
+		display: flex;
 		height: 30px;
 		padding: 4px;
 		padding-left: 34px;
@@ -464,7 +462,7 @@
 	.contextMenu li.parent {
 		padding-right: 20px;
 	}
-	.contextMenu li.parent::before {
+	.contextMenu li.parent::after {
 		content: "\f105";
 		display: block;
 		font-family: 'Font Awesome 5 Free';
@@ -472,7 +470,6 @@
 		font-size: inherit;
 		text-rendering: auto;
 		-webkit-font-smoothing: antialiased;
-		float: right;
 		margin-right: -12px;
 		pointer-events: none;
 	}
@@ -480,7 +477,6 @@
 		background-color: var(--color-accent);
 	}
 	.contextMenu li i {
-		float: left;
 		margin-top: 1px; 
 		margin-right: 4px;
 		margin-left: -28px;
@@ -488,13 +484,18 @@
 	}
 	.contextMenu li img {
 		cursor: default;
-		height: 16px;
-		width: 16px;
+		height: 20px;
+		width: 20px;
 		color: var(--color-text);
 		white-space: nowrap;
-		margin-bottom: -1px;
-		margin-left: -23px;
-		margin-right: 8px;
+		margin-bottom: -3px;
+		margin-left: -27px;
+		margin-right: 5px;
+		margin-top: 1px;
+	}
+	.contextMenu li span {
+		pointer-events: none;
+		flex: 1 0 auto;
 	}
 	.contextMenu li.focused > .contextMenu.sub {
 		display: block;
@@ -507,5 +508,14 @@
 		width: 100%;
 		padding: 0;
 		background-color: var(--color-text);
+	}
+
+	.keybinding_label {
+		pointer-events: none;
+		font-size: 0.84em;
+		padding: 2px 0 2px 8px;
+		opacity: 0.6;
+		flex-grow: 0;
+		flex-shrink: 0;
 	}
 

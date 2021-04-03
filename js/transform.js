@@ -42,6 +42,10 @@ function origin2geometry() {
 	Undo.finishEdit('origin to geometry')
 }
 function getSelectionCenter(all = false) {
+	if (Group.selected && selected.length == 0 && !all) {
+		let vec = THREE.fastWorldPosition(Group.selected.mesh, new THREE.Vector3());
+		return vec.toArray();
+	}
 	var center = [0, 0, 0]
 	var i = 0;
 	let items = (selected.length == 0 || all) ? elements : selected;
@@ -87,37 +91,38 @@ function moveCubesRelative(difference, index, event) { //Multiple
 	var _has_groups = Format.bone_rig && Group.selected && Group.selected.matchesSelection() && Toolbox.selected.transformerMode == 'translate';
 
 	Undo.initEdit({elements: Cube.selected, outliner: _has_groups})
-    var axes = []
-    // < >
-    // PageUpDown
-    // ^ v
-    var facing = quad_previews.current.getFacingDirection()
-    var height = quad_previews.current.getFacingHeight()
-    switch (facing) {
-        case 'north': axes = [0, 2, 1]; break;
-        case 'south': axes = [0, 2, 1]; break;
-        case 'west':  axes = [2, 0, 1]; break;
-        case 'east':  axes = [2, 0, 1]; break;
-    }
+	var axes = []
+	// < >
+	// PageUpDown
+	// ^ v
+	var facing = quad_previews.current.getFacingDirection()
+	var height = quad_previews.current.getFacingHeight()
+	switch (facing) {
+		case 'north': axes = [0, 2, 1]; break;
+		case 'south': axes = [0, 2, 1]; break;
+		case 'west':  axes = [2, 0, 1]; break;
+		case 'east':  axes = [2, 0, 1]; break;
+	}
 
-    if (height !== 'middle') {
-        if (index === 1) {
-            index = 2
-        } else if (index === 2) {
-            index = 1
-        }
-    }
-    if (facing === 'south' && (index === 0 || index === 1))  difference *= -1
-    if (facing === 'west'  && index === 0)  difference *= -1
-    if (facing === 'east'  && index === 1)  difference *= -1
-    if (index === 2 && height !== 'down') difference *= -1
-    if (index === 1 && height === 'up') difference *= -1
+	if (height !== 'middle') {
+		if (index === 1) {
+			index = 2
+		} else if (index === 2) {
+			index = 1
+		}
+	}
+	if (facing === 'south' && (index === 0 || index === 1))  difference *= -1
+	if (facing === 'west'  && index === 0)  difference *= -1
+	if (facing === 'east'  && index === 1)  difference *= -1
+	if (index === 2 && height !== 'down') difference *= -1
+	if (index === 1 && height === 'up') difference *= -1
 
-    if (event) {
-    	difference *= canvasGridSize(event.shiftKey, event.ctrlOrCmd);
-    }
+	if (event) {
+		difference *= canvasGridSize(event.shiftKey, event.ctrlOrCmd);
+	}
 
-    moveElementsInSpace(difference, axes[index]) 
+	moveElementsInSpace(difference, axes[index]);
+	updateSelection();
 
 	Undo.finishEdit('move')
 }
@@ -172,6 +177,7 @@ function mirrorSelected(axis) {
 							group.name = group.name.replace(/left/g, 'right').replace(/2/, '');
 						}
 					}
+					Canvas.updateAllBones([group]);
 				}
 				flipGroup(Group.selected)
 				Group.selected.forEachChild(flipGroup)
@@ -383,15 +389,18 @@ const Vertexsnap = {
 		Vertexsnap.step1 = true
 	},
 	updateVertexSize: function() {
+		if (!Preview.selected) return;
 		Vertexsnap.vertexes.children.forEach(function(v,i) {
-			var scaleVector = new THREE.Vector3();
-			var scale = scaleVector.subVectors(v.position, Transformer.camera.position).length() / 500;
-			scale = (Math.sqrt(scale)/3 + scale/1.4) * 1.7
-			if (Blockbench.isMobile) scale *= 4;
-			v.scale.set(scale, scale, scale)
+			let scale = Preview.selected.calculateControlScale(v.position) * 0.6;
+			v.scale.set(scale, scale, scale);
 		})
 	}
 }
+Blockbench.on('update_camera_position resize_window', e => {
+	if (Toolbox && Toolbox.selected.id == 'vertex_snap_tool') {
+		Vertexsnap.updateVertexSize();
+	}
+})
 //Scale
 function scaleAll(save, size) {
 	if (save === true) {
@@ -572,9 +581,7 @@ function moveElementsInSpace(difference, axis) {
 			group_m = new THREE.Vector3();
 			group_m[getAxisLetter(axis)] = difference;
 
-			var rotation = new THREE.Quaternion();
-			group.mesh.getWorldQuaternion(rotation);
-			group_m.applyQuaternion(rotation);
+			group_m.applyQuaternion(group.mesh.quaternion);
 
 			group.forEachChild(g => {
 				g.origin.V3_add(group_m.x, group_m.y, group_m.z);
@@ -585,6 +592,7 @@ function moveElementsInSpace(difference, axis) {
 				g.origin[axis] += difference
 			}, Group, true)
 		}
+		Canvas.updateAllBones([Group.selected]);
 	}
 
 	selected.forEach(el => {
@@ -636,7 +644,6 @@ function moveElementsInSpace(difference, axis) {
 			Canvas.adaptObjectPosition(el);
 		}
 	})
-	TickUpdates.selection = true;
 }
 
 //Rotate
@@ -813,6 +820,7 @@ BARS.defineActions(function() {
 	new BarSelect('transform_space', {
 		condition: {modes: ['edit'], tools: ['move_tool', 'pivot_tool']},
 		category: 'transform',
+		value: 'local',
 		options: {
 			global: true,
 			bone: {condition: () => Format.bone_rig, name: true},
@@ -1300,7 +1308,7 @@ BARS.defineActions(function() {
 		color: 'x',
 		category: 'transform',
 		click: function () {
-				mirrorSelected(0);
+			mirrorSelected(0);
 		}
 	})
 	new Action('flip_y', {
@@ -1459,7 +1467,7 @@ BARS.defineActions(function() {
 	new Action('origin_to_geometry', {
 		icon: 'filter_center_focus',
 		category: 'transform',
-		condition: {modes: ['edit']},
+		condition: {modes: ['edit', 'animate']},
 		click: function () {origin2geometry()}
 	})
 	new Action('rescale_toggle', {

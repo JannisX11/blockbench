@@ -12,12 +12,12 @@ function I(num) {
 }
 const Templates = {
 	'1.12': {
-		name: 'Forge 1.12',
+		name: 'Forge 1.7 - 1.13',
 		flip_y: true,
 		integer_size: true,
 		file:
 		   `// Made with Blockbench %(bb_version)
-			// Exported for Minecraft version 1.12
+			// Exported for Minecraft version 1.7 - 1.12
 			// Paste this class into your mod and generate all required imports
 
 
@@ -96,12 +96,12 @@ const Templates = {
 	},
 
 	'1.15': {
-		name: 'Forge 1.15',
+		name: 'Forge 1.15 - 1.16',
 		flip_y: true,
 		integer_size: false,
 		file: 
 		   `// Made with Blockbench %(bb_version)
-			// Exported for Minecraft version 1.15
+			// Exported for Minecraft version 1.15 - 1.16
 			// Paste this class into your mod and generate all required imports
 
 
@@ -156,13 +156,17 @@ const Templates = {
 }
 
 function getIdentifier() {
-	return Project.geometry_name.replace(/[\s-]+/g, '_') || 'custom_model';
+	return (Project.geometry_name && Project.geometry_name.replace(/[\s-]+/g, '_')) || 'custom_model';
 }
 
 var codec = new Codec('modded_entity', {
 	name: 'Java Class',
 	extension: 'java',
 	remember: true,
+	load_filter: {
+		type: 'text',
+		extensions: ['java']
+	},
 	compile(options) {
 
 		let R = Templates.getVariableRegex;
@@ -187,6 +191,7 @@ var codec = new Codec('modded_entity', {
 			let subgroups = [];
 			let group_i = all_groups.indexOf(group);
 			group.children.forEachReverse(cube => {
+				if (cube instanceof Cube == false || !cube.export) return;
 				if (!cube.rotation.allEqual(0)) {
 					let sub = subgroups.find(s => {
 						if (!s.rotation.equals(cube.rotation)) return false;
@@ -650,7 +655,7 @@ var codec = new Codec('modded_entity', {
 		})
 		Project.geometry_name = geo_name;
 		this.dispatchEvent('parsed', {model});
-		Canvas.updateAll();
+		Canvas.updateAllBones();
 	},
 	fileName() {
 		return getIdentifier();

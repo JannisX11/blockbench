@@ -4,6 +4,10 @@ var part_codec = new Codec('optifine_part', {
 	name: 'OptiFine Part',
 	extension: 'jpm',
 	remember: true,
+	load_filter: {
+		type: 'json',
+		extensions: ['jpm']
+	},
 	compile(options) {
 		if (options === undefined) options = {}
 		var jpm = {}
@@ -204,7 +208,7 @@ var part_codec = new Codec('optifine_part', {
 		}
 		addSubmodel(model)
 		this.dispatchEvent('parsed', {model});
-		Canvas.updateAll()
+		Canvas.updateAllBones()
 	}
 })
 
@@ -214,7 +218,7 @@ var part_format = new ModelFormat({
 		id: 'optifine_part',
 		extension: 'jpm',
 		icon: 'icon-format_optifine',
-		//show_on_start_screen: false,
+		show_on_start_screen: false,
 		single_texture: true,
 		integer_size: true,
 		rotate_cubes: true,

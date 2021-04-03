@@ -19,9 +19,10 @@ const CustomTheme = {
 		text: '#cacad4',
 		light: '#f4f3ff',
 		accent_text: '#000006',
+		subtle_text: '#848891',
 		grid: '#495061',
 		wireframe: '#576f82',
-		checkerboard: '#2f3339',
+		checkerboard: '#1c2026',
 	},
 	setup() {
 
@@ -37,7 +38,7 @@ const CustomTheme = {
 			el: '#theme_editor',
 			data: CustomTheme.data,
 			components: {
-			    VuePrismEditor
+				VuePrismEditor
 			},
 			watch: {
 				main_font() {
@@ -94,34 +95,40 @@ const CustomTheme = {
 		})
 		Vue.nextTick(function() {
 			CustomTheme.fetchFromStorage();
-
-			var wrapper = $('#color_wrapper');
-			for (var key in CustomTheme.defaultColors) {
-				(() => {
-					var scope_key = key;
-					var hex = CustomTheme.data.colors[scope_key];
-					var last_color = hex;
-					var field = wrapper.find('#color_field_'+scope_key);
-
-					field.spectrum({
-						preferredFormat: "hex",
-						color: hex,
-						showAlpha: false,
-						showInput: true,
-						move(c) {
-							CustomTheme.data.colors[scope_key] = c.toHexString();
-						},
-						change(c) {
-							last_color = c.toHexString();
-						},
-						hide(c) {
-							CustomTheme.data.colors[scope_key] = last_color;
-							field.spectrum('set', last_color);
-						}
-					});
-				})()
-			}
 		})
+	},
+	setupDialog() {
+		var wrapper = $('#color_wrapper');
+		for (var key in CustomTheme.defaultColors) {
+			(() => {
+				var scope_key = key;
+				var hex = CustomTheme.data.colors[scope_key];
+				var last_color = hex;
+				var field = wrapper.find(`#color_field_${scope_key} .layout_color_preview`);
+
+				field.spectrum({
+					preferredFormat: "hex",
+					color: hex,
+					showAlpha: false,
+					showInput: true,
+					move(c) {
+						CustomTheme.data.colors[scope_key] = c.toHexString();
+					},
+					change(c) {
+						last_color = c.toHexString();
+					},
+					hide(c) {
+						CustomTheme.data.colors[scope_key] = last_color;
+						field.spectrum('set', last_color);
+					},
+					beforeShow(a, b) {
+						last_color = CustomTheme.data.colors[scope_key];
+						field.spectrum('set', last_color);
+					}
+				});
+			})()
+		}
+		CustomTheme.dialog_is_setup = true;
 	},
 	fetchFromStorage() {
 		var legacy_colors = 0;
@@ -159,6 +166,11 @@ const CustomTheme = {
 				CustomTheme.data.colors[key] = legacy_colors[key].hex;
 			}
 		}
+		Blockbench.onUpdateTo('3.8', () => {
+			if (CustomTheme.data.colors.checkerboard == '#2f3339') {
+				CustomTheme.data.colors.checkerboard = CustomTheme.defaultColors.checkerboard;
+			}
+		})
 	},
 	import(file) {
 		var data = JSON.parse(file.content)
