@@ -4,7 +4,7 @@
 var codec = new Codec('collada', {
 	name: 'Collada Model',
 	extension: 'dae',
-	compile(options = 0, callback) {
+	async compile(options = 0) {
 		let scope = this;
 		let exporter = new THREE.ColladaExporter();
 		let animations = [];
@@ -20,39 +20,39 @@ var codec = new Codec('collada', {
 			Animator.showDefaultPose();
 		}
 		if (options.animations !== false) {
-			animations = buildAnimationTracks();
+			//animations = buildAnimationTracks();
 		}
-		exporter.parse(gl_scene, (json) => {
-
-			scope.dispatchEvent('compile', {model: json, options});
-			callback(JSON.stringify(json));
-
-			gl_scene.children.forEachReverse(object => {
-				if (object.isGroup || object.isElement) {
-					scene.add(object);
-				}
+		let result = await new Promise((resolve, reject) => {
+			exporter.parse(gl_scene, (result) => {
+				resolve(result);
+			}, {
+				author: 'Blockbench User',
+				textureDirectory: 'textures'
 			});
-		}, {
-			animations,
-			version: '1.5.0',
-			author: 'Blockbench',
-			textureDirectory: 'textures'
+		})
+		scope.dispatchEvent('compile', {model: result.data, options});
+		console.log(result)
+
+		gl_scene.children.forEachReverse(object => {
+			if (object.isGroup || object.isElement) {
+				scene.add(object);
+			}
 		});
+
+		return result.data;
 	},
 	export() {
 		var scope = codec;
-		scope.compile(0, content => {
-			setTimeout(_ => {
-				Blockbench.export({
-					resource_id: 'gltf',
-					type: scope.name,
-					extensions: [scope.extension],
-					name: scope.fileName(),
-					startpath: scope.startPath(),
-					content,
-					custom_writer: isApp ? (a, b) => scope.write(a, b) : null,
-				}, path => scope.afterDownload(path))
-			}, 20)
+		scope.compile().then(content => {
+			Blockbench.export({
+				resource_id: 'gltf',
+				type: scope.name,
+				extensions: [scope.extension],
+				name: scope.fileName(),
+				startpath: scope.startPath(),
+				content,
+				custom_writer: isApp ? (a, b) => scope.write(a, b) : null,
+			}, path => scope.afterDownload(path))
 		})
 	}
 })
