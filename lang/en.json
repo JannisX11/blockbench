@@ -271,6 +271,7 @@
 
 	"dialog.convert_project.title": "Convert Project",
 	"dialog.convert_project.text": "Are you sure you want to convert this project? You cannot undo this step.",
+	"dialog.convert_project.current_format": "Current Format",
 
 	"dialog.select_texture.import_all": "Import All",
 

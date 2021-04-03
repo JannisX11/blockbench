@@ -363,8 +363,9 @@ BARS.defineActions(function() {
 				title: 'dialog.convert_project.title',
 				width: 540,
 				form: {
-					text: {type: 'info', text: 'dialog.convert_project.text'},
-					format: {
+					text:    {type: 'info', text: 'dialog.convert_project.text'},
+					current: {type: 'info', label: 'dialog.convert_project.current_format', text: Format.name || '-'},
+					format:  {
 						label: 'data.format',
 						type: 'select',
 						default: Format.id,
