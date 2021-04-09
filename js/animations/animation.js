@@ -1218,6 +1218,7 @@ if (isApp) {
 	}
 }
 
+Prism.languages.molang['function-name'] = /\b(?!\d)(math\.\w+|button)(?=[\t ]*\()/i;
 
 const Animator = {
 	possible_channels: {rotation: true, position: true, scale: true, sound: true, particle: true, timeline: true},
@@ -1726,14 +1727,26 @@ Animator.MolangParser.global_variables = {
 	}
 }
 Animator.MolangParser.variableHandler = function (variable) {
-	var inputs = Interface.Panels.variable_placeholders.inside_vue._data.text.split('\n');
+	var inputs = Interface.Panels.variable_placeholders.inside_vue.text.split('\n');
 	var i = 0;
 	while (i < inputs.length) {
 		let key, val;
-		[key, val] = inputs[i].split(/=(.+)/);
+		[key, val] = inputs[i].split(/=\s*(.+)/);
 		key = key.replace(/[\s;]/g, '');
+
 		if (key === variable) {
-			return Animator.MolangParser.parse(val)
+
+			if (!val) return 0;
+
+			if (val.substr(0, 7) === 'button(') {
+				let args = val.substring(7, val.length - 1).split(/, */);
+				let [id] = args;
+				let button = Interface.Panels.variable_placeholders.inside_vue.buttons.find(b => b.id === id);
+				return button ? button.value : 0;
+				
+			} else {
+				return Animator.MolangParser.parse(val);
+			}
 		}
 		i++;
 	}
@@ -2154,11 +2167,63 @@ Interface.definePanels(function() {
 			name: 'panel-placeholders',
 			components: {VuePrismEditor},
 			data() { return {
-				text: ''
+				text: '',
+				buttons: []
 			}},
+			methods: {
+				updateButtons() {
+					let old_values = {};
+					this.buttons.forEach(b => old_values[b.id] = b.value);
+					this.buttons.empty();
+
+					let matches = this.text.toLowerCase().match(/button\(.+\)/g);
+
+					if (matches) {
+						matches.forEach(match => {
+							let args = match.substring(7, match.length - 1).split(/, */);
+							let [id, type] = args;
+							if (this.buttons.find(b => b.id == id)) return;
+
+							if (type == 'bool' || type == 'float' || type == 'int') {
+								let step = type == 'float' ? 0.01 : 1;
+								if (type == 'float' && args[2]) step = parseFloat(args[2]);
+								if (type == 'int' && args[2]) step = Math.clamp(parseInt(args[2]), 1, Infinity);
+
+								this.buttons.push({
+									type,
+									id,
+									value: old_values[id] || 0,
+									step,
+									min: args[3],
+									max: args[4]
+								})
+							}
+						})
+					}
+				},
+				changeButtonValue(button, event) {
+					if (button.type == 'bool') {
+						button.value = event.target.checked ? 1 : 0;
+					}
+					Animator.preview();
+				}
+			},
+			watch: {
+				text() {
+					this.updateButtons();
+				}
+			},
 			template: `
 				<div style="flex-grow: 1; display: flex; flex-direction: column;">
-					<p>{{ tl('panel.variable_placeholders.info') }}</p>
+
+					<ul id="placeholder_buttons">
+						<li v-for="button in buttons" :key="button.id">
+							<input v-if="button.type == 'bool'" type="checkbox" :value="button.value == 1" @change="changeButtonValue(button, $event)">
+							<input v-else type="number" class="dark_bordered" :step="button.step" :min="button.min" :max="button.max" v-model="button.value" @input="changeButtonValue(button, $event)">
+							<label>{{ button.id }}</label>
+						</li>
+					</ul>
+
 					<vue-prism-editor
 						id="var_placeholder_area"
 						class="molang_input dark_bordered tab_target"
