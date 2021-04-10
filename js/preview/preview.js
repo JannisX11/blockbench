@@ -2264,14 +2264,25 @@ BARS.defineActions(function() {
 		condition: () => !Modes.display,
 		click: function () {
 			let preview = quad_previews.current;
-			let center = getSelectionCenter();
-			if (!Format.centered_grid) center.V3_subtract(8, 8, 8);
-			let difference = new THREE.Vector3().copy(preview.controls.target);
-			preview.controls.target.fromArray(center);
-			if (preview.angle != null) {
-				difference.sub(preview.controls.target);
-				preview.camera.position.sub(difference);
-			}
+			let center = new THREE.Vector3().fromArray(getSelectionCenter());
+			center.add(scene.position);
+
+			let difference = new THREE.Vector3().copy(preview.controls.target).sub(center);
+			difference.divideScalar(6)
+
+			let i = 0;
+			let interval = setInterval(() => {
+
+
+				preview.controls.target.sub(difference);
+
+				if (preview.angle != null) {
+					preview.camera.position.sub(difference);
+				}
+				i++;
+				if (i == 6) clearInterval(interval);
+
+			}, 16.66)
 		}
 	})
 
