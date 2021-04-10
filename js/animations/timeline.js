@@ -458,6 +458,13 @@ const Timeline = {
 		})
 		TickUpdates.keyframe_selection = true;
 	},
+	clear() {
+		Timeline.animators.purge();
+		Timeline.selected.empty();
+		Timeline.vue._data.markers = [];
+		Timeline.vue._data.animation_length = 0;
+		updateKeyframeSelection();
+	},
 	start() {
 		if (!Animation.selected) return;
 		Animation.selected.getMaxLength()
