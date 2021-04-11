@@ -505,6 +505,7 @@ BARS.defineActions(function() {
 				kf.time = Timeline.snapTime(limitNumber(kf.time - Timeline.getStep(), 0, 1e4))
 			})
 			Animator.preview()
+			BarItems.slider_keyframe_time.update()
 			Undo.finishEdit('move keyframes')
 		}
 	})
@@ -519,6 +520,7 @@ BARS.defineActions(function() {
 				kf.time = Timeline.snapTime(limitNumber(kf.time + Timeline.getStep(), 0, 1e4))
 			})
 			Animator.preview()
+			BarItems.slider_keyframe_time.update()
 			Undo.finishEdit('move keyframes')
 		}
 	})
