@@ -95,8 +95,16 @@ const Interface = {
 			},
 			get: function() {return Interface.data.left_bar_width},
 			set: function(o, diff) {
-				let calculated = limitNumber(o + diff, 128, window.innerWidth- 120 - Interface.data.right_bar_width)
+				let min = 128;
+				let calculated = limitNumber(o + diff, min, window.innerWidth- 120 - Interface.data.right_bar_width)
 				Interface.data.left_bar_width = Math.snapToValues(calculated, [Interface.default_data.left_bar_width], 16);
+				
+				if (calculated == min) {
+					Prop.show_left_bar = false;
+					Interface.data.left_bar_width = Interface.default_data.left_bar_width;
+				} else {
+					Prop.show_left_bar = true;
+				}
 			},
 			position: function(line) {
 				line.setPosition({
@@ -118,8 +126,16 @@ const Interface = {
 			},
 			get: function() {return Interface.data.right_bar_width},
 			set: function(o, diff) {
-				let calculated = limitNumber(o - diff, 128, window.innerWidth- 120 - Interface.data.left_bar_width);
+				let min = 128;
+				let calculated = limitNumber(o - diff, min, window.innerWidth- 120 - Interface.data.left_bar_width);
 				Interface.data.right_bar_width = Math.snapToValues(calculated, [Interface.default_data.right_bar_width], 12);
+				
+				if (calculated == min) {
+					Prop.show_right_bar = false;
+					Interface.data.right_bar_width = Interface.default_data.right_bar_width;
+				} else {
+					Prop.show_right_bar = true;
+				}
 			},
 			position: function(line) {
 				line.setPosition({
