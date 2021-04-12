@@ -155,7 +155,7 @@ const codec = new Codec('skin_model', {
 		EditSession.initNewModel()
 	},
 })
-//codec.compile = null;
+codec.export = null;
 
 
 const format = new ModelFormat({

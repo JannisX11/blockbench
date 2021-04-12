@@ -491,7 +491,7 @@ BARS.defineActions(function() {
 						Format.codec.write(Format.codec.compile(), ModelMeta.export_path)
 					} else if (ModelMeta.save_path) {
 						Codecs.project.write(Codecs.project.compile(), ModelMeta.save_path);
-					} else if (Format.codec) {
+					} else if (Format.codec && Format.codec.export) {
 						Format.codec.export()
 					}
 				}
@@ -500,7 +500,7 @@ BARS.defineActions(function() {
 				}
 			} else {
 				saveTextures()
-				if (Format.codec && Format.codec.compile && Format.id != 'skin') {
+				if (Format.codec && Format.codec.export) {
 					Format.codec.export()
 				}
 			}
