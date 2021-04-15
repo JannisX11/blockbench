@@ -348,6 +348,24 @@ class Cube extends OutlinerElement {
 			})
 			return array
 		}
+
+		// Check limits
+		if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
+			let from = this.from.slice(), to = this.to.slice();
+			for (let check_steps = steps; check_steps > 0; check_steps--) {
+				switch(axis) {
+					case 0: [from[2], to[2]] = [to[2], from[2]]; break;
+					case 1: [from[2], to[2]] = [to[2], from[2]]; break;
+					case 2: [from[1], to[1]] = [to[1], from[1]]; break;
+				}
+				from.V3_set(rotateCoord(from));
+				to.V3_set(rotateCoord(to));
+			}
+			if ([...from, ...to].find(value => (value > 32 || value < -16))) {
+				return false;
+			}
+		}
+
 		function rotateUVFace(number, iterations) {
 			if (!number) number = 0;
 			number += iterations * 90;
@@ -361,10 +379,10 @@ class Cube extends OutlinerElement {
 				case 1: [this.from[2], this.to[2]] = [this.to[2], this.from[2]]; break;
 				case 2: [this.from[1], this.to[1]] = [this.to[1], this.from[1]]; break;
 			}
-			this.from.V3_set(rotateCoord(this.from, 1, origin))
-			this.to.V3_set(rotateCoord(this.to, 1, origin))
+			this.from.V3_set(rotateCoord(this.from))
+			this.to.V3_set(rotateCoord(this.to))
 			if (origin != this.origin) {
-				this.origin.V3_set(rotateCoord(this.origin, 1, origin))
+				this.origin.V3_set(rotateCoord(this.origin))
 			}
 			if (!Project.box_uv) {
 				if (axis === 0) {
@@ -429,6 +447,7 @@ class Cube extends OutlinerElement {
 		Canvas.adaptObjectPosition(this)
 		Canvas.adaptObjectFaces(this)
 		Canvas.updateUV(this)
+		return this;
 	}
 	flip(axis, center, skipUV) {
 		var scope = this;
