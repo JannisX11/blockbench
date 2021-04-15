@@ -1682,6 +1682,18 @@ const Animator = {
 				name: (Project.geometry_name||'model')+'.animation',
 				startpath: path,
 				content: autoStringify(content),
+				custom_writer: isApp && ((content, new_path) => {
+					if (new_path && fs.existsSync(new_path)) {
+						Animator.animations.forEach(function(a) {
+							if (a.path == filter_path && !a.saved) {
+								a.path = new_path;
+								a.save();
+							}
+						})
+					} else {
+						Blockbench.writeFile(path, {content})
+					}
+				})
 			}, new_path => {
 				Animator.animations.forEach(function(a) {
 					if (a.path == filter_path) {
