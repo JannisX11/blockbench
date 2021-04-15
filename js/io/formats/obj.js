@@ -185,6 +185,7 @@ var codec = new Codec('obj', {
 
 		Blockbench.writeFile(mtl_path, {content: _obj_export.mtl});
 
+		//let existing_names = [];
 		for (var key in _obj_export.images) {
 			var texture = _obj_export.images[key]
 			if (texture && !texture.error) {
@@ -193,8 +194,18 @@ var codec = new Codec('obj', {
 				if (name.substr(-4) !== '.png') {
 					name += '.png';
 				}
-				var image_path = path.split(osfs)
-				image_path.splice(-1, 1, texture.name)
+				/*
+				while (existing_names.includes(name)) {
+					name = name.substr(0, name.length-4);
+					let match = name.match(/\d+$/);
+					let number = match ? parseInt(match[0])+1 : 2;
+					name = name.replace(/\d+$/, '');
+					name = name + number + '.png';
+				}
+				existing_names.push(name);
+				*/
+				var image_path = path.split(osfs);
+				image_path.splice(-1, 1, name);
 				Blockbench.writeFile(image_path.join(osfs), {
 					content: texture.source,
 					savetype: 'image'

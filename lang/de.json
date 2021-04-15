@@ -63,7 +63,7 @@
     "message.unsaved_textures.title": "Ungespeicherte Texturen",
     "message.unsaved_textures.message": "Dein Modell hat ungespeicherte Texturen. Um sicherzugehen, dass das Modell funktioniert, solltest du diese in dem entsprechenden Ordner im Ressourcenpaket speichern.",
     "message.model_clipping.title": "Modell zu groß",
-    "message.model_clipping.message": "Dein Modell enthält %0 Elemente, die größer sind als das 3x3x3 Limit von Minecraft zulässt. Dieses Modell wird so nicht in Minecraft funktionieren.",
+    "message.model_clipping.message": "Dein Modell enthält %0 Elemente, die größer sind als das 3x3x3 Block Limit von Minecraft zulässt. Dieses Modell wird so nicht in Minecraft funktionieren.",
     "message.loose_texture.title": "Textur",
     "message.loose_texture.message": "Die geladene Textur befindet sich nicht in einem Ressourcenpaket. Minecract kann nur Texturen laden, die sich innerhalb des Texturenordners eines Ressourcenpakets befindet.",
     "message.loose_texture.change": "Pfad Verändern",

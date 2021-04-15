@@ -309,8 +309,7 @@ class Animation {
 		Animator.animations.forEach(function(a) {
 			a.selected = a.playing = false;
 		})
-		Timeline.animators.purge();
-		Timeline.selected.empty();
+		Timeline.clear();
 		Timeline.vue._data.markers = this.markers;
 		Timeline.vue._data.animation_length = this.length;
 		this.selected = true;
@@ -418,9 +417,6 @@ class Animation {
 		if (undo) {
 			Undo.initEdit({animations: [this]})
 		}
-		if (Animation.selected === this) {
-			Animation.selected = null
-		}
 		Animator.animations.remove(this)
 		if (undo) {
 			Undo.finishEdit('remove animation', {animations: []})
@@ -446,6 +442,11 @@ class Animation {
 			}
 		}
 		Blockbench.dispatchEvent('remove_animation', {animations: [this]})
+		if (Animation.selected === this) {
+			Animation.selected = null;
+			Timeline.clear();
+			Animator.preview();
+		}
 		return this;
 	}
 	getMaxLength() {
@@ -1594,7 +1595,7 @@ const Animator = {
 	buildFile(path_filter, name_filter) {
 		var animations = {}
 		Animator.animations.forEach(function(a) {
-			if ((typeof path_filter != 'string' || a.path == path_filter) && (!name_filter || !name_filter.length || name_filter.includes(a.name))) {
+			if ((typeof path_filter != 'string' || a.path == path_filter || (!a.path && !path_filter)) && (!name_filter || !name_filter.length || name_filter.includes(a.name))) {
 				let ani_tag = a.compileBedrockAnimation();
 				animations[a.name] = ani_tag;
 			}
@@ -1681,6 +1682,18 @@ const Animator = {
 				name: (Project.geometry_name||'model')+'.animation',
 				startpath: path,
 				content: autoStringify(content),
+				custom_writer: isApp && ((content, new_path) => {
+					if (new_path && fs.existsSync(new_path)) {
+						Animator.animations.forEach(function(a) {
+							if (a.path == filter_path && !a.saved) {
+								a.path = new_path;
+								a.save();
+							}
+						})
+					} else {
+						Blockbench.writeFile(path, {content})
+					}
+				})
 			}, new_path => {
 				Animator.animations.forEach(function(a) {
 					if (a.path == filter_path) {
@@ -1702,6 +1715,10 @@ Blockbench.on('reset_project', () => {
 		let effect = Animator.particle_effects[path];
 		if (isApp && effect.watcher) {
 			effect.watcher.close()
+		}
+		for (let uuid in effect.emitters) {
+			effect.emitters[uuid].delete();
+			delete effect.emitters[uuid];
 		}
 		delete Animator.particle_effects[path];
 	}

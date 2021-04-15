@@ -426,6 +426,7 @@ const Canvas = {
 		mesh.position.set(cube.origin[0], cube.origin[1], cube.origin[2])
 		//mesh.geometry.translate(-cube.origin[0], -cube.origin[1], -cube.origin[2])
 		mesh.rotation.set(0, 0, 0)
+		mesh.geometry.computeBoundingBox()
 		mesh.geometry.computeBoundingSphere()
 
 		if (Format.rotate_cubes) {

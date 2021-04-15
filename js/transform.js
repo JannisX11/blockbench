@@ -67,10 +67,6 @@ function getSelectionCenter(all = false) {
 	}
 	return center;
 }
-//Canvas Restriction
-function isInBox(val) {
-	return !(Format.canvas_limit && !settings.deactivate_size_limit.value) || (val < 32 && val > -16)
-}
 function limitToBox(val, inflate) {
 	if (typeof inflate != 'number') inflate = 0;
 	if (!(Format.canvas_limit && !settings.deactivate_size_limit.value)) {
@@ -770,8 +766,12 @@ function rotateOnAxis(modify, axis, slider) {
 				if (obj_val > 45 || obj_val < -45) {
 	
 					let f = obj_val > 45
-					obj.roll(axis, f!=(axis==1) ? 1 : 3)
-					obj_val = f ? -22.5 : 22.5;
+					let can_roll = obj.roll(axis, f!=(axis==1) ? 1 : 3);
+					if (can_roll) {
+						obj_val = f ? -22.5 : 22.5;
+					} else {
+						obj_val = Math.clamp(obj_val, -45, 45);
+					}
 				}
 			}
 			obj.rotation[axis] = obj_val

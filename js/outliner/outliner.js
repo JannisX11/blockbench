@@ -838,7 +838,7 @@ BARS.defineActions(function() {
 				],
 				onConfirm(formData) {
 					if (formData.new) {
-						selected.length = 0
+						selected.empty();
 					}
 					let selected_group = Group.selected;
 					if (Group.selected) {
@@ -869,7 +869,7 @@ BARS.defineActions(function() {
 							if (obj instanceof Cube == false || obj.color.toString() != formData.color) return;
 						}
 						if (Math.random() > rdm) return;
-						selected.push(obj)
+						selected.safePush(obj)
 					})
 					updateSelection()
 					if (selected.length) {

@@ -247,38 +247,29 @@ Object.assign(Blockbench, {
 			resource_id
 		*/
 		if (Blockbench.isWeb) {
-			var file_name = options.name + (options.extensions ? '.'+options.extensions[0] : '')
+			var file_name = options.name;
+			if (options.extensions && file_name.substr(-options.extensions[0].length) != options.extensions[0]) {
+				file_name += '.' + options.extensions[0];
+			}
 			if (options.custom_writer) {
 				options.custom_writer(options.content, file_name)
 				
 			} else {
 
-				let a = document.createElement('a');
-				a.target = '_blank'
-
 				if (options.savetype === 'image') {
-					a.href = options.content;
+					console.log(options, file_name)
+					saveAs(options.content, file_name, {})
 
 				} else if (options.savetype === 'zip' || options.savetype === 'buffer' || options.savetype === 'binary') {
 					let blob = options.content instanceof Blob
 							 ? options.content
 							 : new Blob(options.content, {type: "octet/stream"});
-					a.href = window.URL.createObjectURL(blob);
+					saveAs(blob, file_name)
 
 				} else {
-					a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(options.content);
+					var blob = new Blob([options.content], {type: "text/plain;charset=utf-8"});
+					saveAs(blob, file_name, {autoBOM: true})
 				}
-
-				a.download = file_name;
-				
-				if (Blockbench.browser === 'firefox') document.body.appendChild(a);
-				var event = document.createEvent("MouseEvents");
-					event.initMouseEvent(
-							"click", true, false, window, 0, 0, 0, 0, 0
-							, false, false, false, false, 0, null
-					);
-				a.dispatchEvent(event);
-				if (Blockbench.browser === 'firefox') document.body.removeChild(a);
 
 			}
 			if (typeof cb === 'function') {
