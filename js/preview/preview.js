@@ -1369,18 +1369,28 @@ class OrbitGizmo {
 			let last_event = e1;
 			let move_calls = 0;
 
-			function move(e2) {
-				convertTouchEvent(e2);
+			let started = false;
+			function start() {
+				started = true;
 				scope.node.classList.add('mouse_active');
 				if (!e1.touches && last_event == e1 && scope.node.requestPointerLock) scope.node.requestPointerLock();
 				if (scope.preview.angle != null) {
 					scope.preview.setProjectionMode(false, true);
 				}
-				let limit = move_calls <= 2 ? 1 : 32;
-				scope.preview.controls.rotateLeft((e1.touches ? (e2.clientX - last_event.clientX) : Math.clamp(e2.movementX, -limit, limit)) / 40);
-				scope.preview.controls.rotateUp((e1.touches ? (e2.clientY - last_event.clientY) : Math.clamp(e2.movementY, -limit, limit)) / 40);
-				last_event = e2;
-				move_calls++;
+			}
+
+			function move(e2) {
+				convertTouchEvent(e2);
+				if (!started && Math.pow(e2.clientX - e1.clientX, 2) + Math.pow(e2.clientY - e1.clientY, 2) > 12) {
+					start()
+				}
+				if (started) {
+					let limit = move_calls <= 2 ? 1 : 32;
+					scope.preview.controls.rotateLeft((e1.touches ? (e2.clientX - last_event.clientX) : Math.clamp(e2.movementX, -limit, limit)) / 40);
+					scope.preview.controls.rotateUp((e1.touches ? (e2.clientY - last_event.clientY) : Math.clamp(e2.movementY, -limit, limit)) / 40);
+					last_event = e2;
+					move_calls++;
+				}
 			}
 			function off(e2) {
 				if (document.exitPointerLock) document.exitPointerLock()
