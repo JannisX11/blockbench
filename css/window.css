@@ -656,49 +656,6 @@
 	}
 
 /* Preview */
-	.preview .blocky {
-		height: 80px;
-		width: 80px;
-		background-image: url('./../assets/blocky.png');
-		background-size: contain;
-		position: absolute;
-		right: 8px;
-		bottom: 100px;
-	}
-	.preview .blocky.blink {
-		background-image: url('./../assets/blocky_blink.png');
-	}
-	.preview .blocky > div {
-		position: absolute;
-		display: none;
-		background-color: var(--color-bright_ui);
-		color: var(--color-accent_text);
-		width: 200px;
-		right: -6px;
-		bottom: 80px;
-		padding: 10px;
-		padding-top: 25px;
-		border-radius: 8px;
-	}
-	.preview .blocky > div #blocky_close_button {
-		position: absolute;
-		top: 0;
-		right: 0;
-	}
-	.preview .blocky > div button {
-		background-color: transparent;
-		border: 1px solid var(--color-border);
-		color: var(--color-accent_text);
-		height: 26px;
-	}
-	#blocky_actions {
-		position: unset;
-		box-shadow: none;
-		margin-top: 16px;
-		margin-bottom: 16px;
-		max-width: 100%;
-	}
-
 	.orbit_gizmo {
 		position: absolute;
 		border-radius: 50%;
