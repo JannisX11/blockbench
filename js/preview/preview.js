@@ -487,7 +487,8 @@ class Preview {
 				this.camPers.position.copy(cam_offset).add(this.controls.target);
 			}
 		}
-		this.setLockedAngle()
+		this.setLockedAngle();
+		this.occupyTransformer();
 		this.controls.updateSceneScale();
 		return this;
 	}
