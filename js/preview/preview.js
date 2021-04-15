@@ -1679,7 +1679,7 @@ const Screencam = {
 }
 
 window.addEventListener("gamepadconnected", function(event) {
-	if (event.gamepad.id.includes('SpaceMouse')) {
+	if (event.gamepad.id.includes('SpaceMouse') || event.gamepad.id.includes('SpaceNavigator')) {
 
 		let interval = setInterval(() => {
 			let gamepad = navigator.getGamepads()[event.gamepad.index];
