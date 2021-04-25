@@ -398,7 +398,7 @@ BARS.defineActions(() => {
 		category: 'blockbench',
 		click: function () {
 			Blockbench.import({
-				resource_id: 'theme',
+				resource_id: 'config',
 				extensions: ['bbsettings'],
 				type: 'Blockbench Settings'
 			}, function(files) {
@@ -435,13 +435,15 @@ BARS.defineActions(() => {
 				})
 			}
 			Blockbench.export({
-				resource_id: 'theme',
+				resource_id: 'config',
 				type: 'Blockbench Settings',
 				extensions: ['bbsettings'],
-				content: autoStringify({settings: settings_copy})
+				content: compileJSON({settings: settings_copy})
 			})
 		}
 	})
+	BarItems.import_settings.toElement('#settings_title_bar')
+	BarItems.export_settings.toElement('#settings_title_bar')
 })
 
 onVueSetup(function() {

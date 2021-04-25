@@ -357,6 +357,65 @@ onVueSetup(function() {
 	}
 })
 
+
+BARS.defineActions(() => {
+	
+	new Action('import_keymap', {
+		icon: 'folder',
+		category: 'blockbench',
+		click: function () {
+			Blockbench.import({
+				resource_id: 'config',
+				extensions: ['bbkeymap'],
+				type: 'Blockbench Keymap'
+			}, function(files) {
+				let {keys} = JSON.parse(files[0].content);
+
+				Keybinds.actions.forEach(keybind_item => {
+					if (keys[keybind_item.id] == null) {
+						keybind_item.keybind.clear();
+					} else {
+						keybind_item.keybind.set(keys[keybind_item.id]).save(false);
+					}
+				})
+				Keybinds.save();
+				TickUpdates.keybind_conflicts = true;
+			})
+		}
+	})
+	new Action('export_keymap', {
+		icon: 'keyboard_hide',
+		category: 'blockbench',
+		click: async function () {
+			var keys = {}
+
+			for (var key in Keybinds.stored) {
+				if (Keybinds.stored[key].key == -1) {
+					keys[key] = null;
+				} else {
+					keys[key] = new oneLiner(Keybinds.stored[key])
+				}
+			}
+			Blockbench.export({
+				resource_id: 'config',
+				type: 'Blockbench Keymap',
+				extensions: ['bbkeymap'],
+				content: compileJSON({keys})
+			})
+		}
+	})
+	new Action('reset_keybindings', {
+		icon: 'replay',
+		category: 'blockbench',
+		work_in_dialog: true,
+		click: function () {Keybinds.reset()}
+	})
+	BarItems.import_keymap.toElement('#keybinds_title_bar')
+	BarItems.export_keymap.toElement('#keybinds_title_bar')
+	BarItems.reset_keybindings.toElement('#keybinds_title_bar')
+})
+
+
 window.addEventListener('blur', event => {
 	if (Pressing.alt) {
 		if (Toolbox.original && Toolbox.original.alt_tool) {

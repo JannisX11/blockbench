@@ -783,14 +783,25 @@
 	"action.edit_session": "Edit Session...",
 	"action.edit_session.desc": "Connect to an edit session to collaborate with other users",
 
-	"action.reset_keybindings": "Reset Keybindings",
-	"action.reset_keybindings.desc": "Reset all keybindings to Blockbench's defaults",
 	"action.load_plugin": "Load Plugin from File",
 	"action.load_plugin.desc": "Load a plugin by importing the source file",
 	"action.load_plugin_from_url": "Load Plugin from URL",
 	"action.load_plugin_from_url.desc": "Load a plugin from a server by specifying the URL",
 	"action.reload_plugins": "Reload Plugins",
 	"action.reload_plugins.desc": "Reload all development plugins",
+
+	"action.import_settings": "Import Settings",
+	"action.import_settings.desc": "Import a .bbsettings file",
+	"action.export_settings": "Export Settings",
+	"action.export_settings.desc": "Export the Blockbench settings as a .bbsettings file",
+	
+	"action.reset_keybindings": "Reset Keybindings",
+	"action.reset_keybindings.desc": "Reset all keybindings to Blockbench's defaults",
+	"action.import_keymap": "Import Keymap",
+	"action.import_keymap.desc": "Import keybindings a .bbkeymap file",
+	"action.export_keymap": "Export Keymap",
+	"action.export_keymap.desc": "Export the current keybindings as a .bbkeymap file",
+
 	"action.reset_layout": "Reset Layout",
 	"action.reset_layout.desc": "Reset the layout to Blockbench's default",
 	"action.import_theme": "Import Theme",
@@ -798,10 +809,6 @@
 	"action.export_theme.desc": "Create a theme file based on the current settings",
 	"action.reset_theme": "Reset Theme",
 	"action.reset_theme.desc": "Reset to the default Blockbench theme",
-	"action.import_settings": "Import Settings",
-	"action.import_settings.desc": "Import a .bbsettings file",
-	"action.export_settings": "Export Settings",
-	"action.export_settings.desc": "Export the Blockbench settings as a .bbsettings file",
 
 	"action.uv_dialog": "UV Window",
 	"action.uv_dialog.desc": "Open the UV dialog to see all faces next to each other",

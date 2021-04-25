@@ -210,7 +210,7 @@ BARS.defineActions(function() {
 		category: 'blockbench',
 		click: function () {
 			Blockbench.import({
-				resource_id: 'theme',
+				resource_id: 'config',
 				extensions: ['bbstyle', 'bbtheme'],
 				type: 'Blockbench Theme'
 			}, function(files) {
@@ -223,10 +223,10 @@ BARS.defineActions(function() {
 		category: 'blockbench',
 		click: function () {
 			Blockbench.export({
-				resource_id: 'theme',
+				resource_id: 'config',
 				type: 'Blockbench Theme',
 				extensions: ['bbtheme'],
-				content: autoStringify(CustomTheme.data)
+				content: compileJSON(CustomTheme.data)
 			})
 		}
 	})

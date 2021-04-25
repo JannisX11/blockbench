@@ -1492,12 +1492,6 @@ const BARS = {
 
 
 		//Settings
-			new Action('reset_keybindings', {
-				icon: 'replay',
-				category: 'blockbench',
-				work_in_dialog: true,
-				click: function () {Keybinds.reset()}
-			})
 			new Action('open_dev_tools', {
 				name: 'menu.help.developer.dev_tools',
 				icon: 'fas.fa-tools',
@@ -1825,7 +1819,6 @@ const BARS = {
 		}
 		BarItems.move_tool.select()
 
-		BarItems.reset_keybindings.toElement('#keybinds_title_bar')
 		BarItems.uv_dialog.toElement('#uv_title_bar')
 		BarItems.uv_dialog_full.toElement('#uv_title_bar')
 	},
