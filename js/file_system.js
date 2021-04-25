@@ -354,7 +354,6 @@ Object.assign(Blockbench, {
 		if (options.extensions) {
 			entry.extensions = options.extensions
 		}
-		if (options.addClass !== false) entry.addClass = true;
 		if (options.propagate) entry.propagate = true;
 		if (options.readtype) entry.readtype = options.readtype;
 		if (options.errorbox) entry.errorbox = true;
