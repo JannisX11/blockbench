@@ -15,6 +15,13 @@ function setupDragHandlers() {
 		}
 	)
 	Blockbench.addDragHandler(
+		'settings',
+		{extensions: ['bbsettings']},
+		function(files) {
+			Settings.import(files[0]);
+		}
+	)
+	Blockbench.addDragHandler(
 		'plugin',
 		{extensions: ['bbplugin', 'js']},
 		function(files) {

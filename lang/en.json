@@ -407,6 +407,11 @@
 	"dialog.skin.texture": "Texture (Optional)",
 	"dialog.skin.pose": "Pose",
 	"dialog.skin.layer_template": "Layer Texture",
+
+	"dialog.export_private_settings.title": "Private Settings",
+	"dialog.export_private_settings.message": "Your file contains the following private informations: **%0**. Remove these values if you plan to share the file with someone else.",
+	"dialog.export_private_settings.keep": "Keep",
+	"dialog.export_private_settings.remove": "Remove",
 	
 	"dialog.settings.settings": "Settings",
 	"dialog.settings.keybinds": "Keybindings",
@@ -793,6 +798,10 @@
 	"action.export_theme.desc": "Create a theme file based on the current settings",
 	"action.reset_theme": "Reset Theme",
 	"action.reset_theme.desc": "Reset to the default Blockbench theme",
+	"action.import_settings": "Import Settings",
+	"action.import_settings.desc": "Import a .bbsettings file",
+	"action.export_settings": "Export Settings",
+	"action.export_settings.desc": "Export the Blockbench settings as a .bbsettings file",
 
 	"action.uv_dialog": "UV Window",
 	"action.uv_dialog.desc": "Open the UV dialog to see all faces next to each other",

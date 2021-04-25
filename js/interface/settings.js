@@ -67,6 +67,26 @@ class Setting {
 			delete Settings.structure[this.category].items[this.id];
 		}
 	}
+	set(value) {
+		if (value === undefined || value === null) return;
+		let old_value = this.value;
+
+		if (this.type == 'number' && typeof value == 'number') {
+			if (this.snap) {
+				value = Math.round(value / this.snap) * this.snap;
+			}
+			this.value = Math.clamp(value, this.min, this.max)
+		} else if (this.type == 'toggle') {
+			this.value = !!value;
+		} else if (this.type == 'click') {
+			this.value = value;
+		} else if (typeof value == 'string') {
+			this.value = value;
+		}
+		if (typeof this.onChange == 'function' && this.value !== old_value) {
+			this.onChange(this.value);
+		}
+	}
 }
 
 const Settings = {
@@ -336,6 +356,15 @@ const Settings = {
 			structure.search_results.hidden = true;
 		}
 	},
+	import(file) {
+		let data = JSON.parse(file.content);
+		for (let key in settings) {
+			let setting = settings[key];
+			if (setting instanceof Setting && data.settings[key] !== undefined) {
+				setting.set(data.settings[key]);
+			}
+		}
+	},
 	get(id) {
 		if (id && settings[id]) {
 			return settings[id].value;
@@ -361,6 +390,59 @@ function updateStreamerModeNotification() {
 		})
 	}
 }
+
+BARS.defineActions(() => {
+	
+	new Action('import_settings', {
+		icon: 'folder',
+		category: 'blockbench',
+		click: function () {
+			Blockbench.import({
+				resource_id: 'theme',
+				extensions: ['bbsettings'],
+				type: 'Blockbench Settings'
+			}, function(files) {
+				Settings.import(files[0]);
+			})
+		}
+	})
+	new Action('export_settings', {
+		icon: 'fas.fa-user-cog',
+		category: 'blockbench',
+		click: async function () {
+			let private_data = [];
+			var settings_copy = {}
+			for (var key in settings) {
+				settings_copy[key] = settings[key].value;
+				if (settings[key].value && settings[key].type == 'password') {
+					private_data.push(key);
+				}
+			}
+			if (private_data.length) {
+				await new Promise((resolve, reject) => {
+					Blockbench.showMessageBox({
+						title: 'dialog.export_private_settings.title',
+						message: tl('dialog.export_private_settings.message', [private_data.map(key => settings[key].name).join(', ')]),
+						buttons: ['dialog.export_private_settings.keep', 'dialog.export_private_settings.remove']
+					}, result => {
+						if (result == 1) {
+							private_data.forEach(key => {
+								delete settings_copy[key];
+							})
+						}
+						resolve()
+					})
+				})
+			}
+			Blockbench.export({
+				resource_id: 'theme',
+				type: 'Blockbench Settings',
+				extensions: ['bbsettings'],
+				content: autoStringify({settings: settings_copy})
+			})
+		}
+	})
+})
 
 onVueSetup(function() {
 	Settings.structure.search_results = {
