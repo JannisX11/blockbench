@@ -99,7 +99,7 @@ const DefaultCameraPresets = [
 		name: 'camera_angle.isometric_right',
 		id: 'isometric_right',
 		projection: 'orthographic',
-		position: [-64, 64*0.8165, -64],
+		position: [-64, 64, -64],
 		target: [0, 0, 0],
 		zoom: 0.5,
 		default: true
@@ -108,7 +108,7 @@ const DefaultCameraPresets = [
 		name: 'camera_angle.isometric_left',
 		id: 'isometric_left',
 		projection: 'orthographic',
-		position: [64, 64*0.8165, -64],
+		position: [64, 64, -64],
 		target: [0, 0, 0],
 		zoom: 0.5,
 		default: true
