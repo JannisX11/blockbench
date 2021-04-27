@@ -376,6 +376,7 @@
 	"dialog.save_angle.projection.orthographic": "Orthographic",
 	"dialog.save_angle.position": "Camera Position",
 	"dialog.save_angle.target": "Focal Point",
+	"dialog.save_angle.zoom": "Zoom",
 
 	"dialog.input.title": "Input",
 
@@ -1178,6 +1179,7 @@
 	"menu.preview.angle": "Angles",
 	"menu.preview.angle.initial": "Initial Angle",
 	"menu.preview.angle.load": "Load",
+	"menu.preview.angle.edit": "Edit Angle...",
 
 	"menu.preview.perspective": "Perspective",
 	"menu.preview.perspective.normal": "Normal",

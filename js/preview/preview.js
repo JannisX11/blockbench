@@ -1248,7 +1248,7 @@ class Preview {
 			var children = [
 			]
 			let presets = localStorage.getItem('camera_presets')
-			presets = (presets && JSON.parse(presets)) || [];
+			presets = (presets && autoParseJSON(presets, false)) || [];
 			let all_presets = [...DefaultCameraPresets, ...presets];
 
 			all_presets.forEach(preset => {
@@ -1265,9 +1265,12 @@ class Preview {
 						{icon: 'check_circle', name: 'menu.preview.angle.load', click() {
 							preview.loadAnglePreset(preset)
 						}},
+						{icon: 'edit', name: 'menu.preview.angle.edit', click() {
+							editCameraPreset(preset, presets);
+						}},
 						{icon: 'delete', name: 'generic.delete', click() {
-							presets.remove(preset)
-							localStorage.setItem('camera_presets', JSON.stringify(presets))
+							presets.remove(preset);
+							localStorage.setItem('camera_presets', JSON.stringify(presets));
 						}}
 					]
 				})
@@ -1314,6 +1317,41 @@ function openQuadView() {
 	$('#preview').append(wrapper4)
 	
 	updateInterface()
+}
+
+function editCameraPreset(preset, presets) {
+	console.log('x')
+	let {name, projection, position, target, zoom} = preset;
+	
+	let dialog = new Dialog({
+		id: 'edit_angle',
+		title: 'menu.preview.angle.edit',
+		form: {
+			name: {label: 'generic.name', value: name},
+			projection: {label: 'dialog.save_angle.projection', type: 'select', value: projection, options: {
+				unset: 'generic.unset',
+				perspective: 'dialog.save_angle.projection.perspective',
+				orthographic: 'dialog.save_angle.projection.orthographic'
+			}},
+			position: {label: 'dialog.save_angle.position', type: 'vector', dimensions: 3, value: position},
+			target: {label: 'dialog.save_angle.target', type: 'vector', dimensions: 3, value: target},
+			zoom: {label: 'dialog.save_angle.zoom', type: 'number', value: zoom||1, condition: result => (result.projection == 'orthographic')},
+		},
+		onConfirm: function(result) {
+
+			if (!result.name) return;
+
+			preset.name = result.name;
+			preset.projection = result.projection;
+			preset.position = result.position;
+			preset.target = result.target;
+			if (result.projection == 'orthographic') preset.zoom = result.zoom;
+
+			localStorage.setItem('camera_presets', JSON.stringify(presets))
+			dialog.hide()
+		}
+	})
+	dialog.show();
 }
 
 
