@@ -1663,10 +1663,15 @@ const BARS = {
 				'slider_color_h',
 				'slider_color_s',
 				'slider_color_v',
-				'add_to_palette'
+				'add_to_palette',
+				'pick_screen_color'
 			]
 		})
-
+		if (isApp) {
+			Blockbench.onUpdateTo('3.9', () => {
+				Toolbars.animations.add(BarItems.pick_screen_color);
+			})
+		}
 
 
 		Toolbars.display = new Toolbar({

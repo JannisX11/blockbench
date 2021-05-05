@@ -781,5 +781,13 @@ BARS.defineActions(function() {
 			ColorPanel.updateFromHsv();
 		}
 	})
+	new Action('pick_screen_color', {
+		icon: 'colorize',
+		category: 'color',
+		condition: isApp,
+		click: function () {
+			ipcRenderer.send('request-color-picker', {sync: settings.sync_color.value});
+		}
+	})
 })
 })()

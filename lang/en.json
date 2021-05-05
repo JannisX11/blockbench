@@ -873,6 +873,8 @@
 	"action.sort_palette.desc": "Sort all colors on the palette by color and brightness",
 	"action.load_palette": "Load Palette",
 	"action.load_palette.desc": "Load one of the built-in palette presets",
+	"action.pick_screen_color": "Pick Screen Color",
+	"action.pick_screen_color.desc": "Pick a color from somewhere on your screen",
 
 	"action.transform_space": "Transform Space",
 	"action.transform_space.desc": "Default transform space for elements and bones",
