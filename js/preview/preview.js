@@ -1601,6 +1601,7 @@ const Screencam = {
 			}
 		}
 
+		let recording = true;
 		var loop = setInterval(() => {
 			frames++;
 			Canvas.withoutGizmos(function() {
@@ -1613,17 +1614,20 @@ const Screencam = {
 			})
 			Blockbench.setProgress(getProgress());
 			if (getProgress() >= 1) {
-				endRecording()
+				endRecording(true)
 				return;
 			}
 
 		}, interval)
 
-		function endRecording() {
-			gif.render();
+		function endRecording(render) {
+			recording = false;
 			clearInterval(loop)
-			if (!options.silent) {
-				Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
+			if (render) {
+				gif.render();
+				if (!options.silent) {
+					Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
+				}
 			}
 			if (Animator.open && Timeline.playing) {
 				Timeline.pause();
@@ -1633,17 +1637,34 @@ const Screencam = {
 			}
 		}
 
+		let toast = Blockbench.showToastNotification({
+			text: 'message.recording_gif',
+			icon: 'local_movies',
+			click() {
+				if (recording) {
+					endRecording(false);
+				} else {
+					gif.abort();
+				}
+				Blockbench.setStatusBarText();
+				Blockbench.setProgress(0);
+				return true;
+			}
+		})
+
 		gif.on('finished', blob => {
 			var reader = new FileReader();
 			reader.onload = () => {
 				if (!options.silent) {
-					Blockbench.setProgress(0);
+					Blockbench.setProgress();
 					Blockbench.setStatusBarText();
 				}
 				Screencam.returnScreenshot(reader.result, cb);
 			}
 			reader.readAsDataURL(blob);
+			toast.delete();
 		});
+
 	},
 	recordTimelapse(options) {
 		if (!options.destination) return;

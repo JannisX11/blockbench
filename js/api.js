@@ -126,7 +126,7 @@ const Blockbench = {
 	 * @param {string} [options.icon] Blockbench icon string
 	 * @param {number} [options.expire] Expire time in miliseconds
 	 * @param {string} [options.color] Background color, accepts any CSS color string
-	 * @param {function click(event)} [options.click] Method to run on click. Return `true` to close toast
+	 * @param {function} [options.click] Method to run on click. Return `true` to close toast
 	 * 
 	 */
 	showToastNotification(options) {
