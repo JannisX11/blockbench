@@ -604,6 +604,8 @@
 	"settings.minify_bbmodel.desc": "Write .bbmodel files minified into one line",
 	"settings.export_groups": "Export Groups",
 	"settings.export_groups.desc": "Save groups in block or item model files",
+	"settings.animation_sample_rate": "Animation Sample Rate",
+	"settings.animation_sample_rate.desc": "Sample rate in samples per second for curves that the respective format does not support natively",
 	"settings.credit": "Credit Comment",
 	"settings.credit.desc": "Add a credit comment to exported files",
 	"settings.sketchfab_token": "Sketchfab Token",

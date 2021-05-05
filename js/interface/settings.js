@@ -231,6 +231,7 @@ const Settings = {
 		new Setting('minifiedout', {category: 'export', value: false});
 		new Setting('minify_bbmodel', {category: 'export', value: true});
 		new Setting('export_groups', {category: 'export', value: true});
+		new Setting('animation_sample_rate',{category: 'export', value: 24, type: 'number'});
 		new Setting('sketchfab_token', {category: 'export', value: '', type: 'password'});
 		new Setting('credit', {category: 'export', value: 'Made with Blockbench', type: 'text'});
 
