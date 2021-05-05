@@ -28,8 +28,8 @@ class Codec {
 		}
 		if (file.path && isApp && this.remember && !file.no_file ) {
 			var name = pathToName(file.path, true);
-			ModelMeta.name = pathToName(name, false);
-			ModelMeta.export_path = file.path;
+			Project.name = pathToName(name, false);
+			Project.export_path = file.path;
 			addRecentProject({
 				name,
 				path: file.path,
@@ -58,10 +58,10 @@ class Codec {
 		}, path => scope.afterDownload(path))
 	}
 	fileName() {
-		return ModelMeta.name||Project.name||'model';
+		return Project.name||'model';
 	}
 	startPath() {
-		return ModelMeta.export_path;
+		return Project.export_path;
 	}
 	write(content, path) {
 		var scope = this;
@@ -74,7 +74,7 @@ class Codec {
 	//overwrite(content, path, cb)
 	afterDownload(path) {
 		if (this.remember) {
-			Prop.project_saved = true;
+			Project.saved = true;
 		}
 		Blockbench.showQuickMessage(tl('message.save_file', [path ? pathToName(path, true) : this.fileName()]));
 	}
@@ -82,12 +82,12 @@ class Codec {
 		var name = pathToName(path, true)
 		if (Format.codec == this || this.id == 'project') {
 			if (this.id == 'project') {
-				ModelMeta.save_path = path;
+				Project.save_path = path;
 			} else {
-				ModelMeta.export_path = path;
+				Project.export_path = path;
 			}
-			ModelMeta.name = pathToName(path, false);
-			Prop.project_saved = true;
+			Project.name = pathToName(path, false);
+			Project.saved = true;
 		}
 		if (this.remember) {
 			addRecentProject({

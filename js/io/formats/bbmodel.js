@@ -14,8 +14,8 @@ var codec = new Codec('project', {
 		newProject(model.meta.type||'free');
 		var name = pathToName(file.path, true);
 		if (file.path && isApp && !file.no_file ) {
-			ModelMeta.save_path = file.path;
-			ModelMeta.name = pathToName(name, false);
+			Project.save_path = file.path;
+			Project.name = pathToName(name, false);
 			addRecentProject({
 				name,
 				path: file.path,
@@ -246,8 +246,8 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 83, ctrl: true, alt: true}),
 		click: function () {
 			saveTextures(true)
-			if (isApp && ModelMeta.save_path) {
-				codec.write(codec.compile(), ModelMeta.save_path);
+			if (isApp && Project.save_path) {
+				codec.write(codec.compile(), Project.save_path);
 			} else {
 				codec.export()
 			}

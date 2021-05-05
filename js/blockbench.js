@@ -20,7 +20,6 @@ var Prop = {
 	file_name	  	: '',
 	added_models 	: 0,
 	recording		: null,
-	project_saved 	: true,
 	fps				: 0,
 	progress		: 0,
 	session 		: false,

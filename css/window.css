@@ -3,8 +3,9 @@
 	#page_wrapper {
 		display: grid;
 		grid-template-columns: 332px auto 314px;
-		grid-template-rows: 30px minmax(200px, 5000px) 26px;
+		grid-template-rows: 30px 30px minmax(200px, 5000px) 26px;
 		grid-template-areas: 
+			"tab_bar tab_bar tab_bar"
 			"left_bar toolbar toolbar"
 			"left_bar center right_bar"
 			"left_bar status_bar right_bar";
@@ -35,6 +36,9 @@
 		z-index: 250;
 	}
 
+	#tab_bar {
+		grid-area: tab_bar;
+	}
 	.sidebar {
 		background-color: var(--color-ui);;
 		display: flex;
@@ -283,6 +287,7 @@
 		display: grid;
 		grid-template-rows: auto minmax(200px, 5000px) 26px 36px;
 		grid-template-areas: 
+			"tab_bar"
 			"toolbar"
 			"center"
 			"status_bar"
@@ -403,6 +408,65 @@
 		border-bottom: 3px solid var(--color-accent);
 	}
 
+/* Tab Bar */
+	#tab_bar {
+		display: flex;
+		flex-direction: row;
+		position: relative;
+		white-space: nowrap;
+		overflow-x: auto;
+		overflow-y: hidden;
+		padding-left: 4px;
+	}
+	#tab_bar .project_tab {
+		background-color: var(--color-back);
+		cursor: pointer;
+		width: 200px;
+		min-width: 120px;
+		height: 100%;
+		padding: 2px 6px;
+		position: relative;
+		overflow: hidden;
+		display: inline-flex;
+		margin-left: 2px;
+		border-top: 2px solid transparent;
+	}
+	#tab_bar .project_tab.selected {
+		background-color: var(--color-ui);
+		cursor: default;
+		border-top-color: var(--color-accent);
+	}
+	#tab_bar .project_tab:not(.selected):hover {
+		background-color: var(--color-button);
+		color: var(--color-light);
+	}
+	#tab_bar .project_tab > label {
+		overflow: hidden;
+		width: calc(100% - 20px);
+		flex: 1 1 auto;
+		padding: 0 4px;
+	}
+	#tab_bar .project_tab > * {
+		cursor: inherit
+	}
+	#tab_bar .project_tab_close_button {
+		flex: 0 0 24px;
+		text-align: center;
+		cursor: pointer;
+		display: none;
+	}
+	#tab_bar .project_tab:hover .project_tab_close_button,
+	#tab_bar .project_tab.selected .project_tab_close_button,
+	#tab_bar .project_tab .project_tab_close_button.unsaved {
+		display: block;
+	}
+	#tab_bar .project_tab_close_button:hover {
+		color: var(--color-light);
+	}
+	#tab_bar .project_tab_close_button.unsaved > i {
+		font-size: 13px;
+		text-align: center;
+	}
 
 
 /*Start Screen*/

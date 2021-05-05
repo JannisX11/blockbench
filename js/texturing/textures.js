@@ -458,8 +458,8 @@ class Texture {
 	generateFolder(path) {
 		if (path.includes(osfs+'optifine'+osfs+'cit'+osfs)) {
 
-			if (ModelMeta.export_path) {
-				let model_arr = ModelMeta.export_path.split(osfs).slice(0, -1);
+			if (Project.export_path) {
+				let model_arr = Project.export_path.split(osfs).slice(0, -1);
 				let tex_arr = path.split(osfs).slice(0, -1);
 				let index = 0;
 				tex_arr.find((dir, i) => {
@@ -868,8 +868,8 @@ class Texture {
 				if (Format.bone_rig && Project.geometry_name) {
 					find_path = BedrockEntityManager.findEntityTexture(Project.geometry_name, true)
 				}
-				if (!find_path && ModelMeta.export_path) {
-					var arr = ModelMeta.export_path.split(osfs);
+				if (!find_path && Project.export_path) {
+					var arr = Project.export_path.split(osfs);
 					var index = arr.lastIndexOf('models');
 					if (index > 1) arr.splice(index, 256, 'textures')
 					if (scope.folder) arr = arr.concat(scope.folder.split('/'));
@@ -1283,8 +1283,8 @@ BARS.defineActions(function() {
 				var arr = textures[0].path.split(osfs)
 				arr.splice(-1)
 				start_path = arr.join(osfs)
-			} else if (ModelMeta.export_path) {
-				var arr = ModelMeta.export_path.split(osfs)
+			} else if (Project.export_path) {
+				var arr = Project.export_path.split(osfs)
 				arr.splice(-3)
 				arr.push('textures')
 				start_path = arr.join(osfs)

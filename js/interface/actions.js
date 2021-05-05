@@ -1340,9 +1340,9 @@ const BARS = {
 			new Action('open_model_folder', {
 				icon: 'folder_open',
 				category: 'file',
-				condition: () => {return isApp && (ModelMeta.save_path || ModelMeta.export_path)},
+				condition: () => {return isApp && (Project.save_path || Project.export_path)},
 				click: function () {
-					shell.showItemInFolder(ModelMeta.export_path || ModelMeta.save_path);
+					shell.showItemInFolder(Project.export_path || Project.save_path);
 				}
 			})
 			new Action('open_backup_folder', {

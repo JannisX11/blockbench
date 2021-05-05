@@ -1,19 +1,5 @@
 var Format = 0;
 const Formats = {};
-const ModelMeta = {
-	save_path: '',
-	export_path: '',
-	animation_path: '',
-	_name: '',
-	get name() {return this._name},
-	set name(name) {
-		this._name = name;
-		Project.name = this._name;
-		setProjectTitle(this._name)
-	},
-	get saved() {return Prop.project_saved},
-	set saved(s) {Prop.project_saved = !!s},
-}
 
 //Formats
 class ModelFormat {
@@ -110,7 +96,7 @@ class ModelFormat {
 
 		Undo.history.empty();
 		Undo.index = 0;
-		ModelMeta.export_path = '';
+		Project.export_path = '';
 
 		var old_format = Format
 		this.select(true)

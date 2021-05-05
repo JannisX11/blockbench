@@ -151,9 +151,9 @@ function addRecentProject(data) {
 	}
 	updateRecentProjects()
 }
-function updateRecentProjectThumbnail() {
+async function updateRecentProjectThumbnail() {
 	if (elements.length == 0) return;
-	let path = ModelMeta.export_path || ModelMeta.save_path;
+	let path = Project.export_path || Project.save_path;
 	let project = recent_projects.find(p => p.path == path);
 	if (!project) return;
 
@@ -167,16 +167,18 @@ function updateRecentProjectThumbnail() {
 	let size = Math.max(box[0], box[1]*2)
 	MediaPreview.camera.position.multiplyScalar(size/50)
 	
-	MediaPreview.screenshot({crop: false}, url => {
-		let hash = project.path.hashCode().toString().replace(/^-/, '0');
-		let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`)
-		Blockbench.writeFile(path, {
-			savetype: 'image',
-			content: url
+	await new Promise((resolve, reject) => {
+		MediaPreview.screenshot({crop: false}, url => {
+			let hash = project.path.hashCode().toString().replace(/^-/, '0');
+			let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`)
+			Blockbench.writeFile(path, {
+				savetype: 'image',
+				content: url
+			}, resolve)
+			let store_path = project.path;
+			project.path = '';
+			project.path = store_path;
 		})
-		let store_path = project.path;
-		project.path = '';
-		project.path = store_path;
 	})
 
 	// Clean old files
@@ -377,7 +379,7 @@ function showSaveDialog(close) {
 			unsaved_textures++;
 		}
 	})
-	if ((window.Prop && Prop.project_saved === false && (elements.length > 0 || Group.all.length > 0)) || unsaved_textures) {
+	if ((window.Prop && Project.saved === false && (elements.length > 0 || Group.all.length > 0)) || unsaved_textures) {
 		var answer = electron.dialog.showMessageBoxSync(currentwindow, {
 			type: 'question',
 			buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],

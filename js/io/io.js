@@ -543,10 +543,10 @@ BARS.defineActions(function() {
 			if (isApp) {
 				saveTextures()
 				if (Format) {
-					if (ModelMeta.export_path && Format.codec && Format.codec.compile) {
-						Format.codec.write(Format.codec.compile(), ModelMeta.export_path)
-					} else if (ModelMeta.save_path) {
-						Codecs.project.write(Codecs.project.compile(), ModelMeta.save_path);
+					if (Project.export_path && Format.codec && Format.codec.compile) {
+						Format.codec.write(Format.codec.compile(), Project.export_path)
+					} else if (Project.save_path) {
+						Codecs.project.write(Codecs.project.compile(), Project.save_path);
 					} else if (Format.codec) {
 						Format.codec.export()
 					}
@@ -582,11 +582,11 @@ BARS.defineActions(function() {
 						type: 'Zip Archive',
 						extensions: ['zip'],
 						name: 'assets',
-						startpath: ModelMeta.export_path,
+						startpath: Project.export_path,
 						content: content,
 						savetype: 'zip'
 					})
-					Prop.project_saved = true;
+					Project.saved = true;
 				})
 			}
 		})

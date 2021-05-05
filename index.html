@@ -647,6 +647,15 @@
 
 	<div id="page_wrapper" class="hidden">
 
+	<div id="tab_bar">
+		<div class="project_tab" v-for="project in projects" :key="project.uuid" :class="{selected: project.selected}" @click="project.select()" @dblclick="project.openSettings()">
+			<label :title="project.name || project.geometry_name">{{ project.name || project.geometry_name }}</label>
+			<div class="project_tab_close_button" :class="{unsaved: !project.saved}" @click="project.close()">
+				<i class="material-icons">{{ project.saved ? 'clear' : 'fiber_manual_record' }}</i>
+			</div>
+		</div>
+	</div>
+
 	<dialog id="action_selector" v-if="open">
 		<input type="text" v-model="search_input" autocomplete="off" autosave="off" autocorrect="off" spellcheck="off" autocapitalize="off">
 		<i class="material-icons" id="action_search_bar_icon">search</i>
@@ -803,10 +812,6 @@
 			v-bind:title="tl('interface.streamer_mode_on')"
 		>
 			<i class="material-icons">live_tv</i>
-		</div>
-		<div id="status_saved">
-			<i class="material-icons" v-if="Prop.project_saved" v-bind:title="tl('status_bar.saved')">check</i>
-			<i class="material-icons" v-else v-bind:title="tl('status_bar.unsaved')">close</i>
 		</div>
 		<div v-html="Blockbench.getIconNode(Format.icon).outerHTML" v-bind:title="Format.name"></div>
 		<div v-if="Prop.recording" v-html="Blockbench.getIconNode('fiber_manual_record').outerHTML" style="color: var(--color-close)" v-bind:title="tl('status_bar.recording')"></div>

@@ -1606,11 +1606,11 @@ const Animator = {
 		let content = Animator.buildFile(filter_path, true);
 
 		if (isApp && !path) {
-			path = ModelMeta.export_path
+			path = Project.export_path
 			var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
 			var m_index = path.search(exp)
 			if (m_index > 3) {
-				path = path.substr(0, m_index) + osfs + 'animations' + osfs +  pathToName(ModelMeta.export_path, true)
+				path = path.substr(0, m_index) + osfs + 'animations' + osfs +  pathToName(Project.export_path, true)
 			}
 			path = path.replace(/(\.geo)?\.json$/, '.animation.json')
 		}
@@ -1723,12 +1723,12 @@ BARS.defineActions(function() {
 		category: 'animation',
 		condition: {modes: ['animate'], method: () => Format.animation_files},
 		click: function () {
-			var path = ModelMeta.export_path
+			var path = Project.export_path
 			if (isApp) {
 				var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
 				var m_index = path.search(exp)
 				if (m_index > 3) {
-					path = path.substr(0, m_index) + osfs + 'animations' + osfs + pathToName(ModelMeta.export_path).replace(/\.geo/, '.animation')
+					path = path.substr(0, m_index) + osfs + 'animations' + osfs + pathToName(Project.export_path).replace(/\.geo/, '.animation')
 				}
 			}
 			Blockbench.import({

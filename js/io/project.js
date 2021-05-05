@@ -1,12 +1,24 @@
 class ModelProject {
-	constructor() {
+	constructor(options = {}) {
 		for (var key in ModelProject.properties) {
 			ModelProject.properties[key].reset(this);
 		}
+		this.uuid = guid();
+		this.selected = false;
 
 		this._box_uv = false;
 		this._texture_width = 16;
 		this._texture_height = 16;
+
+		this._name = '';
+		this.saved = true;
+		this.save_path = '';
+		this.export_path = '';
+
+		this.undo = new UndoSystem();
+		this.format = options.format || Formats.free;
+
+		ModelProject.all.push(this);
 	}
 	extend() {
 		for (var key in ModelProject.properties) {
@@ -27,15 +39,23 @@ class ModelProject {
 		Vue.nextTick(updateProjectResolution)
 		this._texture_width = n;
 	}
+	get optional_box_uv() {
+		return Format.optional_box_uv;
+	}
 	set texture_height(n) {
 		n = parseInt(n)||16
 		Vue.nextTick(updateProjectResolution)
 		this._texture_height = n;
 	}
-	get optional_box_uv() {
-		return Format.optional_box_uv;
+	get name() {
+		return this._name;
+	}
+	set name(name) {
+		this._name = name;
+		setProjectTitle(this._name);
 	}
 	reset() {
+		return;
 		if (isApp) updateRecentProjectThumbnail();
 
 		Blockbench.dispatchEvent('reset_project');
@@ -75,9 +95,8 @@ class ModelProject {
 		this.overrides = null;
 	
 		Blockbench.display_settings = display = {};
-		ModelMeta.save_path = ModelMeta.export_path = ModelMeta.name = '';
-		ModelMeta.saved = true;
-		Prop.project_saved = true;
+		Project.save_path = Project.export_path = Project.name = '';
+		Project.saved = true;
 		Prop.added_models = 0;
 		Canvas.updateAll();
 		Outliner.vue.$forceUpdate();
@@ -91,6 +110,57 @@ class ModelProject {
 		Animation.selected = undefined;
 		delete Animator.motion_trail_lock;
 		$('#var_placeholder_area').val('');
+	}
+
+	/*
+	----- THINGS TO SAVE --------
+	textures
+	elements
+	groups
+	selection
+	display settings
+	format
+
+	----- SAVE EXTERNALLY --------
+	scene
+	materials,
+	bones,
+	3d elements
+
+
+
+	*/
+	openSettings() {
+		BarItems.project_window.click();
+	}
+	select() {
+		if (this.selected) return;
+		if (Project) {
+			Project.unselect()
+		}
+		Project = this;
+		Undo = this.undo;
+		this.selected = true;
+
+		this.format.select();
+	}
+	unselect() {
+		this.selected = false;
+	}
+	async close(force) {
+
+		if (force || showSaveDialog()) {
+			if (isApp) await updateRecentProjectThumbnail();
+	
+			Blockbench.dispatchEvent('close_project');
+			
+			ModelProject.all.remove(this);
+			ModelProject.all[0].select();
+
+			return true;
+		} else {
+			return false;
+		}
 	}
 }
 new Property(ModelProject, 'string', 'name', {
@@ -137,27 +207,22 @@ new Property(ModelProject, 'boolean', 'layered_textures', {
 });
 
 
-const Project = new ModelProject();
+ModelProject.all = [];
+
+
+let Project = 0;// = new ModelProject();
 
 
 //New
 function resetProject() {
 	Project.reset()
 }
-function newProject(format, force) {
-	if (force || showSaveDialog()) {
-		if (Format) {
-			Project.reset();
-		}
-		if (format instanceof ModelFormat) {
-			format.select();
-		}
-		Modes.options.edit.select();
-		Blockbench.dispatchEvent('new_project');
-		return true;
-	} else {
-		return false;
-	}
+function newProject(format) {
+	new ModelProject({format}).select();
+
+	Modes.options.edit.select();
+	Blockbench.dispatchEvent('new_project');
+	return true;
 }
 
 // Resolution
@@ -208,6 +273,15 @@ function setProjectResolution(width, height, modify_uv) {
 function updateProjectResolution() {
 	document.querySelector('#project_resolution_status').textContent = `${Project.texture_width} ⨉ ${Project.texture_height}`;
 }
+
+onVueSetup(() => {
+	Interface.tab_bar = new Vue({
+		el: '#tab_bar',
+		data: {
+			projects: ModelProject.all
+		}
+	})
+})
 
 
 BARS.defineActions(function() {

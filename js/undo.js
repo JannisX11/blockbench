@@ -1,6 +1,8 @@
-var Undo = {
-	index: 0,
-	history: [],
+class UndoSystem {
+	constructor() {
+		this.index = 0;
+		this.history = [];
+	}
 	initEdit(aspects) {
 		if (aspects && aspects.cubes) {
 			console.warn('Aspect "cubes" is deprecated. Please use "elements" instead.');
@@ -8,113 +10,113 @@ var Undo = {
 		}
 		/*
 		if (
-			aspects && Undo.current_save &&
-			Objector.equalKeys(aspects, Undo.current_save.aspects) &&
+			aspects && this.current_save &&
+			Objector.equalKeys(aspects, this.current_save.aspects) &&
 			aspects.elements !== selected &&
-			Undo.history.length == Undo.index
+			this.history.length == this.index
 		) {
 			return;
 		}
 		- This still causes issues, for example with different texture selections
 		*/
-		Undo.current_save = new Undo.save(aspects)
-		return Undo.current_save;
-	},
+		this.current_save = new UndoSystem.save(aspects)
+		return this.current_save;
+	}
 	finishEdit(action, aspects) {
 		if (aspects && aspects.cubes) {
 			console.warn('Aspect "cubes" is deprecated. Please use "elements" instead.');
 			aspects.elements = aspects.cubes;
 		}
-		if (!Undo.current_save) return;
-		aspects = aspects || Undo.current_save.aspects
+		if (!this.current_save) return;
+		aspects = aspects || this.current_save.aspects
 		//After
 		Blockbench.dispatchEvent('finish_edit', {aspects})
 		var entry = {
-			before: Undo.current_save,
-			post: new Undo.save(aspects),
+			before: this.current_save,
+			post: new UndoSystem.save(aspects),
 			action: action
 		}
-		Undo.current_save = entry.post
-		if (Undo.history.length > Undo.index) {
-			Undo.history.length = Undo.index;
-			delete Undo.current_save;
+		this.current_save = entry.post
+		if (this.history.length > this.index) {
+			this.history.length = this.index;
+			delete this.current_save;
 		}
 	 
-		Undo.history.push(entry)
+		this.history.push(entry)
 
-		if (Undo.history.length > settings.undo_limit.value) {
-			Undo.history.shift()
+		if (this.history.length > settings.undo_limit.value) {
+			this.history.shift()
 		}
-		Undo.index = Undo.history.length
+		this.index = this.history.length
 		if (!aspects || !aspects.keep_saved) {
-			Prop.project_saved = false;
+			Project.saved = false;
 		}
 		Blockbench.dispatchEvent('finished_edit', {aspects})
 		if (EditSession.active) {
 			EditSession.sendEdit(entry)
 		}
 		return entry;
-	},
+	}
 	cancelEdit() {
-		if (!Undo.current_save) return;
+		if (!this.current_save) return;
 		outlines.children.length = 0
-		Undo.loadSave(Undo.current_save, new Undo.save(Undo.current_save.aspects))
-		delete Undo.current_save;
-	},
+		this.loadSave(this.current_save, new UndoSystem.save(this.current_save.aspects))
+		delete this.current_save;
+	}
 	addKeyframeCasualties(arr) {
 		if (!arr || arr.length == 0) return;
-		if (!Undo.current_save.keyframes) {
-			Undo.current_save.keyframes = {
+		if (!this.current_save.keyframes) {
+			this.current_save.keyframes = {
 				animation: Animation.selected.uuid
 			}
 		}
 		arr.forEach(kf => {
-			Undo.current_save.affected = true
-			Undo.current_save.keyframes[kf.uuid] = kf.getUndoCopy();
+			this.current_save.affected = true
+			this.current_save.keyframes[kf.uuid] = kf.getUndoCopy();
 		})
-	},
+	}
 	undo(remote) {
-		if (Undo.history.length <= 0 || Undo.index < 1) return;
+		if (this.history.length <= 0 || this.index < 1) return;
 
-		Prop.project_saved = false;
-		Undo.index--;
+		Project.saved = false;
+		this.index--;
 
-		var entry = Undo.history[Undo.index]
-		Undo.loadSave(entry.before, entry.post)
+		var entry = this.history[this.index]
+		this.loadSave(entry.before, entry.post)
 		if (EditSession.active && remote !== true) {
 			EditSession.sendAll('command', 'undo')
 		}
 		Blockbench.dispatchEvent('undo', {entry})
-	},
+	}
 	redo(remote) {
-		if (Undo.history.length <= 0) return;
-		if (Undo.index >= Undo.history.length) {
+		if (this.history.length <= 0) return;
+		if (this.index >= this.history.length) {
 			return;
 		}
-		Prop.project_saved = false;
+		Project.saved = false;
 
-		var entry = Undo.history[Undo.index]
-		Undo.index++;
-		Undo.loadSave(entry.post, entry.before)
+		var entry = this.history[this.index]
+		this.index++;
+		this.loadSave(entry.post, entry.before)
 		if (EditSession.active && remote !== true) {
 			EditSession.sendAll('command', 'redo')
 		}
 		Blockbench.dispatchEvent('redo', {entry})
-	},
+	}
 	remoteEdit(entry) {
-		Undo.loadSave(entry.post, entry.before, 'session')
+		this.loadSave(entry.post, entry.before, 'session')
 
 		if (entry.save_history !== false) {
-			delete Undo.current_save;
-			Undo.history.push(entry)
-			if (Undo.history.length > settings.undo_limit.value) {
-				Undo.history.shift()
+			delete this.current_save;
+			this.history.push(entry)
+			if (this.history.length > settings.undo_limit.value) {
+				this.history.shift()
 			}
-			Undo.index = Undo.history.length
-			Prop.project_saved = false;
+			this.index = this.history.length
+			Project.saved = false;
 			Blockbench.dispatchEvent('finished_edit', {remote: true})
 		}
-	},
+	}
 	getItemByUUID(list, uuid) {
 		if (!list || typeof list !== 'object' || !list.length) {return false;}
 		var i = 0;
@@ -125,93 +127,7 @@ var Undo = {
 			i++;
 		}
 		return false;
-	},
-	save: function(aspects) {
-		var scope = this;
-		this.aspects = aspects;
-
-		if (aspects.selection) {
-			this.selection = []
-			selected.forEach(function(obj) {
-				scope.selection.push(obj.uuid)
-			})
-			if (Group.selected) {
-				this.selection_group = Group.selected.uuid
-			}
-		}
-
-		if (aspects.elements) {
-			this.elements = {}
-			aspects.elements.forEach(function(obj) {
-				scope.elements[obj.uuid] = obj.getUndoCopy(aspects)
-			})
-		}
-
-		if (aspects.outliner) {
-			this.outliner = compileGroups(true)
-		}
-
-		if (aspects.group) {
-			this.group = aspects.group.getChildlessCopy(true)
-		}
-
-		if (aspects.textures) {
-			this.textures = {}
-			aspects.textures.forEach(t => {
-				var tex = t.getUndoCopy(aspects.bitmap)
-				this.textures[t.uuid] = tex
-			})
-		}
-
-		if (aspects.texture_order && Texture.all.length) {
-			this.texture_order = [];
-			Texture.all.forEach(tex => {
-				this.texture_order.push(tex.uuid);
-			})
-		}
-
-		if (aspects.selected_texture && Texture.all.length) {
-			this.selected_texture = Texture.selected ? Texture.selected.uuid : null;
-		}
-
-		if (aspects.settings) {
-			this.settings = aspects.settings
-		}
-
-		if (aspects.uv_mode) {
-			this.uv_mode = {
-				box_uv: Project.box_uv,
-				width:  Project.texture_width,
-				height: Project.texture_height
-			}
-		}
-
-		if (aspects.animations) {
-			this.animations = {}
-			aspects.animations.forEach(a => {
-				scope.animations[a.uuid] = a.getUndoCopy();
-			})
-		}
-		if (aspects.keyframes && Animation.selected && Timeline.animators.length) {
-			this.keyframes = {
-				animation: Animation.selected.uuid
-			}
-			aspects.keyframes.forEach(kf => {
-				scope.keyframes[kf.uuid] = kf.getUndoCopy()
-			})
-		}
-
-		if (aspects.display_slots) {
-			scope.display_slots = {}
-			aspects.display_slots.forEach(slot => {
-				if (display[slot]) {
-					scope.display_slots[slot] = display[slot].copy()
-				} else {
-					scope.display_slots[slot] = null
-				}
-			})
-		}
-	},
+	}
 	loadSave(save, reference, mode) {
 		var is_session = mode === 'session';
 		
@@ -311,7 +227,7 @@ var Undo = {
 			Painter.current = {}
 			for (var uuid in save.textures) {
 				if (reference.textures[uuid]) {
-					var tex = Undo.getItemByUUID(textures, uuid)
+					var tex = this.getItemByUUID(textures, uuid)
 					if (tex) {
 						var require_reload = tex.mode !== save.textures[uuid].mode;
 						tex.extend(save.textures[uuid]).updateSource()
@@ -327,7 +243,7 @@ var Undo = {
 			}
 			for (var uuid in reference.textures) {
 				if (!save.textures[uuid]) {
-					var tex = Undo.getItemByUUID(Texture.all, uuid)
+					var tex = this.getItemByUUID(Texture.all, uuid)
 					if (tex) {
 						Texture.all.splice(Texture.all.indexOf(tex), 1)
 					}
@@ -363,7 +279,7 @@ var Undo = {
 		if (save.animations) {
 			for (var uuid in save.animations) {
 
-				var animation = (reference.animations && reference.animations[uuid]) ? Undo.getItemByUUID(Animator.animations, uuid) : null;
+				var animation = (reference.animations && reference.animations[uuid]) ? this.getItemByUUID(Animator.animations, uuid) : null;
 				if (!animation) {
 					animation = new Animation()
 					animation.uuid = uuid
@@ -375,7 +291,7 @@ var Undo = {
 			}
 			for (var uuid in reference.animations) {
 				if (!save.animations[uuid]) {
-					var animation = Undo.getItemByUUID(Animator.animations, uuid)
+					var animation = this.getItemByUUID(Animator.animations, uuid)
 					if (animation) {
 						animation.remove(false)
 					}
@@ -460,12 +376,104 @@ var Undo = {
 		}
 	}
 }
-Undo.save.prototype.addTexture = function(texture) {
-	if (!this.textures) return;
-	if (this.aspects.textures.safePush(texture)) {
-		this.textures[texture.uuid] = texture.getUndoCopy(this.aspects.bitmap)
+UndoSystem.save = class {
+	constructor(aspects) {
+
+		var scope = this;
+		this.aspects = aspects;
+
+		if (aspects.selection) {
+			this.selection = []
+			selected.forEach(function(obj) {
+				scope.selection.push(obj.uuid)
+			})
+			if (Group.selected) {
+				this.selection_group = Group.selected.uuid
+			}
+		}
+
+		if (aspects.elements) {
+			this.elements = {}
+			aspects.elements.forEach(function(obj) {
+				scope.elements[obj.uuid] = obj.getUndoCopy(aspects)
+			})
+		}
+
+		if (aspects.outliner) {
+			this.outliner = compileGroups(true)
+		}
+
+		if (aspects.group) {
+			this.group = aspects.group.getChildlessCopy(true)
+		}
+
+		if (aspects.textures) {
+			this.textures = {}
+			aspects.textures.forEach(t => {
+				var tex = t.getUndoCopy(aspects.bitmap)
+				this.textures[t.uuid] = tex
+			})
+		}
+
+		if (aspects.texture_order && Texture.all.length) {
+			this.texture_order = [];
+			Texture.all.forEach(tex => {
+				this.texture_order.push(tex.uuid);
+			})
+		}
+
+		if (aspects.selected_texture && Texture.all.length) {
+			this.selected_texture = Texture.selected ? Texture.selected.uuid : null;
+		}
+
+		if (aspects.settings) {
+			this.settings = aspects.settings
+		}
+
+		if (aspects.uv_mode) {
+			this.uv_mode = {
+				box_uv: Project.box_uv,
+				width:  Project.texture_width,
+				height: Project.texture_height
+			}
+		}
+
+		if (aspects.animations) {
+			this.animations = {}
+			aspects.animations.forEach(a => {
+				scope.animations[a.uuid] = a.getUndoCopy();
+			})
+		}
+		if (aspects.keyframes && Animation.selected && Timeline.animators.length) {
+			this.keyframes = {
+				animation: Animation.selected.uuid
+			}
+			aspects.keyframes.forEach(kf => {
+				scope.keyframes[kf.uuid] = kf.getUndoCopy()
+			})
+		}
+
+		if (aspects.display_slots) {
+			scope.display_slots = {}
+			aspects.display_slots.forEach(slot => {
+				if (display[slot]) {
+					scope.display_slots[slot] = display[slot].copy()
+				} else {
+					scope.display_slots[slot] = null
+				}
+			})
+		}
+	}
+	addTexture(texture) {
+		if (!this.textures) return;
+		if (this.aspects.textures.safePush(texture)) {
+			this.textures[texture.uuid] = texture.getUndoCopy(this.aspects.bitmap)
+		}
 	}
 }
+
+let Undo = null;
+
 BARS.defineActions(function() {
 	
 	new Action('undo', {
@@ -474,7 +482,9 @@ BARS.defineActions(function() {
 		condition: () => (!open_dialog || open_dialog === 'uv_dialog' || open_dialog === 'toolbar_edit'),
 		work_in_dialog: true,
 		keybind: new Keybind({key: 90, ctrl: true}),
-		click: Undo.undo
+		click(e) {
+			Project.undo.undo(e);
+		}
 	})
 	new Action('redo', {
 		icon: 'redo',
@@ -482,6 +492,8 @@ BARS.defineActions(function() {
 		condition: () => (!open_dialog || open_dialog === 'uv_dialog' || open_dialog === 'toolbar_edit'),
 		work_in_dialog: true,
 		keybind: new Keybind({key: 89, ctrl: true}),
-		click: Undo.redo
+		click(e) {
+			Project.undo.redo(e);
+		}
 	})
 })

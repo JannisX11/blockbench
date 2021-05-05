@@ -25,7 +25,7 @@ window.BedrockEntityManager = {
 		}
 	},
 	getEntityFile() {
-		var path = ModelMeta.export_path.split(osfs);
+		var path = Project.export_path.split(osfs);
 		var name = path.pop().replace(/\.json$/, '').replace(/\.geo$/, '');
 		var root_index = path.indexOf('models');
 		path.splice(root_index);
@@ -245,7 +245,7 @@ window.BedrockEntityManager = {
 			path = mob
 		}
 		if (path) {
-			var texture_path = ModelMeta.export_path.split(osfs)
+			var texture_path = Project.export_path.split(osfs)
 			var index = texture_path.lastIndexOf('models') - texture_path.length
 			texture_path.splice(index)
 			texture_path = [...texture_path, 'textures', 'entity', ...path.split('/')].join(osfs)
@@ -873,7 +873,7 @@ var codec = new Codec('bedrock', {
 		})
 	},
 	fileName() {
-		var name = ModelMeta.name||Project.name||'model';
+		var name = Project.name||'model';
 		if (!name.match(/\.geo$/)) {
 			name += '.geo';
 		}

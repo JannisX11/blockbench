@@ -44,7 +44,7 @@ function loadInfoFromURL() {
 
 //Misc
 window.onbeforeunload = function() {
-	if (Prop.project_saved === false && elements.length > 0) {
+	if (Project.saved === false && elements.length > 0) {
 		return 'Unsaved Changes';
 	} else {
 		Blockbench.dispatchEvent('before_closing')
@@ -58,7 +58,7 @@ function showSaveDialog(close) {
 			unsaved_textures++;
 		}
 	})
-	if ((Prop.project_saved === false && elements.length > 0) || unsaved_textures) {
+	if ((Project.saved === false && elements.length > 0) || unsaved_textures) {
 
 		var answer = confirm(tl('message.close_warning.web'))
 		return answer;
