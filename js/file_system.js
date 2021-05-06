@@ -324,7 +324,7 @@ Object.assign(Blockbench, {
 			}
 		}
 		if (options.custom_writer) {
-			options.custom_writer(options.content, file_path)
+			options.custom_writer(options.content, file_path, cb)
 
 		} else if (options.savetype === 'zip') {
 			var fileReader = new FileReader();

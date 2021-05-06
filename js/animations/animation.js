@@ -1682,7 +1682,7 @@ const Animator = {
 				name: (Project.geometry_name||'model')+'.animation',
 				startpath: path,
 				content: autoStringify(content),
-				custom_writer: isApp && ((content, new_path) => {
+				custom_writer: isApp && ((content, new_path, cb) => {
 					if (new_path && fs.existsSync(new_path)) {
 						Animator.animations.forEach(function(a) {
 							if (a.path == filter_path && !a.saved) {
@@ -1692,6 +1692,7 @@ const Animator = {
 						})
 					} else {
 						Blockbench.writeFile(path, {content})
+						cb(path);
 					}
 				})
 			}, new_path => {
