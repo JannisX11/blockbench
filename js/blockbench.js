@@ -15,7 +15,7 @@ const Pressing = {
 var main_uv;
 var Prop = {
 	active_panel	: 'preview',
-	wireframe	  	: false,
+	view_mode	  	: 'textured',
 	file_path	  	: '',
 	file_name	  	: '',
 	added_models 	: 0,

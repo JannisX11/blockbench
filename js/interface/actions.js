@@ -309,7 +309,7 @@ class Tool extends Action {
 		this.brushTool = data.brushTool;
 		this.transformerMode = data.transformerMode;
 		this.animation_channel = data.animation_channel;
-		this.allowWireframe = data.allowWireframe !== false;
+		this.allowed_view_modes = data.allowed_view_modes || null;
 		this.tool_settings = {};
 
 		if (!this.condition) {
@@ -342,8 +342,8 @@ class Tool extends Action {
 		if (this.transformerMode) {
 			Transformer.setMode(this.transformerMode)
 		}
-		if (Prop.wireframe && !this.allowWireframe) {
-			Prop.wireframe = false
+		if (this.allowed_view_modes && !this.allowed_view_modes.includes(Prop.view_mode)) {
+			Prop.view_mode = 'textured';
 			Canvas.updateAllFaces()
 		}
 		if (this.toolbar && Toolbars[this.toolbar]) {

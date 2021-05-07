@@ -59,6 +59,9 @@ const Canvas = {
 		color: gizmo_colors.wire,
 		wireframe: true
 	}),
+	solidMaterial: new THREE.MeshLambertMaterial({
+		color: gizmo_colors.solid
+	}),
 	transparentMaterial: new THREE.MeshBasicMaterial({visible: false, name: 'invisible'}),
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
 	face_order: ['east', 'west', 'up', 'down', 'south', 'north'],
@@ -164,7 +167,7 @@ const Canvas = {
 			if (cube.visibility && !cube.mesh.visible) {
 				cube.mesh.visible = true;
 				Canvas.adaptObjectFaces(cube, cube.mesh)
-				if (!Prop.wireframe) {
+				if (Prop.view_mode === 'textured') {
 					Canvas.updateUV(cube);
 				}
 				if (Modes.paint && settings.painting_grid.value) {
@@ -190,7 +193,7 @@ const Canvas = {
 				}
 				if (used === true) {
 					Canvas.adaptObjectFaces(obj)
-					if (!Prop.wireframe) {
+					if (Prop.view_mode === 'textured') {
 						Canvas.updateUV(obj)
 					}
 				}
@@ -198,7 +201,7 @@ const Canvas = {
 		})
 	},
 	updateAllUVs() {
-		if (Prop.wireframe === true) return;
+		if (Prop.view_mode !== 'textured') return;
 		Cube.all.forEach(function(obj) {
 			if (obj.visibility == true) {
 				Canvas.updateUV(obj)
@@ -273,14 +276,14 @@ const Canvas = {
 		Cube.selected.forEach(function(obj) {
 			if (obj.visibility == true) {
 				Canvas.adaptObjectFaces(obj)
-				if (!Prop.wireframe) {
+				if (Prop.view_mode === 'textured') {
 					Canvas.updateUV(obj)
 				}
 			}
 		})
 	},
 	updateUVs() {
-		if (Prop.wireframe === true) return;
+		if (Prop.view_mode !== 'textured') return;
 		Cube.selected.forEach(function(obj) {
 			if (obj.visibility == true) {
 				Canvas.updateUV(obj)
@@ -397,7 +400,7 @@ const Canvas = {
 		Canvas.adaptObjectPosition(obj, mesh)
 		
 		//scene.add(mesh)
-		if (Prop.wireframe === false) {
+		if (Prop.view_mode === 'textured') {
 			Canvas.updateUV(obj);
 		}
 		mesh.visible = obj.visibility;
@@ -594,7 +597,10 @@ const Canvas = {
 
 		Canvas.adaptObjectFaceGeo(cube);
 
-		if (Prop.wireframe) {
+		if (Prop.view_mode === 'solid') {
+			mesh.material = Canvas.solidMaterial
+		
+		} else if (Prop.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
 
 		} else if (Format.single_texture && Project.layered_textures && Texture.all.length >= 2) {
@@ -625,7 +631,7 @@ const Canvas = {
 		}
 	},
 	updateUV(cube, animation = true) {
-		if (Prop.wireframe === true) return;
+		if (Prop.view_mode !== 'textured') return;
 		var mesh = cube.mesh
 		if (mesh === undefined) return;
 		mesh.geometry.faceVertexUvs[0] = [];

@@ -647,9 +647,9 @@ const MenuBar = {
 		new BarMenu('view', [
 			'fullscreen',
 			'_',
+			'view_mode',
 			'toggle_shading',
 			'toggle_motion_trails',
-			'toggle_wireframe',
 			'preview_checkerboard',
 			'painting_grid',
 			'_',

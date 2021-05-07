@@ -559,7 +559,7 @@ class Cube extends OutlinerElement {
 		if (selected.indexOf(this) === 0) {
 			main_uv.loadData()
 		}
-		if (!Prop.wireframe && scope.visibility == true) {
+		if (Prop.view_mode === 'textured' && scope.visibility == true) {
 			Canvas.adaptObjectFaces(scope)
 			Canvas.updateUV(scope)
 		}

@@ -18,6 +18,7 @@ var gizmo_colors = {
 	b: new THREE.Color(0x2d5ee8),
 	grid: new THREE.Color(0x495061),
 	wire: new THREE.Color(0x576f82),
+	solid: new THREE.Color(0xcecece),
 	outline: new THREE.Color(0x3e90ff)
 }
 const DefaultCameraPresets = [
@@ -2190,20 +2191,23 @@ function buildGrid() {
 }
 
 BARS.defineActions(function() {
-	new Toggle('toggle_wireframe', {
-		icon: 'border_clear',
+	new BarSelect('view_mode', {
 		category: 'view',
 		keybind: new Keybind({key: 'z'}),
-		condition: () => Toolbox && Toolbox.selected && Toolbox.selected.allowWireframe,
-		default: false,
-		onChange: function (state) {
-			Prop.wireframe = !Prop.wireframe
-			Canvas.updateAllFaces()
+		condition: () => Toolbox && Toolbox.selected && (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.length > 1),
+		value: 'textured',
+		options: {
+			textured: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('textured'))},
+			solid: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('solid'))},
+			wireframe: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('wireframe'))},
+		},
+		onChange() {
+			Prop.view_mode = this.value;
+			Canvas.updateAllFaces();
 			if (Modes.id === 'animate') {
-				Animator.preview()
+				Animator.preview();
 			}
-			Blockbench.showQuickMessage('message.wireframe.' + (Prop.wireframe ? 'enabled' : 'disabled'))
-			this.setIcon(Prop.wireframe ? 'check_box' : 'check_box_outline_blank')
+			//Blockbench.showQuickMessage(tl('action.view_mode') + ': ' + tl('action.view_mode.' + this.value));
 		}
 	})
 	new Toggle('preview_checkerboard', {
@@ -2229,7 +2233,8 @@ BARS.defineActions(function() {
 		description: tl('settings.motion_trails.desc'),
 		icon: 'gesture',
 		category: 'view',
-		linked_setting: 'motion_trails'
+		linked_setting: 'motion_trails',
+		condition: {modes: ['animate']}
 	})
 
 	new Action('screenshot_model', {

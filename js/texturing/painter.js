@@ -820,7 +820,7 @@ BARS.defineActions(function() {
 		transformerMode: 'hidden',
 		paintTool: true,
 		brushTool: true,
-		allowWireframe: false,
+		allowed_view_modes: ['textured'],
 		keybind: new Keybind({key: 'b'}),
 		modes: ['paint'],
 		onCanvasClick: function(data) {
@@ -844,7 +844,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowWireframe: false,
+		allowed_view_modes: ['textured'],
 		modes: ['paint'],
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
@@ -863,7 +863,7 @@ BARS.defineActions(function() {
 		cursor: 'crosshair',
 		paintTool: true,
 		brushTool: true,
-		allowWireframe: false,
+		allowed_view_modes: ['textured'],
 		modes: ['paint'],
 		keybind: new Keybind({key: 'e'}),
 		onCanvasClick: function(data) {
@@ -881,7 +881,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowWireframe: false,
+		allowed_view_modes: ['textured'],
 		modes: ['paint'],
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
@@ -899,7 +899,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowWireframe: false,
+		allowed_view_modes: ['textured'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'u'}),
@@ -919,7 +919,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowWireframe: false,
+		allowed_view_modes: ['textured'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'm'})
