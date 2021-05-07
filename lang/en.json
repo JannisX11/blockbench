@@ -410,6 +410,9 @@
 	"dialog.skin.pose": "Pose",
 	"dialog.skin.layer_template": "Layer Texture",
 
+	"dialog.flip_animation.info": "Opposite bones are identified by the keywords 'left' and 'right' within their name.",
+	"dialog.flip_animation.offset": "Offset by half the animation length",
+
 	"dialog.export_private_settings.title": "Private Settings",
 	"dialog.export_private_settings.message": "Your file contains the following private informations: **%0**. Remove these values if you plan to share the file with someone else.",
 	"dialog.export_private_settings.keep": "Keep",
@@ -1056,8 +1059,8 @@
 	"action.resolve_keyframe_expressions.desc": "Resolves the math expressions of the selected keyframes",
 	"action.reverse_keyframes": "Reverse Keyframes",
 	"action.reverse_keyframes.desc": "Reverse the order of the selected keyframes",
-	"action.select_all_keyframes": "Select All Keyframes",
-	"action.select_all_keyframes.desc": "Select all keyframes of the current bone",
+	"action.flip_animation": "Flip Animation",
+	"action.flip_animation.desc": "Flips part of an animation by copying selected keyframes to the other side of the model",
 	"action.delete_keyframes": "Delete Keyframes",
 	"action.delete_keyframes.desc": "Delete all selected keyframes",
 	"action.slider_animation_speed": "Playback Speed",
@@ -1217,6 +1220,7 @@
 	"menu.animation.file": "File",
 	"menu.animation.snapping": "Snapping",
 	"menu.animation.open_location": "Open File Location",
+	"menu.animation.flip_keyframes": "Flip Keyframes",
 
 	"menu.animation_file.unload": "Unload Animation File",
 

@@ -740,6 +740,73 @@ BARS.defineActions(function() {
 			Animator.preview()
 		}
 	})
+
+	flip_action = new Action('flip_animation', {
+		icon: 'transfer_within_a_station',
+		category: 'animation',
+		condition: {modes: ['animate']},
+		click() {
+
+			if (!Animation.selected) {
+				Blockbench.showQuickMessage('message.no_animation_selected')
+				return;
+			}
+
+			let original_keyframes = (Timeline.selected.length ? Timeline.selected : Timeline.keyframes).slice();
+			if (!original_keyframes.length) return;
+
+			new Dialog({
+				id: 'flip_animation',
+				title: 'action.flip_animation',
+				form: {
+					info: {type: 'info', text: 'dialog.flip_animation.info'},
+					offset: {label: 'dialog.flip_animation.offset', type: 'checkbox', value: false},
+				},
+				onConfirm(formResult) {
+					this.hide()
+					
+					let new_keyframes = [];
+					Undo.initEdit({keyframes: new_keyframes});
+					let animators = [];
+					original_keyframes.forEach(kf => animators.safePush(kf.animator));
+					let channels = ['rotation', 'position', 'scale'];
+
+					animators.forEach(animator => {
+						channels.forEach(channel => {
+							if (!animator[channel]) return;
+							let kfs = original_keyframes.filter(kf => kf.channel == channel && kf.animator == animator);
+							if (!kfs.length) return;
+							let name = animator.name.toLowerCase().replace(/left/g, '%LX').replace(/right/g, 'left').replace(/%LX/g, 'right');
+							let opposite_bone = Group.all.find(g => g.name.toLowerCase() == name);
+							if (!opposite_bone) {
+								console.log(`Animation Flipping: Unable to find opposite bone for ${animator.name}`)
+								return;
+							}
+							let opposite_animator = Animation.selected.getBoneAnimator(opposite_bone);
+
+							kfs.forEach(old_kf => {
+								let time = old_kf.time;
+								if (formResult.offset) {
+									time = (time + Animation.selected.length/2) % (Animation.selected.length + 0.001);
+								}
+								let new_kf = opposite_animator.createKeyframe(old_kf, Timeline.snapTime(time), channel, false, false)
+								if (new_kf) {
+									new_kf.flip(0);
+									new_keyframes.push(new_kf);
+								}
+							})
+
+						})
+					})
+					TickUpdates.keyframes = true;
+					Animator.preview();
+
+					Undo.finishEdit('copy and flip keyframes');
+				}
+			}).show()
+		}
+	})
+	MenuBar.addAction(flip_action, 'animation')
 })
 
 Interface.definePanels(function() {

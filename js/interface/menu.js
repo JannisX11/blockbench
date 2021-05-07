@@ -626,11 +626,12 @@ const MenuBar = {
 			'add_keyframe',
 			'add_marker',
 			'reverse_keyframes',
-			{name: 'menu.transform.flip', id: 'flip', condition: () => Timeline.selected.length, icon: 'flip', children: [
+			{name: 'menu.animation.flip_keyframes', id: 'flip_keyframes', condition: () => Timeline.selected.length, icon: 'flip', children: [
 				'flip_x',
 				'flip_y',
 				'flip_z'
 			]},
+			'flip_animation',
 			'delete',
 			'lock_motion_trail',
 			'_',
