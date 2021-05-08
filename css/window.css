@@ -3,13 +3,12 @@
 	#page_wrapper {
 		display: grid;
 		grid-template-columns: 332px auto 314px;
-		grid-template-rows: 30px 30px minmax(200px, 5000px) 26px;
+		grid-template-rows: 30px minmax(200px, 5000px) 26px;
 		grid-template-areas: 
-			"tab_bar tab_bar tab_bar"
 			"left_bar toolbar toolbar"
 			"left_bar center right_bar"
 			"left_bar status_bar right_bar";
-		height: calc(100% - 26px);
+		height: calc(100% - 56px);
 		width: 100%;
 		border: 2px solid var(--color-frame);
 		border-top: none;
@@ -37,7 +36,7 @@
 	}
 
 	#tab_bar {
-		grid-area: tab_bar;
+		height: 30px;
 	}
 	.sidebar {
 		background-color: var(--color-ui);;
@@ -466,6 +465,16 @@
 	#tab_bar .project_tab_close_button.unsaved > i {
 		font-size: 13px;
 		text-align: center;
+	}
+	#new_tab_button {
+		height: 100%;
+		width: 32px;
+		text-align: center;
+		cursor: pointer;
+		padding-top: 4px;
+	}
+	#new_tab_button:hover {
+		color: var(--color-light);
 	}
 
 

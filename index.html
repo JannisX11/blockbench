@@ -644,17 +644,21 @@
 		</ul>
 		<button id="web_download_button" hidden><a class="tl" href="https://blockbench.net/downloads">web.download_app</a></button>
 	</header>
-
-	<div id="page_wrapper" class="hidden">
-
+	
 	<div id="tab_bar">
-		<div class="project_tab" v-for="project in projects" :key="project.uuid" :class="{selected: project.selected}" @click="project.select()" @dblclick="project.openSettings()">
-			<label :title="project.name || project.geometry_name">{{ project.name || project.geometry_name }}</label>
+		<div class="project_tab" v-for="project in tabs" :key="project.uuid" :class="{selected: project.selected}" @click="project.select()" @dblclick="project.openSettings()">
+			<label :title="project.name || project.geometry_name">{{ project.name || project.geometry_name || project.format.name }}</label>
 			<div class="project_tab_close_button" :class="{unsaved: !project.saved}" @click="project.close()">
 				<i class="material-icons">{{ project.saved ? 'clear' : 'fiber_manual_record' }}</i>
 			</div>
 		</div>
+		<div id="new_tab_button" @click="openNewTab()">
+			<i class="material-icons">add</i>
+		</div>
 	</div>
+
+	<div id="page_wrapper" class="hidden">
+
 
 	<dialog id="action_selector" v-if="open">
 		<input type="text" v-model="search_input" autocomplete="off" autosave="off" autocorrect="off" spellcheck="off" autocapitalize="off">

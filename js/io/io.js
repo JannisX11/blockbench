@@ -40,6 +40,7 @@ function setupDragHandlers() {
 		}
 	)
 }
+/*
 function loadModelFile(file) {
 	if (showSaveDialog()) {
 		resetProject();
@@ -77,6 +78,7 @@ function loadModelFile(file) {
 		}
 	}
 }
+*/
 var Extruder = {
 	drawImage: function(file) {
 		Extruder.canvas = $('#extrusion_canvas').get(0)

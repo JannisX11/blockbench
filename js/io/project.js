@@ -137,6 +137,8 @@ class ModelProject {
 		if (this.selected) return;
 		if (Project) {
 			Project.unselect()
+		} else {
+			Interface.tab_bar.new_tab.visible = false;
 		}
 		Project = this;
 		Undo = this.undo;
@@ -212,11 +214,6 @@ ModelProject.all = [];
 
 let Project = 0;// = new ModelProject();
 
-
-//New
-function resetProject() {
-	Project.reset()
-}
 function newProject(format) {
 	new ModelProject({format}).select();
 
@@ -278,7 +275,41 @@ onVueSetup(() => {
 	Interface.tab_bar = new Vue({
 		el: '#tab_bar',
 		data: {
-			projects: ModelProject.all
+			projects: ModelProject.all,
+			new_tab: {
+				name: 'New Tab',
+				saved: true,
+				selected: true,
+				uuid: guid(),
+				visible: true,
+				close: () => {
+					Interface.tab_bar.new_tab.visible = false;
+				},
+				select() {
+					if (Project) {
+						Project.unselect()
+					}
+					Project = 0;
+					Interface.tab_bar.new_tab.selected = true;
+				},
+				openSettings() {}
+			}
+		},
+		computed: {
+			tabs() {
+				let tabs = this.projects.slice();
+				if (this.new_tab.visible) {
+					tabs.push(this.new_tab);
+				}
+				console.log(tabs)
+				return tabs;
+			}
+		},
+		methods: {
+			openNewTab() {
+				this.new_tab.visible = true;
+				this.new_tab.select();
+			}
 		}
 	})
 })
@@ -405,6 +436,7 @@ BARS.defineActions(function() {
 			dialog.show()
 		}
 	})
+	/*
 	new Action('close_project', {
 		icon: 'cancel_presentation',
 		category: 'file',
@@ -417,7 +449,7 @@ BARS.defineActions(function() {
 				Blockbench.dispatchEvent('close_project');
 			}
 		}
-	})
+	})*/
 	new Action('convert_project', {
 		icon: 'fas.fa-file-import',
 		category: 'file',

@@ -27,17 +27,11 @@ function loadInfoFromURL() {
 	}
 	if (location.hash.substr(1, 5) == 'load=') {
 		$.getJSON('https://blockbench.net/api/rawtext.php?url='+location.hash.substr(6), (model) => {
-			if (showSaveDialog()) {
-				resetProject();
-				Codecs.project.load(model, {path: ''});
-			}
+			Codecs.project.load(model, {path: ''});
 		})
 	} else if (location.hash.substr(1, 5) == 'pbin=') {
 		$.getJSON('https://blockbench.net/api/rawtext.php?url='+'https://pastebin.com/raw/'+location.hash.substr(6), (model) => {
-			if (showSaveDialog()) {
-				resetProject();
-				Codecs.project.load(model, {path: ''});
-			}
+			Codecs.project.load(model, {path: ''});
 		})
 	}
 }
