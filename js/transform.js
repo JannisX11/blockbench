@@ -67,10 +67,6 @@ function getSelectionCenter(all = false) {
 	}
 	return center;
 }
-//Canvas Restriction
-function isInBox(val) {
-	return !(Format.canvas_limit && !settings.deactivate_size_limit.value) || (val < 32 && val > -16)
-}
 function limitToBox(val, inflate) {
 	if (typeof inflate != 'number') inflate = 0;
 	if (!(Format.canvas_limit && !settings.deactivate_size_limit.value)) {
@@ -177,6 +173,7 @@ function mirrorSelected(axis) {
 							group.name = group.name.replace(/left/g, 'right').replace(/2/, '');
 						}
 					}
+					Canvas.updateAllBones([group]);
 				}
 				flipGroup(Group.selected)
 				Group.selected.forEachChild(flipGroup)
@@ -580,9 +577,7 @@ function moveElementsInSpace(difference, axis) {
 			group_m = new THREE.Vector3();
 			group_m[getAxisLetter(axis)] = difference;
 
-			var rotation = new THREE.Quaternion();
-			group.mesh.getWorldQuaternion(rotation);
-			group_m.applyQuaternion(rotation);
+			group_m.applyQuaternion(group.mesh.quaternion);
 
 			group.forEachChild(g => {
 				g.origin.V3_add(group_m.x, group_m.y, group_m.z);
@@ -593,6 +588,7 @@ function moveElementsInSpace(difference, axis) {
 				g.origin[axis] += difference
 			}, Group, true)
 		}
+		Canvas.updateAllBones([Group.selected]);
 	}
 
 	selected.forEach(el => {
@@ -770,8 +766,12 @@ function rotateOnAxis(modify, axis, slider) {
 				if (obj_val > 45 || obj_val < -45) {
 	
 					let f = obj_val > 45
-					obj.roll(axis, f!=(axis==1) ? 1 : 3)
-					obj_val = f ? -22.5 : 22.5;
+					let can_roll = obj.roll(axis, f!=(axis==1) ? 1 : 3);
+					if (can_roll) {
+						obj_val = f ? -22.5 : 22.5;
+					} else {
+						obj_val = Math.clamp(obj_val, -45, 45);
+					}
 				}
 			}
 			obj.rotation[axis] = obj_val
@@ -820,6 +820,7 @@ BARS.defineActions(function() {
 	new BarSelect('transform_space', {
 		condition: {modes: ['edit'], tools: ['move_tool', 'pivot_tool']},
 		category: 'transform',
+		value: 'local',
 		options: {
 			global: true,
 			bone: {condition: () => Format.bone_rig, name: true},
@@ -1307,7 +1308,7 @@ BARS.defineActions(function() {
 		color: 'x',
 		category: 'transform',
 		click: function () {
-				mirrorSelected(0);
+			mirrorSelected(0);
 		}
 	})
 	new Action('flip_y', {
@@ -1466,7 +1467,7 @@ BARS.defineActions(function() {
 	new Action('origin_to_geometry', {
 		icon: 'filter_center_focus',
 		category: 'transform',
-		condition: {modes: ['edit']},
+		condition: {modes: ['edit', 'animate']},
 		click: function () {origin2geometry()}
 	})
 	new Action('rescale_toggle', {

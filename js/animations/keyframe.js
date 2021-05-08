@@ -106,8 +106,12 @@ class Keyframe {
 		}
 		var start = value.match(/^-?\s*\d+(\.\d+)?\s*(\+|-)/)
 		if (start) {
-			var number = parseFloat( start[0].substr(0, start[0].length-1) ) + amount
-			value = trimFloatNumber(number) + value.substr(start[0].length-1)
+			var number = parseFloat( start[0].substr(0, start[0].length-1) ) + amount;
+			if (number == 0) {
+				value = value.substr(start[0].length + (value[start[0].length-1] == '+' ? 0 : -1));
+			} else {
+				value = trimFloatNumber(number) + (start[0].substr(-2, 1) == ' ' ? ' ' : '') + value.substr(start[0].length-1);
+			}
 		} else {
 
 			var end = value.match(/(\+|-)\s*\d*(\.\d+)?\s*$/)
@@ -220,14 +224,18 @@ class Keyframe {
 	}
 	compileBedrockKeyframe() {
 		if (this.transform) {
-			if (this.data_points.length == 1 && this.interpolation == 'linear') {
+			if (this.interpolation != 'linear') {
+				return {
+					post: this.getArray(),
+					lerp_mode: this.interpolation,
+				}
+			} else if (this.data_points.length == 1) {
 				return this.getArray();
 			} else {
-				return {
+				return new oneLiner({
 					pre:  this.getArray(0),
 					post: this.getArray(1),
-					lerp_mode: this.interpolation != 'linear' ? this.interpolation : undefined,
-				}
+				})
 			}
 		} else if (this.channel == 'timeline') {
 			let scripts = [];
@@ -294,13 +302,15 @@ class Keyframe {
 		if (Timeline.selected.length == 1 && Timeline.selected[0].animator.selected == false) {
 			Timeline.selected[0].animator.select()
 		}
+		this.selected = true
+		TickUpdates.keyframe_selection = true;
+
+		if (this.transform) Timeline.vue.graph_editor_channel = this.channel;
 
 		var select_tool = true;
 		Timeline.selected.forEach(kf => {
 			if (kf.channel != scope.channel) select_tool = false;
 		})
-		this.selected = true
-		TickUpdates.keyframe_selection = true;
 		if (select_tool) {
 			switch (this.channel) {
 				case 'rotation': BarItems.rotate_tool.select(); break;
@@ -351,6 +361,9 @@ class Keyframe {
 			animator: save ? undefined : this.animator && this.animator.uuid,
 			channel: this.channel,
 			data_points: []
+		}
+		if (!save && this.animator instanceof EffectAnimator) {
+			copy.animator = 'effects';
 		}
 		if (save) copy.uuid = this.uuid;
 		for (var key in Keyframe.properties) {
@@ -410,6 +423,7 @@ function updateKeyframeValue(axis, value, data_point) {
 	})
 	if (!['effect', 'locator', 'script'].includes(axis)) {
 		Animator.preview();
+		updateKeyframeSelection();
 	}
 }
 function updateKeyframeSelection() {
@@ -422,7 +436,7 @@ function updateKeyframeSelection() {
 		BarItems.slider_keyframe_time.update()
 		BarItems.keyframe_interpolation.set(Timeline.selected[0].interpolation)
 	}
-	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || Animator.motion_trail_lock)) {
+	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || NullObject.selected[0] || Animator.motion_trail_lock)) {
 		Animator.showMotionTrail();
 	} else if (Animator.motion_trail.parent) {
 		Animator.motion_trail.children.forEachReverse(child => {
@@ -465,7 +479,7 @@ BARS.defineActions(function() {
 		icon: 'add_circle',
 		category: 'animation',
 		condition: {modes: ['animate']},
-		keybind: new Keybind({key: 81, shift: null}),
+		keybind: new Keybind({key: 'q', shift: null}),
 		click: function (event) {
 			var animator = Timeline.selected_animator;
 			if (!animator) return;
@@ -491,6 +505,7 @@ BARS.defineActions(function() {
 				kf.time = Timeline.snapTime(limitNumber(kf.time - Timeline.getStep(), 0, 1e4))
 			})
 			Animator.preview()
+			BarItems.slider_keyframe_time.update()
 			Undo.finishEdit('move keyframes')
 		}
 	})
@@ -505,6 +520,7 @@ BARS.defineActions(function() {
 				kf.time = Timeline.snapTime(limitNumber(kf.time + Timeline.getStep(), 0, 1e4))
 			})
 			Animator.preview()
+			BarItems.slider_keyframe_time.update()
 			Undo.finishEdit('move keyframes')
 		}
 	})
@@ -645,11 +661,11 @@ BARS.defineActions(function() {
 			Timeline.selected.forEach((kf) => {
 				if (kf.animator.fillValues) {
 					Timeline.time = kf.time;
-					kf.animator.fillValues(kf, null, false);
+					kf.animator.fillValues(kf, null, false, false);
 				}
 			})
 			Timeline.time = time_before;
-			Undo.finishEdit('reset keyframes')
+			Undo.finishEdit('resolve keyframes')
 			updateKeyframeSelection()
 		}
 	})
@@ -717,6 +733,9 @@ BARS.defineActions(function() {
 			Undo.initEdit({keyframes: Timeline.selected})
 			Timeline.selected.forEach((kf) => {
 				kf.time = end + start - kf.time;
+				if (kf.transform && kf.data_points.length > 1) {
+					kf.data_points.reverse();
+				}
 			})
 			Undo.finishEdit('reverse keyframes')
 			updateKeyframeSelection()
@@ -727,8 +746,8 @@ BARS.defineActions(function() {
 
 Interface.definePanels(function() {
 
-	let locator_suggestion_list = $('<datalist id="locator_suggestion_list" hidden></datalist>');
-	$(document.body).append(locator_suggestion_list);
+	let locator_suggestion_list = $('<datalist id="locator_suggestion_list" hidden></datalist>').get(0);
+	document.body.append(locator_suggestion_list);
 	
 	Interface.Panels.keyframe = new Panel({
 		id: 'keyframe',
@@ -782,9 +801,11 @@ Interface.definePanels(function() {
 					Undo.finishEdit('remove keyframe data point')
 				},
 				updateLocatorSuggestionList() {
-					locator_suggestion_list.empty();
+					locator_suggestion_list.innerHTML = '';
 					Locator.all.forEach(locator => {
-						locator_suggestion_list.append(`<option value="${locator.name}">`);
+						let option = document.createElement('option');
+						option.value = locator.name;
+						locator_suggestion_list.append(option);
 					})
 				},
 				focusAxis(axis) {
@@ -869,6 +890,29 @@ Interface.definePanels(function() {
 					</template>
 				</div>
 			`
+		}
+	})
+
+	let keyframe_edit_value;
+	function isTarget(target) {
+		return target && target.classList && (target.classList.contains('keyframe_input') || (target.parentElement && target.parentElement.classList.contains('keyframe_input')));
+	}
+	document.addEventListener('focus', event => {
+		if (isTarget(event.target)) {
+
+			keyframe_edit_value = event.target.value || event.target.innerText;
+			Undo.initEdit({keyframes: Timeline.selected.slice()})
+		}
+	}, true)
+	document.addEventListener('focusout', event => {
+		if (isTarget(event.target)) {
+
+			let val = event.target.value || event.target.innerText;
+			if (val != keyframe_edit_value) {
+				Undo.finishEdit('edit keyframe');
+			} else {
+				Undo.cancelEdit();
+			}
 		}
 	})
 })

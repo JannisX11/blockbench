@@ -16,7 +16,10 @@ class Animation {
 			Animation.properties[key].reset(this);
 		}
 		if (typeof data === 'object') {
-			this.extend(data)
+			this.extend(data);
+			if (isApp && Format.animation_files && data.saved_name) {
+				this.saved_name = data.saved_name;
+			}
 		}
 	}
 	extend(data) {
@@ -166,7 +169,7 @@ class Animation {
 				for (var channel in Animator.possible_channels) {
 					if (channels[channel]) {
 						let timecodes = Object.keys(channels[channel])
-						if (timecodes.length === 1) {
+						if (timecodes.length === 1 && animator[channel][0].data_points.length == 1) {
 							bone_tag[channel] = channels[channel][timecodes[0]]
 							if (channel == 'scale' &&
 								channels[channel][timecodes[0]] instanceof Array &&
@@ -244,12 +247,41 @@ class Animation {
 				if (data) {
 					let animation = content.animations[this.name];
 					content = data;
+					if (this.saved_name) delete content.animations[this.saved_name];
 					content.animations[this.name] = animation;
+
+					// Sort
+					let file_keys = Object.keys(content.animations);
+					let anim_keys = Animation.all.filter(anim => anim.path == this.path).map(anim => anim.name);
+					let changes = false;
+					let index = 0;
+
+					anim_keys.forEach(key => {
+						let key_index = file_keys.indexOf(key);
+						if (key_index == -1) {
+							//Skip
+						} else if (key_index < index) {
+							file_keys.splice(key_index, 1);
+							file_keys.splice(index, 0, key);
+							changes = true;
+
+						} else {
+							index = key_index;
+						}
+					})
+					if (changes) {
+						let sorted_animations = {};
+						file_keys.forEach(key => {
+							sorted_animations[key] = content.animations[key];
+						})
+						content.animations = sorted_animations;
+					}
 				}
 			}
 			// Write
 			Blockbench.writeFile(this.path, {content: compileJSON(content)}, (real_path) => {
 				this.saved = true;
+				this.saved_name = this.name;
 				this.path = real_path;
 			});
 
@@ -277,8 +309,7 @@ class Animation {
 		Animator.animations.forEach(function(a) {
 			a.selected = a.playing = false;
 		})
-		Timeline.animators.purge();
-		Timeline.selected.empty();
+		Timeline.clear();
 		Timeline.vue._data.markers = this.markers;
 		Timeline.vue._data.animation_length = this.length;
 		this.selected = true;
@@ -386,9 +417,6 @@ class Animation {
 		if (undo) {
 			Undo.initEdit({animations: [this]})
 		}
-		if (Animation.selected === this) {
-			Animation.selected = null
-		}
 		Animator.animations.remove(this)
 		if (undo) {
 			Undo.finishEdit('remove animation', {animations: []})
@@ -414,6 +442,11 @@ class Animation {
 			}
 		}
 		Blockbench.dispatchEvent('remove_animation', {animations: [this]})
+		if (Animation.selected === this) {
+			Animation.selected = null;
+			Timeline.clear();
+			Animator.preview();
+		}
 		return this;
 	}
 	getMaxLength() {
@@ -467,7 +500,6 @@ class Animation {
 		}
 	}
 	propertiesDialog() {
-		let vue;
 		let dialog = new Dialog({
 			id: 'animation_properties',
 			title: this.name,
@@ -548,7 +580,6 @@ class Animation {
 			}
 		})
 		dialog.show();
-		vue = new Vue()
 	}
 }
 	Animation.all = [];
@@ -670,14 +701,14 @@ class GeneralAnimator {
 		});
 		keyframes.push(keyframe);
 
-		keyframe.channel = channel;
-		keyframe.time = time;
-
 		if (value) {
 			keyframe.extend(value);
 		} else if (this.fillValues) {
 			this.fillValues(keyframe, value, true);
 		}
+
+		keyframe.channel = channel;
+		keyframe.time = time;
 
 		this[channel].push(keyframe);
 		keyframe.animator = this;
@@ -685,7 +716,6 @@ class GeneralAnimator {
 		if (select !== false) {
 			keyframe.select();
 		}
-
 		var deleted = [];
 		delete keyframe.time_before;
 		keyframe.replaceOthers(deleted);
@@ -716,15 +746,16 @@ class GeneralAnimator {
 		var el = $(`#timeline_body_inner > li[uuid=${this.uuid}]`).get(0)
 		if (el) {
 			var offset = el.offsetTop;
-			var timeline = $('#timeline_body').scrollTop();
-			var height = $('#timeline_body').height();
-			if (offset < timeline) {
-				$('#timeline_body').animate({
+			var timeline = document.getElementById('timeline_body');
+			var scroll_top = timeline.scrollTop;
+			var height = timeline.clientHeight;
+			if (offset < scroll_top) {
+				$(timeline).animate({
 					scrollTop: offset
 				}, 200);
 			}
-			if (offset + el.clientHeight > timeline + height) {
-				$('#timeline_body').animate({
+			if (offset + el.clientHeight > scroll_top + height) {
+				$(timeline).animate({
 					scrollTop: offset - (height-el.clientHeight-20)
 				}, 200);
 			}
@@ -753,7 +784,7 @@ class BoneAnimator extends GeneralAnimator {
 		return [...this.rotation, ...this.position, ...this.scale];
 	}
 	getGroup() {
-		this.group = OutlinerElement.uuids[this.uuid]
+		this.group = OutlinerNode.uuids[this.uuid];
 		if (!this.group) {
 			if (this.animation && this.animation.animators[this.uuid] && this.animation.animators[this.uuid].type == 'bone') {
 				delete this.animation.bones[this.uuid];
@@ -813,7 +844,7 @@ class BoneAnimator extends GeneralAnimator {
 		}
 		return this;
 	}
-	fillValues(keyframe, values, allow_expression) {
+	fillValues(keyframe, values, allow_expression, round = true) {
 
 		if (values instanceof Array) {
 			keyframe.extend({
@@ -831,18 +862,20 @@ class BoneAnimator extends GeneralAnimator {
 					z: values
 				}]
 			})
-		} else if (values == null) {
+		} else if (values === null) {
 			let original_time = Timeline.time;
 			Timeline.time = keyframe.time;
 			var ref = this.interpolate(keyframe.channel, allow_expression)
 			Timeline.time = original_time;
 			if (ref) {
-				let e = 1e2
-				ref.forEach((r, i) => {
-					if (!isNaN(r)) {
-						ref[i] = Math.round(parseFloat(r)*e)/e
-					}
-				})
+				if (round) {
+					let e = keyframe.channel == 'scale' ? 1e4 : 1e2
+					ref.forEach((r, i) => {
+						if (!isNaN(r)) {
+							ref[i] = Math.round(parseFloat(r)*e)/e
+						}
+					})
+				}
 				keyframe.extend({
 					data_points: [{
 						x: ref[0],
@@ -1004,8 +1037,8 @@ class EffectAnimator extends GeneralAnimator {
 		keyframe.animator = this;
 		return this;
 	}
-	displayFrame() {
-		if (!this.muted.sound) {
+	displayFrame(in_loop) {
+		if (in_loop && !this.muted.sound) {
 			this.sound.forEach(kf => {
 				var diff = kf.time - Timeline.time;
 				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100)) {
@@ -1202,15 +1235,14 @@ const Animator = {
 		}
 
 		Animator.open = true;
-		selected.empty()
 		Canvas.updateAllBones()
 
+		Outliner.vue.options.hidden_types.push('cube');
 		scene.add(Wintersky.space);
 		Wintersky.global_options.tick_rate = settings.particle_tick_rate.value;
 		if (settings.motion_trails.value) scene.add(Animator.motion_trail);
 		Animator.motion_trail.no_export = true;
 
-		$('body').addClass('animation_mode')
 		if (!Animator.timeline_node) {
 			Animator.timeline_node = $('#timeline').get(0)
 		}
@@ -1225,6 +1257,8 @@ const Animator = {
 		}
 		if (Animation.all.length && !Animation.all.includes(Animation.selected)) {
 			Animation.all[0].select();
+		} else if (!Animation.all.length) {
+			Timeline.selected.empty();
 		}
 		if (Group.selected) {
 			Group.selected.select();
@@ -1234,7 +1268,7 @@ const Animator = {
 	leave() {
 		Timeline.pause()
 		Animator.open = false;
-		$('body').removeClass('animation_mode')
+		Outliner.vue.options.hidden_types.remove('cube');
 
 		scene.remove(Wintersky.space);
 		scene.remove(Animator.motion_trail);
@@ -1267,9 +1301,10 @@ const Animator = {
 	},
 	showMotionTrail(target) {
 		if (!target) {
-			target = Animator.motion_trail_lock && Group.all.find(g => g.uuid == Animator.motion_trail_lock);
-			if (!target) target = Group.selected;
+			target = Animator.motion_trail_lock && OutlinerNode.uuids[Animator.motion_trail_lock];
+			if (!target) target = Group.selected || NullObject.selected[0];
 		}
+		let target_bone = target instanceof Group ? target : target.parent;
 		let animation = Animation.selected;
 		let currentTime = Timeline.time;
 		let step = Timeline.getStep();
@@ -1287,10 +1322,12 @@ const Animator = {
 			bone_stack.push(g);
 			if (g.parent instanceof Group) iterate(g.parent);
 		}
-		iterate(target)
+		iterate(target_bone)
+		
 		let keyframes = {};
-		if (Group.selected) {
-			let ba = Animation.selected.getBoneAnimator();
+		let keyframe_source = Group.selected || (NullObject.selected[0] && NullObject.selected[0].parent)
+		if (keyframe_source instanceof Group) {
+			let ba = Animation.selected.getBoneAnimator(keyframe_source);
 			let channel = target == Group.selected ? ba.position : (ba[Toolbox.selected.animation_channel] || ba.position)
 			channel.forEach(kf => {
 				keyframes[Math.round(kf.time / step)] = kf;
@@ -1306,12 +1343,14 @@ const Animator = {
 				mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
 				animation.getBoneAnimator(group).displayFrame(multiplier);
 			})
-			target.mesh.updateWorldMatrix(true, false)
+			target_bone.mesh.updateWorldMatrix(true, false)
 		}
 
 		for (var time = start_time; time <= max_time; time += step) {
 			displayTime(time);
-			let position = THREE.fastWorldPosition(target.mesh, new THREE.Vector3());
+			let position = target instanceof Group
+						 ? THREE.fastWorldPosition(target.mesh, new THREE.Vector3())
+						 : target.getWorldCenter();
 			geometry.vertices.push(position);
 		}
 		
@@ -1352,7 +1391,7 @@ const Animator = {
 			object.scale.set(scale, scale, scale)
 		})
 	},
-	preview() {
+	preview(in_loop) {
 		// Bones
 		Animator.showDefaultPose(true);
 		Group.all.forEach(group => {
@@ -1370,12 +1409,12 @@ const Animator = {
 		Animator.animations.forEach(animation => {
 			if (animation.playing) {
 				if (animation.animators.effects) {
-					animation.animators.effects.displayFrame();
+					animation.animators.effects.displayFrame(in_loop);
 				}
 			}
 		})
 
-		if (Group.selected) {
+		if (Group.selected || NullObject.selected[0]) {
 			Transformer.updateSelection()
 		}
 		Blockbench.dispatchEvent('display_animation_frame')
@@ -1399,6 +1438,19 @@ const Animator = {
 				config: new Wintersky.Config(json_content, {path}),
 				emitters: {}
 			};
+			if (isApp) {
+				let timeout;
+				this.watcher = fs.watch(path, (eventType) => {
+					if (eventType == 'change') {
+						if (timeout) clearTimeout(timeout)
+						timeout = setTimeout(() => {
+							Blockbench.read(path, {errorbox: false}, (files) => {
+								Animator.loadParticleEmitter(path, files[0].content);
+							})
+						}, 60)
+					}
+				})
+			}
 		}
 	},
 	loadFile(file, animation_filter) {
@@ -1412,6 +1464,7 @@ const Animator = {
 				var a = json.animations[ani_name]
 				var animation = new Animation({
 					name: ani_name,
+					saved_name: ani_name,
 					path,
 					loop: a.loop && (a.loop == 'hold_on_last_frame' ? 'hold' : 'loop'),
 					override: a.override_previous_animation,
@@ -1542,7 +1595,7 @@ const Animator = {
 	buildFile(path_filter, name_filter) {
 		var animations = {}
 		Animator.animations.forEach(function(a) {
-			if ((!path_filter || a.path == path_filter) && (!name_filter || !name_filter.length || name_filter.includes(a.name))) {
+			if ((typeof path_filter != 'string' || a.path == path_filter || (!a.path && !path_filter)) && (!name_filter || !name_filter.length || name_filter.includes(a.name))) {
 				let ani_tag = a.compileBedrockAnimation();
 				animations[a.name] = ani_tag;
 			}
@@ -1603,7 +1656,6 @@ const Animator = {
 	},
 	exportAnimationFile(path) {
 		let filter_path = path || '';
-		let content = Animator.buildFile(filter_path, true);
 
 		if (isApp && !path) {
 			path = Project.export_path
@@ -1622,6 +1674,7 @@ const Animator = {
 				}
 			})
 		} else {
+			let content = Animator.buildFile(filter_path, true);
 			Blockbench.export({
 				resource_id: 'animation',
 				type: 'JSON Animation',
@@ -1629,6 +1682,19 @@ const Animator = {
 				name: (Project.geometry_name||'model')+'.animation',
 				startpath: path,
 				content: autoStringify(content),
+				custom_writer: isApp && ((content, new_path, cb) => {
+					if (new_path && fs.existsSync(new_path)) {
+						Animator.animations.forEach(function(a) {
+							if (a.path == filter_path && !a.saved) {
+								a.path = new_path;
+								a.save();
+							}
+						})
+					} else {
+						Blockbench.writeFile(path, {content})
+						cb(path);
+					}
+				})
 			}, new_path => {
 				Animator.animations.forEach(function(a) {
 					if (a.path == filter_path) {
@@ -1641,8 +1707,21 @@ const Animator = {
 	}
 }
 Blockbench.on('update_camera_position', e => {
-	if (Animator.open && settings.motion_trails.value && (Group.selected || Animator.motion_trail_lock)) {
+	if (Animator.open && settings.motion_trails.value && (Group.selected || NullObject.selected[0] || Animator.motion_trail_lock)) {
 		Animator.updateMotionTrailScale();
+	}
+})
+Blockbench.on('reset_project', () => {
+	for (let path in Animator.particle_effects) {
+		let effect = Animator.particle_effects[path];
+		if (isApp && effect.watcher) {
+			effect.watcher.close()
+		}
+		for (let uuid in effect.emitters) {
+			effect.emitters[uuid].delete();
+			delete effect.emitters[uuid];
+		}
+		delete Animator.particle_effects[path];
 	}
 })
 
@@ -1652,7 +1731,7 @@ Animator.MolangParser.global_variables = {
 	get 'query.delta_time'() {
 		let time = (Date.now() - Timeline.last_frame_timecode + 1) / 1000;
 		if (time < 0) time += 1;
-		return time;
+		return Math.clamp(time, 0, 0.1);
 	},
 	get 'query.anim_time'() {
 		return Timeline.time;
@@ -1795,18 +1874,18 @@ BARS.defineActions(function() {
 	new Action('ik_enabled', {
 		icon: 'check_box_outline_blank',
 		category: 'animation',
-		condition: () => Animator.open && Group.selected,
+		condition: () => Animator.open && NullObject.selected[0] && !Group.selected,
 		click() {
-			Group.selected.ik_enabled = !Group.selected.ik_enabled;
+			NullObject.selected[0].ik_enabled = !NullObject.selected[0].ik_enabled;
 			updateNslideValues();
 			Transformer.updateSelection();
 		}
 	})
 	new NumSlider('slider_ik_chain_length', {
 		category: 'animation',
-		condition: () => Animator.open && Group.selected,
+		condition: () => Animator.open && NullObject.selected[0] && !Group.selected,
 		get: function() {
-			return Group.selected.ik_chain_length||0;
+			return NullObject.selected[0].ik_chain_length||0;
 		},
 		settings: {
 			min: 0, max: 64, default: 0,
@@ -1815,7 +1894,7 @@ BARS.defineActions(function() {
 			}
 		},
 		change: function(modify) {
-			Group.selected.ik_chain_length = Math.clamp(modify(Group.selected.ik_chain_length), 0, 64);
+			NullObject.selected[0].ik_chain_length = Math.clamp(modify(NullObject.selected[0].ik_chain_length), 0, 64);
 			updateSelection()
 		},
 		onBefore: function() {
@@ -1830,10 +1909,10 @@ BARS.defineActions(function() {
 	new Toggle('lock_motion_trail', {
 		icon: 'lock_open',
 		category: 'animation',
-		condition: () => Animator.open && Group.selected,
+		condition: () => Animator.open && (Group.selected || NullObject.selected[0]),
 		onChange(value) {
-			if (value && Group.selected) {
-				Animator.motion_trail_lock = Group.selected.uuid;
+			if (value && (Group.selected || NullObject.selected[0])) {
+				Animator.motion_trail_lock = Group.selected ? Group.selected.uuid : NullObject.selected[0].uuid;
 			} else {
 				Animator.motion_trail_lock = false;
 				Animator.showMotionTrail();
@@ -1844,9 +1923,33 @@ BARS.defineActions(function() {
 
 Interface.definePanels(function() {
 
+	function eventTargetToAnim(target) {
+		let target_node = target;
+		let i = 0;
+		while (target_node && target_node.classList && !target_node.classList.contains('animation')) {
+			if (i < 3 && target_node) {
+				target_node = target_node.parentNode;
+				i++;
+			} else {
+				return [];
+			}
+		}
+		return [Animation.all.find(anim => anim.uuid == target_node.attributes.anim_id.value), target_node];
+	}
+	function getOrder(loc, obj) {
+		if (!obj) {
+			return;
+		} else {
+			if (loc < 16) return -1;
+			return 1;
+		}
+		return 0;
+	}
+
 	Interface.Panels.animations = new Panel({
 		id: 'animations',
 		icon: 'movie',
+		growable: true,
 		condition: {modes: ['animate']},
 		toolbars: {
 			head: Toolbars.animations
@@ -1875,6 +1978,112 @@ Interface.definePanels(function() {
 				},
 				showFileContextMenu(event, id) {
 					Animation.prototype.file_menu.open(event, id);
+				},
+				dragAnimation(e1) {
+					if (getFocusedTextInput()) return;
+					convertTouchEvent(e1);
+					
+					let [anim] = eventTargetToAnim(e1.target);
+					if (!anim || anim.locked) {
+						function off(e2) {
+							removeEventListeners(document, 'mouseup touchend', off);
+						}
+						addEventListeners(document, 'mouseup touchend', off);
+						return;
+					};
+
+					let active = false;
+					let helper;
+					let timeout;
+					let drop_target, drop_target_node, order;
+					let last_event = e1;
+
+					function move(e2) {
+						convertTouchEvent(e2);
+						let offset = [
+							e2.clientX - e1.clientX,
+							e2.clientY - e1.clientY,
+						]
+						if (!active) {
+							let distance = Math.sqrt(Math.pow(offset[0], 2) + Math.pow(offset[1], 2))
+							if (Blockbench.isTouch) {
+								if (distance > 20 && timeout) {
+									clearTimeout(timeout);
+									timeout = null;
+								} else {
+									document.getElementById('animations_list').scrollTop += last_event.clientY - e2.clientY;
+								}
+							} else if (distance > 6) {
+								active = true;
+							}
+						} else {
+							if (e2) e2.preventDefault();
+							
+							if (open_menu) open_menu.hide();
+
+							if (!helper) {
+								helper = document.createElement('div');
+								helper.id = 'animation_drag_helper';
+								let icon = document.createElement('i');		icon.className = 'material-icons'; icon.innerText = 'movie'; helper.append(icon);
+								let span = document.createElement('span');	span.innerText = anim.name;	helper.append(span);
+								document.body.append(helper);
+							}
+							helper.style.left = `${e2.clientX}px`;
+							helper.style.top = `${e2.clientY}px`;
+
+							// drag
+							$('.drag_hover').removeClass('drag_hover');
+							$('.animation[order]').attr('order', null);
+
+							let target = document.elementFromPoint(e2.clientX, e2.clientY);
+							[drop_target, drop_target_node] = eventTargetToAnim(target);
+							if (drop_target) {
+								var location = e2.clientY - $(drop_target_node).offset().top;
+								order = getOrder(location, drop_target)
+								drop_target_node.setAttribute('order', order)
+								drop_target_node.classList.add('drag_hover');
+							}
+						}
+						last_event = e2;
+					}
+					function off(e2) {
+						if (helper) helper.remove();
+						removeEventListeners(document, 'mousemove touchmove', move);
+						removeEventListeners(document, 'mouseup touchend', off);
+						$('.drag_hover').removeClass('drag_hover');
+						$('.animation[order]').attr('order', null);
+						if (Blockbench.isTouch) clearTimeout(timeout);
+
+						if (active && !open_menu) {
+							convertTouchEvent(e2);
+							let target = document.elementFromPoint(e2.clientX, e2.clientY);
+							[target_anim] = eventTargetToAnim(target);
+							if (!target_anim || target_anim == anim ) return;
+
+							let index = Animation.all.indexOf(target_anim);
+							if (Animation.all.indexOf(anim) < index) index--;
+							if (order == 1) index++;
+							if (Animation.all[index] == anim && anim.path == target_anim.path) return;
+							
+							Undo.initEdit({animations: [anim]});
+
+							anim.path = target_anim.path;
+							Animation.all.remove(anim);
+							Animation.all.splice(index, 0, anim);
+
+							Undo.finishEdit('reorder animations');
+						}
+					}
+
+					if (Blockbench.isTouch) {
+						timeout = setTimeout(() => {
+							active = true;
+							move(e1);
+						}, 320)
+					}
+
+					addEventListeners(document, 'mousemove touchmove', move, {passive: false});
+					addEventListeners(document, 'mouseup touchend', off, {passive: false});
 				}
 			},
 			computed: {
@@ -1905,7 +2114,12 @@ Interface.definePanels(function() {
 			template: `
 				<div>
 					<div class="toolbar_wrapper animations"></div>
-					<ul id="animations_list" class="list mobile_scrollbar">
+					<ul
+						id="animations_list"
+						class="list mobile_scrollbar"
+						@mousedown="dragAnimation($event)"
+						@touchstart="dragAnimation($event)"
+					>
 						<li v-for="(file, key) in files" :key="key" class="animation_file" @contextmenu.prevent.stop="showFileContextMenu($event, key)">
 							<div class="animation_file_head" v-if="!file.hide_head" v-on:click.stop="toggle(key)">
 								<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>

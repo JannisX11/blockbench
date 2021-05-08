@@ -100,10 +100,10 @@ const Settings = {
 		}});
 		new Setting('seethrough_outline', 	{category: 'interface', value: false});
 		new Setting('outliner_colors', 		{category: 'interface', value: false});
-		new Setting('preview_checkerboard',	{category: 'interface', value: false, onChange() {
+		new Setting('preview_checkerboard',	{category: 'interface', value: true, onChange() {
 			$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 		}});
-		new Setting('uv_checkerboard', 		{category: 'interface', value: false, onChange() {
+		new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange() {
 			$('.UVEditor').toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
 		}});
 		
@@ -116,6 +116,12 @@ const Settings = {
 		new Setting('fov', 		  		{category: 'preview', value: 45, type: 'number', onChange(val) {
 			Preview.all.forEach(preview => preview.setFOV(val));
 		}});
+		new Setting('camera_near_plane',{category: 'preview', value: 1, type: 'number', onChange(val) {
+			Preview.all.forEach(preview => {
+				preview.camPers.near = val;
+				preview.camPers.updateProjectionMatrix();
+			});
+		}});
 		new Setting('render_sides', 	{category: 'preview', value: 'auto', type: 'select', options: {
 			'auto': tl('settings.render_sides.auto'),
 			'front': tl('settings.render_sides.front'),
@@ -123,6 +129,7 @@ const Settings = {
 		}, onChange() {
 			Canvas.updateRenderSides();
 		}});
+		new Setting('background_rendering', 	{category: 'preview', value: true});
 		/*
 		new Setting('transparency',		{category: 'preview', value: true, onChange() {
 			for (var uuid in Canvas.materials) {
@@ -191,7 +198,6 @@ const Settings = {
 		
 		//Dialogs
 		new Setting('dialog_larger_cubes', {category: 'dialogs', value: true});
-		new Setting('dialog_drag_background', {category: 'dialogs', value: true});
 		new Setting('dialog_rotation_limit', {category: 'dialogs', value: true});
 		
 		//Application
@@ -208,6 +214,10 @@ const Settings = {
 		new Setting('sketchfab_token', {category: 'export', value: '', type: 'password'});
 		new Setting('credit', {category: 'export', value: 'Made with Blockbench', type: 'text'});
 
+		Blockbench.onUpdateTo('3.8', () => {
+			settings.preview_checkerboard.value = true;
+			settings.uv_checkerboard.value = true;
+		})
 	},
 	addCategory(id, data) {
 		if (!data) data = 0;
@@ -264,7 +274,10 @@ const Settings = {
 		for (var key in BarItems) {
 			var action = BarItems[key]
 			if (action.linked_setting) {
-				action.toggleLinkedSetting(false)
+				if (settings[action.linked_setting] && action.value != settings[action.linked_setting].value) {
+					action.value = settings[action.linked_setting].value;
+					action.updateEnabledState();
+				}
 			}
 		}
 		if (hasSettingChanged('base_grid') || hasSettingChanged('large_grid') || hasSettingChanged('full_grid') || hasSettingChanged('large_grid_size')
@@ -277,6 +290,7 @@ const Settings = {
 		}
 		for (var id in settings) {
 			var setting = settings[id];
+			if (!Condition(setting.condition)) return;
 			if (setting.onChange && hasSettingChanged(id)) {
 				setting.onChange(setting.value);
 			}
@@ -294,7 +308,7 @@ const Settings = {
 			var items = {};
 			for (var key in settings) {
 				var setting = settings[key];
-				if (Condition(setting)) {
+				if (Condition(setting.condition)) {
 					var name = tl('settings.'+key).toLowerCase();
 					var desc = tl('settings.'+key+'.desc').toLowerCase();
 					var missmatch = false;
@@ -376,7 +390,7 @@ onVueSetup(function() {
 		},
 		methods: {
 			saveSettings() {
-				localStorage.setItem('settings', JSON.stringify(settings))
+				Settings.saveLocalStorages();
 			},
 			toggleCategory(category) {
 				if (!category.open) {

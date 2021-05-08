@@ -250,7 +250,6 @@ var codec = new Codec('optifine_entity', {
 				readContent(b, group, 0)
 			})
 		}
-		loadOutlinerDraggable()
 		if (model.texture) {
 			var path = path.replace(/\\[\w .-]+$/, '\\'+model.texture)
 			new Texture().fromPath(path).add(false)

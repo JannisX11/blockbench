@@ -68,7 +68,7 @@ class ResizeLine {
 
 const Interface = {
 	default_data: {
-		left_bar_width: 332,
+		left_bar_width: 366,
 		right_bar_width: 314,
 		quad_view_x: 50,
 		quad_view_y: 50,
@@ -95,7 +95,7 @@ const Interface = {
 			},
 			get: function() {return Interface.data.left_bar_width},
 			set: function(o, diff) {
-				let calculated = limitNumber(o + diff, 128, $(window).width()- 120 - Interface.data.right_bar_width)
+				let calculated = limitNumber(o + diff, 128, window.innerWidth- 120 - Interface.data.right_bar_width)
 				Interface.data.left_bar_width = Math.snapToValues(calculated, [Interface.default_data.left_bar_width], 16);
 			},
 			position: function(line) {
@@ -118,7 +118,7 @@ const Interface = {
 			},
 			get: function() {return Interface.data.right_bar_width},
 			set: function(o, diff) {
-				let calculated = limitNumber(o - diff, 128, $(window).width()- 120 - Interface.data.left_bar_width);
+				let calculated = limitNumber(o - diff, 128, window.innerWidth- 120 - Interface.data.left_bar_width);
 				Interface.data.right_bar_width = Math.snapToValues(calculated, [Interface.default_data.right_bar_width], 12);
 			},
 			position: function(line) {
@@ -208,11 +208,8 @@ function setupInterface() {
 		$.extend(true, Interface.data, interface_data)
 	} catch (err) {}
 
-	if (!Language.loading_steps) {
-		Language.loading_steps = true;
-	} else {
-		translateUI()
-	}
+	translateUI()
+	
 	$('.edit_session_active').hide()
 
 	$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
@@ -246,7 +243,7 @@ function setupInterface() {
 			tooltip.css('right', 'auto')
 		}
 
-		if ((tooltip.offset().left + tooltip.width()) - $(window).width() > 4) {
+		if ((tooltip.offset().left + tooltip.width()) - window.innerWidth > 4) {
 			tooltip.css('right', '-4px')
 		} else if ($(this).parent().css('position') == 'relative') {
 			tooltip.css('right', '0')
@@ -257,14 +254,9 @@ function setupInterface() {
 
 
 	//Clickbinds
-	$('header'	  ).click( 	function() { setActivePanel('header'  )})
-	$('#preview'	).click(function() { setActivePanel('preview' )})
+	$('header'	).click(function() { setActivePanel('header'  )})
+	$('#preview').click(function() { setActivePanel('preview' )})
 
-	$('ul#cubes_list').click(function(event) {
-		if (event.target === document.getElementById('cubes_list')) {
-			unselectAll()
-		}
-	})
 	$('#texture_list').click(function(){
 		unselectTextures()
 	})
@@ -272,15 +264,40 @@ function setupInterface() {
 		setActivePanel('timeline');
 	})
 	$(document).on('mousedown touchstart', unselectInterface)
+
+	window.addEventListener('resize', resizeWindow);
+	window.addEventListener('orientationchange', () => {
+		setTimeout(resizeWindow, 100)
+	});
 	
 	$('.context_handler').on('click', function() {
 		$(this).addClass('ctx')
 	})
-	$(document).contextmenu(function(event) {
+
+	Interface.text_edit_menu = new Menu([
+		{
+			id: 'copy',
+			name: 'Copy',
+			icon: 'fa-copy',
+			click() {
+				document.execCommand('copy');
+			}
+		},
+		{
+			id: 'paste',
+			name: 'Paste',
+			icon: 'fa-paste',
+			click() {
+				document.execCommand('paste');
+			}
+		}
+	])
+
+	$(document).on('contextmenu', function(event) {
 		if (!$(event.target).hasClass('allow_default_menu')) {
-			/*if (event.target.nodeName === 'INPUT' && $(event.target).is(':focus')) {
+			if (event.target.nodeName === 'INPUT' && $(event.target).is(':focus')) {
 				Interface.text_edit_menu.open(event, event.target)
-			}*/
+			}
 			return false;
 		}
 	})
@@ -318,10 +335,13 @@ function updateInterface() {
 }
 function updateInterfacePanels() {
 
-	$('.sidebar#left_bar').css('display', Prop.show_left_bar ? 'flex' : 'none');
-	$('.sidebar#right_bar').css('display', Prop.show_right_bar ? 'flex' : 'none');
+	if (!Blockbench.isMobile) {
+		$('.sidebar#left_bar').css('display', Prop.show_left_bar ? 'flex' : 'none');
+		$('.sidebar#right_bar').css('display', Prop.show_right_bar ? 'flex' : 'none');
+	}
+	let page = document.getElementById('page_wrapper');
 
-	$('#page_wrapper').css(
+	page.style.setProperty(
 		'grid-template-columns',
 		Interface.data.left_bar_width+'px auto '+ Interface.data.right_bar_width +'px'
 	)
@@ -333,7 +353,7 @@ function updateInterfacePanels() {
 	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.right_bar_width : 0;
 
 	if (!left_width || !right_width) {
-		$('#page_wrapper').css(
+		page.style.setProperty(
 			'grid-template-columns',
 			left_width+'px auto '+ right_width +'px'
 		)
@@ -375,10 +395,8 @@ function resizeWindow(event) {
 			dialog.css('top', limitNumber(window.innerHeight-dialog.outerHeight(), 0, 4e3) + 'px')
 		}
 	}
-	BARS.updateToolToolbar();
 	Blockbench.dispatchEvent('resize_window', event);
 }
-$(window).on('resize orientationchange', resizeWindow)
 
 function setProjectTitle(title) {
 	if (Format.bone_rig && Project.geometry_name) {
@@ -426,12 +444,12 @@ function setZoomLevel(mode) {
 //Dialogs
 function showDialog(dialog) {
 	var obj = $('.dialog#'+dialog)
-	$('.dialog').hide(0)
+	$('.dialog').hide()
 	if (open_menu) {
 		open_menu.hide()
 	}
-	$('#blackout').fadeIn(0)
-	obj.fadeIn(0)
+	$('#blackout').show()
+	obj.show()
 	open_dialog = dialog
 	open_interface = dialog
 	Prop.active_panel = 'dialog'
@@ -441,16 +459,16 @@ function showDialog(dialog) {
 			handle: ".dialog_handle",
 			containment: '#page_wrapper'
 		})
-		var x = ($(window).width()-obj.outerWidth()) / 2;
-		var top = ($(window).height() - obj.outerHeight()) / 2;
+		var x = (window.innerWidth-obj.outerWidth()) / 2;
+		var top = (window.innerHeight - obj.outerHeight()) / 2;
 		obj.css('left', x+'px')
 		obj.css('top', 'px')
-		obj.css('max-height', ($(window).height()-128)+'px')
+		obj.css('max-height', (window.innerHeight-128)+'px')
 	}
 }
 function hideDialog() {
-	$('#blackout').fadeOut(0)
-	$('.dialog').fadeOut(0)
+	$('#blackout').hide()
+	$('.dialog').hide()
 	open_dialog = false;
 	open_interface = false;
 	Prop.active_panel = undefined
@@ -462,18 +480,18 @@ function setSettingsTab(tab) {
 	$('#settings .tab_content#'+tab).removeClass('hidden')
 	if (tab === 'keybindings') {
 		//Keybinds
-		$('#keybindlist').css('max-height', ($(window).height() - 420) +'px')
+		$('#keybindlist').css('max-height', (window.innerHeight - 420) +'px')
 		$('#keybind_search_bar').focus()
 
 	} else if (tab === 'setting') {
 		//Settings
-		$('#settingslist').css('max-height', ($(window).height() - 420) +'px')
+		$('#settingslist').css('max-height', (window.innerHeight - 420) +'px')
 		$('#settings_search_bar').focus()
 
 	} else if (tab === 'layout_settings') {
 		//Layout
-
-		$('#theme_editor').css('max-height', ($(window).height() - 420) +'px')
+		$('#theme_editor').css('max-height', (window.innerHeight - 420) +'px')
+		if (!CustomTheme.dialog_is_setup) CustomTheme.setupDialog()
 	} else if (tab == 'credits') {
 		// About
 
@@ -500,6 +518,17 @@ function setSettingsTab(tab) {
 		}
 	}
 }
+
+function getStringWidth(string, size) {
+	var a = $('<label style="position: absolute">'+string+'</label>')
+	if (size && size !== 16) {
+		a.css('font-size', size+'pt')
+	}
+	$('body').append(a.css('visibility', 'hidden'))
+	var width = a.width()
+	a.detach()
+	return width;
+};
 
 //UI Edit
 function setProgressBar(id, val, time) {
@@ -696,10 +725,53 @@ function addStartScreenSection(id, data) {
 })()
 
 onVueSetup(function() {
-	new Vue({
+	Interface.status_bar.vue = new Vue({
 		el: '#status_bar',
 		data: {
-			Prop
-		}
+			Prop,
+			isMobile: Blockbench.isMobile
+		},
+		methods: {
+			toggleSidebar: Interface.toggleSidebar
+		},
+		template: `
+			<div id="status_bar" @contextmenu="Interface.status_bar.menu.show(event)">
+				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('left')" :title="tl('status_bar.toggle_sidebar')">
+					<i class="material-icons">{{Prop.show_left_bar ? 'chevron_left' : 'chevron_right'}}</i>
+				</div>
+				
+				<div class="f_left" v-if="settings.streamer_mode.value"
+					style="background-color: var(--color-stream); color: var(--color-light);"
+					@click="Settings.open({search: 'streamer_mode'})"
+					v-bind:title="tl('interface.streamer_mode_on')"
+				>
+					<i class="material-icons">live_tv</i>
+				</div>
+				<div id="status_saved">
+					<i class="material-icons" v-if="Prop.project_saved" v-bind:title="tl('status_bar.saved')">check</i>
+					<i class="material-icons" v-else v-bind:title="tl('status_bar.unsaved')">close</i>
+				</div>
+				<div v-html="Blockbench.getIconNode(Format.icon).outerHTML" v-bind:title="Format.name"></div>
+				<div v-if="Prop.recording" v-html="Blockbench.getIconNode('fiber_manual_record').outerHTML" style="color: var(--color-close)" v-bind:title="tl('status_bar.recording')"></div>
+
+
+				<div id="status_name">
+					{{ Prop.file_name }}
+				</div>
+				<div id="status_message" class="hidden"></div>
+				<div class="f_right">
+					{{ Prop.fps }} FPS
+				</div>
+				<div class="f_right" v-if="Prop.session">
+					{{ Prop.connections }} Clients
+				</div>
+
+				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('right')" :title="tl('status_bar.toggle_sidebar')">
+					<i class="material-icons">{{Prop.show_right_bar ? 'chevron_right' : 'chevron_left'}}</i>
+				</div>
+
+				<div id="status_progress" v-if="Prop.progress" v-bind:style="{width: Prop.progress*100+'%'}"></div>
+			</div>
+		`
 	})
 })

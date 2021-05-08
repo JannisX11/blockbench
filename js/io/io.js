@@ -40,45 +40,6 @@ function setupDragHandlers() {
 		}
 	)
 }
-/*
-function loadModelFile(file) {
-	if (showSaveDialog()) {
-		resetProject();
-
-		(function() {
-			var extension = pathToExtension(file.path);
-			// Text
-			for (var id in Codecs) {
-				let codec = Codecs[id];
-				if (codec.load_filter && codec.load_filter.type == 'text') {
-					if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, file.content)) {
-						codec.load(file.content, file);
-						return;
-					}
-				}
-			}
-			// JSON
-			var model = autoParseJSON(file.content);
-			for (var id in Codecs) {
-				let codec = Codecs[id];
-				if (codec.load_filter && codec.load_filter.type == 'json') {
-					if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, model)) {
-						codec.load(model, file);
-						return;
-					}
-				}
-			}
-		})();
-
-		EditSession.initNewModel()
-		if (!Format) {
-			Modes.options.start.select()
-			Modes.vue.$forceUpdate()
-			Blockbench.dispatchEvent('close_project');
-		}
-	}
-}
-*/
 var Extruder = {
 	drawImage: function(file) {
 		Extruder.canvas = $('#extrusion_canvas').get(0)
@@ -253,13 +214,12 @@ var Extruder = {
 							north:	{uv:[(rect.x2+1)*scale_i, rect.y*scale_i, rect.x*scale_i, (rect.y+1)*scale_i], texture: texture},
 							south:	{uv:[rect.x*scale_i, rect.y2*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture},
 							east:	{uv:[rect.x2*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 90},
-							west:	{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 270}
+							west:	{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 270},
 						}
 					}).init()
 					selected.push(current_cube)
 					cube_nr++;
 				}
-
 
 				ext_x++;
 			}
@@ -478,7 +438,7 @@ BARS.defineActions(function() {
 	new Action('open_model', {
 		icon: 'assessment',
 		category: 'file',
-		keybind: new Keybind({key: 79, ctrl: true}),
+		keybind: new Keybind({key: 'o', ctrl: true}),
 		condition: () => (!EditSession.active || EditSession.hosting),
 		click: function () {
 			var startpath;
@@ -497,24 +457,6 @@ BARS.defineActions(function() {
 				startpath
 			}, function(files) {
 				loadModelFile(files[0]);
-			})
-		}
-	})
-	new Action('add_model', {
-		icon: 'assessment',
-		category: 'file',
-		condition: _ => (Format.id == 'java_block'),
-		click: function () {
-			Blockbench.import({
-				resource_id: 'model',
-				extensions: ['json'],
-				type: 'JSON Model',
-				multiple: true,
-			}, function(files) {
-				files.forEach(file => {
-					var model = autoParseJSON(file.content)
-					Codecs.java_block.parse(model, file.path, true)
-				})
 			})
 		}
 	})
@@ -540,7 +482,7 @@ BARS.defineActions(function() {
 	new Action('export_over', {
 		icon: 'save',
 		category: 'file',
-		keybind: new Keybind({key: 83, ctrl: true}),
+		keybind: new Keybind({key: 's', ctrl: true}),
 		click: function () {
 			if (isApp) {
 				saveTextures()
@@ -549,7 +491,7 @@ BARS.defineActions(function() {
 						Format.codec.write(Format.codec.compile(), Project.export_path)
 					} else if (Project.save_path) {
 						Codecs.project.write(Codecs.project.compile(), Project.save_path);
-					} else if (Format.codec) {
+					} else if (Format.codec && Format.codec.export) {
 						Format.codec.export()
 					}
 				}
@@ -558,7 +500,7 @@ BARS.defineActions(function() {
 				}
 			} else {
 				saveTextures()
-				if (Format.codec && Format.codec.compile && Format.id != 'skin') {
+				if (Format.codec && Format.codec.export) {
 					Format.codec.export()
 				}
 			}
@@ -600,4 +542,77 @@ BARS.defineActions(function() {
 			uploadSketchfabModel()
 		}
 	})
+
+
+	new Action('share_model', {
+		icon: 'share',
+		condition: () => Cube.all.length,
+		click() {
+			var dialog = new Dialog({
+				id: 'share_model',
+				title: 'dialog.share_model.title',
+				form: {
+					expire_time: {label: 'dialog.share_model.expire_time', type: 'select', default: '2d', options: {
+						'10m': tl('dates.minutes', [10]),
+						'1h': tl('dates.hour', [1]),
+						'1d': tl('dates.day', [1]),
+						'2d': tl('dates.days', [2]),
+						'1w': tl('dates.week', [1]),
+						'2w': tl('dates.weeks', [2]),
+					}},
+					info: {type: 'info', text: 'The model will be stored on the Blockbench servers for the duration specified above. [Learn more](https://blockbench.net/blockbench-model-sharing-service/)'}
+				},
+				buttons: ['generic.share', 'dialog.cancel'],
+				onConfirm: function(formResult) {
+		
+					let expire_time = formResult.expire_time;
+					let model = Codecs.project.compile({compressed: false});
+
+					$.ajax({
+						url: 'https://blckbn.ch/api/model',
+						data: JSON.stringify({ expire_time, model }),
+						cache: false,
+						contentType: 'application/json; charset=utf-8',
+						dataType: 'json',
+						type: 'POST',
+						success: function(response) {
+							let link = `https://blckbn.ch/${response.id}`
+
+							let link_dialog = new Dialog({
+								id: 'share_model_link',
+								title: 'dialog.share_model.title',
+								form: {
+									link: {type: 'text', value: link}
+								},
+								buttons: ['action.copy', 'dialog.close'],
+								onConfirm() {
+									link_dialog.hide();
+									if (isApp || navigator.clipboard) {
+										Clipbench.setText(link);
+										Blockbench.showQuickMessage('dialog.share_model.copied_to_clipboard');
+									} else {
+										Blockbench.showMessageBox({
+											title: 'dialog.share_model.title',
+											message: `[${link}](${link})`,
+										})
+									}
+								}
+							}).show();
+
+						},
+						error: function(response) {
+							Blockbench.showQuickMessage('dialog.share_model.failed', 1500)
+							console.error(response);
+						}
+					})
+		
+					dialog.hide()
+				}
+			})
+			dialog.show()
+		}
+	})
+
+
+
 })

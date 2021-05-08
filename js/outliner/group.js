@@ -1,5 +1,5 @@
 
-class Group extends OutlinerElement {
+class Group extends OutlinerNode {
 	constructor(data, uuid) {
 		super(uuid)
 
@@ -18,8 +18,6 @@ class Group extends OutlinerElement {
 		this.autouv = 0;
 		this.parent = 'root';
 		this.isOpen = false;
-		this.ik_enabled = false;
-		this.ik_chain_length = 0;
 
 		if (typeof data === 'object') {
 			this.extend(data)
@@ -71,6 +69,7 @@ class Group extends OutlinerElement {
 		if (typeof this.parent !== 'object') {
 			this.addTo();
 		}
+		Canvas.updateAllBones([this]);
 		return this;
 	}
 	select(event) {
@@ -212,7 +211,7 @@ class Group extends OutlinerElement {
 		TickUpdates.selection = true
 		this.constructor.all.remove(this);
 		delete Canvas.bones[this.uuid];
-		delete OutlinerElement.uuids[this.uuid];
+		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
 			cubes.length = 0
 			Undo.finishEdit('removed_group')
@@ -258,7 +257,7 @@ class Group extends OutlinerElement {
 					obj.forEachChild(child => {
 						if (child.movable) child.from.V3_add(diff);
 						if (child.resizable) child.to.V3_add(diff);
-						if (obj.rotatable || obj instanceof Group) child.origin.V3_add(diff);
+						if (child.rotatable || child instanceof Group) child.origin.V3_add(diff);
 					})
 				}
 			}
@@ -269,7 +268,6 @@ class Group extends OutlinerElement {
 		}
 		this.remove(false);
 		Undo.finishEdit('resolve group')
-		TickUpdates.outliner = true;
 		return array;
 	}
 	showContextMenu(event) {
@@ -337,8 +335,7 @@ class Group extends OutlinerElement {
 			child.duplicate().addTo(copy)
 		}
 		copy.isOpen = true;
-		Canvas.updatePositions()
-		TickUpdates.outliner = true;
+		Canvas.updatePositions();
 		return copy;
 	}
 	getSaveCopy() {
@@ -363,6 +360,7 @@ class Group extends OutlinerElement {
 		base_group.visibility = this.visibility;
 		base_group.export = this.export;
 		base_group.autouv = this.autouv;
+		base_group.isOpen = this.isOpen;
 		return base_group;
 	}
 	compile(undo) {
@@ -408,26 +406,6 @@ class Group extends OutlinerElement {
 			i++;
 		}
 	}
-	toggle(key, val) {
-		if (val === undefined) {
-			var val = !this[key]
-		}
-		var cubes = []
-		this.forEachChild(obj => {
-			cubes.push(obj)
-		}, NonGroup)
-		Undo.initEdit({outliner: true, elements: cubes})
-		this.forEachChild(function(s) {
-			s[key] = val
-			s.updateElement()
-		})
-		this[key] = val;
-		this.updateElement()
-		if (key === 'visibility') {
-			Canvas.updateVisibility()
-		}
-		Undo.finishEdit('toggle')
-	}
 	setAutoUV(val) {
 		this.forEachChild(function(s) {
 			s.autouv = val;
@@ -444,7 +422,7 @@ class Group extends OutlinerElement {
 	Group.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
 	Group.prototype.buttons = [
 		Outliner.buttons.autouv,
-		Outliner.buttons.shading,
+		Outliner.buttons.shade,
 		Outliner.buttons.export,
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
@@ -468,9 +446,8 @@ class Group extends OutlinerElement {
 		return Format.centered_grid ? [0, 0, 0] : [8, 8, 8]
 	}});
 	new Property(Group, 'vector', 'rotation');
+	new Property(Group, 'string', 'bedrock_binding', {condition: () => Format.id == 'bedrock'});
 	new Property(Group, 'array', 'cem_animations', {condition: () => Format.id == 'optifine_entity'});
-	new Property(Group, 'boolean', 'ik_enabled', {condition: () => Format.animation_mode});
-	new Property(Group, 'number', 'ik_chain_length', {condition: () => Format.animation_mode});
 
 
 function getCurrentGroup() {
@@ -512,7 +489,7 @@ BARS.defineActions(function() {
 		icon: 'create_new_folder',
 		category: 'edit',
 		condition: () => Modes.edit,
-		keybind: new Keybind({key: 71, ctrl: true}),
+		keybind: new Keybind({key: 'g', ctrl: true}),
 		click: function () {
 			Undo.initEdit({outliner: true});
 			var add_group = Group.selected
@@ -528,14 +505,13 @@ BARS.defineActions(function() {
 			if (Format.bone_rig) {
 				base_group.createUniqueName()
 			}
-			if (add_group instanceof NonGroup && selected.length > 1) {
+			if (add_group instanceof OutlinerElement && selected.length > 1) {
 				selected.forEach(function(s, i) {
 					s.addTo(base_group)
 				})
 			}
 			base_group.init().select()
 			Undo.finishEdit('add_group');
-			loadOutlinerDraggable()
 			Vue.nextTick(function() {
 				updateSelection()
 				if (settings.create_rename.value) {

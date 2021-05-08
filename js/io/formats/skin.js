@@ -155,7 +155,7 @@ const codec = new Codec('skin_model', {
 		EditSession.initNewModel()
 	},
 })
-//codec.compile = null;
+codec.export = null;
 
 
 const format = new ModelFormat({
@@ -315,6 +315,7 @@ const skin_dialog = new Dialog({
 			label: 'dialog.skin.texture',
 			type: 'file',
 			extensions: ['png'],
+			readtype: 'image',
 			filetype: 'PNG',
 		},
 		pose: {type: 'checkbox', label: 'dialog.skin.pose', value: true},
@@ -358,6 +359,15 @@ BARS.defineActions(function() {
 			Canvas.updateVisibility()
 		}
 	})
+	new Action({
+		id: 'export_minecraft_skin',
+		icon: 'icon-player',
+		category: 'file',
+		condition: () => Format == format && Texture.all[0],
+		click: function () {
+			Texture.all[0].save(true);
+		}
+	})
 	
 	let explode_skin_model = new Toggle('explode_skin_model', {
 		icon: () => 'open_in_full',
@@ -365,7 +375,7 @@ BARS.defineActions(function() {
 		condition: {formats: ['skin']},
 		value: false,
 		onChange(exploded_view) {
-			Undo.initEdit({elements: Cube.all});
+			Undo.initEdit({elements: Cube.all, exploded_view: !exploded_view});
 			Cube.all.forEach(cube => {
 				let center = [
 					cube.from[0] + (cube.to[0] - cube.from[0]) / 2,
@@ -377,7 +387,7 @@ BARS.defineActions(function() {
 				cube.from.V3_add(center);
 				cube.to.V3_add(center);
 			})
-			Undo.finishEdit('explode_skin_model');
+			Undo.finishEdit('explode_skin_model', {elements: Cube.all, exploded_view: exploded_view});
 			Canvas.updateAllPositions();
 			this.setIcon(this.icon);
 		}
@@ -385,6 +395,12 @@ BARS.defineActions(function() {
 	Blockbench.on('reset_project', () => {
 		explode_skin_model.value = false;
 		explode_skin_model.updateEnabledState();
+	})
+	Blockbench.on('load_undo_save', data => {
+		if (data.save.exploded_view !== undefined) {
+			explode_skin_model.value = data.save.exploded_view;
+			explode_skin_model.updateEnabledState();
+		}
 	})
 })
 
@@ -3349,7 +3365,7 @@ skin_presets.pig = `{
 }`;
 skin_presets.piglin = `{
 	"name": "piglin",
-	"texturewidth": 128,
+	"texturewidth": 64,
 	"textureheight": 64,
 	"eyes": [
 		[10, 11, 1, 1],
@@ -3357,72 +3373,91 @@ skin_presets.piglin = `{
 	],
 	"bones": [
 		{
-			"name": "Head",
-			"pivot": [0, 24, 0],
-			"rotation": [3, 5, 0],
-			"cubes": [
-				{"name": "Head", "origin": [-5, 24, -4], "size": [10, 8, 8], "uv": [0, 0]},
-				{"name": "Head", "origin": [-2, 24, -5], "size": [4, 4, 1], "uv": [31, 1]},
-				{"name": "Head", "origin": [-3, 24, -5], "size": [1, 2, 1], "uv": [2, 0]},
-				{"name": "Head", "origin": [2, 24, -5], "size": [1, 2, 1], "uv": [2, 4]}
-			]
-		},
-		{
-			"name": "LeftEar",
-			"parent": "Head",
-			"pivot": [4.5, 30, 0],
-			"rotation": [0, 0, -25],
-			"cubes": [
-				{"name": "Head", "origin": [4.5, 25, -2], "size": [1, 5, 4], "uv": [57, 38]}
-			]
-		},
-		{
-			"name": "RightEar",
-			"parent": "Head",
-			"pivot": [-4.5, 30, 0],
-			"rotation": [0, 0, 25],
-			"cubes": [
-				{"name": "Head", "origin": [-5.5, 25, -2], "size": [1, 5, 4], "uv": [57, 22]}
-			]
-		},
-		{
-			"name": "Body",
+			"name": "body",
 			"pivot": [0, 24, 0],
 			"cubes": [
-				{"name": "Body", "origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 16]}
+				{"origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 16]},
+				{"origin": [-4, 12, -2], "size": [8, 12, 4], "inflate": 0.25, "uv": [16, 32]}
 			]
 		},
 		{
-			"name": "RightArm",
+			"name": "head",
+			"parent": "body",
+			"pivot": [0, 24, 0],
+			"cubes": [
+				{"origin": [-5, 24, -4], "size": [10, 8, 8], "inflate": -0.02, "uv": [0, 0]},
+				{"origin": [-2, 24, -5], "size": [4, 4, 1], "uv": [31, 1]},
+				{"origin": [2, 24, -5], "size": [1, 2, 1], "uv": [2, 4]},
+				{"origin": [-3, 24, -5], "size": [1, 2, 1], "uv": [2, 0]}
+			]
+		},
+		{
+			"name": "leftear",
+			"parent": "head",
+			"pivot": [5, 30, 0],
+			"rotation": [0, 0, -30],
+			"cubes": [
+				{"origin": [4, 25, -2], "size": [1, 5, 4], "uv": [51, 6]}
+			]
+		},
+		{
+			"name": "rightear",
+			"parent": "head",
+			"pivot": [-5, 30, 0],
+			"rotation": [0, 0, 30],
+			"cubes": [
+				{"origin": [-5, 25, -2], "size": [1, 5, 4], "uv": [39, 6]}
+			]
+		},
+		{
+			"name": "hat",
+			"parent": "head",
+			"pivot": [0, 24, 0]
+		},
+		{
+			"name": "rightarm",
+			"parent": "body",
 			"pivot": [-5, 22, 0],
-			"rotation": [-10, 0, 0],
 			"cubes": [
-				{"name": "Right Arm", "origin": [-8, 12, -2], "size": [4, 12, 4], "uv": [40, 16]}
+				{"origin": [-8, 12, -2], "size": [4, 12, 4], "uv": [40, 16]},
+				{"origin": [-8, 12, -2], "size": [4, 12, 4], "inflate": 0.25, "uv": [40, 32]}
 			]
 		},
 		{
-			"name": "LeftArm",
+			"name": "rightItem",
+			"parent": "rightarm",
+			"pivot": [-6, 15, 1]
+		},
+		{
+			"name": "leftarm",
+			"parent": "body",
 			"pivot": [5, 22, 0],
-			"rotation": [12, 0, 0],
 			"cubes": [
-				{"name": "Left Arm", "origin": [4, 12, -2], "size": [4, 12, 4], "uv": [32, 48]}
+				{"origin": [4, 12, -2], "size": [4, 12, 4], "uv": [32, 48]},
+				{"origin": [4, 12, -2], "size": [4, 12, 4], "inflate": 0.25, "uv": [48, 48]}
 			]
 		},
 		{
-			"name": "RightLeg",
+			"name": "rightleg",
+			"parent": "body",
 			"pivot": [-1.9, 12, 0],
-			"rotation": [11, 0, 2],
 			"cubes": [
-				{"name": "Right Leg", "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 16]}
+				{"origin": [-4, 0, -2], "size": [4, 12, 4], "uv": [0, 16]},
+				{"origin": [-4, 0, -2], "size": [4, 12, 4], "inflate": 0.25, "uv": [0, 32]}
 			]
 		},
 		{
-			"name": "LeftLeg",
+			"name": "leftleg",
+			"parent": "body",
 			"pivot": [1.9, 12, 0],
-			"rotation": [-10, 0, -2],
 			"cubes": [
-				{"name": "Left Leg", "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [16, 48]}
+				{"origin": [0, 0, -2], "size": [4, 12, 4], "uv": [16, 48]},
+				{"origin": [0, 0, -2], "size": [4, 12, 4], "inflate": 0.25, "uv": [0, 48]}
 			]
+		},
+		{
+			"name": "leftItem",
+			"pivot": [6, 15, 1]
 		}
 	]
 }`

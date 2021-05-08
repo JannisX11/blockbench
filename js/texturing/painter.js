@@ -91,15 +91,17 @@ const Painter = {
 	},
 	// Preview Brush
 	startPaintToolCanvas(data, e) {
-		if (!data && Toolbox.selected.id == 'color_picker') {
+		if (!data.intersects && Toolbox.selected.id == 'color_picker') {
 			var preview = Preview.selected;
 			if (preview && preview.background && preview.background.imgtag) {
 				
+				let bg_pos = preview.canvas.style.backgroundPosition.split(' ').map(v => parseFloat(v));
+				let bg_size = parseFloat(preview.canvas.style.backgroundSize);
 				var ctx = Painter.getCanvas(preview.background.imgtag).getContext('2d')
-				var pixel_ratio = main_preview.background.imgtag.width / main_preview.background.size;
-				var x = (event.offsetX - preview.width/2 - preview.background.x) * pixel_ratio + main_preview.background.imgtag.width/2
-				var y = (event.offsetY - preview.height/2 - preview.background.y)* pixel_ratio
-				if (x >= 0 && y >= 0 && x < main_preview.background.imgtag.width && y < main_preview.background.imgtag.height) {
+				var pixel_ratio = preview.background.imgtag.width / bg_size;
+				var x = (e.offsetX - bg_pos[0]) * pixel_ratio
+				var y = (e.offsetY - bg_pos[1]) * pixel_ratio
+				if (x >= 0 && y >= 0 && x < preview.background.imgtag.width && y < preview.background.imgtag.height) {
 					Painter.scanCanvas(ctx, x, y, 1, 1, (x, y, px) => {
 						var t = tinycolor({
 							r: px[0],
@@ -112,7 +114,7 @@ const Painter = {
 				}
 			}
 		}
-		if (!data || (data.cube && data.cube.locked)) return;
+		if (!data.intersects || (data.cube && data.cube.locked)) return;
 		var texture = data.cube.faces[data.face].getTexture()
 		if (!texture || (texture.error && texture.error !== 2)) {
 			Blockbench.showQuickMessage('message.untextured')
@@ -297,10 +299,10 @@ const Painter = {
 			Painter.current.force = touch.force;
 
 			if (settings.brush_opacity_modifier.value == 'pressure' && touch.force) {
-				b_opacity = Math.clamp(b_opacity * touch.force*1.25, 0, 100);
+				b_opacity = Math.clamp(b_opacity * Math.clamp(touch.force*1.25, 0, 1), 0, 100);
 
 			} else if (settings.brush_opacity_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
-				var modifier = Math.clamp(1.5 / (touch.altitudeAngle + 0.3), 1, 4)/2;
+				var modifier = Math.clamp(0.5 / (touch.altitudeAngle + 0.3), 0, 1);
 				b_opacity = Math.clamp(b_opacity * modifier, 0, 100);
 			}
 			if (settings.brush_size_modifier.value == 'pressure' && touch.force) {
@@ -819,7 +821,7 @@ BARS.defineActions(function() {
 		paintTool: true,
 		brushTool: true,
 		allowWireframe: false,
-		keybind: new Keybind({key: 66}),
+		keybind: new Keybind({key: 'b'}),
 		modes: ['paint'],
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
@@ -855,6 +857,7 @@ BARS.defineActions(function() {
 		icon: 'fa-eraser',
 		category: 'tools',
 		toolbar: 'brush',
+		alt_tool: 'color_picker',
 		selectFace: true,
 		transformerMode: 'hidden',
 		cursor: 'crosshair',
@@ -862,7 +865,7 @@ BARS.defineActions(function() {
 		brushTool: true,
 		allowWireframe: false,
 		modes: ['paint'],
-		keybind: new Keybind({key: 69}),
+		keybind: new Keybind({key: 'e'}),
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
 		},
@@ -899,7 +902,7 @@ BARS.defineActions(function() {
 		allowWireframe: false,
 		modes: ['paint'],
 		condition: {modes: ['paint']},
-		keybind: new Keybind({key: 85}),
+		keybind: new Keybind({key: 'u'}),
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
 		},
@@ -919,7 +922,7 @@ BARS.defineActions(function() {
 		allowWireframe: false,
 		modes: ['paint'],
 		condition: {modes: ['paint']},
-		keybind: new Keybind({key: 77})
+		keybind: new Keybind({key: 'm'})
 	})
 
 	new BarSelect('draw_shape_type', {
@@ -947,12 +950,22 @@ BARS.defineActions(function() {
 		}
 	})
 	new Toggle('mirror_painting', {
-		//label: true,
 		icon: 'flip',
 		category: 'paint',
 		condition: () => Modes.paint,
 		onChange: function (value) {
 			Painter.mirror_painting = value;
+			if (value) {
+				let size = 16*16;
+				var grid = new THREE.GridHelper(size, 16*2, gizmo_colors.outline);
+				grid.rotation.z = Math.PI/2;
+				grid.position.y = size/2;
+				scene.add(grid);
+				setTimeout(() => {
+					scene.remove(grid);
+					grid.geometry.dispose();
+				}, 1000)
+			}
 		}
 	})
 	new Toggle('lock_alpha', {
@@ -968,7 +981,7 @@ BARS.defineActions(function() {
 		icon: 'grid_on',
 		category: 'view',
 		condition: () => Modes.paint,
-		keybind: new Keybind({key: 71}),
+		keybind: new Keybind({key: 'g'}),
 		linked_setting: 'painting_grid'
 	})
 

@@ -104,6 +104,7 @@ Object.assign(Blockbench, {
 		var result_count = 0;
 		var index = 0;
 		var errant;
+		var i = 0;
 		if (isApp) {
 			while (index < files.length) {
 				(function() {
@@ -246,25 +247,29 @@ Object.assign(Blockbench, {
 			resource_id
 		*/
 		if (Blockbench.isWeb) {
-			var file_name = options.name + (options.extensions ? '.'+options.extensions[0] : '')
+			var file_name = options.name || 'file';
+			if (options.extensions && file_name.substr(-options.extensions[0].length) != options.extensions[0]) {
+				file_name += '.' + options.extensions[0];
+			}
 			if (options.custom_writer) {
 				options.custom_writer(options.content, file_name)
 				
-			} else if (options.savetype === 'image') {
-
-				var download = document.createElement('a');
-				download.href = options.content
-				download.download = file_name;
-				if (Blockbench.browser === 'firefox') document.body.appendChild(download);
-				download.click();
-				if (Blockbench.browser === 'firefox') document.body.removeChild(download);
-
-			} else if (options.savetype === 'zip' || options.savetype === 'buffer' || options.savetype === 'binary') {
-				saveAs(options.content, file_name)
-
 			} else {
-				var blob = new Blob([options.content], {type: "text/plain;charset=utf-8"});
-				saveAs(blob, file_name, {autoBOM: true})
+
+				if (options.savetype === 'image') {
+					saveAs(options.content, file_name, {})
+
+				} else if (options.savetype === 'zip' || options.savetype === 'buffer' || options.savetype === 'binary') {
+					let blob = options.content instanceof Blob
+							 ? options.content
+							 : new Blob(options.content, {type: "octet/stream"});
+					saveAs(blob, file_name)
+
+				} else {
+					var blob = new Blob([options.content], {type: "text/plain;charset=utf-8"});
+					saveAs(blob, file_name, {autoBOM: true})
+				}
+
 			}
 			if (typeof cb === 'function') {
 				cb(file_name)
@@ -319,7 +324,7 @@ Object.assign(Blockbench, {
 			}
 		}
 		if (options.custom_writer) {
-			options.custom_writer(options.content, file_path)
+			options.custom_writer(options.content, file_path, cb)
 
 		} else if (options.savetype === 'zip') {
 			var fileReader = new FileReader();
@@ -349,7 +354,6 @@ Object.assign(Blockbench, {
 		if (options.extensions) {
 			entry.extensions = options.extensions
 		}
-		if (options.addClass !== false) entry.addClass = true;
 		if (options.propagate) entry.propagate = true;
 		if (options.readtype) entry.readtype = options.readtype;
 		if (options.errorbox) entry.errorbox = true;

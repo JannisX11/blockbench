@@ -54,6 +54,9 @@
 	.small_text {
 		font-size: 0.94em;
 	}
+	.subtle {
+		color: var(--color-subtle_text);
+	}
 	.color_x {
 		color: var(--color-axis-x);
 	}
@@ -168,12 +171,6 @@
 		list-style: initial;
 		margin-left: 20px;
 	}
-	body.animation_mode #cubes_list {
-		height: calc(100% - 50px);
-	}
-	body.animation_mode #cubes_list .outliner_object.cube {
-		display: none;
-	}
 	#quick_message_box {
 		position: absolute;
 		margin-left: auto;
@@ -234,25 +231,6 @@
 		display: none !important;
 	}
 
-	#center_tip {
-		top: 0;
-		left: 0;
-		right: 0;
-		margin: auto;
-		min-width: 200px;
-		max-width: 100%;
-		position: absolute;
-		text-align: center;
-		background-color: var(--color-accent);
-		color: var(--color-accent_text);
-		width: max-content;
-		padding: 3px 8px;
-	}
-	#center_tip i {
-		vertical-align: text-bottom;
-		margin-right: 6px;
-	}
-
 	.annotation {
 		min-width: 40px;
 		max-width: 100%;
@@ -273,6 +251,9 @@
 		min-width: 15px;
 		color: var(--color-light);
 		text-shadow: 0 0 5px black;
+	}
+	.light_on_hover:hover {
+		color: var(--color-light);
 	}
 
 	.spinning {
@@ -303,6 +284,7 @@
 		height: 100%;
 		overflow-x: hidden;
 		overflow-y: auto;
+		flex-grow: 1;
 	}
 	.toolbar_wrapper > .toolbar.vertical {
 		width: 40px;

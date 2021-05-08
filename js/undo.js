@@ -143,7 +143,7 @@ class UndoSystem {
 				if (save.elements.hasOwnProperty(uuid)) {
 					var element = save.elements[uuid]
 
-					var new_element = OutlinerElement.uuids[uuid]
+					var new_element = OutlinerNode.uuids[uuid]
 					if (new_element) {
 						for (var face in new_element.faces) {
 							new_element.faces[face].reset()
@@ -156,19 +156,18 @@ class UndoSystem {
 							Canvas.updateUV(new_element)
 						}
 					} else {
-						new_element = NonGroup.fromSave(element, true);
+						new_element = OutlinerElement.fromSave(element, true);
 					}
 				}
 			}
 			for (var uuid in reference.elements) {
 				if (reference.elements.hasOwnProperty(uuid) && !save.elements.hasOwnProperty(uuid)) {
-					var obj = OutlinerElement.uuids[uuid]
+					var obj = OutlinerNode.uuids[uuid]
 					if (obj) {
 						obj.remove()
 					}
 				}
 			}
-			loadOutlinerDraggable()
 			Canvas.updateVisibility()
 		}
 
@@ -193,7 +192,7 @@ class UndoSystem {
 
 		if (save.selection_group && !is_session) {
 			Group.selected = undefined
-			var sel_group = OutlinerElement.uuids[save.selection_group]
+			var sel_group = OutlinerNode.uuids[save.selection_group]
 			if (sel_group) {
 				sel_group.select()
 			}
@@ -209,7 +208,7 @@ class UndoSystem {
 		}
 
 		if (save.group) {
-			var group = OutlinerElement.uuids[save.group.uuid]
+			var group = OutlinerNode.uuids[save.group.uuid]
 			if (group) {
 				if (is_session) {
 					delete save.group.isOpen;
@@ -265,7 +264,7 @@ class UndoSystem {
 		if (save.selected_texture) {
 			let tex = Texture.all.find(tex => tex.uuid == save.selected_texture);
 			if (tex instanceof Texture) tex.select()
-		} else if (save.selected_texture == null) {
+		} else if (save.selected_texture === null) {
 			unselectTextures()
 		}
 
@@ -318,7 +317,6 @@ class UndoSystem {
 						i++;
 					}
 				}
-				var added = 0;
 				for (var uuid in save.keyframes) {
 					if (uuid.length === 36 && save.keyframes.hasOwnProperty(uuid)) {
 						var data = save.keyframes[uuid];
@@ -329,7 +327,6 @@ class UndoSystem {
 							kf.extend(data)
 						} else {
 							animator.addKeyframe(data, uuid);
-							added++;
 						}
 					}
 				}
@@ -360,6 +357,9 @@ class UndoSystem {
 				display[slot].extend(data).update()
 			}
 		}
+
+		Blockbench.dispatchEvent('load_undo_save', {save, reference, mode})
+
 		if (open_dialog == 'uv_dialog') {
 			for (var key in uv_dialog.editors) {
 				if (uv_dialog.editors[key]) {
@@ -463,6 +463,10 @@ UndoSystem.save = class {
 				}
 			})
 		}
+
+		if (aspects.exploded_view !== undefined) {
+			this.exploded_view = !!aspects.exploded_view;
+		}
 	}
 	addTexture(texture) {
 		if (!this.textures) return;
@@ -481,7 +485,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => (!open_dialog || open_dialog === 'uv_dialog' || open_dialog === 'toolbar_edit'),
 		work_in_dialog: true,
-		keybind: new Keybind({key: 90, ctrl: true}),
+		keybind: new Keybind({key: 'z', ctrl: true}),
 		click(e) {
 			Project.undo.undo(e);
 		}
@@ -491,7 +495,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => (!open_dialog || open_dialog === 'uv_dialog' || open_dialog === 'toolbar_edit'),
 		work_in_dialog: true,
-		keybind: new Keybind({key: 89, ctrl: true}),
+		keybind: new Keybind({key: 'y', ctrl: true}),
 		click(e) {
 			Project.undo.redo(e);
 		}

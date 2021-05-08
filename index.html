@@ -6,8 +6,9 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="theme-color" content="#181a1f">
 	<meta name="robots" content="noindex">
-	<!--link rel="manifest" href="manifest.json"-->
+	<link rel="manifest" href="manifest.webmanifest">
 	<link rel="shortcut icon" href="favicon.png" type="image/x-icon" />
+	<link rel="apple-touch-icon" href="icon_full.png">
 	<link rel="stylesheet" href="css/w3.css">
 	<link rel="stylesheet" href="css/jquery-ui.min.css">
 	<link rel="stylesheet" href="css/fontawesome.css">
@@ -24,7 +25,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '3.8.0';
+		const appVersion = '3.8.4';
 	</script>
 	<div id="loading_error_message" style="display: none;">
 		<div>An error occurred while loading Blockbench</div>
@@ -40,6 +41,7 @@
 		<script src="lib/jimp.min.js"></script>
 		<script src="lib/jszip.min.js"></script>
 		<script src="lib/gif.js"></script>
+		<script src="lib/FileSaver.js"></script>
 		<script src="lib/prism.js"></script>
 		<script src="lib/VuePrismEditor.min.js"></script>
 		<script src="lib/molang-prism-syntax.js"></script>
@@ -54,13 +56,11 @@
 		<script src="lib/fik.min.js"></script>
 		<script src="lib/molang.umd.js"></script>
 		<script src="lib/wintersky.umd.js"></script>
-
-		<script src="js/preview/OrbitControls.js"></script>
-		<script src="js/outliner/tree.vue.js"></script>
 		
+		<script src="js/webpack/bundle.js"></script>
+		<script src="js/preview/OrbitControls.js"></script>
 		<script src="js/util.js"></script>
 		<script src="js/property.js"></script>
-		<script src="js/interface/language.js"></script>
 		<script src="js/interface/menu.js"></script>
 		<script src="js/interface/actions.js"></script>
 		<script src="js/interface/themes.js"></script>
@@ -134,67 +134,6 @@
 		</div>
 	</div>
 
-	<dialog class="dialog draggable paddinged" id="updater">
-		<div class="dialog_handle tl">dialog.update.title</div>
-		<h1></h1>
-
-		<div id="updater_content"></div>
-
-		<div class="progress_bar" id="update_bar">
-			<div class="progress_bar_inner"></div>
-		</div>
-		<div class="dialog_bar button_bar" hidden>
-			<button type="button" class="cancel_btn confirm_btn uc_btn tl" onclick="hideDialog()">dialog.close</button>
-		</div>
-		<div class="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
-	</dialog>
-
-	<dialog class="dialog draggable paddinged" id="plugins">
-		<div class="dialog_handle tl">dialog.plugins.title</div>
-
-		<div class="bar next_to_title" id="plugins_header_bar"></div>
-
-		<div class="bar">
-			<div class="tab_bar">
-				<div class="open tl" onclick="switchPluginTabs(true)" id="installed_plugins">dialog.plugins.installed</div>
-				<div class="tl" onclick="switchPluginTabs(false)" id="all_plugins">dialog.plugins.available</div>
-			</div>
-			<div class="search_bar">
-				<input type="text" class="dark_bordered" id="plugin_search_bar" oninput="Plugins.updateSearch()">
-				<i class="material-icons" id="plugin_search_bar_icon">search</i>
-			</div>
-		</div>
-		<ul class="list" id="plugin_list">
-			<li v-for="plugin in plugin_search" v-bind:plugin="plugin.id" v-bind:class="{testing: plugin.fromFile, expanded: plugin.expanded}">
-				<div class="title" v-on:click="plugin.toggleInfo()">
-					<div class="icon_wrapper plugin_icon normal" v-html="Blockbench.getIconNode(plugin.icon, plugin.color).outerHTML"></div>
-
-					<i v-if="plugin.expanded" class="material-icons plugin_expand_icon">expand_less</i>
-					<i v-else class="material-icons plugin_expand_icon">expand_more</i>
-					{{ plugin.title }}
-				</div>
-				<div class="button_bar" v-if="plugin.installed || plugin.isInstallable() == true">
-					<button type="button" class="" v-on:click="plugin.uninstall()" v-if="plugin.installed"><i class="material-icons">delete</i><span class="tl">dialog.plugins.uninstall</span></button>
-					<button type="button" class="" v-on:click="plugin.download(true)" v-else><i class="material-icons">add</i><span class="tl">dialog.plugins.install</span></button>
-					<button type="button" v-on:click="plugin.reload()" v-if="plugin.installed && plugin.isReloadable()"><i class="material-icons">refresh</i><span class="tl">dialog.plugins.reload</span></button>
-				</div>
-				<div class="button_bar tiny tl" v-if="plugin.isInstallable() != true">{{ plugin.isInstallable() }}</div>
-
-				<div class="author">{{ tl('dialog.plugins.author', [plugin.author]) }}</div>
-				<div class="description">{{ plugin.description }}</div>
-				<div v-if="plugin.expanded" class="about" v-html="marked(plugin.about)"><button>a</button></div>
-				<div v-if="plugin.expanded" class="tl" v-on:click="plugin.toggleInfo()" style="text-decoration: underline;">dialog.plugins.show_less</div>
-			</li>
-			<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && showAll === false">dialog.plugins.none_installed</div>
-			<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && showAll === true" id="plugin_available_empty">dialog.plugins.none_available</div>
-		</ul>
-
-		<div class="dialog_bar button_bar" hidden>
-			<button type="button" class="cancel_btn confirm_btn uc_btn tl" onclick="hideDialog();">dialog.close</button>
-		</div>
-		<div class="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
-	</dialog>
-
 	<dialog class="dialog draggable paddinged" id="edit_sessions">
 		<div class="dialog_handle tl">dialog.edit_session.title</div>
 
@@ -236,11 +175,10 @@
 			</li> 
 		</ul>
 
+		<p class="tl small_text subtle">dialog.toolbar_edit.hidden_tools</p>
+
 		<div class="bar" style="margin: 4px 0;">
-			<div class="search_bar">
-				<input type="text" class="dark_bordered" id="action_search_bar" oninput="BARS.list.updateSearch()">
-				<i class="material-icons" id="plugin_search_bar_icon">search</i>
-			</div>
+			<search-bar v-model="search_term"></search-bar>
 		</div>
 
 		<ul class="list" id="bar_item_list">
@@ -261,7 +199,7 @@
 		<div class="dialog_handle tl">dialog.entitylist.title</div>
 		<div class="dialog_bar narrow tl">dialog.entitylist.text</div>
 			<div class="search_bar">
-				<input type="text" class="dark_bordered" id="pe_search_bar" oninput="pe_list._data.search_text = $(this).val().toUpperCase()">
+				<input type="text" class="dark_bordered" id="pe_search_bar" oninput="pe_list._data.search_term = $(this).val().toUpperCase()">
 				<i class="material-icons" id="plugin_search_bar_icon">search</i>
 			</div>
 		<ul id="pe_list" class="list">
@@ -570,11 +508,12 @@
 				<a class="open-in-browser" href="https://jquery.com">jQuery</a>,
 				<a class="open-in-browser" href="https://jqueryui.com">jQuery UI</a>,
 				<a class="open-in-browser" href="https://github.com/furf/jquery-ui-touch-punch">jQuery UI Touch Punch</a>,
+				<a class="open-in-browser" href="https://github.com/eligrey/FileSaver.js">FileSaver.js</a>,
 				<a class="open-in-browser" href="https://peerjs.com">PeerJS</a>,
-				<a class="open-in-browser" href="https://github.com/markedjs/marked">Marked</a>
-				<a class="open-in-browser" href="https://prismjs.com">Prism</a>
-				<a class="open-in-browser" href="https://github.com/koca/vue-prism-editor">Vue Prism Editor</a>
-				<a class="open-in-browser" href="https://github.com/JannisX11/molangjs">MolangJS</a>
+				<a class="open-in-browser" href="https://github.com/markedjs/marked">Marked</a>,
+				<a class="open-in-browser" href="https://prismjs.com">Prism</a>,
+				<a class="open-in-browser" href="https://github.com/koca/vue-prism-editor">Vue Prism Editor</a>,
+				<a class="open-in-browser" href="https://github.com/JannisX11/molangjs">MolangJS</a>,
 				<a class="open-in-browser" href="https://github.com/JannisX11/wintersky">Wintersky</a>
 			</p>
 		</div>
@@ -627,7 +566,7 @@
 		<div class="dialog_close_button" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"><i class="material-icons">clear</i></div>
 	</dialog>
 
-	<div id="plugin_dialog_wrapper"></div>
+	<div id="dialog_wrapper"></div>
 
 	<header>
 		<ul id="mac_window_menu" hidden></ul>
@@ -659,21 +598,7 @@
 
 	<div id="page_wrapper" class="hidden">
 
-
-	<dialog id="action_selector" v-if="open">
-		<input type="text" v-model="search_input" autocomplete="off" autosave="off" autocorrect="off" spellcheck="off" autocapitalize="off">
-		<i class="material-icons" id="action_search_bar_icon">search</i>
-		<div>
-			<ul>
-				<li v-for="(item, i) in actions" v-on:click="ActionControl.click(item, $event)" v-bind:class="{selected: i === index}" v-on:mouseenter="index = i">
-					<div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
-					<div class="name">{{ item.name }}</div>
-					<label>{{ item.keybind.label }}</label>
-				</li>
-			</ul>
-			<div class="small_text" v-if="actions[index]">{{ Pressing.alt ? actions[index].keybind.label : actions[index].description }}</div>
-		</div>
-	</dialog>
+	<dialog id="action_selector"></dialog>
 
 	<div id="blackout" onclick="$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()"></div>
 
@@ -759,7 +684,7 @@
 					</div>
 				</div>
 
-				<div id="uv_panel_sides" onclick="main_uv.loadSelectedFace()" class="bar tabs_small">
+				<div id="uv_panel_sides" class="bar tabs_small">
 
 					<input type="radio" name="tab" id="radio_color_picker" value="picker" v-model="open_tab">
 					<label class="tl" for="radio_color_picker">panel.color.picker</label>
@@ -795,6 +720,8 @@
 
 	</div>
 	<div id="center">
+		<ul id="toast_notification_list">
+		</ul>
 		<div id="preview" class="center_window">
 		</div>
 		<div id="timeline" class="center_window">
@@ -804,40 +731,7 @@
 
 		<div id="mobile_panel_overlay" hidden></div>
 	</div>
-	<div id="status_bar" @contextmenu="Interface.status_bar.menu.show(event)">
-
-		<div class="sidebar_toggle_button" onclick="Interface.toggleSidebar('left')" :title="tl('status_bar.toggle_sidebar')">
-			<i class="material-icons">{{Prop.show_left_bar ? 'chevron_left' : 'chevron_right'}}</i>
-		</div>
-		
-		<div class="f_left" v-if="settings.streamer_mode.value"
-			style="background-color: var(--color-stream); color: var(--color-light);"
-			@click="Settings.open({search: 'streamer_mode'})"
-			v-bind:title="tl('interface.streamer_mode_on')"
-		>
-			<i class="material-icons">live_tv</i>
-		</div>
-		<div v-html="Blockbench.getIconNode(Format.icon).outerHTML" v-bind:title="Format.name"></div>
-		<div v-if="Prop.recording" v-html="Blockbench.getIconNode('fiber_manual_record').outerHTML" style="color: var(--color-close)" v-bind:title="tl('status_bar.recording')"></div>
-
-
-		<div id="status_name">
-			{{ Prop.file_name }}
-		</div>
-		<div id="status_message" class="hidden"></div>
-		<div class="f_right">
-			{{ Prop.fps }} FPS
-		</div>
-		<div class="f_right" v-if="Prop.session">
-			{{ Prop.connections }} Clients
-		</div>
-
-		<div class="sidebar_toggle_button" onclick="Interface.toggleSidebar('right')" :title="tl('status_bar.toggle_sidebar')">
-			<i class="material-icons">{{Prop.show_right_bar ? 'chevron_right' : 'chevron_left'}}</i>
-		</div>
-
-		<div id="status_progress" v-if="Prop.progress" v-bind:style="{width: Prop.progress*100+'%'}"></div>
-	</div>
+	<div id="status_bar"></div>
 
 	<div id="panel_selector_bar" hidden>
 		<div class="panel_selector" :class="{selected: selected == null}" @click="select(null)">

@@ -304,9 +304,9 @@ const Canvas = {
 			outlines.add(line)
 		})
 	},
-	updateAllBones() {
+	updateAllBones(bones = Group.all) {
 
-		Group.all.forEach((obj) => {
+		bones.forEach((obj) => {
 			let bone = obj.mesh
 			if (bone) {
 
@@ -331,7 +331,13 @@ const Canvas = {
 				bone.fix_rotation = bone.rotation.clone()
 			}
 		})
-		scene.updateMatrixWorld();
+		if (bones == Group.all) {
+			scene.updateMatrixWorld();
+		} else {
+			bones.forEach(bone => {
+				bone.mesh.updateMatrixWorld();
+			})
+		}
 	},
 	updateOrigin() {
 		if (rot_origin.parent) {
@@ -420,6 +426,7 @@ const Canvas = {
 		mesh.position.set(cube.origin[0], cube.origin[1], cube.origin[2])
 		//mesh.geometry.translate(-cube.origin[0], -cube.origin[1], -cube.origin[2])
 		mesh.rotation.set(0, 0, 0)
+		mesh.geometry.computeBoundingBox()
 		mesh.geometry.computeBoundingSphere()
 
 		if (Format.rotate_cubes) {
@@ -466,10 +473,10 @@ const Canvas = {
 		geometry.all_faces.forEach(face => {
 			let bb_face = cube.faces[Canvas.face_order[face.materialIndex]];
 
-			if (bb_face && bb_face.texture == null && geometry.faces.includes(face)) {
+			if (bb_face && bb_face.texture === null && geometry.faces.includes(face)) {
 				geometry.faces.remove(face);
 			} else
-			if (bb_face && bb_face.texture != null && !geometry.faces.includes(face)) {
+			if (bb_face && bb_face.texture !== null && !geometry.faces.includes(face)) {
 				geometry.faces.push(face);
 			}
 		})

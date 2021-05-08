@@ -123,7 +123,7 @@ const Timeline = {
 					if (kf.time > min_time &&
 						kf.time < max_time &&
 						channels[kf.channel] != false &&
-						(!Timeline.vue.graph_editor_open || kf.channel == Timeline.vue.graph_editor_channel) &&
+						(!Timeline.vue.graph_editor_open || (kf.channel == Timeline.vue.graph_editor_channel && animator.selected)) &&
 						(!channels.hide_empty || animator[kf.channel].length)
 					) {
 						if (!Timeline.vue.graph_editor_open) {
@@ -224,7 +224,28 @@ const Timeline = {
 		return 1/Math.clamp(Animation.selected ? Animation.selected.snapping : settings.animation_snap.value, 1, 120);
 	},
 	setup() {
-		$('#timeline_body').mousedown(Timeline.selector.down)
+		$('#timeline_body').on('mousedown', e => {
+			if (e.which === 2) {
+				let pos = [e.clientX, e.clientY];
+				let timeline = e.currentTarget;
+				function move(e2) {
+					timeline.scrollLeft += pos[0] - e2.clientX;
+					if (!Timeline.vue.graph_editor_open) {
+						timeline.scrollTop += pos[1] - e2.clientY;
+					}
+					pos = [e2.clientX, e2.clientY];
+				}
+				function stop(e2) {
+					document.removeEventListener('mousemove', move);
+					document.removeEventListener('mouseup', stop);
+				}
+				document.addEventListener('mousemove', move);
+				document.addEventListener('mouseup', stop);
+				e.preventDefault();
+			} else {
+				Timeline.selector.down(e);
+			}
+		})
 
 		$('#timeline_time').on('mousedown touchstart', e => {
 			if (e.which !== 1 && !event.changedTouches) return;
@@ -245,7 +266,8 @@ const Timeline = {
 				Timeline.dragging_playhead = true;
 				
 				let offset = e.clientX - $('#timeline_time').offset().left;
-				let time = Timeline.snapTime(offset / Timeline.vue._data.size);
+				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
+				if (!e.ctrlKey) time = Timeline.snapTime(time);
 				Timeline.setTime(time);
 				Animator.preview();
 			}
@@ -255,7 +277,8 @@ const Timeline = {
 
 				convertTouchEvent(e);
 				let offset = e.clientX - $('#timeline_time').offset().left;
-				let time = Timeline.snapTime(offset / Timeline.vue._data.size)
+				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
+				if (!e.ctrlKey) time = Timeline.snapTime(time);
 				if (Timeline.time != time) {
 					Timeline.setTime(time)
 					Animator.preview()
@@ -280,18 +303,6 @@ const Timeline = {
 
 				Undo.finishEdit('Change Animation Length')
 				delete Timeline.dragging_endbracket
-			}
-		})
-		//Keyframe inputs
-		
-		document.addEventListener('focus', event => {
-			if (event.target && event.target.parentElement && event.target.parentElement.classList.contains('keyframe_input')) {
-				Undo.initEdit({keyframes: Timeline.selected.slice()})
-			}
-		}, true)
-		document.addEventListener('focusout', event => {
-			if (event.target && event.target.parentElement && event.target.parentElement.classList.contains('keyframe_input')) {
-				Undo.finishEdit('edit keyframe')
 			}
 		})
 		
@@ -381,7 +392,8 @@ const Timeline = {
 		Timeline.setTime(0)
 	},
 	getMaxLength() {
-		var max_length = ($('#timeline_vue').width()-8) / Timeline.vue._data.size;
+		let width = (document.getElementById('timeline_vue')||0).clientWidth;
+		var max_length = (width-8) / Timeline.vue._data.size;
 		if (Animation.selected) max_length = Math.max(max_length, Animation.selected.length)
 		Timeline.keyframes.forEach((kf) => {
 			max_length = Math.max(max_length, kf.time)
@@ -446,14 +458,22 @@ const Timeline = {
 		})
 		TickUpdates.keyframe_selection = true;
 	},
+	clear() {
+		Timeline.animators.purge();
+		Timeline.selected.empty();
+		Timeline.vue._data.markers = [];
+		Timeline.vue._data.animation_length = 0;
+		updateKeyframeSelection();
+	},
 	start() {
 		if (!Animation.selected) return;
 		Animation.selected.getMaxLength()
-		Timeline.pause()
+		if (Timeline.playing) {
+			Timeline.pause()
+		}
 		Timeline.playing = true
 		BarItems.play_animation.setIcon('pause')
 		Timeline.last_frame_timecode = Date.now();
-		Timeline.interval = setInterval(Timeline.loop, 100/6)
 		if (Animation.selected.loop == 'hold' && Timeline.time >= (Animation.selected.length||1e3)) {
 			Timeline.setTime(0)
 		}
@@ -467,7 +487,7 @@ const Timeline = {
 		Timeline.loop()
 	},
 	loop() {
-		Animator.preview()
+		Animator.preview(true);
 		if (Animation.selected && Timeline.time < (Animation.selected.length||1e3)) {
 
 			var new_time;
@@ -477,7 +497,11 @@ const Timeline = {
 			if (new_time == undefined || new_time <= Timeline.time) {
 				var new_time = Animator.MolangParser.parse('query.anim_time + query.delta_time')
 			}
-			Timeline.setTime(Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100));
+			let time = Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100)
+			if (Animation.selected.loop == 'hold') {
+				time = Math.clamp(time, 0, Animation.selected.length);
+			}
+			Timeline.setTime(time);
 			Timeline.last_frame_timecode = Date.now();
 
 		} else {
@@ -555,7 +579,7 @@ const Timeline = {
 			Timeline.animators.forEach(animator => {
 				keyframes.push(...animator.keyframes)
 			})
-		} else if (Timeline.vue.graph_editor_animator) {
+		} else if (Timeline.vue.graph_editor_animator && Timeline.vue.graph_editor_animator[Timeline.vue.graph_editor_channel]) {
 			keyframes.push(...Timeline.vue.graph_editor_animator[Timeline.vue.graph_editor_channel])
 		}
 		return keyframes;
@@ -583,7 +607,7 @@ onVueSetup(function() {
 			animation_length: 0,
 			scroll_left: 0,
 			scroll_top: 0,
-			head_width: 196,
+			head_width: Blockbench.isMobile ? 140 : 196,
 			timecodes: [],
 			animators: Timeline.animators,
 			markers: [],
@@ -673,6 +697,14 @@ onVueSetup(function() {
 			removeAnimator(animator) {
 				Timeline.animators.remove(animator);
 			},
+			selectChannel(animator, channel) {
+				if (this.graph_editor_channel == channel && animator.selected) return;
+				animator.select();
+				if (animator[channel].length == 1 && Math.epsilon(animator[channel][0].time, Timeline.time, 0.002)) {
+					animator[channel][0].select();
+				}
+				this.graph_editor_channel = channel;
+			},
 			getColor(index) {
 				if (index == -1 || index == undefined) return;
 				return markerColors[index].standard;
@@ -692,52 +724,62 @@ onVueSetup(function() {
 			},
 			dragKeyframes(clicked, e1) {
 				convertTouchEvent(e1);
-
-				let dragging_range = [Infinity, 0];
+				let dragging_range;
 				let dragging_restriction;
 				let originalValue;
-				let previousValue = 0;
-				let time_stretching = !Timeline.vue.graph_editor_open && e1.ctrlKey && Timeline.selected.length > 1;
+				let previousValue;
+				let time_stretching;
+				let values_changed;
+				let is_setup = false;
 
-				if (!clicked.selected && !e1.shiftKey && Timeline.selected.length != 0) {
-					clicked.select()
-				} else if (clicked && !clicked.selected) {
-					clicked.select({shiftKey: true})
-				}
+				function setup() {
+					dragging_range = [Infinity, 0];
+					dragging_restriction;
+					originalValue;
+					previousValue = 0;
+					time_stretching = !Timeline.vue.graph_editor_open && e1.ctrlKey && Timeline.selected.length > 1;
+					values_changed = false;
 
-				Undo.initEdit({keyframes: Timeline.selected});
-				Timeline.dragging_keyframes = true;
-
-				for (var kf of Timeline.selected) {
-					kf.time_before = kf.time;
-					dragging_range[0] = Math.min(dragging_range[0], kf.time);
-					dragging_range[1] = Math.max(dragging_range[1], kf.time);
-				}
-
-				if (Timeline.vue.graph_editor_open) {
-					// Find dragging restriction
-					dragging_restriction = [-Infinity, Infinity];
-					let ba = this.graph_editor_animator || 0;
-					let all_keyframes = ba[this.graph_editor_channel];
-					if (all_keyframes) {
-
-						let frst_keyframe;
-						let last_keyframe;
-						Timeline.selected.forEach(kf => {
-							if (!frst_keyframe || frst_keyframe.time > kf.time) frst_keyframe = kf;
-							if (!last_keyframe || last_keyframe.time < kf.time) last_keyframe = kf;
-						})
-						let prvs_keyframe;
-						let next_keyframe;
-						all_keyframes.forEach(kf => {
-							if (kf.time < frst_keyframe.time && (!prvs_keyframe || prvs_keyframe.time < kf.time)) prvs_keyframe = kf;
-							if (kf.time > last_keyframe.time && (!next_keyframe || next_keyframe.time > kf.time)) next_keyframe = kf;
-						})
-						if (prvs_keyframe) dragging_restriction[0] = prvs_keyframe.time;
-						if (next_keyframe) dragging_restriction[1] = next_keyframe.time;
+					if (!clicked.selected && !e1.shiftKey && Timeline.selected.length != 0) {
+						clicked.select()
+					} else if (clicked && !clicked.selected) {
+						clicked.select({shiftKey: true})
 					}
-				}
 
+					Undo.initEdit({keyframes: Timeline.selected});
+					Timeline.dragging_keyframes = true;
+
+					for (var kf of Timeline.selected) {
+						kf.time_before = kf.time;
+						dragging_range[0] = Math.min(dragging_range[0], kf.time);
+						dragging_range[1] = Math.max(dragging_range[1], kf.time);
+					}
+
+					if (Timeline.vue.graph_editor_open) {
+						// Find dragging restriction
+						dragging_restriction = [-Infinity, Infinity];
+						let ba = this.graph_editor_animator || 0;
+						let all_keyframes = ba[this.graph_editor_channel];
+						if (all_keyframes) {
+
+							let frst_keyframe;
+							let last_keyframe;
+							Timeline.selected.forEach(kf => {
+								if (!frst_keyframe || frst_keyframe.time > kf.time) frst_keyframe = kf;
+								if (!last_keyframe || last_keyframe.time < kf.time) last_keyframe = kf;
+							})
+							let prvs_keyframe;
+							let next_keyframe;
+							all_keyframes.forEach(kf => {
+								if (kf.time < frst_keyframe.time && (!prvs_keyframe || prvs_keyframe.time < kf.time)) prvs_keyframe = kf;
+								if (kf.time > last_keyframe.time && (!next_keyframe || next_keyframe.time > kf.time)) next_keyframe = kf;
+							})
+							if (prvs_keyframe) dragging_restriction[0] = prvs_keyframe.time;
+							if (next_keyframe) dragging_restriction[1] = next_keyframe.time;
+						}
+					}
+					is_setup = true;
+				}
 
 				function slide(e2) {
 					convertTouchEvent(e2);
@@ -745,6 +787,13 @@ onVueSetup(function() {
 						e2.clientX - e1.clientX,
 						e2.clientY - e1.clientY,
 					]
+					if (!is_setup) {
+						if (Math.pow(offset[0], 2) + Math.pow(offset[1], 2) > 40) {
+							setup();
+						} else {
+							return;
+						}
+					}
 					
 					// Time
 					var difference = Math.clamp(offset[0] / Timeline.vue._data.size, -256, 256);
@@ -768,8 +817,8 @@ onVueSetup(function() {
 							var round_num = canvasGridSize(e2.shiftKey, e2.ctrlOrCmd)
 						}
 						value = Math.round(value/round_num)*round_num
-						previousValue = previousValue ?? value;
-						originalValue = originalValue ?? value;
+						previousValue = previousValue == undefined ? value : previousValue;
+						originalValue = originalValue == undefined ? value : originalValue;
 
 						if (value !== previousValue) {
 							value_diff = value - (previousValue||0);
@@ -787,15 +836,20 @@ onVueSetup(function() {
 						} else {
 							var t = kf.time_before + difference;
 						}
+						let old_time = kf.time;
 						if (dragging_restriction) {
 							let step = Timeline.getStep();
-							kf.time = Timeline.snapTime(Math.clamp(t, dragging_restriction[0] + step, dragging_restriction[1] - step))
+							kf.time = Timeline.snapTime(Math.clamp(t, dragging_restriction[0] + step, dragging_restriction[1] - step));
 						} else {
 							kf.time = Timeline.snapTime(t);
 						}
+						if (old_time == kf.time) {
+							values_changed = true;
+						}
 
-						if (Timeline.vue.graph_editor_open) {
+						if (Timeline.vue.graph_editor_open && value_diff) {
 							kf.offset(Timeline.vue.graph_editor_axis, value_diff);
+							values_changed = true;
 						}
 					}
 					if (time_stretching) {
@@ -803,7 +857,7 @@ onVueSetup(function() {
 					} else {
 						let text = trimFloatNumber(Math.round(difference * Animation.selected.snapping));
 						if (Timeline.vue.graph_editor_open) {
-							text += `s ⨉ ${trimFloatNumber(value - originalValue)}`
+							text += ` ⨉ ${trimFloatNumber(value - originalValue)}`
 						}
 						Blockbench.setStatusBarText(text);
 					}
@@ -815,17 +869,23 @@ onVueSetup(function() {
 					removeEventListeners(document, 'mousemove touchmove', slide);
 					removeEventListeners(document, 'mouseup touchend', off);
 
-					var deleted = []
-					for (var kf of Timeline.selected) {
-						delete kf.time_before;
-						kf.replaceOthers(deleted);
+					if (is_setup) {
+						var deleted = []
+						for (var kf of Timeline.selected) {
+							delete kf.time_before;
+							kf.replaceOthers(deleted);
+						}
+						Blockbench.setStatusBarText();
+						if (values_changed) {
+							Undo.addKeyframeCasualties(deleted);
+							Undo.finishEdit('drag keyframes');
+						} else {
+							Undo.cancelEdit();
+						}
+						setTimeout(() => {
+							Timeline.dragging_keyframes = false;
+						}, 20);
 					}
-					Blockbench.setStatusBarText();
-					Undo.addKeyframeCasualties(deleted);
-					Undo.finishEdit('drag keyframes')
-					setTimeout(() => {
-						Timeline.dragging_keyframes = false;
-					}, 20)
 				}
 				addEventListeners(document, 'mousemove touchmove', slide);
 				addEventListeners(document, 'mouseup touchend', off);
@@ -901,7 +961,7 @@ onVueSetup(function() {
 								<div class="channel_head"
 									:class="{selected: graph_editor_open && animator.selected && graph_editor_channel == channel}"
 									v-bind:style="{left: scroll_left+'px', width: head_width+'px'}"
-									@click.stop="animator.select(); graph_editor_channel = channel;"
+									@click.stop="selectChannel(animator, channel);"
 								>
 									<div class="text_button" v-on:click.stop="animator.toggleMuted(channel)">
 										<template v-if="channel === 'sound'">
@@ -949,21 +1009,23 @@ onVueSetup(function() {
 								<path :d="one_line" style="stroke: var(--color-grid); stroke-dasharray: 6;" v-if="graph_editor_channel == 'scale'"></path>
 								<path :d="graph" :style="{stroke: 'var(--color-axis-' + graph_editor_axis + ')'}"></path>
 							</svg>
-							<keyframe
-								v-for="keyframe in graph_editor_animator[graph_editor_channel]"
-								v-bind:style="{left: (10 + keyframe.time * size) + 'px', top: (graph_offset - keyframe.display_value * graph_size - 8) + 'px', color: getColor(keyframe.color)}"
-								class="keyframe graph_keyframe"
-								v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
-								v-bind:id="keyframe.uuid"
-								v-on:click.stop="keyframe.select($event)"
-								v-on:dblclick="keyframe.callPlayhead()"
-								:title="tl('timeline.'+keyframe.channel)"
-								@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
-								@contextmenu.prevent="keyframe.showContextMenu($event)"
-							>
-								<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
-								<i class="material-icons" v-else>stop</i>
-							</keyframe>
+							<template v-if="graph_editor_animator">
+								<keyframe
+									v-for="keyframe in graph_editor_animator[graph_editor_channel]"
+									v-bind:style="{left: (10 + keyframe.time * size) + 'px', top: (graph_offset - keyframe.display_value * graph_size - 8) + 'px', color: getColor(keyframe.color)}"
+									class="keyframe graph_keyframe"
+									v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
+									v-bind:id="keyframe.uuid"
+									v-on:click.stop="keyframe.select($event)"
+									v-on:dblclick="keyframe.callPlayhead()"
+									:title="trimFloatNumber(keyframe.time) + ' ⨉ ' + keyframe.display_value"
+									@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
+									@contextmenu.prevent="keyframe.showContextMenu($event)"
+								>
+									<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
+									<i class="material-icons" v-else>stop</i>
+								</keyframe>
+							</template>
 						</div>
 					</div>
 				</div>
@@ -1159,7 +1221,7 @@ BARS.defineActions(function() {
 		icon: 'flag',
 		category: 'animation',
 		condition: {modes: ['animate']},
-		keybind: new Keybind({ctrl: true, key: 77}),
+		keybind: new Keybind({ctrl: true, key: 'm'}),
 		click: function (event) {
 			if (!Animation.selected) {
 				Blockbench.showQuickMessage('message.no_animation_selected')

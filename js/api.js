@@ -3,6 +3,10 @@ const LastVersion = localStorage.getItem('last_version') || localStorage.getItem
 const Blockbench = {
 	isWeb: !isApp,
 	isMobile: !isApp && window.innerWidth <= 640,
+	isTouch: 'ontouchend' in document,
+	get isPWA() {
+		return navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+	},
 	version: appVersion,
 	platform: 'web',
 	flags: [],
@@ -18,7 +22,7 @@ const Blockbench = {
 		return Cube.selected
 	},
 	get textures() {
-		console.warn('Blockbench.textures is deprecated. Please just use textures instead.')
+		console.warn('Blockbench.textures is deprecated. Please use Texture.all instead.')
 		return textures;
 	},
 	edit(aspects, cb) {
@@ -115,17 +119,63 @@ const Blockbench = {
 			}, 1)
 		}, time ? time : 1000)
 	},
-	showCenterTip(message, time) {
-		$('#center_tip').remove()
-		var center_tip = $(`<div id="center_tip"><i class="material-icons">info</i>${tl(message)}</div>`) 
-		$('#preview').append(center_tip)
-		
-		setTimeout(function() {
-			center_tip.fadeOut(0)
-			setTimeout(function() {
-				center_tip.remove()
-			}, 1)
-		}, time ? time : 7500)
+	/**
+	 * 
+	 * @param {object} options Options
+	 * @param {string} options.text Text Message
+	 * @param {string} [options.icon] Blockbench icon string
+	 * @param {number} [options.expire] Expire time in miliseconds
+	 * @param {string} [options.color] Background color, accepts any CSS color string
+	 * @param {function click(event)} [options.click] Method to run on click. Return `true` to close toast
+	 * 
+	 */
+	showToastNotification(options) {
+		let notification = document.createElement('li');
+		notification.className = 'toast_notification';
+		if (options.icon) {
+			let icon = Blockbench.getIconNode(options.icon);
+			notification.append(icon);
+		}
+		let text = document.createElement('span');
+		text.innerText = tl(options.text);
+		notification.append(text);
+
+		let close_button = document.createElement('div');
+		close_button.innerHTML = '<i class="material-icons">clear</i>';
+		close_button.className = 'toast_close_button';
+		close_button.addEventListener('click', (event) => {
+			notification.remove();
+		})
+		notification.append(close_button);
+
+		if (options.color) {
+			notification.style.backgroundColor = options.color;
+		}
+		if (typeof options.click == 'function') {
+			notification.addEventListener('click', (event) => {
+				if (event.target == close_button || event.target.parentElement == close_button) return;
+				let result = options.click(event);
+				if (result == true) {
+					notification.remove();
+				}
+			})
+			notification.style.cursor = 'pointer';
+		}
+
+		if (options.expire) {
+			setTimeout(() => {
+				notification.remove();
+			}, options.expire);
+		}
+
+		document.getElementById('toast_notification_list').append(notification);
+
+		function deletableToast(node) {
+			this.delete = function() {
+				node.remove();
+			}
+		}
+		return new deletableToast(notification);
 	},
 	showStatusMessage(message, time) {
 		Blockbench.setStatusBarText(tl(message))
@@ -161,7 +211,7 @@ const Blockbench = {
 			if (!options.message) options.message = tl('message.'+options.translateKey+'.message')
 		}
 
-		var jq_dialog = $('<dialog class="dialog paddinged" style="width: auto;" id="message_box"><div class="dialog_handle">'+options.title+'</div></dialog>')
+		var jq_dialog = $('<dialog class="dialog paddinged" style="width: auto;" id="message_box"><div class="dialog_handle">'+tl(options.title)+'</div></dialog>')
 
 		jq_dialog.append('<div class="dialog_bar" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
 			marked(tl(options.message))+'</div>'
@@ -201,16 +251,16 @@ const Blockbench = {
 			handle: ".dialog_handle",
 			containment: '#page_wrapper'
 		})
-		var x = ($(window).width()-540)/2
+		var x = (window.innerWidth-540)/2
 		jq_dialog.css('left', x+'px')
 		jq_dialog.css('position', 'absolute')
 
-		$('#plugin_dialog_wrapper').append(jq_dialog)
+		$('#dialog_wrapper').append(jq_dialog)
 		$('.dialog').hide()
 		$('#blackout').show()
 		jq_dialog.show()
 
-		jq_dialog.css('top', limitNumber($(window).height()/2-jq_dialog.height()/2 - 140, 0, 2000)+'px')
+		jq_dialog.css('top', limitNumber(window.innerHeight/2-jq_dialog.height()/2 - 140, 0, 2000)+'px')
 		if (options.width) {
 			jq_dialog.css('width', options.width+'px')
 		} else {
@@ -233,11 +283,14 @@ const Blockbench = {
 		})
 	},
 	addMenuEntry(name, icon, click) {
-		var action = new Action(name, {icon: icon, name: name, click: click})
+		console.warn('Blockbench.addMenuEntry is deprecated. Please use Actions instead.')
+		let id = name.replace(/\s/g, '').toLowerCase();
+		var action = new Action(id, {icon: icon, name: name, click: click})
 		MenuBar.addAction(action, 'filter')
 	},
 	removeMenuEntry(name) {
-		MenuBar.removeAction('filter.'+name)
+		let id = name.replace(/\s/g, '').toLowerCase();
+		MenuBar.removeAction('filter.'+id);
 	},
 	openLink(link) {
 		if (isApp) {

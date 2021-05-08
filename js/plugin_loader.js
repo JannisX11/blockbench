@@ -6,10 +6,6 @@ const Plugins = {
 	json: undefined,	//Json from website
 	all: [],			//Vue Object Data
 	registered: {},
-	updateSearch() {
-		Plugins.Vue._data.showAll = !Plugins.Vue._data.showAll
-		Plugins.Vue._data.showAll = !Plugins.Vue._data.showAll
-	},
 	devReload() {
 		var reloads = 0;
 		for (var i = Plugins.all.length-1; i >= 0; i--) {
@@ -72,19 +68,21 @@ class Plugin {
 		var scope = this;
 		Plugins.registered[this.id] = this;
 		return await new Promise((resolve, reject) => {
-			$.getScript(Plugins.path + scope.id + '.js', function() {
+			$.getScript(Plugins.path + scope.id + '.js', () => {
 				if (cb) cb.bind(scope)()
 				scope.bindGlobalData(first)
 				if (first && scope.oninstall) {
 					scope.oninstall()
 				}
+				if (first) Blockbench.showQuickMessage(tl('message.installed_plugin', [this.title]));
 				resolve()
-			}).fail(function() {
+			}).fail(() => {
 				if (isApp) {
 					console.log('Could not find file of plugin "'+scope.id+'". Uninstalling it instead.')
 					scope.uninstall()
-					reject()
 				}
+				if (first) Blockbench.showQuickMessage(tl('message.installed_plugin_fail', [this.title]));
+				reject()
 			})
 			this.remember()
 			scope.installed = true;
@@ -97,6 +95,9 @@ class Plugin {
 		}
 		if (onUninstall) {
 			scope.onuninstall = onUninstall
+		}
+		if (window.plugin_data) {
+			console.warn(`plugin_data is deprecated. Please use Plugin.register instead. (${plugin_data.id || 'unknown plugin'})`)
 		}
 		window.onInstall = window.onUninstall = window.plugin_data = undefined
 		return this;
@@ -118,7 +119,6 @@ class Plugin {
 				})
 			});
 		});
-		return this;
 	}
 	async loadFromFile(file, first) {
 		var scope = this;
@@ -317,6 +317,9 @@ class Plugin {
 		return this.expanded ? 'expand_less' : 'expand_more'
 	}
 }
+// Alias for typescript
+const BBPlugin = Plugin;
+
 Plugin.register = function(id, data) {
 	if (typeof id !== 'string' || typeof data !== 'object') {
 		console.warn('Plugin.register: not enough arguments, string and object required.')
@@ -332,7 +335,6 @@ Plugin.register = function(id, data) {
 		}
 	}
 	if (!plugin) {
-		console.log(id, )
 		Blockbench.showMessageBox({
 			translateKey: 'load_plugin_failed',
 			message: tl('message.load_plugin_failed.message', [id])
@@ -454,57 +456,96 @@ async function loadInstalledPlugins() {
 	}
 	StateMemory.save('installed_plugins')
 	
-	Plugins.Vue = new Vue({
-		el: '#plugin_list',
-		data: {
-			showAll: false,
-			items: Plugins.all
-		},
-		computed: {
-			plugin_search() {
-				var name = $('#plugin_search_bar').val().toUpperCase()
-				return this.items.filter(item => {
-					if (this.showAll !== item.installed) {
-						if (name.length > 0) {
-							return (
-								item.id.toUpperCase().includes(name) ||
-								item.title.toUpperCase().includes(name) ||
-								item.description.toUpperCase().includes(name) ||
-								item.author.toUpperCase().includes(name)
-							)
-						}
-						return true;
-					}
-					return false;
-				})
-			}
-		}
-	})
 
 	install_promises.forEach(promise => {
 		promise.catch(console.error);
 	})
 	return await Promise.allSettled(install_promises);
 }
-function switchPluginTabs(installed) {
-	$('#plugins .tab_bar > .open').removeClass('open')
-	if (installed) {
-		$('#installed_plugins').addClass('open')
-		Plugins.Vue._data.showAll = false
-	} else {
-		$('#all_plugins').addClass('open')
-		Plugins.Vue._data.showAll = true
-	}
-}
 
 BARS.defineActions(function() {
+
+	Plugins.dialog = new Dialog({
+		id: 'plugins',
+		title: 'dialog.plugins.title',
+		component: {
+			data: {
+				tab: 'installed',
+				search_term: '',
+				items: Plugins.all
+			},
+			computed: {
+				plugin_search() {
+					var name = this.search_term.toUpperCase()
+					return this.items.filter(item => {
+						if ((this.tab == 'installed') == item.installed) {
+							if (name.length > 0) {
+								return (
+									item.id.toUpperCase().includes(name) ||
+									item.title.toUpperCase().includes(name) ||
+									item.description.toUpperCase().includes(name) ||
+									item.author.toUpperCase().includes(name)
+								)
+							}
+							return true;
+						}
+						return false;
+					})
+				}
+			},
+			template: `
+				<div style="margin-top: 10px;">
+					<div class="bar">
+						<div class="tab_bar">
+							<div :class="{open: tab == 'installed'}" @click="tab = 'installed'">${tl('dialog.plugins.installed')}</div>
+							<div :class="{open: tab == 'available'}" @click="tab = 'available'">${tl('dialog.plugins.available')}</div>
+						</div>
+						<search-bar id="plugin_search_bar" v-model="search_term"></search-bar>
+					</div>
+					<ul class="list" id="plugin_list">
+						<li v-for="plugin in plugin_search" v-bind:plugin="plugin.id" v-bind:class="{testing: plugin.fromFile, expanded: plugin.expanded}">
+							<div class="title" v-on:click="plugin.toggleInfo()">
+								<div class="icon_wrapper plugin_icon normal" v-html="Blockbench.getIconNode(plugin.icon, plugin.color).outerHTML"></div>
+
+								<i v-if="plugin.expanded" class="material-icons plugin_expand_icon">expand_less</i>
+								<i v-else class="material-icons plugin_expand_icon">expand_more</i>
+								{{ plugin.title }}
+							</div>
+							<div class="button_bar" v-if="plugin.installed || plugin.isInstallable() == true">
+								<button type="button" class="" v-on:click="plugin.uninstall()" v-if="plugin.installed"><i class="material-icons">delete</i><span class="tl">${tl('dialog.plugins.uninstall')}</span></button>
+								<button type="button" class="" v-on:click="plugin.download(true)" v-else><i class="material-icons">add</i><span class="tl">${tl('dialog.plugins.install')}</span></button>
+								<button type="button" v-on:click="plugin.reload()" v-if="plugin.installed && plugin.isReloadable()"><i class="material-icons">refresh</i><span class="tl">${tl('dialog.plugins.reload')}</span></button>
+							</div>
+							<div class="button_bar tiny" v-if="plugin.isInstallable() != true">{{ plugin.isInstallable() }}</div>
+
+							<div class="author">{{ tl('dialog.plugins.author', [plugin.author]) }}</div>
+							<div class="description">{{ plugin.description }}</div>
+							<div v-if="plugin.expanded" class="about" v-html="marked(plugin.about)"><button>a</button></div>
+							<div v-if="plugin.expanded" v-on:click="plugin.toggleInfo()" style="text-decoration: underline;">${tl('dialog.plugins.show_less')}</div>
+						</li>
+						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>
+						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'" id="plugin_available_empty">${tl('dialog.plugins.none_available')}</div>
+					</ul>
+				</div>
+			`
+		}
+	})
+
 	new Action('plugins_window', {
 		icon: 'extension',
 		category: 'blockbench',
 		click: function () {
-			showDialog('plugins');
-			$('#plugin_list').css('max-height', limitNumber($(window).height()-300, 80, 600)+'px');
-			$('dialog#plugins #plugin_search_bar').trigger('focus')
+			Plugins.dialog.show();
+			let none_installed = !Plugins.all.find(plugin => plugin.installed);
+			if (none_installed) Plugins.dialog.content_vue.tab = 'available';
+			if (!Plugins.dialog.button_bar) {
+				Plugins.dialog.button_bar = $(`<div class="bar next_to_title" id="plugins_header_bar"></div>`)[0];
+				Plugins.dialog.object.firstElementChild.after(Plugins.dialog.button_bar);
+				BarItems.load_plugin.toElement('#plugins_header_bar');
+				BarItems.load_plugin_from_url.toElement('#plugins_header_bar');
+			}
+			$('#plugin_list').css('max-height', limitNumber(window.innerHeight-300, 80, 600)+'px');
+			$('dialog#plugins #plugin_search_bar input').trigger('focus')
 		}
 	})
 	new Action('reload_plugins', {

@@ -2,7 +2,7 @@ const EditSession = {
 	active: false,
 	hosting: false,
 	BBKey: '1h3sq3hoj6vfkh',
-	ip: '104.248.38.177',
+	ip: 'blckbn.ch',
 	clients: {},
 	placeholder_names: ['R2D2', 'Tin Man', 'C3PO', 'WALL-E', 'EVE', 'BB-8', 'B1 Battle Droid', 'ASIMO', 'Atlas'],
 	start() {
@@ -13,7 +13,7 @@ const EditSession = {
 			host: EditSession.ip,
 			port: 9000,
 			path: '/sessions',
-			secure: false
+			secure: true
 		});
 		EditSession.username = $('#edit_session_username').val() || EditSession.placeholder_names.random();
 		settings.username.value = EditSession.username;
@@ -74,7 +74,7 @@ const EditSession = {
 			host: EditSession.ip,
 			port: 9000,
 			path: '/sessions',
-			secure: false
+			secure: true
 		});
 		EditSession.peer.on('open', function() {
 

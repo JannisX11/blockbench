@@ -124,17 +124,12 @@
 	@font-face {
 		font-family: 'montserrat';
 		font-style: normal;
-		src: local('Material Icons'),
-			local('Montserrat'),
+		src: local('Montserrat'),
 			url(../font/Montserrat-Regular.ttf) format('truetype');
 	}
 	@font-face {
 		font-family: 'icomoon';
-		src:  url('../font/icomoon.eot?t564px');
-		src:  url('../font/icomoon.eot?t564px#iefix') format('embedded-opentype'),
-			url('../font/icomoon.ttf?t564px') format('truetype'),
-			url('../font/icomoon.woff?t564px') format('woff'),
-			url('../font/icomoon.svg?t564px#icomoon') format('svg');
+		src: url('../font/icomoon.woff?t564px') format('woff');
 		font-weight: normal;
 		font-style: normal;
 	}

@@ -728,16 +728,11 @@ class Texture {
 			id: 'resize_texture',
 			title: 'menu.texture.resize',
 			form: {
-				width: {
-					label: 'dialog.project.width',
-					type: 'number',
-					value: this.width,
-					min: 1
-				},
-				height: {
-					label: 'dialog.project.height',
-					type: 'number',
-					value: this.height,
+				size: {
+					label: 'dialog.project.texture_size',
+					type: 'vector',
+					dimensions: 2,
+					value: [this.width, this.height],
 					min: 1
 				},
 				fill: {label: 'dialog.resize_texture.fill', type: 'select', default: 'transparent', options: {
@@ -746,15 +741,6 @@ class Texture {
 					repeat: 'dialog.resize_texture.fill.repeat',
 					stretch: 'dialog.resize_texture.fill.stretch'
 				}}
-				/*
-				width
-				height
-				fill
-					transparent
-					color
-					repeat
-					stretch
-				*/
 			},
 			onConfirm: function(formResult) {
 
@@ -764,9 +750,9 @@ class Texture {
 				scope.edit((canvas) => {
 
 					let new_canvas = document.createElement('canvas')
-						new_canvas.width = formResult.width;
-						new_canvas.height = formResult.height;
-					let new_ctx = new_canvas.getContext('2d')
+						new_canvas.width = formResult.size[0];
+						new_canvas.height = formResult.size[1];
+					let new_ctx = new_canvas.getContext('2d');
 						new_ctx.imageSmoothingEnabled = false;
 
 					switch (formResult.fill) {
@@ -775,19 +761,19 @@ class Texture {
 							break;
 						case 'color':
 							new_ctx.fillStyle = ColorPanel.get();
-							new_ctx.fillRect(0, 0, formResult.width, formResult.height)
+							new_ctx.fillRect(0, 0, formResult.size[0], formResult.size[1])
 							new_ctx.clearRect(0, 0, scope.width, scope.height)
 							new_ctx.drawImage(canvas, 0, 0, scope.width, scope.height);
 							break;
 						case 'repeat':
-							for (var x = 0; x < formResult.width; x += scope.width) {		
-								for (var y = 0; y < formResult.height; y += scope.height) {
+							for (var x = 0; x < formResult.size[0]; x += scope.width) {		
+								for (var y = 0; y < formResult.size[1]; y += scope.height) {
 									new_ctx.drawImage(canvas, x, y, scope.width, scope.height);
 								}
 							}
 							break;
 						case 'stretch':
-							new_ctx.drawImage(canvas, 0, 0, formResult.width, formResult.height);
+							new_ctx.drawImage(canvas, 0, 0, formResult.size[0], formResult.size[1]);
 							break;
 					}
 
@@ -803,8 +789,8 @@ class Texture {
 						}
 						Undo.current_save.aspects.uv_mode = true;
 
-						Project.texture_width = Project.texture_width * (formResult.width / old_width);
-						Project.texture_height = Project.texture_height * (formResult.height / old_height);
+						Project.texture_width = Project.texture_width * (formResult.size[0] / old_width);
+						Project.texture_height = Project.texture_height * (formResult.size[1] / old_height);
 						Canvas.updateAllUVs()
 					}
 					return new_canvas
@@ -1070,14 +1056,17 @@ function loadTextureDraggable() {
 				},
 				drag: function(event, ui) {
 					
-					$('.outliner_node[order]').attr('order', null)
+					$('.outliner_node[order]').attr('order', null);
+					$('.drag_hover').removeClass('drag_hover');
 					$('.texture[order]').attr('order', null)
-					if ($('#cubes_list.drag_hover').length === 0 && $('#cubes_list li .drag_hover.outliner_node').length) {
-						var tar = $('#cubes_list li .drag_hover.outliner_node').last()
+					if ($('#cubes_list li.outliner_node:hover').length) {
+						var tar = $('#cubes_list li.outliner_node:hover').last()
+						tar.addClass('drag_hover').attr('order', '0');
+						/*
 						var element = Outliner.root.findRecursive('uuid', tar.attr('id'))
 						if (element) {
 							tar.attr('order', '0')
-						}
+						}*/
 					} else if ($('#texture_list li:hover').length) {
 						let node = $('#texture_list > .texture:hover')
 						if (node.length) {
@@ -1094,7 +1083,8 @@ function loadTextureDraggable() {
 				},
 				stop: function(event, ui) {
 					setTimeout(function() {
-						$('.texture[order]').attr('order', null)
+						$('.texture[order]').attr('order', null);
+						$('.outliner_node[order]').attr('order', null);
 						var tex = textures.findInArray('uuid', ui.helper.attr('texid'));
 						if (!tex) return;
 						if ($('.preview:hover').length > 0) {
@@ -1127,6 +1117,33 @@ function loadTextureDraggable() {
 							Texture.all.splice(index, 0, tex)
 							Canvas.updateLayeredTextures()
 							Undo.finishEdit('reorder textures')
+						} else if ($('#cubes_list:hover')) {
+
+							var target_node = $('#cubes_list li.outliner_node.drag_hover').last().get(0);
+							$('.drag_hover').removeClass('drag_hover');
+							if (!target_node) return;
+							let uuid = target_node.id;
+							var target = OutlinerNode.uuids[uuid];
+
+							var array = [];
+		
+							if (target.type === 'group') {
+								target.forEachChild(function(cube) {
+									array.push(cube)
+								}, Cube)
+							} else {
+								array = selected.includes(target) ? selected : [target];
+							}
+							Undo.initEdit({elements: array, uv_only: true})
+							array.forEach(function(cube) {
+								for (var face in cube.faces) {
+									cube.faces[face].texture = tex.uuid;
+								}
+							})
+							Undo.finishEdit('drop texture')
+		
+							main_uv.loadData()
+							Canvas.updateAllFaces()
 						}
 					}, 10)
 				}
@@ -1275,7 +1292,7 @@ BARS.defineActions(function() {
 	new Action('import_texture', {
 		icon: 'library_add',
 		category: 'textures',
-		keybind: new Keybind({key: 84, ctrl: true}),
+		keybind: new Keybind({key: 't', ctrl: true}),
 		click: function () {
 			var start_path;
 			if (!isApp) {} else
@@ -1310,7 +1327,7 @@ BARS.defineActions(function() {
 	new Action('create_texture', {
 		icon: 'icon-create_bitmap',
 		category: 'textures',
-		keybind: new Keybind({key: 84, ctrl: true, shift: true}),
+		keybind: new Keybind({key: 't', ctrl: true, shift: true}),
 		click: function () {
 			TextureGenerator.addBitmapDialog()
 		}

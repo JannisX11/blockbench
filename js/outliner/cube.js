@@ -98,7 +98,7 @@ Face.opposite = {
 	up: 'down'
 }
 
-class Cube extends NonGroup {
+class Cube extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 		let size = canvasGridSize();
@@ -196,7 +196,6 @@ class Cube extends NonGroup {
 			Merge.number(this.origin, object.origin, 1)
 			Merge.number(this.origin, object.origin, 2)
 		}
-		Merge.boolean(this, object, 'rescale')
 		Merge.string(this, object, 'rotation_axis', (v) => (v === 'x' || v === 'y' || v === 'z'))
 		if (object.faces) {
 			for (var face in this.faces) {
@@ -222,7 +221,6 @@ class Cube extends NonGroup {
 		if (!this.mesh || !this.mesh.parent) {
 			Canvas.addCube(this)
 		}
-		TickUpdates.outliner = true;
 		return this;
 	}
 	size(axis, floored) {
@@ -350,6 +348,24 @@ class Cube extends NonGroup {
 			})
 			return array
 		}
+
+		// Check limits
+		if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
+			let from = this.from.slice(), to = this.to.slice();
+			for (let check_steps = steps; check_steps > 0; check_steps--) {
+				switch(axis) {
+					case 0: [from[2], to[2]] = [to[2], from[2]]; break;
+					case 1: [from[2], to[2]] = [to[2], from[2]]; break;
+					case 2: [from[1], to[1]] = [to[1], from[1]]; break;
+				}
+				from.V3_set(rotateCoord(from));
+				to.V3_set(rotateCoord(to));
+			}
+			if ([...from, ...to].find(value => (value > 32 || value < -16))) {
+				return false;
+			}
+		}
+
 		function rotateUVFace(number, iterations) {
 			if (!number) number = 0;
 			number += iterations * 90;
@@ -363,10 +379,10 @@ class Cube extends NonGroup {
 				case 1: [this.from[2], this.to[2]] = [this.to[2], this.from[2]]; break;
 				case 2: [this.from[1], this.to[1]] = [this.to[1], this.from[1]]; break;
 			}
-			this.from.V3_set(rotateCoord(this.from, 1, origin))
-			this.to.V3_set(rotateCoord(this.to, 1, origin))
+			this.from.V3_set(rotateCoord(this.from))
+			this.to.V3_set(rotateCoord(this.to))
 			if (origin != this.origin) {
-				this.origin.V3_set(rotateCoord(this.origin, 1, origin))
+				this.origin.V3_set(rotateCoord(this.origin))
 			}
 			if (!Project.box_uv) {
 				if (axis === 0) {
@@ -431,6 +447,7 @@ class Cube extends NonGroup {
 		Canvas.adaptObjectPosition(this)
 		Canvas.adaptObjectFaces(this)
 		Canvas.updateUV(this)
+		return this;
 	}
 	flip(axis, center, skipUV) {
 		var scope = this;
@@ -805,7 +822,7 @@ class Cube extends NonGroup {
 	]);
 	Cube.prototype.buttons = [
 		Outliner.buttons.autouv,
-		Outliner.buttons.shading,
+		Outliner.buttons.shade,
 		Outliner.buttons.export,
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
@@ -814,13 +831,14 @@ class Cube extends NonGroup {
 	Cube.all = [];
 
 	new Property(Cube, 'string', 'name', {default: 'cube'})
+	new Property(Cube, 'boolean', 'rescale')
 
 BARS.defineActions(function() {
 	new Action({
 		id: 'add_cube',
 		icon: 'add_box',
 		category: 'edit',
-		keybind: new Keybind({key: 78, ctrl: true}),
+		keybind: new Keybind({key: 'n', ctrl: true}),
 		condition: () => Modes.edit,
 		click: function () {
 			
@@ -851,7 +869,6 @@ BARS.defineActions(function() {
 			if (Group.selected) Group.selected.unselect()
 			base_cube.select()
 			Canvas.updateSelected()
-			loadOutlinerDraggable()
 			Undo.finishEdit('add_cube', {outliner: true, elements: selected, selection: true});
 			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 
