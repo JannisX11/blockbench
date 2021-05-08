@@ -100,7 +100,7 @@ const Interface = {
 			},
 			position: function(line) {
 				line.setPosition({
-					top: 26,
+					top: document.getElementById('page_wrapper').offsetTop,
 					bottom: 0,
 					left: Interface.data.left_bar_width+2
 				})
@@ -123,7 +123,7 @@ const Interface = {
 			},
 			position: function(line) {
 				line.setPosition({
-					top: 56,
+					top: document.getElementById('page_wrapper').offsetTop+30,
 					bottom: 0,
 					right: Interface.data.right_bar_width-2
 				})
@@ -746,10 +746,6 @@ onVueSetup(function() {
 					v-bind:title="tl('interface.streamer_mode_on')"
 				>
 					<i class="material-icons">live_tv</i>
-				</div>
-				<div id="status_saved">
-					<i class="material-icons" v-if="Prop.project_saved" v-bind:title="tl('status_bar.saved')">check</i>
-					<i class="material-icons" v-else v-bind:title="tl('status_bar.unsaved')">close</i>
 				</div>
 				<div v-html="Blockbench.getIconNode(Format.icon).outerHTML" v-bind:title="Format.name"></div>
 				<div v-if="Prop.recording" v-html="Blockbench.getIconNode('fiber_manual_record').outerHTML" style="color: var(--color-close)" v-bind:title="tl('status_bar.recording')"></div>

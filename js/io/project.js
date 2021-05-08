@@ -277,6 +277,8 @@ onVueSetup(() => {
 		el: '#tab_bar',
 		data: {
 			projects: ModelProject.all,
+			drag_target_index: null,
+			drag_position_index: null,
 			new_tab: {
 				name: 'New Tab',
 				saved: true,
@@ -302,7 +304,6 @@ onVueSetup(() => {
 				if (this.new_tab.visible) {
 					tabs.push(this.new_tab);
 				}
-				console.log(tabs)
 				return tabs;
 			}
 		},
@@ -310,6 +311,86 @@ onVueSetup(() => {
 			openNewTab() {
 				this.new_tab.visible = true;
 				this.new_tab.select();
+			},
+			dragTab(tab, e1) {
+				convertTouchEvent(e1);
+				
+				let scope = this;
+				let active = false;
+				let timeout;
+				let last_event = e1;
+
+				let tab_node = e1.target;
+				if (!tab_node.classList.contains('project_tab') || ModelProject.all.indexOf(tab) < 0) return;
+
+				let activate = () => {
+					this.drag_target_index = ModelProject.all.indexOf(tab);
+					this.drag_position_index = 0;
+					if (open_menu) open_menu.hide();
+					active = true;
+				}
+
+				function move(e2) {
+					convertTouchEvent(e2);
+					let offset = e2.clientX - e1.clientX;
+					if (!active) {
+						let distance = Math.abs(offset);
+						if (Blockbench.isTouch) {
+							if (distance > 14 && timeout) {
+								clearTimeout(timeout);
+								timeout = null;
+							} else {
+								document.getElementById('tab_bar').scrollLeft += last_event.clientX - e2.clientX;
+							}
+						} else if (distance > 5) {
+							activate();
+						}
+					} else {
+						if (e2) e2.preventDefault();
+						
+						tab_node.style.left = `${offset}px`;
+
+						let index_offset = Math.trunc((e2.clientX - e1.clientX) / tab_node.clientWidth);
+						scope.drag_position_index = scope.drag_target_index + index_offset;
+						console.log('drag_target_index', scope.drag_target_index, 'drag_position_index', scope.drag_position_index)
+					}
+					last_event = e2;
+				}
+				function off(e2) {
+					let {drag_target_index} = scope;
+
+					removeEventListeners(document, 'mousemove touchmove', move);
+					removeEventListeners(document, 'mouseup touchend', off);
+					tab_node.style.left = null;
+					scope.drag_target_index = null;
+					scope.drag_position_index = null;
+
+					if (Blockbench.isTouch) clearTimeout(timeout);
+
+					if (active && !open_menu) {
+						convertTouchEvent(e2);
+						let index_offset = Math.trunc((e2.clientX - e1.clientX) / tab_node.clientWidth);
+						if (index_offset) {
+							ModelProject.all.splice(drag_target_index, 1);
+							ModelProject.all.splice(drag_target_index + index_offset, 0, tab);
+						}
+					}
+				}
+
+				if (Blockbench.isTouch) {
+					timeout = setTimeout(() => {
+						active = true;
+						move(e1);
+					}, 320)
+				}
+
+				addEventListeners(document, 'mousemove touchmove', move, {passive: false});
+				addEventListeners(document, 'mouseup touchend', off, {passive: false});
+			},
+			mouseUp(tab, e1) {
+				if (e1.button === 1) {
+					tab.close()
+				}
 			}
 		}
 	})

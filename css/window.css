@@ -274,7 +274,6 @@
 		display: grid;
 		grid-template-rows: auto minmax(200px, 5000px) 26px 36px;
 		grid-template-areas: 
-			"tab_bar"
 			"toolbar"
 			"center"
 			"status_bar"
@@ -414,6 +413,11 @@
 		display: inline-flex;
 		margin-left: 2px;
 		border-top: 2px solid transparent;
+		left: 0;
+		--tabwidth: 202px;
+	}
+	#tab_bar.drag_mode .project_tab {
+		transition: left 100ms ease;
 	}
 	#tab_bar .project_tab.selected {
 		background-color: var(--color-ui);
@@ -424,11 +428,26 @@
 		background-color: var(--color-button);
 		color: var(--color-light);
 	}
+	#tab_bar .project_tab.dragging {
+		background-color: var(--color-button);
+		color: var(--color-light);
+		position: relative;
+		z-index: 5;
+		box-shadow: 0 0 10px #00000080;
+		transition: none;
+	}
+	#tab_bar .project_tab.move_back {
+		left: calc(var(--tabwidth) * -1);
+	}
+	#tab_bar .project_tab.move_forth {
+		left: var(--tabwidth);
+	}
 	#tab_bar .project_tab > label {
 		overflow: hidden;
 		width: calc(100% - 20px);
 		flex: 1 1 auto;
 		padding: 0 4px;
+		pointer-events: none;
 	}
 	#tab_bar .project_tab > * {
 		cursor: inherit

@@ -584,8 +584,21 @@
 		<button id="web_download_button" hidden><a class="tl" href="https://blockbench.net/downloads">web.download_app</a></button>
 	</header>
 	
-	<div id="tab_bar">
-		<div class="project_tab" v-for="project in tabs" :key="project.uuid" :class="{selected: project.selected}" @click="project.select()" @dblclick="project.openSettings()">
+	<div id="tab_bar" :class="{drag_mode: drag_target_index !== null}">
+		<div
+			class="project_tab"
+			v-for="(project, index) in tabs" :key="project.uuid"
+			:class="{
+				selected: project.selected,
+				dragging: index == drag_target_index,
+				move_back:  (drag_position_index !== null && index > drag_target_index && drag_position_index >= index),
+				move_forth: (drag_position_index !== null && index < drag_target_index && drag_position_index <= index)
+			}"
+			@click="project.select()"
+			@dblclick="project.openSettings()"
+			@mousedown="dragTab(project, $event)"
+			@mouseup="mouseUp(project, $event)"
+		>
 			<label :title="project.name || project.geometry_name">{{ project.name || project.geometry_name || project.format.name }}</label>
 			<div class="project_tab_close_button" :class="{unsaved: !project.saved}" @click="project.close()">
 				<i class="material-icons">{{ project.saved ? 'clear' : 'fiber_manual_record' }}</i>
