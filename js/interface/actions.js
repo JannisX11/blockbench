@@ -1011,6 +1011,9 @@ class ColorPicker extends Widget {
 			maxSelectionSize: 128,
 			showPalette: data.palette === true,
 			palette: data.palette ? [] : undefined,
+			resetText: tl('generic.reset'),
+			cancelText: tl('dialog.cancel'),
+			chooseText: tl('dialog.confirm'),
 			show: function() {
 				open_interface = scope
 			},

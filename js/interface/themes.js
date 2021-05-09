@@ -111,6 +111,10 @@ const CustomTheme = {
 					color: hex,
 					showAlpha: false,
 					showInput: true,
+					defaultColor: CustomTheme.defaultColors[key],
+					resetText: tl('generic.reset'),
+					cancelText: tl('dialog.cancel'),
+					chooseText: tl('dialog.confirm'),
 					move(c) {
 						CustomTheme.data.colors[scope_key] = c.toHexString();
 					},
