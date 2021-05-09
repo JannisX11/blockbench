@@ -818,7 +818,7 @@ BARS.defineActions(function() {
 
 
 	new BarSelect('transform_space', {
-		condition: {modes: ['edit'], tools: ['move_tool', 'pivot_tool']},
+		condition: {modes: ['edit', 'animate'], tools: ['move_tool', 'pivot_tool']},
 		category: 'transform',
 		value: 'local',
 		options: {
@@ -831,7 +831,7 @@ BARS.defineActions(function() {
 		}
 	})
 	new BarSelect('rotation_space', {
-		condition: {modes: ['edit'], tools: ['rotate_tool']},
+		condition: {modes: ['edit', 'animate'], tools: ['rotate_tool']},
 		category: 'transform',
 		value: 'local',
 		options: {

@@ -906,11 +906,20 @@
 
 				this.attach(Group.selected);
 				Group.selected.mesh.getWorldPosition(this.position);
-				if (Toolbox.selected.id == 'resize_tool') {
+
+				if (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value === 'global') {
+					delete Transformer.rotation_ref;
+
+				} else if (Toolbox.selected.id === 'move_tool' && BarItems.transform_space.value === 'global') {
+					delete Transformer.rotation_ref;
+
+				} else if (Toolbox.selected.id == 'resize_tool') {
 					Transformer.rotation_ref = Group.selected.mesh;
+
 				} else if (scope.isIKMovement()) {
 					if (Transformer.dragging && Transformer.ik_target) Transformer.position.copy(Transformer.ik_target);
 					delete Transformer.rotation_ref;
+
 				} else {
 					Transformer.rotation_ref = Group.selected.mesh.parent;
 				}
@@ -965,11 +974,6 @@
 
 			if ( intersect ) {
 				scope.hoverAxis = intersect.object.name;
-				/*
-				if (scope.camera.axis && (scope.hoverAxis.toLowerCase() === scope.camera.axis) === (_mode !== 'rotate')) {
-					scope.hoverAxis = null;
-				}
-				*/
 				event.preventDefault();
 			}
 			if ( scope.axis !== scope.hoverAxis ) {
@@ -1372,10 +1376,46 @@
 						})
 
 					} else {
-						if (axis == 'x' && Toolbox.selected.id === 'move_tool') {
-							difference *= -1
+						let {mesh} = Group.selected;
+
+						if (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value === 'global') {
+							if (axisNumber != 2) difference *= -1;
+
+							let normal = axisNumber == 0 ? THREE.NormalX : (axisNumber == 1 ? THREE.NormalY : THREE.NormalZ)
+							let rotWorldMatrix = new THREE.Matrix4();
+							rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(difference))
+							rotWorldMatrix.multiply(mesh.matrixWorld)
+
+							let inverse = new THREE.Matrix4().getInverse(mesh.parent.matrixWorld)
+							rotWorldMatrix.premultiply(inverse)
+
+							mesh.matrix.copy(rotWorldMatrix)
+							mesh.setRotationFromMatrix(rotWorldMatrix)
+							let e = mesh.rotation;
+
+							scope.keyframes[0].offset('x', Math.trimDeg( (-Math.radToDeg(e.x - mesh.fix_rotation.x)) - scope.keyframes[0].calc('x') ));
+							scope.keyframes[0].offset('y', Math.trimDeg( (-Math.radToDeg(e.y - mesh.fix_rotation.y)) - scope.keyframes[0].calc('y') ));
+							scope.keyframes[0].offset('z', Math.trimDeg( ( Math.radToDeg(e.z - mesh.fix_rotation.z)) - scope.keyframes[0].calc('z') ));
+
+						} else if (Toolbox.selected.id === 'move_tool' && BarItems.transform_space.value === 'global') {
+
+							let offset_vec = new THREE.Vector3();
+							offset_vec[axis] = difference;
+				
+							var rotation = new THREE.Quaternion();
+							mesh.parent.getWorldQuaternion(rotation);
+							offset_vec.applyQuaternion(rotation.inverse());
+				
+							scope.keyframes[0].offset('x', -offset_vec.x);
+							scope.keyframes[0].offset('y', offset_vec.y);
+							scope.keyframes[0].offset('z', offset_vec.z);
+
+						} else {
+							if (axis == 'x' && Toolbox.selected.id === 'move_tool') {
+								difference *= -1
+							}
+							scope.keyframes[0].offset(axis, difference);
 						}
-						scope.keyframes[0].offset(axis, difference);
 						scope.keyframes[0].select();
 					}
 					displayDistance(value - originalValue);
