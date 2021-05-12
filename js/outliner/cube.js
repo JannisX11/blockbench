@@ -715,11 +715,27 @@ class Cube extends OutlinerElement {
 		TickUpdates.selection = true;
 		return in_box;
 	}
-	resize(val, axis, negative, allow_negative) {
+	resize(val, axis, negative, allow_negative, bidirectional) {
 		var before = this.oldScale != undefined ? this.oldScale : this.size(axis);
 		var modify = val instanceof Function ? val : n => (n+val)
 
-		if (!negative) {
+		if (bidirectional) {
+
+			let center = this.oldCenter || 0;
+			let difference = modify(before) - before;
+			if (negative) difference *= -1;
+
+			var from = limitToBox(center - (before/2) - difference, this.inflate);
+			var to = limitToBox(center + (before/2) + difference, this.inflate);
+
+			if (Format.integer_size) {
+				from = Math.round(from-this.from[axis])+this.from[axis];
+				to = Math.round(to-this.to[axis])+this.to[axis];
+			}
+			this.from[axis] = from;
+			this.to[axis] = to;
+
+		} else if (!negative) {
 			var pos = limitToBox(this.from[axis] + modify(before), this.inflate);
 			if (Format.integer_size) {
 				pos = Math.round(pos-this.from[axis])+this.from[axis];

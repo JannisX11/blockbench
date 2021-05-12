@@ -1355,7 +1355,7 @@ const BARS = {
 				condition: {modes: ['edit', 'paint', 'display']},
 				keybind: new Keybind({key: 32}),
 				click: function () {
-					if (BarItems[Toolbox.selected.alt_tool]) {
+					if (BarItems[Toolbox.selected.alt_tool] && Condition(BarItems[Toolbox.selected.alt_tool].condition)) {
 						BarItems[Toolbox.selected.alt_tool].select()
 					}
 				}

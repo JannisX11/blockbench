@@ -1039,6 +1039,7 @@
 					selected.forEach(function(obj) {
 						if (obj.resizable) {
 							obj.oldScale = obj.size(axisnr)
+							obj.oldCenter = (obj.from[axisnr] + obj.to[axisnr]) / 2;
 						}
 					})
 				}
@@ -1217,7 +1218,7 @@
 						scope.hasChanged = true
 					}
 				} else if (Toolbox.selected.id === 'resize_tool') {
-					//Scale
+					// Resize
 					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
 					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
 
@@ -1227,7 +1228,7 @@
 
 						selected.forEach(function(obj, i) {
 							if (obj.resizable) {
-								obj.resize(point[axis], axisNumber, !scope.direction)
+								obj.resize(point[axis], axisNumber, !scope.direction, null, event.altKey)
 							}
 						})
 						displayDistance(point[axis] * (scope.direction ? 1 : -1));
@@ -1508,7 +1509,8 @@
 					if (Toolbox.selected.id === 'resize_tool') {
 						//Scale
 						selected.forEach(function(obj) {
-							delete obj.oldScale
+							delete obj.oldScale;
+							delete obj.oldCenter;
 						})
 						if (scope.hasChanged) {
 							Undo.finishEdit('resize')
