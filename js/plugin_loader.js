@@ -317,6 +317,9 @@ class Plugin {
 		return this.expanded ? 'expand_less' : 'expand_more'
 	}
 }
+// Alias for typescript
+const BBPlugin = Plugin;
+
 Plugin.register = function(id, data) {
 	if (typeof id !== 'string' || typeof data !== 'object') {
 		console.warn('Plugin.register: not enough arguments, string and object required.')

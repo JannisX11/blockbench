@@ -693,6 +693,13 @@ const MenuBar = {
 					}
 				}},
 				{name: 'menu.help.developer.cache_reload', id: 'cache_reload', icon: 'cached', condition: !isApp, click: () => {
+					if('caches' in window){
+						caches.keys().then((names) => {
+							names.forEach(async (name) => {
+								await caches.delete(name)
+							})
+						})
+					}
 					window.location.reload(true)
 				}},
 				'reload',

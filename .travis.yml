@@ -29,7 +29,6 @@ jobs:
         - sudo apt-get install rpm
         - electron-builder --publish=onTagOrDraft
 
-
 cache:
   directories:
     - node_modules

@@ -299,10 +299,10 @@ const Painter = {
 			Painter.current.force = touch.force;
 
 			if (settings.brush_opacity_modifier.value == 'pressure' && touch.force) {
-				b_opacity = Math.clamp(b_opacity * touch.force*1.25, 0, 100);
+				b_opacity = Math.clamp(b_opacity * Math.clamp(touch.force*1.25, 0, 1), 0, 100);
 
 			} else if (settings.brush_opacity_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
-				var modifier = Math.clamp(1.5 / (touch.altitudeAngle + 0.3), 1, 4)/2;
+				var modifier = Math.clamp(0.5 / (touch.altitudeAngle + 0.3), 0, 1);
 				b_opacity = Math.clamp(b_opacity * modifier, 0, 100);
 			}
 			if (settings.brush_size_modifier.value == 'pressure' && touch.force) {

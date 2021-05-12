@@ -97,20 +97,38 @@ const DefaultCameraPresets = [
 		default: true
 	},
 	{
-		name: 'camera_angle.isometric_right',
+		name: 'camera_angle.common_isometric_right',
 		id: 'isometric_right',
 		projection: 'orthographic',
-		position: [-64, 64*0.8165, -64],
-		target: [0, 0, 0],
+		position: [-64, 64*0.8165+8, -64],
+		target: [0, 8, 0],
 		zoom: 0.5,
 		default: true
 	},
 	{
-		name: 'camera_angle.isometric_left',
+		name: 'camera_angle.common_isometric_left',
 		id: 'isometric_left',
 		projection: 'orthographic',
-		position: [64, 64*0.8165, -64],
-		target: [0, 0, 0],
+		position: [64, 64*0.8165+8, -64],
+		target: [0, 8, 0],
+		zoom: 0.5,
+		default: true
+	},
+	{
+		name: 'camera_angle.true_isometric_right',
+		id: 'isometric_right',
+		projection: 'orthographic',
+		position: [-64, 64+8, -64],
+		target: [0, 8, 0],
+		zoom: 0.5,
+		default: true
+	},
+	{
+		name: 'camera_angle.true_isometric_left',
+		id: 'isometric_left',
+		projection: 'orthographic',
+		position: [64, 64+8, -64],
+		target: [0, 8, 0],
 		zoom: 0.5,
 		default: true
 	}
@@ -200,76 +218,6 @@ class Preview {
 		if (!Blockbench.isMobile) {
 			this.orbit_gizmo = new OrbitGizmo(this);
 			this.node.append(this.orbit_gizmo.node);
-
-			let date = new Date();
-			let that_day = [1, 4];
-			if (date.getDate() == that_day[0] && date.getMonth() == that_day[1]-1) {
-				let blocky = document.createElement('div');
-				blocky.className = 'blocky';
-				function blink() {
-					blocky.classList.add('blink');
-					setTimeout(() => {
-						blocky.classList.remove('blink');
-						setTimeout(blink, Math.randomab(3000, 5000));
-					}, Math.randomab(140, 400));
-				}
-				blink();
-				this.node.append(blocky);
-				let win = $(`<div>
-					<i class="material-icons" id="blocky_close_button" title="Close">clear</i>
-					<p id="blocky_main_text"></p>
-					<div id="blocky_actions" class="contextMenu"></div>
-					<button id="blocky_hide_button">Disable Blocky</button>
-				</div>`)[0];
-				blocky.append(win);
-
-				function showBlocky() {
-					win.style.display = 'block';
-
-					let actions, text;
-					if (Modes.paint) {
-						actions = ['create_texture', 'import_palette', 'lock_alpha'];
-						text = `It looks like you're painting a texture.\nWould you like help?`;
-					} else if (Modes.animate) {
-						actions = ['add_animation', 'add_keyframe', 'play_animation'];
-						text = `It looks like you're making an animation.\nWould you like help?`;
-					} else {
-						actions = ['open_model', 'add_cube', 'add_group'];
-						text = `It looks like you're making a model.\nWould you like help?`;
-					}
-
-					win.children.blocky_actions.innerHTML = '';
-					actions.forEach(id => {
-						let action = BarItems[id];
-						var clone = $(action.menu_node).clone(true, true).get(0);
-						clone.onclick = (e) => {
-							if (!Condition(action.condition)) return;
-							action.trigger(e)
-						}
-						win.children.blocky_actions.append(clone);
-					})
-					win.children.blocky_main_text.innerText = text;
-				}
-				blocky.addEventListener('click', (event) => {
-					if (event.target == blocky) {
-						showBlocky();
-					}
-				})
-				Blockbench.on('select_mode', (e) => {
-					if (win.style.display === 'block') showBlocky();
-				})
-				blocky.addEventListener('mouseenter', e => {
-					if (win.style.display !== 'block') {
-						$(blocky).effect('bounce');
-					}
-				})
-				win.children.blocky_close_button.addEventListener('click', event => {
-					win.style.display = 'none';
-				})
-				win.children.blocky_hide_button.addEventListener('click', event => {
-					blocky.remove();
-				})
-			}
 		}
 
 		//Keybinds
@@ -488,7 +436,8 @@ class Preview {
 				this.camPers.position.copy(cam_offset).add(this.controls.target);
 			}
 		}
-		this.setLockedAngle()
+		this.setLockedAngle();
+		this.occupyTransformer();
 		this.controls.updateSceneScale();
 		return this;
 	}
@@ -1407,18 +1356,28 @@ class OrbitGizmo {
 			let last_event = e1;
 			let move_calls = 0;
 
-			function move(e2) {
-				convertTouchEvent(e2);
+			let started = false;
+			function start() {
+				started = true;
 				scope.node.classList.add('mouse_active');
 				if (!e1.touches && last_event == e1 && scope.node.requestPointerLock) scope.node.requestPointerLock();
 				if (scope.preview.angle != null) {
 					scope.preview.setProjectionMode(false, true);
 				}
-				let limit = move_calls <= 2 ? 1 : 32;
-				scope.preview.controls.rotateLeft((e1.touches ? (e2.clientX - last_event.clientX) : Math.clamp(e2.movementX, -limit, limit)) / 40);
-				scope.preview.controls.rotateUp((e1.touches ? (e2.clientY - last_event.clientY) : Math.clamp(e2.movementY, -limit, limit)) / 40);
-				last_event = e2;
-				move_calls++;
+			}
+
+			function move(e2) {
+				convertTouchEvent(e2);
+				if (!started && Math.pow(e2.clientX - e1.clientX, 2) + Math.pow(e2.clientY - e1.clientY, 2) > 12) {
+					start()
+				}
+				if (started) {
+					let limit = move_calls <= 2 ? 1 : 32;
+					scope.preview.controls.rotateLeft((e1.touches ? (e2.clientX - last_event.clientX) : Math.clamp(e2.movementX, -limit, limit)) / 40);
+					scope.preview.controls.rotateUp((e1.touches ? (e2.clientY - last_event.clientY) : Math.clamp(e2.movementY, -limit, limit)) / 40);
+					last_event = e2;
+					move_calls++;
+				}
 			}
 			function off(e2) {
 				if (document.exitPointerLock) document.exitPointerLock()
@@ -1739,7 +1698,7 @@ const Screencam = {
 }
 
 window.addEventListener("gamepadconnected", function(event) {
-	if (event.gamepad.id.includes('SpaceMouse')) {
+	if (event.gamepad.id.includes('SpaceMouse') || event.gamepad.id.includes('SpaceNavigator')) {
 
 		let interval = setInterval(() => {
 			let gamepad = navigator.getGamepads()[event.gamepad.index];
@@ -2328,14 +2287,25 @@ BARS.defineActions(function() {
 		condition: () => !Modes.display,
 		click: function () {
 			let preview = quad_previews.current;
-			let center = getSelectionCenter();
-			if (!Format.centered_grid) center.V3_subtract(8, 8, 8);
-			let difference = new THREE.Vector3().copy(preview.controls.target);
-			preview.controls.target.fromArray(center);
-			if (preview.angle != null) {
-				difference.sub(preview.controls.target);
-				preview.camera.position.sub(difference);
-			}
+			let center = new THREE.Vector3().fromArray(getSelectionCenter());
+			center.add(scene.position);
+
+			let difference = new THREE.Vector3().copy(preview.controls.target).sub(center);
+			difference.divideScalar(6)
+
+			let i = 0;
+			let interval = setInterval(() => {
+
+
+				preview.controls.target.sub(difference);
+
+				if (preview.angle != null) {
+					preview.camera.position.sub(difference);
+				}
+				i++;
+				if (i == 6) clearInterval(interval);
+
+			}, 16.66)
 		}
 	})
 

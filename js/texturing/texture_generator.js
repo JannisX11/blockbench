@@ -358,6 +358,22 @@ const TextureGenerator = {
 		if (options.box_uv && !Project.box_uv) {
 			Project.box_uv = true;
 		}
+		templates.forEach(function(t) {
+			if (options.rearrange_uv) {
+				t.obj.uv_offset[0] = t.posx;
+				t.obj.uv_offset[1] = t.posy;
+
+				if (t.duplicates) {
+					t.duplicates.forEach(dupl => {
+						if (dupl.obj !== t.obj) {
+							dupl.obj.uv_offset[0] = t.posx;
+							dupl.obj.uv_offset[1] = t.posy;
+						}
+					})
+				}
+			}
+		})
+
 		updateSelection()
 		Undo.finishEdit('create template', {
 			textures: [texture],
