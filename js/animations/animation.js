@@ -113,7 +113,7 @@ class Animation {
 						keyframes: []
 					}
 					kfs.forEach(kf => {
-						ba_copy.keyframes.push(kf.getUndoCopy(save));
+						ba_copy.keyframes.push(kf.getUndoCopy(true));
 					})
 				}
 			}
