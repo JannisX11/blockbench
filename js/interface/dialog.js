@@ -160,7 +160,8 @@ function buildForm(dialog) {
 							id: 'cp_'+form_id,
 							name: tl(data.label),
 							label: false,
-							private: true
+							private: true,
+							value: data.value
 						})
 					}
 					data.colorpicker.onChange = function() {

@@ -1005,7 +1005,7 @@ class ColorPicker extends Widget {
 		this.value = new tinycolor('ffffff')
 		this.jq.spectrum({
 			preferredFormat: "hex",
-			color: 'ffffff',
+			color: data.value || 'ffffff',
 			showAlpha: true,
 			showInput: true,
 			maxSelectionSize: 128,

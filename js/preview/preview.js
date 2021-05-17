@@ -1270,7 +1270,6 @@ function openQuadView() {
 }
 
 function editCameraPreset(preset, presets) {
-	console.log('x')
 	let {name, projection, position, target, zoom} = preset;
 	
 	let dialog = new Dialog({
@@ -1527,8 +1526,8 @@ const Screencam = {
 		const gif = new GIF({
 			repeat: options.repeat,
 			quality: options.quality,
-			background: {r: 30, g: 0, b: 255},
-			transparent: 0x1e01ff,
+			background: options.background ? options.background : {r: 30, g: 0, b: 255},
+			transparent: options.background ? undefined : 0x1e01ff,
 		});
 
 		if (options.turnspeed) {
@@ -2220,15 +2219,18 @@ BARS.defineActions(function() {
 					length: {label: 'dialog.create_gif.length', type: 'number', value: 10, step: 0.25},
 					fps: 	{label: 'dialog.create_gif.fps', type: 'number', value: 10},
 					quality:{label: 'dialog.create_gif.compression', type: 'number', value: 20, min: 1, max: 80},
+					color:  {label: 'dialog.create_gif.color', type: 'color', value: '#00000000'},
 					turn:	{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -10, max: 10},
 					play: 	{label: 'dialog.create_gif.play', type: 'checkbox', condition: Animator.open},
 				},
 				onConfirm: function(formData) {
+					let background = formData.color.toHex8String() != '#00000000' ? formData.color.toHexString() : undefined;
 					Screencam.createGif({
 						length_mode: formData.length_mode,
 						length: limitNumber(formData.length, 0.1, 24000),
 						fps: limitNumber(formData.fps, 0.5, 30),
 						quality: limitNumber(formData.quality, 0, 30),
+						background,
 						play: formData.play,
 						turnspeed: formData.turn,
 					}, Screencam.returnScreenshot)
