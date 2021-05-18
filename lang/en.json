@@ -533,7 +533,7 @@
 	"settings.volume": "Volume",
 	"settings.volume.desc": "Volume control for sound effects in animations",
 	"settings.outliner_colors": "Outliner Colors",
-	"settings.outliner_colors.desc": "Display cube colors in the outliner",
+	"settings.outliner_colors.desc": "Display element and group colors in the outliner",
 	"settings.preview_checkerboard": "Preview Checkerboard",
 	"settings.preview_checkerboard.desc": "Toggle the checkerboard background behind the preview",
 	"settings.uv_checkerboard": "UV Editor Checkerboard",

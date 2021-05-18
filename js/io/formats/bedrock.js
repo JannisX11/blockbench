@@ -323,7 +323,7 @@ function calculateVisibleBox() {
 		var base_cube = new Cube({
 			name: s.name || group.name,
 			autouv: 0,
-			color: Group.all.indexOf(group)%8,
+			color: group.color,
 			rotation: s.rotation,
 			origin: s.pivot
 		})
@@ -393,6 +393,7 @@ function calculateVisibleBox() {
 			rotation: b.rotation,
 			material: b.material,
 			bedrock_binding: b.binding,
+			color: Group.all.length%8
 		}).init()
 		group.createUniqueName();
 		bones[b.name] = group

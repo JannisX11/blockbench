@@ -273,7 +273,7 @@ class Group extends OutlinerNode {
 	showContextMenu(event) {
 		Prop.active_panel = 'outliner'
 		if (this.locked) return this;
-		this.select(event)
+		if (Group.selected != this) this.select(event);
 		this.menu.open(event, this)
 		return this;
 	}
@@ -428,12 +428,34 @@ class Group extends OutlinerNode {
 		Outliner.buttons.visibility,
 	];
 	Group.prototype.needsUniqueName = () => Format.bone_rig;
+	function setGroupColor(color) {
+		Undo.initEdit({outliner: true, elements: Cube.selected, selection: true})
+		Group.all.forEach(group => {
+			if (group.selected) {
+				group.color = color;
+			}
+		})
+		Cube.selected.forEach(cube => {
+			cube.setColor(color);
+		})
+		Undo.finishEdit('change group color')
+	}
 	Group.prototype.menu = new Menu([
 		'copy',
 		'paste',
 		'duplicate',
 		'_',
 		'add_locator',
+		{name: 'menu.cube.color', icon: 'color_lens', children: [
+			{icon: 'bubble_chart', color: markerColors[0].standard, name: 'cube.color.'+markerColors[0].name, click: () => setGroupColor(0)},
+			{icon: 'bubble_chart', color: markerColors[1].standard, name: 'cube.color.'+markerColors[1].name, click: () => setGroupColor(1)},
+			{icon: 'bubble_chart', color: markerColors[2].standard, name: 'cube.color.'+markerColors[2].name, click: () => setGroupColor(2)},
+			{icon: 'bubble_chart', color: markerColors[3].standard, name: 'cube.color.'+markerColors[3].name, click: () => setGroupColor(3)},
+			{icon: 'bubble_chart', color: markerColors[4].standard, name: 'cube.color.'+markerColors[4].name, click: () => setGroupColor(4)},
+			{icon: 'bubble_chart', color: markerColors[5].standard, name: 'cube.color.'+markerColors[5].name, click: () => setGroupColor(5)},
+			{icon: 'bubble_chart', color: markerColors[6].standard, name: 'cube.color.'+markerColors[6].name, click: () => setGroupColor(6)},
+			{icon: 'bubble_chart', color: markerColors[7].standard, name: 'cube.color.'+markerColors[7].name, click: () => setGroupColor(7)}
+		]},
 		'rename',
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
 		{icon: 'fa-leaf', name: 'menu.group.resolve', condition: {modes: ['edit']}, click: function(group) {group.resolve()}},
@@ -448,6 +470,7 @@ class Group extends OutlinerNode {
 	new Property(Group, 'vector', 'rotation');
 	new Property(Group, 'string', 'bedrock_binding', {condition: () => Format.id == 'bedrock'});
 	new Property(Group, 'array', 'cem_animations', {condition: () => Format.id == 'optifine_entity'});
+	new Property(Group, 'number', 'color');
 
 
 function getCurrentGroup() {
