@@ -537,6 +537,8 @@ const MenuBar = {
 				'share_model',
 			]},
 			'export_over',
+            'convert_mappings_mcp',
+            'convert_mappings_mojmaps',
 			'export_asset_archive',
 			'_',
 			{name: 'menu.file.preferences', id: 'preferences', icon: 'tune', children: [
