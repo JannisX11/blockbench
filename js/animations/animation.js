@@ -329,8 +329,8 @@ class Animation {
 		return this;
 	}
 	setLength(len) {
-		len = limitNumber(len, 0, 1e4)
-		this.length = len;
+		this.length = 0;
+		this.length = limitNumber(len, this.getMaxLength(), 1e4);
 		if (Animation.selected == this) {
 			Timeline.vue._data.animation_length = this.length;
 			BarItems.slider_animation_length.update()
@@ -460,10 +460,6 @@ class Animation {
 				len = Math.max(len, keyframes[i].time)
 				i++;
 			}
-		}
-		this.setLength(len)
-		if (this == Animation.selected) {
-			BarItems.slider_animation_length.update()
 		}
 		return len
 	}
@@ -1783,7 +1779,18 @@ BARS.defineActions(function() {
 			Undo.initEdit({animations: [Animation.selected]});
 		},
 		onAfter: function() {
-			Undo.finishEdit('Change Animation Length')
+			Undo.finishEdit('Change animation length')
+		}
+	})
+	new Action('set_animation_end', {
+		icon: 'keyboard_tab',
+		category: 'animation',
+		condition: {modes: ['animate'], method: () => Animation.selected},
+		keybind: new Keybind({ctrl: true, key: 35}),
+		click: function () {
+			Undo.initEdit({animations: [Animation.selected]});
+			Animation.selected.setLength(Timeline.time);
+			Undo.finishEdit('Set animation length');
 		}
 	})
 	new Action('add_animation', {
