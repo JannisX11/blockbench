@@ -13,7 +13,6 @@ function I(num) {
 const Templates = {
 	'1.12': {
 		name: 'Forge 1.7 - 1.13',
-        mojmaps: false,
 		flip_y: true,
 		integer_size: true,
 		file:
@@ -55,8 +54,7 @@ const Templates = {
 	},
 
 	'1.14': {
-		name: 'Forge 1.14 (MCP)',
-        mojmaps: false,
+        name: 'Forge 1.14 (MCP)',
         flip_y: true,
 		integer_size: true,
 		file: 
@@ -99,7 +97,6 @@ const Templates = {
 
     '1.14_mojmaps': {
         name: 'Forge 1.14 (Mojmaps)',
-        mojmaps: true,
         flip_y: true,
         integer_size: true,
         file:
@@ -142,7 +139,6 @@ const Templates = {
 
 	'1.15': {
 		name: 'Forge 1.15 - 1.16 (MCP)',
-        mojmaps: false,
         flip_y: true,
 		integer_size: false,
 		file: 
@@ -190,7 +186,6 @@ const Templates = {
 
     '1.15_mojmaps': {
         name: 'Forge 1.15 - 1.16 (Mojmaps)',
-        mojmaps: true,
         flip_y: true,
         integer_size: false,
         file:
