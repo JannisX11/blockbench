@@ -97,7 +97,7 @@ const Templates = {
 		cube: `%(bone).cubeList.add(new ModelBox(%(bone), %(uv_x), %(uv_y), %(x), %(y), %(z), %(dx), %(dy), %(dz), %(inflate), %(mirror)));`,
 	},
 
-    '1.14 Mojmaps': {
+    '1.14_mojmaps': {
         name: 'Forge 1.14 (Mojmaps)',
         mojmaps: true,
         flip_y: true,
@@ -188,7 +188,7 @@ const Templates = {
 		cube: `%(bone).setTextureOffset(%(uv_x), %(uv_y)).addBox(%(x), %(y), %(z), %(dx), %(dy), %(dz), %(inflate), %(mirror));`,
 	},
 
-    '1.15 Mojmaps': {
+    '1.15_mojmaps': {
         name: 'Forge 1.15 - 1.16 (Mojmaps)',
         mojmaps: true,
         flip_y: true,
@@ -783,24 +783,6 @@ BARS.defineActions(function() {
 			codec.export()
 		}
 	})
-    new Action({
-        id: 'convert_mappings_mcp',
-        icon: 'sync_alt',
-        category: 'file',
-        condition: () => Format == format && Project.modded_entity_version !== '1.12' && !Templates.get("mojmaps"),
-        click: function () {
-            Project.modded_entity_version += ' Mojmaps';
-        }
-    })
-    new Action({
-        id: 'convert_mappings_mojmaps',
-        icon: 'sync_alt',
-        category: 'file',
-        condition: () => Format == format && Templates.get("mojmaps"),
-        click: function () {
-            Project.modded_entity_version = Project.modded_entity_version.substring(0, Project.modded_entity_version.indexOf(" "));
-        }
-    })
 })
 
 })()
