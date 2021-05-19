@@ -54,8 +54,8 @@ const Templates = {
 	},
 
 	'1.14': {
-        name: 'Forge 1.14 (MCP)',
-        flip_y: true,
+		name: 'Forge 1.14 (MCP)',
+		flip_y: true,
 		integer_size: true,
 		file: 
 		   `// Made with Blockbench %(bb_version)
@@ -95,12 +95,12 @@ const Templates = {
 		cube: `%(bone).cubeList.add(new ModelBox(%(bone), %(uv_x), %(uv_y), %(x), %(y), %(z), %(dx), %(dy), %(dz), %(inflate), %(mirror)));`,
 	},
 
-    '1.14_mojmaps': {
-        name: 'Forge 1.14 (Mojmaps)',
-        flip_y: true,
-        integer_size: true,
-        file:
-            `// Made with Blockbench %(bb_version)
+	'1.14_mojmaps': {
+		name: 'Forge 1.14 (Mojmaps)',
+		flip_y: true,
+		integer_size: true,
+		file:
+			`// Made with Blockbench %(bb_version)
 			// Exported for Minecraft version 1.14 with Mojang mappings
 			// Paste this class into your mod and generate all required imports
 
@@ -126,20 +126,20 @@ const Templates = {
 					modelRenderer.zRot = z;
 				}
 			}`,
-        field: `private final RendererModel %(bone);`,
-        bone:
-            `%(bone) = new RendererModel(this);
+		field: `private final RendererModel %(bone);`,
+		bone:
+			`%(bone) = new RendererModel(this);
 			%(bone).setPos(%(x), %(y), %(z));
 			?(has_parent)%(parent).addChild(%(bone));
 			?(has_rotation)setRotationAngle(%(bone), %(rx), %(ry), %(rz));
 			%(cubes)`,
-        renderer: `%(bone).render(f5);`,
-        cube: `%(bone).cubes.add(new ModelBox(%(bone), %(uv_x), %(uv_y), %(x), %(y), %(z), %(dx), %(dy), %(dz), %(inflate), %(mirror)));`,
-    },
+		renderer: `%(bone).render(f5);`,
+		cube: `%(bone).cubes.add(new ModelBox(%(bone), %(uv_x), %(uv_y), %(x), %(y), %(z), %(dx), %(dy), %(dz), %(inflate), %(mirror)));`,
+	},
 
 	'1.15': {
 		name: 'Forge 1.15 - 1.16 (MCP)',
-        flip_y: true,
+		flip_y: true,
 		integer_size: false,
 		file: 
 		   `// Made with Blockbench %(bb_version)
@@ -184,12 +184,12 @@ const Templates = {
 		cube: `%(bone).setTextureOffset(%(uv_x), %(uv_y)).addBox(%(x), %(y), %(z), %(dx), %(dy), %(dz), %(inflate), %(mirror));`,
 	},
 
-    '1.15_mojmaps': {
-        name: 'Forge 1.15 - 1.16 (Mojmaps)',
-        flip_y: true,
-        integer_size: false,
-        file:
-            `// Made with Blockbench %(bb_version)
+	'1.15_mojmaps': {
+		name: 'Forge 1.15 - 1.16 (Mojmaps)',
+		flip_y: true,
+		integer_size: false,
+		file:
+			`// Made with Blockbench %(bb_version)
 			// Exported for Minecraft version 1.15 - 1.16 with Mojang mappings
 			// Paste this class into your mod and generate all required imports
 
@@ -220,16 +220,16 @@ const Templates = {
 					modelRenderer.zRot = z;
 				}
 			}`,
-        field: `private final ModelRenderer %(bone);`,
-        bone:
-            `%(bone) = new ModelRenderer(this);
+		field: `private final ModelRenderer %(bone);`,
+		bone:
+			`%(bone) = new ModelRenderer(this);
 			%(bone).setPos(%(x), %(y), %(z));
 			?(has_parent)%(parent).addChild(%(bone));
 			?(has_rotation)setRotationAngle(%(bone), %(rx), %(ry), %(rz));
 			%(cubes)`,
-        renderer: `%(bone).render(matrixStack, buffer, packedLight, packedOverlay);`,
-        cube: `%(bone).texOffs(%(uv_x), %(uv_y)).addBox(%(x), %(y), %(z), %(dx), %(dy), %(dz), %(inflate), %(mirror));`,
-    },
+		renderer: `%(bone).render(matrixStack, buffer, packedLight, packedOverlay);`,
+		cube: `%(bone).texOffs(%(uv_x), %(uv_y)).addBox(%(x), %(y), %(z), %(dx), %(dy), %(dz), %(inflate), %(mirror));`,
+	},
 
 	get(key, version = Project.modded_entity_version) {
 		let temp = Templates[version][key];
@@ -413,7 +413,7 @@ var codec = new Codec('modded_entity', {
 						return cube_snippets.join('\n');
 					})
 					.replace(/\n/g, '\n\t\t')
-
+					
 				group_snippets.push(snippet);
 			}
 			return group_snippets.join('\n\n\t\t')
@@ -517,7 +517,7 @@ var codec = new Codec('modded_entity', {
 			} else if (scope == 2) {
 				line = line.replace(/^this\./, '');
 				match = undefined;
-
+				
 				if (line == '}') {
 					scope--;
 				} else
@@ -526,16 +526,16 @@ var codec = new Codec('modded_entity', {
 				if (parseScheme('textureWidth = $i', line) || parseScheme('texWidth = $i', line)) {
 					Project.texture_width = match[0];
 				} else
-
+				
 				if (parseScheme('textureHeight = $i', line) || parseScheme('texHeight = $i', line)) {
 					Project.texture_height = match[0];
 				} else
-
+				
 				if (parseScheme('super($v, $i, $i)', line)) {
 					Project.texture_width = match[1];
 					Project.texture_height = match[2];
 				} else
-
+				
 				if (
 					parseScheme('ModelRenderer $v = new ModelRenderer(this, $i, $i)', line) ||
 					parseScheme('RendererModel $v = new RendererModel(this, $i, $i)', line) ||
@@ -550,7 +550,7 @@ var codec = new Codec('modded_entity', {
 					}
 					last_uv = [match[1], match[2]];
 				} else
-
+				
 				if (
 					parseScheme('$v = new ModelRenderer(this)', line)
 				) {
@@ -562,7 +562,7 @@ var codec = new Codec('modded_entity', {
 						}).init();
 					}
 				} else
-
+				
 				if (parseScheme('$v.setRotationPoint($f, $f, $f)', line) || parseScheme('$v.setPos($f, $f, $f)', line)) {
 					var bone = bones[match[0]]
 					if (bone) {
@@ -576,7 +576,7 @@ var codec = new Codec('modded_entity', {
 						})
 					}
 				} else
-
+				
 				if (parseScheme('$v.addChild($v)', line.replace(/\(this\./g, '('))) {
 					var child = bones[match[1]], parent = bones[match[0]];
 					child.addTo(parent);
@@ -591,7 +591,7 @@ var codec = new Codec('modded_entity', {
 						}
 					})
 				} else
-
+				
 				//Cubes
 				if (parseScheme('$v.cubeList.add(new ModelBox($v, $i, $i, $f, $f, $f, $i, $i, $i, $f, $b))', line) || parseScheme('$v.cubes.add(new ModelBox($v, $i, $i, $f, $f, $f, $i, $i, $i, $f, $b))', line)) {
 					var group = bones[match[0]];
@@ -615,7 +615,7 @@ var codec = new Codec('modded_entity', {
 					});
 					cube.addTo(bones[match[0]]).init();
 				} else
-
+				
 				if (parseScheme('$v.addBox($f, $f, $f, $i, $i, $i)', line)
 				 || parseScheme('$v.addBox($f, $f, $f, $i, $i, $i, $v)', line)
 				 || parseScheme('$v.addBox($f, $f, $f, $i, $i, $i, $f)', line)
@@ -642,9 +642,9 @@ var codec = new Codec('modded_entity', {
 					});
 					cube.addTo(bones[match[0]]).init();
 				} else
-
+				
 				if (parseScheme('$v.setTextureOffset($i, $i).addBox($f, $f, $f, $f, $f, $f, $f, $b)', line) ||
-                    parseScheme('$v.texOffs($i, $i).addBox($f, $f, $f, $f, $f, $f, $f, $b)', line)
+					parseScheme('$v.texOffs($i, $i).addBox($f, $f, $f, $f, $f, $f, $f, $b)', line)
 				) {
 					var group = bones[match[0]];
 					var cube = new Cube({
@@ -733,7 +733,7 @@ var codec = new Codec('modded_entity', {
 						group.rotation[2] = Math.radToDeg(match[1]);
 					}
 				} else
-
+				
 				if (parseScheme('$v.mirror = $b', line)) {
 					var group = bones[match[0]];
 					group.mirror_uv = match[1];
