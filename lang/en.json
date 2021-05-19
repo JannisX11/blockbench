@@ -538,6 +538,8 @@
 	"settings.preview_checkerboard.desc": "Toggle the checkerboard background behind the preview",
 	"settings.uv_checkerboard": "UV Editor Checkerboard",
 	"settings.uv_checkerboard.desc": "Toggle the checkerboard background behind the UV editor",
+	"settings.timecode_frame_number": "Display Timecodes as Frame Numbers",
+	"settings.timecode_frame_number.desc": "Display fraction timecodes in the timeline as frame number instead of centisecond",
 
 	"settings.base_grid": "Small Grid",
 	"settings.base_grid.desc": "Show small grid and axes",

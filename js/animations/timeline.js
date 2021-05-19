@@ -204,9 +204,10 @@ const Timeline = {
 		}
 	},
 	setTimecode(time) {
+		let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100;
 		let m = Math.floor(time/60)
 		let s = Math.floor(time%60)
-		let f = Math.floor((time%1) * 100)
+		let f = Math.floor((time%1) * second_fractions)
 		if ((s+'').length === 1) {s = '0'+s}
 		if ((f+'').length === 1) {f = '0'+f}
 		$('#timeline_timestamp').text(m + ':' + s  + ':' + f)
@@ -351,10 +352,11 @@ const Timeline = {
 			while (times.length < 3) {
 				times.push(0)
 			}
-			var seconds
+			let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100;
+			let seconds
 				= times[0]*60
 				+ limitNumber(times[1], 0, 59)
-				+ limitNumber(times[2]/100, 0, 99)
+				+ limitNumber(times[2]/second_fractions, 0, second_fractions-1)
 			if (Math.abs(seconds-Timeline.time) > 1e-3 ) {
 				Timeline.setTime(seconds, true)
 				Animator.preview()
@@ -402,47 +404,7 @@ const Timeline = {
 		return max_length;
 	},
 	updateSize() {
-		let size = Timeline.vue._data.size
-		Timeline.vue._data.length = Timeline.getMaxLength()
-		Timeline.vue._data.timecodes.empty()
-
-		var step = 1
-		if (size < 1) {step = 1}
-		else if (size < 20) {step = 4}
-		else if (size < 40) {step = 2}
-		else if (size < 100) {step = 1}
-		else if (size < 256) {step = 0.5}
-		else if (size < 520) {step = 0.25}
-		else if (size < 660) {step = 0.2}
-		else if (size < 860) {step = 0.1}
-		else {step = 0.05}
-
-
-		if (step < 1) {
-			var FPS = Timeline.getStep();
-			step = Math.round(step/FPS) * FPS
-			//step = 1/Math.round(1/step)
-		}
-
-		let substeps = step / Timeline.getStep()
-		while (substeps > 8) {
-			substeps /= 2;
-		}
-
-		var i = 0;
-		while (i < Timeline.vue._data.length) {
-			Timeline.vue._data.timecodes.push({
-				time: i,
-				width: step,
-				substeps,
-				text: Math.round(i*100)/100
-			})
-			i += step;
-		}
-
-		if (Timeline.vue.graph_editor_open) {
-			Timeline.vue.graph_size += 1e-5;
-		}
+		Timeline.vue.updateTimecodes();
 	},
 	updateScroll(e) {
 		$('.channel_head').css('left', scroll_amount+'px')
@@ -691,6 +653,54 @@ onVueSetup(function() {
 			}
 		},
 		methods: {
+			updateTimecodes() {
+				if (!this._isMounted) return;
+				this.timecodes.empty();
+				let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100
+				this.length = Timeline.getMaxLength();
+
+				var step = 1
+				if (this.size < 1) {step = 1}
+				else if (this.size < 20) {step = 4}
+				else if (this.size < 40) {step = 2}
+				else if (this.size < 100) {step = 1}
+				else if (this.size < 256) {step = 0.5}
+				else if (this.size < 520) {step = 0.25}
+				else if (this.size < 660) {step = 0.2}
+				else if (this.size < 860) {step = 0.1}
+				else {step = 0.05}
+
+				if (step < 1) {
+					var FPS = Timeline.getStep();
+					step = Math.round(step/FPS) * FPS
+					//step = 1/Math.round(1/step)
+				}
+
+				let substeps = step / Timeline.getStep()
+				while (substeps > 8) {
+					substeps /= 2;
+				}
+
+				var i = 0;
+				while (i < this.length) {
+					if (settings.timecode_frame_number.value) {
+						var text = `${Math.floor(i)}:${Math.round((i % 1) * second_fractions)}`;
+					} else {
+						var text = Math.round(i*100)/100;
+					}
+					this.timecodes.push({
+						time: i,
+						width: step,
+						substeps: Math.ceil(substeps),
+						text,
+					})
+					i += step;
+				}
+
+				if (this.graph_editor_open) {
+					this.graph_size += 1e-5;
+				}
+			},
 			toggleAnimator(animator) {
 				animator.expanded = !animator.expanded;
 			},
@@ -892,6 +902,10 @@ onVueSetup(function() {
 			},
 			clamp: Math.clamp
 		},
+		watch: {
+			size() {this.updateTimecodes()},
+			length() {this.updateTimecodes()},
+		},
 		template: `
 			<div id="timeline_vue" :class="{graph_editor: graph_editor_open}">
 				<div id="timeline_header">
@@ -905,10 +919,10 @@ onVueSetup(function() {
 					</div>
 					<div id="timeline_time_wrapper">
 						<div id="timeline_time" v-bind:style="{width: (size*length)+'px', left: -scroll_left+'px'}">
-							<div v-for="t in timecodes" class="timeline_timecode" v-bind:style="{left: (t.time * size) + 'px', width: (t.width * size) + 'px'}">
+							<div v-for="t in timecodes" class="timeline_timecode" :key="t.text" :style="{left: (t.time * size) + 'px', width: (t.width * size) + 'px'}">
 								<span>{{ t.text }}</span>
 								<div class="substeps">
-									<div v-for="n in Math.ceil(t.substeps)"></div>
+									<div v-for="n in t.substeps" :key="t.text + '-' + 'n'"></div>
 								</div>
 							</div>
 							<div id="timeline_playhead"

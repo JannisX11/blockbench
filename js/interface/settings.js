@@ -126,6 +126,9 @@ const Settings = {
 		new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange() {
 			$('.UVEditor').toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
 		}});
+		new Setting('timecode_frame_number',{category: 'interface', value: false, onChange() {
+			Timeline.vue.updateTimecodes();
+		}});
 		
 		//Preview 
 		new Setting('brightness',  		{category: 'preview', value: 50, type: 'number'});
