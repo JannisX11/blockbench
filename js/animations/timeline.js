@@ -656,7 +656,8 @@ onVueSetup(function() {
 			updateTimecodes() {
 				if (!this._isMounted) return;
 				this.timecodes.empty();
-				let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100
+				let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100;
+				let timeline_container_width = document.getElementById('timeline').clientWidth - this.head_width;
 				this.length = Timeline.getMaxLength();
 
 				var step = 1
@@ -680,9 +681,9 @@ onVueSetup(function() {
 				while (substeps > 8) {
 					substeps /= 2;
 				}
-
-				var i = 0;
-				while (i < this.length) {
+				
+				var i = Math.floor(this.scroll_left / this.size / step) * step;
+				while (i < Math.ceil((this.scroll_left + timeline_container_width) / this.size / step) * step) {
 					if (settings.timecode_frame_number.value) {
 						var text = `${Math.floor(i)}:${Math.round((i % 1) * second_fractions)}`;
 					} else {
@@ -691,7 +692,7 @@ onVueSetup(function() {
 					this.timecodes.push({
 						time: i,
 						width: step,
-						substeps: Math.ceil(substeps),
+						substeps,
 						text,
 					})
 					i += step;
@@ -905,6 +906,7 @@ onVueSetup(function() {
 		watch: {
 			size() {this.updateTimecodes()},
 			length() {this.updateTimecodes()},
+			scroll_left() {this.updateTimecodes()},
 		},
 		template: `
 			<div id="timeline_vue" :class="{graph_editor: graph_editor_open}">
@@ -922,7 +924,7 @@ onVueSetup(function() {
 							<div v-for="t in timecodes" class="timeline_timecode" :key="t.text" :style="{left: (t.time * size) + 'px', width: (t.width * size) + 'px'}">
 								<span>{{ t.text }}</span>
 								<div class="substeps">
-									<div v-for="n in t.substeps" :key="t.text + '-' + 'n'"></div>
+									<div v-for="n in Math.ceil(t.substeps)" :key="t.text + '-' + 'n'"></div>
 								</div>
 							</div>
 							<div id="timeline_playhead"
