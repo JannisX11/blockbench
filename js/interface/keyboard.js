@@ -550,10 +550,10 @@ $(document).on('keydown mousedown', function(e) {
 	if (open_dialog) {
 		if ($('textarea:focus').length === 0) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-				$('.dialog#'+open_dialog).find('.confirm_btn:not([disabled])').click()
+				open_interface.confirm(e);
 				used = true
 			} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
-				$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()
+				open_interface.cancel(e);
 				used = true
 			}
 		}

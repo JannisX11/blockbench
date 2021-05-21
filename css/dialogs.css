@@ -110,6 +110,9 @@
 		margin-top: 16px;
 		margin: 16px 4px 0 4px;
 	}
+	.dialog_bar button.confirm_btn:not(:hover) {
+		background-color: var(--color-selected);
+	}
 	.dialog_bar input[type=checkbox] {
 		padding: 0 4px;
 	}

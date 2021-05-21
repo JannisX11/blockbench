@@ -11,7 +11,7 @@ const CustomTheme = {
 		back: '#21252b',
 		dark: '#17191d',
 		border: '#181a1f',
-		selected: '#3c4456',
+		selected: '#474d5d',
 		button: '#3a3f4b',
 		bright_ui: '#f4f3ff',
 		accent: '#3e90ff',
@@ -173,6 +173,11 @@ const CustomTheme = {
 		Blockbench.onUpdateTo('3.8', () => {
 			if (CustomTheme.data.colors.checkerboard == '#2f3339') {
 				CustomTheme.data.colors.checkerboard = CustomTheme.defaultColors.checkerboard;
+			}
+		})
+		Blockbench.onUpdateTo('3.9', () => {
+			if (CustomTheme.data.colors.selected == '#3c4456') {
+				CustomTheme.data.colors.selected = CustomTheme.defaultColors.selected;
 			}
 		})
 	},

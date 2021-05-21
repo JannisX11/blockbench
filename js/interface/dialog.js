@@ -302,10 +302,10 @@ window.Dialog = class Dialog {
 		this.padding = options.padding != false;
 		this.draggable = options.draggable
 		this.singleButton = options.singleButton
-		this.buttons = options.buttons
+		this.buttons = options.buttons instanceof Array ? options.buttons : (options.singleButton ? ['dialog.close'] : ['dialog.confirm', 'dialog.cancel'])
 		this.form_first = options.form_first;
 		this.confirmIndex = options.confirmIndex||0;
-		this.cancelIndex = options.cancelIndex !== undefined ? options.cancelIndex : 1;
+		this.cancelIndex = options.cancelIndex !== undefined ? options.cancelIndex : this.buttons.length-1;
 	
 		this.confirmEnabled = options.confirmEnabled === false ? false : true
 		this.cancelEnabled = options.cancelEnabled === false ? false : true
@@ -316,11 +316,11 @@ window.Dialog = class Dialog {
 	
 		this.object;
 	}
-	confirm() {
-		$(this.object).find('.confirm_btn:not([disabled])').click()
+	confirm(event) {
+		this.close(this.confirmIndex, event);
 	}
-	cancel() {
-		$(this.object).find('.cancel_btn:not([disabled])').click()
+	cancel(event) {
+		this.close(this.cancelIndex, event);
 	}
 	updateFormValues(initial) {
 		let form_result = this.getFormResult();
@@ -381,8 +381,23 @@ window.Dialog = class Dialog {
 		}
 		return result;
 	}
+	close(button, event) {
+		if (button == this.confirmIndex && typeof this.onConfirm == 'function') {
+			let formResult = this.getFormResult();
+			let result = this.onConfirm(formResult, event);
+			if (result === false) return;
+		}
+		if (button == this.cancelIndex && typeof this.onCancel == 'function') {
+			let result = this.onCancel();
+			if (result === false) return;
+		}
+		if (button == this.confirmIndex && typeof this.onButton == 'function') {
+			let result = this.onButton(button);
+			if (result === false) return;
+		}
+		this.hide();
+	}
 	build() {
-		let scope = this;
 		var jq_dialog = $(`<dialog class="dialog" id="${this.id}">
 				<div class="dialog_handle">${tl(this.title)}</div>
 				<content class="dialog_content"></content>
@@ -401,51 +416,35 @@ window.Dialog = class Dialog {
 		if (this.max_label_width) {
 			document.styleSheets[0].insertRule('.dialog#'+this.id+' .dialog_bar label {width: '+(this.max_label_width+8)+'px}')
 		}
-		if (this.buttons) {
+
+		if (this.buttons.length) {
 
 			var buttons = []
-
 			this.buttons.forEach((b, i) => {
 				var btn = $('<button type="button">'+tl(b)+'</button> ')
 				buttons.push(btn)
-				if (typeof this.onButton == 'function') {
-					btn.click((event) => {
-						this.onButton(i);
-					})
-				}
+				btn.on('click', (event) => {
+					this.close(i, event);
+				})
 			})
 			buttons[this.confirmIndex] && buttons[this.confirmIndex].addClass('confirm_btn')
 			buttons[this.cancelIndex] && buttons[this.cancelIndex].addClass('cancel_btn')
 			let bar = $('<div class="dialog_bar button_bar"></div>');
 			jq_dialog.append(bar);
+
 			buttons.forEach((button, i) => {
 				if (i) bar.append('&nbsp;')
 				bar.append(button)
 			})
-
-		} else if (this.singleButton) {
-
-			jq_dialog.append('<div class="dialog_bar button_bar" hidden>' +
-				'<button type="button" class="cancel_btn confirm_btn"'+ (this.confirmEnabled ? '' : ' disabled') +'>'+tl('dialog.close')+'</button>' +
-			'</div>')
-
-		} else {
-
-			jq_dialog.append(`<div class="dialog_bar button_bar">
-				<button type="button" class="confirm_btn${this.confirmEnabled ? '' : ' disabled'}">${tl('dialog.confirm')}</button>&nbsp;
-				<button type="button" class="cancel_btn${this.cancelEnabled ? '' : ' disabled'}">${tl('dialog.cancel')}</button>
-			</div>`)
-
 		}
-		jq_dialog.append('<div class="dialog_close_button" onclick="$(\'.dialog#\'+open_dialog).find(\'.cancel_btn:not([disabled])\').click()"><i class="material-icons">clear</i></div>')
-		var confirmFn = function(e) {
 
-			let result = scope.getFormResult();
-			scope.onConfirm(result, e);
-		}
-		confirmFn.bind(this)
-		if (this.confirmEnabled) $(this.object).find('.confirm_btn').click(confirmFn)
-		if (this.cancelEnabled) $(this.object).find('.cancel_btn').click(() => {this.onCancel()})
+		let close_button = document.createElement('div');
+		close_button.classList.add('dialog_close_button');
+		close_button.innerHTML = '<i class="material-icons">clear</i>';
+		jq_dialog.append(close_button);
+		close_button.addEventListener('click', (e) => {
+			this.cancel();
+		})
 		//Draggable
 		if (this.draggable !== false) {
 			jq_dialog.addClass('draggable')
@@ -488,6 +487,7 @@ window.Dialog = class Dialog {
 
 		open_dialog = this.id;
 		open_interface = this;
+		Dialog.open = this;
 		Prop.active_panel = 'dialog';
 		return this;
 	}
@@ -496,6 +496,7 @@ window.Dialog = class Dialog {
 		$(this.object).hide();
 		open_dialog = false;
 		open_interface = false;
+		Dialog.open = null;
 		Prop.active_panel = undefined;
 		$(this.object).detach()
 		return this;

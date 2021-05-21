@@ -468,6 +468,7 @@ BARS.defineActions(function() {
 	Plugins.dialog = new Dialog({
 		id: 'plugins',
 		title: 'dialog.plugins.title',
+		singleButton: true,
 		component: {
 			data: {
 				tab: 'installed',
