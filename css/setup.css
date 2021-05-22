@@ -150,6 +150,12 @@
 	  -moz-osx-font-smoothing: grayscale;
 	}
 
+	.icon-keyframe:before {
+	  content: "\e924";
+	}
+	.icon-keyframe_discontinuous:before {
+	  content: "\e925";
+	}
 	.icon-gizmo:before {
 	  content: "\e922";
 	}
@@ -260,7 +266,7 @@
 	}
 
 
-
+	
 
 	.material-icons {
 		font-family: 'Material Icons';
