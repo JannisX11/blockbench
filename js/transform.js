@@ -38,7 +38,7 @@ function origin2geometry() {
 			}
 		})
 	}
-	Canvas.updatePositions()
+	Canvas.updateView({elements: Cube.selected, element_aspects: {geometry: true}});
 	Undo.finishEdit('origin to geometry')
 }
 function getSelectionCenter(all = false) {
@@ -809,7 +809,7 @@ function rotateOnAxis(modify, axis, slider) {
 			
 		}
 		if (obj instanceof Group) {
-			Canvas.updateAllBones()
+			Canvas.updateView({groups: [obj]});
 		}
 	})
 }
@@ -1125,7 +1125,7 @@ BARS.defineActions(function() {
 		if (rotation_object instanceof Group) {
 			var val = modify(rotation_object.origin[axis]);
 			rotation_object.origin[axis] = val;
-			Canvas.updatePositions()
+			Canvas.updateView({elements: Cube.selected, element_aspects: {geometry: true}})
 			if (Format.bone_rig) {
 				Canvas.updateAllBones()
 			}
@@ -1134,7 +1134,7 @@ BARS.defineActions(function() {
 				var val = modify(obj.origin[axis]);
 				obj.origin[axis] = val;
 			})
-			Canvas.updatePositions()
+			Canvas.updateView({elements: Cube.selected, element_aspects: {geometry: true}})
 		}
 		if (Modes.animate) {
 			Animator.preview();

@@ -125,6 +125,68 @@ const Canvas = {
 		}
 		if (settings.highlight_cubes.value) updateCubeHighlights();
 	},
+
+	/**
+	 * 
+	 * @param {object} options
+	 * @param {array} options.elements Elements to update 
+	 * @param {object} options.element_aspects 
+	 * @param {boolean} options.element_aspects.geometry Update the element transformation and geometry
+	 * @param {boolean} options.element_aspects.faces Update the element faces and texture
+	 * @param {boolean} options.element_aspects.uv Update the element UV mapping
+	 * @param {boolean} options.element_aspects.visibility Update the element visibility
+	 * @param {boolean} options.element_aspects.painting_grid Update the painting grid
+	 * @param {array} options.groups Groups to update 
+	 * @param {object} options.group_aspects Which parts of the group to update
+	 * @param {boolean} options.group_aspects.geometry Update the group transformation and geometry
+	 */
+	updateView(options) {
+		/**
+		 * Bones: list
+		 * Bone aspects: ?
+		 * Elements: list
+		 * Element aspects: object
+		 * 		Face
+		 * 		UV
+		 * 		Geo
+		 * 		Visibility
+		 * 		Painting Grid
+		 * Textures: List
+		 * Texture Aspects:
+		 * 		Render sides
+		 */
+		if (options.elements) {
+			let aspects = options.element_aspects || {};
+			options.elements.forEach(element => {
+				if (element instanceof Cube) {
+					let update_all = !options.element_aspects || (aspects.visibility && element.visibility && !element.mesh.visible);
+					let {mesh} = element;
+
+					if (aspects.geometry || update_all) {
+						Canvas.adaptObjectPosition(element, mesh);
+					}
+					if (aspects.faces || update_all) {
+						Canvas.adaptObjectFaces(element, mesh);
+					}
+					if ((aspects.uv || update_all) && Prop.view_mode === 'textured') {
+						Canvas.updateUV(element);
+					}
+					if ((aspects.painting_grid || update_all) && Modes.paint && settings.painting_grid.value) {
+						Canvas.buildGridBox(element);
+					}
+					if (aspects.visibility || update_all) {
+						element.mesh.visible = element.visibility;
+					}
+				}
+			})
+		}
+		if (options.groups) {
+			Canvas.updateAllBones(options.groups)
+		}
+		if (options.selection) {
+			updateSelection();
+		}
+	},
 	//Main updaters
 	clear() {
 		var objects = []
@@ -157,7 +219,6 @@ const Canvas = {
 	},
 	updateAllPositions(leave_selection) {
 		updateNslideValues()
-		Cube.all.forEach(Canvas.adaptObjectPosition)
 		if (leave_selection !== true) {
 			updateSelection()
 		}
@@ -313,25 +374,25 @@ const Canvas = {
 			let bone = obj.mesh
 			if (bone) {
 
-				bone.rotation.reorder('ZYX')
+				bone.rotation.reorder('ZYX');
 				bone.rotation.setFromDegreeArray(obj.rotation);
-				bone.position.fromArray(obj.origin)
-				bone.scale.x = bone.scale.y = bone.scale.z = 1
+				bone.position.fromArray(obj.origin);
+				bone.scale.x = bone.scale.y = bone.scale.z = 1;
 
 				if (obj.parent.type === 'group') {
 
-					bone.position.x -=  obj.parent.origin[0]
-					bone.position.y -=  obj.parent.origin[1]
-					bone.position.z -=  obj.parent.origin[2]
+					bone.position.x -=  obj.parent.origin[0];
+					bone.position.y -=  obj.parent.origin[1];
+					bone.position.z -=  obj.parent.origin[2];
 
-					var parent_bone = obj.parent.mesh
-					parent_bone.add(bone)
+					var parent_bone = obj.parent.mesh;
+					parent_bone.add(bone);
 				} else {
-					scene.add(bone)
+					scene.add(bone);
 				}
 
-				bone.fix_position = bone.position.clone()
-				bone.fix_rotation = bone.rotation.clone()
+				bone.fix_position = bone.position.clone();
+				bone.fix_rotation = bone.rotation.clone();
 			}
 		})
 		if (bones == Group.all) {

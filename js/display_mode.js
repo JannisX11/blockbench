@@ -1450,7 +1450,6 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	Transformer.center()
 	if (outlines.children.length) {
 		outlines.children.length = 0
-		Canvas.updateAllPositions()
 	}
 }
 exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the scene etc
