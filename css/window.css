@@ -426,6 +426,7 @@
 	#start_screen .recent_project_date {
 		flex-shrink: 0;
 		position: relative;
+		color: var(--color-subtle_text);
 	}
 	span.recent_project_date:before {
 		content: "";

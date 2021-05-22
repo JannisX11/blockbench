@@ -84,7 +84,10 @@ class Keyframe {
 	calc(axis, data_point = 0) {
 		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
 		data_point = this.data_points[data_point];
-		return Animator.MolangParser.parse(data_point && data_point[axis])
+		let last_value = Animator._last_values[this.channel][axis];
+		let result = Animator.MolangParser.parse(data_point && data_point[axis], {this: last_value});
+		Animator._last_values[this.channel][axis] = result;
+		return result;
 	}
 	set(axis, value, data_point = 0) {
 		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);

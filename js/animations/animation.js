@@ -1224,6 +1224,7 @@ const Animator = {
 	MolangParser: new Molang(),
 	motion_trail: new THREE.Object3D(),
 	motion_trail_lock: false,
+	_last_values: {rotation: [0, 0, 0], position: [0, 0, 0], scale: [0, 0, 0]},
 	join() {
 		
 		if (isApp && (Format.id == 'bedrock' || Format.id == 'bedrock_old') && !BedrockEntityManager.initialized_animations) {
@@ -1391,6 +1392,7 @@ const Animator = {
 		// Bones
 		Animator.showDefaultPose(true);
 		Group.all.forEach(group => {
+			Animator._last_values = {rotation: [0, 0, 0], position: [0, 0, 0], scale: [0, 0, 0]}
 			Animator.animations.forEach(animation => {
 				let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
 				if (animation.playing) {
@@ -1398,6 +1400,7 @@ const Animator = {
 				}
 			})
 		})
+		Animator._last_values = {rotation: [0, 0, 0], position: [0, 0, 0], scale: [0, 0, 0]}
 		scene.updateMatrixWorld()
 
 		// Effects
