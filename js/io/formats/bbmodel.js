@@ -73,6 +73,22 @@ var codec = new Codec('project', {
 		}
 		this.parse(model, file.path)
 	},
+	export() {
+		Blockbench.export({
+			resource_id: 'model',
+			type: this.name,
+			extensions: [this.extension],
+			name: this.fileName(),
+			startpath: this.startPath(),
+			content: isApp ? null : this.compile(),
+			custom_writer: isApp ? (content, path) => {
+				// Path needs to be changed before compiling for relative resource paths
+				ModelMeta.save_path = path;
+				content = this.compile();
+				this.write(content, path);
+			} : null,
+		}, path => this.afterDownload(path))
+	},
 	compile(options) {
 		if (!options) options = 0;
 		var model = {
@@ -110,6 +126,10 @@ var codec = new Codec('project', {
 		textures.forEach(tex => {
 			var t = tex.getUndoCopy();
 			delete t.selected;
+			if (isApp && ModelMeta.save_path && tex.path) {
+				let relative = PathModule.relative(ModelMeta.save_path, tex.path);
+				t.relative_path = relative.replace(/\\/g, '/');
+			}
 			if (options.bitmaps != false) {
 				t.source = 'data:image/png;base64,'+tex.getBase64()
 				t.mode = 'bitmap'
@@ -206,7 +226,16 @@ var codec = new Codec('project', {
 				var tex_copy = new Texture(tex, tex.uuid).add(false);
 				if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
 					tex_copy.fromPath(tex.path)
-				} else if (tex.source && tex.source.substr(0, 5) == 'data:') {
+					return;
+				}
+				if (isApp && tex.relative_path && ModelMeta.save_path) {
+					let resolved_path = PathModule.resolve(ModelMeta.save_path, tex.relative_path);
+					if (fs.existsSync(resolved_path)) {
+						tex_copy.fromPath(resolved_path)
+						return;
+					}
+				}
+				if (tex.source && tex.source.substr(0, 5) == 'data:') {
 					tex_copy.fromDataURL(tex.source)
 				}
 			})
@@ -292,20 +321,28 @@ var codec = new Codec('project', {
 
 		function loadTexture(tex) {
 			if (isApp && Texture.all.find(tex2 => tex.path == tex2.path)) {
-				new_textures.push(Texture.all.find(tex2 => tex.path == tex2.path));
-				return;
+				return Texture.all.find(tex2 => tex.path == tex2.path)
 			}
 			var tex_copy = new Texture(tex, tex.uuid).add(false);
 			if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
 				tex_copy.fromPath(tex.path)
-			} else if (tex.source && tex.source.substr(0, 5) == 'data:') {
-				tex_copy.fromDataURL(tex.source)
+				return tex_copy;
 			}
-			new_textures.push(tex_copy);
+			if (isApp && tex.relative_path && ModelMeta.save_path) {
+				let resolved_path = PathModule.resolve(ModelMeta.save_path, tex.relative_path);
+				if (fs.existsSync(resolved_path)) {
+					tex_copy.fromPath(resolved_path)
+					return tex_copy;
+				}
+			}
+			if (tex.source && tex.source.substr(0, 5) == 'data:') {
+				tex_copy.fromDataURL(tex.source)
+				return tex_copy;
+			}
 		}
 
 		if (model.textures && (!Format.single_texture || Texture.all.length == 0)) {
-			model.textures.forEach(loadTexture)
+			new_textures.replace(model.textures.map(loadTexture))
 		}
 
 		if (model.elements) {
