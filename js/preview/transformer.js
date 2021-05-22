@@ -1318,11 +1318,10 @@
 					var round_num = getRotationInterval(event)
 				} else {
 					value = point[axis]
+					var round_num = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
 					if (Toolbox.selected.id === 'resize_tool') {
 						value *= (scope.direction) ? 0.1 : -0.1;
-						round_num = 0.1;
-					} else {
-						var round_num = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
+						round_num *= 0.1;
 					}
 				}
 				value = Math.round(value/round_num)*round_num

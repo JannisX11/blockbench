@@ -1047,8 +1047,9 @@
 		font-size: 10px;
 	}
 	#timeline_graph_editor .keyframe > i {
-		margin-top: 0px;
-		font-size: 16px;
+		font-size: 13px;
+		margin-top: 2px;
+		margin-left: -2px;
 	}
 	#timeline_graph_editor .keyframe > i.keyframe_icon_smaller {
 		font-size: 12px;

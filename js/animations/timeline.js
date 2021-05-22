@@ -628,20 +628,11 @@ onVueSetup(function() {
 					max = Math.max(max, value);
 					if (snap_kf) snap_kf.display_value = value;
 				}
-
-				/*keyframes.forEach(kf => {
-					if (kf.time >= this.scroll_left / this.size && kf.time <= (clientWidth + this.scroll_left - this.head_width) / this.size) {
-						Timeline.time = kf.time;
-						let value = ba.interpolate(this.graph_editor_channel, false, this.graph_editor_axis);
-						kf.display_value = value;
-						min = Math.min(min, value);
-						max = Math.max(max, value);
-					}
-				})*/
+				
 				Timeline.time = original_time;
 
 				let padding = 16;
-				this.graph_size = (clientHeight - 2*padding) / Math.clamp(max-min, 3, 1e4);
+				this.graph_size = (clientHeight - 2*padding) / Math.clamp(max-min, 2.4, 1e4);
 				this.graph_offset = clientHeight - padding + (this.graph_size * min);
 
 				let string = '';
@@ -822,10 +813,9 @@ onVueSetup(function() {
 					let value_diff = 0;
 					if (Timeline.vue.graph_editor_open) {
 						value = -offset[1] / Timeline.vue.graph_size;
+						var round_num = canvasGridSize(e2.shiftKey, e2.ctrlOrCmd);
 						if (Toolbox.selected.id === 'resize_tool') {
-							round_num = 0.1;
-						} else {
-							var round_num = canvasGridSize(e2.shiftKey, e2.ctrlOrCmd)
+							round_num *= 0.1;
 						}
 						value = Math.round(value/round_num)*round_num
 						previousValue = previousValue == undefined ? value : previousValue;
@@ -1039,7 +1029,7 @@ onVueSetup(function() {
 									@contextmenu.prevent="keyframe.showContextMenu($event)"
 								>
 									<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
-									<i class="material-icons" v-else>stop</i>
+									<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
 								</keyframe>
 							</template>
 						</div>
