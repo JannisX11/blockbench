@@ -405,8 +405,9 @@
 	"dialog.model_stats.vertices": "Vertices",
 	"dialog.model_stats.faces": "Faces",
 
-	"dialog.skin.title": "Create Skin",
+	"dialog.skin.title": "Create Minecraft Skin",
 	"dialog.skin.model": "Model",
+	"dialog.skin.variant": "Variant",
 	"dialog.skin.texture": "Texture (Optional)",
 	"dialog.skin.pose": "Pose",
 	"dialog.skin.layer_template": "Layer Texture",
