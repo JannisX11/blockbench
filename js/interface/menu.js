@@ -191,6 +191,7 @@ class Menu {
 				} else {
 					entry.on('click', (e) => {s.trigger(e)})
 				}
+
 				parent.append(entry)
 
 			} else if (s instanceof BarSelect) {
@@ -264,6 +265,14 @@ class Menu {
 					scope.hover(this, e)
 				})
 			}
+			//Highlight
+			if (scope.highlight_action == s && entry) {
+				let obj = entry;
+				while (obj[0] && obj[0].nodeName == 'LI') {
+					obj.addClass('highlighted');
+					obj = obj.parent().parent();
+				}
+			}
 		}
 
 		scope.structure.forEach(function(s, i) {
@@ -312,16 +321,6 @@ class Menu {
 			handleMenuOverflow(ctxmenu);
 		}
 
-		$(scope.node).filter(':not(.tx)').addClass('tx').click(function(ev) {
-			if (
-				ev.target.className.includes('parent') ||
-				(ev.target.parentNode && ev.target.parentNode.className.includes('parent'))
-			) {} else {
-				scope.hide()
-			}
-
-		})
-
 		if (scope.type === 'bar_menu') {
 			MenuBar.open = scope
 			$(scope.label).addClass('opened')
@@ -333,6 +332,7 @@ class Menu {
 		return this.open(position);
 	}
 	hide() {
+		$(this.node).find('li.highlighted').removeClass('highlighted');
 		$(this.node).detach()
 		open_menu = null;
 		return this;
@@ -441,13 +441,20 @@ class BarMenu extends Menu {
 				scope.open()
 			}
 		})
-		this.structure = structure
+		this.structure = structure;
+		this.highlight_action = null;
 	}
 	hide() {
-		super.hide()
-		$(this.label).removeClass('opened')
-		MenuBar.open = undefined
+		super.hide();
+		$(this.label).removeClass('opened');
+		MenuBar.open = undefined;
+		this.highlight_action = null;
+		this.label.classList.remove('highlighted');
 		return this;
+	}
+	highlight(action) {
+		this.highlight_action = action;
+		this.label.classList.add('highlighted');
 	}
 }
 const MenuBar = {

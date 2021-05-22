@@ -509,6 +509,20 @@
 		padding: 0;
 		background-color: var(--color-text);
 	}
+	.contextMenu li.highlighted {
+		animation: menu_item_highlight 1s infinite ease-in-out;
+	}
+	@keyframes menu_item_highlight {
+		0% {
+			background-color: transparent;
+		}
+		50% {
+			background-color: var(--color-accent);
+		}
+		100% {
+			background-color: transparent;
+		}
+	}
 
 	.keybinding_label {
 		pointer-events: none;

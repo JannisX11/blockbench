@@ -367,6 +367,9 @@
 		color: var(--color-accent_text);
 		background: var(--color-accent);
 	}
+	li.menu_bar_point.highlighted {
+		animation: menu_item_highlight 1s infinite ease-in-out;
+	}
 
 	#mode_selector {
 		float: right;
