@@ -557,6 +557,8 @@ const Timeline = {
 		'bring_up_all_animations',
 		'fold_all_animations',
 		'clear_timeline',
+		'_',
+		'graph_editor_zero_line',
 	])
 }
 
@@ -582,7 +584,7 @@ onVueSetup(function() {
 			graph_editor_axis: 'x',
 			graph_offset: 200,
 			graph_size: 200,
-
+			show_zero_line: true,
 
 			channels: {
 				rotation: true,
@@ -614,7 +616,8 @@ onVueSetup(function() {
 				let clientHeight = this.$refs.timeline_body ? this.$refs.timeline_body.clientHeight : 400;
 				let keyframes = ba[this.graph_editor_channel];
 				let points = [];
-				let min = -1, max = 1;
+				let min = this.show_zero_line ? -1 : 10000,
+					max = this.show_zero_line ? 1 : -10000;
 
 				for (let time = Math.clamp(this.scroll_left - 9, 0, Infinity); time < (clientWidth + this.scroll_left - this.head_width); time += step) {
 					Timeline.time = time / this.size;
@@ -632,8 +635,13 @@ onVueSetup(function() {
 				Timeline.time = original_time;
 
 				let padding = 16;
-				this.graph_size = (clientHeight - 2*padding) / Math.clamp(max-min, 2.4, 1e4);
-				this.graph_offset = clientHeight - padding + (this.graph_size * min);
+				let min_size = 2.4;
+				let unit_size = Math.clamp(max-min, min_size, 1e4);
+				this.graph_size = (clientHeight - 2*padding) / unit_size;
+				let blend = Math.clamp(1 - (max-min) / min_size, 0, 1)
+				console.log(blend)
+				this.graph_offset = clientHeight - padding + (this.graph_size * (min - unit_size/2 * blend ) );
+				console.log(this.graph_size, clientHeight, padding, min, max)
 
 				let string = '';
 				points.forEach((value, i) => {
@@ -1052,6 +1060,15 @@ BARS.defineActions(function() {
 			if (Timeline.vue.graph_editor_open && Timeline.selected.length) {
 				Timeline.vue.graph_editor_channel = Timeline.selected[0].channel;
 			}
+		}
+	})
+	new Toggle('graph_editor_zero_line', {
+		icon: 'exposure_zero',
+		category: 'animation',
+		condition: {modes: ['animate'], method: () => Timeline.vue.graph_editor_open},
+		default: true,
+		onChange(state) {
+			Timeline.vue.show_zero_line = state;
 		}
 	})
 	new Action('play_animation', {
