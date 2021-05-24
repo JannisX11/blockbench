@@ -419,19 +419,8 @@
 
 	/*About*/
 	#about_page_title {
-		font-size: 1.8em;
-		font-weight: normal;
-		font-family: montserrat, arial, sans-serif;
 		vertical-align: top;
-	}
-	#about_page_title > i {
-		font-size: 1.3em;
-	}
-	#about_page_title > span {
-		display: inline-block;
-		vertical-align: bottom;
-		padding: 5px;
-		padding-bottom: 7px;
+		opacity: 0.9;
 	}
 
 /*Specific Dialogs*/

@@ -106,13 +106,6 @@
 			url(../font/Assistant-ExtraBold.ttf) format('truetype');
 	}
 	
-
-	@font-face {
-		font-family: 'montserrat';
-		font-style: normal;
-		src: local('Montserrat'),
-			url(../font/Montserrat-Regular.ttf) format('truetype');
-	}
 	@font-face {
 		font-family: 'Material Icons';
 		font-style: normal;
@@ -120,12 +113,6 @@
 		src: local('Material Icons'),
 			local('MaterialIcons-Regular'),
 			url(../font/MaterialIcons-Regular.ttf) format('truetype');
-	}
-	@font-face {
-		font-family: 'montserrat';
-		font-style: normal;
-		src: local('Montserrat'),
-			url(../font/Montserrat-Regular.ttf) format('truetype');
 	}
 	@font-face {
 		font-family: 'icomoon';
