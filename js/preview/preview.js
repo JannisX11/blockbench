@@ -1954,7 +1954,7 @@ function animate() {
 		Timeline.loop();
 	}
 	if (quad_previews.current) {
-		Wintersky.updateFacingRotation(quad_previews.current.camera);
+		WinterskyScene.updateFacingRotation(quad_previews.current.camera);
 	}
 	Preview.all.forEach(function(prev) {
 		if (prev.canvas.isConnected) {

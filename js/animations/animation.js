@@ -1068,7 +1068,7 @@ class EffectAnimator extends GeneralAnimator {
 
 							let emitter = particle_effect.emitters[kf.uuid + i];
 							if (!emitter) {
-								emitter = particle_effect.emitters[kf.uuid + i] = new Wintersky.Emitter(particle_effect.config);
+								emitter = particle_effect.emitters[kf.uuid + i] = new Wintersky.Emitter(WinterskyScene, particle_effect.config);
 							}
 
 							var locator = data_point.locator && Locator.all.find(l => l.name == data_point.locator)
@@ -1200,8 +1200,8 @@ Object.assign(Clipbench, {
 	}
 })
 
-if (isApp) {
-	Wintersky.fetchTexture = function(config) {
+const WinterskyScene = new Wintersky.Scene({
+	fetchTexture: isApp && function(config) {
 		if (config.file_path && config.particle_texture_path) {
 			let path_arr = config.file_path.split(PathModule.sep);
 			let particle_index = path_arr.indexOf('particles')
@@ -1213,7 +1213,10 @@ if (isApp) {
 			}
 		}
 	}
-}
+});
+WinterskyScene.global_options.scale = 16;
+WinterskyScene.global_options.loop_mode = 'once';
+WinterskyScene.global_options.parent_mode = 'entity';
 
 
 const Animator = {
@@ -1235,8 +1238,8 @@ const Animator = {
 		Canvas.updateAllBones()
 
 		Outliner.vue.options.hidden_types.push('cube');
-		scene.add(Wintersky.space);
-		Wintersky.global_options.tick_rate = settings.particle_tick_rate.value;
+		scene.add(WinterskyScene.space);
+		WinterskyScene.global_options.tick_rate = settings.particle_tick_rate.value;
 		if (settings.motion_trails.value) scene.add(Animator.motion_trail);
 		Animator.motion_trail.no_export = true;
 
@@ -1267,7 +1270,7 @@ const Animator = {
 		Animator.open = false;
 		Outliner.vue.options.hidden_types.remove('cube');
 
-		scene.remove(Wintersky.space);
+		scene.remove(WinterskyScene.space);
 		scene.remove(Animator.motion_trail);
 		Animator.resetParticles(true);
 
@@ -1434,7 +1437,7 @@ const Animator = {
 			}
 		} else {
 			Animator.particle_effects[path] = {
-				config: new Wintersky.Config(json_content, {path}),
+				config: new Wintersky.Config(WinterskyScene, json_content, {path}),
 				emitters: {}
 			};
 			if (isApp) {
