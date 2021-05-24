@@ -36,6 +36,7 @@ class Plugin {
 		this.description = '';
 		this.about = '';
 		this.icon = '';
+		this.tags = [];
 		this.variant = 'both';
 		this.min_version = '';
 		this.max_version = '';
@@ -56,7 +57,7 @@ class Plugin {
 		Merge.string(this, data, 'icon')
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
-		Merge.string(this, data, 'max_version')
+		if (data.tags instanceof Array) this.tags.push(...data.tags.slice(0, 3));
 
 		Merge.function(this, data, 'onload')
 		Merge.function(this, data, 'onunload')
@@ -131,11 +132,12 @@ class Plugin {
 			}
 		}
 
-		scope.id = pathToName(file.path)
+		this.id = pathToName(file.path);
 		Plugins.registered[this.id] = this;
-		localStorage.setItem('plugin_dev_path', file.path)
-		Plugins.all.safePush(this)
-		scope.source = 'file'
+		localStorage.setItem('plugin_dev_path', file.path);
+		Plugins.all.safePush(this);
+		this.source = 'file';
+		this.tags.push('Local');
 
 		return await new Promise((resolve, reject) => {
 
@@ -186,6 +188,7 @@ class Plugin {
 		Plugins.registered[this.id] = this;
 		localStorage.setItem('plugin_dev_path', url)
 		Plugins.all.safePush(this)
+		this.tags.push('Remote');
 
 		this.source = 'url';
 		await new Promise((resolve, reject) => {
@@ -494,6 +497,16 @@ BARS.defineActions(function() {
 					})
 				}
 			},
+			methods: {
+				getTagColor(tag) {
+					let lowercase = tag.toLowerCase();
+					if (lowercase == 'local' || lowercase == 'remote') {
+						return 'var(--color-tag-source)'
+					} else if (lowercase.substr(0, 9) == 'minecraft') {
+						return 'var(--color-tag-mc)'
+					}
+				}
+			},
 			template: `
 				<div style="margin-top: 10px;">
 					<div class="bar">
@@ -523,6 +536,9 @@ BARS.defineActions(function() {
 							<div class="description">{{ plugin.description }}</div>
 							<div v-if="plugin.expanded" class="about" v-html="marked(plugin.about)"><button>a</button></div>
 							<div v-if="plugin.expanded" v-on:click="plugin.toggleInfo()" style="text-decoration: underline;">${tl('dialog.plugins.show_less')}</div>
+							<ul class="plugin_tag_list">
+								<li v-for="tag in plugin.tags" :style="{backgroundColor: getTagColor(tag)}" :key="tag">{{tag}}</li>
+							</ul>
 						</li>
 						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>
 						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'" id="plugin_available_empty">${tl('dialog.plugins.none_available')}</div>
