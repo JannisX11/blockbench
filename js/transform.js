@@ -200,7 +200,8 @@ const Vertexsnap = {
 		//Each vertex needs it's own material for hovering
 		let outline_color = '0x'+CustomTheme.data.colors.accent.replace('#', '')
 		let material = new THREE.MeshBasicMaterial({color: parseInt(outline_color)})
-		let mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material)
+		let geometry = id == 100 ? new THREE.SphereGeometry(1, 7, 7) : new THREE.BoxGeometry(1, 1, 1)
+		let mesh = new THREE.Mesh(geometry, material)
 
 		let pos = mesh.position.copy(vec)
 		pos.applyMatrix4(cube.mesh.matrixWorld)
