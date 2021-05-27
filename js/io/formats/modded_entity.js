@@ -54,12 +54,12 @@ const Templates = {
 	},
 
 	'1.14': {
-		name: 'Forge 1.14',
+		name: 'Forge 1.14 (MCP)',
 		flip_y: true,
 		integer_size: true,
 		file: 
 		   `// Made with Blockbench %(bb_version)
-			// Exported for Minecraft version 1.14
+			// Exported for Minecraft version 1.14 with MCP mappings
 			// Paste this class into your mod and generate all required imports
 
 
@@ -95,13 +95,55 @@ const Templates = {
 		cube: `%(bone).cubeList.add(new ModelBox(%(bone), %(uv_x), %(uv_y), %(x), %(y), %(z), %(dx), %(dy), %(dz), %(inflate), %(mirror)));`,
 	},
 
+	'1.14_mojmaps': {
+		name: 'Forge 1.14 (Mojmaps)',
+		flip_y: true,
+		integer_size: true,
+		file:
+			`// Made with Blockbench %(bb_version)
+			// Exported for Minecraft version 1.14 with Mojang mappings
+			// Paste this class into your mod and generate all required imports
+
+
+			public class %(identifier) extends EntityModel {
+				%(fields)
+
+				public %(identifier)() {
+					texWidth = %(texture_width);
+					texHeight = %(texture_height);
+
+					%(content)
+				}
+
+				@Override
+				public void render(Entity entity, float f, float f1, float f2, float f3, float f4, float f5) {
+					%(renderers)
+				}
+
+				public void setRotationAngle(RendererModel modelRenderer, float x, float y, float z) {
+					modelRenderer.xRot = x;
+					modelRenderer.yRot = y;
+					modelRenderer.zRot = z;
+				}
+			}`,
+		field: `private final RendererModel %(bone);`,
+		bone:
+			`%(bone) = new RendererModel(this);
+			%(bone).setPos(%(x), %(y), %(z));
+			?(has_parent)%(parent).addChild(%(bone));
+			?(has_rotation)setRotationAngle(%(bone), %(rx), %(ry), %(rz));
+			%(cubes)`,
+		renderer: `%(bone).render(f5);`,
+		cube: `%(bone).cubes.add(new ModelBox(%(bone), %(uv_x), %(uv_y), %(x), %(y), %(z), %(dx), %(dy), %(dz), %(inflate), %(mirror)));`,
+	},
+
 	'1.15': {
-		name: 'Forge 1.15 - 1.16',
+		name: 'Forge 1.15 - 1.16 (MCP)',
 		flip_y: true,
 		integer_size: false,
 		file: 
 		   `// Made with Blockbench %(bb_version)
-			// Exported for Minecraft version 1.15 - 1.16
+			// Exported for Minecraft version 1.15 - 1.16 with MCP mappings
 			// Paste this class into your mod and generate all required imports
 
 
@@ -140,6 +182,53 @@ const Templates = {
 			%(cubes)`,
 		renderer: `%(bone).render(matrixStack, buffer, packedLight, packedOverlay);`,
 		cube: `%(bone).setTextureOffset(%(uv_x), %(uv_y)).addBox(%(x), %(y), %(z), %(dx), %(dy), %(dz), %(inflate), %(mirror));`,
+	},
+
+	'1.15_mojmaps': {
+		name: 'Forge 1.15 - 1.16 (Mojmaps)',
+		flip_y: true,
+		integer_size: false,
+		file:
+			`// Made with Blockbench %(bb_version)
+			// Exported for Minecraft version 1.15 - 1.16 with Mojang mappings
+			// Paste this class into your mod and generate all required imports
+
+
+			public class %(identifier) extends EntityModel<Entity> {
+				%(fields)
+
+				public %(identifier)() {
+					texWidth = %(texture_width);
+					texHeight = %(texture_height);
+
+					%(content)
+				}
+
+				@Override
+				public void setupAnim(Entity entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch){
+					//previously the render function, render code was moved to a method below
+				}
+
+				@Override
+				public void renderToBuffer(MatrixStack matrixStack, IVertexBuilder buffer, int packedLight, int packedOverlay, float red, float green, float blue, float alpha){
+					%(renderers)
+				}
+
+				public void setRotationAngle(ModelRenderer modelRenderer, float x, float y, float z) {
+					modelRenderer.xRot = x;
+					modelRenderer.yRot = y;
+					modelRenderer.zRot = z;
+				}
+			}`,
+		field: `private final ModelRenderer %(bone);`,
+		bone:
+			`%(bone) = new ModelRenderer(this);
+			%(bone).setPos(%(x), %(y), %(z));
+			?(has_parent)%(parent).addChild(%(bone));
+			?(has_rotation)setRotationAngle(%(bone), %(rx), %(ry), %(rz));
+			%(cubes)`,
+		renderer: `%(bone).render(matrixStack, buffer, packedLight, packedOverlay);`,
+		cube: `%(bone).texOffs(%(uv_x), %(uv_y)).addBox(%(x), %(y), %(z), %(dx), %(dy), %(dz), %(inflate), %(mirror));`,
 	},
 
 	get(key, version = Project.modded_entity_version) {
@@ -434,11 +523,11 @@ var codec = new Codec('modded_entity', {
 				} else
 
 
-				if (parseScheme('textureWidth = $i', line)) {
+				if (parseScheme('textureWidth = $i', line) || parseScheme('texWidth = $i', line)) {
 					Project.texture_width = match[0];
 				} else
 				
-				if (parseScheme('textureHeight = $i', line)) {
+				if (parseScheme('textureHeight = $i', line) || parseScheme('texHeight = $i', line)) {
 					Project.texture_height = match[0];
 				} else
 				
@@ -474,7 +563,7 @@ var codec = new Codec('modded_entity', {
 					}
 				} else
 				
-				if (parseScheme('$v.setRotationPoint($f, $f, $f)', line)) {
+				if (parseScheme('$v.setRotationPoint($f, $f, $f)', line) || parseScheme('$v.setPos($f, $f, $f)', line)) {
 					var bone = bones[match[0]]
 					if (bone) {
 						bone.extend({origin: [-match[1], 24-match[2], match[3]]});
@@ -504,7 +593,7 @@ var codec = new Codec('modded_entity', {
 				} else
 				
 				//Cubes
-				if (parseScheme('$v.cubeList.add(new ModelBox($v, $i, $i, $f, $f, $f, $i, $i, $i, $f, $b))', line)) {
+				if (parseScheme('$v.cubeList.add(new ModelBox($v, $i, $i, $f, $f, $f, $i, $i, $i, $f, $b))', line) || parseScheme('$v.cubes.add(new ModelBox($v, $i, $i, $f, $f, $f, $i, $i, $i, $f, $b))', line)) {
 					var group = bones[match[0]];
 					var cube = new Cube({
 						name: match[0],
@@ -554,7 +643,8 @@ var codec = new Codec('modded_entity', {
 					cube.addTo(bones[match[0]]).init();
 				} else
 				
-				if (parseScheme('$v.setTextureOffset($i, $i).addBox($f, $f, $f, $f, $f, $f, $f, $b)', line)
+				if (parseScheme('$v.setTextureOffset($i, $i).addBox($f, $f, $f, $f, $f, $f, $f, $b)', line) ||
+					parseScheme('$v.texOffs($i, $i).addBox($f, $f, $f, $f, $f, $f, $f, $b)', line)
 				) {
 					var group = bones[match[0]];
 					var cube = new Cube({
@@ -622,21 +712,21 @@ var codec = new Codec('modded_entity', {
 					}
 				} else
 
-				if (parseScheme('$v.rotateAngleX = $f', line)) {
+				if (parseScheme('$v.rotateAngleX = $f', line) || parseScheme('$v.xRot = $f', line)) {
 					//default
 					var group = bones[match[0]];
 					if (group) {
 						group.rotation[0] = -Math.radToDeg(match[1]);
 					}
 				} else
-				if (parseScheme('$v.rotateAngleY = $f', line)) {
+				if (parseScheme('$v.rotateAngleY = $f', line) || parseScheme('$v.yRot = $f', line)) {
 					//default
 					var group = bones[match[0]];
 					if (group) {
 						group.rotation[1] = -Math.radToDeg(match[1]);
 					}
 				} else
-				if (parseScheme('$v.rotateAngleZ = $f', line)) {
+				if (parseScheme('$v.rotateAngleZ = $f', line) || parseScheme('$v.zRot = $f', line)) {
 					//default
 					var group = bones[match[0]];
 					if (group) {
