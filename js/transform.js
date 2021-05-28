@@ -114,7 +114,7 @@ function moveCubesRelative(difference, index, event) { //Multiple
 	if (index === 1 && height === 'up') difference *= -1
 
 	if (event) {
-		difference *= canvasGridSize(event.shiftKey, event.ctrlOrCmd);
+		difference *= canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl);
 	}
 
 	moveElementsInSpace(difference, axes[index]);
@@ -647,11 +647,11 @@ function moveElementsInSpace(difference, axis) {
 function getRotationInterval(event) {
 	if (Format.rotation_limit) {
 		return 22.5;
-	} else if (event.shiftKey && event.ctrlOrCmd) {
+	} else if ((event.shiftKey || Pressing.overrides.shift) && (event.ctrlOrCmd || Pressing.overrides.ctrl)) {
 		return 0.25;
-	} else if (event.shiftKey) {
+	} else if (event.shiftKey || Pressing.overrides.shift) {
 		return 22.5;
-	} else if (event.ctrlOrCmd) {
+	} else if (event.ctrlOrCmd || Pressing.overrides.ctrl) {
 		return 1;
 	} else {
 		return 2.5;
@@ -846,7 +846,7 @@ BARS.defineActions(function() {
 	})
 	let grid_locked_interval = function(event) {
 		event = event||0;
-		return canvasGridSize(event.shiftKey, event.ctrlOrCmd);
+		return canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl);
 	}
 
 	function moveOnAxis(modify, axis) {

@@ -11,6 +11,11 @@ const Pressing = {
 	shift: false,
 	ctrl: false,
 	alt: false,
+	overrides: {
+		shift: false,
+		ctrl: false,
+		alt: false,
+	}
 }
 var main_uv;
 var Prop = {

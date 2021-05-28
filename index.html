@@ -720,14 +720,7 @@
 	</div>
 	<div id="status_bar"></div>
 
-	<div id="panel_selector_bar" hidden>
-		<div class="panel_selector" :class="{selected: selected == null}" @click="select(null)">
-			<div class="icon_wrapper"><i class="material-icons icon">3d_rotation</i></div>
-		</div>
-		<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in all_panels" v-if="Condition(panel.condition)" @click="select(panel)">
-			<div class="icon_wrapper" v-html="Blockbench.getIconNode(panel.icon).outerHTML"></div>
-		</div>
-	</div>
+	<div id="panel_selector_bar"></div>
 	
 	</div>
 	

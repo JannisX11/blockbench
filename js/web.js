@@ -77,6 +77,7 @@ function setupMobilePanelSelector() {
 			data: {
 				all_panels: Interface.Panels,
 				selected: null,
+				modifiers: Pressing.overrides
 			},
 			computed: {
 				panels() {
@@ -108,8 +109,36 @@ function setupMobilePanelSelector() {
 					} else {
 						overlay.hide();
 					}
+				},
+				openKeyboardMenu(event) {
+					console.log(event)
+					let menu = new Menu([
+						{icon: Pressing.overrides.ctrl ? 'check_box' : 'check_box_outline_blank', name: 'keys.ctrl', click() {Pressing.overrides.ctrl = !Pressing.overrides.ctrl}},
+						{icon: Pressing.overrides.shift ? 'check_box' : 'check_box_outline_blank', name: 'keys.shift', click() {Pressing.overrides.shift = !Pressing.overrides.shift}},
+						{icon: Pressing.overrides.alt ? 'check_box' : 'check_box_outline_blank', name: 'keys.alt', click() {Pressing.overrides.alt = !Pressing.overrides.alt}},
+						'_',
+						{icon: 'clear_all', name: 'menu.mobile_keyboard.disable_all', condition: () => {
+							let {length} = [Pressing.overrides.ctrl, Pressing.overrides.shift, Pressing.overrides.alt].filter(key => key);
+							return length;
+						}, click() {
+							Pressing.overrides.ctrl = false; Pressing.overrides.shift = false; Pressing.overrides.alt = false;
+						}},
+					])
+					menu.open(this.$refs.mobile_keyboard_menu)
 				}
-			}
+			},
+			template: `
+				<div id="panel_selector_bar">
+					<div class="panel_selector" :class="{selected: selected == null}" @click="select(null)">
+						<div class="icon_wrapper"><i class="material-icons icon">3d_rotation</i></div>
+					</div>
+					<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in all_panels" v-if="Condition(panel.condition)" @click="select(panel)">
+						<div class="icon_wrapper" v-html="Blockbench.getIconNode(panel.icon).outerHTML"></div>
+					</div>
+					<div id="mobile_keyboard_menu" @click="openKeyboardMenu($event)" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
+						<i class="material-icons">keyboard</i>
+					</div>
+				</div>`
 		})
 	}
 }

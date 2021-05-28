@@ -1772,7 +1772,7 @@ BARS.defineActions(function() {
 		category: 'animation',
 		condition: () => Animator.open && Animation.selected,
 		getInterval(event) {
-			if (event && event.shiftKey) return 1;
+			if ((event && event.shiftKey) || Pressing.overrides.shift) return 1;
 			return Timeline.getStep()
 		},
 		get: function() {

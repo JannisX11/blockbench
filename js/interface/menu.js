@@ -302,7 +302,7 @@ class Menu {
 				position = position.parentElement;
 			}
 			var offset_left = $(position).offset().left;
-			var offset_top  = $(position).offset().top + $(position).height();
+			var offset_top  = $(position).offset().top + position.clientHeight;
 		}
 
 		if (offset_left > window.innerWidth - el_width) {
@@ -310,7 +310,10 @@ class Menu {
 			if (position && position.clientWidth) offset_left += position.clientWidth;
 		}
 		if (offset_top  > window_height - el_height ) {
-			offset_top -= el_height
+			offset_top -= el_height;
+			if (position instanceof HTMLElement) {
+				offset_top -= position.clientHeight;
+			}
 		}
 		offset_top = Math.clamp(offset_top, 26)
 
@@ -320,6 +323,15 @@ class Menu {
 		if (el_height > window_height) {
 			handleMenuOverflow(ctxmenu);
 		}
+
+		$(scope.node).on('click', (ev) => {
+			if (
+				ev.target.className.includes('parent') ||
+				(ev.target.parentNode && ev.target.parentNode.className.includes('parent'))
+			) {} else {
+				scope.hide()
+			}
+		})
 
 		if (scope.type === 'bar_menu') {
 			MenuBar.open = scope

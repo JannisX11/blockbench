@@ -1234,6 +1234,8 @@
 
 	"menu.keyframe.quaternion": "Quaternion",
 
+	"menu.mobile_keyboard.disable_all": "Disable All",
+
 	"web.download_app": "Download App",
 
 	"interface.streamer_mode_on": "Streamer Mode Enabled",

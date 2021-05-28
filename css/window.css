@@ -325,6 +325,26 @@
 	#panel_selector_bar .panel_selector .icon_wrapper {
 		margin-top: 6px;
 	}
+	#mobile_keyboard_menu {
+		width: 40px;
+		text-align: center;
+		padding: 6px;
+		position: relative;
+	}
+	#mobile_keyboard_menu:hover {
+		color: var(--color-light);
+	}
+	#mobile_keyboard_menu.enabled::after {
+		content: "";
+		display: block;
+		position: absolute;
+		height: 8px;
+		width: 8px;
+		border-radius: 50%;
+		background-color: var(--color-accent);
+		bottom: 2px;
+		right: 15px;
+	}
 
 	div#mobile_panel_overlay {
 		position: absolute;
@@ -351,7 +371,7 @@
 		padding: 0 8px;
 		padding-top: 2px;
 		display: inline-block;
-		height: 28px;
+		height: 100%;
 		font-weight: normal;
 	}
 	li.menu_bar_point.opened {

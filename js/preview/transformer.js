@@ -1179,7 +1179,7 @@
 
 				if (Toolbox.selected.id === 'move_tool') {
 
-					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
+					var snap_factor = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)
 					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
 
 
@@ -1219,7 +1219,7 @@
 					}
 				} else if (Toolbox.selected.id === 'resize_tool') {
 					// Resize
-					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
+					var snap_factor = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)
 					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
 
 
@@ -1259,7 +1259,7 @@
 					}
 				} else if (Toolbox.selected.id === 'pivot_tool') {
 
-					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
+					var snap_factor = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)
 					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
 
 					if (originalValue === null) {
@@ -1318,7 +1318,7 @@
 					var round_num = getRotationInterval(event)
 				} else {
 					value = point[axis]
-					var round_num = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
+					var round_num = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)
 					if (Toolbox.selected.id === 'resize_tool') {
 						value *= (scope.direction) ? 0.1 : -0.1;
 						round_num *= 0.1;
