@@ -11,6 +11,9 @@ class Locator extends OutlinerElement {
 			this.extend(data);
 		}
 	}
+	get origin() {
+		return this.from;
+	}
 	extend(object) {
 		for (var key in Locator.properties) {
 			Locator.properties[key].merge(this, object)
@@ -48,6 +51,9 @@ class Locator extends OutlinerElement {
 	flip(axis, center) {
 		var offset = this.from[axis] - center
 		this.from[axis] = center - offset;
+		this.rotation.forEach((n, i) => {
+			if (i != axis) this.rotation[i] = -n;
+		})
 		// Name
 		if (axis == 0 && this.name.includes('right')) {
 			this.name = this.name.replace(/right/g, 'left').replace(/2$/, '');
@@ -77,6 +83,7 @@ class Locator extends OutlinerElement {
 	Locator.prototype.icon = 'fa fa-anchor';
 	Locator.prototype.name_regex = 'a-z0-9_'
 	Locator.prototype.movable = true;
+	Locator.prototype.rotatable = true;
 	Locator.prototype.visibility = true;
 	Locator.prototype.buttons = [
 		Outliner.buttons.export,
@@ -93,6 +100,7 @@ class Locator extends OutlinerElement {
 	
 	new Property(Locator, 'string', 'name', {default: 'locator'})
 	new Property(Locator, 'vector', 'from')
+	new Property(Locator, 'vector', 'rotation')
 
 BARS.defineActions(function() {
 	new Action('add_locator', {

@@ -660,6 +660,7 @@ function getRotationInterval(event) {
 function getRotationObject() {
 	if (Format.bone_rig && Group.selected) return Group.selected;
 	if (Format.rotate_cubes && Cube.selected.length) return Cube.selected;
+	if (Locator.selected.length) return Locator.selected;
 }
 function rotateOnAxis(modify, axis, slider) {
 	var things;
@@ -667,6 +668,8 @@ function rotateOnAxis(modify, axis, slider) {
 		things = [Group.selected]
 	} else if (Format.rotate_cubes && Cube.selected.length) {
 		things = Cube.selected;
+	} else if (Locator.selected.length) {
+		things = Locator.selected;
 	}
 	if (!things) return;
 	/*
@@ -1047,6 +1050,9 @@ BARS.defineActions(function() {
 			if (Format.rotate_cubes && Cube.selected[0]) {
 				return Cube.selected[0].rotation[0];
 			}
+			if (Locator.selected[0]) {
+				return Locator.selected[0].rotation[0];
+			}
 		},
 		change: function(modify) {
 			rotateOnAxis(modify, 0, true)
@@ -1073,6 +1079,9 @@ BARS.defineActions(function() {
 			if (Format.rotate_cubes && Cube.selected[0]) {
 				return Cube.selected[0].rotation[1];
 			}
+			if (Locator.selected[0]) {
+				return Locator.selected[0].rotation[1];
+			}
 		},
 		change: function(modify) {
 			rotateOnAxis(modify, 1, true)
@@ -1098,6 +1107,9 @@ BARS.defineActions(function() {
 			}
 			if (Format.rotate_cubes && Cube.selected[0]) {
 				return Cube.selected[0].rotation[2];
+			}
+			if (Locator.selected[0]) {
+				return Locator.selected[0].rotation[2];
 			}
 		},
 		change: function(modify) {
@@ -1146,7 +1158,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_origin.desc', ['X']),
 		color: 'x',
 		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate) && getRotationObject(),
+		condition: () => (Modes.edit || Modes.animate) && getRotationObject() && (Group.selected || Outliner.selected.length > Locator.selected.length),
 		getInterval: grid_locked_interval,
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -1171,7 +1183,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_origin.desc', ['Y']),
 		color: 'y',
 		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate) && getRotationObject(),
+		condition: () => (Modes.edit || Modes.animate) && getRotationObject() && (Group.selected || Outliner.selected.length > Locator.selected.length),
 		getInterval: grid_locked_interval,
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -1196,7 +1208,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_origin.desc', ['Z']),
 		color: 'z',
 		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate) && getRotationObject(),
+		condition: () => (Modes.edit || Modes.animate) && getRotationObject() && (Group.selected || Outliner.selected.length > Locator.selected.length),
 		getInterval: grid_locked_interval,
 		get: function() {
 			if (Format.bone_rig && Group.selected) {

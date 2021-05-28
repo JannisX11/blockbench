@@ -863,7 +863,11 @@
 					
 					//Center
 					if (Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool') {
-						rotation_object.mesh.getWorldPosition(this.position)
+						if (rotation_object.mesh) {
+							rotation_object.mesh.getWorldPosition(this.position);
+						} else {
+							this.position.copy(rotation_object.getWorldCenter());
+						}
 						Transformer.position.sub(scene.position);
 					} else {
 						var center = getSelectionCenter()

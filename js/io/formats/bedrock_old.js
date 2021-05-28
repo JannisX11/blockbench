@@ -83,9 +83,15 @@ function parseGeometry(data) {
 			}
 			if (b.locators) {
 				for (var key in b.locators) {
-					var coords = b.locators[key];
+					var coords, rotation;
+					if (b.locators[key] instanceof Array) {
+						coords = b.locators[key];
+					} else {
+						coords = b.locators[key].offset;
+						rotation = b.locators[key].rotation;
+					}
 					coords[0] *= -1
-					var locator = new Locator({from: coords, name: key}).addTo(group).init();
+					var locator = new Locator({from: coords, name: key, rotation}).addTo(group).init();
 				}
 			}
 			var parent_group = 'root';
