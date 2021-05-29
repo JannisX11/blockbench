@@ -102,15 +102,8 @@ const Painter = {
 				var x = (e.offsetX - bg_pos[0]) * pixel_ratio
 				var y = (e.offsetY - bg_pos[1]) * pixel_ratio
 				if (x >= 0 && y >= 0 && x < preview.background.imgtag.width && y < preview.background.imgtag.height) {
-					Painter.scanCanvas(ctx, x, y, 1, 1, (x, y, px) => {
-						var t = tinycolor({
-							r: px[0],
-							g: px[1],
-							b: px[2],
-							a: px[3]/256
-						})
-						ColorPanel.set(t)
-					})
+					let color = Painter.getPixelColor(ctx, x, y);
+					ColorPanel.set(color);
 				}
 			}
 		}
@@ -614,15 +607,8 @@ const Painter = {
 	},
 	colorPicker(texture, x, y) {
 		var ctx = Painter.getCanvas(texture).getContext('2d')
-		Painter.scanCanvas(ctx, x, y, 1, 1, (x, y, px) => {
-			var t = tinycolor({
-				r: px[0],
-				g: px[1],
-				b: px[2],
-				a: px[3]/256
-			})
-			ColorPanel.set(t)
-		})
+		let color = Painter.getPixelColor(ctx, x, y);
+		ColorPanel.set(color);
 	},
 	// Util
 	combineColors(base, added, opacity) {
@@ -690,6 +676,15 @@ const Painter = {
 			})
 		}
 		ctx.putImageData(arr, x, y)
+	},
+	getPixelColor(ctx, x, y) {
+		var {data} = ctx.getImageData(x, y, 1, 1)
+		return new tinycolor({
+			r: data[0],
+			g: data[1],
+			b: data[2],
+			a: data[3]/256
+		})
 	},
 	modifyCanvasSection(ctx, x, y, w, h, cb) {
 		var arr = ctx.getImageData(x, y, w, h)
