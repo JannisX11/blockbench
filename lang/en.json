@@ -866,7 +866,9 @@
 	"action.select_all": "Select All",
 	"action.select_all.desc": "Select all cubes",
 	"action.collapse_groups": "Collapse Groups",
-	"action.collapse_groups.desc": "Collapse all groups",
+	"action.collapse_groups.desc": "Collapse all groups in the outliner",
+	"action.unfold_groups": "Unfold Groups",
+	"action.unfold_groups.desc": "Unfold all groups in the outliner",
 
 	"action.slider_color_h": "Hue",
 	"action.slider_color_s": "Saturation",

@@ -549,13 +549,21 @@ BARS.defineActions(function() {
 		id: 'collapse_groups',
 		icon: 'format_indent_decrease',
 		category: 'edit',
-		condition: () => Outliner.root.length > 0,
+		condition: () => Group.all.length > 0,
 		click: function () {
 			Group.all.forEach(function(g) {
-				g.isOpen = false
-				var name = g.name
-				g.name = '_$X0v_'
-				g.name = name
+				g.isOpen = false;
+			})
+		}
+	})
+	new Action({
+		id: 'unfold_groups',
+		icon: 'format_indent_increase',
+		category: 'edit',
+		condition: () => Group.all.length > 0,
+		click: function () {
+			Group.all.forEach(function(g) {
+				g.isOpen = true;
 			})
 		}
 	})

@@ -1230,6 +1230,7 @@ Interface.definePanels(function() {
 			'sort_outliner',
 			'select_all',
 			'collapse_groups',
+			'unfold_groups',
 			'element_colors',
 			'outliner_toggle'
 		])
