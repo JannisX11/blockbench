@@ -1345,7 +1345,7 @@ const BARS = {
 			new BarSelect('vertex_snap_mode', {
 				options: {
 					move: true,
-					scale: true
+					scale: {condition: () => !Format.integer_size, name: true}
 				},
 				category: 'edit'
 			})

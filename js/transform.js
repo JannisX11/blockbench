@@ -330,7 +330,7 @@ const Vertexsnap = {
 			var global_delta = data.vertex.position
 			global_delta.sub(Vertexsnap.vertex_pos)
 
-			if (mode === 'scale') {
+			if (mode === 'scale' && !Format.integer_size) {
 				//Scale
 
 				var m;
