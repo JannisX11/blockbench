@@ -456,6 +456,7 @@ class Group extends OutlinerNode {
 			{icon: 'bubble_chart', color: markerColors[6].standard, name: 'cube.color.'+markerColors[6].name, click: () => setGroupColor(6)},
 			{icon: 'bubble_chart', color: markerColors[7].standard, name: 'cube.color.'+markerColors[7].name, click: () => setGroupColor(7)}
 		]},
+		'edit_bedrock_binding',
 		'rename',
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
 		{icon: 'fa-leaf', name: 'menu.group.resolve', condition: {modes: ['edit']}, click: function(group) {group.resolve()}},
@@ -550,7 +551,7 @@ BARS.defineActions(function() {
 		icon: 'format_indent_decrease',
 		category: 'edit',
 		condition: () => Group.all.length > 0,
-		click: function () {
+		click: function() {
 			Group.all.forEach(function(g) {
 				g.isOpen = false;
 			})
@@ -561,10 +562,45 @@ BARS.defineActions(function() {
 		icon: 'format_indent_increase',
 		category: 'edit',
 		condition: () => Group.all.length > 0,
-		click: function () {
+		click: function() {
 			Group.all.forEach(function(g) {
 				g.isOpen = true;
 			})
+		}
+	})
+	new Action({
+		id: 'edit_bedrock_binding',
+		icon: 'fa-paperclip',
+		category: 'edit',
+		condition: () => Format.id == 'bedrock' && Group.selected,
+		click: function() {
+			let dialog = new Dialog({
+				id: 'edit_bedrock_binding',
+				title: 'action.edit_bedrock_binding',
+				component: {
+					components: {VuePrismEditor},
+					data: {
+						binding: Group.selected.bedrock_binding,
+					},
+					template: 
+						`<div class="dialog_bar">
+							<vue-prism-editor class="molang_input dark_bordered" v-model="binding" language="molang" :line-numbers="false" />
+						</div>`
+				},
+				onConfirm: form_data => {
+					dialog.hide().delete();
+					if (
+						dialog.component.data.binding != Group.selected.bedrock_binding
+					) {
+						Undo.initEdit({group: Group.selected});
+						Group.selected.bedrock_binding = dialog.component.data.binding;
+						Undo.finishEdit('edit group binding');
+					}
+				},
+				onCancel() {
+					dialog.hide().delete();
+				}
+			}).show();
 		}
 	})
 })

@@ -869,6 +869,8 @@
 	"action.collapse_groups.desc": "Collapse all groups in the outliner",
 	"action.unfold_groups": "Unfold Groups",
 	"action.unfold_groups.desc": "Unfold all groups in the outliner",
+	"action.edit_bedrock_binding": "Edit Binding...",
+	"action.edit_bedrock_binding.desc": "Change which bone the geometry is bound to",
 
 	"action.slider_color_h": "Hue",
 	"action.slider_color_s": "Saturation",
