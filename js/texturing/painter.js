@@ -139,7 +139,7 @@ const Painter = {
 					return
 				}
 				if (Painter.current.face !== data.face || Painter.current.cube !== data.cube) {
-					if (Toolbox.selected.id === 'draw_shape_tool') {
+					if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
 						return;
 					}
 					Painter.current.x = x
@@ -165,7 +165,7 @@ const Painter = {
 		//Called directly by startPaintToolCanvas and startBrushUV
 		if (Toolbox.selected.id === 'color_picker') {
 			Painter.colorPicker(texture, x, y)
-		} else if (Toolbox.selected.id === 'draw_shape_tool') {
+		} else if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
 
 			Undo.initEdit({textures: [texture], selected_texture: true, bitmap: true});
 			Painter.brushChanges = false;
@@ -211,6 +211,10 @@ const Painter = {
 
 			Painter.useShapeTool(texture, x, y, event, uv)
 
+		} else if (Toolbox.selected.id === 'gradient_tool') {
+
+			Painter.useGradientTool(texture, x, y, event, uv)
+
 		} else {
 			Painter.drawBrushLine(texture, x, y, event, new_face, uv)
 		}
@@ -222,6 +226,9 @@ const Painter = {
 		if (Painter.brushChanges) {
 			Undo.finishEdit('paint');
 			Painter.brushChanges = false;
+		}
+		if (Toolbox.selected.id == 'gradient_tool') {
+			Blockbench.setStatusBarText();
 		}
 		delete Painter.current.alpha_matrix;
 		Painter.painting = false;
@@ -605,6 +612,81 @@ const Painter = {
 
 		}, {no_undo: true, use_cache: true});
 	},
+	useGradientTool(texture, x, y, event, uvTag) {
+		Painter.brushChanges = true;
+
+		texture.edit(function(canvas) {
+			var ctx = canvas.getContext('2d')
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			ctx.drawImage(Painter.current.clear, 0, 0)
+
+			let b_opacity = BarItems.slider_brush_opacity.get()/100;
+
+			if (uvTag) {
+				var rect = Painter.editing_area = [
+					uvTag[0] / Project.texture_width * texture.img.naturalWidth,
+					uvTag[1] / Project.texture_height * texture.img.naturalHeight,
+					uvTag[2] / Project.texture_width * texture.img.naturalWidth,
+					uvTag[3] / Project.texture_height * texture.img.naturalHeight
+				]
+			} else {
+				var rect = Painter.editing_area = [0, 0, texture.img.naturalWidth, texture.img.naturalHeight]
+			}
+			for (var t = 0; t < 2; t++) {
+				if (rect[t] > rect[t+2]) {
+					[rect[t], rect[t+2]] = [rect[t+2], rect[t]]
+				}
+				rect[t] = Math.round(rect[t])
+				rect[t+2] = Math.round(rect[t+2])
+			}
+			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
+			let diff_x = x - Painter.startPixel[0];
+			let diff_y = y - Painter.startPixel[1];
+
+			if (event.shiftKey) {
+				let length = Math.sqrt(Math.pow(diff_x, 2) + Math.pow(diff_y, 2));
+
+				let ratio = Math.abs(diff_x) / Math.abs(diff_y);
+				if (ratio < 0.25) {
+					ratio = 0;
+					diff_x = 0;
+					diff_y = length;
+				} else if (ratio < 0.75) {
+					ratio = 0.5;
+					diff_x = Math.round(length / 2.2361);
+					diff_y = diff_x * 2;
+				} else if (ratio < 1.5) {
+					ratio = 1;
+					diff_x = Math.round(Math.sqrt(Math.pow(length, 2) / 2));
+					diff_y = diff_x;
+				} else if (ratio < 3) {
+					ratio = 2;
+					diff_y = Math.round(length / 2.2361);
+					diff_x = diff_y * 2;
+				} else {
+					ratio = Infinity;
+					diff_x = length;
+					diff_y = 0;
+				}
+				console.log(ratio, diff_x, diff_y, length)
+				x = Painter.startPixel[0] + diff_x * Math.sign(x - Painter.startPixel[0]);
+				y = Painter.startPixel[1] + diff_y * Math.sign(y - Painter.startPixel[1]);
+			}
+
+			let gradient = ctx.createLinearGradient(Painter.startPixel[0], Painter.startPixel[1], x, y);
+			gradient.addColorStop(0, tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString());
+			gradient.addColorStop(1, tinycolor(ColorPanel.get()).setAlpha(0).toRgbString());
+			
+			ctx.fillStyle = gradient;
+
+			ctx.rect(rect[0], rect[1], w, h);
+			ctx.fill();
+
+			let degrees = Math.round(Math.radToDeg(Math.atan2(diff_x, diff_y)) * 4) / 4;
+			Blockbench.setStatusBarText(`${Math.round(diff_x)} x ${Math.round(diff_y)}, ${degrees}°`);
+
+		}, {no_undo: true, use_cache: true});
+	},
 	colorPicker(texture, x, y) {
 		var ctx = Painter.getCanvas(texture).getContext('2d')
 		let color = Painter.getPixelColor(ctx, x, y);
@@ -905,6 +987,26 @@ BARS.defineActions(function() {
 			Painter.updateNslideValues()
 		}
 	})
+	new Tool('gradient_tool', {
+		icon: 'gradient',
+		category: 'tools',
+		toolbar: 'brush',
+		alt_tool: 'color_picker',
+		cursor: 'crosshair',
+		selectFace: true,
+		transformerMode: 'hidden',
+		paintTool: true,
+		allowed_view_modes: ['textured'],
+		modes: ['paint'],
+		condition: {modes: ['paint']},
+		//keybind: new Keybind({key: 'u'}),
+		onCanvasClick: function(data) {
+			Painter.startPaintToolCanvas(data, data.event)
+		},
+		onSelect: function() {
+			Painter.updateNslideValues()
+		}
+	})
 	new Tool('copy_paste_tool', {
 		icon: 'fa-vector-square',
 		category: 'tools',
@@ -1009,7 +1111,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider('slider_brush_opacity', {
 		category: 'paint',
-		condition: () => (Toolbox && ['brush_tool', 'eraser', 'fill_tool', 'draw_shape_tool'].includes(Toolbox.selected.id)),
+		condition: () => (Toolbox && ['brush_tool', 'eraser', 'fill_tool', 'draw_shape_tool', 'gradient_tool'].includes(Toolbox.selected.id)),
 		tool_setting: 'brush_opacity',
 		settings: {
 			min: 0, max: 100, default: 100,

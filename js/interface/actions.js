@@ -1599,6 +1599,7 @@ const BARS = {
 				'eraser',
 				'color_picker',
 				'draw_shape_tool',
+				'gradient_tool',
 				'copy_paste_tool'
 			],
 			vertical: Blockbench.isMobile == true,

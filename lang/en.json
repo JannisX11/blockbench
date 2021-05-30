@@ -721,6 +721,8 @@
 	"action.color_picker.desc": "Tool to pick the color of pixels on your texture",
 	"action.draw_shape_tool": "Draw Shape",
 	"action.draw_shape_tool.desc": "Tool to draw simple shapes on textures",
+	"action.gradient_tool": "Gradient Tool",
+	"action.gradient_tool.desc": "Create a color gradient on your texture",
 	"action.copy_paste_tool": "Copy Paste Tool",
 	"action.copy_paste_tool.desc": "Tool to copy and paste selections of textures",
 	"action.toggle_skin_layer": "Toggle Skin Layer",
