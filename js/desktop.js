@@ -364,7 +364,12 @@ window.onbeforeunload = function() {
 		updateRecentProjectThumbnail()
 	} catch(err) {}
 
-	if (!Blockbench.hasFlag('allow_closing')) {
+
+	if (Blockbench.hasFlag('allow_closing')) {
+		try {
+			currentwindow.webContents.closeDevTools()
+		} catch (err) {}
+	} else {
 		setTimeout(function() {
 			showSaveDialog(true)
 		}, 2)

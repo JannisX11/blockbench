@@ -50,6 +50,7 @@ function createWindow(second_instance) {
 			webgl: true,
 			webSecurity: true,
 			nodeIntegration: true,
+			contextIsolation: false,
 			enableRemoteModule: true
 		}
 	})
