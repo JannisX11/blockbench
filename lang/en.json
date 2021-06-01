@@ -838,6 +838,8 @@
 	"action.undo.desc": "Undoes the last change",
 	"action.redo": "Redo",
 	"action.redo.desc": "Reverts the last undo",
+	"action.edit_history": "Edit History",
+	"action.edit_history.desc": "View the editing history and undo or redo steps",
 	"action.copy": "Copy",
 	"action.copy.desc": "Copy the selected selection, face or display settings",
 	"action.paste": "Paste",
