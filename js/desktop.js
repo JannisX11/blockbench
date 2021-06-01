@@ -367,7 +367,9 @@ window.onbeforeunload = function() {
 
 	if (Blockbench.hasFlag('allow_closing')) {
 		try {
-			currentwindow.webContents.closeDevTools()
+			if (!Blockbench.hasFlag('allow_reload')) {
+				currentwindow.webContents.closeDevTools()
+			}
 		} catch (err) {}
 	} else {
 		setTimeout(function() {

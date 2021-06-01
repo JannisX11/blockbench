@@ -242,6 +242,14 @@ function buildForm(dialog) {
 			if (data.readonly) {
 				bar.find('input').attr('readonly', 'readonly').removeClass('focusable_input')
 			}
+			if (data.description) {
+				let icon = document.createElement('i');
+				icon.className = 'fa fa-question dialog_form_description';
+				icon.onclick = function() {
+					Blockbench.showQuickMessage(data.description, 3600);
+				}
+				bar.append(icon);
+			}
 			dialog_content.append(bar)
 			data.bar = bar;
 		}

@@ -213,6 +213,20 @@
 		flex-grow: 1;
 		padding: 3px 5px;
 	}
+	dialog .dialog_form_description {
+		margin-left: auto;
+		padding-top: 8px;
+		font-size: 13px;
+		height: 28px;
+		color: var(--color-subtle_text);
+		display: block;
+		width: 16px;
+		text-align: center;
+	}
+	dialog .dialog_form_description:hover {
+		color: var(--color-light);
+		transition: color 750ms linear;
+	}
 
 /*Settings Dialog*/
 	dialog#settings {
