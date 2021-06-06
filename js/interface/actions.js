@@ -334,6 +334,9 @@ class Tool extends Action {
 			if (typeof Toolbox.selected.onUnselect == 'function') {
 				Toolbox.selected.onUnselect()
 			}
+			if (Transformer.dragging) {
+				Transformer.cancelMovement({}, true);
+			}
 		}
 		Toolbox.selected = this;
 		delete Toolbox.original;

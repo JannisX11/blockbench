@@ -933,6 +933,10 @@
 				}
 			}
 		}
+		this.cancelMovement = function(event, keep_changes = false) {
+			onPointerUp(event, keep_changes);
+			Undo.cancelEdit();
+		}
 		function displayDistance(number) {
 			Blockbench.setStatusBarText(trimFloatNumber(number));
 		}
@@ -1479,7 +1483,7 @@
 			scope.dispatchEvent( changeEvent );
 			scope.dispatchEvent( objectChangeEvent );
 		}
-		function onPointerUp( event ) {
+		function onPointerUp( event, keep_changes = true ) {
 			//event.preventDefault(); // Prevent MouseEvent on mobile
 			document.removeEventListener( "mouseup", onPointerUp );
 			scope.dragging = false
@@ -1511,11 +1515,11 @@
 							delete obj.oldScale;
 							delete obj.oldCenter;
 						})
-						if (scope.hasChanged) {
+						if (scope.hasChanged && keep_changes) {
 							Undo.finishEdit('resize')
 						}
 
-					} else if (scope.axis !== null && scope.hasChanged) {
+					} else if (scope.axis !== null && scope.hasChanged && keep_changes) {
 
 						if (Toolbox.selected.id == 'pivot_tool') {
 							Undo.finishEdit('move pivot')
@@ -1527,10 +1531,10 @@
 					}
 					updateSelection()
 
-				} else if (Modes.id === 'animate' && scope.keyframes && scope.keyframes.length) {
+				} else if (Modes.id === 'animate' && scope.keyframes && scope.keyframes.length && keep_changes) {
 					Undo.finishEdit('change keyframe', {keyframes: scope.keyframes})
 
-				} else if (Modes.id === 'display') {
+				} else if (Modes.id === 'display' && keep_changes) {
 					Undo.finishEdit('edit display slot')
 				}
 				

@@ -528,8 +528,8 @@ $(document).on('keydown mousedown', function(e) {
 			alt.select()
 			Toolbox.original = orig
 		}
-	} else if (Keybinds.extra.cancel.keybind.isTriggered(e) && (Transformer.dragging/* || ...*/)) {
-		Undo.cancelEdit()
+	} else if (Keybinds.extra.cancel.keybind.isTriggered(e) && (Transformer.dragging)) {
+		Transformer.cancelMovement(e, false);
 	}
 	//Keybinds
 	if (!input_focus) {
