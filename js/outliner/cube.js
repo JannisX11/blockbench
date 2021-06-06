@@ -885,7 +885,7 @@ BARS.defineActions(function() {
 			if (Group.selected) Group.selected.unselect()
 			base_cube.select()
 			Canvas.updateSelected()
-			Undo.finishEdit('add_cube', {outliner: true, elements: selected, selection: true});
+			Undo.finishEdit('Add cube', {outliner: true, elements: selected, selection: true});
 			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 
 			Vue.nextTick(function() {
@@ -933,7 +933,7 @@ BARS.defineActions(function() {
 							}
 						}
 					})
-					Undo.finishEdit('edit material instances')
+					Undo.finishEdit('Edit material instances')
 				}
 			})
 			dialog.show();

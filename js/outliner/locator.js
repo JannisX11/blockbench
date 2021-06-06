@@ -105,7 +105,7 @@ BARS.defineActions(function() {
 			var locator = new Locator().addTo(Group.selected||selected[0]).init();
 			locator.select().createUniqueName();
 			objs.push(locator);
-			Undo.finishEdit('add locator');
+			Undo.finishEdit('Add locator');
 			Vue.nextTick(function() {
 				if (settings.create_rename.value) {
 					locator.rename();

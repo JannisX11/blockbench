@@ -369,7 +369,7 @@ class Animation {
 				Undo.initEdit({animations: [scope]});
 				scope.name = name;
 				scope.createUniqueName();
-				Undo.finishEdit('rename animation');
+				Undo.finishEdit('Rename animation');
 			}
 		})
 		return this;
@@ -409,7 +409,7 @@ class Animation {
 		}
 		if (undo) {
 			this.select()
-			Undo.finishEdit('add animation', {animations: [this]})
+			Undo.finishEdit('Add animation', {animations: [this]})
 		}
 		return this;
 	}
@@ -419,7 +419,7 @@ class Animation {
 		}
 		Animator.animations.remove(this)
 		if (undo) {
-			Undo.finishEdit('remove animation', {animations: []})
+			Undo.finishEdit('Remove animation', {animations: []})
 
 			if (isApp && remove_from_file && this.path && fs.existsSync(this.path)) {
 				Blockbench.showMessageBox({
@@ -467,7 +467,7 @@ class Animation {
 		if ((value == 'once' || value == 'loop' || value == 'hold') && value !== this.loop) {
 			if (undo) Undo.initEdit({animations: [this]})
 			this.loop = value;
-			if (undo) Undo.finishEdit('change animation loop mode')
+			if (undo) Undo.finishEdit('Change animation loop mode')
 		}
 	}
 	calculateSnappingFromKeyframes() {
@@ -568,7 +568,7 @@ class Animation {
 					this.createUniqueName();
 					if (isApp) this.path = form_data.path;
 
-					Undo.finishEdit('edit animation properties');
+					Undo.finishEdit('Edit animation properties');
 				}
 			},
 			onCancel() {
@@ -626,7 +626,7 @@ class Animation {
 			animations_to_remove.forEach(animation => {
 				animation.remove(false, false);
 			})
-			Undo.finishEdit('remove animation', {animations: []})
+			Undo.finishEdit('Remove animation file', {animations: []})
 		}}
 	])
 	new Property(Animation, 'boolean', 'saved', {default: true, condition: () => Format.animation_files})
@@ -718,7 +718,7 @@ class GeneralAnimator {
 		Undo.addKeyframeCasualties(deleted);
 
 		if (undo) {
-			Undo.finishEdit('added keyframe')
+			Undo.finishEdit('Add keyframe')
 		}
 		return keyframe;
 	}
@@ -1195,7 +1195,7 @@ Object.assign(Clipbench, {
 			})
 			TickUpdates.keyframe_selection = true;
 			Animator.preview()
-			Undo.finishEdit('paste keyframes');
+			Undo.finishEdit('Paste keyframes');
 		}
 	}
 })
@@ -1633,7 +1633,7 @@ const Animator = {
 		} else if (keys.length == 1) {
 			Undo.initEdit({animations: []})
 			let new_animations = Animator.loadFile(file, keys);
-			Undo.finishEdit('import animations', {animations: new_animations})
+			Undo.finishEdit('Import animations', {animations: new_animations})
 
 		} else {
 			let dialog = new Dialog({
@@ -1650,7 +1650,7 @@ const Animator = {
 					}
 					Undo.initEdit({animations: []})
 					let new_animations = Animator.loadFile(file, names);
-					Undo.finishEdit('import animations', {animations: new_animations})
+					Undo.finishEdit('Import animations', {animations: new_animations})
 				}
 			})
 			dialog.show();
@@ -1914,7 +1914,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({keyframes: Timeline.selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('move keyframes')
+			Undo.finishEdit('Change IK chain length')
 		}
 	})
 
@@ -2084,7 +2084,7 @@ Interface.definePanels(function() {
 							Animation.all.remove(anim);
 							Animation.all.splice(index, 0, anim);
 
-							Undo.finishEdit('reorder animations');
+							Undo.finishEdit('Reorder animations');
 						}
 					}
 

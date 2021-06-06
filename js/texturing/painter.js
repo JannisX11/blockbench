@@ -224,7 +224,7 @@ const Painter = {
 	stopPaintTool() {
 		//Called directly by stopPaintToolCanvas and stopBrushUV
 		if (Painter.brushChanges) {
-			Undo.finishEdit('paint');
+			Undo.finishEdit('Paint texture');
 			Painter.brushChanges = false;
 		}
 		if (Toolbox.selected.id == 'gradient_tool') {

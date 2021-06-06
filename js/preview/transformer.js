@@ -1512,26 +1512,26 @@
 							delete obj.oldCenter;
 						})
 						if (scope.hasChanged) {
-							Undo.finishEdit('resize')
+							Undo.finishEdit('Resize')
 						}
 
 					} else if (scope.axis !== null && scope.hasChanged) {
 
 						if (Toolbox.selected.id == 'pivot_tool') {
-							Undo.finishEdit('move pivot')
+							Undo.finishEdit('Move pivot')
 						} else if (Toolbox.selected.id == 'rotate_tool') {
-							Undo.finishEdit('rotate selection')
+							Undo.finishEdit('Rotate selection')
 						} else {
-							Undo.finishEdit('move selection')
+							Undo.finishEdit('Move selection')
 						}
 					}
 					updateSelection()
 
 				} else if (Modes.id === 'animate' && scope.keyframes && scope.keyframes.length) {
-					Undo.finishEdit('change keyframe', {keyframes: scope.keyframes})
+					Undo.finishEdit('Change keyframe', {keyframes: scope.keyframes})
 
 				} else if (Modes.id === 'display') {
-					Undo.finishEdit('edit display slot')
+					Undo.finishEdit('Edit display slot')
 				}
 				
 				if (Modes.animate && Transformer.isIKMovement() && Transformer.ik_solver) {

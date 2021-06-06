@@ -238,7 +238,7 @@ var Extruder = {
 			s.addTo(group).init()
 		})
 
-		Undo.finishEdit('add extruded texture', {elements: selected, outliner: true, textures: [textures[textures.length-1]]})
+		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [textures[textures.length-1]]})
 
 		hideDialog()
 	}

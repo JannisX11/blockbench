@@ -1526,7 +1526,7 @@ DisplayMode.applyPreset = function(preset, all) {
 		display[sl].extend(preset.areas[sl])
 	})
 	DisplayMode.updateDisplayBase()
-	Undo.finishEdit('apply display preset')
+	Undo.finishEdit('Apply display preset')
 }
 DisplayMode.createPreset = function() {
 	var name = $('input#preset_name').val()
@@ -1746,7 +1746,7 @@ DisplayMode.paste = function() {
 	Undo.initEdit({display_slots: [display_slot]})
 	DisplayMode.slot.extend(Clipbench.display_slot)
 	DisplayMode.updateDisplayBase()
-	Undo.finishEdit('paste display slot')
+	Undo.finishEdit('Paste display slot')
 }
 
 DisplayMode.scrollSlider = function(type, value, el) {
@@ -1756,7 +1756,7 @@ DisplayMode.scrollSlider = function(type, value, el) {
 	DisplayMode.slot[channel][parseInt(axis)] = value
 
 	DisplayMode.slot.update()
-	Undo.finishEdit('change display slot')
+	Undo.finishEdit('Change display slot')
 }
 
 window.changeDisplaySkin = function() {
@@ -1975,19 +1975,19 @@ Interface.definePanels(function() {
 					if (channel === 'scale') {
 					DisplayMode.slot.extend({mirror: [false, false, false]})
 					}
-					Undo.finishEdit('reset display')
+					Undo.finishEdit('Reset display channel')
 				},
 				invert: (axis) => {
 					Undo.initEdit({display_slots: [display_slot]})
 					DisplayMode.slot.mirror[axis] = !DisplayMode.slot.mirror[axis];
 					DisplayMode.slot.update()
-					Undo.finishEdit('mirror display')
+					Undo.finishEdit('Mirror display setting')
 				},
 				start: () => {
 					Undo.initEdit({display_slots: [display_slot]})
 				},
 				save: () => {
-					Undo.finishEdit('change_display')
+					Undo.finishEdit('Change display setting')
 				}
 			},
 			template: `

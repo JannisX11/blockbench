@@ -506,7 +506,7 @@ BARS.defineActions(function() {
 				steps.push(step);
 			})
 			steps.push({
-				name: 'original',
+				name: 'Original',
 				time: '',
 				index: 0,
 				current: Undo.index == 0
