@@ -444,17 +444,30 @@ function setZoomLevel(mode) {
 		zoom = limitNumber(zoom, 1, 4)
 		main_uv.setZoom(zoom)
 
-	}
-	/* else if (isApp) {
-		switch (mode) {
-			case 'in':	Prop.zoom += 5;  break;
-			case 'out':   Prop.zoom -= 5;  break;
-			case 'reset': Prop.zoom = 100; break;
+	} else if (Prop.active_panel == 'timeline') {
+		
+		let body = document.getElementById('timeline_body');
+		let offsetX = Timeline.vue.scroll_left + (body.clientWidth - Timeline.vue.head_width) / 2;
+		
+		if (mode == 'reset') {
+			let original_size = Timeline.vue._data.size
+			Timeline.vue._data.size = 200;
+			
+			body.scrollLeft += (Timeline.vue._data.size - original_size) * (offsetX / original_size)
+		} else {
+			let zoom = mode == 'in' ? 1.2 : 0.8;
+			let original_size = Timeline.vue._data.size
+			let updated_size = limitNumber(Timeline.vue._data.size * zoom, 10, 1000)
+			Timeline.vue._data.size = updated_size;
+			
+			body.scrollLeft += (updated_size - original_size) * (offsetX / original_size)
 		}
-		var level = (Prop.zoom - 100) / 12
-		currentwindow.webContents.setZoomLevel(level)
-		resizeWindow()
-	}*/
+	} else {
+		switch (mode) {
+			case 'in':		Preview.selected.controls.dollyIn(1.16);  break;
+			case 'out':  	Preview.selected.controls.dollyOut(1.16);  break;
+		}
+	}
 }
 
 //Dialogs

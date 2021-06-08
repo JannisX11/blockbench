@@ -466,11 +466,11 @@ class NumSlider extends Widget {
 		} else {
 			this.interval = function(event) {
 				event = event||0;
-				if (!event.shiftKey && !event.ctrlKey) {
+				if (!event.shiftKey && !event.ctrlOrCmd) {
 					return 1
-				} else if (event.ctrlKey && event.shiftKey) {
+				} else if (event.ctrlOrCmd && event.shiftKey) {
 					return 0.025
-				} else if (event.ctrlKey) {
+				} else if (event.ctrlOrCmd) {
 					return 0.1
 				} else if (event.shiftKey)  {
 					return 0.25

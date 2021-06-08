@@ -268,7 +268,7 @@ const Timeline = {
 				
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
-				if (!e.ctrlKey) time = Timeline.snapTime(time);
+				if (!e.ctrlOrCmd) time = Timeline.snapTime(time);
 				Timeline.setTime(time);
 				Animator.preview();
 			}
@@ -279,7 +279,7 @@ const Timeline = {
 				convertTouchEvent(e);
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
-				if (!e.ctrlKey) time = Timeline.snapTime(time);
+				if (!e.ctrlOrCmd) time = Timeline.snapTime(time);
 				if (Timeline.time != time) {
 					Timeline.setTime(time)
 					Animator.preview()
@@ -374,6 +374,7 @@ const Timeline = {
 
 				let offset = $('#timeline_body_inner').offset()
 				let offsetX = event.clientX - offset.left - Timeline.vue._data.head_width;
+				console.log(offsetX)
 				
 				var zoom = 1 - event.deltaY/600
 				let original_size = Timeline.vue._data.size
@@ -553,6 +554,11 @@ const Timeline = {
 	menu: new Menu([
 		'paste',
 		'_',
+		{name: 'menu.view.zoom', id: 'zoom', condition: isApp, icon: 'search', children: [
+			'zoom_in',
+			'zoom_out',
+			'zoom_reset'
+		]},
 		'select_all',
 		'bring_up_all_animations',
 		'fold_all_animations',
@@ -747,7 +753,7 @@ onVueSetup(function() {
 					dragging_restriction;
 					originalValue;
 					previousValue = 0;
-					time_stretching = !Timeline.vue.graph_editor_open && e1.ctrlKey && Timeline.selected.length > 1;
+					time_stretching = !Timeline.vue.graph_editor_open && e1.ctrlOrCmd && Timeline.selected.length > 1;
 					values_changed = false;
 
 					if (!clicked.selected && !e1.shiftKey && Timeline.selected.length != 0) {

@@ -584,7 +584,7 @@ function dropOutlinerObjects(item, target, event, order) {
 	}
 	if (event.altKey) {
 		Undo.initEdit({elements: [], outliner: true, selection: true})
-		selected.length = 0
+		selected.empty();
 	} else {
 		Undo.initEdit({outliner: true, selection: true})
 		var updatePosRecursive = function(item) {
@@ -622,7 +622,7 @@ function dropOutlinerObjects(item, target, event, order) {
 				} else {
 					var cube = item.duplicate()
 					place(cube)
-					selected.push(cube)
+					selected.safePush(cube)
 				}
 			} else {
 				place(item)

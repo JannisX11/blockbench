@@ -376,6 +376,9 @@ THREE.OrbitControls = function ( object, preview ) {
 
 	}
 
+	this.dollyIn = dollyIn;
+	this.dollyOut = dollyOut;
+
 	// event callbacks - update the object state
 
 	function handleMouseDownRotate( event ) {

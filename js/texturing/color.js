@@ -729,7 +729,7 @@ BARS.defineActions(function() {
 		},
 		getInterval(e) {
 			if (e.shiftKey) return 12.5;
-			if (e.ctrlKey) return 1;
+			if (e.ctrlOrCmd) return 1;
 			return 4
 		},
 		get: function() {
@@ -749,7 +749,7 @@ BARS.defineActions(function() {
 		},
 		getInterval(e) {
 			if (e.shiftKey) return 10;
-			if (e.ctrlKey) return 1;
+			if (e.ctrlOrCmd) return 1;
 			return 2
 		},
 		get: function() {
@@ -769,7 +769,7 @@ BARS.defineActions(function() {
 		},
 		getInterval(e) {
 			if (e.shiftKey) return 10;
-			if (e.ctrlKey) return 1;
+			if (e.ctrlOrCmd) return 1;
 			return 2
 		},
 		get: function() {
