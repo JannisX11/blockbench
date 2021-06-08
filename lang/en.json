@@ -1285,6 +1285,7 @@
 	"panel.animations": "Animations",
 	"panel.keyframe": "Keyframe",
 	"panel.keyframe.type": "Keyframe (%0)",
+	"panel.keyframe.toggle_uniform_scale": "Toggle Uniform Scale",
 	"panel.keyframe.add_data_point": "Add Keyframe Data Point",
 	"panel.keyframe.remove_data_point": "Remove Data Point",
 	"panel.keyframe.pre": "Pre",
