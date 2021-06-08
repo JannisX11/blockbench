@@ -220,20 +220,24 @@ const Blockbench = {
 			jq_dialog.find('.dialog_bar').prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'))
 		}
 
+		function close(button) {
+			hideDialog();
+			setTimeout(function() {
+				jq_dialog.remove();
+			},200)
+			if (cb) {
+				cb(button);
+			}
+		}
+
 		var buttons = []
 
 		options.buttons.forEach(function(b, i) {
 			var btn = $('<button type="button">'+tl(b)+'</button>')
 			btn.click(function(e) {
-				hideDialog()
-				setTimeout(function() {
-					jq_dialog.remove()
-				},200)
-				if (cb) {
-					cb(i)
-				}
+				close(i);
 			})
-			buttons.push(btn)
+			buttons.push(btn);
 		})
 		jq_dialog.hide = function() {
 			$(jq_dialog.find('button').get(options.cancel)).click()
@@ -267,7 +271,14 @@ const Blockbench = {
 			jq_dialog.css('width', limitNumber(options.buttons.length*170+44, 380, 894)+'px')
 		}
 		open_dialog = 'message_box'
-		open_interface = 'message_box'
+		open_interface = {
+			confirm() {
+				close(options.confirm);
+			},
+			cancel() {
+				close(options.cancel);
+			}
+		}
 		return jq_dialog
 	},
 	textPrompt(title, value, callback) {

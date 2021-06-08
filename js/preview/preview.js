@@ -1465,18 +1465,19 @@ const Screencam = {
 			var is_gif = dataUrl.substr(5, 9) == 'image/gif'
 			img.src = dataUrl
 
-			var btns = [tl('dialog.cancel'), tl('dialog.save')]
+			var btns = [tl('dialog.save'), tl('dialog.cancel')]
 			if (!is_gif) {
-				btns.push(tl('message.screenshot.clipboard'))
+				btns.splice(0, 0, tl('message.screenshot.clipboard'))
 			}
 			Blockbench.showMessageBox({
 				translateKey: 'screenshot',
 				icon: img,
 				buttons: btns,
-				confirm: 1,
-				cancel: 0
 			}, function(result) {
-				if (result === 1) {
+				if (result === 0 && btns.length == 3) {
+					clipboard.writeImage(screenshot);
+
+				} else if (result === btns.length-2) {
 					if (is_gif) {
 						Blockbench.export({
 							resource_id: 'screenshot',
@@ -1496,8 +1497,6 @@ const Screencam = {
 							content: dataUrl
 						})
 					}
-				} else if (result === 2) {
-					clipboard.writeImage(screenshot)
 				}
 			})
 		} else {
