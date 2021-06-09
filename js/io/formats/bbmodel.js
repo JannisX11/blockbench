@@ -398,7 +398,7 @@ var codec = new Codec('project', {
 		if (model.display !== undefined) {
 			DisplayMode.loadJSON(model.display)
 		}
-		Undo.finishEdit('merge project')
+		Undo.finishEdit('Merge project')
 		Canvas.updateAllBones()
 		Canvas.updateAllPositions()
 		this.dispatchEvent('parsed', {model})

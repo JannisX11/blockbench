@@ -893,7 +893,7 @@ onVueSetup(function() {
 						Blockbench.setStatusBarText();
 						if (values_changed) {
 							Undo.addKeyframeCasualties(deleted);
-							Undo.finishEdit('drag keyframes');
+							Undo.finishEdit('Drag keyframes');
 						} else {
 							Undo.cancelEdit();
 						}

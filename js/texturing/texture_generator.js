@@ -91,7 +91,7 @@ const TextureGenerator = {
 				after(texture)
 			}
 			if (!options.template) {
-				Undo.finishEdit('create blank texture', {textures: [texture], selected_texture: true, bitmap: true})
+				Undo.finishEdit('Create blank texture', {textures: [texture], selected_texture: true, bitmap: true})
 			}
 			return texture;
 		}
@@ -375,7 +375,7 @@ const TextureGenerator = {
 		})
 
 		updateSelection()
-		Undo.finishEdit('create template', {
+		Undo.finishEdit('Create template', {
 			textures: [texture],
 			bitmap: true,
 			elements: cubes,
@@ -796,7 +796,7 @@ const TextureGenerator = {
 			})
 		}
 		updateSelection()
-		Undo.finishEdit('create template', {
+		Undo.finishEdit('Create template', {
 			textures: [texture],
 			bitmap: true,
 			elements: cube_array,

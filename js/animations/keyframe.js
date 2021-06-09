@@ -474,7 +474,7 @@ function removeSelectedKeyframes() {
 	}
 	updateKeyframeSelection()
 	Animator.preview()
-	Undo.finishEdit('remove keyframes')
+	Undo.finishEdit('Remove keyframes')
 }
 
 BARS.defineActions(function() {
@@ -509,7 +509,7 @@ BARS.defineActions(function() {
 			})
 			Animator.preview()
 			BarItems.slider_keyframe_time.update()
-			Undo.finishEdit('move keyframes')
+			Undo.finishEdit('Move keyframes back')
 		}
 	})
 	new Action('move_keyframe_forth', {
@@ -524,7 +524,7 @@ BARS.defineActions(function() {
 			})
 			Animator.preview()
 			BarItems.slider_keyframe_time.update()
-			Undo.finishEdit('move keyframes')
+			Undo.finishEdit('Move keyframes forwards')
 		}
 	})
 	new Action('previous_keyframe', {
@@ -621,7 +621,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({keyframes: Timeline.selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('move keyframes')
+			Undo.finishEdit('Change keyframe time')
 		}
 	})
 	new BarSelect('keyframe_interpolation', {
@@ -636,7 +636,7 @@ BARS.defineActions(function() {
 			Timeline.selected.forEach((kf) => {
 				if (kf.transform) kf.interpolation = sel.value;
 			})
-			Undo.finishEdit('change keyframes interpolation')
+			Undo.finishEdit('Change keyframes interpolation')
 			updateKeyframeSelection();
 		}
 	})
@@ -649,7 +649,7 @@ BARS.defineActions(function() {
 			Timeline.selected.forEach((kf) => {
 				kf.data_points.replace([new KeyframeDataPoint(kf)]);
 			})
-			Undo.finishEdit('reset keyframes')
+			Undo.finishEdit('Reset keyframes')
 			updateKeyframeSelection()
 			Animator.preview()
 		}
@@ -668,7 +668,7 @@ BARS.defineActions(function() {
 				}
 			})
 			Timeline.time = time_before;
-			Undo.finishEdit('resolve keyframes')
+			Undo.finishEdit('Resolve keyframes')
 			updateKeyframeSelection()
 		}
 	})
@@ -696,7 +696,7 @@ BARS.defineActions(function() {
 						}
 					})
 					Animator.loadParticleEmitter(path, files[0].content);
-					Undo.finishEdit('changed keyframe audio file')
+					Undo.finishEdit('Change keyframe particle file')
 				})	
 			} else {
 				Blockbench.import({
@@ -717,7 +717,7 @@ BARS.defineActions(function() {
 						}
 					})
 					Timeline.visualizeAudioFile(path);
-					Undo.finishEdit('changed keyframe audio file')
+					Undo.finishEdit('Change keyframe audio file')
 				})
 			}
 		}
@@ -740,7 +740,7 @@ BARS.defineActions(function() {
 					kf.data_points.reverse();
 				}
 			})
-			Undo.finishEdit('reverse keyframes')
+			Undo.finishEdit('Reverse keyframes')
 			updateKeyframeSelection()
 			Animator.preview()
 		}
@@ -806,7 +806,7 @@ BARS.defineActions(function() {
 					TickUpdates.keyframes = true;
 					Animator.preview();
 
-					Undo.finishEdit('copy and flip keyframes');
+					Undo.finishEdit('Copy and flip keyframes');
 				}
 			}).show()
 		}
@@ -865,7 +865,7 @@ Interface.definePanels(function() {
 						}
 					})
 					Animator.preview()
-					Undo.finishEdit('add keyframe data point')
+					Undo.finishEdit('Add keyframe data point')
 				},
 				removeDataPoint(data_point) {
 					Undo.initEdit({keyframes: Timeline.selected})
@@ -875,7 +875,7 @@ Interface.definePanels(function() {
 						}
 					})
 					Animator.preview()
-					Undo.finishEdit('remove keyframe data point')
+					Undo.finishEdit('Remove keyframe data point')
 				},
 				updateLocatorSuggestionList() {
 					locator_suggestion_list.innerHTML = '';
@@ -1014,7 +1014,7 @@ Interface.definePanels(function() {
 
 			let val = event.target.value || event.target.innerText;
 			if (val != keyframe_edit_value) {
-				Undo.finishEdit('edit keyframe');
+				Undo.finishEdit('Edit keyframe');
 			} else {
 				Undo.cancelEdit();
 			}

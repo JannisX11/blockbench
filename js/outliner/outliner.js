@@ -213,7 +213,7 @@ class OutlinerNode {
 			if (Condition(scope.needsUniqueName)) {
 				scope.createUniqueName()
 			}
-			Undo.finishEdit('rename')
+			Undo.finishEdit('Rename element')
 		} else {
 			scope.name = scope.old_name
 			delete scope.old_name
@@ -640,9 +640,9 @@ function dropOutlinerObjects(item, target, event, order) {
 	}
 	if (event.altKey) {
 		updateSelection()
-		Undo.finishEdit('drag', {elements: selected, outliner: true, selection: true})
+		Undo.finishEdit('Duplicate selection', {elements: selected, outliner: true, selection: true})
 	} else {
-		Undo.finishEdit('drag')
+		Undo.finishEdit('Drag elements in outliner')
 	}
 }
 
@@ -667,7 +667,7 @@ function renameOutliner(element) {
 					if (Format.bone_rig) {
 						Group.selected.createUniqueName()
 					}
-					Undo.finishEdit('rename group')
+					Undo.finishEdit('Rename group')
 				}
 			})
 		} else if (selected.length) {
@@ -678,7 +678,7 @@ function renameOutliner(element) {
 					selected.forEach(function(obj, i) {
 						obj.name = name.replace(/%/g, obj.index).replace(/\$/g, i)
 					})
-					Undo.finishEdit('rename')
+					Undo.finishEdit('Rename')
 				}
 			})
 		}
@@ -722,7 +722,7 @@ function toggleCubeProperty(key) {
 	if (key === 'shade' && Project.box_uv) {
 		Canvas.updateUVs();
 	}
-	Undo.finishEdit('toggle property')
+	Undo.finishEdit('Toggle ' + key)
 }
 
 
@@ -787,7 +787,7 @@ BARS.defineActions(function() {
 			Outliner.root.sort(function(a,b) {
 				return sort_collator.compare(a.name, b.name)
 			});
-			Undo.finishEdit('sort_outliner')
+			Undo.finishEdit('Sort outliner')
 		}
 	})
 	new Action('unlock_everything', {
@@ -802,7 +802,7 @@ BARS.defineActions(function() {
 			[...locked, ...locked_groups].forEach(el => {
 				el.locked = false;
 			})
-			Undo.finishEdit('unlock_everything')
+			Undo.finishEdit('Unlock everything')
 		}
 	})
 	new Toggle('element_colors', {

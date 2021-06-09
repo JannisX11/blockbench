@@ -943,3 +943,29 @@
 	#bar_item_list li:hover {
 		color: var(--color-light);
 	}
+
+/* Edit History */
+#edit_history_list ul li {
+	height: 30px;
+	padding: 2px 6px;
+	cursor: pointer;
+	border: 2px solid transparent;
+	display: flex;
+	justify-content: space-between;
+}
+#edit_history_list ul li.current {
+	border-color: var(--color-accent);
+}
+#edit_history_list ul li:hover {
+	color: var(--color-light);
+}
+#edit_history_list ul li.selected {
+	background-color: var(--color-accent);
+	color: var(--color-accent_text);
+}
+#edit_history_list .edit_history_time {
+	color: var(--color-subtle_text);
+}
+#edit_history_list ul li.selected .edit_history_time {
+	color: inherit;
+}

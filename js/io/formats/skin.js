@@ -293,7 +293,7 @@ BARS.defineActions(function() {
 			edited.forEach(cube => {
 				cube.visibility = value;
 			})
-			Undo.finishEdit('toggle skin layer');
+			Undo.finishEdit('Toggle skin layer');
 			Canvas.updateVisibility()
 		}
 	})
@@ -325,7 +325,7 @@ BARS.defineActions(function() {
 				cube.from.V3_add(center);
 				cube.to.V3_add(center);
 			})
-			Undo.finishEdit('explode_skin_model', {elements: Cube.all, exploded_view: exploded_view});
+			Undo.finishEdit(exploded_view ? 'Explode skin model' : 'Revert exploding skin model', {elements: Cube.all, exploded_view: exploded_view});
 			Canvas.updateAllPositions();
 			this.setIcon(this.icon);
 		}

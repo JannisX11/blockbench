@@ -569,6 +569,7 @@ const MenuBar = {
 		new BarMenu('edit', [
 			'undo',
 			'redo',
+			'edit_history',
 			'_',
 			'add_cube',
 			'add_group',

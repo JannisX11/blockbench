@@ -546,7 +546,7 @@ class Texture {
 		TickUpdates.selection = true;
 		
 		if (undo) {
-			Undo.finishEdit('add_texture', {textures: [this]})
+			Undo.finishEdit('Add texture', {textures: [this]})
 		}
 		return this;
 	}
@@ -568,7 +568,7 @@ class Texture {
 				main_uv.displayTexture();
 			}
 			BARS.updateConditions()
-			Undo.finishEdit('remove_textures', {textures: []})
+			Undo.finishEdit('Remove texture', {textures: []})
 		}
 	}
 	toggleVisibility() {
@@ -627,7 +627,7 @@ class Texture {
 		})
 		Canvas.updateSelectedFaces()
 		main_uv.loadData()
-		Undo.finishEdit('applied_texture')
+		Undo.finishEdit('Apply texture')
 		return this;
 	}
 	//Interface
@@ -718,7 +718,7 @@ class Texture {
 				if (results.namespace !== undefined) scope.namespace = results.namespace;
 				
 
-				Undo.finishEdit('texture_edit')
+				Undo.finishEdit('Edit texture metadata')
 			}
 		}).show()
 	}
@@ -995,7 +995,7 @@ class Texture {
 				click: function(texture) {
 					Undo.initEdit({textures: [texture], selected_texture: true, bitmap: true})
 					texture.remove()
-					Undo.finishEdit('delete texture', {textures: [], selected_texture: true, bitmap: true})
+					Undo.finishEdit('Delete texture', {textures: [], selected_texture: true, bitmap: true})
 			}},
 			'_',
 			{
@@ -1098,7 +1098,7 @@ function loadTextureDraggable() {
 											cube.applyTexture(tex, data.shiftKey || [data.face])
 										}
 									})
-									Undo.finishEdit('apply texture')
+									Undo.finishEdit('Apply texture')
 								}
 							}
 						} else if ($('#texture_list:hover').length > 0) {
@@ -1116,7 +1116,7 @@ function loadTextureDraggable() {
 							Texture.all.remove(tex)
 							Texture.all.splice(index, 0, tex)
 							Canvas.updateLayeredTextures()
-							Undo.finishEdit('reorder textures')
+							Undo.finishEdit('Reorder textures')
 						} else if ($('#cubes_list:hover')) {
 
 							var target_node = $('#cubes_list li.outliner_node.drag_hover').last().get(0);
@@ -1140,7 +1140,7 @@ function loadTextureDraggable() {
 									cube.faces[face].texture = tex.uuid;
 								}
 							})
-							Undo.finishEdit('drop texture')
+							Undo.finishEdit('Drop texture')
 		
 							main_uv.loadData()
 							Canvas.updateAllFaces()
@@ -1320,7 +1320,7 @@ BARS.defineActions(function() {
 					var t = new Texture({name: f.name}).fromFile(f).add(false).fillParticle()
 					new_textures.push(t)
 				})
-				Undo.finishEdit('add_texture')
+				Undo.finishEdit('Add texture')
 			})
 		}
 	})
@@ -1368,7 +1368,7 @@ BARS.defineActions(function() {
 						t.fromPath(t.path.replace(path, new_path))
 					} 
 				})
-				Undo.finishEdit('folder_changed')
+				Undo.finishEdit('Change textures folder')
 			}
 		}
 	})

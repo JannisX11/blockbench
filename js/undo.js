@@ -32,7 +32,8 @@ var Undo = {
 		var entry = {
 			before: Undo.current_save,
 			post: new Undo.save(aspects),
-			action: action
+			action: action,
+			time: Date.now()
 		}
 		Undo.current_save = entry.post
 		if (Undo.history.length > Undo.index) {
@@ -487,5 +488,72 @@ BARS.defineActions(function() {
 		work_in_dialog: true,
 		keybind: new Keybind({key: 'y', ctrl: true}),
 		click: Undo.redo
+	})
+	new Action('edit_history', {
+		icon: 'history',
+		category: 'edit',
+		click() {
+
+			let steps = [];
+			Undo.history.forEachReverse((entry, index) => {
+				index++;
+				step = {
+					name: entry.action,
+					time: new Date(entry.time).toLocaleTimeString(),
+					index,
+					current: index == Undo.index
+				};
+				steps.push(step);
+			})
+			steps.push({
+				name: 'Original',
+				time: '',
+				index: 0,
+				current: Undo.index == 0
+			})
+			let step_selected = null;
+			const dialog = new Dialog({
+				id: 'edit_history',
+				title: 'action.edit_history',
+				component: {
+					data() {return {
+						steps,
+						selected: null
+					}},
+					methods: {
+						select(index) {
+							this.selected = step_selected = index;
+						},
+						confirm() {
+							dialog.confirm();
+						}
+					},
+					template: `
+						<div id="edit_history_list">
+							<ul>
+								<li v-for="step in steps" :class="{current: step.current, selected: step.index == selected}" @click="select(step.index)" @dblclick="confirm()">
+									{{ step.name }}
+									<div class="edit_history_time">{{ step.time }}</div>
+								</li>
+							</ul>
+						</div>
+					`
+				},
+				onConfirm() {
+					if (step_selected === null) return;
+
+					let difference = step_selected - Undo.index;
+					if (step_selected < Undo.index) {
+						for (let i = 0; i < -difference; i++) {
+							Undo.undo();
+						}
+					} else if (step_selected > Undo.index) {
+						for (let i = 0; i < difference; i++) {
+							Undo.redo();
+						}
+					}
+				}
+			}).show();
+		}
 	})
 })

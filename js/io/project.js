@@ -316,7 +316,7 @@ BARS.defineActions(function() {
 					}
 
 					if (save) {
-						Undo.finishEdit('change global UV')
+						Undo.finishEdit('Change project UV settings')
 					}
 
 					Blockbench.dispatchEvent('update_project_settings', formResult);

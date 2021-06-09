@@ -450,7 +450,7 @@ var codec = new Codec('java_block', {
 		}
 		this.dispatchEvent('parsed', {model});
 		if (add) {
-			Undo.finishEdit('add block model')
+			Undo.finishEdit('Add block model')
 		}
 	},
 })

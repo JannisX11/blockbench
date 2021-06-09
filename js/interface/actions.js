@@ -1453,7 +1453,7 @@ const BARS = {
 							s.remove(false)
 						})
 						TickUpdates.selection = true;
-						Undo.finishEdit('delete elements')
+						Undo.finishEdit('Delete elements')
 
 					} else if (Prop.active_panel == 'animations' && Animation.selected) {
 						Animation.selected.remove(true)
@@ -1482,7 +1482,7 @@ const BARS = {
 						Undo.initEdit({outliner: true, elements: [], selection: true});
 						var g = Group.selected.duplicate();
 						g.select();
-						Undo.finishEdit('duplicate_group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true})
+						Undo.finishEdit('Duplicate group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true})
 					} else {
 						var added_elements = [];
 						Undo.initEdit({elements: added_elements, outliner: true, selection: true})
@@ -1491,7 +1491,7 @@ const BARS = {
 							added_elements.push(copy);
 						})
 						BarItems.move_tool.select();
-						Undo.finishEdit('duplicate')
+						Undo.finishEdit('Duplicate elements')
 					}
 				}
 			})

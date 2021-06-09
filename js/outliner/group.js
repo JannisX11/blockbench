@@ -214,7 +214,7 @@ class Group extends OutlinerNode {
 		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
 			cubes.length = 0
-			Undo.finishEdit('removed_group')
+			Undo.finishEdit('Delete group')
 		}
 	}
 	resolve() {
@@ -267,7 +267,7 @@ class Group extends OutlinerNode {
 			Canvas.updateAllBones();
 		}
 		this.remove(false);
-		Undo.finishEdit('resolve group')
+		Undo.finishEdit('Resolve group')
 		return array;
 	}
 	showContextMenu(event) {
@@ -319,7 +319,7 @@ class Group extends OutlinerNode {
 		this.children.sort(function(a,b) {
 			return sort_collator.compare(a.name, b.name)
 		});
-		Undo.finishEdit('sort')
+		Undo.finishEdit('Sort group content')
 		return this;
 	}
 	duplicate() {
@@ -438,7 +438,7 @@ class Group extends OutlinerNode {
 		Cube.selected.forEach(cube => {
 			cube.setColor(color);
 		})
-		Undo.finishEdit('change group color')
+		Undo.finishEdit('Change group marker color')
 	}
 	Group.prototype.menu = new Menu([
 		'copy',
@@ -535,7 +535,7 @@ BARS.defineActions(function() {
 				})
 			}
 			base_group.init().select()
-			Undo.finishEdit('add_group');
+			Undo.finishEdit('Add group');
 			Vue.nextTick(function() {
 				updateSelection()
 				if (settings.create_rename.value) {
@@ -594,7 +594,7 @@ BARS.defineActions(function() {
 					) {
 						Undo.initEdit({group: Group.selected});
 						Group.selected.bedrock_binding = dialog.component.data.binding;
-						Undo.finishEdit('edit group binding');
+						Undo.finishEdit('Edit group binding');
 					}
 				},
 				onCancel() {
