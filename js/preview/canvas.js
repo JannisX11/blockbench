@@ -219,6 +219,7 @@ const Canvas = {
 	},
 	updateAllPositions(leave_selection) {
 		updateNslideValues()
+		Cube.all.forEach(Canvas.adaptObjectPosition)
 		if (leave_selection !== true) {
 			updateSelection()
 		}

@@ -215,9 +215,6 @@ class Cube extends OutlinerElement {
 				}
 			}
 		}
-		if (!this.parent || (this.parent === 'root' && Outliner.root.indexOf(this) === -1)) {
-			this.addTo('root')
-		}
 		if (!this.mesh || !this.mesh.parent) {
 			Canvas.addCube(this)
 		}

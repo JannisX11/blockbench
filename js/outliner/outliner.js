@@ -62,6 +62,9 @@ class OutlinerNode {
 	init() {
 		OutlinerNode.uuids[this.uuid] = this;
 		this.constructor.all.safePush(this);
+		if (!this.parent || (this.parent === 'root' && Outliner.root.indexOf(this) === -1)) {
+			this.addTo('root')
+		}
 		return this;
 	}
 	//Sorting
