@@ -1053,7 +1053,18 @@ Interface.definePanels(function() {
 						convertTouchEvent(e2);
 						if (e2.target.classList.contains('outliner_toggle') && e2.target.getAttribute('toggle') == key) {
 							let [node] = eventTargetToNode(e2.target);
-							if (!affected.includes(node) && (!node.locked || key == 'locked' || key == 'visibility')) {
+							if (key == 'visibility' && e2.altKey && !affected.length) {
+								let new_affected = Outliner.elements.filter(node => !node.selected);
+								value = !(new_affected[0] && new_affected[0][key]);
+								new_affected.forEach(node => {
+									affected.push(node);
+									previous_values[node.uuid] = node[key];
+									node[key] = value;
+								})
+								// Update
+								Canvas.updateVisibility();
+								
+							} else if (!affected.includes(node) && (!node.locked || key == 'locked' || key == 'visibility')) {
 								let new_affected = [node];
 								if (node instanceof Group) {
 									node.forEachChild(node => new_affected.push(node))
