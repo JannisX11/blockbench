@@ -777,7 +777,7 @@
 	"action.export_minecraft_skin.desc": "Export the Minecraft skin as a PNG texture",
 	"action.export_obj": "Export OBJ Model",
 	"action.export_obj.desc": "Export a Wavefront OBJ model for rendering",
-	"action.export_gltf": "Export As glTF",
+	"action.export_gltf": "Export glTF Model",
 	"action.export_gltf.desc": "Export model and animations as glTF file to use in other 3D applications",
 	"action.upload_sketchfab": "Upload to Sketchfab",
 	"action.upload_sketchfab.desc": "Upload your model to Sketchfab",

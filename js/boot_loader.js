@@ -114,7 +114,10 @@ localStorage.setItem('last_version', Blockbench.version);
 
 Modes.options.start.select()
 
-loadInstalledPlugins().then(plugins => {
+Promise.any([
+	loadInstalledPlugins(),
+	new Promise(resolve => setTimeout(resolve, 1200))
+]).then(plugins => {
 	if (isApp) {
 		loadOpenWithBlockbenchFile();
 	} else {
