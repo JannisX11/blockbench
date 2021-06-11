@@ -755,7 +755,7 @@ function rotateOnAxis(modify, axis, slider) {
 			}
 		}
 
-		if (slider || space == 2) {
+		if (slider || (space == 2 && Format.rotation_limit)) {
 			var obj_val = modify(obj.rotation[axis]);
 			obj_val = Math.trimDeg(obj_val)
 			if (Format.rotation_limit) {
@@ -779,6 +779,18 @@ function rotateOnAxis(modify, axis, slider) {
 			if (obj instanceof Cube) {
 				obj.rotation_axis = axis_letter
 			}
+		} else if (space == 2) {
+
+			let old_order = mesh.rotation.order;
+			mesh.rotation.reorder(axis == 0 ? 'ZYX' : (axis == 1 ? 'ZXY' : 'XYZ'))
+			var obj_val = modify(Math.radToDeg(mesh.rotation[axis_letter]));
+			obj_val = Math.trimDeg(obj_val)
+			mesh.rotation[axis_letter] = Math.degToRad(obj_val);
+			mesh.rotation.reorder(old_order);
+
+			obj.rotation[0] = Math.radToDeg(mesh.rotation.x);
+			obj.rotation[1] = Math.radToDeg(mesh.rotation.y);
+			obj.rotation[2] = Math.radToDeg(mesh.rotation.z);
 
 		} else if (space instanceof Group) {
 			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)

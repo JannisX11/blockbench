@@ -307,7 +307,6 @@ function uploadSketchfabModel() {
 							title: tl('message.sketchfab.success'),
 							message:
 								`[${formResult.name} on Sketchfab](https://sketchfab.com/models/${response.uid})`, //\n\n&nbsp;\n\n`+
-								//tl('message.sketchfab.setup_guide', '[Sketchfab Setup and Common Issues](https://blockbench.net/2020/01/22/sketchfab-setup-and-common-issues/)'),
 							icon: 'icon-sketchfab',
 						})
 					},
