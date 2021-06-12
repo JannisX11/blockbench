@@ -945,6 +945,9 @@
 	}
 
 /* Edit History */
+#edit_history_list ul {
+	margin-left: 14px;
+}
 #edit_history_list ul li {
 	height: 30px;
 	padding: 2px 6px;
@@ -962,6 +965,18 @@
 #edit_history_list ul li.selected {
 	background-color: var(--color-accent);
 	color: var(--color-accent_text);
+	position: relative;
+}
+#edit_history_list ul li.selected:not(:first-of-type)::before {
+	content: "\f04b";
+	font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+	font-size: 14px;
+	color: var(--color-accent);
+	display: block;
+	position: absolute;
+    top: -11px;
+    left: -16px;
 }
 #edit_history_list .edit_history_time {
 	color: var(--color-subtle_text);

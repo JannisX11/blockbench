@@ -297,9 +297,6 @@ class Preview {
 			element: this.canvas,
 			readtype: 'image',
 		}, function(files) {
-			if (!scope.background.imgtag) {
-				scope.background.imgtag = new Image();
-			}
 			if (isApp) {
 				scope.background.image = files[0].path
 			} else {
@@ -929,8 +926,6 @@ class Preview {
 	loadBackground() {
 		this.getBackground()
 		if (this.background && this.background.image) {
-			if (!this.background.imgtag) this.background.imgtag = new Image();
-			this.background.imgtag.src = this.background.image.replace(/#/g, '%23');
 			let background_image = `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`;
 			this.canvas.style.setProperty('background-image', background_image)
 			this.node.querySelector('.preview_background_menu').style.setProperty('background-image', background_image);
@@ -1168,13 +1163,13 @@ class Preview {
 				{icon: 'fa-clipboard', name: 'menu.preview.background.clipboard', click: function(preview) {
 					if (isApp) {
 						var image = clipboard.readImage().toDataURL();
-						if (image.length > 32) loadImage(image);
+						if (image.length > 32) applyBackground(image);
 					} else {
 						navigator.clipboard.read().then(content => {
 							if (content && content[0] && content[0].types.includes('image/png')) {
 								content[0].getType('image/png').then(blob => {
 									let url = URL.createObjectURL(blob);
-									if (image.length > 32) loadImage(url);
+									if (image.length > 32) applyBackground(url);
 								})
 							}
 						})
@@ -1756,18 +1751,39 @@ window.addEventListener("gamepadconnected", function(event) {
 class PreviewBackground {
 	constructor(data = {}) {
 		this.name = data.name ? tl(data.name) : ''
-		this.image = data.image||false
+		this._image = data._image||false
 		this.size = data.size||1000
 		this.x = data.x||0
 		this.y = data.y||0
 		this.lock = data.lock||false
 		this.save_in_project = false;
 		this.defaults = Object.assign({}, this);
+		this.imgtag = new Image();
+	}
+	get image() {
+		return this._image;
+	}
+	set image(path) {
+		this._image = path;
+		if (typeof this._image == 'string') {
+			this.imgtag.src = this._image.replace(/#/g, '%23');
+		}
 	}
 	getSaveCopy() {
+		let dataUrl;
+
+		if (isApp && this.image && this.image.substr(0, 5) != 'data:') {
+			let canvas = document.createElement('canvas');
+			canvas.width = this.imgtag.naturalWidth;
+			canvas.height = this.imgtag.naturalHeight;
+			let ctx = canvas.getContext('2d');
+			ctx.drawImage(this.imgtag, 0, 0);
+			dataUrl = canvas.toDataURL('image/png');
+		}
+
 		return {
 			name: this.name,
-			image: this.image,
+			image: dataUrl || this.image,
 			size: this.size,
 			x: this.x,
 			y: this.y,
