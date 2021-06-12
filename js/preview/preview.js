@@ -148,9 +148,17 @@ class Preview {
 		this.node = document.createElement('div')
 		this.node.className = 'preview';
 		this.node.appendChild(this.canvas);
-		let menu = $(`<div class="tool preview_menu"> <i class="material-icons">more_vert</i> </div>`)[0]
-			menu.onclick = (event) => {
-				this.menu.open(menu, this)
+		let menu = $(`
+			<div class="preview_menu">
+				<div class="tool preview_background_menu" hidden><img src="" width="36px"></div>
+				<div class="tool preview_main_menu"><i class="material-icons">more_vert</i></div>
+			</div>`)[0];
+			menu.firstElementChild.onclick = (event) => {
+				let M = new Menu(this.menu.structure.find(s => s.id == 'background').children(this));
+				M.open(menu, this);
+			}
+			menu.lastElementChild.onclick = (event) => {
+				this.menu.open(menu, this);
 			}
 		BarItem.prototype.addLabel(false, {
 			name: tl('data.preview'),
@@ -920,9 +928,13 @@ class Preview {
 		if (this.background && this.background.image) {
 			if (!this.background.imgtag) this.background.imgtag = new Image();
 			this.background.imgtag.src = this.background.image.replace(/#/g, '%23');
-			this.canvas.style.setProperty('background-image', `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`)
+			let background_image = `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`;
+			this.canvas.style.setProperty('background-image', background_image)
+			this.node.querySelector('.preview_background_menu').style.setProperty('background-image', background_image);
+			this.node.querySelector('.preview_background_menu').style.display = 'block';
 		} else {
 			this.canvas.style.setProperty('background-image', 'none')
+			this.node.querySelector('.preview_background_menu').style.display = 'none';
 		}
 		this.updateBackground()
 		return this;
@@ -1127,7 +1139,7 @@ class Preview {
 			changeDisplaySkin()
 		}},
 		'preview_checkerboard',
-		{icon: 'wallpaper', name: 'menu.preview.background', children(preview) {
+		{id: 'background', icon: 'wallpaper', name: 'menu.preview.background', children(preview) {
 			var has_background = !!preview.background.image
 			return [
 				{icon: 'folder', name: 'menu.preview.background.load', click: function(preview) {
@@ -1194,7 +1206,7 @@ class Preview {
 		{icon: 'add_a_photo', name: 'menu.preview.save_angle', condition(preview) {return !preview.movingBackground && !Modes.display}, click(preview) {
 			preview.newAnglePreset()
 		}},
-		{icon: 'videocam', name: 'menu.preview.angle', condition(preview) {return !preview.movingBackground && !Modes.display}, children: function(preview) {
+		{id: 'angle', icon: 'videocam', name: 'menu.preview.angle', condition(preview) {return !preview.movingBackground && !Modes.display}, children: function(preview) {
 			var children = [
 			]
 			let presets = localStorage.getItem('camera_presets')
