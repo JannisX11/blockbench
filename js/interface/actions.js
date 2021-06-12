@@ -78,13 +78,13 @@ class BarItem {
 			action.node.prepend(tooltip);
 
 			action.node.addEventListener('mouseenter', () => {
-				var tooltip = $(this).find('div.tooltip');
+				var tooltip = $(action.node).find('div.tooltip');
 				if (!tooltip.length) return;
 				var description = tooltip.find('.tooltip_description');
 
-				if ($(this).parent().parent().hasClass('vertical')) {
+				if ($(action.node).parent().parent().hasClass('vertical')) {
 					tooltip.css('margin', '0')
-					if ($(this).offset().left > window.innerWidth/2) {
+					if ($(action.node).offset().left > window.innerWidth/2) {
 						tooltip.css('margin-left', (-tooltip.width()-3) + 'px')
 					} else {
 						tooltip.css('margin-left', '34px')
@@ -112,7 +112,7 @@ class BarItem {
 
 					// height
 					if ((window.innerHeight - offset.top) < 28) {
-						tooltip.css('margin-top', -tooltip.height()+'px');
+						tooltip.css('margin-top', -2-tooltip.height()+'px');
 						description.css('margin-top', '-51px');
 					}
 				}

@@ -470,6 +470,7 @@
 		padding-right: 2px;
 		background-color: var(--color-back);
 		border: 1px solid var(--color-border);
+		border-bottom: none;
 	}
 	#texture_animation_timeline .texture_animation_frame {
 		flex-grow: 1;
