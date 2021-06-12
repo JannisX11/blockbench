@@ -3,6 +3,7 @@ const path = require('path')
 const url = require('url')
 const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
+const {getColorHexRGB} = require('electron-color-picker')
 
 let orig_win;
 let all_wins = [];
@@ -168,6 +169,18 @@ ipcMain.on('change-main-color', (event, arg) => {
 })
 ipcMain.on('edit-launch-setting', (event, arg) => {
 	LaunchSettings.set(arg.key, arg.value);
+})
+ipcMain.on('request-color-picker', async (event, arg) => {
+	const color = await getColorHexRGB().catch((error) => {
+		console.warn('[Error] Failed to pick color', error)
+		return ''
+	})
+	if (color) {
+		all_wins.forEach(win => {
+			if (win.isDestroyed() || (!arg.sync && win.webContents != event.sender.webContents)) return;
+			win.webContents.send('set-main-color', color)
+		})
+	}
 })
 
 app.on('ready', () => {

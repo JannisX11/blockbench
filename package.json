@@ -105,6 +105,7 @@
 		"workbox-build": "^6.1.5"
 	},
 	"dependencies": {
+		"electron-color-picker": "^0.2.0",
 		"electron-updater": "^4.3.1"
 	}
 }
