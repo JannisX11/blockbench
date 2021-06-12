@@ -489,6 +489,10 @@ const TextureGenerator = {
 		
 		for (var face in TextureGenerator.face_data) {
 			let d = TextureGenerator.face_data[face]
+
+			if (face == 'west' && cube.size(0) == 0) continue;
+			if (face == 'down' && cube.size(1) == 0) continue;
+			if (face == 'south' && cube.size(2) == 0) continue;
 			
 			if (!cube.faces[face].getTexture() ||
 				!TextureGenerator.boxUVdrawTexture(cube.faces[face], d.place(template), texture, canvas)

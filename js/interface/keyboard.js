@@ -530,6 +530,7 @@ $(document).on('keydown mousedown', function(e) {
 		}
 	} else if (Keybinds.extra.cancel.keybind.isTriggered(e) && (Transformer.dragging)) {
 		Transformer.cancelMovement(e, false);
+		updateSelection();
 	}
 	//Keybinds
 	if (!input_focus) {

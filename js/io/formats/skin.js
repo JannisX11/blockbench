@@ -255,7 +255,7 @@ const skin_dialog = new Dialog({
 			readtype: 'image',
 			filetype: 'PNG',
 		},
-		pose: {type: 'checkbox', label: 'dialog.skin.pose', value: true},
+		pose: {type: 'checkbox', label: 'dialog.skin.pose', value: true, condition: form => (!!skin_presets[form.model].pose)},
 		layer_template: {type: 'checkbox', label: 'dialog.skin.layer_template', value: false}
 	},
 	draggable: true,
@@ -344,6 +344,7 @@ BARS.defineActions(function() {
 
 skin_presets.steve = {
 	display_name: 'Steve',
+	pose: true,
 	model: `{
 		"name": "steve",
 		"texturewidth": 64,
@@ -417,6 +418,7 @@ skin_presets.steve = {
 };
 skin_presets.alex = {
 	display_name: 'Alex',
+	pose: true,
 	model_java: `{
 		"name": "alex",
 		"texturewidth": 64,
@@ -615,6 +617,7 @@ skin_presets.block = {
 
 skin_presets.armor_main = {
 	display_name: 'Armor (Main)',
+	pose: true,
 	model: `{
 		"name": "armor_main",
 		"texturewidth": 64,
@@ -678,6 +681,7 @@ skin_presets.armor_main = {
 };
 skin_presets.armor_leggings = {
 	display_name: 'Armor (Leggings)',
+	pose: true,
 	model: `{
 		"name": "armor_leggings",
 		"texturewidth": 64,
@@ -787,8 +791,113 @@ skin_presets.armor_stand = {
 		]
 	}`
 };
+skin_presets.axolotl = {
+	display_name: 'Axolotl',
+	model: `{
+		"name": "axolotl",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"eyes": [
+			[4, 8, 2, 1],
+			[12, 8, 2, 1]
+		],
+		"bones": [
+			{
+				"name": "root",
+				"pivot": [0, -4, 0]
+			},
+			{
+				"name": "body",
+				"parent": "root",
+				"pivot": [0, 3, 4],
+				"cubes": [
+					{"origin": [-4, 0, -5], "size": [8, 4, 10], "uv": [0, 11]},
+					{"origin": [0, 0, -5], "size": [0, 5, 9], "uv": [2, 17]}
+				]
+			},
+			{
+				"name": "right_arm",
+				"parent": "body",
+				"pivot": [-4, 1, -4],
+				"rotation": [0, -90, 90],
+				"cubes": [
+					{"origin": [-6, -4, -4], "size": [3, 5, 0], "uv": [2, 13]}
+				]
+			},
+			{
+				"name": "right_leg",
+				"parent": "body",
+				"pivot": [-4, 1, 4],
+				"rotation": [0, 90, 90],
+				"cubes": [
+					{"origin": [-5, -4, 4], "size": [3, 5, 0], "uv": [2, 13]}
+				]
+			},
+			{
+				"name": "left_arm",
+				"parent": "body",
+				"pivot": [4, 1, -4],
+				"rotation": [0, 90, -90],
+				"cubes": [
+					{"origin": [3, -4, -4], "size": [3, 5, 0], "uv": [2, 13]}
+				]
+			},
+			{
+				"name": "left_leg",
+				"parent": "body",
+				"pivot": [4, 1, 4],
+				"rotation": [0, -90, -90],
+				"cubes": [
+					{"origin": [2, -4, 4], "size": [3, 5, 0], "uv": [2, 13]}
+				]
+			},
+			{
+				"name": "tail",
+				"parent": "body",
+				"pivot": [0, 2, 4],
+				"cubes": [
+					{"origin": [0, 0, 4], "size": [0, 5, 12], "uv": [2, 19]}
+				]
+			},
+			{
+				"name": "head",
+				"parent": "body",
+				"pivot": [0, 2, -5],
+				"reset": true,
+				"cubes": [
+					{"origin": [-4, 0, -10], "size": [8, 5, 5], "uv": [0, 1]}
+				]
+			},
+			{
+				"name": "left_gills",
+				"parent": "head",
+				"pivot": [4, 2, -6],
+				"cubes": [
+					{"origin": [4, 0, -6], "size": [3, 7, 0], "uv": [11, 40]}
+				]
+			},
+			{
+				"name": "right_gills",
+				"parent": "head",
+				"pivot": [-4, 2, -6],
+				"cubes": [
+					{"origin": [-7, 0, -6], "size": [3, 7, 0], "uv": [0, 40]}
+				]
+			},
+			{
+				"name": "top_gills",
+				"parent": "head",
+				"pivot": [0, 5, -6],
+				"cubes": [
+					{"origin": [-4, 5, -6], "size": [8, 3, 0], "uv": [3, 37]}
+				]
+			}
+		]
+	}`
+}
 skin_presets.bat = {
 	display_name: 'Bat',
+	pose: true,
 	model: `{
 		"name": "bat",
 		"texturewidth": 64,
@@ -1535,6 +1644,7 @@ skin_presets.creeper = {
 };
 skin_presets.dolphin = {
 	display_name: 'Dolphin',
+	pose: true,
 	model_bedrock: `{
 		"name": "dolphin",
 		"texturewidth": 64,
@@ -1688,6 +1798,7 @@ skin_presets.dolphin = {
 };
 skin_presets.enderdragon = {
 	display_name: 'Ender Dragon',
+	pose: true,
 	model: `{
 		"name": "enderdragon",
 		"texturewidth": 256,
@@ -5579,6 +5690,7 @@ skin_presets.wolf = {
 };
 skin_presets.zombie = {
 	display_name: 'Zombie',
+	pose: true,
 	model: `{
 		"name": "zombie",
 		"texturewidth": 64,
