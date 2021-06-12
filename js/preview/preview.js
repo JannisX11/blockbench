@@ -153,16 +153,20 @@ class Preview {
 				<div class="tool preview_background_menu" hidden><img src="" width="36px"></div>
 				<div class="tool preview_main_menu"><i class="material-icons">more_vert</i></div>
 			</div>`)[0];
-			menu.firstElementChild.onclick = (event) => {
-				let M = new Menu(this.menu.structure.find(s => s.id == 'background').children(this));
-				M.open(menu, this);
-			}
-			menu.lastElementChild.onclick = (event) => {
-				this.menu.open(menu, this);
-			}
+		menu.firstElementChild.onclick = (event) => {
+			let M = new Menu(this.menu.structure.find(s => s.id == 'background').children(this));
+			M.open(menu, this);
+		}
+		menu.lastElementChild.onclick = (event) => {
+			this.menu.open(menu, this);
+		}
+		BarItem.prototype.addLabel(false, {
+			name: tl('menu.preview.background'),
+			node: menu.firstElementChild
+		})
 		BarItem.prototype.addLabel(false, {
 			name: tl('data.preview'),
-			node: menu
+			node: menu.lastElementChild
 		})
 		this.node.appendChild(menu)
 		//Cameras
@@ -675,15 +679,14 @@ class Preview {
 				if (Modes.paint) {
 					event = 0;
 				}
-				if (Format.bone_rig && (
+				if (data.cube.parent.type === 'group' && (
 					Animator.open ||
-					(!Format.rotate_cubes  && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id)) ||
-					event.shiftKey
+					event.shiftKey ||
+					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
 				)) {
-					if (data.cube.parent.type === 'group') {
-						data.cube.parent.select().showInOutliner();
-					}
-				} else {
+					data.cube.parent.select().showInOutliner();
+
+				} else if (!Animator.open) {
 					data.cube.select(event)
 				}
 			} else if (Animator.open && data.type == 'keyframe') {
@@ -1141,6 +1144,14 @@ class Preview {
 		'preview_checkerboard',
 		{id: 'background', icon: 'wallpaper', name: 'menu.preview.background', children(preview) {
 			var has_background = !!preview.background.image
+			function applyBackground(image) {
+				if (!preview.background.image) {
+					preview.background.save_in_project = null;
+				}
+				preview.background.image = image;
+				preview.loadBackground();
+				Settings.saveLocalStorages();
+			}
 			return [
 				{icon: 'folder', name: 'menu.preview.background.load', click: function(preview) {
 					Blockbench.import({
@@ -1150,29 +1161,20 @@ class Preview {
 						readtype: 'image'
 					}, function(files) {
 						if (files) {
-							preview.background.image = isApp ? files[0].path : files[0].content
-							preview.loadBackground()
-							Settings.saveLocalStorages()
+							applyBackground(isApp ? files[0].path : files[0].content);
 						}
 					}, 'image', false)
 				}},
 				{icon: 'fa-clipboard', name: 'menu.preview.background.clipboard', click: function(preview) {
-					function loadImage(image) {
-						if (image.length > 32) {
-							preview.background.image = image;
-							preview.loadBackground();
-							Settings.saveLocalStorages()
-						}
-					}
 					if (isApp) {
 						var image = clipboard.readImage().toDataURL();
-						loadImage(image);
+						if (image.length > 32) loadImage(image);
 					} else {
 						navigator.clipboard.read().then(content => {
 							if (content && content[0] && content[0].types.includes('image/png')) {
 								content[0].getType('image/png').then(blob => {
 									let url = URL.createObjectURL(blob);
-									loadImage(url);
+									if (image.length > 32) loadImage(url);
 								})
 							}
 						})
@@ -1751,6 +1753,29 @@ window.addEventListener("gamepadconnected", function(event) {
 	}
 });
 
+class PreviewBackground {
+	constructor(data = {}) {
+		this.name = data.name ? tl(data.name) : ''
+		this.image = data.image||false
+		this.size = data.size||1000
+		this.x = data.x||0
+		this.y = data.y||0
+		this.lock = data.lock||false
+		this.save_in_project = false;
+		this.defaults = Object.assign({}, this);
+	}
+	getSaveCopy() {
+		return {
+			name: this.name,
+			image: this.image,
+			size: this.size,
+			x: this.x,
+			y: this.y,
+			lock: this.lock
+		}
+	}
+}
+
 //Init/Update
 function initCanvas() {
 	
@@ -1776,31 +1801,21 @@ function initCanvas() {
 	outlines.name = 'outline_group'
 	scene.add(outlines)
 
-	var DScene = function(data) {
-		data = data||{}
-		this.name = data.name ? tl(data.name) : ''
-		this.image = data.image||false
-		this.size = data.size||1000
-		this.x = data.x||0
-		this.y = data.y||0
-		this.lock = data.lock||false
-		this.defaults = Object.assign({}, this);
-	}
 
 	canvas_scenes = {
-		normal: 			new DScene({name: 'menu.preview.perspective.normal', lock: null}),
-		ortho_top: 			new DScene({name: 'direction.top', lock: true}),
-		ortho_bottom: 		new DScene({name: 'direction.bottom', lock: true}),
-		ortho_south: 		new DScene({name: 'direction.south', lock: true}),
-		ortho_north: 		new DScene({name: 'direction.north', lock: true}),
-		ortho_east: 		new DScene({name: 'direction.east', lock: true}),
-		ortho_west: 		new DScene({name: 'direction.west', lock: true}),
+		normal: 			new PreviewBackground({name: 'menu.preview.perspective.normal', lock: null}),
+		ortho_top: 			new PreviewBackground({name: 'direction.top', lock: true}),
+		ortho_bottom: 		new PreviewBackground({name: 'direction.bottom', lock: true}),
+		ortho_south: 		new PreviewBackground({name: 'direction.south', lock: true}),
+		ortho_north: 		new PreviewBackground({name: 'direction.north', lock: true}),
+		ortho_east: 		new PreviewBackground({name: 'direction.east', lock: true}),
+		ortho_west: 		new PreviewBackground({name: 'direction.west', lock: true}),
 
-		monitor: 			new DScene({name: 'display.reference.monitor' }),
+		monitor: 			new PreviewBackground({name: 'display.reference.monitor' }),
 
-		inventory_nine: 	new DScene({name: 'display.reference.inventory_nine', image: './assets/inventory_nine.png', x: 0, y: -525, size: 1051, lock: true}),
-		inventory_full: 	new DScene({name: 'display.reference.inventory_full', image: './assets/inventory_full.png', x: 0, y: -1740, size: 2781, lock: true}),
-		hud: 				new DScene({name: 'display.reference.hud', image: './assets/hud.png', x: -224, y: -447.5, size: 3391, lock: true}),
+		inventory_nine: 	new PreviewBackground({name: 'display.reference.inventory_nine', image: './assets/inventory_nine.png', x: 0, y: -525, size: 1051, lock: true}),
+		inventory_full: 	new PreviewBackground({name: 'display.reference.inventory_full', image: './assets/inventory_full.png', x: 0, y: -1740, size: 2781, lock: true}),
+		hud: 				new PreviewBackground({name: 'display.reference.hud', image: './assets/hud.png', x: -224, y: -447.5, size: 3391, lock: true}),
 	}
 	if (localStorage.getItem('canvas_scenes')) {
 		var stored_canvas_scenes = undefined;
@@ -1814,6 +1829,9 @@ function initCanvas() {
 
 					let store = stored_canvas_scenes[key]
 					let real = canvas_scenes[key]
+
+					if (store.save_in_project) continue;
+					if (store.save_in_project == null) {real.save_in_project = false}
 
 					if (store.image	!== undefined) {real.image = store.image}
 					if (store.size	!== undefined) {real.size = store.size}

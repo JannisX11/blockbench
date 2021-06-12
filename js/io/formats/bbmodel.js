@@ -162,6 +162,22 @@ var codec = new Codec('project', {
 			}
 		}
 
+		if (!options.backup) {
+			// Backgrounds
+			const backgrounds = {};
+
+			for (var key in canvas_scenes) {
+				let scene = canvas_scenes[key];
+				if (scene.image && scene.save_in_project !== false) {
+					scene.save_in_project = true;
+					backgrounds[key] = scene.getSaveCopy();
+				}
+			}
+			if (Object.keys(backgrounds).length) {
+				model.backgrounds = backgrounds;
+			}
+		}
+
 		if (options.history) {
 			model.history = [];
 			Undo.history.forEach(h => {
@@ -277,6 +293,28 @@ var codec = new Codec('project', {
 		}
 		if (model.display !== undefined) {
 			DisplayMode.loadJSON(model.display)
+		}
+		if (model.backgrounds) {
+			for (var key in model.backgrounds) {
+				if (canvas_scenes.hasOwnProperty(key)) {
+
+					let store = model.backgrounds[key]
+					let real = canvas_scenes[key]
+
+					real.save_in_project = true;
+
+					if (store.image	!== undefined) {real.image = store.image}
+					if (store.size	!== undefined) {real.size = store.size}
+					if (store.x		!== undefined) {real.x = store.x}
+					if (store.y		!== undefined) {real.y = store.y}
+					if (store.lock	!== undefined) {real.lock = store.lock}
+				}
+			}
+			Preview.all.forEach(p => {
+				if (p.canvas.isConnected) {
+					p.loadBackground();
+				}
+			})
 		}
 		if (model.history) {
 			Undo.history = model.history.slice()

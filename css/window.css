@@ -70,7 +70,7 @@
 	.single_canvas_wrapper {
 		height: 100%;
 		width: 100%;
-		overflow: hidden;
+		/*overflow: hidden;*/
 		position: absolute;
 		cursor: inherit;
 	}
