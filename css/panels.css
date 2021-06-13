@@ -366,6 +366,9 @@
 	.texture > i.clickable:hover {
 		color: var(--color-light);
 	}
+	.texture > i.icon_off.clickable:hover {
+		color: var(--color-text);
+	}
 	.texture > i:not(.clickable) {
 		color: var(--color-subtle_text);
 	}

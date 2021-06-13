@@ -131,11 +131,6 @@ new Property(ModelProject, 'vector', 'visible_box', {
 	exposed: false,
 	default: [1, 1, 0]
 });
-new Property(ModelProject, 'boolean', 'layered_textures', {
-	label: 'dialog.project.layered_textures',
-	description: 'dialog.project.layered_textures.desc',
-	condition() {return Format.single_texture}
-});
 
 
 const Project = new ModelProject();
@@ -298,17 +293,6 @@ BARS.defineActions(function() {
 						if (Format.optional_box_uv) Project.box_uv = box_uv;
 						Canvas.updateAllUVs()
 						updateSelection()
-					}
-
-					if (Format.single_texture) {
-						if (Project.layered_textures !== formResult.layered_textures && Texture.all.length >= 2) {
-							Project.layered_textures = formResult.layered_textures;
-							Texture.all.forEach((tex, i) => {
-								tex.visible = i < 3
-							})
-							Interface.Panels.textures.inside_vue.$forceUpdate()
-							Canvas.updateLayeredTextures();
-						}
 					}
 					
 					for (var key in ModelProject.properties) {

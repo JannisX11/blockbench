@@ -2023,6 +2023,13 @@ function updateShading() {
 		parent.add(lights);
 		lights.position.copy(parent.position).multiplyScalar(-1);
 	}
+	Texture.all.forEach(tex => {
+		let material = tex.getMaterial();
+		material.uniforms.SHADE.value = settings.shading.value;
+		material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+	})
+	Canvas.solidMaterial.uniforms.SHADE.value = settings.shading.value;
+	Canvas.solidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
 }
 function updateCubeHighlights(hover_cube, force_off) {
 	Cube.all.forEach(cube => {
