@@ -852,6 +852,8 @@
 	"action.add_null_object.desc": "Adds a new null object",
 	"action.add_group": "Add Group",
 	"action.add_group.desc": "Adds a new group or bone",
+	"action.group_elements": "Group Elements",
+	"action.group_elements.desc": "Wrap selected elements into a new group",
 	"action.outliner_toggle": "Toggle More Options",
 	"action.outliner_toggle.desc": "Toggles switches for more options in the outliner",
 	"action.cube_counter": "Cube Counter",

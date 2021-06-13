@@ -668,7 +668,6 @@ const Painter = {
 					diff_x = length;
 					diff_y = 0;
 				}
-				console.log(ratio, diff_x, diff_y, length)
 				x = Painter.startPixel[0] + diff_x * Math.sign(x - Painter.startPixel[0]);
 				y = Painter.startPixel[1] + diff_y * Math.sign(y - Painter.startPixel[1]);
 			}

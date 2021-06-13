@@ -547,6 +547,46 @@ BARS.defineActions(function() {
 		}
 	})
 	new Action({
+		id: 'group_elements',
+		icon: 'drive_file_move',
+		category: 'edit',
+		condition: () => Modes.edit,
+		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),
+		click: function () {
+			Undo.initEdit({outliner: true});
+			var add_group = Group.selected
+			if (!add_group && selected.length) {
+				add_group = Cube.selected.last()
+			}
+			var base_group = new Group({
+				origin: add_group ? add_group.origin : undefined
+			})
+			base_group.sortInBefore(add_group);
+			base_group.isOpen = true
+		
+			if (Format.bone_rig) {
+				base_group.createUniqueName()
+			}
+			if (add_group instanceof Group) {
+				add_group.addTo(base_group);
+			} else if (add_group instanceof OutlinerElement) {
+				selected.forEach(function(s, i) {
+					s.addTo(base_group);
+				})
+			}
+			base_group.init().select()
+			Undo.finishEdit('Add group');
+			Vue.nextTick(function() {
+				updateSelection()
+				if (settings.create_rename.value) {
+					base_group.rename()
+				}
+				base_group.showInOutliner()
+				Blockbench.dispatchEvent( 'group_elements', {object: base_group} )
+			})
+		}
+	})
+	new Action({
 		id: 'collapse_groups',
 		icon: 'format_indent_decrease',
 		category: 'edit',

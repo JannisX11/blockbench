@@ -66,19 +66,19 @@ const Canvas = {
 			varying float light;
 			varying float lift;
 
-			float AMBIENT = 0.5;
-			float XFAC = -0.15;
-			float ZFAC = 0.05;
+			float AMBIENT = 0.1;
+			float XFAC = -0.25;
+			float ZFAC = 0.2;
 
 			void main()
 			{
 
 				if (SHADE) {
 
-					vec3 N = vec3( modelMatrix * vec4(normal, 0.0) );
+					vec3 N = vec3( modelViewMatrix * vec4(normal, 0.0) );
 
-					float yLight = (1.0+N.y) * 0.5;
-					light = yLight * (1.0-AMBIENT) + N.x*N.x * XFAC + N.z*N.z * ZFAC + AMBIENT;
+					float yLight = (1.0+N.z) * 0.5;
+					light = yLight * (1.0-AMBIENT) + N.x*N.x * XFAC + N.y*N.y * ZFAC + AMBIENT;
 
 				} else {
 
