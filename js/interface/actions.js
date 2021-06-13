@@ -1270,6 +1270,10 @@ const BARS = {
 				category: 'navigate',
 				keybind: new Keybind({key: 3})
 			})
+			new KeybindItem('preview_zoom', {
+				category: 'navigate',
+				keybind: new Keybind({key: 1, shift: true})
+			})
 
 			new KeybindItem('confirm', {
 				category: 'navigate',

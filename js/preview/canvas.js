@@ -67,8 +67,8 @@ const Canvas = {
 			varying float lift;
 
 			float AMBIENT = 0.1;
-			float XFAC = -0.25;
-			float ZFAC = 0.2;
+			float XFAC = -0.05;
+			float ZFAC = 0.05;
 
 			void main()
 			{

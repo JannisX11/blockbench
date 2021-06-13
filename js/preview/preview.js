@@ -18,7 +18,7 @@ var gizmo_colors = {
 	b: new THREE.Color(0x2d5ee8),
 	grid: new THREE.Color(0x495061),
 	wire: new THREE.Color(0x576f82),
-	solid: new THREE.Color(0xcecece),
+	solid: new THREE.Color(0xc1c1c1),
 	outline: new THREE.Color(0x3e90ff)
 }
 const DefaultCameraPresets = [
