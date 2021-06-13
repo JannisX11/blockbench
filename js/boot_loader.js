@@ -51,7 +51,7 @@ var startups = parseInt(localStorage.getItem('startups')||0);
 localStorage.setItem('startups', startups+1);
 
 document.getElementById('blackout').addEventListener('click', event => {
-	if (open_interface instanceof Dialog) {
+	if (typeof open_interface.cancel == 'function') {
 		open_interface.cancel(event);
 	} else if (typeof open_interface == 'string' && open_dialog) {
 		$('dialog#'+open_dialog).find('.cancel_btn:not([disabled])').trigger('click');

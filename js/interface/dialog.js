@@ -399,7 +399,7 @@ window.Dialog = class Dialog {
 			let result = this.onCancel();
 			if (result === false) return;
 		}
-		if (button == this.confirmIndex && typeof this.onButton == 'function') {
+		if (typeof this.onButton == 'function') {
 			let result = this.onButton(button);
 			if (result === false) return;
 		}

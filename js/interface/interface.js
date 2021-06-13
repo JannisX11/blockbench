@@ -480,7 +480,14 @@ function showDialog(dialog) {
 	$('#blackout').show()
 	obj.show()
 	open_dialog = dialog
-	open_interface = dialog
+	open_interface = {
+		confirm() {
+			$('dialog#'+open_dialog).find('.confirm_btn:not([disabled])').trigger('click');
+		},
+		cancel() {
+			$('dialog#'+open_dialog).find('.cancel_btn:not([disabled])').trigger('click');
+		}
+	}
 	Prop.active_panel = 'dialog'
 	//Draggable
 	if (obj.hasClass('draggable')) {
@@ -489,9 +496,7 @@ function showDialog(dialog) {
 			containment: '#page_wrapper'
 		})
 		var x = (window.innerWidth-obj.outerWidth()) / 2;
-		var top = (window.innerHeight - obj.outerHeight()) / 2;
 		obj.css('left', x+'px')
-		obj.css('top', 'px')
 		obj.css('max-height', (window.innerHeight-128)+'px')
 	}
 }
