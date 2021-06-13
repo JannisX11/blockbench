@@ -701,7 +701,7 @@ BARS.defineActions(function() {
 			} else {
 				Blockbench.import({
 					resource_id: 'animation_audio',
-					extensions: ['ogg'],
+					extensions: ['ogg', 'wav', 'mp3'],
 					type: 'Audio File',
 					startpath: Timeline.selected[0].data_points[0].file
 				}, function(files) {
