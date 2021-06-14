@@ -1680,7 +1680,7 @@ const BARS = {
 		})
 		if (isApp) {
 			Blockbench.onUpdateTo('3.9', () => {
-				Toolbars.animations.add(BarItems.pick_screen_color);
+				Toolbars.color_picker.add(BarItems.pick_screen_color);
 			})
 		}
 

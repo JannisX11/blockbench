@@ -72,7 +72,7 @@
 	}
 	.dialog:not(.ui-resizable) {
 		min-width: min(400px, 100%);
-		max-width: 660px;
+		max-width: min(660px, 100%);
 	}
 	.dialog.paddinged {
 		padding: 24px;

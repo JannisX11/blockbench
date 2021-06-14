@@ -1243,6 +1243,8 @@
 	"menu.animation.override": "Override",
 	"menu.animation.anim_time_update": "Anim Time Update Variable",
 	"menu.animation.blend_weight": "Blend Weight",
+	"menu.animation.start_delay": "Start Delay",
+	"menu.animation.loop_delay": "Loop Delay",
 	"menu.animation.save": "Save",
 	"menu.animation.properties": "Properties...",
 	"menu.animation.file": "File",

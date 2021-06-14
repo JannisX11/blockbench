@@ -6,8 +6,6 @@ class Animation {
 		this.playing = false;
 		this.override = false;
 		this.selected = false;
-		this.anim_time_update = '';
-		this.blend_weight = '';
 		this.length = 0;
 		this.snapping = Math.clamp(settings.animation_snap.value, 10, 500);
 		this.animators = {};
@@ -29,8 +27,6 @@ class Animation {
 		Merge.string(this, data, 'name')
 		Merge.string(this, data, 'loop', val => ['once', 'loop', 'hold'].includes(val))
 		Merge.boolean(this, data, 'override')
-		Merge.string(this, data, 'anim_time_update')
-		Merge.string(this, data, 'blend_weight')
 		Merge.number(this, data, 'length')
 		Merge.number(this, data, 'snapping')
 		this.snapping = Math.clamp(this.snapping, 10, 500);
@@ -90,8 +86,6 @@ class Animation {
 			name: this.name,
 			loop: this.loop,
 			override: this.override,
-			anim_time_update: this.anim_time_update,
-			blend_weight: this.blend_weight,
 			length: this.length,
 			snapping: this.snapping,
 			selected: this.selected,
@@ -133,6 +127,8 @@ class Animation {
 		if (this.override) ani_tag.override_previous_animation = true;
 		if (this.anim_time_update) ani_tag.anim_time_update = this.anim_time_update.replace(/\n/g, '');
 		if (this.blend_weight) ani_tag.blend_weight = this.blend_weight.replace(/\n/g, '');
+		if (this.start_delay) ani_tag.start_delay = this.start_delay.replace(/\n/g, '');
+		if (this.loop_delay && ani_tag.loop) ani_tag.loop_delay = this.loop_delay.replace(/\n/g, '');
 		ani_tag.bones = {};
 
 		for (var uuid in this.animators) {
@@ -499,7 +495,7 @@ class Animation {
 		let dialog = new Dialog({
 			id: 'animation_properties',
 			title: this.name,
-			width: 640,
+			width: 660,
 			part_order: ['form', 'component'],
 			form: {
 				name: {label: 'generic.name', value: this.name},
@@ -530,6 +526,9 @@ class Animation {
 				data: {
 					anim_time_update: this.anim_time_update,
 					blend_weight: this.blend_weight,
+					start_delay: this.start_delay,
+					loop_delay: this.loop_delay,
+					loop_mode: this.loop
 				},
 				template: 
 					`<div id="animation_properties_vue">
@@ -537,11 +536,22 @@ class Animation {
 						<div class="dialog_bar">
 							<vue-prism-editor class="molang_input dark_bordered" v-model="anim_time_update" language="molang" :line-numbers="false" />
 						</div>
-						<label>${tl('menu.animation.blend_weight')}</label>
-						<div class="dialog_bar">
+						<div class="dialog_bar" style="display: flex;">
+							<label class="name_space_left">${tl('menu.animation.blend_weight')}</label>
 							<vue-prism-editor class="molang_input dark_bordered" v-model="blend_weight" language="molang" :line-numbers="false" />
 						</div>
+						<div class="dialog_bar" style="display: flex;">
+							<label class="name_space_left">${tl('menu.animation.start_delay')}</label>
+							<vue-prism-editor class="molang_input dark_bordered" v-model="start_delay" language="molang" :line-numbers="false" />
+						</div>
+						<div class="dialog_bar" style="display: flex;" v-if="loop_mode == 'loop'">
+							<label class="name_space_left">${tl('menu.animation.loop_delay')}</label>
+							<vue-prism-editor class="molang_input dark_bordered" v-model="loop_delay" language="molang" :line-numbers="false" />
+						</div>
 					</div>`
+			},
+			onFormChange(form) {
+				this.component.data.loop_mode = form.loop;
 			},
 			onConfirm: form_data => {
 				dialog.hide().delete();
@@ -554,6 +564,8 @@ class Animation {
 					|| form_data.snapping != this.snapping
 					|| dialog.component.data.anim_time_update != this.anim_time_update
 					|| dialog.component.data.blend_weight != this.blend_weight
+					|| dialog.component.data.start_delay != this.start_delay
+					|| dialog.component.data.loop_delay != this.loop_delay
 				) {
 					Undo.initEdit({animations: [this]});
 
@@ -564,6 +576,8 @@ class Animation {
 						snapping: form_data.snapping,
 						anim_time_update: dialog.component.data.anim_time_update.trim().replace(/\n/g, ''),
 						blend_weight: dialog.component.data.blend_weight.trim().replace(/\n/g, ''),
+						start_delay: dialog.component.data.start_delay.trim().replace(/\n/g, ''),
+						loop_delay: dialog.component.data.loop_delay.trim().replace(/\n/g, ''),
 					})
 					this.createUniqueName();
 					if (isApp) this.path = form_data.path;
@@ -631,6 +645,10 @@ class Animation {
 	])
 	new Property(Animation, 'boolean', 'saved', {default: true, condition: () => Format.animation_files})
 	new Property(Animation, 'string', 'path', {condition: () => isApp && Format.animation_files})
+	new Property(Animation, 'string', 'anim_time_update');
+	new Property(Animation, 'string', 'blend_weight');
+	new Property(Animation, 'string', 'start_delay');
+	new Property(Animation, 'string', 'loop_delay');
 
 Blockbench.on('finish_edit', event => {
 	if (!Format.animation_files) return;
@@ -1476,6 +1494,12 @@ const Animator = {
 					blend_weight: (typeof a.blend_weight == 'string'
 						? a.blend_weight.replace(/;(?!$)/, ';\n')
 						: a.blend_weight),
+					start_delay: (typeof a.start_delay == 'string'
+						? a.start_delay.replace(/;(?!$)/, ';\n')
+						: a.start_delay),
+					loop_delay: (typeof a.loop_delay == 'string'
+						? a.loop_delay.replace(/;(?!$)/, ';\n')
+						: a.loop_delay),
 					length: a.animation_length
 				}).add()
 				//Bones
