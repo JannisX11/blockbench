@@ -86,7 +86,12 @@ class NullObject extends OutlinerElement {
 	];
 	//NullObject.prototype.needsUniqueName = true;
 	NullObject.prototype.menu = new Menu([
+			'group_elements',
+			'_',
 			'copy',
+			'paste',
+			'duplicate',
+			'_',
 			'rename',
 			'delete'
 		])

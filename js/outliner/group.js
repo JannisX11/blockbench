@@ -446,6 +446,7 @@ class Group extends OutlinerNode {
 		'duplicate',
 		'_',
 		'add_locator',
+		'_',
 		{name: 'menu.cube.color', icon: 'color_lens', children: [
 			{icon: 'bubble_chart', color: markerColors[0].standard, name: 'cube.color.'+markerColors[0].name, click: () => setGroupColor(0)},
 			{icon: 'bubble_chart', color: markerColors[1].standard, name: 'cube.color.'+markerColors[1].name, click: () => setGroupColor(1)},

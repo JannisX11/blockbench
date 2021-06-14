@@ -519,7 +519,6 @@ class Animation {
 				},
 				override: {label: 'menu.animation.override', type: 'checkbox', value: this.override},
 				snapping: {label: 'menu.animation.snapping', type: 'number', value: this.snapping, step: 1, min: 10, max: 500},
-				line: '_',
 			},
 			component: {
 				components: {VuePrismEditor},
@@ -532,19 +531,19 @@ class Animation {
 				},
 				template: 
 					`<div id="animation_properties_vue">
-						<label>{{ tl('menu.animation.anim_time_update') }}</label>
+					<label>${tl('menu.animation.anim_time_update')}</label>
 						<div class="dialog_bar">
 							<vue-prism-editor class="molang_input dark_bordered" v-model="anim_time_update" language="molang" :line-numbers="false" />
 						</div>
-						<div class="dialog_bar" style="display: flex;">
+						<div class="dialog_bar form_bar">
 							<label class="name_space_left">${tl('menu.animation.blend_weight')}</label>
 							<vue-prism-editor class="molang_input dark_bordered" v-model="blend_weight" language="molang" :line-numbers="false" />
 						</div>
-						<div class="dialog_bar" style="display: flex;">
+						<div class="dialog_bar form_bar">
 							<label class="name_space_left">${tl('menu.animation.start_delay')}</label>
 							<vue-prism-editor class="molang_input dark_bordered" v-model="start_delay" language="molang" :line-numbers="false" />
 						</div>
-						<div class="dialog_bar" style="display: flex;" v-if="loop_mode == 'loop'">
+						<div class="dialog_bar form_bar" v-if="loop_mode == 'loop'">
 							<label class="name_space_left">${tl('menu.animation.loop_delay')}</label>
 							<vue-prism-editor class="molang_input dark_bordered" v-model="loop_delay" language="molang" :line-numbers="false" />
 						</div>

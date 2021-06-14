@@ -789,8 +789,12 @@ class Cube extends OutlinerElement {
 	Cube.prototype.rotatable = true;
 	Cube.prototype.needsUniqueName = false;
 	Cube.prototype.menu = new Menu([
+		'group_elements',
+		'_',
 		'copy',
+		'paste',
 		'duplicate',
+		'_',
 		'rename',
 		'update_autouv',
 		{name: 'menu.cube.color', icon: 'color_lens', children: [

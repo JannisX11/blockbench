@@ -84,7 +84,12 @@ class Locator extends OutlinerElement {
 	];
 	Locator.prototype.needsUniqueName = true;
 	Locator.prototype.menu = new Menu([
+			'group_elements',
+			'_',
 			'copy',
+			'paste',
+			'duplicate',
+			'_',
 			'rename',
 			'delete'
 		])
