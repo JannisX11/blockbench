@@ -359,7 +359,7 @@ function createBackup(init) {
 }
 //Close
 
-window.onbeforeunload = function() {
+window.onbeforeunload = function (event) {
 	try {
 		updateRecentProjectThumbnail()
 	} catch(err) {}
@@ -375,6 +375,7 @@ window.onbeforeunload = function() {
 		setTimeout(function() {
 			showSaveDialog(true)
 		}, 2)
+		event.returnValue = true;
 		return true;
 	}
 }
@@ -419,11 +420,11 @@ function showSaveDialog(close) {
 	}
 }
 function closeBlockbenchWindow() {
+	window.onbeforeunload = null;
 	Blockbench.addFlag('allow_closing');
 	Blockbench.dispatchEvent('before_closing')
 	localStorage.removeItem('backup_model')
 	EditSession.quit()
-	
 	return currentwindow.close();
 };
 
