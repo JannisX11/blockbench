@@ -1054,6 +1054,8 @@ class Toolbar {
 		var scope = this;
 		this.children = [];
 		this.condition_cache = [];
+		// items the toolbar could not load on startup, most likely from plugins (stored as IDs)
+		this.postload = undefined; // default to undefined for memory footprint
 		if (data) {
 			this.id = data.id
 			this.narrow = !!data.narrow
@@ -1099,6 +1101,10 @@ class Toolbar {
 					if (BARS.condition(item.condition)) {
 						content.append(item.getNode())
 					}
+				} else if (scope.postload) {
+					scope.postload.push(id);
+				} else {
+					scope.postload = [id];
 				}
 			})
 		}
@@ -1158,6 +1164,23 @@ class Toolbar {
 	}
 	update() {
 		var scope = this;
+
+		// check if some unkown actions are now known
+		if (this.postload) {
+			var idx = 0;
+			while (idx < this.postload.length) {
+				var item = BarItems[this.postload[idx]];
+				if (item) {
+					item.pushToolbar(scope);
+					this.postload.splice(idx, 1);
+				} else {
+					idx++;
+				}
+			}
+			if (this.postload.length == 0) {
+				this.postload = undefined; // array obj no longer needed
+			}
+		}
 
 		//scope.condition_cache.empty();
 		let needsUpdate = scope.condition_cache.length !== scope.children.length;
