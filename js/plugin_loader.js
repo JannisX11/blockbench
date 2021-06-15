@@ -59,7 +59,7 @@ class Plugin {
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
 		Merge.boolean(this, data, 'await_loading');
-		if (data.tags instanceof Array) this.tags.push(...data.tags.slice(0, 3));
+		if (data.tags instanceof Array) this.tags.safePush(...data.tags.slice(0, 3));
 
 		Merge.function(this, data, 'onload')
 		Merge.function(this, data, 'onunload')
@@ -139,7 +139,7 @@ class Plugin {
 		localStorage.setItem('plugin_dev_path', file.path);
 		Plugins.all.safePush(this);
 		this.source = 'file';
-		this.tags.push('Local');
+		this.tags.safePush('Local');
 
 		return await new Promise((resolve, reject) => {
 
@@ -190,7 +190,7 @@ class Plugin {
 		Plugins.registered[this.id] = this;
 		localStorage.setItem('plugin_dev_path', url)
 		Plugins.all.safePush(this)
-		this.tags.push('Remote');
+		this.tags.safePush('Remote');
 
 		this.source = 'url';
 		await new Promise((resolve, reject) => {
