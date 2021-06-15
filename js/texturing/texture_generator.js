@@ -355,7 +355,7 @@ const TextureGenerator = {
 				cube.autouv = 0;
 			})
 		}
-		if (options.box_uv && !Project.box_uv) {
+		if (options.box_uv && !Project.box_uv && Project.optional_box_uv) {
 			Project.box_uv = true;
 		}
 		templates.forEach(function(t) {

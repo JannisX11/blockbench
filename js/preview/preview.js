@@ -1241,7 +1241,7 @@ class Preview {
 			preview.setProjectionMode(!preview.isOrtho, true);
 		}},
 		'_',
-		{icon: 'widgets', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !Modes.display && !Animator.open}, click: function() {
+		{icon: 'grid_view', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !Modes.display && !Animator.open}, click: function() {
 			openQuadView()
 		}},
 		{icon: 'web_asset', name: 'menu.preview.maximize', condition: function(preview) {return quad_previews.enabled && !preview.movingBackground && !Modes.display}, click: function(preview) {
@@ -2327,7 +2327,7 @@ BARS.defineActions(function() {
 		click: function () {Screencam.fullScreen()}
 	})
 	new Action('toggle_quad_view', {
-		icon: 'widgets',
+		icon: 'grid_view',
 		category: 'view',
 		condition: () => !Modes.display,
 		keybind: new Keybind({key: 9}),

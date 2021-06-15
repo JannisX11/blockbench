@@ -985,6 +985,8 @@
 	"action.timelapse.desc": "Record a timelapse of your modeling process",
 	"action.screenshot_app": "Screenshot App",
 	"action.screenshot_app.desc": "Take a screenshot of the whole application",
+	"action.toggle_sidebars": "Toggle Sidebars",
+	"action.toggle_sidebars.desc": "Enable or disable the sidebars",
 	"action.toggle_quad_view": "Toggle Quad View",
 	"action.toggle_quad_view.desc": "Toggle the 4 viewport mode",
 	"action.toggle_camera_projection": "Toggle Camera Projection",

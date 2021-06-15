@@ -674,6 +674,7 @@ const MenuBar = {
 			'preview_checkerboard',
 			'painting_grid',
 			'_',
+			'toggle_sidebars',
 			'toggle_quad_view',
 			'focus_on_selection',
 			{name: 'menu.view.screenshot', id: 'screenshot', icon: 'camera_alt', children: [

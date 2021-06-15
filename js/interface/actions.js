@@ -1544,6 +1544,18 @@ const BARS = {
 				work_in_dialog: true,
 				click: function () {setZoomLevel('reset')}
 			})
+			new Action('toggle_sidebars', {
+				icon: 'view_array',
+				category: 'view',
+				condition: () => !Blockbench.isMobile && !Mode.selected.hide_sidebars,
+				keybind: new Keybind({key: 'b', ctrl: true}),
+				click: function () {
+					let status = !Prop.show_left_bar;
+					Prop.show_left_bar = status;
+					Prop.show_right_bar = status;
+					resizeWindow();
+				}
+			})
 
 		//Find Action
 			new Action('action_control', {
