@@ -1178,7 +1178,7 @@ class Toolbar {
 		}
 		return this;
 	}
-	update() {
+	update(force) {
 		var scope = this;
 
 		// check if some unkown actions are now known
@@ -1205,7 +1205,7 @@ class Toolbar {
 		}
 
 		//scope.condition_cache.empty();
-		let needsUpdate = scope.condition_cache.length !== scope.children.length;
+		let needsUpdate = force === true || scope.condition_cache.length !== scope.children.length;
 		scope.condition_cache.length = scope.children.length;
 
 		this.children.forEach(function(item, i) {
@@ -1949,14 +1949,14 @@ const BARS = {
 					$('#bar_items_current .tooltip').css('display', 'none')
 				},
 				update: function() {
-					BARS.editing_bar.update().save();
+					BARS.editing_bar.update(true).save();
 				},
 				addItem: function(item) {
 					if (item.type === 'separator') {
 						item = '_'
 					}
 					BARS.editing_bar.add(item);
-					BARS.editing_bar.update().save();
+					// BARS.editing_bar.update().save(); already called in add()
 				}
 			}
 		})
