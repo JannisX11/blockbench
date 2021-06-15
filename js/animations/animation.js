@@ -2145,6 +2145,37 @@ Interface.definePanels(function() {
 						files[key].animations.push(animation);
 					})
 					return files;
+				},
+				common_namespace() {
+					if (!this.animations.length) {
+						return '';
+
+					} else if (this.animations.length == 1) {
+						let match = this.animations[0].name.match(/^.*[.:]/);
+						return match ? match[0] : '';
+
+					} else {
+						let name = this.animations[0].name;
+						if (name.search(/[.:]/) == -1) return '';
+
+						for (var anim of this.animations) {
+							if (anim == this.animations[0]) continue;
+
+							let segments = anim.name.split(/[.:]/);
+							let length = 0;
+
+							for (var segment of segments) {
+								if (segment == name.substr(length, segment.length)) {
+									length += segment.length + 1;
+								} else {
+									break;
+								}
+							}
+							name = name.substr(0, length);
+							if (name.length < 8) return '';
+						}
+						return name;
+					}
 				}
 			},
 			template: `
@@ -2179,7 +2210,10 @@ Interface.definePanels(function() {
 									@contextmenu.prevent.stop="animation.showContextMenu($event)"
 								>
 									<i class="material-icons">movie</i>
-									<label :title="animation.name">{{ animation.name }}</label>
+									<label :title="animation.name">
+										{{ common_namespace ? animation.name.split(common_namespace).join('') : animation.name }}
+										<span v-if="common_namespace"> - {{ animation.name }}</span>
+									</label>
 									<div v-if="animation_files_enabled"  class="in_list_button" v-bind:class="{unclickable: animation.saved}" v-on:click.stop="animation.save()">
 										<i v-if="animation.saved" class="material-icons">check_circle</i>
 										<i v-else class="material-icons">save</i>

@@ -539,6 +539,10 @@
 		flex-shrink: 1;
 		overflow: hidden;
 	}
+	.animation > label > span {
+		color: var(--color-subtle_text);
+		font-size: 0.92em;
+	}
 	.in_list_button {
 		width: 22px;
 		color: var(--color-text);
