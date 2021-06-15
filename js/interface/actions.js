@@ -147,14 +147,18 @@ class BarItem {
 		$(destination).first().append(this.getNode())
 		return this;
 	}
-	pushToolbar(bar) {
+	pushToolbar(bar, idx) {
 		var scope = this;
 		if (scope.uniqueNode && scope.toolbars.length) {
 			for (var i = scope.toolbars.length-1; i >= 0; i--) {
 				scope.toolbars[i].remove(scope)
 			}
 		}
-		bar.children.push(this)
+		if (idx !== undefined) {
+			bar.children.splice(idx, 0, this);
+		} else {
+			bar.children.push(this);
+		}
 		this.toolbars.safePush(bar)
 	}
 	delete() {
@@ -1054,8 +1058,14 @@ class Toolbar {
 		var scope = this;
 		this.children = [];
 		this.condition_cache = [];
+
 		// items the toolbar could not load on startup, most likely from plugins (stored as IDs)
-		this.postload = undefined; // default to undefined for memory footprint
+		this.postload = undefined;
+		// object storing initial position of actions
+		// if a property with a given position is set, then this slot is occupied
+		// and the associated object (action) can effectively be used with indexOf on children
+		this.positionLookup = {};
+
 		if (data) {
 			this.id = data.id
 			this.narrow = !!data.narrow
@@ -1089,24 +1099,30 @@ class Toolbar {
 		if (items && items.constructor.name === 'Array') {
 			var content = $(scope.node).find('div.content')
 			content.children().detach()
-			items.forEach(function(id) {
-				if (typeof id === 'string' && id.substr(0, 1) === '_') {
-					content.append('<div class="toolbar_separator"></div>')
-					scope.children.push('_'+guid().substr(0,8))
+			for (var itemPosition = 0; itemPosition < items.length; itemPosition++) {
+				var itemId = items[itemPosition];
+				if (typeof itemId === 'string' && itemId.substr(0, 1) === '_') {
+					content.append('<div class="toolbar_separator"></div>');
+					this.children.push('_' + guid().substr(0,8));
 					return;
 				}
-				var item = BarItems[id]
+
+				var item = BarItems[itemId];
 				if (item) {
-					item.pushToolbar(scope)
+					item.pushToolbar(this);
 					if (BARS.condition(item.condition)) {
 						content.append(item.getNode())
 					}
-				} else if (scope.postload) {
-					scope.postload.push(id);
+					this.positionLookup[itemPosition] = item;
 				} else {
-					scope.postload = [id];
+					var postloadAction = [itemId, itemPosition];
+					if (this.postload) {
+						this.postload.push(postloadAction);
+					} else {
+						this.postload = [postloadAction];
+					}
 				}
-			})
+			}
 		}
 		$(scope.node).toggleClass('narrow', this.narrow)
 		$(scope.node).toggleClass('vertical', this.vertical)
@@ -1169,9 +1185,15 @@ class Toolbar {
 		if (this.postload) {
 			var idx = 0;
 			while (idx < this.postload.length) {
-				var item = BarItems[this.postload[idx]];
+				var postloadAction = this.postload[idx];
+				var item = BarItems[postloadAction[0]];
 				if (item) {
-					item.pushToolbar(scope);
+					var insertAfter = postloadAction[1];
+					// while there isn't displayed element at insertAfter - 1, decrease to reach one or 0
+					while (this.positionLookup[--insertAfter] === undefined && insertAfter >= 0) {}
+					var itemIdx = insertAfter + 1;
+					item.pushToolbar(this, itemIdx);
+					this.positionLookup[itemIdx] = item;
 					this.postload.splice(idx, 1);
 				} else {
 					idx++;
