@@ -1104,7 +1104,7 @@ class Toolbar {
 				if (typeof itemId === 'string' && itemId.substr(0, 1) === '_') {
 					content.append('<div class="toolbar_separator"></div>');
 					this.children.push('_' + guid().substr(0,8));
-					return;
+					continue;
 				}
 
 				var item = BarItems[itemId];
