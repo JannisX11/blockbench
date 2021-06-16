@@ -203,6 +203,11 @@ function setProjectResolution(width, height, modify_uv) {
 }
 function updateProjectResolution() {
 	document.querySelector('#project_resolution_status').textContent = `${Project.texture_width} ⨉ ${Project.texture_height}`;
+	if (Texture.selected) {
+		// Update animated textures
+		Texture.selected.height++;
+		Texture.selected.height--;
+	}
 }
 
 

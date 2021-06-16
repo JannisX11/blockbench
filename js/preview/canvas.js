@@ -830,13 +830,11 @@ const Canvas = {
 
 				stretch = 1;
 				frame = 0;
-				if (cube.faces[f.face].texture && cube.faces[f.face].texture !== null) {
-					var tex = cube.faces[f.face].getTexture()
-					if (tex instanceof Texture && tex.frameCount !== 1) {
-						stretch = tex.frameCount
-						if (animation === true && tex.currentFrame) {
-							frame = tex.currentFrame
-						}
+				let tex = cube.faces[f.face].getTexture();
+				if (tex instanceof Texture && tex.frameCount !== 1) {
+					stretch = tex.frameCount
+					if (animation === true && tex.currentFrame) {
+						frame = tex.currentFrame
 					}
 				}
 
