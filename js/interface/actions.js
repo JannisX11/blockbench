@@ -2107,26 +2107,6 @@ const Keybinds = {
 	},
 	save() {
 		localStorage.setItem('keybindings', JSON.stringify(Keybinds.stored))
-	},
-	reset() {
-		let answer = confirm(tl('message.reset_keybindings'));
-		if (!answer) return;
-		for (var category in Keybinds.structure) {
-			var entries = Keybinds.structure[category].actions
-			if (entries && entries.length) {
-				entries.forEach(function(item) {
-					if (item.keybind) {
-						if (item.default_keybind) {
-							item.keybind.set(item.default_keybind);
-						} else {
-							item.keybind.clear();
-						}
-						item.keybind.save(false)
-					}
-				})
-			}
-		}
-		Keybinds.save()
 	}
 }
 if (localStorage.getItem('keybindings')) {

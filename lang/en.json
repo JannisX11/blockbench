@@ -227,7 +227,7 @@
 	"message.removed_faces": "Removed %0 faces",
 	"message.add_to_palette": "Added to palette",
 	"message.size_modifiers": "Hold down Ctrl or Shift to transform in smaller increments.",
-	"message.reset_keybindings": "Are you sure you want to reset all keybindings?",
+	"message.load_keymap": "Are you sure you want to load this keymap? This will overwrite your current keybindings.",
 	"message.no_animation_to_import": "No animations to import",
 
 	"message.wireframe.enabled": "Wireframe view enabled",
@@ -813,8 +813,7 @@
 	"action.export_settings": "Export Settings",
 	"action.export_settings.desc": "Export the Blockbench settings as a .bbsettings file",
 	
-	"action.reset_keybindings": "Reset Keybindings",
-	"action.reset_keybindings.desc": "Reset all keybindings to Blockbench's defaults",
+	"action.load_keymap": "Load Keymap",
 	"action.import_keymap": "Import Keymap",
 	"action.import_keymap.desc": "Import keybindings a .bbkeymap file",
 	"action.export_keymap": "Export Keymap",

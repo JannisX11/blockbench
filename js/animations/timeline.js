@@ -645,9 +645,7 @@ onVueSetup(function() {
 				let unit_size = Math.clamp(max-min, min_size, 1e4);
 				this.graph_size = (clientHeight - 2*padding) / unit_size;
 				let blend = Math.clamp(1 - (max-min) / min_size, 0, 1)
-				console.log(blend)
 				this.graph_offset = clientHeight - padding + (this.graph_size * (min - unit_size/2 * blend ) );
-				console.log(this.graph_size, clientHeight, padding, min, max)
 
 				let string = '';
 				points.forEach((value, i) => {

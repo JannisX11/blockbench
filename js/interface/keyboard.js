@@ -242,6 +242,42 @@ class Keybind {
 		return this.label
 	}
 }
+Keybinds.loadKeymap = function(id) {
+	let answer = confirm(tl('message.load_keymap'));
+	if (!answer) return;
+	let preset = KeymapPresets[id];
+
+
+	Keybinds.actions.forEach(item => {
+		if (!item.keybind) return;
+
+		if (preset && preset.keys[item.id] !== undefined) {
+
+			if (preset.keys[item.id] == null) {
+				item.keybind.clear();
+			} else {
+				item.keybind.set(preset.keys[item.id]).save(false);
+			}
+		} else {
+			if (item.default_keybind) {
+				item.keybind.set(item.default_keybind);
+			} else {
+				item.keybind.clear();
+			}
+		}
+
+		item.keybind.save(false);
+	})
+
+	if (id == 'mouse') {
+		Keybinds.extra.preview_rotate.keybind.set({key: 2}).save(false);
+		Keybinds.extra.preview_drag.keybind.set({key: 2, shift: true}).save(false);
+		Keybinds.extra.preview_zoom.keybind.set({key: 2, ctrl: true}).save(false);
+	}
+
+	Keybinds.save();
+	TickUpdates.keybind_conflicts = true;
+}
 Keybinds.no_overlap = function(k1, k2) {
 	if (typeof k1.condition !== 'object' || typeof k2.condition !== 'object') return false;
 	if (k1.condition.modes && k2.condition.modes && k1.condition.modes.overlap(k2.condition.modes) == 0) return true;
@@ -360,10 +396,28 @@ onVueSetup(function() {
 
 BARS.defineActions(() => {
 	
+	new Action('load_keymap', {
+		icon: 'format_list_bulleted',
+		category: 'blockbench',
+		work_in_dialog: true,
+		click(e) {
+			new Menu(this.children).open(e.target);
+		},
+		children: [
+			'import_keymap',
+			'_',
+			{icon: 'keyboard', id: 'default', name: 'Default (Trackpad)', click() {Keybinds.loadKeymap('default')}},
+			{icon: 'keyboard', id: 'mouse', name: 'Default (Mouse)', click() {Keybinds.loadKeymap('mouse')}},
+			{icon: 'keyboard', id: 'blender', name: 'Blender', click() {Keybinds.loadKeymap('blender')}},
+			{icon: 'keyboard', id: 'cinema4d', name: 'Cinema 4D', click() {Keybinds.loadKeymap('cinema4d')}},
+			{icon: 'keyboard', id: 'maya', name: 'Maya', click() {Keybinds.loadKeymap('maya')}}
+		]
+	})
 	new Action('import_keymap', {
 		icon: 'folder',
 		category: 'blockbench',
-		click: function () {
+		work_in_dialog: true,
+		click() {
 			Blockbench.import({
 				resource_id: 'config',
 				extensions: ['bbkeymap'],
@@ -386,7 +440,8 @@ BARS.defineActions(() => {
 	new Action('export_keymap', {
 		icon: 'keyboard_hide',
 		category: 'blockbench',
-		click: async function () {
+		work_in_dialog: true,
+		click() {
 			var keys = {}
 
 			for (var key in Keybinds.stored) {
@@ -404,15 +459,8 @@ BARS.defineActions(() => {
 			})
 		}
 	})
-	new Action('reset_keybindings', {
-		icon: 'replay',
-		category: 'blockbench',
-		work_in_dialog: true,
-		click: function () {Keybinds.reset()}
-	})
-	BarItems.import_keymap.toElement('#keybinds_title_bar')
+	BarItems.load_keymap.toElement('#keybinds_title_bar')
 	BarItems.export_keymap.toElement('#keybinds_title_bar')
-	BarItems.reset_keybindings.toElement('#keybinds_title_bar')
 })
 
 
