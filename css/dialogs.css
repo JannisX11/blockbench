@@ -761,10 +761,12 @@
 	.search_bar {
 		float: right;
 		position: relative;
+		width: 220px;
 	}
 	.search_bar input {
 		float: right;
 		padding-right: 20px;
+		width: 100%;
 	}
 	.search_bar i {
 		float: right;

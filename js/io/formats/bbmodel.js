@@ -442,6 +442,7 @@ var codec = new Codec('project', {
 		this.dispatchEvent('parsed', {model})
 	}
 })
+Formats.free.codec = codec;
 
 BARS.defineActions(function() {
 	codec.export_action = new Action('save_project', {

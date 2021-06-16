@@ -123,6 +123,7 @@ const Canvas = {
 			vertexShader: vertShader,
 			fragmentShader: fragShader,
 			vertexColors: THREE.FaceColors,
+			side: THREE.DoubleSide
 		});
 	})(),
 	transparentMaterial: new THREE.MeshBasicMaterial({visible: false, name: 'invisible'}),
@@ -358,6 +359,9 @@ const Canvas = {
 		})
 		if (Canvas.layered_material) {
 			Canvas.layered_material.side = side;
+		}
+		if (Canvas.solidMaterial) {
+			Canvas.solidMaterial.side = side;
 		}
 		emptyMaterials.forEach(function(mat) {
 			mat.side = side

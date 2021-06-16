@@ -943,7 +943,7 @@ Interface.definePanels(function() {
 									</div>
 								</div>
 
-								<template v-if="uniform_scale && data_point.x_string == data_point.y_string && data_point.y_string == data_point.z_string">
+								<template v-if="channel == 'scale' && uniform_scale && data_point.x_string == data_point.y_string && data_point.y_string == data_point.z_string">
 									<div
 										class="bar flex"
 										id="keyframe_bar_uniform_scale"

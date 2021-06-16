@@ -839,8 +839,11 @@
 		font-size: 6pt;
 		color: var(--color-grid);
 	}
-	#timeline .keyframe.selected {
+	#timeline .keyframe.selected i {
 		color: var(--color-accent) !important;
+		z-index: 4;
+	}
+	#timeline .keyframe:hover {
 		z-index: 4;
 	}
 
@@ -1024,11 +1027,13 @@
 		width: 8000px;
 		position: absolute;
 		top: 0;
+		pointer-events: none;
 	}
 	.keyframe .keyframe_waveform > polygon {
 		fill: var(--color-grid);
 		stroke: none;
 		stroke-width: 0;
+		pointer-events: initial;
 	}
 
 	#timeline_graph_editor {
