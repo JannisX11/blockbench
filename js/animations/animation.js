@@ -135,15 +135,15 @@ class Animation {
 			var animator = this.animators[uuid];
 			if (animator instanceof EffectAnimator) {
 
-				animator.sound.forEach(kf => {
+				animator.sound.sort((kf1, kf2) => (kf1.time - kf2.time)).forEach(kf => {
 					if (!ani_tag.sound_effects) ani_tag.sound_effects = {};
 					ani_tag.sound_effects[kf.getTimecodeString()] = kf.compileBedrockKeyframe();
 				})
-				animator.particle.forEach(kf => {
+				animator.particle.sort((kf1, kf2) => (kf1.time - kf2.time)).forEach(kf => {
 					if (!ani_tag.particle_effects) ani_tag.particle_effects = {};
 					ani_tag.particle_effects[kf.getTimecodeString()] = kf.compileBedrockKeyframe();
 				})
-				animator.timeline.forEach(kf => {
+				animator.timeline.sort((kf1, kf2) => (kf1.time - kf2.time)).forEach(kf => {
 					if (!ani_tag.timeline) ani_tag.timeline = {};
 					ani_tag.timeline[kf.getTimecodeString()] = kf.compileBedrockKeyframe()
 				})
