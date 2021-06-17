@@ -469,7 +469,7 @@ BARS.defineActions(function() {
 	new Action('extrude_texture', {
 		icon: 'eject',
 		category: 'file',
-		condition: _ => !Project.box_uv,
+		condition: _ => Format && !Project.box_uv,
 		click: function () {
 			Blockbench.import({
 				resource_id: 'texture',

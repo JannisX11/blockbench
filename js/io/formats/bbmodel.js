@@ -472,6 +472,7 @@ BARS.defineActions(function() {
 	new Action('import_project', {
 		icon: 'icon-blockbench_file',
 		category: 'file',
+		condition: () => Format,
 		click: function () {
 			Blockbench.import({
 				resource_id: 'model',
