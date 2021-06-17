@@ -664,7 +664,7 @@ function addStartScreenSection(id, data) {
 
 
 (function() {
-	var news_call = $.getJSON('https://blockbench.net/api/news/news.json')
+	var news_call = $.getJSON('https://web.blockbench.net/content/news.json')
 	Promise.all([news_call, documentReady]).then((data) => {
 		if (!data || !data[0]) return;
 		data = data[0];
