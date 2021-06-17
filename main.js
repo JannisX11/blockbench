@@ -43,7 +43,7 @@ function createWindow(second_instance) {
 		icon:'icon.ico',
 		show: false,
 		backgroundColor: '#21252b',
-		frame: false,
+		frame: LaunchSettings.get('native_window_frame') === true,
 		titleBarStyle: 'hidden',
 		minWidth: 640,
 		minHeight: 480,
