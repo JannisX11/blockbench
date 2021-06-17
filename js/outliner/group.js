@@ -360,6 +360,7 @@ class Group extends OutlinerNode {
 		base_group.visibility = this.visibility;
 		base_group.export = this.export;
 		base_group.autouv = this.autouv;
+		base_group.isOpen = this.isOpen;
 		return base_group;
 	}
 	compile(undo) {

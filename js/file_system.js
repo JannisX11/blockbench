@@ -247,7 +247,7 @@ Object.assign(Blockbench, {
 			resource_id
 		*/
 		if (Blockbench.isWeb) {
-			var file_name = options.name;
+			var file_name = options.name || 'file';
 			if (options.extensions && file_name.substr(-options.extensions[0].length) != options.extensions[0]) {
 				file_name += '.' + options.extensions[0];
 			}
@@ -257,7 +257,6 @@ Object.assign(Blockbench, {
 			} else {
 
 				if (options.savetype === 'image') {
-					console.log(options, file_name)
 					saveAs(options.content, file_name, {})
 
 				} else if (options.savetype === 'zip' || options.savetype === 'buffer' || options.savetype === 'binary') {
@@ -325,7 +324,7 @@ Object.assign(Blockbench, {
 			}
 		}
 		if (options.custom_writer) {
-			options.custom_writer(options.content, file_path)
+			options.custom_writer(options.content, file_path, cb)
 
 		} else if (options.savetype === 'zip') {
 			var fileReader = new FileReader();
@@ -355,7 +354,6 @@ Object.assign(Blockbench, {
 		if (options.extensions) {
 			entry.extensions = options.extensions
 		}
-		if (options.addClass !== false) entry.addClass = true;
 		if (options.propagate) entry.propagate = true;
 		if (options.readtype) entry.readtype = options.readtype;
 		if (options.errorbox) entry.errorbox = true;
