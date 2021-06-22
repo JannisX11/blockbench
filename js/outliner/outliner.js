@@ -38,7 +38,16 @@ const Outliner = {
 			icon: ' fa fa-thumbtack',
 			icon_off: ' far fa-times-circle',
 			icon_alt: ' fa fa-magic',
-			advanced_option: true
+			advanced_option: true,
+			getState(element) {
+				if (!element.autouv) {
+					return false
+				} else if (element.autouv === 1) {
+					return true
+				} else {
+					return 'alt'
+				}
+			}
 		}
 	}
 }
@@ -263,26 +272,14 @@ class OutlinerNode {
 		}
 		return false;
 	}
-	isIconEnabled(btn) {
-		switch (btn.id) {
-			case 'visibility': 
-				return this.visibility
-			case 'export': 
-				return this.export
-			case 'locked': 
-				return this.locked
-			case 'shade': 
-				return this.shade
-			case 'autouv': 
-				if (!this.autouv) {
-					return false
-				} else if (this.autouv === 1) {
-					return true
-				} else {
-					return 'alt'
-				}
+	isIconEnabled(toggle) {
+		if (typeof toggle.getState == 'function') {
+			return toggle.getState(this);
+		} else if (this[toggle.id] !== undefined) {
+			return this[toggle.id];
+		} else {
+			return true;
 		}
-		return true;
 	}
 	isChildOf(group, max_levels) {
 		function iterate(obj, level) {
