@@ -531,8 +531,8 @@ class Animation {
 				},
 				template: 
 					`<div id="animation_properties_vue">
-					<label>${tl('menu.animation.anim_time_update')}</label>
-						<div class="dialog_bar">
+						<div class="dialog_bar form_bar">
+							<label class="name_space_left">${tl('menu.animation.anim_time_update')}</label>
 							<vue-prism-editor class="molang_input dark_bordered" v-model="anim_time_update" language="molang" :line-numbers="false" />
 						</div>
 						<div class="dialog_bar form_bar">

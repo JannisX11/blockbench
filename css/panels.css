@@ -679,6 +679,7 @@
 		overflow-y: hidden;
 		min-height: 30px;
 		height: auto;
+		margin-bottom: auto;
 	}
 	.molang_input pre {
 		padding: 2px;
