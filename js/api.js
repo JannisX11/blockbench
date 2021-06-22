@@ -349,13 +349,16 @@ const Blockbench = {
 	},
 	//Events
 	dispatchEvent(event_name, data) {
-		var list = this.events[event_name]
+		let list = this.events[event_name];
 		if (!list) return;
-		for (var i = 0; i < list.length; i++) {
+		let results = [];
+		for (let i = 0; i < list.length; i++) {
 			if (typeof list[i] === 'function') {
-				list[i](data)
+				let result = list[i](data);
+				results.push(result);
 			}
 		}
+		return results;
 	},
 	addListener(event_names, cb) {
 		event_names.split(' ').forEach(event_name => {

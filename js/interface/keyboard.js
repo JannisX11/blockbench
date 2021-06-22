@@ -502,7 +502,7 @@ function getFocusedTextInput() {
 	return document.querySelector('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus');
 }
 
-$(document).on('keydown mousedown', function(e) {
+addEventListeners(document, 'keydown mousedown', function(e) {
 	if (Keybinds.recording || e.which < 4) return;
 	//Shift
 	Pressing.shift = e.shiftKey;
@@ -567,6 +567,20 @@ $(document).on('keydown mousedown', function(e) {
 			$(document).trigger('click')
 		}
 	}
+	let captured = false;
+	let results = Blockbench.dispatchEvent('press_key', {
+		input_in_focus: input_focus,
+		event: e,
+		capture() {
+			captured = true;
+		}
+	})
+	if (results instanceof Array && results.includes(true)) used = true;
+	if (captured) {
+		e.preventDefault();
+		return;
+	}
+
 	//Hardcoded Keys
 	if (e.which === 18 && Toolbox.selected.alt_tool && !Toolbox.original && !open_interface) {
 		//Alt Tool
