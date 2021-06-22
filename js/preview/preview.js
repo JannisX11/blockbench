@@ -1146,6 +1146,7 @@ class Preview {
 				preview.background.image = image;
 				preview.loadBackground();
 				Settings.saveLocalStorages();
+				preview.startMovingBackground();
 			}
 			return [
 				{icon: 'folder', name: 'menu.preview.background.load', click: function(preview) {
