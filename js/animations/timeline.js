@@ -374,7 +374,6 @@ const Timeline = {
 
 				let offset = $('#timeline_body_inner').offset()
 				let offsetX = event.clientX - offset.left - Timeline.vue._data.head_width;
-				console.log(offsetX)
 				
 				var zoom = 1 - event.deltaY/600
 				let original_size = Timeline.vue._data.size

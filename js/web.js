@@ -97,7 +97,6 @@ function setupMobilePanelSelector() {
 					}
 				},
 				openKeyboardMenu(event) {
-					console.log(event)
 					let menu = new Menu([
 						{icon: Pressing.overrides.ctrl ? 'check_box' : 'check_box_outline_blank', name: 'keys.ctrl', click() {Pressing.overrides.ctrl = !Pressing.overrides.ctrl}},
 						{icon: Pressing.overrides.shift ? 'check_box' : 'check_box_outline_blank', name: 'keys.shift', click() {Pressing.overrides.shift = !Pressing.overrides.shift}},

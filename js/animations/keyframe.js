@@ -749,7 +749,7 @@ BARS.defineActions(function() {
 	flip_action = new Action('flip_animation', {
 		icon: 'transfer_within_a_station',
 		category: 'animation',
-		condition: {modes: ['animate']},
+		condition: {modes: ['animate'], method: () => Animation.selected},
 		click() {
 
 			if (!Animation.selected) {

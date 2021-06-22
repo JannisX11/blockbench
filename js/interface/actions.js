@@ -1192,8 +1192,10 @@ class Toolbar {
 					// while there isn't displayed element at insertAfter - 1, decrease to reach one or 0
 					while (this.positionLookup[--insertAfter] === undefined && insertAfter >= 0) {}
 					var itemIdx = insertAfter + 1;
-					item.pushToolbar(this, itemIdx);
-					this.positionLookup[itemIdx] = item;
+					if (!this.children.includes(item)) {
+						item.pushToolbar(this, itemIdx);
+						this.positionLookup[itemIdx] = item;
+					}
 					this.postload.splice(idx, 1);
 				} else {
 					idx++;
