@@ -91,7 +91,12 @@ class Locator extends OutlinerElement {
 	];
 	Locator.prototype.needsUniqueName = true;
 	Locator.prototype.menu = new Menu([
+			'group_elements',
+			'_',
 			'copy',
+			'paste',
+			'duplicate',
+			'_',
 			'rename',
 			'delete'
 		])
@@ -113,7 +118,7 @@ BARS.defineActions(function() {
 			var locator = new Locator().addTo(Group.selected||selected[0]).init();
 			locator.select().createUniqueName();
 			objs.push(locator);
-			Undo.finishEdit('add locator');
+			Undo.finishEdit('Add locator');
 			Vue.nextTick(function() {
 				if (settings.create_rename.value) {
 					locator.rename();

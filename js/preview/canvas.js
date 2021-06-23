@@ -59,9 +59,73 @@ const Canvas = {
 		color: gizmo_colors.wire,
 		wireframe: true
 	}),
-	solidMaterial: new THREE.MeshLambertMaterial({
-		color: gizmo_colors.solid
-	}),
+	solidMaterial: (function() {
+		var vertShader = `
+			uniform bool SHADE;
+
+			varying float light;
+			varying float lift;
+
+			float AMBIENT = 0.1;
+			float XFAC = -0.05;
+			float ZFAC = 0.05;
+
+			void main()
+			{
+
+				if (SHADE) {
+
+					vec3 N = vec3( modelViewMatrix * vec4(normal, 0.0) );
+
+					float yLight = (1.0+N.z) * 0.5;
+					light = yLight * (1.0-AMBIENT) + N.x*N.x * XFAC + N.y*N.y * ZFAC + AMBIENT;
+
+				} else {
+
+					light = 1.0;
+
+				}
+
+				if (color.b == 1.25) {
+					lift = 0.1;
+				} else {
+					lift = 0.0;
+				}
+				
+				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+				gl_Position = projectionMatrix * mvPosition;
+			}`
+		var fragShader = `
+			#ifdef GL_ES
+			precision highp float;
+			#endif
+
+			uniform bool SHADE;
+			uniform float BRIGHTNESS;
+			uniform vec3 base;
+
+			varying float light;
+			varying float lift;
+
+			void main(void)
+			{
+
+				gl_FragColor = vec4(lift + base * light * BRIGHTNESS, 1.0);
+
+			}`
+
+		return new THREE.ShaderMaterial({
+			uniforms: {
+				SHADE: {type: 'bool', value: settings.shading.value},
+				BRIGHTNESS: {type: 'bool', value: settings.brightness.value / 50},
+				base: {value: gizmo_colors.solid}
+			},
+			vertexShader: vertShader,
+			fragmentShader: fragShader,
+			vertexColors: THREE.FaceColors,
+			side: THREE.DoubleSide
+		});
+	})(),
 	transparentMaterial: new THREE.MeshBasicMaterial({visible: false, name: 'invisible'}),
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
 	face_order: ['east', 'west', 'up', 'down', 'south', 'north'],
@@ -219,6 +283,7 @@ const Canvas = {
 	},
 	updateAllPositions(leave_selection) {
 		updateNslideValues()
+		Cube.all.forEach(Canvas.adaptObjectPosition)
 		if (leave_selection !== true) {
 			updateSelection()
 		}
@@ -292,8 +357,11 @@ const Canvas = {
 				mat.side = side
 			}
 		})
-		if (Project.layered_textures && Canvas.layered_material) {
+		if (Canvas.layered_material) {
 			Canvas.layered_material.side = side;
+		}
+		if (Canvas.solidMaterial) {
+			Canvas.solidMaterial.side = side;
 		}
 		emptyMaterials.forEach(function(mat) {
 			mat.side = side
@@ -665,7 +733,7 @@ const Canvas = {
 		} else if (Prop.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
 
-		} else if (Format.single_texture && Project.layered_textures && Texture.all.length >= 2) {
+		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
 			mesh.material = Canvas.getLayeredMaterial();
 
 		} else if (Format.single_texture) {
@@ -762,13 +830,11 @@ const Canvas = {
 
 				stretch = 1;
 				frame = 0;
-				if (cube.faces[f.face].texture && cube.faces[f.face].texture !== null) {
-					var tex = cube.faces[f.face].getTexture()
-					if (tex instanceof Texture && tex.frameCount !== 1) {
-						stretch = tex.frameCount
-						if (animation === true && tex.currentFrame) {
-							frame = tex.currentFrame
-						}
+				let tex = cube.faces[f.face].getTexture();
+				if (tex instanceof Texture && tex.frameCount !== 1) {
+					stretch = tex.frameCount
+					if (animation === true && tex.currentFrame) {
+						frame = tex.currentFrame
 					}
 				}
 

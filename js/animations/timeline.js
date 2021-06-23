@@ -268,7 +268,7 @@ const Timeline = {
 				
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
-				if (!e.ctrlKey) time = Timeline.snapTime(time);
+				if (!e.ctrlOrCmd) time = Timeline.snapTime(time);
 				Timeline.setTime(time);
 				Animator.preview();
 			}
@@ -279,7 +279,7 @@ const Timeline = {
 				convertTouchEvent(e);
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
-				if (!e.ctrlKey) time = Timeline.snapTime(time);
+				if (!e.ctrlOrCmd) time = Timeline.snapTime(time);
 				if (Timeline.time != time) {
 					Timeline.setTime(time)
 					Animator.preview()
@@ -553,6 +553,11 @@ const Timeline = {
 	menu: new Menu([
 		'paste',
 		'_',
+		{name: 'menu.view.zoom', id: 'zoom', condition: isApp, icon: 'search', children: [
+			'zoom_in',
+			'zoom_out',
+			'zoom_reset'
+		]},
 		'select_all',
 		'bring_up_all_animations',
 		'fold_all_animations',
@@ -639,9 +644,7 @@ onVueSetup(function() {
 				let unit_size = Math.clamp(max-min, min_size, 1e4);
 				this.graph_size = (clientHeight - 2*padding) / unit_size;
 				let blend = Math.clamp(1 - (max-min) / min_size, 0, 1)
-				console.log(blend)
 				this.graph_offset = clientHeight - padding + (this.graph_size * (min - unit_size/2 * blend ) );
-				console.log(this.graph_size, clientHeight, padding, min, max)
 
 				let string = '';
 				points.forEach((value, i) => {
@@ -747,7 +750,7 @@ onVueSetup(function() {
 					dragging_restriction;
 					originalValue;
 					previousValue = 0;
-					time_stretching = !Timeline.vue.graph_editor_open && e1.ctrlKey && Timeline.selected.length > 1;
+					time_stretching = !Timeline.vue.graph_editor_open && e1.ctrlOrCmd && Timeline.selected.length > 1;
 					values_changed = false;
 
 					if (!clicked.selected && !e1.shiftKey && Timeline.selected.length != 0) {
@@ -887,7 +890,7 @@ onVueSetup(function() {
 						Blockbench.setStatusBarText();
 						if (values_changed) {
 							Undo.addKeyframeCasualties(deleted);
-							Undo.finishEdit('drag keyframes');
+							Undo.finishEdit('Drag keyframes');
 						} else {
 							Undo.cancelEdit();
 						}

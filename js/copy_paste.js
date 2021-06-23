@@ -199,7 +199,7 @@ const Clipbench = {
 			})
 			Canvas.updateView({elements});
 		}
-		Undo.finishEdit('paste', {outliner: true, elements: selected, selection: true});
+		Undo.finishEdit('Paste Elements', {outliner: true, elements: selected, selection: true});
 	}
 }
 

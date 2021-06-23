@@ -2,18 +2,18 @@
 if (isApp) {
 window.BedrockEntityManager = {
 	checkEntityFile(path) {
-		let mce = 'minecraft:client_entity';
 		try {
 			var c = fs.readFileSync(path, 'utf-8');
 			if (typeof c === 'string') {
 				c = autoParseJSON(c, false);
-				if (c && c[mce] && c[mce].description && typeof c[mce].description.geometry == 'object') {
-					for (var key in c[mce].description.geometry) {
-						var geoname = c[mce].description.geometry[key];
+				let main = c && (c['minecraft:client_entity'] || c['minecraft:attachable']);
+				if (main && main.description && typeof main.description.geometry == 'object') {
+					for (var key in main.description.geometry) {
+						var geoname = main.description.geometry[key];
 						if (typeof geoname == 'string') {
 							geoname = geoname.replace(/^geometry\./, '');
 							if (geoname == Project.geometry_name) {
-								return c[mce];
+								return main;
 							}
 						}
 					}
@@ -57,8 +57,7 @@ window.BedrockEntityManager = {
 					}
 				} catch (err) {}
 			}
-			var result = searchFolder(path);
-			if (result) return result;
+			return searchFolder(path) || searchFolder(path.replace(/entity$/, 'attachables'));
 		}
 	},
 	initEntity() {

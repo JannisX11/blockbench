@@ -238,7 +238,7 @@ var Extruder = {
 			s.addTo(group).init()
 		})
 
-		Undo.finishEdit('add extruded texture', {elements: selected, outliner: true, textures: [textures[textures.length-1]]})
+		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [textures[textures.length-1]]})
 
 		hideDialog()
 	}
@@ -307,7 +307,6 @@ function uploadSketchfabModel() {
 							title: tl('message.sketchfab.success'),
 							message:
 								`[${formResult.name} on Sketchfab](https://sketchfab.com/models/${response.uid})`, //\n\n&nbsp;\n\n`+
-								//tl('message.sketchfab.setup_guide', '[Sketchfab Setup and Common Issues](https://blockbench.net/2020/01/22/sketchfab-setup-and-common-issues/)'),
 							icon: 'icon-sketchfab',
 						})
 					},
@@ -470,7 +469,7 @@ BARS.defineActions(function() {
 	new Action('extrude_texture', {
 		icon: 'eject',
 		category: 'file',
-		condition: _ => !Project.box_uv,
+		condition: _ => Format && !Project.box_uv,
 		click: function () {
 			Blockbench.import({
 				resource_id: 'texture',

@@ -22,7 +22,7 @@ const TextureGenerator = {
 				folder: 	{label: 'dialog.create_texture.folder', condition: Format.id == 'java_block'},
 
 				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
-				resolution: {label: 'dialog.create_texture.resolution', type: 'select', value: 16, condition: (form) => (form.template), options: {
+				resolution: {label: 'dialog.create_texture.resolution', description: 'dialog.create_texture.resolution.desc', type: 'select', value: 16, condition: (form) => (form.template), options: {
 					16: '16',
 					32: '32',
 					64: '64',
@@ -35,12 +35,12 @@ const TextureGenerator = {
 				section2:    "_",
 				template:	{label: 'dialog.create_texture.template', type: 'checkbox', condition: Cube.all.length},
 
-				rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', type: 'checkbox', value: true, condition: (form) => (form.template)},
-				compress: 	{label: 'dialog.create_texture.compress', type: 'checkbox', value: true, condition: (form) => (form.template && Project.box_uv && form.rearrange_uv)},
-				power: 		{label: 'dialog.create_texture.power', type: 'checkbox', value: true, condition: (form) => (form.template && form.rearrange_uv)},
-				double_use: {label: 'dialog.create_texture.double_use', type: 'checkbox', value: true, condition: (form) => (form.template && Project.box_uv && form.rearrange_uv)},
+				rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', description: 'dialog.create_texture.rearrange_uv.desc', type: 'checkbox', value: true, condition: (form) => (form.template)},
+				compress: 	{label: 'dialog.create_texture.compress', description: 'dialog.create_texture.compress.desc', type: 'checkbox', value: true, condition: (form) => (form.template && Project.box_uv && form.rearrange_uv)},
+				power: 		{label: 'dialog.create_texture.power', description: 'dialog.create_texture.power.desc', type: 'checkbox', value: true, condition: (form) => (form.template && form.rearrange_uv)},
+				double_use: {label: 'dialog.create_texture.double_use', description: 'dialog.create_texture.double_use.desc', type: 'checkbox', value: true, condition: (form) => (form.template && Project.box_uv && form.rearrange_uv)},
 				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.template && !Project.box_uv)},
-				padding:	{label: 'dialog.create_texture.padding', type: 'checkbox', value: false, condition: (form) => (form.template && form.rearrange_uv)},
+				padding:	{label: 'dialog.create_texture.padding', description: 'dialog.create_texture.padding.desc', type: 'checkbox', value: false, condition: (form) => (form.template && form.rearrange_uv)},
 
 			},
 			onFormChange(form) {
@@ -91,7 +91,7 @@ const TextureGenerator = {
 				after(texture)
 			}
 			if (!options.template) {
-				Undo.finishEdit('create blank texture', {textures: [texture], selected_texture: true, bitmap: true})
+				Undo.finishEdit('Create blank texture', {textures: [texture], selected_texture: true, bitmap: true})
 			}
 			return texture;
 		}
@@ -355,7 +355,7 @@ const TextureGenerator = {
 				cube.autouv = 0;
 			})
 		}
-		if (options.box_uv && !Project.box_uv) {
+		if (options.box_uv && !Project.box_uv && Project.optional_box_uv) {
 			Project.box_uv = true;
 		}
 		templates.forEach(function(t) {
@@ -375,7 +375,7 @@ const TextureGenerator = {
 		})
 
 		updateSelection()
-		Undo.finishEdit('create template', {
+		Undo.finishEdit('Create template', {
 			textures: [texture],
 			bitmap: true,
 			elements: cubes,
@@ -489,6 +489,10 @@ const TextureGenerator = {
 		
 		for (var face in TextureGenerator.face_data) {
 			let d = TextureGenerator.face_data[face]
+
+			if (face == 'west' && cube.size(0) == 0) continue;
+			if (face == 'down' && cube.size(1) == 0) continue;
+			if (face == 'south' && cube.size(2) == 0) continue;
 			
 			if (!cube.faces[face].getTexture() ||
 				!TextureGenerator.boxUVdrawTexture(cube.faces[face], d.place(template), texture, canvas)
@@ -796,7 +800,7 @@ const TextureGenerator = {
 			})
 		}
 		updateSelection()
-		Undo.finishEdit('create template', {
+		Undo.finishEdit('Create template', {
 			textures: [texture],
 			bitmap: true,
 			elements: cube_array,

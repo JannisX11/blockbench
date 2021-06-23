@@ -70,7 +70,7 @@
 	.single_canvas_wrapper {
 		height: 100%;
 		width: 100%;
-		overflow: hidden;
+		/*overflow: hidden;*/
 		position: absolute;
 		cursor: inherit;
 	}
@@ -325,6 +325,26 @@
 	#panel_selector_bar .panel_selector .icon_wrapper {
 		margin-top: 6px;
 	}
+	#mobile_keyboard_menu {
+		width: 40px;
+		text-align: center;
+		padding: 6px;
+		position: relative;
+	}
+	#mobile_keyboard_menu:hover {
+		color: var(--color-light);
+	}
+	#mobile_keyboard_menu.enabled::after {
+		content: "";
+		display: block;
+		position: absolute;
+		height: 8px;
+		width: 8px;
+		border-radius: 50%;
+		background-color: var(--color-accent);
+		bottom: 2px;
+		right: 15px;
+	}
 
 	div#mobile_panel_overlay {
 		position: absolute;
@@ -351,7 +371,7 @@
 		padding: 0 8px;
 		padding-top: 2px;
 		display: inline-block;
-		height: 28px;
+		height: 100%;
 		font-weight: normal;
 	}
 	li.menu_bar_point.opened {
@@ -537,6 +557,7 @@
 		position: absolute;
 		top: 8px;
 		right: 8px;
+		cursor: pointer;
 	}
 	#start_screen i.start_screen_close_button:not(:hover) {
 		opacity: 0.8;
@@ -608,6 +629,38 @@
 		height: 22px;
 		margin: 2px 8px 0px 0;
 		display: inline-block;
+	}
+
+	section#keymap_preference {
+		display: block !important;
+	}
+	section#keymap_preference > ul {
+		display: grid;
+		grid-template-columns: auto auto auto;
+		grid-gap: 6px;
+		padding: 12px;
+	}
+	section#keymap_preference > h2 {
+		padding: 12px 20px;
+	}
+	section#keymap_preference > p {
+		padding: 0 20px;
+	}
+	section#keymap_preference .keymap_select_box {
+		display: inline-block;
+		padding: 12px;
+		min-height: 132px;
+		background-color: var(--color-back);
+		cursor: pointer;
+		border: 2px solid transparent;
+	}
+	section#keymap_preference .keymap_select_box:hover {
+		color: var(--color-light);
+		border-color: var(--color-accent);
+		background-color: var(--color-ui);
+	}
+	section#keymap_preference .keymap_select_box p {
+		color: var(--color-subtle_text);
 	}
 
 /*Status Bar*/

@@ -66,7 +66,7 @@ class UVEditor {
 			Undo.initEdit({elements: Cube.selected})
 		}
 		var onAfter = function() {
-			Undo.finishEdit('edit UV')
+			Undo.finishEdit('Edit UV')
 			if (Project.box_uv) {
 				scope.displayAllMappingOverlays()
 			}
@@ -192,7 +192,7 @@ class UVEditor {
 			stop: function(event, ui) {
 				dragging_not_clicking = true;
 				scope.disableAutoUV()
-				Undo.finishEdit('uv_change')
+				Undo.finishEdit('Edit UV size')
 				scope.updateDragHandle(ui.position)
 			}
 		})
@@ -224,7 +224,7 @@ class UVEditor {
 			stop: function(event, ui) {
 				scope.save(true)
 				scope.disableAutoUV()
-				Undo.finishEdit('uv_change')
+				Undo.finishEdit('Move UV')
 				scope.updateDragHandle(ui.position)
 				if (Project.box_uv) {
 					scope.displayAllMappingOverlays()
@@ -916,7 +916,7 @@ class UVEditor {
 		})
 		this.loadData()
 		Canvas.updateSelectedFaces()
-		Undo.finishEdit('apply_texture')
+		Undo.finishEdit('Apply texture')
 	}
 	displayTexture(face) {
 		if (!face && Cube.selected.length) {
@@ -1411,7 +1411,7 @@ class UVEditor {
 		})
 		this.loadData()
 		this.message('uv_editor.transparent')
-		Undo.finishEdit('uv_clear')
+		Undo.finishEdit('Remove face')
 		Canvas.updateSelectedFaces()
 	}
 	switchCullface(event) {
@@ -1427,7 +1427,7 @@ class UVEditor {
 		} else {
 			this.message('uv_editor.cullface_off')
 		}
-		Undo.finishEdit('set_cullface')
+		Undo.finishEdit('Toggle cullface')
 	}
 	switchTint(event) {
 		var scope = this;
@@ -1533,7 +1533,7 @@ class UVEditor {
 			})
 			this.loadData()
 			this.message('uv_editor.pasted')
-			Undo.finishEdit('uv paste')
+			Undo.finishEdit('Paste UV')
 			return;
 		}
 
@@ -1579,7 +1579,7 @@ class UVEditor {
 		this.loadData()
 		Canvas.updateSelectedFaces()
 		this.message('uv_editor.pasted')
-		Undo.finishEdit('uv paste')
+		Undo.finishEdit('Paste UV')
 	}
 	reset(event) {
 		var scope = this;
@@ -1613,7 +1613,7 @@ class UVEditor {
 			{icon: editor.reference_face.enabled!==false ? 'check_box' : 'check_box_outline_blank', name: 'generic.export', click: function(editor) {
 				Undo.initEdit({elements: Cube.selected, uv_only: true})
 				editor.toggleUV(event)
-				Undo.finishEdit('uv_toggle')
+				Undo.finishEdit('Toggle UV export')
 			}},
 			'uv_maximize',
 			'uv_auto',
@@ -1625,22 +1625,22 @@ class UVEditor {
 					{icon: (!editor.reference_face.rotation ? on : off), name: '0&deg;', click: function(editor) {
 						Undo.initEdit({elements: Cube.selected, uv_only: true})
 						editor.setRotation(0)
-						Undo.finishEdit('uv_rotate')
+						Undo.finishEdit('Rotate UV')
 					}},
 					{icon: (editor.reference_face.rotation === 90 ? on : off), name: '90&deg;', click: function(editor) {
 						Undo.initEdit({elements: Cube.selected, uv_only: true})
 						editor.setRotation(90)
-						Undo.finishEdit('uv_rotate')
+						Undo.finishEdit('Rotate UV')
 					}},
 					{icon: (editor.reference_face.rotation === 180 ? on : off), name: '180&deg;', click: function(editor) {
 						Undo.initEdit({elements: Cube.selected, uv_only: true})
 						editor.setRotation(180)
-						Undo.finishEdit('uv_rotate')
+						Undo.finishEdit('Rotate UV')
 					}},
 					{icon: (editor.reference_face.rotation === 270 ? on : off), name: '270&deg;', click: function(editor) {
 						Undo.initEdit({elements: Cube.selected, uv_only: true})
 						editor.setRotation(270)
-						Undo.finishEdit('uv_rotate')
+						Undo.finishEdit('Rotate UV')
 					}}
 				]
 			}},
@@ -1651,7 +1651,7 @@ class UVEditor {
 				click: function(editor) {
 					Undo.initEdit({elements: Cube.selected, uv_only: true})
 					editor.mirrorX(event)
-					Undo.finishEdit('uv_mirror')
+					Undo.finishEdit('Mirror UV')
 				}
 			},
 			{
@@ -1660,7 +1660,7 @@ class UVEditor {
 				click: function(editor) {
 					Undo.initEdit({elements: Cube.selected, uv_only: true})
 					editor.mirrorY(event)
-					Undo.finishEdit('uv_mirror')
+					Undo.finishEdit('Mirror UV')
 				}
 			},
 		]}},
@@ -1668,56 +1668,21 @@ class UVEditor {
 		{icon: 'flip_to_back', condition: () => Format.id == 'java_block', name: 'action.cullface', children: function(editor) {
 			var off = 'radio_button_unchecked';
 			var on = 'radio_button_checked';
+			function setCullface(cullface) {
+				Undo.initEdit({elements: Cube.selected, uv_only: true})
+				editor.forCubes(obj => {
+					obj.faces[editor.face].cullface = cullface;
+				})
+				Undo.finishEdit(cullface ? `Set cullface to ${cullface}` : 'Disable cullface');
+			}
 			return [
-				{icon: (!editor.reference_face.cullface ? on : off), name: 'uv_editor.no_faces', click: function() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					editor.forCubes(obj => {
-						obj.faces[editor.face].cullface = '';
-					})
-					Undo.finishEdit('set cullface');
-				}},
-				{icon: (editor.reference_face.cullface == 'north' ? on : off), name: 'face.north', click: function() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					editor.forCubes(obj => {
-						obj.faces[editor.face].cullface = 'north';
-					})
-					Undo.finishEdit('set cullface');
-				}},
-				{icon: (editor.reference_face.cullface == 'south' ? on : off), name: 'face.south', click: function() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					editor.forCubes(obj => {
-						obj.faces[editor.face].cullface = 'south';
-					})
-					Undo.finishEdit('set cullface');
-				}},
-				{icon: (editor.reference_face.cullface == 'west' ? on : off), name: 'face.west', click: function() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					editor.forCubes(obj => {
-						obj.faces[editor.face].cullface = 'west';
-					})
-					Undo.finishEdit('set cullface');
-				}},
-				{icon: (editor.reference_face.cullface == 'east' ? on : off), name: 'face.east', click: function() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					editor.forCubes(obj => {
-						obj.faces[editor.face].cullface = 'east';
-					})
-					Undo.finishEdit('set cullface');
-				}},
-				{icon: (editor.reference_face.cullface == 'up' ? on : off), name: 'face.up', click: function() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					editor.forCubes(obj => {
-						obj.faces[editor.face].cullface = 'up';
-					})
-					Undo.finishEdit('set cullface');
-				}},
-				{icon: (editor.reference_face.cullface == 'down' ? on : off), name: 'face.down', click: function() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					editor.forCubes(obj => {
-						obj.faces[editor.face].cullface = 'down';
-					})
-					Undo.finishEdit('set cullface');
-				}},
+				{icon: (!editor.reference_face.cullface ? on : off), name: 'uv_editor.no_faces', click: () => setCullface('')},
+				{icon: (editor.reference_face.cullface == 'north' ? on : off), name: 'face.north', click: () => setCullface('north')},
+				{icon: (editor.reference_face.cullface == 'south' ? on : off), name: 'face.south', click: () => setCullface('south')},
+				{icon: (editor.reference_face.cullface == 'west' ? on : off), name: 'face.west', click: () => setCullface('west')},
+				{icon: (editor.reference_face.cullface == 'east' ? on : off), name: 'face.east', click: () => setCullface('east')},
+				{icon: (editor.reference_face.cullface == 'up' ? on : off), name: 'face.up', click: () => setCullface('up')},
+				{icon: (editor.reference_face.cullface == 'down' ? on : off), name: 'face.down', click: () => setCullface('down')},
 				'auto_cullface'
 			]
 		}},
@@ -2076,7 +2041,7 @@ BARS.defineActions(function() {
 			uv_dialog.forSelection('rotate')
 		},
 		onAfter: () => {
-			Undo.finishEdit('uv rotate')
+			Undo.finishEdit('Rotate UV')
 		}
 	})
 	new BarSelect('uv_grid', { 
@@ -2115,7 +2080,7 @@ BARS.defineActions(function() {
 		click: function (event) { 
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('maximize', event)
-			Undo.finishEdit('uv maximize')
+			Undo.finishEdit('Maximize UV')
 		}
 	})
 	new Action('uv_turn_mapping', {
@@ -2125,7 +2090,7 @@ BARS.defineActions(function() {
 		click: function (event) { 
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('turnMapping', event)
-			Undo.finishEdit('turn uv mapping')
+			Undo.finishEdit('Turn UV mapping')
 		}
 	})
 	new Action('uv_auto', {
@@ -2135,7 +2100,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('setAutoSize', event)
-			Undo.finishEdit('auto uv')
+			Undo.finishEdit('Auto UV')
 		}
 	})
 	new Action('uv_rel_auto', {
@@ -2145,7 +2110,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('setRelativeAutoSize', event)
-			Undo.finishEdit('auto uv')
+			Undo.finishEdit('Auto UV')
 		}
 	})
 	new Action('uv_mirror_x', {
@@ -2155,7 +2120,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('mirrorX', event)
-			Undo.finishEdit('mirror uv')
+			Undo.finishEdit('Mirror UV')
 		}
 	})
 	new Action('uv_mirror_y', {
@@ -2165,7 +2130,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('mirrorY', event)
-			Undo.finishEdit('mirror uv')
+			Undo.finishEdit('Mirror UV')
 		}
 	})
 	new Action('uv_transparent', {
@@ -2183,7 +2148,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('reset', event)
-			Undo.finishEdit('reset uv')
+			Undo.finishEdit('Reset UV')
 		}
 	})
 	new Action('uv_apply_all', {
@@ -2193,7 +2158,7 @@ BARS.defineActions(function() {
 		click: function (e) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			main_uv.applyAll(e)
-			Undo.finishEdit('uv apply all')
+			Undo.finishEdit('Apply UV to all faces')
 		}
 	})
 	new BarSelect('cullface', { 
@@ -2212,7 +2177,7 @@ BARS.defineActions(function() {
 		onChange: function(sel, event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true});
 			uv_dialog.forSelection('switchCullface');
-			Undo.finishEdit('cullface');
+			Undo.finishEdit('Set cullface');
 		}
 	})
 	new Action('auto_cullface', {
@@ -2222,7 +2187,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('autoCullface', event)
-			Undo.finishEdit('auto cullface')
+			Undo.finishEdit('Set automatic cullface')
 		}
 	})
 	new Action('face_tint', {
@@ -2231,7 +2196,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('switchTint', event)
-			Undo.finishEdit('tint')
+			Undo.finishEdit('Toggle face tint')
 		}
 	})
 	new NumSlider('slider_face_tint', {
@@ -2252,7 +2217,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 		},
 		onAfter: function() {
-			Undo.finishEdit('set face tint')
+			Undo.finishEdit('Set face tint')
 		}
 	})
 

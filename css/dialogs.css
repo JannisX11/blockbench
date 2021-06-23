@@ -72,7 +72,7 @@
 	}
 	.dialog:not(.ui-resizable) {
 		min-width: min(400px, 100%);
-		max-width: 660px;
+		max-width: min(660px, 100%);
 	}
 	.dialog.paddinged {
 		padding: 24px;
@@ -212,6 +212,20 @@
 	dialog .form_bar_radio label {
 		flex-grow: 1;
 		padding: 3px 5px;
+	}
+	dialog .dialog_form_description {
+		margin-left: auto;
+		padding-top: 8px;
+		font-size: 13px;
+		height: 28px;
+		color: var(--color-subtle_text);
+		display: block;
+		width: 16px;
+		text-align: center;
+	}
+	dialog .dialog_form_description:hover {
+		color: var(--color-light);
+		transition: color 750ms linear;
 	}
 
 /*Settings Dialog*/
@@ -747,10 +761,12 @@
 	.search_bar {
 		float: right;
 		position: relative;
+		width: 220px;
 	}
 	.search_bar input {
 		float: right;
 		padding-right: 20px;
+		width: 100%;
 	}
 	.search_bar i {
 		float: right;
@@ -929,3 +945,44 @@
 	#bar_item_list li:hover {
 		color: var(--color-light);
 	}
+
+/* Edit History */
+#edit_history_list ul {
+	margin-left: 14px;
+}
+#edit_history_list ul li {
+	height: 30px;
+	padding: 2px 6px;
+	cursor: pointer;
+	border: 2px solid transparent;
+	display: flex;
+	justify-content: space-between;
+}
+#edit_history_list ul li.current {
+	border-color: var(--color-accent);
+}
+#edit_history_list ul li:hover {
+	color: var(--color-light);
+}
+#edit_history_list ul li.selected {
+	background-color: var(--color-accent);
+	color: var(--color-accent_text);
+	position: relative;
+}
+#edit_history_list ul li.selected:not(:first-of-type)::before {
+	content: "\f04b";
+	font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+	font-size: 14px;
+	color: var(--color-accent);
+	display: block;
+	position: absolute;
+    top: -11px;
+    left: -16px;
+}
+#edit_history_list .edit_history_time {
+	color: var(--color-subtle_text);
+}
+#edit_history_list ul li.selected .edit_history_time {
+	color: inherit;
+}

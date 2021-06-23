@@ -78,13 +78,13 @@ class BarItem {
 			action.node.prepend(tooltip);
 
 			action.node.addEventListener('mouseenter', () => {
-				var tooltip = $(this).find('div.tooltip');
+				var tooltip = $(action.node).find('div.tooltip');
 				if (!tooltip.length) return;
 				var description = tooltip.find('.tooltip_description');
 
-				if ($(this).parent().parent().hasClass('vertical')) {
+				if ($(action.node).parent().parent().hasClass('vertical')) {
 					tooltip.css('margin', '0')
-					if ($(this).offset().left > window.innerWidth/2) {
+					if ($(action.node).offset().left > window.innerWidth/2) {
 						tooltip.css('margin-left', (-tooltip.width()-3) + 'px')
 					} else {
 						tooltip.css('margin-left', '34px')
@@ -112,7 +112,7 @@ class BarItem {
 
 					// height
 					if ((window.innerHeight - offset.top) < 28) {
-						tooltip.css('margin-top', -tooltip.height()+'px');
+						tooltip.css('margin-top', -2-tooltip.height()+'px');
 						description.css('margin-top', '-51px');
 					}
 				}
@@ -147,14 +147,18 @@ class BarItem {
 		$(destination).first().append(this.getNode())
 		return this;
 	}
-	pushToolbar(bar) {
+	pushToolbar(bar, idx) {
 		var scope = this;
 		if (scope.uniqueNode && scope.toolbars.length) {
 			for (var i = scope.toolbars.length-1; i >= 0; i--) {
 				scope.toolbars[i].remove(scope)
 			}
 		}
-		bar.children.push(this)
+		if (idx !== undefined) {
+			bar.children.splice(idx, 0, this);
+		} else {
+			bar.children.push(this);
+		}
 		this.toolbars.safePush(bar)
 	}
 	delete() {
@@ -334,6 +338,9 @@ class Tool extends Action {
 			if (typeof Toolbox.selected.onUnselect == 'function') {
 				Toolbox.selected.onUnselect()
 			}
+			if (Transformer.dragging) {
+				Transformer.cancelMovement({}, true);
+			}
 		}
 		Toolbox.selected = this;
 		delete Toolbox.original;
@@ -463,11 +470,11 @@ class NumSlider extends Widget {
 		} else {
 			this.interval = function(event) {
 				event = event||0;
-				if (!event.shiftKey && !event.ctrlKey) {
+				if (!event.shiftKey && !event.ctrlOrCmd) {
 					return 1
-				} else if (event.ctrlKey && event.shiftKey) {
+				} else if (event.ctrlOrCmd && event.shiftKey) {
 					return 0.025
-				} else if (event.ctrlKey) {
+				} else if (event.ctrlOrCmd) {
 					return 0.1
 				} else if (event.shiftKey)  {
 					return 0.25
@@ -1051,6 +1058,14 @@ class Toolbar {
 		var scope = this;
 		this.children = [];
 		this.condition_cache = [];
+
+		// items the toolbar could not load on startup, most likely from plugins (stored as IDs)
+		this.postload = undefined;
+		// object storing initial position of actions
+		// if a property with a given position is set, then this slot is occupied
+		// and the associated object (action) can effectively be used with indexOf on children
+		this.positionLookup = {};
+
 		if (data) {
 			this.id = data.id
 			this.narrow = !!data.narrow
@@ -1084,20 +1099,30 @@ class Toolbar {
 		if (items && items.constructor.name === 'Array') {
 			var content = $(scope.node).find('div.content')
 			content.children().detach()
-			items.forEach(function(id) {
-				if (typeof id === 'string' && id.substr(0, 1) === '_') {
-					content.append('<div class="toolbar_separator"></div>')
-					scope.children.push('_'+guid().substr(0,8))
-					return;
+			for (var itemPosition = 0; itemPosition < items.length; itemPosition++) {
+				var itemId = items[itemPosition];
+				if (typeof itemId === 'string' && itemId.substr(0, 1) === '_') {
+					content.append('<div class="toolbar_separator"></div>');
+					this.children.push('_' + guid().substr(0,8));
+					continue;
 				}
-				var item = BarItems[id]
+
+				var item = BarItems[itemId];
 				if (item) {
-					item.pushToolbar(scope)
+					item.pushToolbar(this);
 					if (BARS.condition(item.condition)) {
 						content.append(item.getNode())
 					}
+					this.positionLookup[itemPosition] = item;
+				} else {
+					var postloadAction = [itemId, itemPosition];
+					if (this.postload) {
+						this.postload.push(postloadAction);
+					} else {
+						this.postload = [postloadAction];
+					}
 				}
-			})
+			}
 		}
 		$(scope.node).toggleClass('narrow', this.narrow)
 		$(scope.node).toggleClass('vertical', this.vertical)
@@ -1153,11 +1178,36 @@ class Toolbar {
 		}
 		return this;
 	}
-	update() {
+	update(force) {
 		var scope = this;
 
+		// check if some unkown actions are now known
+		if (this.postload) {
+			var idx = 0;
+			while (idx < this.postload.length) {
+				var postloadAction = this.postload[idx];
+				var item = BarItems[postloadAction[0]];
+				if (item) {
+					var insertAfter = postloadAction[1];
+					// while there isn't displayed element at insertAfter - 1, decrease to reach one or 0
+					while (this.positionLookup[--insertAfter] === undefined && insertAfter >= 0) {}
+					var itemIdx = insertAfter + 1;
+					if (!this.children.includes(item)) {
+						item.pushToolbar(this, itemIdx);
+						this.positionLookup[itemIdx] = item;
+					}
+					this.postload.splice(idx, 1);
+				} else {
+					idx++;
+				}
+			}
+			if (this.postload.length == 0) {
+				this.postload = undefined; // array obj no longer needed
+			}
+		}
+
 		//scope.condition_cache.empty();
-		let needsUpdate = scope.condition_cache.length !== scope.children.length;
+		let needsUpdate = force === true || scope.condition_cache.length !== scope.children.length;
 		scope.condition_cache.length = scope.children.length;
 
 		this.children.forEach(function(item, i) {
@@ -1267,6 +1317,10 @@ const BARS = {
 				category: 'navigate',
 				keybind: new Keybind({key: 3})
 			})
+			new KeybindItem('preview_zoom', {
+				category: 'navigate',
+				keybind: new Keybind({key: 1, shift: true})
+			})
 
 			new KeybindItem('confirm', {
 				category: 'navigate',
@@ -1345,7 +1399,7 @@ const BARS = {
 			new BarSelect('vertex_snap_mode', {
 				options: {
 					move: true,
-					scale: true
+					scale: {condition: () => !Format.integer_size, name: true}
 				},
 				category: 'edit'
 			})
@@ -1450,7 +1504,7 @@ const BARS = {
 							s.remove(false)
 						})
 						TickUpdates.selection = true;
-						Undo.finishEdit('delete elements')
+						Undo.finishEdit('Delete elements')
 
 					} else if (Prop.active_panel == 'animations' && Animation.selected) {
 						Animation.selected.remove(true)
@@ -1479,7 +1533,7 @@ const BARS = {
 						Undo.initEdit({outliner: true, elements: [], selection: true});
 						var g = Group.selected.duplicate();
 						g.select();
-						Undo.finishEdit('duplicate_group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true})
+						Undo.finishEdit('Duplicate group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true})
 					} else {
 						var added_elements = [];
 						Undo.initEdit({elements: added_elements, outliner: true, selection: true})
@@ -1488,7 +1542,7 @@ const BARS = {
 							added_elements.push(copy);
 						})
 						BarItems.move_tool.select();
-						Undo.finishEdit('duplicate')
+						Undo.finishEdit('Duplicate elements')
 					}
 				}
 			})
@@ -1536,6 +1590,18 @@ const BARS = {
 				category: 'view',
 				work_in_dialog: true,
 				click: function () {setZoomLevel('reset')}
+			})
+			new Action('toggle_sidebars', {
+				icon: 'view_array',
+				category: 'view',
+				condition: () => !Blockbench.isMobile && !Mode.selected.hide_sidebars,
+				keybind: new Keybind({key: 'b', ctrl: true}),
+				click: function () {
+					let status = !Prop.show_left_bar;
+					Prop.show_left_bar = status;
+					Prop.show_right_bar = status;
+					resizeWindow();
+				}
 			})
 
 		//Find Action
@@ -1599,6 +1665,7 @@ const BARS = {
 				'eraser',
 				'color_picker',
 				'draw_shape_tool',
+				'gradient_tool',
 				'copy_paste_tool'
 			],
 			vertical: Blockbench.isMobile == true,
@@ -1666,10 +1733,15 @@ const BARS = {
 				'slider_color_h',
 				'slider_color_s',
 				'slider_color_v',
-				'add_to_palette'
+				'add_to_palette',
+				'pick_screen_color'
 			]
 		})
-
+		if (isApp) {
+			Blockbench.onUpdateTo('3.9', () => {
+				Toolbars.color_picker.add(BarItems.pick_screen_color);
+			})
+		}
 
 
 		Toolbars.display = new Toolbar({
@@ -1879,14 +1951,14 @@ const BARS = {
 					$('#bar_items_current .tooltip').css('display', 'none')
 				},
 				update: function() {
-					BARS.editing_bar.update().save();
+					BARS.editing_bar.update(true).save();
 				},
 				addItem: function(item) {
 					if (item.type === 'separator') {
 						item = '_'
 					}
 					BARS.editing_bar.add(item);
-					BARS.editing_bar.update().save();
+					// BARS.editing_bar.update().save(); already called in add()
 				}
 			}
 		})
@@ -2037,26 +2109,6 @@ const Keybinds = {
 	},
 	save() {
 		localStorage.setItem('keybindings', JSON.stringify(Keybinds.stored))
-	},
-	reset() {
-		let answer = confirm(tl('message.reset_keybindings'));
-		if (!answer) return;
-		for (var category in Keybinds.structure) {
-			var entries = Keybinds.structure[category].actions
-			if (entries && entries.length) {
-				entries.forEach(function(item) {
-					if (item.keybind) {
-						if (item.default_keybind) {
-							item.keybind.set(item.default_keybind);
-						} else {
-							item.keybind.clear();
-						}
-						item.keybind.save(false)
-					}
-				})
-			}
-		}
-		Keybinds.save()
 	}
 }
 if (localStorage.getItem('keybindings')) {

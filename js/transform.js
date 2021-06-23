@@ -39,7 +39,7 @@ function origin2geometry() {
 		})
 	}
 	Canvas.updateView({elements: Cube.selected, element_aspects: {geometry: true}});
-	Undo.finishEdit('origin to geometry')
+	Undo.finishEdit('Center pivot')
 }
 function getSelectionCenter(all = false) {
 	if (Group.selected && selected.length == 0 && !all) {
@@ -114,13 +114,13 @@ function moveCubesRelative(difference, index, event) { //Multiple
 	if (index === 1 && height === 'up') difference *= -1
 
 	if (event) {
-		difference *= canvasGridSize(event.shiftKey, event.ctrlOrCmd);
+		difference *= canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl);
 	}
 
 	moveElementsInSpace(difference, axes[index]);
 	updateSelection();
 
-	Undo.finishEdit('move')
+	Undo.finishEdit('Move elements')
 }
 //Rotate
 function rotateSelected(axis, steps) {
@@ -139,7 +139,7 @@ function rotateSelected(axis, steps) {
 		obj.roll(axis, steps, origin)
 	})
 	updateSelection()
-	Undo.finishEdit('rotate')
+	Undo.finishEdit('Rotate elements')
 }
 //Mirror
 function mirrorSelected(axis) {
@@ -149,7 +149,7 @@ function mirrorSelected(axis) {
 		for (var kf of Timeline.selected) {
 			kf.flip(axis)
 		}
-		Undo.finishEdit('flipped keyframes');
+		Undo.finishEdit('Flipped keyframes');
 		updateKeyframeSelection();
 		Animator.preview();
 
@@ -187,7 +187,7 @@ function mirrorSelected(axis) {
 			}
 		})
 		updateSelection()
-		Undo.finishEdit('mirror')
+		Undo.finishEdit('Flip selection')
 	}
 }
 
@@ -330,7 +330,7 @@ const Vertexsnap = {
 			var global_delta = data.vertex.position
 			global_delta.sub(Vertexsnap.vertex_pos)
 
-			if (mode === 'scale') {
+			if (mode === 'scale' && !Format.integer_size) {
 				//Scale
 
 				var m;
@@ -382,7 +382,7 @@ const Vertexsnap = {
 
 		Vertexsnap.removeVertexes()
 		Canvas.updateAllPositions()
-		Undo.finishEdit('vertex snap')
+		Undo.finishEdit('Use vertex snap')
 		Vertexsnap.step1 = true
 	},
 	updateVertexSize: function() {
@@ -472,7 +472,7 @@ function scaleAll(save, size) {
 	}
 	Canvas.updatePositions()
 	if (save === true) {
-		Undo.finishEdit('scale')
+		Undo.finishEdit('Scale model')
 	}
 }
 function modelScaleSync(label) {
@@ -647,11 +647,11 @@ function moveElementsInSpace(difference, axis) {
 function getRotationInterval(event) {
 	if (Format.rotation_limit) {
 		return 22.5;
-	} else if (event.shiftKey && event.ctrlOrCmd) {
+	} else if ((event.shiftKey || Pressing.overrides.shift) && (event.ctrlOrCmd || Pressing.overrides.ctrl)) {
 		return 0.25;
-	} else if (event.shiftKey) {
+	} else if (event.shiftKey || Pressing.overrides.shift) {
 		return 22.5;
-	} else if (event.ctrlOrCmd) {
+	} else if (event.ctrlOrCmd || Pressing.overrides.ctrl) {
 		return 1;
 	} else {
 		return 2.5;
@@ -758,7 +758,7 @@ function rotateOnAxis(modify, axis, slider) {
 			}
 		}
 
-		if (slider || space == 2) {
+		if (slider || (space == 2 && Format.rotation_limit)) {
 			var obj_val = modify(obj.rotation[axis]);
 			obj_val = Math.trimDeg(obj_val)
 			if (Format.rotation_limit) {
@@ -782,6 +782,18 @@ function rotateOnAxis(modify, axis, slider) {
 			if (obj instanceof Cube) {
 				obj.rotation_axis = axis_letter
 			}
+		} else if (space == 2) {
+
+			let old_order = mesh.rotation.order;
+			mesh.rotation.reorder(axis == 0 ? 'ZYX' : (axis == 1 ? 'ZXY' : 'XYZ'))
+			var obj_val = modify(Math.radToDeg(mesh.rotation[axis_letter]));
+			obj_val = Math.trimDeg(obj_val)
+			mesh.rotation[axis_letter] = Math.degToRad(obj_val);
+			mesh.rotation.reorder(old_order);
+
+			obj.rotation[0] = Math.radToDeg(mesh.rotation.x);
+			obj.rotation[1] = Math.radToDeg(mesh.rotation.y);
+			obj.rotation[2] = Math.radToDeg(mesh.rotation.z);
 
 		} else if (space instanceof Group) {
 			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)
@@ -849,7 +861,7 @@ BARS.defineActions(function() {
 	})
 	let grid_locked_interval = function(event) {
 		event = event||0;
-		return canvasGridSize(event.shiftKey, event.ctrlOrCmd);
+		return canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl);
 	}
 
 	function moveOnAxis(modify, axis) {
@@ -893,7 +905,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('move')
+			Undo.finishEdit('Change element position')
 		}
 	}) 
 	new NumSlider('slider_pos_y', {
@@ -913,7 +925,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('move')
+			Undo.finishEdit('Change element position')
 		}
 	}) 
 	new NumSlider('slider_pos_z', {
@@ -933,7 +945,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('move')
+			Undo.finishEdit('Change element position')
 		}
 	})
 
@@ -962,7 +974,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: Cube.selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('resize')
+			Undo.finishEdit('Change element size')
 		}
 	})
 	new NumSlider('slider_size_y', {
@@ -982,7 +994,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: Cube.selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('resize')
+			Undo.finishEdit('Change element size')
 		}
 	})
 	new NumSlider('slider_size_z', {
@@ -1002,7 +1014,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: Cube.selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('resize')
+			Undo.finishEdit('Change element size')
 		}
 	})
 	//Inflate
@@ -1032,7 +1044,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: Cube.selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('inflate')
+			Undo.finishEdit('Inflate elements')
 		}
 	})
 
@@ -1062,7 +1074,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: Cube.selected, group: Group.selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('rotate')
+			Undo.finishEdit(getRotationObject() instanceof Group ? 'Rotate group' : 'Rotate elements');
 		},
 		getInterval: getRotationInterval
 	})
@@ -1091,7 +1103,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: selected, group: Group.selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('rotate')
+			Undo.finishEdit(getRotationObject() instanceof Group ? 'Rotate group' : 'Rotate elements');
 		},
 		getInterval: getRotationInterval
 	})
@@ -1120,7 +1132,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: selected, group: Group.selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('rotate')
+			Undo.finishEdit(getRotationObject() instanceof Group ? 'Rotate group' : 'Rotate elements');
 		},
 		getInterval: getRotationInterval
 	})
@@ -1175,7 +1187,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: selected, group: Group.selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('origin')
+			Undo.finishEdit('Change pivot point')
 		}
 	})
 	new NumSlider('slider_origin_y', {
@@ -1200,7 +1212,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: selected, group: Group.selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('origin')
+			Undo.finishEdit('Change pivot point')
 		}
 	})
 	new NumSlider('slider_origin_z', {
@@ -1225,7 +1237,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: selected, group: Group.selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('origin')
+			Undo.finishEdit('Change pivot point')
 		}
 	})
 
@@ -1351,7 +1363,7 @@ BARS.defineActions(function() {
 		click: function () {
 			Undo.initEdit({elements: selected});
 			centerCubes(0);
-			Undo.finishEdit('center')
+			Undo.finishEdit('Center selection on X axis')
 		}
 	})
 	new Action('center_y', {
@@ -1362,7 +1374,7 @@ BARS.defineActions(function() {
 		click: function () {
 			Undo.initEdit({elements: selected});
 			centerCubes(1);
-			Undo.finishEdit('center')
+			Undo.finishEdit('Center selection on Y axis')
 		}
 	})
 	new Action('center_z', {
@@ -1373,7 +1385,7 @@ BARS.defineActions(function() {
 		click: function () {
 			Undo.initEdit({elements: selected});
 			centerCubes(2);
-			Undo.finishEdit('center')
+			Undo.finishEdit('Center selection on Z axis')
 		}
 	})
 	new Action('center_all', {
@@ -1382,7 +1394,7 @@ BARS.defineActions(function() {
 		click: function () {
 			Undo.initEdit({elements: selected});
 			centerCubesAll();
-			Undo.finishEdit('center')
+			Undo.finishEdit('Center selection')
 		}
 	})
 
@@ -1473,7 +1485,7 @@ BARS.defineActions(function() {
 				Cube.selected[0].forSelected(function(cube) {
 					cube.mapAutoUV()
 				})
-				Undo.finishEdit('update_autouv')
+				Undo.finishEdit('Update auto UV')
 			}
 		}
 	})
@@ -1495,7 +1507,7 @@ BARS.defineActions(function() {
 			})
 			Canvas.updatePositions()
 			updateNslideValues()
-			Undo.finishEdit('rescale')
+			Undo.finishEdit('Toggle cube rescale')
 		}
 	})
 	new Action('bone_reset_toggle', {
@@ -1506,7 +1518,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({group: Group.selected})
 			Group.selected.reset = !Group.selected.reset
 			updateNslideValues()
-			Undo.finishEdit('bone_reset')
+			Undo.finishEdit('Toggle bone reset')
 		}
 	})
 
@@ -1556,11 +1568,11 @@ BARS.defineActions(function() {
 					})
 					updateSelection();
 					Canvas.updateAllFaces();
-					Undo.finishEdit('remove blank faces');
+					Undo.finishEdit('Remove blank faces');
 				})
 			} else {
 				Canvas.updateAllFaces();
-				Undo.finishEdit('remove blank faces');
+				Undo.finishEdit('Remove blank faces');
 			}
 		}
 	})

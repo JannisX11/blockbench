@@ -359,15 +359,23 @@ function createBackup(init) {
 }
 //Close
 
-window.onbeforeunload = function() {
+window.onbeforeunload = function (event) {
 	try {
 		updateRecentProjectThumbnail()
 	} catch(err) {}
 
-	if (!Blockbench.hasFlag('allow_closing')) {
+
+	if (Blockbench.hasFlag('allow_closing')) {
+		try {
+			if (!Blockbench.hasFlag('allow_reload')) {
+				currentwindow.webContents.closeDevTools()
+			}
+		} catch (err) {}
+	} else {
 		setTimeout(function() {
 			showSaveDialog(true)
 		}, 2)
+		event.returnValue = true;
 		return true;
 	}
 }
@@ -412,11 +420,11 @@ function showSaveDialog(close) {
 	}
 }
 function closeBlockbenchWindow() {
+	window.onbeforeunload = null;
 	Blockbench.addFlag('allow_closing');
 	Blockbench.dispatchEvent('before_closing')
 	localStorage.removeItem('backup_model')
 	EditSession.quit()
-	
 	return currentwindow.close();
 };
 

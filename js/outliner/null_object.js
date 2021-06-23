@@ -86,7 +86,12 @@ class NullObject extends OutlinerElement {
 	];
 	//NullObject.prototype.needsUniqueName = true;
 	NullObject.prototype.menu = new Menu([
+			'group_elements',
+			'_',
 			'copy',
+			'paste',
+			'duplicate',
+			'_',
 			'rename',
 			'delete'
 		])
@@ -109,7 +114,7 @@ BARS.defineActions(function() {
 			var null_object = new NullObject().addTo(Group.selected||selected[0]).init();
 			null_object.select();
 			objs.push(null_object);
-			Undo.finishEdit('add null_object');
+			Undo.finishEdit('Add null object');
 			Vue.nextTick(function() {
 				if (settings.create_rename.value) {
 					null_object.rename();

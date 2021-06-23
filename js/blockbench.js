@@ -11,6 +11,11 @@ const Pressing = {
 	shift: false,
 	ctrl: false,
 	alt: false,
+	overrides: {
+		shift: false,
+		ctrl: false,
+		alt: false,
+	}
 }
 var main_uv;
 var Prop = {
@@ -189,7 +194,7 @@ function unselectAll() {
 setInterval(function() {
 	if (Outliner.root.length || textures.length) {
 		try {
-			var model = Codecs.project.compile({compressed: false});
+			var model = Codecs.project.compile({compressed: false, backup: true});
 			localStorage.setItem('backup_model', model)
 		} catch (err) {
 			console.log('Unable to create backup. ', err)

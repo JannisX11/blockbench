@@ -6,8 +6,6 @@ class Animation {
 		this.playing = false;
 		this.override = false;
 		this.selected = false;
-		this.anim_time_update = '';
-		this.blend_weight = '';
 		this.length = 0;
 		this.snapping = Math.clamp(settings.animation_snap.value, 10, 500);
 		this.animators = {};
@@ -29,8 +27,6 @@ class Animation {
 		Merge.string(this, data, 'name')
 		Merge.string(this, data, 'loop', val => ['once', 'loop', 'hold'].includes(val))
 		Merge.boolean(this, data, 'override')
-		Merge.string(this, data, 'anim_time_update')
-		Merge.string(this, data, 'blend_weight')
 		Merge.number(this, data, 'length')
 		Merge.number(this, data, 'snapping')
 		this.snapping = Math.clamp(this.snapping, 10, 500);
@@ -90,8 +86,6 @@ class Animation {
 			name: this.name,
 			loop: this.loop,
 			override: this.override,
-			anim_time_update: this.anim_time_update,
-			blend_weight: this.blend_weight,
 			length: this.length,
 			snapping: this.snapping,
 			selected: this.selected,
@@ -133,21 +127,23 @@ class Animation {
 		if (this.override) ani_tag.override_previous_animation = true;
 		if (this.anim_time_update) ani_tag.anim_time_update = this.anim_time_update.replace(/\n/g, '');
 		if (this.blend_weight) ani_tag.blend_weight = this.blend_weight.replace(/\n/g, '');
+		if (this.start_delay) ani_tag.start_delay = this.start_delay.replace(/\n/g, '');
+		if (this.loop_delay && ani_tag.loop) ani_tag.loop_delay = this.loop_delay.replace(/\n/g, '');
 		ani_tag.bones = {};
 
 		for (var uuid in this.animators) {
 			var animator = this.animators[uuid];
 			if (animator instanceof EffectAnimator) {
 
-				animator.sound.forEach(kf => {
+				animator.sound.sort((kf1, kf2) => (kf1.time - kf2.time)).forEach(kf => {
 					if (!ani_tag.sound_effects) ani_tag.sound_effects = {};
 					ani_tag.sound_effects[kf.getTimecodeString()] = kf.compileBedrockKeyframe();
 				})
-				animator.particle.forEach(kf => {
+				animator.particle.sort((kf1, kf2) => (kf1.time - kf2.time)).forEach(kf => {
 					if (!ani_tag.particle_effects) ani_tag.particle_effects = {};
 					ani_tag.particle_effects[kf.getTimecodeString()] = kf.compileBedrockKeyframe();
 				})
-				animator.timeline.forEach(kf => {
+				animator.timeline.sort((kf1, kf2) => (kf1.time - kf2.time)).forEach(kf => {
 					if (!ani_tag.timeline) ani_tag.timeline = {};
 					ani_tag.timeline[kf.getTimecodeString()] = kf.compileBedrockKeyframe()
 				})
@@ -369,7 +365,7 @@ class Animation {
 				Undo.initEdit({animations: [scope]});
 				scope.name = name;
 				scope.createUniqueName();
-				Undo.finishEdit('rename animation');
+				Undo.finishEdit('Rename animation');
 			}
 		})
 		return this;
@@ -409,7 +405,7 @@ class Animation {
 		}
 		if (undo) {
 			this.select()
-			Undo.finishEdit('add animation', {animations: [this]})
+			Undo.finishEdit('Add animation', {animations: [this]})
 		}
 		return this;
 	}
@@ -419,7 +415,7 @@ class Animation {
 		}
 		Animator.animations.remove(this)
 		if (undo) {
-			Undo.finishEdit('remove animation', {animations: []})
+			Undo.finishEdit('Remove animation', {animations: []})
 
 			if (isApp && remove_from_file && this.path && fs.existsSync(this.path)) {
 				Blockbench.showMessageBox({
@@ -467,7 +463,7 @@ class Animation {
 		if ((value == 'once' || value == 'loop' || value == 'hold') && value !== this.loop) {
 			if (undo) Undo.initEdit({animations: [this]})
 			this.loop = value;
-			if (undo) Undo.finishEdit('change animation loop mode')
+			if (undo) Undo.finishEdit('Change animation loop mode')
 		}
 	}
 	calculateSnappingFromKeyframes() {
@@ -499,7 +495,7 @@ class Animation {
 		let dialog = new Dialog({
 			id: 'animation_properties',
 			title: this.name,
-			width: 640,
+			width: 660,
 			part_order: ['form', 'component'],
 			form: {
 				name: {label: 'generic.name', value: this.name},
@@ -523,25 +519,38 @@ class Animation {
 				},
 				override: {label: 'menu.animation.override', type: 'checkbox', value: this.override},
 				snapping: {label: 'menu.animation.snapping', type: 'number', value: this.snapping, step: 1, min: 10, max: 500},
-				line: '_',
 			},
 			component: {
 				components: {VuePrismEditor},
 				data: {
 					anim_time_update: this.anim_time_update,
 					blend_weight: this.blend_weight,
+					start_delay: this.start_delay,
+					loop_delay: this.loop_delay,
+					loop_mode: this.loop
 				},
 				template: 
 					`<div id="animation_properties_vue">
-						<label>{{ tl('menu.animation.anim_time_update') }}</label>
-						<div class="dialog_bar">
+						<div class="dialog_bar form_bar">
+							<label class="name_space_left">${tl('menu.animation.anim_time_update')}</label>
 							<vue-prism-editor class="molang_input dark_bordered" v-model="anim_time_update" language="molang" :line-numbers="false" />
 						</div>
-						<label>${tl('menu.animation.blend_weight')}</label>
-						<div class="dialog_bar">
+						<div class="dialog_bar form_bar">
+							<label class="name_space_left">${tl('menu.animation.blend_weight')}</label>
 							<vue-prism-editor class="molang_input dark_bordered" v-model="blend_weight" language="molang" :line-numbers="false" />
 						</div>
+						<div class="dialog_bar form_bar">
+							<label class="name_space_left">${tl('menu.animation.start_delay')}</label>
+							<vue-prism-editor class="molang_input dark_bordered" v-model="start_delay" language="molang" :line-numbers="false" />
+						</div>
+						<div class="dialog_bar form_bar" v-if="loop_mode == 'loop'">
+							<label class="name_space_left">${tl('menu.animation.loop_delay')}</label>
+							<vue-prism-editor class="molang_input dark_bordered" v-model="loop_delay" language="molang" :line-numbers="false" />
+						</div>
 					</div>`
+			},
+			onFormChange(form) {
+				this.component.data.loop_mode = form.loop;
 			},
 			onConfirm: form_data => {
 				dialog.hide().delete();
@@ -554,6 +563,8 @@ class Animation {
 					|| form_data.snapping != this.snapping
 					|| dialog.component.data.anim_time_update != this.anim_time_update
 					|| dialog.component.data.blend_weight != this.blend_weight
+					|| dialog.component.data.start_delay != this.start_delay
+					|| dialog.component.data.loop_delay != this.loop_delay
 				) {
 					Undo.initEdit({animations: [this]});
 
@@ -564,11 +575,13 @@ class Animation {
 						snapping: form_data.snapping,
 						anim_time_update: dialog.component.data.anim_time_update.trim().replace(/\n/g, ''),
 						blend_weight: dialog.component.data.blend_weight.trim().replace(/\n/g, ''),
+						start_delay: dialog.component.data.start_delay.trim().replace(/\n/g, ''),
+						loop_delay: dialog.component.data.loop_delay.trim().replace(/\n/g, ''),
 					})
 					this.createUniqueName();
 					if (isApp) this.path = form_data.path;
 
-					Undo.finishEdit('edit animation properties');
+					Undo.finishEdit('Edit animation properties');
 				}
 			},
 			onCancel() {
@@ -626,11 +639,15 @@ class Animation {
 			animations_to_remove.forEach(animation => {
 				animation.remove(false, false);
 			})
-			Undo.finishEdit('remove animation', {animations: []})
+			Undo.finishEdit('Remove animation file', {animations: []})
 		}}
 	])
 	new Property(Animation, 'boolean', 'saved', {default: true, condition: () => Format.animation_files})
 	new Property(Animation, 'string', 'path', {condition: () => isApp && Format.animation_files})
+	new Property(Animation, 'string', 'anim_time_update');
+	new Property(Animation, 'string', 'blend_weight');
+	new Property(Animation, 'string', 'start_delay');
+	new Property(Animation, 'string', 'loop_delay');
 
 Blockbench.on('finish_edit', event => {
 	if (!Format.animation_files) return;
@@ -718,15 +735,16 @@ class GeneralAnimator {
 		Undo.addKeyframeCasualties(deleted);
 
 		if (undo) {
-			Undo.finishEdit('added keyframe')
+			Undo.finishEdit('Add keyframe')
 		}
 		return keyframe;
 	}
 	getOrMakeKeyframe(channel) {
-		var before, result;
+		let before, result;
+		let epsilon = Timeline.getStep()/2 || 0.01;
 
-		for (var kf of this[channel]) {
-			if (Math.abs(kf.time - Timeline.time) < 0.02) {
+		for (let kf of this[channel]) {
+			if (Math.abs(kf.time - Timeline.time) <= epsilon) {
 				before = kf;
 			}
 		}
@@ -1195,7 +1213,7 @@ Object.assign(Clipbench, {
 			})
 			TickUpdates.keyframe_selection = true;
 			Animator.preview()
-			Undo.finishEdit('paste keyframes');
+			Undo.finishEdit('Paste keyframes');
 		}
 	}
 })
@@ -1476,6 +1494,12 @@ const Animator = {
 					blend_weight: (typeof a.blend_weight == 'string'
 						? a.blend_weight.replace(/;(?!$)/, ';\n')
 						: a.blend_weight),
+					start_delay: (typeof a.start_delay == 'string'
+						? a.start_delay.replace(/;(?!$)/, ';\n')
+						: a.start_delay),
+					loop_delay: (typeof a.loop_delay == 'string'
+						? a.loop_delay.replace(/;(?!$)/, ';\n')
+						: a.loop_delay),
 					length: a.animation_length
 				}).add()
 				//Bones
@@ -1633,7 +1657,7 @@ const Animator = {
 		} else if (keys.length == 1) {
 			Undo.initEdit({animations: []})
 			let new_animations = Animator.loadFile(file, keys);
-			Undo.finishEdit('import animations', {animations: new_animations})
+			Undo.finishEdit('Import animations', {animations: new_animations})
 
 		} else {
 			let dialog = new Dialog({
@@ -1650,7 +1674,7 @@ const Animator = {
 					}
 					Undo.initEdit({animations: []})
 					let new_animations = Animator.loadFile(file, names);
-					Undo.finishEdit('import animations', {animations: new_animations})
+					Undo.finishEdit('Import animations', {animations: new_animations})
 				}
 			})
 			dialog.show();
@@ -1772,7 +1796,7 @@ BARS.defineActions(function() {
 		category: 'animation',
 		condition: () => Animator.open && Animation.selected,
 		getInterval(event) {
-			if (event && event.shiftKey) return 1;
+			if ((event && event.shiftKey) || Pressing.overrides.shift) return 1;
 			return Timeline.getStep()
 		},
 		get: function() {
@@ -1914,7 +1938,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({keyframes: Timeline.selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('move keyframes')
+			Undo.finishEdit('Change IK chain length')
 		}
 	})
 
@@ -2084,7 +2108,7 @@ Interface.definePanels(function() {
 							Animation.all.remove(anim);
 							Animation.all.splice(index, 0, anim);
 
-							Undo.finishEdit('reorder animations');
+							Undo.finishEdit('Reorder animations');
 						}
 					}
 
@@ -2122,6 +2146,37 @@ Interface.definePanels(function() {
 						files[key].animations.push(animation);
 					})
 					return files;
+				},
+				common_namespace() {
+					if (!this.animations.length) {
+						return '';
+
+					} else if (this.animations.length == 1) {
+						let match = this.animations[0].name.match(/^.*[.:]/);
+						return match ? match[0] : '';
+
+					} else {
+						let name = this.animations[0].name;
+						if (name.search(/[.:]/) == -1) return '';
+
+						for (var anim of this.animations) {
+							if (anim == this.animations[0]) continue;
+
+							let segments = anim.name.split(/[.:]/);
+							let length = 0;
+
+							for (var segment of segments) {
+								if (segment == name.substr(length, segment.length)) {
+									length += segment.length + 1;
+								} else {
+									break;
+								}
+							}
+							name = name.substr(0, length);
+							if (name.length < 8) return '';
+						}
+						return name;
+					}
 				}
 			},
 			template: `
@@ -2156,7 +2211,10 @@ Interface.definePanels(function() {
 									@contextmenu.prevent.stop="animation.showContextMenu($event)"
 								>
 									<i class="material-icons">movie</i>
-									<label :title="animation.name">{{ animation.name }}</label>
+									<label :title="animation.name">
+										{{ common_namespace ? animation.name.split(common_namespace).join('') : animation.name }}
+										<span v-if="common_namespace"> - {{ animation.name }}</span>
+									</label>
 									<div v-if="animation_files_enabled"  class="in_list_button" v-bind:class="{unclickable: animation.saved}" v-on:click.stop="animation.save()">
 										<i v-if="animation.saved" class="material-icons">check_circle</i>
 										<i v-else class="material-icons">save</i>

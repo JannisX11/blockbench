@@ -366,6 +366,9 @@
 	.texture > i.clickable:hover {
 		color: var(--color-light);
 	}
+	.texture > i.icon_off.clickable:hover {
+		color: var(--color-text);
+	}
 	.texture > i:not(.clickable) {
 		color: var(--color-subtle_text);
 	}
@@ -470,6 +473,7 @@
 		padding-right: 2px;
 		background-color: var(--color-back);
 		border: 1px solid var(--color-border);
+		border-bottom: none;
 	}
 	#texture_animation_timeline .texture_animation_frame {
 		flex-grow: 1;
@@ -534,6 +538,10 @@
 		flex-grow: 1;
 		flex-shrink: 1;
 		overflow: hidden;
+	}
+	.animation > label > span {
+		color: var(--color-subtle_text);
+		font-size: 0.92em;
 	}
 	.in_list_button {
 		width: 22px;
@@ -671,6 +679,7 @@
 		overflow-y: hidden;
 		min-height: 30px;
 		height: auto;
+		margin-bottom: auto;
 	}
 	.molang_input pre {
 		padding: 2px;
@@ -831,8 +840,11 @@
 		font-size: 6pt;
 		color: var(--color-grid);
 	}
-	#timeline .keyframe.selected {
+	#timeline .keyframe.selected i {
 		color: var(--color-accent) !important;
+		z-index: 4;
+	}
+	#timeline .keyframe:hover {
 		z-index: 4;
 	}
 
@@ -1016,11 +1028,13 @@
 		width: 8000px;
 		position: absolute;
 		top: 0;
+		pointer-events: none;
 	}
 	.keyframe .keyframe_waveform > polygon {
 		fill: var(--color-grid);
 		stroke: none;
 		stroke-width: 0;
+		pointer-events: initial;
 	}
 
 	#timeline_graph_editor {

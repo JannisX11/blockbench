@@ -225,6 +225,5 @@ new ModelFormat({
 	centered_grid: true,
 	optional_box_uv: true,
 	uv_rotation: true,
-	animation_mode: true,
-	codec: Codecs.project
+	animation_mode: true
 })

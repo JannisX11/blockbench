@@ -18,7 +18,7 @@ var gizmo_colors = {
 	b: new THREE.Color(0x2d5ee8),
 	grid: new THREE.Color(0x495061),
 	wire: new THREE.Color(0x576f82),
-	solid: new THREE.Color(0xcecece),
+	solid: new THREE.Color(0xc1c1c1),
 	outline: new THREE.Color(0x3e90ff)
 }
 const DefaultCameraPresets = [
@@ -148,13 +148,25 @@ class Preview {
 		this.node = document.createElement('div')
 		this.node.className = 'preview';
 		this.node.appendChild(this.canvas);
-		let menu = $(`<div class="tool preview_menu"> <i class="material-icons">more_vert</i> </div>`)[0]
-			menu.onclick = (event) => {
-				this.menu.open(menu, this)
-			}
+		let menu = $(`
+			<div class="preview_menu">
+				<div class="tool preview_background_menu" hidden><img src="" width="36px"></div>
+				<div class="tool preview_main_menu"><i class="material-icons">more_vert</i></div>
+			</div>`)[0];
+		menu.firstElementChild.onclick = (event) => {
+			let M = new Menu(this.menu.structure.find(s => s.id == 'background').children(this));
+			M.open(menu, this);
+		}
+		menu.lastElementChild.onclick = (event) => {
+			this.menu.open(menu, this);
+		}
+		BarItem.prototype.addLabel(false, {
+			name: tl('menu.preview.background'),
+			node: menu.firstElementChild
+		})
 		BarItem.prototype.addLabel(false, {
 			name: tl('data.preview'),
-			node: menu
+			node: menu.lastElementChild
 		})
 		this.node.appendChild(menu)
 		//Cameras
@@ -285,9 +297,6 @@ class Preview {
 			element: this.canvas,
 			readtype: 'image',
 		}, function(files) {
-			if (!scope.background.imgtag) {
-				scope.background.imgtag = new Image();
-			}
 			if (isApp) {
 				scope.background.image = files[0].path
 			} else {
@@ -667,15 +676,14 @@ class Preview {
 				if (Modes.paint) {
 					event = 0;
 				}
-				if (Format.bone_rig && (
+				if (data.cube.parent.type === 'group' && (
 					Animator.open ||
-					(!Format.rotate_cubes  && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id)) ||
-					event.shiftKey
+					event.shiftKey ||
+					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
 				)) {
-					if (data.cube.parent.type === 'group') {
-						data.cube.parent.select().showInOutliner();
-					}
-				} else {
+					data.cube.parent.select().showInOutliner();
+
+				} else if (!Animator.open) {
 					data.cube.select(event)
 				}
 			} else if (Animator.open && data.type == 'keyframe') {
@@ -918,11 +926,13 @@ class Preview {
 	loadBackground() {
 		this.getBackground()
 		if (this.background && this.background.image) {
-			if (!this.background.imgtag) this.background.imgtag = new Image();
-			this.background.imgtag.src = this.background.image.replace(/#/g, '%23');
-			this.canvas.style.setProperty('background-image', `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`)
+			let background_image = `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`;
+			this.canvas.style.setProperty('background-image', background_image)
+			this.node.querySelector('.preview_background_menu').style.setProperty('background-image', background_image);
+			this.node.querySelector('.preview_background_menu').style.display = 'block';
 		} else {
 			this.canvas.style.setProperty('background-image', 'none')
+			this.node.querySelector('.preview_background_menu').style.display = 'none';
 		}
 		this.updateBackground()
 		return this;
@@ -1127,8 +1137,17 @@ class Preview {
 			changeDisplaySkin()
 		}},
 		'preview_checkerboard',
-		{icon: 'wallpaper', name: 'menu.preview.background', children(preview) {
+		{id: 'background', icon: 'wallpaper', name: 'menu.preview.background', children(preview) {
 			var has_background = !!preview.background.image
+			function applyBackground(image) {
+				if (!preview.background.image) {
+					preview.background.save_in_project = null;
+				}
+				preview.background.image = image;
+				preview.loadBackground();
+				Settings.saveLocalStorages();
+				preview.startMovingBackground();
+			}
 			return [
 				{icon: 'folder', name: 'menu.preview.background.load', click: function(preview) {
 					Blockbench.import({
@@ -1138,29 +1157,20 @@ class Preview {
 						readtype: 'image'
 					}, function(files) {
 						if (files) {
-							preview.background.image = isApp ? files[0].path : files[0].content
-							preview.loadBackground()
-							Settings.saveLocalStorages()
+							applyBackground(isApp ? files[0].path : files[0].content);
 						}
 					}, 'image', false)
 				}},
 				{icon: 'fa-clipboard', name: 'menu.preview.background.clipboard', click: function(preview) {
-					function loadImage(image) {
-						if (image.length > 32) {
-							preview.background.image = image;
-							preview.loadBackground();
-							Settings.saveLocalStorages()
-						}
-					}
 					if (isApp) {
 						var image = clipboard.readImage().toDataURL();
-						loadImage(image);
+						if (image.length > 32) applyBackground(image);
 					} else {
 						navigator.clipboard.read().then(content => {
 							if (content && content[0] && content[0].types.includes('image/png')) {
 								content[0].getType('image/png').then(blob => {
 									let url = URL.createObjectURL(blob);
-									loadImage(url);
+									if (image.length > 32) applyBackground(url);
 								})
 							}
 						})
@@ -1194,7 +1204,7 @@ class Preview {
 		{icon: 'add_a_photo', name: 'menu.preview.save_angle', condition(preview) {return !preview.movingBackground && !Modes.display}, click(preview) {
 			preview.newAnglePreset()
 		}},
-		{icon: 'videocam', name: 'menu.preview.angle', condition(preview) {return !preview.movingBackground && !Modes.display}, children: function(preview) {
+		{id: 'angle', icon: 'videocam', name: 'menu.preview.angle', condition(preview) {return !preview.movingBackground && !Modes.display}, children: function(preview) {
 			var children = [
 			]
 			let presets = localStorage.getItem('camera_presets')
@@ -1232,7 +1242,7 @@ class Preview {
 			preview.setProjectionMode(!preview.isOrtho, true);
 		}},
 		'_',
-		{icon: 'widgets', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !Modes.display && !Animator.open}, click: function() {
+		{icon: 'grid_view', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !Modes.display && !Animator.open}, click: function() {
 			openQuadView()
 		}},
 		{icon: 'web_asset', name: 'menu.preview.maximize', condition: function(preview) {return quad_previews.enabled && !preview.movingBackground && !Modes.display}, click: function(preview) {
@@ -1465,18 +1475,19 @@ const Screencam = {
 			var is_gif = dataUrl.substr(5, 9) == 'image/gif'
 			img.src = dataUrl
 
-			var btns = [tl('dialog.cancel'), tl('dialog.save')]
+			var btns = [tl('dialog.save'), tl('dialog.cancel')]
 			if (!is_gif) {
-				btns.push(tl('message.screenshot.clipboard'))
+				btns.splice(0, 0, tl('message.screenshot.clipboard'))
 			}
 			Blockbench.showMessageBox({
 				translateKey: 'screenshot',
 				icon: img,
 				buttons: btns,
-				confirm: 1,
-				cancel: 0
 			}, function(result) {
-				if (result === 1) {
+				if (result === 0 && btns.length == 3) {
+					clipboard.writeImage(screenshot);
+
+				} else if (result === btns.length-2) {
 					if (is_gif) {
 						Blockbench.export({
 							resource_id: 'screenshot',
@@ -1496,8 +1507,6 @@ const Screencam = {
 							content: dataUrl
 						})
 					}
-				} else if (result === 2) {
-					clipboard.writeImage(screenshot)
 				}
 			})
 		} else {
@@ -1740,6 +1749,50 @@ window.addEventListener("gamepadconnected", function(event) {
 	}
 });
 
+class PreviewBackground {
+	constructor(data = {}) {
+		this.name = data.name ? tl(data.name) : ''
+		this._image = data._image||false
+		this.size = data.size||1000
+		this.x = data.x||0
+		this.y = data.y||0
+		this.lock = data.lock||false
+		this.save_in_project = false;
+		this.defaults = Object.assign({}, this);
+		this.imgtag = new Image();
+	}
+	get image() {
+		return this._image;
+	}
+	set image(path) {
+		this._image = path;
+		if (typeof this._image == 'string') {
+			this.imgtag.src = this._image.replace(/#/g, '%23');
+		}
+	}
+	getSaveCopy() {
+		let dataUrl;
+
+		if (isApp && this.image && this.image.substr(0, 5) != 'data:') {
+			let canvas = document.createElement('canvas');
+			canvas.width = this.imgtag.naturalWidth;
+			canvas.height = this.imgtag.naturalHeight;
+			let ctx = canvas.getContext('2d');
+			ctx.drawImage(this.imgtag, 0, 0);
+			dataUrl = canvas.toDataURL('image/png');
+		}
+
+		return {
+			name: this.name,
+			image: dataUrl || this.image,
+			size: this.size,
+			x: this.x,
+			y: this.y,
+			lock: this.lock
+		}
+	}
+}
+
 //Init/Update
 function initCanvas() {
 	
@@ -1765,31 +1818,21 @@ function initCanvas() {
 	outlines.name = 'outline_group'
 	scene.add(outlines)
 
-	var DScene = function(data) {
-		data = data||{}
-		this.name = data.name ? tl(data.name) : ''
-		this.image = data.image||false
-		this.size = data.size||1000
-		this.x = data.x||0
-		this.y = data.y||0
-		this.lock = data.lock||false
-		this.defaults = Object.assign({}, this);
-	}
 
 	canvas_scenes = {
-		normal: 			new DScene({name: 'menu.preview.perspective.normal', lock: null}),
-		ortho_top: 			new DScene({name: 'direction.top', lock: true}),
-		ortho_bottom: 		new DScene({name: 'direction.bottom', lock: true}),
-		ortho_south: 		new DScene({name: 'direction.south', lock: true}),
-		ortho_north: 		new DScene({name: 'direction.north', lock: true}),
-		ortho_east: 		new DScene({name: 'direction.east', lock: true}),
-		ortho_west: 		new DScene({name: 'direction.west', lock: true}),
+		normal: 			new PreviewBackground({name: 'menu.preview.perspective.normal', lock: null}),
+		ortho_top: 			new PreviewBackground({name: 'direction.top', lock: true}),
+		ortho_bottom: 		new PreviewBackground({name: 'direction.bottom', lock: true}),
+		ortho_south: 		new PreviewBackground({name: 'direction.south', lock: true}),
+		ortho_north: 		new PreviewBackground({name: 'direction.north', lock: true}),
+		ortho_east: 		new PreviewBackground({name: 'direction.east', lock: true}),
+		ortho_west: 		new PreviewBackground({name: 'direction.west', lock: true}),
 
-		monitor: 			new DScene({name: 'display.reference.monitor' }),
+		monitor: 			new PreviewBackground({name: 'display.reference.monitor' }),
 
-		inventory_nine: 	new DScene({name: 'display.reference.inventory_nine', image: './assets/inventory_nine.png', x: 0, y: -525, size: 1051, lock: true}),
-		inventory_full: 	new DScene({name: 'display.reference.inventory_full', image: './assets/inventory_full.png', x: 0, y: -1740, size: 2781, lock: true}),
-		hud: 				new DScene({name: 'display.reference.hud', image: './assets/hud.png', x: -224, y: -447.5, size: 3391, lock: true}),
+		inventory_nine: 	new PreviewBackground({name: 'display.reference.inventory_nine', image: './assets/inventory_nine.png', x: 0, y: -525, size: 1051, lock: true}),
+		inventory_full: 	new PreviewBackground({name: 'display.reference.inventory_full', image: './assets/inventory_full.png', x: 0, y: -1740, size: 2781, lock: true}),
+		hud: 				new PreviewBackground({name: 'display.reference.hud', image: './assets/hud.png', x: -224, y: -447.5, size: 3391, lock: true}),
 	}
 	if (localStorage.getItem('canvas_scenes')) {
 		var stored_canvas_scenes = undefined;
@@ -1803,6 +1846,9 @@ function initCanvas() {
 
 					let store = stored_canvas_scenes[key]
 					let real = canvas_scenes[key]
+
+					if (store.save_in_project) continue;
+					if (store.save_in_project == null) {real.save_in_project = false}
 
 					if (store.image	!== undefined) {real.image = store.image}
 					if (store.size	!== undefined) {real.size = store.size}
@@ -1978,6 +2024,13 @@ function updateShading() {
 		parent.add(lights);
 		lights.position.copy(parent.position).multiplyScalar(-1);
 	}
+	Texture.all.forEach(tex => {
+		let material = tex.getMaterial();
+		material.uniforms.SHADE.value = settings.shading.value;
+		material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+	})
+	Canvas.solidMaterial.uniforms.SHADE.value = settings.shading.value;
+	Canvas.solidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
 }
 function updateCubeHighlights(hover_cube, force_off) {
 	Cube.all.forEach(cube => {
@@ -2275,7 +2328,7 @@ BARS.defineActions(function() {
 		click: function () {Screencam.fullScreen()}
 	})
 	new Action('toggle_quad_view', {
-		icon: 'widgets',
+		icon: 'grid_view',
 		category: 'view',
 		condition: () => !Modes.display,
 		keybind: new Keybind({key: 9}),

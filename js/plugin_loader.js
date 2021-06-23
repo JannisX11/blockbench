@@ -41,6 +41,7 @@ class Plugin {
 		this.min_version = '';
 		this.max_version = '';
 		this.source = 'store'
+		this.await_loading = false;
 
 		this.extend(data)
 
@@ -57,7 +58,8 @@ class Plugin {
 		Merge.string(this, data, 'icon')
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
-		if (data.tags instanceof Array) this.tags.push(...data.tags.slice(0, 3));
+		Merge.boolean(this, data, 'await_loading');
+		if (data.tags instanceof Array) this.tags.safePush(...data.tags.slice(0, 3));
 
 		Merge.function(this, data, 'onload')
 		Merge.function(this, data, 'onunload')
@@ -110,13 +112,13 @@ class Plugin {
 		}
 		return await new Promise((resolve, reject) => {
 			var file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
-			var request = https.get('https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins/'+this.id+'.js', function(response) {
+			https.get('https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins/'+this.id+'.js', function(response) {
 				response.pipe(file);
 				response.on('end', function() {
 					setTimeout(async function() {
 						await scope.install(first);
 						resolve()
-					}, 50)
+					}, 20)
 				})
 			});
 		});
@@ -137,7 +139,7 @@ class Plugin {
 		localStorage.setItem('plugin_dev_path', file.path);
 		Plugins.all.safePush(this);
 		this.source = 'file';
-		this.tags.push('Local');
+		this.tags.safePush('Local');
 
 		return await new Promise((resolve, reject) => {
 
@@ -188,7 +190,7 @@ class Plugin {
 		Plugins.registered[this.id] = this;
 		localStorage.setItem('plugin_dev_path', url)
 		Plugins.all.safePush(this)
-		this.tags.push('Remote');
+		this.tags.safePush('Remote');
 
 		this.source = 'url';
 		await new Promise((resolve, reject) => {
@@ -415,7 +417,10 @@ async function loadInstalledPlugins() {
 			if (Plugins.installed.find(p => {
 				return p && p.id == id && p.source == 'store'
 			})) {
-				install_promises.push(plugin.download())
+				let promise = plugin.download();
+				if (plugin.await_loading) {
+					install_promises.push(promise);
+				}
 			}
 		}
 		Plugins.sort();

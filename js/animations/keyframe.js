@@ -474,7 +474,7 @@ function removeSelectedKeyframes() {
 	}
 	updateKeyframeSelection()
 	Animator.preview()
-	Undo.finishEdit('remove keyframes')
+	Undo.finishEdit('Remove keyframes')
 }
 
 BARS.defineActions(function() {
@@ -509,7 +509,7 @@ BARS.defineActions(function() {
 			})
 			Animator.preview()
 			BarItems.slider_keyframe_time.update()
-			Undo.finishEdit('move keyframes')
+			Undo.finishEdit('Move keyframes back')
 		}
 	})
 	new Action('move_keyframe_forth', {
@@ -524,7 +524,7 @@ BARS.defineActions(function() {
 			})
 			Animator.preview()
 			BarItems.slider_keyframe_time.update()
-			Undo.finishEdit('move keyframes')
+			Undo.finishEdit('Move keyframes forwards')
 		}
 	})
 	new Action('previous_keyframe', {
@@ -605,7 +605,7 @@ BARS.defineActions(function() {
 		category: 'animation',
 		condition: () => Animator.open && Timeline.selected.length,
 		getInterval(event) {
-			if (event && event.shiftKey) return 1;
+			if ((event && event.shiftKey) || Pressing.overrides.shift) return 1;
 			return Timeline.getStep()
 		},
 		get: function() {
@@ -621,7 +621,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({keyframes: Timeline.selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('move keyframes')
+			Undo.finishEdit('Change keyframe time')
 		}
 	})
 	new BarSelect('keyframe_interpolation', {
@@ -636,7 +636,7 @@ BARS.defineActions(function() {
 			Timeline.selected.forEach((kf) => {
 				if (kf.transform) kf.interpolation = sel.value;
 			})
-			Undo.finishEdit('change keyframes interpolation')
+			Undo.finishEdit('Change keyframes interpolation')
 			updateKeyframeSelection();
 		}
 	})
@@ -649,7 +649,7 @@ BARS.defineActions(function() {
 			Timeline.selected.forEach((kf) => {
 				kf.data_points.replace([new KeyframeDataPoint(kf)]);
 			})
-			Undo.finishEdit('reset keyframes')
+			Undo.finishEdit('Reset keyframes')
 			updateKeyframeSelection()
 			Animator.preview()
 		}
@@ -668,7 +668,7 @@ BARS.defineActions(function() {
 				}
 			})
 			Timeline.time = time_before;
-			Undo.finishEdit('resolve keyframes')
+			Undo.finishEdit('Resolve keyframes')
 			updateKeyframeSelection()
 		}
 	})
@@ -696,12 +696,12 @@ BARS.defineActions(function() {
 						}
 					})
 					Animator.loadParticleEmitter(path, files[0].content);
-					Undo.finishEdit('changed keyframe audio file')
+					Undo.finishEdit('Change keyframe particle file')
 				})	
 			} else {
 				Blockbench.import({
 					resource_id: 'animation_audio',
-					extensions: ['ogg'],
+					extensions: ['ogg', 'wav', 'mp3'],
 					type: 'Audio File',
 					startpath: Timeline.selected[0].data_points[0].file
 				}, function(files) {
@@ -717,7 +717,7 @@ BARS.defineActions(function() {
 						}
 					})
 					Timeline.visualizeAudioFile(path);
-					Undo.finishEdit('changed keyframe audio file')
+					Undo.finishEdit('Change keyframe audio file')
 				})
 			}
 		}
@@ -740,7 +740,7 @@ BARS.defineActions(function() {
 					kf.data_points.reverse();
 				}
 			})
-			Undo.finishEdit('reverse keyframes')
+			Undo.finishEdit('Reverse keyframes')
 			updateKeyframeSelection()
 			Animator.preview()
 		}
@@ -749,7 +749,7 @@ BARS.defineActions(function() {
 	flip_action = new Action('flip_animation', {
 		icon: 'transfer_within_a_station',
 		category: 'animation',
-		condition: {modes: ['animate']},
+		condition: {modes: ['animate'], method: () => Animation.selected},
 		click() {
 
 			if (!Animation.selected) {
@@ -806,7 +806,7 @@ BARS.defineActions(function() {
 					TickUpdates.keyframes = true;
 					Animator.preview();
 
-					Undo.finishEdit('copy and flip keyframes');
+					Undo.finishEdit('Copy and flip keyframes');
 				}
 			}).show()
 		}
@@ -831,6 +831,7 @@ Interface.definePanels(function() {
 			components: {VuePrismEditor},
 			data() { return {
 				keyframes: Timeline.selected,
+				uniform_scale: true,
 				channel_colors: {
 					x: 'color_x',
 					y: 'color_y',
@@ -839,7 +840,13 @@ Interface.definePanels(function() {
 			}},
 			methods: {
 				updateInput(axis, value, data_point) {
-					updateKeyframeValue(axis, value, data_point)
+					if (axis == 'uniform') {
+						updateKeyframeValue('x', value, data_point);
+						updateKeyframeValue('y', value, data_point);
+						updateKeyframeValue('z', value, data_point);
+					} else {
+						updateKeyframeValue(axis, value, data_point);
+					}
 				},
 				getKeyframeInfos() {
 					let list =  [tl('timeline.'+this.channel)];
@@ -858,7 +865,7 @@ Interface.definePanels(function() {
 						}
 					})
 					Animator.preview()
-					Undo.finishEdit('add keyframe data point')
+					Undo.finishEdit('Add keyframe data point')
 				},
 				removeDataPoint(data_point) {
 					Undo.initEdit({keyframes: Timeline.selected})
@@ -868,7 +875,7 @@ Interface.definePanels(function() {
 						}
 					})
 					Animator.preview()
-					Undo.finishEdit('remove keyframe data point')
+					Undo.finishEdit('Remove keyframe data point')
 				},
 				updateLocatorSuggestionList() {
 					locator_suggestion_list.innerHTML = '';
@@ -908,6 +915,14 @@ Interface.definePanels(function() {
 							<label>{{ tl('panel.keyframe.type', [getKeyframeInfos()]) }}</label>
 							<div
 								class="in_list_button"
+								v-if="channel == 'scale'"
+								v-on:click.stop="uniform_scale = !uniform_scale"
+								title="${ tl('panel.keyframe.toggle_uniform_scale') }"
+							>
+								<i class="material-icons">{{ uniform_scale ? 'calendar_view_day' : 'view_list' }}</i>
+							</div>
+							<div
+								class="in_list_button"
 								v-if="(keyframes[0].transform && keyframes[0].data_points.length <= 1) || channel == 'particle' || channel == 'sound'"
 								v-on:click.stop="addDataPoint()"
 								title="${ tl('panel.keyframe.add_data_point') }"
@@ -928,33 +943,53 @@ Interface.definePanels(function() {
 									</div>
 								</div>
 
-								<div
-									v-for="(property, key) in data_point.constructor.properties"
-									v-if="property.exposed != false && Condition(property.condition, data_point)"
-									class="bar flex"
-									:id="'keyframe_bar_' + property.name"
-								>
-									<label :class="[channel_colors[key]]" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}">{{ property.label }}</label>
-									<vue-prism-editor 
-										v-if="property.type == 'molang'"
-										class="molang_input dark_bordered keyframe_input tab_target"
-										v-model="data_point[key+'_string']"
-										@change="updateInput(key, $event, data_point_i)"
-										@focus="focusAxis(key)"
-										language="molang"
-										ignoreTabKey="true"
-										:line-numbers="false"
-									/>
-									<input
-										v-else
-										type="text"
-										class="dark_bordered code keyframe_input tab_target"
-										v-model="data_point[key]"
-										:list="key == 'locator' && 'locator_suggestion_list'"
-										@focus="key == 'locator' && updateLocatorSuggestionList()"
-										@input="updateInput(key, $event.target.value, data_point_i)"
-									/>
-								</div>
+								<template v-if="channel == 'scale' && uniform_scale && data_point.x_string == data_point.y_string && data_point.y_string == data_point.z_string">
+									<div
+										class="bar flex"
+										id="keyframe_bar_uniform_scale"
+									>
+										<label>${ tl('generic.all') }</label>
+										<vue-prism-editor 
+											class="molang_input dark_bordered keyframe_input tab_target"
+											v-model="data_point['x_string']"
+											@change="updateInput('uniform', $event, data_point_i)"
+											language="molang"
+											ignoreTabKey="true"
+											:line-numbers="false"
+										/>
+									</div>
+								</template>
+
+
+								<template v-else>
+									<div
+										v-for="(property, key) in data_point.constructor.properties"
+										v-if="property.exposed != false && Condition(property.condition, data_point)"
+										class="bar flex"
+										:id="'keyframe_bar_' + property.name"
+									>
+										<label :class="[channel_colors[key]]" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}">{{ property.label }}</label>
+										<vue-prism-editor 
+											v-if="property.type == 'molang'"
+											class="molang_input dark_bordered keyframe_input tab_target"
+											v-model="data_point[key+'_string']"
+											@change="updateInput(key, $event, data_point_i)"
+											@focus="focusAxis(key)"
+											language="molang"
+											ignoreTabKey="true"
+											:line-numbers="false"
+										/>
+										<input
+											v-else
+											type="text"
+											class="dark_bordered code keyframe_input tab_target"
+											v-model="data_point[key]"
+											:list="key == 'locator' && 'locator_suggestion_list'"
+											@focus="key == 'locator' && updateLocatorSuggestionList()"
+											@input="updateInput(key, $event.target.value, data_point_i)"
+										/>
+									</div>
+								</template>
 							</div>
 						</ul>
 					</template>
@@ -979,7 +1014,7 @@ Interface.definePanels(function() {
 
 			let val = event.target.value || event.target.innerText;
 			if (val != keyframe_edit_value) {
-				Undo.finishEdit('edit keyframe');
+				Undo.finishEdit('Edit keyframe');
 			} else {
 				Undo.cancelEdit();
 			}
