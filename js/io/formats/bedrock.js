@@ -421,6 +421,10 @@ function calculateVisibleBox() {
 					rotation = b.locators[key].rotation;
 				}
 				coords[0] *= -1;
+				if (rotation instanceof Array) {
+					rotation[0] *= -1;
+					rotation[1] *= -1;
+				}
 				if (key.substr(0, 6) == '_null_' && b.locators[key] instanceof Array) {
 					new NullObject({from: coords, name: key.substr(6)}).addTo(group).init();
 				} else {
@@ -611,7 +615,11 @@ function calculateVisibleBox() {
 					if (obj.rotatable && !obj.rotation.allEqual(0)) {
 						locators[key] = {
 							offset,
-							rotation: obj.rotation
+							rotation: [
+								-obj.rotation[0],
+								-obj.rotation[0],
+								obj.rotation[0]
+							]
 						};
 					} else {
 						locators[key] = offset;

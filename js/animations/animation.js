@@ -1090,13 +1090,8 @@ class EffectAnimator extends GeneralAnimator {
 							}
 
 							var locator = data_point.locator && Locator.all.find(l => l.name == data_point.locator)
-							if (locator && locator.parent instanceof Group) {
-								locator.parent.mesh.add(emitter.local_space);
-								emitter.local_space.position.set(
-									locator.from[0] - ((locator.parent.origin && locator.parent.origin[0]) || 0),
-									locator.from[1] - ((locator.parent.origin && locator.parent.origin[1]) || 0),
-									locator.from[2] - ((locator.parent.origin && locator.parent.origin[2]) || 0)
-								)
+							if (locator) {
+								locator.mesh.add(emitter.local_space);
 								emitter.parent_mode = 'locator';
 							} else {
 								emitter.parent_mode = 'entity';

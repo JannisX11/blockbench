@@ -46,6 +46,14 @@ class Locator extends OutlinerElement {
 			this.addTo(Group.selected)
 		}
 		super.init();
+
+		if (!this.mesh || !this.mesh.parent) {
+			this.mesh = new THREE.Object3D();
+			Canvas.meshes[this.uuid] = this.mesh;
+			this.mesh.name = this.uuid;
+			this.mesh.type = 'locator';
+			Canvas.adaptObjectPosition(this, this.mesh);
+		}
 		return this;
 	}
 	flip(axis, center) {

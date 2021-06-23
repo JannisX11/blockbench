@@ -383,14 +383,12 @@ const Canvas = {
 	},
 	updatePositions(leave_selection) {
 		updateNslideValues()
-		var arr = Cube.selected.slice()
+		var arr = selected.slice()
 		if (Format.bone_rig && Group.selected) {
 			Group.selected.forEachChild(obj => {
-				if (obj.type === 'cube') {
-					arr.safePush(obj)
-				}
+				arr.safePush(obj)
 			})
-			if (arr.length === Cube.selected.length) {
+			if (arr.length === selected.length) {
 				Canvas.updateAllBones()
 			}
 		}
@@ -423,7 +421,7 @@ const Canvas = {
 		arr.forEach(function(obj) {
 			if (!obj.visibility) return;
 			var mesh = obj.mesh
-			if (mesh === undefined) return;
+			if (!mesh || !mesh.geometry) return;
 
 			var line = Canvas.getOutlineMesh(mesh)
 
@@ -535,66 +533,71 @@ const Canvas = {
 		mesh.visible = obj.visibility;
 		Canvas.buildOutline(obj);
 	},
-	adaptObjectPosition(cube, mesh) {		
-		if (!mesh || mesh > 0) mesh = cube.mesh
+	adaptObjectPosition(object, mesh) {
+		if (!mesh || mesh > 0) mesh = object.mesh;
+		if (!mesh) return;
 
-		var from = cube.from.slice()
-		from.forEach((v, i) => {
-			from[i] -= cube.inflate;
-			from[i] -= cube.origin[i];
-		})
-		var to = cube.to.slice()
-		to.forEach((v, i) => {
-			to[i] += cube.inflate
-			to[i] -= cube.origin[i];
-			if (from[i] === to[i]) {
-				to[i] += 0.001
-			}
-		})
-		mesh.geometry.from(from)
-		mesh.geometry.to(to)
+		if (object.movable) {
+			mesh.scale.set(1, 1, 1)
+			mesh.rotation.set(0, 0, 0)
+			mesh.position.set(object.origin[0], object.origin[1], object.origin[2])
+		}
 
-		mesh.scale.set(1, 1, 1)
-		mesh.position.set(cube.origin[0], cube.origin[1], cube.origin[2])
-		//mesh.geometry.translate(-cube.origin[0], -cube.origin[1], -cube.origin[2])
-		mesh.rotation.set(0, 0, 0)
-		mesh.geometry.computeBoundingBox()
-		mesh.geometry.computeBoundingSphere()
-
-		if (Format.rotate_cubes) {
-			if (cube.rotation !== undefined) {
-
-				mesh.rotation.reorder('ZYX')
-				mesh.rotation.x = Math.PI / (180 /cube.rotation[0])
-				mesh.rotation.y = Math.PI / (180 /cube.rotation[1])
-				mesh.rotation.z = Math.PI / (180 /cube.rotation[2])
-
-				if (cube.rescale === true) {
-					var axis = cube.rotationAxis()||'y'
-					var rescale = getRescalingFactor(cube.rotation[getAxisNumber(axis)]);
-					mesh.scale.set(rescale, rescale, rescale)
-					mesh.scale[axis] = 1
+		if (object.resizable) {
+			var from = object.from.slice()
+			from.forEach((v, i) => {
+				from[i] -= object.inflate;
+				from[i] -= object.origin[i];
+			})
+			var to = object.to.slice()
+			to.forEach((v, i) => {
+				to[i] += object.inflate
+				to[i] -= object.origin[i];
+				if (from[i] === to[i]) {
+					to[i] += 0.001
 				}
+			})
+			mesh.geometry.from(from)
+			mesh.geometry.to(to)
+
+			mesh.geometry.computeBoundingBox()
+			mesh.geometry.computeBoundingSphere()
+		}
+
+		if (Format.rotate_cubes || (object instanceof Cube == false && object.rotatable)) {
+
+			mesh.rotation.reorder('ZYX')
+			mesh.rotation.x = Math.PI / (180 /object.rotation[0])
+			mesh.rotation.y = Math.PI / (180 /object.rotation[1])
+			mesh.rotation.z = Math.PI / (180 /object.rotation[2])
+
+			if (object.rescale === true) {
+				var axis = object.rotationAxis()||'y'
+				var rescale = getRescalingFactor(object.rotation[getAxisNumber(axis)]);
+				mesh.scale.set(rescale, rescale, rescale)
+				mesh.scale[axis] = 1
 			}
 		}
 		if (Format.bone_rig) {
 			//mesh.rotation.reorder('YZX')
-			if (cube.parent.type === 'group') {
-				cube.parent.mesh.add(mesh)
-				mesh.position.x -=  cube.parent.origin[0]
-				mesh.position.y -=  cube.parent.origin[1]
-				mesh.position.z -=  cube.parent.origin[2]
+			if (object.parent.type === 'group') {
+				object.parent.mesh.add(mesh)
+				mesh.position.x -=  object.parent.origin[0]
+				mesh.position.y -=  object.parent.origin[1]
+				mesh.position.z -=  object.parent.origin[2]
 			} else {
 				scene.add(mesh)
 			}
 		} else if (mesh.parent !== scene) {
 			scene.add(mesh)
 		}
-		if (Modes.paint) {
-			Canvas.buildGridBox(cube)
+		if (object instanceof Cube) {
+			if (Modes.paint) {
+				Canvas.buildGridBox(object);
+			}
+			Canvas.buildOutline(object);
 		}
-		Canvas.buildOutline(cube)
-		mesh.updateMatrixWorld()
+		mesh.updateMatrixWorld();
 	},
 	adaptObjectFaceGeo(cube) {
 		let {mesh} = cube;

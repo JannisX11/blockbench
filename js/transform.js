@@ -595,13 +595,21 @@ function moveElementsInSpace(difference, axis) {
 	selected.forEach(el => {
 		
 		if (space == 2 && !group_m) {
-			if (el.movable) el.from[axis] += difference;
-			if (el.resizable) el.to[axis] += difference;
+			if (el instanceof Locator) {
+				let m = new THREE.Vector3();
+				m[getAxisLetter(axis)] = difference;
+				m.applyQuaternion(el.mesh.quaternion);
+				el.from.V3_add(m.x, m.y, m.z);
+
+			} else {
+				if (el.movable) el.from[axis] += difference;
+				if (el.resizable) el.to[axis] += difference;
+			}
 			
 		} else if (space instanceof Group) {
 			if (el.movable) el.from[axis] += difference;
 			if (el.resizable) el.to[axis] += difference;
-			if (el.rotatable) el.origin[axis] += difference;
+			if (el.rotatable && el instanceof Locator == false) el.origin[axis] += difference;
 		} else {
 			let move_origin = !!group;
 			if (group_m) {
@@ -621,7 +629,7 @@ function moveElementsInSpace(difference, axis) {
 					move_origin = true;
 				} else {
 					var rotation = new THREE.Quaternion();
-					if (el.mesh) {
+					if (el.mesh && el instanceof Locator == false) {
 						el.mesh.getWorldQuaternion(rotation);
 					} else if (el.parent instanceof Group) {
 						el.parent.mesh.getWorldQuaternion(rotation);
@@ -633,13 +641,13 @@ function moveElementsInSpace(difference, axis) {
 			if (el.movable) el.from.V3_add(m.x, m.y, m.z);
 			if (el.resizable) el.to.V3_add(m.x, m.y, m.z);
 			if (move_origin) {
-				if (el.rotatable) el.origin.V3_add(m.x, m.y, m.z);
+				if (el.rotatable && el instanceof Locator == false) el.origin.V3_add(m.x, m.y, m.z);
 			}
 		}
 		if (el instanceof Cube) {
 			el.mapAutoUV()
-			Canvas.adaptObjectPosition(el);
 		}
+		Canvas.adaptObjectPosition(el);
 	})
 }
 

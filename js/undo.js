@@ -238,8 +238,10 @@ var Undo = {
 							new_element.faces[face].reset()
 						}
 						new_element.extend(element)
-						if (new_element.type == 'cube') {
+						if (new_element.mesh) {
 							Canvas.adaptObjectPosition(new_element)
+						}
+						if (new_element.type == 'cube') {
 							Canvas.adaptObjectFaceGeo(new_element)
 							Canvas.adaptObjectFaces(new_element)
 							Canvas.updateUV(new_element)
