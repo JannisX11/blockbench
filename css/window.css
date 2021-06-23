@@ -557,6 +557,7 @@
 		position: absolute;
 		top: 8px;
 		right: 8px;
+		cursor: pointer;
 	}
 	#start_screen i.start_screen_close_button:not(:hover) {
 		opacity: 0.8;
@@ -628,6 +629,38 @@
 		height: 22px;
 		margin: 2px 8px 0px 0;
 		display: inline-block;
+	}
+
+	section#keymap_preference {
+		display: block !important;
+	}
+	section#keymap_preference > ul {
+		display: grid;
+		grid-template-columns: auto auto auto;
+		grid-gap: 6px;
+		padding: 12px;
+	}
+	section#keymap_preference > h2 {
+		padding: 12px 20px;
+	}
+	section#keymap_preference > p {
+		padding: 0 20px;
+	}
+	section#keymap_preference .keymap_select_box {
+		display: inline-block;
+		padding: 12px;
+		min-height: 132px;
+		background-color: var(--color-back);
+		cursor: pointer;
+		border: 2px solid transparent;
+	}
+	section#keymap_preference .keymap_select_box:hover {
+		color: var(--color-light);
+		border-color: var(--color-accent);
+		background-color: var(--color-ui);
+	}
+	section#keymap_preference .keymap_select_box p {
+		color: var(--color-subtle_text);
 	}
 
 /*Status Bar*/

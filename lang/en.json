@@ -73,6 +73,9 @@
 	"mode.start.new": "New",
 	"mode.start.recent": "Recent",
 	"mode.start.no_recents": "No recently opened models",
+	"mode.start.keymap_preference": "Keybinding Preference",
+	"mode.start.keymap_preference.desc": "If you are new to Blockbench and you are coming from another 3D program, you can select a keymap to make your transition easier. You can change the keymap or individual keybindigns later in the settings.",
+	"mode.start.select_keymap": "Select Keymap",
 
 	"format.free": "Generic Model",
 	"format.free.desc": "Model without restrictions. For game engines, rendering etc.",
@@ -228,6 +231,7 @@
 	"message.add_to_palette": "Added to palette",
 	"message.size_modifiers": "Hold down Ctrl or Shift to transform in smaller increments.",
 	"message.load_keymap": "Are you sure you want to load this keymap? This will overwrite your current keybindings.",
+	"message.keymap_loaded": "Keymap loaded",
 	"message.no_animation_to_import": "No animations to import",
 
 	"message.wireframe.enabled": "Wireframe view enabled",
@@ -814,6 +818,13 @@
 	"action.export_settings.desc": "Export the Blockbench settings as a .bbsettings file",
 	
 	"action.load_keymap": "Load Keymap",
+	"action.load_keymap.default": "Default (Trackpad)",
+	"action.load_keymap.mouse": "Default (Mouse)",
+	"action.load_keymap.default.desc": "Default Blockbench keybindings, with viewport navigation controls optimized for use on laptop trackpads",
+	"action.load_keymap.mouse.desc": "Default Blockbench keybindings, with viewport navigation bound to the middle mouse button",
+	"action.load_keymap.blender.desc": "Keymap for users who are familiar with the controls of Blender",
+	"action.load_keymap.cinema4d.desc": "Keymap for users who are familiar with the controls of Cinema 4D",
+	"action.load_keymap.maya.desc": "Keymap for users who are familiar with the controls of Autodesk Maya",
 	"action.import_keymap": "Import Keymap",
 	"action.import_keymap.desc": "Import keybindings a .bbkeymap file",
 	"action.export_keymap": "Export Keymap",

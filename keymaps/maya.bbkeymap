@@ -220,7 +220,7 @@
 		"reverse_keyframes": null,
 		"previous_keyframe": {"key": 188},
 		"next_keyframe": {"key": 190},
-		"add_keyframe": {"key": 73},
+		"add_keyframe": {"key": 83},
 		"add_marker": {"key": 77, "ctrl": true},
 		"bring_up_all_animations": null,
 		"fold_all_animations": null,

@@ -713,18 +713,6 @@ function addStartScreenSection(id, data) {
 			updateStreamerModeNotification()
 		}
 
-
-		//Electron
-		if (isApp && !compareVersions(process.versions.electron, '6.0.0')) {
-			addStartScreenSection({
-				graphic: {type: 'icon', icon: 'fas.fa-atom'},
-				text: [
-					{type: 'h1', text: 'Electron Update Recommended'},
-					{text: 'Your Blockbench is using an old version of Electron. Install the latest version to get the best performance and newest features. Just run the latest Blockbench installer. This only takes a minute and will not affect your custom settings.'},
-					{text: '[Blockbench Downloads](https://blockbench.net/downloads/)'}
-				]
-			})
-		}
 		//Twitter
 		let twitter_ad;
 		if (Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
@@ -752,6 +740,46 @@ function addStartScreenSection(id, data) {
 				],
 				last: true
 			})
+		}
+
+		// Keymap Preference
+		if (!Blockbench.isMobile && !localStorage.getItem('selected_keymap_preference')) {
+
+			
+			var obj = $(`<section id="keymap_preference">
+				<h2>${tl('mode.start.keymap_preference')}</h2>
+				<p>${tl('mode.start.keymap_preference.desc')}</p>
+				<ul></ul>
+			</section>`)
+
+			var keymap_list = $(obj).find('ul');
+			
+			obj.prepend(`<i class="material-icons start_screen_close_button">clear</i>`);
+			obj.find('i.start_screen_close_button').on('click', (e) => {
+				obj.detach();
+				localStorage.setItem('selected_keymap_preference', true);
+			});
+
+			[
+				['default', 'action.load_keymap.default'],
+				['mouse', 'action.load_keymap.mouse'],
+				['blender', 'Blender'],
+				['cinema4d', 'Cinema 4D'],
+				['maya', 'Maya'],
+			].forEach(([id, name], index) => {
+
+				let node = $(`<li class="keymap_select_box">
+					<h4>${tl(name)}</h4>
+					<p>${tl(`action.load_keymap.${id}.desc`)}</p>
+				</li>`)
+				node.on('click', e => {
+					Keybinds.loadKeymap(id, true);
+					localStorage.setItem('selected_keymap_preference', true);
+				})
+				keymap_list.append(node);
+			})
+			
+			$('#start_screen content').prepend(obj);
 		}
 	})
 

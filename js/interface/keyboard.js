@@ -242,32 +242,34 @@ class Keybind {
 		return this.label
 	}
 }
-Keybinds.loadKeymap = function(id) {
-	let answer = confirm(tl('message.load_keymap'));
+Keybinds.loadKeymap = function(id, from_start_screen = false) {
+	let controls_only = from_start_screen && (id == 'default' || id == 'mouse');
+	let answer = controls_only || confirm(tl('message.load_keymap'));
 	if (!answer) return;
 	let preset = KeymapPresets[id];
 
 
-	Keybinds.actions.forEach(item => {
-		if (!item.keybind) return;
+	if (!controls_only)
+		Keybinds.actions.forEach(item => {
+			if (!item.keybind) return;
 
-		if (preset && preset.keys[item.id] !== undefined) {
+			if (preset && preset.keys[item.id] !== undefined) {
 
-			if (preset.keys[item.id] == null) {
-				item.keybind.clear();
+				if (preset.keys[item.id] == null) {
+					item.keybind.clear();
+				} else {
+					item.keybind.set(preset.keys[item.id]).save(false);
+				}
 			} else {
-				item.keybind.set(preset.keys[item.id]).save(false);
+				if (item.default_keybind) {
+					item.keybind.set(item.default_keybind);
+				} else {
+					item.keybind.clear();
+				}
 			}
-		} else {
-			if (item.default_keybind) {
-				item.keybind.set(item.default_keybind);
-			} else {
-				item.keybind.clear();
-			}
-		}
 
-		item.keybind.save(false);
-	})
+			item.keybind.save(false);
+		})
 
 	if (id == 'mouse') {
 		Keybinds.extra.preview_rotate.keybind.set({key: 2}).save(false);
@@ -277,6 +279,7 @@ Keybinds.loadKeymap = function(id) {
 
 	Keybinds.save();
 	TickUpdates.keybind_conflicts = true;
+	Blockbench.showQuickMessage('message.keymap_loaded', 1600);
 }
 Keybinds.no_overlap = function(k1, k2) {
 	if (typeof k1.condition !== 'object' || typeof k2.condition !== 'object') return false;
@@ -406,11 +409,11 @@ BARS.defineActions(() => {
 		children: [
 			'import_keymap',
 			'_',
-			{icon: 'keyboard', id: 'default', name: 'Default (Trackpad)', click() {Keybinds.loadKeymap('default')}},
-			{icon: 'keyboard', id: 'mouse', name: 'Default (Mouse)', click() {Keybinds.loadKeymap('mouse')}},
-			{icon: 'keyboard', id: 'blender', name: 'Blender', click() {Keybinds.loadKeymap('blender')}},
-			{icon: 'keyboard', id: 'cinema4d', name: 'Cinema 4D', click() {Keybinds.loadKeymap('cinema4d')}},
-			{icon: 'keyboard', id: 'maya', name: 'Maya', click() {Keybinds.loadKeymap('maya')}}
+			{icon: 'keyboard', id: 'default', description: 'action.load_keymap.default.desc', name: 'action.load_keymap.default', click() {Keybinds.loadKeymap('default')}},
+			{icon: 'keyboard', id: 'mouse', description: 'action.load_keymap.mouse.desc', name: 'action.load_keymap.mouse', click() {Keybinds.loadKeymap('mouse')}},
+			{icon: 'keyboard', id: 'blender', description: 'action.load_keymap.blender.desc', name: 'Blender', click() {Keybinds.loadKeymap('blender')}},
+			{icon: 'keyboard', id: 'cinema4d', description: 'action.load_keymap.cinema4d.desc', name: 'Cinema 4D', click() {Keybinds.loadKeymap('cinema4d')}},
+			{icon: 'keyboard', id: 'maya', description: 'action.load_keymap.maya.desc', name: 'Maya', click() {Keybinds.loadKeymap('maya')}}
 		]
 	})
 	new Action('import_keymap', {
