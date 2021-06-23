@@ -740,10 +740,11 @@ class GeneralAnimator {
 		return keyframe;
 	}
 	getOrMakeKeyframe(channel) {
-		var before, result;
+		let before, result;
+		let epsilon = Timeline.getStep()/2 || 0.01;
 
-		for (var kf of this[channel]) {
-			if (Math.abs(kf.time - Timeline.time) < 0.02) {
+		for (let kf of this[channel]) {
+			if (Math.abs(kf.time - Timeline.time) <= epsilon) {
 				before = kf;
 			}
 		}
