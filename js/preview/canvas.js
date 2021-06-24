@@ -77,8 +77,7 @@ const Canvas = {
 
 					vec3 N = vec3( modelViewMatrix * vec4(normal, 0.0) );
 
-					float yLight = (1.0+N.z) * 0.5;
-					light = yLight * (1.0-AMBIENT) + N.x*N.x * XFAC + N.y*N.y * ZFAC + AMBIENT;
+					light = (0.2 + abs(N.z) * 0.8) * (1.0-AMBIENT) + N.x*N.x * XFAC + N.y*N.y * ZFAC + AMBIENT;
 
 				} else {
 
@@ -86,8 +85,8 @@ const Canvas = {
 
 				}
 
-				if (color.b == 1.25) {
-					lift = 0.1;
+				if (color.b > 1.1) {
+					lift = 0.12;
 				} else {
 					lift = 0.0;
 				}
@@ -111,6 +110,11 @@ const Canvas = {
 			{
 
 				gl_FragColor = vec4(lift + base * light * BRIGHTNESS, 1.0);
+
+				if (lift > 0.1) {
+					gl_FragColor.b = gl_FragColor.b * 1.16;
+					gl_FragColor.g = gl_FragColor.g * 1.04;
+				}
 
 			}`
 
@@ -654,7 +658,7 @@ const Canvas = {
 
 				}
 
-				if (color.b == 1.25) {
+				if (color.b > 1.1) {
 					lift = 0.1;
 				} else {
 					lift = 0.0;

@@ -83,7 +83,7 @@ class Texture {
 
 				}
 
-				if (color.b == 1.25) {
+				if (color.b > 1.1) {
 					lift = 0.1;
 				} else {
 					lift = 0.0;

@@ -449,7 +449,7 @@ class OutlinerElement extends OutlinerNode {
 }
 	OutlinerElement.prototype.isParent = false;
 	OutlinerElement.fromSave = function(obj, keep_uuid) {
-		let Type = OutlinerElement.types[obj.type];
+		let Type = OutlinerElement.types[obj.type] || Cube;
 		if (Type) {
 			return new Type(obj, keep_uuid ? obj.uuid : 0).init()
 		}
