@@ -850,6 +850,8 @@ class Cube extends OutlinerElement {
 	new Property(Cube, 'string', 'name', {default: 'cube'})
 	new Property(Cube, 'boolean', 'rescale')
 
+	OutlinerElement.types.cube = Cube;
+
 BARS.defineActions(function() {
 	new Action({
 		id: 'add_cube',

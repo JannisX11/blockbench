@@ -115,6 +115,8 @@ class Locator extends OutlinerElement {
 	new Property(Locator, 'vector', 'from')
 	new Property(Locator, 'vector', 'rotation')
 
+	OutlinerElement.types.locator = Locator;
+
 BARS.defineActions(function() {
 	new Action('add_locator', {
 		icon: 'fa-anchor',

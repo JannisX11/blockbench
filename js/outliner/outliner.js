@@ -449,17 +449,14 @@ class OutlinerElement extends OutlinerNode {
 }
 	OutlinerElement.prototype.isParent = false;
 	OutlinerElement.fromSave = function(obj, keep_uuid) {
-		switch (obj.type) {
-			case 'locator':
-				return new Locator(obj, keep_uuid ? obj.uuid : 0).init()
-				break;
-			case 'cube': default:
-				return new Cube(obj, keep_uuid ? obj.uuid : 0).init()
-				break;
+		let Type = OutlinerElement.types[obj.type];
+		if (Type) {
+			return new Type(obj, keep_uuid ? obj.uuid : 0).init()
 		}
 	}
 	OutlinerElement.selected = selected;
 	OutlinerElement.all = elements;
+	OutlinerElement.types = {};
 
 Array.prototype.findRecursive = function(key1, val) {
 	var i = 0

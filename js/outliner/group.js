@@ -181,13 +181,13 @@ class Group extends OutlinerNode {
 	remove(undo) {
 		var scope = this;
 		if (undo) {
-			var cubes = []
+			let elements = []
 			this.forEachChild(function(element) {
 				if (element.type !== 'group') {
-					cubes.push(element)
+					elements.push(element)
 				}
 			})
-			Undo.initEdit({elements: cubes, outliner: true, selection: true})
+			Undo.initEdit({elements: elements, outliner: true, selection: true})
 		}
 		this.unselect()
 		var i = this.children.length-1
@@ -213,7 +213,6 @@ class Group extends OutlinerNode {
 		delete Canvas.bones[this.uuid];
 		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
-			cubes.length = 0
 			Undo.finishEdit('Delete group')
 		}
 	}
@@ -232,7 +231,7 @@ class Group extends OutlinerNode {
 		array.forEach((obj, i) => {
 			obj.addTo(this.parent, index)
 			
-			if ((obj instanceof Cube && Format.rotate_cubes) || (obj instanceof Group && Format.bone_rig)) {
+			if ((obj instanceof Cube && Format.rotate_cubes) || (obj instanceof OutlinerElement && obj.rotatable) || (obj instanceof Group && Format.bone_rig)) {
 				let quat = new THREE.Quaternion().copy(obj.mesh.quaternion);
 				quat.premultiply(obj.mesh.parent.quaternion);
 				let e = new THREE.Euler().setFromQuaternion(quat, obj.mesh.rotation.order);
@@ -447,6 +446,8 @@ class Group extends OutlinerNode {
 		'_',
 		'add_locator',
 		'_',
+		'rename',
+		'edit_bedrock_binding',
 		{name: 'menu.cube.color', icon: 'color_lens', children: [
 			{icon: 'bubble_chart', color: markerColors[0].standard, name: 'cube.color.'+markerColors[0].name, click: () => setGroupColor(0)},
 			{icon: 'bubble_chart', color: markerColors[1].standard, name: 'cube.color.'+markerColors[1].name, click: () => setGroupColor(1)},
@@ -457,8 +458,6 @@ class Group extends OutlinerNode {
 			{icon: 'bubble_chart', color: markerColors[6].standard, name: 'cube.color.'+markerColors[6].name, click: () => setGroupColor(6)},
 			{icon: 'bubble_chart', color: markerColors[7].standard, name: 'cube.color.'+markerColors[7].name, click: () => setGroupColor(7)}
 		]},
-		'edit_bedrock_binding',
-		'rename',
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
 		{icon: 'fa-leaf', name: 'menu.group.resolve', condition: {modes: ['edit']}, click: function(group) {group.resolve()}},
 		'delete'
@@ -519,7 +518,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({outliner: true});
 			var add_group = Group.selected
 			if (!add_group && selected.length) {
-				add_group = Cube.selected.last()
+				add_group = selected.last()
 			}
 			var base_group = new Group({
 				origin: add_group ? add_group.origin : undefined
@@ -551,13 +550,13 @@ BARS.defineActions(function() {
 		id: 'group_elements',
 		icon: 'drive_file_move',
 		category: 'edit',
-		condition: () => Modes.edit,
+		condition: () => Modes.edit && (selected.length || Group.selected),
 		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),
 		click: function () {
 			Undo.initEdit({outliner: true});
 			var add_group = Group.selected
 			if (!add_group && selected.length) {
-				add_group = Cube.selected.last()
+				add_group = selected.last()
 			}
 			var base_group = new Group({
 				origin: add_group ? add_group.origin : undefined

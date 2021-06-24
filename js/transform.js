@@ -38,7 +38,11 @@ function origin2geometry() {
 			}
 		})
 	}
-	Canvas.updateView({elements: Cube.selected, element_aspects: {geometry: true}});
+	Canvas.updateView({
+		elements: Cube.selected,
+		element_aspects: {geometry: true},
+		groups: Group.selected && [Group.selected]
+	});
 	Undo.finishEdit('Center pivot')
 }
 function getSelectionCenter(all = false) {

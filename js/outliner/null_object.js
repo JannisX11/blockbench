@@ -102,6 +102,8 @@ class NullObject extends OutlinerElement {
 	new Property(NullObject, 'vector', 'from')
 	new Property(NullObject, 'boolean', 'ik_enabled', {condition: () => Format.animation_mode});
 	new Property(NullObject, 'number', 'ik_chain_length', {condition: () => Format.animation_mode});
+	
+	OutlinerElement.types.null_object = NullObject;
 
 BARS.defineActions(function() {
 	new Action('add_null_object', {
