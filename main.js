@@ -177,7 +177,7 @@ ipcMain.on('request-color-picker', async (event, arg) => {
 	})
 	if (color) {
 		all_wins.forEach(win => {
-			if (win.isDestroyed() || (!arg.sync && win.webContents != event.sender.webContents)) return;
+			if (win.isDestroyed() || (!arg.sync && win.webContents.getProcessId() != event.sender.getProcessId())) return;
 			win.webContents.send('set-main-color', color)
 		})
 	}
