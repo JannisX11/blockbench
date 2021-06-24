@@ -386,7 +386,9 @@ const Canvas = {
 		var arr = selected.slice()
 		if (Format.bone_rig && Group.selected) {
 			Group.selected.forEachChild(obj => {
-				arr.safePush(obj)
+				if (obj instanceof OutlinerElement) {
+					arr.safePush(obj)
+				}
 			})
 			if (arr.length === selected.length) {
 				Canvas.updateAllBones()

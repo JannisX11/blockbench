@@ -1429,7 +1429,7 @@ const BARS = {
 				category: 'file',
 				condition: () => isApp,
 				click: function (e) {
-					shell.openItem(app.getPath('userData')+osfs+'backups')
+					shell.openPath(app.getPath('userData')+osfs+'backups')
 				}
 			})
 			new Action('settings_window', {

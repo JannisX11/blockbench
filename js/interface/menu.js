@@ -702,7 +702,7 @@ const MenuBar = {
 			{name: 'menu.help.developer', id: 'developer', icon: 'fas.fa-wrench', children: [
 				'reload_plugins',
 				{name: 'menu.help.plugin_documentation', id: 'plugin_documentation', icon: 'fa-book', click: () => {
-					Blockbench.openLink('https://jannisx11.github.io/blockbench-docs/');
+					Blockbench.openLink('https://www.blockbench.net/wiki/api/index');
 				}},
 				'open_dev_tools',
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
