@@ -158,7 +158,7 @@ const TextureGenerator = {
 			let obj = cubes[i]
 			if (obj.visibility === true) {
 				var template = new TextureGenerator.boxUVCubeTemplate(obj, min_size);
-				if (options.double_use && (Project.box_uv || options.box_uv) && textures.length) {
+				if (options.double_use && Project.box_uv && textures.length) {
 					var double_key = [...obj.uv_offset, ...obj.size(undefined, true), ].join('_')
 					if (doubles[double_key]) {
 						// improve chances that original is not mirrored
