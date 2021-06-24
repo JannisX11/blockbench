@@ -3,7 +3,7 @@ dist: trusty
 
 language: node_js
 node:
-  - 12
+  - 14
 
 if: commit_message =~ ci-build
 
