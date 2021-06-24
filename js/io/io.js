@@ -50,7 +50,7 @@ function setupDragHandlers() {
 var Extruder = {
 	drawImage: function(file) {
 		Extruder.canvas = $('#extrusion_canvas').get(0)
-		var ctx = extrusion_canvas.getContext('2d')
+		var ctx = Extruder.canvas.getContext('2d')
 
 		setProgressBar('extrusion_bar', 0)
 		$('#scan_tolerance').on('input', function() {
@@ -62,25 +62,28 @@ var Extruder = {
 		Extruder.ext_img.src = isApp ? file.path.replace(/#/g, '%23') : file.content
 		Extruder.image_file = file
 		Extruder.ext_img.style.imageRendering = 'pixelated'
-		ctx.imageSmoothingEnabled = false;
+		Extruder.canvas.style.imageRendering = 'pixelated'
 
 		Extruder.ext_img.onload = function() {
-			ctx.clearRect(0, 0, 256, 256);
-			ctx.drawImage(Extruder.ext_img, 0, 0, 256, 256)
-			Extruder.width = Extruder.ext_img.naturalWidth
-			Extruder.height = Extruder.ext_img.naturalHeight
+			let ratio = Extruder.ext_img.naturalWidth / Extruder.ext_img.naturalHeight;
+			Extruder.canvas.width = 256;
+			Extruder.canvas.height = 256 / ratio;
+			ctx.clearRect(0, 0, Extruder.canvas.width, Extruder.canvas.height);
+			ctx.imageSmoothingEnabled = false;
+			ctx.drawImage(Extruder.ext_img, 0, 0, Extruder.canvas.width, Extruder.canvas.height);
+			Extruder.width = Extruder.ext_img.naturalWidth;
+			Extruder.height = Extruder.ext_img.naturalHeight;
 
 			if (Extruder.width > 128) return;
 
-			var g = 256 / Extruder.width;
 			var p = 0
 			ctx.beginPath();
 
-			for (var x = 0; x <= 256; x += g) {
+			for (var x = 0; x < Extruder.canvas.width; x += 256 / Extruder.width) {
 				ctx.moveTo(0.5 + x + p, p);
 				ctx.lineTo(0.5 + x + p, 256 + p);
 			}
-			for (var x = 0; x <= 256; x += g) {
+			for (var x = 0; x < Extruder.canvas.height; x += 256 / Extruder.width) {
 				ctx.moveTo(p, 0.5 + x + p);
 				ctx.lineTo(256 + p, 0.5 + x + p);
 			}
@@ -119,10 +122,9 @@ var Extruder = {
 
 		//Scale Index
 		var scale_i = 1;
-		if (Extruder.width < Extruder.height) {
-			Extruder.width = Extruder.height;
-		}
 		scale_i = 16 / Extruder.width;
+		let uv_scale_x = Project.texture_width / Extruder.width;
+		let uv_scale_y = Project.texture_height / Extruder.height;
 
 		function isOpaquePixel(px_x, px_y) {
 			var opacity = image_data[(px_x + ctx.canvas.width * px_y) * 4 + 3]
@@ -216,12 +218,12 @@ var Extruder = {
 						from: [rect.x*scale_i, 0, rect.y*scale_i],
 						to: [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i],
 						faces: {
-							up:		{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture},
-							down:	{uv:[rect.x*scale_i, (rect.y2+1)*scale_i, (rect.x2+1)*scale_i, rect.y*scale_i], texture: texture},
-							north:	{uv:[(rect.x2+1)*scale_i, rect.y*scale_i, rect.x*scale_i, (rect.y+1)*scale_i], texture: texture},
-							south:	{uv:[rect.x*scale_i, rect.y2*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture},
-							east:	{uv:[rect.x2*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 90},
-							west:	{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 270},
+							up:		{uv:[rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+							down:	{uv:[rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y, (rect.x2+1)*uv_scale_x, rect.y*uv_scale_y], texture: texture},
+							north:	{uv:[(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y+1)*uv_scale_y], texture: texture},
+							south:	{uv:[rect.x*uv_scale_x, rect.y2*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+							east:	{uv:[rect.x2*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 90},
+							west:	{uv:[rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 270},
 						}
 					}).init()
 					selected.push(current_cube)
