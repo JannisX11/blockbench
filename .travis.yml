@@ -5,19 +5,19 @@ language: node_js
 node:
   - 12
 
-if: branch = master AND commit_message =~ ci-build
+if: commit_message =~ ci-build
 
 jobs:
   include:
     - name: "macOS"
       os: osx
-      osx_image: "xcode11.3"
+      osx_image: "xcode12.5"
       script:
         - electron-builder --publish=always
 
     - name: "Windows"
       os: osx
-      osx_image: "xcode11.3"
+      osx_image: "xcode12.5"
       script:
         - electron-builder -w --x64 --ia32 --publish=onTagOrDraft
         - node ./scripts/rename_portable.js
