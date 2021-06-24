@@ -447,13 +447,13 @@ BARS.defineActions(() => {
 		click() {
 			var keys = {}
 
-			for (var key in Keybinds.stored) {
-				if (Keybinds.stored[key].key == -1) {
-					keys[key] = null;
+			Keybinds.actions.forEach(item => {
+				if (Keybinds.stored[item.id].key == -1) {
+					keys[item.id] = null;
 				} else {
-					keys[key] = new oneLiner(Keybinds.stored[key])
+					keys[item.id] = new oneLiner(Keybinds.stored[item.id])
 				}
-			}
+			})
 			Blockbench.export({
 				resource_id: 'config',
 				type: 'Blockbench Keymap',

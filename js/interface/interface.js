@@ -774,6 +774,7 @@ function addStartScreenSection(id, data) {
 				</li>`)
 				node.on('click', e => {
 					Keybinds.loadKeymap(id, true);
+					obj.detach();
 					localStorage.setItem('selected_keymap_preference', true);
 				})
 				keymap_list.append(node);
