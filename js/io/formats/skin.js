@@ -106,13 +106,6 @@ const codec = new Codec('skin_model', {
 						cg.addTo(group)
 					})
 				}
-				if (b.locators) {
-					for (var key in b.locators) {
-						var coords = b.locators[key];
-						coords[0] *= -1
-						var locator = new Locator({from: coords, name: key}).addTo(group).init();
-					}
-				}
 				var parent_group = 'root';
 				if (b.parent) {
 					if (bones[b.parent]) {
@@ -140,6 +133,11 @@ const codec = new Codec('skin_model', {
 				layer_template
 			)
 		}
+		for (var index in template_cubes) {
+			if (template_cubes[index].visibility === false) {
+				Cube.all[index].visibility = false;
+			}
+		}
 		texture.load_callback = function() {
 			Modes.options.paint.select();
 		}
@@ -148,6 +146,7 @@ const codec = new Codec('skin_model', {
 		}
 		loadTextureDraggable()
 		Canvas.updateAllBones()
+		Canvas.updateVisibility()
 		setProjectTitle()
 		updateSelection()
 		EditSession.initNewModel()
@@ -629,7 +628,8 @@ skin_presets.armor_main = {
 				"pivot": [0, 24, 0],
 				"pose": [-6, 5, 0],
 				"cubes": [
-					{"name": "Helmet", "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [0, 0], "inflate": 1, "layer": true}
+					{"name": "Helmet", "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [0, 0], "inflate": 1},
+					{"name": "Hat Layer", "visibility": false, "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [32, 0], "inflate": 1.5, "layer": true}
 				]
 			},
 			{
@@ -637,7 +637,7 @@ skin_presets.armor_main = {
 				"color": 3,
 				"pivot": [0, 24, 0],
 				"cubes": [
-					{"name": "Chestplate", "origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 16], "inflate": 1.01, "layer": true}
+					{"name": "Chestplate", "origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 16], "inflate": 1.01}
 				]
 			},
 			{
@@ -646,7 +646,7 @@ skin_presets.armor_main = {
 				"pivot": [-5, 22, 0],
 				"pose": [-10, 0, 0],
 				"cubes": [
-					{"name": "Right Arm Armor", "origin": [-8, 12, -2], "size": [4, 12, 4], "uv": [40, 16], "inflate": 1, "layer": true}
+					{"name": "Right Arm Armor", "origin": [-8, 12, -2], "size": [4, 12, 4], "uv": [40, 16], "inflate": 1}
 				]
 			},
 			{
@@ -655,7 +655,7 @@ skin_presets.armor_main = {
 				"pivot": [5, 22, 0],
 				"pose": [12, 0, 0],
 				"cubes": [
-					{"name": "Left Arm Armor", "origin": [4, 12, -2], "size": [4, 12, 4], "uv": [40, 16], "inflate": 1, "layer": true, "mirror": true}
+					{"name": "Left Arm Armor", "origin": [4, 12, -2], "size": [4, 12, 4], "uv": [40, 16], "inflate": 1, "mirror": true}
 				]
 			},
 			{
@@ -664,7 +664,7 @@ skin_presets.armor_main = {
 				"pivot": [-1.9, 12, 0],
 				"pose": [11, 0, 2],
 				"cubes": [
-					{"name": "Right Boot", "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 16], "inflate": 1.0, "layer": true}
+					{"name": "Right Boot", "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 16], "inflate": 1.0}
 				]
 			},
 			{
@@ -673,7 +673,7 @@ skin_presets.armor_main = {
 				"pivot": [1.9, 12, 0],
 				"pose": [-10, 0, -2],
 				"cubes": [
-					{"name": "Left Boot", "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [0, 16], "inflate": 1.0, "layer": true, "mirror": true}
+					{"name": "Left Boot", "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [0, 16], "inflate": 1.0, "mirror": true}
 				]
 			}
 		]
@@ -692,7 +692,7 @@ skin_presets.armor_leggings = {
 				"color": 3,
 				"pivot": [0, 24, 0],
 				"cubes": [
-					{"name": "Belt", "origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 16], "inflate": 0.51, "layer": true}
+					{"name": "Belt", "origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 16], "inflate": 0.51}
 				]
 			},
 			{
@@ -701,7 +701,7 @@ skin_presets.armor_leggings = {
 				"pivot": [-1.9, 12, 0],
 				"pose": [11, 0, 2],
 				"cubes": [
-					{"name": "Right Leg Armor", "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 16], "inflate": 0.5, "layer": true}
+					{"name": "Right Leg Armor", "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 16], "inflate": 0.5}
 				]
 			},
 			{
@@ -710,7 +710,7 @@ skin_presets.armor_leggings = {
 				"pivot": [1.9, 12, 0],
 				"pose": [-10, 0, -2],
 				"cubes": [
-					{"name": "Left Leg Armor", "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [0, 16], "inflate": 0.5, "layer": true, "mirror": true}
+					{"name": "Left Leg Armor", "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [0, 16], "inflate": 0.5, "mirror": true}
 				]
 			}
 		]
