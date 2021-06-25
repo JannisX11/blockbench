@@ -76,6 +76,13 @@ window.Language = {
 		sv: 'Svenska (Swedish)',
 		zh: '\u4e2d\u6587 (Chinese)',//中文
 	},
+	addTranslations(language, strings) {
+		for (var key in strings) {
+			if (language == Language.code || (language == 'en' && Language.data[key] == undefined)) {
+				Language.data[key] = strings[key];
+			}
+		}
+	},
 	toString: () => Language.code
 }
 
