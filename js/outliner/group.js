@@ -629,11 +629,12 @@ BARS.defineActions(function() {
 				},
 				onConfirm: form_data => {
 					dialog.hide().delete();
+					let value = dialog.component.data.binding.replace(/\n/g, '');
 					if (
-						dialog.component.data.binding != Group.selected.bedrock_binding
+						value != Group.selected.bedrock_binding
 					) {
 						Undo.initEdit({group: Group.selected});
-						Group.selected.bedrock_binding = dialog.component.data.binding;
+						Group.selected.bedrock_binding = value;
 						Undo.finishEdit('Edit group binding');
 					}
 				},

@@ -654,7 +654,7 @@ var codec = new Codec('bedrock', {
 
 		var entitymodel = {}
 		var main_tag = {
-			format_version: '1.12.0',
+			format_version: Group.all.find(group => group.bedrock_binding) ? '1.16.0' : '1.12.0',
 			'minecraft:geometry': [entitymodel]
 		}
 		entitymodel.description = {
@@ -737,6 +737,10 @@ var codec = new Codec('bedrock', {
 			}
 		}
 		if (data && index !== undefined) {
+
+			if (Group.all.find(group => group.bedrock_binding)) {
+				data.format_version = '1.16.0';
+			}
 
 			data['minecraft:geometry'].forEach(geo => {
 				if (geo.bones instanceof Array) {
