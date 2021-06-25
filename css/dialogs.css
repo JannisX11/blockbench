@@ -190,17 +190,22 @@
 		user-select: text;
 	}
 
-	dialog .form_bar_file > input {
+	dialog .form_bar_file .input_wrapper {
+		position: relative;
+		flex-grow: 1;
+	}
+	dialog .form_bar_file .input_wrapper input {
+		width: 100%;
 		padding-right: 30px;
 	}
-	dialog .form_bar_file > .material-icons {
+	dialog .form_bar_file .input_wrapper > .material-icons {
 		position: absolute;
 		margin-left: -28px;
 		margin-top: 4px;
 		opacity: 0.75;
-		right: 42px;
+		right: 4px;
 	}
-	dialog .form_bar_file:hover > .material-icons {
+	dialog .form_bar_file:hover .input_wrapper > .material-icons {
 		opacity: 1;
 	}
 	dialog .form_bar_radio {

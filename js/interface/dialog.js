@@ -187,13 +187,15 @@ function buildForm(dialog) {
 
 					let input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" disabled>`);
 					input[0].value = data.value || '';
-					bar.append(input);
+					let input_wrapper = $('<div class="input_wrapper"></div>');
+					input_wrapper.append(input);
+					bar.append(input_wrapper);
 					bar.addClass('form_bar_file');
 
 					switch (data.type) {
-						case 'file': 	bar.append('<i class="material-icons">insert_drive_file</i>'); break;
-						case 'folder':	bar.append('<i class="material-icons">folder</i>'); break;
-						case 'save':	bar.append('<i class="material-icons">save</i>'); break;
+						case 'file': 	input_wrapper.append('<i class="material-icons">insert_drive_file</i>'); break;
+						case 'folder':	input_wrapper.append('<i class="material-icons">folder</i>'); break;
+						case 'save':	input_wrapper.append('<i class="material-icons">save</i>'); break;
 					}
 					let remove_button = $('<div class="tool" style="float: none; vertical-align: top;"><i class="material-icons">clear</i></div>');
 					bar.append(remove_button);
@@ -203,7 +205,7 @@ function buildForm(dialog) {
 						input.val('');
 					})
 
-					bar.on('click', e => {
+					input_wrapper.on('click', e => {
 						function fileCB(files) {
 							data.value = files[0].path;
 							data.content = files[0].content;
