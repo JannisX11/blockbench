@@ -232,7 +232,6 @@ class Keybind {
 		return this;
 	}
 	stopRecording() {
-		var scope = this;
 		Keybinds.recording = false
 		$('#overlay_message_box').hide().off('mousedown mousewheel')
 		$('#keybind_input_box').off('keyup keydown')
@@ -254,11 +253,19 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 			if (!item.keybind) return;
 
 			if (preset && preset.keys[item.id] !== undefined) {
+				let keys = preset.keys[item.id]
 
-				if (preset.keys[item.id] == null) {
+				if (keys == null) {
 					item.keybind.clear();
-				} else {
-					item.keybind.set(preset.keys[item.id]).save(false);
+				} else if (keys) {
+					if (isApp && Blockbench.platform == 'darwin' && keys.ctrl && !keys.meta) {
+						keys.meta = true;
+						keys.ctrl = undefined;
+					}
+					if (typeof keys.key == 'string') {
+						keys.key = keys.key.toUpperCase().charCodeAt(0);
+					}
+					item.keybind.set(keys).save(false);
 				}
 			} else {
 				if (item.default_keybind) {

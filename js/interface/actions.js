@@ -371,8 +371,7 @@ class Tool extends Action {
 		return this;
 	}
 	trigger(event) {
-		var scope = this;
-		if (BARS.condition(scope.condition, scope)) {
+		if (BARS.condition(this.condition, this)) {
 			this.select()
 			return true;
 		} else if (event.type.includes('key') && this.modes) {

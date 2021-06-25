@@ -902,9 +902,8 @@ var codec = new Codec('bedrock', {
 				},
 				computed: {
 					searched() {
-						var scope = this;
 						return this.list.filter(item => {
-							return item.name.toUpperCase().includes(scope.search_text)
+							return item.name.toUpperCase().includes(this.search_text)
 						})
 					}
 				}
