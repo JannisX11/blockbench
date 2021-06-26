@@ -53,8 +53,9 @@ function buildForm(dialog) {
 					bar.append(input_element)
 
 					if (data.list) {
-						input_element.list = `${dialog.id}_${form_id}_list`;
-						let list = $(`<datalist id="${input_element.list}"></datalist>`);
+						let list_id = `${dialog.id}_${form_id}_list`;
+						input_element.setAttribute('list', list_id);
+						let list = $(`<datalist id="${list_id}"></datalist>`);
 						for (let value of data.list) {
 							let node = document.createElement('option');
 							node.value = value;
@@ -402,7 +403,7 @@ window.Dialog = class Dialog {
 			if (result === false) return;
 		}
 		if (typeof this.onButton == 'function') {
-			let result = this.onButton(button);
+			let result = this.onButton(button, event);
 			if (result === false) return;
 		}
 		this.hide();

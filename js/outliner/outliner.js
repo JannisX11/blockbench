@@ -824,12 +824,12 @@ BARS.defineActions(function() {
 					new: {label: 'dialog.select.new', type: 'checkbox', value: true},
 					group: {label: 'dialog.select.group', type: 'checkbox'},
 					name: {label: 'dialog.select.name', type: 'text'},
-					texture: {label: 'data.texture', type: 'text'},
+					texture: {label: 'data.texture', type: 'text', list: Texture.all.map(tex => tex.name)},
 					color: {label: 'menu.cube.color', type: 'select', value: '-1', options: color_options}
 				},
 				lines: [
 					`<div class="dialog_bar form_bar">
-						<label class="name_space_left tl">dialog.select.random</label>
+						<label class="name_space_left">${tl('dialog.select.random')}</label>
 						<input type="range" min="0" max="100" step="1" value="100" class="tool half" style="width: 100%;" id="selgen_random">
 					</div>`
 				],
