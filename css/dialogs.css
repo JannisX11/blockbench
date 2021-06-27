@@ -120,6 +120,11 @@
 		position: relative;
 		margin: 0;
 	}
+	.dialog_bar.small_text li {
+		list-style: auto;
+		margin-left: 20px;
+		padding-left: 4px;
+	}
 	.dialog_vector_group {
 		display: flex;
 	}
