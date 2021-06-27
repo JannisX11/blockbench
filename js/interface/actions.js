@@ -1536,7 +1536,7 @@ const BARS = {
 					} else {
 						var added_elements = [];
 						Undo.initEdit({elements: added_elements, outliner: true, selection: true})
-						selected.forEach(function(obj, i) {
+						selected.forEachReverse(function(obj, i) {
 							var copy = obj.duplicate();
 							added_elements.push(copy);
 						})

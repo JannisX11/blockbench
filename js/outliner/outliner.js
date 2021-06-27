@@ -356,7 +356,8 @@ class OutlinerElement extends OutlinerNode {
 			copy.name = copy.name.split(number).join(number+1)
 		}
 		//Rest
-		copy.sortInBefore(this, 1).init()
+		let last_selected = this.getParentArray().filter(el => el.selected || el == this).last();
+		copy.sortInBefore(last_selected, 1).init();
 		var index = selected.indexOf(this)
 		if (index >= 0) {
 			selected[index] = copy
