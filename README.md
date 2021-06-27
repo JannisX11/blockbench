@@ -8,7 +8,7 @@ Blockbench features a modern and intuitive UI, plugin support and innovative fea
 Website and download: [blockbench.net](https://www.blockbench.net)
 
 
-![Interface](https://blockbench.net/wp-content/uploads/2020/06/interface_wheelloader_full.png)
+![Interface](https://web.blockbench.net/content/front_page_app.png)
 
 
 

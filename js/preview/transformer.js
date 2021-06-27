@@ -863,7 +863,11 @@
 					
 					//Center
 					if (Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool') {
-						rotation_object.mesh.getWorldPosition(this.position)
+						if (rotation_object.mesh) {
+							rotation_object.mesh.getWorldPosition(this.position);
+						} else {
+							this.position.copy(rotation_object.getWorldCenter());
+						}
 						Transformer.position.sub(scene.position);
 					} else {
 						var center = getSelectionCenter()
@@ -906,11 +910,20 @@
 
 				this.attach(Group.selected);
 				Group.selected.mesh.getWorldPosition(this.position);
-				if (Toolbox.selected.id == 'resize_tool') {
+
+				if (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value === 'global') {
+					delete Transformer.rotation_ref;
+
+				} else if (Toolbox.selected.id === 'move_tool' && BarItems.transform_space.value === 'global') {
+					delete Transformer.rotation_ref;
+
+				} else if (Toolbox.selected.id == 'resize_tool') {
 					Transformer.rotation_ref = Group.selected.mesh;
+
 				} else if (scope.isIKMovement()) {
 					if (Transformer.dragging && Transformer.ik_target) Transformer.position.copy(Transformer.ik_target);
 					delete Transformer.rotation_ref;
+
 				} else {
 					Transformer.rotation_ref = Group.selected.mesh.parent;
 				}
@@ -923,6 +936,10 @@
 					delete Transformer.rotation_ref;
 				}
 			}
+		}
+		this.cancelMovement = function(event, keep_changes = false) {
+			onPointerUp(event, keep_changes);
+			Undo.cancelEdit();
 		}
 		function displayDistance(number) {
 			Blockbench.setStatusBarText(trimFloatNumber(number));
@@ -965,11 +982,6 @@
 
 			if ( intersect ) {
 				scope.hoverAxis = intersect.object.name;
-				/*
-				if (scope.camera.axis && (scope.hoverAxis.toLowerCase() === scope.camera.axis) === (_mode !== 'rotate')) {
-					scope.hoverAxis = null;
-				}
-				*/
 				event.preventDefault();
 			}
 			if ( scope.axis !== scope.hoverAxis ) {
@@ -1035,6 +1047,7 @@
 					selected.forEach(function(obj) {
 						if (obj.resizable) {
 							obj.oldScale = obj.size(axisnr)
+							obj.oldCenter = (obj.from[axisnr] + obj.to[axisnr]) / 2;
 						}
 					})
 				}
@@ -1174,7 +1187,7 @@
 
 				if (Toolbox.selected.id === 'move_tool') {
 
-					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
+					var snap_factor = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)
 					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
 
 
@@ -1213,8 +1226,8 @@
 						scope.hasChanged = true
 					}
 				} else if (Toolbox.selected.id === 'resize_tool') {
-					//Scale
-					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
+					// Resize
+					var snap_factor = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)
 					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
 
 
@@ -1223,7 +1236,7 @@
 
 						selected.forEach(function(obj, i) {
 							if (obj.resizable) {
-								obj.resize(point[axis], axisNumber, !scope.direction)
+								obj.resize(point[axis], axisNumber, !scope.direction, null, event.altKey)
 							}
 						})
 						displayDistance(point[axis] * (scope.direction ? 1 : -1));
@@ -1254,7 +1267,7 @@
 					}
 				} else if (Toolbox.selected.id === 'pivot_tool') {
 
-					var snap_factor = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
+					var snap_factor = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)
 					point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
 
 					if (originalValue === null) {
@@ -1313,11 +1326,10 @@
 					var round_num = getRotationInterval(event)
 				} else {
 					value = point[axis]
+					var round_num = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)
 					if (Toolbox.selected.id === 'resize_tool') {
 						value *= (scope.direction) ? 0.1 : -0.1;
-						round_num = 0.1;
-					} else {
-						var round_num = canvasGridSize(event.shiftKey, event.ctrlOrCmd)
+						round_num *= 0.1;
 					}
 				}
 				value = Math.round(value/round_num)*round_num
@@ -1372,10 +1384,62 @@
 						})
 
 					} else {
-						if (axis == 'x' && Toolbox.selected.id === 'move_tool') {
-							difference *= -1
+						let {mesh} = Group.selected;
+
+						if (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value === 'global') {
+							if (axisNumber != 2) difference *= -1;
+
+							let normal = axisNumber == 0 ? THREE.NormalX : (axisNumber == 1 ? THREE.NormalY : THREE.NormalZ)
+							let rotWorldMatrix = new THREE.Matrix4();
+							rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(difference))
+							rotWorldMatrix.multiply(mesh.matrixWorld)
+
+							let inverse = new THREE.Matrix4().getInverse(mesh.parent.matrixWorld)
+							rotWorldMatrix.premultiply(inverse)
+
+							mesh.matrix.copy(rotWorldMatrix)
+							mesh.setRotationFromMatrix(rotWorldMatrix)
+							let e = mesh.rotation;
+
+							scope.keyframes[0].offset('x', Math.trimDeg( (-Math.radToDeg(e.x - mesh.fix_rotation.x)) - scope.keyframes[0].calc('x') ));
+							scope.keyframes[0].offset('y', Math.trimDeg( (-Math.radToDeg(e.y - mesh.fix_rotation.y)) - scope.keyframes[0].calc('y') ));
+							scope.keyframes[0].offset('z', Math.trimDeg( ( Math.radToDeg(e.z - mesh.fix_rotation.z)) - scope.keyframes[0].calc('z') ));
+						
+							/*
+						} else if (Toolbox.selected.id === 'rotate_tool' && Transformer.getTransformSpace() == 2) {
+							if (axisNumber != 2) difference *= -1;
+
+
+							let old_order = mesh.rotation.order;
+							mesh.rotation.reorder(axisNumber == 0 ? 'ZYX' : (axis == 1 ? 'ZXY' : 'XYZ'))
+							var obj_val = Math.trimDeg(Math.radToDeg(mesh.rotation[axis]) + difference);
+							mesh.rotation[axis] = Math.degToRad(obj_val);
+							mesh.rotation.reorder(old_order);
+				
+							scope.keyframes[0].offset('x', Math.trimDeg( (-Math.radToDeg(mesh.rotation.x - mesh.fix_rotation.x)) - scope.keyframes[0].calc('x') ));
+							scope.keyframes[0].offset('y', Math.trimDeg( (-Math.radToDeg(mesh.rotation.y - mesh.fix_rotation.y)) - scope.keyframes[0].calc('y') ));
+							scope.keyframes[0].offset('z', Math.trimDeg( ( Math.radToDeg(mesh.rotation.z - mesh.fix_rotation.z)) - scope.keyframes[0].calc('z') ));
+							*/
+	
+						} else if (Toolbox.selected.id === 'move_tool' && BarItems.transform_space.value === 'global') {
+
+							let offset_vec = new THREE.Vector3();
+							offset_vec[axis] = difference;
+				
+							var rotation = new THREE.Quaternion();
+							mesh.parent.getWorldQuaternion(rotation);
+							offset_vec.applyQuaternion(rotation.inverse());
+				
+							scope.keyframes[0].offset('x', -offset_vec.x);
+							scope.keyframes[0].offset('y', offset_vec.y);
+							scope.keyframes[0].offset('z', offset_vec.z);
+
+						} else {
+							if (axis == 'x' && Toolbox.selected.id === 'move_tool') {
+								difference *= -1
+							}
+							scope.keyframes[0].offset(axis, difference);
 						}
-						scope.keyframes[0].offset(axis, difference);
 						scope.keyframes[0].select();
 					}
 					displayDistance(value - originalValue);
@@ -1439,7 +1503,7 @@
 			scope.dispatchEvent( changeEvent );
 			scope.dispatchEvent( objectChangeEvent );
 		}
-		function onPointerUp( event ) {
+		function onPointerUp( event, keep_changes = true ) {
 			//event.preventDefault(); // Prevent MouseEvent on mobile
 			document.removeEventListener( "mouseup", onPointerUp );
 			scope.dragging = false
@@ -1468,29 +1532,30 @@
 					if (Toolbox.selected.id === 'resize_tool') {
 						//Scale
 						selected.forEach(function(obj) {
-							delete obj.oldScale
+							delete obj.oldScale;
+							delete obj.oldCenter;
 						})
-						if (scope.hasChanged) {
-							Undo.finishEdit('resize')
+						if (scope.hasChanged && keep_changes) {
+							Undo.finishEdit('Resize')
 						}
 
-					} else if (scope.axis !== null && scope.hasChanged) {
+					} else if (scope.axis !== null && scope.hasChanged && keep_changes) {
 
 						if (Toolbox.selected.id == 'pivot_tool') {
-							Undo.finishEdit('move pivot')
+							Undo.finishEdit('Move pivot')
 						} else if (Toolbox.selected.id == 'rotate_tool') {
-							Undo.finishEdit('rotate selection')
+							Undo.finishEdit('Rotate selection')
 						} else {
-							Undo.finishEdit('move selection')
+							Undo.finishEdit('Move selection')
 						}
 					}
 					updateSelection()
 
-				} else if (Modes.id === 'animate' && scope.keyframes && scope.keyframes.length) {
-					Undo.finishEdit('change keyframe', {keyframes: scope.keyframes})
+				} else if (Modes.id === 'animate' && scope.keyframes && scope.keyframes.length && keep_changes) {
+					Undo.finishEdit('Change keyframe', {keyframes: scope.keyframes})
 
-				} else if (Modes.id === 'display') {
-					Undo.finishEdit('edit display slot')
+				} else if (Modes.id === 'display' && keep_changes) {
+					Undo.finishEdit('Edit display slot')
 				}
 				
 				if (Modes.animate && Transformer.isIKMovement() && Transformer.ik_solver) {

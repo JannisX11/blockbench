@@ -73,6 +73,22 @@ var codec = new Codec('project', {
 		}
 		this.parse(model, file.path)
 	},
+	export() {
+		Blockbench.export({
+			resource_id: 'model',
+			type: this.name,
+			extensions: [this.extension],
+			name: this.fileName(),
+			startpath: this.startPath(),
+			content: isApp ? null : this.compile(),
+			custom_writer: isApp ? (content, path) => {
+				// Path needs to be changed before compiling for relative resource paths
+				ModelMeta.save_path = path;
+				content = this.compile();
+				this.write(content, path);
+			} : null,
+		}, path => this.afterDownload(path))
+	},
 	compile(options) {
 		if (!options) options = 0;
 		var model = {
@@ -110,6 +126,10 @@ var codec = new Codec('project', {
 		textures.forEach(tex => {
 			var t = tex.getUndoCopy();
 			delete t.selected;
+			if (isApp && ModelMeta.save_path && tex.path) {
+				let relative = PathModule.relative(ModelMeta.save_path, tex.path);
+				t.relative_path = relative.replace(/\\/g, '/');
+			}
 			if (options.bitmaps != false) {
 				t.source = 'data:image/png;base64,'+tex.getBase64()
 				t.mode = 'bitmap'
@@ -139,6 +159,22 @@ var codec = new Codec('project', {
 			}
 			if (entries) {
 				model.display = new_display
+			}
+		}
+
+		if (!options.backup) {
+			// Backgrounds
+			const backgrounds = {};
+
+			for (var key in canvas_scenes) {
+				let scene = canvas_scenes[key];
+				if (scene.image && scene.save_in_project !== false) {
+					scene.save_in_project = true;
+					backgrounds[key] = scene.getSaveCopy();
+				}
+			}
+			if (Object.keys(backgrounds).length) {
+				model.backgrounds = backgrounds;
 			}
 		}
 
@@ -206,7 +242,16 @@ var codec = new Codec('project', {
 				var tex_copy = new Texture(tex, tex.uuid).add(false);
 				if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
 					tex_copy.fromPath(tex.path)
-				} else if (tex.source && tex.source.substr(0, 5) == 'data:') {
+					return;
+				}
+				if (isApp && tex.relative_path && ModelMeta.save_path) {
+					let resolved_path = PathModule.resolve(ModelMeta.save_path, tex.relative_path);
+					if (fs.existsSync(resolved_path)) {
+						tex_copy.fromPath(resolved_path)
+						return;
+					}
+				}
+				if (tex.source && tex.source.substr(0, 5) == 'data:') {
 					tex_copy.fromDataURL(tex.source)
 				}
 			})
@@ -248,6 +293,28 @@ var codec = new Codec('project', {
 		}
 		if (model.display !== undefined) {
 			DisplayMode.loadJSON(model.display)
+		}
+		if (model.backgrounds) {
+			for (var key in model.backgrounds) {
+				if (canvas_scenes.hasOwnProperty(key)) {
+
+					let store = model.backgrounds[key]
+					let real = canvas_scenes[key]
+
+					real.save_in_project = true;
+
+					if (store.image	!== undefined) {real.image = store.image}
+					if (store.size	!== undefined) {real.size = store.size}
+					if (store.x		!== undefined) {real.x = store.x}
+					if (store.y		!== undefined) {real.y = store.y}
+					if (store.lock	!== undefined) {real.lock = store.lock}
+				}
+			}
+			Preview.all.forEach(p => {
+				if (p.canvas.isConnected) {
+					p.loadBackground();
+				}
+			})
 		}
 		if (model.history) {
 			Undo.history = model.history.slice()
@@ -292,20 +359,28 @@ var codec = new Codec('project', {
 
 		function loadTexture(tex) {
 			if (isApp && Texture.all.find(tex2 => tex.path == tex2.path)) {
-				new_textures.push(Texture.all.find(tex2 => tex.path == tex2.path));
-				return;
+				return Texture.all.find(tex2 => tex.path == tex2.path)
 			}
 			var tex_copy = new Texture(tex, tex.uuid).add(false);
 			if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
 				tex_copy.fromPath(tex.path)
-			} else if (tex.source && tex.source.substr(0, 5) == 'data:') {
-				tex_copy.fromDataURL(tex.source)
+				return tex_copy;
 			}
-			new_textures.push(tex_copy);
+			if (isApp && tex.relative_path && ModelMeta.save_path) {
+				let resolved_path = PathModule.resolve(ModelMeta.save_path, tex.relative_path);
+				if (fs.existsSync(resolved_path)) {
+					tex_copy.fromPath(resolved_path)
+					return tex_copy;
+				}
+			}
+			if (tex.source && tex.source.substr(0, 5) == 'data:') {
+				tex_copy.fromDataURL(tex.source)
+				return tex_copy;
+			}
 		}
 
 		if (model.textures && (!Format.single_texture || Texture.all.length == 0)) {
-			model.textures.forEach(loadTexture)
+			new_textures.replace(model.textures.map(loadTexture))
 		}
 
 		if (model.elements) {
@@ -361,12 +436,13 @@ var codec = new Codec('project', {
 		if (model.display !== undefined) {
 			DisplayMode.loadJSON(model.display)
 		}
-		Undo.finishEdit('merge project')
+		Undo.finishEdit('Merge project')
 		Canvas.updateAllBones()
 		Canvas.updateAllPositions()
 		this.dispatchEvent('parsed', {model})
 	}
 })
+Formats.free.codec = codec;
 
 BARS.defineActions(function() {
 	codec.export_action = new Action('save_project', {
@@ -396,6 +472,7 @@ BARS.defineActions(function() {
 	new Action('import_project', {
 		icon: 'icon-blockbench_file',
 		category: 'file',
+		condition: () => Format,
 		click: function () {
 			Blockbench.import({
 				resource_id: 'model',

@@ -215,9 +215,6 @@ class Cube extends OutlinerElement {
 				}
 			}
 		}
-		if (!this.parent || (this.parent === 'root' && Outliner.root.indexOf(this) === -1)) {
-			this.addTo('root')
-		}
 		if (!this.mesh || !this.mesh.parent) {
 			Canvas.addCube(this)
 		}
@@ -578,7 +575,7 @@ class Cube extends OutlinerElement {
 		if (selected.indexOf(this) === 0) {
 			main_uv.loadData()
 		}
-		if (!Prop.wireframe && scope.visibility == true) {
+		if (Prop.view_mode === 'textured' && scope.visibility == true) {
 			Canvas.adaptObjectFaces(scope)
 			Canvas.updateUV(scope)
 		}
@@ -734,11 +731,27 @@ class Cube extends OutlinerElement {
 		TickUpdates.selection = true;
 		return in_box;
 	}
-	resize(val, axis, negative, allow_negative) {
+	resize(val, axis, negative, allow_negative, bidirectional) {
 		var before = this.oldScale != undefined ? this.oldScale : this.size(axis);
 		var modify = val instanceof Function ? val : n => (n+val)
 
-		if (!negative) {
+		if (bidirectional) {
+
+			let center = this.oldCenter || 0;
+			let difference = modify(before) - before;
+			if (negative) difference *= -1;
+
+			var from = limitToBox(center - (before/2) - difference, this.inflate);
+			var to = limitToBox(center + (before/2) + difference, this.inflate);
+
+			if (Format.integer_size) {
+				from = Math.round(from-this.from[axis])+this.from[axis];
+				to = Math.round(to-this.to[axis])+this.to[axis];
+			}
+			this.from[axis] = from;
+			this.to[axis] = to;
+
+		} else if (!negative) {
 			var pos = limitToBox(this.from[axis] + modify(before), this.inflate);
 			if (Format.integer_size) {
 				pos = Math.round(pos-this.from[axis])+this.from[axis];
@@ -776,8 +789,12 @@ class Cube extends OutlinerElement {
 	Cube.prototype.rotatable = true;
 	Cube.prototype.needsUniqueName = false;
 	Cube.prototype.menu = new Menu([
+		'group_elements',
+		'_',
 		'copy',
+		'paste',
 		'duplicate',
+		'_',
 		'rename',
 		'update_autouv',
 		{name: 'menu.cube.color', icon: 'color_lens', children: [
@@ -833,6 +850,8 @@ class Cube extends OutlinerElement {
 	new Property(Cube, 'string', 'name', {default: 'cube'})
 	new Property(Cube, 'boolean', 'rescale')
 
+	OutlinerElement.types.cube = Cube;
+
 BARS.defineActions(function() {
 	new Action({
 		id: 'add_cube',
@@ -869,7 +888,7 @@ BARS.defineActions(function() {
 			if (Group.selected) Group.selected.unselect()
 			base_cube.select()
 			Canvas.updateSelected()
-			Undo.finishEdit('add_cube', {outliner: true, elements: selected, selection: true});
+			Undo.finishEdit('Add cube', {outliner: true, elements: selected, selection: true});
 			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 
 			Vue.nextTick(function() {
@@ -917,7 +936,7 @@ BARS.defineActions(function() {
 							}
 						}
 					})
-					Undo.finishEdit('edit material instances')
+					Undo.finishEdit('Edit material instances')
 				}
 			})
 			dialog.show();

@@ -38,7 +38,16 @@ const Outliner = {
 			icon: ' fa fa-thumbtack',
 			icon_off: ' far fa-times-circle',
 			icon_alt: ' fa fa-magic',
-			advanced_option: true
+			advanced_option: true,
+			getState(element) {
+				if (!element.autouv) {
+					return false
+				} else if (element.autouv === 1) {
+					return true
+				} else {
+					return 'alt'
+				}
+			}
 		}
 	}
 }
@@ -62,6 +71,9 @@ class OutlinerNode {
 	init() {
 		OutlinerNode.uuids[this.uuid] = this;
 		this.constructor.all.safePush(this);
+		if (!this.parent || (this.parent === 'root' && Outliner.root.indexOf(this) === -1)) {
+			this.addTo('root')
+		}
 		return this;
 	}
 	//Sorting
@@ -210,7 +222,7 @@ class OutlinerNode {
 			if (Condition(scope.needsUniqueName)) {
 				scope.createUniqueName()
 			}
-			Undo.finishEdit('rename')
+			Undo.finishEdit('Rename element')
 		} else {
 			scope.name = scope.old_name
 			delete scope.old_name
@@ -260,26 +272,14 @@ class OutlinerNode {
 		}
 		return false;
 	}
-	isIconEnabled(btn) {
-		switch (btn.id) {
-			case 'visibility': 
-				return this.visibility
-			case 'export': 
-				return this.export
-			case 'locked': 
-				return this.locked
-			case 'shade': 
-				return this.shade
-			case 'autouv': 
-				if (!this.autouv) {
-					return false
-				} else if (this.autouv === 1) {
-					return true
-				} else {
-					return 'alt'
-				}
+	isIconEnabled(toggle) {
+		if (typeof toggle.getState == 'function') {
+			return toggle.getState(this);
+		} else if (this[toggle.id] !== undefined) {
+			return this[toggle.id];
+		} else {
+			return true;
 		}
-		return true;
 	}
 	isChildOf(group, max_levels) {
 		function iterate(obj, level) {
@@ -356,7 +356,8 @@ class OutlinerElement extends OutlinerNode {
 			copy.name = copy.name.split(number).join(number+1)
 		}
 		//Rest
-		copy.sortInBefore(this, 1).init()
+		let last_selected = this.getParentArray().filter(el => el.selected || el == this).last();
+		copy.sortInBefore(last_selected, 1).init();
 		var index = selected.indexOf(this)
 		if (index >= 0) {
 			selected[index] = copy
@@ -449,17 +450,14 @@ class OutlinerElement extends OutlinerNode {
 }
 	OutlinerElement.prototype.isParent = false;
 	OutlinerElement.fromSave = function(obj, keep_uuid) {
-		switch (obj.type) {
-			case 'locator':
-				return new Locator(obj, keep_uuid ? obj.uuid : 0).init()
-				break;
-			case 'cube': default:
-				return new Cube(obj, keep_uuid ? obj.uuid : 0).init()
-				break;
+		let Type = OutlinerElement.types[obj.type] || Cube;
+		if (Type) {
+			return new Type(obj, keep_uuid ? obj.uuid : 0).init()
 		}
 	}
 	OutlinerElement.selected = selected;
 	OutlinerElement.all = elements;
+	OutlinerElement.types = {};
 
 Array.prototype.findRecursive = function(key1, val) {
 	var i = 0
@@ -584,7 +582,7 @@ function dropOutlinerObjects(item, target, event, order) {
 	}
 	if (event.altKey) {
 		Undo.initEdit({elements: [], outliner: true, selection: true})
-		selected.length = 0
+		selected.empty();
 	} else {
 		Undo.initEdit({outliner: true, selection: true})
 		var updatePosRecursive = function(item) {
@@ -622,7 +620,7 @@ function dropOutlinerObjects(item, target, event, order) {
 				} else {
 					var cube = item.duplicate()
 					place(cube)
-					selected.push(cube)
+					selected.safePush(cube)
 				}
 			} else {
 				place(item)
@@ -637,9 +635,9 @@ function dropOutlinerObjects(item, target, event, order) {
 	}
 	if (event.altKey) {
 		updateSelection()
-		Undo.finishEdit('drag', {elements: selected, outliner: true, selection: true})
+		Undo.finishEdit('Duplicate selection', {elements: selected, outliner: true, selection: true})
 	} else {
-		Undo.finishEdit('drag')
+		Undo.finishEdit('Drag elements in outliner')
 	}
 }
 
@@ -664,7 +662,7 @@ function renameOutliner(element) {
 					if (Format.bone_rig) {
 						Group.selected.createUniqueName()
 					}
-					Undo.finishEdit('rename group')
+					Undo.finishEdit('Rename group')
 				}
 			})
 		} else if (selected.length) {
@@ -675,7 +673,7 @@ function renameOutliner(element) {
 					selected.forEach(function(obj, i) {
 						obj.name = name.replace(/%/g, obj.index).replace(/\$/g, i)
 					})
-					Undo.finishEdit('rename')
+					Undo.finishEdit('Rename')
 				}
 			})
 		}
@@ -719,7 +717,7 @@ function toggleCubeProperty(key) {
 	if (key === 'shade' && Project.box_uv) {
 		Canvas.updateUVs();
 	}
-	Undo.finishEdit('toggle property')
+	Undo.finishEdit('Toggle ' + key)
 }
 
 
@@ -784,7 +782,7 @@ BARS.defineActions(function() {
 			Outliner.root.sort(function(a,b) {
 				return sort_collator.compare(a.name, b.name)
 			});
-			Undo.finishEdit('sort_outliner')
+			Undo.finishEdit('Sort outliner')
 		}
 	})
 	new Action('unlock_everything', {
@@ -799,7 +797,7 @@ BARS.defineActions(function() {
 			[...locked, ...locked_groups].forEach(el => {
 				el.locked = false;
 			})
-			Undo.finishEdit('unlock_everything')
+			Undo.finishEdit('Unlock everything')
 		}
 	})
 	new Toggle('element_colors', {
@@ -827,12 +825,12 @@ BARS.defineActions(function() {
 					new: {label: 'dialog.select.new', type: 'checkbox', value: true},
 					group: {label: 'dialog.select.group', type: 'checkbox'},
 					name: {label: 'dialog.select.name', type: 'text'},
-					texture: {label: 'data.texture', type: 'text'},
+					texture: {label: 'data.texture', type: 'text', list: Texture.all.map(tex => tex.name)},
 					color: {label: 'menu.cube.color', type: 'select', value: '-1', options: color_options}
 				},
 				lines: [
 					`<div class="dialog_bar form_bar">
-						<label class="name_space_left tl">dialog.select.random</label>
+						<label class="name_space_left">${tl('dialog.select.random')}</label>
 						<input type="range" min="0" max="100" step="1" value="100" class="tool half" style="width: 100%;" id="selgen_random">
 					</div>`
 				],
@@ -1050,7 +1048,18 @@ Interface.definePanels(function() {
 						convertTouchEvent(e2);
 						if (e2.target.classList.contains('outliner_toggle') && e2.target.getAttribute('toggle') == key) {
 							let [node] = eventTargetToNode(e2.target);
-							if (!affected.includes(node) && (!node.locked || key == 'locked' || key == 'visibility')) {
+							if (key == 'visibility' && e2.altKey && !affected.length) {
+								let new_affected = Outliner.elements.filter(node => !node.selected);
+								value = !(new_affected[0] && new_affected[0][key]);
+								new_affected.forEach(node => {
+									affected.push(node);
+									previous_values[node.uuid] = node[key];
+									node[key] = value;
+								})
+								// Update
+								Canvas.updateVisibility();
+								
+							} else if (!affected.includes(node) && (!node.locked || key == 'locked' || key == 'visibility')) {
 								let new_affected = [node];
 								if (node instanceof Group) {
 									node.forEachChild(node => new_affected.push(node))
@@ -1230,6 +1239,7 @@ Interface.definePanels(function() {
 			'sort_outliner',
 			'select_all',
 			'collapse_groups',
+			'unfold_groups',
 			'element_colors',
 			'outliner_toggle'
 		])

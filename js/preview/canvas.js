@@ -59,6 +59,77 @@ const Canvas = {
 		color: gizmo_colors.wire,
 		wireframe: true
 	}),
+	solidMaterial: (function() {
+		var vertShader = `
+			uniform bool SHADE;
+
+			varying float light;
+			varying float lift;
+
+			float AMBIENT = 0.1;
+			float XFAC = -0.05;
+			float ZFAC = 0.05;
+
+			void main()
+			{
+
+				if (SHADE) {
+
+					vec3 N = vec3( modelViewMatrix * vec4(normal, 0.0) );
+
+					light = (0.2 + abs(N.z) * 0.8) * (1.0-AMBIENT) + N.x*N.x * XFAC + N.y*N.y * ZFAC + AMBIENT;
+
+				} else {
+
+					light = 1.0;
+
+				}
+
+				if (color.b > 1.1) {
+					lift = 0.12;
+				} else {
+					lift = 0.0;
+				}
+				
+				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+				gl_Position = projectionMatrix * mvPosition;
+			}`
+		var fragShader = `
+			#ifdef GL_ES
+			precision highp float;
+			#endif
+
+			uniform bool SHADE;
+			uniform float BRIGHTNESS;
+			uniform vec3 base;
+
+			varying float light;
+			varying float lift;
+
+			void main(void)
+			{
+
+				gl_FragColor = vec4(lift + base * light * BRIGHTNESS, 1.0);
+
+				if (lift > 0.1) {
+					gl_FragColor.b = gl_FragColor.b * 1.16;
+					gl_FragColor.g = gl_FragColor.g * 1.04;
+				}
+
+			}`
+
+		return new THREE.ShaderMaterial({
+			uniforms: {
+				SHADE: {type: 'bool', value: settings.shading.value},
+				BRIGHTNESS: {type: 'bool', value: settings.brightness.value / 50},
+				base: {value: gizmo_colors.solid}
+			},
+			vertexShader: vertShader,
+			fragmentShader: fragShader,
+			vertexColors: THREE.FaceColors,
+			side: THREE.DoubleSide
+		});
+	})(),
 	transparentMaterial: new THREE.MeshBasicMaterial({visible: false, name: 'invisible'}),
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
 	face_order: ['east', 'west', 'up', 'down', 'south', 'north'],
@@ -122,6 +193,68 @@ const Canvas = {
 		}
 		if (settings.highlight_cubes.value) updateCubeHighlights();
 	},
+
+	/**
+	 * 
+	 * @param {object} options
+	 * @param {array} options.elements Elements to update 
+	 * @param {object} options.element_aspects 
+	 * @param {boolean} options.element_aspects.geometry Update the element transformation and geometry
+	 * @param {boolean} options.element_aspects.faces Update the element faces and texture
+	 * @param {boolean} options.element_aspects.uv Update the element UV mapping
+	 * @param {boolean} options.element_aspects.visibility Update the element visibility
+	 * @param {boolean} options.element_aspects.painting_grid Update the painting grid
+	 * @param {array} options.groups Groups to update 
+	 * @param {object} options.group_aspects Which parts of the group to update
+	 * @param {boolean} options.group_aspects.geometry Update the group transformation and geometry
+	 */
+	updateView(options) {
+		/**
+		 * Bones: list
+		 * Bone aspects: ?
+		 * Elements: list
+		 * Element aspects: object
+		 * 		Face
+		 * 		UV
+		 * 		Geo
+		 * 		Visibility
+		 * 		Painting Grid
+		 * Textures: List
+		 * Texture Aspects:
+		 * 		Render sides
+		 */
+		if (options.elements) {
+			let aspects = options.element_aspects || {};
+			options.elements.forEach(element => {
+				if (element instanceof Cube) {
+					let update_all = !options.element_aspects || (aspects.visibility && element.visibility && !element.mesh.visible);
+					let {mesh} = element;
+
+					if (aspects.geometry || update_all) {
+						Canvas.adaptObjectPosition(element, mesh);
+					}
+					if (aspects.faces || update_all) {
+						Canvas.adaptObjectFaces(element, mesh);
+					}
+					if ((aspects.uv || update_all) && Prop.view_mode === 'textured') {
+						Canvas.updateUV(element);
+					}
+					if ((aspects.painting_grid || update_all) && Modes.paint && settings.painting_grid.value) {
+						Canvas.buildGridBox(element);
+					}
+					if (aspects.visibility || update_all) {
+						element.mesh.visible = element.visibility;
+					}
+				}
+			})
+		}
+		if (options.groups) {
+			Canvas.updateAllBones(options.groups)
+		}
+		if (options.selection) {
+			updateSelection();
+		}
+	},
 	//Main updaters
 	clear() {
 		var objects = []
@@ -164,7 +297,7 @@ const Canvas = {
 			if (cube.visibility && !cube.mesh.visible) {
 				cube.mesh.visible = true;
 				Canvas.adaptObjectFaces(cube, cube.mesh)
-				if (!Prop.wireframe) {
+				if (Prop.view_mode === 'textured') {
 					Canvas.updateUV(cube);
 				}
 				if (Modes.paint && settings.painting_grid.value) {
@@ -190,7 +323,7 @@ const Canvas = {
 				}
 				if (used === true) {
 					Canvas.adaptObjectFaces(obj)
-					if (!Prop.wireframe) {
+					if (Prop.view_mode === 'textured') {
 						Canvas.updateUV(obj)
 					}
 				}
@@ -198,7 +331,7 @@ const Canvas = {
 		})
 	},
 	updateAllUVs() {
-		if (Prop.wireframe === true) return;
+		if (Prop.view_mode !== 'textured') return;
 		Cube.all.forEach(function(obj) {
 			if (obj.visibility == true) {
 				Canvas.updateUV(obj)
@@ -228,8 +361,11 @@ const Canvas = {
 				mat.side = side
 			}
 		})
-		if (Project.layered_textures && Canvas.layered_material) {
+		if (Canvas.layered_material) {
 			Canvas.layered_material.side = side;
+		}
+		if (Canvas.solidMaterial) {
+			Canvas.solidMaterial.side = side;
 		}
 		emptyMaterials.forEach(function(mat) {
 			mat.side = side
@@ -251,14 +387,14 @@ const Canvas = {
 	},
 	updatePositions(leave_selection) {
 		updateNslideValues()
-		var arr = Cube.selected.slice()
+		var arr = selected.slice()
 		if (Format.bone_rig && Group.selected) {
 			Group.selected.forEachChild(obj => {
-				if (obj.type === 'cube') {
+				if (obj instanceof OutlinerElement) {
 					arr.safePush(obj)
 				}
 			})
-			if (arr.length === Cube.selected.length) {
+			if (arr.length === selected.length) {
 				Canvas.updateAllBones()
 			}
 		}
@@ -273,14 +409,14 @@ const Canvas = {
 		Cube.selected.forEach(function(obj) {
 			if (obj.visibility == true) {
 				Canvas.adaptObjectFaces(obj)
-				if (!Prop.wireframe) {
+				if (Prop.view_mode === 'textured') {
 					Canvas.updateUV(obj)
 				}
 			}
 		})
 	},
 	updateUVs() {
-		if (Prop.wireframe === true) return;
+		if (Prop.view_mode !== 'textured') return;
 		Cube.selected.forEach(function(obj) {
 			if (obj.visibility == true) {
 				Canvas.updateUV(obj)
@@ -291,7 +427,7 @@ const Canvas = {
 		arr.forEach(function(obj) {
 			if (!obj.visibility) return;
 			var mesh = obj.mesh
-			if (mesh === undefined) return;
+			if (!mesh || !mesh.geometry) return;
 
 			var line = Canvas.getOutlineMesh(mesh)
 
@@ -310,25 +446,25 @@ const Canvas = {
 			let bone = obj.mesh
 			if (bone) {
 
-				bone.rotation.reorder('ZYX')
+				bone.rotation.reorder('ZYX');
 				bone.rotation.setFromDegreeArray(obj.rotation);
-				bone.position.fromArray(obj.origin)
-				bone.scale.x = bone.scale.y = bone.scale.z = 1
+				bone.position.fromArray(obj.origin);
+				bone.scale.x = bone.scale.y = bone.scale.z = 1;
 
 				if (obj.parent.type === 'group') {
 
-					bone.position.x -=  obj.parent.origin[0]
-					bone.position.y -=  obj.parent.origin[1]
-					bone.position.z -=  obj.parent.origin[2]
+					bone.position.x -=  obj.parent.origin[0];
+					bone.position.y -=  obj.parent.origin[1];
+					bone.position.z -=  obj.parent.origin[2];
 
-					var parent_bone = obj.parent.mesh
-					parent_bone.add(bone)
+					var parent_bone = obj.parent.mesh;
+					parent_bone.add(bone);
 				} else {
-					scene.add(bone)
+					scene.add(bone);
 				}
 
-				bone.fix_position = bone.position.clone()
-				bone.fix_rotation = bone.rotation.clone()
+				bone.fix_position = bone.position.clone();
+				bone.fix_rotation = bone.rotation.clone();
 			}
 		})
 		if (bones == Group.all) {
@@ -397,72 +533,77 @@ const Canvas = {
 		Canvas.adaptObjectPosition(obj, mesh)
 		
 		//scene.add(mesh)
-		if (Prop.wireframe === false) {
+		if (Prop.view_mode === 'textured') {
 			Canvas.updateUV(obj);
 		}
 		mesh.visible = obj.visibility;
 		Canvas.buildOutline(obj);
 	},
-	adaptObjectPosition(cube, mesh) {		
-		if (!mesh || mesh > 0) mesh = cube.mesh
+	adaptObjectPosition(object, mesh) {
+		if (!mesh || mesh > 0) mesh = object.mesh;
+		if (!mesh) return;
 
-		var from = cube.from.slice()
-		from.forEach((v, i) => {
-			from[i] -= cube.inflate;
-			from[i] -= cube.origin[i];
-		})
-		var to = cube.to.slice()
-		to.forEach((v, i) => {
-			to[i] += cube.inflate
-			to[i] -= cube.origin[i];
-			if (from[i] === to[i]) {
-				to[i] += 0.001
-			}
-		})
-		mesh.geometry.from(from)
-		mesh.geometry.to(to)
+		if (object.movable) {
+			mesh.scale.set(1, 1, 1)
+			mesh.rotation.set(0, 0, 0)
+			mesh.position.set(object.origin[0], object.origin[1], object.origin[2])
+		}
 
-		mesh.scale.set(1, 1, 1)
-		mesh.position.set(cube.origin[0], cube.origin[1], cube.origin[2])
-		//mesh.geometry.translate(-cube.origin[0], -cube.origin[1], -cube.origin[2])
-		mesh.rotation.set(0, 0, 0)
-		mesh.geometry.computeBoundingBox()
-		mesh.geometry.computeBoundingSphere()
-
-		if (Format.rotate_cubes) {
-			if (cube.rotation !== undefined) {
-
-				mesh.rotation.reorder('ZYX')
-				mesh.rotation.x = Math.PI / (180 /cube.rotation[0])
-				mesh.rotation.y = Math.PI / (180 /cube.rotation[1])
-				mesh.rotation.z = Math.PI / (180 /cube.rotation[2])
-
-				if (cube.rescale === true) {
-					var axis = cube.rotationAxis()||'y'
-					var rescale = getRescalingFactor(cube.rotation[getAxisNumber(axis)]);
-					mesh.scale.set(rescale, rescale, rescale)
-					mesh.scale[axis] = 1
+		if (object.resizable) {
+			var from = object.from.slice()
+			from.forEach((v, i) => {
+				from[i] -= object.inflate;
+				from[i] -= object.origin[i];
+			})
+			var to = object.to.slice()
+			to.forEach((v, i) => {
+				to[i] += object.inflate
+				to[i] -= object.origin[i];
+				if (from[i] === to[i]) {
+					to[i] += 0.001
 				}
+			})
+			mesh.geometry.from(from)
+			mesh.geometry.to(to)
+
+			mesh.geometry.computeBoundingBox()
+			mesh.geometry.computeBoundingSphere()
+		}
+
+		if (Format.rotate_cubes || (object instanceof Cube == false && object.rotatable)) {
+
+			mesh.rotation.reorder('ZYX')
+			mesh.rotation.x = Math.PI / (180 /object.rotation[0])
+			mesh.rotation.y = Math.PI / (180 /object.rotation[1])
+			mesh.rotation.z = Math.PI / (180 /object.rotation[2])
+
+			if (object.rescale === true) {
+				var axis = object.rotationAxis()||'y'
+				var rescale = getRescalingFactor(object.rotation[getAxisNumber(axis)]);
+				mesh.scale.set(rescale, rescale, rescale)
+				mesh.scale[axis] = 1
 			}
 		}
 		if (Format.bone_rig) {
 			//mesh.rotation.reorder('YZX')
-			if (cube.parent.type === 'group') {
-				cube.parent.mesh.add(mesh)
-				mesh.position.x -=  cube.parent.origin[0]
-				mesh.position.y -=  cube.parent.origin[1]
-				mesh.position.z -=  cube.parent.origin[2]
+			if (object.parent.type === 'group') {
+				object.parent.mesh.add(mesh)
+				mesh.position.x -=  object.parent.origin[0]
+				mesh.position.y -=  object.parent.origin[1]
+				mesh.position.z -=  object.parent.origin[2]
 			} else {
 				scene.add(mesh)
 			}
 		} else if (mesh.parent !== scene) {
 			scene.add(mesh)
 		}
-		if (Modes.paint) {
-			Canvas.buildGridBox(cube)
+		if (object instanceof Cube) {
+			if (Modes.paint) {
+				Canvas.buildGridBox(object);
+			}
+			Canvas.buildOutline(object);
 		}
-		Canvas.buildOutline(cube)
-		mesh.updateMatrixWorld()
+		mesh.updateMatrixWorld();
 	},
 	adaptObjectFaceGeo(cube) {
 		let {mesh} = cube;
@@ -517,7 +658,7 @@ const Canvas = {
 
 				}
 
-				if (color.b == 1.25) {
+				if (color.b > 1.1) {
 					lift = 0.1;
 				} else {
 					lift = 0.0;
@@ -595,10 +736,13 @@ const Canvas = {
 
 		Canvas.adaptObjectFaceGeo(cube);
 
-		if (Prop.wireframe) {
+		if (Prop.view_mode === 'solid') {
+			mesh.material = Canvas.solidMaterial
+		
+		} else if (Prop.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
 
-		} else if (Format.single_texture && Project.layered_textures && Texture.all.length >= 2) {
+		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
 			mesh.material = Canvas.getLayeredMaterial();
 
 		} else if (Format.single_texture) {
@@ -626,7 +770,7 @@ const Canvas = {
 		}
 	},
 	updateUV(cube, animation = true) {
-		if (Prop.wireframe === true) return;
+		if (Prop.view_mode !== 'textured') return;
 		var mesh = cube.mesh
 		if (mesh === undefined) return;
 		mesh.geometry.faceVertexUvs[0] = [];
@@ -695,13 +839,11 @@ const Canvas = {
 
 				stretch = 1;
 				frame = 0;
-				if (cube.faces[f.face].texture && cube.faces[f.face].texture !== null) {
-					var tex = cube.faces[f.face].getTexture()
-					if (tex instanceof Texture && tex.frameCount !== 1) {
-						stretch = tex.frameCount
-						if (animation === true && tex.currentFrame) {
-							frame = tex.currentFrame
-						}
+				let tex = cube.faces[f.face].getTexture();
+				if (tex instanceof Texture && tex.frameCount !== 1) {
+					stretch = tex.frameCount
+					if (animation === true && tex.currentFrame) {
+						frame = tex.currentFrame
 					}
 				}
 

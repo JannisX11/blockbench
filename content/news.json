@@ -4,24 +4,23 @@
 		"text_color": "var(--color-accent_text)",
 		"graphic": {
 			"type": "image",
-			"source": "https://www.blockbench.net/api/news/splash_art.png?9",
+			"source": "https://web.blockbench.net/content/splash_art.png?39",
 			"width": 630,
 			"height": 420
 		},
 		"text": [
-			{"type": "h1", "text": "Blockbench 3.8"},
-			{"text": "New in this update:"},
+			{"text": "## Blockbench 3.9"},
+			{"text": "### Highlights of this update:"},
 			{"type": "list", "list": [
-				"Animation Graph Editor!",
-				"Option to share models via short link",
-				"Progressive-Web-App installation option, allowing offline use on tablets and phones",
-				"Option to merge other projects into the current project",
-				"Foldable panels and sidebars",
-				"Added Null Objects",
-				"Added Orbit Gizmo"
+				"Load, export and share keymaps and settings!",
+				"Travel through time using the new Edit History!",
+				"Hold Alt to resize cubes in both directions",
+				"Get creative with the new gradient tool",
+				"Transform spaces are now available in animation mode",
+				"Dozens of quality-of-life features and improvements!"
 			]},
-			{"text": "You can find many more new features and changes in the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v3.8.0)!"},
-			{"text": "Splash Art by [JannisX11](https://twitter.com/JannisX11)"}
+			{"text": "Make sure to read the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v3.9.0)!"},
+			{"text": "Splash Art by [LorenOLoren](https://twitter.com/LorenOLoren1) and [Dankbarkeit](https://twitter.com/Dxnkbarkeit)"}
 		]
 	}
 }

@@ -233,12 +233,12 @@ function changeImageEditor(texture, from_settings) {
 			var path;
 			if (Blockbench.platform == 'darwin') {
 				switch (id) {
-					case 'ps':  path = '/Applications/Adobe Photoshop CC 2020/Adobe Photoshop CC 2020.app'; break;
+					case 'ps':  path = '/Applications/Adobe Photoshop 2021/Adobe Photoshop 2021.app'; break;
 					case 'gimp':path = '/Applications/Gimp-2.10.app'; break;
 				}
 			} else {
 				switch (id) {
-					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop CC 2020\\Photoshop.exe'; break;
+					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop 2021\\Photoshop.exe'; break;
 					case 'gimp':path = 'C:\\Program Files\\GIMP 2\\bin\\gimp-2.10.exe'; break;
 					case 'pdn': path = 'C:\\Program Files\\paint.net\\PaintDotNet.exe'; break;
 				}
@@ -359,15 +359,23 @@ function createBackup(init) {
 }
 //Close
 
-window.onbeforeunload = function() {
+window.onbeforeunload = function (event) {
 	try {
 		updateRecentProjectThumbnail()
 	} catch(err) {}
 
-	if (!Blockbench.hasFlag('allow_closing')) {
+
+	if (Blockbench.hasFlag('allow_closing')) {
+		try {
+			if (!Blockbench.hasFlag('allow_reload')) {
+				currentwindow.webContents.closeDevTools()
+			}
+		} catch (err) {}
+	} else {
 		setTimeout(function() {
 			showSaveDialog(true)
 		}, 2)
+		event.returnValue = true;
 		return true;
 	}
 }
@@ -412,11 +420,11 @@ function showSaveDialog(close) {
 	}
 }
 function closeBlockbenchWindow() {
+	window.onbeforeunload = null;
 	Blockbench.addFlag('allow_closing');
 	Blockbench.dispatchEvent('before_closing')
 	localStorage.removeItem('backup_model')
 	EditSession.quit()
-	
 	return currentwindow.close();
 };
 

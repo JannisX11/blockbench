@@ -15,6 +15,10 @@ module.exports = {
                 use: {
                     loader: 'url-loader'
                 }
+            },
+            {
+                test: /\.bbkeymap$/,
+                type: 'json'
             }
         ]
     }

@@ -95,8 +95,16 @@ const Interface = {
 			},
 			get: function() {return Interface.data.left_bar_width},
 			set: function(o, diff) {
-				let calculated = limitNumber(o + diff, 128, window.innerWidth- 120 - Interface.data.right_bar_width)
+				let min = 128;
+				let calculated = limitNumber(o + diff, min, window.innerWidth- 120 - Interface.data.right_bar_width)
 				Interface.data.left_bar_width = Math.snapToValues(calculated, [Interface.default_data.left_bar_width], 16);
+				
+				if (calculated == min) {
+					Prop.show_left_bar = false;
+					Interface.data.left_bar_width = Interface.default_data.left_bar_width;
+				} else {
+					Prop.show_left_bar = true;
+				}
 			},
 			position: function(line) {
 				line.setPosition({
@@ -118,8 +126,16 @@ const Interface = {
 			},
 			get: function() {return Interface.data.right_bar_width},
 			set: function(o, diff) {
-				let calculated = limitNumber(o - diff, 128, window.innerWidth- 120 - Interface.data.left_bar_width);
+				let min = 128;
+				let calculated = limitNumber(o - diff, min, window.innerWidth- 120 - Interface.data.left_bar_width);
 				Interface.data.right_bar_width = Math.snapToValues(calculated, [Interface.default_data.right_bar_width], 12);
+				
+				if (calculated == min) {
+					Prop.show_right_bar = false;
+					Interface.data.right_bar_width = Interface.default_data.right_bar_width;
+				} else {
+					Prop.show_right_bar = true;
+				}
 			},
 			position: function(line) {
 				line.setPosition({
@@ -374,12 +390,11 @@ function resizeWindow(event) {
 	if (!Preview.all || (event && event.target && event.target !== window)) {
 		return;
 	}
-	if (Animator.open) {
-		Timeline.updateSize()
-	}
-
 	if (Interface.data) {
 		updateInterfacePanels()
+	}
+	if (Animator.open) {
+		Timeline.updateSize()
 	}
 	Preview.all.forEach(function(prev) {
 		if (prev.canvas.isConnected) {
@@ -428,17 +443,30 @@ function setZoomLevel(mode) {
 		zoom = limitNumber(zoom, 1, 4)
 		main_uv.setZoom(zoom)
 
-	}
-	/* else if (isApp) {
-		switch (mode) {
-			case 'in':	Prop.zoom += 5;  break;
-			case 'out':   Prop.zoom -= 5;  break;
-			case 'reset': Prop.zoom = 100; break;
+	} else if (Prop.active_panel == 'timeline') {
+		
+		let body = document.getElementById('timeline_body');
+		let offsetX = Timeline.vue.scroll_left + (body.clientWidth - Timeline.vue.head_width) / 2;
+		
+		if (mode == 'reset') {
+			let original_size = Timeline.vue._data.size
+			Timeline.vue._data.size = 200;
+			
+			body.scrollLeft += (Timeline.vue._data.size - original_size) * (offsetX / original_size)
+		} else {
+			let zoom = mode == 'in' ? 1.2 : 0.8;
+			let original_size = Timeline.vue._data.size
+			let updated_size = limitNumber(Timeline.vue._data.size * zoom, 10, 1000)
+			Timeline.vue._data.size = updated_size;
+			
+			body.scrollLeft += (updated_size - original_size) * (offsetX / original_size)
 		}
-		var level = (Prop.zoom - 100) / 12
-		currentwindow.webContents.setZoomLevel(level)
-		resizeWindow()
-	}*/
+	} else {
+		switch (mode) {
+			case 'in':		Preview.selected.controls.dollyIn(1.16);  break;
+			case 'out':  	Preview.selected.controls.dollyOut(1.16);  break;
+		}
+	}
 }
 
 //Dialogs
@@ -451,7 +479,14 @@ function showDialog(dialog) {
 	$('#blackout').show()
 	obj.show()
 	open_dialog = dialog
-	open_interface = dialog
+	open_interface = {
+		confirm() {
+			$('dialog#'+open_dialog).find('.confirm_btn:not([disabled])').trigger('click');
+		},
+		cancel() {
+			$('dialog#'+open_dialog).find('.cancel_btn:not([disabled])').trigger('click');
+		}
+	}
 	Prop.active_panel = 'dialog'
 	//Draggable
 	if (obj.hasClass('draggable')) {
@@ -460,9 +495,7 @@ function showDialog(dialog) {
 			containment: '#page_wrapper'
 		})
 		var x = (window.innerWidth-obj.outerWidth()) / 2;
-		var top = (window.innerHeight - obj.outerHeight()) / 2;
 		obj.css('left', x+'px')
-		obj.css('top', 'px')
 		obj.css('max-height', (window.innerHeight-128)+'px')
 	}
 }
@@ -631,7 +664,7 @@ function addStartScreenSection(id, data) {
 
 
 (function() {
-	var news_call = $.getJSON('https://blockbench.net/api/news/news.json')
+	var news_call = $.getJSON('https://web.blockbench.net/content/news.json')
 	Promise.all([news_call, documentReady]).then((data) => {
 		if (!data || !data[0]) return;
 		data = data[0];
@@ -680,18 +713,6 @@ function addStartScreenSection(id, data) {
 			updateStreamerModeNotification()
 		}
 
-
-		//Electron
-		if (isApp && !compareVersions(process.versions.electron, '6.0.0')) {
-			addStartScreenSection({
-				graphic: {type: 'icon', icon: 'fas.fa-atom'},
-				text: [
-					{type: 'h1', text: 'Electron Update Recommended'},
-					{text: 'Your Blockbench is using an old version of Electron. Install the latest version to get the best performance and newest features. Just run the latest Blockbench installer. This only takes a minute and will not affect your custom settings.'},
-					{text: '[Blockbench Downloads](https://blockbench.net/downloads/)'}
-				]
-			})
-		}
 		//Twitter
 		let twitter_ad;
 		if (Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
@@ -719,6 +740,47 @@ function addStartScreenSection(id, data) {
 				],
 				last: true
 			})
+		}
+
+		// Keymap Preference
+		if (!Blockbench.isMobile && !localStorage.getItem('selected_keymap_preference')) {
+
+			
+			var obj = $(`<section id="keymap_preference">
+				<h2>${tl('mode.start.keymap_preference')}</h2>
+				<p>${tl('mode.start.keymap_preference.desc')}</p>
+				<ul></ul>
+			</section>`)
+
+			var keymap_list = $(obj).find('ul');
+			
+			obj.prepend(`<i class="material-icons start_screen_close_button">clear</i>`);
+			obj.find('i.start_screen_close_button').on('click', (e) => {
+				obj.detach();
+				localStorage.setItem('selected_keymap_preference', true);
+			});
+
+			[
+				['default', 'action.load_keymap.default'],
+				['mouse', 'action.load_keymap.mouse'],
+				['blender', 'Blender'],
+				['cinema4d', 'Cinema 4D'],
+				['maya', 'Maya'],
+			].forEach(([id, name], index) => {
+
+				let node = $(`<li class="keymap_select_box">
+					<h4>${tl(name)}</h4>
+					<p>${tl(`action.load_keymap.${id}.desc`)}</p>
+				</li>`)
+				node.on('click', e => {
+					Keybinds.loadKeymap(id, true);
+					obj.detach();
+					localStorage.setItem('selected_keymap_preference', true);
+				})
+				keymap_list.append(node);
+			})
+			
+			$('#start_screen content').prepend(obj);
 		}
 	})
 

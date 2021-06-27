@@ -41,7 +41,7 @@ var codec = new Codec('optifine_entity', {
 				var bone_codes = codes[bone.part] || codes[bone.part+'1']
 				if (bone_codes) {
 					if (!bone.rotate) bone.rotate = [0, 0, 0];
-					entityMode.hardcodes[geo_code][bone.part].rotation.forEach((dft, i) => {
+					bone_codes.rotation.forEach((dft, i) => {
 						bone.rotate[i] += dft;
 					})
 				}
