@@ -1752,13 +1752,14 @@ window.addEventListener("gamepadconnected", function(event) {
 class PreviewBackground {
 	constructor(data = {}) {
 		this.name = data.name ? tl(data.name) : ''
-		this._image = data._image||false
+		this._image = data.image||false
 		this.size = data.size||1000
 		this.x = data.x||0
 		this.y = data.y||0
 		this.lock = data.lock||false
 		this.save_in_project = false;
 		this.defaults = Object.assign({}, this);
+		this.defaults.image = this.image;
 		this.imgtag = new Image();
 	}
 	get image() {
