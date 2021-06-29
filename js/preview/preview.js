@@ -716,7 +716,7 @@ class Preview {
 	}
 	mouseup(event) {
 		this.showContextMenu(event);
-		if (this.controls.hasMoved === false && !this.selection.activated && settings.canvas_unselect.value) {
+		if (settings.canvas_unselect.value && this.controls.hasMoved === false && !this.selection.activated && !Transformer.dragging) {
 			unselectAll();
 		}
 		return this;
