@@ -731,19 +731,19 @@ function addStartScreenSection(id, data) {
 		//Discord
 		if (Blockbench.startup_count < 6 && !twitter_ad) {
 			addStartScreenSection({
-				color: '#7289da',
+				color: '#5865F2',
 				text_color: '#ffffff',
 				graphic: {type: 'icon', icon: 'fab.fa-discord'},
 				text: [
 					{type: 'h1', text: 'Discord Server'},
-					{text: 'You need help with modeling or you want to chat about Blockbench? Join the [Modeling Discord](https://discord.gg/WVHg5kH)!'}
+					{text: 'You need help with modeling or you want to chat about Blockbench? Join the official [Blockbench Discord](https://discord.gg/WVHg5kH)!'}
 				],
 				last: true
 			})
 		}
 
 		// Keymap Preference
-		if (!Blockbench.isMobile && !localStorage.getItem('selected_keymap_preference')) {
+		if (!Blockbench.isMobile && Blockbench.startup_count <= 1) {
 
 			
 			var obj = $(`<section id="keymap_preference">
@@ -757,7 +757,6 @@ function addStartScreenSection(id, data) {
 			obj.prepend(`<i class="material-icons start_screen_close_button">clear</i>`);
 			obj.find('i.start_screen_close_button').on('click', (e) => {
 				obj.detach();
-				localStorage.setItem('selected_keymap_preference', true);
 			});
 
 			[
@@ -775,7 +774,6 @@ function addStartScreenSection(id, data) {
 				node.on('click', e => {
 					Keybinds.loadKeymap(id, true);
 					obj.detach();
-					localStorage.setItem('selected_keymap_preference', true);
 				})
 				keymap_list.append(node);
 			})

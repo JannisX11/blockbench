@@ -247,6 +247,7 @@ BARS.defineActions(function() {
 			three_grid.visible = false;
 		},
 		onUnselect: () => {
+			Canvas.updateAllBones()
 			Cube.all.forEach(cube => {
 				Canvas.buildGridBox(cube)
 			})

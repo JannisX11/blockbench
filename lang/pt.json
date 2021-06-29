@@ -1290,5 +1290,6 @@
     "camera_angle.common_isometric_right": "Direita isométrica (2:1)",
     "camera_angle.common_isometric_left": "Esquerda isométrica (2:1)",
     "camera_angle.true_isometric_right": "Habilitar direita isométrica (30°)",
-    "camera_angle.true_isometric_left": "Habilitar esquerda isométrica (30°)"
+    "camera_angle.true_isometric_left": "Habilitar esquerda isométrica (30°)",
+    "menu.help.wiki": "Blockbench Wiki"
 }

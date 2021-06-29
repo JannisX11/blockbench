@@ -772,7 +772,7 @@ const Canvas = {
 	updateUV(cube, animation = true) {
 		if (Prop.view_mode !== 'textured') return;
 		var mesh = cube.mesh
-		if (mesh === undefined) return;
+		if (mesh === undefined || !mesh.geometry) return;
 		mesh.geometry.faceVertexUvs[0] = [];
 
 		if (Project.box_uv) {

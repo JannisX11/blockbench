@@ -359,6 +359,7 @@
 		max-height: 600px;
 		padding-bottom: 25px;
 		overflow-y: scroll;
+		overflow-x: hidden;
 		clear: both;
 	}
 	#keybindlist .tool {

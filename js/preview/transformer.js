@@ -1236,7 +1236,7 @@
 
 						selected.forEach(function(obj, i) {
 							if (obj.resizable) {
-								obj.resize(point[axis], axisNumber, !scope.direction, null, event.altKey)
+								obj.resize(point[axis], axisNumber, !scope.direction, null, event.altKey || Pressing.overrides.alt)
 							}
 						})
 						displayDistance(point[axis] * (scope.direction ? 1 : -1));

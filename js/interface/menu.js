@@ -693,6 +693,9 @@ const MenuBar = {
 			{name: 'menu.help.quickstart', id: 'discord', icon: 'fas.fa-directions', click: () => {
 				Blockbench.openLink('https://blockbench.net/quickstart/');
 			}},
+			{name: 'menu.help.wiki', id: 'wiki', icon: 'menu_book', click: () => {
+				Blockbench.openLink('https://blockbench.net/wiki/');
+			}},
 			{name: 'menu.help.report_issue', id: 'report_issue', icon: 'bug_report', click: () => {
 				Blockbench.openLink('https://github.com/JannisX11/blockbench/issues');
 			}},

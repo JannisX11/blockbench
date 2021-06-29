@@ -240,16 +240,16 @@ var codec = new Codec('project', {
 		if (model.textures) {
 			model.textures.forEach(tex => {
 				var tex_copy = new Texture(tex, tex.uuid).add(false);
-				if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
-					tex_copy.fromPath(tex.path)
-					return;
-				}
 				if (isApp && tex.relative_path && ModelMeta.save_path) {
 					let resolved_path = PathModule.resolve(ModelMeta.save_path, tex.relative_path);
 					if (fs.existsSync(resolved_path)) {
 						tex_copy.fromPath(resolved_path)
 						return;
 					}
+				}
+				if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
+					tex_copy.fromPath(tex.path)
+					return;
 				}
 				if (tex.source && tex.source.substr(0, 5) == 'data:') {
 					tex_copy.fromDataURL(tex.source)

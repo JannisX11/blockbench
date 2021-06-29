@@ -1597,7 +1597,7 @@ function loadDisp(key) {	//Loads The Menu and slider values, common for all Radi
 	display_preview.controls.enabled = true;
 	ground_animation = false;
 	$('#display_crosshair').detach()
-	display_preview.orbit_gizmo.unhide();
+	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.unhide();
 	display_preview.camPers.setFocalLength(45)
 
 	if (display[key] == undefined) {
@@ -1648,7 +1648,7 @@ DisplayMode.loadFirstRight = function() {	//Loader
 		focal_length: getOptimalFocalLength(),
 	})
 	display_preview.controls.enabled = false
-	display_preview.orbit_gizmo.hide();
+	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
@@ -1660,7 +1660,7 @@ DisplayMode.loadFirstLeft = function() {	//Loader
 		focal_length: getOptimalFocalLength(),
 	})
 	display_preview.controls.enabled = false
-	display_preview.orbit_gizmo.hide();
+	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
@@ -1684,7 +1684,7 @@ DisplayMode.loadGUI = function() {		//Loader
 		locked_angle: 'south',
 		zoom: 1,
 	})
-	display_preview.orbit_gizmo.hide();
+	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['inventory_nine', 'inventory_full', 'hud'])
 	BarItems.gui_light.set(Project.front_gui_light ? 'front' : 'side');
 }
