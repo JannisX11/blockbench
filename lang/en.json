@@ -1171,6 +1171,7 @@
 	"menu.view.screenshot": "Screenshot",
 
 	"menu.help.discord": "Discord Server",
+	"menu.help.wiki": "Blockbench Wiki",
 	"menu.help.quickstart": "Quickstart Wizard",
 	"menu.help.report_issue": "Report an Issue",
 	"menu.help.plugin_documentation": "Plugin API Documentation",
