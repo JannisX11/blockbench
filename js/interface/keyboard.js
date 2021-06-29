@@ -455,6 +455,7 @@ BARS.defineActions(() => {
 			var keys = {}
 
 			Keybinds.actions.forEach(item => {
+				if (!Keybinds.stored[item.id]) return
 				if (Keybinds.stored[item.id].key == -1) {
 					keys[item.id] = null;
 				} else {
