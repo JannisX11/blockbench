@@ -26,10 +26,19 @@
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
 		const appVersion = '3.9.1';
+
+		window.onerror = (message, file, line) => {
+			if (window.Blockbench && window.Blockbench.setup_successful) return;
+
+			let error_element = document.querySelector('#loading_error_detail');
+			if (error_element && !error_element.innerText) {
+				error_element.innerText = `${message}\nIn .${file.split(location.origin).join('')}:${line}`
+			}
+		}
 	</script>
 	<div id="loading_error_message" style="display: none;">
 		<div>An error occurred while loading Blockbench</div>
-		<div id="loading_error_detail"></div>
+		<div id="loading_error_detail" style="color: var(--color-subtle_text);"></div>
 		<button onclick="isApp ? Blockbench.reload() : window.location.reload(true)" class="large" style="margin-right: auto; margin-left: auto;">Reload</button>
 		<button onclick="window.close()" class="large" style="margin-right: auto; margin-left: auto;">Quit</button>
 	</div>
