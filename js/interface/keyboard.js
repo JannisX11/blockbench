@@ -492,7 +492,7 @@ window.addEventListener('focus', event => {
 		if (event.altKey && Toolbox.selected.alt_tool && !Toolbox.original && !open_interface) {
 			var orig = Toolbox.selected;
 			var alt = BarItems[Toolbox.selected.alt_tool];
-			if (alt && Condition(alt) && Modes.paint) {
+			if (alt && Condition(alt) && (Modes.paint || BarItems.swap_tools.keybind.key == 18)) {
 				alt.select()
 				Toolbox.original = orig;
 			}
@@ -597,7 +597,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		//Alt Tool
 		var orig = Toolbox.selected;
 		var alt = BarItems[Toolbox.selected.alt_tool]
-		if (alt && Condition(alt) && Modes.paint) {
+		if (alt && Condition(alt) && (Modes.paint || BarItems.swap_tools.keybind.key == 18)) {
 			alt.select()
 			Toolbox.original = orig
 		}
