@@ -634,7 +634,7 @@ function addStartScreenSection(id, data) {
 			}
 			var l = $(`<${tag}>${content}</${tag.split(' ')[0]}>`);
 			if (typeof line.click == 'function') {
-				l.click(line.click);
+				l.on('click', line.click);
 			}
 			right.append(l);
 		})
@@ -644,6 +644,12 @@ function addStartScreenSection(id, data) {
 		obj.find('i.start_screen_close_button').click((e) => {
 			obj.detach()
 		});
+	}
+	if (typeof data.click == 'function') {
+		obj.on('click', event => {
+			if (event.target.classList.contains('start_screen_close_button')) return;
+			data.click()
+		})
 	}
 	if (data.color) {
 		obj.css('background-color', data.color);
