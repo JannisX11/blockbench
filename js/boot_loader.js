@@ -112,18 +112,23 @@ if (isApp) {
 
 localStorage.setItem('last_version', Blockbench.version);
 
-Modes.options.start.select()
+Modes.options.start.select();
 
-Promise.any([
-	loadInstalledPlugins(),
-	new Promise(resolve => setTimeout(resolve, 1200))
-]).then(plugins => {
-	if (isApp) {
-		loadOpenWithBlockbenchFile();
-	} else {
-		loadInfoFromURL();
+(function() {
+	// Promise.any workaround
+	let proceeded = false;
+	function proceed() {
+		if (proceeded) return;
+		if (isApp) {
+			loadOpenWithBlockbenchFile();
+		} else {
+			loadInfoFromURL();
+		}
+		proceeded = true;
 	}
-})
+	loadInstalledPlugins().then(proceed);
+	setTimeout(proceed, 1200);
+})()
 
 document.getElementById('page_wrapper').classList.remove('hidden')
 
