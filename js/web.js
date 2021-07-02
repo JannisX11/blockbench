@@ -12,9 +12,13 @@ function initializeWebApp() {
 		document.body.style.imageRendering = 'crisp-edges'
 	}
 }
-window.matchMedia('(display-mode: standalone)').addEventListener('change', (evt) => {
-	if (!Blockbench.isMobile) $('#web_download_button').toggle(!evt.matches);
-});
+try {
+	window.matchMedia('(display-mode: standalone)').addEventListener('change', (evt) => {
+		if (!Blockbench.isMobile) $('#web_download_button').toggle(!evt.matches);
+	});
+} catch (err) {
+	if (!Blockbench.isMobile) $('#web_download_button').hide();
+}
 
 function loadInfoFromURL() {
 	if (location.hash.substr(1, 8) == 'session=') {
