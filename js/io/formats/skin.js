@@ -3052,7 +3052,7 @@ skin_presets.horse = {
 	}`
 };
 skin_presets.irongolem = {
-	display_name: 'Llama',
+	display_name: 'Iron Golem',
 	model: `{
 		"name": "irongolem",
 		"texturewidth": 128,
@@ -3188,7 +3188,7 @@ skin_presets.llama = {
 	}`
 };
 skin_presets.lavaslime = {
-	display_name: 'Iron Golem',
+	display_name: 'Magma Cube',
 	model: `{
 		"name": "lavaslime",
 		"texturewidth": 64,
@@ -5251,7 +5251,7 @@ skin_presets.vex = {
 	}`
 };
 skin_presets.villager = {
-	display_name: 'Villager 1',
+	display_name: 'Villager (Old)',
 	model: `{
 		"name": "villager",
 		"texturewidth": 64,
@@ -5308,7 +5308,7 @@ skin_presets.villager = {
 	}`
 };
 skin_presets.villager_v2 = {
-	display_name: 'Villager 2',
+	display_name: 'Villager (New)',
 	model: `{
 		"name": "villager_v2",
 		"texturewidth": 64,
@@ -5764,7 +5764,7 @@ skin_presets.zombie = {
 	}`
 };
 skin_presets.zombie_villager_1 = {
-	display_name: 'Zombie Villager 1',
+	display_name: 'Zombie Villager (Old)',
 	model: `{
 		"name": "zombie_villager_1",
 		"texturewidth": 64,
@@ -5829,7 +5829,7 @@ skin_presets.zombie_villager_1 = {
 	}`
 };
 skin_presets.zombie_villager_2 = {
-	display_name: 'Zombie Villager 2',
+	display_name: 'Zombie Villager (New)',
 	model: `{
 		"name": "zombie_villager_2",
 		"texturewidth": 64,
