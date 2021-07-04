@@ -621,6 +621,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({keyframes: Timeline.selected})
 		},
 		onAfter: function() {
+			Animation.selected.setLength();
 			Undo.finishEdit('Change keyframe time')
 		}
 	})
