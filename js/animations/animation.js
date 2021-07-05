@@ -699,7 +699,6 @@ class GeneralAnimator {
 			var kf = new Keyframe(data, uuid);
 			this[channel].push(kf);
 			kf.animator = this;
-			Animation.selected.setLength();
 			return kf;
 		}
 	}

@@ -1013,18 +1013,22 @@ const Canvas = {
 			var texture = face.getTexture();
 			if (texture == null) return;
 
+			var px_x = texture ? Project.texture_width / texture.width : 1;
+			var px_y = texture ? Project.texture_height / texture.height : 1;
 			var uv_size = [
 				Math.abs(face.uv_size[0]),
 				Math.abs(face.uv_size[1])
 			]
 			uv_offset = [
 				uv_offset[0] == true
-					? (face.uv_size[0] > 0 ? (1-face.uv[2]%1) : (  face.uv[2]%1))
-					: (face.uv_size[0] > 0 ? (  face.uv[0]%1) : (1-face.uv[0]%1)),
+					? (face.uv_size[0] > 0 ? (px_x-face.uv[2]) : (	   face.uv[2]))
+					: (face.uv_size[0] > 0 ? (     face.uv[0]) : (px_x-face.uv[0])),
 				uv_offset[1] == true
-					? (face.uv_size[1] > 0 ? (1-face.uv[3]%1) : (  face.uv[3]%1))
-					: (face.uv_size[1] > 0 ? (  face.uv[1]%1) : (1-face.uv[1]%1))
+					? (face.uv_size[1] > 0 ? (px_y-face.uv[3]) : (	   face.uv[3]))
+					: (face.uv_size[1] > 0 ? (     face.uv[1]) : (px_y-face.uv[1]))
 			]
+			uv_offset[0] = uv_offset[0] % px_x;
+			uv_offset[1] = uv_offset[1] % px_y;
 			
 			if ((face.rotation % 180 == 90) != (axis == 0)) {
 				uv_size.reverse();
@@ -1036,7 +1040,6 @@ const Canvas = {
 			//Columns
 			var width = end[0]-start[0];
 			var step = Math.abs( width / uv_size[0] );
-			uv_offset[0] *= step;
 			if (texture) step *= Project.texture_width / texture.width;
 			if (step < epsilon) step = epsilon;
 
@@ -1050,7 +1053,6 @@ const Canvas = {
 			//lines
 			var height = end[1]-start[1];
 			var step = Math.abs( height / uv_size[1] );
-			uv_offset[1] *= step;
 			let tex_height = texture.frameCount ? (texture.height / texture.frameCount) : texture.height;
 			if (texture) step *= Project.texture_height / tex_height;
 			if (step < epsilon) step = epsilon;
