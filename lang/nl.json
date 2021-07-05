@@ -178,7 +178,6 @@
     "about.version": "Versie:",
     "about.creator": "Maker:",
     "about.website": "Website:",
-    "about.bugtracker": "Bug Tracker:",
     "about.electron": "Deze app is gemaakt met Electron, een framework om applicaties te maken met web technologien zoals Javascript, HTML en CSS.",
     "about.vertex_snap": "Vertex Snapping is gebaseerd op een plug-in door SirBenet",
     "about.icons": "Icon Pakketten:",
@@ -913,7 +912,7 @@
     "action.add_to_palette": "Voeg toe aan palet",
     "action.add_to_palette.desc": "Voeg de geselecteerde kleur toe aan het kleurenpalet",
     "action.import_palette": "Importeer palet",
-    "action.import_palette.desc": "Import a .bbpalette file",
+    "action.import_palette.desc": "Import a palette file",
     "action.export_palette": "Exporteer Palet",
     "action.export_palette.desc": "Exporteer palet als een .GPL bestand",
     "action.generate_palette": "Genereer Palet",
@@ -1210,7 +1209,7 @@
     "settings.camera_near_plane": "Camera Near Plane",
     "settings.camera_near_plane.desc": "The minimum distance from the camera where objects render. Higher values decrease Z-fighting. Default is 1.",
     "mode.start.keymap_preference": "Keybinding Preference",
-    "mode.start.keymap_preference.desc": "If you are new to Blockbench and you are coming from another 3D program, you can select a keymap to make your transition easier. You can change the keymap or individual keybindigns later in the settings.",
+    "mode.start.keymap_preference.desc": "If you are new to Blockbench and you are coming from another 3D program, you can select a keymap to make your transition easier. You can change the keymap or individual keybindings later in the settings.",
     "mode.start.select_keymap": "Select Keymap",
     "message.recording_gif": "GIF creation in progress. Click here to abort.",
     "message.load_keymap": "Are you sure you want to load this keymap? This will overwrite your current keybindings.",
@@ -1243,7 +1242,7 @@
     "action.export_settings": "Export Settings",
     "action.export_settings.desc": "Export the Blockbench settings as a .bbsettings file",
     "action.load_keymap": "Load Keymap",
-    "action.load_keymap.default": "Default (Trackpad)",
+    "action.load_keymap.default": "Default (Trackpad/Mouse)",
     "action.load_keymap.mouse": "Default (Mouse)",
     "action.load_keymap.default.desc": "Default Blockbench keybindings, with viewport navigation controls optimized for use on laptop trackpads",
     "action.load_keymap.mouse.desc": "Default Blockbench keybindings, with viewport navigation bound to the middle mouse button",
@@ -1291,5 +1290,6 @@
     "camera_angle.common_isometric_left": "Isometrisch Links (2:1)",
     "camera_angle.true_isometric_right": "True Isometric Right (30°)",
     "camera_angle.true_isometric_left": "True Isometric Left (30°)",
-    "menu.help.wiki": "Blockbench Wiki"
+    "menu.help.wiki": "Blockbench Wiki",
+    "about.repository": "Repository:"
 }

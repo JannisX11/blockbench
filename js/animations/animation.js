@@ -324,7 +324,7 @@ class Animation {
 		if (Modes.animate) Animator.preview();
 		return this;
 	}
-	setLength(len) {
+	setLength(len = this.length) {
 		this.length = 0;
 		this.length = limitNumber(len, this.getMaxLength(), 1e4);
 		if (Animation.selected == this) {
@@ -733,6 +733,7 @@ class GeneralAnimator {
 		delete keyframe.time_before;
 		keyframe.replaceOthers(deleted);
 		Undo.addKeyframeCasualties(deleted);
+		Animation.selected.setLength();
 
 		if (undo) {
 			Undo.finishEdit('Add keyframe')

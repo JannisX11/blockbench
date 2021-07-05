@@ -197,7 +197,6 @@ const Settings = {
 		new Setting('ctrl_size',	{category: 'snapping', value: 160, type: 'number'});
 		new Setting('ctrl_shift_size',	{category: 'snapping', value: 640, type: 'number'});
 		new Setting('negative_size',{category: 'snapping', value: false});
-		new Setting('animation_snap',{category: 'snapping', value: 24, type: 'number'});
 
 		//Paint
 		new Setting('sync_color',	{category: 'paint', value: false});
@@ -218,6 +217,7 @@ const Settings = {
 		new Setting('autouv',	   	{category: 'defaults', value: true});
 		new Setting('create_rename', {category: 'defaults', value: false});
 		new Setting('default_path', {category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
+		new Setting('animation_snap',{category: 'defaults', value: 24, type: 'number'});
 		
 		//Dialogs
 		new Setting('dialog_larger_cubes', {category: 'dialogs', value: true});

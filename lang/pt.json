@@ -178,7 +178,6 @@
     "about.version": "Versão:",
     "about.creator": "Criado por:",
     "about.website": "Página web:",
-    "about.bugtracker": "Rastreador de erros:",
     "about.electron": "Esse aplicativo é feito com o Electron, um framework para criar aplicativos nativos com tecnologias da web, como JavaScript, HTML e CSS.",
     "about.vertex_snap": "O encaixe de vértices é baseado em uma extensão criada por SirBenet",
     "about.icons": "Pacotes de ícones:",
@@ -1291,5 +1290,6 @@
     "camera_angle.common_isometric_left": "Esquerda isométrica (2:1)",
     "camera_angle.true_isometric_right": "Habilitar direita isométrica (30°)",
     "camera_angle.true_isometric_left": "Habilitar esquerda isométrica (30°)",
-    "menu.help.wiki": "Blockbench Wiki"
+    "menu.help.wiki": "Blockbench Wiki",
+    "about.repository": "Repository:"
 }

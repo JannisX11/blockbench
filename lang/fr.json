@@ -178,7 +178,6 @@
     "about.version": "Version :",
     "about.creator": "Créateur :",
     "about.website": "Site Internet :",
-    "about.bugtracker": "Tracker de bugs :",
     "about.electron": "Ce logiciel est fait grâce à Electron, un outil à la réalisation d'applications natives par technologies Web telles que Javascript, HTML et CSS.",
     "about.vertex_snap": "Alignement Vertex est basé sur un plugin de SirBenet",
     "about.icons": "Packs d’icônes :",
@@ -1291,5 +1290,6 @@
     "camera_angle.common_isometric_left": "Isométrique Gauche (2:1)",
     "camera_angle.true_isometric_right": "Vrai Isométrique Droite (30°)",
     "camera_angle.true_isometric_left": "Vrai Isométrique Gauche (30°)",
-    "menu.help.wiki": "Blockbench Wiki"
+    "menu.help.wiki": "Blockbench Wiki",
+    "about.repository": "Repository:"
 }
