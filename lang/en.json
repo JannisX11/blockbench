@@ -428,6 +428,7 @@
 	"dialog.export_private_settings.keep": "Keep",
 	"dialog.export_private_settings.remove": "Remove",
 	
+	"dialog.settings.title": "Preferences",
 	"dialog.settings.settings": "Settings",
 	"dialog.settings.keybinds": "Keybindings",
 	"dialog.settings.theme": "Theme",
@@ -481,7 +482,7 @@
 	"about.version.update_available": "Version %0 is available",
 	"about.creator": "Creator:",
 	"about.website": "Website:",
-	"about.bugtracker": "Bug Tracker:",
+	"about.repository": "Repository:",
 	"about.electron": "This app is built with Electron, a framework for creating native applications with web technologies like Javascript, HTML, and CSS.",
 	"about.vertex_snap": "Vertex Snapping is based on a plugin by SirBenet",
 	"about.icons": "Icon Packs:",
@@ -580,6 +581,8 @@
 	"settings.autouv.desc": "Enable Auto UV by default",
 	"settings.create_rename": "Rename New Cube",
 	"settings.create_rename.desc": "Focus name field when creating new element or group",
+	"settings.animation_snap": "Animation Snap",
+	"settings.animation_snap.desc": "Default snap interval for keyframes in the animation timeline in steps per second",
 
 	"settings.edit_size": "Grid Resolution",
 	"settings.edit_size.desc": "Resolution of the grid that cubes snap to",
@@ -591,8 +594,6 @@
 	"settings.ctrl_shift_size.desc": "Resolution of the grid while holding control and shift",
 	"settings.negative_size": "Negative Size",
 	"settings.negative_size.desc": "Allow the resize tool to use negative sizes",
-	"settings.animation_snap": "Animation Snap",
-	"settings.animation_snap.desc": "Snap interval for keyframes in the animation timeline in steps per second",
 
 	"settings.sync_color": "Sync Color",
 	"settings.sync_color.desc": "Synchronize the color between different Blockbench instances",
