@@ -203,11 +203,6 @@ new Property(ModelProject, 'vector', 'visible_box', {
 	exposed: false,
 	default: [1, 1, 0]
 });
-new Property(ModelProject, 'boolean', 'layered_textures', {
-	label: 'dialog.project.layered_textures',
-	description: 'dialog.project.layered_textures.desc',
-	condition() {return Format.single_texture}
-});
 
 
 ModelProject.all = [];
@@ -270,6 +265,11 @@ function setProjectResolution(width, height, modify_uv) {
 }
 function updateProjectResolution() {
 	document.querySelector('#project_resolution_status').textContent = `${Project.texture_width} ⨉ ${Project.texture_height}`;
+	if (Texture.selected) {
+		// Update animated textures
+		Texture.selected.height++;
+		Texture.selected.height--;
+	}
 }
 
 onVueSetup(() => {
@@ -485,24 +485,13 @@ BARS.defineActions(function() {
 						Canvas.updateAllUVs()
 						updateSelection()
 					}
-
-					if (Format.single_texture) {
-						if (Project.layered_textures !== formResult.layered_textures && Texture.all.length >= 2) {
-							Project.layered_textures = formResult.layered_textures;
-							Texture.all.forEach((tex, i) => {
-								tex.visible = i < 3
-							})
-							Interface.Panels.textures.inside_vue.$forceUpdate()
-							Canvas.updateLayeredTextures();
-						}
-					}
 					
 					for (var key in ModelProject.properties) {
 						ModelProject.properties[key].merge(Project, formResult);
 					}
 
 					if (save) {
-						Undo.finishEdit('change global UV')
+						Undo.finishEdit('Change project UV settings')
 					}
 
 					Blockbench.dispatchEvent('update_project_settings', formResult);
@@ -550,8 +539,9 @@ BARS.defineActions(function() {
 				title: 'dialog.convert_project.title',
 				width: 540,
 				form: {
-					text: {type: 'info', text: 'dialog.convert_project.text'},
-					format: {
+					text:    {type: 'info', text: 'dialog.convert_project.text'},
+					current: {type: 'info', label: 'dialog.convert_project.current_format', text: Format.name || '-'},
+					format:  {
 						label: 'data.format',
 						type: 'select',
 						default: Format.id,

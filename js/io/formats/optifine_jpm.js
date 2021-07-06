@@ -204,7 +204,7 @@ var part_codec = new Codec('optifine_part', {
 			import_group.addTo()
 		}
 		if (add) {
-			Undo.finishEdit('add jpm model')
+			Undo.finishEdit('Add JPM model')
 		}
 		addSubmodel(model)
 		this.dispatchEvent('parsed', {model});

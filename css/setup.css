@@ -106,13 +106,6 @@
 			url(../font/Assistant-ExtraBold.ttf) format('truetype');
 	}
 	
-
-	@font-face {
-		font-family: 'montserrat';
-		font-style: normal;
-		src: local('Montserrat'),
-			url(../font/Montserrat-Regular.ttf) format('truetype');
-	}
 	@font-face {
 		font-family: 'Material Icons';
 		font-style: normal;
@@ -120,12 +113,6 @@
 		src: local('Material Icons'),
 			local('MaterialIcons-Regular'),
 			url(../font/MaterialIcons-Regular.ttf) format('truetype');
-	}
-	@font-face {
-		font-family: 'montserrat';
-		font-style: normal;
-		src: local('Montserrat'),
-			url(../font/Montserrat-Regular.ttf) format('truetype');
 	}
 	@font-face {
 		font-family: 'icomoon';
@@ -150,6 +137,12 @@
 	  -moz-osx-font-smoothing: grayscale;
 	}
 
+	.icon-keyframe:before {
+	  content: "\e924";
+	}
+	.icon-keyframe_discontinuous:before {
+	  content: "\e925";
+	}
 	.icon-gizmo:before {
 	  content: "\e922";
 	}
@@ -260,7 +253,7 @@
 	}
 
 
-
+	
 
 	.material-icons {
 		font-family: 'Material Icons';
@@ -306,7 +299,7 @@
 		--color-ui: #282c34;
 		--color-accent: #3e90ff;
 		--color-button: #3a3f4b;
-		--color-selected: #3c4456;
+		--color-selected: #474d5d;
 		--color-text: #cacad4;
 		--color-light: #f4f3ff;
 		--color-accent_text: #000006;

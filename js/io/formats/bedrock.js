@@ -2,18 +2,18 @@
 if (isApp) {
 window.BedrockEntityManager = {
 	checkEntityFile(path) {
-		let mce = 'minecraft:client_entity';
 		try {
 			var c = fs.readFileSync(path, 'utf-8');
 			if (typeof c === 'string') {
 				c = autoParseJSON(c, false);
-				if (c && c[mce] && c[mce].description && typeof c[mce].description.geometry == 'object') {
-					for (var key in c[mce].description.geometry) {
-						var geoname = c[mce].description.geometry[key];
+				let main = c && (c['minecraft:client_entity'] || c['minecraft:attachable']);
+				if (main && main.description && typeof main.description.geometry == 'object') {
+					for (var key in main.description.geometry) {
+						var geoname = main.description.geometry[key];
 						if (typeof geoname == 'string') {
 							geoname = geoname.replace(/^geometry\./, '');
 							if (geoname == Project.geometry_name) {
-								return c[mce];
+								return main;
 							}
 						}
 					}
@@ -57,8 +57,7 @@ window.BedrockEntityManager = {
 					}
 				} catch (err) {}
 			}
-			var result = searchFolder(path);
-			if (result) return result;
+			return searchFolder(path) || searchFolder(path.replace(/entity$/, 'attachables'));
 		}
 	},
 	initEntity() {
@@ -323,7 +322,7 @@ function calculateVisibleBox() {
 		var base_cube = new Cube({
 			name: s.name || group.name,
 			autouv: 0,
-			color: Group.all.indexOf(group)%8,
+			color: group.color,
 			rotation: s.rotation,
 			origin: s.pivot
 		})
@@ -393,6 +392,7 @@ function calculateVisibleBox() {
 			rotation: b.rotation,
 			material: b.material,
 			bedrock_binding: b.binding,
+			color: Group.all.length%8
 		}).init()
 		group.createUniqueName();
 		bones[b.name] = group
@@ -413,12 +413,22 @@ function calculateVisibleBox() {
 		}
 		if (b.locators) {
 			for (var key in b.locators) {
-				var coords = b.locators[key];
+				var coords, rotation;
+				if (b.locators[key] instanceof Array) {
+					coords = b.locators[key];
+				} else {
+					coords = b.locators[key].offset;
+					rotation = b.locators[key].rotation;
+				}
 				coords[0] *= -1;
-				if (key.substr(0, 6) == '_null_') {
+				if (rotation instanceof Array) {
+					rotation[0] *= -1;
+					rotation[1] *= -1;
+				}
+				if (key.substr(0, 6) == '_null_' && b.locators[key] instanceof Array) {
 					new NullObject({from: coords, name: key.substr(6)}).addTo(group).init();
 				} else {
-					new Locator({from: coords, name: key}).addTo(group).init();
+					new Locator({from: coords, name: key, rotation}).addTo(group).init();
 				}
 			}
 		}
@@ -599,8 +609,21 @@ function calculateVisibleBox() {
 				} else if (obj instanceof Locator || obj instanceof NullObject) {
 					let key = obj.name;
 					if (obj instanceof NullObject) key = '_null_' + key;
-					locators[key] = obj.from.slice();
-					locators[key][0] *= -1;
+					let offset = obj.from.slice();
+					offset[0] *= -1;
+
+					if (obj.rotatable && !obj.rotation.allEqual(0)) {
+						locators[key] = {
+							offset,
+							rotation: [
+								-obj.rotation[0],
+								-obj.rotation[0],
+								obj.rotation[0]
+							]
+						};
+					} else {
+						locators[key] = offset;
+					}
 				}
 			}
 		}
@@ -631,7 +654,7 @@ var codec = new Codec('bedrock', {
 
 		var entitymodel = {}
 		var main_tag = {
-			format_version: '1.12.0',
+			format_version: Group.all.find(group => group.bedrock_binding) ? '1.16.0' : '1.12.0',
 			'minecraft:geometry': [entitymodel]
 		}
 		entitymodel.description = {
@@ -714,6 +737,10 @@ var codec = new Codec('bedrock', {
 			}
 		}
 		if (data && index !== undefined) {
+
+			if (Group.all.find(group => group.bedrock_binding)) {
+				data.format_version = '1.16.0';
+			}
 
 			data['minecraft:geometry'].forEach(geo => {
 				if (geo.bones instanceof Array) {
@@ -879,9 +906,8 @@ var codec = new Codec('bedrock', {
 				},
 				computed: {
 					searched() {
-						var scope = this;
 						return this.list.filter(item => {
-							return item.name.toUpperCase().includes(scope.search_text)
+							return item.name.toUpperCase().includes(this.search_text)
 						})
 					}
 				}

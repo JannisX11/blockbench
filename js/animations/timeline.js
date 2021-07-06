@@ -204,9 +204,10 @@ const Timeline = {
 		}
 	},
 	setTimecode(time) {
+		let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100;
 		let m = Math.floor(time/60)
 		let s = Math.floor(time%60)
-		let f = Math.floor((time%1) * 100)
+		let f = Math.floor((time%1) * second_fractions)
 		if ((s+'').length === 1) {s = '0'+s}
 		if ((f+'').length === 1) {f = '0'+f}
 		$('#timeline_timestamp').text(m + ':' + s  + ':' + f)
@@ -267,7 +268,7 @@ const Timeline = {
 				
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
-				if (!e.ctrlKey) time = Timeline.snapTime(time);
+				if (!e.ctrlOrCmd) time = Timeline.snapTime(time);
 				Timeline.setTime(time);
 				Animator.preview();
 			}
@@ -278,7 +279,7 @@ const Timeline = {
 				convertTouchEvent(e);
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
-				if (!e.ctrlKey) time = Timeline.snapTime(time);
+				if (!e.ctrlOrCmd) time = Timeline.snapTime(time);
 				if (Timeline.time != time) {
 					Timeline.setTime(time)
 					Animator.preview()
@@ -351,10 +352,11 @@ const Timeline = {
 			while (times.length < 3) {
 				times.push(0)
 			}
-			var seconds
+			let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100;
+			let seconds
 				= times[0]*60
 				+ limitNumber(times[1], 0, 59)
-				+ limitNumber(times[2]/100, 0, 99)
+				+ limitNumber(times[2]/second_fractions, 0, second_fractions-1)
 			if (Math.abs(seconds-Timeline.time) > 1e-3 ) {
 				Timeline.setTime(seconds, true)
 				Animator.preview()
@@ -402,47 +404,7 @@ const Timeline = {
 		return max_length;
 	},
 	updateSize() {
-		let size = Timeline.vue._data.size
-		Timeline.vue._data.length = Timeline.getMaxLength()
-		Timeline.vue._data.timecodes.empty()
-
-		var step = 1
-		if (size < 1) {step = 1}
-		else if (size < 20) {step = 4}
-		else if (size < 40) {step = 2}
-		else if (size < 100) {step = 1}
-		else if (size < 256) {step = 0.5}
-		else if (size < 520) {step = 0.25}
-		else if (size < 660) {step = 0.2}
-		else if (size < 860) {step = 0.1}
-		else {step = 0.05}
-
-
-		if (step < 1) {
-			var FPS = Timeline.getStep();
-			step = Math.round(step/FPS) * FPS
-			//step = 1/Math.round(1/step)
-		}
-
-		let substeps = step / Timeline.getStep()
-		while (substeps > 8) {
-			substeps /= 2;
-		}
-
-		var i = 0;
-		while (i < Timeline.vue._data.length) {
-			Timeline.vue._data.timecodes.push({
-				time: i,
-				width: step,
-				substeps,
-				text: Math.round(i*100)/100
-			})
-			i += step;
-		}
-
-		if (Timeline.vue.graph_editor_open) {
-			Timeline.vue.graph_size += 1e-5;
-		}
+		Timeline.vue.updateTimecodes();
 	},
 	updateScroll(e) {
 		$('.channel_head').css('left', scroll_amount+'px')
@@ -591,10 +553,17 @@ const Timeline = {
 	menu: new Menu([
 		'paste',
 		'_',
+		{name: 'menu.view.zoom', id: 'zoom', condition: isApp, icon: 'search', children: [
+			'zoom_in',
+			'zoom_out',
+			'zoom_reset'
+		]},
 		'select_all',
 		'bring_up_all_animations',
 		'fold_all_animations',
 		'clear_timeline',
+		'_',
+		'graph_editor_zero_line',
 	])
 }
 
@@ -620,7 +589,7 @@ onVueSetup(function() {
 			graph_editor_axis: 'x',
 			graph_offset: 200,
 			graph_size: 200,
-
+			show_zero_line: true,
 
 			channels: {
 				rotation: true,
@@ -652,7 +621,8 @@ onVueSetup(function() {
 				let clientHeight = this.$refs.timeline_body ? this.$refs.timeline_body.clientHeight : 400;
 				let keyframes = ba[this.graph_editor_channel];
 				let points = [];
-				let min = -1, max = 1;
+				let min = this.show_zero_line ? -1 : 10000,
+					max = this.show_zero_line ? 1 : -10000;
 
 				for (let time = Math.clamp(this.scroll_left - 9, 0, Infinity); time < (clientWidth + this.scroll_left - this.head_width); time += step) {
 					Timeline.time = time / this.size;
@@ -666,21 +636,15 @@ onVueSetup(function() {
 					max = Math.max(max, value);
 					if (snap_kf) snap_kf.display_value = value;
 				}
-
-				/*keyframes.forEach(kf => {
-					if (kf.time >= this.scroll_left / this.size && kf.time <= (clientWidth + this.scroll_left - this.head_width) / this.size) {
-						Timeline.time = kf.time;
-						let value = ba.interpolate(this.graph_editor_channel, false, this.graph_editor_axis);
-						kf.display_value = value;
-						min = Math.min(min, value);
-						max = Math.max(max, value);
-					}
-				})*/
+				
 				Timeline.time = original_time;
 
 				let padding = 16;
-				this.graph_size = (clientHeight - 2*padding) / Math.clamp(max-min, 3, 1e4);
-				this.graph_offset = clientHeight - padding + (this.graph_size * min);
+				let min_size = 2.4;
+				let unit_size = Math.clamp(max-min, min_size, 1e4);
+				this.graph_size = (clientHeight - 2*padding) / unit_size;
+				let blend = Math.clamp(1 - (max-min) / min_size, 0, 1)
+				this.graph_offset = clientHeight - padding + (this.graph_size * (min - unit_size/2 * blend ) );
 
 				let string = '';
 				points.forEach((value, i) => {
@@ -691,6 +655,55 @@ onVueSetup(function() {
 			}
 		},
 		methods: {
+			updateTimecodes() {
+				if (!this._isMounted) return;
+				this.timecodes.empty();
+				let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100;
+				let timeline_container_width = document.getElementById('timeline').clientWidth - this.head_width;
+				this.length = Timeline.getMaxLength();
+
+				var step = 1
+				if (this.size < 1) {step = 1}
+				else if (this.size < 20) {step = 4}
+				else if (this.size < 40) {step = 2}
+				else if (this.size < 100) {step = 1}
+				else if (this.size < 256) {step = 0.5}
+				else if (this.size < 520) {step = 0.25}
+				else if (this.size < 660) {step = 0.2}
+				else if (this.size < 860) {step = 0.1}
+				else {step = 0.05}
+
+				if (step < 1) {
+					var FPS = Timeline.getStep();
+					step = Math.round(step/FPS) * FPS
+					//step = 1/Math.round(1/step)
+				}
+
+				let substeps = step / Timeline.getStep()
+				while (substeps > 8) {
+					substeps /= 2;
+				}
+				
+				var i = Math.floor(this.scroll_left / this.size / step) * step;
+				while (i < Math.ceil((this.scroll_left + timeline_container_width) / this.size / step) * step) {
+					if (settings.timecode_frame_number.value) {
+						var text = `${Math.floor(i)}:${Math.round((i % 1) * second_fractions)}`;
+					} else {
+						var text = Math.round(i*100)/100;
+					}
+					this.timecodes.push({
+						time: i,
+						width: step,
+						substeps,
+						text,
+					})
+					i += step;
+				}
+
+				if (this.graph_editor_open) {
+					this.graph_size += 1e-5;
+				}
+			},
 			toggleAnimator(animator) {
 				animator.expanded = !animator.expanded;
 			},
@@ -737,7 +750,7 @@ onVueSetup(function() {
 					dragging_restriction;
 					originalValue;
 					previousValue = 0;
-					time_stretching = !Timeline.vue.graph_editor_open && e1.ctrlKey && Timeline.selected.length > 1;
+					time_stretching = !Timeline.vue.graph_editor_open && e1.ctrlOrCmd && Timeline.selected.length > 1;
 					values_changed = false;
 
 					if (!clicked.selected && !e1.shiftKey && Timeline.selected.length != 0) {
@@ -811,10 +824,9 @@ onVueSetup(function() {
 					let value_diff = 0;
 					if (Timeline.vue.graph_editor_open) {
 						value = -offset[1] / Timeline.vue.graph_size;
+						var round_num = canvasGridSize(e2.shiftKey, e2.ctrlOrCmd);
 						if (Toolbox.selected.id === 'resize_tool') {
-							round_num = 0.1;
-						} else {
-							var round_num = canvasGridSize(e2.shiftKey, e2.ctrlOrCmd)
+							round_num *= 0.1;
 						}
 						value = Math.round(value/round_num)*round_num
 						previousValue = previousValue == undefined ? value : previousValue;
@@ -878,7 +890,8 @@ onVueSetup(function() {
 						Blockbench.setStatusBarText();
 						if (values_changed) {
 							Undo.addKeyframeCasualties(deleted);
-							Undo.finishEdit('drag keyframes');
+							Animation.selected.setLength();
+							Undo.finishEdit('Drag keyframes');
 						} else {
 							Undo.cancelEdit();
 						}
@@ -891,6 +904,11 @@ onVueSetup(function() {
 				addEventListeners(document, 'mouseup touchend', off);
 			},
 			clamp: Math.clamp
+		},
+		watch: {
+			size() {this.updateTimecodes()},
+			length() {this.updateTimecodes()},
+			scroll_left() {this.updateTimecodes()},
 		},
 		template: `
 			<div id="timeline_vue" :class="{graph_editor: graph_editor_open}">
@@ -905,10 +923,10 @@ onVueSetup(function() {
 					</div>
 					<div id="timeline_time_wrapper">
 						<div id="timeline_time" v-bind:style="{width: (size*length)+'px', left: -scroll_left+'px'}">
-							<div v-for="t in timecodes" class="timeline_timecode" v-bind:style="{left: (t.time * size) + 'px', width: (t.width * size) + 'px'}">
+							<div v-for="t in timecodes" class="timeline_timecode" :key="t.text" :style="{left: (t.time * size) + 'px', width: (t.width * size) + 'px'}">
 								<span>{{ t.text }}</span>
 								<div class="substeps">
-									<div v-for="n in Math.ceil(t.substeps)"></div>
+									<div v-for="n in Math.ceil(t.substeps)" :key="t.text + '-' + 'n'"></div>
 								</div>
 							</div>
 							<div id="timeline_playhead"
@@ -992,7 +1010,7 @@ onVueSetup(function() {
 										@contextmenu.prevent="keyframe.showContextMenu($event)"
 									>
 										<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
-										<i class="material-icons" v-else>stop</i>
+										<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
 										<svg class="keyframe_waveform" v-if="keyframe.channel == 'sound' && keyframe.data_points[0].file && waveforms[keyframe.data_points[0].file]" :style="{width: waveforms[keyframe.data_points[0].file].duration * size}">
 											<polygon :points="getWaveformPoints(waveforms[keyframe.data_points[0].file].samples, size)"></polygon>
 										</svg>
@@ -1023,7 +1041,7 @@ onVueSetup(function() {
 									@contextmenu.prevent="keyframe.showContextMenu($event)"
 								>
 									<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
-									<i class="material-icons" v-else>stop</i>
+									<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
 								</keyframe>
 							</template>
 						</div>
@@ -1046,6 +1064,15 @@ BARS.defineActions(function() {
 			if (Timeline.vue.graph_editor_open && Timeline.selected.length) {
 				Timeline.vue.graph_editor_channel = Timeline.selected[0].channel;
 			}
+		}
+	})
+	new Toggle('graph_editor_zero_line', {
+		icon: 'exposure_zero',
+		category: 'animation',
+		condition: {modes: ['animate'], method: () => Timeline.vue.graph_editor_open},
+		default: true,
+		onChange(state) {
+			Timeline.vue.show_zero_line = state;
 		}
 	})
 	new Action('play_animation', {

@@ -11,7 +11,7 @@ const CustomTheme = {
 		back: '#21252b',
 		dark: '#17191d',
 		border: '#181a1f',
-		selected: '#3c4456',
+		selected: '#474d5d',
 		button: '#3a3f4b',
 		bright_ui: '#f4f3ff',
 		accent: '#3e90ff',
@@ -111,6 +111,10 @@ const CustomTheme = {
 					color: hex,
 					showAlpha: false,
 					showInput: true,
+					defaultColor: CustomTheme.defaultColors[key],
+					resetText: tl('generic.reset'),
+					cancelText: tl('dialog.cancel'),
+					chooseText: tl('dialog.confirm'),
 					move(c) {
 						CustomTheme.data.colors[scope_key] = c.toHexString();
 					},
@@ -171,6 +175,11 @@ const CustomTheme = {
 				CustomTheme.data.colors.checkerboard = CustomTheme.defaultColors.checkerboard;
 			}
 		})
+		Blockbench.onUpdateTo('3.9', () => {
+			if (CustomTheme.data.colors.selected == '#3c4456') {
+				CustomTheme.data.colors.selected = CustomTheme.defaultColors.selected;
+			}
+		})
 	},
 	import(file) {
 		var data = JSON.parse(file.content)
@@ -210,7 +219,7 @@ BARS.defineActions(function() {
 		category: 'blockbench',
 		click: function () {
 			Blockbench.import({
-				resource_id: 'theme',
+				resource_id: 'config',
 				extensions: ['bbstyle', 'bbtheme'],
 				type: 'Blockbench Theme'
 			}, function(files) {
@@ -223,10 +232,10 @@ BARS.defineActions(function() {
 		category: 'blockbench',
 		click: function () {
 			Blockbench.export({
-				resource_id: 'theme',
+				resource_id: 'config',
 				type: 'Blockbench Theme',
 				extensions: ['bbtheme'],
-				content: autoStringify(CustomTheme.data)
+				content: compileJSON(CustomTheme.data)
 			})
 		}
 	})

@@ -36,10 +36,12 @@ class Plugin {
 		this.description = '';
 		this.about = '';
 		this.icon = '';
+		this.tags = [];
 		this.variant = 'both';
 		this.min_version = '';
 		this.max_version = '';
 		this.source = 'store'
+		this.await_loading = false;
 
 		this.extend(data)
 
@@ -56,7 +58,8 @@ class Plugin {
 		Merge.string(this, data, 'icon')
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
-		Merge.string(this, data, 'max_version')
+		Merge.boolean(this, data, 'await_loading');
+		if (data.tags instanceof Array) this.tags.safePush(...data.tags.slice(0, 3));
 
 		Merge.function(this, data, 'onload')
 		Merge.function(this, data, 'onunload')
@@ -109,13 +112,13 @@ class Plugin {
 		}
 		return await new Promise((resolve, reject) => {
 			var file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
-			var request = https.get('https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins/'+this.id+'.js', function(response) {
+			https.get('https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins/'+this.id+'.js', function(response) {
 				response.pipe(file);
 				response.on('end', function() {
 					setTimeout(async function() {
 						await scope.install(first);
 						resolve()
-					}, 50)
+					}, 20)
 				})
 			});
 		});
@@ -131,11 +134,12 @@ class Plugin {
 			}
 		}
 
-		scope.id = pathToName(file.path)
+		this.id = pathToName(file.path);
 		Plugins.registered[this.id] = this;
-		localStorage.setItem('plugin_dev_path', file.path)
-		Plugins.all.safePush(this)
-		scope.source = 'file'
+		localStorage.setItem('plugin_dev_path', file.path);
+		Plugins.all.safePush(this);
+		this.source = 'file';
+		this.tags.safePush('Local');
 
 		return await new Promise((resolve, reject) => {
 
@@ -186,6 +190,7 @@ class Plugin {
 		Plugins.registered[this.id] = this;
 		localStorage.setItem('plugin_dev_path', url)
 		Plugins.all.safePush(this)
+		this.tags.safePush('Remote');
 
 		this.source = 'url';
 		await new Promise((resolve, reject) => {
@@ -412,7 +417,10 @@ async function loadInstalledPlugins() {
 			if (Plugins.installed.find(p => {
 				return p && p.id == id && p.source == 'store'
 			})) {
-				install_promises.push(plugin.download())
+				let promise = plugin.download();
+				if (plugin.await_loading) {
+					install_promises.push(promise);
+				}
 			}
 		}
 		Plugins.sort();
@@ -468,6 +476,7 @@ BARS.defineActions(function() {
 	Plugins.dialog = new Dialog({
 		id: 'plugins',
 		title: 'dialog.plugins.title',
+		singleButton: true,
 		component: {
 			data: {
 				tab: 'installed',
@@ -491,6 +500,16 @@ BARS.defineActions(function() {
 						}
 						return false;
 					})
+				}
+			},
+			methods: {
+				getTagColor(tag) {
+					let lowercase = tag.toLowerCase();
+					if (lowercase == 'local' || lowercase == 'remote') {
+						return 'var(--color-tag-source)'
+					} else if (lowercase.substr(0, 9) == 'minecraft') {
+						return 'var(--color-tag-mc)'
+					}
 				}
 			},
 			template: `
@@ -522,6 +541,9 @@ BARS.defineActions(function() {
 							<div class="description">{{ plugin.description }}</div>
 							<div v-if="plugin.expanded" class="about" v-html="marked(plugin.about)"><button>a</button></div>
 							<div v-if="plugin.expanded" v-on:click="plugin.toggleInfo()" style="text-decoration: underline;">${tl('dialog.plugins.show_less')}</div>
+							<ul class="plugin_tag_list">
+								<li v-for="tag in plugin.tags" :style="{backgroundColor: getTagColor(tag)}" :key="tag">{{tag}}</li>
+							</ul>
 						</li>
 						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>
 						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'" id="plugin_available_empty">${tl('dialog.plugins.none_available')}</div>

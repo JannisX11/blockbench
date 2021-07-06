@@ -191,13 +191,15 @@ const Clipbench = {
 			updateSelection()
 
 		} else if (Clipbench.elements && Clipbench.elements.length) {
+			let elements = [];
 			Clipbench.elements.forEach(function(obj) {
 				var el = OutlinerElement.fromSave(obj).addTo(target).selectLow();
 				el.createUniqueName();
+				elements.push(el);
 			})
-			Canvas.updatePositions();
+			Canvas.updateView({elements});
 		}
-		Undo.finishEdit('paste', {outliner: true, elements: selected, selection: true});
+		Undo.finishEdit('Paste Elements', {outliner: true, elements: selected, selection: true});
 	}
 }
 

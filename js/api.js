@@ -126,7 +126,7 @@ const Blockbench = {
 	 * @param {string} [options.icon] Blockbench icon string
 	 * @param {number} [options.expire] Expire time in miliseconds
 	 * @param {string} [options.color] Background color, accepts any CSS color string
-	 * @param {function click(event)} [options.click] Method to run on click. Return `true` to close toast
+	 * @param {function} [options.click] Method to run on click. Return `true` to close toast
 	 * 
 	 */
 	showToastNotification(options) {
@@ -220,20 +220,24 @@ const Blockbench = {
 			jq_dialog.find('.dialog_bar').prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'))
 		}
 
+		function close(button) {
+			hideDialog();
+			setTimeout(function() {
+				jq_dialog.remove();
+			},200)
+			if (cb) {
+				cb(button);
+			}
+		}
+
 		var buttons = []
 
 		options.buttons.forEach(function(b, i) {
 			var btn = $('<button type="button">'+tl(b)+'</button>')
 			btn.click(function(e) {
-				hideDialog()
-				setTimeout(function() {
-					jq_dialog.remove()
-				},200)
-				if (cb) {
-					cb(i)
-				}
+				close(i);
 			})
-			buttons.push(btn)
+			buttons.push(btn);
 		})
 		jq_dialog.hide = function() {
 			$(jq_dialog.find('button').get(options.cancel)).click()
@@ -267,7 +271,14 @@ const Blockbench = {
 			jq_dialog.css('width', limitNumber(options.buttons.length*170+44, 380, 894)+'px')
 		}
 		open_dialog = 'message_box'
-		open_interface = 'message_box'
+		open_interface = {
+			confirm() {
+				close(options.confirm);
+			},
+			cancel() {
+				close(options.cancel);
+			}
+		}
 		return jq_dialog
 	},
 	textPrompt(title, value, callback) {
@@ -338,13 +349,16 @@ const Blockbench = {
 	},
 	//Events
 	dispatchEvent(event_name, data) {
-		var list = this.events[event_name]
+		let list = this.events[event_name];
 		if (!list) return;
-		for (var i = 0; i < list.length; i++) {
+		let results = [];
+		for (let i = 0; i < list.length; i++) {
 			if (typeof list[i] === 'function') {
-				list[i](data)
+				let result = list[i](data);
+				results.push(result);
 			}
 		}
+		return results;
 	},
 	addListener(event_names, cb) {
 		event_names.split(' ').forEach(event_name => {

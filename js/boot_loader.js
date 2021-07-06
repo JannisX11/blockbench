@@ -45,14 +45,18 @@ console.log(`Three.js r${THREE.REVISION}`)
 console.log('%cBlockbench ' + appVersion + (isApp
 	? (' Desktop (' + Blockbench.operating_system +')')
 	: (' Web ('+capitalizeFirstLetter(Blockbench.browser) + (Blockbench.isPWA ? ', PWA)' : ')'))),
-	'background-color: #3e90ff; color: black; padding: 4px;'
+	'border: 2px solid #3e90ff; padding: 4px 8px; font-size: 1.2em;'
 )
 var startups = parseInt(localStorage.getItem('startups')||0);
 localStorage.setItem('startups', startups+1);
 
-Wintersky.global_options.scale = 16;
-Wintersky.global_options.loop_mode = 'once';
-Wintersky.global_options.parent_mode = 'entity';
+document.getElementById('blackout').addEventListener('click', event => {
+	if (typeof open_interface.cancel == 'function') {
+		open_interface.cancel(event);
+	} else if (typeof open_interface == 'string' && open_dialog) {
+		$('dialog#'+open_dialog).find('.cancel_btn:not([disabled])').trigger('click');
+	}
+})
 
 if (isApp) {
 	updateRecentProjects()
@@ -108,15 +112,23 @@ if (isApp) {
 
 localStorage.setItem('last_version', Blockbench.version);
 
-Modes.options.start.select()
+Modes.options.start.select();
 
-loadInstalledPlugins().then(plugins => {
-	if (isApp) {
-		loadOpenWithBlockbenchFile();
-	} else {
-		loadInfoFromURL();
+(function() {
+	// Promise.any workaround
+	let proceeded = false;
+	function proceed() {
+		if (proceeded) return;
+		if (isApp) {
+			loadOpenWithBlockbenchFile();
+		} else {
+			loadInfoFromURL();
+		}
+		proceeded = true;
 	}
-})
+	loadInstalledPlugins().then(proceed);
+	setTimeout(proceed, 1200);
+})()
 
 document.getElementById('page_wrapper').classList.remove('hidden')
 

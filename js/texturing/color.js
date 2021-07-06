@@ -729,7 +729,7 @@ BARS.defineActions(function() {
 		},
 		getInterval(e) {
 			if (e.shiftKey) return 12.5;
-			if (e.ctrlKey) return 1;
+			if (e.ctrlOrCmd) return 1;
 			return 4
 		},
 		get: function() {
@@ -749,7 +749,7 @@ BARS.defineActions(function() {
 		},
 		getInterval(e) {
 			if (e.shiftKey) return 10;
-			if (e.ctrlKey) return 1;
+			if (e.ctrlOrCmd) return 1;
 			return 2
 		},
 		get: function() {
@@ -769,7 +769,7 @@ BARS.defineActions(function() {
 		},
 		getInterval(e) {
 			if (e.shiftKey) return 10;
-			if (e.ctrlKey) return 1;
+			if (e.ctrlOrCmd) return 1;
 			return 2
 		},
 		get: function() {
@@ -779,6 +779,14 @@ BARS.defineActions(function() {
 			var value = modify(ColorPanel.vue._data.hsv.v);
 			ColorPanel.vue._data.hsv.v = Math.clamp(value, this.settings.min, this.settings.max);
 			ColorPanel.updateFromHsv();
+		}
+	})
+	new Action('pick_screen_color', {
+		icon: 'colorize',
+		category: 'color',
+		condition: isApp,
+		click: function () {
+			ipcRenderer.send('request-color-picker', {sync: settings.sync_color.value});
 		}
 	})
 })

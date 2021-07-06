@@ -34,7 +34,8 @@ class UndoSystem {
 		var entry = {
 			before: this.current_save,
 			post: new UndoSystem.save(aspects),
-			action: action
+			action: action,
+			time: Date.now()
 		}
 		this.current_save = entry.post
 		if (this.history.length > this.index) {
@@ -149,8 +150,10 @@ class UndoSystem {
 							new_element.faces[face].reset()
 						}
 						new_element.extend(element)
-						if (new_element.type == 'cube') {
+						if (new_element.mesh) {
 							Canvas.adaptObjectPosition(new_element)
+						}
+						if (new_element.type == 'cube') {
 							Canvas.adaptObjectFaceGeo(new_element)
 							Canvas.adaptObjectFaces(new_element)
 							Canvas.updateUV(new_element)
@@ -498,6 +501,73 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'y', ctrl: true}),
 		click(e) {
 			Project.undo.redo(e);
+		}
+	})
+	new Action('edit_history', {
+		icon: 'history',
+		category: 'edit',
+		click() {
+
+			let steps = [];
+			Undo.history.forEachReverse((entry, index) => {
+				index++;
+				step = {
+					name: entry.action,
+					time: new Date(entry.time).toLocaleTimeString(),
+					index,
+					current: index == Undo.index
+				};
+				steps.push(step);
+			})
+			steps.push({
+				name: 'Original',
+				time: '',
+				index: 0,
+				current: Undo.index == 0
+			})
+			let step_selected = null;
+			const dialog = new Dialog({
+				id: 'edit_history',
+				title: 'action.edit_history',
+				component: {
+					data() {return {
+						steps,
+						selected: null
+					}},
+					methods: {
+						select(index) {
+							this.selected = step_selected = index;
+						},
+						confirm() {
+							dialog.confirm();
+						}
+					},
+					template: `
+						<div id="edit_history_list">
+							<ul>
+								<li v-for="step in steps" :class="{current: step.current, selected: step.index == selected}" @click="select(step.index)" @dblclick="confirm()">
+									{{ step.name }}
+									<div class="edit_history_time">{{ step.time }}</div>
+								</li>
+							</ul>
+						</div>
+					`
+				},
+				onConfirm() {
+					if (step_selected === null) return;
+
+					let difference = step_selected - Undo.index;
+					if (step_selected < Undo.index) {
+						for (let i = 0; i < -difference; i++) {
+							Undo.undo();
+						}
+					} else if (step_selected > Undo.index) {
+						for (let i = 0; i < difference; i++) {
+							Undo.redo();
+						}
+					}
+				}
+			}).show();
 		}
 	})
 })

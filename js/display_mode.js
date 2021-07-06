@@ -1450,7 +1450,6 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	Transformer.center()
 	if (outlines.children.length) {
 		outlines.children.length = 0
-		Canvas.updateAllPositions()
 	}
 }
 exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the scene etc
@@ -1527,7 +1526,7 @@ DisplayMode.applyPreset = function(preset, all) {
 		display[sl].extend(preset.areas[sl])
 	})
 	DisplayMode.updateDisplayBase()
-	Undo.finishEdit('apply display preset')
+	Undo.finishEdit('Apply display preset')
 }
 DisplayMode.createPreset = function() {
 	var name = $('input#preset_name').val()
@@ -1598,7 +1597,7 @@ function loadDisp(key) {	//Loads The Menu and slider values, common for all Radi
 	display_preview.controls.enabled = true;
 	ground_animation = false;
 	$('#display_crosshair').detach()
-	display_preview.orbit_gizmo.unhide();
+	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.unhide();
 	display_preview.camPers.setFocalLength(45)
 
 	if (display[key] == undefined) {
@@ -1649,7 +1648,7 @@ DisplayMode.loadFirstRight = function() {	//Loader
 		focal_length: getOptimalFocalLength(),
 	})
 	display_preview.controls.enabled = false
-	display_preview.orbit_gizmo.hide();
+	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
@@ -1661,7 +1660,7 @@ DisplayMode.loadFirstLeft = function() {	//Loader
 		focal_length: getOptimalFocalLength(),
 	})
 	display_preview.controls.enabled = false
-	display_preview.orbit_gizmo.hide();
+	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
@@ -1685,7 +1684,7 @@ DisplayMode.loadGUI = function() {		//Loader
 		locked_angle: 'south',
 		zoom: 1,
 	})
-	display_preview.orbit_gizmo.hide();
+	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['inventory_nine', 'inventory_full', 'hud'])
 	BarItems.gui_light.set(Project.front_gui_light ? 'front' : 'side');
 }
@@ -1747,7 +1746,7 @@ DisplayMode.paste = function() {
 	Undo.initEdit({display_slots: [display_slot]})
 	DisplayMode.slot.extend(Clipbench.display_slot)
 	DisplayMode.updateDisplayBase()
-	Undo.finishEdit('paste display slot')
+	Undo.finishEdit('Paste display slot')
 }
 
 DisplayMode.scrollSlider = function(type, value, el) {
@@ -1757,7 +1756,7 @@ DisplayMode.scrollSlider = function(type, value, el) {
 	DisplayMode.slot[channel][parseInt(axis)] = value
 
 	DisplayMode.slot.update()
-	Undo.finishEdit('change display slot')
+	Undo.finishEdit('Change display slot')
 }
 
 window.changeDisplaySkin = function() {
@@ -1976,19 +1975,19 @@ Interface.definePanels(function() {
 					if (channel === 'scale') {
 					DisplayMode.slot.extend({mirror: [false, false, false]})
 					}
-					Undo.finishEdit('reset display')
+					Undo.finishEdit('Reset display channel')
 				},
 				invert: (axis) => {
 					Undo.initEdit({display_slots: [display_slot]})
 					DisplayMode.slot.mirror[axis] = !DisplayMode.slot.mirror[axis];
 					DisplayMode.slot.update()
-					Undo.finishEdit('mirror display')
+					Undo.finishEdit('Mirror display setting')
 				},
 				start: () => {
 					Undo.initEdit({display_slots: [display_slot]})
 				},
 				save: () => {
-					Undo.finishEdit('change_display')
+					Undo.finishEdit('Change display setting')
 				}
 			},
 			template: `
