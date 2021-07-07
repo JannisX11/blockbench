@@ -269,7 +269,6 @@ const skin_dialog = new Dialog({
 	onCancel() {
 		this.hide();
 		Format = 0;
-		Modes.options.start.select();
 	}
 });
 

@@ -112,8 +112,6 @@ if (isApp) {
 
 localStorage.setItem('last_version', Blockbench.version);
 
-Modes.options.start.select();
-
 (function() {
 	// Promise.any workaround
 	let proceeded = false;
@@ -130,6 +128,8 @@ Modes.options.start.select();
 	setTimeout(proceed, 1200);
 })()
 
-document.getElementById('page_wrapper').classList.remove('hidden')
+setStartScreen(true);
+
+document.getElementById('page_wrapper').classList.remove('invisible');
 
 Blockbench.setup_successful = true;

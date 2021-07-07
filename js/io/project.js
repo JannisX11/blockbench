@@ -146,6 +146,7 @@ class ModelProject {
 		this.selected = true;
 
 		this.format.select();
+		setStartScreen(!Project)
 	}
 	unselect() {
 		this.selected = false;
@@ -272,6 +273,11 @@ function updateProjectResolution() {
 	}
 }
 
+function setStartScreen(state) {
+	document.getElementById('start_screen').style.display = state ? 'block' : 'none';
+	document.getElementById('work_screen').style.display = state ? 'none' : 'grid';
+}
+
 onVueSetup(() => {
 	Interface.tab_bar = new Vue({
 		el: '#tab_bar',
@@ -280,11 +286,12 @@ onVueSetup(() => {
 			drag_target_index: null,
 			drag_position_index: null,
 			new_tab: {
-				name: 'New Tab',
+				name: tl('projects.new_tab'),
 				saved: true,
 				selected: true,
 				uuid: guid(),
 				visible: true,
+				is_new_tab: true,
 				close: () => {
 					Interface.tab_bar.new_tab.visible = false;
 				},
@@ -311,6 +318,7 @@ onVueSetup(() => {
 			openNewTab() {
 				this.new_tab.visible = true;
 				this.new_tab.select();
+				setStartScreen(true);
 			},
 			dragTab(tab, e1) {
 				convertTouchEvent(e1);

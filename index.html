@@ -598,6 +598,7 @@
 			v-for="(project, index) in tabs" :key="project.uuid"
 			:class="{
 				selected: project.selected,
+				new_tab: project.is_new_tab,
 				dragging: index == drag_target_index,
 				move_back:  (drag_position_index !== null && index > drag_target_index && drag_position_index >= index),
 				move_forth: (drag_position_index !== null && index < drag_target_index && drag_position_index <= index)
@@ -617,144 +618,195 @@
 		</div>
 	</div>
 
-	<div id="page_wrapper" class="hidden">
+	<div id="page_wrapper" class="invisible start_screen">
 
-	<dialog id="action_selector"></dialog>
+		<dialog id="action_selector"></dialog>
 
-	<div id="blackout"></div>
+		<div id="blackout"></div>
 
-	<div id="main_toolbar">
-		<div style="color: #fff; text-align: center; font-family: segoe ui, sans-serif;" id="no_css_message">
-			<br><h1>Oops...</h1>
-			<p>It looks like your internet connection was too unstable to automatically update Blockbench.</p>
-			<p>Download and run <a style="color: #75b1ff" href="https://blockbench.net/downloads/">the installer</a> to update manually. Your custom settings will remain untouched.</p>
+		<div id="start_screen">
+			<content>
+				<section id="start-files">
+					<left>
+						<h2 class="tl">mode.start.new</h2>
+						<div class="bar next_to_title" id="uv_title_bar">
+							<div class="tool" onclick="Blockbench.openLink('https://blockbench.net/quickstart/')">
+								<div class="tooltip tl">menu.help.quickstart</div>
+								<i class="fas fa-question-circle"></i>
+							</div>
+						</div>
+						<ul>
+							<li v-for="format in formats" v-if="format.show_on_start_screen" v-on:click="format.new()">
+								<span class="icon_wrapper f_left" v-html="Blockbench.getIconNode(format.icon).outerHTML"></span>
+								<h3>{{ format.name }}</h3>
+								<p>{{ format.description }}</p>
+							</li>
+						</ul>
+					</left>
+					<right>
+						<h2 class="tl">mode.start.recent</h2>
+						<div id="start_screen_list_type" v-if="isApp && !redact_names">
+							<li class="tool" v-bind:class="{selected: list_type == 'list'}" v-on:click="setListType('list')">
+								<i class="material-icons">list</i>
+							</li>
+							<li class="tool" v-bind:class="{selected: list_type == 'grid'}" v-on:click="setListType('grid')">
+								<i class="material-icons">view_module</i>
+							</li>
+						</div>
+						<div v-if="redact_names">{{ '['+tl('generic.redacted')+']' }}</div>
+						<ul v-else-if="list_type == 'list'">
+							<li v-on:click="openProject(project, $event)" v-for="project in recent" v-key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project">
+								<span class="icon_wrapper" v-html="Blockbench.getIconNode(project.icon).outerHTML"></span>
+								<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
+								<span class="recent_project_date">{{ getDate(project) }}</span>
+							</li>
+							<div v-if="recent.length == 0">{{ tl('mode.start.no_recents') }}</div>
+						</ul>
+						<ul :class="{redact: redact_names}" v-else>
+							<li v-on:click="openProject(project, $event)" v-for="project in recent" v-key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project thumbnail">
+								<div class="thumbnail_image" :style="{'background-image': getThumbnail(project.path)}"></div>
+								<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
+								<span class="icon_wrapper" v-html="Blockbench.getIconNode(project.icon).outerHTML"></span>
+							</li>
+							<div v-if="recent.length == 0">{{ tl('mode.start.no_recents') }}</div>
+						</ul>
+						<button class="tl" style="margin-top: 20px;" onclick="BarItems.open_model.trigger()">action.open_model</button>
+					</right>
+				</section>
+			</content>
 		</div>
-		<div class="toolbar_wrapper narrow tools"></div>
 
-		<div class="toolbar_wrapper narrow tool_options"></div>
-		<ul id="mode_selector">
-			<li
-				v-for="mode in options"
-				v-if="Condition(mode.condition)"
-				v-bind:class="{selected: mode.selected}"
-				v-on:click="mode.select()"
-			>{{ mode.name }}</li>
-		</ul>
-		<div class="toolbar_wrapper narrow mobile_side"></div>
-	</div>
-	<div id="left_bar" class="sidebar">
+		<div id="work_screen" hidden>
 
-		<div id="uv" class="panel selection_only">
-			<div class="panel_inside">
-				<div class="bar next_to_title" id="uv_title_bar">
-					<div id="project_resolution_status" onclick="BarItems.project_window.trigger()"></div>
-				</div>
-				<div id="uv_panel_sides" onclick="main_uv.loadSelectedFace()" class="bar tabs_small">
+			<div id="main_toolbar">
+				<div class="toolbar_wrapper narrow tools"></div>
 
-					<input type="radio" name="side" id="north_radio" checked>
-					<label class="tl" for="north_radio">face.north</label>
-
-					<input type="radio" name="side" id="south_radio">
-					<label class="tl" for="south_radio">face.south</label>
-					
-					<input type="radio" name="side" id="west_radio">
-					<label class="tl" for="west_radio">face.west</label>
-
-					<input type="radio" name="side" id="east_radio">
-					<label class="tl" for="east_radio">face.east</label>
-
-					<input type="radio" name="side" id="up_radio">
-					<label class="tl" for="up_radio">face.up</label>
-
-					<input type="radio" name="side" id="down_radio">
-					<label class="tl" for="down_radio">face.down</label>
-				</div>
+				<div class="toolbar_wrapper narrow tool_options"></div>
+				<ul id="mode_selector">
+					<li
+						v-for="mode in options"
+						v-if="Condition(mode.condition)"
+						v-bind:class="{selected: mode.selected}"
+						v-on:click="mode.select()"
+					>{{ mode.name }}</li>
+				</ul>
+				<div class="toolbar_wrapper narrow mobile_side"></div>
 			</div>
-		</div>
+			<div id="left_bar" class="sidebar">
 
-	</div>
-	<div id="right_bar" class="sidebar">
+				<div id="uv" class="panel selection_only">
+					<div class="panel_inside">
+						<div class="bar next_to_title" id="uv_title_bar">
+							<div id="project_resolution_status" onclick="BarItems.project_window.trigger()"></div>
+						</div>
+						<div id="uv_panel_sides" onclick="main_uv.loadSelectedFace()" class="bar tabs_small">
 
-		<div id="element" class="panel selection_only">
-			<div class="panel_inside">
-				<p class="tl">panel.element.position</p>
-				<div class="toolbar_wrapper element_position"></div>
-				<p class="tl">panel.element.size</p>
-				<div class="toolbar_wrapper element_size"></div>
-				<p class="tl">panel.element.origin</p>
-				<div class="toolbar_wrapper element_origin"></div>
-				<p class="tl">panel.element.rotation</p>
-				<div class="toolbar_wrapper element_rotation"></div>
-			</div>
-		</div>
+							<input type="radio" name="side" id="north_radio" checked>
+							<label class="tl" for="north_radio">face.north</label>
 
-		<div id="color" class="panel">
-			<div id="color_panel_wrapper" class="panel_inside">
-				<div id="color_panel_head">
-					<div class="main" v-bind:style="{'background-color': hover_color || main_color}"></div>
-					<div class="side">
-						<input type="text" v-model="color_code" @focusout="validateMainColor()">
-						<div id="color_history">
-							<li
-								v-for="(color, i) in history" v-if="i || color != main_color"
-								:key="color"
-								v-bind:style="{'background-color': color}"
-								v-bind:title="color" @click="setColor(color)"
-							></li>
+							<input type="radio" name="side" id="south_radio">
+							<label class="tl" for="south_radio">face.south</label>
+							
+							<input type="radio" name="side" id="west_radio">
+							<label class="tl" for="west_radio">face.west</label>
+
+							<input type="radio" name="side" id="east_radio">
+							<label class="tl" for="east_radio">face.east</label>
+
+							<input type="radio" name="side" id="up_radio">
+							<label class="tl" for="up_radio">face.up</label>
+
+							<input type="radio" name="side" id="down_radio">
+							<label class="tl" for="down_radio">face.down</label>
 						</div>
 					</div>
 				</div>
 
-				<div id="uv_panel_sides" class="bar tabs_small">
-
-					<input type="radio" name="tab" id="radio_color_picker" value="picker" v-model="open_tab">
-					<label class="tl" for="radio_color_picker">panel.color.picker</label>
-
-					<input type="radio" name="tab" id="radio_color_palette" value="palette" v-model="open_tab">
-					<label class="tl" for="radio_color_palette">panel.color.palette</label>
-
-					<input type="radio" name="tab" id="radio_color_both" value="both" v-model="open_tab">
-					<label class="tl" for="radio_color_both">panel.color.both</label>
-
-				</div>
-				<div v-show="open_tab == 'picker' || open_tab == 'both'">
-					<input id="main_colorpicker">
-					<div class="toolbar_wrapper color_picker"></div>
-				</div>
-				<div v-show="open_tab == 'palette' || open_tab == 'both'">
-					<div class="toolbar_wrapper palette"></div>
-					<ul id="palette_list" class="list" v-sortable="{onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
-						<li
-							class="color" v-for="color in palette"
-							:title="color" :key="color"
-							:class="{selected: color == main_color, contrast: isDarkColor(color)}"
-							@click="setColor(color)"
-							@mouseenter="hover_color = color"
-							@mouseleave="hover_color = ''"
-						>
-							<div class="color_inner" v-bind:style="{'background-color': color}"></div>
-						</li>
-					</ul>
-				</div>
 			</div>
-		</div>
+			<div id="right_bar" class="sidebar">
 
-	</div>
-	<div id="center">
-		<ul id="toast_notification_list">
-		</ul>
-		<div id="preview" class="center_window">
-		</div>
-		<div id="timeline" class="center_window">
-			<div class="toolbar_wrapper timeline"></div>
-			<div id="timeline_vue"></div>
-		</div>
+				<div id="element" class="panel selection_only">
+					<div class="panel_inside">
+						<p class="tl">panel.element.position</p>
+						<div class="toolbar_wrapper element_position"></div>
+						<p class="tl">panel.element.size</p>
+						<div class="toolbar_wrapper element_size"></div>
+						<p class="tl">panel.element.origin</p>
+						<div class="toolbar_wrapper element_origin"></div>
+						<p class="tl">panel.element.rotation</p>
+						<div class="toolbar_wrapper element_rotation"></div>
+					</div>
+				</div>
 
-		<div id="mobile_panel_overlay" hidden></div>
-	</div>
-	<div id="status_bar"></div>
+				<div id="color" class="panel">
+					<div id="color_panel_wrapper" class="panel_inside">
+						<div id="color_panel_head">
+							<div class="main" v-bind:style="{'background-color': hover_color || main_color}"></div>
+							<div class="side">
+								<input type="text" v-model="color_code" @focusout="validateMainColor()">
+								<div id="color_history">
+									<li
+										v-for="(color, i) in history" v-if="i || color != main_color"
+										:key="color"
+										v-bind:style="{'background-color': color}"
+										v-bind:title="color" @click="setColor(color)"
+									></li>
+								</div>
+							</div>
+						</div>
 
-	<div id="panel_selector_bar"></div>
+						<div id="uv_panel_sides" class="bar tabs_small">
+
+							<input type="radio" name="tab" id="radio_color_picker" value="picker" v-model="open_tab">
+							<label class="tl" for="radio_color_picker">panel.color.picker</label>
+
+							<input type="radio" name="tab" id="radio_color_palette" value="palette" v-model="open_tab">
+							<label class="tl" for="radio_color_palette">panel.color.palette</label>
+
+							<input type="radio" name="tab" id="radio_color_both" value="both" v-model="open_tab">
+							<label class="tl" for="radio_color_both">panel.color.both</label>
+
+						</div>
+						<div v-show="open_tab == 'picker' || open_tab == 'both'">
+							<input id="main_colorpicker">
+							<div class="toolbar_wrapper color_picker"></div>
+						</div>
+						<div v-show="open_tab == 'palette' || open_tab == 'both'">
+							<div class="toolbar_wrapper palette"></div>
+							<ul id="palette_list" class="list" v-sortable="{onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
+								<li
+									class="color" v-for="color in palette"
+									:title="color" :key="color"
+									:class="{selected: color == main_color, contrast: isDarkColor(color)}"
+									@click="setColor(color)"
+									@mouseenter="hover_color = color"
+									@mouseleave="hover_color = ''"
+								>
+									<div class="color_inner" v-bind:style="{'background-color': color}"></div>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+
+			</div>
+			<div id="center">
+				<ul id="toast_notification_list">
+				</ul>
+				<div id="preview" class="center_window">
+				</div>
+				<div id="timeline" class="center_window">
+					<div class="toolbar_wrapper timeline"></div>
+					<div id="timeline_vue"></div>
+				</div>
+
+				<div id="mobile_panel_overlay" hidden></div>
+			</div>
+			<div id="status_bar"></div>
+
+			<div id="panel_selector_bar"></div>
+
+		</div>
 	
 	</div>
 	

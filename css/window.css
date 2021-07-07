@@ -1,22 +1,14 @@
 
 /*Layout*/
 	#page_wrapper {
-		display: grid;
-		grid-template-columns: 332px auto 314px;
-		grid-template-rows: 30px minmax(200px, 5000px) 26px;
-		grid-template-areas: 
-			"left_bar toolbar toolbar"
-			"left_bar center right_bar"
-			"left_bar status_bar right_bar";
 		height: calc(100% - 56px);
 		width: 100%;
 		border: 2px solid var(--color-frame);
 		border-top: none;
-		opacity: 1;
-		transition: opacity 0.1s linear;
+		background-color: var(--color-border);
 	}
-	#page_wrapper.hidden {
-		opacity: 0;
+	#page_wrapper.invisible {
+		visibility: hidden;
 	}
 	body {
 		background-image: url('../assets/logo_cutout.svg');
@@ -33,6 +25,17 @@
 		padding-top: 160px;
 		position: absolute;
 		z-index: 250;
+	}
+	#work_screen {
+		display: grid;
+		grid-template-columns: 332px auto 314px;
+		grid-template-rows: 30px minmax(200px, 5000px) 26px;
+		grid-template-areas: 
+			"left_bar toolbar toolbar"
+			"left_bar center right_bar"
+			"left_bar status_bar right_bar";
+		width: 100%;
+		height: 100%;
 	}
 
 	#tab_bar {
@@ -185,6 +188,7 @@
 	}
 	div#corner_logo {
 		width: auto;
+		height: 26px;
 		padding-right: 8px;
 		padding-left: 6px;
 		margin-left: 4px;
@@ -210,6 +214,7 @@
 	}
 	div#header_free_bar.app-drag-region {
 		flex-grow: 1;
+		height: auto;
 	}
 	div#header_free_bar.app-drag-region.resize_space {
 		margin-top: 4px;
@@ -262,6 +267,9 @@
 @media (max-device-width: 640px) {
 
 	#page_wrapper {
+		border: none;
+	}
+	#work_screen {
 		display: grid;
 		grid-template-rows: auto minmax(200px, 5000px) 26px 36px;
 		grid-template-areas: 
@@ -270,7 +278,6 @@
 			"status_bar"
 			"panel_selector";
 		grid-template-columns: auto !important;
-		border: none;
 	}
 	#main_toolbar {
 		display: block;
@@ -437,6 +444,9 @@
 		background-color: var(--color-ui);
 		cursor: default;
 		border-top-color: var(--color-accent);
+	}
+	#tab_bar .project_tab.selected.new_tab {
+		background-color: var(--color-dark);
 	}
 	#tab_bar .project_tab:not(.selected):hover {
 		background-color: var(--color-button);
@@ -614,6 +624,7 @@
 		margin-right: auto;
 		background-color: var(--color-ui);
 		overflow-y: scroll;
+		overflow-x: hidden;
 		image-rendering: auto;
 	}
 	#start_screen > content > section {

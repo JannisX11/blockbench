@@ -77,6 +77,8 @@
 	"mode.start.keymap_preference.desc": "If you are new to Blockbench and you are coming from another 3D program, you can select a keymap to make your transition easier. You can change the keymap or individual keybindings later in the settings.",
 	"mode.start.select_keymap": "Select Keymap",
 
+	"projects.new_tab": "New Tab",
+
 	"format.free": "Generic Model",
 	"format.free.desc": "Model without restrictions. For game engines, rendering etc.",
 	"format.skin": "Minecraft Skin",
