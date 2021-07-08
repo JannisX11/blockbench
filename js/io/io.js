@@ -34,7 +34,7 @@ function setupDragHandlers() {
 		function(files, event) {
 			var texture_li = $(event.target).parents('li.texture')
 			if (texture_li.length) {
-				var tex = textures.findInArray('uuid', texture_li.attr('texid'))
+				var tex = Texture.all.findInArray('uuid', texture_li.attr('texid'))
 				if (tex) {
 					tex.fromFile(files[0])
 					TickUpdates.selection = true;
@@ -240,7 +240,7 @@ var Extruder = {
 			s.addTo(group).init()
 		})
 
-		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [textures[textures.length-1]]})
+		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [Texture.all[Texture.all.length-1]]})
 
 		hideDialog()
 	}
@@ -524,7 +524,7 @@ BARS.defineActions(function() {
 				var content = Format.codec.compile()
 				var name = `${Format.codec.fileName()}.${Format.codec.extension}`
 				archive.file(name, content)
-				textures.forEach(tex => {
+				Texture.all.forEach(tex => {
 					if (tex.mode === 'bitmap') {
 						archive.file(pathToName(tex.name) + '.png', tex.source.replace('data:image/png;base64,', ''), {base64: true});
 					}

@@ -16,9 +16,24 @@ class ModelProject {
 		this.export_path = '';
 
 		this.undo = new UndoSystem();
-		this.format = options.format || Formats.free;
+		this.format = options.format instanceof ModelFormat ? options.format : Formats.free;
+
+		// Data
+		this.elements = [];
+		this.groups = [];
+		this.selected_elements = [];
+		this.selected_group = null;
+		this.textures = [];
+		this.selected_texture = null;
+		this.outliner = [];
 
 		ModelProject.all.push(this);
+
+		ProjectData[this.uuid] = {
+			model_3d: new THREE.Object3D(),
+			materials: {},
+			nodes_3d: {}
+		}
 	}
 	extend() {
 		for (var key in ModelProject.properties) {
@@ -54,6 +69,15 @@ class ModelProject {
 		this._name = name;
 		setProjectTitle(this._name);
 	}
+	get model_3d() {
+		return ProjectData[this.uuid].model_3d;
+	}
+	get materials() {
+		return ProjectData[this.uuid].materials;
+	}
+	get nodes_3d() {
+		return ProjectData[this.uuid].nodes_3d;
+	}
 	reset() {
 		return;
 		if (isApp) updateRecentProjectThumbnail();
@@ -75,8 +99,8 @@ class ModelProject {
 		for (var key in Canvas.materials) {
 			delete Canvas.materials[key];
 		}
-		for (var key in Canvas.bones) {
-			delete Canvas.bones[key];
+		for (var key in Project.nodes_3d) {
+			delete Project.nodes_3d[key];
 		}
 		selected.empty();
 		Group.all.empty();
@@ -115,18 +139,21 @@ class ModelProject {
 
 	/*
 	----- THINGS TO SAVE --------
-	textures
-	elements
-	groups
-	selection
-	display settings
-	format
+	[x] textures
+	[x] elements
+	[x] groups
+	[x] selection
+	[ ] display settings
+	[x] format
+	[x] animations
+
+	bedrock entity manager
 
 	----- SAVE EXTERNALLY --------
-	scene
-	materials,
-	bones,
-	3d elements
+	[x] scene
+	[x] materials,
+	[x] bones,
+	[x] 3d elements
 
 
 
@@ -144,12 +171,30 @@ class ModelProject {
 		Project = this;
 		Undo = this.undo;
 		this.selected = true;
-
 		this.format.select();
-		setStartScreen(!Project)
+
+		// Setup Data
+		OutlinerNode.uuids = {};
+		this.elements.forEach(el => {
+			OutlinerNode.uuids[el.uuid] = el;
+		})
+		this.groups.forEach(group => {
+			OutlinerNode.uuids[group.uuid] = group;
+		})
+		Outliner.root = this.outliner;
+		Interface.Panels.outliner.inside_vue.root = this.outliner;
+
+		Interface.Panels.textures.inside_vue.textures = Texture.all
+		scene.add(this.model_3d);
+
+		setStartScreen(!Project);
+
+		Blockbench.dispatchEvent('select_project', {project: this});
 	}
 	unselect() {
 		this.selected = false;
+		scene.remove(this.model_3d);
+		Blockbench.dispatchEvent('unselect_project', {project: this});
 	}
 	async close(force) {
 
@@ -160,6 +205,8 @@ class ModelProject {
 			
 			ModelProject.all.remove(this);
 			ModelProject.all[0].select();
+
+			delete ProjectData[this.uuid];
 
 			return true;
 		} else {
@@ -211,7 +258,10 @@ ModelProject.all = [];
 
 let Project = 0;// = new ModelProject();
 
+let ProjectData = {};
+
 function newProject(format) {
+	if (typeof format == 'string' && Formats[format]) format = Formats[format];
 	new ModelProject({format}).select();
 
 	Modes.options.edit.select();

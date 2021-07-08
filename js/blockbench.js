@@ -191,7 +191,7 @@ function unselectAll() {
 }
 //Backup
 setInterval(function() {
-	if (Outliner.root.length || textures.length) {
+	if (Outliner.root.length || Project.textures.length) {
 		try {
 			var model = Codecs.project.compile({compressed: false, backup: true});
 			localStorage.setItem('backup_model', model)

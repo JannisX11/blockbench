@@ -49,7 +49,7 @@ class Locator extends OutlinerElement {
 
 		if (!this.mesh || !this.mesh.parent) {
 			this.mesh = new THREE.Object3D();
-			Canvas.meshes[this.uuid] = this.mesh;
+			Project.nodes_3d[this.uuid] = this.mesh;
 			this.mesh.name = this.uuid;
 			this.mesh.type = 'locator';
 			Canvas.adaptObjectPosition(this, this.mesh);
@@ -114,8 +114,8 @@ class Locator extends OutlinerElement {
 	new Property(Locator, 'string', 'name', {default: 'locator'})
 	new Property(Locator, 'vector', 'from')
 	new Property(Locator, 'vector', 'rotation')
-
-	OutlinerElement.types.locator = Locator;
+	
+	OutlinerElement.registerType(Locator, 'locator');
 
 BARS.defineActions(function() {
 	new Action('add_locator', {

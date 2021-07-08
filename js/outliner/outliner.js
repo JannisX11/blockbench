@@ -70,7 +70,7 @@ class OutlinerNode {
 	}
 	init() {
 		OutlinerNode.uuids[this.uuid] = this;
-		this.constructor.all.safePush(this);
+		//this.constructor.all.safePush(this);
 		if (!this.parent || (this.parent === 'root' && Outliner.root.indexOf(this) === -1)) {
 			this.addTo('root')
 		}
@@ -301,7 +301,6 @@ class OutlinerNode {
 		this.shade = !val;
 	}
 }
-OutlinerNode.uuids = {};
 class OutlinerElement extends OutlinerNode {
 	constructor(data, uuid) {
 		super(uuid);
@@ -310,7 +309,7 @@ class OutlinerElement extends OutlinerNode {
 	}
 	init() {
 		super.init();
-		elements.safePush(this);
+		Project.elements.safePush(this);
 	}
 	remove() {
 		super.remove()
@@ -458,6 +457,26 @@ class OutlinerElement extends OutlinerNode {
 	OutlinerElement.selected = selected;
 	OutlinerElement.all = elements;
 	OutlinerElement.types = {};
+
+OutlinerElement.registerType = function(constructor, id) {
+	OutlinerElement.types[id] = constructor;
+	Object.defineProperty(constructor, 'all', {
+		get() {
+			return Project.elements ? Project.elements.filter(element => element instanceof constructor) : [];
+		},
+		set(arr) {
+			console.warn('You cannot modify this')
+		}
+	})
+	Object.defineProperty(constructor, 'selected', {
+		get() {
+			return Project.selected_elements ? Project.selected_elements.filter(element => element instanceof constructor) : [];
+		},
+		set(group) {
+			console.warn('You cannot modify this')
+		}
+	})
+}
 
 Array.prototype.findRecursive = function(key1, val) {
 	var i = 0

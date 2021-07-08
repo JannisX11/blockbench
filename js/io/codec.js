@@ -166,7 +166,7 @@ function setupDragHandlers() {
 		function(files, event) {
 			var texture_li = $(event.target).parents('li.texture')
 			if (texture_li.length) {
-				var tex = textures.findInArray('uuid', texture_li.attr('texid'))
+				var tex = Texture.all.findInArray('uuid', texture_li.attr('texid'))
 				if (tex) {
 					tex.fromFile(files[0])
 					TickUpdates.selection = true;

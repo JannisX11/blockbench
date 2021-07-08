@@ -44,7 +44,7 @@ window.onbeforeunload = function() {
 }
 function showSaveDialog(close) {
 	var unsaved_textures = 0;
-	textures.forEach(function(t) {
+	Texture.all.forEach(function(t) {
 		if (!t.saved) {
 			unsaved_textures++;
 		}

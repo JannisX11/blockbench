@@ -59,8 +59,10 @@ var codec = new Codec('project', {
 		type: 'json',
 		extensions: ['bbmodel']
 	},
-	load(model, file) {
-		newProject(model.meta.type||'free');
+	load(model, file, add) {
+
+
+		newProject(Formats[model.meta.type] || Formats.free);
 		var name = pathToName(file.path, true);
 		if (file.path && isApp && !file.no_file ) {
 			Project.save_path = file.path;
@@ -83,7 +85,7 @@ var codec = new Codec('project', {
 			content: isApp ? null : this.compile(),
 			custom_writer: isApp ? (content, path) => {
 				// Path needs to be changed before compiling for relative resource paths
-				ModelMeta.save_path = path;
+				Project.save_path = path;
 				content = this.compile();
 				this.write(content, path);
 			} : null,
@@ -123,11 +125,11 @@ var codec = new Codec('project', {
 		model.outliner = compileGroups(true)
 
 		model.textures = [];
-		textures.forEach(tex => {
+		Texture.all.forEach(tex => {
 			var t = tex.getUndoCopy();
 			delete t.selected;
-			if (isApp && ModelMeta.save_path && tex.path) {
-				let relative = PathModule.relative(ModelMeta.save_path, tex.path);
+			if (isApp && Project.save_path && tex.path) {
+				let relative = PathModule.relative(Project.save_path, tex.path);
 				t.relative_path = relative.replace(/\\/g, '/');
 			}
 			if (options.bitmaps != false) {
@@ -240,8 +242,8 @@ var codec = new Codec('project', {
 		if (model.textures) {
 			model.textures.forEach(tex => {
 				var tex_copy = new Texture(tex, tex.uuid).add(false);
-				if (isApp && tex.relative_path && ModelMeta.save_path) {
-					let resolved_path = PathModule.resolve(ModelMeta.save_path, tex.relative_path);
+				if (isApp && tex.relative_path && Project.save_path) {
+					let resolved_path = PathModule.resolve(Project.save_path, tex.relative_path);
 					if (fs.existsSync(resolved_path)) {
 						tex_copy.fromPath(resolved_path)
 						return;
@@ -263,7 +265,7 @@ var codec = new Codec('project', {
 				var copy = OutlinerElement.fromSave(element, true)
 				for (var face in copy.faces) {
 					if (!Format.single_texture && element.faces) {
-						var texture = element.faces[face].texture !== null && textures[element.faces[face].texture]
+						var texture = element.faces[face].texture !== null && Texture.all[element.faces[face].texture]
 						if (texture) {
 							copy.faces[face].texture = texture.uuid
 						}
@@ -366,8 +368,8 @@ var codec = new Codec('project', {
 				tex_copy.fromPath(tex.path)
 				return tex_copy;
 			}
-			if (isApp && tex.relative_path && ModelMeta.save_path) {
-				let resolved_path = PathModule.resolve(ModelMeta.save_path, tex.relative_path);
+			if (isApp && tex.relative_path && Project.save_path) {
+				let resolved_path = PathModule.resolve(Project.save_path, tex.relative_path);
 				if (fs.existsSync(resolved_path)) {
 					tex_copy.fromPath(resolved_path)
 					return tex_copy;

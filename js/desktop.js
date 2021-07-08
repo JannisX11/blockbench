@@ -98,6 +98,13 @@ function initializeDesktopApp() {
 }
 //Load Model
 function loadOpenWithBlockbenchFile() {
+	ipcRenderer.on('open-model', (event, path) => {
+		Blockbench.read([path], {}, function(files) {
+			files.forEach(file => {
+				loadModelFile(file);
+			})
+		})
+	})
 	if (electron.process.argv.length >= 2) {
 		var extension = pathToExtension(electron.process.argv.last())
 		if (Codec.getAllExtensions().includes(extension)) {
@@ -387,7 +394,7 @@ function showSaveDialog(close) {
 		close = false
 	}
 	var unsaved_textures = 0;
-	textures.forEach(function(t) {
+	Texture.all.forEach(function(t) {
 		if (!t.saved) {
 			unsaved_textures++;
 		}
@@ -497,3 +504,4 @@ ipcRenderer.on('update-available', (event, arg) => {
 		})
 	}
 })
+

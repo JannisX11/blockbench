@@ -47,9 +47,6 @@ function getUVArray(side, frame, stretch) {
 	return arr;
 }
 const Canvas = {
-	materials: {},
-	meshes: {},
-	bones: {},
 	outlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
 		transparent: true,
@@ -263,8 +260,8 @@ const Canvas = {
 				objects.push(s)
 			}
 		})
-		for (var uuid in Canvas.meshes) {
-			var mesh = Canvas.meshes[uuid];
+		for (var uuid in Project.nodes_3d) {
+			var mesh = Project.nodes_3d[uuid];
 			objects.safePush(mesh);
 		}
 		objects.forEach(function(s) {
@@ -273,7 +270,7 @@ const Canvas = {
 			}
 			if (s.geometry) s.geometry.dispose()
 			if (s.outline && s.outline.geometry) s.outline.geometry.dispose()
-			delete Canvas.meshes[s.name]
+			delete Project.nodes_3d[s.name]
 		})
 	},
 	updateAll() {
@@ -355,8 +352,8 @@ const Canvas = {
 	},
 	updateRenderSides() {
 		var side = Canvas.getRenderSide();
-		textures.forEach(function(t) {
-			var mat = Canvas.materials[t.uuid]
+		Texture.all.forEach(function(t) {
+			var mat = Project.materials[t.uuid]
 			if (mat) {
 				mat.side = side
 			}
@@ -460,7 +457,7 @@ const Canvas = {
 					var parent_bone = obj.parent.mesh;
 					parent_bone.add(bone);
 				} else {
-					scene.add(bone);
+					Project.model_3d.add(bone);
 				}
 
 				bone.fix_position = bone.position.clone();
@@ -524,7 +521,7 @@ const Canvas = {
 	addCube(obj) {
 		//This does NOT remove old cubes
 		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1))
-		Canvas.meshes[obj.uuid] = mesh;
+		Project.nodes_3d[obj.uuid] = mesh;
 		mesh.name = obj.uuid;
 		mesh.type = 'cube';
 		mesh.isElement = true;
@@ -532,7 +529,6 @@ const Canvas = {
 		Canvas.adaptObjectFaces(obj, mesh)
 		Canvas.adaptObjectPosition(obj, mesh)
 		
-		//scene.add(mesh)
 		if (Prop.view_mode === 'textured') {
 			Canvas.updateUV(obj);
 		}
@@ -592,10 +588,10 @@ const Canvas = {
 				mesh.position.y -=  object.parent.origin[1]
 				mesh.position.z -=  object.parent.origin[2]
 			} else {
-				scene.add(mesh)
+				Project.model_3d.add(mesh)
 			}
 		} else if (mesh.parent !== scene) {
-			scene.add(mesh)
+			Project.model_3d.add(mesh)
 		}
 		if (object instanceof Cube) {
 			if (Modes.paint) {
@@ -759,7 +755,7 @@ const Canvas = {
 				} else {
 					var tex = cube.faces[face].getTexture()
 					if (tex && tex.uuid) {
-						materials.push(Canvas.materials[tex.uuid])
+						materials.push(Project.materials[tex.uuid])
 					} else {
 						materials.push(emptyMaterials[cube.color])
 					}

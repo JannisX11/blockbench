@@ -147,7 +147,7 @@ var codec = new Codec('java_block', {
 		}
 		var isTexturesOnlyModel = clear_elements.length === 0 && checkExport('parent', Project.parent != '')
 		var texturesObj = {}
-		textures.forEach(function(t, i){
+		Texture.all.forEach(function(t, i){
 			var link = t.javaTextureLink()
 			if (t.particle) {
 				texturesObj.particle = link
@@ -254,7 +254,7 @@ var codec = new Codec('java_block', {
 
 		this.dispatchEvent('parse', {model});
 
-		var previous_texture_length = add ? textures.length : 0
+		var previous_texture_length = add ? Texture.all.length : 0
 		var new_cubes = [];
 		var new_textures = [];
 		if (add) {
@@ -306,15 +306,15 @@ var codec = new Codec('java_block', {
 				}
 			}
 			//Get Rid Of ID overlapping
-			for (var i = previous_texture_length; i < textures.length; i++) {
-				var t = textures[i]
+			for (var i = previous_texture_length; i < Texture.all.length; i++) {
+				var t = Texture.all[i]
 				if (getTexturesById(t.id).length > 1) {
 					t.id = Prop.added_models + '_' + t.id
 				}
 			}
 			//Select Last Texture
-			if (textures.length > 0) {
-				textures[textures.length-1].select();
+			if (Texture.all.length > 0) {
+				Texture.all.last().select();
 			}
 		}
 

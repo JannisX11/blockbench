@@ -229,7 +229,7 @@ class UndoSystem {
 			Painter.current = {}
 			for (var uuid in save.textures) {
 				if (reference.textures[uuid]) {
-					var tex = this.getItemByUUID(textures, uuid)
+					var tex = Texture.all.find(tex => tex.uuid == uuid)
 					if (tex) {
 						var require_reload = tex.mode !== save.textures[uuid].mode;
 						tex.extend(save.textures[uuid]).updateSource()
@@ -245,12 +245,12 @@ class UndoSystem {
 			}
 			for (var uuid in reference.textures) {
 				if (!save.textures[uuid]) {
-					var tex = this.getItemByUUID(Texture.all, uuid)
+					var tex = Texture.all.find(tex => tex.uuid == uuid)
 					if (tex) {
 						Texture.all.splice(Texture.all.indexOf(tex), 1)
 					}
 					if (Texture.selected == tex) {
-						Texture.selected = textures.selected = undefined;
+						Texture.selected = undefined;
 					}
 				}
 			}
