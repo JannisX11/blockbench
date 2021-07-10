@@ -55,6 +55,7 @@ class Mode extends KeybindItem {
 		Mode.selected = this;
 		Modes.selected = this;
 		Modes[Modes.selected.id] = true;
+		if (Project) Project.mode = this.id;
 
 		document.body.setAttribute('mode', this.id);
 

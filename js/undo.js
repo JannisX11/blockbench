@@ -352,12 +352,12 @@ class UndoSystem {
 			for (var slot in save.display_slots) {
 				var data = save.display_slots[slot]
 
-				if (!display[slot] && data) {
-					display[slot] = new DisplaySlot()
-				} else if (data === null && display[slot]) {
-					display[slot].default()
+				if (!Project.display_settings[slot] && data) {
+					Project.display_settings[slot] = new DisplaySlot()
+				} else if (data === null && Project.display_settings[slot]) {
+					Project.display_settings[slot].default()
 				}
-				display[slot].extend(data).update()
+				Project.display_settings[slot].extend(data).update()
 			}
 		}
 
@@ -459,8 +459,8 @@ UndoSystem.save = class {
 		if (aspects.display_slots) {
 			scope.display_slots = {}
 			aspects.display_slots.forEach(slot => {
-				if (display[slot]) {
-					scope.display_slots[slot] = display[slot].copy()
+				if (Project.display_settings[slot]) {
+					scope.display_slots[slot] = Project.display_settings[slot].copy()
 				} else {
 					scope.display_slots[slot] = null
 				}

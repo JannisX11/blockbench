@@ -1,5 +1,3 @@
-var display = {}
-Blockbench.display_settings = display
 var ground_animation = false;
 var ground_timer = 0
 var display_slot;
@@ -1487,7 +1485,7 @@ function resetDisplayBase() {
 }
 
 DisplayMode.updateDisplayBase = function(slot) {
-	if (!slot) slot = display[display_slot]
+	if (!slot) slot = Project.display_settings[display_slot]
 
 	display_base.rotation.x = Math.PI / (180 / slot.rotation[0]);
 	display_base.rotation.y = Math.PI / (180 / slot.rotation[1]) * (display_slot.includes('lefthand') ? -1 : 1);
@@ -1520,10 +1518,10 @@ DisplayMode.applyPreset = function(preset, all) {
 	};
 	Undo.initEdit({display_slots: slots})
 	slots.forEach(function(sl) {
-		if (!display[sl]) {
-			display[sl] = new DisplaySlot()
+		if (!Project.display_settings[sl]) {
+			Project.display_settings[sl] = new DisplaySlot()
 		}
-		display[sl].extend(preset.areas[sl])
+		Project.display_settings[sl].extend(preset.areas[sl])
 	})
 	DisplayMode.updateDisplayBase()
 	Undo.finishEdit('Apply display preset')
@@ -1540,8 +1538,8 @@ DisplayMode.createPreset = function() {
 	display_presets.push(preset)
 
 	displayReferenceObjects.slots.forEach(function(s) {
-		if ($('#'+s+'_save').is(':checked') && display[s]) {
-			preset.areas[s] = display[s].copy()
+		if ($('#'+s+'_save').is(':checked') && Project.display_settings[s]) {
+			preset.areas[s] = Project.display_settings[s].copy()
 		}
 	})
 	hideDialog()
@@ -1550,7 +1548,7 @@ DisplayMode.createPreset = function() {
 DisplayMode.loadJSON = function(data) {
 	for (var slot in data) {
 		if (displayReferenceObjects.slots.includes(slot)) {
-			display[slot] = new DisplaySlot().extend(data[slot])
+			Project.display_settings[slot] = new DisplaySlot().extend(data[slot])
 		}
 	}
 }
@@ -1600,12 +1598,12 @@ function loadDisp(key) {	//Loads The Menu and slider values, common for all Radi
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.unhide();
 	display_preview.camPers.setFocalLength(45)
 
-	if (display[key] == undefined) {
-		display[key] = new DisplaySlot()
+	if (Project.display_settings[key] == undefined) {
+		Project.display_settings[key] = new DisplaySlot()
 	}
 	display_preview.force_locked_angle = false;
-	DisplayMode.vue._data.slot = display[key]
-	DisplayMode.slot = display[key]
+	DisplayMode.vue._data.slot = Project.display_settings[key]
+	DisplayMode.slot = Project.display_settings[key]
 	DisplayMode.updateDisplayBase();
 	Canvas.updateRenderSides();
 	DisplayMode.updateGUILight();
@@ -1948,8 +1946,8 @@ Interface.definePanels(function() {
 			}},
 			methods: {
 				isMirrored: (axis) => {
-					if (display[display_slot]) {
-						return display[display_slot].scale[axis] < 0;
+					if (Project.display_settings[display_slot]) {
+						return Project.display_settings[display_slot].scale[axis] < 0;
 					}
 				},
 				change: (axis, channel) => {

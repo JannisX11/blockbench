@@ -355,9 +355,9 @@ function updateInterfacePanels() {
 		$('.sidebar#left_bar').css('display', Prop.show_left_bar ? 'flex' : 'none');
 		$('.sidebar#right_bar').css('display', Prop.show_right_bar ? 'flex' : 'none');
 	}
-	let page = document.getElementById('page_wrapper');
+	let work_screen = document.getElementById('work_screen');
 
-	page.style.setProperty(
+	work_screen.style.setProperty(
 		'grid-template-columns',
 		Interface.data.left_bar_width+'px auto '+ Interface.data.right_bar_width +'px'
 	)
@@ -369,7 +369,7 @@ function updateInterfacePanels() {
 	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.right_bar_width : 0;
 
 	if (!left_width || !right_width) {
-		page.style.setProperty(
+		work_screen.style.setProperty(
 			'grid-template-columns',
 			left_width+'px auto '+ right_width +'px'
 		)
@@ -414,7 +414,8 @@ function resizeWindow(event) {
 }
 
 function setProjectTitle(title) {
-	if (Format.bone_rig && Project.geometry_name) {
+	let window_title = 'Blockbench';
+	if (title == undefined && Project.geometry_name) {
 		title = Project.geometry_name
 	}
 	if (title) {
@@ -425,11 +426,12 @@ function setProjectTitle(title) {
 		if (Format.bone_rig) {
 			title = title.replace(/^geometry\./,'').replace(/:[a-z0-9.]+/, '')
 		}
-		$('title').text(title+' - Blockbench')
+		window_title = title+' - Blockbench';
 	} else {
 		Prop.file_name = Prop.file_name_alt = ''
-		$('title').text('Blockbench')
 	}
+	$('title').text(window_title);
+	$('#header_free_bar').text(window_title);
 }
 //Zoom
 function setZoomLevel(mode) {

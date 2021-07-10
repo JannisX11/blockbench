@@ -591,7 +591,14 @@ class Animation {
 		dialog.show();
 	}
 }
-	Animation.all = [];
+	Object.defineProperty(Animation, 'all', {
+		get() {
+			return Project.animations || [];
+		},
+		set(arr) {
+			Project.animations.replace(arr);
+		}
+	})
 	Animation.selected = null;
 	Animation.prototype.menu = new Menu([
 		{name: 'menu.animation.loop', icon: 'loop', children: [
@@ -1236,7 +1243,7 @@ WinterskyScene.global_options.parent_mode = 'entity';
 const Animator = {
 	possible_channels: {rotation: true, position: true, scale: true, sound: true, particle: true, timeline: true},
 	open: false,
-	animations: Animation.all,
+	get animations() {return Animation.all},
 	get selected() {return Animation.selected},
 	MolangParser: new Molang(),
 	motion_trail: new THREE.Object3D(),
@@ -1244,8 +1251,8 @@ const Animator = {
 	_last_values: {rotation: [0, 0, 0], position: [0, 0, 0], scale: [0, 0, 0]},
 	join() {
 		
-		if (isApp && (Format.id == 'bedrock' || Format.id == 'bedrock_old') && !BedrockEntityManager.initialized_animations) {
-			BedrockEntityManager.initAnimations();
+		if (isApp && (Format.id == 'bedrock' || Format.id == 'bedrock_old') && !Project.BedrockEntityManager.initialized_animations) {
+			Project.BedrockEntityManager.initAnimations();
 		}
 
 		Animator.open = true;
@@ -2241,6 +2248,13 @@ Interface.definePanels(function() {
 			data() { return {
 				text: ''
 			}},
+			watch: {
+				text(text) {
+					if (Project && typeof text == 'string') {
+						Project.variable_placeholders = text;
+					}
+				}
+			},
 			template: `
 				<div style="flex-grow: 1; display: flex; flex-direction: column;">
 					<p>{{ tl('panel.variable_placeholders.info') }}</p>

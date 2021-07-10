@@ -1,6 +1,9 @@
 
 if (isApp) {
-window.BedrockEntityManager = {
+window.BedrockEntityManager = class BedrockEntityManager {
+	constructor() {
+		this.root_path = '';
+	}
 	checkEntityFile(path) {
 		try {
 			var c = fs.readFileSync(path, 'utf-8');
@@ -23,13 +26,13 @@ window.BedrockEntityManager = {
 			console.log(err);
 			return false;
 		}
-	},
+	}
 	getEntityFile() {
 		var path = Project.export_path.split(osfs);
 		var name = path.pop().replace(/\.json$/, '').replace(/\.geo$/, '');
 		var root_index = path.indexOf('models');
 		path.splice(root_index);
-		BedrockEntityManager.root_path =  path.slice().join(osfs);
+		this.root_path =  path.slice().join(osfs);
 		path.push('entity');
 		path = path.join(osfs);
 		var entity_path = findExistingFile([
@@ -37,18 +40,18 @@ window.BedrockEntityManager = {
 			path+osfs+name+'.json',
 		])
 		if (entity_path) {
-			var content = BedrockEntityManager.checkEntityFile(entity_path);
+			var content = this.checkEntityFile(entity_path);
 			if (content) {
 				return content;
 			}
 		} else {
-			function searchFolder(path) {
+			let searchFolder = (path) => {
 				try {
 					var files = fs.readdirSync(path);	
 					for (var name of files) {
 						var new_path = path + osfs + name;
 						if (name.match(/\.json$/)) {
-							var result = BedrockEntityManager.checkEntityFile(new_path);
+							var result = this.checkEntityFile(new_path);
 							if (result) return result;
 						} else if (!name.includes('.')) {
 							var result = searchFolder(new_path);
@@ -59,18 +62,18 @@ window.BedrockEntityManager = {
 			}
 			return searchFolder(path) || searchFolder(path.replace(/entity$/, 'attachables'));
 		}
-	},
+	}
 	initEntity() {
-		BedrockEntityManager.client_entity = BedrockEntityManager.getEntityFile();
-		if (BedrockEntityManager.client_entity && BedrockEntityManager.client_entity.description) {
+		this.client_entity = this.getEntityFile();
+		if (this.client_entity && this.client_entity.description) {
 
 			// Textures
-			var tex_list = BedrockEntityManager.client_entity.description.textures
+			var tex_list = this.client_entity.description.textures
 			if (tex_list instanceof Object) {
 				var valid_textures_list = [];
 				for (var key in tex_list) {
 					if (typeof tex_list[key] == 'string') {
-						var path = BedrockEntityManager.root_path + osfs + tex_list[key].replace(/\//g, osfs);
+						var path = this.root_path + osfs + tex_list[key].replace(/\//g, osfs);
 						path = findExistingFile([
 							path+'.png',
 							path+'.tga'
@@ -130,12 +133,12 @@ window.BedrockEntityManager = {
 			}
 
 		} else {
-			BedrockEntityManager.findEntityTexture(Project.geometry_name)
+			this.findEntityTexture(Project.geometry_name)
 		}
-	},
+	}
 	initAnimations() {
 
-		var anim_list = BedrockEntityManager.client_entity && BedrockEntityManager.client_entity.description && BedrockEntityManager.client_entity.description.animations;
+		var anim_list = this.client_entity && this.client_entity.description && this.client_entity.description.animations;
 		if (anim_list instanceof Object) {
 			let animation_names = [];
 			for (var key in anim_list) {
@@ -158,7 +161,7 @@ window.BedrockEntityManager = {
 					}
 				} catch (err) {}
 			}
-			searchFolder(PathModule.join(BedrockEntityManager.root_path, 'animations'));
+			searchFolder(PathModule.join(this.root_path, 'animations'));
 
 			anim_files.forEach(path => {
 				try {
@@ -167,13 +170,13 @@ window.BedrockEntityManager = {
 				} catch (err) {}
 			})
 		}
-		BedrockEntityManager.initialized_animations = true;
-	},
+		this.initialized_animations = true;
+	}
 	reset() {
-		delete BedrockEntityManager.initialized_animations;
-		delete BedrockEntityManager.client_entity;
-		delete BedrockEntityManager.root_path;
-	},
+		delete this.initialized_animations;
+		delete this.client_entity;
+		delete this.root_path;
+	}
 	findEntityTexture(mob, return_path) {
 		if (!mob) return;
 		var textures = {
@@ -505,7 +508,7 @@ function calculateVisibleBox() {
 		Canvas.updateAllBones()
 		setProjectTitle()
 		if (isApp && Project.geometry_name) {
-			BedrockEntityManager.initEntity()
+			Project.BedrockEntityManager.initEntity()
 		}
 		updateSelection()
 		EditSession.initNewModel()

@@ -16,7 +16,9 @@ class ModelProject {
 		this.export_path = '';
 
 		this.undo = new UndoSystem();
+		if (isApp) this.BedrockEntityManager = new BedrockEntityManager();
 		this.format = options.format instanceof ModelFormat ? options.format : Formats.free;
+		this.mode = 'edit';
 
 		// Data
 		this.elements = [];
@@ -26,6 +28,9 @@ class ModelProject {
 		this.textures = [];
 		this.selected_texture = null;
 		this.outliner = [];
+		this.animations = [];
+		this.timeline_animators = [];
+		this.display_settings = {};
 
 		ModelProject.all.push(this);
 
@@ -67,7 +72,9 @@ class ModelProject {
 	}
 	set name(name) {
 		this._name = name;
-		setProjectTitle(this._name);
+		if (Project == this) {
+			setProjectTitle(this._name);
+		}
 	}
 	get model_3d() {
 		return ProjectData[this.uuid].model_3d;
@@ -80,17 +87,18 @@ class ModelProject {
 	}
 	reset() {
 		return;
-		if (isApp) updateRecentProjectThumbnail();
+		//if (isApp) updateRecentProjectThumbnail();
 
-		Blockbench.dispatchEvent('reset_project');
+		//Blockbench.dispatchEvent('reset_project');
 		
-		if (isApp) BedrockEntityManager.reset();
+		//if (isApp) BedrockEntityManager.reset();
 
-		if (Toolbox.selected.id !== 'move_tool') BarItems.move_tool.select();
+		//if (Toolbox.selected.id !== 'move_tool') BarItems.move_tool.select();
 	
 		Screencam.stopTimelapse();
 	
-		Format = 0;
+		//Format = 0;
+		/*
 		for (var uuid in OutlinerNode.uuids) {
 			delete OutlinerNode.uuids[uuid];
 		}
@@ -101,63 +109,40 @@ class ModelProject {
 		}
 		for (var key in Project.nodes_3d) {
 			delete Project.nodes_3d[key];
-		}
-		selected.empty();
-		Group.all.empty();
-		Group.selected = undefined;
-		Cube.all.empty();
-		Cube.selected.empty();
-		Locator.all.empty();
-		Locator.selected.empty();
-		Texture.all.forEach(tex => tex.stopWatcher());
-		Texture.all.empty();
-		Texture.selected = undefined;
+		}*/
+		//selected.empty();
+		//Group.all.empty();
+		//Group.selected = undefined;
+		//Cube.all.empty();
+		//Cube.selected.empty();
+		//Locator.all.empty();
+		//Locator.selected.empty();
+		//Texture.all.empty();
+		//Texture.selected = undefined;
 	
-		for (var key in ModelProject.properties) {
-			ModelProject.properties[key].reset(this)
-		}
-		this.texture_width = this.texture_height = 16;
-		this.overrides = null;
+		//for (var key in ModelProject.properties) {
+		//	ModelProject.properties[key].reset(this)
+		//}
+		//this.texture_width = this.texture_height = 16;
+		//this.overrides = null;
 	
-		Blockbench.display_settings = display = {};
-		Project.save_path = Project.export_path = Project.name = '';
-		Project.saved = true;
+		//Blockbench.display_settings = display = {};
+		//Project.save_path = Project.export_path = Project.name = '';
+		//Project.saved = true;
 		Prop.added_models = 0;
-		Canvas.updateAll();
-		Outliner.vue.$forceUpdate();
-		Interface.Panels.textures.inside_vue.$forceUpdate();
-		Undo.history.empty();
-		Undo.index = 0;
-		Undo.current_save = null;
-		Painter.current = {};
-		Animator.animations.purge();
-		Timeline.animators.purge();
-		Animation.selected = undefined;
+		//Canvas.updateAll();
+		//Outliner.vue.$forceUpdate();
+		//Interface.Panels.textures.inside_vue.$forceUpdate();
+		//Undo.history.empty();
+		//Undo.index = 0;
+		//Undo.current_save = null;
+		//Painter.current = {};
+		//Animator.animations.purge();
+		//Timeline.animators.purge();
+		//Animation.selected = undefined;
 		delete Animator.motion_trail_lock;
-		$('#var_placeholder_area').val('');
+		//$('#var_placeholder_area').val('');
 	}
-
-	/*
-	----- THINGS TO SAVE --------
-	[x] textures
-	[x] elements
-	[x] groups
-	[x] selection
-	[ ] display settings
-	[x] format
-	[x] animations
-
-	bedrock entity manager
-
-	----- SAVE EXTERNALLY --------
-	[x] scene
-	[x] materials,
-	[x] bones,
-	[x] 3d elements
-
-
-
-	*/
 	openSettings() {
 		BarItems.project_window.click();
 	}
@@ -184,16 +169,41 @@ class ModelProject {
 		Outliner.root = this.outliner;
 		Interface.Panels.outliner.inside_vue.root = this.outliner;
 
-		Interface.Panels.textures.inside_vue.textures = Texture.all
+		Interface.Panels.textures.inside_vue.textures = Texture.all;
 		scene.add(this.model_3d);
 
-		setStartScreen(!Project);
+		Interface.Panels.animations.inside_vue.animations = this.animations;
+		Animation.selected = null;
+		let selected_anim = this.animations.find(anim => anim.selected);
+		if (selected_anim) selected_anim.select();
+		Timeline.vue.animators = this.timeline_animators;
+
+		Interface.Panels.variable_placeholders.inside_vue.text = this.variable_placeholders.toString();
+
+		Modes.options[this.mode].select();
 
 		Blockbench.dispatchEvent('select_project', {project: this});
+
+		setProjectTitle(this.name);
+		setStartScreen(!Project);
+		updateInterface();
+		Vue.nextTick(() => {
+			loadTextureDraggable();
+		})
 	}
 	unselect() {
+		if (isApp) updateRecentProjectThumbnail();
 		this.selected = false;
+		Painter.current = {};
 		scene.remove(this.model_3d);
+		OutlinerNode.uuids = {};
+		Format = 0;
+		Project = 0;
+		Undo = 0;
+
+		OutlinerNode.uuids = {};
+		Outliner.root = [];
+
 		Blockbench.dispatchEvent('unselect_project', {project: this});
 	}
 	async close(force) {
@@ -203,10 +213,20 @@ class ModelProject {
 	
 			Blockbench.dispatchEvent('close_project');
 			
-			ModelProject.all.remove(this);
-			ModelProject.all[0].select();
+			this.unselect();
+			Texture.all.forEach(tex => tex.stopWatcher());
 
+			ModelProject.all.remove(this);
 			delete ProjectData[this.uuid];
+			Project = 0;
+
+			if (ModelProject.all.length) {
+				ModelProject.all[0].select();
+			} else {
+				Interface.tab_bar.new_tab.visible = true;
+				Interface.tab_bar.new_tab.select();
+				setStartScreen(true);
+			}
 
 			return true;
 		} else {
@@ -250,6 +270,9 @@ new Property(ModelProject, 'boolean', 'front_gui_light', {
 new Property(ModelProject, 'vector', 'visible_box', {
 	exposed: false,
 	default: [1, 1, 0]
+});
+new Property(ModelProject, 'string', 'variable_placeholders', {
+	exposed: false,
 });
 
 
@@ -351,6 +374,7 @@ onVueSetup(() => {
 					}
 					Project = 0;
 					Interface.tab_bar.new_tab.selected = true;
+					setProjectTitle(tl('projects.new_tab'));
 				},
 				openSettings() {}
 			}
@@ -410,7 +434,6 @@ onVueSetup(() => {
 
 						let index_offset = Math.trunc((e2.clientX - e1.clientX) / tab_node.clientWidth);
 						scope.drag_position_index = scope.drag_target_index + index_offset;
-						console.log('drag_target_index', scope.drag_target_index, 'drag_position_index', scope.drag_position_index)
 					}
 					last_event = e2;
 				}
@@ -444,6 +467,11 @@ onVueSetup(() => {
 
 				addEventListeners(document, 'mousemove touchmove', move, {passive: false});
 				addEventListeners(document, 'mouseup touchend', off, {passive: false});
+			},
+			selectProject(project, event) {
+				if (!event.target.classList.contains('project_tab_close_button')) {
+					project.select();
+				}
 			},
 			mouseUp(tab, e1) {
 				if (e1.button === 1) {

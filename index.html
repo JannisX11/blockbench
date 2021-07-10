@@ -603,7 +603,7 @@
 				move_back:  (drag_position_index !== null && index > drag_target_index && drag_position_index >= index),
 				move_forth: (drag_position_index !== null && index < drag_target_index && drag_position_index <= index)
 			}"
-			@click="project.select()"
+			@click="selectProject(project, $event)"
 			@dblclick="project.openSettings()"
 			@mousedown="dragTab(project, $event)"
 			@mouseup="mouseUp(project, $event)"

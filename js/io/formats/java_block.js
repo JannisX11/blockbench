@@ -207,13 +207,13 @@ var codec = new Codec('java_block', {
 		if (checkExport('overrides', Project.overrides)) {
 			blockmodel.overrides = Project.overrides;
 		}
-		if (checkExport('display', Object.keys(display).length >= 1)) {
+		if (checkExport('display', Object.keys(Project.display_settings).length >= 1)) {
 			var new_display = {}
 			var entries = 0;
 			for (var i in DisplayMode.slots) {
 				var key = DisplayMode.slots[i]
-				if (DisplayMode.slots.hasOwnProperty(i) && display[key] && display[key].export) {
-					new_display[key] = display[key].export()
+				if (DisplayMode.slots.hasOwnProperty(i) && Project.display_settings[key] && Project.display_settings[key].export) {
+					new_display[key] = disProject.display_settingsplay[key].export()
 					entries++;
 				}
 			}

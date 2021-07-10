@@ -149,13 +149,13 @@ var codec = new Codec('project', {
 			model.animation_variable_placeholders = Interface.Panels.variable_placeholders.inside_vue._data.text;
 		}
 
-		if (Format.display_mode && Object.keys(display).length >= 1) {
+		if (Format.display_mode && Object.keys(Project.display_settings).length >= 1) {
 			var new_display = {}
 			var entries = 0;
 			for (var i in DisplayMode.slots) {
 				var key = DisplayMode.slots[i]
-				if (DisplayMode.slots.hasOwnProperty(i) && display[key] && display[key].export) {
-					new_display[key] = display[key].export()
+				if (DisplayMode.slots.hasOwnProperty(i) && Project.display_settings[key] && Project.display_settings[key].export) {
+					new_display[key] = Project.display_settings[key].export()
 					entries++;
 				}
 			}

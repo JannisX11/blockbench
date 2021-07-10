@@ -215,6 +215,9 @@
 	div#header_free_bar.app-drag-region {
 		flex-grow: 1;
 		height: auto;
+		padding: 3px;
+		color: var(--color-subtle_text);
+		text-align: center;
 	}
 	div#header_free_bar.app-drag-region.resize_space {
 		margin-top: 4px;
@@ -393,9 +396,10 @@
 	}
 
 	#mode_selector {
-		float: right;
 		font-size: 1.1em;
 		height: 30px;
+		margin-left: auto;
+		margin-right: 0;
 	}
 	#mode_selector li {
 		display: inline-block;
@@ -481,6 +485,9 @@
 		text-align: center;
 		cursor: pointer;
 		display: none;
+	}
+	#tab_bar .project_tab_close_button > * {
+		pointer-events: none;
 	}
 	#tab_bar .project_tab:hover .project_tab_close_button,
 	#tab_bar .project_tab.selected .project_tab_close_button,

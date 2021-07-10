@@ -1458,7 +1458,7 @@
 				var channel = Toolbox.selected.animation_channel
 				if (channel === 'position') channel = 'translation';
 				var value = point[axis]
-				var bf = display[display_slot][channel][axisNumber] - (previousValue||0)
+				var bf = Project.display_settings[display_slot][channel][axisNumber] - (previousValue||0)
 
 				if (channel === 'rotation') {
 					value = Math.trimDeg(bf + Math.round(angle*4)/4) - bf;
@@ -1484,12 +1484,12 @@
 					beforeFirstChange(event)
 
 					var difference = value - (previousValue||0)
-					display[display_slot][channel][axisNumber] += difference
+					Project.display_settings[display_slot][channel][axisNumber] += difference
 
 					if (event.shiftKey && channel === 'scale') {
-						var val = display[display_slot][channel][axisNumber]
-						display[display_slot][channel][(axisNumber+1)%3] = val
-						display[display_slot][channel][(axisNumber+2)%3] = val
+						var val = Project.display_settings[display_slot][channel][axisNumber]
+						Project.display_settings[display_slot][channel][(axisNumber+1)%3] = val
+						Project.display_settings[display_slot][channel][(axisNumber+2)%3] = val
 					}
 					DisplayMode.slot.update()
 

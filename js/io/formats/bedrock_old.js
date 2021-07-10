@@ -119,7 +119,7 @@ function parseGeometry(data) {
 	Canvas.updateAllBones()
 	setProjectTitle()
 	if (isApp && Project.geometry_name) {
-		BedrockEntityManager.initEntity()
+		Project.BedrockEntityManager.initEntity()
 	}
 	updateSelection()
 	EditSession.initNewModel()

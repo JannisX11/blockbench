@@ -395,7 +395,7 @@ class Texture {
 	fromDefaultPack() {
 		if (isApp && settings.default_path && settings.default_path.value) {
 			if (Format.single_texture) {
-				var path = BedrockEntityManager.findEntityTexture(Project.geometry_name, 'raw')
+				var path = Project.BedrockEntityManager.findEntityTexture(Project.geometry_name, 'raw')
 				if (path) {
 					this.isDefault = true;
 					path = settings.default_path.value + osfs + path
@@ -931,7 +931,7 @@ class Texture {
 			} else {
 				var find_path;
 				if (Format.bone_rig && Project.geometry_name) {
-					find_path = BedrockEntityManager.findEntityTexture(Project.geometry_name, true)
+					find_path = Project.BedrockEntityManager.findEntityTexture(Project.geometry_name, true)
 				}
 				if (!find_path && Project.export_path) {
 					var arr = Project.export_path.split(osfs);
