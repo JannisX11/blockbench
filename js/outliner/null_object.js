@@ -1,7 +1,9 @@
 
-class NullObject extends NonGroup {
+class NullObject extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid);
+		this.ik_enabled = false;
+		this.ik_chain_length = 0;
 
 		for (var key in NullObject.properties) {
 			NullObject.properties[key].reset(this);
@@ -43,7 +45,6 @@ class NullObject extends NonGroup {
 			this.addTo(Group.selected)
 		}
 		super.init();
-		TickUpdates.outliner = true;
 		return this;
 	}
 	flip(axis, center) {
@@ -85,7 +86,12 @@ class NullObject extends NonGroup {
 	];
 	//NullObject.prototype.needsUniqueName = true;
 	NullObject.prototype.menu = new Menu([
+			'group_elements',
+			'_',
 			'copy',
+			'paste',
+			'duplicate',
+			'_',
 			'rename',
 			'delete'
 		])
@@ -94,19 +100,23 @@ class NullObject extends NonGroup {
 	
 	new Property(NullObject, 'string', 'name', {default: 'null_object'})
 	new Property(NullObject, 'vector', 'from')
+	new Property(NullObject, 'boolean', 'ik_enabled', {condition: () => Format.animation_mode});
+	new Property(NullObject, 'number', 'ik_chain_length', {condition: () => Format.animation_mode});
+	
+	OutlinerElement.types.null_object = NullObject;
 
 BARS.defineActions(function() {
 	new Action('add_null_object', {
 		icon: 'far.fa-circle',
 		category: 'edit',
-		condition: () => {return Format.animation_mode},
+		condition: () => Format.animation_mode,
 		click: function () {
 			var objs = []
 			Undo.initEdit({elements: objs, outliner: true});
 			var null_object = new NullObject().addTo(Group.selected||selected[0]).init();
 			null_object.select();
 			objs.push(null_object);
-			Undo.finishEdit('add null_object');
+			Undo.finishEdit('Add null object');
 			Vue.nextTick(function() {
 				if (settings.create_rename.value) {
 					null_object.rename();

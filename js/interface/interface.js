@@ -68,7 +68,7 @@ class ResizeLine {
 
 const Interface = {
 	default_data: {
-		left_bar_width: 332,
+		left_bar_width: 366,
 		right_bar_width: 314,
 		quad_view_x: 50,
 		quad_view_y: 50,
@@ -95,8 +95,16 @@ const Interface = {
 			},
 			get: function() {return Interface.data.left_bar_width},
 			set: function(o, diff) {
-				let calculated = limitNumber(o + diff, 128, $(window).width()- 120 - Interface.data.right_bar_width)
+				let min = 128;
+				let calculated = limitNumber(o + diff, min, window.innerWidth- 120 - Interface.data.right_bar_width)
 				Interface.data.left_bar_width = Math.snapToValues(calculated, [Interface.default_data.left_bar_width], 16);
+				
+				if (calculated == min) {
+					Prop.show_left_bar = false;
+					Interface.data.left_bar_width = Interface.default_data.left_bar_width;
+				} else {
+					Prop.show_left_bar = true;
+				}
 			},
 			position: function(line) {
 				line.setPosition({
@@ -118,8 +126,16 @@ const Interface = {
 			},
 			get: function() {return Interface.data.right_bar_width},
 			set: function(o, diff) {
-				let calculated = limitNumber(o - diff, 128, $(window).width()- 120 - Interface.data.left_bar_width);
+				let min = 128;
+				let calculated = limitNumber(o - diff, min, window.innerWidth- 120 - Interface.data.left_bar_width);
 				Interface.data.right_bar_width = Math.snapToValues(calculated, [Interface.default_data.right_bar_width], 12);
+				
+				if (calculated == min) {
+					Prop.show_right_bar = false;
+					Interface.data.right_bar_width = Interface.default_data.right_bar_width;
+				} else {
+					Prop.show_right_bar = true;
+				}
 			},
 			position: function(line) {
 				line.setPosition({
@@ -208,11 +224,8 @@ function setupInterface() {
 		$.extend(true, Interface.data, interface_data)
 	} catch (err) {}
 
-	if (!Language.loading_steps) {
-		Language.loading_steps = true;
-	} else {
-		translateUI()
-	}
+	translateUI()
+	
 	$('.edit_session_active').hide()
 
 	$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
@@ -246,7 +259,7 @@ function setupInterface() {
 			tooltip.css('right', 'auto')
 		}
 
-		if ((tooltip.offset().left + tooltip.width()) - $(window).width() > 4) {
+		if ((tooltip.offset().left + tooltip.width()) - window.innerWidth > 4) {
 			tooltip.css('right', '-4px')
 		} else if ($(this).parent().css('position') == 'relative') {
 			tooltip.css('right', '0')
@@ -257,14 +270,9 @@ function setupInterface() {
 
 
 	//Clickbinds
-	$('header'	  ).click( 	function() { setActivePanel('header'  )})
-	$('#preview'	).click(function() { setActivePanel('preview' )})
+	$('header'	).click(function() { setActivePanel('header'  )})
+	$('#preview').click(function() { setActivePanel('preview' )})
 
-	$('ul#cubes_list').click(function(event) {
-		if (event.target === document.getElementById('cubes_list')) {
-			unselectAll()
-		}
-	})
 	$('#texture_list').click(function(){
 		unselectTextures()
 	})
@@ -272,15 +280,40 @@ function setupInterface() {
 		setActivePanel('timeline');
 	})
 	$(document).on('mousedown touchstart', unselectInterface)
+
+	window.addEventListener('resize', resizeWindow);
+	window.addEventListener('orientationchange', () => {
+		setTimeout(resizeWindow, 100)
+	});
 	
 	$('.context_handler').on('click', function() {
 		$(this).addClass('ctx')
 	})
-	$(document).contextmenu(function(event) {
+
+	Interface.text_edit_menu = new Menu([
+		{
+			id: 'copy',
+			name: 'Copy',
+			icon: 'fa-copy',
+			click() {
+				document.execCommand('copy');
+			}
+		},
+		{
+			id: 'paste',
+			name: 'Paste',
+			icon: 'fa-paste',
+			click() {
+				document.execCommand('paste');
+			}
+		}
+	])
+
+	$(document).on('contextmenu', function(event) {
 		if (!$(event.target).hasClass('allow_default_menu')) {
-			/*if (event.target.nodeName === 'INPUT' && $(event.target).is(':focus')) {
+			if (event.target.nodeName === 'INPUT' && $(event.target).is(':focus')) {
 				Interface.text_edit_menu.open(event, event.target)
-			}*/
+			}
 			return false;
 		}
 	})
@@ -322,8 +355,9 @@ function updateInterfacePanels() {
 		$('.sidebar#left_bar').css('display', Prop.show_left_bar ? 'flex' : 'none');
 		$('.sidebar#right_bar').css('display', Prop.show_right_bar ? 'flex' : 'none');
 	}
+	let page = document.getElementById('page_wrapper');
 
-	$('#page_wrapper').css(
+	page.style.setProperty(
 		'grid-template-columns',
 		Interface.data.left_bar_width+'px auto '+ Interface.data.right_bar_width +'px'
 	)
@@ -335,7 +369,7 @@ function updateInterfacePanels() {
 	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.right_bar_width : 0;
 
 	if (!left_width || !right_width) {
-		$('#page_wrapper').css(
+		page.style.setProperty(
 			'grid-template-columns',
 			left_width+'px auto '+ right_width +'px'
 		)
@@ -356,12 +390,11 @@ function resizeWindow(event) {
 	if (!Preview.all || (event && event.target && event.target !== window)) {
 		return;
 	}
-	if (Animator.open) {
-		Timeline.updateSize()
-	}
-
 	if (Interface.data) {
 		updateInterfacePanels()
+	}
+	if (Animator.open) {
+		Timeline.updateSize()
 	}
 	Preview.all.forEach(function(prev) {
 		if (prev.canvas.isConnected) {
@@ -377,10 +410,8 @@ function resizeWindow(event) {
 			dialog.css('top', limitNumber(window.innerHeight-dialog.outerHeight(), 0, 4e3) + 'px')
 		}
 	}
-	BARS.updateToolToolbar();
 	Blockbench.dispatchEvent('resize_window', event);
 }
-$(window).on('resize orientationchange', resizeWindow)
 
 function setProjectTitle(title) {
 	if (Format.bone_rig && Project.geometry_name) {
@@ -412,30 +443,50 @@ function setZoomLevel(mode) {
 		zoom = limitNumber(zoom, 1, 4)
 		main_uv.setZoom(zoom)
 
-	}
-	/* else if (isApp) {
-		switch (mode) {
-			case 'in':	Prop.zoom += 5;  break;
-			case 'out':   Prop.zoom -= 5;  break;
-			case 'reset': Prop.zoom = 100; break;
+	} else if (Prop.active_panel == 'timeline') {
+		
+		let body = document.getElementById('timeline_body');
+		let offsetX = Timeline.vue.scroll_left + (body.clientWidth - Timeline.vue.head_width) / 2;
+		
+		if (mode == 'reset') {
+			let original_size = Timeline.vue._data.size
+			Timeline.vue._data.size = 200;
+			
+			body.scrollLeft += (Timeline.vue._data.size - original_size) * (offsetX / original_size)
+		} else {
+			let zoom = mode == 'in' ? 1.2 : 0.8;
+			let original_size = Timeline.vue._data.size
+			let updated_size = limitNumber(Timeline.vue._data.size * zoom, 10, 1000)
+			Timeline.vue._data.size = updated_size;
+			
+			body.scrollLeft += (updated_size - original_size) * (offsetX / original_size)
 		}
-		var level = (Prop.zoom - 100) / 12
-		currentwindow.webContents.setZoomLevel(level)
-		resizeWindow()
-	}*/
+	} else {
+		switch (mode) {
+			case 'in':		Preview.selected.controls.dollyIn(1.16);  break;
+			case 'out':  	Preview.selected.controls.dollyOut(1.16);  break;
+		}
+	}
 }
 
 //Dialogs
 function showDialog(dialog) {
 	var obj = $('.dialog#'+dialog)
-	$('.dialog').hide(0)
+	$('.dialog').hide()
 	if (open_menu) {
 		open_menu.hide()
 	}
-	$('#blackout').fadeIn(0)
-	obj.fadeIn(0)
+	$('#blackout').show()
+	obj.show()
 	open_dialog = dialog
-	open_interface = dialog
+	open_interface = {
+		confirm() {
+			$('dialog#'+open_dialog).find('.confirm_btn:not([disabled])').trigger('click');
+		},
+		cancel() {
+			$('dialog#'+open_dialog).find('.cancel_btn:not([disabled])').trigger('click');
+		}
+	}
 	Prop.active_panel = 'dialog'
 	//Draggable
 	if (obj.hasClass('draggable')) {
@@ -443,16 +494,14 @@ function showDialog(dialog) {
 			handle: ".dialog_handle",
 			containment: '#page_wrapper'
 		})
-		var x = ($(window).width()-obj.outerWidth()) / 2;
-		var top = ($(window).height() - obj.outerHeight()) / 2;
+		var x = (window.innerWidth-obj.outerWidth()) / 2;
 		obj.css('left', x+'px')
-		obj.css('top', 'px')
-		obj.css('max-height', ($(window).height()-128)+'px')
+		obj.css('max-height', (window.innerHeight-128)+'px')
 	}
 }
 function hideDialog() {
-	$('#blackout').fadeOut(0)
-	$('.dialog').fadeOut(0)
+	$('#blackout').hide()
+	$('.dialog').hide()
 	open_dialog = false;
 	open_interface = false;
 	Prop.active_panel = undefined
@@ -464,18 +513,18 @@ function setSettingsTab(tab) {
 	$('#settings .tab_content#'+tab).removeClass('hidden')
 	if (tab === 'keybindings') {
 		//Keybinds
-		$('#keybindlist').css('max-height', ($(window).height() - 420) +'px')
+		$('#keybindlist').css('max-height', (window.innerHeight - 420) +'px')
 		$('#keybind_search_bar').focus()
 
 	} else if (tab === 'setting') {
 		//Settings
-		$('#settingslist').css('max-height', ($(window).height() - 420) +'px')
+		$('#settingslist').css('max-height', (window.innerHeight - 420) +'px')
 		$('#settings_search_bar').focus()
 
 	} else if (tab === 'layout_settings') {
 		//Layout
-
-		$('#theme_editor').css('max-height', ($(window).height() - 420) +'px')
+		$('#theme_editor').css('max-height', (window.innerHeight - 420) +'px')
+		if (!CustomTheme.dialog_is_setup) CustomTheme.setupDialog()
 	} else if (tab == 'credits') {
 		// About
 
@@ -502,6 +551,17 @@ function setSettingsTab(tab) {
 		}
 	}
 }
+
+function getStringWidth(string, size) {
+	var a = $('<label style="position: absolute">'+string+'</label>')
+	if (size && size !== 16) {
+		a.css('font-size', size+'pt')
+	}
+	$('body').append(a.css('visibility', 'hidden'))
+	var width = a.width()
+	a.detach()
+	return width;
+};
 
 //UI Edit
 function setProgressBar(id, val, time) {
@@ -574,7 +634,7 @@ function addStartScreenSection(id, data) {
 			}
 			var l = $(`<${tag}>${content}</${tag.split(' ')[0]}>`);
 			if (typeof line.click == 'function') {
-				l.click(line.click);
+				l.on('click', line.click);
 			}
 			right.append(l);
 		})
@@ -584,6 +644,12 @@ function addStartScreenSection(id, data) {
 		obj.find('i.start_screen_close_button').click((e) => {
 			obj.detach()
 		});
+	}
+	if (typeof data.click == 'function') {
+		obj.on('click', event => {
+			if (event.target.classList.contains('start_screen_close_button')) return;
+			data.click()
+		})
 	}
 	if (data.color) {
 		obj.css('background-color', data.color);
@@ -604,7 +670,7 @@ function addStartScreenSection(id, data) {
 
 
 (function() {
-	var news_call = $.getJSON('https://blockbench.net/api/news/news.json')
+	var news_call = $.getJSON('https://web.blockbench.net/content/news.json')
 	Promise.all([news_call, documentReady]).then((data) => {
 		if (!data || !data[0]) return;
 		data = data[0];
@@ -653,18 +719,6 @@ function addStartScreenSection(id, data) {
 			updateStreamerModeNotification()
 		}
 
-
-		//Electron
-		if (isApp && !compareVersions(process.versions.electron, '6.0.0')) {
-			addStartScreenSection({
-				graphic: {type: 'icon', icon: 'fas.fa-atom'},
-				text: [
-					{type: 'h1', text: 'Electron Update Recommended'},
-					{text: 'Your Blockbench is using an old version of Electron. Install the latest version to get the best performance and newest features. Just run the latest Blockbench installer. This only takes a minute and will not affect your custom settings.'},
-					{text: '[Blockbench Downloads](https://blockbench.net/downloads/)'}
-				]
-			})
-		}
 		//Twitter
 		let twitter_ad;
 		if (Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
@@ -683,15 +737,54 @@ function addStartScreenSection(id, data) {
 		//Discord
 		if (Blockbench.startup_count < 6 && !twitter_ad) {
 			addStartScreenSection({
-				color: '#7289da',
+				color: '#5865F2',
 				text_color: '#ffffff',
 				graphic: {type: 'icon', icon: 'fab.fa-discord'},
 				text: [
 					{type: 'h1', text: 'Discord Server'},
-					{text: 'You need help with modeling or you want to chat about Blockbench? Join the [Modeling Discord](https://discord.gg/WVHg5kH)!'}
+					{text: 'You need help with modeling or you want to chat about Blockbench? Join the official [Blockbench Discord](https://discord.gg/WVHg5kH)!'}
 				],
 				last: true
 			})
+		}
+
+		// Keymap Preference
+		if (!Blockbench.isMobile && Blockbench.startup_count <= 1) {
+
+			
+			var obj = $(`<section id="keymap_preference">
+				<h2>${tl('mode.start.keymap_preference')}</h2>
+				<p>${tl('mode.start.keymap_preference.desc')}</p>
+				<ul></ul>
+			</section>`)
+
+			var keymap_list = $(obj).find('ul');
+			
+			obj.prepend(`<i class="material-icons start_screen_close_button">clear</i>`);
+			obj.find('i.start_screen_close_button').on('click', (e) => {
+				obj.detach();
+			});
+
+			[
+				['default', 'action.load_keymap.default'],
+				['mouse', 'action.load_keymap.mouse'],
+				['blender', 'Blender'],
+				['cinema4d', 'Cinema 4D'],
+				['maya', 'Maya'],
+			].forEach(([id, name], index) => {
+
+				let node = $(`<li class="keymap_select_box">
+					<h4>${tl(name)}</h4>
+					<p>${tl(`action.load_keymap.${id}.desc`)}</p>
+				</li>`)
+				node.on('click', e => {
+					Keybinds.loadKeymap(id, true);
+					obj.detach();
+				})
+				keymap_list.append(node);
+			})
+			
+			$('#start_screen content').prepend(obj);
 		}
 	})
 

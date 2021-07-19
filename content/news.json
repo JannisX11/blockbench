@@ -1,0 +1,26 @@
+{
+	"new_version": {
+		"color": "var(--color-bright_ui)",
+		"text_color": "var(--color-accent_text)",
+		"graphic": {
+			"type": "image",
+			"source": "https://web.blockbench.net/content/splash_art.png?39",
+			"width": 630,
+			"height": 420
+		},
+		"text": [
+			{"text": "## Blockbench 3.9"},
+			{"text": "### Highlights of this update:"},
+			{"type": "list", "list": [
+				"Load, export and share keymaps and settings!",
+				"Travel through time using the new Edit History!",
+				"Hold Alt to resize cubes in both directions",
+				"Get creative with the new gradient tool",
+				"Transform spaces are now available in animation mode",
+				"Dozens of quality-of-life features and improvements!"
+			]},
+			{"text": "Make sure to read the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v3.9.0)!"},
+			{"text": "Splash Art by [LorenOLoren](https://twitter.com/LorenOLoren1) and [Dankbarkeit](https://twitter.com/Dxnkbarkeit)"}
+		]
+	}
+}

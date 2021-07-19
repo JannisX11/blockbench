@@ -91,28 +91,23 @@ const Painter = {
 	},
 	// Preview Brush
 	startPaintToolCanvas(data, e) {
-		if (!data && Toolbox.selected.id == 'color_picker') {
+		if (!data.intersects && Toolbox.selected.id == 'color_picker') {
 			var preview = Preview.selected;
 			if (preview && preview.background && preview.background.imgtag) {
 				
+				let bg_pos = preview.canvas.style.backgroundPosition.split(' ').map(v => parseFloat(v));
+				let bg_size = parseFloat(preview.canvas.style.backgroundSize);
 				var ctx = Painter.getCanvas(preview.background.imgtag).getContext('2d')
-				var pixel_ratio = main_preview.background.imgtag.width / main_preview.background.size;
-				var x = (event.offsetX - preview.width/2 - preview.background.x) * pixel_ratio + main_preview.background.imgtag.width/2
-				var y = (event.offsetY - preview.height/2 - preview.background.y)* pixel_ratio
-				if (x >= 0 && y >= 0 && x < main_preview.background.imgtag.width && y < main_preview.background.imgtag.height) {
-					Painter.scanCanvas(ctx, x, y, 1, 1, (x, y, px) => {
-						var t = tinycolor({
-							r: px[0],
-							g: px[1],
-							b: px[2],
-							a: px[3]/256
-						})
-						ColorPanel.set(t)
-					})
+				var pixel_ratio = preview.background.imgtag.width / bg_size;
+				var x = (e.offsetX - bg_pos[0]) * pixel_ratio
+				var y = (e.offsetY - bg_pos[1]) * pixel_ratio
+				if (x >= 0 && y >= 0 && x < preview.background.imgtag.width && y < preview.background.imgtag.height) {
+					let color = Painter.getPixelColor(ctx, x, y);
+					ColorPanel.set(color);
 				}
 			}
 		}
-		if (!data || (data.cube && data.cube.locked)) return;
+		if (!data.intersects || (data.cube && data.cube.locked)) return;
 		var texture = data.cube.faces[data.face].getTexture()
 		if (!texture || (texture.error && texture.error !== 2)) {
 			Blockbench.showQuickMessage('message.untextured')
@@ -144,7 +139,7 @@ const Painter = {
 					return
 				}
 				if (Painter.current.face !== data.face || Painter.current.cube !== data.cube) {
-					if (Toolbox.selected.id === 'draw_shape_tool') {
+					if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
 						return;
 					}
 					Painter.current.x = x
@@ -170,7 +165,7 @@ const Painter = {
 		//Called directly by startPaintToolCanvas and startBrushUV
 		if (Toolbox.selected.id === 'color_picker') {
 			Painter.colorPicker(texture, x, y)
-		} else if (Toolbox.selected.id === 'draw_shape_tool') {
+		} else if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
 
 			Undo.initEdit({textures: [texture], selected_texture: true, bitmap: true});
 			Painter.brushChanges = false;
@@ -216,6 +211,10 @@ const Painter = {
 
 			Painter.useShapeTool(texture, x, y, event, uv)
 
+		} else if (Toolbox.selected.id === 'gradient_tool') {
+
+			Painter.useGradientTool(texture, x, y, event, uv)
+
 		} else {
 			Painter.drawBrushLine(texture, x, y, event, new_face, uv)
 		}
@@ -225,8 +224,11 @@ const Painter = {
 	stopPaintTool() {
 		//Called directly by stopPaintToolCanvas and stopBrushUV
 		if (Painter.brushChanges) {
-			Undo.finishEdit('paint');
+			Undo.finishEdit('Paint texture');
 			Painter.brushChanges = false;
+		}
+		if (Toolbox.selected.id == 'gradient_tool') {
+			Blockbench.setStatusBarText();
 		}
 		delete Painter.current.alpha_matrix;
 		Painter.painting = false;
@@ -297,10 +299,10 @@ const Painter = {
 			Painter.current.force = touch.force;
 
 			if (settings.brush_opacity_modifier.value == 'pressure' && touch.force) {
-				b_opacity = Math.clamp(b_opacity * touch.force*1.25, 0, 100);
+				b_opacity = Math.clamp(b_opacity * Math.clamp(touch.force*1.25, 0, 1), 0, 100);
 
 			} else if (settings.brush_opacity_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
-				var modifier = Math.clamp(1.5 / (touch.altitudeAngle + 0.3), 1, 4)/2;
+				var modifier = Math.clamp(0.5 / (touch.altitudeAngle + 0.3), 0, 1);
 				b_opacity = Math.clamp(b_opacity * modifier, 0, 100);
 			}
 			if (settings.brush_size_modifier.value == 'pressure' && touch.force) {
@@ -610,17 +612,84 @@ const Painter = {
 
 		}, {no_undo: true, use_cache: true});
 	},
+	useGradientTool(texture, x, y, event, uvTag) {
+		Painter.brushChanges = true;
+
+		texture.edit(function(canvas) {
+			var ctx = canvas.getContext('2d')
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			ctx.drawImage(Painter.current.clear, 0, 0)
+
+			let b_opacity = BarItems.slider_brush_opacity.get()/100;
+
+			if (uvTag) {
+				var rect = Painter.editing_area = [
+					uvTag[0] / Project.texture_width * texture.img.naturalWidth,
+					uvTag[1] / Project.texture_height * texture.img.naturalHeight,
+					uvTag[2] / Project.texture_width * texture.img.naturalWidth,
+					uvTag[3] / Project.texture_height * texture.img.naturalHeight
+				]
+			} else {
+				var rect = Painter.editing_area = [0, 0, texture.img.naturalWidth, texture.img.naturalHeight]
+			}
+			for (var t = 0; t < 2; t++) {
+				if (rect[t] > rect[t+2]) {
+					[rect[t], rect[t+2]] = [rect[t+2], rect[t]]
+				}
+				rect[t] = Math.round(rect[t])
+				rect[t+2] = Math.round(rect[t+2])
+			}
+			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
+			let diff_x = x - Painter.startPixel[0];
+			let diff_y = y - Painter.startPixel[1];
+
+			if (event.shiftKey) {
+				let length = Math.sqrt(Math.pow(diff_x, 2) + Math.pow(diff_y, 2));
+
+				let ratio = Math.abs(diff_x) / Math.abs(diff_y);
+				if (ratio < 0.25) {
+					ratio = 0;
+					diff_x = 0;
+					diff_y = length;
+				} else if (ratio < 0.75) {
+					ratio = 0.5;
+					diff_x = Math.round(length / 2.2361);
+					diff_y = diff_x * 2;
+				} else if (ratio < 1.5) {
+					ratio = 1;
+					diff_x = Math.round(Math.sqrt(Math.pow(length, 2) / 2));
+					diff_y = diff_x;
+				} else if (ratio < 3) {
+					ratio = 2;
+					diff_y = Math.round(length / 2.2361);
+					diff_x = diff_y * 2;
+				} else {
+					ratio = Infinity;
+					diff_x = length;
+					diff_y = 0;
+				}
+				x = Painter.startPixel[0] + diff_x * Math.sign(x - Painter.startPixel[0]);
+				y = Painter.startPixel[1] + diff_y * Math.sign(y - Painter.startPixel[1]);
+			}
+
+			let gradient = ctx.createLinearGradient(Painter.startPixel[0], Painter.startPixel[1], x, y);
+			gradient.addColorStop(0, tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString());
+			gradient.addColorStop(1, tinycolor(ColorPanel.get()).setAlpha(0).toRgbString());
+			
+			ctx.fillStyle = gradient;
+
+			ctx.rect(rect[0], rect[1], w, h);
+			ctx.fill();
+
+			let degrees = Math.round(Math.radToDeg(Math.atan2(diff_x, diff_y)) * 4) / 4;
+			Blockbench.setStatusBarText(`${Math.round(diff_x)} x ${Math.round(diff_y)}, ${degrees}°`);
+
+		}, {no_undo: true, use_cache: true});
+	},
 	colorPicker(texture, x, y) {
 		var ctx = Painter.getCanvas(texture).getContext('2d')
-		Painter.scanCanvas(ctx, x, y, 1, 1, (x, y, px) => {
-			var t = tinycolor({
-				r: px[0],
-				g: px[1],
-				b: px[2],
-				a: px[3]/256
-			})
-			ColorPanel.set(t)
-		})
+		let color = Painter.getPixelColor(ctx, x, y);
+		ColorPanel.set(color);
 	},
 	// Util
 	combineColors(base, added, opacity) {
@@ -688,6 +757,15 @@ const Painter = {
 			})
 		}
 		ctx.putImageData(arr, x, y)
+	},
+	getPixelColor(ctx, x, y) {
+		var {data} = ctx.getImageData(x, y, 1, 1)
+		return new tinycolor({
+			r: data[0],
+			g: data[1],
+			b: data[2],
+			a: data[3]/256
+		})
 	},
 	modifyCanvasSection(ctx, x, y, w, h, cb) {
 		var arr = ctx.getImageData(x, y, w, h)
@@ -818,8 +896,8 @@ BARS.defineActions(function() {
 		transformerMode: 'hidden',
 		paintTool: true,
 		brushTool: true,
-		allowWireframe: false,
-		keybind: new Keybind({key: 66}),
+		allowed_view_modes: ['textured'],
+		keybind: new Keybind({key: 'b'}),
 		modes: ['paint'],
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
@@ -842,7 +920,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowWireframe: false,
+		allowed_view_modes: ['textured'],
 		modes: ['paint'],
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
@@ -855,14 +933,15 @@ BARS.defineActions(function() {
 		icon: 'fa-eraser',
 		category: 'tools',
 		toolbar: 'brush',
+		alt_tool: 'color_picker',
 		selectFace: true,
 		transformerMode: 'hidden',
 		cursor: 'crosshair',
 		paintTool: true,
 		brushTool: true,
-		allowWireframe: false,
+		allowed_view_modes: ['textured'],
 		modes: ['paint'],
-		keybind: new Keybind({key: 69}),
+		keybind: new Keybind({key: 'e'}),
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
 		},
@@ -878,7 +957,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowWireframe: false,
+		allowed_view_modes: ['textured'],
 		modes: ['paint'],
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
@@ -896,10 +975,30 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowWireframe: false,
+		allowed_view_modes: ['textured'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
-		keybind: new Keybind({key: 85}),
+		keybind: new Keybind({key: 'u'}),
+		onCanvasClick: function(data) {
+			Painter.startPaintToolCanvas(data, data.event)
+		},
+		onSelect: function() {
+			Painter.updateNslideValues()
+		}
+	})
+	new Tool('gradient_tool', {
+		icon: 'gradient',
+		category: 'tools',
+		toolbar: 'brush',
+		alt_tool: 'color_picker',
+		cursor: 'crosshair',
+		selectFace: true,
+		transformerMode: 'hidden',
+		paintTool: true,
+		allowed_view_modes: ['textured'],
+		modes: ['paint'],
+		condition: {modes: ['paint']},
+		//keybind: new Keybind({key: 'u'}),
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
 		},
@@ -916,10 +1015,10 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowWireframe: false,
+		allowed_view_modes: ['textured'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
-		keybind: new Keybind({key: 77})
+		keybind: new Keybind({key: 'm'})
 	})
 
 	new BarSelect('draw_shape_type', {
@@ -978,7 +1077,7 @@ BARS.defineActions(function() {
 		icon: 'grid_on',
 		category: 'view',
 		condition: () => Modes.paint,
-		keybind: new Keybind({key: 71}),
+		keybind: new Keybind({key: 'g'}),
 		linked_setting: 'painting_grid'
 	})
 
@@ -1011,7 +1110,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider('slider_brush_opacity', {
 		category: 'paint',
-		condition: () => (Toolbox && ['brush_tool', 'eraser', 'fill_tool', 'draw_shape_tool'].includes(Toolbox.selected.id)),
+		condition: () => (Toolbox && ['brush_tool', 'eraser', 'fill_tool', 'draw_shape_tool', 'gradient_tool'].includes(Toolbox.selected.id)),
 		tool_setting: 'brush_opacity',
 		settings: {
 			min: 0, max: 100, default: 100,

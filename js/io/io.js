@@ -15,6 +15,13 @@ function setupDragHandlers() {
 		}
 	)
 	Blockbench.addDragHandler(
+		'settings',
+		{extensions: ['bbsettings']},
+		function(files) {
+			Settings.import(files[0]);
+		}
+	)
+	Blockbench.addDragHandler(
 		'plugin',
 		{extensions: ['bbplugin', 'js']},
 		function(files) {
@@ -40,47 +47,10 @@ function setupDragHandlers() {
 		}
 	)
 }
-function loadModelFile(file) {
-	if (showSaveDialog()) {
-		resetProject();
-
-		(function() {
-			var extension = pathToExtension(file.path);
-			// Text
-			for (var id in Codecs) {
-				let codec = Codecs[id];
-				if (codec.load_filter && codec.load_filter.type == 'text') {
-					if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, file.content)) {
-						codec.load(file.content, file);
-						return;
-					}
-				}
-			}
-			// JSON
-			var model = autoParseJSON(file.content);
-			for (var id in Codecs) {
-				let codec = Codecs[id];
-				if (codec.load_filter && codec.load_filter.type == 'json') {
-					if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, model)) {
-						codec.load(model, file);
-						return;
-					}
-				}
-			}
-		})();
-
-		EditSession.initNewModel()
-		if (!Format) {
-			Modes.options.start.select()
-			Modes.vue.$forceUpdate()
-			Blockbench.dispatchEvent('close_project');
-		}
-	}
-}
 var Extruder = {
 	drawImage: function(file) {
 		Extruder.canvas = $('#extrusion_canvas').get(0)
-		var ctx = extrusion_canvas.getContext('2d')
+		var ctx = Extruder.canvas.getContext('2d')
 
 		setProgressBar('extrusion_bar', 0)
 		$('#scan_tolerance').on('input', function() {
@@ -92,25 +62,28 @@ var Extruder = {
 		Extruder.ext_img.src = isApp ? file.path.replace(/#/g, '%23') : file.content
 		Extruder.image_file = file
 		Extruder.ext_img.style.imageRendering = 'pixelated'
-		ctx.imageSmoothingEnabled = false;
+		Extruder.canvas.style.imageRendering = 'pixelated'
 
 		Extruder.ext_img.onload = function() {
-			ctx.clearRect(0, 0, 256, 256);
-			ctx.drawImage(Extruder.ext_img, 0, 0, 256, 256)
-			Extruder.width = Extruder.ext_img.naturalWidth
-			Extruder.height = Extruder.ext_img.naturalHeight
+			let ratio = Extruder.ext_img.naturalWidth / Extruder.ext_img.naturalHeight;
+			Extruder.canvas.width = 256;
+			Extruder.canvas.height = 256 / ratio;
+			ctx.clearRect(0, 0, Extruder.canvas.width, Extruder.canvas.height);
+			ctx.imageSmoothingEnabled = false;
+			ctx.drawImage(Extruder.ext_img, 0, 0, Extruder.canvas.width, Extruder.canvas.height);
+			Extruder.width = Extruder.ext_img.naturalWidth;
+			Extruder.height = Extruder.ext_img.naturalHeight;
 
 			if (Extruder.width > 128) return;
 
-			var g = 256 / Extruder.width;
 			var p = 0
 			ctx.beginPath();
 
-			for (var x = 0; x <= 256; x += g) {
+			for (var x = 0; x < Extruder.canvas.width; x += 256 / Extruder.width) {
 				ctx.moveTo(0.5 + x + p, p);
 				ctx.lineTo(0.5 + x + p, 256 + p);
 			}
-			for (var x = 0; x <= 256; x += g) {
+			for (var x = 0; x < Extruder.canvas.height; x += 256 / Extruder.width) {
 				ctx.moveTo(p, 0.5 + x + p);
 				ctx.lineTo(256 + p, 0.5 + x + p);
 			}
@@ -149,10 +122,9 @@ var Extruder = {
 
 		//Scale Index
 		var scale_i = 1;
-		if (Extruder.width < Extruder.height) {
-			Extruder.width = Extruder.height;
-		}
 		scale_i = 16 / Extruder.width;
+		let uv_scale_x = Project.texture_width / Extruder.width;
+		let uv_scale_y = Project.texture_height / Extruder.height;
 
 		function isOpaquePixel(px_x, px_y) {
 			var opacity = image_data[(px_x + ctx.canvas.width * px_y) * 4 + 3]
@@ -246,18 +218,17 @@ var Extruder = {
 						from: [rect.x*scale_i, 0, rect.y*scale_i],
 						to: [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i],
 						faces: {
-							up:		{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture},
-							down:	{uv:[rect.x*scale_i, (rect.y2+1)*scale_i, (rect.x2+1)*scale_i, rect.y*scale_i], texture: texture},
-							north:	{uv:[(rect.x2+1)*scale_i, rect.y*scale_i, rect.x*scale_i, (rect.y+1)*scale_i], texture: texture},
-							south:	{uv:[rect.x*scale_i, rect.y2*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture},
-							east:	{uv:[rect.x2*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 90},
-							west:	{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 270}
+							up:		{uv:[rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+							down:	{uv:[rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y, (rect.x2+1)*uv_scale_x, rect.y*uv_scale_y], texture: texture},
+							north:	{uv:[(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y+1)*uv_scale_y], texture: texture},
+							south:	{uv:[rect.x*uv_scale_x, rect.y2*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+							east:	{uv:[rect.x2*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 90},
+							west:	{uv:[rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 270},
 						}
 					}).init()
 					selected.push(current_cube)
 					cube_nr++;
 				}
-
 
 				ext_x++;
 			}
@@ -269,7 +240,7 @@ var Extruder = {
 			s.addTo(group).init()
 		})
 
-		Undo.finishEdit('add extruded texture', {elements: selected, outliner: true, textures: [textures[textures.length-1]]})
+		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [textures[textures.length-1]]})
 
 		hideDialog()
 	}
@@ -338,7 +309,6 @@ function uploadSketchfabModel() {
 							title: tl('message.sketchfab.success'),
 							message:
 								`[${formResult.name} on Sketchfab](https://sketchfab.com/models/${response.uid})`, //\n\n&nbsp;\n\n`+
-								//tl('message.sketchfab.setup_guide', '[Sketchfab Setup and Common Issues](https://blockbench.net/2020/01/22/sketchfab-setup-and-common-issues/)'),
 							icon: 'icon-sketchfab',
 						})
 					},
@@ -476,7 +446,7 @@ BARS.defineActions(function() {
 	new Action('open_model', {
 		icon: 'assessment',
 		category: 'file',
-		keybind: new Keybind({key: 79, ctrl: true}),
+		keybind: new Keybind({key: 'o', ctrl: true}),
 		condition: () => (!EditSession.active || EditSession.hosting),
 		click: function () {
 			var startpath;
@@ -498,28 +468,10 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	new Action('add_model', {
-		icon: 'assessment',
-		category: 'file',
-		condition: _ => (Format.id == 'java_block'),
-		click: function () {
-			Blockbench.import({
-				resource_id: 'model',
-				extensions: ['json'],
-				type: 'JSON Model',
-				multiple: true,
-			}, function(files) {
-				files.forEach(file => {
-					var model = autoParseJSON(file.content)
-					Codecs.java_block.parse(model, file.path, true)
-				})
-			})
-		}
-	})
 	new Action('extrude_texture', {
 		icon: 'eject',
 		category: 'file',
-		condition: _ => !Project.box_uv,
+		condition: _ => Format && !Project.box_uv,
 		click: function () {
 			Blockbench.import({
 				resource_id: 'texture',
@@ -538,7 +490,7 @@ BARS.defineActions(function() {
 	new Action('export_over', {
 		icon: 'save',
 		category: 'file',
-		keybind: new Keybind({key: 83, ctrl: true}),
+		keybind: new Keybind({key: 's', ctrl: true}),
 		click: function () {
 			if (isApp) {
 				saveTextures()
@@ -547,7 +499,7 @@ BARS.defineActions(function() {
 						Format.codec.write(Format.codec.compile(), ModelMeta.export_path)
 					} else if (ModelMeta.save_path) {
 						Codecs.project.write(Codecs.project.compile(), ModelMeta.save_path);
-					} else if (Format.codec) {
+					} else if (Format.codec && Format.codec.export) {
 						Format.codec.export()
 					}
 				}
@@ -556,7 +508,7 @@ BARS.defineActions(function() {
 				}
 			} else {
 				saveTextures()
-				if (Format.codec && Format.codec.compile && Format.id != 'skin') {
+				if (Format.codec && Format.codec.export) {
 					Format.codec.export()
 				}
 			}
@@ -598,4 +550,77 @@ BARS.defineActions(function() {
 			uploadSketchfabModel()
 		}
 	})
+
+
+	new Action('share_model', {
+		icon: 'share',
+		condition: () => Cube.all.length,
+		click() {
+			var dialog = new Dialog({
+				id: 'share_model',
+				title: 'dialog.share_model.title',
+				form: {
+					expire_time: {label: 'dialog.share_model.expire_time', type: 'select', default: '2d', options: {
+						'10m': tl('dates.minutes', [10]),
+						'1h': tl('dates.hour', [1]),
+						'1d': tl('dates.day', [1]),
+						'2d': tl('dates.days', [2]),
+						'1w': tl('dates.week', [1]),
+						'2w': tl('dates.weeks', [2]),
+					}},
+					info: {type: 'info', text: 'The model will be stored on the Blockbench servers for the duration specified above. [Learn more](https://blockbench.net/blockbench-model-sharing-service/)'}
+				},
+				buttons: ['generic.share', 'dialog.cancel'],
+				onConfirm: function(formResult) {
+		
+					let expire_time = formResult.expire_time;
+					let model = Codecs.project.compile({compressed: false});
+
+					$.ajax({
+						url: 'https://blckbn.ch/api/model',
+						data: JSON.stringify({ expire_time, model }),
+						cache: false,
+						contentType: 'application/json; charset=utf-8',
+						dataType: 'json',
+						type: 'POST',
+						success: function(response) {
+							let link = `https://blckbn.ch/${response.id}`
+
+							let link_dialog = new Dialog({
+								id: 'share_model_link',
+								title: 'dialog.share_model.title',
+								form: {
+									link: {type: 'text', value: link}
+								},
+								buttons: ['action.copy', 'dialog.close'],
+								onConfirm() {
+									link_dialog.hide();
+									if (isApp || navigator.clipboard) {
+										Clipbench.setText(link);
+										Blockbench.showQuickMessage('dialog.share_model.copied_to_clipboard');
+									} else {
+										Blockbench.showMessageBox({
+											title: 'dialog.share_model.title',
+											message: `[${link}](${link})`,
+										})
+									}
+								}
+							}).show();
+
+						},
+						error: function(response) {
+							Blockbench.showQuickMessage('dialog.share_model.failed', 1500)
+							console.error(response);
+						}
+					})
+		
+					dialog.hide()
+				}
+			})
+			dialog.show()
+		}
+	})
+
+
+
 })

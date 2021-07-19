@@ -11,11 +11,16 @@ const Pressing = {
 	shift: false,
 	ctrl: false,
 	alt: false,
+	overrides: {
+		shift: false,
+		ctrl: false,
+		alt: false,
+	}
 }
 var main_uv;
 var Prop = {
 	active_panel	: 'preview',
-	wireframe	  	: false,
+	view_mode	  	: 'textured',
 	file_path	  	: '',
 	file_name	  	: '',
 	added_models 	: 0,
@@ -32,8 +37,6 @@ var Prop = {
 
 const mouse_pos = {x:0,y:0}
 const sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
-
-$.ajaxSetup({ cache: false });
 
 function onVueSetup(func) {
 	if (!onVueSetup.funcs) {
@@ -83,9 +86,9 @@ function updateNslideValues() {
 			BarItems.rescale_toggle.setIcon(Outliner.selected[0].rescale ? 'check_box' : 'check_box_outline_blank')
 		}
 	}
-	if (Modes.animate && Group.selected) {
+	if (Modes.animate && NullObject.selected[0]) {
 		BarItems.slider_ik_chain_length.update();
-		BarItems.ik_enabled.setIcon(Group.selected.ik_enabled ? 'check_box' : 'check_box_outline_blank')
+		BarItems.ik_enabled.setIcon(NullObject.selected[0].ik_enabled ? 'check_box' : 'check_box_outline_blank')
 	}
 	if (Texture.all.length) {
 		BarItems.animated_texture_frame.update();
@@ -117,20 +120,22 @@ function updateSelection(options = {}) {
 		}
 	}
 	if (Cube.selected.length) {
-		$('.selection_only').css('visibility', 'visible')
+		document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'visible'));
 	} else {
 		if (Format.bone_rig && Group.selected) {
-			$('.selection_only').css('visibility', 'hidden')
-			$('.selection_only#element').css('visibility', 'visible')
-			$('.selection_only#bone').css('visibility', 'visible')
+			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
+			document.querySelectorAll('.selection_only#element').forEach(node => node.style.setProperty('visibility', 'visible'));
 		} else {
-			$('.selection_only').css('visibility', 'hidden')
-			if (Locator.selected.length) {
-				$('.selection_only#element').css('visibility', 'visible')
+			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
+			if (Outliner.selected.length) {
+				document.querySelectorAll('.selection_only#element').forEach(node => node.style.setProperty('visibility', 'visible'));
 			}
 		}
+		if (Group.selected || NullObject.selected[0]) {
+			document.querySelectorAll('.selection_only#bone').forEach(node => node.style.setProperty('visibility', 'visible'));
+		}
 		if (Format.single_texture && Modes.paint) {
-			$('.selection_only#uv').css('visibility', 'visible')
+			document.querySelectorAll('.selection_only#uv').forEach(node => node.style.setProperty('visibility', 'visible'));
 		}
 	}
 	if (Cube.selected.length || (Format.single_texture && Modes.paint)) {
@@ -139,6 +144,9 @@ function updateSelection(options = {}) {
 	}
 	if (Modes.animate) {
 		updateKeyframeSelection();
+		if (Timeline.selected_animator && !Timeline.selected_animator.selected) {
+			Timeline.selected_animator = null;
+		}
 	}
 
 	BarItems.cube_counter.update();
@@ -159,11 +167,11 @@ function selectAll() {
 	if (Modes.animate) {
 		selectAllKeyframes()
 	} else if (Modes.edit || Modes.paint) {
-		if (selected.length < elements.length) {
+		if (Outliner.selected.length < Outliner.elements.length) {
 			if (Outliner.root.length == 1) {
 				Outliner.root[0].select();
 			} else {
-				elements.forEach(obj => {
+				Outliner.elements.forEach(obj => {
 					obj.selectLow()
 				})
 				TickUpdates.selection = true;
@@ -186,7 +194,7 @@ function unselectAll() {
 setInterval(function() {
 	if (Outliner.root.length || textures.length) {
 		try {
-			var model = Codecs.project.compile({compressed: false});
+			var model = Codecs.project.compile({compressed: false, backup: true});
 			localStorage.setItem('backup_model', model)
 		} catch (err) {
 			console.log('Unable to create backup. ', err)
@@ -197,10 +205,6 @@ setInterval(function() {
 const TickUpdates = {
 	Run() {
 		try {
-			if (TickUpdates.outliner) {
-				delete TickUpdates.outliner;
-				loadOutlinerDraggable()
-			}
 			if (TickUpdates.selection) {
 				delete TickUpdates.selection;
 				updateSelection()

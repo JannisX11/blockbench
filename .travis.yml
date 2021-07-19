@@ -3,31 +3,31 @@ dist: trusty
 
 language: node_js
 node:
-  - 12
+  - 14
 
-if: branch = master
+if: commit_message =~ ci-build
 
 jobs:
   include:
     - name: "macOS"
       os: osx
-      osx_image: "xcode11.3"
+      osx_image: "xcode12.5"
       script:
         - electron-builder --publish=always
 
     - name: "Windows"
       os: osx
-      osx_image: "xcode11.3"
+      osx_image: "xcode12.5"
       script:
-        - electron-builder --windows portable --x64 --publish=onTagOrDraft -c.productName='Blockbench_portable'
-        - electron-builder -w --ia32 --x64 --publish=onTagOrDraft
+        - electron-builder -w --x64 --ia32 --publish=onTagOrDraft
+        - node ./scripts/rename_portable.js
+        - electron-builder --windows portable --ia32 --publish=onTagOrDraft
 
     - name: "Linux"
       os: linux
       script:
         - sudo apt-get install rpm
         - electron-builder --publish=onTagOrDraft
-
 
 cache:
   directories:

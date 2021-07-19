@@ -40,7 +40,7 @@ var codec = new Codec('java_block', {
 			if (s.shade === false) {
 				element.shade = false
 			}
-			if (!s.rotation.allEqual(0) || !s.origin.allEqual(8)) {
+			if (!s.rotation.allEqual(0) || !s.origin.allEqual(0)) {
 				var axis = s.rotationAxis()||'y';
 				element.rotation = new oneLiner({
 					angle: s.rotation[getAxisNumber(axis)],
@@ -400,9 +400,14 @@ var codec = new Codec('java_block', {
 		if (import_group) {
 			import_group.addTo().select()
 		}
+		let item_parents = [
+			'item/generated', 	'minecraft:item/generated',
+			'item/handheld', 	'minecraft:item/handheld',
+			'item/handheld_rod','minecraft:item/handheld_rod',
+		]
 		if (
 			!model.elements &&
-			(model.parent == 'item/generated' || model.parent == 'item/handheld' || model.parent == 'item/handheld_rod') &&
+			item_parents.includes(model.parent) &&
 			model.textures &&
 			typeof model.textures.layer0 === 'string'
 		) {
@@ -445,7 +450,7 @@ var codec = new Codec('java_block', {
 		}
 		this.dispatchEvent('parsed', {model});
 		if (add) {
-			Undo.finishEdit('add block model')
+			Undo.finishEdit('Add block model')
 		}
 	},
 })
@@ -473,6 +478,24 @@ BARS.defineActions(function() {
 		condition: () => Format == format,
 		click: function () {
 			codec.export();
+		}
+	})
+	new Action('import_java_block_model', {
+		icon: 'assessment',
+		category: 'file',
+		condition: () => Format == format,
+		click: function () {
+			Blockbench.import({
+				resource_id: 'model',
+				extensions: ['json'],
+				type: codec.name,
+				multiple: true,
+			}, function(files) {
+				files.forEach(file => {
+					var model = autoParseJSON(file.content)
+					codec.parse(model, file.path, true)
+				})
+			})
 		}
 	})
 })

@@ -1,5 +1,24 @@
 (function() {
 
+Vue.component('search-bar', {
+	props: {
+		value: String
+	},
+	methods: {
+		change(text) {
+			this.$emit('input', text)
+		},
+		reset() {
+			this.value = '';
+			this.$emit('input', '');
+		}
+	},
+	template: `<div class="search_bar">
+			<input type="text" class="dark_bordered" :value="value" @input="change($event.target.value)">
+			<i class="material-icons" :class="{light_on_hover: !!value}" @click="reset()">{{ value ? 'clear' : 'search' }}</i>
+		</div>`,
+})
+
 function buildForm(dialog) {
 	let dialog_content = $(dialog.object).find('.dialog_content')
 	for (var form_id in dialog.form) {
@@ -34,8 +53,9 @@ function buildForm(dialog) {
 					bar.append(input_element)
 
 					if (data.list) {
-						input_element.list = `${dialog.id}_${form_id}_list`;
-						let list = $(`<datalist id="${input_element.list}"></datalist>`);
+						let list_id = `${dialog.id}_${form_id}_list`;
+						input_element.setAttribute('list', list_id);
+						let list = $(`<datalist id="${list_id}"></datalist>`);
 						for (let value of data.list) {
 							let node = document.createElement('option');
 							node.value = value;
@@ -141,7 +161,8 @@ function buildForm(dialog) {
 							id: 'cp_'+form_id,
 							name: tl(data.label),
 							label: false,
-							private: true
+							private: true,
+							value: data.value
 						})
 					}
 					data.colorpicker.onChange = function() {
@@ -165,15 +186,17 @@ function buildForm(dialog) {
 				case 'save':
 					if (data.type == 'folder' && !isApp) break;
 
-					var input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" disabled>`);
+					let input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" disabled>`);
 					input[0].value = data.value || '';
-					bar.append(input);
+					let input_wrapper = $('<div class="input_wrapper"></div>');
+					input_wrapper.append(input);
+					bar.append(input_wrapper);
 					bar.addClass('form_bar_file');
 
 					switch (data.type) {
-						case 'file': 	bar.append('<i class="material-icons">insert_drive_file</i>'); break;
-						case 'folder':	bar.append('<i class="material-icons">folder</i>'); break;
-						case 'save':	bar.append('<i class="material-icons">save</i>'); break;
+						case 'file': 	input_wrapper.append('<i class="material-icons">insert_drive_file</i>'); break;
+						case 'folder':	input_wrapper.append('<i class="material-icons">folder</i>'); break;
+						case 'save':	input_wrapper.append('<i class="material-icons">save</i>'); break;
 					}
 					let remove_button = $('<div class="tool" style="float: none; vertical-align: top;"><i class="material-icons">clear</i></div>');
 					bar.append(remove_button);
@@ -183,9 +206,10 @@ function buildForm(dialog) {
 						input.val('');
 					})
 
-					bar.on('click', e => {
+					input_wrapper.on('click', e => {
 						function fileCB(files) {
 							data.value = files[0].path;
+							data.content = files[0].content;
 							input.val(data.value);
 							dialog.updateFormValues()
 						}
@@ -195,7 +219,8 @@ function buildForm(dialog) {
 									resource_id: data.resource_id,
 									extensions: data.extensions,
 									type: data.filetype,
-									startpath: data.value
+									startpath: data.value,
+									readtype: data.readtype
 								}, fileCB);
 								break;
 							case 'folder':
@@ -219,6 +244,14 @@ function buildForm(dialog) {
 			}
 			if (data.readonly) {
 				bar.find('input').attr('readonly', 'readonly').removeClass('focusable_input')
+			}
+			if (data.description) {
+				let icon = document.createElement('i');
+				icon.className = 'fa fa-question dialog_form_description';
+				icon.onclick = function() {
+					Blockbench.showQuickMessage(data.description, 3600);
+				}
+				bar.append(icon);
 			}
 			dialog_content.append(bar)
 			data.bar = bar;
@@ -277,12 +310,13 @@ window.Dialog = class Dialog {
 		this.part_order = options.part_order || (options.form_first ? ['form', 'lines', 'component'] : ['lines', 'form', 'component'])
 
 		this.width = options.width
+		this.padding = options.padding != false;
 		this.draggable = options.draggable
 		this.singleButton = options.singleButton
-		this.buttons = options.buttons
+		this.buttons = options.buttons instanceof Array ? options.buttons : (options.singleButton ? ['dialog.close'] : ['dialog.confirm', 'dialog.cancel'])
 		this.form_first = options.form_first;
 		this.confirmIndex = options.confirmIndex||0;
-		this.cancelIndex = options.cancelIndex !== undefined ? options.cancelIndex : 1;
+		this.cancelIndex = options.cancelIndex !== undefined ? options.cancelIndex : this.buttons.length-1;
 	
 		this.confirmEnabled = options.confirmEnabled === false ? false : true
 		this.cancelEnabled = options.cancelEnabled === false ? false : true
@@ -293,11 +327,11 @@ window.Dialog = class Dialog {
 	
 		this.object;
 	}
-	confirm() {
-		$(this.object).find('.confirm_btn:not([disabled])').click()
+	confirm(event) {
+		this.close(this.confirmIndex, event);
 	}
-	cancel() {
-		$(this.object).find('.cancel_btn:not([disabled])').click()
+	cancel(event) {
+		this.close(this.cancelIndex, event);
 	}
 	updateFormValues(initial) {
 		let form_result = this.getFormResult();
@@ -349,20 +383,39 @@ window.Dialog = class Dialog {
 						case 'checkbox':
 							result[form_id] = data.bar.find('input#'+form_id).is(':checked')
 							break;
+						case 'file':
+							result[form_id] = isApp ? data.value : data.content;
+							break;
 					}
 				}
 			}
 		}
 		return result;
 	}
+	close(button, event) {
+		if (button == this.confirmIndex && typeof this.onConfirm == 'function') {
+			let formResult = this.getFormResult();
+			let result = this.onConfirm(formResult, event);
+			if (result === false) return;
+		}
+		if (button == this.cancelIndex && typeof this.onCancel == 'function') {
+			let result = this.onCancel();
+			if (result === false) return;
+		}
+		if (typeof this.onButton == 'function') {
+			let result = this.onButton(button, event);
+			if (result === false) return;
+		}
+		this.hide();
+	}
 	build() {
-		let scope = this;
-		var jq_dialog = $(`<dialog class="dialog paddinged" id="${this.id}">
+		var jq_dialog = $(`<dialog class="dialog" id="${this.id}">
 				<div class="dialog_handle">${tl(this.title)}</div>
 				<content class="dialog_content"></content>
 			</dialog>`)
 		this.object = jq_dialog.get(0)
 		this.max_label_width = 0;
+		if (this.padding) this.object.classList.add('paddinged');
 
 
 		this.part_order.forEach(part => {
@@ -374,51 +427,35 @@ window.Dialog = class Dialog {
 		if (this.max_label_width) {
 			document.styleSheets[0].insertRule('.dialog#'+this.id+' .dialog_bar label {width: '+(this.max_label_width+8)+'px}')
 		}
-		if (this.buttons) {
+
+		if (this.buttons.length) {
 
 			var buttons = []
-
 			this.buttons.forEach((b, i) => {
 				var btn = $('<button type="button">'+tl(b)+'</button> ')
 				buttons.push(btn)
-				if (typeof this.onButton == 'function') {
-					btn.click((event) => {
-						this.onButton(i);
-					})
-				}
+				btn.on('click', (event) => {
+					this.close(i, event);
+				})
 			})
 			buttons[this.confirmIndex] && buttons[this.confirmIndex].addClass('confirm_btn')
 			buttons[this.cancelIndex] && buttons[this.cancelIndex].addClass('cancel_btn')
 			let bar = $('<div class="dialog_bar button_bar"></div>');
 			jq_dialog.append(bar);
+
 			buttons.forEach((button, i) => {
 				if (i) bar.append('&nbsp;')
 				bar.append(button)
 			})
-
-		} else if (this.singleButton) {
-
-			jq_dialog.append('<div class="dialog_bar button_bar" hidden>' +
-				'<button type="button" class="cancel_btn confirm_btn"'+ (this.confirmEnabled ? '' : ' disabled') +'>'+tl('dialog.close')+'</button>' +
-			'</div>')
-
-		} else {
-
-			jq_dialog.append(`<div class="dialog_bar button_bar">
-				<button type="button" class="confirm_btn${this.confirmEnabled ? '' : ' disabled'}">${tl('dialog.confirm')}</button>&nbsp;
-				<button type="button" class="cancel_btn${this.cancelEnabled ? '' : ' disabled'}">${tl('dialog.cancel')}</button>
-			</div>`)
-
 		}
-		jq_dialog.append('<div class="dialog_close_button" onclick="$(\'.dialog#\'+open_dialog).find(\'.cancel_btn:not([disabled])\').click()"><i class="material-icons">clear</i></div>')
-		var confirmFn = function(e) {
 
-			let result = scope.getFormResult();
-			scope.onConfirm(result, e);
-		}
-		confirmFn.bind(this)
-		if (this.confirmEnabled) $(this.object).find('.confirm_btn').click(confirmFn)
-		if (this.cancelEnabled) $(this.object).find('.cancel_btn').click(() => {this.onCancel()})
+		let close_button = document.createElement('div');
+		close_button.classList.add('dialog_close_button');
+		close_button.innerHTML = '<i class="material-icons">clear</i>';
+		jq_dialog.append(close_button);
+		close_button.addEventListener('click', (e) => {
+			this.cancel();
+		})
 		//Draggable
 		if (this.draggable !== false) {
 			jq_dialog.addClass('draggable')
@@ -426,8 +463,6 @@ window.Dialog = class Dialog {
 				handle: ".dialog_handle",
 				containment: '#page_wrapper'
 			})
-			var x = Math.clamp(($(window).width()-540)/2, 0, 2000)
-			jq_dialog.css('left', x+'px')
 			jq_dialog.css('position', 'absolute')
 		}
 		return this;
@@ -437,7 +472,7 @@ window.Dialog = class Dialog {
 		if (window.open_interface && typeof open_interface.hide == 'function') {
 			open_interface.hide();
 		}
-		$('.dialog').hide(0);
+		$('.dialog').hide();
 
 		if (!this.object) {
 			this.build();
@@ -445,28 +480,35 @@ window.Dialog = class Dialog {
 
 		let jq_dialog = $(this.object);
 
-		$('#plugin_dialog_wrapper').append(jq_dialog);
-		$('#blackout').fadeIn(0);
+		$('#dialog_wrapper').append(jq_dialog);
+		$('#blackout').show();
 		jq_dialog.show().css('display', 'flex');
-		jq_dialog.css('top', limitNumber($(window).height()/2-jq_dialog.height()/2, 0, 100)+'px');
+		jq_dialog.css('top', limitNumber(window.innerHeight/2-jq_dialog.height()/2, 0, 100)+'px');
 		if (this.width) {
 			jq_dialog.css('width', this.width+'px');
 		}
-		let first_focus = jq_dialog.find('.focusable_input').first();
-		if (first_focus) first_focus.focus();
+		if (this.draggable !== false) {
+			var x = Math.clamp((window.innerWidth-this.object.clientWidth)/2, 0, 2000)
+			jq_dialog.css('left', x+'px')
+		}
+		if (!Blockbench.isTouch) {
+			let first_focus = jq_dialog.find('.focusable_input').first();
+			if (first_focus) first_focus.trigger('focus');
+		}
 
 		open_dialog = this.id;
 		open_interface = this;
+		Dialog.open = this;
 		Prop.active_panel = 'dialog';
 		return this;
 	}
 	hide() {
-		$('#blackout').fadeOut(0)
-		$(this.object).fadeOut(0)
-			.find('.tool').detach()
+		$('#blackout').hide();
+		$(this.object).hide();
 		open_dialog = false;
 		open_interface = false;
-		Prop.active_panel = undefined
+		Dialog.open = null;
+		Prop.active_panel = undefined;
 		$(this.object).detach()
 		return this;
 	}

@@ -93,13 +93,13 @@ class Keybind {
 		var modifiers = []
 
 		if (this.ctrl) 	modifiers.push(tl('keys.ctrl'))	
-		if (this.ctrl == null) 	modifiers.push(`[${tl('keys.ctrl')}]`)
+		if (this.ctrl === null) 	modifiers.push(`[${tl('keys.ctrl')}]`)
 		if (this.shift) modifiers.push(tl('keys.shift'))	
-		if (this.shift == null) modifiers.push(`[${tl('keys.shift')}]`)
+		if (this.shift === null) modifiers.push(`[${tl('keys.shift')}]`)
 		if (this.alt) 	modifiers.push(tl('keys.alt'))	
-		if (this.alt == null) 	modifiers.push(`[${tl('keys.alt')}]`)
+		if (this.alt === null) 	modifiers.push(`[${tl('keys.alt')}]`)
 		if (this.meta) 	modifiers.push(tl('keys.meta'))	
-		if (this.meta == null) 	modifiers.push(`[${tl('keys.meta')}]`)
+		if (this.meta === null) 	modifiers.push(`[${tl('keys.meta')}]`)
 
 		var char = this.getCode()
 		var char_tl = tl('keys.'+char)
@@ -122,37 +122,38 @@ class Keybind {
 			return tl('keys.mouse', [key])
 		}
 		switch (key) {
-			case   1: return 'leftclick'; break;
-			case   2: return 'middleclick'; break;
-			case   3: return 'rightclick'; break;
-			case   9: return 'tab'; break;
-			case   8: return 'backspace'; break;
-			case  13: return 'enter'; break;
-			case  27: return 'escape'; break;
-			case  46: return 'delete'; break;
-			case  46: return 'caps'; break;
-			case  16: return 'shift'; break;
-			case  17: return 'control'; break;
-			case  18: return 'alt'; break;
-			case  32: return 'space'; break;
-			case  93: return 'menu'; break;
-			case 187: return 'plus'; break;
-			case 188: return 'comma'; break;
-			case 190: return 'point'; break;
-			case 189: return 'minus'; break;
-			case 191: return 'cross'; break;
-			case  37: return 'left'; break;
-			case  38: return 'up'; break;
-			case  39: return 'right'; break;
-			case  40: return 'down'; break;
-			case  33: return 'pageup'; break;
-			case  34: return 'pagedown'; break;
-			case  35: return 'end'; break;
-			case  36: return 'pos1'; break;
-			case  44: return 'printscreen'; break;
-			case  19: return 'pause'; break;
-			case 1001: return 'mousewheel'; break;
-			default : return String.fromCharCode(key).toLowerCase(); break;
+			case   1: return 'leftclick';
+			case   2: return 'middleclick';
+			case   3: return 'rightclick';
+			case   9: return 'tab';
+			case   8: return 'backspace';
+			case  13: return 'enter';
+			case  27: return 'escape';
+			case  46: return 'delete';
+			case  46: return 'caps';
+			case  16: return 'shift';
+			case  17: return 'control';
+			case  18: return 'alt';
+			case  32: return 'space';
+			case  93: return 'menu';
+			case  37: return 'left';
+			case  38: return 'up';
+			case  39: return 'right';
+			case  40: return 'down';
+			case  33: return 'pageup';
+			case  34: return 'pagedown';
+			case  35: return 'end';
+			case  36: return 'pos1';
+			case  44: return 'printscreen';
+			case  19: return 'pause';
+			case 1001: return 'mousewheel';
+
+			case 187: return '+';
+			case 188: return ',';
+			case 190: return '.';
+			case 189: return '-';
+			case 191: return '#';
+			default : return String.fromCharCode(key).toLowerCase();
 		}
 	}
 	hasKey() {
@@ -184,8 +185,7 @@ class Keybind {
 		var scope = this;
 		Keybinds.recording = this;
 		var overlay = $('#overlay_message_box').show()
-		var input = overlay.find('#keybind_input_box')
-		var top = limitNumber($(window).height()/2 - 200, 30, 800)
+		var top = limitNumber(window.innerHeight/2 - 200, 30, 800)
 		overlay.find('> div').css('margin-top', top+'px')
 
 		function onActivate(event) {
@@ -232,7 +232,6 @@ class Keybind {
 		return this;
 	}
 	stopRecording() {
-		var scope = this;
 		Keybinds.recording = false
 		$('#overlay_message_box').hide().off('mousedown mousewheel')
 		$('#keybind_input_box').off('keyup keydown')
@@ -241,6 +240,53 @@ class Keybind {
 	toString() {
 		return this.label
 	}
+}
+Keybinds.loadKeymap = function(id, from_start_screen = false) {
+	let controls_only = from_start_screen && (id == 'default' || id == 'mouse');
+	let answer = controls_only || confirm(tl('message.load_keymap'));
+	if (!answer) return;
+	let preset = KeymapPresets[id];
+
+
+	if (!controls_only)
+		Keybinds.actions.forEach(item => {
+			if (!item.keybind) return;
+
+			if (preset && preset.keys[item.id] !== undefined) {
+				let keys = preset.keys[item.id]
+
+				if (keys == null) {
+					item.keybind.clear();
+				} else if (keys) {
+					if (isApp && Blockbench.platform == 'darwin' && keys.ctrl && !keys.meta) {
+						keys.meta = true;
+						keys.ctrl = undefined;
+					}
+					if (typeof keys.key == 'string') {
+						keys.key = keys.key.toUpperCase().charCodeAt(0);
+					}
+					item.keybind.set(keys).save(false);
+				}
+			} else {
+				if (item.default_keybind) {
+					item.keybind.set(item.default_keybind);
+				} else {
+					item.keybind.clear();
+				}
+			}
+
+			item.keybind.save(false);
+		})
+
+	if (id == 'mouse') {
+		Keybinds.extra.preview_rotate.keybind.set({key: 2}).save(false);
+		Keybinds.extra.preview_drag.keybind.set({key: 2, shift: true}).save(false);
+		Keybinds.extra.preview_zoom.keybind.set({key: 2, ctrl: true}).save(false);
+	}
+
+	Keybinds.save();
+	TickUpdates.keybind_conflicts = true;
+	Blockbench.showQuickMessage('message.keymap_loaded', 1600);
 }
 Keybinds.no_overlap = function(k1, k2) {
 	if (typeof k1.condition !== 'object' || typeof k2.condition !== 'object') return false;
@@ -357,6 +403,78 @@ onVueSetup(function() {
 	}
 })
 
+
+BARS.defineActions(() => {
+	
+	new Action('load_keymap', {
+		icon: 'format_list_bulleted',
+		category: 'blockbench',
+		work_in_dialog: true,
+		click(e) {
+			new Menu(this.children).open(e.target);
+		},
+		children: [
+			'import_keymap',
+			'_',
+			{icon: 'keyboard', id: 'default', description: 'action.load_keymap.default.desc', name: 'action.load_keymap.default', click() {Keybinds.loadKeymap('default')}},
+			{icon: 'keyboard', id: 'mouse', description: 'action.load_keymap.mouse.desc', name: 'action.load_keymap.mouse', click() {Keybinds.loadKeymap('mouse')}},
+			{icon: 'keyboard', id: 'blender', description: 'action.load_keymap.blender.desc', name: 'Blender', click() {Keybinds.loadKeymap('blender')}},
+			{icon: 'keyboard', id: 'cinema4d', description: 'action.load_keymap.cinema4d.desc', name: 'Cinema 4D', click() {Keybinds.loadKeymap('cinema4d')}},
+			{icon: 'keyboard', id: 'maya', description: 'action.load_keymap.maya.desc', name: 'Maya', click() {Keybinds.loadKeymap('maya')}}
+		]
+	})
+	new Action('import_keymap', {
+		icon: 'folder',
+		category: 'blockbench',
+		work_in_dialog: true,
+		click() {
+			Blockbench.import({
+				resource_id: 'config',
+				extensions: ['bbkeymap'],
+				type: 'Blockbench Keymap'
+			}, function(files) {
+				let {keys} = JSON.parse(files[0].content);
+
+				Keybinds.actions.forEach(keybind_item => {
+					if (keys[keybind_item.id] == null) {
+						keybind_item.keybind.clear();
+					} else {
+						keybind_item.keybind.set(keys[keybind_item.id]).save(false);
+					}
+				})
+				Keybinds.save();
+				TickUpdates.keybind_conflicts = true;
+			})
+		}
+	})
+	new Action('export_keymap', {
+		icon: 'keyboard_hide',
+		category: 'blockbench',
+		work_in_dialog: true,
+		click() {
+			var keys = {}
+
+			Keybinds.actions.forEach(item => {
+				if (!Keybinds.stored[item.id]) return
+				if (Keybinds.stored[item.id].key == -1) {
+					keys[item.id] = null;
+				} else {
+					keys[item.id] = new oneLiner(Keybinds.stored[item.id])
+				}
+			})
+			Blockbench.export({
+				resource_id: 'config',
+				type: 'Blockbench Keymap',
+				extensions: ['bbkeymap'],
+				content: compileJSON({keys})
+			})
+		}
+	})
+	BarItems.load_keymap.toElement('#keybinds_title_bar')
+	BarItems.export_keymap.toElement('#keybinds_title_bar')
+})
+
+
 window.addEventListener('blur', event => {
 	if (Pressing.alt) {
 		if (Toolbox.original && Toolbox.original.alt_tool) {
@@ -374,7 +492,7 @@ window.addEventListener('focus', event => {
 		if (event.altKey && Toolbox.selected.alt_tool && !Toolbox.original && !open_interface) {
 			var orig = Toolbox.selected;
 			var alt = BarItems[Toolbox.selected.alt_tool];
-			if (alt && Condition(alt)) {
+			if (alt && Condition(alt) && (Modes.paint || BarItems.swap_tools.keybind.key == 18)) {
 				alt.select()
 				Toolbox.original = orig;
 			}
@@ -392,10 +510,10 @@ window.addEventListener('focus', event => {
 })
 
 function getFocusedTextInput() {
-	return $('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus').get(0)
+	return document.querySelector('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus');
 }
 
-$(document).on('keydown mousedown', function(e) {
+addEventListeners(document, 'keydown mousedown', function(e) {
 	if (Keybinds.recording || e.which < 4) return;
 	//Shift
 	Pressing.shift = e.shiftKey;
@@ -421,7 +539,7 @@ $(document).on('keydown mousedown', function(e) {
 			if (next.length) {
 				if (next.hasClass('cube_name')) {
 					let uuid = next.parent().parent().attr('id');
-					var target = OutlinerElement.uuids[uuid];
+					var target = OutlinerNode.uuids[uuid];
 					if (target) {
 						stopRenameOutliner();
 						setTimeout(() => {
@@ -435,7 +553,8 @@ $(document).on('keydown mousedown', function(e) {
 					}, 50)
 				} else {
 					event.preventDefault();
-					next.focus().click();
+					next.trigger('focus').trigger('click');
+					document.execCommand('selectAll')
 				}
 				return;
 			}
@@ -459,17 +578,32 @@ $(document).on('keydown mousedown', function(e) {
 			$(document).trigger('click')
 		}
 	}
+	let captured = false;
+	let results = Blockbench.dispatchEvent('press_key', {
+		input_in_focus: input_focus,
+		event: e,
+		capture() {
+			captured = true;
+		}
+	})
+	if (results instanceof Array && results.includes(true)) used = true;
+	if (captured) {
+		e.preventDefault();
+		return;
+	}
+
 	//Hardcoded Keys
 	if (e.which === 18 && Toolbox.selected.alt_tool && !Toolbox.original && !open_interface) {
 		//Alt Tool
 		var orig = Toolbox.selected;
 		var alt = BarItems[Toolbox.selected.alt_tool]
-		if (alt && Condition(alt)) {
+		if (alt && Condition(alt) && (Modes.paint || BarItems.swap_tools.keybind.key == 18)) {
 			alt.select()
 			Toolbox.original = orig
 		}
-	} else if (Keybinds.extra.cancel.keybind.isTriggered(e) && (Transformer.dragging/* || ...*/)) {
-		Undo.cancelEdit()
+	} else if (Keybinds.extra.cancel.keybind.isTriggered(e) && (Transformer.dragging)) {
+		Transformer.cancelMovement(e, false);
+		updateSelection();
 	}
 	//Keybinds
 	if (!input_focus) {
@@ -490,10 +624,10 @@ $(document).on('keydown mousedown', function(e) {
 	if (open_dialog) {
 		if ($('textarea:focus').length === 0) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-				$('.dialog#'+open_dialog).find('.confirm_btn:not([disabled])').click()
+				open_interface.confirm(e);
 				used = true
 			} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
-				$('.dialog#'+open_dialog).find('.cancel_btn:not([disabled])').click()
+				open_interface.cancel(e);
 				used = true
 			}
 		}

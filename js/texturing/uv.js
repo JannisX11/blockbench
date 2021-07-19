@@ -59,14 +59,14 @@ class UVEditor {
 		}
 		this.jquery.main.toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
 
-		this.jquery.sliders = $('<div class="bar" style="margin-left: 2px;"></div>')
+		this.jquery.sliders = $('<div class="bar uv_editor_sliders" style="margin-left: 2px;"></div>')
 
 		this.jquery.main.append(this.jquery.sliders)
 		var onBefore = function() {
 			Undo.initEdit({elements: Cube.selected})
 		}
 		var onAfter = function() {
-			Undo.finishEdit('edit UV')
+			Undo.finishEdit('Edit UV')
 			if (Project.box_uv) {
 				scope.displayAllMappingOverlays()
 			}
@@ -186,13 +186,13 @@ class UVEditor {
 				Undo.initEdit({elements: Cube.selected, uv_only: true})
 			},
 			resize: function(event, ui) {
-				scope.save()
+				scope.save(false)
 				scope.displaySliders()
 			},
 			stop: function(event, ui) {
 				dragging_not_clicking = true;
 				scope.disableAutoUV()
-				Undo.finishEdit('uv_change')
+				Undo.finishEdit('Edit UV size')
 				scope.updateDragHandle(ui.position)
 			}
 		})
@@ -217,14 +217,14 @@ class UVEditor {
 				p.left = Math.round(p.left / step_x) * step_x;
 				p.top  = Math.round(p.top  / step_y) * step_y;
 
-				scope.save();
+				scope.save(true);
 				scope.displaySliders();
 				return true;
 			},
 			stop: function(event, ui) {
-				scope.save()
+				scope.save(true)
 				scope.disableAutoUV()
-				Undo.finishEdit('uv_change')
+				Undo.finishEdit('Move UV')
 				scope.updateDragHandle(ui.position)
 				if (Project.box_uv) {
 					scope.displayAllMappingOverlays()
@@ -307,18 +307,18 @@ class UVEditor {
 
 		var dMWCoords = {x: 0, y: 0}
 		function dragMouseWheel(e) {
-			e.currentTarget.scrollLeft -= (e.pageX - dMWCoords.x)
-			e.currentTarget.scrollTop -= (e.pageY - dMWCoords.y)
+			scope.jquery.viewport[0].scrollLeft -= (e.pageX - dMWCoords.x)
+			scope.jquery.viewport[0].scrollTop -= (e.pageY - dMWCoords.y)
 			dMWCoords = {x: e.pageX, y: e.pageY}
 		}
 		function dragMouseWheelStop(e) {
-			scope.jquery.viewport.off('mousemove', dragMouseWheel)
-			$(document).off('mouseup', dragMouseWheelStop)
+			removeEventListeners(document, 'mousemove touchmove', dragMouseWheel);
+			removeEventListeners(document, 'mouseup touchend', dragMouseWheelStop);
 		}
 		scope.jquery.viewport.on('mousedown touchstart', function(e) {
 			if (e.which === 2) {
-				scope.jquery.viewport.on('mousemove touchmove', dragMouseWheel)
-				$(document).on('mouseup touchend', dragMouseWheelStop)
+				addEventListeners(document, 'mousemove touchmove', dragMouseWheel);
+				addEventListeners(document, 'mouseup touchend', dragMouseWheelStop);
 				dMWCoords = {x: e.pageX, y: e.pageY}
 				e.preventDefault();
 				return false;
@@ -330,6 +330,7 @@ class UVEditor {
 			this.updateBrushOutline(e)
 		})
 		scope.jquery.frame.on('mouseleave', e => {
+			this.brush_outline.detach();
 		})
 		this.setSize(this.size)
 		return this;
@@ -337,15 +338,18 @@ class UVEditor {
 	updateBrushOutline(e) {
 		if (Modes.paint && Toolbox.selected.brushTool) {
 			this.jquery.frame.append(this.brush_outline);
+			let outline = this.brush_outline.get(0);
 			var pixel_size = this.inner_width / (this.texture ? this.texture.width : Project.texture_width);
 			//pos
 			let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0.5 : 0;
 			let left = (0.5 - offset + Math.floor(e.offsetX / pixel_size + offset)) * pixel_size;
 			let top =  (0.5 - offset + Math.floor(e.offsetY / pixel_size + offset)) * pixel_size;
-			this.brush_outline.css('left', left+'px').css('top', top+'px');
+			outline.style.left = left+'px'
+			outline.style.top = top+'px';
 			//size
 			var radius = (BarItems.slider_brush_size.get()/2) * pixel_size;
-			this.brush_outline.css('padding', radius+'px').css('margin', (-radius)+'px');
+			outline.style.padding = radius+'px'
+			outline.style.margin = (-radius)+'px';
 		} else {
 			this.brush_outline.detach();
 		}
@@ -362,7 +366,6 @@ class UVEditor {
 	getBrushCoordinates(event, tex) {
 		var scope = this;
 		convertTouchEvent(event);
-		var multiplier = (Project.box_uv && tex) ? tex.width/Project.texture_width : 1
 		var pixel_size = scope.inner_width / tex.width
 		var result = {};
 
@@ -678,9 +681,9 @@ class UVEditor {
 		var old_size = this.size;
 		var size = input_size;
 		this.size = size;
-		this.jquery.frame.width(this.inner_width);
-		this.jquery.viewport.width(size+8);
-		this.jquery.main.width(size+8);
+		this.jquery.frame[0].style.width = (this.inner_width) + 'px';
+		this.jquery.viewport[0].style.width = (size+8) + 'px';
+		this.jquery.main[0].style.width = (size + (this.id == 'main_uv' ? 8 : 10)) + 'px';
 
 		for (var id in this.sliders) {
 			this.sliders[id].setWidth(size/(Project.box_uv?2:4)-1)
@@ -851,7 +854,7 @@ class UVEditor {
 			main_uv.loadData()
 		}
 	}
-	save() {
+	save(pos_only) {
 		if (!Modes.edit) return;
 		var scope = this;
 		//Save UV from Frame to object
@@ -884,10 +887,19 @@ class UVEditor {
 			if (uvTag[1] > uvTag[3]) {
 				top2 = [top, top = top2][0];
 			}
-			var uvArr = [left, top, left2, top2]
 
 			Cube.selected.forEach(function(obj) {
-				obj.faces[scope.face].uv = uvArr.slice()
+				let {uv} = obj.faces[scope.face];
+				if (pos_only) {
+					let diff_x = left > left2 ? left2 - uv[2] : left - uv[0];
+					let diff_y = top  > top2  ? top2  - uv[3] : top  - uv[1];
+					uv[0] += diff_x;
+					uv[1] += diff_y;
+					uv[2] += diff_x;
+					uv[3] += diff_y;
+				} else {
+					uv.replace([left, top, left2, top2])
+				}
 				Canvas.updateUV(obj)
 			})
 		}
@@ -904,7 +916,7 @@ class UVEditor {
 		})
 		this.loadData()
 		Canvas.updateSelectedFaces()
-		Undo.finishEdit('apply_texture')
+		Undo.finishEdit('Apply texture')
 	}
 	displayTexture(face) {
 		if (!face && Cube.selected.length) {
@@ -1020,7 +1032,8 @@ class UVEditor {
 	}
 	getMappingOverlay(cube, absolute) {
 		var scope = this;
-		var sides = $('<div class="mapping_overlay_cube"></div>');
+		var sides = document.createElement('div');
+		sides.classList.add('mapping_overlay_cube');
 		var pixels = scope.getPixelSize();
 		if (!cube) cube = Cube.selected[0];
 		function addElement(x, y, width, height, n, color) {
@@ -1033,16 +1046,17 @@ class UVEditor {
 			width  = limitNumber(width *pixels + x, 0, scope.inner_width)  - x;
 			height = limitNumber(height*pixels + y, 0, scope.inner_height)- y;
 
-			var size_data = [x/pixels, y/pixels, width/pixels, height/pixels].join(',');
-
-			sides.append($(`<div class="uv_mapping_overlay"
-				style="left: ${x}px; top: ${y}px;
-				height: ${height}px; width: ${width}px;
-				background: ${color};" data-sizes="${size_data}"></div>`))
+			let face = document.createElement('div');
+			face.classList.add('uv_mapping_overlay');
+			face.style.left = x+'px'; face.style.top = y+'px';
+			face.style.height = height+'px'; face.style.width = width+'px';
+			face.style.background = color;
+			face.dataset.sizes = [x/pixels, y/pixels, width/pixels, height/pixels].map(v => Math.round(v)).join(',');
+			sides.append(face);
 		}
 		var size = cube.size(undefined, true);
 
-		sides.attr('size_hash', `${cube.uv_offset[0]}_${cube.uv_offset[1]}_${size[0]}_${size[1]}_${size[2]}`)
+		sides.setAttribute('size_hash', `${cube.uv_offset[0]}_${cube.uv_offset[1]}_${size[0]}_${size[1]}_${size[2]}`)
 
 		addElement(size[2], 0, size[0], size[2],				'#b4d4e1', '#ecf8fd')
 		addElement(size[2]+size[0], 0, size[0], size[2],		'#536174', '#6e788c')
@@ -1055,20 +1069,20 @@ class UVEditor {
 	}
 	displayAllMappingOverlays(force_reload) {
 		var scope = this;
-		var cycle = bbuid(4)
+		var cycle = 'C'+bbuid(4)
 		if (this.showing_overlays && Project.box_uv) {
 			Cube.all.forEach(cube => {
 				var size = cube.size(undefined, true)
 				var hash = `${cube.uv_offset[0]}_${cube.uv_offset[1]}_${size[0]}_${size[1]}_${size[2]}`
-				if (scope.jquery.frame.find(`> .mapping_overlay_cube.${cycle}[size_hash="${hash}"]`).length) return;
+				if (scope.jquery.frame[0].querySelector(`:scope > .mapping_overlay_cube.${cycle}[size_hash="${hash}"]`)) return;
 
-				var c = scope.jquery.frame.find(`> .mapping_overlay_cube:not(.${cycle})[size_hash="${hash}"]`).first()
-				if (force_reload || !c.length) {
+				var c = scope.jquery.frame[0].querySelector(`:scope > .mapping_overlay_cube:not(.${cycle})[size_hash="${hash}"]`)
+				if (force_reload || !c) {
 					var sides = scope.getMappingOverlay(cube, true)
-					sides.addClass(cycle)
+					sides.classList.add(cycle)
 					scope.jquery.frame.append(sides)
 				} else {
-					c.addClass(cycle)
+					c.classList.add(cycle)
 				}
 			})
 			$(`.mapping_overlay_cube:not(.${cycle})`).remove()
@@ -1084,20 +1098,21 @@ class UVEditor {
 			Cube.all.forEach(cube => {
 				var size = cube.size(undefined, true)
 				var hash = `${cube.uv_offset[0]}_${cube.uv_offset[1]}_${size[0]}_${size[1]}_${size[2]}`
-				var c = scope.jquery.frame.find(`> .mapping_overlay_cube[size_hash="${hash}"]`).first()
+				var c = scope.jquery.frame[0].querySelector(`:scope > .mapping_overlay_cube[size_hash="${hash}"]`);
 				
-				c.children().each((i, side) => {
-					side = $(side)
-					var data = side.attr('data-sizes');
-					data = data.split(',');
-					data.forEach((s, i) => {
-						data[i] = parseInt(s);
+				if (c) {
+					c.childNodes.forEach(side => {
+						var data = side.dataset.sizes;
+						data = data.split(',');
+						data.forEach((s, i) => {
+							data[i] = parseInt(s);
+						})
+						side.style.left 	= (data[0] * pixels)+'px';
+						side.style.top 		= (data[1] * pixels)+'px';
+						side.style.width 	= (data[2] * pixels)+'px';
+						side.style.height	= (data[3] * pixels)+'px';
 					})
-					side.css('left',	(data[0] * pixels)+'px')
-						.css('top',		(data[1] * pixels)+'px')
-						.css('width',	(data[2] * pixels)+'px')
-						.css('height',	(data[3] * pixels)+'px')
-				})
+				}
 			})
 		}
 	}
@@ -1119,21 +1134,22 @@ class UVEditor {
 	}
 	updateDragHandle() {
 		var pos = this.jquery.size.position()
-		var handle = this.jquery.size.find('div.uv_size_handle')
+		var handle = this.jquery.size.find('div.uv_size_handle').get(0);
+		if (!handle) return;
 
 		var left = limitNumber(this.jquery.viewport.get(0).scrollLeft, 0, this.size*(this.zoom-1)) - pos.left;
 		var top = limitNumber(this.jquery.viewport.get(0).scrollTop, 0, (this.height||this.size)*(this.zoom-1)) - pos.top;
-		handle.css('left', left +'px')
-		handle.css('top',  top  +'px')
+		handle.style.left = left +'px';
+		handle.style.top = top +'px';
 
-		handle.width(this.size)
-		handle.height(this.height||this.size)
+		handle.style.width = this.size + 'px';
+		handle.style.height = (this.height||this.size) + 'px';
 		return this;
 	}
 	updateInterface() {
 		for (var key in this.sliders) {
 			var slider = this.sliders[key]
-			$(slider.node).css('display', BARS.condition(slider.condition)?'block':'none')
+			slider.node.style.setProperty('display', BARS.condition(slider.condition)?'block':'none')
 		}
 		this.jquery.size.resizable('option', 'disabled', Project.box_uv)
 	}
@@ -1395,7 +1411,7 @@ class UVEditor {
 		})
 		this.loadData()
 		this.message('uv_editor.transparent')
-		Undo.finishEdit('uv_clear')
+		Undo.finishEdit('Remove face')
 		Canvas.updateSelectedFaces()
 	}
 	switchCullface(event) {
@@ -1411,7 +1427,7 @@ class UVEditor {
 		} else {
 			this.message('uv_editor.cullface_off')
 		}
-		Undo.finishEdit('set_cullface')
+		Undo.finishEdit('Toggle cullface')
 	}
 	switchTint(event) {
 		var scope = this;
@@ -1517,7 +1533,7 @@ class UVEditor {
 			})
 			this.loadData()
 			this.message('uv_editor.pasted')
-			Undo.finishEdit('uv paste')
+			Undo.finishEdit('Paste UV')
 			return;
 		}
 
@@ -1563,7 +1579,7 @@ class UVEditor {
 		this.loadData()
 		Canvas.updateSelectedFaces()
 		this.message('uv_editor.pasted')
-		Undo.finishEdit('uv paste')
+		Undo.finishEdit('Paste UV')
 	}
 	reset(event) {
 		var scope = this;
@@ -1597,7 +1613,7 @@ class UVEditor {
 			{icon: editor.reference_face.enabled!==false ? 'check_box' : 'check_box_outline_blank', name: 'generic.export', click: function(editor) {
 				Undo.initEdit({elements: Cube.selected, uv_only: true})
 				editor.toggleUV(event)
-				Undo.finishEdit('uv_toggle')
+				Undo.finishEdit('Toggle UV export')
 			}},
 			'uv_maximize',
 			'uv_auto',
@@ -1609,22 +1625,22 @@ class UVEditor {
 					{icon: (!editor.reference_face.rotation ? on : off), name: '0&deg;', click: function(editor) {
 						Undo.initEdit({elements: Cube.selected, uv_only: true})
 						editor.setRotation(0)
-						Undo.finishEdit('uv_rotate')
+						Undo.finishEdit('Rotate UV')
 					}},
 					{icon: (editor.reference_face.rotation === 90 ? on : off), name: '90&deg;', click: function(editor) {
 						Undo.initEdit({elements: Cube.selected, uv_only: true})
 						editor.setRotation(90)
-						Undo.finishEdit('uv_rotate')
+						Undo.finishEdit('Rotate UV')
 					}},
 					{icon: (editor.reference_face.rotation === 180 ? on : off), name: '180&deg;', click: function(editor) {
 						Undo.initEdit({elements: Cube.selected, uv_only: true})
 						editor.setRotation(180)
-						Undo.finishEdit('uv_rotate')
+						Undo.finishEdit('Rotate UV')
 					}},
 					{icon: (editor.reference_face.rotation === 270 ? on : off), name: '270&deg;', click: function(editor) {
 						Undo.initEdit({elements: Cube.selected, uv_only: true})
 						editor.setRotation(270)
-						Undo.finishEdit('uv_rotate')
+						Undo.finishEdit('Rotate UV')
 					}}
 				]
 			}},
@@ -1635,7 +1651,7 @@ class UVEditor {
 				click: function(editor) {
 					Undo.initEdit({elements: Cube.selected, uv_only: true})
 					editor.mirrorX(event)
-					Undo.finishEdit('uv_mirror')
+					Undo.finishEdit('Mirror UV')
 				}
 			},
 			{
@@ -1644,7 +1660,7 @@ class UVEditor {
 				click: function(editor) {
 					Undo.initEdit({elements: Cube.selected, uv_only: true})
 					editor.mirrorY(event)
-					Undo.finishEdit('uv_mirror')
+					Undo.finishEdit('Mirror UV')
 				}
 			},
 		]}},
@@ -1652,56 +1668,21 @@ class UVEditor {
 		{icon: 'flip_to_back', condition: () => Format.id == 'java_block', name: 'action.cullface', children: function(editor) {
 			var off = 'radio_button_unchecked';
 			var on = 'radio_button_checked';
+			function setCullface(cullface) {
+				Undo.initEdit({elements: Cube.selected, uv_only: true})
+				editor.forCubes(obj => {
+					obj.faces[editor.face].cullface = cullface;
+				})
+				Undo.finishEdit(cullface ? `Set cullface to ${cullface}` : 'Disable cullface');
+			}
 			return [
-				{icon: (!editor.reference_face.cullface ? on : off), name: 'uv_editor.no_faces', click: function() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					editor.forCubes(obj => {
-						obj.faces[editor.face].cullface = '';
-					})
-					Undo.finishEdit('set cullface');
-				}},
-				{icon: (editor.reference_face.cullface == 'north' ? on : off), name: 'face.north', click: function() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					editor.forCubes(obj => {
-						obj.faces[editor.face].cullface = 'north';
-					})
-					Undo.finishEdit('set cullface');
-				}},
-				{icon: (editor.reference_face.cullface == 'south' ? on : off), name: 'face.south', click: function() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					editor.forCubes(obj => {
-						obj.faces[editor.face].cullface = 'south';
-					})
-					Undo.finishEdit('set cullface');
-				}},
-				{icon: (editor.reference_face.cullface == 'west' ? on : off), name: 'face.west', click: function() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					editor.forCubes(obj => {
-						obj.faces[editor.face].cullface = 'west';
-					})
-					Undo.finishEdit('set cullface');
-				}},
-				{icon: (editor.reference_face.cullface == 'east' ? on : off), name: 'face.east', click: function() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					editor.forCubes(obj => {
-						obj.faces[editor.face].cullface = 'east';
-					})
-					Undo.finishEdit('set cullface');
-				}},
-				{icon: (editor.reference_face.cullface == 'up' ? on : off), name: 'face.up', click: function() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					editor.forCubes(obj => {
-						obj.faces[editor.face].cullface = 'up';
-					})
-					Undo.finishEdit('set cullface');
-				}},
-				{icon: (editor.reference_face.cullface == 'down' ? on : off), name: 'face.down', click: function() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					editor.forCubes(obj => {
-						obj.faces[editor.face].cullface = 'down';
-					})
-					Undo.finishEdit('set cullface');
-				}},
+				{icon: (!editor.reference_face.cullface ? on : off), name: 'uv_editor.no_faces', click: () => setCullface('')},
+				{icon: (editor.reference_face.cullface == 'north' ? on : off), name: 'face.north', click: () => setCullface('north')},
+				{icon: (editor.reference_face.cullface == 'south' ? on : off), name: 'face.south', click: () => setCullface('south')},
+				{icon: (editor.reference_face.cullface == 'west' ? on : off), name: 'face.west', click: () => setCullface('west')},
+				{icon: (editor.reference_face.cullface == 'east' ? on : off), name: 'face.east', click: () => setCullface('east')},
+				{icon: (editor.reference_face.cullface == 'up' ? on : off), name: 'face.up', click: () => setCullface('up')},
+				{icon: (editor.reference_face.cullface == 'down' ? on : off), name: 'face.down', click: () => setCullface('down')},
 				'auto_cullface'
 			]
 		}},
@@ -1773,7 +1754,7 @@ const uv_dialog = {
 			up:	new UVEditor('up', true).appendTo('#uv_dialog_all'),
 			down:  new UVEditor('down', true).appendTo('#uv_dialog_all')
 		}
-		var size = $(window).height() - 200
+		var size = window.innerHeight - 200
 		uv_dialog.editors.single.setSize(size)
 		uv_dialog.editors.single.jquery.main.css('margin-left', 'auto').css('margin-right', 'auto')//.css('width', (size+10)+'px')
 		uv_dialog.editors.up.jquery.main.css('margin-left', '276px').css('clear', 'both')
@@ -1861,8 +1842,8 @@ const uv_dialog = {
 	},
 	centerDialog: function() {
 		var obj = $('.dialog#uv_dialog')
-		obj.css('left', (($(window).width()-obj.width())/2) +'px')
-		obj.css('top', (($(window).height() - obj.height()) / 2) + 'px')
+		obj.css('left', ((window.innerWidth-obj.width())/2) +'px')
+		obj.css('top', ((window.innerHeight - obj.height()) / 2) + 'px')
 	},
 	openAll: function() {
 		uv_dialog.openDialog()
@@ -1903,7 +1884,7 @@ const uv_dialog = {
 			uv_dialog.selection = [tab]
 			//BarItems.uv_grid.set(uv_dialog.editors.single.gridSelectOption)
 
-			var max_size = $(window).height() - 200
+			var max_size = window.innerHeight - 200
 			if (max_size < uv_dialog.editors.single.size ) {
 				uv_dialog.editors.single.setSize(max_size)
 				uv_dialog.editors.single.jquery.main.css('margin-left', 'auto').css('margin-right', 'auto').css('width', max_size+'px')
@@ -1942,7 +1923,7 @@ const uv_dialog = {
 			var centerUp = false
 			size.y -= menu_gap;
 			if (size.x < size.y/1.2) {
-				var editor_size = limitNumber(size.x / 2 - 35, 80, $(window).height()/3-120)
+				var editor_size = limitNumber(size.x / 2 - 35, 80, window.innerHeight/3-120)
 				editor_size = limitNumber(editor_size, 80, (size.y-64)/3 - 50)
 			} else {
 				//4 x 2
@@ -2060,7 +2041,7 @@ BARS.defineActions(function() {
 			uv_dialog.forSelection('rotate')
 		},
 		onAfter: () => {
-			Undo.finishEdit('uv rotate')
+			Undo.finishEdit('Rotate UV')
 		}
 	})
 	new BarSelect('uv_grid', { 
@@ -2099,7 +2080,7 @@ BARS.defineActions(function() {
 		click: function (event) { 
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('maximize', event)
-			Undo.finishEdit('uv maximize')
+			Undo.finishEdit('Maximize UV')
 		}
 	})
 	new Action('uv_turn_mapping', {
@@ -2109,7 +2090,7 @@ BARS.defineActions(function() {
 		click: function (event) { 
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('turnMapping', event)
-			Undo.finishEdit('turn uv mapping')
+			Undo.finishEdit('Turn UV mapping')
 		}
 	})
 	new Action('uv_auto', {
@@ -2119,7 +2100,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('setAutoSize', event)
-			Undo.finishEdit('auto uv')
+			Undo.finishEdit('Auto UV')
 		}
 	})
 	new Action('uv_rel_auto', {
@@ -2129,7 +2110,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('setRelativeAutoSize', event)
-			Undo.finishEdit('auto uv')
+			Undo.finishEdit('Auto UV')
 		}
 	})
 	new Action('uv_mirror_x', {
@@ -2139,7 +2120,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('mirrorX', event)
-			Undo.finishEdit('mirror uv')
+			Undo.finishEdit('Mirror UV')
 		}
 	})
 	new Action('uv_mirror_y', {
@@ -2149,7 +2130,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('mirrorY', event)
-			Undo.finishEdit('mirror uv')
+			Undo.finishEdit('Mirror UV')
 		}
 	})
 	new Action('uv_transparent', {
@@ -2167,7 +2148,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('reset', event)
-			Undo.finishEdit('reset uv')
+			Undo.finishEdit('Reset UV')
 		}
 	})
 	new Action('uv_apply_all', {
@@ -2177,7 +2158,7 @@ BARS.defineActions(function() {
 		click: function (e) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			main_uv.applyAll(e)
-			Undo.finishEdit('uv apply all')
+			Undo.finishEdit('Apply UV to all faces')
 		}
 	})
 	new BarSelect('cullface', { 
@@ -2196,7 +2177,7 @@ BARS.defineActions(function() {
 		onChange: function(sel, event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true});
 			uv_dialog.forSelection('switchCullface');
-			Undo.finishEdit('cullface');
+			Undo.finishEdit('Set cullface');
 		}
 	})
 	new Action('auto_cullface', {
@@ -2206,7 +2187,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('autoCullface', event)
-			Undo.finishEdit('auto cullface')
+			Undo.finishEdit('Set automatic cullface')
 		}
 	})
 	new Action('face_tint', {
@@ -2215,7 +2196,7 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			uv_dialog.forSelection('switchTint', event)
-			Undo.finishEdit('tint')
+			Undo.finishEdit('Toggle face tint')
 		}
 	})
 	new NumSlider('slider_face_tint', {
@@ -2236,7 +2217,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 		},
 		onAfter: function() {
-			Undo.finishEdit('set face tint')
+			Undo.finishEdit('Set face tint')
 		}
 	})
 
@@ -2263,7 +2244,7 @@ Interface.definePanels(function() {
 			bottom: Toolbars.main_uv
 		},
 		onResize: function() {
-			let size = limitNumber($(this.node).width()-10, 64, 1200)
+			let size = limitNumber(this.node.clientWidth - 10, 64, 1200)
 			size = Math.floor(size)
 			main_uv.setSize(size)
 		}

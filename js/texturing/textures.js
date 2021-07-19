@@ -45,6 +45,7 @@ class Texture {
 				}
 			}
 		}
+
 		//Setup Img/Mat
 		var img = this.img = new Image()
 		img.src = 'assets/missing.png'
@@ -55,14 +56,90 @@ class Texture {
 		img.tex.minFilter = THREE.NearestFilter
 		img.tex.name = this.name;
 
-		var mat = new THREE.MeshLambertMaterial({
-			color: 0xffffff,
+		var vertShader = `
+			uniform bool SHADE;
+
+			varying vec2 vUv;
+			varying float light;
+			varying float lift;
+
+			float AMBIENT = 0.5;
+			float XFAC = -0.15;
+			float ZFAC = 0.05;
+
+			void main()
+			{
+
+				if (SHADE) {
+
+					vec3 N = vec3( modelMatrix * vec4(normal, 0.0) );
+
+					float yLight = (1.0+N.y) * 0.5;
+					light = yLight * (1.0-AMBIENT) + N.x*N.x * XFAC + N.z*N.z * ZFAC + AMBIENT;
+
+				} else {
+
+					light = 1.0;
+
+				}
+
+				if (color.b > 1.1) {
+					lift = 0.1;
+				} else {
+					lift = 0.0;
+				}
+				
+				vUv = uv;
+				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+				gl_Position = projectionMatrix * mvPosition;
+			}`
+		var fragShader = `
+			#ifdef GL_ES
+			precision highp float;
+			#endif
+
+			uniform sampler2D map;
+
+			uniform bool SHADE;
+			uniform bool EMISSIVE;
+			uniform float BRIGHTNESS;
+
+			varying vec2 vUv;
+			varying float light;
+			varying float lift;
+
+			void main(void)
+			{
+				vec4 color = texture2D(map, vUv);
+				
+				if (color.a < 0.01) discard;
+
+				if (EMISSIVE == false) {
+
+					gl_FragColor = vec4(lift + color.rgb * light * BRIGHTNESS, color.a);
+
+				} else {
+
+					float light2 = (light * BRIGHTNESS) + (1.0 - light * BRIGHTNESS) * (1.0 - color.a);
+					gl_FragColor = vec4(lift + color.rgb * light2, 1.0);
+
+				}
+			}`
+
+		var mat = new THREE.ShaderMaterial({
+			uniforms: {
+				map: {type: 't', value: tex},
+				SHADE: {type: 'bool', value: settings.shading.value},
+				BRIGHTNESS: {type: 'bool', value: settings.brightness.value / 50},
+				EMISSIVE: {type: 'bool', value: tex.render_mode == 'emissive'}
+			},
+			vertexShader: vertShader,
+			fragmentShader: fragShader,
 			side: Canvas.getRenderSide(),
 			vertexColors: THREE.FaceColors,
-			map: tex,
 			transparent: true,
-			alphaTest: 0.05
 		});
+		mat.map = tex;
 		mat.name = this.name;
 		Canvas.materials[this.uuid] = mat;
 
@@ -372,13 +449,11 @@ class Texture {
 		return this;
 	}
 	updateMaterial() {
-		var scope = this;
-		
-		Canvas.materials[scope.uuid].name = this.name;
-		Canvas.materials[scope.uuid].map.name = scope.name;
-		Canvas.materials[scope.uuid].map.image.src = scope.source;
-		Canvas.materials[scope.uuid].map.needsUpdate = true;
-
+		let mat = this.getMaterial();
+		mat.name = this.name;
+		mat.map.name = this.name;
+		mat.map.image.src = this.source;
+		mat.map.needsUpdate = true;
 		return this;
 	}
 	reopen(force) {
@@ -513,8 +588,9 @@ class Texture {
 		this.selected = true
 		Texture.selected = this;
 		this.scrollTo();
-		if (Project.layered_textures) {
+		if (this.render_mode == 'layered') {
 			Canvas.updatePaintingGrid()
+			updateSelection()
 		} else if (Format.single_texture && Texture.all.length > 1) {
 			Canvas.updateAllFaces()
 			TickUpdates.selection = true;
@@ -527,6 +603,9 @@ class Texture {
 			for (var tex of textures) {
 				if (tex.path === scope.path) return tex;
 			}
+		}
+		if (Texture.all.find(t => t.render_mode == 'layered')) {
+			this.render_mode = 'layered';
 		}
 		if (undo) {
 			Undo.initEdit({textures: []})
@@ -546,7 +625,7 @@ class Texture {
 		TickUpdates.selection = true;
 		
 		if (undo) {
-			Undo.finishEdit('add_texture', {textures: [this]})
+			Undo.finishEdit('Add texture', {textures: [this]})
 		}
 		return this;
 	}
@@ -568,11 +647,11 @@ class Texture {
 				main_uv.displayTexture();
 			}
 			BARS.updateConditions()
-			Undo.finishEdit('remove_textures', {textures: []})
+			Undo.finishEdit('Remove texture', {textures: []})
 		}
 	}
 	toggleVisibility() {
-		if (!Project.layered_textures) {
+		if (this.render_mode !== 'layered') {
 			this.visible = true;
 			return this;
 		}
@@ -627,7 +706,7 @@ class Texture {
 		})
 		Canvas.updateSelectedFaces()
 		main_uv.loadData()
-		Undo.finishEdit('applied_texture')
+		Undo.finishEdit('Apply texture')
 		return this;
 	}
 	//Interface
@@ -718,7 +797,7 @@ class Texture {
 				if (results.namespace !== undefined) scope.namespace = results.namespace;
 				
 
-				Undo.finishEdit('texture_edit')
+				Undo.finishEdit('Edit texture metadata')
 			}
 		}).show()
 	}
@@ -728,16 +807,11 @@ class Texture {
 			id: 'resize_texture',
 			title: 'menu.texture.resize',
 			form: {
-				width: {
-					label: 'dialog.project.width',
-					type: 'number',
-					value: this.width,
-					min: 1
-				},
-				height: {
-					label: 'dialog.project.height',
-					type: 'number',
-					value: this.height,
+				size: {
+					label: 'dialog.project.texture_size',
+					type: 'vector',
+					dimensions: 2,
+					value: [this.width, this.height],
 					min: 1
 				},
 				fill: {label: 'dialog.resize_texture.fill', type: 'select', default: 'transparent', options: {
@@ -746,15 +820,6 @@ class Texture {
 					repeat: 'dialog.resize_texture.fill.repeat',
 					stretch: 'dialog.resize_texture.fill.stretch'
 				}}
-				/*
-				width
-				height
-				fill
-					transparent
-					color
-					repeat
-					stretch
-				*/
 			},
 			onConfirm: function(formResult) {
 
@@ -764,9 +829,9 @@ class Texture {
 				scope.edit((canvas) => {
 
 					let new_canvas = document.createElement('canvas')
-						new_canvas.width = formResult.width;
-						new_canvas.height = formResult.height;
-					let new_ctx = new_canvas.getContext('2d')
+						new_canvas.width = formResult.size[0];
+						new_canvas.height = formResult.size[1];
+					let new_ctx = new_canvas.getContext('2d');
 						new_ctx.imageSmoothingEnabled = false;
 
 					switch (formResult.fill) {
@@ -775,19 +840,19 @@ class Texture {
 							break;
 						case 'color':
 							new_ctx.fillStyle = ColorPanel.get();
-							new_ctx.fillRect(0, 0, formResult.width, formResult.height)
+							new_ctx.fillRect(0, 0, formResult.size[0], formResult.size[1])
 							new_ctx.clearRect(0, 0, scope.width, scope.height)
 							new_ctx.drawImage(canvas, 0, 0, scope.width, scope.height);
 							break;
 						case 'repeat':
-							for (var x = 0; x < formResult.width; x += scope.width) {		
-								for (var y = 0; y < formResult.height; y += scope.height) {
+							for (var x = 0; x < formResult.size[0]; x += scope.width) {		
+								for (var y = 0; y < formResult.size[1]; y += scope.height) {
 									new_ctx.drawImage(canvas, x, y, scope.width, scope.height);
 								}
 							}
 							break;
 						case 'stretch':
-							new_ctx.drawImage(canvas, 0, 0, formResult.width, formResult.height);
+							new_ctx.drawImage(canvas, 0, 0, formResult.size[0], formResult.size[1]);
 							break;
 					}
 
@@ -803,8 +868,8 @@ class Texture {
 						}
 						Undo.current_save.aspects.uv_mode = true;
 
-						Project.texture_width = Project.texture_width * (formResult.width / old_width);
-						Project.texture_height = Project.texture_height * (formResult.height / old_height);
+						Project.texture_width = Project.texture_width * (formResult.size[0] / old_width);
+						Project.texture_height = Project.texture_height * (formResult.size[1] / old_height);
 						Canvas.updateAllUVs()
 					}
 					return new_canvas
@@ -963,6 +1028,38 @@ class Texture {
 			},
 			'_',
 			{
+				icon: 'list',
+				name: 'menu.texture.render_mode',
+				children(texture) {
+					function setViewMode(mode) {
+						let update_layered = (mode == 'layered' || texture.render_mode == 'layered');
+						let update_emissive = (mode == 'emissive' || texture.render_mode == 'emissive');
+						let changed_textures = update_layered ? Texture.all : [texture];
+
+						Undo.initEdit({textures: changed_textures});
+						changed_textures.forEach(t =>  {
+							t.render_mode = mode;
+						});
+						if (update_layered) {
+							Texture.all.forEach((tex, i) => {
+								tex.visible = i < 3
+							})
+							Interface.Panels.textures.inside_vue.$forceUpdate()
+							Canvas.updateLayeredTextures();
+						}
+						if (update_emissive) {
+							texture.getMaterial().uniforms.EMISSIVE.value = mode == 'emissive';
+						}
+						Undo.finishEdit('change texture view mode');
+					}
+					return [
+						{name: 'menu.texture.render_mode.normal', icon: texture.render_mode == 'normal' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('normal')}},
+						{name: 'menu.texture.render_mode.emissive', icon: texture.render_mode == 'emissive' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('emissive')}},
+						{name: 'menu.texture.render_mode.layered', icon: texture.render_mode == 'layered' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('layered')}},
+					]
+				}
+			},
+			{
 				icon: 'photo_size_select_large',
 				name: 'menu.texture.resize',
 				click(texture) {texture.resizeDialog()}
@@ -1009,7 +1106,7 @@ class Texture {
 				click: function(texture) {
 					Undo.initEdit({textures: [texture], selected_texture: true, bitmap: true})
 					texture.remove()
-					Undo.finishEdit('delete texture', {textures: [], selected_texture: true, bitmap: true})
+					Undo.finishEdit('Delete texture', {textures: [], selected_texture: true, bitmap: true})
 			}},
 			'_',
 			{
@@ -1025,7 +1122,7 @@ class Texture {
 		} else if (Texture.selected) {
 			Texture.selected = undefined;
 		}
-		if (Project.layered_textures && Texture.all.length > 1) {
+		if (Texture.all.length > 1 && Texture.all.find(t => t.render_mode == 'layered')) {
 			var i = 0;
 			for (var i = Texture.all.length-1; i >= 0; i--) {
 				if (Texture.all[i].visible) {
@@ -1041,6 +1138,7 @@ class Texture {
 	new Property(Texture, 'string', 'namespace')
 	new Property(Texture, 'string', 'id')
 	new Property(Texture, 'boolean', 'particle')
+	new Property(Texture, 'string', 'render_mode', {default: 'normal'})
 
 
 function saveTextures(lazy = false) {
@@ -1070,14 +1168,17 @@ function loadTextureDraggable() {
 				},
 				drag: function(event, ui) {
 					
-					$('.outliner_node[order]').attr('order', null)
+					$('.outliner_node[order]').attr('order', null);
+					$('.drag_hover').removeClass('drag_hover');
 					$('.texture[order]').attr('order', null)
-					if ($('#cubes_list.drag_hover').length === 0 && $('#cubes_list li .drag_hover.outliner_node').length) {
-						var tar = $('#cubes_list li .drag_hover.outliner_node').last()
+					if ($('#cubes_list li.outliner_node:hover').length) {
+						var tar = $('#cubes_list li.outliner_node:hover').last()
+						tar.addClass('drag_hover').attr('order', '0');
+						/*
 						var element = Outliner.root.findRecursive('uuid', tar.attr('id'))
 						if (element) {
 							tar.attr('order', '0')
-						}
+						}*/
 					} else if ($('#texture_list li:hover').length) {
 						let node = $('#texture_list > .texture:hover')
 						if (node.length) {
@@ -1094,7 +1195,8 @@ function loadTextureDraggable() {
 				},
 				stop: function(event, ui) {
 					setTimeout(function() {
-						$('.texture[order]').attr('order', null)
+						$('.texture[order]').attr('order', null);
+						$('.outliner_node[order]').attr('order', null);
 						var tex = textures.findInArray('uuid', ui.helper.attr('texid'));
 						if (!tex) return;
 						if ($('.preview:hover').length > 0) {
@@ -1108,7 +1210,7 @@ function loadTextureDraggable() {
 											cube.applyTexture(tex, data.shiftKey || [data.face])
 										}
 									})
-									Undo.finishEdit('apply texture')
+									Undo.finishEdit('Apply texture')
 								}
 							}
 						} else if ($('#texture_list:hover').length > 0) {
@@ -1126,7 +1228,34 @@ function loadTextureDraggable() {
 							Texture.all.remove(tex)
 							Texture.all.splice(index, 0, tex)
 							Canvas.updateLayeredTextures()
-							Undo.finishEdit('reorder textures')
+							Undo.finishEdit('Reorder textures')
+						} else if ($('#cubes_list:hover')) {
+
+							var target_node = $('#cubes_list li.outliner_node.drag_hover').last().get(0);
+							$('.drag_hover').removeClass('drag_hover');
+							if (!target_node) return;
+							let uuid = target_node.id;
+							var target = OutlinerNode.uuids[uuid];
+
+							var array = [];
+		
+							if (target.type === 'group') {
+								target.forEachChild(function(cube) {
+									array.push(cube)
+								}, Cube)
+							} else {
+								array = selected.includes(target) ? selected : [target];
+							}
+							Undo.initEdit({elements: array, uv_only: true})
+							array.forEach(function(cube) {
+								for (var face in cube.faces) {
+									cube.faces[face].texture = tex.uuid;
+								}
+							})
+							Undo.finishEdit('Drop texture')
+		
+							main_uv.loadData()
+							Canvas.updateAllFaces()
 						}
 					}, 10)
 				}
@@ -1275,7 +1404,7 @@ BARS.defineActions(function() {
 	new Action('import_texture', {
 		icon: 'library_add',
 		category: 'textures',
-		keybind: new Keybind({key: 84, ctrl: true}),
+		keybind: new Keybind({key: 't', ctrl: true}),
 		click: function () {
 			var start_path;
 			if (!isApp) {} else
@@ -1303,14 +1432,14 @@ BARS.defineActions(function() {
 					var t = new Texture({name: f.name}).fromFile(f).add(false).fillParticle()
 					new_textures.push(t)
 				})
-				Undo.finishEdit('add_texture')
+				Undo.finishEdit('Add texture')
 			})
 		}
 	})
 	new Action('create_texture', {
 		icon: 'icon-create_bitmap',
 		category: 'textures',
-		keybind: new Keybind({key: 84, ctrl: true, shift: true}),
+		keybind: new Keybind({key: 't', ctrl: true, shift: true}),
 		click: function () {
 			TextureGenerator.addBitmapDialog()
 		}
@@ -1351,7 +1480,7 @@ BARS.defineActions(function() {
 						t.fromPath(t.path.replace(path, new_path))
 					} 
 				})
-				Undo.finishEdit('folder_changed')
+				Undo.finishEdit('Change textures folder')
 			}
 		}
 	})
@@ -1491,11 +1620,11 @@ Interface.definePanels(function() {
 								<div class="texture_name">{{ texture.name }}</div>
 								<div class="texture_res">{{ getDescription(texture) }}</div>
 							</div>
-							<i class="material-icons texture_visibility_icon" v-if="texture.particle">bubble_chart</i>
-							<i class="material-icons texture_particle_icon clickable"
+							<i class="material-icons texture_particle_icon" v-if="texture.particle">bubble_chart</i>
+							<i class="material-icons texture_visibility_icon clickable"
 								v-bind:class="{icon_off: !texture.visible}"
-								v-if="Project.layered_textures"
-								@click="texture.toggleVisibility()"
+								v-if="texture.render_mode == 'layered'"
+								@click.stop="texture.toggleVisibility()"
 								@dblclick.stop
 							>
 								{{ texture.visible ? 'visibility' : 'visibility_off' }}

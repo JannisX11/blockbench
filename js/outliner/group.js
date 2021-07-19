@@ -1,5 +1,5 @@
 
-class Group extends OutlinerElement {
+class Group extends OutlinerNode {
 	constructor(data, uuid) {
 		super(uuid)
 
@@ -18,8 +18,6 @@ class Group extends OutlinerElement {
 		this.autouv = 0;
 		this.parent = 'root';
 		this.isOpen = false;
-		this.ik_enabled = false;
-		this.ik_chain_length = 0;
 
 		if (typeof data === 'object') {
 			this.extend(data)
@@ -183,13 +181,13 @@ class Group extends OutlinerElement {
 	remove(undo) {
 		var scope = this;
 		if (undo) {
-			var cubes = []
+			let elements = []
 			this.forEachChild(function(element) {
 				if (element.type !== 'group') {
-					cubes.push(element)
+					elements.push(element)
 				}
 			})
-			Undo.initEdit({elements: cubes, outliner: true, selection: true})
+			Undo.initEdit({elements: elements, outliner: true, selection: true})
 		}
 		this.unselect()
 		var i = this.children.length-1
@@ -213,10 +211,9 @@ class Group extends OutlinerElement {
 		TickUpdates.selection = true
 		this.constructor.all.remove(this);
 		delete Canvas.bones[this.uuid];
-		delete OutlinerElement.uuids[this.uuid];
+		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
-			cubes.length = 0
-			Undo.finishEdit('removed_group')
+			Undo.finishEdit('Delete group')
 		}
 	}
 	resolve() {
@@ -234,7 +231,7 @@ class Group extends OutlinerElement {
 		array.forEach((obj, i) => {
 			obj.addTo(this.parent, index)
 			
-			if ((obj instanceof Cube && Format.rotate_cubes) || (obj instanceof Group && Format.bone_rig)) {
+			if ((obj instanceof Cube && Format.rotate_cubes) || (obj instanceof OutlinerElement && obj.rotatable) || (obj instanceof Group && Format.bone_rig)) {
 				let quat = new THREE.Quaternion().copy(obj.mesh.quaternion);
 				quat.premultiply(obj.mesh.parent.quaternion);
 				let e = new THREE.Euler().setFromQuaternion(quat, obj.mesh.rotation.order);
@@ -259,7 +256,7 @@ class Group extends OutlinerElement {
 					obj.forEachChild(child => {
 						if (child.movable) child.from.V3_add(diff);
 						if (child.resizable) child.to.V3_add(diff);
-						if (obj.rotatable || obj instanceof Group) child.origin.V3_add(diff);
+						if (child.rotatable || child instanceof Group) child.origin.V3_add(diff);
 					})
 				}
 			}
@@ -269,14 +266,13 @@ class Group extends OutlinerElement {
 			Canvas.updateAllBones();
 		}
 		this.remove(false);
-		Undo.finishEdit('resolve group')
-		TickUpdates.outliner = true;
+		Undo.finishEdit('Resolve group')
 		return array;
 	}
 	showContextMenu(event) {
 		Prop.active_panel = 'outliner'
 		if (this.locked) return this;
-		this.select(event)
+		if (Group.selected != this) this.select(event);
 		this.menu.open(event, this)
 		return this;
 	}
@@ -322,7 +318,7 @@ class Group extends OutlinerElement {
 		this.children.sort(function(a,b) {
 			return sort_collator.compare(a.name, b.name)
 		});
-		Undo.finishEdit('sort')
+		Undo.finishEdit('Sort group content')
 		return this;
 	}
 	duplicate() {
@@ -338,8 +334,7 @@ class Group extends OutlinerElement {
 			child.duplicate().addTo(copy)
 		}
 		copy.isOpen = true;
-		Canvas.updatePositions()
-		TickUpdates.outliner = true;
+		Canvas.updatePositions();
 		return copy;
 	}
 	getSaveCopy() {
@@ -364,6 +359,7 @@ class Group extends OutlinerElement {
 		base_group.visibility = this.visibility;
 		base_group.export = this.export;
 		base_group.autouv = this.autouv;
+		base_group.isOpen = this.isOpen;
 		return base_group;
 	}
 	compile(undo) {
@@ -409,26 +405,6 @@ class Group extends OutlinerElement {
 			i++;
 		}
 	}
-	toggle(key, val) {
-		if (val === undefined) {
-			var val = !this[key]
-		}
-		var cubes = []
-		this.forEachChild(obj => {
-			cubes.push(obj)
-		}, NonGroup)
-		Undo.initEdit({outliner: true, elements: cubes})
-		this.forEachChild(function(s) {
-			s[key] = val
-			s.updateElement()
-		})
-		this[key] = val;
-		this.updateElement()
-		if (key === 'visibility') {
-			Canvas.updateVisibility()
-		}
-		Undo.finishEdit('toggle')
-	}
 	setAutoUV(val) {
 		this.forEachChild(function(s) {
 			s.autouv = val;
@@ -445,19 +421,43 @@ class Group extends OutlinerElement {
 	Group.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
 	Group.prototype.buttons = [
 		Outliner.buttons.autouv,
-		Outliner.buttons.shading,
+		Outliner.buttons.shade,
 		Outliner.buttons.export,
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
 	Group.prototype.needsUniqueName = () => Format.bone_rig;
+	function setGroupColor(color) {
+		Undo.initEdit({outliner: true, elements: Cube.selected, selection: true})
+		Group.all.forEach(group => {
+			if (group.selected) {
+				group.color = color;
+			}
+		})
+		Cube.selected.forEach(cube => {
+			cube.setColor(color);
+		})
+		Undo.finishEdit('Change group marker color')
+	}
 	Group.prototype.menu = new Menu([
 		'copy',
 		'paste',
 		'duplicate',
 		'_',
 		'add_locator',
+		'_',
 		'rename',
+		'edit_bedrock_binding',
+		{name: 'menu.cube.color', icon: 'color_lens', children: [
+			{icon: 'bubble_chart', color: markerColors[0].standard, name: 'cube.color.'+markerColors[0].name, click: () => setGroupColor(0)},
+			{icon: 'bubble_chart', color: markerColors[1].standard, name: 'cube.color.'+markerColors[1].name, click: () => setGroupColor(1)},
+			{icon: 'bubble_chart', color: markerColors[2].standard, name: 'cube.color.'+markerColors[2].name, click: () => setGroupColor(2)},
+			{icon: 'bubble_chart', color: markerColors[3].standard, name: 'cube.color.'+markerColors[3].name, click: () => setGroupColor(3)},
+			{icon: 'bubble_chart', color: markerColors[4].standard, name: 'cube.color.'+markerColors[4].name, click: () => setGroupColor(4)},
+			{icon: 'bubble_chart', color: markerColors[5].standard, name: 'cube.color.'+markerColors[5].name, click: () => setGroupColor(5)},
+			{icon: 'bubble_chart', color: markerColors[6].standard, name: 'cube.color.'+markerColors[6].name, click: () => setGroupColor(6)},
+			{icon: 'bubble_chart', color: markerColors[7].standard, name: 'cube.color.'+markerColors[7].name, click: () => setGroupColor(7)}
+		]},
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
 		{icon: 'fa-leaf', name: 'menu.group.resolve', condition: {modes: ['edit']}, click: function(group) {group.resolve()}},
 		'delete'
@@ -469,9 +469,9 @@ class Group extends OutlinerElement {
 		return Format.centered_grid ? [0, 0, 0] : [8, 8, 8]
 	}});
 	new Property(Group, 'vector', 'rotation');
+	new Property(Group, 'string', 'bedrock_binding', {condition: () => Format.id == 'bedrock'});
 	new Property(Group, 'array', 'cem_animations', {condition: () => Format.id == 'optifine_entity'});
-	new Property(Group, 'boolean', 'ik_enabled', {condition: () => Format.animation_mode});
-	new Property(Group, 'number', 'ik_chain_length', {condition: () => Format.animation_mode});
+	new Property(Group, 'number', 'color');
 
 
 function getCurrentGroup() {
@@ -513,12 +513,12 @@ BARS.defineActions(function() {
 		icon: 'create_new_folder',
 		category: 'edit',
 		condition: () => Modes.edit,
-		keybind: new Keybind({key: 71, ctrl: true}),
+		keybind: new Keybind({key: 'g', ctrl: true}),
 		click: function () {
 			Undo.initEdit({outliner: true});
 			var add_group = Group.selected
 			if (!add_group && selected.length) {
-				add_group = Cube.selected.last()
+				add_group = selected.last()
 			}
 			var base_group = new Group({
 				origin: add_group ? add_group.origin : undefined
@@ -529,14 +529,13 @@ BARS.defineActions(function() {
 			if (Format.bone_rig) {
 				base_group.createUniqueName()
 			}
-			if (add_group instanceof NonGroup && selected.length > 1) {
+			if (add_group instanceof OutlinerElement && selected.length > 1) {
 				selected.forEach(function(s, i) {
 					s.addTo(base_group)
 				})
 			}
 			base_group.init().select()
-			Undo.finishEdit('add_group');
-			loadOutlinerDraggable()
+			Undo.finishEdit('Add group');
 			Vue.nextTick(function() {
 				updateSelection()
 				if (settings.create_rename.value) {
@@ -548,17 +547,101 @@ BARS.defineActions(function() {
 		}
 	})
 	new Action({
+		id: 'group_elements',
+		icon: 'drive_file_move',
+		category: 'edit',
+		condition: () => Modes.edit && (selected.length || Group.selected),
+		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),
+		click: function () {
+			Undo.initEdit({outliner: true});
+			var add_group = Group.selected
+			if (!add_group && selected.length) {
+				add_group = selected.last()
+			}
+			var base_group = new Group({
+				origin: add_group ? add_group.origin : undefined
+			})
+			base_group.sortInBefore(add_group);
+			base_group.isOpen = true
+		
+			if (Format.bone_rig) {
+				base_group.createUniqueName()
+			}
+			if (add_group instanceof Group) {
+				add_group.addTo(base_group);
+			} else if (add_group instanceof OutlinerElement) {
+				selected.forEach(function(s, i) {
+					s.addTo(base_group);
+				})
+			}
+			base_group.init().select()
+			Undo.finishEdit('Add group');
+			Vue.nextTick(function() {
+				updateSelection()
+				if (settings.create_rename.value) {
+					base_group.rename()
+				}
+				base_group.showInOutliner()
+				Blockbench.dispatchEvent( 'group_elements', {object: base_group} )
+			})
+		}
+	})
+	new Action({
 		id: 'collapse_groups',
 		icon: 'format_indent_decrease',
 		category: 'edit',
-		condition: () => Outliner.root.length > 0,
-		click: function () {
+		condition: () => Group.all.length > 0,
+		click: function() {
 			Group.all.forEach(function(g) {
-				g.isOpen = false
-				var name = g.name
-				g.name = '_$X0v_'
-				g.name = name
+				g.isOpen = false;
 			})
+		}
+	})
+	new Action({
+		id: 'unfold_groups',
+		icon: 'format_indent_increase',
+		category: 'edit',
+		condition: () => Group.all.length > 0,
+		click: function() {
+			Group.all.forEach(function(g) {
+				g.isOpen = true;
+			})
+		}
+	})
+	new Action({
+		id: 'edit_bedrock_binding',
+		icon: 'fa-paperclip',
+		category: 'edit',
+		condition: () => Format.id == 'bedrock' && Group.selected,
+		click: function() {
+			let dialog = new Dialog({
+				id: 'edit_bedrock_binding',
+				title: 'action.edit_bedrock_binding',
+				component: {
+					components: {VuePrismEditor},
+					data: {
+						binding: Group.selected.bedrock_binding,
+					},
+					template: 
+						`<div class="dialog_bar">
+							<vue-prism-editor class="molang_input dark_bordered" v-model="binding" language="molang" :line-numbers="false" />
+						</div>`
+				},
+				onConfirm: form_data => {
+					dialog.hide().delete();
+					let value = dialog.component.data.binding.replace(/\n/g, '');
+					if (
+						value != Group.selected.bedrock_binding
+					) {
+						Undo.initEdit({group: Group.selected});
+						Group.selected.bedrock_binding = value;
+						Undo.finishEdit('Edit group binding');
+					}
+				},
+				onCancel() {
+					dialog.hide().delete();
+				}
+			}).show();
 		}
 	})
 })

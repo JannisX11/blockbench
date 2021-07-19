@@ -1,9 +1,59 @@
 /*Panel*/
+	.panel.grow {
+		display: flex;
+		flex-direction: column;
+		flex-grow: 1;
+		min-height: 133px;
+	}
 	.panel.grow > .panel_inside {
 		flex-grow: 1;
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
+	}
+	h3.panel_handle {
+		display: flex;
+		width: 100%;
+		height: auto;
+		margin: 0;
+		padding: 0;
+		font-size: inherit;
+		background: var(--color-ui);
+		place-content: space-between;
+	}
+	body > h3.panel_handle {
+		pointer-events: none;
+		box-shadow: 0 0 16px black;
+		width: auto;
+	}
+	h3.panel_handle > label {
+		flex: 0 1 auto;
+		font-size: 1.1em;
+		text-transform: uppercase;
+		color: var(--color-subtle_text);
+		margin: 6px 8px;
+		padding: 0px 4px;
+		cursor: move;
+	}
+	h3.panel_handle > .tool.panel_folding_button {
+		flex: 0 0 auto;
+		margin-top: 4px;
+		opacity: 0.7;
+		cursor: pointer;
+	}
+	h3.panel_handle > .tool.panel_folding_button:hover {
+		opacity: 1;
+	}
+	.panel p {
+		margin-left: 12px;
+	}
+
+	.panel.folded {
+		min-height: auto;
+		flex-grow: 0;
+	}
+	.panel.folded > .panel_inside {
+		display: none;
 	}
 
 	.panel[order]::before {
@@ -84,6 +134,9 @@
 		flex-grow: 0;
 		flex-shrink: 0;
 	}
+	.tool.display_scale_invert {
+		position: relative;
+	}
 
 	input#preset_name {
 		background-color: var(--color-back);
@@ -120,10 +173,7 @@
 	#cubes_list {
 		padding-top: 1px;
 	}
-	#cubes_list > div.vue-tree > ul > li > *:not(ul) {
-		display: none;
-	}
-	#cubes_list > div > ul > li > ul > li:last-child {
+	#cubes_list > li:last-child {
 		margin-bottom: 180px;
 	}
 	.outliner_node .outliner_object i, .outliner_object i[class^="icon-"] {
@@ -154,10 +204,10 @@
 	.outliner_object:hover {
 		color: var(--color-light);
 	}
-	#cubes_list.drag_hover > .vue-tree {
+	#cubes_list.drag_hover > li:last-child {
 		position: relative;
 	}
-	#cubes_list.drag_hover > .vue-tree > ul::before {
+	#cubes_list.drag_hover > li:last-child::after {
 		content: '';
 		width: calc(100% - 12px);
 		height: 2px;
@@ -198,7 +248,7 @@
 		margin-top: -1px;
 	}
 	.drag_hover[order="1"]::before {
-		bottom: 0px;
+		bottom: -1px;
 	}
 	.drag_hover[order="0"]::before {
 		width: 5px;
@@ -206,11 +256,21 @@
 		margin-left: 0;
 		border-top-right-radius: 4px;
 		border-bottom-right-radius: 4px;
-
 	}
-	/*Cancel Dragover for main list*/
-	#cubes_list > div > ul > li.outliner_node.parent_li {
-		border: none !important;
+	#outliner_drag_helper {
+		position: absolute;
+		width: auto;
+		min-width: 150px;
+		height: 28px;
+		pointer-events: none;
+		background-color: var(--color-selected);
+		box-shadow: 0 0.4px 3.5px rgba(0, 0, 0, 0.6);
+		display: flex;
+		padding: 2px 15px 2px 8px;
+		z-index: 18;
+	}
+	#outliner_drag_helper > i {
+		padding: 4px;
 	}
 	.outliner_object > input {
 		width: 0;
@@ -255,15 +315,6 @@
 	}
 	.outliner_object i.ec_7 {
 		color: #BDFFA6; /*lime*/
-	}
-	body > .outliner_object {
-		width: 180px;
-		padding-left: 0 !important;
-		background-color: var(--color-selected);
-		box-shadow: 0 0.4px 3.5px rgba(0, 0, 0, 0.6);
-	}
-	body > .outliner_object .outliner_toggle {
-		display: none;
 	}
 	div#outliner_stats {
 		float: right;
@@ -314,6 +365,9 @@
 	}
 	.texture > i.clickable:hover {
 		color: var(--color-light);
+	}
+	.texture > i.icon_off.clickable:hover {
+		color: var(--color-text);
 	}
 	.texture > i:not(.clickable) {
 		color: var(--color-subtle_text);
@@ -419,6 +473,7 @@
 		padding-right: 2px;
 		background-color: var(--color-back);
 		border: 1px solid var(--color-border);
+		border-bottom: none;
 	}
 	#texture_animation_timeline .texture_animation_frame {
 		flex-grow: 1;
@@ -452,7 +507,6 @@
 /*Animations*/
 	.panel#animations #animations_list {
 		min-height: 126px;
-		max-height: 294px;
 		padding-bottom: 12px;
 	}
 	.animation {
@@ -485,6 +539,10 @@
 		flex-shrink: 1;
 		overflow: hidden;
 	}
+	.animation > label > span {
+		color: var(--color-subtle_text);
+		font-size: 0.92em;
+	}
 	.in_list_button {
 		width: 22px;
 		color: var(--color-text);
@@ -509,9 +567,10 @@
 		padding: 2px;
 		padding-right: 8px;
 		display: flex;
+		color: var(--color-subtle_text);
 	}
 	.animation_file_head:hover {
-		color: var(--color-light);
+		color: var(--color-text);
 	}
 	.animation_file_head > .icon-open-state {
 		text-align: center;
@@ -522,6 +581,41 @@
 		flex-grow: 1;
 		flex-shrink: 1;
 		overflow: hidden;
+	}
+
+	.animation[order]::before {
+		content: '';
+		height: 2px;
+		left: 0;
+		right: 0;
+		background: var(--color-accent);
+		z-index: 3;
+		display: block;
+		position: absolute;
+	}
+	.animation[order] {
+		position: relative;
+	}
+	.animation[order="-1"]::before {
+		margin-top: -9px;
+	}
+	.animation[order="1"]::before {
+		bottom: -1px;
+	}
+	#animation_drag_helper {
+		position: absolute;
+		height: 38px;
+		display: flex;
+		white-space: nowrap;
+		vertical-align: middle;
+		padding: 8px;
+		box-sizing: border-box;
+		width: auto;
+		min-width: 150px;
+		pointer-events: none;
+		background-color: var(--color-selected);
+		box-shadow: 0 0.4px 3.5px rgba(0, 0, 0, 0.6);
+		z-index: 18;
 	}
 
 /* Keyframe Panel */
@@ -585,6 +679,7 @@
 		overflow-y: hidden;
 		min-height: 30px;
 		height: auto;
+		margin-bottom: auto;
 	}
 	.molang_input pre {
 		padding: 2px;
@@ -725,11 +820,11 @@
 		height: 23px;
 	}
 	#timeline .keyframe i {
-		margin-top: 2px;
-		transform: rotate(45deg);
-		font-size: 14pt;
-		margin-left: -3px;
+		margin-top: 3px;
+		font-size: 16px;
+		margin-left: -1px;
 		pointer-events: none;
+		display: block;
 	}
 	#timeline .keyframe i.keyframe_icon_smaller {
 		font-size: 11pt;
@@ -745,8 +840,11 @@
 		font-size: 6pt;
 		color: var(--color-grid);
 	}
-	#timeline .keyframe.selected {
+	#timeline .keyframe.selected i {
 		color: var(--color-accent) !important;
+		z-index: 4;
+	}
+	#timeline .keyframe:hover {
 		z-index: 4;
 	}
 
@@ -930,11 +1028,13 @@
 		width: 8000px;
 		position: absolute;
 		top: 0;
+		pointer-events: none;
 	}
 	.keyframe .keyframe_waveform > polygon {
 		fill: var(--color-grid);
 		stroke: none;
 		stroke-width: 0;
+		pointer-events: initial;
 	}
 
 	#timeline_graph_editor {
@@ -961,8 +1061,9 @@
 		font-size: 10px;
 	}
 	#timeline_graph_editor .keyframe > i {
-		margin-top: 0px;
-		font-size: 16px;
+		font-size: 13px;
+		margin-top: 2px;
+		margin-left: -2px;
 	}
 	#timeline_graph_editor .keyframe > i.keyframe_icon_smaller {
 		font-size: 12px;

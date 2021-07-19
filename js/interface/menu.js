@@ -1,4 +1,4 @@
-var open_menu;
+var open_menu = null;
 
 function handleMenuOverflow(node) {
 	node = node.get(0);
@@ -18,7 +18,6 @@ function handleMenuOverflow(node) {
 }
 class Menu {
 	constructor(structure) {
-		var scope = this;
 		this.children = [];
 		this.node = $('<ul class="contextMenu"></ul>')[0]
 		this.structure = structure
@@ -40,7 +39,7 @@ class Menu {
 			var offset = childlist.offset()
 			var el_height = childlist.height()
 
-			if (offset.left + el_width > $(window).width()) {
+			if (offset.left + el_width > window.innerWidth) {
 				if (Blockbench.isMobile) {
 					childlist.css('visibility', 'hidden');
 					setTimeout(() => {
@@ -60,7 +59,6 @@ class Menu {
 				handleMenuOverflow(childlist);
 
 			} else if (offset.top + el_height > window_height) {
-				console.log('b')
 				childlist.css('margin-top', 26-childlist.height() + 'px')
 				if (childlist.offset().top < 26) {
 					childlist.offset({top: 26})
@@ -74,7 +72,8 @@ class Menu {
 		var obj = $(this.node)
 		if (e.which >= 37 && e.which <= 40) {
 
-			if (obj.find('li.focused').length) {
+			let is_menu_bar = scope.type === 'bar_menu' && e.which%2;
+			if (obj.find('li.focused').length || is_menu_bar) {
 				var old = obj.find('li.focused'), next;
 				switch (e.which) {
 					case 37: next = old.parent('ul').parent('li'); 					break;//<
@@ -94,7 +93,7 @@ class Menu {
 				if (next && next.length) {
 					old.removeClass('focused')
 					scope.hover(next.get(0))
-				} else if (scope.type === 'bar_menu' && e.which%2) {
+				} else if (is_menu_bar) {
 					var index = MenuBar.keys.indexOf(scope.id)
 					index += (e.which == 39 ? 1 : -1)
 					if (index < 0) {
@@ -178,6 +177,7 @@ class Menu {
 
 				entry = $(s.menu_node)
 
+				entry.removeClass('focused')
 				entry.off('click')
 				entry.off('mouseenter mousedown')
 				entry.on('mouseenter mousedown', function(e) {
@@ -191,6 +191,7 @@ class Menu {
 				} else {
 					entry.on('click', (e) => {s.trigger(e)})
 				}
+
 				parent.append(entry)
 
 			} else if (s instanceof BarSelect) {
@@ -200,7 +201,7 @@ class Menu {
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = $(`<li title="${s.description||''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`)
+				entry = $(`<li title="${s.description ? tl(s.description) : ''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`)
 				entry.prepend(icon)
 
 				//Submenu
@@ -244,7 +245,7 @@ class Menu {
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = $(`<li title="${s.description||''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`)
+				entry = $(`<li title="${s.description ? tl(s.description) : ''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`)
 				entry.prepend(icon)
 				if (typeof s.click === 'function') {
 					entry.click(e => {
@@ -263,6 +264,14 @@ class Menu {
 				entry.mouseenter(function(e) {
 					scope.hover(this, e)
 				})
+			}
+			//Highlight
+			if (scope.highlight_action == s && entry) {
+				let obj = entry;
+				while (obj[0] && obj[0].nodeName == 'LI') {
+					obj.addClass('highlighted');
+					obj = obj.parent().parent();
+				}
 			}
 		}
 
@@ -293,15 +302,18 @@ class Menu {
 				position = position.parentElement;
 			}
 			var offset_left = $(position).offset().left;
-			var offset_top  = $(position).offset().top + $(position).height();
+			var offset_top  = $(position).offset().top + position.clientHeight;
 		}
 
-		if (offset_left > $(window).width() - el_width) {
+		if (offset_left > window.innerWidth - el_width) {
 			offset_left -= el_width
 			if (position && position.clientWidth) offset_left += position.clientWidth;
 		}
 		if (offset_top  > window_height - el_height ) {
-			offset_top -= el_height
+			offset_top -= el_height;
+			if (position instanceof HTMLElement) {
+				offset_top -= position.clientHeight;
+			}
 		}
 		offset_top = Math.clamp(offset_top, 26)
 
@@ -312,14 +324,13 @@ class Menu {
 			handleMenuOverflow(ctxmenu);
 		}
 
-		$(scope.node).filter(':not(.tx)').addClass('tx').click(function(ev) {
+		$(scope.node).on('click', (ev) => {
 			if (
 				ev.target.className.includes('parent') ||
 				(ev.target.parentNode && ev.target.parentNode.className.includes('parent'))
 			) {} else {
 				scope.hide()
 			}
-
 		})
 
 		if (scope.type === 'bar_menu') {
@@ -333,8 +344,9 @@ class Menu {
 		return this.open(position);
 	}
 	hide() {
+		$(this.node).find('li.highlighted').removeClass('highlighted');
 		$(this.node).detach()
-		open_menu = undefined;
+		open_menu = null;
 		return this;
 	}
 	conditionMet() {
@@ -441,13 +453,20 @@ class BarMenu extends Menu {
 				scope.open()
 			}
 		})
-		this.structure = structure
+		this.structure = structure;
+		this.highlight_action = null;
 	}
 	hide() {
-		super.hide()
-		$(this.label).removeClass('opened')
-		MenuBar.open = undefined
+		super.hide();
+		$(this.label).removeClass('opened');
+		MenuBar.open = undefined;
+		this.highlight_action = null;
+		this.label.classList.remove('highlighted');
 		return this;
+	}
+	highlight(action) {
+		this.highlight_action = action;
+		this.label.classList.add('highlighted');
 	}
 }
 const MenuBar = {
@@ -518,7 +537,8 @@ const MenuBar = {
 			'close_project',
 			'_',
 			{name: 'menu.file.import', id: 'import', icon: 'insert_drive_file', children: [
-				'add_model',
+				'import_project',
+				'import_java_block_model',
 				'import_optifine_part',
 				'extrude_texture'
 			]},
@@ -529,9 +549,11 @@ const MenuBar = {
 				'export_class_entity',
 				'export_optifine_full',
 				'export_optifine_part',
-				'export_obj',
+				'export_minecraft_skin',
 				'export_gltf',
+				'export_obj',
 				'upload_sketchfab',
+				'share_model',
 			]},
 			'export_over',
 			'export_asset_archive',
@@ -547,10 +569,12 @@ const MenuBar = {
 		new BarMenu('edit', [
 			'undo',
 			'redo',
+			'edit_history',
 			'_',
 			'add_cube',
 			'add_group',
 			'add_locator',
+			'add_null_object',
 			'rename',
 			'unlock_everything',
 			'duplicate',
@@ -622,11 +646,12 @@ const MenuBar = {
 			'add_keyframe',
 			'add_marker',
 			'reverse_keyframes',
-			{name: 'menu.transform.flip', id: 'flip', condition: () => Timeline.selected.length, icon: 'flip', children: [
+			{name: 'menu.animation.flip_keyframes', id: 'flip_keyframes', condition: () => Timeline.selected.length, icon: 'flip', children: [
 				'flip_x',
 				'flip_y',
 				'flip_z'
 			]},
+			'flip_animation',
 			'delete',
 			'lock_motion_trail',
 			'_',
@@ -643,12 +668,13 @@ const MenuBar = {
 		new BarMenu('view', [
 			'fullscreen',
 			'_',
+			'view_mode',
 			'toggle_shading',
 			'toggle_motion_trails',
-			'toggle_wireframe',
 			'preview_checkerboard',
 			'painting_grid',
 			'_',
+			'toggle_sidebars',
 			'toggle_quad_view',
 			'focus_on_selection',
 			{name: 'menu.view.screenshot', id: 'screenshot', icon: 'camera_alt', children: [
@@ -667,6 +693,9 @@ const MenuBar = {
 			{name: 'menu.help.quickstart', id: 'discord', icon: 'fas.fa-directions', click: () => {
 				Blockbench.openLink('https://blockbench.net/quickstart/');
 			}},
+			{name: 'menu.help.wiki', id: 'wiki', icon: 'menu_book', click: () => {
+				Blockbench.openLink('https://blockbench.net/wiki/');
+			}},
 			{name: 'menu.help.report_issue', id: 'report_issue', icon: 'bug_report', click: () => {
 				Blockbench.openLink('https://github.com/JannisX11/blockbench/issues');
 			}},
@@ -676,7 +705,7 @@ const MenuBar = {
 			{name: 'menu.help.developer', id: 'developer', icon: 'fas.fa-wrench', children: [
 				'reload_plugins',
 				{name: 'menu.help.plugin_documentation', id: 'plugin_documentation', icon: 'fa-book', click: () => {
-					Blockbench.openLink('https://jannisx11.github.io/blockbench-docs/');
+					Blockbench.openLink('https://www.blockbench.net/wiki/api/index');
 				}},
 				'open_dev_tools',
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
@@ -688,6 +717,13 @@ const MenuBar = {
 					}
 				}},
 				{name: 'menu.help.developer.cache_reload', id: 'cache_reload', icon: 'cached', condition: !isApp, click: () => {
+					if('caches' in window){
+						caches.keys().then((names) => {
+							names.forEach(async (name) => {
+								await caches.delete(name)
+							})
+						})
+					}
 					window.location.reload(true)
 				}},
 				'reload',

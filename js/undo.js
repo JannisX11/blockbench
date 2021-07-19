@@ -32,7 +32,8 @@ var Undo = {
 		var entry = {
 			before: Undo.current_save,
 			post: new Undo.save(aspects),
-			action: action
+			action: action,
+			time: Date.now()
 		}
 		Undo.current_save = entry.post
 		if (Undo.history.length > Undo.index) {
@@ -211,6 +212,10 @@ var Undo = {
 				}
 			})
 		}
+
+		if (aspects.exploded_view !== undefined) {
+			this.exploded_view = !!aspects.exploded_view;
+		}
 	},
 	loadSave(save, reference, mode) {
 		var is_session = mode === 'session';
@@ -227,32 +232,33 @@ var Undo = {
 				if (save.elements.hasOwnProperty(uuid)) {
 					var element = save.elements[uuid]
 
-					var new_element = OutlinerElement.uuids[uuid]
+					var new_element = OutlinerNode.uuids[uuid]
 					if (new_element) {
 						for (var face in new_element.faces) {
 							new_element.faces[face].reset()
 						}
 						new_element.extend(element)
-						if (new_element.type == 'cube') {
+						if (new_element.mesh) {
 							Canvas.adaptObjectPosition(new_element)
+						}
+						if (new_element.type == 'cube') {
 							Canvas.adaptObjectFaceGeo(new_element)
 							Canvas.adaptObjectFaces(new_element)
 							Canvas.updateUV(new_element)
 						}
 					} else {
-						new_element = NonGroup.fromSave(element, true);
+						new_element = OutlinerElement.fromSave(element, true);
 					}
 				}
 			}
 			for (var uuid in reference.elements) {
 				if (reference.elements.hasOwnProperty(uuid) && !save.elements.hasOwnProperty(uuid)) {
-					var obj = OutlinerElement.uuids[uuid]
+					var obj = OutlinerNode.uuids[uuid]
 					if (obj) {
 						obj.remove()
 					}
 				}
 			}
-			loadOutlinerDraggable()
 			Canvas.updateVisibility()
 		}
 
@@ -277,7 +283,7 @@ var Undo = {
 
 		if (save.selection_group && !is_session) {
 			Group.selected = undefined
-			var sel_group = OutlinerElement.uuids[save.selection_group]
+			var sel_group = OutlinerNode.uuids[save.selection_group]
 			if (sel_group) {
 				sel_group.select()
 			}
@@ -293,7 +299,7 @@ var Undo = {
 		}
 
 		if (save.group) {
-			var group = OutlinerElement.uuids[save.group.uuid]
+			var group = OutlinerNode.uuids[save.group.uuid]
 			if (group) {
 				if (is_session) {
 					delete save.group.isOpen;
@@ -349,7 +355,7 @@ var Undo = {
 		if (save.selected_texture) {
 			let tex = Texture.all.find(tex => tex.uuid == save.selected_texture);
 			if (tex instanceof Texture) tex.select()
-		} else if (save.selected_texture == null) {
+		} else if (save.selected_texture === null) {
 			unselectTextures()
 		}
 
@@ -402,7 +408,6 @@ var Undo = {
 						i++;
 					}
 				}
-				var added = 0;
 				for (var uuid in save.keyframes) {
 					if (uuid.length === 36 && save.keyframes.hasOwnProperty(uuid)) {
 						var data = save.keyframes[uuid];
@@ -413,7 +418,6 @@ var Undo = {
 							kf.extend(data)
 						} else {
 							animator.addKeyframe(data, uuid);
-							added++;
 						}
 					}
 				}
@@ -444,6 +448,9 @@ var Undo = {
 				display[slot].extend(data).update()
 			}
 		}
+
+		Blockbench.dispatchEvent('load_undo_save', {save, reference, mode})
+
 		if (open_dialog == 'uv_dialog') {
 			for (var key in uv_dialog.editors) {
 				if (uv_dialog.editors[key]) {
@@ -473,7 +480,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => (!open_dialog || open_dialog === 'uv_dialog' || open_dialog === 'toolbar_edit'),
 		work_in_dialog: true,
-		keybind: new Keybind({key: 90, ctrl: true}),
+		keybind: new Keybind({key: 'z', ctrl: true}),
 		click: Undo.undo
 	})
 	new Action('redo', {
@@ -481,7 +488,74 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => (!open_dialog || open_dialog === 'uv_dialog' || open_dialog === 'toolbar_edit'),
 		work_in_dialog: true,
-		keybind: new Keybind({key: 89, ctrl: true}),
+		keybind: new Keybind({key: 'y', ctrl: true}),
 		click: Undo.redo
+	})
+	new Action('edit_history', {
+		icon: 'history',
+		category: 'edit',
+		click() {
+
+			let steps = [];
+			Undo.history.forEachReverse((entry, index) => {
+				index++;
+				step = {
+					name: entry.action,
+					time: new Date(entry.time).toLocaleTimeString(),
+					index,
+					current: index == Undo.index
+				};
+				steps.push(step);
+			})
+			steps.push({
+				name: 'Original',
+				time: '',
+				index: 0,
+				current: Undo.index == 0
+			})
+			let step_selected = null;
+			const dialog = new Dialog({
+				id: 'edit_history',
+				title: 'action.edit_history',
+				component: {
+					data() {return {
+						steps,
+						selected: null
+					}},
+					methods: {
+						select(index) {
+							this.selected = step_selected = index;
+						},
+						confirm() {
+							dialog.confirm();
+						}
+					},
+					template: `
+						<div id="edit_history_list">
+							<ul>
+								<li v-for="step in steps" :class="{current: step.current, selected: step.index == selected}" @click="select(step.index)" @dblclick="confirm()">
+									{{ step.name }}
+									<div class="edit_history_time">{{ step.time }}</div>
+								</li>
+							</ul>
+						</div>
+					`
+				},
+				onConfirm() {
+					if (step_selected === null) return;
+
+					let difference = step_selected - Undo.index;
+					if (step_selected < Undo.index) {
+						for (let i = 0; i < -difference; i++) {
+							Undo.undo();
+						}
+					} else if (step_selected > Undo.index) {
+						for (let i = 0; i < difference; i++) {
+							Undo.redo();
+						}
+					}
+				}
+			}).show();
+		}
 	})
 })

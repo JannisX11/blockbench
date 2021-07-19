@@ -45,6 +45,8 @@ function colorDistance(color1, color2) {
 		]
 	}
 Interface.definePanels(() => {
+
+	StateMemory.init('color_picker_tab', 'string')
 	ColorPanel = Interface.Panels.color = new Panel({
 		id: 'color',
 		icon: 'palette',
@@ -84,7 +86,7 @@ Interface.definePanels(() => {
 	Interface.Panels.color.vue = new Vue({
 		el: '#color_panel_wrapper',
 		data: {
-			open_tab: 'picker',
+			open_tab: StateMemory.color_picker_tab || 'picker',
 			main_color: '#000000',
 			hover_color: '',
 			get color_code() {return this.hover_color || this.main_color},
@@ -149,6 +151,13 @@ Interface.definePanels(() => {
 				BarItems.slider_color_v.update();
 				$('#main_colorpicker').spectrum('set', value);
 				this.text_input = value;
+			},
+			open_tab(tab) {
+				StateMemory.color_picker_tab = tab;
+				StateMemory.save('color_picker_tab');
+				Vue.nextTick(() => {
+					$('#main_colorpicker').spectrum('reflow');
+				})
 			}
 		}
 	})
@@ -720,7 +729,7 @@ BARS.defineActions(function() {
 		},
 		getInterval(e) {
 			if (e.shiftKey) return 12.5;
-			if (e.ctrlKey) return 1;
+			if (e.ctrlOrCmd) return 1;
 			return 4
 		},
 		get: function() {
@@ -740,7 +749,7 @@ BARS.defineActions(function() {
 		},
 		getInterval(e) {
 			if (e.shiftKey) return 10;
-			if (e.ctrlKey) return 1;
+			if (e.ctrlOrCmd) return 1;
 			return 2
 		},
 		get: function() {
@@ -760,7 +769,7 @@ BARS.defineActions(function() {
 		},
 		getInterval(e) {
 			if (e.shiftKey) return 10;
-			if (e.ctrlKey) return 1;
+			if (e.ctrlOrCmd) return 1;
 			return 2
 		},
 		get: function() {
@@ -770,6 +779,14 @@ BARS.defineActions(function() {
 			var value = modify(ColorPanel.vue._data.hsv.v);
 			ColorPanel.vue._data.hsv.v = Math.clamp(value, this.settings.min, this.settings.max);
 			ColorPanel.updateFromHsv();
+		}
+	})
+	new Action('pick_screen_color', {
+		icon: 'colorize',
+		category: 'color',
+		condition: isApp,
+		click: function () {
+			ipcRenderer.send('request-color-picker', {sync: settings.sync_color.value});
 		}
 	})
 })

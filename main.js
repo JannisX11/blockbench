@@ -3,6 +3,7 @@ const path = require('path')
 const url = require('url')
 const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
+const {getColorHexRGB} = require('electron-color-picker')
 
 let orig_win;
 let all_wins = [];
@@ -42,7 +43,7 @@ function createWindow(second_instance) {
 		icon:'icon.ico',
 		show: false,
 		backgroundColor: '#21252b',
-		frame: false,
+		frame: LaunchSettings.get('native_window_frame') === true,
 		titleBarStyle: 'hidden',
 		minWidth: 640,
 		minHeight: 480,
@@ -50,6 +51,7 @@ function createWindow(second_instance) {
 			webgl: true,
 			webSecurity: true,
 			nodeIntegration: true,
+			contextIsolation: false,
 			enableRemoteModule: true
 		}
 	})
@@ -168,41 +170,59 @@ ipcMain.on('change-main-color', (event, arg) => {
 ipcMain.on('edit-launch-setting', (event, arg) => {
 	LaunchSettings.set(arg.key, arg.value);
 })
+ipcMain.on('request-color-picker', async (event, arg) => {
+	const color = await getColorHexRGB().catch((error) => {
+		console.warn('[Error] Failed to pick color', error)
+		return ''
+	})
+	if (color) {
+		all_wins.forEach(win => {
+			if (win.isDestroyed() || (!arg.sync && win.webContents.getProcessId() != event.sender.getProcessId())) return;
+			win.webContents.send('set-main-color', color)
+		})
+	}
+})
 
 app.on('ready', () => {
 
 	createWindow()
 
-	if (process.execPath && process.execPath.match(/electron\.\w+$/)) {
+	ipcMain.on('app-loaded', () => {
 
-		console.log('[Blockbench] Launching in development mode')
+		if (process.execPath && process.execPath.match(/electron\.\w+$/)) {
 
-	} else {
-
-		autoUpdater.autoInstallOnAppQuit = true;
-		autoUpdater.autoDownload = false;
-
-		autoUpdater.on('update-available', (a) => {
-			console.log('update-available', a)
-			ipcMain.on('allow-auto-update', () => {
-				autoUpdater.downloadUpdate()
+			console.log('[Blockbench] App launched in development mode')
+	
+		} else {
+	
+			autoUpdater.autoInstallOnAppQuit = true;
+			autoUpdater.autoDownload = false;
+			if (LaunchSettings.get('update_to_prereleases') === true) {
+				autoUpdater.allowPrerelease = true;
+			}
+	
+			autoUpdater.on('update-available', (a) => {
+				console.log('update-available', a)
+				ipcMain.on('allow-auto-update', () => {
+					autoUpdater.downloadUpdate()
+				})
+				orig_win.webContents.send('update-available');
 			})
-			orig_win.webContents.send('update-available');
-		})
-		autoUpdater.on('update-downloaded', (a) => {
-			console.log('update-downloaded', a)
-			orig_win.webContents.send('update-downloaded', a)
-		})
-		autoUpdater.on('error', (a) => {
-			console.log('update-error', a)
-			orig_win.webContents.send('update-error', a)
-		})
-		autoUpdater.on('download-progress', (a) => {
-			console.log('update-progress', a)
-			orig_win.webContents.send('update-progress', a)
-		})
-		autoUpdater.checkForUpdates().catch(err => {})
-	}
+			autoUpdater.on('update-downloaded', (a) => {
+				console.log('update-downloaded', a)
+				orig_win.webContents.send('update-downloaded', a)
+			})
+			autoUpdater.on('error', (a) => {
+				console.log('update-error', a)
+				orig_win.webContents.send('update-error', a)
+			})
+			autoUpdater.on('download-progress', (a) => {
+				console.log('update-progress', a)
+				orig_win.webContents.send('update-progress', a)
+			})
+			autoUpdater.checkForUpdates().catch(err => {})
+		}
+	})
 })
 
 app.on('window-all-closed', () => {

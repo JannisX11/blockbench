@@ -204,7 +204,7 @@ var part_codec = new Codec('optifine_part', {
 			import_group.addTo()
 		}
 		if (add) {
-			Undo.finishEdit('add jpm model')
+			Undo.finishEdit('Add JPM model')
 		}
 		addSubmodel(model)
 		this.dispatchEvent('parsed', {model});
@@ -218,7 +218,7 @@ var part_format = new ModelFormat({
 		id: 'optifine_part',
 		extension: 'jpm',
 		icon: 'icon-format_optifine',
-		//show_on_start_screen: false,
+		show_on_start_screen: false,
 		single_texture: true,
 		integer_size: true,
 		rotate_cubes: true,

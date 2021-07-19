@@ -15,7 +15,7 @@ function buildAnimationTracks() {
 						let values = [];
 						let keyframes = animator[channel].slice();
 
-						// Sampling calculated (molang) values
+						// Sampling non-linear and math-based values
 						let contains_script
 						for (var kf of keyframes) {
 							if (kf.interpolation != 'linear') {
@@ -29,11 +29,12 @@ function buildAnimationTracks() {
 							if (contains_script) break;
 						}
 						if (contains_script) {
-							var last_values;
-							for (var time = 0; time < animation.length; time += 1/24) {
+							let interval = 1 / Math.clamp(settings.animation_sample_rate.value, 0.1, 500);
+							let last_values;
+							for (var time = 0; time < animation.length; time += interval) {
 								Timeline.time = time;
 								let values = animator.interpolate(channel, false)
-								if (!values.equals(last_values) && !keyframes.find(kf => Math.epsilon(kf.time, time, 1/24))) {
+								if (!values.equals(last_values) && !keyframes.find(kf => Math.epsilon(kf.time, time, interval))) {
 									let new_keyframe = new Keyframe({
 										time, channel,
 										data_points: [{
@@ -106,6 +107,10 @@ function buildAnimationTracks() {
 						if (channel === 'rotation') {
 							trackType = THREE.QuaternionKeyframeTrack;
 							channel = 'quaternion';
+						} else if (channel == 'position') {
+							values.forEach((val, i) => {
+								values[i] = val/16;
+							})
 						}
 						let track = new trackType(animator.group.mesh.uuid+'.'+channel, times, values, interpolation);
 						tracks.push(track);

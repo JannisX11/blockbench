@@ -2,18 +2,18 @@
 if (isApp) {
 window.BedrockEntityManager = {
 	checkEntityFile(path) {
-		let mce = 'minecraft:client_entity';
 		try {
 			var c = fs.readFileSync(path, 'utf-8');
 			if (typeof c === 'string') {
 				c = autoParseJSON(c, false);
-				if (c && c[mce] && c[mce].description && typeof c[mce].description.geometry == 'object') {
-					for (var key in c[mce].description.geometry) {
-						var geoname = c[mce].description.geometry[key];
+				let main = c && (c['minecraft:client_entity'] || c['minecraft:attachable']);
+				if (main && main.description && typeof main.description.geometry == 'object') {
+					for (var key in main.description.geometry) {
+						var geoname = main.description.geometry[key];
 						if (typeof geoname == 'string') {
 							geoname = geoname.replace(/^geometry\./, '');
 							if (geoname == Project.geometry_name) {
-								return c[mce];
+								return main;
 							}
 						}
 					}
@@ -57,8 +57,7 @@ window.BedrockEntityManager = {
 					}
 				} catch (err) {}
 			}
-			var result = searchFolder(path);
-			if (result) return result;
+			return searchFolder(path) || searchFolder(path.replace(/entity$/, 'attachables'));
 		}
 	},
 	initEntity() {
@@ -77,7 +76,7 @@ window.BedrockEntityManager = {
 							path+'.tga'
 						])
 						if (path) {
-							valid_textures_list.push(path);
+							valid_textures_list.safePush(path);
 						}
 					}
 				}
@@ -112,19 +111,19 @@ window.BedrockEntityManager = {
 							}
 						}).show()
 						$('#import_texture_list li').each((i, el) => {
-							$(el).css('background-image', `url("${ valid_textures_list[i].replace(/\\/g, '/').replace(/#/g, '%23') }?${Math.round(Math.random()*1e6)}")`)
-							.click(function() {
+							el.style.setProperty('background-image', `url("${ valid_textures_list[i].replace(/\\/g, '/').replace(/#/g, '%23') }?${Math.round(Math.random()*1e6)}")`)
+							el.onclick = function() {
 								if (selected_textures.includes(i)) {
 									selected_textures.remove(i)
 								} else {
 									selected_textures.push(i)
 								}
 								$(this).toggleClass('selected')
-							})
-							.dblclick(function() {
+							}
+							el.ondblclick = function() {
 								selected_textures.replace([i])
 								dialog.confirm()
-							})
+							}
 						})
 					}, 2)
 				}
@@ -323,7 +322,7 @@ function calculateVisibleBox() {
 		var base_cube = new Cube({
 			name: s.name || group.name,
 			autouv: 0,
-			color: Group.all.indexOf(group)%8,
+			color: group.color,
 			rotation: s.rotation,
 			origin: s.pivot
 		})
@@ -391,7 +390,9 @@ function calculateVisibleBox() {
 			name: b.name,
 			origin: b.pivot,
 			rotation: b.rotation,
-			material: b.material
+			material: b.material,
+			bedrock_binding: b.binding,
+			color: Group.all.length%8
 		}).init()
 		group.createUniqueName();
 		bones[b.name] = group
@@ -412,9 +413,23 @@ function calculateVisibleBox() {
 		}
 		if (b.locators) {
 			for (var key in b.locators) {
-				var coords = b.locators[key];
-				coords[0] *= -1
-				new Locator({from: coords, name: key}).addTo(group).init();
+				var coords, rotation;
+				if (b.locators[key] instanceof Array) {
+					coords = b.locators[key];
+				} else {
+					coords = b.locators[key].offset;
+					rotation = b.locators[key].rotation;
+				}
+				coords[0] *= -1;
+				if (rotation instanceof Array) {
+					rotation[0] *= -1;
+					rotation[1] *= -1;
+				}
+				if (key.substr(0, 6) == '_null_' && b.locators[key] instanceof Array) {
+					new NullObject({from: coords, name: key.substr(6)}).addTo(group).init();
+				} else {
+					new Locator({from: coords, name: key, rotation}).addTo(group).init();
+				}
 			}
 		}
 		if (b.children) {
@@ -568,10 +583,13 @@ function calculateVisibleBox() {
 			bone.rotation[0] *= -1;
 			bone.rotation[1] *= -1;
 		}
+		if (g.bedrock_binding) {
+			bone.binding = g.bedrock_binding
+		}
 		if (g.reset) {
 			bone.reset = true
 		}
-		if (g.mirror_uv) {
+		if (g.mirror_uv && Project.box_uv) {
 			bone.mirror = true
 		}
 		if (g.material) {
@@ -588,10 +606,24 @@ function calculateVisibleBox() {
 					let template = compileCube(obj, bone);
 					cubes.push(template);
 
-				} else if (obj instanceof Locator) {
+				} else if (obj instanceof Locator || obj instanceof NullObject) {
+					let key = obj.name;
+					if (obj instanceof NullObject) key = '_null_' + key;
+					let offset = obj.from.slice();
+					offset[0] *= -1;
 
-					locators[obj.name] = obj.from.slice();
-					locators[obj.name][0] *= -1;
+					if (obj.rotatable && !obj.rotation.allEqual(0)) {
+						locators[key] = {
+							offset,
+							rotation: [
+								-obj.rotation[0],
+								-obj.rotation[0],
+								obj.rotation[0]
+							]
+						};
+					} else {
+						locators[key] = offset;
+					}
 				}
 			}
 		}
@@ -622,7 +654,7 @@ var codec = new Codec('bedrock', {
 
 		var entitymodel = {}
 		var main_tag = {
-			format_version: '1.12.0',
+			format_version: Group.all.find(group => group.bedrock_binding) ? '1.16.0' : '1.12.0',
 			'minecraft:geometry': [entitymodel]
 		}
 		entitymodel.description = {
@@ -633,21 +665,20 @@ var codec = new Codec('bedrock', {
 		var bones = []
 
 		var groups = getAllGroups();
-		var loose_cubes = [];
+		var loose_elements = [];
 		Outliner.root.forEach(obj => {
-			if (obj.type === 'cube') {
-				loose_cubes.push(obj)
+			if (obj instanceof OutlinerElement) {
+				loose_elements.push(obj)
 			}
 		})
-		if (loose_cubes.length) {
-			groups.splice(0, 0, {
-				type: 'group',
-				parent: 'root',
-				name: 'unknown_bone',
-				origin: [0, 0, 0],
-				rotation: [0, 0, 0],
-				children: loose_cubes
-			})
+		if (loose_elements.length) {
+			let group = new Group({
+				name: 'bb_main'
+			});
+			group.children.push(...loose_elements);
+			group.is_catch_bone = true;
+			group.createUniqueName();
+			groups.splice(0, 0, group);
 		}
 		groups.forEach(function(g) {
 			let bone = compileGroup(g);
@@ -706,6 +737,10 @@ var codec = new Codec('bedrock', {
 			}
 		}
 		if (data && index !== undefined) {
+
+			if (Group.all.find(group => group.bedrock_binding)) {
+				data.format_version = '1.16.0';
+			}
 
 			data['minecraft:geometry'].forEach(geo => {
 				if (geo.bones instanceof Array) {
@@ -871,16 +906,15 @@ var codec = new Codec('bedrock', {
 				},
 				computed: {
 					searched() {
-						var scope = this;
 						return this.list.filter(item => {
-							return item.name.toUpperCase().includes(scope.search_text)
+							return item.name.toUpperCase().includes(this.search_text)
 						})
 					}
 				}
 			})
 		}
 		showDialog('entity_import')
-		$('#pe_list').css('max-height', ($(window).height() - 320) +'px')
+		$('#pe_list').css('max-height', (window.innerHeight - 320) +'px')
 		$('input#pe_search_bar').select()
 		$('#entity_import .confirm_btn').off('click')
 		$('#entity_import .confirm_btn').on('click', (e) => {

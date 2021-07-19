@@ -19,6 +19,9 @@ const recent_projects = (function() {
 		try {
 			array = JSON.parse(raw).slice().reverse()
 		} catch (err) {}
+		array = array.filter(project => {
+			return fs.existsSync(project.path);
+		})
 	}
 	return array
 })();
@@ -89,6 +92,8 @@ function initializeDesktopApp() {
 	} else {
 		$('#windows_window_menu').show()
 	}
+
+	ipcRenderer.send('app-loaded')
 
 }
 //Load Model
@@ -228,12 +233,12 @@ function changeImageEditor(texture, from_settings) {
 			var path;
 			if (Blockbench.platform == 'darwin') {
 				switch (id) {
-					case 'ps':  path = '/Applications/Adobe Photoshop CC 2020/Adobe Photoshop CC 2020.app'; break;
+					case 'ps':  path = '/Applications/Adobe Photoshop 2021/Adobe Photoshop 2021.app'; break;
 					case 'gimp':path = '/Applications/Gimp-2.10.app'; break;
 				}
 			} else {
 				switch (id) {
-					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop CC 2020\\Photoshop.exe'; break;
+					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop 2021\\Photoshop.exe'; break;
 					case 'gimp':path = 'C:\\Program Files\\GIMP 2\\bin\\gimp-2.10.exe'; break;
 					case 'pdn': path = 'C:\\Program Files\\paint.net\\PaintDotNet.exe'; break;
 				}
@@ -354,15 +359,23 @@ function createBackup(init) {
 }
 //Close
 
-window.onbeforeunload = function() {
+window.onbeforeunload = function (event) {
 	try {
 		updateRecentProjectThumbnail()
 	} catch(err) {}
 
-	if (!Blockbench.hasFlag('allow_closing')) {
+
+	if (Blockbench.hasFlag('allow_closing')) {
+		try {
+			if (!Blockbench.hasFlag('allow_reload')) {
+				currentwindow.webContents.closeDevTools()
+			}
+		} catch (err) {}
+	} else {
 		setTimeout(function() {
 			showSaveDialog(true)
 		}, 2)
+		event.returnValue = true;
 		return true;
 	}
 }
@@ -407,86 +420,78 @@ function showSaveDialog(close) {
 	}
 }
 function closeBlockbenchWindow() {
+	window.onbeforeunload = null;
 	Blockbench.addFlag('allow_closing');
 	Blockbench.dispatchEvent('before_closing')
 	localStorage.removeItem('backup_model')
 	EditSession.quit()
-	
 	return currentwindow.close();
 };
 
 
-(function() {
+ipcRenderer.on('update-available', (event, arg) => {
+	console.log('Found new update')
+	if (settings.automatic_updates.value) {
+		ipcRenderer.send('allow-auto-update');
 
-	let update_available_promise = new Promise((resolve, reject) => {
-		ipcRenderer.on('update-available', (event, arg) => {
-			resolve({event, arg})
-		})
-	})
-	
-	Promise.all([update_available_promise, documentReady]).then(results => {
-		if (settings.automatic_updates.value) {
-			ipcRenderer.send('allow-auto-update');
+		let icon_node = Blockbench.getIconNode('donut_large');
+		icon_node.classList.add('spinning');
+		let click_action;
 
-			let icon_node = Blockbench.getIconNode('donut_large');
-			icon_node.classList.add('spinning');
-			let click_action;
-
-			let update_status = {
-				name: tl('menu.help.updating', [0]),
-				id: 'update_status',
-				icon: icon_node,
-				click() {
-					if (click_action) click_action()
-				}
-			};
-			MenuBar.menus.help.addAction('_');
-			MenuBar.menus.help.addAction(update_status);
-			function updateText(text) {
-				update_status.name = text;
-				$('li[menu_item=update_status]').each((i, node) => {
-					node.childNodes.forEach(child => {
-						if (child.nodeName == '#text') {
-							child.textContent = text;
-						}
-					})
-				});
+		let update_status = {
+			name: tl('menu.help.updating', [0]),
+			id: 'update_status',
+			icon: icon_node,
+			click() {
+				if (click_action) click_action()
 			}
-
-			ipcRenderer.on('update-progress', (event, status) => {
-				updateText(tl('menu.help.updating', [Math.round(status.percent)]));
-			})
-			ipcRenderer.on('update-error', (event, err) => {
-				updateText(tl('menu.help.update_failed'));
-				icon_node.textContent = 'warning';
-				icon_node.classList.remove('spinning')
-				click_action = function() {
-					currentwindow.openDevTools()
-				}
-				console.error(err);
-			})
-			ipcRenderer.on('update-downloaded', (event) => {
-				updateText(tl('menu.help.update_ready'));
-				icon_node.textContent = 'system_update_alt';
-				icon_node.classList.remove('spinning')
-				click_action = function() {
-					app.relaunch();
-					app.quit();
-				}
-			})
-
-		} else {
-			addStartScreenSection({
-				color: 'var(--color-back)',
-				graphic: {type: 'icon', icon: 'update'},
-				text: [
-					{type: 'h1', text: tl('message.update_notification.title')},
-					{text: tl('message.update_notification.message')},
-					{type: 'button', text: tl('generic.enable'), click: (e) => {
-						Settings.open({search: 'automatic_updates'})
-					}}
-				]
-			})
+		};
+		MenuBar.menus.help.addAction('_');
+		MenuBar.menus.help.addAction(update_status);
+		function updateText(text) {
+			update_status.name = text;
+			$('li[menu_item=update_status]').each((i, node) => {
+				node.childNodes.forEach(child => {
+					if (child.nodeName == '#text') {
+						child.textContent = text;
+					}
+				})
+			});
 		}
-	})
-})()
+
+		ipcRenderer.on('update-progress', (event, status) => {
+			updateText(tl('menu.help.updating', [Math.round(status.percent)]));
+		})
+		ipcRenderer.on('update-error', (event, err) => {
+			updateText(tl('menu.help.update_failed'));
+			icon_node.textContent = 'warning';
+			icon_node.classList.remove('spinning')
+			click_action = function() {
+				currentwindow.openDevTools()
+			}
+			console.error(err);
+		})
+		ipcRenderer.on('update-downloaded', (event) => {
+			updateText(tl('menu.help.update_ready'));
+			icon_node.textContent = 'system_update_alt';
+			icon_node.classList.remove('spinning')
+			click_action = function() {
+				app.relaunch();
+				app.quit();
+			}
+		})
+
+	} else {
+		addStartScreenSection({
+			color: 'var(--color-back)',
+			graphic: {type: 'icon', icon: 'update'},
+			text: [
+				{type: 'h1', text: tl('message.update_notification.title')},
+				{text: tl('message.update_notification.message')},
+				{type: 'button', text: tl('generic.enable'), click: (e) => {
+					Settings.open({search: 'automatic_updates'})
+				}}
+			]
+		})
+	}
+})

@@ -67,6 +67,26 @@ class Setting {
 			delete Settings.structure[this.category].items[this.id];
 		}
 	}
+	set(value) {
+		if (value === undefined || value === null) return;
+		let old_value = this.value;
+
+		if (this.type == 'number' && typeof value == 'number') {
+			if (this.snap) {
+				value = Math.round(value / this.snap) * this.snap;
+			}
+			this.value = Math.clamp(value, this.min, this.max)
+		} else if (this.type == 'toggle') {
+			this.value = !!value;
+		} else if (this.type == 'click') {
+			this.value = value;
+		} else if (typeof value == 'string') {
+			this.value = value;
+		}
+		if (typeof this.onChange == 'function' && this.value !== old_value) {
+			this.onChange(this.value);
+		}
+	}
 }
 
 const Settings = {
@@ -100,11 +120,14 @@ const Settings = {
 		}});
 		new Setting('seethrough_outline', 	{category: 'interface', value: false});
 		new Setting('outliner_colors', 		{category: 'interface', value: false});
-		new Setting('preview_checkerboard',	{category: 'interface', value: false, onChange() {
+		new Setting('preview_checkerboard',	{category: 'interface', value: true, onChange() {
 			$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 		}});
-		new Setting('uv_checkerboard', 		{category: 'interface', value: false, onChange() {
+		new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange() {
 			$('.UVEditor').toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
+		}});
+		new Setting('timecode_frame_number',{category: 'interface', value: false, onChange() {
+			Timeline.vue.updateTimecodes();
 		}});
 		
 		//Preview 
@@ -116,6 +139,12 @@ const Settings = {
 		new Setting('fov', 		  		{category: 'preview', value: 45, type: 'number', onChange(val) {
 			Preview.all.forEach(preview => preview.setFOV(val));
 		}});
+		new Setting('camera_near_plane',{category: 'preview', value: 1, type: 'number', onChange(val) {
+			Preview.all.forEach(preview => {
+				preview.camPers.near = val;
+				preview.camPers.updateProjectionMatrix();
+			});
+		}});
 		new Setting('render_sides', 	{category: 'preview', value: 'auto', type: 'select', options: {
 			'auto': tl('settings.render_sides.auto'),
 			'front': tl('settings.render_sides.front'),
@@ -123,6 +152,7 @@ const Settings = {
 		}, onChange() {
 			Canvas.updateRenderSides();
 		}});
+		new Setting('background_rendering', 	{category: 'preview', value: true});
 		/*
 		new Setting('transparency',		{category: 'preview', value: true, onChange() {
 			for (var uuid in Canvas.materials) {
@@ -137,7 +167,7 @@ const Settings = {
 			TextureAnimator.updateSpeed()
 		}});
 		new Setting('particle_tick_rate',{category: 'preview', value: 30, type: 'number', onChange() {
-			Wintersky.global_options.tick_rate = this.value;
+			WinterskyScene.global_options.tick_rate = this.value;
 		}});
 		new Setting('volume',  	  		{category: 'preview', value: 80, type: 'number'});
 		new Setting('display_skin',  	{category: 'preview', value: false, type: 'click', condition: isApp, icon: 'icon-player', click: function() { changeDisplaySkin() }});
@@ -167,7 +197,6 @@ const Settings = {
 		new Setting('ctrl_size',	{category: 'snapping', value: 160, type: 'number'});
 		new Setting('ctrl_shift_size',	{category: 'snapping', value: 640, type: 'number'});
 		new Setting('negative_size',{category: 'snapping', value: false});
-		new Setting('animation_snap',{category: 'snapping', value: 24, type: 'number'});
 
 		//Paint
 		new Setting('sync_color',	{category: 'paint', value: false});
@@ -188,10 +217,10 @@ const Settings = {
 		new Setting('autouv',	   	{category: 'defaults', value: true});
 		new Setting('create_rename', {category: 'defaults', value: false});
 		new Setting('default_path', {category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
+		new Setting('animation_snap',{category: 'defaults', value: 24, type: 'number'});
 		
 		//Dialogs
 		new Setting('dialog_larger_cubes', {category: 'dialogs', value: true});
-		new Setting('dialog_drag_background', {category: 'dialogs', value: true});
 		new Setting('dialog_rotation_limit', {category: 'dialogs', value: true});
 		
 		//Application
@@ -205,9 +234,14 @@ const Settings = {
 		new Setting('minifiedout', {category: 'export', value: false});
 		new Setting('minify_bbmodel', {category: 'export', value: true});
 		new Setting('export_groups', {category: 'export', value: true});
+		new Setting('animation_sample_rate',{category: 'export', value: 24, type: 'number'});
 		new Setting('sketchfab_token', {category: 'export', value: '', type: 'password'});
 		new Setting('credit', {category: 'export', value: 'Made with Blockbench', type: 'text'});
 
+		Blockbench.onUpdateTo('3.8', () => {
+			settings.preview_checkerboard.value = true;
+			settings.uv_checkerboard.value = true;
+		})
 	},
 	addCategory(id, data) {
 		if (!data) data = 0;
@@ -264,7 +298,10 @@ const Settings = {
 		for (var key in BarItems) {
 			var action = BarItems[key]
 			if (action.linked_setting) {
-				action.toggleLinkedSetting(false)
+				if (settings[action.linked_setting] && action.value != settings[action.linked_setting].value) {
+					action.value = settings[action.linked_setting].value;
+					action.updateEnabledState();
+				}
 			}
 		}
 		if (hasSettingChanged('base_grid') || hasSettingChanged('large_grid') || hasSettingChanged('full_grid') || hasSettingChanged('large_grid_size')
@@ -277,6 +314,7 @@ const Settings = {
 		}
 		for (var id in settings) {
 			var setting = settings[id];
+			if (!Condition(setting.condition)) return;
 			if (setting.onChange && hasSettingChanged(id)) {
 				setting.onChange(setting.value);
 			}
@@ -294,7 +332,7 @@ const Settings = {
 			var items = {};
 			for (var key in settings) {
 				var setting = settings[key];
-				if (Condition(setting)) {
+				if (Condition(setting.condition)) {
 					var name = tl('settings.'+key).toLowerCase();
 					var desc = tl('settings.'+key+'.desc').toLowerCase();
 					var missmatch = false;
@@ -322,6 +360,15 @@ const Settings = {
 			structure.search_results.hidden = true;
 		}
 	},
+	import(file) {
+		let data = JSON.parse(file.content);
+		for (let key in settings) {
+			let setting = settings[key];
+			if (setting instanceof Setting && data.settings[key] !== undefined) {
+				setting.set(data.settings[key]);
+			}
+		}
+	},
 	get(id) {
 		if (id && settings[id]) {
 			return settings[id].value;
@@ -347,6 +394,61 @@ function updateStreamerModeNotification() {
 		})
 	}
 }
+
+BARS.defineActions(() => {
+	
+	new Action('import_settings', {
+		icon: 'folder',
+		category: 'blockbench',
+		click: function () {
+			Blockbench.import({
+				resource_id: 'config',
+				extensions: ['bbsettings'],
+				type: 'Blockbench Settings'
+			}, function(files) {
+				Settings.import(files[0]);
+			})
+		}
+	})
+	new Action('export_settings', {
+		icon: 'fas.fa-user-cog',
+		category: 'blockbench',
+		click: async function () {
+			let private_data = [];
+			var settings_copy = {}
+			for (var key in settings) {
+				settings_copy[key] = settings[key].value;
+				if (settings[key].value && settings[key].type == 'password') {
+					private_data.push(key);
+				}
+			}
+			if (private_data.length) {
+				await new Promise((resolve, reject) => {
+					Blockbench.showMessageBox({
+						title: 'dialog.export_private_settings.title',
+						message: tl('dialog.export_private_settings.message', [private_data.map(key => settings[key].name).join(', ')]),
+						buttons: ['dialog.export_private_settings.keep', 'dialog.export_private_settings.remove']
+					}, result => {
+						if (result == 1) {
+							private_data.forEach(key => {
+								delete settings_copy[key];
+							})
+						}
+						resolve()
+					})
+				})
+			}
+			Blockbench.export({
+				resource_id: 'config',
+				type: 'Blockbench Settings',
+				extensions: ['bbsettings'],
+				content: compileJSON({settings: settings_copy})
+			})
+		}
+	})
+	BarItems.import_settings.toElement('#settings_title_bar')
+	BarItems.export_settings.toElement('#settings_title_bar')
+})
 
 onVueSetup(function() {
 	Settings.structure.search_results = {
@@ -376,7 +478,7 @@ onVueSetup(function() {
 		},
 		methods: {
 			saveSettings() {
-				localStorage.setItem('settings', JSON.stringify(settings))
+				Settings.saveLocalStorages();
 			},
 			toggleCategory(category) {
 				if (!category.open) {

@@ -123,7 +123,7 @@ const Timeline = {
 					if (kf.time > min_time &&
 						kf.time < max_time &&
 						channels[kf.channel] != false &&
-						(!Timeline.vue.graph_editor_open || kf.channel == Timeline.vue.graph_editor_channel) &&
+						(!Timeline.vue.graph_editor_open || (kf.channel == Timeline.vue.graph_editor_channel && animator.selected)) &&
 						(!channels.hide_empty || animator[kf.channel].length)
 					) {
 						if (!Timeline.vue.graph_editor_open) {
@@ -204,9 +204,10 @@ const Timeline = {
 		}
 	},
 	setTimecode(time) {
+		let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100;
 		let m = Math.floor(time/60)
 		let s = Math.floor(time%60)
-		let f = Math.floor((time%1) * 100)
+		let f = Math.floor((time%1) * second_fractions)
 		if ((s+'').length === 1) {s = '0'+s}
 		if ((f+'').length === 1) {f = '0'+f}
 		$('#timeline_timestamp').text(m + ':' + s  + ':' + f)
@@ -224,7 +225,28 @@ const Timeline = {
 		return 1/Math.clamp(Animation.selected ? Animation.selected.snapping : settings.animation_snap.value, 1, 120);
 	},
 	setup() {
-		$('#timeline_body').mousedown(Timeline.selector.down)
+		$('#timeline_body').on('mousedown', e => {
+			if (e.which === 2) {
+				let pos = [e.clientX, e.clientY];
+				let timeline = e.currentTarget;
+				function move(e2) {
+					timeline.scrollLeft += pos[0] - e2.clientX;
+					if (!Timeline.vue.graph_editor_open) {
+						timeline.scrollTop += pos[1] - e2.clientY;
+					}
+					pos = [e2.clientX, e2.clientY];
+				}
+				function stop(e2) {
+					document.removeEventListener('mousemove', move);
+					document.removeEventListener('mouseup', stop);
+				}
+				document.addEventListener('mousemove', move);
+				document.addEventListener('mouseup', stop);
+				e.preventDefault();
+			} else {
+				Timeline.selector.down(e);
+			}
+		})
 
 		$('#timeline_time').on('mousedown touchstart', e => {
 			if (e.which !== 1 && !event.changedTouches) return;
@@ -245,7 +267,8 @@ const Timeline = {
 				Timeline.dragging_playhead = true;
 				
 				let offset = e.clientX - $('#timeline_time').offset().left;
-				let time = Timeline.snapTime(offset / Timeline.vue._data.size);
+				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
+				if (!e.ctrlOrCmd) time = Timeline.snapTime(time);
 				Timeline.setTime(time);
 				Animator.preview();
 			}
@@ -255,7 +278,8 @@ const Timeline = {
 
 				convertTouchEvent(e);
 				let offset = e.clientX - $('#timeline_time').offset().left;
-				let time = Timeline.snapTime(offset / Timeline.vue._data.size)
+				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
+				if (!e.ctrlOrCmd) time = Timeline.snapTime(time);
 				if (Timeline.time != time) {
 					Timeline.setTime(time)
 					Animator.preview()
@@ -280,18 +304,6 @@ const Timeline = {
 
 				Undo.finishEdit('Change Animation Length')
 				delete Timeline.dragging_endbracket
-			}
-		})
-		//Keyframe inputs
-		
-		document.addEventListener('focus', event => {
-			if (event.target && event.target.parentElement && event.target.parentElement.classList.contains('keyframe_input')) {
-				Undo.initEdit({keyframes: Timeline.selected.slice()})
-			}
-		}, true)
-		document.addEventListener('focusout', event => {
-			if (event.target && event.target.parentElement && event.target.parentElement.classList.contains('keyframe_input')) {
-				Undo.finishEdit('edit keyframe')
 			}
 		})
 		
@@ -340,10 +352,11 @@ const Timeline = {
 			while (times.length < 3) {
 				times.push(0)
 			}
-			var seconds
+			let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100;
+			let seconds
 				= times[0]*60
 				+ limitNumber(times[1], 0, 59)
-				+ limitNumber(times[2]/100, 0, 99)
+				+ limitNumber(times[2]/second_fractions, 0, second_fractions-1)
 			if (Math.abs(seconds-Timeline.time) > 1e-3 ) {
 				Timeline.setTime(seconds, true)
 				Animator.preview()
@@ -381,7 +394,8 @@ const Timeline = {
 		Timeline.setTime(0)
 	},
 	getMaxLength() {
-		var max_length = ($('#timeline_vue').width()-8) / Timeline.vue._data.size;
+		let width = (document.getElementById('timeline_vue')||0).clientWidth;
+		var max_length = (width-8) / Timeline.vue._data.size;
 		if (Animation.selected) max_length = Math.max(max_length, Animation.selected.length)
 		Timeline.keyframes.forEach((kf) => {
 			max_length = Math.max(max_length, kf.time)
@@ -390,47 +404,7 @@ const Timeline = {
 		return max_length;
 	},
 	updateSize() {
-		let size = Timeline.vue._data.size
-		Timeline.vue._data.length = Timeline.getMaxLength()
-		Timeline.vue._data.timecodes.empty()
-
-		var step = 1
-		if (size < 1) {step = 1}
-		else if (size < 20) {step = 4}
-		else if (size < 40) {step = 2}
-		else if (size < 100) {step = 1}
-		else if (size < 256) {step = 0.5}
-		else if (size < 520) {step = 0.25}
-		else if (size < 660) {step = 0.2}
-		else if (size < 860) {step = 0.1}
-		else {step = 0.05}
-
-
-		if (step < 1) {
-			var FPS = Timeline.getStep();
-			step = Math.round(step/FPS) * FPS
-			//step = 1/Math.round(1/step)
-		}
-
-		let substeps = step / Timeline.getStep()
-		while (substeps > 8) {
-			substeps /= 2;
-		}
-
-		var i = 0;
-		while (i < Timeline.vue._data.length) {
-			Timeline.vue._data.timecodes.push({
-				time: i,
-				width: step,
-				substeps,
-				text: Math.round(i*100)/100
-			})
-			i += step;
-		}
-
-		if (Timeline.vue.graph_editor_open) {
-			Timeline.vue.graph_size += 1e-5;
-		}
+		Timeline.vue.updateTimecodes();
 	},
 	updateScroll(e) {
 		$('.channel_head').css('left', scroll_amount+'px')
@@ -446,6 +420,13 @@ const Timeline = {
 		})
 		TickUpdates.keyframe_selection = true;
 	},
+	clear() {
+		Timeline.animators.purge();
+		Timeline.selected.empty();
+		Timeline.vue._data.markers = [];
+		Timeline.vue._data.animation_length = 0;
+		updateKeyframeSelection();
+	},
 	start() {
 		if (!Animation.selected) return;
 		Animation.selected.getMaxLength()
@@ -455,7 +436,6 @@ const Timeline = {
 		Timeline.playing = true
 		BarItems.play_animation.setIcon('pause')
 		Timeline.last_frame_timecode = Date.now();
-		Timeline.interval = setInterval(Timeline.loop, 100/6)
 		if (Animation.selected.loop == 'hold' && Timeline.time >= (Animation.selected.length||1e3)) {
 			Timeline.setTime(0)
 		}
@@ -479,7 +459,11 @@ const Timeline = {
 			if (new_time == undefined || new_time <= Timeline.time) {
 				var new_time = Animator.MolangParser.parse('query.anim_time + query.delta_time')
 			}
-			Timeline.setTime(Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100));
+			let time = Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100)
+			if (Animation.selected.loop == 'hold') {
+				time = Math.clamp(time, 0, Animation.selected.length);
+			}
+			Timeline.setTime(time);
 			Timeline.last_frame_timecode = Date.now();
 
 		} else {
@@ -569,10 +553,17 @@ const Timeline = {
 	menu: new Menu([
 		'paste',
 		'_',
+		{name: 'menu.view.zoom', id: 'zoom', condition: isApp, icon: 'search', children: [
+			'zoom_in',
+			'zoom_out',
+			'zoom_reset'
+		]},
 		'select_all',
 		'bring_up_all_animations',
 		'fold_all_animations',
 		'clear_timeline',
+		'_',
+		'graph_editor_zero_line',
 	])
 }
 
@@ -598,7 +589,7 @@ onVueSetup(function() {
 			graph_editor_axis: 'x',
 			graph_offset: 200,
 			graph_size: 200,
-
+			show_zero_line: true,
 
 			channels: {
 				rotation: true,
@@ -630,7 +621,8 @@ onVueSetup(function() {
 				let clientHeight = this.$refs.timeline_body ? this.$refs.timeline_body.clientHeight : 400;
 				let keyframes = ba[this.graph_editor_channel];
 				let points = [];
-				let min = -1, max = 1;
+				let min = this.show_zero_line ? -1 : 10000,
+					max = this.show_zero_line ? 1 : -10000;
 
 				for (let time = Math.clamp(this.scroll_left - 9, 0, Infinity); time < (clientWidth + this.scroll_left - this.head_width); time += step) {
 					Timeline.time = time / this.size;
@@ -644,21 +636,15 @@ onVueSetup(function() {
 					max = Math.max(max, value);
 					if (snap_kf) snap_kf.display_value = value;
 				}
-
-				/*keyframes.forEach(kf => {
-					if (kf.time >= this.scroll_left / this.size && kf.time <= (clientWidth + this.scroll_left - this.head_width) / this.size) {
-						Timeline.time = kf.time;
-						let value = ba.interpolate(this.graph_editor_channel, false, this.graph_editor_axis);
-						kf.display_value = value;
-						min = Math.min(min, value);
-						max = Math.max(max, value);
-					}
-				})*/
+				
 				Timeline.time = original_time;
 
 				let padding = 16;
-				this.graph_size = (clientHeight - 2*padding) / Math.clamp(max-min, 3, 1e4);
-				this.graph_offset = clientHeight - padding + (this.graph_size * min);
+				let min_size = 2.4;
+				let unit_size = Math.clamp(max-min, min_size, 1e4);
+				this.graph_size = (clientHeight - 2*padding) / unit_size;
+				let blend = Math.clamp(1 - (max-min) / min_size, 0, 1)
+				this.graph_offset = clientHeight - padding + (this.graph_size * (min - unit_size/2 * blend ) );
 
 				let string = '';
 				points.forEach((value, i) => {
@@ -669,11 +655,68 @@ onVueSetup(function() {
 			}
 		},
 		methods: {
+			updateTimecodes() {
+				if (!this._isMounted) return;
+				this.timecodes.empty();
+				let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100;
+				let timeline_container_width = document.getElementById('timeline').clientWidth - this.head_width;
+				this.length = Timeline.getMaxLength();
+
+				var step = 1
+				if (this.size < 1) {step = 1}
+				else if (this.size < 20) {step = 4}
+				else if (this.size < 40) {step = 2}
+				else if (this.size < 100) {step = 1}
+				else if (this.size < 256) {step = 0.5}
+				else if (this.size < 520) {step = 0.25}
+				else if (this.size < 660) {step = 0.2}
+				else if (this.size < 860) {step = 0.1}
+				else {step = 0.05}
+
+				if (step < 1) {
+					var FPS = Timeline.getStep();
+					step = Math.round(step/FPS) * FPS
+					//step = 1/Math.round(1/step)
+				}
+
+				let substeps = step / Timeline.getStep()
+				while (substeps > 8) {
+					substeps /= 2;
+				}
+				
+				var i = Math.floor(this.scroll_left / this.size / step) * step;
+				while (i < Math.ceil((this.scroll_left + timeline_container_width) / this.size / step) * step) {
+					if (settings.timecode_frame_number.value) {
+						var text = `${Math.floor(i)}:${Math.round((i % 1) * second_fractions)}`;
+					} else {
+						var text = Math.round(i*100)/100;
+					}
+					this.timecodes.push({
+						time: i,
+						width: step,
+						substeps,
+						text,
+					})
+					i += step;
+				}
+
+				if (this.graph_editor_open) {
+					this.graph_size += 1e-5;
+				}
+			},
 			toggleAnimator(animator) {
 				animator.expanded = !animator.expanded;
 			},
 			removeAnimator(animator) {
 				Timeline.animators.remove(animator);
+			},
+			selectChannel(animator, channel) {
+				if (this.graph_editor_channel == channel && animator.selected) return;
+				animator.select();
+				if (animator[channel].length == 1 && Math.epsilon(animator[channel][0].time, Timeline.time, 0.002)) {
+					animator[channel][0].select();
+				}
+				this.graph_editor_channel = channel;
 			},
 			getColor(index) {
 				if (index == -1 || index == undefined) return;
@@ -694,52 +737,62 @@ onVueSetup(function() {
 			},
 			dragKeyframes(clicked, e1) {
 				convertTouchEvent(e1);
-
-				let dragging_range = [Infinity, 0];
+				let dragging_range;
 				let dragging_restriction;
 				let originalValue;
-				let previousValue = 0;
-				let time_stretching = !Timeline.vue.graph_editor_open && e1.ctrlKey && Timeline.selected.length > 1;
+				let previousValue;
+				let time_stretching;
+				let values_changed;
+				let is_setup = false;
 
-				if (!clicked.selected && !e1.shiftKey && Timeline.selected.length != 0) {
-					clicked.select()
-				} else if (clicked && !clicked.selected) {
-					clicked.select({shiftKey: true})
-				}
+				function setup() {
+					dragging_range = [Infinity, 0];
+					dragging_restriction;
+					originalValue;
+					previousValue = 0;
+					time_stretching = !Timeline.vue.graph_editor_open && e1.ctrlOrCmd && Timeline.selected.length > 1;
+					values_changed = false;
 
-				Undo.initEdit({keyframes: Timeline.selected});
-				Timeline.dragging_keyframes = true;
-
-				for (var kf of Timeline.selected) {
-					kf.time_before = kf.time;
-					dragging_range[0] = Math.min(dragging_range[0], kf.time);
-					dragging_range[1] = Math.max(dragging_range[1], kf.time);
-				}
-
-				if (Timeline.vue.graph_editor_open) {
-					// Find dragging restriction
-					dragging_restriction = [-Infinity, Infinity];
-					let ba = this.graph_editor_animator || 0;
-					let all_keyframes = ba[this.graph_editor_channel];
-					if (all_keyframes) {
-
-						let frst_keyframe;
-						let last_keyframe;
-						Timeline.selected.forEach(kf => {
-							if (!frst_keyframe || frst_keyframe.time > kf.time) frst_keyframe = kf;
-							if (!last_keyframe || last_keyframe.time < kf.time) last_keyframe = kf;
-						})
-						let prvs_keyframe;
-						let next_keyframe;
-						all_keyframes.forEach(kf => {
-							if (kf.time < frst_keyframe.time && (!prvs_keyframe || prvs_keyframe.time < kf.time)) prvs_keyframe = kf;
-							if (kf.time > last_keyframe.time && (!next_keyframe || next_keyframe.time > kf.time)) next_keyframe = kf;
-						})
-						if (prvs_keyframe) dragging_restriction[0] = prvs_keyframe.time;
-						if (next_keyframe) dragging_restriction[1] = next_keyframe.time;
+					if (!clicked.selected && !e1.shiftKey && Timeline.selected.length != 0) {
+						clicked.select()
+					} else if (clicked && !clicked.selected) {
+						clicked.select({shiftKey: true})
 					}
-				}
 
+					Undo.initEdit({keyframes: Timeline.selected});
+					Timeline.dragging_keyframes = true;
+
+					for (var kf of Timeline.selected) {
+						kf.time_before = kf.time;
+						dragging_range[0] = Math.min(dragging_range[0], kf.time);
+						dragging_range[1] = Math.max(dragging_range[1], kf.time);
+					}
+
+					if (Timeline.vue.graph_editor_open) {
+						// Find dragging restriction
+						dragging_restriction = [-Infinity, Infinity];
+						let ba = this.graph_editor_animator || 0;
+						let all_keyframes = ba[this.graph_editor_channel];
+						if (all_keyframes) {
+
+							let frst_keyframe;
+							let last_keyframe;
+							Timeline.selected.forEach(kf => {
+								if (!frst_keyframe || frst_keyframe.time > kf.time) frst_keyframe = kf;
+								if (!last_keyframe || last_keyframe.time < kf.time) last_keyframe = kf;
+							})
+							let prvs_keyframe;
+							let next_keyframe;
+							all_keyframes.forEach(kf => {
+								if (kf.time < frst_keyframe.time && (!prvs_keyframe || prvs_keyframe.time < kf.time)) prvs_keyframe = kf;
+								if (kf.time > last_keyframe.time && (!next_keyframe || next_keyframe.time > kf.time)) next_keyframe = kf;
+							})
+							if (prvs_keyframe) dragging_restriction[0] = prvs_keyframe.time;
+							if (next_keyframe) dragging_restriction[1] = next_keyframe.time;
+						}
+					}
+					is_setup = true;
+				}
 
 				function slide(e2) {
 					convertTouchEvent(e2);
@@ -747,6 +800,13 @@ onVueSetup(function() {
 						e2.clientX - e1.clientX,
 						e2.clientY - e1.clientY,
 					]
+					if (!is_setup) {
+						if (Math.pow(offset[0], 2) + Math.pow(offset[1], 2) > 40) {
+							setup();
+						} else {
+							return;
+						}
+					}
 					
 					// Time
 					var difference = Math.clamp(offset[0] / Timeline.vue._data.size, -256, 256);
@@ -764,14 +824,13 @@ onVueSetup(function() {
 					let value_diff = 0;
 					if (Timeline.vue.graph_editor_open) {
 						value = -offset[1] / Timeline.vue.graph_size;
+						var round_num = canvasGridSize(e2.shiftKey, e2.ctrlOrCmd);
 						if (Toolbox.selected.id === 'resize_tool') {
-							round_num = 0.1;
-						} else {
-							var round_num = canvasGridSize(e2.shiftKey, e2.ctrlOrCmd)
+							round_num *= 0.1;
 						}
 						value = Math.round(value/round_num)*round_num
-						previousValue = previousValue ?? value;
-						originalValue = originalValue ?? value;
+						previousValue = previousValue == undefined ? value : previousValue;
+						originalValue = originalValue == undefined ? value : originalValue;
 
 						if (value !== previousValue) {
 							value_diff = value - (previousValue||0);
@@ -789,15 +848,20 @@ onVueSetup(function() {
 						} else {
 							var t = kf.time_before + difference;
 						}
+						let old_time = kf.time;
 						if (dragging_restriction) {
 							let step = Timeline.getStep();
-							kf.time = Timeline.snapTime(Math.clamp(t, dragging_restriction[0] + step, dragging_restriction[1] - step))
+							kf.time = Timeline.snapTime(Math.clamp(t, dragging_restriction[0] + step, dragging_restriction[1] - step));
 						} else {
 							kf.time = Timeline.snapTime(t);
 						}
+						if (old_time == kf.time) {
+							values_changed = true;
+						}
 
-						if (Timeline.vue.graph_editor_open) {
+						if (Timeline.vue.graph_editor_open && value_diff) {
 							kf.offset(Timeline.vue.graph_editor_axis, value_diff);
+							values_changed = true;
 						}
 					}
 					if (time_stretching) {
@@ -817,22 +881,34 @@ onVueSetup(function() {
 					removeEventListeners(document, 'mousemove touchmove', slide);
 					removeEventListeners(document, 'mouseup touchend', off);
 
-					var deleted = []
-					for (var kf of Timeline.selected) {
-						delete kf.time_before;
-						kf.replaceOthers(deleted);
+					if (is_setup) {
+						var deleted = []
+						for (var kf of Timeline.selected) {
+							delete kf.time_before;
+							kf.replaceOthers(deleted);
+						}
+						Blockbench.setStatusBarText();
+						if (values_changed) {
+							Undo.addKeyframeCasualties(deleted);
+							Animation.selected.setLength();
+							Undo.finishEdit('Drag keyframes');
+						} else {
+							Undo.cancelEdit();
+						}
+						setTimeout(() => {
+							Timeline.dragging_keyframes = false;
+						}, 20);
 					}
-					Blockbench.setStatusBarText();
-					Undo.addKeyframeCasualties(deleted);
-					Undo.finishEdit('drag keyframes')
-					setTimeout(() => {
-						Timeline.dragging_keyframes = false;
-					}, 20)
 				}
 				addEventListeners(document, 'mousemove touchmove', slide);
 				addEventListeners(document, 'mouseup touchend', off);
 			},
 			clamp: Math.clamp
+		},
+		watch: {
+			size() {this.updateTimecodes()},
+			length() {this.updateTimecodes()},
+			scroll_left() {this.updateTimecodes()},
 		},
 		template: `
 			<div id="timeline_vue" :class="{graph_editor: graph_editor_open}">
@@ -847,10 +923,10 @@ onVueSetup(function() {
 					</div>
 					<div id="timeline_time_wrapper">
 						<div id="timeline_time" v-bind:style="{width: (size*length)+'px', left: -scroll_left+'px'}">
-							<div v-for="t in timecodes" class="timeline_timecode" v-bind:style="{left: (t.time * size) + 'px', width: (t.width * size) + 'px'}">
+							<div v-for="t in timecodes" class="timeline_timecode" :key="t.text" :style="{left: (t.time * size) + 'px', width: (t.width * size) + 'px'}">
 								<span>{{ t.text }}</span>
 								<div class="substeps">
-									<div v-for="n in Math.ceil(t.substeps)"></div>
+									<div v-for="n in Math.ceil(t.substeps)" :key="t.text + '-' + 'n'"></div>
 								</div>
 							</div>
 							<div id="timeline_playhead"
@@ -903,7 +979,7 @@ onVueSetup(function() {
 								<div class="channel_head"
 									:class="{selected: graph_editor_open && animator.selected && graph_editor_channel == channel}"
 									v-bind:style="{left: scroll_left+'px', width: head_width+'px'}"
-									@click.stop="animator.select(); graph_editor_channel = channel;"
+									@click.stop="selectChannel(animator, channel);"
 								>
 									<div class="text_button" v-on:click.stop="animator.toggleMuted(channel)">
 										<template v-if="channel === 'sound'">
@@ -934,7 +1010,7 @@ onVueSetup(function() {
 										@contextmenu.prevent="keyframe.showContextMenu($event)"
 									>
 										<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
-										<i class="material-icons" v-else>stop</i>
+										<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
 										<svg class="keyframe_waveform" v-if="keyframe.channel == 'sound' && keyframe.data_points[0].file && waveforms[keyframe.data_points[0].file]" :style="{width: waveforms[keyframe.data_points[0].file].duration * size}">
 											<polygon :points="getWaveformPoints(waveforms[keyframe.data_points[0].file].samples, size)"></polygon>
 										</svg>
@@ -965,7 +1041,7 @@ onVueSetup(function() {
 									@contextmenu.prevent="keyframe.showContextMenu($event)"
 								>
 									<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
-									<i class="material-icons" v-else>stop</i>
+									<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
 								</keyframe>
 							</template>
 						</div>
@@ -988,6 +1064,15 @@ BARS.defineActions(function() {
 			if (Timeline.vue.graph_editor_open && Timeline.selected.length) {
 				Timeline.vue.graph_editor_channel = Timeline.selected[0].channel;
 			}
+		}
+	})
+	new Toggle('graph_editor_zero_line', {
+		icon: 'exposure_zero',
+		category: 'animation',
+		condition: {modes: ['animate'], method: () => Timeline.vue.graph_editor_open},
+		default: true,
+		onChange(state) {
+			Timeline.vue.show_zero_line = state;
 		}
 	})
 	new Action('play_animation', {
@@ -1163,7 +1248,7 @@ BARS.defineActions(function() {
 		icon: 'flag',
 		category: 'animation',
 		condition: {modes: ['animate']},
-		keybind: new Keybind({ctrl: true, key: 77}),
+		keybind: new Keybind({ctrl: true, key: 'm'}),
 		click: function (event) {
 			if (!Animation.selected) {
 				Blockbench.showQuickMessage('message.no_animation_selected')

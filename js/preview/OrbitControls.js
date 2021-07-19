@@ -113,7 +113,7 @@ THREE.OrbitControls = function ( object, preview ) {
 
 				let auto_rot_angle = getAutoRotationAngle()
 				scope.autoRotateProgress += auto_rot_angle;
-				rotateLeft( auto_rot_angle );
+				scope.rotateLeft( auto_rot_angle );
 
 			}
 
@@ -248,17 +248,17 @@ THREE.OrbitControls = function ( object, preview ) {
 
 	}
 
-	function getZoomScale() {
-		return Math.pow( 0.95, scope.zoomSpeed );
+	function getZoomScale(modifier = 1) {
+		return Math.pow( 0.95, scope.zoomSpeed * modifier);
 
 	}
 
-	function rotateLeft( angle ) {
+	this.rotateLeft = function( angle ) {
 
 		sphericalDelta.theta -= angle;
 	}
 
-	function rotateUp( angle ) {
+	this.rotateUp = function( angle ) {
 
 		sphericalDelta.phi -= angle;
 
@@ -376,6 +376,9 @@ THREE.OrbitControls = function ( object, preview ) {
 
 	}
 
+	this.dollyIn = dollyIn;
+	this.dollyOut = dollyOut;
+
 	// event callbacks - update the object state
 
 	function handleMouseDownRotate( event ) {
@@ -397,10 +400,10 @@ THREE.OrbitControls = function ( object, preview ) {
 		var element = scope.domElement === document ? scope.domElement.body : scope.domElement;
 
 		// rotating across whole screen goes 360 degrees around
-		rotateLeft( 2 * Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed );
+		scope.rotateLeft( 2 * Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed );
 
 		// rotating up and down along whole screen attempts to go 360, but limited to 180
-		rotateUp( 2 * Math.PI * rotateDelta.y / element.clientHeight * scope.rotateSpeed );
+		scope.rotateUp( 2 * Math.PI * rotateDelta.y / element.clientHeight * scope.rotateSpeed );
 
 		rotateStart.copy( rotateEnd );
 
@@ -415,9 +418,9 @@ THREE.OrbitControls = function ( object, preview ) {
 		dollyDelta.subVectors( dollyEnd, dollyStart );
 
 		if ( dollyDelta.y > 0 ) {
-			dollyIn( getZoomScale() );
+			dollyIn( getZoomScale(0.12 * dollyDelta.y) );
 		} else if ( dollyDelta.y < 0 ) {
-			dollyOut( getZoomScale() );
+			dollyOut( getZoomScale(0.12 * -dollyDelta.y) );
 		}
 
 		dollyStart.copy( dollyEnd );
@@ -514,10 +517,10 @@ THREE.OrbitControls = function ( object, preview ) {
 		var element = scope.domElement === document ? scope.domElement.body : scope.domElement;
 
 		// rotating across whole screen goes 360 degrees around
-		rotateLeft( 2 * Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed );
+		scope.rotateLeft( 2 * Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed );
 
 		// rotating up and down along whole screen attempts to go 360, but limited to 180
-		rotateUp( 2 * Math.PI * rotateDelta.y / element.clientHeight * scope.rotateSpeed );
+		scope.rotateUp( 2 * Math.PI * rotateDelta.y / element.clientHeight * scope.rotateSpeed );
 
 		rotateStart.copy( rotateEnd );
 
@@ -614,6 +617,15 @@ THREE.OrbitControls = function ( object, preview ) {
 			}
 			handleMouseDownPan( event );
 			state = STATE.PAN;
+
+		} else if ( Keybinds.extra.preview_zoom.keybind.isTriggered(event) ) {
+
+			if ( scope.enableZoom === false ) return;
+			if (event.which === 1 && Canvas.raycast(event) && display_mode === false) {
+				return;
+			}
+			handleMouseDownDolly( event );
+			state = STATE.DOLLY;
 		}
 
 		if ( state !== STATE.NONE ) {

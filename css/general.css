@@ -54,6 +54,9 @@
 	.small_text {
 		font-size: 0.94em;
 	}
+	.subtle {
+		color: var(--color-subtle_text);
+	}
 	.color_x {
 		color: var(--color-axis-x);
 	}
@@ -113,15 +116,22 @@
 		position: absolute;
 		right: -1px;
 		top: 0;
-		width: 20px;
 		background-color: var(--color-dark);
+		display: flex;
 	}
-	.checkerboard .tool.preview_menu {
+	.checkerboard .preview_menu {
 		background-color: var(--color-checkerboard);
 	}
-	.preview .preview_menu > i {
+	.preview .preview_menu .preview_main_menu {
+		width: 20px;
+	}
+	.preview .preview_menu .preview_main_menu > i {
 		width: 20px;
 		margin-left: -2px;
+	}
+	.preview .preview_background_menu {
+		background-size: cover;
+		width: 30px;
 	}
 	.text_padding {
 		margin-left: 5px;
@@ -167,12 +177,6 @@
 	ul.list_style li {
 		list-style: initial;
 		margin-left: 20px;
-	}
-	body.animation_mode #cubes_list {
-		height: calc(100% - 50px);
-	}
-	body.animation_mode #cubes_list .outliner_object.cube {
-		display: none;
 	}
 	#quick_message_box {
 		position: absolute;
@@ -234,25 +238,6 @@
 		display: none !important;
 	}
 
-	#center_tip {
-		top: 0;
-		left: 0;
-		right: 0;
-		margin: auto;
-		min-width: 200px;
-		max-width: 100%;
-		position: absolute;
-		text-align: center;
-		background-color: var(--color-accent);
-		color: var(--color-accent_text);
-		width: max-content;
-		padding: 3px 8px;
-	}
-	#center_tip i {
-		vertical-align: text-bottom;
-		margin-right: 6px;
-	}
-
 	.annotation {
 		min-width: 40px;
 		max-width: 100%;
@@ -273,6 +258,9 @@
 		min-width: 15px;
 		color: var(--color-light);
 		text-shadow: 0 0 5px black;
+	}
+	.light_on_hover:hover {
+		color: var(--color-light);
 	}
 
 	.spinning {
@@ -303,6 +291,7 @@
 		height: 100%;
 		overflow-x: hidden;
 		overflow-y: auto;
+		flex-grow: 1;
 	}
 	.toolbar_wrapper > .toolbar.vertical {
 		width: 40px;
@@ -526,6 +515,20 @@
 		width: 100%;
 		padding: 0;
 		background-color: var(--color-text);
+	}
+	.contextMenu li.highlighted {
+		animation: menu_item_highlight 1s infinite ease-in-out;
+	}
+	@keyframes menu_item_highlight {
+		0% {
+			background-color: transparent;
+		}
+		50% {
+			background-color: var(--color-accent);
+		}
+		100% {
+			background-color: transparent;
+		}
 	}
 
 	.keybinding_label {

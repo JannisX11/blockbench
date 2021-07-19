@@ -50,17 +50,17 @@ class Panel {
 		this.node = $('.panel#'+this.id).get(0)
 		this.handle = $(`<h3 class="panel_handle">
 			<label>${this.name}</label>
-			<div class="tool panel_folding_button"><i class="material-icons">expand_more</i></div>
 		</h3>`).get(0)
-		this.handle.lastElementChild.addEventListener('click', (e) => {
-			this.folded = !this.folded;
-			$(this.node).find('> .panel_inside').css('display', this.folded ? 'none' : '');
-			$(this.handle).find('> .panel_folding_button > i').text(this.folded ? 'expand_less' : 'expand_more');
-		})
+
 		$(this.node).prepend(this.handle)
 
-
 		if (!Blockbench.isMobile) {
+			let fold_button = $(`<div class="tool panel_folding_button"><i class="material-icons">expand_more</i></div>`)[0];
+			this.handle.append(fold_button);
+			fold_button.addEventListener('click', (e) => {
+				this.fold();
+			})
+
 			$(this.handle).draggable({
 				revertDuration: 0,
 				cursorAt: { left: 24, top: 24 },
@@ -88,14 +88,14 @@ class Panel {
 				stop: function(e, ui) {
 					$('.panel[order]').attr('order', null)
 					if (!ui) return;
-					if (Math.abs(ui.position.top - ui.originalPosition.top) + Math.abs(ui.position.left - ui.originalPosition.left) < 180) return;
+					if (Math.abs(ui.position.top - ui.originalPosition.top) + Math.abs(ui.position.left - ui.originalPosition.left) < 30) return;
 					let target = Interface.panel
 					if (typeof target === 'string') {
 						scope.moveTo(target)
 					} else if (target.type === 'panel') {
 						let target_pos = $(target.node).offset().top
-						let target_height = $(target.node).height()
-						let before = ui.position.top < target_pos + target_height / 2
+						let target_height = target.node.clientHeight;
+						let before = e.clientY < target_pos + target_height / 2
 						if (target && target !== scope) {
 							scope.moveTo(target, before)
 						} else {
@@ -155,6 +155,11 @@ class Panel {
 		}
 
 		Interface.Panels[this.id] = this;
+	}
+	fold(state = !this.folded) {
+		this.folded = !!state;
+		$(this.handle).find('> .panel_folding_button > i').text(state ? 'expand_less' : 'expand_more');
+		this.node.classList.toggle('folded', state);
 	}
 	moveTo(ref_panel, before) {
 		let scope = this
@@ -227,7 +232,7 @@ function setupPanels() {
 		condition: !Blockbench.isMobile && {modes: ['animate']},
 		selection_only: true,
 		toolbars: {
-			bone_ik: Toolbars.bone_ik,
+			inverse_kinematics: Toolbars.inverse_kinematics,
 		},
 		component: {
 			template: `
@@ -235,7 +240,7 @@ function setupPanels() {
 					<p>${ tl('panel.element.origin') }</p>
 					<div class="toolbar_wrapper bone_origin"></div>
 					<p>${ tl('panel.bone.ik') }</p>
-					<div class="toolbar_wrapper bone_ik"></div>
+					<div class="toolbar_wrapper inverse_kinematics"></div>
 				</div>
 			`
 		}

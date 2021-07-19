@@ -36,7 +36,8 @@ function parseGeometry(data) {
 				name: b.name,
 				origin: b.pivot,
 				rotation: b.rotation,
-				material: b.material
+				material: b.material,
+				color: Group.all.length%8
 			}).init()
 			bones[b.name] = group
 			if (b.pivot) {
@@ -50,7 +51,7 @@ function parseGeometry(data) {
 
 			if (b.cubes) {
 				b.cubes.forEach(function(s) {
-					var base_cube = new Cube({name: b.name, autouv: 0, color: bi%8})
+					var base_cube = new Cube({name: b.name, autouv: 0, color: group.color})
 					if (s.origin) {
 						base_cube.from.V3_set(s.origin);
 						base_cube.from[0] = -(base_cube.from[0] + s.size[0])
@@ -82,9 +83,15 @@ function parseGeometry(data) {
 			}
 			if (b.locators) {
 				for (var key in b.locators) {
-					var coords = b.locators[key];
+					var coords, rotation;
+					if (b.locators[key] instanceof Array) {
+						coords = b.locators[key];
+					} else {
+						coords = b.locators[key].offset;
+						rotation = b.locators[key].rotation;
+					}
 					coords[0] *= -1
-					var locator = new Locator({from: coords, name: key}).addTo(group).init();
+					var locator = new Locator({from: coords, name: key, rotation}).addTo(group).init();
 				}
 			}
 			var parent_group = 'root';
@@ -137,25 +144,23 @@ var codec = new Codec('bedrock_old', {
 		entitymodel.texturewidth = Project.texture_width;
 		entitymodel.textureheight = Project.texture_height;
 		var bones = []
-		var cube_count = 0;
 		var visible_box = new THREE.Box3()
 
 		var groups = getAllGroups();
-		var loose_cubes = [];
+		var loose_elements = [];
 		Outliner.root.forEach(obj => {
-			if (obj.type === 'cube') {
-				loose_cubes.push(obj)
+			if (obj.type === 'cube' || obj.type == 'locator') {
+				loose_elements.push(obj)
 			}
 		})
-		if (loose_cubes.length) {
-			groups.splice(0, 0, {
-				type: 'group',
-				parent: 'root',
-				name: 'unknown_bone',
-				origin: [0, 0, 0],
-				rotation: [0],
-				children: loose_cubes
-			})
+		if (loose_elements.length) {
+			let group = new Group({
+				name: 'bb_main'
+			});
+			group.children.push(...loose_elements);
+			group.is_catch_bone = true;
+			group.createUniqueName();
+			groups.splice(0, 0, group);
 		}
 
 		groups.forEach(function(g) {
@@ -176,7 +181,7 @@ var codec = new Codec('bedrock_old', {
 				]
 			}
 			if (g.reset) bone.reset = true;
-			if (g.mirror_uv) bone.mirror = true;
+			if (g.mirror_uv && Project.box_uv) bone.mirror = true;
 			if (g.material) bone.material = g.material;
 
 			//Elements
@@ -203,7 +208,6 @@ var codec = new Codec('bedrock_old', {
 							visible_box.expandByObject(mesh)
 						}
 						cubes.push(template)
-						cube_count++;
 
 					} else if (obj instanceof Locator) {
 
@@ -259,7 +263,7 @@ var codec = new Codec('bedrock_old', {
 
 		$('#pe_search_bar').val('')
 		if (pe_list && pe_list._data) {
-			pe_list._data.search_text = ''
+			pe_list._data.search_term = ''
 		}
 
 		function create_thumbnail(model_entry, isize) {
@@ -353,7 +357,7 @@ var codec = new Codec('bedrock_old', {
 			pe_list = new Vue({
 				el: '#pe_list',
 				data: {
-					search_text: '',
+					search_term: '',
 					list: pe_list_data
 				},
 				methods: {
@@ -370,16 +374,15 @@ var codec = new Codec('bedrock_old', {
 				},
 				computed: {
 					searched() {
-						var scope = this;
 						return this.list.filter(item => {
-							return item.name.toUpperCase().includes(scope.search_text)
+							return item.name.toUpperCase().includes(this.search_term)
 						})
 					}
 				}
 			})
 		}
 		showDialog('entity_import')
-		$('#pe_list').css('max-height', ($(window).height() - 320) +'px')
+		$('#pe_list').css('max-height', (window.innerHeight - 320) +'px')
 		$('input#pe_search_bar').select()
 		$('#entity_import .confirm_btn').off('click')
 		$('#entity_import .confirm_btn').on('click', (e) => {

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Modeling Help / Support
+    url: http://discord.blockbench.net
+    about: If you need help with modeling or implementing models into your project, please ask on the Discord server instead of opening an issue.

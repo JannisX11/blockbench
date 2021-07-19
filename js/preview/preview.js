@@ -18,6 +18,7 @@ var gizmo_colors = {
 	b: new THREE.Color(0x2d5ee8),
 	grid: new THREE.Color(0x495061),
 	wire: new THREE.Color(0x576f82),
+	solid: new THREE.Color(0xc1c1c1),
 	outline: new THREE.Color(0x3e90ff)
 }
 const DefaultCameraPresets = [
@@ -37,7 +38,7 @@ const DefaultCameraPresets = [
 		position: [0, 64, 0],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 0,
+		locked_angle: 'top',
 		default: true
 	},
 	{
@@ -48,7 +49,7 @@ const DefaultCameraPresets = [
 		position: [0, -64, 0],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 1,
+		locked_angle: 'bottom',
 		default: true
 	},
 	{
@@ -59,7 +60,7 @@ const DefaultCameraPresets = [
 		position: [0, 0, 64],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 2,
+		locked_angle: 'south',
 		default: true
 	},
 	{
@@ -70,7 +71,7 @@ const DefaultCameraPresets = [
 		position: [0, 0, -64],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 3,
+		locked_angle: 'north',
 		default: true
 	},
 	{
@@ -81,7 +82,7 @@ const DefaultCameraPresets = [
 		position: [64, 0, 0],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 4,
+		locked_angle: 'east',
 		default: true
 	},
 	{
@@ -92,24 +93,42 @@ const DefaultCameraPresets = [
 		position: [-64, 0, 0],
 		target: [0, 0, 0],
 		zoom: 0.5,
-		locked_angle: 5,
+		locked_angle: 'west',
 		default: true
 	},
 	{
-		name: 'camera_angle.isometric_right',
+		name: 'camera_angle.common_isometric_right',
 		id: 'isometric_right',
 		projection: 'orthographic',
-		position: [-64, 64*0.8165, -64],
-		target: [0, 0, 0],
+		position: [-64, 64*0.8165+8, -64],
+		target: [0, 8, 0],
 		zoom: 0.5,
 		default: true
 	},
 	{
-		name: 'camera_angle.isometric_left',
+		name: 'camera_angle.common_isometric_left',
 		id: 'isometric_left',
 		projection: 'orthographic',
-		position: [64, 64*0.8165, -64],
-		target: [0, 0, 0],
+		position: [64, 64*0.8165+8, -64],
+		target: [0, 8, 0],
+		zoom: 0.5,
+		default: true
+	},
+	{
+		name: 'camera_angle.true_isometric_right',
+		id: 'isometric_right',
+		projection: 'orthographic',
+		position: [-64, 64+8, -64],
+		target: [0, 8, 0],
+		zoom: 0.5,
+		default: true
+	},
+	{
+		name: 'camera_angle.true_isometric_left',
+		id: 'isometric_left',
+		projection: 'orthographic',
+		position: [64, 64+8, -64],
+		target: [0, 8, 0],
 		zoom: 0.5,
 		default: true
 	}
@@ -129,19 +148,31 @@ class Preview {
 		this.node = document.createElement('div')
 		this.node.className = 'preview';
 		this.node.appendChild(this.canvas);
-		let menu = $(`<div class="tool preview_menu"> <i class="material-icons">more_vert</i> </div>`)[0]
-			menu.onclick = (event) => {
-				this.menu.open(menu, this)
-			}
+		let menu = $(`
+			<div class="preview_menu">
+				<div class="tool preview_background_menu" hidden><img src="" width="36px"></div>
+				<div class="tool preview_main_menu"><i class="material-icons">more_vert</i></div>
+			</div>`)[0];
+		menu.firstElementChild.onclick = (event) => {
+			let M = new Menu(this.menu.structure.find(s => s.id == 'background').children(this));
+			M.open(menu, this);
+		}
+		menu.lastElementChild.onclick = (event) => {
+			this.menu.open(menu, this);
+		}
+		BarItem.prototype.addLabel(false, {
+			name: tl('menu.preview.background'),
+			node: menu.firstElementChild
+		})
 		BarItem.prototype.addLabel(false, {
 			name: tl('data.preview'),
-			node: menu
+			node: menu.lastElementChild
 		})
 		this.node.appendChild(menu)
 		//Cameras
 		this.isOrtho = false
 		this.angle = null;
-		this.camPers = new THREE.PerspectiveCamera(settings.fov.value, 16 / 9, 1, 30000)
+		this.camPers = new THREE.PerspectiveCamera(settings.fov.value, 16 / 9, settings.camera_near_plane.value||1, 30000);
 		this.camOrtho = new THREE.OrthographicCamera(-600,  600, -400, 400, -200, 20000);
 		this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'y'}]
 		this.camOrtho.axis = null
@@ -150,6 +181,7 @@ class Preview {
 		for (var i = 4; i <= 6; i++) {
 			this.camPers.layers.enable(i);
 		}
+		this.side_view_target = new THREE.Vector3();
 
 		//Controls
 		this.controls = new THREE.OrbitControls(this.camPers, this);
@@ -157,6 +189,13 @@ class Preview {
 		this.controls.maxDistance = 3960;
 		this.controls.enableKeys = false;
 		this.controls.zoomSpeed = 1.5;
+		this.controls.onUpdate(() => {
+			if (this.angle != null) {
+				if (this.camOrtho.axis != 'x') this.side_view_target.x = this.controls.target.x;
+				if (this.camOrtho.axis != 'y') this.side_view_target.y = this.controls.target.y;
+				if (this.camOrtho.axis != 'z') this.side_view_target.z = this.controls.target.z;
+			}
+		})
 
 		//Annotations
 		this.annotations = {};
@@ -165,8 +204,8 @@ class Preview {
 				var tag = scope.annotations[key];
 				if (tag.object.visible) {
 					var pos = tag.object.toScreenPosition(scope.camera, scope.canvas);
-					$(tag.node).css('left', pos.x+'px');
-					$(tag.node).css('top', pos.y+'px');
+					tag.node.style.setProperty('left', pos.x+'px');
+					tag.node.style.setProperty('top', pos.y+'px');
 				}
 			}
 		}
@@ -187,6 +226,11 @@ class Preview {
 
 		this.camPers.position.fromArray(DefaultCameraPresets[0].position)
 		this.controls.target.fromArray(DefaultCameraPresets[0].target);
+
+		if (!Blockbench.isMobile) {
+			this.orbit_gizmo = new OrbitGizmo(this);
+			this.node.append(this.orbit_gizmo.node);
+		}
 
 		//Keybinds
 		this.controls.mouseButtons.ZOOM = undefined;
@@ -236,7 +280,7 @@ class Preview {
 		this.loadBackground()
 
 		this.selection = {
-			box: $('<div id="selection_box", class="selection_rectangle"></div>') 
+			box: $('<div id="selection_box" class="selection_rectangle"></div>') 
 		}
 
 		this.raycaster = new THREE.Raycaster()
@@ -253,9 +297,6 @@ class Preview {
 			element: this.canvas,
 			readtype: 'image',
 		}, function(files) {
-			if (!scope.background.imgtag) {
-				scope.background.imgtag = new Image();
-			}
 			if (isApp) {
 				scope.background.image = files[0].path
 			} else {
@@ -341,7 +382,7 @@ class Preview {
 			}
 			if (intersect.isElement) {
 				this.controls.hasMoved = true
-				var obj = OutlinerElement.uuids[intersects[0].object.name]
+				var obj = OutlinerNode.uuids[intersects[0].object.name]
 				let face = Canvas.face_order[intersects[0].face.materialIndex];
 
 				return {
@@ -385,18 +426,27 @@ class Preview {
 	get camera() {
 		return this.isOrtho ? this.camOrtho : this.camPers;
 	}
-	setProjectionMode(ortho) {
+	setProjectionMode(ortho, toggle) {
 
 		let position = this.camera.position;
 		this.isOrtho = !!ortho;
 		this.resize()
 		this.controls.object = this.camera;
 		this.camera.position.copy(position);
-		if (this.isOrtho) {
-			this.camera.zoom = 0.5;
-			this.camOrtho.updateProjectionMatrix()
+		if (toggle) {
+			let perspective_distance = this.camPers.position.distanceTo(this.controls.target);
+			let factor = 0.64 * devicePixelRatio * this.camPers.getFocalLength();
+			if (this.isOrtho) {
+				this.camera.zoom = factor / perspective_distance;
+			} else {
+				let target_distance = factor / this.camOrtho.zoom;
+				let cam_offset = new THREE.Vector3().copy(this.camPers.position).sub(this.controls.target);
+				cam_offset.multiplyScalar(target_distance / perspective_distance);
+				this.camPers.position.copy(cam_offset).add(this.controls.target);
+			}
 		}
-		this.setLockedAngle()
+		this.setLockedAngle();
+		this.occupyTransformer();
 		this.controls.updateSceneScale();
 		return this;
 	}
@@ -410,33 +460,33 @@ class Preview {
 		return this;
 	}
 	setLockedAngle(angle) {
-		if (typeof angle === 'number' && this.isOrtho) {
+		if (typeof angle === 'string' && this.isOrtho) {
 
 			this.angle = angle
 			this.controls.enableRotate = false;
 
 			switch (angle) {
-				case 0:
+				case 'top':
 				this.camOrtho.axis = 'y'
 				this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'z'}]
 				break;
-				case 1:
+				case 'bottom':
 				this.camOrtho.axis = 'y'
 				this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: true, a: 'z'}]
 				break;
-				case 2:
+				case 'south':
 				this.camOrtho.axis = 'z'
 				this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: true, a: 'y'}]
 				break;
-				case 3:
+				case 'north':
 				this.camOrtho.axis = 'z'
 				this.camOrtho.backgroundHandle = [{n: true, a: 'x'}, {n: true, a: 'y'}]
 				break;
-				case 4:
+				case 'east':
 				this.camOrtho.axis = 'x'
 				this.camOrtho.backgroundHandle = [{n: true, a: 'z'}, {n: true, a: 'y'}]
 				break;
-				case 5:
+				case 'west':
 				this.camOrtho.axis = 'x'
 				this.camOrtho.backgroundHandle = [{n: false, a: 'z'}, {n: true, a: 'y'}]
 				break;
@@ -450,6 +500,15 @@ class Preview {
 				if (i != layer) {
 					this.camOrtho.layers.enable(i+3);
 				}
+			}
+			if (this.camOrtho.axis != 'x') {
+				this.controls.target.x = this.camOrtho.position.x = this.side_view_target.x;
+			}
+			if (this.camOrtho.axis != 'y') {
+				this.controls.target.y = this.camOrtho.position.y = this.side_view_target.y;
+			}
+			if (this.camOrtho.axis != 'z') {
+				this.controls.target.z = this.camOrtho.position.z = this.side_view_target.z;
 			}
 
 		} else {
@@ -486,8 +545,8 @@ class Preview {
 		}
 		if (preset.projection !== 'unset') {
 			this.setProjectionMode(preset.projection == 'orthographic')
-		}
-		if (this.isOrtho && preset.zoom) {
+		} 
+		if (this.isOrtho && preset.zoom && !preset.locked_angle) {
 			this.camera.zoom = preset.zoom;
 			this.camera.updateProjectionMatrix()
 		}
@@ -584,15 +643,18 @@ class Preview {
 	click(event) {
 		event.preventDefault();
 		$(':focus').blur();
+		if (open_menu) open_menu.hide();
 		unselectInterface(event);
 		convertTouchEvent(event);
+		Preview.selected = this;
 		this.static_rclick = event.which === 3 || event.type == 'touchstart';
+		
 		if (event.type == 'touchstart') {
 			this.rclick_cooldown = setTimeout(() => {
 				this.rclick_cooldown = true;
 			}, 420)
+			Transformer.dispatchPointerHover(event);
 		}
-		Preview.selected = this;
 		if (Transformer.hoverAxis !== null || (!Keybinds.extra.preview_select.keybind.isTriggered(event) && event.which !== 0)) return;
 
 		var data = this.raycast(event);
@@ -614,15 +676,14 @@ class Preview {
 				if (Modes.paint) {
 					event = 0;
 				}
-				if (Format.bone_rig && (
+				if (data.cube.parent.type === 'group' && (
 					Animator.open ||
-					(!Format.rotate_cubes  && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id)) ||
-					event.shiftKey
+					event.shiftKey ||
+					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
 				)) {
-					if (data.cube.parent.type === 'group') {
-						data.cube.parent.select().showInOutliner();
-					}
-				} else {
+					data.cube.parent.select().showInOutliner();
+
+				} else if (!Animator.open) {
 					data.cube.select(event)
 				}
 			} else if (Animator.open && data.type == 'keyframe') {
@@ -638,7 +699,7 @@ class Preview {
 			return true;
 		}
 		if (typeof Toolbox.selected.onCanvasClick === 'function') {
-			Toolbox.selected.onCanvasClick(0)
+			Toolbox.selected.onCanvasClick({event})
 		}
 
 		if (this.angle !== null && this.camOrtho.axis || this.movingBackground) {
@@ -655,7 +716,7 @@ class Preview {
 	}
 	mouseup(event) {
 		this.showContextMenu(event);
-		if (this.controls.hasMoved === false && settings.canvas_unselect.value) {
+		if (settings.canvas_unselect.value && this.controls.hasMoved === false && !this.selection.activated && !Transformer.dragging) {
 			unselectAll();
 		}
 		return this;
@@ -755,8 +816,8 @@ class Preview {
 			if (event.shiftKey) {
 				this.background.size = limitNumber( this.background.before.size + (event.offsetY - this.selection.start_y), 0, 10e3)
 			} else {
-				this.background.x = this.background.before.x + (event.offsetX - this.selection.start_x)/this.camOrtho.zoom
-				this.background.y = this.background.before.y + (event.offsetY - this.selection.start_y)/this.camOrtho.zoom
+				this.background.x = this.background.before.x + (event.offsetX - this.selection.start_x);
+				this.background.y = this.background.before.y + (event.offsetY - this.selection.start_y);
 			}
 			this.updateBackground()
 			return;
@@ -827,7 +888,6 @@ class Preview {
 		TickUpdates.selection = true;
 	}
 	stopSelRect(event) {
-		var scope = this;
 		document.removeEventListener('mousemove', this.sr_move_f)
 		document.removeEventListener('mouseup',	this.sr_stop_f)
 		if (this.movingBackground) {
@@ -857,7 +917,7 @@ class Preview {
 				this.background = canvas_scenes.normal
 			}
 		} else if (this.angle !== null) {
-			this.background = canvas_scenes['ortho'+this.angle]
+			this.background = canvas_scenes['ortho_'+this.angle]
 		} else {
 			this.background = canvas_scenes.normal
 		}
@@ -866,11 +926,13 @@ class Preview {
 	loadBackground() {
 		this.getBackground()
 		if (this.background && this.background.image) {
-			if (!this.background.imgtag) this.background.imgtag = new Image();
-			this.background.imgtag.src = this.background.image.replace(/#/g, '%23');
-			$(this.canvas).css('background-image', `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`)
+			let background_image = `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`;
+			this.canvas.style.setProperty('background-image', background_image)
+			this.node.querySelector('.preview_background_menu').style.setProperty('background-image', background_image);
+			this.node.querySelector('.preview_background_menu').style.display = 'block';
 		} else {
-			$(this.canvas).css('background-image', 'none')
+			this.canvas.style.setProperty('background-image', 'none')
+			this.node.querySelector('.preview_background_menu').style.display = 'none';
 		}
 		this.updateBackground()
 		return this;
@@ -890,9 +952,9 @@ class Preview {
 		pos_x += (bg.x * zoom) + this.width/2 - ( bg.size * zoom) / 2
 		pos_y += (bg.y * zoom) + this.height/2 -((bg.size / bg.ratio||1) * zoom) / 2
 
-		$(this.canvas).css('background-position-x', pos_x + 'px')
-		$(this.canvas).css('background-position-y', pos_y + 'px')
-		$(this.canvas).css('background-size',  bg.size * zoom +'px')
+		this.canvas.style.setProperty('background-position-x', pos_x + 'px')
+		this.canvas.style.setProperty('background-position-y', pos_y + 'px')
+		this.canvas.style.setProperty('background-size',  bg.size * zoom +'px')
 		return this;
 	}
 	clearBackground() {
@@ -925,25 +987,23 @@ class Preview {
 		this.controls.enabled_before = this.controls.enabled
 		this.controls.enabled = false
 
-		if (settings.dialog_drag_background.value) {
-			Blockbench.showMessageBox({
-				translateKey: 'drag_background',
-				icon: 'open_with',
-				buttons: ['dialog.ok', 'dialog.dontshowagain'],
-				confirm: 0,
-				cancel: 0,
-			}, function(r) {
-				if (r === 1) {
-					settings.dialog_drag_background.value = false
-					Settings.save()
-				}
-			})
-		}
+		this.position_toast = Blockbench.showToastNotification({
+			text: 'message.drag_background',
+			icon: 'open_with',
+			click: () => {
+				this.stopMovingBackground();
+				return true;
+			}
+		})
 	}
 	stopMovingBackground() {
 		this.movingBackground = false;
 		this.controls.enabled = this.controls.enabled_before
 		delete this.controls.enabled_before
+		if (this.position_toast) {
+			this.position_toast.delete();
+			delete this.position_toast;
+		}
 		Settings.saveLocalStorages()
 		return this;
 	}
@@ -1077,8 +1137,17 @@ class Preview {
 			changeDisplaySkin()
 		}},
 		'preview_checkerboard',
-		{icon: 'wallpaper', name: 'menu.preview.background', children(preview) {
+		{id: 'background', icon: 'wallpaper', name: 'menu.preview.background', children(preview) {
 			var has_background = !!preview.background.image
+			function applyBackground(image) {
+				if (!preview.background.image) {
+					preview.background.save_in_project = null;
+				}
+				preview.background.image = image;
+				preview.loadBackground();
+				Settings.saveLocalStorages();
+				preview.startMovingBackground();
+			}
 			return [
 				{icon: 'folder', name: 'menu.preview.background.load', click: function(preview) {
 					Blockbench.import({
@@ -1088,29 +1157,20 @@ class Preview {
 						readtype: 'image'
 					}, function(files) {
 						if (files) {
-							preview.background.image = isApp ? files[0].path : files[0].content
-							preview.loadBackground()
-							Settings.saveLocalStorages()
+							applyBackground(isApp ? files[0].path : files[0].content);
 						}
 					}, 'image', false)
 				}},
 				{icon: 'fa-clipboard', name: 'menu.preview.background.clipboard', click: function(preview) {
-					function loadImage(image) {
-						if (image.length > 32) {
-							preview.background.image = image;
-							preview.loadBackground();
-							Settings.saveLocalStorages()
-						}
-					}
 					if (isApp) {
 						var image = clipboard.readImage().toDataURL();
-						loadImage(image);
+						if (image.length > 32) applyBackground(image);
 					} else {
 						navigator.clipboard.read().then(content => {
 							if (content && content[0] && content[0].types.includes('image/png')) {
 								content[0].getType('image/png').then(blob => {
 									let url = URL.createObjectURL(blob);
-									loadImage(url);
+									if (image.length > 32) applyBackground(url);
 								})
 							}
 						})
@@ -1144,15 +1204,15 @@ class Preview {
 		{icon: 'add_a_photo', name: 'menu.preview.save_angle', condition(preview) {return !preview.movingBackground && !Modes.display}, click(preview) {
 			preview.newAnglePreset()
 		}},
-		{icon: 'videocam', name: 'menu.preview.angle', condition(preview) {return !preview.movingBackground && !Modes.display}, children: function(preview) {
+		{id: 'angle', icon: 'videocam', name: 'menu.preview.angle', condition(preview) {return !preview.movingBackground && !Modes.display}, children: function(preview) {
 			var children = [
 			]
 			let presets = localStorage.getItem('camera_presets')
-			presets = (presets && JSON.parse(presets)) || [];
+			presets = (presets && autoParseJSON(presets, false)) || [];
 			let all_presets = [...DefaultCameraPresets, ...presets];
 
 			all_presets.forEach(preset => {
-				let icon = typeof preset.locked_angle !== 'number' ? 'videocam' : (preset.locked_angle == preview.angle ? 'radio_button_checked' : 'radio_button_unchecked'); 
+				let icon = typeof preset.locked_angle ? 'videocam' : (preset.locked_angle == preview.angle ? 'radio_button_checked' : 'radio_button_unchecked'); 
 				children.push({
 					name: preset.name,
 					color: preset.color,
@@ -1165,9 +1225,12 @@ class Preview {
 						{icon: 'check_circle', name: 'menu.preview.angle.load', click() {
 							preview.loadAnglePreset(preset)
 						}},
+						{icon: 'edit', name: 'menu.preview.angle.edit', click() {
+							editCameraPreset(preset, presets);
+						}},
 						{icon: 'delete', name: 'generic.delete', click() {
-							presets.remove(preset)
-							localStorage.setItem('camera_presets', JSON.stringify(presets))
+							presets.remove(preset);
+							localStorage.setItem('camera_presets', JSON.stringify(presets));
 						}}
 					]
 				})
@@ -1176,10 +1239,10 @@ class Preview {
 			return children;
 		}},
 		{icon: (preview) => (preview.isOrtho ? 'check_box' : 'check_box_outline_blank'), name: 'menu.preview.orthographic', click: function(preview) {
-			preview.setProjectionMode(!preview.isOrtho);
+			preview.setProjectionMode(!preview.isOrtho, true);
 		}},
 		'_',
-		{icon: 'widgets', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !Modes.display && !Animator.open}, click: function() {
+		{icon: 'grid_view', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !Modes.display && !Animator.open}, click: function() {
 			openQuadView()
 		}},
 		{icon: 'web_asset', name: 'menu.preview.maximize', condition: function(preview) {return quad_previews.enabled && !preview.movingBackground && !Modes.display}, click: function(preview) {
@@ -1216,6 +1279,168 @@ function openQuadView() {
 	updateInterface()
 }
 
+function editCameraPreset(preset, presets) {
+	let {name, projection, position, target, zoom} = preset;
+	
+	let dialog = new Dialog({
+		id: 'edit_angle',
+		title: 'menu.preview.angle.edit',
+		form: {
+			name: {label: 'generic.name', value: name},
+			projection: {label: 'dialog.save_angle.projection', type: 'select', value: projection, options: {
+				unset: 'generic.unset',
+				perspective: 'dialog.save_angle.projection.perspective',
+				orthographic: 'dialog.save_angle.projection.orthographic'
+			}},
+			position: {label: 'dialog.save_angle.position', type: 'vector', dimensions: 3, value: position},
+			target: {label: 'dialog.save_angle.target', type: 'vector', dimensions: 3, value: target},
+			zoom: {label: 'dialog.save_angle.zoom', type: 'number', value: zoom||1, condition: result => (result.projection == 'orthographic')},
+		},
+		onConfirm: function(result) {
+
+			if (!result.name) return;
+
+			preset.name = result.name;
+			preset.projection = result.projection;
+			preset.position = result.position;
+			preset.target = result.target;
+			if (result.projection == 'orthographic') preset.zoom = result.zoom;
+
+			localStorage.setItem('camera_presets', JSON.stringify(presets))
+			dialog.hide()
+		}
+	})
+	dialog.show();
+}
+
+
+class OrbitGizmo {
+	constructor(preview, options = {}) {
+		let scope = this;
+		this.preview = preview;
+		this.node = document.createElement('div');
+		this.node.classList.add('orbit_gizmo');
+
+		let svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		this.node.append(svg);
+		this.lines = {
+			x: document.createElementNS('http://www.w3.org/2000/svg', 'path'),
+			y: document.createElementNS('http://www.w3.org/2000/svg', 'path'),
+			z: document.createElementNS('http://www.w3.org/2000/svg', 'path'),
+		}
+		for (let axis in this.lines) {
+			this.lines[axis].setAttribute('axis', axis);
+			svg.append(this.lines[axis]);
+		}
+
+		this.sides = {
+			top: {opposite: 'bottom', axis: 'y', sign: 1, label: 'Y'},
+			bottom: {opposite: 'top', axis: 'y', sign: -1},
+			east: {opposite: 'west', axis: 'x', sign: 1, label: 'X'},
+			west: {opposite: 'east', axis: 'x', sign: -1},
+			south: {opposite: 'north', axis: 'z', sign: 1, label: 'Z'},
+			north: {opposite: 'south', axis: 'z', sign: -1},
+		}
+		for (let key in this.sides) {
+			let side = this.sides[key];
+			side.node = document.createElement('div');
+			side.node.classList.add('orbit_gizmo_side');
+			side.node.setAttribute('axis', side.axis);
+			side.node.title = tl(`direction.${key}`);
+			if (side.label) side.node.innerText = side.label;
+
+			side.node.addEventListener('click', e => {
+				if (!this.preview.controls.enabled) return;
+				let preset_key = key == this.preview.angle ? side.opposite : key;
+				let preset = DefaultCameraPresets.find(p => p.id == preset_key);
+				this.preview.loadAnglePreset(preset);
+			})
+			this.node.append(side.node);
+		}
+
+		// Interact
+		addEventListeners(this.node, 'mousedown touchstart', e1 => {
+			if ((!scope.preview.controls.enableRotate && scope.preview.angle == null) || !scope.preview.controls.enabled || (scope.preview.force_locked_angle && scope.preview.locked_angle !== null)) return;
+			convertTouchEvent(e1);
+			let last_event = e1;
+			let move_calls = 0;
+
+			let started = false;
+			function start() {
+				started = true;
+				scope.node.classList.add('mouse_active');
+				if (!e1.touches && last_event == e1 && scope.node.requestPointerLock) scope.node.requestPointerLock();
+				if (scope.preview.angle != null) {
+					scope.preview.setProjectionMode(false, true);
+				}
+			}
+
+			function move(e2) {
+				convertTouchEvent(e2);
+				if (!started && Math.pow(e2.clientX - e1.clientX, 2) + Math.pow(e2.clientY - e1.clientY, 2) > 12) {
+					start()
+				}
+				if (started) {
+					let limit = move_calls <= 2 ? 1 : 32;
+					scope.preview.controls.rotateLeft((e1.touches ? (e2.clientX - last_event.clientX) : Math.clamp(e2.movementX, -limit, limit)) / 40);
+					scope.preview.controls.rotateUp((e1.touches ? (e2.clientY - last_event.clientY) : Math.clamp(e2.movementY, -limit, limit)) / 40);
+					last_event = e2;
+					move_calls++;
+				}
+			}
+			function off(e2) {
+				if (document.exitPointerLock) document.exitPointerLock()
+				removeEventListeners(document, 'mousemove touchmove', move);
+				removeEventListeners(document, 'mouseup touchend', off);
+				scope.node.classList.remove('mouse_active');
+			}
+			addEventListeners(document, 'mouseup touchend', off);
+			addEventListeners(document, 'mousemove touchmove', move);
+		})
+		this.node.addEventListener('dblclick', e => {
+			if (e.target != this.node) return;
+			this.preview.setProjectionMode(!this.preview.isOrtho, true);
+		})
+
+		this.preview.controls.onUpdate(e => this.update(e));
+
+		this.update();
+	}
+	update() {
+		let background = 'background';
+		let x = this.preview.controls.getPolarAngle();
+		let y = this.preview.controls.getAzimuthalAngle();
+		let mid = 40;
+		let rad = 28;
+		let scale = 0.16;
+		let offset = {
+			x: [Math.cos(y), Math.cos(x)*Math.sin(y), Math.sin(y)],
+			y: [0, -Math.sin(x), Math.cos(x)],
+			z: [-Math.sin(y), Math.cos(x)*Math.cos(y), Math.cos(y)],
+		}
+
+		for (let key in this.sides) {
+			let side = this.sides[key];
+			let vec = offset[side.axis];
+			side.node.style.left = `${mid + side.sign * rad * vec[0]}px`;
+			side.node.style.top = `${mid + side.sign * rad * vec[1]}px`;
+			side.node.style.setProperty('transform', `scale(${1 + scale * side.sign * vec[2]})`);
+			side.node.classList.toggle(background, vec[2] * side.sign < 0);
+		}
+
+		for (let axis in this.lines) {
+			let vec = offset[axis];
+			this.lines[axis].setAttribute('d', `M${mid} ${mid} L${mid + rad*vec[0]} ${mid + rad*vec[1]}`)
+		}
+	}
+	hide() {
+		this.node.style.display = 'none';
+	}
+	unhide() {
+		this.node.style.display = 'block';
+	}
+}
+
 
 const Screencam = {
 	recording_timelapse: false,
@@ -1250,24 +1475,26 @@ const Screencam = {
 			var is_gif = dataUrl.substr(5, 9) == 'image/gif'
 			img.src = dataUrl
 
-			var btns = [tl('dialog.cancel'), tl('dialog.save')]
+			var btns = [tl('dialog.save'), tl('dialog.cancel')]
 			if (!is_gif) {
-				btns.push(tl('message.screenshot.clipboard'))
+				btns.splice(0, 0, tl('message.screenshot.clipboard'))
 			}
 			Blockbench.showMessageBox({
 				translateKey: 'screenshot',
 				icon: img,
 				buttons: btns,
-				confirm: 1,
-				cancel: 0
 			}, function(result) {
-				if (result === 1) {
+				if (result === 0 && btns.length == 3) {
+					clipboard.writeImage(screenshot);
+
+				} else if (result === btns.length-2) {
 					if (is_gif) {
 						Blockbench.export({
 							resource_id: 'screenshot',
 							extensions: ['gif'],
 							type: tl('data.image'),
 							savetype: 'binary',
+							name: Project.name.replace(/\.geo$/, ''),
 							content: Buffer(dataUrl.split(',')[1], 'base64')
 						})
 					} else {
@@ -1276,11 +1503,10 @@ const Screencam = {
 							extensions: ['png'],
 							type: tl('data.image'),
 							savetype: 'image',
+							name: Project.name.replace(/\.geo$/, ''),
 							content: dataUrl
 						})
 					}
-				} else if (result === 2) {
-					clipboard.writeImage(screenshot)
 				}
 			})
 		} else {
@@ -1309,8 +1535,8 @@ const Screencam = {
 		const gif = new GIF({
 			repeat: options.repeat,
 			quality: options.quality,
-			background: {r: 30, g: 0, b: 255},
-			transparent: 0x1e01ff,
+			background: options.background ? options.background : {r: 30, g: 0, b: 255},
+			transparent: options.background ? undefined : 0x1e01ff,
 		});
 
 		if (options.turnspeed) {
@@ -1343,6 +1569,7 @@ const Screencam = {
 			}
 		}
 
+		let recording = true;
 		var loop = setInterval(() => {
 			frames++;
 			Canvas.withoutGizmos(function() {
@@ -1355,17 +1582,20 @@ const Screencam = {
 			})
 			Blockbench.setProgress(getProgress());
 			if (getProgress() >= 1) {
-				endRecording()
+				endRecording(true)
 				return;
 			}
 
 		}, interval)
 
-		function endRecording() {
-			gif.render();
+		function endRecording(render) {
+			recording = false;
 			clearInterval(loop)
-			if (!options.silent) {
-				Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
+			if (render) {
+				gif.render();
+				if (!options.silent) {
+					Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
+				}
 			}
 			if (Animator.open && Timeline.playing) {
 				Timeline.pause();
@@ -1375,17 +1605,34 @@ const Screencam = {
 			}
 		}
 
+		let toast = Blockbench.showToastNotification({
+			text: 'message.recording_gif',
+			icon: 'local_movies',
+			click() {
+				if (recording) {
+					endRecording(false);
+				} else {
+					gif.abort();
+				}
+				Blockbench.setStatusBarText();
+				Blockbench.setProgress(0);
+				return true;
+			}
+		})
+
 		gif.on('finished', blob => {
 			var reader = new FileReader();
 			reader.onload = () => {
 				if (!options.silent) {
-					Blockbench.setProgress(0);
+					Blockbench.setProgress();
 					Blockbench.setStatusBarText();
 				}
 				Screencam.returnScreenshot(reader.result, cb);
 			}
 			reader.readAsDataURL(blob);
+			toast.delete();
 		});
+
 	},
 	recordTimelapse(options) {
 		if (!options.destination) return;
@@ -1459,7 +1706,7 @@ const Screencam = {
 }
 
 window.addEventListener("gamepadconnected", function(event) {
-	if (event.gamepad.id.includes('SpaceMouse')) {
+	if (event.gamepad.id.includes('SpaceMouse') || event.gamepad.id.includes('SpaceNavigator')) {
 
 		let interval = setInterval(() => {
 			let gamepad = navigator.getGamepads()[event.gamepad.index];
@@ -1471,7 +1718,7 @@ window.addEventListener("gamepadconnected", function(event) {
 				-gamepad.axes[2],
 				gamepad.axes[1],
 			)
-			offset.multiplyScalar(4);
+			offset.multiplyScalar(3);
 			offset.applyQuaternion(preview.camera.quaternion);
 
 			preview.controls.target.add(offset);
@@ -1490,6 +1737,8 @@ window.addEventListener("gamepadconnected", function(event) {
 
 			preview.controls.target.copy(camera_diff).add(preview.camera.position);
 
+			main_preview.controls.updateSceneScale();
+
 		}, 16)
 
 		window.addEventListener("gamepadconnected", function(event2) {
@@ -1499,6 +1748,51 @@ window.addEventListener("gamepadconnected", function(event) {
 		})
 	}
 });
+
+class PreviewBackground {
+	constructor(data = {}) {
+		this.name = data.name ? tl(data.name) : ''
+		this._image = data.image||false
+		this.size = data.size||1000
+		this.x = data.x||0
+		this.y = data.y||0
+		this.lock = data.lock||false
+		this.save_in_project = false;
+		this.defaults = Object.assign({}, this);
+		this.defaults.image = this.image;
+		this.imgtag = new Image();
+	}
+	get image() {
+		return this._image;
+	}
+	set image(path) {
+		this._image = path;
+		if (typeof this._image == 'string') {
+			this.imgtag.src = this._image.replace(/#/g, '%23');
+		}
+	}
+	getSaveCopy() {
+		let dataUrl;
+
+		if (isApp && this.image && this.image.substr(0, 5) != 'data:') {
+			let canvas = document.createElement('canvas');
+			canvas.width = this.imgtag.naturalWidth;
+			canvas.height = this.imgtag.naturalHeight;
+			let ctx = canvas.getContext('2d');
+			ctx.drawImage(this.imgtag, 0, 0);
+			dataUrl = canvas.toDataURL('image/png');
+		}
+
+		return {
+			name: this.name,
+			image: dataUrl || this.image,
+			size: this.size,
+			x: this.x,
+			y: this.y,
+			lock: this.lock
+		}
+	}
+}
 
 //Init/Update
 function initCanvas() {
@@ -1525,31 +1819,21 @@ function initCanvas() {
 	outlines.name = 'outline_group'
 	scene.add(outlines)
 
-	var DScene = function(data) {
-		data = data||{}
-		this.name = data.name ? tl(data.name) : ''
-		this.image = data.image||false
-		this.size = data.size||1000
-		this.x = data.x||0
-		this.y = data.y||0
-		this.lock = data.lock||false
-		this.defaults = Object.assign({}, this);
-	}
 
 	canvas_scenes = {
-		normal: 			new DScene({name: 'menu.preview.perspective.normal', lock: null}),
-		ortho0: 			new DScene({name: 'direction.top', lock: true}),
-		ortho1: 			new DScene({name: 'direction.bottom', lock: true}),
-		ortho2: 			new DScene({name: 'direction.south', lock: true}),
-		ortho3: 			new DScene({name: 'direction.north', lock: true}),
-		ortho4: 			new DScene({name: 'direction.east', lock: true}),
-		ortho5: 			new DScene({name: 'direction.west', lock: true}),
+		normal: 			new PreviewBackground({name: 'menu.preview.perspective.normal', lock: null}),
+		ortho_top: 			new PreviewBackground({name: 'direction.top', lock: true}),
+		ortho_bottom: 		new PreviewBackground({name: 'direction.bottom', lock: true}),
+		ortho_south: 		new PreviewBackground({name: 'direction.south', lock: true}),
+		ortho_north: 		new PreviewBackground({name: 'direction.north', lock: true}),
+		ortho_east: 		new PreviewBackground({name: 'direction.east', lock: true}),
+		ortho_west: 		new PreviewBackground({name: 'direction.west', lock: true}),
 
-		monitor: 			new DScene({name: 'display.reference.monitor' }),
+		monitor: 			new PreviewBackground({name: 'display.reference.monitor' }),
 
-		inventory_nine: 	new DScene({name: 'display.reference.inventory_nine', image: './assets/inventory_nine.png', x: 0, y: -525, size: 1051, lock: true}),
-		inventory_full: 	new DScene({name: 'display.reference.inventory_full', image: './assets/inventory_full.png', x: 0, y: -1740, size: 2781, lock: true}),
-		hud: 				new DScene({name: 'display.reference.hud', image: './assets/hud.png', x: -224, y: -447.5, size: 3391, lock: true}),
+		inventory_nine: 	new PreviewBackground({name: 'display.reference.inventory_nine', image: './assets/inventory_nine.png', x: 0, y: -525, size: 1051, lock: true}),
+		inventory_full: 	new PreviewBackground({name: 'display.reference.inventory_full', image: './assets/inventory_full.png', x: 0, y: -1740, size: 2781, lock: true}),
+		hud: 				new PreviewBackground({name: 'display.reference.hud', image: './assets/hud.png', x: -224, y: -447.5, size: 3391, lock: true}),
 	}
 	if (localStorage.getItem('canvas_scenes')) {
 		var stored_canvas_scenes = undefined;
@@ -1563,6 +1847,9 @@ function initCanvas() {
 
 					let store = stored_canvas_scenes[key]
 					let real = canvas_scenes[key]
+
+					if (store.save_in_project) continue;
+					if (store.save_in_project == null) {real.save_in_project = false}
 
 					if (store.image	!== undefined) {real.image = store.image}
 					if (store.size	!== undefined) {real.size = store.size}
@@ -1707,9 +1994,14 @@ function initCanvas() {
 }
 function animate() {
 	requestAnimationFrame( animate );
-	TickUpdates.Run()
+	if (!settings.background_rendering.value && !document.hasFocus() && !document.querySelector('#preview:hover')) return;
+	TickUpdates.Run();
+
+	if (Animator.open && Timeline.playing) {
+		Timeline.loop();
+	}
 	if (quad_previews.current) {
-		Wintersky.updateFacingRotation(quad_previews.current.camera);
+		WinterskyScene.updateFacingRotation(quad_previews.current.camera);
 	}
 	Preview.all.forEach(function(prev) {
 		if (prev.canvas.isConnected) {
@@ -1733,6 +2025,13 @@ function updateShading() {
 		parent.add(lights);
 		lights.position.copy(parent.position).multiplyScalar(-1);
 	}
+	Texture.all.forEach(tex => {
+		let material = tex.getMaterial();
+		material.uniforms.SHADE.value = settings.shading.value;
+		material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+	})
+	Canvas.solidMaterial.uniforms.SHADE.value = settings.shading.value;
+	Canvas.solidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
 }
 function updateCubeHighlights(hover_cube, force_off) {
 	Cube.all.forEach(cube => {
@@ -1796,8 +2095,8 @@ function buildGrid() {
 		var length = Format.centered_grid
 			? (settings.full_grid.value ? 24 : 8)
 			: 16
-		setupAxisLine(new THREE.Vector3( 0, 0.001, 0), length, 'x')
-		setupAxisLine(new THREE.Vector3( 0, 0.001, 0), length, 'z')
+		setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'x')
+		setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'z')
 
 	}
 
@@ -1909,27 +2208,30 @@ function buildGrid() {
 }
 
 BARS.defineActions(function() {
-	new Toggle('toggle_wireframe', {
-		icon: 'border_clear',
+	new BarSelect('view_mode', {
 		category: 'view',
-		keybind: new Keybind({key: 90}),
-		condition: () => Toolbox && Toolbox.selected && Toolbox.selected.allowWireframe,
-		default: false,
-		onChange: function (state) {
-			Prop.wireframe = !Prop.wireframe
-			Canvas.updateAllFaces()
+		keybind: new Keybind({key: 'z'}),
+		condition: () => Toolbox && Toolbox.selected && (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.length > 1),
+		value: 'textured',
+		options: {
+			textured: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('textured'))},
+			solid: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('solid'))},
+			wireframe: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('wireframe'))},
+		},
+		onChange() {
+			Prop.view_mode = this.value;
+			Canvas.updateAllFaces();
 			if (Modes.id === 'animate') {
-				Animator.preview()
+				Animator.preview();
 			}
-			Blockbench.showQuickMessage('message.wireframe.' + (Prop.wireframe ? 'enabled' : 'disabled'))
-			this.setIcon(Prop.wireframe ? 'check_box' : 'check_box_outline_blank')
+			//Blockbench.showQuickMessage(tl('action.view_mode') + ': ' + tl('action.view_mode.' + this.value));
 		}
 	})
 	new Toggle('preview_checkerboard', {
 		icon: 'fas.fa-chess-board',
 		category: 'view',
 		linked_setting: 'preview_checkerboard',
-		keybind: new Keybind({key: 84})
+		keybind: new Keybind({key: 't'})
 	})
 	new Toggle('uv_checkerboard', {
 		icon: 'fas.fa-chess-board',
@@ -1948,13 +2250,14 @@ BARS.defineActions(function() {
 		description: tl('settings.motion_trails.desc'),
 		icon: 'gesture',
 		category: 'view',
-		linked_setting: 'motion_trails'
+		linked_setting: 'motion_trails',
+		condition: {modes: ['animate']}
 	})
 
 	new Action('screenshot_model', {
 		icon: 'fa-cubes',
 		category: 'view',
-		keybind: new Keybind({key: 80, ctrl: true}),
+		keybind: new Keybind({key: 'p', ctrl: true}),
 		click: function () {Preview.selected.screenshot()}
 	})
 	new Action('record_model_gif', {
@@ -1975,15 +2278,18 @@ BARS.defineActions(function() {
 					length: {label: 'dialog.create_gif.length', type: 'number', value: 10, step: 0.25},
 					fps: 	{label: 'dialog.create_gif.fps', type: 'number', value: 10},
 					quality:{label: 'dialog.create_gif.compression', type: 'number', value: 20, min: 1, max: 80},
+					color:  {label: 'dialog.create_gif.color', type: 'color', value: '#00000000'},
 					turn:	{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -10, max: 10},
 					play: 	{label: 'dialog.create_gif.play', type: 'checkbox', condition: Animator.open},
 				},
 				onConfirm: function(formData) {
+					let background = formData.color.toHex8String() != '#00000000' ? formData.color.toHexString() : undefined;
 					Screencam.createGif({
 						length_mode: formData.length_mode,
 						length: limitNumber(formData.length, 0.1, 24000),
 						fps: limitNumber(formData.fps, 0.5, 30),
 						quality: limitNumber(formData.quality, 0, 30),
+						background,
 						play: formData.play,
 						turnspeed: formData.turn,
 					}, Screencam.returnScreenshot)
@@ -2028,7 +2334,7 @@ BARS.defineActions(function() {
 		click: function () {Screencam.fullScreen()}
 	})
 	new Action('toggle_quad_view', {
-		icon: 'widgets',
+		icon: 'grid_view',
 		category: 'view',
 		condition: () => !Modes.display,
 		keybind: new Keybind({key: 9}),
@@ -2040,11 +2346,27 @@ BARS.defineActions(function() {
 		icon: 'center_focus_weak',
 		category: 'view',
 		condition: () => !Modes.display,
-		keybind: new Keybind({key: 191}),
 		click: function () {
-			let center = getSelectionCenter();
-			if (!Format.centered_grid) center.V3_subtract(8, 8, 8)
-			quad_previews.current.controls.target.fromArray(center);
+			let preview = quad_previews.current;
+			let center = new THREE.Vector3().fromArray(getSelectionCenter());
+			center.add(scene.position);
+
+			let difference = new THREE.Vector3().copy(preview.controls.target).sub(center);
+			difference.divideScalar(6)
+
+			let i = 0;
+			let interval = setInterval(() => {
+
+
+				preview.controls.target.sub(difference);
+
+				if (preview.angle != null) {
+					preview.camera.position.sub(difference);
+				}
+				i++;
+				if (i == 6) clearInterval(interval);
+
+			}, 16.66)
 		}
 	})
 
@@ -2054,7 +2376,7 @@ BARS.defineActions(function() {
 		condition: _ => (!preview.movingBackground || !Modes.display),
 		keybind: new Keybind({key: 101}),
 		click: function () {
-			quad_previews.current.setProjectionMode(!quad_previews.current.isOrtho);
+			quad_previews.current.setProjectionMode(!quad_previews.current.isOrtho, true);
 		}
 	})
 	new Action('camera_initial', {
