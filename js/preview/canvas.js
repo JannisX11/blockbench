@@ -564,7 +564,6 @@ const Canvas = {
 				}
 			})
 			mesh.geometry.setShape(from, to)
-
 			mesh.geometry.computeBoundingBox()
 			mesh.geometry.computeBoundingSphere()
 		}
@@ -932,18 +931,18 @@ const Canvas = {
 	//Outline
 	getOutlineMesh(mesh) {
 		var vs = [0,1,2,3,4,5,6,7].map(i => {
-			return mesh.geometry.attributes.position.array.slice(i*3, 3)
+			return mesh.geometry.attributes.position.array.slice(i*3, i*3 + 3)
 		});
 		let points = [
 			vs[2], vs[3],
-			vs[6], vs[7],
+			vs[7], vs[6],
 			vs[2], vs[0],
-			vs[1], vs[4],
-			vs[5], vs[0],
-			vs[5], vs[7],
-			vs[6], vs[4],
-			vs[1], vs[3]
-		]
+			vs[1], vs[3],
+			vs[1], vs[5],
+			vs[4], vs[6],
+			vs[7], vs[5],
+			vs[4], vs[0]
+		].map(a => new THREE.Vector3().fromArray(a))
 		var geometry = new THREE.BufferGeometry().setFromPoints(points);
 		var line = new THREE.Line(geometry, Canvas.outlineMaterial);
 		line.no_export = true;

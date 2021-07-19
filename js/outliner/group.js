@@ -287,7 +287,7 @@ class Group extends OutlinerNode {
 		var dq = new THREE.Vector3().copy(shift)
 		dq.applyQuaternion(q)
 		shift.sub(dq)
-		shift.applyQuaternion(q.inverse())
+		shift.applyQuaternion(q.invert())
 		this.origin.V3_set(origin);
 
 		function iterateChild(obj) {
