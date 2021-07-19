@@ -12,11 +12,9 @@
 		width: 100%;
 		border: 2px solid var(--color-frame);
 		border-top: none;
-		opacity: 1;
-		transition: opacity 0.1s linear;
 	}
 	#page_wrapper.hidden {
-		opacity: 0;
+		display: none;
 	}
 	body {
 		background-image: url('../assets/logo_cutout.svg');
