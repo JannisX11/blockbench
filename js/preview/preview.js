@@ -1466,59 +1466,67 @@ const Screencam = {
 			})
 		}, 40)
 	},
-	returnScreenshot(dataUrl, cb) {
+	async returnScreenshot(dataUrl, cb) {
+
 		if (cb) {
-			cb(dataUrl)
-		} else if (isApp) {
-			var screenshot = nativeImage.createFromDataURL(dataUrl)
-			var img = new Image()
-			var is_gif = dataUrl.substr(5, 9) == 'image/gif'
-			img.src = dataUrl
+			cb(dataUrl);
+			return;
+		}
 
-			var btns = [tl('dialog.save'), tl('dialog.cancel')]
-			if (!is_gif) {
-				btns.splice(0, 0, tl('message.screenshot.clipboard'))
-			}
-			Blockbench.showMessageBox({
-				translateKey: 'screenshot',
-				icon: img,
-				buttons: btns,
-			}, function(result) {
-				if (result === 0 && btns.length == 3) {
-					clipboard.writeImage(screenshot);
+		let img = new Image()
+		let is_gif = dataUrl.substr(5, 9) == 'image/gif'
+		img.src = dataUrl
+		img.className = 'allow_default_menu checkerboard';
+		await new Promise((resolve, reject) => {
+			img.onload = resolve;
+			img.onerror = reject;
+		})
 
-				} else if (result === btns.length-2) {
-					if (is_gif) {
-						Blockbench.export({
-							resource_id: 'screenshot',
-							extensions: ['gif'],
-							type: tl('data.image'),
-							savetype: 'binary',
-							name: Project.name.replace(/\.geo$/, ''),
-							content: Buffer(dataUrl.split(',')[1], 'base64')
+		let center = document.createElement('center');
+		center.innerHTML = `<div>${img.naturalWidth} x ${img.naturalHeight}px, ${is_gif ? 'GIF' : 'PNG'}</div>`;
+		center.appendChild(img);
+
+		let buttons = [tl('dialog.save'), tl('dialog.cancel')]
+		if (!is_gif) {
+			buttons.splice(0, 0, tl('message.screenshot.clipboard'))
+		}
+		let dialog = new Dialog({
+			title: 'message.screenshot.title', 
+			id: 'screenshot',
+			width: img.naturalWidth + 50,
+			lines: [
+				center
+			],
+			buttons,
+			onButton(result) {
+
+				if (result === 0 && buttons.length == 3) {
+					if (navigator.clipboard && navigator.clipboard.write) {
+						fetch(dataUrl).then(async data => {
+							const blob = await data.blob();
+							await navigator.clipboard.write([
+								new ClipboardItem({
+									[blob.type]: blob
+								})
+							]);
 						})
 					} else {
-						Blockbench.export({
-							resource_id: 'screenshot',
-							extensions: ['png'],
-							type: tl('data.image'),
-							savetype: 'image',
-							name: Project.name.replace(/\.geo$/, ''),
-							content: dataUrl
-						})
+						Blockbench.showQuickMessage('message.screenshot.right_click');
+						return false;
 					}
+				} else if (result === buttons.length-2) {
+					Blockbench.export({
+						resource_id: 'screenshot',
+						extensions: [is_gif ? 'gif' : 'png'],
+						type: tl('data.image'),
+						savetype: is_gif ? 'binary' : 'image',
+						name: Project.name.replace(/\.geo$/, ''),
+						content: is_gif ? Buffer(dataUrl.split(',')[1], 'base64') : dataUrl,
+					})
 				}
-			})
-		} else {
-			new Dialog({
-				title: tl('message.screenshot.right_click'), 
-				id: 'screenie', 
-				width: 500,
-				lines: ['<img src="'+dataUrl+'" width="452px" class="allow_default_menu"></img>'],
-				draggable: true,
-				singleButton: true
-			}).show()
-		}
+			}
+		})
+		dialog.show();
 	},
 	cleanCanvas(options, cb) {
 		quad_previews.current.screenshot(options, cb)

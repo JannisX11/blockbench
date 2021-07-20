@@ -320,8 +320,8 @@ window.Dialog = class Dialog {
 	
 		this.confirmEnabled = options.confirmEnabled === false ? false : true
 		this.cancelEnabled = options.cancelEnabled === false ? false : true
-		this.onConfirm = options.onConfirm ? options.onConfirm : this.hide
-		this.onCancel = options.onCancel ? options.onCancel : this.hide
+		this.onConfirm = options.onConfirm
+		this.onCancel = options.onCancel
 		this.onButton = options.onButton;
 		this.onFormChange = options.onFormChange;
 	
