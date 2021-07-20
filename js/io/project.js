@@ -358,6 +358,7 @@ onVueSetup(() => {
 			projects: ModelProject.all,
 			drag_target_index: null,
 			drag_position_index: null,
+			close_tab_label: tl('projects.close_tab'),
 			new_tab: {
 				name: tl('projects.new_tab'),
 				saved: true,
@@ -394,7 +395,7 @@ onVueSetup(() => {
 				this.new_tab.select();
 				setStartScreen(true);
 			},
-			dragTab(tab, e1) {
+			mouseDown(tab, e1) {
 				convertTouchEvent(e1);
 				
 				let scope = this;
@@ -404,6 +405,8 @@ onVueSetup(() => {
 
 				let tab_node = e1.target;
 				if (!tab_node.classList.contains('project_tab') || ModelProject.all.indexOf(tab) < 0) return;
+
+				tab.select();
 
 				let activate = () => {
 					this.drag_target_index = ModelProject.all.indexOf(tab);

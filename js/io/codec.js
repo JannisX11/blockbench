@@ -180,30 +180,37 @@ function setupDragHandlers() {
 	)
 }
 function loadModelFile(file) {
-	(function() {
-		var extension = pathToExtension(file.path);
-		// Text
-		for (var id in Codecs) {
-			let codec = Codecs[id];
-			if (codec.load_filter && codec.load_filter.type == 'text') {
-				if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, file.content)) {
-					codec.load(file.content, file);
-					return;
-				}
+
+	let existing_tab = isApp && ModelProject.all.find(project => (
+		project.save_path == file.path || project.export_path == file.path
+	))
+	if (existing_tab) {
+		existing_tab.select();
+		return;
+	}
+
+	let extension = pathToExtension(file.path);
+	// Text
+	for (let id in Codecs) {
+		let codec = Codecs[id];
+		if (codec.load_filter && codec.load_filter.type == 'text') {
+			if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, file.content)) {
+				codec.load(file.content, file);
+				return;
 			}
 		}
-		// JSON
-		var model = autoParseJSON(file.content);
-		for (var id in Codecs) {
-			let codec = Codecs[id];
-			if (codec.load_filter && codec.load_filter.type == 'json') {
-				if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, model)) {
-					codec.load(model, file);
-					return;
-				}
+	}
+	// JSON
+	let model = autoParseJSON(file.content);
+	for (let id in Codecs) {
+		let codec = Codecs[id];
+		if (codec.load_filter && codec.load_filter.type == 'json') {
+			if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, model)) {
+				codec.load(model, file);
+				return;
 			}
 		}
-	})();
+	}
 
 	EditSession.initNewModel()
 }

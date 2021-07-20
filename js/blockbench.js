@@ -1,5 +1,4 @@
 var osfs = '/'
-var selected = [];
 var prev_side = 'north';
 var uv_clipboard;
 var pe_list_data = []
@@ -191,7 +190,7 @@ function unselectAll() {
 }
 //Backup
 setInterval(function() {
-	if (Outliner.root.length || Project.textures.length) {
+	if (Project && (Outliner.root.length || Project.textures.length)) {
 		try {
 			var model = Codecs.project.compile({compressed: false, backup: true});
 			localStorage.setItem('backup_model', model)

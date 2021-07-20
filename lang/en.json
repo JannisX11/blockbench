@@ -78,6 +78,7 @@
 	"mode.start.select_keymap": "Select Keymap",
 
 	"projects.new_tab": "New Tab",
+	"projects.close_tab": "Close Tab",
 
 	"format.free": "Generic Model",
 	"format.free.desc": "Model without restrictions. For game engines, rendering etc.",

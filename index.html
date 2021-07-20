@@ -603,17 +603,17 @@
 				move_back:  (drag_position_index !== null && index > drag_target_index && drag_position_index >= index),
 				move_forth: (drag_position_index !== null && index < drag_target_index && drag_position_index <= index)
 			}"
-			@click="selectProject(project, $event)"
+			:title="project.name || project.geometry_name"
 			@dblclick="project.openSettings()"
-			@mousedown="dragTab(project, $event)"
+			@mousedown="mouseDown(project, $event)"
 			@mouseup="mouseUp(project, $event)"
 		>
-			<label :title="project.name || project.geometry_name">{{ project.name || project.geometry_name || project.format.name }}</label>
-			<div class="project_tab_close_button" :class="{unsaved: !project.saved}" @click="project.close()">
+			<label>{{ project.name || project.geometry_name || project.format.name }}</label>
+			<div class="project_tab_close_button" :class="{unsaved: !project.saved}" :title="close_tab_label" @click="project.close()">
 				<i class="material-icons">{{ project.saved ? 'clear' : 'fiber_manual_record' }}</i>
 			</div>
 		</div>
-		<div id="new_tab_button" @click="openNewTab()">
+		<div id="new_tab_button" @click="openNewTab()" :title="new_tab.name">
 			<i class="material-icons">add</i>
 		</div>
 	</div>
@@ -629,7 +629,7 @@
 				<section id="start-files">
 					<left>
 						<h2 class="tl">mode.start.new</h2>
-						<div class="bar next_to_title" id="uv_title_bar">
+						<div class="bar next_to_title">
 							<div class="tool" onclick="Blockbench.openLink('https://blockbench.net/quickstart/')">
 								<div class="tooltip tl">menu.help.quickstart</div>
 								<i class="fas fa-question-circle"></i>
