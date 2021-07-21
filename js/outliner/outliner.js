@@ -459,6 +459,70 @@ class OutlinerElement extends OutlinerNode {
 	OutlinerElement.all = elements;
 	OutlinerElement.types = {};
 
+class NodePreviewController {
+	constructor(type, data = {}) {
+		Object.assign(this, data);
+		this.type = type;
+		type.preview_controller = this;
+	}
+	setup(element) {
+		var mesh = new THREE.Object3D();
+		Canvas.meshes[obj.uuid] = mesh;
+		mesh.name = obj.uuid;
+		mesh.type = 'cube';
+		mesh.isElement = true;
+
+		Canvas.adaptObjectFaces(obj, mesh)
+		Canvas.adaptObjectPosition(obj, mesh)
+		
+		//scene.add(mesh)
+		if (Prop.view_mode === 'textured') {
+			Canvas.updateUV(obj);
+		}
+		mesh.visible = obj.visibility;
+		Canvas.buildOutline(obj);
+	}
+	remove(element) {
+		let {mesh} = this;
+		if (mesh.parent) mesh.parent.remove(mesh);
+		if (mesh.geometry) mesh.geometry.dispose();
+		if (mesh.outline && mesh.outline.geometry) mesh.outline.geometry.dispose();
+	}
+	updateHierarchy(element) {
+		
+	}
+	updateTransform(element) {
+		
+	}
+	updateGeometry(element) {
+		
+	}
+	updateUV(element) {
+		
+	}
+	updateFaces(element) {
+		
+	}
+	updateVisibility(element) {
+		element.mesh.visible = !!element.visibility;
+	}
+	updatePaintingGrid(element) {
+		
+	}
+	updateHierarchy(element) {
+		
+	}
+	updateHierarchy(element) {
+		
+	}
+}
+
+Cube.preview_controller.setup();
+
+new NodePreviewController(Cube, {
+
+})
+
 Array.prototype.findRecursive = function(key1, val) {
 	var i = 0
 	while (i < this.length) {
