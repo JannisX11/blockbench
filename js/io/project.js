@@ -140,7 +140,7 @@ class ModelProject {
 		//Animator.animations.purge();
 		//Timeline.animators.purge();
 		//Animation.selected = undefined;
-		delete Animator.motion_trail_lock;
+		//delete Animator.motion_trail_lock;
 		//$('#var_placeholder_area').val('');
 	}
 	openSettings() {
@@ -181,6 +181,9 @@ class ModelProject {
 		Interface.Panels.variable_placeholders.inside_vue.text = this.variable_placeholders.toString();
 
 		Modes.options[this.mode].select();
+
+		BarItems.lock_motion_trail.value = !!Project.motion_trail_lock;
+		BarItems.lock_motion_trail.updateEnabledState();
 
 		Blockbench.dispatchEvent('select_project', {project: this});
 

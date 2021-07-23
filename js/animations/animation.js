@@ -1322,7 +1322,7 @@ const Animator = {
 	},
 	showMotionTrail(target) {
 		if (!target) {
-			target = Animator.motion_trail_lock && OutlinerNode.uuids[Animator.motion_trail_lock];
+			target = Project.motion_trail_lock && OutlinerNode.uuids[Project.motion_trail_lock];
 			if (!target) target = Group.selected || NullObject.selected[0];
 		}
 		let target_bone = target instanceof Group ? target : target.parent;
@@ -1736,7 +1736,7 @@ const Animator = {
 	}
 }
 Blockbench.on('update_camera_position', e => {
-	if (Animator.open && settings.motion_trails.value && (Group.selected || NullObject.selected[0] || Animator.motion_trail_lock)) {
+	if (Animator.open && settings.motion_trails.value && (Group.selected || NullObject.selected[0] || Project.motion_trail_lock)) {
 		Animator.updateMotionTrailScale();
 	}
 })
@@ -1952,9 +1952,9 @@ BARS.defineActions(function() {
 		condition: () => Animator.open && (Group.selected || NullObject.selected[0]),
 		onChange(value) {
 			if (value && (Group.selected || NullObject.selected[0])) {
-				Animator.motion_trail_lock = Group.selected ? Group.selected.uuid : NullObject.selected[0].uuid;
+				Project.motion_trail_lock = Group.selected ? Group.selected.uuid : NullObject.selected[0].uuid;
 			} else {
-				Animator.motion_trail_lock = false;
+				Project.motion_trail_lock = false;
 				Animator.showMotionTrail();
 			}
 		}
