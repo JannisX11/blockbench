@@ -28,6 +28,7 @@
 	"data.format": "Format",
 	"data.effect": "Effect",
 	"data.color": "Color",
+	"data.setting": "Setting",
 
 	"generic.delete": "Delete",
 	"generic.remove": "Remove",

@@ -1972,7 +1972,7 @@ const BARS = {
 				list: []
 			},
 			computed: {
-				actions: function() {
+				actions() {
 					var search_input = this._data.search_input.toUpperCase()
 					var list = this._data.list.empty()
 					for (var i = 0; i < Keybinds.actions.length; i++) {
@@ -1982,9 +1982,24 @@ const BARS = {
 							item.name.toUpperCase().includes(search_input) ||
 							item.id.toUpperCase().includes(search_input)
 						) {
-							if (item instanceof Action && BARS.condition(item.condition)) {
+							if (item instanceof Action && Condition(item.condition)) {
 								list.push(item)
-								if (list.length > ActionControl.max_length) i = Infinity;
+								if (list.length > ActionControl.max_length) break;
+							}
+						}
+					}
+					if (list.length <= ActionControl.max_length) {
+						for (let key in settings) {
+							let setting = settings[key];
+							if (
+								search_input.length == 0 ||
+								setting.name.toUpperCase().includes(search_input) ||
+								key.toUpperCase().includes(search_input)
+							) {
+								if (Condition(setting.condition)) {
+									list.push(setting)
+									if (list.length > ActionControl.max_length) break;
+								}
 							}
 						}
 					}
@@ -1996,6 +2011,24 @@ const BARS = {
 						this._data.index = list.length-1;
 					}
 					return list;
+				}
+			},
+			methods: {
+				subtext() {
+					let action = this.actions[this.index];
+					if (Pressing.alt) {
+						if (action instanceof Setting) {
+							if (action.type == 'select') {
+								return action.options[action.value];
+							} else {
+								return action.value;
+							}
+						} else {
+							action.keybind.label;
+						}
+					} else {
+						return action.description;
+					}
 				}
 			},
 			template: `
@@ -2011,7 +2044,7 @@ const BARS = {
 								@mouseenter="index = i"
 							></li>
 						</ul>
-						<div class="small_text" v-if="actions[index]">{{ Pressing.alt ? actions[index].keybind.label : actions[index].description }}</div>
+						<div class="small_text" v-if="actions[index]">{{ subtext() }}</div>
 					</div>
 				</dialog>
 			`
@@ -2043,6 +2076,14 @@ const ActionControl = {
 		Vue.nextTick(_ => {
 			$('#action_selector > input').focus().select();
 		})
+
+		// Update settings icons. Might need to be moved
+		for (let key in settings) {
+			let setting = settings[key];
+			if (setting.type == 'toggle') {
+				setting.menu_node.children[0].innerText = setting.value ? 'check_box' : 'check_box_outline_blank';
+			}
+		}
 	},
 	hide() {
 		open_interface = false;
@@ -2064,7 +2105,7 @@ const ActionControl = {
 			$('body').effect('shake');
 			Blockbench.showQuickMessage('Congratulations! You have discovered recursion!', 3000)
 		}
-		action.trigger(e)
+		action.trigger(e);
 	},
 	click(action, e) {
 		ActionControl.trigger(action, e)
