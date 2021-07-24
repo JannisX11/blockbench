@@ -844,8 +844,6 @@ class Cube extends OutlinerElement {
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	Cube.selected = [];
-	Cube.all = [];
 
 	new Property(Cube, 'string', 'name', {default: 'cube'})
 	new Property(Cube, 'boolean', 'rescale')

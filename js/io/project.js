@@ -19,6 +19,7 @@ class ModelProject {
 		if (isApp) this.BedrockEntityManager = new BedrockEntityManager();
 		this.format = options.format instanceof ModelFormat ? options.format : Formats.free;
 		this.mode = 'edit';
+		this.EditSession = null;
 
 		// Data
 		this.elements = [];
@@ -184,6 +185,11 @@ class ModelProject {
 
 		BarItems.lock_motion_trail.value = !!Project.motion_trail_lock;
 		BarItems.lock_motion_trail.updateEnabledState();
+
+		if (this.EditSession) {
+			Interface.Panels.chat.inside_vue.chat_history = this.EditSession.chat_history;
+			this.EditSession.catchUp();
+		}
 
 		Blockbench.dispatchEvent('select_project', {project: this});
 
@@ -589,8 +595,8 @@ BARS.defineActions(function() {
 					Blockbench.dispatchEvent('update_project_settings', formResult);
 
 					BARS.updateConditions()
-					if (EditSession.active) {
-						EditSession.sendAll('change_project_meta', JSON.stringify(Project));
+					if (Project.EditSession) {
+						Project.EditSession.sendAll('change_project_meta', JSON.stringify(Project));
 					}
 					
 					dialog.hide()
@@ -599,24 +605,19 @@ BARS.defineActions(function() {
 			dialog.show()
 		}
 	})
-	/*
 	new Action('close_project', {
 		icon: 'cancel_presentation',
 		category: 'file',
-		condition: () => (!EditSession.active || EditSession.hosting) && Format,
+		keybind: new Keybind({key: 'w', ctrl: true}),
+		condition: () => Project,
 		click: function () {
-			if (showSaveDialog()) {
-				resetProject()
-				Modes.options.start.select()
-				Modes.vue.$forceUpdate()
-				Blockbench.dispatchEvent('close_project');
-			}
+			Project.close();
 		}
-	})*/
+	})
 	new Action('convert_project', {
 		icon: 'fas.fa-file-import',
 		category: 'file',
-		condition: () => (!EditSession.active || EditSession.hosting),
+		condition: () => Project && (!Project.EditSession || Project.EditSession.hosting),
 		click: function () {
 
 			var options = {};

@@ -122,7 +122,6 @@ function parseGeometry(data) {
 		Project.BedrockEntityManager.initEntity()
 	}
 	updateSelection()
-	EditSession.initNewModel()
 }
 
 

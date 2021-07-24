@@ -1379,7 +1379,7 @@
 	"dialog.edit_session.title": "Edit Session",
 	"edit_session.username": "Username",
 	"edit_session.token": "Token",
-	"edit_session.about": "Edit Sessions can be used to collaborate on models across the internet. Create a session and copy the token and send it to friends, who can then use it to join.",
+	"edit_session.about": "Edit Sessions can be used to collaborate on models across the internet. Create a session, copy the token, and send it to friends, who can then use it to join.",
 	"edit_session.join": "Join Session",
 	"edit_session.create": "Create Session",
 	"edit_session.quit": "Quit Session",

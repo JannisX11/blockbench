@@ -429,7 +429,7 @@
 	#tab_bar .project_tab {
 		background-color: var(--color-back);
 		cursor: pointer;
-		width: 200px;
+		width: 240px;
 		min-width: 120px;
 		height: 100%;
 		padding: 2px 6px;
@@ -510,6 +510,19 @@
 	}
 	#new_tab_button:hover {
 		color: var(--color-light);
+	}
+	#tab_bar .project_tab > label.project_tab_session_badge {
+		display: flex;
+		flex-grow: 0;
+		width: auto;
+		color: var(--color-accent);
+	}
+	#tab_bar .project_tab > label.project_tab_session_badge i {
+		margin-right: 2px;
+		margin-left: -4px;
+	}
+	#tab_bar.invisible {
+		visibility: hidden;
 	}
 
 

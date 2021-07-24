@@ -211,6 +211,4 @@ function loadModelFile(file) {
 			}
 		}
 	}
-
-	EditSession.initNewModel()
 }

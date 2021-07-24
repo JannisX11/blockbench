@@ -567,9 +567,9 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 			}
 			return;
 		}
-		if ($('input#chat_input:focus').length && EditSession.active) {
+		if ($('input#chat_input:focus').length && Project.EditSession) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-				Chat.send();
+				Interface.Panels.chat.inside_vue.sendMessage();
 				return;
 			}
 		}

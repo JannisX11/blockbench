@@ -95,8 +95,6 @@ class NullObject extends OutlinerElement {
 			'rename',
 			'delete'
 		])
-	NullObject.selected = [];
-	NullObject.all = [];
 	
 	new Property(NullObject, 'string', 'name', {default: 'null_object'})
 	new Property(NullObject, 'vector', 'from')

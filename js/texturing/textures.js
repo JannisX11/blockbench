@@ -367,13 +367,13 @@ class Texture {
 		this.startWatcher()
 		Painter.current = {}
 		
-		if (EditSession.active) {
+		if (Project.EditSession) {
 			this.load(() => {
 				var before = {textures: {}}
 				before.textures[scope.uuid] = true;
 				this.edit()
 				var post = new Undo.save({textures: [this]})
-				EditSession.sendEdit({
+				Project.EditSession.sendEdit({
 					before: before,
 					post: post,
 					action: 'loaded_texture',

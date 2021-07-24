@@ -478,7 +478,6 @@ const MenuBar = {
 			'project_window',
 			'_',
 			{name: 'menu.file.new', id: 'new', icon: 'insert_drive_file',
-				condition: () => (!EditSession.active || EditSession.hosting),
 				children: function() {
 					var arr = [];
 					for (var key in Formats) {
@@ -499,7 +498,7 @@ const MenuBar = {
 				}
 			},
 			{name: 'menu.file.recent', id: 'recent', icon: 'history',
-				condition: function() {return isApp && recent_projects.length && (!EditSession.active || EditSession.hosting)},
+				condition: function() {return isApp && recent_projects.length},
 				children: function() {
 					var arr = []
 					let redact = settings.streamer_mode.value;

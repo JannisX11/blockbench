@@ -22,8 +22,8 @@ try {
 
 function loadInfoFromURL() {
 	if (location.hash.substr(1, 8) == 'session=') {
-		EditSession.dialog()
-		$('#edit_session_token').val(location.hash.substr(9))
+		EditSession.token = location.hash.substr(9);
+		BarItems.edit_session.click();
 	}
 
 	if (location.hash.substr(1, 2) == 'm=') {
@@ -39,7 +39,7 @@ window.onbeforeunload = function() {
 		return 'Unsaved Changes';
 	} else {
 		Blockbench.dispatchEvent('before_closing')
-		EditSession.quit()
+		if (Project.EditSession) Project.EditSession.quit()
 	}
 }
 function showSaveDialog(close) {

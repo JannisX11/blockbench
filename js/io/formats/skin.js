@@ -149,7 +149,6 @@ const codec = new Codec('skin_model', {
 		Canvas.updateVisibility()
 		setProjectTitle()
 		updateSelection()
-		EditSession.initNewModel()
 	},
 })
 codec.export = null;

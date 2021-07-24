@@ -15,7 +15,7 @@ class ResizeLine {
 		this.node = jq.get(0)
 		jq.draggable({
 			axis: this.horizontal ? 'y' : 'x',
-			containment: '#page_wrapper',
+			containment: '#work_screen',
 			revert: true,
 			revertDuration: 0,
 			start: function(e, u) {
@@ -108,7 +108,7 @@ const Interface = {
 			},
 			position: function(line) {
 				line.setPosition({
-					top: document.getElementById('page_wrapper').offsetTop,
+					top: document.getElementById('work_screen').offsetTop,
 					bottom: 0,
 					left: Interface.data.left_bar_width+2
 				})
@@ -139,7 +139,7 @@ const Interface = {
 			},
 			position: function(line) {
 				line.setPosition({
-					top: document.getElementById('page_wrapper').offsetTop+30,
+					top: document.getElementById('work_screen').offsetTop+30,
 					bottom: 0,
 					right: Interface.data.right_bar_width-2
 				})
@@ -238,7 +238,7 @@ function setupInterface() {
 
 	for (var key in Interface.Resizers) {
 		var resizer = Interface.Resizers[key]
-		$('#page_wrapper').append(resizer.node)
+		$('#work_screen').append(resizer.node)
 	}
 	//$(document).contextmenu()
 
@@ -825,9 +825,6 @@ onVueSetup(function() {
 				<div id="status_message" class="hidden"></div>
 				<div class="f_right">
 					{{ Prop.fps }} FPS
-				</div>
-				<div class="f_right" v-if="Prop.session">
-					{{ Prop.connections }} Clients
 				</div>
 
 				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('right')" :title="tl('status_bar.toggle_sidebar')">

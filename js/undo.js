@@ -53,8 +53,8 @@ class UndoSystem {
 			Project.saved = false;
 		}
 		Blockbench.dispatchEvent('finished_edit', {aspects})
-		if (EditSession.active) {
-			EditSession.sendEdit(entry)
+		if (Project.EditSession && Project.EditSession.active) {
+			Project.EditSession.sendEdit(entry)
 		}
 		return entry;
 	}
@@ -84,8 +84,8 @@ class UndoSystem {
 
 		var entry = this.history[this.index]
 		this.loadSave(entry.before, entry.post)
-		if (EditSession.active && remote !== true) {
-			EditSession.sendAll('command', 'undo')
+		if (Project.EditSession && remote !== true) {
+			Project.EditSession.sendAll('command', 'undo')
 		}
 		Blockbench.dispatchEvent('undo', {entry})
 	}
@@ -99,8 +99,8 @@ class UndoSystem {
 		var entry = this.history[this.index]
 		this.index++;
 		this.loadSave(entry.post, entry.before)
-		if (EditSession.active && remote !== true) {
-			EditSession.sendAll('command', 'redo')
+		if (Project.EditSession && remote !== true) {
+			Project.EditSession.sendAll('command', 'redo')
 		}
 		Blockbench.dispatchEvent('redo', {entry})
 	}

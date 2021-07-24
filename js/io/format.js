@@ -195,7 +195,6 @@ class ModelFormat {
 		Canvas.updateAllBones()
 		Canvas.updateAllFaces()
 		updateSelection()
-		EditSession.initNewModel()
 	}
 	delete() {
 		delete Formats[this.id];

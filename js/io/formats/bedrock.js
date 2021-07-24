@@ -511,7 +511,6 @@ function calculateVisibleBox() {
 			Project.BedrockEntityManager.initEntity()
 		}
 		updateSelection()
-		EditSession.initNewModel()
 	}
 
 // Compile

@@ -433,7 +433,7 @@ function closeBlockbenchWindow() {
 	Blockbench.addFlag('allow_closing');
 	Blockbench.dispatchEvent('before_closing')
 	localStorage.removeItem('backup_model')
-	EditSession.quit()
+	if (Project.EditSession) Project.EditSession.quit()
 	return currentwindow.close();
 };
 

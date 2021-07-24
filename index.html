@@ -143,34 +143,6 @@
 		</div>
 	</div>
 
-	<dialog class="dialog draggable paddinged" id="edit_sessions">
-		<div class="dialog_handle tl">dialog.edit_session.title</div>
-
-		<div class="dialog_bar">
-			<label class="name_space_left tl">edit_session.username</label>
-			<input type="text" class="dark_bordered half" id="edit_session_username">
-		</div>
-		<div class="dialog_bar">
-			<label class="name_space_left tl">edit_session.token</label>
-			<input type="text" class="dark_bordered half f_left" id="edit_session_token">
-			<div id="edit_session_copy_button" class="tool" onclick="EditSession.copyToken()"><div class="tooltip tl">action.paste</div><i class="fa fa_big fa-clipboard"></i></div>
-		</div>
-		<div class="edit_session_inactive">
-			<p class="tl">edit_session.about</p>
-		</div>
-		<div class="edit_session_active hidden">
-			<p><b class="tl">edit_session.status</b>: <span class="tl" id="edit_session_status">edit_session.connected</span></p>
-		</div>
-
-		<div class="dialog_bar button_bar">
-			<button type="button" class="edit_session_inactive confirm_btn tl" onclick="EditSession.join();">edit_session.join</button>
-			<button type="button" class="edit_session_inactive tl" onclick="EditSession.start();">edit_session.create</button>
-			<button type="button" class="edit_session_active tl" onclick="EditSession.quit();">edit_session.quit</button>
-			<button type="button" class="cancel_btn tl" onclick="hideDialog();">dialog.cancel</button>
-		</div>
-		<div class="dialog_close_button" onclick="hideDialog();"><i class="material-icons">clear</i></div>
-	</dialog>
-
 	<dialog class="dialog draggable paddinged" id="toolbar_edit">
 		<div class="dialog_handle tl">dialog.toolbar_edit.title</div>
 
@@ -592,37 +564,39 @@
 		<button id="web_download_button" hidden><a class="tl" href="https://blockbench.net/downloads">web.download_app</a></button>
 	</header>
 	
-	<div id="tab_bar" :class="{drag_mode: drag_target_index !== null}">
-		<div
-			class="project_tab"
-			v-for="(project, index) in tabs" :key="project.uuid"
-			:class="{
-				selected: project.selected,
-				new_tab: project.is_new_tab,
-				dragging: index == drag_target_index,
-				move_back:  (drag_position_index !== null && index > drag_target_index && drag_position_index >= index),
-				move_forth: (drag_position_index !== null && index < drag_target_index && drag_position_index <= index)
-			}"
-			:title="project.name || project.geometry_name"
-			@dblclick="project.openSettings()"
-			@mousedown="mouseDown(project, $event)"
-			@mouseup="mouseUp(project, $event)"
-		>
-			<label>{{ project.name || project.geometry_name || project.format.name }}</label>
-			<div class="project_tab_close_button" :class="{unsaved: !project.saved}" :title="close_tab_label" @click="project.close()">
-				<i class="material-icons">{{ project.saved ? 'clear' : 'fiber_manual_record' }}</i>
-			</div>
-		</div>
-		<div id="new_tab_button" @click="openNewTab()" :title="new_tab.name">
-			<i class="material-icons">add</i>
-		</div>
-	</div>
 
 	<div id="page_wrapper" class="invisible start_screen">
 
-		<dialog id="action_selector"></dialog>
-
 		<div id="blackout"></div>
+
+		<div id="tab_bar" :class="{drag_mode: drag_target_index !== null}">
+			<div
+				class="project_tab"
+				v-for="(project, index) in tabs" :key="project.uuid"
+				:class="{
+					selected: project.selected,
+					new_tab: project.is_new_tab,
+					dragging: index == drag_target_index,
+					move_back:  (drag_position_index !== null && index > drag_target_index && drag_position_index >= index),
+					move_forth: (drag_position_index !== null && index < drag_target_index && drag_position_index <= index)
+				}"
+				:title="project.name || project.geometry_name"
+				@dblclick="project.openSettings()"
+				@mousedown="mouseDown(project, $event)"
+				@mouseup="mouseUp(project, $event)"
+			>
+				<label class="project_tab_session_badge" v-if="project.EditSession"><i class="material-icons">group</i>{{ project.EditSession.client_count }}</label>
+				<label>{{ project.name || project.geometry_name || project.format.name }}</label>
+				<div class="project_tab_close_button" :class="{unsaved: !project.saved}" :title="close_tab_label" @click="project.close()">
+					<i class="material-icons">{{ project.saved ? 'clear' : 'fiber_manual_record' }}</i>
+				</div>
+			</div>
+			<div id="new_tab_button" @click="openNewTab()" :title="new_tab.name">
+				<i class="material-icons">add</i>
+			</div>
+		</div>
+
+		<dialog id="action_selector"></dialog>
 
 		<div id="start_screen">
 			<content>

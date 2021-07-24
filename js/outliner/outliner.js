@@ -703,10 +703,10 @@ function dropOutlinerObjects(item, target, event, order) {
 function renameOutliner(element) {
 	stopRenameOutliner()
 
-	if (Group.selected && !element && !EditSession.active) {
+	if (Group.selected && !element && !Project.EditSession) {
 		Group.selected.rename()
 
-	} else if (selected.length === 1 && !EditSession.active) {
+	} else if (selected.length === 1 && !Project.EditSession) {
 		selected[0].rename()
 
 	} else {

@@ -447,7 +447,7 @@ BARS.defineActions(function() {
 		icon: 'assessment',
 		category: 'file',
 		keybind: new Keybind({key: 'o', ctrl: true}),
-		condition: () => (!EditSession.active || EditSession.hosting),
+		condition: () => (!Project.EditSession || Project.EditSession.hosting),
 		click: function () {
 			var startpath;
 			if (isApp && recent_projects && recent_projects.length) {

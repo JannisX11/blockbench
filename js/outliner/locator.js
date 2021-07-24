@@ -108,8 +108,6 @@ class Locator extends OutlinerElement {
 			'rename',
 			'delete'
 		])
-	Locator.selected = [];
-	Locator.all = [];
 	
 	new Property(Locator, 'string', 'name', {default: 'locator'})
 	new Property(Locator, 'vector', 'from')
