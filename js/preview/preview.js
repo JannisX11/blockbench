@@ -383,7 +383,7 @@ class Preview {
 			if (intersect.isElement) {
 				this.controls.hasMoved = true
 				var obj = OutlinerNode.uuids[intersects[0].object.name]
-				let face = Canvas.face_order[intersects[0].face.materialIndex];
+				let face = Canvas.face_order[Math.floor(intersects[0].faceIndex / 2)];
 
 				return {
 					event: event,
@@ -2034,6 +2034,7 @@ function updateShading() {
 	Canvas.solidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
 }
 function updateCubeHighlights(hover_cube, force_off) {
+	return;
 	Cube.all.forEach(cube => {
 		if (cube.visibility) {
 			var mesh = cube.mesh;

@@ -564,6 +564,7 @@ const Canvas = {
 				}
 			})
 			mesh.geometry.setShape(from, to)
+			Canvas.getOutlineMesh(mesh, mesh.outline)
 			mesh.geometry.computeBoundingBox()
 			mesh.geometry.computeBoundingSphere()
 		}
@@ -604,26 +605,24 @@ const Canvas = {
 		mesh.updateMatrixWorld();
 	},
 	adaptObjectFaceGeo(cube) {
-		return;
 		let {mesh} = cube;
 		let {geometry} = mesh;
-		console.log(geometry)
-		if (!geometry.all_faces) geometry.all_faces = geometry.faces.slice();
-		geometry.faces.empty()
+		if (!geometry.all_faces) geometry.all_faces = geometry.groups.slice();
+		geometry.groups.empty()
 
 		geometry.all_faces.forEach(face => {
 			let bb_face = cube.faces[Canvas.face_order[face.materialIndex]];
 
-			if (bb_face && bb_face.texture === null && geometry.faces.includes(face)) {
-				geometry.faces.remove(face);
+			if (bb_face && bb_face.texture === null && geometry.groups.includes(face)) {
+				geometry.groups.remove(face);
 			} else
-			if (bb_face && bb_face.texture !== null && !geometry.faces.includes(face)) {
-				geometry.faces.push(face);
+			if (bb_face && bb_face.texture !== null && !geometry.groups.includes(face)) {
+				geometry.groups.push(face);
 			}
 		})
-		if (geometry.faces.length == 0) {
-			// Keek down face if no faces enabled
-			geometry.faces.push(geometry.all_faces[6], geometry.all_faces[7]);
+		if (geometry.groups.length == 0) {
+			// Keep down face if no faces enabled
+			geometry.groups.push(geometry.all_faces[6], geometry.all_faces[7]);
 		}
 		geometry.elementsNeedUpdate = true;
 	},
@@ -770,11 +769,10 @@ const Canvas = {
 		}
 	},
 	updateUV(cube, animation = true) {
-		return;
 		if (Prop.view_mode !== 'textured') return;
 		var mesh = cube.mesh
 		if (mesh === undefined || !mesh.geometry) return;
-		mesh.geometry.faceVertexUvs[0] = [];
+		//mesh.geometry.faceVertexUvs[0] = [];
 
 		if (Project.box_uv) {
 
@@ -808,8 +806,7 @@ const Canvas = {
 				face_list[1].size = p.size.slice()
 
 			}
-			let fIndex = 0;
-			face_list.forEach(function(f) {
+			face_list.forEach(function(f, fIndex) {
 
 				if (cube.faces[f.face].texture == null) return;
 
@@ -848,18 +845,15 @@ const Canvas = {
 					}
 				}
 
-				Canvas.updateUVFace(mesh.geometry.faceVertexUvs[0], fIndex, {uv: uv}, frame, stretch)
-
-				fIndex += 2;
+				Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, {uv: uv}, frame, stretch)
 			})
 
 		} else {
 		
 			var stretch = 1
 			var frame = 0
-			let fIndex = 0
 
-			Canvas.face_order.forEach(face => {
+			Canvas.face_order.forEach((face, fIndex) => {
 
 				if (cube.faces[face].texture == null) return;
 
@@ -872,19 +866,19 @@ const Canvas = {
 						frame = tex.currentFrame
 					}
 				}
-				Canvas.updateUVFace(mesh.geometry.faceVertexUvs[0], fIndex, cube.faces[face], frame, stretch)
-				fIndex += 2;
+				Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, cube.faces[face], frame, stretch)
 			})
 
 		}
-		mesh.geometry.elementsNeedUpdate = true;
+		mesh.geometry.attributes.uv.needsUpdate = true;
 		return mesh.geometry
 	},
 	updateUVFace(vertex_uvs, index, face, frame = 0, stretch = 1) {
-		stretch *= -1
+		stretch *= -1;
 
-		if (!vertex_uvs[index]) vertex_uvs[index] = [];
-		if (!vertex_uvs[index+1]) vertex_uvs[index+1] = [];
+		//if (!vertex_uvs[index]) vertex_uvs[index] = [];
+		//if (!vertex_uvs[index+1]) vertex_uvs[index+1] = [];
+		/*
 		var arr = [
 			vertex_uvs[index][0],
 			vertex_uvs[index][1],
@@ -895,41 +889,39 @@ const Canvas = {
 			if (arr[i] === undefined) {
 				arr[i] = new THREE.Vector2()
 			}
-		}
+		}*/
 		var pw = Project.texture_width;
 		var ph = Project.texture_height;
 		
-		arr[0].set(face.uv[0]/pw, (face.uv[1]/ph)/stretch+1),  //0,1
-		arr[1].set(face.uv[0]/pw, (face.uv[3]/ph)/stretch+1),  //0,0
-		arr[2].set(face.uv[2]/pw, (face.uv[3]/ph)/stretch+1),   //1,0
-		arr[3].set(face.uv[2]/pw, (face.uv[1]/ph)/stretch+1)  //1,1
+		vertex_uvs.array.set([face.uv[2]/pw, (face.uv[1]/ph)/stretch+1], index*8 + 0);  //0,1
+		vertex_uvs.array.set([face.uv[0]/pw, (face.uv[1]/ph)/stretch+1], index*8 + 2);  //1,1
+		vertex_uvs.array.set([face.uv[2]/pw, (face.uv[3]/ph)/stretch+1], index*8 + 4);  //0,0
+		vertex_uvs.array.set([face.uv[0]/pw, (face.uv[3]/ph)/stretch+1], index*8 + 6);  //1,0
 
 		if (frame > 0 && stretch !== -1) {
 			//Animate
 			var offset = (1/stretch) * frame
-			arr[0].y += offset
-			arr[1].y += offset
-			arr[2].y += offset
-			arr[3].y += offset
+			vertex_uvs.array[index*8 + 0*2 + 1] += offset
+			vertex_uvs.array[index*8 + 1*2 + 1] += offset
+			vertex_uvs.array[index*8 + 2*2 + 1] += offset
+			vertex_uvs.array[index*8 + 3*2 + 1] += offset
 		}
 		var rot = (face.rotation+0)
 		while (rot > 0) {
-			arr.push(arr.shift())
+			vertex_uvs.array[index*8 + 2*2 + 0] = vertex_uvs.array[index*8 + 3*2 + 0];
+			vertex_uvs.array[index*8 + 2*2 + 1] = vertex_uvs.array[index*8 + 3*2 + 1];
+			vertex_uvs.array[index*8 + 1*2 + 0] = vertex_uvs.array[index*8 + 2*2 + 0];
+			vertex_uvs.array[index*8 + 1*2 + 1] = vertex_uvs.array[index*8 + 2*2 + 1];
+			vertex_uvs.array[index*8 + 0*2 + 0] = vertex_uvs.array[index*8 + 1*2 + 0];
+			vertex_uvs.array[index*8 + 0*2 + 1] = vertex_uvs.array[index*8 + 1*2 + 1];
+			vertex_uvs.array[index*8 + 3*2 + 0] = vertex_uvs.array[index*8 + 0*2 + 0];
+			vertex_uvs.array[index*8 + 3*2 + 1] = vertex_uvs.array[index*8 + 0*2 + 1];
+			//arr.push(arr.shift())
 			rot = rot-90;
 		}
-		vertex_uvs[index] = [
-			arr[0],
-			arr[1],
-			arr[3]
-		];
-		vertex_uvs[index+1] = [
-			arr[1],
-			arr[2],
-			arr[3]
-		];
 	},
 	//Outline
-	getOutlineMesh(mesh) {
+	getOutlineMesh(mesh, line) {
 		var vs = [0,1,2,3,4,5,6,7].map(i => {
 			return mesh.geometry.attributes.position.array.slice(i*3, i*3 + 3)
 		});
@@ -943,9 +935,12 @@ const Canvas = {
 			vs[7], vs[5],
 			vs[4], vs[0]
 		].map(a => new THREE.Vector3().fromArray(a))
-		var geometry = new THREE.BufferGeometry().setFromPoints(points);
-		var line = new THREE.Line(geometry, Canvas.outlineMaterial);
-		line.no_export = true;
+		if (!line) {
+			var geometry = new THREE.BufferGeometry();
+			line = new THREE.Line(geometry, Canvas.outlineMaterial);
+			line.no_export = true;
+		}
+		line.geometry.setFromPoints(points);
 		return line;
 	},
 	buildOutline(obj) {

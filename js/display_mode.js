@@ -310,7 +310,6 @@ class refModel {
 			var mat = new THREE.MeshLambertMaterial({
 				color: 0xffffff,
 				map: tex,
-				transparent: true,
 				vertexColors: THREE.FaceColors,
 				side: 2,
 				alphaTest: 0.05
