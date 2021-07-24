@@ -628,14 +628,8 @@ const MenuBar = {
 		})
 		
 		new BarMenu('filter', [
+			'hide_everything_except_selection',
 			'remove_blank_faces',
-			/*
-			plaster
-			optimize
-			sort by transparency
-			entity / player model / shape generator
-			*/
-
 		])
 
 		new BarMenu('animation', [

@@ -962,6 +962,36 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'a', ctrl: true}),
 		click: function () {selectAll()}
 	})
+
+	let enabled = false;
+	let were_hidden_before = [];
+	new Action('hide_everything_except_selection', {
+		icon: 'fa-glasses',
+		category: 'view',
+		keybind: new Keybind({key: 'i'}),
+		condition: {modes: ['edit', 'paint']},
+		click() {
+			enabled = !enabled;
+
+			let affected = Project.elements.filter(el => typeof el.visibility == 'boolean' && (!el.selected || were_hidden_before.includes(el.uuid)));
+			Undo.initEdit({elements: affected})
+			affected.forEach(el => {
+				if (enabled) {
+					if (el.visibility) were_hidden_before.push(el.uuid);
+					el.visibility = !!el.selected;
+				} else {
+					el.visibility = were_hidden_before.includes(el.uuid);
+				}
+			})
+			if (!enabled) were_hidden_before.empty();
+			Canvas.updateVisibility();
+			Undo.finishEdit('Toggle visibility on everything except selection');
+		}
+	})
+	Blockbench.on('unselect_project', () => {
+		enabled = false;
+		were_hidden_before.empty();
+	})
 })
 
 Interface.definePanels(function() {
