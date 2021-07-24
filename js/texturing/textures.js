@@ -1,4 +1,4 @@
-const textures = [];
+
 //Textures
 class Texture {
 	constructor(data, uuid) {
@@ -27,12 +27,12 @@ class Texture {
 			this.extend(data)
 		}
 		if (!this.id) {
-			var i = textures.length;
+			var i = Texture.all.length;
 			while (true) {
 				var c = 0
 				var duplicates = false;
-				while (c < textures.length) {
-					if (textures[c].id == i) {
+				while (c < Texture.all.length) {
+					if (Texture.all[c].id == i) {
 						duplicates = true;
 					}
 					c++;
@@ -141,7 +141,7 @@ class Texture {
 		});
 		mat.map = tex;
 		mat.name = this.name;
-		Canvas.materials[this.uuid] = mat;
+		Project.materials[this.uuid] = mat;
 
 		var size_control = {};
 
@@ -367,13 +367,13 @@ class Texture {
 		this.startWatcher()
 		Painter.current = {}
 		
-		if (EditSession.active) {
+		if (Project.EditSession) {
 			this.load(() => {
 				var before = {textures: {}}
 				before.textures[scope.uuid] = true;
 				this.edit()
 				var post = new Undo.save({textures: [this]})
-				EditSession.sendEdit({
+				Project.EditSession.sendEdit({
 					before: before,
 					post: post,
 					action: 'loaded_texture',
@@ -395,7 +395,7 @@ class Texture {
 	fromDefaultPack() {
 		if (isApp && settings.default_path && settings.default_path.value) {
 			if (Format.single_texture) {
-				var path = BedrockEntityManager.findEntityTexture(Project.geometry_name, 'raw')
+				var path = Project.BedrockEntityManager.findEntityTexture(Project.geometry_name, 'raw')
 				if (path) {
 					this.isDefault = true;
 					path = settings.default_path.value + osfs + path
@@ -533,8 +533,8 @@ class Texture {
 	generateFolder(path) {
 		if (path.includes(osfs+'optifine'+osfs+'cit'+osfs)) {
 
-			if (ModelMeta.export_path) {
-				let model_arr = ModelMeta.export_path.split(osfs).slice(0, -1);
+			if (Project.export_path) {
+				let model_arr = Project.export_path.split(osfs).slice(0, -1);
 				let tex_arr = path.split(osfs).slice(0, -1);
 				let index = 0;
 				tex_arr.find((dir, i) => {
@@ -575,7 +575,7 @@ class Texture {
 		return this;
 	}
 	getMaterial() {
-		return Canvas.materials[this.uuid]
+		return Project.materials[this.uuid]
 	}
 	//Management
 	select(event) {
@@ -599,8 +599,8 @@ class Texture {
 	}
 	add(undo) {
 		var scope = this;
-		if (isApp && this.path && textures.length) {
-			for (var tex of textures) {
+		if (isApp && this.path && Project.textures.length) {
+			for (var tex of Project.textures) {
 				if (tex.path === scope.path) return tex;
 			}
 		}
@@ -610,8 +610,8 @@ class Texture {
 		if (undo) {
 			Undo.initEdit({textures: []})
 		}
-		if (!textures.includes(this)) {
-			textures.push(this)
+		if (!Project.textures.includes(this)) {
+			Project.textures.push(this)
 		}
 		Blockbench.dispatchEvent( 'add_texture', {texture: this})
 		loadTextureDraggable()
@@ -637,8 +637,8 @@ class Texture {
 		if (Texture.selected == this) {
 			Texture.selected = undefined;
 		}
-		textures.splice(textures.indexOf(this), 1)
-		delete Canvas.materials[this.uuid];
+		Project.textures.splice(Texture.all.indexOf(this), 1)
+		delete Project.materials[this.uuid];
 		if (!no_update) {
 			Canvas.updateAllFaces()
 			TextureAnimator.updateButton()
@@ -669,7 +669,7 @@ class Texture {
 	}
 	//Use
 	enableParticle() {
-		textures.forEach(function(s) {
+		Texture.all.forEach(function(s) {
 			s.particle = false;
 		})
 		if (Format.id == 'java_block') {
@@ -679,7 +679,7 @@ class Texture {
 	}
 	fillParticle() {
 		var particle_tex = false
-		textures.forEach(function(t) {
+		Texture.all.forEach(function(t) {
 			if (t.particle) {
 				particle_tex = t
 			}
@@ -885,7 +885,7 @@ class Texture {
 	}
 	scrollTo() {
 		var el = $(`#texture_list > li[texid=${this.uuid}]`)
-		if (el.length === 0 || textures.length < 2) return;
+		if (el.length === 0 || Texture.all.length < 2) return;
 
 		var outliner_pos = $('#texture_list').offset().top
 		var el_pos = el.offset().top
@@ -931,10 +931,10 @@ class Texture {
 			} else {
 				var find_path;
 				if (Format.bone_rig && Project.geometry_name) {
-					find_path = BedrockEntityManager.findEntityTexture(Project.geometry_name, true)
+					find_path = Project.BedrockEntityManager.findEntityTexture(Project.geometry_name, true)
 				}
-				if (!find_path && ModelMeta.export_path) {
-					var arr = ModelMeta.export_path.split(osfs);
+				if (!find_path && Project.export_path) {
+					var arr = Project.export_path.split(osfs);
 					var index = arr.lastIndexOf('models');
 					if (index > 1) arr.splice(index, 256, 'textures')
 					if (scope.folder) arr = arr.concat(scope.folder.split('/'));
@@ -1115,7 +1115,6 @@ class Texture {
 				click: function(texture) { texture.openMenu()}
 			}
 	])
-	Texture.all = textures;
 	Texture.getDefault = function() {
 		if (Texture.selected && Texture.all.includes(Texture.selected)) {
 			return Texture.selected;
@@ -1140,9 +1139,25 @@ class Texture {
 	new Property(Texture, 'boolean', 'particle')
 	new Property(Texture, 'string', 'render_mode', {default: 'normal'})
 
+	Object.defineProperty(Texture, 'all', {
+		get() {
+			return Project.textures || [];
+		},
+		set(arr) {
+			Project.textures.replace(arr);
+		}
+	})
+	Object.defineProperty(Texture, 'selected', {
+		get() {
+			return Project.selected_texture
+		},
+		set(texture) {
+			Project.selected_texture = texture;
+		}
+	})
 
 function saveTextures(lazy = false) {
-	textures.forEach(function(tex) {
+	Texture.all.forEach(function(tex) {
 		if (!tex.saved) {
 			if (lazy && isApp && (!tex.path || !fs.existsSync(tex.path))) return;
 			tex.save()
@@ -1197,7 +1212,7 @@ function loadTextureDraggable() {
 					setTimeout(function() {
 						$('.texture[order]').attr('order', null);
 						$('.outliner_node[order]').attr('order', null);
-						var tex = textures.findInArray('uuid', ui.helper.attr('texid'));
+						var tex = Texture.all.findInArray('uuid', ui.helper.attr('texid'));
 						if (!tex) return;
 						if ($('.preview:hover').length > 0) {
 							var data = Canvas.raycast(event)
@@ -1264,7 +1279,7 @@ function loadTextureDraggable() {
 	})
 }
 function unselectTextures() {
-	textures.forEach(function(s) {
+	Texture.all.forEach(function(s) {
 		s.selected = false;
 	})
 	Texture.selected = undefined;
@@ -1273,7 +1288,7 @@ function unselectTextures() {
 function getTexturesById(id) {
 	if (id === undefined) return;
 	id = id.replace('#', '');
-	return $.grep(textures, function(e) {return e.id == id});
+	return $.grep(Texture.all, function(e) {return e.id == id});
 }
 Clipbench.setTexture = function(texture) {
 	//Sets the raw image of the texture
@@ -1308,17 +1323,6 @@ Clipbench.pasteTextures = function() {
 	}
 }
 
-Object.defineProperty(textures, selected, {
-	get() {
-		console.warn('textures.selected is deprecated. Please use Texture.selected instead.')
-		return Texture.selected;
-	},
-	set(tex) {
-		console.warn('textures.selected is deprecated. Please use Texture.selected instead.')
-		Texture.selected = tex;
-	}
-})
-
 TextureAnimator = {
 	isPlaying: false,
 	interval: false,
@@ -1348,7 +1352,7 @@ TextureAnimator = {
 	},
 	nextFrame() {
 		var animated_textures = []
-		textures.forEach(tex => {
+		Texture.all.forEach(tex => {
 			if (tex.frameCount > 1) {
 				if (tex.currentFrame >= tex.frameCount-1) {
 					tex.currentFrame = 0
@@ -1383,7 +1387,7 @@ TextureAnimator = {
 	},
 	reset() {
 		TextureAnimator.stop();
-		textures.forEach(function(tex, i) {
+		Texture.all.forEach(function(tex, i) {
 			if (tex.frameCount) {
 				tex.currentFrame = 0
 				$($('.texture').get(i)).find('img').css('margin-top', '0')
@@ -1408,12 +1412,12 @@ BARS.defineActions(function() {
 		click: function () {
 			var start_path;
 			if (!isApp) {} else
-			if (textures.length > 0) {
-				var arr = textures[0].path.split(osfs)
+			if (Texture.all.length > 0) {
+				var arr = Texture.all[0].path.split(osfs)
 				arr.splice(-1)
 				start_path = arr.join(osfs)
-			} else if (ModelMeta.export_path) {
-				var arr = ModelMeta.export_path.split(osfs)
+			} else if (Project.export_path) {
+				var arr = Project.export_path.split(osfs)
 				arr.splice(-3)
 				arr.push('textures')
 				start_path = arr.join(osfs)
@@ -1452,13 +1456,13 @@ BARS.defineActions(function() {
 	new Action('change_textures_folder', {
 		icon: 'fas.fa-hdd',
 		category: 'textures',
-		condition: () => textures.length > 0,
+		condition: () => Texture.all.length > 0,
 		click: function () {
 			var path = undefined;
 			var i = 0;
-			while (i < textures.length && path === undefined) {
-				if (typeof textures[i].path == 'string' && textures[i].path.length > 8) {
-					path = textures[i].path
+			while (i < Texture.all.length && path === undefined) {
+				if (typeof Texture.all[i].path == 'string' && Texture.all[i].path.length > 8) {
+					path = Texture.all[i].path
 				}
 				i++;
 			}
@@ -1474,8 +1478,8 @@ BARS.defineActions(function() {
 			})
 			if (dirPath && dirPath.length) {
 				var new_path = dirPath[0]
-				Undo.initEdit({textures})
-				textures.forEach(function(t) {
+				Undo.initEdit({textures: Texture.all})
+				Texture.all.forEach(function(t) {
 					if (typeof t.path === 'string' && t.path.includes(path)) {
 						t.fromPath(t.path.replace(path, new_path))
 					} 
@@ -1569,7 +1573,7 @@ Interface.definePanels(function() {
 						scope.currentFrame = Math.clamp(Math.round((pos / timeline_width) * maxFrameCount), 0, maxFrameCount-1);
 
 						let textures = Texture.all.filter(tex => tex.frameCount > 1);
-						textures.forEach(tex => {
+						Texture.all.forEach(tex => {
 							tex.currentFrame = scope.currentFrame % tex.frameCount;
 						})
 						TextureAnimator.update(textures);

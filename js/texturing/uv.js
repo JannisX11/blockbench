@@ -1702,7 +1702,7 @@ class UVEditor {
 				}},
 				{icon: 'clear', name: 'menu.cube.texture.transparent', click: function(editor) {editor.clear(event)}},
 			]
-			textures.forEach(function(t) {
+			Texture.all.forEach(function(t) {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),

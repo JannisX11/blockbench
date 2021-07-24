@@ -15,7 +15,7 @@ class ResizeLine {
 		this.node = jq.get(0)
 		jq.draggable({
 			axis: this.horizontal ? 'y' : 'x',
-			containment: '#page_wrapper',
+			containment: '#work_screen',
 			revert: true,
 			revertDuration: 0,
 			start: function(e, u) {
@@ -108,7 +108,7 @@ const Interface = {
 			},
 			position: function(line) {
 				line.setPosition({
-					top: 26,
+					top: document.getElementById('work_screen').offsetTop,
 					bottom: 0,
 					left: Interface.data.left_bar_width+2
 				})
@@ -139,7 +139,7 @@ const Interface = {
 			},
 			position: function(line) {
 				line.setPosition({
-					top: 56,
+					top: document.getElementById('work_screen').offsetTop+30,
 					bottom: 0,
 					right: Interface.data.right_bar_width-2
 				})
@@ -238,7 +238,7 @@ function setupInterface() {
 
 	for (var key in Interface.Resizers) {
 		var resizer = Interface.Resizers[key]
-		$('#page_wrapper').append(resizer.node)
+		$('#work_screen').append(resizer.node)
 	}
 	//$(document).contextmenu()
 
@@ -355,9 +355,9 @@ function updateInterfacePanels() {
 		$('.sidebar#left_bar').css('display', Prop.show_left_bar ? 'flex' : 'none');
 		$('.sidebar#right_bar').css('display', Prop.show_right_bar ? 'flex' : 'none');
 	}
-	let page = document.getElementById('page_wrapper');
+	let work_screen = document.getElementById('work_screen');
 
-	page.style.setProperty(
+	work_screen.style.setProperty(
 		'grid-template-columns',
 		Interface.data.left_bar_width+'px auto '+ Interface.data.right_bar_width +'px'
 	)
@@ -369,7 +369,7 @@ function updateInterfacePanels() {
 	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.right_bar_width : 0;
 
 	if (!left_width || !right_width) {
-		page.style.setProperty(
+		work_screen.style.setProperty(
 			'grid-template-columns',
 			left_width+'px auto '+ right_width +'px'
 		)
@@ -414,7 +414,8 @@ function resizeWindow(event) {
 }
 
 function setProjectTitle(title) {
-	if (Format.bone_rig && Project.geometry_name) {
+	let window_title = 'Blockbench';
+	if (title == undefined && Project.geometry_name) {
 		title = Project.geometry_name
 	}
 	if (title) {
@@ -425,11 +426,12 @@ function setProjectTitle(title) {
 		if (Format.bone_rig) {
 			title = title.replace(/^geometry\./,'').replace(/:[a-z0-9.]+/, '')
 		}
-		$('title').text(title+' - Blockbench')
+		window_title = title+' - Blockbench';
 	} else {
 		Prop.file_name = Prop.file_name_alt = ''
-		$('title').text('Blockbench')
 	}
+	$('title').text(window_title);
+	$('#header_free_bar').text(window_title);
 }
 //Zoom
 function setZoomLevel(mode) {
@@ -634,7 +636,7 @@ function addStartScreenSection(id, data) {
 			}
 			var l = $(`<${tag}>${content}</${tag.split(' ')[0]}>`);
 			if (typeof line.click == 'function') {
-				l.click(line.click);
+				l.on('click', line.click);
 			}
 			right.append(l);
 		})
@@ -644,6 +646,12 @@ function addStartScreenSection(id, data) {
 		obj.find('i.start_screen_close_button').click((e) => {
 			obj.detach()
 		});
+	}
+	if (typeof data.click == 'function') {
+		obj.on('click', event => {
+			if (event.target.classList.contains('start_screen_close_button')) return;
+			data.click()
+		})
 	}
 	if (data.color) {
 		obj.css('background-color', data.color);
@@ -731,19 +739,19 @@ function addStartScreenSection(id, data) {
 		//Discord
 		if (Blockbench.startup_count < 6 && !twitter_ad) {
 			addStartScreenSection({
-				color: '#7289da',
+				color: '#5865F2',
 				text_color: '#ffffff',
 				graphic: {type: 'icon', icon: 'fab.fa-discord'},
 				text: [
 					{type: 'h1', text: 'Discord Server'},
-					{text: 'You need help with modeling or you want to chat about Blockbench? Join the [Modeling Discord](https://discord.gg/WVHg5kH)!'}
+					{text: 'You need help with modeling or you want to chat about Blockbench? Join the official [Blockbench Discord](https://discord.gg/WVHg5kH)!'}
 				],
 				last: true
 			})
 		}
 
 		// Keymap Preference
-		if (!Blockbench.isMobile && !localStorage.getItem('selected_keymap_preference')) {
+		if (!Blockbench.isMobile && Blockbench.startup_count <= 1) {
 
 			
 			var obj = $(`<section id="keymap_preference">
@@ -757,7 +765,6 @@ function addStartScreenSection(id, data) {
 			obj.prepend(`<i class="material-icons start_screen_close_button">clear</i>`);
 			obj.find('i.start_screen_close_button').on('click', (e) => {
 				obj.detach();
-				localStorage.setItem('selected_keymap_preference', true);
 			});
 
 			[
@@ -775,7 +782,6 @@ function addStartScreenSection(id, data) {
 				node.on('click', e => {
 					Keybinds.loadKeymap(id, true);
 					obj.detach();
-					localStorage.setItem('selected_keymap_preference', true);
 				})
 				keymap_list.append(node);
 			})
@@ -809,10 +815,6 @@ onVueSetup(function() {
 				>
 					<i class="material-icons">live_tv</i>
 				</div>
-				<div id="status_saved">
-					<i class="material-icons" v-if="Prop.project_saved" v-bind:title="tl('status_bar.saved')">check</i>
-					<i class="material-icons" v-else v-bind:title="tl('status_bar.unsaved')">close</i>
-				</div>
 				<div v-html="Blockbench.getIconNode(Format.icon).outerHTML" v-bind:title="Format.name"></div>
 				<div v-if="Prop.recording" v-html="Blockbench.getIconNode('fiber_manual_record').outerHTML" style="color: var(--color-close)" v-bind:title="tl('status_bar.recording')"></div>
 
@@ -823,9 +825,6 @@ onVueSetup(function() {
 				<div id="status_message" class="hidden"></div>
 				<div class="f_right">
 					{{ Prop.fps }} FPS
-				</div>
-				<div class="f_right" v-if="Prop.session">
-					{{ Prop.connections }} Clients
 				</div>
 
 				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('right')" :title="tl('status_bar.toggle_sidebar')">

@@ -29,8 +29,8 @@ class Codec {
 		}
 		if (file.path && isApp && this.remember && !file.no_file ) {
 			var name = pathToName(file.path, true);
-			ModelMeta.name = pathToName(name, false);
-			ModelMeta.export_path = file.path;
+			Project.name = pathToName(name, false);
+			Project.export_path = file.path;
 			addRecentProject({
 				name,
 				path: file.path,
@@ -59,10 +59,10 @@ class Codec {
 		}, path => scope.afterDownload(path))
 	}
 	fileName() {
-		return ModelMeta.name||Project.name||'model';
+		return Project.name||'model';
 	}
 	startPath() {
-		return ModelMeta.export_path;
+		return Project.export_path;
 	}
 	write(content, path) {
 		var scope = this;
@@ -75,7 +75,7 @@ class Codec {
 	//overwrite(content, path, cb)
 	afterDownload(path) {
 		if (this.remember) {
-			Prop.project_saved = true;
+			Project.saved = true;
 		}
 		Blockbench.showQuickMessage(tl('message.save_file', [path ? pathToName(path, true) : this.fileName()]));
 	}
@@ -83,12 +83,12 @@ class Codec {
 		var name = pathToName(path, true)
 		if (Format.codec == this || this.id == 'project') {
 			if (this.id == 'project') {
-				ModelMeta.save_path = path;
+				Project.save_path = path;
 			} else {
-				ModelMeta.export_path = path;
+				Project.export_path = path;
 			}
-			ModelMeta.name = pathToName(path, false);
-			Prop.project_saved = true;
+			Project.name = pathToName(path, false);
+			Project.saved = true;
 		}
 		if (this.remember) {
 			addRecentProject({
@@ -166,7 +166,7 @@ function setupDragHandlers() {
 		function(files, event) {
 			var texture_li = $(event.target).parents('li.texture')
 			if (texture_li.length) {
-				var tex = textures.findInArray('uuid', texture_li.attr('texid'))
+				var tex = Texture.all.findInArray('uuid', texture_li.attr('texid'))
 				if (tex) {
 					tex.fromFile(files[0])
 					TickUpdates.selection = true;
@@ -180,39 +180,35 @@ function setupDragHandlers() {
 	)
 }
 function loadModelFile(file) {
-	if (showSaveDialog()) {
-		resetProject();
 
-		(function() {
-			var extension = pathToExtension(file.path);
-			// Text
-			for (var id in Codecs) {
-				let codec = Codecs[id];
-				if (codec.load_filter && codec.load_filter.type == 'text') {
-					if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, file.content)) {
-						codec.load(file.content, file);
-						return;
-					}
-				}
-			}
-			// JSON
-			var model = autoParseJSON(file.content);
-			for (var id in Codecs) {
-				let codec = Codecs[id];
-				if (codec.load_filter && codec.load_filter.type == 'json') {
-					if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, model)) {
-						codec.load(model, file);
-						return;
-					}
-				}
-			}
-		})();
+	let existing_tab = isApp && ModelProject.all.find(project => (
+		project.save_path == file.path || project.export_path == file.path
+	))
+	if (existing_tab) {
+		existing_tab.select();
+		return;
+	}
 
-		EditSession.initNewModel()
-		if (!Format) {
-			Modes.options.start.select()
-			Modes.vue.$forceUpdate()
-			Blockbench.dispatchEvent('close_project');
+	let extension = pathToExtension(file.path);
+	// Text
+	for (let id in Codecs) {
+		let codec = Codecs[id];
+		if (codec.load_filter && codec.load_filter.type == 'text') {
+			if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, file.content)) {
+				codec.load(file.content, file);
+				return;
+			}
+		}
+	}
+	// JSON
+	let model = autoParseJSON(file.content);
+	for (let id in Codecs) {
+		let codec = Codecs[id];
+		if (codec.load_filter && codec.load_filter.type == 'json') {
+			if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, model)) {
+				codec.load(model, file);
+				return;
+			}
 		}
 	}
 }

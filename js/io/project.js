@@ -1,12 +1,45 @@
 class ModelProject {
-	constructor() {
+	constructor(options = {}) {
 		for (var key in ModelProject.properties) {
 			ModelProject.properties[key].reset(this);
 		}
+		this.uuid = guid();
+		this.selected = false;
 
 		this._box_uv = false;
 		this._texture_width = 16;
 		this._texture_height = 16;
+
+		this._name = '';
+		this.saved = true;
+		this.save_path = '';
+		this.export_path = '';
+
+		this.undo = new UndoSystem();
+		if (isApp) this.BedrockEntityManager = new BedrockEntityManager();
+		this.format = options.format instanceof ModelFormat ? options.format : Formats.free;
+		this.mode = 'edit';
+		this.EditSession = null;
+
+		// Data
+		this.elements = [];
+		this.groups = [];
+		this.selected_elements = [];
+		this.selected_group = null;
+		this.textures = [];
+		this.selected_texture = null;
+		this.outliner = [];
+		this.animations = [];
+		this.timeline_animators = [];
+		this.display_settings = {};
+
+		ModelProject.all.push(this);
+
+		ProjectData[this.uuid] = {
+			model_3d: new THREE.Object3D(),
+			materials: {},
+			nodes_3d: {}
+		}
 	}
 	extend() {
 		for (var key in ModelProject.properties) {
@@ -27,26 +60,46 @@ class ModelProject {
 		Vue.nextTick(updateProjectResolution)
 		this._texture_width = n;
 	}
+	get optional_box_uv() {
+		return Format.optional_box_uv;
+	}
 	set texture_height(n) {
 		n = parseInt(n)||16
 		Vue.nextTick(updateProjectResolution)
 		this._texture_height = n;
 	}
-	get optional_box_uv() {
-		return Format.optional_box_uv;
+	get name() {
+		return this._name;
+	}
+	set name(name) {
+		this._name = name;
+		if (Project == this) {
+			setProjectTitle(this._name);
+		}
+	}
+	get model_3d() {
+		return ProjectData[this.uuid].model_3d;
+	}
+	get materials() {
+		return ProjectData[this.uuid].materials;
+	}
+	get nodes_3d() {
+		return ProjectData[this.uuid].nodes_3d;
 	}
 	reset() {
-		if (isApp) updateRecentProjectThumbnail();
+		return;
+		//if (isApp) updateRecentProjectThumbnail();
 
-		Blockbench.dispatchEvent('reset_project');
+		//Blockbench.dispatchEvent('reset_project');
 		
-		if (isApp) BedrockEntityManager.reset();
+		//if (isApp) BedrockEntityManager.reset();
 
-		if (Toolbox.selected.id !== 'move_tool') BarItems.move_tool.select();
+		//if (Toolbox.selected.id !== 'move_tool') BarItems.move_tool.select();
 	
 		Screencam.stopTimelapse();
 	
-		Format = 0;
+		//Format = 0;
+		/*
 		for (var uuid in OutlinerNode.uuids) {
 			delete OutlinerNode.uuids[uuid];
 		}
@@ -55,43 +108,139 @@ class ModelProject {
 		for (var key in Canvas.materials) {
 			delete Canvas.materials[key];
 		}
-		for (var key in Canvas.bones) {
-			delete Canvas.bones[key];
-		}
-		selected.empty();
-		Group.all.empty();
-		Group.selected = undefined;
-		Cube.all.empty();
-		Cube.selected.empty();
-		Locator.all.empty();
-		Locator.selected.empty();
-		Texture.all.forEach(tex => tex.stopWatcher());
-		Texture.all.empty();
-		Texture.selected = undefined;
+		for (var key in Project.nodes_3d) {
+			delete Project.nodes_3d[key];
+		}*/
+		//selected.empty();
+		//Group.all.empty();
+		//Group.selected = undefined;
+		//Cube.all.empty();
+		//Cube.selected.empty();
+		//Locator.all.empty();
+		//Locator.selected.empty();
+		//Texture.all.empty();
+		//Texture.selected = undefined;
 	
-		for (var key in ModelProject.properties) {
-			ModelProject.properties[key].reset(this)
-		}
-		this.texture_width = this.texture_height = 16;
-		this.overrides = null;
+		//for (var key in ModelProject.properties) {
+		//	ModelProject.properties[key].reset(this)
+		//}
+		//this.texture_width = this.texture_height = 16;
+		//this.overrides = null;
 	
-		Blockbench.display_settings = display = {};
-		ModelMeta.save_path = ModelMeta.export_path = ModelMeta.name = '';
-		ModelMeta.saved = true;
-		Prop.project_saved = true;
+		//Blockbench.display_settings = display = {};
+		//Project.save_path = Project.export_path = Project.name = '';
+		//Project.saved = true;
 		Prop.added_models = 0;
-		Canvas.updateAll();
-		Outliner.vue.$forceUpdate();
-		Interface.Panels.textures.inside_vue.$forceUpdate();
-		Undo.history.empty();
-		Undo.index = 0;
-		Undo.current_save = null;
+		//Canvas.updateAll();
+		//Outliner.vue.$forceUpdate();
+		//Interface.Panels.textures.inside_vue.$forceUpdate();
+		//Undo.history.empty();
+		//Undo.index = 0;
+		//Undo.current_save = null;
+		//Painter.current = {};
+		//Animator.animations.purge();
+		//Timeline.animators.purge();
+		//Animation.selected = undefined;
+		//delete Animator.motion_trail_lock;
+		//$('#var_placeholder_area').val('');
+	}
+	openSettings() {
+		BarItems.project_window.click();
+	}
+	select() {
+		if (this.selected) return;
+		if (Project) {
+			Project.unselect()
+		} else {
+			Interface.tab_bar.new_tab.visible = false;
+		}
+		Project = this;
+		Undo = this.undo;
+		this.selected = true;
+		this.format.select();
+
+		// Setup Data
+		OutlinerNode.uuids = {};
+		this.elements.forEach(el => {
+			OutlinerNode.uuids[el.uuid] = el;
+		})
+		this.groups.forEach(group => {
+			OutlinerNode.uuids[group.uuid] = group;
+		})
+		Outliner.root = this.outliner;
+		Interface.Panels.outliner.inside_vue.root = this.outliner;
+
+		Interface.Panels.textures.inside_vue.textures = Texture.all;
+		scene.add(this.model_3d);
+
+		Interface.Panels.animations.inside_vue.animations = this.animations;
+		Animation.selected = null;
+		let selected_anim = this.animations.find(anim => anim.selected);
+		if (selected_anim) selected_anim.select();
+		Timeline.vue.animators = this.timeline_animators;
+
+		Interface.Panels.variable_placeholders.inside_vue.text = this.variable_placeholders.toString();
+
+		Modes.options[this.mode].select();
+
+		BarItems.lock_motion_trail.value = !!Project.motion_trail_lock;
+		BarItems.lock_motion_trail.updateEnabledState();
+
+		if (this.EditSession) {
+			Interface.Panels.chat.inside_vue.chat_history = this.EditSession.chat_history;
+			this.EditSession.catchUp();
+		}
+
+		Blockbench.dispatchEvent('select_project', {project: this});
+
+		setProjectTitle(this.name);
+		setStartScreen(!Project);
+		updateInterface();
+		Vue.nextTick(() => {
+			loadTextureDraggable();
+		})
+	}
+	unselect() {
+		if (isApp) updateRecentProjectThumbnail();
+		this.selected = false;
 		Painter.current = {};
-		Animator.animations.purge();
-		Timeline.animators.purge();
-		Animation.selected = undefined;
-		delete Animator.motion_trail_lock;
-		$('#var_placeholder_area').val('');
+		scene.remove(this.model_3d);
+		OutlinerNode.uuids = {};
+		Format = 0;
+		Project = 0;
+		Undo = 0;
+
+		OutlinerNode.uuids = {};
+		Outliner.root = [];
+
+		Blockbench.dispatchEvent('unselect_project', {project: this});
+	}
+	async close(force) {
+
+		if (force || showSaveDialog()) {
+			if (isApp) await updateRecentProjectThumbnail();
+	
+			Blockbench.dispatchEvent('close_project');
+			
+			this.unselect();
+			Texture.all.forEach(tex => tex.stopWatcher());
+
+			ModelProject.all.remove(this);
+			delete ProjectData[this.uuid];
+			Project = 0;
+
+			if (ModelProject.all.length) {
+				ModelProject.all[0].select();
+			} else {
+				Interface.tab_bar.new_tab.visible = true;
+				Interface.tab_bar.new_tab.select();
+				setStartScreen(true);
+			}
+
+			return true;
+		} else {
+			return false;
+		}
 	}
 }
 new Property(ModelProject, 'string', 'name', {
@@ -131,29 +280,25 @@ new Property(ModelProject, 'vector', 'visible_box', {
 	exposed: false,
 	default: [1, 1, 0]
 });
+new Property(ModelProject, 'string', 'variable_placeholders', {
+	exposed: false,
+});
 
 
-const Project = new ModelProject();
+ModelProject.all = [];
 
 
-//New
-function resetProject() {
-	Project.reset()
-}
-function newProject(format, force) {
-	if (force || showSaveDialog()) {
-		if (Format) {
-			Project.reset();
-		}
-		if (format instanceof ModelFormat) {
-			format.select();
-		}
-		Modes.options.edit.select();
-		Blockbench.dispatchEvent('new_project');
-		return true;
-	} else {
-		return false;
-	}
+let Project = 0;// = new ModelProject();
+
+let ProjectData = {};
+
+function newProject(format) {
+	if (typeof format == 'string' && Formats[format]) format = Formats[format];
+	new ModelProject({format}).select();
+
+	Modes.options.edit.select();
+	Blockbench.dispatchEvent('new_project');
+	return true;
 }
 
 // Resolution
@@ -209,6 +354,145 @@ function updateProjectResolution() {
 		Texture.selected.height--;
 	}
 }
+
+function setStartScreen(state) {
+	document.getElementById('start_screen').style.display = state ? 'block' : 'none';
+	document.getElementById('work_screen').style.display = state ? 'none' : 'grid';
+}
+
+onVueSetup(() => {
+	Interface.tab_bar = new Vue({
+		el: '#tab_bar',
+		data: {
+			projects: ModelProject.all,
+			drag_target_index: null,
+			drag_position_index: null,
+			close_tab_label: tl('projects.close_tab'),
+			new_tab: {
+				name: tl('projects.new_tab'),
+				saved: true,
+				selected: true,
+				uuid: guid(),
+				visible: true,
+				is_new_tab: true,
+				close: () => {
+					Interface.tab_bar.new_tab.visible = false;
+				},
+				select() {
+					if (Project) {
+						Project.unselect()
+					}
+					Project = 0;
+					Interface.tab_bar.new_tab.selected = true;
+					setProjectTitle(tl('projects.new_tab'));
+				},
+				openSettings() {}
+			}
+		},
+		computed: {
+			tabs() {
+				let tabs = this.projects.slice();
+				if (this.new_tab.visible) {
+					tabs.push(this.new_tab);
+				}
+				return tabs;
+			}
+		},
+		methods: {
+			openNewTab() {
+				this.new_tab.visible = true;
+				this.new_tab.select();
+				setStartScreen(true);
+			},
+			mouseDown(tab, e1) {
+				convertTouchEvent(e1);
+				
+				let scope = this;
+				let active = false;
+				let timeout;
+				let last_event = e1;
+
+				let tab_node = e1.target;
+				if (!tab_node.classList.contains('project_tab') || ModelProject.all.indexOf(tab) < 0) return;
+
+				tab.select();
+
+				let activate = () => {
+					this.drag_target_index = ModelProject.all.indexOf(tab);
+					this.drag_position_index = 0;
+					if (open_menu) open_menu.hide();
+					active = true;
+				}
+
+				function move(e2) {
+					convertTouchEvent(e2);
+					let offset = e2.clientX - e1.clientX;
+					if (!active) {
+						let distance = Math.abs(offset);
+						if (Blockbench.isTouch) {
+							if (distance > 14 && timeout) {
+								clearTimeout(timeout);
+								timeout = null;
+							} else {
+								document.getElementById('tab_bar').scrollLeft += last_event.clientX - e2.clientX;
+							}
+						} else if (distance > 5) {
+							activate();
+						}
+					} else {
+						if (e2) e2.preventDefault();
+						
+						tab_node.style.left = `${offset}px`;
+
+						let index_offset = Math.trunc((e2.clientX - e1.clientX) / tab_node.clientWidth);
+						scope.drag_position_index = scope.drag_target_index + index_offset;
+					}
+					last_event = e2;
+				}
+				function off(e2) {
+					let {drag_target_index} = scope;
+
+					removeEventListeners(document, 'mousemove touchmove', move);
+					removeEventListeners(document, 'mouseup touchend', off);
+					tab_node.style.left = null;
+					scope.drag_target_index = null;
+					scope.drag_position_index = null;
+
+					if (Blockbench.isTouch) clearTimeout(timeout);
+
+					if (active && !open_menu) {
+						convertTouchEvent(e2);
+						let index_offset = Math.trunc((e2.clientX - e1.clientX) / tab_node.clientWidth);
+						if (index_offset) {
+							ModelProject.all.splice(drag_target_index, 1);
+							ModelProject.all.splice(drag_target_index + index_offset, 0, tab);
+						}
+					}
+				}
+
+				if (Blockbench.isTouch) {
+					timeout = setTimeout(() => {
+						active = true;
+						move(e1);
+					}, 320)
+				}
+
+				addEventListeners(document, 'mousemove touchmove', move, {passive: false});
+				addEventListeners(document, 'mouseup touchend', off, {passive: false});
+			},
+			selectProject(project, event) {
+				if (!event.target.classList.contains('project_tab_close_button')) {
+					project.select();
+				}
+			},
+			mouseUp(tab, e1) {
+				if (e1.button === 1) {
+					tab.close()
+				}
+			}
+		}
+	})
+})
 
 
 BARS.defineActions(function() {
@@ -311,8 +595,8 @@ BARS.defineActions(function() {
 					Blockbench.dispatchEvent('update_project_settings', formResult);
 
 					BARS.updateConditions()
-					if (EditSession.active) {
-						EditSession.sendAll('change_project_meta', JSON.stringify(Project));
+					if (Project.EditSession) {
+						Project.EditSession.sendAll('change_project_meta', JSON.stringify(Project));
 					}
 					
 					dialog.hide()
@@ -324,20 +608,16 @@ BARS.defineActions(function() {
 	new Action('close_project', {
 		icon: 'cancel_presentation',
 		category: 'file',
-		condition: () => (!EditSession.active || EditSession.hosting) && Format,
+		keybind: new Keybind({key: 'w', ctrl: true}),
+		condition: () => Project,
 		click: function () {
-			if (showSaveDialog()) {
-				resetProject()
-				Modes.options.start.select()
-				Modes.vue.$forceUpdate()
-				Blockbench.dispatchEvent('close_project');
-			}
+			Project.close();
 		}
 	})
 	new Action('convert_project', {
 		icon: 'fas.fa-file-import',
 		category: 'file',
-		condition: () => (!EditSession.active || EditSession.hosting),
+		condition: () => Project && (!Project.EditSession || Project.EditSession.hosting),
 		click: function () {
 
 			var options = {};

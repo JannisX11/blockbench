@@ -324,7 +324,7 @@ class Animation {
 		if (Modes.animate) Animator.preview();
 		return this;
 	}
-	setLength(len) {
+	setLength(len = this.length) {
 		this.length = 0;
 		this.length = limitNumber(len, this.getMaxLength(), 1e4);
 		if (Animation.selected == this) {
@@ -591,7 +591,14 @@ class Animation {
 		dialog.show();
 	}
 }
-	Animation.all = [];
+	Object.defineProperty(Animation, 'all', {
+		get() {
+			return Project.animations || [];
+		},
+		set(arr) {
+			Project.animations.replace(arr);
+		}
+	})
 	Animation.selected = null;
 	Animation.prototype.menu = new Menu([
 		{name: 'menu.animation.loop', icon: 'loop', children: [
@@ -733,6 +740,7 @@ class GeneralAnimator {
 		delete keyframe.time_before;
 		keyframe.replaceOthers(deleted);
 		Undo.addKeyframeCasualties(deleted);
+		Animation.selected.setLength();
 
 		if (undo) {
 			Undo.finishEdit('Add keyframe')
@@ -1235,7 +1243,7 @@ WinterskyScene.global_options.parent_mode = 'entity';
 const Animator = {
 	possible_channels: {rotation: true, position: true, scale: true, sound: true, particle: true, timeline: true},
 	open: false,
-	animations: Animation.all,
+	get animations() {return Animation.all},
 	get selected() {return Animation.selected},
 	MolangParser: new Molang(),
 	motion_trail: new THREE.Object3D(),
@@ -1243,8 +1251,8 @@ const Animator = {
 	_last_values: {rotation: [0, 0, 0], position: [0, 0, 0], scale: [0, 0, 0]},
 	join() {
 		
-		if (isApp && (Format.id == 'bedrock' || Format.id == 'bedrock_old') && !BedrockEntityManager.initialized_animations) {
-			BedrockEntityManager.initAnimations();
+		if (isApp && (Format.id == 'bedrock' || Format.id == 'bedrock_old') && !Project.BedrockEntityManager.initialized_animations) {
+			Project.BedrockEntityManager.initAnimations();
 		}
 
 		Animator.open = true;
@@ -1314,7 +1322,7 @@ const Animator = {
 	},
 	showMotionTrail(target) {
 		if (!target) {
-			target = Animator.motion_trail_lock && OutlinerNode.uuids[Animator.motion_trail_lock];
+			target = Project.motion_trail_lock && OutlinerNode.uuids[Project.motion_trail_lock];
 			if (!target) target = Group.selected || NullObject.selected[0];
 		}
 		let target_bone = target instanceof Group ? target : target.parent;
@@ -1679,11 +1687,11 @@ const Animator = {
 		let filter_path = path || '';
 
 		if (isApp && !path) {
-			path = ModelMeta.export_path
+			path = Project.export_path
 			var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
 			var m_index = path.search(exp)
 			if (m_index > 3) {
-				path = path.substr(0, m_index) + osfs + 'animations' + osfs +  pathToName(ModelMeta.export_path, true)
+				path = path.substr(0, m_index) + osfs + 'animations' + osfs +  pathToName(Project.export_path, true)
 			}
 			path = path.replace(/(\.geo)?\.json$/, '.animation.json')
 		}
@@ -1728,7 +1736,7 @@ const Animator = {
 	}
 }
 Blockbench.on('update_camera_position', e => {
-	if (Animator.open && settings.motion_trails.value && (Group.selected || NullObject.selected[0] || Animator.motion_trail_lock)) {
+	if (Animator.open && settings.motion_trails.value && (Group.selected || NullObject.selected[0] || Project.motion_trail_lock)) {
 		Animator.updateMotionTrailScale();
 	}
 })
@@ -1834,12 +1842,12 @@ BARS.defineActions(function() {
 		category: 'animation',
 		condition: {modes: ['animate'], method: () => Format.animation_files},
 		click: function () {
-			var path = ModelMeta.export_path
+			var path = Project.export_path
 			if (isApp) {
 				var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
 				var m_index = path.search(exp)
 				if (m_index > 3) {
-					path = path.substr(0, m_index) + osfs + 'animations' + osfs + pathToName(ModelMeta.export_path).replace(/\.geo/, '.animation')
+					path = path.substr(0, m_index) + osfs + 'animations' + osfs + pathToName(Project.export_path).replace(/\.geo/, '.animation')
 				}
 			}
 			Blockbench.import({
@@ -1944,9 +1952,9 @@ BARS.defineActions(function() {
 		condition: () => Animator.open && (Group.selected || NullObject.selected[0]),
 		onChange(value) {
 			if (value && (Group.selected || NullObject.selected[0])) {
-				Animator.motion_trail_lock = Group.selected ? Group.selected.uuid : NullObject.selected[0].uuid;
+				Project.motion_trail_lock = Group.selected ? Group.selected.uuid : NullObject.selected[0].uuid;
 			} else {
-				Animator.motion_trail_lock = false;
+				Project.motion_trail_lock = false;
 				Animator.showMotionTrail();
 			}
 		}
@@ -2240,6 +2248,13 @@ Interface.definePanels(function() {
 			data() { return {
 				text: ''
 			}},
+			watch: {
+				text(text) {
+					if (Project && typeof text == 'string') {
+						Project.variable_placeholders = text;
+					}
+				}
+			},
 			template: `
 				<div style="flex-grow: 1; display: flex; flex-direction: column;">
 					<p>{{ tl('panel.variable_placeholders.info') }}</p>

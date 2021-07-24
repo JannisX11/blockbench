@@ -1,5 +1,4 @@
 var osfs = '/'
-var selected = [];
 var prev_side = 'north';
 var uv_clipboard;
 var pe_list_data = []
@@ -25,7 +24,6 @@ var Prop = {
 	file_name	  	: '',
 	added_models 	: 0,
 	recording		: null,
-	project_saved 	: true,
 	fps				: 0,
 	progress		: 0,
 	session 		: false,
@@ -192,7 +190,7 @@ function unselectAll() {
 }
 //Backup
 setInterval(function() {
-	if (Outliner.root.length || textures.length) {
+	if (Project && (Outliner.root.length || Project.textures.length)) {
 		try {
 			var model = Codecs.project.compile({compressed: false, backup: true});
 			localStorage.setItem('backup_model', model)

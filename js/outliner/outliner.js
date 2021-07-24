@@ -1,8 +1,17 @@
-const elements = [];
 const Outliner = {
 	root: [],
-	elements: elements,
-	selected: selected,
+	get elements() {
+		return Project.elements || []
+	},
+	set elements(val) {
+		console.warn('You cannot modify this')
+	},
+	get selected() {
+		return Project.selected_elements || []
+	},
+	set selected(val) {
+		console.warn('You cannot modify this')
+	},
 	buttons: {
 		visibility: {
 			id: 'visibility',
@@ -51,6 +60,22 @@ const Outliner = {
 		}
 	}
 }
+Object.defineProperty(window, 'elements', {
+	get() {
+		return Outliner.elements;
+	},
+	set(val) {
+		console.warn('You cannot modify this')
+	}
+});
+Object.defineProperty(window, 'selected', {
+	get() {
+		return Outliner.selected;
+	},
+	set(val) {
+		console.warn('You cannot modify this')
+	}
+});
 //Colors
 var markerColors = [
 	{pastel: "#A2EBFF", standard: "#58C0FF", name: 'light_blue'},
@@ -70,7 +95,7 @@ class OutlinerNode {
 	}
 	init() {
 		OutlinerNode.uuids[this.uuid] = this;
-		this.constructor.all.safePush(this);
+		//this.constructor.all.safePush(this);
 		if (!this.parent || (this.parent === 'root' && Outliner.root.indexOf(this) === -1)) {
 			this.addTo('root')
 		}
@@ -301,7 +326,6 @@ class OutlinerNode {
 		this.shade = !val;
 	}
 }
-OutlinerNode.uuids = {};
 class OutlinerElement extends OutlinerNode {
 	constructor(data, uuid) {
 		super(uuid);
@@ -310,7 +334,7 @@ class OutlinerElement extends OutlinerNode {
 	}
 	init() {
 		super.init();
-		elements.safePush(this);
+		Project.elements.safePush(this);
 	}
 	remove() {
 		super.remove()
@@ -455,9 +479,43 @@ class OutlinerElement extends OutlinerNode {
 			return new Type(obj, keep_uuid ? obj.uuid : 0).init()
 		}
 	}
-	OutlinerElement.selected = selected;
-	OutlinerElement.all = elements;
+	Object.defineProperty(OutlinerElement, 'all', {
+		get() {
+			return Project.elements ? Project.elements : [];
+		},
+		set(arr) {
+			console.warn('You cannot modify this')
+		}
+	})
+	Object.defineProperty(OutlinerElement, 'selected', {
+		get() {
+			return Project.selected_elements ? Project.selected_elements : [];
+		},
+		set(group) {
+			console.warn('You cannot modify this')
+		}
+	})
 	OutlinerElement.types = {};
+
+OutlinerElement.registerType = function(constructor, id) {
+	OutlinerElement.types[id] = constructor;
+	Object.defineProperty(constructor, 'all', {
+		get() {
+			return Project.elements ? Project.elements.filter(element => element instanceof constructor) : [];
+		},
+		set(arr) {
+			console.warn('You cannot modify this')
+		}
+	})
+	Object.defineProperty(constructor, 'selected', {
+		get() {
+			return Project.selected_elements ? Project.selected_elements.filter(element => element instanceof constructor) : [];
+		},
+		set(group) {
+			console.warn('You cannot modify this')
+		}
+	})
+}
 
 Array.prototype.findRecursive = function(key1, val) {
 	var i = 0
@@ -645,10 +703,10 @@ function dropOutlinerObjects(item, target, event, order) {
 function renameOutliner(element) {
 	stopRenameOutliner()
 
-	if (Group.selected && !element && !EditSession.active) {
+	if (Group.selected && !element && !Project.EditSession) {
 		Group.selected.rename()
 
-	} else if (selected.length === 1 && !EditSession.active) {
+	} else if (selected.length === 1 && !Project.EditSession) {
 		selected[0].rename()
 
 	} else {

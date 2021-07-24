@@ -234,10 +234,6 @@
 		pointer-events: none;
 	}
 
-	#no_css_message {
-		display: none !important;
-	}
-
 	.annotation {
 		min-width: 40px;
 		max-width: 100%;

@@ -23,7 +23,7 @@ const Blockbench = {
 	},
 	get textures() {
 		console.warn('Blockbench.textures is deprecated. Please use Texture.all instead.')
-		return textures;
+		return Project.textures;
 	},
 	edit(aspects, cb) {
 		Undo.initEdit(aspects)

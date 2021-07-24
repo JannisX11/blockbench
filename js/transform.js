@@ -41,7 +41,8 @@ function origin2geometry() {
 	Canvas.updateView({
 		elements: Cube.selected,
 		element_aspects: {geometry: true},
-		groups: Group.selected && [Group.selected]
+		groups: Group.selected && [Group.selected],
+		selection: true
 	});
 	Undo.finishEdit('Center pivot')
 }

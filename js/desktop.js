@@ -98,6 +98,13 @@ function initializeDesktopApp() {
 }
 //Load Model
 function loadOpenWithBlockbenchFile() {
+	ipcRenderer.on('open-model', (event, path) => {
+		Blockbench.read([path], {}, function(files) {
+			files.forEach(file => {
+				loadModelFile(file);
+			})
+		})
+	})
 	if (electron.process.argv.length >= 2) {
 		var extension = pathToExtension(electron.process.argv.last())
 		if (Codec.getAllExtensions().includes(extension)) {
@@ -156,9 +163,9 @@ function addRecentProject(data) {
 	}
 	updateRecentProjects()
 }
-function updateRecentProjectThumbnail() {
+async function updateRecentProjectThumbnail() {
 	if (elements.length == 0) return;
-	let path = ModelMeta.export_path || ModelMeta.save_path;
+	let path = Project.export_path || Project.save_path;
 	let project = recent_projects.find(p => p.path == path);
 	if (!project) return;
 
@@ -172,16 +179,18 @@ function updateRecentProjectThumbnail() {
 	let size = Math.max(box[0], box[1]*2)
 	MediaPreview.camera.position.multiplyScalar(size/50)
 	
-	MediaPreview.screenshot({crop: false}, url => {
-		let hash = project.path.hashCode().toString().replace(/^-/, '0');
-		let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`)
-		Blockbench.writeFile(path, {
-			savetype: 'image',
-			content: url
+	await new Promise((resolve, reject) => {
+		MediaPreview.screenshot({crop: false}, url => {
+			let hash = project.path.hashCode().toString().replace(/^-/, '0');
+			let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`)
+			Blockbench.writeFile(path, {
+				savetype: 'image',
+				content: url
+			}, resolve)
+			let store_path = project.path;
+			project.path = '';
+			project.path = store_path;
 		})
-		let store_path = project.path;
-		project.path = '';
-		project.path = store_path;
 	})
 
 	// Clean old files
@@ -385,12 +394,12 @@ function showSaveDialog(close) {
 		close = false
 	}
 	var unsaved_textures = 0;
-	textures.forEach(function(t) {
+	Texture.all.forEach(function(t) {
 		if (!t.saved) {
 			unsaved_textures++;
 		}
 	})
-	if ((window.Prop && Prop.project_saved === false && (elements.length > 0 || Group.all.length > 0)) || unsaved_textures) {
+	if ((window.Prop && Project.saved === false && (elements.length > 0 || Group.all.length > 0)) || unsaved_textures) {
 		var answer = electron.dialog.showMessageBoxSync(currentwindow, {
 			type: 'question',
 			buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
@@ -424,7 +433,7 @@ function closeBlockbenchWindow() {
 	Blockbench.addFlag('allow_closing');
 	Blockbench.dispatchEvent('before_closing')
 	localStorage.removeItem('backup_model')
-	EditSession.quit()
+	if (Project.EditSession) Project.EditSession.quit()
 	return currentwindow.close();
 };
 
@@ -495,3 +504,4 @@ ipcRenderer.on('update-available', (event, arg) => {
 		})
 	}
 })
+
