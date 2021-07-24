@@ -93,7 +93,7 @@ const Canvas = {
 			}`
 		var fragShader = `
 			#ifdef GL_ES
-			precision highp float;
+			precision ${isApp ? 'highp' : 'mediump'} float;
 			#endif
 
 			uniform bool SHADE;
@@ -666,7 +666,7 @@ const Canvas = {
 			}`
 		var fragShader = `
 			#ifdef GL_ES
-			precision highp float;
+			precision ${isApp ? 'highp' : 'mediump'} float;
 			#endif
 
 			uniform sampler2D t0;

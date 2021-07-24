@@ -95,7 +95,7 @@ class Texture {
 			}`
 		var fragShader = `
 			#ifdef GL_ES
-			precision highp float;
+			precision ${isApp ? 'highp' : 'mediump'} float;
 			#endif
 
 			uniform sampler2D map;

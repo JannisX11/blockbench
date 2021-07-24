@@ -1593,7 +1593,7 @@ const BARS = {
 			new Action('toggle_sidebars', {
 				icon: 'view_array',
 				category: 'view',
-				condition: () => !Blockbench.isMobile && !Mode.selected.hide_sidebars,
+				condition: () => !Blockbench.isMobile && Mode.selected && !Mode.selected.hide_sidebars,
 				keybind: new Keybind({key: 'b', ctrl: true}),
 				click: function () {
 					let status = !Prop.show_left_bar;

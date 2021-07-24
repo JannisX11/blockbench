@@ -28,7 +28,7 @@
 		const appVersion = '3.9.2';
 
 		window.onerror = (message, file, line) => {
-			if (window.Blockbench && window.Blockbench.setup_successful) return;
+			if (typeof Blockbench != 'undefined' && Blockbench.setup_successful) return;
 
 			let error_element = document.querySelector('#loading_error_detail');
 			if (error_element && !error_element.innerText) {
