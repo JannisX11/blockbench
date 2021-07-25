@@ -40,7 +40,7 @@ function origin2geometry() {
 	}
 	Canvas.updateView({
 		elements: Cube.selected,
-		element_aspects: {geometry: true},
+		element_aspects: {transform: true, geometry: true},
 		groups: Group.selected && [Group.selected],
 		selection: true
 	});
@@ -1163,7 +1163,7 @@ BARS.defineActions(function() {
 		if (rotation_object instanceof Group) {
 			var val = modify(rotation_object.origin[axis]);
 			rotation_object.origin[axis] = val;
-			Canvas.updateView({elements: Cube.selected, element_aspects: {geometry: true}})
+			Canvas.updateView({elements: Cube.selected, element_aspects: {transform: true, geometry: true}})
 			if (Format.bone_rig) {
 				Canvas.updateAllBones()
 			}
@@ -1172,7 +1172,7 @@ BARS.defineActions(function() {
 				var val = modify(obj.origin[axis]);
 				obj.origin[axis] = val;
 			})
-			Canvas.updateView({elements: Cube.selected, element_aspects: {geometry: true}})
+			Canvas.updateView({elements: Cube.selected, element_aspects: {transform: true, geometry: true}})
 		}
 		if (Modes.animate) {
 			Animator.preview();

@@ -203,6 +203,9 @@ class OutlinerNode {
 		scope.name = old_name;
 		return this;
 	}
+	get mesh() {
+		return Project.nodes_3d[this.uuid];
+	}
 	getDepth() {
 		var d = 0;
 		function it(p) {
@@ -335,6 +338,10 @@ class OutlinerElement extends OutlinerNode {
 	init() {
 		super.init();
 		Project.elements.safePush(this);
+		if (!this.mesh || !this.mesh.parent) {
+			this.constructor.preview_controller.setup(this);
+		}
+		return this;
 	}
 	remove() {
 		super.remove()
@@ -497,69 +504,78 @@ class OutlinerElement extends OutlinerNode {
 	})
 	OutlinerElement.types = {};
 
+
 class NodePreviewController {
 	constructor(type, data = {}) {
-		Object.assign(this, data);
 		this.type = type;
 		type.preview_controller = this;
+
+		this.updateGeometry = null;
+		this.updateUV = null;
+		this.updateFaces = null;
+		this.updatePaintingGrid = null;
+
+		Object.assign(this, data);
 	}
 	setup(element) {
 		var mesh = new THREE.Object3D();
-		Canvas.meshes[obj.uuid] = mesh;
-		mesh.name = obj.uuid;
-		mesh.type = 'cube';
+		Project.nodes_3d[element.uuid] = mesh;
+		mesh.name = element.uuid;
+		mesh.type = element.type;
 		mesh.isElement = true;
-
-		Canvas.adaptObjectFaces(obj, mesh)
-		Canvas.adaptObjectPosition(obj, mesh)
-		
-		//scene.add(mesh)
-		if (Prop.view_mode === 'textured') {
-			Canvas.updateUV(obj);
-		}
-		mesh.visible = obj.visibility;
-		Canvas.buildOutline(obj);
+		mesh.visible = element.visibility;
+		mesh.rotation.order = 'ZYX';
 	}
 	remove(element) {
-		let {mesh} = this;
+		let {mesh} = element;
 		if (mesh.parent) mesh.parent.remove(mesh);
 		if (mesh.geometry) mesh.geometry.dispose();
 		if (mesh.outline && mesh.outline.geometry) mesh.outline.geometry.dispose();
+		delete Project.nodes_3d[obj.uuid];
 	}
 	updateHierarchy(element) {
-		
+		let {mesh} = element;
+		console.log
+		if (Format.bone_rig) {
+			if (element.parent instanceof Group) {
+				element.parent.mesh.add(mesh);
+				mesh.position.x -= element.parent.origin[0]
+				mesh.position.y -= element.parent.origin[1]
+				mesh.position.z -= element.parent.origin[2]
+			} else {
+				Project.model_3d.add(mesh)
+			}
+		} else if (mesh.parent !== scene) {
+			Project.model_3d.add(mesh)
+		}
 	}
 	updateTransform(element) {
-		
-	}
-	updateGeometry(element) {
-		
-	}
-	updateUV(element) {
-		
-	}
-	updateFaces(element) {
-		
+		let mesh = element.mesh;
+
+		this.updateHierarchy(element);
+
+		mesh.scale.set(1, 1, 1)
+		mesh.rotation.set(0, 0, 0)
+		if (element.movable) {
+			mesh.position.set(element.origin[0], element.origin[1], element.origin[2])
+			if (Format.bone_rig && element.parent instanceof Group) {
+				mesh.position.x -= element.parent.origin[0];
+				mesh.position.y -= element.parent.origin[1];
+				mesh.position.z -= element.parent.origin[2];
+			}
+		}
+		if (element.rotatable) {
+
+			mesh.rotation.x = Math.degToRad(element.rotation[0]);
+			mesh.rotation.y = Math.degToRad(element.rotation[1]);
+			mesh.rotation.z = Math.degToRad(element.rotation[2]);
+		}
+		mesh.updateMatrixWorld();
 	}
 	updateVisibility(element) {
-		element.mesh.visible = !!element.visibility;
-	}
-	updatePaintingGrid(element) {
-		
-	}
-	updateHierarchy(element) {
-		
-	}
-	updateHierarchy(element) {
-		
+		element.mesh.visible = element.visibility;
 	}
 }
-
-Cube.preview_controller.setup();
-
-new NodePreviewController(Cube, {
-
-})
 
 OutlinerElement.registerType = function(constructor, id) {
 	OutlinerElement.types[id] = constructor;
