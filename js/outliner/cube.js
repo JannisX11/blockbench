@@ -521,7 +521,7 @@ class Cube extends OutlinerElement {
 		var dq = new THREE.Vector3().copy(shift)
 		dq.applyQuaternion(q)
 		shift.sub(dq)
-		shift.applyQuaternion(q.inverse())
+		shift.applyQuaternion(q.invert())
 		
 		this.moveVector(shift, null, update)
 

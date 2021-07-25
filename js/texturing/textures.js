@@ -57,6 +57,8 @@ class Texture {
 		img.tex.name = this.name;
 
 		var vertShader = `
+			attribute float highlight;
+
 			uniform bool SHADE;
 
 			varying vec2 vUv;
@@ -83,7 +85,7 @@ class Texture {
 
 				}
 
-				if (color.b > 1.1) {
+				if (highlight == 1.0) {
 					lift = 0.1;
 				} else {
 					lift = 0.0;
@@ -136,7 +138,6 @@ class Texture {
 			vertexShader: vertShader,
 			fragmentShader: fragShader,
 			side: Canvas.getRenderSide(),
-			vertexColors: THREE.FaceColors,
 			transparent: true,
 		});
 		mat.map = tex;
