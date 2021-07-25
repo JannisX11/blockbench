@@ -310,7 +310,6 @@ class refModel {
 			var mat = new THREE.MeshLambertMaterial({
 				color: 0xffffff,
 				map: tex,
-				vertexColors: THREE.FaceColors,
 				side: 2,
 				alphaTest: 0.05
 			});
@@ -319,7 +318,7 @@ class refModel {
 		scope.material = mat
 
 		things.forEach(function(s) {
-			var mesh = new THREE.Mesh(new THREE.CubeGeometry(s.size[0], s.size[1], s.size[2]), mat )
+			var mesh = new THREE.Mesh(new THREE.BoxGeometry(s.size[0], s.size[1], s.size[2]), mat)
 			if (s.origin) {
 				mesh.position.set(s.origin[0], s.origin[1], s.origin[2])
 				mesh.geometry.translate(-s.origin[0], -s.origin[1], -s.origin[2])
@@ -330,6 +329,25 @@ class refModel {
 			}
 			if (s.model) {
 				mesh.r_model = s.model
+			}
+
+			function getUVArray(face) {
+				var arr = [
+					[face.uv[0]/16, 1-(face.uv[1]/16)],
+					[face.uv[2]/16, 1-(face.uv[1]/16)],
+					[face.uv[0]/16, 1-(face.uv[3]/16)],
+					[face.uv[2]/16, 1-(face.uv[3]/16)]
+				]
+				var rot = (face.rotation+0)
+				while (rot > 0) {
+					let a = arr[0];
+					arr[0] = arr[2];
+					arr[2] = arr[3];
+					arr[3] = arr[1];
+					arr[1] = a;
+					rot = rot-90;
+				}
+				return arr;
 			}
 
 			for (var face in s) {
@@ -343,11 +361,14 @@ class refModel {
 						case 'up':	  fIndex = 4;	break;
 						case 'down':	fIndex = 6;	break;
 					}
-					mesh.geometry.faceVertexUvs[0][fIndex] = [ getUVArray(s[face])[0], getUVArray(s[face])[1], getUVArray(s[face])[3] ];
-					mesh.geometry.faceVertexUvs[0][fIndex+1] = [ getUVArray(s[face])[1], getUVArray(s[face])[2], getUVArray(s[face])[3] ];
+					let uv_array = getUVArray(s[face]);
+					mesh.geometry.attributes.uv.array.set(uv_array[0], fIndex*4 + 0);  //0,1
+					mesh.geometry.attributes.uv.array.set(uv_array[1], fIndex*4 + 2);  //1,1
+					mesh.geometry.attributes.uv.array.set(uv_array[2], fIndex*4 + 4);  //0,0
+					mesh.geometry.attributes.uv.array.set(uv_array[3], fIndex*4 + 6);  //1,0
+					mesh.geometry.attributes.uv.needsUpdate = true;
 				}
 			}
-			mesh.geometry.elementsNeedUpdate = true;
 
 			scope.model.add(mesh);
 		})

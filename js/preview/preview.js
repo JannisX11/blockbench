@@ -1949,7 +1949,6 @@ function initCanvas() {
 	markerColors.forEach(function(s, i) {
 		var thismaterial = new THREE.MeshLambertMaterial({
 			color: 0xffffff,
-			vertexColors: THREE.FaceColors,
 			map: tex
 		})
 		thismaterial.color.set(s.pastel)
@@ -2034,26 +2033,20 @@ function updateShading() {
 	Canvas.solidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
 }
 function updateCubeHighlights(hover_cube, force_off) {
-	return;
 	Cube.all.forEach(cube => {
 		if (cube.visibility) {
 			var mesh = cube.mesh;
-			mesh.geometry.faces.forEach(face => {
-				var b_before = face.color.b;
-				if (
-					Settings.get('highlight_cubes') &&
-					((hover_cube == cube && !Transformer.dragging) || cube.selected) &&
-					Modes.edit &&
-					!force_off
-				) {
-					face.color.setRGB(1.25, 1.28, 1.3);
-				} else {
-					face.color.setRGB(1, 1, 1);
-				}
-				if (face.color.b != b_before) {
-					mesh.geometry.colorsNeedUpdate = true;
-				}
-			})
+			let highlighted = (
+				Settings.get('highlight_cubes') &&
+				((hover_cube == cube && !Transformer.dragging) || cube.selected) &&
+				Modes.edit &&
+				!force_off
+			) ? 1 : 0;
+
+			if (mesh.geometry.attributes.highlight.array[0] != highlighted) {
+				mesh.geometry.attributes.highlight.array.set(Array(24).fill(highlighted));
+				mesh.geometry.attributes.highlight.needsUpdate = true;
+			}
 		}
 	})
 }

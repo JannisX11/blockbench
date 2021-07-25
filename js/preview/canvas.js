@@ -18,34 +18,6 @@ function getRescalingFactor(angle) {
 			break;
 	}
 }
-function getUVArray(side, frame, stretch) {
-	//Used by display preview models
-	if (stretch === undefined) {
-		stretch = -1
-	} else {
-		stretch = stretch*(-1)
-	}
-	var arr = [
-		new THREE.Vector2(side.uv[0]/16, (side.uv[1]/16)/stretch+1),  //0,1
-		new THREE.Vector2(side.uv[0]/16, (side.uv[3]/16)/stretch+1),  //0,0
-		new THREE.Vector2(side.uv[2]/16, (side.uv[3]/16)/stretch+1),   //1,0
-		new THREE.Vector2(side.uv[2]/16, (side.uv[1]/16)/stretch+1)  //1,1
-	]
-	if (frame > 0 && stretch !== -1) {
-		//Animate
-		var offset = (1/stretch) * frame
-		arr[0].y += offset
-		arr[1].y += offset
-		arr[2].y += offset
-		arr[3].y += offset
-	}
-	var rot = (side.rotation+0)
-	while (rot > 0) {
-		arr.push(arr.shift())
-		rot = rot-90;
-	}
-	return arr;
-}
 const Canvas = {
 	materials: {},
 	meshes: {},
@@ -61,6 +33,8 @@ const Canvas = {
 	}),
 	solidMaterial: (function() {
 		var vertShader = `
+			attribute float highlight;
+
 			uniform bool SHADE;
 
 			varying float light;
@@ -85,7 +59,7 @@ const Canvas = {
 
 				}
 
-				if (color.b > 1.1) {
+				if (highlight == 1.0) {
 					lift = 0.12;
 				} else {
 					lift = 0.0;
@@ -126,7 +100,6 @@ const Canvas = {
 			},
 			vertexShader: vertShader,
 			fragmentShader: fragShader,
-			vertexColors: THREE.FaceColors,
 			side: THREE.DoubleSide
 		});
 	})(),
@@ -523,14 +496,16 @@ const Canvas = {
 	//Object handlers
 	addCube(obj) {
 		//This does NOT remove old cubes
-		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1))
+		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), emptyMaterials[0]);
 		Canvas.meshes[obj.uuid] = mesh;
 		mesh.name = obj.uuid;
 		mesh.type = 'cube';
 		mesh.isElement = true;
 
-		Canvas.adaptObjectFaces(obj, mesh)
+		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24).fill(1), 1));
+
 		Canvas.adaptObjectPosition(obj, mesh)
+		Canvas.adaptObjectFaces(obj, mesh)
 		
 		//scene.add(mesh)
 		if (Prop.view_mode === 'textured') {
@@ -624,12 +599,13 @@ const Canvas = {
 			// Keep down face if no faces enabled
 			geometry.groups.push(geometry.all_faces[6], geometry.all_faces[7]);
 		}
-		geometry.elementsNeedUpdate = true;
 	},
 	getLayeredMaterial(layers) {
 		if (Canvas.layered_material && !layers) return Canvas.layered_material;
 		// https://codepen.io/Fyrestar/pen/YmpXYr
 		var vertShader = `
+			attribute float highlight;
+
 			uniform bool SHADE;
 
 			varying vec2 vUv;
@@ -657,7 +633,7 @@ const Canvas = {
 
 				}
 
-				if (color.b > 1.1) {
+				if (highlight == 1.0) {
 					lift = 0.1;
 				} else {
 					lift = 0.0;
@@ -717,7 +693,6 @@ const Canvas = {
 		  vertexShader: vertShader,
 		  fragmentShader: fragShader,
 		  side: Canvas.getRenderSide(),
-		  vertexColors: THREE.FaceColors,
 		  transparent: true
 		});
 		Canvas.layered_material = material_shh;
@@ -772,7 +747,6 @@ const Canvas = {
 		if (Prop.view_mode !== 'textured') return;
 		var mesh = cube.mesh
 		if (mesh === undefined || !mesh.geometry) return;
-		//mesh.geometry.faceVertexUvs[0] = [];
 
 		if (Project.box_uv) {
 
@@ -875,50 +849,35 @@ const Canvas = {
 	},
 	updateUVFace(vertex_uvs, index, face, frame = 0, stretch = 1) {
 		stretch *= -1;
-
-		//if (!vertex_uvs[index]) vertex_uvs[index] = [];
-		//if (!vertex_uvs[index+1]) vertex_uvs[index+1] = [];
-		/*
-		var arr = [
-			vertex_uvs[index][0],
-			vertex_uvs[index][1],
-			vertex_uvs[index+1][1],
-			vertex_uvs[index+1][2],
-		]
-		for (var i = 0; i < 4; i++) {
-			if (arr[i] === undefined) {
-				arr[i] = new THREE.Vector2()
-			}
-		}*/
 		var pw = Project.texture_width;
 		var ph = Project.texture_height;
-		
-		vertex_uvs.array.set([face.uv[2]/pw, (face.uv[1]/ph)/stretch+1], index*8 + 0);  //0,1
-		vertex_uvs.array.set([face.uv[0]/pw, (face.uv[1]/ph)/stretch+1], index*8 + 2);  //1,1
-		vertex_uvs.array.set([face.uv[2]/pw, (face.uv[3]/ph)/stretch+1], index*8 + 4);  //0,0
-		vertex_uvs.array.set([face.uv[0]/pw, (face.uv[3]/ph)/stretch+1], index*8 + 6);  //1,0
-
+		var arr = [
+			[face.uv[0]/pw, (face.uv[1]/ph)/stretch+1],
+			[face.uv[2]/pw, (face.uv[1]/ph)/stretch+1],
+			[face.uv[0]/pw, (face.uv[3]/ph)/stretch+1],
+			[face.uv[2]/pw, (face.uv[3]/ph)/stretch+1],
+		]
 		if (frame > 0 && stretch !== -1) {
 			//Animate
 			var offset = (1/stretch) * frame
-			vertex_uvs.array[index*8 + 0*2 + 1] += offset
-			vertex_uvs.array[index*8 + 1*2 + 1] += offset
-			vertex_uvs.array[index*8 + 2*2 + 1] += offset
-			vertex_uvs.array[index*8 + 3*2 + 1] += offset
+			arr[0][1] += offset
+			arr[1][1] += offset
+			arr[2][1] += offset
+			arr[3][1] += offset
 		}
 		var rot = (face.rotation+0)
 		while (rot > 0) {
-			vertex_uvs.array[index*8 + 2*2 + 0] = vertex_uvs.array[index*8 + 3*2 + 0];
-			vertex_uvs.array[index*8 + 2*2 + 1] = vertex_uvs.array[index*8 + 3*2 + 1];
-			vertex_uvs.array[index*8 + 1*2 + 0] = vertex_uvs.array[index*8 + 2*2 + 0];
-			vertex_uvs.array[index*8 + 1*2 + 1] = vertex_uvs.array[index*8 + 2*2 + 1];
-			vertex_uvs.array[index*8 + 0*2 + 0] = vertex_uvs.array[index*8 + 1*2 + 0];
-			vertex_uvs.array[index*8 + 0*2 + 1] = vertex_uvs.array[index*8 + 1*2 + 1];
-			vertex_uvs.array[index*8 + 3*2 + 0] = vertex_uvs.array[index*8 + 0*2 + 0];
-			vertex_uvs.array[index*8 + 3*2 + 1] = vertex_uvs.array[index*8 + 0*2 + 1];
-			//arr.push(arr.shift())
+			let a = arr[0];
+			arr[0] = arr[2];
+			arr[2] = arr[3];
+			arr[3] = arr[1];
+			arr[1] = a;
 			rot = rot-90;
 		}
+		vertex_uvs.array.set(arr[0], index*8 + 0);  //0,1
+		vertex_uvs.array.set(arr[1], index*8 + 2);  //1,1
+		vertex_uvs.array.set(arr[2], index*8 + 4);  //0,0
+		vertex_uvs.array.set(arr[3], index*8 + 6);  //1,0
 	},
 	//Outline
 	getOutlineMesh(mesh, line) {
@@ -927,13 +886,13 @@ const Canvas = {
 		});
 		let points = [
 			vs[2], vs[3],
-			vs[7], vs[6],
+			vs[6], vs[7],
 			vs[2], vs[0],
-			vs[1], vs[3],
-			vs[1], vs[5],
-			vs[4], vs[6],
-			vs[7], vs[5],
-			vs[4], vs[0]
+			vs[1], vs[4],
+			vs[5], vs[0],
+			vs[5], vs[7],
+			vs[6], vs[4],
+			vs[1], vs[3]
 		].map(a => new THREE.Vector3().fromArray(a))
 		if (!line) {
 			var geometry = new THREE.BufferGeometry();

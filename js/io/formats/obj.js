@@ -28,12 +28,16 @@ var codec = new Codec('obj', {
 		https://github.com/mrdoob/three.js/blob/dev/examples/js/exporters/OBJExporter.js
 		*/
 
-		var output = '# Made in Blockbench '+appVersion+'\n';
-		var materials = {};
-
-		var indexVertex = 0;
-		var indexVertexUvs = 0;
-		var indexNormals = 0;
+		let materials = {};
+		let output = '# Made in Blockbench '+appVersion+'\n';
+		let indexVertex = 0;
+		let indexVertexUvs = 0;
+		let indexNormals = 0;
+		const vertex = new THREE.Vector3();
+		const color = new THREE.Color();
+		const normal = new THREE.Vector3();
+		const uv = new THREE.Vector2();
+		const face = [];
 
 		output += 'mtllib ' + (options.mtl_name||'materials.mtl') +'\n';
 
@@ -47,99 +51,123 @@ var codec = new Codec('obj', {
 
 			var geometry = mesh.geometry;
 			var element  = OutlinerNode.uuids[mesh.name];
+			const normalMatrixWorld = new THREE.Matrix3();
 
 			if (!element) return;
 			if (element.export === false) return;
 
-			output += 'o ' + element.name + '\n';
 
-			var vertices = geometry.vertices;
+			const vertices = geometry.getAttribute( 'position' );
+			const normals = geometry.getAttribute( 'normal' );
+			const uvs = geometry.getAttribute( 'uv' );
+			const indices = geometry.getIndex(); // name of the mesh object
 
-			for ( var i = 0, l = vertices.length; i < l; i ++ ) {
+			output += 'o ' + mesh.name + '\n'; // name of the mesh material
 
-				var vertex = vertices[ i ].clone();
-				vertex.applyMatrix4( mesh.matrixWorld );
+			if ( mesh.material && mesh.material.name ) {
 
-				output += 'v ' + (vertex.x*scale) + ' ' + (vertex.y*scale) + ' ' + (vertex.z*scale) + '\n';
-				nbVertex ++;
-			}
-			// uvs
-			var faces = geometry.faces;
-			var faceVertexUvs = geometry.faceVertexUvs[ 0 ];
-			var hasVertexUvs = faces.length === faceVertexUvs.length;
+				output += 'usemtl ' + mesh.material.name + '\n';
 
-			if ( hasVertexUvs ) {
+			} // vertices
 
-				for ( var i = 0, l = faceVertexUvs.length; i < l; i ++ ) {
 
-					var vertexUvs = faceVertexUvs[ i ];
+			if ( vertices !== undefined ) {
 
-					for ( var j = 0, jl = vertexUvs.length; j < jl; j ++ ) {
+				for ( let i = 0, l = vertices.count; i < l; i ++, nbVertex ++ ) {
 
-						var uv = vertexUvs[ j ];
-						output += 'vt ' + uv.x + ' ' + uv.y + '\n';
-						nbVertexUvs ++;
-					}
+					vertex.x = vertices.getX( i );
+					vertex.y = vertices.getY( i );
+					vertex.z = vertices.getZ( i ); // transform the vertex to world space
+
+					vertex.applyMatrix4( mesh.matrixWorld ); // transform the vertex to export format
+
+					output += 'v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z + '\n';
+
 				}
-			}
 
-			// normals
+			} // uvs
 
-			var normalMatrixWorld = new THREE.Matrix3();
-			normalMatrixWorld.getNormalMatrix( mesh.matrixWorld );
 
-			for ( var i = 0, l = faces.length; i < l; i ++ ) {
+			if ( uvs !== undefined ) {
 
-				var face = faces[ i ];
-				var vertexNormals = face.vertexNormals;
+				for ( let i = 0, l = uvs.count; i < l; i ++, nbVertexUvs ++ ) {
 
-				if ( vertexNormals.length === 3 ) {
+					uv.x = uvs.getX( i );
+					uv.y = uvs.getY( i ); // transform the uv to export format
 
-					for ( var j = 0, jl = vertexNormals.length; j < jl; j ++ ) {
+					output += 'vt ' + uv.x + ' ' + uv.y + '\n';
 
-						var normal = vertexNormals[ j ].clone();
-						normal.applyMatrix3( normalMatrixWorld );
-
-						output += 'vn ' + normal.x + ' ' + normal.y + ' ' + normal.z + '\n';
-
-						nbNormals ++;
-					}
-				} else {
-
-					var normal = face.normal.clone();
-					normal.applyMatrix3( normalMatrixWorld );
-
-					for ( var j = 0; j < 3; j ++ ) {
-
-						output += 'vn ' + normal.x + ' ' + normal.y + ' ' + normal.z + '\n';
-						nbNormals ++;
-					}
 				}
+
+			} // normals
+
+
+			if ( normals !== undefined ) {
+
+				normalMatrixWorld.getNormalMatrix( mesh.matrixWorld );
+
+				for ( let i = 0, l = normals.count; i < l; i ++, nbNormals ++ ) {
+
+					normal.x = normals.getX( i );
+					normal.y = normals.getY( i );
+					normal.z = normals.getZ( i ); // transform the normal to world space
+
+					normal.applyMatrix3( normalMatrixWorld ).normalize(); // transform the normal to export format
+
+					output += 'vn ' + normal.x + ' ' + normal.y + ' ' + normal.z + '\n';
+
+				}
+
 			}
-		  
+
 			// material
-			for (var face in element.faces) {
-				var tex = element.faces[face].getTexture()
+			for (let key in element.faces) {
+				let tex = element.faces[key].getTexture()
 				if (tex && tex.uuid && !materials[tex.id]) {
 					materials[tex.id] = tex
 				}
 			}
 
+ 			// faces
+			if ( indices !== null ) {
 
-			for ( var i = 0, j = 1, l = faces.length; i < l; i ++, j += 3 ) {
+				for ( let i = 0, l = indices.count; i < l; i += 3 ) {
 
-				var face = faces[ i ];
-				var f_mat = getMtlFace(element, face.materialIndex)
-				if (f_mat) {
+					let f_mat = getMtlFace(element, geometry.groups[ Math.floor(i / 6) ].materialIndex)
+					if (f_mat) {
 
-					if (i % 2 === 0) {
-						output += f_mat
+						if (i % 2 === 0) {
+							output += f_mat
+						}
+
+						for ( let m = 0; m < 3; m ++ ) {
+
+							const j = indices.getX( i + m ) + 1;
+							face[ m ] = indexVertex + j + ( normals || uvs ? '/' + ( uvs ? indexVertexUvs + j : '' ) + ( normals ? '/' + ( indexNormals + j ) : '' ) : '' );
+
+						} // transform the face to export format
+
+
+						output += 'f ' + face.join( ' ' ) + '\n';
 					}
-					output += 'f ';
-					output += ( indexVertex + face.a + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j	 ) : '' ) + '/' + ( indexNormals + j	 ) + ' ';
-					output += ( indexVertex + face.b + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j + 1 ) : '' ) + '/' + ( indexNormals + j + 1 ) + ' ';
-					output += ( indexVertex + face.c + 1 ) + '/' + ( hasVertexUvs ? ( indexVertexUvs + j + 2 ) : '' ) + '/' + ( indexNormals + j + 2 ) + '\n';
 				}
+
+			} else {
+
+				for ( let i = 0, l = vertices.count; i < l; i += 3 ) {
+
+					for ( let m = 0; m < 3; m ++ ) {
+
+						const j = i + m + 1;
+						face[ m ] = indexVertex + j + ( normals || uvs ? '/' + ( uvs ? indexVertexUvs + j : '' ) + ( normals ? '/' + ( indexNormals + j ) : '' ) : '' );
+
+					} // transform the face to export format
+
+
+					output += 'f ' + face.join( ' ' ) + '\n';
+
+				}
+
 			}
 
 			// update index
