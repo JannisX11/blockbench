@@ -427,9 +427,9 @@
 	"dialog.flip_animation.offset": "Offset by half the animation length",
 
 	"dialog.export_private_settings.title": "Private Settings",
-	"dialog.export_private_settings.message": "Your file contains the following private informations: **%0**. Remove these values if you plan to share the file with someone else.",
+	"dialog.export_private_settings.message": "Your file contains the following private informations: **%0**. Leave these values out if you plan to share the file with someone else.",
 	"dialog.export_private_settings.keep": "Keep",
-	"dialog.export_private_settings.remove": "Remove",
+	"dialog.export_private_settings.omit": "Leave Out",
 	
 	"dialog.settings.title": "Preferences",
 	"dialog.settings.settings": "Settings",

@@ -500,20 +500,21 @@ BARS.defineActions(() => {
 				}
 			}
 			if (private_data.length) {
-				await new Promise((resolve, reject) => {
+				let go_on = await new Promise((resolve, reject) => {
 					Blockbench.showMessageBox({
 						title: 'dialog.export_private_settings.title',
 						message: tl('dialog.export_private_settings.message', [private_data.map(key => settings[key].name).join(', ')]),
-						buttons: ['dialog.export_private_settings.keep', 'dialog.export_private_settings.remove']
+						buttons: ['dialog.export_private_settings.keep', 'dialog.export_private_settings.omit', 'dialog.cancel']
 					}, result => {
 						if (result == 1) {
 							private_data.forEach(key => {
 								delete settings_copy[key];
 							})
 						}
-						resolve()
+						resolve(result !== 2);
 					})
-				})
+				});
+				if (!go_on) return;
 			}
 			Blockbench.export({
 				resource_id: 'config',
