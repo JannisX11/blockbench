@@ -234,10 +234,6 @@
 		pointer-events: none;
 	}
 
-	#no_css_message {
-		display: none !important;
-	}
-
 	.annotation {
 		min-width: 40px;
 		max-width: 100%;
@@ -478,6 +474,7 @@
 		text-rendering: auto;
 		-webkit-font-smoothing: antialiased;
 		margin-right: -12px;
+		margin-left: 6px;
 		pointer-events: none;
 	}
 	.contextMenu li.focused, .contextMenu li.parent.opened {

@@ -1,5 +1,3 @@
-var display = {}
-Blockbench.display_settings = display
 var ground_animation = false;
 var ground_timer = 0
 var display_slot;
@@ -310,8 +308,6 @@ class refModel {
 			var mat = new THREE.MeshLambertMaterial({
 				color: 0xffffff,
 				map: tex,
-				transparent: true,
-				vertexColors: THREE.FaceColors,
 				side: 2,
 				alphaTest: 0.05
 			});
@@ -320,7 +316,7 @@ class refModel {
 		scope.material = mat
 
 		things.forEach(function(s) {
-			var mesh = new THREE.Mesh(new THREE.CubeGeometry(s.size[0], s.size[1], s.size[2]), mat )
+			var mesh = new THREE.Mesh(new THREE.BoxGeometry(s.size[0], s.size[1], s.size[2]), mat)
 			if (s.origin) {
 				mesh.position.set(s.origin[0], s.origin[1], s.origin[2])
 				mesh.geometry.translate(-s.origin[0], -s.origin[1], -s.origin[2])
@@ -331,6 +327,25 @@ class refModel {
 			}
 			if (s.model) {
 				mesh.r_model = s.model
+			}
+
+			function getUVArray(face) {
+				var arr = [
+					[face.uv[0]/16, 1-(face.uv[1]/16)],
+					[face.uv[2]/16, 1-(face.uv[1]/16)],
+					[face.uv[0]/16, 1-(face.uv[3]/16)],
+					[face.uv[2]/16, 1-(face.uv[3]/16)]
+				]
+				var rot = (face.rotation+0)
+				while (rot > 0) {
+					let a = arr[0];
+					arr[0] = arr[2];
+					arr[2] = arr[3];
+					arr[3] = arr[1];
+					arr[1] = a;
+					rot = rot-90;
+				}
+				return arr;
 			}
 
 			for (var face in s) {
@@ -344,11 +359,14 @@ class refModel {
 						case 'up':	  fIndex = 4;	break;
 						case 'down':	fIndex = 6;	break;
 					}
-					mesh.geometry.faceVertexUvs[0][fIndex] = [ getUVArray(s[face])[0], getUVArray(s[face])[1], getUVArray(s[face])[3] ];
-					mesh.geometry.faceVertexUvs[0][fIndex+1] = [ getUVArray(s[face])[1], getUVArray(s[face])[2], getUVArray(s[face])[3] ];
+					let uv_array = getUVArray(s[face]);
+					mesh.geometry.attributes.uv.array.set(uv_array[0], fIndex*4 + 0);  //0,1
+					mesh.geometry.attributes.uv.array.set(uv_array[1], fIndex*4 + 2);  //1,1
+					mesh.geometry.attributes.uv.array.set(uv_array[2], fIndex*4 + 4);  //0,0
+					mesh.geometry.attributes.uv.array.set(uv_array[3], fIndex*4 + 6);  //1,0
+					mesh.geometry.attributes.uv.needsUpdate = true;
 				}
 			}
-			mesh.geometry.elementsNeedUpdate = true;
 
 			scope.model.add(mesh);
 		})
@@ -1487,7 +1505,7 @@ function resetDisplayBase() {
 }
 
 DisplayMode.updateDisplayBase = function(slot) {
-	if (!slot) slot = display[display_slot]
+	if (!slot) slot = Project.display_settings[display_slot]
 
 	display_base.rotation.x = Math.PI / (180 / slot.rotation[0]);
 	display_base.rotation.y = Math.PI / (180 / slot.rotation[1]) * (display_slot.includes('lefthand') ? -1 : 1);
@@ -1520,10 +1538,10 @@ DisplayMode.applyPreset = function(preset, all) {
 	};
 	Undo.initEdit({display_slots: slots})
 	slots.forEach(function(sl) {
-		if (!display[sl]) {
-			display[sl] = new DisplaySlot()
+		if (!Project.display_settings[sl]) {
+			Project.display_settings[sl] = new DisplaySlot()
 		}
-		display[sl].extend(preset.areas[sl])
+		Project.display_settings[sl].extend(preset.areas[sl])
 	})
 	DisplayMode.updateDisplayBase()
 	Undo.finishEdit('Apply display preset')
@@ -1540,8 +1558,8 @@ DisplayMode.createPreset = function() {
 	display_presets.push(preset)
 
 	displayReferenceObjects.slots.forEach(function(s) {
-		if ($('#'+s+'_save').is(':checked') && display[s]) {
-			preset.areas[s] = display[s].copy()
+		if ($('#'+s+'_save').is(':checked') && Project.display_settings[s]) {
+			preset.areas[s] = Project.display_settings[s].copy()
 		}
 	})
 	hideDialog()
@@ -1550,7 +1568,7 @@ DisplayMode.createPreset = function() {
 DisplayMode.loadJSON = function(data) {
 	for (var slot in data) {
 		if (displayReferenceObjects.slots.includes(slot)) {
-			display[slot] = new DisplaySlot().extend(data[slot])
+			Project.display_settings[slot] = new DisplaySlot().extend(data[slot])
 		}
 	}
 }
@@ -1597,15 +1615,15 @@ function loadDisp(key) {	//Loads The Menu and slider values, common for all Radi
 	display_preview.controls.enabled = true;
 	ground_animation = false;
 	$('#display_crosshair').detach()
-	display_preview.orbit_gizmo.unhide();
+	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.unhide();
 	display_preview.camPers.setFocalLength(45)
 
-	if (display[key] == undefined) {
-		display[key] = new DisplaySlot()
+	if (Project.display_settings[key] == undefined) {
+		Project.display_settings[key] = new DisplaySlot()
 	}
 	display_preview.force_locked_angle = false;
-	DisplayMode.vue._data.slot = display[key]
-	DisplayMode.slot = display[key]
+	DisplayMode.vue._data.slot = Project.display_settings[key]
+	DisplayMode.slot = Project.display_settings[key]
 	DisplayMode.updateDisplayBase();
 	Canvas.updateRenderSides();
 	DisplayMode.updateGUILight();
@@ -1648,7 +1666,7 @@ DisplayMode.loadFirstRight = function() {	//Loader
 		focal_length: getOptimalFocalLength(),
 	})
 	display_preview.controls.enabled = false
-	display_preview.orbit_gizmo.hide();
+	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
@@ -1660,7 +1678,7 @@ DisplayMode.loadFirstLeft = function() {	//Loader
 		focal_length: getOptimalFocalLength(),
 	})
 	display_preview.controls.enabled = false
-	display_preview.orbit_gizmo.hide();
+	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
@@ -1684,7 +1702,7 @@ DisplayMode.loadGUI = function() {		//Loader
 		locked_angle: 'south',
 		zoom: 1,
 	})
-	display_preview.orbit_gizmo.hide();
+	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['inventory_nine', 'inventory_full', 'hud'])
 	BarItems.gui_light.set(Project.front_gui_light ? 'front' : 'side');
 }
@@ -1948,8 +1966,8 @@ Interface.definePanels(function() {
 			}},
 			methods: {
 				isMirrored: (axis) => {
-					if (display[display_slot]) {
-						return display[display_slot].scale[axis] < 0;
+					if (Project.display_settings[display_slot]) {
+						return Project.display_settings[display_slot].scale[axis] < 0;
 					}
 				},
 				change: (axis, channel) => {

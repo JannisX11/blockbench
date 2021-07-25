@@ -55,17 +55,18 @@ class Group extends OutlinerNode {
 		return this.mesh;
 	}
 	get mesh() {
-		var bone = Canvas.bones[this.uuid]
+		var bone = Project.nodes_3d[this.uuid]
 		if (!bone) {
 			bone = new THREE.Object3D()
 			bone.name = this.name
 			bone.isGroup = true
-			Canvas.bones[this.uuid] = bone
+			Project.nodes_3d[this.uuid] = bone
 		}
 		return bone;
 	}
 	init() {
 		super.init();
+		Project.groups.push(this);
 		if (typeof this.parent !== 'object') {
 			this.addTo();
 		}
@@ -210,7 +211,7 @@ class Group extends OutlinerNode {
 		})
 		TickUpdates.selection = true
 		this.constructor.all.remove(this);
-		delete Canvas.bones[this.uuid];
+		delete Project.nodes_3d[this.uuid];
 		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
 			Undo.finishEdit('Delete group')
@@ -287,7 +288,7 @@ class Group extends OutlinerNode {
 		var dq = new THREE.Vector3().copy(shift)
 		dq.applyQuaternion(q)
 		shift.sub(dq)
-		shift.applyQuaternion(q.inverse())
+		shift.applyQuaternion(q.invert())
 		this.origin.V3_set(origin);
 
 		function iterateChild(obj) {
@@ -462,8 +463,22 @@ class Group extends OutlinerNode {
 		{icon: 'fa-leaf', name: 'menu.group.resolve', condition: {modes: ['edit']}, click: function(group) {group.resolve()}},
 		'delete'
 	]);
-	Group.selected;
-	Group.all = [];
+	Object.defineProperty(Group, 'all', {
+		get() {
+			return Project.groups || [];
+		},
+		set(arr) {
+			Project.groups.replace(arr);
+		}
+	})
+	Object.defineProperty(Group, 'selected', {
+		get() {
+			return Project.selected_group
+		},
+		set(group) {
+			Project.selected_group = group;
+		}
+	})
 
 	new Property(Group, 'vector', 'origin', {default() {
 		return Format.centered_grid ? [0, 0, 0] : [8, 8, 8]

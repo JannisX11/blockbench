@@ -467,7 +467,7 @@ Interface.definePanels(() => {
 
 		var options = {};
 		if (!source) {
-			textures.forEach((tex, i) => {
+			Texture.all.forEach((tex, i) => {
 				if (!tex.error) {
 					options[i] = tex.name;
 				}
@@ -487,7 +487,7 @@ Interface.definePanels(() => {
 				var result_palette = [];
 
 				if (!source) {
-					var texture = textures[formData.texture];
+					var texture = Texture.all[formData.texture];
 					var ctx = Painter.getCanvas(texture).getContext('2d');
 				} else {
 					var ctx = source;

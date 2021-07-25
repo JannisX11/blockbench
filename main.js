@@ -152,12 +152,16 @@ app.commandLine.appendSwitch('enable-accelerated-video')
 
 app.on('second-instance', function (event, argv, cwd) {
 	process.argv = argv
-	createWindow(true)
+	if (argv[argv.length-1 || 1] && argv[argv.length-1 || 1].substr(0, 2) !== '--') {
+		orig_win.webContents.send('open-model', argv[argv.length-1 || 1])
+	} else {
+		createWindow(true)
+	}
 })
 app.on('open-file', function (event, path) {
 	process.argv[process.argv.length-1 || 1] = path;
 	if (orig_win) {
-		createWindow(true)
+		orig_win.webContents.send('open-model', path);
 	}
 })
 
@@ -197,6 +201,9 @@ app.on('ready', () => {
 	
 			autoUpdater.autoInstallOnAppQuit = true;
 			autoUpdater.autoDownload = false;
+			if (LaunchSettings.get('update_to_prereleases') === true) {
+				autoUpdater.allowPrerelease = true;
+			}
 	
 			autoUpdater.on('update-available', (a) => {
 				console.log('update-available', a)

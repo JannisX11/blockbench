@@ -1,6 +1,5 @@
 var onUninstall, onInstall;
 const Plugins = {
-	apipath: 'https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins.json',
 	Vue: [],			//Vue Object
 	installed: [], 		//Simple List of Names
 	json: undefined,	//Json from website
@@ -112,7 +111,7 @@ class Plugin {
 		}
 		return await new Promise((resolve, reject) => {
 			var file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
-			https.get('https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins/'+this.id+'.js', function(response) {
+			https.get('https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/'+this.id+'.js', function(response) {
 				response.pipe(file);
 				response.on('end', function() {
 					setTimeout(async function() {
@@ -367,7 +366,7 @@ if (isApp) {
 }
 
 Plugins.loading_promise = new Promise((resolve, reject) => {
-	$.getJSON(Plugins.apipath, function(data) {
+	$.getJSON('https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins.json', function(data) {
 		Plugins.json = data
 		resolve();
 		Plugins.loading_promise.resolved = true;

@@ -56,8 +56,31 @@ class Setting {
 			Vue.nextTick(() => {
 				category.open = before;
 			})
-
 		}
+
+		// Menu node for action control
+		this.menu_node = document.createElement('li');
+
+		var icon = this.icon;
+		if (!icon) {
+			if (this.type == 'toggle') icon = this.value ? 'check_box' : 'check_box_outline_blank';
+			if (this.type == 'number') icon = 'tag';
+			if (this.type == 'password') icon = 'password';
+			if (this.type == 'text') icon = 'format_color_text';
+			if (this.type == 'select') icon = 'list';
+			if (!icon) icon = 'settings';
+		}
+		let icon_node = Blockbench.getIconNode(icon);
+		this.menu_node.append(icon_node);
+
+		let span = document.createElement('span');
+		span.innerText = this.name;
+		this.menu_node.append(span);
+
+		let label = document.createElement('label');
+		label.innerText = tl('data.setting');
+		label.className = 'keybinding_label';
+		this.menu_node.append(label);
 	}
 	delete() {
 		if (settings[this.id]) {
@@ -85,6 +108,60 @@ class Setting {
 		}
 		if (typeof this.onChange == 'function' && this.value !== old_value) {
 			this.onChange(this.value);
+		}
+	}
+	trigger(e) {
+		let {type} = this;
+		let setting = this;
+		if (type == 'toggle') {
+			this.set(!this.value);
+			Settings.save();
+
+		} else if (type == 'click') {
+			this.click(e)
+
+		} else if (type == 'select') {
+			let list = [];
+			for (let key in this.options) {
+				list.push({
+					id: key,
+					name: this.options[key],
+					icon: this.value == key
+						? 'radio_button_checked'
+						: 'radio_button_unchecked',
+					click: () => {
+						this.set(key);
+						Settings.save();
+					}
+				})
+			}
+			new Menu(list).open(e.target);
+
+		} else if (type == 'click') {
+			this.click(e)
+
+		} else {
+			new Dialog({
+				id: 'setting_' + this.id,
+				title: tl('data.setting'),
+				form: {
+					input: {
+						value: this.value,
+						label: this.name,
+						description: this.description,
+						type: this.type
+					}
+				},
+				onConfirm({input}) {
+					setting.set(input);
+					Settings.save();
+					this.hide().delete();
+				},
+				onCancel() {
+					this.hide().delete();
+				}
+			}).show();
+
 		}
 	}
 }
@@ -155,8 +232,8 @@ const Settings = {
 		new Setting('background_rendering', 	{category: 'preview', value: true});
 		/*
 		new Setting('transparency',		{category: 'preview', value: true, onChange() {
-			for (var uuid in Canvas.materials) {
-				let material = Canvas.materials[uuid]
+			for (var uuid in Project.materials) {
+				let material = Project.materials[uuid]
 				if (material instanceof THREE.Material) {
 					material.transparent = settings.transparency.value
 				}
@@ -197,7 +274,6 @@ const Settings = {
 		new Setting('ctrl_size',	{category: 'snapping', value: 160, type: 'number'});
 		new Setting('ctrl_shift_size',	{category: 'snapping', value: 640, type: 'number'});
 		new Setting('negative_size',{category: 'snapping', value: false});
-		new Setting('animation_snap',{category: 'snapping', value: 24, type: 'number'});
 
 		//Paint
 		new Setting('sync_color',	{category: 'paint', value: false});
@@ -218,6 +294,7 @@ const Settings = {
 		new Setting('autouv',	   	{category: 'defaults', value: true});
 		new Setting('create_rename', {category: 'defaults', value: false});
 		new Setting('default_path', {category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
+		new Setting('animation_snap',{category: 'defaults', value: 24, type: 'number'});
 		
 		//Dialogs
 		new Setting('dialog_larger_cubes', {category: 'dialogs', value: true});
@@ -423,20 +500,21 @@ BARS.defineActions(() => {
 				}
 			}
 			if (private_data.length) {
-				await new Promise((resolve, reject) => {
+				let go_on = await new Promise((resolve, reject) => {
 					Blockbench.showMessageBox({
 						title: 'dialog.export_private_settings.title',
 						message: tl('dialog.export_private_settings.message', [private_data.map(key => settings[key].name).join(', ')]),
-						buttons: ['dialog.export_private_settings.keep', 'dialog.export_private_settings.remove']
+						buttons: ['dialog.export_private_settings.keep', 'dialog.export_private_settings.omit', 'dialog.cancel']
 					}, result => {
 						if (result == 1) {
 							private_data.forEach(key => {
 								delete settings_copy[key];
 							})
 						}
-						resolve()
+						resolve(result !== 2);
 					})
-				})
+				});
+				if (!go_on) return;
 			}
 			Blockbench.export({
 				resource_id: 'config',

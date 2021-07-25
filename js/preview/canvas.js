@@ -18,38 +18,7 @@ function getRescalingFactor(angle) {
 			break;
 	}
 }
-function getUVArray(side, frame, stretch) {
-	//Used by display preview models
-	if (stretch === undefined) {
-		stretch = -1
-	} else {
-		stretch = stretch*(-1)
-	}
-	var arr = [
-		new THREE.Vector2(side.uv[0]/16, (side.uv[1]/16)/stretch+1),  //0,1
-		new THREE.Vector2(side.uv[0]/16, (side.uv[3]/16)/stretch+1),  //0,0
-		new THREE.Vector2(side.uv[2]/16, (side.uv[3]/16)/stretch+1),   //1,0
-		new THREE.Vector2(side.uv[2]/16, (side.uv[1]/16)/stretch+1)  //1,1
-	]
-	if (frame > 0 && stretch !== -1) {
-		//Animate
-		var offset = (1/stretch) * frame
-		arr[0].y += offset
-		arr[1].y += offset
-		arr[2].y += offset
-		arr[3].y += offset
-	}
-	var rot = (side.rotation+0)
-	while (rot > 0) {
-		arr.push(arr.shift())
-		rot = rot-90;
-	}
-	return arr;
-}
 const Canvas = {
-	materials: {},
-	meshes: {},
-	bones: {},
 	outlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
 		transparent: true,
@@ -61,6 +30,8 @@ const Canvas = {
 	}),
 	solidMaterial: (function() {
 		var vertShader = `
+			attribute float highlight;
+
 			uniform bool SHADE;
 
 			varying float light;
@@ -85,7 +56,7 @@ const Canvas = {
 
 				}
 
-				if (color.b > 1.1) {
+				if (highlight == 1.0) {
 					lift = 0.12;
 				} else {
 					lift = 0.0;
@@ -96,7 +67,7 @@ const Canvas = {
 			}`
 		var fragShader = `
 			#ifdef GL_ES
-			precision highp float;
+			precision ${isApp ? 'highp' : 'mediump'} float;
 			#endif
 
 			uniform bool SHADE;
@@ -126,7 +97,6 @@ const Canvas = {
 			},
 			vertexShader: vertShader,
 			fragmentShader: fragShader,
-			vertexColors: THREE.FaceColors,
 			side: THREE.DoubleSide
 		});
 	})(),
@@ -263,8 +233,8 @@ const Canvas = {
 				objects.push(s)
 			}
 		})
-		for (var uuid in Canvas.meshes) {
-			var mesh = Canvas.meshes[uuid];
+		for (var uuid in Project.nodes_3d) {
+			var mesh = Project.nodes_3d[uuid];
 			objects.safePush(mesh);
 		}
 		objects.forEach(function(s) {
@@ -273,7 +243,7 @@ const Canvas = {
 			}
 			if (s.geometry) s.geometry.dispose()
 			if (s.outline && s.outline.geometry) s.outline.geometry.dispose()
-			delete Canvas.meshes[s.name]
+			delete Project.nodes_3d[s.name]
 		})
 	},
 	updateAll() {
@@ -355,8 +325,8 @@ const Canvas = {
 	},
 	updateRenderSides() {
 		var side = Canvas.getRenderSide();
-		textures.forEach(function(t) {
-			var mat = Canvas.materials[t.uuid]
+		Texture.all.forEach(function(t) {
+			var mat = Project.materials[t.uuid]
 			if (mat) {
 				mat.side = side
 			}
@@ -460,7 +430,7 @@ const Canvas = {
 					var parent_bone = obj.parent.mesh;
 					parent_bone.add(bone);
 				} else {
-					scene.add(bone);
+					Project.model_3d.add(bone);
 				}
 
 				bone.fix_position = bone.position.clone();
@@ -523,16 +493,17 @@ const Canvas = {
 	//Object handlers
 	addCube(obj) {
 		//This does NOT remove old cubes
-		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1))
-		Canvas.meshes[obj.uuid] = mesh;
+		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), emptyMaterials[0]);
+		Project.nodes_3d[obj.uuid] = mesh;
 		mesh.name = obj.uuid;
 		mesh.type = 'cube';
 		mesh.isElement = true;
 
-		Canvas.adaptObjectFaces(obj, mesh)
+		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24).fill(1), 1));
+
 		Canvas.adaptObjectPosition(obj, mesh)
+		Canvas.adaptObjectFaces(obj, mesh)
 		
-		//scene.add(mesh)
 		if (Prop.view_mode === 'textured') {
 			Canvas.updateUV(obj);
 		}
@@ -563,9 +534,8 @@ const Canvas = {
 					to[i] += 0.001
 				}
 			})
-			mesh.geometry.from(from)
-			mesh.geometry.to(to)
-
+			mesh.geometry.setShape(from, to)
+			Canvas.getOutlineMesh(mesh, mesh.outline)
 			mesh.geometry.computeBoundingBox()
 			mesh.geometry.computeBoundingSphere()
 		}
@@ -592,10 +562,10 @@ const Canvas = {
 				mesh.position.y -=  object.parent.origin[1]
 				mesh.position.z -=  object.parent.origin[2]
 			} else {
-				scene.add(mesh)
+				Project.model_3d.add(mesh)
 			}
 		} else if (mesh.parent !== scene) {
-			scene.add(mesh)
+			Project.model_3d.add(mesh)
 		}
 		if (object instanceof Cube) {
 			if (Modes.paint) {
@@ -608,29 +578,30 @@ const Canvas = {
 	adaptObjectFaceGeo(cube) {
 		let {mesh} = cube;
 		let {geometry} = mesh;
-		if (!geometry.all_faces) geometry.all_faces = geometry.faces.slice();
-		geometry.faces.empty()
+		if (!geometry.all_faces) geometry.all_faces = geometry.groups.slice();
+		geometry.groups.empty()
 
 		geometry.all_faces.forEach(face => {
 			let bb_face = cube.faces[Canvas.face_order[face.materialIndex]];
 
-			if (bb_face && bb_face.texture === null && geometry.faces.includes(face)) {
-				geometry.faces.remove(face);
+			if (bb_face && bb_face.texture === null && geometry.groups.includes(face)) {
+				geometry.groups.remove(face);
 			} else
-			if (bb_face && bb_face.texture !== null && !geometry.faces.includes(face)) {
-				geometry.faces.push(face);
+			if (bb_face && bb_face.texture !== null && !geometry.groups.includes(face)) {
+				geometry.groups.push(face);
 			}
 		})
-		if (geometry.faces.length == 0) {
-			// Keek down face if no faces enabled
-			geometry.faces.push(geometry.all_faces[6], geometry.all_faces[7]);
+		if (geometry.groups.length == 0) {
+			// Keep down face if no faces enabled
+			geometry.groups.push(geometry.all_faces[6], geometry.all_faces[7]);
 		}
-		geometry.elementsNeedUpdate = true;
 	},
 	getLayeredMaterial(layers) {
 		if (Canvas.layered_material && !layers) return Canvas.layered_material;
 		// https://codepen.io/Fyrestar/pen/YmpXYr
 		var vertShader = `
+			attribute float highlight;
+
 			uniform bool SHADE;
 
 			varying vec2 vUv;
@@ -658,7 +629,7 @@ const Canvas = {
 
 				}
 
-				if (color.b > 1.1) {
+				if (highlight == 1.0) {
 					lift = 0.1;
 				} else {
 					lift = 0.0;
@@ -670,7 +641,7 @@ const Canvas = {
 			}`
 		var fragShader = `
 			#ifdef GL_ES
-			precision highp float;
+			precision ${isApp ? 'highp' : 'mediump'} float;
 			#endif
 
 			uniform sampler2D t0;
@@ -718,7 +689,6 @@ const Canvas = {
 		  vertexShader: vertShader,
 		  fragmentShader: fragShader,
 		  side: Canvas.getRenderSide(),
-		  vertexColors: THREE.FaceColors,
 		  transparent: true
 		});
 		Canvas.layered_material = material_shh;
@@ -759,7 +729,7 @@ const Canvas = {
 				} else {
 					var tex = cube.faces[face].getTexture()
 					if (tex && tex.uuid) {
-						materials.push(Canvas.materials[tex.uuid])
+						materials.push(Project.materials[tex.uuid])
 					} else {
 						materials.push(emptyMaterials[cube.color])
 					}
@@ -772,8 +742,7 @@ const Canvas = {
 	updateUV(cube, animation = true) {
 		if (Prop.view_mode !== 'textured') return;
 		var mesh = cube.mesh
-		if (mesh === undefined) return;
-		mesh.geometry.faceVertexUvs[0] = [];
+		if (mesh === undefined || !mesh.geometry) return;
 
 		if (Project.box_uv) {
 
@@ -807,8 +776,7 @@ const Canvas = {
 				face_list[1].size = p.size.slice()
 
 			}
-			let fIndex = 0;
-			face_list.forEach(function(f) {
+			face_list.forEach(function(f, fIndex) {
 
 				if (cube.faces[f.face].texture == null) return;
 
@@ -847,18 +815,15 @@ const Canvas = {
 					}
 				}
 
-				Canvas.updateUVFace(mesh.geometry.faceVertexUvs[0], fIndex, {uv: uv}, frame, stretch)
-
-				fIndex += 2;
+				Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, {uv: uv}, frame, stretch)
 			})
 
 		} else {
 		
 			var stretch = 1
 			var frame = 0
-			let fIndex = 0
 
-			Canvas.face_order.forEach(face => {
+			Canvas.face_order.forEach((face, fIndex) => {
 
 				if (cube.faces[face].texture == null) return;
 
@@ -871,67 +836,51 @@ const Canvas = {
 						frame = tex.currentFrame
 					}
 				}
-				Canvas.updateUVFace(mesh.geometry.faceVertexUvs[0], fIndex, cube.faces[face], frame, stretch)
-				fIndex += 2;
+				Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, cube.faces[face], frame, stretch)
 			})
 
 		}
-		mesh.geometry.elementsNeedUpdate = true;
+		mesh.geometry.attributes.uv.needsUpdate = true;
 		return mesh.geometry
 	},
 	updateUVFace(vertex_uvs, index, face, frame = 0, stretch = 1) {
-		stretch *= -1
-
-		if (!vertex_uvs[index]) vertex_uvs[index] = [];
-		if (!vertex_uvs[index+1]) vertex_uvs[index+1] = [];
-		var arr = [
-			vertex_uvs[index][0],
-			vertex_uvs[index][1],
-			vertex_uvs[index+1][1],
-			vertex_uvs[index+1][2],
-		]
-		for (var i = 0; i < 4; i++) {
-			if (arr[i] === undefined) {
-				arr[i] = new THREE.Vector2()
-			}
-		}
+		stretch *= -1;
 		var pw = Project.texture_width;
 		var ph = Project.texture_height;
-		
-		arr[0].set(face.uv[0]/pw, (face.uv[1]/ph)/stretch+1),  //0,1
-		arr[1].set(face.uv[0]/pw, (face.uv[3]/ph)/stretch+1),  //0,0
-		arr[2].set(face.uv[2]/pw, (face.uv[3]/ph)/stretch+1),   //1,0
-		arr[3].set(face.uv[2]/pw, (face.uv[1]/ph)/stretch+1)  //1,1
-
+		var arr = [
+			[face.uv[0]/pw, (face.uv[1]/ph)/stretch+1],
+			[face.uv[2]/pw, (face.uv[1]/ph)/stretch+1],
+			[face.uv[0]/pw, (face.uv[3]/ph)/stretch+1],
+			[face.uv[2]/pw, (face.uv[3]/ph)/stretch+1],
+		]
 		if (frame > 0 && stretch !== -1) {
 			//Animate
 			var offset = (1/stretch) * frame
-			arr[0].y += offset
-			arr[1].y += offset
-			arr[2].y += offset
-			arr[3].y += offset
+			arr[0][1] += offset
+			arr[1][1] += offset
+			arr[2][1] += offset
+			arr[3][1] += offset
 		}
 		var rot = (face.rotation+0)
 		while (rot > 0) {
-			arr.push(arr.shift())
+			let a = arr[0];
+			arr[0] = arr[2];
+			arr[2] = arr[3];
+			arr[3] = arr[1];
+			arr[1] = a;
 			rot = rot-90;
 		}
-		vertex_uvs[index] = [
-			arr[0],
-			arr[1],
-			arr[3]
-		];
-		vertex_uvs[index+1] = [
-			arr[1],
-			arr[2],
-			arr[3]
-		];
+		vertex_uvs.array.set(arr[0], index*8 + 0);  //0,1
+		vertex_uvs.array.set(arr[1], index*8 + 2);  //1,1
+		vertex_uvs.array.set(arr[2], index*8 + 4);  //0,0
+		vertex_uvs.array.set(arr[3], index*8 + 6);  //1,0
 	},
 	//Outline
-	getOutlineMesh(mesh) {
-		var vs = mesh.geometry.vertices
-		var geometry = new THREE.Geometry()
-		geometry.vertices = [
+	getOutlineMesh(mesh, line) {
+		var vs = [0,1,2,3,4,5,6,7].map(i => {
+			return mesh.geometry.attributes.position.array.slice(i*3, i*3 + 3)
+		});
+		let points = [
 			vs[2], vs[3],
 			vs[6], vs[7],
 			vs[2], vs[0],
@@ -940,9 +889,13 @@ const Canvas = {
 			vs[5], vs[7],
 			vs[6], vs[4],
 			vs[1], vs[3]
-		]
-		var line = new THREE.Line(geometry, Canvas.outlineMaterial);
-		line.no_export = true;
+		].map(a => new THREE.Vector3().fromArray(a))
+		if (!line) {
+			var geometry = new THREE.BufferGeometry();
+			line = new THREE.Line(geometry, Canvas.outlineMaterial);
+			line.no_export = true;
+		}
+		line.geometry.setFromPoints(points);
 		return line;
 	},
 	buildOutline(obj) {
@@ -1013,18 +966,22 @@ const Canvas = {
 			var texture = face.getTexture();
 			if (texture == null) return;
 
+			var px_x = texture ? Project.texture_width / texture.width : 1;
+			var px_y = texture ? Project.texture_height / texture.height : 1;
 			var uv_size = [
 				Math.abs(face.uv_size[0]),
 				Math.abs(face.uv_size[1])
 			]
 			uv_offset = [
 				uv_offset[0] == true
-					? (face.uv_size[0] > 0 ? (1-face.uv[2]%1) : (  face.uv[2]%1))
-					: (face.uv_size[0] > 0 ? (  face.uv[0]%1) : (1-face.uv[0]%1)),
+					? (face.uv_size[0] > 0 ? (px_x-face.uv[2]) : (	   face.uv[2]))
+					: (face.uv_size[0] > 0 ? (     face.uv[0]) : (px_x-face.uv[0])),
 				uv_offset[1] == true
-					? (face.uv_size[1] > 0 ? (1-face.uv[3]%1) : (  face.uv[3]%1))
-					: (face.uv_size[1] > 0 ? (  face.uv[1]%1) : (1-face.uv[1]%1))
+					? (face.uv_size[1] > 0 ? (px_y-face.uv[3]) : (	   face.uv[3]))
+					: (face.uv_size[1] > 0 ? (     face.uv[1]) : (px_y-face.uv[1]))
 			]
+			uv_offset[0] = uv_offset[0] % px_x;
+			uv_offset[1] = uv_offset[1] % px_y;
 			
 			if ((face.rotation % 180 == 90) != (axis == 0)) {
 				uv_size.reverse();
@@ -1036,7 +993,6 @@ const Canvas = {
 			//Columns
 			var width = end[0]-start[0];
 			var step = Math.abs( width / uv_size[0] );
-			uv_offset[0] *= step;
 			if (texture) step *= Project.texture_width / texture.width;
 			if (step < epsilon) step = epsilon;
 
@@ -1050,7 +1006,6 @@ const Canvas = {
 			//lines
 			var height = end[1]-start[1];
 			var step = Math.abs( height / uv_size[1] );
-			uv_offset[1] *= step;
 			let tex_height = texture.frameCount ? (texture.height / texture.frameCount) : texture.height;
 			if (texture) step *= Project.texture_height / tex_height;
 			if (step < epsilon) step = epsilon;

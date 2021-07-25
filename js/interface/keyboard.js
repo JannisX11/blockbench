@@ -455,6 +455,7 @@ BARS.defineActions(() => {
 			var keys = {}
 
 			Keybinds.actions.forEach(item => {
+				if (!Keybinds.stored[item.id]) return
 				if (Keybinds.stored[item.id].key == -1) {
 					keys[item.id] = null;
 				} else {
@@ -491,7 +492,7 @@ window.addEventListener('focus', event => {
 		if (event.altKey && Toolbox.selected.alt_tool && !Toolbox.original && !open_interface) {
 			var orig = Toolbox.selected;
 			var alt = BarItems[Toolbox.selected.alt_tool];
-			if (alt && Condition(alt) && Modes.paint) {
+			if (alt && Condition(alt) && (Modes.paint || BarItems.swap_tools.keybind.key == 18)) {
 				alt.select()
 				Toolbox.original = orig;
 			}
@@ -566,9 +567,9 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 			}
 			return;
 		}
-		if ($('input#chat_input:focus').length && EditSession.active) {
+		if ($('input#chat_input:focus').length && Project.EditSession) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-				Chat.send();
+				Interface.Panels.chat.inside_vue.sendMessage();
 				return;
 			}
 		}
@@ -596,7 +597,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		//Alt Tool
 		var orig = Toolbox.selected;
 		var alt = BarItems[Toolbox.selected.alt_tool]
-		if (alt && Condition(alt) && Modes.paint) {
+		if (alt && Condition(alt) && (Modes.paint || BarItems.swap_tools.keybind.key == 18)) {
 			alt.select()
 			Toolbox.original = orig
 		}

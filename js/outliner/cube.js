@@ -32,7 +32,7 @@ class Face {
 			this.texture = null;
 		} else if (data.texture === false) {
 			this.texture = false;
-		} else if (textures.includes(data.texture)) {
+		} else if (Texture.all.includes(data.texture)) {
 			this.texture = data.texture.uuid;
 		} else if (typeof data.texture === 'string') {
 			Merge.string(this, data, 'texture')
@@ -56,7 +56,7 @@ class Face {
 			return Texture.getDefault();
 		}
 		if (typeof this.texture === 'string') {
-			return textures.findInArray('uuid', this.texture)
+			return Texture.all.findInArray('uuid', this.texture)
 		} else {
 			return this.texture;
 		}
@@ -72,7 +72,7 @@ class Face {
 		if (tex === null) {
 			copy.texture = null;
 		} else if (tex instanceof Texture) {
-			copy.texture = textures.indexOf(tex)
+			copy.texture = Texture.all.indexOf(tex)
 		}
 		return copy;
 	}
@@ -253,7 +253,7 @@ class Cube extends OutlinerElement {
 		return this.mesh;
 	}
 	get mesh() {
-		return Canvas.meshes[this.uuid];
+		return Project.nodes_3d[this.uuid];
 	}
 	get index() {
 		return elements.indexOf(this)
@@ -266,12 +266,12 @@ class Cube extends OutlinerElement {
 				if (mesh.parent) {
 					mesh.parent.remove(mesh)
 				}
-				delete Canvas.meshes[this.uuid]
+				delete Project.nodes_3d[this.uuid]
 				mesh.geometry.dispose()
 				if (mesh.outline && mesh.outline.geometry) mesh.outline.geometry.dispose()
 			}
 		}
-		delete Canvas.meshes[this.uuid]
+		delete Project.nodes_3d[this.uuid]
 		if (Transformer.dragging) {
 			outlines.remove(outlines.getObjectByName(this.uuid+'_ghost_outline'))
 		}
@@ -521,7 +521,7 @@ class Cube extends OutlinerElement {
 		var dq = new THREE.Vector3().copy(shift)
 		dq.applyQuaternion(q)
 		shift.sub(dq)
-		shift.applyQuaternion(q.inverse())
+		shift.applyQuaternion(q.invert())
 		
 		this.moveVector(shift, null, update)
 
@@ -820,7 +820,7 @@ class Cube extends OutlinerElement {
 					}, 'texture transparent')
 				}}
 			]
-			textures.forEach(function(t) {
+			Texture.all.forEach(function(t) {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
@@ -844,13 +844,11 @@ class Cube extends OutlinerElement {
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	Cube.selected = [];
-	Cube.all = [];
 
 	new Property(Cube, 'string', 'name', {default: 'cube'})
 	new Property(Cube, 'boolean', 'rescale')
 
-	OutlinerElement.types.cube = Cube;
+	OutlinerElement.registerType(Cube, 'cube');
 
 BARS.defineActions(function() {
 	new Action({
@@ -868,7 +866,7 @@ BARS.defineActions(function() {
 			var group = getCurrentGroup();
 			base_cube.addTo(group)
 
-			if (textures.length && Format.single_texture) {
+			if (Texture.all.length && Format.single_texture) {
 				for (var face in base_cube.faces) {
 					base_cube.faces[face].texture = Texture.getDefault().uuid
 				}

@@ -478,7 +478,6 @@ const MenuBar = {
 			'project_window',
 			'_',
 			{name: 'menu.file.new', id: 'new', icon: 'insert_drive_file',
-				condition: () => (!EditSession.active || EditSession.hosting),
 				children: function() {
 					var arr = [];
 					for (var key in Formats) {
@@ -499,7 +498,7 @@ const MenuBar = {
 				}
 			},
 			{name: 'menu.file.recent', id: 'recent', icon: 'history',
-				condition: function() {return isApp && recent_projects.length && (!EditSession.active || EditSession.hosting)},
+				condition: function() {return isApp && recent_projects.length},
 				children: function() {
 					var arr = []
 					let redact = settings.streamer_mode.value;
@@ -629,14 +628,8 @@ const MenuBar = {
 		})
 		
 		new BarMenu('filter', [
+			'hide_everything_except_selection',
 			'remove_blank_faces',
-			/*
-			plaster
-			optimize
-			sort by transparency
-			entity / player model / shape generator
-			*/
-
 		])
 
 		new BarMenu('animation', [
@@ -692,6 +685,9 @@ const MenuBar = {
 			}},
 			{name: 'menu.help.quickstart', id: 'discord', icon: 'fas.fa-directions', click: () => {
 				Blockbench.openLink('https://blockbench.net/quickstart/');
+			}},
+			{name: 'menu.help.wiki', id: 'wiki', icon: 'menu_book', click: () => {
+				Blockbench.openLink('https://blockbench.net/wiki/');
 			}},
 			{name: 'menu.help.report_issue', id: 'report_issue', icon: 'bug_report', click: () => {
 				Blockbench.openLink('https://github.com/JannisX11/blockbench/issues');

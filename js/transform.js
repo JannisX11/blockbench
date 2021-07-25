@@ -41,7 +41,8 @@ function origin2geometry() {
 	Canvas.updateView({
 		elements: Cube.selected,
 		element_aspects: {geometry: true},
-		groups: Group.selected && [Group.selected]
+		groups: Group.selected && [Group.selected],
+		selection: true
 	});
 	Undo.finishEdit('Center pivot')
 }
@@ -350,7 +351,7 @@ const Vertexsnap = {
 				}
 
 				Vertexsnap.cubes.forEach(function(obj) {
-					var q = obj.mesh.getWorldQuaternion(new THREE.Quaternion()).inverse()
+					var q = obj.mesh.getWorldQuaternion(new THREE.Quaternion()).invert()
 					var cube_pos = new THREE.Vector3().copy(global_delta).applyQuaternion(q)
 
 					for (i=0; i<3; i++) {
@@ -369,7 +370,7 @@ const Vertexsnap = {
 					var cube_pos = new THREE.Vector3().copy(global_delta)
 
 					if (Format.bone_rig && obj.parent instanceof Group && obj.mesh.parent) {
-						var q = obj.mesh.parent.getWorldQuaternion(new THREE.Quaternion()).inverse();
+						var q = obj.mesh.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
 						cube_pos.applyQuaternion(q);
 					}
 					if (Format.rotate_cubes) {
@@ -572,7 +573,7 @@ function moveElementsInSpace(difference, axis) {
 
 			var rotation = new THREE.Quaternion();
 			group.mesh.parent.getWorldQuaternion(rotation);
-			group_m.applyQuaternion(rotation.inverse());
+			group_m.applyQuaternion(rotation.invert());
 
 			group.forEachChild(g => {
 				g.origin.V3_add(group_m.x, group_m.y, group_m.z);
@@ -638,7 +639,7 @@ function moveElementsInSpace(difference, axis) {
 					} else if (el.parent instanceof Group) {
 						el.parent.mesh.getWorldQuaternion(rotation);
 					}
-					m.applyQuaternion(rotation.inverse());
+					m.applyQuaternion(rotation.invert());
 				}
 			}
 
@@ -708,7 +709,7 @@ function rotateOnAxis(modify, axis, slider) {
 			rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(modify(0)))
 			rotWorldMatrix.multiply(obj.matrixWorld)
 
-			let inverse = new THREE.Matrix4().getInverse(obj.parent.matrixWorld)
+			let inverse = new THREE.Matrix4().copy(obj.parent.matrixWorld).invert()
 			rotWorldMatrix.premultiply(inverse)
 
 			obj.matrix.copy(rotWorldMatrix)
@@ -825,7 +826,7 @@ function rotateOnAxis(modify, axis, slider) {
 			rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(modify(0)))
 			rotWorldMatrix.multiply(mesh.matrixWorld)
 
-			let inverse = new THREE.Matrix4().getInverse(mesh.parent.matrixWorld)
+			let inverse = new THREE.Matrix4().copy(mesh.parent.matrixWorld).invert()
 			rotWorldMatrix.premultiply(inverse)
 
 			mesh.matrix.copy(rotWorldMatrix)

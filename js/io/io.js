@@ -34,7 +34,7 @@ function setupDragHandlers() {
 		function(files, event) {
 			var texture_li = $(event.target).parents('li.texture')
 			if (texture_li.length) {
-				var tex = textures.findInArray('uuid', texture_li.attr('texid'))
+				var tex = Texture.all.findInArray('uuid', texture_li.attr('texid'))
 				if (tex) {
 					tex.fromFile(files[0])
 					TickUpdates.selection = true;
@@ -240,7 +240,7 @@ var Extruder = {
 			s.addTo(group).init()
 		})
 
-		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [textures[textures.length-1]]})
+		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [Texture.all[Texture.all.length-1]]})
 
 		hideDialog()
 	}
@@ -447,7 +447,7 @@ BARS.defineActions(function() {
 		icon: 'assessment',
 		category: 'file',
 		keybind: new Keybind({key: 'o', ctrl: true}),
-		condition: () => (!EditSession.active || EditSession.hosting),
+		condition: () => (!Project.EditSession || Project.EditSession.hosting),
 		click: function () {
 			var startpath;
 			if (isApp && recent_projects && recent_projects.length) {
@@ -495,10 +495,10 @@ BARS.defineActions(function() {
 			if (isApp) {
 				saveTextures()
 				if (Format) {
-					if (ModelMeta.export_path && Format.codec && Format.codec.compile) {
-						Format.codec.write(Format.codec.compile(), ModelMeta.export_path)
-					} else if (ModelMeta.save_path) {
-						Codecs.project.write(Codecs.project.compile(), ModelMeta.save_path);
+					if (Project.export_path && Format.codec && Format.codec.compile) {
+						Format.codec.write(Format.codec.compile(), Project.export_path)
+					} else if (Project.save_path) {
+						Codecs.project.write(Codecs.project.compile(), Project.save_path);
 					} else if (Format.codec && Format.codec.export) {
 						Format.codec.export()
 					}
@@ -524,7 +524,7 @@ BARS.defineActions(function() {
 				var content = Format.codec.compile()
 				var name = `${Format.codec.fileName()}.${Format.codec.extension}`
 				archive.file(name, content)
-				textures.forEach(tex => {
+				Texture.all.forEach(tex => {
 					if (tex.mode === 'bitmap') {
 						archive.file(pathToName(tex.name) + '.png', tex.source.replace('data:image/png;base64,', ''), {base64: true});
 					}
@@ -534,11 +534,11 @@ BARS.defineActions(function() {
 						type: 'Zip Archive',
 						extensions: ['zip'],
 						name: 'assets',
-						startpath: ModelMeta.export_path,
+						startpath: Project.export_path,
 						content: content,
 						savetype: 'zip'
 					})
-					Prop.project_saved = true;
+					Project.saved = true;
 				})
 			}
 		})

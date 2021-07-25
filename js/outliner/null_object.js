@@ -95,15 +95,13 @@ class NullObject extends OutlinerElement {
 			'rename',
 			'delete'
 		])
-	NullObject.selected = [];
-	NullObject.all = [];
 	
 	new Property(NullObject, 'string', 'name', {default: 'null_object'})
 	new Property(NullObject, 'vector', 'from')
 	new Property(NullObject, 'boolean', 'ik_enabled', {condition: () => Format.animation_mode});
 	new Property(NullObject, 'number', 'ik_chain_length', {condition: () => Format.animation_mode});
 	
-	OutlinerElement.types.null_object = NullObject;
+	OutlinerElement.registerType(NullObject, 'null_object');
 
 BARS.defineActions(function() {
 	new Action('add_null_object', {

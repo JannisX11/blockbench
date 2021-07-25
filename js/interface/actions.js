@@ -1418,9 +1418,9 @@ const BARS = {
 			new Action('open_model_folder', {
 				icon: 'folder_open',
 				category: 'file',
-				condition: () => {return isApp && (ModelMeta.save_path || ModelMeta.export_path)},
+				condition: () => {return isApp && (Project.save_path || Project.export_path)},
 				click: function () {
-					shell.showItemInFolder(ModelMeta.export_path || ModelMeta.save_path);
+					shell.showItemInFolder(Project.export_path || Project.save_path);
 				}
 			})
 			new Action('open_backup_folder', {
@@ -1593,7 +1593,7 @@ const BARS = {
 			new Action('toggle_sidebars', {
 				icon: 'view_array',
 				category: 'view',
-				condition: () => !Blockbench.isMobile && !Mode.selected.hide_sidebars,
+				condition: () => !Blockbench.isMobile && Mode.selected && !Mode.selected.hide_sidebars,
 				keybind: new Keybind({key: 'b', ctrl: true}),
 				click: function () {
 					let status = !Prop.show_left_bar;
@@ -1972,7 +1972,7 @@ const BARS = {
 				list: []
 			},
 			computed: {
-				actions: function() {
+				actions() {
 					var search_input = this._data.search_input.toUpperCase()
 					var list = this._data.list.empty()
 					for (var i = 0; i < Keybinds.actions.length; i++) {
@@ -1982,9 +1982,24 @@ const BARS = {
 							item.name.toUpperCase().includes(search_input) ||
 							item.id.toUpperCase().includes(search_input)
 						) {
-							if (item instanceof Action && BARS.condition(item.condition)) {
+							if (item instanceof Action && Condition(item.condition)) {
 								list.push(item)
-								if (list.length > ActionControl.max_length) i = Infinity;
+								if (list.length > ActionControl.max_length) break;
+							}
+						}
+					}
+					if (list.length <= ActionControl.max_length) {
+						for (let key in settings) {
+							let setting = settings[key];
+							if (
+								search_input.length == 0 ||
+								setting.name.toUpperCase().includes(search_input) ||
+								key.toUpperCase().includes(search_input)
+							) {
+								if (Condition(setting.condition)) {
+									list.push(setting)
+									if (list.length > ActionControl.max_length) break;
+								}
 							}
 						}
 					}
@@ -1996,6 +2011,24 @@ const BARS = {
 						this._data.index = list.length-1;
 					}
 					return list;
+				}
+			},
+			methods: {
+				subtext() {
+					let action = this.actions[this.index];
+					if (Pressing.alt) {
+						if (action instanceof Setting) {
+							if (action.type == 'select') {
+								return action.options[action.value];
+							} else {
+								return action.value;
+							}
+						} else {
+							action.keybind.label;
+						}
+					} else {
+						return action.description;
+					}
 				}
 			},
 			template: `
@@ -2011,7 +2044,7 @@ const BARS = {
 								@mouseenter="index = i"
 							></li>
 						</ul>
-						<div class="small_text" v-if="actions[index]">{{ Pressing.alt ? actions[index].keybind.label : actions[index].description }}</div>
+						<div class="small_text" v-if="actions[index]">{{ subtext() }}</div>
 					</div>
 				</dialog>
 			`
@@ -2043,6 +2076,14 @@ const ActionControl = {
 		Vue.nextTick(_ => {
 			$('#action_selector > input').focus().select();
 		})
+
+		// Update settings icons. Might need to be moved
+		for (let key in settings) {
+			let setting = settings[key];
+			if (setting.type == 'toggle') {
+				setting.menu_node.children[0].innerText = setting.value ? 'check_box' : 'check_box_outline_blank';
+			}
+		}
 	},
 	hide() {
 		open_interface = false;
@@ -2064,7 +2105,7 @@ const ActionControl = {
 			$('body').effect('shake');
 			Blockbench.showQuickMessage('Congratulations! You have discovered recursion!', 3000)
 		}
-		action.trigger(e)
+		action.trigger(e);
 	},
 	click(action, e) {
 		ActionControl.trigger(action, e)

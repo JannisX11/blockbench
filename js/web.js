@@ -12,42 +12,44 @@ function initializeWebApp() {
 		document.body.style.imageRendering = 'crisp-edges'
 	}
 }
-window.matchMedia('(display-mode: standalone)').addEventListener('change', (evt) => {
-	if (!Blockbench.isMobile) $('#web_download_button').toggle(!evt.matches);
-});
+try {
+	window.matchMedia('(display-mode: standalone)').addEventListener('change', (evt) => {
+		if (!Blockbench.isMobile) $('#web_download_button').toggle(!evt.matches);
+	});
+} catch (err) {
+	if (!Blockbench.isMobile) $('#web_download_button').hide();
+}
 
 function loadInfoFromURL() {
 	if (location.hash.substr(1, 8) == 'session=') {
-		EditSession.dialog()
-		$('#edit_session_token').val(location.hash.substr(9))
+		EditSession.token = location.hash.substr(9);
+		BarItems.edit_session.click();
 	}
+
 	if (location.hash.substr(1, 2) == 'm=') {
 		$.getJSON(`https://blckbn.ch/api/models/${location.hash.substr(3)}`, (model) => {
-			if (showSaveDialog()) {
-				resetProject();
-				Codecs.project.load(model, {path: ''});
-			}
+			Codecs.project.load(model, {path: ''});
 		})
 	}
 }
 
 //Misc
 window.onbeforeunload = function() {
-	if (Prop.project_saved === false && elements.length > 0) {
+	if (Project.saved === false && elements.length > 0) {
 		return 'Unsaved Changes';
 	} else {
 		Blockbench.dispatchEvent('before_closing')
-		EditSession.quit()
+		if (Project.EditSession) Project.EditSession.quit()
 	}
 }
 function showSaveDialog(close) {
 	var unsaved_textures = 0;
-	textures.forEach(function(t) {
+	Texture.all.forEach(function(t) {
 		if (!t.saved) {
 			unsaved_textures++;
 		}
 	})
-	if ((Prop.project_saved === false && elements.length > 0) || unsaved_textures) {
+	if ((Project.saved === false && elements.length > 0) || unsaved_textures) {
 
 		var answer = confirm(tl('message.close_warning.web'))
 		return answer;
