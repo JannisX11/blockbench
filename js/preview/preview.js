@@ -1823,9 +1823,9 @@ function initCanvas() {
 	scene.add(Vertexsnap.vertexes)
 	Vertexsnap.vertexes.name = 'vertex_handles'
 
-	outlines = new THREE.Object3D();
-	outlines.name = 'outline_group'
-	scene.add(outlines)
+	Canvas.outlines = new THREE.Object3D();
+	Canvas.outlines.name = 'outline_group'
+	scene.add(Canvas.outlines)
 
 
 	canvas_scenes = {

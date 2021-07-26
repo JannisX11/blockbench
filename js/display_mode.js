@@ -1466,8 +1466,8 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 
 	display_area.updateMatrixWorld()
 	Transformer.center()
-	if (outlines.children.length) {
-		outlines.children.length = 0
+	if (Canvas.outlines.children.length) {
+		Canvas.outlines.children.empty();
 	}
 }
 exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the scene etc

@@ -112,8 +112,7 @@ class Cube extends OutlinerElement {
 		this.rotation = [0, 0, 0];
 		this.origin = [0, 0, 0];
 		this.visibility = true;
-		this.autouv = 0
-		this.parent = 'root';
+		this.autouv = 0;
 
 		for (var key in Cube.properties) {
 			Cube.properties[key].reset(this);
@@ -251,25 +250,6 @@ class Cube extends OutlinerElement {
 	}
 	get mesh() {
 		return Project.nodes_3d[this.uuid];
-	}
-	remove() {
-		super.remove();
-		if (this.visibility) {
-			var mesh = this.mesh
-			if (mesh) {
-				if (mesh.parent) {
-					mesh.parent.remove(mesh)
-				}
-				delete Project.nodes_3d[this.uuid]
-				mesh.geometry.dispose()
-				if (mesh.outline && mesh.outline.geometry) mesh.outline.geometry.dispose()
-			}
-		}
-		delete Project.nodes_3d[this.uuid]
-		if (Transformer.dragging) {
-			outlines.remove(outlines.getObjectByName(this.uuid+'_ghost_outline'))
-		}
-		delete this;
 	}
 	getUndoCopy(aspects = 0) {
 		var copy = new Cube(this)
@@ -857,7 +837,6 @@ new NodePreviewController(Cube, {
 
 		this.updateTransform(element);
 		this.updateGeometry(element);
-		this.updateHierarchy(element);
 		this.updateFaces(element);
 		
 		if (Prop.view_mode === 'textured') {

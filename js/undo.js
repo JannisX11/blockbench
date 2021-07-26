@@ -60,7 +60,7 @@ class UndoSystem {
 	}
 	cancelEdit() {
 		if (!this.current_save) return;
-		outlines.children.length = 0
+		Canvas.outlines.children.empty();
 		this.loadSave(this.current_save, new UndoSystem.save(this.current_save.aspects))
 		delete this.current_save;
 	}

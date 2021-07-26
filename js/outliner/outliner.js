@@ -530,12 +530,31 @@ class NodePreviewController {
 		let {mesh} = element;
 		if (mesh.parent) mesh.parent.remove(mesh);
 		if (mesh.geometry) mesh.geometry.dispose();
-		if (mesh.outline && mesh.outline.geometry) mesh.outline.geometry.dispose();
+		if (mesh.outline && mesh.outline.geometry) {
+			mesh.outline.geometry.dispose();
+			if (Transformer.dragging) {
+				Canvas.outlines.remove(Canvas.outlines.getObjectByName(this.uuid+'_ghost_outline'))
+			}
+		}
 		delete Project.nodes_3d[obj.uuid];
 	}
-	updateHierarchy(element) {
-		let {mesh} = element;
-		console.log
+	updateTransform(element) {
+		let mesh = element.mesh;
+
+
+		mesh.scale.set(1, 1, 1)
+		mesh.rotation.set(0, 0, 0)
+
+		if (element.movable) {
+			mesh.position.set(element.origin[0], element.origin[1], element.origin[2])
+		}
+
+		if (element.rotatable) {
+			mesh.rotation.x = Math.degToRad(element.rotation[0]);
+			mesh.rotation.y = Math.degToRad(element.rotation[1]);
+			mesh.rotation.z = Math.degToRad(element.rotation[2]);
+		}
+
 		if (Format.bone_rig) {
 			if (element.parent instanceof Group) {
 				element.parent.mesh.add(mesh);
@@ -548,28 +567,7 @@ class NodePreviewController {
 		} else if (mesh.parent !== scene) {
 			Project.model_3d.add(mesh)
 		}
-	}
-	updateTransform(element) {
-		let mesh = element.mesh;
 
-		this.updateHierarchy(element);
-
-		mesh.scale.set(1, 1, 1)
-		mesh.rotation.set(0, 0, 0)
-		if (element.movable) {
-			mesh.position.set(element.origin[0], element.origin[1], element.origin[2])
-			if (Format.bone_rig && element.parent instanceof Group) {
-				mesh.position.x -= element.parent.origin[0];
-				mesh.position.y -= element.parent.origin[1];
-				mesh.position.z -= element.parent.origin[2];
-			}
-		}
-		if (element.rotatable) {
-
-			mesh.rotation.x = Math.degToRad(element.rotation[0]);
-			mesh.rotation.y = Math.degToRad(element.rotation[1]);
-			mesh.rotation.z = Math.degToRad(element.rotation[2]);
-		}
 		mesh.updateMatrixWorld();
 	}
 	updateVisibility(element) {

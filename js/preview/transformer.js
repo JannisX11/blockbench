@@ -1489,7 +1489,7 @@
 					mouseUpEvent.mode = _mode;
 					scope.dispatchEvent( mouseUpEvent );
 					scope.orbit_controls.stopMovement();
-					outlines.children.length = 0;
+					Canvas.outlines.children.length = 0;
 					originalValue = null;
 
 					extendTransformLine(false);

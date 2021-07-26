@@ -123,7 +123,7 @@ const Canvas = {
 			edit(Canvas.side_grids.x)
 			edit(Canvas.side_grids.z)
 			edit(Transformer)
-			edit(outlines)
+			edit(Canvas.outlines)
 			edit(rot_origin)
 			edit(Vertexsnap.vertexes)
 			edit(Animator.motion_trail)
@@ -389,7 +389,7 @@ const Canvas = {
 			mesh.getWorldScale(line.scale)
 
 			line.name = obj.uuid+'_ghost_outline'
-			outlines.add(line)
+			Canvas.outlines.add(line)
 		})
 	},
 	updateAllBones(bones = Group.all) {
