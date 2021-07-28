@@ -217,7 +217,7 @@ const Vertexsnap = {
 		if (id == 100) {
 			mesh.rotation.y += Math.PI/4;
 		}
-		mesh.cube = cube
+		mesh.element = cube
 		mesh.isVertex = true
 		mesh.vertex_id = id
 		mesh.material.transparent = true;

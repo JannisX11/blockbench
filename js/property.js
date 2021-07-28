@@ -107,7 +107,7 @@ class Property {
 			if (instance[this.name] instanceof Array == false) {
 				instance[this.name] = [];
 			}
-			instance[this.name].replace(dft);
+			instance[this.name].replace(dft || []);
 		} else {
 			instance[this.name] = dft;
 		}

@@ -10,7 +10,7 @@ class Mode extends KeybindItem {
 		this.selected = false
 
 		this.default_tool = data.default_tool;
-		this.selectCubes = data.selectCubes !== false
+		this.selectElements = data.selectElements !== false
 
 		this.center_windows = data.center_windows||[];
 		this.hide_toolbars = data.hide_toolbars
@@ -202,7 +202,7 @@ BARS.defineActions(function() {
 		},
 	})
 	new Mode('display', {
-		selectCubes: false,
+		selectElements: false,
 		default_tool: 'move_tool',
 		category: 'navigate',
 		condition: () => Format.display_mode,

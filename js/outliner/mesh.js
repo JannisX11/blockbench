@@ -1,14 +1,131 @@
+class MeshFace {
+	constructor(mesh, data) {
+		this.mesh = mesh;
+		//this.vertices = [];
+		//this.normal = [0, 1, 0];
+		this.texture = false;
+		this.uv = {};
+		for (var key in MeshFace.properties) {
+			MeshFace.properties[key].reset(this);
+		}
+		this.extend(data);
+	}
+	extend(data) {
+		for (var key in MeshFace.properties) {
+			MeshFace.properties[key].merge(this, data)
+		}
+		if (data.texture === null) {
+			this.texture = null;
+		} else if (data.texture === false) {
+			this.texture = false;
+		} else if (Texture.all.includes(data.texture)) {
+			this.texture = data.texture.uuid;
+		} else if (typeof data.texture === 'string') {
+			Merge.string(this, data, 'texture')
+		}
+		return this;
+	}
+	getSaveCopy() {
+		var copy = {
+			uv: this.uv
+		};
+		for (var key in MeshFace.properties) {
+			if (this[key] != MeshFace.properties[key].default) MeshFace.properties[key].copy(this, copy);
+		}
+		var tex = this.getTexture()
+		if (tex === null) {
+			copy.texture = null;
+		} else if (tex instanceof Texture) {
+			copy.texture = Texture.all.indexOf(tex)
+		}
+		return copy;
+	}
+	getUndoCopy() {
+		var copy = new MeshFace(this.mesh, this);
+		delete copy.mesh;
+		return copy;
+	}
+	reset() {
+		for (var key in Mesh.properties) {
+			Mesh.properties[key].reset(this);
+		}
+		this.texture = false;
+		return this;
+	}
+	getTexture() {
+		if (Format.single_texture) {
+			return Texture.getDefault();
+		}
+		if (typeof this.texture === 'string') {
+			return Texture.all.findInArray('uuid', this.texture)
+		} else {
+			return this.texture;
+		}
+	}
+}
+new Property(MeshFace, 'array', 'vertices', {default: 0});
+new Property(MeshFace, 'vector', 'normal', {default: 0});
+
 
 class Mesh extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 
+		this.vertices = {};
+		this.faces = [];
+
+		if (!data.vertices) {
+			this.addVertices([1, 1, 1], [1, 1, 0], [1, 0, 1], [1, 0, 0], [0, 1, 1], [0, 1, 0], [0, 0, 1], [0, 0, 0]);
+			let vertex_keys = Object.keys(this.vertices);
+			this.faces.push(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[2], vertex_keys[3]]} ));	// East
+			this.faces.push(new MeshFace( this, {vertices: [vertex_keys[4], vertex_keys[5], vertex_keys[6], vertex_keys[7]]} ));	// West
+			this.faces.push(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[4], vertex_keys[5]]} ));	// Up
+			this.faces.push(new MeshFace( this, {vertices: [vertex_keys[2], vertex_keys[3], vertex_keys[6], vertex_keys[7]]} ));	// Down
+			this.faces.push(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[4], vertex_keys[6]]} ));	// South
+			this.faces.push(new MeshFace( this, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[5], vertex_keys[7]]} ));	// North
+		}
 		for (var key in Mesh.properties) {
 			Mesh.properties[key].reset(this);
 		}
 		if (data && typeof data === 'object') {
 			this.extend(data)
 		}
+	}
+	get from() {
+		return this.origin;
+	}
+	get vertice_list() {
+		return Object.keys(this.vertices).map(key => this.vertices[key]);
+	}
+	getWorldCenter() {
+		var m = this.mesh;
+		var pos = new THREE.Vector3()
+
+		let vertice_list = this.vertice_list;
+		vertice_list.forEach(vector => {
+			pos.x += vector[0];
+			pos.y += vector[1];
+			pos.z += vector[2];
+		})
+		pos.x /= vertice_list.length;
+		pos.y /= vertice_list.length;
+		pos.z /= vertice_list.length;
+
+		if (m) {
+			var r = m.getWorldQuaternion(new THREE.Quaternion())
+			pos.applyQuaternion(r)
+			pos.add(THREE.fastWorldPosition(m, new THREE.Vector3()))
+		}
+		return pos;
+	}
+	addVertices(...vectors) {
+		vectors.forEach(vector => {
+			let key;
+			while (!key || this.vertices[key]) {
+				key = bbuid(4);
+			}
+			this.vertices[key] = [...vector];
+		})
 	}
 	extend(object) {
 		for (var key in Mesh.properties) {
@@ -39,6 +156,7 @@ class Mesh extends OutlinerElement {
 	Mesh.prototype.type = 'mesh';
 	Mesh.prototype.icon = 'fa far fa-gem';
 	Mesh.prototype.movable = true;
+	Mesh.prototype.resizable = false;
 	Mesh.prototype.rotatable = true;
 	Mesh.prototype.needsUniqueName = false;
 	Mesh.prototype.menu = new Menu([
@@ -102,7 +220,157 @@ new Property(Mesh, 'boolean', 'visibility', {default: true});
 
 OutlinerElement.registerType(Mesh, 'mesh');
 
-new NodePreviewController(Mesh)
+new NodePreviewController(Mesh, {
+	setup(element) {
+		var mesh = new THREE.Mesh(new THREE.BufferGeometry(1, 1, 1), emptyMaterials[0]);
+		Project.nodes_3d[element.uuid] = mesh;
+		mesh.name = element.uuid;
+		mesh.type = element.type;
+		mesh.isElement = true;
+
+		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24).fill(1), 1));
+
+		this.updateTransform(element);
+		this.updateGeometry(element);
+		this.updateFaces(element);
+		
+		if (Prop.view_mode === 'textured') {
+			this.updateUV(element);
+		}
+		mesh.visible = element.visibility;
+
+		let material = new THREE.PointsMaterial({size: 5, sizeAttenuation: false});
+		let points = new THREE.Points(mesh.geometry, material)
+		mesh.add(points);
+		//Canvas.buildOutline(element);
+	},
+	updateGeometry(element) {
+		
+		let {mesh} = element;
+		let position_array = [];
+		let position_indices = [];
+		let indices = [];
+
+		for (let key in element.vertices) {
+			let vector = element.vertices[key];
+			position_indices.push(key);
+			position_array.push(...vector);
+		}
+
+		element.faces.forEach(face => {
+			if (face.vertices.length == 3) {
+				// Tri
+				face.vertices.forEach(key => {
+					let index = position_indices.indexOf(key);
+					indices.push(index);
+				})
+			} else if (face.vertices.length == 4) {
+				// Quad
+				indices.push(position_indices.indexOf(face.vertices[0]));
+				indices.push(position_indices.indexOf(face.vertices[1]));
+				indices.push(position_indices.indexOf(face.vertices[2]));
+
+				indices.push(position_indices.indexOf(face.vertices[1]));
+				indices.push(position_indices.indexOf(face.vertices[2]));
+				indices.push(position_indices.indexOf(face.vertices[3]));
+			}
+		})
+		
+		mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
+		mesh.geometry.setIndex( indices );
+
+		//Canvas.getOutlineMesh(mesh, mesh.outline)
+		mesh.geometry.computeBoundingBox()
+		mesh.geometry.computeBoundingSphere()
+	},
+	updateFaces(element) {
+		let {mesh} = element;
+		let {geometry} = mesh;
+
+		/*
+		if (!geometry.all_faces) geometry.all_faces = geometry.groups.slice();
+		geometry.groups.empty();
+
+		geometry.all_faces.forEach(face => {
+			let bb_face = element.faces[Canvas.face_order[face.materialIndex]];
+
+			if (bb_face && bb_face.texture === null && geometry.groups.includes(face)) {
+				geometry.groups.remove(face);
+			} else
+			if (bb_face && bb_face.texture !== null && !geometry.groups.includes(face)) {
+				geometry.groups.push(face);
+			}
+		})
+		if (geometry.groups.length == 0) {
+			// Keep down face if no faces enabled
+			geometry.groups.push(geometry.all_faces[6], geometry.all_faces[7]);
+		}
+
+
+
+		if (Prop.view_mode === 'solid') {
+			mesh.material = Canvas.solidMaterial
+		
+		} else if (Prop.view_mode === 'wireframe') {
+			mesh.material = Canvas.wireframeMaterial
+
+		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
+			mesh.material = Canvas.getLayeredMaterial();
+
+		} else if (Format.single_texture) {
+			let tex = Texture.getDefault();
+			mesh.material = tex ? tex.getMaterial() : emptyMaterials[element.color];
+
+		} else {
+			var materials = []
+			Canvas.face_order.forEach(function(face) {
+
+				if (cube.faces[face].texture === null) {
+					materials.push(Canvas.transparentMaterial)
+
+				} else {
+					var tex = cube.faces[face].getTexture()
+					if (tex && tex.uuid) {
+						materials.push(Project.materials[tex.uuid])
+					} else {
+						materials.push(emptyMaterials[cube.color])
+					}
+				}
+			})
+			if (materials.allEqual(materials[0])) materials = materials[0];
+			mesh.material = materials
+		}*/
+	},
+	updateUV(cube, animation = true) {
+		if (Prop.view_mode !== 'textured') return;
+		var mesh = cube.mesh
+		if (mesh === undefined || !mesh.geometry) return;
+		return;
+
+	
+		var stretch = 1
+		var frame = 0
+
+		Canvas.face_order.forEach((face, fIndex) => {
+
+			if (cube.faces[face].texture == null) return;
+
+			stretch = 1;
+			frame = 0;
+			let tex = cube.faces[face].getTexture();
+			if (tex instanceof Texture && tex.frameCount !== 1) {
+				stretch = tex.frameCount
+				if (animation === true && tex.currentFrame) {
+					frame = tex.currentFrame
+				}
+			}
+			Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, cube.faces[face], frame, stretch)
+		})
+
+		mesh.geometry.attributes.uv.needsUpdate = true;
+		return mesh.geometry;
+	}
+})
 
 BARS.defineActions(function() {
 	new Action({

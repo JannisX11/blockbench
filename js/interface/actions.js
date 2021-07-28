@@ -308,7 +308,7 @@ class Tool extends Action {
 		this.modes = data.modes;
 		this.selectFace = data.selectFace;
 		this.cursor = data.cursor;
-		this.selectCubes = data.selectCubes !== false;
+		this.selectElements = data.selectElements !== false;
 		this.paintTool = data.paintTool;
 		this.brushTool = data.brushTool;
 		this.transformerMode = data.transformerMode;
@@ -1378,7 +1378,7 @@ const BARS = {
 				transformerMode: 'hidden',
 				toolbar: 'vertex_snap',
 				category: 'tools',
-				selectCubes: true,
+				selectElements: true,
 				cursor: 'copy',
 				modes: ['edit'],
 				keybind: new Keybind({key: 'x'}),

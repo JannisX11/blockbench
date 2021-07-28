@@ -1400,6 +1400,7 @@ Interface.definePanels(function() {
 		},
 		menu: new Menu([
 			'add_cube',
+			'add_mesh',
 			'add_group',
 			'_',
 			'sort_outliner',

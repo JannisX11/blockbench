@@ -840,7 +840,7 @@ new NodePreviewController(Cube, {
 		this.updateFaces(element);
 		
 		if (Prop.view_mode === 'textured') {
-			Canvas.updateUV(element);
+			this.updateUV(element);
 		}
 		mesh.visible = element.visibility;
 		Canvas.buildOutline(element);

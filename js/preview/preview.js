@@ -347,9 +347,9 @@ class Preview {
 		this.raycaster.setFromCamera( this.mouse, this.camera );
 
 		var objects = []
-		Cube.all.forEach(cube => {
-			if (cube.visibility && !cube.locked) {
-				objects.push(cube.mesh);
+		Outliner.elements.forEach(element => {
+			if (element.mesh.geometry && element.visibility && !element.locked) {
+				objects.push(element.mesh);
 			}
 		})
 		if (Vertexsnap.vertexes.children.length) {
@@ -387,17 +387,17 @@ class Preview {
 
 				return {
 					event: event,
-					type: 'cube',
+					type: 'element',
 					intersects: intersects,
 					face: face,
-					cube: obj
+					element: obj
 				}
 			} else if (intersect.isVertex) {
 				return {
 					event: event,
 					type: 'vertex',
 					intersects: intersects,
-					cube: intersect.cube,
+					element: intersect.element,
 					vertex: intersect
 				}
 			} else if (intersect.isKeyframe) {
@@ -660,7 +660,7 @@ class Preview {
 		var data = this.raycast(event);
 		if (data) {
 			//this.static_rclick = false
-			if (data.cube && data.cube.locked) {
+			if (data.element && data.element.locked) {
 				$('#preview').css('cursor', 'not-allowed')
 				function resetCursor() {
 					$('#preview').css('cursor', (Toolbox.selected.cursor ? Toolbox.selected.cursor : 'default'))
@@ -668,7 +668,7 @@ class Preview {
 				}
 				addEventListeners(document, 'mouseup touchend', resetCursor, false)
 
-			} else if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data.type === 'cube') {
+			} else if (Toolbox.selected.selectElements && Modes.selected.selectElements && data.type === 'element') {
 				if (Toolbox.selected.selectFace) {
 					main_uv.setFace(data.face, false)
 				}
@@ -676,15 +676,15 @@ class Preview {
 				if (Modes.paint) {
 					event = 0;
 				}
-				if (data.cube.parent.type === 'group' && (
+				if (data.element.parent.type === 'group' && (
 					Animator.open ||
 					event.shiftKey ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
 				)) {
-					data.cube.parent.select().showInOutliner();
+					data.element.parent.select().showInOutliner();
 
 				} else if (!Animator.open) {
-					data.cube.select(event)
+					data.element.select(event)
 				}
 			} else if (Animator.open && data.type == 'keyframe') {
 				if (data.keyframe instanceof Keyframe) {
@@ -711,7 +711,7 @@ class Preview {
 	mousemove(event) {
 		if (Settings.get('highlight_cubes')) {
 			var data = this.raycast(event);
-			if (settings.highlight_cubes.value) updateCubeHighlights(data && data.cube);
+			if (settings.highlight_cubes.value) updateCubeHighlights(data && data.element);
 		}
 	}
 	mouseup(event) {
@@ -748,8 +748,8 @@ class Preview {
 		Prop.active_panel = 'preview';
 		if (this.static_rclick && (event.which === 3 || (event.type == 'touchend' && this.rclick_cooldown == true))) {
 			var data = this.raycast(event)
-			if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data && data.cube && !Modes.animate) {
-				data.cube.showContextMenu(event);
+			if (Toolbox.selected.selectElements && Modes.selected.selectElements && data && data.element && !Modes.animate) {
+				data.element.showContextMenu(event);
 
 			} else if (data.type == 'keyframe') {
 				data.keyframe.showContextMenu(event);
@@ -853,7 +853,7 @@ class Preview {
 			ray[uv_axes.v]
 		)
 		unselectAll()
-		elements.forEach(function(cube) {
+		Outliner.elements.forEach(function(cube) {
 
 			if ((event.shiftKey || event.ctrlOrCmd) && scope.selection.old_selected.indexOf(cube) >= 0) {
 				var isSelected = true
