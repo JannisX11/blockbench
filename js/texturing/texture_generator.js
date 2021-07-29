@@ -793,8 +793,10 @@ const TextureGenerator = {
 							cube.faces[key].texture = texture.uuid;
 						}
 					}
-					Canvas.adaptObjectFaces(cube)
-					Canvas.updateUV(cube)
+					cube.preview_controller.updateFaces(cube);
+					if (Prop.view_mode === 'textured') {
+						cube.preview_controller.updateUV(cube);
+					}
 				}
 				cube.autouv = 0;
 			})

@@ -230,19 +230,31 @@ new NodePreviewController(Mesh, {
 
 		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24).fill(1), 1));
 
+		// Outline
+		let outline = new THREE.LineSegments(new THREE.BufferGeometry(), Canvas.outlineMaterial);
+		outline.no_export = true;
+		outline.name = element.uuid+'_outline';
+		outline.visible = element.selected;
+		outline.renderOrder = 2;
+		outline.frustumCulled = false;
+		mesh.outline = outline;
+		mesh.add(outline);
+
+		// Vertex Points
+		let material = new THREE.PointsMaterial({size: 5, sizeAttenuation: false, vertexColors: true});
+		let points = new THREE.Points(mesh.geometry, material);
+		points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(24).fill(1), 3));
+		mesh.vertex_points = points;
+		outline.add(points);
+
+		// Update
 		this.updateTransform(element);
 		this.updateGeometry(element);
 		this.updateFaces(element);
-		
+		mesh.visible = element.visibility;
 		if (Prop.view_mode === 'textured') {
 			this.updateUV(element);
 		}
-		mesh.visible = element.visibility;
-
-		let material = new THREE.PointsMaterial({size: 5, sizeAttenuation: false});
-		let points = new THREE.Points(mesh.geometry, material)
-		mesh.add(points);
-		//Canvas.buildOutline(element);
 	},
 	updateGeometry(element) {
 		
@@ -250,6 +262,7 @@ new NodePreviewController(Mesh, {
 		let position_array = [];
 		let position_indices = [];
 		let indices = [];
+		let outline_positions = [];
 
 		for (let key in element.vertices) {
 			let vector = element.vertices[key];
@@ -260,7 +273,7 @@ new NodePreviewController(Mesh, {
 		element.faces.forEach(face => {
 			if (face.vertices.length == 3) {
 				// Tri
-				face.vertices.forEach(key => {
+				face.vertices.forEach((key, i) => {
 					let index = position_indices.indexOf(key);
 					indices.push(index);
 				})
@@ -274,14 +287,27 @@ new NodePreviewController(Mesh, {
 				indices.push(position_indices.indexOf(face.vertices[2]));
 				indices.push(position_indices.indexOf(face.vertices[3]));
 			}
+
+			// Outline
+			if (face.vertices.length == 4) {
+				face.vertices = [face.vertices[0], face.vertices[1], face.vertices[3], face.vertices[2]]
+			}
+			face.vertices.forEach((key, i) => {
+				outline_positions.push(...element.vertices[key]);
+				if (i && i < face.vertices.length-1) outline_positions.push(...element.vertices[key]);
+			})
+			if (face.vertices.length == 4) {
+				face.vertices = [face.vertices[0], face.vertices[1], face.vertices[3], face.vertices[2]]
+			}
 		})
 		
 		mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
-		mesh.geometry.setIndex( indices );
+		mesh.geometry.setIndex(indices);
 
-		//Canvas.getOutlineMesh(mesh, mesh.outline)
-		mesh.geometry.computeBoundingBox()
-		mesh.geometry.computeBoundingSphere()
+		mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
+
+		mesh.geometry.computeBoundingBox();
+		mesh.geometry.computeBoundingSphere();
 	},
 	updateFaces(element) {
 		let {mesh} = element;

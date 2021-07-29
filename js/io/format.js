@@ -133,6 +133,12 @@ class ModelFormat {
 			})
 		}
 
+		if (!Format.single_texture && old_format.single_texture && Texture.all.length == 1) {
+			Cube.all.forEach(cube => {
+				cube.applyTexture(Texture.all[0], true)
+			})
+		}
+
 		//Rotate Cubes
 		if (!Format.rotate_cubes && old_format.rotate_cubes) {
 			Cube.all.forEach(cube => {

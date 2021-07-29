@@ -259,6 +259,8 @@ const Canvas = {
 		}
 	},
 	updateVisibility() {
+		Canvas.updateView({elements: Outliner.elements, element_aspects: {visibility: true}})
+		/*
 		Cube.all.forEach(function(cube) {
 			if (cube.visibility && !cube.mesh.visible) {
 				cube.mesh.visible = true;
@@ -274,6 +276,7 @@ const Canvas = {
 			}
 		})
 		TickUpdates.selection = true;
+		*/
 	},
 	updateAllFaces(texture) {
 		Cube.all.forEach(function(obj) {
@@ -288,9 +291,9 @@ const Canvas = {
 					}
 				}
 				if (used === true) {
-					Canvas.adaptObjectFaces(obj)
+					obj.preview_controller.updateFaces(obj);
 					if (Prop.view_mode === 'textured') {
-						Canvas.updateUV(obj)
+						obj.preview_controller.updateUV(obj);
 					}
 				}
 			}
@@ -298,6 +301,8 @@ const Canvas = {
 	},
 	updateAllUVs() {
 		if (Prop.view_mode !== 'textured') return;
+		Canvas.updateView({elements: Outliner.elements, element_aspects: {uv: true}});
+		return;
 		Cube.all.forEach(function(obj) {
 			if (obj.visibility == true) {
 				Canvas.updateUV(obj)
@@ -350,9 +355,7 @@ const Canvas = {
 				Canvas.updateAllBones()
 			}
 		}
-		arr.forEach(function(obj) {
-			Canvas.adaptObjectPosition(obj)
-		})
+		Canvas.updateView({elements: arr, element_aspects: {transform: true, geometry: true}})
 		if (leave_selection !== true) {
 			TickUpdates.selection = true;
 		}
@@ -360,9 +363,9 @@ const Canvas = {
 	updateSelectedFaces() {
 		Cube.selected.forEach(function(obj) {
 			if (obj.visibility == true) {
-				Canvas.adaptObjectFaces(obj)
+				obj.preview_controller.updateFaces(obj);
 				if (Prop.view_mode === 'textured') {
-					Canvas.updateUV(obj)
+					obj.preview_controller.updateUV(obj);
 				}
 			}
 		})
@@ -371,25 +374,26 @@ const Canvas = {
 		if (Prop.view_mode !== 'textured') return;
 		Cube.selected.forEach(function(obj) {
 			if (obj.visibility == true) {
-				Canvas.updateUV(obj)
+				obj.preview_controller.updateUV(obj);
 			}
 		})
 	},
 	outlineObjects(arr) {
 		arr.forEach(function(obj) {
 			if (!obj.visibility) return;
-			var mesh = obj.mesh
+			var mesh = obj.mesh;
 			if (!mesh || !mesh.geometry) return;
 
-			var line = Canvas.getOutlineMesh(mesh)
+			var copy = mesh.outline.clone();
+			copy.geometry = mesh.outline.geometry.clone();
 
-			THREE.fastWorldPosition(mesh, line.position)
-			line.position.sub(scene.position)
-			line.rotation.setFromQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()))
-			mesh.getWorldScale(line.scale)
+			THREE.fastWorldPosition(mesh, copy.position);
+			copy.position.sub(scene.position);
+			copy.rotation.setFromQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()));
+			mesh.getWorldScale(copy.scale);
 
-			line.name = obj.uuid+'_ghost_outline'
-			Canvas.outlines.add(line)
+			copy.name = obj.uuid+'_ghost_outline';
+			Canvas.outlines.add(copy);
 		})
 	},
 	updateAllBones(bones = Group.all) {
@@ -427,7 +431,7 @@ const Canvas = {
 			})
 		}
 	},
-	updateOrigin() {
+	updatePivotMarker() {
 		if (rot_origin.parent) {
 			rot_origin.parent.remove(rot_origin)
 		}
@@ -777,48 +781,6 @@ const Canvas = {
 		vertex_uvs.array.set(arr[1], index*8 + 2);  //1,1
 		vertex_uvs.array.set(arr[2], index*8 + 4);  //0,0
 		vertex_uvs.array.set(arr[3], index*8 + 6);  //1,0
-	},
-	//Outline
-	getOutlineMesh(mesh, line) {
-		var vs = [0,1,2,3,4,5,6,7].map(i => {
-			return mesh.geometry.attributes.position.array.slice(i*3, i*3 + 3)
-		});
-		let points = [
-			vs[2], vs[3],
-			vs[6], vs[7],
-			vs[2], vs[0],
-			vs[1], vs[4],
-			vs[5], vs[0],
-			vs[5], vs[7],
-			vs[6], vs[4],
-			vs[1], vs[3]
-		].map(a => new THREE.Vector3().fromArray(a))
-		if (!line) {
-			var geometry = new THREE.BufferGeometry();
-			line = new THREE.Line(geometry, Canvas.outlineMaterial);
-			line.no_export = true;
-		}
-		line.geometry.setFromPoints(points);
-		return line;
-	},
-	buildOutline(obj) {
-		if (obj.visibility == false) return;
-		var mesh = obj.mesh;
-		if (mesh === undefined) return;
-
-		if (mesh.outline) {
-			mesh.outline.geometry.verticesNeedUpdate = true;
-			return;
-		}
-		mesh.remove(mesh.outline);
-
-		var line = Canvas.getOutlineMesh(mesh)
-		line.name = obj.uuid+'_outline';
-		line.visible = obj.selected;
-		line.renderOrder = 2;
-		line.frustumCulled = false;
-		mesh.outline = line;
-		mesh.add(line);
 	},
 	buildGridBox(cube) {
 		var mesh = cube.mesh;

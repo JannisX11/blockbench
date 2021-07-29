@@ -652,8 +652,8 @@ function moveElementsInSpace(difference, axis) {
 		if (el instanceof Cube) {
 			el.mapAutoUV()
 		}
-		Canvas.adaptObjectPosition(el);
 	})
+	Canvas.updateView({elements: selected, element_aspects: {transform: true, geometry: true}})
 }
 
 //Rotate
@@ -895,8 +895,8 @@ BARS.defineActions(function() {
 				}
 				if (obj instanceof Cube) {
 					obj.mapAutoUV()
-					Canvas.adaptObjectPosition(obj);
 				}
+				obj.preview_controller.updateTransform(obj);
 			}
 		})
 		TickUpdates.selection = true;

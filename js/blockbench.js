@@ -104,20 +104,20 @@ function updateSelection(options = {}) {
 	})
 	if (Group.selected && Group.selected.locked) Group.selected.unselect()
 
-	Cube.all.forEach(cube => {
-		if (cube.visibility) {
-			var mesh = cube.mesh
+	Outliner.elements.forEach(element => {
+		if (element.visibility) {
+			var mesh = element.mesh
 			if (mesh && mesh.outline) {
-				mesh.outline.visible = cube.selected
+				mesh.outline.visible = element.selected
 			}
 		}
 	})
-	for (var i = Cube.selected.length-1; i >= 0; i--) {
-		if (!selected.includes(Cube.selected[i])) {
-			Cube.selected.splice(i, 1)
+	for (var i = Outliner.selected.length-1; i >= 0; i--) {
+		if (!selected.includes(Outliner.selected[i])) {
+			Outliner.selected.splice(i, 1)
 		}
 	}
-	if (Cube.selected.length) {
+	if (Outliner.selected.length) {
 		document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'visible'));
 	} else {
 		if (Format.bone_rig && Group.selected) {
@@ -136,7 +136,7 @@ function updateSelection(options = {}) {
 			document.querySelectorAll('.selection_only#uv').forEach(node => node.style.setProperty('visibility', 'visible'));
 		}
 	}
-	if (Cube.selected.length || (Format.single_texture && Modes.paint)) {
+	if (Outliner.selected.length || (Format.single_texture && Modes.paint)) {
 		main_uv.jquery.size.find('.uv_mapping_overlay').remove()
 		main_uv.loadData()
 	}
@@ -150,7 +150,7 @@ function updateSelection(options = {}) {
 	BarItems.cube_counter.update();
 	updateNslideValues();
 	if (settings.highlight_cubes.value) updateCubeHighlights();
-	Canvas.updateOrigin();
+	Canvas.updatePivotMarker();
 	Transformer.updateSelection();
 	Transformer.update();
 	Preview.all.forEach(preview => {

@@ -415,9 +415,10 @@ class Cube extends OutlinerElement {
 				}
 			}
 		}
-		Canvas.adaptObjectPosition(this)
-		Canvas.adaptObjectFaces(this)
-		Canvas.updateUV(this)
+		this.preview_controller.updateTransform(this);
+		this.preview_controller.updateGeometry(this);
+		this.preview_controller.updateFaces(this);
+		this.preview_controller.updateUV(this);
 		return this;
 	}
 	flip(axis, center, skipUV) {
@@ -480,9 +481,10 @@ class Cube extends OutlinerElement {
 				this.faces.down.uv = 	mirrorUVY('down')
 			}
 		}
-		Canvas.adaptObjectPosition(this)
-		Canvas.adaptObjectFaces(this)
-		Canvas.updateUV(this)
+		this.preview_controller.updateTransform(this);
+		this.preview_controller.updateGeometry(this);
+		this.preview_controller.updateFaces(this);
+		this.preview_controller.updateUV(this);
 	}
 	transferOrigin(origin, update = true) {
 		if (!this.mesh) return;
@@ -501,7 +503,8 @@ class Cube extends OutlinerElement {
 
 		this.origin.V3_set(origin);
 
-		Canvas.adaptObjectPosition(this)
+		this.preview_controller.updateTransform(this);
+		this.preview_controller.updateGeometry(this);
 		return this;
 	}
 	getWorldCenter() {
@@ -525,7 +528,7 @@ class Cube extends OutlinerElement {
 	setColor(index) {
 		this.color = index;
 		if (this.visibility) {
-			Canvas.adaptObjectFaces(this)
+			this.preview_controller.updateFaces(this);
 		}
 	}
 	applyTexture(texture, faces) {
@@ -550,8 +553,8 @@ class Cube extends OutlinerElement {
 			main_uv.loadData()
 		}
 		if (Prop.view_mode === 'textured' && scope.visibility == true) {
-			Canvas.adaptObjectFaces(scope)
-			Canvas.updateUV(scope)
+			this.preview_controller.updateFaces(this);
+			this.preview_controller.updateUV(this);
 		}
 	}
 	mapAutoUV() {
@@ -700,7 +703,8 @@ class Cube extends OutlinerElement {
 		})
 		if (update) {
 			this.mapAutoUV()
-			Canvas.adaptObjectPosition(this);
+			this.preview_controller.updateTransform(this);
+			this.preview_controller.updateGeometry(this);
 		}
 		TickUpdates.selection = true;
 		return in_box;
@@ -750,7 +754,7 @@ class Cube extends OutlinerElement {
 		if (Project.box_uv) {
 			Canvas.updateUV(this);
 		}
-		Canvas.adaptObjectPosition(this);
+		this.preview_controller.updateGeometry(this);
 		TickUpdates.selection = true;
 		return this;
 	}
@@ -832,9 +836,22 @@ new NodePreviewController(Cube, {
 		mesh.name = element.uuid;
 		mesh.type = 'cube';
 		mesh.isElement = true;
+		mesh.visible = element.visibility;
 
 		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24).fill(1), 1));
 
+		// Outline
+		let geometry = new THREE.BufferGeometry();
+		let line = new THREE.Line(geometry, Canvas.outlineMaterial);
+		line.no_export = true;
+		line.name = element.uuid+'_outline';
+		line.visible = element.selected;
+		line.renderOrder = 2;
+		line.frustumCulled = false;
+		mesh.outline = line;
+		mesh.add(line);
+
+		// Update
 		this.updateTransform(element);
 		this.updateGeometry(element);
 		this.updateFaces(element);
@@ -842,8 +859,7 @@ new NodePreviewController(Cube, {
 		if (Prop.view_mode === 'textured') {
 			this.updateUV(element);
 		}
-		mesh.visible = element.visibility;
-		Canvas.buildOutline(element);
+		
 	},
 	updateTransform(element) {
 		NodePreviewController.prototype.updateTransform(element);
@@ -860,7 +876,6 @@ new NodePreviewController(Cube, {
 		if (Modes.paint) {
 			Canvas.buildGridBox(element);
 		}
-		Canvas.buildOutline(element);
 	},
 	updateGeometry(element) {
 		if (element.resizable) {
@@ -879,9 +894,24 @@ new NodePreviewController(Cube, {
 				}
 			})
 			mesh.geometry.setShape(from, to)
-			Canvas.getOutlineMesh(mesh, mesh.outline)
 			mesh.geometry.computeBoundingBox()
 			mesh.geometry.computeBoundingSphere()
+
+			// Update outline
+			var vs = [0,1,2,3,4,5,6,7].map(i => {
+				return mesh.geometry.attributes.position.array.slice(i*3, i*3 + 3)
+			});
+			let points = [
+				vs[2], vs[3],
+				vs[6], vs[7],
+				vs[2], vs[0],
+				vs[1], vs[4],
+				vs[5], vs[0],
+				vs[5], vs[7],
+				vs[6], vs[4],
+				vs[1], vs[3]
+			].map(a => new THREE.Vector3().fromArray(a))
+			mesh.outline.geometry.setFromPoints(points);
 		}
 	},
 	updateFaces(cube) {

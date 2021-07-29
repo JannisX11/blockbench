@@ -1407,7 +1407,7 @@ class UVEditor {
 				obj.faces[side].uv = [0, 0, 0, 0]
 				obj.faces[side].texture = null;
 			})
-			Canvas.adaptObjectFaces(obj)
+			obj.preview_controller.updateFaces(obj);
 		})
 		this.loadData()
 		this.message('uv_editor.transparent')
@@ -1587,8 +1587,10 @@ class UVEditor {
 			scope.getFaces(event).forEach(function(side) {
 				obj.faces[side].reset()
 			})
-			Canvas.adaptObjectFaces(obj)
-			Canvas.updateUV(obj)
+			obj.preview_controller.updateFaces(obj);
+			if (Prop.view_mode === 'textured') {
+				obj.preview_controller.updateUV(obj);
+			}
 		})
 		this.loadData()
 		this.message('uv_editor.reset')
@@ -1694,7 +1696,7 @@ class UVEditor {
 						editor.getFaces(event).forEach(function(side) {
 							obj.faces[side].texture = false;
 						})
-						Canvas.adaptObjectFaces(obj)
+						obj.preview_controller.updateFaces(obj);
 					})
 					editor.loadData()
 					editor.message('uv_editor.reset')

@@ -101,6 +101,9 @@ class OutlinerNode {
 		}
 		return this;
 	}
+	get preview_controller() {
+		return this.constructor.preview_controller;
+	}
 	//Sorting
 	sortInBefore(element, index_mod) {
 		var index = -1;
@@ -486,6 +489,12 @@ class OutlinerElement extends OutlinerNode {
 			return new Type(obj, keep_uuid ? obj.uuid : 0).init()
 		}
 	}
+	OutlinerElement.isTypePermitted = function(type) {
+		return !(
+			(obj.type == 'locator' && !Format.locators) ||
+			(obj.type == 'mesh' && !Format.meshes)
+		)
+	}
 	Object.defineProperty(OutlinerElement, 'all', {
 		get() {
 			return Project.elements ? Project.elements : [];
@@ -537,6 +546,14 @@ class NodePreviewController {
 			}
 		}
 		delete Project.nodes_3d[obj.uuid];
+	}
+	updateAll(element) {
+		this.updateTransform(element);
+		this.updateVisibility(element);
+		if (this.updateGeometry) this.updateGeometry(element);
+		if (this.updateUV) this.updateUV(element);
+		if (this.updateFaces) this.updateFaces(element);
+		if (this.updatePaintingGrid) this.updatePaintingGrid(element);
 	}
 	updateTransform(element) {
 		let mesh = element.mesh;
@@ -718,14 +735,16 @@ function dropOutlinerObjects(item, target, event, order) {
 	}
 	if (event.altKey) {
 		Undo.initEdit({elements: [], outliner: true, selection: true})
-		selected.empty();
+		Outliner.selected.empty();
 	} else {
 		Undo.initEdit({outliner: true, selection: true})
 		var updatePosRecursive = function(item) {
-			if (item.type === 'cube') {
-				Canvas.adaptObjectPosition(item)
-			} else if (item.type === 'group' && item.children && item.children.length) {
-				item.children.forEach(updatePosRecursive)
+			if (item.type == 'group') {
+				if (item.children && item.children.length) {
+					item.children.forEach(updatePosRecursive)
+				}
+			} else {
+				item.preview_controller.updateTransform(item);
 			}
 		}
 	}
