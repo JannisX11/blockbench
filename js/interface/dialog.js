@@ -294,6 +294,71 @@ function buildComponent(dialog) {
 	dialog.content_vue = new Vue(dialog.component).$mount(mount.get(0));
 }
 
+class DialogSidebar {
+	constructor(options) {
+		this.open = true;
+		this.pages = options.pages || {};
+		this.page = options.page || Object.keys(this.pages)[0];
+		this.actions = options.actions || {};
+		this.onPageSwitch = options.onPageSwitch || null;
+	}
+	build() {
+		if (!this.node) {
+			this.node = document.createElement('div');
+			this.node.className = 'dialog_sidebar';
+		}
+
+		let page_list = document.createElement('ul');
+		page_list.className = 'dialog_sidebar_pages';
+		this.node.append(page_list);
+		this.page_menu = {};
+		for (let key in this.pages) {
+			let li = document.createElement('li');
+			li.textContent = this.pages[key];
+			if (this.page == key) li.classList.add('selected');
+			this.page_menu[key] = li;
+			li.addEventListener('click', event => {
+				this.setPage(key);
+			})
+			page_list.append(li);
+		}
+
+		if (this.actions.length) {
+			let action_list = document.createElement('ul');
+			action_list.className = 'dialog_sidebar_actions';
+			this.node.append(action_list);
+			this.actions.forEach(action => {
+				if (typeof action == 'string') {
+					action = BarItems[action];
+				}
+				let copy = action.menu_node.cloneNode(true);
+				copy.addEventListener('click', event => {
+					action.trigger(event);
+				})
+				action_list.append(copy);
+			})
+		}
+
+		this.toggle(this.open);
+
+		return this.node;
+	}
+	toggle(state = !this.open) {
+		this.open = state;
+		this.node.style.display = this.open ? 'flex' : 'none';
+		if (this.node.parentElement) {
+			this.node.parentElement.classList.toggle('has_sidebar', this.open);
+		}
+	}
+	setPage(page) {
+		this.page = page;
+		if (this.onPageSwitch) this.onPageSwitch(page);
+		for (let key in this.page_menu) {
+			let li = this.page_menu[key];
+			li.classList.toggle('selected', key == this.page);
+		}
+	}
+}
 
 window.Dialog = class Dialog {
 	constructor(id, options) {
@@ -309,8 +374,10 @@ window.Dialog = class Dialog {
 		this.component = options.component
 		this.part_order = options.part_order || (options.form_first ? ['form', 'lines', 'component'] : ['lines', 'form', 'component'])
 
+		this.sidebar = options.sidebar ? new DialogSidebar(options.sidebar) : null;
+		this.title_menu = options.title_menu || null;
+
 		this.width = options.width
-		this.padding = options.padding != false;
 		this.draggable = options.draggable
 		this.singleButton = options.singleButton
 		this.buttons = options.buttons instanceof Array ? options.buttons : (options.singleButton ? ['dialog.close'] : ['dialog.confirm', 'dialog.cancel'])
@@ -409,14 +476,45 @@ window.Dialog = class Dialog {
 		this.hide();
 	}
 	build() {
-		var jq_dialog = $(`<dialog class="dialog" id="${this.id}">
-				<div class="dialog_handle">${tl(this.title)}</div>
-				<content class="dialog_content"></content>
-			</dialog>`)
-		this.object = jq_dialog.get(0)
-		this.max_label_width = 0;
-		if (this.padding) this.object.classList.add('paddinged');
+		this.object = document.createElement('dialog');
+		this.object.className = 'dialog';
+		this.object.id = this.id;
 
+		let handle = document.createElement('div');
+		handle.className = 'dialog_handle';
+		if (this.title_menu) {
+			let menu_button = document.createElement('div');
+			menu_button.className = 'dialog_menu_button';
+			menu_button.append(Blockbench.getIconNode('menu'));
+			menu_button.addEventListener('click', event => {
+				this.title_menu.show(menu_button);
+			})
+			handle.append(menu_button);
+		}
+		let title = document.createElement('div');
+		title.className = 'dialog_title';
+		title.textContent = tl(this.title);
+		handle.append(title);
+		this.object.append(handle);
+
+		let jq_dialog = $(this.object);
+		this.max_label_width = 0;
+
+		let wrapper = document.createElement('div');
+		wrapper.className = 'dialog_wrapper';
+
+		let content = document.createElement('content');
+		content.className = 'dialog_content';
+		this.object.append(wrapper);
+		
+
+		if (this.sidebar) {
+			let sidebar = this.sidebar.build();
+			wrapper.append(sidebar);
+			wrapper.classList.toggle('has_sidebar', this.sidebar.open);
+		}
+
+		wrapper.append(content);
 
 		this.part_order.forEach(part => {
 			if (part == 'form' && this.form) buildForm(this);
@@ -440,13 +538,14 @@ window.Dialog = class Dialog {
 			})
 			buttons[this.confirmIndex] && buttons[this.confirmIndex].addClass('confirm_btn')
 			buttons[this.cancelIndex] && buttons[this.cancelIndex].addClass('cancel_btn')
-			let bar = $('<div class="dialog_bar button_bar"></div>');
-			jq_dialog.append(bar);
+			let button_bar = $('<div class="dialog_bar button_bar"></div>');
 
 			buttons.forEach((button, i) => {
-				if (i) bar.append('&nbsp;')
-				bar.append(button)
+				if (i) button_bar.append('&nbsp;')
+				button_bar.append(button)
 			})
+
+			wrapper.append(button_bar[0]);
 		}
 
 		let close_button = document.createElement('div');

@@ -1,7 +1,7 @@
 
 /*Layout*/
 	#page_wrapper {
-		height: calc(100% - 56px);
+		height: calc(100% - 26px);
 		width: 100%;
 		border: 2px solid var(--color-frame);
 		border-top: none;

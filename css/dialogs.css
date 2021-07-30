@@ -8,6 +8,21 @@
 		opacity: 0.6;
 		z-index: 19;
 	}
+	.dialog_handle {
+		position: relative;
+		cursor: pointer;
+		overflow: hidden;
+		padding-left: 8px;
+		background: var(--color-button);
+		height: 30px;
+		flex: 0 0 auto;
+	}
+	.dialog_handle .dialog_title {
+		padding-top: 2px;
+		font-size: 1.12em;
+		padding-left: 16px;
+		pointer-events: none;
+	}
 	.dialog_close_button {
 		position: absolute;
 		right: 0px;
@@ -20,6 +35,16 @@
 	.dialog_close_button:hover {
 		color: var(--color-light);
 		background-color: var(--color-close);
+	}
+	.dialog_menu_button {
+		height: 100%;
+		width: 34px;
+		padding: 4px;
+		float: left;
+		text-align: center;
+	}
+	.dialog_menu_button:hover {
+		color: var(--color-light);
 	}
 	.dialog:not(.draggable) .dialog_close_button {
 		top: 8px;
@@ -72,11 +97,7 @@
 	}
 	.dialog:not(.ui-resizable) {
 		min-width: min(400px, 100%);
-		max-width: min(660px, 100%);
-	}
-	.dialog.paddinged {
-		padding: 24px;
-		padding-bottom: 12px;
+		max-width: min(960px, 100%);
 	}
 	.dialog_bar {
 		position: relative;
@@ -102,7 +123,6 @@
 	}
 	.dialog_bar.button_bar {
 		text-align: right;
-		margin-top: 12px;
 		flex: 0 0 auto;
 	}
 	.dialog_bar button.large {
@@ -155,33 +175,11 @@
 		color: var(--color-light);
 	}
 
-
-	.dialog .tab_content {
-		height: calc(100% - 90px);
-		width: 100%;
-		padding-bottom: 16px;
-	}
 	.dialog p {
 		margin: 4px 0;
 	}
 	.dialog h3 {
 		margin-left: 16px;
-	}
-	.dialog_handle {
-		cursor: pointer;
-		overflow: hidden;
-		padding-left: 26px;
-		padding-top: 1px;
-		background: var(--color-button);
-		height: 30px;
-		margin-bottom: 20px;
-		font-size: 1.12em;
-		flex: 0 0 auto;
-	}
-	.dialog.paddinged .dialog_handle {
-		margin-top: -24px;
-		margin-left: -24px;
-		margin-right: -24px;
 	}
 	.dialog_bar label.in_toolbar {
 		padding-left: 0;
@@ -238,18 +236,110 @@
 		transition: color 750ms linear;
 	}
 
+/* Sidebar */
+	.dialog_wrapper {
+		flex-grow: 1;
+		display: block;
+	}
+	.dialog_wrapper.has_sidebar {
+		display: grid;
+		grid-template-rows: auto 42px;
+		grid-template-columns: minmax(160px, 200px) auto;
+		grid-template-areas: "sidebar content" "sidebar buttons";
+	}
+	.dialog_sidebar {
+		background-color: var(--color-back);
+		flex: 1 0 160px;
+		position: relative;
+		grid-area: sidebar;
+		display: flex;
+		flex-direction: column;
+	}
+	.dialog_content {
+		display: block;
+		grid-area: content;
+	}
+	dialog .dialog_content,
+	dialog .dialog_bar.button_bar {
+		margin: 24px;
+	}
+	dialog .dialog_bar.button_bar {
+		grid-area: buttons;
+		margin-top: 0px;
+		margin-bottom: 12px;
+	}
+	
+	.dialog_sidebar .dialog_sidebar_pages {
+		margin-top: 16px;
+		margin-bottom: 16px;
+	}
+	.dialog_sidebar .dialog_sidebar_pages li {
+		width: 100%;
+		padding: 4px 20px;
+		border-left: 4px solid transparent;
+		cursor: pointer;
+	}
+	.dialog_sidebar .dialog_sidebar_pages li:hover {
+		color: var(--color-light);
+	}
+	.dialog_sidebar .dialog_sidebar_pages li.selected {
+		background-color: var(--color-ui);
+		border-left: 4px solid var(--color-accent);
+	}
+	
+	
+	.dialog_sidebar .dialog_sidebar_actions {
+		bottom: 10px;
+		padding: 8px;
+		margin-top: auto;
+		border-top: 2px solid var(--color-border);
+	}
+	.dialog_sidebar .dialog_sidebar_actions li {
+		display: flex;
+		height: 30px;
+		padding: 4px;
+		padding-left: 34px;
+		padding-right: 8px;
+		cursor: pointer;
+	}
+	.dialog_sidebar .dialog_sidebar_actions li:hover {
+		color: var(--color-light);
+	}
+	.dialog_sidebar .dialog_sidebar_actions li i {
+		margin-top: 1px; 
+		margin-right: 4px;
+		margin-left: -28px;
+		pointer-events: none;
+	}
+	.dialog_sidebar .dialog_sidebar_actions li img {
+		cursor: default;
+		height: 20px;
+		width: 20px;
+		color: var(--color-text);
+		white-space: nowrap;
+		margin-bottom: -3px;
+		margin-left: -27px;
+		margin-right: 5px;
+		margin-top: 1px;
+	}
+	.dialog_sidebar .dialog_sidebar_actions li span {
+		pointer-events: none;
+		flex: 1 0 auto;
+	}
+
+
 /*Settings Dialog*/
-	dialog#settings {
-		width: min(100%, 600px);
+	dialog#settings .dialog_wrapper {
+		min-height: 640px;
 	}
 	#settings_tab_bar {
 		margin: -24px;
 		margin-bottom: 0;
 		margin-top: -20px;
 	}
-	#settings h2 {
-		margin-top: 20px;
-		margin-bottom: 8px;
+	dialog#settings h2, dialog#keybindings h2, dialog#theme h2 {
+		margin-top: -10px;
+		font-size: 1.8em;
 	}
 	#settings h3 > i {
 		margin-top: 5px;
@@ -263,9 +353,6 @@
 	}
 	#settings .bar.next_to_title {
 		margin-top: -60px;
-	}
-	dialog#settings .search_bar {
-		margin-top: 26px;
 	}
 
 
@@ -281,16 +368,13 @@
 		overflow-y: scroll;
 		clear: both;
 	}
-	#settingslist li > ul {
-		margin-left: 24px;
-	}
-	#settingslist li li {
+	#settingslist li {
 		padding: 5px 0;
 	}
-	#settingslist li li:hover input[type=checkbox] {
+	#settingslist li:hover input[type=checkbox] {
 		color: var(--color-light);
 	}
-	#settingslist li > .setting_element {
+	#settingslist .setting_element {
 		width: 50px;
 		text-align: center;
 		float: left;
@@ -337,12 +421,12 @@
 	#settingslist div.bar_select select {
 		width: 100%;
 	}
-	#settingslist li li .setting_icon i {
+	#settingslist li .setting_icon i {
 		font-size: 26pt;
 		width: 34px;
 		margin-top: -6px;
 	}
-	#settingslist li li:hover .setting_icon i {
+	#settingslist li:hover .setting_icon i {
 		color: var(--color-light);
 	}
 	.password_toggle {
@@ -355,9 +439,12 @@
 	}
 
 	/*Keybinds*/
+	dialog#keybindings .dialog_wrapper {
+		min-height: 640px;
+	}
 	#keybindlist {
 		max-height: 600px;
-		padding-bottom: 25px;
+		margin-top: 16px;
 		overflow-y: scroll;
 		overflow-x: hidden;
 		clear: both;
@@ -378,6 +465,7 @@
 		overflow: hidden;
 		white-space: nowrap;
 		display: inline-block;
+		cursor: text;
 	}
 	#keybindlist li > div.keybindslot:hover {
 		color: var(--color-light);
@@ -394,17 +482,23 @@
 		vertical-align: top;
 		display: inline-block;
 	}
-	#keybindlist > li > ul > li {
+	#keybindlist > li {
 		position: relative;
 		display: flex;
-	}
-	#keybindlist > li {
 		width: 100%;
-		min-height: 34px;
-		padding-left: 6px;
+	}
+	.keybindslot .punctuation {
+		color: var(--color-subtle_text);
+	}
+	.keybindslot .modifier, .keybindslot .key {
+		background: var(--color-button);
+		padding: 2px 5px;
 	}
 
 	/*Colors*/
+	dialog#theme .dialog_wrapper {
+		min-height: 560px;
+	}
 	div#color_wrapper {
 		columns: 2;
 		margin-bottom: 20px;

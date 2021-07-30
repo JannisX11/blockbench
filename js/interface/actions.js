@@ -1431,23 +1431,6 @@ const BARS = {
 					shell.openPath(app.getPath('userData')+osfs+'backups')
 				}
 			})
-			new Action('settings_window', {
-				icon: 'settings',
-				category: 'blockbench',
-				click: function () {Settings.open()}
-			})
-			new Action('keybindings_window', {
-				name: tl('dialog.settings.keybinds') + '...',
-				icon: 'keyboard',
-				category: 'blockbench',
-				click: function () {Settings.open({tab: 'keybindings'})}
-			})
-			new Action('theme_window', {
-				name: tl('dialog.settings.theme') + '...',
-				icon: 'style',
-				category: 'blockbench',
-				click: function () {Settings.open({tab: 'layout_settings'})}
-			})
 			new Action('reload', {
 				icon: 'refresh',
 				category: 'file',
@@ -2139,14 +2122,7 @@ const Keybinds = {
 	actions: [],
 	stored: {},
 	extra: {},
-	structure: {
-		search_results: {
-			name: tl('dialog.settings.search_results'),
-			hidden: true,
-			open: true,
-			actions: {}
-		}
-	},
+	structure: {},
 	save() {
 		localStorage.setItem('keybindings', JSON.stringify(Keybinds.stored))
 	}

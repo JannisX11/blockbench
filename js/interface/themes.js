@@ -214,6 +214,15 @@ const CustomTheme = {
 
 
 BARS.defineActions(function() {
+	new Action('theme_window', {
+		name: tl('dialog.settings.theme') + '...',
+		icon: 'style',
+		category: 'blockbench',
+		click: function () {
+			if (!CustomTheme.dialog_is_setup) CustomTheme.setupDialog()
+			CustomTheme.dialog.show();
+		}
+	})
 	new Action('import_theme', {
 		icon: 'folder',
 		category: 'blockbench',
@@ -272,3 +281,127 @@ BARS.defineActions(function() {
 	BarItems.export_theme.toElement('#layout_title_bar')
 	BarItems.reset_theme.toElement('#layout_title_bar')
 })
+
+
+onVueSetup(function() {
+
+	CustomTheme.dialog = new Dialog({
+		id: 'theme',
+		title: 'dialog.settings.theme',
+		singleButton: true,
+		width: 920,
+		title_menu: new Menu([
+			'settings_window',
+			'keybindings_window',
+			'theme_window',
+			'about_window',
+		]),
+		sidebar: {
+			pages: {
+				discover: 'Discover',
+				color: 'Color Scheme',
+				fonts: 'Fonts',
+				css: 'Custom CSS'
+			},
+			page: 'discover',
+			actions: [
+				'import_theme',
+				'export_theme',
+				'reset_layout',
+			],
+			onPageSwitch(page) {
+				CustomTheme.dialog.content_vue.open_category = page;
+				CustomTheme.dialog.content_vue.search_term = '';
+			}
+		},
+		component: {
+			data() {return {
+				open_category: 'discover',
+				search_term: '',
+			}},
+			methods: {
+				saveSettings() {
+					Settings.saveLocalStorages();
+				}
+			},
+			computed: {
+				list() {
+					if (this.search_term) {
+						var keywords = this.search_term.replace(/_/g, ' ').split(' ');
+						var items = {};
+						for (var key in settings) {
+							var setting = settings[key];
+							if (Condition(setting.condition)) {
+								var name = setting.name.toLowerCase();
+								var desc = setting.description.toLowerCase();
+								var missmatch = false;
+								for (var word of keywords) {
+									if (
+										!key.includes(word) &&
+										!name.includes(word) &&
+										!desc.includes(word)
+									) {
+										missmatch = true;
+									}
+								}
+								if (!missmatch) {
+									items[key] = setting;
+								}
+							}
+						}
+						return items;
+					} else {
+						return this.structure[this.open_category].items;
+					}
+				},
+				title() {
+					if (this.search_term) {
+						return tl('dialog.settings.search_results');
+					} else {
+						return this.structure[this.open_category].name;
+					}
+				}
+			},
+			template: `
+				<div>
+					<h2 class="i_b">${tl('dialog.settings.theme')}</h2>
+					<div class="bar next_to_title" id="layout_title_bar"></div>
+					<div class="y_scrollable" id="theme_editor">
+						<div id="color_wrapper">
+							<div class="color_field" v-for="(color, key) in colors" :id="'color_field_' + key">
+								<div class="layout_color_preview" :style="{'background-color': color}" class="color_input"></div>
+								<div class="desc">
+									<h4>{{ tl('layout.color.'+key) }}</h4>
+									<p>{{ tl('layout.color.'+key+'.desc') }}</p>
+								</div>
+							</div>
+						</div>
+
+						<div class="dialog_bar">
+							<label class="name_space_left" for="layout_font_main">${tl('layout.font.main')}</label>
+							<input style="font-family: var(--font-main)" type="text" class="half dark_bordered" id="layout_font_main" v-model="main_font">
+						</div>
+
+						<div class="dialog_bar">
+							<label class="name_space_left" for="layout_font_headline">${tl('layout.font.headline')}</label>
+							<input style="font-family: var(--font-headline)" type="text" class="half dark_bordered" id="layout_font_headline" v-model="headline_font">
+						</div>
+						<div class="dialog_bar">
+							<label class="name_space_left" for="layout_font_cpde">${tl('layout.font.code')}</label>
+							<input style="font-family: var(--font-code)" type="text" class="half dark_bordered" id="layout_font_cpde" v-model="code_font">
+						</div>
+						<h4 class="i_b">${tl('layout.css')}</h4>
+						<div id="css_editor">
+							<vue-prism-editor v-model="css" language="css" :line-numbers="true" />
+						</div>
+
+					</div>
+
+				</div>`
+		},
+		onButton() {
+			Settings.save();
+		}
+	})
+})
+

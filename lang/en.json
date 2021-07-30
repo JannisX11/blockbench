@@ -431,7 +431,6 @@
 	"dialog.export_private_settings.keep": "Keep",
 	"dialog.export_private_settings.omit": "Leave Out",
 	
-	"dialog.settings.title": "Preferences",
 	"dialog.settings.settings": "Settings",
 	"dialog.settings.keybinds": "Keybindings",
 	"dialog.settings.theme": "Theme",
@@ -486,7 +485,6 @@
 	"about.creator": "Creator:",
 	"about.website": "Website:",
 	"about.repository": "Repository:",
-	"about.electron": "This app is built with Electron, a framework for creating native applications with web technologies like Javascript, HTML, and CSS.",
 	"about.vertex_snap": "Vertex Snapping is based on a plugin by SirBenet",
 	"about.icons": "Icon Packs:",
 	"about.libraries": "Libraries:",

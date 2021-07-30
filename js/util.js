@@ -563,6 +563,13 @@ var Merge = {
 	}
 }
 
+function onVueSetup(func) {
+	if (!onVueSetup.funcs) {
+		onVueSetup.funcs = []
+	}
+	onVueSetup.funcs.push(func)
+}
+
 //String
 function capitalizeFirstLetter(string) {
 	return string.charAt(0).toUpperCase() + string.slice(1);

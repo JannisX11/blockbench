@@ -724,9 +724,7 @@ const MenuBar = {
 			{name: 'menu.help.donate', id: 'donate', icon: 'fas.fa-hand-holding-usd', click: () => {
 				Blockbench.openLink('https://blockbench.net/donate/');
 			}},
-			{name: 'menu.help.about', id: 'about', icon: 'info', click: () => {
-				Settings.open({tab: 'credits'});
-			}}
+			'about_window'
 		])
 		MenuBar.update()
 	},

@@ -212,7 +212,7 @@ const Blockbench = {
 		}
 
 		var jq_dialog = $(`
-			<dialog class="dialog paddinged" style="width: auto;" id="message_box">
+			<dialog class="dialog" style="width: auto;" id="message_box">
 				<div class="dialog_handle">${tl(options.title)}</div>
 				<div class="dialog_close_button" onclick="open_interface.cancel()"><i class="material-icons">clear</i></div>
 			</dialog>`)
