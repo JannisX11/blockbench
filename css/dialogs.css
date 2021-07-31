@@ -66,7 +66,7 @@
 		bottom: unset;
 		display: none;
 	}
-	dialog > content {
+	dialog > content, dialog .dialog_wrapper > content {
 		display: block;
 		overflow-y: auto;
 		flex: 1 1 auto;
@@ -258,6 +258,7 @@
 	.dialog_content {
 		display: block;
 		grid-area: content;
+		max-height: calc(100vh - 180px);
 	}
 	dialog .dialog_content,
 	dialog .dialog_bar.button_bar {
@@ -309,6 +310,7 @@
 		margin-top: 1px; 
 		margin-right: 4px;
 		margin-left: -28px;
+		flex-shrink: 0;
 		pointer-events: none;
 	}
 	.dialog_sidebar .dialog_sidebar_actions li img {
@@ -341,27 +343,9 @@
 		margin-top: -10px;
 		font-size: 1.8em;
 	}
-	#settings h3 > i {
-		margin-top: 5px;
-		float: left;
-	}
-	#settings h3 > i.settings_expand_icon {
-		opacity: 0.7;
-	}
-	#settings h3:hover {
-		color: var(--color-light);
-	}
-	#settings .bar.next_to_title {
-		margin-top: -60px;
-	}
 
 
 	/*Settings*/
-	#settings li h3 {
-		margin: 0;
-		padding: 0;
-		padding-top: 6px;
-	}
 	#settingslist {
 		width: 100%;
 		max-height: 600px;
@@ -497,7 +481,7 @@
 
 	/*Colors*/
 	dialog#theme .dialog_wrapper {
-		min-height: 560px;
+		min-height: 480px;
 	}
 	div#color_wrapper {
 		columns: 2;
@@ -740,9 +724,10 @@
 	}
 	.dialog.draggable .bar.next_to_title {
 		width: max-content;
-		margin-top: -51px;
+		margin-top: -30px;
 		margin-left: 111px;
 		float: left;
+		z-index: inherit;
 	}
 	.dialog#plugins {
 		width: 100%;

@@ -442,6 +442,11 @@
 	"keybindings.recording": "Recording Keybinding",
 	"keybindings.press": "Press a key or key combination or click anywhere on the screen to record your keybinding.",
 
+	"layout.discover": "Discover",
+	"layout.color": "Color Scheme",
+	"layout.fonts": "Fonts",
+	"layout.css": "Custom CSS",
+	"layout.documentation": "Documentation",
 	"layout.color.back": "Back",
 	"layout.color.back.desc": "Backgrounds and input fields",
 	"layout.color.dark": "Dark",
@@ -477,7 +482,6 @@
 	"layout.font.main": "Main Font",
 	"layout.font.headline": "Headline Font",
 	"layout.font.code": "Code Font",
-	"layout.css": "Custom CSS",
 
 	"about.version": "Version:",
 	"about.version.up_to_date": "Up to date",

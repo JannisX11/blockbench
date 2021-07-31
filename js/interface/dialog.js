@@ -331,10 +331,24 @@ class DialogSidebar {
 				if (typeof action == 'string') {
 					action = BarItems[action];
 				}
-				let copy = action.menu_node.cloneNode(true);
-				copy.addEventListener('click', event => {
-					action.trigger(event);
-				})
+				let copy;
+				if (action instanceof Action) {
+					copy = action.menu_node.cloneNode(true);
+					copy.addEventListener('click', event => {
+						action.trigger(event);
+					})
+				} else {
+					copy = document.createElement('li');
+					copy.title = action.description ? tl(action.description) : '';
+					let icon = Blockbench.getIconNode(action.icon, action.color);
+					let span = document.createElement('span');
+					span.textContent = tl(action.name);
+					copy.append(icon);
+					copy.append(span);
+					copy.addEventListener('click', event => {
+						Blockbench.openLink('https://www.blockbench.net/wiki/blockbench/themes');
+					})
+				}
 				action_list.append(copy);
 			})
 		}
