@@ -1,14 +1,18 @@
 //Blockbench
 function compareVersions(string1/*new*/, string2/*old*/) {
 	// Is string1 newer than string2 ?
-	var arr1 = string1.split('.')
-	var arr2 = string2.split('.')
+	var arr1 = string1.split(/[.-]/);
+	var arr2 = string2.split(/[.-]/);
 	var i = 0;
 	var num1 = 0;
 	var num2 = 0;
-	while (i < arr1.length) {
-		num1 = parseInt(arr1[i])
-		num2 = parseInt(arr2[i])
+	while (i < Math.max(arr1.length, arr2.length)) {
+		num1 = arr1[i];
+		num2 = arr2[i];
+		if (num1 == 'beta') num1 = -1;
+		if (num2 == 'beta') num2 = -1;
+		num1 = parseInt(num1) || 0;
+		num2 = parseInt(num2) || 0;
 		if (num1 > num2) {
 			return true;
 		} else if (num1 < num2) {
