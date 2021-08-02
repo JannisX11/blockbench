@@ -279,8 +279,8 @@ const Canvas = {
 		*/
 	},
 	updateAllFaces(texture) {
-		Cube.all.forEach(function(obj) {
-			if (obj.visibility == true) {
+		selected.forEach(function(obj) {
+			if (obj.faces) {
 				var used = true;
 				if (texture) {
 				 	used = false;

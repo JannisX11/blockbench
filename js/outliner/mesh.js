@@ -75,7 +75,7 @@ class Mesh extends OutlinerElement {
 		this.faces = [];
 
 		if (!data.vertices) {
-			this.addVertices([1, 1, 1], [1, 1, 0], [1, 0, 1], [1, 0, 0], [0, 1, 1], [0, 1, 0], [0, 0, 1], [0, 0, 0]);
+			this.addVertices([16, 16, 16], [16, 16, 0], [16, 0, 16], [16, 0, 0], [0, 16, 16], [0, 16, 0], [0, 0, 16], [0, 0, 0]);
 			let vertex_keys = Object.keys(this.vertices);
 			this.faces.push(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[2], vertex_keys[3]]} ));	// East
 			this.faces.push(new MeshFace( this, {vertices: [vertex_keys[4], vertex_keys[5], vertex_keys[6], vertex_keys[7]]} ));	// West
@@ -271,33 +271,64 @@ new NodePreviewController(Mesh, {
 		}
 
 		element.faces.forEach(face => {
+
+			function test(base1, base2, top, check) {
+				base1 = new THREE.Vector3().fromArray(base1);
+				base2 = new THREE.Vector3().fromArray(base2);
+				top = new THREE.Vector3().fromArray(top);
+				check = new THREE.Vector3().fromArray(check);
+
+				let normal = new THREE.Vector3();
+				new THREE.Line3(base1, base2).closestPointToPoint(top, false, normal);
+				normal.sub(top);
+				let plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, base2);
+				let distance = plane.distanceToPoint(check);
+				return distance > 0;
+			}
+
+
+
 			if (face.vertices.length == 3) {
 				// Tri
 				face.vertices.forEach((key, i) => {
 					let index = position_indices.indexOf(key);
 					indices.push(index);
 				})
+
+				
+				// Outline
+				face.vertices.forEach((key, i) => {
+					outline_positions.push(...element.vertices[key]);
+					if (i && i < face.vertices.length-1) outline_positions.push(...element.vertices[key]);
+				})
 			} else if (face.vertices.length == 4) {
+
+				let sorted_vertices = face.vertices;
+
 				// Quad
-				indices.push(position_indices.indexOf(face.vertices[0]));
-				indices.push(position_indices.indexOf(face.vertices[1]));
-				indices.push(position_indices.indexOf(face.vertices[2]));
+				indices.push(position_indices.indexOf(sorted_vertices[0]));
+				indices.push(position_indices.indexOf(sorted_vertices[1]));
+				indices.push(position_indices.indexOf(sorted_vertices[2]));
 
-				indices.push(position_indices.indexOf(face.vertices[1]));
-				indices.push(position_indices.indexOf(face.vertices[2]));
-				indices.push(position_indices.indexOf(face.vertices[3]));
-			}
+				if (test(element.vertices[face.vertices[1]], element.vertices[face.vertices[2]], element.vertices[face.vertices[0]], element.vertices[face.vertices[3]])) {
+					sorted_vertices = [face.vertices[2], face.vertices[0], face.vertices[1], face.vertices[3]];
 
-			// Outline
-			if (face.vertices.length == 4) {
-				face.vertices = [face.vertices[0], face.vertices[1], face.vertices[3], face.vertices[2]]
-			}
-			face.vertices.forEach((key, i) => {
-				outline_positions.push(...element.vertices[key]);
-				if (i && i < face.vertices.length-1) outline_positions.push(...element.vertices[key]);
-			})
-			if (face.vertices.length == 4) {
-				face.vertices = [face.vertices[0], face.vertices[1], face.vertices[3], face.vertices[2]]
+				} else if (test(element.vertices[face.vertices[0]], element.vertices[face.vertices[1]], element.vertices[face.vertices[2]], element.vertices[face.vertices[3]])) {
+					sorted_vertices = [face.vertices[0], face.vertices[2], face.vertices[1], face.vertices[3]];
+
+				} else {
+					face.vertices.replace([face.vertices[0], face.vertices[1], face.vertices[2], face.vertices[3]]);
+				}
+
+				indices.push(position_indices.indexOf(sorted_vertices[0]));
+				indices.push(position_indices.indexOf(sorted_vertices[2]));
+				indices.push(position_indices.indexOf(sorted_vertices[3]));
+
+				// Outline
+				sorted_vertices.forEach((key, i) => {
+					outline_positions.push(...element.vertices[key]);
+					if (i && i < sorted_vertices.length-1) outline_positions.push(...element.vertices[key]);
+				})
 			}
 		})
 		
@@ -312,6 +343,8 @@ new NodePreviewController(Mesh, {
 	updateFaces(element) {
 		let {mesh} = element;
 		let {geometry} = mesh;
+
+		
 
 		/*
 		if (!geometry.all_faces) geometry.all_faces = geometry.groups.slice();

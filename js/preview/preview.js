@@ -283,7 +283,8 @@ class Preview {
 			box: $('<div id="selection_box" class="selection_rectangle"></div>') 
 		}
 
-		this.raycaster = new THREE.Raycaster()
+		this.raycaster = new THREE.Raycaster();
+		this.raycaster.params.Points.threshold = 1/16;
 		this.mouse = new THREE.Vector2();
 		addEventListeners(this.canvas, 'mousedown touchstart', 	function(event) { scope.click(event)}, { passive: false })
 		addEventListeners(this.canvas, 'mousemove touchmove', 	function(event) { scope.static_rclick = false}, false)
@@ -350,6 +351,7 @@ class Preview {
 		Outliner.elements.forEach(element => {
 			if (element.mesh.geometry && element.visibility && !element.locked) {
 				objects.push(element.mesh);
+				objects.push(element.mesh.vertex_points);
 			}
 		})
 		if (Vertexsnap.vertexes.children.length) {
@@ -2041,12 +2043,12 @@ function updateShading() {
 	Canvas.solidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
 }
 function updateCubeHighlights(hover_cube, force_off) {
-	Cube.all.forEach(cube => {
-		if (cube.visibility) {
-			var mesh = cube.mesh;
+	Outliner.elements.forEach(element => {
+		if (element.visibility) {
+			var mesh = element.mesh;
 			let highlighted = (
 				Settings.get('highlight_cubes') &&
-				((hover_cube == cube && !Transformer.dragging) || cube.selected) &&
+				((hover_cube == element && !Transformer.dragging) || element.selected) &&
 				Modes.edit &&
 				!force_off
 			) ? 1 : 0;

@@ -1633,6 +1633,7 @@ const BARS = {
 			id: 'outliner',
 			children: [
 				'add_cube',
+				'add_mesh',
 				'add_group',
 				'outliner_toggle',
 				'toggle_skin_layer',
@@ -1642,6 +1643,9 @@ const BARS = {
 		if (!Toolbars.outliner.children.includes(BarItems.explode_skin_model)) {
 			Toolbars.outliner.add(BarItems.explode_skin_model, -1)
 		}
+		Blockbench.onUpdateTo('4.0.0-beta.0', () => {
+			Toolbars.outliner.add(BarItems.add_mesh, 1)
+		})
 
 		Toolbars.texturelist = new Toolbar({
 			id: 'texturelist',
