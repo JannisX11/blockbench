@@ -222,9 +222,10 @@ class OutlinerNode {
 		return it(this)
 	}
 	remove() {
+		if (this.preview_controller) this.preview_controller.remove(this);
 		this.constructor.all.remove(this);
 		if (OutlinerNode.uuids[this.uuid] == this) delete OutlinerNode.uuids[this.uuid];
-		this.removeFromParent()
+		this.removeFromParent();
 	}
 	rename() {
 		this.showInOutliner()
@@ -342,7 +343,8 @@ class OutlinerElement extends OutlinerNode {
 		super.init();
 		Project.elements.safePush(this);
 		if (!this.mesh || !this.mesh.parent) {
-			this.constructor.preview_controller.setup(this);
+			this.preview_controller.setup(this);
+			console.trace(this)
 		}
 		return this;
 	}
@@ -523,6 +525,7 @@ class NodePreviewController {
 		this.updateUV = null;
 		this.updateFaces = null;
 		this.updatePaintingGrid = null;
+		this.updateSelection = null;
 
 		Object.assign(this, data);
 	}
@@ -545,7 +548,7 @@ class NodePreviewController {
 				Canvas.outlines.remove(Canvas.outlines.getObjectByName(this.uuid+'_ghost_outline'))
 			}
 		}
-		delete Project.nodes_3d[obj.uuid];
+		delete Project.nodes_3d[element.uuid];
 	}
 	updateAll(element) {
 		this.updateTransform(element);
@@ -589,6 +592,12 @@ class NodePreviewController {
 	}
 	updateVisibility(element) {
 		element.mesh.visible = element.visibility;
+	}
+	updateSelection(element) {
+		let {mesh} = element;
+		if (mesh && mesh.outline) {
+			mesh.outline.visible = element.selected
+		}
 	}
 }
 

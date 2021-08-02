@@ -184,15 +184,11 @@ class Group extends OutlinerNode {
 			Undo.initEdit({elements: elements, outliner: true, selection: true})
 		}
 		this.unselect()
+		super.remove();
 		var i = this.children.length-1
 		while (i >= 0) {
 			this.children[i].remove(false)
 			i--;
-		}
-		if (typeof this.parent === 'object') {
-			this.parent.children.remove(this)
-		} else {
-			Outliner.root.remove(this)
 		}
 		Animator.animations.forEach(animation => {
 			if (animation.animators && animation.animators[scope.uuid]) {
@@ -204,7 +200,6 @@ class Group extends OutlinerNode {
 		})
 		TickUpdates.selection = true
 		this.constructor.all.remove(this);
-		delete Project.nodes_3d[this.uuid];
 		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
 			Undo.finishEdit('Delete group')

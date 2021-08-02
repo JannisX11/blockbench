@@ -26,6 +26,7 @@ class ModelProject {
 		this.groups = [];
 		this.selected_elements = [];
 		this.selected_group = null;
+		this.selected_vertices = {};
 		this.textures = [];
 		this.selected_texture = null;
 		this.outliner = [];
@@ -57,7 +58,7 @@ class ModelProject {
 	get texture_height() {return this._texture_height}
 	set texture_width(n) {
 		n = parseInt(n)||16
-		Vue.nextTick(updateProjectResolution)
+		if (n != this._texture_width) Vue.nextTick(updateProjectResolution)
 		this._texture_width = n;
 	}
 	get optional_box_uv() {
@@ -65,7 +66,7 @@ class ModelProject {
 	}
 	set texture_height(n) {
 		n = parseInt(n)||16
-		Vue.nextTick(updateProjectResolution)
+		if (n != this._texture_height) Vue.nextTick(updateProjectResolution)
 		this._texture_height = n;
 	}
 	get name() {
@@ -196,6 +197,7 @@ class ModelProject {
 		setProjectTitle(this.name);
 		setStartScreen(!Project);
 		updateInterface();
+		updateProjectResolution();
 		Vue.nextTick(() => {
 			loadTextureDraggable();
 		})

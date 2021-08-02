@@ -351,7 +351,9 @@ class Preview {
 		Outliner.elements.forEach(element => {
 			if (element.mesh.geometry && element.visibility && !element.locked) {
 				objects.push(element.mesh);
-				objects.push(element.mesh.vertex_points);
+				if (element.mesh.vertex_points) {
+					objects.push(element.mesh.vertex_points);
+				}
 			}
 		})
 		if (Vertexsnap.vertexes.children.length) {
@@ -713,7 +715,7 @@ class Preview {
 	mousemove(event) {
 		if (Settings.get('highlight_cubes')) {
 			var data = this.raycast(event);
-			if (settings.highlight_cubes.value) updateCubeHighlights(data && data.element);
+			updateCubeHighlights(data && data.element);
 		}
 	}
 	mouseup(event) {

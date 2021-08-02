@@ -1889,8 +1889,10 @@ const BARS = {
 
 		Toolbox = Toolbars.tools;
 		Toolbox.toggleTransforms = function() {
-			if (Toolbox.selected.id === 'move_tool') {
-				BarItems['resize_tool'].select()
+			if (Toolbox.selected.id === 'move_tool' && Mesh.selected.length) {
+				Modes.options.mesh.select()
+			} else if (Toolbox.selected.id === 'move_tool') {
+				BarItems['resize_tool'].select();
 			} else if (Toolbox.selected.id === 'resize_tool') {
 				BarItems['move_tool'].select()
 			}

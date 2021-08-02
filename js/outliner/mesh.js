@@ -1,6 +1,7 @@
 class MeshFace {
-	constructor(mesh, data) {
+	constructor(mesh, data, uuid) {
 		this.mesh = mesh;
+		this.uuid = uuid || guid();
 		//this.vertices = [];
 		//this.normal = [0, 1, 0];
 		this.texture = false;
@@ -72,17 +73,17 @@ class Mesh extends OutlinerElement {
 		super(data, uuid)
 
 		this.vertices = {};
-		this.faces = [];
+		this.faces = {};
 
 		if (!data.vertices) {
 			this.addVertices([16, 16, 16], [16, 16, 0], [16, 0, 16], [16, 0, 0], [0, 16, 16], [0, 16, 0], [0, 0, 16], [0, 0, 0]);
 			let vertex_keys = Object.keys(this.vertices);
-			this.faces.push(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[2], vertex_keys[3]]} ));	// East
-			this.faces.push(new MeshFace( this, {vertices: [vertex_keys[4], vertex_keys[5], vertex_keys[6], vertex_keys[7]]} ));	// West
-			this.faces.push(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[4], vertex_keys[5]]} ));	// Up
-			this.faces.push(new MeshFace( this, {vertices: [vertex_keys[2], vertex_keys[3], vertex_keys[6], vertex_keys[7]]} ));	// Down
-			this.faces.push(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[4], vertex_keys[6]]} ));	// South
-			this.faces.push(new MeshFace( this, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[5], vertex_keys[7]]} ));	// North
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[2], vertex_keys[3]]} ));	// East
+			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[4], vertex_keys[5], vertex_keys[6], vertex_keys[7]]} ));	// West
+			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[4], vertex_keys[5]]} ));	// Up
+			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[2], vertex_keys[3], vertex_keys[6], vertex_keys[7]]} ));	// Down
+			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[4], vertex_keys[6]]} ));	// South
+			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[5], vertex_keys[7]]} ));	// North
 		}
 		for (var key in Mesh.properties) {
 			Mesh.properties[key].reset(this);
@@ -127,9 +128,32 @@ class Mesh extends OutlinerElement {
 			this.vertices[key] = [...vector];
 		})
 	}
+	addFaces(...faces) {
+		faces.forEach(face => {
+			let key;
+			while (!key || this.faces[key]) {
+				key = bbuid(8);
+			}
+			this.faces[key] = face;
+		})
+	}
 	extend(object) {
 		for (var key in Mesh.properties) {
 			Mesh.properties[key].merge(this, object)
+		}
+		if (typeof object.vertices == 'object') {
+			for (let key in object.vertices) {
+				this.vertices[key] = object.vertices[key];
+			}
+		}
+		if (typeof object.faces == 'object') {
+			for (let key in object.faces) {
+				if (this.faces[key]) {
+					this.faces[key].extend(object.faces[key])
+				} else {
+					this.faces[key] = new Face(this, object.faces[key]);
+				}
+			}
 		}
 		this.sanitizeName();
 		return this;
@@ -242,7 +266,7 @@ new NodePreviewController(Mesh, {
 
 		// Vertex Points
 		let material = new THREE.PointsMaterial({size: 5, sizeAttenuation: false, vertexColors: true});
-		let points = new THREE.Points(mesh.geometry, material);
+		let points = new THREE.Points(new THREE.BufferGeometry(), material);
 		points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(24).fill(1), 3));
 		mesh.vertex_points = points;
 		outline.add(points);
@@ -270,14 +294,17 @@ new NodePreviewController(Mesh, {
 			position_array.push(...vector);
 		}
 
-		element.faces.forEach(face => {
-
+		for (let key in element.faces) {
+			let face = element.faces[key];
+			
+			// Test if point "check" is on the other side of the line between "base1" and "base2", compared to "top"
 			function test(base1, base2, top, check) {
 				base1 = new THREE.Vector3().fromArray(base1);
 				base2 = new THREE.Vector3().fromArray(base2);
 				top = new THREE.Vector3().fromArray(top);
 				check = new THREE.Vector3().fromArray(check);
 
+				// Construct a plane with coplanar points "base1" and "base2" with a normal towards "top"
 				let normal = new THREE.Vector3();
 				new THREE.Line3(base1, base2).closestPointToPoint(top, false, normal);
 				normal.sub(top);
@@ -295,12 +322,12 @@ new NodePreviewController(Mesh, {
 					indices.push(index);
 				})
 
-				
 				// Outline
 				face.vertices.forEach((key, i) => {
 					outline_positions.push(...element.vertices[key]);
 					if (i && i < face.vertices.length-1) outline_positions.push(...element.vertices[key]);
 				})
+
 			} else if (face.vertices.length == 4) {
 
 				let sorted_vertices = face.vertices;
@@ -327,10 +354,13 @@ new NodePreviewController(Mesh, {
 				// Outline
 				sorted_vertices.forEach((key, i) => {
 					outline_positions.push(...element.vertices[key]);
-					if (i && i < sorted_vertices.length-1) outline_positions.push(...element.vertices[key]);
+					if (i != 0) outline_positions.push(...element.vertices[key]);
 				})
+				outline_positions.push(...element.vertices[sorted_vertices[0]]);
 			}
-		})
+		}
+
+		mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
 		
 		mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
 		mesh.geometry.setIndex(indices);
@@ -428,6 +458,24 @@ new NodePreviewController(Mesh, {
 
 		mesh.geometry.attributes.uv.needsUpdate = true;
 		return mesh.geometry;
+	},
+	updateSelection(element) {
+		NodePreviewController.prototype.updateSelection(element);
+		
+		let mesh = element.mesh;
+		let colors = [];
+
+		for (let key in element.vertices) {
+			let color;
+			if (Project.selected_vertices[element.uuid] && Project.selected_vertices[element.uuid].includes(key)) {
+				color = gizmo_colors.outline;
+			} else {
+				color = gizmo_colors.wire;
+			}
+			colors.push(color.r, color.g, color.b);
+		}
+		
+		mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 	}
 })
 
@@ -475,6 +523,17 @@ BARS.defineActions(function() {
 				}
 			})
 			return base_mesh
+		}
+	})
+	new BarSelect('selection_mode', {
+		options: {
+			object: true,
+			vertex: true,
+			face: true,
+		},
+		condition: () => Format && Format.meshes,
+		onChange: function(slider) {
+			updateSelection();
 		}
 	})
 })

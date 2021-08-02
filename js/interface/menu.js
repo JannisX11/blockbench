@@ -571,6 +571,7 @@ const MenuBar = {
 			'edit_history',
 			'_',
 			'add_cube',
+			'add_mesh',
 			'add_group',
 			'add_locator',
 			'add_null_object',

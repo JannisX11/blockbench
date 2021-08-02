@@ -105,11 +105,8 @@ function updateSelection(options = {}) {
 	if (Group.selected && Group.selected.locked) Group.selected.unselect()
 
 	Outliner.elements.forEach(element => {
-		if (element.visibility) {
-			var mesh = element.mesh
-			if (mesh && mesh.outline) {
-				mesh.outline.visible = element.selected
-			}
+		if (element.preview_controller.updateSelection) {
+			element.preview_controller.updateSelection(element);
 		}
 	})
 	for (var i = Outliner.selected.length-1; i >= 0; i--) {
