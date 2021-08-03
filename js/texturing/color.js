@@ -728,8 +728,8 @@ BARS.defineActions(function() {
 			min: 0, max: 360, default: 0,
 		},
 		getInterval(e) {
-			if (e.shiftKey) return 12.5;
-			if (e.ctrlOrCmd) return 1;
+			if (e.shiftKey || Pressing.overrides.shift) return 12.5;
+			if (e.ctrlOrCmd || Pressing.overrides.ctrl) return 1;
 			return 4
 		},
 		get: function() {
@@ -748,8 +748,8 @@ BARS.defineActions(function() {
 			min: 0, max: 100, default: 0,
 		},
 		getInterval(e) {
-			if (e.shiftKey) return 10;
-			if (e.ctrlOrCmd) return 1;
+			if (e.shiftKey || Pressing.overrides.shift) return 10;
+			if (e.ctrlOrCmd || Pressing.overrides.ctrl) return 1;
 			return 2
 		},
 		get: function() {
@@ -768,8 +768,8 @@ BARS.defineActions(function() {
 			min: 0, max: 100, default: 100,
 		},
 		getInterval(e) {
-			if (e.shiftKey) return 10;
-			if (e.ctrlOrCmd) return 1;
+			if (e.shiftKey || Pressing.overrides.shift) return 10;
+			if (e.ctrlOrCmd || Pressing.overrides.ctrl) return 1;
 			return 2
 		},
 		get: function() {

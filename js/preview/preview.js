@@ -679,7 +679,7 @@ class Preview {
 				}
 				if (data.cube.parent.type === 'group' && (
 					Animator.open ||
-					event.shiftKey ||
+					event.shiftKey || Pressing.overrides.shift ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
 				)) {
 					data.cube.parent.select().showInOutliner();
@@ -809,7 +809,7 @@ class Preview {
 		var scope = this;
 
 		if (this.movingBackground) {
-			if (event.shiftKey) {
+			if (event.shiftKey || Pressing.overrides.shift) {
 				this.background.size = limitNumber( this.background.before.size + (event.offsetY - this.selection.start_y), 0, 10e3)
 			} else {
 				this.background.x = this.background.before.x + (event.offsetX - this.selection.start_x);
@@ -976,7 +976,7 @@ class Preview {
 		unselectAll()
 		elements.forEach((element) => {
 			let isSelected;
-			if ((event.shiftKey || event.ctrlOrCmd) && scope.selection.old_selected.indexOf(element) >= 0) {
+			if ((event.shiftKey || event.ctrlOrCmd || Pressing.overrides.ctrl || Pressing.overrides.shift) && scope.selection.old_selected.indexOf(element) >= 0) {
 				isSelected = true
 
 			} else if (element.visibility) {

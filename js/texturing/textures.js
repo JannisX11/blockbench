@@ -1223,7 +1223,7 @@ function loadTextureDraggable() {
 									Undo.initEdit({elements: cubes_list})
 									cubes_list.forEach(cube => {
 										if (cube instanceof Cube) {
-											cube.applyTexture(tex, data.shiftKey || [data.face])
+											cube.applyTexture(tex, data.shiftKey || Pressing.overrides.shift || [data.face])
 										}
 									})
 									Undo.finishEdit('Apply texture')

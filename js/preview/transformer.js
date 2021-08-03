@@ -1454,7 +1454,7 @@
 						var difference = value - (previousValue||0)
 						Project.display_settings[display_slot][channel][axisNumber] += difference
 
-						if (event.shiftKey && channel === 'scale') {
+						if ((event.shiftKey || Pressing.overrides.shift) && channel === 'scale') {
 							var val = Project.display_settings[display_slot][channel][axisNumber]
 							Project.display_settings[display_slot][channel][(axisNumber+1)%3] = val
 							Project.display_settings[display_slot][channel][(axisNumber+2)%3] = val

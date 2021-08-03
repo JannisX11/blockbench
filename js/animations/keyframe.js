@@ -280,13 +280,13 @@ class Keyframe {
 			Timeline.dragging_keyframes = false
 			return this;
 		}
-		if (!event || (!event.shiftKey && !event.ctrlOrCmd)) {
+		if (!event || (!event.shiftKey && !event.ctrlOrCmd && !Pressing.overrides.ctrl && !Pressing.overrides.shift)) {
 			Timeline.selected.forEach(function(kf) {
 				kf.selected = false
 			})
 			Timeline.selected.empty()
 		}
-		if (event && event.shiftKey && Timeline.selected.length) {
+		if (event && (event.shiftKey || Pressing.overrides.shift) && Timeline.selected.length) {
 			var last = Timeline.selected[Timeline.selected.length-1]
 			if (last && last.channel === scope.channel && last.animator == scope.animator) {
 				Timeline.keyframes.forEach((kf) => {
@@ -491,8 +491,8 @@ BARS.defineActions(function() {
 			if (Toolbox.selected.id == 'rotate_tool' && animator.channels.includes('rotation')) channel = 'rotation';
 			if (Toolbox.selected.id == 'move_tool' && animator.channels.includes('position')) channel = 'position';
 			if (Toolbox.selected.id == 'resize_tool' && animator.channels.includes('scale')) channel = 'scale';
-			animator.createKeyframe((event && event.shiftKey) ? {} : null, Timeline.time, channel, true);
-			if (event && event.shiftKey) {
+			animator.createKeyframe((event && (event.shiftKey || Pressing.overrides.shift)) ? {} : null, Timeline.time, channel, true);
+			if (event && (event.shiftKey || Pressing.overrides.shift)) {
 				Animator.preview();
 			}
 		}

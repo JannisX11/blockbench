@@ -185,11 +185,11 @@ class Keybind {
 	}
 	isTriggered(event) {
 		return (
-			(this.key 	=== event.which || (this.key == 1001 && event instanceof MouseEvent)) &&
-			(this.ctrl 	=== event.ctrlKey 	|| this.ctrl == null 	) &&
-			(this.shift === event.shiftKey 	|| this.shift == null	) &&
-			(this.alt 	=== event.altKey 	|| this.alt == null 	) &&
-			(this.meta 	=== event.metaKey	|| this.meta == null 	)
+			(this.key 	=== event.which	|| (this.key == 1001 && event instanceof MouseEvent)) &&
+			(this.ctrl 	=== (event.ctrlKey 	|| Pressing.overrides.ctrl) || this.ctrl == null 	) &&
+			(this.shift === (event.shiftKey || Pressing.overrides.shift)|| this.shift == null	) &&
+			(this.alt 	=== (event.altKey 	|| Pressing.overrides.alt) 	|| this.alt == null 	) &&
+			(this.meta 	=== event.metaKey								|| this.meta == null 	)
 		)
 	}
 	record() {

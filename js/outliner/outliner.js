@@ -398,7 +398,7 @@ class OutlinerElement extends OutlinerNode {
 		if (Modes.animate && this.constructor != NullObject) return false;
 		//Shiftv
 		var just_selected = []
-		if (event && event.shiftKey === true && this.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && isOutlinerClick) {
+		if (event && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && isOutlinerClick) {
 			var starting_point;
 			var last_selected = selected[selected.length-1]
 			this.getParentArray().forEach((s, i) => {
@@ -429,7 +429,7 @@ class OutlinerElement extends OutlinerNode {
 			})
 
 		//Control
-		} else if (event && !Modes.paint && (event.ctrlOrCmd || event.shiftKey )) {
+		} else if (event && !Modes.paint && (event.ctrlOrCmd || event.shiftKey || Pressing.overrides.ctrl || Pressing.overrides.shift)) {
 			if (selected.includes(this)) {
 				selected.replace(selected.filter((e) => {
 					return e !== this
@@ -638,7 +638,7 @@ function dropOutlinerObjects(item, target, event, order) {
 	} else {
 		var items = [item];
 	}
-	if (event.altKey) {
+	if (event.altKey || Pressing.overrides.alt) {
 		Undo.initEdit({elements: [], outliner: true, selection: true})
 		selected.empty();
 	} else {
@@ -670,7 +670,7 @@ function dropOutlinerObjects(item, target, event, order) {
 	}
 	items.forEach(function(item) {
 		if (item && item !== target) {
-			if (event.altKey) {
+			if (event.altKey || Pressing.overrides.alt) {
 				if (item instanceof Group) {
 					var dupl = item.duplicate()
 					place(dupl)
@@ -691,7 +691,7 @@ function dropOutlinerObjects(item, target, event, order) {
 	if (Format.bone_rig) {
 		Canvas.updateAllBones()
 	}
-	if (event.altKey) {
+	if (event.altKey || Pressing.overrides.alt) {
 		updateSelection()
 		Undo.finishEdit('Duplicate selection', {elements: selected, outliner: true, selection: true})
 	} else {
@@ -1136,7 +1136,7 @@ Interface.definePanels(function() {
 						convertTouchEvent(e2);
 						if (e2.target.classList.contains('outliner_toggle') && e2.target.getAttribute('toggle') == key) {
 							let [node] = eventTargetToNode(e2.target);
-							if (key == 'visibility' && e2.altKey && !affected.length) {
+							if (key == 'visibility' && (e2.altKey || Pressing.overrides.alt) && !affected.length) {
 								let new_affected = Outliner.elements.filter(node => !node.selected);
 								value = !(new_affected[0] && new_affected[0][key]);
 								new_affected.forEach(node => {

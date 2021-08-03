@@ -187,12 +187,12 @@ const Painter = {
 			Painter.painting = true;
 
 			if (data) {
-				var is_line = event.shiftKey && Painter.current.cube == data.cube && Painter.current.face == data.face
+				var is_line = (event.shiftKey || Pressing.overrides.shift) && Painter.current.cube == data.cube && Painter.current.face == data.face
 				Painter.current.cube = data.cube;
 				Painter.current.face = data.face;
 			} else {
 				//uv editor
-				var is_line = event.shiftKey;
+				var is_line = (event.shiftKey || Pressing.overrides.shift);
 			}
 
 			if (is_line) {
@@ -528,7 +528,7 @@ const Painter = {
 			let diff_x = x - Painter.startPixel[0];
 			let diff_y = y - Painter.startPixel[1];
 
-			if (event.shiftKey) {
+			if (event.shiftKey || Pressing.overrides.shift) {
 				let clamp = Math.floor((Math.abs(diff_x) + Math.abs(diff_y))/2);
 				diff_x = diff_x>0 ? clamp : -clamp;
 				diff_y = diff_y>0 ? clamp : -clamp;
@@ -643,7 +643,7 @@ const Painter = {
 			let diff_x = x - Painter.startPixel[0];
 			let diff_y = y - Painter.startPixel[1];
 
-			if (event.shiftKey) {
+			if (event.shiftKey || Pressing.overrides.shift) {
 				let length = Math.sqrt(Math.pow(diff_x, 2) + Math.pow(diff_y, 2));
 
 				let ratio = Math.abs(diff_x) / Math.abs(diff_y);

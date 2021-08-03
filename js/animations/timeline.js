@@ -77,7 +77,7 @@ const Timeline = {
 				e.clientX - R.panel_offset[0],
 				e.clientY - R.panel_offset[1],
 			]
-			if (e.shiftKey) {
+			if (e.shiftKey || Pressing.overrides.shift) {
 				Timeline.selector.selected_before = Timeline.selected.slice();
 			}
 			R.selecting = true;
@@ -268,7 +268,7 @@ const Timeline = {
 				
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
-				if (!e.ctrlOrCmd) time = Timeline.snapTime(time);
+				if (!e && !Pressing.overrides.ctrl) time = Timeline.snapTime(time);
 				Timeline.setTime(time);
 				Animator.preview();
 			}
@@ -279,7 +279,7 @@ const Timeline = {
 				convertTouchEvent(e);
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
-				if (!e.ctrlOrCmd) time = Timeline.snapTime(time);
+				if (!e.ctrlOrCmd && !Pressing.overrides.ctrl) time = Timeline.snapTime(time);
 				if (Timeline.time != time) {
 					Timeline.setTime(time)
 					Animator.preview()
@@ -750,10 +750,10 @@ onVueSetup(function() {
 					dragging_restriction;
 					originalValue;
 					previousValue = 0;
-					time_stretching = !Timeline.vue.graph_editor_open && e1.ctrlOrCmd && Timeline.selected.length > 1;
+					time_stretching = !Timeline.vue.graph_editor_open && (e1.ctrlOrCmd || Pressing.overrides.ctrl) && Timeline.selected.length > 1;
 					values_changed = false;
 
-					if (!clicked.selected && !e1.shiftKey && Timeline.selected.length != 0) {
+					if (!clicked.selected && !e1.shiftKey && !Pressing.overrides.shift && Timeline.selected.length != 0) {
 						clicked.select()
 					} else if (clicked && !clicked.selected) {
 						clicked.select({shiftKey: true})
@@ -824,7 +824,7 @@ onVueSetup(function() {
 					let value_diff = 0;
 					if (Timeline.vue.graph_editor_open) {
 						value = -offset[1] / Timeline.vue.graph_size;
-						var round_num = canvasGridSize(e2.shiftKey, e2.ctrlOrCmd);
+						var round_num = canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);
 						if (Toolbox.selected.id === 'resize_tool') {
 							round_num *= 0.1;
 						}
