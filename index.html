@@ -146,30 +146,33 @@
 	<dialog class="dialog draggable" id="toolbar_edit">
 		<div class="dialog_handle tl">dialog.toolbar_edit.title</div>
 
-		<ul class="bar" id="bar_items_current" v-sortable="{onChoose: choose, onUpdate: sort, onEnd: drop, animation: 160 }">
-			<li v-for="item in currentBar" v-bind:title="item.name" :key="item.id||item">
-				<div v-if="typeof item === 'string'" class="toolbar_separator"></div>
-				<div v-else class="tool">
-					<div class="tooltip">{{item.name + (BARS.condition(item.condition) ? '' : ' (' + tl('dialog.toolbar_edit.hidden') + ')' )}}</div>
-					<span class="icon_wrapper" v-bind:style="{opacity: BARS.condition(item.condition) ? 1 : 0.4}" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></span>
-				</div>
-			</li> 
-		</ul>
+		<div class="dialog_content">
+			<ul class="bar" id="bar_items_current" v-sortable="{onChoose: choose, onUpdate: sort, onEnd: drop, animation: 160 }">
+				<li v-for="item in currentBar" v-bind:title="item.name" :key="item.id||item">
+					<div v-if="typeof item === 'string'" class="toolbar_separator" :class="{border: item[0] == '_', spacer: item[0] == '+', linebreak: item[0] == '#'}"></div>
+					<div v-else class="tool">
+						<div class="tooltip">{{item.name + (BARS.condition(item.condition) ? '' : ' (' + tl('dialog.toolbar_edit.hidden') + ')' )}}</div>
+						<span class="icon_wrapper" v-bind:style="{opacity: BARS.condition(item.condition) ? 1 : 0.4}" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></span>
+					</div>
+				</li> 
+			</ul>
 
-		<p class="tl small_text subtle">dialog.toolbar_edit.hidden_tools</p>
+			<p class="tl small_text subtle">dialog.toolbar_edit.hidden_tools</p>
 
-		<div class="bar" style="margin: 4px 0;">
-			<search-bar v-model="search_term"></search-bar>
+			<div class="bar" style="margin: 4px 0;">
+				<search-bar v-model="search_term"></search-bar>
+			</div>
+
+			<ul class="list" id="bar_item_list">
+				<li v-for="item in searchedBarItems" v-on:click="addItem(item)" :class="{separator_item: item.type == 'separator'}">
+					<div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
+					<div class="icon_wrapper add"><i class="material-icons">add</i></div>
+					{{ item.name }}
+				</li>
+			</ul>
+
 		</div>
-
-		<ul class="list" id="bar_item_list">
-			<li v-for="item in searchedBarItems" v-on:click="addItem(item)">
-				<div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
-				<div class="icon_wrapper add"><i class="material-icons">add</i></div>
-				{{ item.name }}
-			</li>
-		</ul>
-
+		
 		<div class="dialog_bar button_bar">
 			<button type="button" class="cancel_btn confirm_btn uc_btn tl" onclick="hideDialog();">dialog.close</button>
 		</div>
