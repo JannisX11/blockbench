@@ -110,7 +110,10 @@ class Keybind {
 		}
 		if (colorized) {
 			modifiers.forEach((text, i) => {
-				modifiers[i] = `<span class="${i !== modifiers.length-1 ? 'modifier' : 'key'}">${text}</span>`;
+				let type = i !== modifiers.length-1
+						 ? text.match(/\[\w+\]/) ? 'optional' : 'modifier'
+						 : 'key'
+				modifiers[i] = `<span class="${type}">${text}</span>`;
 			})
 			return modifiers.join(`<span class="punctuation"> + </span>`);
 
