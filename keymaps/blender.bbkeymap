@@ -4,6 +4,7 @@
 		"preview_rotate": {"key": 2},
 		"preview_drag": {"key": 2, "shift": true},
 		"preview_zoom": {"key": 2, "ctrl": true},
+		"preview_area_select": {"key": 1},
 		"confirm": {"key": 13},
 		"cancel": {"key": 27},
 		"move_tool": {"key": 71},

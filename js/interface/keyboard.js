@@ -290,6 +290,7 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 		Keybinds.extra.preview_rotate.keybind.set({key: 2}).save(false);
 		Keybinds.extra.preview_drag.keybind.set({key: 2, shift: true}).save(false);
 		Keybinds.extra.preview_zoom.keybind.set({key: 2, ctrl: true}).save(false);
+		Keybinds.extra.preview_area_select.keybind.set({key: 1}).save(false);
 	}
 
 	Keybinds.save();

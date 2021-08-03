@@ -666,6 +666,7 @@
 	"keybind.preview_rotate": "Rotate View",
 	"keybind.preview_drag": "Drag View",
 	"keybind.preview_zoom": "Zoom View",
+	"keybind.preview_area_select": "Area Select",
 	"keybind.confirm": "Confirm",
 	"keybind.cancel": "Cancel",
 

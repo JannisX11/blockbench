@@ -1320,6 +1320,10 @@ const BARS = {
 				category: 'navigate',
 				keybind: new Keybind({key: 1, shift: true})
 			})
+			new KeybindItem('preview_area_select', {
+				category: 'navigate',
+				keybind: new Keybind({key: 1, ctrl: true, shift: null})
+			})
 
 			new KeybindItem('confirm', {
 				category: 'navigate',
