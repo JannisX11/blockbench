@@ -755,7 +755,7 @@ function rotateOnAxis(modify, axis, slider) {
 		}
 	}
 	var axis_letter = getAxisLetter(axis)
-	var origin =things[0].origin
+	var origin = things[0].origin
 	things.forEach(function(obj, i) {
 		if (!obj.rotation.allEqual(0)) {
 			origin = obj.origin
@@ -763,6 +763,7 @@ function rotateOnAxis(modify, axis, slider) {
 	})
 
 	let space = Transformer.getTransformSpace()
+	if (axis instanceof THREE.Vector3) space = 0;
 	things.forEach(obj => {
 		let mesh = obj.mesh;
 		if (obj instanceof Cube && !Format.bone_rig) {
@@ -821,7 +822,9 @@ function rotateOnAxis(modify, axis, slider) {
 			obj.rotation[2] = Math.radToDeg(e.z);
 
 		} else if (space == 0) {
-			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)
+			let normal = axis instanceof THREE.Vector3
+				? axis
+				: axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)
 			let rotWorldMatrix = new THREE.Matrix4();
 			rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(modify(0)))
 			rotWorldMatrix.multiply(mesh.matrixWorld)

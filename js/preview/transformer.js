@@ -26,7 +26,10 @@
 	
 				if ( highlighted ) {
 	
-					this.color.setHex( parseInt(CustomTheme.data.colors.accent.replace('#', ''), 16) );
+					this.color.copy( gizmo_colors.outline );
+					this.color.r *= 1.2;
+					this.color.g *= 1.2;
+					this.color.b *= 1.2;
 					this.opacity = 1;
 	
 				} else {
@@ -58,7 +61,10 @@
 	
 				if ( highlighted ) {
 	
-					this.color.setHex( parseInt(CustomTheme.data.colors.accent.replace('#', ''), 16) );
+					this.color.copy( gizmo_colors.outline );
+					this.color.r *= 1.2;
+					this.color.g *= 1.2;
+					this.color.b *= 1.2;
 					this.opacity = 1;
 	
 				} else {
@@ -179,8 +185,7 @@
 
 					if ( child.material && child.material.highlight ) {
 
-
-						if ( child.name === axis && axis_letter && child.scale[axis_letter] < 5) {
+						if ( child.name === axis && axis_letter && (child.scale[axis_letter] < 5 || axis == 'E') ) {
 
 							child.material.highlight( true );
 
@@ -415,7 +420,11 @@
 					[ new THREE.Line( new CircleGeometry( 1, 'z', 0.5 ), new GizmoLineMaterial( { color: gizmo_colors.b } ) ) ],
 					[ new THREE.Mesh( new THREE.OctahedronBufferGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.b } ) ), [ 0.98, 0, 0 ], null, [ 1, 4, 1 ] ],
 				],
-				XYZE: [[ new THREE.Line( new CircleGeometry( 1, 'z', 1 ), new GizmoLineMaterial( { color: 0x787878 } ) ) ]]
+
+				E: [
+					[ new THREE.Line( new CircleGeometry( 1.2, 'z', 1 ), new GizmoLineMaterial( { color: gizmo_colors.outline } ) ) ]
+				],
+				XYZE: [[ new THREE.Line( new CircleGeometry( 1, 'z', 1 ), new GizmoLineMaterial( { color: gizmo_colors.grid } ) ) ]]
 
 			};
 
@@ -423,7 +432,8 @@
 
 				X: [[ new THREE.Mesh( new THREE.TorusBufferGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ 0, - Math.PI / 2, - Math.PI / 2 ] ]],
 				Y: [[ new THREE.Mesh( new THREE.TorusBufferGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ Math.PI / 2, 0, 0 ] ]],
-				Z: [[ new THREE.Mesh( new THREE.TorusBufferGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ]]
+				Z: [[ new THREE.Mesh( new THREE.TorusBufferGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ]],
+				E: [[ new THREE.Mesh( new THREE.TorusBufferGeometry( 1.2, 0.12, 2, 24 ), pickerMaterial ) ]],
 
 			};
 
@@ -442,13 +452,6 @@
 			this.update = function ( rotation, eye2 ) {
 
 				THREE.TransformGizmo.prototype.update.apply( this, arguments );
-
-				var group = {
-
-					handles: this[ "handles" ],
-					pickers: this[ "pickers" ],
-
-				};
 
 				var tempMatrix = new THREE.Matrix4();
 				var worldRotation = new THREE.Euler( 0, 0, 1 );
@@ -1130,6 +1133,7 @@
 
 				var axis = scope.axis.substr(-1).toLowerCase()
 				var axisNumber = getAxisNumber(axis)
+				var rotate_normal;
 
 				point.copy( planeIntersect.point );
 
@@ -1140,14 +1144,24 @@
 					}
 
 				} else {
+
 					point.sub( worldPosition );
-					point.removeEuler(worldRotation)
-					var rotations = [
-						Math.atan2( point.z, point.y ),
-						Math.atan2( point.x, point.z ),
-						Math.atan2( point.y, point.x )
-					]
-					var angle = Math.radToDeg( rotations[axisNumber] )
+					point.removeEuler(worldRotation);
+
+					if (scope.axis == 'E') {
+						let matrix = new THREE.Matrix4().copy(_gizmo[ _mode ].activePlane.matrix).invert();
+						point.applyMatrix4(matrix)
+						var angle = Math.radToDeg( Math.atan2( point.y, point.x ) )
+						rotate_normal = Preview.selected.camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(-1);
+
+					} else {
+						var rotations = [
+							Math.atan2( point.z, point.y ),
+							Math.atan2( point.x, point.z ),
+							Math.atan2( point.y, point.x )
+						]
+						var angle = Math.radToDeg( rotations[axisNumber] )
+					}
 				}
 				let transform_space = Transformer.getTransformSpace()
 
@@ -1226,6 +1240,9 @@
 							beforeFirstChange(event)
 
 							var difference = angle - previousValue
+							if (axisNumber == undefined) {
+								axisNumber = rotate_normal;
+							}
 							rotateOnAxis(n => (n + difference), axisNumber)
 							Canvas.updatePositions(true)
 							scope.updateSelection()
@@ -1354,10 +1371,12 @@
 						} else {
 							let {mesh} = Group.selected;
 
-							if (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value === 'global') {
-								if (axisNumber != 2) difference *= -1;
+							if (Toolbox.selected.id === 'rotate_tool' && (BarItems.rotation_space.value === 'global' || scope.axis == 'E')) {
 
-								let normal = axisNumber == 0 ? THREE.NormalX : (axisNumber == 1 ? THREE.NormalY : THREE.NormalZ)
+								let normal = scope.axis == 'E'
+									? rotate_normal
+									: axisNumber == 0 ? THREE.NormalX : (axisNumber == 1 ? THREE.NormalY : THREE.NormalZ);
+								if (axisNumber != 2) difference *= -1;
 								let rotWorldMatrix = new THREE.Matrix4();
 								rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(difference))
 								rotWorldMatrix.multiply(mesh.matrixWorld)
@@ -1426,7 +1445,7 @@
 					var channel = Toolbox.selected.animation_channel
 					if (channel === 'position') channel = 'translation';
 					var value = point[axis]
-					var bf = Project.display_settings[display_slot][channel][axisNumber] - (previousValue||0)
+					var bf = (Project.display_settings[display_slot][channel][axisNumber] - (previousValue||0)) || 0;
 
 					if (channel === 'rotation') {
 						value = Math.trimDeg(bf + Math.round(angle*4)/4) - bf;
@@ -1451,8 +1470,24 @@
 					if (value !== previousValue) {
 						beforeFirstChange(event)
 
-						var difference = value - (previousValue||0)
-						Project.display_settings[display_slot][channel][axisNumber] += difference
+						var difference = value - (previousValue||0);
+
+						if (channel === 'rotation' && scope.axis == 'E') {
+							let normal = scope.axis == 'E'
+								? rotate_normal
+								: axisNumber == 0 ? THREE.NormalX : (axisNumber == 1 ? THREE.NormalY : THREE.NormalZ);
+
+							let quaternion = display_base.getWorldQuaternion(new THREE.Quaternion()).invert()
+							normal.applyQuaternion(quaternion)
+							display_base.rotateOnAxis(normal, Math.degToRad(difference))
+
+							Project.display_settings[display_slot][channel][0] = Math.roundTo(Math.radToDeg(display_base.rotation.x), 2);
+							Project.display_settings[display_slot][channel][1] = Math.roundTo(Math.radToDeg(display_base.rotation.y) * (display_slot.includes('lefthand') ? -1 : 1), 2);
+							Project.display_settings[display_slot][channel][2] = Math.roundTo(Math.radToDeg(display_base.rotation.z) * (display_slot.includes('lefthand') ? -1 : 1), 2);
+
+						} else {
+							Project.display_settings[display_slot][channel][axisNumber] += difference;
+						}
 
 						if ((event.shiftKey || Pressing.overrides.shift) && channel === 'scale') {
 							var val = Project.display_settings[display_slot][channel][axisNumber]
