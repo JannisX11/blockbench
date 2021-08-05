@@ -228,6 +228,7 @@ const Settings = {
 		new Setting('backup_interval', {category: 'application', value: 10, type: 'number', condition: isApp});
 		new Setting('backup_retain', {category: 'application', value: 30, type: 'number', condition: isApp});
 		new Setting('automatic_updates', {category: 'application', value: true, condition: isApp});
+		new Setting('update_to_prereleases', {category: 'application', value: false, condition: isApp, launch_setting: true});
 		new Setting('hardware_acceleration', {category: 'application', value: true, condition: isApp, launch_setting: true});
 		
 		//Export
