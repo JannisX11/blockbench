@@ -280,7 +280,8 @@ class Preview {
 		this.loadBackground()
 
 		this.selection = {
-			box: $('<div id="selection_box" class="selection_rectangle"></div>') 
+			box: $('<div id="selection_box" class="selection_rectangle"></div>'),
+			frustum: new THREE.Frustum()
 		}
 
 		this.raycaster = new THREE.Raycaster();
@@ -682,7 +683,7 @@ class Preview {
 				}
 				if (data.element.parent.type === 'group' && (
 					Animator.open ||
-					event.shiftKey ||
+					event.shiftKey || Pressing.overrides.shift ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
 				)) {
 					data.element.parent.select().showInOutliner();
@@ -706,7 +707,7 @@ class Preview {
 			Toolbox.selected.onCanvasClick({event})
 		}
 
-		if (this.angle !== null && this.camOrtho.axis || this.movingBackground) {
+		if ((Keybinds.extra.preview_area_select.keybind.isTriggered(event)) || this.movingBackground) {
 			this.startSelRect(event)
 		} else {
 			return false;
@@ -806,18 +807,13 @@ class Preview {
 		this.selection.activated = settings.canvas_unselect.value;
 		this.selection.old_selected = selected.slice();
 
-		var ray = this.raycastMouseCoords(event.clientX, event.clientY)
-
-		this.selection.start_u = ray[this.getUVAxes().u]
-		this.selection.start_v = ray[this.getUVAxes().v]
-
 		this.moveSelRect(event)
 	}
 	moveSelRect(event) {
 		var scope = this;
 
 		if (this.movingBackground) {
-			if (event.shiftKey) {
+			if (event.shiftKey || Pressing.overrides.shift) {
 				this.background.size = limitNumber( this.background.before.size + (event.offsetY - this.selection.start_y), 0, 10e3)
 			} else {
 				this.background.x = this.background.before.x + (event.offsetX - this.selection.start_x);
@@ -827,7 +823,6 @@ class Preview {
 			return;
 		}
 
-		var uv_axes = this.getUVAxes()
 		//Overlay
 		var c = getRectangle(
 			Math.clamp(this.selection.start_x, -2, this.width),
@@ -848,45 +843,159 @@ class Preview {
 		//Select
 		if (!this.selection.activated) return;
 
-		var ray = this.raycastMouseCoords(event.clientX, event.clientY)
+		/**
+		 * Contains code from https://github.com/mrdoob/three.js/blob/dev/examples/jsm/interactive/SelectionBox.js
+		 * MIT, by three.js contributors
+		 */
 
-		var plane_rect = getRectangle(
-			this.selection.start_u,
-			this.selection.start_v,
-			ray[uv_axes.u],
-			ray[uv_axes.v]
-		)
+		var canvas_offset = $(this.canvas).offset()
+		let startPoint = new THREE.Vector3(
+			( (this.selection.client_x - canvas_offset.left) / this.width ) * 2 - 1,
+			- ( (this.selection.client_y - canvas_offset.top) / this.height ) * 2 + 1,
+			0.5
+		);
+		let endPoint = new THREE.Vector3(
+			(( event.clientX - canvas_offset.left) / this.width ) * 2 - 1,
+			- (( event.clientY - canvas_offset.top) / this.height ) * 2 + 1,
+			0.5
+		);
+
+		if (startPoint.x === endPoint.x) {
+			endPoint.x += 0.1;
+		} else if (startPoint.x < endPoint.x)  {
+			[startPoint.x, endPoint.x] = [endPoint.x, startPoint.x];
+		}
+
+		if (startPoint.y === endPoint.y) {
+			endPoint.y += 0.1;
+		} else if (startPoint.y > endPoint.y)  {
+			[startPoint.y, endPoint.y] = [endPoint.y, startPoint.y];
+		}
+
+		this.camera.updateProjectionMatrix();
+		this.camera.updateMatrixWorld();
+
+		const _tmpPoint = new THREE.Vector3();
+
+		const _vecNear = new THREE.Vector3();
+		const _vecTopLeft = new THREE.Vector3();
+		const _vecTopRight = new THREE.Vector3();
+		const _vecDownRight = new THREE.Vector3();
+		const _vecDownLeft = new THREE.Vector3();
+
+		const _vecFarTopLeft = new THREE.Vector3();
+		const _vecFarTopRight = new THREE.Vector3();
+		const _vecFarDownRight = new THREE.Vector3();
+		const _vecFarDownLeft = new THREE.Vector3();
+
+		const _vectemp1 = new THREE.Vector3();
+		const _vectemp2 = new THREE.Vector3();
+		const _vectemp3 = new THREE.Vector3();
+
+		if ( !this.isOrtho ) {
+
+			_tmpPoint.copy( startPoint );
+			_tmpPoint.x = Math.min( startPoint.x, endPoint.x );
+			_tmpPoint.y = Math.max( startPoint.y, endPoint.y );
+			endPoint.x = Math.max( startPoint.x, endPoint.x );
+			endPoint.y = Math.min( startPoint.y, endPoint.y );
+
+			_vecNear.setFromMatrixPosition( this.camera.matrixWorld );
+			_vecTopLeft.copy( _tmpPoint );
+			_vecTopRight.set( endPoint.x, _tmpPoint.y, 0 );
+			_vecDownRight.copy( endPoint );
+			_vecDownLeft.set( _tmpPoint.x, endPoint.y, 0 );
+
+			_vecTopLeft.unproject( this.camera );
+			_vecTopRight.unproject( this.camera );
+			_vecDownRight.unproject( this.camera );
+			_vecDownLeft.unproject( this.camera );
+
+			_vectemp1.copy( _vecTopLeft ).sub( _vecNear );
+			_vectemp2.copy( _vecTopRight ).sub( _vecNear );
+			_vectemp3.copy( _vecDownRight ).sub( _vecNear );
+			_vectemp1.normalize();
+			_vectemp2.normalize();
+			_vectemp3.normalize();
+
+			_vectemp1.multiplyScalar( this.deep );
+			_vectemp2.multiplyScalar( this.deep );
+			_vectemp3.multiplyScalar( this.deep );
+			_vectemp1.add( _vecNear );
+			_vectemp2.add( _vecNear );
+			_vectemp3.add( _vecNear );
+
+			const planes = this.selection.frustum.planes;
+
+			planes[ 0 ].setFromCoplanarPoints( _vecNear, _vecTopLeft, _vecTopRight );
+			planes[ 1 ].setFromCoplanarPoints( _vecNear, _vecTopRight, _vecDownRight );
+			planes[ 2 ].setFromCoplanarPoints( _vecDownRight, _vecDownLeft, _vecNear );
+			planes[ 3 ].setFromCoplanarPoints( _vecDownLeft, _vecTopLeft, _vecNear );
+			planes[ 4 ].setFromCoplanarPoints( _vecTopRight, _vecDownRight, _vecDownLeft );
+			planes[ 5 ].setFromCoplanarPoints( _vectemp3, _vectemp2, _vectemp1 );
+			planes[ 5 ].normal.multiplyScalar( - 1 );
+
+		} else {
+
+			const left = Math.min( startPoint.x, endPoint.x );
+			const top = Math.max( startPoint.y, endPoint.y );
+			const right = Math.max( startPoint.x, endPoint.x );
+			const down = Math.min( startPoint.y, endPoint.y );
+
+			_vecTopLeft.set( left, top, - 1 );
+			_vecTopRight.set( right, top, - 1 );
+			_vecDownRight.set( right, down, - 1 );
+			_vecDownLeft.set( left, down, - 1 );
+
+			_vecFarTopLeft.set( left, top, 1 );
+			_vecFarTopRight.set( right, top, 1 );
+			_vecFarDownRight.set( right, down, 1 );
+			_vecFarDownLeft.set( left, down, 1 );
+
+			_vecTopLeft.unproject( this.camera );
+			_vecTopRight.unproject( this.camera );
+			_vecDownRight.unproject( this.camera );
+			_vecDownLeft.unproject( this.camera );
+
+			_vecFarTopLeft.unproject( this.camera );
+			_vecFarTopRight.unproject( this.camera );
+			_vecFarDownRight.unproject( this.camera );
+			_vecFarDownLeft.unproject( this.camera );
+
+			const planes = this.selection.frustum.planes;
+
+			planes[ 0 ].setFromCoplanarPoints( _vecTopLeft, _vecFarTopLeft, _vecFarTopRight );
+			planes[ 1 ].setFromCoplanarPoints( _vecTopRight, _vecFarTopRight, _vecFarDownRight );
+			planes[ 2 ].setFromCoplanarPoints( _vecFarDownRight, _vecFarDownLeft, _vecDownLeft );
+			planes[ 3 ].setFromCoplanarPoints( _vecFarDownLeft, _vecFarTopLeft, _vecTopLeft );
+			planes[ 4 ].setFromCoplanarPoints( _vecTopRight, _vecDownRight, _vecDownLeft );
+			planes[ 5 ].setFromCoplanarPoints( _vecFarDownRight, _vecFarTopRight, _vecFarTopLeft );
+			planes[ 5 ].normal.multiplyScalar( - 1 );
+
+		}
+
+		let box = new THREE.Box3();
+		let vector = new THREE.Vector3();
+
 		unselectAll()
-		Outliner.elements.forEach(function(cube) {
+		Outliner.elements.forEach((element) => {
+			let isSelected;
+			if ((event.shiftKey || event.ctrlOrCmd || Pressing.overrides.ctrl || Pressing.overrides.shift) && scope.selection.old_selected.indexOf(element) >= 0) {
+				isSelected = true
 
-			if ((event.shiftKey || event.ctrlOrCmd) && scope.selection.old_selected.indexOf(cube) >= 0) {
-				var isSelected = true
-			} else {
-				if (cube instanceof Cube && cube.visibility && cube.mesh) {
-					var mesh = cube.mesh
-					var from = 	new THREE.Vector3().copy(mesh.geometry.vertices[6]).applyMatrix4(mesh.matrixWorld)
-					var to = 	new THREE.Vector3().copy(mesh.geometry.vertices[0]).applyMatrix4(mesh.matrixWorld)
-					var cube_rect = getRectangle(
-						from[uv_axes.u],
-						from[uv_axes.v],
-						to[uv_axes.u],
-						to[uv_axes.v]
-					)
-					var isSelected = doRectanglesOverlap(plane_rect, cube_rect)
-				} else if (cube instanceof Locator && cube.parent instanceof Group && cube.parent.mesh) {
-					var mesh = cube.parent.mesh;
-					var pos = new THREE.Vector3().fromArray(cube.from).applyMatrix4(mesh.matrixWorld);
-					var cube_rect = getRectangle(
-						pos[uv_axes.u],
-						pos[uv_axes.v],
-						pos[uv_axes.u],
-						pos[uv_axes.v]
-					)
-					var isSelected = doRectanglesOverlap(plane_rect, cube_rect)
+			} else if (element.visibility) {
+				if (element.mesh && element.mesh.geometry) {
+					box.copy(element.mesh.geometry.boundingBox).applyMatrix4(element.mesh.matrixWorld);
+					isSelected = this.selection.frustum.intersectsBox(box);
+
+				} else if (element.mesh) {
+
+					element.mesh.getWorldPosition(vector);
+					isSelected = this.selection.frustum.containsPoint(vector);
 				}
 			}
 			if (isSelected) {
-				cube.selectLow()
+				element.selectLow()
 			}
 		})
 		TickUpdates.selection = true;
@@ -900,13 +1009,6 @@ class Preview {
 		};
 		this.selection.box.detach()
 		this.selection.activated = false;
-	}
-	getUVAxes() {
-		switch (this.camOrtho.axis) {
-			case 'x': return {u: 'z', v: 'y'}; break;
-			case 'y': return {u: 'x', v: 'z'}; break;
-			case 'z': return {u: 'x', v: 'y'}; break;
-		}
 	}
 
 	//Backgrounds

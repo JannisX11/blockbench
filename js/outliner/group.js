@@ -74,7 +74,7 @@ class Group extends OutlinerNode {
 
 		//Clear Old Group
 		if (Group.selected) Group.selected.unselect()
-		if (event.shiftKey !== true && event.ctrlOrCmd !== true) {
+		if ((event.shiftKey || Pressing.overrides.shift) !== true && (event.ctrlOrCmd || Pressing.overrides.ctrl) !== true) {
 			selected.length = 0
 		}
 		//Select This Group

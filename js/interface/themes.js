@@ -4,7 +4,7 @@ const CustomTheme = {
 		headline_font: '',
 		code_font: '',
 		css: '',
-		colors: {}
+		colors: {},
 	},
 	defaultColors: {
 		ui: '#282c34',
@@ -34,65 +34,153 @@ const CustomTheme = {
 			localStorage.setItem('theme', JSON.stringify(CustomTheme.data));
 		}
 
-		CustomTheme.vue = new Vue({
-			el: '#theme_editor',
-			data: CustomTheme.data,
-			components: {
-				VuePrismEditor
+		CustomTheme.dialog = new Dialog({
+			id: 'theme',
+			title: 'dialog.settings.theme',
+			singleButton: true,
+			width: 920,
+			title_menu: new Menu([
+				'settings_window',
+				'keybindings_window',
+				'theme_window',
+				'about_window',
+			]),
+			sidebar: {
+				pages: {
+					//discover: tl('layout.discover'),
+					color: tl('layout.color'),
+					fonts: tl('layout.fonts'),
+					css: tl('layout.css'),
+				},
+				page: 'color',
+				actions: [
+					{
+						name: 'layout.documentation',
+						icon: 'fa-book',
+						click() {
+
+						}
+					},
+					'import_theme',
+					'export_theme',
+				],
+				onPageSwitch(page) {
+					CustomTheme.dialog.content_vue.open_category = page;
+					if (page == 'color' && !CustomTheme.dialog_is_setup) {
+						CustomTheme.setupDialog()
+					}
+				}
 			},
-			watch: {
-				main_font() {
-					document.body.style.setProperty('--font-custom-main', CustomTheme.data.main_font);
-					saveChanges();
+			component: {
+				data: {
+					data: CustomTheme.data,
+					open_category: 'color'
 				},
-				headline_font() {
-					document.body.style.setProperty('--font-custom-headline', CustomTheme.data.headline_font);
-					saveChanges();
+				components: {
+					VuePrismEditor
 				},
-				code_font() {
-					document.body.style.setProperty('--font-custom-code', CustomTheme.data.code_font);
-					saveChanges();
-				},
-				css() {
-					$('style#theme_css').text(CustomTheme.data.css);
-					saveChanges();
-				},
-				colors: {
-					handler() {
-						for (var key in CustomTheme.data.colors) {
-							var hex = CustomTheme.data.colors[key];
-							document.body.style.setProperty('--color-'+key, hex);
-						}
-						$('meta[name=theme-color]').attr('content', CustomTheme.data.colors.frame);
-
-						var c_outline = parseInt('0x'+CustomTheme.data.colors.accent.replace('#', ''))
-						if (c_outline !== gizmo_colors.outline.getHex()) {
-							gizmo_colors.outline.set(c_outline)
-							Canvas.outlineMaterial.color = gizmo_colors.outline
-						}
-						var c_wire = parseInt('0x'+CustomTheme.data.colors.wireframe.replace('#', ''))
-						if (c_wire !== gizmo_colors.wire.getHex()) {
-							gizmo_colors.wire.set(c_wire);
-							Canvas.wireframeMaterial.color = gizmo_colors.wire;
-						}
-
-						var c_grid = parseInt('0x'+CustomTheme.data.colors.grid.replace('#', ''))
-						if (c_grid !== gizmo_colors.grid.getHex()) {
-							gizmo_colors.grid.set(c_grid);
-							three_grid.children.forEach(c => {
-								if (c.name === 'grid' && c.material) {
-									c.material.color = gizmo_colors.grid;
-								}
-							})
-						}
-
+				watch: {
+					'data.main_font'() {
+						document.body.style.setProperty('--font-custom-main', CustomTheme.data.main_font);
 						saveChanges();
 					},
-					deep: true
+					'data.headline_font'() {
+						document.body.style.setProperty('--font-custom-headline', CustomTheme.data.headline_font);
+						saveChanges();
+					},
+					'data.code_font'() {
+						document.body.style.setProperty('--font-custom-code', CustomTheme.data.code_font);
+						saveChanges();
+					},
+					'data.css'() {
+						$('style#theme_css').text(CustomTheme.data.css);
+						saveChanges();
+					},
+					'data.colors': {
+						handler() {
+							for (var key in CustomTheme.data.colors) {
+								var hex = CustomTheme.data.colors[key];
+								document.body.style.setProperty('--color-'+key, hex);
+							}
+							$('meta[name=theme-color]').attr('content', CustomTheme.data.colors.frame);
+	
+							var c_outline = parseInt('0x'+CustomTheme.data.colors.accent.replace('#', ''))
+							if (c_outline !== gizmo_colors.outline.getHex()) {
+								gizmo_colors.outline.set(c_outline)
+								Canvas.outlineMaterial.color = gizmo_colors.outline
+							}
+							var c_wire = parseInt('0x'+CustomTheme.data.colors.wireframe.replace('#', ''))
+							if (c_wire !== gizmo_colors.wire.getHex()) {
+								gizmo_colors.wire.set(c_wire);
+								Canvas.wireframeMaterial.color = gizmo_colors.wire;
+							}
+	
+							var c_grid = parseInt('0x'+CustomTheme.data.colors.grid.replace('#', ''))
+							if (c_grid !== gizmo_colors.grid.getHex()) {
+								gizmo_colors.grid.set(c_grid);
+								three_grid.children.forEach(c => {
+									if (c.name === 'grid' && c.material) {
+										c.material.color = gizmo_colors.grid;
+									}
+								})
+							}
+	
+							saveChanges();
+						},
+						deep: true
+					},
+	
 				},
-
+				template: `
+					<div id="theme_editor">
+						<div v-if="open_category == 'discover'">
+							<h2 class="i_b">${tl('layout.discover')}</h2>
+						</div>
+						<div v-show="open_category == 'color'">
+							<h2 class="i_b">${tl('layout.color')}</h2>
+							<div id="color_wrapper">
+								<div class="color_field" v-for="(color, key) in data.colors" :id="'color_field_' + key">
+									<div class="layout_color_preview color_input" :style="{'background-color': color}"></div>
+									<div class="desc">
+										<h4>{{ tl('layout.color.'+key) }}</h4>
+										<p>{{ tl('layout.color.'+key+'.desc') }}</p>
+									</div>
+								</div>
+							</div>
+						</div>
+	
+						<div v-if="open_category == 'fonts'">
+							<h2 class="i_b">${tl('layout.fonts')}</h2>
+							<div class="dialog_bar">
+								<label class="name_space_left" for="layout_font_main">${tl('layout.font.main')}</label>
+								<input style="font-family: var(--font-main)" type="text" class="half dark_bordered" id="layout_font_main" v-model="data.main_font">
+							</div>
+	
+							<div class="dialog_bar">
+								<label class="name_space_left" for="layout_font_headline">${tl('layout.font.headline')}</label>
+								<input style="font-family: var(--font-headline)" type="text" class="half dark_bordered" id="layout_font_headline" v-model="data.headline_font">
+							</div>
+							<div class="dialog_bar">
+								<label class="name_space_left" for="layout_font_cpde">${tl('layout.font.code')}</label>
+								<input style="font-family: var(--font-code)" type="text" class="half dark_bordered" id="layout_font_cpde" v-model="data.code_font">
+							</div>
+						</div>
+						
+						<div v-if="open_category == 'css'">
+							<h2 class="i_b">${tl('layout.css')}</h2>
+							<div id="css_editor">
+								<vue-prism-editor v-model="data.css" language="css" :line-numbers="true" />
+							</div>
+	
+						</div>
+	
+					</div>`
+			},
+			onButton() {
+				Settings.save();
 			}
 		})
+
 		Vue.nextTick(function() {
 			CustomTheme.fetchFromStorage();
 		})
@@ -214,6 +302,14 @@ const CustomTheme = {
 
 
 BARS.defineActions(function() {
+	new Action('theme_window', {
+		name: tl('dialog.settings.theme') + '...',
+		icon: 'style',
+		category: 'blockbench',
+		click: function () {
+			CustomTheme.dialog.show();
+		}
+	})
 	new Action('import_theme', {
 		icon: 'folder',
 		category: 'blockbench',
@@ -272,3 +368,6 @@ BARS.defineActions(function() {
 	BarItems.export_theme.toElement('#layout_title_bar')
 	BarItems.reset_theme.toElement('#layout_title_bar')
 })
+
+
+

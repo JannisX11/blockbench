@@ -1059,7 +1059,7 @@ class Toolbar {
 		this.condition_cache = [];
 
 		// items the toolbar could not load on startup, most likely from plugins (stored as IDs)
-		this.postload = undefined;
+		this.postload = null;
 		// object storing initial position of actions
 		// if a property with a given position is set, then this slot is occupied
 		// and the associated object (action) can effectively be used with indexOf on children
@@ -1100,9 +1100,14 @@ class Toolbar {
 			content.children().detach()
 			for (var itemPosition = 0; itemPosition < items.length; itemPosition++) {
 				var itemId = items[itemPosition];
-				if (typeof itemId === 'string' && itemId.substr(0, 1) === '_') {
-					content.append('<div class="toolbar_separator"></div>');
-					this.children.push('_' + guid().substr(0,8));
+				if (typeof itemId === 'string' && itemId.match(/^[_+#]/)) {
+					let char = itemId.substr(0, 1);
+					content.append(`<div class="toolbar_separator ${char == '_' ? 'border' : (char == '+' ? 'spacer' : 'linebreak')}"></div>`);
+					this.children.push(char + guid().substr(0,8));
+
+					if (char === '+') content[0].style.display = 'flex';
+					if (char === '#') content[0].style.display = 'block';
+
 					continue;
 				}
 
@@ -1201,7 +1206,7 @@ class Toolbar {
 				}
 			}
 			if (this.postload.length == 0) {
-				this.postload = undefined; // array obj no longer needed
+				this.postload = null; // array obj no longer needed
 			}
 		}
 
@@ -1223,8 +1228,11 @@ class Toolbar {
 
 		var content = $(this.node).find('.content')
 		content.find('> .tool').detach()
-		var separators = content.find('> .toolbar_separator').detach()
-		var sep_nr = 0;
+		var separators = {
+			border: content.find('> .toolbar_separator.border').detach().toArray(),
+			spacer: content.find('> .toolbar_separator.spacer').detach().toArray(),
+			linebreak: content.find('> .toolbar_separator.linebreak').detach().toArray(),
+		}
 
 		this.children.forEach(function(item, i) {
 			if (typeof item === 'string') {
@@ -1232,13 +1240,18 @@ class Toolbar {
 				if (last.length === 0 || last.hasClass('toolbar_separator') || i == scope.children.length-1) {
 					return this;
 				}
-				var sep = separators[sep_nr]
+				let type = item[0] == '_' ? 'border' : (item[0] == '+' ? 'spacer' : 'linebreak');
+				let sep = separators[type].shift();
 				if (sep) {
-					content.append(sep)
-					sep_nr++;
+					content.append(sep);
 				} else {
-					content.append('<div class="toolbar_separator"></div>')
+					let separator = document.createElement('div');
+					separator.className = `toolbar_separator ${type}`;
+					content.append(separator);
 				}
+				if (item[0] === '+') content[0].style.display = 'flex';
+				if (item[0] === '#') content[0].style.display = 'block';
+
 			} else if (typeof item === 'object') {
 				if (scope.condition_cache[i]) {
 					content.append(item.getNode())
@@ -1319,6 +1332,10 @@ const BARS = {
 			new KeybindItem('preview_zoom', {
 				category: 'navigate',
 				keybind: new Keybind({key: 1, shift: true})
+			})
+			new KeybindItem('preview_area_select', {
+				category: 'navigate',
+				keybind: new Keybind({key: 1, ctrl: true, shift: null})
 			})
 
 			new KeybindItem('confirm', {
@@ -1430,23 +1447,6 @@ const BARS = {
 				click: function (e) {
 					shell.openPath(app.getPath('userData')+osfs+'backups')
 				}
-			})
-			new Action('settings_window', {
-				icon: 'settings',
-				category: 'blockbench',
-				click: function () {Settings.open()}
-			})
-			new Action('keybindings_window', {
-				name: tl('dialog.settings.keybinds') + '...',
-				icon: 'keyboard',
-				category: 'blockbench',
-				click: function () {Settings.open({tab: 'keybindings'})}
-			})
-			new Action('theme_window', {
-				name: tl('dialog.settings.theme') + '...',
-				icon: 'style',
-				category: 'blockbench',
-				click: function () {Settings.open({tab: 'layout_settings'})}
 			})
 			new Action('reload', {
 				icon: 'refresh',
@@ -1913,11 +1913,26 @@ const BARS = {
 			computed: {
 				searchedBarItems() {
 					var name = this.search_term.toUpperCase()
-					var list = [{
-						icon: 'bookmark',
-						name: tl('data.separator'),
-						type: 'separator'
-					}]
+					var list = [
+						{
+							icon: 'fa-grip-lines-vertical',
+							name: tl('data.separator'),
+							type: 'separator',
+							separator_code: '_'
+						},
+						{
+							icon: 'space_bar',
+							name: tl('data.separator.spacer'),
+							type: 'separator',
+							separator_code: '+'
+						},
+						{
+							icon: 'fa-paragraph',
+							name: tl('data.separator.linebreak'),
+							type: 'separator',
+							separator_code: '#'
+						}
+					]
 					for (var key in BarItems) {
 						var item = BarItems[key]
 						if (name.length == 0 ||
@@ -1935,35 +1950,39 @@ const BARS = {
 				}
 			},
 			methods: {
-				sort: function(event) {
+				sort(event) {
 					var item = this.currentBar.splice(event.oldIndex, 1)[0]
 					this.currentBar.splice(event.newIndex, 0, item)
 					this.update();
 				},
-				drop: function(event) {
+				drop(event) {
 					var scope = this;
-					var index = event.oldIndex
 					$('#bar_items_current .tooltip').css('display', '')
 					setTimeout(() => {
 						if ($('#bar_items_current:hover').length === 0) {
-							var item = scope.currentBar.splice(event.oldIndex, 1)[0]
-							item.toolbars.remove(BARS.editing_bar)
-							scope.update()
+							var item = scope.currentBar.splice(event.newIndex, 1)[0];
+							if (item instanceof BarItem) item.toolbars.remove(BARS.editing_bar);
+							scope.update();
 						}
 					}, 30)
 				},
-				choose: function(event) {
+				choose() {
 					$('#bar_items_current .tooltip').css('display', 'none')
 				},
-				update: function() {
+				update() {
 					BARS.editing_bar.update(true).save();
 				},
-				addItem: function(item) {
+				addItem(item) {
 					if (item.type === 'separator') {
-						item = '_'
+						item = item.separator_code;
 					}
-					BARS.editing_bar.add(item);
-					// BARS.editing_bar.update().save(); already called in add()
+					if (item == '#' && BARS.editing_bar.children.find(c => typeof c == 'string' && c[0] == '+') ||
+						item == '+' && BARS.editing_bar.children.find(c => typeof c == 'string' && c[0] == '#')
+					) {
+						Blockbench.showQuickMessage('dialog.toolbar_edit.incompatible_separators', 2000);
+					} else {
+						BARS.editing_bar.add(item);
+					}
 				}
 			}
 		})
@@ -2145,14 +2164,7 @@ const Keybinds = {
 	actions: [],
 	stored: {},
 	extra: {},
-	structure: {
-		search_results: {
-			name: tl('dialog.settings.search_results'),
-			hidden: true,
-			open: true,
-			actions: {}
-		}
-	},
+	structure: {},
 	save() {
 		localStorage.setItem('keybindings', JSON.stringify(Keybinds.stored))
 	}

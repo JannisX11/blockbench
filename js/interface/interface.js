@@ -508,51 +508,6 @@ function hideDialog() {
 	open_interface = false;
 	Prop.active_panel = undefined
 }
-function setSettingsTab(tab) {
-	$('#settings .tab.open').removeClass('open')
-	$('#settings .tab#'+tab).addClass('open')
-	$('#settings .tab_content').addClass('hidden')
-	$('#settings .tab_content#'+tab).removeClass('hidden')
-	if (tab === 'keybindings') {
-		//Keybinds
-		$('#keybindlist').css('max-height', (window.innerHeight - 420) +'px')
-		$('#keybind_search_bar').focus()
-
-	} else if (tab === 'setting') {
-		//Settings
-		$('#settingslist').css('max-height', (window.innerHeight - 420) +'px')
-		$('#settings_search_bar').focus()
-
-	} else if (tab === 'layout_settings') {
-		//Layout
-		$('#theme_editor').css('max-height', (window.innerHeight - 420) +'px')
-		if (!CustomTheme.dialog_is_setup) CustomTheme.setupDialog()
-	} else if (tab == 'credits') {
-		// About
-
-		$('#version_tag').text(appVersion)
-		if (isApp) {
-			jQuery.ajax({
-				url: 'https://api.github.com/repos/JannisX11/blockbench/releases/latest',
-				cache: false,
-				type: 'GET',
-				success(release) {
-					let v = release.tag_name.replace(/^v/, '');
-					if (compareVersions(v, appVersion)) {
-						$('#version_tag').text(`${appVersion} (${tl('about.version.update_available', [v])})`)
-					} else if (compareVersions(appVersion, v)) {
-						$('#version_tag').text(`${appVersion} (Pre-release)`)
-					} else {
-						$('#version_tag').text(`${appVersion} (${tl('about.version.up_to_date')}😄)`)
-					}
-				},
-				error(err) {
-
-				}
-			})
-		}
-	}
-}
 
 function getStringWidth(string, size) {
 	var a = $('<label style="position: absolute">'+string+'</label>')

@@ -36,12 +36,6 @@ var Prop = {
 const mouse_pos = {x:0,y:0}
 const sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
 
-function onVueSetup(func) {
-	if (!onVueSetup.funcs) {
-		onVueSetup.funcs = []
-	}
-	onVueSetup.funcs.push(func)
-}
 function canvasGridSize(shift, ctrl) {
 	if (!shift && !ctrl) {
 		return 16 / Math.clamp(settings.edit_size.value, 1, 512)
@@ -231,6 +225,89 @@ const documentReady = new Promise((resolve, reject) => {
 		resolve()
 	})
 });
+
+
+BARS.defineActions(() => {
+	
+	new Action('about_window', {
+		name: tl('dialog.settings.about') + '...',
+		icon: 'info',
+		category: 'blockbench',
+		click: function () {
+			const data = {
+				isApp,
+				version_label: Blockbench.version
+			};
+			jQuery.ajax({
+				url: 'https://api.github.com/repos/JannisX11/blockbench/releases/latest',
+				cache: false,
+				type: 'GET',
+				success(release) {
+					let v = release.tag_name.replace(/^v/, '');
+					if (compareVersions(v, Blockbench.version)) {
+						data.version_label = `${Blockbench.version} (${tl('about.version.update_available', [v])})`;
+					} else if (compareVersions(Blockbench.version, v)) {
+						data.version_label = `${Blockbench.version} (Pre-release)`;
+					} else {
+						data.version_label = `${Blockbench.version} (${tl('about.version.up_to_date')}😄)`;
+					}
+				},
+				error(err) {}
+			})
+
+			new Dialog({
+				id: 'about',
+				title: 'dialog.settings.about',
+				width: 600,
+				singleButton: true,
+				title_menu: new Menu([
+					'settings_window',
+					'keybindings_window',
+					'theme_window',
+					'about_window',
+				]),
+				component: {
+					data() {return data},
+					template: `
+						<div>
+							<div id="about_page_title">
+								<img src="assets/logo_text_white.svg" width="240px">
+							</div>
+							<p><b>${tl('about.version')}</b> <span>{{ version_label }}</span></p>
+							<p><b>${tl('about.creator')}</b> JannisX11</p>
+							<p><b>${tl('about.website')}</b> <a class="open-in-browser" href="https://blockbench.net">blockbench.net</a></p>
+							<p><b>${tl('about.repository')}</b> <a class="open-in-browser" href="https://github.com/JannisX11/blockbench">github.com/JannisX11/blockbench</a></p>
+							<p>${tl('about.vertex_snap')}</p>
+							<p><b>${tl('about.icons')}</b> <a href="https://material.io/icons/" class="open-in-browser">material.io/icons</a> &amp; <a href="https://fontawesome.io/icons/" class="open-in-browser">fontawesome</a></p>
+							<p><b>${tl('about.libraries')}</b>
+								<a class="open-in-browser" href="https://electronjs.org">Electron</a>,
+								<a class="open-in-browser" href="https://vuejs.org">Vue</a>,
+								<a class="open-in-browser" href="https://github.com/weibangtuo/vue-tree">Vue Tree</a>,
+								<a class="open-in-browser" href="https://github.com/sagalbot/vue-sortable">Vue Sortable</a>,
+								<a class="open-in-browser" href="https://threejs.org">ThreeJS</a>,
+								<a class="open-in-browser" href="https://github.com/lo-th/fullik">Full IK</a>,
+								<a class="open-in-browser" href="https://github.com/oliver-moran/jimp">Jimp</a>,
+								<a class="open-in-browser" href="https://bgrins.github.io/spectrum">Spectrum</a>,
+								<a class="open-in-browser" href="https://github.com/jnordberg/gif.js">gif.js</a>,
+								<a class="open-in-browser" href="https://stuk.github.io/jszip/">JSZip</a>,
+								<a class="open-in-browser" href="https://github.com/rotemdan/lzutf8.js">LZ-UTF8</a>,
+								<a class="open-in-browser" href="https://jquery.com">jQuery</a>,
+								<a class="open-in-browser" href="https://jqueryui.com">jQuery UI</a>,
+								<a class="open-in-browser" href="https://github.com/furf/jquery-ui-touch-punch">jQuery UI Touch Punch</a>,
+								<a class="open-in-browser" href="https://github.com/eligrey/FileSaver.js">FileSaver.js</a>,
+								<a class="open-in-browser" href="https://peerjs.com">PeerJS</a>,
+								<a class="open-in-browser" href="https://github.com/markedjs/marked">Marked</a>,
+								<a class="open-in-browser" href="https://prismjs.com">Prism</a>,
+								<a class="open-in-browser" href="https://github.com/koca/vue-prism-editor">Vue Prism Editor</a>,
+								<a class="open-in-browser" href="https://github.com/JannisX11/molangjs">MolangJS</a>,
+								<a class="open-in-browser" href="https://github.com/JannisX11/wintersky">Wintersky</a>
+							</p>
+						</div>`
+				}
+			}).show()
+		}
+	})
+})
 
 const entityMode = {
 	hardcodes: JSON.parse('{"geometry.chicken":{"body":{"rotation":[90,0,0]}},"geometry.llama":{"chest1":{"rotation":[0,90,0]},"chest2":{"rotation":[0,90,0]},"body":{"rotation":[90,0,0]}},"geometry.cow":{"body":{"rotation":[90,0,0]}},"geometry.sheep.sheared":{"body":{"rotation":[90,0,0]}},"geometry.sheep":{"body":{"rotation":[90,0,0]}},"geometry.phantom":{"body":{"rotation":[0,0,0]},"wing0":{"rotation":[0,0,5.7]},"wingtip0":{"rotation":[0,0,5.7]},"wing1":{"rotation":[0,0,-5.7]},"wingtip1":{"rotation":[0,0,-5.7]},"head":{"rotation":[11.5,0,0]},"tail":{"rotation":[0,0,0]},"tailtip":{"rotation":[0,0,0]}},"geometry.pig":{"body":{"rotation":[90,0,0]}},"geometry.ocelot":{"body":{"rotation":[90,0,0]},"tail1":{"rotation":[90,0,0]},"tail2":{"rotation":[90,0,0]}},"geometry.cat":{"body":{"rotation":[90,0,0]},"tail1":{"rotation":[90,0,0]},"tail2":{"rotation":[90,0,0]}},"geometry.turtle":{"eggbelly":{"rotation":[90,0,0]},"body":{"rotation":[90,0,0]}},"geometry.villager.witch":{"hat2":{"rotation":[-3,0,1.5]},"hat3":{"rotation":[-6,0,3]},"hat4":{"rotation":[-12,0,6]}},"geometry.pufferfish.mid":{"spines_top_front":{"rotation":[45,0,0]},"spines_top_back":{"rotation":[-45,0,0]},"spines_bottom_front":{"rotation":[-45,0,0]},"spines_bottom_back":{"rotation":[45,0,0]},"spines_left_front":{"rotation":[0,45,0]},"spines_left_back":{"rotation":[0,-45,0]},"spines_right_front":{"rotation":[0,-45,0]},"spines_right_back":{"rotation":[0,45,0]}},"geometry.pufferfish.large":{"spines_top_front":{"rotation":[45,0,0]},"spines_top_back":{"rotation":[-45,0,0]},"spines_bottom_front":{"rotation":[-45,0,0]},"spines_bottom_back":{"rotation":[45,0,0]},"spines_left_front":{"rotation":[0,45,0]},"spines_left_back":{"rotation":[0,-45,0]},"spines_right_front":{"rotation":[0,-45,0]},"spines_right_back":{"rotation":[0,45,0]}},"geometry.tropicalfish_a":{"leftFin":{"rotation":[0,-35,0]},"rightFin":{"rotation":[0,35,0]}},"geometry.tropicalfish_b":{"leftFin":{"rotation":[0,-35,0]},"rightFin":{"rotation":[0,35,0]}}}')

@@ -24,6 +24,8 @@
 	"data.preview": "Preview",
 	"data.toolbar": "Toolbar",
 	"data.separator": "Separator",
+	"data.separator.spacer": "Spacer",
+	"data.separator.linebreak": "Line Break",
 	"data.image": "Image",
 	"data.format": "Format",
 	"data.effect": "Effect",
@@ -341,6 +343,7 @@
 	"dialog.toolbar_edit.title": "Customize Toolbar",
 	"dialog.toolbar_edit.hidden": "Hidden",
 	"dialog.toolbar_edit.hidden_tools": "Some tools might be hidden because they are not available in the current mode, format, or situation.",
+	"dialog.toolbar_edit.incompatible_separators": "Spacers and Line Breaks are mutually exclusive, you cannot use both in the same toolbar.",
 
 	"dialog.entitylist.title": "Open Entity Model",
 	"dialog.entitylist.text": "Select the model you want to import",
@@ -431,7 +434,6 @@
 	"dialog.export_private_settings.keep": "Keep",
 	"dialog.export_private_settings.omit": "Leave Out",
 	
-	"dialog.settings.title": "Preferences",
 	"dialog.settings.settings": "Settings",
 	"dialog.settings.keybinds": "Keybindings",
 	"dialog.settings.theme": "Theme",
@@ -443,6 +445,11 @@
 	"keybindings.recording": "Recording Keybinding",
 	"keybindings.press": "Press a key or key combination or click anywhere on the screen to record your keybinding.",
 
+	"layout.discover": "Discover",
+	"layout.color": "Color Scheme",
+	"layout.fonts": "Fonts",
+	"layout.css": "Custom CSS",
+	"layout.documentation": "Documentation",
 	"layout.color.back": "Back",
 	"layout.color.back.desc": "Backgrounds and input fields",
 	"layout.color.dark": "Dark",
@@ -478,7 +485,6 @@
 	"layout.font.main": "Main Font",
 	"layout.font.headline": "Headline Font",
 	"layout.font.code": "Code Font",
-	"layout.css": "Custom CSS",
 
 	"about.version": "Version:",
 	"about.version.up_to_date": "Up to date",
@@ -486,7 +492,6 @@
 	"about.creator": "Creator:",
 	"about.website": "Website:",
 	"about.repository": "Repository:",
-	"about.electron": "This app is built with Electron, a framework for creating native applications with web technologies like Javascript, HTML, and CSS.",
 	"about.vertex_snap": "Vertex Snapping is based on a plugin by SirBenet",
 	"about.icons": "Icon Packs:",
 	"about.libraries": "Libraries:",
@@ -666,6 +671,7 @@
 	"keybind.preview_rotate": "Rotate View",
 	"keybind.preview_drag": "Drag View",
 	"keybind.preview_zoom": "Zoom View",
+	"keybind.preview_area_select": "Area Select",
 	"keybind.confirm": "Confirm",
 	"keybind.cancel": "Cancel",
 

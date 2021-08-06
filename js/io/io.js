@@ -501,6 +501,8 @@ BARS.defineActions(function() {
 						Codecs.project.write(Codecs.project.compile(), Project.save_path);
 					} else if (Format.codec && Format.codec.export) {
 						Format.codec.export()
+					} else {
+						Project.saved = true;
 					}
 				}
 				if (Format.animation_mode && Format.animation_files && Animation.all.length) {

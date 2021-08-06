@@ -1,7 +1,7 @@
 
 /*Layout*/
 	#page_wrapper {
-		height: calc(100% - 56px);
+		height: calc(100% - 26px);
 		width: 100%;
 		border: 2px solid var(--color-frame);
 		border-top: none;
@@ -35,7 +35,7 @@
 			"left_bar center right_bar"
 			"left_bar status_bar right_bar";
 		width: 100%;
-		height: 100%;
+		height: calc(100% - 30px);
 	}
 
 	#tab_bar {

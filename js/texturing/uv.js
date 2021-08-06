@@ -258,7 +258,7 @@ class UVEditor {
 			var offset = scope.jquery.frame.offset();
 			event.offsetX = event.clientX - offset.left;
 			event.offsetY = event.clientY - offset.top;
-			if (!dragging_not_clicking && event.ctrlOrCmd) {
+			if (!dragging_not_clicking && (event.ctrlOrCmd || Pressing.overrides.ctrl)) {
 				scope.reverseSelect(event)
 			}
 			dragging_not_clicking = false;
@@ -1787,7 +1787,7 @@ const uv_dialog = {
 		BARS.updateConditions()
 	},
 	select: function(id, event) {
-		if (event.shiftKey) {
+		if (event.shiftKey || Pressing.overrides.shift) {
 			uv_dialog.selection.push(id)
 		} else {
 			if (uv_dialog.selection.includes(id) && uv_dialog.selection.length === 1) {
