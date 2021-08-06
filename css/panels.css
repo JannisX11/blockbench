@@ -1008,6 +1008,9 @@
 	.animator_channel_bar .channel_head:not(.selected) span {
 		color: var(--color-subtle_text);
 	}
+	.animator.boneless .animator_head_bar .channel_head span {
+		color: #ff6b6b;
+	}
 	.keyframe_section {
 		flex-grow: 1;
 		position: relative;
