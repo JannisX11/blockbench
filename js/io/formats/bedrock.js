@@ -614,15 +614,20 @@ function calculateVisibleBox() {
 					let offset = obj.from.slice();
 					offset[0] *= -1;
 
-					if (obj.rotatable && !obj.rotation.allEqual(0)) {
+					if ((obj.rotatable && !obj.rotation.allEqual(0)) || obj.ignore_inherited_scale) {
 						locators[key] = {
-							offset,
-							rotation: [
-								-obj.rotation[0],
-								-obj.rotation[0],
-								obj.rotation[0]
-							]
+							offset
 						};
+						if (obj.rotatable && !obj.rotation.allEqual(0)) {
+							locators[key].rotation = [
+								-obj.rotation[0],
+								-obj.rotation[1],
+								obj.rotation[2]
+							]
+						}
+						if (obj.ignore_inherited_scale) {
+							locators[key].ignore_inherited_scale = true;
+						}
 					} else {
 						locators[key] = offset;
 					}

@@ -1207,6 +1207,7 @@
 	"menu.cube.texture": "Texture",
 	"menu.cube.texture.transparent": "Transparent",
 	"menu.cube.texture.blank": "Blank",
+	"menu.locator.ignore_inherited_scale": "Ignore Inherited Scale",
 
 	"menu.group.sort": "Sort",
 	"menu.group.resolve": "Resolve",

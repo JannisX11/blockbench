@@ -99,6 +99,21 @@ class Locator extends OutlinerElement {
 	];
 	Locator.prototype.needsUniqueName = true;
 	Locator.prototype.menu = new Menu([
+			{
+				id: 'ignore_inherited_scale',
+				name: 'menu.locator.ignore_inherited_scale',
+				icon: locator => locator.ignore_inherited_scale ? 'check_box' : 'check_box_outline_blank',
+				click(clicked_locator) {
+					let value = !clicked_locator.ignore_inherited_scale;
+					let affected = Locator.selected.filter(locator => locator.ignore_inherited_scale != value);
+					Undo.initEdit({elements: affected});
+					affected.forEach(locator => {
+						locator.ignore_inherited_scale = value;
+					})
+					Undo.finishEdit('Change locator ignore inherit scale option');
+				}
+			},
+			'_',
 			'group_elements',
 			'_',
 			'copy',
@@ -112,6 +127,7 @@ class Locator extends OutlinerElement {
 	new Property(Locator, 'string', 'name', {default: 'locator'})
 	new Property(Locator, 'vector', 'from')
 	new Property(Locator, 'vector', 'rotation')
+	new Property(Locator, 'boolean', 'ignore_inherited_scale')
 	
 	OutlinerElement.registerType(Locator, 'locator');
 
