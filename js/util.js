@@ -411,6 +411,13 @@ Array.prototype.overlap = function(arr2) {
 	}
 	return count;
 }
+Array.prototype.toggle = function(item, state = !this.includes(item)) {
+	if (state) {
+		this.safePush(item);
+	} else {
+		this.remove(item);
+	}
+}
 
 //Array Vector
 Array.prototype.V3_set = function(x, y, z) {

@@ -89,11 +89,14 @@ function updateNslideValues() {
 
 //Selections
 function updateSelection(options = {}) {
-	elements.forEach(obj => {
+	Outliner.elements.forEach(obj => {
 		if (selected.includes(obj) && !obj.selected && !obj.locked) {
 			obj.selectLow()
 		} else if ((!selected.includes(obj) || obj.locked) && obj.selected) {
 			obj.unselect()
+		}
+		if (Project.selected_vertices[obj.uuid] && (Project.selected_vertices[obj.uuid].length == 0 || !obj.selected)) {
+			delete Project.selected_vertices[obj.uuid];
 		}
 	})
 	if (Group.selected && Group.selected.locked) Group.selected.unselect()
@@ -172,11 +175,14 @@ function selectAll() {
 	Blockbench.dispatchEvent('select_all')
 }
 function unselectAll() {
-	selected.forEachReverse(obj => obj.unselect())
+	Project.selected_elements.forEachReverse(obj => obj.unselect())
 	if (Group.selected) Group.selected.unselect()
 	Group.all.forEach(function(s) {
 		s.selected = false
 	})
+	for (let key in Project.selected_vertices) {
+		delete Project.selected_vertices[key];
+	}
 	TickUpdates.selection = true;
 }
 //Backup

@@ -1,7 +1,7 @@
 class MeshFace {
 	constructor(mesh, data, uuid) {
 		this.mesh = mesh;
-		this.uuid = uuid || guid();
+		//this.uuid = uuid || guid();
 		//this.vertices = [];
 		//this.normal = [0, 1, 0];
 		this.texture = false;
@@ -79,11 +79,11 @@ class Mesh extends OutlinerElement {
 			this.addVertices([16, 16, 16], [16, 16, 0], [16, 0, 16], [16, 0, 0], [0, 16, 16], [0, 16, 0], [0, 0, 16], [0, 0, 0]);
 			let vertex_keys = Object.keys(this.vertices);
 			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[2], vertex_keys[3]]} ));	// East
-			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[4], vertex_keys[5], vertex_keys[6], vertex_keys[7]]} ));	// West
-			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[4], vertex_keys[5]]} ));	// Up
-			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[2], vertex_keys[3], vertex_keys[6], vertex_keys[7]]} ));	// Down
-			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[4], vertex_keys[6]]} ));	// South
-			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[5], vertex_keys[7]]} ));	// North
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[4], vertex_keys[5], vertex_keys[6], vertex_keys[7]]} ));	// West
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[4], vertex_keys[5]]} ));	// Up
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[2], vertex_keys[3], vertex_keys[6], vertex_keys[7]]} ));	// Down
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[4], vertex_keys[6]]} ));	// South
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[5], vertex_keys[7]]} ));	// North
 		}
 		for (var key in Mesh.properties) {
 			Mesh.properties[key].reset(this);
@@ -98,24 +98,28 @@ class Mesh extends OutlinerElement {
 	get vertice_list() {
 		return Object.keys(this.vertices).map(key => this.vertices[key]);
 	}
-	getWorldCenter() {
-		var m = this.mesh;
-		var pos = new THREE.Vector3()
+	getWorldCenter(ignore_selected_vertices) {
+		let m = this.mesh;
+		let pos = new THREE.Vector3()
+		let vertice_count = 0;
 
-		let vertice_list = this.vertice_list;
-		vertice_list.forEach(vector => {
-			pos.x += vector[0];
-			pos.y += vector[1];
-			pos.z += vector[2];
-		})
-		pos.x /= vertice_list.length;
-		pos.y /= vertice_list.length;
-		pos.z /= vertice_list.length;
+		for (let key in this.vertices) {
+			if (ignore_selected_vertices || !Project.selected_vertices[this.uuid] || (Project.selected_vertices[this.uuid] && Project.selected_vertices[this.uuid].includes(key))) {
+				let vector = this.vertices[key];
+				pos.x += vector[0];
+				pos.y += vector[1];
+				pos.z += vector[2];
+				vertice_count++;
+			}
+		}
+		pos.x /= vertice_count;
+		pos.y /= vertice_count;
+		pos.z /= vertice_count;
 
 		if (m) {
-			var r = m.getWorldQuaternion(new THREE.Quaternion())
-			pos.applyQuaternion(r)
-			pos.add(THREE.fastWorldPosition(m, new THREE.Vector3()))
+			let r = m.getWorldQuaternion(new THREE.Quaternion());
+			pos.applyQuaternion(r);
+			pos.add(THREE.fastWorldPosition(m, new THREE.Vector3()));
 		}
 		return pos;
 	}
@@ -143,7 +147,7 @@ class Mesh extends OutlinerElement {
 		}
 		if (typeof object.vertices == 'object') {
 			for (let key in object.vertices) {
-				this.vertices[key] = object.vertices[key];
+				this.vertices[key] = object.vertices[key].slice();
 			}
 		}
 		if (typeof object.faces == 'object') {
@@ -151,7 +155,7 @@ class Mesh extends OutlinerElement {
 				if (this.faces[key]) {
 					this.faces[key].extend(object.faces[key])
 				} else {
-					this.faces[key] = new Face(this, object.faces[key]);
+					this.faces[key] = new MeshFace(this, object.faces[key]);
 				}
 			}
 		}
@@ -172,6 +176,7 @@ class Mesh extends OutlinerElement {
 		for (var key in Mesh.properties) {
 			Mesh.properties[key].copy(this, el)
 		}
+		el.type = 'mesh';
 		el.uuid = this.uuid
 		return el;
 	}
@@ -265,7 +270,7 @@ new NodePreviewController(Mesh, {
 		mesh.add(outline);
 
 		// Vertex Points
-		let material = new THREE.PointsMaterial({size: 5, sizeAttenuation: false, vertexColors: true});
+		let material = new THREE.PointsMaterial({size: 7, sizeAttenuation: false, vertexColors: true});
 		let points = new THREE.Points(new THREE.BufferGeometry(), material);
 		points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(24).fill(1), 3));
 		mesh.vertex_points = points;
@@ -296,6 +301,7 @@ new NodePreviewController(Mesh, {
 
 		for (let key in element.faces) {
 			let face = element.faces[key];
+			console.log(key, face, face.vertices)
 			
 			// Test if point "check" is on the other side of the line between "base1" and "base2", compared to "top"
 			function test(base1, base2, top, check) {
@@ -470,7 +476,7 @@ new NodePreviewController(Mesh, {
 			if (Project.selected_vertices[element.uuid] && Project.selected_vertices[element.uuid].includes(key)) {
 				color = gizmo_colors.outline;
 			} else {
-				color = gizmo_colors.wire;
+				color = gizmo_colors.grid;
 			}
 			colors.push(color.r, color.g, color.b);
 		}

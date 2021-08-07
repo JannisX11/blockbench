@@ -493,8 +493,8 @@ class OutlinerElement extends OutlinerNode {
 	}
 	OutlinerElement.isTypePermitted = function(type) {
 		return !(
-			(obj.type == 'locator' && !Format.locators) ||
-			(obj.type == 'mesh' && !Format.meshes)
+			(type == 'locator' && !Format.locators) ||
+			(type == 'mesh' && !Format.meshes)
 		)
 	}
 	Object.defineProperty(OutlinerElement, 'all', {
