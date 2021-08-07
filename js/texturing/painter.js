@@ -1050,7 +1050,10 @@ BARS.defineActions(function() {
 		allowed_view_modes: ['textured'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
-		keybind: new Keybind({key: 'm'})
+		keybind: new Keybind({key: 'm'}),
+		onCanvasClick() {
+			Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
+		}
 	})
 
 	new BarSelect('draw_shape_type', {

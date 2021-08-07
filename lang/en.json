@@ -158,6 +158,8 @@
 	"message.invalid_file.message": "Could not open json file: %0",
 	"message.invalid_model.title": "Invalid Model File",
 	"message.invalid_model.message": "This file does not contain valid model data.",
+	"message.invalid_format.title": "Invalid Format",
+	"message.invalid_format.message": "This model was made in the format '%0', which is not available in your Blockbench installation. You most likely need a specific plugin to open it correctly.",
 	"message.outdated_client.title": "Outdated client",
 	"message.outdated_client.message": "Please update to the latest version of Blockbench to do this.",
 	"message.child_model_only.title": "Empty Child Model",
@@ -238,6 +240,7 @@
 	"message.load_keymap": "Are you sure you want to load this keymap? This will overwrite your current keybindings.",
 	"message.keymap_loaded": "Keymap loaded",
 	"message.no_animation_to_import": "No animations to import",
+	"message.copy_paste_tool_viewport": "This tool can only be used in the UV panel",
 
 	"message.wireframe.enabled": "Wireframe view enabled",
 	"message.wireframe.disabled": "Wireframe view disabled",
@@ -257,7 +260,6 @@
 
 	"message.import_palette.replace_palette": "Replace old palette",
 	"message.import_palette.threshold": "Merge Threshold",
-
 	
 	"message.load_plugin_failed.title": "Failed to load plugin",
 	"message.load_plugin_failed.message": "Ensure that the base file name of the plugin matches the plugin ID `%0`, as specified in Plugin.register().",
