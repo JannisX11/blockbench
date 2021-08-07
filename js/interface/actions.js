@@ -1860,9 +1860,13 @@ const BARS = {
 				'slider_brush_opacity',
 				'slider_brush_softness',
 				'mirror_painting',
+				'color_erase_mode',
 				'lock_alpha',
 				'painting_grid',
 			]
+		})
+		Blockbench.onUpdateTo('4.0', () => {
+			Toolbars.brush.add(BarItems.color_erase_mode, -3);
 		})
 		Toolbars.vertex_snap = new Toolbar({
 			id: 'vertex_snap',

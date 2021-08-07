@@ -695,6 +695,8 @@
 	"action.draw_shape_type.ellipse": "Ellipse",
 	"action.draw_shape_type.ellipse_h": "Ellipse (Hollow)",
 	"action.draw_shape_type.line": "Line",
+	"action.color_erase_mode": "Erase Mode",
+	"action.color_erase_mode.desc": "With erase mode enabled, tools like Fill and Rectangle subtract colors rather than adding them",
 	"action.mirror_painting": "Mirror Painting",
 	"action.mirror_painting.description": "Mirror your paint strokes to the other side of the model",
 	"action.lock_alpha": "Lock Alpha Channel",
