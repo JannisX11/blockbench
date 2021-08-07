@@ -1416,6 +1416,7 @@
 	"display.mirror": "Mirror",
 	"display.slot": "Slot",
 	"display.reference": "Reference Model",
+	"display.pose_angle": "Pose Angle (For Preview Only)",
 
 	"display.reference.player": "Player",
 	"display.reference.zombie": "Zombie",
