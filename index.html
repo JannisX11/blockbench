@@ -376,7 +376,7 @@
 	<header>
 		<ul id="mac_window_menu" hidden></ul>
 		<div id="corner_logo" class="app-drag-region">
-			<img src="assets/logo_text_white.svg" />
+			<img class="blockbench_logo" src="assets/logo_text_white.svg" />
 		</div>
 		<ul id="menu_bar" class="scroll_horizontal"></ul>
 		<div class="app-drag-region" id="header_free_bar"></div>
@@ -415,7 +415,7 @@
 					<i class="material-icons">{{ project.saved ? 'clear' : 'fiber_manual_record' }}</i>
 				</div>
 			</div>
-			<div id="new_tab_button" @click="openNewTab()" :title="new_tab.name">
+			<div id="new_tab_button" v-if="!new_tab.visible" @click="openNewTab()" :title="new_tab.name">
 				<i class="material-icons">add</i>
 			</div>
 		</div>
@@ -485,7 +485,7 @@
 						v-for="mode in options"
 						v-if="Condition(mode.condition)"
 						v-bind:class="{selected: mode.selected}"
-						v-on:click="mode.select()"
+						v-on:mousedown="mode.select()"
 					>{{ mode.name }}</li>
 				</ul>
 				<div class="toolbar_wrapper narrow mobile_side"></div>

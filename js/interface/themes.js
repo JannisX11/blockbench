@@ -6,6 +6,16 @@ const CustomTheme = {
 		css: '',
 		colors: {},
 	},
+	theme_options: [
+		{
+			id: 'default',
+			meta: {
+				name: 'Default (dark)',
+
+			}
+		},
+		...CustomThemeOptions
+	],
 	defaultColors: {
 		ui: '#282c34',
 		back: '#21252b',
@@ -47,12 +57,12 @@ const CustomTheme = {
 			]),
 			sidebar: {
 				pages: {
-					//discover: tl('layout.discover'),
+					select: tl('layout.select'),
 					color: tl('layout.color'),
 					fonts: tl('layout.fonts'),
 					css: tl('layout.css'),
 				},
-				page: 'color',
+				page: 'select',
 				actions: [
 					{
 						name: 'layout.documentation',
@@ -74,7 +84,8 @@ const CustomTheme = {
 			component: {
 				data: {
 					data: CustomTheme.data,
-					open_category: 'color'
+					open_category: 'select',
+					theme_options: CustomTheme.theme_options
 				},
 				components: {
 					VuePrismEditor
@@ -133,8 +144,16 @@ const CustomTheme = {
 				},
 				template: `
 					<div id="theme_editor">
-						<div v-if="open_category == 'discover'">
-							<h2 class="i_b">${tl('layout.discover')}</h2>
+						<div v-if="open_category == 'select'">
+							<h2 class="i_b">${tl('layout.select')}</h2>
+
+							<div id="theme_list">
+								<div v-for="theme in theme_options" class="theme">
+									<div class="theme_preview"></div>
+									<div class="theme_name">{{ theme.meta.name }}</div>
+									<div class="theme_author">{{ theme.meta.author || 'Default' }}</div>
+								</div>
+							</div>
 						</div>
 						<div v-show="open_category == 'color'">
 							<h2 class="i_b">${tl('layout.color')}</h2>

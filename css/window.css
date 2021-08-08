@@ -5,7 +5,7 @@
 		width: 100%;
 		border: 2px solid var(--color-frame);
 		border-top: none;
-		background-color: var(--color-border);
+		background-color: var(--color-dark);
 	}
 	#page_wrapper.invisible {
 		visibility: hidden;
@@ -425,6 +425,7 @@
 		overflow-x: auto;
 		overflow-y: hidden;
 		padding-left: 4px;
+		background: var(--color-frame);
 	}
 	#tab_bar .project_tab {
 		background-color: var(--color-back);

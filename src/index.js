@@ -9,3 +9,11 @@ window.KeymapPresets = {
 	cinema4d,
 	maya,
 }
+
+import DarkTheme from './../themes/dark.bbtheme'
+import LightTheme from './../themes/light.bbtheme'
+
+window.CustomThemeOptions = [
+	DarkTheme,
+	LightTheme
+]

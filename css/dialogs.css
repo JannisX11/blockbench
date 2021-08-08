@@ -520,8 +520,36 @@
 		background-color: var(--color-back) !important;
 		height: 56px;
 	}
+	.prism-editor-wrapper code[class*="language-"] {
+		color: var(--color-text);
+	}
 	#css_editor {
 		border: 1px solid var(--color-border);
+	}
+
+	#theme_list {
+		overflow-y: auto;
+	}
+	#theme_list .theme {
+		float: left;
+		width: 166px;
+		padding: 6px;
+		border: 1px solid transparent;
+	}
+	#theme_list .theme:hover {
+		border-color: var(--color-border);
+		color: var(--color-light);
+	}
+	#theme_list .theme.selected {
+		border-color: var(--color-accent);
+	}
+	#theme_list .theme_preview {
+		height: 72px;
+		width: 100%;
+		background-color: var(--color-accent);
+	}
+	.theme_author {
+		color: var(--color-subtle_text);
 	}
 
 	/*About*/
