@@ -274,6 +274,7 @@ class Plugin {
 		if (!isApp && this.source == 'file') return this;
 
 		this.unload()
+		this.tags.empty();
 		Plugins.all.remove(this)
 
 		if (this.source == 'file') {
