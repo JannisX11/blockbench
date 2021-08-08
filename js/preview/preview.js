@@ -721,7 +721,7 @@ class Preview {
 				}
 				let list = Project.selected_vertices[data.element.uuid];
 
-				if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shift || Pressing.overrides.shift) {
+				if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
 					list.toggle(data.vertex);
 				} else {
 					list.replace([data.vertex]);

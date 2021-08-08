@@ -1484,6 +1484,52 @@ const BARS = {
 						if (ColorPanel.vue._data.palette.includes(ColorPanel.vue._data.main_color)) {
 							ColorPanel.vue._data.palette.remove(ColorPanel.vue._data.main_color)
 						}
+					} else if (Modes.edit && Mesh.selected.length && Project.selected_vertices[Mesh.selected[0].uuid] && Project.selected_vertices[Mesh.selected[0].uuid].length < Mesh.selected[0].vertice_list.length) {
+
+						Undo.initEdit({elements: Mesh.selected})
+
+						if (BarItems.selection_mode.value == 'face') {
+							Mesh.selected.forEach(mesh => {
+								let selected_vertices = Project.selected_vertices[mesh.uuid];
+								for (let key in mesh.faces) {
+									let face = mesh.faces[key];
+									if (!face.vertices.find(vertex_key => !selected_vertices.includes(vertex_key))) {
+										delete mesh.faces[key];
+									}
+								}
+								selected_vertices.forEach(vertex_key => {
+									let used = false;
+									for (let key in mesh.faces) {
+										let face = mesh.faces[key];
+										if (face.vertices.includes(vertex_key)) used = true;
+									}
+									if (!used) {
+										delete mesh.vertices[vertex_key];
+									}
+								})
+							})
+						} else {
+							Mesh.selected.forEach(mesh => {
+								let selected_vertices = Project.selected_vertices[mesh.uuid];
+								selected_vertices.forEach(vertex_key => {
+									delete mesh.vertices[vertex_key];
+
+									for (let key in mesh.faces) {
+										let face = mesh.faces[key];
+										if (face.vertices.length > 2) {
+											face.vertices.remove(vertex_key);
+											delete face.uv[vertex_key];
+										} else {
+											delete mesh.faces[key];
+										}
+									}
+								})
+							})
+						}
+
+						Undo.finishEdit('Delete mesh part')
+						Canvas.updateView({elements: Mesh.selected, selection: true, element_aspects: {geometry: true, faces: true}})
+
 					} else if ((Modes.edit || Modes.paint) && (selected.length || Group.selected)) {
 
 						var array;

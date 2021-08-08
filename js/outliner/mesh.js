@@ -301,7 +301,6 @@ new NodePreviewController(Mesh, {
 
 		for (let key in element.faces) {
 			let face = element.faces[key];
-			console.log(key, face, face.vertices)
 			
 			// Test if point "check" is on the other side of the line between "base1" and "base2", compared to "top"
 			function test(base1, base2, top, check) {
@@ -321,7 +320,12 @@ new NodePreviewController(Mesh, {
 
 
 
-			if (face.vertices.length == 3) {
+			if (face.vertices.length == 2) {
+				// Outline
+				outline_positions.push(...element.vertices[face.vertices[0]]);
+				outline_positions.push(...element.vertices[face.vertices[1]]);
+
+			} else if (face.vertices.length == 3) {
 				// Tri
 				face.vertices.forEach((key, i) => {
 					let index = position_indices.indexOf(key);
@@ -331,8 +335,14 @@ new NodePreviewController(Mesh, {
 				// Outline
 				face.vertices.forEach((key, i) => {
 					outline_positions.push(...element.vertices[key]);
-					if (i && i < face.vertices.length-1) outline_positions.push(...element.vertices[key]);
+					console.log(i)
+					if (i) {
+						outline_positions.push(...element.vertices[key]);
+						console.log(i)
+					}
 				})
+				outline_positions.push(...element.vertices[face.vertices[0]]);
+				console.log(0)
 
 			} else if (face.vertices.length == 4) {
 
@@ -482,6 +492,7 @@ new NodePreviewController(Mesh, {
 		}
 		
 		mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+		mesh.vertex_points.visible = Mode.selected.id == 'edit';
 	}
 })
 
@@ -540,6 +551,30 @@ BARS.defineActions(function() {
 		condition: () => Format && Format.meshes,
 		onChange: function(slider) {
 			updateSelection();
+		}
+	})
+	new Action({
+		id: 'create_face',
+		icon: 'fas.fa-draw-polygon',
+		category: 'edit',
+		keybind: new Keybind({key: 'f', shift: true}),
+		condition: () => (Modes.edit && Format.meshes),
+		click() {
+			Undo.initEdit({elements: Mesh.selected});
+			Mesh.selected.forEach(mesh => {
+				let selected_vertices = Project.selected_vertices[mesh.uuid];
+				if (selected_vertices && selected_vertices.length >= 2 && selected_vertices.length <= 4) {
+					for (let key in mesh.faces) {
+						let face = mesh.faces[key];
+						if (!face.vertices.find(vertex_key => !selected_vertices.includes(vertex_key))) {
+							delete mesh.faces[key];
+						}
+					}
+					mesh.addFaces(new MeshFace(mesh, {vertices: selected_vertices} ));	// West
+				}
+			})
+			Undo.finishEdit('Create mesh face')
+			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}})
 		}
 	})
 })
