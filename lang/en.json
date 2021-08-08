@@ -278,6 +278,7 @@
 	"dialog.project.uv_mode.box_uv": "Box UV",
 	"dialog.project.uv_mode.face_uv": "Per-face UV",
 	"dialog.project.texture_size": "Texture Size",
+	"dialog.project.shadow_size": "Shadow Size",
 
 	"dialog.convert_project.title": "Convert Project",
 	"dialog.convert_project.text": "Are you sure you want to convert this project? You cannot undo this step.",

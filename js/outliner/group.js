@@ -486,6 +486,7 @@ class Group extends OutlinerNode {
 	new Property(Group, 'vector', 'rotation');
 	new Property(Group, 'string', 'bedrock_binding', {condition: () => Format.id == 'bedrock'});
 	new Property(Group, 'array', 'cem_animations', {condition: () => Format.id == 'optifine_entity'});
+	new Property(Group, 'boolean', 'cem_attach', {condition: () => Format.id == 'optifine_entity'});
 	new Property(Group, 'number', 'color');
 
 

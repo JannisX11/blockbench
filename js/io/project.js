@@ -283,6 +283,10 @@ new Property(ModelProject, 'vector', 'visible_box', {
 new Property(ModelProject, 'string', 'variable_placeholders', {
 	exposed: false,
 });
+new Property(ModelProject, 'number', 'shadow_size', {
+	label: 'dialog.project.shadow_size',
+	condition: {formats: ['optifine_entity']}
+});
 
 
 ModelProject.all = [];
