@@ -552,7 +552,7 @@ class Cube extends OutlinerElement {
 		if (selected.indexOf(this) === 0) {
 			main_uv.loadData()
 		}
-		if (Prop.view_mode === 'textured' && scope.visibility == true) {
+		if (Prop.view_mode === 'textured') {
 			this.preview_controller.updateFaces(this);
 			this.preview_controller.updateUV(this);
 		}
@@ -831,7 +831,7 @@ OutlinerElement.registerType(Cube, 'cube');
 
 new NodePreviewController(Cube, {
 	setup(element) {
-		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), emptyMaterials[0]);
+		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;
 		mesh.type = 'cube';
@@ -949,7 +949,7 @@ new NodePreviewController(Cube, {
 
 		} else if (Format.single_texture) {
 			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : emptyMaterials[cube.color];
+			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[cube.color];
 
 		} else {
 			var materials = []
@@ -963,7 +963,7 @@ new NodePreviewController(Cube, {
 					if (tex && tex.uuid) {
 						materials.push(Project.materials[tex.uuid])
 					} else {
-						materials.push(emptyMaterials[cube.color])
+						materials.push(Canvas.emptyMaterials[cube.color])
 					}
 				}
 			})

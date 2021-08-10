@@ -338,7 +338,7 @@ const Canvas = {
 		if (Canvas.solidMaterial) {
 			Canvas.solidMaterial.side = side;
 		}
-		emptyMaterials.forEach(function(mat) {
+		Canvas.emptyMaterials.forEach(function(mat) {
 			mat.side = side
 		})
 	},
@@ -624,7 +624,7 @@ const Canvas = {
 
 		} else if (Format.single_texture) {
 			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : emptyMaterials[cube.color];
+			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[cube.color];
 
 		} else {
 			var materials = []
@@ -638,7 +638,7 @@ const Canvas = {
 					if (tex && tex.uuid) {
 						materials.push(Project.materials[tex.uuid])
 					} else {
-						materials.push(emptyMaterials[cube.color])
+						materials.push(Canvas.emptyMaterials[cube.color])
 					}
 				}
 			})

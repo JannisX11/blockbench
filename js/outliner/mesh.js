@@ -180,6 +180,30 @@ class Mesh extends OutlinerElement {
 		el.uuid = this.uuid
 		return el;
 	}
+	applyTexture(texture, faces) {
+		var scope = this;
+		if (faces === true) {
+			var sides = Object.keys(this.faces);
+		} else if (faces === undefined) {
+			var sides = [main_uv.face]
+		} else {
+			var sides = faces
+		}
+		var value = false;
+		if (texture) {
+			value = texture.uuid
+		}
+		sides.forEach(function(side) {
+			scope.faces[side].texture = value
+		})
+		if (Project.selected_elements.indexOf(this) === 0) {
+			main_uv.loadData()
+		}
+		if (Prop.view_mode === 'textured') {
+			this.preview_controller.updateFaces(this);
+			this.preview_controller.updateUV(this);
+		}
+	}
 }
 	Mesh.prototype.title = tl('data.mesh');
 	Mesh.prototype.type = 'mesh';
@@ -251,7 +275,7 @@ OutlinerElement.registerType(Mesh, 'mesh');
 
 new NodePreviewController(Mesh, {
 	setup(element) {
-		var mesh = new THREE.Mesh(new THREE.BufferGeometry(1, 1, 1), emptyMaterials[0]);
+		var mesh = new THREE.Mesh(new THREE.BufferGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;
 		mesh.type = element.type;
@@ -381,6 +405,7 @@ new NodePreviewController(Mesh, {
 		mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
 		mesh.geometry.setIndex(indices);
 
+		mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]), 2)), 
 		mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
 
 		mesh.geometry.computeBoundingBox();
@@ -388,30 +413,6 @@ new NodePreviewController(Mesh, {
 	},
 	updateFaces(element) {
 		let {mesh} = element;
-		let {geometry} = mesh;
-
-		
-
-		/*
-		if (!geometry.all_faces) geometry.all_faces = geometry.groups.slice();
-		geometry.groups.empty();
-
-		geometry.all_faces.forEach(face => {
-			let bb_face = element.faces[Canvas.face_order[face.materialIndex]];
-
-			if (bb_face && bb_face.texture === null && geometry.groups.includes(face)) {
-				geometry.groups.remove(face);
-			} else
-			if (bb_face && bb_face.texture !== null && !geometry.groups.includes(face)) {
-				geometry.groups.push(face);
-			}
-		})
-		if (geometry.groups.length == 0) {
-			// Keep down face if no faces enabled
-			geometry.groups.push(geometry.all_faces[6], geometry.all_faces[7]);
-		}
-
-
 
 		if (Prop.view_mode === 'solid') {
 			mesh.material = Canvas.solidMaterial
@@ -424,27 +425,21 @@ new NodePreviewController(Mesh, {
 
 		} else if (Format.single_texture) {
 			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : emptyMaterials[element.color];
+			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color];
 
 		} else {
 			var materials = []
-			Canvas.face_order.forEach(function(face) {
-
-				if (cube.faces[face].texture === null) {
-					materials.push(Canvas.transparentMaterial)
-
+			for (let key in element.faces) {
+				var tex = element.faces[key].getTexture()
+				if (tex && tex.uuid) {
+					materials.push(Project.materials[tex.uuid])
 				} else {
-					var tex = cube.faces[face].getTexture()
-					if (tex && tex.uuid) {
-						materials.push(Project.materials[tex.uuid])
-					} else {
-						materials.push(emptyMaterials[cube.color])
-					}
+					materials.push(Canvas.emptyMaterials[element.color])
 				}
-			})
+			}
 			if (materials.allEqual(materials[0])) materials = materials[0];
 			mesh.material = materials
-		}*/
+		}
 	},
 	updateUV(cube, animation = true) {
 		if (Prop.view_mode !== 'textured') return;

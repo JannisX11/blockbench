@@ -1,7 +1,6 @@
 var scene,
 	main_preview, MediaPreview,
 	Sun, lights,
-	emptyMaterials,
 	outlines,
 	Transformer,
 	canvas_scenes,
@@ -2128,14 +2127,14 @@ function initCanvas() {
 	img.onload = function() {
 		this.tex.needsUpdate = true;
 	}
-	emptyMaterials = []
+	Canvas.emptyMaterials = []
 	markerColors.forEach(function(s, i) {
 		var thismaterial = new THREE.MeshLambertMaterial({
 			color: 0xffffff,
 			map: tex
 		})
 		thismaterial.color.set(s.pastel)
-		emptyMaterials.push(thismaterial)
+		Canvas.emptyMaterials.push(thismaterial)
 	})
 
 	var img = new Image();
