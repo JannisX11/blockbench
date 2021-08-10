@@ -162,9 +162,6 @@ class Mesh extends OutlinerElement {
 		this.sanitizeName();
 		return this;
 	}
-	get mesh() {
-		return Project.nodes_3d[this.uuid];
-	}
 	getUndoCopy() {
 		var copy = new Mesh(this)
 		copy.uuid = this.uuid;
@@ -236,11 +233,6 @@ class Mesh extends OutlinerElement {
 					cube.forSelected(function(obj) {
 						obj.applyTexture(false, true)
 					}, 'texture blank')
-				}},
-				{icon: 'clear', name: 'menu.cube.texture.transparent', click: function(cube) {
-					cube.forSelected(function(obj) {
-						obj.applyTexture(null, true)
-					}, 'texture transparent')
 				}}
 			]
 			Texture.all.forEach(function(t) {
@@ -275,7 +267,7 @@ OutlinerElement.registerType(Mesh, 'mesh');
 
 new NodePreviewController(Mesh, {
 	setup(element) {
-		var mesh = new THREE.Mesh(new THREE.BufferGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
+		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;
 		mesh.type = element.type;
