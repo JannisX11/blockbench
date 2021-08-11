@@ -423,8 +423,8 @@ const Timeline = {
 	clear() {
 		Timeline.animators.purge();
 		Timeline.selected.empty();
-		Timeline.vue._data.markers = [];
-		Timeline.vue._data.animation_length = 0;
+		Timeline.vue.markers = [];
+		Timeline.vue.animation_length = 0;
 		updateKeyframeSelection();
 	},
 	start() {

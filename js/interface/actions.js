@@ -1828,9 +1828,13 @@ const BARS = {
 			children: [
 				'slider_keyframe_time',
 				'keyframe_interpolation',
+				'keyframe_uniform',
 				'change_keyframe_file',
 				'reset_keyframe'
 			]
+		})
+		Blockbench.onUpdateTo('4.0', () => {
+			Toolbars.keyframe.add(BarItems.keyframe_uniform, 2);
 		})
 		Toolbars.timeline = new Toolbar({
 			id: 'timeline',

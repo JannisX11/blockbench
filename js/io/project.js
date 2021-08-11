@@ -177,6 +177,7 @@ class ModelProject {
 		Animation.selected = null;
 		let selected_anim = this.animations.find(anim => anim.selected);
 		if (selected_anim) selected_anim.select();
+		Timeline.animators = this.timeline_animators;
 		Timeline.vue.animators = this.timeline_animators;
 
 		Interface.Panels.variable_placeholders.inside_vue.text = this.variable_placeholders.toString();
