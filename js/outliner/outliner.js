@@ -778,14 +778,18 @@ function toggleCubeProperty(key) {
 	Undo.finishEdit('Toggle ' + key)
 }
 
+StateMemory.init('advanced_outliner_toggles', 'boolean')
 
 BARS.defineActions(function() {
 	new Toggle('outliner_toggle', {
 		icon: 'dns',
 		category: 'edit',
 		keybind: new Keybind({key: 115}),
+		default: StateMemory.advanced_outliner_toggles,
 		onChange: function (value) {
-			Outliner.vue._data.options.show_advanced_toggles = value;
+			Outliner.vue.options.show_advanced_toggles = value;
+			StateMemory.advanced_outliner_toggles = value;
+			StateMemory.save('advanced_outliner_toggles');
 		}
 	})
 	new BarText('cube_counter', {
@@ -1116,7 +1120,7 @@ Interface.definePanels(function() {
 				root: Outliner.root,
 				options: {
 					width: 300,
-					show_advanced_toggles: false,
+					show_advanced_toggles: StateMemory.advanced_outliner_toggles,
 					hidden_types: []
 				}
 			}},
