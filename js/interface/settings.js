@@ -230,16 +230,6 @@ const Settings = {
 			Canvas.updateRenderSides();
 		}});
 		new Setting('background_rendering', 	{category: 'preview', value: true});
-		/*
-		new Setting('transparency',		{category: 'preview', value: true, onChange() {
-			for (var uuid in Project.materials) {
-				let material = Project.materials[uuid]
-				if (material instanceof THREE.Material) {
-					material.transparent = settings.transparency.value
-				}
-			}
-		}});
-		*/
 		new Setting('texture_fps',   	{category: 'preview', value: 2, type: 'number', onChange() {
 			TextureAnimator.updateSpeed()
 		}});

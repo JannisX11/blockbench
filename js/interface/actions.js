@@ -284,6 +284,19 @@ class Action extends BarItem {
 			$(n).find('.icon').replaceWith($(scope.icon_node).clone())
 		})
 	}
+	setName(name) {
+		this.name = name;
+		this.nodes.forEach(node => {
+			let tooltip = node.querySelector('.tooltip');
+			if (tooltip && tooltip.firstChild) {
+				tooltip.firstChild.textContent = this.name;;
+			}
+		})
+		let menu_span = this.menu_node.querySelector('span');
+		if (menu_span) {
+			menu_span.innerText = this.name;
+		}
+	}
 	delete() {
 		super.delete();
 		for (var i = this.menus.length-1; i >= 0; i--) {

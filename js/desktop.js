@@ -443,36 +443,27 @@ ipcRenderer.on('update-available', (event, arg) => {
 	if (settings.automatic_updates.value) {
 		ipcRenderer.send('allow-auto-update');
 
+
 		let icon_node = Blockbench.getIconNode('donut_large');
 		icon_node.classList.add('spinning');
 		let click_action;
 
-		let update_status = {
+		let action = new Action('update_status', {
 			name: tl('menu.help.updating', [0]),
-			id: 'update_status',
 			icon: icon_node,
 			click() {
 				if (click_action) click_action()
 			}
-		};
+		})
+		action.toElement('#update_menu');
 		MenuBar.menus.help.addAction('_');
-		MenuBar.menus.help.addAction(update_status);
-		function updateText(text) {
-			update_status.name = text;
-			$('li[menu_item=update_status]').each((i, node) => {
-				node.childNodes.forEach(child => {
-					if (child.nodeName == '#text') {
-						child.textContent = text;
-					}
-				})
-			});
-		}
+		MenuBar.menus.help.addAction(action);
 
 		ipcRenderer.on('update-progress', (event, status) => {
-			updateText(tl('menu.help.updating', [Math.round(status.percent)]));
+			action.setName(tl('menu.help.updating', [Math.round(status.percent)]));
 		})
 		ipcRenderer.on('update-error', (event, err) => {
-			updateText(tl('menu.help.update_failed'));
+			action.setName(tl('menu.help.update_failed'));
 			icon_node.textContent = 'warning';
 			icon_node.classList.remove('spinning')
 			click_action = function() {
@@ -481,12 +472,12 @@ ipcRenderer.on('update-available', (event, arg) => {
 			console.error(err);
 		})
 		ipcRenderer.on('update-downloaded', (event) => {
-			updateText(tl('menu.help.update_ready'));
-			icon_node.textContent = 'system_update_alt';
-			icon_node.classList.remove('spinning')
+			action.setName(tl('message.update_after_restart'));
+			icon_node.textContent = 'done';
+			icon_node.classList.remove('spinning');
+			icon_node.style.color = '#5ef570';
 			click_action = function() {
-				app.relaunch();
-				app.quit();
+				Blockbench.showQuickMessage('message.update_after_restart')
 			}
 		})
 

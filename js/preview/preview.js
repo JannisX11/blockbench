@@ -800,8 +800,8 @@ class Preview {
 		if (!Modes.edit || event.type == 'touchstart') return;
 
 		$(this.node).append(this.selection.box)
-		this.selection.activated = settings.canvas_unselect.value;
-		this.selection.old_selected = selected.slice();
+		this.selection.activated = false;
+		this.selection.old_selected = Outliner.selected.slice();
 
 		this.moveSelRect(event)
 	}

@@ -265,6 +265,9 @@
 	#mac_window_menu {
 		width: 68px;
 	}
+	header .tool .icon {
+		font-size: 20px;
+	}
 
 /*Mobile*/
 @media (max-device-width: 640px) {
