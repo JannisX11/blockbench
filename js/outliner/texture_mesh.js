@@ -13,7 +13,14 @@ class TextureMesh extends OutlinerElement {
 		return this.origin;
 	}
 	getWorldCenter() {
-		let pos = new THREE.Vector3().fromArray(this.origin);
+		let m = this.mesh;
+		let pos = new THREE.Vector3().fromArray(this.local_pivot);
+
+		if (m) {
+			let r = m.getWorldQuaternion(new THREE.Quaternion());
+			pos.applyQuaternion(r);
+			pos.add(THREE.fastWorldPosition(m, new THREE.Vector3()));
+		}
 		return pos;
 	}
 	extend(object) {
@@ -43,20 +50,6 @@ class TextureMesh extends OutlinerElement {
 		el.uuid = this.uuid
 		return el;
 	}
-	getTexture() {
-		if (typeof this.texture === 'string') {
-			return Texture.all.findInArray('uuid', this.texture)
-		} else {
-			return Texture.getDefault();
-		}
-	}
-	applyTexture(texture) {
-		this.texture = texture instanceof Texture ? texture.uuid : '';
-
-		if (Prop.view_mode === 'textured') {
-			this.preview_controller.updateFaces(this);
-		}
-	}
 }
 	TextureMesh.prototype.title = tl('data.texture_mesh');
 	TextureMesh.prototype.type = 'texture_mesh';
@@ -73,26 +66,14 @@ class TextureMesh extends OutlinerElement {
 		'duplicate',
 		'_',
 		'rename',
-		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Project.single_texture, children: function() {
-			var arr = [
-				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {
-					cube.forSelected(function(obj) {
-						obj.applyTexture('')
-					}, 'Set texture to blank')
-				}}
-			]
-			Texture.all.forEach(function(t) {
-				arr.push({
-					name: t.name,
-					icon: (t.mode === 'link' ? t.img : t.source),
-					click: function(cube) {
-						cube.forSelected(function(obj) {
-							obj.applyTexture(t)
-						}, 'Apply texture')
-					}
-				})
+		{name: 'menu.texture_mesh.texture_name', icon: 'collections', condition: () => !Project.single_texture, click(context) {
+			Blockbench.textPrompt('menu.texture_mesh.texture_name', context.texture_name, value => {
+				Undo.initEdit({elements: TextureMesh.all}),
+				TextureMesh.all.forEach(element => {
+					element.texture_name = value;
+				});
+				Undo.finishEdit('Change texture mesh texture name')
 			})
-			return arr;
 		}},
 		'toggle_visibility',
 		'delete'
@@ -104,9 +85,9 @@ class TextureMesh extends OutlinerElement {
 	];
 
 new Property(TextureMesh, 'string', 'name', {default: 'texture_mesh'})
-new Property(TextureMesh, 'string', 'texture')
+new Property(TextureMesh, 'string', 'texture_name')
 new Property(TextureMesh, 'vector', 'origin');
-new Property(TextureMesh, 'vector', 'position');
+new Property(TextureMesh, 'vector', 'local_pivot');
 new Property(TextureMesh, 'vector', 'rotation');
 new Property(TextureMesh, 'vector', 'scale', {default: [1, 1, 1]});
 new Property(TextureMesh, 'boolean', 'visibility', {default: true});
@@ -161,6 +142,15 @@ new NodePreviewController(TextureMesh, {
 		outline_positions.push(0, 0, 0);
 		outline_positions.push(0, 0, 0);
 		outline_positions.push(-Project.texture_width, 0, 0);
+
+		position_array.forEach((n, i) => {
+			let axis = i % 3;
+			position_array[i] = n * element.scale[axis] + element.local_pivot[axis];
+		})
+		outline_positions.forEach((n, i) => {
+			let axis = i % 3;
+			outline_positions[i] = n * element.scale[axis] + element.local_pivot[axis];
+		})
 		
 		mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
 		mesh.geometry.setIndex(indices);
@@ -190,6 +180,11 @@ new NodePreviewController(TextureMesh, {
 		}
 
 		TextureMesh.preview_controller.updateGeometry(element);
+	},
+	updateTransform(element) {
+		let {mesh} = element;
+		NodePreviewController.prototype.updateTransform(element);
+		mesh.scale.set(1, 1, 1);
 	}
 })
 

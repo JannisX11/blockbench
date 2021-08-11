@@ -626,6 +626,9 @@ function moveElementsInSpace(difference, axis) {
 					m.applyQuaternion(el.mesh.quaternion);
 					el.from.V3_add(m.x, m.y, m.z);
 
+				} else if (el instanceof TextureMesh) {
+					el.local_pivot[axis] += difference;
+
 				} else {
 					if (el.movable) el.from[axis] += difference;
 					if (el.resizable) el.to[axis] += difference;
@@ -666,7 +669,7 @@ function moveElementsInSpace(difference, axis) {
 				if (el.movable) el.from.V3_add(m.x, m.y, m.z);
 				if (el.resizable) el.to.V3_add(m.x, m.y, m.z);
 				if (move_origin) {
-					if (el.rotatable && el instanceof Locator == false) el.origin.V3_add(m.x, m.y, m.z);
+					if (el.rotatable && el instanceof Locator == false && el instanceof TextureMesh == false) el.origin.V3_add(m.x, m.y, m.z);
 				}
 			}
 		}
@@ -991,6 +994,10 @@ BARS.defineActions(function() {
 		selected.forEach(function(obj, i) {
 			if (obj.resizable) {
 				obj.resize(modify, axis, false, true)
+			} else if (obj.scalable) {
+				obj.scale[axis] = modify(obj.scale[axis]);
+				obj.preview_controller.updateTransform(obj);
+				obj.preview_controller.updateGeometry(obj);
 			}
 		})
 	}
@@ -999,10 +1006,14 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['X']),
 		color: 'x',
 		category: 'transform',
-		condition: () => (Cube.selected.length && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
 		getInterval: grid_locked_interval,
 		get: function() {
-			return Cube.selected[0].to[0] - Cube.selected[0].from[0]
+			if (Outliner.selected[0].scalable) {
+				return Outliner.selected[0].scale[0]
+			} else if (Outliner.selected[0].resizable) {
+				return Outliner.selected[0].to[0] - Outliner.selected[0].from[0]
+			}
 		},
 		change: function(modify) {
 			resizeOnAxis(modify, 0)
@@ -1019,10 +1030,14 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['Y']),
 		color: 'y',
 		category: 'transform',
-		condition: () => (Cube.selected.length && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
 		getInterval: grid_locked_interval,
 		get: function() {
-			return Cube.selected[0].to[1] - Cube.selected[0].from[1]
+			if (Outliner.selected[0].scalable) {
+				return Outliner.selected[0].scale[1]
+			} else if (Outliner.selected[0].resizable) {
+				return Outliner.selected[0].to[1] - Outliner.selected[0].from[1]
+			}
 		},
 		change: function(modify) {
 			resizeOnAxis(modify, 1)
@@ -1039,10 +1054,14 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['Z']),
 		color: 'z',
 		category: 'transform',
-		condition: () => (Cube.selected.length && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
 		getInterval: grid_locked_interval,
 		get: function() {
-			return Cube.selected[0].to[2] - Cube.selected[0].from[2]
+			if (Outliner.selected[0].scalable) {
+				return Outliner.selected[0].scale[2]
+			} else if (Outliner.selected[0].resizable) {
+				return Outliner.selected[0].to[2] - Outliner.selected[0].from[2]
+			}
 		},
 		change: function(modify) {
 			resizeOnAxis(modify, 2)

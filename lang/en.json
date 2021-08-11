@@ -1210,6 +1210,7 @@
 	"menu.cube.texture": "Texture",
 	"menu.cube.texture.transparent": "Transparent",
 	"menu.cube.texture.blank": "Blank",
+	"menu.texture_mesh.texture_name": "Texture Name...",
 
 	"menu.group.sort": "Sort",
 	"menu.group.resolve": "Resolve",
