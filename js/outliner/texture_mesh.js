@@ -103,10 +103,10 @@ new NodePreviewController(TextureMesh, {
 		mesh.type = element.type;
 		mesh.isElement = true;
 
-		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24).fill(1), 1));
+		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(4), 1));
 
 		// Outline
-		let outline = new THREE.Line(new THREE.BufferGeometry(), Canvas.outlineMaterial);
+		let outline = new THREE.LineSegments(new THREE.BufferGeometry(), Canvas.outlineMaterial);
 		outline.no_export = true;
 		outline.name = element.uuid+'_outline';
 		outline.visible = element.selected;
@@ -118,6 +118,7 @@ new NodePreviewController(TextureMesh, {
 		// Update
 		this.updateTransform(element);
 		this.updateGeometry(element);
+		this.updateFaces(element);
 		mesh.visible = element.visibility;
 	},
 	updateGeometry(element) {
@@ -126,22 +127,124 @@ new NodePreviewController(TextureMesh, {
 		let position_array = [];
 		let indices = [];
 		let outline_positions = [];
+		let uvs = [1, 1, 1, 0, 0, 0, 0, 1,   1, 1, 1, 0, 0, 0, 0, 1];
+		let normals = [];
+		function addNormal(x, y, z) {
+			normals.push(x, y, z);
+			normals.push(x, y, z);
+			normals.push(x, y, z);
+			normals.push(x, y, z);
+		}
 
-		position_array.push(-Project.texture_width, 0, 0);
-		position_array.push(-Project.texture_width, 0, Project.texture_height);
-		position_array.push(0, 0, Project.texture_height);
-		position_array.push(0, 0, 0);
+		let corners = [
+			[-Project.texture_width, 0, 0],
+			[-Project.texture_width, 0, Project.texture_height],
+			[0, 0, Project.texture_height],
+			[0, 0, 0],
+		]
+		corners.push(...corners.map(corner => {
+			return [corner[0], -1, corner[2]]
+		}))
+
+		corners.forEach(corner => {
+			position_array.push(...corner);
+		})
 
 		indices.push(0, 1, 2, 0, 2, 3);
+		indices.push(4+0, 4+2, 4+1, 4+0, 4+3, 4+2);
 
-		outline_positions.push(-Project.texture_width, 0, 0);
-		outline_positions.push(-Project.texture_width, 0, Project.texture_height);
-		outline_positions.push(-Project.texture_width, 0, Project.texture_height);
-		outline_positions.push(0, 0, Project.texture_height);
-		outline_positions.push(0, 0, Project.texture_height);
-		outline_positions.push(0, 0, 0);
-		outline_positions.push(0, 0, 0);
-		outline_positions.push(-Project.texture_width, 0, 0);
+		addNormal(0, 1, 0);
+		addNormal(0, -1, 0);
+		outline_positions.push(
+			...corners[0], ...corners[1],
+			...corners[1], ...corners[2],
+			...corners[2], ...corners[3],
+			...corners[3], ...corners[0],
+
+			...corners[4], ...corners[5],
+			...corners[5], ...corners[6],
+			...corners[6], ...corners[7],
+			...corners[7], ...corners[4],
+
+			...corners[0], ...corners[4+0],
+			...corners[1], ...corners[4+1],
+			...corners[2], ...corners[4+2],
+			...corners[3], ...corners[4+3]
+		)
+
+		let texture = Texture.getDefault();
+		if (texture && texture.width) {
+			let canvas = document.createElement('canvas');
+			let ctx = canvas.getContext('2d');
+			canvas.width = texture.width;
+			canvas.height = texture.height;
+			ctx.drawImage(texture.img, 0, 0);
+
+			function addFace(sx, sy, ex, ey, dir) {
+
+				let s = position_array.length / 3;
+				position_array.push(-sx * Project.texture_width / texture.width, 0, sy * Project.texture_height / texture.height);
+				position_array.push(-sx * Project.texture_width / texture.width, -1, sy * Project.texture_height / texture.height);
+				position_array.push(-ex * Project.texture_width / texture.width, -1, ey * Project.texture_height / texture.height);
+				position_array.push(-ex * Project.texture_width / texture.width, 0, ey * Project.texture_height / texture.height);
+
+				if (dir == 1) {
+					indices.push(s+0, s+1, s+2, s+0, s+2, s+3);
+				} else {
+					indices.push(s+0, s+2, s+1, s+0, s+3, s+2);
+				}
+
+				if (sx == ex) {
+					sx += 0.1 * -dir;
+					ex += 0.4 * -dir;
+					sy += 0.1;
+					ey -= 0.1;
+					addNormal(dir, 0, 0);
+				}
+				if (sy == ey) {
+					sy += 0.1 * dir;
+					ey += 0.4 * dir;
+					sx += 0.1;
+					ex -= 0.1;
+					addNormal(0, 0, dir);
+				}
+				uvs.push(
+					ex / canvas.width, 1 - (sy / canvas.height),
+					ex / canvas.width, 1 - (ey / canvas.height),
+					sx / canvas.width, 1 - (ey / canvas.height),
+					sx / canvas.width, 1 - (sy / canvas.height),
+				)
+
+			}
+
+			let result = ctx.getImageData(0, 0, canvas.width, canvas.height);
+			let matrix_1 = [];
+			for (let i = 0; i < result.data.length; i += 4) {
+				matrix_1.push(result.data[i+3] > 140 ? 1 : 0);
+			}
+			let matrix_2 = matrix_1.slice();
+
+			for (var y = 0; y < canvas.height; y++) {
+				for (var x = 0; x <= canvas.width; x++) {
+					let px0 = x == 0 ? 0 : matrix_1[y * canvas.width + x - 1];
+					let px1 = x == canvas.width ? 0 : matrix_1[y * canvas.width + x];
+					if (!px0 !== !px1) {
+						addFace(x, y, x, y+1, px0 ? 1 : -1);
+					}
+				}
+			}
+
+			for (var x = 0; x < canvas.width; x++) {
+				for (var y = 0; y <= canvas.height; y++) {
+					let px0 = y == 0 ? 0 : matrix_2[(y-1) * canvas.width + x];
+					let px1 = y == canvas.height ? 0 : matrix_2[y * canvas.width + x];
+					if (!px0 !== !px1) {
+						addFace(x, y, x+1, y, px0 ? -1 : 1);
+					}
+				}
+			}
+		}
+
 
 		position_array.forEach((n, i) => {
 			let axis = i % 3;
@@ -153,9 +256,12 @@ new NodePreviewController(TextureMesh, {
 		})
 		
 		mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
+		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(mesh.geometry.attributes.position.count), 1));
 		mesh.geometry.setIndex(indices);
+		mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2));
+		mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normals), 3));
+		mesh.geometry.attributes.normal.needsUpdate = true;
 
-		mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([1, 1, 1, 0, 0, 0, 0, 1]), 2)), 
 		mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
 
 		mesh.geometry.computeBoundingBox();
@@ -194,7 +300,7 @@ BARS.defineActions(function() {
 		icon: 'fa-puzzle-piece',
 		category: 'edit',
 		keybind: new Keybind({key: 'n', ctrl: true}),
-		//condition: () => (Modes.edit && Format.texture_meshes),
+		condition: () => (Modes.edit && Format.texture_meshes),
 		click: function () {
 			
 			Undo.initEdit({outliner: true, elements: [], selection: true});

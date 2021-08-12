@@ -2226,7 +2226,7 @@ function updateCubeHighlights(hover_cube, force_off) {
 			) ? 1 : 0;
 
 			if (mesh.geometry.attributes.highlight.array[0] != highlighted) {
-				mesh.geometry.attributes.highlight.array.set(Array(24).fill(highlighted));
+				mesh.geometry.attributes.highlight.array.set(Array(mesh.geometry.attributes.highlight.count).fill(highlighted));
 				mesh.geometry.attributes.highlight.needsUpdate = true;
 			}
 		}

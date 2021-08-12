@@ -280,9 +280,9 @@ const Canvas = {
 	},
 	updateAllFaces(texture) {
 		Outliner.elements.forEach(function(obj) {
-			if (obj.faces || Format.single_texture) {
+			if (obj.faces || obj instanceof TextureMesh) {
 				var used = true;
-				if (texture && !Format.single_texture) {
+				if (texture && obj.faces && !Format.single_texture) {
 				 	used = false;
 					for (var face in obj.faces) {
 						if (obj.faces[face].getTexture() == texture) {

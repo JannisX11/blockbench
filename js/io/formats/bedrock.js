@@ -1003,6 +1003,7 @@ var format = new ModelFormat({
 	animation_files: true,
 	animation_mode: true,
 	locators: true,
+	texture_meshes: true,
 	codec,
 	onActivation: function () {
 		

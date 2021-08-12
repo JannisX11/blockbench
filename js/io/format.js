@@ -19,6 +19,7 @@ class ModelFormat {
 		this.rotate_cubes = false;
 		this.integer_size = false;
 		this.meshes = false;
+		this.texture_meshes = false;
 		this.locators = false;
 		this.canvas_limit = false;
 		this.rotation_limit = false;
@@ -42,6 +43,7 @@ class ModelFormat {
 		Merge.boolean(this, data, 'rotate_cubes');
 		Merge.boolean(this, data, 'integer_size');
 		Merge.boolean(this, data, 'meshes');
+		Merge.boolean(this, data, 'texture_meshes');
 		Merge.boolean(this, data, 'locators');
 		Merge.boolean(this, data, 'canvas_limit');
 		Merge.boolean(this, data, 'rotation_limit');
