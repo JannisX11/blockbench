@@ -63,9 +63,58 @@ class MeshFace {
 			return this.texture;
 		}
 	}
+	getNormal() {
+		if (this.vertices.length < 3) return [0, 0, 0];
+		let a = [
+			this.mesh.vertices[this.vertices[1]][0] - this.mesh.vertices[this.vertices[0]][0],
+			this.mesh.vertices[this.vertices[1]][1] - this.mesh.vertices[this.vertices[0]][1],
+			this.mesh.vertices[this.vertices[1]][2] - this.mesh.vertices[this.vertices[0]][2],
+		]
+		let b = [
+			this.mesh.vertices[this.vertices[2]][0] - this.mesh.vertices[this.vertices[0]][0],
+			this.mesh.vertices[this.vertices[2]][1] - this.mesh.vertices[this.vertices[0]][1],
+			this.mesh.vertices[this.vertices[2]][2] - this.mesh.vertices[this.vertices[0]][2],
+		]
+		return [
+			a[1] * b[2] - a[2] * b[1],
+			a[2] * b[0] - a[0] * b[2],
+			a[0] * b[1] - a[1] * b[0],
+		]
+	}
+	invert() {
+		if (this.vertices.length < 3) return this;
+		[this.vertices[1], this.vertices[2]] = [this.vertices[2], this.vertices[1]];
+	}
+	getSortedVertices() {
+		if (this.vertices.length < 4) return this.vertices;
+
+		// Test if point "check" is on the other side of the line between "base1" and "base2", compared to "top"
+		function test(base1, base2, top, check) {
+			base1 = new THREE.Vector3().fromArray(base1);
+			base2 = new THREE.Vector3().fromArray(base2);
+			top = new THREE.Vector3().fromArray(top);
+			check = new THREE.Vector3().fromArray(check);
+
+			// Construct a plane with coplanar points "base1" and "base2" with a normal towards "top"
+			let normal = new THREE.Vector3();
+			new THREE.Line3(base1, base2).closestPointToPoint(top, false, normal);
+			normal.sub(top);
+			let plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, base2);
+			let distance = plane.distanceToPoint(check);
+			return distance > 0;
+		}
+		let mesh = this.mesh;
+				
+		if (test(mesh.vertices[this.vertices[1]], mesh.vertices[this.vertices[2]], mesh.vertices[this.vertices[0]], mesh.vertices[this.vertices[3]])) {
+			return [this.vertices[2], this.vertices[0], this.vertices[1], this.vertices[3]];
+
+		} else if (test(mesh.vertices[this.vertices[0]], mesh.vertices[this.vertices[1]], mesh.vertices[this.vertices[2]], mesh.vertices[this.vertices[3]])) {
+			return [this.vertices[0], this.vertices[2], this.vertices[1], this.vertices[3]];
+		}
+		return this.vertices;
+	}
 }
 new Property(MeshFace, 'array', 'vertices', {default: 0});
-new Property(MeshFace, 'vector', 'normal', {default: 0});
 
 
 class Mesh extends OutlinerElement {
@@ -78,12 +127,12 @@ class Mesh extends OutlinerElement {
 		if (!data.vertices) {
 			this.addVertices([16, 16, 16], [16, 16, 0], [16, 0, 16], [16, 0, 0], [0, 16, 16], [0, 16, 0], [0, 0, 16], [0, 0, 0]);
 			let vertex_keys = Object.keys(this.vertices);
-			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[2], vertex_keys[3]]} ));	// East
-			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[4], vertex_keys[5], vertex_keys[6], vertex_keys[7]]} ));	// West
-			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[4], vertex_keys[5]]} ));	// Up
-			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[2], vertex_keys[3], vertex_keys[6], vertex_keys[7]]} ));	// Down
-			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[4], vertex_keys[6]]} ));	// South
-			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[5], vertex_keys[7]]} ));	// North
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[1], vertex_keys[3]]} ));	// East
+			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[4], vertex_keys[6], vertex_keys[5], vertex_keys[7]]} ));	// West
+			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[4], vertex_keys[1], vertex_keys[5]]} ));	// Up
+			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[2], vertex_keys[3], vertex_keys[6], vertex_keys[7]]} ));	// Down
+			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[4], vertex_keys[6]]} ));	// South
+			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[1], vertex_keys[5], vertex_keys[3], vertex_keys[7]]} ));	// North
 		}
 		for (var key in Mesh.properties) {
 			Mesh.properties[key].reset(this);
@@ -304,36 +353,20 @@ new NodePreviewController(Mesh, {
 	updateGeometry(element) {
 		
 		let {mesh} = element;
+		let point_position_array = [];
 		let position_array = [];
-		let position_indices = [];
+		let normal_array = [];
 		let indices = [];
 		let outline_positions = [];
 
 		for (let key in element.vertices) {
 			let vector = element.vertices[key];
-			position_indices.push(key);
-			position_array.push(...vector);
+			point_position_array.push(...vector);
 		}
 
 		for (let key in element.faces) {
 			let face = element.faces[key];
 			
-			// Test if point "check" is on the other side of the line between "base1" and "base2", compared to "top"
-			function test(base1, base2, top, check) {
-				base1 = new THREE.Vector3().fromArray(base1);
-				base2 = new THREE.Vector3().fromArray(base2);
-				top = new THREE.Vector3().fromArray(top);
-				check = new THREE.Vector3().fromArray(check);
-
-				// Construct a plane with coplanar points "base1" and "base2" with a normal towards "top"
-				let normal = new THREE.Vector3();
-				new THREE.Line3(base1, base2).closestPointToPoint(top, false, normal);
-				normal.sub(top);
-				let plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, base2);
-				let distance = plane.distanceToPoint(check);
-				return distance > 0;
-			}
-
 
 
 			if (face.vertices.length == 2) {
@@ -344,44 +377,43 @@ new NodePreviewController(Mesh, {
 			} else if (face.vertices.length == 3) {
 				// Tri
 				face.vertices.forEach((key, i) => {
-					let index = position_indices.indexOf(key);
-					indices.push(index);
+					indices.push(position_array.length / 3);
+					position_array.push(...element.vertices[key])
 				})
+				let normal = face.getNormal();
+				normal_array.push(...normal, ...normal, ...normal);
 
 				// Outline
 				face.vertices.forEach((key, i) => {
+
 					outline_positions.push(...element.vertices[key]);
-					console.log(i)
 					if (i) {
 						outline_positions.push(...element.vertices[key]);
-						console.log(i)
 					}
 				})
 				outline_positions.push(...element.vertices[face.vertices[0]]);
-				console.log(0)
 
 			} else if (face.vertices.length == 4) {
 
-				let sorted_vertices = face.vertices;
+				let index_offset = position_array.length / 3;
+				let face_indices = {};
+				face.vertices.forEach((key, i) => {
+					position_array.push(...element.vertices[key])
+					face_indices[key] = index_offset + i;
+				})
 
-				// Quad
-				indices.push(position_indices.indexOf(sorted_vertices[0]));
-				indices.push(position_indices.indexOf(sorted_vertices[1]));
-				indices.push(position_indices.indexOf(sorted_vertices[2]));
+				let normal = face.getNormal();
+				normal_array.push(...normal, ...normal, ...normal, ...normal);
 
-				if (test(element.vertices[face.vertices[1]], element.vertices[face.vertices[2]], element.vertices[face.vertices[0]], element.vertices[face.vertices[3]])) {
-					sorted_vertices = [face.vertices[2], face.vertices[0], face.vertices[1], face.vertices[3]];
+				let sorted_vertices = face.getSortedVertices();
 
-				} else if (test(element.vertices[face.vertices[0]], element.vertices[face.vertices[1]], element.vertices[face.vertices[2]], element.vertices[face.vertices[3]])) {
-					sorted_vertices = [face.vertices[0], face.vertices[2], face.vertices[1], face.vertices[3]];
-
-				} else {
-					face.vertices.replace([face.vertices[0], face.vertices[1], face.vertices[2], face.vertices[3]]);
-				}
-
-				indices.push(position_indices.indexOf(sorted_vertices[0]));
-				indices.push(position_indices.indexOf(sorted_vertices[2]));
-				indices.push(position_indices.indexOf(sorted_vertices[3]));
+				indices.push(index_offset + 0);
+				indices.push(index_offset + 1);
+				indices.push(index_offset + 2);
+				indices.push(face_indices[sorted_vertices[0]]);
+				indices.push(face_indices[sorted_vertices[2]]);
+				indices.push(face_indices[sorted_vertices[3]]);
+				
 
 				// Outline
 				sorted_vertices.forEach((key, i) => {
@@ -392,14 +424,16 @@ new NodePreviewController(Mesh, {
 			}
 		}
 
-		mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
+		mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_position_array), 3));
 		
 		mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
+		mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normal_array), 3));
 		mesh.geometry.setIndex(indices);
 
 		mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]), 2)), 
 		mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
 
+		mesh.geometry.computeVertexNormals();
 		mesh.geometry.computeBoundingBox();
 		mesh.geometry.computeBoundingSphere();
 	},
@@ -547,6 +581,7 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'f', shift: true}),
 		condition: () => (Modes.edit && Format.meshes),
 		click() {
+			console.log('--')
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
 				let selected_vertices = Project.selected_vertices[mesh.uuid];
@@ -557,7 +592,49 @@ BARS.defineActions(function() {
 							delete mesh.faces[key];
 						}
 					}
-					mesh.addFaces(new MeshFace(mesh, {vertices: selected_vertices} ));	// West
+					let new_face = new MeshFace(mesh, {vertices: selected_vertices} );
+					mesh.addFaces(new_face);
+
+					// Correct direction
+					if (selected_vertices.length > 2) {
+						// find face with shared line to compare
+						let fixed_via_face;
+						for (let key in mesh.faces) {
+							let face = mesh.faces[key];
+							let common = face.vertices.filter(vertex_key => selected_vertices.includes(vertex_key))
+							console.log('common length', common.length)
+							if (common.length == 2) {
+								let old_vertices = face.getSortedVertices();
+								let new_vertices = new_face.getSortedVertices();
+								let index_diff = old_vertices.indexOf(common[0]) - old_vertices.indexOf(common[1]);
+								let new_index_diff = new_vertices.indexOf(common[0]) - new_vertices.indexOf(common[1]);
+								if (index_diff == 1 - face.vertices.length) index_diff = 1;
+								if (new_index_diff == 1 - new_face.vertices.length) new_index_diff = 1;
+
+								console.log(index_diff, new_index_diff)
+								console.log('common:', common)
+								console.log(face.vertices, new_face.vertices)
+								if (Math.abs(index_diff) == 1 && Math.abs(new_index_diff) == 1) {
+									if (index_diff == new_index_diff) {
+										new_face.invert();
+									}
+									fixed_via_face = true;
+									break;
+								}
+							}
+						}
+						// If no face available, orient based on camera orientation
+						if (!fixed_via_face) {
+							let normal = new THREE.Vector3().fromArray(new_face.getNormal());
+							normal.applyQuaternion(mesh.mesh.getWorldQuaternion(new THREE.Quaternion()))
+							let cam_direction = Preview.selected.camera.getWorldDirection(new THREE.Vector3());
+							let angle = normal.angleTo(cam_direction);
+							console.log(angle)
+							if (angle < Math.PI/2) {
+								new_face.invert();
+							}
+						}
+					}
 				}
 			})
 			Undo.finishEdit('Create mesh face')
