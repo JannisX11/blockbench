@@ -1118,9 +1118,6 @@ class Toolbar {
 					content.append(`<div class="toolbar_separator ${char == '_' ? 'border' : (char == '+' ? 'spacer' : 'linebreak')}"></div>`);
 					this.children.push(char + guid().substr(0,8));
 
-					if (char === '+') content[0].style.display = 'flex';
-					if (char === '#') content[0].style.display = 'block';
-
 					continue;
 				}
 
@@ -1259,8 +1256,6 @@ class Toolbar {
 					separator.className = `toolbar_separator ${type}`;
 					content.append(separator);
 				}
-				if (item[0] === '+') content[0].style.display = 'flex';
-				if (item[0] === '#') content[0].style.display = 'block';
 
 			} else if (typeof item === 'object') {
 				if (scope.condition_cache[i]) {
@@ -2027,13 +2022,7 @@ const BARS = {
 						if (item.type === 'separator') {
 							item = item.separator_code;
 						}
-						if (item == '#' && BARS.editing_bar.children.find(c => typeof c == 'string' && c[0] == '+') ||
-							item == '+' && BARS.editing_bar.children.find(c => typeof c == 'string' && c[0] == '#')
-						) {
-							Blockbench.showQuickMessage('dialog.toolbar_edit.incompatible_separators', 2000);
-						} else {
-							BARS.editing_bar.add(item);
-						}
+						BARS.editing_bar.add(item);
 					},
 					openContextMenu(item, event) {
 						new Menu([

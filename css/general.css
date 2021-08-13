@@ -274,6 +274,10 @@
 		width: 100%;
 		overflow: hidden;
 	}
+	.toolbar > .content {
+		display: flex;
+		flex-wrap: wrap;
+	}
 	div.toolbar_wrapper {
 		float: none;
 	}

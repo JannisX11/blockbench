@@ -347,7 +347,6 @@
 	"dialog.toolbar_edit.title": "Customize Toolbar",
 	"dialog.toolbar_edit.hidden": "Hidden",
 	"dialog.toolbar_edit.hidden_tools": "Some tools might be hidden because they are not available in the current mode, format, or situation.",
-	"dialog.toolbar_edit.incompatible_separators": "Spacers and Line Breaks are mutually exclusive, you cannot use both in the same toolbar.",
 
 	"dialog.entitylist.title": "Open Entity Model",
 	"dialog.entitylist.text": "Select the model you want to import",
