@@ -914,13 +914,16 @@
 
 
 /*Toolbar Dialog*/
+	dialog#toolbar_edit .search_bar {
+		margin-top: 10px;
+		margin-bottom: 2px;
+	}
 	#bar_item_list {
 		max-height: 400px;
-		margin-bottom: 20px;
 		overflow-y: scroll;
 		min-height: 80px;
-		border: 1px solid var(--color-border);
 		border-right: none;
+		background-color: transparent;
 	}
 	#bar_item_list li {
 		padding: 4px; 
@@ -1063,24 +1066,6 @@
 		dialog#action_selector {
 			top: 26px;
 		}
-	}
-
-	#bar_item_list {
-		max-height: 400px;
-		margin-bottom: 20px;
-		overflow-y: scroll;
-		min-height: 80px;
-		border: 1px solid var(--color-border);
-		border-right: none;
-	}
-	#bar_item_list li {
-		padding: 4px; 
-	}
-	#bar_item_list li.separator_item {
-		color: var(--color-accent);
-	}
-	#bar_item_list li:hover {
-		color: var(--color-light);
 	}
 
 /* Edit History */

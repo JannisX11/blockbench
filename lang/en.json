@@ -668,6 +668,7 @@
 	"category.textures": "Textures",
 	"category.uv": "UV",
 	"category.misc": "Miscellaneous",
+	"category.separators": "Separators",
 
 	"keybind.preview_select": "Select",
 	"keybind.preview_rotate": "Rotate View",

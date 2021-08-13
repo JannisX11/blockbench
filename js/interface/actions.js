@@ -1158,11 +1158,8 @@ class Toolbar {
 	}
 	editMenu() {
 		BARS.editing_bar = this;
-		this.children.forEach(function(c, ci) {
-		})
-		BARS.list.currentBar = this.children;
-		showDialog('toolbar_edit');
-		
+		BARS.dialog.show();
+		BARS.dialog.content_vue.currentBar = this.children;
 		return this;
 	}
 	add(action, position) {
@@ -1916,19 +1913,41 @@ const BARS = {
 
 		BarItems.uv_dialog.toElement('#uv_title_bar')
 		BarItems.uv_dialog_full.toElement('#uv_title_bar')
+
+
 	},
 	setupVue() {
-		BARS.list = new Vue({
-			el: '#toolbar_edit',
-			data: {
-				items: BarItems,
-				currentBar: [],
-				search_term: ''
+
+		let sidebar_pages = {
+			separators: tl('category.separators')
+		};
+		for (let key in BarItems) {
+			let category = BarItems[key].category;
+			if (!sidebar_pages[category]) {
+				sidebar_pages[category] = tl(`category.${category}`);
+			}
+		}
+
+		BARS.dialog = new Dialog({
+			id: 'toolbar_edit',
+			title: 'dialog.toolbar_edit.title',
+			singleButton: true,
+			width: 780,
+			sidebar: {
+				pages: sidebar_pages,
+				page: 'separators',
+				onPageSwitch(page) {
+					BARS.dialog.content_vue.open_category = page;
+					BARS.dialog.content_vue.search_term = '';
+				}
 			},
-			computed: {
-				searchedBarItems() {
-					var name = this.search_term.toUpperCase()
-					var list = [
+			component: {
+				data: {
+					items: BarItems,
+					currentBar: [],
+					search_term: '',
+					open_category: 'separators',
+					separators: [
 						{
 							icon: 'fa-grip-lines-vertical',
 							name: tl('data.separator'),
@@ -1948,59 +1967,117 @@ const BARS = {
 							separator_code: '#'
 						}
 					]
-					for (var key in BarItems) {
-						var item = BarItems[key]
-						if (name.length == 0 ||
-							item.name.toUpperCase().includes(name) ||
-							item.id.toUpperCase().includes(name)
-						) {
-							if (
-								!this.currentBar.includes(item)
-							) {
-								list.push(item)
+				},
+				computed: {
+					searchedBarItems() {
+						var term = this.search_term.toUpperCase();
+						var list = [];
+						if (this.open_category == 'separators' || term) {
+							if (term) {
+								list = this.separators.filter(item => {
+									return item.name.toUpperCase().includes(term)
+								})
+							} else {
+								list = this.separators;
 							}
 						}
-					}
-					return list;
-				}
-			},
-			methods: {
-				sort(event) {
-					var item = this.currentBar.splice(event.oldIndex, 1)[0]
-					this.currentBar.splice(event.newIndex, 0, item)
-					this.update();
-				},
-				drop(event) {
-					var scope = this;
-					$('#bar_items_current .tooltip').css('display', '')
-					setTimeout(() => {
-						if ($('#bar_items_current:hover').length === 0) {
-							var item = scope.currentBar.splice(event.newIndex, 1)[0];
-							if (item instanceof BarItem) item.toolbars.remove(BARS.editing_bar);
-							scope.update();
+						for (var key in BarItems) {
+							var item = BarItems[key];
+							if (this.currentBar.includes(item)) continue;
+
+							if (term) {
+								if (
+									item.name.toUpperCase().includes(term) ||
+									item.id.toUpperCase().includes(term)
+								) {
+									list.push(item)
+								}
+
+							} else if (item.category == this.open_category) {
+								list.push(item);
+							}
 						}
-					}, 30)
-				},
-				choose() {
-					$('#bar_items_current .tooltip').css('display', 'none')
-				},
-				update() {
-					BARS.editing_bar.update(true).save();
-				},
-				addItem(item) {
-					if (item.type === 'separator') {
-						item = item.separator_code;
+						return list;
 					}
-					if (item == '#' && BARS.editing_bar.children.find(c => typeof c == 'string' && c[0] == '+') ||
-						item == '+' && BARS.editing_bar.children.find(c => typeof c == 'string' && c[0] == '#')
-					) {
-						Blockbench.showQuickMessage('dialog.toolbar_edit.incompatible_separators', 2000);
-					} else {
-						BARS.editing_bar.add(item);
+				},
+				methods: {
+					sort(event) {
+						var item = this.currentBar.splice(event.oldIndex, 1)[0]
+						this.currentBar.splice(event.newIndex, 0, item)
+						this.update();
+					},
+					drop(event) {
+						var scope = this;
+						$('#bar_items_current .tooltip').css('display', '')
+						setTimeout(() => {
+							if ($('#bar_items_current:hover').length === 0) {
+								var item = scope.currentBar.splice(event.newIndex, 1)[0];
+								if (item instanceof BarItem) item.toolbars.remove(BARS.editing_bar);
+								scope.update();
+							}
+						}, 30)
+					},
+					choose() {
+						$('#bar_items_current .tooltip').css('display', 'none')
+					},
+					update() {
+						BARS.editing_bar.update(true).save();
+					},
+					addItem(item) {
+						if (item.type === 'separator') {
+							item = item.separator_code;
+						}
+						if (item == '#' && BARS.editing_bar.children.find(c => typeof c == 'string' && c[0] == '+') ||
+							item == '+' && BARS.editing_bar.children.find(c => typeof c == 'string' && c[0] == '#')
+						) {
+							Blockbench.showQuickMessage('dialog.toolbar_edit.incompatible_separators', 2000);
+						} else {
+							BARS.editing_bar.add(item);
+						}
+					},
+					openContextMenu(item, event) {
+						new Menu([
+							{
+								name: 'generic.remove',
+								icon: 'clear',
+								click: () => {
+									this.currentBar.remove(item);
+									if (item instanceof BarItem) item.toolbars.remove(BARS.editing_bar);
+									this.update();
+								}
+							}
+						]).open(event)
 					}
-				}
+				},
+				template: `
+					<div>
+						<ul class="bar" id="bar_items_current" v-sortable="{onChoose: choose, onUpdate: sort, onEnd: drop, animation: 160 }">
+							<li v-for="item in currentBar" v-bind:title="item.name" :key="item.id||item" @contextmenu="openContextMenu(item, $event)">
+								<div v-if="typeof item === 'string'" class="toolbar_separator" :class="{border: item[0] == '_', spacer: item[0] == '+', linebreak: item[0] == '#'}"></div>
+								<div v-else class="tool">
+									<div class="tooltip">{{item.name + (BARS.condition(item.condition) ? '' : ' (' + tl('dialog.toolbar_edit.hidden') + ')' )}}</div>
+									<span class="icon_wrapper" v-bind:style="{opacity: BARS.condition(item.condition) ? 1 : 0.4}" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></span>
+								</div>
+							</li> 
+						</ul>
+			
+						<p class="small_text subtle" style="display: inline;">${tl('dialog.toolbar_edit.hidden_tools')}</p>
+		
+						<search-bar v-model="search_term"></search-bar>
+			
+						<ul class="list" id="bar_item_list">
+							<li v-for="item in searchedBarItems" v-on:click="addItem(item)" :class="{separator_item: item.type == 'separator'}">
+								<div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
+								<div class="icon_wrapper add"><i class="material-icons">add</i></div>
+								{{ item.name }}
+							</li>
+						</ul>
+			
+					</div>
+				`
 			}
 		})
+
 
 		ActionControl.vue = new Vue({
 			el: '#action_selector',
