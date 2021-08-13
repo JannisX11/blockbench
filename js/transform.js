@@ -173,9 +173,12 @@ function mirrorSelected(axis) {
 							}
 						}
 						if (axis == 0 && group.name.includes('right')) {
-							group.name = group.name.replace(/right/g, 'left').replace(/2/, '');
+							let name = group.name.replace(/right/g, 'left').replace(/2/, '');
+							if (!Group.all.find(g => g.name == name)) group.name = name;
+							
 						} else if (axis == 0 && group.name.includes('left')) {
-							group.name = group.name.replace(/left/g, 'right').replace(/2/, '');
+							let name = group.name.replace(/left/g, 'right').replace(/2/, '');
+							if (!Group.all.find(g => g.name == name)) group.name = name;
 						}
 					}
 					Canvas.updateAllBones([group]);
