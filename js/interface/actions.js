@@ -1641,12 +1641,14 @@ const BARS = {
 				'add_group',
 				'outliner_toggle',
 				'toggle_skin_layer',
+				'explode_skin_model',
+				'+',
 				'cube_counter'
 			]
 		})
-		if (!Toolbars.outliner.children.includes(BarItems.explode_skin_model)) {
-			Toolbars.outliner.add(BarItems.explode_skin_model, -1)
-		}
+		Blockbench.onUpdateTo('4.0', () => {
+			Toolbars.outliner.add('+', -1);
+		})
 
 		Toolbars.texturelist = new Toolbar({
 			id: 'texturelist',

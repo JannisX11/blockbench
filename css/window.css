@@ -534,8 +534,9 @@
 		flex-grow: 1;
 	}
 	#start_screen {
-		height: 100%;
+		height: calc(100% - 30px);
 		width: 100%;
+		padding: 36px 0;
 	}
 	#start_screen h3 {
 		margin: 0;
@@ -639,10 +640,9 @@
 
 	#start_screen > content {
 		display: block;
-		margin-top: 40px;
 		max-width: 1000px;
 		height: auto;
-		max-height: calc(100% - 50px);
+		max-height: 100%;
 		margin-left: auto;
 		margin-right: auto;
 		background-color: var(--color-ui);

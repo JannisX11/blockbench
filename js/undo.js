@@ -506,6 +506,7 @@ BARS.defineActions(function() {
 	new Action('edit_history', {
 		icon: 'history',
 		category: 'edit',
+		condition: () => Project,
 		click() {
 
 			let steps = [];

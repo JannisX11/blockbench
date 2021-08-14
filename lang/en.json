@@ -883,8 +883,8 @@
 	"action.group_elements.desc": "Wrap selected elements into a new group",
 	"action.outliner_toggle": "Toggle More Options",
 	"action.outliner_toggle.desc": "Toggles switches for more options in the outliner",
-	"action.cube_counter": "Cube Counter",
-	"action.cube_counter.desc": "Displays the current number of cubes and other statistics",
+	"action.cube_counter": "Model Statistics",
+	"action.cube_counter.desc": "Displays the current number of elements and other statistics",
 
 	"action.duplicate": "Duplicate",
 	"action.duplicate.desc": "Duplicates the selected cubes or group",
