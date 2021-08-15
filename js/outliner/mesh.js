@@ -1,5 +1,5 @@
 class MeshFace {
-	constructor(mesh, data, uuid) {
+	constructor(mesh, data) {
 		this.mesh = mesh;
 		//this.uuid = uuid || guid();
 		//this.vertices = [];
@@ -63,7 +63,7 @@ class MeshFace {
 			return this.texture;
 		}
 	}
-	getNormal() {
+	getNormal(normalize) {
 		if (this.vertices.length < 3) return [0, 0, 0];
 		let a = [
 			this.mesh.vertices[this.vertices[1]][0] - this.mesh.vertices[this.vertices[0]][0],
@@ -75,15 +75,27 @@ class MeshFace {
 			this.mesh.vertices[this.vertices[2]][1] - this.mesh.vertices[this.vertices[0]][1],
 			this.mesh.vertices[this.vertices[2]][2] - this.mesh.vertices[this.vertices[0]][2],
 		]
-		return [
+		let direction = [
 			a[1] * b[2] - a[2] * b[1],
 			a[2] * b[0] - a[0] * b[2],
 			a[0] * b[1] - a[1] * b[0],
 		]
+		if (normalize) {
+			let length = Math.sqrt(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
+			return direction.map(dir => dir / length);
+		} else {
+			return direction
+		}
 	}
 	invert() {
 		if (this.vertices.length < 3) return this;
 		[this.vertices[1], this.vertices[2]] = [this.vertices[2], this.vertices[1]];
+	}
+	isSelected() {
+		let selected_vertices = Project.selected_vertices[this.mesh.uuid];
+		return selected_vertices
+			&& selected_vertices.length > 1
+			&& !this.vertices.find(key => !selected_vertices.includes(key))
 	}
 	getSortedVertices() {
 		if (this.vertices.length < 4) return this.vertices;
@@ -103,15 +115,15 @@ class MeshFace {
 			let distance = plane.distanceToPoint(check);
 			return distance > 0;
 		}
-		let mesh = this.mesh;
+		let {mesh, vertices} = this;
 				
-		if (test(mesh.vertices[this.vertices[1]], mesh.vertices[this.vertices[2]], mesh.vertices[this.vertices[0]], mesh.vertices[this.vertices[3]])) {
-			return [this.vertices[2], this.vertices[0], this.vertices[1], this.vertices[3]];
+		if (test(mesh.vertices[vertices[1]], mesh.vertices[vertices[2]], mesh.vertices[vertices[0]], mesh.vertices[vertices[3]])) {
+			return [vertices[2], vertices[0], vertices[1], vertices[3]];
 
-		} else if (test(mesh.vertices[this.vertices[0]], mesh.vertices[this.vertices[1]], mesh.vertices[this.vertices[2]], mesh.vertices[this.vertices[3]])) {
-			return [this.vertices[0], this.vertices[2], this.vertices[1], this.vertices[3]];
+		} else if (test(mesh.vertices[vertices[0]], mesh.vertices[vertices[1]], mesh.vertices[vertices[2]], mesh.vertices[vertices[3]])) {
+			return [vertices[0], vertices[2], vertices[1], vertices[3]];
 		}
-		return this.vertices;
+		return vertices;
 	}
 }
 new Property(MeshFace, 'array', 'vertices', {default: 0});
@@ -589,7 +601,7 @@ BARS.defineActions(function() {
 				if (selected_vertices && selected_vertices.length >= 2 && selected_vertices.length <= 4) {
 					for (let key in mesh.faces) {
 						let face = mesh.faces[key];
-						if (!face.vertices.find(vertex_key => !selected_vertices.includes(vertex_key))) {
+						if (face.isSelected()) {
 							delete mesh.faces[key];
 						}
 					}
@@ -635,6 +647,81 @@ BARS.defineActions(function() {
 			})
 			Undo.finishEdit('Create mesh face')
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}})
+		}
+	})
+	new Action({
+		id: 'extrude_mesh_selection',
+		icon: 'upload',
+		category: 'edit',
+		keybind: new Keybind({key: 'e', shift: true}),
+		condition: () => (Modes.edit && Format.meshes),
+		click() {
+			Undo.initEdit({elements: Mesh.selected});
+			Mesh.selected.forEach(mesh => {
+				let original_vertices = Project.selected_vertices[mesh.uuid].slice();
+				let new_vertices;
+				let selected_faces = [];
+				let selected_face_keys = [];
+				for (let key in mesh.faces) {
+					let face = mesh.faces[key]; 
+					if (face.isSelected()) {
+						selected_faces.push(face);
+						selected_face_keys.push(key);
+					}
+				}
+				let direction = selected_faces[0] && selected_faces[0].vertices.length > 2 && selected_faces[0].getNormal(true);
+				if (!direction) direction = [0, 1, 0];
+
+				new_vertices = mesh.addVertices(...original_vertices.map(key => {
+					let vector = mesh.vertices[key].slice();
+					vector.V3_add(direction);
+					return vector;
+				}))
+				Project.selected_vertices[mesh.uuid].replace(new_vertices);
+
+				// Move Faces
+				selected_faces.forEach(face => {
+					face.vertices.forEach((key, index) => {
+						face.vertices[index] = new_vertices[original_vertices.indexOf(key)];
+					})
+				})
+
+				// Create extra quads on sides
+				let remaining_vertices = new_vertices.slice();
+				selected_faces.forEach((face, face_index) => {
+					let vertices = face.getSortedVertices();
+					vertices.forEach((a, i) => {
+						let b = vertices[i+1] || vertices[0];
+						if (vertices.length == 2 && i) return; // Only create one quad when extruding line
+						if (selected_faces.find(f => f != face && f.vertices.includes(a) && f.vertices.includes(b))) return;
+
+						let new_face = new MeshFace(mesh, {
+							vertices: [
+								b,
+								a,
+								original_vertices[new_vertices.indexOf(a)],
+								original_vertices[new_vertices.indexOf(b)],
+							]
+						});
+						mesh.addFaces(new_face);
+						remaining_vertices.remove(a);
+						remaining_vertices.remove(b);
+					})
+
+					if (vertices.length == 2) delete mesh.faces[selected_face_keys[face_index]];
+				})
+
+				remaining_vertices.forEach(a => {
+					let b = original_vertices[new_vertices.indexOf(a)]
+					let new_face = new MeshFace(mesh, {
+						vertices: [b, a]
+					});
+					mesh.addFaces(new_face);
+				})
+
+			})
+			Undo.finishEdit('Extrude mesh selection')
+			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
 	})
 	new Action({
