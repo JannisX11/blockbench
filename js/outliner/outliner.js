@@ -344,7 +344,6 @@ class OutlinerElement extends OutlinerNode {
 		Project.elements.safePush(this);
 		if (!this.mesh || !this.mesh.parent) {
 			this.preview_controller.setup(this);
-			console.trace(this)
 		}
 		return this;
 	}
@@ -899,15 +898,20 @@ BARS.defineActions(function() {
 		click: function() {
 
 			var face_count = 0;
-			if (Project.box_uv) {
-				face_count = Cube.all.length*6;
-			} else {
-				Cube.all.forEach(cube => {
-					for (var face in cube.faces) {
-						if (cube.faces[face].texture !== null) face_count++;
+			let vertex_count = 0;
+			Outliner.elements.forEach(element => {
+				if (element instanceof Cube) {
+					for (var face in element.faces) {
+						if (element.faces[face].texture !== null) face_count++;
 					}
-				})
-			}
+					vertex_count += 8;
+				} else if (element.faces) {
+					face_count += Object.keys(element.faces).length;
+				}
+				if (element instanceof Mesh) {
+					vertex_count += Object.keys(element.vertices).length;
+				}
+			})
 			var dialog = new Dialog({
 				id: 'model_stats',
 				title: 'dialog.model_stats.title',
@@ -915,9 +919,10 @@ BARS.defineActions(function() {
 				singleButton: true,
 				form: {
 					cubes: {type: 'info', label: tl('dialog.model_stats.cubes'), text: ''+Cube.all.length },
+					meshes: {type: 'info', label: tl('dialog.model_stats.meshes'), text: ''+Mesh.all.length, condition: Format.meshes },
 					locators: {type: 'info', label: tl('dialog.model_stats.locators'), text: ''+Locator.all.length, condition: Format.locators },
 					groups: {type: 'info', label: tl('dialog.model_stats.groups'), text: ''+Group.all.length },
-					vertices: {type: 'info', label: tl('dialog.model_stats.vertices'), text: ''+Cube.all.length*8 },
+					vertices: {type: 'info', label: tl('dialog.model_stats.vertices'), text: ''+vertex_count },
 					faces: {type: 'info', label: tl('dialog.model_stats.faces'), text: ''+face_count },
 				}
 			})
@@ -932,7 +937,7 @@ BARS.defineActions(function() {
 				}
 				this.set(sel+'/'+Group.all.length)
 			} else {
-				this.set(selected.length+'/'+elements.length)
+				this.set(Outliner.selected.length+'/'+Outliner.elements.length)
 			}
 		}
 	})

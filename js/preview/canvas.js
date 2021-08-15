@@ -279,7 +279,7 @@ const Canvas = {
 		*/
 	},
 	updateAllFaces(texture) {
-		selected.forEach(function(obj) {
+		Outliner.elements.forEach(function(obj) {
 			if (obj.faces) {
 				var used = true;
 				if (texture) {
@@ -303,11 +303,6 @@ const Canvas = {
 		if (Prop.view_mode !== 'textured') return;
 		Canvas.updateView({elements: Outliner.elements, element_aspects: {uv: true}});
 		return;
-		Cube.all.forEach(function(obj) {
-			if (obj.visibility == true) {
-				Canvas.updateUV(obj)
-			}
-		})
 	},
 	getRenderSide() {
 		if (settings.render_sides.value == 'auto') {

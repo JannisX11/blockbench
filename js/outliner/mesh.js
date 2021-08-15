@@ -9,7 +9,7 @@ class MeshFace {
 		for (var key in MeshFace.properties) {
 			MeshFace.properties[key].reset(this);
 		}
-		this.extend(data);
+		if (data) this.extend(data);
 	}
 	extend(data) {
 		for (var key in MeshFace.properties) {
@@ -173,21 +173,23 @@ class Mesh extends OutlinerElement {
 		return pos;
 	}
 	addVertices(...vectors) {
-		vectors.forEach(vector => {
+		return vectors.map(vector => {
 			let key;
 			while (!key || this.vertices[key]) {
 				key = bbuid(4);
 			}
 			this.vertices[key] = [...vector];
+			return key;
 		})
 	}
 	addFaces(...faces) {
-		faces.forEach(face => {
+		return faces.map(face => {
 			let key;
 			while (!key || this.faces[key]) {
 				key = bbuid(8);
 			}
 			this.faces[key] = face;
+			return key;
 		})
 	}
 	extend(object) {
@@ -581,7 +583,6 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'f', shift: true}),
 		condition: () => (Modes.edit && Format.meshes),
 		click() {
-			console.log('--')
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
 				let selected_vertices = Project.selected_vertices[mesh.uuid];
@@ -602,7 +603,6 @@ BARS.defineActions(function() {
 						for (let key in mesh.faces) {
 							let face = mesh.faces[key];
 							let common = face.vertices.filter(vertex_key => selected_vertices.includes(vertex_key))
-							console.log('common length', common.length)
 							if (common.length == 2) {
 								let old_vertices = face.getSortedVertices();
 								let new_vertices = new_face.getSortedVertices();
@@ -611,9 +611,6 @@ BARS.defineActions(function() {
 								if (index_diff == 1 - face.vertices.length) index_diff = 1;
 								if (new_index_diff == 1 - new_face.vertices.length) new_index_diff = 1;
 
-								console.log(index_diff, new_index_diff)
-								console.log('common:', common)
-								console.log(face.vertices, new_face.vertices)
 								if (Math.abs(index_diff) == 1 && Math.abs(new_index_diff) == 1) {
 									if (index_diff == new_index_diff) {
 										new_face.invert();
@@ -629,7 +626,6 @@ BARS.defineActions(function() {
 							normal.applyQuaternion(mesh.mesh.getWorldQuaternion(new THREE.Quaternion()))
 							let cam_direction = Preview.selected.camera.getWorldDirection(new THREE.Vector3());
 							let angle = normal.angleTo(cam_direction);
-							console.log(angle)
 							if (angle < Math.PI/2) {
 								new_face.invert();
 							}
@@ -639,6 +635,111 @@ BARS.defineActions(function() {
 			})
 			Undo.finishEdit('Create mesh face')
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}})
+		}
+	})
+	new Action({
+		id: 'import_obj',
+		icon: 'fa-gem',
+		category: 'file',
+		condition: () => (Modes.edit && Format.meshes),
+		click: function () {
+
+			
+			Blockbench.import({
+				resource_id: 'obj',
+				extensions: ['obj'],
+				name: 'OBJ Wavefront Model',
+			}, function(files) {
+				let {content} = files[0];
+				let lines = content.split(/[\r\n]+/);
+
+				function toVector(args, length) {
+					return args.map(v => parseFloat(v));
+				}
+
+				let mesh;
+				let vertex_keys = [];
+				let vertex_textures = [];
+				let vertex_normals = [];
+				let meshes = [];
+				let vector1 = new THREE.Vector3();
+				let vector2 = new THREE.Vector3();
+
+				Undo.initEdit({outliner: true, elements: meshes, selection: true});
+
+				lines.forEach(line => {
+
+					if (line.substr(0, 1) == '#' || !line) return;
+
+					let args = line.split(' ');
+					let cmd = args.shift();
+
+					if (cmd == 'o') {
+						mesh = new Mesh({
+							name: args[0],
+							vertices: {}
+						})
+						mesh.select();
+						meshes.push(mesh);
+					}
+					if (cmd == 'v') {
+						let keys = mesh.addVertices(toVector(args, 3));
+						vertex_keys.push(keys[0]);
+					}
+					if (cmd == 'vt') {
+						vertex_textures.push(toVector(args, 2))
+					}
+					if (cmd == 'vn') {
+						vertex_normals.push(toVector(args, 3))
+					}
+					if (cmd == 'f') {
+						let f = {
+							vertices: [],
+							vertex_textures: [],
+							vertex_normals: [],
+						}
+						args.forEach(triplet => {
+							let [v, vt, vn] = triplet.split('/').map(v => parseInt(v));
+							f.vertices.push(vertex_keys[ v-1 ]);
+							f.vertex_textures.push(vertex_textures[ vt-1 ]);
+							f.vertex_normals.push(vertex_normals[ vn-1 ]);
+						})
+						
+						let uv = {};
+						f.vertex_textures.forEach((vt, i) => {
+							let key = f.vertices[i];
+							if (vt instanceof Array) {
+								uv[key] = [
+									vt[0] * Project.texture_width,
+									(1-vt[1]) * Project.texture_width
+								];
+							} else {
+								uv[key] = [0, 0];
+							}
+						})
+						let face = new MeshFace(mesh, {
+							vertices: f.vertices,
+							uv
+						})
+						mesh.addFaces(face);
+
+						if (f.vertex_normals.find(v => v)) {
+	
+							vector1.fromArray(face.getNormal());
+							vector2.fromArray(f.vertex_normals[0]);
+							let angle = vector1.angleTo(vector2);
+							if (angle > Math.PI/2) {
+								new_face.invert();
+							}
+						}
+					}
+				})
+				meshes.forEach(mesh => {
+					mesh.init();
+				})
+
+				Undo.finishEdit('Import OBJ');
+			})
 		}
 	})
 })
