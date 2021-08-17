@@ -73,7 +73,7 @@ var codec = new Codec('java_block', {
 						if (s.faces[face].enabled !== false) {
 							tag.uv = s.faces[face].uv.slice();
 							tag.uv.forEach((n, i) => {
-								tag.uv[i] = n * 16 / main_uv.getResolution(i%2);
+								tag.uv[i] = n * 16 / UVEditor.getResolution(i%2);
 							})
 						}
 						if (s.faces[face].rotation) {
@@ -349,7 +349,7 @@ var codec = new Codec('java_block', {
 						if (typeof read_face.uv === 'object') {
 
 							new_face.uv.forEach((n, i) => {
-								new_face.uv[i] = read_face.uv[i] * main_uv.getResolution(i%2) / 16;
+								new_face.uv[i] = read_face.uv[i] * UVEditor.getResolution(i%2) / 16;
 							})
 						}
 						if (read_face.texture === '#missing') {

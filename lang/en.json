@@ -854,11 +854,6 @@
 	"action.reset_theme": "Reset Theme",
 	"action.reset_theme.desc": "Reset to the default Blockbench theme",
 
-	"action.uv_dialog": "UV Window...",
-	"action.uv_dialog.desc": "Open the UV dialog to see all faces next to each other",
-	"action.uv_dialog_full": "Full View...",
-	"action.uv_dialog_full.desc": "Open the UV dialog to edit one face in fullscreen",
-
 	"action.undo": "Undo",
 	"action.undo.desc": "Undoes the last change",
 	"action.redo": "Redo",

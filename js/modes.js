@@ -187,8 +187,7 @@ BARS.defineActions(function() {
 			BarItems.slider_color_s.update();
 			BarItems.slider_color_v.update();
 
-			$('.UVEditor').find('#uv_size').hide();
-			$('.bar.uv_editor_sliders').hide();
+			UVEditor.vue.setMode('paint');
 			three_grid.visible = false;
 		},
 		onUnselect: () => {
@@ -196,8 +195,7 @@ BARS.defineActions(function() {
 			Cube.all.forEach(cube => {
 				Canvas.buildGridBox(cube)
 			})
-			$('.UVEditor').find('#uv_size').show();
-			$('.bar.uv_editor_sliders').show();
+			UVEditor.vue.setMode('uv');
 			three_grid.visible = true;
 		},
 	})

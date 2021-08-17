@@ -671,7 +671,7 @@ class Preview {
 
 			} else if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data.type === 'cube') {
 				if (Toolbox.selected.selectFace) {
-					main_uv.setFace(data.face, false)
+					UVEditor.setFace(data.face, false)
 				}
 				Blockbench.dispatchEvent('canvas_select', data)
 				if (Modes.paint) {

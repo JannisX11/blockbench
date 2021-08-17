@@ -308,34 +308,6 @@
 		<div class="dialog_close_button" onclick="hideDialog()"><i class="material-icons">clear</i></div>
 	</dialog>
 
-	<dialog class="dialog draggable" id="uv_dialog">
-		<div class="dialog_handle tl">uv_editor.title</div>
-		<div class="dialog_bar borderless tab_bar" id="uv_tab_bar">
-			<div onclick="uv_dialog.openTab('all')" id="all" class="tab open tl">uv_editor.all_faces</div>
-			<div onclick="uv_dialog.openTab('north')" id="north" class="tab tl">face.north</div>
-			<div onclick="uv_dialog.openTab('south')" id="south" class="tab tl">face.south</div>
-			<div onclick="uv_dialog.openTab('west')" id="west" class="tab tl">face.west</div>
-			<div onclick="uv_dialog.openTab('east')" id="east" class="tab tl">face.east</div>
-			<div onclick="uv_dialog.openTab('up')" id="up" class="tab tl">face.up</div>
-			<div onclick="uv_dialog.openTab('down')" id="down" class="tab tl">face.down</div>
-		</div>
-		<div id="uv_dialog_all" class="uv_dialog_content uv_dialog_all_only">
-		</div>
-
-		<div id="uv_dialog_single" class="uv_dialog_content">
-		</div>
-
-		<div class="bar" id="uv_dialog_toolbar">
-			<div class="toolbar_wrapper uv_dialog"></div>
-		</div>
-
-		<div class="dialog_bar button_bar">
-			<button type="button" onclick="hideDialog()" class="confirm_btn cancel_btn hidden">dialog.close</button>
-		</div>
-		
-		<div class="dialog_close_button" onclick="hideDialog()"><i class="material-icons">clear</i></div>
-	</dialog>
-
 	<dialog class="dialog draggable" id="text_input">
 		<div class="dialog_handle">
 			<div class="dialog_title tl">dialog.input.title</div>
@@ -472,37 +444,9 @@
 				</ul>
 				<div class="toolbar_wrapper narrow mobile_side"></div>
 			</div>
-			<div id="left_bar" class="sidebar">
+			
+			<div id="left_bar" class="sidebar"></div>
 
-				<div id="uv" class="panel selection_only">
-					<div class="panel_inside">
-						<div class="bar next_to_title" id="uv_title_bar">
-							<div id="project_resolution_status" onclick="BarItems.project_window.trigger()"></div>
-						</div>
-						<div id="uv_panel_sides" onclick="main_uv.loadSelectedFace()" class="bar tabs_small">
-
-							<input type="radio" name="side" id="north_radio" checked>
-							<label class="tl" for="north_radio">face.north</label>
-
-							<input type="radio" name="side" id="south_radio">
-							<label class="tl" for="south_radio">face.south</label>
-							
-							<input type="radio" name="side" id="west_radio">
-							<label class="tl" for="west_radio">face.west</label>
-
-							<input type="radio" name="side" id="east_radio">
-							<label class="tl" for="east_radio">face.east</label>
-
-							<input type="radio" name="side" id="up_radio">
-							<label class="tl" for="up_radio">face.up</label>
-
-							<input type="radio" name="side" id="down_radio">
-							<label class="tl" for="down_radio">face.down</label>
-						</div>
-					</div>
-				</div>
-
-			</div>
 			<div id="right_bar" class="sidebar">
 
 				<div id="element" class="panel selection_only">

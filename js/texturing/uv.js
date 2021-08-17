@@ -1,25 +1,36 @@
-class UVEditor {
-	constructor(id, headline, toolbar) {
-		this.face = 'north';
-		this.id = id
-		this.size = 320;
-		this.zoom = 1;
-		this.grid = 1;
-		this.max_zoom = 16;
-		this.auto_grid = true;
-		this.texture = false;
-		this.headline = headline
-		this.jquery = {}
-		this.uuid = guid()
-
-		uv_dialog.all_editors.push(this)
-
-		this.buildDom(toolbar)
-
-		if (id !== 'main_uv') {
-			this.setGrid(BarItems.uv_grid.get().replace(/x/, ''));
-		}
+function switchBoxUV(state) {
+	BARS.updateConditions()
+	if (state) {
+		Cube.all.forEach(cube => {
+			if (cube.faces.west.uv[2] < cube.faces.east.uv[0]) {
+				cube.mirror_uv = true;
+				cube.uv_offset[0] = cube.faces.west.uv[2];
+			} else {
+				cube.mirror_uv = false;
+				cube.uv_offset[0] = cube.faces.east.uv[0];
+			}
+			cube.uv_offset[1] = cube.faces.up.uv[3];
+		})
 	}
+	$('#uv_panel_sides').toggle(!state)
+	UVEditor.setGrid(1).setSize(UVEditor.size)//.displayAllMappingOverlays();
+	Canvas.updateAllUVs()
+}
+
+const UVEditor = {
+	face: 'north',
+	size: 320,
+	zoom: 1,
+	grid: 1,
+	max_zoom: 16,
+	auto_grid: true,
+	texture: false,
+	panel: null,
+
+	get vue() {
+		return this.panel.inside_vue;
+	},
+
 	buildDom(toolbar) {
 		var scope = this
 		if (this.jquery.main) {
@@ -29,11 +40,11 @@ class UVEditor {
 		if (this.headline) {
 			this.jquery.main.append('<div class="uv_headline"><div class="uv_title">'+capitalizeFirstLetter(scope.id)+'</div><div class="tool"><i class="material-icons">fullscreen</i><div class="tooltip">Fullscreen</div></div></div>')
 			this.jquery.main.find('div.uv_headline > .tool').click(function() {
-				uv_dialog.openTab(scope.id)
+				UVEditor.openTab(scope.id)
 			})
 			this.jquery.main.find('div.uv_headline').click(function(event) {
 				event.stopPropagation()
-				uv_dialog.select(scope.id, event)
+				UVEditor.select(scope.id, event)
 			})
 		}
 		this.jquery.viewport = $('<div id="uv_viewport" class="checkerboard_target"></div>')
@@ -62,117 +73,7 @@ class UVEditor {
 		this.jquery.sliders = $('<div class="bar uv_editor_sliders" style="margin-left: 2px;"></div>')
 
 		this.jquery.main.append(this.jquery.sliders)
-		var onBefore = function() {
-			Undo.initEdit({elements: Cube.selected})
-		}
-		var onAfter = function() {
-			Undo.finishEdit('Edit UV')
-			if (Project.box_uv) {
-				scope.displayAllMappingOverlays()
-			}
-		}
-		var getInterval = function(event) {
-			return 1/scope.grid
-		}
-		this.sliders = {
-			pos_x: new NumSlider({
-				id: 'uv_slider_pos_x',
-				private: true,
-				condition: function() {return true},
-				get: function() {
-					if (Project.box_uv && Cube.selected[0]) {
-						return trimFloatNumber(Cube.selected[0].uv_offset[0])
-					} else if (Cube.selected[0]) {
-						var face_uv = Cube.selected[0].faces[scope.face].uv
-						if (face_uv) {
-							return trimFloatNumber(face_uv[0])
-						}
-					}
-					return 0
-				},
-				change: function(modify) {
-					scope.slidePos(modify, 0)
-				},
-				getInterval,
-				onBefore,
-				onAfter
-			}).toElement(this.jquery.sliders),
-
-			pos_y: new NumSlider({
-				id: 'uv_slider_pos_y',
-				private: true,
-				condition: function() {return true},
-				get: function() {
-					if (Project.box_uv && Cube.selected[0]) {
-						return trimFloatNumber(Cube.selected[0].uv_offset[1])
-					} else if (Cube.selected[0]) {
-						var face_uv = Cube.selected[0].faces[scope.face].uv
-						if (face_uv) {
-							return trimFloatNumber(face_uv[1])
-						}
-					}
-					return 0
-				},
-				change: function(modify) {
-					scope.slidePos(modify, 1)
-				},
-				getInterval,
-				onBefore,
-				onAfter
-			}).toElement(this.jquery.sliders),
-
-			size_x: new NumSlider({
-				id: 'uv_slider_size_x',
-				private: true,
-				condition: function() {return !Project.box_uv},
-				get: function() {
-					if (!Project.box_uv && Cube.selected[0]) {
-						var face_uv = Cube.selected[0].faces[scope.face].uv
-						if (face_uv) {
-							return trimFloatNumber(face_uv[2] - face_uv[0])
-						}
-					}
-					return 0
-				},
-				change: function(modify) {
-					scope.slideSize(modify, 0)
-				},
-				getInterval,
-				onBefore,
-				onAfter
-			}).toElement(this.jquery.sliders),
-
-			size_y: new NumSlider({
-				id: 'uv_slider_size_y',
-				private: true,
-				condition: function() {return !Project.box_uv},
-				get: function() {
-					if (!Project.box_uv && Cube.selected[0]) {
-						var face_uv = Cube.selected[0].faces[scope.face].uv
-						if (face_uv) {
-							return trimFloatNumber(face_uv[3] - face_uv[1])
-						}
-					}
-					return 0
-				},
-				change: function(modify) {
-					scope.slideSize(modify, 1)
-				},
-				getInterval,
-				onBefore,
-				onAfter
-
-			}).toElement(this.jquery.sliders)
-		}
 			
-
-
-		if (toolbar) {
-			this.jquery.bar = $(Toolbars.main_uv.node)
-			this.jquery.main.append(this.jquery.bar)
-		} else {
-			this.jquery.bar = $('')
-		}
 
 		var dragging_not_clicking = false;
 		this.jquery.size.resizable({
@@ -226,12 +127,6 @@ class UVEditor {
 				scope.disableAutoUV()
 				Undo.finishEdit('Move UV')
 				scope.updateDragHandle(ui.position)
-				if (Project.box_uv) {
-					scope.displayAllMappingOverlays()
-					if (scope.jquery.size.is(':hover')) {
-						scope.displayMappingOverlay()
-					}
-				}
 			}
 		})
 
@@ -334,7 +229,7 @@ class UVEditor {
 		})
 		this.setSize(this.size)
 		return this;
-	}
+	},
 	updateBrushOutline(e) {
 		if (Modes.paint && Toolbox.selected.brushTool) {
 			this.jquery.frame.append(this.brush_outline);
@@ -353,7 +248,7 @@ class UVEditor {
 		} else {
 			this.brush_outline.detach();
 		}
-	}
+	},
 	message(msg, vars) {
 		msg = tl(msg, vars)
 		var box = $('<div class="uv_message_box">' + msg + '</div>')
@@ -361,7 +256,7 @@ class UVEditor {
 		setTimeout(function() {
 			box.remove()
 		}, 1200)
-	}
+	},
 	//Brush
 	getBrushCoordinates(event, tex) {
 		var scope = this;
@@ -379,7 +274,7 @@ class UVEditor {
 		}
 		if (tex.frameCount) result.y += (tex.height / tex.frameCount) * tex.currentFrame;
 		return result;
-	}
+	},
 	startPaintTool(event) {
 		var scope = this;
 		Painter.active_uv_editor = scope;
@@ -398,7 +293,7 @@ class UVEditor {
 			addEventListeners(scope.jquery.frame.get(0), 'mousemove touchmove', scope.movePaintTool, false );
 			addEventListeners(document, 'mouseup touchend', scope.stopBrush, false );
 		}
-	}
+	},
 	movePaintTool(event) {
 		var scope = Painter.active_uv_editor;
 		var texture = scope.getTexture()
@@ -427,7 +322,7 @@ class UVEditor {
 				scope.dragSelection(texture, x, y, event)
 			}
 		}
-	}
+	},
 	stopBrush(event) {
 		var scope = Painter.active_uv_editor;
 		removeEventListeners( scope.jquery.frame.get(0), 'mousemove touchmove', scope.movePaintTool, false );
@@ -437,7 +332,7 @@ class UVEditor {
 		} else {
 			scope.stopSelection()
 		}
-	}
+	},
 	// Copy Paste Tool
 	startSelection(texture, x, y, event) {
 		if (Painter.selection.overlay && event.target && event.target.id === 'uv_frame') {
@@ -460,7 +355,7 @@ class UVEditor {
 			Painter.selection.start_y = Painter.selection.y;
 			Painter.selection.start_event = event;
 		}
-	}
+	},
 	dragSelection(texture, x, y, event) {
 		let m = this.inner_width / this.texture.width;
 
@@ -481,7 +376,7 @@ class UVEditor {
 			Painter.selection.y = Math.clamp(Painter.selection.y, 0, this.texture.height-Painter.selection.canvas.height)
 			this.updatePastingOverlay()
 		}
-	}
+	},
 	stopSelection() {
 		if (Painter.selection.rect) {
 			Painter.selection.rect.detach()
@@ -503,7 +398,7 @@ class UVEditor {
 		Painter.selection.canvas = canvas;
 
 		this.addPastingOverlay();
-	}
+	},
 	addPastingOverlay() {
 		if (Painter.selection.overlay) return;
 		let scope = this;
@@ -617,12 +512,12 @@ class UVEditor {
 			*/
 		}
 		addEventListeners(document, 'mousedown touchstart', clickElsewhere)
-	}
+	},
 	removePastingOverlay() {
 		Painter.selection.overlay.detach();
 		delete Painter.selection.overlay;
 		open_interface = false;
-	}
+	},
 	updatePastingOverlay() {
 		let m = this.inner_width/this.texture.width
 		$(Painter.selection.canvas)
@@ -632,20 +527,23 @@ class UVEditor {
 			.css('left', Painter.selection.x * m)
 			.css('top', Painter.selection.y * m);
 		return this;
-	}
+	},
 	//Get
 	get width() {
-		return this.size;
-	}
-	set width(v) {
-		this.size = v;
-	}
+		return this.vue.width;
+	},
+	get height() {
+		return this.vue.height;
+	},
+	get zoom() {
+		return this.vue.zoom;
+	},
 	get inner_width() {
 		return this.size*this.zoom;
-	}
+	},
 	get inner_height() {
 		return this.height*this.zoom;
-	}
+	},
 	getPixelSize() {
 		if (Project.box_uv) {
 			return this.inner_width/Project.texture_width
@@ -656,14 +554,14 @@ class UVEditor {
 					: Project.texture_width
 			);
 		}
-	}
+	},
 	getFaces(event) {
 		if (event && event.shiftKey) {
 			return ['north', 'east', 'south', 'west', 'up', 'down']
 		} else {
 			return [this.face]
 		}
-	}
+	},
 	getUVTag(obj) {
 		if (!obj) obj = Cube.selected[0]
 		if (Project.box_uv) {
@@ -671,19 +569,20 @@ class UVEditor {
 		} else {
 			return obj.faces[this.face].uv;
 		}
-	}
+	},
 	getTexture() {
 		if (Format.single_texture) return Texture.getDefault();
 		return Cube.selected[0].faces[this.face].getTexture();
-	}
+	},
 	//Set
 	setSize(input_size, cancel_load) {
+		return;
 		var old_size = this.size;
 		var size = input_size;
 		this.size = size;
-		this.jquery.frame[0].style.width = (this.inner_width) + 'px';
-		this.jquery.viewport[0].style.width = (size+8) + 'px';
-		this.jquery.main[0].style.width = (size + (this.id == 'main_uv' ? 8 : 10)) + 'px';
+		this.vue.$refs.frame.style.width = (this.inner_width) + 'px';
+		this.vue.$refs.viewport.style.width = (size+8) + 'px';
+		this.vue.$refs.main.style.width = (size + (this.id == 'UVEditor' ? 8 : 10)) + 'px';
 
 		for (var id in this.sliders) {
 			this.sliders[id].setWidth(size/(Project.box_uv?2:4)-1)
@@ -694,11 +593,13 @@ class UVEditor {
 			this.updateSize();
 		}
 		// compensate offset
-		this.jquery.viewport.get(0).scrollLeft = Math.round(this.jquery.viewport.get(0).scrollLeft * (size / old_size));
-		this.jquery.viewport.get(0).scrollTop  = Math.round(this.jquery.viewport.get(0).scrollTop  * (size / old_size));
+		this.vue.$refs.viewport.scrollLeft = Math.round(this.vue.$refs.viewport.scrollLeft * (size / old_size));
+		this.vue.$refs.viewport.scrollTop  = Math.round(this.vue.$refs.viewport.scrollTop  * (size / old_size));
 		return this;
-	}
+	},
 	setZoom(zoom) {
+		this.vue.zoom = zoom;
+		return this;
 		var zoomed_size = this.size * zoom;
 		var size = zoomed_size;
 		this.zoom = size/this.size
@@ -706,9 +607,10 @@ class UVEditor {
 		this.displayFrame();
 
 		return this;
-	}
+	},
 	setGrid(value) {
-		var update = this.id == 'main_uv' || open_dialog == 'uv_dialog';
+		return this;
+		var update = this.id == 'UVEditor' || open_dialog == 'UVEditor';
 		if (value == 'auto') {
 			this.auto_grid = true;
 			if (update) this.displayTexture();
@@ -720,13 +622,12 @@ class UVEditor {
 		}
 		if (update) this.updateSize();
 		return this;
-	}
+	},
 	updateSize() {
-		var size = this.size * this.zoom;
-		this.jquery.frame.width(this.inner_width);
+		this.vue.updateSize();
+		//var size = this.size * this.zoom;
 
-		this.height = this.size / (Project.texture_width/Project.texture_height)
-		this.jquery.frame.height(this.inner_height)
+		return;
 		this.jquery.viewport.height(this.height+8)
 		this.jquery.size.resizable('option', 'maxHeight', this.inner_height)
 		this.jquery.size.resizable('option', 'maxWidth', this.inner_width)
@@ -750,17 +651,17 @@ class UVEditor {
 		} else {
 			this.jquery.viewport.removeClass('zoomed').css('overflow', 'hidden')
 		}
-	}
+	},
 	setFace(face, update = true) {
 		this.face = face
-		if (this.id === 'main_uv') {
+		if (this.id === 'UVEditor') {
 			$('input#'+face+'_radio').prop("checked", true)
 		}
 		if (update) {
 			this.loadData()
 		}
 		return this;
-	}
+	},
 	setToMainSlot() {
 		var scope = this;
 		$('.panel#uv > .panel_inside').append(this.jquery.main)
@@ -778,14 +679,14 @@ class UVEditor {
 			}
 		})
 		this.jquery.frame.on('dblclick', function() {
-			uv_dialog.openFull()
+			UVEditor.openFull()
 		})
 		return this;
-	}
+	},
 	appendTo(selector) {
 		$(selector).append(this.jquery.main)
 		return this;
-	}
+	},
 	//Selection
 	reverseSelect(event) {
 		var scope = this;
@@ -811,7 +712,7 @@ class UVEditor {
 		})
 		if (matches.length) {
 			if (!Project.box_uv) {
-				main_uv.setFace(face_match);
+				UVEditor.setFace(face_match);
 			}
 			selected.empty();
 			matches.forEach(s => {
@@ -821,21 +722,23 @@ class UVEditor {
 			scope.displayMappingOverlay();
 		}
 		return this;
-	}
+	},
 	forCubes(cb) {
 		var i = 0;
 		while (i < Cube.selected.length) {
 			cb(Cube.selected[i]);
 			i++;
 		}
-	}
+	},
 	//Load
 	loadSelectedFace() {
 		this.face = $('#uv_panel_sides input:checked').attr('id').replace('_radio', '')
 		this.loadData()
 		return false;
-	}
+	},
 	loadData() {
+		this.vue.updateTexture();
+		return this;
 		if (Cube.selected.length === 0 && !Modes.paint) return;
 		var face = Cube.selected[0] && Cube.selected[0].faces[this.face];
 		
@@ -847,13 +750,10 @@ class UVEditor {
 		this.displayTools()
 		this.displaySliders()
 		this.updateDragHandle()
-		if (Project.box_uv) {
-			this.displayAllMappingOverlays()
+		if (this !== UVEditor && this.face === UVEditor.face) {
+			UVEditor.loadData()
 		}
-		if (this !== main_uv && this.face === main_uv.face) {
-			main_uv.loadData()
-		}
-	}
+	},
 	save(pos_only) {
 		if (!Modes.edit) return;
 		var scope = this;
@@ -904,10 +804,10 @@ class UVEditor {
 			})
 		}
 
-		if (this !== main_uv && this.face === main_uv.face) {
-			main_uv.loadData()
+		if (this !== UVEditor && this.face === UVEditor.face) {
+			UVEditor.loadData()
 		}
-	}
+	},
 	applyTexture(uuid) {
 		var scope = this;
 		Undo.initEdit({elements: Cube.selected, uv_only: true})
@@ -917,8 +817,9 @@ class UVEditor {
 		this.loadData()
 		Canvas.updateSelectedFaces()
 		Undo.finishEdit('Apply texture')
-	}
+	},
 	displayTexture(face) {
+		return this;
 		if (!face && Cube.selected.length) {
 			var face = Cube.selected[0].faces[this.face];
 		}
@@ -943,8 +844,9 @@ class UVEditor {
 			tex.select()
 		}
 		this.setSize(this.size, true)
-	}
+	},
 	displayTransformInfo() {
+		return this;
 		var ref = Cube.selected[0].faces[this.face]
 		this.jquery.transform_info.text('')
 		if (Project.box_uv) return;
@@ -958,8 +860,9 @@ class UVEditor {
 		if (ref.rotation) {
 			this.jquery.transform_info.append('<b>'+ref.rotation+'</b>')
 		}
-	}
+	},
 	displayFrame() {
+		return this;
 		var scope = this;
 		if (!Modes.edit) return;
 		if (Project.box_uv) {
@@ -1018,9 +921,10 @@ class UVEditor {
 		}
 		this.updateDragHandle();
 		this.displayTransformInfo();
-	}
+	},
 	//Overlay
 	displayMappingOverlay() {
+		return this;
 		if (!Project.box_uv || Cube.selected.length == 0) return this;
 		var scope = this;
 		var sides = this.getMappingOverlay();
@@ -1029,8 +933,9 @@ class UVEditor {
 		scope.jquery.size.append(sides);
 
 		return this;
-	}
+	},
 	getMappingOverlay(cube, absolute) {
+		return this;
 		var scope = this;
 		var sides = document.createElement('div');
 		sides.classList.add('mapping_overlay_cube');
@@ -1066,7 +971,8 @@ class UVEditor {
 		addElement(2*size[2]+size[0], size[2], size[0], size[1],'#f8dd72', '#FFF899')
 
 		return sides;
-	}
+	},
+	/*
 	displayAllMappingOverlays(force_reload) {
 		var scope = this;
 		var cycle = 'C'+bbuid(4)
@@ -1090,7 +996,7 @@ class UVEditor {
 		} else {
 			$(scope.jquery.frame).find('.mapping_overlay_cube').remove()
 		}
-	}
+	},
 	updateAllMappingOverlays() {
 		var scope = this;
 		var pixels = scope.getPixelSize();
@@ -1115,7 +1021,7 @@ class UVEditor {
 				}
 			})
 		}
-	}
+	},*/
 	//UI
 	displaySliders() {
 		if (!Cube.selected.length) return;
@@ -1123,7 +1029,7 @@ class UVEditor {
 		this.sliders.pos_y.update()
 		this.sliders.size_x.update()
 		this.sliders.size_y.update()
-	}
+	},
 	displayTools() {
 		//Cullface
 		if (!Cube.selected.length) return;
@@ -1131,34 +1037,34 @@ class UVEditor {
 		BarItems.cullface.set(face.cullface||'off')
 		BarItems.face_tint.setIcon(face.tint !== -1 ? 'check_box' : 'check_box_outline_blank')
 		BarItems.slider_face_tint.update()
-	}
+	},
 	updateDragHandle() {
 		var pos = this.jquery.size.position()
 		var handle = this.jquery.size.find('div.uv_size_handle').get(0);
 		if (!handle) return;
 
-		var left = limitNumber(this.jquery.viewport.get(0).scrollLeft, 0, this.size*(this.zoom-1)) - pos.left;
-		var top = limitNumber(this.jquery.viewport.get(0).scrollTop, 0, (this.height||this.size)*(this.zoom-1)) - pos.top;
+		var left = limitNumber(this.vue.$refs.viewport.scrollLeft, 0, this.size*(this.zoom-1)) - pos.left;
+		var top = limitNumber(this.vue.$refs.viewport.scrollTop, 0, (this.height||this.size)*(this.zoom-1)) - pos.top;
 		handle.style.left = left +'px';
 		handle.style.top = top +'px';
 
 		handle.style.width = this.size + 'px';
 		handle.style.height = (this.height||this.size) + 'px';
 		return this;
-	}
+	},
 	updateInterface() {
 		for (var key in this.sliders) {
 			var slider = this.sliders[key]
 			slider.node.style.setProperty('display', BARS.condition(slider.condition)?'block':'none')
 		}
 		this.jquery.size.resizable('option', 'disabled', Project.box_uv)
-	}
+	},
 	contextMenu() {
 		var scope = this;
 		this.reference_face = Cube.selected[0] && Cube.selected[0].faces[scope.face];
 		this.menu.open(event, this)
 		return this;
-	}
+	},
 	slidePos(modify, axis) {
 		var scope = this
 		var limit = scope.getResolution(axis);
@@ -1195,7 +1101,7 @@ class UVEditor {
 		this.displaySliders()
 		this.displayFrame()
 		this.disableAutoUV()
-	}
+	},
 	slideSize(modify, axis) {
 		var scope = this
 		var limit = scope.getResolution(axis);
@@ -1212,24 +1118,24 @@ class UVEditor {
 		this.displaySliders()
 		this.displayFrame()
 		this.disableAutoUV()
-	}
+	},
 	getResolution(axis, texture) {
 		return axis ? Project.texture_height : Project.texture_width;
-	}
+	},
 
 	//Events
 	disableAutoUV() {
 		this.forCubes(obj => {
 			obj.autouv = 0
 		})
-	}
+	},
 	toggleUV() {
 		var scope = this
 		var state = Cube.selected[0].faces[this.face].enabled === false
 		this.forCubes(obj => {
 			obj.faces[scope.face].enabled = state
 		})
-	}
+	},
 	maximize(event) {
 		var scope = this;
 		this.forCubes(obj => {
@@ -1241,7 +1147,7 @@ class UVEditor {
 		})
 		this.message('uv_editor.maximized')
 		this.loadData()
-	}
+	},
 	turnMapping(event) {
 		var scope = this;
 		this.forCubes(obj => {
@@ -1254,7 +1160,7 @@ class UVEditor {
 		})
 		this.message('uv_editor.turned');
 		this.loadData();
-	}
+	},
 	setAutoSize(event) {
 		var scope = this;
 		var top2, left2;
@@ -1290,7 +1196,7 @@ class UVEditor {
 		})
 		this.message('uv_editor.autouv')
 		this.loadData()
-	}
+	},
 	setRelativeAutoSize(event) {
 		var scope = this;
 		this.forCubes(obj => {
@@ -1358,7 +1264,7 @@ class UVEditor {
 		})
 		this.message('uv_editor.autouv')
 		this.loadData()
-	}
+	},
 	mirrorX(event) {
 		var scope = this;
 		this.forCubes(obj => {
@@ -1372,7 +1278,7 @@ class UVEditor {
 		})
 		this.message('uv_editor.mirrored')
 		this.loadData()
-	}
+	},
 	mirrorY(event) {
 		var scope = this;
 		this.forCubes(obj => {
@@ -1386,11 +1292,11 @@ class UVEditor {
 		})
 		this.message('uv_editor.mirrored')
 		this.loadData()
-	}
+	},
 	applyAll(event) {
 		var scope = this;
 		this.forCubes(obj => {
-			uv_dialog.allFaces.forEach(function(side) {
+			UVEditor.cube_faces.forEach(function(side) {
 				$.extend(true, obj.faces[side], obj.faces[scope.face]) 
 			})
 			obj.autouv = 0
@@ -1398,7 +1304,7 @@ class UVEditor {
 		Canvas.updateSelectedFaces()
 		this.message('uv_editor.to_all')
 		this.loadData()
-	}
+	},
 	clear(event) {
 		var scope = this;
 		Undo.initEdit({elements: Cube.selected, uv_only: true})
@@ -1413,7 +1319,7 @@ class UVEditor {
 		this.message('uv_editor.transparent')
 		Undo.finishEdit('Remove face')
 		Canvas.updateSelectedFaces()
-	}
+	},
 	switchCullface(event) {
 		var scope = this;
 		Undo.initEdit({elements: Cube.selected, uv_only: true})
@@ -1428,7 +1334,7 @@ class UVEditor {
 			this.message('uv_editor.cullface_off')
 		}
 		Undo.finishEdit('Toggle cullface')
-	}
+	},
 	switchTint(event) {
 		var scope = this;
 		var val = Cube.selected[0].faces[scope.face].tint === -1 ? 0 : -1;
@@ -1443,7 +1349,7 @@ class UVEditor {
 			this.message('uv_editor.tint_off')
 		}
 		this.displayTools()
-	}
+	},
 	setTint(event, val) {
 		var scope = this;
 
@@ -1451,7 +1357,7 @@ class UVEditor {
 			obj.faces[scope.face].tint = val
 		})
 		this.displayTools()
-	}
+	},
 	rotate() {
 		var scope = this;
 		var value = parseInt(BarItems.uv_rotation.get())
@@ -1461,7 +1367,7 @@ class UVEditor {
 		})
 		this.displayTransformInfo()
 		this.message('uv_editor.rotated')
-	}
+	},
 	setRotation(value) {
 		var scope = this;
 		value = parseInt(value)
@@ -1471,9 +1377,9 @@ class UVEditor {
 		})
 		this.loadData()
 		this.message('uv_editor.rotated')
-	}
+	},
 	selectGridSize(event) {
-	}
+	},
 	autoCullface(event) {
 		var scope = this;
 		this.forCubes(obj => {
@@ -1483,19 +1389,19 @@ class UVEditor {
 		})
 		this.loadData()
 		this.message('uv_editor.auto_cull')
-	}
+	},
 	copy(event) {
 		this.select()
 		if (Cube.selected.length === 0) return;
 
 		var scope = this;
-		uv_dialog.clipboard = []
+		UVEditor.clipboard = []
 
 		if (Project.box_uv) {
 			var new_tag = {
 				uv: Cube.selected[0].uv_offset
 			}
-			uv_dialog.clipboard.push(new_tag)
+			UVEditor.clipboard.push(new_tag)
 			this.message('uv_editor.copied')
 			return;
 		}
@@ -1505,30 +1411,30 @@ class UVEditor {
 				var new_tag = {
 					uv: Cube.selected[0].uv_offset
 				}
-				uv_dialog.clipboard.push(new_tag)
+				UVEditor.clipboard.push(new_tag)
 				return;
 			}
 			var tag = Cube.selected[0].faces[face]
 			var new_tag = new Face(face, tag)
-			uv_dialog.clipboard.push(new_tag)
+			UVEditor.clipboard.push(new_tag)
 		}
 		if (event.shiftKey) {
-			uv_dialog.allFaces.forEach(function(s) {
+			UVEditor.cube_faces.forEach(function(s) {
 				addToClipboard(s)
 			})
 		} else {
 			addToClipboard(this.face)
 		}
-		this.message('uv_editor.copied_x', [uv_dialog.clipboard.length])
-	}
+		this.message('uv_editor.copied_x', [UVEditor.clipboard.length])
+	},
 	paste(event) {
 		this.select()
-		if (uv_dialog.clipboard === null || Cube.selected.length === 0) return;
+		if (UVEditor.clipboard === null || Cube.selected.length === 0) return;
 
 		Undo.initEdit({elements: Cube.selected, uv_only: true})
 		if (Project.box_uv) {
 			Cube.selected.forEach(function(obj) {
-				obj.uv_offset = uv_dialog.clipboard[0].uv.slice()
+				obj.uv_offset = UVEditor.clipboard[0].uv.slice()
 				Canvas.updateUV(obj)
 			})
 			this.loadData()
@@ -1545,31 +1451,31 @@ class UVEditor {
 			})
 		}
 
-		if (this.id === 'main_uv' && event) {
+		if (this.id === 'UVEditor' && event) {
 			if (event.shiftKey) {
-				uv_dialog.allFaces.forEach(function(s) {
-					applyFace(uv_dialog.clipboard[0], s)
+				UVEditor.cube_faces.forEach(function(s) {
+					applyFace(UVEditor.clipboard[0], s)
 				})
 			} else {
-				if (uv_dialog.clipboard.length === 1) {
-					applyFace(uv_dialog.clipboard[0], main_uv.face)
+				if (UVEditor.clipboard.length === 1) {
+					applyFace(UVEditor.clipboard[0], UVEditor.face)
 				} else {
-					uv_dialog.clipboard.forEach(function(s) {
+					UVEditor.clipboard.forEach(function(s) {
 						applyFace(s, s.direction)
 					})
 				}
 			}
 		} else {
-			if (uv_dialog.selection.length === 1) {
-				applyFace(uv_dialog.clipboard[0], uv_dialog.selection[0])
+			if (UVEditor.selection.length === 1) {
+				applyFace(UVEditor.clipboard[0], UVEditor.selection[0])
 			} else {
-				if (uv_dialog.clipboard.length === 1) {
-					uv_dialog.selection.forEach(function(s) {
-						applyFace(uv_dialog.clipboard[0], s)
+				if (UVEditor.clipboard.length === 1) {
+					UVEditor.selection.forEach(function(s) {
+						applyFace(UVEditor.clipboard[0], s)
 					})
 				} else {
-					uv_dialog.clipboard.forEach(function(s) {
-						if (uv_dialog.selection.includes(s.face)) {
+					UVEditor.clipboard.forEach(function(s) {
+						if (UVEditor.selection.includes(s.face)) {
 							applyFace(s)
 						}
 					})
@@ -1580,7 +1486,7 @@ class UVEditor {
 		Canvas.updateSelectedFaces()
 		this.message('uv_editor.pasted')
 		Undo.finishEdit('Paste UV')
-	}
+	},
 	reset(event) {
 		var scope = this;
 		this.forCubes(obj => {
@@ -1592,14 +1498,140 @@ class UVEditor {
 		})
 		this.loadData()
 		this.message('uv_editor.reset')
-	}
+	},
 	select() {
-		if (uv_dialog.allFaces.includes(this.id) === false) return;
-		uv_dialog.selection = [this.id]
-		uv_dialog.updateSelection()
-	}
-}
-	UVEditor.prototype.menu = new Menu([
+		if (UVEditor.cube_faces.includes(this.id) === false) return;
+		UVEditor.selection = [this.id]
+		UVEditor.updateSelection()
+	},
+
+	// Dialog
+	
+	isSetup: false,
+	single: false,
+	clipboard: null,
+	cube_faces: ['north', 'south', 'west', 'east', 'up', 'down'],
+	selection: [],
+	selection_all: [],
+	all_editors: [],
+	hoveredSide: false,
+	single_size: {},
+	all_size: {},
+	select: function(id, event) {
+		if (event.shiftKey || Pressing.overrides.shift) {
+			UVEditor.selection.push(id)
+		} else {
+			if (UVEditor.selection.includes(id) && UVEditor.selection.length === 1) {
+				UVEditor.selection = []
+			} else {
+				UVEditor.selection = [id]
+			}
+		}
+		UVEditor.updateSelection()
+	},
+	selectAll: function() {
+		if (UVEditor.selection.length === 6) {
+			UVEditor.selection.empty()
+		} else {
+			UVEditor.selection = UVEditor.cube_faces.slice()
+		}
+		UVEditor.updateSelection()
+	},
+	selectNone: function() {
+		UVEditor.selection = []
+		UVEditor.updateSelection()
+	},
+	forSelection: function(cb, event, ...args) {
+		if (open_dialog === false) {
+			UVEditor[cb](event, ...args)
+		} else if (UVEditor.single) {
+			UVEditor.editors.single[cb](...args)
+		} else {
+			if (UVEditor.selection.length > 0) {
+				UVEditor.selection.forEach(function(s) {
+					UVEditor.editors[s][cb](...args)
+				})
+			} else {
+				UVEditor.cube_faces.forEach(function(s) {
+					UVEditor.editors[s][cb](...args)
+				})
+			}
+		}
+	},
+	copy: function(event) {
+		if (Cube.selected.length === 0) return;
+		UVEditor.clipboard = []
+
+		function addToClipboard(face) {
+			var tag = Cube.selected[0].faces[face]
+			UVEditor.clipboard.push(new Face(null, tag))
+		}
+		if (UVEditor.hoveredSide) {
+			addToClipboard(UVEditor.hoveredSide)
+			UVEditor.editors[UVEditor.hoveredSide].message('uv_editor.copied')
+
+		} else if (UVEditor.single) {
+			addToClipboard(UVEditor.editors.single.face)
+			UVEditor.editors.single.message('uv_editor.copied')
+
+		} else if (UVEditor.selection.length > 0) {
+			UVEditor.selection.forEach(function(s) {
+				addToClipboard(s)
+				UVEditor.editors[s].message('uv_editor.copied')
+			})
+		} else {
+			UVEditor.cube_faces.forEach(function(s) {
+				addToClipboard(s)
+				UVEditor.editors[s].message('uv_editor.copied')
+			})
+		}
+	},
+	paste: function(event) {
+		if (UVEditor.clipboard === null || Cube.selected.length === 0) return;
+
+		function applyFace(tag, face) {
+			if (!face) face = tag.face
+			Cube.selected.forEach(function(obj) {
+				obj.faces[face].extend(tag)
+				Canvas.updateUV(obj)
+			})
+		}
+
+		if (UVEditor.hoveredSide) {
+			UVEditor.editors[UVEditor.hoveredSide].paste({shiftKey: false})
+
+		} else if (UVEditor.selection.length === 1) {
+			applyFace(UVEditor.clipboard[0], UVEditor.selection[0])
+			if (UVEditor.single) {
+				UVEditor.editors.single.message('uv_editor.pasted')
+			} else {
+				UVEditor.editors[UVEditor.selection[0]].message('uv_editor.pasted')
+			}
+		} else {
+			if (UVEditor.clipboard.length === 1) {
+				UVEditor.selection.forEach(function(s) {
+					applyFace(UVEditor.clipboard[0], s)
+					UVEditor.editors[s].message('uv_editor.pasted')
+				})
+			} else {
+				UVEditor.clipboard.forEach(function(s) {
+					if (UVEditor.selection.includes(s.face)) {
+						applyFace(s)
+						UVEditor.editors[s].message('uv_editor.pasted')
+					}
+				})
+			}
+		}
+
+		for (var key in UVEditor.editors) {
+			if (UVEditor.editors[key]) {
+				UVEditor.editors[key].loadData()
+			}
+		}
+	},
+
+
+	menu: new Menu([
 		{name: 'menu.view.zoom', id: 'zoom', condition: isApp, icon: 'search', children: [
 			'zoom_in',
 			'zoom_out',
@@ -1712,323 +1744,23 @@ class UVEditor {
 			return arr;
 		}}
 	])
-
-
-function switchBoxUV(state) {
-	BARS.updateConditions()
-	if (state) {
-		Cube.all.forEach(cube => {
-			if (cube.faces.west.uv[2] < cube.faces.east.uv[0]) {
-				cube.mirror_uv = true;
-				cube.uv_offset[0] = cube.faces.west.uv[2];
-			} else {
-				cube.mirror_uv = false;
-				cube.uv_offset[0] = cube.faces.east.uv[0];
-			}
-			cube.uv_offset[1] = cube.faces.up.uv[3];
-		})
-	}
-	$('#uv_panel_sides').toggle(!state)
-	main_uv.setGrid(1).setSize(main_uv.size).displayAllMappingOverlays();
-	Canvas.updateAllUVs()
 }
 
-const uv_dialog = {
-	isSetup: false,
-	single: false,
-	clipboard: null,
-	allFaces: ['north', 'south', 'west', 'east', 'up', 'down'],
-	selection: [],
-	selection_all: [],
-	all_editors: [],
-	hoveredSide: false,
-	single_size: {},
-	all_size: {},
-	setup: function() {
-		uv_dialog.editors = {
-			single:new UVEditor('single').appendTo('#uv_dialog_single'),
-			north: new UVEditor('north', true).appendTo('#uv_dialog_all'),
-			south: new UVEditor('south', true).appendTo('#uv_dialog_all'),
-			west:  new UVEditor('west', true).appendTo('#uv_dialog_all'),
-			east:  new UVEditor('east', true).appendTo('#uv_dialog_all'),
-			up:	new UVEditor('up', true).appendTo('#uv_dialog_all'),
-			down:  new UVEditor('down', true).appendTo('#uv_dialog_all')
-		}
-		var size = window.innerHeight - 200
-		uv_dialog.editors.single.setSize(size)
-		uv_dialog.editors.single.jquery.main.css('margin-left', 'auto').css('margin-right', 'auto')//.css('width', (size+10)+'px')
-		uv_dialog.editors.up.jquery.main.css('margin-left', '276px').css('clear', 'both')
-		uv_dialog.isSetup = true
-
-		var single_size = limitNumber(size / 2 - 72, 80, 256)
-		for (var key in uv_dialog.editors) {
-			if (uv_dialog.editors[key] && key !== 'single') {
-				uv_dialog.editors[key].setFace(key, false)
-				uv_dialog.editors[key].setSize(single_size)
-				uv_dialog.editors[key].jquery.main.mouseenter(function(event) {
-					uv_dialog.hoveredSide = $(this).attr('id').replace('UVEditor_', '')
-				})
-				uv_dialog.editors[key].jquery.main.mouseleave(function() {
-					uv_dialog.hoveredSide = false
-				})
-			}
-		}
-		$('.dialog#uv_dialog').resizable({
-			minWidth: 202,
-			minHeight: 464,
-			resize: function() {
-				uv_dialog.updateSize()
-			},
-			containment: 'document',
-			handles: 'all'
-		})
-		BARS.updateConditions()
-	},
-	select: function(id, event) {
-		if (event.shiftKey || Pressing.overrides.shift) {
-			uv_dialog.selection.push(id)
-		} else {
-			if (uv_dialog.selection.includes(id) && uv_dialog.selection.length === 1) {
-				uv_dialog.selection = []
-			} else {
-				uv_dialog.selection = [id]
-			}
-		}
-		uv_dialog.updateSelection()
-	},
-	selectAll: function() {
-		if (uv_dialog.selection.length === 6) {
-			uv_dialog.selection.empty()
-		} else {
-			uv_dialog.selection = uv_dialog.allFaces.slice()
-		}
-		uv_dialog.updateSelection()
-	},
-	selectNone: function() {
-		uv_dialog.selection = []
-		uv_dialog.updateSelection()
-	},
-	forSelection: function(cb, event, ...args) {
-		if (open_dialog === false) {
-			main_uv[cb](event, ...args)
-		} else if (uv_dialog.single) {
-			uv_dialog.editors.single[cb](...args)
-		} else {
-			if (uv_dialog.selection.length > 0) {
-				uv_dialog.selection.forEach(function(s) {
-					uv_dialog.editors[s][cb](...args)
-				})
-			} else {
-				uv_dialog.allFaces.forEach(function(s) {
-					uv_dialog.editors[s][cb](...args)
-				})
-			}
-		}
-	},
-	updateSelection: function() {
-		$('#uv_dialog_all .UVEditor').removeClass('selected')
-		uv_dialog.selection.forEach(function(id) {
-			$('#uv_dialog_all #UVEditor_'+id).addClass('selected')
-		})
-	},
-	openDialog: function() {
-		showDialog('uv_dialog')
-		if (!uv_dialog.isSetup) uv_dialog.setup()
-		if (Project.box_uv) {
-			$('#uv_tab_bar').hide();
-		} else {
-			$('#uv_tab_bar').show();
-		}
-	},
-	centerDialog: function() {
-		var obj = $('.dialog#uv_dialog')
-		obj.css('left', ((window.innerWidth-obj.width())/2) +'px')
-		obj.css('top', ((window.innerHeight - obj.height()) / 2) + 'px')
-	},
-	openAll: function() {
-		uv_dialog.openDialog()
-		uv_dialog.openTab('all')
-		uv_dialog.centerDialog()
-	},
-	openFull: function() {
-		uv_dialog.openDialog()
-		uv_dialog.openTab(main_uv.face)
-		uv_dialog.centerDialog()
-	},
-	openTab: function(tab) {
-		uv_dialog.saveSize()
-		$('#uv_tab_bar .tab').removeClass('open')
-		$('#uv_tab_bar .tab#'+tab).addClass('open')
-		if (tab === 'all') {
-			uv_dialog.single = false
-			$('#uv_dialog_single').hide()
-			$('.uv_dialog_all_only').show()
-			for (var key in uv_dialog.editors) {
-				if (uv_dialog.editors[key] && key !== 'single') {
-					uv_dialog.editors[key].loadData()
-				}
-			}
-			uv_dialog.selection = uv_dialog.selection_all.splice(0, 10)
-			uv_dialog.updateSelection()
-
-			//BarItems.uv_grid.set(uv_dialog.editors.north.gridSelectOption)
-
-			$('.dialog#uv_dialog').width(uv_dialog.all_size.x)
-			$('.dialog#uv_dialog').height(uv_dialog.all_size.y)
-		} else {
-			uv_dialog.single = true
-			$('#uv_dialog_single').show()
-			$('.uv_dialog_all_only').hide()
-			uv_dialog.editors.single.setFace(tab)
-			uv_dialog.selection_all = uv_dialog.selection.splice(0, 10)
-			uv_dialog.selection = [tab]
-			//BarItems.uv_grid.set(uv_dialog.editors.single.gridSelectOption)
-
-			var max_size = window.innerHeight - 200
-			if (max_size < uv_dialog.editors.single.size ) {
-				uv_dialog.editors.single.setSize(max_size)
-				uv_dialog.editors.single.jquery.main.css('margin-left', 'auto').css('margin-right', 'auto').css('width', max_size+'px')
-			}
-			$('.dialog#uv_dialog').width(uv_dialog.single_size.x)
-			$('.dialog#uv_dialog').height(uv_dialog.single_size.y)
-		}
-		uv_dialog.hoveredSide = false;
-		uv_dialog.updateSize()
-	},
-	saveSize: function() {
-		if (uv_dialog.single) {
-			uv_dialog.single_size.x = $('.dialog#uv_dialog').width()
-			uv_dialog.single_size.y = $('.dialog#uv_dialog').height()
-		} else {
-			uv_dialog.all_size.x = $('.dialog#uv_dialog').width()
-			uv_dialog.all_size.y = $('.dialog#uv_dialog').height()
-		}
-	},
-	updateSize: function() {
-		var obj = $('.dialog#uv_dialog')
-		var size = {
-			x: obj.width(),
-			y: obj.height()
-		}
-		var menu_gap = 98 + ($('#uv_tab_bar').is(':visible') ? 30 : 0) + ($('.toolbar_wrapper.uv_dialog').height()||0);
-		if (uv_dialog.single) {
-			var editor_size = size.x-16
-			size.y = (size.y - menu_gap) * (Project.texture_width/Project.texture_height)
-			if (size.x > size.y) {
-				editor_size =  size.y
-			}
-			uv_dialog.editors.single.setSize(editor_size)
-
-		} else {
-			var centerUp = false
-			size.y -= menu_gap;
-			if (size.x < size.y/1.2) {
-				var editor_size = limitNumber(size.x / 2 - 35, 80, window.innerHeight/3-120)
-				editor_size = limitNumber(editor_size, 80, (size.y-64)/3 - 50)
-			} else {
-				//4 x 2
-				var editor_size = limitNumber(size.x/4-25,  16,  size.y/2 - 60)
-				centerUp = true
-			}
-			uv_dialog.setEditorSize(editor_size)
-			if (centerUp) {
-				uv_dialog.editors.up.jquery.main.css('margin-left', (editor_size+20)+'px').css('clear', 'both')
-			}
-		}
-	},
-	setEditorSize: function(size) {
-		for (var key in uv_dialog.editors) {
-			if (uv_dialog.editors[key] && key !== 'single') {
-				uv_dialog.editors[key].jquery.main.css('margin-left', '0')
-				uv_dialog.editors[key].setSize(size)
-			}
-		}
-	},
-	copy: function(event) {
-		if (Cube.selected.length === 0) return;
-		uv_dialog.clipboard = []
-
-		function addToClipboard(face) {
-			var tag = Cube.selected[0].faces[face]
-			uv_dialog.clipboard.push(new Face(null, tag))
-		}
-		if (uv_dialog.hoveredSide) {
-			addToClipboard(uv_dialog.hoveredSide)
-			uv_dialog.editors[uv_dialog.hoveredSide].message('uv_editor.copied')
-
-		} else if (uv_dialog.single) {
-			addToClipboard(uv_dialog.editors.single.face)
-			uv_dialog.editors.single.message('uv_editor.copied')
-
-		} else if (uv_dialog.selection.length > 0) {
-			uv_dialog.selection.forEach(function(s) {
-				addToClipboard(s)
-				uv_dialog.editors[s].message('uv_editor.copied')
-			})
-		} else {
-			uv_dialog.allFaces.forEach(function(s) {
-				addToClipboard(s)
-				uv_dialog.editors[s].message('uv_editor.copied')
-			})
-		}
-	},
-	paste: function(event) {
-		if (uv_dialog.clipboard === null || Cube.selected.length === 0) return;
-
-		function applyFace(tag, face) {
-			if (!face) face = tag.face
-			Cube.selected.forEach(function(obj) {
-				obj.faces[face].extend(tag)
-				Canvas.updateUV(obj)
-			})
-		}
-
-		if (uv_dialog.hoveredSide) {
-			uv_dialog.editors[uv_dialog.hoveredSide].paste({shiftKey: false})
-
-		} else if (uv_dialog.selection.length === 1) {
-			applyFace(uv_dialog.clipboard[0], uv_dialog.selection[0])
-			if (uv_dialog.single) {
-				uv_dialog.editors.single.message('uv_editor.pasted')
-			} else {
-				uv_dialog.editors[uv_dialog.selection[0]].message('uv_editor.pasted')
-			}
-		} else {
-			if (uv_dialog.clipboard.length === 1) {
-				uv_dialog.selection.forEach(function(s) {
-					applyFace(uv_dialog.clipboard[0], s)
-					uv_dialog.editors[s].message('uv_editor.pasted')
-				})
-			} else {
-				uv_dialog.clipboard.forEach(function(s) {
-					if (uv_dialog.selection.includes(s.face)) {
-						applyFace(s)
-						uv_dialog.editors[s].message('uv_editor.pasted')
-					}
-				})
-			}
-		}
-
-		for (var key in uv_dialog.editors) {
-			if (uv_dialog.editors[key]) {
-				uv_dialog.editors[key].loadData()
-			}
-		}
-	}
-}
 
 BARS.defineActions(function() {
-	new Action('uv_dialog', {
+	/*
+	new Action('UVEditor', {
 		icon: 'view_module',
 		category: 'blockbench',
 		condition: () => !Project.box_uv && Cube.selected.length,
-		click: function () {uv_dialog.openAll()}
+		click: function () {UVEditor.openAll()}
 	})
-	new Action('uv_dialog_full', {
+	new Action('UVEditor_full', {
 		icon: 'web_asset',
 		category: 'blockbench',
-		click: function () {uv_dialog.openFull()}
-	})
+		click: function () {UVEditor.openFull()}
+	})*/
+
 
 	new BarSlider('uv_rotation', {
 		category: 'uv',
@@ -2038,7 +1770,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 		},
 		onChange: function(slider) {
-			uv_dialog.forSelection('rotate')
+			//UVEditor.forSelection('rotate')
 		},
 		onAfter: () => {
 			Undo.finishEdit('Rotate UV')
@@ -2060,26 +1792,26 @@ BARS.defineActions(function() {
 		},
 		onChange: function(slider) {
 			var value = slider.get().replace(/x/, '');
-			uv_dialog.all_editors.forEach(editor => {
+			UVEditor.all_editors.forEach(editor => {
 				editor.setGrid(value);
 			});
 		}
 	})
-
+	/*
 	new Action('uv_select_all', {
 		icon: 'view_module',
 		category: 'uv',
-		condition: () => open_dialog === 'uv_dialog',
-		click: uv_dialog.selectAll
+		condition: () => open_dialog === 'UVEditor',
+		click: UVEditor.selectAll
 	})
-
+	*/
 	new Action('uv_maximize', {
 		icon: 'zoom_out_map',
 		category: 'uv',
 		condition: () => !Project.box_uv && Cube.selected.length,
 		click: function (event) { 
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
-			uv_dialog.forSelection('maximize', event)
+			UVEditor.forSelection('maximize', event)
 			Undo.finishEdit('Maximize UV')
 		}
 	})
@@ -2089,7 +1821,7 @@ BARS.defineActions(function() {
 		condition: () => !Project.box_uv && Cube.selected.length,
 		click: function (event) { 
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
-			uv_dialog.forSelection('turnMapping', event)
+			UVEditor.forSelection('turnMapping', event)
 			Undo.finishEdit('Turn UV mapping')
 		}
 	})
@@ -2099,7 +1831,7 @@ BARS.defineActions(function() {
 		condition: () => !Project.box_uv && Cube.selected.length,
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
-			uv_dialog.forSelection('setAutoSize', event)
+			UVEditor.forSelection('setAutoSize', event)
 			Undo.finishEdit('Auto UV')
 		}
 	})
@@ -2109,7 +1841,7 @@ BARS.defineActions(function() {
 		condition: () => !Project.box_uv && Cube.selected.length,
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
-			uv_dialog.forSelection('setRelativeAutoSize', event)
+			UVEditor.forSelection('setRelativeAutoSize', event)
 			Undo.finishEdit('Auto UV')
 		}
 	})
@@ -2119,7 +1851,7 @@ BARS.defineActions(function() {
 		condition: () => !Project.box_uv && Cube.selected.length,
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
-			uv_dialog.forSelection('mirrorX', event)
+			UVEditor.forSelection('mirrorX', event)
 			Undo.finishEdit('Mirror UV')
 		}
 	})
@@ -2129,7 +1861,7 @@ BARS.defineActions(function() {
 		condition: () => !Project.box_uv && Cube.selected.length,
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
-			uv_dialog.forSelection('mirrorY', event)
+			UVEditor.forSelection('mirrorY', event)
 			Undo.finishEdit('Mirror UV')
 		}
 	})
@@ -2138,7 +1870,7 @@ BARS.defineActions(function() {
 		category: 'uv',
 		condition: () => !Project.box_uv && Cube.selected.length,
 		click: function (event) {
-			uv_dialog.forSelection('clear', event)
+			UVEditor.forSelection('clear', event)
 		}
 	})
 	new Action('uv_reset', {
@@ -2147,7 +1879,7 @@ BARS.defineActions(function() {
 		condition: () => !Project.box_uv && Cube.selected.length,
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
-			uv_dialog.forSelection('reset', event)
+			UVEditor.forSelection('reset', event)
 			Undo.finishEdit('Reset UV')
 		}
 	})
@@ -2157,7 +1889,7 @@ BARS.defineActions(function() {
 		condition: () => !Project.box_uv && Cube.selected.length,
 		click: function (e) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
-			main_uv.applyAll(e)
+			UVEditor.applyAll(e)
 			Undo.finishEdit('Apply UV to all faces')
 		}
 	})
@@ -2176,7 +1908,7 @@ BARS.defineActions(function() {
 		},
 		onChange: function(sel, event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true});
-			uv_dialog.forSelection('switchCullface');
+			UVEditor.forSelection('switchCullface');
 			Undo.finishEdit('Set cullface');
 		}
 	})
@@ -2186,7 +1918,7 @@ BARS.defineActions(function() {
 		condition: () => !Project.box_uv && Cube.selected.length,
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
-			uv_dialog.forSelection('autoCullface', event)
+			UVEditor.forSelection('autoCullface', event)
 			Undo.finishEdit('Set automatic cullface')
 		}
 	})
@@ -2195,7 +1927,7 @@ BARS.defineActions(function() {
 		condition: () => !Project.box_uv && Cube.selected.length,
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
-			uv_dialog.forSelection('switchTint', event)
+			UVEditor.forSelection('switchTint', event)
 			Undo.finishEdit('Toggle face tint')
 		}
 	})
@@ -2206,12 +1938,12 @@ BARS.defineActions(function() {
 			return 1;
 		},
 		get: function() {
-			return Cube.selected[0] && Cube.selected[0].faces[main_uv.face].tint
+			return Cube.selected[0] && Cube.selected[0].faces[UVEditor.face].tint
 		},
 		change: function(modify) {
 			let number = Math.clamp(Math.round(modify(this.get())), -1)
 
-			uv_dialog.forSelection('setTint', event, number)
+			UVEditor.forSelection('setTint', event, number)
 		},
 		onBefore: function() {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
@@ -2227,26 +1959,276 @@ BARS.defineActions(function() {
 		icon: 'view_quilt',
 		category: 'uv',
 		onChange(value) {
-			main_uv.showing_overlays = value;
-			main_uv.displayAllMappingOverlays();
+			//UVEditor.showing_overlays = value;
+			//UVEditor.displayAllMappingOverlays();
 		}
 	})
 })
 
 Interface.definePanels(function() {
 	
-	Interface.Panels.uv = new Panel({
+	UVEditor.panel = Interface.Panels.uv = new Panel({
 		id: 'uv',
 		icon: 'photo_size_select_large',
 		selection_only: true,
 		condition: {modes: ['edit', 'paint']},
 		toolbars: {
-			bottom: Toolbars.main_uv
+			bottom: Toolbars.UVEditor
 		},
 		onResize: function() {
-			let size = limitNumber(this.node.clientWidth - 10, 64, 1200)
-			size = Math.floor(size)
-			main_uv.setSize(size)
+			UVEditor.vue.updateSize()
+		},
+		component: {
+			data() {return {
+				mode: 'uv',
+				width: 320,
+				height: 320,
+				zoom: 1,
+				checkerboard: settings.uv_checkerboard.value,
+				texture: '',
+
+				project_resolution: [16, 16],
+				elements: [],
+				selected_vertices: {},
+				selected_faces: []
+			}},
+			computed: {
+				inner_width() {
+					return this.width * this.zoom;
+				},
+				inner_height() {
+					return this.width * (this.project_resolution[0] / this.project_resolution[1]) * this.zoom;
+				},
+				mappable_elements() {
+					return this.elements.filter(element => element.faces);
+				}
+			},
+			watch: {
+				width(width) {
+				}
+			},
+			methods: {
+				projectResolution() {
+					BarItems.project_window.trigger()
+				},
+				updateSize() {
+					let old_size = this.width;
+					let size = Math.floor(Math.clamp(UVEditor.panel.width - 10, 64, 1e5));
+					this.width = size;
+					this.$refs.viewport.scrollLeft = Math.round(this.$refs.viewport.scrollLeft * (size / old_size));
+					this.$refs.viewport.scrollTop  = Math.round(this.$refs.viewport.scrollTop  * (size / old_size));
+
+					/*for (var id in UVEditor.sliders) {
+						UVEditor.sliders[id].setWidth(size/(Project.box_uv?2:4)-1)
+					}*/
+				},
+				setMode(mode) {
+					this.mode = mode;
+				},
+				updateTexture() {
+					let texture;
+					if (Format.single_texture) {
+						texture = Texture.getDefault();
+					} else {
+						let elements = this.mappable_elements;
+						if (elements.length && this.selected_faces.length) {
+							for (let element of elements) {
+								if (element.faces[this.selected_faces[0]]) {
+									texture = element.faces[this.selected_faces[0]].getTexture();
+								}
+							}
+						}
+					}
+					if (texture == null) {
+						this.texture = null;
+						UVEditor.texture = null;
+					} else if (texture instanceof Texture) {
+						this.texture = (!texture.error || texture.error == 2) ? texture.source : '';
+					} else {
+						this.texture = '';
+					}
+				},
+				onMouseWheel(event) {
+					if (event.ctrlOrCmd) {
+				
+						event.stopPropagation()
+						event.preventDefault()
+				
+						var n = (event.deltaY < 0) ? 0.1 : -0.1;
+						n *= this.zoom
+						var number = limitNumber(this.zoom + n, 0.5, this.max_zoom)
+						let old_zoom = this.zoom;
+
+						this.zoom = number;
+						
+						let {viewport} = this.$refs;
+						let offset = $(this.$refs.viewport).offset()
+						let offsetX = event.clientX - offset.left;
+						let offsetY = event.clientY - offset.top;
+				
+						let zoom_diff = this.zoom - old_zoom;
+						viewport.scrollLeft += ((viewport.scrollLeft + offsetX) * zoom_diff) / old_zoom
+						viewport.scrollTop  += ((viewport.scrollTop  + offsetY) * zoom_diff) / old_zoom
+				
+						return false;
+					}
+				},
+				onMouseDown(event) {
+					if (event.which === 2) {
+						let {viewport} = this.$refs;
+						let coords = {x: 0, y: 0}
+						function dragMouseWheel(e2) {
+							console.log()
+							viewport.scrollLeft -= (e2.pageX - coords.x)
+							viewport.scrollTop -= (e2.pageY - coords.y)
+							coords = {x: e2.pageX, y: e2.pageY}
+						}
+						function dragMouseWheelStop(e) {
+							removeEventListeners(document, 'mousemove touchmove', dragMouseWheel);
+							removeEventListeners(document, 'mouseup touchend', dragMouseWheelStop);
+						}
+						addEventListeners(document, 'mousemove touchmove', dragMouseWheel);
+						addEventListeners(document, 'mouseup touchend', dragMouseWheelStop);
+						coords = {x: event.pageX, y: event.pageY}
+						event.preventDefault();
+						return false;
+					}
+				},
+				contextMenu(event) {
+					UVEditor.menu.open(event);
+				}
+			},
+			template: `
+				<div class="UVEditor" ref="main" :class="{checkerboard_trigger: checkerboard}" id="UVEditor">
+
+					<div class="bar next_to_title" id="uv_title_bar">
+						<div id="project_resolution_status" @click="projectResolution()">
+							{{ project_resolution[0] + ' ⨉ ' + project_resolution[1] }}
+						</div>
+					</div>
+
+					<div id="uv_viewport" @contextmenu="contextMenu($event)" @mousedown="onMouseDown($event)" @touchstart="onMouseDown($event)" @mousewheel="onMouseWheel($event)" class="checkerboard_target" ref="viewport" :style="{width: width + 'px', height: height + 'px', overflowX: (zoom > 1) ? 'scroll' : 'hidden', overflowY: (inner_height > height) ? 'scroll' : 'hidden'}">
+
+						<div id="uv_frame" ref="frame" :style="{width: inner_width + 'px', height: inner_height + 'px'}">
+
+							<template v-if="mode == 'uv'" v-for="element in mappable_elements" :key="element.uuid">
+								<template v-if="element.faces" v-for="(face, key) in element.faces" :key="key">
+									{{ element.name + ' - ' + key }}
+								</template>
+							</template>
+
+							<img style="object-fit: cover; object-position: 0px 0px;" v-if="texture" :src="texture">
+						</div>
+					</div>
+					<div class="bar uv_editor_sliders" ref="slider_bar" style="margin-left: 2px;">
+					</div>
+					<div class="toolbar_wrapper uv_editor">
+					</div>
+				</div>
+			</div>
+			`
 		}
 	})
+
+	Toolbars.uv_editor.toPlace()
+
+	let {slider_bar} = UVEditor.vue.$refs;
+
+	var onBefore = function() {
+		Undo.initEdit({elements: Cube.selected})
+	}
+	var onAfter = function() {
+		Undo.finishEdit('Edit UV')
+	}
+	var getInterval = function(event) {
+		return 1/UVEditor.grid
+	}
+	new NumSlider({
+		id: 'uv_slider_pos_x',
+		private: true,
+		condition: function() {return true},
+		get: function() {
+			if (Project.box_uv && Cube.selected[0]) {
+				return trimFloatNumber(Cube.selected[0].uv_offset[0])
+			} else if (Cube.selected[0]) {
+				var face_uv = Cube.selected[0].faces[UVEditor.face].uv
+				if (face_uv) {
+					return trimFloatNumber(face_uv[0])
+				}
+			}
+			return 0
+		},
+		change: function(modify) {
+			UVEditor.slidePos(modify, 0)
+		},
+		getInterval,
+		onBefore,
+		onAfter
+	}).toElement(slider_bar);
+
+	new NumSlider({
+		id: 'uv_slider_pos_y',
+		private: true,
+		condition: function() {return true},
+		get: function() {
+			if (Project.box_uv && Cube.selected[0]) {
+				return trimFloatNumber(Cube.selected[0].uv_offset[1])
+			} else if (Cube.selected[0]) {
+				var face_uv = Cube.selected[0].faces[UVEditor.face].uv
+				if (face_uv) {
+					return trimFloatNumber(face_uv[1])
+				}
+			}
+			return 0
+		},
+		change: function(modify) {
+			UVEditor.slidePos(modify, 1)
+		},
+		getInterval,
+		onBefore,
+		onAfter
+	}).toElement(slider_bar);
+
+	new NumSlider({
+		id: 'uv_slider_size_x',
+		private: true,
+		condition: function() {return !Project.box_uv},
+		get: function() {
+			if (!Project.box_uv && Cube.selected[0]) {
+				var face_uv = Cube.selected[0].faces[UVEditor.face].uv
+				if (face_uv) {
+					return trimFloatNumber(face_uv[2] - face_uv[0])
+				}
+			}
+			return 0
+		},
+		change: function(modify) {
+			UVEditor.slideSize(modify, 0)
+		},
+		getInterval,
+		onBefore,
+		onAfter
+	}).toElement(slider_bar);
+
+	new NumSlider({
+		id: 'uv_slider_size_y',
+		private: true,
+		condition: function() {return !Project.box_uv},
+		get: function() {
+			if (!Project.box_uv && Cube.selected[0]) {
+				var face_uv = Cube.selected[0].faces[UVEditor.face].uv
+				if (face_uv) {
+					return trimFloatNumber(face_uv[3] - face_uv[1])
+				}
+			}
+			return 0
+		},
+		change: function(modify) {
+			UVEditor.slideSize(modify, 1)
+		},
+		getInterval,
+		onBefore,
+		onAfter
+
+	}).toElement(slider_bar);
 })

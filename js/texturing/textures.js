@@ -190,7 +190,7 @@ class Texture {
 							if (result === 0) {
 								setProjectResolution(img.naturalWidth, img.naturalHeight)
 								if (selected.length) {
-									main_uv.loadData()
+									UVEditor.loadData()
 								}
 							}
 						})
@@ -436,12 +436,12 @@ class Texture {
 		this.source = dataUrl;
 		this.img.src = dataUrl;
 		this.updateMaterial();
-		if (this == main_uv.texture) {
-			main_uv.img.src = dataUrl;
+		if (this == UVEditor.texture) {
+			UVEditor.img.src = dataUrl;
 		};
-		if (open_dialog == 'uv_dialog') {
-			for (var key in uv_dialog.editors) {
-				var editor = uv_dialog.editors[key];
+		if (open_dialog == 'UVEditor') {
+			for (var key in UVEditor.editors) {
+				var editor = UVEditor.editors[key];
 				if (this == editor.texture) {
 					editor.img.src = dataUrl;
 				}
@@ -473,7 +473,7 @@ class Texture {
 
 			})
 			Painter.current = {}
-			main_uv.loadData();
+			UVEditor.loadData();
 			Blockbench.dispatchEvent( 'change_texture_path', {texture: scope} )
 		}
 		if (scope.saved || force) {
@@ -502,7 +502,7 @@ class Texture {
 		this.source = this.source.replace(/\?\d+$/, '?' + tex_version)
 		this.load();
 		this.updateMaterial()
-		TickUpdates.main_uv = true;
+		TickUpdates.UVEditor = true;
 		TickUpdates.texture_list = true;
 	}
 	reloadTexture() {
@@ -620,7 +620,7 @@ class Texture {
 		if (Format.single_texture && Cube.all.length) {
 			Canvas.updateAllFaces()
 			if (selected.length) {
-				main_uv.loadData()
+				UVEditor.loadData()
 			}
 		}
 		TickUpdates.selection = true;
@@ -644,8 +644,8 @@ class Texture {
 			Canvas.updateAllFaces()
 			TextureAnimator.updateButton()
 			hideDialog()
-			if (main_uv.texture == this) {
-				main_uv.displayTexture();
+			if (UVEditor.texture == this) {
+				UVEditor.displayTexture();
 			}
 			BARS.updateConditions()
 			Undo.finishEdit('Remove texture', {textures: []})
@@ -697,7 +697,7 @@ class Texture {
 
 		Cube.selected.forEach(function(obj) {
 			for (var face in obj.faces) {
-				if (all || Project.box_uv || face === main_uv.face) {
+				if (all || Project.box_uv || face === UVEditor.face) {
 					var f = obj.faces[face]
 					if (all !== 'blank' || (f.texture !== null && !f.getTexture())) {
 						f.texture = scope.uuid
@@ -706,7 +706,7 @@ class Texture {
 			}
 		})
 		Canvas.updateSelectedFaces()
-		main_uv.loadData()
+		UVEditor.loadData()
 		Undo.finishEdit('Apply texture')
 		return this;
 	}
@@ -1270,7 +1270,7 @@ function loadTextureDraggable() {
 							})
 							Undo.finishEdit('Drop texture')
 		
-							main_uv.loadData()
+							UVEditor.loadData()
 							Canvas.updateAllFaces()
 						}
 					}, 10)
@@ -1371,8 +1371,8 @@ TextureAnimator = {
 			$(`.texture[texid="${tex.uuid}"]`).find('img').css('margin-top', (tex.currentFrame*-48)+'px');
 			maxFrame = Math.max(maxFrame, tex.currentFrame);
 		})
-		if (animated_textures.includes(main_uv.texture)) {
-			main_uv.img.style.objectPosition = `0 -${main_uv.texture.currentFrame * main_uv.inner_height}px`;
+		if (animated_textures.includes(UVEditor.texture)) {
+			UVEditor.img.style.objectPosition = `0 -${UVEditor.texture.currentFrame * UVEditor.inner_height}px`;
 		}
 		Cube.all.forEach(cube => {
 			var update = false
@@ -1394,7 +1394,7 @@ TextureAnimator = {
 				$($('.texture').get(i)).find('img').css('margin-top', '0')
 			} 
 		})
-		main_uv.img.style.objectPosition = '';
+		UVEditor.img.style.objectPosition = '';
 		while (i < elements.length) {
 			Canvas.updateUV(elements[i], true)
 			i++;

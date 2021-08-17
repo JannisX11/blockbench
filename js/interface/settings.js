@@ -200,8 +200,8 @@ const Settings = {
 		new Setting('preview_checkerboard',	{category: 'interface', value: true, onChange() {
 			$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 		}});
-		new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange() {
-			$('.UVEditor').toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
+		new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange(val) {
+			UVEditor.vue.checkerboard = val;
 		}});
 		new Setting('timecode_frame_number',{category: 'interface', value: false, onChange() {
 			Timeline.vue.updateTimecodes();
@@ -304,11 +304,6 @@ const Settings = {
 		new Setting('animation_sample_rate',{category: 'export', value: 24, type: 'number'});
 		new Setting('sketchfab_token', {category: 'export', value: '', type: 'password'});
 		new Setting('credit', {category: 'export', value: 'Made with Blockbench', type: 'text'});
-
-		Blockbench.onUpdateTo('3.8', () => {
-			settings.preview_checkerboard.value = true;
-			settings.uv_checkerboard.value = true;
-		})
 	},
 	addCategory(id, data) {
 		if (!data) data = 0;

@@ -16,7 +16,6 @@ const Pressing = {
 		alt: false,
 	}
 }
-var main_uv;
 var Prop = {
 	active_panel	: 'preview',
 	view_mode	  	: 'textured',
@@ -130,9 +129,8 @@ function updateSelection(options = {}) {
 			document.querySelectorAll('.selection_only#uv').forEach(node => node.style.setProperty('visibility', 'visible'));
 		}
 	}
-	if (Cube.selected.length || (Format.single_texture && Modes.paint)) {
-		main_uv.jquery.size.find('.uv_mapping_overlay').remove()
-		main_uv.loadData()
+	if (Outliner.selected.length || (Format.single_texture && Modes.paint)) {
+		UVEditor.loadData()
 	}
 	if (Modes.animate) {
 		updateKeyframeSelection();
@@ -201,9 +199,9 @@ const TickUpdates = {
 				delete TickUpdates.selection;
 				updateSelection()
 			}
-			if (TickUpdates.main_uv) {
-				delete TickUpdates.main_uv;
-				main_uv.loadData()
+			if (TickUpdates.UVEditor) {
+				delete TickUpdates.UVEditor;
+				UVEditor.loadData()
 			}
 			if (TickUpdates.texture_list) {
 				delete TickUpdates.texture_list;

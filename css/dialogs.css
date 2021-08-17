@@ -883,35 +883,6 @@
 		margin-top: 5px;
 	}
 
-/*UV*/
-	#uv_dialog {
-		width: 1108px;
-	}
-	#uv_dialog .tab {
-		width: 14.28%;
-	}
-	#uv_dialog_all .UVEditor {
-		float: left;
-		padding: 8px;
-		padding-top: 0px;
-		border: 1px solid var(--color-border);
-		margin-right: -1px;
-		margin-bottom: -1px;
-	}
-	#uv_dialog_toolbar {
-		clear: both;
-		padding: 12px;
-		height: 42px;
-		padding-top: 5px;
-	}
-	#uv_dialog_all .UVEditor .uv_transform_info {
-		top: 30px;
-	}
-	#uv_dialog #uv_viewport {
-		margin-left: -8px;
-	}
-
-
 
 /*Toolbar Dialog*/
 	dialog#toolbar_edit .search_bar {
