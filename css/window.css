@@ -589,17 +589,17 @@
 	}
 
 	#start_screen .recent_project.thumbnail {
-		width: 180px;
+		display: block;
+		margin: 0;
 		height: 130px;
 		position: relative;
-		float: left;
-		margin: 2px;
 		background-color: var(--color-back);
 		cursor: pointer;
 	}
 	#start_screen .recent_project.thumbnail .thumbnail_image {
 		width: 180px;
 		height: 100px;
+		margin: auto;
 		background-size: 180px;
 		background-repeat: no-repeat;
 		cursor: pointer;
@@ -663,8 +663,11 @@
 	}
 	#start_screen section right > ul {
 		max-height: 465px;
-		overflow-y: auto;
     	padding-right: 5px;
+		overflow-y: auto;
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(170px ,1fr));
+		grid-gap: 5px;
 	}
 	#start_screen left {
 		flex-grow: 0;

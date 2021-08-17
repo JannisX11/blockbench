@@ -129,16 +129,9 @@ Interface.definePanels(() => {
 			},
 			isDarkColor(hex) {
 				if (hex) {
-					hex = hex.replace('#', '')
-					let dgts = hex.substr(0, 1) + hex.substr(2, 1) + hex.substr(4, 1)
-					let bg = parseInt(CustomTheme.data.colors.back.substr(1, 1), 16);
-					let color_range = (bg).toString(16)
-						+ (Math.isBetween(bg+2, 0, 15) ? (bg+2).toString(16) : '')
-						+ (Math.isBetween(bg+1, 0, 15) ? (bg+1).toString(16) : '')
-						+ (Math.isBetween(bg-1, 0, 15) ? (bg-1).toString(16) : '')
-						+ (Math.isBetween(bg-2, 0, 15) ? (bg-2).toString(16) : '')
-					let regex = new RegExp(`[^${color_range}]`)
-					return dgts.search(regex) == -1
+					let color_val = new tinycolor(hex).getBrightness();
+					let bg_val = new tinycolor(CustomTheme.data.colors.back).getBrightness();
+					return Math.abs(color_val - bg_val) <= 50;
 				}
 			}
 		},
