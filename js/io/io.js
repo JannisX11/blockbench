@@ -447,7 +447,6 @@ BARS.defineActions(function() {
 		icon: 'assessment',
 		category: 'file',
 		keybind: new Keybind({key: 'o', ctrl: true}),
-		condition: () => (!Project.EditSession || Project.EditSession.hosting),
 		click: function () {
 			var startpath;
 			if (isApp && recent_projects && recent_projects.length) {
@@ -466,6 +465,22 @@ BARS.defineActions(function() {
 			}, function(files) {
 				loadModelFile(files[0]);
 			})
+		}
+	})
+	new Action('open_from_link', {
+		icon: 'link',
+		category: 'file',
+		click() {
+			Blockbench.textPrompt('action.open_from_link', '', link => {
+				if (link.match(/https:\/\/blckbn.ch\//) || link.length == 4) {
+					let code = link.replace(/[/]+/g, '').substr(-4);
+					$.getJSON(`https://blckbn.ch/api/models/${code}`, (model) => {
+						Codecs.project.load(model, {path: ''});
+					}).fail(error => {
+						Blockbench.showQuickMessage('message.invalid_link')
+					})
+				}
+			}, 'https://blckbn.ch/1234')
 		}
 	})
 	new Action('extrude_texture', {

@@ -529,6 +529,7 @@ const MenuBar = {
 				}
 			},
 			'open_model',
+			'open_from_link',
 			'_',
 			'save_project',
 			'save_project_as',

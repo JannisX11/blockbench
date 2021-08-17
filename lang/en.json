@@ -164,6 +164,7 @@
 	"message.outdated_client.message": "Please update to the latest version of Blockbench to do this.",
 	"message.child_model_only.title": "Empty Child Model",
 	"message.child_model_only.message": "This file is a child of %0 and does not contain a model.",
+	"message.invalid_link": "Invalid or Expired Model Link",
 
 	"message.drag_background": "Drag the background to move its position. Hold shift and drag up and down to change its size. Click here to save the position.",
 	"message.recording_gif": "GIF creation in progress. Click here to abort.",
@@ -768,6 +769,8 @@
 	"action.open_backup_folder.desc": "Opens the Blockbench backup folder",
 	"action.open_model": "Open Model",
 	"action.open_model.desc": "Open a model file from your computer",
+	"action.open_from_link": "Open Model from Link...",
+	"action.open_from_link.desc": "Open a model from a blckbn.ch URL",
 	"action.convert_project": "Convert Project",
 	"action.convert_project.desc": "Converts the current project to a project for another model format",
 	"action.close_project": "Close Project",
