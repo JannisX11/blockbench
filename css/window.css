@@ -5,7 +5,7 @@
 		width: 100%;
 		border: 2px solid var(--color-frame);
 		border-top: none;
-		background-color: var(--color-border);
+		background-color: var(--color-dark);
 	}
 	#page_wrapper.invisible {
 		visibility: hidden;
@@ -615,7 +615,7 @@
 		left: 0px;
 		bottom: 0;
 		margin: 0;
-		padding-top: 4px;
+		padding-top: 2px;
 		position: absolute;
 		text-align: center;
 	}

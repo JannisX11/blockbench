@@ -397,7 +397,7 @@
 					<i class="material-icons">{{ project.saved ? 'clear' : 'fiber_manual_record' }}</i>
 				</div>
 			</div>
-			<div id="new_tab_button" @click="openNewTab()" :title="new_tab.name">
+			<div id="new_tab_button" v-if="!new_tab.visible" @click="openNewTab()" :title="new_tab.name">
 				<i class="material-icons">add</i>
 			</div>
 		</div>
