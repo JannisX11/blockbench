@@ -285,10 +285,8 @@ function setupInterface() {
 	window.addEventListener('orientationchange', () => {
 		setTimeout(resizeWindow, 100)
 	});
-	
-	$('.context_handler').on('click', function() {
-		$(this).addClass('ctx')
-	})
+
+	setProjectTitle()
 
 	Interface.text_edit_menu = new Menu([
 		{

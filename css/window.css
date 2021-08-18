@@ -221,6 +221,7 @@
 	}
 	div#header_free_bar.app-drag-region.resize_space {
 		margin-top: 4px;
+		padding-top: 0;
 		height: calc(100% - 4px);
 	}
 	#web_download_button {
