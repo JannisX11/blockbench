@@ -4,7 +4,9 @@ function setupDragHandlers() {
 		'model',
 		{extensions: Codec.getAllExtensions},
 		function(files) {
-			loadModelFile(files[0])
+			files.forEach(file => {
+				loadModelFile(file);
+			})
 		}
 	)
 	Blockbench.addDragHandler(
@@ -25,7 +27,9 @@ function setupDragHandlers() {
 		'plugin',
 		{extensions: ['bbplugin', 'js']},
 		function(files) {
-			new Plugin().loadFromFile(files[0], true)
+			files.forEach(file => {
+				new Plugin().loadFromFile(file, true);
+			})
 		}
 	)
 	Blockbench.addDragHandler(
@@ -47,6 +51,41 @@ function setupDragHandlers() {
 		}
 	)
 }
+
+function loadModelFile(file) {
+	
+	let existing_tab = isApp && ModelProject.all.find(project => (
+		project.save_path == file.path || project.export_path == file.path
+	))
+	if (existing_tab) {
+		existing_tab.select();
+		return;
+	}
+
+	let extension = pathToExtension(file.path);
+	// Text
+	for (let id in Codecs) {
+		let codec = Codecs[id];
+		if (codec.load_filter && codec.load_filter.type == 'text') {
+			if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, file.content)) {
+				codec.load(file.content, file);
+				return;
+			}
+		}
+	}
+	// JSON
+	let model = autoParseJSON(file.content);
+	for (let id in Codecs) {
+		let codec = Codecs[id];
+		if (codec.load_filter && codec.load_filter.type == 'json') {
+			if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, model)) {
+				codec.load(model, file);
+				return;
+			}
+		}
+	}
+}
+//Extruder
 var Extruder = {
 	drawImage: function(file) {
 		Extruder.canvas = $('#extrusion_canvas').get(0)

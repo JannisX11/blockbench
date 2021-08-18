@@ -1,7 +1,8 @@
 
 if (isApp) {
 window.BedrockEntityManager = class BedrockEntityManager {
-	constructor() {
+	constructor(project) {
+		this.project = project || Project;
 		this.root_path = '';
 	}
 	checkEntityFile(path) {
@@ -15,7 +16,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 						var geoname = main.description.geometry[key];
 						if (typeof geoname == 'string') {
 							geoname = geoname.replace(/^geometry\./, '');
-							if (geoname == Project.geometry_name) {
+							if (geoname == this.project.geometry_name) {
 								return main;
 							}
 						}
@@ -28,7 +29,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		}
 	}
 	getEntityFile() {
-		var path = Project.export_path.split(osfs);
+		var path = this.project.export_path.split(osfs);
 		var name = path.pop().replace(/\.json$/, '').replace(/\.geo$/, '');
 		var root_index = path.indexOf('models');
 		path.splice(root_index);
@@ -87,7 +88,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 					new Texture({keep_size: true}).fromPath(valid_textures_list[0]).add()
 
 				} else if (valid_textures_list.length > 1) {
-					setTimeout(() => {
+					setTimeout(() => {this.project.whenNextOpen(() => {
 						var dialog_list = '';
 						valid_textures_list.forEach((path, i) => {
 							dialog_list += `<li title="${pathToName(path, true)}" arr_index="${i}"></li>`;
@@ -128,12 +129,12 @@ window.BedrockEntityManager = class BedrockEntityManager {
 								dialog.confirm()
 							}
 						})
-					}, 2)
+					})}, 2)
 				}
 			}
 
 		} else {
-			this.findEntityTexture(Project.geometry_name)
+			this.findEntityTexture(this.project.geometry_name)
 		}
 	}
 	initAnimations() {
@@ -247,7 +248,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 			path = mob
 		}
 		if (path) {
-			var texture_path = Project.export_path.split(osfs)
+			var texture_path = this.project.export_path.split(osfs)
 			var index = texture_path.lastIndexOf('models') - texture_path.length
 			texture_path.splice(index)
 			texture_path = [...texture_path, 'textures', 'entity', ...path.split('/')].join(osfs)

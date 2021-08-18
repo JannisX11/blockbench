@@ -16,7 +16,7 @@ class ModelProject {
 		this.export_path = '';
 
 		this.undo = new UndoSystem();
-		if (isApp) this.BedrockEntityManager = new BedrockEntityManager();
+		if (isApp) this.BedrockEntityManager = new BedrockEntityManager(this);
 		this.format = options.format instanceof ModelFormat ? options.format : Formats.free;
 		this.mode = 'edit';
 		this.EditSession = null;
@@ -147,6 +147,14 @@ class ModelProject {
 	openSettings() {
 		BarItems.project_window.click();
 	}
+	whenNextOpen(callback) {
+		if (Project == this) {
+			callback();
+		} else {
+			if (!this.on_next_upen) this.on_next_upen = [];
+			this.on_next_upen.push(callback);
+		}
+	}
 	select() {
 		if (this.selected) return;
 		if (Project) {
@@ -199,6 +207,11 @@ class ModelProject {
 		updateInterface();
 		Vue.nextTick(() => {
 			loadTextureDraggable();
+
+			if (this.on_next_upen instanceof Array) {
+				this.on_next_upen.forEach(callback => callback());
+				delete this.on_next_upen;
+			}
 		})
 	}
 	unselect() {
