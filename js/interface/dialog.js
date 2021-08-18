@@ -427,6 +427,52 @@ window.Dialog = class Dialog {
 			this.onFormChange(form_result)
 		}
 	}
+	setFormValues(values) {
+		for (var form_id in this.form) {
+			let data = this.form[form_id];
+			if (values[form_id] != undefined && typeof data == 'object' && data.bar) {
+				let value = values[form_id];
+				switch (data.type) {
+					default:
+						data.bar.find('input').val(value);
+						break;
+					case 'info':
+						break;
+					case 'textarea':
+						data.bar.find('textarea').val(value);
+						break;
+					case 'select':
+						data.bar.find('select').val(value);
+						break;
+					case 'radio':
+						data.bar.find('.form_part_radio input#'+value).prop('checked', value);
+						break;
+					case 'number':
+						data.bar.find('input').val(value);
+						break;
+					case 'vector':
+						for (var i = 0; i < (data.dimensions || 3); i++) {
+							data.bar.find(`input#${form_id}_${i}`).val(value[i])
+						}
+						break;
+					case 'color':
+						data.colorpicker.set(value);
+						break;
+					case 'checkbox':
+						data.bar.find('input').prop('checked', value);
+						break;
+					case 'file':
+						if (isApp) {
+							data.value = value;
+						} else {
+							data.content = value;
+						}
+						break;
+				}
+			}
+		}
+		this.updateFormValues();
+	}
 	getFormResult() {
 		var result = {}
 		if (this.form) {

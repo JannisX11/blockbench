@@ -157,7 +157,7 @@ function addRecentProject(data) {
 		day: new Date().dayOfYear()
 	}
 	recent_projects.splice(0, 0, project)
-	app.addRecentDocument(data.path)
+	ipcRenderer.send('add-recent-project', data.path);
 	if (recent_projects.length > Math.clamp(settings.recent_projects.value, 0, 256)) {
 		recent_projects.pop()
 	}

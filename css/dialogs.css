@@ -588,6 +588,16 @@
 		width: 73px;
 		border: none;
 	}
+	dialog a.button_select_all,
+	dialog a.button_select_none {
+		text-decoration: underline;
+		cursor: pointer;
+		margin-right: 8px;
+	}
+	dialog a.button_select_all:hover,
+	dialog a.button_select_none:hover {
+		color: var(--color-accent);
+	}
 	/*Scale*/
 	#model_scale_range {
 		width: calc(100% - 50px);
