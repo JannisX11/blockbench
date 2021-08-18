@@ -936,9 +936,6 @@ BARS.defineActions(function() {
 		},
 		onSelect: function() {
 			Painter.updateNslideValues()
-		},
-		onUnselect: function() {
-			UVEditor.brush_outline.detach()
 		}
 	})
 	new Tool('fill_tool', {
