@@ -371,24 +371,30 @@ class Preview {
 		}
 		var intersects = this.raycaster.intersectObjects( objects );
 		if (intersects.length > 0) {
-			if (intersects.length > 1 && Toolbox.selected.id == 'vertex_snap_tool') {
-				var intersect;
-				for (var sct of intersects) {
-					if (sct.object.isVertex) {
-						intersect = sct.object;
-						break;
-					}
-				}
-				if (!intersect) intersect = intersects[0].object;
+			if (intersects.length > 1 && intersects.find(intersect => intersect.object.type == 'Points')) {
+				var intersect = intersects.find(intersect => intersect.object.type == 'Points')
 			} else {
-				var intersect = intersects[0].object
+				var intersect = intersects[0]
 			}
+			let intersect_object = intersect.object
 
-			if (intersect.isElement) {
-				var element = OutlinerNode.uuids[intersect.name]
+			if (intersect_object.isElement) {
+				var element = OutlinerNode.uuids[intersect_object.name]
 				let face;
 				if (element instanceof Cube) {
-					Canvas.face_order[Math.floor(intersect.faceIndex / 2)];
+					face = Canvas.face_order[Math.floor(intersect.faceIndex / 2)];
+				} else if (element instanceof Mesh) {
+					let index = intersect.faceIndex;
+					for (let key in element.faces) {
+						let {vertices} = element.faces[key];
+
+						if (index == 0 || (index == 1 && vertices.length == 4)) {
+							face = key;
+							break; 
+						}
+						if (vertices.length == 3) index -= 1;
+						if (vertices.length == 4) index -= 2;
+					}
 				}
 
 				return {
@@ -398,9 +404,9 @@ class Preview {
 					face,
 					element
 				}
-			} else if (intersect.type == 'Points') {
-				var element = OutlinerNode.uuids[intersect.parent.parent.name];
-				let vertex = Object.keys(element.vertices)[intersects[0].index];
+			} else if (intersect_object.type == 'Points') {
+				var element = OutlinerNode.uuids[intersect_object.parent.parent.name];
+				let vertex = Object.keys(element.vertices)[intersect.index];
 				return {
 					event,
 					type: 'vertex',
@@ -409,16 +415,16 @@ class Preview {
 					intersect,
 					vertex
 				}
-			} else if (intersect.isVertex) {
+			} else if (intersect_object.isVertex) {
 				return {
 					event,
 					type: 'cube_vertex',
 					intersects,
-					element: intersect.element,
+					element: intersect_object.element,
 					vertex: intersect
 				}
-			} else if (intersect.isKeyframe) {
-				let keyframe = Timeline.keyframes.find(kf => kf.uuid == intersect.keyframeUUID);
+			} else if (intersect_object.isKeyframe) {
+				let keyframe = Timeline.keyframes.find(kf => kf.uuid == intersect_object.keyframeUUID);
 				return {
 					event,
 					type: 'keyframe',
@@ -1421,12 +1427,6 @@ Blockbench.on('update_camera_position', e => {
 			preview.raycaster.params.Points.threshold = scale * 0.6;
 		}
 	})
-	Mesh.all.forEach(mesh => {
-		if (mesh.mesh.vertex_points.visible) {
-			mesh.mesh.vertex_points.position.set(0, 0, scale * 0.6);
-			mesh.mesh.vertex_points.position.applyQuaternion(Preview.selected.camera.quaternion);
-		}
-	})
 })
 
 function openQuadView() {
@@ -2216,7 +2216,7 @@ function updateShading() {
 }
 function updateCubeHighlights(hover_cube, force_off) {
 	Outliner.elements.forEach(element => {
-		if (element.visibility) {
+		if (element.visibility && element.mesh.geometry) {
 			var mesh = element.mesh;
 			let highlighted = (
 				Settings.get('highlight_cubes') &&

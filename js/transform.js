@@ -233,10 +233,12 @@ const Vertexsnap = {
 
 		var o_vertices = cube.mesh.geometry.vertices
 		cube.mesh.updateMatrixWorld()
+		/*
 		o_vertices.forEach(function(v, id) {
 			Vertexsnap.createVertexGizmo(cube, v, id)
 		})
 		Vertexsnap.createVertexGizmo(cube, new THREE.Vector3(), 100)
+		*/
 		Vertexsnap.vertexed_cubes.push(cube)
 		Vertexsnap.updateVertexSize()
 	},
@@ -605,15 +607,15 @@ function moveElementsInSpace(difference, axis) {
 
 			Project.selected_vertices[el.uuid].forEach(key => {
 
-					if (space == 2) {
-						el.vertices[key][axis] += difference;
-	
-					} else {
-						let m = new THREE.Vector3();
-						m[getAxisLetter(axis)] = difference;
-						m.applyQuaternion(el.mesh.getWorldQuaternion(quaternion).invert());
-						el.vertices[key].V3_add(m.x, m.y, m.z);
-					}
+				if (space == 2) {
+					el.vertices[key][axis] += difference;
+
+				} else {
+					let m = new THREE.Vector3();
+					m[getAxisLetter(axis)] = difference;
+					m.applyQuaternion(el.mesh.getWorldQuaternion(quaternion).invert());
+					el.vertices[key].V3_add(m.x, m.y, m.z);
+				}
 
 			})
 
@@ -693,19 +695,15 @@ function getRotationInterval(event) {
 }
 function getRotationObject() {
 	if (Format.bone_rig && Group.selected) return Group.selected;
-	if (Format.rotate_cubes && Cube.selected.length) return Cube.selected;
-	if (Locator.selected.length) return Locator.selected;
+	let elements = Outliner.selected.filter(element => {
+		return element.rotatable && (element instanceof Cube == false || Format.rotate_cubes);
+	})
+	if (elements.length) return elements;
 }
 function rotateOnAxis(modify, axis, slider) {
-	var things;
-	if (Format.bone_rig && Group.selected) {
-		things = [Group.selected]
-	} else if (Format.rotate_cubes && Cube.selected.length) {
-		things = Cube.selected;
-	} else if (Locator.selected.length) {
-		things = Locator.selected;
-	}
+	var things = getRotationObject();
 	if (!things) return;
+	if (things instanceof Array == false) things = [things];
 	/*
 	if (Format.bone_rig && Group.selected) {	
 		if (!Group.selected) return;
@@ -792,8 +790,38 @@ function rotateOnAxis(modify, axis, slider) {
 				obj.origin.V3_set(origin)
 			}
 		}
+		
+		if (!Group.selected && obj instanceof Mesh && Project.selected_vertices[obj.uuid] && Project.selected_vertices[obj.uuid].length > 0) {
 
-		if (slider || (space == 2 && Format.rotation_limit)) {
+			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)
+			let rotWorldMatrix = new THREE.Matrix4();
+			rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(modify(0)))
+			if (space instanceof Group || space == 'root') {
+				rotWorldMatrix.multiply(mesh.matrix);
+			} else if (space == 0) {
+				rotWorldMatrix.multiply(mesh.matrixWorld);
+			}
+			let q = new THREE.Quaternion().setFromRotationMatrix(rotWorldMatrix);
+			if (space instanceof Group || space == 'root') {
+				q.premultiply(mesh.quaternion.invert());
+				mesh.quaternion.invert();
+			} else if (space == 0) {
+				let quat = mesh.getWorldQuaternion(new THREE.Quaternion()).invert();
+				q.premultiply(quat);
+			}
+
+			let vector = new THREE.Vector3();
+			let local_pivot = obj.mesh.worldToLocal(new THREE.Vector3().copy(Transformer.position))
+
+			Project.selected_vertices[obj.uuid].forEach(key => {
+				vector.fromArray(obj.vertices[key]);
+				vector.sub(local_pivot);
+				vector.applyQuaternion(q);
+				vector.add(local_pivot);
+				obj.vertices[key].V3_set(vector.x, vector.y, vector.z);
+			})
+
+		} else if (slider || (space == 2 && Format.rotation_limit)) {
 			var obj_val = modify(obj.rotation[axis]);
 			obj_val = Math.trimDeg(obj_val)
 			if (Format.rotation_limit) {

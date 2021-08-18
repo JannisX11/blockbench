@@ -838,7 +838,7 @@ new NodePreviewController(Cube, {
 		mesh.isElement = true;
 		mesh.visible = element.visibility;
 
-		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24).fill(1), 1));
+		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24).fill(0), 1));
 
 		// Outline
 		let geometry = new THREE.BufferGeometry();

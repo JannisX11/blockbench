@@ -103,6 +103,7 @@ const Canvas = {
 	transparentMaterial: new THREE.MeshBasicMaterial({visible: false, name: 'invisible'}),
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
 	face_order: ['east', 'west', 'up', 'down', 'south', 'north'],
+	temp_vectors: [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()],
 	//Misc
 	raycast(event) {
 		var preview = Canvas.getHoveredPreview()

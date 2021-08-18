@@ -102,13 +102,13 @@ class MeshFace {
 
 		// Test if point "check" is on the other side of the line between "base1" and "base2", compared to "top"
 		function test(base1, base2, top, check) {
-			base1 = new THREE.Vector3().fromArray(base1);
-			base2 = new THREE.Vector3().fromArray(base2);
-			top = new THREE.Vector3().fromArray(top);
-			check = new THREE.Vector3().fromArray(check);
+			base1 = Canvas.temp_vectors[0].fromArray(base1);
+			base2 = Canvas.temp_vectors[1].fromArray(base2);
+			top = Canvas.temp_vectors[2].fromArray(top);
+			check = Canvas.temp_vectors[3].fromArray(check);
 
 			// Construct a plane with coplanar points "base1" and "base2" with a normal towards "top"
-			let normal = new THREE.Vector3();
+			let normal = Canvas.temp_vectors[4];
 			new THREE.Line3(base1, base2).closestPointToPoint(top, false, normal);
 			normal.sub(top);
 			let plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, base2);
@@ -336,7 +336,7 @@ new NodePreviewController(Mesh, {
 		mesh.type = element.type;
 		mesh.isElement = true;
 
-		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24).fill(1), 1));
+		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24), 1));
 
 		// Outline
 		let outline = new THREE.LineSegments(new THREE.BufferGeometry(), Canvas.outlineMaterial);
