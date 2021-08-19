@@ -1114,6 +1114,7 @@
 	#uv_viewport {
 		height: 320px;
 		width: 320px;
+		margin: auto;
 		position: relative;
 		overflow: hidden;
 	}
@@ -1176,10 +1177,14 @@
 	.cube_uv_face {
 		position: absolute;
 		z-index: 1;
+		width: var(--width);
+		height: var(--height);
 		cursor: move;
-		border: 2px solid var(--color-grid);
+		border: 2px solid var(--color-text);
 		box-sizing: border-box;
 		background-color: rgba(50, 70, 240, 0.14);
+		text-align: center;
+		color: var(--color-subtle_text);
 	}
 	.cube_uv_face:hover {
 		border-color: var(--color-light);
@@ -1188,6 +1193,42 @@
 	}
 	.cube_uv_face.selected {
 		border-color: var(--color-accent);
+		z-index: 3;
+	}
+
+	.uv_resize_side {
+		position: absolute;
+		top: 0;
+		left: 0;
+	}
+	.uv_resize_side.horizontal {
+		cursor: n-resize;
+		height: 6px;
+		margin-top: -4px;
+	}
+	.uv_resize_side.vertical {
+		cursor: w-resize;
+		width: 6px;
+		margin-left: -4px;
+	}
+	.uv_resize_corner {
+		position: absolute;
+		margin: -6px;
+		height: 8px;
+		width: 8px;
+		background-color:  var(--color-text);
+		z-index: 3;
+	}
+	.uv_resize_corner.uv_c_nw {cursor: nw-resize;}
+	.uv_resize_corner.uv_c_ne {cursor: ne-resize;}
+	.uv_resize_corner.uv_c_sw {cursor: sw-resize;}
+	.uv_resize_corner.uv_c_se {cursor: se-resize;}
+
+	#uv_seleced_faces {
+		display: flex;
+	}
+	#uv_seleced_faces li {
+		padding: 0 5px;
 	}
 	/*
 	#uv_size {

@@ -156,6 +156,9 @@ function updateSelection(options = {}) {
 function selectAll() {
 	if (Modes.animate) {
 		selectAllKeyframes()
+	} else if (Prop.active_panel == 'uv') {
+		UVEditor.selectAll()
+
 	} else if (Modes.edit || Modes.paint) {
 		if (Outliner.selected.length < Outliner.elements.length) {
 			if (Outliner.root.length == 1) {

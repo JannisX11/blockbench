@@ -58,7 +58,7 @@ class ModelProject {
 	get texture_height() {return this._texture_height}
 	set texture_width(n) {
 		n = parseInt(n)||16
-		Vue.nextTick(updateProjectResolution)
+		if (this.selected) Vue.nextTick(updateProjectResolution)
 		this._texture_width = n;
 	}
 	get optional_box_uv() {
@@ -66,7 +66,7 @@ class ModelProject {
 	}
 	set texture_height(n) {
 		n = parseInt(n)||16
-		Vue.nextTick(updateProjectResolution)
+		if (this.selected) Vue.nextTick(updateProjectResolution)
 		this._texture_height = n;
 	}
 	get name() {
@@ -174,6 +174,7 @@ class ModelProject {
 		UVEditor.vue.elements = this.selected_elements;
 		UVEditor.vue.selected_vertices = this.selected_vertices;
 		UVEditor.vue.selected_faces = this.selected_faces;
+		UVEditor.vue.box_uv = this.box_uv;
 
 		Interface.Panels.textures.inside_vue.textures = Texture.all;
 		scene.add(this.model_3d);
@@ -202,6 +203,7 @@ class ModelProject {
 		setProjectTitle(this.name);
 		setStartScreen(!Project);
 		updateInterface();
+		updateProjectResolution();
 		Vue.nextTick(() => {
 			loadTextureDraggable();
 		})
