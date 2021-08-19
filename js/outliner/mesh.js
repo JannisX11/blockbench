@@ -1,9 +1,6 @@
 class MeshFace {
 	constructor(mesh, data) {
 		this.mesh = mesh;
-		//this.uuid = uuid || guid();
-		//this.vertices = [];
-		//this.normal = [0, 1, 0];
 		this.texture = false;
 		this.uv = {};
 		for (var key in MeshFace.properties) {
@@ -12,9 +9,21 @@ class MeshFace {
 		if (data) this.extend(data);
 	}
 	extend(data) {
-		for (var key in MeshFace.properties) {
+		for (let key in MeshFace.properties) {
 			MeshFace.properties[key].merge(this, data)
 		}
+		this.vertices.forEach(key => {
+			if (!this.uv[key]) this.uv[key] = [0, 0];
+			if (data.uv && data.uv[key] instanceof Array) {
+				this.uv[key].replace(data.uv[key]);
+			}
+		})
+		for (let key in this.uv) {
+			if (!this.vertices.includes(key)) {
+				delete this.uv[key];
+			}
+		}
+
 		if (data.texture === null) {
 			this.texture = null;
 		} else if (data.texture === false) {
@@ -140,11 +149,19 @@ class Mesh extends OutlinerElement {
 			this.addVertices([16, 16, 16], [16, 16, 0], [16, 0, 16], [16, 0, 0], [0, 16, 16], [0, 16, 0], [0, 0, 16], [0, 0, 0]);
 			let vertex_keys = Object.keys(this.vertices);
 			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[1], vertex_keys[3]]} ));	// East
-			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[4], vertex_keys[6], vertex_keys[5], vertex_keys[7]]} ));	// West
-			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[4], vertex_keys[1], vertex_keys[5]]} ));	// Up
-			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[2], vertex_keys[3], vertex_keys[6], vertex_keys[7]]} ));	// Down
-			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[4], vertex_keys[6]]} ));	// South
-			//this.addFaces(new MeshFace( this, {vertices: [vertex_keys[1], vertex_keys[5], vertex_keys[3], vertex_keys[7]]} ));	// North
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[4], vertex_keys[6], vertex_keys[5], vertex_keys[7]]} ));	// West
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[4], vertex_keys[1], vertex_keys[5]]} ));	// Up
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[2], vertex_keys[3], vertex_keys[6], vertex_keys[7]]} ));	// Down
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[4], vertex_keys[6]]} ));	// South
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[1], vertex_keys[5], vertex_keys[3], vertex_keys[7]]} ));	// North
+
+			for (let key in this.faces) {
+				let face = this.faces[key];
+				face.uv[face.vertices[0]] = [0, 0];
+				face.uv[face.vertices[1]] = [0, 16];
+				face.uv[face.vertices[2]] = [16, 0];
+				face.uv[face.vertices[3]] = [16, 16];
+			}
 		}
 		for (var key in Mesh.properties) {
 			Mesh.properties[key].reset(this);
@@ -209,11 +226,22 @@ class Mesh extends OutlinerElement {
 			Mesh.properties[key].merge(this, object)
 		}
 		if (typeof object.vertices == 'object') {
+			for (let key in this.vertices) {
+				if (!object.vertices[key]) {
+					delete this.vertices[key];
+				}
+			}
 			for (let key in object.vertices) {
-				this.vertices[key] = object.vertices[key].slice();
+				if (!this.vertices[key]) this.vertices[key] = [];
+				this.vertices[key].replace(object.vertices[key]);
 			}
 		}
 		if (typeof object.faces == 'object') {
+			for (let key in this.faces) {
+				if (!object.faces[key]) {
+					delete this.faces[key];
+				}
+			}
 			for (let key in object.faces) {
 				if (this.faces[key]) {
 					this.faces[key].extend(object.faces[key])
@@ -359,10 +387,8 @@ new NodePreviewController(Mesh, {
 		this.updateTransform(element);
 		this.updateGeometry(element);
 		this.updateFaces(element);
+		this.updateUV(element);
 		mesh.visible = element.visibility;
-		if (Prop.view_mode === 'textured') {
-			this.updateUV(element);
-		}
 	},
 	updateGeometry(element) {
 		
@@ -444,7 +470,6 @@ new NodePreviewController(Mesh, {
 		mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normal_array), 3));
 		mesh.geometry.setIndex(indices);
 
-		mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]), 2)), 
 		mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
 
 		mesh.geometry.computeVertexNormals();
@@ -481,33 +506,25 @@ new NodePreviewController(Mesh, {
 			mesh.material = materials
 		}
 	},
-	updateUV(cube, animation = true) {
-		if (Prop.view_mode !== 'textured') return;
-		var mesh = cube.mesh
+	updateUV(element, animation = true) {
+		var {mesh} = element;
 		if (mesh === undefined || !mesh.geometry) return;
-		return;
+		let uv_array = [];
 
-	
-		var stretch = 1
-		var frame = 0
+		for (let key in element.faces) {
+			let face = element.faces[key];
+			
+			face.vertices.forEach((key, i) => {
+				uv_array.push(
+					  ((face.uv[key] ? face.uv[key][0] : 0) / Project.texture_width),
+					1-((face.uv[key] ? face.uv[key][1] : 0) / Project.texture_height)
+				)
+			})
+		}
 
-		Canvas.face_order.forEach((face, fIndex) => {
-
-			if (cube.faces[face].texture == null) return;
-
-			stretch = 1;
-			frame = 0;
-			let tex = cube.faces[face].getTexture();
-			if (tex instanceof Texture && tex.frameCount !== 1) {
-				stretch = tex.frameCount
-				if (animation === true && tex.currentFrame) {
-					frame = tex.currentFrame
-				}
-			}
-			Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, cube.faces[face], frame, stretch)
-		})
-
+		mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uv_array), 2)), 
 		mesh.geometry.attributes.uv.needsUpdate = true;
+
 		return mesh.geometry;
 	},
 	updateSelection(element) {
