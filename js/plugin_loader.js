@@ -36,6 +36,7 @@ class Plugin {
 		this.about = '';
 		this.icon = '';
 		this.tags = [];
+		this.version = '0.0.1';
 		this.variant = 'both';
 		this.min_version = '';
 		this.max_version = '';
@@ -55,6 +56,7 @@ class Plugin {
 		Merge.string(this, data, 'description')
 		Merge.string(this, data, 'about')
 		Merge.string(this, data, 'icon')
+		Merge.string(this, data, 'version')
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
 		Merge.boolean(this, data, 'await_loading');
@@ -307,6 +309,7 @@ class Plugin {
 		return (result === true) ? true : tl('dialog.plugins.'+result);
 	}
 	toggleInfo(force) {
+		if (!this.about) return;
 		var scope = this;
 		Plugins.all.forEach(function(p) {
 			if (p !== scope && p.expanded) p.expanded = false;
@@ -366,8 +369,9 @@ if (isApp) {
 }
 
 Plugins.loading_promise = new Promise((resolve, reject) => {
-	$.getJSON('https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins.json', function(data) {
+	$.getJSON('https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins.json?'+Math.round(Math.random()*100), function(data) {
 		Plugins.json = data
+		console.log(data.minecraft_entity_wizard)
 		resolve();
 		Plugins.loading_promise.resolved = true;
 	}).fail(function() {
@@ -476,6 +480,7 @@ BARS.defineActions(function() {
 		id: 'plugins',
 		title: 'dialog.plugins.title',
 		singleButton: true,
+		width: 760,
 		component: {
 			data: {
 				tab: 'installed',
@@ -521,14 +526,15 @@ BARS.defineActions(function() {
 						<search-bar id="plugin_search_bar" v-model="search_term"></search-bar>
 					</div>
 					<ul class="list" id="plugin_list">
-						<li v-for="plugin in plugin_search" v-bind:plugin="plugin.id" v-bind:class="{testing: plugin.fromFile, expanded: plugin.expanded}">
+						<li v-for="plugin in plugin_search" v-bind:plugin="plugin.id" v-bind:class="{plugin: true, testing: plugin.fromFile, expanded: plugin.expanded, has_about_text: !!plugin.about}">
 							<div class="title" v-on:click="plugin.toggleInfo()">
-								<div class="icon_wrapper plugin_icon normal" v-html="Blockbench.getIconNode(plugin.icon, plugin.color).outerHTML"></div>
+								<div class="icon_wrapper plugin_icon normal" v-html="Blockbench.getIconNode(plugin.icon || 'error_outline', plugin.icon ? plugin.color : 'var(--color-close)').outerHTML"></div>
 
 								<i v-if="plugin.expanded" class="material-icons plugin_expand_icon">expand_less</i>
 								<i v-else class="material-icons plugin_expand_icon">expand_more</i>
-								{{ plugin.title }}
+								{{ plugin.title || plugin.id }}
 							</div>
+							<div class="plugin_version">{{ plugin.version }}</div>
 							<div class="button_bar" v-if="plugin.installed || plugin.isInstallable() == true">
 								<button type="button" class="" v-on:click="plugin.uninstall()" v-if="plugin.installed"><i class="material-icons">delete</i><span class="tl">${tl('dialog.plugins.uninstall')}</span></button>
 								<button type="button" class="" v-on:click="plugin.download(true)" v-else><i class="material-icons">add</i><span class="tl">${tl('dialog.plugins.install')}</span></button>

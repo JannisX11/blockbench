@@ -27,6 +27,7 @@ class ModelProject {
 		this.selected_elements = [];
 		this.selected_group = null;
 		this.selected_vertices = {};
+		this.selected_faces = [null];
 		this.textures = [];
 		this.selected_texture = null;
 		this.outliner = [];
@@ -58,7 +59,9 @@ class ModelProject {
 	get texture_height() {return this._texture_height}
 	set texture_width(n) {
 		n = parseInt(n)||16
-		if (n != this._texture_width) Vue.nextTick(updateProjectResolution)
+		if (this.selected && n != this._texture_width) {
+			Vue.nextTick(updateProjectResolution);
+		}
 		this._texture_width = n;
 	}
 	get optional_box_uv() {
@@ -66,7 +69,9 @@ class ModelProject {
 	}
 	set texture_height(n) {
 		n = parseInt(n)||16
-		if (n != this._texture_height) Vue.nextTick(updateProjectResolution)
+		if (this.selected && n != this._texture_height) {
+			Vue.nextTick(updateProjectResolution);
+		}
 		this._texture_height = n;
 	}
 	get name() {
@@ -171,6 +176,11 @@ class ModelProject {
 		Outliner.root = this.outliner;
 		Interface.Panels.outliner.inside_vue.root = this.outliner;
 
+		UVEditor.vue.elements = this.selected_elements;
+		UVEditor.vue.selected_vertices = this.selected_vertices;
+		UVEditor.vue.selected_faces = this.selected_faces;
+		UVEditor.vue.box_uv = this.box_uv;
+
 		Interface.Panels.textures.inside_vue.textures = Texture.all;
 		scene.add(this.model_3d);
 
@@ -178,6 +188,7 @@ class ModelProject {
 		Animation.selected = null;
 		let selected_anim = this.animations.find(anim => anim.selected);
 		if (selected_anim) selected_anim.select();
+		Timeline.animators = this.timeline_animators;
 		Timeline.vue.animators = this.timeline_animators;
 
 		Interface.Panels.variable_placeholders.inside_vue.text = this.variable_placeholders.toString();
@@ -285,6 +296,10 @@ new Property(ModelProject, 'vector', 'visible_box', {
 new Property(ModelProject, 'string', 'variable_placeholders', {
 	exposed: false,
 });
+new Property(ModelProject, 'number', 'shadow_size', {
+	label: 'dialog.project.shadow_size',
+	condition: {formats: ['optifine_entity']}
+});
 
 
 ModelProject.all = [];
@@ -345,11 +360,13 @@ function setProjectResolution(width, height, modify_uv) {
 	Undo.finishEdit('Changed project resolution')
 	Canvas.updateAllUVs()
 	if (selected.length) {
-		main_uv.loadData()
+		UVEditor.loadData()
 	}
 }
 function updateProjectResolution() {
-	document.querySelector('#project_resolution_status').textContent = `${Project.texture_width} ⨉ ${Project.texture_height}`;
+	if (Interface.Panels.uv) {
+		UVEditor.vue.project_resolution.replace([Project.texture_width, Project.texture_height]);
+	}
 	if (Texture.selected) {
 		// Update animated textures
 		Texture.selected.height++;

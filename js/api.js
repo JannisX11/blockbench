@@ -213,12 +213,13 @@ const Blockbench = {
 
 		var jq_dialog = $(`
 			<dialog class="dialog" style="width: auto;" id="message_box">
-				<div class="dialog_handle">${tl(options.title)}</div>
+				<div class="dialog_handle"><div class="dialog_title">${tl(options.title)}</div></div>
 				<div class="dialog_close_button" onclick="open_interface.cancel()"><i class="material-icons">clear</i></div>
 			</dialog>`)
 
-		jq_dialog.append('<div class="dialog_bar" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
-			marked(tl(options.message))+'</div>'
+		jq_dialog.append('<div class="dialog_content"><div class="dialog_bar" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
+			marked(tl(options.message))+
+			'</div></div>'
 		)
 		if (options.icon) {
 			jq_dialog.find('.dialog_bar').prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'))

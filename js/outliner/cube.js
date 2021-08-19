@@ -85,7 +85,7 @@ class Face {
 }
 new Property(Face, 'number', 'rotation', {default: 0});
 new Property(Face, 'number', 'tint', {default: -1});
-new Property(Face, 'string', 'cullface', {merge_validation: (val) => (uv_dialog.allFaces.includes(val) || val == '')});
+new Property(Face, 'string', 'cullface', )//{merge_validation: (val) => (UVEditor.cube_faces.includes(val) || val == '')});
 new Property(Face, 'string', 'material_name');
 new Property(Face, 'boolean', 'enabled', {default: true});
 
@@ -536,7 +536,7 @@ class Cube extends OutlinerElement {
 		if (faces === true || Project.box_uv) {
 			var sides = ['north', 'east', 'south', 'west', 'up', 'down']
 		} else if (faces === undefined) {
-			var sides = [main_uv.face]
+			var sides = [UVEditor.face]
 		} else {
 			var sides = faces
 		}
@@ -550,7 +550,7 @@ class Cube extends OutlinerElement {
 			scope.faces[side].texture = value
 		})
 		if (selected.indexOf(this) === 0) {
-			main_uv.loadData()
+			UVEditor.loadData()
 		}
 		if (Prop.view_mode === 'textured') {
 			this.preview_controller.updateFaces(this);
@@ -1097,7 +1097,7 @@ BARS.defineActions(function() {
 				for (var face in base_cube.faces) {
 					base_cube.faces[face].texture = Texture.getDefault().uuid
 				}
-				main_uv.loadData()
+				UVEditor.loadData()
 			}
 			if (Format.bone_rig) {
 				if (group) {

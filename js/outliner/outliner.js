@@ -882,14 +882,18 @@ function toggleCubeProperty(key) {
 	Undo.finishEdit('Toggle ' + key)
 }
 
+StateMemory.init('advanced_outliner_toggles', 'boolean')
 
 BARS.defineActions(function() {
 	new Toggle('outliner_toggle', {
 		icon: 'dns',
 		category: 'edit',
 		keybind: new Keybind({key: 115}),
+		default: StateMemory.advanced_outliner_toggles,
 		onChange: function (value) {
-			Outliner.vue._data.options.show_advanced_toggles = value;
+			Outliner.vue.options.show_advanced_toggles = value;
+			StateMemory.advanced_outliner_toggles = value;
+			StateMemory.save('advanced_outliner_toggles');
 		}
 	})
 	new BarText('cube_counter', {
@@ -1183,6 +1187,7 @@ Interface.definePanels(function() {
 	Vue.component('vue-tree-item', VueTreeItem);
 
 	function eventTargetToNode(target) {
+		if (!target) return [];
 		let target_node = target;
 		let i = 0;
 		while (target_node && target_node.classList && !target_node.classList.contains('outliner_node')) {
@@ -1225,7 +1230,7 @@ Interface.definePanels(function() {
 				root: Outliner.root,
 				options: {
 					width: 300,
-					show_advanced_toggles: false,
+					show_advanced_toggles: StateMemory.advanced_outliner_toggles,
 					hidden_types: []
 				}
 			}},
@@ -1327,6 +1332,18 @@ Interface.definePanels(function() {
 					let drop_target, drop_target_node, order;
 					let last_event = e1;
 
+					// scrolling
+					let list = document.getElementById('cubes_list');
+					let list_offset = $(list).offset();
+					let scrollInterval = function() {
+						if (!active) return;
+						if (mouse_pos.y < list_offset.top) {
+							list.scrollTop += (mouse_pos.y - list_offset.top) / 7 - 3;
+						} else if (mouse_pos.y > list_offset.top + list.clientHeight) {
+							list.scrollTop += (mouse_pos.y - (list_offset.top + list.clientHeight)) / 6 + 3;
+						}
+					}
+
 					function move(e2) {
 						convertTouchEvent(e2);
 						let offset = [
@@ -1363,6 +1380,8 @@ Interface.definePanels(function() {
 									helper.append(counter);
 								}
 								document.body.append(helper);
+
+								setInterval(scrollInterval, 1000/60)
 							}
 							helper.style.left = `${e2.clientX}px`;
 							helper.style.top = `${e2.clientY}px`;
@@ -1387,6 +1406,7 @@ Interface.definePanels(function() {
 					}
 					function off(e2) {
 						if (helper) helper.remove();
+						clearInterval(scrollInterval);
 						removeEventListeners(document, 'mousemove touchmove', move);
 						removeEventListeners(document, 'mouseup touchend', off);
 						$('.drag_hover').removeClass('drag_hover');

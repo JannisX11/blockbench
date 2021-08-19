@@ -5,6 +5,7 @@ const Painter = {
 	selection: {},
 	mirror_painting: false,
 	lock_alpha: false,
+	erase_mode: false,
 	edit(texture, cb, options) {
 		if (!options.no_undo) {
 			Undo.initEdit({textures: [texture], bitmap: true})
@@ -352,11 +353,15 @@ const Painter = {
 		
 		var color = tinycolor(ColorPanel.get()).toRgb();
 		let b_opacity = BarItems.slider_brush_opacity.get()/100;
-		let tool = Toolbox.selected.id;
 
 		let {rect, uvFactorX, uvFactorY, w, h} = area;
 
 		ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
+
+		if (Painter.erase_mode && (fill_mode === 'cube' || fill_mode === 'face')) {
+			ctx.globalAlpha = b_opacity;
+			ctx.globalCompositeOperation = 'destination-out'
+		}
 
 		var fill_mode = BarItems.fill_mode.get()
 		var cube = Painter.current.cube;
@@ -416,7 +421,16 @@ const Painter = {
 						b: px[2],
 						a: px[3]/255
 					}
-					var result_color = Painter.combineColors(pxcolor, color, b_opacity);
+					var result_color = pxcolor;
+					if (!Painter.erase_mode) {
+						result_color = Painter.combineColors(pxcolor, color, b_opacity);
+					} else if (!Painter.lock_alpha) {
+						if (b_opacity == 1) {
+							result_color.r = result_color.g = result_color.b = result_color.a = 0;
+						} else {
+							result_color.a = Math.clamp(result_color.a * (1-b_opacity), 0, 1);
+						}
+					}
 					px[0] = result_color.r
 					px[1] = result_color.g
 					px[2] = result_color.b
@@ -424,6 +438,8 @@ const Painter = {
 				}
 			})
 		}
+		ctx.globalAlpha = 1.0;
+		ctx.globalCompositeOperation = 'source-over'
 	},
 	runMirrorBrush(texture, x, y, event, uvTag) {
 		if (uvTag && Painter.current.cube) {
@@ -534,6 +550,11 @@ const Painter = {
 				diff_y = diff_y>0 ? clamp : -clamp;
 			}
 
+			if (Painter.erase_mode) {
+				ctx.globalAlpha = b_opacity;
+				ctx.globalCompositeOperation = 'destination-out'
+			}
+
 			if (shape === 'rectangle') {
 				ctx.strokeStyle = ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
 				ctx.lineWidth = width;
@@ -551,7 +572,16 @@ const Painter = {
 				Painter.modifyCanvasSection(ctx, rect[0], rect[1], w, h, (changePixel) => {
 					//changePixel(0, 0, editPx)
 					function editPx(pxcolor) {
-						return Painter.combineColors(pxcolor, color, b_opacity);
+						if (!Painter.erase_mode) {
+							return Painter.combineColors(pxcolor, color, b_opacity);
+						} else {
+							if (b_opacity == 1) {
+								pxcolor.r = pxcolor.g = pxcolor.b = pxcolor.a = 0;
+							} else {
+								pxcolor.a = Math.clamp(pxcolor.a * (1-b_opacity), 0, 1);
+							}
+							return pxcolor;
+						}
 					}
 					if (hollow) {
 						let r_min = Math.trunc(-width/2);
@@ -609,6 +639,8 @@ const Painter = {
 				})
 			}
 			//Painter.editing_area = undefined;
+			ctx.globalAlpha = 1.0;
+			ctx.globalCompositeOperation = 'source-over';
 
 		}, {no_undo: true, use_cache: true});
 	},
@@ -904,11 +936,6 @@ BARS.defineActions(function() {
 		},
 		onSelect: function() {
 			Painter.updateNslideValues()
-		},
-		onUnselect: function() {
-			uv_dialog.all_editors.forEach(editor => {
-				editor.brush_outline.detach()
-			})
 		}
 	})
 	new Tool('fill_tool', {
@@ -1018,7 +1045,10 @@ BARS.defineActions(function() {
 		allowed_view_modes: ['textured'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
-		keybind: new Keybind({key: 'm'})
+		keybind: new Keybind({key: 'm'}),
+		onCanvasClick() {
+			Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
+		}
 	})
 
 	new BarSelect('draw_shape_type', {
@@ -1062,6 +1092,16 @@ BARS.defineActions(function() {
 					grid.geometry.dispose();
 				}, 1000)
 			}
+		}
+	})
+	new Toggle('color_erase_mode', {
+		icon: 'remove_circle',
+		category: 'paint',
+		condition: {
+			tools: ['fill_tool', 'draw_shape_tool']
+		},
+		onChange: function (value) {
+			Painter.erase_mode = value;
 		}
 	})
 	new Toggle('lock_alpha', {

@@ -436,14 +436,14 @@ function setProjectTitle(title) {
 //Zoom
 function setZoomLevel(mode) {
 	if (Prop.active_panel === 'uv') {
-		var zoom = main_uv.zoom
+		var zoom = UVEditor.zoom
 		switch (mode) {
 			case 'in':	zoom *= 1.5;  break;
 			case 'out':   zoom *= 0.66;  break;
 			case 'reset': zoom = 1; break;
 		}
 		zoom = limitNumber(zoom, 1, 4)
-		main_uv.setZoom(zoom)
+		UVEditor.setZoom(zoom)
 
 	} else if (Prop.active_panel == 'timeline') {
 		

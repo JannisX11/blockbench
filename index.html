@@ -144,57 +144,25 @@
 		</div>
 	</div>
 
-	<dialog class="dialog draggable" id="toolbar_edit">
-		<div class="dialog_handle tl">dialog.toolbar_edit.title</div>
-
+	<dialog class="dialog draggable" id="entity_import">
+		<div class="dialog_handle">
+			<div class="dialog_title tl">dialog.entitylist.title</div>
+		</div>
 		<div class="dialog_content">
-			<ul class="bar" id="bar_items_current" v-sortable="{onChoose: choose, onUpdate: sort, onEnd: drop, animation: 160 }">
-				<li v-for="item in currentBar" v-bind:title="item.name" :key="item.id||item">
-					<div v-if="typeof item === 'string'" class="toolbar_separator" :class="{border: item[0] == '_', spacer: item[0] == '+', linebreak: item[0] == '#'}"></div>
-					<div v-else class="tool">
-						<div class="tooltip">{{item.name + (BARS.condition(item.condition) ? '' : ' (' + tl('dialog.toolbar_edit.hidden') + ')' )}}</div>
-						<span class="icon_wrapper" v-bind:style="{opacity: BARS.condition(item.condition) ? 1 : 0.4}" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></span>
-					</div>
-				</li> 
-			</ul>
-
-			<p class="tl small_text subtle">dialog.toolbar_edit.hidden_tools</p>
-
-			<div class="bar" style="margin: 4px 0;">
-				<search-bar v-model="search_term"></search-bar>
-			</div>
-
-			<ul class="list" id="bar_item_list">
-				<li v-for="item in searchedBarItems" v-on:click="addItem(item)" :class="{separator_item: item.type == 'separator'}">
-					<div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
-					<div class="icon_wrapper add"><i class="material-icons">add</i></div>
-					{{ item.name }}
+			<div class="dialog_bar narrow tl">dialog.entitylist.text</div>
+				<div class="search_bar">
+					<input type="text" class="dark_bordered" id="pe_search_bar" oninput="pe_list._data.search_term = $(this).val().toUpperCase()">
+					<i class="material-icons" id="plugin_search_bar_icon">search</i>
+				</div>
+			<ul id="pe_list" class="list">
+				<li v-for="item in searched" v-bind:class="{ selected: item.selected }" v-on:click="selectE(item, $event)" v-on:dblclick="open(item)">
+					<img class="pe_icon" v-if="item.icon" v-bind:src="item.icon">
+					<div class="pe_icon" v-else></div>
+					<h4>{{ item.title }} <span>({{ item.name }})</span></h4>
+					<p>{{ item.bonecount+' '+tl('dialog.entitylist.bones') }}, {{ item.cubecount+' '+tl('dialog.entitylist.cubes') }}</p>
 				</li>
 			</ul>
-
 		</div>
-		
-		<div class="dialog_bar button_bar">
-			<button type="button" class="cancel_btn confirm_btn uc_btn tl" onclick="hideDialog();">dialog.close</button>
-		</div>
-		<div class="dialog_close_button" onclick="hideDialog();"><i class="material-icons">clear</i></div>
-	</dialog>
-
-	<dialog class="dialog draggable" id="entity_import">
-		<div class="dialog_handle tl">dialog.entitylist.title</div>
-		<div class="dialog_bar narrow tl">dialog.entitylist.text</div>
-			<div class="search_bar">
-				<input type="text" class="dark_bordered" id="pe_search_bar" oninput="pe_list._data.search_term = $(this).val().toUpperCase()">
-				<i class="material-icons" id="plugin_search_bar_icon">search</i>
-			</div>
-		<ul id="pe_list" class="list">
-			<li v-for="item in searched" v-bind:class="{ selected: item.selected }" v-on:click="selectE(item, $event)" v-on:dblclick="open(item)">
-				<img class="pe_icon" v-if="item.icon" v-bind:src="item.icon">
-				<div class="pe_icon" v-else></div>
-				<h4>{{ item.title }} <span>({{ item.name }})</span></h4>
-				<p>{{ item.bonecount+' '+tl('dialog.entitylist.bones') }}, {{ item.cubecount+' '+tl('dialog.entitylist.cubes') }}</p>
-			</li>
-		</ul>
 
 		<div class="dialog_bar button_bar">
 			<button type="button" class="tl confirm_btn" onclick="">dialog.import</button>
@@ -204,28 +172,31 @@
 	</dialog>
 
 	<dialog class="dialog draggable" id="image_extruder">
-		<div class="dialog_handle tl">dialog.extrude.title</div>
-		<h1></h1>
+		<div class="dialog_handle">
+			<div class="dialog_title tl">dialog.extrude.title</div>
+		</div>
 
-		<div class="dialog_bar">
-			<label class="tl">dialog.extrude.mode</label>
-			<div class="bar_select f_left">
-				<select id="scan_mode" name="scan_mode">
-					<option class="tl" id="areas" selected>dialog.extrude.mode.areas</option>
-					<option class="tl" id="lines">dialog.extrude.mode.lines</option>
-					<option class="tl" id="columns">dialog.extrude.mode.columns</option>
-					<option class="tl" id="pixels">dialog.extrude.mode.pixels</option>
-				</select>
+		<div class="dialog_content">
+			<div class="dialog_bar">
+				<label class="tl">dialog.extrude.mode</label>
+				<div class="bar_select f_left">
+					<select id="scan_mode" name="scan_mode">
+						<option class="tl" id="areas" selected>dialog.extrude.mode.areas</option>
+						<option class="tl" id="lines">dialog.extrude.mode.lines</option>
+						<option class="tl" id="columns">dialog.extrude.mode.columns</option>
+						<option class="tl" id="pixels">dialog.extrude.mode.pixels</option>
+					</select>
+				</div>
 			</div>
-		</div>
 
-		<div class="dialog_bar">
-			<label class="tl">dialog.extrude.opacity</label>
-			<input class="tool" type="range" id="scan_tolerance" value="255" min="1" max="255">
-			<label id="scan_tolerance_label">255</label>
-		</div>
+			<div class="dialog_bar">
+				<label class="tl">dialog.extrude.opacity</label>
+				<input class="tool" type="range" id="scan_tolerance" value="255" min="1" max="255">
+				<label id="scan_tolerance_label">255</label>
+			</div>
 
-		<canvas height="256" width="256" id="extrusion_canvas"></canvas>
+			<canvas height="256" width="256" id="extrusion_canvas"></canvas>
+		</div>
 
 		<div class="dialog_bar button_bar">
 			<button type="button" class="confirm_btn tl" onclick="Extruder.startConversion()">Scan and Import</button>
@@ -235,44 +206,48 @@
 	</dialog>
 
 	<dialog class="dialog draggable" id="scaling">
-		<div class="dialog_handle tl">dialog.scale.title</div>
-
-		<label class="tl">dialog.scale.axis</label>
-
-		<div class="dialog_bar" style="height: 32px;">
-			<input type="checkbox" class="toggle_panel" id="model_scale_x_axis" onchange="scaleAll()" checked>
-			<label class="toggle_panel" for="model_scale_x_axis">X</label>
-			<input type="checkbox" class="toggle_panel" id="model_scale_y_axis" onchange="scaleAll()" checked>
-			<label class="toggle_panel" for="model_scale_y_axis">Y</label>
-			<input type="checkbox" class="toggle_panel" id="model_scale_z_axis" onchange="scaleAll()" checked>
-			<label class="toggle_panel" for="model_scale_z_axis">Z</label>
+		<div class="dialog_handle">
+			<div class="dialog_title tl">dialog.scale.title</div>
 		</div>
 
-		<label class="tl">data.origin</label>
-		<div class="dialog_bar">
-			<label for="scaling_origin_x" class="inline_label tl">X</label>
-			<input type="number" id="scaling_origin_x" class="dark_bordered medium_width" oninput="scaleAll()">
-			<label for="scaling_origin_y" class="inline_label tl">Y</label>
-			<input type="number" id="scaling_origin_y" class="dark_bordered medium_width" oninput="scaleAll()">
-			<label for="scaling_origin_z" class="inline_label tl">Z</label>
-			<input type="number" id="scaling_origin_z" class="dark_bordered medium_width" oninput="scaleAll()">
-			<div class="tool" style="float: none" onclick="setScaleAllPivot('origin')">
-				<div class="tooltip tl">dialog.scale.element_pivot</div>
-				<i class="material-icons">center_focus_strong</i>
+		<div class="dialog_content">
+			<label class="tl">dialog.scale.axis</label>
+
+			<div class="dialog_bar" style="height: 32px;">
+				<input type="checkbox" class="toggle_panel" id="model_scale_x_axis" onchange="scaleAll()" checked>
+				<label class="toggle_panel" for="model_scale_x_axis">X</label>
+				<input type="checkbox" class="toggle_panel" id="model_scale_y_axis" onchange="scaleAll()" checked>
+				<label class="toggle_panel" for="model_scale_y_axis">Y</label>
+				<input type="checkbox" class="toggle_panel" id="model_scale_z_axis" onchange="scaleAll()" checked>
+				<label class="toggle_panel" for="model_scale_z_axis">Z</label>
 			</div>
-			<div class="tool" style="float: none" onclick="setScaleAllPivot('selection')">
-				<div class="tooltip tl">dialog.scale.selection_center</div>
-				<i class="material-icons">filter_tilt_shift</i>
+
+			<label class="tl">data.origin</label>
+			<div class="dialog_bar">
+				<label for="scaling_origin_x" class="inline_label tl">X</label>
+				<input type="number" id="scaling_origin_x" class="dark_bordered medium_width" oninput="scaleAll()">
+				<label for="scaling_origin_y" class="inline_label tl">Y</label>
+				<input type="number" id="scaling_origin_y" class="dark_bordered medium_width" oninput="scaleAll()">
+				<label for="scaling_origin_z" class="inline_label tl">Z</label>
+				<input type="number" id="scaling_origin_z" class="dark_bordered medium_width" oninput="scaleAll()">
+				<div class="tool" style="float: none" onclick="setScaleAllPivot('origin')">
+					<div class="tooltip tl">dialog.scale.element_pivot</div>
+					<i class="material-icons">center_focus_strong</i>
+				</div>
+				<div class="tool" style="float: none" onclick="setScaleAllPivot('selection')">
+					<div class="tooltip tl">dialog.scale.selection_center</div>
+					<i class="material-icons">filter_tilt_shift</i>
+				</div>
 			</div>
-		</div>
 
-		<label class="tl">dialog.scale.scale</label>
-		<div class="dialog_bar" style="height: 32px;">
-			<input type="range" id="model_scale_range" value="1" min="0" max="4" step="0.02" oninput="modelScaleSync()">
-			<input type="number" class="f_left dark_bordered" id="model_scale_label" min="0" max="4" step="0.02" value="1" oninput="modelScaleSync(true)">
-		</div>
+			<label class="tl">dialog.scale.scale</label>
+			<div class="dialog_bar" style="height: 32px;">
+				<input type="range" id="model_scale_range" value="1" min="0" max="4" step="0.02" oninput="modelScaleSync()">
+				<input type="number" class="f_left dark_bordered" id="model_scale_label" min="0" max="4" step="0.02" value="1" oninput="modelScaleSync(true)">
+			</div>
 
-		<div class="dialog_bar narrow" id="scaling_clipping_warning"></div>
+			<div class="dialog_bar narrow" id="scaling_clipping_warning"></div>
+		</div>
 
 		<div class="dialog_bar button_bar">
 			<button type="button" onclick="scaleAll(true)" class="confirm_btn tl">dialog.scale.confirm</button>
@@ -283,45 +258,49 @@
 	</dialog>
 
 	<dialog class="dialog draggable" id="create_preset">
-		<div class="dialog_handle tl">dialog.display_preset.title</div>
-		<div class="dialog_bar tl">dialog.display_preset.message</div>
-		<div class="dialog_bar">
-			<input type="checkbox" id="thirdperson_righthand_save" checked>
-			<label for="thirdperson_righthand_save" class="tl">display.slot.third_right</label>
+		<div class="dialog_handle">
+			<div class="dialog_title tl">dialog.display_presets.title</div>
 		</div>
-		<div class="dialog_bar">
-			<input type="checkbox" id="thirdperson_lefthand_save" checked>
-			<label for="thirdperson_lefthand_save" class="tl">display.slot.third_left</label>
-		</div>
-		<div class="dialog_bar">
-			<input type="checkbox" id="firstperson_righthand_save" checked>
-			<label for="firstperson_righthand_save" class="tl">display.slot.first_right</label>
-		</div>
-		<div class="dialog_bar">
-			<input type="checkbox" id="firstperson_lefthand_save" checked>
-			<label for="firstperson_lefthand_save" class="tl">display.slot.first_left</label>
-		</div>
-		<div class="dialog_bar">
-			<input type="checkbox" id="head_save" checked>
-			<label for="head_save" class="tl">display.slot.head</label>
-		</div>
-		<div class="dialog_bar">
-			<input type="checkbox" id="ground_save" checked>
-			<label for="ground_save" class="tl">display.slot.ground</label>
-		</div>
-		<div class="dialog_bar">
-			<input type="checkbox" id="fixed_save" checked>
-			<label for="fixed_save" class="tl">display.slot.frame</label>
-		</div>
-		<div class="dialog_bar">
-			<input type="checkbox" id="gui_save" checked>
-			<label for="gui_save" class="tl">display.slot.gui</label>
-		</div>
-		<div class="dialog_bar narrow">
-			<label class="tl">generic.name</label>
-		</div>
-		<div class="dialog_bar">
-			<input type="text" id="preset_name" class="input_wide" id="new preset">
+		<div class="dialog_content">
+			<div class="dialog_bar tl">dialog.display_preset.message</div>
+			<div class="dialog_bar">
+				<input type="checkbox" id="thirdperson_righthand_save" checked>
+				<label for="thirdperson_righthand_save" class="tl">display.slot.third_right</label>
+			</div>
+			<div class="dialog_bar">
+				<input type="checkbox" id="thirdperson_lefthand_save" checked>
+				<label for="thirdperson_lefthand_save" class="tl">display.slot.third_left</label>
+			</div>
+			<div class="dialog_bar">
+				<input type="checkbox" id="firstperson_righthand_save" checked>
+				<label for="firstperson_righthand_save" class="tl">display.slot.first_right</label>
+			</div>
+			<div class="dialog_bar">
+				<input type="checkbox" id="firstperson_lefthand_save" checked>
+				<label for="firstperson_lefthand_save" class="tl">display.slot.first_left</label>
+			</div>
+			<div class="dialog_bar">
+				<input type="checkbox" id="head_save" checked>
+				<label for="head_save" class="tl">display.slot.head</label>
+			</div>
+			<div class="dialog_bar">
+				<input type="checkbox" id="ground_save" checked>
+				<label for="ground_save" class="tl">display.slot.ground</label>
+			</div>
+			<div class="dialog_bar">
+				<input type="checkbox" id="fixed_save" checked>
+				<label for="fixed_save" class="tl">display.slot.frame</label>
+			</div>
+			<div class="dialog_bar">
+				<input type="checkbox" id="gui_save" checked>
+				<label for="gui_save" class="tl">display.slot.gui</label>
+			</div>
+			<div class="dialog_bar narrow">
+				<label class="tl">generic.name</label>
+			</div>
+			<div class="dialog_bar">
+				<input type="text" id="preset_name" class="input_wide" id="new preset">
+			</div>
 		</div>
 		<div class="dialog_bar button_bar">
 			<button type="button" class="tl confirm_btn" onclick="DisplayMode.createPreset()">dialog.display_preset.create</button>
@@ -330,38 +309,12 @@
 		<div class="dialog_close_button" onclick="hideDialog()"><i class="material-icons">clear</i></div>
 	</dialog>
 
-	<dialog class="dialog draggable" id="uv_dialog">
-		<div class="dialog_handle tl">uv_editor.title</div>
-		<div class="dialog_bar borderless tab_bar" id="uv_tab_bar">
-			<div onclick="uv_dialog.openTab('all')" id="all" class="tab open tl">uv_editor.all_faces</div>
-			<div onclick="uv_dialog.openTab('north')" id="north" class="tab tl">face.north</div>
-			<div onclick="uv_dialog.openTab('south')" id="south" class="tab tl">face.south</div>
-			<div onclick="uv_dialog.openTab('west')" id="west" class="tab tl">face.west</div>
-			<div onclick="uv_dialog.openTab('east')" id="east" class="tab tl">face.east</div>
-			<div onclick="uv_dialog.openTab('up')" id="up" class="tab tl">face.up</div>
-			<div onclick="uv_dialog.openTab('down')" id="down" class="tab tl">face.down</div>
-		</div>
-		<div id="uv_dialog_all" class="uv_dialog_content uv_dialog_all_only">
-		</div>
-
-		<div id="uv_dialog_single" class="uv_dialog_content">
-		</div>
-
-		<div class="bar" id="uv_dialog_toolbar">
-			<div class="toolbar_wrapper uv_dialog"></div>
-		</div>
-
-		<div class="dialog_bar button_bar">
-			<button type="button" onclick="hideDialog()" class="confirm_btn cancel_btn hidden">dialog.close</button>
-		</div>
-		
-		<div class="dialog_close_button" onclick="hideDialog()"><i class="material-icons">clear</i></div>
-	</dialog>
-
 	<dialog class="dialog draggable" id="text_input">
-		<div class="dialog_handle tl">dialog.input.title</div>
+		<div class="dialog_handle">
+			<div class="dialog_title tl">dialog.input.title</div>
+		</div>
 
-		<div class="dialog_bar">
+		<div class="dialog_content">
 			<input type="text" id="text_input_field" class="dark_bordered input_wide">
 		</div>
 
@@ -381,6 +334,7 @@
 		</div>
 		<ul id="menu_bar" class="scroll_horizontal"></ul>
 		<div class="app-drag-region" id="header_free_bar"></div>
+		<div id="update_menu"></div>
 		<ul id="windows_window_menu" hidden>
 			<li onclick="currentwindow.minimize()"><i class="material-icons" style="margin-top: 4px;">remove</i></li>
 			<li onclick="currentwindow.isMaximized() ? currentwindow.unmaximize() : currentwindow.maximize()"><i class="material-icons">crop_square</i><!--🗖--></li>
@@ -491,37 +445,9 @@
 				</ul>
 				<div class="toolbar_wrapper narrow mobile_side"></div>
 			</div>
-			<div id="left_bar" class="sidebar">
+			
+			<div id="left_bar" class="sidebar"></div>
 
-				<div id="uv" class="panel selection_only">
-					<div class="panel_inside">
-						<div class="bar next_to_title" id="uv_title_bar">
-							<div id="project_resolution_status" onclick="BarItems.project_window.trigger()"></div>
-						</div>
-						<div id="uv_panel_sides" onclick="main_uv.loadSelectedFace()" class="bar tabs_small">
-
-							<input type="radio" name="side" id="north_radio" checked>
-							<label class="tl" for="north_radio">face.north</label>
-
-							<input type="radio" name="side" id="south_radio">
-							<label class="tl" for="south_radio">face.south</label>
-							
-							<input type="radio" name="side" id="west_radio">
-							<label class="tl" for="west_radio">face.west</label>
-
-							<input type="radio" name="side" id="east_radio">
-							<label class="tl" for="east_radio">face.east</label>
-
-							<input type="radio" name="side" id="up_radio">
-							<label class="tl" for="up_radio">face.up</label>
-
-							<input type="radio" name="side" id="down_radio">
-							<label class="tl" for="down_radio">face.down</label>
-						</div>
-					</div>
-				</div>
-
-			</div>
 			<div id="right_bar" class="sidebar">
 
 				<div id="element" class="panel selection_only">

@@ -216,6 +216,12 @@ var codec = new Codec('project', {
 		processCompatibility(model);
 
 		if (model.meta.model_format) {
+			if (!Formats[model.meta.model_format]) {
+				Blockbench.showMessageBox({
+					translateKey: 'invalid_format',
+					message: tl('message.invalid_format.message', [model.meta.model_format])
+				})
+			}
 			var format = Formats[model.meta.model_format]||Formats.free;
 			format.select()
 		}

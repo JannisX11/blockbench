@@ -913,7 +913,10 @@ class BoneAnimator extends GeneralAnimator {
 				}
 			});
 			keyframe.extend({
-				interpolation: closest && closest.interpolation
+				interpolation: closest && closest.interpolation,
+				uniform: (keyframe.channel == 'scale')
+					? (closest && closest.uniform && closest.data_points[0].x == closest.data_points[0].y && closest.data_points[0].x == closest.data_points[0].z)
+					: undefined,
 			})
 		} else {
 			keyframe.extend(values)

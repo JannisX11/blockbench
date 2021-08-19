@@ -19,6 +19,7 @@ var codec = new Codec('optifine_entity', {
 			entitymodel.texture = Texture.getDefault().name
 		}
 		entitymodel.textureSize = [Project.texture_width, Project.texture_height];
+		if (Project.shadow_size != 1) entitymodel.shadowSize = Math.clamp(Project.shadow_size, 0, 1);
 		entitymodel.models = []
 
 		Outliner.root.forEach(function(g) {
@@ -48,6 +49,9 @@ var codec = new Codec('optifine_entity', {
 			}
 			if (g.mirror_uv) {
 				bone.mirrorTexture = 'u'
+			}
+			if (g.cem_attach) {
+				bone.attach = true;
 			}
 
 			function populate(p_model, group, depth) {
@@ -156,6 +160,7 @@ var codec = new Codec('optifine_entity', {
 			Project.texture_width = parseInt(model.textureSize[0])||16;
 			Project.texture_height = parseInt(model.textureSize[1])||16;
 		}
+		if (typeof model.shadowSize == 'number') Project.shadow_size = model.shadowSize;
 		let empty_face = {uv: [0, 0, 0, 0], texture: null}
 		if (model.models) {
 			model.models.forEach(function(b) {
@@ -168,7 +173,8 @@ var codec = new Codec('optifine_entity', {
 					origin: b.translate,
 					rotation: b.rotate,
 					mirror_uv: (b.mirrorTexture && b.mirrorTexture.includes('u')),
-					cem_animations: b.animations
+					cem_animations: b.animations,
+					cem_attach: b.attach
 				})
 				group.origin[1] *= -1;
 				group.origin[2] *= -1;

@@ -695,7 +695,7 @@ class Preview {
 			} else if (Toolbox.selected.selectElements && Modes.selected.selectElements && data.type === 'element') {
 				this.controls.hasMoved = true
 				if (Toolbox.selected.selectFace) {
-					main_uv.setFace(data.face, false)
+					UVEditor.setFace(data.face, false)
 				}
 				Blockbench.dispatchEvent('canvas_select', data)
 				if (Modes.paint) {
@@ -840,8 +840,8 @@ class Preview {
 		if (!Modes.edit || event.type == 'touchstart') return;
 
 		$(this.node).append(this.selection.box)
-		this.selection.activated = settings.canvas_unselect.value;
-		this.selection.old_selected = selected.slice();
+		this.selection.activated = false;
+		this.selection.old_selected = Outliner.selected.slice();
 		this.selection.old_vertices_selected = {};
 		for (let uuid in Project.selected_vertices) {
 			this.selection.old_vertices_selected[uuid] = Project.selected_vertices[uuid].slice();

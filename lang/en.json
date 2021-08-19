@@ -158,6 +158,8 @@
 	"message.invalid_file.message": "Could not open json file: %0",
 	"message.invalid_model.title": "Invalid Model File",
 	"message.invalid_model.message": "This file does not contain valid model data.",
+	"message.invalid_format.title": "Invalid Format",
+	"message.invalid_format.message": "This model was made in the format '%0', which is not available in your Blockbench installation. You most likely need a specific plugin to open it correctly.",
 	"message.outdated_client.title": "Outdated client",
 	"message.outdated_client.message": "Please update to the latest version of Blockbench to do this.",
 	"message.child_model_only.title": "Empty Child Model",
@@ -195,6 +197,7 @@
 	"message.unsaved_texture.message": "All unsaved changes to this texture will be lost. Do you want to proceed?",
 	"message.update_notification.title": "Could not Install Update",
 	"message.update_notification.message": "A new Blockbench version is available. Please enable Automatic Updates in the settings in order to update!",
+	"message.update_after_restart": "The update will be installed after the next restart",
 
 	"message.image_editor.title": "Select an image editor",
 	"message.image_editor.file": "Select File...",
@@ -238,6 +241,7 @@
 	"message.load_keymap": "Are you sure you want to load this keymap? This will overwrite your current keybindings.",
 	"message.keymap_loaded": "Keymap loaded",
 	"message.no_animation_to_import": "No animations to import",
+	"message.copy_paste_tool_viewport": "This tool can only be used in the UV panel",
 
 	"message.wireframe.enabled": "Wireframe view enabled",
 	"message.wireframe.disabled": "Wireframe view disabled",
@@ -257,7 +261,6 @@
 
 	"message.import_palette.replace_palette": "Replace old palette",
 	"message.import_palette.threshold": "Merge Threshold",
-
 	
 	"message.load_plugin_failed.title": "Failed to load plugin",
 	"message.load_plugin_failed.message": "Ensure that the base file name of the plugin matches the plugin ID `%0`, as specified in Plugin.register().",
@@ -276,6 +279,7 @@
 	"dialog.project.uv_mode.box_uv": "Box UV",
 	"dialog.project.uv_mode.face_uv": "Per-face UV",
 	"dialog.project.texture_size": "Texture Size",
+	"dialog.project.shadow_size": "Shadow Size",
 
 	"dialog.convert_project.title": "Convert Project",
 	"dialog.convert_project.text": "Are you sure you want to convert this project? You cannot undo this step.",
@@ -343,7 +347,6 @@
 	"dialog.toolbar_edit.title": "Customize Toolbar",
 	"dialog.toolbar_edit.hidden": "Hidden",
 	"dialog.toolbar_edit.hidden_tools": "Some tools might be hidden because they are not available in the current mode, format, or situation.",
-	"dialog.toolbar_edit.incompatible_separators": "Spacers and Line Breaks are mutually exclusive, you cannot use both in the same toolbar.",
 
 	"dialog.entitylist.title": "Open Entity Model",
 	"dialog.entitylist.text": "Select the model you want to import",
@@ -667,6 +670,7 @@
 	"category.textures": "Textures",
 	"category.uv": "UV",
 	"category.misc": "Miscellaneous",
+	"category.separators": "Separators",
 
 	"keybind.preview_select": "Select",
 	"keybind.preview_rotate": "Rotate View",
@@ -698,6 +702,8 @@
 	"action.draw_shape_type.ellipse": "Ellipse",
 	"action.draw_shape_type.ellipse_h": "Ellipse (Hollow)",
 	"action.draw_shape_type.line": "Line",
+	"action.color_erase_mode": "Erase Mode",
+	"action.color_erase_mode.desc": "With erase mode enabled, tools like Fill and Rectangle subtract colors rather than adding them",
 	"action.mirror_painting": "Mirror Painting",
 	"action.mirror_painting.description": "Mirror your paint strokes to the other side of the model",
 	"action.lock_alpha": "Lock Alpha Channel",
@@ -853,11 +859,6 @@
 	"action.reset_theme": "Reset Theme",
 	"action.reset_theme.desc": "Reset to the default Blockbench theme",
 
-	"action.uv_dialog": "UV Window...",
-	"action.uv_dialog.desc": "Open the UV dialog to see all faces next to each other",
-	"action.uv_dialog_full": "Full View...",
-	"action.uv_dialog_full.desc": "Open the UV dialog to edit one face in fullscreen",
-
 	"action.undo": "Undo",
 	"action.undo.desc": "Undoes the last change",
 	"action.redo": "Redo",
@@ -882,8 +883,8 @@
 	"action.group_elements.desc": "Wrap selected elements into a new group",
 	"action.outliner_toggle": "Toggle More Options",
 	"action.outliner_toggle.desc": "Toggles switches for more options in the outliner",
-	"action.cube_counter": "Cube Counter",
-	"action.cube_counter.desc": "Displays the current number of cubes and other statistics",
+	"action.cube_counter": "Model Statistics",
+	"action.cube_counter.desc": "Displays the current number of elements and other statistics",
 
 	"action.duplicate": "Duplicate",
 	"action.duplicate.desc": "Duplicates the selected cubes or group",
@@ -1108,6 +1109,8 @@
 	"action.keyframe_interpolation.desc": "Select the keyframe interpolation mode",
 	"action.keyframe_interpolation.linear": "Linear",
 	"action.keyframe_interpolation.catmullrom": "Smooth",
+	"action.keyframe_uniform": "Uniform Scaling",
+	"action.keyframe_uniform.desc": "Enable uniform scaling on the selected keyframes",
 	"action.change_keyframe_file": "Select Keyframe File",
 	"action.change_keyframe_file.desc": "Select an audio or particle file to preview an effect",
 	"action.reset_keyframe": "Reset Keyframe",
@@ -1206,13 +1209,13 @@
 	"menu.help.developer.reset_storage.confirm": "Are you sure you want to reset Blockbench to factory settings? This will delete all custom settings, keybindings and installed plugins.",
 	"menu.help.developer.cache_reload": "Cache Reload",
 	"menu.help.updating": "Updating (%0%)",
-	"menu.help.update_ready": "Relaunch to Update",
 	"menu.help.update_failed": "Update Failed",
 
 	"menu.cube.color": "Marker Color",
 	"menu.cube.texture": "Texture",
 	"menu.cube.texture.transparent": "Transparent",
 	"menu.cube.texture.blank": "Blank",
+	"menu.locator.ignore_inherited_scale": "Ignore Inherited Scale",
 
 	"menu.group.sort": "Sort",
 	"menu.group.resolve": "Resolve",
@@ -1424,6 +1427,7 @@
 	"display.mirror": "Mirror",
 	"display.slot": "Slot",
 	"display.reference": "Reference Model",
+	"display.pose_angle": "Pose Angle (For Preview Only)",
 
 	"display.reference.player": "Player",
 	"display.reference.zombie": "Zombie",

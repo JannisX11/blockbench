@@ -749,9 +749,6 @@
 		float: left;
 		z-index: inherit;
 	}
-	.dialog#plugins {
-		width: 100%;
-	}
 	#plugins .tab_bar {
 		width: calc(100% - 300px);
 	}
@@ -827,21 +824,28 @@
 	#plugin_list > li .title i.plugin_expand_icon {
 		display: none;
 	}
-	#plugin_list > li .title:hover i.plugin_expand_icon {
+	#plugin_list > li.has_about_text .title:hover i.plugin_expand_icon {
 		display: inline-block;
 	}
-	#plugin_list > li .title:hover .plugin_icon {
+	#plugin_list > li.has_about_text .title:hover .plugin_icon {
 		display: none;
 	}
 
+	#plugin_list .plugin_version {
+		color: var(--color-subtle_text);
+		font-size: 0.9em;
+		margin-top: 14px;
+		float: left;
+		margin-left: 8px;
+	}
 	#plugin_list .author {
 		color: var(--color-subtle_text);
-		font-size: 0.86em;
+		font-size: 0.9em;
 		clear: both;
 	}
 	#plugin_list .description {
 		font-size: 0.94em;
-		max-height: 48px;
+		max-height: 148px;
 		margin-right: 12px;
 	}
 	#plugin_list .about {
@@ -856,7 +860,7 @@
 		--color-tag-misc: var(--color-accent);
 	}
 	#plugin_list > li ul.plugin_tag_list {
-		margin-bottom: 5px;
+		margin: 5px 8px;
 		line-height: 0;
 	}
 	.plugin_tag_list li {
@@ -895,44 +899,18 @@
 		margin-top: 5px;
 	}
 
-/*UV*/
-	#uv_dialog {
-		width: 1108px;
-	}
-	#uv_dialog .tab {
-		width: 14.28%;
-	}
-	#uv_dialog_all .UVEditor {
-		float: left;
-		padding: 8px;
-		padding-top: 0px;
-		border: 1px solid var(--color-border);
-		margin-right: -1px;
-		margin-bottom: -1px;
-	}
-	#uv_dialog_toolbar {
-		clear: both;
-		padding: 12px;
-		height: 42px;
-		padding-top: 5px;
-	}
-	#uv_dialog_all .UVEditor .uv_transform_info {
-		top: 30px;
-	}
-	#uv_dialog #uv_viewport {
-		margin-left: -8px;
-	}
-
-
 
 /*Toolbar Dialog*/
+	dialog#toolbar_edit .search_bar {
+		margin-top: 10px;
+		margin-bottom: 2px;
+	}
 	#bar_item_list {
 		max-height: 400px;
-		margin-bottom: 20px;
 		overflow-y: scroll;
 		min-height: 80px;
-		border: 1px solid var(--color-border);
 		border-right: none;
+		background-color: transparent;
 	}
 	#bar_item_list li {
 		padding: 4px; 
@@ -1075,24 +1053,6 @@
 		dialog#action_selector {
 			top: 26px;
 		}
-	}
-
-	#bar_item_list {
-		max-height: 400px;
-		margin-bottom: 20px;
-		overflow-y: scroll;
-		min-height: 80px;
-		border: 1px solid var(--color-border);
-		border-right: none;
-	}
-	#bar_item_list li {
-		padding: 4px; 
-	}
-	#bar_item_list li.separator_item {
-		color: var(--color-accent);
-	}
-	#bar_item_list li:hover {
-		color: var(--color-light);
 	}
 
 /* Edit History */

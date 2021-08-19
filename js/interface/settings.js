@@ -200,8 +200,8 @@ const Settings = {
 		new Setting('preview_checkerboard',	{category: 'interface', value: true, onChange() {
 			$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 		}});
-		new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange() {
-			$('.UVEditor').toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
+		new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange(val) {
+			UVEditor.vue.checkerboard = val;
 		}});
 		new Setting('timecode_frame_number',{category: 'interface', value: false, onChange() {
 			Timeline.vue.updateTimecodes();
@@ -230,16 +230,6 @@ const Settings = {
 			Canvas.updateRenderSides();
 		}});
 		new Setting('background_rendering', 	{category: 'preview', value: true});
-		/*
-		new Setting('transparency',		{category: 'preview', value: true, onChange() {
-			for (var uuid in Project.materials) {
-				let material = Project.materials[uuid]
-				if (material instanceof THREE.Material) {
-					material.transparent = settings.transparency.value
-				}
-			}
-		}});
-		*/
 		new Setting('texture_fps',   	{category: 'preview', value: 2, type: 'number', onChange() {
 			TextureAnimator.updateSpeed()
 		}});
@@ -315,11 +305,6 @@ const Settings = {
 		new Setting('animation_sample_rate',{category: 'export', value: 24, type: 'number'});
 		new Setting('sketchfab_token', {category: 'export', value: '', type: 'password'});
 		new Setting('credit', {category: 'export', value: 'Made with Blockbench', type: 'text'});
-
-		Blockbench.onUpdateTo('3.8', () => {
-			settings.preview_checkerboard.value = true;
-			settings.uv_checkerboard.value = true;
-		})
 	},
 	addCategory(id, data) {
 		if (!data) data = 0;
