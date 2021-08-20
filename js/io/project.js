@@ -5,6 +5,7 @@ class ModelProject {
 		}
 		this.uuid = guid();
 		this.selected = false;
+		this.thumbnail = '';
 
 		this._box_uv = false;
 		this._texture_width = 16;
@@ -216,6 +217,8 @@ class ModelProject {
 	}
 	unselect() {
 		if (isApp) updateRecentProjectThumbnail();
+		this.thumbnail = Preview.selected.canvas.toDataURL();
+
 		this.selected = false;
 		Painter.current = {};
 		scene.remove(this.model_3d);
@@ -425,6 +428,11 @@ onVueSetup(() => {
 			mouseDown(tab, e1) {
 				convertTouchEvent(e1);
 				
+				if (this.thumbnail) {
+					this.thumbnail.remove();
+					delete this.thumbnail;
+				}
+				
 				let scope = this;
 				let active = false;
 				let timeout;
@@ -506,6 +514,25 @@ onVueSetup(() => {
 			mouseUp(tab, e1) {
 				if (e1.button === 1) {
 					tab.close()
+				}
+			},
+			mouseEnter(project, event) {
+				if (project.thumbnail && !project.selected) {
+					let img = new Image();
+					img.src = project.thumbnail;
+					img.attributes.width = '240px';
+					img.className = 'project_thumbnail';
+					this.thumbnail = img;
+					let offset = $(event.target).offset();
+					img.style.left = (offset.left) + 'px';
+					img.style.top = (offset.top + event.target.clientHeight) + 'px';
+					document.body.append(img);
+				}
+			},
+			mouseLeave() {
+				if (this.thumbnail) {
+					this.thumbnail.remove();
+					delete this.thumbnail;
 				}
 			}
 		}

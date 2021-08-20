@@ -390,6 +390,8 @@
 				@dblclick="project.openSettings()"
 				@mousedown="mouseDown(project, $event)"
 				@mouseup="mouseUp(project, $event)"
+				@mouseenter="mouseEnter(project, $event)"
+				@mouseleave="mouseLeave(project, $event)"
 			>
 				<label class="project_tab_session_badge" v-if="project.EditSession"><i class="material-icons">group</i>{{ project.EditSession.client_count }}</label>
 				<label>{{ project.name || project.geometry_name || project.format.name }}</label>

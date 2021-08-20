@@ -528,6 +528,26 @@
 	#tab_bar.invisible {
 		visibility: hidden;
 	}
+	.project_thumbnail {
+		z-index: 50;
+		background-color: var(--color-back);
+		position: absolute;
+		box-shadow: 0 0 10px rgb(0 0 0 / 40%);
+		max-width: 240px;
+		image-rendering: auto;
+		animation: fade_in_thumbnail 700ms;
+	}
+	@keyframes fade_in_thumbnail {
+		0% {
+			opacity: 0;
+		}
+		80% {
+			opacity: 0;
+		}
+		100% {
+			opacity: 1;
+		}
+	}
 
 
 /*Start Screen*/
