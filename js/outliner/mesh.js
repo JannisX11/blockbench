@@ -273,7 +273,7 @@ class Mesh extends OutlinerElement {
 		if (faces === true) {
 			var sides = Object.keys(this.faces);
 		} else if (faces === undefined) {
-			var sides = [main_uv.face]
+			var sides = UVEditor.vue.selected_faces
 		} else {
 			var sides = faces
 		}
@@ -285,7 +285,7 @@ class Mesh extends OutlinerElement {
 			scope.faces[side].texture = value
 		})
 		if (Project.selected_elements.indexOf(this) === 0) {
-			main_uv.loadData()
+			UVEditor.loadData()
 		}
 		if (Prop.view_mode === 'textured') {
 			this.preview_controller.updateFaces(this);
@@ -568,7 +568,7 @@ BARS.defineActions(function() {
 				for (var face in base_mesh.faces) {
 					base_mesh.faces[face].texture = Texture.getDefault().uuid
 				}
-				main_uv.loadData()
+				UVEditor.loadData()
 			}
 			if (Format.bone_rig) {
 				if (group) {
@@ -783,7 +783,6 @@ BARS.defineActions(function() {
 							name: args[0],
 							vertices: {}
 						})
-						mesh.select();
 						meshes.push(mesh);
 					}
 					if (cmd == 'v') {

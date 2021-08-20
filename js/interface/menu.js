@@ -539,6 +539,7 @@ const MenuBar = {
 				'import_project',
 				'import_java_block_model',
 				'import_optifine_part',
+				'import_obj',
 				'extrude_texture'
 			]},
 			{name: 'generic.export', id: 'export', icon: 'insert_drive_file', children: [

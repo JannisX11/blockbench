@@ -711,7 +711,6 @@ const UVEditor = {
 			}
 			matches.forEach(s => {
 				selected.safePush(s)
-				console.log(s.size(), face_match)
 			});
 			updateSelection();
 		}
@@ -2068,7 +2067,6 @@ Interface.definePanels(function() {
 						let {viewport} = this.$refs;
 						let coords = {x: 0, y: 0}
 						function dragMouseWheel(e2) {
-							console.log()
 							viewport.scrollLeft -= (e2.pageX - coords.x)
 							viewport.scrollTop -= (e2.pageY - coords.y)
 							coords = {x: e2.pageX, y: e2.pageY}
@@ -2139,8 +2137,6 @@ Interface.definePanels(function() {
 									element.faces[key].uv[3] += y;
 								}
 							})
-							element.uv_offset[0] += x;
-							element.uv_offset[1] += y;
 						}
 					}
 
@@ -2226,6 +2222,72 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'mouseup touchend', stop);
 				},
 
+				dragVertices(element, vertex_key, event) {
+					if (event.which == 2 || event.which == 3) return;
+
+					if (!this.selected_vertices[element.uuid]) this.selected_vertices[element.uuid] = [];
+					let sel_vertices = this.selected_vertices[element.uuid];
+					if (sel_vertices.includes(vertex_key)) {
+
+					} else if (event.shiftvertex_key || event.ctrlOrCmd || Pressing.overrides.shift || Pressing.overrides.ctrl) {
+						if (sel_vertices.includes(vertex_key)) {
+							sel_vertices.remove(vertex_key);
+						} else {
+							sel_vertices.push(vertex_key);
+						}
+					} else {
+						sel_vertices.replace([vertex_key]);
+					}
+
+
+					let scope = this;
+					let elements = this.mappable_elements;
+					Undo.initEdit({elements, uv_only: true})
+
+					let pos = [0, 0];
+					let last_pos = [0, 0];
+
+					function drag(e1) {
+
+						let step_x = (scope.inner_width / UVEditor.getResolution(0) / UVEditor.grid);
+						let step_y = (scope.inner_height / UVEditor.getResolution(1) / UVEditor.grid);
+						
+						pos[0] = Math.round((e1.clientX - event.clientX) / step_x) / UVEditor.grid;
+						pos[1] = Math.round((e1.clientY - event.clientY) / step_y) / UVEditor.grid;
+
+						if (pos[0] != last_pos[0] || pos[1] != last_pos[1]) {
+
+							elements.forEach(element => {
+								scope.selected_faces.forEach(key => {
+									let face = element.faces[key];
+									face.vertices.forEach(vertex_key => {
+										if (scope.selected_vertices[element.uuid] && scope.selected_vertices[element.uuid].includes(vertex_key)) {
+											face.uv[vertex_key][0] += pos[0] - last_pos[0];
+											face.uv[vertex_key][1] += pos[1] - last_pos[1];
+										}
+									})
+								})
+							})
+
+
+							last_pos.replace(pos);
+						}
+						UVEditor.displaySliders();
+						UVEditor.loadData();
+						UVEditor.vue.$forceUpdate();
+						Canvas.updateView({elements: scope.mappable_elements, element_aspects: {uv: true}});
+					}
+
+					function stop(e1) {
+						removeEventListeners(document, 'mousemove touchmove', drag);
+						removeEventListeners(document, 'mouseup touchend', stop);
+						UVEditor.disableAutoUV()
+						Undo.finishEdit('Move UV')
+					}
+					addEventListeners(document, 'mousemove touchmove', drag);
+					addEventListeners(document, 'mouseup touchend', stop);
+				},
+
 				openFaceMenu(event) {
 					let faces = [];
 					this.mappable_elements.forEach(element => {
@@ -2247,6 +2309,39 @@ Interface.definePanels(function() {
 
 				toPixels(uv_coord, offset = 0) {
 					return (uv_coord / this.project_resolution[0] * this.inner_width + offset) + 'px'
+				},
+				getMeshFaceOutline(face) {
+					let coords = [];
+					let uv_offset = [
+						-this.getMeshFaceCorner(face, 0),
+						-this.getMeshFaceCorner(face, 1),
+					]
+					face.getSortedVertices().forEach(key => {
+						let UV = face.uv[key];
+						coords.push(
+							((UV[0] + uv_offset[0]) / this.project_resolution[0] * this.inner_width + 1) + ',' +
+							((UV[1] + uv_offset[1]) / this.project_resolution[0] * this.inner_width + 1)
+						)
+					})
+					return coords.join(' ');
+				},
+				getMeshFaceCorner(face, axis) {
+					let val = Infinity;
+					face.vertices.forEach(key => {
+						let UV = face.uv[key];
+						val = Math.min(val, UV[axis]);
+					})
+					return val;
+				},
+				getMeshFaceWidth(face, axis) {
+					let min = Infinity;
+					let max = 0;
+					face.vertices.forEach(key => {
+						let UV = face.uv[key];
+						min = Math.min(min, UV[axis]);
+						max = Math.max(max, UV[axis]);
+					})
+					return max - min;
 				}
 			},
 			/*
@@ -2283,7 +2378,7 @@ Interface.definePanels(function() {
 
 							<template v-if="mode == 'uv'" v-for="element in mappable_elements" :key="element.uuid">
 
-								<template v-if="!box_uv">
+								<template v-if="element.type == 'cube' && !box_uv">
 									<div class="cube_uv_face"
 										v-for="(face, key) in element.faces" :key="key"
 										v-if="face.getTexture() == texture"
@@ -2320,6 +2415,34 @@ Interface.definePanels(function() {
 									<div :style="{left: toPixels(element.size(2, true), -1), top: '-1px', width: toPixels(element.size(0, true), 2), height: toPixels(element.size(2, true) + element.size(1, true), 2)}" />
 									<div :style="{left: toPixels(element.size(2, true)*2 + element.size(0, true), -1), top: toPixels(element.size(2, true), -1), width: toPixels(element.size(0, true), 2), height: toPixels(element.size(1, true), 2)}" />
 								</div>
+
+								<template v-if="element.type == 'mesh'">
+									<div class="mesh_uv_face"
+										v-for="(face, key) in element.faces" :key="key"
+										v-if="face.vertices.length > 2 && face.getTexture() == texture"
+										:class="{selected: selected_faces.includes(key)}"
+										@click.prevent.stop="selectFace(key, $event)"
+										:style="{
+											left: toPixels(getMeshFaceCorner(face, 0), -1),
+											top: toPixels(getMeshFaceCorner(face, 1), -1),
+											width: toPixels(getMeshFaceWidth(face, 0), 2),
+											height: toPixels(getMeshFaceWidth(face, 1), 2),
+										}"
+									>
+										<svg>
+											<polygon :points="getMeshFaceOutline(face)" />
+										</svg>
+										<template v-if="selected_faces.includes(key)">
+											{{ key }}
+											<div class="uv_mesh_vertex" v-for="key in face.vertices"
+												:class="{selected: selected_vertices[element.uuid] && selected_vertices[element.uuid].includes(key)}"
+												@mousedown.prevent.stop="dragVertices(element, key, $event)"
+												:style="{left: toPixels( face.uv[key][0] - getMeshFaceCorner(face, 0) ), top: toPixels( face.uv[key][1] - getMeshFaceCorner(face, 1) )}"
+											></div>
+										</template>
+									</div>
+								</template>
+
 							</template>
 
 							<img style="object-fit: cover; object-position: 0px 0px;" v-if="texture && texture.error != 1" :src="texture.source">

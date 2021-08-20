@@ -333,28 +333,39 @@ function setProjectResolution(width, height, modify_uv) {
 	Project.texture_width = width;
 	Project.texture_height = height;
 
-
 	if (modify_uv) {
 		var multiplier = [
 			Project.texture_width/old_res.x,
 			Project.texture_height/old_res.y
 		]
-		function shiftCube(cube, axis) {
-			if (Project.box_uv) {
-				cube.uv_offset[axis] *= multiplier[axis];
+		function shiftElement(element, axis) {
+			if (!element.faces) return;
+			if (element instanceof Mesh) {
+
+				for (let key in element.faces) {
+					let face = element.faces[key];
+					face.vertices.forEach(vertex_key => {
+						if (face.uv[vertex_key]) {
+							face.uv[vertex_key][axis] *= multiplier[axis];
+						}
+					})
+				}
+
+			} else if (Project.box_uv) {
+				element.uv_offset[axis] *= multiplier[axis];
 			} else {
-				for (var face in cube.faces) {
-					var uv = cube.faces[face];
+				for (let face in element.faces) {
+					let {uv} = element.faces[face];
 					uv[axis] *= multiplier[axis];
 					uv[axis+2] *= multiplier[axis];
 				}
 			}
 		}
 		if (old_res.x != Project.texture_width && Math.areMultiples(old_res.x, Project.texture_width)) {
-			Cube.all.forEach(cube => shiftCube(cube, 0));
+			Outliner.elements.forEach(element => shiftElement(element, 0));
 		}
 		if (old_res.y != Project.texture_height &&  Math.areMultiples(old_res.x, Project.texture_width)) {
-			Cube.all.forEach(cube => shiftCube(cube, 1));
+			Outliner.elements.forEach(element => shiftElement(element, 1));
 		}
 	}
 	Undo.finishEdit('Changed project resolution')

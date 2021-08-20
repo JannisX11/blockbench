@@ -1233,6 +1233,44 @@
 	#uv_seleced_faces li {
 		padding: 0 5px;
 	}
+
+	.mesh_uv_face {
+		position: absolute;
+		pointer-events: none;
+	}
+	.mesh_uv_face.selected {
+		z-index: 2;
+	}
+	.mesh_uv_face svg {
+		height: 100%;
+		width: 100%;
+		position: absolute;
+	}
+	.mesh_uv_face polygon {
+		pointer-events: initial;
+		fill: rgba(50, 70, 240, 0.3);
+		stroke: var(--color-text);
+		stroke-width: 2px;
+	}
+	.mesh_uv_face:hover polygon {
+		stroke: var(--color-light);
+	}
+	.mesh_uv_face.selected polygon {
+		stroke: var(--color-accent);
+	}
+	.uv_mesh_vertex {
+		position: absolute;
+		pointer-events: initial;
+		margin: -3px;
+		height: 8px;
+		width: 8px;
+		background-color:  var(--color-text);
+		z-index: 3;
+		cursor: move;
+	}
+	.uv_mesh_vertex.selected {
+		background-color:  var(--color-accent);
+	}
 	/*
 	#uv_size {
 		height: 320px;
