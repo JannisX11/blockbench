@@ -2121,6 +2121,7 @@ function animate() {
 	if (display_mode === true && ground_animation === true && !Transformer.hoverAxis) {
 		DisplayMode.groundAnimation()
 	}
+	Blockbench.dispatchEvent('render_frame');
 }
 
 function updateShading() {

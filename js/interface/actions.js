@@ -193,6 +193,9 @@ class KeybindItem {
 		Keybinds.extra[this.id] = this;
 		this.keybind.setAction(this.id)
 	}
+	delete() {
+		Keybinds.actions.remove(this);
+	}
 }
 class Action extends BarItem {
 	constructor(id, data) {
