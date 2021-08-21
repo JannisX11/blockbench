@@ -25,6 +25,7 @@
 		],
 		"mac": {
 			"target": {
+				"target": "default",
 				"arch": [
 					"arm64",
 					"x64"
