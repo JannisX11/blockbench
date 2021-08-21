@@ -912,7 +912,7 @@
     "action.add_to_palette": "Voeg toe aan palet",
     "action.add_to_palette.desc": "Voeg de geselecteerde kleur toe aan het kleurenpalet",
     "action.import_palette": "Importeer palet",
-    "action.import_palette.desc": "Import a palette file",
+    "action.import_palette.desc": "Een paletbestand importeren",
     "action.export_palette": "Exporteer Palet",
     "action.export_palette.desc": "Exporteer palet als een .GPL bestand",
     "action.generate_palette": "Genereer Palet",
@@ -1291,5 +1291,8 @@
     "camera_angle.true_isometric_right": "True Isometric Right (30°)",
     "camera_angle.true_isometric_left": "True Isometric Left (30°)",
     "menu.help.wiki": "Blockbench Wiki",
-    "about.repository": "Repository:"
+    "about.repository": "Repository:",
+    "dialog.settings.title": "Preferences",
+    "settings.update_to_prereleases": "Update to Pre-releases",
+    "settings.update_to_prereleases.desc": "Automatically update to Blockbench beta versions to test new features. Pre-release versions can be unstable, don't enable this option if you rely on Blockbench for work or other important projects."
 }

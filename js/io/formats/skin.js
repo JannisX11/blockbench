@@ -3110,7 +3110,7 @@ skin_presets.irongolem = {
 	}`
 };
 skin_presets.llama = {
-	display_name: 'Lava Slime',
+	display_name: 'Llama',
 	model: `{
 		"name": "llama",
 		"texturewidth": 128,

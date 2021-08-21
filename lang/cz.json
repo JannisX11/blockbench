@@ -1128,7 +1128,7 @@
     "generic.all": "Vše",
     "message.small_face_dimensions.title": "Nekompatibilní rozměry ploch",
     "message.small_face_dimensions.message": "Výběr obsahuje plochy, které jsou menší než 1 jednotka v jednom směru. Mapovací systém Box UV považuje všechny plochy pod touto prahovou hodnotou za 0 pixelů široké. Textura na těchto plochách proto nemusí fungovat správně.",
-    "message.small_face_dimensions.face_uv": "Dosavadní formát podporuje per-face UV mapy, který zvládá malé rozměry plochy. Běžte do \"Soubor\" -> \"Projekt...\" a odškrtněte \"Box UV\".",
+    "message.small_face_dimensions.face_uv": "The current format supports per-face UV maps which can handle small face dimensions. Go to \"File\" > \"Project...\" and uncheck \"Box UV\".",
     "dialog.plugins.outdated_client": "Je vyžadována novější verze programu Blockbench",
     "dialog.plugins.outdated_plugin": "Plugin je zastaralý a na této verzi Blockbenche nefunguje",
     "settings.motion_trails": "Pohybové cesty",
@@ -1291,5 +1291,8 @@
     "camera_angle.true_isometric_right": "True Isometric Right (30°)",
     "camera_angle.true_isometric_left": "True Isometric Left (30°)",
     "menu.help.wiki": "Blockbench Wiki",
-    "about.repository": "Repository:"
+    "about.repository": "Repository:",
+    "dialog.settings.title": "Preferences",
+    "settings.update_to_prereleases": "Update to Pre-releases",
+    "settings.update_to_prereleases.desc": "Automatically update to Blockbench beta versions to test new features. Pre-release versions can be unstable, don't enable this option if you rely on Blockbench for work or other important projects."
 }

@@ -652,6 +652,8 @@
 	"settings.backup_retain.desc": "Set how long Blockbench retains old backups in days",
 	"settings.automatic_updates": "Automatic Updates",
 	"settings.automatic_updates.desc": "Automatically download new versions and keep Blockbench up-to-date",
+	"settings.update_to_prereleases": "Update to Pre-releases",
+	"settings.update_to_prereleases.desc": "Automatically update to Blockbench beta versions to test new features. Pre-release versions can be unstable, don't enable this option if you rely on Blockbench for work or other important projects.",
 	"settings.hardware_acceleration": "Hardware Acceleration",
 	"settings.hardware_acceleration.desc": "Outsource rendering tasks to the graphics card. Restart Blockbench to apply changes",
 

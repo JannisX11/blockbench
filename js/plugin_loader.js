@@ -276,6 +276,7 @@ class Plugin {
 		if (!isApp && this.source == 'file') return this;
 
 		this.unload()
+		this.tags.empty();
 		Plugins.all.remove(this)
 
 		if (this.source == 'file') {
@@ -369,7 +370,7 @@ if (isApp) {
 }
 
 Plugins.loading_promise = new Promise((resolve, reject) => {
-	$.getJSON('https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins.json?'+Math.round(Math.random()*100), function(data) {
+	$.getJSON('https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins.json?'+Math.round(Math.random()*99), function(data) {
 		Plugins.json = data
 		console.log(data.minecraft_entity_wizard)
 		resolve();

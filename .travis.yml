@@ -5,7 +5,7 @@ language: node_js
 node:
   - 14
 
-if: commit_message =~ ci-build
+if: tag IS blank AND commit_message =~ ci-build
 
 jobs:
   include:
