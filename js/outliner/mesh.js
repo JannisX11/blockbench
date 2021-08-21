@@ -149,11 +149,11 @@ class Mesh extends OutlinerElement {
 			this.addVertices([16, 16, 16], [16, 16, 0], [16, 0, 16], [16, 0, 0], [0, 16, 16], [0, 16, 0], [0, 0, 16], [0, 0, 0]);
 			let vertex_keys = Object.keys(this.vertices);
 			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[1], vertex_keys[3]]} ));	// East
-			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[4], vertex_keys[6], vertex_keys[5], vertex_keys[7]]} ));	// West
-			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[4], vertex_keys[1], vertex_keys[5]]} ));	// Up
-			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[2], vertex_keys[3], vertex_keys[6], vertex_keys[7]]} ));	// Down
-			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[4], vertex_keys[6]]} ));	// South
-			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[1], vertex_keys[5], vertex_keys[3], vertex_keys[7]]} ));	// North
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[4], vertex_keys[5], vertex_keys[6], vertex_keys[7]]} ));	// West
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[4], vertex_keys[5]]} ));	// Up
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[2], vertex_keys[6], vertex_keys[3], vertex_keys[7]]} ));	// Down
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[4], vertex_keys[2], vertex_keys[6]]} ));	// South
+			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[5], vertex_keys[7]]} ));	// North
 
 			for (let key in this.faces) {
 				let face = this.faces[key];
@@ -367,7 +367,8 @@ new NodePreviewController(Mesh, {
 		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24), 1));
 
 		// Outline
-		let outline = new THREE.LineSegments(new THREE.BufferGeometry(), Canvas.outlineMaterial);
+		let outline = new THREE.LineSegments(new THREE.BufferGeometry(), Canvas.meshOutlineMaterial);
+		outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(240).fill(1), 3));
 		outline.no_export = true;
 		outline.name = element.uuid+'_outline';
 		outline.visible = element.selected;
@@ -375,10 +376,10 @@ new NodePreviewController(Mesh, {
 		outline.frustumCulled = false;
 		mesh.outline = outline;
 		mesh.add(outline);
+		outline.vertex_order = [];
 
 		// Vertex Points
-		let material = new THREE.PointsMaterial({size: 7, sizeAttenuation: false, vertexColors: true});
-		let points = new THREE.Points(new THREE.BufferGeometry(), material);
+		let points = new THREE.Points(new THREE.BufferGeometry(), Canvas.meshVertexMaterial);
 		points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(24).fill(1), 3));
 		mesh.vertex_points = points;
 		outline.add(points);
@@ -398,6 +399,7 @@ new NodePreviewController(Mesh, {
 		let normal_array = [];
 		let indices = [];
 		let outline_positions = [];
+		mesh.outline.vertex_order.empty();
 
 		for (let key in element.vertices) {
 			let vector = element.vertices[key];
@@ -411,8 +413,8 @@ new NodePreviewController(Mesh, {
 
 			if (face.vertices.length == 2) {
 				// Outline
-				outline_positions.push(...element.vertices[face.vertices[0]]);
-				outline_positions.push(...element.vertices[face.vertices[1]]);
+				mesh.outline.vertex_order.push(face.vertices[0]);
+				mesh.outline.vertex_order.push(face.vertices[1]);
 
 			} else if (face.vertices.length == 3) {
 				// Tri
@@ -426,12 +428,12 @@ new NodePreviewController(Mesh, {
 				// Outline
 				face.vertices.forEach((key, i) => {
 
-					outline_positions.push(...element.vertices[key]);
+					mesh.outline.vertex_order.push(key);
 					if (i) {
-						outline_positions.push(...element.vertices[key]);
+						mesh.outline.vertex_order.push(key);
 					}
 				})
-				outline_positions.push(...element.vertices[face.vertices[0]]);
+				mesh.outline.vertex_order.push(face.vertices[0]);
 
 			} else if (face.vertices.length == 4) {
 
@@ -457,12 +459,16 @@ new NodePreviewController(Mesh, {
 
 				// Outline
 				sorted_vertices.forEach((key, i) => {
-					outline_positions.push(...element.vertices[key]);
-					if (i != 0) outline_positions.push(...element.vertices[key]);
+					mesh.outline.vertex_order.push(key);
+					if (i != 0) mesh.outline.vertex_order.push(key);
 				})
-				outline_positions.push(...element.vertices[sorted_vertices[0]]);
+				mesh.outline.vertex_order.push(sorted_vertices[0]);
 			}
 		}
+
+		mesh.outline.vertex_order.forEach(key => {
+			outline_positions.push(...element.vertices[key]);
+		})
 
 		mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_position_array), 3));
 		
@@ -532,6 +538,7 @@ new NodePreviewController(Mesh, {
 		
 		let mesh = element.mesh;
 		let colors = [];
+		let line_colors = [];
 
 		for (let key in element.vertices) {
 			let color;
@@ -542,9 +549,21 @@ new NodePreviewController(Mesh, {
 			}
 			colors.push(color.r, color.g, color.b);
 		}
+
+		mesh.outline.vertex_order.forEach(key => {
+			let color;
+			if (!Modes.edit || BarItems.selection_mode.value == 'object' || (Project.selected_vertices[element.uuid] && Project.selected_vertices[element.uuid].includes(key))) {
+				color = gizmo_colors.outline;
+			} else {
+				color = gizmo_colors.grid;
+			}
+			line_colors.push(color.r, color.g, color.b);
+		})
 		
 		mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-		mesh.vertex_points.visible = Mode.selected.id == 'edit';
+		mesh.outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(line_colors, 3));
+		mesh.outline.geometry.needsUpdate = true
+		mesh.vertex_points.visible = Mode.selected.id == 'edit' && BarItems.selection_mode.value == 'vertex';
 	}
 })
 
@@ -597,8 +616,8 @@ BARS.defineActions(function() {
 	new BarSelect('selection_mode', {
 		options: {
 			object: true,
-			vertex: true,
 			face: true,
+			vertex: true,
 		},
 		condition: () => Format && Format.meshes,
 		onChange: function(slider) {

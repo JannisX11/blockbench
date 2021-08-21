@@ -150,7 +150,7 @@ class UndoSystem {
 							new_element.faces[face].reset()
 						}
 						new_element.extend(element)
-						element.preview_controller.updateAll(element);
+						new_element.preview_controller.updateAll(new_element);
 					} else {
 						new_element = OutlinerElement.fromSave(element, true);
 					}

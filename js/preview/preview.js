@@ -350,7 +350,7 @@ class Preview {
 		Outliner.elements.forEach(element => {
 			if (element.mesh.geometry && element.visibility && !element.locked) {
 				objects.push(element.mesh);
-				if (element.mesh.vertex_points) {
+				if (element.mesh.vertex_points && element.mesh.vertex_points.visible) {
 					objects.push(element.mesh.vertex_points);
 				}
 			}
@@ -682,9 +682,11 @@ class Preview {
 
 		var data = this.raycast(event);
 		if (data) {
-			//this.static_rclick = false
+			this.controls.hasMoved = true
+			
+			let select_mode = BarItems.selection_mode.value
+
 			if (data.element && data.element.locked) {
-				this.controls.hasMoved = true
 				$('#preview').css('cursor', 'not-allowed')
 				function resetCursor() {
 					$('#preview').css('cursor', (Toolbox.selected.cursor ? Toolbox.selected.cursor : 'default'))
@@ -693,7 +695,6 @@ class Preview {
 				addEventListeners(document, 'mouseup touchend', resetCursor, false)
 
 			} else if (Toolbox.selected.selectElements && Modes.selected.selectElements && data.type === 'element') {
-				this.controls.hasMoved = true
 				if (Toolbox.selected.selectFace) {
 					UVEditor.setFace(data.face, false)
 				}
@@ -709,17 +710,30 @@ class Preview {
 					data.element.parent.select().showInOutliner();
 
 				} else if (!Animator.open) {
-					data.element.select(event)
+
+					if (data.element instanceof Mesh && select_mode == 'face') {
+						if (!data.element.selected) data.element.select(event);
+
+						if (!Project.selected_vertices[data.element.uuid]) {
+							Project.selected_vertices[data.element.uuid] = [];
+						}
+						if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+							Project.selected_vertices[data.element.uuid].empty();
+						}
+						Project.selected_vertices[data.element.uuid].safePush(...data.element.faces[data.face].vertices);
+
+					} else {
+						data.element.select(event)
+					}
+					updateSelection();
 				}
 			} else if (Animator.open && data.type == 'keyframe') {
-				this.controls.hasMoved = true
 				if (data.keyframe instanceof Keyframe) {
 					data.keyframe.select(event).callPlayhead();
 					updateSelection();
 				}
 
 			} else if (data.type == 'vertex') {
-				this.controls.hasMoved = true
 
 				if (!Project.selected_vertices[data.element.uuid]) {
 					Project.selected_vertices[data.element.uuid] = [];

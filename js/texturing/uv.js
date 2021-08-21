@@ -2151,7 +2151,18 @@ Interface.definePanels(function() {
 						if (pos[0] != last_pos[0] || pos[1] != last_pos[1]) {
 
 							elements.forEach(element => {
-								offset(element, pos[0] - last_pos[0], pos[1] - last_pos[1])
+								if (element instanceof Mesh) {
+									scope.selected_faces.forEach(key => {
+										let face = element.faces[key];
+										if (!face) return;
+										face.vertices.forEach(vertex_key => {
+											face.uv[vertex_key][0] += pos[0] - last_pos[0];
+											face.uv[vertex_key][1] += pos[1] - last_pos[1];
+										})
+									})
+								} else {
+									offset(element, pos[0] - last_pos[0], pos[1] - last_pos[1]);
+								}
 							})
 							last_pos.replace(pos);
 						}
@@ -2421,7 +2432,7 @@ Interface.definePanels(function() {
 										v-for="(face, key) in element.faces" :key="key"
 										v-if="face.vertices.length > 2 && face.getTexture() == texture"
 										:class="{selected: selected_faces.includes(key)}"
-										@click.prevent.stop="selectFace(key, $event)"
+										@mousedown.prevent="dragFace(key, $event)"
 										:style="{
 											left: toPixels(getMeshFaceCorner(face, 0), -1),
 											top: toPixels(getMeshFaceCorner(face, 1), -1),
@@ -2433,7 +2444,6 @@ Interface.definePanels(function() {
 											<polygon :points="getMeshFaceOutline(face)" />
 										</svg>
 										<template v-if="selected_faces.includes(key)">
-											{{ key }}
 											<div class="uv_mesh_vertex" v-for="key in face.vertices"
 												:class="{selected: selected_vertices[element.uuid] && selected_vertices[element.uuid].includes(key)}"
 												@mousedown.prevent.stop="dragVertices(element, key, $event)"

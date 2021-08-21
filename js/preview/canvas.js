@@ -24,6 +24,12 @@ const Canvas = {
 		transparent: true,
 		color: gizmo_colors.outline
 	}),
+	meshOutlineMaterial: new THREE.LineBasicMaterial({
+		linewidth: 2,
+		//color: gizmo_colors.outline,
+		vertexColors: true
+	}),
+	meshVertexMaterial: new THREE.PointsMaterial({size: 7, sizeAttenuation: false, vertexColors: true}),
 	wireframeMaterial: new THREE.MeshBasicMaterial({
 		color: gizmo_colors.wire,
 		wireframe: true
