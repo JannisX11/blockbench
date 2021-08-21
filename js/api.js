@@ -283,10 +283,10 @@ const Blockbench = {
 	},
 	textPrompt(title, value, callback) {
 		showDialog('text_input')
-		$('#text_input h2').text(tl(title))
-		$('#text_input input#text_input_field').val(value).select()
+		$('#text_input .dialog_handle').text(tl(title || 'dialog.input.title'))
+		$('#text_input input#text_input_field').val(value).trigger('select')
 		$('#text_input button.confirm_btn').off()
-		$('#text_input button.confirm_btn').click(function() {
+		$('#text_input button.confirm_btn').on('click', function() {
 			var s = $('#text_input input#text_input_field').val()
 			if (callback !== undefined) {
 				callback(s)

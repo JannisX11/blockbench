@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Model editing and animation software",
-	"version": "3.9.2",
+	"version": "3.9.3",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -25,7 +25,7 @@
 		],
 		"mac": {
 			"target": {
-				"target": "dmg",
+				"target": "default",
 				"arch": [
 					"arm64",
 					"x64"

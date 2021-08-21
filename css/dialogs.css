@@ -171,7 +171,7 @@
 		cursor: pointer;
 		overflow: hidden;
 		padding-left: 26px;
-		padding-top: 1px;
+		padding-top: 2px;
 		background: var(--color-button);
 		height: 30px;
 		margin-bottom: 20px;

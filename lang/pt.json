@@ -1128,7 +1128,7 @@
     "generic.all": "Todos",
     "message.small_face_dimensions.title": "Dimensões de face incompatíveis",
     "message.small_face_dimensions.message": "A seleção contém faces que são menores que 1 unidade em uma direção. O sistema de mapeamento em UV cúbico considera qualquer face menor que esse limiar como 0 pixels de largura. A textura nessas faces pode não funcionar corretamente.",
-    "message.small_face_dimensions.face_uv": "O formato atual suporta mapas UV por face que pode suportar pequenas dimensões de face. Vá para \"Arquivo\" > \"Projeto...\" e desabilite \"UV cúbico\".",
+    "message.small_face_dimensions.face_uv": "The current format supports per-face UV maps which can handle small face dimensions. Go to \"File\" > \"Project...\" and uncheck \"Box UV\".",
     "dialog.plugins.outdated_client": "Requer uma versão mais recente do Blockbench",
     "dialog.plugins.outdated_plugin": "O plugin está desatualizado e não funciona com essa versão do Blockbench",
     "settings.motion_trails": "Trilhas de movimento",
@@ -1291,5 +1291,8 @@
     "camera_angle.true_isometric_right": "Habilitar direita isométrica (30°)",
     "camera_angle.true_isometric_left": "Habilitar esquerda isométrica (30°)",
     "menu.help.wiki": "Blockbench Wiki",
-    "about.repository": "Repository:"
+    "about.repository": "Repository:",
+    "dialog.settings.title": "Preferences",
+    "settings.update_to_prereleases": "Update to Pre-releases",
+    "settings.update_to_prereleases.desc": "Automatically update to Blockbench beta versions to test new features. Pre-release versions can be unstable, don't enable this option if you rely on Blockbench for work or other important projects."
 }

@@ -1128,7 +1128,7 @@
     "generic.all": "Alle",
     "message.small_face_dimensions.title": "Flächengröße nicht kompatibel",
     "message.small_face_dimensions.message": "Die Auswahl enthält Flächen, deren Größe weniger als eine Längeneinheit beträgt. Das Box UV System betrachtet alle Flächen unterhalb dieser Schwelle als 0 Pixel groß. Deshalb könnten einige Flächen nicht richtig angezeigt werden.",
-    "message.small_face_dimensions.face_uv": "Das aktuelle Format unterstützt UV Maps für einzelne Flächen. Dadurch werden kleinere Flächen unterstützt. Gehe zu \"Datei\" > \"Projekt...\" und deaktiviere \"Box UV\".",
+    "message.small_face_dimensions.face_uv": "Das aktuelle Format unterstützt UV Maps für einzelne Flächen. Dadurch werden kleinere Flächen unterstützt. Gehe zu \"Datei\" > \"Projekt...\" und stelle \"UV Modus\" auf \"Flächen-UV\".",
     "dialog.plugins.outdated_client": "Setzt eine neuere Blockbench-version voraus",
     "dialog.plugins.outdated_plugin": "Plugin ist veraltet und funktioniert nicht mit dieser Version von Blockbench",
     "settings.motion_trails": "Bewegungspfade",
@@ -1291,5 +1291,8 @@
     "camera_angle.true_isometric_right": "Isometrisch, rechts (30°)",
     "camera_angle.true_isometric_left": "Isometrisch, links (30°)",
     "menu.help.wiki": "Blockbench Wiki",
-    "about.repository": "Repository:"
+    "about.repository": "Repository:",
+    "dialog.settings.title": "Einstellungen",
+    "settings.update_to_prereleases": "Auf Vorabversionen updated",
+    "settings.update_to_prereleases.desc": "Update Blockbench automatisch auf die neusten Vorabversionen, um neue Funktionen zu testen. Vorabversionen können Fehler beinhalten, aktiviere diese Funktion nicht, wenn du dich für deine Arbeit auf die einwandfreie Funktion von Blockbench verlassen musst."
 }

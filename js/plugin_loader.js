@@ -274,6 +274,7 @@ class Plugin {
 		if (!isApp && this.source == 'file') return this;
 
 		this.unload()
+		this.tags.empty();
 		Plugins.all.remove(this)
 
 		if (this.source == 'file') {
@@ -366,7 +367,7 @@ if (isApp) {
 }
 
 Plugins.loading_promise = new Promise((resolve, reject) => {
-	$.getJSON('https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins.json', function(data) {
+	$.getJSON('https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins.json?'+Math.round(Math.random()*99), function(data) {
 		Plugins.json = data
 		resolve();
 		Plugins.loading_promise.resolved = true;
