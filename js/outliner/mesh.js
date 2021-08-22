@@ -231,9 +231,13 @@ class Mesh extends OutlinerElement {
 					delete this.vertices[key];
 				}
 			}
-			for (let key in object.vertices) {
-				if (!this.vertices[key]) this.vertices[key] = [];
-				this.vertices[key].replace(object.vertices[key]);
+			if (object.vertices instanceof Array) {
+				this.addVertices(...object.vertices);
+			} else {
+				for (let key in object.vertices) {
+					if (!this.vertices[key]) this.vertices[key] = [];
+					this.vertices[key].replace(object.vertices[key]);
+				}
 			}
 		}
 		if (typeof object.faces == 'object') {
@@ -267,6 +271,23 @@ class Mesh extends OutlinerElement {
 		el.type = 'mesh';
 		el.uuid = this.uuid
 		return el;
+	}
+	flip(axis, center) {
+		for (let key in this.vertices) {
+			var offset = this.vertices[key][axis] - center;
+			this.vertices[key][axis] = center - offset;
+		}
+		for (let key in this.faces) {
+			this.faces[key].invert();
+		}
+
+		this.rotation.forEach((n, i) => {
+			if (i != axis) this.rotation[i] = -n;
+		})
+
+		this.preview_controller.updateTransform(this);
+		this.preview_controller.updateGeometry(this);
+		return this;
 	}
 	applyTexture(texture, faces) {
 		var scope = this;
@@ -683,6 +704,84 @@ BARS.defineActions(function() {
 			})
 			Undo.finishEdit('Create mesh face')
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}})
+		}
+	})
+	new Action({
+		id: 'convert_to_mesh',
+		icon: 'fa-gem',
+		category: 'edit',
+		condition: () => (Modes.edit && Format.meshes && Cube.selected.length),
+		click() {
+			Undo.initEdit({elements: Cube.selected});
+
+			let new_meshes = [];
+			Cube.selected.forEach(cube => {
+				
+				let mesh = new Mesh({
+					name: cube.name,
+					origin: cube.origin,
+					rotation: cube.rotation,
+					vertices: [
+						[cube.to[0] - cube.origin[0],	cube.to[1] - cube.origin[1], 	cube.to[2] - cube.origin[2]],
+						[cube.to[0] - cube.origin[0],	cube.to[1] - cube.origin[1], 	cube.from[2] - cube.origin[2]],
+						[cube.to[0] - cube.origin[0],	cube.from[1] - cube.origin[1], 	cube.to[2] - cube.origin[2]],
+						[cube.to[0] - cube.origin[0],	cube.from[1] - cube.origin[1], 	cube.from[2] - cube.origin[2]],
+						[cube.from[0] - cube.origin[0],	cube.to[1] - cube.origin[1], 	cube.to[2] - cube.origin[2]],
+						[cube.from[0] - cube.origin[0],	cube.to[1] - cube.origin[1], 	cube.from[2] - cube.origin[2]],
+						[cube.from[0] - cube.origin[0],	cube.from[1] - cube.origin[1], 	cube.to[2] - cube.origin[2]],
+						[cube.from[0] - cube.origin[0],	cube.from[1] - cube.origin[1], 	cube.from[2] - cube.origin[2]],
+					],
+				})
+
+				let vertex_keys = Object.keys(mesh.vertices);
+				function addFace(direction, vertices) {
+					let cube_face = cube.faces[direction];
+					let uv = {
+						[vertices[0]]: [cube_face.uv[2], cube_face.uv[1]],
+						[vertices[1]]: [cube_face.uv[0], cube_face.uv[1]],
+						[vertices[2]]: [cube_face.uv[2], cube_face.uv[3]],
+						[vertices[3]]: [cube_face.uv[0], cube_face.uv[3]],
+					};
+					mesh.addFaces(
+						new MeshFace( mesh, {
+							vertices,
+							uv,
+							texture: cube_face.texture,
+						}
+					));
+				}
+				addFace('east', [vertex_keys[1], vertex_keys[0], vertex_keys[3], vertex_keys[2]]);
+				addFace('west', [vertex_keys[4], vertex_keys[5], vertex_keys[6], vertex_keys[7]]);
+				addFace('up', [vertex_keys[1], vertex_keys[5], vertex_keys[0], vertex_keys[4]]); // 4 0 5 1
+				addFace('down', [vertex_keys[2], vertex_keys[6], vertex_keys[3], vertex_keys[7]]);
+				addFace('south', [vertex_keys[0], vertex_keys[4], vertex_keys[2], vertex_keys[6]]);
+				addFace('north', [vertex_keys[5], vertex_keys[1], vertex_keys[7], vertex_keys[3]]);
+
+				mesh.init().sortInBefore(cube);
+				new_meshes.push(mesh);
+				cube.remove();
+			})
+			Undo.finishEdit('Convert cubes to meshes', {elements: new_meshes});
+		}
+	})
+	new Action({
+		id: 'invert_face',
+		icon: 'fas.fa-draw-polygon',
+		category: 'edit',
+		keybind: new Keybind({key: 'i', shift: true}),
+		condition: () => (Modes.edit && Format.meshes),
+		click() {
+			Undo.initEdit({elements: Mesh.selected});
+			Mesh.selected.forEach(mesh => {
+				for (let key in mesh.faces) {
+					let face = mesh.faces[key];
+					if (face.isSelected()) {
+						face.invert();
+					}
+				}
+			})
+			Undo.finishEdit('Invert mesh faces');
+			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}});
 		}
 	})
 	new Action({
