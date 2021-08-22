@@ -963,4 +963,120 @@ BARS.defineActions(function() {
 			})
 		}
 	})
+	new Action({
+		id: 'add_primitive',
+		icon: 'fa-shapes',
+		category: 'edit',
+		condition: () => (Modes.edit && Format.meshes),
+		click() {
+
+			let dialog = new Dialog({
+				id: 'add_primitive',
+				title: 'action.add_primitive',
+				form: {
+					shape: {label: 'dialog.add_primitive.shape', type: 'select', options: {
+						circle: 'dialog.add_primitive.shape.circle',
+						cylinder: 'dialog.add_primitive.shape.cylinder',
+						cone: 'dialog.add_primitive.shape.cone',
+						cube: 'dialog.add_primitive.shape.cube',
+						pyramid: 'dialog.add_primitive.shape.pyramid',
+					}},
+					diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: 16},
+					height: {label: 'dialog.add_primitive.height', type: 'number', value: 8},
+					sides: {label: 'dialog.add_primitive.sides', type: 'number', value: 16},
+				},
+				onConfirm(result) {
+					let elements = [];
+					Undo.initEdit({elements});
+					let mesh = new Mesh({
+						name: result.shape,
+						vertices: {}
+					});
+
+					if (result.shape == 'circle') {
+						let vertex_keys = mesh.addVertices([0, 0, 0]);
+						let [m] = vertex_keys;
+
+						for (let i = 0; i < result.sides; i++) {
+							let x = Math.sin((i / result.sides) * Math.PI * 2) * result.diameter/2;
+							let z = Math.cos((i / result.sides) * Math.PI * 2) * result.diameter/2;
+							vertex_keys.push(...mesh.addVertices([x, 0, z]));
+						}
+						for (let i = 0; i < result.sides; i++) {
+							let [a, b] = vertex_keys.slice(i+2, i+2 + 2);
+							if (!b) {
+								b = vertex_keys[2];
+							}
+							mesh.addFaces(new MeshFace( mesh, {vertices: [a, b, m]} ));
+						}
+					}
+					if (result.shape == 'cone') {
+						let vertex_keys = mesh.addVertices([0, 0, 0], [0, result.height, 0]);
+						let [m0, m1] = vertex_keys;
+
+						for (let i = 0; i < result.sides; i++) {
+							let x = Math.sin((i / result.sides) * Math.PI * 2) * result.diameter/2;
+							let z = Math.cos((i / result.sides) * Math.PI * 2) * result.diameter/2;
+							vertex_keys.push(...mesh.addVertices([x, 0, z]));
+						}
+						for (let i = 0; i < result.sides; i++) {
+							let [a, b] = vertex_keys.slice(i+2, i+2 + 2);
+							if (!b) {
+								b = vertex_keys[2];
+							}
+							mesh.addFaces(new MeshFace( mesh, {vertices: [b, a, m0]} ));
+							mesh.addFaces(new MeshFace( mesh, {vertices: [a, b, m1]} ));
+						}
+					}
+					if (result.shape == 'cylinder') {
+						let vertex_keys = mesh.addVertices([0, 0, 0], [0, result.height, 0]);
+						let [m0, m1] = vertex_keys;
+
+						for (let i = 0; i < result.sides; i++) {
+							let x = Math.sin((i / result.sides) * Math.PI * 2) * result.diameter/2;
+							let z = Math.cos((i / result.sides) * Math.PI * 2) * result.diameter/2;
+							vertex_keys.push(...mesh.addVertices([x, 0, z], [x, result.height, z]));
+						}
+						for (let i = 0; i < result.sides; i++) {
+							let [a, b, c, d] = vertex_keys.slice(2*i+2, 2*i+2 + 4);
+							if (!c) {
+								c = vertex_keys[2];
+								d = vertex_keys[3];
+							}
+							mesh.addFaces(new MeshFace( mesh, {vertices: [c, a, m0]} ));
+							mesh.addFaces(new MeshFace( mesh, {vertices: [a, c, d, b]} ));
+							mesh.addFaces(new MeshFace( mesh, {vertices: [b, d, m1]} ));
+						}
+					}
+					if (result.shape == 'cube') {
+						let r = result.diameter/2;
+						let h = result.height;
+						mesh.addVertices([r, h, r], [r, h, -r], [r, 0, r], [r, 0, -r], [-r, hr, r], [-r, h, -r], [-r, 0, r], [-r, 0, -r]);
+						let vertex_keys = Object.keys(mesh.vertices);
+						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[1], vertex_keys[3]]} ));	// East
+						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[4], vertex_keys[5], vertex_keys[6], vertex_keys[7]]} ));	// West
+						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[4], vertex_keys[5]]} ));	// Up
+						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[2], vertex_keys[6], vertex_keys[3], vertex_keys[7]]} ));	// Down
+						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[4], vertex_keys[2], vertex_keys[6]]} ));	// South
+						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[5], vertex_keys[7]]} ));	// North
+					}
+					if (result.shape == 'pyramid') {
+						let r = result.diameter/2;
+						let h = result.height;
+						mesh.addVertices([0, h, 0], [r, 0, r], [r, 0, -r], [-r, 0, r], [-r, 0, -r]);
+						let vertex_keys = Object.keys(mesh.vertices);
+						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[2], vertex_keys[4]]} ));	// Down
+						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[2], vertex_keys[0]]} ));	// east
+						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[3], vertex_keys[1], vertex_keys[0]]} ));	// south
+						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[2], vertex_keys[4], vertex_keys[0]]} ));	// north
+						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[4], vertex_keys[3], vertex_keys[0]]} ));	// west
+					}
+					elements.push(mesh);
+					mesh.init()
+
+					Undo.finishEdit('Add primitive');
+				}
+			}).show()
+		}
+	})
 })
