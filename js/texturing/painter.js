@@ -1140,6 +1140,7 @@ BARS.defineActions(function() {
 		tool_setting: 'brush_softness',
 		settings: {
 			min: 0, max: 100, default: 0,
+			show_bar: true,
 			interval: function(event) {
 				if (event.shiftKey && event.ctrlOrCmd) {
 					return 0.25;
@@ -1159,6 +1160,7 @@ BARS.defineActions(function() {
 		tool_setting: 'brush_opacity',
 		settings: {
 			min: 0, max: 100, default: 100,
+			show_bar: true,
 			interval: function(event) {
 				if (event.shiftKey && event.ctrlOrCmd) {
 					return 0.25;

@@ -556,6 +556,7 @@
 	}
 
 	div.nslide {
+		position: relative;
 		height: 28px;
 		width: 100%;
 		padding: 3px;
@@ -566,18 +567,25 @@
 		outline: none;
 		background-color: var(--color-button);
 	}
-	.tool.nslide_tool .nslide_overlay {
-		width: 100%;
-		position: relative;
-		pointer-events: none;
-	}
-	.color_corner {
+	.tool.nslide_tool.has_percentage_bar .nslide::after {
+		content: "";
 		position: absolute;
+		pointer-events: none;
+		bottom: 0;
+		left: 0;
+		height: 3px;
+		width: calc(var(--percentage) * 1%);
+		background-color: var(--color-accent);
+	}
+	.tool.nslide_tool.is_colored .nslide::before {
+		content: "";
+		position: absolute;
+		pointer-events: none;
 		top: 0;
 		right: 0;
 		border-width: 4px;
 		border-style: solid;
-		border-color: transparent;
+		border-color: var(--corner-color);
 		border-bottom-color: transparent !important;
 		border-left-color: transparent !important;
 	}

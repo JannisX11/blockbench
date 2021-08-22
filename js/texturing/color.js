@@ -718,7 +718,7 @@ BARS.defineActions(function() {
 		condition: () => Modes.paint,
 		category: 'color',
 		settings: {
-			min: 0, max: 360, default: 0,
+			min: 0, max: 360, default: 0, show_bar: true
 		},
 		getInterval(e) {
 			if (e.shiftKey || Pressing.overrides.shift) return 12.5;
@@ -738,7 +738,7 @@ BARS.defineActions(function() {
 		condition: () => Modes.paint,
 		category: 'color',
 		settings: {
-			min: 0, max: 100, default: 0,
+			min: 0, max: 100, default: 0, show_bar: true
 		},
 		getInterval(e) {
 			if (e.shiftKey || Pressing.overrides.shift) return 10;
@@ -758,7 +758,7 @@ BARS.defineActions(function() {
 		condition: () => Modes.paint,
 		category: 'color',
 		settings: {
-			min: 0, max: 100, default: 100,
+			min: 0, max: 100, default: 100, show_bar: true
 		},
 		getInterval(e) {
 			if (e.shiftKey || Pressing.overrides.shift) return 10;

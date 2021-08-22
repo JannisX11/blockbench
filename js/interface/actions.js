@@ -504,15 +504,17 @@ class NumSlider extends Widget {
 			this.keybind.label = this.keybind.getText();
 		}
 		var scope = this;
-		var css_color = 'xyz'.includes(this.color) ? `var(--color-axis-${this.color})` : this.color;
 		this.node = $( `<div class="tool wide widget nslide_tool">
-							<div class="nslide_overlay">
-								<div class="color_corner" style="border-color: ${css_color}"></div>
-							</div>
 							<div class="nslide tab_target" n-action="${this.id}"></div>
 					  	</div>`).get(0);
 		this.jq_outer = $(this.node)
 		this.jq_inner = this.jq_outer.find('.nslide');
+
+		if (this.color) {
+			var css_color = 'xyz'.includes(this.color) ? `var(--color-axis-${this.color})` : this.color;
+			this.node.style.setProperty('--corner-color', css_color);
+			this.node.classList.add('is_colored');
+		}
 
 		this.addLabel(data.label);
 
@@ -739,6 +741,10 @@ class NumSlider extends Widget {
 
 		}
 		this.jq_outer.find('.nslide:not(.editing)').text(this.value)
+		if (this.settings && this.settings.show_bar) {
+			this.node.classList.add('has_percentage_bar');
+			this.node.style.setProperty('--percentage', Math.lerp(this.settings.min, this.settings.max, value)*100);
+		} 
 		return this;
 	}
 	change(modify) {
