@@ -518,21 +518,30 @@ onVueSetup(() => {
 			},
 			mouseEnter(project, event) {
 				if (project.thumbnail && !project.selected) {
-					let img = new Image();
+					if (this.thumbnail_timeout) {
+						clearTimeout(this.thumbnail_timeout);
+						delete this.thumbnail_timeout;
+					}
+					if (!this.thumbnail) {
+						this.thumbnail = new Image();
+						document.body.append(this.thumbnail);
+					}
+					let img = this.thumbnail;
 					img.src = project.thumbnail;
 					img.attributes.width = '240px';
 					img.className = 'project_thumbnail';
-					this.thumbnail = img;
 					let offset = $(event.target).offset();
 					img.style.left = (offset.left) + 'px';
 					img.style.top = (offset.top + event.target.clientHeight) + 'px';
-					document.body.append(img);
 				}
 			},
 			mouseLeave() {
 				if (this.thumbnail) {
-					this.thumbnail.remove();
-					delete this.thumbnail;
+					this.thumbnail_timeout = setTimeout(() => {
+						this.thumbnail.remove();
+						delete this.thumbnail;
+						delete this.thumbnail_timeout;
+					}, 40)
 				}
 			}
 		}
