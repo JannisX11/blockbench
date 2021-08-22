@@ -573,6 +573,7 @@ function calculateVisibleBox() {
 	}
 	function compileGroup(g) {
 		if (g.type !== 'group') return;
+		if (!settings.export_empty_groups.value && !g.children.find(child => child.export)) return;
 		//Bone
 		var bone = {}
 		bone.name = g.name

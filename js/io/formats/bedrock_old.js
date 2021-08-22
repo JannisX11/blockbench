@@ -164,6 +164,7 @@ var codec = new Codec('bedrock_old', {
 
 		groups.forEach(function(g) {
 			if (g.type !== 'group') return;
+			if (!settings.export_empty_groups.value && !g.children.find(child => child.export)) return;
 			//Bone
 			var bone = {}
 			bone.name = g.name

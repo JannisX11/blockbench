@@ -299,12 +299,13 @@ const Settings = {
 		new Setting('hardware_acceleration', {category: 'application', value: true, condition: isApp, launch_setting: true});
 		
 		//Export
-		new Setting('minifiedout', {category: 'export', value: false});
-		new Setting('minify_bbmodel', {category: 'export', value: true});
-		new Setting('export_groups', {category: 'export', value: true});
+		new Setting('minifiedout', 			{category: 'export', value: false});
+		new Setting('minify_bbmodel', 		{category: 'export', value: true});
+		new Setting('export_empty_groups',	{category: 'export', value: true});
+		new Setting('export_groups', 		{category: 'export', value: true});
 		new Setting('animation_sample_rate',{category: 'export', value: 24, type: 'number'});
-		new Setting('sketchfab_token', {category: 'export', value: '', type: 'password'});
-		new Setting('credit', {category: 'export', value: 'Made with Blockbench', type: 'text'});
+		new Setting('sketchfab_token', 		{category: 'export', value: '', type: 'password'});
+		new Setting('credit', 				{category: 'export', value: 'Made with Blockbench', type: 'text'});
 
 		Blockbench.onUpdateTo('3.8', () => {
 			settings.preview_checkerboard.value = true;

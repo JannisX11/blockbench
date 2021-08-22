@@ -24,6 +24,7 @@ var codec = new Codec('optifine_entity', {
 
 		Outliner.root.forEach(function(g) {
 			if (g instanceof Group == false) return;
+			if (!settings.export_empty_groups.value && !g.children.find(child => child.export)) return;
 			//Bone
 			var bone = {
 				part: g.name,
