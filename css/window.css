@@ -536,6 +536,7 @@
 		max-width: 240px;
 		image-rendering: auto;
 		animation: fade_in_thumbnail 700ms;
+		transition: left 100ms ease-in-out;
 	}
 	@keyframes fade_in_thumbnail {
 		0% {

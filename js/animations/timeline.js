@@ -947,7 +947,7 @@ onVueSetup(function() {
 				</div>
 				<div id="timeline_body" ref="timeline_body" @scroll="updateScroll($event)">
 					<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="Timeline.showMenu($event)">
-						<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: !animator.group}" :uuid="animator.uuid" v-on:click="animator.select();">
+						<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator instanceof BoneAnimator && !animator.group}" :uuid="animator.uuid" v-on:click="animator.select();">
 							<div class="animator_head_bar">
 								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)">
 									<div class="text_button" v-on:click.stop="toggleAnimator(animator)">

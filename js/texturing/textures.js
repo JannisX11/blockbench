@@ -74,7 +74,7 @@ class Texture {
 
 				if (SHADE) {
 
-					vec3 N = vec3( modelMatrix * vec4(normal, 0.0) );
+					vec3 N = normalize( vec3( modelMatrix * vec4(normal, 0.0) ) );
 
 					float yLight = (1.0+N.y) * 0.5;
 					light = yLight * (1.0-AMBIENT) + N.x*N.x * XFAC + N.z*N.z * ZFAC + AMBIENT;

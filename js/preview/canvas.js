@@ -46,7 +46,7 @@ const Canvas = {
 
 				if (SHADE) {
 
-					vec3 N = vec3( modelViewMatrix * vec4(normal, 0.0) );
+					vec3 N = normalize( vec3( modelViewMatrix * vec4(normal, 0.0) ) );
 
 					light = (0.2 + abs(N.z) * 0.8) * (1.0-AMBIENT) + N.x*N.x * XFAC + N.y*N.y * ZFAC + AMBIENT;
 
@@ -617,7 +617,7 @@ const Canvas = {
 
 				if (SHADE) {
 
-					vec3 N = vec3( modelMatrix * vec4(normal, 0.0) );
+					vec3 N = normalize( vec3( modelMatrix * vec4(normal, 0.0) ) );
 
 
 					float yLight = (1.0+N.y) * 0.5;
