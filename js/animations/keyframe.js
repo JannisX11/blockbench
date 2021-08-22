@@ -635,6 +635,7 @@ BARS.defineActions(function() {
 				kf.uniform = value;
 			})
 			Undo.finishEdit('Change keyframes uniform setting')
+			Interface.Panels.keyframe.inside_vue.$forceUpdate();
 			updateKeyframeSelection();
 		}
 	})
