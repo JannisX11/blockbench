@@ -27,6 +27,14 @@
 		const isApp = typeof require !== 'undefined';
 		const appVersion = '4.0.0-beta.0';
 
+		
+		if (localStorage.getItem('theme')) {
+			try {
+				stored_theme = JSON.parse(localStorage.getItem('theme'));
+				document.body.style.setProperty('--color-dark', stored_theme.colors.dark);
+			} catch (err) {}
+		}
+
 		window.onerror = (message, file, line) => {
 			if (typeof Blockbench != 'undefined' && Blockbench.setup_successful) return;
 
@@ -357,7 +365,7 @@
 	<header>
 		<ul id="mac_window_menu" hidden></ul>
 		<div id="corner_logo" class="app-drag-region">
-			<img src="assets/logo_text_white.svg" alt="Blockbench" />
+			<img class="blockbench_logo" src="assets/logo_text_white.svg" alt="Blockbench" />
 		</div>
 		<ul id="menu_bar" class="scroll_horizontal"></ul>
 		<div class="app-drag-region" id="header_free_bar"></div>
@@ -469,7 +477,7 @@
 						v-for="mode in options"
 						v-if="Condition(mode.condition)"
 						v-bind:class="{selected: mode.selected}"
-						v-on:click="mode.select()"
+						v-on:mousedown="mode.select()"
 					>{{ mode.name }}</li>
 				</ul>
 				<div class="toolbar_wrapper narrow mobile_side"></div>

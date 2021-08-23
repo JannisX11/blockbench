@@ -429,6 +429,7 @@
 		overflow-x: auto;
 		overflow-y: hidden;
 		padding-left: 4px;
+		background: var(--color-frame);
 	}
 	#tab_bar .project_tab {
 		background-color: var(--color-back);

@@ -273,7 +273,7 @@ BARS.defineActions(() => {
 					data() {return data},
 					template: `
 						<div>
-							<div id="about_page_title">
+							<div class="blockbench_logo" id="about_page_title">
 								<img src="assets/logo_text_white.svg" alt="Blockbench" width="240px">
 							</div>
 							<p><b>${tl('about.version')}</b> <span>{{ version_label }}</span></p>
