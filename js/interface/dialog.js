@@ -405,6 +405,7 @@ window.Dialog = class Dialog {
 		this.onCancel = options.onCancel
 		this.onButton = options.onButton;
 		this.onFormChange = options.onFormChange;
+		this.onOpen = options.onOpen;
 	
 		this.object;
 	}
@@ -613,6 +614,11 @@ window.Dialog = class Dialog {
 		open_interface = this;
 		Dialog.open = this;
 		Prop.active_panel = 'dialog';
+
+		if (typeof this.onOpen == 'function') {
+			this.onOpen();
+		}
+
 		return this;
 	}
 	hide() {

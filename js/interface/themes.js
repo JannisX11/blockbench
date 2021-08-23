@@ -3,6 +3,7 @@ const CustomTheme = {
 		id: 'dark',
 		name: '',
 		author: '',
+		borders: false,
 		main_font: '',
 		headline_font: '',
 		code_font: '',
@@ -73,6 +74,19 @@ const CustomTheme = {
 					}
 				}
 			},
+			onOpen() {
+				if (!CustomTheme.remote_themes_loaded) {
+					CustomTheme.remote_themes_loaded = true;
+					$.getJSON('https://api.github.com/repos/JannisX11/blockbench-themes/contents/themes').then(files => {
+						files.forEach(async file => {
+							let {content} = await $.getJSON(file.git_url);
+							let theme = JSON.parse(atob(content));
+							theme.id = file.name.replace(/\.\w+/, '');
+							CustomTheme.themes.push(theme);
+						})
+					}).catch(console.error)
+				}
+			},
 			component: {
 				data: {
 					data: CustomTheme.data,
@@ -105,12 +119,12 @@ const CustomTheme = {
 							saveChanges();
 						},
 						deep: true
-					},
-	
+					}
 				},
 				methods: {
 					selectTheme(theme) {
 						CustomTheme.loadTheme(theme);
+						saveChanges();
 					},
 					getThemeThumbnailStyle(theme) {
 						let style = {};
@@ -126,8 +140,26 @@ const CustomTheme = {
 							<h2 class="i_b">${tl('layout.select')}</h2>
 
 							<div id="theme_list">
-								<div v-for="theme in themes" :key="theme.id" class="theme" :class="{selected: theme.id == data.id}" @click="selectTheme(theme)" :style="getThemeThumbnailStyle(theme)">
-									<div class="theme_preview"></div>
+								<div v-for="theme in themes" :key="theme.id" class="theme" :class="{selected: theme.id == data.id}" @click="selectTheme(theme)">
+									<div class="theme_preview" :class="{borders: theme.borders}" :style="getThemeThumbnailStyle(theme)">
+										<div class="theme_preview_header">
+											<span class="theme_preview_text" style="width: 20px;" />
+											<div class="theme_preview_menu_header">
+												<span class="theme_preview_text" style="width: 34px;" />
+											</div>
+											<span class="theme_preview_text" style="width: 45px;" />
+										</div>
+										<div class="theme_preview_menu">
+											<span class="theme_preview_text" style="width: 23px;" />
+											<span class="theme_preview_text" style="width: 16px;" />
+											<span class="theme_preview_text" style="width: 40px;" />
+										</div>
+										<div class="theme_preview_window">
+											<div class="theme_preview_sidebar"></div>
+											<div class="theme_preview_center"></div>
+											<div class="theme_preview_sidebar"></div>
+										</div>
+									</div>
 									<div class="theme_name">{{ theme.name }}</div>
 									<div class="theme_author">{{ theme.author || 'Default' }}</div>
 								</div>
@@ -270,11 +302,16 @@ const CustomTheme = {
 		Merge.string(app, theme, 'id')
 		Merge.string(app, theme, 'name')
 		Merge.string(app, theme, 'author')
+		Merge.boolean(app, theme, 'borders')
 		Merge.string(app, theme, 'main_font')
 		Merge.string(app, theme, 'headline_font')
 		Merge.string(app, theme, 'code_font')
 		for (var key in app.colors) {
-			Merge.string(app.colors, theme.colors, key);
+			if (theme.colors[key]) {
+				Merge.string(app.colors, theme.colors, key);
+			} else {
+				CustomTheme.data.colors[key] = CustomTheme.defaultColors[key];
+			}
 		}
 		Merge.string(app, theme, 'css');
 		this.updateColors();

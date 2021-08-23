@@ -2,6 +2,7 @@
 	"id": "contrast",
 	"name": "Contrast",
 	"author": "",
+	"borders": true,
 	"main_font": "",
 	"headline_font": "",
 	"code_font": "",
