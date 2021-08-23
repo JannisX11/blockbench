@@ -12,8 +12,10 @@ window.KeymapPresets = {
 
 import DarkTheme from './../themes/dark.bbtheme'
 import LightTheme from './../themes/light.bbtheme'
+import ContrastTheme from './../themes/contrast.bbtheme'
 
 window.CustomThemeOptions = [
 	DarkTheme,
-	LightTheme
+	LightTheme,
+	ContrastTheme
 ]

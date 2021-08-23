@@ -2058,7 +2058,7 @@ const BARS = {
 				<dialog id="action_selector" v-if="open">
 					<input type="text" v-model="search_input" @input="e => search_input = e.target.value" autocomplete="off" autosave="off" autocorrect="off" spellcheck="off" autocapitalize="off">
 					<i class="material-icons" id="action_search_bar_icon">search</i>
-					<div>
+					<div id="action_selector_list">
 						<ul>
 							<li v-for="(item, i) in actions"
 								v-html="item.menu_node.innerHTML"

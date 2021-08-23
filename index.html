@@ -27,6 +27,14 @@
 		const isApp = typeof require !== 'undefined';
 		const appVersion = '4.0.0-beta.0';
 
+		
+		if (localStorage.getItem('theme')) {
+			try {
+				stored_theme = JSON.parse(localStorage.getItem('theme'));
+				document.body.style.setProperty('--color-dark', stored_theme.colors.dark);
+			} catch (err) {}
+		}
+
 		window.onerror = (message, file, line) => {
 			if (typeof Blockbench != 'undefined' && Blockbench.setup_successful) return;
 

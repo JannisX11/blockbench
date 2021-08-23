@@ -1,8 +1,7 @@
 {
 	"id": "light",
-	"meta": {
-		"name": "Default (Light)"
-	},
+	"name": "Default (Light)",
+	"author": "",
 	"main_font": "",
 	"headline_font": "",
 	"code_font": "",

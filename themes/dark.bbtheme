@@ -1,8 +1,7 @@
 {
 	"id": "dark",
-	"meta": {
-		"name": "Default (Dark)"
-	},
+	"name": "Default (Dark)",
+	"author": "",
 	"main_font": "",
 	"headline_font": "",
 	"code_font": "",

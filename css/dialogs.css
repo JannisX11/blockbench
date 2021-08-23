@@ -534,14 +534,22 @@
 		float: left;
 		width: 166px;
 		padding: 6px;
-		border: 1px solid transparent;
+		margin-right: 6px;
+		border: 2px solid transparent;
+		background-color: var(--color-ui);
+    	color: var(--color-text);
+		cursor: pointer;
 	}
 	#theme_list .theme:hover {
 		border-color: var(--color-border);
 		color: var(--color-light);
+		background-color: var(--color-back);
 	}
 	#theme_list .theme.selected {
 		border-color: var(--color-accent);
+	}
+	#theme_list .theme * {
+		cursor: inherit;
 	}
 	#theme_list .theme_preview {
 		height: 72px;
@@ -1044,7 +1052,7 @@
 		background-color: var(--color-bright_ui);
 		color: var(--color-accent_text);
 		min-height: 20px;
-		width: 340px;
+		width: 100%;
 		max-height: 400px;
 		overflow-y: auto;
 		overflow-x: hidden;
@@ -1099,7 +1107,6 @@
 		overflow-y: scroll;
 		min-height: 80px;
 		border: 1px solid var(--color-border);
-		border-right: none;
 	}
 	#bar_item_list li {
 		padding: 4px; 
