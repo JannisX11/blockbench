@@ -862,8 +862,6 @@
 	"action.import_theme": "Import Theme",
 	"action.export_theme": "Export Theme",
 	"action.export_theme.desc": "Create a theme file based on the current settings",
-	"action.reset_theme": "Reset Theme",
-	"action.reset_theme.desc": "Reset to the default Blockbench theme",
 
 	"action.uv_dialog": "UV Window...",
 	"action.uv_dialog.desc": "Open the UV dialog to see all faces next to each other",

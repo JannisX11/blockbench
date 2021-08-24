@@ -32,7 +32,6 @@
 		"action_control": {"key": 70},
 		"import_theme": null,
 		"export_theme": null,
-		"reset_theme": null,
 		"reset_layout": null,
 		"start": null,
 		"edit": {"key": 49},

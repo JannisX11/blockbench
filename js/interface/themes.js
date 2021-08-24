@@ -3,6 +3,7 @@ const CustomTheme = {
 		id: 'dark',
 		name: '',
 		author: '',
+		customized: false,
 		borders: false,
 		main_font: '',
 		headline_font: '',
@@ -31,10 +32,28 @@ const CustomTheme = {
 		wireframe: '#576f82',
 		checkerboard: '#1c2026',
 	},
+	sideloaded_themes: [],
 	setup() {
 
 		function saveChanges() {
 			localStorage.setItem('theme', JSON.stringify(CustomTheme.data));
+		}
+		if (isApp && localStorage.getItem('themes_sideloaded')) {
+			try {
+				let sideloaded = JSON.parse(localStorage.getItem('themes_sideloaded'));
+				if (sideloaded instanceof Array && sideloaded.length) {
+					CustomTheme.sideloaded_themes = sideloaded;
+					Blockbench.read(CustomTheme.sideloaded_themes, {}, files => {
+						files.forEach(file => {
+							let data = JSON.parse(file.content);
+							data.id = file.name.replace(/\.\w+$/, '');
+							if (!data.name) data.name = data.id;
+							CustomTheme.themes.push(data);
+
+						})
+					})
+				}
+			} catch (err) {}
 		}
 
 		CustomTheme.dialog = new Dialog({
@@ -85,6 +104,8 @@ const CustomTheme = {
 							CustomTheme.themes.push(theme);
 						})
 					}).catch(console.error)
+
+
 				}
 			},
 			component: {
@@ -126,6 +147,9 @@ const CustomTheme = {
 						CustomTheme.loadTheme(theme);
 						saveChanges();
 					},
+					customizeTheme() {
+						CustomTheme.customizeTheme();
+					},
 					getThemeThumbnailStyle(theme) {
 						let style = {};
 						for (let key in theme.colors) {
@@ -134,13 +158,22 @@ const CustomTheme = {
 						return style;
 					}
 				},
+				computed: {
+					listed_themes() {
+						let themes = this.themes.slice();
+						if (this.data.customized) {
+							themes.splice(0, 0, this.data);
+						}
+						return themes;
+					}
+				},
 				template: `
 					<div id="theme_editor">
 						<div v-if="open_category == 'select'">
 							<h2 class="i_b">${tl('layout.select')}</h2>
 
 							<div id="theme_list">
-								<div v-for="theme in themes" :key="theme.id" class="theme" :class="{selected: theme.id == data.id}" @click="selectTheme(theme)">
+								<div v-for="theme in listed_themes" :key="theme.id" class="theme" :class="{selected: theme.id == data.id}" @click="selectTheme(theme)">
 									<div class="theme_preview" :class="{borders: theme.borders}" :style="getThemeThumbnailStyle(theme)">
 										<div class="theme_preview_header">
 											<span class="theme_preview_text" style="width: 20px;" />
@@ -161,7 +194,7 @@ const CustomTheme = {
 										</div>
 									</div>
 									<div class="theme_name">{{ theme.name }}</div>
-									<div class="theme_author">{{ theme.author || 'Default' }}</div>
+									<div class="theme_author">{{ theme.author }}</div>
 								</div>
 							</div>
 						</div>
@@ -181,37 +214,37 @@ const CustomTheme = {
 						<div v-if="open_category == 'options'">
 							<h2 class="i_b">${tl('layout.options')}</h2>
 
-							<div class="dialog_bar">
+							<div class="dialog_bar" v-if="data.customized">
 								<label class="name_space_left" for="layout_name">${tl('layout.name')}</label>
-								<input type="text" class="half dark_bordered" id="layout_name" v-model="data.name">
+								<input @input="customizeTheme($event)" type="text" class="half dark_bordered" id="layout_name" v-model="data.name">
 							</div>
 
-							<div class="dialog_bar">
+							<div class="dialog_bar" v-if="data.customized">
 								<label class="name_space_left" for="layout_name">${tl('layout.author')}</label>
-								<input type="text" class="half dark_bordered" id="layout_name" v-model="data.author">
+								<input @input="customizeTheme($event)" type="text" class="half dark_bordered" id="layout_name" v-model="data.author">
 							</div>
 
 							<hr />
 
 							<div class="dialog_bar">
 								<label class="name_space_left" for="layout_font_main">${tl('layout.font.main')}</label>
-								<input style="font-family: var(--font-main)" type="text" class="half dark_bordered" id="layout_font_main" v-model="data.main_font">
+								<input @input="customizeTheme($event)" style="font-family: var(--font-main)" type="text" class="half dark_bordered" id="layout_font_main" v-model="data.main_font">
 							</div>
 	
 							<div class="dialog_bar">
 								<label class="name_space_left" for="layout_font_headline">${tl('layout.font.headline')}</label>
-								<input style="font-family: var(--font-headline)" type="text" class="half dark_bordered" id="layout_font_headline" v-model="data.headline_font">
+								<input @input="customizeTheme($event)" style="font-family: var(--font-headline)" type="text" class="half dark_bordered" id="layout_font_headline" v-model="data.headline_font">
 							</div>
 							<div class="dialog_bar">
 								<label class="name_space_left" for="layout_font_cpde">${tl('layout.font.code')}</label>
-								<input style="font-family: var(--font-code)" type="text" class="half dark_bordered" id="layout_font_cpde" v-model="data.code_font">
+								<input @input="customizeTheme($event)" style="font-family: var(--font-code)" type="text" class="half dark_bordered" id="layout_font_cpde" v-model="data.code_font">
 							</div>
 						</div>
 						
 						<div v-if="open_category == 'css'">
 							<h2 class="i_b">${tl('layout.css')}</h2>
 							<div id="css_editor">
-								<vue-prism-editor v-model="data.css" language="css" :line-numbers="true" />
+								<vue-prism-editor v-model="data.css" @change="customizeTheme(1, $event)" language="css" :line-numbers="true" />
 							</div>
 	
 						</div>
@@ -243,6 +276,7 @@ const CustomTheme = {
 					chooseText: tl('dialog.confirm'),
 					move(c) {
 						CustomTheme.data.colors[scope_key] = c.toHexString();
+						CustomTheme.customizeTheme();
 					},
 					change(c) {
 						last_color = c.toHexString();
@@ -259,6 +293,20 @@ const CustomTheme = {
 			})()
 		}
 		CustomTheme.dialog_is_setup = true;
+	},
+	customizeTheme() {
+		if (!CustomTheme.data.customized) {
+			CustomTheme.data.customized = true;
+			CustomTheme.data.name = CustomTheme.data.name ? ('Copy of ' + CustomTheme.data.name) : 'Custom Theme';
+			CustomTheme.data.author = settings.username.value;
+			CustomTheme.data.id = 'custom_theme';
+			let i = 0;
+			while (CustomTheme.themes.find(theme => theme.id == CustomTheme.data.id)) {
+				i++;
+				CustomTheme.data.id = 'custom_theme_'+i;
+			}
+			localStorage.setItem('theme', JSON.stringify(CustomTheme.data));
+		}
 	},
 	updateColors() {
 		
@@ -314,6 +362,7 @@ const CustomTheme = {
 			}
 		}
 		Merge.string(app, theme, 'css');
+		app.customized = false;
 		this.updateColors();
 		this.updateSettings();
 	},
@@ -334,9 +383,16 @@ const CustomTheme = {
 				app.colors.accent_text = data.text_acc
 			}
 
-		} else {
-			if (data && data.colors) {
-				CustomTheme.loadTheme(data);
+		} else if (data && data.colors) {
+			data.id = file.name.replace(/\.\w+$/, '');
+			if (!data.name) data.name = data.id;
+
+			CustomTheme.loadTheme(data);
+			CustomTheme.themes.push(data);
+
+			if (isApp) {
+				CustomTheme.sideloaded_themes.push(file.path);
+				localStorage.setItem('themes_sideloaded', JSON.stringify(CustomTheme.sideloaded_themes));
 			}
 		}
 	}
@@ -356,6 +412,7 @@ const CustomTheme = {
 	}
 	if (stored_theme) {
 		CustomTheme.loadTheme(stored_theme);
+		if (stored_theme.customized) CustomTheme.data.customized = true;
 	}
 })()
 
@@ -386,26 +443,17 @@ BARS.defineActions(function() {
 		icon: 'style',
 		category: 'blockbench',
 		click: function () {
+			let theme = {};
+			Object.assign(theme, CustomTheme.data);
+			delete theme.customized;
+			delete theme.id;
 			Blockbench.export({
 				resource_id: 'config',
 				type: 'Blockbench Theme',
 				extensions: ['bbtheme'],
+				name: theme.id,
 				content: compileJSON(CustomTheme.data)
 			})
-		}
-	})
-	new Action('reset_theme', {
-		icon: 'replay',
-		category: 'blockbench',
-		click() {
-			var app = CustomTheme.data;
-			app.main_font = '';
-			app.headline_font = '';
-			app.code_font = '';
-			app.css = '';
-			for (var key in app.colors) {
-				Merge.string(app.colors, CustomTheme.defaultColors, key);
-			}
 		}
 	})
 	//Only interface
@@ -425,7 +473,6 @@ BARS.defineActions(function() {
 	})
 	BarItems.import_theme.toElement('#layout_title_bar')
 	BarItems.export_theme.toElement('#layout_title_bar')
-	BarItems.reset_theme.toElement('#layout_title_bar')
 })
 
 
