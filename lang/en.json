@@ -1361,6 +1361,7 @@
 	"uv_editor.tint_off": "Tint Off",
 	"uv_editor.copy_selection": "Copy Selection",
 	"uv_editor.paste_selection": "Paste Selection",
+	"uv_editor.transparent_face": "Transparent Face",
 
 	"uv_editor.copy_paste_tool.place": "Place",
 	"uv_editor.copy_paste_tool.cut": "Cut",

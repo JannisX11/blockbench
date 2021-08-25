@@ -172,6 +172,7 @@ class ModelProject {
 		Interface.Panels.outliner.inside_vue.root = this.outliner;
 
 		UVEditor.vue.elements = this.selected_elements;
+		UVEditor.vue.all_elements = this.elements;
 		UVEditor.vue.selected_vertices = this.selected_vertices;
 		UVEditor.vue.selected_faces = this.selected_faces;
 		UVEditor.vue.box_uv = this.box_uv;
