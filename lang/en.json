@@ -598,7 +598,7 @@
 	"settings.create_rename": "Rename New Cube",
 	"settings.create_rename.desc": "Focus name field when creating new element or group",
 	"settings.animation_snap": "Animation Snap",
-	"settings.animation_snap.desc": "Default snap interval for keyframes in the animation timeline in steps per second",
+	"settings.animation_snap.desc": "Default snap interval for keyframes in the animation timeline in steps per second. This can also be changed per animation. The default value is 24.",
 
 	"settings.edit_size": "Grid Resolution",
 	"settings.edit_size.desc": "Resolution of the grid that cubes snap to",
