@@ -268,9 +268,26 @@ class Mesh extends OutlinerElement {
 		for (var key in Mesh.properties) {
 			Mesh.properties[key].copy(this, el)
 		}
+
+		el.vertices = {};
+		for (let key in this.vertices) {
+			el.vertices[key] = this.vertices[key].slice();
+		}
+
+		el.faces = {};
+		for (let key in this.faces) {
+			el.faces[key] = this.faces[key].getSaveCopy();
+		}
+
 		el.type = 'mesh';
 		el.uuid = this.uuid
 		return el;
+	}
+	setColor(index) {
+		this.color = index;
+		if (this.visibility) {
+			this.preview_controller.updateFaces(this);
+		}
 	}
 	flip(axis, center) {
 		for (let key in this.vertices) {
@@ -860,6 +877,51 @@ BARS.defineActions(function() {
 		}
 	})
 	new Action({
+		id: 'merge_meshes',
+		icon: 'upload',
+		category: 'edit',
+		condition: () => (Modes.edit && Format.meshes && Mesh.selected.length >= 2),
+		click() {
+			let elements = Mesh.selected
+			Undo.initEdit({elements: Mesh.selected});
+			let original = Mesh.selected[0];
+			let vector = new THREE.Vector3();
+
+			Mesh.selected.forEach(mesh => {
+				if (mesh == original) return;
+
+				let old_vertex_keys = Object.keys(mesh.vertices);
+				let new_vertex_keys = original.addVertices(...mesh.vertice_list.map(arr => {
+					vector.fromArray(arr);
+					mesh.mesh.localToWorld(vector);
+					original.mesh.worldToLocal(vector);
+					return vector.toArray()
+				}));
+
+				for (let key in mesh.faces) {
+					let old_face = mesh.faces[key];
+					let new_face = new MeshFace(original, old_face);
+					let uv = {};
+					for (let vkey in old_face.uv) {
+						let new_vkey = new_vertex_keys[old_vertex_keys.indexOf(vkey)]
+						uv[new_vkey] = old_face.uv[vkey];
+					}
+					new_face.extend({
+						vertices: old_face.vertices.map(v => new_vertex_keys[old_vertex_keys.indexOf(v)]),
+						uv
+					})
+					original.addFaces(new_face)
+				}
+
+				mesh.remove();
+				Mesh.selected.remove(mesh)
+			})
+			updateSelection();
+			Undo.finishEdit('Merge meshes')
+			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
+		}
+	})
+	new Action({
 		id: 'import_obj',
 		icon: 'fa-gem',
 		category: 'file',
@@ -978,12 +1040,16 @@ BARS.defineActions(function() {
 						circle: 'dialog.add_primitive.shape.circle',
 						cylinder: 'dialog.add_primitive.shape.cylinder',
 						cone: 'dialog.add_primitive.shape.cone',
+						torus: 'dialog.add_primitive.shape.torus',
+						sphere: 'dialog.add_primitive.shape.sphere',
 						cube: 'dialog.add_primitive.shape.cube',
 						pyramid: 'dialog.add_primitive.shape.pyramid',
 					}},
 					diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: 16},
-					height: {label: 'dialog.add_primitive.height', type: 'number', value: 8},
-					sides: {label: 'dialog.add_primitive.sides', type: 'number', value: 16},
+					height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cube', 'pyramid'].includes(shape)},
+					sides: {label: 'dialog.add_primitive.sides', type: 'number', value: 16, condition: ({shape}) => ['cylinder', 'cone', 'circle', 'torus', 'sphere'].includes(shape)},
+					minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: 4, condition: ({shape}) => ['torus'].includes(shape)},
+					minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: 8, condition: ({shape}) => ['torus'].includes(shape)},
 				},
 				onConfirm(result) {
 					let elements = [];
@@ -1024,8 +1090,10 @@ BARS.defineActions(function() {
 							if (!b) {
 								b = vertex_keys[2];
 							}
-							mesh.addFaces(new MeshFace( mesh, {vertices: [b, a, m0]} ));
-							mesh.addFaces(new MeshFace( mesh, {vertices: [a, b, m1]} ));
+							mesh.addFaces(
+								new MeshFace( mesh, {vertices: [b, a, m0]} ),
+								new MeshFace( mesh, {vertices: [a, b, m1]} )
+							);
 						}
 					}
 					if (result.shape == 'cylinder') {
@@ -1043,9 +1111,93 @@ BARS.defineActions(function() {
 								c = vertex_keys[2];
 								d = vertex_keys[3];
 							}
-							mesh.addFaces(new MeshFace( mesh, {vertices: [c, a, m0]} ));
-							mesh.addFaces(new MeshFace( mesh, {vertices: [a, c, d, b]} ));
-							mesh.addFaces(new MeshFace( mesh, {vertices: [b, d, m1]} ));
+							mesh.addFaces(
+								new MeshFace( mesh, {vertices: [c, a, m0]}),
+								new MeshFace( mesh, {vertices: [a, c, d, b]} ),
+								new MeshFace( mesh, {vertices: [b, d, m1]} )
+							);
+						}
+					}
+					if (result.shape == 'torus') {
+						let rings = [];
+
+						for (let i = 0; i < result.sides; i++) {
+							let circle_x = Math.sin((i / result.sides) * Math.PI * 2);
+							let circle_z = Math.cos((i / result.sides) * Math.PI * 2);
+
+							let vertices = [];
+							for (let j = 0; j < result.minor_sides; j++) {
+								let slice_x = Math.sin((j / result.minor_sides) * Math.PI * 2) * result.minor_diameter/2;
+								let x = circle_x * (result.diameter/2 + slice_x)
+								let y = Math.cos((j / result.minor_sides) * Math.PI * 2) * result.minor_diameter/2;
+								let z = circle_z * (result.diameter/2 + slice_x)
+								vertices.push(...mesh.addVertices([x, y, z]));
+							}
+							rings.push(vertices);
+
+						}
+						
+						for (let i = 0; i < result.sides; i++) {
+							let this_ring = rings[i];
+							let next_ring = rings[i+1] || rings[0];
+							for (let j = 0; j < result.minor_sides; j++) {
+								mesh.addFaces(new MeshFace( mesh, {vertices: [
+									this_ring[j+1] || this_ring[0],
+									next_ring[j+1] || next_ring[0],
+									this_ring[j],
+									next_ring[j],
+								]} ));
+							}
+						}
+					}
+					if (result.shape == 'sphere') {
+						let rings = [];
+						let sides = Math.round(result.sides/2)*2;
+						let [bottom] = mesh.addVertices([0, -result.diameter/2, 0]);
+						let [top] = mesh.addVertices([0, result.diameter/2, 0]);
+
+						for (let i = 0; i < result.sides; i++) {
+							let circle_x = Math.sin((i / result.sides) * Math.PI * 2);
+							let circle_z = Math.cos((i / result.sides) * Math.PI * 2);
+
+							let vertices = [];
+							for (let j = 1; j < (sides/2); j++) {
+
+								let slice_x = Math.sin((j / sides) * Math.PI * 2) * result.diameter/2;
+								let x = circle_x * slice_x
+								let y = Math.cos((j / sides) * Math.PI * 2) * result.diameter/2;
+								let z = circle_z * slice_x
+								vertices.push(...mesh.addVertices([x, y, z]));
+							}
+							rings.push(vertices);
+
+						}
+						
+						for (let i = 0; i < result.sides; i++) {
+							let this_ring = rings[i];
+							let next_ring = rings[i+1] || rings[0];
+							for (let j = 0; j < (sides/2); j++) {
+								if (j == 0) {
+									mesh.addFaces(new MeshFace( mesh, {vertices: [
+										this_ring[j],
+										next_ring[j],
+										top
+									]} ));
+								} else if (!this_ring[j]) {
+									mesh.addFaces(new MeshFace( mesh, {vertices: [
+										next_ring[j-1],
+										this_ring[j-1],
+										bottom
+									]} ));
+								} else {
+									mesh.addFaces(new MeshFace( mesh, {vertices: [
+										this_ring[j],
+										next_ring[j],
+										this_ring[j-1],
+										next_ring[j-1],
+									]} ));
+								}
+							}
 						}
 					}
 					if (result.shape == 'cube') {
@@ -1053,23 +1205,27 @@ BARS.defineActions(function() {
 						let h = result.height;
 						mesh.addVertices([r, h, r], [r, h, -r], [r, 0, r], [r, 0, -r], [-r, hr, r], [-r, h, -r], [-r, 0, r], [-r, 0, -r]);
 						let vertex_keys = Object.keys(mesh.vertices);
-						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[1], vertex_keys[3]]} ));	// East
-						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[4], vertex_keys[5], vertex_keys[6], vertex_keys[7]]} ));	// West
-						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[4], vertex_keys[5]]} ));	// Up
-						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[2], vertex_keys[6], vertex_keys[3], vertex_keys[7]]} ));	// Down
-						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[4], vertex_keys[2], vertex_keys[6]]} ));	// South
-						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[5], vertex_keys[7]]} ));	// North
+						mesh.addFaces(
+							new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[1], vertex_keys[3]]} ), // East
+							new MeshFace( mesh, {vertices: [vertex_keys[4], vertex_keys[5], vertex_keys[6], vertex_keys[7]]} ), // West
+							new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[4], vertex_keys[5]]} ), // Up
+							new MeshFace( mesh, {vertices: [vertex_keys[2], vertex_keys[6], vertex_keys[3], vertex_keys[7]]} ), // Down
+							new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[4], vertex_keys[2], vertex_keys[6]]} ), // South
+							new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[5], vertex_keys[7]]} ), // North
+						);
 					}
 					if (result.shape == 'pyramid') {
 						let r = result.diameter/2;
 						let h = result.height;
 						mesh.addVertices([0, h, 0], [r, 0, r], [r, 0, -r], [-r, 0, r], [-r, 0, -r]);
 						let vertex_keys = Object.keys(mesh.vertices);
-						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[2], vertex_keys[4]]} ));	// Down
-						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[2], vertex_keys[0]]} ));	// east
-						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[3], vertex_keys[1], vertex_keys[0]]} ));	// south
-						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[2], vertex_keys[4], vertex_keys[0]]} ));	// north
-						mesh.addFaces(new MeshFace( mesh, {vertices: [vertex_keys[4], vertex_keys[3], vertex_keys[0]]} ));	// west
+						mesh.addFaces(
+							new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[2], vertex_keys[4]]} ),	// Down
+							new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[2], vertex_keys[0]]} ),	// east
+							new MeshFace( mesh, {vertices: [vertex_keys[3], vertex_keys[1], vertex_keys[0]]} ),	// south
+							new MeshFace( mesh, {vertices: [vertex_keys[2], vertex_keys[4], vertex_keys[0]]} ),	// north
+							new MeshFace( mesh, {vertices: [vertex_keys[4], vertex_keys[3], vertex_keys[0]]} ),	// west
+						);
 					}
 					elements.push(mesh);
 					mesh.init()
