@@ -1770,8 +1770,8 @@ const BARS = {
 			]
 		})
 		//UV
-		Toolbars.main_uv = new Toolbar({
-			id: 'main_uv',
+		Toolbars.uv_editor = new Toolbar({
+			id: 'uv_editor',
 			children: [
 				'uv_grid',
 				'uv_apply_all',
@@ -1784,8 +1784,9 @@ const BARS = {
 				'toggle_mirror_uv',
 			]
 		})
-		Toolbars.uv_dialog = new Toolbar({
-			id: 'uv_dialog',
+		/*
+		Toolbars.UVEditor = new Toolbar({
+			id: 'UVEditor',
 			children: [
 				'uv_grid',
 				'_',
@@ -1813,7 +1814,7 @@ const BARS = {
 				'uv_rotation'
 			],
 			default_place: true
-		})
+		})*/
 		//Animations
 		Toolbars.animations = new Toolbar({
 			id: 'animations',
@@ -1917,8 +1918,8 @@ const BARS = {
 		}
 		BarItems.move_tool.select()
 
-		BarItems.uv_dialog.toElement('#uv_title_bar')
-		BarItems.uv_dialog_full.toElement('#uv_title_bar')
+		//BarItems.UVEditor.toElement('#uv_title_bar')
+		//BarItems.UVEditor_full.toElement('#uv_title_bar')
 
 
 	},
@@ -2176,9 +2177,10 @@ const BARS = {
 				Toolbars[key].update()
 			}
 		}
-		uv_dialog.all_editors.forEach((editor) => {
+		/*
+		UVEditor.all_editors.forEach((editor) => {
 			editor.updateInterface()
-		})
+		})*/
 	}
 }
 const ActionControl = {

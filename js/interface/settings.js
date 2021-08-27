@@ -200,8 +200,8 @@ const Settings = {
 		new Setting('preview_checkerboard',	{category: 'interface', value: true, onChange() {
 			$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 		}});
-		new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange() {
-			$('.UVEditor').toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
+		new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange(val) {
+			UVEditor.vue.checkerboard = val;
 		}});
 		new Setting('timecode_frame_number',{category: 'interface', value: false, onChange() {
 			Timeline.vue.updateTimecodes();

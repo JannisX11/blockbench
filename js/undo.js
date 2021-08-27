@@ -363,13 +363,6 @@ class UndoSystem {
 
 		Blockbench.dispatchEvent('load_undo_save', {save, reference, mode})
 
-		if (open_dialog == 'uv_dialog') {
-			for (var key in uv_dialog.editors) {
-				if (uv_dialog.editors[key]) {
-					uv_dialog.editors[key].loadData()
-				}
-			}
-		}
 		updateSelection()
 		if ((save.outliner || save.group) && Format.bone_rig) {
 			Canvas.updateAllBones();
@@ -486,7 +479,7 @@ BARS.defineActions(function() {
 	new Action('undo', {
 		icon: 'undo',
 		category: 'edit',
-		condition: () => (!open_dialog || open_dialog === 'uv_dialog' || open_dialog === 'toolbar_edit'),
+		condition: () => Project,
 		work_in_dialog: true,
 		keybind: new Keybind({key: 'z', ctrl: true}),
 		click(e) {
@@ -496,7 +489,7 @@ BARS.defineActions(function() {
 	new Action('redo', {
 		icon: 'redo',
 		category: 'edit',
-		condition: () => (!open_dialog || open_dialog === 'uv_dialog' || open_dialog === 'toolbar_edit'),
+		condition: () => Project,
 		work_in_dialog: true,
 		keybind: new Keybind({key: 'y', ctrl: true}),
 		click(e) {

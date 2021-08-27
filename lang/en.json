@@ -863,11 +863,6 @@
 	"action.export_theme": "Export Theme",
 	"action.export_theme.desc": "Create a theme file based on the current settings",
 
-	"action.uv_dialog": "UV Window...",
-	"action.uv_dialog.desc": "Open the UV dialog to see all faces next to each other",
-	"action.uv_dialog_full": "Full View...",
-	"action.uv_dialog_full.desc": "Open the UV dialog to edit one face in fullscreen",
-
 	"action.undo": "Undo",
 	"action.undo.desc": "Undoes the last change",
 	"action.redo": "Redo",
@@ -1375,6 +1370,7 @@
 	"uv_editor.tint_off": "Tint Off",
 	"uv_editor.copy_selection": "Copy Selection",
 	"uv_editor.paste_selection": "Paste Selection",
+	"uv_editor.transparent_face": "Transparent Face",
 
 	"uv_editor.copy_paste_tool.place": "Place",
 	"uv_editor.copy_paste_tool.cut": "Cut",

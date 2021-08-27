@@ -138,8 +138,6 @@
 		"change_textures_folder": null,
 		"animated_textures": null,
 		"animated_texture_frame": null,
-		"uv_dialog": null,
-		"uv_dialog_full": null,
 		"uv_rotation": null,
 		"uv_grid": null,
 		"uv_select_all": null,

@@ -90,9 +90,6 @@ setInterval(function() {
 	framespersecond = 0;
 }, 1000)
 
-main_uv = new UVEditor('main_uv', false, true)
-main_uv.setToMainSlot()
-
 onVueSetup.funcs.forEach((func) => {
 	if (typeof func === 'function') {
 		func()

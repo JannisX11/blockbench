@@ -3,7 +3,6 @@ const Clipbench = {
 	elements: [],
 	types: {
 		text: 'text',
-		face_dialog: 'face_dialog',
 		display_slot: 'display_slot',
 		keyframe: 'keyframe',
 		face: 'face',
@@ -23,9 +22,6 @@ const Clipbench = {
 		}
 		if (Painter.selection.canvas && Toolbox.selected.id == 'copy_paste_tool') {
 			return Clipbench.types.texture_selection;
-		}
-		if (open_dialog == 'uv_dialog') {
-			return Clipbench.types.face_dialog
 		}
 		if (display_mode) {
 			return Clipbench.types.display_slot
@@ -48,9 +44,6 @@ const Clipbench = {
 			case 'text':
 				Clipbench.setText(window.getSelection()+'');
 				break;
-			case 'face_dialog':
-				uv_dialog.copy(event);
-				break;
 			case 'display_slot':
 				DisplayMode.copy();
 				break;
@@ -63,7 +56,7 @@ const Clipbench = {
 				}
 				break;
 			case 'face':
-				main_uv.copy(event);
+				UVEditor.copy(event);
 				break;
 			case 'texture':
 				Clipbench.setTexture(Texture.selected);
@@ -91,10 +84,7 @@ const Clipbench = {
 				Clipbench.setText(window.getSelection()+'');
 				break;
 			case 'texture_selection':
-				main_uv.addPastingOverlay();
-				break;
-			case 'face_dialog':
-				uv_dialog.paste(event)
+				UVEditor.addPastingOverlay();
 				break;
 			case 'display_slot':
 				DisplayMode.paste();
@@ -103,7 +93,7 @@ const Clipbench = {
 				Clipbench.pasteKeyframes()
 				break;
 			case 'face':
-				main_uv.paste(event);
+				UVEditor.paste(event);
 				break;
 			case 'texture':
 				Clipbench.pasteTextures();

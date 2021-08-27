@@ -223,9 +223,6 @@
 		left: 0px;
 		pointer-events: none;
 	}
-	#uv_dialog_all .uv_message_box {
-		top: 60px;
-	}
 	.selection_rectangle {
 		position: absolute;
 		display: block;

@@ -70,10 +70,8 @@ class ModelFormat {
 				preview.loadAnglePreset(DefaultCameraPresets[preview.angle+1])
 			}
 		})
-		uv_dialog.all_editors.forEach(editor => {
-			editor.img.style.objectFit = Format.animated_textures ? 'cover' : 'fill';
-		})
 		Interface.Panels.animations.inside_vue._data.animation_files_enabled = this.animation_files;
+		// Todo: toggle animated textures in UV editor
 		for (var key in ModelProject.properties) {
 			if (Project[key] == undefined) {
 				ModelProject.properties[key].reset(Project);
