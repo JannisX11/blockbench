@@ -191,7 +191,7 @@
 		width: fit-content;
 		padding: 0 12px;
 		background-color: var(--color-bright_ui);
-		color: var(--color-accent_text);
+		color: var(--color-bright_ui_text);
 		box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);;
 		text-align: center;
 		overflow-wrap: break-word;
@@ -214,7 +214,7 @@
 		min-width: 100px;
 		max-width: 200px;
 		background-color: var(--color-bright_ui);
-		color: var(--color-accent_text);
+		color: var(--color-bright_ui_text);
 		box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);;
 		text-align: center;
 		cursor: default;
@@ -238,7 +238,7 @@
 		position: absolute;
 		text-align: center;
 		background-color: var(--color-bright_ui);
-		color: var(--color-accent_text);
+		color: var(--color-bright_ui_text);
 		padding: 3px 8px;
 		pointer-events: none;
 	}
@@ -416,9 +416,9 @@
 		padding-left: 5px;
 		padding-right: 5px;
 		padding-top: 2px;
-		color: var(--color-accent_text);
-		margin-top: 30px;
 		background: var(--color-bright_ui);
+		color: var(--color-bright_ui_text);
+		margin-top: 30px;
 		white-space: nowrap;
 		z-index: 18;
 		box-shadow: 0 0.4px 3.5px rgba(0, 0, 0, 0.6);
@@ -457,7 +457,7 @@
 		width: fit-content;
 		min-width: 110px;
 		background-color: var(--color-bright_ui);
-		color: var(--color-accent_text);
+		color: var(--color-bright_ui_text);
 		z-index: 20;
 		box-shadow: 0.4px 0.4px 4px rgba(0, 0, 0, 0.7);
 		cursor: default;
@@ -523,7 +523,8 @@
 		height: 2px;
 		width: 100%;
 		padding: 0;
-		background-color: var(--color-bright_border);
+		background-color: var(--color-bright_ui_text);
+		opacity: 0.28;
 	}
 	.contextMenu li.highlighted {
 		animation: menu_item_highlight 1s infinite ease-in-out;

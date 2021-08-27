@@ -303,6 +303,7 @@
 		--color-text: #cacad4;
 		--color-light: #f4f3ff;
 		--color-accent_text: #000006;
+		--color-bright_ui_text: #000006;
 		--color-subtle_text: #848891;
 		--color-bright_ui: #f4f3ff;
 		--color-bright_border: var(--color-text);

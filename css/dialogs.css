@@ -627,7 +627,7 @@
 		background-color: var(--color-accent_text);
 	}
 	.theme_preview_menu > .theme_preview_text {
-		background-color: var(--color-accent_text);
+		background-color: var(--color-bright_ui_text);
 		display: block;
 		margin: 10px 7px;
 	}

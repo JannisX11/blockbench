@@ -27,6 +27,7 @@ const CustomTheme = {
 		text: '#cacad4',
 		light: '#f4f3ff',
 		accent_text: '#000006',
+		bright_ui_text: '#000006',
 		subtle_text: '#848891',
 		grid: '#495061',
 		wireframe: '#576f82',
@@ -380,7 +381,8 @@ const CustomTheme = {
 				}
 			}
 			if (data.text_acc) {
-				app.colors.accent_text = data.text_acc
+				app.colors.accent_text = data.text_acc;
+				app.colors.bright_ui_text = data.text_acc;
 			}
 
 		} else if (data && data.colors) {

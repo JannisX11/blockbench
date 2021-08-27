@@ -1,7 +1,7 @@
 {
 	"new_version": {
 		"color": "var(--color-bright_ui)",
-		"text_color": "var(--color-accent_text)",
+		"text_color": "var(--color-bright_ui_text)",
 		"graphic": {
 			"type": "image",
 			"source": "https://web.blockbench.net/content/splash_art.png?39",

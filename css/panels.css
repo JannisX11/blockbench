@@ -1434,7 +1434,7 @@
 		height: 30px;
 		padding: 3px;
 		float: left;
-		color: var(--color-accent_text);
+		color: var(--color-bright_ui_text);
 		text-align: center;
 	}
 	#texture_pasting_overlay > div.control > div:hover {
