@@ -287,9 +287,9 @@ const Canvas = {
 	},
 	updateAllFaces(texture) {
 		Outliner.elements.forEach(function(obj) {
-			if (obj.faces) {
+			if (obj.faces || obj instanceof TextureMesh) {
 				var used = true;
-				if (texture) {
+				if (texture && obj.faces && !Format.single_texture) {
 				 	used = false;
 					for (var face in obj.faces) {
 						if (obj.faces[face].getTexture() == texture) {
@@ -299,7 +299,7 @@ const Canvas = {
 				}
 				if (used === true) {
 					obj.preview_controller.updateFaces(obj);
-					if (Prop.view_mode === 'textured') {
+					if (Prop.view_mode === 'textured' && obj.preview_controller.updateUV) {
 						obj.preview_controller.updateUV(obj);
 					}
 				}

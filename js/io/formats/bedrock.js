@@ -436,6 +436,28 @@ function calculateVisibleBox() {
 				}
 			}
 		}
+		if (b.texture_meshes instanceof Array) {
+			b.texture_meshes.forEach(tm => {
+				let texture = Texture.all.find(tex => tex.name == tm.texture);
+				let texture_mesh = new TextureMesh({
+					texture_name: tm.texture,
+					texture: texture ? texture.uuid : null,
+					origin: tm.position,
+					rotation: tm.rotation,
+					local_pivot: tm.local_pivot,
+					scale: tm.scale,
+				})
+				texture_mesh.local_pivot[2] *= -1;
+				texture_mesh.origin[1] *= -1;
+
+				texture_mesh.origin[1] += b.pivot[1];
+
+				texture_mesh.origin[0] *= -1;
+				texture_mesh.rotation[0] *= -1;
+				texture_mesh.rotation[1] *= -1;
+				texture_mesh.addTo(group).init();
+			})
+		}
 		if (b.children) {
 			b.children.forEach(function(cg) {
 				cg.addTo(group);
@@ -599,9 +621,10 @@ function calculateVisibleBox() {
 		if (g.material) {
 			bone.material = g.material
 		}
-		//Cubes
+		// Elements
 		var cubes = []
 		var locators = {};
+		var texture_meshes = [];
 
 		for (var obj of g.children) {
 			if (obj.export) {
@@ -633,12 +656,39 @@ function calculateVisibleBox() {
 					} else {
 						locators[key] = offset;
 					}
+				} else if (obj instanceof TextureMesh) {
+					let texmesh = {
+						texture: obj.texture_name,
+						position: obj.origin.slice(),
+					}
+					texmesh.position[0] *= -1;
+					texmesh.position[1] -= bone.pivot[1];
+					texmesh.position[1] *= -1;
+
+					if (!obj.rotation.allEqual(0)) {
+						texmesh.rotation = [
+							-obj.rotation[0],
+							-obj.rotation[1],
+							obj.rotation[2]
+						]
+					}
+					if (!obj.local_pivot.allEqual(0)) {
+						texmesh.local_pivot = obj.local_pivot.slice();
+						texmesh.local_pivot[2] *= -1;
+					}
+					if (!obj.scale.allEqual(1)) {
+						texmesh.scale = obj.scale.slice();
+					}
+					texture_meshes.push(texmesh);
 				}
 			}
 		}
 
 		if (cubes.length) {
 			bone.cubes = cubes
+		}
+		if (texture_meshes.length) {
+			bone.texture_meshes = texture_meshes
 		}
 		if (Object.keys(locators).length) {
 			bone.locators = locators
@@ -960,6 +1010,7 @@ var format = new ModelFormat({
 	animation_files: true,
 	animation_mode: true,
 	locators: true,
+	texture_meshes: true,
 	codec,
 	onActivation: function () {
 		

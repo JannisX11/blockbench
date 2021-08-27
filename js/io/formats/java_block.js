@@ -411,23 +411,15 @@ var codec = new Codec('java_block', {
 			model.textures &&
 			typeof model.textures.layer0 === 'string'
 		) {
-			base_cube = new Cube()
-			base_cube.extend({
+			let texture_mesh = new TextureMesh({
 				name: model.textures.layer0,
-				from: [0, 0, 7.5],
-				to:   [16, 16, 7.8],
-				faces: {
-					north: {uv: [16,0,0,16], texture: Texture.getDefault().uuid || null},
-					south: {uv: [0,0,16,16], texture: Texture.getDefault().uuid || null},
-					east:  {uv: [0,0,0,0], texture: null},
-					west:  {uv: [0,0,0,0], texture: null},
-					up:	   {uv: [0,0,0,0], texture: null},
-					down:  {uv: [0,0,0,0], texture: null},
-				},
-				autouv: 0,
+				rotation: [-90, 180, 0],
+				local_pivot: [0, -7.5, -16],
+				locked: true,
 				export: false
 			}).init()
-			new_cubes.push(base_cube);
+
+			new_cubes.push(texture_mesh);
 		} else if (!model.elements && model.parent) {
 			Blockbench.showMessageBox({
 				translateKey: 'child_model_only',
