@@ -415,6 +415,7 @@ onVueSetup(() => {
 			drag_target_index: null,
 			drag_position_index: null,
 			close_tab_label: tl('projects.close_tab'),
+			search_tabs_label: tl('generic.search'),
 			new_tab: {
 				name: tl('projects.new_tab'),
 				saved: true,
@@ -451,13 +452,18 @@ onVueSetup(() => {
 				this.new_tab.select();
 				setStartScreen(true);
 			},
+			searchTabs() {
+				ActionControl.select('tab:');
+			},
 			mouseDown(tab, e1) {
 				convertTouchEvent(e1);
+				e1.preventDefault();
 				
 				if (this.thumbnail) {
 					this.thumbnail.remove();
 					delete this.thumbnail;
 				}
+				if (e1.button == 1) return;
 				
 				let scope = this;
 				let active = false;
@@ -564,10 +570,10 @@ onVueSetup(() => {
 			mouseLeave() {
 				if (this.thumbnail) {
 					this.thumbnail_timeout = setTimeout(() => {
-						this.thumbnail.remove();
+						if (this.thumbnail) this.thumbnail.remove();
 						delete this.thumbnail;
 						delete this.thumbnail_timeout;
-					}, 40)
+					}, 80)
 				}
 			}
 		}

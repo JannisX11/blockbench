@@ -2226,33 +2226,82 @@ const BARS = {
 				length: 0,
 				list: []
 			},
-			computed: {
-				actions() {
+			methods: {
+				updateSearch() {
 					var search_input = this._data.search_input.toUpperCase()
-					var list = this._data.list.empty()
-					for (var i = 0; i < Keybinds.actions.length; i++) {
-						var item = Keybinds.actions[i];
-						if (
-							search_input.length == 0 ||
-							item.name.toUpperCase().includes(search_input) ||
-							item.id.toUpperCase().includes(search_input)
-						) {
-							if (item instanceof Action && Condition(item.condition)) {
-								list.push(item)
-								if (list.length > ActionControl.max_length) break;
+					var type;
+					if (search_input.includes(':')) {
+						[type, search_input] = search_input.split(/:\s*(.*)/);
+						search_input = search_input || '';
+					}
+					var list = this._data.list.empty();
+					if (!type) {
+						for (var i = 0; i < Keybinds.actions.length; i++) {
+							var item = Keybinds.actions[i];
+							if (
+								search_input.length == 0 ||
+								item.name.toUpperCase().includes(search_input) ||
+								item.id.toUpperCase().includes(search_input)
+							) {
+								if (item instanceof Action && Condition(item.condition)) {
+									list.push(item)
+									if (list.length > ActionControl.max_length) break;
+								}
 							}
 						}
 					}
-					if (list.length <= ActionControl.max_length) {
-						for (let key in settings) {
-							let setting = settings[key];
-							if (
-								search_input.length == 0 ||
-								setting.name.toUpperCase().includes(search_input) ||
-								key.toUpperCase().includes(search_input)
-							) {
-								if (Condition(setting.condition)) {
-									list.push(setting)
+					if (!type || type == 'SETTINGS') {
+						if (list.length <= ActionControl.max_length) {
+							for (let key in settings) {
+								let setting = settings[key];
+								if (
+									search_input.length == 0 ||
+									setting.name.toUpperCase().includes(search_input) ||
+									key.toUpperCase().includes(search_input)
+								) {
+									if (Condition(setting.condition)) {
+										list.push(setting)
+										if (list.length > ActionControl.max_length) break;
+									}
+								}
+							}
+						}
+					}
+					if (isApp && type == 'RECENT') {
+						if (list.length <= ActionControl.max_length) {
+							for (let project of recent_projects) {
+								if (
+									search_input.length == 0 ||
+									project.path.toUpperCase().includes(search_input)
+								) {
+									list.push({
+										name: project.name,
+										icon: project.icon,
+										description: project.path,
+										keybind_label: StartScreen.vue.getDate(project),
+										type: 'recent_project'
+									})
+									if (list.length > ActionControl.max_length) break;
+								}
+							}
+						}
+					}
+					if (isApp && type == 'TAB') {
+						if (list.length <= ActionControl.max_length) {
+							for (let project of ModelProject.all) {
+								if (
+									search_input.length == 0 ||
+									project.name.toUpperCase().includes(search_input) ||
+									project.geometry_name.toUpperCase().includes(search_input)
+								) {
+									list.push({
+										name: project.name,
+										icon: project.format.icon,
+										description: project.path,
+										keybind_label: Modes.options[project.mode].name,
+										uuid: project.uuid,
+										type: 'project_tab'
+									})
 									if (list.length > ActionControl.max_length) break;
 								}
 							}
@@ -2266,11 +2315,9 @@ const BARS = {
 						this._data.index = list.length-1;
 					}
 					return list;
-				}
-			},
-			methods: {
+				},
 				subtext() {
-					let action = this.actions[this.index];
+					let action = this.list[this.index];
 					if (Pressing.alt) {
 						if (action instanceof Setting) {
 							if (action.type == 'select') {
@@ -2286,20 +2333,29 @@ const BARS = {
 					}
 				}
 			},
+			watch: {
+				search_input() {
+					this.updateSearch();
+				}
+			},
 			template: `
 				<dialog id="action_selector" v-if="open">
 					<input type="text" v-model="search_input" @input="e => search_input = e.target.value" autocomplete="off" autosave="off" autocorrect="off" spellcheck="off" autocapitalize="off">
 					<i class="material-icons" id="action_search_bar_icon">search</i>
 					<div id="action_selector_list">
 						<ul>
-							<li v-for="(item, i) in actions"
-								v-html="item.menu_node.innerHTML"
+							<li v-for="(item, i) in list"
 								:class="{selected: i === index}"
+								:title="item.description"
 								@click="ActionControl.click(item, $event)"
 								@mouseenter="index = i"
-							></li>
+							>
+								<div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
+								<span>{{ item.name }}</span>
+								<label class="keybinding_label">{{ item.keybind_label || (item.keybind ? item.keybind.label : '') }}</label>
+							</li>
 						</ul>
-						<div class="small_text" v-if="actions[index]">{{ subtext() }}</div>
+						<div class="small_text" v-if="list[index]">{{ subtext() }}</div>
 					</div>
 				</dialog>
 			`
@@ -2325,19 +2381,24 @@ const ActionControl = {
 	set open(state) {ActionControl.vue._data.open = !!state},
 	type: 'action_selector',
 	max_length: 32,
-	select() {
+	select(input) {
 		ActionControl.open = true;
 		open_interface = ActionControl;
 		ActionControl.vue._data.index = 0;
+		ActionControl.vue.updateSearch();
+		if (input) {
+			ActionControl.vue.search_input = input;
+		}
 		Vue.nextTick(_ => {
-			$('#action_selector > input').focus().select();
+			let element = $('#action_selector > input');
+			element.trigger('focus');
+			if (!input)  element.trigger('select');
 		})
 
-		// Update settings icons. Might need to be moved
 		for (let key in settings) {
 			let setting = settings[key];
 			if (setting.type == 'toggle') {
-				setting.menu_node.children[0].innerText = setting.value ? 'check_box' : 'check_box_outline_blank';
+				setting.icon = setting.value ? 'check_box' : 'check_box_outline_blank';
 			}
 		}
 	},
@@ -2361,7 +2422,15 @@ const ActionControl = {
 			$('body').effect('shake');
 			Blockbench.showQuickMessage('Congratulations! You have discovered recursion!', 3000)
 		}
-		action.trigger(e);
+		if (action.type == 'recent_project') {
+			Blockbench.read([action.description], {}, files => {
+				loadModelFile(files[0]);
+			})
+		} else if (action.type == 'project_tab') {
+			ModelProject.all.find(p => p.uuid == action.uuid).select();
+		} else {
+			action.trigger(e);
+		}
 	},
 	click(action, e) {
 		ActionControl.trigger(action, e)

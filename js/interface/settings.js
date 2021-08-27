@@ -58,29 +58,15 @@ class Setting {
 			})
 		}
 
-		// Menu node for action control
-		this.menu_node = document.createElement('li');
-
-		var icon = this.icon;
-		if (!icon) {
-			if (this.type == 'toggle') icon = this.value ? 'check_box' : 'check_box_outline_blank';
-			if (this.type == 'number') icon = 'tag';
-			if (this.type == 'password') icon = 'password';
-			if (this.type == 'text') icon = 'format_color_text';
-			if (this.type == 'select') icon = 'list';
-			if (!icon) icon = 'settings';
+		if (!this.icon) {
+			if (this.type == 'toggle') this.icon = this.value ? 'check_box' : 'check_box_outline_blank';
+			if (this.type == 'number') this.icon = 'tag';
+			if (this.type == 'password') this.icon = 'password';
+			if (this.type == 'text') this.icon = 'format_color_text';
+			if (this.type == 'select') this.icon = 'list';
+			if (!this.icon) this.icon = 'settings';
 		}
-		let icon_node = Blockbench.getIconNode(icon);
-		this.menu_node.append(icon_node);
-
-		let span = document.createElement('span');
-		span.innerText = this.name;
-		this.menu_node.append(span);
-
-		let label = document.createElement('label');
-		label.innerText = tl('data.setting');
-		label.className = 'keybinding_label';
-		this.menu_node.append(label);
+		this.keybind_label = tl('data.setting');
 	}
 	delete() {
 		if (settings[this.id]) {

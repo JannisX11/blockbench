@@ -429,10 +429,17 @@
 		flex-direction: row;
 		position: relative;
 		white-space: nowrap;
-		overflow-x: auto;
-		overflow-y: hidden;
 		padding-left: 4px;
 		background: var(--color-frame);
+	}
+	#tab_bar #tab_bar_list {
+		display: flex;
+		flex-direction: row;
+		position: relative;
+		white-space: nowrap;
+		overflow-x: auto;
+		overflow-y: hidden;
+		margin-right: auto;
 	}
 	#tab_bar .project_tab {
 		background-color: var(--color-back);
@@ -515,8 +522,20 @@
 		text-align: center;
 		cursor: pointer;
 		padding-top: 4px;
+		flex-shrink: 0;
 	}
 	#new_tab_button:hover {
+		color: var(--color-light);
+	}
+	#search_tab_button {
+		height: 100%;
+		width: 32px;
+		text-align: center;
+		cursor: pointer;
+		padding-top: 4px;
+		flex-shrink: 0;
+	}
+	#search_tab_button:hover {
 		color: var(--color-light);
 	}
 	#tab_bar .project_tab > label.project_tab_session_badge {

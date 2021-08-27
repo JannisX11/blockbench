@@ -1126,7 +1126,8 @@
 		color: var(--color-text);
 		height: auto;
 		padding: 5px;
-		font-size: 0.94em
+		font-size: 0.94em;
+		word-break: break-word;
 	}
 	#action_selector ul > li {
 		height: 30px;

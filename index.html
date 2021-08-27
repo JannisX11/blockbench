@@ -358,31 +358,36 @@
 		<div id="blackout"></div>
 
 		<div id="tab_bar" :class="{drag_mode: drag_target_index !== null}">
-			<div
-				class="project_tab"
-				v-for="(project, index) in tabs" :key="project.uuid"
-				:class="{
-					selected: project.selected,
-					new_tab: project.is_new_tab,
-					dragging: index == drag_target_index,
-					move_back:  (drag_position_index !== null && index > drag_target_index && drag_position_index >= index),
-					move_forth: (drag_position_index !== null && index < drag_target_index && drag_position_index <= index)
-				}"
-				:title="project.name || project.geometry_name"
-				@dblclick="project.openSettings()"
-				@mousedown="mouseDown(project, $event)"
-				@mouseup="mouseUp(project, $event)"
-				@mouseenter="mouseEnter(project, $event)"
-				@mouseleave="mouseLeave(project, $event)"
-			>
-				<label class="project_tab_session_badge" v-if="project.EditSession"><i class="material-icons">group</i>{{ project.EditSession.client_count }}</label>
-				<label>{{ project.name || project.geometry_name || project.format.name }}</label>
-				<div class="project_tab_close_button" :class="{unsaved: !project.saved}" :title="close_tab_label" @click="project.close()">
-					<i class="material-icons">{{ project.saved ? 'clear' : 'fiber_manual_record' }}</i>
+			<div id="tab_bar_list">
+				<div
+					class="project_tab"
+					v-for="(project, index) in tabs" :key="project.uuid"
+					:class="{
+						selected: project.selected,
+						new_tab: project.is_new_tab,
+						dragging: index == drag_target_index,
+						move_back:  (drag_position_index !== null && index > drag_target_index && drag_position_index >= index),
+						move_forth: (drag_position_index !== null && index < drag_target_index && drag_position_index <= index)
+					}"
+					:title="project.name || project.geometry_name"
+					@dblclick="project.openSettings()"
+					@mousedown="mouseDown(project, $event)"
+					@mouseup="mouseUp(project, $event)"
+					@mouseenter="mouseEnter(project, $event)"
+					@mouseleave="mouseLeave(project, $event)"
+				>
+					<label class="project_tab_session_badge" v-if="project.EditSession"><i class="material-icons">group</i>{{ project.EditSession.client_count }}</label>
+					<label>{{ project.name || project.geometry_name || project.format.name }}</label>
+					<div class="project_tab_close_button" :class="{unsaved: !project.saved}" :title="close_tab_label" @click="project.close()">
+						<i class="material-icons">{{ project.saved ? 'clear' : 'fiber_manual_record' }}</i>
+					</div>
+				</div>
+				<div id="new_tab_button" v-if="!new_tab.visible" @click="openNewTab()" :title="new_tab.name">
+					<i class="material-icons">add</i>
 				</div>
 			</div>
-			<div id="new_tab_button" v-if="!new_tab.visible" @click="openNewTab()" :title="new_tab.name">
-				<i class="material-icons">add</i>
+			<div id="search_tab_button" @click="searchTabs()" :title="search_tabs_label">
+				<i class="material-icons">search</i>
 			</div>
 		</div>
 
