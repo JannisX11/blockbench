@@ -214,6 +214,7 @@
 	}
 	div#header_free_bar.app-drag-region {
 		flex-grow: 1;
+		overflow: hidden;
 		height: auto;
 		padding: 3px;
 		color: var(--color-subtle_text);
@@ -242,6 +243,7 @@
 	}
 	#windows_window_menu {
 		margin-left: auto;
+		flex-shrink: 0;
 	}
 	#windows_window_menu li {
 		display: block;
@@ -265,6 +267,7 @@
 	}
 	#mac_window_menu {
 		width: 68px;
+		flex-shrink: 0;
 	}
 	header .tool .icon {
 		font-size: 20px;

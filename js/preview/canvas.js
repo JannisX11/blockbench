@@ -24,6 +24,12 @@ const Canvas = {
 		transparent: true,
 		color: gizmo_colors.outline
 	}),
+	meshOutlineMaterial: new THREE.LineBasicMaterial({
+		linewidth: 2,
+		//color: gizmo_colors.outline,
+		vertexColors: true
+	}),
+	meshVertexMaterial: new THREE.PointsMaterial({size: 7, sizeAttenuation: false, vertexColors: true}),
 	wireframeMaterial: new THREE.MeshBasicMaterial({
 		color: gizmo_colors.wire,
 		wireframe: true
@@ -103,6 +109,7 @@ const Canvas = {
 	transparentMaterial: new THREE.MeshBasicMaterial({visible: false, name: 'invisible'}),
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
 	face_order: ['east', 'west', 'up', 'down', 'south', 'north'],
+	temp_vectors: [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()],
 	//Misc
 	raycast(event) {
 		var preview = Canvas.getHoveredPreview()
@@ -123,7 +130,7 @@ const Canvas = {
 			edit(Canvas.side_grids.x)
 			edit(Canvas.side_grids.z)
 			edit(Transformer)
-			edit(outlines)
+			edit(Canvas.outlines)
 			edit(rot_origin)
 			edit(Vertexsnap.vertexes)
 			edit(Animator.motion_trail)
@@ -169,7 +176,8 @@ const Canvas = {
 	 * @param {object} options
 	 * @param {array} options.elements Elements to update 
 	 * @param {object} options.element_aspects 
-	 * @param {boolean} options.element_aspects.geometry Update the element transformation and geometry
+	 * @param {boolean} options.element_aspects.transform Update the element transformation
+	 * @param {boolean} options.element_aspects.geometry Update the element geometry
 	 * @param {boolean} options.element_aspects.faces Update the element faces and texture
 	 * @param {boolean} options.element_aspects.uv Update the element UV mapping
 	 * @param {boolean} options.element_aspects.visibility Update the element visibility
@@ -179,42 +187,32 @@ const Canvas = {
 	 * @param {boolean} options.group_aspects.geometry Update the group transformation and geometry
 	 */
 	updateView(options) {
-		/**
-		 * Bones: list
-		 * Bone aspects: ?
-		 * Elements: list
-		 * Element aspects: object
-		 * 		Face
-		 * 		UV
-		 * 		Geo
-		 * 		Visibility
-		 * 		Painting Grid
-		 * Textures: List
-		 * Texture Aspects:
-		 * 		Render sides
-		 */
+
+
 		if (options.elements) {
 			let aspects = options.element_aspects || {};
 			options.elements.forEach(element => {
-				if (element instanceof Cube) {
-					let update_all = !options.element_aspects || (aspects.visibility && element.visibility && !element.mesh.visible);
-					let {mesh} = element;
-
-					if (aspects.geometry || update_all) {
-						Canvas.adaptObjectPosition(element, mesh);
-					}
-					if (aspects.faces || update_all) {
-						Canvas.adaptObjectFaces(element, mesh);
-					}
-					if ((aspects.uv || update_all) && Prop.view_mode === 'textured') {
-						Canvas.updateUV(element);
-					}
-					if ((aspects.painting_grid || update_all) && Modes.paint && settings.painting_grid.value) {
-						Canvas.buildGridBox(element);
-					}
-					if (aspects.visibility || update_all) {
-						element.mesh.visible = element.visibility;
-					}
+				let {mesh} = element;
+				let update_all = !options.element_aspects || (aspects.visibility && element.visibility && !element.mesh.visible);
+				let controller = element.constructor.preview_controller
+				
+				if (aspects.transform || update_all) {
+					controller.updateTransform(element);
+				}
+				if (aspects.geometry || update_all) {
+					if (controller.updateGeometry) controller.updateGeometry(element);
+				}
+				if (aspects.faces || update_all) {
+					if (controller.updateFaces) controller.updateFaces(element);
+				}
+				if ((aspects.uv || update_all) && Prop.view_mode === 'textured') {
+					if (controller.updateUV) controller.updateUV(element);
+				}
+				if ((aspects.painting_grid || update_all) && Modes.paint && settings.painting_grid.value) {
+					if (controller.updatePaintingGrid) controller.updatePaintingGrid(element);
+				}
+				if (aspects.visibility || update_all) {
+					if (controller.updateVisibility) controller.updateVisibility(element);
 				}
 			})
 		}
@@ -248,21 +246,28 @@ const Canvas = {
 	},
 	updateAll() {
 		updateNslideValues()
-		Canvas.clear()
-		Canvas.updateAllBones()
-		Cube.all.forEach(function(s) {
-			Canvas.addCube(s)
+		Canvas.updateView({
+			elements: Outliner.elements,
+			groups: Group.all,
+			selection: true,
 		})
-		updateSelection()
 	},
 	updateAllPositions(leave_selection) {
 		updateNslideValues()
-		Cube.all.forEach(Canvas.adaptObjectPosition)
+		Canvas.updateView({
+			elements: Outliner.elements,
+			element_aspects: {
+				transform: true,
+				geometry: true,
+			}
+		})
 		if (leave_selection !== true) {
 			updateSelection()
 		}
 	},
 	updateVisibility() {
+		Canvas.updateView({elements: Outliner.elements, element_aspects: {visibility: true}})
+		/*
 		Cube.all.forEach(function(cube) {
 			if (cube.visibility && !cube.mesh.visible) {
 				cube.mesh.visible = true;
@@ -278,10 +283,11 @@ const Canvas = {
 			}
 		})
 		TickUpdates.selection = true;
+		*/
 	},
 	updateAllFaces(texture) {
-		Cube.all.forEach(function(obj) {
-			if (obj.visibility == true) {
+		Outliner.elements.forEach(function(obj) {
+			if (obj.faces) {
 				var used = true;
 				if (texture) {
 				 	used = false;
@@ -292,9 +298,9 @@ const Canvas = {
 					}
 				}
 				if (used === true) {
-					Canvas.adaptObjectFaces(obj)
+					obj.preview_controller.updateFaces(obj);
 					if (Prop.view_mode === 'textured') {
-						Canvas.updateUV(obj)
+						obj.preview_controller.updateUV(obj);
 					}
 				}
 			}
@@ -302,11 +308,8 @@ const Canvas = {
 	},
 	updateAllUVs() {
 		if (Prop.view_mode !== 'textured') return;
-		Cube.all.forEach(function(obj) {
-			if (obj.visibility == true) {
-				Canvas.updateUV(obj)
-			}
-		})
+		Canvas.updateView({elements: Outliner.elements, element_aspects: {uv: true}});
+		return;
 	},
 	getRenderSide() {
 		if (settings.render_sides.value == 'auto') {
@@ -337,23 +340,9 @@ const Canvas = {
 		if (Canvas.solidMaterial) {
 			Canvas.solidMaterial.side = side;
 		}
-		emptyMaterials.forEach(function(mat) {
+		Canvas.emptyMaterials.forEach(function(mat) {
 			mat.side = side
 		})
-	},
-	//Selection updaters
-	updateSelected(arr) {
-		if (!arr) {
-			arr = Cube.selected
-		}
-		arr.forEach(function(obj) {
-			var mesh = obj.mesh
-			if (mesh && mesh.parent) {
-				mesh.parent.remove(mesh)
-			}
-			Canvas.addCube(obj)
-		})
-		updateSelection()
 	},
 	updatePositions(leave_selection) {
 		updateNslideValues()
@@ -368,9 +357,7 @@ const Canvas = {
 				Canvas.updateAllBones()
 			}
 		}
-		arr.forEach(function(obj) {
-			Canvas.adaptObjectPosition(obj)
-		})
+		Canvas.updateView({elements: arr, element_aspects: {transform: true, geometry: true}})
 		if (leave_selection !== true) {
 			TickUpdates.selection = true;
 		}
@@ -378,9 +365,9 @@ const Canvas = {
 	updateSelectedFaces() {
 		Cube.selected.forEach(function(obj) {
 			if (obj.visibility == true) {
-				Canvas.adaptObjectFaces(obj)
+				obj.preview_controller.updateFaces(obj);
 				if (Prop.view_mode === 'textured') {
-					Canvas.updateUV(obj)
+					obj.preview_controller.updateUV(obj);
 				}
 			}
 		})
@@ -389,25 +376,26 @@ const Canvas = {
 		if (Prop.view_mode !== 'textured') return;
 		Cube.selected.forEach(function(obj) {
 			if (obj.visibility == true) {
-				Canvas.updateUV(obj)
+				obj.preview_controller.updateUV(obj);
 			}
 		})
 	},
 	outlineObjects(arr) {
 		arr.forEach(function(obj) {
 			if (!obj.visibility) return;
-			var mesh = obj.mesh
+			var mesh = obj.mesh;
 			if (!mesh || !mesh.geometry) return;
 
-			var line = Canvas.getOutlineMesh(mesh)
+			var copy = mesh.outline.clone();
+			copy.geometry = mesh.outline.geometry.clone();
 
-			THREE.fastWorldPosition(mesh, line.position)
-			line.position.sub(scene.position)
-			line.rotation.setFromQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()))
-			mesh.getWorldScale(line.scale)
+			THREE.fastWorldPosition(mesh, copy.position);
+			copy.position.sub(scene.position);
+			copy.rotation.setFromQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()));
+			mesh.getWorldScale(copy.scale);
 
-			line.name = obj.uuid+'_ghost_outline'
-			outlines.add(line)
+			copy.name = obj.uuid+'_ghost_outline';
+			Canvas.outlines.add(copy);
 		})
 	},
 	updateAllBones(bones = Group.all) {
@@ -445,7 +433,7 @@ const Canvas = {
 			})
 		}
 	},
-	updateOrigin() {
+	updatePivotMarker() {
 		if (rot_origin.parent) {
 			rot_origin.parent.remove(rot_origin)
 		}
@@ -490,90 +478,11 @@ const Canvas = {
 		}
 		return !!rot_origin.parent;
 	},
-	//Object handlers
-	addCube(obj) {
-		//This does NOT remove old cubes
-		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), emptyMaterials[0]);
-		Project.nodes_3d[obj.uuid] = mesh;
-		mesh.name = obj.uuid;
-		mesh.type = 'cube';
-		mesh.isElement = true;
-
-		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24).fill(1), 1));
-
-		Canvas.adaptObjectPosition(obj, mesh)
-		Canvas.adaptObjectFaces(obj, mesh)
-		
-		if (Prop.view_mode === 'textured') {
-			Canvas.updateUV(obj);
-		}
-		mesh.visible = obj.visibility;
-		Canvas.buildOutline(obj);
-	},
 	adaptObjectPosition(object, mesh) {
-		if (!mesh || mesh > 0) mesh = object.mesh;
-		if (!mesh) return;
-
-		if (object.movable) {
-			mesh.scale.set(1, 1, 1)
-			mesh.rotation.set(0, 0, 0)
-			mesh.position.set(object.origin[0], object.origin[1], object.origin[2])
-		}
-
-		if (object.resizable) {
-			var from = object.from.slice()
-			from.forEach((v, i) => {
-				from[i] -= object.inflate;
-				from[i] -= object.origin[i];
-			})
-			var to = object.to.slice()
-			to.forEach((v, i) => {
-				to[i] += object.inflate
-				to[i] -= object.origin[i];
-				if (from[i] === to[i]) {
-					to[i] += 0.001
-				}
-			})
-			mesh.geometry.setShape(from, to)
-			Canvas.getOutlineMesh(mesh, mesh.outline)
-			mesh.geometry.computeBoundingBox()
-			mesh.geometry.computeBoundingSphere()
-		}
-
-		if (Format.rotate_cubes || (object instanceof Cube == false && object.rotatable)) {
-
-			mesh.rotation.reorder('ZYX')
-			mesh.rotation.x = Math.PI / (180 /object.rotation[0])
-			mesh.rotation.y = Math.PI / (180 /object.rotation[1])
-			mesh.rotation.z = Math.PI / (180 /object.rotation[2])
-
-			if (object.rescale === true) {
-				var axis = object.rotationAxis()||'y'
-				var rescale = getRescalingFactor(object.rotation[getAxisNumber(axis)]);
-				mesh.scale.set(rescale, rescale, rescale)
-				mesh.scale[axis] = 1
-			}
-		}
-		if (Format.bone_rig) {
-			//mesh.rotation.reorder('YZX')
-			if (object.parent.type === 'group') {
-				object.parent.mesh.add(mesh)
-				mesh.position.x -=  object.parent.origin[0]
-				mesh.position.y -=  object.parent.origin[1]
-				mesh.position.z -=  object.parent.origin[2]
-			} else {
-				Project.model_3d.add(mesh)
-			}
-		} else if (mesh.parent !== scene) {
-			Project.model_3d.add(mesh)
-		}
-		if (object instanceof Cube) {
-			if (Modes.paint) {
-				Canvas.buildGridBox(object);
-			}
-			Canvas.buildOutline(object);
-		}
-		mesh.updateMatrixWorld();
+		Canvas.updateView({
+			elements: [object],
+			element_aspects: {geometry: true, transform: true}
+		})
 	},
 	adaptObjectFaceGeo(cube) {
 		let {mesh} = cube;
@@ -717,7 +626,7 @@ const Canvas = {
 
 		} else if (Format.single_texture) {
 			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : emptyMaterials[cube.color];
+			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[cube.color];
 
 		} else {
 			var materials = []
@@ -731,7 +640,7 @@ const Canvas = {
 					if (tex && tex.uuid) {
 						materials.push(Project.materials[tex.uuid])
 					} else {
-						materials.push(emptyMaterials[cube.color])
+						materials.push(Canvas.emptyMaterials[cube.color])
 					}
 				}
 			})
@@ -874,48 +783,6 @@ const Canvas = {
 		vertex_uvs.array.set(arr[1], index*8 + 2);  //1,1
 		vertex_uvs.array.set(arr[2], index*8 + 4);  //0,0
 		vertex_uvs.array.set(arr[3], index*8 + 6);  //1,0
-	},
-	//Outline
-	getOutlineMesh(mesh, line) {
-		var vs = [0,1,2,3,4,5,6,7].map(i => {
-			return mesh.geometry.attributes.position.array.slice(i*3, i*3 + 3)
-		});
-		let points = [
-			vs[2], vs[3],
-			vs[6], vs[7],
-			vs[2], vs[0],
-			vs[1], vs[4],
-			vs[5], vs[0],
-			vs[5], vs[7],
-			vs[6], vs[4],
-			vs[1], vs[3]
-		].map(a => new THREE.Vector3().fromArray(a))
-		if (!line) {
-			var geometry = new THREE.BufferGeometry();
-			line = new THREE.Line(geometry, Canvas.outlineMaterial);
-			line.no_export = true;
-		}
-		line.geometry.setFromPoints(points);
-		return line;
-	},
-	buildOutline(obj) {
-		if (obj.visibility == false) return;
-		var mesh = obj.mesh;
-		if (mesh === undefined) return;
-
-		if (mesh.outline) {
-			mesh.outline.geometry.verticesNeedUpdate = true;
-			return;
-		}
-		mesh.remove(mesh.outline);
-
-		var line = Canvas.getOutlineMesh(mesh)
-		line.name = obj.uuid+'_outline';
-		line.visible = obj.selected;
-		line.renderOrder = 2;
-		line.frustumCulled = false;
-		mesh.outline = line;
-		mesh.add(line);
 	},
 	buildGridBox(cube) {
 		var mesh = cube.mesh;

@@ -395,6 +395,7 @@ var codec = new Codec('project', {
 			let default_texture = new_textures[0] || Texture.getDefault();
 			let format = Formats[model.meta.model_format] || Format
 			model.elements.forEach(function(element) {
+				if (!OutlinerElement.isTypePermitted(element.type)) return;
 
 				var copy = OutlinerElement.fromSave(element, true)
 				if (copy instanceof Cube) {

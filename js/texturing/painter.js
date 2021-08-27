@@ -108,8 +108,8 @@ const Painter = {
 				}
 			}
 		}
-		if (!data.intersects || (data.cube && data.cube.locked)) return;
-		var texture = data.cube.faces[data.face].getTexture()
+		if (!data.intersects || (data.element && data.element.locked)) return;
+		var texture = data.element.faces[data.face].getTexture()
 		if (!texture || (texture.error && texture.error !== 2)) {
 			Blockbench.showQuickMessage('message.untextured')
 			return;
@@ -117,7 +117,7 @@ const Painter = {
 		let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0.5 : 0;
 		var x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth + offset )
 		var y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight + offset )
-		Painter.startPaintTool(texture, x, y, data.cube.faces[data.face].uv, e, data)
+		Painter.startPaintTool(texture, x, y, data.element.faces[data.face].uv, e, data)
 
 		if (Toolbox.selected.id !== 'color_picker') {
 			addEventListeners(document, 'mousemove touchmove', Painter.movePaintToolCanvas, false );
@@ -127,8 +127,8 @@ const Painter = {
 	movePaintToolCanvas(event) {
 		convertTouchEvent(event);
 		var data = Canvas.raycast(event)
-		if (data && data.cube && !data.cube.locked) {
-			var texture = data.cube.faces[data.face].getTexture()
+		if (data && data.element && !data.element.locked) {
+			var texture = data.element.faces[data.face].getTexture()
 			if (texture) {
 				var x, y, new_face;
 				let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0.5 : 0;
@@ -139,20 +139,20 @@ const Painter = {
 				if (x === Painter.current.x && y === Painter.current.y) {
 					return
 				}
-				if (Painter.current.face !== data.face || Painter.current.cube !== data.cube) {
+				if (Painter.current.face !== data.face || Painter.current.cube !== data.element) {
 					if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
 						return;
 					}
 					Painter.current.x = x
 					Painter.current.y = y
 					Painter.current.face = data.face
-					Painter.current.cube = data.cube
+					Painter.current.cube = data.element
 					new_face = true
 					if (texture !== Painter.current.texture) {
 						Undo.current_save.addTexture(texture)
 					}
 				}
-				Painter.movePaintTool(texture, x, y, event, new_face, data.cube.faces[data.face].uv)
+				Painter.movePaintTool(texture, x, y, event, new_face, data.element.faces[data.face].uv)
 			}
 		}
 	},
@@ -172,7 +172,7 @@ const Painter = {
 			Painter.brushChanges = false;
 			Painter.painting = true;
 			Painter.current = {
-				cube: data && data.cube,
+				cube: data && data.element,
 				face: data && data.face,
 				x, y,
 				clear: document.createElement('canvas'),
@@ -189,7 +189,7 @@ const Painter = {
 
 			if (data) {
 				var is_line = (event.shiftKey || Pressing.overrides.shift) && Painter.current.cube == data.cube && Painter.current.face == data.face
-				Painter.current.cube = data.cube;
+				Painter.current.cube = data.element;
 				Painter.current.face = data.face;
 			} else {
 				//uv editor

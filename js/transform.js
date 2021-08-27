@@ -40,7 +40,7 @@ function origin2geometry() {
 	}
 	Canvas.updateView({
 		elements: Cube.selected,
-		element_aspects: {geometry: true},
+		element_aspects: {transform: true, geometry: true},
 		groups: Group.selected && [Group.selected],
 		selection: true
 	});
@@ -220,7 +220,7 @@ const Vertexsnap = {
 		if (id == 100) {
 			mesh.rotation.y += Math.PI/4;
 		}
-		mesh.cube = cube
+		mesh.element = cube
 		mesh.isVertex = true
 		mesh.vertex_id = id
 		mesh.material.transparent = true;
@@ -236,10 +236,12 @@ const Vertexsnap = {
 
 		var o_vertices = cube.mesh.geometry.vertices
 		cube.mesh.updateMatrixWorld()
+		/*
 		o_vertices.forEach(function(v, id) {
 			Vertexsnap.createVertexGizmo(cube, v, id)
 		})
 		Vertexsnap.createVertexGizmo(cube, new THREE.Vector3(), 100)
+		*/
 		Vertexsnap.vertexed_cubes.push(cube)
 		Vertexsnap.updateVertexSize()
 	},
@@ -601,62 +603,83 @@ function moveElementsInSpace(difference, axis) {
 	}
 
 	selected.forEach(el => {
-		
-		if (space == 2 && !group_m) {
-			if (el instanceof Locator) {
-				let m = new THREE.Vector3();
-				m[getAxisLetter(axis)] = difference;
-				m.applyQuaternion(el.mesh.quaternion);
-				el.from.V3_add(m.x, m.y, m.z);
 
-			} else {
+		if (!group_m && el instanceof Mesh && Project.selected_vertices[el.uuid] && Project.selected_vertices[el.uuid].length > 0) {
+
+			let quaternion = new THREE.Quaternion();
+
+			Project.selected_vertices[el.uuid].forEach(key => {
+
+				if (space == 2) {
+					el.vertices[key][axis] += difference;
+
+				} else {
+					let m = new THREE.Vector3();
+					m[getAxisLetter(axis)] = difference;
+					m.applyQuaternion(el.mesh.getWorldQuaternion(quaternion).invert());
+					el.vertices[key].V3_add(m.x, m.y, m.z);
+				}
+
+			})
+
+		} else {
+		
+			if (space == 2 && !group_m) {
+				if (el instanceof Locator) {
+					let m = new THREE.Vector3();
+					m[getAxisLetter(axis)] = difference;
+					m.applyQuaternion(el.mesh.quaternion);
+					el.from.V3_add(m.x, m.y, m.z);
+
+				} else {
+					if (el.movable) el.from[axis] += difference;
+					if (el.resizable) el.to[axis] += difference;
+				}
+				
+			} else if (space instanceof Group) {
 				if (el.movable) el.from[axis] += difference;
 				if (el.resizable) el.to[axis] += difference;
-			}
-			
-		} else if (space instanceof Group) {
-			if (el.movable) el.from[axis] += difference;
-			if (el.resizable) el.to[axis] += difference;
-			if (el.rotatable && el instanceof Locator == false) el.origin[axis] += difference;
-		} else {
-			let move_origin = !!group;
-			if (group_m) {
-				var m = group_m
+				if (el.rotatable && el instanceof Locator == false) el.origin[axis] += difference;
 			} else {
-				var m = new THREE.Vector3();
-				m[getAxisLetter(axis)] = difference;
-				
-				let parent = el.parent;
-				while (parent instanceof Group) {
-					if (!parent.rotation.allEqual(0)) break;
-					parent = parent.parent;
-				}
-
-				if (parent == 'root') {
-					// If none of the parent groups are rotated, move origin.
-					move_origin = true;
+				let move_origin = !!group;
+				if (group_m) {
+					var m = group_m
 				} else {
-					var rotation = new THREE.Quaternion();
-					if (el.mesh && el instanceof Locator == false) {
-						el.mesh.getWorldQuaternion(rotation);
-					} else if (el.parent instanceof Group) {
-						el.parent.mesh.getWorldQuaternion(rotation);
+					var m = new THREE.Vector3();
+					m[getAxisLetter(axis)] = difference;
+					
+					let parent = el.parent;
+					while (parent instanceof Group) {
+						if (!parent.rotation.allEqual(0)) break;
+						parent = parent.parent;
 					}
-					m.applyQuaternion(rotation.invert());
-				}
-			}
 
-			if (el.movable) el.from.V3_add(m.x, m.y, m.z);
-			if (el.resizable) el.to.V3_add(m.x, m.y, m.z);
-			if (move_origin) {
-				if (el.rotatable && el instanceof Locator == false) el.origin.V3_add(m.x, m.y, m.z);
+					if (parent == 'root') {
+						// If none of the parent groups are rotated, move origin.
+						move_origin = true;
+					} else {
+						var rotation = new THREE.Quaternion();
+						if (el.mesh && el instanceof Locator == false) {
+							el.mesh.getWorldQuaternion(rotation);
+						} else if (el.parent instanceof Group) {
+							el.parent.mesh.getWorldQuaternion(rotation);
+						}
+						m.applyQuaternion(rotation.invert());
+					}
+				}
+
+				if (el.movable) el.from.V3_add(m.x, m.y, m.z);
+				if (el.resizable) el.to.V3_add(m.x, m.y, m.z);
+				if (move_origin) {
+					if (el.rotatable && el instanceof Locator == false) el.origin.V3_add(m.x, m.y, m.z);
+				}
 			}
 		}
 		if (el instanceof Cube) {
 			el.mapAutoUV()
 		}
-		Canvas.adaptObjectPosition(el);
 	})
+	Canvas.updateView({elements: selected, element_aspects: {transform: true, geometry: true}})
 }
 
 //Rotate
@@ -675,19 +698,15 @@ function getRotationInterval(event) {
 }
 function getRotationObject() {
 	if (Format.bone_rig && Group.selected) return Group.selected;
-	if (Format.rotate_cubes && Cube.selected.length) return Cube.selected;
-	if (Locator.selected.length) return Locator.selected;
+	let elements = Outliner.selected.filter(element => {
+		return element.rotatable && (element instanceof Cube == false || Format.rotate_cubes);
+	})
+	if (elements.length) return elements;
 }
 function rotateOnAxis(modify, axis, slider) {
-	var things;
-	if (Format.bone_rig && Group.selected) {
-		things = [Group.selected]
-	} else if (Format.rotate_cubes && Cube.selected.length) {
-		things = Cube.selected;
-	} else if (Locator.selected.length) {
-		things = Locator.selected;
-	}
+	var things = getRotationObject();
 	if (!things) return;
+	if (things instanceof Array == false) things = [things];
 	/*
 	if (Format.bone_rig && Group.selected) {	
 		if (!Group.selected) return;
@@ -774,8 +793,38 @@ function rotateOnAxis(modify, axis, slider) {
 				obj.origin.V3_set(origin)
 			}
 		}
+		
+		if (!Group.selected && obj instanceof Mesh && Project.selected_vertices[obj.uuid] && Project.selected_vertices[obj.uuid].length > 0) {
 
-		if (slider || (space == 2 && Format.rotation_limit)) {
+			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)
+			let rotWorldMatrix = new THREE.Matrix4();
+			rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(modify(0)))
+			if (space instanceof Group || space == 'root') {
+				rotWorldMatrix.multiply(mesh.matrix);
+			} else if (space == 0) {
+				rotWorldMatrix.multiply(mesh.matrixWorld);
+			}
+			let q = new THREE.Quaternion().setFromRotationMatrix(rotWorldMatrix);
+			if (space instanceof Group || space == 'root') {
+				q.premultiply(mesh.quaternion.invert());
+				mesh.quaternion.invert();
+			} else if (space == 0) {
+				let quat = mesh.getWorldQuaternion(new THREE.Quaternion()).invert();
+				q.premultiply(quat);
+			}
+
+			let vector = new THREE.Vector3();
+			let local_pivot = obj.mesh.worldToLocal(new THREE.Vector3().copy(Transformer.position))
+
+			Project.selected_vertices[obj.uuid].forEach(key => {
+				vector.fromArray(obj.vertices[key]);
+				vector.sub(local_pivot);
+				vector.applyQuaternion(q);
+				vector.add(local_pivot);
+				obj.vertices[key].V3_set(vector.x, vector.y, vector.z);
+			})
+
+		} else if (slider || (space == 2 && Format.rotation_limit)) {
 			var obj_val = modify(obj.rotation[axis]);
 			obj_val = Math.trimDeg(obj_val)
 			if (Format.rotation_limit) {
@@ -901,8 +950,8 @@ BARS.defineActions(function() {
 				}
 				if (obj instanceof Cube) {
 					obj.mapAutoUV()
-					Canvas.adaptObjectPosition(obj);
 				}
+				obj.preview_controller.updateTransform(obj);
 			}
 		})
 		TickUpdates.selection = true;
@@ -1169,7 +1218,7 @@ BARS.defineActions(function() {
 		if (rotation_object instanceof Group) {
 			var val = modify(rotation_object.origin[axis]);
 			rotation_object.origin[axis] = val;
-			Canvas.updateView({elements: Cube.selected, element_aspects: {geometry: true}})
+			Canvas.updateView({elements: Cube.selected, element_aspects: {transform: true, geometry: true}})
 			if (Format.bone_rig) {
 				Canvas.updateAllBones()
 			}
@@ -1178,7 +1227,7 @@ BARS.defineActions(function() {
 				var val = modify(obj.origin[axis]);
 				obj.origin[axis] = val;
 			})
-			Canvas.updateView({elements: Cube.selected, element_aspects: {geometry: true}})
+			Canvas.updateView({elements: Cube.selected, element_aspects: {transform: true, geometry: true}})
 		}
 		if (Modes.animate) {
 			Animator.preview();

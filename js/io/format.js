@@ -18,6 +18,7 @@ class ModelFormat {
 		this.centered_grid = false;
 		this.rotate_cubes = false;
 		this.integer_size = false;
+		this.meshes = false;
 		this.locators = false;
 		this.canvas_limit = false;
 		this.rotation_limit = false;
@@ -40,6 +41,7 @@ class ModelFormat {
 		Merge.boolean(this, data, 'centered_grid');
 		Merge.boolean(this, data, 'rotate_cubes');
 		Merge.boolean(this, data, 'integer_size');
+		Merge.boolean(this, data, 'meshes');
 		Merge.boolean(this, data, 'locators');
 		Merge.boolean(this, data, 'canvas_limit');
 		Merge.boolean(this, data, 'rotation_limit');
@@ -129,10 +131,23 @@ class ModelFormat {
 			})
 		}
 
+		if (!Format.single_texture && old_format.single_texture && Texture.all.length == 1) {
+			Cube.all.forEach(cube => {
+				cube.applyTexture(Texture.all[0], true)
+			})
+		}
+
 		//Rotate Cubes
 		if (!Format.rotate_cubes && old_format.rotate_cubes) {
 			Cube.all.forEach(cube => {
 				cube.rotation.V3_set(0, 0, 0)
+			})
+		}
+
+		//Meshes
+		if (!Format.meshes && old_format.meshes) {
+			Mesh.all.slice().forEach(mesh => {
+				mesh.remove()
 			})
 		}
 
@@ -203,6 +218,7 @@ class ModelFormat {
 new ModelFormat({
 	id: 'free',
 	icon: 'icon-format_free',
+	meshes: true,
 	rotate_cubes: true,
 	bone_rig: true,
 	centered_grid: true,

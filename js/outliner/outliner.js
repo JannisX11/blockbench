@@ -101,6 +101,9 @@ class OutlinerNode {
 		}
 		return this;
 	}
+	get preview_controller() {
+		return this.constructor.preview_controller;
+	}
 	//Sorting
 	sortInBefore(element, index_mod) {
 		var index = -1;
@@ -203,6 +206,9 @@ class OutlinerNode {
 		scope.name = old_name;
 		return this;
 	}
+	get mesh() {
+		return Project.nodes_3d[this.uuid];
+	}
 	getDepth() {
 		var d = 0;
 		function it(p) {
@@ -216,9 +222,10 @@ class OutlinerNode {
 		return it(this)
 	}
 	remove() {
+		if (this.preview_controller) this.preview_controller.remove(this);
 		this.constructor.all.remove(this);
 		if (OutlinerNode.uuids[this.uuid] == this) delete OutlinerNode.uuids[this.uuid];
-		this.removeFromParent()
+		this.removeFromParent();
 	}
 	rename() {
 		this.showInOutliner()
@@ -335,6 +342,10 @@ class OutlinerElement extends OutlinerNode {
 	init() {
 		super.init();
 		Project.elements.safePush(this);
+		if (!this.mesh || !this.mesh.parent) {
+			this.preview_controller.setup(this);
+		}
+		return this;
 	}
 	remove() {
 		super.remove()
@@ -479,6 +490,12 @@ class OutlinerElement extends OutlinerNode {
 			return new Type(obj, keep_uuid ? obj.uuid : 0).init()
 		}
 	}
+	OutlinerElement.isTypePermitted = function(type) {
+		return !(
+			(type == 'locator' && !Format.locators) ||
+			(type == 'mesh' && !Format.meshes)
+		)
+	}
 	Object.defineProperty(OutlinerElement, 'all', {
 		get() {
 			return Project.elements ? Project.elements : [];
@@ -496,6 +513,91 @@ class OutlinerElement extends OutlinerNode {
 		}
 	})
 	OutlinerElement.types = {};
+
+
+class NodePreviewController {
+	constructor(type, data = {}) {
+		this.type = type;
+		type.preview_controller = this;
+
+		this.updateGeometry = null;
+		this.updateUV = null;
+		this.updateFaces = null;
+		this.updatePaintingGrid = null;
+
+		Object.assign(this, data);
+	}
+	setup(element) {
+		var mesh = new THREE.Object3D();
+		Project.nodes_3d[element.uuid] = mesh;
+		mesh.name = element.uuid;
+		mesh.type = element.type;
+		mesh.isElement = true;
+		mesh.visible = element.visibility;
+		mesh.rotation.order = 'ZYX';
+	}
+	remove(element) {
+		let {mesh} = element;
+		if (mesh.parent) mesh.parent.remove(mesh);
+		if (mesh.geometry) mesh.geometry.dispose();
+		if (mesh.outline && mesh.outline.geometry) {
+			mesh.outline.geometry.dispose();
+			if (Transformer.dragging) {
+				Canvas.outlines.remove(Canvas.outlines.getObjectByName(this.uuid+'_ghost_outline'))
+			}
+		}
+		delete Project.nodes_3d[element.uuid];
+	}
+	updateAll(element) {
+		this.updateTransform(element);
+		this.updateVisibility(element);
+		if (this.updateGeometry) this.updateGeometry(element);
+		if (this.updateUV) this.updateUV(element);
+		if (this.updateFaces) this.updateFaces(element);
+		if (this.updatePaintingGrid) this.updatePaintingGrid(element);
+	}
+	updateTransform(element) {
+		let mesh = element.mesh;
+
+
+		mesh.scale.set(1, 1, 1)
+		mesh.rotation.set(0, 0, 0)
+
+		if (element.movable) {
+			mesh.position.set(element.origin[0], element.origin[1], element.origin[2])
+		}
+
+		if (element.rotatable) {
+			mesh.rotation.x = Math.degToRad(element.rotation[0]);
+			mesh.rotation.y = Math.degToRad(element.rotation[1]);
+			mesh.rotation.z = Math.degToRad(element.rotation[2]);
+		}
+
+		if (Format.bone_rig) {
+			if (element.parent instanceof Group) {
+				element.parent.mesh.add(mesh);
+				mesh.position.x -= element.parent.origin[0]
+				mesh.position.y -= element.parent.origin[1]
+				mesh.position.z -= element.parent.origin[2]
+			} else {
+				Project.model_3d.add(mesh)
+			}
+		} else if (mesh.parent !== scene) {
+			Project.model_3d.add(mesh)
+		}
+
+		mesh.updateMatrixWorld();
+	}
+	updateVisibility(element) {
+		element.mesh.visible = element.visibility;
+	}
+	updateSelection(element) {
+		let {mesh} = element;
+		if (mesh && mesh.outline) {
+			mesh.outline.visible = element.selected
+		}
+	}
+}
 
 OutlinerElement.registerType = function(constructor, id) {
 	OutlinerElement.types[id] = constructor;
@@ -640,14 +742,16 @@ function dropOutlinerObjects(item, target, event, order) {
 	}
 	if (event.altKey || Pressing.overrides.alt) {
 		Undo.initEdit({elements: [], outliner: true, selection: true})
-		selected.empty();
+		Outliner.selected.empty();
 	} else {
 		Undo.initEdit({outliner: true, selection: true})
 		var updatePosRecursive = function(item) {
-			if (item.type === 'cube') {
-				Canvas.adaptObjectPosition(item)
-			} else if (item.type === 'group' && item.children && item.children.length) {
-				item.children.forEach(updatePosRecursive)
+			if (item.type == 'group') {
+				if (item.children && item.children.length) {
+					item.children.forEach(updatePosRecursive)
+				}
+			} else {
+				item.preview_controller.updateTransform(item);
 			}
 		}
 	}
@@ -797,15 +901,20 @@ BARS.defineActions(function() {
 		click: function() {
 
 			var face_count = 0;
-			if (Project.box_uv) {
-				face_count = Cube.all.length*6;
-			} else {
-				Cube.all.forEach(cube => {
-					for (var face in cube.faces) {
-						if (cube.faces[face].texture !== null) face_count++;
+			let vertex_count = 0;
+			Outliner.elements.forEach(element => {
+				if (element instanceof Cube) {
+					for (var face in element.faces) {
+						if (element.faces[face].texture !== null) face_count++;
 					}
-				})
-			}
+					vertex_count += 8;
+				} else if (element.faces) {
+					face_count += Object.keys(element.faces).length;
+				}
+				if (element instanceof Mesh) {
+					vertex_count += Object.keys(element.vertices).length;
+				}
+			})
 			var dialog = new Dialog({
 				id: 'model_stats',
 				title: 'dialog.model_stats.title',
@@ -813,9 +922,10 @@ BARS.defineActions(function() {
 				singleButton: true,
 				form: {
 					cubes: {type: 'info', label: tl('dialog.model_stats.cubes'), text: ''+Cube.all.length },
+					meshes: {type: 'info', label: tl('dialog.model_stats.meshes'), text: ''+Mesh.all.length, condition: Format.meshes },
 					locators: {type: 'info', label: tl('dialog.model_stats.locators'), text: ''+Locator.all.length, condition: Format.locators },
 					groups: {type: 'info', label: tl('dialog.model_stats.groups'), text: ''+Group.all.length },
-					vertices: {type: 'info', label: tl('dialog.model_stats.vertices'), text: ''+Cube.all.length*8 },
+					vertices: {type: 'info', label: tl('dialog.model_stats.vertices'), text: ''+vertex_count },
 					faces: {type: 'info', label: tl('dialog.model_stats.faces'), text: ''+face_count },
 				}
 			})
@@ -830,7 +940,7 @@ BARS.defineActions(function() {
 				}
 				this.set(sel+'/'+Group.all.length)
 			} else {
-				this.set(selected.length+'/'+elements.length)
+				this.set(Outliner.selected.length+'/'+Outliner.elements.length)
 			}
 		}
 	})
@@ -1342,6 +1452,7 @@ Interface.definePanels(function() {
 		},
 		menu: new Menu([
 			'add_cube',
+			'add_mesh',
 			'add_group',
 			'_',
 			'sort_outliner',

@@ -169,12 +169,10 @@ const Clipbench = {
 							iterate(child, copy)
 						})
 					}
-				} else {
+				} else if (OutlinerElement.isTypePermitted(obj.type)) {
 					var el = OutlinerElement.fromSave(obj).addTo(parent).selectLow();
 					el.createUniqueName();
-					if (el instanceof Cube) {
-						Canvas.adaptObjectPosition(el);
-					}
+					el.preview_controller.updateTransform(el);
 				}
 			}
 			iterate(Clipbench.group, target)
@@ -183,6 +181,7 @@ const Clipbench = {
 		} else if (Clipbench.elements && Clipbench.elements.length) {
 			let elements = [];
 			Clipbench.elements.forEach(function(obj) {
+				if (!OutlinerElement.isTypePermitted(obj.type)) return;
 				var el = OutlinerElement.fromSave(obj).addTo(target).selectLow();
 				el.createUniqueName();
 				elements.push(el);

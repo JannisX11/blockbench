@@ -88,29 +88,29 @@ function updateNslideValues() {
 
 //Selections
 function updateSelection(options = {}) {
-	elements.forEach(obj => {
+	Outliner.elements.forEach(obj => {
 		if (selected.includes(obj) && !obj.selected && !obj.locked) {
 			obj.selectLow()
 		} else if ((!selected.includes(obj) || obj.locked) && obj.selected) {
 			obj.unselect()
 		}
+		if (Project.selected_vertices[obj.uuid] && (Project.selected_vertices[obj.uuid].length == 0 || !obj.selected)) {
+			delete Project.selected_vertices[obj.uuid];
+		}
 	})
 	if (Group.selected && Group.selected.locked) Group.selected.unselect()
 
-	Cube.all.forEach(cube => {
-		if (cube.visibility) {
-			var mesh = cube.mesh
-			if (mesh && mesh.outline) {
-				mesh.outline.visible = cube.selected
-			}
+	Outliner.elements.forEach(element => {
+		if (element.preview_controller.updateSelection) {
+			element.preview_controller.updateSelection(element);
 		}
 	})
-	for (var i = Cube.selected.length-1; i >= 0; i--) {
-		if (!selected.includes(Cube.selected[i])) {
-			Cube.selected.splice(i, 1)
+	for (var i = Outliner.selected.length-1; i >= 0; i--) {
+		if (!selected.includes(Outliner.selected[i])) {
+			Outliner.selected.splice(i, 1)
 		}
 	}
-	if (Cube.selected.length) {
+	if (Outliner.selected.length) {
 		document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'visible'));
 	} else {
 		if (Format.bone_rig && Group.selected) {
@@ -142,7 +142,7 @@ function updateSelection(options = {}) {
 	BarItems.cube_counter.update();
 	updateNslideValues();
 	if (settings.highlight_cubes.value) updateCubeHighlights();
-	Canvas.updateOrigin();
+	Canvas.updatePivotMarker();
 	Transformer.updateSelection();
 	Transformer.update();
 	Preview.all.forEach(preview => {
@@ -176,11 +176,14 @@ function selectAll() {
 	Blockbench.dispatchEvent('select_all')
 }
 function unselectAll() {
-	selected.forEachReverse(obj => obj.unselect())
+	Project.selected_elements.forEachReverse(obj => obj.unselect())
 	if (Group.selected) Group.selected.unselect()
 	Group.all.forEach(function(s) {
 		s.selected = false
 	})
+	for (let key in Project.selected_vertices) {
+		delete Project.selected_vertices[key];
+	}
 	TickUpdates.selection = true;
 }
 //Backup

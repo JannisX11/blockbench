@@ -54,21 +54,14 @@ class Group extends OutlinerNode {
 	getMesh() {
 		return this.mesh;
 	}
-	get mesh() {
-		var bone = Project.nodes_3d[this.uuid]
-		if (!bone) {
-			bone = new THREE.Object3D()
-			bone.name = this.name
-			bone.isGroup = true
-			Project.nodes_3d[this.uuid] = bone
-		}
-		return bone;
-	}
 	init() {
 		super.init();
 		Project.groups.push(this);
 		if (typeof this.parent !== 'object') {
 			this.addTo();
+		}
+		if (!this.mesh || !this.mesh.parent) {
+			this.constructor.preview_controller.setup(this);
 		}
 		Canvas.updateAllBones([this]);
 		return this;
@@ -191,15 +184,11 @@ class Group extends OutlinerNode {
 			Undo.initEdit({elements: elements, outliner: true, selection: true})
 		}
 		this.unselect()
+		super.remove();
 		var i = this.children.length-1
 		while (i >= 0) {
 			this.children[i].remove(false)
 			i--;
-		}
-		if (typeof this.parent === 'object') {
-			this.parent.children.remove(this)
-		} else {
-			Outliner.root.remove(this)
 		}
 		Animator.animations.forEach(animation => {
 			if (animation.animators && animation.animators[scope.uuid]) {
@@ -211,7 +200,6 @@ class Group extends OutlinerNode {
 		})
 		TickUpdates.selection = true
 		this.constructor.all.remove(this);
-		delete Project.nodes_3d[this.uuid];
 		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
 			Undo.finishEdit('Delete group')
@@ -480,14 +468,26 @@ class Group extends OutlinerNode {
 		}
 	})
 
-	new Property(Group, 'vector', 'origin', {default() {
-		return Format.centered_grid ? [0, 0, 0] : [8, 8, 8]
-	}});
-	new Property(Group, 'vector', 'rotation');
-	new Property(Group, 'string', 'bedrock_binding', {condition: () => Format.id == 'bedrock'});
-	new Property(Group, 'array', 'cem_animations', {condition: () => Format.id == 'optifine_entity'});
-	new Property(Group, 'boolean', 'cem_attach', {condition: () => Format.id == 'optifine_entity'});
-	new Property(Group, 'number', 'color');
+new Property(Group, 'vector', 'origin', {default() {
+	return Format.centered_grid ? [0, 0, 0] : [8, 8, 8]
+}});
+new Property(Group, 'vector', 'rotation');
+new Property(Group, 'string', 'bedrock_binding', {condition: () => Format.id == 'bedrock'});
+new Property(Group, 'array', 'cem_animations', {condition: () => Format.id == 'optifine_entity'});
+new Property(Group, 'boolean', 'cem_attach', {condition: () => Format.id == 'optifine_entity'});
+new Property(Group, 'number', 'color');
+
+new NodePreviewController(Group, {
+	setup(group) {
+		bone = new THREE.Object3D();
+		bone.name = group.name;
+		bone.isGroup = true;
+		Project.nodes_3d[group.uuid] = bone;
+	},
+	updateTransform(group) {
+		Canvas.updateAllBones([group]);
+	}
+})
 
 
 function getCurrentGroup() {

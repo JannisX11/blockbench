@@ -540,6 +540,7 @@ const MenuBar = {
 				'import_project',
 				'import_java_block_model',
 				'import_optifine_part',
+				'import_obj',
 				'extrude_texture'
 			]},
 			{name: 'generic.export', id: 'export', icon: 'insert_drive_file', children: [
@@ -572,6 +573,8 @@ const MenuBar = {
 			'edit_history',
 			'_',
 			'add_cube',
+			'add_mesh',
+			'add_primitive',
 			'add_group',
 			'add_locator',
 			'add_null_object',

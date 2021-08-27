@@ -1,7 +1,6 @@
 var scene,
 	main_preview, MediaPreview,
 	Sun, lights,
-	emptyMaterials,
 	outlines,
 	Transformer,
 	canvas_scenes,
@@ -284,7 +283,7 @@ class Preview {
 			frustum: new THREE.Frustum()
 		}
 
-		this.raycaster = new THREE.Raycaster()
+		this.raycaster = new THREE.Raycaster();
 		this.mouse = new THREE.Vector2();
 		addEventListeners(this.canvas, 'mousedown touchstart', 	function(event) { scope.click(event)}, { passive: false })
 		addEventListeners(this.canvas, 'mousemove touchmove', 	function(event) { scope.static_rclick = false}, false)
@@ -348,9 +347,12 @@ class Preview {
 		this.raycaster.setFromCamera( this.mouse, this.camera );
 
 		var objects = []
-		Cube.all.forEach(cube => {
-			if (cube.visibility && !cube.locked) {
-				objects.push(cube.mesh);
+		Outliner.elements.forEach(element => {
+			if (element.mesh.geometry && element.visibility && !element.locked) {
+				objects.push(element.mesh);
+				if (element.mesh.vertex_points && element.mesh.vertex_points.visible) {
+					objects.push(element.mesh.vertex_points);
+				}
 			}
 		})
 		if (Vertexsnap.vertexes.children.length) {
@@ -369,44 +371,64 @@ class Preview {
 		}
 		var intersects = this.raycaster.intersectObjects( objects );
 		if (intersects.length > 0) {
-			if (intersects.length > 1 && Toolbox.selected.id == 'vertex_snap_tool') {
-				var intersect;
-				for (var sct of intersects) {
-					if (sct.object.isVertex) {
-						intersect = sct.object;
-						break;
+			if (intersects.length > 1 && intersects.find(intersect => intersect.object.type == 'Points')) {
+				var intersect = intersects.find(intersect => intersect.object.type == 'Points')
+			} else {
+				var intersect = intersects[0]
+			}
+			let intersect_object = intersect.object
+
+			if (intersect_object.isElement) {
+				var element = OutlinerNode.uuids[intersect_object.name]
+				let face;
+				if (element instanceof Cube) {
+					face = Canvas.face_order[Math.floor(intersect.faceIndex / 2)];
+				} else if (element instanceof Mesh) {
+					let index = intersect.faceIndex;
+					for (let key in element.faces) {
+						let {vertices} = element.faces[key];
+
+						if (index == 0 || (index == 1 && vertices.length == 4)) {
+							face = key;
+							break; 
+						}
+						if (vertices.length == 3) index -= 1;
+						if (vertices.length == 4) index -= 2;
 					}
 				}
-				if (!intersect) intersect = intersects[0].object;
-			} else {
-				var intersect = intersects[0].object
-			}
-			if (intersect.isElement) {
-				this.controls.hasMoved = true
-				var obj = OutlinerNode.uuids[intersects[0].object.name]
-				let face = Canvas.face_order[Math.floor(intersects[0].faceIndex / 2)];
 
 				return {
-					event: event,
-					type: 'cube',
-					intersects: intersects,
-					face: face,
-					cube: obj
+					type: 'element',
+					event,
+					intersects,
+					face,
+					element
 				}
-			} else if (intersect.isVertex) {
+			} else if (intersect_object.type == 'Points') {
+				var element = OutlinerNode.uuids[intersect_object.parent.parent.name];
+				let vertex = Object.keys(element.vertices)[intersect.index];
 				return {
-					event: event,
+					event,
 					type: 'vertex',
-					intersects: intersects,
-					cube: intersect.cube,
+					element,
+					intersects,
+					intersect,
+					vertex
+				}
+			} else if (intersect_object.isVertex) {
+				return {
+					event,
+					type: 'cube_vertex',
+					intersects,
+					element: intersect_object.element,
 					vertex: intersect
 				}
-			} else if (intersect.isKeyframe) {
-				let keyframe = Timeline.keyframes.find(kf => kf.uuid == intersect.keyframeUUID);
+			} else if (intersect_object.isKeyframe) {
+				let keyframe = Timeline.keyframes.find(kf => kf.uuid == intersect_object.keyframeUUID);
 				return {
-					event: event,
+					event,
 					type: 'keyframe',
-					intersects: intersects,
+					intersects,
 					keyframe: keyframe
 				}
 			}
@@ -660,8 +682,11 @@ class Preview {
 
 		var data = this.raycast(event);
 		if (data) {
-			//this.static_rclick = false
-			if (data.cube && data.cube.locked) {
+			this.controls.hasMoved = true
+			
+			let select_mode = BarItems.selection_mode.value
+
+			if (data.element && data.element.locked) {
 				$('#preview').css('cursor', 'not-allowed')
 				function resetCursor() {
 					$('#preview').css('cursor', (Toolbox.selected.cursor ? Toolbox.selected.cursor : 'default'))
@@ -669,7 +694,7 @@ class Preview {
 				}
 				addEventListeners(document, 'mouseup touchend', resetCursor, false)
 
-			} else if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data.type === 'cube') {
+			} else if (Toolbox.selected.selectElements && Modes.selected.selectElements && data.type === 'element') {
 				if (Toolbox.selected.selectFace) {
 					UVEditor.setFace(data.face, false)
 				}
@@ -677,21 +702,50 @@ class Preview {
 				if (Modes.paint) {
 					event = 0;
 				}
-				if (data.cube.parent.type === 'group' && (
+				if (data.element.parent.type === 'group' && (
 					Animator.open ||
 					event.shiftKey || Pressing.overrides.shift ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
 				)) {
-					data.cube.parent.select().showInOutliner();
+					data.element.parent.select().showInOutliner();
 
 				} else if (!Animator.open) {
-					data.cube.select(event)
+
+					if (data.element instanceof Mesh && select_mode == 'face') {
+						if (!data.element.selected) data.element.select(event);
+
+						if (!Project.selected_vertices[data.element.uuid]) {
+							Project.selected_vertices[data.element.uuid] = [];
+						}
+						if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+							Project.selected_vertices[data.element.uuid].empty();
+						}
+						Project.selected_vertices[data.element.uuid].safePush(...data.element.faces[data.face].vertices);
+
+					} else {
+						data.element.select(event)
+					}
+					updateSelection();
 				}
 			} else if (Animator.open && data.type == 'keyframe') {
 				if (data.keyframe instanceof Keyframe) {
 					data.keyframe.select(event).callPlayhead();
 					updateSelection();
 				}
+
+			} else if (data.type == 'vertex') {
+
+				if (!Project.selected_vertices[data.element.uuid]) {
+					Project.selected_vertices[data.element.uuid] = [];
+				}
+				let list = Project.selected_vertices[data.element.uuid];
+
+				if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
+					list.toggle(data.vertex);
+				} else {
+					list.replace([data.vertex]);
+				}
+				updateSelection();
 			}
 			if (typeof Toolbox.selected.onCanvasClick === 'function') {
 				Toolbox.selected.onCanvasClick(data)
@@ -712,7 +766,7 @@ class Preview {
 	mousemove(event) {
 		if (Settings.get('highlight_cubes')) {
 			var data = this.raycast(event);
-			if (settings.highlight_cubes.value) updateCubeHighlights(data && data.cube);
+			updateCubeHighlights(data && data.element);
 		}
 	}
 	mouseup(event) {
@@ -749,8 +803,8 @@ class Preview {
 		Prop.active_panel = 'preview';
 		if (this.static_rclick && (event.which === 3 || (event.type == 'touchend' && this.rclick_cooldown == true))) {
 			var data = this.raycast(event)
-			if (Toolbox.selected.selectCubes && Modes.selected.selectCubes && data && data.cube && !Modes.animate) {
-				data.cube.showContextMenu(event);
+			if (Toolbox.selected.selectElements && Modes.selected.selectElements && data && data.element && !Modes.animate) {
+				data.element.showContextMenu(event);
 
 			} else if (data.type == 'keyframe') {
 				data.keyframe.showContextMenu(event);
@@ -802,6 +856,10 @@ class Preview {
 		$(this.node).append(this.selection.box)
 		this.selection.activated = false;
 		this.selection.old_selected = Outliner.selected.slice();
+		this.selection.old_vertices_selected = {};
+		for (let uuid in Project.selected_vertices) {
+			this.selection.old_vertices_selected[uuid] = Project.selected_vertices[uuid].slice();
+		}
 
 		this.moveSelRect(event)
 	}
@@ -973,10 +1031,12 @@ class Preview {
 		let box = new THREE.Box3();
 		let vector = new THREE.Vector3();
 
+		let extend_selection = (event.shiftKey || event.ctrlOrCmd || Pressing.overrides.ctrl || Pressing.overrides.shift)
+
 		unselectAll()
-		elements.forEach((element) => {
+		Outliner.elements.forEach((element) => {
 			let isSelected;
-			if ((event.shiftKey || event.ctrlOrCmd || Pressing.overrides.ctrl || Pressing.overrides.shift) && scope.selection.old_selected.indexOf(element) >= 0) {
+			if (extend_selection && scope.selection.old_selected.indexOf(element) >= 0) {
 				isSelected = true
 
 			} else if (element.visibility) {
@@ -991,7 +1051,24 @@ class Preview {
 				}
 			}
 			if (isSelected) {
-				element.selectLow()
+				element.selectLow();
+				if (element instanceof Mesh && element.visibility) {
+					for (let key in element.vertices) {
+						if (extend_selection && scope.selection.old_vertices_selected[element.uuid] && scope.selection.old_vertices_selected[element.uuid].includes(key)) {
+							if (!Project.selected_vertices[element.uuid]) Project.selected_vertices[element.uuid] = [];
+							Project.selected_vertices[element.uuid].safePush(key);
+
+						} else {
+							let point = vector.fromArray(element.vertices[key]);
+							element.mesh.localToWorld(point);
+							if (this.selection.frustum.containsPoint(vector)) {
+								if (!Project.selected_vertices[element.uuid]) Project.selected_vertices[element.uuid] = [];
+								Project.selected_vertices[element.uuid].safePush(key);
+							}
+
+						}
+					}
+				}
 			}
 		})
 		TickUpdates.selection = true;
@@ -1356,6 +1433,15 @@ class Preview {
 	])
 
 Preview.all = [];
+
+Blockbench.on('update_camera_position', e => {
+	let scale = Preview.selected.calculateControlScale(new THREE.Vector3(0, 0, 0));
+	Preview.all.forEach(preview => {
+		if (preview.canvas.isConnected && Mesh.all.length) {
+			preview.raycaster.params.Points.threshold = scale * 0.6;
+		}
+	})
+})
 
 function openQuadView() {
 	quad_previews.enabled = true;
@@ -1925,9 +2011,9 @@ function initCanvas() {
 	scene.add(Vertexsnap.vertexes)
 	Vertexsnap.vertexes.name = 'vertex_handles'
 
-	outlines = new THREE.Object3D();
-	outlines.name = 'outline_group'
-	scene.add(outlines)
+	Canvas.outlines = new THREE.Object3D();
+	Canvas.outlines.name = 'outline_group'
+	scene.add(Canvas.outlines)
 
 
 	canvas_scenes = {
@@ -2055,14 +2141,14 @@ function initCanvas() {
 	img.onload = function() {
 		this.tex.needsUpdate = true;
 	}
-	emptyMaterials = []
+	Canvas.emptyMaterials = []
 	markerColors.forEach(function(s, i) {
 		var thismaterial = new THREE.MeshLambertMaterial({
 			color: 0xffffff,
 			map: tex
 		})
 		thismaterial.color.set(s.pastel)
-		emptyMaterials.push(thismaterial)
+		Canvas.emptyMaterials.push(thismaterial)
 	})
 
 	var img = new Image();
@@ -2144,12 +2230,12 @@ function updateShading() {
 	Canvas.solidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
 }
 function updateCubeHighlights(hover_cube, force_off) {
-	Cube.all.forEach(cube => {
-		if (cube.visibility) {
-			var mesh = cube.mesh;
+	Outliner.elements.forEach(element => {
+		if (element.visibility && element.mesh.geometry) {
+			var mesh = element.mesh;
 			let highlighted = (
 				Settings.get('highlight_cubes') &&
-				((hover_cube == cube && !Transformer.dragging) || cube.selected) &&
+				((hover_cube == element && !Transformer.dragging) || element.selected) &&
 				Modes.edit &&
 				!force_off
 			) ? 1 : 0;

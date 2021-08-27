@@ -1056,7 +1056,7 @@ class Texture {
 					return [
 						{name: 'menu.texture.render_mode.normal', icon: texture.render_mode == 'normal' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('normal')}},
 						{name: 'menu.texture.render_mode.emissive', icon: texture.render_mode == 'emissive' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('emissive')}},
-						{name: 'menu.texture.render_mode.layered', icon: texture.render_mode == 'layered' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('layered')}},
+						{name: 'menu.texture.render_mode.layered', icon: texture.render_mode == 'layered' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('layered')}, condition: () => Format.single_texture},
 					]
 				}
 			},

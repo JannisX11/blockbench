@@ -1275,8 +1275,8 @@ const Animator = {
 		if (!Timeline.is_setup) {
 			Timeline.setup()
 		}
-		if (outlines.children.length) {
-			outlines.children.empty()
+		if (Canvas.outlines.children.length) {
+			Canvas.outlines.children.empty()
 			Canvas.updateAllPositions()
 		}
 		if (Animation.all.length && !Animation.all.includes(Animation.selected)) {

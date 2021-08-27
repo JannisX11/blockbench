@@ -60,7 +60,7 @@ class UndoSystem {
 	}
 	cancelEdit() {
 		if (!this.current_save) return;
-		outlines.children.length = 0
+		Canvas.outlines.children.empty();
 		this.loadSave(this.current_save, new UndoSystem.save(this.current_save.aspects))
 		delete this.current_save;
 	}
@@ -150,14 +150,7 @@ class UndoSystem {
 							new_element.faces[face].reset()
 						}
 						new_element.extend(element)
-						if (new_element.mesh) {
-							Canvas.adaptObjectPosition(new_element)
-						}
-						if (new_element.type == 'cube') {
-							Canvas.adaptObjectFaceGeo(new_element)
-							Canvas.adaptObjectFaces(new_element)
-							Canvas.updateUV(new_element)
-						}
+						new_element.preview_controller.updateAll(new_element);
 					} else {
 						new_element = OutlinerElement.fromSave(element, true);
 					}
@@ -219,7 +212,7 @@ class UndoSystem {
 				group.extend(save.group)
 				if (Format.bone_rig) {
 					group.forEachChild(function(obj) {
-						Canvas.adaptObjectPosition(obj)
+						obj.preview_controller.updateTransform(obj);
 					}, Cube)
 				}
 			}

@@ -882,9 +882,6 @@
 		min-height: 128px;
 		height: auto;
 	}
-	/*#plugin_list > li.testing .title {
-		border-bottom: 3px solid var(--color-accent);
-	}*/
 	#plugin_list > li .icon_wrapper {
 		display: inline;
 	}
