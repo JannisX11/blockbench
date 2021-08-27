@@ -500,9 +500,12 @@ BARS.defineActions(function() {
 				resource_id: 'model',
 				extensions: Codec.getAllExtensions(),
 				type: 'Model',
-				startpath
+				startpath,
+				multiple: true
 			}, function(files) {
-				loadModelFile(files[0]);
+				files.forEach(file => {
+					loadModelFile(file);
+				})
 			})
 		}
 	})
