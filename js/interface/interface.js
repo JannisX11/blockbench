@@ -633,6 +633,13 @@ function addStartScreenSection(id, data) {
 		//Update Screen
 		if (Blockbench.hasFlag('after_update') && data.new_version) {
 			addStartScreenSection(data.new_version)
+			jQuery.ajax({
+				url: 'https://blckbn.ch/api/event/successful_update',
+				type: 'POST',
+				data: {
+					version: Blockbench.version
+				}
+			})
 		}
 		if (data.psa) {
 			(function() {

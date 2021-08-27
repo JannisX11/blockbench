@@ -521,6 +521,12 @@ BARS.defineActions(function() {
 					}).fail(error => {
 						Blockbench.showQuickMessage('message.invalid_link')
 					})
+				} else {
+					$.getJSON(link, (model) => {
+						Codecs.project.load(model, {path: ''});
+					}).fail(error => {
+						Blockbench.showQuickMessage('message.invalid_link')
+					})
 				}
 			}, 'https://blckbn.ch/1234')
 		}

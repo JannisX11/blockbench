@@ -3,6 +3,7 @@ const Plugins = {
 	Vue: [],			//Vue Object
 	installed: [], 		//Simple List of Names
 	json: undefined,	//Json from website
+	download_stats: {},
 	all: [],			//Vue Object Data
 	registered: {},
 	devReload() {
@@ -18,7 +19,12 @@ const Plugins = {
 	},
 	sort() {
 		Plugins.all.sort(function(a,b) {
-			return sort_collator.compare(a.title, b.title)
+			let download_difference = (Plugins.download_stats[b.id] || 0) - (Plugins.download_stats[a.id] || 0);
+			if (download_difference) {
+				return download_difference
+			} else {
+				return sort_collator.compare(a.title, b.title);
+			}
 		});
 	}
 }
@@ -120,6 +126,15 @@ class Plugin {
 						await scope.install(first);
 						resolve()
 					}, 20)
+					if (first) {
+						jQuery.ajax({
+							url: 'https://blckbn.ch/api/event/install_plugin',
+							type: 'POST',
+							data: {
+								plugin: scope.id
+							}
+						})
+					}
 				})
 			});
 		});
@@ -381,6 +396,13 @@ Plugins.loading_promise = new Promise((resolve, reject) => {
 		resolve();
 		Plugins.loading_promise.resolved = true;
 	})
+})
+
+$.getJSON('https://blckbn.ch/api/stats/plugins?weeks=2', data => {
+	Plugins.download_stats = data;
+	if (Plugins.json) {
+		Plugins.sort();
+	}
 })
 
 async function loadInstalledPlugins() {
