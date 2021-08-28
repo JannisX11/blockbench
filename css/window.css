@@ -225,6 +225,11 @@
 		padding-top: 0;
 		height: calc(100% - 4px);
 	}
+	@media (max-width:640px)  {
+		div#header_free_bar.app-drag-region {
+			display: none;
+		}
+	}
 	#web_download_button {
 		margin-left: auto;
 		height: 100%;

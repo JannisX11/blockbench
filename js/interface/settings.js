@@ -465,6 +465,7 @@ BARS.defineActions(() => {
 
 onVueSetup(function() {
 	for (var key in settings) {
+		if (settings[key].condition == false) continue;
 		var category = settings[key].category
 		if (!category) category = 'general'
 

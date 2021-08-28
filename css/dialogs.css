@@ -36,12 +36,23 @@
 		color: var(--color-light);
 		background-color: var(--color-close);
 	}
-	.dialog_menu_button {
+	.dialog_sidebar_menu_button {
 		height: 100%;
 		width: 34px;
 		padding: 4px;
 		float: left;
 		text-align: center;
+	}
+	.dialog_sidebar_menu_button:hover {
+		color: var(--color-light);
+	}
+	.dialog_menu_button {
+		height: 100%;
+		width: 30px;
+		padding: 4px 0;
+		float: left;
+		text-align: center;
+		margin-left: 2px;
 	}
 	.dialog_menu_button:hover {
 		color: var(--color-light);
@@ -246,6 +257,10 @@
 		grid-template-rows: auto 42px;
 		grid-template-columns: minmax(160px, 200px) auto;
 		grid-template-areas: "sidebar content" "sidebar buttons";
+		transition: grid-template-columns 100ms ease;
+	}
+	.dialog_wrapper:not(.has_sidebar) .dialog_sidebar {
+		display: none;
 	}
 	.dialog_sidebar {
 		background-color: var(--color-back);
@@ -254,6 +269,8 @@
 		grid-area: sidebar;
 		display: flex;
 		flex-direction: column;
+		overflow-x: hidden;
+		overflow-y: auto;
 	}
 	.dialog_content {
 		display: block;
@@ -263,6 +280,17 @@
 	dialog .dialog_content,
 	dialog .dialog_bar.button_bar {
 		margin: 24px;
+	}
+	@media (max-device-width: 640px) {
+		dialog {
+			width: 100% !important;
+		}
+		dialog .dialog_content, dialog .dialog_bar.button_bar {
+			margin: 12px;
+		}
+		.dialog_content {
+			max-height: calc(100vh - 136px);
+		}
 	}
 	dialog .dialog_bar.button_bar {
 		grid-area: buttons;
@@ -380,7 +408,6 @@
 	}
 	#settingslist .setting_name {
 		font-size: 1.1em;
-		height: 24px;
 	}
 	#settingslist .setting_description {
 		font-size: 0.94em;

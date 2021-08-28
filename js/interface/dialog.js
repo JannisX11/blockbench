@@ -296,7 +296,7 @@ function buildComponent(dialog) {
 
 class DialogSidebar {
 	constructor(options) {
-		this.open = true;
+		this.open = !Blockbench.isMobile;
 		this.pages = options.pages || {};
 		this.page = options.page || Object.keys(this.pages)[0];
 		this.actions = options.actions || {};
@@ -319,6 +319,7 @@ class DialogSidebar {
 			this.page_menu[key] = li;
 			li.addEventListener('click', event => {
 				this.setPage(key);
+				if (Blockbench.isMobile) this.toggle();
 			})
 			page_list.append(li);
 		}
@@ -359,7 +360,6 @@ class DialogSidebar {
 	}
 	toggle(state = !this.open) {
 		this.open = state;
-		this.node.style.display = this.open ? 'flex' : 'none';
 		if (this.node.parentElement) {
 			this.node.parentElement.classList.toggle('has_sidebar', this.open);
 		}
@@ -543,20 +543,22 @@ window.Dialog = class Dialog {
 
 		let handle = document.createElement('div');
 		handle.className = 'dialog_handle';
+		this.object.append(handle);
+		
 		if (this.title_menu) {
 			let menu_button = document.createElement('div');
 			menu_button.className = 'dialog_menu_button';
-			menu_button.append(Blockbench.getIconNode('menu'));
+			menu_button.append(Blockbench.getIconNode('expand_more'));
 			menu_button.addEventListener('click', event => {
 				this.title_menu.show(menu_button);
 			})
 			handle.append(menu_button);
 		}
+
 		let title = document.createElement('div');
 		title.className = 'dialog_title';
 		title.textContent = tl(this.title);
 		handle.append(title);
-		this.object.append(handle);
 
 		let jq_dialog = $(this.object);
 		this.max_label_width = 0;
@@ -570,8 +572,19 @@ window.Dialog = class Dialog {
 		
 
 		if (this.sidebar) {
+			let menu_button = document.createElement('div');
+			menu_button.className = 'dialog_sidebar_menu_button';
+			menu_button.append(Blockbench.getIconNode('menu'));
+			menu_button.addEventListener('click', event => {
+				//this.sidebar.open = !this.sidebar.open;
+				this.sidebar.toggle();
+				//wrapper.classList.toggle('hide_sidebar', !this.sidebar.open);
+			})
+			handle.prepend(menu_button);
+
 			let sidebar = this.sidebar.build();
 			wrapper.append(sidebar);
+			//wrapper.classList.add('has_sidebar');
 			wrapper.classList.toggle('has_sidebar', this.sidebar.open);
 		}
 
