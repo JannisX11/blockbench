@@ -170,7 +170,7 @@ const UVEditor = {
 	*/
 	updateBrushOutline(e) {
 		if (Modes.paint && Toolbox.selected.brushTool) {
-			this.jquery.frame.append(this.brush_outline);
+			UVEditor.vue.$refs.frame.append(this.brush_outline);
 			let outline = this.brush_outline.get(0);
 			var pixel_size = this.inner_width / (this.texture ? this.texture.width : Project.texture_width);
 			//pos
@@ -283,9 +283,10 @@ const UVEditor = {
 		}
 		delete Painter.selection.calcrect;
 		if (!Painter.selection.overlay) {
-			this.jquery.frame.find('#texture_selection_rect').detach();
-			let rect = $(`<div id="texture_selection_rect"></div>`);
-			this.jquery.frame.append(rect)
+			$(this.vue.$refs.frame).find('#texture_selection_rect').detach();
+			let rect = document.createElement('div');
+			rect.id = 'texture_selection_rect';
+			this.vue.$refs.frame.append(rect)
 			Painter.selection.rect = rect;
 			Painter.selection.start_x = x;
 			Painter.selection.start_y = y;
@@ -303,7 +304,7 @@ const UVEditor = {
 			Painter.selection.calcrect = calcrect;
 			Painter.selection.x = calcrect.ax;
 			Painter.selection.y = calcrect.ay;
-			Painter.selection.rect
+			$(Painter.selection.rect)
 				.css('left', 	calcrect.ax*m + 'px')
 				.css('top', 	calcrect.ay*m + 'px')
 				.css('width', 	calcrect.x *m + 'px')
@@ -318,7 +319,7 @@ const UVEditor = {
 	},
 	stopSelection() {
 		if (Painter.selection.rect) {
-			Painter.selection.rect.detach()
+			Painter.selection.rect.remove()
 		}
 		if (Painter.selection.overlay || !Painter.selection.calcrect) return;
 		if (Painter.selection.calcrect.x == 0 || Painter.selection.calcrect.y == 0) return;
@@ -328,7 +329,7 @@ const UVEditor = {
 		var ctx = canvas.getContext('2d');
 		canvas.width = calcrect.x;
 		canvas.height = calcrect.y;
-		ctx.drawImage(this.texture.img, -calcrect.ax, -calcrect.ay)
+		ctx.drawImage(this.vue.texture.img, -calcrect.ax, -calcrect.ay)
 
 		if (isApp) {
 			let image = nativeImage.createFromDataURL(canvas.toDataURL())
@@ -430,7 +431,7 @@ const UVEditor = {
 		})
 		overlay.append(Painter.selection.canvas)
 		Painter.selection.overlay = overlay;
-		this.jquery.frame.append(overlay)
+		$(UVEditor.vue.$refs.frame).append(overlay)
 		Painter.selection.x = Math.clamp(Painter.selection.x, 0, this.texture.width-Painter.selection.canvas.width)
 		Painter.selection.y = Math.clamp(Painter.selection.y, 0, this.texture.height-Painter.selection.canvas.height)
 		this.updateSize()
@@ -526,40 +527,11 @@ const UVEditor = {
 	},
 	getTexture() {
 		if (Format.single_texture) return Texture.getDefault();
-		return Cube.selected[0].faces[this.face].getTexture();
+		return this.vue.texture;
 	},
 	//Set
-	setSize(input_size, cancel_load) {
-		return;
-		var old_size = this.size;
-		var size = input_size;
-		this.size = size;
-		this.vue.$refs.frame.style.width = (this.inner_width) + 'px';
-		this.vue.$refs.viewport.style.width = (size+8) + 'px';
-		this.vue.$refs.main.style.width = (size + (this.id == 'UVEditor' ? 8 : 10)) + 'px';
-
-		for (var id in this.sliders) {
-			this.sliders[id].setWidth(size/(Project.box_uv?2:4)-1)
-		}
-		if (!cancel_load && old_size !== size) {
-			this.loadData();
-		} else {
-			this.updateSize();
-		}
-		// compensate offset
-		this.vue.$refs.viewport.scrollLeft = Math.round(this.vue.$refs.viewport.scrollLeft * (size / old_size));
-		this.vue.$refs.viewport.scrollTop  = Math.round(this.vue.$refs.viewport.scrollTop  * (size / old_size));
-		return this;
-	},
 	setZoom(zoom) {
 		this.vue.zoom = zoom;
-		return this;
-		var zoomed_size = this.size * zoom;
-		var size = zoomed_size;
-		this.zoom = size/this.size
-		this.updateSize();
-		this.displayFrame();
-
 		return this;
 	},
 	setGrid(value) {
@@ -579,67 +551,9 @@ const UVEditor = {
 	},
 	updateSize() {
 		this.vue.updateSize();
-		//var size = this.size * this.zoom;
-
-		return;
-		this.jquery.viewport.height(this.height+8)
-		this.jquery.size.resizable('option', 'maxHeight', this.inner_height)
-		this.jquery.size.resizable('option', 'maxWidth', this.inner_width)
-		this.jquery.size.resizable('option', 'grid', [
-			this.inner_width/Project.texture_width/this.grid,
-			this.inner_height/Project.texture_height/this.grid
-		])
-		this.displayMappingOverlay();
-		this.updateAllMappingOverlays();
-		if (this.texture && this.texture.currentFrame) {
-			this.img.style.objectPosition = `0 -${this.texture.currentFrame * this.inner_height}px`;
-		} else {
-			this.img.style.objectPosition = `0 0`;
-		}
-		if (Painter.selection.overlay && this.texture) {
-			this.updatePastingOverlay()
-		}
-
-		if (this.zoom > 1) {
-			this.jquery.viewport.addClass('zoomed').css('overflow', 'scroll scroll')
-		} else {
-			this.jquery.viewport.removeClass('zoomed').css('overflow', 'hidden')
-		}
 	},
 	setFace(face, update = true) {
 		this.vue.selected_faces.replace([face]);
-		/*
-		if (this.id === 'UVEditor') {
-			$('input#'+face+'_radio').prop("checked", true)
-		}
-		if (update) {
-			this.loadData()
-		}*/
-		return this;
-	},
-	setToMainSlot() {
-		var scope = this;
-		$('.panel#uv > .panel_inside').append(this.jquery.main)
-		$('.panel#uv > .panel_inside').on('mousewheel', function(e) {
-
-			if (!Project.box_uv && !e.ctrlOrCmd && $('#uv_panel_sides:hover, #uv_viewport:not(.zoomed):hover').length) {
-				var faceIDs = {'north': 0, 'south': 1, 'west': 2, 'east': 3, 'up': 4, 'down': 5}
-				var id = faceIDs[scope.face]
-				event.deltaY > 0 ? id++ : id--;
-				if (id === 6) id = 0
-				if (id === -1) id = 5
-				$('input#'+getKeyByValue(faceIDs, id)+'_radio').prop("checked", true)
-				scope.loadSelectedFace()
-				e.preventDefault()
-			}
-		})
-		this.jquery.frame.on('dblclick', function() {
-			UVEditor.openFull()
-		})
-		return this;
-	},
-	appendTo(selector) {
-		$(selector).append(this.jquery.main)
 		return this;
 	},
 	//Selection
