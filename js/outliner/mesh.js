@@ -146,7 +146,7 @@ class Mesh extends OutlinerElement {
 		this.faces = {};
 
 		if (!data.vertices) {
-			this.addVertices([16, 16, 16], [16, 16, 0], [16, 0, 16], [16, 0, 0], [0, 16, 16], [0, 16, 0], [0, 0, 16], [0, 0, 0]);
+			this.addVertices([2, 4, 2], [2, 4, -2], [2, 0, 2], [2, 0, -2], [-2, 4, 2], [-2, 4, -2], [-2, 0, 2], [-2, 0, -2]);
 			let vertex_keys = Object.keys(this.vertices);
 			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[1], vertex_keys[3]]} ));	// East
 			this.addFaces(new MeshFace( this, {vertices: [vertex_keys[4], vertex_keys[5], vertex_keys[6], vertex_keys[7]]} ));	// West
@@ -835,6 +835,9 @@ BARS.defineActions(function() {
 				selected_faces.forEach(face => {
 					face.vertices.forEach((key, index) => {
 						face.vertices[index] = new_vertices[original_vertices.indexOf(key)];
+						let uv = face.uv[key];
+						delete face.uv[key];
+						face.uv[face.vertices[index]] = uv;
 					})
 				})
 
@@ -1203,7 +1206,7 @@ BARS.defineActions(function() {
 					if (result.shape == 'cube') {
 						let r = result.diameter/2;
 						let h = result.height;
-						mesh.addVertices([r, h, r], [r, h, -r], [r, 0, r], [r, 0, -r], [-r, hr, r], [-r, h, -r], [-r, 0, r], [-r, 0, -r]);
+						mesh.addVertices([r, h, r], [r, h, -r], [r, 0, r], [r, 0, -r], [-r, h, r], [-r, h, -r], [-r, 0, r], [-r, 0, -r]);
 						let vertex_keys = Object.keys(mesh.vertices);
 						mesh.addFaces(
 							new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[1], vertex_keys[3]]} ), // East

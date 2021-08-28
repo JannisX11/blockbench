@@ -780,6 +780,10 @@
 					// Local Space
 					return 2;
 				}
+				if (input_space === 'normal' && Mesh.selected.length) {
+					// Local Space
+					return 3;
+				}
 				if (input_space !== 'global' && Format.bone_rig) {
 					// Bone Space
 					if (Format.bone_rig && Group.selected && Group.selected.matchesSelection()) {

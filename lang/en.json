@@ -972,6 +972,7 @@
 	"action.transform_space.global": "Global",
 	"action.transform_space.bone": "Bone",
 	"action.transform_space.local": "Local",
+	"action.transform_space.normal": "Normal",
 	"action.rotation_space": "Rotation Space",
 	"action.scale": "Scale...",
 	"action.scale.desc": "Scale the selected cubes",

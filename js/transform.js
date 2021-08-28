@@ -422,7 +422,7 @@ function scaleAll(save, size) {
 		parseFloat($('#scaling_origin_z').val())||0,
 	]
 	var overflow = [];
-	selected.forEach(function(obj) {
+	Outliner.selected.forEach(function(obj) {
 		obj.autouv = 0;
 		origin.forEach(function(ogn, i) {
 			if ($('#model_scale_'+getAxisLetter(i)+'_axis').is(':checked')) {
@@ -446,6 +446,12 @@ function scaleAll(save, size) {
 					obj.origin[i] = (obj.before.origin[i] - ogn) * size;
 					obj.origin[i] = obj.origin[i] + ogn;
 				}
+
+				if (obj instanceof Mesh) {
+					for (let key in obj.vertices) {
+						obj.vertices[key][i] = (obj.before.vertices[key][i] - ogn) * size + ogn;
+					}
+				}
 			} else {
 
 				if (obj.from) obj.from[i] = obj.before.from[i];
@@ -453,6 +459,11 @@ function scaleAll(save, size) {
 
 				if (obj.origin) obj.origin[i] = obj.before.origin[i];
 
+				if (obj instanceof Mesh) {
+					for (let key in obj.vertices) {
+						obj.vertices[key][i] = obj.before.vertices[key][i];
+					}
+				}
 			}
 		})
 		if (save === true) {
@@ -501,6 +512,11 @@ function cancelScaleAll() {
 		if (obj.from) obj.from.V3_set(obj.before.from);
 		if (obj.to) obj.to.V3_set(obj.before.to);
 		if (obj.origin) obj.origin.V3_set(obj.before.origin);
+		if (obj instanceof Mesh) {
+			for (let key in obj.vertices) {
+				obj.vertices[key].V3_set(obj.before.vertices[key]);
+			}
+		}
 		delete obj.before
 		if (Project.box_uv) {
 			Canvas.updateUV(obj)
@@ -911,7 +927,8 @@ BARS.defineActions(function() {
 		options: {
 			global: true,
 			bone: {condition: () => Format.bone_rig, name: true},
-			local: true
+			local: true,
+			normal: {condition: () => Mesh.selected.length, name: true}
 		},
 		onChange() {
 			updateSelection();
@@ -1336,13 +1353,19 @@ BARS.defineActions(function() {
 			$('#model_scale_range, #model_scale_label').val(1)
 			$('#scaling_clipping_warning').text('')
 
-			Undo.initEdit({elements: selected, outliner: Format.bone_rig})
+			Undo.initEdit({elements: Outliner.selected, outliner: Format.bone_rig})
 
-			selected.forEach(function(obj) {
+			Outliner.selected.forEach(function(obj) {
 				obj.before = {
 					from: obj.from ? obj.from.slice() : undefined,
 					to: obj.to ? obj.to.slice() : undefined,
 					origin: obj.origin ? obj.origin.slice() : undefined
+				}
+				if (obj instanceof Mesh) {
+					obj.before.vertices = {};
+					for (let key in obj.vertices) {
+						obj.before.vertices[key] = obj.vertices[key].slice();
+					}
 				}
 			})
 			if (Format.bone_rig && Group.selected) {
