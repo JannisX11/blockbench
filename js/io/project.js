@@ -564,7 +564,7 @@ onVueSetup(() => {
 					img.className = 'project_thumbnail';
 					let offset = $(event.target).offset();
 					img.style.left = (offset.left) + 'px';
-					img.style.top = (offset.top + event.target.clientHeight) + 'px';
+					img.style.top = (offset.top + event.target.clientHeight+2) + 'px';
 				}
 			},
 			mouseLeave() {

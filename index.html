@@ -386,7 +386,7 @@
 					<i class="material-icons">add</i>
 				</div>
 			</div>
-			<div id="search_tab_button" @click="searchTabs()" :title="search_tabs_label">
+			<div id="search_tab_button" v-if="projects.length > 1" @click="searchTabs()" :title="search_tabs_label">
 				<i class="material-icons">search</i>
 			</div>
 		</div>
@@ -431,7 +431,7 @@
 							</li>
 							<div v-if="recent.length == 0">{{ tl('mode.start.no_recents') }}</div>
 						</ul>
-						<ul :class="{redact: redact_names}" v-else>
+						<ul :class="{redact: redact_names}" style="display: grid;" v-else>
 							<li v-on:click="openProject(project, $event)" v-for="project in recent" v-key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project thumbnail">
 								<div class="thumbnail_image" :style="{'background-image': getThumbnail(project.path)}"></div>
 								<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>

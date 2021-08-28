@@ -715,7 +715,6 @@
 		max-height: 465px;
     	padding-right: 5px;
 		overflow-y: auto;
-		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(170px ,1fr));
 		grid-gap: 5px;
 	}
