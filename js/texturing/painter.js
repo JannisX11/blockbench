@@ -139,14 +139,14 @@ const Painter = {
 				if (x === Painter.current.x && y === Painter.current.y) {
 					return
 				}
-				if (Painter.current.face !== data.face || Painter.current.cube !== data.element) {
+				if (Painter.current.face !== data.face || Painter.current.element !== data.element) {
 					if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
 						return;
 					}
 					Painter.current.x = x
 					Painter.current.y = y
 					Painter.current.face = data.face
-					Painter.current.cube = data.element
+					Painter.current.element = data.element
 					new_face = true
 					if (texture !== Painter.current.texture) {
 						Undo.current_save.addTexture(texture)
@@ -172,7 +172,7 @@ const Painter = {
 			Painter.brushChanges = false;
 			Painter.painting = true;
 			Painter.current = {
-				cube: data && data.element,
+				element: data && data.element,
 				face: data && data.face,
 				x, y,
 				clear: document.createElement('canvas'),
@@ -188,8 +188,8 @@ const Painter = {
 			Painter.painting = true;
 
 			if (data) {
-				var is_line = (event.shiftKey || Pressing.overrides.shift) && Painter.current.cube == data.cube && Painter.current.face == data.face
-				Painter.current.cube = data.element;
+				var is_line = (event.shiftKey || Pressing.overrides.shift) && Painter.current.element == data.element && Painter.current.face == data.face
+				Painter.current.element = data.element;
 				Painter.current.face = data.face;
 			} else {
 				//uv editor
@@ -364,10 +364,10 @@ const Painter = {
 		}
 
 		var fill_mode = BarItems.fill_mode.get()
-		var cube = Painter.current.cube;
-		if (cube && fill_mode === 'cube') {
-			for (var face in cube.faces) {
-				var tag = cube.faces[face]
+		var element = Painter.current.element;
+		if (element instanceof Cube && fill_mode === 'cube') {
+			for (var face in element.faces) {
+				var tag = element.faces[face]
 				ctx.beginPath();
 				if (tag.getTexture() === texture) {
 					var face_rect = getRectangle(
@@ -442,8 +442,8 @@ const Painter = {
 		ctx.globalCompositeOperation = 'source-over'
 	},
 	runMirrorBrush(texture, x, y, event, uvTag) {
-		if (uvTag && Painter.current.cube) {
-			let mirror_cube = Painter.getMirrorCube(Painter.current.cube);
+		if (uvTag && Painter.current.element) {
+			let mirror_cube = Painter.getMirrorCube(Painter.current.element);
 			if (mirror_cube) {
 
 				let uvFactorX = 1 / Project.texture_width * texture.img.naturalWidth;
@@ -478,10 +478,10 @@ const Painter = {
 					point_on_uv[1] = Math.max(face.uv[1], face.uv[1+2]) * uvFactorY - point_on_uv[1] - 1;
 				}
 
-				let cube = Painter.current.cube;
-				Painter.current.cube = mirror_cube;
+				let cube = Painter.current.element;
+				Painter.current.element = mirror_cube;
 				Painter.useBrushlike(texture, ...point_on_uv, event, face.uv, true, true);
-				Painter.current.cube = cube;
+				Painter.current.element = cube;
 			}
 		}
 	},

@@ -2037,6 +2037,7 @@ Interface.definePanels(function() {
 				},
 				dragAnimation(e1) {
 					if (getFocusedTextInput()) return;
+					if (e1.button == 1 || e1.button == 2) return;
 					convertTouchEvent(e1);
 					
 					let [anim] = eventTargetToAnim(e1.target);

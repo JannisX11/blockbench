@@ -396,7 +396,7 @@
 	}
 	.texture_description_wrapper {
 		flex-grow: 1;
-
+		overflow-x: hidden;
 	}
 	.texture_name {
 		margin-top: 2px;
