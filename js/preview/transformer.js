@@ -726,7 +726,7 @@
 						Outliner.selected.forEach(element => {
 							if (
 								(element.movable && Toolbox.selected.transformerMode == 'translate') ||
-								(element.resizable && Toolbox.selected.transformerMode == 'scale') ||
+								((element.resizable) && Toolbox.selected.transformerMode == 'scale') ||
 								(element.rotatable && Toolbox.selected.transformerMode == 'rotate')
 							) {
 								scope.attach(element);
@@ -1020,12 +1020,17 @@
 				if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
 
 					if (Toolbox.selected.id === 'resize_tool') {
-						var axisnr = getAxisNumber(scope.axis.toLowerCase().replace('n', ''))
+						var axisnr = getAxisNumber(scope.axis.toLowerCase().replace('n', ''));
 						selected.forEach(function(obj) {
-							if (obj.resizable) {
+							if (obj instanceof Mesh) {
+								obj.oldVertices = {};
+								for (let key in obj.vertices) {
+									obj.oldVertices[key] = obj.vertices[key].slice();
+								}
+							} else if (obj.resizable) {
 								obj.oldScale = obj.size(axisnr)
 								obj.oldCenter = (obj.from[axisnr] + obj.to[axisnr]) / 2;
-							}
+							} 
 						})
 					}
 					_has_groups = Format.bone_rig && Group.selected && Group.selected.matchesSelection() && Toolbox.selected.transformerMode == 'translate';

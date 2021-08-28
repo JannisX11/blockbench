@@ -652,12 +652,12 @@ function moveElementsInSpace(difference, axis) {
 
 				} else {
 					if (el.movable) el.from[axis] += difference;
-					if (el.resizable) el.to[axis] += difference;
+					if (el.resizable && el.to) el.to[axis] += difference;
 				}
 				
 			} else if (space instanceof Group) {
 				if (el.movable) el.from[axis] += difference;
-				if (el.resizable) el.to[axis] += difference;
+				if (el.resizable && el.to) el.to[axis] += difference;
 				if (el.rotatable && el instanceof Locator == false) el.origin[axis] += difference;
 			} else {
 				let move_origin = !!group;
@@ -688,7 +688,7 @@ function moveElementsInSpace(difference, axis) {
 				}
 
 				if (el.movable) el.from.V3_add(m.x, m.y, m.z);
-				if (el.resizable) el.to.V3_add(m.x, m.y, m.z);
+				if (el.resizable && el.to) el.to.V3_add(m.x, m.y, m.z);
 				if (move_origin) {
 					if (el.rotatable && el instanceof Locator == false && el instanceof TextureMesh == false) el.origin.V3_add(m.x, m.y, m.z);
 				}
@@ -958,14 +958,14 @@ BARS.defineActions(function() {
 				var val = modify(obj.from[axis])
 
 				if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
-					var size = obj.resizable ? obj.size(axis) : 0;
+					var size = obj.to ? obj.size(axis) : 0;
 					val = limitToBox(limitToBox(val, -obj.inflate) + size, obj.inflate) - size
 				}
 
 				//val -= obj.from[axis];
 				var before = obj.from[axis];
 				obj.from[axis] = val;
-				if (obj.resizable) {
+				if (obj.to) {
 					obj.to[axis] += (val - before);
 				}
 				if (obj instanceof Cube) {
@@ -1054,7 +1054,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['X']),
 		color: 'x',
 		category: 'transform',
-		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Outliner.selected[0] instanceof Mesh == false && Modes.edit),
 		getInterval: grid_locked_interval,
 		get: function() {
 			if (Outliner.selected[0].scalable) {
@@ -1078,7 +1078,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['Y']),
 		color: 'y',
 		category: 'transform',
-		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Outliner.selected[0] instanceof Mesh == false && Modes.edit),
 		getInterval: grid_locked_interval,
 		get: function() {
 			if (Outliner.selected[0].scalable) {
@@ -1102,7 +1102,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['Z']),
 		color: 'z',
 		category: 'transform',
-		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable)&& Outliner.selected[0] instanceof Mesh == false  && Modes.edit),
 		getInterval: grid_locked_interval,
 		get: function() {
 			if (Outliner.selected[0].scalable) {

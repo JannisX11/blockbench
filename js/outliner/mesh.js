@@ -306,6 +306,24 @@ class Mesh extends OutlinerElement {
 		this.preview_controller.updateGeometry(this);
 		return this;
 	}
+	resize(val, axis, negative, allow_negative, bidirectional) {
+		let selected_vertices = Project.selected_vertices[this.uuid] || Object.keys(this.vertices);
+		let range = [Infinity, -Infinity];
+		selected_vertices.forEach(key => {
+			range[0] = Math.min(range[0], this.oldVertices[key][axis]);
+			range[1] = Math.max(range[1], this.oldVertices[key][axis]);
+		})
+		let center = bidirectional ? (range[0] + range[1]) / 2 : (negative ? range[1] : range[0]);
+		let size = Math.abs(range[1] - range[0]);
+		let scale = (size + val * (negative ? -1 : 1) * (bidirectional ? 2 : 1)) / size;
+		if (isNaN(scale) || Math.abs(scale) == Infinity) scale = 1;
+		if (scale < 0 && !allow_negative) scale = 0;
+		
+		selected_vertices.forEach(key => {
+			this.vertices[key][axis] = (this.oldVertices[key][axis] - center) * scale + center;
+		})
+		this.preview_controller.updateGeometry(this);
+	}
 	applyTexture(texture, faces) {
 		var scope = this;
 		if (faces === true) {
@@ -335,7 +353,7 @@ class Mesh extends OutlinerElement {
 	Mesh.prototype.type = 'mesh';
 	Mesh.prototype.icon = 'fa far fa-gem';
 	Mesh.prototype.movable = true;
-	Mesh.prototype.resizable = false;
+	Mesh.prototype.resizable = true;
 	Mesh.prototype.rotatable = true;
 	Mesh.prototype.needsUniqueName = false;
 	Mesh.prototype.menu = new Menu([
