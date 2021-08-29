@@ -682,8 +682,9 @@ class Preview {
 
 		var data = this.raycast(event);
 		if (data) {
-			this.controls.hasMoved = true
-			
+			this.selection.click_target = data;
+			console.log(data);
+
 			let select_mode = BarItems.selection_mode.value
 
 			if (data.element && data.element.locked) {
@@ -771,9 +772,10 @@ class Preview {
 	}
 	mouseup(event) {
 		this.showContextMenu(event);
-		if (settings.canvas_unselect.value && this.controls.hasMoved === false && !this.selection.activated && !Transformer.dragging) {
+		if (settings.canvas_unselect.value && this.controls.hasMoved === false && !this.selection.activated && !Transformer.dragging && !this.selection.click_target) {
 			unselectAll();
 		}
+		delete this.selection.click_target;
 		return this;
 	}
 	raycastMouseCoords(x,y) {
@@ -803,6 +805,7 @@ class Preview {
 		Prop.active_panel = 'preview';
 		if (this.static_rclick && (event.which === 3 || (event.type == 'touchend' && this.rclick_cooldown == true))) {
 			var data = this.raycast(event)
+			if (data) this.selection.click_target = data;
 			if (Toolbox.selected.selectElements && Modes.selected.selectElements && data && data.element && !Modes.animate) {
 				data.element.showContextMenu(event);
 

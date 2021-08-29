@@ -332,6 +332,7 @@
 
 	"dialog.add_primitive.shape": "Shape",
 	"dialog.add_primitive.shape.circle": "Circle",
+	"dialog.add_primitive.shape.tube": "Tube",
 	"dialog.add_primitive.shape.cone": "Cone",
 	"dialog.add_primitive.shape.cylinder": "Cylinder",
 	"dialog.add_primitive.shape.sphere": "Sphere",

@@ -634,7 +634,6 @@ const MenuBar = {
 		})
 		
 		new BarMenu('filter', [
-			'hide_everything_except_selection',
 			'remove_blank_faces',
 		])
 
@@ -675,6 +674,7 @@ const MenuBar = {
 			'_',
 			'toggle_sidebars',
 			'toggle_quad_view',
+			'hide_everything_except_selection',
 			'focus_on_selection',
 			{name: 'menu.view.screenshot', id: 'screenshot', icon: 'camera_alt', children: [
 				'screenshot_model',

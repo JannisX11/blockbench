@@ -1060,6 +1060,7 @@ BARS.defineActions(function() {
 					shape: {label: 'dialog.add_primitive.shape', type: 'select', options: {
 						circle: 'dialog.add_primitive.shape.circle',
 						cylinder: 'dialog.add_primitive.shape.cylinder',
+						tube: 'dialog.add_primitive.shape.tube',
 						cone: 'dialog.add_primitive.shape.cone',
 						torus: 'dialog.add_primitive.shape.torus',
 						sphere: 'dialog.add_primitive.shape.sphere',
@@ -1137,6 +1138,39 @@ BARS.defineActions(function() {
 								new MeshFace( mesh, {vertices: [a, c, d, b]} ),
 								new MeshFace( mesh, {vertices: [b, d, m1]} )
 							);
+						}
+					}
+					if (result.shape == 'tube') {
+						let vertex_keys = [];
+
+						let outer_r = result.diameter/2;
+						let inner_r = (result.diameter - result.minor_diameter)/2;
+						for (let i = 0; i < result.sides; i++) {
+							let x = Math.sin((i / result.sides) * Math.PI * 2);
+							let z = Math.cos((i / result.sides) * Math.PI * 2);
+							vertex_keys.push(...mesh.addVertices(
+								[x * outer_r, 0, z * outer_r],
+								[x * outer_r, result.height, z * outer_r],
+								[x * inner_r, 0, z * inner_r],
+								[x * inner_r, result.height, z * inner_r],
+							));
+						}
+						for (let i = 0; i < result.sides; i++) {
+							let [a1, b1, c1, d1, a2, b2, c2, d2] = vertex_keys.slice(4*i, 4*i + 8);
+							if (!a2) {
+								a2 = vertex_keys[0];
+								b2 = vertex_keys[1];
+								c2 = vertex_keys[2];
+								d2 = vertex_keys[3];
+							}
+							if (a1 && b1 && c1 && d1 && a2 && b2 && c2 && d2) {
+								mesh.addFaces(
+									new MeshFace( mesh, {vertices: [a1, a2, b2, b1]} ),
+									new MeshFace( mesh, {vertices: [d1, d2, c2, c1]} ),
+									new MeshFace( mesh, {vertices: [c1, c2, a2, a1]} ),
+									new MeshFace( mesh, {vertices: [b1, b2, d2, d1]} ),
+								);
+							}
 						}
 					}
 					if (result.shape == 'torus') {
