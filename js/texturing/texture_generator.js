@@ -33,7 +33,7 @@ const TextureGenerator = {
 				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (!form.template), dimensions: 2, value: [16, 16], min: 16, max: 2048},
 
 				section2:    "_",
-				template:	{label: 'dialog.create_texture.template', type: 'checkbox', condition: Cube.all.length},
+				template:	{label: 'dialog.create_texture.template', type: 'checkbox', condition: Cube.all.length || Mesh.all.length},
 
 				rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', description: 'dialog.create_texture.rearrange_uv.desc', type: 'checkbox', value: true, condition: (form) => (form.template)},
 				compress: 	{label: 'dialog.create_texture.compress', description: 'dialog.create_texture.compress.desc', type: 'checkbox', value: true, condition: (form) => (form.template && Project.box_uv && form.rearrange_uv)},
@@ -96,14 +96,9 @@ const TextureGenerator = {
 			return texture;
 		}
 		if (options.template === true) {
-			Undo.initEdit({
-				textures: [],
-				elements: Format.single_texture ? Cube.all : Cube.selected,
-				uv_only: true,
-				selected_texture: true,
-				uv_mode: true
-			})
-			if (Project.box_uv || options.box_uv) {
+			if (Mesh.selected.length) {
+				TextureGenerator.generateMeshTemplate(options, makeTexture)
+			} else if (Project.box_uv || options.box_uv) {
 				TextureGenerator.generateTemplate(options, makeTexture)
 			} else {
 				TextureGenerator.generateFaceTemplate(options, makeTexture)
@@ -152,6 +147,14 @@ const TextureGenerator = {
 		var avg_size = 0;
 		var new_resolution = [];
 		var cubes = Format.single_texture ? Cube.all.slice() : Cube.selected.slice();
+
+		Undo.initEdit({
+			textures: [],
+			elements: cubes,
+			uv_only: true,
+			selected_texture: true,
+			uv_mode: true
+		})
 
 		var i = cubes.length-1
 		while (i >= 0) {
@@ -563,6 +566,14 @@ const TextureGenerator = {
 			face_list.push(this);
 		}
 
+		Undo.initEdit({
+			textures: [],
+			elements: Format.single_texture ? Cube.all : Cube.selected,
+			uv_only: true,
+			selected_texture: true,
+			uv_mode: true
+		})
+
 		var cube_array = (Format.single_texture ? Cube.all : Cube.selected).filter(cube => cube.visibility);
 		cube_array.forEach(cube => {
 			var fi = 0;
@@ -806,6 +817,253 @@ const TextureGenerator = {
 			textures: [texture],
 			bitmap: true,
 			elements: cube_array,
+			selected_texture: true,
+			uv_only: true,
+			uv_mode: true
+		})
+	},
+	generateMeshTemplate(options, cb) {
+
+		var res_multiple = options.resolution / 16;
+		var background_color = options.color;
+		var texture = options.texture;
+		var new_resolution = [];
+
+		let vec1 = new THREE.Vector3(),
+			vec2 = new THREE.Vector3(),
+			vec3 = new THREE.Vector3(),
+			vec4 = new THREE.Vector3();
+
+		let mesh_list = Mesh.selected;
+
+		Undo.initEdit({
+			textures: [],
+			elements: mesh_list,
+			selected_texture: true,
+			uv_mode: true
+		})
+
+		var extend_x = 0;
+		var extend_y = 0;
+
+		mesh_list.forEach(mesh => {
+			let face_groups = [];
+			for (let key in mesh.faces) {
+				let face = mesh.faces[key];
+				if (face.vertices.length < 3) continue;
+				face_groups.push({
+					faces: [face],
+					keys: [0],
+					normal: face.getNormal(true)
+				})
+			}
+
+			function tryToMergeFaceGroup(face_group) {
+				if (!face_groups.includes(face_group)) return;
+
+				let matches = face_groups.filter(group_b => {
+					if (group_b == face_group) return false;
+					if (face_group.faces.find(face => face.vertices.find(vkey => group_b.faces.find(face => face.vertices.includes(vkey)))) == undefined) return false;
+					return face_group.normal.find((v, i) => !Math.epsilon(v, group_b.normal[i], 0.002)) == undefined;
+				});
+				matches.forEach(match => {
+					face_group.faces.push(...match.faces);
+					face_group.keys.push(...match.keys);
+					face_groups.remove(match);
+				})
+			}
+
+			face_groups.slice().forEach(tryToMergeFaceGroup);
+			face_groups.slice().forEach(tryToMergeFaceGroup);
+			face_groups.slice().forEach(tryToMergeFaceGroup);
+
+			face_groups.forEach(face_group => {
+				// Project vertex coords onto plane
+				let normal_vec = vec1.fromArray(face_group.normal);
+				let plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+					normal_vec,
+					vec2.fromArray(mesh.vertices[face_group.faces[0].vertices[0]])
+				)
+				let vertex_uvs = {};
+				face_group.faces.forEach(face => {
+					face.vertices.forEach(vkey => {
+						if (!vertex_uvs[vkey]) {
+							let coplanar_pos = plane.projectPoint(vec3.fromArray(mesh.vertices[vkey]), vec4);
+							let q = new THREE.Quaternion().setFromUnitVectors(THREE.NormalY, normal_vec);
+							coplanar_pos.applyQuaternion(q);
+							vertex_uvs[vkey] = [
+								Math.roundTo(coplanar_pos.x, 4),
+								Math.roundTo(coplanar_pos.z, 4),
+							]
+						}
+					})
+				})
+				// Rotate UV to match corners
+				let rotation_angles = {}
+				face_group.faces.forEach(face => {
+					let vertices = face.getSortedVertices();
+					vertices.forEach((vkey, i) => {
+						let vkey2 = vertices[i+1] || vertices[0];
+						let rot = Math.atan2(
+							vertex_uvs[vkey2][0] - vertex_uvs[vkey][0],
+							vertex_uvs[vkey2][1] - vertex_uvs[vkey][1],
+						)
+						rot = (Math.round(Math.radToDeg(rot)) + 360) % 90;
+						if (rotation_angles[rot]) {
+							rotation_angles[rot]++;
+						} else {
+							rotation_angles[rot] = 1;
+						}
+					})
+				})
+				let angles = Object.keys(rotation_angles).map(k => parseInt(k));
+				angles.sort((a, b) => {
+					let diff = rotation_angles[b] - rotation_angles[a];
+					if (diff) {
+						return diff;
+					} else {
+						return a < b ? -1 : 1;
+					}
+				})
+				let angle = Math.degToRad(angles[0]);
+				let s = Math.sin(angle);
+				let c = Math.cos(angle);
+				for (let vkey in vertex_uvs) {
+					let point = vertex_uvs[vkey].slice();
+					vertex_uvs[vkey][0] = point[0] * c - point[1] * s;
+					vertex_uvs[vkey][1] = point[0] * s + point[1] * c;
+				}
+
+
+				// Define UV bounding box
+				let min_x = Infinity;
+				let min_z = Infinity;
+				let max_x = -Infinity;
+				let max_z = -Infinity;
+				for (let vkey in vertex_uvs) {
+					min_x = Math.min(min_x, vertex_uvs[vkey][0]);
+					min_z = Math.min(min_z, vertex_uvs[vkey][1]);
+					max_x = Math.max(max_x, vertex_uvs[vkey][0]);
+					max_z = Math.max(max_z, vertex_uvs[vkey][1]);
+				}
+				for (let vkey in vertex_uvs) {
+					vertex_uvs[vkey][0] -= min_x;
+					vertex_uvs[vkey][1] -= min_z;
+				}
+				let aabb = {
+					posx: 0,
+					posy: 0,
+					vertex_uvs,
+					width: max_x - min_x,
+					height: max_z - min_z,
+				}
+				aabb.size = aabb.width * aabb.height;
+				face_group.aabb = aabb;
+			})
+			
+			face_groups.sort(function(a,b) {
+				return b.aabb.size - a.aabb.size;
+			})
+
+			var fill_map = {}
+			function occupy(x, y) {
+				if (!fill_map[x]) fill_map[x] = {}
+				fill_map[x][y] = true
+			}
+			function check(x, y) {
+				return fill_map[x] && fill_map[x][y]
+			}
+			function forTemplatePixel(tpl, sx, sy, cb) {
+				let w = tpl.width;
+				let h = tpl.height;
+				if (options.padding) {
+					w++; h++;
+				}
+				for (var x = 0; x < w; x++) {		
+					for (var y = 0; y < h; y++) {
+						if (cb(sx+x, sy+y)) return;
+					}
+				}
+			}
+			function place(tpl, x, y) {
+				var works = true;
+				forTemplatePixel(tpl, x, y, (tx, ty) => {
+					if (check(tx, ty)) {
+						works = false;
+						return true;
+					}
+				})
+				if (works) {
+					forTemplatePixel(tpl, x, y, occupy)
+					tpl.posx = x;
+					tpl.posy = y;
+					extend_x = Math.max(extend_x, x + tpl.width);
+					extend_y = Math.max(extend_y, y + tpl.height);
+					return true;
+				}
+			}
+			face_groups.forEach(face_group => {
+				//Scan for empty spot
+				for (var line = 0; line < 2e3; line++) {
+					for (var space = 0; space <= line; space++) {
+						if (place(face_group.aabb, space, line)) return;
+						if (space == line) continue;
+						if (place(face_group.aabb, line, space)) return;
+					}
+				}
+			})
+
+			face_groups.forEach(face_group => {
+				let {aabb} = face_group;
+				face_group.faces.forEach(face => {
+					face.vertices.forEach(vkey => {
+						if (!face.uv[vkey]) face.uv[vkey] = [];
+						face.uv[vkey][0] = aabb.vertex_uvs[vkey][0] + aabb.posx;
+						face.uv[vkey][1] = aabb.vertex_uvs[vkey][1] + aabb.posy;
+					})
+				})
+			})
+
+			mesh.preview_controller.updateUV(mesh);
+		})
+
+		var max_size = Math.max(extend_x, extend_y);
+		if (options.power) {
+			max_size = Math.getNextPower(max_size, 16);
+		} else {
+			max_size = Math.ceil(max_size/16)*16;
+		}
+		new_resolution = [max_size, max_size];
+
+		if (background_color.getAlpha() != 0) {
+			background_color = background_color.toRgbString()
+		}
+		var canvas = document.createElement('canvas')
+		canvas.width = new_resolution[0] * res_multiple;
+		canvas.height = new_resolution[1] * res_multiple;
+		var ctx = canvas.getContext('2d')
+		ctx.imageSmoothingEnabled = false;
+
+		var dataUrl = canvas.toDataURL()
+		var texture = cb(dataUrl)
+
+		TextureGenerator.changeProjectResolution(new_resolution[0], new_resolution[1]);
+
+		if (texture) {
+			mesh_list.forEach(function(mesh) {
+				for (var key in mesh.faces) {
+					if (mesh.faces[key].texture !== null) {
+						mesh.faces[key].texture = texture.uuid;
+					}
+				}
+				mesh.preview_controller.updateFaces(mesh);
+			})
+		}
+		updateSelection()
+		Undo.finishEdit('Create template', {
+			textures: [texture],
+			bitmap: true,
+			elements: mesh_list,
 			selected_texture: true,
 			uv_only: true,
 			uv_mode: true

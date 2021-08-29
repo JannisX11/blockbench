@@ -683,7 +683,6 @@ class Preview {
 		var data = this.raycast(event);
 		if (data) {
 			this.selection.click_target = data;
-			console.log(data);
 
 			let select_mode = BarItems.selection_mode.value
 
