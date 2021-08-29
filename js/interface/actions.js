@@ -1502,12 +1502,16 @@ const BARS = {
 
 						Undo.initEdit({elements: Mesh.selected})
 
-						if (BarItems.selection_mode.value == 'face') {
-							Mesh.selected.forEach(mesh => {
+						Mesh.selected.forEach(mesh => {
+							let has_selected_faces = false;
+							for (let key in mesh.faces) {
+								has_selected_faces = has_selected_faces || mesh.faces[key].isSelected();
+							}
+							if (BarItems.selection_mode.value == 'face' && has_selected_faces) {
 								let selected_vertices = Project.selected_vertices[mesh.uuid];
 								for (let key in mesh.faces) {
 									let face = mesh.faces[key];
-									if (!face.vertices.find(vertex_key => !selected_vertices.includes(vertex_key))) {
+									if (face.isSelected()) {
 										delete mesh.faces[key];
 									}
 								}
@@ -1521,9 +1525,7 @@ const BARS = {
 										delete mesh.vertices[vertex_key];
 									}
 								})
-							})
-						} else {
-							Mesh.selected.forEach(mesh => {
+							} else {
 								let selected_vertices = Project.selected_vertices[mesh.uuid];
 								selected_vertices.forEach(vertex_key => {
 									delete mesh.vertices[vertex_key];
@@ -1538,8 +1540,8 @@ const BARS = {
 										}
 									}
 								})
-							})
-						}
+							}
+						})
 
 						Undo.finishEdit('Delete mesh part')
 						Canvas.updateView({elements: Mesh.selected, selection: true, element_aspects: {geometry: true, faces: true}})

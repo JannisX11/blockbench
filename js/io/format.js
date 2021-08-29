@@ -133,9 +133,10 @@ class ModelFormat {
 			})
 		}
 
-		if (!Format.single_texture && old_format.single_texture && Texture.all.length == 1) {
-			Cube.all.forEach(cube => {
-				cube.applyTexture(Texture.all[0], true)
+		if (!Format.single_texture && old_format.single_texture && Texture.all.length) {
+			let texture = Textre.getDefault();
+			Outliner.elements.filter(el => el.applyTexture).forEach(el => {
+				el.applyTexture(texture, true)
 			})
 		}
 
@@ -157,6 +158,13 @@ class ModelFormat {
 		if (!Format.locators && old_format.locators) {
 			Locator.all.slice().forEach(locator => {
 				locator.remove()
+			})
+		}
+
+		//Texture Meshes
+		if (!Format.texture_meshes && old_format.texture_meshes) {
+			TextureMesh.all.slice().forEach(tm => {
+				tm.remove()
 			})
 		}
 

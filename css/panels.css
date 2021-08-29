@@ -1284,6 +1284,16 @@
 	.uv_mesh_vertex.selected {
 		background-color:  var(--color-accent);
 	}
+	.uv_painter_info {
+		display: flex;
+	}
+	.uv_painter_info span {
+		margin: 3px 6px;
+		flex: 1 1 80px;
+		overflow: hidden;
+		white-space: nowrap;
+		text-align: center;
+	}
 	/*
 	#uv_size {
 		height: 320px;

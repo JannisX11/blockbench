@@ -1608,6 +1608,7 @@ Interface.definePanels(function() {
 				zoom: 1,
 				checkerboard: settings.uv_checkerboard.value,
 				texture: 0,
+				mouse_coords: {x: -1, y: -1},
 
 				project_resolution: [16, 16],
 				elements: [],
@@ -1692,6 +1693,22 @@ Interface.definePanels(function() {
 						this.texture = UVEditor.texture = 0;
 					}
 				},
+				updateMouseCoords(event) {					
+					convertTouchEvent(event);
+					var pixel_size = this.inner_width / this.texture.width
+
+					if (Toolbox.selected.id === 'copy_paste_tool') {
+						this.mouse_coords.x = Math.round(event.offsetX/pixel_size*1);
+						this.mouse_coords.y = Math.round(event.offsetY/pixel_size*1);
+					} else {
+						let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0.5 : 0;
+						this.mouse_coords.x = Math.floor(event.offsetX/pixel_size*1 + offset);
+						this.mouse_coords.y = Math.floor(event.offsetY/pixel_size*1 + offset);
+					}
+					if (this.texture.frameCount) {
+						this.mouse_coords.y += (this.texture.height / this.texture.frameCount) * this.texture.currentFrame
+					}
+				},
 				onMouseWheel(event) {
 					if (event.ctrlOrCmd) {
 				
@@ -1713,7 +1730,9 @@ Interface.definePanels(function() {
 						let zoom_diff = this.zoom - old_zoom;
 						viewport.scrollLeft += ((viewport.scrollLeft + offsetX) * zoom_diff) / old_zoom
 						viewport.scrollTop  += ((viewport.scrollTop  + offsetY) * zoom_diff) / old_zoom
-				
+						
+						this.updateMouseCoords(event)
+
 						return false;
 					}
 				},
@@ -2050,6 +2069,8 @@ Interface.definePanels(function() {
 						@mousedown="onMouseDown($event)"
 						@touchstart="onMouseDown($event)"
 						@mousewheel="onMouseWheel($event)"
+						@mousemove="updateMouseCoords($event)"
+						@mouseleave="if (mode == 'paint') mouse_coords.x = -1"
 						class="checkerboard_target"
 						ref="viewport"
 						:style="{width: (width+8) + 'px', height: (height+8) + 'px', overflowX: (zoom > 1) ? 'scroll' : 'hidden', overflowY: (inner_height > height) ? 'scroll' : 'hidden'}"
@@ -2132,10 +2153,13 @@ Interface.definePanels(function() {
 
 						<div class="uv_transparent_face" v-else>${tl('uv_editor.transparent_face')}</div>
 					</div>
-					<div class="bar uv_editor_sliders" ref="slider_bar" style="margin-left: 2px;">
+					<div v-show="mode == 'paint'" class="bar uv_painter_info">
+						<span style="color: var(--color-subtle_text);">{{ mouse_coords.x < 0 ? '-' : (mouse_coords.x + ' ⨉ ' + mouse_coords.y) }}</span>
+						<span v-if="texture">{{ texture.name }}</span>
+						<span style="color: var(--color-subtle_text);">{{ Math.round(this.zoom*100).toString() + '%' }}</span>
 					</div>
-					<div class="toolbar_wrapper uv_editor">
-					</div>
+					<div v-show="mode == 'uv'" class="bar uv_editor_sliders" ref="slider_bar" style="margin-left: 2px;"></div>
+					<div v-show="mode == 'uv'" class="toolbar_wrapper uv_editor"></div>
 				</div>
 			</div>
 			`
