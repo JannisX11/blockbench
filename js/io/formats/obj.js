@@ -8,10 +8,18 @@ function getMtlFace(obj, index) {
 	if (tex === null) {
 		return false
 	} else if (!tex || typeof tex === 'string') {
-		return 'usemtl none\n'
+		return 'usemtl none'
 	} else {
-		return 'usemtl m_' + tex.id + '\n';
+		return 'usemtl m_' + tex.id;
 	}
+}
+const cube_face_normals = {
+	north: '0 0 -1',
+	east: '1 0 0',
+	south: '0 0 1',
+	west: '-1 0 0',
+	up: '0 1 0',
+	down: '0 -1 0',
 }
 
 var codec = new Codec('obj', {
@@ -29,7 +37,7 @@ var codec = new Codec('obj', {
 		*/
 
 		let materials = {};
-		let output = '# Made in Blockbench '+appVersion+'\n';
+		let output = ['# Made in Blockbench '+appVersion];
 		let indexVertex = 0;
 		let indexVertexUvs = 0;
 		let indexNormals = 0;
@@ -39,7 +47,7 @@ var codec = new Codec('obj', {
 		const uv = new THREE.Vector2();
 		const face = [];
 
-		output += 'mtllib ' + (options.mtl_name||'materials.mtl') +'\n';
+		output.push('mtllib ' + (options.mtl_name||'materials.mtl') +'\n');
 
 		var scale = 1/16;
 
@@ -57,117 +65,255 @@ var codec = new Codec('obj', {
 			if (element.export === false) return;
 
 
-			const vertices = geometry.getAttribute( 'position' );
-			const normals = geometry.getAttribute( 'normal' );
-			const uvs = geometry.getAttribute( 'uv' );
-			const indices = geometry.getIndex(); // name of the mesh object
+			if (element instanceof Cube) {
 
-			output += 'o ' + mesh.name + '\n'; // name of the mesh material
+				output.push(`o ${element.name||'cube'}`)
 
-			if ( mesh.material && mesh.material.name ) {
+				function addVertex(x, y, z) {
+					vertex.set(x - element.origin[0], y - element.origin[1], z - element.origin[2]);
+					vertex.applyMatrix4( mesh.matrixWorld );
+					output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
+					nbVertex++;
+				}
+				addVertex(element.to[0]   - element.inflate, element.to[1] -	element.inflate, element.to[2]  	- element.inflate);
+				addVertex(element.to[0]   - element.inflate, element.to[1] -	element.inflate, element.from[2]  	- element.inflate);
+				addVertex(element.to[0]   - element.inflate, element.from[1] -	element.inflate, element.to[2]  	- element.inflate);
+				addVertex(element.to[0]   - element.inflate, element.from[1] -	element.inflate, element.from[2]  	- element.inflate);
+				addVertex(element.from[0] - element.inflate, element.to[1] -	element.inflate, element.from[2]  	- element.inflate);
+				addVertex(element.from[0] - element.inflate, element.to[1] -	element.inflate, element.to[2]  	- element.inflate);
+				addVertex(element.from[0] - element.inflate, element.from[1] -	element.inflate, element.from[2]  	- element.inflate);
+				addVertex(element.from[0] - element.inflate, element.from[1] -	element.inflate, element.to[2]  	- element.inflate);
 
-				output += 'usemtl ' + mesh.material.name + '\n';
-
-			} // vertices
-
-
-			if ( vertices !== undefined ) {
-
-				for ( let i = 0, l = vertices.count; i < l; i ++, nbVertex ++ ) {
-
-					vertex.x = vertices.getX( i );
-					vertex.y = vertices.getY( i );
-					vertex.z = vertices.getZ( i ); // transform the vertex to world space
-
-					vertex.applyMatrix4( mesh.matrixWorld ); // transform the vertex to export format
-
-					output += 'v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z + '\n';
-
+				for (let key in element.faces) {
+					if (element.faces[key].texture != null) {
+						let face = element.faces[key];
+						output.push(`vt ${face.uv[0] / Project.texture_width} ${1 - face.uv[1] / Project.texture_height}`);
+						output.push(`vt ${face.uv[2] / Project.texture_width} ${1 - face.uv[1] / Project.texture_height}`);
+						output.push(`vt ${face.uv[2] / Project.texture_width} ${1 - face.uv[3] / Project.texture_height}`);
+						output.push(`vt ${face.uv[0] / Project.texture_width} ${1 - face.uv[3] / Project.texture_height}`);
+						nbVertexUvs += 4;
+					}
+				}
+				for (let key in element.faces) {
+					if (element.faces[key].texture != null) {
+						output.push(`vn ${cube_face_normals[key]}`)
+						nbNormals += 1;
+					}
 				}
 
-			} // uvs
-
-
-			if ( uvs !== undefined ) {
-
-				for ( let i = 0, l = uvs.count; i < l; i ++, nbVertexUvs ++ ) {
-
-					uv.x = uvs.getX( i );
-					uv.y = uvs.getY( i ); // transform the uv to export format
-
-					output += 'vt ' + uv.x + ' ' + uv.y + '\n';
-
-				}
-
-			} // normals
-
-
-			if ( normals !== undefined ) {
-
-				normalMatrixWorld.getNormalMatrix( mesh.matrixWorld );
-
-				for ( let i = 0, l = normals.count; i < l; i ++, nbNormals ++ ) {
-
-					normal.x = normals.getX( i );
-					normal.y = normals.getY( i );
-					normal.z = normals.getZ( i ); // transform the normal to world space
-
-					normal.applyMatrix3( normalMatrixWorld ).normalize(); // transform the normal to export format
-
-					output += 'vn ' + normal.x + ' ' + normal.y + ' ' + normal.z + '\n';
-
-				}
-
-			}
-
-			// material
-			for (let key in element.faces) {
-				let tex = element.faces[key].getTexture()
-				if (tex && tex.uuid && !materials[tex.id]) {
-					materials[tex.id] = tex
-				}
-			}
-
- 			// faces
-			if ( indices !== null ) {
-
-				for ( let i = 0, l = indices.count; i < l; i += 3 ) {
-
-					let f_mat = getMtlFace(element, geometry.groups[ Math.floor(i / 6) ].materialIndex)
-					if (f_mat) {
-
-						if (i % 2 === 0) {
-							output += f_mat
+				let mtl;
+				let i = 0;
+				for (let key in element.faces) {
+					if (element.faces[key].texture != null) {
+						let tex = element.faces[key].getTexture()
+						if (tex && tex.uuid && !materials[tex.id]) {
+							materials[tex.id] = tex;
 						}
+						let mtl_new = (!tex || typeof tex === 'string')
+							? 'none'
+							: 'm_' + tex.id;
+						if (mtl_new != mtl) {
+							mtl = mtl_new;
+							output.push('usemtl '+mtl);
+						}
+						let vertices;
+						switch (key) {
+							case 'north': 	vertices = [2, 5, 7, 4]; break;
+							case 'east': 	vertices = [1, 2, 4, 3]; break;
+							case 'south': 	vertices = [1, 6, 8, 3]; break;
+							case 'west': 	vertices = [5, 6, 8, 7]; break;
+							case 'up': 		vertices = [5, 2, 1, 6]; break;
+							case 'down': 	vertices = [8, 3, 4, 7]; break;
+						}
+						output.push('f '+[
+							`${vertices[0] + indexVertex}/${i*4 + 1 + indexVertexUvs}/${i+1+indexNormals}`,
+							`${vertices[1] + indexVertex}/${i*4 + 2 + indexVertexUvs}/${i+1+indexNormals}`,
+							`${vertices[2] + indexVertex}/${i*4 + 3 + indexVertexUvs}/${i+1+indexNormals}`,
+							`${vertices[3] + indexVertex}/${i*4 + 4 + indexVertexUvs}/${i+1+indexNormals}`,
+						].join(' '));
+						i++;
+					}
+				}
+
+
+			} else if (element instanceof Mesh) {
+
+				output.push(`o ${element.name||'mesh'}`)
+
+				let vertex_keys = [];
+				function addVertex(x, y, z) {
+					vertex.set(x - element.origin[0], y - element.origin[1], z - element.origin[2]);
+					vertex.applyMatrix4( mesh.matrixWorld );
+					output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
+					nbVertex++;
+				}
+				for (let vkey in element.vertices) {
+					addVertex(...element.vertices[vkey]);
+					vertex_keys.push(vkey);
+				}
+
+				let mtl;
+				let i = 0;
+				let vertexnormals = [];
+				let faces = [];
+				for (let key in element.faces) {
+					if (element.faces[key].texture != null && element.faces[key].vertices.length >= 3) {
+						let face = element.faces[key];
+						let vertices = face.getSortedVertices();
+						let tex = element.faces[key].getTexture();
+
+
+						vertices.forEach(vkey => {
+							output.push(`vt ${face.uv[vkey][0] / Project.texture_width} ${1 - face.uv[vkey][1] / Project.texture_height}`);
+							nbVertexUvs += 1;
+						})
+
+						vertexnormals.push(`vn ${face.getNormal(true).join(' ')}`)
+						nbNormals += 1;
+
+
+						if (tex && tex.uuid && !materials[tex.id]) {
+							materials[tex.id] = tex;
+						}
+						let mtl_new = (!tex || typeof tex === 'string')
+							? 'none'
+							: 'm_' + tex.id;
+						if (mtl_new != mtl) {
+							mtl = mtl_new;
+							faces.push('usemtl '+mtl);
+						}
+						
+						let triplets = [];
+						vertices.forEach((vkey, vi) => {
+							let triplet = [
+								vertex_keys.indexOf(vkey) + 1 + indexVertex,
+								nbVertexUvs - vertices.length + vi + 1 + indexVertexUvs,
+								i+1+indexNormals,
+							]
+							triplets.push(triplet.join('/'));
+						})
+						faces.push('f ' + triplets.join(' '));
+						i++;
+					}
+				}
+				output.push(...vertexnormals);
+				output.push(...faces);
+
+			} else {
+
+
+				const vertices = geometry.getAttribute( 'position' );
+				const normals = geometry.getAttribute( 'normal' );
+				const uvs = geometry.getAttribute( 'uv' );
+				const indices = geometry.getIndex();
+
+				output.push('o ' + mesh.name); // name of the mesh material
+
+				if ( mesh.material && mesh.material.name ) {
+
+					output.push('usemtl ' + mesh.material.name);
+
+				} // vertices
+
+
+				if ( vertices !== undefined ) {
+
+					for ( let i = 0, l = vertices.count; i < l; i ++, nbVertex ++ ) {
+
+						vertex.x = vertices.getX( i );
+						vertex.y = vertices.getY( i );
+						vertex.z = vertices.getZ( i ); // transform the vertex to world space
+
+						vertex.applyMatrix4( mesh.matrixWorld ); // transform the vertex to export format
+
+						output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
+
+					}
+
+				} // uvs
+
+
+				if ( uvs !== undefined ) {
+
+					for ( let i = 0, l = uvs.count; i < l; i ++, nbVertexUvs ++ ) {
+
+						uv.x = uvs.getX( i );
+						uv.y = uvs.getY( i ); // transform the uv to export format
+
+						output.push('vt ' + uv.x + ' ' + uv.y);
+
+					}
+
+				} // normals
+
+
+				if ( normals !== undefined ) {
+
+					normalMatrixWorld.getNormalMatrix( mesh.matrixWorld );
+
+					for ( let i = 0, l = normals.count; i < l; i ++, nbNormals ++ ) {
+
+						normal.x = normals.getX( i );
+						normal.y = normals.getY( i );
+						normal.z = normals.getZ( i ); // transform the normal to world space
+
+						normal.applyMatrix3( normalMatrixWorld ).normalize(); // transform the normal to export format
+
+						output.push('vn ' + normal.x + ' ' + normal.y + ' ' + normal.z );
+
+					}
+
+				}
+
+				// material
+				for (let key in element.faces) {
+					let tex = element.faces[key].getTexture()
+					if (tex && tex.uuid && !materials[tex.id]) {
+						materials[tex.id] = tex
+					}
+				}
+
+				// faces
+				if ( indices !== null ) {
+
+					for ( let i = 0, l = indices.count; i < l; i += 3 ) {
+
+						let f_mat = getMtlFace(element, geometry.groups[ Math.floor(i / 6) ].materialIndex)
+						if (f_mat) {
+
+							if (i % 2 === 0) {
+								output.push(f_mat)
+							}
+
+							for ( let m = 0; m < 3; m ++ ) {
+
+								const j = indices.getX( i + m ) + 1;
+								face[ m ] = indexVertex + j + ( normals || uvs ? '/' + ( uvs ? indexVertexUvs + j : '' ) + ( normals ? '/' + ( indexNormals + j ) : '' ) : '' );
+
+							} // transform the face to export format
+
+
+							output.push('f ' + face.join( ' ' ) );
+						}
+					}
+
+				} else {
+
+					for ( let i = 0, l = vertices.count; i < l; i += 3 ) {
 
 						for ( let m = 0; m < 3; m ++ ) {
 
-							const j = indices.getX( i + m ) + 1;
+							const j = i + m + 1;
 							face[ m ] = indexVertex + j + ( normals || uvs ? '/' + ( uvs ? indexVertexUvs + j : '' ) + ( normals ? '/' + ( indexNormals + j ) : '' ) : '' );
 
 						} // transform the face to export format
 
 
-						output += 'f ' + face.join( ' ' ) + '\n';
+						output.push('f ' + face.join( ' ' ) );
+
 					}
-				}
-
-			} else {
-
-				for ( let i = 0, l = vertices.count; i < l; i += 3 ) {
-
-					for ( let m = 0; m < 3; m ++ ) {
-
-						const j = i + m + 1;
-						face[ m ] = indexVertex + j + ( normals || uvs ? '/' + ( uvs ? indexVertexUvs + j : '' ) + ( normals ? '/' + ( indexNormals + j ) : '' ) : '' );
-
-					} // transform the face to export format
-
-
-					output += 'f ' + face.join( ' ' ) + '\n';
 
 				}
-
 			}
 
 			// update index
@@ -195,6 +341,8 @@ var codec = new Codec('obj', {
 		mtlOutput += 'newmtl none'
 
 		scene.position.copy(old_scene_position)
+
+		output = output.join('\n');
 
 		_obj_export = {
 			obj: output,
