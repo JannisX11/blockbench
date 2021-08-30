@@ -1147,18 +1147,14 @@
 	}
 	div#uv_brush_outline {
 		border: 1px solid white;
-		width: 0;
-		height: 0;
+		width: calc(var(--radius) * 2px);
+		height: calc(var(--radius) * 2px);
+		margin: calc(var(--radius) * -1px);
 		border-radius: 50%;
 		position: absolute;
 		pointer-events: none;
 		mix-blend-mode: difference;
-	}
-	.uv_mapping_overlay {
-		position: absolute;
-		opacity: 0.4;
-		cursor: inherit;
-		pointer-events: none;
+		z-index: 1;
 	}
 
 	.cube_box_uv {

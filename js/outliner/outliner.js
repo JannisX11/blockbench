@@ -1472,3 +1472,65 @@ Interface.definePanels(function() {
 	})
 	Outliner.vue = Interface.Panels.outliner.inside_vue;
 })
+
+class Face {
+	constructor(data) {
+		for (var key in this.constructor.properties) {
+			this.constructor.properties[key].reset(this);
+		}
+	}
+	extend(data) {
+		for (var key in this.constructor.properties) {
+			this.constructor.properties[key].merge(this, data)
+		}
+		if (data.texture === null) {
+			this.texture = null;
+		} else if (data.texture === false) {
+			this.texture = false;
+		} else if (Texture.all.includes(data.texture)) {
+			this.texture = data.texture.uuid;
+		} else if (typeof data.texture === 'string') {
+			Merge.string(this, data, 'texture')
+		}
+		return this;
+	}
+	getTexture() {
+		if (Format.single_texture && this.texture !== null) {
+			return Texture.getDefault();
+		}
+		if (typeof this.texture === 'string') {
+			return Texture.all.findInArray('uuid', this.texture)
+		} else {
+			return this.texture;
+		}
+	}
+	reset() {
+		for (var key in Mesh.properties) {
+			Mesh.properties[key].reset(this);
+		}
+		this.texture = false;
+		return this;
+	}
+	getSaveCopy() {
+		var copy = new oneLiner({
+			uv: this.uv,
+		})
+		for (var key in this.constructor.properties) {
+			if (this[key] != this.constructor.properties[key].default) this.constructor.properties[key].copy(this, copy);
+		}
+		var tex = this.getTexture()
+		if (tex === null) {
+			copy.texture = null;
+		} else if (tex instanceof Texture) {
+			copy.texture = Texture.all.indexOf(tex)
+		}
+		return copy;
+	}
+	getUndoCopy() {
+		var copy = new CubeFace(this.direction, this);
+		delete copy.cube;
+		delete copy.mesh;
+		delete copy.direction;
+		return copy;
+	}
+}

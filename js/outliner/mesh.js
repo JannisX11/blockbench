@@ -1,17 +1,17 @@
-class MeshFace {
+const { fdatasync } = require("original-fs");
+
+class MeshFace extends Face {
 	constructor(mesh, data) {
+		super(data);
 		this.mesh = mesh;
-		this.texture = false;
 		this.uv = {};
-		for (var key in MeshFace.properties) {
-			MeshFace.properties[key].reset(this);
+		this.texture = false;
+		if (data) {
+			this.extend(data);
 		}
-		if (data) this.extend(data);
 	}
 	extend(data) {
-		for (let key in MeshFace.properties) {
-			MeshFace.properties[key].merge(this, data)
-		}
+		super.extend(data);
 		this.vertices.forEach(key => {
 			if (!this.uv[key]) this.uv[key] = [0, 0];
 			if (data.uv && data.uv[key] instanceof Array) {
@@ -23,54 +23,7 @@ class MeshFace {
 				delete this.uv[key];
 			}
 		}
-
-		if (data.texture === null) {
-			this.texture = null;
-		} else if (data.texture === false) {
-			this.texture = false;
-		} else if (Texture.all.includes(data.texture)) {
-			this.texture = data.texture.uuid;
-		} else if (typeof data.texture === 'string') {
-			Merge.string(this, data, 'texture')
-		}
 		return this;
-	}
-	getSaveCopy() {
-		var copy = {
-			uv: this.uv
-		};
-		for (var key in MeshFace.properties) {
-			if (this[key] != MeshFace.properties[key].default) MeshFace.properties[key].copy(this, copy);
-		}
-		var tex = this.getTexture()
-		if (tex === null) {
-			copy.texture = null;
-		} else if (tex instanceof Texture) {
-			copy.texture = Texture.all.indexOf(tex)
-		}
-		return copy;
-	}
-	getUndoCopy() {
-		var copy = new MeshFace(this.mesh, this);
-		delete copy.mesh;
-		return copy;
-	}
-	reset() {
-		for (var key in Mesh.properties) {
-			Mesh.properties[key].reset(this);
-		}
-		this.texture = false;
-		return this;
-	}
-	getTexture() {
-		if (Format.single_texture) {
-			return Texture.getDefault();
-		}
-		if (typeof this.texture === 'string') {
-			return Texture.all.findInArray('uuid', this.texture)
-		} else {
-			return this.texture;
-		}
 	}
 	getNormal(normalize) {
 		if (this.vertices.length < 3) return [0, 0, 0];
@@ -414,7 +367,7 @@ OutlinerElement.registerType(Mesh, 'mesh');
 
 new NodePreviewController(Mesh, {
 	setup(element) {
-		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
+		var mesh = new THREE.Mesh(new THREE.BufferGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;
 		mesh.type = element.type;
@@ -557,6 +510,7 @@ new NodePreviewController(Mesh, {
 		} else {
 			var materials = []
 			for (let key in element.faces) {
+				if (element.faces[key].vertices.length < 3) continue;
 				var tex = element.faces[key].getTexture()
 				if (tex && tex.uuid) {
 					materials.push(Project.materials[tex.uuid])
@@ -565,7 +519,42 @@ new NodePreviewController(Mesh, {
 				}
 			}
 			if (materials.allEqual(materials[0])) materials = materials[0];
-			mesh.material = materials
+
+			mesh.geometry.groups.empty();
+			
+			// Generate material groups
+			if (materials instanceof Array) {
+				let current_mat;
+				let i = 0;
+				let index = 0;
+				let switch_index = 0;
+				let reduced_materials = [];
+
+				for (let key in element.faces) {
+					if (element.faces[key].vertices.length < 3) continue;
+					let face = element.faces[key];
+					let material = materials[i];
+
+					if (current_mat != material) {
+						if (index) {
+							mesh.geometry.addGroup(switch_index, index - switch_index, reduced_materials.length);
+							reduced_materials.push(current_mat);
+						}
+						current_mat = material;
+						switch_index = index;
+					}
+
+					i++;
+					if (face.vertices.length == 3) index += 3;
+					if (face.vertices.length == 4) index += 6;
+				}
+				mesh.geometry.addGroup(switch_index, index - switch_index, reduced_materials.length);
+				reduced_materials.push(current_mat);
+
+				materials = reduced_materials;
+			}
+
+			mesh.material = materials;
 		}
 	},
 	updateUV(element, animation = true) {
@@ -868,7 +857,7 @@ BARS.defineActions(function() {
 						if (vertices.length == 2 && i) return; // Only create one quad when extruding line
 						if (selected_faces.find(f => f != face && f.vertices.includes(a) && f.vertices.includes(b))) return;
 
-						let new_face = new MeshFace(mesh, mesh.faces[face]).extend({
+						let new_face = new MeshFace(mesh, mesh.faces[selected_face_keys[face_index]]).extend({
 							vertices: [
 								b,
 								a,

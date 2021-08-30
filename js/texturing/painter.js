@@ -451,7 +451,7 @@ const Painter = {
 
 				let face = Painter.current.face;
 				let side_face = (face === 'west' || face === 'east')
-				if (side_face) face = Face.opposite[face];
+				if (side_face) face = CubeFace.opposite[face];
 				face = mirror_cube.faces[face];
 
 				if (side_face &&

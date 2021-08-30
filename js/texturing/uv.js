@@ -168,25 +168,6 @@ const UVEditor = {
 		return this;
 	},
 	*/
-	updateBrushOutline(e) {
-		if (Modes.paint && Toolbox.selected.brushTool) {
-			UVEditor.vue.$refs.frame.append(this.brush_outline);
-			let outline = this.brush_outline.get(0);
-			var pixel_size = this.inner_width / (this.texture ? this.texture.width : Project.texture_width);
-			//pos
-			let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0.5 : 0;
-			let left = (0.5 - offset + Math.floor(e.offsetX / pixel_size + offset)) * pixel_size;
-			let top =  (0.5 - offset + Math.floor(e.offsetY / pixel_size + offset)) * pixel_size;
-			outline.style.left = left+'px'
-			outline.style.top = top+'px';
-			//size
-			var radius = (BarItems.slider_brush_size.get()/2) * pixel_size;
-			outline.style.padding = radius+'px'
-			outline.style.margin = (-radius)+'px';
-		} else {
-			this.brush_outline.detach();
-		}
-	},
 	message(msg, vars) {
 		msg = tl(msg, vars)
 		let box = document.createElement('div');
@@ -1105,11 +1086,12 @@ const UVEditor = {
 		this.message('uv_editor.auto_cull')
 	},
 	copy(event) {
-		if (Cube.selected.length === 0) return;
+		let elements = this.getMappableElements();
+		if (!elements.length) return;
 
 		UVEditor.clipboard = []
 
-		if (Project.box_uv) {
+		if (Project.box_uv && Cube.selected[0]) {
 			var new_tag = {
 				uv: Cube.selected[0].uv_offset
 			}
@@ -1118,64 +1100,90 @@ const UVEditor = {
 			return;
 		}
 
-		function addToClipboard(face) {
-			if (Project.box_uv) {
-				var new_tag = {
-					uv: Cube.selected[0].uv_offset
-				}
-				UVEditor.clipboard.push(new_tag)
-				return;
+		function addToClipboard(key) {
+			var tag = elements[0].faces[key];
+			var new_face;
+			if (elements[0] instanceof Mesh) {
+				new_face = new MeshFace(null, tag);
+				new_face.direction = key;
+			} else {
+				new_face = new CubeFace(key, tag);
 			}
-			var tag = Cube.selected[0].faces[face]
-			var new_tag = new Face(face, tag)
-			UVEditor.clipboard.push(new_tag)
+			UVEditor.clipboard.push(new_face);
 		}
 		if (event.shiftKey) {
-			UVEditor.cube_faces.forEach(function(s) {
-				addToClipboard(s)
-			})
+			for (let key in elements[0].faces) {
+				addToClipboard(key)
+			}
 		} else {
-			addToClipboard(this.face)
+			UVEditor.vue.selected_faces.forEach(key => {
+				addToClipboard(key);
+			})
 		}
 		this.message('uv_editor.copied_x', [UVEditor.clipboard.length])
 	},
 	paste(event) {
-		if (UVEditor.clipboard === null || Cube.selected.length === 0) return;
+		let elements = UVEditor.getMappableElements();
+		if (UVEditor.clipboard === null || elements.length === 0) return;
 
-		Undo.initEdit({elements: Cube.selected, uv_only: true})
-		if (Project.box_uv) {
-			Cube.selected.forEach(function(obj) {
-				obj.uv_offset = UVEditor.clipboard[0].uv.slice()
-				Canvas.updateUV(obj)
-			})
-			this.loadData()
-			this.message('uv_editor.pasted')
-			Undo.finishEdit('Paste UV')
-			return;
-		}
 
-		function applyFace(tag, face) {
-			if (!face) face = tag.face
-			Cube.selected.forEach(function(obj) {
-				obj.faces[face].extend(tag)
-				Canvas.updateUV(obj)
+
+		Undo.initEdit({elements, uv_only: true})
+		if (Project.box_uv && UVEditor.clipboard[0].uv instanceof Array) {
+			Cube.selected.forEach(function(el) {
+				el.uv_offset = UVEditor.clipboard[0].uv.slice()
+				el.preview_controller.updateUV(el);
 			})
 		}
 
-		if (event) {
-			if (event.shiftKey) {
-				UVEditor.cube_faces.forEach(function(s) {
-					applyFace(UVEditor.clipboard[0], s)
+		function mergeFace(element, key, tag) {
+			if (!element.faces[key]) return;
+			let face = element.faces[key];
+			if (element instanceof Mesh) {
+
+				let uv_points = [];
+				tag.vertices.forEach(vkey => {
+					uv_points.push(tag.uv[vkey]);
+				})
+				face.vertices.forEach((vkey, i) => {
+					if (uv_points[i]) face.uv[vkey].replace(uv_points[i]);
 				})
 			} else {
-				if (UVEditor.clipboard.length === 1) {
-					applyFace(UVEditor.clipboard[0], UVEditor.face)
-				} else {
-					UVEditor.clipboard.forEach(function(s) {
-						applyFace(s, s.direction)
-					})
-				}
+				face.extend(tag);
 			}
+		}
+
+		let shifting = (event && event.shiftKey) || Pressing.overrides.shift;
+		if (shifting || UVEditor.clipboard.length === 1) {
+			let tag = UVEditor.clipboard[0];
+			elements.forEach(el => {
+				if (Project.box_uv && el instanceof Cube) return;
+				if ((el instanceof Cube && tag instanceof CubeFace) || (el instanceof Mesh && tag instanceof MeshFace)) {
+					for (let key in el.faces) {
+						if (shifting || UVEditor.vue.selected_faces.includes(key)) {
+							mergeFace(el, key, tag);
+						}
+					}
+					el.preview_controller.updateUV(el);
+					el.preview_controller.updateFaces(el);
+				}
+			})
+		} else {
+			UVEditor.clipboard.forEach(tag => {
+				elements.forEach(el => {
+					if (Project.box_uv && el instanceof Cube)
+					if ((el instanceof Cube && tag instanceof CubeFace) || (el instanceof Mesh && tag instanceof MeshFace)) {
+						let key = tag.direction;
+						if (el.faces[key]) {
+							mergeFace(el, key, tag);
+						}
+					}
+				})
+			})
+			elements.forEach(el => {
+				el.preview_controller.updateUV(el);
+				el.preview_controller.updateFaces(el);
+			})
 		}
 		this.loadData()
 		Canvas.updateSelectedFaces()
@@ -1229,7 +1237,7 @@ const UVEditor = {
 		function addToClipboard(face) {
 			var tag = element.faces[face]
 			if (tag && element instanceof Cube) {
-				UVEditor.clipboard.push(new Face(null, tag))
+				UVEditor.clipboard.push(new CubeFace(null, tag))
 			} else if (tag && element instanceof Mesh) {
 				UVEditor.clipboard.push(new MeshFace(null, tag))
 			}
@@ -1789,7 +1797,6 @@ Interface.definePanels(function() {
 						if (this.selected_faces.includes(key)) {
 							this.selected_faces.remove(key);
 						} else {
-							console.log(key)
 							this.selected_faces.push(key);
 						}
 					} else {
@@ -1823,6 +1830,12 @@ Interface.definePanels(function() {
 					let scope = this;
 					let elements = this.mappable_elements;
 					Undo.initEdit({elements, uv_only: true})
+
+					elements.forEach(el => {
+						if (el instanceof Mesh) {
+							delete Project.selected_vertices[el.uuid];
+						}
+					})
 
 					let pos = [0, 0];
 					let last_pos = [0, 0];
@@ -1967,6 +1980,7 @@ Interface.definePanels(function() {
 
 					let pos = [0, 0];
 					let last_pos = [0, 0];
+					let dragged = false;
 
 					function drag(e1) {
 
@@ -1992,6 +2006,7 @@ Interface.definePanels(function() {
 
 
 							last_pos.replace(pos);
+							dragged = true;
 						}
 						UVEditor.displaySliders();
 						UVEditor.loadData();
@@ -2003,7 +2018,11 @@ Interface.definePanels(function() {
 					function stop(e1) {
 						removeEventListeners(document, 'mousemove touchmove', drag);
 						removeEventListeners(document, 'mouseup touchend', stop);
-						Undo.finishEdit('Move UV')
+						if (dragged) {
+							Undo.finishEdit('Move UV');
+						} else {
+							Undo.cancelEdit();
+						}
 						setTimeout(() => scope.dragging_uv = false, 10);
 					}
 					addEventListeners(document, 'mousemove touchmove', drag);
@@ -2064,13 +2083,26 @@ Interface.definePanels(function() {
 						max = Math.max(max, UV[axis]);
 					})
 					return max - min;
+				},
+				getBrushOutlineStyle() {
+					if (Toolbox.selected.brushTool) {
+						var pixel_size = this.inner_width / (this.texture ? this.texture.width : Project.texture_width);
+						//pos
+						let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0 : 0.5;
+						let left = (this.mouse_coords.x + offset) * pixel_size;
+						let top =  (this.mouse_coords.y + offset) * pixel_size;
+						//size
+						var radius = (BarItems.slider_brush_size.get()/2) * pixel_size;
+						return {
+							'--radius': radius,
+							left: left+'px',
+							top: top+'px'
+						}
+					} else {
+						return {display: 'none'};
+					}
 				}
 			},
-			/*
-			Extra Info
-				Selected Faces
-				Pointer Coords
-			*/
 			template: `
 				<div class="UVEditor" ref="main" :class="{checkerboard_trigger: checkerboard}" id="UVEditor">
 
@@ -2170,6 +2202,8 @@ Interface.definePanels(function() {
 
 							</template>
 
+							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.x >= 0" :style="getBrushOutlineStyle()"></div>
+
 							<img style="object-fit: cover; object-position: 0px 0px;" v-if="texture && texture.error != 1" :src="texture.source">
 						</div>
 
@@ -2265,7 +2299,7 @@ Interface.definePanels(function() {
 		get: function() {
 			if (!Project.box_uv) {
 				let ref_face = UVEditor.getReferenceFace();
-				if (ref_face instanceof Face) {
+				if (ref_face instanceof CubeFace) {
 					return trimFloatNumber(ref_face.uv[2] - ref_face.uv[0]);
 				}
 			}
@@ -2286,7 +2320,7 @@ Interface.definePanels(function() {
 		get: function() {
 			if (!Project.box_uv) {
 				let ref_face = UVEditor.getReferenceFace();
-				if (ref_face instanceof Face) {
+				if (ref_face instanceof CubeFace) {
 					return trimFloatNumber(ref_face.uv[3] - ref_face.uv[1]);
 				}
 			}

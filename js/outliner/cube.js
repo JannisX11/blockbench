@@ -1,14 +1,11 @@
-
-class Face {
+class CubeFace extends Face {
 	constructor(direction, data, cube) {
+		super();
+		this.texture = false;
 		this.direction = direction || 'north';
 		this.cube = cube;
-		this.reset()
 		this.uv = [0, 0, canvasGridSize(), canvasGridSize()]
-		
-		for (var key in Face.properties) {
-			Face.properties[key].reset(this);
-		}
+		this.rotation = 0;
 
 		if (data) {
 			this.extend(data)
@@ -25,18 +22,7 @@ class Face {
 		this.uv[3] = arr[1] + this.uv[1];
 	}
 	extend(data) {
-		for (var key in Face.properties) {
-			Face.properties[key].merge(this, data)
-		}
-		if (data.texture === null) {
-			this.texture = null;
-		} else if (data.texture === false) {
-			this.texture = false;
-		} else if (Texture.all.includes(data.texture)) {
-			this.texture = data.texture.uuid;
-		} else if (typeof data.texture === 'string') {
-			Merge.string(this, data, 'texture')
-		}
+		super.extend(data);
 		if (data.uv) {
 			Merge.number(this.uv, data.uv, 0)
 			Merge.number(this.uv, data.uv, 1)
@@ -46,50 +32,18 @@ class Face {
 		return this;
 	}
 	reset() {
-		this.uv = [0, 0, 0, 0];
+		super.reset();
 		this.rotation = 0;
-		this.texture = false;
 		return this;
 	}
-	getTexture() {
-		if (Format.single_texture && this.texture !== null) {
-			return Texture.getDefault();
-		}
-		if (typeof this.texture === 'string') {
-			return Texture.all.findInArray('uuid', this.texture)
-		} else {
-			return this.texture;
-		}
-	}
-	getSaveCopy() {
-		var copy = new oneLiner({
-			uv: this.uv,
-		})
-		for (var key in Face.properties) {
-			if (this[key] != Face.properties[key].default) Face.properties[key].copy(this, copy);
-		}
-		var tex = this.getTexture()
-		if (tex === null) {
-			copy.texture = null;
-		} else if (tex instanceof Texture) {
-			copy.texture = Texture.all.indexOf(tex)
-		}
-		return copy;
-	}
-	getUndoCopy() {
-		var copy = new Face(this.direction, this);
-		delete copy.cube;
-		delete copy.direction;
-		return copy;
-	}
 }
-new Property(Face, 'number', 'rotation', {default: 0});
-new Property(Face, 'number', 'tint', {default: -1});
-new Property(Face, 'string', 'cullface', )//{merge_validation: (val) => (UVEditor.cube_faces.includes(val) || val == '')});
-new Property(Face, 'string', 'material_name');
-new Property(Face, 'boolean', 'enabled', {default: true});
+new Property(CubeFace, 'number', 'rotation', {default: 0});
+new Property(CubeFace, 'number', 'tint', {default: -1});
+new Property(CubeFace, 'string', 'cullface', )//{merge_validation: (val) => (UVEditor.cube_faces.includes(val) || val == '')});
+new Property(CubeFace, 'string', 'material_name');
+new Property(CubeFace, 'boolean', 'enabled', {default: true});
 
-Face.opposite = {
+CubeFace.opposite = {
 	north: 'south',
 	south: 'north',
 	east: 'west',
@@ -119,12 +73,12 @@ class Cube extends OutlinerElement {
 		}
 
 		this.faces = {
-			north: 	new Face('north', null, this),
-			east: 	new Face('east', null, this),
-			south: 	new Face('south', null, this),
-			west: 	new Face('west', null, this),
-			up: 	new Face('up', null, this),
-			down: 	new Face('down', null, this)
+			north: 	new CubeFace('north', null, this),
+			east: 	new CubeFace('east', null, this),
+			south: 	new CubeFace('south', null, this),
+			west: 	new CubeFace('west', null, this),
+			up: 	new CubeFace('up', null, this),
+			down: 	new CubeFace('down', null, this)
 		}
 		if (data && typeof data === 'object') {
 			this.extend(data)
@@ -362,7 +316,7 @@ class Cube extends OutlinerElement {
 					this.faces.north.rotation= rotateUVFace(this.faces.north.rotation, 2)
 					this.faces.down.rotation = rotateUVFace(this.faces.down.rotation, 2)
 
-					var temp = new Face(true, this.faces.north)
+					var temp = new CubeFace(true, this.faces.north)
 					this.faces.north.extend(this.faces.down)
 					this.faces.down.extend(this.faces.south)
 					this.faces.south.extend(this.faces.up)
@@ -373,7 +327,7 @@ class Cube extends OutlinerElement {
 					this.faces.up.rotation= rotateUVFace(this.faces.up.rotation, 1)
 					this.faces.down.rotation = rotateUVFace(this.faces.down.rotation, 3)
 
-					var temp = new Face(true, this.faces.north)
+					var temp = new CubeFace(true, this.faces.north)
 					this.faces.north.extend(this.faces.west)
 					this.faces.west.extend(this.faces.south)
 					this.faces.south.extend(this.faces.east)
@@ -389,7 +343,7 @@ class Cube extends OutlinerElement {
 					this.faces.west.rotation = rotateUVFace(this.faces.west.rotation, 3)
 					this.faces.down.rotation = rotateUVFace(this.faces.down.rotation, 3)
 
-					var temp = new Face(true, this.faces.east)
+					var temp = new CubeFace(true, this.faces.east)
 					this.faces.east.extend(this.faces.down)
 					this.faces.down.extend(this.faces.west)
 					this.faces.west.extend(this.faces.up)
@@ -457,7 +411,7 @@ class Cube extends OutlinerElement {
 				case 1: switchFaces = ['up', 'down']; break;
 				case 2: switchFaces = ['south', 'north']; break;
 			}
-			var x = new Face(switchFaces[1], this.faces[switchFaces[0]])
+			var x = new CubeFace(switchFaces[1], this.faces[switchFaces[0]])
 			this.faces[switchFaces[0]].extend(this.faces[switchFaces[1]])
 			this.faces[switchFaces[1]].extend(x)
 
