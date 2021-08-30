@@ -231,6 +231,57 @@ const Templates = {
 		cube: `%(bone).texOffs(%(uv_x), %(uv_y)).addBox(%(x), %(y), %(z), %(dx), %(dy), %(dz), %(inflate), %(mirror));`,
 	},
 
+	'1.17': {
+		name: 'Forge 1.17 (Mojmaps)',
+		use_layer_definition: true,
+		flip_y: true,
+		integer_size: false,
+		file:
+			`// Made with Blockbench %(bb_version)
+			// Exported for Minecraft version 1.17 with Mojang mappings
+			// Paste this class into your mod and generate all required imports
+
+
+			public class %(identifier)<T extends Entity> extends EntityModel<T> {
+				// This layer location should be baked with EntityRendererProvider.Context in the entity renderer and passed into this model's constructor
+				public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(new ResourceLocation("modid", "%(identifier_rl)"), "main");
+				%(fields)
+
+				public %(identifier)(ModelPart root) {
+					%(model_parts)
+				}
+
+				public static LayerDefinition createBodyLayer() {
+					MeshDefinition meshdefinition = new MeshDefinition();
+					PartDefinition partdefinition = meshdefinition.getRoot();
+
+					%(content)
+
+					return LayerDefinition.create(meshdefinition, %(texture_width), %(texture_height));
+				}
+
+				@Override
+				public void setupAnim(T entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
+
+				}
+
+				@Override
+				public void renderToBuffer(PoseStack poseStack, VertexConsumer buffer, int packedLight, int packedOverlay, float red, float green, float blue, float alpha) {
+					%(renderers)
+				}
+			}`,
+		field: `private final ModelPart %(bone);`,
+		model_part: `this.%(bone) = root.getChild("%(bone)");`,
+		bone:
+			`?(has_no_parent)PartDefinition %(bone) = partdefinition.addOrReplaceChild("%(bone)", CubeListBuilder.create()
+			?(has_parent)PartDefinition %(bone) = %(parent).addOrReplaceChild("%(bone)", CubeListBuilder.create()
+			%(remove_n)%(cubes)
+			?(has_rotation)%(remove_n), PartPose.offsetAndRotation(%(x), %(y), %(z), %(rx), %(ry), %(rz)));
+			?(has_no_rotation)%(remove_n), PartPose.offset(%(x), %(y), %(z)));`,
+		renderer: `%(bone).render(poseStack, buffer, packedLight, packedOverlay);`,
+		cube: `.texOffs(%(uv_x), %(uv_y)){?(has_mirror).mirror()}.addBox(%(x), %(y), %(z), %(dx), %(dy), %(dz), new CubeDeformation(%(inflate))){?(has_mirror).mirror(false)}`,
+	},
+
 	get(key, version = Project.modded_entity_version) {
 		let temp = Templates[version][key];
 		if (typeof temp === 'string') temp = temp.replace(/\t\t\t/g, '');
@@ -315,13 +366,15 @@ var codec = new Codec('modded_entity', {
 
 		model = model.replace(R('bb_version'), Blockbench.version);
 		model = model.replace(R('identifier'), identifier);
+		model = model.replace(R('identifier_rl'), identifier.toLowerCase().replace(' ', '_'));
 		model = model.replace(R('texture_width'), Project.texture_width);
 		model = model.replace(R('texture_height'), Project.texture_height);
 
 		model = model.replace(R('fields'), () => {
+			let usesLayerDef = Templates.get('use_layer_definition')
 			let group_snippets = [];
 			for (var group of all_groups) {
-				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export) continue;
+				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export || (usesLayerDef && group.parent instanceof Group)) continue;
 				let snippet = Templates.get('field')
 					.replace(R('bone'), group.name)
 				group_snippets.push(snippet);
@@ -340,6 +393,7 @@ var codec = new Codec('modded_entity', {
 					.replace(R('bone'), group.name)
 
 					.replace(/\n\?\(has_rotation\).+/, group.rotation.allEqual(0) ? '' : Templates.keepLine)
+					.replace(/\n\?\(has_no_rotation\).+/, group.rotation.allEqual(0) ? Templates.keepLine : '')
 
 
 				snippet = snippet
@@ -365,7 +419,10 @@ var codec = new Codec('modded_entity', {
 					.replace(R('y'), F(origin[1]))
 					.replace(R('z'), F(origin[2]))
 
-					.replace(/\n\?\(has_parent\).+/, group.parent instanceof Group ? Templates.keepLine : '')
+					.replace(/(?:\n|^)\?\(has_parent\).+/, group.parent instanceof Group ? Templates.keepLine : '')
+					.replace(/(?:\n|^)\?\(has_no_parent\).+/, group.parent instanceof Group ? '' : Templates.keepLine)
+					.replace(/(?:\n|^)%\(remove_n\)/g, '')
+					.trim()
 					.replace(R('parent'), group.parent.name)
 
 					.replace(R('cubes'), () => {
@@ -381,6 +438,7 @@ var codec = new Codec('modded_entity', {
 								.replace(R('uv_y'), I(cube.uv_offset[1]))
 
 								.replace(R('inflate'), F(cube.inflate))
+								.replace(/{\?\(has_mirror\)(.+?)}/g, cube.mirror_uv == true ? '$1' : '')
 								.replace(R('mirror'), cube.mirror_uv)
 
 							if (Templates.get('flip_y')) {
@@ -418,6 +476,21 @@ var codec = new Codec('modded_entity', {
 			}
 			return group_snippets.join('\n\n\t\t')
 		});
+
+		model = model.replace(R('model_parts'), () => {
+			let snippet = Templates.get('model_part')
+			if (snippet == null)
+				return '';
+
+			let group_snippets = [];
+			for (var group of all_groups) {
+				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export || group.parent instanceof Group) continue;
+				let modelPart = snippet
+					.replace(R('bone'), group.name);
+				group_snippets.push(modelPart);
+			}
+			return group_snippets.join('\n\t\t')
+		})
 
 		model = model.replace(R('renderers'), () => {
 			let group_snippets = [];
