@@ -792,7 +792,7 @@ BARS.defineActions(function() {
 				addFace('south', [vertex_keys[0], vertex_keys[4], vertex_keys[2], vertex_keys[6]]);
 				addFace('north', [vertex_keys[5], vertex_keys[1], vertex_keys[7], vertex_keys[3]]);
 
-				mesh.init().sortInBefore(cube);
+				mesh.sortInBefore(cube).init();
 				new_meshes.push(mesh);
 				cube.remove();
 			})
@@ -868,7 +868,7 @@ BARS.defineActions(function() {
 						if (vertices.length == 2 && i) return; // Only create one quad when extruding line
 						if (selected_faces.find(f => f != face && f.vertices.includes(a) && f.vertices.includes(b))) return;
 
-						let new_face = new MeshFace(mesh, {
+						let new_face = new MeshFace(mesh, mesh.faces[face]).extend({
 							vertices: [
 								b,
 								a,

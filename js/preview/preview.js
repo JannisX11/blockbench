@@ -695,7 +695,7 @@ class Preview {
 				addEventListeners(document, 'mouseup touchend', resetCursor, false)
 
 			} else if (Toolbox.selected.selectElements && Modes.selected.selectElements && data.type === 'element') {
-				if (Toolbox.selected.selectFace) {
+				if (Toolbox.selected.selectFace && data.face) {
 					UVEditor.setFace(data.face, false)
 				}
 				Blockbench.dispatchEvent('canvas_select', data)

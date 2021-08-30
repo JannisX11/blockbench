@@ -28,7 +28,7 @@ class ModelProject {
 		this.selected_elements = [];
 		this.selected_group = null;
 		this.selected_vertices = {};
-		this.selected_faces = [null];
+		this.selected_faces = [];
 		this.textures = [];
 		this.selected_texture = null;
 		this.outliner = [];

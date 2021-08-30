@@ -1250,6 +1250,7 @@
 	.mesh_uv_face {
 		position: absolute;
 		pointer-events: none;
+		z-index: 1;
 	}
 	.mesh_uv_face.selected {
 		z-index: 2;
@@ -1277,7 +1278,7 @@
 		margin: -3px;
 		height: 8px;
 		width: 8px;
-		background-color:  var(--color-text);
+		background-color:  var(--color-light);
 		z-index: 3;
 		cursor: move;
 	}

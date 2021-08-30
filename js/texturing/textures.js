@@ -691,13 +691,14 @@ class Texture {
 		return this;
 	}
 	apply(all) {
-		if (Cube.selected.length === 0) return;
+		let affected = Outliner.selected.filter(el => el.faces);
+		if (!affected.length) return;
 		var scope = this;
-		Undo.initEdit({elements: Cube.selected})
+		Undo.initEdit({elements: affected})
 
-		Cube.selected.forEach(function(obj) {
+		affected.forEach(function(obj) {
 			for (var face in obj.faces) {
-				if (all || Project.box_uv || face === UVEditor.face) {
+				if (all || Project.box_uv || UVEditor.vue.selected_faces.includes(face)) {
 					var f = obj.faces[face]
 					if (all !== 'blank' || (f.texture !== null && !f.getTexture())) {
 						f.texture = scope.uuid
@@ -705,7 +706,7 @@ class Texture {
 				}
 			}
 		})
-		Canvas.updateSelectedFaces()
+		Canvas.updateView({elements: affected, element_aspects: {faces: true}})
 		UVEditor.loadData()
 		Undo.finishEdit('Apply texture')
 		return this;
@@ -1000,19 +1001,19 @@ class Texture {
 			{
 				icon: 'crop_original',
 				name: 'menu.texture.face', 
-				condition() {return !Project.single_texture && selected.length > 0},
+				condition() {return !Project.single_texture && Outliner.selected.length > 0},
 				click: function(texture) {texture.apply()}
 			},
 			{
 				icon: 'texture',
 				name: 'menu.texture.blank', 
-				condition() {return !Project.single_texture && selected.length > 0},
+				condition() {return !Project.single_texture && Outliner.selected.length > 0},
 				click: function(texture) {texture.apply('blank')}
 			},
 			{
 				icon: 'fa-cube',
-				name: 'menu.texture.cube',
-				condition() {return !Project.single_texture && selected.length > 0},
+				name: 'menu.texture.elements',
+				condition() {return !Project.single_texture && Outliner.selected.length > 0},
 				click: function(texture) {texture.apply(true)}
 			},
 			{

@@ -134,7 +134,7 @@ class ModelFormat {
 		}
 
 		if (!Format.single_texture && old_format.single_texture && Texture.all.length) {
-			let texture = Textre.getDefault();
+			let texture = Texture.getDefault();
 			Outliner.elements.filter(el => el.applyTexture).forEach(el => {
 				el.applyTexture(texture, true)
 			})

@@ -1266,7 +1266,7 @@
 
 	"menu.texture.face": "Apply to Face",
 	"menu.texture.blank": "Apply to Untextured Faces",
-	"menu.texture.cube": "Apply to Cubes",
+	"menu.texture.elements": "Apply to Elements",
 	"menu.texture.file": "File",
 	"menu.texture.refresh": "Refresh",
 	"menu.texture.change": "Change File",
