@@ -19,8 +19,8 @@
 	    color: var(--color-accent);
 	}
 	::-webkit-scrollbar {
-		width: 6px;
-		height: 6px;
+		width: 8px;
+		height: 8px;
 	}
 
 	::-webkit-scrollbar-track {
@@ -32,6 +32,7 @@
 	 
 	::-webkit-scrollbar-thumb {
 		background: var(--color-selected);
+		border-radius: 4px;
 	}
 	 
 	::-webkit-scrollbar-thumb:hover {
