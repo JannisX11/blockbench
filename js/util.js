@@ -347,14 +347,15 @@ Array.prototype.equals = function (array) {
 	}			 
 	return true;
 }
-Array.prototype.remove = function (item) { {
-	var index = this.indexOf(item)
-	if (index > -1) {
-		this.splice(index, 1)
-		return index;
-	}
-	return false;
-	}		
+Array.prototype.remove = function (...items) {
+	items.forEach(item => {
+		var index = this.indexOf(item)
+		if (index > -1) {
+			this.splice(index, 1)
+			return index;
+		}
+		return false;
+	})		
 }
 Array.prototype.empty = function() {
 	this.splice(0, Infinity);

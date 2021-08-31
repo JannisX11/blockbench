@@ -1535,6 +1535,15 @@ const BARS = {
 										if (face.vertices.length > 2) {
 											face.vertices.remove(vertex_key);
 											delete face.uv[vertex_key];
+											
+											if (face.vertices.length == 2) {
+												for (let fkey2 in mesh.faces) {
+													if (fkey2 != key && !face.vertices.find(vkey => !mesh.faces[fkey2].vertices.includes(vkey))) {
+														delete mesh.faces[key];
+														break;
+													}
+												}
+											}
 										} else {
 											delete mesh.faces[key];
 										}
@@ -1544,7 +1553,7 @@ const BARS = {
 						})
 
 						Undo.finishEdit('Delete mesh part')
-						Canvas.updateView({elements: Mesh.selected, selection: true, element_aspects: {geometry: true, faces: true}})
+						Canvas.updateView({elements: Mesh.selected, selection: true, element_aspects: {geometry: true, faces: true, uv: Mesh.selected.length > 0}})
 
 					} else if ((Modes.edit || Modes.paint) && (selected.length || Group.selected)) {
 

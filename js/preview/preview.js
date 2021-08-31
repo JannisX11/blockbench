@@ -353,6 +353,9 @@ class Preview {
 				if (element.mesh.vertex_points && element.mesh.vertex_points.visible) {
 					objects.push(element.mesh.vertex_points);
 				}
+				if (element instanceof Mesh && element.mesh.outline.visible && BarItems.selection_mode.value == 'vertex') {
+					objects.push(element.mesh.outline);
+				}
 			}
 		})
 		if (Vertexsnap.vertexes.children.length) {
@@ -371,16 +374,14 @@ class Preview {
 		}
 		var intersects = this.raycaster.intersectObjects( objects );
 		if (intersects.length > 0) {
-			if (intersects.length > 1 && intersects.find(intersect => intersect.object.type == 'Points')) {
-				var intersect = intersects.find(intersect => intersect.object.type == 'Points')
-			} else {
-				var intersect = intersects[0]
-			}
+			let mesh_gizmo = intersects.find(intersect => intersect.object.type == 'Points' || intersect.object.type == 'LineSegments');
+			let intersect = mesh_gizmo || intersects[0];
 			let intersect_object = intersect.object
 
 			if (intersect_object.isElement) {
 				var element = OutlinerNode.uuids[intersect_object.name]
 				let face;
+				console.log(intersects)
 				if (element instanceof Cube) {
 					face = Canvas.face_order[Math.floor(intersect.faceIndex / 2)];
 				} else if (element instanceof Mesh) {
@@ -414,6 +415,17 @@ class Preview {
 					intersects,
 					intersect,
 					vertex
+				}
+			} else if (intersect_object.type == 'LineSegments') {
+				var element = OutlinerNode.uuids[intersect_object.parent.name];
+				let vertices = intersect_object.vertex_order.slice(intersect.index, intersect.index+2);
+				return {
+					event,
+					type: 'line',
+					element,
+					intersects,
+					intersect,
+					vertices
 				}
 			} else if (intersect_object.isVertex) {
 				return {
@@ -744,6 +756,24 @@ class Preview {
 					list.toggle(data.vertex);
 				} else {
 					list.replace([data.vertex]);
+				}
+				updateSelection();
+			} else if (data.type == 'line') {
+
+				if (!Project.selected_vertices[data.element.uuid]) {
+					Project.selected_vertices[data.element.uuid] = [];
+				}
+				let list = Project.selected_vertices[data.element.uuid];
+
+				if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
+					if (list.includes(data.vertices[0]) && list.includes(data.vertices[1])) {
+						list.remove(...data.vertices);
+					} else {
+						list.remove(...data.vertices);
+						list.push(...data.vertices);
+					}
+				} else {
+					list.replace(data.vertices);
 				}
 				updateSelection();
 			}
@@ -1441,6 +1471,7 @@ Blockbench.on('update_camera_position', e => {
 	Preview.all.forEach(preview => {
 		if (preview.canvas.isConnected && Mesh.all.length) {
 			preview.raycaster.params.Points.threshold = scale * 0.6;
+			preview.raycaster.params.Line.threshold = scale * 0.6;
 		}
 	})
 })

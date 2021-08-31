@@ -26,16 +26,17 @@ class MeshFace extends Face {
 		return this;
 	}
 	getNormal(normalize) {
-		if (this.vertices.length < 3) return [0, 0, 0];
+		let vertices = this.getSortedVertices();
+		if (vertices.length < 3) return [0, 0, 0];
 		let a = [
-			this.mesh.vertices[this.vertices[1]][0] - this.mesh.vertices[this.vertices[0]][0],
-			this.mesh.vertices[this.vertices[1]][1] - this.mesh.vertices[this.vertices[0]][1],
-			this.mesh.vertices[this.vertices[1]][2] - this.mesh.vertices[this.vertices[0]][2],
+			this.mesh.vertices[vertices[1]][0] - this.mesh.vertices[vertices[0]][0],
+			this.mesh.vertices[vertices[1]][1] - this.mesh.vertices[vertices[0]][1],
+			this.mesh.vertices[vertices[1]][2] - this.mesh.vertices[vertices[0]][2],
 		]
 		let b = [
-			this.mesh.vertices[this.vertices[2]][0] - this.mesh.vertices[this.vertices[0]][0],
-			this.mesh.vertices[this.vertices[2]][1] - this.mesh.vertices[this.vertices[0]][1],
-			this.mesh.vertices[this.vertices[2]][2] - this.mesh.vertices[this.vertices[0]][2],
+			this.mesh.vertices[vertices[2]][0] - this.mesh.vertices[vertices[0]][0],
+			this.mesh.vertices[vertices[2]][1] - this.mesh.vertices[vertices[0]][1],
+			this.mesh.vertices[vertices[2]][2] - this.mesh.vertices[vertices[0]][2],
 		]
 		let direction = [
 			a[1] * b[2] - a[2] * b[1],
@@ -236,6 +237,18 @@ class Mesh extends OutlinerElement {
 		el.uuid = this.uuid
 		return el;
 	}
+	getSelectedVertices() {
+		return Project.selected_vertices[this.uuid] || [];
+	}
+	getSelectedFaces() {
+		let faces = [];
+		for (let key in this.faces) {
+			if (this.faces[key].isSelected()) {
+				faces.push(key);
+			}
+		}
+		return faces;
+	}
 	setColor(index) {
 		this.color = index;
 		if (this.visibility) {
@@ -310,6 +323,11 @@ class Mesh extends OutlinerElement {
 	Mesh.prototype.rotatable = true;
 	Mesh.prototype.needsUniqueName = false;
 	Mesh.prototype.menu = new Menu([
+		'extrude_mesh_selection',
+		'split_faces',
+		'create_face',
+		'invert_face',
+		'_',
 		'group_elements',
 		'_',
 		'copy',
@@ -453,7 +471,7 @@ new NodePreviewController(Mesh, {
 					face_indices[key] = index_offset + i;
 				})
 
-				let normal = face.getNormal();
+				let normal = face.getNormal(true);
 				normal_array.push(...normal, ...normal, ...normal, ...normal);
 
 				let sorted_vertices = face.getSortedVertices();
@@ -487,7 +505,6 @@ new NodePreviewController(Mesh, {
 
 		mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
 
-		mesh.geometry.computeVertexNormals();
 		mesh.geometry.computeBoundingBox();
 		mesh.geometry.computeBoundingSphere();
 	},
@@ -674,7 +691,7 @@ BARS.defineActions(function() {
 		icon: 'fas.fa-draw-polygon',
 		category: 'edit',
 		keybind: new Keybind({key: 'f', shift: true}),
-		condition: () => (Modes.edit && Format.meshes),
+		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1),
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
@@ -790,10 +807,10 @@ BARS.defineActions(function() {
 	})
 	new Action({
 		id: 'invert_face',
-		icon: 'fas.fa-draw-polygon',
+		icon: 'flip_to_back',
 		category: 'edit',
 		keybind: new Keybind({key: 'i', shift: true}),
-		condition: () => (Modes.edit && Format.meshes),
+		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedFaces().length),
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
@@ -813,7 +830,7 @@ BARS.defineActions(function() {
 		icon: 'upload',
 		category: 'edit',
 		keybind: new Keybind({key: 'e', shift: true}),
-		condition: () => (Modes.edit && Format.meshes),
+		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length),
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
@@ -881,6 +898,129 @@ BARS.defineActions(function() {
 					mesh.addFaces(new_face);
 				})
 
+			})
+			Undo.finishEdit('Extrude mesh selection')
+			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
+		}
+	})
+	new Action({
+		id: 'split_faces',
+		icon: 'carpenter',
+		category: 'edit',
+		keybind: new Keybind({key: 'e', shift: true}),
+		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1),
+		click() {
+			Undo.initEdit({elements: Mesh.selected});
+			Mesh.selected.forEach(mesh => {
+				let selected_vertices = mesh.getSelectedVertices();
+				let start_face;
+				for (let fkey in mesh.faces) {
+					let face = mesh.faces[fkey];
+					if (face.vertices.length < 3) continue;
+					let vertices = face.vertices.filter(vkey => selected_vertices.includes(vkey))
+					if (vertices.length >= 2) {
+						start_face = face;
+						break;
+					}
+				}
+				if (!start_face) return;
+				let processed_faces = [start_face];
+				let center_vertices = {};
+
+				function getCenterVertex(vertices) {
+					let existing_key = center_vertices[vertices[0]] || center_vertices[vertices[1]];
+					if (existing_key) return existing_key;
+
+					let vector = mesh.vertices[vertices[0]].slice().V3_add(mesh.vertices[vertices[1]]).V3_divide(2);
+					let [vkey] = mesh.addVertices(vector);
+					center_vertices[vertices[0]] = center_vertices[vertices[1]] = vkey;
+					return vkey;
+				}
+
+				function splitFace(face, side_vertices, double_side) {
+					processed_faces.push(face);
+
+					if (face.vertices.length == 4) {
+
+						let sorted_vertices = face.getSortedVertices();
+						let opposite_vertices = sorted_vertices.filter(vkey => !side_vertices.includes(vkey));
+
+						let side_index_diff = sorted_vertices.indexOf(side_vertices[0]) - sorted_vertices.indexOf(side_vertices[1]);
+						if (side_index_diff == -1 || side_index_diff > 2) side_vertices.reverse();
+
+						let opposite_index_diff = sorted_vertices.indexOf(opposite_vertices[0]) - sorted_vertices.indexOf(opposite_vertices[1]);
+						if (opposite_index_diff == 1 || opposite_index_diff < -2) opposite_vertices.reverse();
+
+						let center_vertices = [
+							getCenterVertex(side_vertices),
+							getCenterVertex(opposite_vertices)
+						]
+
+						let c1_uv_coords = [
+							(face.uv[side_vertices[0]][0] + face.uv[side_vertices[1]][0]) / 2,
+							(face.uv[side_vertices[0]][1] + face.uv[side_vertices[1]][1]) / 2,
+						];
+						let c2_uv_coords = [
+							(face.uv[opposite_vertices[0]][0] + face.uv[opposite_vertices[1]][0]) / 2,
+							(face.uv[opposite_vertices[0]][1] + face.uv[opposite_vertices[1]][1]) / 2,
+						];
+
+						let new_face = new MeshFace(mesh, face).extend({
+							vertices: [side_vertices[1], center_vertices[0], center_vertices[1], opposite_vertices[1]],
+							uv: {
+								[side_vertices[1]]: face.uv[side_vertices[1]],
+								[center_vertices[0]]: c1_uv_coords,
+								[center_vertices[1]]: c2_uv_coords,
+								[opposite_vertices[1]]: face.uv[opposite_vertices[1]],
+							}
+						})
+						face.extend({
+							vertices: [opposite_vertices[0], center_vertices[0], center_vertices[1], side_vertices[0]],
+							uv: {
+								[opposite_vertices[0]]: face.uv[opposite_vertices[0]],
+								[center_vertices[0]]: c1_uv_coords,
+								[center_vertices[1]]: c2_uv_coords,
+								[side_vertices[0]]: face.uv[side_vertices[0]],
+							}
+						})
+						mesh.addFaces(new_face);
+
+						// Find next (and previous) face
+						for (let fkey in mesh.faces) {
+							let ref_face = mesh.faces[fkey];
+							if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
+							let vertices = ref_face.vertices.filter(vkey => opposite_vertices.includes(vkey))
+							if (vertices.length >= 2) {
+								splitFace(ref_face, opposite_vertices);
+								break;
+							}
+						}
+						if (double_side) {
+							for (let fkey in mesh.faces) {
+								let ref_face = mesh.faces[fkey];
+								if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
+								let vertices = ref_face.vertices.filter(vkey => side_vertices.includes(vkey))
+								if (vertices.length >= 2) {
+									splitFace(ref_face, side_vertices);
+									break;
+								}
+							}
+						}
+
+					}
+
+
+
+					//splitFace(start_face, );
+				}
+
+				let start_vertices = start_face.vertices.filter((vkey, i) => selected_vertices.includes(vkey)).slice(0, 2);
+				splitFace(start_face, start_vertices, start_face.vertices.length == 4);
+
+				selected_vertices.empty();
+				for (let key in center_vertices) {
+					selected_vertices.safePush(center_vertices[key]);
+				}
 			})
 			Undo.finishEdit('Extrude mesh selection')
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
