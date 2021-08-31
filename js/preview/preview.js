@@ -350,11 +350,13 @@ class Preview {
 		Outliner.elements.forEach(element => {
 			if (element.mesh.geometry && element.visibility && !element.locked) {
 				objects.push(element.mesh);
-				if (element.mesh.vertex_points && element.mesh.vertex_points.visible) {
-					objects.push(element.mesh.vertex_points);
-				}
-				if (element instanceof Mesh && element.mesh.outline.visible && BarItems.selection_mode.value == 'vertex') {
-					objects.push(element.mesh.outline);
+				if (Modes.edit && element.selected) {
+					if (element.mesh.vertex_points && element.mesh.vertex_points.visible) {
+						objects.push(element.mesh.vertex_points);
+					}
+					if (element instanceof Mesh && element.mesh.outline.visible && BarItems.selection_mode.value == 'vertex') {
+						objects.push(element.mesh.outline);
+					}
 				}
 			}
 		})
@@ -381,7 +383,6 @@ class Preview {
 			if (intersect_object.isElement) {
 				var element = OutlinerNode.uuids[intersect_object.name]
 				let face;
-				console.log(intersects)
 				if (element instanceof Cube) {
 					face = Canvas.face_order[Math.floor(intersect.faceIndex / 2)];
 				} else if (element instanceof Mesh) {

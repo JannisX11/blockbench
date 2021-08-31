@@ -39,6 +39,7 @@ const TextureGenerator = {
 				compress: 	{label: 'dialog.create_texture.compress', description: 'dialog.create_texture.compress.desc', type: 'checkbox', value: true, condition: (form) => (form.template && Project.box_uv && form.rearrange_uv)},
 				power: 		{label: 'dialog.create_texture.power', description: 'dialog.create_texture.power.desc', type: 'checkbox', value: true, condition: (form) => (form.template && form.rearrange_uv)},
 				double_use: {label: 'dialog.create_texture.double_use', description: 'dialog.create_texture.double_use.desc', type: 'checkbox', value: true, condition: (form) => (form.template && Project.box_uv && form.rearrange_uv)},
+				combine_polys: {label: 'dialog.create_texture.combine_polys', description: 'dialog.create_texture.combine_polys.desc', type: 'checkbox', value: true, condition: (form) => (form.template && form.rearrange_uv && Mesh.selected.length)},
 				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.template && !Project.box_uv)},
 				padding:	{label: 'dialog.create_texture.padding', description: 'dialog.create_texture.padding.desc', type: 'checkbox', value: false, condition: (form) => (form.template && form.rearrange_uv)},
 
@@ -858,24 +859,26 @@ const TextureGenerator = {
 				})
 			}
 
-			function tryToMergeFaceGroup(face_group) {
-				if (!face_groups.includes(face_group)) return;
+			if (options.combine_polys) {
+				function tryToMergeFaceGroup(face_group) {
+					if (!face_groups.includes(face_group)) return;
 
-				let matches = face_groups.filter(group_b => {
-					if (group_b == face_group) return false;
-					if (face_group.faces.find(face => face.vertices.find(vkey => group_b.faces.find(face => face.vertices.includes(vkey)))) == undefined) return false;
-					return face_group.normal.find((v, i) => !Math.epsilon(v, group_b.normal[i], 0.002)) == undefined;
-				});
-				matches.forEach(match => {
-					face_group.faces.push(...match.faces);
-					face_group.keys.push(...match.keys);
-					face_groups.remove(match);
-				})
+					let matches = face_groups.filter(group_b => {
+						if (group_b == face_group) return false;
+						if (face_group.faces.find(face => face.vertices.find(vkey => group_b.faces.find(face => face.vertices.includes(vkey)))) == undefined) return false;
+						return face_group.normal.find((v, i) => !Math.epsilon(v, group_b.normal[i], 0.002)) == undefined;
+					});
+					matches.forEach(match => {
+						face_group.faces.push(...match.faces);
+						face_group.keys.push(...match.keys);
+						face_groups.remove(match);
+					})
+				}
+
+				face_groups.slice().forEach(tryToMergeFaceGroup);
+				face_groups.slice().forEach(tryToMergeFaceGroup);
+				face_groups.slice().forEach(tryToMergeFaceGroup);
 			}
-
-			face_groups.slice().forEach(tryToMergeFaceGroup);
-			face_groups.slice().forEach(tryToMergeFaceGroup);
-			face_groups.slice().forEach(tryToMergeFaceGroup);
 
 			face_groups.forEach(face_group => {
 				// Project vertex coords onto plane
@@ -899,7 +902,8 @@ const TextureGenerator = {
 					})
 				})
 				// Rotate UV to match corners
-				let rotation_angles = {}
+				let rotation_angles = {};
+				let precise_rotation_angle = {};
 				face_group.faces.forEach(face => {
 					let vertices = face.getSortedVertices();
 					vertices.forEach((vkey, i) => {
@@ -908,11 +912,14 @@ const TextureGenerator = {
 							vertex_uvs[vkey2][0] - vertex_uvs[vkey][0],
 							vertex_uvs[vkey2][1] - vertex_uvs[vkey][1],
 						)
-						rot = (Math.round(Math.radToDeg(rot)) + 360) % 90;
-						if (rotation_angles[rot]) {
-							rotation_angles[rot]++;
+						let snap = 2;
+						rot = (Math.radToDeg(rot) + 360) % 90;
+						let rounded = Math.round(rot / snap) * snap;
+						if (rotation_angles[rounded]) {
+							rotation_angles[rounded]++;
 						} else {
-							rotation_angles[rot] = 1;
+							rotation_angles[rounded] = 1;
+							precise_rotation_angle[rounded] = rot;
 						}
 					})
 				})
@@ -925,7 +932,7 @@ const TextureGenerator = {
 						return a < b ? -1 : 1;
 					}
 				})
-				let angle = Math.degToRad(angles[0]);
+				let angle = Math.degToRad(precise_rotation_angle[angles[0]]);
 				let s = Math.sin(angle);
 				let c = Math.cos(angle);
 				for (let vkey in vertex_uvs) {
@@ -938,24 +945,47 @@ const TextureGenerator = {
 				// Define UV bounding box
 				let min_x = Infinity;
 				let min_z = Infinity;
-				let max_x = -Infinity;
-				let max_z = -Infinity;
 				for (let vkey in vertex_uvs) {
 					min_x = Math.min(min_x, vertex_uvs[vkey][0]);
 					min_z = Math.min(min_z, vertex_uvs[vkey][1]);
-					max_x = Math.max(max_x, vertex_uvs[vkey][0]);
-					max_z = Math.max(max_z, vertex_uvs[vkey][1]);
 				}
 				for (let vkey in vertex_uvs) {
 					vertex_uvs[vkey][0] -= min_x;
 					vertex_uvs[vkey][1] -= min_z;
 				}
+
+				// Round
+				if (face_group.faces.length == 1 && face_group.faces[0].vertices.length == 4) {
+					let sorted_vertices = face_group.faces[0].getSortedVertices();
+					sorted_vertices.forEach((vkey, vi) => {
+						let vkey2 = sorted_vertices[vi+1] || sorted_vertices[0];
+						let vkey0 = sorted_vertices[vi-1] || sorted_vertices.last();
+						let snap = 1;
+
+						if (Math.epsilon(vertex_uvs[vkey][0], vertex_uvs[vkey2][0], 0.001)) {
+							let min = vertex_uvs[vkey][0] > vertex_uvs[vkey0][0] ? 1 : 0;
+							vertex_uvs[vkey][0] = vertex_uvs[vkey2][0] = Math.round(Math.max(min, vertex_uvs[vkey][0] * snap)) / snap;
+						}
+						if (Math.epsilon(vertex_uvs[vkey][1], vertex_uvs[vkey2][1], 0.001)) {
+							let min = vertex_uvs[vkey][1] > vertex_uvs[vkey0][1] ? 1 : 0;
+							vertex_uvs[vkey][1] = vertex_uvs[vkey2][1] = Math.round(Math.max(min, vertex_uvs[vkey][1] * snap)) / snap;
+						}
+					})
+				}
+
+
+				let max_x = -Infinity;
+				let max_z = -Infinity;
+				for (let vkey in vertex_uvs) {
+					max_x = Math.max(max_x, vertex_uvs[vkey][0]);
+					max_z = Math.max(max_z, vertex_uvs[vkey][1]);
+				}
 				let aabb = {
 					posx: 0,
 					posy: 0,
 					vertex_uvs,
-					width: max_x - min_x,
-					height: max_z - min_z,
+					width: max_x,
+					height: max_z,
 				}
 				aabb.size = aabb.width * aabb.height;
 				face_group.aabb = aabb;

@@ -507,6 +507,9 @@ new NodePreviewController(Mesh, {
 
 		mesh.geometry.computeBoundingBox();
 		mesh.geometry.computeBoundingSphere();
+
+		mesh.vertex_points.geometry.computeBoundingSphere();
+		mesh.outline.geometry.computeBoundingSphere();
 	},
 	updateFaces(element) {
 		let {mesh} = element;
@@ -630,8 +633,7 @@ new NodePreviewController(Mesh, {
 })
 
 BARS.defineActions(function() {
-	new Action({
-		id: 'add_mesh',
+	new Action('add_mesh', {
 		icon: 'fa-gem',
 		category: 'edit',
 		keybind: new Keybind({key: 'n', ctrl: true}),
@@ -686,8 +688,7 @@ BARS.defineActions(function() {
 			updateSelection();
 		}
 	})
-	new Action({
-		id: 'create_face',
+	new Action('create_face', {
 		icon: 'fas.fa-draw-polygon',
 		category: 'edit',
 		keybind: new Keybind({key: 'f', shift: true}),
@@ -747,8 +748,7 @@ BARS.defineActions(function() {
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}})
 		}
 	})
-	new Action({
-		id: 'convert_to_mesh',
+	new Action('convert_to_mesh', {
 		icon: 'fa-gem',
 		category: 'edit',
 		condition: () => (Modes.edit && Format.meshes && Cube.selected.length),
@@ -805,8 +805,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Convert cubes to meshes', {elements: new_meshes});
 		}
 	})
-	new Action({
-		id: 'invert_face',
+	new Action('invert_face', {
 		icon: 'flip_to_back',
 		category: 'edit',
 		keybind: new Keybind({key: 'i', shift: true}),
@@ -825,8 +824,7 @@ BARS.defineActions(function() {
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}});
 		}
 	})
-	new Action({
-		id: 'extrude_mesh_selection',
+	new Action('extrude_mesh_selection', {
 		icon: 'upload',
 		category: 'edit',
 		keybind: new Keybind({key: 'e', shift: true}),
@@ -903,11 +901,10 @@ BARS.defineActions(function() {
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
 	})
-	new Action({
-		id: 'split_faces',
+	new Action('split_faces', {
 		icon: 'carpenter',
 		category: 'edit',
-		keybind: new Keybind({key: 'e', shift: true}),
+		keybind: new Keybind({key: 'r', shift: true}),
 		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1),
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
@@ -939,15 +936,14 @@ BARS.defineActions(function() {
 
 				function splitFace(face, side_vertices, double_side) {
 					processed_faces.push(face);
+					let sorted_vertices = face.getSortedVertices();
+
+					let side_index_diff = sorted_vertices.indexOf(side_vertices[0]) - sorted_vertices.indexOf(side_vertices[1]);
+					if (side_index_diff == -1 || side_index_diff > 2) side_vertices.reverse();
 
 					if (face.vertices.length == 4) {
 
-						let sorted_vertices = face.getSortedVertices();
 						let opposite_vertices = sorted_vertices.filter(vkey => !side_vertices.includes(vkey));
-
-						let side_index_diff = sorted_vertices.indexOf(side_vertices[0]) - sorted_vertices.indexOf(side_vertices[1]);
-						if (side_index_diff == -1 || side_index_diff > 2) side_vertices.reverse();
-
 						let opposite_index_diff = sorted_vertices.indexOf(opposite_vertices[0]) - sorted_vertices.indexOf(opposite_vertices[1]);
 						if (opposite_index_diff == 1 || opposite_index_diff < -2) opposite_vertices.reverse();
 
@@ -1007,11 +1003,34 @@ BARS.defineActions(function() {
 							}
 						}
 
+					} else {
+						let opposite_vertex = sorted_vertices.find(vkey => !side_vertices.includes(vkey));
+
+						let center_vertex = getCenterVertex(side_vertices);
+
+						let c1_uv_coords = [
+							(face.uv[side_vertices[0]][0] + face.uv[side_vertices[1]][0]) / 2,
+							(face.uv[side_vertices[0]][1] + face.uv[side_vertices[1]][1]) / 2,
+						];
+
+						let new_face = new MeshFace(mesh, face).extend({
+							vertices: [side_vertices[1], center_vertex, opposite_vertex],
+							uv: {
+								[side_vertices[1]]: face.uv[side_vertices[1]],
+								[center_vertex]: c1_uv_coords,
+								[opposite_vertex]: face.uv[opposite_vertex],
+							}
+						})
+						face.extend({
+							vertices: [opposite_vertex, center_vertex, side_vertices[0]],
+							uv: {
+								[opposite_vertex]: face.uv[opposite_vertex],
+								[center_vertex]: c1_uv_coords,
+								[side_vertices[0]]: face.uv[side_vertices[0]],
+							}
+						})
+						mesh.addFaces(new_face);
 					}
-
-
-
-					//splitFace(start_face, );
 				}
 
 				let start_vertices = start_face.vertices.filter((vkey, i) => selected_vertices.includes(vkey)).slice(0, 2);
@@ -1026,8 +1045,7 @@ BARS.defineActions(function() {
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
 	})
-	new Action({
-		id: 'merge_meshes',
+	new Action('merge_meshes', {
 		icon: 'upload',
 		category: 'edit',
 		condition: () => (Modes.edit && Format.meshes && Mesh.selected.length >= 2),
@@ -1071,8 +1089,7 @@ BARS.defineActions(function() {
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
 	})
-	new Action({
-		id: 'import_obj',
+	new Action('import_obj', {
 		icon: 'fa-gem',
 		category: 'file',
 		condition: () => (Modes.edit && Format.meshes),
@@ -1175,8 +1192,7 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	new Action({
-		id: 'add_primitive',
+	new Action('add_primitive', {
 		icon: 'fa-shapes',
 		category: 'edit',
 		condition: () => (Modes.edit && Format.meshes),
@@ -1197,9 +1213,9 @@ BARS.defineActions(function() {
 						pyramid: 'dialog.add_primitive.shape.pyramid',
 					}},
 					diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: 16},
-					height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cube', 'pyramid'].includes(shape)},
-					sides: {label: 'dialog.add_primitive.sides', type: 'number', value: 16, condition: ({shape}) => ['cylinder', 'cone', 'circle', 'torus', 'sphere'].includes(shape)},
-					minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: 4, condition: ({shape}) => ['torus'].includes(shape)},
+					height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cube', 'pyramid', 'tube'].includes(shape)},
+					sides: {label: 'dialog.add_primitive.sides', type: 'number', value: 16, condition: ({shape}) => ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(shape)},
+					minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: 4, condition: ({shape}) => ['torus', 'tube'].includes(shape)},
 					minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: 8, condition: ({shape}) => ['torus'].includes(shape)},
 				},
 				onConfirm(result) {
@@ -1273,7 +1289,7 @@ BARS.defineActions(function() {
 						let vertex_keys = [];
 
 						let outer_r = result.diameter/2;
-						let inner_r = (result.diameter - result.minor_diameter)/2;
+						let inner_r = outer_r - result.minor_diameter;
 						for (let i = 0; i < result.sides; i++) {
 							let x = Math.sin((i / result.sides) * Math.PI * 2);
 							let z = Math.cos((i / result.sides) * Math.PI * 2);
