@@ -1192,7 +1192,7 @@
 		background-color: rgba(50, 70, 240, 0.3);
 		z-index: 3;
 	}
-	.cube_uv_face.selected {
+	.cube_uv_face.selected:not(.unselected) {
 		border-color: var(--color-light);
 		z-index: 4;
 		box-shadow: 0 0 4px #000000cc;

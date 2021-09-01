@@ -1012,7 +1012,7 @@ new NodePreviewController(Cube, {
 
 			Canvas.face_order.forEach((face, fIndex) => {
 
-				if (cube.faces[face].texture == null) return;
+				if (cube.faces[face].texture === null) return;
 
 				stretch = 1;
 				frame = 0;

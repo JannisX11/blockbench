@@ -1423,7 +1423,7 @@ Blockbench.on('update_camera_position', e => {
 	Preview.all.forEach(preview => {
 		if (preview.canvas.isConnected && Mesh.all.length) {
 			preview.raycaster.params.Points.threshold = scale * 0.6;
-			preview.raycaster.params.Line.threshold = scale * 0.6;
+			preview.raycaster.params.Line.threshold = scale * 0.3;
 		}
 	})
 })

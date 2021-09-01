@@ -385,7 +385,7 @@ class Group extends OutlinerNode {
 			cb(this)
 		}
 		while (i < this.children.length) {
-			if (!type || this.children[i] instanceof type) {
+			if (!type || (type instanceof Array ? type.find(t2 => this.children[i] instanceof t2) : this.children[i] instanceof type)) {
 				cb(this.children[i])
 			}
 			if (this.children[i].type === 'group') {

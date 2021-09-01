@@ -687,7 +687,7 @@ const Canvas = {
 			}
 			face_list.forEach(function(f, fIndex) {
 
-				if (cube.faces[f.face].texture == null) return;
+				if (cube.faces[f.face].texture === null) return;
 
 				var uv= [
 					f.from[0]			 +  cube.uv_offset[0],
@@ -734,7 +734,7 @@ const Canvas = {
 
 			Canvas.face_order.forEach((face, fIndex) => {
 
-				if (cube.faces[face].texture == null) return;
+				if (cube.faces[face].texture === null) return;
 
 				stretch = 1;
 				frame = 0;
@@ -831,7 +831,7 @@ const Canvas = {
 			var end = getVector2(to, axis)
 			var face = cube.faces[name];
 			var texture = face.getTexture();
-			if (texture == null) return;
+			if (texture === null) return;
 
 			var px_x = texture ? Project.texture_width / texture.width : 1;
 			var px_y = texture ? Project.texture_height / texture.height : 1;

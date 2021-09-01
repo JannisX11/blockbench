@@ -1218,14 +1218,12 @@ function loadTextureDraggable() {
 						if (!tex) return;
 						if ($('.preview:hover').length > 0) {
 							var data = Canvas.raycast(event)
-							if (data.cube && data.face) {
-								var cubes_list = data.cube.selected ? Cube.selected : [data.cube];
-								if (tex && cubes_list) {
-									Undo.initEdit({elements: cubes_list})
-									cubes_list.forEach(cube => {
-										if (cube instanceof Cube) {
-											cube.applyTexture(tex, data.shiftKey || Pressing.overrides.shift || [data.face])
-										}
+							if (data.element && data.face) {
+								var elements = data.element.selected ? UVEditor.getMappableElements() : [data.element];
+								if (tex && elements) {
+									Undo.initEdit({elements})
+									elements.forEach(element => {
+										element.applyTexture(tex, data.shiftKey || Pressing.overrides.shift || [data.face])
 									})
 									Undo.finishEdit('Apply texture')
 								}
@@ -1246,7 +1244,7 @@ function loadTextureDraggable() {
 							Texture.all.splice(index, 0, tex)
 							Canvas.updateLayeredTextures()
 							Undo.finishEdit('Reorder textures')
-						} else if ($('#cubes_list:hover')) {
+						} else if ($('#cubes_list:hover').length) {
 
 							var target_node = $('#cubes_list li.outliner_node.drag_hover').last().get(0);
 							$('.drag_hover').removeClass('drag_hover');
@@ -1259,7 +1257,7 @@ function loadTextureDraggable() {
 							if (target.type === 'group') {
 								target.forEachChild(function(cube) {
 									array.push(cube)
-								}, Cube)
+								}, [Cube, Mesh])
 							} else {
 								array = selected.includes(target) ? selected : [target];
 							}
@@ -1273,6 +1271,8 @@ function loadTextureDraggable() {
 		
 							UVEditor.loadData()
 							Canvas.updateAllFaces()
+						} else if ($('#uv_viewport:hover').length) {
+							UVEditor.applyTexture(tex);
 						}
 					}, 10)
 				}

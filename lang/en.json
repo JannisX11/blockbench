@@ -395,6 +395,8 @@
 	"dialog.create_texture.double_use.desc": "If two elements already have the same UV space assigned, keep it that way in the new map",
 	"dialog.create_texture.padding": "Padding",
 	"dialog.create_texture.padding.desc": "Add a small padding between the individual parts of the template",
+	"dialog.create_texture.combine_polys": "Combine Faces",
+	"dialog.create_texture.combine_polys.desc": "Combine connected coplanar faces into one UV section",
 	"dialog.create_texture.resolution": "Resolution",
 	"dialog.create_texture.resolution.desc": "The base resolution of the texture, in pixels per meter. The real size of the texture map may differ depending on the amount and size of elements.",
 

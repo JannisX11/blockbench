@@ -1,5 +1,3 @@
-const { fdatasync } = require("original-fs");
-
 class MeshFace extends Face {
 	constructor(mesh, data) {
 		super(data);
@@ -324,7 +322,7 @@ class Mesh extends OutlinerElement {
 	Mesh.prototype.needsUniqueName = false;
 	Mesh.prototype.menu = new Menu([
 		'extrude_mesh_selection',
-		'split_faces',
+		'loop_cut',
 		'create_face',
 		'invert_face',
 		'_',
@@ -901,7 +899,7 @@ BARS.defineActions(function() {
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
 	})
-	new Action('split_faces', {
+	new Action('loop_cut', {
 		icon: 'carpenter',
 		category: 'edit',
 		keybind: new Keybind({key: 'r', shift: true}),
@@ -1237,9 +1235,13 @@ BARS.defineActions(function() {
 						}
 						for (let i = 0; i < result.sides; i++) {
 							let [a, b] = vertex_keys.slice(i+2, i+2 + 2);
-							if (!b) {
+							if (!a) {
 								b = vertex_keys[2];
+								a = vertex_keys[1];
+							} else if (!b) {
+								b = vertex_keys[1];
 							}
+							console.log(a, b, m)
 							mesh.addFaces(new MeshFace( mesh, {vertices: [a, b, m]} ));
 						}
 					}

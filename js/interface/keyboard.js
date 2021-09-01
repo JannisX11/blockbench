@@ -186,10 +186,10 @@ class Keybind {
 	isTriggered(event) {
 		return (
 			(this.key 	=== event.which	|| (this.key == 1001 && event instanceof MouseEvent)) &&
-			(this.ctrl 	=== (event.ctrlKey 	|| Pressing.overrides.ctrl) || this.ctrl == null 	) &&
-			(this.shift === (event.shiftKey || Pressing.overrides.shift)|| this.shift == null	) &&
-			(this.alt 	=== (event.altKey 	|| Pressing.overrides.alt) 	|| this.alt == null 	) &&
-			(this.meta 	=== event.metaKey								|| this.meta == null 	)
+			(this.ctrl 	=== (event.ctrlKey 	|| Pressing.overrides.ctrl) || this.ctrl === null 	) &&
+			(this.shift === (event.shiftKey || Pressing.overrides.shift)|| this.shift === null	) &&
+			(this.alt 	=== (event.altKey 	|| Pressing.overrides.alt) 	|| this.alt === null 	) &&
+			(this.meta 	=== event.metaKey								|| this.meta === null 	)
 		)
 	}
 	record() {
@@ -266,7 +266,7 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 			if (preset && preset.keys[item.id] !== undefined) {
 				let keys = preset.keys[item.id]
 
-				if (keys == null) {
+				if (keys === null) {
 					item.keybind.clear();
 				} else if (keys) {
 					if (isApp && Blockbench.platform == 'darwin' && keys.ctrl && !keys.meta) {
@@ -377,7 +377,7 @@ BARS.defineActions(() => {
 				let {keys} = JSON.parse(files[0].content);
 
 				Keybinds.actions.forEach(keybind_item => {
-					if (keys[keybind_item.id] == null) {
+					if (keys[keybind_item.id] === null) {
 						keybind_item.keybind.clear();
 					} else {
 						keybind_item.keybind.set(keys[keybind_item.id]).save(false);
