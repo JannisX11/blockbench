@@ -675,3 +675,34 @@ function getAverageRGB(imgEl, blockSize) {
 	return rgb;	
 }
 
+function stringifyLargeInt(int) {
+	let string = int.toString();
+	return string.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
+}
+
+
+function intersectLines(p1, p2, p3, p4) {
+	let s1 = [ p2[0] - p1[0],   p2[1] - p1[1] ];
+	let s2 = [ p4[0] - p3[0],   p4[1] - p3[1] ];
+
+	let s = (-s1[1] * (p1[0] - p3[0]) + s1[0] * (p1[1] - p3[1])) / (-s2[0] * s1[1] + s1[0] * s2[1]);
+	let t = ( s2[0] * (p1[1] - p3[1]) - s2[1] * (p1[0] - p3[0])) / (-s2[0] * s1[1] + s1[0] * s2[1]);
+
+	return (s >= 0 && s <= 1 && t >= 0 && t <= 1);
+}
+function pointInRectangle(point, rect_start, rect_end) {
+	return (point[0] > rect_start[0] && point[0] < rect_end[0] && point[1] > rect_start[1] && point[1] < rect_end[1])
+}
+function lineIntersectsReactangle(p1, p2, rect_start, rect_end) {
+	// Check if points inside rect
+	if (pointInRectangle(p1, rect_start, rect_end)) return true;
+	if (pointInRectangle(p2, rect_start, rect_end)) return true;
+	// If points are the same, the line no longer intersect
+	if (Math.epsilon(p1[0], p2[0], 0.01) && Math.epsilon(p1[1], p2[1], 0.01)) return false;
+	// Intersect all 4 lines of rect
+	return intersectLines(p1, p2, [rect_start[0], rect_start[1]], [rect_end[0], rect_start[1]])
+		|| intersectLines(p1, p2, [rect_start[0], rect_start[1]], [rect_start[0], rect_end[1]])
+		|| intersectLines(p1, p2, [rect_end[0], rect_end[1]], [rect_end[0], rect_start[1]])
+		|| intersectLines(p1, p2, [rect_end[0], rect_end[1]], [rect_start[0], rect_end[1]])
+}
+

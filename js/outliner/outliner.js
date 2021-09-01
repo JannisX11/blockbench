@@ -927,12 +927,12 @@ BARS.defineActions(function() {
 				width: 300,
 				singleButton: true,
 				form: {
-					cubes: {type: 'info', label: tl('dialog.model_stats.cubes'), text: ''+Cube.all.length },
-					meshes: {type: 'info', label: tl('dialog.model_stats.meshes'), text: ''+Mesh.all.length, condition: Format.meshes },
-					locators: {type: 'info', label: tl('dialog.model_stats.locators'), text: ''+Locator.all.length, condition: Format.locators },
-					groups: {type: 'info', label: tl('dialog.model_stats.groups'), text: ''+Group.all.length },
-					vertices: {type: 'info', label: tl('dialog.model_stats.vertices'), text: ''+vertex_count },
-					faces: {type: 'info', label: tl('dialog.model_stats.faces'), text: ''+face_count },
+					cubes: {type: 'info', label: tl('dialog.model_stats.cubes'), text: stringifyLargeInt(Cube.all.length) },
+					meshes: {type: 'info', label: tl('dialog.model_stats.meshes'), text: stringifyLargeInt(Mesh.all.length), condition: Format.meshes },
+					locators: {type: 'info', label: tl('dialog.model_stats.locators'), text: stringifyLargeInt(Locator.all.length), condition: Format.locators },
+					groups: {type: 'info', label: tl('dialog.model_stats.groups'), text: stringifyLargeInt(Group.all.length) },
+					vertices: {type: 'info', label: tl('dialog.model_stats.vertices'), text: stringifyLargeInt(vertex_count) },
+					faces: {type: 'info', label: tl('dialog.model_stats.faces'), text: stringifyLargeInt(face_count) },
 				}
 			})
 			dialog.show()
@@ -944,9 +944,9 @@ BARS.defineActions(function() {
 				if (Group.selected) {
 					Group.selected.forEachChild(_ => sel++, Group, true)
 				}
-				this.set(sel+'/'+Group.all.length)
+				this.set(stringifyLargeInt(sel)+' / '+stringifyLargeInt(Group.all.length));
 			} else {
-				this.set(Outliner.selected.length+'/'+Outliner.elements.length)
+				this.set(stringifyLargeInt(Outliner.selected.length)+' / '+stringifyLargeInt(Outliner.elements.length));
 			}
 		}
 	})

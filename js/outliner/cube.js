@@ -791,6 +791,7 @@ new NodePreviewController(Cube, {
 		mesh.type = 'cube';
 		mesh.isElement = true;
 		mesh.visible = element.visibility;
+		mesh.rotation.order = 'ZYX'
 
 		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24).fill(0), 1));
 

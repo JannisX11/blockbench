@@ -929,179 +929,130 @@ class Preview {
 
 		//Select
 		if (!this.selection.activated) return;
-
-		/**
-		 * Contains code from https://github.com/mrdoob/three.js/blob/dev/examples/jsm/interactive/SelectionBox.js
-		 * MIT, by three.js contributors
-		 */
-
-		var canvas_offset = $(this.canvas).offset()
-		let startPoint = new THREE.Vector3(
-			( (this.selection.client_x - canvas_offset.left) / this.width ) * 2 - 1,
-			- ( (this.selection.client_y - canvas_offset.top) / this.height ) * 2 + 1,
-			0.5
-		);
-		let endPoint = new THREE.Vector3(
-			(( event.clientX - canvas_offset.left) / this.width ) * 2 - 1,
-			- (( event.clientY - canvas_offset.top) / this.height ) * 2 + 1,
-			0.5
-		);
-
-		if (startPoint.x === endPoint.x) {
-			endPoint.x += 0.1;
-		} else if (startPoint.x < endPoint.x)  {
-			[startPoint.x, endPoint.x] = [endPoint.x, startPoint.x];
-		}
-
-		if (startPoint.y === endPoint.y) {
-			endPoint.y += 0.1;
-		} else if (startPoint.y > endPoint.y)  {
-			[startPoint.y, endPoint.y] = [endPoint.y, startPoint.y];
-		}
-
-		this.camera.updateProjectionMatrix();
-		this.camera.updateMatrixWorld();
-
-		const _tmpPoint = new THREE.Vector3();
-
-		const _vecNear = new THREE.Vector3();
-		const _vecTopLeft = new THREE.Vector3();
-		const _vecTopRight = new THREE.Vector3();
-		const _vecDownRight = new THREE.Vector3();
-		const _vecDownLeft = new THREE.Vector3();
-
-		const _vecFarTopLeft = new THREE.Vector3();
-		const _vecFarTopRight = new THREE.Vector3();
-		const _vecFarDownRight = new THREE.Vector3();
-		const _vecFarDownLeft = new THREE.Vector3();
-
-		const _vectemp1 = new THREE.Vector3();
-		const _vectemp2 = new THREE.Vector3();
-		const _vectemp3 = new THREE.Vector3();
-
-		if ( !this.isOrtho ) {
-
-			_tmpPoint.copy( startPoint );
-			_tmpPoint.x = Math.min( startPoint.x, endPoint.x );
-			_tmpPoint.y = Math.max( startPoint.y, endPoint.y );
-			endPoint.x = Math.max( startPoint.x, endPoint.x );
-			endPoint.y = Math.min( startPoint.y, endPoint.y );
-
-			_vecNear.setFromMatrixPosition( this.camera.matrixWorld );
-			_vecTopLeft.copy( _tmpPoint );
-			_vecTopRight.set( endPoint.x, _tmpPoint.y, 0 );
-			_vecDownRight.copy( endPoint );
-			_vecDownLeft.set( _tmpPoint.x, endPoint.y, 0 );
-
-			_vecTopLeft.unproject( this.camera );
-			_vecTopRight.unproject( this.camera );
-			_vecDownRight.unproject( this.camera );
-			_vecDownLeft.unproject( this.camera );
-
-			_vectemp1.copy( _vecTopLeft ).sub( _vecNear );
-			_vectemp2.copy( _vecTopRight ).sub( _vecNear );
-			_vectemp3.copy( _vecDownRight ).sub( _vecNear );
-			_vectemp1.normalize();
-			_vectemp2.normalize();
-			_vectemp3.normalize();
-
-			_vectemp1.multiplyScalar( this.deep );
-			_vectemp2.multiplyScalar( this.deep );
-			_vectemp3.multiplyScalar( this.deep );
-			_vectemp1.add( _vecNear );
-			_vectemp2.add( _vecNear );
-			_vectemp3.add( _vecNear );
-
-			const planes = this.selection.frustum.planes;
-
-			planes[ 0 ].setFromCoplanarPoints( _vecNear, _vecTopLeft, _vecTopRight );
-			planes[ 1 ].setFromCoplanarPoints( _vecNear, _vecTopRight, _vecDownRight );
-			planes[ 2 ].setFromCoplanarPoints( _vecDownRight, _vecDownLeft, _vecNear );
-			planes[ 3 ].setFromCoplanarPoints( _vecDownLeft, _vecTopLeft, _vecNear );
-			planes[ 4 ].setFromCoplanarPoints( _vecTopRight, _vecDownRight, _vecDownLeft );
-			planes[ 5 ].setFromCoplanarPoints( _vectemp3, _vectemp2, _vectemp1 );
-			planes[ 5 ].normal.multiplyScalar( - 1 );
-
-		} else {
-
-			const left = Math.min( startPoint.x, endPoint.x );
-			const top = Math.max( startPoint.y, endPoint.y );
-			const right = Math.max( startPoint.x, endPoint.x );
-			const down = Math.min( startPoint.y, endPoint.y );
-
-			_vecTopLeft.set( left, top, - 1 );
-			_vecTopRight.set( right, top, - 1 );
-			_vecDownRight.set( right, down, - 1 );
-			_vecDownLeft.set( left, down, - 1 );
-
-			_vecFarTopLeft.set( left, top, 1 );
-			_vecFarTopRight.set( right, top, 1 );
-			_vecFarDownRight.set( right, down, 1 );
-			_vecFarDownLeft.set( left, down, 1 );
-
-			_vecTopLeft.unproject( this.camera );
-			_vecTopRight.unproject( this.camera );
-			_vecDownRight.unproject( this.camera );
-			_vecDownLeft.unproject( this.camera );
-
-			_vecFarTopLeft.unproject( this.camera );
-			_vecFarTopRight.unproject( this.camera );
-			_vecFarDownRight.unproject( this.camera );
-			_vecFarDownLeft.unproject( this.camera );
-
-			const planes = this.selection.frustum.planes;
-
-			planes[ 0 ].setFromCoplanarPoints( _vecTopLeft, _vecFarTopLeft, _vecFarTopRight );
-			planes[ 1 ].setFromCoplanarPoints( _vecTopRight, _vecFarTopRight, _vecFarDownRight );
-			planes[ 2 ].setFromCoplanarPoints( _vecFarDownRight, _vecFarDownLeft, _vecDownLeft );
-			planes[ 3 ].setFromCoplanarPoints( _vecFarDownLeft, _vecFarTopLeft, _vecTopLeft );
-			planes[ 4 ].setFromCoplanarPoints( _vecTopRight, _vecDownRight, _vecDownLeft );
-			planes[ 5 ].setFromCoplanarPoints( _vecFarDownRight, _vecFarTopRight, _vecFarTopLeft );
-			planes[ 5 ].normal.multiplyScalar( - 1 );
-
-		}
-
-		let box = new THREE.Box3();
+		
 		let vector = new THREE.Vector3();
-
+		let rect_start = [c.ax, c.ay];
+		let rect_end = [c.bx, c.by];
 		let extend_selection = (event.shiftKey || event.ctrlOrCmd || Pressing.overrides.ctrl || Pressing.overrides.shift)
+		let selection_mode = BarItems.selection_mode.value;
+
+		let widthHalf = 0.5 * scope.canvas.width / window.devicePixelRatio;
+		let heightHalf = 0.5 * scope.canvas.height / window.devicePixelRatio;
+
+		function projectPoint(vector) {
+			vector.project(scope.camera);
+			return [
+				 ( vector.x * widthHalf ) + widthHalf,
+				-( vector.y * heightHalf ) + heightHalf
+			]
+		}
 
 		unselectAll()
 		Outliner.elements.forEach((element) => {
 			let isSelected;
-			if (extend_selection && scope.selection.old_selected.indexOf(element) >= 0) {
+			if (extend_selection && scope.selection.old_selected.includes(element)) {
 				isSelected = true
 
 			} else if (element.visibility) {
 				if (element.mesh && element.mesh.geometry) {
-					box.copy(element.mesh.geometry.boundingBox).applyMatrix4(element.mesh.matrixWorld);
-					isSelected = this.selection.frustum.intersectsBox(box);
+					let {mesh} = element;
+					
+					if (element instanceof Mesh && (selection_mode == 'object' || scope.selection.old_selected.includes(element))) {
+
+						let selected_vertices;
+						if (selection_mode != 'object') {
+							isSelected = true;
+							if (!Project.selected_vertices[element.uuid]) {
+								selected_vertices = Project.selected_vertices[element.uuid] = [];
+							} else {
+								selected_vertices = Project.selected_vertices[element.uuid];
+							}
+							if (!extend_selection) selected_vertices.empty();
+						}
+
+						let vertex_points = {};
+						for (let vkey in element.vertices) {
+							let point = projectPoint( mesh.localToWorld(vector.fromArray(element.vertices[vkey])) );
+							vertex_points[vkey] = point;
+						}
+						if (selection_mode == 'vertex') {
+							for (let vkey in element.vertices) {
+								let point = vertex_points[vkey];
+								if (pointInRectangle(point, rect_start, rect_end)) {
+									selected_vertices.safePush(vkey);
+								}
+							}
+
+						} else {
+							for (let fkey in element.faces) {
+								let face = element.faces[fkey];
+								let vertices = face.getSortedVertices();
+								let face_intersects;
+								for (let i = 0; i < vertices.length; i++) {
+									let vkey = vertices[i];
+									let vkey2 = vertices[i+1]||vertices[0];
+									let p1 = vertex_points[vkey];
+									let p2 = vertex_points[vkey2];
+									if (lineIntersectsReactangle(p1, p2, rect_start, rect_end)) {
+										face_intersects = true;
+										break;
+									}
+								}
+								if (face_intersects && selection_mode == 'object') {
+									if (face_intersects) {
+										isSelected = true;
+										break;
+									}
+								} else {
+									if (face_intersects) {
+										selected_vertices.safePush(...face.vertices);
+										UVEditor.vue.selected_faces.safePush(fkey);
+									} else {
+										UVEditor.vue.selected_faces.remove(fkey);
+									}
+								}
+							}
+						}
+
+					} else if (element instanceof Cube) {
+						let vertices = [
+							[element.from[0]	- element.inflate, element.from[1]	- element.inflate, element.from[2]	- element.inflate],
+							[element.from[0]	- element.inflate, element.from[1]	- element.inflate, element.to[2]	+ element.inflate],
+							[element.from[0]	- element.inflate, element.to[1]	+ element.inflate, element.to[2]	+ element.inflate],
+							[element.from[0]	- element.inflate, element.to[1]	+ element.inflate, element.from[2]	- element.inflate],
+							[element.to[0]		+ element.inflate, element.from[1]	- element.inflate, element.from[2]	- element.inflate],
+							[element.to[0]		+ element.inflate, element.from[1]	- element.inflate, element.to[2]	+ element.inflate],
+							[element.to[0]		+ element.inflate, element.to[1]	+ element.inflate, element.to[2]	+ element.inflate],
+							[element.to[0]		+ element.inflate, element.to[1]	+ element.inflate, element.from[2]	- element.inflate],
+						].map(coords => {
+							vector.fromArray(coords);
+							mesh.localToWorld(vector);
+							return projectPoint(vector);
+						})
+						isSelected = lineIntersectsReactangle(vertices[0], vertices[1], rect_start, rect_end)
+								  || lineIntersectsReactangle(vertices[1], vertices[2], rect_start, rect_end)
+								  || lineIntersectsReactangle(vertices[2], vertices[3], rect_start, rect_end)
+								  || lineIntersectsReactangle(vertices[3], vertices[0], rect_start, rect_end)
+
+								  || lineIntersectsReactangle(vertices[4], vertices[5], rect_start, rect_end)
+								  || lineIntersectsReactangle(vertices[5], vertices[6], rect_start, rect_end)
+								  || lineIntersectsReactangle(vertices[6], vertices[7], rect_start, rect_end)
+								  || lineIntersectsReactangle(vertices[7], vertices[4], rect_start, rect_end)
+
+								  || lineIntersectsReactangle(vertices[0], vertices[4], rect_start, rect_end)
+								  || lineIntersectsReactangle(vertices[1], vertices[5], rect_start, rect_end)
+								  || lineIntersectsReactangle(vertices[2], vertices[6], rect_start, rect_end)
+								  || lineIntersectsReactangle(vertices[3], vertices[7], rect_start, rect_end)
+					}
 
 				} else if (element.mesh) {
-
+					
 					element.mesh.getWorldPosition(vector);
-					isSelected = this.selection.frustum.containsPoint(vector);
+					isSelected = pointInRectangle(projectPoint(vector), rect_start, rect_end);
 				}
 			}
 			if (isSelected) {
 				element.selectLow();
-				if (element instanceof Mesh && element.visibility) {
-					for (let key in element.vertices) {
-						if (extend_selection && scope.selection.old_vertices_selected[element.uuid] && scope.selection.old_vertices_selected[element.uuid].includes(key)) {
-							if (!Project.selected_vertices[element.uuid]) Project.selected_vertices[element.uuid] = [];
-							Project.selected_vertices[element.uuid].safePush(key);
-
-						} else {
-							let point = vector.fromArray(element.vertices[key]);
-							element.mesh.localToWorld(point);
-							if (this.selection.frustum.containsPoint(vector)) {
-								if (!Project.selected_vertices[element.uuid]) Project.selected_vertices[element.uuid] = [];
-								Project.selected_vertices[element.uuid].safePush(key);
-							}
-
-						}
-					}
-				}
 			}
 		})
 		TickUpdates.selection = true;
