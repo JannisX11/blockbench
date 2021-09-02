@@ -66,6 +66,7 @@
 		<script src="lib/peer.min.js"></script>
 		<script src="lib/marked.min.js"></script>
 		<script src="lib/spectrum.js"></script>
+		<script src="lib/color-picker.min.js"></script>
 		<script src="lib/three.min.js"></script>
 		<script src="lib/three_custom.js"></script>
 		<script src="lib/GLTFExporter.js"></script>
@@ -496,7 +497,7 @@
 							</div>
 						</div>
 
-						<div id="uv_panel_sides" class="bar tabs_small">
+						<div class="bar tabs_small">
 
 							<input type="radio" name="tab" id="radio_color_picker" value="picker" v-model="open_tab">
 							<label class="tl" for="radio_color_picker">panel.color.picker</label>
@@ -507,9 +508,16 @@
 							<input type="radio" name="tab" id="radio_color_both" value="both" v-model="open_tab">
 							<label class="tl" for="radio_color_both">panel.color.both</label>
 
+							<div class="tool" @click="togglePickerType()" :title="picker_toggle_label">
+								<i class="fa_big icon" :class="picker_type == 'box' ? 'fas fa-square' : 'far fa-stop-circle'"></i>
+							</div>
+
 						</div>
 						<div v-show="open_tab == 'picker' || open_tab == 'both'">
-							<input id="main_colorpicker">
+							<div v-show="picker_type == 'box'">
+								<input id="main_colorpicker">
+							</div>
+							<color-wheel v-if="picker_type == 'wheel' && width" v-model="main_color" :width="width" :height="width"></color-wheel>
 							<div class="toolbar_wrapper color_picker"></div>
 						</div>
 						<div v-show="open_tab == 'palette' || open_tab == 'both'">

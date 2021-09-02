@@ -253,6 +253,9 @@ const Settings = {
 
 		//Paint
 		new Setting('sync_color',	{category: 'paint', value: false});
+		new Setting('color_wheel',	{category: 'paint', value: false, onChange(value) {
+			Interface.Panels.color.vue.picker_type = value ? 'wheel' : 'box';
+		}});
 		new Setting('paint_side_restrict',	{category: 'paint', value: true});
 		new Setting('brush_opacity_modifier', {category: 'paint', value: 'pressure', type: 'select', options: {
 			'pressure': tl('settings.brush_modifier.pressure'),

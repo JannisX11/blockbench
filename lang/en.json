@@ -642,6 +642,8 @@
 
 	"settings.sync_color": "Sync Color",
 	"settings.sync_color.desc": "Synchronize the color between different Blockbench instances",
+	"settings.color_wheel": "Color Wheel",
+	"settings.color_wheel.desc": "Use the color wheel as the main color picker",
 	"settings.paint_side_restrict": "Restrict Brush to Side",
 	"settings.paint_side_restrict.desc": "Restrict brushes to only paint on the current side",
 	"settings.image_editor": "Image Editor",
@@ -1383,6 +1385,7 @@
 	"panel.color.picker": "Picker",
 	"panel.color.palette": "Palette",
 	"panel.color.both": "Both",
+	"panel.color.picker_type": "Toggle Picker Type",
 	"panel.outliner": "Outliner",
 	"panel.chat": "Chat",
 	"panel.animations": "Animations",

@@ -295,6 +295,7 @@ BARS.defineActions(() => {
 								<a class="open-in-browser" href="https://github.com/lo-th/fullik">Full IK</a>,
 								<a class="open-in-browser" href="https://github.com/oliver-moran/jimp">Jimp</a>,
 								<a class="open-in-browser" href="https://bgrins.github.io/spectrum">Spectrum</a>,
+								<a class="open-in-browser" href="https://github.com/stijlbreuk/vue-color-picker-wheel">Vue Color Picker Wheel</a>,
 								<a class="open-in-browser" href="https://github.com/jnordberg/gif.js">gif.js</a>,
 								<a class="open-in-browser" href="https://stuk.github.io/jszip/">JSZip</a>,
 								<a class="open-in-browser" href="https://github.com/rotemdan/lzutf8.js">LZ-UTF8</a>,

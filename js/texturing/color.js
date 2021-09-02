@@ -55,8 +55,12 @@ Interface.definePanels(() => {
 			picker: Toolbars.color_picker,
 			palette: Toolbars.palette
 		},
-		onResize: t => {
+		onResize() {
 			$('#main_colorpicker').spectrum('reflow');
+			Interface.Panels.color.vue.width = 0;
+			Vue.nextTick(() => {
+				Interface.Panels.color.vue.width = this.width
+			})
 		},
 		menu: new Menu([
 			'sort_palette',
@@ -85,8 +89,11 @@ Interface.definePanels(() => {
 	}
 	Interface.Panels.color.vue = new Vue({
 		el: '#color_panel_wrapper',
-		data: {
+		data() {return {
+			width: Interface.Panels.color.width,
 			open_tab: StateMemory.color_picker_tab || 'picker',
+			picker_type: Settings.get('color_wheel') ? 'wheel' : 'box',
+			picker_toggle_label: tl('panel.color.picker_type'),
 			main_color: '#000000',
 			hover_color: '',
 			get color_code() {return this.hover_color || this.main_color},
@@ -101,10 +108,12 @@ Interface.definePanels(() => {
 			},
 			palette: (saved_colors && saved_colors.palette instanceof Array) ? saved_colors.palette : palettes.default.slice(),
 			history: (saved_colors && saved_colors.history instanceof Array) ? saved_colors.history : []
-		},
+		}},
 		methods: {
+			togglePickerType() {
+				settings.color_wheel.set(!settings.color_wheel.value);
+			},
 			sort(event) {
-				var index = event.oldIndex;
 				var item = this.palette.splice(event.oldIndex, 1)[0];
 				this.palette.splice(event.newIndex, 0, item);
 			},
