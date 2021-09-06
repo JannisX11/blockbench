@@ -1132,7 +1132,7 @@
 		right: 6px;
 		top: 9px;
 	}
-	#action_selector > div {
+	#action_selector > #action_selector_list {
 		background-color: var(--color-ui);
 		color: var(--color-text);
 		width: 340px;
@@ -1148,7 +1148,7 @@
 		overflow-y: auto;
 		overflow-x: hidden;
 	}
-	#action_selector > div > div {
+	#action_selector > #action_selector_list > div {
 		background-color: var(--color-ui);
 		color: var(--color-text);
 		height: auto;
@@ -1186,6 +1186,17 @@
 		display: inline-block;
 		height: 26px;
 		vertical-align: text-top;
+	}
+	.action_selector_type_overlay {
+		position: absolute;
+		color: transparent;
+		background-color: var(--color-ui);
+		height: 30px;
+		width: auto;
+		pointer-events: none;
+		opacity: 0.32;
+		top: 4px;
+		left: 12px;
 	}
 	@media (max-device-width: 640px) {
 		dialog#action_selector {

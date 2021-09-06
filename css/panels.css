@@ -1271,12 +1271,12 @@
 	.uv_mesh_vertex {
 		position: absolute;
 		pointer-events: initial;
-		margin: -3px;
-		height: 8px;
-		width: 8px;
-		background-color:  var(--color-light);
 		z-index: 3;
-		cursor: move;
+		margin: -6px;
+		height: 9px;
+		width: 9px;
+		background-color:  white;
+		border: 1px solid black;
 	}
 	.uv_mesh_vertex.selected {
 		background-color:  var(--color-accent);
