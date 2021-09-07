@@ -354,7 +354,7 @@ class Preview {
 					if (element.mesh.vertex_points && element.mesh.vertex_points.visible) {
 						objects.push(element.mesh.vertex_points);
 					}
-					if (element instanceof Mesh && element.mesh.outline.visible && BarItems.selection_mode.value == 'vertex') {
+					if (element instanceof Mesh && element.mesh.outline.visible && BarItems.selection_mode.value == 'line') {
 						objects.push(element.mesh.outline);
 					}
 				}
@@ -985,6 +985,21 @@ class Preview {
 								}
 							}
 
+						} else if (selection_mode == 'line') {
+							for (let fkey in element.faces) {
+								let face = element.faces[fkey];
+								let vertices = face.getSortedVertices();
+								for (let i = 0; i < vertices.length; i++) {
+									let vkey = vertices[i];
+									let vkey2 = vertices[i+1]||vertices[0];
+									let p1 = vertex_points[vkey];
+									let p2 = vertex_points[vkey2];
+									if (lineIntersectsReactangle(p1, p2, rect_start, rect_end)) {
+										selected_vertices.safePush(vkey);
+									}
+								}
+							}
+	
 						} else {
 							for (let fkey in element.faces) {
 								let face = element.faces[fkey];
@@ -2154,6 +2169,18 @@ function initCanvas() {
 		side: THREE.DoubleSide,
 		alphaTest: 0.2
 	})
+
+	// Vertex gizmos
+	var vertex_img = new Image();
+	vertex_img.src = 'assets/vertex.png';
+	vertex_img.tex = new THREE.Texture(vertex_img);
+	vertex_img.tex.magFilter = THREE.NearestFilter;
+	vertex_img.tex.minFilter = THREE.NearestFilter;
+	vertex_img.onload = function() {
+		this.tex.needsUpdate = true;
+	}
+	Canvas.meshVertexMaterial.map = vertex_img.tex;
+	Canvas.meshVertexMaterial.transparent = true;
 
 	//Rotation Pivot
 	var helper1 = new THREE.AxesHelper(2)

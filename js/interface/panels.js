@@ -232,15 +232,13 @@ function setupPanels() {
 		condition: !Blockbench.isMobile && {modes: ['animate']},
 		selection_only: true,
 		toolbars: {
-			inverse_kinematics: Toolbars.inverse_kinematics,
+			//inverse_kinematics: Toolbars.inverse_kinematics,
 		},
 		component: {
 			template: `
 				<div>
 					<p>${ tl('panel.element.origin') }</p>
 					<div class="toolbar_wrapper bone_origin"></div>
-					<p>${ tl('panel.bone.ik') }</p>
-					<div class="toolbar_wrapper inverse_kinematics"></div>
 				</div>
 			`
 		}

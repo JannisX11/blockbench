@@ -439,6 +439,8 @@ class BarMenu extends Menu {
 		this.children = [];
 		this.condition = options.condition
 		this.node = $('<ul class="contextMenu"></ul>')[0]
+		this.node.style.minHeight = '8px';
+		this.node.style.minWidth = '150px';
 		this.name = tl(options.name || `menu.${id}`);
 		this.label = $(`<li class="menu_bar_point">${this.name}</li>`)[0]
 		$(this.label).click(function() {

@@ -695,6 +695,7 @@ BARS.defineActions(function() {
 		options: {
 			object: true,
 			face: true,
+			line: true,
 			vertex: true,
 		},
 		condition: () => Format && Format.meshes,
