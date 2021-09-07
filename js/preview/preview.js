@@ -711,7 +711,11 @@ class Preview {
 
 			} else if (Toolbox.selected.selectElements && Modes.selected.selectElements && data.type === 'element') {
 				if (Toolbox.selected.selectFace && data.face) {
-					UVEditor.setFace(data.face, false)
+					if (data.element instanceof Mesh && select_mode == 'face' && (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+						UVEditor.vue.selected_faces.safePush(data.face)
+					} else {
+						UVEditor.setFace(data.face, false);
+					}
 				}
 				Blockbench.dispatchEvent('canvas_select', data)
 				if (Modes.paint) {

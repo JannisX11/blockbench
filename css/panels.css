@@ -1291,37 +1291,7 @@
 		white-space: nowrap;
 		text-align: center;
 	}
-	/*
-	#uv_size {
-		height: 320px;
-		width: 320px;
-		cursor: move;
-		box-sizing: border-box;
-		z-index: 1;
-		box-shadow: 0 0 0 1.5px #ffffff;
-		mix-blend-mode: difference;
-	}
-	.uv_size_handle {
-		position: absolute;
-		cursor: move;
-	}
-	#uv_rotation {
-		width: 72px;
-		margin-top: 1px;
-	}
-	.uv_transform_info {
-		position: absolute;
-		display: block;
-		right: 8px;
-		top: 8px;
-		font-size: 0.9em;
-		cursor: default;
-		pointer-events: none;
-		z-index: 5;
-		color: white;
-		mix-blend-mode: difference;
-		font-weight: 300;
-	}*/
+
 	.panel .bar.next_to_title {
 		margin-top: -34px;
 		margin-right: 32px;
@@ -1333,72 +1303,24 @@
 		float: right;
 		pointer-events: initial;
 	}
-	/*
-	#uv_size .ui-resizable-se:before,
-	#uv_size .ui-resizable-sw:before,
-	#uv_size .ui-resizable-ne:before,
-	#uv_size .ui-resizable-nw:before {
-		content: "";
-		position: absolute;
-		height: 7px;
-		width: 7px;
-		background-color:  var(--color-text);
-	}
-	#uv_size .ui-resizable-se,
-	#uv_size .ui-resizable-sw,
-	#uv_size .ui-resizable-ne,
-	#uv_size .ui-resizable-nw {
-		height: 9px;
-		width: 9px;
-	}
-	#uv_size .ui-resizable-se {right: -6px; bottom: -6px; z-index: 91 !important;}
-	#uv_size .ui-resizable-sw {left: -6px; bottom: -6px;}
-	#uv_size .ui-resizable-ne {right: -6px; top: -6px;}
-	#uv_size .ui-resizable-nw {left: -6px; top: -6px;}
 
-	#uv_frame:hover #uv_size .ui-resizable-handle:before {
-		background-color: white;
-	}
-	#uv_frame:hover #uv_size.dark_frame .ui-resizable-handle:before {
-		background-color: black;
-	}
-	#uv_frame:hover #uv_size .ui-resizable-handle:hover:before {
-		background-color: var(--color-accent);
-	}
-	#uv_size .ui-resizable-se:before {
-		bottom: 2px;
-		right: 2px;
-	}
-	#uv_size .ui-resizable-sw:before {
-		bottom: 2px;
-		left: 2px;
-	}
-	#uv_size .ui-resizable-ne:before {
-		top: 2px;
-		right: 2px;
-	}
-	#uv_size .ui-resizable-nw:before {
-		top: 2px;
-		left: 2px;
-	}*/
-
-	.uv_cube_face_bar {
+	#uv_cube_face_bar {
 		display: flex;
 		height: 28px;
 	}
-	.uv_cube_face_bar li {
+	#uv_cube_face_bar li {
 		flex-grow: 1;
 		text-align: center;
 		padding: 2px;
 		margin: 0 1px;
 	}
-	.uv_cube_face_bar li:hover {
+	#uv_cube_face_bar li:hover {
 		color: var(--color-light);
 	}
-	.uv_cube_face_bar li.selected {
+	#uv_cube_face_bar li.selected {
 		border-bottom: 3px solid var(--color-accent);
 	}
-	.uv_cube_face_bar li.disabled {
+	#uv_cube_face_bar li.disabled {
 		color: var(--color-subtle_text);
 	}
 

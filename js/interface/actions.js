@@ -2014,11 +2014,15 @@ const BARS = {
 			children: [
 				'transform_space',
 				'rotation_space',
+				'selection_mode',
 				'lock_motion_trail'
 			]
 		})
 		Blockbench.onUpdateTo('3.7', () => {
 			Toolbars.main_tools.add(BarItems.lock_motion_trail, -1);
+		})
+		Blockbench.onUpdateTo('4.0.0-beta.1', () => {
+			Toolbars.main_tools.add(BarItems.selection_mode, -1);
 		})
 		Toolbars.brush = new Toolbar({
 			id: 'brush',
