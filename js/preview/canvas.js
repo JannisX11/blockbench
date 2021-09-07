@@ -132,7 +132,7 @@ const Canvas = {
 			edit(Transformer)
 			edit(Canvas.outlines)
 			edit(rot_origin)
-			edit(Vertexsnap.vertexes)
+			edit(Vertexsnap.line)
 			edit(Animator.motion_trail)
 			Cube.selected.forEach(function(obj) {
 				var m = obj.mesh;

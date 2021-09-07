@@ -270,6 +270,22 @@ class Mesh extends OutlinerElement {
 		this.preview_controller.updateGeometry(this);
 		return this;
 	}
+	moveVector(arr, axis, update = true) {
+		if (typeof arr == 'number') {
+			var n = arr;
+			arr = [0, 0, 0];
+			arr[axis||0] = n;
+		} else if (arr instanceof THREE.Vector3) {
+			arr = arr.toArray();
+		}
+		arr.forEach((val, i) => {
+			this.origin[i] += val;
+		})
+		if (update) {
+			this.preview_controller.updateTransform(this);
+		}
+		TickUpdates.selection = true;
+	}
 	resize(val, axis, negative, allow_negative, bidirectional) {
 		let selected_vertices = Project.selected_vertices[this.uuid] || Object.keys(this.vertices);
 		let range = [Infinity, -Infinity];

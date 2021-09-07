@@ -1421,7 +1421,7 @@ const BARS = {
 					Vertexsnap.select()
 				},
 				onUnselect: function() {
-					Vertexsnap.removeVertexes()
+					Vertexsnap.clearVertexGizmos()
 					Vertexsnap.step1 = true
 					Blockbench.removeListener('update_selection', Vertexsnap.select)
 				}
@@ -2237,15 +2237,23 @@ const BARS = {
 				length: 0,
 				list: []
 			},
+			computed: {
+				search_type() {
+					if (this.search_input.includes(':')) {
+						let types = ['SETTINGS', 'RECENT', 'TAB']
+						let [type, search_input] = this.search_input.split(/:\s*(.*)/);
+						if (types.includes(type.toUpperCase())) {
+							return type;
+						}
+					}
+					return '';
+				}
+			},
 			methods: {
 				updateSearch() {
 					var search_input = this._data.search_input.toUpperCase()
-					var type;
-					if (search_input.includes(':')) {
-						[type, search_input] = search_input.split(/:\s*(.*)/);
-						search_input = search_input || '';
-					}
 					var list = this._data.list.empty();
+					var type = this.search_type.toUpperCase();
 					if (!type) {
 						for (var i = 0; i < Keybinds.actions.length; i++) {
 							var item = Keybinds.actions[i];
@@ -2353,6 +2361,7 @@ const BARS = {
 				<dialog id="action_selector" v-if="open">
 					<input type="text" v-model="search_input" @input="e => search_input = e.target.value" autocomplete="off" autosave="off" autocorrect="off" spellcheck="off" autocapitalize="off">
 					<i class="material-icons" id="action_search_bar_icon">search</i>
+					<div v-if="search_type" class="action_selector_type_overlay">{{ search_type }}:</div>
 					<div id="action_selector_list">
 						<ul>
 							<li v-for="(item, i) in list"

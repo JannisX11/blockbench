@@ -360,8 +360,8 @@ class Preview {
 				}
 			}
 		})
-		if (Vertexsnap.vertexes.children.length) {
-			Vertexsnap.vertexes.children.forEach(function(s) {
+		if (Vertexsnap.vertex_gizmos.children.length) {
+			Vertexsnap.vertex_gizmos.children.forEach(function(s) {
 				if (s.isVertex === true) {
 					objects.push(s)
 				}
@@ -408,7 +408,9 @@ class Preview {
 				}
 			} else if (intersect_object.type == 'Points') {
 				var element = OutlinerNode.uuids[intersect_object.parent.parent.name];
-				let vertex = Object.keys(element.vertices)[intersect.index];
+				let vertex = element instanceof Mesh
+					? Object.keys(element.vertices)[intersect.index]
+					: intersect_object.vertices[intersect.index];
 				return {
 					event,
 					type: 'vertex',
@@ -1025,6 +1027,7 @@ class Preview {
 							[element.to[0]		+ element.inflate, element.to[1]	+ element.inflate, element.to[2]	+ element.inflate],
 							[element.to[0]		+ element.inflate, element.to[1]	+ element.inflate, element.from[2]	- element.inflate],
 						].map(coords => {
+							coords.V3_subtract(element.origin);
 							vector.fromArray(coords);
 							mesh.localToWorld(vector);
 							return projectPoint(vector);
@@ -1421,7 +1424,7 @@ Preview.all = [];
 Blockbench.on('update_camera_position', e => {
 	let scale = Preview.selected.calculateControlScale(new THREE.Vector3(0, 0, 0));
 	Preview.all.forEach(preview => {
-		if (preview.canvas.isConnected && Mesh.all.length) {
+		if (preview.canvas.isConnected) {
 			preview.raycaster.params.Points.threshold = scale * 0.6;
 			preview.raycaster.params.Line.threshold = scale * 0.3;
 		}
@@ -1993,8 +1996,8 @@ function initCanvas() {
 	display_scene.name = 'display_scene'
 
 
-	scene.add(Vertexsnap.vertexes)
-	Vertexsnap.vertexes.name = 'vertex_handles'
+	scene.add(Vertexsnap.vertex_gizmos)
+	Vertexsnap.vertex_gizmos.name = 'vertex_handles'
 
 	Canvas.outlines = new THREE.Object3D();
 	Canvas.outlines.name = 'outline_group'

@@ -358,8 +358,7 @@ const UVEditor = {
 		}
 	},
 	getMappableElements() {
-		let object = 'object'
-		return Outliner.selected.filter(el => typeof el.faces == object);
+		return Outliner.selected.filter(el => typeof el.faces == 'object');
 	},
 	getUVTag(obj) {
 		if (!obj) obj = Cube.selected[0]
@@ -452,13 +451,6 @@ const UVEditor = {
 		this.displayTools();
 		this.vue.$forceUpdate();
 		return this;
-		if (Cube.selected.length === 0 && !Modes.paint) return;
-		var face = Cube.selected[0] && Cube.selected[0].faces[this.face];
-		
-		//Set Rotation
-
-		this.displayTexture(face)
-		this.displayFrame()//and transform info
 	},
 	save(pos_only) {
 		if (!Modes.edit) return;
@@ -572,16 +564,16 @@ const UVEditor = {
 		}
 	},
 	displaySliders() {
-		if (!Cube.selected.length) return;
-		this.sliders.pos_x.update()
-		this.sliders.pos_y.update()
-		this.sliders.size_x.update()
-		this.sliders.size_y.update()
+		if (!this.getMappableElements().length) return;
+		for (var id in UVEditor.sliders) {
+			var slider = UVEditor.sliders[id];
+			slider.node.style.setProperty('display', BARS.condition(slider.condition)?'block':'none');
+			slider.update();
+		}
 		let face = this.getReferenceFace();
 		BarItems.uv_rotation.set((face && face.rotation)||0)
 	},
 	displayTools() {
-		//Cullface
 		if (!Cube.selected.length) return;
 		var face = Cube.selected[0].faces[this.face]
 		BarItems.cullface.set(face.cullface||'off')
@@ -1499,7 +1491,6 @@ Interface.definePanels(function() {
 					for (var id in UVEditor.sliders) {
 						var slider = UVEditor.sliders[id];
 						slider.setWidth(size/(Project.box_uv?2:4)-1)
-						slider.node.style.setProperty('display', BARS.condition(slider.condition)?'block':'none')
 					}
 				},
 				setMode(mode) {
@@ -1755,7 +1746,7 @@ Interface.definePanels(function() {
 					let sel_vertices = this.selected_vertices[element.uuid];
 					if (sel_vertices.includes(vertex_key)) {
 
-					} else if (event.shiftvertex_key || event.ctrlOrCmd || Pressing.overrides.shift || Pressing.overrides.ctrl) {
+					} else if (event.shiftKey || event.ctrlOrCmd || Pressing.overrides.shift || Pressing.overrides.ctrl) {
 						if (sel_vertices.includes(vertex_key)) {
 							sel_vertices.remove(vertex_key);
 						} else {
@@ -1853,7 +1844,7 @@ Interface.definePanels(function() {
 						</div>
 					</div>
 
-					<div class="bar uv_cube_face_bar" v-if="mappable_elements[0] && mappable_elements[0].type == 'cube' && !box_uv">
+					<div class="bar uv_cube_face_bar" v-if="mode != 'properties' && mappable_elements[0] && mappable_elements[0].type == 'cube' && !box_uv">
 						<li v-for="(face, key) in mappable_elements[0].faces" :class="{selected: selected_faces.includes(key), disabled: mappable_elements[0].faces[key].texture === null}" @mousedown="selectFace(key, $event)">
 							{{ face_names[key] }}
 						</li>
@@ -1956,6 +1947,11 @@ Interface.definePanels(function() {
 						<span v-if="texture">{{ texture.name }}</span>
 						<span style="color: var(--color-subtle_text);">{{ Math.round(this.zoom*100).toString() + '%' }}</span>
 					</div>
+					
+					<div v-if="mode == 'properties'">
+						
+					
+					</div>
 					<div v-show="mode == 'uv'" class="bar uv_editor_sliders" ref="slider_bar" style="margin-left: 2px;"></div>
 					<div v-show="mode == 'uv'" class="toolbar_wrapper uv_editor"></div>
 				</div>
@@ -1994,7 +1990,7 @@ Interface.definePanels(function() {
 				let has_selected_vertices = selected_vertices && face.vertices.find(vkey => selected_vertices.includes(vkey))
 				let min = -Infinity;
 				face.vertices.forEach(vkey => {
-					if ((selected_vertices.includes(vkey) || !has_selected_vertices) && face.uv[vkey]) {
+					if ((!has_selected_vertices || selected_vertices.includes(vkey)) && face.uv[vkey]) {
 						min = Math.min(min, face.uv[vkey][axis]);
 					}
 				})

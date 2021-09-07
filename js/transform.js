@@ -201,115 +201,115 @@ function mirrorSelected(axis) {
 
 const Vertexsnap = {
 	step1: true,
-	vertexes: new THREE.Object3D(),
-	vertexed_cubes: [],
+	vertex_gizmos: new THREE.Object3D(),
+	line: new THREE.Line(new THREE.BufferGeometry(), Canvas.outlineMaterial),
+	elements_with_vertex_gizmos: [],
 	hovering: false,
-	createVertexGizmo(cube, vec, id) {
-		//Each vertex needs it's own material for hovering
-		let outline_color = '0x'+CustomTheme.data.colors.accent.replace('#', '')
-		let material = new THREE.MeshBasicMaterial({color: parseInt(outline_color)})
-		let geometry = id == 100 ? new THREE.SphereGeometry(1, 7, 7) : new THREE.BoxGeometry(1, 1, 1)
-		let mesh = new THREE.Mesh(geometry, material)
-
-		let pos = mesh.position.copy(vec)
-		pos.applyMatrix4(cube.mesh.matrixWorld)
-		if (!Format.centered_grid) {
-			pos.addScalar(8)
-		}
-		mesh.rotation.copy(cube.mesh.rotation)
-		if (id == 100) {
-			mesh.rotation.y += Math.PI/4;
-		}
-		mesh.element = cube
-		mesh.isVertex = true
-		mesh.vertex_id = id
-		mesh.material.transparent = true;
-		mesh.renderOrder = 999;
-		Vertexsnap.vertexes.add(mesh)
-	},
-	addVertices: function(cube) {
-		if (Vertexsnap.vertexed_cubes.includes(cube)) return;
-		if (cube.visibility === false) return;
+	addVertices: function(element) {
+		if (Vertexsnap.elements_with_vertex_gizmos.includes(element)) return;
+		if (element.visibility === false) return;
+		let {mesh} = element;
 
 		$('#preview').get(0).removeEventListener("mousemove", Vertexsnap.hoverCanvas)
 		$('#preview').get(0).addEventListener("mousemove", Vertexsnap.hoverCanvas)
 
-		var o_vertices = cube.mesh.geometry.vertices
-		cube.mesh.updateMatrixWorld()
-		/*
-		o_vertices.forEach(function(v, id) {
-			Vertexsnap.createVertexGizmo(cube, v, id)
-		})
-		Vertexsnap.createVertexGizmo(cube, new THREE.Vector3(), 100)
-		*/
-		Vertexsnap.vertexed_cubes.push(cube)
-		Vertexsnap.updateVertexSize()
-	},
-	removeVertexes: function() {
-		var i = Vertexsnap.vertexes.children.length
-		while (i >= 0) {
-			Vertexsnap.vertexes.remove(Vertexsnap.vertexes.children[i])
-			i--;
+		if (!mesh.vertex_points) {
+			mesh.updateMatrixWorld()
+			let vectors = [];
+			let positions = mesh.geometry.attributes.position.array;
+			for (let i = 0; i < positions.length; i += 3) {
+				let vec = [positions[i], positions[i+1], positions[i+2]];
+				if (!vectors.find(vec2 => vec.equals(vec2))) {
+					vectors.push(vec);
+				}
+			}
+			vectors.push([0, 0, 0]);
+			
+			let points = new THREE.Points(new THREE.BufferGeometry(), Canvas.meshVertexMaterial);
+			points.vertices = vectors;
+			let vector_positions = [];
+			vectors.forEach(vector => vector_positions.push(...vector));
+			points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vector_positions), 3));
+			points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(vectors.length).fill(0), 1));
+			mesh.vertex_points = points;
+			mesh.outline.add(points);
 		}
-		Vertexsnap.vertexed_cubes = []
+		mesh.vertex_points.visible = true;
+		
+		Vertexsnap.elements_with_vertex_gizmos.push(element)
+	},
+	clearVertexGizmos: function() {
+		Vertexsnap.elements_with_vertex_gizmos.forEach(element => {
+			if (element.mesh.vertex_points) {
+				element.mesh.vertex_points.visible = false;
+				if (element instanceof Mesh == false) {
+					element.mesh.vertex_points.parent.remove(element.mesh.vertex_points);
+					delete element.mesh.vertex_points;
+				}
+			}
+			
+		})
+		Vertexsnap.elements_with_vertex_gizmos.empty();
 		$('#preview').get(0).removeEventListener("mousemove", Vertexsnap.hoverCanvas)
 	},
 	hoverCanvas: function(event) {
+		let data = Canvas.raycast(event)
+
 		if (Vertexsnap.hovering) {
-			Vertexsnap.vertexes.children.forEach(function(v) {
-				if (v.type === 'Line') {
-					Vertexsnap.vertexes.remove(v)
-				} else {
-					v.material.color.set(parseInt('0x'+CustomTheme.data.colors.accent.replace('#', '')))
-					v.material.depthTest = true;
+			Project.model_3d.remove(Vertexsnap.line);
+			Vertexsnap.elements_with_vertex_gizmos.forEach(el => {
+				let points = el.mesh.vertex_points;
+				let colors = [];
+				for (let i = 0; i < points.geometry.attributes.position.count; i++) {
+					let color;
+					if (data && data.type == 'vertex' && data.intersect.index == i) {
+						color = gizmo_colors.outline;
+					} else {
+						color = gizmo_colors.grid;
+					}
+					colors.push(color.r, color.g, color.b);
 				}
+				points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 			})
 		}
-		let data = Canvas.raycast(event)
-		if (!data || !data.vertex) {
+		if (!data || data.type !== 'vertex') {
 			Blockbench.setStatusBarText()
 			return;
 		}
-		var vertex = data.vertex
-		vertex.material.color.g = 1
 		Vertexsnap.hovering = true
 
-		vertex.material.depthTest = false;
-
 		if (Vertexsnap.step1 === false) {
-			//Line
-			var geometry = new THREE.Geometry();
-			geometry.vertices.push(Vertexsnap.vertex_pos);
-			geometry.vertices.push(vertex.position);
-			var line = new THREE.Line(geometry, Vertexsnap.lineMaterial);
+			let {line} = Vertexsnap;
+			let {geometry} = line;
+
+			let vertex_pos = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);
+			geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([...Vertexsnap.vertex_pos.toArray(), ...vertex_pos.toArray()]), 3));
+
 			line.renderOrder = 900
-			Vertexsnap.vertexes.add(line)
+			Project.model_3d.add(Vertexsnap.line);
 			//Measure
-			var diff = new THREE.Vector3().copy(Vertexsnap.vertex_pos)
-			diff.sub(vertex.position)
-			Blockbench.setStatusBarText(tl('status_bar.vertex_distance', [trimFloatNumber(diff.length())] ))
+			var diff = new THREE.Vector3().copy(Vertexsnap.vertex_pos);
+			diff.sub(vertex_pos);
+			Blockbench.setStatusBarText(tl('status_bar.vertex_distance', [trimFloatNumber(diff.length())] ));
 		}
 	},
 	select: function() {
-		Vertexsnap.removeVertexes()
-		Cube.selected.forEach(function(obj) {
-			Vertexsnap.addVertices(obj)
+		Vertexsnap.clearVertexGizmos()
+		Outliner.selected.forEach(function(element) {
+			Vertexsnap.addVertices(element)
 		})
-		if (Cube.selected.length) {
+		if (Outliner.selected.length) {
 			$('#preview').css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
 		}
-		Vertexsnap.lineMaterial = Canvas.outlineMaterial.clone()
-		Vertexsnap.lineMaterial.depthTest = false
 	},
 	canvasClick: function(data) {
-		if (!data || !data.vertex) return;
+		if (!data || data.type !== 'vertex') return;
 
 		if (Vertexsnap.step1) {
 			Vertexsnap.step1 = false
-			Vertexsnap.vertex_pos = data.vertex.position
-			Vertexsnap.vertex_id = data.vertex.vertex_id
-			Vertexsnap.cubes = Cube.selected.slice()
-			Vertexsnap.removeVertexes()
+			Vertexsnap.vertex_pos = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);
+			Vertexsnap.elements = Outliner.selected.slice()
+			Vertexsnap.clearVertexGizmos()
 			$('#preview').css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
 
 		} else {
@@ -318,26 +318,32 @@ const Vertexsnap = {
 		}
 		Blockbench.setStatusBarText()
 	},
+	getGlobalVertexPos(element, vertex) {
+		let vector = new THREE.Vector3();
+		vector.fromArray(vertex instanceof Array ? vertex : element.vertices[vertex]);
+		element.mesh.localToWorld(vector);
+		return vector;
+	},
 	snap: function(data) {
-		Undo.initEdit({elements: Vertexsnap.cubes})
+		Undo.initEdit({elements: Vertexsnap.elements})
 
 		let mode = BarItems.vertex_snap_mode.get()
 
 		if (Vertexsnap.vertex_id === 100) {
 
-			Vertexsnap.cubes.forEach(function(cube) {
-				let vec = new THREE.Vector3().copy(data.vertex.position)
+			Vertexsnap.elements.forEach(function(element) {
+				let vec = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);
 
-				if (Format.bone_rig && cube.parent instanceof Group && cube.mesh.parent) {
-					cube.mesh.parent.worldToLocal(vec);
+				if (Format.bone_rig && element.parent instanceof Group && element.mesh.parent) {
+					//element.mesh.parent.worldToLocal(vec);
 				}
 				let vec_array = vec.toArray()
-				vec_array.V3_add(cube.parent.origin);
-				cube.transferOrigin(vec_array)
+				vec_array.V3_add(element.parent.origin);
+				element.transferOrigin(vec_array)
 			})
 		} else {
 
-			var global_delta = data.vertex.position
+			var global_delta = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);
 			global_delta.sub(Vertexsnap.vertex_pos)
 
 			if (mode === 'scale' && !Format.integer_size) {
@@ -355,7 +361,7 @@ const Vertexsnap = {
 					case 7: m=[ 0,0,1 ]; break;
 				}
 
-				Vertexsnap.cubes.forEach(function(obj) {
+				Vertexsnap.elements.forEach(function(obj) {
 					var q = obj.mesh.getWorldQuaternion(new THREE.Quaternion()).invert()
 					var cube_pos = new THREE.Vector3().copy(global_delta).applyQuaternion(q)
 
@@ -371,7 +377,7 @@ const Vertexsnap = {
 					}
 				})
 			} else if (mode === 'move') {
-				Vertexsnap.cubes.forEach(function(obj) {
+				Vertexsnap.elements.forEach(function(obj) {
 					var cube_pos = new THREE.Vector3().copy(global_delta)
 
 					if (Format.bone_rig && obj.parent instanceof Group && obj.mesh.parent) {
@@ -390,24 +396,12 @@ const Vertexsnap = {
 
 		}
 
-		Vertexsnap.removeVertexes()
+		Vertexsnap.clearVertexGizmos()
 		Canvas.updateAllPositions()
 		Undo.finishEdit('Use vertex snap')
 		Vertexsnap.step1 = true
-	},
-	updateVertexSize: function() {
-		if (!Preview.selected) return;
-		Vertexsnap.vertexes.children.forEach(function(v,i) {
-			let scale = Preview.selected.calculateControlScale(v.position) * 0.6;
-			v.scale.set(scale, scale, scale);
-		})
 	}
 }
-Blockbench.on('update_camera_position resize_window', e => {
-	if (Toolbox && Toolbox.selected.id == 'vertex_snap_tool') {
-		Vertexsnap.updateVertexSize();
-	}
-})
 //Scale
 function scaleAll(save, size) {
 	if (save === true) {
@@ -554,26 +548,21 @@ function scaleAllSelectOverflow() {
 	updateSelection();
 }
 //Center
-function centerCubesAll(axis) {
-	centerCubes(0, false)
-	centerCubes(1, false)
-	centerCubes(2, false)
+function centerElementsAll(axis) {
+	centerElements(0, false)
+	centerElements(1, false)
+	centerElements(2, false)
 	Canvas.updatePositions()
 }
-function centerCubes(axis, update) {
+function centerElements(axis, update) {
 	if (!selected.length) return;
-	var average = 0;
-	selected.forEach(function(obj) {
-		if (obj.movable) average += obj.from[axis]
-		if (obj.resizable) average += obj.to[axis]
-	})
-	average = average / (selected.length * 2)
-	var difference = (Format.centered_grid ? 0 : 8) - average
+	let center = getSelectionCenter()[axis];
+	var difference = (Format.centered_grid ? 0 : 8) - center
 
 	selected.forEach(function(obj) {
-		if (obj.movable) obj.from[axis] = limitToBox(obj.from[axis] + difference, obj.inflate);
-		if (obj.resizable) obj.to[axis] =  limitToBox(obj.to[axis] 	+ difference, obj.inflate);
-		if (obj.origin) obj.origin[axis] += difference;
+		if (obj.movable) obj.origin[axis] += difference;
+		if (obj.to) obj.to[axis] = limitToBox(obj.to[axis] + difference, obj.inflate);
+		if (obj instanceof Cube) obj.from[axis] = limitToBox(obj.from[axis] + difference, obj.inflate);
 	})
 
 	if (update !== false) {
@@ -1472,7 +1461,7 @@ BARS.defineActions(function() {
 		category: 'transform',
 		click: function () {
 			Undo.initEdit({elements: selected});
-			centerCubes(0);
+			centerElements(0);
 			Undo.finishEdit('Center selection on X axis')
 		}
 	})
@@ -1483,7 +1472,7 @@ BARS.defineActions(function() {
 		category: 'transform',
 		click: function () {
 			Undo.initEdit({elements: selected});
-			centerCubes(1);
+			centerElements(1);
 			Undo.finishEdit('Center selection on Y axis')
 		}
 	})
@@ -1494,7 +1483,7 @@ BARS.defineActions(function() {
 		category: 'transform',
 		click: function () {
 			Undo.initEdit({elements: selected});
-			centerCubes(2);
+			centerElements(2);
 			Undo.finishEdit('Center selection on Z axis')
 		}
 	})
@@ -1503,7 +1492,7 @@ BARS.defineActions(function() {
 		category: 'transform',
 		click: function () {
 			Undo.initEdit({elements: selected});
-			centerCubesAll();
+			centerElementsAll();
 			Undo.finishEdit('Center selection')
 		}
 	})
