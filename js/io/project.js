@@ -453,7 +453,7 @@ onVueSetup(() => {
 				setStartScreen(true);
 			},
 			searchTabs() {
-				ActionControl.select('tab:');
+				ActionControl.select('tab: ');
 			},
 			mouseDown(tab, e1) {
 				convertTouchEvent(e1);

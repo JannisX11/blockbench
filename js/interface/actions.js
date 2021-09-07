@@ -2126,12 +2126,12 @@ const BARS = {
 				},
 				computed: {
 					searchedBarItems() {
-						var term = this.search_term.toUpperCase();
+						var term = this.search_term.toLowerCase();
 						var list = [];
 						if (this.open_category == 'separators' || term) {
 							if (term) {
 								list = this.separators.filter(item => {
-									return item.name.toUpperCase().includes(term)
+									return item.name.toLowerCase().includes(term)
 								})
 							} else {
 								list = this.separators;
@@ -2143,8 +2143,8 @@ const BARS = {
 
 							if (term) {
 								if (
-									item.name.toUpperCase().includes(term) ||
-									item.id.toUpperCase().includes(term)
+									item.name.toLowerCase().includes(term) ||
+									item.id.toLowerCase().includes(term)
 								) {
 									list.push(item)
 								}
@@ -2241,9 +2241,9 @@ const BARS = {
 			computed: {
 				search_type() {
 					if (this.search_input.includes(':')) {
-						let types = ['SETTINGS', 'RECENT', 'TAB']
+						let types = ['settings', 'recent', 'tab', '+plugin', '-plugin']
 						let [type, search_input] = this.search_input.split(/:\s*(.*)/);
-						if (types.includes(type.toUpperCase())) {
+						if (types.includes(type.toLowerCase())) {
 							return type;
 						}
 					}
@@ -2252,32 +2252,38 @@ const BARS = {
 			},
 			methods: {
 				updateSearch() {
-					var search_input = this._data.search_input.toUpperCase()
 					var list = this._data.list.empty();
-					var type = this.search_type.toUpperCase();
+					var type = this.search_type.toLowerCase();
+					var search_input = this._data.search_input.toLowerCase()
+					search_input = search_input.replace(type+':', '').trim();
+
+					if (!type) {
+						if ('+plugin'.includes(search_input) || BarItems.add_plugin.name.includes(search_input)) list.push(BarItems.add_plugin);
+						if ('-plugin'.includes(search_input) || BarItems.remove_plugin.name.includes(search_input)) list.push(BarItems.remove_plugin);
+					}
 					if (!type) {
 						for (var i = 0; i < Keybinds.actions.length; i++) {
 							var item = Keybinds.actions[i];
 							if (
 								search_input.length == 0 ||
-								item.name.toUpperCase().includes(search_input) ||
-								item.id.toUpperCase().includes(search_input)
+								item.name.toLowerCase().includes(search_input) ||
+								item.id.toLowerCase().includes(search_input)
 							) {
 								if (item instanceof Action && Condition(item.condition)) {
-									list.push(item)
+									list.safePush(item)
 									if (list.length > ActionControl.max_length) break;
 								}
 							}
 						}
 					}
-					if (!type || type == 'SETTINGS') {
+					if (!type || type == 'settings') {
 						if (list.length <= ActionControl.max_length) {
 							for (let key in settings) {
 								let setting = settings[key];
 								if (
 									search_input.length == 0 ||
-									setting.name.toUpperCase().includes(search_input) ||
-									key.toUpperCase().includes(search_input)
+									setting.name.toLowerCase().includes(search_input) ||
+									key.toLowerCase().includes(search_input)
 								) {
 									if (Condition(setting.condition)) {
 										list.push(setting)
@@ -2287,12 +2293,12 @@ const BARS = {
 							}
 						}
 					}
-					if (isApp && type == 'RECENT') {
+					if (isApp && type == 'recent') {
 						if (list.length <= ActionControl.max_length) {
 							for (let project of recent_projects) {
 								if (
 									search_input.length == 0 ||
-									project.path.toUpperCase().includes(search_input)
+									project.path.toLowerCase().includes(search_input)
 								) {
 									list.push({
 										name: project.name,
@@ -2306,24 +2312,42 @@ const BARS = {
 							}
 						}
 					}
-					if (isApp && type == 'TAB') {
-						if (list.length <= ActionControl.max_length) {
-							for (let project of ModelProject.all) {
-								if (
-									search_input.length == 0 ||
-									project.name.toUpperCase().includes(search_input) ||
-									project.geometry_name.toUpperCase().includes(search_input)
-								) {
-									list.push({
-										name: project.name || project.geometry_name || project.format.name,
-										icon: project.format.icon,
-										description: project.path,
-										keybind_label: Modes.options[project.mode].name,
-										uuid: project.uuid,
-										type: 'project_tab'
-									})
-									if (list.length > ActionControl.max_length) break;
-								}
+					if (type == 'tab') {
+						for (let project of ModelProject.all) {
+							if (
+								search_input.length == 0 ||
+								project.name.toLowerCase().includes(search_input) ||
+								project.geometry_name.toLowerCase().includes(search_input)
+							) {
+								list.push({
+									name: project.name || project.geometry_name || project.format.name,
+									icon: project.format.icon,
+									description: project.path,
+									keybind_label: Modes.options[project.mode].name,
+									uuid: project.uuid,
+									type: 'project_tab'
+								})
+								if (list.length > ActionControl.max_length) break;
+							}
+						}
+					}
+					if (type.substr(1) == 'plugin') {
+						for (let plugin of Plugins.all) {
+							if (
+								plugin.installed == (type[0] == '-') &&
+								(search_input.length == 0 ||
+								plugin.name.toLowerCase().includes(search_input) ||
+								plugin.description.toLowerCase().includes(search_input))
+							) {
+								list.push({
+									name: plugin.name,
+									icon: plugin.icon,
+									description: plugin.description,
+									keybind_label: plugin.author,
+									id: plugin.id,
+									type: 'plugin'
+								})
+								if (list.length > ActionControl.max_length) break;
 							}
 						}
 					}
@@ -2449,6 +2473,14 @@ const ActionControl = {
 			})
 		} else if (action.type == 'project_tab') {
 			ModelProject.all.find(p => p.uuid == action.uuid).select();
+		} else if (action.type == 'plugin') {
+			let plugin = Plugins.all.find(plugin => plugin.id == action.id);
+			if (plugin.installed) {
+				plugin.uninstall();
+			} else {
+				plugin.download(true);
+			}
+
 		} else {
 			action.trigger(e);
 		}

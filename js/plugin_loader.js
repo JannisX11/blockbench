@@ -74,6 +74,9 @@ class Plugin {
 		Merge.function(this, data, 'onuninstall')
 		return this;
 	}
+	get name() {
+		return this.title;
+	}
 	async install(first, cb) {
 		var scope = this;
 		Plugins.registered[this.id] = this;
@@ -626,6 +629,20 @@ BARS.defineActions(function() {
 			Blockbench.textPrompt('URL', '', url => {
 				new Plugin().loadFromURL(url, true)
 			})
+		}
+	})
+	new Action('add_plugin', {
+		icon: 'add',
+		category: 'blockbench',
+		click: function () {
+			setTimeout(_ => ActionControl.select('+plugin: '), 1);
+		}
+	})
+	new Action('remove_plugin', {
+		icon: 'remove',
+		category: 'blockbench',
+		click: function () {
+			setTimeout(_ => ActionControl.select('-plugin: '), 1);
 		}
 	})
 })

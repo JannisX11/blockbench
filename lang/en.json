@@ -864,6 +864,10 @@
 	"action.action_control.desc": "Search and execute any available action",
 	"action.edit_session": "Edit Session...",
 	"action.edit_session.desc": "Connect to an edit session to collaborate with other users",
+	"action.add_plugin": "Install Plugin",
+	"action.add_plugin.desc": "Install a plugin through Action Control",
+	"action.remove_plugin": "Uninstall Plugin",
+	"action.remove_plugin.desc": "Uninstall a plugin through Action Control",
 
 	"action.load_plugin": "Load Plugin from File",
 	"action.load_plugin.desc": "Load a plugin by importing the source file",
