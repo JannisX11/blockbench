@@ -127,13 +127,12 @@ class Texture {
 
 				}
 			}`
-
 		var mat = new THREE.ShaderMaterial({
 			uniforms: {
 				map: {type: 't', value: tex},
 				SHADE: {type: 'bool', value: settings.shading.value},
 				BRIGHTNESS: {type: 'bool', value: settings.brightness.value / 50},
-				EMISSIVE: {type: 'bool', value: tex.render_mode == 'emissive'}
+				EMISSIVE: {type: 'bool', value: this.render_mode == 'emissive'}
 			},
 			vertexShader: vertShader,
 			fragmentShader: fragShader,

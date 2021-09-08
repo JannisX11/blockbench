@@ -342,6 +342,7 @@ class Mesh extends OutlinerElement {
 		'create_face',
 		'invert_face',
 		'_',
+		'merge_meshes',
 		'group_elements',
 		'_',
 		'copy',
@@ -598,7 +599,8 @@ new NodePreviewController(Mesh, {
 
 		for (let key in element.faces) {
 			let face = element.faces[key];
-			
+			if (face.vertices.length <= 2) continue;
+
 			face.vertices.forEach((key, i) => {
 				uv_array.push(
 					  ((face.uv[key] ? face.uv[key][0] : 0) / Project.texture_width),
@@ -905,11 +907,9 @@ BARS.defineActions(function() {
 
 				// Create Face between extruded line
 				for (let fkey in mesh.faces) {
-					console.log(remaining_vertices.length);
 					if (remaining_vertices.length < 2) break;
 					let face = mesh.faces[fkey];
 					let matched_vertices = face.vertices.filter(vkey => remaining_vertices.includes(new_vertices[original_vertices.indexOf(vkey)]));
-					console.log(matched_vertices);
 					if (matched_vertices.length >= 2) {
 						let [a, b] = matched_vertices.map(vkey => new_vertices[original_vertices.indexOf(vkey)]);
 						let [c, d] = matched_vertices;
@@ -1277,7 +1277,6 @@ BARS.defineActions(function() {
 							} else if (!b) {
 								b = vertex_keys[1];
 							}
-							console.log(a, b, m)
 							mesh.addFaces(new MeshFace( mesh, {vertices: [a, b, m]} ));
 						}
 					}

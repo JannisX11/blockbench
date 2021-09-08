@@ -68,6 +68,15 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		this.client_entity = this.getEntityFile();
 		if (this.client_entity && this.client_entity.description) {
 
+			let render_mode;
+			let {materials} = this.client_entity.description;
+			if (materials) {
+				let [key] = Object.keys(materials);
+				if (typeof materials[key] == 'string' && materials[key].includes('emissive')) {
+					render_mode = 'emissive'
+				}
+			}
+
 			// Textures
 			var tex_list = this.client_entity.description.textures
 			if (tex_list instanceof Object) {
@@ -85,7 +94,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 					}
 				}
 				if (valid_textures_list.length == 1) {
-					new Texture({keep_size: true}).fromPath(valid_textures_list[0]).add()
+					new Texture({keep_size: true, render_mode}).fromPath(valid_textures_list[0]).add()
 
 				} else if (valid_textures_list.length > 1) {
 					setTimeout(() => {this.project.whenNextOpen(() => {
@@ -105,11 +114,11 @@ window.BedrockEntityManager = class BedrockEntityManager {
 								dialog.hide();
 								if (index == 1) {
 									valid_textures_list.forEach(path => {
-										new Texture({keep_size: true}).fromPath(path).add()
+										new Texture({keep_size: true, render_mode}).fromPath(path).add()
 									})
 								} else if (index == 0) {
 									selected_textures.forEach(i => {
-										new Texture({keep_size: true}).fromPath(valid_textures_list[i]).add()
+										new Texture({keep_size: true, render_mode}).fromPath(valid_textures_list[i]).add()
 									})
 								}
 							}

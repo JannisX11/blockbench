@@ -1277,6 +1277,7 @@
 		width: 9px;
 		background-color:  white;
 		border: 1px solid black;
+		cursor: move;
 	}
 	.uv_mesh_vertex.selected {
 		background-color:  var(--color-accent);

@@ -2389,7 +2389,7 @@ const BARS = {
 			template: `
 				<dialog id="action_selector" v-if="open">
 					<input type="text" v-model="search_input" @input="e => search_input = e.target.value" autocomplete="off" autosave="off" autocorrect="off" spellcheck="false" autocapitalize="off">
-					<i class="material-icons" id="action_search_bar_icon">search</i>
+					<i class="material-icons" id="action_search_bar_icon" @click="search_input = ''">{{ search_input ? 'clear' : 'search' }}</i>
 					<div v-if="search_type" class="action_selector_type_overlay">{{ search_type }}:</div>
 					<div id="action_selector_list">
 						<ul>
@@ -2499,17 +2499,35 @@ const ActionControl = {
 		if (e.altKey) {
 			ActionControl.vue.$forceUpdate()
 		}
+		function updateScroll() {
+			Vue.nextTick(() => {
+				let list = document.querySelector('#action_selector_list ul');
+				let node = list && list.children[data.index];
+				if (!node) return;
+
+				var list_pos = $(list).offset().top;
+				var el_pos = $(node).offset().top;
+
+				if (el_pos < list_pos) {
+					list.scrollTop += el_pos - list_pos;
+				} else if (el_pos > list.clientHeight + list_pos - 20) {
+					list.scrollTop += el_pos - (list.clientHeight + list_pos) + 30;
+				}
+			})
+		}
 
 		if (e.which === 38) {
 			data.index--;
 			if (data.index < 0) {
 				data.index = data.length-1;
 			}
+			updateScroll();
 		} else if (e.which === 40) {
 			data.index++;
 			if (data.index >= data.length) {
 				data.index = 0;
 			}
+			updateScroll();
 		} else {
 			return false;
 		}

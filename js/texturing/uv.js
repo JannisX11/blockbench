@@ -1559,7 +1559,7 @@ Interface.definePanels(function() {
 						pos[1] = Math.round((e1.clientY - event.clientY) / step_y) / snap;
 
 						if (pos[0] != last_pos[0] || pos[1] != last_pos[1]) {
-							onDrag(pos[0] - last_pos[0], pos[1] - last_pos[1])
+							onDrag(pos[0] - last_pos[0], pos[1] - last_pos[1], e1)
 							last_pos.replace(pos);
 							UVEditor.displaySliders();
 							UVEditor.loadData();
@@ -1682,7 +1682,7 @@ Interface.definePanels(function() {
 
 					this.drag({
 						event,
-						onDrag: (x, y) => {
+						onDrag: (x, y, event) => {
 							elements.forEach(element => {
 								this.selected_faces.forEach(key => {
 									let face = element.faces[key];
@@ -1690,6 +1690,11 @@ Interface.definePanels(function() {
 										if (this.selected_vertices[element.uuid] && this.selected_vertices[element.uuid].includes(vertex_key)) {
 											face.uv[vertex_key][0] += x;
 											face.uv[vertex_key][1] += y;
+											if ((event.shiftKey || Pressing.overrides.shift) && !(event.ctrlOrCmd || Pressing.overrides.ctrl)) {
+												let multiplier = settings.shift_size.value / 16
+												face.uv[vertex_key][0] = Math.round(face.uv[vertex_key][0] * multiplier) / multiplier;
+												face.uv[vertex_key][1] = Math.round(face.uv[vertex_key][1] * multiplier) / multiplier;
+											}
 										}
 									})
 								})
