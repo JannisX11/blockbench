@@ -903,6 +903,25 @@ BARS.defineActions(function() {
 					if (vertices.length == 2) delete mesh.faces[selected_face_keys[face_index]];
 				})
 
+				// Create Face between extruded line
+				for (let fkey in mesh.faces) {
+					console.log(remaining_vertices.length);
+					if (remaining_vertices.length < 2) break;
+					let face = mesh.faces[fkey];
+					let matched_vertices = face.vertices.filter(vkey => remaining_vertices.includes(new_vertices[original_vertices.indexOf(vkey)]));
+					console.log(matched_vertices);
+					if (matched_vertices.length >= 2) {
+						let [a, b] = matched_vertices.map(vkey => new_vertices[original_vertices.indexOf(vkey)]);
+						let [c, d] = matched_vertices;
+						let new_face = new MeshFace(mesh, face).extend({
+							vertices: [b, a, c, d]
+						});
+						mesh.addFaces(new_face);
+						remaining_vertices.remove(a);
+						remaining_vertices.remove(b);
+					}
+				}
+
 				remaining_vertices.forEach(a => {
 					let b = original_vertices[new_vertices.indexOf(a)]
 					let new_face = new MeshFace(mesh, {

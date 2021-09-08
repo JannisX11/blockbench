@@ -345,6 +345,7 @@ BARS.defineActions(() => {
 		category: 'blockbench',
 		click: function () {
 			Keybinds.dialog.show();
+			document.querySelector('dialog#keybindings .search_bar > input').focus();
 		}
 	})
 	new Action('load_keymap', {

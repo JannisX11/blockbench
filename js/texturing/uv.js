@@ -1542,7 +1542,7 @@ Interface.definePanels(function() {
 						}
 					}
 				},
-				drag({event, onDrag, onEnd}) {
+				drag({event, onDrag, onEnd, onAbort}) {
 					if (event.which == 2 || event.which == 3) return;
 					let scope = this;
 
@@ -1576,6 +1576,7 @@ Interface.definePanels(function() {
 							onEnd();
 							setTimeout(() => scope.dragging_uv = false, 10);
 						} else {
+							if (onAbort) onAbort();
 							Undo.cancelEdit();
 						}
 					}
@@ -1663,9 +1664,10 @@ Interface.definePanels(function() {
 
 					if (!this.selected_vertices[element.uuid]) this.selected_vertices[element.uuid] = [];
 					let sel_vertices = this.selected_vertices[element.uuid];
+					let add_to_selection = (event.shiftKey || event.ctrlOrCmd || Pressing.overrides.shift || Pressing.overrides.ctrl);
 					if (sel_vertices.includes(vertex_key)) {
 
-					} else if (event.shiftKey || event.ctrlOrCmd || Pressing.overrides.shift || Pressing.overrides.ctrl) {
+					} else if (add_to_selection) {
 						if (sel_vertices.includes(vertex_key)) {
 							sel_vertices.remove(vertex_key);
 						} else {
@@ -1695,6 +1697,11 @@ Interface.definePanels(function() {
 						},
 						onEnd: () => {
 							Undo.finishEdit('Move UV');
+						},
+						onAbort() {
+							if (!add_to_selection) {
+								sel_vertices.replace([vertex_key]);
+							}
 						}
 					})
 				},

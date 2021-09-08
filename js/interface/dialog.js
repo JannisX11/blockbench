@@ -572,19 +572,18 @@ window.Dialog = class Dialog {
 		
 
 		if (this.sidebar) {
-			let menu_button = document.createElement('div');
-			menu_button.className = 'dialog_sidebar_menu_button';
-			menu_button.append(Blockbench.getIconNode('menu'));
-			menu_button.addEventListener('click', event => {
-				//this.sidebar.open = !this.sidebar.open;
-				this.sidebar.toggle();
-				//wrapper.classList.toggle('hide_sidebar', !this.sidebar.open);
-			})
-			handle.prepend(menu_button);
+			if (window.innerWidth < 920) {
+				let menu_button = document.createElement('div');
+				menu_button.className = 'dialog_sidebar_menu_button';
+				menu_button.append(Blockbench.getIconNode('menu'));
+				menu_button.addEventListener('click', event => {
+					this.sidebar.toggle();
+				})
+				handle.prepend(menu_button);
+			}
 
 			let sidebar = this.sidebar.build();
 			wrapper.append(sidebar);
-			//wrapper.classList.add('has_sidebar');
 			wrapper.classList.toggle('has_sidebar', this.sidebar.open);
 		}
 

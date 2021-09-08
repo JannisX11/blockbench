@@ -559,16 +559,19 @@ class Texture {
 		} else {
 			var arr = path.split(osfs)
 			this.folder = arr[arr.length-2]
-			if (Format.id === 'java_block' && isApp) {
+			if (Format.id === 'java_block' && isApp && settings.dialog_loose_texture.value) {
 				Blockbench.showMessageBox({
 					translateKey: 'loose_texture',
 					icon: 'folder_open',
-					buttons: [tl('message.loose_texture.change'), tl('dialog.ok')],
+					buttons: [tl('message.loose_texture.change'), tl('dialog.ok'), tl('dialog.dontshowagain')],
 					confirm: 0,
 					cancel: 1
 				}, result => {
 					if (result === 0) {
 						this.reopen()
+					}
+					if (result === 2) {
+						settings.dialog_loose_texture.set(false);
 					}
 				})
 			}

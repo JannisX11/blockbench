@@ -956,7 +956,7 @@ class Preview {
 		unselectAll()
 		Outliner.elements.forEach((element) => {
 			let isSelected;
-			if (extend_selection && scope.selection.old_selected.includes(element)) {
+			if (extend_selection && scope.selection.old_selected.includes(element) && (element instanceof Mesh == false || selection_mode == 'object')) {
 				isSelected = true
 
 			} else if (element.visibility) {
@@ -984,7 +984,10 @@ class Preview {
 						if (selection_mode == 'vertex') {
 							for (let vkey in element.vertices) {
 								let point = vertex_points[vkey];
-								if (pointInRectangle(point, rect_start, rect_end)) {
+								if (
+									(extend_selection && this.selection.old_vertices_selected[element.uuid] && this.selection.old_vertices_selected[element.uuid].includes(vkey)) ||
+									pointInRectangle(point, rect_start, rect_end)
+								) {
 									selected_vertices.safePush(vkey);
 								}
 							}
@@ -2174,6 +2177,7 @@ function initCanvas() {
 		alphaTest: 0.2
 	})
 
+	/*
 	// Vertex gizmos
 	var vertex_img = new Image();
 	vertex_img.src = 'assets/vertex.png';
@@ -2185,6 +2189,7 @@ function initCanvas() {
 	}
 	Canvas.meshVertexMaterial.map = vertex_img.tex;
 	Canvas.meshVertexMaterial.transparent = true;
+	*/
 
 	//Rotation Pivot
 	var helper1 = new THREE.AxesHelper(2)

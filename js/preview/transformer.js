@@ -648,6 +648,8 @@
 				this.getWorldPosition(worldPosition)
 				this.setScale(this.getScale());
 
+				_gizmo.rotate.children[0].children[6].visible = !(Format && Format.rotation_limit && Modes.edit);
+
 				// Origin
 				let scale = scope.camera.preview.calculateControlScale(rot_origin.getWorldPosition(new THREE.Vector3())) * settings.origin_size.value * 0.2;
 				rot_origin.scale.set( scale, scale, scale );

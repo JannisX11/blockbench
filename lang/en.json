@@ -657,10 +657,7 @@
 	"settings.brush_modifier.tilt": "Tilt",
 	"settings.brush_modifier.none": "None",
 
-	"settings.dialog_larger_cubes": "Model Too Large",
-	"settings.dialog_larger_cubes.desc": "Show \"Model Too Large\" dialog",
-	"settings.dialog_rotation_limit": "Rotation Limits",
-	"settings.dialog_rotation_limit.desc": "Show \"Rotation Limits\" dialog",
+	"settings.dialog.desc": "Show the \"%0\" dialog",
 
 	"settings.minifiedout": "Minified Export",
 	"settings.minifiedout.desc": "Write JSON file in one line",

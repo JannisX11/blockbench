@@ -2245,7 +2245,7 @@ const BARS = {
 			computed: {
 				search_type() {
 					if (this.search_input.includes(':')) {
-						let types = ['settings', 'recent', 'tab', '+plugin', '-plugin']
+						let types = ['setting', 'settings', 'recent', 'tab', '+plugin', '-plugin']
 						let [type, search_input] = this.search_input.split(/:\s*(.*)/);
 						if (types.includes(type.toLowerCase())) {
 							return type;
@@ -2280,7 +2280,7 @@ const BARS = {
 							}
 						}
 					}
-					if (!type || type == 'settings') {
+					if (!type || type == 'settings' || type == 'setting') {
 						if (list.length <= ActionControl.max_length) {
 							for (let key in settings) {
 								let setting = settings[key];
@@ -2388,7 +2388,7 @@ const BARS = {
 			},
 			template: `
 				<dialog id="action_selector" v-if="open">
-					<input type="text" v-model="search_input" @input="e => search_input = e.target.value" autocomplete="off" autosave="off" autocorrect="off" spellcheck="off" autocapitalize="off">
+					<input type="text" v-model="search_input" @input="e => search_input = e.target.value" autocomplete="off" autosave="off" autocorrect="off" spellcheck="false" autocapitalize="off">
 					<i class="material-icons" id="action_search_bar_icon">search</i>
 					<div v-if="search_type" class="action_selector_type_overlay">{{ search_type }}:</div>
 					<div id="action_selector_list">

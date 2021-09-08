@@ -276,8 +276,9 @@ const Settings = {
 		new Setting('animation_snap',{category: 'defaults', value: 24, type: 'number'});
 		
 		//Dialogs
-		new Setting('dialog_larger_cubes', {category: 'dialogs', value: true});
-		new Setting('dialog_rotation_limit', {category: 'dialogs', value: true});
+		new Setting('dialog_larger_cubes', 		{category: 'dialogs', value: true, name: tl('message.model_clipping.title'), description: tl('settings.dialog.desc', [tl('message.model_clipping.title')])});
+		new Setting('dialog_rotation_limit', 	{category: 'dialogs', value: true, name: tl('message.rotation_limit.title'), description: tl('settings.dialog.desc', [tl('message.rotation_limit.title')])});
+		new Setting('dialog_loose_texture', 	{category: 'dialogs', value: true, name: tl('message.loose_texture.title'), description: tl('settings.dialog.desc', [tl('message.loose_texture.title')])});
 		
 		//Application
 		new Setting('recent_projects', {category: 'application', value: 12, max: 128, min: 0, type: 'number', condition: isApp});
@@ -409,6 +410,7 @@ BARS.defineActions(() => {
 				}
 			}
 			Settings.dialog.show()
+			document.querySelector('dialog#settings .search_bar > input').focus()
 		}
 	})
 	
