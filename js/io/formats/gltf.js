@@ -140,11 +140,7 @@ var codec = new Codec('gltf', {
 		let gl_scene = new THREE.Scene();
 		gl_scene.name = 'blockbench_export'
 
-		scene.children.forEachReverse(object => {
-			if (object.isGroup || object.isElement) {
-				gl_scene.add(object);
-			}
-		});
+		gl_scene.add(Project.model_3d);
 		if (!Modes.edit) {
 			Animator.showDefaultPose();
 		}
@@ -156,11 +152,7 @@ var codec = new Codec('gltf', {
 			scope.dispatchEvent('compile', {model: json, options});
 			callback(JSON.stringify(json));
 
-			gl_scene.children.forEachReverse(object => {
-				if (object.isGroup || object.isElement) {
-					scene.add(object);
-				}
-			});
+			scene.add(Project.model_3d);
 		}, {
 			animations,
 			onlyVisible: false,

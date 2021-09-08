@@ -390,7 +390,6 @@ if (isApp) {
 Plugins.loading_promise = new Promise((resolve, reject) => {
 	$.getJSON('https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins.json?'+Math.round(Math.random()*99), function(data) {
 		Plugins.json = data
-		console.log(data.minecraft_entity_wizard)
 		resolve();
 		Plugins.loading_promise.resolved = true;
 	}).fail(function() {

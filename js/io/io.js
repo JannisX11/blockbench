@@ -11,7 +11,7 @@ function setupDragHandlers() {
 	)
 	Blockbench.addDragHandler(
 		'style',
-		{extensions: ['bbstyle', 'bbtheme']},
+		{extensions: ['bbtheme']},
 		function(files) {
 			CustomTheme.import(files[0]);
 		}

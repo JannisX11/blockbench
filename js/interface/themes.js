@@ -49,6 +49,8 @@ const CustomTheme = {
 							let data = JSON.parse(file.content);
 							data.id = file.name.replace(/\.\w+$/, '');
 							if (!data.name) data.name = data.id;
+							data.sideloaded = true;
+							data.path = file.path;
 							CustomTheme.themes.push(data);
 
 						})
@@ -157,6 +159,21 @@ const CustomTheme = {
 							style[`--color-${key}`] = theme.colors[key];
 						}
 						return style;
+					},
+					openContextMenu(theme, event) {
+						if (!theme.sideloaded) return;
+						let menu = new Menu([
+							{
+								name: 'generic.remove',
+								icon: 'clear',
+								click: () => {
+									this.themes.remove(theme);
+									CustomTheme.sideloaded_themes.remove(theme.path);
+									localStorage.setItem('themes_sideloaded', JSON.stringify(CustomTheme.sideloaded_themes));
+								}
+							}
+						])
+						menu.open(event);
 					}
 				},
 				computed: {
@@ -174,7 +191,7 @@ const CustomTheme = {
 							<h2 class="i_b">${tl('layout.select')}</h2>
 
 							<div id="theme_list">
-								<div v-for="theme in listed_themes" :key="theme.id" class="theme" :class="{selected: theme.id == data.id}" @click="selectTheme(theme)">
+								<div v-for="theme in listed_themes" :key="theme.id" class="theme" :class="{selected: theme.id == data.id}" @click="selectTheme(theme)" @contextmenu="openContextMenu(theme, $event)">
 									<div class="theme_preview" :class="{borders: theme.borders}" :style="getThemeThumbnailStyle(theme)">
 										<div class="theme_preview_header">
 											<span class="theme_preview_text" style="width: 20px;" />
@@ -369,25 +386,12 @@ const CustomTheme = {
 	},
 	import(file) {
 		var data = JSON.parse(file.content)
-		var app = CustomTheme.data;
-		if (pathToExtension(file.path) == 'bbstyle') {
-			//legacy import
-			if (data.main) app.main_font = data.main.font;
-			if (data.headline) app.headline_font = data.headline.font;
-			if (data.css) app.css = data.css;
-			for (var key in app.colors) {
-				if (data[key] && data[key].hex) {
-					app.colors[key] = data[key].hex;
-				}
-			}
-			if (data.text_acc) {
-				app.colors.accent_text = data.text_acc;
-				app.colors.bright_ui_text = data.text_acc;
-			}
-
-		} else if (data && data.colors) {
+		if (data && data.colors) {
 			data.id = file.name.replace(/\.\w+$/, '');
 			if (!data.name) data.name = data.id;
+
+			data.sideloaded = true;
+			data.path = file.path;
 
 			CustomTheme.loadTheme(data);
 			CustomTheme.themes.push(data);
@@ -434,7 +438,7 @@ BARS.defineActions(function() {
 		click: function () {
 			Blockbench.import({
 				resource_id: 'config',
-				extensions: ['bbstyle', 'bbtheme'],
+				extensions: ['bbtheme'],
 				type: 'Blockbench Theme'
 			}, function(files) {
 				CustomTheme.import(files[0]);
