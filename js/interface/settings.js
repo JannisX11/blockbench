@@ -136,7 +136,11 @@ class Setting {
 						label: this.name,
 						description: this.description,
 						type: this.type
-					}
+					},
+					description: this.description ? {
+						type: 'info',
+						text: this.description
+					} : undefined
 				},
 				onConfirm({input}) {
 					setting.set(input);

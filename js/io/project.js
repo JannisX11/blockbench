@@ -231,6 +231,7 @@ class ModelProject {
 	unselect() {
 		if (isApp) updateRecentProjectThumbnail();
 		this.thumbnail = Preview.selected.canvas.toDataURL();
+		Interface.tab_bar.last_opened_project = this.uuid;
 
 		this.selected = false;
 		Painter.current = {};
@@ -416,6 +417,7 @@ onVueSetup(() => {
 			drag_position_index: null,
 			close_tab_label: tl('projects.close_tab'),
 			search_tabs_label: tl('generic.search'),
+			last_opened_project: '',
 			new_tab: {
 				name: tl('projects.new_tab'),
 				saved: true,
@@ -424,7 +426,14 @@ onVueSetup(() => {
 				visible: true,
 				is_new_tab: true,
 				close: () => {
-					Interface.tab_bar.new_tab.visible = false;
+					if (ModelProject.all.length) {
+						Interface.tab_bar.new_tab.visible = false;
+						let project = Project.all.find(project => project.uuid == Interface.tab_bar.last_opened_project) ||
+										Project.all.last();
+						if (project) project.select();
+					} else {
+						window.close();
+					}
 				},
 				select() {
 					if (Project) {
@@ -448,6 +457,7 @@ onVueSetup(() => {
 		},
 		methods: {
 			openNewTab() {
+				this.last_opened_project = Project.uuid;
 				this.new_tab.visible = true;
 				this.new_tab.select();
 				setStartScreen(true);

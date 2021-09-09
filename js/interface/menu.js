@@ -576,7 +576,6 @@ const MenuBar = {
 			'_',
 			'add_cube',
 			'add_mesh',
-			'add_primitive',
 			'add_group',
 			'add_locator',
 			'add_null_object',
@@ -636,6 +635,7 @@ const MenuBar = {
 		})
 		
 		new BarMenu('filter', [
+			'convert_to_mesh',
 			'remove_blank_faces',
 		])
 

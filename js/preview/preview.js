@@ -782,6 +782,60 @@ class Preview {
 				} else {
 					list.replace(data.vertices);
 				}
+				if (event.altKey || Pressing.overrides.alt) {
+					
+					let mesh = data.element;
+					let start_face;
+					for (let fkey in mesh.faces) {
+						let face = mesh.faces[fkey];
+						if (face.vertices.length < 3) continue;
+						let vertices = face.vertices.filter(vkey => data.vertices.includes(vkey))
+						if (vertices.length >= 2) {
+							start_face = face;
+							break;
+						}
+					}
+					if (!start_face) return;
+					let processed_faces = [start_face];
+
+					function splitFace(face, side_vertices) {
+						processed_faces.push(face);
+						let sorted_vertices = face.getSortedVertices();
+	
+						let side_index_diff = sorted_vertices.indexOf(side_vertices[0]) - sorted_vertices.indexOf(side_vertices[1]);
+						if (side_index_diff == -1 || side_index_diff > 2) side_vertices.reverse();
+
+						let opposite_vertices = sorted_vertices.filter(vkey => !side_vertices.includes(vkey));
+						let opposite_index_diff = sorted_vertices.indexOf(opposite_vertices[0]) - sorted_vertices.indexOf(opposite_vertices[1]);
+						if (opposite_index_diff == 1 || opposite_index_diff < -2) opposite_vertices.reverse();
+
+						list.safePush(...side_vertices);
+
+						// Find next (and previous) face
+						function doNextFace(index) {
+							for (let fkey in mesh.faces) {
+								let ref_face = mesh.faces[fkey];
+								if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
+	
+								let sorted_vertices = ref_face.getSortedVertices();
+								let vertices = ref_face.vertices.filter(vkey => vkey == side_vertices[index] || vkey == opposite_vertices[index]);
+	
+								if (vertices.length >= 2) {
+									let second_vertex = sorted_vertices.find((vkey, i) => {
+										return vkey !== side_vertices[index]
+											&& vkey !== opposite_vertices[index]
+											&& (sorted_vertices.length == 3 || Math.abs(sorted_vertices.indexOf(side_vertices[index]) - i) !== 2);
+									})
+									splitFace(ref_face, [side_vertices[index], second_vertex]);
+									break;
+								}
+							}
+						}
+						doNextFace(0)
+						doNextFace(1);
+					}
+					splitFace(start_face, data.vertices);
+				}
 				updateSelection();
 			}
 			if (typeof Toolbox.selected.onCanvasClick === 'function') {

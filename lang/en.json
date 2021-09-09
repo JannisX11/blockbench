@@ -913,8 +913,6 @@
 	"action.add_cube.desc": "Adds a new cube",
 	"action.add_mesh": "Add Mesh",
 	"action.add_mesh.desc": "Adds a new mesh",
-	"action.add_primitive": "Add Primitive",
-	"action.add_primitive.desc": "Adds a new primitive shape",
 	"action.add_locator": "Add Locator",
 	"action.add_locator.desc": "Adds a new locator to control positions of particles, leashes etc",
 	"action.add_null_object": "Add Null Object",
