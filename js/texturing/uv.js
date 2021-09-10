@@ -950,7 +950,7 @@ const UVEditor = {
 				obj.faces[side].reset()
 			})
 			obj.preview_controller.updateFaces(obj);
-			if (Prop.view_mode === 'textured') {
+			if (Project.view_mode === 'textured') {
 				obj.preview_controller.updateUV(obj);
 			}
 		})

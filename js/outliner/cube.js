@@ -506,7 +506,7 @@ class Cube extends OutlinerElement {
 		if (selected.indexOf(this) === 0) {
 			UVEditor.loadData()
 		}
-		if (Prop.view_mode === 'textured') {
+		if (Project.view_mode === 'textured') {
 			this.preview_controller.updateFaces(this);
 			this.preview_controller.updateUV(this);
 		}
@@ -811,7 +811,7 @@ new NodePreviewController(Cube, {
 		this.updateGeometry(element);
 		this.updateFaces(element);
 		
-		if (Prop.view_mode === 'textured') {
+		if (Project.view_mode === 'textured') {
 			this.updateUV(element);
 		}
 		
@@ -893,10 +893,10 @@ new NodePreviewController(Cube, {
 
 
 
-		if (Prop.view_mode === 'solid') {
+		if (Project.view_mode === 'solid') {
 			mesh.material = Canvas.solidMaterial
 		
-		} else if (Prop.view_mode === 'wireframe') {
+		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
 
 		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
@@ -927,7 +927,7 @@ new NodePreviewController(Cube, {
 		}
 	},
 	updateUV(cube, animation = true) {
-		if (Prop.view_mode !== 'textured') return;
+		if (Project.view_mode !== 'textured') return;
 		var mesh = cube.mesh
 		if (mesh === undefined || !mesh.geometry) return;
 

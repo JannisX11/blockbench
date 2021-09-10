@@ -205,7 +205,7 @@ const Canvas = {
 				if (aspects.faces || update_all) {
 					if (controller.updateFaces) controller.updateFaces(element);
 				}
-				if ((aspects.uv || update_all) && Prop.view_mode === 'textured') {
+				if ((aspects.uv || update_all)) {
 					if (controller.updateUV) controller.updateUV(element);
 				}
 				if ((aspects.painting_grid || update_all) && Modes.paint && settings.painting_grid.value) {
@@ -272,7 +272,7 @@ const Canvas = {
 			if (cube.visibility && !cube.mesh.visible) {
 				cube.mesh.visible = true;
 				Canvas.adaptObjectFaces(cube, cube.mesh)
-				if (Prop.view_mode === 'textured') {
+				if (Project.view_mode === 'textured') {
 					Canvas.updateUV(cube);
 				}
 				if (Modes.paint && settings.painting_grid.value) {
@@ -299,7 +299,7 @@ const Canvas = {
 				}
 				if (used === true) {
 					obj.preview_controller.updateFaces(obj);
-					if (Prop.view_mode === 'textured' && obj.preview_controller.updateUV) {
+					if (Project.view_mode === 'textured' && obj.preview_controller.updateUV) {
 						obj.preview_controller.updateUV(obj);
 					}
 				}
@@ -307,7 +307,7 @@ const Canvas = {
 		})
 	},
 	updateAllUVs() {
-		if (Prop.view_mode !== 'textured') return;
+		if (Project.view_mode !== 'textured') return;
 		Canvas.updateView({elements: Outliner.elements, element_aspects: {uv: true}});
 		return;
 	},
@@ -366,18 +366,13 @@ const Canvas = {
 		Cube.selected.forEach(function(obj) {
 			if (obj.visibility == true) {
 				obj.preview_controller.updateFaces(obj);
-				if (Prop.view_mode === 'textured') {
-					obj.preview_controller.updateUV(obj);
-				}
+				obj.preview_controller.updateUV(obj);
 			}
 		})
 	},
 	updateUVs() {
-		if (Prop.view_mode !== 'textured') return;
 		Cube.selected.forEach(function(obj) {
-			if (obj.visibility == true) {
-				obj.preview_controller.updateUV(obj);
-			}
+			obj.preview_controller.updateUV(obj);
 		})
 	},
 	outlineObjects(arr) {
@@ -615,10 +610,10 @@ const Canvas = {
 
 		Canvas.adaptObjectFaceGeo(cube);
 
-		if (Prop.view_mode === 'solid') {
+		if (Project.view_mode === 'solid') {
 			mesh.material = Canvas.solidMaterial
 		
-		} else if (Prop.view_mode === 'wireframe') {
+		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
 
 		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
@@ -649,7 +644,6 @@ const Canvas = {
 		}
 	},
 	updateUV(cube, animation = true) {
-		if (Prop.view_mode !== 'textured') return;
 		var mesh = cube.mesh
 		if (mesh === undefined || !mesh.geometry) return;
 

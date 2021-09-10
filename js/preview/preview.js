@@ -2480,7 +2480,7 @@ BARS.defineActions(function() {
 	new BarSelect('view_mode', {
 		category: 'view',
 		keybind: new Keybind({key: 'z'}),
-		condition: () => Toolbox && Toolbox.selected && (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.length > 1),
+		condition: () => Project && Toolbox && Toolbox.selected && (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.length > 1),
 		value: 'textured',
 		options: {
 			textured: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('textured'))},
@@ -2488,7 +2488,7 @@ BARS.defineActions(function() {
 			wireframe: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('wireframe'))},
 		},
 		onChange() {
-			Prop.view_mode = this.value;
+			Project.view_mode = this.value;
 			Canvas.updateAllFaces();
 			if (Modes.id === 'animate') {
 				Animator.preview();

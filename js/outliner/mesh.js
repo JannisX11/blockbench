@@ -323,7 +323,7 @@ class Mesh extends OutlinerElement {
 		if (Project.selected_elements.indexOf(this) === 0) {
 			UVEditor.loadData()
 		}
-		if (Prop.view_mode === 'textured') {
+		if (Project.view_mode === 'textured') {
 			this.preview_controller.updateFaces(this);
 			this.preview_controller.updateUV(this);
 		}
@@ -529,10 +529,10 @@ new NodePreviewController(Mesh, {
 	updateFaces(element) {
 		let {mesh} = element;
 
-		if (Prop.view_mode === 'solid') {
+		if (Project.view_mode === 'solid') {
 			mesh.material = Canvas.solidMaterial
 		
-		} else if (Prop.view_mode === 'wireframe') {
+		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
 
 		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {

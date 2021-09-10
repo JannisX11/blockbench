@@ -20,6 +20,8 @@ class ModelProject {
 		if (isApp) this.BedrockEntityManager = new BedrockEntityManager(this);
 		this.format = options.format instanceof ModelFormat ? options.format : Formats.free;
 		this.mode = 'edit';
+		this.view_mode = 'textured';
+		this.previews = {};
 		this.EditSession = null;
 
 		// Data
@@ -173,6 +175,17 @@ class ModelProject {
 		Undo = this.undo;
 		this.selected = true;
 		this.format.select();
+		BarItems.view_mode.set(this.view_mode);
+		
+		Preview.all.forEach(preview => {
+			let data = this.previews[preview.id];
+			if (data) {
+				preview.camera.position.fromArray(data.position);
+				preview.controls.target.fromArray(data.target);
+				preview.setProjectionMode(data.orthographic);
+				if (data.zoom) preview.camOrtho.zoom = data.zoom;
+			}
+		})
 
 		// Setup Data
 		OutlinerNode.uuids = {};
@@ -232,6 +245,15 @@ class ModelProject {
 		if (isApp) updateRecentProjectThumbnail();
 		this.thumbnail = Preview.selected.canvas.toDataURL();
 		Interface.tab_bar.last_opened_project = this.uuid;
+
+		Preview.all.forEach(preview => {
+			this.previews[preview.id] = {
+				position: preview.camera.position.toArray(),
+				target: preview.controls.target.toArray(),
+				orthographic: preview.isOrtho,
+				zoom: preview.camOrtho.zoom,
+			}
+		})
 
 		this.selected = false;
 		Painter.current = {};

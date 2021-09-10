@@ -365,8 +365,8 @@ class Tool extends Action {
 		if (this.transformerMode) {
 			Transformer.setMode(this.transformerMode)
 		}
-		if (this.allowed_view_modes && !this.allowed_view_modes.includes(Prop.view_mode)) {
-			Prop.view_mode = 'textured';
+		if (this.allowed_view_modes && !this.allowed_view_modes.includes(Project.view_mode)) {
+			Project.view_mode = 'textured';
 			Canvas.updateAllFaces()
 		}
 		if (this.toolbar && Toolbars[this.toolbar]) {

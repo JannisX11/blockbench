@@ -806,9 +806,7 @@ const TextureGenerator = {
 						}
 					}
 					cube.preview_controller.updateFaces(cube);
-					if (Prop.view_mode === 'textured') {
-						cube.preview_controller.updateUV(cube);
-					}
+					cube.preview_controller.updateUV(cube);
 				}
 				cube.autouv = 0;
 			})

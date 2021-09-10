@@ -270,10 +270,10 @@ new NodePreviewController(TextureMesh, {
 	updateFaces(element) {
 		let {mesh} = element;
 
-		if (Prop.view_mode === 'solid') {
+		if (Project.view_mode === 'solid') {
 			mesh.material = Canvas.solidMaterial
 		
-		} else if (Prop.view_mode === 'wireframe') {
+		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
 
 		} else {
