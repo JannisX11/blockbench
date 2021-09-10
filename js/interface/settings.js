@@ -336,7 +336,6 @@ const Settings = {
 		function hasSettingChanged(id) {
 			return (settings[id].value !== Settings.old[id])
 		}
-		hideDialog()
 		updateSelection()
 
 		for (var key in BarItems) {

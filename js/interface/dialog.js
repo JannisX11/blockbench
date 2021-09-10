@@ -73,7 +73,7 @@ function buildForm(dialog) {
 						let this_input_element = input_element;
 						this_bar.find('.password_toggle').on('click', e => {
 							hidden = !hidden;
-							this_input_element.attr('type', hidden ? 'password' : 'text');
+							this_input_element.attributes.type.value = hidden ? 'password' : 'text';
 							this_bar.find('.password_toggle i')[0].className = hidden ? 'fas fa-eye-slash' : 'fas fa-eye';
 						})
 					}

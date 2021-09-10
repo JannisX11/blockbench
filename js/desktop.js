@@ -289,20 +289,25 @@ function selectImageEditorFile(texture) {
 }
 //Default Pack
 function openDefaultTexturePath() {
+	let detail = tl('message.default_textures.detail');
+	if (settings.default_path.value) {
+		detail += '\n\n' + tl('message.default_textures.current') + ': ' + settings.default_path.value;
+	}
+	let buttons = (
+		settings.default_path.value ? 	[tl('dialog.continue'), tl('generic.remove'), tl('dialog.cancel')]
+									:	[tl('dialog.continue'), tl('dialog.cancel')]
+	)
 	var answer = electron.dialog.showMessageBoxSync(currentwindow, {
 		type: 'info',
-		buttons: (
-			settings.default_path.value ? 	[tl('dialog.cancel'), tl('dialog.continue'), tl('generic.remove')]
-										:	[tl('dialog.cancel'), tl('dialog.continue')]
-		),
+		buttons,
 		noLink: true,
 		title: tl('message.default_textures.title'),
 		message: tl('message.default_textures.message'),
-		detail: tl('message.default_textures.detail'),
+		detail
 	})
-	if (answer === 0) {
+	if (answer === buttons.length-1) {
 		return;
-	} else if (answer === 1) {
+	} else if (answer === 0) {
 
 		let path = Blockbench.pickDirectory({
 			title: tl('message.default_textures.select'),
@@ -310,9 +315,11 @@ function openDefaultTexturePath() {
 		});
 		if (path) {
 			settings.default_path.value = path;
+			Settings.saveLocalStorages();
 		}
 	} else {
-		settings.default_path.value = false
+		settings.default_path.value = false;
+		Settings.saveLocalStorages();
 	}
 }
 function findExistingFile(paths) {

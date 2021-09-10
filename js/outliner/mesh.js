@@ -1090,11 +1090,41 @@ BARS.defineActions(function() {
 						selected_face_keys.push(key);
 					}
 				}
-				let direction = selected_faces[0] && selected_faces[0].vertices.length > 2 && selected_faces[0].getNormal(true);
-				if (!direction) direction = [0, 1, 0];
 
 				new_vertices = mesh.addVertices(...original_vertices.map(key => {
 					let vector = mesh.vertices[key].slice();
+					let direction;
+					let count = 0;
+					selected_faces.forEach(face => {
+						if (face.vertices.includes(key)) {
+							count++;
+							if (!direction) {
+								direction = face.getNormal(true);
+							} else {
+								direction.V3_add(face.getNormal(true));
+							}
+						}
+					})
+					if (count > 1) {
+						direction.V3_divide(count);
+					}
+					if (!direction) {
+						let match;
+						let match_level = 0;
+						for (let key in mesh.faces) {
+							let face = mesh.faces[key]; 
+							let matches = face.vertices.filter(vkey => original_vertices.includes(vkey));
+							if (match_level < matches.length) {
+								match_level = matches.length;
+								match = face;
+							}
+							if (match_level == 3) break;
+						}
+						if (match) {
+							direction = match.getNormal(true);
+						}
+					}
+
 					vector.V3_add(direction);
 					return vector;
 				}))

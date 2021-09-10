@@ -328,11 +328,13 @@ const Canvas = {
 	},
 	updateRenderSides() {
 		var side = Canvas.getRenderSide();
-		Texture.all.forEach(function(t) {
-			var mat = Project.materials[t.uuid]
-			if (mat) {
-				mat.side = side
-			}
+		ModelProject.all.forEach(project => {
+			project.textures.forEach(function(t) {
+				var mat = Project.materials[t.uuid]
+				if (mat) {
+					mat.side = side
+				}
+			})
 		})
 		if (Canvas.layered_material) {
 			Canvas.layered_material.side = side;
