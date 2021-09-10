@@ -129,8 +129,9 @@ function moveCubesRelative(difference, index, event) { //Multiple
 }
 //Rotate
 function rotateSelected(axis, steps) {
-	if (!Cube.selected.length) return;
-	Undo.initEdit({elements: Cube.selected});
+	let affected = [...Cube.selected, ...Mesh.selected];
+	if (!affected.length) return;
+	Undo.initEdit({elements: affected});
 	if (!steps) steps = 1
 	var origin = [8, 8, 8]
 	if (Group.selected && Format.bone_rig) {
@@ -138,12 +139,12 @@ function rotateSelected(axis, steps) {
 	} else if (Format.centered_grid) {
 		origin = [0, 0, 0]
 	} else {
-		origin = Cube.selected[0].origin.slice()
+		origin = affected[0].origin.slice()
 	}
-	Cube.selected.forEach(function(obj) {
+	affected.forEach(function(obj) {
 		obj.roll(axis, steps, origin)
 	})
-	updateSelection()
+	updateSelection();
 	Undo.finishEdit('Rotate elements')
 }
 //Mirror
@@ -1153,12 +1154,10 @@ BARS.defineActions(function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.rotation[0];
 			}
-			if (Format.rotate_cubes && Cube.selected[0]) {
-				return Cube.selected[0].rotation[0];
-			}
-			if (Locator.selected[0]) {
-				return Locator.selected[0].rotation[0];
-			}
+			let ref = Outliner.selected.find(el => {
+				return el.rotatable && (Format.rotate_cubes || el instanceof Cube == false)
+			})
+			if (ref) return ref.rotation[0];
 		},
 		change: function(modify) {
 			rotateOnAxis(modify, 0, true)
@@ -1182,12 +1181,10 @@ BARS.defineActions(function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.rotation[1];
 			}
-			if (Format.rotate_cubes && Cube.selected[0]) {
-				return Cube.selected[0].rotation[1];
-			}
-			if (Locator.selected[0]) {
-				return Locator.selected[0].rotation[1];
-			}
+			let ref = Outliner.selected.find(el => {
+				return el.rotatable && (Format.rotate_cubes || el instanceof Cube == false)
+			})
+			if (ref) return ref.rotation[1];
 		},
 		change: function(modify) {
 			rotateOnAxis(modify, 1, true)
@@ -1211,12 +1208,10 @@ BARS.defineActions(function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.rotation[2];
 			}
-			if (Format.rotate_cubes && Cube.selected[0]) {
-				return Cube.selected[0].rotation[2];
-			}
-			if (Locator.selected[0]) {
-				return Locator.selected[0].rotation[2];
-			}
+			let ref = Outliner.selected.find(el => {
+				return el.rotatable && (Format.rotate_cubes || el instanceof Cube == false)
+			})
+			if (ref) return ref.rotation[2];
 		},
 		change: function(modify) {
 			rotateOnAxis(modify, 2, true)
@@ -1244,7 +1239,7 @@ BARS.defineActions(function() {
 		if (rotation_object instanceof Group) {
 			var val = modify(rotation_object.origin[axis]);
 			rotation_object.origin[axis] = val;
-			Canvas.updateView({elements: Cube.selected, element_aspects: {transform: true, geometry: true}})
+			Canvas.updateView({groups: [rotation_object], group_aspects: {transform: true}, selection: true})
 			if (Format.bone_rig) {
 				Canvas.updateAllBones()
 			}
@@ -1253,7 +1248,7 @@ BARS.defineActions(function() {
 				var val = modify(obj.origin[axis]);
 				obj.origin[axis] = val;
 			})
-			Canvas.updateView({elements: Cube.selected, element_aspects: {transform: true, geometry: true}})
+			Canvas.updateView({elements: rotation_object, element_aspects: {transform: true, geometry: true}, selection: true})
 		}
 		if (Modes.animate) {
 			Animator.preview();
@@ -1270,9 +1265,10 @@ BARS.defineActions(function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.origin[0];
 			}
-			if (Format.rotate_cubes && Cube.selected[0]) {
-				return Cube.selected[0].origin[0];
-			}
+			let ref = Outliner.selected.find(el => {
+				return el.rotatable && el.origin && (Format.rotate_cubes || el instanceof Cube == false)
+			})
+			if (ref) return ref.origin[0];
 		},
 		change: function(modify) {
 			moveOriginOnAxis(modify, 0)
@@ -1295,9 +1291,10 @@ BARS.defineActions(function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.origin[1];
 			}
-			if (Format.rotate_cubes && Cube.selected[0]) {
-				return Cube.selected[0].origin[1];
-			}
+			let ref = Outliner.selected.find(el => {
+				return el.rotatable && el.origin && (Format.rotate_cubes || el instanceof Cube == false)
+			})
+			if (ref) return ref.origin[1];
 		},
 		change: function(modify) {
 			moveOriginOnAxis(modify, 1)
@@ -1320,9 +1317,10 @@ BARS.defineActions(function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.origin[2];
 			}
-			if (Format.rotate_cubes && Cube.selected[0]) {
-				return Cube.selected[0].origin[2];
-			}
+			let ref = Outliner.selected.find(el => {
+				return el.rotatable && el.origin && (Format.rotate_cubes || el instanceof Cube == false)
+			})
+			if (ref) return ref.origin[2];
 		},
 		change: function(modify) {
 			moveOriginOnAxis(modify, 2)

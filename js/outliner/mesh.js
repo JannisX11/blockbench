@@ -247,27 +247,84 @@ class Mesh extends OutlinerElement {
 		}
 		return faces;
 	}
+	transferOrigin(origin, update = true) {
+		if (!this.mesh) return;
+		var q = new THREE.Quaternion().copy(this.mesh.quaternion);
+		var shift = new THREE.Vector3(
+			this.origin[0] - origin[0],
+			this.origin[1] - origin[1],
+			this.origin[2] - origin[2],
+		)
+		shift.applyQuaternion(q.invert());
+		shift = shift.toArray();
+		
+		for (let vkey in this.vertices) {
+			this.vertices[vkey].V3_add(shift);
+		}
+		this.origin.V3_set(origin);
+
+		this.preview_controller.updateTransform(this);
+		this.preview_controller.updateGeometry(this);
+		return this;
+	}
 	setColor(index) {
 		this.color = index;
 		if (this.visibility) {
 			this.preview_controller.updateFaces(this);
 		}
 	}
+	roll(axis, steps, origin) {
+		if (!origin) {origin = this.origin}
+		function rotateCoord(array) {
+			if (origin === undefined) {
+				origin = [8, 8, 8]
+			}
+			var a, b;
+			array.forEach(function(s, i) {
+				if (i == axis) {
+					//
+				} else {
+					if (a == undefined) {
+						a = s - origin[i]
+						b = i
+					} else {
+						array[b] = s - origin[i]
+						array[b] = origin[b] - array[b]
+						array[i] = origin[i] + a;
+					}
+				}
+			})
+			return array
+		}
+		while (steps > 0) {
+			steps--;
+			for (let vkey in this.vertices) {
+				this.vertices[vkey].replace(rotateCoord(this.vertices[vkey]));
+			}
+			if (origin != this.origin) {
+				this.origin.V3_set(rotateCoord(this.origin))
+			}
+		}
+		this.preview_controller.updateTransform(this);
+		this.preview_controller.updateGeometry(this);
+		return this;
+	}
 	flip(axis, center) {
 		for (let key in this.vertices) {
-			var offset = this.vertices[key][axis] - center;
-			this.vertices[key][axis] = center - offset;
+			this.vertices[key][axis] *= -1;
 		}
 		for (let key in this.faces) {
 			this.faces[key].invert();
 		}
 
+		this.origin[axis] *= -1;
 		this.rotation.forEach((n, i) => {
 			if (i != axis) this.rotation[i] = -n;
 		})
 
 		this.preview_controller.updateTransform(this);
 		this.preview_controller.updateGeometry(this);
+		this.preview_controller.updateUV(this);
 		return this;
 	}
 	moveVector(arr, axis, update = true) {
@@ -450,8 +507,6 @@ new NodePreviewController(Mesh, {
 
 		for (let key in element.faces) {
 			let face = element.faces[key];
-			
-
 
 			if (face.vertices.length == 2) {
 				// Outline
@@ -519,6 +574,8 @@ new NodePreviewController(Mesh, {
 		mesh.geometry.setIndex(indices);
 
 		mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
+
+		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(outline_positions.length/3).fill(mesh.geometry.attributes.highlight.array[0]), 1));
 
 		mesh.geometry.computeBoundingBox();
 		mesh.geometry.computeBoundingSphere();
@@ -931,7 +988,22 @@ BARS.defineActions(function() {
 			vertex: true,
 		},
 		condition: () => Format && Format.meshes,
-		onChange: function(slider) {
+		onChange({value}) {
+			if (value === 'object') {
+				Mesh.selected.forEach(mesh => {
+					delete Project.selected_vertices[mesh.uuid];
+				})
+			} else if (value === 'face') {
+				UVEditor.vue.selected_faces.empty();
+				Mesh.selected.forEach(mesh => {
+					for (let fkey in mesh.faces) {
+						let face = mesh.faces[fkey];
+						if (face.isSelected()) {
+							UVEditor.vue.selected_faces.safePush(fkey);
+						}
+					}
+				})
+			}
 			updateSelection();
 		}
 	})
@@ -1416,7 +1488,7 @@ BARS.defineActions(function() {
 
 					if (line.substr(0, 1) == '#' || !line) return;
 
-					let args = line.split(' ');
+					let args = line.split(/\s+/).filter(arg => typeof arg !== 'undefined' && arg !== '');
 					let cmd = args.shift();
 
 					if (cmd == 'o') {

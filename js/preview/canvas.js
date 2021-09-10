@@ -184,7 +184,7 @@ const Canvas = {
 	 * @param {boolean} options.element_aspects.painting_grid Update the painting grid
 	 * @param {array} options.groups Groups to update 
 	 * @param {object} options.group_aspects Which parts of the group to update
-	 * @param {boolean} options.group_aspects.geometry Update the group transformation and geometry
+	 * @param {boolean} options.group_aspects.transform Update the group transformation and geometry
 	 */
 	updateView(options) {
 
