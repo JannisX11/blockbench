@@ -524,6 +524,7 @@ class NodePreviewController {
 		this.updateUV = null;
 		this.updateFaces = null;
 		this.updatePaintingGrid = null;
+		this.updateHighlight = null;
 
 		Object.assign(this, data);
 	}

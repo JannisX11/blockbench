@@ -1635,6 +1635,18 @@ Interface.definePanels(function() {
 					event.stopPropagation();
 					let elements = this.mappable_elements;
 					Undo.initEdit({elements, uv_only: true})
+					let inverted = {};
+					elements.forEach(element => {
+						let faces = inverted[element.uuid] = {};
+						this.selected_faces.forEach(key => {
+							if (element.faces[key] && element instanceof Cube) {
+								faces[key] = [
+									element.faces[key].uv[0] > element.faces[key].uv[2],
+									element.faces[key].uv[1] > element.faces[key].uv[3],
+								]
+							}
+						})
+					})
 
 					this.drag({
 						event,
@@ -1642,10 +1654,10 @@ Interface.definePanels(function() {
 							elements.forEach(element => {
 								this.selected_faces.forEach(key => {
 									if (element.faces[key] && element instanceof Cube) {
-										if (x_side == -1) element.faces[key].uv[0] += x;
-										if (y_side == -1) element.faces[key].uv[1] += y;
-										if (x_side ==  1) element.faces[key].uv[2] += x;
-										if (y_side ==  1) element.faces[key].uv[3] += y;
+										if (x_side && (x_side == -1) != inverted[element.uuid][key][0]) element.faces[key].uv[0] += x;
+										if (y_side && (y_side == -1) != inverted[element.uuid][key][1]) element.faces[key].uv[1] += y;
+										if (x_side && (x_side ==  1) != inverted[element.uuid][key][0]) element.faces[key].uv[2] += x;
+										if (y_side && (y_side ==  1) != inverted[element.uuid][key][1]) element.faces[key].uv[3] += y;
 									}
 								})
 								element.uv_offset[0] += x;

@@ -1029,6 +1029,20 @@ new NodePreviewController(Cube, {
 		}
 		mesh.geometry.attributes.uv.needsUpdate = true;
 		return mesh.geometry;
+	},
+	updateHighlight(element, hover_cube, force_off) {
+		var mesh = element.mesh;
+		let highlighted = (
+			Settings.get('highlight_cubes') &&
+			((hover_cube == element && !Transformer.dragging) || element.selected) &&
+			Modes.edit &&
+			!force_off
+		) ? 1 : 0;
+
+		if (mesh.geometry.attributes.highlight.array[0] != highlighted) {
+			mesh.geometry.attributes.highlight.array.set(Array(mesh.geometry.attributes.highlight.count).fill(highlighted));
+			mesh.geometry.attributes.highlight.needsUpdate = true;
+		}
 	}
 })
 

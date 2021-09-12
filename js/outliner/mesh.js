@@ -43,7 +43,7 @@ class MeshFace extends Face {
 		]
 		if (normalize) {
 			let length = Math.sqrt(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
-			return direction.map(dir => dir / length);
+			return direction.map(dir => dir / length || 0);
 		} else {
 			return direction
 		}
@@ -429,6 +429,7 @@ class Mesh extends OutlinerElement {
 		'create_face',
 		'invert_face',
 		'_',
+		'split_mesh',
 		'merge_meshes',
 		'group_elements',
 		'_',
@@ -732,6 +733,36 @@ new NodePreviewController(Mesh, {
 		mesh.outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(line_colors, 3));
 		mesh.outline.geometry.needsUpdate = true
 		mesh.vertex_points.visible = Mode.selected.id == 'edit' && BarItems.selection_mode.value == 'vertex';
+	},
+	updateHighlight(element, hover_cube, force_off) {
+		var mesh = element.mesh;
+		let highlighted = (
+			Settings.get('highlight_cubes') &&
+			((hover_cube == element && !Transformer.dragging) || element.selected) &&
+			Modes.edit &&
+			!force_off
+		) ? 1 : 0;
+
+		let array = new Array(mesh.geometry.attributes.highlight.count).fill(highlighted);
+		
+		if (!force_off && element.selected) {
+			let i = 0;
+			for (let fkey in element.faces) {
+				let face = element.faces[fkey];
+				if (face.vertices.length < 3) continue;
+				if (face.isSelected()) {
+					for (let j = 0; j < face.vertices.length; j++) {
+						array[i] = 2;
+						i++;
+					}
+				} else {
+					i += face.vertices.length;
+				}
+			}
+		}
+
+		mesh.geometry.attributes.highlight.array.set(array);
+		mesh.geometry.attributes.highlight.needsUpdate = true;
 	}
 })
 
@@ -1447,7 +1478,7 @@ BARS.defineActions(function() {
 		condition: () => (Modes.edit && Format.meshes && Mesh.selected.length >= 2),
 		click() {
 			let elements = Mesh.selected
-			Undo.initEdit({elements: Mesh.selected});
+			Undo.initEdit({elements});
 			let original = Mesh.selected[0];
 			let vector = new THREE.Vector3();
 
@@ -1482,7 +1513,64 @@ BARS.defineActions(function() {
 			})
 			updateSelection();
 			Undo.finishEdit('Merge meshes')
-			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
+			Canvas.updateView({elements, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
+		}
+	})
+	new Action('split_mesh', {
+		icon: 'call_split',
+		category: 'edit',
+		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length),
+		click() {
+			let elements = Mesh.selected.slice();
+			Undo.initEdit({elements});
+
+			Mesh.selected.forEach(mesh => {
+
+				let selected_vertices = mesh.getSelectedVertices();
+
+				let copy = new Mesh(mesh);
+				elements.push(copy);
+
+				for (let fkey in mesh.faces) {
+					let face = mesh.faces[fkey];
+					if (face.isSelected()) {
+						delete mesh.faces[fkey];
+					} else {
+						delete copy.faces[fkey];
+					}
+				}
+
+				selected_vertices.forEach(vkey => {
+					let used = false;
+					for (let key in mesh.faces) {
+						let face = mesh.faces[key];
+						if (face.vertices.includes(vkey)) used = true;
+					}
+					if (!used) {
+						delete mesh.vertices[vkey];
+					}
+				})
+				Object.keys(copy.vertices).filter(vkey => !selected_vertices.includes(vkey)).forEach(vkey => {
+					let used = false;
+					for (let key in copy.faces) {
+						let face = copy.faces[key];
+						if (face.vertices.includes(vkey)) used = true;
+					}
+					if (!used) {
+						delete copy.vertices[vkey];
+					}
+				})
+
+				copy.name += '_selection'
+				copy.sortInBefore(mesh, 1).init();
+				delete Project.selected_vertices[mesh.uuid];
+				Project.selected_vertices[copy.uuid] = selected_vertices;
+				mesh.preview_controller.updateGeometry(mesh);
+				selected[selected.indexOf(mesh)] = copy;
+			})
+			Undo.finishEdit('Merge meshes');
+			updateSelection();
+			Canvas.updateView({elements, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
 	})
 	new Action('import_obj', {

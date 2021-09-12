@@ -85,7 +85,9 @@ class Texture {
 
 				}
 
-				if (highlight == 1.0) {
+				if (highlight == 2.0) {
+					lift = 0.22;
+				} else if (highlight == 1.0) {
 					lift = 0.1;
 				} else {
 					lift = 0.0;
@@ -125,6 +127,11 @@ class Texture {
 					float light2 = (light * BRIGHTNESS) + (1.0 - light * BRIGHTNESS) * (1.0 - color.a);
 					gl_FragColor = vec4(lift + color.rgb * light2, 1.0);
 
+				}
+
+				if (lift > 0.2) {
+					gl_FragColor.r = gl_FragColor.r * 0.6;
+					gl_FragColor.g = gl_FragColor.g * 0.7;
 				}
 			}`
 		var mat = new THREE.ShaderMaterial({

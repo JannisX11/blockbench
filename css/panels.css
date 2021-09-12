@@ -47,6 +47,10 @@
 	.panel p {
 		margin-left: 12px;
 	}
+	.panel p.panel_toolbar_label {
+		margin-bottom: -4px;
+		color: var(--color-subtle_text);
+	}
 
 	.panel.folded {
 		min-height: auto;

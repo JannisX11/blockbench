@@ -207,8 +207,7 @@ class Keybind {
 			overlay.off('mousedown', onActivate)
 			overlay.off('mousewheel', onActivate)
 			overlay.off('keydown keypress keyup click click dblclick mouseup mousewheel', preventDefault)
-
-			if (event.target && event.target.tagName === 'BUTTON') return;
+			if (event instanceof KeyboardEvent == false && event.target && event.target.tagName === 'BUTTON') return;
 
 			if (event instanceof WheelEvent) {
 				scope.key = 1001

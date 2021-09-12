@@ -2165,55 +2165,6 @@ function initCanvas() {
 	scene.add(Transformer)
 	main_preview.occupyTransformer()
 
-	//Light
-	Sun = new THREE.AmbientLight( 0xffffff );
-	Sun.name = 'sun'
-	scene.add(Sun);
-	Sun.intensity = 0.5
-
-	lights = new THREE.Object3D()
-	lights.name = 'lights'
-	
-	lights.top = new THREE.DirectionalLight();
-	lights.top.name = 'light_top'
-	lights.top.position.set(0, 100, 0)
-	lights.add(lights.top);
-	
-	lights.top.intensity = 0.41
-	
-	lights.bottom = new THREE.DirectionalLight();
-	lights.bottom.name = 'light_bottom'
-	lights.bottom.position.set(0, -100, 0)
-	lights.add(lights.bottom);
-	
-	lights.bottom.intensity = -0.02
-
-	lights.north = new THREE.DirectionalLight();
-	lights.north.name = 'light_north'
-	lights.north.position.set(0, 0, -100)
-	lights.add(lights.north);
-
-	lights.south = new THREE.DirectionalLight();
-	lights.south.name = 'light_south'
-	lights.south.position.set(0, 0, 100)
-	lights.add(lights.south);
-
-	lights.north.intensity = lights.south.intensity = 0.3
-
-	lights.west = new THREE.DirectionalLight();
-	lights.west.name = 'light_west'
-	lights.west.position.set(-100, 0, 0)
-	lights.add(lights.west);
-
-	lights.east = new THREE.DirectionalLight();
-	lights.east.name = 'light_east'
-	lights.east.position.set(100, 0, 0)
-	lights.add(lights.east);
-
-	lights.west.intensity = lights.east.intensity = 0.1
-
-	updateShading()
-
 	quad_previews = {
 		get current() {return Preview.selected},
 		set current(p) {Preview.selected = p},
@@ -2227,74 +2178,7 @@ function initCanvas() {
 		}
 	}
 
-	//emptyMaterial
-	var img = new Image()
-	img.src = 'assets/missing.png'
-	var tex = new THREE.Texture(img)
-	img.tex = tex;
-	img.tex.magFilter = THREE.NearestFilter
-	img.tex.minFilter = THREE.NearestFilter
-	img.tex.wrapS = img.tex.wrapT = THREE.RepeatWrapping;
-	img.onload = function() {
-		this.tex.needsUpdate = true;
-	}
-	Canvas.emptyMaterials = []
-	markerColors.forEach(function(s, i) {
-		var thismaterial = new THREE.MeshLambertMaterial({
-			color: 0xffffff,
-			map: tex
-		})
-		thismaterial.color.set(s.pastel)
-		Canvas.emptyMaterials.push(thismaterial)
-	})
-
-	var img = new Image();
-	img.src = 'assets/north.png';
-	var tex = new THREE.Texture(img);
-	img.tex = tex;
-	img.tex.magFilter = THREE.NearestFilter;
-	img.tex.minFilter = THREE.NearestFilter;
-	img.onload = function() {
-		this.tex.needsUpdate = true;
-	}
-	Canvas.northMarkMaterial = new THREE.MeshBasicMaterial({
-		map: tex,
-		transparent: true,
-		side: THREE.DoubleSide,
-		alphaTest: 0.2
-	})
-
-	/*
-	// Vertex gizmos
-	var vertex_img = new Image();
-	vertex_img.src = 'assets/vertex.png';
-	vertex_img.tex = new THREE.Texture(vertex_img);
-	vertex_img.tex.magFilter = THREE.NearestFilter;
-	vertex_img.tex.minFilter = THREE.NearestFilter;
-	vertex_img.onload = function() {
-		this.tex.needsUpdate = true;
-	}
-	Canvas.meshVertexMaterial.map = vertex_img.tex;
-	Canvas.meshVertexMaterial.transparent = true;
-	*/
-
-	//Rotation Pivot
-	var helper1 = new THREE.AxesHelper(2)
-	var helper2 = new THREE.AxesHelper(2)
-	helper1.rotation.x = Math.PI / 1
-
-	helper2.rotation.x = Math.PI / -1
-	helper2.rotation.y = Math.PI / 1
-	helper2.scale.y = -1
-
-	rot_origin.add(helper1)
-	rot_origin.add(helper2)
-
-	rot_origin.rotation.reorder('ZYX')
-	rot_origin.base_scale = new THREE.Vector3(1, 1, 1);
-	rot_origin.no_export = true;
-
-	setupGrid = true;
+	Canvas.setup();
 	
 	resizeWindow()
 }
@@ -2342,19 +2226,8 @@ function updateShading() {
 }
 function updateCubeHighlights(hover_cube, force_off) {
 	Outliner.elements.forEach(element => {
-		if (element.visibility && element.mesh.geometry) {
-			var mesh = element.mesh;
-			let highlighted = (
-				Settings.get('highlight_cubes') &&
-				((hover_cube == element && !Transformer.dragging) || element.selected) &&
-				Modes.edit &&
-				!force_off
-			) ? 1 : 0;
-
-			if (mesh.geometry.attributes.highlight.array[0] != highlighted) {
-				mesh.geometry.attributes.highlight.array.set(Array(mesh.geometry.attributes.highlight.count).fill(highlighted));
-				mesh.geometry.attributes.highlight.needsUpdate = true;
-			}
+		if (element.visibility && element.mesh.geometry && element.preview_controller.updateHighlight) {
+			element.preview_controller.updateHighlight(element, hover_cube, force_off);
 		}
 	})
 }

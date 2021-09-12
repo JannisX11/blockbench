@@ -140,7 +140,7 @@ function updateSelection(options = {}) {
 
 	BarItems.cube_counter.update();
 	updateNslideValues();
-	if (settings.highlight_cubes.value) updateCubeHighlights();
+	if (settings.highlight_cubes.value || (Mesh.all[0])) updateCubeHighlights();
 	Canvas.updatePivotMarker();
 	Transformer.updateSelection();
 	Transformer.update();

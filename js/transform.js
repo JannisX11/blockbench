@@ -953,15 +953,22 @@ BARS.defineActions(function() {
 
 	function moveOnAxis(modify, axis) {
 		selected.forEach(function(obj, i) {
-			if (obj.movable) {
-				var val = modify(obj.from[axis])
+			if (obj instanceof Mesh && obj.getSelectedVertices().length) {
+
+				let vertices = obj.getSelectedVertices();
+				vertices.forEach(vkey => {
+					obj.vertices[vkey][axis] = modify(obj.vertices[vkey][axis]);
+				})
+				obj.preview_controller.updateGeometry(obj);
+
+			} else if (obj.movable) {
+				var val = modify(obj.from[axis]);
 
 				if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
 					var size = obj.to ? obj.size(axis) : 0;
 					val = limitToBox(limitToBox(val, -obj.inflate) + size, obj.inflate) - size
 				}
 
-				//val -= obj.from[axis];
 				var before = obj.from[axis];
 				obj.from[axis] = val;
 				if (obj.to) {
@@ -976,6 +983,20 @@ BARS.defineActions(function() {
 		})
 		TickUpdates.selection = true;
 	}
+	function getPos(axis) {
+		let element = Outliner.selected[0];
+		if (element instanceof Mesh && element.getSelectedVertices().length) {
+			let vertices = element.getSelectedVertices();
+			let sum = 0;
+			vertices.forEach(vkey => sum += element.vertices[vkey][axis]);
+			return sum / vertices.length;
+
+		} else if (element instanceof Cube) {
+			return element.from[axis];
+		} else {
+			return element.origin[axis]
+		}
+	}
 	new NumSlider('slider_pos_x', {
 		name: tl('action.slider_pos', ['X']),
 		description: tl('action.slider_pos.desc', ['X']),
@@ -984,7 +1005,7 @@ BARS.defineActions(function() {
 		condition: () => (selected.length && Modes.edit),
 		getInterval: grid_locked_interval,
 		get: function() {
-			return selected[0].from[0]
+			return getPos(0);
 		},
 		change: function(modify) {
 			moveOnAxis(modify, 0)
@@ -1004,7 +1025,7 @@ BARS.defineActions(function() {
 		condition: () => (selected.length && Modes.edit),
 		getInterval: grid_locked_interval,
 		get: function() {
-			return selected[0].from[1]
+			return getPos(1);
 		},
 		change: function(modify) {
 			moveOnAxis(modify, 1)
@@ -1024,7 +1045,7 @@ BARS.defineActions(function() {
 		condition: () => (selected.length && Modes.edit),
 		getInterval: grid_locked_interval,
 		get: function() {
-			return selected[0].from[2]
+			return getPos(2);
 		},
 		change: function(modify) {
 			moveOnAxis(modify, 2)

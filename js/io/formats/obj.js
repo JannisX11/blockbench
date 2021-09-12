@@ -142,7 +142,7 @@ var codec = new Codec('obj', {
 
 				let vertex_keys = [];
 				function addVertex(x, y, z) {
-					vertex.set(x - element.origin[0], y - element.origin[1], z - element.origin[2]);
+					vertex.set(x, y, z);
 					vertex.applyMatrix4( mesh.matrixWorld );
 					output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
 					nbVertex++;

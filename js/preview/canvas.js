@@ -62,7 +62,9 @@ const Canvas = {
 
 				}
 
-				if (highlight == 1.0) {
+				if (highlight == 2.0) {
+					lift = 0.3;
+				} else if (highlight == 1.0) {
 					lift = 0.12;
 				} else {
 					lift = 0.0;
@@ -92,6 +94,10 @@ const Canvas = {
 					gl_FragColor.b = gl_FragColor.b * 1.16;
 					gl_FragColor.g = gl_FragColor.g * 1.04;
 				}
+				if (lift > 0.2) {
+					gl_FragColor.r = gl_FragColor.r * 0.6;
+					gl_FragColor.g = gl_FragColor.g * 0.7;
+				}
 
 			}`
 
@@ -106,10 +112,205 @@ const Canvas = {
 			side: THREE.DoubleSide
 		});
 	})(),
+	emptyMaterials: (function() {
+		var img = new Image()
+		img.src = 'assets/missing.png'
+		var tex = new THREE.Texture(img)
+		img.tex = tex;
+		img.tex.magFilter = THREE.NearestFilter
+		img.tex.minFilter = THREE.NearestFilter
+		img.tex.wrapS = img.tex.wrapT = THREE.RepeatWrapping;
+		img.onload = function() {
+			this.tex.needsUpdate = true;
+		}
+		var vertShader = `
+			attribute float highlight;
+
+			uniform bool SHADE;
+
+			varying vec2 vUv;
+			varying float light;
+			varying float lift;
+
+			float AMBIENT = 0.5;
+			float XFAC = -0.15;
+			float ZFAC = 0.05;
+
+			void main()
+			{
+
+				if (SHADE) {
+
+					vec3 N = normalize( vec3( modelMatrix * vec4(normal, 0.0) ) );
+
+					float yLight = (1.0+N.y) * 0.5;
+					light = yLight * (1.0-AMBIENT) + N.x*N.x * XFAC + N.z*N.z * ZFAC + AMBIENT;
+
+				} else {
+
+					light = 1.0;
+
+				}
+
+				if (highlight == 2.0) {
+					lift = 0.22;
+				} else if (highlight == 1.0) {
+					lift = 0.1;
+				} else {
+					lift = 0.0;
+				}
+				
+				vUv = uv;
+				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+				gl_Position = projectionMatrix * mvPosition;
+			}`
+		var fragShader = `
+			#ifdef GL_ES
+			precision ${isApp ? 'highp' : 'mediump'} float;
+			#endif
+			
+			uniform sampler2D map;
+
+			uniform bool SHADE;
+			uniform float BRIGHTNESS;
+			uniform vec3 base;
+
+			varying vec2 vUv;
+			varying float light;
+			varying float lift;
+
+			void main(void)
+			{
+				vec4 color = texture2D(map, vUv);
+
+				gl_FragColor = vec4(lift + color.rgb * base * light * BRIGHTNESS, 1.0);
+
+				if (lift > 0.2) {
+					gl_FragColor.r = gl_FragColor.r * 0.6;
+					gl_FragColor.g = gl_FragColor.g * 0.7;
+				}
+
+			}`
+
+		return markerColors.map(function(color, i) {
+			return new THREE.ShaderMaterial({
+				uniforms: {
+					map: {type: 't', value: tex},
+					SHADE: {type: 'bool', value: settings.shading.value},
+					BRIGHTNESS: {type: 'bool', value: settings.brightness.value / 50},
+					base: {value: new THREE.Color().set(color.pastel)}
+				},
+				vertexShader: vertShader,
+				fragmentShader: fragShader,
+				side: THREE.DoubleSide
+			})
+		})
+	})(),
 	transparentMaterial: new THREE.MeshBasicMaterial({visible: false, name: 'invisible'}),
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
 	face_order: ['east', 'west', 'up', 'down', 'south', 'north'],
 	temp_vectors: [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()],
+
+	setup() {
+
+		//Light
+		Sun = new THREE.AmbientLight( 0xffffff );
+		Sun.name = 'sun'
+		scene.add(Sun);
+		Sun.intensity = 0.5
+
+		lights = new THREE.Object3D()
+		lights.name = 'lights'
+		
+		lights.top = new THREE.DirectionalLight();
+		lights.top.name = 'light_top'
+		lights.top.position.set(0, 100, 0)
+		lights.add(lights.top);
+		
+		lights.top.intensity = 0.41
+		
+		lights.bottom = new THREE.DirectionalLight();
+		lights.bottom.name = 'light_bottom'
+		lights.bottom.position.set(0, -100, 0)
+		lights.add(lights.bottom);
+		
+		lights.bottom.intensity = -0.02
+
+		lights.north = new THREE.DirectionalLight();
+		lights.north.name = 'light_north'
+		lights.north.position.set(0, 0, -100)
+		lights.add(lights.north);
+
+		lights.south = new THREE.DirectionalLight();
+		lights.south.name = 'light_south'
+		lights.south.position.set(0, 0, 100)
+		lights.add(lights.south);
+
+		lights.north.intensity = lights.south.intensity = 0.3
+
+		lights.west = new THREE.DirectionalLight();
+		lights.west.name = 'light_west'
+		lights.west.position.set(-100, 0, 0)
+		lights.add(lights.west);
+
+		lights.east = new THREE.DirectionalLight();
+		lights.east.name = 'light_east'
+		lights.east.position.set(100, 0, 0)
+		lights.add(lights.east);
+
+		lights.west.intensity = lights.east.intensity = 0.1
+
+		updateShading()
+	
+
+		var img = new Image();
+		img.src = 'assets/north.png';
+		var tex = new THREE.Texture(img);
+		img.tex = tex;
+		img.tex.magFilter = THREE.NearestFilter;
+		img.tex.minFilter = THREE.NearestFilter;
+		img.onload = function() {
+			this.tex.needsUpdate = true;
+		}
+		Canvas.northMarkMaterial = new THREE.MeshBasicMaterial({
+			map: tex,
+			transparent: true,
+			side: THREE.DoubleSide,
+			alphaTest: 0.2
+		})
+
+		/*
+		// Vertex gizmos
+		var vertex_img = new Image();
+		vertex_img.src = 'assets/vertex.png';
+		vertex_img.tex = new THREE.Texture(vertex_img);
+		vertex_img.tex.magFilter = THREE.NearestFilter;
+		vertex_img.tex.minFilter = THREE.NearestFilter;
+		vertex_img.onload = function() {
+			this.tex.needsUpdate = true;
+		}
+		Canvas.meshVertexMaterial.map = vertex_img.tex;
+		Canvas.meshVertexMaterial.transparent = true;
+		*/
+
+		//Rotation Pivot
+		var helper1 = new THREE.AxesHelper(2)
+		var helper2 = new THREE.AxesHelper(2)
+		helper1.rotation.x = Math.PI / 1
+
+		helper2.rotation.x = Math.PI / -1
+		helper2.rotation.y = Math.PI / 1
+		helper2.scale.y = -1
+
+		rot_origin.add(helper1)
+		rot_origin.add(helper2)
+
+		rot_origin.rotation.reorder('ZYX')
+		rot_origin.base_scale = new THREE.Vector3(1, 1, 1);
+		rot_origin.no_export = true;
+
+		setupGrid = true;
+	},
 	//Misc
 	raycast(event) {
 		var preview = Canvas.getHoveredPreview()
@@ -134,15 +335,10 @@ const Canvas = {
 			edit(rot_origin)
 			edit(Vertexsnap.line)
 			edit(Animator.motion_trail)
-			Cube.selected.forEach(function(obj) {
-				var m = obj.mesh;
-				if (!m) return;
-				if (m.outline) edit(m.outline);
-			})
-			Cube.all.forEach(function(obj) {
-				var m = obj.mesh;
-				if (!m) return;
-				if (m.grid_box) edit(m.grid_box);
+			Outliner.selected.forEach(element => {
+				let {mesh} = element;
+				if (element.selected && mesh.outline) edit(mesh.outline);
+				if (mesh.grid_box) edit(mesh.grid_box);
 			})
 		}
 		editVis(obj => {
@@ -168,7 +364,7 @@ const Canvas = {
 		if (display_mode && ground_anim_before) {
 			ground_animation = ground_anim_before
 		}
-		if (settings.highlight_cubes.value) updateCubeHighlights();
+		updateCubeHighlights();
 	},
 
 	/**
@@ -535,7 +731,9 @@ const Canvas = {
 
 				}
 
-				if (highlight == 1.0) {
+				if (highlight == 2.0) {
+					lift = 0.22;
+				} else if (highlight == 1.0) {
 					lift = 0.1;
 				} else {
 					lift = 0.0;
@@ -571,6 +769,11 @@ const Canvas = {
 
 				vec3 c = ctemp4.rgb + Cc.rgb * Cc.a * (1.0 - ctemp4.a);
 				gl_FragColor= vec4(lift + c * light, ctemp4.a + (1.0 - ctemp4.a) * Cc.a);
+
+				if (lift > 0.2) {
+					gl_FragColor.r = gl_FragColor.r * 0.6;
+					gl_FragColor.g = gl_FragColor.g * 0.7;
+				}
 				
 				if (gl_FragColor.a < 0.05) discard;
 			}`
