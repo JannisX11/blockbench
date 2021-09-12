@@ -50,7 +50,7 @@ class MeshFace extends Face {
 	}
 	invert() {
 		if (this.vertices.length < 3) return this;
-		[this.vertices[1], this.vertices[2]] = [this.vertices[2], this.vertices[1]];
+		[this.vertices[0], this.vertices[1]] = [this.vertices[1], this.vertices[0]];
 	}
 	isSelected() {
 		let selected_vertices = Project.selected_vertices[this.mesh.uuid];
@@ -85,6 +85,35 @@ class MeshFace extends Face {
 			return [vertices[0], vertices[2], vertices[1], vertices[3]];
 		}
 		return vertices;
+	}
+	getAdjacentFace(side_index = 0) {
+		let vertices = this.getSortedVertices();
+		side_index = side_index % this.vertices.length;
+		let side_vertices = [
+			vertices[side_index],
+			vertices[side_index+1] || vertices[0]
+		]
+		for (let fkey in this.mesh.faces) {
+			let face = this.mesh.faces[fkey];
+			if (face === this) continue;
+			if (face.vertices.includes(side_vertices[0]) && face.vertices.includes(side_vertices[1])) {
+				let f_vertices = face.getSortedVertices();
+				let index_a = f_vertices.indexOf(side_vertices[0]);
+				let index_b = f_vertices.indexOf(side_vertices[1]);
+				if (index_b - index_a == -1 || (index_b - index_a == f_vertices.length-1)) {
+					return {
+						face,
+						index: index_b
+					}
+				}
+			}
+		}
+		return null;
+	}
+	getFaceKey() {
+		for (let fkey in this.mesh.faces) {
+			if (this.mesh.faces[fkey] == this) return fkey;
+		}
 	}
 }
 new Property(MeshFace, 'array', 'vertices', {default: 0});
@@ -235,7 +264,8 @@ class Mesh extends OutlinerElement {
 		el.uuid = this.uuid
 		return el;
 	}
-	getSelectedVertices() {
+	getSelectedVertices(make) {
+		if (make && !Project.selected_vertices[this.uuid]) Project.selected_vertices[this.uuid] = [];
 		return Project.selected_vertices[this.uuid] || [];
 	}
 	getSelectedFaces() {
@@ -546,9 +576,9 @@ new NodePreviewController(Mesh, {
 
 				let sorted_vertices = face.getSortedVertices();
 
-				indices.push(index_offset + 0);
-				indices.push(index_offset + 1);
-				indices.push(index_offset + 2);
+				indices.push(face_indices[sorted_vertices[0]]);
+				indices.push(face_indices[sorted_vertices[1]]);
+				indices.push(face_indices[sorted_vertices[2]]);
 				indices.push(face_indices[sorted_vertices[0]]);
 				indices.push(face_indices[sorted_vertices[2]]);
 				indices.push(face_indices[sorted_vertices[3]]);

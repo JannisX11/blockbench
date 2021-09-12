@@ -417,7 +417,8 @@ class Preview {
 					element,
 					intersects,
 					intersect,
-					vertex
+					vertex,
+					vertex_index: intersect.index,
 				}
 			} else if (intersect_object.type == 'LineSegments') {
 				var element = OutlinerNode.uuids[intersect_object.parent.name];
@@ -733,13 +734,45 @@ class Preview {
 					if (data.element instanceof Mesh && select_mode == 'face') {
 						if (!data.element.selected) data.element.select(event);
 
-						if (!Project.selected_vertices[data.element.uuid]) {
-							Project.selected_vertices[data.element.uuid] = [];
+						let mesh = data.element;
+						let selected_vertices = mesh.getSelectedVertices(true);
+
+						if (event.altKey || Pressing.overrides.alt) {
+							
+							let mesh = data.element;
+							let start_face = mesh.faces[data.face];
+							if (!start_face) return;
+							let processed_faces = [];
+							function selectFace(face, index) {
+								if (processed_faces.includes(face)) return;
+								processed_faces.push(face);
+								let next = face.getAdjacentFace(index);
+								if (next) selectFace(next.face, next.index+2);
+
+							}
+
+							let face_test = start_face.getAdjacentFace(0);
+							let index = (face_test && face_test.face.isSelected()) ? 1 : 0;
+							selectFace(start_face, index);
+
+							if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+								selected_vertices.empty();
+								UVEditor.vue.selected_faces.empty();
+							}
+
+							processed_faces.forEach(face => {
+								Project.selected_vertices[data.element.uuid].safePush(...face.vertices);
+								let fkey = face.getFaceKey();
+								UVEditor.vue.selected_faces.push(fkey);
+							});
+						} else {
+							if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+								selected_vertices.empty();
+								UVEditor.vue.selected_faces.empty();
+							}
+							Project.selected_vertices[data.element.uuid].safePush(...data.element.faces[data.face].vertices);
+							UVEditor.vue.selected_faces.safePush(data.face);
 						}
-						if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
-							Project.selected_vertices[data.element.uuid].empty();
-						}
-						Project.selected_vertices[data.element.uuid].safePush(...data.element.faces[data.face].vertices);
 
 					} else {
 						data.element.select(event)

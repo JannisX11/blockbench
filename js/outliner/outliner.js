@@ -1349,6 +1349,7 @@ Interface.definePanels(function() {
 							list.scrollTop += (mouse_pos.y - (list_offset.top + list.clientHeight)) / 6 + 3;
 						}
 					}
+					let scrollIntervalID;
 
 					function move(e2) {
 						convertTouchEvent(e2);
@@ -1387,7 +1388,7 @@ Interface.definePanels(function() {
 								}
 								document.body.append(helper);
 
-								setInterval(scrollInterval, 1000/60)
+								scrollIntervalID = setInterval(scrollInterval, 1000/60)
 							}
 							helper.style.left = `${e2.clientX}px`;
 							helper.style.top = `${e2.clientY}px`;
@@ -1412,7 +1413,7 @@ Interface.definePanels(function() {
 					}
 					function off(e2) {
 						if (helper) helper.remove();
-						clearInterval(scrollInterval);
+						clearInterval(scrollIntervalID);
 						removeEventListeners(document, 'mousemove touchmove', move);
 						removeEventListeners(document, 'mouseup touchend', off);
 						$('.drag_hover').removeClass('drag_hover');

@@ -220,7 +220,7 @@ const Settings = {
 			Canvas.updateRenderSides();
 		}});
 		new Setting('background_rendering', 	{category: 'preview', value: true});
-		new Setting('texture_fps',   	{category: 'preview', value: 2, type: 'number', onChange() {
+		new Setting('texture_fps',   	{category: 'preview', value: 7, type: 'number', onChange() {
 			TextureAnimator.updateSpeed()
 		}});
 		new Setting('particle_tick_rate',{category: 'preview', value: 30, type: 'number', onChange() {

@@ -728,7 +728,7 @@ class GeneralAnimator {
 		}
 
 		keyframe.channel = channel;
-		keyframe.time = time;
+		keyframe.time = Timeline.snapTime(time);
 
 		this[channel].push(keyframe);
 		keyframe.animator = this;

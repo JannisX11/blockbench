@@ -417,6 +417,7 @@ function setProjectResolution(width, height, modify_uv) {
 function updateProjectResolution() {
 	if (Interface.Panels.uv) {
 		UVEditor.vue.project_resolution.replace([Project.texture_width, Project.texture_height]);
+		UVEditor.vue.updateSize()
 	}
 	if (Texture.selected) {
 		// Update animated textures

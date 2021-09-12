@@ -579,6 +579,7 @@ const MenuBar = {
 			'add_group',
 			'add_locator',
 			'add_null_object',
+			'add_texture_mesh',
 			'_',
 			'duplicate',
 			'rename',

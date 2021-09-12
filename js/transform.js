@@ -226,20 +226,25 @@ const Vertexsnap = {
 			}
 			vectors.push([0, 0, 0]);
 			
-			let points = new THREE.Points(new THREE.BufferGeometry(), Canvas.meshVertexMaterial);
+			let points = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial().copy(Canvas.meshVertexMaterial));
 			points.vertices = vectors;
 			let vector_positions = [];
 			vectors.forEach(vector => vector_positions.push(...vector));
+			let vector_colors = [];
+			vectors.forEach(vector => vector_colors.push(gizmo_colors.grid.r, gizmo_colors.grid.g, gizmo_colors.grid.b));
 			points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vector_positions), 3));
-			points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(vectors.length).fill(0), 1));
+			points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(vector_colors), 3));
+			points.material.transparent = true;
 			mesh.vertex_points = points;
 			mesh.outline.add(points);
 		}
 		mesh.vertex_points.visible = true;
+		mesh.vertex_points.renderOrder = 900;
 		
 		Vertexsnap.elements_with_vertex_gizmos.push(element)
 	},
 	clearVertexGizmos: function() {
+		Project.model_3d.remove(Vertexsnap.line);
 		Vertexsnap.elements_with_vertex_gizmos.forEach(element => {
 			if (element.mesh.vertex_points) {
 				element.mesh.vertex_points.visible = false;
@@ -263,13 +268,14 @@ const Vertexsnap = {
 				let colors = [];
 				for (let i = 0; i < points.geometry.attributes.position.count; i++) {
 					let color;
-					if (data && data.type == 'vertex' && data.intersect.index == i) {
+					if (data && data.element == el && data.type == 'vertex' && data.vertex_index == i) {
 						color = gizmo_colors.outline;
 					} else {
 						color = gizmo_colors.grid;
 					}
 					colors.push(color.r, color.g, color.b);
 				}
+				points.material.depthTest = !(data.element == el);
 				points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 			})
 		}
@@ -309,7 +315,9 @@ const Vertexsnap = {
 		if (Vertexsnap.step1) {
 			Vertexsnap.step1 = false
 			Vertexsnap.vertex_pos = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);
-			Vertexsnap.elements = Outliner.selected.slice()
+			Vertexsnap.vertex_index = data.vertex_index;
+			Vertexsnap.move_origin = typeof data.vertex !== 'string' && data.vertex.allEqual(0);
+			Vertexsnap.elements = Outliner.selected.slice();
 			Vertexsnap.clearVertexGizmos()
 			$('#preview').css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
 
@@ -330,13 +338,13 @@ const Vertexsnap = {
 
 		let mode = BarItems.vertex_snap_mode.get()
 
-		if (Vertexsnap.vertex_id === 100) {
+		if (Vertexsnap.move_origin) {
 
 			Vertexsnap.elements.forEach(function(element) {
 				let vec = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);
 
 				if (Format.bone_rig && element.parent instanceof Group && element.mesh.parent) {
-					//element.mesh.parent.worldToLocal(vec);
+					element.mesh.parent.worldToLocal(vec);
 				}
 				let vec_array = vec.toArray()
 				vec_array.V3_add(element.parent.origin);
@@ -351,7 +359,7 @@ const Vertexsnap = {
 				//Scale
 
 				var m;
-				switch (Vertexsnap.vertex_id) {
+				switch (Vertexsnap.vertex_index) {
 					case 0: m=[ 1,1,1 ]; break;
 					case 1: m=[ 1,1,0 ]; break;
 					case 2: m=[ 1,0,1 ]; break;
@@ -361,6 +369,7 @@ const Vertexsnap = {
 					case 6: m=[ 0,0,0 ]; break;
 					case 7: m=[ 0,0,1 ]; break;
 				}
+				console.log()
 
 				Vertexsnap.elements.forEach(function(obj) {
 					var q = obj.mesh.getWorldQuaternion(new THREE.Quaternion()).invert()
@@ -385,7 +394,7 @@ const Vertexsnap = {
 						var q = obj.mesh.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
 						cube_pos.applyQuaternion(q);
 					}
-					if (Format.rotate_cubes) {
+					if (obj instanceof Cube && Format.rotate_cubes) {
 						obj.origin.V3_add(cube_pos);
 					}
 					var in_box = obj.moveVector(cube_pos.toArray());
@@ -646,7 +655,7 @@ function moveElementsInSpace(difference, axis) {
 				}
 				
 			} else if (space instanceof Group) {
-				if (el.movable) el.from[axis] += difference;
+				if (el.movable && el instanceof Mesh == false) el.from[axis] += difference;
 				if (el.resizable && el.to) el.to[axis] += difference;
 				if (el.rotatable && el instanceof Locator == false) el.origin[axis] += difference;
 			} else {
@@ -677,7 +686,7 @@ function moveElementsInSpace(difference, axis) {
 					}
 				}
 
-				if (el.movable) el.from.V3_add(m.x, m.y, m.z);
+				if (el.movable && el instanceof Mesh == false) el.from.V3_add(m.x, m.y, m.z);
 				if (el.resizable && el.to) el.to.V3_add(m.x, m.y, m.z);
 				if (move_origin) {
 					if (el.rotatable && el instanceof Locator == false && el instanceof TextureMesh == false) el.origin.V3_add(m.x, m.y, m.z);
