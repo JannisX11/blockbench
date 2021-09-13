@@ -458,7 +458,7 @@ BARS.defineActions(function() {
 				type: 'Blockbench Theme',
 				extensions: ['bbtheme'],
 				name: theme.id,
-				content: compileJSON(CustomTheme.data)
+				content: compileJSON(theme)
 			})
 		}
 	})

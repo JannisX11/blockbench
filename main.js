@@ -153,9 +153,10 @@ app.commandLine.appendSwitch('enable-accelerated-video')
 app.on('second-instance', function (event, argv, cwd) {
 	process.argv = argv
 	if (argv[argv.length-1 || 1] && argv[argv.length-1 || 1].substr(0, 2) !== '--') {
-		orig_win.webContents.send('open-model', argv[argv.length-1 || 1])
+		orig_win.webContents.send('open-model', argv[argv.length-1 || 1]);
+		orig_win.focus();
 	} else {
-		createWindow(true)
+		createWindow(true);
 	}
 })
 app.on('open-file', function (event, path) {

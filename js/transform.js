@@ -5,41 +5,46 @@ function origin2geometry() {
 		Undo.initEdit({group: Group.selected})
 
 		if (!Group.selected || Group.selected.children.length === 0) return;
-		var position = [0, 0, 0]
+		var position = new THREE.Vector3();
+		let amount = 0;
 		Group.selected.children.forEach(function(obj) {
-			if (obj.type === 'cube') {
-				position[0] += obj.from[0] + obj.size(0)/2
-				position[1] += obj.from[1] + obj.size(1)/2
-				position[2] += obj.from[2] + obj.size(2)/2
+			if (obj.getWorldCenter) {
+				position.add(obj.getWorldCenter());
+				amount++;
 			}
 		})
-		position.forEach(function(p, pi) {
-			position[pi] = p / Group.selected.children.length
-		})
-		Group.selected.origin.V3_set(position)
+		position.divideScalar(amount);
+		Group.selected.mesh.parent.worldToLocal(position);
+		if (Group.selected.parent instanceof Group) {
+			position.x += Group.selected.parent.origin[0];
+			position.y += Group.selected.parent.origin[1];
+			position.z += Group.selected.parent.origin[2];
+		}
+		Group.selected.transferOrigin(position.toArray());
 
-	} else if (Cube.selected) {
-		Undo.initEdit({elements: Cube.selected})
+	} else if (Outliner.selected[0]) {
+		Undo.initEdit({elements: Outliner.selected})
 
 		var center = getSelectionCenter();
 		var original_center = center.slice();
 		
-		Cube.selected.forEach(cube => {
-			if (Format.bone_rig && cube.parent instanceof Group) {
+		Outliner.selected.forEach(element => {
+			if (!element.transferOrigin) return;
+			if (Format.bone_rig && element.parent instanceof Group) {
 				var v = new THREE.Vector3().fromArray(original_center);
-				cube.parent.mesh.worldToLocal(v);
-				v.x += cube.parent.origin[0];
-				v.y += cube.parent.origin[1];
-				v.z += cube.parent.origin[2];
+				element.parent.mesh.worldToLocal(v);
+				v.x += element.parent.origin[0];
+				v.y += element.parent.origin[1];
+				v.z += element.parent.origin[2];
 				center = v.toArray();
-				cube.transferOrigin(center)
+				element.transferOrigin(center)
 			} else {
-				cube.transferOrigin(original_center)
+				element.transferOrigin(original_center)
 			}
 		})
 	}
 	Canvas.updateView({
-		elements: Cube.selected,
+		elements: Outliner.selected,
 		element_aspects: {transform: true, geometry: true},
 		groups: Group.selected && [Group.selected],
 		selection: true
