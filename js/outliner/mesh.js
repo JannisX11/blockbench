@@ -1048,7 +1048,7 @@ BARS.defineActions(function() {
 			line: true,
 			vertex: true,
 		},
-		condition: () => Format && Format.meshes,
+		condition: () => Mesh.all.length,
 		onChange({value}) {
 			if (value === 'object') {
 				Mesh.selected.forEach(mesh => {

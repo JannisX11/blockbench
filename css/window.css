@@ -517,9 +517,13 @@
 	#tab_bar .project_tab_close_button:hover {
 		color: var(--color-light);
 	}
-	#tab_bar .project_tab_close_button.unsaved > i {
+	#tab_bar .project_tab_close_button.unsaved > i.unsaved_icon {
 		font-size: 13px;
 		text-align: center;
+	}
+	#tab_bar .project_tab_close_button.unsaved:hover > i.unsaved_icon,
+	#tab_bar .project_tab_close_button.unsaved:not(:hover) > i.close_icon {
+		display: none;
 	}
 	#new_tab_button {
 		height: 100%;

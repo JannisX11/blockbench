@@ -350,21 +350,21 @@ const Painter = {
 		ctx.restore();
 	},
 	useFilltool(texture, ctx, x, y, area) {
-		
 		var color = tinycolor(ColorPanel.get()).toRgb();
 		let b_opacity = BarItems.slider_brush_opacity.get()/100;
-
+		var fill_mode = BarItems.fill_mode.get()
+		var element = Painter.current.element;
 		let {rect, uvFactorX, uvFactorY, w, h} = area;
-
-		ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
 
 		if (Painter.erase_mode && (fill_mode === 'cube' || fill_mode === 'face')) {
 			ctx.globalAlpha = b_opacity;
-			ctx.globalCompositeOperation = 'destination-out'
+			ctx.fillStyle = 'white';
+			ctx.globalCompositeOperation = 'destination-out';
+			console.log(ctx.globalCompositeOperation)
+		} else {
+			ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
 		}
 
-		var fill_mode = BarItems.fill_mode.get()
-		var element = Painter.current.element;
 		if (element instanceof Cube && fill_mode === 'cube') {
 			for (var face in element.faces) {
 				var tag = element.faces[face]

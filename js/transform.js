@@ -360,7 +360,7 @@ const Vertexsnap = {
 			var global_delta = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);
 			global_delta.sub(Vertexsnap.vertex_pos)
 
-			if (mode === 'scale' && !Format.integer_size) {
+			if (mode === 'scale' && !Format.integer_size && Vertexsnap.elements[0] instanceof Cube) {
 				//Scale
 
 				var m;
@@ -374,9 +374,9 @@ const Vertexsnap = {
 					case 6: m=[ 0,0,0 ]; break;
 					case 7: m=[ 0,0,1 ]; break;
 				}
-				console.log()
 
 				Vertexsnap.elements.forEach(function(obj) {
+					if (obj instanceof Cube == false) return;
 					var q = obj.mesh.getWorldQuaternion(new THREE.Quaternion()).invert()
 					var cube_pos = new THREE.Vector3().copy(global_delta).applyQuaternion(q)
 
