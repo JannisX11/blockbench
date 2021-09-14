@@ -895,7 +895,7 @@ class Preview {
 	}
 	mouseup(event) {
 		this.showContextMenu(event);
-		if (settings.canvas_unselect.value && this.controls.hasMoved === false && !this.selection.activated && !Transformer.dragging && !this.selection.click_target) {
+		if (settings.canvas_unselect.value && event.which != 2 && this.controls.hasMoved === false && !this.selection.activated && !Transformer.dragging && !this.selection.click_target) {
 			unselectAll();
 		}
 		delete this.selection.click_target;
@@ -2522,26 +2522,29 @@ BARS.defineActions(function() {
 		category: 'view',
 		condition: () => !Modes.display,
 		click: function () {
-			let preview = quad_previews.current;
-			let center = new THREE.Vector3().fromArray(getSelectionCenter());
-			center.add(scene.position);
+			if (Prop.active_panel == 'uv') {
+				UVEditor.focusOnSelection()
 
-			let difference = new THREE.Vector3().copy(preview.controls.target).sub(center);
-			difference.divideScalar(6)
+			} else {
+				let preview = quad_previews.current;
+				let center = new THREE.Vector3().fromArray(getSelectionCenter());
+				center.add(scene.position);
 
-			let i = 0;
-			let interval = setInterval(() => {
+				let difference = new THREE.Vector3().copy(preview.controls.target).sub(center);
+				difference.divideScalar(6)
 
+				let i = 0;
+				let interval = setInterval(() => {
+					preview.controls.target.sub(difference);
 
-				preview.controls.target.sub(difference);
+					if (preview.angle != null) {
+						preview.camera.position.sub(difference);
+					}
+					i++;
+					if (i == 6) clearInterval(interval);
 
-				if (preview.angle != null) {
-					preview.camera.position.sub(difference);
-				}
-				i++;
-				if (i == 6) clearInterval(interval);
-
-			}, 16.66)
+				}, 16.66)
+			}
 		}
 	})
 

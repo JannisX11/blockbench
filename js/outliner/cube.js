@@ -871,27 +871,14 @@ new NodePreviewController(Cube, {
 	},
 	updateFaces(cube) {
 		let {mesh} = cube;
-		let {geometry} = mesh;
 
-		if (!geometry.all_faces) geometry.all_faces = geometry.groups.slice();
-		geometry.groups.empty();
-
-		geometry.all_faces.forEach(face => {
-			let bb_face = cube.faces[Canvas.face_order[face.materialIndex]];
-
-			if (bb_face && bb_face.texture === null && geometry.groups.includes(face)) {
-				geometry.groups.remove(face);
-			} else
-			if (bb_face && bb_face.texture !== null && !geometry.groups.includes(face)) {
-				geometry.groups.push(face);
+		let indices = [];
+		Canvas.face_order.forEach((fkey, i) => {
+			if (cube.faces[fkey].texture !== null) {
+				indices.push(0 + i*4, 2 + i*4, 1 + i*4, 2 + i*4, 3 + i*4, 1 + i*4);
 			}
 		})
-		if (geometry.groups.length == 0) {
-			// Keep down face if no faces enabled
-			geometry.groups.push(geometry.all_faces[6], geometry.all_faces[7]);
-		}
-
-
+		mesh.geometry.setIndex(indices)
 
 		if (Project.view_mode === 'solid') {
 			mesh.material = Canvas.solidMaterial

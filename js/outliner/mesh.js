@@ -745,7 +745,7 @@ new NodePreviewController(Mesh, {
 
 		let array = new Array(mesh.geometry.attributes.highlight.count).fill(highlighted);
 		
-		if (!force_off && element.selected) {
+		if (!force_off && element.selected && Modes.edit) {
 			let i = 0;
 			for (let fkey in element.faces) {
 				let face = element.faces[fkey];
@@ -1043,11 +1043,12 @@ BARS.defineActions(function() {
 	})
 	new BarSelect('selection_mode', {
 		options: {
-			object: true,
-			face: true,
-			line: true,
-			vertex: true,
+			object: {name: true, icon: 'far.fa-gem'},
+			face: {name: true, icon: 'crop_square'},
+			line: {name: true, icon: 'fa-grip-lines-vertical'},
+			vertex: {name: true, icon: 'fiber_manual_record'},
 		},
+		icon_mode: true,
 		condition: () => Mesh.all.length,
 		onChange({value}) {
 			if (value === 'object') {

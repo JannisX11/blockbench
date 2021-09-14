@@ -49,8 +49,6 @@ var codec = new Codec('obj', {
 
 		output.push('mtllib ' + (options.mtl_name||'materials.mtl') +'\n');
 
-		var scale = 1/16;
-
 		var parseMesh = function ( mesh ) {
 
 			var nbVertex = 0;
@@ -71,7 +69,7 @@ var codec = new Codec('obj', {
 
 				function addVertex(x, y, z) {
 					vertex.set(x - element.origin[0], y - element.origin[1], z - element.origin[2]);
-					vertex.applyMatrix4( mesh.matrixWorld );
+					vertex.applyMatrix4( mesh.matrixWorld ).divideScalar(16);
 					output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
 					nbVertex++;
 				}
@@ -85,7 +83,7 @@ var codec = new Codec('obj', {
 				addVertex(element.from[0] - element.inflate, element.from[1] -	element.inflate, element.to[2]  	- element.inflate);
 
 				for (let key in element.faces) {
-					if (element.faces[key].texture != null) {
+					if (element.faces[key].texture !== null) {
 						let face = element.faces[key];
 						output.push(`vt ${face.uv[0] / Project.texture_width} ${1 - face.uv[1] / Project.texture_height}`);
 						output.push(`vt ${face.uv[2] / Project.texture_width} ${1 - face.uv[1] / Project.texture_height}`);
@@ -95,7 +93,7 @@ var codec = new Codec('obj', {
 					}
 				}
 				for (let key in element.faces) {
-					if (element.faces[key].texture != null) {
+					if (element.faces[key].texture !== null) {
 						output.push(`vn ${cube_face_normals[key]}`)
 						nbNormals += 1;
 					}
@@ -104,7 +102,7 @@ var codec = new Codec('obj', {
 				let mtl;
 				let i = 0;
 				for (let key in element.faces) {
-					if (element.faces[key].texture != null) {
+					if (element.faces[key].texture !== null) {
 						let tex = element.faces[key].getTexture()
 						if (tex && tex.uuid && !materials[tex.id]) {
 							materials[tex.id] = tex;
@@ -143,7 +141,7 @@ var codec = new Codec('obj', {
 				let vertex_keys = [];
 				function addVertex(x, y, z) {
 					vertex.set(x, y, z);
-					vertex.applyMatrix4( mesh.matrixWorld );
+					vertex.applyMatrix4( mesh.matrixWorld ).divideScalar(16);
 					output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
 					nbVertex++;
 				}
@@ -157,7 +155,7 @@ var codec = new Codec('obj', {
 				let vertexnormals = [];
 				let faces = [];
 				for (let key in element.faces) {
-					if (element.faces[key].texture != null && element.faces[key].vertices.length >= 3) {
+					if (element.faces[key].texture !== null && element.faces[key].vertices.length >= 3) {
 						let face = element.faces[key];
 						let vertices = face.getSortedVertices();
 						let tex = element.faces[key].getTexture();
@@ -224,7 +222,7 @@ var codec = new Codec('obj', {
 						vertex.y = vertices.getY( i );
 						vertex.z = vertices.getZ( i ); // transform the vertex to world space
 
-						vertex.applyMatrix4( mesh.matrixWorld ); // transform the vertex to export format
+						vertex.applyMatrix4( mesh.matrixWorld ).divideScalar(16); // transform the vertex to export format
 
 						output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
 

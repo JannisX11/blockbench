@@ -388,7 +388,6 @@ const Canvas = {
 		if (options.elements) {
 			let aspects = options.element_aspects || {};
 			options.elements.forEach(element => {
-				let {mesh} = element;
 				let update_all = !options.element_aspects || (aspects.visibility && element.visibility && !element.mesh.visible);
 				let controller = element.constructor.preview_controller
 				

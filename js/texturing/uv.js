@@ -312,6 +312,48 @@ const UVEditor = {
 			.css('top', Painter.selection.y * m);
 		return this;
 	},
+	focusOnSelection() {
+		let min_x = Project.texture_width;
+		let min_y = Project.texture_height;
+		let max_x = 0;
+		let max_y = 0;
+		let elements = UVEditor.getMappableElements();
+		elements.forEach(element => {
+			if (element instanceof Cube && Project.box_uv) {
+				let size = element.size(undefined, true)
+				min_x = Math.min(min_x, element.uv_offset[0]);
+				min_y = Math.min(min_y, element.uv_offset[1]);
+				max_x = Math.max(max_x, element.uv_offset[0] + (size[0] + size[2]) * 2);
+				max_y = Math.max(max_y, element.uv_offset[1] + size[1] + size[2]);
+			} else {
+				for (let fkey in element.faces) {
+					if (!UVEditor.selected_faces.includes(fkey)) continue;
+					let face = element.faces[fkey];
+					if (element instanceof Cube) {
+						min_x = Math.min(min_x, face.uv[0], face.uv[2]);
+						min_y = Math.min(min_y, face.uv[1], face.uv[3]);
+						max_x = Math.max(max_x, face.uv[0], face.uv[2]);
+						max_y = Math.max(max_y, face.uv[1], face.uv[3]);
+					} else if (element instanceof Mesh) {
+						face.vertices.forEach(vkey => {
+							if (!face.uv[vkey]) return;
+							min_x = Math.min(min_x, face.uv[vkey][0]);
+							min_y = Math.min(min_y, face.uv[vkey][1]);
+							max_x = Math.max(max_x, face.uv[vkey][0]);
+							max_y = Math.max(max_y, face.uv[vkey][1]);
+						})
+					}
+				}
+			}
+		})
+		let pixel_size = UVEditor.getPixelSize();
+		let focus = [min_x+max_x, min_y+max_y].map(v => v * 0.5 * pixel_size);
+		let {viewport} = UVEditor.vue.$refs;
+		$(viewport).animate({
+			scrollLeft: focus[0] - UVEditor.width / 2,
+			scrollTop: focus[1] - UVEditor.height / 2,
+		}, 100)
+	},
 	//Get
 	get width() {
 		return this.vue.width;
@@ -327,6 +369,9 @@ const UVEditor = {
 	},
 	get inner_height() {
 		return this.vue.inner_height;
+	},
+	get selected_faces() {
+		return this.vue.selected_faces;
 	},
 	getPixelSize() {
 		if (Project.box_uv) {
@@ -612,35 +657,138 @@ const UVEditor = {
 	setAutoSize(event) {
 		var scope = this;
 		var top2, left2;
+		
+		let vec1 = new THREE.Vector3(),
+			vec2 = new THREE.Vector3(),
+			vec3 = new THREE.Vector3(),
+			vec4 = new THREE.Vector3(),
+			quat = new THREE.Quaternion(),
+			plane = new THREE.Plane();
 
-		this.forCubes(obj => {
-			scope.getFaces(obj, event).forEach(function(side) {
-				let face = obj.faces[side];
-				let mirror_x = face.uv[0] > face.uv[2];
-				let mirror_y = face.uv[1] > face.uv[3];
-				face.uv[0] = Math.min(face.uv[0], face.uv[2]);
-				face.uv[1] = Math.min(face.uv[1], face.uv[3]);
-				if (side == 'north' || side == 'south') {
-					left2 = limitNumber(obj.size('0'), 0, Project.texture_width)
-					top2 = limitNumber(obj.size('1'), 0, Project.texture_height)
-				} else if (side == 'east' || side == 'west') {
-					left2 = limitNumber(obj.size('2'), 0, Project.texture_width)
-					top2 = limitNumber(obj.size('1'), 0, Project.texture_height)
-				} else if (side == 'up' || side == 'down') {
-					left2 = limitNumber(obj.size('0'), 0, Project.texture_width)
-					top2 = limitNumber(obj.size('2'), 0, Project.texture_height)
-				}
-				if (face.rotation % 180) {
-					[left2, top2] = [top2, left2];
-				}
-				left2 *= scope.getResolution(0, face) / Project.texture_width;
-				top2 *= scope.getResolution(1, face) / Project.texture_height;
-				face.uv_size = [left2, top2];
-				if (mirror_x) [face.uv[0], face.uv[2]] = [face.uv[2], face.uv[0]];
-				if (mirror_y) [face.uv[1], face.uv[3]] = [face.uv[3], face.uv[1]];
-			})
-			obj.autouv = 0
-			Canvas.updateUV(obj)
+		this.getMappableElements().forEach(obj => {
+			if (obj instanceof Cube) {
+				scope.getFaces(obj, event).forEach(function(side) {
+					let face = obj.faces[side];
+					let mirror_x = face.uv[0] > face.uv[2];
+					let mirror_y = face.uv[1] > face.uv[3];
+					face.uv[0] = Math.min(face.uv[0], face.uv[2]);
+					face.uv[1] = Math.min(face.uv[1], face.uv[3]);
+					if (side == 'north' || side == 'south') {
+						left2 = limitNumber(obj.size('0'), 0, Project.texture_width)
+						top2 = limitNumber(obj.size('1'), 0, Project.texture_height)
+					} else if (side == 'east' || side == 'west') {
+						left2 = limitNumber(obj.size('2'), 0, Project.texture_width)
+						top2 = limitNumber(obj.size('1'), 0, Project.texture_height)
+					} else if (side == 'up' || side == 'down') {
+						left2 = limitNumber(obj.size('0'), 0, Project.texture_width)
+						top2 = limitNumber(obj.size('2'), 0, Project.texture_height)
+					}
+					if (face.rotation % 180) {
+						[left2, top2] = [top2, left2];
+					}
+					left2 *= scope.getResolution(0, face) / Project.texture_width;
+					top2 *= scope.getResolution(1, face) / Project.texture_height;
+					face.uv_size = [left2, top2];
+					if (mirror_x) [face.uv[0], face.uv[2]] = [face.uv[2], face.uv[0]];
+					if (mirror_y) [face.uv[1], face.uv[3]] = [face.uv[3], face.uv[1]];
+				})
+				obj.autouv = 0
+
+			} else if (obj instanceof Mesh) {
+				scope.getFaces(obj, event).forEach(fkey => {
+					let face = obj.faces[fkey];
+					let vertex_uvs = {};
+					let uv_center = [0, 0];
+					let new_uv_center = [0, 0];
+					let normal_vec = vec1.fromArray(face.getNormal(true));
+					plane.setFromNormalAndCoplanarPoint(
+						normal_vec,
+						vec2.fromArray(obj.vertices[face.vertices[0]])
+					)
+					face.vertices.forEach(vkey => {
+						let coplanar_pos = plane.projectPoint(vec3.fromArray(obj.vertices[vkey]), vec4.set(0, 0, 0));
+						let q = quat.setFromUnitVectors(normal_vec, THREE.NormalY);
+						coplanar_pos.applyQuaternion(q);
+						vertex_uvs[vkey] = [
+							Math.roundTo(coplanar_pos.x, 4),
+							Math.roundTo(coplanar_pos.z, 4),
+						]
+					})
+					// Rotate UV to match corners
+					let rotation_angles = {};
+					let precise_rotation_angle = {};
+					let vertices = face.getSortedVertices();
+					vertices.forEach((vkey, i) => {
+						let vkey2 = vertices[i+1] || vertices[0];
+						let rot = Math.atan2(
+							vertex_uvs[vkey2][0] - vertex_uvs[vkey][0],
+							vertex_uvs[vkey2][1] - vertex_uvs[vkey][1],
+						)
+						let snap = 2;
+						rot = (Math.radToDeg(rot) + 360) % 90;
+						let rounded = Math.round(rot / snap) * snap;
+						if (rotation_angles[rounded]) {
+							rotation_angles[rounded]++;
+						} else {
+							rotation_angles[rounded] = 1;
+							precise_rotation_angle[rounded] = rot;
+						}
+					})
+					let angles = Object.keys(rotation_angles).map(k => parseInt(k));
+					angles.sort((a, b) => {
+						let diff = rotation_angles[b] - rotation_angles[a];
+						if (diff) {
+							return diff;
+						} else {
+							return a < b ? -1 : 1;
+						}
+					})
+					let angle = Math.degToRad(precise_rotation_angle[angles[0]]);
+					let s = Math.sin(angle);
+					let c = Math.cos(angle);
+					for (let vkey in vertex_uvs) {
+						let point = vertex_uvs[vkey].slice();
+						vertex_uvs[vkey][0] = point[0] * c - point[1] * s;
+						vertex_uvs[vkey][1] = point[0] * s + point[1] * c;
+					}
+
+					// Find position on UV map
+					let pmin_x = Infinity, pmin_y = Infinity;
+					face.vertices.forEach(vkey => {
+						pmin_x = Math.min(pmin_x, vertex_uvs[vkey][0]);
+						pmin_y = Math.min(pmin_y, vertex_uvs[vkey][1]);
+					})
+					face.vertices.forEach(vkey => {
+						uv_center[0] += face.uv[vkey] ? face.uv[vkey][0] : 0;
+						uv_center[1] += face.uv[vkey] ? face.uv[vkey][1] : 0;
+						new_uv_center[0] += vertex_uvs[vkey][0];
+						new_uv_center[1] += vertex_uvs[vkey][1];
+					})
+					uv_center[0] = Math.round((uv_center[0] - new_uv_center[0]) / face.vertices.length);
+					uv_center[1] = Math.round((uv_center[1] - new_uv_center[1]) / face.vertices.length);
+
+					let min_x = Infinity, min_y = Infinity, max_x = 0, max_y = 0;
+					for (let vkey in vertex_uvs) {
+						vertex_uvs[vkey][0] = vertex_uvs[vkey][0] - (pmin_x % 1) + uv_center[0],
+						vertex_uvs[vkey][1] = vertex_uvs[vkey][1] - (pmin_y % 1) + uv_center[1],
+						min_x = Math.min(min_x, vertex_uvs[vkey][0]);
+						min_y = Math.min(min_y, vertex_uvs[vkey][1]);
+						max_x = Math.max(max_x, vertex_uvs[vkey][0]);
+						max_y = Math.max(max_y, vertex_uvs[vkey][1]);
+					}
+					let offset = [
+						min_x < 0 ? -min_x : (max_x > Project.texture_width ? Math.floor(Project.texture_width - max_x) : 0),
+						min_y < 0 ? -min_y : (max_y > Project.texture_height ? Math.floor(Project.texture_height - max_y) : 0),
+					];
+					face.vertices.forEach(vkey => {
+						face.uv[vkey] = [
+							vertex_uvs[vkey][0] + offset[0],
+							vertex_uvs[vkey][1] + offset[1],
+						]
+					})
+				})
+			}
+			obj.preview_controller.updateUV(obj);
 		})
 		this.message('uv_editor.autouv')
 		this.loadData()
@@ -988,6 +1136,7 @@ const UVEditor = {
 			'zoom_out',
 			'zoom_reset'
 		]},
+		'focus_on_selection',
 		'uv_checkerboard',
 		'_',
 		'copy',
@@ -1179,9 +1328,9 @@ BARS.defineActions(function() {
 	new Action('uv_auto', {
 		icon: 'brightness_auto',
 		category: 'uv',
-		condition: () => !Project.box_uv && Cube.selected.length,
+		condition: () => !Project.box_uv && UVEditor.getMappableElements(),
 		click: function (event) {
-			Undo.initEdit({elements: Cube.selected, uv_only: true})
+			Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true})
 			UVEditor.forSelection('setAutoSize', event)
 			Undo.finishEdit('Auto UV')
 		}
@@ -1468,6 +1617,7 @@ Interface.definePanels(function() {
 					}
 				},
 				onMouseDown(event) {
+					setActivePanel('uv');
 					if (event.which === 2) {
 						let {viewport} = this.$refs;
 						let coords = {x: 0, y: 0}
@@ -1490,6 +1640,7 @@ Interface.definePanels(function() {
 					}
 				},
 				contextMenu(event) {
+					setActivePanel('uv');
 					if (!UVEditor.getReferenceFace()) return;
 					UVEditor.menu.open(event);
 				},

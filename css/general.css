@@ -448,6 +448,29 @@
 		transition-delay: 600ms;
 		opacity: 1;
 	}
+	.tool.bar_select.icon_mode {
+		padding: 0 4px;
+		background-color: var(--color-button);
+	}
+	.tool.bar_select .select_option {
+		float: left;
+		width: 28px;
+		height: 100%;
+		color: var(--color-text);
+	}
+	.tool.bar_select .select_option:hover {
+		color: var(--color-light);
+	}
+	.tool.bar_select .select_option.selected {
+		background: var(--color-accent);
+		color: var(--color-accent_text);
+	}
+	.tool.bar_select .select_option .icon {
+		transform: scale(0.86);
+	}
+	.tool.bar_select .select_option[key=vertex] .icon {
+		transform: scale(0.6);
+	}
 
 /*(Context-)Menu*/
 	.contextMenu {

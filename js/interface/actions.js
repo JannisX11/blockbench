@@ -849,29 +849,52 @@ class BarSelect extends Widget {
 		var scope = this;
 		this.type = 'select'
 		this.icon = 'list'
-		this.node = $('<div class="tool widget bar_select"><bb-select></bb-select></div>').get(0)
-		var select = $(this.node).find('bb-select')
-		if (data.width) {
-			select.css('width', data.width+'px')
-		}
-		if (data.min_width) {
-			select.css('min-width', data.min_width+'px')
-		}
-		select.click(event => {
-			scope.open(event)
-		});
+		this.icon_mode = !!data.icon_mode;
 		this.value = data.value
 		this.values = [];
 		this.options = data.options;
 		if (data.options) {
-			for (var key in data.options) {
+			for (let key in data.options) {
 				if (!this.value) {
 					this.value = key
 				}
 				this.values.push(key);
 			}
 		}
-		this.set(this.value)
+		this.node = document.createElement('div');
+		this.node.className = 'tool widget bar_select';
+		if (this.icon_mode) {
+			this.node.classList.add('icon_mode');
+			for (let key in data.options) {
+				let button = document.createElement('div');
+				button.className = 'select_option';
+				button.setAttribute('key', key);
+				button.title = this.getNameFor(key);
+				button.append(Blockbench.getIconNode(data.options[key].icon));
+				this.node.append(button);
+				button.addEventListener('click', event => {
+					this.set(key);
+					if (this.onChange) {
+						this.onChange(this, event);
+					}
+				})
+			}
+
+		} else {
+			let select = document.createElement('bb-select')
+			this.node.append(select);
+			if (data.width) {
+				select.style.setProperty('width', data.width+'px');
+			}
+			if (data.min_width) {
+				select.style.setProperty('min-width', data.min_width+'px');
+			}
+			select.addEventListener('click', event => {
+				scope.open(event)
+			})
+		}
+		this.nodes.push(this.node);
+		this.set(this.value);
 		this.addLabel()
 		if (typeof data.onChange === 'function') {
 			this.onChange = data.onChange
@@ -965,12 +988,21 @@ class BarSelect extends Widget {
 			return this;
 		}
 		this.value = key;
-		let name = this.getNameFor(key);
-		this.nodes.forEach(node => {
-			$(node).find('bb-select').text(name)
-		})
-		if (!this.nodes.includes(this.node)) {
-			$(this.node).find('bb-select').text(name)
+		if (this.icon_mode) {
+			this.nodes.forEach(node => {
+				for (let key in this.options) {
+					let button = node.querySelector(`div.select_option[key=${key}]`);
+					button.classList.toggle('selected', this.value == key);
+				}
+			})
+		} else {
+			let name = this.getNameFor(key);
+			this.nodes.forEach(node => {
+				$(node).find('bb-select').text(name)
+			})
+			if (!this.nodes.includes(this.node)) {
+				$(this.node).find('bb-select').text(name)
+			}
 		}
 		return this;
 	}
