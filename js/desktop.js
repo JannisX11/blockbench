@@ -1,5 +1,5 @@
 const electron = require('electron').remote;
-const {clipboard, shell, nativeImage, ipcRenderer} = require('electron');
+const {clipboard, shell, nativeImage, ipcRenderer, dialog} = require('electron');
 const app = electron.app;
 const fs = require('fs');
 const NodeBuffer = require('buffer');
@@ -29,32 +29,6 @@ const recent_projects = (function() {
 
 app.setAppUserModelId('blockbench')
 
-// Deprecated
-const ElecDialogs = {};
-if (electron.dialog.showMessageBoxSync) {
-	ElecDialogs.showMessageBox = function(a, b, cb) {
-		if (!cb) cb = b;
-		var result = electron.dialog.showMessageBoxSync(a, b);
-		if (typeof cb == 'function') cb(result);
-		return result;
-	}
-	ElecDialogs.showSaveDialog = function(a, b, cb) {
-		if (!cb) cb = b;
-		var result = electron.dialog.showSaveDialogSync(a, b);
-		if (typeof cb == 'function') cb(result);
-		return result;
-	}
-	ElecDialogs.showOpenDialog = function(a, b, cb) {
-		if (!cb) cb = b;
-		var result = electron.dialog.showOpenDialogSync(a, b);
-		if (typeof cb == 'function') cb(result);
-		return result;
-	}
-} else {
-	ElecDialogs.showMessageBox = electron.dialog.showMessageBox;
-	ElecDialogs.showSaveDialog = electron.dialog.showSaveDialog;
-	ElecDialogs.showOpenDialog = electron.dialog.showOpenDialog;
-}
 
 function initializeDesktopApp() {
 
@@ -275,17 +249,16 @@ function changeImageEditor(texture, from_settings) {
 	}).show()
 }
 function selectImageEditorFile(texture) {
-	ElecDialogs.showOpenDialog(currentwindow, {
+	let filePaths = electron.dialog.showOpenDialogSync(currentwindow, {
 		title: tl('message.image_editor.exe'),
 		filters: [{name: 'Executable Program', extensions: ['exe', 'app']}]
-	}, function(filePaths) {
-		if (filePaths) {
-			settings.image_editor.value = filePaths[0]
-			if (texture) {
-				texture.openEditor()
-			}
-		}
 	})
+	if (filePaths) {
+		settings.image_editor.value = filePaths[0]
+		if (texture) {
+			texture.openEditor();
+		}
+	}
 }
 //Default Pack
 function openDefaultTexturePath() {
@@ -388,8 +361,18 @@ window.onbeforeunload = function (event) {
 			}
 		} catch (err) {}
 	} else {
-		setTimeout(function() {
-			showSaveDialog(true)
+		setTimeout(async function() {
+			let projects = ModelProject.all.slice();
+			for (let project of projects) {
+				let closed = await project.close();
+				if (!closed) return false;
+			}
+			if (ModelProject.all.length === 0) {
+				closeBlockbenchWindow()
+				return true;
+			} else {
+				return false;
+			}
 		}, 2)
 		event.returnValue = true;
 		return true;
@@ -397,16 +380,18 @@ window.onbeforeunload = function (event) {
 }
 
 function showSaveDialog(close) {
+
+
+	/*
 	if (Blockbench.hasFlag('allow_reload')) {
 		close = false
 	}
-	var unsaved_textures = 0;
-	Texture.all.forEach(function(t) {
-		if (!t.saved) {
-			unsaved_textures++;
-		}
-	})
-	if ((window.Prop && Project.saved === false && (elements.length > 0 || Group.all.length > 0)) || unsaved_textures) {
+	if (close) {
+		unsaved_projects = ModelProject.all.find(project => {
+			return !project.saved || project.textures.find(tex => !tex.saved)
+		})
+	}
+	if (unsaved_changes || !close) {
 		var answer = electron.dialog.showMessageBoxSync(currentwindow, {
 			type: 'question',
 			buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
@@ -433,7 +418,7 @@ function showSaveDialog(close) {
 			closeBlockbenchWindow()
 		}
 		return true;
-	}
+	}*/
 }
 function closeBlockbenchWindow() {
 	window.onbeforeunload = null;

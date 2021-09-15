@@ -465,11 +465,11 @@ class OutlinerElement extends OutlinerNode {
 			s.selected = false;
 		})
 		Blockbench.dispatchEvent('added_to_selection', {added: just_selected})
-		updateSelection()
+		TickUpdates.selection = true;
 		return this;
 	}
 	selectLow() {
-		selected.safePush(this);
+		Outliner.selected.safePush(this);
 		this.constructor.selected.safePush(this)
 		this.selected = true;
 		TickUpdates.selection = true;

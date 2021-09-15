@@ -159,7 +159,7 @@ class Mesh extends OutlinerElement {
 	}
 	getWorldCenter(ignore_selected_vertices) {
 		let m = this.mesh;
-		let pos = new THREE.Vector3()
+		let pos = Reusable.vec1.set(0, 0, 0);
 		let vertice_count = 0;
 
 		for (let key in this.vertices) {
@@ -176,9 +176,9 @@ class Mesh extends OutlinerElement {
 		pos.z /= vertice_count;
 
 		if (m) {
-			let r = m.getWorldQuaternion(new THREE.Quaternion());
+			let r = m.getWorldQuaternion(Reusable.quat1);
 			pos.applyQuaternion(r);
-			pos.add(THREE.fastWorldPosition(m, new THREE.Vector3()));
+			pos.add(THREE.fastWorldPosition(m, Reusable.vec2));
 		}
 		return pos;
 	}
@@ -704,21 +704,25 @@ new NodePreviewController(Mesh, {
 	},
 	updateSelection(element) {
 		NodePreviewController.prototype.updateSelection(element);
-		
+	
 		let mesh = element.mesh;
-		let colors = [];
-		let line_colors = [];
 
-		for (let key in element.vertices) {
-			let color;
-			if (Project.selected_vertices[element.uuid] && Project.selected_vertices[element.uuid].includes(key)) {
-				color = gizmo_colors.outline;
-			} else {
-				color = gizmo_colors.grid;
+		if (BarItems.selection_mode.value == 'vertex') {
+			let colors = [];
+			for (let key in element.vertices) {
+				let color;
+				if (Project.selected_vertices[element.uuid] && Project.selected_vertices[element.uuid].includes(key)) {
+					color = gizmo_colors.outline;
+				} else {
+					color = gizmo_colors.grid;
+				}
+				colors.push(color.r, color.g, color.b);
 			}
-			colors.push(color.r, color.g, color.b);
+			mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+			mesh.outline.geometry.needsUpdate = true;
 		}
 
+		let line_colors = [];
 		mesh.outline.vertex_order.forEach(key => {
 			let color;
 			if (!Modes.edit || BarItems.selection_mode.value == 'object' || (Project.selected_vertices[element.uuid] && Project.selected_vertices[element.uuid].includes(key))) {
@@ -728,10 +732,9 @@ new NodePreviewController(Mesh, {
 			}
 			line_colors.push(color.r, color.g, color.b);
 		})
-		
-		mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 		mesh.outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(line_colors, 3));
-		mesh.outline.geometry.needsUpdate = true
+		mesh.outline.geometry.needsUpdate = true;
+		
 		mesh.vertex_points.visible = Mode.selected.id == 'edit' && BarItems.selection_mode.value == 'vertex';
 	},
 	updateHighlight(element, hover_cube, force_off) {
@@ -1664,7 +1667,7 @@ BARS.defineActions(function() {
 							vector2.fromArray(f.vertex_normals[0]);
 							let angle = vector1.angleTo(vector2);
 							if (angle > Math.PI/2) {
-								new_face.invert();
+								face.invert();
 							}
 						}
 					}

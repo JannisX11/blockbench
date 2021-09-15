@@ -442,13 +442,13 @@ class Cube extends OutlinerElement {
 	}
 	transferOrigin(origin, update = true) {
 		if (!this.mesh) return;
-		var q = new THREE.Quaternion().copy(this.mesh.quaternion)
-		var shift = new THREE.Vector3(
+		var q = Reusable.quat1.copy(this.mesh.quaternion)
+		var shift = Reusable.vec1.set(
 			this.origin[0] - origin[0],
 			this.origin[1] - origin[1],
 			this.origin[2] - origin[2],
 		)
-		var dq = new THREE.Vector3().copy(shift)
+		var dq = Reusable.vec2.copy(shift)
 		dq.applyQuaternion(q)
 		shift.sub(dq)
 		shift.applyQuaternion(q.invert())
@@ -463,7 +463,7 @@ class Cube extends OutlinerElement {
 	}
 	getWorldCenter() {
 		var m = this.mesh;
-		var pos = new THREE.Vector3(
+		var pos = Reusable.vec1.set(
 			this.from[0] + this.size(0)/2,
 			this.from[1] + this.size(1)/2,
 			this.from[2] + this.size(2)/2
@@ -473,9 +473,9 @@ class Cube extends OutlinerElement {
 		pos.z -= this.origin[2]
 
 		if (m) {
-			var r = m.getWorldQuaternion(new THREE.Quaternion())
+			var r = m.getWorldQuaternion(Reusable.quat1)
 			pos.applyQuaternion(r)
-			pos.add(THREE.fastWorldPosition(m, new THREE.Vector3()))
+			pos.add(THREE.fastWorldPosition(m, Reusable.vec2))
 		}
 		return pos;
 	}

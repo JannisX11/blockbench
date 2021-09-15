@@ -10,6 +10,7 @@ class Panel {
 		this.selection_only = data.selection_only == true;
 		this.condition = data.condition;
 		this.onResize = data.onResize;
+		this.onFold = data.onFold;
 		this.folded = false;
 		if (data.toolbars) {
 			this.toolbars = data.toolbars;
@@ -156,10 +157,16 @@ class Panel {
 
 		Interface.Panels[this.id] = this;
 	}
+	isVisible() {
+		return !this.folded && this.node.parentElement && this.node.parentElement.style.display !== 'none';
+	}
 	fold(state = !this.folded) {
 		this.folded = !!state;
 		$(this.handle).find('> .panel_folding_button > i').text(state ? 'expand_less' : 'expand_more');
 		this.node.classList.toggle('folded', state);
+		if (this.onFold) {
+			this.onFold();
+		}
 	}
 	moveTo(ref_panel, before) {
 		let scope = this

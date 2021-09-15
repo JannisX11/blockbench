@@ -35,26 +35,14 @@ function loadInfoFromURL() {
 
 //Misc
 window.onbeforeunload = function() {
-	if (Project.saved === false && elements.length > 0) {
+	let unsaved_projects = ModelProject.all.find(project => {
+		return !project.saved || project.textures.find(tex => !tex.saved)
+	})
+	if (unsaved_projects) {
 		return 'Unsaved Changes';
 	} else {
 		Blockbench.dispatchEvent('before_closing')
 		if (Project.EditSession) Project.EditSession.quit()
-	}
-}
-function showSaveDialog(close) {
-	var unsaved_textures = 0;
-	Texture.all.forEach(function(t) {
-		if (!t.saved) {
-			unsaved_textures++;
-		}
-	})
-	if ((Project.saved === false && elements.length > 0) || unsaved_textures) {
-
-		var answer = confirm(tl('message.close_warning.web'))
-		return answer;
-	} else {
-		return true;
 	}
 }
 

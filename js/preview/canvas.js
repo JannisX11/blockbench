@@ -18,6 +18,21 @@ function getRescalingFactor(angle) {
 			break;
 	}
 }
+
+const Reusable = {
+	vec1: new THREE.Vector3(),
+	vec2: new THREE.Vector3(),
+	vec3: new THREE.Vector3(),
+	vec4: new THREE.Vector3(),
+	vec5: new THREE.Vector3(),
+	vec6: new THREE.Vector3(),
+	vec7: new THREE.Vector3(),
+	vec8: new THREE.Vector3(),
+
+	quat1: new THREE.Quaternion(),
+	quat2: new THREE.Quaternion(),
+}
+
 const Canvas = {
 	outlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,

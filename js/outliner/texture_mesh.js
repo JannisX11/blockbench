@@ -14,12 +14,12 @@ class TextureMesh extends OutlinerElement {
 	}
 	getWorldCenter() {
 		let m = this.mesh;
-		let pos = new THREE.Vector3().fromArray(this.local_pivot);
+		let pos = Reusable.vec1.fromArray(this.local_pivot);
 
 		if (m) {
-			let r = m.getWorldQuaternion(new THREE.Quaternion());
+			let r = m.getWorldQuaternion(Reusable.quat1);
 			pos.applyQuaternion(r);
-			pos.add(THREE.fastWorldPosition(m, new THREE.Vector3()));
+			pos.add(THREE.fastWorldPosition(m, Reusable.vec2));
 		}
 		return pos;
 	}

@@ -165,7 +165,7 @@ class ModelProject {
 		}
 	}
 	select() {
-		if (this.selected) return;
+		if (this === Project) return;
 		if (Project) {
 			Project.unselect()
 		} else {
@@ -269,8 +269,34 @@ class ModelProject {
 		Blockbench.dispatchEvent('unselect_project', {project: this});
 	}
 	async close(force) {
+		let last_selected = Project;
+		this.select();
+		await new Promise(resolve => setTimeout(resolve, 50));
 
-		if (force || showSaveDialog()) {
+		function saveWarning() {
+			if (Project.saved && !Project.textures.find(tex => !tex.saved)) {
+				return true;
+			} else {
+				if (isApp) {
+					var answer = electron.dialog.showMessageBoxSync(currentwindow, {
+						type: 'question',
+						buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
+						title: 'Blockbench',
+						message: tl('message.close_warning.message'),
+						noLink: true
+					})
+					if (answer === 0) {
+						BarItems.save_project.trigger();
+					}
+					return answer !== 2;
+				} else {
+					var answer = confirm(tl('message.close_warning.web'))
+					return answer;
+				}
+			}
+		}
+
+		if (force || saveWarning()) {
 			if (isApp) await updateRecentProjectThumbnail();
 	
 			Blockbench.dispatchEvent('close_project');
@@ -278,12 +304,15 @@ class ModelProject {
 			this.unselect();
 			Texture.all.forEach(tex => tex.stopWatcher());
 
+			let index = ModelProject.all.indexOf(this);
 			ModelProject.all.remove(this);
 			delete ProjectData[this.uuid];
 			Project = 0;
 
-			if (ModelProject.all.length) {
-				ModelProject.all[0].select();
+			if (last_selected !== this) {
+				last_selected.select();
+			} else if (ModelProject.all.length) {
+				ModelProject.all[Math.clamp(index, 0, ModelProject.all.length-1)].select();
 			} else {
 				Interface.tab_bar.new_tab.visible = true;
 				Interface.tab_bar.new_tab.select();
@@ -451,8 +480,8 @@ onVueSetup(() => {
 				close: () => {
 					if (ModelProject.all.length) {
 						Interface.tab_bar.new_tab.visible = false;
-						let project = Project.all.find(project => project.uuid == Interface.tab_bar.last_opened_project) ||
-										Project.all.last();
+						let project = ModelProject.all.find(project => project.uuid == Interface.tab_bar.last_opened_project) ||
+										ModelProject.all.last();
 						if (project) project.select();
 					} else {
 						window.close();

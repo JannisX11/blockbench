@@ -654,10 +654,7 @@ const UVEditor = {
 		this.message('uv_editor.turned');
 		this.loadData();
 	},
-	setAutoSize(event) {
-		var scope = this;
-		var top2, left2;
-		
+	setAutoSize(event) {		
 		let vec1 = new THREE.Vector3(),
 			vec2 = new THREE.Vector3(),
 			vec3 = new THREE.Vector3(),
@@ -666,8 +663,9 @@ const UVEditor = {
 			plane = new THREE.Plane();
 
 		this.getMappableElements().forEach(obj => {
+			var top2, left2;
 			if (obj instanceof Cube) {
-				scope.getFaces(obj, event).forEach(function(side) {
+				this.getFaces(obj, event).forEach(function(side) {
 					let face = obj.faces[side];
 					let mirror_x = face.uv[0] > face.uv[2];
 					let mirror_y = face.uv[1] > face.uv[3];
@@ -686,8 +684,8 @@ const UVEditor = {
 					if (face.rotation % 180) {
 						[left2, top2] = [top2, left2];
 					}
-					left2 *= scope.getResolution(0, face) / Project.texture_width;
-					top2 *= scope.getResolution(1, face) / Project.texture_height;
+					left2 *= this.getResolution(0, face) / Project.texture_width;
+					top2 *= this.getResolution(1, face) / Project.texture_height;
 					face.uv_size = [left2, top2];
 					if (mirror_x) [face.uv[0], face.uv[2]] = [face.uv[2], face.uv[0]];
 					if (mirror_y) [face.uv[1], face.uv[3]] = [face.uv[3], face.uv[1]];
@@ -695,7 +693,7 @@ const UVEditor = {
 				obj.autouv = 0
 
 			} else if (obj instanceof Mesh) {
-				scope.getFaces(obj, event).forEach(fkey => {
+				this.getFaces(obj, event).forEach(fkey => {
 					let face = obj.faces[fkey];
 					let vertex_uvs = {};
 					let uv_center = [0, 0];
@@ -1475,11 +1473,16 @@ Interface.definePanels(function() {
 			bottom: Toolbars.UVEditor
 		},
 		onResize: function() {
-			UVEditor.vue.updateSize()
+			UVEditor.vue.updateSize();
+			UVEditor.vue.hidden = !this.isVisible();
+		},
+		onFold: function() {
+			UVEditor.vue.hidden = !this.isVisible();
 		},
 		component: {
 			data() {return {
 				mode: 'uv',
+				hidden: false,
 				box_uv: false,
 				width: 320,
 				height: 320,
@@ -1953,6 +1956,7 @@ Interface.definePanels(function() {
 						@mouseleave="if (mode == 'paint') mouse_coords.x = -1"
 						class="checkerboard_target"
 						ref="viewport"
+						v-show="!hidden"
 						:style="{width: (width+8) + 'px', height: (height+8) + 'px', overflowX: (zoom > 1) ? 'scroll' : 'hidden', overflowY: (inner_height > height) ? 'scroll' : 'hidden'}"
 					>
 
@@ -2030,8 +2034,8 @@ Interface.definePanels(function() {
 
 							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.x >= 0" :style="getBrushOutlineStyle()"></div>
 
-							<img style="object-fit: cover; object-position: 0px 0px;" v-if="texture && texture.error != 1" :src="texture.source">
-							<img style="object-fit: cover; object-position: 0px 0px; opacity: 0.02; mix-blend-mode: screen;" v-if="texture == 0 && !box_uv" src="./assets/missing_blend.png">
+							<img style="object-fit: cover;" :style="{objectPosition: \`0 -\${texture.currentFrame * inner_height}px\`}" v-if="texture && texture.error != 1" :src="texture.source">
+							<img style="object-fit: cover; opacity: 0.02; mix-blend-mode: screen;" v-if="texture == 0 && !box_uv" src="./assets/missing_blend.png">
 						</div>
 
 						<div class="uv_transparent_face" v-else-if="selected_faces.length">${tl('uv_editor.transparent_face')}</div>
