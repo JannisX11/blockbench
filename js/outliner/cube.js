@@ -885,6 +885,9 @@ new NodePreviewController(Cube, {
 		
 		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
+		
+		} else if (Project.view_mode === 'normal') {
+			mesh.material = Canvas.normalHelperMaterial
 
 		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
 			mesh.material = Canvas.getLayeredMaterial();

@@ -1490,6 +1490,13 @@ Interface.definePanels(function() {
 				checkerboard: settings.uv_checkerboard.value,
 				texture: 0,
 				mouse_coords: {x: -1, y: -1},
+				selection_rect: {
+					pos_x: 0,
+					pos_y: 0,
+					width: 0,
+					height: 0,
+					active: false
+				},
 
 				project_resolution: [16, 16],
 				elements: [],
@@ -1640,6 +1647,150 @@ Interface.definePanels(function() {
 						return false;
 					} else if (this.mode == 'paint' && Toolbox.selected.paintTool && (event.which === 1 || (event.touches && event.touches.length == 1))) {
 						UVEditor.startPaintTool(event)
+					} else if (this.mode == 'uv' && event.target.id == 'uv_frame' && (event.which === 1 || (event.touches && event.touches.length == 1))) {
+						console.log('test', event)
+
+						let {selection_rect} = this;
+						let scope = this;
+						let old_faces = this.selected_faces.slice();
+
+						function drag(e1) {
+							selection_rect.active = true;
+							let rect = getRectangle(
+								event.offsetX / scope.inner_width * scope.project_resolution[0],
+								event.offsetY / scope.inner_height * scope.project_resolution[1],
+								(event.offsetX - event.clientX + e1.clientX) / scope.inner_width * scope.project_resolution[0],
+								(event.offsetY - event.clientY + e1.clientY) / scope.inner_height * scope.project_resolution[1],
+							)
+							selection_rect.pos_x = rect.ax;
+							selection_rect.pos_y = rect.ay;
+							selection_rect.width = rect.x;
+							selection_rect.height = rect.y;
+							
+							if (!e1.shiftKey) {
+								scope.selected_faces.empty();
+							} else {
+								scope.selected_faces.replace(old_faces);
+							}
+							
+							scope.mappable_elements.forEach(element => {
+								if (element instanceof Cube && !Project.box_uv) {
+									for (let fkey in element.faces) {
+										let face_rect = getRectangle(...element.faces[fkey].uv);
+										if (doRectanglesOverlap(rect, face_rect)) {
+											scope.selected_faces.push(fkey);
+										}
+									}
+								} else if (element instanceof Cube) {
+
+								} else if (element instanceof Mesh) {
+									for (let fkey in element.faces) {
+										let face = element.faces[fkey];
+										let vertices = face.getSortedVertices();
+										if (vertices.length >= 3) {
+											let i = 0;
+											for (let vkey of vertices) {
+												i++;
+												let vkey2 = vertices[i] || vertices[0];
+												if (lineIntersectsReactangle(face.uv[vkey], face.uv[vkey2], [rect.ax, rect.ay], [rect.bx, rect.by])) {
+													scope.selected_faces.push(fkey);
+													break;
+												}
+											}
+										}
+									}
+								}
+							})
+
+
+
+
+							/*
+							<template v-if="mode == 'uv'" v-for="element in (showing_overlays ? all_mappable_elements : mappable_elements)" :key="element.uuid">
+
+								<template v-if="element.type == 'cube' && !box_uv">
+									<div class="cube_uv_face"
+										v-for="(face, key) in element.faces" :key="key"
+										v-if="face.getTexture() == texture || texture == 0"
+										:title="face_names[key]"
+										:class="{selected: selected_faces.includes(key), unselected: showing_overlays && !mappable_elements.includes(element)}"
+										@mousedown.prevent="dragFace(key, $event)"
+										:style="{
+											left: toPixels(Math.min(face.uv[0], face.uv[2]), -1),
+											top: toPixels(Math.min(face.uv[1], face.uv[3]), -1),
+											'--width': toPixels(Math.abs(face.uv_size[0]), 2),
+											'--height': toPixels(Math.abs(face.uv_size[1]), 2),
+										}"
+									>
+										<template v-if="selected_faces.includes(key) && !(showing_overlays && !mappable_elements.includes(element))">
+											{{ face_names[key] || '' }}
+											<div class="uv_resize_side horizontal" @mousedown="resizeFace(key, $event, 0, -1)" style="width: var(--width)"></div>
+											<div class="uv_resize_side horizontal" @mousedown="resizeFace(key, $event, 0, 1)" style="top: var(--height); width: var(--width)"></div>
+											<div class="uv_resize_side vertical" @mousedown="resizeFace(key, $event, -1, 0)" style="height: var(--height)"></div>
+											<div class="uv_resize_side vertical" @mousedown="resizeFace(key, $event, 1, 0)" style="left: var(--width); height: var(--height)"></div>
+											<div class="uv_resize_corner uv_c_nw" @mousedown="resizeFace(key, $event, -1, -1)" style="left: 0; top: 0"></div>
+											<div class="uv_resize_corner uv_c_ne" @mousedown="resizeFace(key, $event, 1, -1)" style="left: var(--width); top: 0"></div>
+											<div class="uv_resize_corner uv_c_sw" @mousedown="resizeFace(key, $event, -1, 1)" style="left: 0; top: var(--height)"></div>
+											<div class="uv_resize_corner uv_c_se" @mousedown="resizeFace(key, $event, 1, 1)" style="left: var(--width); top: var(--height)"></div>
+										</template>
+									</div>
+								</template>
+								
+								<div v-else-if="element.type == 'cube'" class="cube_box_uv"
+									@mousedown.prevent="dragFace(null, $event)"
+									@click.prevent="selectCube(element, $event)"
+									:class="{unselected: showing_overlays && !mappable_elements.includes(element)}"
+									:style="{left: toPixels(element.uv_offset[0]), top: toPixels(element.uv_offset[1])}"
+								>
+									<div class="uv_fill" :style="{left: '-1px', top: toPixels(element.size(2, true), -1), width: toPixels(element.size(2, true)*2 + element.size(0, true)*2, 2), height: toPixels(element.size(1, true), 2)}" />
+									<div class="uv_fill" :style="{left: toPixels(element.size(2, true), -1), top: '-1px', width: toPixels(element.size(0, true)*2, 2), height: toPixels(element.size(2, true), 2), borderBottom: 'none'}" />
+									<div :style="{left: toPixels(element.size(2, true), -1), top: '-1px', width: toPixels(element.size(0, true), 2), height: toPixels(element.size(2, true) + element.size(1, true), 2)}" />
+									<div :style="{left: toPixels(element.size(2, true)*2 + element.size(0, true), -1), top: toPixels(element.size(2, true), -1), width: toPixels(element.size(0, true), 2), height: toPixels(element.size(1, true), 2)}" />
+								</div>
+
+								<template v-if="element.type == 'mesh'">
+									<div class="mesh_uv_face"
+										v-for="(face, key) in element.faces" :key="key"
+										v-if="face.vertices.length > 2 && face.getTexture() == texture"
+										:class="{selected: selected_faces.includes(key)}"
+										@mousedown.prevent="dragFace(key, $event)"
+										:style="{
+											left: toPixels(getMeshFaceCorner(face, 0), -1),
+											top: toPixels(getMeshFaceCorner(face, 1), -1),
+											width: toPixels(getMeshFaceWidth(face, 0), 2),
+											height: toPixels(getMeshFaceWidth(face, 1), 2),
+										}"
+									>
+										<svg>
+											<polygon :points="getMeshFaceOutline(face)" />
+										</svg>
+										<template v-if="selected_faces.includes(key)">
+											<div class="uv_mesh_vertex" v-for="key in face.vertices"
+												:class="{selected: selected_vertices[element.uuid] && selected_vertices[element.uuid].includes(key)}"
+												@mousedown.prevent.stop="dragVertices(element, key, $event)"
+												:style="{left: toPixels( face.uv[key][0] - getMeshFaceCorner(face, 0) ), top: toPixels( face.uv[key][1] - getMeshFaceCorner(face, 1) )}"
+											></div>
+										</template>
+									</div>
+								</template>
+
+							</template>*/
+
+
+
+
+
+
+						}
+						function stop() {
+							removeEventListeners(document, 'mousemove touchmove', drag);
+							removeEventListeners(document, 'mouseup touchend', stop);
+							setTimeout(() => {
+								selection_rect.active = false;
+							}, 1)
+						}
+						addEventListeners(document, 'mousemove touchmove', drag);
+						addEventListeners(document, 'mouseup touchend', stop);
 					}
 				},
 				contextMenu(event) {
@@ -1687,7 +1838,7 @@ Interface.definePanels(function() {
 					var offset = $(this.$refs.frame).offset();
 					event.offsetX = event.clientX - offset.left;
 					event.offsetY = event.clientY - offset.top;
-					if (!this.dragging_uv && event.target.id == 'uv_frame') {
+					if (!this.dragging_uv && !this.selection_rect.active && event.target.id == 'uv_frame') {
 						let results = UVEditor.reverseSelect(event)
 						if (!(results && results.length)) {
 							if (!this.box_uv) {
@@ -2031,6 +2182,15 @@ Interface.definePanels(function() {
 								</template>
 
 							</template>
+
+							<div class="selection_rectangle"
+								v-if="selection_rect.active"
+								:style="{
+									left: toPixels(selection_rect.pos_x),
+									top: toPixels(selection_rect.pos_y),
+									width: toPixels(selection_rect.width),
+									height: toPixels(selection_rect.height),
+								}"></div>
 
 							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.x >= 0" :style="getBrushOutlineStyle()"></div>
 

@@ -242,7 +242,6 @@ class ModelProject {
 		})
 	}
 	unselect() {
-		if (isApp) updateRecentProjectThumbnail();
 		this.thumbnail = Preview.selected.canvas.toDataURL();
 		Interface.tab_bar.last_opened_project = this.uuid;
 
@@ -274,7 +273,7 @@ class ModelProject {
 		await new Promise(resolve => setTimeout(resolve, 50));
 
 		function saveWarning() {
-			if (Project.saved && !Project.textures.find(tex => !tex.saved)) {
+			if (Project.saved) {
 				return true;
 			} else {
 				if (isApp) {

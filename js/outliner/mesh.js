@@ -410,10 +410,8 @@ class Mesh extends OutlinerElement {
 		if (Project.selected_elements.indexOf(this) === 0) {
 			UVEditor.loadData()
 		}
-		if (Project.view_mode === 'textured') {
-			this.preview_controller.updateFaces(this);
-			this.preview_controller.updateUV(this);
-		}
+		this.preview_controller.updateFaces(this);
+		this.preview_controller.updateUV(this);
 	}
 }
 	Mesh.prototype.title = tl('data.mesh');
@@ -622,6 +620,9 @@ new NodePreviewController(Mesh, {
 		
 		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
+		
+		} else if (Project.view_mode === 'normal') {
+			mesh.material = Canvas.normalHelperMaterial
 
 		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
 			mesh.material = Canvas.getLayeredMaterial();
@@ -706,13 +707,14 @@ new NodePreviewController(Mesh, {
 		NodePreviewController.prototype.updateSelection(element);
 	
 		let mesh = element.mesh;
+		let white = new THREE.Color(0xffffff);
 
 		if (BarItems.selection_mode.value == 'vertex') {
 			let colors = [];
 			for (let key in element.vertices) {
 				let color;
 				if (Project.selected_vertices[element.uuid] && Project.selected_vertices[element.uuid].includes(key)) {
-					color = gizmo_colors.outline;
+					color = white;
 				} else {
 					color = gizmo_colors.grid;
 				}
@@ -725,8 +727,10 @@ new NodePreviewController(Mesh, {
 		let line_colors = [];
 		mesh.outline.vertex_order.forEach(key => {
 			let color;
-			if (!Modes.edit || BarItems.selection_mode.value == 'object' || (Project.selected_vertices[element.uuid] && Project.selected_vertices[element.uuid].includes(key))) {
+			if (!Modes.edit || BarItems.selection_mode.value == 'object') {
 				color = gizmo_colors.outline;
+			} else if (Project.selected_vertices[element.uuid] && Project.selected_vertices[element.uuid].includes(key)) {
+				color = white;
 			} else {
 				color = gizmo_colors.grid;
 			}
@@ -1047,12 +1051,12 @@ BARS.defineActions(function() {
 	new BarSelect('selection_mode', {
 		options: {
 			object: {name: true, icon: 'far.fa-gem'},
-			face: {name: true, icon: 'crop_square'},
+			face: {name: true, icon: 'crop_portrait'},
 			line: {name: true, icon: 'fa-grip-lines-vertical'},
 			vertex: {name: true, icon: 'fiber_manual_record'},
 		},
 		icon_mode: true,
-		condition: () => Mesh.all.length,
+		condition: () => Modes.edit && Mesh.all.length,
 		onChange({value}) {
 			if (value === 'object') {
 				Mesh.selected.forEach(mesh => {
@@ -1621,7 +1625,7 @@ BARS.defineActions(function() {
 						meshes.push(mesh);
 					}
 					if (cmd == 'v') {
-						let keys = mesh.addVertices(toVector(args, 3));
+						let keys = mesh.addVertices(toVector(args, 3).map(v => v * 16));
 						vertex_keys.push(keys[0]);
 					}
 					if (cmd == 'vt') {

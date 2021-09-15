@@ -1058,11 +1058,12 @@ BARS.defineActions(function() {
 			BARS.updateConditions();
 			Painter.updateNslideValues()
 		},
+		icon_mode: true,
 		options: {
-			rectangle: true,
-			rectangle_h: true,
-			ellipse: true,
-			ellipse_h: true,
+			rectangle: {name: true, icon: 'fas.fa-square'},
+			rectangle_h: {name: true, icon: 'far.fa-square'},
+			ellipse: {name: true, icon: 'circle'},
+			ellipse_h: {name: true, icon: 'radio_button_unchecked'},
 		}
 	})
 	new BarSelect('fill_mode', {

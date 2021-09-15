@@ -1534,8 +1534,8 @@ Blockbench.on('update_camera_position', e => {
 	let scale = Preview.selected.calculateControlScale(new THREE.Vector3(0, 0, 0));
 	Preview.all.forEach(preview => {
 		if (preview.canvas.isConnected) {
-			preview.raycaster.params.Points.threshold = scale * 0.6;
-			preview.raycaster.params.Line.threshold = scale * 0.3;
+			preview.raycaster.params.Points.threshold = scale * 0.8;
+			preview.raycaster.params.Line.threshold = scale * 0.42;
 		}
 	})
 })
@@ -2221,8 +2221,13 @@ function updateShading() {
 		material.uniforms.SHADE.value = settings.shading.value;
 		material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
 	})
+	Canvas.emptyMaterials.forEach(material => {
+		material.uniforms.SHADE.value = settings.shading.value;
+		material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+	})
 	Canvas.solidMaterial.uniforms.SHADE.value = settings.shading.value;
 	Canvas.solidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+	Canvas.normalHelperMaterial.uniforms.SHADE.value = settings.shading.value;
 }
 function updateCubeHighlights(hover_cube, force_off) {
 	Outliner.elements.forEach(element => {
@@ -2392,6 +2397,7 @@ BARS.defineActions(function() {
 			textured: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('textured'))},
 			solid: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('solid'))},
 			wireframe: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('wireframe'))},
+			normal: {name: true, condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('normal')) && Mesh.all.length)},
 		},
 		onChange() {
 			Project.view_mode = this.value;

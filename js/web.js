@@ -35,9 +35,7 @@ function loadInfoFromURL() {
 
 //Misc
 window.onbeforeunload = function() {
-	let unsaved_projects = ModelProject.all.find(project => {
-		return !project.saved || project.textures.find(tex => !tex.saved)
-	})
+	let unsaved_projects = ModelProject.all.find(project => !project.saved);
 	if (unsaved_projects) {
 		return 'Unsaved Changes';
 	} else {

@@ -138,7 +138,7 @@ function addRecentProject(data) {
 	updateRecentProjects()
 }
 async function updateRecentProjectThumbnail() {
-	if (elements.length == 0) return;
+	if (Outliner.elements.length == 0) return;
 	let path = Project.export_path || Project.save_path;
 	let project = recent_projects.find(p => p.path == path);
 	if (!project) return;
@@ -379,47 +379,6 @@ window.onbeforeunload = function (event) {
 	}
 }
 
-function showSaveDialog(close) {
-
-
-	/*
-	if (Blockbench.hasFlag('allow_reload')) {
-		close = false
-	}
-	if (close) {
-		unsaved_projects = ModelProject.all.find(project => {
-			return !project.saved || project.textures.find(tex => !tex.saved)
-		})
-	}
-	if (unsaved_changes || !close) {
-		var answer = electron.dialog.showMessageBoxSync(currentwindow, {
-			type: 'question',
-			buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
-			title: 'Blockbench',
-			message: tl('message.close_warning.message'),
-			noLink: true
-		})
-		if (answer === 0) {
-			if (close === true) {
-				Blockbench.addFlag('close_after_saving')
-			}
-			BarItems.save_project.trigger()
-			return true;
-		} else if (answer === 2) {
-			return false;
-		} else {
-			if (close === true) {
-				closeBlockbenchWindow()
-			}
-			return true;
-		}
-	} else {
-		if (close === true) {
-			closeBlockbenchWindow()
-		}
-		return true;
-	}*/
-}
 function closeBlockbenchWindow() {
 	window.onbeforeunload = null;
 	Blockbench.addFlag('allow_closing');

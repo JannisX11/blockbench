@@ -2305,7 +2305,7 @@ const BARS = {
 								item.name.toLowerCase().includes(search_input) ||
 								item.id.toLowerCase().includes(search_input)
 							) {
-								if (item instanceof Action && Condition(item.condition)) {
+								if (item instanceof Action && Condition(item.condition) && !item.linked_setting) {
 									list.safePush(item)
 									if (list.length > ActionControl.max_length) break;
 								}

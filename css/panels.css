@@ -1135,6 +1135,9 @@
     	box-sizing: content-box;
 		--color-unselected: var(--color-grid);
 	}
+	#uv_frame .selection_rectangle {
+		z-index: 8;
+	}
 
 	body[mode=paint] #uv_frame {
 		cursor: crosshair !important;
