@@ -286,6 +286,9 @@
 	.outliner_object > input.renaming {
 		pointer-events: auto;
 	}
+	.outliner_object input.cube_name.locked {
+		color: var(--color-subtle_text);
+	}
 	i.outliner_toggle {
 		font-size: 15px;
 	}

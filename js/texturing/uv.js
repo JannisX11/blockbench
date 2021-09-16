@@ -2064,6 +2064,18 @@ Interface.definePanels(function() {
 					})
 					return max - min;
 				},
+				filterMeshFaces(faces) {
+					let keys = Object.keys(faces);
+					if (keys.length > 800) {
+						let result = {};
+						this.selected_faces.forEach(key => {
+							if (faces[key]) result[key] = faces[key];
+						})
+						return result;
+					} else {
+						return faces;
+					}
+				},
 				getBrushOutlineStyle() {
 					if (Toolbox.selected.brushTool) {
 						var pixel_size = this.inner_width / (this.texture ? this.texture.width : Project.texture_width);
@@ -2107,7 +2119,7 @@ Interface.definePanels(function() {
 						@mouseleave="if (mode == 'paint') mouse_coords.x = -1"
 						class="checkerboard_target"
 						ref="viewport"
-						v-show="!hidden"
+						v-if="!hidden"
 						:style="{width: (width+8) + 'px', height: (height+8) + 'px', overflowX: (zoom > 1) ? 'scroll' : 'hidden', overflowY: (inner_height > height) ? 'scroll' : 'hidden'}"
 					>
 
@@ -2157,7 +2169,7 @@ Interface.definePanels(function() {
 
 								<template v-if="element.type == 'mesh'">
 									<div class="mesh_uv_face"
-										v-for="(face, key) in element.faces" :key="key"
+										v-for="(face, key) in filterMeshFaces(element.faces)" :key="key"
 										v-if="face.vertices.length > 2 && face.getTexture() == texture"
 										:class="{selected: selected_faces.includes(key)}"
 										@mousedown.prevent="dragFace(key, $event)"

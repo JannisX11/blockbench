@@ -1135,7 +1135,7 @@ Interface.definePanels(function() {
 				'<i v-else class="outliner_opener_placeholder"></i>' +
 				//Main
 				'<i :class="node.icon + ((settings.outliner_colors.value && node.color >= 0) ? \' ec_\'+node.color : \'\')" v-on:dblclick.stop="if (node.children && node.children.length) {node.isOpen = !node.isOpen;}"></i>' +
-				'<input type="text" class="cube_name tab_target" v-model="node.name" disabled>' +
+				'<input type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>' +
 
 
 				`<i v-for="btn in node.buttons"

@@ -590,10 +590,12 @@ function moveElementsInSpace(difference, axis) {
 	let space = Transformer.getTransformSpace()
 	let group = Format.bone_rig && Group.selected && Group.selected.matchesSelection() && Group.selected;
 	var group_m;
+	let quaternion = new THREE.Quaternion();
+	let vector = new THREE.Vector3();
 
 	if (group) {
 		if (space === 0) {
-			group_m = new THREE.Vector3();
+			group_m = vector.set(0, 0, 0);
 			group_m[getAxisLetter(axis)] = difference;
 
 			var rotation = new THREE.Quaternion();
@@ -626,15 +628,20 @@ function moveElementsInSpace(difference, axis) {
 
 		if (!group_m && el instanceof Mesh && Project.selected_vertices[el.uuid] && Project.selected_vertices[el.uuid].length > 0) {
 
-			let quaternion = new THREE.Quaternion();
-
+			let selection_rotation = space == 3 && el.getSelectionRotation();
 			Project.selected_vertices[el.uuid].forEach(key => {
 
 				if (space == 2) {
 					el.vertices[key][axis] += difference;
 
+				} else if (space == 3) {
+					let m = vector.set(0, 0, 0);
+					m[getAxisLetter(axis)] = difference;
+					m.applyEuler(selection_rotation);
+					el.vertices[key].V3_add(m.x, m.y, m.z);
+
 				} else {
-					let m = new THREE.Vector3();
+					let m = vector.set(0, 0, 0);
 					m[getAxisLetter(axis)] = difference;
 					m.applyQuaternion(el.mesh.getWorldQuaternion(quaternion).invert());
 					el.vertices[key].V3_add(m.x, m.y, m.z);
@@ -646,7 +653,7 @@ function moveElementsInSpace(difference, axis) {
 		
 			if (space == 2 && !group_m) {
 				if (el instanceof Locator) {
-					let m = new THREE.Vector3();
+					let m = vector.set(0, 0, 0);
 					m[getAxisLetter(axis)] = difference;
 					m.applyQuaternion(el.mesh.quaternion);
 					el.from.V3_add(m.x, m.y, m.z);
@@ -668,7 +675,7 @@ function moveElementsInSpace(difference, axis) {
 				if (group_m) {
 					var m = group_m
 				} else {
-					var m = new THREE.Vector3();
+					var m = vector.set(0, 0, 0);
 					m[getAxisLetter(axis)] = difference;
 					
 					let parent = el.parent;

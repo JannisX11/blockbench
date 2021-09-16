@@ -389,6 +389,7 @@ class Preview {
 					let index = intersect.faceIndex;
 					for (let key in element.faces) {
 						let {vertices} = element.faces[key];
+						if (vertices.length < 3) continue;
 
 						if (index == 0 || (index == 1 && vertices.length == 4)) {
 							face = key;

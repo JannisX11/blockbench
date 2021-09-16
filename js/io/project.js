@@ -308,7 +308,7 @@ class ModelProject {
 			delete ProjectData[this.uuid];
 			Project = 0;
 
-			if (last_selected !== this) {
+			if (last_selected && last_selected !== this) {
 				last_selected.select();
 			} else if (ModelProject.all.length) {
 				ModelProject.all[Math.clamp(index, 0, ModelProject.all.length-1)].select();

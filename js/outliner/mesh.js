@@ -277,6 +277,16 @@ class Mesh extends OutlinerElement {
 		}
 		return faces;
 	}
+	getSelectionRotation() {
+		let [face] = this.getSelectedFaces().map(fkey => this.faces[fkey]);
+		if (face) {
+			let normal = face.getNormal(true)
+			
+			var y = Math.atan2(normal[0], normal[2]);
+			var x = Math.atan2(normal[1], Math.sqrt(Math.pow(normal[0], 2) + Math.pow(normal[2], 2)));
+			return new THREE.Euler(-x, y, 0, 'YXZ');
+		}
+	}
 	transferOrigin(origin, update = true) {
 		if (!this.mesh) return;
 		var q = new THREE.Quaternion().copy(this.mesh.quaternion);
@@ -423,6 +433,7 @@ class Mesh extends OutlinerElement {
 	Mesh.prototype.needsUniqueName = false;
 	Mesh.prototype.menu = new Menu([
 		'extrude_mesh_selection',
+		'inset_mesh_selection',
 		'loop_cut',
 		'create_face',
 		'invert_face',
@@ -708,12 +719,13 @@ new NodePreviewController(Mesh, {
 	
 		let mesh = element.mesh;
 		let white = new THREE.Color(0xffffff);
+		let selected_vertices = element.getSelectedVertices();
 
 		if (BarItems.selection_mode.value == 'vertex') {
 			let colors = [];
 			for (let key in element.vertices) {
 				let color;
-				if (Project.selected_vertices[element.uuid] && Project.selected_vertices[element.uuid].includes(key)) {
+				if (selected_vertices.includes(key)) {
 					color = white;
 				} else {
 					color = gizmo_colors.grid;
@@ -729,7 +741,7 @@ new NodePreviewController(Mesh, {
 			let color;
 			if (!Modes.edit || BarItems.selection_mode.value == 'object') {
 				color = gizmo_colors.outline;
-			} else if (Project.selected_vertices[element.uuid] && Project.selected_vertices[element.uuid].includes(key)) {
+			} else if (selected_vertices.includes(key)) {
 				color = white;
 			} else {
 				color = gizmo_colors.grid;
@@ -1133,7 +1145,7 @@ BARS.defineActions(function() {
 				}
 			})
 			Undo.finishEdit('Create mesh face')
-			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}})
+			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
 	})
 	new Action('convert_to_mesh', {
@@ -1196,7 +1208,7 @@ BARS.defineActions(function() {
 	new Action('invert_face', {
 		icon: 'flip_to_back',
 		category: 'edit',
-		keybind: new Keybind({key: 'i', shift: true}),
+		keybind: new Keybind({key: 'i', shift: true, ctrl: true}),
 		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedFaces().length),
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
@@ -1329,6 +1341,107 @@ BARS.defineActions(function() {
 						vertices: [b, a]
 					});
 					mesh.addFaces(new_face);
+				})
+
+			})
+			Undo.finishEdit('Extrude mesh selection')
+			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
+		}
+	})
+	new Action('inset_mesh_selection', {
+		icon: 'fa-compress-arrows-alt',
+		category: 'edit',
+		keybind: new Keybind({key: 'i', shift: true}),
+		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length),
+		click() {
+			Undo.initEdit({elements: Mesh.selected});
+			Mesh.selected.forEach(mesh => {
+				let original_vertices = Project.selected_vertices[mesh.uuid].slice();
+				let new_vertices;
+				let selected_faces = [];
+				let selected_face_keys = [];
+				for (let key in mesh.faces) {
+					let face = mesh.faces[key]; 
+					if (face.isSelected()) {
+						selected_faces.push(face);
+						selected_face_keys.push(key);
+					}
+				}
+
+				new_vertices = mesh.addVertices(...original_vertices.map(vkey => {
+					let vector = mesh.vertices[vkey].slice();
+					affected_faces = selected_faces.filter(face => {
+						return face.vertices.includes(vkey)
+					})
+					let inset = [0, 0, 0];
+					if (affected_faces.length == 3 || affected_faces.length == 1) {
+						affected_faces.sort((a, b) => {
+							let ax = 0;
+							a.vertices.forEach(vkey => {
+								ax += affected_faces.filter(face => face.vertices.includes(vkey)).length;
+							})
+							let bx = 0;
+							b.vertices.forEach(vkey => {
+								bx += affected_faces.filter(face => face.vertices.includes(vkey)).length;
+							})
+							return bx - ax;
+						})
+						affected_faces[0].vertices.forEach(vkey2 => {
+							inset.V3_add(mesh.vertices[vkey2]);
+						})
+						inset.V3_divide(affected_faces[0].vertices.length);
+						vector.V3_add(inset).V3_divide(2);
+					}
+					if (affected_faces.length == 2) {
+						let vkey2 = affected_faces[0].vertices.find(_vkey => _vkey != vkey && affected_faces[1].vertices.includes(_vkey));
+						
+						inset.V3_set(mesh.vertices[vkey2]).V3_multiply(1/4);
+						vector.V3_multiply(3/4);
+						vector.V3_add(inset);
+					}
+
+					return vector;
+				}))
+				Project.selected_vertices[mesh.uuid].replace(new_vertices);
+
+				// Move Faces
+				selected_faces.forEach(face => {
+					face.vertices.forEach((key, index) => {
+						face.vertices[index] = new_vertices[original_vertices.indexOf(key)];
+						let uv = face.uv[key];
+						delete face.uv[key];
+						face.uv[face.vertices[index]] = uv;
+					})
+				})
+
+				// Create extra quads on sides
+				let remaining_vertices = new_vertices.slice();
+				selected_faces.forEach((face, face_index) => {
+					let vertices = face.getSortedVertices();
+					vertices.forEach((a, i) => {
+						let b = vertices[i+1] || vertices[0];
+						if (vertices.length == 2 && i) return; // Only create one quad when extruding line
+						if (selected_faces.find(f => f != face && f.vertices.includes(a) && f.vertices.includes(b))) return;
+
+						let new_face = new MeshFace(mesh, mesh.faces[selected_face_keys[face_index]]).extend({
+							vertices: [
+								b,
+								a,
+								original_vertices[new_vertices.indexOf(a)],
+								original_vertices[new_vertices.indexOf(b)],
+							]
+						});
+						mesh.addFaces(new_face);
+						remaining_vertices.remove(a);
+						remaining_vertices.remove(b);
+					})
+
+					if (vertices.length == 2) delete mesh.faces[selected_face_keys[face_index]];
+				})
+
+				remaining_vertices.forEach(a => {
+					let b = original_vertices[new_vertices.indexOf(a)];
+					delete mesh.vertices[b];
 				})
 
 			})

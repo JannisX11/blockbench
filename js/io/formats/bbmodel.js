@@ -61,8 +61,8 @@ var codec = new Codec('project', {
 	},
 	load(model, file, add) {
 
-
-		newProject(Formats[model.meta.type] || Formats.free);
+		console.log(model)
+		newProject(Formats[model.meta.model_format] || Formats.free);
 		var name = pathToName(file.path, true);
 		if (file.path && isApp && !file.no_file ) {
 			Project.save_path = file.path;

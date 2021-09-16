@@ -1026,6 +1026,8 @@
 	"action.invert_face.desc": "Invert the selected faces to make them face the opposite direction",
 	"action.extrude_mesh_selection": "Extrude Selection",
 	"action.extrude_mesh_selection.desc": "Extrude the selected parts of the mesh",
+	"action.inset_mesh_selection": "Inset Selection",
+	"action.inset_mesh_selection.desc": "Inset the selected parts of the mesh",
 	"action.loop_cut": "Loop Cut",
 	"action.loop_cut.desc": "Split the mesh in a loop across the selected line",
 	"action.split_mesh": "Split Mesh",
