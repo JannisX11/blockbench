@@ -254,12 +254,26 @@ const Painter = {
 			ctx.beginPath();
 			if (uvTag) {
 				let anim_offset = texture.display_height * texture.currentFrame;
-				var rect = Painter.editing_area = [
-					uvTag[0] * uvFactorX,
-					uvTag[1] * uvFactorY + anim_offset,
-					uvTag[2] * uvFactorX,
-					uvTag[3] * uvFactorY + anim_offset
-				]
+				if (uvTag instanceof Array) {
+					var rect = Painter.editing_area = [
+						uvTag[0] * uvFactorX,
+						uvTag[1] * uvFactorY + anim_offset,
+						uvTag[2] * uvFactorX,
+						uvTag[3] * uvFactorY + anim_offset
+					]
+				} else {
+					let min_x = Project.texture_width, min_y = Project.texture_height, max_x = 0, max_y = 0;
+					for (let vkey in uvTag) {
+						min_x = Math.min(min_x, uvTag[vkey][0]); max_x = Math.max(max_x, uvTag[vkey][0]);
+						min_y = Math.min(min_y, uvTag[vkey][1]); max_y = Math.max(max_y, uvTag[vkey][1]);
+					}
+					var rect = Painter.editing_area = [
+						Math.floor(min_x * uvFactorX),
+						Math.floor(min_y * uvFactorY) + anim_offset,
+						Math.ceil(max_x * uvFactorX),
+						Math.ceil(max_y * uvFactorY) + anim_offset
+					]
+				}
 			} else {
 				var rect = Painter.editing_area = [0, 0, texture.img.naturalWidth, texture.img.naturalHeight]
 			}
@@ -360,7 +374,6 @@ const Painter = {
 			ctx.globalAlpha = b_opacity;
 			ctx.fillStyle = 'white';
 			ctx.globalCompositeOperation = 'destination-out';
-			console.log(ctx.globalCompositeOperation)
 		} else {
 			ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
 		}
