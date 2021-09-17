@@ -341,7 +341,7 @@ new Property(ModelProject, 'string', 'geometry_name', {
 });
 new Property(ModelProject, 'string', 'modded_entity_version', {
 	label: 'dialog.project.modded_entity_version',
-	default: '1.15',
+	default: '1.17',
 	condition: {formats: ['modded_entity']},
 	options() {
 		let options = {}
