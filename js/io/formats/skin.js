@@ -169,10 +169,8 @@ const format = new ModelFormat({
 	}
 })
 format.new = function() {
-	if (newProject(this)) {
-		skin_dialog.show();
-		return true;
-	}
+	skin_dialog.show();
+	return true;
 }
 
 function generateTemplate(width = 64, height = 64, cubes, name = 'name', eyes, layer_template) {

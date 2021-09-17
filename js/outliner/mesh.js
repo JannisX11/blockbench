@@ -437,6 +437,7 @@ class Mesh extends OutlinerElement {
 		'loop_cut',
 		'create_face',
 		'invert_face',
+		'merge_vertices',
 		'_',
 		'split_mesh',
 		'merge_meshes',
@@ -622,6 +623,7 @@ new NodePreviewController(Mesh, {
 
 		mesh.vertex_points.geometry.computeBoundingSphere();
 		mesh.outline.geometry.computeBoundingSphere();
+		updateCubeHighlights()
 	},
 	updateFaces(element) {
 		let {mesh} = element;
@@ -1590,6 +1592,46 @@ BARS.defineActions(function() {
 				}
 			})
 			Undo.finishEdit('Extrude mesh selection')
+			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
+		}
+	})
+	new Action('merge_vertices', {
+		icon: 'close_fullscreen',
+		category: 'edit',
+		keybind: new Keybind({key: 'm', shift: true}),
+		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1),
+		click() {
+			Undo.initEdit({elements: Mesh.selected});
+			Mesh.selected.forEach(mesh => {
+				let selected_vertices = mesh.getSelectedVertices();
+				if (selected_vertices.length < 2) return;
+				let first_vertex = selected_vertices[0];
+				selected_vertices.forEach(vkey => {
+					if (vkey == first_vertex) return;
+					for (let fkey in mesh.faces) {
+						let face = mesh.faces[fkey];
+						let index = face.vertices.indexOf(vkey);
+						if (index === -1) continue;
+
+						if (face.vertices.includes(first_vertex)) {
+							face.vertices.remove(vkey);
+							delete face.uv[vkey];
+							if (face.vertices.length < 2) {
+								delete mesh.faces[fkey];
+							}
+						} else {
+							let uv = face.uv[vkey];
+							face.vertices.splice(index, 1, first_vertex);
+							face.uv[first_vertex] = uv;
+							delete face.uv[vkey];
+						}
+					}
+					delete mesh.vertices[vkey];
+				})
+				selected_vertices.splice(1, selected_vertices.length);
+				
+			})
+			Undo.finishEdit('Merge vertices')
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
 	})

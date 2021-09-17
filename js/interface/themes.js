@@ -133,6 +133,10 @@ const CustomTheme = {
 						CustomTheme.updateSettings();
 						saveChanges();
 					},
+					'data.borders'() {
+						CustomTheme.updateSettings();
+						saveChanges();
+					},
 					'data.css'() {
 						CustomTheme.updateSettings();
 						saveChanges();
@@ -254,8 +258,12 @@ const CustomTheme = {
 								<input @input="customizeTheme($event)" style="font-family: var(--font-headline)" type="text" class="half dark_bordered" id="layout_font_headline" v-model="data.headline_font">
 							</div>
 							<div class="dialog_bar">
-								<label class="name_space_left" for="layout_font_cpde">${tl('layout.font.code')}</label>
-								<input @input="customizeTheme($event)" style="font-family: var(--font-code)" type="text" class="half dark_bordered" id="layout_font_cpde" v-model="data.code_font">
+								<label class="name_space_left" for="layout_font_code">${tl('layout.font.code')}</label>
+								<input @input="customizeTheme($event)" style="font-family: var(--font-code)" type="text" class="half dark_bordered" id="layout_font_code" v-model="data.code_font">
+							</div>
+							<div class="dialog_bar">
+								<label class="name_space_left" for="layout_borders">${tl('layout.borders')}</label>
+								<input @input="customizeTheme($event)" type="checkbox" id="layout_borders" v-model="data.borders">
 							</div>
 						</div>
 						
@@ -361,10 +369,18 @@ const CustomTheme = {
 		document.body.style.setProperty('--font-custom-main', CustomTheme.data.main_font);
 		document.body.style.setProperty('--font-custom-headline', CustomTheme.data.headline_font);
 		document.body.style.setProperty('--font-custom-code', CustomTheme.data.code_font);
+		document.body.classList.toggle('theme_borders', !!CustomTheme.data.borders);
 		$('style#theme_css').text(CustomTheme.data.css);
 	},
 	loadTheme(theme) {
 		var app = CustomTheme.data;
+		app.id = '';
+		app.name = '';
+		app.author = '';
+		app.main_font = '';
+		app.headline_font = '';
+		app.code_font = '';
+		app.borders = false;
 		Merge.string(app, theme, 'id')
 		Merge.string(app, theme, 'name')
 		Merge.string(app, theme, 'author')

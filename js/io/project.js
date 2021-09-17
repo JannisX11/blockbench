@@ -269,10 +269,14 @@ class ModelProject {
 	}
 	async close(force) {
 		let last_selected = Project;
-		this.select();
-		await new Promise(resolve => setTimeout(resolve, 50));
+		try {
+			this.select();
+		} catch (err) {
+			console.error(err);
+		}
 
-		function saveWarning() {
+		async function saveWarning() {
+			await new Promise(resolve => setTimeout(resolve, 4));
 			if (Project.saved) {
 				return true;
 			} else {
@@ -295,7 +299,7 @@ class ModelProject {
 			}
 		}
 
-		if (force || saveWarning()) {
+		if (force || await saveWarning()) {
 			if (isApp) await updateRecentProjectThumbnail();
 	
 			Blockbench.dispatchEvent('close_project');

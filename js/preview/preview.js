@@ -752,8 +752,8 @@ class Preview {
 
 							}
 
-							let face_test = start_face.getAdjacentFace(0);
-							let index = (face_test && face_test.face.isSelected()) ? 1 : 0;
+							let face_test = start_face.getAdjacentFace(1);
+							let index = (face_test && face_test.face.isSelected()) ? 2 : 1;
 							selectFace(start_face, index);
 
 							if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {

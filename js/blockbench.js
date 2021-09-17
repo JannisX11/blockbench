@@ -93,15 +93,17 @@ function updateSelection(options = {}) {
 		} else if ((!selected.includes(obj) || obj.locked) && obj.selected) {
 			obj.unselect()
 		}
-		if (Project.selected_vertices[obj.uuid]) {
-			Project.selected_vertices[obj.uuid].forEachReverse(vkey => {
-				if (vkey in obj.vertices == false) {
-					Project.selected_vertices[obj.uuid].remove(vkey);
-				}
-			})
-		}
-		if (Project.selected_vertices[obj.uuid] && (Project.selected_vertices[obj.uuid].length == 0 || !obj.selected)) {
-			delete Project.selected_vertices[obj.uuid];
+		if (obj instanceof Mesh) {
+			if (Project.selected_vertices[obj.uuid]) {
+				Project.selected_vertices[obj.uuid].forEachReverse(vkey => {
+					if (vkey in obj.vertices == false) {
+						Project.selected_vertices[obj.uuid].remove(vkey);
+					}
+				})
+			}
+			if (Project.selected_vertices[obj.uuid] && (Project.selected_vertices[obj.uuid].length == 0 || !obj.selected)) {
+				delete Project.selected_vertices[obj.uuid];
+			}
 		}
 	})
 	if (Group.selected && Group.selected.locked) Group.selected.unselect()

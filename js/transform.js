@@ -90,13 +90,13 @@ function limitToBox(val, inflate) {
 	}
 }
 //Movement
-function moveCubesRelative(difference, index, event) { //Multiple
-	if (!quad_previews.current || !Cube.selected.length) {
+function moveElementsRelative(difference, index, event) { //Multiple
+	if (!quad_previews.current || !Outliner.selected.length) {
 		return;
 	}
 	var _has_groups = Format.bone_rig && Group.selected && Group.selected.matchesSelection() && Toolbox.selected.transformerMode == 'translate';
 
-	Undo.initEdit({elements: Cube.selected, outliner: _has_groups})
+	Undo.initEdit({elements: Outliner.selected, outliner: _has_groups})
 	var axes = []
 	// < >
 	// PageUpDown
@@ -1544,42 +1544,66 @@ BARS.defineActions(function() {
 		category: 'transform',
 		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 38, ctrl: null, shift: null}),
-		click: function (e) {moveCubesRelative(-1, 2, e)}
+		click: function (e) {
+			if (Prop.active_panel === 'uv') {
+				UVEditor.moveSelection([0, -1], e)
+			} else {
+				moveElementsRelative(-1, 2, e)
+			}
+		}
 	})
 	new Action('move_down', {
 		icon: 'arrow_downward',
 		category: 'transform',
 		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 40, ctrl: null, shift: null}),
-		click: function (e) {moveCubesRelative(1, 2, e)}
+		click: function (e) {
+			if (Prop.active_panel === 'uv') {
+				UVEditor.moveSelection([0, 1], e)
+			} else {
+				moveElementsRelative(1, 2, e)
+			}
+		}
 	})
 	new Action('move_left', {
 		icon: 'arrow_back',
 		category: 'transform',
 		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 37, ctrl: null, shift: null}),
-		click: function (e) {moveCubesRelative(-1, 0, e)}
+		click: function (e) {
+			if (Prop.active_panel === 'uv') {
+				UVEditor.moveSelection([-1, 0], e)
+			} else {
+				moveElementsRelative(-1, 0, e)
+			}
+		}
 	})
 	new Action('move_right', {
 		icon: 'arrow_forward',
 		category: 'transform',
 		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 39, ctrl: null, shift: null}),
-		click: function (e) {moveCubesRelative(1, 0, e)}
+		click: function (e) {
+			if (Prop.active_panel === 'uv') {
+				UVEditor.moveSelection([1, 0], e)
+			} else {
+				moveElementsRelative(1, 0, e)
+			}
+		}
 	})
 	new Action('move_forth', {
 		icon: 'keyboard_arrow_up',
 		category: 'transform',
 		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 33, ctrl: null, shift: null}),
-		click: function (e) {moveCubesRelative(-1, 1, e)}
+		click: function (e) {moveElementsRelative(-1, 1, e)}
 	})
 	new Action('move_back', {
 		icon: 'keyboard_arrow_down',
 		category: 'transform',
 		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 34, ctrl: null, shift: null}),
-		click: function (e) {moveCubesRelative(1, 1, e)}
+		click: function (e) {moveElementsRelative(1, 1, e)}
 	})
 
 	new Action('toggle_visibility', {

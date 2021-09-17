@@ -13,6 +13,9 @@ class NullObject extends OutlinerElement {
 			this.extend(data);
 		}
 	}
+	get origin() {
+		return this.from;
+	}
 	extend(object) {
 		for (var key in NullObject.properties) {
 			NullObject.properties[key].merge(this, object)
@@ -102,6 +105,8 @@ class NullObject extends OutlinerElement {
 	new Property(NullObject, 'number', 'ik_chain_length', {condition: () => Format.animation_mode});
 	
 	OutlinerElement.registerType(NullObject, 'null_object');
+
+	new NodePreviewController(NullObject)
 
 BARS.defineActions(function() {
 	new Action('add_null_object', {
