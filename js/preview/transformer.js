@@ -1242,7 +1242,7 @@
 
 							selected.forEach(function(obj, i) {
 								if (obj.resizable) {
-									obj.resize(point[axis], axisNumber, !scope.direction, null, (event.altKey || Pressing.overrides.alt) && BarItems.swap_tools.keybind.key != 18)
+									obj.resize(point[axis], axisNumber, !scope.direction, null, ((event.altKey || Pressing.overrides.alt) && BarItems.swap_tools.keybind.key != 18) !== selected[0] instanceof Mesh)
 								}
 							})
 							displayDistance(point[axis] * (scope.direction ? 1 : -1));

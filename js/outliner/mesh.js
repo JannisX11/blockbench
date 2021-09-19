@@ -103,6 +103,7 @@ class MeshFace extends Face {
 				if (index_b - index_a == -1 || (index_b - index_a == f_vertices.length-1)) {
 					return {
 						face,
+						key: fkey,
 						index: index_b
 					}
 				}
@@ -386,10 +387,14 @@ class Mesh extends OutlinerElement {
 	resize(val, axis, negative, allow_negative, bidirectional) {
 		let selected_vertices = Project.selected_vertices[this.uuid] || Object.keys(this.vertices);
 		let range = [Infinity, -Infinity];
+		let {vec1, vec2} = Reusable;
+		let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
 		selected_vertices.forEach(key => {
-			range[0] = Math.min(range[0], this.oldVertices[key][axis]);
-			range[1] = Math.max(range[1], this.oldVertices[key][axis]);
+			vec1.fromArray(this.oldVertices[key]).applyEuler(rotation_inverted);
+			range[0] = Math.min(range[0], vec1.getComponent(axis));
+			range[1] = Math.max(range[1], vec1.getComponent(axis));
 		})
+		
 		let center = bidirectional ? (range[0] + range[1]) / 2 : (negative ? range[1] : range[0]);
 		let size = Math.abs(range[1] - range[0]);
 		let scale = (size + val * (negative ? -1 : 1) * (bidirectional ? 2 : 1)) / size;
@@ -397,7 +402,11 @@ class Mesh extends OutlinerElement {
 		if (scale < 0 && !allow_negative) scale = 0;
 		
 		selected_vertices.forEach(key => {
-			this.vertices[key][axis] = (this.oldVertices[key][axis] - center) * scale + center;
+			vec1.fromArray(this.oldVertices[key]).applyEuler(rotation_inverted);
+			vec2.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
+			vec2.setComponent(axis, (vec1.getComponent(axis) - center) * scale + center);
+			vec2.applyEuler(Transformer.rotation_selection);
+			this.vertices[key].replace(vec2.toArray())
 		})
 		this.preview_controller.updateGeometry(this);
 	}
@@ -438,6 +447,7 @@ class Mesh extends OutlinerElement {
 		'create_face',
 		'invert_face',
 		'merge_vertices',
+		'dissolve_edges',
 		'_',
 		'split_mesh',
 		'merge_meshes',
@@ -1100,13 +1110,20 @@ BARS.defineActions(function() {
 			Mesh.selected.forEach(mesh => {
 				let selected_vertices = Project.selected_vertices[mesh.uuid];
 				if (selected_vertices && selected_vertices.length >= 2 && selected_vertices.length <= 4) {
+					let reference_face;
 					for (let key in mesh.faces) {
 						let face = mesh.faces[key];
+						if (!reference_face && face.vertices.find(vkey => selected_vertices.includes(vkey))) {
+							reference_face = face;
+						}
 						if (face.isSelected()) {
 							delete mesh.faces[key];
 						}
 					}
-					let new_face = new MeshFace(mesh, {vertices: selected_vertices} );
+					let new_face = new MeshFace(mesh, {
+						vertices: selected_vertices,
+						texture: reference_face.texture,
+					} );
 					mesh.addFaces(new_face);
 
 					// Correct direction
@@ -1592,6 +1609,45 @@ BARS.defineActions(function() {
 				}
 			})
 			Undo.finishEdit('Extrude mesh selection')
+			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
+		}
+	})
+	new Action('dissolve_edges', {
+		icon: 'border_vertical',
+		category: 'edit',
+		keybind: new Keybind({key: 'r', shift: true}),
+		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1),
+		click() {
+			Undo.initEdit({elements: Mesh.selected});
+			Mesh.selected.forEach(mesh => {
+				let selected_vertices = mesh.getSelectedVertices();
+				let faces = Object.keys(mesh.faces);
+				for (let fkey in mesh.faces) {
+					let face = mesh.faces[fkey];
+					let side_vertices = faces.includes(fkey) && face.vertices.filter(vkey => selected_vertices.includes(vkey));
+					if (side_vertices && side_vertices.length == 2) {
+						let original_face_normal = face.getNormal(true);
+						let sorted_vertices = face.getSortedVertices();
+						let index_difference = sorted_vertices.indexOf(side_vertices[1]) - sorted_vertices.indexOf(side_vertices[0]);
+						if (index_difference == -1 || index_difference > 2) side_vertices.reverse();
+						let other_face = face.getAdjacentFace(sorted_vertices.indexOf(side_vertices[0]));
+						face.vertices.remove(...side_vertices);
+						delete face.uv[side_vertices[0]];
+						delete face.uv[side_vertices[1]];
+						let new_vertices = other_face.face.getSortedVertices().filter(vkey => !side_vertices.includes(vkey));
+						face.vertices.push(...new_vertices);
+						new_vertices.forEach(vkey => {
+							face.uv[vkey] = other_face.face.uv[vkey];
+						})
+						delete mesh.faces[other_face.key];
+						faces.remove(fkey);
+						if (Reusable.vec1.fromArray(face.getNormal(true)).angleTo(Reusable.vec2.fromArray(original_face_normal)) > Math.PI/2) {
+							face.invert();
+						}
+					}
+				}
+			})
+			Undo.finishEdit('Dissolve edges')
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
 	})

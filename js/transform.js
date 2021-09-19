@@ -932,7 +932,11 @@ BARS.defineActions(function() {
 
 
 	new BarSelect('transform_space', {
-		condition: {modes: ['edit', 'animate'], tools: ['move_tool', 'pivot_tool']},
+		condition: {
+			modes: ['edit', 'animate'],
+			tools: ['move_tool', 'pivot_tool', 'resize_tool'],
+			method: () => !(Toolbox && Toolbox.selected.id === 'resize_tool' && Mesh.all.length === 0)
+		},
 		category: 'transform',
 		value: 'local',
 		options: {

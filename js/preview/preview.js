@@ -747,6 +747,7 @@ class Preview {
 							function selectFace(face, index) {
 								if (processed_faces.includes(face)) return;
 								processed_faces.push(face);
+								if (start_face.vertices.length == 4 && face.vertices.length != 4) return;
 								let next = face.getAdjacentFace(index);
 								if (next) selectFace(next.face, next.index+2);
 
@@ -755,6 +756,10 @@ class Preview {
 							let face_test = start_face.getAdjacentFace(1);
 							let index = (face_test && face_test.face.isSelected()) ? 2 : 1;
 							selectFace(start_face, index);
+							if (start_face.vertices.length == 4) {
+								processed_faces.remove(start_face);
+								selectFace(start_face, (index+2) % 4);
+							}
 
 							if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
 								selected_vertices.empty();
