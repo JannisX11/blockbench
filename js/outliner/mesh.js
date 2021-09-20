@@ -279,13 +279,28 @@ class Mesh extends OutlinerElement {
 		return faces;
 	}
 	getSelectionRotation() {
-		let [face] = this.getSelectedFaces().map(fkey => this.faces[fkey]);
-		if (face) {
-			let normal = face.getNormal(true)
+		let faces = this.getSelectedFaces().map(fkey => this.faces[fkey]);
+		if (!faces[0]) {
+			let selected_vertices = this.getSelectedVertices();
+			this.forAllFaces((face) => {
+				if (face.vertices.find(vkey => selected_vertices.includes(vkey))) {
+					faces.push(face);
+				}
+			})
+		}
+		if (faces[0]) {
+			let normal = [0, 0, 0];
+			faces.forEach(face => normal.V3_add(face.getNormal(true)))
+			normal.V3_divide(faces.length);
 			
 			var y = Math.atan2(normal[0], normal[2]);
 			var x = Math.atan2(normal[1], Math.sqrt(Math.pow(normal[0], 2) + Math.pow(normal[2], 2)));
 			return new THREE.Euler(-x, y, 0, 'YXZ');
+		}
+	}
+	forAllFaces(cb) {
+		for (let fkey in this.faces) {
+			cb(this.faces[fkey], fkey);
 		}
 	}
 	transferOrigin(origin, update = true) {
@@ -814,7 +829,7 @@ BARS.defineActions(function() {
 			}},
 			diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: 16},
 			height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cube', 'pyramid', 'tube'].includes(shape)},
-			sides: {label: 'dialog.add_primitive.sides', type: 'number', value: 16, condition: ({shape}) => ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(shape)},
+			sides: {label: 'dialog.add_primitive.sides', type: 'number', value: 12, condition: ({shape}) => ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(shape)},
 			minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: 4, condition: ({shape}) => ['torus', 'tube'].includes(shape)},
 			minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: 8, condition: ({shape}) => ['torus'].includes(shape)},
 		},
@@ -1066,7 +1081,6 @@ BARS.defineActions(function() {
 	new Action('add_mesh', {
 		icon: 'fa-gem',
 		category: 'edit',
-		keybind: new Keybind({key: 'n', ctrl: true}),
 		condition: () => (Modes.edit && Format.meshes),
 		click: function () {
 			add_mesh_dialog.show();

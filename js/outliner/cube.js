@@ -873,9 +873,15 @@ new NodePreviewController(Cube, {
 		let {mesh} = cube;
 
 		let indices = [];
+		let j = 0;
+		mesh.geometry.faces = [];
+		mesh.geometry.clearGroups();
 		Canvas.face_order.forEach((fkey, i) => {
 			if (cube.faces[fkey].texture !== null) {
 				indices.push(0 + i*4, 2 + i*4, 1 + i*4, 2 + i*4, 3 + i*4, 1 + i*4);
+				mesh.geometry.addGroup(j*6, 6, j)
+				mesh.geometry.faces.push(fkey)
+				j++;
 			}
 		})
 		mesh.geometry.setIndex(indices)
@@ -899,11 +905,7 @@ new NodePreviewController(Cube, {
 		} else {
 			var materials = []
 			Canvas.face_order.forEach(function(face) {
-
-				if (cube.faces[face].texture === null) {
-					materials.push(Canvas.transparentMaterial)
-
-				} else {
+				if (cube.faces[face].texture !== null) {
 					var tex = cube.faces[face].getTexture()
 					if (tex && tex.uuid) {
 						materials.push(Project.materials[tex.uuid])

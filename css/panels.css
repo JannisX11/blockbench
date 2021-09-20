@@ -1182,7 +1182,7 @@
 		background-color: rgba(50, 70, 240, 0.14);
 	}
 	.cube_box_uv:hover > div {
-		border-color: var(--color-light);
+		border-color: white;
 		z-index: 3;
 	}
 	.cube_uv_face {
@@ -1198,12 +1198,12 @@
 		color: var(--color-subtle_text);
 	}
 	.cube_uv_face:hover {
-		border-color: var(--color-light);
+		border-color: white;
 		background-color: rgba(50, 70, 240, 0.3);
 		z-index: 3;
 	}
 	.cube_uv_face.selected:not(.unselected) {
-		border-color: var(--color-light);
+		border-color: white;
 		z-index: 4;
 		box-shadow: 0 0 4px #000000cc;
 	}
@@ -1273,7 +1273,7 @@
 		stroke-width: 2px;
 	}
 	.mesh_uv_face:hover polygon {
-		stroke: var(--color-light);
+		stroke: white;
 	}
 	.mesh_uv_face.selected polygon {
 		stroke: var(--color-accent);
@@ -1301,6 +1301,29 @@
 		overflow: hidden;
 		white-space: nowrap;
 		text-align: center;
+	}
+
+	.main_corner {
+		position: absolute;
+	}
+	.main_corner::after {
+		content: "";
+		display: block;
+		margin: -2px;
+		height: 11px;
+		width: 11px;
+		border: 1px solid white;
+	}
+	.main_corner.selected::after {
+		border-color: var(--color-accent);
+	}
+	.uv_rotate_field {
+		position: absolute;
+		width: 15px;
+		height: 15px;
+		bottom: 6px;
+		right: 6px;
+		cursor: url('../assets/rotate_cursor.png') 9 9, auto;
 	}
 
 	.panel .bar.next_to_title {

@@ -24,7 +24,6 @@ const UVEditor = {
 	grid: 1,
 	max_zoom: 16,
 	auto_grid: true,
-	texture: false,
 	panel: null,
 	sliders: {},
 
@@ -373,6 +372,9 @@ const UVEditor = {
 	get selected_faces() {
 		return this.vue.selected_faces;
 	},
+	get texture() {
+		return this.vue.texture;
+	},
 	getPixelSize() {
 		if (Project.box_uv) {
 			return this.inner_width/Project.texture_width
@@ -656,6 +658,18 @@ const UVEditor = {
 			scope.getFaces(obj, event).forEach(function(side) {
 				var uv = obj.faces[side].uv_size;
 				obj.faces[side].uv_size = [uv[1], uv[0]];
+				if (uv[0] < 0) {
+					obj.faces[side].uv[0] += uv[0];
+					obj.faces[side].uv[2] += uv[0];
+					obj.faces[side].uv[1] -= uv[0];
+					obj.faces[side].uv[3] -= uv[0];
+				}
+				if (uv[1] < 0) {
+					obj.faces[side].uv[1] += uv[1];
+					obj.faces[side].uv[3] += uv[1];
+					obj.faces[side].uv[0] -= uv[1];
+					obj.faces[side].uv[2] -= uv[1];
+				}
 			})
 			obj.autouv = 0;
 			Canvas.updateUV(obj);
@@ -896,11 +910,10 @@ const UVEditor = {
 		this.message('uv_editor.mirrored')
 		this.loadData()
 	},
-	applyAll(event) {
-		var scope = this;
+	applyAll() {
 		this.forCubes(obj => {
-			UVEditor.cube_faces.forEach(function(side) {
-				$.extend(true, obj.faces[side], obj.faces[scope.face]) 
+			UVEditor.cube_faces.forEach(side => {
+				obj.faces[side].extend(obj.faces[this.selected_faces[0]])
 			})
 			obj.autouv = 0
 		})
@@ -1582,14 +1595,14 @@ Interface.definePanels(function() {
 						}
 					}
 					if (texture === null) {
-						this.texture = UVEditor.texture = null;
+						this.texture = null;
 					} else if (texture instanceof Texture) {
 						this.texture = texture;
 						if (!Project.box_uv && UVEditor.auto_grid) {
 							UVEditor.grid = texture.width / Project.texture_width;
 						}
 					} else {
-						this.texture = UVEditor.texture = 0;
+						this.texture = 0;
 					}
 				},
 				updateMouseCoords(event) {					
@@ -1776,7 +1789,7 @@ Interface.definePanels(function() {
 						}
 					}
 				},
-				drag({event, onDrag, onEnd, onAbort}) {
+				drag({event, onDrag, onEnd, onAbort, snap}) {
 					if (event.which == 2 || event.which == 3) return;
 					let scope = this;
 
@@ -1784,13 +1797,21 @@ Interface.definePanels(function() {
 					let last_pos = [0, 0];
 					function drag(e1) {
 
-						let snap = UVEditor.grid / canvasGridSize(e1.shiftKey || Pressing.overrides.shift, e1.ctrlOrCmd || Pressing.overrides.ctrl);
+						if (snap == undefined) {
+							let snap = UVEditor.grid / canvasGridSize(e1.shiftKey || Pressing.overrides.shift, e1.ctrlOrCmd || Pressing.overrides.ctrl);
+	
+							let step_x = (scope.inner_width / UVEditor.getResolution(0) / snap);
+							let step_y = (scope.inner_height / UVEditor.getResolution(1) / snap);
 
-						let step_x = (scope.inner_width / UVEditor.getResolution(0) / snap);
-						let step_y = (scope.inner_height / UVEditor.getResolution(1) / snap);
-						
-						pos[0] = Math.round((e1.clientX - event.clientX) / step_x) / snap;
-						pos[1] = Math.round((e1.clientY - event.clientY) / step_y) / snap;
+							pos[0] = Math.round((e1.clientX - event.clientX) / step_x) / snap;
+							pos[1] = Math.round((e1.clientY - event.clientY) / step_y) / snap;
+						} else {	
+							let step_x = snap
+							let step_y = snap
+
+							pos[0] = Math.round((e1.clientX - event.clientX) / step_x) / snap;
+							pos[1] = Math.round((e1.clientY - event.clientY) / step_y) / snap;
+						}
 
 						if (pos[0] != last_pos[0] || pos[1] != last_pos[1]) {
 							onDrag(pos[0] - last_pos[0], pos[1] - last_pos[1], e1)
@@ -1903,6 +1924,113 @@ Interface.definePanels(function() {
 							Undo.finishEdit('Resize UV')
 						}
 					})
+				},
+				rotateFace(face_key, event) {
+					if (event.which == 2 || event.which == 3) return;
+					event.stopPropagation();
+					let scope = this;
+					let elements = this.mappable_elements;
+					Undo.initEdit({elements, uv_only: true})
+
+					let face_center = [0, 0];
+					let points = 0;
+					elements.forEach(element => {
+						this.selected_faces.forEach(fkey => {
+							let face = element.faces[fkey];
+							if (!face) return;
+							if (element instanceof Cube) {
+								face_center[0] += face.uv[0] + face.uv[2];
+								face_center[1] += face.uv[1] + face.uv[3];
+								points += 2;
+							} else if (element instanceof Mesh) {
+								face.vertices.forEach(vkey => {
+									if (!face.uv[vkey]) return;
+									face_center[0] += face.uv[vkey][0];
+									face_center[1] += face.uv[vkey][1];
+									points += 1;
+								})
+							}
+						})
+					})
+					face_center.forEach((v, i) => face_center[i] = v / points);
+
+					let offset = $(UVEditor.vue.$refs.frame).offset();
+					let center_on_screen = [
+						face_center[0] * UVEditor.getPixelSize() + offset.left,
+						face_center[1] * UVEditor.getPixelSize() + offset.top,
+					]
+
+					let angle = 0;
+					let last_angle;
+					let snap = elements[0] instanceof Cube ? 90 : 1;
+					function drag(e1) {
+
+						angle = Math.atan2(
+							(e1.clientY - center_on_screen[1]),
+							(e1.clientX - center_on_screen[0]),
+						)
+						angle = Math.round(Math.radToDeg(angle) / snap) * snap;
+						if (last_angle == undefined) last_angle = angle;
+						if (Math.abs(angle - last_angle) > 300) last_angle = angle;
+
+						if (angle != last_angle) {
+							
+							elements.forEach(element => {
+								if (element instanceof Cube && Format.uv_rotation) {
+									scope.selected_faces.forEach(key => {
+										if (element.faces[key]) {
+											element.faces[key].rotation += 90 * Math.sign(last_angle - angle);
+											console.log(element.faces[key].rotation, Math.sign(last_angle - angle))
+											if (element.faces[key].rotation == 360) element.faces[key].rotation = 0;
+											if (element.faces[key].rotation < 0) element.faces[key].rotation += 360;
+											console.log(element.faces[key].rotation)
+											console.log('-----')
+										}
+									})
+
+								} else if (element instanceof Mesh) {
+									scope.selected_faces.forEach(fkey => {
+										let face = element.faces[fkey];
+										if (!face) return;
+										face.vertices.forEach(vkey => {
+											if (!face.uv[vkey]) return;
+											let sin = Math.sin(Math.degToRad(angle - last_angle));
+											let cos = Math.cos(Math.degToRad(angle - last_angle));
+											face.uv[vkey][0] -= face_center[0];
+											face.uv[vkey][1] -= face_center[1];
+											face.uv[vkey][0] = (face.uv[vkey][0] * cos - face.uv[vkey][1] * sin)
+											face.uv[vkey][1] = (face.uv[vkey][0] * sin + face.uv[vkey][1] * cos)
+											face.uv[vkey][0] += face_center[0];
+											face.uv[vkey][1] += face_center[1];
+										})
+									})
+								}
+							})
+							UVEditor.turnMapping()
+
+							last_angle = angle;
+							UVEditor.displaySliders();
+							UVEditor.loadData();
+							UVEditor.vue.$forceUpdate();
+							Canvas.updateView({elements, element_aspects: {uv: true}});
+							scope.dragging_uv = true;
+						}
+					}
+
+					function stop() {
+						removeEventListeners(document, 'mousemove touchmove', drag);
+						removeEventListeners(document, 'mouseup touchend', stop);
+						if (scope.dragging_uv) {
+							UVEditor.disableAutoUV()
+							Undo.finishEdit('Rotate UV')
+							setTimeout(() => scope.dragging_uv = false, 10);
+						} else {
+							Undo.cancelEdit();
+						}
+					}
+					addEventListeners(document, 'mousemove touchmove', drag);
+					addEventListeners(document, 'mouseup touchend', stop);
+
 				},
 
 				dragVertices(element, vertex_key, event) {
@@ -2076,10 +2204,18 @@ Interface.definePanels(function() {
 											<div class="uv_resize_side horizontal" @mousedown="resizeFace(key, $event, 0, 1)" style="top: var(--height); width: var(--width)"></div>
 											<div class="uv_resize_side vertical" @mousedown="resizeFace(key, $event, -1, 0)" style="height: var(--height)"></div>
 											<div class="uv_resize_side vertical" @mousedown="resizeFace(key, $event, 1, 0)" style="left: var(--width); height: var(--height)"></div>
-											<div class="uv_resize_corner uv_c_nw" @mousedown="resizeFace(key, $event, -1, -1)" style="left: 0; top: 0"></div>
-											<div class="uv_resize_corner uv_c_ne" @mousedown="resizeFace(key, $event, 1, -1)" style="left: var(--width); top: 0"></div>
-											<div class="uv_resize_corner uv_c_sw" @mousedown="resizeFace(key, $event, -1, 1)" style="left: 0; top: var(--height)"></div>
-											<div class="uv_resize_corner uv_c_se" @mousedown="resizeFace(key, $event, 1, 1)" style="left: var(--width); top: var(--height)"></div>
+											<div class="uv_resize_corner uv_c_nw" :class="{main_corner: !face.rotation}" @mousedown="resizeFace(key, $event, -1, -1)" style="left: 0; top: 0">
+												<div class="uv_rotate_field" v-if="!face.rotation" @mousedown.stop="rotateFace(key, $event)"></div>
+											</div>
+											<div class="uv_resize_corner uv_c_ne" :class="{main_corner: face.rotation == 270}" @mousedown="resizeFace(key, $event, 1, -1)" style="left: var(--width); top: 0">
+												<div class="uv_rotate_field" v-if="face.rotation == 270" @mousedown.stop="rotateFace(key, $event)"></div>
+											</div>
+											<div class="uv_resize_corner uv_c_sw" :class="{main_corner: face.rotation == 90}" @mousedown="resizeFace(key, $event, -1, 1)" style="left: 0; top: var(--height)">
+												<div class="uv_rotate_field" v-if="face.rotation == 90" @mousedown.stop="rotateFace(key, $event)"></div>
+											</div>
+											<div class="uv_resize_corner uv_c_se" :class="{main_corner: face.rotation == 180}" @mousedown="resizeFace(key, $event, 1, 1)" style="left: var(--width); top: var(--height)">
+												<div class="uv_rotate_field" v-if="face.rotation == 180" @mousedown.stop="rotateFace(key, $event)"></div>
+											</div>
 										</template>
 									</div>
 								</template>
@@ -2113,11 +2249,13 @@ Interface.definePanels(function() {
 											<polygon :points="getMeshFaceOutline(face)" />
 										</svg>
 										<template v-if="selected_faces.includes(key)">
-											<div class="uv_mesh_vertex" v-for="key in face.vertices"
-												:class="{selected: selected_vertices[element.uuid] && selected_vertices[element.uuid].includes(key)}"
+											<div class="uv_mesh_vertex" v-for="(key, index) in face.vertices"
+												:class="{main_corner: index == 0, selected: selected_vertices[element.uuid] && selected_vertices[element.uuid].includes(key)}"
 												@mousedown.prevent.stop="dragVertices(element, key, $event)"
 												:style="{left: toPixels( face.uv[key][0] - getMeshFaceCorner(face, 0) ), top: toPixels( face.uv[key][1] - getMeshFaceCorner(face, 1) )}"
-											></div>
+											>
+												<div class="uv_rotate_field" @mousedown.stop="rotateFace(key, $event)" v-if="index == 0"></div>
+											</div>
 										</template>
 									</div>
 								</template>

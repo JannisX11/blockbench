@@ -328,6 +328,12 @@
 		display: inline-block;
 		margin-top: 4px;
 	}
+	.tool:active .icon {
+		padding-top: 1px;
+	}
+	.tool:active .icon.fa_big {
+		padding-top: 2px;
+	}
 
 	.tool.enabled {
 		border-bottom: 3px solid var(--color-accent);

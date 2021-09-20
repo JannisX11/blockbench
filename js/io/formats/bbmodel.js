@@ -1,6 +1,6 @@
 (function() {
 
-let FORMATV = '3.6';
+let FORMATV = '4.0';
 
 function processHeader(model) {
 	if (!model.meta) {

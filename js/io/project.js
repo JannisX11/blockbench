@@ -254,6 +254,7 @@ class ModelProject {
 			}
 		})
 
+		if (TextureAnimator.isPlaying) TextureAnimator.stop();
 		this.selected = false;
 		Painter.current = {};
 		scene.remove(this.model_3d);

@@ -392,21 +392,21 @@ function compileJSON(object, options) {
 			//Number
 			o = (Math.round(o*100000)/100000).toString()
 			out += o
-		} else if (typeof o === 'object' && o instanceof Array) {
+		} else if (o instanceof Array) {
 			//Array
-			var has_content = false
+			let has_content = false
+			let has_objects = !!o.find(item => typeof item === 'object');
 			out += '['
 			for (var i = 0; i < o.length; i++) {
 				var compiled = handleVar(o[i], tabs+1)
 				if (compiled) {
-					var breaks = typeof o[i] === 'object'
 					if (has_content) {out += ',' + (breaks || options.small?'':' ')}
-					if (breaks) {out += newLine(tabs)}
+					if (has_objects) {out += newLine(tabs)}
 					out += compiled
 					has_content = true
 				}
 			}
-			if (typeof o[o.length-1] === 'object') {out += newLine(tabs-1)}
+			if (has_objects) {out += newLine(tabs-1)}
 			out += ']'
 		} else if (typeof o === 'object') {
 			//Object

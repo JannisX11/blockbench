@@ -442,9 +442,6 @@ class Texture {
 		this.source = dataUrl;
 		this.img.src = dataUrl;
 		this.updateMaterial();
-		if (this == UVEditor.texture) {
-			UVEditor.img.src = dataUrl;
-		};
 		if (open_dialog == 'UVEditor') {
 			for (var key in UVEditor.editors) {
 				var editor = UVEditor.editors[key];
@@ -654,7 +651,7 @@ class Texture {
 			TextureAnimator.updateButton()
 			hideDialog()
 			if (UVEditor.texture == this) {
-				UVEditor.displayTexture();
+				UVEditor.vue.updateTexture();
 			}
 			BARS.updateConditions()
 			Undo.finishEdit('Remove texture', {textures: []})
@@ -1381,9 +1378,6 @@ TextureAnimator = {
 			$(`.texture[texid="${tex.uuid}"]`).find('img').css('margin-top', (tex.currentFrame*-48)+'px');
 			maxFrame = Math.max(maxFrame, tex.currentFrame);
 		})
-		if (animated_textures.includes(UVEditor.texture)) {
-			UVEditor.img.style.objectPosition = `0 -${UVEditor.texture.currentFrame * UVEditor.inner_height}px`;
-		}
 		Cube.all.forEach(cube => {
 			var update = false
 			for (var face in cube.faces) {
