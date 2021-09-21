@@ -668,7 +668,7 @@
 				if (scope.elements.length == 0) return;
 
 				if (object) {
-					if (!this.dragging) worldRotation.setFromRotationMatrix( tempMatrix.extractRotation( object.matrixWorld ) );
+					worldRotation.setFromRotationMatrix( tempMatrix.extractRotation( object.matrixWorld ) );
 					if (Toolbox.selected.transformerMode === 'rotate') {
 						_gizmo[ _mode ].update( worldRotation, eye );
 						this.rotation.set(0, 0, 0);

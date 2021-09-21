@@ -212,8 +212,8 @@ class UndoSystem {
 				group.extend(save.group)
 				if (Format.bone_rig) {
 					group.forEachChild(function(obj) {
-						obj.preview_controller.updateTransform(obj);
-					}, Cube)
+						if (obj.preview_controller) obj.preview_controller.updateTransform(obj);
+					})
 				}
 			}
 		}

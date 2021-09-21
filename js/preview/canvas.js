@@ -559,23 +559,6 @@ const Canvas = {
 	},
 	updateVisibility() {
 		Canvas.updateView({elements: Outliner.elements, element_aspects: {visibility: true}})
-		/*
-		Cube.all.forEach(function(cube) {
-			if (cube.visibility && !cube.mesh.visible) {
-				cube.mesh.visible = true;
-				Canvas.adaptObjectFaces(cube, cube.mesh)
-				if (Project.view_mode === 'textured') {
-					Canvas.updateUV(cube);
-				}
-				if (Modes.paint && settings.painting_grid.value) {
-					Canvas.buildGridBox(cube);
-				}
-			} else if (!cube.visibility) {
-				cube.mesh.visible = false;
-			}
-		})
-		TickUpdates.selection = true;
-		*/
 	},
 	updateAllFaces(texture) {
 		Outliner.elements.forEach(function(obj) {
@@ -665,8 +648,10 @@ const Canvas = {
 		})
 	},
 	updateUVs() {
-		Cube.selected.forEach(function(obj) {
-			obj.preview_controller.updateUV(obj);
+		Outliner.selected.forEach(function(obj) {
+			if (obj.preview_controller.updateUV) {
+				obj.preview_controller.updateUV(obj);
+			}
 		})
 	},
 	outlineObjects(arr) {

@@ -897,7 +897,9 @@ Interface.definePanels(function() {
 					if (Timeline.vue.graph_editor_open && 'xyz'.includes(axis)) {
 						Timeline.vue.graph_editor_axis = axis;
 					}
-				}
+				},
+				tl,
+				Condition
 			},
 			computed: {
 				channel() {
@@ -954,7 +956,7 @@ Interface.definePanels(function() {
 											v-model="data_point['x_string']"
 											@change="updateInput('uniform', $event, data_point_i)"
 											language="molang"
-											ignoreTabKey="true"
+											:ignoreTabKey="true"
 											:line-numbers="false"
 										/>
 									</div>
@@ -976,7 +978,7 @@ Interface.definePanels(function() {
 											@change="updateInput(key, $event, data_point_i)"
 											@focus="focusAxis(key)"
 											language="molang"
-											ignoreTabKey="true"
+											:ignoreTabKey="true"
 											:line-numbers="false"
 										/>
 										<input

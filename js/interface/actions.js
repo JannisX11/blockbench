@@ -2233,7 +2233,8 @@ const BARS = {
 								}
 							}
 						]).open(event)
-					}
+					},
+					getIconNode: Blockbench.getIconNode
 				},
 				template: `
 					<div>
@@ -2242,7 +2243,7 @@ const BARS = {
 								<div v-if="typeof item === 'string'" class="toolbar_separator" :class="{border: item[0] == '_', spacer: item[0] == '+', linebreak: item[0] == '#'}"></div>
 								<div v-else class="tool">
 									<div class="tooltip">{{item.name + (BARS.condition(item.condition) ? '' : ' (' + tl('dialog.toolbar_edit.hidden') + ')' )}}</div>
-									<span class="icon_wrapper" v-bind:style="{opacity: BARS.condition(item.condition) ? 1 : 0.4}" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></span>
+									<span class="icon_wrapper" v-bind:style="{opacity: BARS.condition(item.condition) ? 1 : 0.4}" v-html="getIconNode(item.icon, item.color).outerHTML"></span>
 								</div>
 							</li> 
 						</ul>
@@ -2253,7 +2254,7 @@ const BARS = {
 			
 						<ul class="list" id="bar_item_list">
 							<li v-for="item in searchedBarItems" v-on:click="addItem(item)" :class="{separator_item: item.type == 'separator'}">
-								<div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
+								<div class="icon_wrapper normal" v-html="getIconNode(item.icon, item.color).outerHTML"></div>
 								<div class="icon_wrapper add"><i class="material-icons">add</i></div>
 								{{ item.name }}
 							</li>
@@ -2411,7 +2412,8 @@ const BARS = {
 					} else {
 						return action.description;
 					}
-				}
+				},
+				getIconNode: Blockbench.getIconNode
 			},
 			watch: {
 				search_input() {
@@ -2431,7 +2433,7 @@ const BARS = {
 								@click="ActionControl.click(item, $event)"
 								@mouseenter="index = i"
 							>
-								<div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
+								<div class="icon_wrapper normal" v-html="getIconNode(item.icon, item.color).outerHTML"></div>
 								<span>{{ item.name }}</span>
 								<label class="keybinding_label">{{ item.keybind_label || (item.keybind ? item.keybind.label : '') }}</label>
 							</li>

@@ -113,7 +113,7 @@ function setupMobilePanelSelector() {
 						<div class="icon_wrapper"><i class="material-icons icon">3d_rotation</i></div>
 					</div>
 					<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in all_panels" v-if="Condition(panel.condition)" @click="select(panel)">
-						<div class="icon_wrapper" v-html="Blockbench.getIconNode(panel.icon).outerHTML"></div>
+						<div class="icon_wrapper" v-html="getIconNode(panel.icon).outerHTML"></div>
 					</div>
 					<div id="mobile_keyboard_menu" @click="openKeyboardMenu($event)" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
 						<i class="material-icons">keyboard</i>

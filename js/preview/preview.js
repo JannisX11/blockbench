@@ -384,7 +384,7 @@ class Preview {
 				var element = OutlinerNode.uuids[intersect_object.name]
 				let face;
 				if (element instanceof Cube) {
-					face = Canvas.face_order[Math.floor(intersect.faceIndex / 2)];
+					face = intersect_object.geometry.faces[Math.floor(intersect.faceIndex / 2)];
 				} else if (element instanceof Mesh) {
 					let index = intersect.faceIndex;
 					for (let key in element.faces) {
@@ -406,6 +406,15 @@ class Preview {
 					intersects,
 					face,
 					element
+				}
+			} else if (intersect_object.isKeyframe) {
+				let uuid = intersect_object.keyframeUUIDs[intersect.index];
+				let keyframe = Timeline.keyframes.find(kf => kf.uuid == uuid);
+				return {
+					event,
+					type: 'keyframe',
+					intersects,
+					keyframe: keyframe
 				}
 			} else if (intersect_object.type == 'Points') {
 				var element = OutlinerNode.uuids[intersect_object.parent.parent.name];
@@ -431,22 +440,6 @@ class Preview {
 					intersects,
 					intersect,
 					vertices
-				}
-			} else if (intersect_object.isVertex) {
-				return {
-					event,
-					type: 'cube_vertex',
-					intersects,
-					element: intersect_object.element,
-					vertex: intersect
-				}
-			} else if (intersect_object.isKeyframe) {
-				let keyframe = Timeline.keyframes.find(kf => kf.uuid == intersect_object.keyframeUUID);
-				return {
-					event,
-					type: 'keyframe',
-					intersects,
-					keyframe: keyframe
 				}
 			}
 		} else {

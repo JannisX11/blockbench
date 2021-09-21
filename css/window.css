@@ -710,28 +710,28 @@
 		display: flex;
 		position: relative;
 	}
-	#start_screen section left, #start_screen section right {
+	#start_screen section div.start_screen_left, #start_screen section div.start_screen_right {
 		display: block;
 		padding: 24px;
 		max-height: 600px;
 	}
-	#start_screen section right > ul {
+	#start_screen section div.start_screen_right > ul {
 		max-height: 465px;
     	padding-right: 5px;
 		overflow-y: auto;
 		grid-template-columns: repeat(auto-fit, minmax(170px ,1fr));
 		grid-gap: 5px;
 	}
-	#start_screen left {
+	#start_screen div.start_screen_left {
 		flex-grow: 0;
 		background-size: cover;
 	}
-	#start_screen left i.graphic_icon {
+	#start_screen div.start_screen_left i.graphic_icon {
 		font-size: 40px;
 		width: 12px;
 		margin-top: 6px;
 	}
-	#start_screen right {
+	#start_screen div.start_screen_right {
 		flex-grow: 1;
 		width: 62%;
 	}
@@ -758,15 +758,15 @@
 		#start_screen > content > section {
 			display: block;
 		}
-		#start_screen content section right {
+		#start_screen content section div.start_screen_right {
 			width: 100% !important;
 			float: none;
 		}
-		#start_screen content section left {
+		#start_screen content section div.start_screen_left {
 			width: 100% !important;
 			float: none;
 		}
-		#start_screen content section left {
+		#start_screen content section div.start_screen_left {
 			width: 100% !important;
 			float: none;
 		}
@@ -777,36 +777,36 @@
 	#start-files li:hover {
 		color: var(--color-light);
 	}
-	#start_screen section#start-files left {
+	#start_screen section#start-files div.start_screen_left {
 		width: 38%;
 		padding: 20px 24px 0px 24px;
 		position: relative;
 		display: flex;
 		flex-direction: column;
 	}
-	#start-files right {
+	#start-files div.start_screen_right {
 		border-left: 1px solid var(--color-border);
 	}
-	#start_screen left > ul {
+	#start_screen div.start_screen_left > ul {
 		margin-bottom: 16px;
 		overflow-y: auto;
 	}
-	#start_screen right i {
+	#start_screen div.start_screen_right i {
 		vertical-align: sub;
 	}
-	#start-files left li {
+	#start-files div.start_screen_left li {
 		padding: 4px 0;
 		cursor: pointer;
 	}
-	#start-files left span.icon_wrapper {
+	#start-files div.start_screen_left span.icon_wrapper {
 		height: 22px;
 	}
-	#start-files left li p {
+	#start-files div.start_screen_left li p {
 		font-size: 0.94em;
 		line-height: normal;
 		color: var(--color-subtle_text);
 	}
-	#start-files left i {
+	#start-files div.start_screen_left i {
 		font-size: 18pt;
 		height: 22px;
 		margin: 2px 8px 0px 0;

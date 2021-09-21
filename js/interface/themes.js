@@ -178,7 +178,8 @@ const CustomTheme = {
 							}
 						])
 						menu.open(event);
-					}
+					},
+					tl
 				},
 				computed: {
 					listed_themes() {

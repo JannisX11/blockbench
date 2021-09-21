@@ -1670,7 +1670,6 @@ Interface.definePanels(function() {
 					} else if (this.mode == 'paint' && Toolbox.selected.paintTool && (event.which === 1 || (event.touches && event.touches.length == 1))) {
 						UVEditor.startPaintTool(event)
 					} else if (this.mode == 'uv' && event.target.id == 'uv_frame' && (event.which === 1 || (event.touches && event.touches.length == 1))) {
-						console.log('test', event)
 
 						let {selection_rect} = this;
 						let scope = this;
@@ -1733,6 +1732,11 @@ Interface.definePanels(function() {
 						}
 						addEventListeners(document, 'mousemove touchmove', drag);
 						addEventListeners(document, 'mouseup touchend', stop);
+					}
+				},
+				onMouseLeave(event) {
+					if (this.mode == 'paint') {
+						this.mouse_coords.x = -1;
 					}
 				},
 				contextMenu(event) {
@@ -1980,11 +1984,8 @@ Interface.definePanels(function() {
 									scope.selected_faces.forEach(key => {
 										if (element.faces[key]) {
 											element.faces[key].rotation += 90 * Math.sign(last_angle - angle);
-											console.log(element.faces[key].rotation, Math.sign(last_angle - angle))
 											if (element.faces[key].rotation == 360) element.faces[key].rotation = 0;
 											if (element.faces[key].rotation < 0) element.faces[key].rotation += 360;
-											console.log(element.faces[key].rotation)
-											console.log('-----')
 										}
 									})
 
@@ -2173,7 +2174,7 @@ Interface.definePanels(function() {
 						@touchstart="onMouseDown($event)"
 						@mousewheel="onMouseWheel($event)"
 						@mousemove="updateMouseCoords($event)"
-						@mouseleave="if (mode == 'paint') mouse_coords.x = -1"
+						@mouseleave="onMouseLeave($event)"
 						class="checkerboard_target"
 						ref="viewport"
 						v-if="!hidden"
@@ -2182,11 +2183,11 @@ Interface.definePanels(function() {
 
 						<div id="uv_frame" @click.stop="reverseSelect($event)" ref="frame" :style="{width: inner_width + 'px', height: inner_height + 'px'}" v-if="texture !== null">
 
-							<template v-if="mode == 'uv'" v-for="element in (showing_overlays ? all_mappable_elements : mappable_elements)" :key="element.uuid">
+							<template v-if="mode == 'uv'" v-for="element in (showing_overlays ? all_mappable_elements : mappable_elements)">
 
 								<template v-if="element.type == 'cube' && !box_uv">
 									<div class="cube_uv_face"
-										v-for="(face, key) in element.faces" :key="key"
+										v-for="(face, key) in element.faces" :key="element.uuid + ':' + key"
 										v-if="face.getTexture() == texture || texture == 0"
 										:title="face_names[key]"
 										:class="{selected: selected_faces.includes(key), unselected: showing_overlays && !mappable_elements.includes(element)}"
@@ -2221,6 +2222,7 @@ Interface.definePanels(function() {
 								</template>
 								
 								<div v-else-if="element.type == 'cube'" class="cube_box_uv"
+									:key="element.uuid"
 									@mousedown.prevent="dragFace(null, $event)"
 									@click.prevent="selectCube(element, $event)"
 									:class="{unselected: showing_overlays && !mappable_elements.includes(element)}"
@@ -2234,7 +2236,7 @@ Interface.definePanels(function() {
 
 								<template v-if="element.type == 'mesh'">
 									<div class="mesh_uv_face"
-										v-for="(face, key) in filterMeshFaces(element.faces)" :key="key"
+										v-for="(face, key) in filterMeshFaces(element.faces)" :key="element.uuid + ':' + key"
 										v-if="face.vertices.length > 2 && face.getTexture() == texture"
 										:class="{selected: selected_faces.includes(key)}"
 										@mousedown.prevent="dragFace(key, $event)"

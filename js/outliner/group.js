@@ -286,13 +286,11 @@ class Group extends OutlinerNode {
 
 			} else {
 				if (obj.movable) {
-					obj.from.V3_add(shift);
-				}
-				if (obj.resizable) {
-					obj.to.V3_add(shift);
-				}
-				if (obj.rotatable) {
 					obj.origin.V3_add(shift);
+				}
+				if (obj.to) {
+					obj.from.V3_add(shift);
+					obj.to.V3_add(shift);
 				}
 			}
 		}
@@ -417,14 +415,15 @@ class Group extends OutlinerNode {
 	];
 	Group.prototype.needsUniqueName = () => Format.bone_rig;
 	function setGroupColor(color) {
-		Undo.initEdit({outliner: true, elements: Cube.selected, selection: true})
+		let elements = Outliner.selected.filter(el => el.setColor)
+		Undo.initEdit({outliner: true, elements: elements, selection: true})
 		Group.all.forEach(group => {
 			if (group.selected) {
 				group.color = color;
 			}
 		})
-		Cube.selected.forEach(cube => {
-			cube.setColor(color);
+		elements.forEach(el => {
+			el.setColor(color);
 		})
 		Undo.finishEdit('Change group marker color')
 	}
@@ -524,8 +523,7 @@ window.__defineGetter__('selected_group', () => {
 })
 
 BARS.defineActions(function() {
-	new Action({
-		id: 'add_group',
+	new Action('add_group', {
 		icon: 'create_new_folder',
 		category: 'edit',
 		condition: () => Modes.edit,
@@ -562,8 +560,7 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	new Action({
-		id: 'group_elements',
+	new Action('group_elements', {
 		icon: 'drive_file_move',
 		category: 'edit',
 		condition: () => Modes.edit && (selected.length || Group.selected),
@@ -571,14 +568,15 @@ BARS.defineActions(function() {
 		click: function () {
 			Undo.initEdit({outliner: true});
 			var add_group = Group.selected
-			if (!add_group && selected.length) {
-				add_group = selected.last()
+			if (!add_group && Outliner.selected.length) {
+				add_group = Outliner.selected.last()
 			}
 			var base_group = new Group({
 				origin: add_group ? add_group.origin : undefined
 			})
 			base_group.sortInBefore(add_group);
 			base_group.isOpen = true
+			base_group.init();
 		
 			if (Format.bone_rig) {
 				base_group.createUniqueName()
@@ -586,11 +584,12 @@ BARS.defineActions(function() {
 			if (add_group instanceof Group) {
 				add_group.addTo(base_group);
 			} else if (add_group instanceof OutlinerElement) {
-				selected.forEach(function(s, i) {
+				Outliner.selected.forEach(function(s, i) {
 					s.addTo(base_group);
+					s.preview_controller.updateTransform(s);
 				})
 			}
-			base_group.init().select()
+			base_group.select()
 			Undo.finishEdit('Add group');
 			Vue.nextTick(function() {
 				updateSelection()
@@ -602,8 +601,7 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	new Action({
-		id: 'collapse_groups',
+	new Action('collapse_groups', {
 		icon: 'format_indent_decrease',
 		category: 'edit',
 		condition: () => Group.all.length > 0,
@@ -613,8 +611,7 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	new Action({
-		id: 'unfold_groups',
+	new Action('unfold_groups', {
 		icon: 'format_indent_increase',
 		category: 'edit',
 		condition: () => Group.all.length > 0,
@@ -624,8 +621,7 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	new Action({
-		id: 'edit_bedrock_binding',
+	new Action('edit_bedrock_binding', {
 		icon: 'fa-paperclip',
 		category: 'edit',
 		condition: () => Format.id == 'bedrock' && Group.selected,

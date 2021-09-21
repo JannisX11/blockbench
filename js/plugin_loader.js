@@ -539,7 +539,9 @@ BARS.defineActions(function() {
 					} else if (lowercase.substr(0, 9) == 'minecraft') {
 						return 'var(--color-tag-mc)'
 					}
-				}
+				},
+				getIconNode: Blockbench.getIconNode,
+				tl
 			},
 			template: `
 				<div style="margin-top: 10px;">
@@ -553,7 +555,7 @@ BARS.defineActions(function() {
 					<ul class="list" id="plugin_list">
 						<li v-for="plugin in plugin_search" v-bind:plugin="plugin.id" v-bind:class="{plugin: true, testing: plugin.fromFile, expanded: plugin.expanded, has_about_text: !!plugin.about}">
 							<div class="title" v-on:click="plugin.toggleInfo()">
-								<div class="icon_wrapper plugin_icon normal" v-html="Blockbench.getIconNode(plugin.icon || 'error_outline', plugin.icon ? plugin.color : 'var(--color-close)').outerHTML"></div>
+								<div class="icon_wrapper plugin_icon normal" v-html="getIconNode(plugin.icon || 'error_outline', plugin.icon ? plugin.color : 'var(--color-close)').outerHTML"></div>
 
 								<i v-if="plugin.expanded" class="material-icons plugin_expand_icon">expand_less</i>
 								<i v-else class="material-icons plugin_expand_icon">expand_more</i>

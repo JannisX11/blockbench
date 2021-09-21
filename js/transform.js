@@ -626,10 +626,12 @@ function moveElementsInSpace(difference, axis) {
 
 	selected.forEach(el => {
 
-		if (!group_m && el instanceof Mesh && Project.selected_vertices[el.uuid] && Project.selected_vertices[el.uuid].length > 0) {
+		if (!group_m && el instanceof Mesh && (el.getSelectedVertices().length > 0 || space >= 2)) {
 
 			let selection_rotation = space == 3 && el.getSelectionRotation();
-			Project.selected_vertices[el.uuid].forEach(key => {
+			let selected_vertices = el.getSelectedVertices();
+			if (!selected_vertices.length) selected_vertices = Object.keys(el.vertices)
+			selected_vertices.forEach(key => {
 
 				if (space == 2) {
 					el.vertices[key][axis] += difference;
@@ -1695,15 +1697,16 @@ BARS.defineActions(function() {
 		category: 'filter',
 		condition: () => !Format.box_uv,
 		click: function () {
-			Undo.initEdit({elements: Cube.selected})
-			var arr = Cube.selected.slice()
-			var empty_cubes = [];
+			let elements = Outliner.selected.filter(el => el.faces);
+			Undo.initEdit({elements})
+			var arr = elements.slice()
+			var empty_elements = [];
 			var cleared_total = 0;
 			unselectAll()
-			arr.forEach(cube => {
+			arr.forEach(element => {
 				var clear_count = 0;
-				for (var face in cube.faces) {
-					var face_tag = cube.faces[face];
+				for (var face in element.faces) {
+					var face_tag = element.faces[face];
 					if (face_tag.texture == false) {
 						face_tag.texture = null
 						clear_count++;
@@ -1711,26 +1714,26 @@ BARS.defineActions(function() {
 					}
 				}
 				if (clear_count == 6) {
-					empty_cubes.push(cube);
+					empty_elements.push(element);
 				}
 			})
 			updateSelection();
 			Blockbench.showQuickMessage(tl('message.removed_faces', [cleared_total]))
-			if (empty_cubes.length) {
+			if (empty_elements.length) {
 				Blockbench.showMessageBox({
 					title: tl('message.cleared_blank_faces.title'),
 					icon: 'rotate_right',
-					message: tl('message.cleared_blank_faces.message', [empty_cubes.length]),
+					message: tl('message.cleared_blank_faces.message', [empty_elements.length]),
 					buttons: ['generic.remove', 'dialog.cancel'],
 					confirm: 0,
 					cancel: 1,
 				}, function(r) {
-					empty_cubes.forEach(cube => {
+					empty_elements.forEach(element => {
 						if (r == 0) {
-							cube.remove();
+							element.remove();
 						} else {
-							for (var face in cube.faces) {
-								cube.faces[face].texture = false;
+							for (var face in element.faces) {
+								element.faces[face].texture = false;
 							}
 						}
 					})

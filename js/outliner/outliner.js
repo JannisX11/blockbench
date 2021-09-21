@@ -1032,7 +1032,7 @@ BARS.defineActions(function() {
 				
 					array.forEach(function(obj) {
 						if (obj.name.toUpperCase().includes(name_seg) === false) return;
-						if (obj instanceof Cube && tex_seg && !Format.single_texture) {
+						if (obj.faces && tex_seg && !Format.single_texture) {
 							var has_tex = false;
 							for (var key in obj.faces) {
 								var tex = obj.faces[key].getTexture();
@@ -1043,7 +1043,7 @@ BARS.defineActions(function() {
 							if (!has_tex) return;
 						}
 						if (formData.color != '-1') {
-							if (obj instanceof Cube == false || obj.color.toString() != formData.color) return;
+							if (obj.setColor == undefined || obj.color.toString() != formData.color) return;
 						}
 						if (Math.random() > rdm) return;
 						selected.safePush(obj)
@@ -1134,7 +1134,7 @@ Interface.definePanels(function() {
 				'<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class=\'{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}\'></i>' +
 				'<i v-else class="outliner_opener_placeholder"></i>' +
 				//Main
-				'<i :class="node.icon + ((settings.outliner_colors.value && node.color >= 0) ? \' ec_\'+node.color : \'\')" v-on:dblclick.stop="if (node.children && node.children.length) {node.isOpen = !node.isOpen;}"></i>' +
+				'<i :class="node.icon + ((outliner_colors.value && node.color >= 0) ? \' ec_\'+node.color : \'\')" v-on:dblclick.stop="doubleClickIcon(node)"></i>' +
 				'<input type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>' +
 
 
@@ -1149,8 +1149,8 @@ Interface.definePanels(function() {
 			'</div>' +
 			//Other Entries
 			'<ul v-if="node.isOpen">' +
-				'<vue-tree-item v-for="item in visible_children" :node="item" :options="options" v-key="item.uuid"></vue-tree-item>' +
-				`<div class="outliner_line_guide" v-if="node == Group.selected" v-bind:style="{left: indentation + 'px'}"></div>` +
+				'<vue-tree-item v-for="item in visible_children" :node="item" :options="options" :key="item.uuid"></vue-tree-item>' +
+				`<div class="outliner_line_guide" v-if="node.constructor.selected == node" v-bind:style="{left: indentation + 'px'}"></div>` +
 			'</ul>' +
 		'</li>',
 		props: {
@@ -1159,6 +1159,9 @@ Interface.definePanels(function() {
 				type: Object
 			}
 		},
+		data() {return {
+			outliner_colors: settings.outliner_colors
+		}},
 		computed: {
 			indentation() {
 				return this.node.getDepth ? (limitNumber(this.node.getDepth(), 0, (this.width-100) / 16) * 16) : 0;
@@ -1187,6 +1190,11 @@ Interface.definePanels(function() {
 					return [btn.icon_off, 'icon_off'];
 				} else {
 					return [btn.icon_alt];
+				}
+			},
+			doubleClickIcon(node) {
+				if (node.children && node.children.length) {
+					node.isOpen = !node.isOpen;
 				}
 			}
 		}
@@ -1453,7 +1461,7 @@ Interface.definePanels(function() {
 						@mousedown="dragNode($event)"
 						@touchstart="dragNode($event)"
 					>
-						<vue-tree-item v-for="item in root" :node="item" :options="options" v-key="item.uuid"></vue-tree-item>
+						<vue-tree-item v-for="item in root" :node="item" :options="options" :key="item.uuid"></vue-tree-item>
 					</ul>
 				</div>
 			`
@@ -1514,9 +1522,9 @@ class Face {
 		return this;
 	}
 	getSaveCopy() {
-		var copy = new oneLiner({
+		var copy = {
 			uv: this.uv,
-		})
+		}
 		for (var key in this.constructor.properties) {
 			if (this[key] != this.constructor.properties[key].default) this.constructor.properties[key].copy(this, copy);
 		}
@@ -1529,7 +1537,7 @@ class Face {
 		return copy;
 	}
 	getUndoCopy() {
-		var copy = new CubeFace(this.direction, this);
+		var copy = new this.constructor(this.direction, this);
 		delete copy.cube;
 		delete copy.mesh;
 		delete copy.direction;

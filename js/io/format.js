@@ -81,6 +81,7 @@ class ModelFormat {
 				ModelProject.properties[key].reset(Project);
 			}
 		}
+		Interface.status_bar.vue.Format = this;
 		updateSelection()
 		Modes.vue.$forceUpdate()
 		updateInterfacePanels()

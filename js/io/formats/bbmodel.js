@@ -414,6 +414,21 @@ var codec = new Codec('project', {
 							copy.faces[face].uv[3] *= Project.texture_height / height;
 						}
 					}
+				} else if (copy instanceof Mesh) {
+					for (let fkey in copy.faces) {
+						if (!format.single_texture && element.faces) {
+							var texture = element.faces[fkey].texture !== null && new_textures[element.faces[fkey].texture]
+							if (texture) {
+								copy.faces[fkey].texture = texture.uuid
+							}
+						} else if (default_texture && copy.faces && copy.faces[fkey].texture !== null) {
+							copy.faces[fkey].texture = default_texture.uuid
+						}
+						for (let vkey in copy.faces[fkey].uv) {
+							copy.faces[fkey].uv[vkey][0] *= Project.texture_width / width;
+							copy.faces[fkey].uv[vkey][1] *= Project.texture_height / height;
+						}
+					}
 				}
 				copy.init()
 				new_elements.push(copy);

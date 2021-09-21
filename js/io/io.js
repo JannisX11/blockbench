@@ -619,7 +619,7 @@ BARS.defineActions(function() {
 
 	new Action('share_model', {
 		icon: 'share',
-		condition: () => Cube.all.length,
+		condition: () => Outliner.elements.length,
 		click() {
 			var dialog = new Dialog({
 				id: 'share_model',

@@ -297,6 +297,7 @@ class Mesh extends OutlinerElement {
 			var x = Math.atan2(normal[1], Math.sqrt(Math.pow(normal[0], 2) + Math.pow(normal[2], 2)));
 			return new THREE.Euler(-x, y, 0, 'YXZ');
 		}
+		return new THREE.Euler();
 	}
 	forAllFaces(cb) {
 		for (let fkey in this.faces) {

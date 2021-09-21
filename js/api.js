@@ -13,18 +13,6 @@ const Blockbench = {
 	drag_handlers: {},
 	events: {},
 	openTime: new Date(),
-	get elements() {
-		console.warn('Blockbench.elements is deprecated. Please use Outliner.elements instead.')
-		return Outliner.elements
-	},
-	get selection() {
-		console.warn('Blockbench.selection is deprecated. Please use Cube.selected or Outliner.selected instead.')
-		return Cube.selected
-	},
-	get textures() {
-		console.warn('Blockbench.textures is deprecated. Please use Texture.all instead.')
-		return Project.textures;
-	},
 	edit(aspects, cb) {
 		Undo.initEdit(aspects)
 		cb()

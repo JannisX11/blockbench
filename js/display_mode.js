@@ -1718,7 +1718,8 @@ Interface.definePanels(function() {
 				},
 				save: () => {
 					Undo.finishEdit('Change display setting')
-				}
+				},
+				getAxisLetter
 			},
 			template: `
 				<div>

@@ -548,7 +548,7 @@ function addStartScreenSection(id, data) {
 	}
 	var obj = $(`<section id="${id}"></section>`)
 	if (typeof data.graphic === 'object') {
-		var left = $('<left class="graphic"></left>')
+		var left = $('<div class="start_screen_left graphic"></div>')
 		obj.append(left)
 
 		if (data.graphic.type === 'icon') {
@@ -571,7 +571,7 @@ function addStartScreenSection(id, data) {
 		}
 	}
 	if (data.text instanceof Array) {
-		var right = $('<right></right>')
+		var right = $('<div class="start_screen_right"></div>')
 		obj.append(right)
 		data.text.forEach(line => {
 			var content = line.text ? marked(tl(line.text)) : '';
@@ -757,26 +757,32 @@ onVueSetup(function() {
 		el: '#status_bar',
 		data: {
 			Prop,
-			isMobile: Blockbench.isMobile
+			isMobile: Blockbench.isMobile,
+			streamer_mode: settings.streamer_mode.value,
+			Format: null
 		},
 		methods: {
-			toggleSidebar: Interface.toggleSidebar
+			showContextMenu(event) {
+				Interface.status_bar.menu.show(event);
+			},
+			toggleSidebar: Interface.toggleSidebar,
+			getIconNode: Blockbench.getIconNode
 		},
 		template: `
-			<div id="status_bar" @contextmenu="Interface.status_bar.menu.show(event)">
-				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('left')" :title="tl('status_bar.toggle_sidebar')">
+			<div id="status_bar" @contextmenu="showContextMenu($event)">
+				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('left')" title="${tl('status_bar.toggle_sidebar')}">
 					<i class="material-icons">{{Prop.show_left_bar ? 'chevron_left' : 'chevron_right'}}</i>
 				</div>
 				
-				<div class="f_left" v-if="settings.streamer_mode.value"
+				<div class="f_left" v-if="streamer_mode"
 					style="background-color: var(--color-stream); color: var(--color-light);"
 					@click="Settings.open({search: 'streamer_mode'})"
-					v-bind:title="tl('interface.streamer_mode_on')"
+					title="${tl('interface.streamer_mode_on')}"
 				>
 					<i class="material-icons">live_tv</i>
 				</div>
-				<div v-html="Blockbench.getIconNode(Format.icon).outerHTML" v-bind:title="Format.name"></div>
-				<div v-if="Prop.recording" v-html="Blockbench.getIconNode('fiber_manual_record').outerHTML" style="color: var(--color-close)" v-bind:title="tl('status_bar.recording')"></div>
+				<div v-if="Format" v-html="getIconNode(Format.icon).outerHTML" v-bind:title="Format.name"></div>
+				<div v-if="Prop.recording" v-html="getIconNode('fiber_manual_record').outerHTML" style="color: var(--color-close)" title="${tl('status_bar.recording')}"></div>
 
 
 				<div id="status_name">
@@ -787,7 +793,7 @@ onVueSetup(function() {
 					{{ Prop.fps }} FPS
 				</div>
 
-				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('right')" :title="tl('status_bar.toggle_sidebar')">
+				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('right')" title="${tl('status_bar.toggle_sidebar')}">
 					<i class="material-icons">{{Prop.show_right_bar ? 'chevron_right' : 'chevron_left'}}</i>
 				</div>
 

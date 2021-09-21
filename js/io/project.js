@@ -715,7 +715,7 @@ BARS.defineActions(function() {
 							&& (Project.texture_width != texture_width
 							|| Project.texture_height != texture_height)
 						) {
-							save = Undo.initEdit({uv_only: true, elements: Cube.all, uv_mode: true})
+							save = Undo.initEdit({uv_only: true, elements: [Cube.all, Mesh.all], uv_mode: true})
 							Cube.all.forEach(cube => {
 								for (var key in cube.faces) {
 									var uv = cube.faces[key].uv;
@@ -723,6 +723,15 @@ BARS.defineActions(function() {
 									uv[2] *= texture_width / Project.texture_width;
 									uv[1] *= texture_height / Project.texture_height;
 									uv[3] *= texture_height / Project.texture_height;
+								}
+							})
+							Mesh.all.forEach(mesh => {
+								for (var key in mesh.faces) {
+									var uv = mesh.faces[key].uv;
+									for (let vkey in uv) {
+										uv[vkey][0] *= texture_width / Project.texture_width;
+										uv[vkey][1] *= texture_height / Project.texture_height;
+									}
 								}
 							})
 						} else {

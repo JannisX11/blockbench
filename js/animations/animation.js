@@ -711,6 +711,7 @@ class GeneralAnimator {
 	}
 	createKeyframe(value, time, channel, undo, select) {
 		if (!this[channel]) return;
+		if (typeof time !== 'number') time = Timeline.time;
 		var keyframes = [];
 		if (undo) {
 			Undo.initEdit({keyframes})
@@ -1340,7 +1341,7 @@ const Animator = {
 			max_time = Math.min(max_time, currentTime + 8);
 		}
 		let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
-		let geometry = new THREE.Geometry();
+		let geometry = new THREE.BufferGeometry();
 		let bone_stack = [];
 		let iterate = g => {
 			bone_stack.push(g);
@@ -1370,13 +1371,29 @@ const Animator = {
 			target_bone.mesh.updateWorldMatrix(true, false)
 		}
 
+		let line_positions = [];
+		let point_positions = [];
+		let keyframe_positions = []
+		let keyframeUUIDs = []
+		let i = 0;
 		for (var time = start_time; time <= max_time; time += step) {
 			displayTime(time);
 			let position = target instanceof Group
 						 ? THREE.fastWorldPosition(target.mesh, new THREE.Vector3())
 						 : target.getWorldCenter();
-			geometry.vertices.push(position);
+			position = position.toArray();
+			line_positions.push(...position);
+
+			let keyframe = keyframes[i];
+			if (keyframe) {
+				keyframe_positions.push(...position);
+				keyframeUUIDs.push(keyframe.uuid);
+			} else {
+				point_positions.push(...position);
+			}
+			i++;
 		}
+		geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(line_positions), 3));
 		
 		Timeline.time = currentTime;
 		Animator.preview();
@@ -1388,32 +1405,19 @@ const Animator = {
 		})
 		Animator.motion_trail.add(line);
 
-		let dot_geo = new THREE.OctahedronGeometry(0.25);
-		let keyframe_geo = new THREE.OctahedronGeometry(1.0);
-		let dot_material = new THREE.MeshBasicMaterial({color: gizmo_colors.outline});
-		geometry.vertices.forEach((vertex, i) => {
-			let keyframe = keyframes[i];
-			if (keyframe) {
-				let mesh = new THREE.Mesh(keyframe_geo, dot_material);
-				mesh.position.copy(vertex);
-				Animator.motion_trail.add(mesh);
-				mesh.isKeyframe = true;
-				mesh.keyframeUUID = keyframe.uuid;
-			} else {
-				let mesh = new THREE.Mesh(dot_geo, dot_material);
-				mesh.position.copy(vertex);
-				Animator.motion_trail.add(mesh);
-			}
-		})
-		Animator.updateMotionTrailScale();
-	},
-	updateMotionTrailScale() {
-		if (!Preview.selected) return;
-		Animator.motion_trail.children.forEach((object) => {
-			if (object.isLine) return;
-			let scale = Preview.selected.calculateControlScale(object.position) * 0.6;
-			object.scale.set(scale, scale, scale)
-		})
+		let point_material = new THREE.PointsMaterial({size: 4, sizeAttenuation: false, color: Canvas.outlineMaterial.color})
+		let point_geometry = new THREE.BufferGeometry();
+		point_geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_positions), 3));
+		let points = new THREE.Points(point_geometry, point_material);
+		Animator.motion_trail.add(points);
+
+		let keyframe_material = new THREE.PointsMaterial({size: 10, sizeAttenuation: false, color: Canvas.outlineMaterial.color})
+		let keyframe_geometry = new THREE.BufferGeometry();
+		keyframe_geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(keyframe_positions), 3));
+		let keyframe_points = new THREE.Points(keyframe_geometry, keyframe_material);
+		keyframe_points.isKeyframe = true;
+		keyframe_points.keyframeUUIDs = keyframeUUIDs;
+		Animator.motion_trail.add(keyframe_points);
 	},
 	preview(in_loop) {
 		// Bones
@@ -1751,11 +1755,6 @@ const Animator = {
 		}
 	}
 }
-Blockbench.on('update_camera_position', e => {
-	if (Animator.open && settings.motion_trails.value && (Group.selected || NullObject.selected[0] || Project.motion_trail_lock)) {
-		Animator.updateMotionTrailScale();
-	}
-})
 Blockbench.on('reset_project', () => {
 	for (let path in Animator.particle_effects) {
 		let effect = Animator.particle_effects[path];
@@ -2274,7 +2273,7 @@ Interface.definePanels(function() {
 			},
 			template: `
 				<div style="flex-grow: 1; display: flex; flex-direction: column;">
-					<p>{{ tl('panel.variable_placeholders.info') }}</p>
+					<p>${tl('panel.variable_placeholders.info')}</p>
 					<vue-prism-editor
 						id="var_placeholder_area"
 						class="molang_input dark_bordered tab_target"

@@ -108,6 +108,9 @@ onVueSetup(function() {
 		el: '#mode_selector',
 		data: {
 			options: Modes.options
+		},
+		methods: {
+			Condition
 		}
 	})
 
@@ -122,7 +125,8 @@ onVueSetup(function() {
 			list_type: StateMemory.start_screen_list_type || 'list',
 			redact_names: settings.streamer_mode.value,
 			redacted: tl('generic.redacted'),
-			isApp
+			isApp,
+			getIconNode: Blockbench.getIconNode
 		},
 		methods: {
 			getDate(p) {

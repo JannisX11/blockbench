@@ -169,6 +169,7 @@ const Settings = {
 		new Setting('username', {value: '', type: 'text'});
 		new Setting('streamer_mode', {value: false, onChange() {
 			StartScreen.vue._data.redact_names = settings.streamer_mode.value;
+			Interface.status_bar.vue.streamer_mode = settings.streamer_mode.value;
 			updateStreamerModeNotification();
 		}});
 
@@ -524,7 +525,9 @@ onVueSetup(function() {
 			methods: {
 				saveSettings() {
 					Settings.saveLocalStorages();
-				}
+				},
+				getIconNode: Blockbench.getIconNode,
+				Condition
 			},
 			computed: {
 				list() {
@@ -577,7 +580,7 @@ onVueSetup(function() {
 								<div class="setting_element"><input type="number" v-model.number="setting.value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()"></div>
 							</template>
 							<template v-else-if="setting.type === 'click'">
-								<div class="setting_element setting_icon" v-html="Blockbench.getIconNode(setting.icon).outerHTML"></div>
+								<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
 							</template>
 							<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
 								<div class="setting_element"><input type="checkbox" v-model="setting.value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
