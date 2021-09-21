@@ -710,6 +710,9 @@
 		display: flex;
 		position: relative;
 	}
+	#start_screen > content > section.vertical {
+		flex-direction: column;
+	}
 	#start_screen section div.start_screen_left, #start_screen section div.start_screen_right {
 		display: block;
 		padding: 24px;
@@ -723,8 +726,17 @@
 		grid-gap: 5px;
 	}
 	#start_screen div.start_screen_left {
+		max-width: 100%;
 		flex-grow: 0;
+	}
+	#start_screen div.start_screen_left.graphic {
 		background-size: cover;
+		position: relative;
+		padding: 0;
+	}
+	#start_screen div.start_screen_left.graphic p {
+		position: absolute;
+		font-size: 0.96em;
 	}
 	#start_screen div.start_screen_left i.graphic_icon {
 		font-size: 40px;
@@ -735,6 +747,10 @@
 		flex-grow: 1;
 		width: 62%;
 	}
+	#start_screen section.vertical div.start_screen_right {
+		width: auto;
+		text-align: center;
+	}
 	#start_screen i.start_screen_close_button {
 		position: absolute;
 		top: 8px;
@@ -743,6 +759,33 @@
 	}
 	#start_screen i.start_screen_close_button:not(:hover) {
 		opacity: 0.8;
+	}
+	#start_screen section.vertical.bright_ui .start_screen_right {
+		box-shadow: 0 0 14px #00103030;
+	}
+	#start_screen .start_screen_features {
+		display: flex;
+		flex-wrap: wrap;
+		box-sizing: border-box;
+		padding: 12px;
+		background: #00004006;
+	}
+	#start_screen .start_screen_features > li {
+		width: 30%;
+		flex-grow: 1;
+		min-width: 250px;
+		box-sizing: border-box;
+		justify-content: space-between;
+		text-align: center;
+		margin: 7px;
+		padding: 7px;
+	}
+	#start_screen .start_screen_features > li > * {
+		max-width: 100%;
+		font-weight: 300;
+	}
+	#start_screen .start_screen_features > li > h3 {
+		font-size: 1.4em;
 	}
 	@media (max-device-width: 640px) {
 		#start_screen {

@@ -116,6 +116,48 @@ class MeshFace extends Face {
 			if (this.mesh.faces[fkey] == this) return fkey;
 		}
 	}
+	UVToLocal(uv) {
+		let p0 = this.uv[this.vertices[0]];
+		let p1 = this.uv[this.vertices[1]];
+		let p2 = this.uv[this.vertices[2]];
+
+		let vertexa = this.mesh.vertices[this.vertices[0]];
+		let vertexb = this.mesh.vertices[this.vertices[1]];
+		let vertexc = this.mesh.vertices[this.vertices[2]];
+
+		let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1])
+		let b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0
+		let b2 = ((p2[0] - uv[0]) * (p0[1] - uv[1]) - (p0[0] - uv[0]) * (p2[1] - uv[1])) / b0
+		let b3 = ((p0[0] - uv[0]) * (p1[1] - uv[1]) - (p1[0] - uv[0]) * (p0[1] - uv[1])) / b0
+
+		let local_space = new THREE.Vector3(
+			vertexa[0] * b1 + vertexb[0] * b2 + vertexc[0] * b3,
+			vertexa[1] * b1 + vertexb[1] * b2 + vertexc[1] * b3,
+			vertexa[2] * b1 + vertexb[2] * b2 + vertexc[2] * b3,
+		)
+		return local_space;	
+	}
+	localToUV(vector) {
+		let va = new THREE.Vector3().fromArray(this.mesh.vertices[this.vertices[0]]);
+		let vb = new THREE.Vector3().fromArray(this.mesh.vertices[this.vertices[1]]);
+		let vc = new THREE.Vector3().fromArray(this.mesh.vertices[this.vertices[2]]);
+
+		let uva = new THREE.Vector2().fromArray(this.uv[this.vertices[0]]);
+		let uvb = new THREE.Vector2().fromArray(this.uv[this.vertices[1]]);
+		let uvc = new THREE.Vector2().fromArray(this.uv[this.vertices[2]]);
+
+		let uv = THREE.Triangle.getUV(vector, va, vb, vc, uva, uvb, uvc, new THREE.Vector2());
+		return uv.toArray();
+	}
+	getCenter() {
+		let center = [0, 0, 0];
+		this.vertices.forEach(vkey => {
+			let vertex = this.mesh.vertices[vkey];
+			center.V3_add(vertex);
+		})
+		center.V3_divide(this.vertices.length);
+		return center;
+	}
 }
 new Property(MeshFace, 'array', 'vertices', {default: 0});
 
@@ -650,6 +692,10 @@ new NodePreviewController(Mesh, {
 		mesh.vertex_points.geometry.computeBoundingSphere();
 		mesh.outline.geometry.computeBoundingSphere();
 		updateCubeHighlights()
+
+		if (Modes.paint) {
+			Mesh.preview_controller.updatePaintingGrid(element);
+		}
 	},
 	updateFaces(element) {
 		let {mesh} = element;
@@ -718,6 +764,7 @@ new NodePreviewController(Mesh, {
 			}
 
 			mesh.material = materials;
+			if (!mesh.material) mesh.material = Canvas.transparentMaterial;
 		}
 	},
 	updateUV(element, animation = true) {
@@ -765,11 +812,11 @@ new NodePreviewController(Mesh, {
 		}
 
 		let line_colors = [];
-		mesh.outline.vertex_order.forEach(key => {
+		mesh.outline.vertex_order.forEach((key, i) => {
 			let color;
 			if (!Modes.edit || BarItems.selection_mode.value == 'object') {
 				color = gizmo_colors.outline;
-			} else if (selected_vertices.includes(key)) {
+			} else if (selected_vertices.includes(key) && selected_vertices.includes(mesh.outline.vertex_order[i + ((i%2) ? -1 : 1) ])) {
 				color = white;
 			} else {
 				color = gizmo_colors.grid;
@@ -810,6 +857,71 @@ new NodePreviewController(Mesh, {
 
 		mesh.geometry.attributes.highlight.array.set(array);
 		mesh.geometry.attributes.highlight.needsUpdate = true;
+	},
+	updatePaintingGrid(element) {
+		var mesh = element.mesh;
+		if (mesh === undefined) return;
+		mesh.remove(mesh.grid_box);
+		if (element.visibility == false) return;
+
+		if (!Modes.paint || !settings.painting_grid.value) return;
+
+		var positions = [];
+
+		for (let fkey in element.faces) {
+			let face = element.faces[fkey];
+			if (face.vertices <= 2) continue;
+			let offset = face.getNormal(true).V3_multiply(0.01);
+			let x_memory = {};
+			let y_memory = {};
+			let texture = face.getTexture();
+			var psize_x = texture ? Project.texture_width / texture.width : 1;
+			var psize_y = texture ? Project.texture_height / texture.height : 1;
+			let vertices = face.getSortedVertices();
+			vertices.forEach((vkey1, i) => {
+				let vkey2 = vertices[i+1] || vertices[0];
+				let uv1 = face.uv[vkey1].slice();
+				let uv2 = face.uv[vkey2].slice();
+				if (uv1[0] > uv2[0]) [uv1[0], uv2[0]] = [uv2[0], uv1[0]];
+				if (uv1[1] > uv2[1]) [uv1[1], uv2[1]] = [uv2[1], uv1[1]];
+
+				for (let x = Math.ceil(uv1[0] / psize_x) * psize_x; x < uv2[0]; x += psize_x) {
+					if (!x_memory[x]) x_memory[x] = [];
+					let y = uv1[1] + (uv2[1] - uv1[1]) * Math.lerp(uv1[0], uv2[0], x);
+					x_memory[x].push(face.UVToLocal([x, y]).toArray().V3_add(offset));
+				}
+				for (let y = Math.ceil(uv1[1] / psize_y) * psize_y; y < uv2[1]; y += psize_y) {
+					if (!y_memory[y]) y_memory[y] = [];
+					let x = uv1[0] + (uv2[0] - uv1[0]) * Math.lerp(uv1[1], uv2[1], y);
+					y_memory[y].push(face.UVToLocal([x, y]).toArray().V3_add(offset));
+				}
+			})
+
+			for (let key in x_memory) {
+				let points = x_memory[key];
+				if (points.length == 2) {
+					positions.push(...points[0], ...points[1]);
+				}
+			}
+			for (let key in y_memory) {
+				let points = y_memory[key];
+				if (points.length == 2) {
+					positions.push(...points[0], ...points[1]);
+				}
+			}
+		}
+
+		var geometry = new THREE.BufferGeometry();
+		geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+
+		let box = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({color: gizmo_colors.grid}));
+		box.no_export = true;
+
+		box.name = element.uuid+'_grid_box';
+		box.renderOrder = 2;
+		box.frustumCulled = false;
+		mesh.grid_box = box;
+		mesh.add(box);
 	}
 })
 
@@ -830,9 +942,9 @@ BARS.defineActions(function() {
 			}},
 			diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: 16},
 			height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cube', 'pyramid', 'tube'].includes(shape)},
-			sides: {label: 'dialog.add_primitive.sides', type: 'number', value: 12, condition: ({shape}) => ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(shape)},
+			sides: {label: 'dialog.add_primitive.sides', type: 'number', value: 12, min: 3, max: 48, condition: ({shape}) => ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(shape)},
 			minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: 4, condition: ({shape}) => ['torus', 'tube'].includes(shape)},
-			minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: 8, condition: ({shape}) => ['torus'].includes(shape)},
+			minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: 8, min: 2, max: 32, condition: ({shape}) => ['torus'].includes(shape)},
 		},
 		onConfirm(result) {
 			let elements = [];

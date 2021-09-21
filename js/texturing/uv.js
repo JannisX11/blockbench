@@ -486,6 +486,9 @@ const UVEditor = {
 			i++;
 		}
 	},
+	forElements(cb) {
+		this.getMappableElements().forEach(cb);
+	},
 	//Load
 	loadSelectedFace() {
 		this.face = $('#uv_panel_sides input:checked').attr('id').replace('_radio', '')
@@ -884,28 +887,54 @@ const UVEditor = {
 	},
 	mirrorX(event) {
 		var scope = this;
-		this.forCubes(obj => {
+		this.forElements(obj => {
 			scope.getFaces(obj, event).forEach(function(side) {
-				var proxy = obj.faces[side].uv[0]
-				obj.faces[side].uv[0] = obj.faces[side].uv[2]
-				obj.faces[side].uv[2] = proxy
+				if (obj instanceof Cube) {
+					var proxy = obj.faces[side].uv[0]
+					obj.faces[side].uv[0] = obj.faces[side].uv[2]
+					obj.faces[side].uv[2] = proxy
+				} else if (obj instanceof Mesh) {
+					let center = 0;
+					let count = 0;
+					obj.faces[side].vertices.forEach(vkey => {
+						center += obj.faces[side].uv[vkey][0];
+						count++;
+					})
+					center /= count;
+					obj.faces[side].vertices.forEach(vkey => {
+						obj.faces[side].uv[vkey][0] = center*2 - obj.faces[side].uv[vkey][0];
+					})
+				}
 			})
-			obj.autouv = 0
-			Canvas.updateUV(obj)
+			if (obj.autouv) obj.autouv = 0
+			obj.preview_controller.updateUV(obj);
 		})
 		this.message('uv_editor.mirrored')
 		this.loadData()
 	},
 	mirrorY(event) {
 		var scope = this;
-		this.forCubes(obj => {
+		this.forElements(obj => {
 			scope.getFaces(obj, event).forEach(function(side) {
-				var proxy = obj.faces[side].uv[1]
-				obj.faces[side].uv[1] = obj.faces[side].uv[3]
-				obj.faces[side].uv[3] = proxy
+				if (obj instanceof Cube) {
+					var proxy = obj.faces[side].uv[1]
+					obj.faces[side].uv[1] = obj.faces[side].uv[3]
+					obj.faces[side].uv[3] = proxy
+				} else if (obj instanceof Mesh) {
+					let center = 0;
+					let count = 0;
+					obj.faces[side].vertices.forEach(vkey => {
+						center += obj.faces[side].uv[vkey][1];
+						count++;
+					})
+					center /= count;
+					obj.faces[side].vertices.forEach(vkey => {
+						obj.faces[side].uv[vkey][1] = center*2 - obj.faces[side].uv[vkey][1];
+					})
+				}
 			})
-			obj.autouv = 0
-			Canvas.updateUV(obj)
+			if (obj.autouv) obj.autouv = 0
+			obj.preview_controller.updateUV(obj);
 		})
 		this.message('uv_editor.mirrored')
 		this.loadData()
@@ -1161,62 +1190,77 @@ const UVEditor = {
 		'_',
 		'copy',
 		'paste',
-		{icon: 'photo_size_select_large', name: 'menu.uv.mapping', condition: () => !Project.box_uv, children: function(editor) { return [
-			{icon: UVEditor.getReferenceFace().enabled!==false ? 'check_box' : 'check_box_outline_blank', name: 'generic.export', click: function() {
-				Undo.initEdit({elements: Cube.selected, uv_only: true})
-				UVEditor.toggleUV(event)
-				Undo.finishEdit('Toggle UV export')
-			}},
-			'uv_maximize',
-			'uv_auto',
-			'uv_rel_auto',
-			{icon: 'rotate_90_degrees_ccw', condition: () => Format.uv_rotation, name: 'menu.uv.mapping.rotation', children: function() {
-				var off = 'radio_button_unchecked'
-				var on = 'radio_button_checked'
-				let reference_face = UVEditor.getReferenceFace()
-				return [
-					{icon: (!reference_face.rotation ? on : off), name: '0&deg;', click: function() {
-						Undo.initEdit({elements: Cube.selected, uv_only: true})
-						UVEditor.setRotation(0)
-						Undo.finishEdit('Rotate UV')
-					}},
-					{icon: (reference_face.rotation === 90 ? on : off), name: '90&deg;', click: function() {
-						Undo.initEdit({elements: Cube.selected, uv_only: true})
-						UVEditor.setRotation(90)
-						Undo.finishEdit('Rotate UV')
-					}},
-					{icon: (reference_face.rotation === 180 ? on : off), name: '180&deg;', click: function() {
-						Undo.initEdit({elements: Cube.selected, uv_only: true})
-						UVEditor.setRotation(180)
-						Undo.finishEdit('Rotate UV')
-					}},
-					{icon: (reference_face.rotation === 270 ? on : off), name: '270&deg;', click: function() {
-						Undo.initEdit({elements: Cube.selected, uv_only: true})
-						UVEditor.setRotation(270)
-						Undo.finishEdit('Rotate UV')
-					}}
-				]
-			}},
-			'uv_turn_mapping',
-			{
-				icon: (UVEditor.getReferenceFace().uv[0] > UVEditor.getReferenceFace().uv[2] ? 'check_box' : 'check_box_outline_blank'),
-				name: 'menu.uv.mapping.mirror_x',
-				click: function() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					UVEditor.mirrorX(event)
-					Undo.finishEdit('Mirror UV')
+		{icon: 'photo_size_select_large', name: 'menu.uv.mapping', condition: () => !Project.box_uv, children: function(editor) {
+			let reference_face = UVEditor.getReferenceFace();
+			function isMirrored(axis) {
+				if (reference_face instanceof CubeFace) {
+					reference_face.uv[axis+0] > reference_face.uv[axis+2]
+				} else {
+					let vertices = reference_face.getSortedVertices();
+					if (vertices.length <= 2) return false;
+					if (!Math.epsilon(reference_face.uv[vertices[0]][axis], reference_face.uv[vertices[1]][axis], 0.01)) {
+						return reference_face.uv[vertices[0]][axis] > reference_face.uv[vertices[1]][axis];
+					} else {
+						return reference_face.uv[vertices[0]][axis] > reference_face.uv[vertices[2]][axis];
+					}
 				}
-			},
-			{
-				icon: (UVEditor.getReferenceFace().uv[1] > UVEditor.getReferenceFace().uv[3] ? 'check_box' : 'check_box_outline_blank'),
-				name: 'menu.uv.mapping.mirror_y',
-				click: function() {
+			}
+			return [
+				{icon: reference_face.enabled!==false ? 'check_box' : 'check_box_outline_blank', name: 'generic.export', click: function() {
 					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					UVEditor.mirrorY(event)
-					Undo.finishEdit('Mirror UV')
-				}
-			},
-		]}},
+					UVEditor.toggleUV(event)
+					Undo.finishEdit('Toggle UV export')
+				}},
+				'uv_maximize',
+				'uv_auto',
+				'uv_rel_auto',
+				{icon: 'rotate_90_degrees_ccw', condition: () => Format.uv_rotation, name: 'menu.uv.mapping.rotation', children: function() {
+					var off = 'radio_button_unchecked'
+					var on = 'radio_button_checked'
+					return [
+						{icon: (!reference_face.rotation ? on : off), name: '0&deg;', click: function() {
+							Undo.initEdit({elements: Cube.selected, uv_only: true})
+							UVEditor.setRotation(0)
+							Undo.finishEdit('Rotate UV')
+						}},
+						{icon: (reference_face.rotation === 90 ? on : off), name: '90&deg;', click: function() {
+							Undo.initEdit({elements: Cube.selected, uv_only: true})
+							UVEditor.setRotation(90)
+							Undo.finishEdit('Rotate UV')
+						}},
+						{icon: (reference_face.rotation === 180 ? on : off), name: '180&deg;', click: function() {
+							Undo.initEdit({elements: Cube.selected, uv_only: true})
+							UVEditor.setRotation(180)
+							Undo.finishEdit('Rotate UV')
+						}},
+						{icon: (reference_face.rotation === 270 ? on : off), name: '270&deg;', click: function() {
+							Undo.initEdit({elements: Cube.selected, uv_only: true})
+							UVEditor.setRotation(270)
+							Undo.finishEdit('Rotate UV')
+						}}
+					]
+				}},
+				'uv_turn_mapping',
+				{
+					icon: (isMirrored(0) ? 'check_box' : 'check_box_outline_blank'),
+					name: 'menu.uv.mapping.mirror_x',
+					click: function() {
+						Undo.initEdit({elements: Cube.selected, uv_only: true})
+						UVEditor.mirrorX(event)
+						Undo.finishEdit('Mirror UV')
+					}
+				},
+				{
+					icon: (isMirrored(1) ? 'check_box' : 'check_box_outline_blank'),
+					name: 'menu.uv.mapping.mirror_y',
+					click: function() {
+						Undo.initEdit({elements: Cube.selected, uv_only: true})
+						UVEditor.mirrorY(event)
+						Undo.finishEdit('Mirror UV')
+					}
+				},
+			]
+		}},
 		'face_tint',
 		{icon: 'flip_to_back', condition: () => (Format.id == 'java_block'&& Cube.selected.length), name: 'action.cullface' , children: function() {
 			var off = 'radio_button_unchecked';

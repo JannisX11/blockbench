@@ -1564,6 +1564,7 @@ const BARS = {
 
 									for (let key in mesh.faces) {
 										let face = mesh.faces[key];
+										if (!face.vertices.includes(vertex_key)) continue;
 										if (face.vertices.length > 2) {
 											face.vertices.remove(vertex_key);
 											delete face.uv[vertex_key];

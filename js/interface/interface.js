@@ -559,7 +559,10 @@ function addStartScreenSection(id, data) {
 			left.css('background-image', `url('${data.graphic.source}')`)
 		}
 		if (data.graphic.width) {
-			left.css('width', data.graphic.width+'px').css('flex-shrink', '0');
+			left.css('width', data.graphic.width+'px');
+		}
+		if (data.graphic.width && data.text) {
+			left.css('flex-shrink', '0');
 		}
 		if (data.graphic.width && data.graphic.height && Blockbench.isMobile) {
 			left.css('height', '0')
@@ -567,7 +570,17 @@ function addStartScreenSection(id, data) {
 				.css('padding-bottom', (data.graphic.height/data.graphic.width*100)+'%')
 		} else {
 			if (data.graphic.height) left.css('height', data.graphic.height+'px');
-			if (data.graphic.width && !data.graphic.height) left.css('height', data.graphic.width+'px');
+			if (data.graphic.width && !data.graphic.height && !data.graphic.aspect_ratio) left.css('height', data.graphic.width+'px');
+			if (data.graphic.aspect_ratio) left.css('aspect-ratio', data.graphic.aspect_ratio);
+		}
+		if (data.graphic.description) {
+			let content = $(marked(data.graphic.description));
+			content.css({
+				'bottom': '15px',
+				'right': '15px',
+				'color': data.graphic.description_color || '#ffffff',
+			});
+			left.append(content);
 		}
 	}
 	if (data.text instanceof Array) {
@@ -576,8 +589,8 @@ function addStartScreenSection(id, data) {
 		data.text.forEach(line => {
 			var content = line.text ? marked(tl(line.text)) : '';
 			switch (line.type) {
-				case 'h1': var tag = 'h3'; break;
-				case 'h2': var tag = 'h4'; break;
+				case 'h1': var tag = 'h2'; break;
+				case 'h2': var tag = 'h3'; break;
 				case 'list':
 					var tag = 'ul class="list_style"';
 					line.list.forEach(string => {
@@ -594,6 +607,24 @@ function addStartScreenSection(id, data) {
 			right.append(l);
 		})
 	}
+	if (data.layout == 'vertical') {
+		obj.addClass('vertical');
+	}
+
+	if (data.features instanceof Array) {
+		let features_section = document.createElement('ul');
+		features_section.className = 'start_screen_features'
+		data.features.forEach(feature => {
+			let li = document.createElement('li');
+			let img = new Image(); img.src = feature.image;
+			let title = document.createElement('h3'); title.textContent = feature.title;
+			let text = document.createElement('p'); text.textContent = feature.text;
+			li.append(img, title, text);
+			features_section.append(li);
+		})
+		obj.append(features_section);
+	}
+
 	if (data.closable !== false) {
 		obj.append(`<i class="material-icons start_screen_close_button">clear</i>`);
 		obj.find('i.start_screen_close_button').click((e) => {
@@ -625,6 +656,10 @@ function addStartScreenSection(id, data) {
 
 
 (function() {
+	/*$.getJSON('./content/news.json').then(data => {
+		addStartScreenSection('new_version', data.new_version)
+	})*/
+
 	var news_call = $.getJSON('https://web.blockbench.net/content/news.json')
 	Promise.all([news_call, documentReady]).then((data) => {
 		if (!data || !data[0]) return;

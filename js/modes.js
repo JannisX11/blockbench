@@ -183,8 +183,8 @@ BARS.defineActions(function() {
 			if (Modes.previous_id == 'animate') {
 				Animator.preview();
 			}
-			Cube.all.forEach(cube => {
-				Canvas.buildGridBox(cube)
+			Outliner.elements.forEach(cube => {
+				if (cube.preview_controller.updatePaintingGrid) cube.preview_controller.updatePaintingGrid(cube);
 			})
 			$('#main_colorpicker').spectrum('set', ColorPanel.vue._data.main_color);
 			BarItems.slider_color_h.update();
@@ -196,8 +196,8 @@ BARS.defineActions(function() {
 		},
 		onUnselect: () => {
 			Canvas.updateAllBones()
-			Cube.all.forEach(cube => {
-				Canvas.buildGridBox(cube)
+			Outliner.elements.forEach(cube => {
+				if (cube.preview_controller.updatePaintingGrid) cube.preview_controller.updatePaintingGrid(cube);
 			})
 			UVEditor.vue.setMode('uv');
 			three_grid.visible = true;

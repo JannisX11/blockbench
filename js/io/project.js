@@ -228,6 +228,7 @@ class ModelProject {
 
 		Blockbench.dispatchEvent('select_project', {project: this});
 
+		if (Preview.selected) Preview.selected.occupyTransformer();
 		setProjectTitle(this.name);
 		setStartScreen(!Project);
 		updateInterface();

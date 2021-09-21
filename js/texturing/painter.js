@@ -456,8 +456,9 @@ const Painter = {
 	},
 	runMirrorBrush(texture, x, y, event, uvTag) {
 		if (uvTag && Painter.current.element) {
-			let mirror_cube = Painter.getMirrorCube(Painter.current.element);
-			if (mirror_cube) {
+			let mirror_element = Painter.getMirrorCube(Painter.current.element);
+			let even_brush_size = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool;
+			if (mirror_element instanceof Cube) {
 
 				let uvFactorX = 1 / Project.texture_width * texture.img.naturalWidth;
 				let uvFactorY = 1 / Project.texture_height * texture.img.naturalHeight;
@@ -465,7 +466,7 @@ const Painter = {
 				let face = Painter.current.face;
 				let side_face = (face === 'west' || face === 'east')
 				if (side_face) face = CubeFace.opposite[face];
-				face = mirror_cube.faces[face];
+				face = mirror_element.faces[face];
 
 				if (side_face &&
 					uvTag[1] === face.uv[1] && uvTag[3] === face.uv[3] &&
@@ -481,7 +482,7 @@ const Painter = {
 				//calculate new point
 				if (face.uv[0] > face.uv[0+2] == uvTag[0] > uvTag[0+2]) {
 					point_on_uv[0] = Math.max(face.uv[0], face.uv[0+2]) * uvFactorX - point_on_uv[0] - 1;
-					if (BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool) point_on_uv[0] += 1
+					if (even_brush_size) point_on_uv[0] += 1
 				} else {
 					point_on_uv[0] = Math.min(face.uv[0], face.uv[0+2]) * uvFactorX + point_on_uv[0];
 				}
@@ -492,9 +493,50 @@ const Painter = {
 				}
 
 				let cube = Painter.current.element;
-				Painter.current.element = mirror_cube;
+				Painter.current.element = mirror_element;
 				Painter.useBrushlike(texture, ...point_on_uv, event, face.uv, true, true);
 				Painter.current.element = cube;
+
+			} else if (mirror_element instanceof Mesh) {
+				
+				let mesh = mirror_element;
+
+				let clicked_face = mesh.faces[Painter.current.face];
+				let normal = clicked_face.getNormal(true);
+				let center = clicked_face.getCenter();
+				let e = 0.01;
+				let face;
+				for (let fkey in mesh.faces) {
+					let normal2 = mesh.faces[fkey].getNormal(true);
+					let center2 = mesh.faces[fkey].getCenter();
+					if (
+						Math.epsilon(normal[0], -normal2[0], e) && Math.epsilon(normal[1], normal2[1], e) && Math.epsilon(normal[2], normal2[2], e) &&
+						Math.epsilon(center[0], -center2[0], e) && Math.epsilon(center[1], center2[1], e) && Math.epsilon(center[2], center2[2], e)
+					) {
+						face = mesh.faces[fkey];
+					}
+				}
+				if (!face) return;
+				
+				if (!even_brush_size) {
+					x += 0.5; y += 0.5;
+				}
+				let world_coord = mesh.mesh.localToWorld(clicked_face.UVToLocal([x, y]));
+				world_coord.x *= -1;
+				mesh.mesh.worldToLocal(world_coord);
+				let point_on_uv = face.localToUV(world_coord);
+				
+				if (even_brush_size) {
+					point_on_uv = point_on_uv.map(v => Math.round(v))
+				} else {
+					point_on_uv = point_on_uv.map(v => Math.floor(v))
+				}
+				console.log([x, y], point_on_uv)
+				
+				let old_mesh = Painter.current.element;
+				Painter.current.element = mesh;
+				Painter.useBrushlike(texture, ...point_on_uv, event, face.uv, true, true);
+				Painter.current.element = old_mesh;
 			}
 		}
 	},
@@ -755,24 +797,36 @@ const Painter = {
 		added.a = original_a
 		return mix;
 	},
-	getMirrorCube(cube) {
+	getMirrorCube(element) {
 		let center = Format.centered_grid ? 0 : 8;
 		let e = 0.002
-		if (cube.from[0]-center === center-cube.to[0] && !cube.rotation[1] && !cube.rotation[2]) {
-			return cube;
-		} else {
-			for (var cube2 of Cube.all) {
-				if (
-					cube.inflate === cube2.inflate &&
-					Math.epsilon(cube.from[2], cube2.from[2], e) && Math.epsilon(cube.to[2], cube2.to[2], e) &&
-					Math.epsilon(cube.from[1], cube2.from[1], e) && Math.epsilon(cube.to[1], cube2.to[1], e) &&
-					Math.epsilon(cube.size(0), cube2.size(0), e) && Math.epsilon(cube.to[0]-center, center-cube2.from[0], e)
-				) {
-					return cube2;
+		if (element instanceof Cube) {
+			if (element.from[0]-center === center-element.to[0] && !element.rotation[1] && !element.rotation[2]) {
+				return element;
+			} else {
+				for (var element2 of Cube.all) {
+					if (
+						element.inflate === element2.inflate &&
+						Math.epsilon(element.from[2], element2.from[2], e) && Math.epsilon(element.to[2], element2.to[2], e) &&
+						Math.epsilon(element.from[1], element2.from[1], e) && Math.epsilon(element.to[1], element2.to[1], e) &&
+						Math.epsilon(element.size(0), element2.size(0), e) && Math.epsilon(element.to[0]-center, center-element2.from[0], e)
+					) {
+						return element2;
+					}
 				}
 			}
+			return false;
+		} else if (element instanceof Mesh) {
+			if (element instanceof Mesh && element.origin[0] === center && !element.rotation[1] && !element.rotation[2]) {
+				return element;
+			} else {
+				for (var element2 of Mesh.all) {
+					if (Object.keys(element.vertices).length !== Object.keys(element2.vertices).length) continue;
+					return element2;
+				}
+			}
+			return element;
 		}
-		return false;
 	},
 	updateNslideValues() {
 		BarItems.slider_brush_size.update()
