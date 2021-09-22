@@ -324,10 +324,10 @@ class Group extends OutlinerNode {
 		Canvas.updatePositions();
 		return copy;
 	}
-	getSaveCopy() {
+	getSaveCopy(project) {
 		var base_group = this.getChildlessCopy(true);
 		for (var child of this.children) {
-			base_group.children.push(child.getSaveCopy());
+			base_group.children.push(child.getSaveCopy(project));
 		}
 		delete base_group.parent;
 		return base_group;

@@ -131,6 +131,21 @@ function buildForm(dialog) {
 					break;
 
 
+				case 'buttons':
+					let list = document.createElement('div');
+					list.className = 'dialog_form_buttons';
+					data.buttons.forEach((button_text, index) => {
+						let button = document.createElement('a');
+						button.innerText = tl(button_text);
+						button.addEventListener('click', e => {
+							data.click(index, e);
+						})
+						list.append(button);
+					})
+					bar.append(list);
+					break;
+
+
 				case 'number':
 					input_element = $(`<input class="dark_bordered half focusable_input" type="number" id="${form_id}"
 						value="${parseFloat(data.value)||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)

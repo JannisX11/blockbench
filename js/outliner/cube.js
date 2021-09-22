@@ -223,7 +223,7 @@ class Cube extends OutlinerElement {
 		delete copy.parent;
 		return copy;
 	}
-	getSaveCopy() {
+	getSaveCopy(project) {
 		var el = {}
 		
 		for (var key in Cube.properties) {
@@ -245,7 +245,7 @@ class Cube extends OutlinerElement {
 		if (!this.uv_offset.allEqual(0)) el.uv_offset = this.uv_offset;
 		el.faces = {}
 		for (var face in this.faces) {
-			el.faces[face] = this.faces[face].getSaveCopy()
+			el.faces[face] = this.faces[face].getSaveCopy(project)
 		}
 		el.uuid = this.uuid
 		return el;

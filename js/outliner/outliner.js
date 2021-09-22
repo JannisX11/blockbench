@@ -1521,7 +1521,7 @@ class Face {
 		this.texture = false;
 		return this;
 	}
-	getSaveCopy() {
+	getSaveCopy(project) {
 		var copy = {
 			uv: this.uv,
 		}
@@ -1531,8 +1531,10 @@ class Face {
 		var tex = this.getTexture()
 		if (tex === null) {
 			copy.texture = null;
-		} else if (tex instanceof Texture) {
+		} else if (tex instanceof Texture && project) {
 			copy.texture = Texture.all.indexOf(tex)
+		} else if (tex instanceof Texture) {
+			copy.texture = tex.uuid;
 		}
 		return copy;
 	}

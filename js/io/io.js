@@ -286,19 +286,35 @@ var Extruder = {
 }
 //Export
 function uploadSketchfabModel() {
-	if (elements.length === 0) {
+	if (elements.length === 0 || !Format) {
 		return;
 	}
+	let tag_suggestions = ['lowpoly', 'pixelart'];
+	if (Format.id !== 'free') tag_suggestions.push('minecraft');
+	if (Format.id === 'skin') tag_suggestions.push('skin');
+	if (!Mesh.all.length) tag_suggestions.push('voxel');
+	let clean_project_name = Project.name.toLowerCase().replace(/[_.-]+/g, '-').replace(/[^a-z0-9-]+/, '')
+	if (Project.name) tag_suggestions.push(clean_project_name);
+	if (clean_project_name.includes('-')) tag_suggestions.safePush(...clean_project_name.split('-').filter(s => s.length > 2 && s != 'geo').reverse());
+
 	var dialog = new Dialog({
 		id: 'sketchfab_uploader',
 		title: 'dialog.sketchfab_uploader.title',
-		width: 540,
+		width: 640,
 		form: {
 			token: {label: 'dialog.sketchfab_uploader.token', value: settings.sketchfab_token.value, type: 'password'},
 			about_token: {type: 'info', text: tl('dialog.sketchfab_uploader.about_token', ['[sketchfab.com/settings/password](https://sketchfab.com/settings/password)'])},
 			name: {label: 'dialog.sketchfab_uploader.name'},
 			description: {label: 'dialog.sketchfab_uploader.description', type: 'textarea'},
 			tags: {label: 'dialog.sketchfab_uploader.tags', placeholder: 'Tag1 Tag2'},
+			tag_suggestions: {label: 'dialog.sketchfab_uploader.suggested_tags', type: 'buttons', buttons: tag_suggestions, click(index) {
+				let {tags} = dialog.getFormResult();
+				let new_tag = tag_suggestions[index];
+				if (!tags.split(/\s/g).includes(new_tag)) {
+					tags += ' ' + new_tag;
+					dialog.setFormValues({tags});
+				}
+			}},
 			animations: {label: 'dialog.sketchfab_uploader.animations', value: true, type: 'checkbox', condition: (Format.animation_mode && Animator.animations.length)},
 			//color: {type: 'color', label: 'dialog.sketchfab_uploader.color'},
 			draft: {label: 'dialog.sketchfab_uploader.draft', type: 'checkbox'},

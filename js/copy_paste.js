@@ -6,6 +6,7 @@ const Clipbench = {
 		display_slot: 'display_slot',
 		keyframe: 'keyframe',
 		face: 'face',
+		mesh_selection: 'mesh_selection',
 		texture: 'texture',
 		outliner: 'outliner',
 		texture_selection: 'texture_selection',
@@ -29,6 +30,12 @@ const Clipbench = {
 		if (Animator.open && Timeline.animators.length && (Timeline.selected.length || mode === 2) && ['keyframe', 'timeline', 'preview'].includes(p)) {
 			return Clipbench.types.keyframe
 		}
+		if (Modes.edit && p == 'preview' && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length) {
+			return Clipbench.types.mesh_selection;
+		}
+		if (mode == 2 && Modes.edit && Format.meshes && Clipbench.last_copied == 'mesh_selection' && (p == 'preview' || p == 'outliner')) {
+			return Clipbench.types.mesh_selection;
+		}
 		if ((p == 'uv' || p == 'preview') && Modes.edit) {
 			return Clipbench.types.face;
 		}
@@ -40,7 +47,9 @@ const Clipbench = {
 		}
 	},
 	copy(event, cut) {
-		switch (Clipbench.getCopyType(1)) {
+		let copy_type = Clipbench.getCopyType(1);
+		Clipbench.last_copied = copy_type;
+		switch (copy_type) {
 			case 'text':
 				Clipbench.setText(window.getSelection()+'');
 				break;
@@ -58,24 +67,27 @@ const Clipbench = {
 			case 'face':
 				UVEditor.copy(event);
 				break;
+			case 'mesh_selection':
+				Clipbench.setMeshSelection(Mesh.selected[0], event);
+				break;
 			case 'texture':
 				Clipbench.setTexture(Texture.selected);
 				if (cut) {
 					BarItems.delete.trigger();
 				}
 				break;
-			case 'outliner':
-				Clipbench.setElements();
-				Clipbench.setGroup();
-				if (Group.selected) {
-					Clipbench.setGroup(Group.selected);
-				} else {
-					Clipbench.setElements(selected);
-				}
-				if (cut) {
-					BarItems.delete.trigger();
-				}
-				break;
+		}
+		if (copy_type == 'outliner' || (copy_type == 'face' && Prop.active_panel == 'preview')) {
+			Clipbench.setElements();
+			Clipbench.setGroup();
+			if (Group.selected) {
+				Clipbench.setGroup(Group.selected);
+			} else {
+				Clipbench.setElements(selected);
+			}
+			if (cut) {
+				BarItems.delete.trigger();
+			}
 		}
 	},
 	paste(event) {
@@ -94,6 +106,9 @@ const Clipbench = {
 				break;
 			case 'face':
 				UVEditor.paste(event);
+				break;
+			case 'mesh_selection':
+				Clipbench.pasteMeshSelection();
 				break;
 			case 'texture':
 				Clipbench.pasteTextures();
@@ -133,6 +148,53 @@ const Clipbench = {
 		} else {
 			document.execCommand('copy')
 		}
+	},
+	setMeshSelection(mesh) {
+		this.vertices = {};
+		this.faces = {};
+		mesh.getSelectedVertices().forEach(vkey => {
+			this.vertices[vkey] = mesh.vertices[vkey].slice();
+		})
+		for (let fkey in mesh.faces) {
+			let face = mesh.faces[fkey];
+			if (face.isSelected()) {
+				this.faces[fkey] = new MeshFace(null, face);
+			}
+		}
+	},
+	pasteMeshSelection() {
+		let elements = Mesh.selected.slice();
+		Undo.initEdit({elements});
+		let new_mesh;
+		if (!elements.length) {
+			new_mesh = new Mesh({name: 'pasted', vertices: []});
+			elements.push(new_mesh);
+		}
+		elements.forEach(mesh => {
+			let old_vertices = Object.keys(this.vertices);
+			let vertices_positions = old_vertices.map(vkey => this.vertices[vkey]);
+			let new_vertices = mesh.addVertices(...vertices_positions);
+
+			for (let old_fkey in this.faces) {
+				let old_face = this.faces[old_fkey];
+				let new_face = new MeshFace(mesh, old_face);
+				let new_face_vertices = new_face.vertices.map(old_vkey => {
+					let new_vkey = new_vertices[old_vertices.indexOf(old_vkey)];
+					new_face.uv[new_vkey] = new_face.uv[old_vkey];
+					delete new_face.uv[old_vkey];
+					console.log(old_vertices.indexOf(old_vkey), new_vkey)
+					return new_vkey;
+				})
+				new_face.vertices.replace(new_face_vertices);
+				mesh.addFaces(new_face);
+			}
+			mesh.getSelectedVertices(true).replace(new_vertices);
+		})
+		if (new_mesh) {
+			new_mesh.init().select();
+		}
+		Undo.finishEdit('Paste mesh selection');
+		Canvas.updateView({elements: Mesh.selected, selection: true})
 	},
 	pasteOutliner(event) {
 		Undo.initEdit({outliner: true, elements: [], selection: true});

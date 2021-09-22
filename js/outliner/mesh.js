@@ -287,7 +287,7 @@ class Mesh extends OutlinerElement {
 		delete copy.parent;
 		return copy;
 	}
-	getSaveCopy() {
+	getSaveCopy(project) {
 		var el = {}
 		for (var key in Mesh.properties) {
 			Mesh.properties[key].copy(this, el)
@@ -300,7 +300,7 @@ class Mesh extends OutlinerElement {
 
 		el.faces = {};
 		for (let key in this.faces) {
-			el.faces[key] = this.faces[key].getSaveCopy();
+			el.faces[key] = this.faces[key].getSaveCopy(project);
 		}
 
 		el.type = 'mesh';
@@ -1233,10 +1233,14 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'f', shift: true}),
 		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1),
 		click() {
+			let vec1 = new THREE.Vector3(),
+				vec2 = new THREE.Vector3(),
+				vec3 = new THREE.Vector3(),
+				vec4 = new THREE.Vector3();
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
-				let selected_vertices = Project.selected_vertices[mesh.uuid];
-				if (selected_vertices && selected_vertices.length >= 2 && selected_vertices.length <= 4) {
+				let selected_vertices = mesh.getSelectedVertices();
+				if (selected_vertices.length >= 2 && selected_vertices.length <= 4) {
 					let reference_face;
 					for (let key in mesh.faces) {
 						let face = mesh.faces[key];
@@ -1287,6 +1291,55 @@ BARS.defineActions(function() {
 								new_face.invert();
 							}
 						}
+					}
+				} else if (selected_vertices.length > 4) {
+					let reference_face;
+					for (let key in mesh.faces) {
+						let face = mesh.faces[key];
+						if (!reference_face && face.vertices.find(vkey => selected_vertices.includes(vkey))) {
+							reference_face = face;
+						}
+					}
+					let vertices = selected_vertices.slice();
+					let v1 = vec1.fromArray(mesh.vertices[vertices[1]].slice().V3_subtract(mesh.vertices[vertices[0]]));
+					let v2 = vec2.fromArray(mesh.vertices[vertices[2]].slice().V3_subtract(mesh.vertices[vertices[0]]));
+					let normal = v2.cross(v1);
+					let plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+						normal,
+						new THREE.Vector3().fromArray(mesh.vertices[vertices[0]])
+					)
+					let center = [0, 0];
+					let vertex_uvs = {};
+					vertices.forEach((vkey) => {
+						let coplanar_pos = plane.projectPoint(vec3.fromArray(mesh.vertices[vkey]), vec4);
+						let q = Reusable.quat1.setFromUnitVectors(normal, THREE.NormalY)
+						coplanar_pos.applyQuaternion(q);
+						vertex_uvs[vkey] = [
+							Math.roundTo(coplanar_pos.x, 4),
+							Math.roundTo(coplanar_pos.z, 4),
+						]
+						center[0] += vertex_uvs[vkey][0];
+						center[1] += vertex_uvs[vkey][1];
+					})
+					center[0] /= vertices.length;
+					center[1] /= vertices.length;
+
+					vertices.forEach(vkey => {
+						vertex_uvs[vkey][0] -= center[0];
+						vertex_uvs[vkey][1] -= center[1];
+						vertex_uvs[vkey][2] = Math.atan2(vertex_uvs[vkey][0], vertex_uvs[vkey][1]);
+					})
+					vertices.sort((a, b) => vertex_uvs[a][2] - vertex_uvs[b][2]);
+
+					let start_index = 0;
+					while (start_index < vertices.length) {
+						let face_vertices = vertices.slice(start_index, start_index+4);
+						vertices.push(face_vertices[0]);
+						let face = new MeshFace(mesh, {vertices: face_vertices, texture: reference_face.texture});
+						mesh.addFaces(face);
+
+						if (face_vertices.length < 4) break;
+						start_index += 3;
 					}
 				}
 			})

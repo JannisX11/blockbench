@@ -440,6 +440,7 @@
 	#tab_bar #tab_bar_list {
 		display: flex;
 		flex-direction: row;
+		flex-grow: 1;
 		position: relative;
 		white-space: nowrap;
 		overflow-x: auto;

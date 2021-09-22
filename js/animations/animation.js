@@ -1674,12 +1674,6 @@ const Animator = {
 				id: 'animation_import',
 				title: 'dialog.animation_import.title',
 				form,
-				lines: [
-					`<div>
-						<a class="button_select_all">${tl('generic.select_all')}</a>
-						<a class="button_select_none">${tl('generic.select_none')}</a>
-					</div>`
-				],
 				onConfirm(form_result) {
 					this.hide();
 					let names = [];
@@ -1692,15 +1686,17 @@ const Animator = {
 					let new_animations = Animator.loadFile(file, names);
 					Undo.finishEdit('Import animations', {animations: new_animations})
 				}
-			}).show();
-
-			function setAll(value) {
-				let values = {};
-				keys.forEach(key => values[key.hashCode()] = value);
-				dialog.setFormValues(values);
+			});
+			form.select_all_none = {
+				type: 'buttons',
+				buttons: ['generic.select_all', 'generic.select_none'],
+				click(index) {
+					let values = {};
+					keys.forEach(key => values[key.hashCode()] = (index == 0));
+					dialog.setFormValues(values);
+				}
 			}
-			dialog.object.querySelector('a.button_select_all').addEventListener('click', e => setAll(true));
-			dialog.object.querySelector('a.button_select_none').addEventListener('click', e => setAll(false));
+			dialog.show();
 		}
 	},
 	exportAnimationFile(path) {
