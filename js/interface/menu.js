@@ -539,6 +539,31 @@ const MenuBar = {
 			'close_project',
 			'_',
 			{name: 'menu.file.import', id: 'import', icon: 'insert_drive_file', children: [
+				{
+					id: 'import_open_project',
+					name: 'menu.file.import.import_open_project',
+					icon: 'input',
+					condition: () => Project && ModelProject.all.length > 1,
+					children() {
+						let projects = [];
+						ModelProject.all.forEach(project => {
+							if (project == Project) return;
+							projects.push({
+								name: project.getDisplayName(),
+								icon: project.format.icon,
+								description: project.path,
+								click() {
+									let current_project = Project;
+									project.select();
+									let bbmodel = Codecs.project.compile();
+									current_project.select();
+									Codecs.project.merge(JSON.parse(bbmodel));
+								}
+							})
+						})
+						return projects;
+					}
+				},
 				'import_project',
 				'import_java_block_model',
 				'import_optifine_part',

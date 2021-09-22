@@ -95,6 +95,9 @@ class ModelProject {
 	get nodes_3d() {
 		return ProjectData[this.uuid].nodes_3d;
 	}
+	getDisplayName() {
+		return this.name || this.geometry_name || this.format.name;
+	}
 	reset() {
 		return;
 		//if (isApp) updateRecentProjectThumbnail();
@@ -466,6 +469,34 @@ function setStartScreen(state) {
 }
 
 onVueSetup(() => {
+	const new_tab = {
+		name: tl('projects.new_tab'),
+		saved: true,
+		selected: true,
+		uuid: guid(),
+		visible: true,
+		is_new_tab: true,
+		getDisplayName() {return this.name},
+		close: () => {
+			if (ModelProject.all.length) {
+				Interface.tab_bar.new_tab.visible = false;
+				let project = ModelProject.all.find(project => project.uuid == Interface.tab_bar.last_opened_project) ||
+								ModelProject.all.last();
+				if (project) project.select();
+			} else {
+				window.close();
+			}
+		},
+		select() {
+			if (Project) {
+				Project.unselect()
+			}
+			Project = 0;
+			Interface.tab_bar.new_tab.selected = true;
+			setProjectTitle(tl('projects.new_tab'));
+		},
+		openSettings() {}
+	}
 	Interface.tab_bar = new Vue({
 		el: '#tab_bar',
 		data: {
@@ -475,33 +506,7 @@ onVueSetup(() => {
 			close_tab_label: tl('projects.close_tab'),
 			search_tabs_label: tl('generic.search'),
 			last_opened_project: '',
-			new_tab: {
-				name: tl('projects.new_tab'),
-				saved: true,
-				selected: true,
-				uuid: guid(),
-				visible: true,
-				is_new_tab: true,
-				close: () => {
-					if (ModelProject.all.length) {
-						Interface.tab_bar.new_tab.visible = false;
-						let project = ModelProject.all.find(project => project.uuid == Interface.tab_bar.last_opened_project) ||
-										ModelProject.all.last();
-						if (project) project.select();
-					} else {
-						window.close();
-					}
-				},
-				select() {
-					if (Project) {
-						Project.unselect()
-					}
-					Project = 0;
-					Interface.tab_bar.new_tab.selected = true;
-					setProjectTitle(tl('projects.new_tab'));
-				},
-				openSettings() {}
-			}
+			new_tab
 		},
 		computed: {
 			tabs() {

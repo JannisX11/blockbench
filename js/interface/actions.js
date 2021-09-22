@@ -2358,7 +2358,7 @@ const BARS = {
 								project.geometry_name.toLowerCase().includes(search_input)
 							) {
 								list.push({
-									name: project.name || project.geometry_name || project.format.name,
+									name: project.getDisplayName(),
 									icon: project.format.icon,
 									description: project.path,
 									keybind_label: Modes.options[project.mode].name,

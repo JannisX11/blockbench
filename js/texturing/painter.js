@@ -370,7 +370,7 @@ const Painter = {
 		var element = Painter.current.element;
 		let {rect, uvFactorX, uvFactorY, w, h} = area;
 
-		if (Painter.erase_mode && (fill_mode === 'cube' || fill_mode === 'face')) {
+		if (Painter.erase_mode && (fill_mode === 'element' || fill_mode === 'face')) {
 			ctx.globalAlpha = b_opacity;
 			ctx.fillStyle = 'white';
 			ctx.globalCompositeOperation = 'destination-out';
@@ -378,7 +378,7 @@ const Painter = {
 			ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
 		}
 
-		if (element instanceof Cube && fill_mode === 'cube') {
+		if (element instanceof Cube && fill_mode === 'element') {
 			for (var face in element.faces) {
 				var tag = element.faces[face]
 				ctx.beginPath();
@@ -392,6 +392,32 @@ const Painter = {
 					ctx.rect(face_rect.ax, face_rect.ay, face_rect.x, face_rect.y)
 					ctx.fill()
 				}
+			}
+
+		} else if (element instanceof Mesh && fill_mode === 'element') {
+			for (var fkey in element.faces) {
+				var face = element.faces[fkey];
+				if (face.vertices.length <= 2 || face.getTexture() !== texture) continue;
+				ctx.beginPath();
+				
+				let min_x = Project.texture_width;
+				let min_y = Project.texture_height;
+				let max_x = 0;
+				let max_y = 0;
+				face.vertices.forEach(vkey => {
+					if (!face.uv[vkey]) return;
+					min_x = Math.min(min_x, face.uv[vkey][0]);
+					min_y = Math.min(min_y, face.uv[vkey][1]);
+					max_x = Math.max(max_x, face.uv[vkey][0]);
+					max_y = Math.max(max_y, face.uv[vkey][1]);
+				})
+				ctx.rect(
+					Math.floor(min_x) * uvFactorX,
+					Math.floor(min_y) * uvFactorY,
+					(Math.ceil(max_x) - Math.floor(min_x)) * uvFactorX,
+					(Math.ceil(max_y) - Math.floor(min_y)) * uvFactorY,
+					)
+				ctx.fill()
 			}
 
 		} else if (fill_mode === 'face') {
@@ -1138,7 +1164,7 @@ BARS.defineActions(function() {
 		condition: () => Toolbox && Toolbox.selected.id === 'fill_tool',
 		options: {
 			face: true,
-			cube: true,
+			element: true,
 			color_connected: true,
 			color: true,
 		}

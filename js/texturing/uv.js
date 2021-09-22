@@ -1214,6 +1214,7 @@ const UVEditor = {
 				'uv_maximize',
 				'uv_auto',
 				'uv_rel_auto',
+				'snap_uv_to_pixels',
 				{icon: 'rotate_90_degrees_ccw', condition: () => Format.uv_rotation, name: 'menu.uv.mapping.rotation', children: function() {
 					var off = 'radio_button_unchecked'
 					var on = 'radio_button_checked'
@@ -1514,6 +1515,38 @@ BARS.defineActions(function() {
 		},
 		onAfter: function() {
 			Undo.finishEdit('Set face tint')
+		}
+	})
+	new Action('snap_uv_to_pixels', {
+		icon: 'grid_goldenratio',
+		category: 'uv',
+		condition: () => UVEditor.getMappableElements().length,
+		click: function (event) {
+			let elements = UVEditor.getMappableElements();
+			Undo.initEdit({elements, uv_only: true})
+			elements.forEach(element => {
+				let selected_vertices = element instanceof Mesh && element.getSelectedVertices();
+				UVEditor.selected_faces.forEach(fkey => {
+					if (!element.faces[fkey]) return;
+					let face = element.faces[fkey];
+					if (element instanceof Mesh) {
+						face.vertices.forEach(vkey => {
+							if ((!selected_vertices.length || selected_vertices.includes(vkey)) && face.uv[vkey]) {
+								face.uv[vkey][0] = Math.clamp(Math.round(face.uv[vkey][0]), 0, Project.texture_width);
+								face.uv[vkey][1] = Math.clamp(Math.round(face.uv[vkey][1]), 0, Project.texture_height);
+							}
+						})
+					} else if (element instanceof Cube) {
+						face.uv[0] = Math.clamp(Math.round(face.uv[0]), 0, Project.texture_width);
+						face.uv[1] = Math.clamp(Math.round(face.uv[1]), 0, Project.texture_height);
+						face.uv[2] = Math.clamp(Math.round(face.uv[2]), 0, Project.texture_width);
+						face.uv[3] = Math.clamp(Math.round(face.uv[3]), 0, Project.texture_height);
+					}
+				})
+				element.preview_controller.updateUV(element);
+			})
+			UVEditor.loadData();
+			Undo.finishEdit('Set automatic cullface')
 		}
 	})
 

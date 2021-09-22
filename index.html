@@ -378,7 +378,7 @@
 					@mouseleave="mouseLeave(project, $event)"
 				>
 					<label class="project_tab_session_badge" v-if="project.EditSession"><i class="material-icons">group</i>{{ project.EditSession.client_count }}</label>
-					<label>{{ project.name || project.geometry_name || project.format.name }}</label>
+					<label>{{ project.getDisplayName() }}</label>
 					<div class="project_tab_close_button" :class="{unsaved: !project.saved}" :title="close_tab_label" @click="project.close()">
 						<i class="material-icons close_icon">clear</i>
 						<i class="material-icons unsaved_icon" v-if="!project.saved">fiber_manual_record</i>

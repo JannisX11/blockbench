@@ -13,6 +13,13 @@ const TextureGenerator = {
 		south:	{c1: '#f8dd72', c2: '#FFF899', place: t => {return {x: t.posx+t.z+t.x+t.z,y: t.posy+t.z, 	w: t.x, 	h: t.y}}},
 	},
 	addBitmapDialog() {
+		let type_options = {
+			blank: 'dialog.create_texture.type.blank',
+			template: 'dialog.create_texture.type.template',
+		}
+		if (!Project.box_uv) {
+			type_options.color_map = 'dialog.create_texture.type.color_map';
+		}
 		var dialog = new Dialog({
 			id: 'add_bitmap',
 			title: tl('action.create_texture'),
@@ -22,7 +29,7 @@ const TextureGenerator = {
 				folder: 	{label: 'dialog.create_texture.folder', condition: Format.id == 'java_block'},
 
 				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
-				resolution: {label: 'dialog.create_texture.resolution', description: 'dialog.create_texture.resolution.desc', type: 'select', value: 16, condition: (form) => (form.template), options: {
+				resolution: {label: 'dialog.create_texture.resolution', description: 'dialog.create_texture.resolution.desc', type: 'select', value: 16, condition: (form) => (form.type == 'template'), options: {
 					16: '16',
 					32: '32',
 					64: '64',
@@ -30,28 +37,28 @@ const TextureGenerator = {
 					256: '256',
 					512: '512',
 				}},
-				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (!form.template), dimensions: 2, value: [16, 16], min: 16, max: 2048},
+				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (form.type == 'blank'), dimensions: 2, value: [16, 16], min: 16, max: 2048},
 
 				section2:    "_",
-				template:	{label: 'dialog.create_texture.template', type: 'checkbox', condition: Cube.all.length || Mesh.all.length},
+				type:	{label: 'dialog.create_texture.type', type: 'select', condition: Cube.all.length || Mesh.all.length, options: type_options},
 
-				rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', description: 'dialog.create_texture.rearrange_uv.desc', type: 'checkbox', value: true, condition: (form) => (form.template)},
-				compress: 	{label: 'dialog.create_texture.compress', description: 'dialog.create_texture.compress.desc', type: 'checkbox', value: true, condition: (form) => (form.template && Project.box_uv && form.rearrange_uv)},
-				power: 		{label: 'dialog.create_texture.power', description: 'dialog.create_texture.power.desc', type: 'checkbox', value: true, condition: (form) => (form.template && form.rearrange_uv)},
-				double_use: {label: 'dialog.create_texture.double_use', description: 'dialog.create_texture.double_use.desc', type: 'checkbox', value: true, condition: (form) => (form.template && Project.box_uv && form.rearrange_uv)},
-				combine_polys: {label: 'dialog.create_texture.combine_polys', description: 'dialog.create_texture.combine_polys.desc', type: 'checkbox', value: true, condition: (form) => (form.template && form.rearrange_uv && Mesh.selected.length)},
-				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.template && !Project.box_uv)},
-				padding:	{label: 'dialog.create_texture.padding', description: 'dialog.create_texture.padding.desc', type: 'checkbox', value: false, condition: (form) => (form.template && form.rearrange_uv)},
+				rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', description: 'dialog.create_texture.rearrange_uv.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template')},
+				compress: 	{label: 'dialog.create_texture.compress', description: 'dialog.create_texture.compress.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template' && Project.box_uv && form.rearrange_uv)},
+				power: 		{label: 'dialog.create_texture.power', description: 'dialog.create_texture.power.desc', type: 'checkbox', value: true, condition: (form) => (form.type !== 'blank' && (form.rearrange_uv || form.type == 'color_map'))},
+				double_use: {label: 'dialog.create_texture.double_use', description: 'dialog.create_texture.double_use.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template' && Project.box_uv && form.rearrange_uv)},
+				combine_polys: {label: 'dialog.create_texture.combine_polys', description: 'dialog.create_texture.combine_polys.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
+				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.type == 'template' && !Project.box_uv)},
+				padding:	{label: 'dialog.create_texture.padding', description: 'dialog.create_texture.padding.desc', type: 'checkbox', value: false, condition: (form) => (form.type == 'template' && form.rearrange_uv)},
 
 			},
 			onFormChange(form) {
-				if (form.template && TextureGenerator.background_color.get().toHex8() === 'ffffffff') {
+				if (form.type == 'template' && TextureGenerator.background_color.get().toHex8() === 'ffffffff') {
 					TextureGenerator.background_color.set('#00000000')
 				}
 			},
 			onConfirm: function(results) {
 				results.particle = 'auto';
-				if (!results.template) {
+				if (results.type == 'blank') {
 					results.resolution = results.resolution_vec;
 				}
 				dialog.hide()
@@ -91,12 +98,12 @@ const TextureGenerator = {
 			if (typeof after === 'function') {
 				after(texture)
 			}
-			if (!options.template) {
+			if (options.type == 'blank') {
 				Undo.finishEdit('Create blank texture', {textures: [texture], selected_texture: true, bitmap: true})
 			}
 			return texture;
 		}
-		if (options.template === true) {
+		if (options.type == 'template') {
 			if (Project.box_uv || options.box_uv) {
 				if (Mesh.selected[0]) {
 					Blockbench.showQuickMessage('message.box_uv_for_meshes', 1600);
@@ -105,6 +112,8 @@ const TextureGenerator = {
 			} else {
 				TextureGenerator.generateFaceTemplate(options, makeTexture);
 			}
+		} else if (options.type == 'color_map') {
+			TextureGenerator.generateColorMapTemplate(options, makeTexture);
 		} else {
 			Undo.initEdit({textures: [], selected_texture: true})
 			TextureGenerator.generateBlank(options.resolution[1], options.resolution[0], options.color, makeTexture)
@@ -980,6 +989,125 @@ const TextureGenerator = {
 					element.preview_controller.updateFaces(element);
 					element.preview_controller.updateUV(element);
 				}
+				if (typeof element.autouv !== 'undefined') {
+					element.autouv = 0;
+				}
+			})
+		}
+		updateSelection()
+		Undo.finishEdit('Create template', {
+			textures: [texture],
+			bitmap: true,
+			elements: element_list,
+			selected_texture: true,
+			uv_only: true,
+			uv_mode: true
+		})
+	},
+	generateColorMapTemplate(options, cb) {
+
+		var background_color = options.color;
+		var texture = options.texture;
+		var new_resolution = [];
+
+		var face_list = [];
+		var element_list = (Format.single_texture ? Outliner.elements : Outliner.selected).filter(el => {
+			return (el instanceof Cube || el instanceof Mesh) && el.visibility;
+		});
+
+		Undo.initEdit({
+			textures: [],
+			elements: element_list,
+			uv_only: true,
+			selected_texture: true,
+			uv_mode: true
+		})
+
+		element_list.forEach(element => {
+			for (let fkey in element.faces) {
+				let face = element.faces[fkey];
+				if (element instanceof Mesh && face.vertices.length <= 2) continue;
+				if (element instanceof Cube && face.texture === null) continue;
+				face_list.push({element, fkey, face});
+			}
+		})
+
+		if (face_list.length == 0) {
+			Blockbench.showMessage('No valid cubes', 'center')
+			return;
+		}
+
+		var max_size = Math.ceil(Math.sqrt(face_list.length));
+		if (options.power) {
+			max_size = Math.getNextPower(max_size, 16);
+		} else {
+			max_size = Math.ceil(max_size/16)*16;
+		}
+		new_resolution = [max_size, max_size];
+
+		if (background_color.getAlpha() != 0) {
+			background_color = background_color.toRgbString()
+		}
+		var canvas = document.createElement('canvas')
+		canvas.width = new_resolution[0];
+		canvas.height = new_resolution[1];
+		var ctx = canvas.getContext('2d');
+		ctx.fillStyle = typeof background_color == 'string' ? background_color : 'white';
+		ctx.imageSmoothingEnabled = false;
+		let texture_ctxs = {};
+
+		//Drawing
+		face_list.forEach(({face, fkey}, i) => {
+			let x = i % max_size;
+			let y = Math.floor(i / max_size);
+
+			let texture;
+			if (!Format.single_texture) {
+				if (face.texture !== undefined && face.texture !== null) {
+					texture = face.getTexture()
+				}
+			} else {
+				texture = Texture.getDefault();
+			}
+			if (texture && texture.img) {
+				if (!texture_ctxs[texture.uuid]) {
+					texture_ctxs[texture.uuid] = new CanvasFrame(texture.img).ctx;
+				}
+				let color = Painter.getPixelColor(
+					texture_ctxs[texture.uuid],
+					Math.floor((face instanceof CubeFace ? face.uv : face.uv[face.vertices[0]])[0] / Project.texture_width * texture.width),
+					Math.floor((face instanceof CubeFace ? face.uv : face.uv[face.vertices[0]])[1] / Project.texture_height * texture.height),
+				);
+				ctx.fillStyle = color ? color.toHexString() : 'white';
+			} else {
+				ctx.fillStyle = typeof background_color == 'string' ? background_color : 'white';
+			}
+
+			ctx.fillRect(x, y, 1, 1);
+
+			if (face instanceof CubeFace) {
+				face.uv = [x+0.25, y+0.25, x+0.75, y+0.75];
+			} else if (face instanceof MeshFace) {
+				let vertices = face.getSortedVertices();
+				face.uv[vertices[0]] = [x+0.75, y+0.25];
+				face.uv[vertices[1]] = [x+0.25, y+0.25];
+				face.uv[vertices[2]] = [x+0.25, y+0.75];
+				if (vertices[3]) face.uv[vertices[3]] = [x+0.75, y+0.75];
+				console.log(vertices, face.uv)
+			}
+		})
+		var dataUrl = canvas.toDataURL()
+		var texture = cb(dataUrl)
+
+		TextureGenerator.changeProjectResolution(new_resolution[0], new_resolution[1]);
+
+		if (texture) {
+			face_list.forEach(({face, fkey}, i) => {
+				face.texture = texture.uuid;
+			})
+			element_list.forEach(function(element) {
+				element.preview_controller.updateFaces(element);
+				element.preview_controller.updateUV(element);
 				if (typeof element.autouv !== 'undefined') {
 					element.autouv = 0;
 				}
