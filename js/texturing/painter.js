@@ -236,12 +236,50 @@ const Painter = {
 		Painter.currentPixel = [-1, -1];
 	},
 	// Tools
+	setupRectFromFace(uvTag, texture) {
+		let rect;
+		let uvFactorX = texture.width / Project.texture_width;
+		let uvFactorY = texture.display_height / Project.texture_height;
+		if (uvTag) {
+			let anim_offset = texture.display_height * texture.currentFrame;
+			if (uvTag instanceof Array) {
+				rect = Painter.editing_area = [
+					uvTag[0] * uvFactorX,
+					uvTag[1] * uvFactorY + anim_offset,
+					uvTag[2] * uvFactorX,
+					uvTag[3] * uvFactorY + anim_offset
+				]
+				for (var t = 0; t < 2; t++) {
+					if (rect[t] > rect[t+2]) {
+						[rect[t], rect[t+2]] = [rect[t+2], rect[t]]
+					}
+					rect[t] = Math.round(rect[t])
+					rect[t+2] = Math.round(rect[t+2])
+				}
+			} else {
+				let min_x = Project.texture_width, min_y = Project.texture_height, max_x = 0, max_y = 0;
+				for (let vkey in uvTag) {
+					min_x = Math.min(min_x, uvTag[vkey][0]); max_x = Math.max(max_x, uvTag[vkey][0]);
+					min_y = Math.min(min_y, uvTag[vkey][1]); max_y = Math.max(max_y, uvTag[vkey][1]);
+				}
+				rect = Painter.editing_area = [
+					Math.floor(min_x * uvFactorX),
+					Math.floor(min_y * uvFactorY) + anim_offset,
+					Math.ceil(max_x * uvFactorX),
+					Math.ceil(max_y * uvFactorY) + anim_offset
+				]
+			}
+		} else {
+			rect = Painter.editing_area = [0, 0, texture.img.naturalWidth, texture.img.naturalHeight]
+		}
+		return rect;
+	},
 	useBrushlike(texture, x, y, event, uvTag, no_update, is_opposite) {
 		if (Painter.currentPixel[0] === x && Painter.currentPixel[1] === y) return;
 		Painter.currentPixel = [x, y]
 		Painter.brushChanges = true;
-		let uvFactorX = 1 / Project.texture_width * texture.width;
-		let uvFactorY = 1 / Project.texture_height * texture.display_height;
+		let uvFactorX = texture.width / Project.texture_width;
+		let uvFactorY = texture.display_height / Project.texture_height;
 
 		if (Painter.mirror_painting && !is_opposite) {
 			Painter.runMirrorBrush(texture, x, y, event, uvTag);
@@ -252,38 +290,7 @@ const Painter = {
 			ctx.save()
 
 			ctx.beginPath();
-			if (uvTag) {
-				let anim_offset = texture.display_height * texture.currentFrame;
-				if (uvTag instanceof Array) {
-					var rect = Painter.editing_area = [
-						uvTag[0] * uvFactorX,
-						uvTag[1] * uvFactorY + anim_offset,
-						uvTag[2] * uvFactorX,
-						uvTag[3] * uvFactorY + anim_offset
-					]
-				} else {
-					let min_x = Project.texture_width, min_y = Project.texture_height, max_x = 0, max_y = 0;
-					for (let vkey in uvTag) {
-						min_x = Math.min(min_x, uvTag[vkey][0]); max_x = Math.max(max_x, uvTag[vkey][0]);
-						min_y = Math.min(min_y, uvTag[vkey][1]); max_y = Math.max(max_y, uvTag[vkey][1]);
-					}
-					var rect = Painter.editing_area = [
-						Math.floor(min_x * uvFactorX),
-						Math.floor(min_y * uvFactorY) + anim_offset,
-						Math.ceil(max_x * uvFactorX),
-						Math.ceil(max_y * uvFactorY) + anim_offset
-					]
-				}
-			} else {
-				var rect = Painter.editing_area = [0, 0, texture.img.naturalWidth, texture.img.naturalHeight]
-			}
-			for (var t = 0; t < 2; t++) {
-				if (rect[t] > rect[t+2]) {
-					[rect[t], rect[t+2]] = [rect[t+2], rect[t]]
-				}
-				rect[t] = Math.round(rect[t])
-				rect[t+2] = Math.round(rect[t+2])
-			}
+			let rect = Painter.setupRectFromFace(uvTag, texture);
 			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
 			ctx.rect(rect[0], rect[1], w, h)
 
@@ -293,7 +300,6 @@ const Painter = {
 				Painter.useBrush(texture, ctx, x, y, event)
 			}
 			Painter.editing_area = undefined;
-
 
 		}, {no_undo: true, use_cache: true, no_update});
 	},
@@ -601,27 +607,9 @@ const Painter = {
 			let hollow = shape.substr(-1) == 'h';
 			shape = shape.replace(/_h$/, '');
 
-			if (uvTag) {
-				var rect = Painter.editing_area = [
-					uvTag[0] / Project.texture_width * texture.img.naturalWidth,
-					uvTag[1] / Project.texture_height * texture.img.naturalHeight,
-					uvTag[2] / Project.texture_width * texture.img.naturalWidth,
-					uvTag[3] / Project.texture_height * texture.img.naturalHeight
-				]
-			} else {
-				var rect = Painter.editing_area = [0, 0, texture.img.naturalWidth, texture.img.naturalHeight]
-			}
-			for (var t = 0; t < 2; t++) {
-				if (rect[t] > rect[t+2]) {
-					[rect[t], rect[t+2]] = [rect[t+2], rect[t]]
-				}
-				rect[t] = Math.round(rect[t])
-				rect[t+2] = Math.round(rect[t+2])
-			}
+			var rect = Painter.setupRectFromFace(uvTag, texture);
 			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
 
-
-			
 			let diff_x = x - Painter.startPixel[0];
 			let diff_y = y - Painter.startPixel[1];
 
@@ -735,23 +723,7 @@ const Painter = {
 
 			let b_opacity = BarItems.slider_brush_opacity.get()/100;
 
-			if (uvTag) {
-				var rect = Painter.editing_area = [
-					uvTag[0] / Project.texture_width * texture.img.naturalWidth,
-					uvTag[1] / Project.texture_height * texture.img.naturalHeight,
-					uvTag[2] / Project.texture_width * texture.img.naturalWidth,
-					uvTag[3] / Project.texture_height * texture.img.naturalHeight
-				]
-			} else {
-				var rect = Painter.editing_area = [0, 0, texture.img.naturalWidth, texture.img.naturalHeight]
-			}
-			for (var t = 0; t < 2; t++) {
-				if (rect[t] > rect[t+2]) {
-					[rect[t], rect[t+2]] = [rect[t+2], rect[t]]
-				}
-				rect[t] = Math.round(rect[t])
-				rect[t+2] = Math.round(rect[t+2])
-			}
+			let rect = Painter.setupRectFromFace(uvTag, texture);
 			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
 			let diff_x = x - Painter.startPixel[0];
 			let diff_y = y - Painter.startPixel[1];

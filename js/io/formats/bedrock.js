@@ -970,7 +970,8 @@ var codec = new Codec('bedrock', {
 					},
 					open() {
 						parseGeometry()
-					}
+					},
+					tl
 				},
 				computed: {
 					searched() {

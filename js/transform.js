@@ -323,6 +323,7 @@ const Vertexsnap = {
 			Vertexsnap.vertex_index = data.vertex_index;
 			Vertexsnap.move_origin = typeof data.vertex !== 'string' && data.vertex.allEqual(0);
 			Vertexsnap.elements = Outliner.selected.slice();
+			Vertexsnap.selected_vertices = JSON.parse(JSON.stringify(Project.selected_vertices)); 
 			Vertexsnap.clearVertexGizmos()
 			$('#preview').css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
 
@@ -395,16 +396,27 @@ const Vertexsnap = {
 				Vertexsnap.elements.forEach(function(obj) {
 					var cube_pos = new THREE.Vector3().copy(global_delta)
 
-					if (Format.bone_rig && obj.parent instanceof Group && obj.mesh.parent) {
-						var q = obj.mesh.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
+					if (obj instanceof Mesh && Vertexsnap.selected_vertices && Vertexsnap.selected_vertices[obj.uuid]) {
+						let vertices = Vertexsnap.selected_vertices[obj.uuid];
+						var q = obj.mesh.getWorldQuaternion(Reusable.quat1).invert();
 						cube_pos.applyQuaternion(q);
-					}
-					if (obj instanceof Cube && Format.rotate_cubes) {
-						obj.origin.V3_add(cube_pos);
-					}
-					var in_box = obj.moveVector(cube_pos.toArray());
-					if (!in_box && Format.canvas_limit && !settings.deactivate_size_limit.value) {
-						Blockbench.showMessageBox({translateKey: 'canvas_limit_error'})
+						let cube_pos_array = cube_pos.toArray();
+						vertices.forEach(vkey => {
+							if (obj.vertices[vkey]) obj.vertices[vkey].V3_add(cube_pos_array);
+						})
+
+					} else {
+						if (Format.bone_rig && obj.parent instanceof Group) {
+							var q = obj.mesh.parent.getWorldQuaternion(Reusable.quat1).invert();
+							cube_pos.applyQuaternion(q);
+						}
+						if (obj instanceof Cube && Format.rotate_cubes) {
+							obj.origin.V3_add(cube_pos);
+						}
+						var in_box = obj.moveVector(cube_pos.toArray());
+						if (!in_box && Format.canvas_limit && !settings.deactivate_size_limit.value) {
+							Blockbench.showMessageBox({translateKey: 'canvas_limit_error'})
+						}
 					}
 				})
 			}

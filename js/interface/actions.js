@@ -2078,8 +2078,12 @@ const BARS = {
 		Toolbars.vertex_snap = new Toolbar({
 			id: 'vertex_snap',
 			children: [
-				'vertex_snap_mode'
+				'vertex_snap_mode',
+				'selection_mode'
 			]
+		})
+		Blockbench.onUpdateTo('4.0', () => {
+			Toolbars.vertex_snap.add(BarItems.selection_mode);
 		})
 
 		//Mobile
@@ -2235,7 +2239,8 @@ const BARS = {
 							}
 						]).open(event)
 					},
-					getIconNode: Blockbench.getIconNode
+					getIconNode: Blockbench.getIconNode,
+					Condition
 				},
 				template: `
 					<div>
@@ -2243,8 +2248,8 @@ const BARS = {
 							<li v-for="item in currentBar" v-bind:title="item.name" :key="item.id||item" @contextmenu="openContextMenu(item, $event)">
 								<div v-if="typeof item === 'string'" class="toolbar_separator" :class="{border: item[0] == '_', spacer: item[0] == '+', linebreak: item[0] == '#'}"></div>
 								<div v-else class="tool">
-									<div class="tooltip">{{item.name + (BARS.condition(item.condition) ? '' : ' (' + tl('dialog.toolbar_edit.hidden') + ')' )}}</div>
-									<span class="icon_wrapper" v-bind:style="{opacity: BARS.condition(item.condition) ? 1 : 0.4}" v-html="getIconNode(item.icon, item.color).outerHTML"></span>
+									<div class="tooltip">{{item.name + (Condition(item.condition) ? '' : ' (' + tl('dialog.toolbar_edit.hidden') + ')' )}}</div>
+									<span class="icon_wrapper" v-bind:style="{opacity: Condition(item.condition) ? 1 : 0.4}" v-html="getIconNode(item.icon, item.color).outerHTML"></span>
 								</div>
 							</li> 
 						</ul>

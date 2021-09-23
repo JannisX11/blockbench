@@ -784,7 +784,7 @@ class Preview {
 					updateSelection();
 				}
 
-			} else if (data.type == 'vertex') {
+			} else if (data.type == 'vertex' && Toolbox.selected.id !== 'vertex_snap_tool') {
 
 				if (!Project.selected_vertices[data.element.uuid]) {
 					Project.selected_vertices[data.element.uuid] = [];

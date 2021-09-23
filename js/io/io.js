@@ -289,7 +289,7 @@ function uploadSketchfabModel() {
 	if (elements.length === 0 || !Format) {
 		return;
 	}
-	let tag_suggestions = ['lowpoly', 'pixelart'];
+	let tag_suggestions = ['low-poly', 'pixel-art'];
 	if (Format.id !== 'free') tag_suggestions.push('minecraft');
 	if (Format.id === 'skin') tag_suggestions.push('skin');
 	if (!Mesh.all.length) tag_suggestions.push('voxel');

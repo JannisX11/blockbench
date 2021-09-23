@@ -882,15 +882,15 @@ new NodePreviewController(Mesh, {
 				let vkey2 = vertices[i+1] || vertices[0];
 				let uv1 = face.uv[vkey1].slice();
 				let uv2 = face.uv[vkey2].slice();
-				if (uv1[0] > uv2[0]) [uv1[0], uv2[0]] = [uv2[0], uv1[0]];
-				if (uv1[1] > uv2[1]) [uv1[1], uv2[1]] = [uv2[1], uv1[1]];
+				let range_x = (uv1[0] > uv2[0]) ? [uv2[0], uv1[0]] : [uv1[0], uv2[0]];
+				let range_y = (uv1[1] > uv2[1]) ? [uv2[1], uv1[1]] : [uv1[1], uv2[1]];
 
-				for (let x = Math.ceil(uv1[0] / psize_x) * psize_x; x < uv2[0]; x += psize_x) {
+				for (let x = Math.ceil(range_x[0] / psize_x) * psize_x; x < range_x[1]; x += psize_x) {
 					if (!x_memory[x]) x_memory[x] = [];
 					let y = uv1[1] + (uv2[1] - uv1[1]) * Math.lerp(uv1[0], uv2[0], x);
 					x_memory[x].push(face.UVToLocal([x, y]).toArray().V3_add(offset));
 				}
-				for (let y = Math.ceil(uv1[1] / psize_y) * psize_y; y < uv2[1]; y += psize_y) {
+				for (let y = Math.ceil(range_y[0] / psize_y) * psize_y; y < range_y[1]; y += psize_y) {
 					if (!y_memory[y]) y_memory[y] = [];
 					let x = uv1[0] + (uv2[0] - uv1[0]) * Math.lerp(uv1[1], uv2[1], y);
 					y_memory[y].push(face.UVToLocal([x, y]).toArray().V3_add(offset));

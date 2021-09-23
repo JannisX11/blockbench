@@ -161,7 +161,8 @@ onVueSetup(function() {
 				this.list_type = type;
 				StateMemory.start_screen_list_type = type;
 				StateMemory.save('start_screen_list_type')
-			}
+			},
+			tl
 		}
 	})
 	StartScreen = {
