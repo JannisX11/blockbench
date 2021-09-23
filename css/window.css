@@ -595,6 +595,8 @@
 	}
 	#start_screen h3 {
 		margin: 0;
+	}
+	#start_screen #start-files h3 {
 		padding-bottom: 0;
 		height: auto;
 		font-size: 18px;
@@ -730,16 +732,16 @@
 		max-width: 100%;
 		flex-grow: 0;
 	}
-	#start_screen div.start_screen_left.graphic {
+	#start_screen div.graphic:not(.graphic_icon) {
 		background-size: cover;
 		position: relative;
 		padding: 0;
 	}
-	#start_screen div.start_screen_left.graphic p {
+	#start_screen div.graphic p {
 		position: absolute;
 		font-size: 0.96em;
 	}
-	#start_screen div.start_screen_left i.graphic_icon {
+	#start_screen div.graphic.graphic_icon i {
 		font-size: 40px;
 		width: 12px;
 		margin-top: 6px;

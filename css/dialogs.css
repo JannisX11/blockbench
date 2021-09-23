@@ -670,6 +670,23 @@
 	.theme_preview.borders .theme_preview_sidebar:last-child {
 		border-left: 2px solid var(--color-border);
 	}
+	.theme_backup_bar {
+		padding: 2px 6px;
+		border: 2px solid var(--color-accent);
+		margin-bottom: 7px;
+		cursor: pointer;
+	}
+	.theme_backup_bar:hover {
+		color: var(--color-light);
+	}
+	.theme_backup_bar > i {
+		padding: 1px;
+		color: var(--color-text);
+		float: right;
+	}
+	.theme_backup_bar > i:hover {
+		color: var(--color-light);
+	}
 
 	/*About*/
 	#about_page_title {

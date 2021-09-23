@@ -297,6 +297,28 @@ function uploadSketchfabModel() {
 	if (Project.name) tag_suggestions.push(clean_project_name);
 	if (clean_project_name.includes('-')) tag_suggestions.safePush(...clean_project_name.split('-').filter(s => s.length > 2 && s != 'geo').reverse());
 
+	let categories = {
+		"": "-",
+		"animals-pets": "Animals & Pets",
+		"architecture": "Architecture",
+		"art-abstract": "Art & Abstract",
+		"cars-vehicles": "Cars & Vehicles",
+		"characters-creatures": "Characters & Creatures",
+		"cultural-heritage-history": "Cultural Heritage & History",
+		"electronics-gadgets": "Electronics & Gadgets",
+		"fashion-style": "Fashion & Style",
+		"food-drink": "Food & Drink",
+		"furniture-home": "Furniture & Home",
+		"music": "Music",
+		"nature-plants": "Nature & Plants",
+		"news-politics": "News & Politics",
+		"people": "People",
+		"places-travel": "Places & Travel",
+		"science-technology": "Science & Technology",
+		"sports-fitness": "Sports & Fitness",
+		"weapons-military": "Weapons & Military",
+	}
+
 	var dialog = new Dialog({
 		id: 'sketchfab_uploader',
 		title: 'dialog.sketchfab_uploader.title',
@@ -304,8 +326,10 @@ function uploadSketchfabModel() {
 		form: {
 			token: {label: 'dialog.sketchfab_uploader.token', value: settings.sketchfab_token.value, type: 'password'},
 			about_token: {type: 'info', text: tl('dialog.sketchfab_uploader.about_token', ['[sketchfab.com/settings/password](https://sketchfab.com/settings/password)'])},
-			name: {label: 'dialog.sketchfab_uploader.name'},
+			name: {label: 'dialog.sketchfab_uploader.name', value: capitalizeFirstLetter(Project.name.replace(/\..+/, '').replace(/[_.-]/g, ' '))},
 			description: {label: 'dialog.sketchfab_uploader.description', type: 'textarea'},
+			category1: {label: 'dialog.sketchfab_uploader.category', type: 'select', options: categories, value: ''},
+			category2: {label: 'dialog.sketchfab_uploader.category2', type: 'select', options: categories, value: ''},
 			tags: {label: 'dialog.sketchfab_uploader.tags', placeholder: 'Tag1 Tag2'},
 			tag_suggestions: {label: 'dialog.sketchfab_uploader.suggested_tags', type: 'buttons', buttons: tag_suggestions, click(index) {
 				let {tags} = dialog.getFormResult();
@@ -316,9 +340,7 @@ function uploadSketchfabModel() {
 				}
 			}},
 			animations: {label: 'dialog.sketchfab_uploader.animations', value: true, type: 'checkbox', condition: (Format.animation_mode && Animator.animations.length)},
-			//color: {type: 'color', label: 'dialog.sketchfab_uploader.color'},
-			draft: {label: 'dialog.sketchfab_uploader.draft', type: 'checkbox'},
-			// Category
+			draft: {label: 'dialog.sketchfab_uploader.draft', type: 'checkbox', value: true},
 			divider: '_',
 			private: {label: 'dialog.sketchfab_uploader.private', type: 'checkbox'},
 			password: {label: 'dialog.sketchfab_uploader.password'},
@@ -338,10 +360,17 @@ function uploadSketchfabModel() {
 			data.append('description', formResult.description)
 			data.append('tags', formResult.tags)
 			data.append('isPublished', !formResult.draft)
-			//data.append('background', JSON.stringify({color: formResult.color.toHexString()}))
+			//data.append('background', JSON.stringify({color: '#00ff00'}))
 			data.append('private', formResult.private)
 			data.append('password', formResult.password)
 			data.append('source', 'blockbench')
+
+			if (formResult.category1 || formResult.category2) {
+				let selected_categories = [];
+				if (formResult.category1) selected_categories.push(formResult.category1);
+				if (formResult.category2) selected_categories.push(formResult.category2);
+				data.append('categories', selected_categories);
+			}
 
 			settings.sketchfab_token.value = formResult.token
 

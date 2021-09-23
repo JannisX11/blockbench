@@ -113,6 +113,7 @@ const CustomTheme = {
 			},
 			component: {
 				data: {
+					backup: '',
 					data: CustomTheme.data,
 					open_category: 'select',
 					themes: CustomTheme.themes
@@ -154,6 +155,15 @@ const CustomTheme = {
 						CustomTheme.loadTheme(theme);
 						saveChanges();
 					},
+					loadBackup() {
+						CustomTheme.loadTheme(JSON.parse(CustomTheme.backup_data));
+						CustomTheme.data.customized = true;
+						this.clearBackup();
+					},
+					clearBackup() {
+						this.backup = '';
+						CustomTheme.backup_data = null;
+					},
 					customizeTheme() {
 						CustomTheme.customizeTheme();
 					},
@@ -193,6 +203,10 @@ const CustomTheme = {
 				template: `
 					<div id="theme_editor">
 						<div v-if="open_category == 'select'">
+							<div v-if="backup" class="theme_backup_bar" @click.stop="loadBackup()">
+								{{ tl('layout.restore_backup', [backup]) }}
+								<i class="material-icons" @click.stop="clearBackup()">clear</i>
+							</div>
 							<h2 class="i_b">${tl('layout.select')}</h2>
 
 							<div id="theme_list">
@@ -375,6 +389,13 @@ const CustomTheme = {
 	},
 	loadTheme(theme) {
 		var app = CustomTheme.data;
+
+		if (app.customized && app.name) {
+			// Backup
+			CustomTheme.dialog.content_vue.backup = app.name;
+			CustomTheme.backup_data = JSON.stringify(app);
+		}
+
 		app.id = '';
 		app.name = '';
 		app.author = '';
@@ -382,6 +403,7 @@ const CustomTheme = {
 		app.headline_font = '';
 		app.code_font = '';
 		app.borders = false;
+		app.customized = false;
 		Merge.string(app, theme, 'id')
 		Merge.string(app, theme, 'name')
 		Merge.string(app, theme, 'author')
@@ -397,7 +419,6 @@ const CustomTheme = {
 			}
 		}
 		Merge.string(app, theme, 'css');
-		app.customized = false;
 		this.updateColors();
 		this.updateSettings();
 	},

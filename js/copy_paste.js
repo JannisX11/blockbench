@@ -30,7 +30,7 @@ const Clipbench = {
 		if (Animator.open && Timeline.animators.length && (Timeline.selected.length || mode === 2) && ['keyframe', 'timeline', 'preview'].includes(p)) {
 			return Clipbench.types.keyframe
 		}
-		if (Modes.edit && p == 'preview' && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length) {
+		if (Modes.edit && p == 'preview' && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length && (mode !== 2 || Clipbench.vertices)) {
 			return Clipbench.types.mesh_selection;
 		}
 		if (mode == 2 && Modes.edit && Format.meshes && Clipbench.last_copied == 'mesh_selection' && (p == 'preview' || p == 'outliner')) {

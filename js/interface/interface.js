@@ -553,7 +553,7 @@ function addStartScreenSection(id, data) {
 
 		if (data.graphic.type === 'icon') {
 			var icon = Blockbench.getIconNode(data.graphic.icon)
-			$(icon).addClass('graphic_icon')
+			left.addClass('graphic_icon')
 			left.append(icon)
 		} else {
 			left.css('background-image', `url('${data.graphic.source}')`)
@@ -704,7 +704,7 @@ function addStartScreenSection(id, data) {
 				color: 'var(--color-back)',
 				graphic: {type: 'icon', icon: 'fa-archive'},
 				text: [
-					{type: 'h1', text: tl('message.recover_backup.title')},
+					{type: 'h2', text: tl('message.recover_backup.title')},
 					{text: tl('message.recover_backup.message')},
 					{type: 'button', text: tl('dialog.ok'), click: (e) => {
 						loadModelFile({content: backup_model, path: 'backup.bbmodel', no_file: true})
@@ -725,7 +725,7 @@ function addStartScreenSection(id, data) {
 				text_color: '#ffffff',
 				graphic: {type: 'icon', icon: 'fab.fa-twitter'},
 				text: [
-					{type: 'h1', text: 'Blockbench on Twitter'},
+					{type: 'h2', text: 'Blockbench on Twitter'},
 					{text: 'Follow Blockbench on Twitter for the latest news as well as cool models from the community! [twitter.com/blockbench](https://twitter.com/blockbench/)'}
 				],
 				last: true
@@ -738,7 +738,7 @@ function addStartScreenSection(id, data) {
 				text_color: '#ffffff',
 				graphic: {type: 'icon', icon: 'fab.fa-discord'},
 				text: [
-					{type: 'h1', text: 'Discord Server'},
+					{type: 'h2', text: 'Discord Server'},
 					{text: 'You need help with modeling or you want to chat about Blockbench? Join the official [Blockbench Discord](https://discord.gg/WVHg5kH)!'}
 				],
 				last: true

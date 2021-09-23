@@ -680,7 +680,16 @@ const TextureGenerator = {
 							)
 							let snap = 2;
 							rot = (Math.radToDeg(rot) + 360) % 90;
-							let rounded = Math.round(rot / snap) * snap;
+							let rounded
+							let last_difference = snap;
+							for (let rounded_angle in precise_rotation_angle) {
+								let precise = precise_rotation_angle[rounded_angle];
+								if (Math.abs(rot - precise) < last_difference) {
+									last_difference = Math.abs(rot - precise);
+									rounded = rounded_angle;
+								}
+							}
+							if (!rounded) rounded = Math.round(rot / snap) * snap;
 							if (rotation_angles[rounded]) {
 								rotation_angles[rounded]++;
 							} else {
@@ -1093,7 +1102,6 @@ const TextureGenerator = {
 				face.uv[vertices[1]] = [x+0.25, y+0.25];
 				face.uv[vertices[2]] = [x+0.25, y+0.75];
 				if (vertices[3]) face.uv[vertices[3]] = [x+0.75, y+0.75];
-				console.log(vertices, face.uv)
 			}
 		})
 		var dataUrl = canvas.toDataURL()

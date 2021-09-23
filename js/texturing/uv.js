@@ -277,8 +277,7 @@ const UVEditor = {
 		$(UVEditor.vue.$refs.frame).append(overlay)
 		Painter.selection.x = Math.clamp(Painter.selection.x, 0, this.texture.width-Painter.selection.canvas.width)
 		Painter.selection.y = Math.clamp(Painter.selection.y, 0, this.texture.height-Painter.selection.canvas.height)
-		this.updateSize()
-
+		UVEditor.updatePastingOverlay()
 
 		function clickElsewhere(event) {
 			if (!Painter.selection.overlay) {
@@ -286,13 +285,6 @@ const UVEditor = {
 			} else if (Painter.selection.overlay.has(event.target).length == 0) {
 				open_interface.confirm()
 			}
-			/*
-			if (!Painter.selection.overlay) {
-				removeEventListeners(document, 'mousedown touchstart', clickElsewhere)
-			} else if (Painter.selection.overlay.has(event.target).length == 0) {
-				open_interface.confirm()
-			}
-			*/
 		}
 		addEventListeners(document, 'mousedown touchstart', clickElsewhere)
 	},
@@ -1315,18 +1307,7 @@ const UVEditor = {
 
 
 BARS.defineActions(function() {
-	/*
-	new Action('UVEditor', {
-		icon: 'view_module',
-		category: 'blockbench',
-		condition: () => !Project.box_uv && Cube.selected.length,
-		click: function () {UVEditor.openAll()}
-	})
-	new Action('UVEditor_full', {
-		icon: 'web_asset',
-		category: 'blockbench',
-		click: function () {UVEditor.openFull()}
-	})*/
+
 
 
 	new BarSlider('uv_rotation', {
@@ -1362,14 +1343,6 @@ BARS.defineActions(function() {
 			UVEditor.setGrid(value);
 		}
 	})
-	/*
-	new Action('uv_select_all', {
-		icon: 'view_module',
-		category: 'uv',
-		condition: () => open_dialog === 'UVEditor',
-		click: UVEditor.selectAll
-	})
-	*/
 	new Action('uv_maximize', {
 		icon: 'zoom_out_map',
 		category: 'uv',
@@ -1596,6 +1569,9 @@ Interface.definePanels(function() {
 					height: 0,
 					active: false
 				},
+				copy_overlay: {
+
+				},
 
 				project_resolution: [16, 16],
 				elements: [],
@@ -1751,6 +1727,16 @@ Interface.definePanels(function() {
 						let {selection_rect} = this;
 						let scope = this;
 						let old_faces = this.selected_faces.slice();
+						let old_selected_vertices = {};
+						Mesh.selected.forEach(mesh => {
+							old_selected_vertices[mesh.uuid] = mesh.getSelectedVertices().slice();
+						})
+
+
+						let old_elements;
+						if (Project.box_uv) {
+							old_elements = scope.mappable_elements.slice();
+						}
 
 						function drag(e1) {
 							selection_rect.active = true;
@@ -1767,11 +1753,21 @@ Interface.definePanels(function() {
 							
 							if (!e1.shiftKey) {
 								scope.selected_faces.empty();
+								if (old_elements) Outliner.selected.empty();
 							} else {
 								scope.selected_faces.replace(old_faces);
+								if (old_elements) Outliner.selected.replace(old_elements);
+							}
+
+							let elements;
+							if (Project.box_uv) {
+								elements = Cube.all.slice();
+								elements.safePush(scope.mappable_elements);
+							} else {
+								elements = scope.mappable_elements;
 							}
 							
-							scope.mappable_elements.forEach(element => {
+							elements.forEach(element => {
 								if (element instanceof Cube && !Project.box_uv) {
 									for (let fkey in element.faces) {
 										let face_rect = getRectangle(...element.faces[fkey].uv);
@@ -1780,8 +1776,24 @@ Interface.definePanels(function() {
 										}
 									}
 								} else if (element instanceof Cube) {
-
+									let overlaps = false;
+									for (let fkey in element.faces) {
+										let face_rect = getRectangle(...element.faces[fkey].uv);
+										if (doRectanglesOverlap(rect, face_rect)) {
+											overlaps = true;
+											break;
+										}
+									}
+									if (overlaps) {
+										Outliner.selected.safePush(element);
+									}
 								} else if (element instanceof Mesh) {
+									let selected_vertices = element.getSelectedVertices(true);
+									if (!e1.shiftKey) {
+										selected_vertices.empty();
+									} else {
+										selected_vertices.replace(old_selected_vertices[element.uuid]);
+									}
 									for (let fkey in element.faces) {
 										let face = element.faces[fkey];
 										let vertices = face.getSortedVertices();
@@ -1792,13 +1804,16 @@ Interface.definePanels(function() {
 												let vkey2 = vertices[i] || vertices[0];
 												if (lineIntersectsReactangle(face.uv[vkey], face.uv[vkey2], [rect.ax, rect.ay], [rect.bx, rect.by])) {
 													scope.selected_faces.safePush(fkey);
-													break;
+												}
+												if (pointInRectangle(face.uv[vkey], [rect.ax, rect.ay], [rect.bx, rect.by])) {
+													selected_vertices.safePush(vkey);
 												}
 											}
 										}
 									}
 								}
 							})
+							if (old_elements) updateSelection();
 						}
 						function stop() {
 							removeEventListeners(document, 'mousemove touchmove', drag);
@@ -1858,6 +1873,7 @@ Interface.definePanels(function() {
 					UVEditor.vue.updateTexture()
 				},
 				reverseSelect(event) {
+					if (this.mode !== 'uv') return;
 					var offset = $(this.$refs.frame).offset();
 					event.offsetX = event.clientX - offset.left;
 					event.offsetY = event.clientY - offset.top;
