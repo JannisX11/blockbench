@@ -1292,6 +1292,25 @@
 	.uv_mesh_vertex.selected {
 		background-color:  var(--color-accent);
 	}
+	.uv_helper_line_x {
+		top: 0;
+		left: 0;
+		position: absolute;
+		background-color: var(--color-accent);
+		width: 1px;
+		height: 100%;
+		z-index: 1;
+	}
+	.uv_helper_line_y {
+		top: 0;
+		left: 0;
+		position: absolute;
+		background-color: var(--color-accent);
+		width: 100%;
+		height: 1px;
+		z-index: 1;
+	}
+
 	.uv_painter_info {
 		display: flex;
 	}

@@ -1088,6 +1088,7 @@
 	}
 	#bar_items_current li {
 		min-width: 20px;
+		height: 30px;
 		cursor: move;
 	}
 	#bar_items_current li > * {

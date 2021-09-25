@@ -17,6 +17,7 @@
 	"data.cube": "Cube",
 	"data.locator": "Locator",
 	"data.null_object": "Null Object",
+	"data.mesh": "Mesh",
 	"data.group": "Group",
 	"data.texture": "Texture",
 	"data.origin": "Pivot",
@@ -1044,6 +1045,8 @@
 	"action.split_mesh.desc": "Split the selected faces of the mesh into a new mesh",
 	"action.merge_vertices": "Merge Vertices",
 	"action.merge_vertices.desc": "Merge the selected vertices into the position of the first selected verted",
+	"action.merge_vertices_by_distance": "Merge Vertices by Distance",
+	"action.merge_vertices_by_distance.desc": "Merge vertices that are close in proximity to each other",
 	"action.merge_meshes": "Merge Meshes",
 	"action.merge_meshes.desc": "Merge multiple meshes into one",
 

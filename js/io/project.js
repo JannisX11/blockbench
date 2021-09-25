@@ -721,7 +721,7 @@ BARS.defineActions(function() {
 							&& (Project.texture_width != texture_width
 							|| Project.texture_height != texture_height)
 						) {
-							save = Undo.initEdit({uv_only: true, elements: [Cube.all, Mesh.all], uv_mode: true})
+							save = Undo.initEdit({uv_only: true, elements: [...Cube.all, ...Mesh.all], uv_mode: true})
 							Cube.all.forEach(cube => {
 								for (var key in cube.faces) {
 									var uv = cube.faces[key].uv;

@@ -1569,7 +1569,7 @@ Interface.definePanels(function() {
 
 					let timeline_offset = $(this.$refs.timeline).offset().left + 8;
 					let timeline_width = this.$refs.timeline.clientWidth - 8;
-					let maxFrameCount = this.maxFrameCount;
+					let maxFrameCount = this.maxFrameCount();
 
 					function slide(e2) {
 						convertTouchEvent(e2);
@@ -1594,10 +1594,8 @@ Interface.definePanels(function() {
 				getPlayheadPos() {
 					if (!this.$refs.timeline) return 0;
 					let width = this.$refs.timeline.clientWidth - 8;
-					return Math.clamp((this.currentFrame / this.maxFrameCount) * width, 0, width);
-				}
-			},
-			computed: {
+					return Math.clamp((this.currentFrame / this.maxFrameCount()) * width, 0, width);
+				},
 				maxFrameCount() {
 					let count = 0;
 					this.textures.forEach(tex => {
@@ -1644,10 +1642,10 @@ Interface.definePanels(function() {
 							</i>
 						</li>
 					</ul>
-					<div id="texture_animation_playback" class="bar" v-show="maxFrameCount">
+					<div id="texture_animation_playback" class="bar" v-show="maxFrameCount()">
 						<div class="tool_wrapper"></div>
 						<div id="texture_animation_timeline" ref="timeline" @mousedown="slideTimelinePointer">
-							<div class="texture_animation_frame" v-for="i in maxFrameCount"></div>
+							<div class="texture_animation_frame" v-for="i in maxFrameCount()"></div>
 							<div id="animated_texture_playhead" :style="{left: getPlayheadPos() + 'px'}"></div>
 						</div>
 					</div>

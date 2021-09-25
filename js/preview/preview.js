@@ -923,7 +923,7 @@ class Preview {
 		}
 		return this;
 	}
-	showContextMenu(event, force) {
+	showContextMenu(event) {
 		Prop.active_panel = 'preview';
 		if (this.static_rclick && (event.which === 3 || (event.type == 'touchend' && this.rclick_cooldown == true))) {
 			var data = this.raycast(event)

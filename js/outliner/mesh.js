@@ -1871,6 +1871,68 @@ BARS.defineActions(function() {
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
 	})
+	new Action('merge_vertices_by_distance', {
+		icon: 'close_fullscreen',
+		category: 'edit',
+		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1),
+		click() {
+			Undo.initEdit({elements: Mesh.selected});
+			Mesh.selected.forEach(mesh => {
+				let selected_vertices = mesh.getSelectedVertices().slice();
+				if (selected_vertices.length < 2) return;
+				let groups = {};
+				let i = 0;
+				while (selected_vertices[i]) {
+					let vkey1 = selected_vertices[i];
+					let j = i+1;
+					while (selected_vertices[j]) {
+						let vkey2 = selected_vertices[j];
+						let vector1 = mesh.vertices[vkey1];
+						let vector2 = mesh.vertices[vkey2];
+						if (Math.sqrt(Math.pow(vector2[0] - vector1[0], 2) + Math.pow(vector2[1] - vector1[1], 2) + Math.pow(vector2[2] - vector1[2], 2)) < 0.1) {
+							if (!groups[vkey1]) groups[vkey1] = [];
+							groups[vkey1].push(vkey2);
+						}
+						j++;
+					}
+					if (groups[vkey1]) {
+						groups[vkey1].forEach(vkey2 => {
+							selected_vertices.remove(vkey2);
+						})
+					}
+					i++;
+				}
+
+				let current_selected_vertices = mesh.getSelectedVertices();
+				for (let first_vertex in groups) {
+					groups[first_vertex].forEach(vkey => {
+						for (let fkey in mesh.faces) {
+							let face = mesh.faces[fkey];
+							let index = face.vertices.indexOf(vkey);
+							if (index === -1) continue;
+
+							if (face.vertices.includes(first_vertex)) {
+								face.vertices.remove(vkey);
+								delete face.uv[vkey];
+								if (face.vertices.length < 2) {
+									delete mesh.faces[fkey];
+								}
+							} else {
+								let uv = face.uv[vkey];
+								face.vertices.splice(index, 1, first_vertex);
+								face.uv[first_vertex] = uv;
+								delete face.uv[vkey];
+							}
+						}
+						delete mesh.vertices[vkey];
+						current_selected_vertices.remove(vkey);
+					})
+				}
+			})
+			Undo.finishEdit('Merge vertices by distance')
+			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
+		}
+	})
 	new Action('merge_meshes', {
 		icon: 'upload',
 		category: 'edit',
@@ -1992,7 +2054,8 @@ BARS.defineActions(function() {
 				}
 
 				let mesh;
-				let vertex_keys = [];
+				let vertices = [];
+				let vertex_keys = {};
 				let vertex_textures = [];
 				let vertex_normals = [];
 				let meshes = [];
@@ -2008,16 +2071,16 @@ BARS.defineActions(function() {
 					let args = line.split(/\s+/).filter(arg => typeof arg !== 'undefined' && arg !== '');
 					let cmd = args.shift();
 
-					if (cmd == 'o') {
+					if (cmd == 'o' || cmd == 'g') {
 						mesh = new Mesh({
 							name: args[0],
 							vertices: {}
 						})
+						vertex_keys = {};
 						meshes.push(mesh);
 					}
 					if (cmd == 'v') {
-						let keys = mesh.addVertices(toVector(args, 3).map(v => v * 16));
-						vertex_keys.push(keys[0]);
+						vertices.push(toVector(args, 3).map(v => v * 16));
 					}
 					if (cmd == 'vt') {
 						vertex_textures.push(toVector(args, 2))
@@ -2033,6 +2096,9 @@ BARS.defineActions(function() {
 						}
 						args.forEach(triplet => {
 							let [v, vt, vn] = triplet.split('/').map(v => parseInt(v));
+							if (!vertex_keys[ v-1 ]) {
+								vertex_keys[ v-1 ] = mesh.addVertices(vertices[v-1])[0];
+							}
 							f.vertices.push(vertex_keys[ v-1 ]);
 							f.vertex_textures.push(vertex_textures[ vt-1 ]);
 							f.vertex_normals.push(vertex_normals[ vn-1 ]);

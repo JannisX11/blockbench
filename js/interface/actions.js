@@ -2239,13 +2239,21 @@ const BARS = {
 							}
 						]).open(event)
 					},
+					getSpacerTitle(char) {
+						switch (char) {
+							case '_': return this.separators[0].name;
+							case '+': return this.separators[1].name;
+							case '#': return this.separators[2].name;
+						}
+					},
 					getIconNode: Blockbench.getIconNode,
-					Condition
+					Condition,
+					tl
 				},
 				template: `
 					<div>
 						<ul class="bar" id="bar_items_current" v-sortable="{onChoose: choose, onUpdate: sort, onEnd: drop, animation: 160 }">
-							<li v-for="item in currentBar" v-bind:title="item.name" :key="item.id||item" @contextmenu="openContextMenu(item, $event)">
+							<li v-for="item in currentBar" v-bind:title="typeof item == 'string' ? getSpacerTitle(item[0]) : item.name" :key="item.id||item" @contextmenu="openContextMenu(item, $event)">
 								<div v-if="typeof item === 'string'" class="toolbar_separator" :class="{border: item[0] == '_', spacer: item[0] == '+', linebreak: item[0] == '#'}"></div>
 								<div v-else class="tool">
 									<div class="tooltip">{{item.name + (Condition(item.condition) ? '' : ' (' + tl('dialog.toolbar_edit.hidden') + ')' )}}</div>

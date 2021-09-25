@@ -167,6 +167,17 @@ function selectAll() {
 	} else if (Prop.active_panel == 'uv') {
 		UVEditor.selectAll()
 
+	} else if (Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object') {
+		let unselect = Mesh.selected[0].getSelectedVertices().length == Object.keys(Mesh.selected[0].vertices).length;
+		Mesh.selected.forEach(mesh => {
+			if (unselect) {
+				delete Project.selected_vertices[mesh.uuid];
+			} else {
+				mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
+			}
+		})
+		updateSelection();
+
 	} else if (Modes.edit || Modes.paint) {
 		if (Outliner.selected.length < Outliner.elements.length) {
 			if (Outliner.root.length == 1) {

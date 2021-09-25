@@ -395,7 +395,8 @@ const Painter = {
 						Math.ceil(tag.uv[2]  * uvFactorX),
 						Math.ceil(tag.uv[3]  * uvFactorY)
 					)
-					ctx.rect(face_rect.ax, face_rect.ay, face_rect.x, face_rect.y)
+					let animation_offset = texture.currentFrame * texture.display_height;
+					ctx.rect(face_rect.ax, face_rect.ay + animation_offset, face_rect.x, face_rect.y)
 					ctx.fill()
 				}
 			}

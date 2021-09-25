@@ -1,5 +1,12 @@
 (function() {
 
+let item_parents = [
+	'item/generated', 	'minecraft:item/generated',
+	'item/handheld', 	'minecraft:item/handheld',
+	'item/handheld_rod','minecraft:item/handheld_rod',
+	'builtin/generated','minecraft:builtin/generated',
+]
+
 var codec = new Codec('java_block', {
 	name: 'Java Block/Item Model',
 	remember: true,
@@ -173,7 +180,7 @@ var codec = new Codec('java_block', {
 				}
 			})
 		}
-		if (options.prevent_dialog !== true && clear_elements.length && ['item/generated', 'item/handheld'].includes(Project.parent)) {
+		if (options.prevent_dialog !== true && clear_elements.length && item_parents.includes(Project.parent)) {
 			Blockbench.showMessageBox({
 				translateKey: 'invalid_builtin_parent',
 				icon: 'info',
@@ -400,11 +407,6 @@ var codec = new Codec('java_block', {
 		if (import_group) {
 			import_group.addTo().select()
 		}
-		let item_parents = [
-			'item/generated', 	'minecraft:item/generated',
-			'item/handheld', 	'minecraft:item/handheld',
-			'item/handheld_rod','minecraft:item/handheld_rod',
-		]
 		if (
 			!model.elements &&
 			item_parents.includes(model.parent) &&

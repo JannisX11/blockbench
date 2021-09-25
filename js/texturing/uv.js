@@ -665,6 +665,12 @@ const UVEditor = {
 					obj.faces[side].uv[0] -= uv[1];
 					obj.faces[side].uv[2] -= uv[1];
 				}
+				let overlap_px = Math.clamp(Math.max(obj.faces[side].uv[0], obj.faces[side].uv[2]) - Project.texture_width, 0, Infinity);
+				obj.faces[side].uv[0] -= overlap_px;
+				obj.faces[side].uv[2] -= overlap_px;
+				let overlap_py = Math.clamp(Math.max(obj.faces[side].uv[1], obj.faces[side].uv[3]) - Project.texture_height, 0, Infinity);
+				obj.faces[side].uv[1] -= overlap_py;
+				obj.faces[side].uv[3] -= overlap_py;
 			})
 			obj.autouv = 0;
 			Canvas.updateUV(obj);
@@ -1386,7 +1392,7 @@ BARS.defineActions(function() {
 	new Action('uv_mirror_x', {
 		icon: 'icon-mirror_x',
 		category: 'uv',
-		condition: () => !Project.box_uv && Cube.selected.length,
+		condition: () => !Project.box_uv && UVEditor.getMappableElements().length,
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('mirrorX', event)
@@ -1396,7 +1402,7 @@ BARS.defineActions(function() {
 	new Action('uv_mirror_y', {
 		icon: 'icon-mirror_y',
 		category: 'uv',
-		condition: () => !Project.box_uv && Cube.selected.length,
+		condition: () => !Project.box_uv && UVEditor.getMappableElements().length,
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('mirrorY', event)
@@ -1562,6 +1568,7 @@ Interface.definePanels(function() {
 				checkerboard: settings.uv_checkerboard.value,
 				texture: 0,
 				mouse_coords: {x: -1, y: -1},
+				helper_lines: {x: -1, y: -1},
 				selection_rect: {
 					pos_x: 0,
 					pos_y: 0,
@@ -2006,14 +2013,12 @@ Interface.definePanels(function() {
 							elements.forEach(element => {
 								this.selected_faces.forEach(key => {
 									if (element.faces[key] && element instanceof Cube) {
-										if (x_side && (x_side == -1) != inverted[element.uuid][key][0]) element.faces[key].uv[0] += x;
-										if (y_side && (y_side == -1) != inverted[element.uuid][key][1]) element.faces[key].uv[1] += y;
-										if (x_side && (x_side ==  1) != inverted[element.uuid][key][0]) element.faces[key].uv[2] += x;
-										if (y_side && (y_side ==  1) != inverted[element.uuid][key][1]) element.faces[key].uv[3] += y;
+										if (x_side && (x_side == -1) != inverted[element.uuid][key][0]) element.faces[key].uv[0] = Math.clamp(element.faces[key].uv[0] + x, 0, Project.texture_width);
+										if (y_side && (y_side == -1) != inverted[element.uuid][key][1]) element.faces[key].uv[1] = Math.clamp(element.faces[key].uv[1] + y, 0, Project.texture_height);
+										if (x_side && (x_side ==  1) != inverted[element.uuid][key][0]) element.faces[key].uv[2] = Math.clamp(element.faces[key].uv[2] + x, 0, Project.texture_width);
+										if (y_side && (y_side ==  1) != inverted[element.uuid][key][1]) element.faces[key].uv[3] = Math.clamp(element.faces[key].uv[3] + y, 0, Project.texture_height);
 									}
 								})
-								element.uv_offset[0] += x;
-								element.uv_offset[1] += y;
 							})
 						},
 						onEnd: () => {
@@ -2040,11 +2045,13 @@ Interface.definePanels(function() {
 								face_center[1] += face.uv[1] + face.uv[3];
 								points += 2;
 							} else if (element instanceof Mesh) {
+								face.old_uv = {};
 								face.vertices.forEach(vkey => {
 									if (!face.uv[vkey]) return;
 									face_center[0] += face.uv[vkey][0];
 									face_center[1] += face.uv[vkey][1];
 									points += 1;
+									face.old_uv[vkey] = face.uv[vkey].slice();
 								})
 							}
 						})
@@ -2059,6 +2066,8 @@ Interface.definePanels(function() {
 
 					let angle = 0;
 					let last_angle;
+					let original_angle;
+					let straight_angle;
 					let snap = elements[0] instanceof Cube ? 90 : 1;
 					function drag(e1) {
 
@@ -2067,11 +2076,15 @@ Interface.definePanels(function() {
 							(e1.clientX - center_on_screen[0]),
 						)
 						angle = Math.round(Math.radToDeg(angle) / snap) * snap;
+						if (original_angle == undefined) original_angle = angle;
+						angle -= original_angle;
 						if (last_angle == undefined) last_angle = angle;
 						if (Math.abs(angle - last_angle) > 300) last_angle = angle;
 
-						if (angle != last_angle) {
+						if (angle != last_angle && (straight_angle == undefined || Math.abs(straight_angle - angle) > 6 || e1.ctrlOrCmd || Pressing.overrides.ctrl)) {
 							
+							straight_angle = undefined;
+							scope.helper_lines.x = scope.helper_lines.y = -1;
 							elements.forEach(element => {
 								if (element instanceof Cube && Format.uv_rotation) {
 									scope.selected_faces.forEach(key => {
@@ -2088,14 +2101,31 @@ Interface.definePanels(function() {
 										if (!face) return;
 										face.vertices.forEach(vkey => {
 											if (!face.uv[vkey]) return;
-											let sin = Math.sin(Math.degToRad(angle - last_angle));
-											let cos = Math.cos(Math.degToRad(angle - last_angle));
-											face.uv[vkey][0] -= face_center[0];
-											face.uv[vkey][1] -= face_center[1];
-											face.uv[vkey][0] = (face.uv[vkey][0] * cos - face.uv[vkey][1] * sin)
-											face.uv[vkey][1] = (face.uv[vkey][0] * sin + face.uv[vkey][1] * cos)
-											face.uv[vkey][0] += face_center[0];
-											face.uv[vkey][1] += face_center[1];
+											let sin = Math.sin(Math.degToRad(angle));
+											let cos = Math.cos(Math.degToRad(angle));
+											face.uv[vkey][0] = face.old_uv[vkey][0] - face_center[0];
+											face.uv[vkey][1] = face.old_uv[vkey][1] - face_center[1];
+											let a = (face.uv[vkey][0] * cos - face.uv[vkey][1] * sin);
+											let b = (face.uv[vkey][0] * sin + face.uv[vkey][1] * cos);
+											face.uv[vkey][0] = Math.clamp(a + face_center[0], 0, Project.texture_width);
+											face.uv[vkey][1] = Math.clamp(b + face_center[1], 0, Project.texture_height);
+										})
+										let e = 0.6;
+										face.vertices.forEach((vkey, i) => {
+											for (let j = i+1; j < face.vertices.length; j++) {
+												let relative_angle = Math.radToDeg(Math.PI + Math.atan2(
+													face.uv[vkey][1] - face.uv[face.vertices[j]][1],
+													face.uv[vkey][0] - face.uv[face.vertices[j]][0],
+												)) % 180;
+												if (Math.abs(relative_angle - 90) < e) {
+													straight_angle = angle;
+													if (scope.helper_lines.x == -1) scope.helper_lines.x = face.uv[vkey][0];
+												}
+												if (relative_angle < e || 180 - relative_angle < e) {
+													straight_angle = angle;
+													if (scope.helper_lines.y == -1) scope.helper_lines.y = face.uv[vkey][1];
+												}
+											} 
 										})
 									})
 								}
@@ -2114,6 +2144,7 @@ Interface.definePanels(function() {
 					function stop() {
 						removeEventListeners(document, 'mousemove touchmove', drag);
 						removeEventListeners(document, 'mouseup touchend', stop);
+						scope.helper_lines.x = scope.helper_lines.y = -1;
 						if (scope.dragging_uv) {
 							UVEditor.disableAutoUV()
 							Undo.finishEdit('Rotate UV')
@@ -2364,7 +2395,11 @@ Interface.definePanels(function() {
 									top: toPixels(selection_rect.pos_y),
 									width: toPixels(selection_rect.width),
 									height: toPixels(selection_rect.height),
-								}"></div>
+								}">
+							</div>
+
+							<div v-if="helper_lines.x >= 0" class="uv_helper_line_x" :style="{left: toPixels(helper_lines.x)}"></div>
+							<div v-if="helper_lines.y >= 0" class="uv_helper_line_y" :style="{top: toPixels(helper_lines.y)}"></div>
 
 							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.x >= 0" :style="getBrushOutlineStyle()"></div>
 
