@@ -1496,10 +1496,10 @@
 
 						var difference = value - (previousValue||0);
 
-						if (channel === 'rotation' && scope.axis == 'E') {
-							let normal = scope.axis == 'E'
+						if (channel === 'rotation') {
+							let normal = Reusable.vec1.copy(scope.axis == 'E'
 								? rotate_normal
-								: axisNumber == 0 ? THREE.NormalX : (axisNumber == 1 ? THREE.NormalY : THREE.NormalZ);
+								: axisNumber == 0 ? THREE.NormalX : (axisNumber == 1 ? THREE.NormalY : THREE.NormalZ));
 
 							let quaternion = display_base.getWorldQuaternion(new THREE.Quaternion()).invert()
 							normal.applyQuaternion(quaternion)

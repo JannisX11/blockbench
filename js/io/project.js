@@ -5,6 +5,7 @@ class ModelProject {
 		}
 		this.uuid = guid();
 		this.selected = false;
+		this.locked = false;
 		this.thumbnail = '';
 
 		this._box_uv = false;
@@ -15,6 +16,7 @@ class ModelProject {
 		this.saved = true;
 		this.save_path = '';
 		this.export_path = '';
+		this.added_models = 0;
 
 		this.undo = new UndoSystem();
 		if (isApp) this.BedrockEntityManager = new BedrockEntityManager(this);
@@ -142,7 +144,6 @@ class ModelProject {
 		//Blockbench.display_settings = display = {};
 		//Project.save_path = Project.export_path = Project.name = '';
 		//Project.saved = true;
-		Prop.added_models = 0;
 		//Canvas.updateAll();
 		//Outliner.vue.$forceUpdate();
 		//Interface.Panels.textures.inside_vue.$forceUpdate();
@@ -157,7 +158,7 @@ class ModelProject {
 		//$('#var_placeholder_area').val('');
 	}
 	openSettings() {
-		BarItems.project_window.click();
+		if (this.selected) BarItems.project_window.click();
 	}
 	whenNextOpen(callback) {
 		if (Project == this) {
@@ -168,7 +169,7 @@ class ModelProject {
 		}
 	}
 	select() {
-		if (this === Project) return;
+		if (this === Project || this.locked || Project.locked) return;
 		if (Project) {
 			Project.unselect()
 		} else {
@@ -461,6 +462,7 @@ function updateProjectResolution() {
 		Texture.selected.height++;
 		Texture.selected.height--;
 	}
+	Blockbench.dispatchEvent('update_project_resolution', {project: Project});
 }
 
 function setStartScreen(state) {

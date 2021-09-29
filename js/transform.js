@@ -1008,7 +1008,7 @@ BARS.defineActions(function() {
 					obj.mapAutoUV()
 				}
 				obj.preview_controller.updateTransform(obj);
-				obj.preview_controller.updateGeometry(obj);
+				if (obj.preview_controller.updateGeometry) obj.preview_controller.updateGeometry(obj);
 			}
 		})
 		TickUpdates.selection = true;
@@ -1096,7 +1096,7 @@ BARS.defineActions(function() {
 			} else if (obj.scalable) {
 				obj.scale[axis] = modify(obj.scale[axis]);
 				obj.preview_controller.updateTransform(obj);
-				obj.preview_controller.updateGeometry(obj);
+				if (obj.preview_controller.updateGeometry) obj.preview_controller.updateGeometry(obj);
 			}
 		})
 	}

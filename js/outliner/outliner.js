@@ -1196,7 +1196,8 @@ Interface.definePanels(function() {
 				if (node.children && node.children.length) {
 					node.isOpen = !node.isOpen;
 				}
-			}
+			},
+			renameOutliner
 		}
 	});
 	Vue.component('vue-tree-item', VueTreeItem);

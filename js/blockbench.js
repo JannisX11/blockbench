@@ -20,7 +20,6 @@ var Prop = {
 	active_panel	: 'preview',
 	file_path	  	: '',
 	file_name	  	: '',
-	added_models 	: 0,
 	recording		: null,
 	fps				: 0,
 	progress		: 0,
@@ -180,7 +179,7 @@ function selectAll() {
 
 	} else if (Modes.edit || Modes.paint) {
 		if (Outliner.selected.length < Outliner.elements.length) {
-			if (Outliner.root.length == 1) {
+			if (Outliner.root.length == 1 && !Outliner.root[0].locked) {
 				Outliner.root[0].select();
 			} else {
 				Outliner.elements.forEach(obj => {

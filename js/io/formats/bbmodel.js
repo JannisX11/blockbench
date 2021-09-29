@@ -338,7 +338,7 @@ var codec = new Codec('project', {
 
 		Blockbench.dispatchEvent('merge_project', {model, path});
 		this.dispatchEvent('merge', {model})
-		Prop.added_models++;
+		Project.added_models++;
 
 		let new_elements = [];
 		let new_textures = [];

@@ -146,6 +146,7 @@ class EditSession {
 		if (!active) {
 			this.hosting = false;
 		}
+		Interface.tab_bar.$forceUpdate();
 		updateInterface()
 	}
 	copyToken() {

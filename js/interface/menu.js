@@ -756,6 +756,9 @@ const MenuBar = {
 						window.location.reload(true)
 					}
 				}},
+				{name: 'menu.help.developer.unlock_projects', id: 'unlock_projects', icon: 'vpn_key', condition: () => ModelProject.all.find(project => project.locked), click() {
+					ModelProject.all.forEach(project => project.locked = false);
+				}},
 				{name: 'menu.help.developer.cache_reload', id: 'cache_reload', icon: 'cached', condition: !isApp, click: () => {
 					if('caches' in window){
 						caches.keys().then((names) => {

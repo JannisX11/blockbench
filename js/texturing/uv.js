@@ -1372,7 +1372,7 @@ BARS.defineActions(function() {
 	new Action('uv_auto', {
 		icon: 'brightness_auto',
 		category: 'uv',
-		condition: () => !Project.box_uv && UVEditor.getMappableElements(),
+		condition: () => (!Project.box_uv && Cube.selected.length) || Mesh.selected.length,
 		click: function (event) {
 			Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true})
 			UVEditor.forSelection('setAutoSize', event)
@@ -1918,8 +1918,9 @@ Interface.definePanels(function() {
 						}
 
 						if (pos[0] != last_pos[0] || pos[1] != last_pos[1]) {
-							onDrag(pos[0] - last_pos[0], pos[1] - last_pos[1], e1)
-							last_pos.replace(pos);
+							let applied_difference = onDrag(pos[0] - last_pos[0], pos[1] - last_pos[1], e1)
+							last_pos[0] += applied_difference[0];
+							last_pos[1] += applied_difference[1];
 							UVEditor.displaySliders();
 							UVEditor.loadData();
 							UVEditor.vue.$forceUpdate();
@@ -1964,6 +1965,36 @@ Interface.definePanels(function() {
 										let face = element.faces[key];
 										if (!face) return;
 										face.vertices.forEach(vertex_key => {
+											diff_x = Math.clamp(diff_x, -face.uv[vertex_key][0], Project.texture_width  - face.uv[vertex_key][0]);
+											diff_y = Math.clamp(diff_y, -face.uv[vertex_key][1], Project.texture_height - face.uv[vertex_key][1]);
+										})
+									})
+								} else if (Project.box_uv) {
+									let size = element.size(undefined, true);
+									let uv_size = [
+										size[2] + size[0] + (size[1] ? size[2] : 0) + size[0],
+										size[2] + size[1],
+									]
+									diff_x = Math.clamp(diff_x, -element.uv_offset[0] - (size[1] ? 0 : size[2]), Project.texture_width  - element.uv_offset[0] - uv_size[0]);
+									diff_y = Math.clamp(diff_y, -element.uv_offset[1] - (size[0] ? 0 : size[2]), Project.texture_height - element.uv_offset[1] - uv_size[1]);
+
+								} else {
+									this.selected_faces.forEach(key => {
+										if (element.faces[key] && element instanceof Cube) {
+											diff_x = Math.clamp(diff_x, -element.faces[key].uv[0], Project.texture_width  - element.faces[key].uv[0]);
+											diff_y = Math.clamp(diff_y, -element.faces[key].uv[1], Project.texture_height - element.faces[key].uv[1]);
+											diff_x = Math.clamp(diff_x, -element.faces[key].uv[2], Project.texture_width  - element.faces[key].uv[2]);
+											diff_y = Math.clamp(diff_y, -element.faces[key].uv[3], Project.texture_height - element.faces[key].uv[3]);
+										}
+									})
+								}
+							})
+							elements.forEach(element => {
+								if (element instanceof Mesh) {
+									this.selected_faces.forEach(key => {
+										let face = element.faces[key];
+										if (!face) return;
+										face.vertices.forEach(vertex_key => {
 											face.uv[vertex_key][0] += diff_x;
 											face.uv[vertex_key][1] += diff_y;
 										})
@@ -1982,6 +2013,7 @@ Interface.definePanels(function() {
 									})
 								}
 							})
+							return [diff_x, diff_y]
 						},
 						onEnd: () => {
 							UVEditor.disableAutoUV()
@@ -2020,6 +2052,7 @@ Interface.definePanels(function() {
 									}
 								})
 							})
+							return [x, y]
 						},
 						onEnd: () => {
 							UVEditor.disableAutoUV()
@@ -2187,6 +2220,25 @@ Interface.definePanels(function() {
 									let face = element.faces[key];
 									face.vertices.forEach(vertex_key => {
 										if (this.selected_vertices[element.uuid] && this.selected_vertices[element.uuid].includes(vertex_key)) {
+											x = Math.clamp(x, -face.uv[vertex_key][0], Project.texture_width - face.uv[vertex_key][0]);
+											y = Math.clamp(y, -face.uv[vertex_key][1], Project.texture_width - face.uv[vertex_key][1]);
+										}
+									})
+								})
+							})
+							elements.forEach(element => {
+								this.selected_faces.forEach(key => {
+									let face = element.faces[key];
+									let old_uv_coords = face.vertices.map(vkey => face.uv[vkey].slice())
+									face.vertices.forEach((vertex_key, i) => {
+										if (this.selected_vertices[element.uuid] && this.selected_vertices[element.uuid].includes(vertex_key)) {
+											let is_duplicate = face.vertices.find((vkey2, j) => {
+												return j > i && face.uv[vertex_key].equals(old_uv_coords[j])
+											})
+											if (is_duplicate) {
+												this.selected_vertices[element.uuid].remove(vertex_key);
+												return;
+											}
 											face.uv[vertex_key][0] += x;
 											face.uv[vertex_key][1] += y;
 											if ((event.shiftKey || Pressing.overrides.shift) && !(event.ctrlOrCmd || Pressing.overrides.ctrl)) {
@@ -2198,6 +2250,7 @@ Interface.definePanels(function() {
 									})
 								})
 							})
+							return [x, y]
 						},
 						onEnd: () => {
 							Undo.finishEdit('Move UV');

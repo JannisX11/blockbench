@@ -266,7 +266,7 @@ var codec = new Codec('java_block', {
 		var new_textures = [];
 		if (add) {
 			Undo.initEdit({elements: new_cubes, outliner: true, textures: new_textures})
-			Prop.added_models++;
+			Project.added_models++;
 			var import_group = new Group(pathToName(path, false)).init()
 		}
 
@@ -316,7 +316,7 @@ var codec = new Codec('java_block', {
 			for (var i = previous_texture_length; i < Texture.all.length; i++) {
 				var t = Texture.all[i]
 				if (getTexturesById(t.id).length > 1) {
-					t.id = Prop.added_models + '_' + t.id
+					t.id = Project.added_models + '_' + t.id
 				}
 			}
 			//Select Last Texture

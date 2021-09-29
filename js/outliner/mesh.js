@@ -1551,11 +1551,12 @@ BARS.defineActions(function() {
 		icon: 'fa-compress-arrows-alt',
 		category: 'edit',
 		keybind: new Keybind({key: 'i', shift: true}),
-		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length),
+		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length >= 3),
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
 				let original_vertices = Project.selected_vertices[mesh.uuid].slice();
+				if (original_vertices.length < 3) return;
 				let new_vertices;
 				let selected_faces = [];
 				let selected_face_keys = [];
@@ -1572,6 +1573,8 @@ BARS.defineActions(function() {
 					affected_faces = selected_faces.filter(face => {
 						return face.vertices.includes(vkey)
 					})
+					console.log(affected_faces)
+					if (affected_faces.length == 0) return;
 					let inset = [0, 0, 0];
 					if (affected_faces.length == 3 || affected_faces.length == 1) {
 						affected_faces.sort((a, b) => {
@@ -1600,7 +1603,9 @@ BARS.defineActions(function() {
 					}
 
 					return vector;
-				}))
+				}).filter(vec => vec instanceof Array))
+				if (!new_vertices.length) return;
+
 				Project.selected_vertices[mesh.uuid].replace(new_vertices);
 
 				// Move Faces
@@ -1788,14 +1793,13 @@ BARS.defineActions(function() {
 					selected_vertices.safePush(center_vertices[key]);
 				}
 			})
-			Undo.finishEdit('Extrude mesh selection')
+			Undo.finishEdit('Create loop cut')
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
 	})
 	new Action('dissolve_edges', {
 		icon: 'border_vertical',
 		category: 'edit',
-		keybind: new Keybind({key: 'r', shift: true}),
 		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1),
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
@@ -1824,6 +1828,19 @@ BARS.defineActions(function() {
 						if (Reusable.vec1.fromArray(face.getNormal(true)).angleTo(Reusable.vec2.fromArray(original_face_normal)) > Math.PI/2) {
 							face.invert();
 						}
+						side_vertices.forEach(vkey => {
+							let is_used;
+							for (let fkey2 in mesh.faces) {
+								if (mesh.faces[fkey2].vertices.includes(vkey)) {
+									is_used = true;
+									break;
+								}
+							}
+							if (!is_used) {
+								delete mesh.vertices[vkey];
+								selected_vertices.remove(vkey);
+							}
+						})
 					}
 				}
 			})
