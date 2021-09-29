@@ -169,7 +169,8 @@ class ModelProject {
 		}
 	}
 	select() {
-		if (this === Project || this.locked || Project.locked) return;
+		if (this === Project) return true;
+		if (this.locked || Project.locked) return false;
 		if (Project) {
 			Project.unselect()
 		} else {
@@ -245,6 +246,7 @@ class ModelProject {
 				delete this.on_next_upen;
 			}
 		})
+		return true;
 	}
 	unselect() {
 		this.thumbnail = Preview.selected.canvas.toDataURL();
@@ -274,9 +276,11 @@ class ModelProject {
 		Blockbench.dispatchEvent('unselect_project', {project: this});
 	}
 	async close(force) {
+		if (this.locked) return false;
 		let last_selected = Project;
 		try {
-			this.select();
+			let result = this.select();
+			if (result === false) return false;
 		} catch (err) {
 			console.error(err);
 		}
@@ -521,6 +525,7 @@ onVueSetup(() => {
 		},
 		methods: {
 			openNewTab() {
+				if (Project.locked) return;
 				this.last_opened_project = Project.uuid;
 				this.new_tab.visible = true;
 				this.new_tab.select();

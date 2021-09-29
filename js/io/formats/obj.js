@@ -14,12 +14,12 @@ function getMtlFace(obj, index) {
 	}
 }
 const cube_face_normals = {
-	north: '0 0 -1',
-	east: '1 0 0',
-	south: '0 0 1',
-	west: '-1 0 0',
-	up: '0 1 0',
-	down: '0 -1 0',
+	north: [0, 0, -1],
+	east: [1, 0, 0],
+	south: [0, 0, 1],
+	west: [-1, 0, 0],
+	up: [0, 1, 0],
+	down: [0, -1, 0],
 }
 
 var codec = new Codec('obj', {
@@ -62,6 +62,7 @@ var codec = new Codec('obj', {
 			if (!element) return;
 			if (element.export === false) return;
 
+			normalMatrixWorld.getNormalMatrix( mesh.matrixWorld );
 
 			if (element instanceof Cube) {
 
@@ -94,7 +95,9 @@ var codec = new Codec('obj', {
 				}
 				for (let key in element.faces) {
 					if (element.faces[key].texture !== null) {
-						output.push(`vn ${cube_face_normals[key]}`)
+						normal.fromArray(cube_face_normals[key]);
+						normal.applyMatrix3( normalMatrixWorld ).normalize();
+						output.push('vn ' + normal.x + ' ' + normal.y + ' ' + normal.z );
 						nbNormals += 1;
 					}
 				}
@@ -166,9 +169,10 @@ var codec = new Codec('obj', {
 							nbVertexUvs += 1;
 						})
 
-						vertexnormals.push(`vn ${face.getNormal(true).join(' ')}`)
+						normal.fromArray(face.getNormal(true));
+						normal.applyMatrix3( normalMatrixWorld ).normalize();
+						vertexnormals.push('vn ' + normal.x + ' ' + normal.y + ' ' + normal.z );
 						nbNormals += 1;
-
 
 						if (tex && tex.uuid && !materials[tex.id]) {
 							materials[tex.id] = tex;

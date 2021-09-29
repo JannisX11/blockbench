@@ -16,6 +16,8 @@ var codec = new Codec('optifine_entity', {
 		var entitymodel = {}
 		var geo_code = 'geometry.'+Project.geometry_name
 		if (Texture.getDefault()) {
+			let tex = Texture.getDefault().name;
+
 			entitymodel.texture = Texture.getDefault().name
 		}
 		entitymodel.textureSize = [Project.texture_width, Project.texture_height];
@@ -59,6 +61,13 @@ var codec = new Codec('optifine_entity', {
 
 				if (group.children.length === 0) return;
 				var mirror_sub;
+
+				if (group.texture) {
+					p_model.texture = group.texture;
+				}
+				if (!group.texture_size.allEqual(0)) {
+					p_model.textureSize = group.texture_size;
+				}
 
 				group.children.forEach(obj => {
 					if (!obj.export) return;
@@ -175,7 +184,9 @@ var codec = new Codec('optifine_entity', {
 					rotation: b.rotate,
 					mirror_uv: (b.mirrorTexture && b.mirrorTexture.includes('u')),
 					cem_animations: b.animations,
-					cem_attach: b.attach
+					cem_attach: b.attach,
+					texture: subsub.texture,
+					texture_size: subsub.textureSize,
 				})
 				group.origin[1] *= -1;
 				group.origin[2] *= -1;
@@ -244,7 +255,9 @@ var codec = new Codec('optifine_entity', {
 								name: subsub.id || `${b.part}_sub_${subcount}`,
 								origin: subsub.translate || (depth >= 1 ? submodel.translate : undefined),
 								rotation: subsub.rotate,
-								mirror_uv: (subsub.mirrorTexture && subsub.mirrorTexture.includes('u'))
+								mirror_uv: (subsub.mirrorTexture && subsub.mirrorTexture.includes('u')),
+								texture: subsub.texture,
+								texture_size: subsub.textureSize,
 							})
 							subcount++;
 							group.addTo(p_group).init()
