@@ -532,12 +532,12 @@ BARS.defineActions(function() {
 				}
 			},
 			methods: {
-				getTagColor(tag) {
+				getTagClass(tag) {
 					let lowercase = tag.toLowerCase();
 					if (lowercase == 'local' || lowercase == 'remote') {
-						return 'var(--color-tag-source)'
+						return 'plugin_tag_source'
 					} else if (lowercase.substr(0, 9) == 'minecraft') {
-						return 'var(--color-tag-mc)'
+						return 'plugin_tag_mc'
 					}
 				},
 				getIconNode: Blockbench.getIconNode,
@@ -574,7 +574,7 @@ BARS.defineActions(function() {
 							<div v-if="plugin.expanded" class="about" v-html="marked(plugin.about)"><button>a</button></div>
 							<div v-if="plugin.expanded" v-on:click="plugin.toggleInfo()" style="text-decoration: underline;">${tl('dialog.plugins.show_less')}</div>
 							<ul class="plugin_tag_list">
-								<li v-for="tag in plugin.tags" :style="{backgroundColor: getTagColor(tag)}" :key="tag">{{tag}}</li>
+								<li v-for="tag in plugin.tags" :class="getTagClass(tag)" :key="tag">{{tag}}</li>
 							</ul>
 						</li>
 						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>

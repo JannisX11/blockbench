@@ -256,6 +256,7 @@ BARS.defineActions(() => {
 	
 	new Action('about_window', {
 		name: tl('dialog.settings.about') + '...',
+		description: `Blockbench ${Blockbench.version}`,
 		icon: 'info',
 		category: 'blockbench',
 		click: function () {

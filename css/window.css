@@ -786,6 +786,8 @@
 	#start_screen .start_screen_features > li > * {
 		max-width: 100%;
 		font-weight: 300;
+		display: block;
+		margin: auto;
 	}
 	#start_screen .start_screen_features > li > h3 {
 		font-size: 1.4em;

@@ -921,6 +921,11 @@
 		background-color: var(--color-ui);
 		margin-right: 2px;
 	}
+	body.theme_borders #plugin_list > li {
+		border: 1px solid var(--color-border);
+		margin: 0;
+		margin-bottom: -1px;
+	}
 	#plugin_list > li.expanded {
 		min-height: 128px;
 		height: auto;
@@ -1008,28 +1013,31 @@
 		overflow-y: auto;
 		max-height: 480px;
 	}
-	#plugin_list {
-		--color-tag-source: #ff7a52;
-		--color-tag-mc: #73e473;
-		--color-tag-misc: var(--color-accent);
-	}
 	#plugin_list > li ul.plugin_tag_list {
 		margin: 5px 8px;
 		line-height: 0;
 	}
 	.plugin_tag_list li {
 		display: inline-block;
-		background-color: var(--color-tag-misc);
+		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 		max-width: 180px;
 		height: 22px;
-		padding: 0 4px;
+		padding: 1px 4px;
 		border-radius: 5px;
 		font-size: 0.9em;
 		margin: 2px;
 		white-space: nowrap;
     	overflow: hidden;
 		line-height: normal;
+	}
+	.plugin_tag_list li.plugin_tag_source {
+		background-color: #ff7a52;
+		color: #111625;
+	}
+	.plugin_tag_list li.plugin_tag_mc {
+		background-color: #73e473;
+		color: #111625;
 	}
 	.no_plugin_message {
 		text-align: center;

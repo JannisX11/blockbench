@@ -16,17 +16,17 @@
 		],
 		"features": [
 			{
-				"image": "./content/splash_art.png",
-				"title": "Poly Mesh Editing!",
-				"text": "Blockbench now supports poly mesh editing, which let's you create any shapes in generic models."
-			},
-			{
-				"image": "./content/splash_art.png",
+				"image": "./content/tabs.png",
 				"title": "Tabs!",
 				"text": "Open multiple models at the same time and easily switch between them using the new project tabs!"
 			},
 			{
-				"image": "./content/splash_art.png",
+				"image": "./content/poly_mesh.png",
+				"title": "Poly Mesh Editing!",
+				"text": "Blockbench now supports poly mesh editing, which let's you create any shapes in generic models."
+			},
+			{
+				"image": "./content/theme_browser.png",
 				"title": "Theme Browser",
 				"text": "You can now discover and switch to new themes directly inside Blockbench. Also, the theme menu and the other settings menus have been re-designed and cleaned up!"
 			}

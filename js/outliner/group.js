@@ -237,15 +237,20 @@ class Group extends OutlinerNode {
 				pos.applyQuaternion(this.mesh.quaternion).sub(obj.mesh.position);
 				let diff = pos.toArray();
 
-				if (obj.movable) obj.from.V3_add(diff);
-				if (obj.resizable) obj.to.V3_add(diff);
+				if (obj.from) obj.from.V3_add(diff);
+				if (obj.to) obj.to.V3_add(diff);
 				if (obj.rotatable || obj instanceof Group) obj.origin.V3_add(diff);
 
 				if (obj instanceof Group) {
 					obj.forEachChild(child => {
-						if (child.movable) child.from.V3_add(diff);
-						if (child.resizable) child.to.V3_add(diff);
-						if (child.rotatable || child instanceof Group) child.origin.V3_add(diff);
+						if (child instanceof Mesh) {
+							for (let vkey in child.vertices) {
+								child.vertices[vkey].V3_add(diff);
+							}
+						}
+						if (child instanceof Cube) child.from.V3_add(diff);
+						if (child.to) child.to.V3_add(diff);
+						if (child.origin) child.origin.V3_add(diff);
 					})
 				}
 			}

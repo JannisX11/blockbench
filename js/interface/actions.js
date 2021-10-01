@@ -750,7 +750,7 @@ class NumSlider extends Widget {
 	change(modify) {
 		//Solo sliders only, gets overwritten for most sliders
 		var num = modify(this.get());
-		if (this.settings && typeof this.settings.min === 'number') {
+		if (this.settings && typeof this.settings.min === 'number' && this.settings.limit !== false) {
 			num = limitNumber(num, this.settings.min, this.settings.max)
 		}
 		this.value = num;
