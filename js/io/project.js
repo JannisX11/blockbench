@@ -23,6 +23,7 @@ class ModelProject {
 		this.format = options.format instanceof ModelFormat ? options.format : Formats.free;
 		this.mode = 'edit';
 		this.view_mode = 'textured';
+		this.display_uv = 'selected_elements';
 		this.previews = {};
 		this.EditSession = null;
 
@@ -208,6 +209,7 @@ class ModelProject {
 		UVEditor.vue.selected_vertices = this.selected_vertices;
 		UVEditor.vue.selected_faces = this.selected_faces;
 		UVEditor.vue.box_uv = this.box_uv;
+		UVEditor.vue.display_uv = this.display_uv;
 
 		Interface.Panels.textures.inside_vue.textures = Texture.all;
 		scene.add(this.model_3d);

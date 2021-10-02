@@ -1199,31 +1199,27 @@ const UVEditor = {
 	cube_faces: ['north', 'south', 'west', 'east', 'up', 'down'],
 	forSelection(cb, event, ...args) {
 		UVEditor[cb](...args);
-		/*
-		if (open_dialog === false) {
-			UVEditor[cb](event, ...args)
-		} else if (UVEditor.single) {
-			UVEditor.editors.single[cb](...args)
-		} else {
-			if (UVEditor.selection.length > 0) {
-				UVEditor.selection.forEach(function(s) {
-					UVEditor.editors[s][cb](...args)
-				})
-			} else {
-				UVEditor.cube_faces.forEach(function(s) {
-					UVEditor.editors[s][cb](...args)
-				})
-			}
-		}*/
 	},
 
 
 	menu: new Menu([
-		{name: 'menu.view.zoom', id: 'zoom', condition: isApp, icon: 'search', children: [
+		{name: 'menu.view.zoom', id: 'zoom', icon: 'search', children: [
 			'zoom_in',
 			'zoom_out',
 			'zoom_reset'
 		]},
+		{name: 'menu.uv.display_uv', id: 'display_uv', icon: 'search', children: () => {
+			let options = ['selected_faces', 'selected_elements', 'all_elements'];
+			return options.map(option => {return {
+				id: option,
+				name: `menu.uv.display_uv.${option}`,
+				icon: UVEditor.vue.display_uv == option ? 'radio_button_checked' : 'radio_button_unchecked',
+				condition: !(option == 'selected_faces' && Project.box_uv && !Mesh.selected.length),
+				click() {
+					Project.display_uv = UVEditor.vue.display_uv = option;
+				}
+			}})
+		}},
 		'focus_on_selection',
 		'uv_checkerboard',
 		'_',
@@ -1591,16 +1587,6 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Set automatic cullface')
 		}
 	})
-
-
-	new Toggle('toggle_uv_overlay', {
-		//condition: () => Project.box_uv,
-		icon: 'view_quilt',
-		category: 'uv',
-		onChange(value) {
-			UVEditor.vue.showing_overlays = value;
-		}
-	})
 })
 
 Interface.definePanels(function() {
@@ -1648,7 +1634,7 @@ Interface.definePanels(function() {
 				all_elements: [],
 				selected_vertices: {},
 				selected_faces: [],
-				showing_overlays: false,
+				display_uv: 'selected_elements',
 
 				face_names: {
 					north: tl('face.north'),
@@ -2423,14 +2409,14 @@ Interface.definePanels(function() {
 
 						<div id="uv_frame" @click.stop="reverseSelect($event)" ref="frame" :style="{width: inner_width + 'px', height: inner_height + 'px'}" v-if="texture !== null">
 
-							<template v-if="mode == 'uv'" v-for="element in (showing_overlays ? all_mappable_elements : mappable_elements)">
+							<template v-if="mode == 'uv'" v-for="element in (display_uv === 'all_elements' ? all_mappable_elements : mappable_elements)">
 
 								<template v-if="element.type == 'cube' && !box_uv">
 									<div class="cube_uv_face"
 										v-for="(face, key) in element.faces" :key="element.uuid + ':' + key"
-										v-if="face.getTexture() == texture || texture == 0"
+										v-if="(face.getTexture() == texture || texture == 0) && (display_uv !== 'selected_faces' || selected_faces.includes(key))"
 										:title="face_names[key]"
-										:class="{selected: selected_faces.includes(key), unselected: showing_overlays && !mappable_elements.includes(element)}"
+										:class="{selected: selected_faces.includes(key), unselected: display_uv === 'all_elements' && !mappable_elements.includes(element)}"
 										@mousedown.prevent="dragFace(key, $event)"
 										:style="{
 											left: toPixels(Math.min(face.uv[0], face.uv[2]), -1),
@@ -2439,7 +2425,7 @@ Interface.definePanels(function() {
 											'--height': toPixels(Math.abs(face.uv_size[1]), 2),
 										}"
 									>
-										<template v-if="selected_faces.includes(key) && !(showing_overlays && !mappable_elements.includes(element))">
+										<template v-if="selected_faces.includes(key) && !(display_uv === 'all_elements' && !mappable_elements.includes(element))">
 											{{ face_names[key] || '' }}
 											<div class="uv_resize_side horizontal" @mousedown="resizeFace(key, $event, 0, -1)" style="width: var(--width)"></div>
 											<div class="uv_resize_side horizontal" @mousedown="resizeFace(key, $event, 0, 1)" style="top: var(--height); width: var(--width)"></div>
@@ -2465,7 +2451,7 @@ Interface.definePanels(function() {
 									:key="element.uuid"
 									@mousedown.prevent="dragFace(null, $event)"
 									@click.prevent="selectCube(element, $event)"
-									:class="{unselected: showing_overlays && !mappable_elements.includes(element)}"
+									:class="{unselected: display_uv === 'all_elements' && !mappable_elements.includes(element)}"
 									:style="{left: toPixels(element.uv_offset[0]), top: toPixels(element.uv_offset[1])}"
 								>
 									<div class="uv_fill" :style="{left: '-1px', top: toPixels(element.size(2, true), -1), width: toPixels(element.size(2, true)*2 + element.size(0, true)*2, 2), height: toPixels(element.size(1, true), 2)}" />
@@ -2477,7 +2463,7 @@ Interface.definePanels(function() {
 								<template v-if="element.type == 'mesh'">
 									<div class="mesh_uv_face"
 										v-for="(face, key) in filterMeshFaces(element.faces)" :key="element.uuid + ':' + key"
-										v-if="face.vertices.length > 2 && face.getTexture() == texture"
+										v-if="face.vertices.length > 2 && (display_uv !== 'selected_faces' || selected_faces.includes(key)) && face.getTexture() == texture"
 										:class="{selected: selected_faces.includes(key)}"
 										@mousedown.prevent="dragFace(key, $event)"
 										:style="{

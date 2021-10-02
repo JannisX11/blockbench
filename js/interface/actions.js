@@ -1962,7 +1962,6 @@ const BARS = {
 				'uv_transparent',
 				'uv_rotation',
 				//Box
-				'toggle_uv_overlay',
 				'toggle_mirror_uv',
 			]
 		})

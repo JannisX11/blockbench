@@ -105,7 +105,9 @@ function setupMobilePanelSelector() {
 						}},
 					])
 					menu.open(this.$refs.mobile_keyboard_menu)
-				}
+				},
+				Condition,
+				getIconNode: Blockbench.getIconNode
 			},
 			template: `
 				<div id="panel_selector_bar">
