@@ -304,6 +304,7 @@ Keybinds.no_overlap = function(k1, k2) {
 	if (k1.condition.modes && k2.condition.modes && k1.condition.modes.overlap(k2.condition.modes) == 0) return true;
 	if (k1.condition.tools && k2.condition.tools && k1.condition.tools.overlap(k2.condition.tools) == 0) return true;
 	if (k1.condition.formats && k2.condition.formats && k1.condition.formats.overlap(k2.condition.formats) == 0) return true;
+	if (k1.condition.features && k2.condition.features && k1.condition.features.overlap(k2.condition.features) == 0) return true;
 	return false;
 }
 function updateKeybindConflicts() {
@@ -333,6 +334,13 @@ function updateKeybindConflicts() {
 			}
 		}
 	})
+	if (Keybinds.dialog && Keybinds.dialog.sidebar.node) {
+		let node = Keybinds.dialog.sidebar.node;
+		for (var key in Keybinds.structure) {
+			let page = node.querySelector(`.dialog_sidebar_pages li[page="${key}"]`)
+			page.classList.toggle('error', Keybinds.structure[key].conflict);
+		}
+	}
 }
 
 
@@ -530,12 +538,10 @@ onVueSetup(function() {
 						<li v-for="action in list">
 							<div v-bind:title="action.description">{{action.name}}</div>
 							<div class="keybindslot" :class="{conflict: action.keybind && action.keybind.conflict}" @click.stop="record(action)" v-html="action.keybind ? action.keybind.getText(true) : ''"></div>
-							<div class="tool" v-on:click="reset(action)">
-								<div class="tooltip">${tl('keybindings.reset')}</div>
+							<div class="tool" v-on:click="reset(action)" title="${tl('keybindings.reset')}">
 								<i class="material-icons">replay</i>
 							</div>
-							<div class="tool" v-on:click="clear(action)">
-								<div class="tooltip">${tl('keybindings.clear')}</div>
+							<div class="tool" v-on:click="clear(action)" title="${tl('keybindings.clear')}">
 								<i class="material-icons">clear</i>
 							</div>
 						</li>

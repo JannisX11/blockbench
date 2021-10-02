@@ -2427,6 +2427,7 @@ const BARS = {
 						return action.description;
 					}
 				},
+				click: ActionControl.click,
 				getIconNode: Blockbench.getIconNode
 			},
 			watch: {
@@ -2444,7 +2445,7 @@ const BARS = {
 							<li v-for="(item, i) in list"
 								:class="{selected: i === index}"
 								:title="item.description"
-								@click="ActionControl.click(item, $event)"
+								@click="click(item, $event)"
 								@mouseenter="index = i"
 							>
 								<div class="icon_wrapper normal" v-html="getIconNode(item.icon, item.color).outerHTML"></div>

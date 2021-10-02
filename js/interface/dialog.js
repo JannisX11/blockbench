@@ -330,6 +330,7 @@ class DialogSidebar {
 		for (let key in this.pages) {
 			let li = document.createElement('li');
 			li.textContent = this.pages[key];
+			li.setAttribute('page', key);
 			if (this.page == key) li.classList.add('selected');
 			this.page_menu[key] = li;
 			li.addEventListener('click', event => {

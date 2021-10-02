@@ -48,6 +48,14 @@ class MeshFace extends Face {
 			return direction
 		}
 	}
+	getBoundingRect() {
+		let min_x = Project.texture_width, min_y = Project.texture_height, max_x = 0, max_y = 0;
+		this.vertices.forEach(vkey => {
+			min_x = Math.min(min_x, this.uv[vkey][0]); max_x = Math.max(max_x, this.uv[vkey][0]);
+			min_y = Math.min(min_y, this.uv[vkey][1]); max_y = Math.max(max_y, this.uv[vkey][1]);
+		})
+		return getRectangle(min_x, min_y, max_x, max_y);
+	}
 	invert() {
 		if (this.vertices.length < 3) return this;
 		[this.vertices[0], this.vertices[1]] = [this.vertices[1], this.vertices[0]];
@@ -1194,7 +1202,7 @@ BARS.defineActions(function() {
 	new Action('add_mesh', {
 		icon: 'fa-gem',
 		category: 'edit',
-		condition: () => (Modes.edit && Format.meshes),
+		condition: {modes: ['edit'], method: () => (Format.meshes)},
 		click: function () {
 			add_mesh_dialog.show();
 		}
@@ -1231,7 +1239,7 @@ BARS.defineActions(function() {
 		icon: 'fas.fa-draw-polygon',
 		category: 'edit',
 		keybind: new Keybind({key: 'f', shift: true}),
-		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1),
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1)},
 		click() {
 			let vec1 = new THREE.Vector3(),
 				vec2 = new THREE.Vector3(),
@@ -1350,7 +1358,7 @@ BARS.defineActions(function() {
 	new Action('convert_to_mesh', {
 		icon: 'fa-gem',
 		category: 'edit',
-		condition: () => (Modes.edit && Format.meshes && Cube.selected.length),
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Cube.selected.length)},
 		click() {
 			Undo.initEdit({elements: Cube.selected});
 
@@ -1407,8 +1415,7 @@ BARS.defineActions(function() {
 	new Action('invert_face', {
 		icon: 'flip_to_back',
 		category: 'edit',
-		keybind: new Keybind({key: 'i', shift: true, ctrl: true}),
-		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedFaces().length),
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedFaces().length)},
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
@@ -1427,7 +1434,7 @@ BARS.defineActions(function() {
 		icon: 'upload',
 		category: 'edit',
 		keybind: new Keybind({key: 'e', shift: true}),
-		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length),
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length)},
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
@@ -1551,7 +1558,7 @@ BARS.defineActions(function() {
 		icon: 'fa-compress-arrows-alt',
 		category: 'edit',
 		keybind: new Keybind({key: 'i', shift: true}),
-		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length >= 3),
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length >= 3)},
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
@@ -1657,7 +1664,7 @@ BARS.defineActions(function() {
 		icon: 'carpenter',
 		category: 'edit',
 		keybind: new Keybind({key: 'r', shift: true}),
-		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1),
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1)},
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
@@ -1800,7 +1807,7 @@ BARS.defineActions(function() {
 	new Action('dissolve_edges', {
 		icon: 'border_vertical',
 		category: 'edit',
-		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1),
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1)},
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
@@ -1852,7 +1859,7 @@ BARS.defineActions(function() {
 		icon: 'close_fullscreen',
 		category: 'edit',
 		keybind: new Keybind({key: 'm', shift: true}),
-		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1),
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1)},
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
@@ -1891,7 +1898,7 @@ BARS.defineActions(function() {
 	new Action('merge_vertices_by_distance', {
 		icon: 'close_fullscreen',
 		category: 'edit',
-		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1),
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1)},
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
@@ -1953,7 +1960,7 @@ BARS.defineActions(function() {
 	new Action('merge_meshes', {
 		icon: 'upload',
 		category: 'edit',
-		condition: () => (Modes.edit && Format.meshes && Mesh.selected.length >= 2),
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected.length >= 2)},
 		click() {
 			let elements = Mesh.selected
 			Undo.initEdit({elements});
@@ -1997,7 +2004,7 @@ BARS.defineActions(function() {
 	new Action('split_mesh', {
 		icon: 'call_split',
 		category: 'edit',
-		condition: () => (Modes.edit && Format.meshes && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length),
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length)},
 		click() {
 			let elements = Mesh.selected.slice();
 			Undo.initEdit({elements});
@@ -2054,7 +2061,7 @@ BARS.defineActions(function() {
 	new Action('import_obj', {
 		icon: 'fa-gem',
 		category: 'file',
-		condition: () => (Modes.edit && Format.meshes),
+		condition: {modes: ['edit'], method: () => (Format.meshes)},
 		click: function () {
 
 			

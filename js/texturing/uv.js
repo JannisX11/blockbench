@@ -594,6 +594,21 @@ const UVEditor = {
 				Canvas.updateUV(obj)
 			}
 		})
+		Mesh.selected.forEach(mesh => {
+			mesh.forAllFaces((face, fkey) => {
+				if (!this.selected_faces.includes(fkey)) return;
+				let rect = face.getBoundingRect();
+				let start = (axis ? rect.ay : rect.ax);
+				let size = (axis ? rect.y : rect.x);
+				let multiplier = modify(size) / size;
+				face.vertices.forEach(vkey => {
+					if (!face.uv[vkey]) return;
+					face.uv[vkey][axis] = (face.uv[vkey][axis] - start) * multiplier + start;
+					if (isNaN(face.uv[vkey][axis])) face.uv[vkey][axis] = start;
+					console.log(face.uv[vkey][axis]);
+				})
+			})
+		})
 		this.displaySliders()
 		this.disableAutoUV()
 		this.vue.$forceUpdate()
@@ -1001,14 +1016,40 @@ const UVEditor = {
 		})
 		this.displayTools()
 	},
-	rotate() {
+	rotate(mesh_angle) {
 		var scope = this;
 		var value = parseInt(BarItems.uv_rotation.get())
 		this.forCubes(obj => {
 			obj.faces[scope.face].rotation = value
 			Canvas.updateUV(obj)
 		})
-		this.displayTransformInfo()
+		Mesh.selected.forEach(mesh => {
+			mesh.forAllFaces((face, fkey) => {
+				if (!UVEditor.selected_faces.includes(fkey)) return;
+				if (face.vertices.length < 3) return;
+				let center = [0, 0];
+				face.vertices.forEach(vkey => {
+					if (!face.uv[vkey]) return;
+					center[0] += face.uv[vkey][0];
+					center[1] += face.uv[vkey][1];
+				})
+				center[0] /= face.vertices.length;
+				center[1] /= face.vertices.length;
+
+				face.vertices.forEach(vkey => {
+					if (!face.uv[vkey]) return;
+					let sin = Math.sin(Math.degToRad(mesh_angle));
+					let cos = Math.cos(Math.degToRad(mesh_angle));
+					face.uv[vkey][0] -= center[0];
+					face.uv[vkey][1] -= center[1];
+					let a = (face.uv[vkey][0] * cos - face.uv[vkey][1] * sin);
+					let b = (face.uv[vkey][0] * sin + face.uv[vkey][1] * cos);
+					face.uv[vkey][0] = Math.clamp(a + center[0], 0, Project.texture_width);
+					face.uv[vkey][1] = Math.clamp(b + center[1], 0, Project.texture_height);
+				})
+			})
+		})
+		this.loadData();
 		this.message('uv_editor.rotated')
 	},
 	setRotation(value) {
@@ -1188,7 +1229,7 @@ const UVEditor = {
 		'_',
 		'copy',
 		'paste',
-		{icon: 'photo_size_select_large', name: 'menu.uv.mapping', condition: () => !Project.box_uv, children: function(editor) {
+		{icon: 'photo_size_select_large', name: 'menu.uv.mapping', condition: () => !Project.box_uv && UVEditor.getReferenceFace(), children: function(editor) {
 			let reference_face = UVEditor.getReferenceFace();
 			function isMirrored(axis) {
 				if (reference_face instanceof CubeFace) {
@@ -1213,7 +1254,9 @@ const UVEditor = {
 				'uv_auto',
 				'uv_rel_auto',
 				'snap_uv_to_pixels',
-				{icon: 'rotate_90_degrees_ccw', condition: () => Format.uv_rotation, name: 'menu.uv.mapping.rotation', children: function() {
+				'uv_rotate_left',
+				'uv_rotate_right',
+				{icon: 'rotate_90_degrees_ccw', condition: () => reference_face instanceof CubeFace && Format.uv_rotation, name: 'menu.uv.mapping.rotation', children: function() {
 					var off = 'radio_button_unchecked'
 					var on = 'radio_button_checked'
 					return [
@@ -1261,7 +1304,7 @@ const UVEditor = {
 			]
 		}},
 		'face_tint',
-		{icon: 'flip_to_back', condition: () => (Format.id == 'java_block'&& Cube.selected.length), name: 'action.cullface' , children: function() {
+		{icon: 'flip_to_back', condition: () => (Format.id == 'java_block' && Cube.selected.length), name: 'action.cullface' , children: function() {
 			var off = 'radio_button_unchecked';
 			var on = 'radio_button_checked';
 			function setCullface(cullface) {
@@ -1407,6 +1450,26 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('mirrorY', event)
 			Undo.finishEdit('Mirror UV')
+		}
+	})
+	new Action('uv_rotate_left', {
+		icon: 'rotate_left',
+		category: 'uv',
+		condition: () => Mesh.selected.length,
+		click: function (event) {
+			Undo.initEdit({elements: Mesh.selected, uv_only: true})
+			UVEditor.rotate(-90);
+			Undo.finishEdit('Rotate UV left');
+		}
+	})
+	new Action('uv_rotate_right', {
+		icon: 'rotate_right',
+		category: 'uv',
+		condition: () => Mesh.selected.length,
+		click: function (event) {
+			Undo.initEdit({elements: Mesh.selected, uv_only: true})
+			UVEditor.rotate(90);
+			Undo.finishEdit('Rotate UV right');
 		}
 	})
 	new Action('uv_transparent', {
@@ -2553,12 +2616,15 @@ Interface.definePanels(function() {
 	UVEditor.sliders.size_x = new NumSlider({
 		id: 'uv_slider_size_x',
 		private: true,
-		condition: () => (!Project.box_uv && Cube.selected[0] && UVEditor.vue.selected_faces.length),
+		condition: () => (!Project.box_uv && UVEditor.vue.selected_faces.length),
 		get: function() {
 			if (!Project.box_uv) {
 				let ref_face = UVEditor.getReferenceFace();
 				if (ref_face instanceof CubeFace) {
 					return trimFloatNumber(ref_face.uv[2] - ref_face.uv[0]);
+				} else if (ref_face instanceof MeshFace) {
+					let rect = ref_face.getBoundingRect();
+					return trimFloatNumber(rect.x);
 				}
 			}
 			return 0
@@ -2574,12 +2640,15 @@ Interface.definePanels(function() {
 	UVEditor.sliders.size_y = new NumSlider({
 		id: 'uv_slider_size_y',
 		private: true,
-		condition: () => (!Project.box_uv && Cube.selected[0] && UVEditor.vue.selected_faces.length),
+		condition: () => (!Project.box_uv && UVEditor.vue.selected_faces.length),
 		get: function() {
 			if (!Project.box_uv) {
 				let ref_face = UVEditor.getReferenceFace();
 				if (ref_face instanceof CubeFace) {
 					return trimFloatNumber(ref_face.uv[3] - ref_face.uv[1]);
+				} else if (ref_face instanceof MeshFace) {
+					let rect = ref_face.getBoundingRect();
+					return trimFloatNumber(rect.y);
 				}
 			}
 			return 0

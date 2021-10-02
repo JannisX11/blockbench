@@ -315,7 +315,17 @@
 		background-color: var(--color-ui);
 		border-left: 4px solid var(--color-accent);
 	}
-	
+	.dialog_sidebar .dialog_sidebar_pages li.error::after {
+		content: "";
+		position: absolute;
+		display: block;
+		background-color: var(--color-close);
+		border-radius: 10px;
+		width: 10px;
+		height: 10px;
+		right: 6px;
+		margin-top: -17px;
+	}
 	
 	.dialog_sidebar .dialog_sidebar_actions {
 		bottom: 10px;

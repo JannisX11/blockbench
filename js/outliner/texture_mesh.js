@@ -315,7 +315,6 @@ BARS.defineActions(function() {
 		id: 'add_texture_mesh',
 		icon: 'fa-puzzle-piece',
 		category: 'edit',
-		keybind: new Keybind({key: 'n', ctrl: true}),
 		condition: () => (Modes.edit && Format.texture_meshes),
 		click: function () {
 			

@@ -605,7 +605,6 @@ BARS.defineActions(function() {
 	new Action('reload_plugins', {
 		icon: 'sync',
 		category: 'blockbench',
-		keybind: new Keybind({ctrl: true, key: 74}),
 		click: function () {
 			Plugins.devReload()
 		}
