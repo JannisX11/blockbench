@@ -1525,10 +1525,10 @@ BARS.defineActions(function() {
 				})
 
 				// Create Face between extruded line
+				let line_vertices = remaining_vertices.slice();
 				for (let fkey in mesh.faces) {
-					if (remaining_vertices.length < 2) break;
 					let face = mesh.faces[fkey];
-					let matched_vertices = face.vertices.filter(vkey => remaining_vertices.includes(new_vertices[original_vertices.indexOf(vkey)]));
+					let matched_vertices = face.vertices.filter(vkey => line_vertices.includes(new_vertices[original_vertices.indexOf(vkey)]));
 					if (matched_vertices.length >= 2) {
 						let [a, b] = matched_vertices.map(vkey => new_vertices[original_vertices.indexOf(vkey)]);
 						let [c, d] = matched_vertices;

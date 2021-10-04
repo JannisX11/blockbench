@@ -396,7 +396,7 @@ function updateStreamerModeNotification() {
 			text_color: 'var(--color-light)',
 			text: [
 				{type: 'h1', text: tl('interface.streamer_mode_on'), click() {
-					Settings.open({search: 'streamer_mode'})
+					ActionControl.select(`setting: ${tl('settings.streamer_mode')}`);
 				}}
 			]
 		})

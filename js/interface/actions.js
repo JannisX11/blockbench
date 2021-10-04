@@ -2499,6 +2499,9 @@ const ActionControl = {
 			}
 		}
 	},
+	show(...args) {
+		return this.select(...args);
+	},
 	hide() {
 		open_interface = false;
 		ActionControl.open = false;

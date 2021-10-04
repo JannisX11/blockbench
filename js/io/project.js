@@ -182,16 +182,6 @@ class ModelProject {
 		this.selected = true;
 		this.format.select();
 		BarItems.view_mode.set(this.view_mode);
-		
-		Preview.all.forEach(preview => {
-			let data = this.previews[preview.id];
-			if (data) {
-				preview.camera.position.fromArray(data.position);
-				preview.controls.target.fromArray(data.target);
-				preview.setProjectionMode(data.orthographic);
-				if (data.zoom) preview.camOrtho.zoom = data.zoom;
-			}
-		})
 
 		// Setup Data
 		OutlinerNode.uuids = {};
@@ -227,6 +217,18 @@ class ModelProject {
 
 		BarItems.lock_motion_trail.value = !!Project.motion_trail_lock;
 		BarItems.lock_motion_trail.updateEnabledState();
+		
+		Preview.all.forEach(preview => {
+			let data = this.previews[preview.id];
+			if (data) {
+				preview.camera.position.fromArray(data.position);
+				preview.controls.target.fromArray(data.target);
+				preview.setProjectionMode(data.orthographic);
+				if (data.zoom) preview.camOrtho.zoom = data.zoom;
+			} else if (preview.default_angle !== undefined) {
+				setTimeout(() => preview.loadAnglePreset(preview.default_angle), 0);
+			}
+		})
 
 		if (this.EditSession) {
 			Interface.Panels.chat.inside_vue.chat_history = this.EditSession.chat_history;

@@ -223,8 +223,10 @@ class Preview {
 			}
 		}
 
-		this.camPers.position.fromArray(DefaultCameraPresets[0].position)
-		this.controls.target.fromArray(DefaultCameraPresets[0].target);
+		this.default_angle = DefaultCameraPresets[0];
+
+		this.camPers.position.fromArray(this.default_angle.position);
+		this.controls.target.fromArray(this.default_angle.target);
 
 		if (!Blockbench.isMobile) {
 			this.orbit_gizmo = new OrbitGizmo(this);
@@ -559,6 +561,11 @@ class Preview {
 
 		Transformer.update();
 		this.loadBackground()
+		return this;
+	}
+	setDefaultAnglePreset(preset) {
+		this.default_angle = preset;
+		this.loadAnglePreset(preset);
 		return this;
 	}
 	loadAnglePreset(preset) {
@@ -2168,10 +2175,10 @@ function initCanvas() {
 		get current() {return Preview.selected},
 		set current(p) {Preview.selected = p},
 
-		one: new Preview({id: 'one'}).loadAnglePreset(DefaultCameraPresets[1]),
+		one: new Preview({id: 'one'}).setDefaultAnglePreset(DefaultCameraPresets[1]),
 		two: main_preview,
-		three: new Preview({id: 'three'}).loadAnglePreset(DefaultCameraPresets[3]),
-		four: new Preview({id: 'four'}).loadAnglePreset(DefaultCameraPresets[5]),
+		three: new Preview({id: 'three'}).setDefaultAnglePreset(DefaultCameraPresets[3]),
+		four: new Preview({id: 'four'}).setDefaultAnglePreset(DefaultCameraPresets[5]),
 		get current() {
 			return Preview.selected;
 		}

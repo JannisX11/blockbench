@@ -800,6 +800,9 @@ onVueSetup(function() {
 			showContextMenu(event) {
 				Interface.status_bar.menu.show(event);
 			},
+			toggleStreamerMode() {
+				ActionControl.select(`setting: ${tl('settings.streamer_mode')}`);
+			},
 			toggleSidebar: Interface.toggleSidebar,
 			getIconNode: Blockbench.getIconNode
 		},
@@ -811,7 +814,7 @@ onVueSetup(function() {
 				
 				<div class="f_left" v-if="streamer_mode"
 					style="background-color: var(--color-stream); color: var(--color-light);"
-					@click="Settings.open({search: 'streamer_mode'})"
+					@click="toggleStreamerMode()"
 					title="${tl('interface.streamer_mode_on')}"
 				>
 					<i class="material-icons">live_tv</i>
