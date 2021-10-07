@@ -10,47 +10,19 @@ class ModelFormat {
 		this.description = data.description || tl('format.'+this.id+'.desc');
 		this.show_on_start_screen = true;
 
-		this.box_uv = false;
-		this.optional_box_uv = false;
-		this.single_texture = false;
-		this.animated_textures = false;
-		this.bone_rig = false;
-		this.centered_grid = false;
-		this.rotate_cubes = false;
-		this.integer_size = false;
-		this.meshes = false;
-		this.texture_meshes = false;
-		this.locators = false;
-		this.canvas_limit = false;
-		this.rotation_limit = false;
-		this.uv_rotation = false;
-		this.animation_files = false;
-		this.display_mode = false;
-		this.animation_mode = false;
+		for (let id in ModelFormat.properties) {
+			ModelFormat.properties[id].reset(this);
+		}
 
 		this.codec = data.codec;
 		this.onActivation = data.onActivation;
 		this.onDeactivation = data.onDeactivation;
 		Merge.string(this, data, 'icon');
 		Merge.boolean(this, data, 'show_on_start_screen');
-		
-		Merge.boolean(this, data, 'box_uv');
-		Merge.boolean(this, data, 'optional_box_uv');
-		Merge.boolean(this, data, 'single_texture');
-		Merge.boolean(this, data, 'animated_textures');
-		Merge.boolean(this, data, 'bone_rig');
-		Merge.boolean(this, data, 'centered_grid');
-		Merge.boolean(this, data, 'rotate_cubes');
-		Merge.boolean(this, data, 'integer_size');
-		Merge.boolean(this, data, 'meshes');
-		Merge.boolean(this, data, 'texture_meshes');
-		Merge.boolean(this, data, 'locators');
-		Merge.boolean(this, data, 'canvas_limit');
-		Merge.boolean(this, data, 'rotation_limit');
-		Merge.boolean(this, data, 'uv_rotation');
-		Merge.boolean(this, data, 'animation_files');
-		Merge.boolean(this, data, 'display_mode');
-		Merge.boolean(this, data, 'animation_mode');
+
+		for (let id in ModelFormat.properties) {
+			ModelFormat.properties[id].merge(this, data);
+		}
 	}
 	select(converting) {
 		if (Format && typeof Format.onDeactivation == 'function') {
@@ -225,6 +197,25 @@ class ModelFormat {
 		if (this.codec && this.codec.format == this) delete this.codec.format;
 	}
 }
+
+new Property(ModelFormat, 'boolean', 'box_uv');
+new Property(ModelFormat, 'boolean', 'optional_box_uv');
+new Property(ModelFormat, 'boolean', 'single_texture');
+new Property(ModelFormat, 'boolean', 'animated_textures');
+new Property(ModelFormat, 'boolean', 'bone_rig');
+new Property(ModelFormat, 'boolean', 'centered_grid');
+new Property(ModelFormat, 'boolean', 'rotate_cubes');
+new Property(ModelFormat, 'boolean', 'integer_size');
+new Property(ModelFormat, 'boolean', 'meshes');
+new Property(ModelFormat, 'boolean', 'texture_meshes');
+new Property(ModelFormat, 'boolean', 'locators');
+new Property(ModelFormat, 'boolean', 'canvas_limit');
+new Property(ModelFormat, 'boolean', 'rotation_limit');
+new Property(ModelFormat, 'boolean', 'uv_rotation');
+new Property(ModelFormat, 'boolean', 'animation_files');
+new Property(ModelFormat, 'boolean', 'display_mode');
+new Property(ModelFormat, 'boolean', 'animation_mode');
+new Property(ModelFormat, 'boolean', 'texture_folder');
 
 new ModelFormat({
 	id: 'free',

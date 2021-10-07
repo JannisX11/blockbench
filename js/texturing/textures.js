@@ -370,7 +370,7 @@ class Texture {
 		} else {
 			this.source = path.replace(/#/g, '%23') + '?' + tex_version
 		}
-		this.generateFolder(path)
+		if (Format.texture_folder) this.generateFolder(path)
 		this.startWatcher()
 		Painter.current = {}
 		
@@ -559,7 +559,11 @@ class Texture {
 			var arr2 = arr[arr.length-1].split(osfs);
 			arr2.pop();
 			this.folder = arr2.join('/');
+			if (Format.id == 'optifine_entity') {
+				this.folder = 'textures/' + this.folder;
+			}
 		} else {
+			console.log(2)
 			var arr = path.split(osfs)
 			this.folder = arr[arr.length-2]
 			if (Format.id === 'java_block' && isApp && settings.dialog_loose_texture.value) {
@@ -782,7 +786,7 @@ class Texture {
 			form: {
 				name: 		{label: 'generic.name', value: scope.name},
 				variable: 	{label: 'dialog.texture.variable', value: scope.id, condition: () => Format.id === 'java_block'},
-				folder: 	{label: 'dialog.texture.folder', value: scope.folder, condition: () => Format.id === 'java_block'},
+				folder: 	{label: 'dialog.texture.folder', value: scope.folder, condition: () => Format.texture_folder},
 				namespace: 	{label: 'dialog.texture.namespace', value: scope.namespace, condition: () => Format.id === 'java_block'},
 			},
 			onConfirm: function(results) {

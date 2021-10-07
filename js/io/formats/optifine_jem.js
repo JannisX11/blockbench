@@ -16,9 +16,8 @@ var codec = new Codec('optifine_entity', {
 		var entitymodel = {}
 		var geo_code = 'geometry.'+Project.geometry_name
 		if (Texture.getDefault()) {
-			let tex = Texture.getDefault().name;
-
-			entitymodel.texture = Texture.getDefault().name
+			let tex = Texture.getDefault();
+			entitymodel.texture = tex.folder + '/' + tex.name;
 		}
 		entitymodel.textureSize = [Project.texture_width, Project.texture_height];
 		if (Project.shadow_size != 1) entitymodel.shadowSize = Math.clamp(Project.shadow_size, 0, 1);
@@ -185,8 +184,8 @@ var codec = new Codec('optifine_entity', {
 					mirror_uv: (b.mirrorTexture && b.mirrorTexture.includes('u')),
 					cem_animations: b.animations,
 					cem_attach: b.attach,
-					texture: subsub.texture,
-					texture_size: subsub.textureSize,
+					texture: b.texture,
+					texture_size: b.textureSize,
 				})
 				group.origin[1] *= -1;
 				group.origin[2] *= -1;
@@ -270,12 +269,17 @@ var codec = new Codec('optifine_entity', {
 				readContent(b, group, 0)
 			})
 		}
-		if (model.texture) {
-			var path = path.replace(/\\[\w .-]+$/, '\\'+model.texture)
-			new Texture().fromPath(path).add(false)
+		if (typeof model.texture == 'string') {
+			let texture_path = model.texture.replace(/[\\/]/g, osfs);
+			if (texture_path.match(/^textures/)) {
+				texture_path = path.replace(/[\\/]optifine[\\/][\\\w .-]+$/i, '\\'+texture_path);
+			} else {
+				texture_path = path.replace(/\\[\w .-]+$/, '\\'+texture_path);
+			}
+			new Texture().fromPath(texture_path).add(false);
 		}
 		this.dispatchEvent('parsed', {model});
-		Canvas.updateAllBones()
+		Canvas.updateAllBones();
 	}
 })
 
@@ -290,6 +294,7 @@ var format = new ModelFormat({
 	integer_size: true,
 	bone_rig: true,
 	centered_grid: true,
+	texture_folder: true,
 	codec
 })
 Object.defineProperty(format, 'integer_size', {get: _ => Project.box_uv})

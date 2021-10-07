@@ -451,18 +451,29 @@ const UVEditor = {
 			for (var face in cube.faces) {
 				var uv = cube.faces[face].uv
 				if (uv && Math.isBetween(u, uv[0], uv[2]) && Math.isBetween(v, uv[1], uv[3]) && (cube.faces[face].getTexture() === scope.vue.texture || Format.single_texture)) {
-					matches.safePush(cube)
-					face_matches.safePush(face)
+					matches.safePush(cube);
+					face_matches.safePush(face);
+					break;
+				}
+			}
+		})
+		Mesh.all.forEach(mesh => {
+			for (var face in mesh.faces) {
+				let rect = mesh.faces[face].getBoundingRect();
+				if (uv && Math.isBetween(u, rect.ax, rect.bx) && Math.isBetween(v, rect.ay, rect.by) && (mesh.faces[face].getTexture() === scope.vue.texture || Format.single_texture)) {
+					matches.safePush(mesh);
+					face_matches.safePush(face);
 					break;
 				}
 			}
 		})
 		if (matches.length) {
-			if (!Project.box_uv) {
-				UVEditor.vue.selected_faces.replace(face_matches);
-			}
 			if (!event.shiftKey && !Pressing.overrides.shift && !event.ctrlOrCmd && !Pressing.overrides.ctrl) {
 				Project.selected_elements.empty();
+				UVEditor.vue.selected_faces.empty();
+			}
+			if (!Project.box_uv) {
+				UVEditor.vue.selected_faces.safePush(...face_matches);
 			}
 			matches.forEach(s => {
 				Project.selected_elements.safePush(s)

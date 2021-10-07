@@ -420,6 +420,7 @@ var codec = new Codec('java_block', {
 				locked: true,
 				export: false
 			}).init()
+			texture_mesh.locked = true;
 
 			new_cubes.push(texture_mesh);
 		} else if (!model.elements && model.parent) {
@@ -460,6 +461,7 @@ var format = new ModelFormat({
 	uv_rotation: true,
 	animated_textures: true,
 	display_mode: true,
+	texture_folder: true,
 	codec
 })
 codec.format = format;
