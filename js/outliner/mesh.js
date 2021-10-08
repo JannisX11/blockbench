@@ -1250,53 +1250,83 @@ BARS.defineActions(function() {
 				let selected_vertices = mesh.getSelectedVertices();
 				if (selected_vertices.length >= 2 && selected_vertices.length <= 4) {
 					let reference_face;
+					let reference_face_strength = 0;
 					for (let key in mesh.faces) {
 						let face = mesh.faces[key];
-						if (!reference_face && face.vertices.find(vkey => selected_vertices.includes(vkey))) {
+						let match_strength = face.vertices.filter(vkey => selected_vertices.includes(vkey)).length;
+						if (match_strength > reference_face_strength) {
 							reference_face = face;
+							reference_face_strength = match_strength;
 						}
 						if (face.isSelected()) {
 							delete mesh.faces[key];
 						}
 					}
-					let new_face = new MeshFace(mesh, {
-						vertices: selected_vertices,
-						texture: reference_face.texture,
-					} );
-					mesh.addFaces(new_face);
+					if (selected_vertices.length == 2 && reference_face.vertices.length == 4 && reference_face.vertices.filter(vkey => selected_vertices.includes(vkey)).length == 2) {
 
-					// Correct direction
-					if (selected_vertices.length > 2) {
-						// find face with shared line to compare
-						let fixed_via_face;
-						for (let key in mesh.faces) {
-							let face = mesh.faces[key];
-							let common = face.vertices.filter(vertex_key => selected_vertices.includes(vertex_key))
-							if (common.length == 2) {
-								let old_vertices = face.getSortedVertices();
-								let new_vertices = new_face.getSortedVertices();
-								let index_diff = old_vertices.indexOf(common[0]) - old_vertices.indexOf(common[1]);
-								let new_index_diff = new_vertices.indexOf(common[0]) - new_vertices.indexOf(common[1]);
-								if (index_diff == 1 - face.vertices.length) index_diff = 1;
-								if (new_index_diff == 1 - new_face.vertices.length) new_index_diff = 1;
+						let sorted_vertices = reference_face.getSortedVertices();
+						let unselected_vertices = sorted_vertices.filter(vkey => !selected_vertices.includes(vkey));
 
-								if (Math.abs(index_diff) == 1 && Math.abs(new_index_diff) == 1) {
-									if (index_diff == new_index_diff) {
-										new_face.invert();
-									}
-									fixed_via_face = true;
-									break;
-								}
+						let side_index_diff = Math.abs(sorted_vertices.indexOf(selected_vertices[0]) - sorted_vertices.indexOf(selected_vertices[1]));
+						if (side_index_diff != 1) {
+
+							let new_face = new MeshFace(mesh, reference_face);
+
+							new_face.vertices.remove(unselected_vertices[0]);
+							delete new_face.uv[unselected_vertices[0]];
+
+							reference_face.vertices.remove(unselected_vertices[1]);
+							delete reference_face.uv[unselected_vertices[1]];
+
+							mesh.addFaces(new_face);
+							
+							if (Reusable.vec1.fromArray(reference_face.getNormal(true)).angleTo(Reusable.vec2.fromArray(new_face)) > Math.PI/2) {
+								console.log(Reusable.vec1.fromArray(reference_face.getNormal(true)).angleTo(Reusable.vec2.fromArray(new_face)))
+								new_face.invert();
 							}
 						}
-						// If no face available, orient based on camera orientation
-						if (!fixed_via_face) {
-							let normal = new THREE.Vector3().fromArray(new_face.getNormal());
-							normal.applyQuaternion(mesh.mesh.getWorldQuaternion(new THREE.Quaternion()))
-							let cam_direction = Preview.selected.camera.getWorldDirection(new THREE.Vector3());
-							let angle = normal.angleTo(cam_direction);
-							if (angle < Math.PI/2) {
-								new_face.invert();
+
+					} else {
+						
+						let new_face = new MeshFace(mesh, {
+							vertices: selected_vertices,
+							texture: reference_face.texture,
+						} );
+						mesh.addFaces(new_face);
+
+						// Correct direction
+						if (selected_vertices.length > 2) {
+							// find face with shared line to compare
+							let fixed_via_face;
+							for (let key in mesh.faces) {
+								let face = mesh.faces[key];
+								let common = face.vertices.filter(vertex_key => selected_vertices.includes(vertex_key))
+								if (common.length == 2) {
+									let old_vertices = face.getSortedVertices();
+									let new_vertices = new_face.getSortedVertices();
+									let index_diff = old_vertices.indexOf(common[0]) - old_vertices.indexOf(common[1]);
+									let new_index_diff = new_vertices.indexOf(common[0]) - new_vertices.indexOf(common[1]);
+									if (index_diff == 1 - face.vertices.length) index_diff = 1;
+									if (new_index_diff == 1 - new_face.vertices.length) new_index_diff = 1;
+
+									if (Math.abs(index_diff) == 1 && Math.abs(new_index_diff) == 1) {
+										if (index_diff == new_index_diff) {
+											new_face.invert();
+										}
+										fixed_via_face = true;
+										break;
+									}
+								}
+							}
+							// If no face available, orient based on camera orientation
+							if (!fixed_via_face) {
+								let normal = new THREE.Vector3().fromArray(new_face.getNormal());
+								normal.applyQuaternion(mesh.mesh.getWorldQuaternion(new THREE.Quaternion()))
+								let cam_direction = Preview.selected.camera.getWorldDirection(new THREE.Vector3());
+								let angle = normal.angleTo(cam_direction);
+								if (angle < Math.PI/2) {
+									new_face.invert();
+								}
 							}
 						}
 					}

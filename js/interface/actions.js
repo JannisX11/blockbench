@@ -1521,7 +1521,6 @@ const BARS = {
 			new Action('delete', {
 				icon: 'delete',
 				category: 'edit',
-				//condition: () => (Modes.edit && (selected.length || Group.selected)),
 				keybind: new Keybind({key: 46}),
 				click: function () {
 					if (Prop.active_panel == 'textures' && Texture.selected) {
@@ -1536,11 +1535,11 @@ const BARS = {
 
 						Mesh.selected.forEach(mesh => {
 							let has_selected_faces = false;
+							let selected_vertices = mesh.getSelectedVertices();
 							for (let key in mesh.faces) {
 								has_selected_faces = has_selected_faces || mesh.faces[key].isSelected();
 							}
 							if (BarItems.selection_mode.value == 'face' && has_selected_faces) {
-								let selected_vertices = Project.selected_vertices[mesh.uuid];
 								for (let key in mesh.faces) {
 									let face = mesh.faces[key];
 									if (face.isSelected()) {
@@ -1557,6 +1556,29 @@ const BARS = {
 										delete mesh.vertices[vertex_key];
 									}
 								})
+							} else if (BarItems.selection_mode.value == 'line' && selected_vertices.length) {
+								for (let key in mesh.faces) {
+									let face = mesh.faces[key];
+									let sorted_vertices = face.getSortedVertices();
+									let selected_corners = sorted_vertices.filter(vkey => selected_vertices.includes(vkey));
+									if (selected_corners.length >= 2) {
+										let index_diff = (sorted_vertices.indexOf(selected_corners[0]) - sorted_vertices.indexOf(selected_corners[1])) % sorted_vertices.length;
+										if ((sorted_vertices.length < 4 || Math.abs(index_diff) !== 2)) {
+											delete mesh.faces[key];
+										}
+									}
+								}
+								selected_vertices.forEach(vertex_key => {
+									let used = false;
+									for (let key in mesh.faces) {
+										let face = mesh.faces[key];
+										if (face.vertices.includes(vertex_key)) used = true;
+									}
+									if (!used) {
+										delete mesh.vertices[vertex_key];
+									}
+								})
+
 							} else {
 								let selected_vertices = Project.selected_vertices[mesh.uuid];
 								selected_vertices.forEach(vertex_key => {

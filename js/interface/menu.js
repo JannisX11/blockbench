@@ -295,6 +295,10 @@ class Menu {
 			var offset_left = (document.body.clientWidth-el_width)/2
 			var offset_top  = (document.body.clientHeight-el_height)/2
 
+		} else if (position == 'mouse') {
+			var offset_left = mouse_pos.x;
+			var offset_top  = mouse_pos.y;
+
 		} else {
 			if (!position && scope.type === 'bar_menu') {
 				position = scope.label

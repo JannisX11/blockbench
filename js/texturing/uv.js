@@ -734,8 +734,8 @@ const UVEditor = {
 					if (face.rotation % 180) {
 						[left2, top2] = [top2, left2];
 					}
-					left2 *= this.getResolution(0, face) / Project.texture_width;
-					top2 *= this.getResolution(1, face) / Project.texture_height;
+					left2 *= UVEditor.getResolution(0, face) / Project.texture_width;
+					top2 *= UVEditor.getResolution(1, face) / Project.texture_height;
 					face.uv_size = [left2, top2];
 					if (mirror_x) [face.uv[0], face.uv[2]] = [face.uv[2], face.uv[0]];
 					if (mirror_y) [face.uv[1], face.uv[3]] = [face.uv[3], face.uv[1]];

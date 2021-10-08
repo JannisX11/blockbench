@@ -46,6 +46,57 @@ const Clipbench = {
 			return Clipbench.types.outliner;
 		}
 	},
+	async getPasteType() {
+		let p = Prop.active_panel;
+		if (getFocusedTextInput()) {
+			return Clipbench.types.text;
+		}
+		if (Painter.selection.canvas && Toolbox.selected.id == 'copy_paste_tool') {
+			return Clipbench.types.texture_selection;
+		}
+		if (display_mode) {
+			return Clipbench.types.display_slot
+		}
+		if (Animator.open && Timeline.animators.length && ['keyframe', 'timeline', 'preview'].includes(p)) {
+			return Clipbench.types.keyframe
+		}
+		if (Modes.edit && p == 'preview') {
+			let options = [];
+			if (Clipbench.elements.length || Clipbench.group) {
+				options.push(Clipbench.types.outliner);
+			}
+			if (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length && Clipbench.vertices) {
+				options.push(Clipbench.types.mesh_selection);
+			}
+			if (UVEditor.getMappableElements().length && Clipbench.faces && Object.keys(Clipbench.faces).length) {
+				options.push(Clipbench.types.face);
+			}
+			if (options.length > 1) {
+				return await new Promise((resolve, reject) => {
+					new Menu(options.map(option => {
+						return {
+							id: option,
+							name: tl(`menu.paste.${option}`),
+							click() {
+								resolve(option);
+							}
+						}
+					})).show('mouse');
+				})
+			} else {
+				return options[0]
+			}
+		}
+		if (p == 'uv' && Modes.edit) {
+			return Clipbench.types.face;
+		}
+		if (p == 'textures' && Texture.selected) {
+			return Clipbench.types.texture;
+		}
+		if (p == 'outliner' && Modes.edit) {
+			return Clipbench.types.outliner;
+		}
+	},
 	copy(event, cut) {
 		let copy_type = Clipbench.getCopyType(1);
 		Clipbench.last_copied = copy_type;
@@ -68,6 +119,7 @@ const Clipbench = {
 				UVEditor.copy(event);
 				break;
 			case 'mesh_selection':
+				UVEditor.copy(event);
 				Clipbench.setMeshSelection(Mesh.selected[0], event);
 				break;
 			case 'texture':
@@ -90,8 +142,8 @@ const Clipbench = {
 			}
 		}
 	},
-	paste(event) {
-		switch (Clipbench.getCopyType(2)) {
+	async paste(event) {
+		switch (await Clipbench.getPasteType()) {
 			case 'text':
 				Clipbench.setText(window.getSelection()+'');
 				break;
