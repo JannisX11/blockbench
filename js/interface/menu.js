@@ -312,6 +312,7 @@ class Menu {
 		if (offset_left > window.innerWidth - el_width) {
 			offset_left -= el_width
 			if (position && position.clientWidth) offset_left += position.clientWidth;
+			if (offset_left < 0) offset_left = 0;
 		}
 		if (offset_top  > window_height - el_height ) {
 			offset_top -= el_height;

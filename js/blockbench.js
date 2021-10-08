@@ -148,6 +148,7 @@ function updateSelection(options = {}) {
 
 	BarItems.cube_counter.update();
 	updateNslideValues();
+	Interface.status_bar.vue.updateSelectionInfo();
 	if (settings.highlight_cubes.value || (Mesh.all[0])) updateCubeHighlights();
 	Canvas.updatePivotMarker();
 	Transformer.updateSelection();

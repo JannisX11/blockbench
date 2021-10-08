@@ -920,6 +920,9 @@
 		bottom: 0;
 		left: 0;
 	}
+	#status_bar .status_selection_info {
+		color: var(--color-subtle_text);
+	}
 	#status_bar .sidebar_toggle_button {
 		cursor: pointer;
 		padding: 2px;

@@ -153,7 +153,7 @@ class Texture {
 		var size_control = {};
 
 		this.img.onload = function() {
-			if (!this.src) return;
+			if (!this.src || Texture.all.indexOf(scope) == -1) return;
 			this.tex.needsUpdate = true;
 			scope.width = img.naturalWidth;
 			scope.height = img.naturalHeight;
@@ -523,7 +523,16 @@ class Texture {
 			if (eventType == 'change') {
 				if (timeout) clearTimeout(timeout)
 				timeout = setTimeout(() => {
-					scope.reloadTexture();
+					if (Texture.all.includes(scope)) {
+						scope.reloadTexture();
+					} else {
+						let project = ModelProject.find(project => project.textures.includes(scope));
+						if (project) {
+							project.whenNextOpen(() => {
+								scope.reloadTexture();
+							})
+						}
+					}
 				}, 60)
 			}
 		})

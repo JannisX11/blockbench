@@ -121,7 +121,7 @@ var codec = new Codec('obj', {
 						switch (key) {
 							case 'north': 	vertices = [2, 5, 7, 4]; break;
 							case 'east': 	vertices = [1, 2, 4, 3]; break;
-							case 'south': 	vertices = [1, 6, 8, 3]; break;
+							case 'south': 	vertices = [6, 1, 3, 8]; break;
 							case 'west': 	vertices = [5, 6, 8, 7]; break;
 							case 'up': 		vertices = [5, 2, 1, 6]; break;
 							case 'down': 	vertices = [8, 3, 4, 7]; break;

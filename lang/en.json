@@ -145,6 +145,9 @@
 	"status_bar.recording_gif":"Recording GIF",
 	"status_bar.processing_gif":"Processing GIF",
 	"status_bar.toggle_sidebar": "Toggle Sidebar",
+	"status_bar.selection.faces": "%0 Faces",
+	"status_bar.selection.lines": "%0 Lines",
+	"status_bar.selection.vertices": "%0 Vertices",
 
 	"message.canvas_limit_error.title": "Canvas Limit Error",
 	"message.canvas_limit_error.message": "The action could not be performed correctly because the format limits the canvas to 48 units. Shift the pivot point to prevent this.",

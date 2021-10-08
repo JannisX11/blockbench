@@ -794,6 +794,7 @@ onVueSetup(function() {
 			Prop,
 			isMobile: Blockbench.isMobile,
 			streamer_mode: settings.streamer_mode.value,
+			selection_info: '',
 			Format: null
 		},
 		methods: {
@@ -802,6 +803,46 @@ onVueSetup(function() {
 			},
 			toggleStreamerMode() {
 				ActionControl.select(`setting: ${tl('settings.streamer_mode')}`);
+			},
+			updateSelectionInfo() {
+				let selection_mode = BarItems.selection_mode.value;
+				if (Modes.edit && Mesh.selected.length && selection_mode !== 'object') {
+					if (selection_mode == 'face') {
+						let total = 0, selected = 0;
+						Mesh.selected.forEach(mesh => total += Object.keys(mesh.faces).length);
+						Mesh.selected.forEach(mesh => mesh.forAllFaces(face => selected += (face.isSelected() ? 1 : 0)));
+						this.selection_info = tl('status_bar.selection.faces', `${selected} / ${total}`);
+					}
+					if (selection_mode == 'line') {
+						let total = 0, selected = 0;
+						Mesh.selected.forEach(mesh => {
+							let selected_vertices = mesh.getSelectedVertices();
+							let processed_lines = [];
+							mesh.forAllFaces(face => {
+								let vertices = face.getSortedVertices();
+								vertices.forEach((vkey, i) => {
+									let vkey2 = vertices[i+1] || vertices[0];
+									if (!processed_lines.find(processed => processed.includes(vkey) && processed.includes(vkey2))) {
+										processed_lines.push([vkey, vkey2]);
+										total += 1;
+										if (selected_vertices.includes(vkey) && selected_vertices.includes(vkey2)) {
+											selected += 1;
+										}
+									}
+								})
+							})
+						})
+						this.selection_info = tl('status_bar.selection.lines', `${selected} / ${total}`);
+					}
+					if (selection_mode == 'vertex') {
+						let total = 0, selected = 0;
+						Mesh.selected.forEach(mesh => total += Object.keys(mesh.vertices).length);
+						Mesh.selected.forEach(mesh => selected += mesh.getSelectedVertices().length);
+						this.selection_info = tl('status_bar.selection.vertices', `${selected} / ${total}`);
+					}
+				} else {
+					this.selection_info = '';
+				}
 			},
 			toggleSidebar: Interface.toggleSidebar,
 			getIconNode: Blockbench.getIconNode
@@ -827,6 +868,7 @@ onVueSetup(function() {
 					{{ Prop.file_name }}
 				</div>
 				<div id="status_message" class="hidden"></div>
+				<div class="status_selection_info">{{ selection_info }}</div>
 				<div class="f_right">
 					{{ Prop.fps }} FPS
 				</div>

@@ -2278,6 +2278,7 @@ Interface.definePanels(function() {
 							elements.forEach(element => {
 								this.selected_faces.forEach(key => {
 									let face = element.faces[key];
+									if (!face) return;
 									face.vertices.forEach(vertex_key => {
 										if (this.selected_vertices[element.uuid] && this.selected_vertices[element.uuid].includes(vertex_key)) {
 											x = Math.clamp(x, -face.uv[vertex_key][0], Project.texture_width - face.uv[vertex_key][0]);

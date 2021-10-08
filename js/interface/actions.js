@@ -2072,6 +2072,17 @@ const BARS = {
 				'lock_motion_trail'
 			]
 		})
+		if (Blockbench.isMobile) {
+			[Toolbars.element_position,
+				Toolbars.element_size,
+				Toolbars.element_origin,
+				Toolbars.element_rotation
+			].forEach(toolbar => {
+				Toolbars.main_tools.children.forEach(child => {
+					toolbar.add(child);
+				})
+			})
+		}
 		Blockbench.onUpdateTo('3.7', () => {
 			Toolbars.main_tools.add(BarItems.lock_motion_trail, -1);
 		})
