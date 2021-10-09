@@ -21,7 +21,6 @@ class NullObject extends OutlinerElement {
 			NullObject.properties[key].merge(this, object)
 		}
 		this.sanitizeName();
-		Merge.boolean(this, object, 'locked')
 		//Merge.boolean(this, object, 'export');
 		return this;
 	}
@@ -38,7 +37,6 @@ class NullObject extends OutlinerElement {
 			NullObject.properties[key].copy(this, save)
 		}
 		//save.export = this.export ? undefined : false;
-		save.locked = this.locked;
 		save.uuid = this.uuid;
 		save.type = 'null_object';
 		return save;
@@ -103,6 +101,7 @@ class NullObject extends OutlinerElement {
 	new Property(NullObject, 'vector', 'from')
 	new Property(NullObject, 'boolean', 'ik_enabled', {condition: () => Format.animation_mode});
 	new Property(NullObject, 'number', 'ik_chain_length', {condition: () => Format.animation_mode});
+	new Property(NullObject, 'boolean', 'locked');
 	
 	OutlinerElement.registerType(NullObject, 'null_object');
 

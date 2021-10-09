@@ -96,7 +96,6 @@ class Cube extends OutlinerElement {
 		Merge.number(this, object, 'autouv')
 		Merge.number(this, object, 'color')
 		Merge.boolean(this, object, 'export')
-		Merge.boolean(this, object, 'locked')
 		Merge.boolean(this, object, 'visibility')
 		if (object.from) {
 			Merge.number(this.from, object.from, 0)
@@ -235,7 +234,6 @@ class Cube extends OutlinerElement {
 		el.autouv = this.autouv;
 		el.color = this.color;
 
-		el.locked = this.locked;
 		if (!this.visibility) el.visibility = false;
 		if (!this.export) el.export = false;
 		if (!this.shade) el.shade = false;
@@ -777,8 +775,9 @@ class Cube extends OutlinerElement {
 		Outliner.buttons.visibility,
 	];
 
-new Property(Cube, 'string', 'name', {default: 'cube'})
-new Property(Cube, 'boolean', 'rescale')
+new Property(Cube, 'string', 'name', {default: 'cube'});
+new Property(Cube, 'boolean', 'rescale');
+new Property(Cube, 'boolean', 'locked');
 
 OutlinerElement.registerType(Cube, 'cube');
 

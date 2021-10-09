@@ -19,7 +19,6 @@ class Locator extends OutlinerElement {
 			Locator.properties[key].merge(this, object)
 		}
 		this.sanitizeName();
-		Merge.boolean(this, object, 'locked')
 		Merge.boolean(this, object, 'export');
 		return this;
 	}
@@ -36,7 +35,6 @@ class Locator extends OutlinerElement {
 			Locator.properties[key].copy(this, save)
 		}
 		save.export = this.export ? undefined : false;
-		save.locked = this.locked;
 		save.uuid = this.uuid;
 		save.type = 'locator';
 		return save;
@@ -120,6 +118,7 @@ new Property(Locator, 'string', 'name', {default: 'locator'})
 new Property(Locator, 'vector', 'from')
 new Property(Locator, 'vector', 'rotation')
 new Property(Locator, 'boolean', 'ignore_inherited_scale')
+new Property(NullObject, 'boolean', 'locked');
 
 OutlinerElement.registerType(Locator, 'locator');
 

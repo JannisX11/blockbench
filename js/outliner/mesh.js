@@ -569,6 +569,7 @@ new Property(Mesh, 'number', 'color', {default: Math.floor(Math.random()*8)});
 new Property(Mesh, 'vector', 'origin');
 new Property(Mesh, 'vector', 'rotation');
 new Property(Mesh, 'boolean', 'visibility', {default: true});
+new Property(Mesh, 'boolean', 'locked');
 
 OutlinerElement.registerType(Mesh, 'mesh');
 

@@ -107,6 +107,7 @@ new Property(TextureMesh, 'vector', 'local_pivot');
 new Property(TextureMesh, 'vector', 'rotation');
 new Property(TextureMesh, 'vector', 'scale', {default: [1, 1, 1]});
 new Property(TextureMesh, 'boolean', 'visibility', {default: true});
+new Property(TextureMesh, 'boolean', 'locked');
 
 OutlinerElement.registerType(TextureMesh, 'texture_mesh');
 
