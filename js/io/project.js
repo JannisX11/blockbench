@@ -101,63 +101,6 @@ class ModelProject {
 	getDisplayName() {
 		return this.name || this.geometry_name || this.format.name;
 	}
-	reset() {
-		return;
-		//if (isApp) updateRecentProjectThumbnail();
-
-		//Blockbench.dispatchEvent('reset_project');
-		
-		//if (isApp) BedrockEntityManager.reset();
-
-		//if (Toolbox.selected.id !== 'move_tool') BarItems.move_tool.select();
-	
-		Screencam.stopTimelapse();
-	
-		//Format = 0;
-		/*
-		for (var uuid in OutlinerNode.uuids) {
-			delete OutlinerNode.uuids[uuid];
-		}
-		Outliner.elements.empty();
-		Outliner.root.purge();
-		for (var key in Canvas.materials) {
-			delete Canvas.materials[key];
-		}
-		for (var key in Project.nodes_3d) {
-			delete Project.nodes_3d[key];
-		}*/
-		//selected.empty();
-		//Group.all.empty();
-		//Group.selected = undefined;
-		//Cube.all.empty();
-		//Cube.selected.empty();
-		//Locator.all.empty();
-		//Locator.selected.empty();
-		//Texture.all.empty();
-		//Texture.selected = undefined;
-	
-		//for (var key in ModelProject.properties) {
-		//	ModelProject.properties[key].reset(this)
-		//}
-		//this.texture_width = this.texture_height = 16;
-		//this.overrides = null;
-	
-		//Blockbench.display_settings = display = {};
-		//Project.save_path = Project.export_path = Project.name = '';
-		//Project.saved = true;
-		//Canvas.updateAll();
-		//Outliner.vue.$forceUpdate();
-		//Interface.Panels.textures.inside_vue.$forceUpdate();
-		//Undo.history.empty();
-		//Undo.index = 0;
-		//Undo.current_save = null;
-		//Painter.current = {};
-		//Animator.animations.purge();
-		//Timeline.animators.purge();
-		//Animation.selected = undefined;
-		//delete Animator.motion_trail_lock;
-		//$('#var_placeholder_area').val('');
-	}
 	openSettings() {
 		if (this.selected) BarItems.project_window.click();
 	}
@@ -225,6 +168,7 @@ class ModelProject {
 				preview.controls.target.fromArray(data.target);
 				preview.setProjectionMode(data.orthographic);
 				if (data.zoom) preview.camOrtho.zoom = data.zoom;
+				if (data.angle) preview.setLockedAngle(data.angle);
 			} else if (preview.default_angle !== undefined) {
 				setTimeout(() => preview.loadAnglePreset(preview.default_angle), 0);
 			}
@@ -262,6 +206,7 @@ class ModelProject {
 				target: preview.controls.target.toArray(),
 				orthographic: preview.isOrtho,
 				zoom: preview.camOrtho.zoom,
+				angle: preview.angle,
 			}
 		})
 

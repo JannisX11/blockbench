@@ -603,7 +603,7 @@
 		position: relative;
 		height: 108px;
 		width: 100%;
-		background-color: var(--color-accent);
+		background-color: var(--color-frame);
 		border: 2px solid var(--color-frame);
 		border-top: none;
 	}

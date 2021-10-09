@@ -4,6 +4,7 @@ const url = require('url')
 const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const {getColorHexRGB} = require('electron-color-picker')
+require('@electron/remote/main').initialize()
 
 let orig_win;
 let all_wins = [];
@@ -57,6 +58,9 @@ function createWindow(second_instance) {
 	})
 	if (!orig_win) orig_win = win;
 	all_wins.push(win);
+
+	require('@electron/remote/main').enable(win.webContents)
+
 	var index_path = path.join(__dirname, 'index.html')
 	if (process.platform === 'darwin') {
 

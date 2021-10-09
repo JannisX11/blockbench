@@ -493,11 +493,6 @@ const UVEditor = {
 		this.getMappableElements().forEach(cb);
 	},
 	//Load
-	loadSelectedFace() {
-		this.face = $('#uv_panel_sides input:checked').attr('id').replace('_radio', '')
-		this.loadData()
-		return false;
-	},
 	loadData() {
 		this.vue.updateTexture();
 		this.displaySliders();
@@ -667,7 +662,7 @@ const UVEditor = {
 			scope.getFaces(obj, event).forEach(function(side) {
 				obj.faces[side].uv = [0, 0, scope.getResolution(0, obj.faces[side]), scope.getResolution(1, obj.faces[side])]
 			})
-			obj.autouv = 0
+			obj.autouv = 0;
 			Canvas.updateUV(obj)
 		})
 		this.message('uv_editor.maximized')
@@ -1028,11 +1023,15 @@ const UVEditor = {
 		this.displayTools()
 	},
 	rotate(mesh_angle) {
-		var scope = this;
-		var value = parseInt(BarItems.uv_rotation.get())
+		var value = parseInt(BarItems.uv_rotation.get());
+		if (Cube.selected[0] && Cube.selected[0].faces[this.selected_faces] && Math.abs(Cube.selected[0].faces[this.selected_faces].rotation - value) % 180 == 90) {
+			UVEditor.turnMapping();
+		}
 		this.forCubes(obj => {
-			obj.faces[scope.face].rotation = value
-			Canvas.updateUV(obj)
+			this.selected_faces.forEach(face => {
+				obj.faces[face].rotation = value;
+			})
+			Canvas.updateUV(obj);
 		})
 		Mesh.selected.forEach(mesh => {
 			mesh.forAllFaces((face, fkey) => {
@@ -1374,7 +1373,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 		},
 		onChange: function(slider) {
-			//UVEditor.forSelection('rotate')
+			UVEditor.rotate();
 		},
 		onAfter: () => {
 			Undo.finishEdit('Rotate UV')

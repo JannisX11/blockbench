@@ -1,4 +1,4 @@
-const electron = require('electron').remote;
+const electron = require('@electron/remote');
 const {clipboard, shell, nativeImage, ipcRenderer, dialog} = require('electron');
 const app = electron.app;
 const fs = require('fs');

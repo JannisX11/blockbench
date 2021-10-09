@@ -261,7 +261,7 @@ class Preview {
 				error_element.innerHTML = error_element.innerHTML +
 					'\nAlternatively, try to <a href onclick="restartWithoutHardwareAcceleration()">Restart without Hardware Acceleration.</a>'
 				
-				var {BrowserWindow} = require('electron').remote
+				var {BrowserWindow} = require('@electron/remote');
 				new BrowserWindow({
 					icon:'icon.ico',
 					backgroundColor: '#ffffff',
