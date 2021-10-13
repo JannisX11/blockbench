@@ -386,11 +386,16 @@ class Menu {
 	}
 	removeAction(path) {
 		var scope = this;
-		if (path === undefined) path = ''
-		path = path.split('.')
+		if (path instanceof Action) {
+			let action = path;
+			this.structure.remove(action);
+			this.structure.remove(action.id);
+			action.menus.remove(this);
+		}
+		if (path === undefined) path = '';
+		if (typeof path == 'string') path = path.split('.');
 
 		function traverse(arr, layer) {
-			var result;
 			if (!isNaN(parseInt(path[layer]))) {
 				result = arr[parseInt(path[layer])]
 

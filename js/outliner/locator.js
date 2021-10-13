@@ -118,7 +118,7 @@ new Property(Locator, 'string', 'name', {default: 'locator'})
 new Property(Locator, 'vector', 'from')
 new Property(Locator, 'vector', 'rotation')
 new Property(Locator, 'boolean', 'ignore_inherited_scale')
-new Property(NullObject, 'boolean', 'locked');
+new Property(Locator, 'boolean', 'locked');
 
 OutlinerElement.registerType(Locator, 'locator');
 

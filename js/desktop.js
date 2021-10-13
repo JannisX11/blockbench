@@ -424,6 +424,7 @@ ipcRenderer.on('update-available', (event, arg) => {
 		})
 		ipcRenderer.on('update-downloaded', (event) => {
 			action.setName(tl('message.update_after_restart'));
+			MenuBar.menus.help.removeAction(action);
 			icon_node.textContent = 'done';
 			icon_node.classList.remove('spinning');
 			icon_node.style.color = '#5ef570';

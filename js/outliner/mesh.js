@@ -1282,7 +1282,6 @@ BARS.defineActions(function() {
 							mesh.addFaces(new_face);
 							
 							if (Reusable.vec1.fromArray(reference_face.getNormal(true)).angleTo(Reusable.vec2.fromArray(new_face)) > Math.PI/2) {
-								console.log(Reusable.vec1.fromArray(reference_face.getNormal(true)).angleTo(Reusable.vec2.fromArray(new_face)))
 								new_face.invert();
 							}
 						}
@@ -1611,7 +1610,6 @@ BARS.defineActions(function() {
 					affected_faces = selected_faces.filter(face => {
 						return face.vertices.includes(vkey)
 					})
-					console.log(affected_faces)
 					if (affected_faces.length == 0) return;
 					let inset = [0, 0, 0];
 					if (affected_faces.length == 3 || affected_faces.length == 1) {
@@ -1846,22 +1844,28 @@ BARS.defineActions(function() {
 				let faces = Object.keys(mesh.faces);
 				for (let fkey in mesh.faces) {
 					let face = mesh.faces[fkey];
-					let side_vertices = faces.includes(fkey) && face.vertices.filter(vkey => selected_vertices.includes(vkey));
+					let sorted_vertices = face.getSortedVertices();
+					let side_vertices = faces.includes(fkey) && sorted_vertices.filter(vkey => selected_vertices.includes(vkey));
 					if (side_vertices && side_vertices.length == 2) {
+						if (side_vertices[0] == sorted_vertices[0] && side_vertices[1] == sorted_vertices.last()) {
+							side_vertices.reverse();
+						}
 						let original_face_normal = face.getNormal(true);
-						let sorted_vertices = face.getSortedVertices();
 						let index_difference = sorted_vertices.indexOf(side_vertices[1]) - sorted_vertices.indexOf(side_vertices[0]);
 						if (index_difference == -1 || index_difference > 2) side_vertices.reverse();
 						let other_face = face.getAdjacentFace(sorted_vertices.indexOf(side_vertices[0]));
 						face.vertices.remove(...side_vertices);
+						console.log({face, side_vertices, fkey, mesh, other_face});
 						delete face.uv[side_vertices[0]];
 						delete face.uv[side_vertices[1]];
-						let new_vertices = other_face.face.getSortedVertices().filter(vkey => !side_vertices.includes(vkey));
-						face.vertices.push(...new_vertices);
-						new_vertices.forEach(vkey => {
-							face.uv[vkey] = other_face.face.uv[vkey];
-						})
-						delete mesh.faces[other_face.key];
+						if (other_face) {
+							let new_vertices = other_face.face.getSortedVertices().filter(vkey => !side_vertices.includes(vkey));
+							face.vertices.push(...new_vertices);
+							new_vertices.forEach(vkey => {
+								face.uv[vkey] = other_face.face.uv[vkey];
+							})
+							delete mesh.faces[other_face.key];
+						}
 						faces.remove(fkey);
 						if (Reusable.vec1.fromArray(face.getNormal(true)).angleTo(Reusable.vec2.fromArray(original_face_normal)) > Math.PI/2) {
 							face.invert();

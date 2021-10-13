@@ -11,6 +11,11 @@ const Clipbench = {
 		outliner: 'outliner',
 		texture_selection: 'texture_selection',
 	},
+	type_icons: {
+		face: 'aspect_ratio',
+		mesh_selection: 'fa-gem',
+		outliner: 'fas.fa-cube',
+	},
 	getCopyType(mode, check) {
 		// mode: 1 = copy, 2 = paste
 		let p = Prop.active_panel;
@@ -77,6 +82,7 @@ const Clipbench = {
 						return {
 							id: option,
 							name: tl(`menu.paste.${option}`),
+							icon: Clipbench.type_icons[option],
 							click() {
 								resolve(option);
 							}

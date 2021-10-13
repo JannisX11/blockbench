@@ -127,10 +127,10 @@ var codec = new Codec('obj', {
 							case 'down': 	vertices = [8, 3, 4, 7]; break;
 						}
 						output.push('f '+[
-							`${vertices[0] + indexVertex}/${i*4 + 1 + indexVertexUvs}/${i+1+indexNormals}`,
-							`${vertices[1] + indexVertex}/${i*4 + 2 + indexVertexUvs}/${i+1+indexNormals}`,
-							`${vertices[2] + indexVertex}/${i*4 + 3 + indexVertexUvs}/${i+1+indexNormals}`,
 							`${vertices[3] + indexVertex}/${i*4 + 4 + indexVertexUvs}/${i+1+indexNormals}`,
+							`${vertices[2] + indexVertex}/${i*4 + 3 + indexVertexUvs}/${i+1+indexNormals}`,
+							`${vertices[1] + indexVertex}/${i*4 + 2 + indexVertexUvs}/${i+1+indexNormals}`,
+							`${vertices[0] + indexVertex}/${i*4 + 1 + indexVertexUvs}/${i+1+indexNormals}`,
 						].join(' '));
 						i++;
 					}
