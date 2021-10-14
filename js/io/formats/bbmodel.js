@@ -1,6 +1,6 @@
 (function() {
 
-let FORMATV = '3.6';
+let FORMATV = '4.0';
 
 function processHeader(model) {
 	if (!model.meta) {
@@ -59,12 +59,13 @@ var codec = new Codec('project', {
 		type: 'json',
 		extensions: ['bbmodel']
 	},
-	load(model, file) {
-		newProject(model.meta.type||'free');
+	load(model, file, add) {
+
+		newProject(Formats[model.meta.model_format] || Formats.free);
 		var name = pathToName(file.path, true);
 		if (file.path && isApp && !file.no_file ) {
-			ModelMeta.save_path = file.path;
-			ModelMeta.name = pathToName(name, false);
+			Project.save_path = file.path;
+			Project.name = pathToName(name, false);
 			addRecentProject({
 				name,
 				path: file.path,
@@ -83,7 +84,7 @@ var codec = new Codec('project', {
 			content: isApp ? null : this.compile(),
 			custom_writer: isApp ? (content, path) => {
 				// Path needs to be changed before compiling for relative resource paths
-				ModelMeta.save_path = path;
+				Project.save_path = path;
 				content = this.compile();
 				this.write(content, path);
 			} : null,
@@ -123,11 +124,11 @@ var codec = new Codec('project', {
 		model.outliner = compileGroups(true)
 
 		model.textures = [];
-		textures.forEach(tex => {
+		Texture.all.forEach(tex => {
 			var t = tex.getUndoCopy();
 			delete t.selected;
-			if (isApp && ModelMeta.save_path && tex.path) {
-				let relative = PathModule.relative(ModelMeta.save_path, tex.path);
+			if (isApp && Project.save_path && tex.path) {
+				let relative = PathModule.relative(Project.save_path, tex.path);
 				t.relative_path = relative.replace(/\\/g, '/');
 			}
 			if (options.bitmaps != false) {
@@ -147,13 +148,13 @@ var codec = new Codec('project', {
 			model.animation_variable_placeholders = Interface.Panels.variable_placeholders.inside_vue._data.text;
 		}
 
-		if (Format.display_mode && Object.keys(display).length >= 1) {
+		if (Format.display_mode && Object.keys(Project.display_settings).length >= 1) {
 			var new_display = {}
 			var entries = 0;
 			for (var i in DisplayMode.slots) {
 				var key = DisplayMode.slots[i]
-				if (DisplayMode.slots.hasOwnProperty(i) && display[key] && display[key].export) {
-					new_display[key] = display[key].export()
+				if (DisplayMode.slots.hasOwnProperty(i) && Project.display_settings[key] && Project.display_settings[key].export) {
+					new_display[key] = Project.display_settings[key].export()
 					entries++;
 				}
 			}
@@ -214,6 +215,12 @@ var codec = new Codec('project', {
 		processCompatibility(model);
 
 		if (model.meta.model_format) {
+			if (!Formats[model.meta.model_format]) {
+				Blockbench.showMessageBox({
+					translateKey: 'invalid_format',
+					message: tl('message.invalid_format.message', [model.meta.model_format])
+				})
+			}
 			var format = Formats[model.meta.model_format]||Formats.free;
 			format.select()
 		}
@@ -240,8 +247,8 @@ var codec = new Codec('project', {
 		if (model.textures) {
 			model.textures.forEach(tex => {
 				var tex_copy = new Texture(tex, tex.uuid).add(false);
-				if (isApp && tex.relative_path && ModelMeta.save_path) {
-					let resolved_path = PathModule.resolve(ModelMeta.save_path, tex.relative_path);
+				if (isApp && tex.relative_path && Project.save_path) {
+					let resolved_path = PathModule.resolve(Project.save_path, tex.relative_path);
 					if (fs.existsSync(resolved_path)) {
 						tex_copy.fromPath(resolved_path)
 						return;
@@ -263,7 +270,7 @@ var codec = new Codec('project', {
 				var copy = OutlinerElement.fromSave(element, true)
 				for (var face in copy.faces) {
 					if (!Format.single_texture && element.faces) {
-						var texture = element.faces[face].texture !== null && textures[element.faces[face].texture]
+						var texture = element.faces[face].texture !== null && Texture.all[element.faces[face].texture]
 						if (texture) {
 							copy.faces[face].texture = texture.uuid
 						}
@@ -331,7 +338,7 @@ var codec = new Codec('project', {
 
 		Blockbench.dispatchEvent('merge_project', {model, path});
 		this.dispatchEvent('merge', {model})
-		Prop.added_models++;
+		Project.added_models++;
 
 		let new_elements = [];
 		let new_textures = [];
@@ -366,8 +373,8 @@ var codec = new Codec('project', {
 				tex_copy.fromPath(tex.path)
 				return tex_copy;
 			}
-			if (isApp && tex.relative_path && ModelMeta.save_path) {
-				let resolved_path = PathModule.resolve(ModelMeta.save_path, tex.relative_path);
+			if (isApp && tex.relative_path && Project.save_path) {
+				let resolved_path = PathModule.resolve(Project.save_path, tex.relative_path);
 				if (fs.existsSync(resolved_path)) {
 					tex_copy.fromPath(resolved_path)
 					return tex_copy;
@@ -387,6 +394,7 @@ var codec = new Codec('project', {
 			let default_texture = new_textures[0] || Texture.getDefault();
 			let format = Formats[model.meta.model_format] || Format
 			model.elements.forEach(function(element) {
+				if (!OutlinerElement.isTypePermitted(element.type)) return;
 
 				var copy = OutlinerElement.fromSave(element, true)
 				if (copy instanceof Cube) {
@@ -404,6 +412,21 @@ var codec = new Codec('project', {
 							copy.faces[face].uv[2] *= Project.texture_width / width;
 							copy.faces[face].uv[1] *= Project.texture_height / height;
 							copy.faces[face].uv[3] *= Project.texture_height / height;
+						}
+					}
+				} else if (copy instanceof Mesh) {
+					for (let fkey in copy.faces) {
+						if (!format.single_texture && element.faces) {
+							var texture = element.faces[fkey].texture !== null && new_textures[element.faces[fkey].texture]
+							if (texture) {
+								copy.faces[fkey].texture = texture.uuid
+							}
+						} else if (default_texture && copy.faces && copy.faces[fkey].texture !== null) {
+							copy.faces[fkey].texture = default_texture.uuid
+						}
+						for (let vkey in copy.faces[fkey].uv) {
+							copy.faces[fkey].uv[vkey][0] *= Project.texture_width / width;
+							copy.faces[fkey].uv[vkey][1] *= Project.texture_height / height;
 						}
 					}
 				}
@@ -451,8 +474,8 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 's', ctrl: true, alt: true}),
 		click: function () {
 			saveTextures(true)
-			if (isApp && ModelMeta.save_path) {
-				codec.write(codec.compile(), ModelMeta.save_path);
+			if (isApp && Project.save_path) {
+				codec.write(codec.compile(), Project.save_path);
 			} else {
 				codec.export()
 			}

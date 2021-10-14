@@ -90,9 +90,6 @@ setInterval(function() {
 	framespersecond = 0;
 }, 1000)
 
-main_uv = new UVEditor('main_uv', false, true)
-main_uv.setToMainSlot()
-
 onVueSetup.funcs.forEach((func) => {
 	if (typeof func === 'function') {
 		func()
@@ -112,8 +109,6 @@ if (isApp) {
 
 localStorage.setItem('last_version', Blockbench.version);
 
-Modes.options.start.select();
-
 (function() {
 	// Promise.any workaround
 	let proceeded = false;
@@ -130,6 +125,8 @@ Modes.options.start.select();
 	setTimeout(proceed, 1200);
 })()
 
-document.getElementById('page_wrapper').classList.remove('hidden')
+setStartScreen(true);
+
+document.getElementById('page_wrapper').classList.remove('invisible');
 
 Blockbench.setup_successful = true;

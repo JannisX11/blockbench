@@ -19,8 +19,8 @@
 	    color: var(--color-accent);
 	}
 	::-webkit-scrollbar {
-		width: 6px;
-		height: 6px;
+		width: 8px;
+		height: 8px;
 	}
 
 	::-webkit-scrollbar-track {
@@ -32,6 +32,7 @@
 	 
 	::-webkit-scrollbar-thumb {
 		background: var(--color-selected);
+		border-radius: 4px;
 	}
 	 
 	::-webkit-scrollbar-thumb:hover {
@@ -303,8 +304,10 @@
 		--color-text: #cacad4;
 		--color-light: #f4f3ff;
 		--color-accent_text: #000006;
+		--color-bright_ui_text: #000006;
 		--color-subtle_text: #848891;
 		--color-bright_ui: #f4f3ff;
+		--color-bright_border: var(--color-text);
 		--color-grid: #495061;
 		--color-checkerboard: #1c2026;
 
@@ -556,6 +559,7 @@
 	}
 
 	div.nslide {
+		position: relative;
 		height: 28px;
 		width: 100%;
 		padding: 3px;
@@ -566,18 +570,25 @@
 		outline: none;
 		background-color: var(--color-button);
 	}
-	.tool.nslide_tool .nslide_overlay {
-		width: 100%;
-		position: relative;
-		pointer-events: none;
-	}
-	.color_corner {
+	.tool.nslide_tool.has_percentage_bar .nslide::after {
+		content: "";
 		position: absolute;
+		pointer-events: none;
+		bottom: 0;
+		left: 0;
+		height: 3px;
+		width: calc(var(--percentage) * 1%);
+		background-color: var(--color-accent);
+	}
+	.tool.nslide_tool.is_colored .nslide::before {
+		content: "";
+		position: absolute;
+		pointer-events: none;
 		top: 0;
 		right: 0;
 		border-width: 4px;
 		border-style: solid;
-		border-color: transparent;
+		border-color: var(--corner-color);
 		border-bottom-color: transparent !important;
 		border-left-color: transparent !important;
 	}

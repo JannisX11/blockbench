@@ -1,14 +1,11 @@
-
-class Face {
+class CubeFace extends Face {
 	constructor(direction, data, cube) {
+		super();
+		this.texture = false;
 		this.direction = direction || 'north';
 		this.cube = cube;
-		this.reset()
 		this.uv = [0, 0, canvasGridSize(), canvasGridSize()]
-		
-		for (var key in Face.properties) {
-			Face.properties[key].reset(this);
-		}
+		this.rotation = 0;
 
 		if (data) {
 			this.extend(data)
@@ -25,18 +22,7 @@ class Face {
 		this.uv[3] = arr[1] + this.uv[1];
 	}
 	extend(data) {
-		for (var key in Face.properties) {
-			Face.properties[key].merge(this, data)
-		}
-		if (data.texture === null) {
-			this.texture = null;
-		} else if (data.texture === false) {
-			this.texture = false;
-		} else if (textures.includes(data.texture)) {
-			this.texture = data.texture.uuid;
-		} else if (typeof data.texture === 'string') {
-			Merge.string(this, data, 'texture')
-		}
+		super.extend(data);
 		if (data.uv) {
 			Merge.number(this.uv, data.uv, 0)
 			Merge.number(this.uv, data.uv, 1)
@@ -46,50 +32,18 @@ class Face {
 		return this;
 	}
 	reset() {
-		this.uv = [0, 0, 0, 0];
+		super.reset();
 		this.rotation = 0;
-		this.texture = false;
 		return this;
 	}
-	getTexture() {
-		if (Format.single_texture && this.texture !== null) {
-			return Texture.getDefault();
-		}
-		if (typeof this.texture === 'string') {
-			return textures.findInArray('uuid', this.texture)
-		} else {
-			return this.texture;
-		}
-	}
-	getSaveCopy() {
-		var copy = new oneLiner({
-			uv: this.uv,
-		})
-		for (var key in Face.properties) {
-			if (this[key] != Face.properties[key].default) Face.properties[key].copy(this, copy);
-		}
-		var tex = this.getTexture()
-		if (tex === null) {
-			copy.texture = null;
-		} else if (tex instanceof Texture) {
-			copy.texture = textures.indexOf(tex)
-		}
-		return copy;
-	}
-	getUndoCopy() {
-		var copy = new Face(this.direction, this);
-		delete copy.cube;
-		delete copy.direction;
-		return copy;
-	}
 }
-new Property(Face, 'number', 'rotation', {default: 0});
-new Property(Face, 'number', 'tint', {default: -1});
-new Property(Face, 'string', 'cullface', {merge_validation: (val) => (uv_dialog.allFaces.includes(val) || val == '')});
-new Property(Face, 'string', 'material_name');
-new Property(Face, 'boolean', 'enabled', {default: true});
+new Property(CubeFace, 'number', 'rotation', {default: 0});
+new Property(CubeFace, 'number', 'tint', {default: -1});
+new Property(CubeFace, 'string', 'cullface', )//{merge_validation: (val) => (UVEditor.cube_faces.includes(val) || val == '')});
+new Property(CubeFace, 'string', 'material_name');
+new Property(CubeFace, 'boolean', 'enabled', {default: true});
 
-Face.opposite = {
+CubeFace.opposite = {
 	north: 'south',
 	south: 'north',
 	east: 'west',
@@ -112,20 +66,19 @@ class Cube extends OutlinerElement {
 		this.rotation = [0, 0, 0];
 		this.origin = [0, 0, 0];
 		this.visibility = true;
-		this.autouv = 0
-		this.parent = 'root';
+		this.autouv = 0;
 
 		for (var key in Cube.properties) {
 			Cube.properties[key].reset(this);
 		}
 
 		this.faces = {
-			north: 	new Face('north', null, this),
-			east: 	new Face('east', null, this),
-			south: 	new Face('south', null, this),
-			west: 	new Face('west', null, this),
-			up: 	new Face('up', null, this),
-			down: 	new Face('down', null, this)
+			north: 	new CubeFace('north', null, this),
+			east: 	new CubeFace('east', null, this),
+			south: 	new CubeFace('south', null, this),
+			west: 	new CubeFace('west', null, this),
+			up: 	new CubeFace('up', null, this),
+			down: 	new CubeFace('down', null, this)
 		}
 		if (data && typeof data === 'object') {
 			this.extend(data)
@@ -143,7 +96,6 @@ class Cube extends OutlinerElement {
 		Merge.number(this, object, 'autouv')
 		Merge.number(this, object, 'color')
 		Merge.boolean(this, object, 'export')
-		Merge.boolean(this, object, 'locked')
 		Merge.boolean(this, object, 'visibility')
 		if (object.from) {
 			Merge.number(this.from, object.from, 0)
@@ -215,9 +167,6 @@ class Cube extends OutlinerElement {
 				}
 			}
 		}
-		if (!this.mesh || !this.mesh.parent) {
-			Canvas.addCube(this)
-		}
 		return this;
 	}
 	size(axis, floored) {
@@ -253,29 +202,7 @@ class Cube extends OutlinerElement {
 		return this.mesh;
 	}
 	get mesh() {
-		return Canvas.meshes[this.uuid];
-	}
-	get index() {
-		return elements.indexOf(this)
-	}
-	remove() {
-		super.remove();
-		if (this.visibility) {
-			var mesh = this.mesh
-			if (mesh) {
-				if (mesh.parent) {
-					mesh.parent.remove(mesh)
-				}
-				delete Canvas.meshes[this.uuid]
-				mesh.geometry.dispose()
-				if (mesh.outline && mesh.outline.geometry) mesh.outline.geometry.dispose()
-			}
-		}
-		delete Canvas.meshes[this.uuid]
-		if (Transformer.dragging) {
-			outlines.remove(outlines.getObjectByName(this.uuid+'_ghost_outline'))
-		}
-		delete this;
+		return Project.nodes_3d[this.uuid];
 	}
 	getUndoCopy(aspects = 0) {
 		var copy = new Cube(this)
@@ -295,7 +222,7 @@ class Cube extends OutlinerElement {
 		delete copy.parent;
 		return copy;
 	}
-	getSaveCopy() {
+	getSaveCopy(project) {
 		var el = {}
 		
 		for (var key in Cube.properties) {
@@ -307,7 +234,6 @@ class Cube extends OutlinerElement {
 		el.autouv = this.autouv;
 		el.color = this.color;
 
-		el.locked = this.locked;
 		if (!this.visibility) el.visibility = false;
 		if (!this.export) el.export = false;
 		if (!this.shade) el.shade = false;
@@ -317,7 +243,7 @@ class Cube extends OutlinerElement {
 		if (!this.uv_offset.allEqual(0)) el.uv_offset = this.uv_offset;
 		el.faces = {}
 		for (var face in this.faces) {
-			el.faces[face] = this.faces[face].getSaveCopy()
+			el.faces[face] = this.faces[face].getSaveCopy(project)
 		}
 		el.uuid = this.uuid
 		return el;
@@ -388,7 +314,7 @@ class Cube extends OutlinerElement {
 					this.faces.north.rotation= rotateUVFace(this.faces.north.rotation, 2)
 					this.faces.down.rotation = rotateUVFace(this.faces.down.rotation, 2)
 
-					var temp = new Face(true, this.faces.north)
+					var temp = new CubeFace(true, this.faces.north)
 					this.faces.north.extend(this.faces.down)
 					this.faces.down.extend(this.faces.south)
 					this.faces.south.extend(this.faces.up)
@@ -399,7 +325,7 @@ class Cube extends OutlinerElement {
 					this.faces.up.rotation= rotateUVFace(this.faces.up.rotation, 1)
 					this.faces.down.rotation = rotateUVFace(this.faces.down.rotation, 3)
 
-					var temp = new Face(true, this.faces.north)
+					var temp = new CubeFace(true, this.faces.north)
 					this.faces.north.extend(this.faces.west)
 					this.faces.west.extend(this.faces.south)
 					this.faces.south.extend(this.faces.east)
@@ -415,7 +341,7 @@ class Cube extends OutlinerElement {
 					this.faces.west.rotation = rotateUVFace(this.faces.west.rotation, 3)
 					this.faces.down.rotation = rotateUVFace(this.faces.down.rotation, 3)
 
-					var temp = new Face(true, this.faces.east)
+					var temp = new CubeFace(true, this.faces.east)
 					this.faces.east.extend(this.faces.down)
 					this.faces.down.extend(this.faces.west)
 					this.faces.west.extend(this.faces.up)
@@ -441,9 +367,10 @@ class Cube extends OutlinerElement {
 				}
 			}
 		}
-		Canvas.adaptObjectPosition(this)
-		Canvas.adaptObjectFaces(this)
-		Canvas.updateUV(this)
+		this.preview_controller.updateTransform(this);
+		this.preview_controller.updateGeometry(this);
+		this.preview_controller.updateFaces(this);
+		this.preview_controller.updateUV(this);
 		return this;
 	}
 	flip(axis, center, skipUV) {
@@ -482,7 +409,7 @@ class Cube extends OutlinerElement {
 				case 1: switchFaces = ['up', 'down']; break;
 				case 2: switchFaces = ['south', 'north']; break;
 			}
-			var x = new Face(switchFaces[1], this.faces[switchFaces[0]])
+			var x = new CubeFace(switchFaces[1], this.faces[switchFaces[0]])
 			this.faces[switchFaces[0]].extend(this.faces[switchFaces[1]])
 			this.faces[switchFaces[1]].extend(x)
 
@@ -506,33 +433,35 @@ class Cube extends OutlinerElement {
 				this.faces.down.uv = 	mirrorUVY('down')
 			}
 		}
-		Canvas.adaptObjectPosition(this)
-		Canvas.adaptObjectFaces(this)
-		Canvas.updateUV(this)
+		this.preview_controller.updateTransform(this);
+		this.preview_controller.updateGeometry(this);
+		this.preview_controller.updateFaces(this);
+		this.preview_controller.updateUV(this);
 	}
 	transferOrigin(origin, update = true) {
 		if (!this.mesh) return;
-		var q = new THREE.Quaternion().copy(this.mesh.quaternion)
-		var shift = new THREE.Vector3(
+		var q = Reusable.quat1.copy(this.mesh.quaternion)
+		var shift = Reusable.vec1.set(
 			this.origin[0] - origin[0],
 			this.origin[1] - origin[1],
 			this.origin[2] - origin[2],
 		)
-		var dq = new THREE.Vector3().copy(shift)
+		var dq = Reusable.vec2.copy(shift)
 		dq.applyQuaternion(q)
 		shift.sub(dq)
-		shift.applyQuaternion(q.inverse())
+		shift.applyQuaternion(q.invert())
 		
 		this.moveVector(shift, null, update)
 
 		this.origin.V3_set(origin);
 
-		Canvas.adaptObjectPosition(this)
+		this.preview_controller.updateTransform(this);
+		this.preview_controller.updateGeometry(this);
 		return this;
 	}
 	getWorldCenter() {
 		var m = this.mesh;
-		var pos = new THREE.Vector3(
+		var pos = Reusable.vec1.set(
 			this.from[0] + this.size(0)/2,
 			this.from[1] + this.size(1)/2,
 			this.from[2] + this.size(2)/2
@@ -542,16 +471,16 @@ class Cube extends OutlinerElement {
 		pos.z -= this.origin[2]
 
 		if (m) {
-			var r = m.getWorldQuaternion(new THREE.Quaternion())
+			var r = m.getWorldQuaternion(Reusable.quat1)
 			pos.applyQuaternion(r)
-			pos.add(THREE.fastWorldPosition(m, new THREE.Vector3()))
+			pos.add(THREE.fastWorldPosition(m, Reusable.vec2))
 		}
 		return pos;
 	}
 	setColor(index) {
 		this.color = index;
 		if (this.visibility) {
-			Canvas.adaptObjectFaces(this)
+			this.preview_controller.updateFaces(this);
 		}
 	}
 	applyTexture(texture, faces) {
@@ -559,7 +488,7 @@ class Cube extends OutlinerElement {
 		if (faces === true || Project.box_uv) {
 			var sides = ['north', 'east', 'south', 'west', 'up', 'down']
 		} else if (faces === undefined) {
-			var sides = [main_uv.face]
+			var sides = [UVEditor.face]
 		} else {
 			var sides = faces
 		}
@@ -573,11 +502,11 @@ class Cube extends OutlinerElement {
 			scope.faces[side].texture = value
 		})
 		if (selected.indexOf(this) === 0) {
-			main_uv.loadData()
+			UVEditor.loadData()
 		}
-		if (Prop.view_mode === 'textured' && scope.visibility == true) {
-			Canvas.adaptObjectFaces(scope)
-			Canvas.updateUV(scope)
+		if (Project.view_mode === 'textured') {
+			this.preview_controller.updateFaces(this);
+			this.preview_controller.updateUV(this);
 		}
 	}
 	mapAutoUV() {
@@ -726,7 +655,8 @@ class Cube extends OutlinerElement {
 		})
 		if (update) {
 			this.mapAutoUV()
-			Canvas.adaptObjectPosition(this);
+			this.preview_controller.updateTransform(this);
+			this.preview_controller.updateGeometry(this);
 		}
 		TickUpdates.selection = true;
 		return in_box;
@@ -776,7 +706,7 @@ class Cube extends OutlinerElement {
 		if (Project.box_uv) {
 			Canvas.updateUV(this);
 		}
-		Canvas.adaptObjectPosition(this);
+		this.preview_controller.updateGeometry(this);
 		TickUpdates.selection = true;
 		return this;
 	}
@@ -820,7 +750,7 @@ class Cube extends OutlinerElement {
 					}, 'texture transparent')
 				}}
 			]
-			textures.forEach(function(t) {
+			Texture.all.forEach(function(t) {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
@@ -844,13 +774,381 @@ class Cube extends OutlinerElement {
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	Cube.selected = [];
-	Cube.all = [];
 
-	new Property(Cube, 'string', 'name', {default: 'cube'})
-	new Property(Cube, 'boolean', 'rescale')
+new Property(Cube, 'string', 'name', {default: 'cube'});
+new Property(Cube, 'boolean', 'rescale');
+new Property(Cube, 'boolean', 'locked');
 
-	OutlinerElement.types.cube = Cube;
+OutlinerElement.registerType(Cube, 'cube');
+
+
+new NodePreviewController(Cube, {
+	setup(element) {
+		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
+		Project.nodes_3d[element.uuid] = mesh;
+		mesh.name = element.uuid;
+		mesh.type = 'cube';
+		mesh.isElement = true;
+		mesh.visible = element.visibility;
+		mesh.rotation.order = 'ZYX'
+
+		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24).fill(0), 1));
+
+		// Outline
+		let geometry = new THREE.BufferGeometry();
+		let line = new THREE.Line(geometry, Canvas.outlineMaterial);
+		line.no_export = true;
+		line.name = element.uuid+'_outline';
+		line.visible = element.selected;
+		line.renderOrder = 2;
+		line.frustumCulled = false;
+		mesh.outline = line;
+		mesh.add(line);
+
+		// Update
+		this.updateTransform(element);
+		this.updateGeometry(element);
+		this.updateFaces(element);
+		
+		if (Project.view_mode === 'textured') {
+			this.updateUV(element);
+		}
+		
+	},
+	updateTransform(element) {
+		NodePreviewController.prototype.updateTransform(element);
+
+		let mesh = element.mesh;
+
+		if (Format.rotate_cubes && element.rescale === true) {
+			var axis = element.rotationAxis()||'y';
+			var rescale = getRescalingFactor(element.rotation[getAxisNumber(axis)]);
+			mesh.scale.set(rescale, rescale, rescale);
+			mesh.scale[axis] = 1;
+		}
+
+		if (Modes.paint) {
+			element.preview_controller.updatePaintingGrid(element);
+		}
+	},
+	updateGeometry(element) {
+		if (element.resizable) {
+			let mesh = element.mesh;
+			var from = element.from.slice()
+			from.forEach((v, i) => {
+				from[i] -= element.inflate;
+				from[i] -= element.origin[i];
+			})
+			var to = element.to.slice()
+			to.forEach((v, i) => {
+				to[i] += element.inflate
+				to[i] -= element.origin[i];
+				if (from[i] === to[i]) {
+					to[i] += 0.001
+				}
+			})
+			mesh.geometry.setShape(from, to)
+			mesh.geometry.computeBoundingBox()
+			mesh.geometry.computeBoundingSphere()
+
+			// Update outline
+			var vs = [0,1,2,3,4,5,6,7].map(i => {
+				return mesh.geometry.attributes.position.array.slice(i*3, i*3 + 3)
+			});
+			let points = [
+				vs[2], vs[3],
+				vs[6], vs[7],
+				vs[2], vs[0],
+				vs[1], vs[4],
+				vs[5], vs[0],
+				vs[5], vs[7],
+				vs[6], vs[4],
+				vs[1], vs[3]
+			].map(a => new THREE.Vector3().fromArray(a))
+			mesh.outline.geometry.setFromPoints(points);
+		}
+	},
+	updateFaces(cube) {
+		let {mesh} = cube;
+
+		let indices = [];
+		let j = 0;
+		mesh.geometry.faces = [];
+		mesh.geometry.clearGroups();
+		Canvas.face_order.forEach((fkey, i) => {
+			if (cube.faces[fkey].texture !== null) {
+				indices.push(0 + i*4, 2 + i*4, 1 + i*4, 2 + i*4, 3 + i*4, 1 + i*4);
+				mesh.geometry.addGroup(j*6, 6, j)
+				mesh.geometry.faces.push(fkey)
+				j++;
+			}
+		})
+		mesh.geometry.setIndex(indices)
+
+		if (Project.view_mode === 'solid') {
+			mesh.material = Canvas.solidMaterial
+		
+		} else if (Project.view_mode === 'wireframe') {
+			mesh.material = Canvas.wireframeMaterial
+		
+		} else if (Project.view_mode === 'normal') {
+			mesh.material = Canvas.normalHelperMaterial
+
+		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
+			mesh.material = Canvas.getLayeredMaterial();
+
+		} else if (Format.single_texture) {
+			let tex = Texture.getDefault();
+			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[cube.color];
+
+		} else {
+			var materials = []
+			Canvas.face_order.forEach(function(face) {
+				if (cube.faces[face].texture !== null) {
+					var tex = cube.faces[face].getTexture()
+					if (tex && tex.uuid) {
+						materials.push(Project.materials[tex.uuid])
+					} else {
+						materials.push(Canvas.emptyMaterials[cube.color])
+					}
+				}
+			})
+			if (materials.allEqual(materials[0])) materials = materials[0];
+			mesh.material = materials
+		}
+	},
+	updateUV(cube, animation = true) {
+		if (Project.view_mode !== 'textured') return;
+		var mesh = cube.mesh
+		if (mesh === undefined || !mesh.geometry) return;
+
+		if (Project.box_uv) {
+
+			var size = cube.size(undefined, true)
+			
+			var face_list = [   
+				{face: 'east',	from: [0, size[2]],				   		size: [size[2],  size[1]]},
+				{face: 'west',	from: [size[2] + size[0], size[2]],   	size: [size[2],  size[1]]},
+				{face: 'up', 	from: [size[2]+size[0], size[2]],	 	size: [-size[0], -size[2]]},
+				{face: 'down',	from: [size[2]+size[0]*2, 0],		 	size: [-size[0], size[2]]},
+				{face: 'south',	from: [size[2]*2 + size[0], size[2]], 	size: [size[0],  size[1]]},
+				{face: 'north',	from: [size[2], size[2]],			 	size: [size[0],  size[1]]},
+			]
+
+			if (cube.mirror_uv) {
+				face_list.forEach(function(f) {
+					f.from[0] += f.size[0]
+					f.size[0] *= -1
+				})
+				//East+West
+				
+				var p = {}
+
+				p.from = face_list[0].from.slice()
+				p.size = face_list[0].size.slice()
+
+				face_list[0].from = face_list[1].from.slice()
+				face_list[0].size = face_list[1].size.slice()
+
+				face_list[1].from = p.from.slice()
+				face_list[1].size = p.size.slice()
+
+			}
+			face_list.forEach(function(f, fIndex) {
+
+				if (cube.faces[f.face].texture == null) return;
+
+				var uv= [
+					f.from[0]			 +  cube.uv_offset[0],
+					f.from[1]			 +  cube.uv_offset[1],
+					f.from[0] + f.size[0] + cube.uv_offset[0],
+					f.from[1] + f.size[1] + cube.uv_offset[1]
+				]
+				uv.forEach(function(s, si) {
+					uv[si] *= 1
+				})
+
+				cube.faces[f.face].uv[0] = uv[0]
+				cube.faces[f.face].uv[1] = uv[1]
+				cube.faces[f.face].uv[2] = uv[2]
+				cube.faces[f.face].uv[3] = uv[3]
+
+				//Fight Bleeding
+				for (var si = 0; si < 2; si++) {
+					let margin = 1/64;
+					if (uv[si] > uv[si+2]) {
+						margin = -margin
+					}
+					uv[si] += margin
+					uv[si+2] -= margin
+				}
+
+				stretch = 1;
+				frame = 0;
+				let tex = cube.faces[f.face].getTexture();
+				if (tex instanceof Texture && tex.frameCount !== 1) {
+					stretch = tex.frameCount
+					if (animation === true && tex.currentFrame) {
+						frame = tex.currentFrame
+					}
+				}
+
+				Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, {uv: uv}, frame, stretch)
+			})
+
+		} else {
+		
+			var stretch = 1
+			var frame = 0
+
+			Canvas.face_order.forEach((face, fIndex) => {
+
+				if (cube.faces[face].texture === null) return;
+
+				stretch = 1;
+				frame = 0;
+				let tex = cube.faces[face].getTexture();
+				if (tex instanceof Texture && tex.frameCount !== 1) {
+					stretch = tex.frameCount
+					if (animation === true && tex.currentFrame) {
+						frame = tex.currentFrame
+					}
+				}
+				Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, cube.faces[face], frame, stretch)
+			})
+
+		}
+		mesh.geometry.attributes.uv.needsUpdate = true;
+		return mesh.geometry;
+	},
+	updateHighlight(element, hover_cube, force_off) {
+		var mesh = element.mesh;
+		let highlighted = (
+			Settings.get('highlight_cubes') &&
+			((hover_cube == element && !Transformer.dragging) || element.selected) &&
+			Modes.edit &&
+			!force_off
+		) ? 1 : 0;
+
+		if (mesh.geometry.attributes.highlight.array[0] != highlighted) {
+			mesh.geometry.attributes.highlight.array.set(Array(mesh.geometry.attributes.highlight.count).fill(highlighted));
+			mesh.geometry.attributes.highlight.needsUpdate = true;
+		}
+	},
+	updatePaintingGrid(cube) {
+		var mesh = cube.mesh;
+		if (mesh === undefined) return;
+		mesh.remove(mesh.grid_box);
+		if (cube.visibility == false) return;
+
+		if (!Modes.paint || !settings.painting_grid.value) return;
+
+		var from = cube.from.slice();
+		var to = cube.to.slice();
+		if (cube.inflate) {
+			from[0] -= cube.inflate; from[1] -= cube.inflate; from[2] -= cube.inflate;
+			  to[0] += cube.inflate;   to[1] += cube.inflate;   to[2] += cube.inflate;
+		}
+
+		var vertices = [];
+		var epsilon = 0.0001
+		function getVector2(arr, axis) {
+			switch (axis) {
+				case 0: return [arr[1], arr[2]]; break;
+				case 1: return [arr[0], arr[2]]; break;
+				case 2: return [arr[0], arr[1]]; break;
+			}
+		}
+		function addVector(u, v, axis, w) {
+			switch (axis) {
+				case 0: vertices.push(w, u, v); break;
+				case 1: vertices.push(u, w, v); break;
+				case 2: vertices.push(u, v, w); break;
+			}
+		}
+
+		function addFace(name, uv_offset, axis, side) {
+
+			var start = getVector2(from, axis)
+			var end = getVector2(to, axis)
+			var face = cube.faces[name];
+			var texture = face.getTexture();
+			if (texture === null) return;
+
+			var px_x = texture ? Project.texture_width / texture.width : 1;
+			var px_y = texture ? Project.texture_height / texture.height : 1;
+			var uv_size = [
+				Math.abs(face.uv_size[0]),
+				Math.abs(face.uv_size[1])
+			]
+			uv_offset = [
+				uv_offset[0] == true
+					? (face.uv_size[0] > 0 ? (px_x-face.uv[2]) : (	   face.uv[2]))
+					: (face.uv_size[0] > 0 ? (     face.uv[0]) : (px_x-face.uv[0])),
+				uv_offset[1] == true
+					? (face.uv_size[1] > 0 ? (px_y-face.uv[3]) : (	   face.uv[3]))
+					: (face.uv_size[1] > 0 ? (     face.uv[1]) : (px_y-face.uv[1]))
+			]
+			uv_offset[0] = uv_offset[0] % px_x;
+			uv_offset[1] = uv_offset[1] % px_y;
+			
+			if ((face.rotation % 180 == 90) != (axis == 0)) {
+				uv_size.reverse();
+				uv_offset.reverse();
+			}
+
+			var w = side == 0 ? from[axis] : to[axis]
+
+			//Columns
+			var width = end[0]-start[0];
+			var step = Math.abs( width / uv_size[0] );
+			if (texture) step *= Project.texture_width / texture.width;
+			if (step < epsilon) step = epsilon;
+
+			for (var col = start[0] - uv_offset[0]; col <= end[0]; col += step) {
+				if (col >= start[0]) {
+					addVector(col, start[1], axis, w);
+					addVector(col, end[1], axis, w);
+				}
+			}
+
+			//lines
+			var height = end[1]-start[1];
+			var step = Math.abs( height / uv_size[1] );
+			let tex_height = texture.frameCount ? (texture.height / texture.frameCount) : texture.height;
+			if (texture) step *= Project.texture_height / tex_height;
+			if (step < epsilon) step = epsilon;
+
+			for (var line = start[1] - uv_offset[1]; line <= end[1]; line += step) {
+				if (line >= start[1]) {
+					addVector(start[0], line, axis, w);
+					addVector(end[0], line, axis, w);
+				}
+			}
+		}
+
+		addFace('north', [true,  true],  2, 0);
+		addFace('south', [false, true],  2, 1);
+		addFace('west',  [false, true],  0, 0);
+		addFace('east',  [true,  true],  0, 1);
+		addFace('down',  [false, true],  1, 0);
+		addFace('up',    [false, false], 1, 1);
+
+
+		var geometry = new THREE.BufferGeometry();
+		geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+
+		let box = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({color: gizmo_colors.grid}));
+		box.geometry.translate(-cube.origin[0], -cube.origin[1], -cube.origin[2]);
+		box.no_export = true;
+
+		box.name = cube.uuid+'_grid_box';
+		box.renderOrder = 2;
+		box.frustumCulled = false;
+		mesh.grid_box = box;
+		mesh.add(box);
+	}
+})
 
 BARS.defineActions(function() {
 	new Action({
@@ -868,11 +1166,11 @@ BARS.defineActions(function() {
 			var group = getCurrentGroup();
 			base_cube.addTo(group)
 
-			if (textures.length && Format.single_texture) {
+			if (Texture.all.length && Format.single_texture) {
 				for (var face in base_cube.faces) {
 					base_cube.faces[face].texture = Texture.getDefault().uuid
 				}
-				main_uv.loadData()
+				UVEditor.loadData()
 			}
 			if (Format.bone_rig) {
 				if (group) {
@@ -887,7 +1185,6 @@ BARS.defineActions(function() {
 
 			if (Group.selected) Group.selected.unselect()
 			base_cube.select()
-			Canvas.updateSelected()
 			Undo.finishEdit('Add cube', {outliner: true, elements: selected, selection: true});
 			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 

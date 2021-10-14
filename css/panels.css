@@ -47,6 +47,10 @@
 	.panel p {
 		margin-left: 12px;
 	}
+	.panel p.panel_toolbar_label {
+		margin-bottom: -4px;
+		color: var(--color-subtle_text);
+	}
 
 	.panel.folded {
 		min-height: auto;
@@ -282,6 +286,9 @@
 	.outliner_object > input.renaming {
 		pointer-events: auto;
 	}
+	.outliner_object input.cube_name.locked {
+		color: var(--color-subtle_text);
+	}
 	i.outliner_toggle {
 		font-size: 15px;
 	}
@@ -396,7 +403,7 @@
 	}
 	.texture_description_wrapper {
 		flex-grow: 1;
-
+		overflow-x: hidden;
 	}
 	.texture_name {
 		margin-top: 2px;
@@ -1095,7 +1102,7 @@
 		margin-left: -8px;
 		margin-right: -8px;
 	}
-	#uv_dialog_all .UVEditor.selected {
+	#UVEditor_all .UVEditor.selected {
 		border-color: var(--color-accent);
 		z-index: 21;
 	}
@@ -1117,6 +1124,7 @@
 	#uv_viewport {
 		height: 320px;
 		width: 320px;
+		margin: auto;
 		position: relative;
 		overflow: hidden;
 	}
@@ -1126,7 +1134,12 @@
 		margin-bottom: 0;
 		position: relative;
 		border: 4px solid var(--color-ui);
+		box-shadow: 0 0 0 800px var(--color-back);
     	box-sizing: content-box;
+		--color-unselected: var(--color-grid);
+	}
+	#uv_frame .selection_rectangle {
+		z-index: 8;
 	}
 
 	body[mode=paint] #uv_frame {
@@ -1144,49 +1157,194 @@
 	}
 	div#uv_brush_outline {
 		border: 1px solid white;
-		width: 0;
-		height: 0;
+		width: calc(var(--radius) * 2px);
+		height: calc(var(--radius) * 2px);
+		margin: calc(var(--radius) * -1px);
 		border-radius: 50%;
 		position: absolute;
 		pointer-events: none;
 		mix-blend-mode: difference;
-	}
-	.uv_mapping_overlay {
-		position: absolute;
-		opacity: 0.4;
-		cursor: inherit;
-		pointer-events: none;
-	}
-	#uv_size {
-		height: 320px;
-		width: 320px;
-		cursor: move;
-		box-sizing: border-box;
 		z-index: 1;
-		box-shadow: 0 0 0 1.5px #ffffff;
-		mix-blend-mode: difference;
 	}
-	.uv_size_handle {
+
+	.cube_box_uv {
 		position: absolute;
+		z-index: 2;
+	}
+	.cube_box_uv > div {
+		position: absolute;
+		z-index: 2;
+		cursor: move;
+		border: 2px solid var(--color-accent);
+		box-sizing: border-box;
+	}
+	.cube_box_uv > div.uv_fill {
+		background-color: rgba(50, 70, 240, 0.14);
+	}
+	.cube_box_uv:hover > div {
+		border-color: white;
+		z-index: 3;
+	}
+	.cube_uv_face {
+		position: absolute;
+		z-index: 2;
+		width: var(--width);
+		height: var(--height);
+		cursor: move;
+		border: 2px solid var(--color-text);
+		box-sizing: border-box;
+		background-color: rgba(50, 70, 240, 0.14);
+		text-align: center;
+		color: var(--color-subtle_text);
+	}
+	.cube_uv_face:hover {
+		border-color: white;
+		background-color: rgba(50, 70, 240, 0.3);
+		z-index: 3;
+	}
+	.cube_uv_face.selected:not(.unselected) {
+		border-color: white;
+		z-index: 4;
+		box-shadow: 0 0 4px #000000cc;
+	}
+	.cube_uv_face.unselected,
+	.cube_box_uv.unselected {
+		pointer-events: none;
+		z-index: 1;
+	}
+	.cube_uv_face.unselected div,
+	.cube_box_uv.unselected div {
+		border-color: var(--color-unselected) !important;
+	}
+
+	.uv_resize_side {
+		position: absolute;
+		top: 0;
+		left: 0;
+	}
+	.uv_resize_side.horizontal {
+		cursor: n-resize;
+		height: 6px;
+		margin-top: -4px;
+	}
+	.uv_resize_side.vertical {
+		cursor: w-resize;
+		width: 6px;
+		margin-left: -4px;
+	}
+	.uv_resize_corner {
+		position: absolute;
+		margin: -6px;
+		height: 9px;
+		width: 9px;
+		background-color:  white;
+		border: 1px solid black;
+		z-index: 3;
+	}
+	.uv_resize_corner.uv_c_nw {cursor: nw-resize;}
+	.uv_resize_corner.uv_c_ne {cursor: ne-resize;}
+	.uv_resize_corner.uv_c_sw {cursor: sw-resize;}
+	.uv_resize_corner.uv_c_se {cursor: se-resize;}
+
+	#uv_seleced_faces {
+		display: flex;
+	}
+	#uv_seleced_faces li {
+		padding: 0 5px;
+	}
+
+	.mesh_uv_face {
+		position: absolute;
+		pointer-events: none;
+		z-index: 1;
+	}
+	.mesh_uv_face.selected {
+		z-index: 2;
+	}
+	.mesh_uv_face svg {
+		height: 100%;
+		width: 100%;
+		position: absolute;
+	}
+	.mesh_uv_face polygon {
+		pointer-events: initial;
+		fill: rgba(50, 70, 240, 0.3);
+		stroke: var(--color-text);
+		stroke-width: 2px;
+	}
+	.mesh_uv_face:hover polygon {
+		stroke: white;
+	}
+	.mesh_uv_face.selected polygon {
+		stroke: var(--color-accent);
+	}
+	.uv_mesh_vertex {
+		position: absolute;
+		pointer-events: initial;
+		z-index: 3;
+		margin: -6px;
+		height: 9px;
+		width: 9px;
+		background-color:  white;
+		border: 1px solid black;
 		cursor: move;
 	}
-	#uv_rotation {
-		width: 72px;
-		margin-top: 1px;
+	.uv_mesh_vertex.selected {
+		background-color:  var(--color-accent);
 	}
-	.uv_transform_info {
+	.uv_helper_line_x {
+		top: 0;
+		left: 0;
 		position: absolute;
-		display: block;
-		right: 8px;
-		top: 8px;
-		font-size: 0.9em;
-		cursor: default;
-		pointer-events: none;
-		z-index: 5;
-		color: white;
-		mix-blend-mode: difference;
-		font-weight: 300;
+		background-color: var(--color-accent);
+		width: 1px;
+		height: 100%;
+		z-index: 1;
 	}
+	.uv_helper_line_y {
+		top: 0;
+		left: 0;
+		position: absolute;
+		background-color: var(--color-accent);
+		width: 100%;
+		height: 1px;
+		z-index: 1;
+	}
+
+	.uv_painter_info {
+		display: flex;
+	}
+	.uv_painter_info span {
+		margin: 3px 6px;
+		flex: 1 1 80px;
+		overflow: hidden;
+		white-space: nowrap;
+		text-align: center;
+	}
+
+	.main_corner {
+		position: absolute;
+	}
+	.main_corner::after {
+		content: "";
+		display: block;
+		margin: -2px;
+		height: 11px;
+		width: 11px;
+		border: 1px solid white;
+	}
+	.main_corner.selected::after {
+		border-color: var(--color-accent);
+	}
+	.uv_rotate_field {
+		position: absolute;
+		width: 15px;
+		height: 15px;
+		bottom: 6px;
+		right: 6px;
+		cursor: url('../assets/rotate_cursor.png') 9 9, auto;
+	}
+
 	.panel .bar.next_to_title {
 		margin-top: -34px;
 		margin-right: 32px;
@@ -1198,52 +1356,25 @@
 		float: right;
 		pointer-events: initial;
 	}
-	#uv_size .ui-resizable-se:before,
-	#uv_size .ui-resizable-sw:before,
-	#uv_size .ui-resizable-ne:before,
-	#uv_size .ui-resizable-nw:before {
-		content: "";
-		position: absolute;
-		height: 7px;
-		width: 7px;
-		background-color:  var(--color-text);
-	}
-	#uv_size .ui-resizable-se,
-	#uv_size .ui-resizable-sw,
-	#uv_size .ui-resizable-ne,
-	#uv_size .ui-resizable-nw {
-		height: 9px;
-		width: 9px;
-	}
-	#uv_size .ui-resizable-se {right: -6px; bottom: -6px; z-index: 91 !important;}
-	#uv_size .ui-resizable-sw {left: -6px; bottom: -6px;}
-	#uv_size .ui-resizable-ne {right: -6px; top: -6px;}
-	#uv_size .ui-resizable-nw {left: -6px; top: -6px;}
 
-	#uv_frame:hover #uv_size .ui-resizable-handle:before {
-		background-color: white;
+	#uv_cube_face_bar {
+		display: flex;
+		height: 28px;
 	}
-	#uv_frame:hover #uv_size.dark_frame .ui-resizable-handle:before {
-		background-color: black;
+	#uv_cube_face_bar li {
+		flex-grow: 1;
+		text-align: center;
+		padding: 2px;
+		margin: 0 1px;
 	}
-	#uv_frame:hover #uv_size .ui-resizable-handle:hover:before {
-		background-color: var(--color-accent);
+	#uv_cube_face_bar li:hover {
+		color: var(--color-light);
 	}
-	#uv_size .ui-resizable-se:before {
-		bottom: 2px;
-		right: 2px;
+	#uv_cube_face_bar li.selected {
+		border-bottom: 3px solid var(--color-accent);
 	}
-	#uv_size .ui-resizable-sw:before {
-		bottom: 2px;
-		left: 2px;
-	}
-	#uv_size .ui-resizable-ne:before {
-		top: 2px;
-		right: 2px;
-	}
-	#uv_size .ui-resizable-nw:before {
-		top: 2px;
-		left: 2px;
+	#uv_cube_face_bar li.disabled {
+		color: var(--color-subtle_text);
 	}
 
 	#texture_selection_rect {
@@ -1285,12 +1416,17 @@
 		height: 30px;
 		padding: 3px;
 		float: left;
-		color: var(--color-accent_text);
+		color: var(--color-bright_ui_text);
 		text-align: center;
 	}
 	#texture_pasting_overlay > div.control > div:hover {
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
+	}
+	.uv_transparent_face {
+		margin: 8px auto auto;
+		color: var(--color-subtle_text);
+		max-width: fit-content;
 	}
 
 /*Chat*/

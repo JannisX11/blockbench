@@ -3,6 +3,7 @@ const Plugins = {
 	Vue: [],			//Vue Object
 	installed: [], 		//Simple List of Names
 	json: undefined,	//Json from website
+	download_stats: {},
 	all: [],			//Vue Object Data
 	registered: {},
 	devReload() {
@@ -18,7 +19,12 @@ const Plugins = {
 	},
 	sort() {
 		Plugins.all.sort(function(a,b) {
-			return sort_collator.compare(a.title, b.title)
+			let download_difference = (Plugins.download_stats[b.id] || 0) - (Plugins.download_stats[a.id] || 0);
+			if (download_difference) {
+				return download_difference
+			} else {
+				return sort_collator.compare(a.title, b.title);
+			}
 		});
 	}
 }
@@ -36,6 +42,7 @@ class Plugin {
 		this.about = '';
 		this.icon = '';
 		this.tags = [];
+		this.version = '0.0.1';
 		this.variant = 'both';
 		this.min_version = '';
 		this.max_version = '';
@@ -55,6 +62,7 @@ class Plugin {
 		Merge.string(this, data, 'description')
 		Merge.string(this, data, 'about')
 		Merge.string(this, data, 'icon')
+		Merge.string(this, data, 'version')
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
 		Merge.boolean(this, data, 'await_loading');
@@ -65,6 +73,9 @@ class Plugin {
 		Merge.function(this, data, 'oninstall')
 		Merge.function(this, data, 'onuninstall')
 		return this;
+	}
+	get name() {
+		return this.title;
 	}
 	async install(first, cb) {
 		var scope = this;
@@ -118,6 +129,15 @@ class Plugin {
 						await scope.install(first);
 						resolve()
 					}, 20)
+					if (first) {
+						jQuery.ajax({
+							url: 'https://blckbn.ch/api/event/install_plugin',
+							type: 'POST',
+							data: {
+								plugin: scope.id
+							}
+						})
+					}
 				})
 			});
 		});
@@ -308,6 +328,7 @@ class Plugin {
 		return (result === true) ? true : tl('dialog.plugins.'+result);
 	}
 	toggleInfo(force) {
+		if (!this.about) return;
 		var scope = this;
 		Plugins.all.forEach(function(p) {
 			if (p !== scope && p.expanded) p.expanded = false;
@@ -377,6 +398,13 @@ Plugins.loading_promise = new Promise((resolve, reject) => {
 		resolve();
 		Plugins.loading_promise.resolved = true;
 	})
+})
+
+$.getJSON('https://blckbn.ch/api/stats/plugins?weeks=2', data => {
+	Plugins.download_stats = data;
+	if (Plugins.json) {
+		Plugins.sort();
+	}
 })
 
 async function loadInstalledPlugins() {
@@ -477,6 +505,7 @@ BARS.defineActions(function() {
 		id: 'plugins',
 		title: 'dialog.plugins.title',
 		singleButton: true,
+		width: 760,
 		component: {
 			data: {
 				tab: 'installed',
@@ -503,14 +532,16 @@ BARS.defineActions(function() {
 				}
 			},
 			methods: {
-				getTagColor(tag) {
+				getTagClass(tag) {
 					let lowercase = tag.toLowerCase();
 					if (lowercase == 'local' || lowercase == 'remote') {
-						return 'var(--color-tag-source)'
+						return 'plugin_tag_source'
 					} else if (lowercase.substr(0, 9) == 'minecraft') {
-						return 'var(--color-tag-mc)'
+						return 'plugin_tag_mc'
 					}
-				}
+				},
+				getIconNode: Blockbench.getIconNode,
+				tl
 			},
 			template: `
 				<div style="margin-top: 10px;">
@@ -522,14 +553,15 @@ BARS.defineActions(function() {
 						<search-bar id="plugin_search_bar" v-model="search_term"></search-bar>
 					</div>
 					<ul class="list" id="plugin_list">
-						<li v-for="plugin in plugin_search" v-bind:plugin="plugin.id" v-bind:class="{testing: plugin.fromFile, expanded: plugin.expanded}">
+						<li v-for="plugin in plugin_search" v-bind:plugin="plugin.id" v-bind:class="{plugin: true, testing: plugin.fromFile, expanded: plugin.expanded, has_about_text: !!plugin.about}">
 							<div class="title" v-on:click="plugin.toggleInfo()">
-								<div class="icon_wrapper plugin_icon normal" v-html="Blockbench.getIconNode(plugin.icon, plugin.color).outerHTML"></div>
+								<div class="icon_wrapper plugin_icon normal" v-html="getIconNode(plugin.icon || 'error_outline', plugin.icon ? plugin.color : 'var(--color-close)').outerHTML"></div>
 
 								<i v-if="plugin.expanded" class="material-icons plugin_expand_icon">expand_less</i>
 								<i v-else class="material-icons plugin_expand_icon">expand_more</i>
-								{{ plugin.title }}
+								{{ plugin.title || plugin.id }}
 							</div>
+							<div class="plugin_version">{{ plugin.version }}</div>
 							<div class="button_bar" v-if="plugin.installed || plugin.isInstallable() == true">
 								<button type="button" class="" v-on:click="plugin.uninstall()" v-if="plugin.installed"><i class="material-icons">delete</i><span class="tl">${tl('dialog.plugins.uninstall')}</span></button>
 								<button type="button" class="" v-on:click="plugin.download(true)" v-else><i class="material-icons">add</i><span class="tl">${tl('dialog.plugins.install')}</span></button>
@@ -542,7 +574,7 @@ BARS.defineActions(function() {
 							<div v-if="plugin.expanded" class="about" v-html="marked(plugin.about)"><button>a</button></div>
 							<div v-if="plugin.expanded" v-on:click="plugin.toggleInfo()" style="text-decoration: underline;">${tl('dialog.plugins.show_less')}</div>
 							<ul class="plugin_tag_list">
-								<li v-for="tag in plugin.tags" :style="{backgroundColor: getTagColor(tag)}" :key="tag">{{tag}}</li>
+								<li v-for="tag in plugin.tags" :class="getTagClass(tag)" :key="tag">{{tag}}</li>
 							</ul>
 						</li>
 						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>
@@ -573,7 +605,6 @@ BARS.defineActions(function() {
 	new Action('reload_plugins', {
 		icon: 'sync',
 		category: 'blockbench',
-		keybind: new Keybind({ctrl: true, key: 74}),
 		click: function () {
 			Plugins.devReload()
 		}
@@ -598,6 +629,20 @@ BARS.defineActions(function() {
 			Blockbench.textPrompt('URL', '', url => {
 				new Plugin().loadFromURL(url, true)
 			})
+		}
+	})
+	new Action('add_plugin', {
+		icon: 'add',
+		category: 'blockbench',
+		click: function () {
+			setTimeout(_ => ActionControl.select('+plugin: '), 1);
+		}
+	})
+	new Action('remove_plugin', {
+		icon: 'remove',
+		category: 'blockbench',
+		click: function () {
+			setTimeout(_ => ActionControl.select('-plugin: '), 1);
 		}
 	})
 })

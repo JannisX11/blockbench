@@ -73,7 +73,7 @@ function buildForm(dialog) {
 						let this_input_element = input_element;
 						this_bar.find('.password_toggle').on('click', e => {
 							hidden = !hidden;
-							this_input_element.attr('type', hidden ? 'password' : 'text');
+							this_input_element.attributes.type.value = hidden ? 'password' : 'text';
 							this_bar.find('.password_toggle i')[0].className = hidden ? 'fas fa-eye-slash' : 'fas fa-eye';
 						})
 					}
@@ -128,6 +128,21 @@ function buildForm(dialog) {
 					data.text = marked(tl(data.text))
 					bar.append(`<p>${data.text}</p>`)
 					bar.addClass('small_text')
+					break;
+
+
+				case 'buttons':
+					let list = document.createElement('div');
+					list.className = 'dialog_form_buttons';
+					data.buttons.forEach((button_text, index) => {
+						let button = document.createElement('a');
+						button.innerText = tl(button_text);
+						button.addEventListener('click', e => {
+							data.click(index, e);
+						})
+						list.append(button);
+					})
+					bar.append(list);
 					break;
 
 
@@ -294,6 +309,86 @@ function buildComponent(dialog) {
 	dialog.content_vue = new Vue(dialog.component).$mount(mount.get(0));
 }
 
+class DialogSidebar {
+	constructor(options) {
+		this.open = !Blockbench.isMobile;
+		this.pages = options.pages || {};
+		this.page = options.page || Object.keys(this.pages)[0];
+		this.actions = options.actions || {};
+		this.onPageSwitch = options.onPageSwitch || null;
+	}
+	build() {
+		if (!this.node) {
+			this.node = document.createElement('div');
+			this.node.className = 'dialog_sidebar';
+		}
+
+		let page_list = document.createElement('ul');
+		page_list.className = 'dialog_sidebar_pages';
+		this.node.append(page_list);
+		this.page_menu = {};
+		for (let key in this.pages) {
+			let li = document.createElement('li');
+			li.textContent = this.pages[key];
+			li.setAttribute('page', key);
+			if (this.page == key) li.classList.add('selected');
+			this.page_menu[key] = li;
+			li.addEventListener('click', event => {
+				this.setPage(key);
+				if (Blockbench.isMobile) this.toggle();
+			})
+			page_list.append(li);
+		}
+
+		if (this.actions.length) {
+			let action_list = document.createElement('ul');
+			action_list.className = 'dialog_sidebar_actions';
+			this.node.append(action_list);
+			this.actions.forEach(action => {
+				if (typeof action == 'string') {
+					action = BarItems[action];
+				}
+				let copy;
+				if (action instanceof Action) {
+					copy = action.menu_node.cloneNode(true);
+					copy.addEventListener('click', event => {
+						action.trigger(event);
+					})
+				} else {
+					copy = document.createElement('li');
+					copy.title = action.description ? tl(action.description) : '';
+					let icon = Blockbench.getIconNode(action.icon, action.color);
+					let span = document.createElement('span');
+					span.textContent = tl(action.name);
+					copy.append(icon);
+					copy.append(span);
+					copy.addEventListener('click', event => {
+						Blockbench.openLink('https://www.blockbench.net/wiki/blockbench/themes');
+					})
+				}
+				action_list.append(copy);
+			})
+		}
+
+		this.toggle(this.open);
+
+		return this.node;
+	}
+	toggle(state = !this.open) {
+		this.open = state;
+		if (this.node.parentElement) {
+			this.node.parentElement.classList.toggle('has_sidebar', this.open);
+		}
+	}
+	setPage(page) {
+		this.page = page;
+		if (this.onPageSwitch) this.onPageSwitch(page);
+		for (let key in this.page_menu) {
+			let li = this.page_menu[key];
+			li.classList.toggle('selected', key == this.page);
+		}
+	}
+}
 
 window.Dialog = class Dialog {
 	constructor(id, options) {
@@ -309,8 +404,10 @@ window.Dialog = class Dialog {
 		this.component = options.component
 		this.part_order = options.part_order || (options.form_first ? ['form', 'lines', 'component'] : ['lines', 'form', 'component'])
 
+		this.sidebar = options.sidebar ? new DialogSidebar(options.sidebar) : null;
+		this.title_menu = options.title_menu || null;
+
 		this.width = options.width
-		this.padding = options.padding != false;
 		this.draggable = options.draggable
 		this.singleButton = options.singleButton
 		this.buttons = options.buttons instanceof Array ? options.buttons : (options.singleButton ? ['dialog.close'] : ['dialog.confirm', 'dialog.cancel'])
@@ -320,10 +417,11 @@ window.Dialog = class Dialog {
 	
 		this.confirmEnabled = options.confirmEnabled === false ? false : true
 		this.cancelEnabled = options.cancelEnabled === false ? false : true
-		this.onConfirm = options.onConfirm ? options.onConfirm : this.hide
-		this.onCancel = options.onCancel ? options.onCancel : this.hide
+		this.onConfirm = options.onConfirm
+		this.onCancel = options.onCancel
 		this.onButton = options.onButton;
 		this.onFormChange = options.onFormChange;
+		this.onOpen = options.onOpen;
 	
 		this.object;
 	}
@@ -345,6 +443,52 @@ window.Dialog = class Dialog {
 		if (!initial && typeof this.onFormChange == 'function') {
 			this.onFormChange(form_result)
 		}
+	}
+	setFormValues(values) {
+		for (var form_id in this.form) {
+			let data = this.form[form_id];
+			if (values[form_id] != undefined && typeof data == 'object' && data.bar) {
+				let value = values[form_id];
+				switch (data.type) {
+					default:
+						data.bar.find('input').val(value);
+						break;
+					case 'info':
+						break;
+					case 'textarea':
+						data.bar.find('textarea').val(value);
+						break;
+					case 'select':
+						data.bar.find('select').val(value);
+						break;
+					case 'radio':
+						data.bar.find('.form_part_radio input#'+value).prop('checked', value);
+						break;
+					case 'number':
+						data.bar.find('input').val(value);
+						break;
+					case 'vector':
+						for (var i = 0; i < (data.dimensions || 3); i++) {
+							data.bar.find(`input#${form_id}_${i}`).val(value[i])
+						}
+						break;
+					case 'color':
+						data.colorpicker.set(value);
+						break;
+					case 'checkbox':
+						data.bar.find('input').prop('checked', value);
+						break;
+					case 'file':
+						if (isApp) {
+							data.value = value;
+						} else {
+							data.content = value;
+						}
+						break;
+				}
+			}
+		}
+		this.updateFormValues();
 	}
 	getFormResult() {
 		var result = {}
@@ -409,14 +553,57 @@ window.Dialog = class Dialog {
 		this.hide();
 	}
 	build() {
-		var jq_dialog = $(`<dialog class="dialog" id="${this.id}">
-				<div class="dialog_handle">${tl(this.title)}</div>
-				<content class="dialog_content"></content>
-			</dialog>`)
-		this.object = jq_dialog.get(0)
-		this.max_label_width = 0;
-		if (this.padding) this.object.classList.add('paddinged');
+		this.object = document.createElement('dialog');
+		this.object.className = 'dialog';
+		this.object.id = this.id;
 
+		let handle = document.createElement('div');
+		handle.className = 'dialog_handle';
+		this.object.append(handle);
+		
+		if (this.title_menu) {
+			let menu_button = document.createElement('div');
+			menu_button.className = 'dialog_menu_button';
+			menu_button.append(Blockbench.getIconNode('expand_more'));
+			menu_button.addEventListener('click', event => {
+				this.title_menu.show(menu_button);
+			})
+			handle.append(menu_button);
+		}
+
+		let title = document.createElement('div');
+		title.className = 'dialog_title';
+		title.textContent = tl(this.title);
+		handle.append(title);
+
+		let jq_dialog = $(this.object);
+		this.max_label_width = 0;
+
+		let wrapper = document.createElement('div');
+		wrapper.className = 'dialog_wrapper';
+
+		let content = document.createElement('content');
+		content.className = 'dialog_content';
+		this.object.append(wrapper);
+		
+
+		if (this.sidebar) {
+			if (window.innerWidth < 920) {
+				let menu_button = document.createElement('div');
+				menu_button.className = 'dialog_sidebar_menu_button';
+				menu_button.append(Blockbench.getIconNode('menu'));
+				menu_button.addEventListener('click', event => {
+					this.sidebar.toggle();
+				})
+				handle.prepend(menu_button);
+			}
+
+			let sidebar = this.sidebar.build();
+			wrapper.append(sidebar);
+			wrapper.classList.toggle('has_sidebar', this.sidebar.open);
+		}
+
+		wrapper.append(content);
 
 		this.part_order.forEach(part => {
 			if (part == 'form' && this.form) buildForm(this);
@@ -440,13 +627,14 @@ window.Dialog = class Dialog {
 			})
 			buttons[this.confirmIndex] && buttons[this.confirmIndex].addClass('confirm_btn')
 			buttons[this.cancelIndex] && buttons[this.cancelIndex].addClass('cancel_btn')
-			let bar = $('<div class="dialog_bar button_bar"></div>');
-			jq_dialog.append(bar);
+			let button_bar = $('<div class="dialog_bar button_bar"></div>');
 
 			buttons.forEach((button, i) => {
-				if (i) bar.append('&nbsp;')
-				bar.append(button)
+				if (i) button_bar.append('&nbsp;')
+				button_bar.append(button)
 			})
+
+			wrapper.append(button_bar[0]);
 		}
 
 		let close_button = document.createElement('div');
@@ -500,6 +688,11 @@ window.Dialog = class Dialog {
 		open_interface = this;
 		Dialog.open = this;
 		Prop.active_panel = 'dialog';
+
+		if (typeof this.onOpen == 'function') {
+			this.onOpen();
+		}
+
 		return this;
 	}
 	hide() {

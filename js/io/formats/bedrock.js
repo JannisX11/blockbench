@@ -1,6 +1,10 @@
 
 if (isApp) {
-window.BedrockEntityManager = {
+window.BedrockEntityManager = class BedrockEntityManager {
+	constructor(project) {
+		this.project = project || Project;
+		this.root_path = '';
+	}
 	checkEntityFile(path) {
 		try {
 			var c = fs.readFileSync(path, 'utf-8');
@@ -12,7 +16,7 @@ window.BedrockEntityManager = {
 						var geoname = main.description.geometry[key];
 						if (typeof geoname == 'string') {
 							geoname = geoname.replace(/^geometry\./, '');
-							if (geoname == Project.geometry_name) {
+							if (geoname == this.project.geometry_name) {
 								return main;
 							}
 						}
@@ -23,13 +27,13 @@ window.BedrockEntityManager = {
 			console.log(err);
 			return false;
 		}
-	},
+	}
 	getEntityFile() {
-		var path = ModelMeta.export_path.split(osfs);
+		var path = this.project.export_path.split(osfs);
 		var name = path.pop().replace(/\.json$/, '').replace(/\.geo$/, '');
 		var root_index = path.indexOf('models');
 		path.splice(root_index);
-		BedrockEntityManager.root_path =  path.slice().join(osfs);
+		this.root_path =  path.slice().join(osfs);
 		path.push('entity');
 		path = path.join(osfs);
 		var entity_path = findExistingFile([
@@ -37,18 +41,18 @@ window.BedrockEntityManager = {
 			path+osfs+name+'.json',
 		])
 		if (entity_path) {
-			var content = BedrockEntityManager.checkEntityFile(entity_path);
+			var content = this.checkEntityFile(entity_path);
 			if (content) {
 				return content;
 			}
 		} else {
-			function searchFolder(path) {
+			let searchFolder = (path) => {
 				try {
 					var files = fs.readdirSync(path);	
 					for (var name of files) {
 						var new_path = path + osfs + name;
 						if (name.match(/\.json$/)) {
-							var result = BedrockEntityManager.checkEntityFile(new_path);
+							var result = this.checkEntityFile(new_path);
 							if (result) return result;
 						} else if (!name.includes('.')) {
 							var result = searchFolder(new_path);
@@ -59,18 +63,27 @@ window.BedrockEntityManager = {
 			}
 			return searchFolder(path) || searchFolder(path.replace(/entity$/, 'attachables'));
 		}
-	},
+	}
 	initEntity() {
-		BedrockEntityManager.client_entity = BedrockEntityManager.getEntityFile();
-		if (BedrockEntityManager.client_entity && BedrockEntityManager.client_entity.description) {
+		this.client_entity = this.getEntityFile();
+		if (this.client_entity && this.client_entity.description) {
+
+			let render_mode;
+			let {materials} = this.client_entity.description;
+			if (materials) {
+				let [key] = Object.keys(materials);
+				if (typeof materials[key] == 'string' && materials[key].includes('emissive')) {
+					render_mode = 'emissive'
+				}
+			}
 
 			// Textures
-			var tex_list = BedrockEntityManager.client_entity.description.textures
+			var tex_list = this.client_entity.description.textures
 			if (tex_list instanceof Object) {
 				var valid_textures_list = [];
 				for (var key in tex_list) {
 					if (typeof tex_list[key] == 'string') {
-						var path = BedrockEntityManager.root_path + osfs + tex_list[key].replace(/\//g, osfs);
+						var path = this.root_path + osfs + tex_list[key].replace(/\//g, osfs);
 						path = findExistingFile([
 							path+'.png',
 							path+'.tga'
@@ -81,10 +94,10 @@ window.BedrockEntityManager = {
 					}
 				}
 				if (valid_textures_list.length == 1) {
-					new Texture({keep_size: true}).fromPath(valid_textures_list[0]).add()
+					new Texture({keep_size: true, render_mode}).fromPath(valid_textures_list[0]).add()
 
 				} else if (valid_textures_list.length > 1) {
-					setTimeout(() => {
+					setTimeout(() => {this.project.whenNextOpen(() => {
 						var dialog_list = '';
 						valid_textures_list.forEach((path, i) => {
 							dialog_list += `<li title="${pathToName(path, true)}" arr_index="${i}"></li>`;
@@ -101,11 +114,11 @@ window.BedrockEntityManager = {
 								dialog.hide();
 								if (index == 1) {
 									valid_textures_list.forEach(path => {
-										new Texture({keep_size: true}).fromPath(path).add()
+										new Texture({keep_size: true, render_mode}).fromPath(path).add()
 									})
 								} else if (index == 0) {
 									selected_textures.forEach(i => {
-										new Texture({keep_size: true}).fromPath(valid_textures_list[i]).add()
+										new Texture({keep_size: true, render_mode}).fromPath(valid_textures_list[i]).add()
 									})
 								}
 							}
@@ -125,17 +138,17 @@ window.BedrockEntityManager = {
 								dialog.confirm()
 							}
 						})
-					}, 2)
+					})}, 2)
 				}
 			}
 
 		} else {
-			BedrockEntityManager.findEntityTexture(Project.geometry_name)
+			this.findEntityTexture(this.project.geometry_name)
 		}
-	},
+	}
 	initAnimations() {
 
-		var anim_list = BedrockEntityManager.client_entity && BedrockEntityManager.client_entity.description && BedrockEntityManager.client_entity.description.animations;
+		var anim_list = this.client_entity && this.client_entity.description && this.client_entity.description.animations;
 		if (anim_list instanceof Object) {
 			let animation_names = [];
 			for (var key in anim_list) {
@@ -158,7 +171,7 @@ window.BedrockEntityManager = {
 					}
 				} catch (err) {}
 			}
-			searchFolder(PathModule.join(BedrockEntityManager.root_path, 'animations'));
+			searchFolder(PathModule.join(this.root_path, 'animations'));
 
 			anim_files.forEach(path => {
 				try {
@@ -167,13 +180,13 @@ window.BedrockEntityManager = {
 				} catch (err) {}
 			})
 		}
-		BedrockEntityManager.initialized_animations = true;
-	},
+		this.initialized_animations = true;
+	}
 	reset() {
-		delete BedrockEntityManager.initialized_animations;
-		delete BedrockEntityManager.client_entity;
-		delete BedrockEntityManager.root_path;
-	},
+		delete this.initialized_animations;
+		delete this.client_entity;
+		delete this.root_path;
+	}
 	findEntityTexture(mob, return_path) {
 		if (!mob) return;
 		var textures = {
@@ -244,7 +257,7 @@ window.BedrockEntityManager = {
 			path = mob
 		}
 		if (path) {
-			var texture_path = ModelMeta.export_path.split(osfs)
+			var texture_path = this.project.export_path.split(osfs)
 			var index = texture_path.lastIndexOf('models') - texture_path.length
 			texture_path.splice(index)
 			texture_path = [...texture_path, 'textures', 'entity', ...path.split('/')].join(osfs)
@@ -432,6 +445,28 @@ function calculateVisibleBox() {
 				}
 			}
 		}
+		if (b.texture_meshes instanceof Array) {
+			b.texture_meshes.forEach(tm => {
+				let texture = Texture.all.find(tex => tex.name == tm.texture);
+				let texture_mesh = new TextureMesh({
+					texture_name: tm.texture,
+					texture: texture ? texture.uuid : null,
+					origin: tm.position,
+					rotation: tm.rotation,
+					local_pivot: tm.local_pivot,
+					scale: tm.scale,
+				})
+				texture_mesh.local_pivot[2] *= -1;
+				texture_mesh.origin[1] *= -1;
+
+				texture_mesh.origin[1] += b.pivot[1];
+
+				texture_mesh.origin[0] *= -1;
+				texture_mesh.rotation[0] *= -1;
+				texture_mesh.rotation[1] *= -1;
+				texture_mesh.addTo(group).init();
+			})
+		}
 		if (b.children) {
 			b.children.forEach(function(cg) {
 				cg.addTo(group);
@@ -505,10 +540,9 @@ function calculateVisibleBox() {
 		Canvas.updateAllBones()
 		setProjectTitle()
 		if (isApp && Project.geometry_name) {
-			BedrockEntityManager.initEntity()
+			Project.BedrockEntityManager.initEntity()
 		}
 		updateSelection()
-		EditSession.initNewModel()
 	}
 
 // Compile
@@ -570,6 +604,7 @@ function calculateVisibleBox() {
 	}
 	function compileGroup(g) {
 		if (g.type !== 'group') return;
+		if (!settings.export_empty_groups.value && !g.children.find(child => child.export)) return;
 		//Bone
 		var bone = {}
 		bone.name = g.name
@@ -595,9 +630,10 @@ function calculateVisibleBox() {
 		if (g.material) {
 			bone.material = g.material
 		}
-		//Cubes
+		// Elements
 		var cubes = []
 		var locators = {};
+		var texture_meshes = [];
 
 		for (var obj of g.children) {
 			if (obj.export) {
@@ -612,24 +648,56 @@ function calculateVisibleBox() {
 					let offset = obj.from.slice();
 					offset[0] *= -1;
 
-					if (obj.rotatable && !obj.rotation.allEqual(0)) {
+					if ((obj.rotatable && !obj.rotation.allEqual(0)) || obj.ignore_inherited_scale) {
 						locators[key] = {
-							offset,
-							rotation: [
-								-obj.rotation[0],
-								-obj.rotation[0],
-								obj.rotation[0]
-							]
+							offset
 						};
+						if (obj.rotatable && !obj.rotation.allEqual(0)) {
+							locators[key].rotation = [
+								-obj.rotation[0],
+								-obj.rotation[1],
+								obj.rotation[2]
+							]
+						}
+						if (obj.ignore_inherited_scale) {
+							locators[key].ignore_inherited_scale = true;
+						}
 					} else {
 						locators[key] = offset;
 					}
+				} else if (obj instanceof TextureMesh) {
+					let texmesh = {
+						texture: obj.texture_name,
+						position: obj.origin.slice(),
+					}
+					texmesh.position[0] *= -1;
+					texmesh.position[1] -= bone.pivot[1];
+					texmesh.position[1] *= -1;
+
+					if (!obj.rotation.allEqual(0)) {
+						texmesh.rotation = [
+							-obj.rotation[0],
+							-obj.rotation[1],
+							obj.rotation[2]
+						]
+					}
+					if (!obj.local_pivot.allEqual(0)) {
+						texmesh.local_pivot = obj.local_pivot.slice();
+						texmesh.local_pivot[2] *= -1;
+					}
+					if (!obj.scale.allEqual(1)) {
+						texmesh.scale = obj.scale.slice();
+					}
+					texture_meshes.push(texmesh);
 				}
 			}
 		}
 
 		if (cubes.length) {
 			bone.cubes = cubes
+		}
+		if (texture_meshes.length) {
+			bone.texture_meshes = texture_meshes
 		}
 		if (Object.keys(locators).length) {
 			bone.locators = locators
@@ -902,7 +970,8 @@ var codec = new Codec('bedrock', {
 					},
 					open() {
 						parseGeometry()
-					}
+					},
+					tl
 				},
 				computed: {
 					searched() {
@@ -922,7 +991,7 @@ var codec = new Codec('bedrock', {
 		})
 	},
 	fileName() {
-		var name = ModelMeta.name||Project.name||'model';
+		var name = Project.name||'model';
 		if (!name.match(/\.geo$/)) {
 			name += '.geo';
 		}
@@ -951,6 +1020,7 @@ var format = new ModelFormat({
 	animation_files: true,
 	animation_mode: true,
 	locators: true,
+	texture_meshes: true,
 	codec,
 	onActivation: function () {
 		

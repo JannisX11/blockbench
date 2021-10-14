@@ -4,6 +4,7 @@ const url = require('url')
 const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const {getColorHexRGB} = require('electron-color-picker')
+require('@electron/remote/main').initialize()
 
 let orig_win;
 let all_wins = [];
@@ -57,6 +58,9 @@ function createWindow(second_instance) {
 	})
 	if (!orig_win) orig_win = win;
 	all_wins.push(win);
+
+	require('@electron/remote/main').enable(win.webContents)
+
 	var index_path = path.join(__dirname, 'index.html')
 	if (process.platform === 'darwin') {
 
@@ -152,12 +156,17 @@ app.commandLine.appendSwitch('enable-accelerated-video')
 
 app.on('second-instance', function (event, argv, cwd) {
 	process.argv = argv
-	createWindow(true)
+	if (argv[argv.length-1 || 1] && argv[argv.length-1 || 1].substr(0, 2) !== '--') {
+		orig_win.webContents.send('open-model', argv[argv.length-1 || 1]);
+		orig_win.focus();
+	} else {
+		createWindow(true);
+	}
 })
 app.on('open-file', function (event, path) {
 	process.argv[process.argv.length-1 || 1] = path;
 	if (orig_win) {
-		createWindow(true)
+		orig_win.webContents.send('open-model', path);
 	}
 })
 
@@ -169,6 +178,9 @@ ipcMain.on('change-main-color', (event, arg) => {
 })
 ipcMain.on('edit-launch-setting', (event, arg) => {
 	LaunchSettings.set(arg.key, arg.value);
+})
+ipcMain.on('add-recent-project', (event, path) => {
+	app.addRecentDocument(path);
 })
 ipcMain.on('request-color-picker', async (event, arg) => {
 	const color = await getColorHexRGB().catch((error) => {

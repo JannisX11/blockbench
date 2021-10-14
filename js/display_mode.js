@@ -1,5 +1,3 @@
-var display = {}
-Blockbench.display_settings = display
 var ground_animation = false;
 var ground_timer = 0
 var display_slot;
@@ -210,26 +208,43 @@ class refModel {
 		this.id = id;
 		this.icon = id;
 		this.initialized = false;
+		this.pose_angles = {};
 
 		switch (id) {
 			case 'player':
-				this.onload = function() {
-					let angle = Math.degToRad(scope.angle||22.5)
+				this.pose_angles.thirdperson_righthand = 22.5;
+				this.pose_angles.thirdperson_lefthand = 22.5;
+				this.pose_angles.head = 0;
+
+				this.updateBasePosition = function() {
+					let angle = Math.degToRad(scope.pose_angles[display_slot] || 0)
 					let x = scope.variant === 'alex' ? 5.5 : 6
 					let y = 22 - Math.cos(angle)*10 + Math.sin(angle)*2
 					let z = 	 Math.sin(angle)*10 + Math.cos(angle)*2
 
 					if (display_slot === 'thirdperson_righthand') {
-						setDisplayArea(x, y, -z, -67.5,0,0, 1, 1, 1)
+						setDisplayArea(x, y, -z, -90 + scope.pose_angles[display_slot], 0, 0, 1, 1, 1)
 					} else if (display_slot === 'thirdperson_lefthand') {
-						setDisplayArea(-x, y, -z, -67.5,0,0, 1, 1, 1)
+						setDisplayArea(-x, y, -z, -90 + scope.pose_angles[display_slot], 0, 0, 1, 1, 1)
 					} else if (display_slot === 'head') {
-						setDisplayArea(0, 28, 0, 0, 0, 0, 0.625, 0.625, 0.625)
+						setDisplayArea(0, 24 + Math.cos(angle)*4, Math.sin(angle)*4, scope.pose_angles[display_slot], 0, 0, 0.625, 0.625, 0.625)
 					}
+
+					this.model.children.forEach(mesh => {
+						if (display_slot === 'thirdperson_righthand' && mesh.name.match(/^right_arm/)) {
+							mesh.rotation.x = angle;
+						}
+						if (display_slot === 'thirdperson_lefthand' && mesh.name.match(/^left_arm/)) {
+							mesh.rotation.x = angle;
+						}
+						if (display_slot === 'head' && mesh.name.match(/^head/)) {
+							mesh.rotation.x = angle;
+						}
+					})
 				}
 				break;
 			case 'armor_stand':
-				this.onload = function() {
+				this.updateBasePosition = function() {
 					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(-2, 6, -6, -90, 0, 90, 1, 1, 1)
 					} else if (display_slot === 'thirdperson_lefthand') {
@@ -240,7 +255,7 @@ class refModel {
 				}
 				break;
 			case 'armor_stand_small':
-				this.onload = function() {
+				this.updateBasePosition = function() {
 					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(-1, 0, -3, -90, 0, 90, 0.5, 0.5, 0.5)
 					} else if (display_slot === 'thirdperson_lefthand') {
@@ -251,7 +266,7 @@ class refModel {
 				}
 				break;
 			case 'zombie':
-				this.onload = function() {
+				this.updateBasePosition = function() {
 					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(-10, 18, -6, -90, 90, 90, 1, 1, 1)
 					} else if (display_slot === 'thirdperson_lefthand') {
@@ -262,7 +277,7 @@ class refModel {
 				}
 				break;
 			case 'baby_zombie':
-				this.onload = function() {
+				this.updateBasePosition = function() {
 					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(-5, 6, -3, -90, 90, 90, 0.5, 0.5, 0.5)
 					} else if (display_slot === 'thirdperson_lefthand') {
@@ -273,19 +288,19 @@ class refModel {
 				}
 				break;
 			case 'monitor':
-				this.onload = function() {
+				this.updateBasePosition = function() {
 					var side = display_slot.includes('left') ? -1 : 1;
 					setDisplayArea(side*9.039, -8.318, 20.8, 0, 0, 0, 1,1,1)
 				}
 				break;
 			case 'bow':
-				this.onload = function() {
+				this.updateBasePosition = function() {
 					var side = display_slot.includes('left') ? -1 : 1;
 					setDisplayArea(side*4.2, -4.9, 25, -20, -19, -8, 1,1,1)
 				}
 				break;
 			case 'crossbow':
-				this.onload = function() {
+				this.updateBasePosition = function() {
 					var side = display_slot.includes('left') ? -1 : 1;
 					setDisplayArea(side*-1.2, -6.75, 23, 0, side*10, 0, 1, 1, 1)
 				}
@@ -310,8 +325,6 @@ class refModel {
 			var mat = new THREE.MeshLambertMaterial({
 				color: 0xffffff,
 				map: tex,
-				transparent: true,
-				vertexColors: THREE.FaceColors,
 				side: 2,
 				alphaTest: 0.05
 			});
@@ -320,7 +333,7 @@ class refModel {
 		scope.material = mat
 
 		things.forEach(function(s) {
-			var mesh = new THREE.Mesh(new THREE.CubeGeometry(s.size[0], s.size[1], s.size[2]), mat )
+			var mesh = new THREE.Mesh(new THREE.BoxGeometry(s.size[0], s.size[1], s.size[2]), mat)
 			if (s.origin) {
 				mesh.position.set(s.origin[0], s.origin[1], s.origin[2])
 				mesh.geometry.translate(-s.origin[0], -s.origin[1], -s.origin[2])
@@ -331,6 +344,26 @@ class refModel {
 			}
 			if (s.model) {
 				mesh.r_model = s.model
+			}
+			mesh.name = s.name || '';
+
+			function getUVArray(face) {
+				var arr = [
+					[face.uv[0]/16, 1-(face.uv[1]/16)],
+					[face.uv[2]/16, 1-(face.uv[1]/16)],
+					[face.uv[0]/16, 1-(face.uv[3]/16)],
+					[face.uv[2]/16, 1-(face.uv[3]/16)]
+				]
+				var rot = (face.rotation+0)
+				while (rot > 0) {
+					let a = arr[0];
+					arr[0] = arr[2];
+					arr[2] = arr[3];
+					arr[3] = arr[1];
+					arr[1] = a;
+					rot = rot-90;
+				}
+				return arr;
 			}
 
 			for (var face in s) {
@@ -344,11 +377,14 @@ class refModel {
 						case 'up':	  fIndex = 4;	break;
 						case 'down':	fIndex = 6;	break;
 					}
-					mesh.geometry.faceVertexUvs[0][fIndex] = [ getUVArray(s[face])[0], getUVArray(s[face])[1], getUVArray(s[face])[3] ];
-					mesh.geometry.faceVertexUvs[0][fIndex+1] = [ getUVArray(s[face])[1], getUVArray(s[face])[2], getUVArray(s[face])[3] ];
+					let uv_array = getUVArray(s[face]);
+					mesh.geometry.attributes.uv.array.set(uv_array[0], fIndex*4 + 0);  //0,1
+					mesh.geometry.attributes.uv.array.set(uv_array[1], fIndex*4 + 2);  //1,1
+					mesh.geometry.attributes.uv.array.set(uv_array[2], fIndex*4 + 4);  //0,0
+					mesh.geometry.attributes.uv.array.set(uv_array[3], fIndex*4 + 6);  //1,0
+					mesh.geometry.attributes.uv.needsUpdate = true;
 				}
 			}
-			mesh.geometry.elementsNeedUpdate = true;
 
 			scope.model.add(mesh);
 		})
@@ -363,14 +399,14 @@ class refModel {
 			}
 		})
 		if (display_mode && displayReferenceObjects.active === this) {
-			this.onload()
+			this.updateBasePosition()
 		}
 	}
 	load(index) {
 		displayReferenceObjects.ref_indexes[display_slot] = index || 0;
 		displayReferenceObjects.clear()
-		if (typeof this.onload === 'function') {
-			this.onload()
+		if (typeof this.updateBasePosition === 'function') {
+			this.updateBasePosition()
 		}
 		//3D
 		if (!this.initialized) {
@@ -390,6 +426,9 @@ class refModel {
 		}
 		display_scene.add(this.model)
 		displayReferenceObjects.active = this;
+
+		DisplayMode.vue.pose_angle = this.pose_angles[display_slot] || 0;
+		DisplayMode.vue.reference_model = this.id;
 		
 		display_preview.loadBackground()
 	}
@@ -398,8 +437,10 @@ class refModel {
 		var cubes = [
 			{
 				//Head
+				"name": "head",
 				"size": [8, 8, 8],
 				"pos": [0, 28, 0],
+				"origin": [0, 24, 0],
 				"north": {"uv": [2.032, 2.032, 3.968, 3.968]},
 				"east": {"uv": [0.032, 2.032, 1.968, 3.968]},
 				"south": {"uv": [6.032, 2.032, 7.968, 3.968]},
@@ -409,8 +450,10 @@ class refModel {
 			},
 			{
 				//Head Layer
+				"name": "head_layer",
 				"size": [9, 9, 9],
 				"pos": [0, 28, 0],
+				"origin": [0, 24, 0],
 				"north": {"uv": [10.032, 2.032, 11.968, 3.968]},
 				"east": {"uv": [8.032, 2.032, 9.968, 3.968]},
 				"south": {"uv": [14.032, 2.032, 15.968, 3.968]},
@@ -495,6 +538,7 @@ class refModel {
 			//Steve
 			{
 				//R Arm
+				"name": "right_arm",
 				"size": [4, 12, 4],
 				"pos": [6, 18, 0],
 				"origin": [4, 22, 0],
@@ -509,6 +553,7 @@ class refModel {
 			},
 			{
 				//R Arm Layer
+				"name": "right_arm_layer",
 				"size": [4.5, 12.5, 4.5],
 				"pos": [6, 18, 0],
 				"origin": [4, 22, 0],
@@ -523,6 +568,7 @@ class refModel {
 			},
 			{
 				//L Arm
+				"name": "left_arm",
 				"size": [4, 12, 4],
 				"pos": [-6, 18, 0],
 				"origin": [-4, 22, 0],
@@ -537,6 +583,7 @@ class refModel {
 			},
 			{
 				//L Arm Layer
+				"name": "left_arm_layer",
 				"size": [4.5, 12.5, 4.5],
 				"pos": [-6, 18, 0],
 				"origin": [-4, 22, 0],
@@ -552,6 +599,7 @@ class refModel {
 			//ALEX
 			{
 				//R Arm
+				"name": "right_arm",
 				"size": [3, 12, 4],
 				"pos": [5.5, 17.5, 0],
 				"origin": [0, 22, 0],
@@ -566,6 +614,7 @@ class refModel {
 			},
 			{
 				//R Arm Layer
+				"name": "right_arm_layer",
 				"size": [3.5, 12.5, 4.5],
 				"pos": [5.5, 17.5, 0],
 				"origin": [0, 22, 0],
@@ -580,6 +629,7 @@ class refModel {
 			},
 			{
 				//L Arm
+				"name": "left_arm",
 				"size": [3, 12, 4],
 				"pos": [-5.5, 17.5, 0],
 				"origin": [0, 22, 0],
@@ -594,6 +644,7 @@ class refModel {
 			},
 			{
 				//L Arm Layer
+				"name": "left_arm_layer",
 				"size": [3.5, 12.5, 4.5],
 				"pos": [-5.5, 17.5, 0],
 				"origin": [0, 22, 0],
@@ -652,32 +703,12 @@ class refModel {
 				"size": [2, 2, 8],
 				"pos": [0, 7, 0],
 				"origin": [0, 0, 0],
-				"north": {
-					"uv": [0.25, 5.75, 0.75, 6.25],
-					"texture": "#0"
-				},
-				"east": {
-					"uv": [0.25, 5.75, 2.25, 6.25],
-					"texture": "#0"
-				},
-				"south": {
-					"uv": [4.75, 5.75, 5.25, 6.25],
-					"texture": "#0"
-				},
-				"west": {
-					"uv": [2.75, 5.75, 4.75, 6.25],
-					"texture": "#0"
-				},
-				"up": {
-					"uv": [0, 12.5, 2, 13],
-					"texture": "#0",
-					"rotation": 90,"rotation": 90
-				},
-				"down": {
-					"uv": [0, 12.5, 2, 13],
-					"texture": "#0",
-					"rotation": 90, "rotation": 270
-				}
+				"north": {"uv": [0.25, 5.75, 0.75, 6.25], "texture": "#0"},
+				"east": {"uv": [0.25, 5.75, 2.25, 6.25], "texture": "#0"},
+				"south": {"uv": [4.75, 5.75, 5.25, 6.25], "texture": "#0"},
+				"west": {"uv": [2.75, 5.75, 4.75, 6.25], "texture": "#0"},
+				"up": {"uv": [0, 12.5, 2, 13], "texture": "#0", "rotation": 90,"rotation": 90},
+				"down": {"uv": [0, 12.5, 2, 13], "texture": "#0", "rotation": 90, "rotation": 270}
 			},
 			{
 				"size": [2, 7, 2],
@@ -706,25 +737,11 @@ class refModel {
 				"pos": [0, 16.505, 0],
 				"origin": [0, 0, 0],
 				"north": {"uv": [3, 7.25, 3.75, 8]},
-				"east": {
-					"uv": [3.75, 7.25, 6.75, 8],
-					"texture": "#0"
-				},
-				"south": {
-					"uv": [6.75, 7.25, 7.5, 8],
-					"texture": "#0"
-				},
+				"east": {"uv": [3.75, 7.25, 6.75, 8], "texture": "#0"},
+				"south": {"uv": [6.75, 7.25, 7.5, 8], "texture": "#0"},
 				"west": {"uv": [0, 7.25, 3, 8]},
-				"up": {
-					"uv": [0.75, 6.5, 3.75, 7.25],
-					"texture": "#0",
-					"rotation": 90,"rotation": 90
-				},
-				"down": {
-					"uv": [3.75, 6.5, 6.75, 7.25],
-					"texture": "#0",
-					"rotation": 90, "rotation": 270
-				}
+				"up": {"uv": [0.75, 6.5, 3.75, 7.25], "texture": "#0", "rotation": 90,"rotation": 90},
+				"down": {"uv": [3.75, 6.5, 6.75, 7.25], "texture": "#0", "rotation": 90, "rotation": 270}
 			},
 			{
 				"size": [2, 6, 2],
@@ -800,32 +817,12 @@ class refModel {
 				"size": [1, 1, 4],
 				"pos": [0, 0.5, 0],
 				"origin": [0, 0, 0],
-				"north": {
-					"uv": [0.25, 5.75, 0.75, 6.25],
-					"texture": "#0"
-				},
-				"east": {
-					"uv": [0.25, 5.75, 2.25, 6.25],
-					"texture": "#0"
-				},
-				"south": {
-					"uv": [4.75, 5.75, 5.25, 6.25],
-					"texture": "#0"
-				},
-				"west": {
-					"uv": [2.75, 5.75, 4.75, 6.25],
-					"texture": "#0"
-				},
-				"up": {
-					"uv": [0, 12.5, 2, 13],
-					"texture": "#0",
-					"rotation": 90
-				},
-				"down": {
-					"uv": [0, 12.5, 2, 13],
-					"texture": "#0",
-					"rotation": 90
-				}
+				"north": {"uv": [0.25, 5.75, 0.75, 6.25], "texture": "#0"},
+				"east": {"uv": [0.25, 5.75, 2.25, 6.25], "texture": "#0"},
+				"south": {"uv": [4.75, 5.75, 5.25, 6.25], "texture": "#0"},
+				"west": {"uv": [2.75, 5.75, 4.75, 6.25], "texture": "#0"},
+				"up": {"uv": [0, 12.5, 2, 13], "texture": "#0", "rotation": 90},
+				"down": {"uv": [0, 12.5, 2, 13], "texture": "#0", "rotation": 90}
 			},
 			{
 				"size": [1, 3.5, 1],
@@ -854,32 +851,14 @@ class refModel {
 				"pos": [0, 5.255, 0],
 				"origin": [0, 0, 0],
 				"north": {"uv": [3, 7.25, 3.75, 8]},
-				"east": {
-					"uv": [3.75, 7.25, 6.75, 8],
-					"texture": "#0"
-				},
-				"south": {
-					"uv": [6.75, 7.25, 7.5, 8],
-					"texture": "#0"
-				},
+				"east": {"uv": [3.75, 7.25, 6.75, 8], "texture": "#0"},
+				"south": {"uv": [6.75, 7.25, 7.5, 8], "texture": "#0"},
 				"west": {"uv": [0, 7.25, 3, 8]},
-				"up": {
-					"uv": [0.75, 6.5, 3.75, 7.25],
-					"texture": "#0",
-					"rotation": 90
-				},
-				"down": {
-					"uv": [3.75, 6.5, 6.75, 7.25],
-					"texture": "#0",
-					"rotation": 90
-				}
+				"up": {"uv": [0.75, 6.5, 3.75, 7.25], "texture": "#0", "rotation": 90},
+				"down": {"uv": [3.75, 6.5, 6.75, 7.25], "texture": "#0", "rotation": 90}
 			},
 			{
-				"size": [
-					1.5,
-					4.5,
-					1.5
-				],
+				"size": [1.5, 4.5, 1.5],
 				"pos": [0, 8.27, 0],
 				"origin": [0, 0, 0],
 				"north": {"uv": [0.5, 0.5, 1, 2.25]},
@@ -919,195 +898,67 @@ class refModel {
 				"size": [4, 12, 4],
 				"pos": [0, 0, -2],
 				"origin": [0, 0, 0],
-				"north": {
-					"uv": [0.01, 5.01, 0.99, 7.99],
-					"texture": "#1"
-				},
-				"east": {
-					"uv": [3.01, 5.01, 3.99, 7.99],
-					"texture": "#1"
-				},
-				"south": {
-					"uv": [2.01, 5.01, 2.99, 7.99],
-					"texture": "#1"
-				},
-				"west": {
-					"uv": [1.01, 5.01, 1.99, 7.99],
-					"texture": "#1"
-				},
-				"up": {
-					"uv": [1.01, 4.01, 1.99, 4.99],
-					"texture": "#1",
-					"rotation": 90
-				},
-				"down": {
-					"uv": [2.01, 4.01, 2.99, 4.99],
-					"texture": "#1",
-					"rotation": 90
-				}
+				"north": {"uv": [0.01, 5.01, 0.99, 7.99], "texture": "#1"},
+				"east": {"uv": [3.01, 5.01, 3.99, 7.99], "texture": "#1"},
+				"south": {"uv": [2.01, 5.01, 2.99, 7.99], "texture": "#1"},
+				"west": {"uv": [1.01, 5.01, 1.99, 7.99], "texture": "#1"},
+				"up": {"uv": [1.01, 4.01, 1.99, 4.99], "texture": "#1", "rotation": 90},
+				"down": {"uv": [2.01, 4.01, 2.99, 4.99], "texture": "#1", "rotation": 90}
 			},
 			{
 				"size": [4, 12, 4],
 				"pos": [0, 0, 2],
 				"origin": [0, 0, 0],
-				"north": {
-					"uv": [4.01, 13.01, 4.99, 15.99],
-					"texture": "#1"
-				},
-				"east": {
-					"uv": [8.01, 13.01, 6.99, 15.99],
-					"texture": "#1"
-				},
-				"south": {
-					"uv": [6.01, 13.01, 6.99, 15.99],
-					"texture": "#1"
-				},
-				"west": {
-					"uv": [5.01, 13.01, 5.99, 15.99],
-					"texture": "#1"
-				},
-				"up": {
-					"uv": [5.01, 12.01, 5.99, 12.99],
-					"texture": "#1",
-					"rotation": 90
-				},
-				"down": {
-					"uv": [6.01, 12.01, 6.99, 12.99],
-					"texture": "#1",
-					"rotation": 90
-				}
+				"north": {"uv": [4.01, 13.01, 4.99, 15.99], "texture": "#1"},
+				"east": {"uv": [8.01, 13.01, 6.99, 15.99], "texture": "#1"},
+				"south": {"uv": [6.01, 13.01, 6.99, 15.99], "texture": "#1"},
+				"west": {"uv": [5.01, 13.01, 5.99, 15.99], "texture": "#1"},
+				"up": {"uv": [5.01, 12.01, 5.99, 12.99], "texture": "#1", "rotation": 90},
+				"down": {"uv": [6.01, 12.01, 6.99, 12.99], "texture": "#1", "rotation": 90}
 			},
 			{
 				"size": [4, 12, 8],
 				"pos": [0, 12, 0],
 				"origin": [0, 0, 0],
-				"north": {
-					"uv": [4.01, 5.01, 4.99, 7.99],
-					"texture": "#1"
-				},
-				"east": {
-					"uv": [8.01, 5.01, 9.99, 7.99],
-					"texture": "#1"
-				},
-				"south": {
-					"uv": [7.01, 5.01, 7.99, 7.99],
-					"texture": "#1"
-				},
-				"west": {
-					"uv": [5.01, 5.01, 6.99, 7.99],
-					"texture": "#1"
-				},
-				"up": {
-					"uv": [5.01, 4.01, 6.99, 4.99],
-					"texture": "#1",
-					"rotation": 90
-				},
-				"down": {
-					"uv": [7.01, 4.01, 8.99, 4.99],
-					"texture": "#1",
-					"rotation": 270
-				}
+				"north": {"uv": [4.01, 5.01, 4.99, 7.99], "texture": "#1"},
+				"east": {"uv": [8.01, 5.01, 9.99, 7.99], "texture": "#1"},
+				"south": {"uv": [7.01, 5.01, 7.99, 7.99], "texture": "#1"},
+				"west": {"uv": [5.01, 5.01, 6.99, 7.99], "texture": "#1"},
+				"up": {"uv": [5.01, 4.01, 6.99, 4.99], "texture": "#1", "rotation": 90},
+				"down": {"uv": [7.01, 4.01, 8.99, 4.99], "texture": "#1", "rotation": 270}
 			},
 			{
 				"size": [8, 8, 8],
 				"pos": [0, 22, 0],
 				"origin": [0, 0, 0],
-				"north": {
-					"uv": [0.01, 2.01, 1.99, 3.99],
-					"texture": "#1"
-				},
-				"east": {
-					"uv": [6.01, 2.01, 7.99, 3.99],
-					"texture": "#1"
-				},
-				"south": {
-					"uv": [4.01, 2.01, 5.99, 3.99],
-					"texture": "#1"
-				},
-				"west": {
-					"uv": [2.01, 2.01, 3.99, 3.99],
-					"texture": "#1"
-				},
-				"up": {
-					"uv": [2.01, 0.01, 3.99, 1.99],
-					"texture": "#1",
-					"rotation": 90
-				},
-				"down": {
-					"uv": [4.01, 0.01, 5.99, 1.99],
-					"texture": "#1",
-					"rotation": 90
-				}
+				"north": {"uv": [0.01, 2.01, 1.99, 3.99], "texture": "#1"},
+				"east": {"uv": [6.01, 2.01, 7.99, 3.99], "texture": "#1"},
+				"south": {"uv": [4.01, 2.01, 5.99, 3.99], "texture": "#1"},
+				"west": {"uv": [2.01, 2.01, 3.99, 3.99], "texture": "#1"},
+				"up": {"uv": [2.01, 0.01, 3.99, 1.99], "texture": "#1", "rotation": 90},
+				"down": {"uv": [4.01, 0.01, 5.99, 1.99], "texture": "#1", "rotation": 90}
 			},
 			{
 				"size": [12, 4, 4],
 				"pos": [-4, 16, -6],
 				"origin": [0, 0, 0],
-				"north": {
-					"uv": [12.01, 5.01, 12.99, 7.99],
-					"texture": "#1",
-					"rotation": 270
-				},
-				"east": {
-					"uv": [11.01, 4.01, 11.99, 4.99],
-					"texture": "#1",
-					"rotation": 180
-				},
-				"south": {
-					"uv": [10.01, 5.01, 10.99, 7.99],
-					"texture": "#1",
-					"rotation": 90
-				},
-				"west": {
-					"uv": [12.01, 4.01, 12.99, 4.99],
-					"texture": "#1",
-					"rotation": 180
-				},
-				"up": {
-					"uv": [11.01, 5.01, 11.99, 7.99],
-					"texture": "#1",
-					"rotation": 90
-				},
-				"down": {
-					"uv": [13.01, 5.01, 13.99, 7.99],
-					"texture": "#1",
-					"rotation": 90
-				}
+				"north": {"uv": [12.01, 5.01, 12.99, 7.99], "texture": "#1", "rotation": 270},
+				"east": {"uv": [11.01, 4.01, 11.99, 4.99], "texture": "#1", "rotation": 180},
+				"south": {"uv": [10.01, 5.01, 10.99, 7.99], "texture": "#1", "rotation": 90},
+				"west": {"uv": [12.01, 4.01, 12.99, 4.99], "texture": "#1", "rotation": 180},
+				"up": {"uv": [11.01, 5.01, 11.99, 7.99], "texture": "#1", "rotation": 90},
+				"down": {"uv": [13.01, 5.01, 13.99, 7.99], "texture": "#1", "rotation": 90}
 			},
 			{
 				"size": [12, 4, 4],
 				"pos": [-4, 16, 6],
 				"origin": [0, 0, 0],
-				"north": {
-					"uv": [10.01, 13.01, 10.99, 15.99],
-					"texture": "#1",
-					"rotation": 270
-				},
-				"east": {
-					"uv": [9.01, 12.01, 9.99, 12.99],
-					"texture": "#1",
-					"rotation": 180
-				},
-				"south": {
-					"uv": [8.01, 13.01, 8.99, 15.99],
-					"texture": "#1",
-					"rotation": 90
-				},
-				"west": {
-					"uv": [10.01, 12.01, 10.99, 12.99],
-					"texture": "#1",
-					"rotation": 180
-				},
-				"up": {
-					"uv": [9.01, 13.01, 9.99, 15.99],
-					"texture": "#1",
-					"rotation": 90
-				},
-				"down": {
-					"uv": [11.01, 13.01, 11.99, 15.99],
-					"texture": "#1",
-					"rotation": 90
-				}
+				"north": {"uv": [10.01, 13.01, 10.99, 15.99], "texture": "#1", "rotation": 270},
+				"east": {"uv": [9.01, 12.01, 9.99, 12.99], "texture": "#1", "rotation": 180},
+				"south": {"uv": [8.01, 13.01, 8.99, 15.99], "texture": "#1", "rotation": 90},
+				"west": {"uv": [10.01, 12.01, 10.99, 12.99], "texture": "#1", "rotation": 180},
+				"up": {"uv": [9.01, 13.01, 9.99, 15.99], "texture": "#1", "rotation": 90},
+				"down": {"uv": [11.01, 13.01, 11.99, 15.99], "texture": "#1", "rotation": 90}
 			}
 		]`), 'assets/zombie.png')
 	}
@@ -1117,195 +968,67 @@ class refModel {
 				"size": [2, 6, 2],
 				"pos": [-2.220446049250313e-16, -3, -1],
 				"origin": [0, 0, 0],
-				"north": {
-					"uv": [0.01, 5.01, 0.99, 7.99],
-					"texture": "#1"
-				},
-				"east": {
-					"uv": [3.01, 5.01, 3.99, 7.99],
-					"texture": "#1"
-				},
-				"south": {
-					"uv": [2.01, 5.01, 2.99, 7.99],
-					"texture": "#1"
-				},
-				"west": {
-					"uv": [1.01, 5.01, 1.99, 7.99],
-					"texture": "#1"
-				},
-				"up": {
-					"uv": [1.01, 4.01, 1.99, 4.99],
-					"texture": "#1",
-					"rotation": 90
-				},
-				"down": {
-					"uv": [2.01, 4.01, 2.99, 4.99],
-					"texture": "#1",
-					"rotation": 90
-				}
+				"north": {"uv": [0.01, 5.01, 0.99, 7.99], "texture": "#1"},
+				"east": {"uv": [3.01, 5.01, 3.99, 7.99], "texture": "#1"},
+				"south": {"uv": [2.01, 5.01, 2.99, 7.99], "texture": "#1"},
+				"west": {"uv": [1.01, 5.01, 1.99, 7.99], "texture": "#1"},
+				"up": {"uv": [1.01, 4.01, 1.99, 4.99], "texture": "#1", "rotation": 90},
+				"down": {"uv": [2.01, 4.01, 2.99, 4.99], "texture": "#1", "rotation": 90}
 			},
 			{
 				"size": [2, 6, 2],
 				"pos": [-2.220446049250313e-16, -3, 1],
 				"origin": [0, 0, 0],
-				"north": {
-					"uv": [4.01, 13.01, 4.99, 15.99],
-					"texture": "#1"
-				},
-				"east": {
-					"uv": [8.01, 13.01, 6.99, 15.99],
-					"texture": "#1"
-				},
-				"south": {
-					"uv": [6.01, 13.01, 6.99, 15.99],
-					"texture": "#1"
-				},
-				"west": {
-					"uv": [5.01, 13.01, 5.99, 15.99],
-					"texture": "#1"
-				},
-				"up": {
-					"uv": [5.01, 12.01, 5.99, 12.99],
-					"texture": "#1",
-					"rotation": 90
-				},
-				"down": {
-					"uv": [6.01, 12.01, 6.99, 12.99],
-					"texture": "#1",
-					"rotation": 90
-				}
+				"north": {"uv": [4.01, 13.01, 4.99, 15.99], "texture": "#1"},
+				"east": {"uv": [8.01, 13.01, 6.99, 15.99], "texture": "#1"},
+				"south": {"uv": [6.01, 13.01, 6.99, 15.99], "texture": "#1"},
+				"west": {"uv": [5.01, 13.01, 5.99, 15.99], "texture": "#1"},
+				"up": {"uv": [5.01, 12.01, 5.99, 12.99], "texture": "#1", "rotation": 90},
+				"down": {"uv": [6.01, 12.01, 6.99, 12.99], "texture": "#1", "rotation": 90}
 			},
 			{
 				"size": [2, 6, 4],
 				"pos": [-2.220446049250313e-16, 3, 0],
 				"origin": [0, 0, 0],
-				"north": {
-					"uv": [4.01, 5.01, 4.99, 7.99],
-					"texture": "#1"
-				},
-				"east": {
-					"uv": [8.01, 5.01, 9.99, 7.99],
-					"texture": "#1"
-				},
-				"south": {
-					"uv": [7.01, 5.01, 7.99, 7.99],
-					"texture": "#1"
-				},
-				"west": {
-					"uv": [5.01, 5.01, 6.99, 7.99],
-					"texture": "#1"
-				},
-				"up": {
-					"uv": [5.01, 4.01, 6.99, 4.99],
-					"texture": "#1",
-					"rotation": 90
-				},
-				"down": {
-					"uv": [7.01, 4.01, 8.99, 4.99],
-					"texture": "#1",
-					"rotation": 270
-				}
+				"north": {"uv": [4.01, 5.01, 4.99, 7.99], "texture": "#1"},
+				"east": {"uv": [8.01, 5.01, 9.99, 7.99], "texture": "#1"},
+				"south": {"uv": [7.01, 5.01, 7.99, 7.99], "texture": "#1"},
+				"west": {"uv": [5.01, 5.01, 6.99, 7.99], "texture": "#1"},
+				"up": {"uv": [5.01, 4.01, 6.99, 4.99], "texture": "#1", "rotation": 90},
+				"down": {"uv": [7.01, 4.01, 8.99, 4.99], "texture": "#1", "rotation": 270}
 			},
 			{
 				"size": [6.0, 6.0, 6.0],
 				"pos": [0, 9, 0],
 				"origin": [0, 9, 0],
-				"north": {
-					"uv": [0.01, 2.01, 1.99, 3.99],
-					"texture": "#1"
-				},
-				"east": {
-					"uv": [6.01, 2.01, 7.99, 3.99],
-					"texture": "#1"
-				},
-				"south": {
-					"uv": [4.01, 2.01, 5.99, 3.99],
-					"texture": "#1"
-				},
-				"west": {
-					"uv": [2.01, 2.01, 3.99, 3.99],
-					"texture": "#1"
-				},
-				"up": {
-					"uv": [2.01, 0.01, 3.99, 1.99],
-					"texture": "#1",
-					"rotation": 90
-				},
-				"down": {
-					"uv": [4.01, 0.01, 5.99, 1.99],
-					"texture": "#1",
-					"rotation": 90
-				}
+				"north": {"uv": [0.01, 2.01, 1.99, 3.99], "texture": "#1"},
+				"east": {"uv": [6.01, 2.01, 7.99, 3.99], "texture": "#1"},
+				"south": {"uv": [4.01, 2.01, 5.99, 3.99], "texture": "#1"},
+				"west": {"uv": [2.01, 2.01, 3.99, 3.99], "texture": "#1"},
+				"up": {"uv": [2.01, 0.01, 3.99, 1.99], "texture": "#1", "rotation": 90},
+				"down": {"uv": [4.01, 0.01, 5.99, 1.99], "texture": "#1", "rotation": 90}
 			},
 			{
 				"size": [6, 2, 2],
 				"pos": [-2.000000000000001, 5, -3],
 				"origin": [0, 0, 0],
-				"north": {
-					"uv": [12.01, 5.01, 12.99, 7.99],
-					"texture": "#1",
-					"rotation": 270
-				},
-				"east": {
-					"uv": [11.01, 4.01, 11.99, 4.99],
-					"texture": "#1",
-					"rotation": 180
-				},
-				"south": {
-					"uv": [10.01, 5.01, 10.99, 7.99],
-					"texture": "#1",
-					"rotation": 90
-				},
-				"west": {
-					"uv": [12.01, 4.01, 12.99, 4.99],
-					"texture": "#1",
-					"rotation": 180
-				},
-				"up": {
-					"uv": [11.01, 5.01, 11.99, 7.99],
-					"texture": "#1",
-					"rotation": 90
-				},
-				"down": {
-					"uv": [13.01, 5.01, 13.99, 7.99],
-					"texture": "#1",
-					"rotation": 90
-				}
+				"north": {"uv": [12.01, 5.01, 12.99, 7.99], "texture": "#1", "rotation": 270},
+				"east": {"uv": [11.01, 4.01, 11.99, 4.99], "texture": "#1", "rotation": 180},
+				"south": {"uv": [10.01, 5.01, 10.99, 7.99], "texture": "#1", "rotation": 90},
+				"west": {"uv": [12.01, 4.01, 12.99, 4.99], "texture": "#1", "rotation": 180},
+				"up": {"uv": [11.01, 5.01, 11.99, 7.99], "texture": "#1", "rotation": 90},
+				"down": {"uv": [13.01, 5.01, 13.99, 7.99], "texture": "#1", "rotation": 90}
 			},
 			{
 				"size": [6, 2, 2],
 				"pos": [-2.000000000000001, 5, 3],
 				"origin": [0, 0, 0],
-				"north": {
-					"uv": [10.01, 13.01, 10.99, 15.99],
-					"texture": "#1",
-					"rotation": 270
-				},
-				"east": {
-					"uv": [9.01, 12.01, 9.99, 12.99],
-					"texture": "#1",
-					"rotation": 180
-				},
-				"south": {
-					"uv": [8.01, 13.01, 8.99, 15.99],
-					"texture": "#1",
-					"rotation": 90
-				},
-				"west": {
-					"uv": [10.01, 12.01, 10.99, 12.99],
-					"texture": "#1",
-					"rotation": 180
-				},
-				"up": {
-					"uv": [9.01, 13.01, 9.99, 15.99],
-					"texture": "#1",
-					"rotation": 90
-				},
-				"down": {
-					"uv": [11.01, 13.01, 11.99, 15.99],
-					"texture": "#1",
-					"rotation": 90
-				}
+				"north": {"uv": [10.01, 13.01, 10.99, 15.99], "texture": "#1", "rotation": 270},
+				"east": {"uv": [9.01, 12.01, 9.99, 12.99], "texture": "#1", "rotation": 180},
+				"south": {"uv": [8.01, 13.01, 8.99, 15.99], "texture": "#1", "rotation": 90},
+				"west": {"uv": [10.01, 12.01, 10.99, 12.99], "texture": "#1", "rotation": 180},
+				"up": {"uv": [9.01, 13.01, 9.99, 15.99], "texture": "#1", "rotation": 90},
+				"down": {"uv": [11.01, 13.01, 11.99, 15.99], "texture": "#1", "rotation": 90}
 			}
 		]`), 'assets/zombie.png')
 	}
@@ -1448,8 +1171,8 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 
 	display_area.updateMatrixWorld()
 	Transformer.center()
-	if (outlines.children.length) {
-		outlines.children.length = 0
+	if (Canvas.outlines.children.length) {
+		Canvas.outlines.children.empty();
 	}
 }
 exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the scene etc
@@ -1465,7 +1188,6 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	$('.selection_only').css('visibility', 'hidden')
 	$('body').removeClass('display_mode')
 	resizeWindow()
-	//updateInterface()
 	if (quad_previews.enabled_before) {
 		openQuadView()
 	}
@@ -1487,7 +1209,7 @@ function resetDisplayBase() {
 }
 
 DisplayMode.updateDisplayBase = function(slot) {
-	if (!slot) slot = display[display_slot]
+	if (!slot) slot = Project.display_settings[display_slot]
 
 	display_base.rotation.x = Math.PI / (180 / slot.rotation[0]);
 	display_base.rotation.y = Math.PI / (180 / slot.rotation[1]) * (display_slot.includes('lefthand') ? -1 : 1);
@@ -1520,10 +1242,10 @@ DisplayMode.applyPreset = function(preset, all) {
 	};
 	Undo.initEdit({display_slots: slots})
 	slots.forEach(function(sl) {
-		if (!display[sl]) {
-			display[sl] = new DisplaySlot()
+		if (!Project.display_settings[sl]) {
+			Project.display_settings[sl] = new DisplaySlot()
 		}
-		display[sl].extend(preset.areas[sl])
+		Project.display_settings[sl].extend(preset.areas[sl])
 	})
 	DisplayMode.updateDisplayBase()
 	Undo.finishEdit('Apply display preset')
@@ -1540,8 +1262,8 @@ DisplayMode.createPreset = function() {
 	display_presets.push(preset)
 
 	displayReferenceObjects.slots.forEach(function(s) {
-		if ($('#'+s+'_save').is(':checked') && display[s]) {
-			preset.areas[s] = display[s].copy()
+		if ($('#'+s+'_save').is(':checked') && Project.display_settings[s]) {
+			preset.areas[s] = Project.display_settings[s].copy()
 		}
 	})
 	hideDialog()
@@ -1550,7 +1272,7 @@ DisplayMode.createPreset = function() {
 DisplayMode.loadJSON = function(data) {
 	for (var slot in data) {
 		if (displayReferenceObjects.slots.includes(slot)) {
-			display[slot] = new DisplaySlot().extend(data[slot])
+			Project.display_settings[slot] = new DisplaySlot().extend(data[slot])
 		}
 	}
 }
@@ -1600,12 +1322,12 @@ function loadDisp(key) {	//Loads The Menu and slider values, common for all Radi
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.unhide();
 	display_preview.camPers.setFocalLength(45)
 
-	if (display[key] == undefined) {
-		display[key] = new DisplaySlot()
+	if (Project.display_settings[key] == undefined) {
+		Project.display_settings[key] = new DisplaySlot()
 	}
 	display_preview.force_locked_angle = false;
-	DisplayMode.vue._data.slot = display[key]
-	DisplayMode.slot = display[key]
+	DisplayMode.vue._data.slot = Project.display_settings[key]
+	DisplayMode.slot = Project.display_settings[key]
 	DisplayMode.updateDisplayBase();
 	Canvas.updateRenderSides();
 	DisplayMode.updateGUILight();
@@ -1944,12 +1666,20 @@ Interface.definePanels(function() {
 			name: 'panel-display',
 			data() {return {
 				axes: [0, 1, 2],
+				reference_model: 'player',
+				pose_angle: 0,
 				slot: new DisplaySlot()
 			}},
+			watch: {
+				pose_angle(value) {
+					displayReferenceObjects.active.pose_angles[display_slot] = value;
+					if (displayReferenceObjects.active.updateBasePosition) displayReferenceObjects.active.updateBasePosition();
+				}
+			},
 			methods: {
 				isMirrored: (axis) => {
-					if (display[display_slot]) {
-						return display[display_slot].scale[axis] < 0;
+					if (Project.display_settings[display_slot]) {
+						return Project.display_settings[display_slot].scale[axis] < 0;
 					}
 				},
 				change: (axis, channel) => {
@@ -1988,7 +1718,8 @@ Interface.definePanels(function() {
 				},
 				save: () => {
 					Undo.finishEdit('Change display setting')
-				}
+				},
+				getAxisLetter
 			},
 			template: `
 				<div>
@@ -2057,6 +1788,15 @@ Interface.definePanels(function() {
 							<input type="number" class="tool disp_text" v-model.number="slot.scale[axis]" min="0" max="4" step="0.01" value="0" @input="change(axis, 'scale');save()" @mousedown="start">
 							<div class="color_corner" :style="{'border-color': \`var(--color-axis-\${getAxisLetter(axis)})\`}"></div>
 						</div>
+						
+						<template v-if="reference_model == 'player'">
+							<p>${ tl('display.pose_angle') }</p>
+							<div class="bar slider_input_combo">
+								<input type="range" class="tool disp_range" v-model.number="pose_angle"
+									min="-180" max="180" step="1" value="0">
+								<input lang="en" type="number" class="tool disp_text" v-model.number="pose_angle" min="-180" max="180" step="0.5">
+							</div>
+						</template>
 					</div>
 				</div>
 			`

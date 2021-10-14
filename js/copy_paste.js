@@ -3,13 +3,18 @@ const Clipbench = {
 	elements: [],
 	types: {
 		text: 'text',
-		face_dialog: 'face_dialog',
 		display_slot: 'display_slot',
 		keyframe: 'keyframe',
 		face: 'face',
+		mesh_selection: 'mesh_selection',
 		texture: 'texture',
 		outliner: 'outliner',
 		texture_selection: 'texture_selection',
+	},
+	type_icons: {
+		face: 'aspect_ratio',
+		mesh_selection: 'fa-gem',
+		outliner: 'fas.fa-cube',
 	},
 	getCopyType(mode, check) {
 		// mode: 1 = copy, 2 = paste
@@ -24,14 +29,17 @@ const Clipbench = {
 		if (Painter.selection.canvas && Toolbox.selected.id == 'copy_paste_tool') {
 			return Clipbench.types.texture_selection;
 		}
-		if (open_dialog == 'uv_dialog') {
-			return Clipbench.types.face_dialog
-		}
 		if (display_mode) {
 			return Clipbench.types.display_slot
 		}
 		if (Animator.open && Timeline.animators.length && (Timeline.selected.length || mode === 2) && ['keyframe', 'timeline', 'preview'].includes(p)) {
 			return Clipbench.types.keyframe
+		}
+		if (Modes.edit && p == 'preview' && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length && (mode !== 2 || Clipbench.vertices)) {
+			return Clipbench.types.mesh_selection;
+		}
+		if (mode == 2 && Modes.edit && Format.meshes && Clipbench.last_copied == 'mesh_selection' && (p == 'preview' || p == 'outliner')) {
+			return Clipbench.types.mesh_selection;
 		}
 		if ((p == 'uv' || p == 'preview') && Modes.edit) {
 			return Clipbench.types.face;
@@ -43,13 +51,64 @@ const Clipbench = {
 			return Clipbench.types.outliner;
 		}
 	},
+	async getPasteType() {
+		let p = Prop.active_panel;
+		if (getFocusedTextInput()) {
+			return Clipbench.types.text;
+		}
+		if (Painter.selection.canvas && Toolbox.selected.id == 'copy_paste_tool') {
+			return Clipbench.types.texture_selection;
+		}
+		if (display_mode) {
+			return Clipbench.types.display_slot
+		}
+		if (Animator.open && Timeline.animators.length && ['keyframe', 'timeline', 'preview'].includes(p)) {
+			return Clipbench.types.keyframe
+		}
+		if (Modes.edit && p == 'preview') {
+			let options = [];
+			if (Clipbench.elements.length || Clipbench.group) {
+				options.push(Clipbench.types.outliner);
+			}
+			if (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length && Clipbench.vertices) {
+				options.push(Clipbench.types.mesh_selection);
+			}
+			if (UVEditor.getMappableElements().length && UVEditor.clipboard.length) {
+				options.push(Clipbench.types.face);
+			}
+			if (options.length > 1) {
+				return await new Promise((resolve, reject) => {
+					new Menu(options.map(option => {
+						return {
+							id: option,
+							name: tl(`menu.paste.${option}`),
+							icon: Clipbench.type_icons[option],
+							click() {
+								resolve(option);
+							}
+						}
+					})).show('mouse');
+				})
+			} else {
+				return options[0]
+			}
+		}
+		if (p == 'uv' && Modes.edit && UVEditor.clipboard.length) {
+			return Clipbench.types.face;
+		}
+		if (p == 'textures') {
+			return Clipbench.types.texture;
+		}
+		if (p == 'outliner' && Modes.edit) {
+			return Clipbench.types.outliner;
+		}
+	},
 	copy(event, cut) {
-		switch (Clipbench.getCopyType(1)) {
+		let copy_type = Clipbench.getCopyType(1);
+		Clipbench.last_copied = copy_type;
+		switch (copy_type) {
 			case 'text':
 				Clipbench.setText(window.getSelection()+'');
-				break;
-			case 'face_dialog':
-				uv_dialog.copy(event);
 				break;
 			case 'display_slot':
 				DisplayMode.copy();
@@ -63,7 +122,11 @@ const Clipbench = {
 				}
 				break;
 			case 'face':
-				main_uv.copy(event);
+				UVEditor.copy(event);
+				break;
+			case 'mesh_selection':
+				UVEditor.copy(event);
+				Clipbench.setMeshSelection(Mesh.selected[0], event);
 				break;
 			case 'texture':
 				Clipbench.setTexture(Texture.selected);
@@ -71,30 +134,27 @@ const Clipbench = {
 					BarItems.delete.trigger();
 				}
 				break;
-			case 'outliner':
-				Clipbench.setElements();
-				Clipbench.setGroup();
-				if (Group.selected) {
-					Clipbench.setGroup(Group.selected);
-				} else {
-					Clipbench.setElements(selected);
-				}
-				if (cut) {
-					BarItems.delete.trigger();
-				}
-				break;
+		}
+		if (copy_type == 'outliner' || (copy_type == 'face' && Prop.active_panel == 'preview')) {
+			Clipbench.setElements();
+			Clipbench.setGroup();
+			if (Group.selected) {
+				Clipbench.setGroup(Group.selected);
+			} else {
+				Clipbench.setElements(selected);
+			}
+			if (cut) {
+				BarItems.delete.trigger();
+			}
 		}
 	},
-	paste(event) {
-		switch (Clipbench.getCopyType(2)) {
+	async paste(event) {
+		switch (await Clipbench.getPasteType()) {
 			case 'text':
 				Clipbench.setText(window.getSelection()+'');
 				break;
 			case 'texture_selection':
-				main_uv.addPastingOverlay();
-				break;
-			case 'face_dialog':
-				uv_dialog.paste(event)
+				UVEditor.addPastingOverlay();
 				break;
 			case 'display_slot':
 				DisplayMode.paste();
@@ -103,7 +163,10 @@ const Clipbench = {
 				Clipbench.pasteKeyframes()
 				break;
 			case 'face':
-				main_uv.paste(event);
+				UVEditor.paste(event);
+				break;
+			case 'mesh_selection':
+				Clipbench.pasteMeshSelection();
 				break;
 			case 'texture':
 				Clipbench.pasteTextures();
@@ -144,6 +207,52 @@ const Clipbench = {
 			document.execCommand('copy')
 		}
 	},
+	setMeshSelection(mesh) {
+		this.vertices = {};
+		this.faces = {};
+		mesh.getSelectedVertices().forEach(vkey => {
+			this.vertices[vkey] = mesh.vertices[vkey].slice();
+		})
+		for (let fkey in mesh.faces) {
+			let face = mesh.faces[fkey];
+			if (face.isSelected()) {
+				this.faces[fkey] = new MeshFace(null, face);
+			}
+		}
+	},
+	pasteMeshSelection() {
+		let elements = Mesh.selected.slice();
+		Undo.initEdit({elements});
+		let new_mesh;
+		if (!elements.length) {
+			new_mesh = new Mesh({name: 'pasted', vertices: []});
+			elements.push(new_mesh);
+		}
+		elements.forEach(mesh => {
+			let old_vertices = Object.keys(this.vertices);
+			let vertices_positions = old_vertices.map(vkey => this.vertices[vkey]);
+			let new_vertices = mesh.addVertices(...vertices_positions);
+
+			for (let old_fkey in this.faces) {
+				let old_face = this.faces[old_fkey];
+				let new_face = new MeshFace(mesh, old_face);
+				let new_face_vertices = new_face.vertices.map(old_vkey => {
+					let new_vkey = new_vertices[old_vertices.indexOf(old_vkey)];
+					new_face.uv[new_vkey] = new_face.uv[old_vkey];
+					delete new_face.uv[old_vkey];
+					return new_vkey;
+				})
+				new_face.vertices.replace(new_face_vertices);
+				mesh.addFaces(new_face);
+			}
+			mesh.getSelectedVertices(true).replace(new_vertices);
+		})
+		if (new_mesh) {
+			new_mesh.init().select();
+		}
+		Undo.finishEdit('Paste mesh selection');
+		Canvas.updateView({elements: Mesh.selected, selection: true})
+	},
 	pasteOutliner(event) {
 		Undo.initEdit({outliner: true, elements: [], selection: true});
 		//Group
@@ -179,12 +288,10 @@ const Clipbench = {
 							iterate(child, copy)
 						})
 					}
-				} else {
+				} else if (OutlinerElement.isTypePermitted(obj.type)) {
 					var el = OutlinerElement.fromSave(obj).addTo(parent).selectLow();
 					el.createUniqueName();
-					if (el instanceof Cube) {
-						Canvas.adaptObjectPosition(el);
-					}
+					el.preview_controller.updateTransform(el);
 				}
 			}
 			iterate(Clipbench.group, target)
@@ -193,6 +300,7 @@ const Clipbench = {
 		} else if (Clipbench.elements && Clipbench.elements.length) {
 			let elements = [];
 			Clipbench.elements.forEach(function(obj) {
+				if (!OutlinerElement.isTypePermitted(obj.type)) return;
 				var el = OutlinerElement.fromSave(obj).addTo(target).selectLow();
 				el.createUniqueName();
 				elements.push(el);

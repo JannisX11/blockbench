@@ -88,7 +88,7 @@ class Keybind {
 		Keybinds.structure[action.category].actions.push(action)
 		return this;
 	}
-	getText() {
+	getText(colorized = false) {
 		if (this.key < 0) return '';
 		var modifiers = []
 
@@ -108,7 +108,18 @@ class Keybind {
 		} else {
 			modifiers.push(char_tl)
 		}
-		return modifiers.join(' + ')
+		if (colorized) {
+			modifiers.forEach((text, i) => {
+				let type = i !== modifiers.length-1
+						 ? text.match(/\[\w+\]/) ? 'optional' : 'modifier'
+						 : 'key'
+				modifiers[i] = `<span class="${type}">${text}</span>`;
+			})
+			return modifiers.join(`<span class="punctuation"> + </span>`);
+
+		} else {
+			return modifiers.join(' + ');
+		}
 	}
 	getCode(key) {
 		if (!key) key = this.key;
@@ -174,11 +185,11 @@ class Keybind {
 	}
 	isTriggered(event) {
 		return (
-			(this.key 	=== event.which || (this.key == 1001 && event instanceof MouseEvent)) &&
-			(this.ctrl 	=== event.ctrlKey 	|| this.ctrl == null 	) &&
-			(this.shift === event.shiftKey 	|| this.shift == null	) &&
-			(this.alt 	=== event.altKey 	|| this.alt == null 	) &&
-			(this.meta 	=== event.metaKey	|| this.meta == null 	)
+			(this.key 	=== event.which	|| (this.key == 1001 && event instanceof MouseEvent)) &&
+			(this.ctrl 	=== (event.ctrlKey 	|| Pressing.overrides.ctrl) || this.ctrl === null 	) &&
+			(this.shift === (event.shiftKey || Pressing.overrides.shift)|| this.shift === null	) &&
+			(this.alt 	=== (event.altKey 	|| Pressing.overrides.alt) 	|| this.alt === null 	) &&
+			(this.meta 	=== event.metaKey								|| this.meta === null 	)
 		)
 	}
 	record() {
@@ -196,8 +207,7 @@ class Keybind {
 			overlay.off('mousedown', onActivate)
 			overlay.off('mousewheel', onActivate)
 			overlay.off('keydown keypress keyup click click dblclick mouseup mousewheel', preventDefault)
-
-			if (event.target && event.target.tagName === 'BUTTON') return;
+			if (event instanceof KeyboardEvent == false && event.target && event.target.tagName === 'BUTTON') return;
 
 			if (event instanceof WheelEvent) {
 				scope.key = 1001
@@ -255,7 +265,7 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 			if (preset && preset.keys[item.id] !== undefined) {
 				let keys = preset.keys[item.id]
 
-				if (keys == null) {
+				if (keys === null) {
 					item.keybind.clear();
 				} else if (keys) {
 					if (isApp && Blockbench.platform == 'darwin' && keys.ctrl && !keys.meta) {
@@ -282,6 +292,7 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 		Keybinds.extra.preview_rotate.keybind.set({key: 2}).save(false);
 		Keybinds.extra.preview_drag.keybind.set({key: 2, shift: true}).save(false);
 		Keybinds.extra.preview_zoom.keybind.set({key: 2, ctrl: true}).save(false);
+		Keybinds.extra.preview_area_select.keybind.set({key: 1}).save(false);
 	}
 
 	Keybinds.save();
@@ -293,6 +304,7 @@ Keybinds.no_overlap = function(k1, k2) {
 	if (k1.condition.modes && k2.condition.modes && k1.condition.modes.overlap(k2.condition.modes) == 0) return true;
 	if (k1.condition.tools && k2.condition.tools && k1.condition.tools.overlap(k2.condition.tools) == 0) return true;
 	if (k1.condition.formats && k2.condition.formats && k1.condition.formats.overlap(k2.condition.formats) == 0) return true;
+	if (k1.condition.features && k2.condition.features && k1.condition.features.overlap(k2.condition.features) == 0) return true;
 	return false;
 }
 function updateKeybindConflicts() {
@@ -322,90 +334,27 @@ function updateKeybindConflicts() {
 			}
 		}
 	})
-}
-
-onVueSetup(function() {
-	Keybinds.vue = new Vue({
-		el: 'ul#keybindlist',
-		data: {structure: Keybinds.structure},
-		methods: {
-
-		},
-		methods: {
-			record(item) {
-				if (!item.keybind) {
-					item.keybind = new Keybind()
-				}
-				item.keybind.record()
-			},
-			reset(item) {
-				if (item.keybind) {
-					if (item.default_keybind) {
-						item.keybind.set(item.default_keybind);
-					} else {
-						item.keybind.clear();
-					}
-					item.keybind.save(true);
-				}
-			},
-			clear(item) {
-				if (item.keybind) {
-					item.keybind.clear().save(true)
-				}
-			},
-			toggleCategory(category) {
-				if (!category.open) {
-					for (var ct in Keybinds.structure) {
-						Keybinds.structure[ct].open = false
-					}
-					
-				}
-				category.open = !category.open
-			}
-		}
-	})
-
-	Keybinds.updateSearch = function() {
-		var term = Keybinds.vue._data.search_term = $('input#keybind_search_bar').val().toLowerCase();
-		var structure = Keybinds.structure;
-		if (term) {
-			var keywords = term.replace(/_/g, ' ').split(' ');
-
-
-			var actions = [];
-			for (var action of Keybinds.actions) {
-
-				if (true) {;
-					var missmatch = false;
-					for (var word of keywords) {
-						if (
-							!action.name.toLowerCase().includes(word) &&
-							!action.id.toLowerCase().includes(word) &&
-							!action.keybind.label.toLowerCase().includes(word)
-						) {
-							missmatch = true;
-						}
-					}
-					if (!missmatch) {
-						actions.push(action)
-					}
-				}
-			}
-			structure.search_results.actions = actions
-			structure.search_results.hidden = false;
-			for (var key in structure) {
-				structure[key].open = false
-			}
-			structure.search_results.open = true;
-		} else {
-			structure.search_results.hidden = true;
+	if (Keybinds.dialog && Keybinds.dialog.sidebar.node) {
+		let node = Keybinds.dialog.sidebar.node;
+		for (var key in Keybinds.structure) {
+			let page = node.querySelector(`.dialog_sidebar_pages li[page="${key}"]`)
+			page.classList.toggle('error', Keybinds.structure[key].conflict);
 		}
 	}
-})
+}
 
 
 BARS.defineActions(() => {
 	
+	new Action('keybindings_window', {
+		name: tl('dialog.settings.keybinds') + '...',
+		icon: 'keyboard',
+		category: 'blockbench',
+		click: function () {
+			Keybinds.dialog.show();
+			document.querySelector('dialog#keybindings .search_bar > input').focus();
+		}
+	})
 	new Action('load_keymap', {
 		icon: 'format_list_bulleted',
 		category: 'blockbench',
@@ -436,7 +385,7 @@ BARS.defineActions(() => {
 				let {keys} = JSON.parse(files[0].content);
 
 				Keybinds.actions.forEach(keybind_item => {
-					if (keys[keybind_item.id] == null) {
+					if (keys[keybind_item.id] === null) {
 						keybind_item.keybind.clear();
 					} else {
 						keybind_item.keybind.set(keys[keybind_item.id]).save(false);
@@ -474,6 +423,136 @@ BARS.defineActions(() => {
 	BarItems.export_keymap.toElement('#keybinds_title_bar')
 })
 
+onVueSetup(function() {
+
+	let sidebar_pages = {};
+	for (let key in Keybinds.structure) {
+		sidebar_pages[key] = Keybinds.structure[key].name;
+	}
+
+	Keybinds.dialog = new Dialog({
+		id: 'keybindings',
+		title: 'dialog.settings.keybinds',
+		singleButton: true,
+		width: 920,
+		title_menu: new Menu([
+			'settings_window',
+			'keybindings_window',
+			'theme_window',
+			'about_window',
+		]),
+		sidebar: {
+			pages: sidebar_pages,
+			page: 'navigate',
+			actions: [
+				'load_keymap',
+				'export_keymap',
+			],
+			onPageSwitch(page) {
+				Keybinds.dialog.content_vue.open_category = page;
+				Keybinds.dialog.content_vue.search_term = '';
+			}
+		},
+		component: {
+			data() {return {
+				structure: Keybinds.structure,
+				open_category: 'navigate',
+				search_term: '',
+			}},
+			methods: {
+				record(item) {
+					if (!item.keybind) {
+						item.keybind = new Keybind()
+					}
+					item.keybind.record()
+				},
+				reset(item) {
+					if (item.keybind) {
+						if (item.default_keybind) {
+							item.keybind.set(item.default_keybind);
+						} else {
+							item.keybind.clear();
+						}
+						item.keybind.save(true);
+					}
+				},
+				clear(item) {
+					if (item.keybind) {
+						item.keybind.clear().save(true)
+					}
+				},
+				toggleCategory(category) {
+					if (!category.open) {
+						for (var ct in Keybinds.structure) {
+							Keybinds.structure[ct].open = false
+						}
+						
+					}
+					category.open = !category.open
+				}
+			},
+			computed: {
+				list() {
+					if (this.search_term) {
+						var keywords = this.search_term.replace(/_/g, ' ').split(' ');
+						var actions = [];
+
+						for (var action of Keybinds.actions) {
+			
+							if (true) {;
+								var missmatch = false;
+								for (var word of keywords) {
+									if (
+										!action.name.toLowerCase().includes(word) &&
+										!action.id.toLowerCase().includes(word) &&
+										!action.keybind.label.toLowerCase().includes(word)
+									) {
+										missmatch = true;
+									}
+								}
+								if (!missmatch) {
+									actions.push(action)
+								}
+							}
+						}
+						return actions;
+					} else {
+						return this.structure[this.open_category].actions;
+					}
+				},
+				title() {
+					if (this.search_term) {
+						return tl('dialog.settings.search_results');
+					} else {
+						return this.structure[this.open_category].name;
+					}
+				}
+			},
+			template: `
+				<div>
+					<h2 class="i_b">{{ title }}</h2>
+
+					<search-bar id="settings_search_bar" v-model="search_term"></search-bar>
+
+					<ul id="keybindlist">
+						<li v-for="action in list">
+							<div v-bind:title="action.description">{{action.name}}</div>
+							<div class="keybindslot" :class="{conflict: action.keybind && action.keybind.conflict}" @click.stop="record(action)" v-html="action.keybind ? action.keybind.getText(true) : ''"></div>
+							<div class="tool" v-on:click="reset(action)" title="${tl('keybindings.reset')}">
+								<i class="material-icons">replay</i>
+							</div>
+							<div class="tool" v-on:click="clear(action)" title="${tl('keybindings.clear')}">
+								<i class="material-icons">clear</i>
+							</div>
+						</li>
+					</ul>
+				</div>`
+		},
+		onButton() {
+			Settings.save();
+		}
+	})
+})
 
 window.addEventListener('blur', event => {
 	if (Pressing.alt) {
@@ -567,9 +646,9 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 			}
 			return;
 		}
-		if ($('input#chat_input:focus').length && EditSession.active) {
+		if ($('input#chat_input:focus').length && Project.EditSession) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-				Chat.send();
+				Interface.Panels.chat.inside_vue.sendMessage();
 				return;
 			}
 		}

@@ -4,12 +4,14 @@ function setupDragHandlers() {
 		'model',
 		{extensions: Codec.getAllExtensions},
 		function(files) {
-			loadModelFile(files[0])
+			files.forEach(file => {
+				loadModelFile(file);
+			})
 		}
 	)
 	Blockbench.addDragHandler(
 		'style',
-		{extensions: ['bbstyle', 'bbtheme']},
+		{extensions: ['bbtheme']},
 		function(files) {
 			CustomTheme.import(files[0]);
 		}
@@ -25,7 +27,9 @@ function setupDragHandlers() {
 		'plugin',
 		{extensions: ['bbplugin', 'js']},
 		function(files) {
-			new Plugin().loadFromFile(files[0], true)
+			files.forEach(file => {
+				new Plugin().loadFromFile(file, true);
+			})
 		}
 	)
 	Blockbench.addDragHandler(
@@ -34,7 +38,7 @@ function setupDragHandlers() {
 		function(files, event) {
 			var texture_li = $(event.target).parents('li.texture')
 			if (texture_li.length) {
-				var tex = textures.findInArray('uuid', texture_li.attr('texid'))
+				var tex = Texture.all.findInArray('uuid', texture_li.attr('texid'))
 				if (tex) {
 					tex.fromFile(files[0])
 					TickUpdates.selection = true;
@@ -47,6 +51,41 @@ function setupDragHandlers() {
 		}
 	)
 }
+
+function loadModelFile(file) {
+	
+	let existing_tab = isApp && ModelProject.all.find(project => (
+		project.save_path == file.path || project.export_path == file.path
+	))
+	if (existing_tab) {
+		existing_tab.select();
+		return;
+	}
+
+	let extension = pathToExtension(file.path);
+	// Text
+	for (let id in Codecs) {
+		let codec = Codecs[id];
+		if (codec.load_filter && codec.load_filter.type == 'text') {
+			if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, file.content)) {
+				codec.load(file.content, file);
+				return;
+			}
+		}
+	}
+	// JSON
+	let model = autoParseJSON(file.content);
+	for (let id in Codecs) {
+		let codec = Codecs[id];
+		if (codec.load_filter && codec.load_filter.type == 'json') {
+			if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, model)) {
+				codec.load(model, file);
+				return;
+			}
+		}
+	}
+}
+//Extruder
 var Extruder = {
 	drawImage: function(file) {
 		Extruder.canvas = $('#extrusion_canvas').get(0)
@@ -240,30 +279,68 @@ var Extruder = {
 			s.addTo(group).init()
 		})
 
-		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [textures[textures.length-1]]})
+		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [Texture.all[Texture.all.length-1]]})
 
 		hideDialog()
 	}
 }
 //Export
 function uploadSketchfabModel() {
-	if (elements.length === 0) {
+	if (elements.length === 0 || !Format) {
 		return;
 	}
+	let tag_suggestions = ['low-poly', 'pixel-art'];
+	if (Format.id !== 'free') tag_suggestions.push('minecraft');
+	if (Format.id === 'skin') tag_suggestions.push('skin');
+	if (!Mesh.all.length) tag_suggestions.push('voxel');
+	let clean_project_name = Project.name.toLowerCase().replace(/[_.-]+/g, '-').replace(/[^a-z0-9-]+/, '')
+	if (Project.name) tag_suggestions.push(clean_project_name);
+	if (clean_project_name.includes('-')) tag_suggestions.safePush(...clean_project_name.split('-').filter(s => s.length > 2 && s != 'geo').reverse());
+
+	let categories = {
+		"": "-",
+		"animals-pets": "Animals & Pets",
+		"architecture": "Architecture",
+		"art-abstract": "Art & Abstract",
+		"cars-vehicles": "Cars & Vehicles",
+		"characters-creatures": "Characters & Creatures",
+		"cultural-heritage-history": "Cultural Heritage & History",
+		"electronics-gadgets": "Electronics & Gadgets",
+		"fashion-style": "Fashion & Style",
+		"food-drink": "Food & Drink",
+		"furniture-home": "Furniture & Home",
+		"music": "Music",
+		"nature-plants": "Nature & Plants",
+		"news-politics": "News & Politics",
+		"people": "People",
+		"places-travel": "Places & Travel",
+		"science-technology": "Science & Technology",
+		"sports-fitness": "Sports & Fitness",
+		"weapons-military": "Weapons & Military",
+	}
+
 	var dialog = new Dialog({
 		id: 'sketchfab_uploader',
 		title: 'dialog.sketchfab_uploader.title',
-		width: 540,
+		width: 640,
 		form: {
 			token: {label: 'dialog.sketchfab_uploader.token', value: settings.sketchfab_token.value, type: 'password'},
 			about_token: {type: 'info', text: tl('dialog.sketchfab_uploader.about_token', ['[sketchfab.com/settings/password](https://sketchfab.com/settings/password)'])},
-			name: {label: 'dialog.sketchfab_uploader.name'},
+			name: {label: 'dialog.sketchfab_uploader.name', value: capitalizeFirstLetter(Project.name.replace(/\..+/, '').replace(/[_.-]/g, ' '))},
 			description: {label: 'dialog.sketchfab_uploader.description', type: 'textarea'},
+			category1: {label: 'dialog.sketchfab_uploader.category', type: 'select', options: categories, value: ''},
+			category2: {label: 'dialog.sketchfab_uploader.category2', type: 'select', options: categories, value: ''},
 			tags: {label: 'dialog.sketchfab_uploader.tags', placeholder: 'Tag1 Tag2'},
+			tag_suggestions: {label: 'dialog.sketchfab_uploader.suggested_tags', type: 'buttons', buttons: tag_suggestions, click(index) {
+				let {tags} = dialog.getFormResult();
+				let new_tag = tag_suggestions[index];
+				if (!tags.split(/\s/g).includes(new_tag)) {
+					tags += ' ' + new_tag;
+					dialog.setFormValues({tags});
+				}
+			}},
 			animations: {label: 'dialog.sketchfab_uploader.animations', value: true, type: 'checkbox', condition: (Format.animation_mode && Animator.animations.length)},
-			//color: {type: 'color', label: 'dialog.sketchfab_uploader.color'},
-			draft: {label: 'dialog.sketchfab_uploader.draft', type: 'checkbox'},
-			// Category
+			draft: {label: 'dialog.sketchfab_uploader.draft', type: 'checkbox', value: true},
 			divider: '_',
 			private: {label: 'dialog.sketchfab_uploader.private', type: 'checkbox'},
 			password: {label: 'dialog.sketchfab_uploader.password'},
@@ -283,10 +360,17 @@ function uploadSketchfabModel() {
 			data.append('description', formResult.description)
 			data.append('tags', formResult.tags)
 			data.append('isPublished', !formResult.draft)
-			//data.append('background', JSON.stringify({color: formResult.color.toHexString()}))
+			//data.append('background', JSON.stringify({color: '#00ff00'}))
 			data.append('private', formResult.private)
 			data.append('password', formResult.password)
 			data.append('source', 'blockbench')
+
+			if (formResult.category1 || formResult.category2) {
+				let selected_categories = [];
+				if (formResult.category1) selected_categories.push(formResult.category1);
+				if (formResult.category2) selected_categories.push(formResult.category2);
+				data.append('categories', selected_categories);
+			}
 
 			settings.sketchfab_token.value = formResult.token
 
@@ -353,21 +437,21 @@ function compileJSON(object, options) {
 			//Number
 			o = (Math.round(o*100000)/100000).toString()
 			out += o
-		} else if (typeof o === 'object' && o instanceof Array) {
+		} else if (o instanceof Array) {
 			//Array
-			var has_content = false
+			let has_content = false
+			let has_objects = !!o.find(item => typeof item === 'object');
 			out += '['
 			for (var i = 0; i < o.length; i++) {
 				var compiled = handleVar(o[i], tabs+1)
 				if (compiled) {
-					var breaks = typeof o[i] === 'object'
 					if (has_content) {out += ',' + (breaks || options.small?'':' ')}
-					if (breaks) {out += newLine(tabs)}
+					if (has_objects) {out += newLine(tabs)}
 					out += compiled
 					has_content = true
 				}
 			}
-			if (typeof o[o.length-1] === 'object') {out += newLine(tabs-1)}
+			if (has_objects) {out += newLine(tabs-1)}
 			out += ']'
 		} else if (typeof o === 'object') {
 			//Object
@@ -447,7 +531,6 @@ BARS.defineActions(function() {
 		icon: 'assessment',
 		category: 'file',
 		keybind: new Keybind({key: 'o', ctrl: true}),
-		condition: () => (!EditSession.active || EditSession.hosting),
 		click: function () {
 			var startpath;
 			if (isApp && recent_projects && recent_projects.length) {
@@ -462,10 +545,35 @@ BARS.defineActions(function() {
 				resource_id: 'model',
 				extensions: Codec.getAllExtensions(),
 				type: 'Model',
-				startpath
+				startpath,
+				multiple: true
 			}, function(files) {
-				loadModelFile(files[0]);
+				files.forEach(file => {
+					loadModelFile(file);
+				})
 			})
+		}
+	})
+	new Action('open_from_link', {
+		icon: 'link',
+		category: 'file',
+		click() {
+			Blockbench.textPrompt('action.open_from_link', '', link => {
+				if (link.match(/https:\/\/blckbn.ch\//) || link.length == 4) {
+					let code = link.replace(/[/]+/g, '').substr(-4);
+					$.getJSON(`https://blckbn.ch/api/models/${code}`, (model) => {
+						Codecs.project.load(model, {path: ''});
+					}).fail(error => {
+						Blockbench.showQuickMessage('message.invalid_link')
+					})
+				} else {
+					$.getJSON(link, (model) => {
+						Codecs.project.load(model, {path: ''});
+					}).fail(error => {
+						Blockbench.showQuickMessage('message.invalid_link')
+					})
+				}
+			}, 'https://blckbn.ch/1234')
 		}
 	})
 	new Action('extrude_texture', {
@@ -495,12 +603,14 @@ BARS.defineActions(function() {
 			if (isApp) {
 				saveTextures()
 				if (Format) {
-					if (ModelMeta.export_path && Format.codec && Format.codec.compile) {
-						Format.codec.write(Format.codec.compile(), ModelMeta.export_path)
-					} else if (ModelMeta.save_path) {
-						Codecs.project.write(Codecs.project.compile(), ModelMeta.save_path);
+					if (Project.export_path && Format.codec && Format.codec.compile) {
+						Format.codec.write(Format.codec.compile(), Project.export_path)
+					} else if (Project.save_path) {
+						Codecs.project.write(Codecs.project.compile(), Project.save_path);
 					} else if (Format.codec && Format.codec.export) {
 						Format.codec.export()
+					} else {
+						Project.saved = true;
 					}
 				}
 				if (Format.animation_mode && Format.animation_files && Animation.all.length) {
@@ -524,7 +634,7 @@ BARS.defineActions(function() {
 				var content = Format.codec.compile()
 				var name = `${Format.codec.fileName()}.${Format.codec.extension}`
 				archive.file(name, content)
-				textures.forEach(tex => {
+				Texture.all.forEach(tex => {
 					if (tex.mode === 'bitmap') {
 						archive.file(pathToName(tex.name) + '.png', tex.source.replace('data:image/png;base64,', ''), {base64: true});
 					}
@@ -534,11 +644,11 @@ BARS.defineActions(function() {
 						type: 'Zip Archive',
 						extensions: ['zip'],
 						name: 'assets',
-						startpath: ModelMeta.export_path,
+						startpath: Project.export_path,
 						content: content,
 						savetype: 'zip'
 					})
-					Prop.project_saved = true;
+					Project.saved = true;
 				})
 			}
 		})
@@ -554,7 +664,7 @@ BARS.defineActions(function() {
 
 	new Action('share_model', {
 		icon: 'share',
-		condition: () => Cube.all.length,
+		condition: () => Outliner.elements.length,
 		click() {
 			var dialog = new Dialog({
 				id: 'share_model',

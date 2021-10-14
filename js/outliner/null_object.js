@@ -13,12 +13,14 @@ class NullObject extends OutlinerElement {
 			this.extend(data);
 		}
 	}
+	get origin() {
+		return this.from;
+	}
 	extend(object) {
 		for (var key in NullObject.properties) {
 			NullObject.properties[key].merge(this, object)
 		}
 		this.sanitizeName();
-		Merge.boolean(this, object, 'locked')
 		//Merge.boolean(this, object, 'export');
 		return this;
 	}
@@ -35,7 +37,6 @@ class NullObject extends OutlinerElement {
 			NullObject.properties[key].copy(this, save)
 		}
 		//save.export = this.export ? undefined : false;
-		save.locked = this.locked;
 		save.uuid = this.uuid;
 		save.type = 'null_object';
 		return save;
@@ -60,15 +61,15 @@ class NullObject extends OutlinerElement {
 		return this;
 	}
 	getWorldCenter() {
-		var pos = new THREE.Vector3();
-		var q = new THREE.Quaternion();
+		var pos = Reusable.vec1.set(0, 0, 0);
+		var q = Reusable.quat1.set(0, 0, 0, 1);
 		if (this.parent instanceof Group) {
 			THREE.fastWorldPosition(this.parent.mesh, pos);
 			this.parent.mesh.getWorldQuaternion(q);
-			var offset2 = new THREE.Vector3().fromArray(this.parent.origin).applyQuaternion(q);
+			var offset2 = Reusable.vec2.fromArray(this.parent.origin).applyQuaternion(q);
 			pos.sub(offset2);
 		}
-		var offset = new THREE.Vector3().fromArray(this.from).applyQuaternion(q);
+		var offset = Reusable.vec3.fromArray(this.from).applyQuaternion(q);
 		pos.add(offset);
 
 		return pos;
@@ -95,15 +96,16 @@ class NullObject extends OutlinerElement {
 			'rename',
 			'delete'
 		])
-	NullObject.selected = [];
-	NullObject.all = [];
 	
 	new Property(NullObject, 'string', 'name', {default: 'null_object'})
 	new Property(NullObject, 'vector', 'from')
 	new Property(NullObject, 'boolean', 'ik_enabled', {condition: () => Format.animation_mode});
 	new Property(NullObject, 'number', 'ik_chain_length', {condition: () => Format.animation_mode});
+	new Property(NullObject, 'boolean', 'locked');
 	
-	OutlinerElement.types.null_object = NullObject;
+	OutlinerElement.registerType(NullObject, 'null_object');
+
+	new NodePreviewController(NullObject)
 
 BARS.defineActions(function() {
 	new Action('add_null_object', {

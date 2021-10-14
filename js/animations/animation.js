@@ -591,7 +591,14 @@ class Animation {
 		dialog.show();
 	}
 }
-	Animation.all = [];
+	Object.defineProperty(Animation, 'all', {
+		get() {
+			return Project.animations || [];
+		},
+		set(arr) {
+			Project.animations.replace(arr);
+		}
+	})
 	Animation.selected = null;
 	Animation.prototype.menu = new Menu([
 		{name: 'menu.animation.loop', icon: 'loop', children: [
@@ -704,6 +711,7 @@ class GeneralAnimator {
 	}
 	createKeyframe(value, time, channel, undo, select) {
 		if (!this[channel]) return;
+		if (typeof time !== 'number') time = Timeline.time;
 		var keyframes = [];
 		if (undo) {
 			Undo.initEdit({keyframes})
@@ -721,7 +729,7 @@ class GeneralAnimator {
 		}
 
 		keyframe.channel = channel;
-		keyframe.time = time;
+		keyframe.time = Timeline.snapTime(time);
 
 		this[channel].push(keyframe);
 		keyframe.animator = this;
@@ -906,7 +914,10 @@ class BoneAnimator extends GeneralAnimator {
 				}
 			});
 			keyframe.extend({
-				interpolation: closest && closest.interpolation
+				interpolation: closest && closest.interpolation,
+				uniform: (keyframe.channel == 'scale')
+					? (closest && closest.uniform && closest.data_points[0].x == closest.data_points[0].y && closest.data_points[0].x == closest.data_points[0].z)
+					: undefined,
 			})
 		} else {
 			keyframe.extend(values)
@@ -1236,7 +1247,7 @@ WinterskyScene.global_options.parent_mode = 'entity';
 const Animator = {
 	possible_channels: {rotation: true, position: true, scale: true, sound: true, particle: true, timeline: true},
 	open: false,
-	animations: Animation.all,
+	get animations() {return Animation.all},
 	get selected() {return Animation.selected},
 	MolangParser: new Molang(),
 	motion_trail: new THREE.Object3D(),
@@ -1244,8 +1255,8 @@ const Animator = {
 	_last_values: {rotation: [0, 0, 0], position: [0, 0, 0], scale: [0, 0, 0]},
 	join() {
 		
-		if (isApp && (Format.id == 'bedrock' || Format.id == 'bedrock_old') && !BedrockEntityManager.initialized_animations) {
-			BedrockEntityManager.initAnimations();
+		if (isApp && (Format.id == 'bedrock' || Format.id == 'bedrock_old') && !Project.BedrockEntityManager.initialized_animations) {
+			Project.BedrockEntityManager.initAnimations();
 		}
 
 		Animator.open = true;
@@ -1265,8 +1276,8 @@ const Animator = {
 		if (!Timeline.is_setup) {
 			Timeline.setup()
 		}
-		if (outlines.children.length) {
-			outlines.children.empty()
+		if (Canvas.outlines.children.length) {
+			Canvas.outlines.children.empty()
 			Canvas.updateAllPositions()
 		}
 		if (Animation.all.length && !Animation.all.includes(Animation.selected)) {
@@ -1315,7 +1326,7 @@ const Animator = {
 	},
 	showMotionTrail(target) {
 		if (!target) {
-			target = Animator.motion_trail_lock && OutlinerNode.uuids[Animator.motion_trail_lock];
+			target = Project.motion_trail_lock && OutlinerNode.uuids[Project.motion_trail_lock];
 			if (!target) target = Group.selected || NullObject.selected[0];
 		}
 		let target_bone = target instanceof Group ? target : target.parent;
@@ -1330,7 +1341,7 @@ const Animator = {
 			max_time = Math.min(max_time, currentTime + 8);
 		}
 		let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
-		let geometry = new THREE.Geometry();
+		let geometry = new THREE.BufferGeometry();
 		let bone_stack = [];
 		let iterate = g => {
 			bone_stack.push(g);
@@ -1360,13 +1371,29 @@ const Animator = {
 			target_bone.mesh.updateWorldMatrix(true, false)
 		}
 
+		let line_positions = [];
+		let point_positions = [];
+		let keyframe_positions = []
+		let keyframeUUIDs = []
+		let i = 0;
 		for (var time = start_time; time <= max_time; time += step) {
 			displayTime(time);
 			let position = target instanceof Group
 						 ? THREE.fastWorldPosition(target.mesh, new THREE.Vector3())
 						 : target.getWorldCenter();
-			geometry.vertices.push(position);
+			position = position.toArray();
+			line_positions.push(...position);
+
+			let keyframe = keyframes[i];
+			if (keyframe) {
+				keyframe_positions.push(...position);
+				keyframeUUIDs.push(keyframe.uuid);
+			} else {
+				point_positions.push(...position);
+			}
+			i++;
 		}
+		geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(line_positions), 3));
 		
 		Timeline.time = currentTime;
 		Animator.preview();
@@ -1378,32 +1405,19 @@ const Animator = {
 		})
 		Animator.motion_trail.add(line);
 
-		let dot_geo = new THREE.OctahedronGeometry(0.25);
-		let keyframe_geo = new THREE.OctahedronGeometry(1.0);
-		let dot_material = new THREE.MeshBasicMaterial({color: gizmo_colors.outline});
-		geometry.vertices.forEach((vertex, i) => {
-			let keyframe = keyframes[i];
-			if (keyframe) {
-				let mesh = new THREE.Mesh(keyframe_geo, dot_material);
-				mesh.position.copy(vertex);
-				Animator.motion_trail.add(mesh);
-				mesh.isKeyframe = true;
-				mesh.keyframeUUID = keyframe.uuid;
-			} else {
-				let mesh = new THREE.Mesh(dot_geo, dot_material);
-				mesh.position.copy(vertex);
-				Animator.motion_trail.add(mesh);
-			}
-		})
-		Animator.updateMotionTrailScale();
-	},
-	updateMotionTrailScale() {
-		if (!Preview.selected) return;
-		Animator.motion_trail.children.forEach((object) => {
-			if (object.isLine) return;
-			let scale = Preview.selected.calculateControlScale(object.position) * 0.6;
-			object.scale.set(scale, scale, scale)
-		})
+		let point_material = new THREE.PointsMaterial({size: 4, sizeAttenuation: false, color: Canvas.outlineMaterial.color})
+		let point_geometry = new THREE.BufferGeometry();
+		point_geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_positions), 3));
+		let points = new THREE.Points(point_geometry, point_material);
+		Animator.motion_trail.add(points);
+
+		let keyframe_material = new THREE.PointsMaterial({size: 10, sizeAttenuation: false, color: Canvas.outlineMaterial.color})
+		let keyframe_geometry = new THREE.BufferGeometry();
+		keyframe_geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(keyframe_positions), 3));
+		let keyframe_points = new THREE.Points(keyframe_geometry, keyframe_material);
+		keyframe_points.isKeyframe = true;
+		keyframe_points.keyframeUUIDs = keyframeUUIDs;
+		Animator.motion_trail.add(keyframe_points);
 	},
 	preview(in_loop) {
 		// Bones
@@ -1661,7 +1675,7 @@ const Animator = {
 				title: 'dialog.animation_import.title',
 				form,
 				onConfirm(form_result) {
-					dialog.hide();
+					this.hide();
 					let names = [];
 					for (var key of keys) {
 						if (form_result[key.hashCode()]) {
@@ -1672,7 +1686,16 @@ const Animator = {
 					let new_animations = Animator.loadFile(file, names);
 					Undo.finishEdit('Import animations', {animations: new_animations})
 				}
-			})
+			});
+			form.select_all_none = {
+				type: 'buttons',
+				buttons: ['generic.select_all', 'generic.select_none'],
+				click(index) {
+					let values = {};
+					keys.forEach(key => values[key.hashCode()] = (index == 0));
+					dialog.setFormValues(values);
+				}
+			}
 			dialog.show();
 		}
 	},
@@ -1680,11 +1703,11 @@ const Animator = {
 		let filter_path = path || '';
 
 		if (isApp && !path) {
-			path = ModelMeta.export_path
+			path = Project.export_path
 			var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
 			var m_index = path.search(exp)
 			if (m_index > 3) {
-				path = path.substr(0, m_index) + osfs + 'animations' + osfs +  pathToName(ModelMeta.export_path, true)
+				path = path.substr(0, m_index) + osfs + 'animations' + osfs +  pathToName(Project.export_path, true)
 			}
 			path = path.replace(/(\.geo)?\.json$/, '.animation.json')
 		}
@@ -1728,11 +1751,6 @@ const Animator = {
 		}
 	}
 }
-Blockbench.on('update_camera_position', e => {
-	if (Animator.open && settings.motion_trails.value && (Group.selected || NullObject.selected[0] || Animator.motion_trail_lock)) {
-		Animator.updateMotionTrailScale();
-	}
-})
 Blockbench.on('reset_project', () => {
 	for (let path in Animator.particle_effects) {
 		let effect = Animator.particle_effects[path];
@@ -1835,12 +1853,12 @@ BARS.defineActions(function() {
 		category: 'animation',
 		condition: {modes: ['animate'], method: () => Format.animation_files},
 		click: function () {
-			var path = ModelMeta.export_path
+			var path = Project.export_path
 			if (isApp) {
 				var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
 				var m_index = path.search(exp)
 				if (m_index > 3) {
-					path = path.substr(0, m_index) + osfs + 'animations' + osfs + pathToName(ModelMeta.export_path).replace(/\.geo/, '.animation')
+					path = path.substr(0, m_index) + osfs + 'animations' + osfs + pathToName(Project.export_path).replace(/\.geo/, '.animation')
 				}
 			}
 			Blockbench.import({
@@ -1945,9 +1963,9 @@ BARS.defineActions(function() {
 		condition: () => Animator.open && (Group.selected || NullObject.selected[0]),
 		onChange(value) {
 			if (value && (Group.selected || NullObject.selected[0])) {
-				Animator.motion_trail_lock = Group.selected ? Group.selected.uuid : NullObject.selected[0].uuid;
+				Project.motion_trail_lock = Group.selected ? Group.selected.uuid : NullObject.selected[0].uuid;
 			} else {
-				Animator.motion_trail_lock = false;
+				Project.motion_trail_lock = false;
 				Animator.showMotionTrail();
 			}
 		}
@@ -2014,6 +2032,7 @@ Interface.definePanels(function() {
 				},
 				dragAnimation(e1) {
 					if (getFocusedTextInput()) return;
+					if (e1.button == 1 || e1.button == 2) return;
 					convertTouchEvent(e1);
 					
 					let [anim] = eventTargetToAnim(e1.target);
@@ -2241,9 +2260,16 @@ Interface.definePanels(function() {
 			data() { return {
 				text: ''
 			}},
+			watch: {
+				text(text) {
+					if (Project && typeof text == 'string') {
+						Project.variable_placeholders = text;
+					}
+				}
+			},
 			template: `
 				<div style="flex-grow: 1; display: flex; flex-direction: column;">
-					<p>{{ tl('panel.variable_placeholders.info') }}</p>
+					<p>${tl('panel.variable_placeholders.info')}</p>
 					<vue-prism-editor
 						id="var_placeholder_area"
 						class="molang_input dark_bordered tab_target"

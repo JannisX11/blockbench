@@ -149,7 +149,6 @@ const codec = new Codec('skin_model', {
 		Canvas.updateVisibility()
 		setProjectTitle()
 		updateSelection()
-		EditSession.initNewModel()
 	},
 })
 codec.export = null;
@@ -170,10 +169,8 @@ const format = new ModelFormat({
 	}
 })
 format.new = function() {
-	if (newProject(this)) {
-		skin_dialog.show();
-		return true;
-	}
+	skin_dialog.show();
+	return true;
 }
 
 function generateTemplate(width = 64, height = 64, cubes, name = 'name', eyes, layer_template) {
@@ -269,7 +266,6 @@ const skin_dialog = new Dialog({
 	onCancel() {
 		this.hide();
 		Format = 0;
-		Modes.options.start.select();
 	}
 });
 

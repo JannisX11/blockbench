@@ -77,7 +77,7 @@ const Timeline = {
 				e.clientX - R.panel_offset[0],
 				e.clientY - R.panel_offset[1],
 			]
-			if (e.shiftKey) {
+			if (e.shiftKey || Pressing.overrides.shift) {
 				Timeline.selector.selected_before = Timeline.selected.slice();
 			}
 			R.selecting = true;
@@ -268,7 +268,7 @@ const Timeline = {
 				
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
-				if (!e.ctrlOrCmd) time = Timeline.snapTime(time);
+				if (!e && !Pressing.overrides.ctrl) time = Timeline.snapTime(time);
 				Timeline.setTime(time);
 				Animator.preview();
 			}
@@ -279,7 +279,7 @@ const Timeline = {
 				convertTouchEvent(e);
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
-				if (!e.ctrlOrCmd) time = Timeline.snapTime(time);
+				if (!e.ctrlOrCmd && !Pressing.overrides.ctrl) time = Timeline.snapTime(time);
 				if (Timeline.time != time) {
 					Timeline.setTime(time)
 					Animator.preview()
@@ -423,8 +423,8 @@ const Timeline = {
 	clear() {
 		Timeline.animators.purge();
 		Timeline.selected.empty();
-		Timeline.vue._data.markers = [];
-		Timeline.vue._data.animation_length = 0;
+		Timeline.vue.markers = [];
+		Timeline.vue.animation_length = 0;
 		updateKeyframeSelection();
 	},
 	start() {
@@ -655,6 +655,7 @@ onVueSetup(function() {
 			}
 		},
 		methods: {
+			tl,
 			updateTimecodes() {
 				if (!this._isMounted) return;
 				this.timecodes.empty();
@@ -750,10 +751,10 @@ onVueSetup(function() {
 					dragging_restriction;
 					originalValue;
 					previousValue = 0;
-					time_stretching = !Timeline.vue.graph_editor_open && e1.ctrlOrCmd && Timeline.selected.length > 1;
+					time_stretching = !Timeline.vue.graph_editor_open && (e1.ctrlOrCmd || Pressing.overrides.ctrl) && Timeline.selected.length > 1;
 					values_changed = false;
 
-					if (!clicked.selected && !e1.shiftKey && Timeline.selected.length != 0) {
+					if (!clicked.selected && !e1.shiftKey && !Pressing.overrides.shift && Timeline.selected.length != 0) {
 						clicked.select()
 					} else if (clicked && !clicked.selected) {
 						clicked.select({shiftKey: true})
@@ -824,7 +825,7 @@ onVueSetup(function() {
 					let value_diff = 0;
 					if (Timeline.vue.graph_editor_open) {
 						value = -offset[1] / Timeline.vue.graph_size;
-						var round_num = canvasGridSize(e2.shiftKey, e2.ctrlOrCmd);
+						var round_num = canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);
 						if (Toolbox.selected.id === 'resize_tool') {
 							round_num *= 0.1;
 						}
@@ -903,7 +904,8 @@ onVueSetup(function() {
 				addEventListeners(document, 'mousemove touchmove', slide);
 				addEventListeners(document, 'mouseup touchend', off);
 			},
-			clamp: Math.clamp
+			clamp: Math.clamp,
+			trimFloatNumber
 		},
 		watch: {
 			size() {this.updateTimecodes()},
@@ -926,7 +928,7 @@ onVueSetup(function() {
 							<div v-for="t in timecodes" class="timeline_timecode" :key="t.text" :style="{left: (t.time * size) + 'px', width: (t.width * size) + 'px'}">
 								<span>{{ t.text }}</span>
 								<div class="substeps">
-									<div v-for="n in Math.ceil(t.substeps)" :key="t.text + '-' + 'n'"></div>
+									<div v-for="n in Math.ceil(t.substeps)" :key="t.text + '-' + n"></div>
 								</div>
 							</div>
 							<div id="timeline_playhead"
@@ -947,7 +949,7 @@ onVueSetup(function() {
 				</div>
 				<div id="timeline_body" ref="timeline_body" @scroll="updateScroll($event)">
 					<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="Timeline.showMenu($event)">
-						<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: !animator.group}" :uuid="animator.uuid" v-on:click="animator.select();">
+						<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.constructor.name == 'BoneAnimator' && !animator.group}" :uuid="animator.uuid" v-on:click="animator.select();">
 							<div class="animator_head_bar">
 								<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)">
 									<div class="text_button" v-on:click.stop="toggleAnimator(animator)">
@@ -960,14 +962,14 @@ onVueSetup(function() {
 								</div>
 								<div class="keyframe_section" v-if="!graph_editor_open">
 									<template v-for="channel in animator.channels" v-if="!(animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length))">
-										<keyframe
+										<div
 											v-for="keyframe in animator[channel]"
 											v-bind:style="{left: (8 + keyframe.time * size) + 'px'}"
 											class="keyframe"
 											v-bind:id="'_'+keyframe.uuid"
 										>
 											<i class="material-icons">lens</i>
-										</keyframe>
+										</div>
 									</template>
 								</div>
 							</div>
@@ -992,12 +994,12 @@ onVueSetup(function() {
 										</template>
 									</div>
 									<span>{{ tl('timeline.'+channel) }}</span>
-									<div class="text_button" v-on:click.stop="animator.createKeyframe(null, Timeline.time, channel, true)">
+									<div class="text_button" v-on:click.stop="animator.createKeyframe(null, null, channel, true)">
 										<i class="material-icons">add</i>
 									</div>
 								</div>
 								<div class="keyframe_section" v-if="!graph_editor_open">
-									<keyframe
+									<div
 										v-for="keyframe in animator[channel]"
 										v-bind:style="{left: (8 + keyframe.time * size) + 'px', color: getColor(keyframe.color)}"
 										class="keyframe"
@@ -1014,7 +1016,7 @@ onVueSetup(function() {
 										<svg class="keyframe_waveform" v-if="keyframe.channel == 'sound' && keyframe.data_points[0].file && waveforms[keyframe.data_points[0].file]" :style="{width: waveforms[keyframe.data_points[0].file].duration * size}">
 											<polygon :points="getWaveformPoints(waveforms[keyframe.data_points[0].file].samples, size)"></polygon>
 										</svg>
-									</keyframe>
+									</div>
 								</div>
 							</div>
 						</li>
@@ -1028,7 +1030,7 @@ onVueSetup(function() {
 								<path :d="graph" :style="{stroke: 'var(--color-axis-' + graph_editor_axis + ')'}"></path>
 							</svg>
 							<template v-if="graph_editor_animator">
-								<keyframe
+								<div
 									v-for="keyframe in graph_editor_animator[graph_editor_channel]"
 									v-bind:style="{left: (10 + keyframe.time * size) + 'px', top: (graph_offset - keyframe.display_value * graph_size - 8) + 'px', color: getColor(keyframe.color)}"
 									class="keyframe graph_keyframe"
@@ -1042,7 +1044,7 @@ onVueSetup(function() {
 								>
 									<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
 									<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
-								</keyframe>
+								</div>
 							</template>
 						</div>
 					</div>

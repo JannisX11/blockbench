@@ -13,6 +13,7 @@ import pt from './../lang/pt.json';
 import ru from './../lang/ru.json';
 import sv from './../lang/sv.json';
 import zh from './../lang/zh.json';
+import zh_tw from './../lang/zh_tw.json';
 
 const data = {
 	cz: cz,
@@ -29,6 +30,7 @@ const data = {
 	ru: ru,
 	sv: sv,
 	zh: zh,
+	zh_tw: zh_tw,
 };
 
 window.tl = function(string, variables) {
@@ -75,6 +77,7 @@ window.Language = {
 		ru: '\u0440\u0443\u0441\u0441\u043A\u0438\u0439 (Russian)',
 		sv: 'Svenska (Swedish)',
 		zh: '\u4e2d\u6587 (Chinese)',//中文
+		zh_tw: '\u4E2D\u6587(\u81FA\u7063) (Traditional Chinese)',//中文(臺灣)
 	},
 	addTranslations(language, strings) {
 		for (var key in strings) {

@@ -1,5 +1,12 @@
 (function() {
 
+let item_parents = [
+	'item/generated', 	'minecraft:item/generated',
+	'item/handheld', 	'minecraft:item/handheld',
+	'item/handheld_rod','minecraft:item/handheld_rod',
+	'builtin/generated','minecraft:builtin/generated',
+]
+
 var codec = new Codec('java_block', {
 	name: 'Java Block/Item Model',
 	remember: true,
@@ -73,7 +80,7 @@ var codec = new Codec('java_block', {
 						if (s.faces[face].enabled !== false) {
 							tag.uv = s.faces[face].uv.slice();
 							tag.uv.forEach((n, i) => {
-								tag.uv[i] = n * 16 / main_uv.getResolution(i%2);
+								tag.uv[i] = n * 16 / UVEditor.getResolution(i%2);
 							})
 						}
 						if (s.faces[face].rotation) {
@@ -147,7 +154,7 @@ var codec = new Codec('java_block', {
 		}
 		var isTexturesOnlyModel = clear_elements.length === 0 && checkExport('parent', Project.parent != '')
 		var texturesObj = {}
-		textures.forEach(function(t, i){
+		Texture.all.forEach(function(t, i){
 			var link = t.javaTextureLink()
 			if (t.particle) {
 				texturesObj.particle = link
@@ -173,7 +180,7 @@ var codec = new Codec('java_block', {
 				}
 			})
 		}
-		if (options.prevent_dialog !== true && clear_elements.length && ['item/generated', 'item/handheld'].includes(Project.parent)) {
+		if (options.prevent_dialog !== true && clear_elements.length && item_parents.includes(Project.parent)) {
 			Blockbench.showMessageBox({
 				translateKey: 'invalid_builtin_parent',
 				icon: 'info',
@@ -207,13 +214,13 @@ var codec = new Codec('java_block', {
 		if (checkExport('overrides', Project.overrides)) {
 			blockmodel.overrides = Project.overrides;
 		}
-		if (checkExport('display', Object.keys(display).length >= 1)) {
+		if (checkExport('display', Object.keys(Project.display_settings).length >= 1)) {
 			var new_display = {}
 			var entries = 0;
 			for (var i in DisplayMode.slots) {
 				var key = DisplayMode.slots[i]
-				if (DisplayMode.slots.hasOwnProperty(i) && display[key] && display[key].export) {
-					new_display[key] = display[key].export()
+				if (DisplayMode.slots.hasOwnProperty(i) && Project.display_settings[key] && Project.display_settings[key].export) {
+					new_display[key] = Project.display_settings[key].export()
 					entries++;
 				}
 			}
@@ -254,12 +261,12 @@ var codec = new Codec('java_block', {
 
 		this.dispatchEvent('parse', {model});
 
-		var previous_texture_length = add ? textures.length : 0
+		var previous_texture_length = add ? Texture.all.length : 0
 		var new_cubes = [];
 		var new_textures = [];
 		if (add) {
 			Undo.initEdit({elements: new_cubes, outliner: true, textures: new_textures})
-			Prop.added_models++;
+			Project.added_models++;
 			var import_group = new Group(pathToName(path, false)).init()
 		}
 
@@ -306,15 +313,15 @@ var codec = new Codec('java_block', {
 				}
 			}
 			//Get Rid Of ID overlapping
-			for (var i = previous_texture_length; i < textures.length; i++) {
-				var t = textures[i]
+			for (var i = previous_texture_length; i < Texture.all.length; i++) {
+				var t = Texture.all[i]
 				if (getTexturesById(t.id).length > 1) {
-					t.id = Prop.added_models + '_' + t.id
+					t.id = Project.added_models + '_' + t.id
 				}
 			}
 			//Select Last Texture
-			if (textures.length > 0) {
-				textures[textures.length-1].select();
+			if (Texture.all.length > 0) {
+				Texture.all.last().select();
 			}
 		}
 
@@ -349,7 +356,7 @@ var codec = new Codec('java_block', {
 						if (typeof read_face.uv === 'object') {
 
 							new_face.uv.forEach((n, i) => {
-								new_face.uv[i] = read_face.uv[i] * main_uv.getResolution(i%2) / 16;
+								new_face.uv[i] = read_face.uv[i] * UVEditor.getResolution(i%2) / 16;
 							})
 						}
 						if (read_face.texture === '#missing') {
@@ -400,34 +407,22 @@ var codec = new Codec('java_block', {
 		if (import_group) {
 			import_group.addTo().select()
 		}
-		let item_parents = [
-			'item/generated', 	'minecraft:item/generated',
-			'item/handheld', 	'minecraft:item/handheld',
-			'item/handheld_rod','minecraft:item/handheld_rod',
-		]
 		if (
 			!model.elements &&
 			item_parents.includes(model.parent) &&
 			model.textures &&
 			typeof model.textures.layer0 === 'string'
 		) {
-			base_cube = new Cube()
-			base_cube.extend({
+			let texture_mesh = new TextureMesh({
 				name: model.textures.layer0,
-				from: [0, 0, 7.5],
-				to:   [16, 16, 7.8],
-				faces: {
-					north: {uv: [16,0,0,16], texture: Texture.getDefault().uuid || null},
-					south: {uv: [0,0,16,16], texture: Texture.getDefault().uuid || null},
-					east:  {uv: [0,0,0,0], texture: null},
-					west:  {uv: [0,0,0,0], texture: null},
-					up:	   {uv: [0,0,0,0], texture: null},
-					down:  {uv: [0,0,0,0], texture: null},
-				},
-				autouv: 0,
+				rotation: [-90, 180, 0],
+				local_pivot: [0, -7.5, -16],
+				locked: true,
 				export: false
 			}).init()
-			new_cubes.push(base_cube);
+			texture_mesh.locked = true;
+
+			new_cubes.push(texture_mesh);
 		} else if (!model.elements && model.parent) {
 			Blockbench.showMessageBox({
 				translateKey: 'child_model_only',
@@ -466,6 +461,7 @@ var format = new ModelFormat({
 	uv_rotation: true,
 	animated_textures: true,
 	display_mode: true,
+	texture_folder: true,
 	codec
 })
 codec.format = format;

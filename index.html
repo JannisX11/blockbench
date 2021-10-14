@@ -25,7 +25,15 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '3.9.3';
+		const appVersion = '4.0.0';
+
+		
+		if (localStorage.getItem('theme')) {
+			try {
+				stored_theme = JSON.parse(localStorage.getItem('theme'));
+				document.body.style.setProperty('--color-dark', stored_theme.colors.dark);
+			} catch (err) {}
+		}
 
 		window.onerror = (message, file, line) => {
 			if (typeof Blockbench != 'undefined' && Blockbench.setup_successful) return;
@@ -58,6 +66,7 @@
 		<script src="lib/peer.min.js"></script>
 		<script src="lib/marked.min.js"></script>
 		<script src="lib/spectrum.js"></script>
+		<script src="lib/color-picker.min.js"></script>
 		<script src="lib/three.min.js"></script>
 		<script src="lib/three_custom.js"></script>
 		<script src="lib/GLTFExporter.js"></script>
@@ -96,7 +105,9 @@
 		<script src="js/edit_sessions.js"></script>
 		<script src="js/outliner/outliner.js"></script>
 		<script src="js/outliner/group.js"></script>
+		<script src="js/outliner/mesh.js"></script>
 		<script src="js/outliner/cube.js"></script>
+		<script src="js/outliner/texture_mesh.js"></script>
 		<script src="js/outliner/locator.js"></script>
 		<script src="js/outliner/null_object.js"></script>
 		<script src="js/preview/preview.js"></script>
@@ -143,82 +154,25 @@
 		</div>
 	</div>
 
-	<dialog class="dialog draggable paddinged" id="edit_sessions">
-		<div class="dialog_handle tl">dialog.edit_session.title</div>
-
-		<div class="dialog_bar">
-			<label class="name_space_left tl">edit_session.username</label>
-			<input type="text" class="dark_bordered half" id="edit_session_username">
+	<dialog class="dialog draggable" id="entity_import">
+		<div class="dialog_handle">
+			<div class="dialog_title tl">dialog.entitylist.title</div>
 		</div>
-		<div class="dialog_bar">
-			<label class="name_space_left tl">edit_session.token</label>
-			<input type="text" class="dark_bordered half f_left" id="edit_session_token">
-			<div id="edit_session_copy_button" class="tool" onclick="EditSession.copyToken()"><div class="tooltip tl">action.paste</div><i class="fa fa_big fa-clipboard"></i></div>
-		</div>
-		<div class="edit_session_inactive">
-			<p class="tl">edit_session.about</p>
-		</div>
-		<div class="edit_session_active hidden">
-			<p><b class="tl">edit_session.status</b>: <span class="tl" id="edit_session_status">edit_session.connected</span></p>
-		</div>
-
-		<div class="dialog_bar button_bar">
-			<button type="button" class="edit_session_inactive confirm_btn tl" onclick="EditSession.join();">edit_session.join</button>
-			<button type="button" class="edit_session_inactive tl" onclick="EditSession.start();">edit_session.create</button>
-			<button type="button" class="edit_session_active tl" onclick="EditSession.quit();">edit_session.quit</button>
-			<button type="button" class="cancel_btn tl" onclick="hideDialog();">dialog.cancel</button>
-		</div>
-		<div class="dialog_close_button" onclick="hideDialog();"><i class="material-icons">clear</i></div>
-	</dialog>
-
-	<dialog class="dialog draggable paddinged" id="toolbar_edit">
-		<div class="dialog_handle tl">dialog.toolbar_edit.title</div>
-
-		<ul class="bar" id="bar_items_current" v-sortable="{onChoose: choose, onUpdate: sort, onEnd: drop, animation: 160 }">
-			<li v-for="item in currentBar" v-bind:title="item.name" :key="item.id||item">
-				<div v-if="typeof item === 'string'" class="toolbar_separator"></div>
-				<div v-else class="tool">
-					<div class="tooltip">{{item.name + (BARS.condition(item.condition) ? '' : ' (' + tl('dialog.toolbar_edit.hidden') + ')' )}}</div>
-					<span class="icon_wrapper" v-bind:style="{opacity: BARS.condition(item.condition) ? 1 : 0.4}" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></span>
+		<div class="dialog_content">
+			<div class="dialog_bar narrow tl">dialog.entitylist.text</div>
+				<div class="search_bar">
+					<input type="text" class="dark_bordered" id="pe_search_bar" oninput="pe_list._data.search_term = $(this).val().toUpperCase()">
+					<i class="material-icons" id="plugin_search_bar_icon">search</i>
 				</div>
-			</li> 
-		</ul>
-
-		<p class="tl small_text subtle">dialog.toolbar_edit.hidden_tools</p>
-
-		<div class="bar" style="margin: 4px 0;">
-			<search-bar v-model="search_term"></search-bar>
+			<ul id="pe_list" class="list">
+				<li v-for="item in searched" v-bind:class="{ selected: item.selected }" v-on:click="selectE(item, $event)" v-on:dblclick="open(item)">
+					<img class="pe_icon" v-if="item.icon" v-bind:src="item.icon">
+					<div class="pe_icon" v-else></div>
+					<h4>{{ item.title }} <span>({{ item.name }})</span></h4>
+					<p>{{ item.bonecount+' '+tl('dialog.entitylist.bones') }}, {{ item.cubecount+' '+tl('dialog.entitylist.cubes') }}</p>
+				</li>
+			</ul>
 		</div>
-
-		<ul class="list" id="bar_item_list">
-			<li v-for="item in searchedBarItems" v-on:click="addItem(item)">
-				<div class="icon_wrapper normal" v-html="Blockbench.getIconNode(item.icon, item.color).outerHTML"></div>
-				<div class="icon_wrapper add"><i class="material-icons">add</i></div>
-				{{ item.name }}
-			</li>
-		</ul>
-
-		<div class="dialog_bar button_bar">
-			<button type="button" class="cancel_btn confirm_btn uc_btn tl" onclick="hideDialog();">dialog.close</button>
-		</div>
-		<div class="dialog_close_button" onclick="hideDialog();"><i class="material-icons">clear</i></div>
-	</dialog>
-
-	<dialog class="dialog draggable paddinged" id="entity_import">
-		<div class="dialog_handle tl">dialog.entitylist.title</div>
-		<div class="dialog_bar narrow tl">dialog.entitylist.text</div>
-			<div class="search_bar">
-				<input type="text" class="dark_bordered" id="pe_search_bar" oninput="pe_list._data.search_term = $(this).val().toUpperCase()">
-				<i class="material-icons" id="plugin_search_bar_icon">search</i>
-			</div>
-		<ul id="pe_list" class="list">
-			<li v-for="item in searched" v-bind:class="{ selected: item.selected }" v-on:click="selectE(item, $event)" v-on:dblclick="open(item)">
-				<img class="pe_icon" v-if="item.icon" v-bind:src="item.icon">
-				<div class="pe_icon" v-else></div>
-				<h4>{{ item.title }} <span>({{ item.name }})</span></h4>
-				<p>{{ item.bonecount+' '+tl('dialog.entitylist.bones') }}, {{ item.cubecount+' '+tl('dialog.entitylist.cubes') }}</p>
-			</li>
-		</ul>
 
 		<div class="dialog_bar button_bar">
 			<button type="button" class="tl confirm_btn" onclick="">dialog.import</button>
@@ -227,29 +181,32 @@
 		<div class="dialog_close_button" onclick="hideDialog();BarItems.close_project.click()"><i class="material-icons">clear</i></div>
 	</dialog>
 
-	<dialog class="dialog draggable paddinged" id="image_extruder">
-		<div class="dialog_handle tl">dialog.extrude.title</div>
-		<h1></h1>
+	<dialog class="dialog draggable" id="image_extruder">
+		<div class="dialog_handle">
+			<div class="dialog_title tl">dialog.extrude.title</div>
+		</div>
 
-		<div class="dialog_bar">
-			<label class="tl">dialog.extrude.mode</label>
-			<div class="bar_select f_left">
-				<select id="scan_mode" name="scan_mode">
-					<option class="tl" id="areas" selected>dialog.extrude.mode.areas</option>
-					<option class="tl" id="lines">dialog.extrude.mode.lines</option>
-					<option class="tl" id="columns">dialog.extrude.mode.columns</option>
-					<option class="tl" id="pixels">dialog.extrude.mode.pixels</option>
-				</select>
+		<div class="dialog_content">
+			<div class="dialog_bar">
+				<label class="tl">dialog.extrude.mode</label>
+				<div class="bar_select f_left">
+					<select id="scan_mode" name="scan_mode">
+						<option class="tl" id="areas" selected>dialog.extrude.mode.areas</option>
+						<option class="tl" id="lines">dialog.extrude.mode.lines</option>
+						<option class="tl" id="columns">dialog.extrude.mode.columns</option>
+						<option class="tl" id="pixels">dialog.extrude.mode.pixels</option>
+					</select>
+				</div>
 			</div>
-		</div>
 
-		<div class="dialog_bar">
-			<label class="tl">dialog.extrude.opacity</label>
-			<input class="tool" type="range" id="scan_tolerance" value="255" min="1" max="255">
-			<label id="scan_tolerance_label">255</label>
-		</div>
+			<div class="dialog_bar">
+				<label class="tl">dialog.extrude.opacity</label>
+				<input class="tool" type="range" id="scan_tolerance" value="255" min="1" max="255">
+				<label id="scan_tolerance_label">255</label>
+			</div>
 
-		<canvas height="256" width="256" id="extrusion_canvas"></canvas>
+			<canvas height="256" width="256" id="extrusion_canvas"></canvas>
+		</div>
 
 		<div class="dialog_bar button_bar">
 			<button type="button" class="confirm_btn tl" onclick="Extruder.startConversion()">Scan and Import</button>
@@ -258,45 +215,49 @@
 		<div class="dialog_close_button" onclick="hideDialog()"><i class="material-icons">clear</i></div>
 	</dialog>
 
-	<dialog class="dialog draggable paddinged" id="scaling">
-		<div class="dialog_handle tl">dialog.scale.title</div>
-
-		<label class="tl">dialog.scale.axis</label>
-
-		<div class="dialog_bar" style="height: 32px;">
-			<input type="checkbox" class="toggle_panel" id="model_scale_x_axis" onchange="scaleAll()" checked>
-			<label class="toggle_panel" for="model_scale_x_axis">X</label>
-			<input type="checkbox" class="toggle_panel" id="model_scale_y_axis" onchange="scaleAll()" checked>
-			<label class="toggle_panel" for="model_scale_y_axis">Y</label>
-			<input type="checkbox" class="toggle_panel" id="model_scale_z_axis" onchange="scaleAll()" checked>
-			<label class="toggle_panel" for="model_scale_z_axis">Z</label>
+	<dialog class="dialog draggable" id="scaling">
+		<div class="dialog_handle">
+			<div class="dialog_title tl">dialog.scale.title</div>
 		</div>
 
-		<label class="tl">data.origin</label>
-		<div class="dialog_bar">
-			<label for="scaling_origin_x" class="inline_label tl">X</label>
-			<input type="number" id="scaling_origin_x" class="dark_bordered medium_width" oninput="scaleAll()">
-			<label for="scaling_origin_y" class="inline_label tl">Y</label>
-			<input type="number" id="scaling_origin_y" class="dark_bordered medium_width" oninput="scaleAll()">
-			<label for="scaling_origin_z" class="inline_label tl">Z</label>
-			<input type="number" id="scaling_origin_z" class="dark_bordered medium_width" oninput="scaleAll()">
-			<div class="tool" style="float: none" onclick="setScaleAllPivot('origin')">
-				<div class="tooltip tl">dialog.scale.element_pivot</div>
-				<i class="material-icons">center_focus_strong</i>
+		<div class="dialog_content">
+			<label class="tl">dialog.scale.axis</label>
+
+			<div class="dialog_bar" style="height: 32px;">
+				<input type="checkbox" class="toggle_panel" id="model_scale_x_axis" onchange="scaleAll()" checked>
+				<label class="toggle_panel" for="model_scale_x_axis">X</label>
+				<input type="checkbox" class="toggle_panel" id="model_scale_y_axis" onchange="scaleAll()" checked>
+				<label class="toggle_panel" for="model_scale_y_axis">Y</label>
+				<input type="checkbox" class="toggle_panel" id="model_scale_z_axis" onchange="scaleAll()" checked>
+				<label class="toggle_panel" for="model_scale_z_axis">Z</label>
 			</div>
-			<div class="tool" style="float: none" onclick="setScaleAllPivot('selection')">
-				<div class="tooltip tl">dialog.scale.selection_center</div>
-				<i class="material-icons">filter_tilt_shift</i>
+
+			<label class="tl">data.origin</label>
+			<div class="dialog_bar">
+				<label for="scaling_origin_x" class="inline_label tl">X</label>
+				<input type="number" id="scaling_origin_x" class="dark_bordered medium_width" oninput="scaleAll()">
+				<label for="scaling_origin_y" class="inline_label tl">Y</label>
+				<input type="number" id="scaling_origin_y" class="dark_bordered medium_width" oninput="scaleAll()">
+				<label for="scaling_origin_z" class="inline_label tl">Z</label>
+				<input type="number" id="scaling_origin_z" class="dark_bordered medium_width" oninput="scaleAll()">
+				<div class="tool" style="float: none" onclick="setScaleAllPivot('origin')">
+					<div class="tooltip tl">dialog.scale.element_pivot</div>
+					<i class="material-icons">center_focus_strong</i>
+				</div>
+				<div class="tool" style="float: none" onclick="setScaleAllPivot('selection')">
+					<div class="tooltip tl">dialog.scale.selection_center</div>
+					<i class="material-icons">filter_tilt_shift</i>
+				</div>
 			</div>
-		</div>
 
-		<label class="tl">dialog.scale.scale</label>
-		<div class="dialog_bar" style="height: 32px;">
-			<input type="range" id="model_scale_range" value="1" min="0" max="4" step="0.02" oninput="modelScaleSync()">
-			<input type="number" class="f_left dark_bordered" id="model_scale_label" min="0" max="4" step="0.02" value="1" oninput="modelScaleSync(true)">
-		</div>
+			<label class="tl">dialog.scale.scale</label>
+			<div class="dialog_bar" style="height: 32px;">
+				<input type="range" id="model_scale_range" value="1" min="0" max="4" step="0.02" oninput="modelScaleSync()">
+				<input type="number" class="f_left dark_bordered" id="model_scale_label" min="0" max="4" step="0.02" value="1" oninput="modelScaleSync(true)">
+			</div>
 
-		<div class="dialog_bar narrow" id="scaling_clipping_warning"></div>
+			<div class="dialog_bar narrow" id="scaling_clipping_warning"></div>
+		</div>
 
 		<div class="dialog_bar button_bar">
 			<button type="button" onclick="scaleAll(true)" class="confirm_btn tl">dialog.scale.confirm</button>
@@ -306,46 +267,50 @@
 		<div class="dialog_close_button" onclick="cancelScaleAll()"><i class="material-icons">clear</i></div>
 	</dialog>
 
-	<dialog class="dialog draggable paddinged" id="create_preset">
-		<div class="dialog_handle tl">dialog.display_preset.title</div>
-		<div class="dialog_bar tl">dialog.display_preset.message</div>
-		<div class="dialog_bar">
-			<input type="checkbox" id="thirdperson_righthand_save" checked>
-			<label for="thirdperson_righthand_save" class="tl">display.slot.third_right</label>
+	<dialog class="dialog draggable" id="create_preset">
+		<div class="dialog_handle">
+			<div class="dialog_title tl">dialog.display_presets.title</div>
 		</div>
-		<div class="dialog_bar">
-			<input type="checkbox" id="thirdperson_lefthand_save" checked>
-			<label for="thirdperson_lefthand_save" class="tl">display.slot.third_left</label>
-		</div>
-		<div class="dialog_bar">
-			<input type="checkbox" id="firstperson_righthand_save" checked>
-			<label for="firstperson_righthand_save" class="tl">display.slot.first_right</label>
-		</div>
-		<div class="dialog_bar">
-			<input type="checkbox" id="firstperson_lefthand_save" checked>
-			<label for="firstperson_lefthand_save" class="tl">display.slot.first_left</label>
-		</div>
-		<div class="dialog_bar">
-			<input type="checkbox" id="head_save" checked>
-			<label for="head_save" class="tl">display.slot.head</label>
-		</div>
-		<div class="dialog_bar">
-			<input type="checkbox" id="ground_save" checked>
-			<label for="ground_save" class="tl">display.slot.ground</label>
-		</div>
-		<div class="dialog_bar">
-			<input type="checkbox" id="fixed_save" checked>
-			<label for="fixed_save" class="tl">display.slot.frame</label>
-		</div>
-		<div class="dialog_bar">
-			<input type="checkbox" id="gui_save" checked>
-			<label for="gui_save" class="tl">display.slot.gui</label>
-		</div>
-		<div class="dialog_bar narrow">
-			<label class="tl">generic.name</label>
-		</div>
-		<div class="dialog_bar">
-			<input type="text" id="preset_name" class="input_wide" id="new preset">
+		<div class="dialog_content">
+			<div class="dialog_bar tl">dialog.display_preset.message</div>
+			<div class="dialog_bar">
+				<input type="checkbox" id="thirdperson_righthand_save" checked>
+				<label for="thirdperson_righthand_save" class="tl">display.slot.third_right</label>
+			</div>
+			<div class="dialog_bar">
+				<input type="checkbox" id="thirdperson_lefthand_save" checked>
+				<label for="thirdperson_lefthand_save" class="tl">display.slot.third_left</label>
+			</div>
+			<div class="dialog_bar">
+				<input type="checkbox" id="firstperson_righthand_save" checked>
+				<label for="firstperson_righthand_save" class="tl">display.slot.first_right</label>
+			</div>
+			<div class="dialog_bar">
+				<input type="checkbox" id="firstperson_lefthand_save" checked>
+				<label for="firstperson_lefthand_save" class="tl">display.slot.first_left</label>
+			</div>
+			<div class="dialog_bar">
+				<input type="checkbox" id="head_save" checked>
+				<label for="head_save" class="tl">display.slot.head</label>
+			</div>
+			<div class="dialog_bar">
+				<input type="checkbox" id="ground_save" checked>
+				<label for="ground_save" class="tl">display.slot.ground</label>
+			</div>
+			<div class="dialog_bar">
+				<input type="checkbox" id="fixed_save" checked>
+				<label for="fixed_save" class="tl">display.slot.frame</label>
+			</div>
+			<div class="dialog_bar">
+				<input type="checkbox" id="gui_save" checked>
+				<label for="gui_save" class="tl">display.slot.gui</label>
+			</div>
+			<div class="dialog_bar narrow">
+				<label class="tl">generic.name</label>
+			</div>
+			<div class="dialog_bar">
+				<input type="text" id="preset_name" class="input_wide" id="new preset">
+			</div>
 		</div>
 		<div class="dialog_bar button_bar">
 			<button type="button" class="tl confirm_btn" onclick="DisplayMode.createPreset()">dialog.display_preset.create</button>
@@ -354,217 +319,12 @@
 		<div class="dialog_close_button" onclick="hideDialog()"><i class="material-icons">clear</i></div>
 	</dialog>
 
-	<dialog class="dialog draggable paddinged" id="settings">
-		<div class="dialog_handle tl">menu.file.preferences</div>
-		<div class="dialog_bar borderless tab_bar" id="settings_tab_bar">
-			<div class="tl tab open" id="setting" onclick="setSettingsTab('setting')">dialog.settings.settings</div>
-			<div class="tl tab" id="keybindings" onclick="setSettingsTab('keybindings')">dialog.settings.keybinds</div>
-			<div class="tl tab" id="layout_settings" onclick="setSettingsTab('layout_settings')">dialog.settings.theme</div>
-			<div class="tl tab" id="credits" onclick="setSettingsTab('credits')">dialog.settings.about</div>
+	<dialog class="dialog draggable" id="text_input">
+		<div class="dialog_handle">
+			<div class="dialog_title tl">dialog.input.title</div>
 		</div>
 
-		<div id="setting" class="tab_content">
-			<h2 class="tl i_b">dialog.settings.settings</h2>
-			<div class="bar next_to_title" id="settings_title_bar"></div>
-
-			<div class="search_bar">
-				<input type="text" class="dark_bordered" id="settings_search_bar" oninput="Settings.updateSearch()">
-				<i class="material-icons" id="settings_search_bar_icon">search</i>
-			</div>
-
-			<ul id="settingslist">
-
-				<li v-for="category in structure" v-if="!category.hidden">
-					<h3 v-on:click="toggleCategory(category)">
-						<i class="material-icons settings_expand_icon">{{ category.open ? 'expand_more' : 'navigate_next' }}</i>
-						{{ category.name }}
-					</h3>
-					<ul v-if="category.open">
-
-						<li v-for="(setting, key) in category.items" v-if="Condition(setting.condition)" v-on="setting.click ? {click: setting.click} : {}">
-							<template v-if="setting.type === 'number'">
-								<div class="setting_element"><input type="number" v-model.number="setting.value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()"></div>
-							</template>
-							<template v-else-if="setting.type === 'click'">
-								<div class="setting_element setting_icon" v-html="Blockbench.getIconNode(setting.icon).outerHTML"></div>
-							</template>
-							<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
-								<div class="setting_element"><input type="checkbox" v-model="setting.value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
-							</template>
-
-							<label class="setting_label" v-bind:for="'setting_'+key">
-								<div class="setting_name">{{ setting.name }}</div>
-								<div class="setting_description">{{ setting.description }}</div>
-							</label>
-
-							<template v-if="setting.type === 'text'">
-								<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.value" v-on:input="saveSettings()">
-							</template>
-
-							<template v-if="setting.type === 'password'">
-								<input :type="setting.hidden ? 'password' : 'text'" class="dark_bordered" style="width: calc(96% - 28px);" v-model="setting.value" v-on:input="saveSettings()">
-								<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
-									<i class="fas fa-eye-slash" v-if="setting.hidden"></i>
-									<i class="fas fa-eye" v-else></i>
-								</div>
-							</template>
-
-							<template v-else-if="setting.type === 'select'">
-								<div class="bar_select">
-									<select v-model="setting.value">
-										<option v-for="(text, id) in setting.options" v-bind:value="id">{{ text }}</option>
-									</select>
-								</div>
-							</template>
-						</li>
-					</ul>
-				</li>
-			</ul>
-		</div>
-
-		<div id="keybindings" class="hidden tab_content">
-			<h2 class="tl i_b">dialog.settings.keybinds</h2>
-			<div class="bar next_to_title" id="keybinds_title_bar"></div>
-
-			<div class="search_bar">
-				<input type="text" class="dark_bordered" id="keybind_search_bar" oninput="Keybinds.updateSearch()">
-				<i class="material-icons" id="keybind_search_bar_icon">search</i>
-			</div>
-
-			<ul id="keybindlist">
-				<li v-for="category in structure" v-if="!category.hidden">
-					<h3 v-on:click="toggleCategory(category)">
-						<i class="material-icons f_left settings_expand_icon">{{ category.open ? 'expand_more' : 'navigate_next' }}</i>
-						{{ category.name }}
-						<i class="material-icons f_right" v-if="category.conflict" style="color: var(--color-close);">fiber_manual_record</i>
-					</h3>
-					<ul v-if="category.open">
-						<li v-for="action in category.actions">
-							<div v-bind:title="action.description">{{action.name}}</div>
-							<div class="keybindslot" :class="{conflict: action.keybind && action.keybind.conflict}" @click.stop="record(action)">{{ action.keybind ? action.keybind.label : '' }}</div>
-							<div class="tool" v-on:click="reset(action)">
-								<div class="tooltip tl">keybindings.reset</div>
-								<i class="material-icons">replay</i>
-							</div>
-							<div class="tool" v-on:click="clear(action)">
-								<div class="tooltip tl">keybindings.clear</div>
-								<i class="material-icons">clear</i>
-							</div>
-						</li>
-					</ul>
-				</li>
-			</ul>
-		</div>
-
-		<div id="layout_settings" class="hidden tab_content">
-			<h2 class="tl i_b">dialog.settings.theme</h2>
-			<div class="bar next_to_title" id="layout_title_bar"></div>
-			<div class="y_scrollable" id="theme_editor">
-				<div id="color_wrapper">
-					<div class="color_field" v-for="(color, key) in colors" :id="'color_field_' + key">
-						<div class="layout_color_preview" :style="{'background-color': color}" class="color_input"></div>
-						<div class="desc">
-							<h4>{{ tl('layout.color.'+key) }}</h4>
-							<p>{{ tl('layout.color.'+key+'.desc') }}</p>
-						</div>
-					</div>
-				</div>
-
-				<div class="dialog_bar">
-					<label class="name_space_left tl" for="layout_font_main">layout.font.main</label>
-					<input style="font-family: var(--font-main)" type="text" class="half dark_bordered" id="layout_font_main" v-model="main_font">
-				</div>
-
-				<div class="dialog_bar">
-					<label class="name_space_left tl" for="layout_font_headline">layout.font.headline</label>
-					<input style="font-family: var(--font-headline)" type="text" class="half dark_bordered" id="layout_font_headline" v-model="headline_font">
-				</div>
-				<div class="dialog_bar">
-					<label class="name_space_left tl" for="layout_font_cpde">layout.font.code</label>
-					<input style="font-family: var(--font-code)" type="text" class="half dark_bordered" id="layout_font_cpde" v-model="code_font">
-				</div>
-				<h4 class="tl i_b">layout.css</h4>
-				<div id="css_editor">
-					<vue-prism-editor v-model="css" language="css" :line-numbers="true" />
-				</div>
-
-			</div>
-
-		</div>
-		<div id="credits" class="hidden tab_content">
-			<h2 class="tl i_b">dialog.settings.about</h2>
-			<div id="about_page_title">
-				<img src="assets/logo_text_white.svg" width="240px">
-			</div>
-			<p><b class="tl">about.version</b> <span id="version_tag"></span></p>
-			<p><b class="tl">about.creator</b> JannisX11</p>
-			<p><b class="tl">about.website</b> <a class="open-in-browser" href="https://blockbench.net">blockbench.net</a></p>
-			<p><b class="tl">about.repository</b> <a class="open-in-browser" href="https://github.com/JannisX11/blockbench">github.com/JannisX11/blockbench</a></p>
-			<p class="local_only tl">about.electron</p>
-			<p class="tl">about.vertex_snap</p>
-			<p><b class="tl">about.icons</b> <a href="https://material.io/icons/" class="open-in-browser">material.io/icons</a> &amp; <a href="https://fontawesome.com" class="open-in-browser">fontawesome</a></p>
-			<p><b class="tl">about.libraries</b>
-				<a class="open-in-browser" href="https://vuejs.org">Vue</a>,
-				<a class="open-in-browser" href="https://github.com/weibangtuo/vue-tree">Vue Tree</a>,
-				<a class="open-in-browser" href="https://github.com/sagalbot/vue-sortable">Vue Sortable</a>,
-				<a class="open-in-browser" href="https://threejs.org">ThreeJS</a>,
-				<a class="open-in-browser" href="https://github.com/lo-th/fullik">Full IK</a>,
-				<a class="open-in-browser" href="https://github.com/oliver-moran/jimp">Jimp</a>,
-				<a class="open-in-browser" href="https://bgrins.github.io/spectrum">Spectrum</a>,
-				<a class="open-in-browser" href="https://github.com/jnordberg/gif.js">gif.js</a>,
-				<a class="open-in-browser" href="https://stuk.github.io/jszip/">JSZip</a>,
-				<a class="open-in-browser" href="https://github.com/rotemdan/lzutf8.js">LZ-UTF8</a>,
-				<a class="open-in-browser" href="https://jquery.com">jQuery</a>,
-				<a class="open-in-browser" href="https://jqueryui.com">jQuery UI</a>,
-				<a class="open-in-browser" href="https://github.com/furf/jquery-ui-touch-punch">jQuery UI Touch Punch</a>,
-				<a class="open-in-browser" href="https://github.com/eligrey/FileSaver.js">FileSaver.js</a>,
-				<a class="open-in-browser" href="https://peerjs.com">PeerJS</a>,
-				<a class="open-in-browser" href="https://github.com/markedjs/marked">Marked</a>,
-				<a class="open-in-browser" href="https://prismjs.com">Prism</a>,
-				<a class="open-in-browser" href="https://github.com/koca/vue-prism-editor">Vue Prism Editor</a>,
-				<a class="open-in-browser" href="https://github.com/JannisX11/molangjs">MolangJS</a>,
-				<a class="open-in-browser" href="https://github.com/JannisX11/wintersky">Wintersky</a>
-			</p>
-		</div>
-
-		<div class="dialog_bar button_bar" hidden>
-			<button type="button" class="confirm_btn cancel_btn tl" onclick="Settings.save()">dialog.close</button>
-		</div>
-		<div class="dialog_close_button" onclick="Settings.save()"><i class="material-icons">clear</i></div>
-	</dialog>
-
-	<dialog class="dialog draggable" id="uv_dialog">
-		<div class="dialog_handle tl">uv_editor.title</div>
-		<div class="dialog_bar borderless tab_bar" id="uv_tab_bar">
-			<div onclick="uv_dialog.openTab('all')" id="all" class="tab open tl">uv_editor.all_faces</div>
-			<div onclick="uv_dialog.openTab('north')" id="north" class="tab tl">face.north</div>
-			<div onclick="uv_dialog.openTab('south')" id="south" class="tab tl">face.south</div>
-			<div onclick="uv_dialog.openTab('west')" id="west" class="tab tl">face.west</div>
-			<div onclick="uv_dialog.openTab('east')" id="east" class="tab tl">face.east</div>
-			<div onclick="uv_dialog.openTab('up')" id="up" class="tab tl">face.up</div>
-			<div onclick="uv_dialog.openTab('down')" id="down" class="tab tl">face.down</div>
-		</div>
-		<div id="uv_dialog_all" class="uv_dialog_content uv_dialog_all_only">
-		</div>
-
-		<div id="uv_dialog_single" class="uv_dialog_content">
-		</div>
-
-		<div class="bar" id="uv_dialog_toolbar">
-			<div class="toolbar_wrapper uv_dialog"></div>
-		</div>
-
-		<div class="dialog_bar button_bar">
-			<button type="button" onclick="hideDialog()" class="confirm_btn cancel_btn hidden">dialog.close</button>
-		</div>
-		
-		<div class="dialog_close_button" onclick="hideDialog()"><i class="material-icons">clear</i></div>
-	</dialog>
-
-	<dialog class="dialog draggable paddinged" id="text_input">
-		<div class="dialog_handle tl">dialog.input.title</div>
-
-		<div class="dialog_bar">
+		<div class="dialog_content">
 			<input type="text" id="text_input_field" class="dark_bordered input_wide">
 		</div>
 
@@ -580,10 +340,11 @@
 	<header>
 		<ul id="mac_window_menu" hidden></ul>
 		<div id="corner_logo" class="app-drag-region">
-			<img src="assets/logo_text_white.svg" />
+			<img class="blockbench_logo" src="assets/logo_text_white.svg" alt="Blockbench" />
 		</div>
 		<ul id="menu_bar" class="scroll_horizontal"></ul>
 		<div class="app-drag-region" id="header_free_bar"></div>
+		<div id="update_menu"></div>
 		<ul id="windows_window_menu" hidden>
 			<li onclick="currentwindow.minimize()"><i class="material-icons" style="margin-top: 4px;">remove</i></li>
 			<li onclick="currentwindow.isMaximized() ? currentwindow.unmaximize() : currentwindow.maximize()"><i class="material-icons">crop_square</i><!--🗖--></li>
@@ -591,145 +352,211 @@
 		</ul>
 		<button id="web_download_button" hidden><a class="tl" href="https://blockbench.net/downloads">web.download_app</a></button>
 	</header>
+	
 
-	<div id="page_wrapper" class="hidden">
+	<div id="page_wrapper" class="invisible start_screen">
 
-	<dialog id="action_selector"></dialog>
+		<div id="blackout"></div>
 
-	<div id="blackout"></div>
-
-	<div id="main_toolbar">
-		<div style="color: #fff; text-align: center; font-family: segoe ui, sans-serif;" id="no_css_message">
-			<br><h1>Oops...</h1>
-			<p>It looks like your internet connection was too unstable to automatically update Blockbench.</p>
-			<p>Download and run <a style="color: #75b1ff" href="https://blockbench.net/downloads/">the installer</a> to update manually. Your custom settings will remain untouched.</p>
-		</div>
-		<div class="toolbar_wrapper narrow tools"></div>
-
-		<div class="toolbar_wrapper narrow tool_options"></div>
-		<ul id="mode_selector">
-			<li
-				v-for="mode in options"
-				v-if="Condition(mode.condition)"
-				v-bind:class="{selected: mode.selected}"
-				v-on:click="mode.select()"
-			>{{ mode.name }}</li>
-		</ul>
-		<div class="toolbar_wrapper narrow mobile_side"></div>
-	</div>
-	<div id="left_bar" class="sidebar">
-
-		<div id="uv" class="panel selection_only">
-			<div class="panel_inside">
-				<div class="bar next_to_title" id="uv_title_bar">
-					<div id="project_resolution_status" onclick="BarItems.project_window.trigger()"></div>
+		<div id="tab_bar" :class="{drag_mode: drag_target_index !== null}">
+			<div id="tab_bar_list">
+				<div
+					class="project_tab"
+					v-for="(project, index) in tabs" :key="project.uuid"
+					:class="{
+						selected: project.selected,
+						new_tab: project.is_new_tab,
+						dragging: index == drag_target_index,
+						move_back:  (drag_position_index !== null && index > drag_target_index && drag_position_index >= index),
+						move_forth: (drag_position_index !== null && index < drag_target_index && drag_position_index <= index)
+					}"
+					:title="project.name || project.geometry_name"
+					@dblclick="project.openSettings()"
+					@mousedown="mouseDown(project, $event)"
+					@mouseup="mouseUp(project, $event)"
+					@mouseenter="mouseEnter(project, $event)"
+					@mouseleave="mouseLeave(project, $event)"
+				>
+					<label class="project_tab_session_badge" v-if="project.EditSession"><i class="material-icons">group</i>{{ project.EditSession.client_count }}</label>
+					<label>{{ project.getDisplayName() }}</label>
+					<div class="project_tab_close_button" :class="{unsaved: !project.saved}" :title="close_tab_label" @click="project.close()">
+						<i class="material-icons close_icon">clear</i>
+						<i class="material-icons unsaved_icon" v-if="!project.saved">fiber_manual_record</i>
+					</div>
 				</div>
-				<div id="uv_panel_sides" onclick="main_uv.loadSelectedFace()" class="bar tabs_small">
-
-					<input type="radio" name="side" id="north_radio" checked>
-					<label class="tl" for="north_radio">face.north</label>
-
-					<input type="radio" name="side" id="south_radio">
-					<label class="tl" for="south_radio">face.south</label>
-					
-					<input type="radio" name="side" id="west_radio">
-					<label class="tl" for="west_radio">face.west</label>
-
-					<input type="radio" name="side" id="east_radio">
-					<label class="tl" for="east_radio">face.east</label>
-
-					<input type="radio" name="side" id="up_radio">
-					<label class="tl" for="up_radio">face.up</label>
-
-					<input type="radio" name="side" id="down_radio">
-					<label class="tl" for="down_radio">face.down</label>
+				<div id="new_tab_button" v-if="!new_tab.visible" @click="openNewTab()" :title="new_tab.name">
+					<i class="material-icons">add</i>
 				</div>
+			</div>
+			<div id="search_tab_button" v-if="projects.length > 1" @click="searchTabs()" :title="search_tabs_label">
+				<i class="material-icons">search</i>
 			</div>
 		</div>
 
-	</div>
-	<div id="right_bar" class="sidebar">
+		<dialog id="action_selector"></dialog>
 
-		<div id="element" class="panel selection_only">
-			<div class="panel_inside">
-				<p class="tl">panel.element.position</p>
-				<div class="toolbar_wrapper element_position"></div>
-				<p class="tl">panel.element.size</p>
-				<div class="toolbar_wrapper element_size"></div>
-				<p class="tl">panel.element.origin</p>
-				<div class="toolbar_wrapper element_origin"></div>
-				<p class="tl">panel.element.rotation</p>
-				<div class="toolbar_wrapper element_rotation"></div>
-			</div>
+		<div id="start_screen">
+			<content>
+				<section id="start-files">
+					<div class="start_screen_left">
+						<h2 class="tl">mode.start.new</h2>
+						<div class="bar next_to_title">
+							<div class="tool" onclick="Blockbench.openLink('https://blockbench.net/quickstart/')">
+								<div class="tooltip tl">menu.help.quickstart</div>
+								<i class="fas fa-question-circle"></i>
+							</div>
+						</div>
+						<ul>
+							<li v-for="format in formats" v-if="format.show_on_start_screen" v-on:click="format.new()">
+								<span class="icon_wrapper f_left" v-html="getIconNode(format.icon).outerHTML"></span>
+								<h3>{{ format.name }}</h3>
+								<p>{{ format.description }}</p>
+							</li>
+						</ul>
+					</div>
+					<div class="start_screen_right">
+						<h2 class="tl">mode.start.recent</h2>
+						<div id="start_screen_list_type" v-if="isApp && !redact_names">
+							<li class="tool" v-bind:class="{selected: list_type == 'list'}" v-on:click="setListType('list')">
+								<i class="material-icons">list</i>
+							</li>
+							<li class="tool" v-bind:class="{selected: list_type == 'grid'}" v-on:click="setListType('grid')">
+								<i class="material-icons">view_module</i>
+							</li>
+						</div>
+						<div v-if="redact_names">{{ '['+tl('generic.redacted')+']' }}</div>
+						<ul v-else-if="list_type == 'list'">
+							<li v-on:click="openProject(project, $event)" v-for="project in recent" :key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project">
+								<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
+								<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
+								<span class="recent_project_date">{{ getDate(project) }}</span>
+							</li>
+							<div v-if="recent.length == 0">{{ tl('mode.start.no_recents') }}</div>
+						</ul>
+						<ul :class="{redact: redact_names}" style="display: grid;" v-else>
+							<li v-on:click="openProject(project, $event)" v-for="project in recent" :key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project thumbnail">
+								<div class="thumbnail_image" :style="{'background-image': getThumbnail(project.path)}"></div>
+								<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
+								<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
+							</li>
+							<div v-if="recent.length == 0">{{ tl('mode.start.no_recents') }}</div>
+						</ul>
+						<button class="tl" style="margin-top: 20px;" onclick="BarItems.open_model.trigger()">action.open_model</button>
+					</div>
+				</section>
+			</content>
 		</div>
 
-		<div id="color" class="panel">
-			<div id="color_panel_wrapper" class="panel_inside">
-				<div id="color_panel_head">
-					<div class="main" v-bind:style="{'background-color': hover_color || main_color}"></div>
-					<div class="side">
-						<input type="text" v-model="color_code" @focusout="validateMainColor()">
-						<div id="color_history">
-							<li
-								v-for="(color, i) in history" v-if="i || color != main_color"
-								:key="color"
-								v-bind:style="{'background-color': color}"
-								v-bind:title="color" @click="setColor(color)"
-							></li>
+		<div id="work_screen" hidden>
+
+			<div id="main_toolbar">
+				<div class="toolbar_wrapper narrow tools"></div>
+
+				<div class="toolbar_wrapper narrow tool_options"></div>
+				<ul id="mode_selector">
+					<li
+						v-for="mode in options"
+						v-if="Condition(mode.condition)"
+						v-bind:class="{selected: mode.selected}"
+						v-on:mousedown="mode.select()"
+					>{{ mode.name }}</li>
+				</ul>
+				<div class="toolbar_wrapper narrow mobile_side"></div>
+			</div>
+			
+			<div id="left_bar" class="sidebar"></div>
+
+			<div id="right_bar" class="sidebar">
+
+				<div id="element" class="panel selection_only">
+					<div class="panel_inside">
+						<p class="tl panel_toolbar_label">panel.element.position</p>
+						<div class="toolbar_wrapper element_position"></div>
+						<p class="tl panel_toolbar_label">panel.element.size</p>
+						<div class="toolbar_wrapper element_size"></div>
+						<p class="tl panel_toolbar_label">panel.element.origin</p>
+						<div class="toolbar_wrapper element_origin"></div>
+						<p class="tl panel_toolbar_label">panel.element.rotation</p>
+						<div class="toolbar_wrapper element_rotation"></div>
+					</div>
+				</div>
+
+				<div id="color" class="panel">
+					<div id="color_panel_wrapper" class="panel_inside">
+						<div id="color_panel_head">
+							<div class="main" v-bind:style="{'background-color': hover_color || main_color}"></div>
+							<div class="side">
+								<input type="text" v-model="color_code" @focusout="validateMainColor()">
+								<div id="color_history">
+									<li
+										v-for="(color, i) in history" v-if="i || color != main_color"
+										:key="color"
+										v-bind:style="{'background-color': color}"
+										v-bind:title="color" @click="setColor(color)"
+									></li>
+								</div>
+							</div>
+						</div>
+
+						<div class="bar tabs_small">
+
+							<input type="radio" name="tab" id="radio_color_picker" value="picker" v-model="open_tab">
+							<label class="tl" for="radio_color_picker">panel.color.picker</label>
+
+							<input type="radio" name="tab" id="radio_color_palette" value="palette" v-model="open_tab">
+							<label class="tl" for="radio_color_palette">panel.color.palette</label>
+
+							<input type="radio" name="tab" id="radio_color_both" value="both" v-model="open_tab">
+							<label class="tl" for="radio_color_both">panel.color.both</label>
+
+							<div class="tool" @click="togglePickerType()" :title="picker_toggle_label">
+								<i class="fa_big icon" :class="picker_type == 'box' ? 'fas fa-square' : 'far fa-stop-circle'"></i>
+							</div>
+
+						</div>
+						<div v-show="open_tab == 'picker' || open_tab == 'both'">
+							<div v-show="picker_type == 'box'">
+								<input id="main_colorpicker">
+							</div>
+							<color-wheel v-if="picker_type == 'wheel' && width" v-model="main_color" :width="width" :height="width"></color-wheel>
+							<div class="toolbar_wrapper color_picker"></div>
+						</div>
+						<div v-show="open_tab == 'palette' || open_tab == 'both'">
+							<div class="toolbar_wrapper palette"></div>
+							<ul id="palette_list" class="list" v-sortable="{onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
+								<li
+									class="color" v-for="color in palette"
+									:title="color" :key="color"
+									:class="{selected: color == main_color, contrast: isDarkColor(color)}"
+									@click="setColor(color)"
+									@mouseenter="hover_color = color"
+									@mouseleave="hover_color = ''"
+								>
+									<div class="color_inner" v-bind:style="{'background-color': color}"></div>
+								</li>
+							</ul>
 						</div>
 					</div>
 				</div>
 
-				<div id="uv_panel_sides" class="bar tabs_small">
-
-					<input type="radio" name="tab" id="radio_color_picker" value="picker" v-model="open_tab">
-					<label class="tl" for="radio_color_picker">panel.color.picker</label>
-
-					<input type="radio" name="tab" id="radio_color_palette" value="palette" v-model="open_tab">
-					<label class="tl" for="radio_color_palette">panel.color.palette</label>
-
-					<input type="radio" name="tab" id="radio_color_both" value="both" v-model="open_tab">
-					<label class="tl" for="radio_color_both">panel.color.both</label>
-
-				</div>
-				<div v-show="open_tab == 'picker' || open_tab == 'both'">
-					<input id="main_colorpicker">
-					<div class="toolbar_wrapper color_picker"></div>
-				</div>
-				<div v-show="open_tab == 'palette' || open_tab == 'both'">
-					<div class="toolbar_wrapper palette"></div>
-					<ul id="palette_list" class="list" v-sortable="{onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
-						<li
-							class="color" v-for="color in palette"
-							:title="color" :key="color"
-							:class="{selected: color == main_color, contrast: isDarkColor(color)}"
-							@click="setColor(color)"
-							@mouseenter="hover_color = color"
-							@mouseleave="hover_color = ''"
-						>
-							<div class="color_inner" v-bind:style="{'background-color': color}"></div>
-						</li>
-					</ul>
-				</div>
 			</div>
-		</div>
+			<div id="center">
+				<ul id="toast_notification_list">
+				</ul>
+				<div id="preview" class="center_window">
+				</div>
+				<div id="timeline" class="center_window">
+					<div class="toolbar_wrapper timeline"></div>
+					<div id="timeline_vue"></div>
+				</div>
 
-	</div>
-	<div id="center">
-		<ul id="toast_notification_list">
-		</ul>
-		<div id="preview" class="center_window">
-		</div>
-		<div id="timeline" class="center_window">
-			<div class="toolbar_wrapper timeline"></div>
-			<div id="timeline_vue"></div>
-		</div>
+				<div id="mobile_panel_overlay" hidden></div>
+			</div>
+			<div id="status_bar"></div>
 
-		<div id="mobile_panel_overlay" hidden></div>
-	</div>
-	<div id="status_bar"></div>
+			<div id="panel_selector_bar"></div>
 
-	<div id="panel_selector_bar"></div>
+		</div>
 	
 	</div>
 	

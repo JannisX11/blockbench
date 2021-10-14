@@ -295,6 +295,10 @@ class Menu {
 			var offset_left = (document.body.clientWidth-el_width)/2
 			var offset_top  = (document.body.clientHeight-el_height)/2
 
+		} else if (position == 'mouse') {
+			var offset_left = mouse_pos.x;
+			var offset_top  = mouse_pos.y;
+
 		} else {
 			if (!position && scope.type === 'bar_menu') {
 				position = scope.label
@@ -308,6 +312,7 @@ class Menu {
 		if (offset_left > window.innerWidth - el_width) {
 			offset_left -= el_width
 			if (position && position.clientWidth) offset_left += position.clientWidth;
+			if (offset_left < 0) offset_left = 0;
 		}
 		if (offset_top  > window_height - el_height ) {
 			offset_top -= el_height;
@@ -381,11 +386,16 @@ class Menu {
 	}
 	removeAction(path) {
 		var scope = this;
-		if (path === undefined) path = ''
-		path = path.split('.')
+		if (path instanceof Action) {
+			let action = path;
+			this.structure.remove(action);
+			this.structure.remove(action.id);
+			action.menus.remove(this);
+		}
+		if (path === undefined) path = '';
+		if (typeof path == 'string') path = path.split('.');
 
 		function traverse(arr, layer) {
-			var result;
 			if (!isNaN(parseInt(path[layer]))) {
 				result = arr[parseInt(path[layer])]
 
@@ -439,6 +449,8 @@ class BarMenu extends Menu {
 		this.children = [];
 		this.condition = options.condition
 		this.node = $('<ul class="contextMenu"></ul>')[0]
+		this.node.style.minHeight = '8px';
+		this.node.style.minWidth = '150px';
 		this.name = tl(options.name || `menu.${id}`);
 		this.label = $(`<li class="menu_bar_point">${this.name}</li>`)[0]
 		$(this.label).click(function() {
@@ -478,7 +490,6 @@ const MenuBar = {
 			'project_window',
 			'_',
 			{name: 'menu.file.new', id: 'new', icon: 'insert_drive_file',
-				condition: () => (!EditSession.active || EditSession.hosting),
 				children: function() {
 					var arr = [];
 					for (var key in Formats) {
@@ -499,7 +510,7 @@ const MenuBar = {
 				}
 			},
 			{name: 'menu.file.recent', id: 'recent', icon: 'history',
-				condition: function() {return isApp && recent_projects.length && (!EditSession.active || EditSession.hosting)},
+				condition: function() {return isApp && recent_projects.length},
 				children: function() {
 					var arr = []
 					let redact = settings.streamer_mode.value;
@@ -530,6 +541,7 @@ const MenuBar = {
 				}
 			},
 			'open_model',
+			'open_from_link',
 			'_',
 			'save_project',
 			'save_project_as',
@@ -537,9 +549,35 @@ const MenuBar = {
 			'close_project',
 			'_',
 			{name: 'menu.file.import', id: 'import', icon: 'insert_drive_file', children: [
+				{
+					id: 'import_open_project',
+					name: 'menu.file.import.import_open_project',
+					icon: 'input',
+					condition: () => Project && ModelProject.all.length > 1,
+					children() {
+						let projects = [];
+						ModelProject.all.forEach(project => {
+							if (project == Project) return;
+							projects.push({
+								name: project.getDisplayName(),
+								icon: project.format.icon,
+								description: project.path,
+								click() {
+									let current_project = Project;
+									project.select();
+									let bbmodel = Codecs.project.compile();
+									current_project.select();
+									Codecs.project.merge(JSON.parse(bbmodel));
+								}
+							})
+						})
+						return projects;
+					}
+				},
 				'import_project',
 				'import_java_block_model',
 				'import_optifine_part',
+				'import_obj',
 				'extrude_texture'
 			]},
 			{name: 'generic.export', id: 'export', icon: 'insert_drive_file', children: [
@@ -572,13 +610,29 @@ const MenuBar = {
 			'edit_history',
 			'_',
 			'add_cube',
+			'add_mesh',
 			'add_group',
 			'add_locator',
 			'add_null_object',
-			'rename',
-			'unlock_everything',
+			'add_texture_mesh',
+			'_',
 			'duplicate',
+			'rename',
+			'find_replace',
+			'unlock_everything',
 			'delete',
+			'_',
+			{name: 'data.mesh', id: 'mesh', icon: 'fa-gem', children: [
+				'extrude_mesh_selection',
+				'inset_mesh_selection',
+				'loop_cut',
+				'create_face',
+				'invert_face',
+				'merge_vertices',
+				'dissolve_edges',
+				'split_mesh',
+				'merge_meshes',
+			]},
 			'_',
 			'select_window',
 			'select_all',
@@ -629,14 +683,8 @@ const MenuBar = {
 		})
 		
 		new BarMenu('filter', [
+			'convert_to_mesh',
 			'remove_blank_faces',
-			/*
-			plaster
-			optimize
-			sort by transparency
-			entity / player model / shape generator
-			*/
-
 		])
 
 		new BarMenu('animation', [
@@ -676,6 +724,7 @@ const MenuBar = {
 			'_',
 			'toggle_sidebars',
 			'toggle_quad_view',
+			'hide_everything_except_selection',
 			'focus_on_selection',
 			{name: 'menu.view.screenshot', id: 'screenshot', icon: 'camera_alt', children: [
 				'screenshot_model',
@@ -716,6 +765,9 @@ const MenuBar = {
 						window.location.reload(true)
 					}
 				}},
+				{name: 'menu.help.developer.unlock_projects', id: 'unlock_projects', icon: 'vpn_key', condition: () => ModelProject.all.find(project => project.locked), click() {
+					ModelProject.all.forEach(project => project.locked = false);
+				}},
 				{name: 'menu.help.developer.cache_reload', id: 'cache_reload', icon: 'cached', condition: !isApp, click: () => {
 					if('caches' in window){
 						caches.keys().then((names) => {
@@ -731,9 +783,7 @@ const MenuBar = {
 			{name: 'menu.help.donate', id: 'donate', icon: 'fas.fa-hand-holding-usd', click: () => {
 				Blockbench.openLink('https://blockbench.net/donate/');
 			}},
-			{name: 'menu.help.about', id: 'about', icon: 'info', click: () => {
-				Settings.open({tab: 'credits'});
-			}}
+			'about_window'
 		])
 		MenuBar.update()
 	},

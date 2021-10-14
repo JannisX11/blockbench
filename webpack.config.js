@@ -19,6 +19,10 @@ module.exports = {
             {
                 test: /\.bbkeymap$/,
                 type: 'json'
+            },
+            {
+                test: /\.bbtheme$/,
+                type: 'json'
             }
         ]
     }

@@ -13,18 +13,6 @@ const Blockbench = {
 	drag_handlers: {},
 	events: {},
 	openTime: new Date(),
-	get elements() {
-		console.warn('Blockbench.elements is deprecated. Please use Outliner.elements instead.')
-		return Outliner.elements
-	},
-	get selection() {
-		console.warn('Blockbench.selection is deprecated. Please use Cube.selected or Outliner.selected instead.')
-		return Cube.selected
-	},
-	get textures() {
-		console.warn('Blockbench.textures is deprecated. Please use Texture.all instead.')
-		return textures;
-	},
 	edit(aspects, cb) {
 		Undo.initEdit(aspects)
 		cb()
@@ -211,10 +199,15 @@ const Blockbench = {
 			if (!options.message) options.message = tl('message.'+options.translateKey+'.message')
 		}
 
-		var jq_dialog = $('<dialog class="dialog paddinged" style="width: auto;" id="message_box"><div class="dialog_handle">'+tl(options.title)+'</div></dialog>')
+		var jq_dialog = $(`
+			<dialog class="dialog" style="width: auto;" id="message_box">
+				<div class="dialog_handle"><div class="dialog_title">${tl(options.title)}</div></div>
+				<div class="dialog_close_button" onclick="open_interface.cancel()"><i class="material-icons">clear</i></div>
+			</dialog>`)
 
-		jq_dialog.append('<div class="dialog_bar" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
-			marked(tl(options.message))+'</div>'
+		jq_dialog.append('<div class="dialog_content"><div class="dialog_bar" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
+			marked(tl(options.message))+
+			'</div></div>'
 		)
 		if (options.icon) {
 			jq_dialog.find('.dialog_bar').prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'))
@@ -281,10 +274,10 @@ const Blockbench = {
 		}
 		return jq_dialog
 	},
-	textPrompt(title, value, callback) {
+	textPrompt(title, value, callback, placeholder = null) {
 		showDialog('text_input')
 		$('#text_input .dialog_handle').text(tl(title || 'dialog.input.title'))
-		$('#text_input input#text_input_field').val(value).trigger('select')
+		$('#text_input input#text_input_field').val(value).trigger('select').attr('placeholder', placeholder);
 		$('#text_input button.confirm_btn').off()
 		$('#text_input button.confirm_btn').on('click', function() {
 			var s = $('#text_input input#text_input_field').val()

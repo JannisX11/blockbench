@@ -19,7 +19,6 @@ class Locator extends OutlinerElement {
 			Locator.properties[key].merge(this, object)
 		}
 		this.sanitizeName();
-		Merge.boolean(this, object, 'locked')
 		Merge.boolean(this, object, 'export');
 		return this;
 	}
@@ -36,7 +35,6 @@ class Locator extends OutlinerElement {
 			Locator.properties[key].copy(this, save)
 		}
 		save.export = this.export ? undefined : false;
-		save.locked = this.locked;
 		save.uuid = this.uuid;
 		save.type = 'locator';
 		return save;
@@ -46,14 +44,6 @@ class Locator extends OutlinerElement {
 			this.addTo(Group.selected)
 		}
 		super.init();
-
-		if (!this.mesh || !this.mesh.parent) {
-			this.mesh = new THREE.Object3D();
-			Canvas.meshes[this.uuid] = this.mesh;
-			this.mesh.name = this.uuid;
-			this.mesh.type = 'locator';
-			Canvas.adaptObjectPosition(this, this.mesh);
-		}
 		return this;
 	}
 	flip(axis, center) {
@@ -72,15 +62,15 @@ class Locator extends OutlinerElement {
 		return this;
 	}
 	getWorldCenter() {
-		var pos = new THREE.Vector3();
-		var q = new THREE.Quaternion();
+		var pos = Reusable.vec1.set(0, 0, 0);
+		var q = Reusable.quat1.set(0, 0, 0, 1);
 		if (this.parent instanceof Group) {
 			THREE.fastWorldPosition(this.parent.mesh, pos);
 			this.parent.mesh.getWorldQuaternion(q);
-			var offset2 = new THREE.Vector3().fromArray(this.parent.origin).applyQuaternion(q);
+			var offset2 = Reusable.vec2.fromArray(this.parent.origin).applyQuaternion(q);
 			pos.sub(offset2);
 		}
-		var offset = new THREE.Vector3().fromArray(this.from).applyQuaternion(q);
+		var offset = Reusable.vec3.fromArray(this.from).applyQuaternion(q);
 		pos.add(offset);
 
 		return pos;
@@ -99,6 +89,21 @@ class Locator extends OutlinerElement {
 	];
 	Locator.prototype.needsUniqueName = true;
 	Locator.prototype.menu = new Menu([
+			{
+				id: 'ignore_inherited_scale',
+				name: 'menu.locator.ignore_inherited_scale',
+				icon: locator => locator.ignore_inherited_scale ? 'check_box' : 'check_box_outline_blank',
+				click(clicked_locator) {
+					let value = !clicked_locator.ignore_inherited_scale;
+					let affected = Locator.selected.filter(locator => locator.ignore_inherited_scale != value);
+					Undo.initEdit({elements: affected});
+					affected.forEach(locator => {
+						locator.ignore_inherited_scale = value;
+					})
+					Undo.finishEdit('Change locator ignore inherit scale option');
+				}
+			},
+			'_',
 			'group_elements',
 			'_',
 			'copy',
@@ -108,14 +113,16 @@ class Locator extends OutlinerElement {
 			'rename',
 			'delete'
 		])
-	Locator.selected = [];
-	Locator.all = [];
 	
-	new Property(Locator, 'string', 'name', {default: 'locator'})
-	new Property(Locator, 'vector', 'from')
-	new Property(Locator, 'vector', 'rotation')
+new Property(Locator, 'string', 'name', {default: 'locator'})
+new Property(Locator, 'vector', 'from')
+new Property(Locator, 'vector', 'rotation')
+new Property(Locator, 'boolean', 'ignore_inherited_scale')
+new Property(Locator, 'boolean', 'locked');
 
-	OutlinerElement.types.locator = Locator;
+OutlinerElement.registerType(Locator, 'locator');
+
+new NodePreviewController(Locator)
 
 BARS.defineActions(function() {
 	new Action('add_locator', {
