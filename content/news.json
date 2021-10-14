@@ -4,7 +4,7 @@
 		"text_color": "var(--color-bright_ui_text)",
 		"graphic": {
 			"type": "image",
-			"source": "./content/splash_art.png?40",
+			"source": "https://web.blockbench.net/content/splash_art.png?40",
 			"width": 1000,
 			"aspect_ratio": "21/10",
 			"description": "Splash Art by [Wackyblocks](https://twitter.com/wackyblocks)"
@@ -16,17 +16,17 @@
 		],
 		"features": [
 			{
-				"image": "./content/tabs.png",
+				"image": "https://web.blockbench.net/content/tabs.png",
 				"title": "Tabs!",
 				"text": "Open multiple models at the same time and easily switch between them using the new project tabs!"
 			},
 			{
-				"image": "./content/poly_mesh.png",
+				"image": "https://web.blockbench.net/content/poly_mesh.png",
 				"title": "Poly Mesh Editing!",
 				"text": "Blockbench now supports poly mesh editing, which let's you create and modify any type of shape in generic models."
 			},
 			{
-				"image": "./content/theme_browser.png",
+				"image": "https://web.blockbench.net/content/theme_browser.png",
 				"title": "Theme Browser",
 				"text": "You can now discover and switch to new themes directly inside Blockbench. Also, the theme menu and the other settings menus have been re-designed and cleaned up!"
 			}
