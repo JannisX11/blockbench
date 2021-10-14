@@ -399,14 +399,6 @@ const UVEditor = {
 	getMappableElements() {
 		return Outliner.selected.filter(el => typeof el.faces == 'object');
 	},
-	getUVTag(obj) {
-		if (!obj) obj = Cube.selected[0]
-		if (Project.box_uv) {
-			return [obj.uv_offset[0], obj.uv_offset[1], 0, 0];
-		} else {
-			return obj.faces[this.face].uv;
-		}
-	},
 	getTexture() {
 		if (Format.single_texture) return Texture.getDefault();
 		return this.vue.texture;
@@ -537,16 +529,19 @@ const UVEditor = {
 
 		Cube.selected.forEach(function(obj) {
 			if (Project.box_uv === false) {
-				var uvTag = scope.getUVTag(obj)
-				var size = uvTag[axis + 2] - uvTag[axis]
-
-				var value = modify(uvTag[axis])
-
-				value = limitNumber(value, 0, limit)
-				value = limitNumber(value + size, 0, limit) - size
-
-				uvTag[axis] = value
-				uvTag[axis+2] = value + size
+				scope.selected_faces.forEach(fkey => {
+					if (!obj.faces[fkey]) return;
+					let uvTag = obj.faces[fkey].uv;
+					var size = uvTag[axis + 2] - uvTag[axis]
+	
+					var value = modify(uvTag[axis])
+	
+					value = limitNumber(value, 0, limit)
+					value = limitNumber(value + size, 0, limit) - size
+	
+					uvTag[axis] = value
+					uvTag[axis+2] = value + size
+				})
 			} else {
 				let minimum = 0;
 				if (axis === 0) {
@@ -593,11 +588,13 @@ const UVEditor = {
 
 		Cube.selected.forEach(function(obj) {
 			if (Project.box_uv === false) {
-
-				var uvTag = scope.getUVTag(obj)
-				var difference = modify(uvTag[axis+2]-uvTag[axis]) + uvTag[axis]
-				uvTag[axis+2] = limitNumber(difference, 0, limit);
-				Canvas.updateUV(obj)
+				scope.selected_faces.forEach(fkey => {
+					if (!obj.faces[fkey]) return;
+					var uvTag = obj.faces[fkey].uv;
+					var difference = modify(uvTag[axis+2]-uvTag[axis]) + uvTag[axis];
+					uvTag[axis+2] = limitNumber(difference, 0, limit);
+					Canvas.updateUV(obj);
+				})
 			}
 		})
 		Mesh.selected.forEach(mesh => {
@@ -952,7 +949,7 @@ const UVEditor = {
 					})
 				}
 			})
-			if (obj.autouv) obj.autouv = 0
+			if (obj.autouv) obj.autouv = 0;
 			obj.preview_controller.updateUV(obj);
 		})
 		this.message('uv_editor.mirrored')

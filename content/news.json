@@ -6,7 +6,7 @@
 			"type": "image",
 			"source": "./content/splash_art.png?39",
 			"width": 1000,
-			"aspect_ratio": "16/9",
+			"aspect_ratio": "21/10",
 			"description": "Splash Art Placeholder by [DerBauersSohn](https://twitter.com/DerBauersSohn__)"
 		},
 		"layout": "vertical",

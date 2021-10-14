@@ -54,7 +54,6 @@ class ModelFormat {
 			}
 		}
 		Interface.status_bar.vue.Format = this;
-		updateSelection()
 		Modes.vue.$forceUpdate()
 		updateInterfacePanels()
 		updateShading();

@@ -169,7 +169,8 @@ class Preview {
 		})
 		this.node.appendChild(menu)
 		//Cameras
-		this.isOrtho = false
+		this.offscreen = !!options.offscreen;
+		this.isOrtho = false;
 		this.angle = null;
 		this.camPers = new THREE.PerspectiveCamera(settings.fov.value, 16 / 9, settings.camera_near_plane.value||1, 30000);
 		this.camOrtho = new THREE.OrthographicCamera(-600,  600, -400, 400, -200, 20000);
@@ -480,9 +481,13 @@ class Preview {
 				this.camPers.position.copy(cam_offset).add(this.controls.target);
 			}
 		}
-		this.setLockedAngle();
-		this.occupyTransformer();
-		this.controls.updateSceneScale();
+		if (!this.offscreen) {
+			this.setLockedAngle();
+			this.controls.updateSceneScale();
+		}
+		if (this == Preview.selected) {
+			this.occupyTransformer();
+		}
 		return this;
 	}
 	setFOV(fov) {
@@ -916,7 +921,7 @@ class Preview {
 		return scope.raycaster.ray.origin
 	}
 	occupyTransformer(event) {
-		if (this == MediaPreview || Transformer.dragging) return this;
+		if (this.offscreen || Transformer.dragging) return this;
 
 		Transformer.camera = this.isOrtho ? this.camOrtho : this.camPers
 		Transformer.orbit_controls = this.controls
@@ -958,7 +963,6 @@ class Preview {
 			scale *= this.camera.fov / this.height;
 			return scale;
 		}
-
 	}
 	//Selection Rectangle
 	startSelRect(event) {
@@ -2161,7 +2165,7 @@ function initCanvas() {
 	}
 	active_scene = canvas_scenes.normal
 
-	MediaPreview = new Preview({id: 'media'})
+	MediaPreview = new Preview({id: 'media', offscreen: true})
 
 	main_preview = new Preview({id: 'main'}).fullscreen()
 

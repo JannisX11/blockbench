@@ -251,7 +251,7 @@ const Vertexsnap = {
 	clearVertexGizmos: function() {
 		Project.model_3d.remove(Vertexsnap.line);
 		Vertexsnap.elements_with_vertex_gizmos.forEach(element => {
-			if (element.mesh.vertex_points) {
+			if (element.mesh && element.mesh.vertex_points) {
 				element.mesh.vertex_points.visible = false;
 				if (element instanceof Mesh == false) {
 					element.mesh.vertex_points.parent.remove(element.mesh.vertex_points);
@@ -299,6 +299,7 @@ const Vertexsnap = {
 
 			line.renderOrder = 900
 			Project.model_3d.add(Vertexsnap.line);
+			Vertexsnap.line.position.copy(scene.position).multiplyScalar(-1);
 			//Measure
 			var diff = new THREE.Vector3().copy(Vertexsnap.vertex_pos);
 			diff.sub(vertex_pos);
