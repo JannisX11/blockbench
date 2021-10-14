@@ -75,7 +75,6 @@
 		"loop_cut": {"key": 82, "ctrl": true},
 		"dissolve_edges": {"key": 88, "ctrl": true},
 		"merge_vertices": {"key": 77, "shift": true},
-		"merge_vertices_by_distance": null,
 		"merge_meshes": {"key": 77},
 		"split_mesh": null,
 		"import_obj": null,

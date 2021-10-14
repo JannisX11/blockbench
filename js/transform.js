@@ -1718,15 +1718,20 @@ BARS.defineActions(function() {
 			unselectAll()
 			arr.forEach(element => {
 				var clear_count = 0;
+				var original_face_count = Object.keys(element.faces).length
 				for (var face in element.faces) {
 					var face_tag = element.faces[face];
 					if (face_tag.texture == false) {
-						face_tag.texture = null
+						if (element instanceof Cube) {
+							face_tag.texture = null;
+						} else {
+							delete element.faces[face];
+						}
 						clear_count++;
 						cleared_total++;
 					}
 				}
-				if (clear_count == 6) {
+				if (clear_count == original_face_count) {
 					empty_elements.push(element);
 				}
 			})
@@ -1744,6 +1749,7 @@ BARS.defineActions(function() {
 					empty_elements.forEach(element => {
 						if (r == 0) {
 							element.remove();
+							elements.remove(element)
 						} else {
 							for (var face in element.faces) {
 								element.faces[face].texture = false;
@@ -1751,11 +1757,11 @@ BARS.defineActions(function() {
 						}
 					})
 					updateSelection();
-					Canvas.updateAllFaces();
+					Canvas.updateView({elements, element_aspects: {geometry: true, faces: true, uv: true}})
 					Undo.finishEdit('Remove blank faces');
 				})
 			} else {
-				Canvas.updateAllFaces();
+				Canvas.updateView({elements, element_aspects: {geometry: true, faces: true, uv: true}})
 				Undo.finishEdit('Remove blank faces');
 			}
 		}

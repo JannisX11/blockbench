@@ -153,7 +153,6 @@ class Texture {
 		var size_control = {};
 
 		this.img.onload = function() {
-			if (!this.src || Texture.all.indexOf(scope) == -1) return;
 			this.tex.needsUpdate = true;
 			let dimensions_changed = scope.width !== img.naturalWidth || scope.height !== img.naturalHeight;
 			scope.width = img.naturalWidth;
@@ -163,59 +162,64 @@ class Texture {
 				console.log('Successfully loaded '+scope.name+' from default pack')
 			}
 
-			//Width / Animation
-			if (img.naturalWidth !== img.naturalHeight && Format.id == 'java_block') {
-				BARS.updateConditions()
-			}
+			let project = Texture.all.includes(scope) ? Project : ModelProject.all.find(project => project.textures.includes(scope));
+			if(!project) return;
+			project.whenNextOpen(() => {
 
-			if (Project.box_uv && Format.single_texture && !scope.error) {
-
-				if (!scope.keep_size) {
-					let pw = Project.texture_width;
-					let ph = Project.texture_height;
-					let nw = img.naturalWidth;
-					let nh = img.naturalHeight;
-
-					//texture is unlike project
-					var unlike = (pw != nw || ph != nh);
-					//Resolution of this texture has changed
-					var changed = size_control.old_width && (size_control.old_width != nw || size_control.old_height != nh);
-					//Resolution could be a multiple of project size
-					var multi = (
-						(pw%nw == 0 || nw%pw == 0) &&
-						(ph%nh == 0 || nh%ph == 0)
-					)
-
-					if (unlike && changed && !multi) {
-						Blockbench.showMessageBox({
-							translateKey: 'update_res',
-							icon: 'photo_size_select_small',
-							buttons: [tl('message.update_res.update'), tl('dialog.cancel')],
-							confirm: 0,
-							cancel: 1
-						}, function(result) {
-							if (result === 0) {
-								setProjectResolution(img.naturalWidth, img.naturalHeight)
-								if (selected.length) {
-									UVEditor.loadData()
-								}
-							}
-						})
-					}
+				//Width / Animation
+				if (img.naturalWidth !== img.naturalHeight && Format.id == 'java_block') {
+					BARS.updateConditions()
 				}
-				delete scope.keep_size;
-				size_control.old_width = img.naturalWidth
-				size_control.old_height = img.naturalHeight
-			}
 
-			if (dimensions_changed) {
-				TextureAnimator.updateButton()
-				Canvas.updateAllFaces(scope)
-			}
-			if (typeof scope.load_callback === 'function') {
-				scope.load_callback(scope);
-				delete scope.load_callback;
-			}
+				if (Project.box_uv && Format.single_texture && !scope.error) {
+
+					if (!scope.keep_size) {
+						let pw = Project.texture_width;
+						let ph = Project.texture_height;
+						let nw = img.naturalWidth;
+						let nh = img.naturalHeight;
+
+						//texture is unlike project
+						var unlike = (pw != nw || ph != nh);
+						//Resolution of this texture has changed
+						var changed = size_control.old_width && (size_control.old_width != nw || size_control.old_height != nh);
+						//Resolution could be a multiple of project size
+						var multi = (
+							(pw%nw == 0 || nw%pw == 0) &&
+							(ph%nh == 0 || nh%ph == 0)
+						)
+
+						if (unlike && changed && !multi) {
+							Blockbench.showMessageBox({
+								translateKey: 'update_res',
+								icon: 'photo_size_select_small',
+								buttons: [tl('message.update_res.update'), tl('dialog.cancel')],
+								confirm: 0,
+								cancel: 1
+							}, function(result) {
+								if (result === 0) {
+									setProjectResolution(img.naturalWidth, img.naturalHeight)
+									if (selected.length) {
+										UVEditor.loadData()
+									}
+								}
+							})
+						}
+					}
+					delete scope.keep_size;
+					size_control.old_width = img.naturalWidth
+					size_control.old_height = img.naturalHeight
+				}
+
+				if (dimensions_changed) {
+					TextureAnimator.updateButton()
+					Canvas.updateAllFaces(scope)
+				}
+				if (typeof scope.load_callback === 'function') {
+					scope.load_callback(scope);
+					delete scope.load_callback;
+				}
+			})
 		}
 		this.img.onerror = function(error) {
 			if (isApp &&
@@ -529,7 +533,7 @@ class Texture {
 					if (Texture.all.includes(scope)) {
 						scope.reloadTexture();
 					} else {
-						let project = ModelProject.find(project => project.textures.includes(scope));
+						let project = ModelProject.all.find(project => project.textures.includes(scope));
 						if (project) {
 							project.whenNextOpen(() => {
 								scope.reloadTexture();

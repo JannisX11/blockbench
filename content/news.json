@@ -4,10 +4,10 @@
 		"text_color": "var(--color-bright_ui_text)",
 		"graphic": {
 			"type": "image",
-			"source": "./content/splash_art.png?39",
+			"source": "./content/splash_art.png?40",
 			"width": 1000,
 			"aspect_ratio": "21/10",
-			"description": "Splash Art Placeholder by [DerBauersSohn](https://twitter.com/DerBauersSohn__)"
+			"description": "Splash Art by [Wackyblocks](https://twitter.com/wackyblocks)"
 		},
 		"layout": "vertical",
 		"text": [
@@ -23,7 +23,7 @@
 			{
 				"image": "./content/poly_mesh.png",
 				"title": "Poly Mesh Editing!",
-				"text": "Blockbench now supports poly mesh editing, which let's you create any shapes in generic models."
+				"text": "Blockbench now supports poly mesh editing, which let's you create and modify any type of shape in generic models."
 			},
 			{
 				"image": "./content/theme_browser.png",

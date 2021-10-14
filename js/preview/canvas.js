@@ -605,7 +605,7 @@ const Canvas = {
 		var side = Canvas.getRenderSide();
 		ModelProject.all.forEach(project => {
 			project.textures.forEach(function(t) {
-				var mat = Project.materials[t.uuid]
+				var mat = project.materials[t.uuid]
 				if (mat) {
 					mat.side = side
 				}

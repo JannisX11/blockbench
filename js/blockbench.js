@@ -305,7 +305,7 @@ BARS.defineActions(() => {
 							<p><b>${tl('about.website')}</b> <a class="open-in-browser" href="https://blockbench.net">blockbench.net</a></p>
 							<p><b>${tl('about.repository')}</b> <a class="open-in-browser" href="https://github.com/JannisX11/blockbench">github.com/JannisX11/blockbench</a></p>
 							<p>${tl('about.vertex_snap')}</p>
-							<p><b>${tl('about.icons')}</b> <a href="https://material.io/icons/" class="open-in-browser">material.io/icons</a> &amp; <a href="https://fontawesome.io/icons/" class="open-in-browser">fontawesome</a></p>
+							<p><b>${tl('about.icons')}</b> <a href="https://material.io/icons/" class="open-in-browser">material.io/icons</a> &amp; <a href="https://fontawesome.com/icons/" class="open-in-browser">fontawesome</a></p>
 							<p><b>${tl('about.libraries')}</b>
 								<a class="open-in-browser" href="https://electronjs.org">Electron</a>,
 								<a class="open-in-browser" href="https://vuejs.org">Vue</a>,

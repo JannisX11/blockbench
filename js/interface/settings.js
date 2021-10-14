@@ -237,6 +237,7 @@ const Settings = {
 			updateCubeHighlights();
 		}});
 		new Setting('deactivate_size_limit',{category: 'edit', value: false});
+		new Setting('vertex_merge_distance',{category: 'edit', value: 0.1, step: 0.01, type: 'number'});
 		
 		//Grid
 		new Setting('base_grid',		{category: 'grid', value: true,});

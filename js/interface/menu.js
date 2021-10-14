@@ -629,7 +629,6 @@ const MenuBar = {
 				'create_face',
 				'invert_face',
 				'merge_vertices',
-				'merge_vertices_by_distance',
 				'dissolve_edges',
 				'split_mesh',
 				'merge_meshes',

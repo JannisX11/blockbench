@@ -608,7 +608,6 @@ const UVEditor = {
 					if (!face.uv[vkey]) return;
 					face.uv[vkey][axis] = (face.uv[vkey][axis] - start) * multiplier + start;
 					if (isNaN(face.uv[vkey][axis])) face.uv[vkey][axis] = start;
-					console.log(face.uv[vkey][axis]);
 				})
 			})
 		})
