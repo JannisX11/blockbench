@@ -1101,6 +1101,7 @@ const UVEditor = {
 			var new_face;
 			if (elements[0] instanceof Mesh) {
 				new_face = new MeshFace(null, tag);
+				new_face.vertices = tag.getSortedVertices();
 				new_face.direction = key;
 			} else {
 				new_face = new CubeFace(key, tag);
@@ -1141,7 +1142,7 @@ const UVEditor = {
 				tag.vertices.forEach(vkey => {
 					uv_points.push(tag.uv[vkey]);
 				})
-				face.vertices.forEach((vkey, i) => {
+				face.getSortedVertices().forEach((vkey, i) => {
 					if (uv_points[i]) face.uv[vkey].replace(uv_points[i]);
 				})
 			} else {

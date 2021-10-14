@@ -308,7 +308,7 @@ const Painter = {
 		var color = tinycolor(ColorPanel.get()).toRgb();
 		var size = BarItems.slider_brush_size.get();
 		let softness = BarItems.slider_brush_softness.get()/100;
-		let b_opacity = BarItems.slider_brush_opacity.get()/100;
+		let b_opacity = BarItems.slider_brush_opacity.get()/255;
 		let tool = Toolbox.selected.id;
 
 		ctx.clip()
@@ -371,7 +371,7 @@ const Painter = {
 	},
 	useFilltool(texture, ctx, x, y, area) {
 		var color = tinycolor(ColorPanel.get()).toRgb();
-		let b_opacity = BarItems.slider_brush_opacity.get()/100;
+		let b_opacity = BarItems.slider_brush_opacity.get()/255;
 		var fill_mode = BarItems.fill_mode.get()
 		var element = Painter.current.element;
 		let {rect, uvFactorX, uvFactorY, w, h} = area;
@@ -564,7 +564,6 @@ const Painter = {
 				} else {
 					point_on_uv = point_on_uv.map(v => Math.floor(v))
 				}
-				console.log([x, y], point_on_uv)
 				
 				let old_mesh = Painter.current.element;
 				Painter.current.element = mesh;
@@ -602,7 +601,7 @@ const Painter = {
 			ctx.drawImage(Painter.current.clear, 0, 0)
 
 			let color = tinycolor(ColorPanel.get()).toRgb();
-			let b_opacity = BarItems.slider_brush_opacity.get()/100;
+			let b_opacity = BarItems.slider_brush_opacity.get()/255;
 			var width = BarItems.slider_brush_size.get();
 			let shape = BarItems.draw_shape_type.get();
 			let hollow = shape.substr(-1) == 'h';
@@ -722,7 +721,7 @@ const Painter = {
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			ctx.drawImage(Painter.current.clear, 0, 0)
 
-			let b_opacity = BarItems.slider_brush_opacity.get()/100;
+			let b_opacity = BarItems.slider_brush_opacity.get()/255;
 
 			let rect = Painter.setupRectFromFace(uvTag, texture);
 			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
@@ -1221,17 +1220,17 @@ BARS.defineActions(function() {
 		condition: () => (Toolbox && ['brush_tool', 'eraser', 'fill_tool', 'draw_shape_tool', 'gradient_tool'].includes(Toolbox.selected.id)),
 		tool_setting: 'brush_opacity',
 		settings: {
-			min: 0, max: 100, default: 100,
+			min: 0, max: 255, default: 255,
 			show_bar: true,
 			interval: function(event) {
 				if (event.shiftKey && event.ctrlOrCmd) {
-					return 0.25;
+					return 1;
 				} else if (event.shiftKey) {
-					return 5;
+					return 4;
 				} else if (event.ctrlOrCmd) {
 					return 1;
 				} else {
-					return 10;
+					return 8;
 				}
 			}
 		}

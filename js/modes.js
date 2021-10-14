@@ -122,7 +122,7 @@ onVueSetup(function() {
 		data: {
 			formats: Formats,
 			recent: isApp ? recent_projects : [],
-			list_type: StateMemory.start_screen_list_type || 'list',
+			list_type: StateMemory.start_screen_list_type || 'grid',
 			redact_names: settings.streamer_mode.value,
 			redacted: tl('generic.redacted'),
 			isApp,

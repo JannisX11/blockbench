@@ -73,7 +73,7 @@ const Clipbench = {
 			if (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length && Clipbench.vertices) {
 				options.push(Clipbench.types.mesh_selection);
 			}
-			if (UVEditor.getMappableElements().length && Clipbench.faces && Object.keys(Clipbench.faces).length) {
+			if (UVEditor.getMappableElements().length && UVEditor.clipboard.length) {
 				options.push(Clipbench.types.face);
 			}
 			if (options.length > 1) {
@@ -93,10 +93,10 @@ const Clipbench = {
 				return options[0]
 			}
 		}
-		if (p == 'uv' && Modes.edit) {
+		if (p == 'uv' && Modes.edit && UVEditor.clipboard.length) {
 			return Clipbench.types.face;
 		}
-		if (p == 'textures' && Texture.selected) {
+		if (p == 'textures') {
 			return Clipbench.types.texture;
 		}
 		if (p == 'outliner' && Modes.edit) {
@@ -240,7 +240,6 @@ const Clipbench = {
 					let new_vkey = new_vertices[old_vertices.indexOf(old_vkey)];
 					new_face.uv[new_vkey] = new_face.uv[old_vkey];
 					delete new_face.uv[old_vkey];
-					console.log(old_vertices.indexOf(old_vkey), new_vkey)
 					return new_vkey;
 				})
 				new_face.vertices.replace(new_face_vertices);

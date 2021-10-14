@@ -155,6 +155,7 @@ class Texture {
 		this.img.onload = function() {
 			if (!this.src || Texture.all.indexOf(scope) == -1) return;
 			this.tex.needsUpdate = true;
+			let dimensions_changed = scope.width !== img.naturalWidth || scope.height !== img.naturalHeight;
 			scope.width = img.naturalWidth;
 			scope.height = img.naturalHeight;
 
@@ -207,8 +208,10 @@ class Texture {
 				size_control.old_height = img.naturalHeight
 			}
 
-			TextureAnimator.updateButton()
-			Canvas.updateAllFaces(scope)
+			if (dimensions_changed) {
+				TextureAnimator.updateButton()
+				Canvas.updateAllFaces(scope)
+			}
 			if (typeof scope.load_callback === 'function') {
 				scope.load_callback(scope);
 				delete scope.load_callback;
@@ -572,7 +575,6 @@ class Texture {
 				this.folder = 'textures/' + this.folder;
 			}
 		} else {
-			console.log(2)
 			var arr = path.split(osfs)
 			this.folder = arr[arr.length-2]
 			if (Format.id === 'java_block' && isApp && settings.dialog_loose_texture.value) {

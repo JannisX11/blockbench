@@ -5,10 +5,10 @@ function getRescalingFactor(angle) {
 			return 1.4142
 			break;
 		case 22.5:
-			return 1.127
+			return 1.0824
 			break;
 		case 67.5:
-			return 1.127
+			return 1.0824
 			break;
 		case 45:
 			return 1.4142
