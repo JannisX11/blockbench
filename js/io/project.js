@@ -8,7 +8,7 @@ class ModelProject {
 		this.locked = false;
 		this.thumbnail = '';
 
-		this._box_uv = false;
+		this._box_uv = options.format ? options.format.box_uv : false;
 		this._texture_width = 16;
 		this._texture_height = 16;
 
@@ -336,7 +336,7 @@ new Property(ModelProject, 'number', 'shadow_size', {
 ModelProject.all = [];
 
 
-let Project = 0;// = new ModelProject();
+let Project = 0;
 
 let ProjectData = {};
 
