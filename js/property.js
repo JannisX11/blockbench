@@ -50,6 +50,7 @@ class Property {
 		if (typeof options.merge_validation == 'function') this.merge_validation = options.merge_validation;
 		if (options.condition) this.condition = options.condition;
 		if (options.exposed == false) this.exposed = false;
+		if (options.export == false) this.export = false;
 		if (options.label) this.label = options.label;
 		if (options.description) this.description = options.description;
 		if (options.options) this.options = options.options;
