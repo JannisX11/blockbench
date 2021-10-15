@@ -644,6 +644,8 @@
 	"settings.autouv.desc": "Enable Auto UV by default",
 	"settings.create_rename": "Rename New Cube",
 	"settings.create_rename.desc": "Focus name field when creating new element or group",
+	"settings.show_only_selected_uv": "Show Only Selected UV",
+	"settings.show_only_selected_uv.desc": "Only display the selected UV faces in the UV editor by default",
 	"settings.animation_snap": "Animation Snap",
 	"settings.animation_snap.desc": "Default snap interval for keyframes in the animation timeline in steps per second. This can also be changed per animation. The default value is 24.",
 

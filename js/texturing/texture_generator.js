@@ -562,7 +562,7 @@ const TextureGenerator = {
 			vec4 = new THREE.Vector3();
 
 		var face_list = [];
-		var element_list = (Format.single_texture ? Outliner.all : Outliner.selected).filter(el => {
+		var element_list = (Format.single_texture ? Outliner.elements : Outliner.selected).filter(el => {
 			return (el instanceof Cube || el instanceof Mesh) && el.visibility;
 		});
 		function faceRect(cube, face_key, tex, x, y) {

@@ -8,7 +8,7 @@ class ModelProject {
 		this.locked = false;
 		this.thumbnail = '';
 
-		this._box_uv = false;
+		this._box_uv = options.format ? options.format.box_uv : false;
 		this._texture_width = 16;
 		this._texture_height = 16;
 
@@ -23,7 +23,7 @@ class ModelProject {
 		this.format = options.format instanceof ModelFormat ? options.format : Formats.free;
 		this.mode = 'edit';
 		this.view_mode = 'textured';
-		this.display_uv = 'selected_elements';
+		this.display_uv = settings.show_only_selected_uv.value ? 'selected_faces' :'selected_elements';
 		this.previews = {};
 		this.EditSession = null;
 
@@ -336,7 +336,7 @@ new Property(ModelProject, 'number', 'shadow_size', {
 ModelProject.all = [];
 
 
-let Project = 0;// = new ModelProject();
+let Project = 0;
 
 let ProjectData = {};
 

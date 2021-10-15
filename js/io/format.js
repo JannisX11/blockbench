@@ -24,16 +24,13 @@ class ModelFormat {
 			ModelFormat.properties[id].merge(this, data);
 		}
 	}
-	select(converting) {
+	select() {
 		if (Format && typeof Format.onDeactivation == 'function') {
 			Format.onDeactivation()
 		}
 		Format = this;
 		if (typeof this.onActivation == 'function') {
 			Format.onActivation()
-		}
-		if (!converting || !this.optional_box_uv) {
-			Project.box_uv = Format.box_uv;
 		}
 		buildGrid()
 		if (Format.centered_grid) {
@@ -47,12 +44,6 @@ class ModelFormat {
 			}
 		})
 		Interface.Panels.animations.inside_vue._data.animation_files_enabled = this.animation_files;
-		// Todo: toggle animated textures in UV editor
-		for (var key in ModelProject.properties) {
-			if (Project[key] == undefined) {
-				ModelProject.properties[key].reset(Project);
-			}
-		}
 		Interface.status_bar.vue.Format = this;
 		Modes.vue.$forceUpdate()
 		updateInterfacePanels()
@@ -73,8 +64,11 @@ class ModelFormat {
 		Project.export_path = '';
 
 		var old_format = Format
-		this.select(true)
+		this.select();
 		Modes.options.edit.select()
+
+		// Box UV
+		if (!this.optional_box_uv) Project.box_uv = this.box_uv;
 
 		//Bone Rig
 		if (!Format.bone_rig && old_format.bone_rig) {

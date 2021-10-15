@@ -192,7 +192,9 @@ class Panel {
 		let show = BARS.condition(this.condition)
 		if (show) {
 			$(this.node).show()
-			if (Interface.data.left_bar.includes(this.id)) {
+			if (Blockbench.isMobile) {
+				this.width = this.node.clientWidth;
+			} else if (Interface.data.left_bar.includes(this.id)) {
 				this.width = Interface.data.left_bar_width
 			} else if (Interface.data.right_bar.includes(this.id)) {
 				this.width = Interface.data.right_bar_width

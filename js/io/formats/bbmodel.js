@@ -103,6 +103,7 @@ var codec = new Codec('project', {
 		}
 		
 		for (var key in ModelProject.properties) {
+			if (ModelProject.properties[key].export == false) continue;
 			ModelProject.properties[key].copy(Project, model)
 		}
 

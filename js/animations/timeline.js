@@ -1009,7 +1009,7 @@ onVueSetup(function() {
 										v-on:dblclick="keyframe.callPlayhead()"
 										:title="tl('timeline.'+keyframe.channel)"
 										@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
-										@contextmenu.prevent="keyframe.showContextMenu($event)"
+										@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
 									>
 										<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
 										<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>

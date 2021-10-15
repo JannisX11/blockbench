@@ -17,7 +17,7 @@ var codec = new Codec('optifine_entity', {
 		var geo_code = 'geometry.'+Project.geometry_name
 		if (Texture.getDefault()) {
 			let tex = Texture.getDefault();
-			entitymodel.texture = tex.folder + '/' + tex.name;
+			entitymodel.texture = tex.folder ? (tex.folder + '/' + tex.name) : tex.name;
 		}
 		entitymodel.textureSize = [Project.texture_width, Project.texture_height];
 		if (Project.shadow_size != 1) entitymodel.shadowSize = Math.clamp(Project.shadow_size, 0, 1);

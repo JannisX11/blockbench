@@ -466,9 +466,9 @@ class Cube extends OutlinerElement {
 			this.from[1] + this.size(1)/2,
 			this.from[2] + this.size(2)/2
 		)
-		pos.x -= this.origin[0]
-		pos.y -= this.origin[1]
-		pos.z -= this.origin[2]
+		pos.x = (pos.x - this.origin[0]) * m.scale.x;
+		pos.y = (pos.y - this.origin[1]) * m.scale.y;
+		pos.z = (pos.z - this.origin[2]) * m.scale.z;
 
 		if (m) {
 			var r = m.getWorldQuaternion(Reusable.quat1)
@@ -916,6 +916,7 @@ new NodePreviewController(Cube, {
 			if (materials.allEqual(materials[0])) materials = materials[0];
 			mesh.material = materials
 		}
+		if (!mesh.material) mesh.material = Canvas.transparentMaterial;
 	},
 	updateUV(cube, animation = true) {
 		if (Project.view_mode !== 'textured') return;
