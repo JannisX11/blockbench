@@ -90,10 +90,10 @@ const UVEditor = {
 			if (x === Painter.current.x && y === Painter.current.y) {
 				return
 			}
-			if (Painter.current.face !== scope.face) {
+			if (Painter.current.face !== scope.selected_faces[0]) {
 				Painter.current.x = x
 				Painter.current.y = y
-				Painter.current.face = scope.face
+				Painter.current.face = scope.selected_faces[0]
 				new_face = true;
 				if (texture !== Painter.current.texture && Undo.current_save) {
 					Undo.current_save.addTexture(texture)
@@ -487,7 +487,7 @@ const UVEditor = {
 	//Load
 	loadData() {
 		this.vue.updateTexture();
-		this.displaySliders();
+		this.displayTools();
 		this.displayTools();
 		this.vue.$forceUpdate();
 		return this;
@@ -506,22 +506,20 @@ const UVEditor = {
 		Canvas.updateSelectedFaces()
 		Undo.finishEdit('Apply texture')
 	},
-	displaySliders() {
+	displayTools() {
 		if (!this.getMappableElements().length) return;
 		for (var id in UVEditor.sliders) {
 			var slider = UVEditor.sliders[id];
 			slider.node.style.setProperty('display', BARS.condition(slider.condition)?'block':'none');
 			slider.update();
 		}
-		let face = this.getReferenceFace();
-		BarItems.uv_rotation.set((face && face.rotation)||0)
-	},
-	displayTools() {
-		if (!Cube.selected.length) return;
-		var face = Cube.selected[0].faces[this.face]
-		BarItems.cullface.set(face.cullface||'off')
-		BarItems.face_tint.setIcon(face.tint !== -1 ? 'check_box' : 'check_box_outline_blank')
-		BarItems.slider_face_tint.update()
+		var face = Cube.selected[0].faces[this.selected_faces[0]]
+		if (face) {
+			BarItems.uv_rotation.set((face && face.rotation)||0);
+			BarItems.cullface.set(face.cullface||'off')
+			BarItems.face_tint.setIcon(face.tint !== -1 ? 'check_box' : 'check_box_outline_blank')
+			BarItems.slider_face_tint.update()
+		}
 	},
 	slidePos(modify, axis) {
 		var scope = this
@@ -579,7 +577,7 @@ const UVEditor = {
 			})
 			mesh.preview_controller.updateUV(mesh);
 		})
-		this.displaySliders()
+		this.displayTools()
 		this.vue.$forceUpdate()
 	},
 	slideSize(modify, axis) {
@@ -611,7 +609,7 @@ const UVEditor = {
 				})
 			})
 		})
-		this.displaySliders()
+		this.displayTools()
 		this.disableAutoUV()
 		this.vue.$forceUpdate()
 	},
@@ -630,6 +628,7 @@ const UVEditor = {
 		if (selected_before == this.vue.selected_faces.length) {
 			this.vue.selected_faces.empty();
 		}
+		UVEditor.displayTools();
 	},
 	moveSelection(offset, event) {
 		Undo.initEdit({elements: UVEditor.getMappableElements()})
@@ -646,10 +645,11 @@ const UVEditor = {
 		})
 	},
 	toggleUV() {
-		var scope = this
-		var state = Cube.selected[0].faces[this.face].enabled === false
+		var state = Cube.selected[0].faces[this.selected_faces[0]].enabled === false
 		this.forCubes(obj => {
-			obj.faces[scope.face].enabled = state
+			this.selected_faces.forEach(face => {
+				obj.faces[face].enabled = state;
+			})
 		})
 	},
 	maximize(event) {
@@ -986,7 +986,9 @@ const UVEditor = {
 		var val = BarItems.cullface.get()
 		if (val === 'off') val = false
 		this.forCubes(obj => {
-			obj.faces[scope.face].cullface = val || '';
+			this.selected_faces.forEach(face => {
+				obj.faces[face].cullface = val || '';
+			})
 		})
 		if (val) {
 			this.message('uv_editor.cullface_on')
@@ -997,11 +999,13 @@ const UVEditor = {
 	},
 	switchTint(event) {
 		var scope = this;
-		var val = Cube.selected[0].faces[scope.face].tint === -1 ? 0 : -1;
+		var val = Cube.selected[0].faces[scope.selected_faces[0]].tint === -1 ? 0 : -1;
 
 		if (event === 0 || event === false) val = event
 		this.forCubes(obj => {
-			obj.faces[scope.face].tint = val
+			this.selected_faces.forEach(face => {
+				obj.faces[face].tint = val;
+			})
 		})
 		if (val !== -1) {
 			this.message('uv_editor.tint_on')
@@ -1011,10 +1015,10 @@ const UVEditor = {
 		this.displayTools()
 	},
 	setTint(event, val) {
-		var scope = this;
-
 		this.forCubes(obj => {
-			obj.faces[scope.face].tint = val
+			this.selected_faces.forEach(face => {
+				obj.faces[face].tint = val;
+			})
 		})
 		this.displayTools()
 	},
@@ -1062,7 +1066,9 @@ const UVEditor = {
 		var scope = this;
 		value = parseInt(value)
 		this.forCubes(obj => {
-			obj.faces[scope.face].rotation = value
+			this.selected_faces.forEach(face => {
+				obj.faces[face].rotation = value;
+			})
 			Canvas.updateUV(obj)
 		})
 		this.loadData()
@@ -1205,7 +1211,7 @@ const UVEditor = {
 	clipboard: null,
 	cube_faces: ['north', 'south', 'west', 'east', 'up', 'down'],
 	forSelection(cb, event, ...args) {
-		UVEditor[cb](...args);
+		UVEditor[cb](event, ...args);
 	},
 
 
@@ -1313,7 +1319,9 @@ const UVEditor = {
 			function setCullface(cullface) {
 				Undo.initEdit({elements: Cube.selected, uv_only: true})
 				UVEditor.forCubes(obj => {
-					obj.faces[UVEditor.face].cullface = cullface;
+					UVEditor.selected_faces.forEach(face => {
+						obj.faces[face].cullface = cullface;
+					})
 				})
 				Undo.finishEdit(cullface ? `Set cullface to ${cullface}` : 'Disable cullface');
 			}
@@ -1505,7 +1513,7 @@ BARS.defineActions(function() {
 	})
 	new BarSelect('cullface', { 
 		category: 'uv',
-		condition: () => !Project.box_uv && Cube.selected.length,
+		condition: () => !Project.box_uv && Cube.selected.length && UVEditor.selected_faces[0],
 		label: true,
 		options: {
 			off: tl('uv_editor.no_faces'),
@@ -1525,7 +1533,7 @@ BARS.defineActions(function() {
 	new Action('auto_cullface', {
 		icon: 'block',
 		category: 'uv',
-		condition: () => !Project.box_uv && Cube.selected.length,
+		condition: () => !Project.box_uv && Cube.selected.length && UVEditor.selected_faces[0],
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('autoCullface', event)
@@ -1534,7 +1542,7 @@ BARS.defineActions(function() {
 	})
 	new Action('face_tint', {
 		category: 'uv',
-		condition: () => !Project.box_uv && Cube.selected.length,
+		condition: () => !Project.box_uv && Cube.selected.length && UVEditor.selected_faces[0],
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('switchTint', event)
@@ -1543,17 +1551,16 @@ BARS.defineActions(function() {
 	})
 	new NumSlider('slider_face_tint', {
 		category: 'uv',
-		condition: () => !Project.box_uv && Cube.selected.length,
+		condition: () => !Project.box_uv && Cube.selected.length && UVEditor.selected_faces[0],
 		getInterval(event) {
 			return 1;
 		},
 		get: function() {
-			return Cube.selected[0] && Cube.selected[0].faces[UVEditor.face].tint
+			return Cube.selected[0] && Cube.selected[0].faces[UVEditor.selected_faces[0]].tint
 		},
 		change: function(modify) {
 			let number = Math.clamp(Math.round(modify(this.get())), -1)
-
-			UVEditor.forSelection('setTint', event, number)
+			UVEditor.setTint(null, number);
 		},
 		onBefore: function() {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
@@ -1877,6 +1884,7 @@ Interface.definePanels(function() {
 								}
 							})
 							if (old_elements) updateSelection();
+							UVEditor.displayTools();
 						}
 						function stop() {
 							removeEventListeners(document, 'mousemove touchmove', drag);
@@ -1912,6 +1920,7 @@ Interface.definePanels(function() {
 						this.selected_faces.replace([key]);
 					}
 					UVEditor.vue.updateTexture();
+					UVEditor.displayTools();
 
 					if (support_dragging) {
 						let scope = this;
@@ -1919,6 +1928,7 @@ Interface.definePanels(function() {
 							if (e1.target && e1.target.nodeName == 'LI' && e1.target.parentElement.id == 'uv_cube_face_bar') {
 								let face = e1.target.attributes.face.value;
 								scope.selected_faces.safePush(face);
+								UVEditor.displayTools();
 							}
 						}
 						function stop() {
@@ -1977,7 +1987,7 @@ Interface.definePanels(function() {
 							let applied_difference = onDrag(pos[0] - last_pos[0], pos[1] - last_pos[1], e1)
 							last_pos[0] += applied_difference[0];
 							last_pos[1] += applied_difference[1];
-							UVEditor.displaySliders();
+							UVEditor.displayTools();
 							UVEditor.loadData();
 							UVEditor.vue.$forceUpdate();
 							Canvas.updateView({elements, element_aspects: {uv: true}});
@@ -2222,7 +2232,7 @@ Interface.definePanels(function() {
 							UVEditor.turnMapping()
 
 							last_angle = angle;
-							UVEditor.displaySliders();
+							UVEditor.displayTools();
 							UVEditor.loadData();
 							UVEditor.vue.$forceUpdate();
 							Canvas.updateView({elements, element_aspects: {uv: true}});

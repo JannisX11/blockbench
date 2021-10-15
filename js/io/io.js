@@ -445,7 +445,7 @@ function compileJSON(object, options) {
 			for (var i = 0; i < o.length; i++) {
 				var compiled = handleVar(o[i], tabs+1)
 				if (compiled) {
-					if (has_content) {out += ',' + (breaks || options.small?'':' ')}
+					if (has_content) {out += ',' + ((options.small || has_objects) ? '' : ' ')}
 					if (has_objects) {out += newLine(tabs)}
 					out += compiled
 					has_content = true
