@@ -27,9 +27,10 @@
 		z-index: 250;
 	}
 	#work_screen {
+		--toolbar-height: 30px;
 		display: grid;
 		grid-template-columns: 332px auto 314px;
-		grid-template-rows: 30px minmax(200px, 5000px) 26px;
+		grid-template-rows: var(--toolbar-height) minmax(200px, 5000px) 26px;
 		grid-template-areas: 
 			"left_bar toolbar toolbar"
 			"left_bar center right_bar"
@@ -286,7 +287,7 @@
 	}
 	#work_screen {
 		display: grid;
-		grid-template-rows: auto minmax(200px, 5000px) 26px 36px;
+		grid-template-rows: auto minmax(200px, 5000px) 26px 36px !important;
 		grid-template-areas: 
 			"toolbar"
 			"center"

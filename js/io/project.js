@@ -23,7 +23,7 @@ class ModelProject {
 		this.format = options.format instanceof ModelFormat ? options.format : Formats.free;
 		this.mode = 'edit';
 		this.view_mode = 'textured';
-		this.display_uv = 'selected_elements';
+		this.display_uv = settings.show_only_selected_uv.value ? 'selected_faces' :'selected_elements';
 		this.previews = {};
 		this.EditSession = null;
 

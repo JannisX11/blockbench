@@ -513,7 +513,7 @@ const UVEditor = {
 			slider.node.style.setProperty('display', BARS.condition(slider.condition)?'block':'none');
 			slider.update();
 		}
-		var face = Cube.selected[0].faces[this.selected_faces[0]]
+		var face = Cube.selected[0] && this.selected_faces[0] && Cube.selected[0].faces[this.selected_faces[0]]
 		if (face) {
 			BarItems.uv_rotation.set((face && face.rotation)||0);
 			BarItems.cullface.set(face.cullface||'off')
@@ -1904,7 +1904,7 @@ Interface.definePanels(function() {
 				},
 				contextMenu(event) {
 					setActivePanel('uv');
-					if (!UVEditor.getReferenceFace()) return;
+					if (!UVEditor.getReferenceFace() && !Project.box_uv) return;
 					UVEditor.menu.open(event);
 				},
 				selectFace(key, event, keep_selection, support_dragging) {
@@ -1961,11 +1961,13 @@ Interface.definePanels(function() {
 				},
 				drag({event, onDrag, onEnd, onAbort, snap}) {
 					if (event.which == 2 || event.which == 3) return;
+					convertTouchEvent(event);
 					let scope = this;
 
 					let pos = [0, 0];
 					let last_pos = [0, 0];
 					function drag(e1) {
+						convertTouchEvent(e1);
 
 						if (snap == undefined) {
 							let snap = UVEditor.grid / canvasGridSize(e1.shiftKey || Pressing.overrides.shift, e1.ctrlOrCmd || Pressing.overrides.ctrl);
@@ -2129,6 +2131,7 @@ Interface.definePanels(function() {
 				rotateFace(face_key, event) {
 					if (event.which == 2 || event.which == 3) return;
 					event.stopPropagation();
+					convertTouchEvent(event);
 					let scope = this;
 					let elements = this.mappable_elements;
 					Undo.initEdit({elements, uv_only: true})
@@ -2169,6 +2172,7 @@ Interface.definePanels(function() {
 					let straight_angle;
 					let snap = elements[0] instanceof Cube ? 90 : 1;
 					function drag(e1) {
+						convertTouchEvent(e1);
 
 						angle = Math.atan2(
 							(e1.clientY - center_on_screen[1]),
@@ -2436,6 +2440,8 @@ Interface.definePanels(function() {
 										:title="face_names[key]"
 										:class="{selected: selected_faces.includes(key), unselected: display_uv === 'all_elements' && !mappable_elements.includes(element)}"
 										@mousedown.prevent="dragFace(key, $event)"
+										@touchstart.prevent="dragFace(key, $event)"
+										@contextmenu="selectFace(key, $event, true, false)"
 										:style="{
 											left: toPixels(Math.min(face.uv[0], face.uv[2]), -1),
 											top: toPixels(Math.min(face.uv[1], face.uv[3]), -1),
@@ -2445,21 +2451,21 @@ Interface.definePanels(function() {
 									>
 										<template v-if="selected_faces.includes(key) && !(display_uv === 'all_elements' && !mappable_elements.includes(element))">
 											{{ face_names[key] || '' }}
-											<div class="uv_resize_side horizontal" @mousedown="resizeFace(key, $event, 0, -1)" style="width: var(--width)"></div>
-											<div class="uv_resize_side horizontal" @mousedown="resizeFace(key, $event, 0, 1)" style="top: var(--height); width: var(--width)"></div>
-											<div class="uv_resize_side vertical" @mousedown="resizeFace(key, $event, -1, 0)" style="height: var(--height)"></div>
-											<div class="uv_resize_side vertical" @mousedown="resizeFace(key, $event, 1, 0)" style="left: var(--width); height: var(--height)"></div>
-											<div class="uv_resize_corner uv_c_nw" :class="{main_corner: !face.rotation}" @mousedown="resizeFace(key, $event, -1, -1)" style="left: 0; top: 0">
-												<div class="uv_rotate_field" v-if="!face.rotation" @mousedown.stop="rotateFace(key, $event)"></div>
+											<div class="uv_resize_side horizontal" @mousedown="resizeFace(key, $event, 0, -1)" @touchstart.prevent="resizeFace(key, $event, 0, -1)" style="width: var(--width)"></div>
+											<div class="uv_resize_side horizontal" @mousedown="resizeFace(key, $event, 0, 1)" @touchstart.prevent="resizeFace(key, $event, 0, 1)" style="top: var(--height); width: var(--width)"></div>
+											<div class="uv_resize_side vertical" @mousedown="resizeFace(key, $event, -1, 0)" @touchstart.prevent="resizeFace(key, $event, -1, 0)" style="height: var(--height)"></div>
+											<div class="uv_resize_side vertical" @mousedown="resizeFace(key, $event, 1, 0)" @touchstart.prevent="resizeFace(key, $event, 1, 0)" style="left: var(--width); height: var(--height)"></div>
+											<div class="uv_resize_corner uv_c_nw" :class="{main_corner: !face.rotation}" @mousedown="resizeFace(key, $event, -1, -1)" @touchstart.prevent="resizeFace(key, $event, -1, -1)" style="left: 0; top: 0">
+												<div class="uv_rotate_field" v-if="!face.rotation" @mousedown.stop="rotateFace(key, $event)" @touchstart.prevent.stop="rotateFace(key, $event)"></div>
 											</div>
-											<div class="uv_resize_corner uv_c_ne" :class="{main_corner: face.rotation == 270}" @mousedown="resizeFace(key, $event, 1, -1)" style="left: var(--width); top: 0">
-												<div class="uv_rotate_field" v-if="face.rotation == 270" @mousedown.stop="rotateFace(key, $event)"></div>
+											<div class="uv_resize_corner uv_c_ne" :class="{main_corner: face.rotation == 270}" @mousedown="resizeFace(key, $event, 1, -1)" @touchstart.prevent="resizeFace(key, $event, 1, -1)" style="left: var(--width); top: 0">
+												<div class="uv_rotate_field" v-if="face.rotation == 270" @mousedown.stop="rotateFace(key, $event)" @touchstart.prevent.stop="rotateFace(key, $event)"></div>
 											</div>
-											<div class="uv_resize_corner uv_c_sw" :class="{main_corner: face.rotation == 90}" @mousedown="resizeFace(key, $event, -1, 1)" style="left: 0; top: var(--height)">
-												<div class="uv_rotate_field" v-if="face.rotation == 90" @mousedown.stop="rotateFace(key, $event)"></div>
+											<div class="uv_resize_corner uv_c_sw" :class="{main_corner: face.rotation == 90}" @mousedown="resizeFace(key, $event, -1, 1)" @touchstart.prevent="resizeFace(key, $event, -1, 1)" style="left: 0; top: var(--height)">
+												<div class="uv_rotate_field" v-if="face.rotation == 90" @mousedown.stop="rotateFace(key, $event)" @touchstart.prevent.stop="rotateFace(key, $event)"></div>
 											</div>
-											<div class="uv_resize_corner uv_c_se" :class="{main_corner: face.rotation == 180}" @mousedown="resizeFace(key, $event, 1, 1)" style="left: var(--width); top: var(--height)">
-												<div class="uv_rotate_field" v-if="face.rotation == 180" @mousedown.stop="rotateFace(key, $event)"></div>
+											<div class="uv_resize_corner uv_c_se" :class="{main_corner: face.rotation == 180}" @mousedown="resizeFace(key, $event, 1, 1)" @touchstart.prevent="resizeFace(key, $event, 1, 1)" style="left: var(--width); top: var(--height)">
+												<div class="uv_rotate_field" v-if="face.rotation == 180" @mousedown.stop="rotateFace(key, $event)" @touchstart.prevent.stop="rotateFace(key, $event)"></div>
 											</div>
 										</template>
 									</div>
@@ -2468,6 +2474,7 @@ Interface.definePanels(function() {
 								<div v-else-if="element.type == 'cube'" class="cube_box_uv"
 									:key="element.uuid"
 									@mousedown.prevent="dragFace(null, $event)"
+									@touchstart.prevent="dragFace(null, $event)"
 									@click.prevent="selectCube(element, $event)"
 									:class="{unselected: display_uv === 'all_elements' && !mappable_elements.includes(element)}"
 									:style="{left: toPixels(element.uv_offset[0]), top: toPixels(element.uv_offset[1])}"
@@ -2484,6 +2491,7 @@ Interface.definePanels(function() {
 										v-if="face.vertices.length > 2 && (display_uv !== 'selected_faces' || selected_faces.includes(key)) && face.getTexture() == texture"
 										:class="{selected: selected_faces.includes(key)}"
 										@mousedown.prevent="dragFace(key, $event)"
+										@touchstart.prevent="dragFace(key, $event)"
 										:style="{
 											left: toPixels(getMeshFaceCorner(face, 0), -1),
 											top: toPixels(getMeshFaceCorner(face, 1), -1),
@@ -2497,10 +2505,10 @@ Interface.definePanels(function() {
 										<template v-if="selected_faces.includes(key)">
 											<div class="uv_mesh_vertex" v-for="(key, index) in face.vertices"
 												:class="{main_corner: index == 0, selected: selected_vertices[element.uuid] && selected_vertices[element.uuid].includes(key)}"
-												@mousedown.prevent.stop="dragVertices(element, key, $event)"
+												@mousedown.prevent.stop="dragVertices(element, key, $event)" @touchstart.prevent.stop="dragVertices(element, key, $event)"
 												:style="{left: toPixels( face.uv[key][0] - getMeshFaceCorner(face, 0) ), top: toPixels( face.uv[key][1] - getMeshFaceCorner(face, 1) )}"
 											>
-												<div class="uv_rotate_field" @mousedown.stop="rotateFace(key, $event)" v-if="index == 0"></div>
+												<div class="uv_rotate_field" @mousedown.stop="rotateFace(key, $event)" @touchstart.prevent.stop="rotateFace(key, $event)" v-if="index == 0"></div>
 											</div>
 										</template>
 									</div>
