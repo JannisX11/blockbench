@@ -25,7 +25,7 @@ class Codec {
 	load(model, file, add) {
 		if (!this.parse) return false;
 		if (!add) {
-			newProject(this.format)
+			setupProject(this.format)
 		}
 		if (file.path && isApp && this.remember && !file.no_file ) {
 			var name = pathToName(file.path, true);

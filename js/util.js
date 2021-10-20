@@ -34,7 +34,7 @@ const Condition = function(condition, context) {
 	if (condition === undefined) {
 		return true;
 	} else if (typeof condition === 'function') {
-		return condition(context)
+		return !!condition(context)
 	} else if (typeof condition === 'object') {
 		if (condition.modes instanceof Array && condition.modes.includes(Modes.id) === false) return false;
 		if (condition.formats instanceof Array && condition.formats.includes(Format.id) === false) return false;
@@ -42,7 +42,7 @@ const Condition = function(condition, context) {
 		if (condition.features instanceof Array && Format && condition.features.find(feature => !Format[feature])) return false;
 
 		if (condition.method instanceof Function) {
-			return condition.method(context);
+			return !!condition.method(context);
 		}
 		return true;
 	} else {

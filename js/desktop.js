@@ -438,10 +438,10 @@ ipcRenderer.on('update-available', (event, arg) => {
 			color: 'var(--color-back)',
 			graphic: {type: 'icon', icon: 'update'},
 			text: [
-				{type: 'h1', text: tl('message.update_notification.title')},
+				{type: 'h2', text: tl('message.update_notification.title')},
 				{text: tl('message.update_notification.message')},
 				{type: 'button', text: tl('generic.enable'), click: (e) => {
-					Settings.open({search: 'automatic_updates'})
+					settings.automatic_updates.set(true);
 				}}
 			]
 		})

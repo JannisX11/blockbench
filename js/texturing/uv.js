@@ -1221,7 +1221,7 @@ const UVEditor = {
 			'zoom_out',
 			'zoom_reset'
 		]},
-		{name: 'menu.uv.display_uv', id: 'display_uv', icon: 'search', children: () => {
+		{name: 'menu.uv.display_uv', id: 'display_uv', icon: 'visibility', children: () => {
 			let options = ['selected_faces', 'selected_elements', 'all_elements'];
 			return options.map(option => {return {
 				id: option,

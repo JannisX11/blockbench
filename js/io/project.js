@@ -200,6 +200,10 @@ class ModelProject {
 		this.thumbnail = Preview.selected.canvas.toDataURL();
 		Interface.tab_bar.last_opened_project = this.uuid;
 
+		if (Format && typeof Format.onDeactivation == 'function') {
+			Format.onDeactivation()
+		}
+
 		Preview.all.forEach(preview => {
 			this.previews[preview.id] = {
 				position: preview.camera.position.toArray(),
@@ -340,6 +344,16 @@ let Project = 0;
 
 let ProjectData = {};
 
+// Setup ModelProject for loaded project
+function setupProject(format) {
+	if (typeof format == 'string' && Formats[format]) format = Formats[format];
+	new ModelProject({format}).select();
+
+	Modes.options.edit.select();
+	Blockbench.dispatchEvent('setup_project');
+	return true;
+}
+// Setup brand new project
 function newProject(format) {
 	if (typeof format == 'string' && Formats[format]) format = Formats[format];
 	new ModelProject({format}).select();

@@ -44,7 +44,13 @@ const CustomTheme = {
 				let sideloaded = JSON.parse(localStorage.getItem('themes_sideloaded'));
 				if (sideloaded instanceof Array && sideloaded.length) {
 					CustomTheme.sideloaded_themes = sideloaded;
-					Blockbench.read(CustomTheme.sideloaded_themes, {}, files => {
+					CustomTheme.sideloaded_themes.forEachReverse(path => {
+						if (!fs.existsSync(path)) {
+							CustomTheme.sideloaded_themes.remove(path);
+						}
+					})
+					localStorage.setItem('themes_sideloaded', JSON.stringify(CustomTheme.sideloaded_themes));
+					Blockbench.read(CustomTheme.sideloaded_themes, {errorbox: false}, files => {
 						files.forEach(file => {
 							let data = JSON.parse(file.content);
 							data.id = file.name.replace(/\.\w+$/, '');

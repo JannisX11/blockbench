@@ -163,10 +163,7 @@ const format = new ModelFormat({
 	single_texture: true,
 	integer_size: true,
 	rotate_cubes: true,
-	codec,
-	onActivation() {
-		Modes.options.paint.select();
-	}
+	codec
 })
 format.new = function() {
 	skin_dialog.show();

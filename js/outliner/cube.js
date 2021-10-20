@@ -504,10 +504,8 @@ class Cube extends OutlinerElement {
 		if (selected.indexOf(this) === 0) {
 			UVEditor.loadData()
 		}
-		if (Project.view_mode === 'textured') {
-			this.preview_controller.updateFaces(this);
-			this.preview_controller.updateUV(this);
-		}
+		this.preview_controller.updateFaces(this);
+		this.preview_controller.updateUV(this);
 	}
 	mapAutoUV() {
 		if (Blockbench.box_uv) return;
@@ -1186,6 +1184,7 @@ BARS.defineActions(function() {
 
 			if (Group.selected) Group.selected.unselect()
 			base_cube.select()
+			Canvas.updateView({elements: [base_cube], element_aspects: {transform: true}})
 			Undo.finishEdit('Add cube', {outliner: true, elements: selected, selection: true});
 			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 
