@@ -1556,7 +1556,7 @@ const BARS = {
 										delete mesh.vertices[vertex_key];
 									}
 								})
-							} else if (BarItems.selection_mode.value == 'line' && selected_vertices.length) {
+							} else if (BarItems.selection_mode.value == 'edge' && selected_vertices.length) {
 								for (let key in mesh.faces) {
 									let face = mesh.faces[key];
 									let sorted_vertices = face.getSortedVertices();

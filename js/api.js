@@ -276,7 +276,7 @@ const Blockbench = {
 	},
 	textPrompt(title, value, callback, placeholder = null) {
 		showDialog('text_input')
-		$('#text_input .dialog_handle').text(tl(title || 'dialog.input.title'))
+		$('#text_input .dialog_handle .dialog_title').text(tl(title || 'dialog.input.title'))
 		$('#text_input input#text_input_field').val(value).trigger('select').attr('placeholder', placeholder);
 		$('#text_input button.confirm_btn').off()
 		$('#text_input button.confirm_btn').on('click', function() {

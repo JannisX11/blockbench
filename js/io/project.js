@@ -1,7 +1,7 @@
 class ModelProject {
 	constructor(options = {}) {
 		for (var key in ModelProject.properties) {
-			ModelProject.properties[key].reset(this);
+			ModelProject.properties[key].reset(this, true);
 		}
 		this.uuid = guid();
 		this.selected = false;

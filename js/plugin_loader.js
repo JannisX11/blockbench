@@ -117,7 +117,17 @@ class Plugin {
 	}
 	async download(first) {
 		var scope = this;
+		function register() {
+			jQuery.ajax({
+				url: 'https://blckbn.ch/api/event/install_plugin',
+				type: 'POST',
+				data: {
+					plugin: scope.id
+				}
+			})
+		}
 		if (!isApp) {
+			if (first) register();
 			return await scope.install(first)
 		}
 		return await new Promise((resolve, reject) => {
@@ -129,15 +139,7 @@ class Plugin {
 						await scope.install(first);
 						resolve()
 					}, 20)
-					if (first) {
-						jQuery.ajax({
-							url: 'https://blckbn.ch/api/event/install_plugin',
-							type: 'POST',
-							data: {
-								plugin: scope.id
-							}
-						})
-					}
+					if (first) register();
 				})
 			});
 		});

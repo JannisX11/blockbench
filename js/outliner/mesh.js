@@ -1212,7 +1212,7 @@ BARS.defineActions(function() {
 		options: {
 			object: {name: true, icon: 'far.fa-gem'},
 			face: {name: true, icon: 'crop_portrait'},
-			line: {name: true, icon: 'fa-grip-lines-vertical'},
+			edge: {name: true, icon: 'fa-grip-lines-vertical'},
 			vertex: {name: true, icon: 'fiber_manual_record'},
 		},
 		icon_mode: true,
