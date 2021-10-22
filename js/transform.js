@@ -431,6 +431,18 @@ const Vertexsnap = {
 	}
 }
 //Scale
+function getScaleAllGroups() {
+	let groups = [];
+	if (!Format.bone_rig) return groups;
+	if (Group.selected) {
+		getScaleAllGroups().forEach((g) => {
+			groups.push(g);
+		}, Group)
+	} else if (Outliner.selected.length == Outliner.elements.length && Group.all.length) {
+		groups = Group.all;
+	}
+	return groups;
+}
 function scaleAll(save, size) {
 	if (save === true) {
 		hideDialog()
@@ -495,16 +507,14 @@ function scaleAll(save, size) {
 			Canvas.updateUV(obj)
 		}
 	})
-	if (Format.bone_rig && Group.selected) {
-		Group.selected.forEachChild((g) => {
-			g.origin[0] = g.old_origin[0] * size
-			g.origin[1] = g.old_origin[1] * size
-			g.origin[2] = g.old_origin[2] * size
-			if (save === true) {
-				delete g.old_origin
-			}
-		}, Group)
-	}
+	getScaleAllGroups().forEach((g) => {
+		g.origin[0] = g.old_origin[0] * size
+		g.origin[1] = g.old_origin[1] * size
+		g.origin[2] = g.old_origin[2] * size
+		if (save === true) {
+			delete g.old_origin
+		}
+	}, Group)
 	if (overflow.length && Format.canvas_limit && !settings.deactivate_size_limit.value) {
 		scaleAll.overflow = overflow;
 		$('#scaling_clipping_warning').text('Model clipping: Your model is too large for the canvas')
@@ -513,7 +523,12 @@ function scaleAll(save, size) {
 		$('#scaling_clipping_warning').text('')
 		$('#scale_overflow_btn').hide()
 	}
-	Canvas.updatePositions()
+	Canvas.updateView({
+		elements: Outliner.selected,
+		element_aspects: {geometry: true, transform: true},
+		groups: getScaleAllGroups(),
+		group_aspects: {transform: true},
+	})
 	if (save === true) {
 		Undo.finishEdit('Scale model')
 	}
@@ -529,7 +544,7 @@ function modelScaleSync(label) {
 	scaleAll(false, size)
 }
 function cancelScaleAll() {
-	selected.forEach(function(obj) {
+	Outliner.selected.forEach(function(obj) {
 		if (obj === undefined) return;
 		if (obj.from) obj.from.V3_set(obj.before.from);
 		if (obj.to) obj.to.V3_set(obj.before.to);
@@ -544,15 +559,18 @@ function cancelScaleAll() {
 			Canvas.updateUV(obj)
 		}
 	})
-	if (Format.bone_rig && Group.selected) {
-		Group.selected.forEachChild((g) => {
-			g.origin[0] = g.old_origin[0]
-			g.origin[1] = g.old_origin[1]
-			g.origin[2] = g.old_origin[2]
-			delete g.old_origin
-		}, Group)
-	}
-	Canvas.updatePositions()
+	getScaleAllGroups().forEach((g) => {
+		g.origin[0] = g.old_origin[0]
+		g.origin[1] = g.old_origin[1]
+		g.origin[2] = g.old_origin[2]
+		delete g.old_origin
+	}, Group)
+	Canvas.updateView({
+		elements: Outliner.selected,
+		element_aspects: {geometry: true, transform: true},
+		groups: getScaleAllGroups(),
+		group_aspects: {transform: true},
+	})
 	hideDialog()
 }
 function setScaleAllPivot(mode) {
@@ -583,11 +601,11 @@ function centerElementsAll(axis) {
 	Canvas.updatePositions()
 }
 function centerElements(axis, update) {
-	if (!selected.length) return;
+	if (!Outliner.selected.length) return;
 	let center = getSelectionCenter()[axis];
 	var difference = (Format.centered_grid ? 0 : 8) - center
 
-	selected.forEach(function(obj) {
+	Outliner.selected.forEach(function(obj) {
 		if (obj.movable) obj.origin[axis] += difference;
 		if (obj.to) obj.to[axis] = limitToBox(obj.to[axis] + difference, obj.inflate);
 		if (obj instanceof Cube) obj.from[axis] = limitToBox(obj.from[axis] + difference, obj.inflate);
@@ -637,7 +655,7 @@ function moveElementsInSpace(difference, axis) {
 		Canvas.updateAllBones([Group.selected]);
 	}
 
-	selected.forEach(el => {
+	Outliner.selected.forEach(el => {
 
 		if (!group_m && el instanceof Mesh && (el.getSelectedVertices().length > 0 || space >= 2)) {
 
@@ -1417,11 +1435,9 @@ BARS.defineActions(function() {
 					}
 				}
 			})
-			if (Format.bone_rig && Group.selected) {
-				Group.selected.forEachChild((g) => {
-					g.old_origin = g.origin.slice();
-				}, Group, true)
-			}
+			getScaleAllGroups().forEach((g) => {
+				g.old_origin = g.origin.slice();
+			}, Group, true)
 			showDialog('scaling')
 			var v = Format.centered_grid ? 0 : 8;
 			var origin = Group.selected ? Group.selected.origin : [v, 0, v];

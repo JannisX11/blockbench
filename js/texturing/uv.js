@@ -1794,6 +1794,10 @@ Interface.definePanels(function() {
 						UVEditor.startPaintTool(event)
 					} else if (this.mode == 'uv' && event.target.id == 'uv_frame' && (event.which === 1 || (event.touches && event.touches.length == 1))) {
 
+						if (event.altKey || Pressing.overrides.alt) {
+							return this.dragFace(null, event);
+						}
+
 						let {selection_rect} = this;
 						let scope = this;
 						let old_faces = this.selected_faces.slice();

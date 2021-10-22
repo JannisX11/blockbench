@@ -74,14 +74,14 @@ var codec = new Codec('obj', {
 					output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
 					nbVertex++;
 				}
-				addVertex(element.to[0]   - element.inflate, element.to[1] -	element.inflate, element.to[2]  	- element.inflate);
-				addVertex(element.to[0]   - element.inflate, element.to[1] -	element.inflate, element.from[2]  	- element.inflate);
-				addVertex(element.to[0]   - element.inflate, element.from[1] -	element.inflate, element.to[2]  	- element.inflate);
-				addVertex(element.to[0]   - element.inflate, element.from[1] -	element.inflate, element.from[2]  	- element.inflate);
-				addVertex(element.from[0] - element.inflate, element.to[1] -	element.inflate, element.from[2]  	- element.inflate);
-				addVertex(element.from[0] - element.inflate, element.to[1] -	element.inflate, element.to[2]  	- element.inflate);
+				addVertex(element.to[0]   + element.inflate, element.to[1] +	element.inflate, element.to[2]  	+ element.inflate);
+				addVertex(element.to[0]   + element.inflate, element.to[1] +	element.inflate, element.from[2]  	- element.inflate);
+				addVertex(element.to[0]   + element.inflate, element.from[1] -	element.inflate, element.to[2]  	+ element.inflate);
+				addVertex(element.to[0]   + element.inflate, element.from[1] -	element.inflate, element.from[2]  	- element.inflate);
+				addVertex(element.from[0] - element.inflate, element.to[1] +	element.inflate, element.from[2]  	- element.inflate);
+				addVertex(element.from[0] - element.inflate, element.to[1] +	element.inflate, element.to[2]  	+ element.inflate);
 				addVertex(element.from[0] - element.inflate, element.from[1] -	element.inflate, element.from[2]  	- element.inflate);
-				addVertex(element.from[0] - element.inflate, element.from[1] -	element.inflate, element.to[2]  	- element.inflate);
+				addVertex(element.from[0] - element.inflate, element.from[1] -	element.inflate, element.to[2]  	+ element.inflate);
 
 				for (let key in element.faces) {
 					if (element.faces[key].texture !== null) {
