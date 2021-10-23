@@ -56,6 +56,7 @@ const UVEditor = {
 			result.y = Math.floor(event.offsetY/pixel_size*1 + offset);
 		}
 		if (tex.frameCount) result.y += (tex.height / tex.frameCount) * tex.currentFrame;
+		if (!tex.frameCount && tex.ratio != Project.texture_width / Project.texture_height) result.y /= tex.ratio;
 		return result;
 	},
 	startPaintTool(event) {
@@ -1230,6 +1231,8 @@ const UVEditor = {
 				condition: !(option == 'selected_faces' && Project.box_uv && !Mesh.selected.length),
 				click() {
 					Project.display_uv = UVEditor.vue.display_uv = option;
+					if (option == 'selected_faces') settings.show_only_selected_uv.set(true);
+					if (option == 'selected_elements') settings.show_only_selected_uv.set(false);
 				}
 			}})
 		}},
@@ -1349,7 +1352,7 @@ const UVEditor = {
 					})
 					UVEditor.loadData()
 					UVEditor.message('uv_editor.reset')
-					Undo.initEdit('texture blank')
+					Undo.finishEdit('Apply blank texture')
 				}},
 				{icon: 'clear', name: 'menu.cube.texture.transparent', condition: () => UVEditor.getReferenceFace() instanceof CubeFace, click: function() {UVEditor.clear(event)}},
 			]
@@ -2535,8 +2538,8 @@ Interface.definePanels(function() {
 
 							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.x >= 0" :style="getBrushOutlineStyle()"></div>
 
-							<img style="object-fit: cover;" :style="{objectPosition: \`0 -\${texture.currentFrame * inner_height}px\`}" v-if="texture && texture.error != 1" :src="texture.source">
-							<img style="object-fit: cover; opacity: 0.02; mix-blend-mode: screen;" v-if="texture == 0 && !box_uv" src="./assets/missing_blend.png">
+							<img :style="{objectFit: texture.frameCount > 1 ? 'cover' : 'fill', objectPosition: \`0 -\${texture.currentFrame * inner_height}px\`}" v-if="texture && texture.error != 1" :src="texture.source">
+							<img style="object-fit: fill; opacity: 0.02; mix-blend-mode: screen;" v-if="texture == 0 && !box_uv" src="./assets/missing_blend.png">
 						</div>
 
 						<div class="uv_transparent_face" v-else-if="selected_faces.length">${tl('uv_editor.transparent_face')}</div>

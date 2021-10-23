@@ -56,7 +56,7 @@ const Blockbench = {
 			node = document.createElement('i');
 			node.classList.add('fa_big', 'icon');
 			
-		} else if (icon.substr(0, 2) === 'fa') {
+		} else if (icon.match(/^(fa[.-])|(fa[rsb]\.)/)) {
 			//Font Awesome
 			node = document.createElement('i');
 			node.classList.add('fa_big', 'icon');

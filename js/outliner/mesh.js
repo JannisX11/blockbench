@@ -1400,14 +1400,14 @@ BARS.defineActions(function() {
 					origin: cube.origin,
 					rotation: cube.rotation,
 					vertices: [
-						[cube.to[0] - cube.origin[0],	cube.to[1] - cube.origin[1], 	cube.to[2] - cube.origin[2]],
-						[cube.to[0] - cube.origin[0],	cube.to[1] - cube.origin[1], 	cube.from[2] - cube.origin[2]],
-						[cube.to[0] - cube.origin[0],	cube.from[1] - cube.origin[1], 	cube.to[2] - cube.origin[2]],
-						[cube.to[0] - cube.origin[0],	cube.from[1] - cube.origin[1], 	cube.from[2] - cube.origin[2]],
-						[cube.from[0] - cube.origin[0],	cube.to[1] - cube.origin[1], 	cube.to[2] - cube.origin[2]],
-						[cube.from[0] - cube.origin[0],	cube.to[1] - cube.origin[1], 	cube.from[2] - cube.origin[2]],
-						[cube.from[0] - cube.origin[0],	cube.from[1] - cube.origin[1], 	cube.to[2] - cube.origin[2]],
-						[cube.from[0] - cube.origin[0],	cube.from[1] - cube.origin[1], 	cube.from[2] - cube.origin[2]],
+						[cube.to[0] + cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.to[2] + cube.inflate - cube.origin[2]],
+						[cube.to[0] + cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]],
+						[cube.to[0] + cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.to[2] + cube.inflate - cube.origin[2]],
+						[cube.to[0] + cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]],
+						[cube.from[0] - cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.to[2] + cube.inflate - cube.origin[2]],
+						[cube.from[0] - cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]],
+						[cube.from[0] - cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.to[2] + cube.inflate - cube.origin[2]],
+						[cube.from[0] - cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]],
 					],
 				})
 
