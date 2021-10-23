@@ -307,6 +307,62 @@ const Clipbench = {
 			})
 			Canvas.updateView({elements});
 		}
+
+		//Rotate Cubes
+		if (!Format.rotate_cubes) {
+			elements.forEach(cube => {
+				if (cube instanceof Cube == false) return;
+				cube.rotation.V3_set(0, 0, 0)
+			})
+			Canvas.updateView({elements, element_aspects: {transform: true}});
+		}
+
+		//Canvas Limit
+		if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
+
+			elements.forEach(s => {
+				if (s instanceof Cube == false) return;
+				//Push elements into 3x3 block box
+				[0, 1, 2].forEach(function(ax) {
+					var overlap = s.to[ax] + s.inflate - 32
+					if (overlap > 0) {
+						//If positive site overlaps
+						s.from[ax] -= overlap
+						s.to[ax] -= overlap
+
+						if (16 + s.from[ax] - s.inflate < 0) {
+							s.from[ax] = -16 + s.inflate
+						}
+					} else {
+						overlap = s.from[ax] - s.inflate + 16
+						if (overlap < 0) {
+							s.from[ax] -= overlap
+							s.to[ax] -= overlap
+
+							if (s.to[ax] + s.inflate > 32) {
+								s.to[ax] = 32 - s.inflate
+							}
+						}
+					}
+				})
+			})
+			Canvas.updateView({elements, element_aspects: {transform: true, geometry: true}});
+		}
+
+		//Rotation Limit
+		if (Format.rotation_limit && Format.rotate_cubes) {
+			elements.forEach(cube => {
+				if (cube instanceof Cube == false) return;
+				if (!cube.rotation.allEqual(0)) {
+					var axis = (cube.rotation_axis && getAxisNumber(cube.rotation_axis)) || 0;
+					var angle = limitNumber( Math.round(cube.rotation[axis]/22.5)*22.5, -45, 45 );
+					cube.rotation.V3_set(0, 0, 0);
+					cube.rotation[axis] = angle;
+				}
+			})
+			Canvas.updateView({elements, element_aspects: {transform: true}});
+		}
+
 		Undo.finishEdit('Paste Elements', {outliner: true, elements: selected, selection: true});
 	}
 }

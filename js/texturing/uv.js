@@ -1351,7 +1351,7 @@ const UVEditor = {
 					UVEditor.message('uv_editor.reset')
 					Undo.initEdit('texture blank')
 				}},
-				{icon: 'clear', name: 'menu.cube.texture.transparent', click: function() {UVEditor.clear(event)}},
+				{icon: 'clear', name: 'menu.cube.texture.transparent', condition: () => UVEditor.getReferenceFace() instanceof CubeFace, click: function() {UVEditor.clear(event)}},
 			]
 			Texture.all.forEach(function(t) {
 				arr.push({

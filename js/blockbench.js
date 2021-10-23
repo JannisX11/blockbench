@@ -137,6 +137,11 @@ function updateSelection(options = {}) {
 		}
 	}
 	if (Outliner.selected.length || (Format.single_texture && Modes.paint)) {
+		UVEditor.selected_faces.forEachReverse((fkey, i) => {
+			if (!UVEditor.getMappableElements().find(el => el.faces[fkey])) {
+				UVEditor.selected_faces.splice(i, 1);
+			}
+		})
 		UVEditor.loadData()
 	}
 	if (Modes.animate) {
