@@ -776,8 +776,6 @@
     "settings.username.desc": "Pseudo pour les sessions de travail",
     "settings.painting_grid": "Grille de peinture",
     "settings.painting_grid.desc": "Affiche la grille sur les cubes texturés en mode peinture",
-    "action.slider_brush_min_opacity": "Opacité minimale",
-    "action.slider_brush_min_opacity.desc": "Opacité minimale de la brosse à bruit en pourcentage",
     "action.convert_project": "Convertir le projet",
     "action.convert_project.desc": "Convertit le projet en cours en un projet pour un autre format de modèle",
     "action.close_project": "Fermer le projet",
@@ -1352,7 +1350,6 @@
     "action.selection_mode.desc": "Change comment les éléments peuvent être sélectionnés dans la fenêtre",
     "action.selection_mode.object": "Objet",
     "action.selection_mode.face": "Face",
-    "action.selection_mode.line": "Ligne",
     "action.selection_mode.vertex": "Sommet",
     "action.create_face": "Créer une face",
     "action.create_face.desc": "Crée une nouvelle face ou une ligne entre les sommets sélectionnés",
@@ -1400,7 +1397,6 @@
     "menu.file.import.import_open_project": "Importer un projet ouvert",
     "menu.help.unlock_projects": "Débloquer tous les projets",
     "status_bar.selection.faces": "%0 Faces",
-    "status_bar.selection.lines": "%0 Lines",
     "status_bar.selection.vertices": "%0 Vertices",
     "message.merged_vertices": "Found and merged %0 vertices in %1 locations",
     "settings.vertex_merge_distance": "Vertex Merge Distance",
@@ -1423,5 +1419,7 @@
     "menu.paste.mesh_selection": "Mesh Selection",
     "menu.paste.outliner": "Elements",
     "uv_editor.show_all_faces": "Show All Faces",
-    "uv_editor.show_selected_faces": "Show Selected Faces"
+    "uv_editor.show_selected_faces": "Show Selected Faces",
+    "status_bar.selection.edges": "%0 Edges",
+    "action.selection_mode.edge": "Edge"
 }
