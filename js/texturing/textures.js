@@ -583,16 +583,12 @@ class Texture {
 			let tex_arr = path.split(osfs).slice(0, -1);
 			let index = 0;
 			tex_arr.find((dir, i) => {
-				if (dir != model_arr[i]) return true;
+				if (Project.export_path && dir != model_arr[i]) return true;
+				if (!Project.export_path && tex_arr[i-2] == 'optifine' && tex_arr[i-1] == 'cem') return true; 
 				index++;
 			})
 			this.folder = tex_arr.slice(index).join('/');
-			console.log(this.folder)
-			/*
-			var arr = path.split(osfs)
-			this.folder = arr[arr.length-2]
-			console.log(arr, this.folder)
-			*/
+
 			if (Format.id === 'java_block' && isApp && settings.dialog_loose_texture.value) {
 				Blockbench.showMessageBox({
 					translateKey: 'loose_texture',

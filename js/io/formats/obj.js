@@ -74,22 +74,29 @@ var codec = new Codec('obj', {
 					output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
 					nbVertex++;
 				}
-				addVertex(element.to[0]   - element.inflate, element.to[1] -	element.inflate, element.to[2]  	- element.inflate);
-				addVertex(element.to[0]   - element.inflate, element.to[1] -	element.inflate, element.from[2]  	- element.inflate);
-				addVertex(element.to[0]   - element.inflate, element.from[1] -	element.inflate, element.to[2]  	- element.inflate);
-				addVertex(element.to[0]   - element.inflate, element.from[1] -	element.inflate, element.from[2]  	- element.inflate);
-				addVertex(element.from[0] - element.inflate, element.to[1] -	element.inflate, element.from[2]  	- element.inflate);
-				addVertex(element.from[0] - element.inflate, element.to[1] -	element.inflate, element.to[2]  	- element.inflate);
+				addVertex(element.to[0]   + element.inflate, element.to[1] +	element.inflate, element.to[2]  	+ element.inflate);
+				addVertex(element.to[0]   + element.inflate, element.to[1] +	element.inflate, element.from[2]  	- element.inflate);
+				addVertex(element.to[0]   + element.inflate, element.from[1] -	element.inflate, element.to[2]  	+ element.inflate);
+				addVertex(element.to[0]   + element.inflate, element.from[1] -	element.inflate, element.from[2]  	- element.inflate);
+				addVertex(element.from[0] - element.inflate, element.to[1] +	element.inflate, element.from[2]  	- element.inflate);
+				addVertex(element.from[0] - element.inflate, element.to[1] +	element.inflate, element.to[2]  	+ element.inflate);
 				addVertex(element.from[0] - element.inflate, element.from[1] -	element.inflate, element.from[2]  	- element.inflate);
-				addVertex(element.from[0] - element.inflate, element.from[1] -	element.inflate, element.to[2]  	- element.inflate);
+				addVertex(element.from[0] - element.inflate, element.from[1] -	element.inflate, element.to[2]  	+ element.inflate);
 
 				for (let key in element.faces) {
 					if (element.faces[key].texture !== null) {
 						let face = element.faces[key];
-						output.push(`vt ${face.uv[0] / Project.texture_width} ${1 - face.uv[1] / Project.texture_height}`);
-						output.push(`vt ${face.uv[2] / Project.texture_width} ${1 - face.uv[1] / Project.texture_height}`);
-						output.push(`vt ${face.uv[2] / Project.texture_width} ${1 - face.uv[3] / Project.texture_height}`);
-						output.push(`vt ${face.uv[0] / Project.texture_width} ${1 - face.uv[3] / Project.texture_height}`);
+						let uv_outputs = [];
+						uv_outputs.push(`vt ${face.uv[0] / Project.texture_width} ${1 - face.uv[1] / Project.texture_height}`);
+						uv_outputs.push(`vt ${face.uv[2] / Project.texture_width} ${1 - face.uv[1] / Project.texture_height}`);
+						uv_outputs.push(`vt ${face.uv[2] / Project.texture_width} ${1 - face.uv[3] / Project.texture_height}`);
+						uv_outputs.push(`vt ${face.uv[0] / Project.texture_width} ${1 - face.uv[3] / Project.texture_height}`);
+						var rot = element.faces[key].rotation || 0;
+						while (rot > 0) {
+							uv_outputs.splice(0, 0, uv_outputs.pop());
+							rot -= 90;
+						}
+						output.push(...uv_outputs);
 						nbVertexUvs += 4;
 					}
 				}

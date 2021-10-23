@@ -255,7 +255,7 @@ class EditSession {
 
 		} else if (tag.type === 'init_model') {
 
-			newProject(data.meta.type||'free', data.flag === 'force');
+			setupProject(data.meta.type||'free', data.flag === 'force');
 			Codecs.project.parse(data);
 			this.Project = Project;
 			this.Project.EditSession = this;

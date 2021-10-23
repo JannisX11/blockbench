@@ -504,10 +504,8 @@ class Cube extends OutlinerElement {
 		if (selected.indexOf(this) === 0) {
 			UVEditor.loadData()
 		}
-		if (Project.view_mode === 'textured') {
-			this.preview_controller.updateFaces(this);
-			this.preview_controller.updateUV(this);
-		}
+		this.preview_controller.updateFaces(this);
+		this.preview_controller.updateUV(this);
 	}
 	mapAutoUV() {
 		if (Blockbench.box_uv) return;
@@ -1116,8 +1114,10 @@ new NodePreviewController(Cube, {
 			//lines
 			var height = end[1]-start[1];
 			var step = Math.abs( height / uv_size[1] );
-			let tex_height = texture.frameCount ? (texture.height / texture.frameCount) : texture.height;
-			if (texture) step *= Project.texture_height / tex_height;
+			if (texture) {
+				let tex_height = texture.frameCount ? (texture.height / texture.frameCount) : texture.height;
+				step *= Project.texture_height / tex_height;
+			}
 			if (step < epsilon) step = epsilon;
 
 			for (var line = start[1] - uv_offset[1]; line <= end[1]; line += step) {
@@ -1186,6 +1186,7 @@ BARS.defineActions(function() {
 
 			if (Group.selected) Group.selected.unselect()
 			base_cube.select()
+			Canvas.updateView({elements: [base_cube], element_aspects: {transform: true}})
 			Undo.finishEdit('Add cube', {outliner: true, elements: selected, selection: true});
 			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 

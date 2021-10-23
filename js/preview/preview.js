@@ -357,7 +357,7 @@ class Preview {
 					if (element.mesh.vertex_points && element.mesh.vertex_points.visible) {
 						objects.push(element.mesh.vertex_points);
 					}
-					if (element instanceof Mesh && element.mesh.outline.visible && BarItems.selection_mode.value == 'line') {
+					if (element instanceof Mesh && element.mesh.outline.visible && BarItems.selection_mode.value == 'edge') {
 						objects.push(element.mesh.outline);
 					}
 				}
@@ -1089,7 +1089,7 @@ class Preview {
 								}
 							}
 
-						} else if (selection_mode == 'line') {
+						} else if (selection_mode == 'edge') {
 							for (let fkey in element.faces) {
 								let face = element.faces[fkey];
 								let vertices = face.getSortedVertices();

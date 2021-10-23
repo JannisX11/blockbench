@@ -73,7 +73,7 @@
     "message.bedrock_overwrite_error.backup_overwrite": "建立備份並覆蓋",
     "message.bedrock_overwrite_error.overwrite": "覆蓋",
     "message.close_warning.message": "要儲存模型嗎?",
-    "message.close_warning.web": "目前的工作將會遺失，確認要推出嗎?",
+    "message.close_warning.web": "目前的工作將會遺失，確認要退出嗎?",
     "message.default_textures.title": "預設紋理",
     "message.default_textures.message": "選取預設資源包的textures資料夾",
     "message.default_textures.detail": "從Minecraf的jar檔案取出或自行Google下載。找到裡面的textures資料夾並開啟。Blockbench會記住位置，並嘗試從裡面尋找紋理。",
@@ -776,8 +776,6 @@
     "settings.username.desc": "編輯會話的使用者名稱",
     "settings.painting_grid": "繪圖網格",
     "settings.painting_grid.desc": "在繪圖模式的立方體紋理上顯示網格",
-    "action.slider_brush_min_opacity": "最小透明度",
-    "action.slider_brush_min_opacity.desc": "雜訊筆刷的最小透明度(%)",
     "action.convert_project": "轉換專案",
     "action.convert_project.desc": "將目前的專案轉換為其他模型格式的專案",
     "action.close_project": "關閉專案",
@@ -1352,7 +1350,6 @@
     "action.selection_mode.desc": "變更元素於檢視視圖中的選取模式",
     "action.selection_mode.object": "物件",
     "action.selection_mode.face": "面",
-    "action.selection_mode.line": "線",
     "action.selection_mode.vertex": "頂點",
     "action.create_face": "新增面或線",
     "action.create_face.desc": "在選取的頂點之間建立面或線",
@@ -1400,7 +1397,6 @@
     "menu.file.import.import_open_project": "匯入開啟的專案",
     "menu.help.unlock_projects": "解鎖全部專案",
     "status_bar.selection.faces": "%0 Faces",
-    "status_bar.selection.lines": "%0 Lines",
     "status_bar.selection.vertices": "%0 Vertices",
     "message.merged_vertices": "Found and merged %0 vertices in %1 locations",
     "settings.vertex_merge_distance": "Vertex Merge Distance",
@@ -1423,5 +1419,7 @@
     "menu.paste.mesh_selection": "Mesh Selection",
     "menu.paste.outliner": "Elements",
     "uv_editor.show_all_faces": "Show All Faces",
-    "uv_editor.show_selected_faces": "Show Selected Faces"
+    "uv_editor.show_selected_faces": "Show Selected Faces",
+    "status_bar.selection.edges": "%0 Edges",
+    "action.selection_mode.edge": "Edge"
 }

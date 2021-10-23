@@ -813,7 +813,7 @@ onVueSetup(function() {
 						Mesh.selected.forEach(mesh => mesh.forAllFaces(face => selected += (face.isSelected() ? 1 : 0)));
 						this.selection_info = tl('status_bar.selection.faces', `${selected} / ${total}`);
 					}
-					if (selection_mode == 'line') {
+					if (selection_mode == 'edge') {
 						let total = 0, selected = 0;
 						Mesh.selected.forEach(mesh => {
 							let selected_vertices = mesh.getSelectedVertices();
@@ -832,7 +832,7 @@ onVueSetup(function() {
 								})
 							})
 						})
-						this.selection_info = tl('status_bar.selection.lines', `${selected} / ${total}`);
+						this.selection_info = tl('status_bar.selection.edges', `${selected} / ${total}`);
 					}
 					if (selection_mode == 'vertex') {
 						let total = 0, selected = 0;

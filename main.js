@@ -155,18 +155,20 @@ app.commandLine.appendSwitch('ignore-gpu-blacklist')
 app.commandLine.appendSwitch('enable-accelerated-video')
 
 app.on('second-instance', function (event, argv, cwd) {
-	process.argv = argv
-	if (argv[argv.length-1 || 1] && argv[argv.length-1 || 1].substr(0, 2) !== '--') {
-		orig_win.webContents.send('open-model', argv[argv.length-1 || 1]);
-		orig_win.focus();
+	process.argv = argv;
+	let win = all_wins.find(win => !win.isDestroyed());
+	if (win && argv[argv.length-1 || 1] && argv[argv.length-1 || 1].substr(0, 2) !== '--') {
+		win.webContents.send('open-model', argv[argv.length-1 || 1]);
+		win.focus();
 	} else {
 		createWindow(true);
 	}
 })
 app.on('open-file', function (event, path) {
 	process.argv[process.argv.length-1 || 1] = path;
-	if (orig_win) {
-		orig_win.webContents.send('open-model', path);
+	let win = all_wins.find(win => !win.isDestroyed());
+	if (win) {
+		win.webContents.send('open-model', path);
 	}
 })
 

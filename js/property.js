@@ -105,8 +105,8 @@ class Property {
 			target[this.name] = instance[this.name];
 		}
 	}
-	reset(instance) {
-		if (instance[this.name] == undefined && !Condition(this.condition, instance)) return;
+	reset(instance, force) {
+		if (instance[this.name] == undefined && !Condition(this.condition, instance) && !force) return;
 		var dft = this.getDefault(instance)
 
 		if (this.isArray || this.isVector || this.isVector2) {
