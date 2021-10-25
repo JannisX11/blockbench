@@ -1736,8 +1736,8 @@ const Animator = {
 							}
 						})
 					} else {
-						Blockbench.writeFile(path, {content})
-						cb(path);
+						Blockbench.writeFile(new_path, {content})
+						cb(new_path);
 					}
 				})
 			}, new_path => {
