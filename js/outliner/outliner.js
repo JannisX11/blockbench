@@ -550,6 +550,7 @@ class NodePreviewController {
 		delete Project.nodes_3d[element.uuid];
 	}
 	updateAll(element) {
+		if (!element.mesh) this.setup(element);
 		this.updateTransform(element);
 		this.updateVisibility(element);
 		if (this.updateGeometry) this.updateGeometry(element);
