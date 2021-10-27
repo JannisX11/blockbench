@@ -20,7 +20,7 @@ var codec = new Codec('optifine_entity', {
 			entitymodel.texture = tex.folder ? (tex.folder + '/' + tex.name) : tex.name;
 		}
 		entitymodel.textureSize = [Project.texture_width, Project.texture_height];
-		if (Project.shadow_size != 1) entitymodel.shadowSize = Math.clamp(Project.shadow_size, 0, 1);
+		if (Project.shadow_size != 1) entitymodel.shadowSize = Project.shadow_size;
 		entitymodel.models = []
 
 		Outliner.root.forEach(function(g) {

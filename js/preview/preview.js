@@ -351,7 +351,7 @@ class Preview {
 
 		var objects = []
 		Outliner.elements.forEach(element => {
-			if (element.mesh.geometry && element.visibility && !element.locked) {
+			if (element.mesh && element.mesh.geometry && element.visibility && !element.locked) {
 				objects.push(element.mesh);
 				if (Modes.edit && element.selected) {
 					if (element.mesh.vertex_points && element.mesh.vertex_points.visible) {

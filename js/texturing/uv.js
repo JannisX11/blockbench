@@ -441,6 +441,7 @@ const UVEditor = {
 		var u = event.offsetX / this.vue.inner_width * this.getResolution(0);
 		var v = event.offsetY / this.vue.inner_height * this.getResolution(1);
 		Cube.all.forEach(cube => {
+			if (cube.locked) return;
 			for (var face in cube.faces) {
 				var uv = cube.faces[face].uv
 				if (uv && Math.isBetween(u, uv[0], uv[2]) && Math.isBetween(v, uv[1], uv[3]) && (cube.faces[face].getTexture() === scope.vue.texture || Format.single_texture)) {
@@ -451,6 +452,7 @@ const UVEditor = {
 			}
 		})
 		Mesh.all.forEach(mesh => {
+			if (mesh.locked) return;
 			for (var face in mesh.faces) {
 				let rect = mesh.faces[face].getBoundingRect();
 				if (uv && Math.isBetween(u, rect.ax, rect.bx) && Math.isBetween(v, rect.ay, rect.by) && (mesh.faces[face].getTexture() === scope.vue.texture || Format.single_texture)) {
@@ -1670,10 +1672,10 @@ Interface.definePanels(function() {
 					return this.width * (this.project_resolution[1] / this.project_resolution[0]) * this.zoom;
 				},
 				mappable_elements() {
-					return this.elements.filter(element => element.faces);
+					return this.elements.filter(element => element.faces && !element.locked);
 				},
 				all_mappable_elements() {
-					return this.all_elements.filter(element => element.faces);
+					return this.all_elements.filter(element => element.faces && !element.locked);
 				}
 			},
 			watch: {
@@ -1838,7 +1840,7 @@ Interface.definePanels(function() {
 
 							let elements;
 							if (Project.box_uv) {
-								elements = Cube.all.slice();
+								elements = Cube.all.filter(cube => !cube.locked);
 								elements.safePush(scope.mappable_elements);
 							} else {
 								elements = scope.mappable_elements;

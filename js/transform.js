@@ -435,7 +435,7 @@ function getScaleAllGroups() {
 	let groups = [];
 	if (!Format.bone_rig) return groups;
 	if (Group.selected) {
-		getScaleAllGroups().forEach((g) => {
+		Group.selected.forEachChild((g) => {
 			groups.push(g);
 		}, Group)
 	} else if (Outliner.selected.length == Outliner.elements.length && Group.all.length) {

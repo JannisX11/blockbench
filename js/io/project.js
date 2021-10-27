@@ -333,7 +333,8 @@ new Property(ModelProject, 'string', 'variable_placeholders', {
 });
 new Property(ModelProject, 'number', 'shadow_size', {
 	label: 'dialog.project.shadow_size',
-	condition: {formats: ['optifine_entity']}
+	condition: {formats: ['optifine_entity']},
+	default: 1
 });
 
 

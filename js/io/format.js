@@ -28,7 +28,7 @@ class ModelFormat {
 		if (Format && typeof Format.onDeactivation == 'function') {
 			Format.onDeactivation()
 		}
-		Format = this;
+		Format = Project.format = this;
 		if (typeof this.onActivation == 'function') {
 			Format.onActivation()
 		}
