@@ -603,13 +603,14 @@ BARS.defineActions(function() {
 			if (isApp) {
 				saveTextures()
 				if (Format) {
+					if (Project.save_path) {
+						Codecs.project.write(Codecs.project.compile(), Project.save_path);
+					}
 					if (Project.export_path && Format.codec && Format.codec.compile) {
 						Format.codec.write(Format.codec.compile(), Project.export_path)
-					} else if (Project.save_path) {
-						Codecs.project.write(Codecs.project.compile(), Project.save_path);
-					} else if (Format.codec && Format.codec.export) {
+					} else if (Format.codec && Format.codec.export && !Project.save_path) {
 						Format.codec.export()
-					} else {
+					} else if (!Project.save_path) {
 						Project.saved = true;
 					}
 				}

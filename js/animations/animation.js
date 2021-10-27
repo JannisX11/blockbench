@@ -977,9 +977,15 @@ class BoneAnimator extends GeneralAnimator {
 
 		function mapAxes(cb) {
 			if (axis) {
-				return cb(axis);
+				let result = cb(axis);
+				Animator._last_values[channel][axis] = result;
+				return result;
 			} else {
-				return ['x', 'y', 'z'].map(cb);
+				return ['x', 'y', 'z'].map(axis => {
+					let result = cb(axis);
+					Animator._last_values[channel][axis] = result;
+					return result;
+				});
 			}
 		}
 

@@ -13,6 +13,7 @@ function I(num) {
 const Templates = {
 	'1.12': {
 		name: 'Forge 1.7 - 1.13',
+		remember: true,
 		flip_y: true,
 		integer_size: true,
 		file:
@@ -55,6 +56,7 @@ const Templates = {
 
 	'1.14': {
 		name: 'Forge 1.14 (MCP)',
+		remember: true,
 		flip_y: true,
 		integer_size: true,
 		file: 
@@ -97,6 +99,7 @@ const Templates = {
 
 	'1.14_mojmaps': {
 		name: 'Forge 1.14 (Mojmaps)',
+		remember: false,
 		flip_y: true,
 		integer_size: true,
 		file:
@@ -139,6 +142,7 @@ const Templates = {
 
 	'1.15': {
 		name: 'Forge 1.15 - 1.16 (MCP)',
+		remember: true,
 		flip_y: true,
 		integer_size: false,
 		file: 
@@ -186,6 +190,7 @@ const Templates = {
 
 	'1.15_mojmaps': {
 		name: 'Forge 1.15 - 1.16 (Mojmaps)',
+		remember: false,
 		flip_y: true,
 		integer_size: false,
 		file:
@@ -233,6 +238,7 @@ const Templates = {
 
 	'1.17': {
 		name: 'Forge 1.17 (Mojmaps)',
+		remember: false,
 		use_layer_definition: true,
 		flip_y: true,
 		integer_size: false,
@@ -297,6 +303,16 @@ const Templates = {
 
 function getIdentifier() {
 	return (Project.geometry_name && Project.geometry_name.replace(/[\s-]+/g, '_')) || 'custom_model';
+}
+
+function askToSaveProject() {
+	if (isApp && Project.save_path && fs.existsSync(Project.save_path)) return;
+	Blockbench.showMessageBox({
+		translateKey: 'cannot_re_import',
+		buttons: ['dialog.save', 'dialog.cancel']
+	}, button => {
+		if (button == 0) BarItems.save_project.click();
+	})
 }
 
 var codec = new Codec('modded_entity', {
@@ -820,11 +836,42 @@ var codec = new Codec('modded_entity', {
 		this.dispatchEvent('parsed', {model});
 		Canvas.updateAllBones();
 	},
+	afterDownload(path) {
+		if (this.remember) {
+			Project.saved = true;
+		} else if (!open_interface) {
+			askToSaveProject();
+		}
+		Blockbench.showQuickMessage(tl('message.save_file', [path ? pathToName(path, true) : this.fileName()]));
+	},
+	afterSave(path) {
+		var name = pathToName(path, true)
+		if (Format.codec == this || this.id == 'project') {
+			Project.export_path = path;
+			Project.name = pathToName(path, false);
+		}
+		if (this.remember) {
+			Project.saved = true;
+			addRecentProject({
+				name,
+				path: path,
+				icon: this.id == 'project' ? 'icon-blockbench_file' : Format.icon
+			});
+		} else if (!open_interface) {
+			askToSaveProject();
+		}
+		Blockbench.showQuickMessage(tl('message.save_file', [name]));
+	},
 	fileName() {
 		return getIdentifier();
 	}
 })
 codec.templates = Templates;
+Object.defineProperty(codec, 'remember', {
+	get() {
+		return !!Codecs.modded_entity.templates[Project.modded_entity_version].remember
+	}
+})
 
 var format = new ModelFormat({
 	id: 'modded_entity',

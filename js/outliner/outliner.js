@@ -1325,6 +1325,7 @@ Interface.definePanels(function() {
 
 				},
 				dragNode(e1) {
+					if (e1.button == 1) return;
 					if (getFocusedTextInput()) return;
 					convertTouchEvent(e1);
 
@@ -1337,6 +1338,7 @@ Interface.definePanels(function() {
 					if (!item || item.locked) {
 						function off(e2) {
 							removeEventListeners(document, 'mouseup touchend', off);
+							if (e1.target && e1.offsetX > e1.target.clientWidth) return;
 							if (e2.target && e2.target.id == 'cubes_list') unselectAll();
 						}
 						addEventListeners(document, 'mouseup touchend', off);
