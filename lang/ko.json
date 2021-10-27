@@ -1421,5 +1421,7 @@
     "uv_editor.show_all_faces": "모든 표면 표시",
     "uv_editor.show_selected_faces": "선택된 표면 표시",
     "status_bar.selection.edges": "%0 모서리",
-    "action.selection_mode.edge": "모서리"
+    "action.selection_mode.edge": "모서리",
+    "message.cannot_re_import.title": "Model cannot be re-imported",
+    "message.cannot_re_import.message": "The exported model format cannot be imported into Blockbench again. Please make sure to save your model as a project file."
 }
