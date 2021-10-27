@@ -1421,5 +1421,7 @@
     "uv_editor.show_all_faces": "Pokaż wszystkie ściany",
     "uv_editor.show_selected_faces": "Pokaż wybrane ściany",
     "status_bar.selection.edges": "%0 Edges",
-    "action.selection_mode.edge": "Edge"
+    "action.selection_mode.edge": "Edge",
+    "message.cannot_re_import.title": "Model cannot be re-imported",
+    "message.cannot_re_import.message": "The exported model format cannot be imported into Blockbench again. Please make sure to save your model as a project file."
 }
