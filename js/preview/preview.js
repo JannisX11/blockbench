@@ -1004,10 +1004,11 @@ class Preview {
 
 		if (this.movingBackground) {
 			if (event.shiftKey || Pressing.overrides.shift) {
-				this.background.size = limitNumber( this.background.before.size + (event.offsetY - this.selection.start_y), 0, 10e3)
+				let diff = event.clientY - this.selection.client_y;
+				this.background.size = limitNumber( this.background.before.size + (diff * (0.6 + this.background.size/1200)), 0, 10e3)
 			} else {
-				this.background.x = this.background.before.x + (event.offsetX - this.selection.start_x);
-				this.background.y = this.background.before.y + (event.offsetY - this.selection.start_y);
+				this.background.x = this.background.before.x + (event.clientX - this.selection.client_x);
+				this.background.y = this.background.before.y + (event.clientY - this.selection.client_y);
 			}
 			this.updateBackground()
 			return;
@@ -1588,7 +1589,9 @@ function editCameraPreset(preset, presets) {
 				orthographic: 'dialog.save_angle.projection.orthographic'
 			}},
 			position: {label: 'dialog.save_angle.position', type: 'vector', dimensions: 3, value: position},
+			rotation_mode: {label: '', type: 'checkbox'},
 			target: {label: 'dialog.save_angle.target', type: 'vector', dimensions: 3, value: target},
+			rotation: {label: 'dialog.save_angle.rotation', type: 'vector', dimensions: 2, value: rotation},
 			zoom: {label: 'dialog.save_angle.zoom', type: 'number', value: zoom||1, condition: result => (result.projection == 'orthographic')},
 		},
 		onConfirm: function(result) {

@@ -1318,9 +1318,17 @@ BARS.defineActions(function() {
 		if (rotation_object instanceof Group) {
 			var val = modify(rotation_object.origin[axis]);
 			rotation_object.origin[axis] = val;
-			Canvas.updateView({groups: [rotation_object], group_aspects: {transform: true}, selection: true})
+			let elements_to_update = [];
+			rotation_object.forEachChild(element => elements_to_update.push(element), OutlinerElement);
+			Canvas.updateView({
+				groups: [rotation_object],
+				group_aspects: {transform: true},
+				elements: elements_to_update,
+				element_aspects: {transform: true},
+				selection: true
+			});
 			if (Format.bone_rig) {
-				Canvas.updateAllBones()
+				Canvas.updateAllBones();
 			}
 		} else {
 			rotation_object.forEach(function(obj, i) {

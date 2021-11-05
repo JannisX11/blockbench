@@ -801,8 +801,13 @@
 							return 0;
 						}
 					}
-					let bone = selected.length ? selected[0].parent : Group.selected;
-					for (var el of selected) {
+					let bone = 0;
+					if (Outliner.selected.length) {
+						bone = Outliner.selected[0].parent;
+					} else if (Group.selected && Group.selected.parent instanceof Group) {
+						bone = Group.selected.parent;
+					}
+					for (var el of Outliner.selected) {
 						if (el.parent !== bone) {
 							bone = 0;
 							break;
