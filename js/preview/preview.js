@@ -706,6 +706,13 @@ class Preview {
 		if (data) {
 			this.selection.click_target = data;
 
+			function unselectOtherNodes() {
+				if (Group.selected) Group.selected.unselect();
+				Outliner.elements.forEach(el => {
+					if (el !== data.element) Outliner.selected.remove(el);
+				})
+			}
+
 			let select_mode = BarItems.selection_mode.value
 
 			if (data.element && data.element.locked) {
@@ -728,7 +735,7 @@ class Preview {
 				if (Modes.paint) {
 					event = 0;
 				}
-				if (data.element.parent.type === 'group' && (
+				if (data.element.parent.type === 'group' && (!data.element instanceof Mesh || select_mode == 'object') && (
 					Animator.open ||
 					event.shiftKey || Pressing.overrides.shift ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
@@ -739,6 +746,10 @@ class Preview {
 
 					if (data.element instanceof Mesh && select_mode == 'face') {
 						if (!data.element.selected) data.element.select(event);
+
+						if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+							unselectOtherNodes()
+						}
 
 						let mesh = data.element;
 						let selected_vertices = mesh.getSelectedVertices(true);
@@ -806,6 +817,7 @@ class Preview {
 				if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
 					list.toggle(data.vertex);
 				} else {
+					unselectOtherNodes()
 					list.replace([data.vertex]);
 				}
 				updateSelection();
@@ -825,6 +837,7 @@ class Preview {
 					}
 				} else {
 					list.replace(data.vertices);
+					unselectOtherNodes();
 				}
 				if (event.altKey || Pressing.overrides.alt) {
 					
