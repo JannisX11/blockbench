@@ -1556,7 +1556,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider('slider_face_tint', {
 		category: 'uv',
-		condition: () => !Project.box_uv && Cube.selected.length && UVEditor.selected_faces[0],
+		condition: () => !Project.box_uv && Cube.selected.length && UVEditor.selected_faces[0] && Cube.selected[0].faces[UVEditor.selected_faces[0]],
 		getInterval(event) {
 			return 1;
 		},

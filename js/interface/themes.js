@@ -355,7 +355,7 @@ const CustomTheme = {
 			localStorage.setItem('theme', JSON.stringify(CustomTheme.data));
 		}
 	},
-	updateColors() {
+	updateColors() {		
 		
 		for (var key in CustomTheme.data.colors) {
 			var hex = CustomTheme.data.colors[key];

@@ -334,6 +334,7 @@
 	#panel_selector_bar {
 		display: flex;
 		grid-area: panel_selector;
+		background-color: var(--color-ui);
 	}
 	#panel_selector_bar .panel_selector {
 		height: 36px;

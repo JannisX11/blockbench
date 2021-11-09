@@ -2192,8 +2192,8 @@ function initCanvas() {
 	}
 
 	Canvas.setup();
-	
-	resizeWindow()
+	CustomTheme.updateColors();
+	resizeWindow();
 }
 function animate() {
 	requestAnimationFrame( animate );

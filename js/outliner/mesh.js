@@ -293,6 +293,9 @@ class Mesh extends OutlinerElement {
 		var copy = new Mesh(this)
 		copy.uuid = this.uuid;
 		delete copy.parent;
+		for (let fkey in copy.faces) {
+			delete copy.faces[fkey].mesh;
+		}
 		return copy;
 	}
 	getSaveCopy(project) {

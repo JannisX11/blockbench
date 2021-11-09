@@ -310,18 +310,17 @@ function buildComponent(dialog) {
 }
 
 class DialogSidebar {
-	constructor(options) {
+	constructor(options, dialog) {
 		this.open = !Blockbench.isMobile;
 		this.pages = options.pages || {};
 		this.page = options.page || Object.keys(this.pages)[0];
 		this.actions = options.actions || {};
+		this.dialog = dialog;
 		this.onPageSwitch = options.onPageSwitch || null;
 	}
 	build() {
-		if (!this.node) {
-			this.node = document.createElement('div');
-			this.node.className = 'dialog_sidebar';
-		}
+		this.node = document.createElement('div');
+		this.node.className = 'dialog_sidebar';
 
 		let page_list = document.createElement('ul');
 		page_list.className = 'dialog_sidebar_pages';
@@ -372,6 +371,7 @@ class DialogSidebar {
 
 		this.toggle(this.open);
 
+		this.dialog.object.querySelector('div.dialog_wrapper').append(this.node);
 		return this.node;
 	}
 	toggle(state = !this.open) {
@@ -404,7 +404,7 @@ window.Dialog = class Dialog {
 		this.component = options.component
 		this.part_order = options.part_order || (options.form_first ? ['form', 'lines', 'component'] : ['lines', 'form', 'component'])
 
-		this.sidebar = options.sidebar ? new DialogSidebar(options.sidebar) : null;
+		this.sidebar = options.sidebar ? new DialogSidebar(options.sidebar, this) : null;
 		this.title_menu = options.title_menu || null;
 
 		this.width = options.width
@@ -598,8 +598,7 @@ window.Dialog = class Dialog {
 				handle.prepend(menu_button);
 			}
 
-			let sidebar = this.sidebar.build();
-			wrapper.append(sidebar);
+			this.sidebar.build();
 			wrapper.classList.toggle('has_sidebar', this.sidebar.open);
 		}
 
