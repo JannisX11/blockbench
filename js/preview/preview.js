@@ -706,6 +706,13 @@ class Preview {
 		if (data) {
 			this.selection.click_target = data;
 
+			function unselectOtherNodes() {
+				if (Group.selected) Group.selected.unselect();
+				Outliner.elements.forEach(el => {
+					if (el !== data.element) Outliner.selected.remove(el);
+				})
+			}
+
 			let select_mode = BarItems.selection_mode.value
 
 			if (data.element && data.element.locked) {
@@ -728,7 +735,7 @@ class Preview {
 				if (Modes.paint) {
 					event = 0;
 				}
-				if (data.element.parent.type === 'group' && (
+				if (data.element.parent.type === 'group' && (!data.element instanceof Mesh || select_mode == 'object') && (
 					Animator.open ||
 					event.shiftKey || Pressing.overrides.shift ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
@@ -739,6 +746,10 @@ class Preview {
 
 					if (data.element instanceof Mesh && select_mode == 'face') {
 						if (!data.element.selected) data.element.select(event);
+
+						if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+							unselectOtherNodes()
+						}
 
 						let mesh = data.element;
 						let selected_vertices = mesh.getSelectedVertices(true);
@@ -806,6 +817,7 @@ class Preview {
 				if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
 					list.toggle(data.vertex);
 				} else {
+					unselectOtherNodes()
 					list.replace([data.vertex]);
 				}
 				updateSelection();
@@ -825,6 +837,7 @@ class Preview {
 					}
 				} else {
 					list.replace(data.vertices);
+					unselectOtherNodes();
 				}
 				if (event.altKey || Pressing.overrides.alt) {
 					
@@ -1004,10 +1017,11 @@ class Preview {
 
 		if (this.movingBackground) {
 			if (event.shiftKey || Pressing.overrides.shift) {
-				this.background.size = limitNumber( this.background.before.size + (event.offsetY - this.selection.start_y), 0, 10e3)
+				let diff = event.clientY - this.selection.client_y;
+				this.background.size = limitNumber( this.background.before.size + (diff * (0.6 + this.background.size/1200)), 0, 10e3)
 			} else {
-				this.background.x = this.background.before.x + (event.offsetX - this.selection.start_x);
-				this.background.y = this.background.before.y + (event.offsetY - this.selection.start_y);
+				this.background.x = this.background.before.x + (event.clientX - this.selection.client_x);
+				this.background.y = this.background.before.y + (event.clientY - this.selection.client_y);
 			}
 			this.updateBackground()
 			return;
@@ -1479,7 +1493,6 @@ class Preview {
 					preview.clearBackground()
 				}},
 				{icon: 'restore', name: 'generic.restore', condition: (preview) => (preview.background && preview.background.defaults.image), click: function(preview) {
-					// ToDo: condition, save local storage, name and icon
 					preview.restoreBackground()
 				}}
 			]
@@ -1588,7 +1601,9 @@ function editCameraPreset(preset, presets) {
 				orthographic: 'dialog.save_angle.projection.orthographic'
 			}},
 			position: {label: 'dialog.save_angle.position', type: 'vector', dimensions: 3, value: position},
+			rotation_mode: {label: '', type: 'checkbox'},
 			target: {label: 'dialog.save_angle.target', type: 'vector', dimensions: 3, value: target},
+			rotation: {label: 'dialog.save_angle.rotation', type: 'vector', dimensions: 2, value: rotation},
 			zoom: {label: 'dialog.save_angle.zoom', type: 'number', value: zoom||1, condition: result => (result.projection == 'orthographic')},
 		},
 		onConfirm: function(result) {
@@ -2189,8 +2204,8 @@ function initCanvas() {
 	}
 
 	Canvas.setup();
-	
-	resizeWindow()
+	CustomTheme.updateColors();
+	resizeWindow();
 }
 function animate() {
 	requestAnimationFrame( animate );

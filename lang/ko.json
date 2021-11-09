@@ -1422,6 +1422,6 @@
     "uv_editor.show_selected_faces": "선택된 표면 표시",
     "status_bar.selection.edges": "%0 모서리",
     "action.selection_mode.edge": "모서리",
-    "message.cannot_re_import.title": "Model cannot be re-imported",
-    "message.cannot_re_import.message": "The exported model format cannot be imported into Blockbench again. Please make sure to save your model as a project file."
+    "message.cannot_re_import.title": "모델을 불러올 수 없습니다",
+    "message.cannot_re_import.message": "모델 형식으로 내보내진 모델은 다시 Blockbench에서 불러올 수 없습니다. 모델을 프로젝트 파일로 저장해주세요."
 }

@@ -268,7 +268,7 @@ const Timeline = {
 				
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
-				if (!e && !Pressing.overrides.ctrl) time = Timeline.snapTime(time);
+				if (!e.ctrlOrCmd && !Pressing.overrides.ctrl) time = Timeline.snapTime(time);
 				Timeline.setTime(time);
 				Animator.preview();
 			}

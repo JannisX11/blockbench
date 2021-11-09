@@ -150,7 +150,7 @@ const UVEditor = {
 			Painter.selection.y = calcrect.ay;
 			$(Painter.selection.rect)
 				.css('left', 	calcrect.ax*m + 'px')
-				.css('top', 	calcrect.ay*m + 'px')
+				.css('top', 	(calcrect.ay%texture.display_height)*m + 'px')
 				.css('width', 	calcrect.x *m + 'px')
 				.css('height', 	calcrect.y *m + 'px')
 		} else if (this.texture && Painter.selection.canvas) {
@@ -203,7 +203,9 @@ const UVEditor = {
 				if (scope.texture) {
 					scope.texture.edit((canvas) => {
 						var ctx = canvas.getContext('2d');
-						ctx.drawImage(Painter.selection.canvas, Painter.selection.x, Painter.selection.y)
+						let y = (Painter.selection.y % scope.texture.display_height);
+						if (scope.texture.frameCount > 1) y += scope.texture.currentFrame * scope.texture.display_height;
+						ctx.drawImage(Painter.selection.canvas, Painter.selection.x, y)
 					})
 				}
 			},
@@ -281,6 +283,7 @@ const UVEditor = {
 		UVEditor.updatePastingOverlay()
 
 		function clickElsewhere(event) {
+			if (event.button == 1) return;
 			if (!Painter.selection.overlay) {
 				removeEventListeners(document, 'mousedown touchstart', clickElsewhere)
 			} else if (Painter.selection.overlay.has(event.target).length == 0) {
@@ -301,7 +304,7 @@ const UVEditor = {
 			.css('height', Painter.selection.canvas.height * m)
 		Painter.selection.overlay
 			.css('left', Painter.selection.x * m)
-			.css('top', Painter.selection.y * m);
+			.css('top', (Painter.selection.y%this.texture.display_height) * m);
 		return this;
 	},
 	focusOnSelection() {
@@ -1556,7 +1559,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider('slider_face_tint', {
 		category: 'uv',
-		condition: () => !Project.box_uv && Cube.selected.length && UVEditor.selected_faces[0],
+		condition: () => !Project.box_uv && Cube.selected.length && UVEditor.selected_faces[0] && Cube.selected[0].faces[UVEditor.selected_faces[0]],
 		getInterval(event) {
 			return 1;
 		},
@@ -1772,6 +1775,7 @@ Interface.definePanels(function() {
 						viewport.scrollTop  += ((viewport.scrollTop  + offsetY) * zoom_diff) / old_zoom
 						
 						this.updateMouseCoords(event)
+						if (Painter.selection.overlay) UVEditor.updatePastingOverlay()
 
 						return false;
 					}

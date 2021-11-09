@@ -27,6 +27,7 @@ class EditSession {
 			secure: true
 		});
 		this.username = username || EditSession.defaults.placeholder_names.random();
+		this.username = EditSession.sanitizeMessage(this.username);
 		settings.username.value = this.username;
 
 		peer.on('open', (token) => {
@@ -43,6 +44,7 @@ class EditSession {
 			this.token = token;
 			Clipbench.setText(token)
 			Blockbench.dispatchEvent('create_session', {peer, token})
+			BarItems.edit_session.click();
 		})
 		peer.on('connection', (conn) => {
 			conn.on('open', () => {
@@ -87,6 +89,7 @@ class EditSession {
 		this.peer.on('open', () => {
 
 			this.username = username || EditSession.defaults.placeholder_names.random();
+			this.username = EditSession.sanitizeMessage(this.username);
 			settings.username.value = this.username;
 			if (!token || !EditSession.matchToken(token)) {
 				Blockbench.showMessageBox({
@@ -113,6 +116,7 @@ class EditSession {
 				this.host = conn;
 				this.setState(true);
 				this.initConnection(conn)
+				updateInterfacePanels()
 				Blockbench.dispatchEvent('join_session', {conn})
 			})
 		})
@@ -291,6 +295,7 @@ class EditSession {
 			$('input#chat_input').val('')
 		}
 		if (!text) return;
+		text = EditSession.sanitizeMessage(text);
 		this.processChatMessage({
 			author: this.username,
 			text: text,
@@ -374,7 +379,7 @@ EditSession.Client = class {
 		delete this.session.clients[this.id];
 		this.session.updateClientCount();
 
-		this.processChatMessage({text: tl('edit_session.left', [this.name]), color: 'red'})
+		this.session.processChatMessage({text: tl('edit_session.left', [this.name]), color: 'red'})
 		Blockbench.showQuickMessage(tl('edit_session.left', [this.name]))
 	}
 };
@@ -483,6 +488,14 @@ BARS.defineActions(function() {
 	})
 })
 EditSession.initNewModel = function() {}
+EditSession.sanitizeMessage = function(text) {
+	let result = '';
+	if (!text || typeof text !== 'string') return result;
+	for (let i = 0; i < text.length; i++) {
+		if (text.charCodeAt(i) < 55296) result += text[i];
+	}
+	return result;
+}
 
 Interface.definePanels(function() {
 

@@ -317,11 +317,14 @@ Object.assign(Blockbench, {
 		}
 		if (options.savetype === 'image' && typeof options.content === 'string') {
 			if (options.content.substr(0, 10) === 'data:image') {
-				options.content = nativeImage.createFromDataURL(options.content).toPNG()
+				fs.writeFileSync(file_path, options.content.split(',')[1], {encoding: 'base64'})
+				if (cb) cb(file_path)
 			} else {
-				options.content = options.content.replace(/\?\d+$/, '');
-				options.content = nativeImage.createFromPath(options.content).toPNG()
+				let path = options.content.replace(/\?\d+$/, '');
+				if (!PathModule.relative(path, file_path)) fs.copyFileSync(path, file_path);
+				if (cb) cb(file_path)
 			}
+			return;
 		}
 		if (options.custom_writer) {
 			options.custom_writer(options.content, file_path, cb)

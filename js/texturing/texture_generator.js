@@ -943,8 +943,8 @@ const TextureGenerator = {
 			var pos = {
 				x: ftemp.posx,
 				y: ftemp.posy,
-				w: Math.ceil(ftemp.width),
-				h: Math.ceil(ftemp.height)
+				w: Math.ceil(ftemp.width * res_multiple) / res_multiple,
+				h: Math.ceil(ftemp.height * res_multiple) / res_multiple
 			}
 			var d = TextureGenerator.face_data[ftemp.face_key];
 			var flip_rotation = false;

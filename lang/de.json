@@ -1422,6 +1422,6 @@
     "uv_editor.show_selected_faces": "Ausgewählte Flächen anzeigen",
     "status_bar.selection.edges": "%0 Kanten",
     "action.selection_mode.edge": "Kante",
-    "message.cannot_re_import.title": "Model cannot be re-imported",
-    "message.cannot_re_import.message": "The exported model format cannot be imported into Blockbench again. Please make sure to save your model as a project file."
+    "message.cannot_re_import.title": "Das exportierte Modell kann nicht erneut geöffnet werden",
+    "message.cannot_re_import.message": "Das exportierte Modellformat kann nicht in Blockbench geöffnet werden. Um weiterhin Zugriff auf dieses Modell zu haben, speichere es parallel als eine Projektdatei ab."
 }

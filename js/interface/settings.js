@@ -309,13 +309,14 @@ const Settings = {
 			settings.uv_checkerboard.value = true;
 		})
 	},
-	addCategory(id, data) {
-		if (!data) data = 0;
+	addCategory(id, data = {}) {
 		Settings.structure[id] = {
 			name: data.name || tl('settings.category.'+id),
 			open: data.open != undefined ? !!data.open : id === 'general',
 			items: {}
 		}
+		Settings.dialog.sidebar.pages[id] = Settings.structure[id].name;
+		Settings.dialog.sidebar.build();
 	},
 	saveLocalStorages() {
 		var settings_copy = {}

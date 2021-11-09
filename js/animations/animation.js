@@ -660,7 +660,9 @@ Blockbench.on('finish_edit', event => {
 	if (!Format.animation_files) return;
 	if (event.aspects.animations && event.aspects.animations.length) {
 		event.aspects.animations.forEach(animation => {
-			animation.saved = false;
+			if (Undo.current_save && Undo.current_save.aspects.animations instanceof Array && Undo.current_save.aspects.animations.includes(animation)) {
+				animation.saved = false;
+			}
 		})
 	}
 	if (event.aspects.keyframes && event.aspects.keyframes instanceof Array && Animation.selected) {
@@ -1663,7 +1665,7 @@ const Animator = {
 				}
 				if (is_already_loaded) {console.log(`${key} already exists`);continue;}
 			}
-			form[key.hashCode()] = {label: key, type: 'checkbox', value: true};
+			form[key.hashCode()] = {label: key, type: 'checkbox', value: true, nocolon: true};
 			keys.push(key);
 		}
 		file.json = json;

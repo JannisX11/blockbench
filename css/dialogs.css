@@ -426,9 +426,10 @@
 	#settingslist input[type=number] {
 		height: 28px;
 		width: 100%;
-		background-color: var(--color-button);
-		padding-left: 4px;
+		background-color: var(--color-back);
 		border: 1px solid var(--color-border);
+		padding-left: 4px;
+		text-align: right;
 	}
 	#settingslist input[type=text], #settingslist input[type=password] {
 		padding: 10px;
