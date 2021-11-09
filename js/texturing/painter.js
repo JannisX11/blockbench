@@ -253,8 +253,8 @@ const Painter = {
 					if (rect[t] > rect[t+2]) {
 						[rect[t], rect[t+2]] = [rect[t+2], rect[t]]
 					}
-					rect[t] = Math.round(rect[t])
-					rect[t+2] = Math.round(rect[t+2])
+					rect[t] = Math.floor(Math.roundTo(rect[t], 2))
+					rect[t+2] = Math.ceil(Math.roundTo(rect[t+2], 2))
 				}
 			} else {
 				let min_x = Project.texture_width, min_y = Project.texture_height, max_x = 0, max_y = 0;

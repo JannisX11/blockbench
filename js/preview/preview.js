@@ -1493,7 +1493,6 @@ class Preview {
 					preview.clearBackground()
 				}},
 				{icon: 'restore', name: 'generic.restore', condition: (preview) => (preview.background && preview.background.defaults.image), click: function(preview) {
-					// ToDo: condition, save local storage, name and icon
 					preview.restoreBackground()
 				}}
 			]

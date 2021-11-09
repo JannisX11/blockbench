@@ -720,7 +720,6 @@ BARS.defineActions(function() {
 					startpath: Timeline.selected[0].data_points[0].file
 				}, function(files) {
 
-					// Todo: move to panel
 					let {path} = files[0];
 					Undo.initEdit({keyframes: Timeline.selected})
 					Timeline.selected.forEach((kf) => {

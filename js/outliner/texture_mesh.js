@@ -114,7 +114,7 @@ OutlinerElement.registerType(TextureMesh, 'texture_mesh');
 new NodePreviewController(TextureMesh, {
 	setup(element) {
 
-		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), Canvas.emptyMaterials[0]); // BoxGeometry because BufferGeometry would render black, TODO: investigate
+		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;
 		mesh.type = element.type;
