@@ -1773,7 +1773,7 @@ Interface.definePanels(function() {
 						viewport.scrollTop  += ((viewport.scrollTop  + offsetY) * zoom_diff) / old_zoom
 						
 						this.updateMouseCoords(event)
-						if (Painter.selection.canvas) UVEditor.updatePastingOverlay()
+						if (Painter.selection.overlay) UVEditor.updatePastingOverlay()
 
 						return false;
 					}

@@ -553,6 +553,7 @@ window.Dialog = class Dialog {
 		this.hide();
 	}
 	build() {
+		if (this.object) this.object.remove();
 		this.object = document.createElement('dialog');
 		this.object.className = 'dialog';
 		this.object.id = this.id;
