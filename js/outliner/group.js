@@ -486,7 +486,7 @@ new Property(Group, 'number', 'color');
 new NodePreviewController(Group, {
 	setup(group) {
 		bone = new THREE.Object3D();
-		bone.name = group.name;
+		bone.name = group.uuid;
 		bone.isGroup = true;
 		Project.nodes_3d[group.uuid] = bone;
 	},

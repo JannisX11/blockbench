@@ -281,6 +281,7 @@ const UVEditor = {
 		UVEditor.updatePastingOverlay()
 
 		function clickElsewhere(event) {
+			if (event.button == 1) return;
 			if (!Painter.selection.overlay) {
 				removeEventListeners(document, 'mousedown touchstart', clickElsewhere)
 			} else if (Painter.selection.overlay.has(event.target).length == 0) {
@@ -1772,6 +1773,7 @@ Interface.definePanels(function() {
 						viewport.scrollTop  += ((viewport.scrollTop  + offsetY) * zoom_diff) / old_zoom
 						
 						this.updateMouseCoords(event)
+						if (Painter.selection.canvas) UVEditor.updatePastingOverlay()
 
 						return false;
 					}
