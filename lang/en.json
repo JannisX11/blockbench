@@ -819,6 +819,8 @@
 
 	"action.project_window": "Project...",
 	"action.project_window.desc": "Opens the project window, where you can edit metadata of your model",
+	"action.new_window": "New Window",
+	"action.new_window.desc": "Opens a new Blockbench window",
 	"action.open_model_folder": "Open Model Folder",
 	"action.open_model_folder.desc": "Opens the folder that the model is contained in",
 	"action.open_backup_folder": "Open Backup Folder",

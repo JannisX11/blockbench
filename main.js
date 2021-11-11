@@ -184,6 +184,9 @@ ipcMain.on('edit-launch-setting', (event, arg) => {
 ipcMain.on('add-recent-project', (event, path) => {
 	app.addRecentDocument(path);
 })
+ipcMain.on('new-window', (event, path) => {
+	createWindow(true);
+})
 ipcMain.on('request-color-picker', async (event, arg) => {
 	const color = await getColorHexRGB().catch((error) => {
 		console.warn('[Error] Failed to pick color', error)

@@ -542,6 +542,7 @@ const MenuBar = {
 			},
 			'open_model',
 			'open_from_link',
+			'new_window',
 			'_',
 			'save_project',
 			'save_project_as',

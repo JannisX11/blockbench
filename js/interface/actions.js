@@ -1478,6 +1478,14 @@ const BARS = {
 			})
 
 		//File
+			new Action('new_window', {
+				icon: 'open_in_new',
+				category: 'file',
+				condition: isApp,
+				click: function () {
+					ipcRenderer.send('new-window');
+				}
+			})
 			new Action('open_model_folder', {
 				icon: 'folder_open',
 				category: 'file',
