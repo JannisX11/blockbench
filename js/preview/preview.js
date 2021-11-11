@@ -740,7 +740,15 @@ class Preview {
 					event.shiftKey || Pressing.overrides.shift ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
 				)) {
-					data.element.parent.select().showInOutliner();
+					if (data.element.parent.selected && (event.shiftKey || Pressing.overrides.shift)) {
+						let super_parent = data.element.parent;
+						while (super_parent.parent instanceof Group && super_parent.selected) {
+							super_parent = super_parent.parent;
+						}
+						super_parent.select().showInOutliner();
+					} else {
+						data.element.parent.select().showInOutliner();
+					}
 
 				} else if (!Animator.open) {
 
