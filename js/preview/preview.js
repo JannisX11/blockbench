@@ -2451,6 +2451,13 @@ BARS.defineActions(function() {
 		category: 'view',
 		linked_setting: 'shading'
 	})
+	new Toggle('toggle_ground_plane', {
+		name: tl('settings.ground_plane'),
+		description: tl('settings.ground_plane.desc'),
+		icon: 'icon-format_free',
+		category: 'view',
+		linked_setting: 'ground_plane'
+	})
 	new Toggle('toggle_motion_trails', {
 		name: tl('settings.motion_trails'),
 		description: tl('settings.motion_trails.desc'),

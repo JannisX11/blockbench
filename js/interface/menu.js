@@ -720,6 +720,7 @@ const MenuBar = {
 			'view_mode',
 			'toggle_shading',
 			'toggle_motion_trails',
+			'toggle_ground_plane',
 			'preview_checkerboard',
 			'painting_grid',
 			'_',

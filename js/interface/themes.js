@@ -364,6 +364,8 @@ const CustomTheme = {
 		$('meta[name=theme-color]').attr('content', CustomTheme.data.colors.frame);
 
 		if (typeof gizmo_colors != 'undefined') {
+			Canvas.ground_plane.material.color.set(CustomTheme.data.colors.checkerboard);
+
 			var c_outline = parseInt('0x'+CustomTheme.data.colors.accent.replace('#', ''))
 			if (c_outline !== gizmo_colors.outline.getHex()) {
 				gizmo_colors.outline.set(c_outline)

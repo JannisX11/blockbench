@@ -35,8 +35,10 @@ class ModelFormat {
 		buildGrid()
 		if (Format.centered_grid) {
 			scene.position.set(0, 0, 0);
+			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 8;
 		} else {
 			scene.position.set(-8, -8, -8);
+			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 0;
 		}
 		Preview.all.forEach(preview => {
 			if (preview.isOrtho && typeof preview.angle == 'number') {

@@ -628,6 +628,8 @@
 	"settings.display_grid.desc": "Show grid in display mode",
 	"settings.painting_grid": "Painting Grid",
 	"settings.painting_grid.desc": "Show grid on textured cubes in paint mode",
+	"settings.ground_plane": "Ground Plane",
+	"settings.ground_plane.desc": "Show a floor plane below the model",
 
 	"settings.undo_limit": "Undo Limit",
 	"settings.undo_limit.desc": "Number of steps you can undo",

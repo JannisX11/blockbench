@@ -249,6 +249,9 @@ const Settings = {
 		new Setting('painting_grid',	{category: 'grid', value: true, onChange() {
 			Canvas.updatePaintingGrid();
 		}});
+		new Setting('ground_plane',		{category: 'grid', value: false, onChange() {
+			Canvas.ground_plane.visible = this.value;
+		}});
 		
 		//Snapping
 		new Setting('edit_size',	{category: 'snapping', value: 16, type: 'number'});
