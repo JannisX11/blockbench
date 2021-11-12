@@ -1,0 +1,27 @@
+{
+	"id": "dark",
+	"name": "Default (Dark)",
+	"author": "Default",
+	"main_font": "",
+	"headline_font": "",
+	"code_font": "",
+	"css": "",
+	"colors": {
+		"ui": "#282c34",
+		"back": "#21252b",
+		"dark": "#17191d",
+		"border": "#181a1f",
+		"selected": "#474d5d",
+		"button": "#3a3f4b",
+		"bright_ui": "#f4f3ff",
+		"accent": "#3e90ff",
+		"frame": "#181a1f",
+		"text": "#cacad4",
+		"light": "#f4f3ff",
+		"accent_text": "#000006",
+		"subtle_text": "#848891",
+		"grid": "#495061",
+		"wireframe": "#576f82",
+		"checkerboard": "#1c2026"
+	}
+}

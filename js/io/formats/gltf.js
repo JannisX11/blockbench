@@ -15,7 +15,7 @@ function buildAnimationTracks() {
 						let values = [];
 						let keyframes = animator[channel].slice();
 
-						// Sampling calculated (molang) values
+						// Sampling non-linear and math-based values
 						let contains_script
 						for (var kf of keyframes) {
 							if (kf.interpolation != 'linear') {
@@ -29,11 +29,12 @@ function buildAnimationTracks() {
 							if (contains_script) break;
 						}
 						if (contains_script) {
-							var last_values;
-							for (var time = 0; time < animation.length; time += 1/24) {
+							let interval = 1 / Math.clamp(settings.animation_sample_rate.value, 0.1, 500);
+							let last_values;
+							for (var time = 0; time < animation.length; time += interval) {
 								Timeline.time = time;
 								let values = animator.interpolate(channel, false)
-								if (!values.equals(last_values) && !keyframes.find(kf => Math.epsilon(kf.time, time, 1/24))) {
+								if (!values.equals(last_values) && !keyframes.find(kf => Math.epsilon(kf.time, time, interval))) {
 									let new_keyframe = new Keyframe({
 										time, channel,
 										data_points: [{
@@ -139,11 +140,7 @@ var codec = new Codec('gltf', {
 		let gl_scene = new THREE.Scene();
 		gl_scene.name = 'blockbench_export'
 
-		scene.children.forEachReverse(object => {
-			if (object.isGroup || object.isElement) {
-				gl_scene.add(object);
-			}
-		});
+		gl_scene.add(Project.model_3d);
 		if (!Modes.edit) {
 			Animator.showDefaultPose();
 		}
@@ -155,11 +152,7 @@ var codec = new Codec('gltf', {
 			scope.dispatchEvent('compile', {model: json, options});
 			callback(JSON.stringify(json));
 
-			gl_scene.children.forEachReverse(object => {
-				if (object.isGroup || object.isElement) {
-					scene.add(object);
-				}
-			});
+			scene.add(Project.model_3d);
 		}, {
 			animations,
 			onlyVisible: false,

@@ -92,7 +92,7 @@ THREE.OrbitControls = function ( object, preview ) {
 
 		// so camera.up is the orbit axis
 		var quat = new THREE.Quaternion().setFromUnitVectors( object.up, new THREE.Vector3( 0, 1, 0 ) );
-		var quatInverse = quat.clone().inverse();
+		var quatInverse = quat.clone().invert();
 
 		var lastPosition = new THREE.Vector3();
 		var lastQuaternion = new THREE.Quaternion();
@@ -248,8 +248,8 @@ THREE.OrbitControls = function ( object, preview ) {
 
 	}
 
-	function getZoomScale() {
-		return Math.pow( 0.95, scope.zoomSpeed );
+	function getZoomScale(modifier = 1) {
+		return Math.pow( 0.95, scope.zoomSpeed * modifier);
 
 	}
 
@@ -376,6 +376,9 @@ THREE.OrbitControls = function ( object, preview ) {
 
 	}
 
+	this.dollyIn = dollyIn;
+	this.dollyOut = dollyOut;
+
 	// event callbacks - update the object state
 
 	function handleMouseDownRotate( event ) {
@@ -415,9 +418,9 @@ THREE.OrbitControls = function ( object, preview ) {
 		dollyDelta.subVectors( dollyEnd, dollyStart );
 
 		if ( dollyDelta.y > 0 ) {
-			dollyIn( getZoomScale() );
+			dollyIn( getZoomScale(0.12 * dollyDelta.y) );
 		} else if ( dollyDelta.y < 0 ) {
-			dollyOut( getZoomScale() );
+			dollyOut( getZoomScale(0.12 * -dollyDelta.y) );
 		}
 
 		dollyStart.copy( dollyEnd );
@@ -614,6 +617,15 @@ THREE.OrbitControls = function ( object, preview ) {
 			}
 			handleMouseDownPan( event );
 			state = STATE.PAN;
+
+		} else if ( Keybinds.extra.preview_zoom.keybind.isTriggered(event) ) {
+
+			if ( scope.enableZoom === false ) return;
+			if (event.which === 1 && Canvas.raycast(event) && display_mode === false) {
+				return;
+			}
+			handleMouseDownDolly( event );
+			state = STATE.DOLLY;
 		}
 
 		if ( state !== STATE.NONE ) {

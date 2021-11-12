@@ -5,8 +5,6 @@ class Property {
 		}
 		target_class.properties[name] = this;
 
-		let scope = this;
-
 		this.class = target_class;
 		this.name = name;
 		this.type = type;
@@ -20,6 +18,7 @@ class Property {
 				case 'number': this.default = 0; break;
 				case 'boolean': this.default = false; break;
 				case 'array': this.default = []; break;
+				case 'instance': this.default = null; break;
 				case 'vector': this.default = [0, 0, 0]; break;
 				case 'vector2': this.default = [0, 0]; break;
 			}
@@ -30,6 +29,7 @@ class Property {
 			case 'number': this.isNumber = true; break;
 			case 'boolean': this.isBoolean = true; break;
 			case 'array': this.isArray = true; break;
+			case 'instance': this.isInstance = true; break;
 			case 'vector': this.isVector = true; break;
 			case 'vector2': this.isVector2 = true; break;
 		}
@@ -50,6 +50,7 @@ class Property {
 		if (typeof options.merge_validation == 'function') this.merge_validation = options.merge_validation;
 		if (options.condition) this.condition = options.condition;
 		if (options.exposed == false) this.exposed = false;
+		if (options.export == false) this.export = false;
 		if (options.label) this.label = options.label;
 		if (options.description) this.description = options.description;
 		if (options.options) this.options = options.options;
@@ -87,6 +88,11 @@ class Property {
 				instance[this.name].replace(data[this.name]);
 			}
 		}
+		else if (this.isInstance) {
+			if (typeof data[this.name] === 'object') {
+				instance[this.name] =data[this.name];
+			}
+		}
 	}
 	copy(instance, target) {
 		if (!Condition(this.condition, instance)) return;
@@ -99,15 +105,15 @@ class Property {
 			target[this.name] = instance[this.name];
 		}
 	}
-	reset(instance) {
-		if (instance[this.name] == undefined && !Condition(this.condition, instance)) return;
+	reset(instance, force) {
+		if (instance[this.name] == undefined && !Condition(this.condition, instance) && !force) return;
 		var dft = this.getDefault(instance)
 
 		if (this.isArray || this.isVector || this.isVector2) {
 			if (instance[this.name] instanceof Array == false) {
 				instance[this.name] = [];
 			}
-			instance[this.name].replace(dft);
+			instance[this.name].replace(dft || []);
 		} else {
 			instance[this.name] = dft;
 		}

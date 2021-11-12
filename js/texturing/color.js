@@ -55,8 +55,12 @@ Interface.definePanels(() => {
 			picker: Toolbars.color_picker,
 			palette: Toolbars.palette
 		},
-		onResize: t => {
+		onResize() {
 			$('#main_colorpicker').spectrum('reflow');
+			Interface.Panels.color.vue.width = 0;
+			Vue.nextTick(() => {
+				Interface.Panels.color.vue.width = this.width
+			})
 		},
 		menu: new Menu([
 			'sort_palette',
@@ -85,8 +89,11 @@ Interface.definePanels(() => {
 	}
 	Interface.Panels.color.vue = new Vue({
 		el: '#color_panel_wrapper',
-		data: {
+		data() {return {
+			width: Interface.Panels.color.width,
 			open_tab: StateMemory.color_picker_tab || 'picker',
+			picker_type: Settings.get('color_wheel') ? 'wheel' : 'box',
+			picker_toggle_label: tl('panel.color.picker_type'),
 			main_color: '#000000',
 			hover_color: '',
 			get color_code() {return this.hover_color || this.main_color},
@@ -101,10 +108,12 @@ Interface.definePanels(() => {
 			},
 			palette: (saved_colors && saved_colors.palette instanceof Array) ? saved_colors.palette : palettes.default.slice(),
 			history: (saved_colors && saved_colors.history instanceof Array) ? saved_colors.history : []
-		},
+		}},
 		methods: {
+			togglePickerType() {
+				settings.color_wheel.set(!settings.color_wheel.value);
+			},
 			sort(event) {
-				var index = event.oldIndex;
 				var item = this.palette.splice(event.oldIndex, 1)[0];
 				this.palette.splice(event.newIndex, 0, item);
 			},
@@ -129,16 +138,9 @@ Interface.definePanels(() => {
 			},
 			isDarkColor(hex) {
 				if (hex) {
-					hex = hex.replace('#', '')
-					let dgts = hex.substr(0, 1) + hex.substr(2, 1) + hex.substr(4, 1)
-					let bg = parseInt(CustomTheme.data.colors.back.substr(1, 1), 16);
-					let color_range = (bg).toString(16)
-						+ (Math.isBetween(bg+2, 0, 15) ? (bg+2).toString(16) : '')
-						+ (Math.isBetween(bg+1, 0, 15) ? (bg+1).toString(16) : '')
-						+ (Math.isBetween(bg-1, 0, 15) ? (bg-1).toString(16) : '')
-						+ (Math.isBetween(bg-2, 0, 15) ? (bg-2).toString(16) : '')
-					let regex = new RegExp(`[^${color_range}]`)
-					return dgts.search(regex) == -1
+					let color_val = new tinycolor(hex).getBrightness();
+					let bg_val = new tinycolor(CustomTheme.data.colors.back).getBrightness();
+					return Math.abs(color_val - bg_val) <= 50;
 				}
 			}
 		},
@@ -467,7 +469,7 @@ Interface.definePanels(() => {
 
 		var options = {};
 		if (!source) {
-			textures.forEach((tex, i) => {
+			Texture.all.forEach((tex, i) => {
 				if (!tex.error) {
 					options[i] = tex.name;
 				}
@@ -487,7 +489,7 @@ Interface.definePanels(() => {
 				var result_palette = [];
 
 				if (!source) {
-					var texture = textures[formData.texture];
+					var texture = Texture.all[formData.texture];
 					var ctx = Painter.getCanvas(texture).getContext('2d');
 				} else {
 					var ctx = source;
@@ -725,11 +727,11 @@ BARS.defineActions(function() {
 		condition: () => Modes.paint,
 		category: 'color',
 		settings: {
-			min: 0, max: 360, default: 0,
+			min: 0, max: 360, default: 0, show_bar: true
 		},
 		getInterval(e) {
-			if (e.shiftKey) return 12.5;
-			if (e.ctrlKey) return 1;
+			if (e.shiftKey || Pressing.overrides.shift) return 12.5;
+			if (e.ctrlOrCmd || Pressing.overrides.ctrl) return 1;
 			return 4
 		},
 		get: function() {
@@ -745,11 +747,11 @@ BARS.defineActions(function() {
 		condition: () => Modes.paint,
 		category: 'color',
 		settings: {
-			min: 0, max: 100, default: 0,
+			min: 0, max: 100, default: 0, show_bar: true
 		},
 		getInterval(e) {
-			if (e.shiftKey) return 10;
-			if (e.ctrlKey) return 1;
+			if (e.shiftKey || Pressing.overrides.shift) return 10;
+			if (e.ctrlOrCmd || Pressing.overrides.ctrl) return 1;
 			return 2
 		},
 		get: function() {
@@ -765,11 +767,11 @@ BARS.defineActions(function() {
 		condition: () => Modes.paint,
 		category: 'color',
 		settings: {
-			min: 0, max: 100, default: 100,
+			min: 0, max: 100, default: 100, show_bar: true
 		},
 		getInterval(e) {
-			if (e.shiftKey) return 10;
-			if (e.ctrlKey) return 1;
+			if (e.shiftKey || Pressing.overrides.shift) return 10;
+			if (e.ctrlOrCmd || Pressing.overrides.ctrl) return 1;
 			return 2
 		},
 		get: function() {
@@ -779,6 +781,14 @@ BARS.defineActions(function() {
 			var value = modify(ColorPanel.vue._data.hsv.v);
 			ColorPanel.vue._data.hsv.v = Math.clamp(value, this.settings.min, this.settings.max);
 			ColorPanel.updateFromHsv();
+		}
+	})
+	new Action('pick_screen_color', {
+		icon: 'colorize',
+		category: 'color',
+		condition: isApp,
+		click: function () {
+			ipcRenderer.send('request-color-picker', {sync: settings.sync_color.value});
 		}
 	})
 })

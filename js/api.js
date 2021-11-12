@@ -13,18 +13,6 @@ const Blockbench = {
 	drag_handlers: {},
 	events: {},
 	openTime: new Date(),
-	get elements() {
-		console.warn('Blockbench.elements is deprecated. Please use Outliner.elements instead.')
-		return Outliner.elements
-	},
-	get selection() {
-		console.warn('Blockbench.selection is deprecated. Please use Cube.selected or Outliner.selected instead.')
-		return Cube.selected
-	},
-	get textures() {
-		console.warn('Blockbench.textures is deprecated. Please use Texture.all instead.')
-		return textures;
-	},
 	edit(aspects, cb) {
 		Undo.initEdit(aspects)
 		cb()
@@ -68,7 +56,7 @@ const Blockbench = {
 			node = document.createElement('i');
 			node.classList.add('fa_big', 'icon');
 			
-		} else if (icon.substr(0, 2) === 'fa') {
+		} else if (icon.match(/^(fa[.-])|(fa[rsb]\.)/)) {
 			//Font Awesome
 			node = document.createElement('i');
 			node.classList.add('fa_big', 'icon');
@@ -126,7 +114,7 @@ const Blockbench = {
 	 * @param {string} [options.icon] Blockbench icon string
 	 * @param {number} [options.expire] Expire time in miliseconds
 	 * @param {string} [options.color] Background color, accepts any CSS color string
-	 * @param {function click(event)} [options.click] Method to run on click. Return `true` to close toast
+	 * @param {function} [options.click] Method to run on click. Return `true` to close toast
 	 * 
 	 */
 	showToastNotification(options) {
@@ -211,13 +199,28 @@ const Blockbench = {
 			if (!options.message) options.message = tl('message.'+options.translateKey+'.message')
 		}
 
-		var jq_dialog = $('<dialog class="dialog paddinged" style="width: auto;" id="message_box"><div class="dialog_handle">'+tl(options.title)+'</div></dialog>')
+		var jq_dialog = $(`
+			<dialog class="dialog" style="width: auto;" id="message_box">
+				<div class="dialog_handle"><div class="dialog_title">${tl(options.title)}</div></div>
+				<div class="dialog_close_button" onclick="open_interface.cancel()"><i class="material-icons">clear</i></div>
+			</dialog>`)
 
-		jq_dialog.append('<div class="dialog_bar" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
-			marked(tl(options.message))+'</div>'
+		jq_dialog.append('<div class="dialog_content"><div class="dialog_bar" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
+			marked(tl(options.message))+
+			'</div></div>'
 		)
 		if (options.icon) {
 			jq_dialog.find('.dialog_bar').prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'))
+		}
+
+		function close(button) {
+			hideDialog();
+			setTimeout(function() {
+				jq_dialog.remove();
+			},200)
+			if (cb) {
+				cb(button);
+			}
 		}
 
 		var buttons = []
@@ -225,15 +228,9 @@ const Blockbench = {
 		options.buttons.forEach(function(b, i) {
 			var btn = $('<button type="button">'+tl(b)+'</button>')
 			btn.click(function(e) {
-				hideDialog()
-				setTimeout(function() {
-					jq_dialog.remove()
-				},200)
-				if (cb) {
-					cb(i)
-				}
+				close(i);
 			})
-			buttons.push(btn)
+			buttons.push(btn);
 		})
 		jq_dialog.hide = function() {
 			$(jq_dialog.find('button').get(options.cancel)).click()
@@ -267,15 +264,22 @@ const Blockbench = {
 			jq_dialog.css('width', limitNumber(options.buttons.length*170+44, 380, 894)+'px')
 		}
 		open_dialog = 'message_box'
-		open_interface = 'message_box'
+		open_interface = {
+			confirm() {
+				close(options.confirm);
+			},
+			cancel() {
+				close(options.cancel);
+			}
+		}
 		return jq_dialog
 	},
-	textPrompt(title, value, callback) {
+	textPrompt(title, value, callback, placeholder = null) {
 		showDialog('text_input')
-		$('#text_input h2').text(tl(title))
-		$('#text_input input#text_input_field').val(value).select()
+		$('#text_input .dialog_handle .dialog_title').text(tl(title || 'dialog.input.title'))
+		$('#text_input input#text_input_field').val(value).trigger('select').attr('placeholder', placeholder);
 		$('#text_input button.confirm_btn').off()
-		$('#text_input button.confirm_btn').click(function() {
+		$('#text_input button.confirm_btn').on('click', function() {
 			var s = $('#text_input input#text_input_field').val()
 			if (callback !== undefined) {
 				callback(s)
@@ -338,13 +342,16 @@ const Blockbench = {
 	},
 	//Events
 	dispatchEvent(event_name, data) {
-		var list = this.events[event_name]
+		let list = this.events[event_name];
 		if (!list) return;
-		for (var i = 0; i < list.length; i++) {
+		let results = [];
+		for (let i = 0; i < list.length; i++) {
 			if (typeof list[i] === 'function') {
-				list[i](data)
+				let result = list[i](data);
+				results.push(result);
 			}
 		}
+		return results;
 	},
 	addListener(event_names, cb) {
 		event_names.split(' ').forEach(event_name => {

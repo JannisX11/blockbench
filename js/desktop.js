@@ -1,5 +1,5 @@
-const electron = require('electron').remote;
-const {clipboard, shell, nativeImage, ipcRenderer} = require('electron');
+const electron = require('@electron/remote');
+const {clipboard, shell, nativeImage, ipcRenderer, dialog} = require('electron');
 const app = electron.app;
 const fs = require('fs');
 const NodeBuffer = require('buffer');
@@ -29,32 +29,6 @@ const recent_projects = (function() {
 
 app.setAppUserModelId('blockbench')
 
-// Deprecated
-const ElecDialogs = {};
-if (electron.dialog.showMessageBoxSync) {
-	ElecDialogs.showMessageBox = function(a, b, cb) {
-		if (!cb) cb = b;
-		var result = electron.dialog.showMessageBoxSync(a, b);
-		if (typeof cb == 'function') cb(result);
-		return result;
-	}
-	ElecDialogs.showSaveDialog = function(a, b, cb) {
-		if (!cb) cb = b;
-		var result = electron.dialog.showSaveDialogSync(a, b);
-		if (typeof cb == 'function') cb(result);
-		return result;
-	}
-	ElecDialogs.showOpenDialog = function(a, b, cb) {
-		if (!cb) cb = b;
-		var result = electron.dialog.showOpenDialogSync(a, b);
-		if (typeof cb == 'function') cb(result);
-		return result;
-	}
-} else {
-	ElecDialogs.showMessageBox = electron.dialog.showMessageBox;
-	ElecDialogs.showSaveDialog = electron.dialog.showSaveDialog;
-	ElecDialogs.showOpenDialog = electron.dialog.showOpenDialog;
-}
 
 function initializeDesktopApp() {
 
@@ -98,6 +72,13 @@ function initializeDesktopApp() {
 }
 //Load Model
 function loadOpenWithBlockbenchFile() {
+	ipcRenderer.on('open-model', (event, path) => {
+		Blockbench.read([path], {}, function(files) {
+			files.forEach(file => {
+				loadModelFile(file);
+			})
+		})
+	})
 	if (electron.process.argv.length >= 2) {
 		var extension = pathToExtension(electron.process.argv.last())
 		if (Codec.getAllExtensions().includes(extension)) {
@@ -150,15 +131,15 @@ function addRecentProject(data) {
 		day: new Date().dayOfYear()
 	}
 	recent_projects.splice(0, 0, project)
-	app.addRecentDocument(data.path)
+	ipcRenderer.send('add-recent-project', data.path);
 	if (recent_projects.length > Math.clamp(settings.recent_projects.value, 0, 256)) {
 		recent_projects.pop()
 	}
 	updateRecentProjects()
 }
-function updateRecentProjectThumbnail() {
-	if (elements.length == 0) return;
-	let path = ModelMeta.export_path || ModelMeta.save_path;
+async function updateRecentProjectThumbnail() {
+	if (Outliner.elements.length == 0) return;
+	let path = Project.export_path || Project.save_path;
 	let project = recent_projects.find(p => p.path == path);
 	if (!project) return;
 
@@ -172,16 +153,18 @@ function updateRecentProjectThumbnail() {
 	let size = Math.max(box[0], box[1]*2)
 	MediaPreview.camera.position.multiplyScalar(size/50)
 	
-	MediaPreview.screenshot({crop: false}, url => {
-		let hash = project.path.hashCode().toString().replace(/^-/, '0');
-		let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`)
-		Blockbench.writeFile(path, {
-			savetype: 'image',
-			content: url
+	await new Promise((resolve, reject) => {
+		MediaPreview.screenshot({crop: false}, url => {
+			let hash = project.path.hashCode().toString().replace(/^-/, '0');
+			let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`)
+			Blockbench.writeFile(path, {
+				savetype: 'image',
+				content: url
+			}, resolve)
+			let store_path = project.path;
+			project.path = '';
+			project.path = store_path;
 		})
-		let store_path = project.path;
-		project.path = '';
-		project.path = store_path;
 	})
 
 	// Clean old files
@@ -233,12 +216,12 @@ function changeImageEditor(texture, from_settings) {
 			var path;
 			if (Blockbench.platform == 'darwin') {
 				switch (id) {
-					case 'ps':  path = '/Applications/Adobe Photoshop CC 2020/Adobe Photoshop CC 2020.app'; break;
+					case 'ps':  path = '/Applications/Adobe Photoshop 2021/Adobe Photoshop 2021.app'; break;
 					case 'gimp':path = '/Applications/Gimp-2.10.app'; break;
 				}
 			} else {
 				switch (id) {
-					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop CC 2020\\Photoshop.exe'; break;
+					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop 2021\\Photoshop.exe'; break;
 					case 'gimp':path = 'C:\\Program Files\\GIMP 2\\bin\\gimp-2.10.exe'; break;
 					case 'pdn': path = 'C:\\Program Files\\paint.net\\PaintDotNet.exe'; break;
 				}
@@ -266,34 +249,38 @@ function changeImageEditor(texture, from_settings) {
 	}).show()
 }
 function selectImageEditorFile(texture) {
-	ElecDialogs.showOpenDialog(currentwindow, {
+	let filePaths = electron.dialog.showOpenDialogSync(currentwindow, {
 		title: tl('message.image_editor.exe'),
 		filters: [{name: 'Executable Program', extensions: ['exe', 'app']}]
-	}, function(filePaths) {
-		if (filePaths) {
-			settings.image_editor.value = filePaths[0]
-			if (texture) {
-				texture.openEditor()
-			}
-		}
 	})
+	if (filePaths) {
+		settings.image_editor.value = filePaths[0]
+		if (texture) {
+			texture.openEditor();
+		}
+	}
 }
 //Default Pack
 function openDefaultTexturePath() {
+	let detail = tl('message.default_textures.detail');
+	if (settings.default_path.value) {
+		detail += '\n\n' + tl('message.default_textures.current') + ': ' + settings.default_path.value;
+	}
+	let buttons = (
+		settings.default_path.value ? 	[tl('dialog.continue'), tl('generic.remove'), tl('dialog.cancel')]
+									:	[tl('dialog.continue'), tl('dialog.cancel')]
+	)
 	var answer = electron.dialog.showMessageBoxSync(currentwindow, {
 		type: 'info',
-		buttons: (
-			settings.default_path.value ? 	[tl('dialog.cancel'), tl('dialog.continue'), tl('generic.remove')]
-										:	[tl('dialog.cancel'), tl('dialog.continue')]
-		),
+		buttons,
 		noLink: true,
 		title: tl('message.default_textures.title'),
 		message: tl('message.default_textures.message'),
-		detail: tl('message.default_textures.detail'),
+		detail
 	})
-	if (answer === 0) {
+	if (answer === buttons.length-1) {
 		return;
-	} else if (answer === 1) {
+	} else if (answer === 0) {
 
 		let path = Blockbench.pickDirectory({
 			title: tl('message.default_textures.select'),
@@ -301,9 +288,11 @@ function openDefaultTexturePath() {
 		});
 		if (path) {
 			settings.default_path.value = path;
+			Settings.saveLocalStorages();
 		}
 	} else {
-		settings.default_path.value = false
+		settings.default_path.value = false;
+		Settings.saveLocalStorages();
 	}
 }
 function findExistingFile(paths) {
@@ -359,64 +348,43 @@ function createBackup(init) {
 }
 //Close
 
-window.onbeforeunload = function() {
+window.onbeforeunload = function (event) {
 	try {
 		updateRecentProjectThumbnail()
 	} catch(err) {}
 
-	if (!Blockbench.hasFlag('allow_closing')) {
-		setTimeout(function() {
-			showSaveDialog(true)
+
+	if (Blockbench.hasFlag('allow_closing')) {
+		try {
+			if (!Blockbench.hasFlag('allow_reload')) {
+				currentwindow.webContents.closeDevTools()
+			}
+		} catch (err) {}
+	} else {
+		setTimeout(async function() {
+			let projects = ModelProject.all.slice();
+			for (let project of projects) {
+				let closed = await project.close();
+				if (!closed) return false;
+			}
+			if (ModelProject.all.length === 0) {
+				closeBlockbenchWindow()
+				return true;
+			} else {
+				return false;
+			}
 		}, 2)
+		event.returnValue = true;
 		return true;
 	}
 }
 
-function showSaveDialog(close) {
-	if (Blockbench.hasFlag('allow_reload')) {
-		close = false
-	}
-	var unsaved_textures = 0;
-	textures.forEach(function(t) {
-		if (!t.saved) {
-			unsaved_textures++;
-		}
-	})
-	if ((window.Prop && Prop.project_saved === false && (elements.length > 0 || Group.all.length > 0)) || unsaved_textures) {
-		var answer = electron.dialog.showMessageBoxSync(currentwindow, {
-			type: 'question',
-			buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
-			title: 'Blockbench',
-			message: tl('message.close_warning.message'),
-			noLink: true
-		})
-		if (answer === 0) {
-			if (close === true) {
-				Blockbench.addFlag('close_after_saving')
-			}
-			BarItems.save_project.trigger()
-			return true;
-		} else if (answer === 2) {
-			return false;
-		} else {
-			if (close === true) {
-				closeBlockbenchWindow()
-			}
-			return true;
-		}
-	} else {
-		if (close === true) {
-			closeBlockbenchWindow()
-		}
-		return true;
-	}
-}
 function closeBlockbenchWindow() {
+	window.onbeforeunload = null;
 	Blockbench.addFlag('allow_closing');
 	Blockbench.dispatchEvent('before_closing')
 	localStorage.removeItem('backup_model')
-	EditSession.quit()
-	
+	if (Project.EditSession) Project.EditSession.quit()
 	return currentwindow.close();
 };
 
@@ -426,36 +394,27 @@ ipcRenderer.on('update-available', (event, arg) => {
 	if (settings.automatic_updates.value) {
 		ipcRenderer.send('allow-auto-update');
 
+
 		let icon_node = Blockbench.getIconNode('donut_large');
 		icon_node.classList.add('spinning');
 		let click_action;
 
-		let update_status = {
+		let action = new Action('update_status', {
 			name: tl('menu.help.updating', [0]),
-			id: 'update_status',
 			icon: icon_node,
 			click() {
 				if (click_action) click_action()
 			}
-		};
+		})
+		action.toElement('#update_menu');
 		MenuBar.menus.help.addAction('_');
-		MenuBar.menus.help.addAction(update_status);
-		function updateText(text) {
-			update_status.name = text;
-			$('li[menu_item=update_status]').each((i, node) => {
-				node.childNodes.forEach(child => {
-					if (child.nodeName == '#text') {
-						child.textContent = text;
-					}
-				})
-			});
-		}
+		MenuBar.menus.help.addAction(action);
 
 		ipcRenderer.on('update-progress', (event, status) => {
-			updateText(tl('menu.help.updating', [Math.round(status.percent)]));
+			action.setName(tl('menu.help.updating', [Math.round(status.percent)]));
 		})
 		ipcRenderer.on('update-error', (event, err) => {
-			updateText(tl('menu.help.update_failed'));
+			action.setName(tl('menu.help.update_failed'));
 			icon_node.textContent = 'warning';
 			icon_node.classList.remove('spinning')
 			click_action = function() {
@@ -464,12 +423,13 @@ ipcRenderer.on('update-available', (event, arg) => {
 			console.error(err);
 		})
 		ipcRenderer.on('update-downloaded', (event) => {
-			updateText(tl('menu.help.update_ready'));
-			icon_node.textContent = 'system_update_alt';
-			icon_node.classList.remove('spinning')
+			action.setName(tl('message.update_after_restart'));
+			MenuBar.menus.help.removeAction(action);
+			icon_node.textContent = 'done';
+			icon_node.classList.remove('spinning');
+			icon_node.style.color = '#5ef570';
 			click_action = function() {
-				app.relaunch();
-				app.quit();
+				Blockbench.showQuickMessage('message.update_after_restart')
 			}
 		})
 
@@ -478,12 +438,13 @@ ipcRenderer.on('update-available', (event, arg) => {
 			color: 'var(--color-back)',
 			graphic: {type: 'icon', icon: 'update'},
 			text: [
-				{type: 'h1', text: tl('message.update_notification.title')},
+				{type: 'h2', text: tl('message.update_notification.title')},
 				{text: tl('message.update_notification.message')},
 				{type: 'button', text: tl('generic.enable'), click: (e) => {
-					Settings.open({search: 'automatic_updates'})
+					settings.automatic_updates.set(true);
 				}}
 			]
 		})
 	}
 })
+

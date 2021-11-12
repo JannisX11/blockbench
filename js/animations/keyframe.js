@@ -84,12 +84,20 @@ class Keyframe {
 	calc(axis, data_point = 0) {
 		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
 		data_point = this.data_points[data_point];
-		return Animator.MolangParser.parse(data_point && data_point[axis])
+		let last_value = Animator._last_values[this.channel][axis];
+		let result = Animator.MolangParser.parse(data_point && data_point[axis], {this: last_value});
+		return result;
 	}
 	set(axis, value, data_point = 0) {
 		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
 		if (this.data_points[data_point]) {
-			this.data_points[data_point][axis] = value;
+			if (this.uniform) {
+				this.data_points[data_point].x = value;
+				this.data_points[data_point].y = value;
+				this.data_points[data_point].z = value;
+			} else {
+				this.data_points[data_point][axis] = value;
+			}
 		}
 		return this;
 	}
@@ -277,13 +285,13 @@ class Keyframe {
 			Timeline.dragging_keyframes = false
 			return this;
 		}
-		if (!event || (!event.shiftKey && !event.ctrlOrCmd)) {
+		if (!event || (!event.shiftKey && !event.ctrlOrCmd && !Pressing.overrides.ctrl && !Pressing.overrides.shift)) {
 			Timeline.selected.forEach(function(kf) {
 				kf.selected = false
 			})
 			Timeline.selected.empty()
 		}
-		if (event && event.shiftKey && Timeline.selected.length) {
+		if (event && (event.shiftKey || Pressing.overrides.shift) && Timeline.selected.length) {
 			var last = Timeline.selected[Timeline.selected.length-1]
 			if (last && last.channel === scope.channel && last.animator == scope.animator) {
 				Timeline.keyframes.forEach((kf) => {
@@ -376,22 +384,9 @@ class Keyframe {
 	}
 }
 	Keyframe.prototype.menu = new Menu([
-		//Quaternions have been removed in Bedrock 1.10.0
-		/*
-		{name: 'menu.keyframe.quaternion',
-			icon: (keyframe) => (keyframe.isQuaternion ? 'check_box' : 'check_box_outline_blank'),
-			condition: (keyframe) => keyframe.channel === 'rotation',
-			click: function(keyframe) {
-				keyframe.select()
-				var state = !keyframe.isQuaternion
-				Timeline.keyframes.forEach((kf) => {
-					kf.isQuaternion = state
-				})
-				updateKeyframeSelection()
-			}
-		},*/
 		'change_keyframe_file',
 		'_',
+		'keyframe_uniform',
 		'keyframe_interpolation',
 		{name: 'menu.cube.color', icon: 'color_lens', children: [
 			{icon: 'bubble_chart', name: 'generic.unset', click: function(kf) {kf.forSelected(kf2 => {kf2.color = -1}, 'change color')}},
@@ -409,6 +404,7 @@ class Keyframe {
 	])
 	new Property(Keyframe, 'number', 'time')
 	new Property(Keyframe, 'number', 'color', {default: -1})
+	new Property(Keyframe, 'boolean', 'uniform', {condition: keyframe => keyframe.channel == 'scale', default: true})
 	new Property(Keyframe, 'string', 'interpolation', {default: 'linear'})
 	Keyframe.selected = [];
 	Keyframe.interpolation = {
@@ -419,6 +415,7 @@ class Keyframe {
 // Misc Functions
 function updateKeyframeValue(axis, value, data_point) {
 	Timeline.selected.forEach(function(kf) {
+		if (axis == 'uniform' && kf.channel == 'scale') kf.uniform = true;
 		kf.set(axis, value, data_point);
 	})
 	if (!['effect', 'locator', 'script'].includes(axis)) {
@@ -435,8 +432,12 @@ function updateKeyframeSelection() {
 	if (Timeline.selected.length) {
 		BarItems.slider_keyframe_time.update()
 		BarItems.keyframe_interpolation.set(Timeline.selected[0].interpolation)
+		if (BarItems.keyframe_uniform.value != !!Timeline.selected[0].uniform) {
+			BarItems.keyframe_uniform.value = !!Timeline.selected[0].uniform;
+			BarItems.keyframe_uniform.updateEnabledState();
+		}
 	}
-	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || NullObject.selected[0] || Animator.motion_trail_lock)) {
+	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || NullObject.selected[0] || Project.motion_trail_lock)) {
 		Animator.showMotionTrail();
 	} else if (Animator.motion_trail.parent) {
 		Animator.motion_trail.children.forEachReverse(child => {
@@ -471,7 +472,7 @@ function removeSelectedKeyframes() {
 	}
 	updateKeyframeSelection()
 	Animator.preview()
-	Undo.finishEdit('remove keyframes')
+	Undo.finishEdit('Remove keyframes')
 }
 
 BARS.defineActions(function() {
@@ -487,8 +488,8 @@ BARS.defineActions(function() {
 			if (Toolbox.selected.id == 'rotate_tool' && animator.channels.includes('rotation')) channel = 'rotation';
 			if (Toolbox.selected.id == 'move_tool' && animator.channels.includes('position')) channel = 'position';
 			if (Toolbox.selected.id == 'resize_tool' && animator.channels.includes('scale')) channel = 'scale';
-			animator.createKeyframe((event && event.shiftKey) ? {} : null, Timeline.time, channel, true);
-			if (event && event.shiftKey) {
+			animator.createKeyframe((event && (event.shiftKey || Pressing.overrides.shift)) ? {} : null, Timeline.time, channel, true);
+			if (event && (event.shiftKey || Pressing.overrides.shift)) {
 				Animator.preview();
 			}
 		}
@@ -505,7 +506,8 @@ BARS.defineActions(function() {
 				kf.time = Timeline.snapTime(limitNumber(kf.time - Timeline.getStep(), 0, 1e4))
 			})
 			Animator.preview()
-			Undo.finishEdit('move keyframes')
+			BarItems.slider_keyframe_time.update()
+			Undo.finishEdit('Move keyframes back')
 		}
 	})
 	new Action('move_keyframe_forth', {
@@ -519,7 +521,8 @@ BARS.defineActions(function() {
 				kf.time = Timeline.snapTime(limitNumber(kf.time + Timeline.getStep(), 0, 1e4))
 			})
 			Animator.preview()
-			Undo.finishEdit('move keyframes')
+			BarItems.slider_keyframe_time.update()
+			Undo.finishEdit('Move keyframes forwards')
 		}
 	})
 	new Action('previous_keyframe', {
@@ -600,7 +603,7 @@ BARS.defineActions(function() {
 		category: 'animation',
 		condition: () => Animator.open && Timeline.selected.length,
 		getInterval(event) {
-			if (event && event.shiftKey) return 1;
+			if ((event && event.shiftKey) || Pressing.overrides.shift) return 1;
 			return Timeline.getStep()
 		},
 		get: function() {
@@ -616,7 +619,23 @@ BARS.defineActions(function() {
 			Undo.initEdit({keyframes: Timeline.selected})
 		},
 		onAfter: function() {
-			Undo.finishEdit('move keyframes')
+			Animation.selected.setLength();
+			Undo.finishEdit('Change keyframe time')
+		}
+	})
+	new Toggle('keyframe_uniform', {
+		icon: 'link',
+		category: 'animation',
+		condition: () => Animator.open && Timeline.selected.length && !Timeline.selected.find(kf => kf.channel !== 'scale'),
+		onChange(value) {
+			let keyframes = Timeline.selected;
+			Undo.initEdit({keyframes})
+			keyframes.forEach((kf) => {
+				kf.uniform = value;
+			})
+			Undo.finishEdit('Change keyframes uniform setting')
+			Interface.Panels.keyframe.inside_vue.$forceUpdate();
+			updateKeyframeSelection();
 		}
 	})
 	new BarSelect('keyframe_interpolation', {
@@ -631,7 +650,7 @@ BARS.defineActions(function() {
 			Timeline.selected.forEach((kf) => {
 				if (kf.transform) kf.interpolation = sel.value;
 			})
-			Undo.finishEdit('change keyframes interpolation')
+			Undo.finishEdit('Change keyframes interpolation')
 			updateKeyframeSelection();
 		}
 	})
@@ -644,7 +663,7 @@ BARS.defineActions(function() {
 			Timeline.selected.forEach((kf) => {
 				kf.data_points.replace([new KeyframeDataPoint(kf)]);
 			})
-			Undo.finishEdit('reset keyframes')
+			Undo.finishEdit('Reset keyframes')
 			updateKeyframeSelection()
 			Animator.preview()
 		}
@@ -663,7 +682,7 @@ BARS.defineActions(function() {
 				}
 			})
 			Timeline.time = time_before;
-			Undo.finishEdit('resolve keyframes')
+			Undo.finishEdit('Resolve keyframes')
 			updateKeyframeSelection()
 		}
 	})
@@ -691,17 +710,16 @@ BARS.defineActions(function() {
 						}
 					})
 					Animator.loadParticleEmitter(path, files[0].content);
-					Undo.finishEdit('changed keyframe audio file')
+					Undo.finishEdit('Change keyframe particle file')
 				})	
 			} else {
 				Blockbench.import({
 					resource_id: 'animation_audio',
-					extensions: ['ogg'],
+					extensions: ['ogg', 'wav', 'mp3'],
 					type: 'Audio File',
 					startpath: Timeline.selected[0].data_points[0].file
 				}, function(files) {
 
-					// Todo: move to panel
 					let {path} = files[0];
 					Undo.initEdit({keyframes: Timeline.selected})
 					Timeline.selected.forEach((kf) => {
@@ -712,7 +730,7 @@ BARS.defineActions(function() {
 						}
 					})
 					Timeline.visualizeAudioFile(path);
-					Undo.finishEdit('changed keyframe audio file')
+					Undo.finishEdit('Change keyframe audio file')
 				})
 			}
 		}
@@ -735,11 +753,78 @@ BARS.defineActions(function() {
 					kf.data_points.reverse();
 				}
 			})
-			Undo.finishEdit('reverse keyframes')
+			Undo.finishEdit('Reverse keyframes')
 			updateKeyframeSelection()
 			Animator.preview()
 		}
 	})
+
+	flip_action = new Action('flip_animation', {
+		icon: 'transfer_within_a_station',
+		category: 'animation',
+		condition: {modes: ['animate'], method: () => Animation.selected},
+		click() {
+
+			if (!Animation.selected) {
+				Blockbench.showQuickMessage('message.no_animation_selected')
+				return;
+			}
+
+			let original_keyframes = (Timeline.selected.length ? Timeline.selected : Timeline.keyframes).slice();
+			if (!original_keyframes.length) return;
+
+			new Dialog({
+				id: 'flip_animation',
+				title: 'action.flip_animation',
+				form: {
+					info: {type: 'info', text: 'dialog.flip_animation.info'},
+					offset: {label: 'dialog.flip_animation.offset', type: 'checkbox', value: false},
+				},
+				onConfirm(formResult) {
+					this.hide()
+					
+					let new_keyframes = [];
+					Undo.initEdit({keyframes: new_keyframes});
+					let animators = [];
+					original_keyframes.forEach(kf => animators.safePush(kf.animator));
+					let channels = ['rotation', 'position', 'scale'];
+
+					animators.forEach(animator => {
+						channels.forEach(channel => {
+							if (!animator[channel]) return;
+							let kfs = original_keyframes.filter(kf => kf.channel == channel && kf.animator == animator);
+							if (!kfs.length) return;
+							let name = animator.name.toLowerCase().replace(/left/g, '%LX').replace(/right/g, 'left').replace(/%LX/g, 'right');
+							let opposite_bone = Group.all.find(g => g.name.toLowerCase() == name);
+							if (!opposite_bone) {
+								console.log(`Animation Flipping: Unable to find opposite bone for ${animator.name}`)
+								return;
+							}
+							let opposite_animator = Animation.selected.getBoneAnimator(opposite_bone);
+
+							kfs.forEach(old_kf => {
+								let time = old_kf.time;
+								if (formResult.offset) {
+									time = (time + Animation.selected.length/2) % (Animation.selected.length + 0.001);
+								}
+								let new_kf = opposite_animator.createKeyframe(old_kf, Timeline.snapTime(time), channel, false, false)
+								if (new_kf) {
+									new_kf.flip(0);
+									new_keyframes.push(new_kf);
+								}
+							})
+
+						})
+					})
+					TickUpdates.keyframes = true;
+					Animator.preview();
+
+					Undo.finishEdit('Copy and flip keyframes');
+				}
+			}).show()
+		}
+	})
+	MenuBar.addAction(flip_action, 'animation')
 })
 
 Interface.definePanels(function() {
@@ -767,7 +852,7 @@ Interface.definePanels(function() {
 			}},
 			methods: {
 				updateInput(axis, value, data_point) {
-					updateKeyframeValue(axis, value, data_point)
+					updateKeyframeValue(axis, value, data_point);
 				},
 				getKeyframeInfos() {
 					let list =  [tl('timeline.'+this.channel)];
@@ -786,7 +871,7 @@ Interface.definePanels(function() {
 						}
 					})
 					Animator.preview()
-					Undo.finishEdit('add keyframe data point')
+					Undo.finishEdit('Add keyframe data point')
 				},
 				removeDataPoint(data_point) {
 					Undo.initEdit({keyframes: Timeline.selected})
@@ -796,7 +881,7 @@ Interface.definePanels(function() {
 						}
 					})
 					Animator.preview()
-					Undo.finishEdit('remove keyframe data point')
+					Undo.finishEdit('Remove keyframe data point')
 				},
 				updateLocatorSuggestionList() {
 					locator_suggestion_list.innerHTML = '';
@@ -810,7 +895,9 @@ Interface.definePanels(function() {
 					if (Timeline.vue.graph_editor_open && 'xyz'.includes(axis)) {
 						Timeline.vue.graph_editor_axis = axis;
 					}
-				}
+				},
+				tl,
+				Condition
 			},
 			computed: {
 				channel() {
@@ -856,33 +943,53 @@ Interface.definePanels(function() {
 									</div>
 								</div>
 
-								<div
-									v-for="(property, key) in data_point.constructor.properties"
-									v-if="property.exposed != false && Condition(property.condition, data_point)"
-									class="bar flex"
-									:id="'keyframe_bar_' + property.name"
-								>
-									<label :class="[channel_colors[key]]" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}">{{ property.label }}</label>
-									<vue-prism-editor 
-										v-if="property.type == 'molang'"
-										class="molang_input dark_bordered keyframe_input tab_target"
-										v-model="data_point[key+'_string']"
-										@change="updateInput(key, $event, data_point_i)"
-										@focus="focusAxis(key)"
-										language="molang"
-										ignoreTabKey="true"
-										:line-numbers="false"
-									/>
-									<input
-										v-else
-										type="text"
-										class="dark_bordered code keyframe_input tab_target"
-										v-model="data_point[key]"
-										:list="key == 'locator' && 'locator_suggestion_list'"
-										@focus="key == 'locator' && updateLocatorSuggestionList()"
-										@input="updateInput(key, $event.target.value, data_point_i)"
-									/>
-								</div>
+								<template v-if="channel == 'scale' && keyframes[0].uniform && data_point.x_string == data_point.y_string && data_point.y_string == data_point.z_string">
+									<div
+										class="bar flex"
+										id="keyframe_bar_uniform_scale"
+									>
+										<label>${ tl('generic.all') }</label>
+										<vue-prism-editor 
+											class="molang_input dark_bordered keyframe_input tab_target"
+											v-model="data_point['x_string']"
+											@change="updateInput('uniform', $event, data_point_i)"
+											language="molang"
+											:ignoreTabKey="true"
+											:line-numbers="false"
+										/>
+									</div>
+								</template>
+
+
+								<template v-else>
+									<div
+										v-for="(property, key) in data_point.constructor.properties"
+										v-if="property.exposed != false && Condition(property.condition, data_point)"
+										class="bar flex"
+										:id="'keyframe_bar_' + property.name"
+									>
+										<label :class="[channel_colors[key]]" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}">{{ property.label }}</label>
+										<vue-prism-editor 
+											v-if="property.type == 'molang'"
+											class="molang_input dark_bordered keyframe_input tab_target"
+											v-model="data_point[key+'_string']"
+											@change="updateInput(key, $event, data_point_i)"
+											@focus="focusAxis(key)"
+											language="molang"
+											:ignoreTabKey="true"
+											:line-numbers="false"
+										/>
+										<input
+											v-else
+											type="text"
+											class="dark_bordered code keyframe_input tab_target"
+											v-model="data_point[key]"
+											:list="key == 'locator' && 'locator_suggestion_list'"
+											@focus="key == 'locator' && updateLocatorSuggestionList()"
+											@input="updateInput(key, $event.target.value, data_point_i)"
+										/>
+									</div>
+								</template>
 							</div>
 						</ul>
 					</template>
@@ -907,7 +1014,7 @@ Interface.definePanels(function() {
 
 			let val = event.target.value || event.target.innerText;
 			if (val != keyframe_edit_value) {
-				Undo.finishEdit('edit keyframe');
+				Undo.finishEdit('Edit keyframe');
 			} else {
 				Undo.cancelEdit();
 			}

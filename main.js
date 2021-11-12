@@ -3,6 +3,8 @@ const path = require('path')
 const url = require('url')
 const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
+const {getColorHexRGB} = require('electron-color-picker')
+require('@electron/remote/main').initialize()
 
 let orig_win;
 let all_wins = [];
@@ -42,7 +44,7 @@ function createWindow(second_instance) {
 		icon:'icon.ico',
 		show: false,
 		backgroundColor: '#21252b',
-		frame: false,
+		frame: LaunchSettings.get('native_window_frame') === true,
 		titleBarStyle: 'hidden',
 		minWidth: 640,
 		minHeight: 480,
@@ -50,11 +52,15 @@ function createWindow(second_instance) {
 			webgl: true,
 			webSecurity: true,
 			nodeIntegration: true,
+			contextIsolation: false,
 			enableRemoteModule: true
 		}
 	})
 	if (!orig_win) orig_win = win;
 	all_wins.push(win);
+
+	require('@electron/remote/main').enable(win.webContents)
+
 	var index_path = path.join(__dirname, 'index.html')
 	if (process.platform === 'darwin') {
 
@@ -149,13 +155,20 @@ app.commandLine.appendSwitch('ignore-gpu-blacklist')
 app.commandLine.appendSwitch('enable-accelerated-video')
 
 app.on('second-instance', function (event, argv, cwd) {
-	process.argv = argv
-	createWindow(true)
+	process.argv = argv;
+	let win = all_wins.find(win => !win.isDestroyed());
+	if (win && argv[argv.length-1 || 1] && argv[argv.length-1 || 1].substr(0, 2) !== '--') {
+		win.webContents.send('open-model', argv[argv.length-1 || 1]);
+		win.focus();
+	} else {
+		createWindow(true);
+	}
 })
 app.on('open-file', function (event, path) {
 	process.argv[process.argv.length-1 || 1] = path;
-	if (orig_win) {
-		createWindow(true)
+	let win = all_wins.find(win => !win.isDestroyed());
+	if (win) {
+		win.webContents.send('open-model', path);
 	}
 })
 
@@ -167,6 +180,24 @@ ipcMain.on('change-main-color', (event, arg) => {
 })
 ipcMain.on('edit-launch-setting', (event, arg) => {
 	LaunchSettings.set(arg.key, arg.value);
+})
+ipcMain.on('add-recent-project', (event, path) => {
+	app.addRecentDocument(path);
+})
+ipcMain.on('new-window', (event, path) => {
+	createWindow(true);
+})
+ipcMain.on('request-color-picker', async (event, arg) => {
+	const color = await getColorHexRGB().catch((error) => {
+		console.warn('[Error] Failed to pick color', error)
+		return ''
+	})
+	if (color) {
+		all_wins.forEach(win => {
+			if (win.isDestroyed() || (!arg.sync && win.webContents.getProcessId() != event.sender.getProcessId())) return;
+			win.webContents.send('set-main-color', color)
+		})
+	}
 })
 
 app.on('ready', () => {
@@ -183,6 +214,9 @@ app.on('ready', () => {
 	
 			autoUpdater.autoInstallOnAppQuit = true;
 			autoUpdater.autoDownload = false;
+			if (LaunchSettings.get('update_to_prereleases') === true) {
+				autoUpdater.allowPrerelease = true;
+			}
 	
 			autoUpdater.on('update-available', (a) => {
 				console.log('update-available', a)

@@ -1,0 +1,35 @@
+{
+	"new_version": {
+		"color": "var(--color-bright_ui)",
+		"text_color": "var(--color-bright_ui_text)",
+		"graphic": {
+			"type": "image",
+			"source": "https://web.blockbench.net/content/splash_art.png?40",
+			"width": 1000,
+			"aspect_ratio": "21/10",
+			"description": "Splash Art by [Wackyblocks](https://twitter.com/wackyblocks)"
+		},
+		"layout": "vertical",
+		"text": [
+			{"text": "Welcome to Blockbench 4.0, the Mesh Update!", "type": "h1"},
+			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.0.0)!"}
+		],
+		"features": [
+			{
+				"image": "https://web.blockbench.net/content/tabs.png",
+				"title": "Tabs!",
+				"text": "Open multiple models at the same time and easily switch between them using the new project tabs!"
+			},
+			{
+				"image": "https://web.blockbench.net/content/poly_mesh.png",
+				"title": "Poly Mesh Editing!",
+				"text": "Blockbench now supports poly mesh editing, which lets you create and modify any type of shape in generic models."
+			},
+			{
+				"image": "https://web.blockbench.net/content/theme_browser.png",
+				"title": "Theme Browser",
+				"text": "You can now discover and switch to new themes directly inside Blockbench. Also, the theme menu and the other settings menus have been re-designed and cleaned up!"
+			}
+		]
+	}
+}

@@ -191,6 +191,7 @@ class Menu {
 				} else {
 					entry.on('click', (e) => {s.trigger(e)})
 				}
+
 				parent.append(entry)
 
 			} else if (s instanceof BarSelect) {
@@ -200,7 +201,7 @@ class Menu {
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = $(`<li title="${s.description||''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`)
+				entry = $(`<li title="${s.description ? tl(s.description) : ''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`)
 				entry.prepend(icon)
 
 				//Submenu
@@ -244,7 +245,7 @@ class Menu {
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = $(`<li title="${s.description||''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`)
+				entry = $(`<li title="${s.description ? tl(s.description) : ''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`)
 				entry.prepend(icon)
 				if (typeof s.click === 'function') {
 					entry.click(e => {
@@ -263,6 +264,14 @@ class Menu {
 				entry.mouseenter(function(e) {
 					scope.hover(this, e)
 				})
+			}
+			//Highlight
+			if (scope.highlight_action == s && entry) {
+				let obj = entry;
+				while (obj[0] && obj[0].nodeName == 'LI') {
+					obj.addClass('highlighted');
+					obj = obj.parent().parent();
+				}
 			}
 		}
 
@@ -286,6 +295,10 @@ class Menu {
 			var offset_left = (document.body.clientWidth-el_width)/2
 			var offset_top  = (document.body.clientHeight-el_height)/2
 
+		} else if (position == 'mouse') {
+			var offset_left = mouse_pos.x;
+			var offset_top  = mouse_pos.y;
+
 		} else {
 			if (!position && scope.type === 'bar_menu') {
 				position = scope.label
@@ -293,15 +306,19 @@ class Menu {
 				position = position.parentElement;
 			}
 			var offset_left = $(position).offset().left;
-			var offset_top  = $(position).offset().top + $(position).height();
+			var offset_top  = $(position).offset().top + position.clientHeight;
 		}
 
 		if (offset_left > window.innerWidth - el_width) {
 			offset_left -= el_width
 			if (position && position.clientWidth) offset_left += position.clientWidth;
+			if (offset_left < 0) offset_left = 0;
 		}
 		if (offset_top  > window_height - el_height ) {
-			offset_top -= el_height
+			offset_top -= el_height;
+			if (position instanceof HTMLElement) {
+				offset_top -= position.clientHeight;
+			}
 		}
 		offset_top = Math.clamp(offset_top, 26)
 
@@ -312,14 +329,13 @@ class Menu {
 			handleMenuOverflow(ctxmenu);
 		}
 
-		$(scope.node).filter(':not(.tx)').addClass('tx').click(function(ev) {
+		$(scope.node).on('click', (ev) => {
 			if (
 				ev.target.className.includes('parent') ||
 				(ev.target.parentNode && ev.target.parentNode.className.includes('parent'))
 			) {} else {
 				scope.hide()
 			}
-
 		})
 
 		if (scope.type === 'bar_menu') {
@@ -333,6 +349,7 @@ class Menu {
 		return this.open(position);
 	}
 	hide() {
+		$(this.node).find('li.highlighted').removeClass('highlighted');
 		$(this.node).detach()
 		open_menu = null;
 		return this;
@@ -369,11 +386,16 @@ class Menu {
 	}
 	removeAction(path) {
 		var scope = this;
-		if (path === undefined) path = ''
-		path = path.split('.')
+		if (path instanceof Action) {
+			let action = path;
+			this.structure.remove(action);
+			this.structure.remove(action.id);
+			action.menus.remove(this);
+		}
+		if (path === undefined) path = '';
+		if (typeof path == 'string') path = path.split('.');
 
 		function traverse(arr, layer) {
-			var result;
 			if (!isNaN(parseInt(path[layer]))) {
 				result = arr[parseInt(path[layer])]
 
@@ -427,6 +449,8 @@ class BarMenu extends Menu {
 		this.children = [];
 		this.condition = options.condition
 		this.node = $('<ul class="contextMenu"></ul>')[0]
+		this.node.style.minHeight = '8px';
+		this.node.style.minWidth = '150px';
 		this.name = tl(options.name || `menu.${id}`);
 		this.label = $(`<li class="menu_bar_point">${this.name}</li>`)[0]
 		$(this.label).click(function() {
@@ -441,13 +465,20 @@ class BarMenu extends Menu {
 				scope.open()
 			}
 		})
-		this.structure = structure
+		this.structure = structure;
+		this.highlight_action = null;
 	}
 	hide() {
-		super.hide()
-		$(this.label).removeClass('opened')
-		MenuBar.open = undefined
+		super.hide();
+		$(this.label).removeClass('opened');
+		MenuBar.open = undefined;
+		this.highlight_action = null;
+		this.label.classList.remove('highlighted');
 		return this;
+	}
+	highlight(action) {
+		this.highlight_action = action;
+		this.label.classList.add('highlighted');
 	}
 }
 const MenuBar = {
@@ -459,7 +490,6 @@ const MenuBar = {
 			'project_window',
 			'_',
 			{name: 'menu.file.new', id: 'new', icon: 'insert_drive_file',
-				condition: () => (!EditSession.active || EditSession.hosting),
 				children: function() {
 					var arr = [];
 					for (var key in Formats) {
@@ -480,7 +510,7 @@ const MenuBar = {
 				}
 			},
 			{name: 'menu.file.recent', id: 'recent', icon: 'history',
-				condition: function() {return isApp && recent_projects.length && (!EditSession.active || EditSession.hosting)},
+				condition: function() {return isApp && recent_projects.length},
 				children: function() {
 					var arr = []
 					let redact = settings.streamer_mode.value;
@@ -511,6 +541,8 @@ const MenuBar = {
 				}
 			},
 			'open_model',
+			'open_from_link',
+			'new_window',
 			'_',
 			'save_project',
 			'save_project_as',
@@ -518,9 +550,35 @@ const MenuBar = {
 			'close_project',
 			'_',
 			{name: 'menu.file.import', id: 'import', icon: 'insert_drive_file', children: [
+				{
+					id: 'import_open_project',
+					name: 'menu.file.import.import_open_project',
+					icon: 'input',
+					condition: () => Project && ModelProject.all.length > 1,
+					children() {
+						let projects = [];
+						ModelProject.all.forEach(project => {
+							if (project == Project) return;
+							projects.push({
+								name: project.getDisplayName(),
+								icon: project.format.icon,
+								description: project.path,
+								click() {
+									let current_project = Project;
+									project.select();
+									let bbmodel = Codecs.project.compile();
+									current_project.select();
+									Codecs.project.merge(JSON.parse(bbmodel));
+								}
+							})
+						})
+						return projects;
+					}
+				},
 				'import_project',
 				'import_java_block_model',
 				'import_optifine_part',
+				'import_obj',
 				'extrude_texture'
 			]},
 			{name: 'generic.export', id: 'export', icon: 'insert_drive_file', children: [
@@ -531,9 +589,9 @@ const MenuBar = {
 				'export_optifine_full',
 				'export_optifine_part',
 				'export_minecraft_skin',
+				'export_gltf',
 				'export_obj',
 				'export_collada',
-				'export_gltf',
 				'upload_sketchfab',
 				'share_model',
 			]},
@@ -551,15 +609,32 @@ const MenuBar = {
 		new BarMenu('edit', [
 			'undo',
 			'redo',
+			'edit_history',
 			'_',
 			'add_cube',
+			'add_mesh',
 			'add_group',
 			'add_locator',
 			'add_null_object',
-			'rename',
-			'unlock_everything',
+			'add_texture_mesh',
+			'_',
 			'duplicate',
+			'rename',
+			'find_replace',
+			'unlock_everything',
 			'delete',
+			'_',
+			{name: 'data.mesh', id: 'mesh', icon: 'fa-gem', children: [
+				'extrude_mesh_selection',
+				'inset_mesh_selection',
+				'loop_cut',
+				'create_face',
+				'invert_face',
+				'merge_vertices',
+				'dissolve_edges',
+				'split_mesh',
+				'merge_meshes',
+			]},
 			'_',
 			'select_window',
 			'select_all',
@@ -610,14 +685,8 @@ const MenuBar = {
 		})
 		
 		new BarMenu('filter', [
+			'convert_to_mesh',
 			'remove_blank_faces',
-			/*
-			plaster
-			optimize
-			sort by transparency
-			entity / player model / shape generator
-			*/
-
 		])
 
 		new BarMenu('animation', [
@@ -627,11 +696,12 @@ const MenuBar = {
 			'add_keyframe',
 			'add_marker',
 			'reverse_keyframes',
-			{name: 'menu.transform.flip', id: 'flip', condition: () => Timeline.selected.length, icon: 'flip', children: [
+			{name: 'menu.animation.flip_keyframes', id: 'flip_keyframes', condition: () => Timeline.selected.length, icon: 'flip', children: [
 				'flip_x',
 				'flip_y',
 				'flip_z'
 			]},
+			'flip_animation',
 			'delete',
 			'lock_motion_trail',
 			'_',
@@ -648,13 +718,16 @@ const MenuBar = {
 		new BarMenu('view', [
 			'fullscreen',
 			'_',
+			'view_mode',
 			'toggle_shading',
 			'toggle_motion_trails',
-			'toggle_wireframe',
+			'toggle_ground_plane',
 			'preview_checkerboard',
 			'painting_grid',
 			'_',
+			'toggle_sidebars',
 			'toggle_quad_view',
+			'hide_everything_except_selection',
 			'focus_on_selection',
 			{name: 'menu.view.screenshot', id: 'screenshot', icon: 'camera_alt', children: [
 				'screenshot_model',
@@ -672,6 +745,9 @@ const MenuBar = {
 			{name: 'menu.help.quickstart', id: 'discord', icon: 'fas.fa-directions', click: () => {
 				Blockbench.openLink('https://blockbench.net/quickstart/');
 			}},
+			{name: 'menu.help.wiki', id: 'wiki', icon: 'menu_book', click: () => {
+				Blockbench.openLink('https://blockbench.net/wiki/');
+			}},
 			{name: 'menu.help.report_issue', id: 'report_issue', icon: 'bug_report', click: () => {
 				Blockbench.openLink('https://github.com/JannisX11/blockbench/issues');
 			}},
@@ -681,7 +757,7 @@ const MenuBar = {
 			{name: 'menu.help.developer', id: 'developer', icon: 'fas.fa-wrench', children: [
 				'reload_plugins',
 				{name: 'menu.help.plugin_documentation', id: 'plugin_documentation', icon: 'fa-book', click: () => {
-					Blockbench.openLink('https://jannisx11.github.io/blockbench-docs/');
+					Blockbench.openLink('https://www.blockbench.net/wiki/api/index');
 				}},
 				'open_dev_tools',
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
@@ -692,7 +768,17 @@ const MenuBar = {
 						window.location.reload(true)
 					}
 				}},
+				{name: 'menu.help.developer.unlock_projects', id: 'unlock_projects', icon: 'vpn_key', condition: () => ModelProject.all.find(project => project.locked), click() {
+					ModelProject.all.forEach(project => project.locked = false);
+				}},
 				{name: 'menu.help.developer.cache_reload', id: 'cache_reload', icon: 'cached', condition: !isApp, click: () => {
+					if('caches' in window){
+						caches.keys().then((names) => {
+							names.forEach(async (name) => {
+								await caches.delete(name)
+							})
+						})
+					}
 					window.location.reload(true)
 				}},
 				'reload',
@@ -700,9 +786,7 @@ const MenuBar = {
 			{name: 'menu.help.donate', id: 'donate', icon: 'fas.fa-hand-holding-usd', click: () => {
 				Blockbench.openLink('https://blockbench.net/donate/');
 			}},
-			{name: 'menu.help.about', id: 'about', icon: 'info', click: () => {
-				Settings.open({tab: 'credits'});
-			}}
+			'about_window'
 		])
 		MenuBar.update()
 	},

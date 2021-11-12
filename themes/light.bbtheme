@@ -1,0 +1,27 @@
+{
+	"id": "light",
+	"name": "Default (Light)",
+	"author": "Default",
+	"main_font": "",
+	"headline_font": "",
+	"code_font": "",
+	"css": ".checkerboard, .checkerboard_trigger .checkerboard_target {\n    --color-checker_offset: rgba(0, 0, 0, 0.05);\n}\n.list {\n  background-color: transparent;\n}\n#center {\n  box-shadow: 0 0 12px inset #00000017;\n}\n#start_screen > content {\n  box-shadow: 0 0 10px #0003;\n}\nbody {\n  --color-close: #ff5062;\n  --color-bright_border: var(--color-border);\n}\ndialog {\n  box-shadow: 0 0px 6px rgb(0 0 0 / 48%);\n}\n.blockbench_logo {\n  mix-blend-mode: difference;\n}\n",
+	"colors": {
+		"ui": "#ffffff",
+		"back": "#f2f2f2",
+		"dark": "#e6e6e6",
+		"border": "#c8c8c8",
+		"selected": "#ececec",
+		"button": "#d5d5d5",
+		"bright_ui": "#ffffff",
+		"accent": "#579eff",
+		"frame": "#d7d7d7",
+		"text": "#343437",
+		"light": "#111111",
+		"accent_text": "#000006",
+		"subtle_text": "#6b6d72",
+		"grid": "#b0b2b8",
+		"wireframe": "#8797a3",
+		"checkerboard": "#eeeeee"
+	}
+}

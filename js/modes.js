@@ -10,7 +10,7 @@ class Mode extends KeybindItem {
 		this.selected = false
 
 		this.default_tool = data.default_tool;
-		this.selectCubes = data.selectCubes !== false
+		this.selectElements = data.selectElements !== false
 
 		this.center_windows = data.center_windows||[];
 		this.hide_toolbars = data.hide_toolbars
@@ -55,6 +55,7 @@ class Mode extends KeybindItem {
 		Mode.selected = this;
 		Modes.selected = this;
 		Modes[Modes.selected.id] = true;
+		if (Project) Project.mode = this.id;
 
 		document.body.setAttribute('mode', this.id);
 
@@ -90,7 +91,7 @@ class Mode extends KeybindItem {
 	}
 	delete() {
 		if (Mode.selected == this) {
-			Modes.options.start.select();
+			Modes.options.edit.select();
 		}
 		delete Modes.options[this.id];
 	}
@@ -107,120 +108,69 @@ onVueSetup(function() {
 		el: '#mode_selector',
 		data: {
 			options: Modes.options
+		},
+		methods: {
+			Condition
 		}
 	})
-});
-BARS.defineActions(function() {
-	
+
+
 	StateMemory.init('start_screen_list_type', 'string')
-	StartScreen = new Mode('start', {
-		category: 'navigate',
-		hide_toolbars: true,
-		hide_sidebars: true,
-		hide_status_bar: true,
-		component: {
-			data: {
-				formats: Formats,
-				recent: isApp ? recent_projects : [],
-				list_type: StateMemory.start_screen_list_type || 'list',
-				redact_names: settings.streamer_mode.value,
-				isApp
-			},
-			methods: {
-				getDate(p) {
-					if (p.day) {
-						var diff = (365e10 + Blockbench.openTime.dayOfYear() - p.day) % 365;
-						if (diff <= 0) {
-							return tl('dates.today');
-						} else if (diff == 1) {
-							return tl('dates.yesterday');
-						} else if (diff <= 7) {
-							return tl('dates.this_week');
-						} else {
-							return tl('dates.weeks_ago', [Math.ceil(diff/7)]);
-						}
+
+	let vue = new Vue({
+		el: '#start_screen',
+		data: {
+			formats: Formats,
+			recent: isApp ? recent_projects : [],
+			list_type: StateMemory.start_screen_list_type || 'grid',
+			redact_names: settings.streamer_mode.value,
+			redacted: tl('generic.redacted'),
+			isApp,
+			getIconNode: Blockbench.getIconNode
+		},
+		methods: {
+			getDate(p) {
+				if (p.day) {
+					var diff = (365e10 + Blockbench.openTime.dayOfYear() - p.day) % 365;
+					if (diff <= 0) {
+						return tl('dates.today');
+					} else if (diff == 1) {
+						return tl('dates.yesterday');
+					} else if (diff <= 7) {
+						return tl('dates.this_week');
 					} else {
-						return '-'
+						return tl('dates.weeks_ago', [Math.ceil(diff/7)]);
 					}
-				},
-				openProject: function(p, event) {
-					Blockbench.read([p.path], {}, files => {
-						loadModelFile(files[0]);
-					})
-				},
-				getThumbnail(model_path) {
-					let hash = model_path.hashCode().toString().replace(/^-/, '0');
-					let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`);
-					if (!fs.existsSync(path)) return 'none'
-					path = `url('${path.replace(/\\/g, '/')}?${Math.round(Math.random()*255)}')`;
-					return path;
-				},
-				setListType(type) {
-					this.list_type = type;
-					StateMemory.start_screen_list_type = type;
-					StateMemory.save('start_screen_list_type')
+				} else {
+					return '-'
 				}
 			},
-			template: `
-				<div id="start_screen">
-					<content>
-						<section id="start-files">
-							<left>
-								<h2 class="tl">mode.start.new</h2>
-								<div class="bar next_to_title" id="uv_title_bar">
-									<div class="tool" onclick="Blockbench.openLink('https://blockbench.net/quickstart/')">
-										<div class="tooltip tl">menu.help.quickstart</div>
-										<i class="fas fa-question-circle"></i>
-									</div>
-								</div>
-								<ul>
-									<li v-for="format in formats" v-if="format.show_on_start_screen" v-on:click="format.new()">
-										<span class="icon_wrapper f_left" v-html="Blockbench.getIconNode(format.icon).outerHTML"></span>
-										<h3>{{ format.name }}</h3>
-										<p>{{ format.description }}</p>
-									</li>
-								</ul>
-							</left>
-							<right>
-								<h2 class="tl">mode.start.recent</h2>
-								<div id="start_screen_list_type" v-if="isApp && !redact_names">
-									<li class="tool" v-bind:class="{selected: list_type == 'list'}" v-on:click="setListType('list')">
-										<i class="material-icons">list</i>
-									</li>
-									<li class="tool" v-bind:class="{selected: list_type == 'grid'}" v-on:click="setListType('grid')">
-										<i class="material-icons">view_module</i>
-									</li>
-								</div>
-								<div v-if="redact_names">{{ '['+tl('generic.redacted')+']' }}</div>
-								<ul v-else-if="list_type == 'list'">
-									<li v-on:click="openProject(project, $event)" v-for="project in recent" v-key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project">
-										<span class="icon_wrapper" v-html="Blockbench.getIconNode(project.icon).outerHTML"></span>
-										<span class="recent_project_name">{{ redact_names ? '[${tl('generic.redacted')}]' : project.name }}</span>
-										<span class="recent_project_date">{{ getDate(project) }}</span>
-									</li>
-									<div v-if="recent.length == 0">{{ tl('mode.start.no_recents') }}</div>
-								</ul>
-								<ul :class="{redact: redact_names}" v-else>
-									<li v-on:click="openProject(project, $event)" v-for="project in recent" v-key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project thumbnail">
-										<div class="thumbnail_image" :style="{'background-image': getThumbnail(project.path)}"></div>
-										<span class="recent_project_name">{{ redact_names ? '[${tl('generic.redacted')}]' : project.name }}</span>
-										<span class="icon_wrapper" v-html="Blockbench.getIconNode(project.icon).outerHTML"></span>
-									</li>
-									<div v-if="recent.length == 0">{{ tl('mode.start.no_recents') }}</div>
-								</ul>
-								<button class="tl" style="margin-top: 20px;" onclick="BarItems.open_model.trigger()">action.open_model</button>
-							</right>
-						</section>
-					</content>
-				</div>
-			`	
-		},
-		onSelect: function () {
-			if (Format && isApp) updateRecentProjectThumbnail()
-		},
-		onUnselect: function () {
+			openProject: function(p, event) {
+				Blockbench.read([p.path], {}, files => {
+					loadModelFile(files[0]);
+				})
+			},
+			getThumbnail(model_path) {
+				let hash = model_path.hashCode().toString().replace(/^-/, '0');
+				let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`);
+				if (!fs.existsSync(path)) return 'none'
+				path = `url('${path.replace(/\\/g, '/')}?${Math.round(Math.random()*255)}')`;
+				return path;
+			},
+			setListType(type) {
+				this.list_type = type;
+				StateMemory.start_screen_list_type = type;
+				StateMemory.save('start_screen_list_type')
+			},
+			tl
 		}
 	})
+	StartScreen = {
+		vue
+	}
+
+});
+BARS.defineActions(function() {
 	new Mode('edit', {
 		default_tool: 'move_tool',
 		category: 'navigate',
@@ -234,29 +184,28 @@ BARS.defineActions(function() {
 			if (Modes.previous_id == 'animate') {
 				Animator.preview();
 			}
-			Cube.all.forEach(cube => {
-				Canvas.buildGridBox(cube)
+			Outliner.elements.forEach(cube => {
+				if (cube.preview_controller.updatePaintingGrid) cube.preview_controller.updatePaintingGrid(cube);
 			})
 			$('#main_colorpicker').spectrum('set', ColorPanel.vue._data.main_color);
 			BarItems.slider_color_h.update();
 			BarItems.slider_color_s.update();
 			BarItems.slider_color_v.update();
 
-			$('.UVEditor').find('#uv_size').hide();
-			$('.bar.uv_editor_sliders').hide();
+			UVEditor.vue.setMode('paint');
 			three_grid.visible = false;
 		},
 		onUnselect: () => {
-			Cube.all.forEach(cube => {
-				Canvas.buildGridBox(cube)
+			Canvas.updateAllBones()
+			Outliner.elements.forEach(cube => {
+				if (cube.preview_controller.updatePaintingGrid) cube.preview_controller.updatePaintingGrid(cube);
 			})
-			$('.UVEditor').find('#uv_size').show();
-			$('.bar.uv_editor_sliders').show();
+			UVEditor.vue.setMode('uv');
 			three_grid.visible = true;
 		},
 	})
 	new Mode('display', {
-		selectCubes: false,
+		selectElements: false,
 		default_tool: 'move_tool',
 		category: 'navigate',
 		condition: () => Format.display_mode,
@@ -279,8 +228,4 @@ BARS.defineActions(function() {
 			Animator.leave()
 		}
 	})
-	//Update to 3.2.0
-	if (Modes.options.animate.keybind.key == 51) {
-		Modes.options.animate.keybind.set({key: 52})
-	}
 })

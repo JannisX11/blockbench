@@ -1,12 +1,53 @@
 class ModelProject {
-	constructor() {
+	constructor(options = {}) {
 		for (var key in ModelProject.properties) {
-			ModelProject.properties[key].reset(this);
+			ModelProject.properties[key].reset(this, true);
 		}
+		this.uuid = guid();
+		this.selected = false;
+		this.locked = false;
+		this.thumbnail = '';
 
-		this._box_uv = false;
+		this._box_uv = options.format ? options.format.box_uv : false;
 		this._texture_width = 16;
 		this._texture_height = 16;
+
+		this._name = '';
+		this.saved = true;
+		this.save_path = '';
+		this.export_path = '';
+		this.added_models = 0;
+
+		this.undo = new UndoSystem();
+		if (isApp) this.BedrockEntityManager = new BedrockEntityManager(this);
+		this.format = options.format instanceof ModelFormat ? options.format : Formats.free;
+		this.mode = 'edit';
+		this.view_mode = 'textured';
+		this.display_uv = settings.show_only_selected_uv.value ? 'selected_faces' :'selected_elements';
+		this.previews = {};
+		this.EditSession = null;
+
+		// Data
+		this.elements = [];
+		this.groups = [];
+		this.selected_elements = [];
+		this.selected_group = null;
+		this.selected_vertices = {};
+		this.selected_faces = [];
+		this.textures = [];
+		this.selected_texture = null;
+		this.outliner = [];
+		this.animations = [];
+		this.timeline_animators = [];
+		this.display_settings = {};
+
+		ModelProject.all.push(this);
+
+		ProjectData[this.uuid] = {
+			model_3d: new THREE.Object3D(),
+			materials: {},
+			nodes_3d: {}
+		}
 	}
 	extend() {
 		for (var key in ModelProject.properties) {
@@ -24,74 +65,230 @@ class ModelProject {
 	get texture_height() {return this._texture_height}
 	set texture_width(n) {
 		n = parseInt(n)||16
-		Vue.nextTick(updateProjectResolution)
+		if (this.selected && n != this._texture_width) {
+			Vue.nextTick(updateProjectResolution);
+		}
 		this._texture_width = n;
-	}
-	set texture_height(n) {
-		n = parseInt(n)||16
-		Vue.nextTick(updateProjectResolution)
-		this._texture_height = n;
 	}
 	get optional_box_uv() {
 		return Format.optional_box_uv;
 	}
-	reset() {
-		if (isApp) updateRecentProjectThumbnail();
+	set texture_height(n) {
+		n = parseInt(n)||16
+		if (this.selected && n != this._texture_height) {
+			Vue.nextTick(updateProjectResolution);
+		}
+		this._texture_height = n;
+	}
+	get name() {
+		return this._name;
+	}
+	set name(name) {
+		this._name = name;
+		if (Project == this) {
+			setProjectTitle(this._name);
+		}
+	}
+	get model_3d() {
+		return ProjectData[this.uuid].model_3d;
+	}
+	get materials() {
+		return ProjectData[this.uuid].materials;
+	}
+	get nodes_3d() {
+		return ProjectData[this.uuid].nodes_3d;
+	}
+	getDisplayName() {
+		return this.name || this.geometry_name || this.format.name;
+	}
+	openSettings() {
+		if (this.selected) BarItems.project_window.click();
+	}
+	whenNextOpen(callback) {
+		if (Project == this) {
+			callback();
+		} else {
+			if (!this.on_next_upen) this.on_next_upen = [];
+			this.on_next_upen.push(callback);
+		}
+	}
+	select() {
+		if (this === Project) return true;
+		if (this.locked || Project.locked) return false;
+		if (Project) {
+			Project.unselect()
+		} else {
+			Interface.tab_bar.new_tab.visible = false;
+		}
+		Project = this;
+		Undo = this.undo;
+		this.selected = true;
+		this.format.select();
+		BarItems.view_mode.set(this.view_mode);
 
-		Blockbench.dispatchEvent('reset_project');
+		// Setup Data
+		OutlinerNode.uuids = {};
+		this.elements.forEach(el => {
+			OutlinerNode.uuids[el.uuid] = el;
+		})
+		this.groups.forEach(group => {
+			OutlinerNode.uuids[group.uuid] = group;
+		})
+		Outliner.root = this.outliner;
+		Interface.Panels.outliner.inside_vue.root = this.outliner;
+
+		UVEditor.vue.elements = this.selected_elements;
+		UVEditor.vue.all_elements = this.elements;
+		UVEditor.vue.selected_vertices = this.selected_vertices;
+		UVEditor.vue.selected_faces = this.selected_faces;
+		UVEditor.vue.box_uv = this.box_uv;
+		UVEditor.vue.display_uv = this.display_uv;
+
+		Interface.Panels.textures.inside_vue.textures = Texture.all;
+		scene.add(this.model_3d);
+
+		Interface.Panels.animations.inside_vue.animations = this.animations;
+		Timeline.animators = Timeline.vue.animators = [];
+		Animation.selected = null;
+		let selected_anim = this.animations.find(anim => anim.selected);
+		if (selected_anim) selected_anim.select();
+		Timeline.animators = Timeline.vue.animators = this.timeline_animators;
+
+		Interface.Panels.variable_placeholders.inside_vue.text = this.variable_placeholders.toString();
+
+		Modes.options[this.mode].select();
+
+		BarItems.lock_motion_trail.value = !!Project.motion_trail_lock;
+		BarItems.lock_motion_trail.updateEnabledState();
 		
-		if (isApp) BedrockEntityManager.reset();
+		Preview.all.forEach(preview => {
+			let data = this.previews[preview.id];
+			if (data) {
+				preview.camera.position.fromArray(data.position);
+				preview.controls.target.fromArray(data.target);
+				preview.setProjectionMode(data.orthographic);
+				if (data.zoom) preview.camOrtho.zoom = data.zoom;
+				if (data.angle) preview.setLockedAngle(data.angle);
+			} else if (preview.default_angle !== undefined) {
+				setTimeout(() => preview.loadAnglePreset(preview.default_angle), 0);
+			}
+		})
 
-		if (Toolbox.selected.id !== 'move_tool') BarItems.move_tool.select();
-	
-		Screencam.stopTimelapse();
-	
-		Format = 0;
-		for (var uuid in OutlinerNode.uuids) {
-			delete OutlinerNode.uuids[uuid];
+		if (this.EditSession) {
+			Interface.Panels.chat.inside_vue.chat_history = this.EditSession.chat_history;
+			this.EditSession.catchUp();
 		}
-		Outliner.elements.empty();
-		Outliner.root.purge();
-		for (var key in Canvas.materials) {
-			delete Canvas.materials[key];
+
+		Blockbench.dispatchEvent('select_project', {project: this});
+
+		if (Preview.selected) Preview.selected.occupyTransformer();
+		setProjectTitle(this.name);
+		setStartScreen(!Project);
+		updateInterface();
+		updateProjectResolution();
+		Vue.nextTick(() => {
+			loadTextureDraggable();
+
+			if (this.on_next_upen instanceof Array) {
+				this.on_next_upen.forEach(callback => callback());
+				delete this.on_next_upen;
+			}
+		})
+		return true;
+	}
+	unselect() {
+		this.thumbnail = Preview.selected.canvas.toDataURL();
+		Interface.tab_bar.last_opened_project = this.uuid;
+
+		if (Format && typeof Format.onDeactivation == 'function') {
+			Format.onDeactivation()
 		}
-		for (var key in Canvas.bones) {
-			delete Canvas.bones[key];
-		}
-		selected.empty();
-		Group.all.empty();
-		Group.selected = undefined;
-		Cube.all.empty();
-		Cube.selected.empty();
-		Locator.all.empty();
-		Locator.selected.empty();
-		Texture.all.forEach(tex => tex.stopWatcher());
-		Texture.all.empty();
-		Texture.selected = undefined;
-	
-		for (var key in ModelProject.properties) {
-			ModelProject.properties[key].reset(this)
-		}
-		this.texture_width = this.texture_height = 16;
-		this.overrides = null;
-	
-		Blockbench.display_settings = display = {};
-		ModelMeta.save_path = ModelMeta.export_path = ModelMeta.name = '';
-		ModelMeta.saved = true;
-		Prop.project_saved = true;
-		Prop.added_models = 0;
-		Canvas.updateAll();
-		Outliner.vue.$forceUpdate();
-		Interface.Panels.textures.inside_vue.$forceUpdate();
-		Undo.history.empty();
-		Undo.index = 0;
-		Undo.current_save = null;
+
+		Preview.all.forEach(preview => {
+			this.previews[preview.id] = {
+				position: preview.camera.position.toArray(),
+				target: preview.controls.target.toArray(),
+				orthographic: preview.isOrtho,
+				zoom: preview.camOrtho.zoom,
+				angle: preview.angle,
+			}
+		})
+
+		if (TextureAnimator.isPlaying) TextureAnimator.stop();
+		this.selected = false;
 		Painter.current = {};
-		Animator.animations.purge();
-		Timeline.animators.purge();
-		Animation.selected = undefined;
-		delete Animator.motion_trail_lock;
-		$('#var_placeholder_area').val('');
+		scene.remove(this.model_3d);
+		OutlinerNode.uuids = {};
+		Format = 0;
+		Project = 0;
+		Undo = 0;
+
+		OutlinerNode.uuids = {};
+		Outliner.root = [];
+
+		Blockbench.dispatchEvent('unselect_project', {project: this});
+	}
+	async close(force) {
+		if (this.locked) return false;
+		let last_selected = Project;
+		try {
+			let result = this.select();
+			if (result === false) return false;
+		} catch (err) {
+			console.error(err);
+		}
+
+		async function saveWarning() {
+			await new Promise(resolve => setTimeout(resolve, 4));
+			if (Project.saved) {
+				return true;
+			} else {
+				if (isApp) {
+					var answer = electron.dialog.showMessageBoxSync(currentwindow, {
+						type: 'question',
+						buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
+						title: 'Blockbench',
+						message: tl('message.close_warning.message'),
+						noLink: true
+					})
+					if (answer === 0) {
+						BarItems.save_project.trigger();
+					}
+					return answer !== 2;
+				} else {
+					var answer = confirm(tl('message.close_warning.web'))
+					return answer;
+				}
+			}
+		}
+
+		if (force || await saveWarning()) {
+			if (isApp) await updateRecentProjectThumbnail();
+	
+			Blockbench.dispatchEvent('close_project');
+			
+			this.unselect();
+			Texture.all.forEach(tex => tex.stopWatcher());
+
+			let index = ModelProject.all.indexOf(this);
+			ModelProject.all.remove(this);
+			delete ProjectData[this.uuid];
+			Project = 0;
+
+			if (last_selected && last_selected !== this) {
+				last_selected.select();
+			} else if (ModelProject.all.length) {
+				ModelProject.all[Math.clamp(index, 0, ModelProject.all.length-1)].select();
+			} else {
+				Interface.tab_bar.new_tab.visible = true;
+				Interface.tab_bar.new_tab.select();
+				setStartScreen(true);
+			}
+
+			return true;
+		} else {
+			return false;
+		}
 	}
 }
 new Property(ModelProject, 'string', 'name', {
@@ -107,7 +304,7 @@ new Property(ModelProject, 'string', 'geometry_name', {
 });
 new Property(ModelProject, 'string', 'modded_entity_version', {
 	label: 'dialog.project.modded_entity_version',
-	default: '1.15',
+	default: '1.17',
 	condition: {formats: ['modded_entity']},
 	options() {
 		let options = {}
@@ -131,34 +328,40 @@ new Property(ModelProject, 'vector', 'visible_box', {
 	exposed: false,
 	default: [1, 1, 0]
 });
-new Property(ModelProject, 'boolean', 'layered_textures', {
-	label: 'dialog.project.layered_textures',
-	description: 'dialog.project.layered_textures.desc',
-	condition() {return Format.single_texture}
+new Property(ModelProject, 'string', 'variable_placeholders', {
+	exposed: false,
+});
+new Property(ModelProject, 'number', 'shadow_size', {
+	label: 'dialog.project.shadow_size',
+	condition: {formats: ['optifine_entity']},
+	default: 1
 });
 
 
-const Project = new ModelProject();
+ModelProject.all = [];
 
 
-//New
-function resetProject() {
-	Project.reset()
+let Project = 0;
+
+let ProjectData = {};
+
+// Setup ModelProject for loaded project
+function setupProject(format) {
+	if (typeof format == 'string' && Formats[format]) format = Formats[format];
+	new ModelProject({format}).select();
+
+	Modes.options.edit.select();
+	Blockbench.dispatchEvent('setup_project');
+	return true;
 }
-function newProject(format, force) {
-	if (force || showSaveDialog()) {
-		if (Format) {
-			Project.reset();
-		}
-		if (format instanceof ModelFormat) {
-			format.select();
-		}
-		Modes.options.edit.select();
-		Blockbench.dispatchEvent('new_project');
-		return true;
-	} else {
-		return false;
-	}
+// Setup brand new project
+function newProject(format) {
+	if (typeof format == 'string' && Formats[format]) format = Formats[format];
+	new ModelProject({format}).select();
+
+	Modes.options.edit.select();
+	Blockbench.dispatchEvent('new_project');
+	return true;
 }
 
 // Resolution
@@ -176,39 +379,249 @@ function setProjectResolution(width, height, modify_uv) {
 	Project.texture_width = width;
 	Project.texture_height = height;
 
-
 	if (modify_uv) {
 		var multiplier = [
 			Project.texture_width/old_res.x,
 			Project.texture_height/old_res.y
 		]
-		function shiftCube(cube, axis) {
-			if (Project.box_uv) {
-				cube.uv_offset[axis] *= multiplier[axis];
+		function shiftElement(element, axis) {
+			if (!element.faces) return;
+			if (element instanceof Mesh) {
+
+				for (let key in element.faces) {
+					let face = element.faces[key];
+					face.vertices.forEach(vertex_key => {
+						if (face.uv[vertex_key]) {
+							face.uv[vertex_key][axis] *= multiplier[axis];
+						}
+					})
+				}
+
+			} else if (Project.box_uv) {
+				element.uv_offset[axis] *= multiplier[axis];
 			} else {
-				for (var face in cube.faces) {
-					var uv = cube.faces[face];
+				for (let face in element.faces) {
+					let {uv} = element.faces[face];
 					uv[axis] *= multiplier[axis];
 					uv[axis+2] *= multiplier[axis];
 				}
 			}
 		}
 		if (old_res.x != Project.texture_width && Math.areMultiples(old_res.x, Project.texture_width)) {
-			Cube.all.forEach(cube => shiftCube(cube, 0));
+			Outliner.elements.forEach(element => shiftElement(element, 0));
 		}
 		if (old_res.y != Project.texture_height &&  Math.areMultiples(old_res.x, Project.texture_width)) {
-			Cube.all.forEach(cube => shiftCube(cube, 1));
+			Outliner.elements.forEach(element => shiftElement(element, 1));
 		}
 	}
 	Undo.finishEdit('Changed project resolution')
 	Canvas.updateAllUVs()
 	if (selected.length) {
-		main_uv.loadData()
+		UVEditor.loadData()
 	}
 }
 function updateProjectResolution() {
-	document.querySelector('#project_resolution_status').textContent = `${Project.texture_width} ⨉ ${Project.texture_height}`;
+	if (Interface.Panels.uv) {
+		UVEditor.vue.project_resolution.replace([Project.texture_width, Project.texture_height]);
+		UVEditor.vue.updateSize()
+	}
+	if (Texture.selected) {
+		// Update animated textures
+		Texture.selected.height++;
+		Texture.selected.height--;
+	}
+	Blockbench.dispatchEvent('update_project_resolution', {project: Project});
 }
+
+function setStartScreen(state) {
+	document.getElementById('start_screen').style.display = state ? 'block' : 'none';
+	document.getElementById('work_screen').style.display = state ? 'none' : 'grid';
+}
+
+onVueSetup(() => {
+	const new_tab = {
+		name: tl('projects.new_tab'),
+		saved: true,
+		selected: true,
+		uuid: guid(),
+		visible: true,
+		is_new_tab: true,
+		getDisplayName() {return this.name},
+		close: () => {
+			if (ModelProject.all.length) {
+				Interface.tab_bar.new_tab.visible = false;
+				let project = ModelProject.all.find(project => project.uuid == Interface.tab_bar.last_opened_project) ||
+								ModelProject.all.last();
+				if (project) project.select();
+			} else {
+				window.close();
+			}
+		},
+		select() {
+			if (Project) {
+				Project.unselect()
+			}
+			Project = 0;
+			Interface.tab_bar.new_tab.selected = true;
+			setProjectTitle(tl('projects.new_tab'));
+		},
+		openSettings() {}
+	}
+	Interface.tab_bar = new Vue({
+		el: '#tab_bar',
+		data: {
+			projects: ModelProject.all,
+			drag_target_index: null,
+			drag_position_index: null,
+			close_tab_label: tl('projects.close_tab'),
+			search_tabs_label: tl('generic.search'),
+			last_opened_project: '',
+			new_tab
+		},
+		computed: {
+			tabs() {
+				let tabs = this.projects.slice();
+				if (this.new_tab.visible) {
+					tabs.push(this.new_tab);
+				}
+				return tabs;
+			}
+		},
+		methods: {
+			openNewTab() {
+				if (Project.locked) return;
+				this.last_opened_project = Project.uuid;
+				this.new_tab.visible = true;
+				this.new_tab.select();
+				setStartScreen(true);
+			},
+			searchTabs() {
+				ActionControl.select('tab: ');
+			},
+			mouseDown(tab, e1) {
+				convertTouchEvent(e1);
+				e1.preventDefault();
+				
+				if (this.thumbnail) {
+					this.thumbnail.remove();
+					delete this.thumbnail;
+				}
+				if (e1.button == 1) return;
+				
+				let scope = this;
+				let active = false;
+				let timeout;
+				let last_event = e1;
+
+				let tab_node = e1.target;
+				if (!tab_node.classList.contains('project_tab') || ModelProject.all.indexOf(tab) < 0) return;
+
+				tab.select();
+
+				let activate = () => {
+					this.drag_target_index = ModelProject.all.indexOf(tab);
+					this.drag_position_index = 0;
+					if (open_menu) open_menu.hide();
+					active = true;
+				}
+
+				function move(e2) {
+					convertTouchEvent(e2);
+					let offset = e2.clientX - e1.clientX;
+					if (!active) {
+						let distance = Math.abs(offset);
+						if (Blockbench.isTouch) {
+							if (distance > 14 && timeout) {
+								clearTimeout(timeout);
+								timeout = null;
+							} else {
+								document.getElementById('tab_bar').scrollLeft += last_event.clientX - e2.clientX;
+							}
+						} else if (distance > 5) {
+							activate();
+						}
+					} else {
+						if (e2) e2.preventDefault();
+						
+						tab_node.style.left = `${offset}px`;
+
+						let index_offset = Math.trunc((e2.clientX - e1.clientX) / tab_node.clientWidth);
+						scope.drag_position_index = scope.drag_target_index + index_offset;
+					}
+					last_event = e2;
+				}
+				function off(e2) {
+					let {drag_target_index} = scope;
+
+					removeEventListeners(document, 'mousemove touchmove', move);
+					removeEventListeners(document, 'mouseup touchend', off);
+					tab_node.style.left = null;
+					scope.drag_target_index = null;
+					scope.drag_position_index = null;
+
+					if (Blockbench.isTouch) clearTimeout(timeout);
+
+					if (active && !open_menu) {
+						convertTouchEvent(e2);
+						let index_offset = Math.trunc((e2.clientX - e1.clientX) / tab_node.clientWidth);
+						if (index_offset) {
+							ModelProject.all.splice(drag_target_index, 1);
+							ModelProject.all.splice(drag_target_index + index_offset, 0, tab);
+						}
+					}
+				}
+
+				if (Blockbench.isTouch) {
+					timeout = setTimeout(() => {
+						active = true;
+						move(e1);
+					}, 320)
+				}
+
+				addEventListeners(document, 'mousemove touchmove', move, {passive: false});
+				addEventListeners(document, 'mouseup touchend', off, {passive: false});
+			},
+			selectProject(project, event) {
+				if (!event.target.classList.contains('project_tab_close_button')) {
+					project.select();
+				}
+			},
+			mouseUp(tab, e1) {
+				if (e1.button === 1) {
+					tab.close()
+				}
+			},
+			mouseEnter(project, event) {
+				if (project.thumbnail && !project.selected) {
+					if (this.thumbnail_timeout) {
+						clearTimeout(this.thumbnail_timeout);
+						delete this.thumbnail_timeout;
+					}
+					if (!this.thumbnail) {
+						this.thumbnail = new Image();
+						document.body.append(this.thumbnail);
+					}
+					let img = this.thumbnail;
+					img.src = project.thumbnail;
+					img.attributes.width = '240px';
+					img.className = 'project_thumbnail';
+					let offset = $(event.target).offset();
+					img.style.left = (offset.left) + 'px';
+					img.style.top = (offset.top + event.target.clientHeight+2) + 'px';
+				}
+			},
+			mouseLeave() {
+				if (this.thumbnail) {
+					this.thumbnail_timeout = setTimeout(() => {
+						if (this.thumbnail) this.thumbnail.remove();
+						delete this.thumbnail;
+						delete this.thumbnail_timeout;
+					}, 80)
+				}
+			}
+		}
+	})
+})
 
 
 BARS.defineActions(function() {
@@ -279,7 +692,7 @@ BARS.defineActions(function() {
 							&& (Project.texture_width != texture_width
 							|| Project.texture_height != texture_height)
 						) {
-							save = Undo.initEdit({uv_only: true, elements: Cube.all, uv_mode: true})
+							save = Undo.initEdit({uv_only: true, elements: [...Cube.all, ...Mesh.all], uv_mode: true})
 							Cube.all.forEach(cube => {
 								for (var key in cube.faces) {
 									var uv = cube.faces[key].uv;
@@ -287,6 +700,15 @@ BARS.defineActions(function() {
 									uv[2] *= texture_width / Project.texture_width;
 									uv[1] *= texture_height / Project.texture_height;
 									uv[3] *= texture_height / Project.texture_height;
+								}
+							})
+							Mesh.all.forEach(mesh => {
+								for (var key in mesh.faces) {
+									var uv = mesh.faces[key].uv;
+									for (let vkey in uv) {
+										uv[vkey][0] *= texture_width / Project.texture_width;
+										uv[vkey][1] *= texture_height / Project.texture_height;
+									}
 								}
 							})
 						} else {
@@ -299,31 +721,20 @@ BARS.defineActions(function() {
 						Canvas.updateAllUVs()
 						updateSelection()
 					}
-
-					if (Format.single_texture) {
-						if (Project.layered_textures !== formResult.layered_textures && Texture.all.length >= 2) {
-							Project.layered_textures = formResult.layered_textures;
-							Texture.all.forEach((tex, i) => {
-								tex.visible = i < 3
-							})
-							Interface.Panels.textures.inside_vue.$forceUpdate()
-							Canvas.updateLayeredTextures();
-						}
-					}
 					
 					for (var key in ModelProject.properties) {
 						ModelProject.properties[key].merge(Project, formResult);
 					}
 
 					if (save) {
-						Undo.finishEdit('change global UV')
+						Undo.finishEdit('Change project UV settings')
 					}
 
 					Blockbench.dispatchEvent('update_project_settings', formResult);
 
 					BARS.updateConditions()
-					if (EditSession.active) {
-						EditSession.sendAll('change_project_meta', JSON.stringify(Project));
+					if (Project.EditSession) {
+						Project.EditSession.sendAll('change_project_meta', JSON.stringify(Project));
 					}
 					
 					dialog.hide()
@@ -335,20 +746,16 @@ BARS.defineActions(function() {
 	new Action('close_project', {
 		icon: 'cancel_presentation',
 		category: 'file',
-		condition: () => (!EditSession.active || EditSession.hosting) && Format,
+		keybind: new Keybind({key: 'w', ctrl: true}),
+		condition: () => Project,
 		click: function () {
-			if (showSaveDialog()) {
-				resetProject()
-				Modes.options.start.select()
-				Modes.vue.$forceUpdate()
-				Blockbench.dispatchEvent('close_project');
-			}
+			Project.close();
 		}
 	})
 	new Action('convert_project', {
 		icon: 'fas.fa-file-import',
 		category: 'file',
-		condition: () => (!EditSession.active || EditSession.hosting),
+		condition: () => Project && (!Project.EditSession || Project.EditSession.hosting),
 		click: function () {
 
 			var options = {};
@@ -363,8 +770,9 @@ BARS.defineActions(function() {
 				title: 'dialog.convert_project.title',
 				width: 540,
 				form: {
-					text: {type: 'info', text: 'dialog.convert_project.text'},
-					format: {
+					text:    {type: 'info', text: 'dialog.convert_project.text'},
+					current: {type: 'info', label: 'dialog.convert_project.current_format', text: Format.name || '-'},
+					format:  {
 						label: 'data.format',
 						type: 'select',
 						default: Format.id,

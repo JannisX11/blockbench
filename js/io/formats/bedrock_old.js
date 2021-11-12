@@ -36,7 +36,8 @@ function parseGeometry(data) {
 				name: b.name,
 				origin: b.pivot,
 				rotation: b.rotation,
-				material: b.material
+				material: b.material,
+				color: Group.all.length%8
 			}).init()
 			bones[b.name] = group
 			if (b.pivot) {
@@ -50,7 +51,7 @@ function parseGeometry(data) {
 
 			if (b.cubes) {
 				b.cubes.forEach(function(s) {
-					var base_cube = new Cube({name: b.name, autouv: 0, color: bi%8})
+					var base_cube = new Cube({name: b.name, autouv: 0, color: group.color})
 					if (s.origin) {
 						base_cube.from.V3_set(s.origin);
 						base_cube.from[0] = -(base_cube.from[0] + s.size[0])
@@ -82,9 +83,15 @@ function parseGeometry(data) {
 			}
 			if (b.locators) {
 				for (var key in b.locators) {
-					var coords = b.locators[key];
+					var coords, rotation;
+					if (b.locators[key] instanceof Array) {
+						coords = b.locators[key];
+					} else {
+						coords = b.locators[key].offset;
+						rotation = b.locators[key].rotation;
+					}
 					coords[0] *= -1
-					var locator = new Locator({from: coords, name: key}).addTo(group).init();
+					var locator = new Locator({from: coords, name: key, rotation}).addTo(group).init();
 				}
 			}
 			var parent_group = 'root';
@@ -112,10 +119,9 @@ function parseGeometry(data) {
 	Canvas.updateAllBones()
 	setProjectTitle()
 	if (isApp && Project.geometry_name) {
-		BedrockEntityManager.initEntity()
+		Project.BedrockEntityManager.initEntity()
 	}
 	updateSelection()
-	EditSession.initNewModel()
 }
 
 
@@ -158,6 +164,7 @@ var codec = new Codec('bedrock_old', {
 
 		groups.forEach(function(g) {
 			if (g.type !== 'group') return;
+			if (!settings.export_empty_groups.value && !g.children.find(child => child.export)) return;
 			//Bone
 			var bone = {}
 			bone.name = g.name
@@ -363,7 +370,8 @@ var codec = new Codec('bedrock_old', {
 					},
 					open() {
 						parseGeometry()
-					}
+					},
+					tl
 				},
 				computed: {
 					searched() {
@@ -476,9 +484,6 @@ var format = new ModelFormat({
 	animation_mode: true,
 	locators: true,
 	codec,
-	onActivation: function () {
-		
-	}
 })
 //Object.defineProperty(format, 'single_texture', {get: _ => !settings.layered_textures.value})
 codec.format = format;

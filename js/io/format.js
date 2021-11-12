@@ -1,19 +1,5 @@
 var Format = 0;
 const Formats = {};
-const ModelMeta = {
-	save_path: '',
-	export_path: '',
-	animation_path: '',
-	_name: '',
-	get name() {return this._name},
-	set name(name) {
-		this._name = name;
-		Project.name = this._name;
-		setProjectTitle(this._name)
-	},
-	get saved() {return Prop.project_saved},
-	set saved(s) {Prop.project_saved = !!s},
-}
 
 //Formats
 class ModelFormat {
@@ -24,76 +10,43 @@ class ModelFormat {
 		this.description = data.description || tl('format.'+this.id+'.desc');
 		this.show_on_start_screen = true;
 
-		this.box_uv = false;
-		this.optional_box_uv = false;
-		this.single_texture = false;
-		this.animated_textures = false;
-		this.bone_rig = false;
-		this.centered_grid = false;
-		this.rotate_cubes = false;
-		this.integer_size = false;
-		this.locators = false;
-		this.canvas_limit = false;
-		this.rotation_limit = false;
-		this.uv_rotation = false;
-		this.animation_files = false;
-		this.display_mode = false;
-		this.animation_mode = false;
+		for (let id in ModelFormat.properties) {
+			ModelFormat.properties[id].reset(this);
+		}
 
 		this.codec = data.codec;
 		this.onActivation = data.onActivation;
 		this.onDeactivation = data.onDeactivation;
 		Merge.string(this, data, 'icon');
 		Merge.boolean(this, data, 'show_on_start_screen');
-		
-		Merge.boolean(this, data, 'box_uv');
-		Merge.boolean(this, data, 'optional_box_uv');
-		Merge.boolean(this, data, 'single_texture');
-		Merge.boolean(this, data, 'animated_textures');
-		Merge.boolean(this, data, 'bone_rig');
-		Merge.boolean(this, data, 'centered_grid');
-		Merge.boolean(this, data, 'rotate_cubes');
-		Merge.boolean(this, data, 'integer_size');
-		Merge.boolean(this, data, 'locators');
-		Merge.boolean(this, data, 'canvas_limit');
-		Merge.boolean(this, data, 'rotation_limit');
-		Merge.boolean(this, data, 'uv_rotation');
-		Merge.boolean(this, data, 'animation_files');
-		Merge.boolean(this, data, 'display_mode');
-		Merge.boolean(this, data, 'animation_mode');
+
+		for (let id in ModelFormat.properties) {
+			ModelFormat.properties[id].merge(this, data);
+		}
 	}
-	select(converting) {
+	select() {
 		if (Format && typeof Format.onDeactivation == 'function') {
 			Format.onDeactivation()
 		}
-		Format = this;
+		Format = Project.format = this;
 		if (typeof this.onActivation == 'function') {
 			Format.onActivation()
-		}
-		if (!converting || !this.optional_box_uv) {
-			Project.box_uv = Format.box_uv;
 		}
 		buildGrid()
 		if (Format.centered_grid) {
 			scene.position.set(0, 0, 0);
+			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 8;
 		} else {
 			scene.position.set(-8, -8, -8);
+			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 0;
 		}
 		Preview.all.forEach(preview => {
 			if (preview.isOrtho && typeof preview.angle == 'number') {
 				preview.loadAnglePreset(DefaultCameraPresets[preview.angle+1])
 			}
 		})
-		uv_dialog.all_editors.forEach(editor => {
-			editor.img.style.objectFit = Format.animated_textures ? 'cover' : 'fill';
-		})
 		Interface.Panels.animations.inside_vue._data.animation_files_enabled = this.animation_files;
-		for (var key in ModelProject.properties) {
-			if (Project[key] == undefined) {
-				ModelProject.properties[key].reset(Project);
-			}
-		}
-		updateSelection()
+		Interface.status_bar.vue.Format = this;
 		Modes.vue.$forceUpdate()
 		updateInterfacePanels()
 		updateShading();
@@ -110,11 +63,14 @@ class ModelFormat {
 
 		Undo.history.empty();
 		Undo.index = 0;
-		ModelMeta.export_path = '';
+		Project.export_path = '';
 
 		var old_format = Format
-		this.select(true)
+		this.select();
 		Modes.options.edit.select()
+
+		// Box UV
+		if (!this.optional_box_uv) Project.box_uv = this.box_uv;
 
 		//Bone Rig
 		if (!Format.bone_rig && old_format.bone_rig) {
@@ -145,6 +101,13 @@ class ModelFormat {
 			})
 		}
 
+		if (!Format.single_texture && old_format.single_texture && Texture.all.length) {
+			let texture = Texture.getDefault();
+			Outliner.elements.filter(el => el.applyTexture).forEach(el => {
+				el.applyTexture(texture, true)
+			})
+		}
+
 		//Rotate Cubes
 		if (!Format.rotate_cubes && old_format.rotate_cubes) {
 			Cube.all.forEach(cube => {
@@ -152,10 +115,24 @@ class ModelFormat {
 			})
 		}
 
+		//Meshes
+		if (!Format.meshes && old_format.meshes) {
+			Mesh.all.slice().forEach(mesh => {
+				mesh.remove()
+			})
+		}
+
 		//Locators
 		if (!Format.locators && old_format.locators) {
 			Locator.all.slice().forEach(locator => {
 				locator.remove()
+			})
+		}
+
+		//Texture Meshes
+		if (!Format.texture_meshes && old_format.texture_meshes) {
+			TextureMesh.all.slice().forEach(tm => {
+				tm.remove()
 			})
 		}
 
@@ -209,7 +186,6 @@ class ModelFormat {
 		Canvas.updateAllBones()
 		Canvas.updateAllFaces()
 		updateSelection()
-		EditSession.initNewModel()
 	}
 	delete() {
 		delete Formats[this.id];
@@ -217,14 +193,33 @@ class ModelFormat {
 	}
 }
 
+new Property(ModelFormat, 'boolean', 'box_uv');
+new Property(ModelFormat, 'boolean', 'optional_box_uv');
+new Property(ModelFormat, 'boolean', 'single_texture');
+new Property(ModelFormat, 'boolean', 'animated_textures');
+new Property(ModelFormat, 'boolean', 'bone_rig');
+new Property(ModelFormat, 'boolean', 'centered_grid');
+new Property(ModelFormat, 'boolean', 'rotate_cubes');
+new Property(ModelFormat, 'boolean', 'integer_size');
+new Property(ModelFormat, 'boolean', 'meshes');
+new Property(ModelFormat, 'boolean', 'texture_meshes');
+new Property(ModelFormat, 'boolean', 'locators');
+new Property(ModelFormat, 'boolean', 'canvas_limit');
+new Property(ModelFormat, 'boolean', 'rotation_limit');
+new Property(ModelFormat, 'boolean', 'uv_rotation');
+new Property(ModelFormat, 'boolean', 'animation_files');
+new Property(ModelFormat, 'boolean', 'display_mode');
+new Property(ModelFormat, 'boolean', 'animation_mode');
+new Property(ModelFormat, 'boolean', 'texture_folder');
+
 new ModelFormat({
 	id: 'free',
 	icon: 'icon-format_free',
+	meshes: true,
 	rotate_cubes: true,
 	bone_rig: true,
 	centered_grid: true,
 	optional_box_uv: true,
 	uv_rotation: true,
-	animation_mode: true,
-	codec: Codecs.project
+	animation_mode: true
 })

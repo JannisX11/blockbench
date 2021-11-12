@@ -15,7 +15,7 @@ class ResizeLine {
 		this.node = jq.get(0)
 		jq.draggable({
 			axis: this.horizontal ? 'y' : 'x',
-			containment: '#page_wrapper',
+			containment: '#work_screen',
 			revert: true,
 			revertDuration: 0,
 			start: function(e, u) {
@@ -95,12 +95,20 @@ const Interface = {
 			},
 			get: function() {return Interface.data.left_bar_width},
 			set: function(o, diff) {
-				let calculated = limitNumber(o + diff, 128, window.innerWidth- 120 - Interface.data.right_bar_width)
+				let min = 128;
+				let calculated = limitNumber(o + diff, min, window.innerWidth- 120 - Interface.data.right_bar_width)
 				Interface.data.left_bar_width = Math.snapToValues(calculated, [Interface.default_data.left_bar_width], 16);
+				
+				if (calculated == min) {
+					Prop.show_left_bar = false;
+					Interface.data.left_bar_width = Interface.default_data.left_bar_width;
+				} else {
+					Prop.show_left_bar = true;
+				}
 			},
 			position: function(line) {
 				line.setPosition({
-					top: 26,
+					top: document.getElementById('work_screen').offsetTop,
 					bottom: 0,
 					left: Interface.data.left_bar_width+2
 				})
@@ -118,12 +126,20 @@ const Interface = {
 			},
 			get: function() {return Interface.data.right_bar_width},
 			set: function(o, diff) {
-				let calculated = limitNumber(o - diff, 128, window.innerWidth- 120 - Interface.data.left_bar_width);
+				let min = 128;
+				let calculated = limitNumber(o - diff, min, window.innerWidth- 120 - Interface.data.left_bar_width);
 				Interface.data.right_bar_width = Math.snapToValues(calculated, [Interface.default_data.right_bar_width], 12);
+				
+				if (calculated == min) {
+					Prop.show_right_bar = false;
+					Interface.data.right_bar_width = Interface.default_data.right_bar_width;
+				} else {
+					Prop.show_right_bar = true;
+				}
 			},
 			position: function(line) {
 				line.setPosition({
-					top: 56,
+					top: document.getElementById('work_screen').offsetTop+30,
 					bottom: 0,
 					right: Interface.data.right_bar_width-2
 				})
@@ -222,7 +238,7 @@ function setupInterface() {
 
 	for (var key in Interface.Resizers) {
 		var resizer = Interface.Resizers[key]
-		$('#page_wrapper').append(resizer.node)
+		$('#work_screen').append(resizer.node)
 	}
 	//$(document).contextmenu()
 
@@ -269,10 +285,8 @@ function setupInterface() {
 	window.addEventListener('orientationchange', () => {
 		setTimeout(resizeWindow, 100)
 	});
-	
-	$('.context_handler').on('click', function() {
-		$(this).addClass('ctx')
-	})
+
+	setProjectTitle()
 
 	Interface.text_edit_menu = new Menu([
 		{
@@ -339,9 +353,9 @@ function updateInterfacePanels() {
 		$('.sidebar#left_bar').css('display', Prop.show_left_bar ? 'flex' : 'none');
 		$('.sidebar#right_bar').css('display', Prop.show_right_bar ? 'flex' : 'none');
 	}
-	let page = document.getElementById('page_wrapper');
+	let work_screen = document.getElementById('work_screen');
 
-	page.style.setProperty(
+	work_screen.style.setProperty(
 		'grid-template-columns',
 		Interface.data.left_bar_width+'px auto '+ Interface.data.right_bar_width +'px'
 	)
@@ -353,7 +367,7 @@ function updateInterfacePanels() {
 	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.right_bar_width : 0;
 
 	if (!left_width || !right_width) {
-		page.style.setProperty(
+		work_screen.style.setProperty(
 			'grid-template-columns',
 			left_width+'px auto '+ right_width +'px'
 		)
@@ -374,12 +388,11 @@ function resizeWindow(event) {
 	if (!Preview.all || (event && event.target && event.target !== window)) {
 		return;
 	}
-	if (Animator.open) {
-		Timeline.updateSize()
-	}
-
 	if (Interface.data) {
 		updateInterfacePanels()
+	}
+	if (Animator.open) {
+		Timeline.updateSize()
 	}
 	Preview.all.forEach(function(prev) {
 		if (prev.canvas.isConnected) {
@@ -399,7 +412,8 @@ function resizeWindow(event) {
 }
 
 function setProjectTitle(title) {
-	if (Format.bone_rig && Project.geometry_name) {
+	let window_title = 'Blockbench';
+	if (title == undefined && Project.geometry_name) {
 		title = Project.geometry_name
 	}
 	if (title) {
@@ -410,35 +424,49 @@ function setProjectTitle(title) {
 		if (Format.bone_rig) {
 			title = title.replace(/^geometry\./,'').replace(/:[a-z0-9.]+/, '')
 		}
-		$('title').text(title+' - Blockbench')
+		window_title = title+' - Blockbench';
 	} else {
 		Prop.file_name = Prop.file_name_alt = ''
-		$('title').text('Blockbench')
 	}
+	$('title').text(window_title);
+	$('#header_free_bar').text(window_title);
 }
 //Zoom
 function setZoomLevel(mode) {
 	if (Prop.active_panel === 'uv') {
-		var zoom = main_uv.zoom
+		var zoom = UVEditor.zoom
 		switch (mode) {
 			case 'in':	zoom *= 1.5;  break;
 			case 'out':   zoom *= 0.66;  break;
 			case 'reset': zoom = 1; break;
 		}
 		zoom = limitNumber(zoom, 1, 4)
-		main_uv.setZoom(zoom)
+		UVEditor.setZoom(zoom)
 
-	}
-	/* else if (isApp) {
-		switch (mode) {
-			case 'in':	Prop.zoom += 5;  break;
-			case 'out':   Prop.zoom -= 5;  break;
-			case 'reset': Prop.zoom = 100; break;
+	} else if (Prop.active_panel == 'timeline') {
+		
+		let body = document.getElementById('timeline_body');
+		let offsetX = Timeline.vue.scroll_left + (body.clientWidth - Timeline.vue.head_width) / 2;
+		
+		if (mode == 'reset') {
+			let original_size = Timeline.vue._data.size
+			Timeline.vue._data.size = 200;
+			
+			body.scrollLeft += (Timeline.vue._data.size - original_size) * (offsetX / original_size)
+		} else {
+			let zoom = mode == 'in' ? 1.2 : 0.8;
+			let original_size = Timeline.vue._data.size
+			let updated_size = limitNumber(Timeline.vue._data.size * zoom, 10, 1000)
+			Timeline.vue._data.size = updated_size;
+			
+			body.scrollLeft += (updated_size - original_size) * (offsetX / original_size)
 		}
-		var level = (Prop.zoom - 100) / 12
-		currentwindow.webContents.setZoomLevel(level)
-		resizeWindow()
-	}*/
+	} else {
+		switch (mode) {
+			case 'in':		Preview.selected.controls.dollyIn(1.16);  break;
+			case 'out':  	Preview.selected.controls.dollyOut(1.16);  break;
+		}
+	}
 }
 
 //Dialogs
@@ -451,7 +479,14 @@ function showDialog(dialog) {
 	$('#blackout').show()
 	obj.show()
 	open_dialog = dialog
-	open_interface = dialog
+	open_interface = {
+		confirm() {
+			$('dialog#'+open_dialog).find('.confirm_btn:not([disabled])').trigger('click');
+		},
+		cancel() {
+			$('dialog#'+open_dialog).find('.cancel_btn:not([disabled])').trigger('click');
+		}
+	}
 	Prop.active_panel = 'dialog'
 	//Draggable
 	if (obj.hasClass('draggable')) {
@@ -460,9 +495,7 @@ function showDialog(dialog) {
 			containment: '#page_wrapper'
 		})
 		var x = (window.innerWidth-obj.outerWidth()) / 2;
-		var top = (window.innerHeight - obj.outerHeight()) / 2;
 		obj.css('left', x+'px')
-		obj.css('top', 'px')
 		obj.css('max-height', (window.innerHeight-128)+'px')
 	}
 }
@@ -472,51 +505,6 @@ function hideDialog() {
 	open_dialog = false;
 	open_interface = false;
 	Prop.active_panel = undefined
-}
-function setSettingsTab(tab) {
-	$('#settings .tab.open').removeClass('open')
-	$('#settings .tab#'+tab).addClass('open')
-	$('#settings .tab_content').addClass('hidden')
-	$('#settings .tab_content#'+tab).removeClass('hidden')
-	if (tab === 'keybindings') {
-		//Keybinds
-		$('#keybindlist').css('max-height', (window.innerHeight - 420) +'px')
-		$('#keybind_search_bar').focus()
-
-	} else if (tab === 'setting') {
-		//Settings
-		$('#settingslist').css('max-height', (window.innerHeight - 420) +'px')
-		$('#settings_search_bar').focus()
-
-	} else if (tab === 'layout_settings') {
-		//Layout
-		$('#theme_editor').css('max-height', (window.innerHeight - 420) +'px')
-		if (!CustomTheme.dialog_is_setup) CustomTheme.setupDialog()
-	} else if (tab == 'credits') {
-		// About
-
-		$('#version_tag').text(appVersion)
-		if (isApp) {
-			jQuery.ajax({
-				url: 'https://api.github.com/repos/JannisX11/blockbench/releases/latest',
-				cache: false,
-				type: 'GET',
-				success(release) {
-					let v = release.tag_name.replace(/^v/, '');
-					if (compareVersions(v, appVersion)) {
-						$('#version_tag').text(`${appVersion} (${tl('about.version.update_available', [v])})`)
-					} else if (compareVersions(appVersion, v)) {
-						$('#version_tag').text(`${appVersion} (Pre-release)`)
-					} else {
-						$('#version_tag').text(`${appVersion} (${tl('about.version.up_to_date')}😄)`)
-					}
-				},
-				error(err) {
-
-				}
-			})
-		}
-	}
 }
 
 function getStringWidth(string, size) {
@@ -560,18 +548,21 @@ function addStartScreenSection(id, data) {
 	}
 	var obj = $(`<section id="${id}"></section>`)
 	if (typeof data.graphic === 'object') {
-		var left = $('<left class="graphic"></left>')
+		var left = $('<div class="start_screen_left graphic"></div>')
 		obj.append(left)
 
 		if (data.graphic.type === 'icon') {
 			var icon = Blockbench.getIconNode(data.graphic.icon)
-			$(icon).addClass('graphic_icon')
+			left.addClass('graphic_icon')
 			left.append(icon)
 		} else {
 			left.css('background-image', `url('${data.graphic.source}')`)
 		}
 		if (data.graphic.width) {
-			left.css('width', data.graphic.width+'px').css('flex-shrink', '0');
+			left.css('width', data.graphic.width+'px');
+		}
+		if (data.graphic.width && data.text) {
+			left.css('flex-shrink', '0');
 		}
 		if (data.graphic.width && data.graphic.height && Blockbench.isMobile) {
 			left.css('height', '0')
@@ -579,17 +570,27 @@ function addStartScreenSection(id, data) {
 				.css('padding-bottom', (data.graphic.height/data.graphic.width*100)+'%')
 		} else {
 			if (data.graphic.height) left.css('height', data.graphic.height+'px');
-			if (data.graphic.width && !data.graphic.height) left.css('height', data.graphic.width+'px');
+			if (data.graphic.width && !data.graphic.height && !data.graphic.aspect_ratio) left.css('height', data.graphic.width+'px');
+			if (data.graphic.aspect_ratio) left.css('aspect-ratio', data.graphic.aspect_ratio);
+		}
+		if (data.graphic.description) {
+			let content = $(marked(data.graphic.description));
+			content.css({
+				'bottom': '15px',
+				'right': '15px',
+				'color': data.graphic.description_color || '#ffffff',
+			});
+			left.append(content);
 		}
 	}
 	if (data.text instanceof Array) {
-		var right = $('<right></right>')
+		var right = $('<div class="start_screen_right"></div>')
 		obj.append(right)
 		data.text.forEach(line => {
 			var content = line.text ? marked(tl(line.text)) : '';
 			switch (line.type) {
-				case 'h1': var tag = 'h3'; break;
-				case 'h2': var tag = 'h4'; break;
+				case 'h1': var tag = 'h2'; break;
+				case 'h2': var tag = 'h3'; break;
 				case 'list':
 					var tag = 'ul class="list_style"';
 					line.list.forEach(string => {
@@ -601,16 +602,40 @@ function addStartScreenSection(id, data) {
 			}
 			var l = $(`<${tag}>${content}</${tag.split(' ')[0]}>`);
 			if (typeof line.click == 'function') {
-				l.click(line.click);
+				l.on('click', line.click);
 			}
 			right.append(l);
 		})
 	}
+	if (data.layout == 'vertical') {
+		obj.addClass('vertical');
+	}
+
+	if (data.features instanceof Array) {
+		let features_section = document.createElement('ul');
+		features_section.className = 'start_screen_features'
+		data.features.forEach(feature => {
+			let li = document.createElement('li');
+			let img = new Image(); img.src = feature.image;
+			let title = document.createElement('h3'); title.textContent = feature.title;
+			let text = document.createElement('p'); text.textContent = feature.text;
+			li.append(img, title, text);
+			features_section.append(li);
+		})
+		obj.append(features_section);
+	}
+
 	if (data.closable !== false) {
 		obj.append(`<i class="material-icons start_screen_close_button">clear</i>`);
 		obj.find('i.start_screen_close_button').click((e) => {
 			obj.detach()
 		});
+	}
+	if (typeof data.click == 'function') {
+		obj.on('click', event => {
+			if (event.target.classList.contains('start_screen_close_button')) return;
+			data.click()
+		})
 	}
 	if (data.color) {
 		obj.css('background-color', data.color);
@@ -631,7 +656,11 @@ function addStartScreenSection(id, data) {
 
 
 (function() {
-	var news_call = $.getJSON('https://blockbench.net/api/news/news.json')
+	/*$.getJSON('./content/news.json').then(data => {
+		addStartScreenSection('new_version', data.new_version)
+	})*/
+
+	var news_call = $.getJSON('https://web.blockbench.net/content/news.json')
 	Promise.all([news_call, documentReady]).then((data) => {
 		if (!data || !data[0]) return;
 		data = data[0];
@@ -639,6 +668,13 @@ function addStartScreenSection(id, data) {
 		//Update Screen
 		if (Blockbench.hasFlag('after_update') && data.new_version) {
 			addStartScreenSection(data.new_version)
+			jQuery.ajax({
+				url: 'https://blckbn.ch/api/event/successful_update',
+				type: 'POST',
+				data: {
+					version: Blockbench.version
+				}
+			})
 		}
 		if (data.psa) {
 			(function() {
@@ -668,7 +704,7 @@ function addStartScreenSection(id, data) {
 				color: 'var(--color-back)',
 				graphic: {type: 'icon', icon: 'fa-archive'},
 				text: [
-					{type: 'h1', text: tl('message.recover_backup.title')},
+					{type: 'h2', text: tl('message.recover_backup.title')},
 					{text: tl('message.recover_backup.message')},
 					{type: 'button', text: tl('dialog.ok'), click: (e) => {
 						loadModelFile({content: backup_model, path: 'backup.bbmodel', no_file: true})
@@ -680,18 +716,6 @@ function addStartScreenSection(id, data) {
 			updateStreamerModeNotification()
 		}
 
-
-		//Electron
-		if (isApp && !compareVersions(process.versions.electron, '6.0.0')) {
-			addStartScreenSection({
-				graphic: {type: 'icon', icon: 'fas.fa-atom'},
-				text: [
-					{type: 'h1', text: 'Electron Update Recommended'},
-					{text: 'Your Blockbench is using an old version of Electron. Install the latest version to get the best performance and newest features. Just run the latest Blockbench installer. This only takes a minute and will not affect your custom settings.'},
-					{text: '[Blockbench Downloads](https://blockbench.net/downloads/)'}
-				]
-			})
-		}
 		//Twitter
 		let twitter_ad;
 		if (Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
@@ -701,7 +725,7 @@ function addStartScreenSection(id, data) {
 				text_color: '#ffffff',
 				graphic: {type: 'icon', icon: 'fab.fa-twitter'},
 				text: [
-					{type: 'h1', text: 'Blockbench on Twitter'},
+					{type: 'h2', text: 'Blockbench on Twitter'},
 					{text: 'Follow Blockbench on Twitter for the latest news as well as cool models from the community! [twitter.com/blockbench](https://twitter.com/blockbench/)'}
 				],
 				last: true
@@ -710,15 +734,54 @@ function addStartScreenSection(id, data) {
 		//Discord
 		if (Blockbench.startup_count < 6 && !twitter_ad) {
 			addStartScreenSection({
-				color: '#7289da',
+				color: '#5865F2',
 				text_color: '#ffffff',
 				graphic: {type: 'icon', icon: 'fab.fa-discord'},
 				text: [
-					{type: 'h1', text: 'Discord Server'},
-					{text: 'You need help with modeling or you want to chat about Blockbench? Join the [Modeling Discord](https://discord.gg/WVHg5kH)!'}
+					{type: 'h2', text: 'Discord Server'},
+					{text: 'You need help with modeling or you want to chat about Blockbench? Join the official [Blockbench Discord](https://discord.gg/WVHg5kH)!'}
 				],
 				last: true
 			})
+		}
+
+		// Keymap Preference
+		if (!Blockbench.isMobile && Blockbench.startup_count <= 1) {
+
+			
+			var obj = $(`<section id="keymap_preference">
+				<h2>${tl('mode.start.keymap_preference')}</h2>
+				<p>${tl('mode.start.keymap_preference.desc')}</p>
+				<ul></ul>
+			</section>`)
+
+			var keymap_list = $(obj).find('ul');
+			
+			obj.prepend(`<i class="material-icons start_screen_close_button">clear</i>`);
+			obj.find('i.start_screen_close_button').on('click', (e) => {
+				obj.detach();
+			});
+
+			[
+				['default', 'action.load_keymap.default'],
+				['mouse', 'action.load_keymap.mouse'],
+				['blender', 'Blender'],
+				['cinema4d', 'Cinema 4D'],
+				['maya', 'Maya'],
+			].forEach(([id, name], index) => {
+
+				let node = $(`<li class="keymap_select_box">
+					<h4>${tl(name)}</h4>
+					<p>${tl(`action.load_keymap.${id}.desc`)}</p>
+				</li>`)
+				node.on('click', e => {
+					Keybinds.loadKeymap(id, true);
+					obj.detach();
+				})
+				keymap_list.append(node);
+			})
+			
+			$('#start_screen content').prepend(obj);
 		}
 	})
 
@@ -729,44 +792,88 @@ onVueSetup(function() {
 		el: '#status_bar',
 		data: {
 			Prop,
-			isMobile: Blockbench.isMobile
+			isMobile: Blockbench.isMobile,
+			streamer_mode: settings.streamer_mode.value,
+			selection_info: '',
+			Format: null
 		},
 		methods: {
-			toggleSidebar: Interface.toggleSidebar
+			showContextMenu(event) {
+				Interface.status_bar.menu.show(event);
+			},
+			toggleStreamerMode() {
+				ActionControl.select(`setting: ${tl('settings.streamer_mode')}`);
+			},
+			updateSelectionInfo() {
+				let selection_mode = BarItems.selection_mode.value;
+				if (Modes.edit && Mesh.selected.length && selection_mode !== 'object') {
+					if (selection_mode == 'face') {
+						let total = 0, selected = 0;
+						Mesh.selected.forEach(mesh => total += Object.keys(mesh.faces).length);
+						Mesh.selected.forEach(mesh => mesh.forAllFaces(face => selected += (face.isSelected() ? 1 : 0)));
+						this.selection_info = tl('status_bar.selection.faces', `${selected} / ${total}`);
+					}
+					if (selection_mode == 'edge') {
+						let total = 0, selected = 0;
+						Mesh.selected.forEach(mesh => {
+							let selected_vertices = mesh.getSelectedVertices();
+							let processed_lines = [];
+							mesh.forAllFaces(face => {
+								let vertices = face.getSortedVertices();
+								vertices.forEach((vkey, i) => {
+									let vkey2 = vertices[i+1] || vertices[0];
+									if (!processed_lines.find(processed => processed.includes(vkey) && processed.includes(vkey2))) {
+										processed_lines.push([vkey, vkey2]);
+										total += 1;
+										if (selected_vertices.includes(vkey) && selected_vertices.includes(vkey2)) {
+											selected += 1;
+										}
+									}
+								})
+							})
+						})
+						this.selection_info = tl('status_bar.selection.edges', `${selected} / ${total}`);
+					}
+					if (selection_mode == 'vertex') {
+						let total = 0, selected = 0;
+						Mesh.selected.forEach(mesh => total += Object.keys(mesh.vertices).length);
+						Mesh.selected.forEach(mesh => selected += mesh.getSelectedVertices().length);
+						this.selection_info = tl('status_bar.selection.vertices', `${selected} / ${total}`);
+					}
+				} else {
+					this.selection_info = '';
+				}
+			},
+			toggleSidebar: Interface.toggleSidebar,
+			getIconNode: Blockbench.getIconNode
 		},
 		template: `
-			<div id="status_bar" @contextmenu="Interface.status_bar.menu.show(event)">
-				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('left')" :title="tl('status_bar.toggle_sidebar')">
+			<div id="status_bar" @contextmenu="showContextMenu($event)">
+				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('left')" title="${tl('status_bar.toggle_sidebar')}">
 					<i class="material-icons">{{Prop.show_left_bar ? 'chevron_left' : 'chevron_right'}}</i>
 				</div>
 				
-				<div class="f_left" v-if="settings.streamer_mode.value"
+				<div class="f_left" v-if="streamer_mode"
 					style="background-color: var(--color-stream); color: var(--color-light);"
-					@click="Settings.open({search: 'streamer_mode'})"
-					v-bind:title="tl('interface.streamer_mode_on')"
+					@click="toggleStreamerMode()"
+					title="${tl('interface.streamer_mode_on')}"
 				>
 					<i class="material-icons">live_tv</i>
 				</div>
-				<div id="status_saved">
-					<i class="material-icons" v-if="Prop.project_saved" v-bind:title="tl('status_bar.saved')">check</i>
-					<i class="material-icons" v-else v-bind:title="tl('status_bar.unsaved')">close</i>
-				</div>
-				<div v-html="Blockbench.getIconNode(Format.icon).outerHTML" v-bind:title="Format.name"></div>
-				<div v-if="Prop.recording" v-html="Blockbench.getIconNode('fiber_manual_record').outerHTML" style="color: var(--color-close)" v-bind:title="tl('status_bar.recording')"></div>
+				<div v-if="Format" v-html="getIconNode(Format.icon).outerHTML" v-bind:title="Format.name"></div>
+				<div v-if="Prop.recording" v-html="getIconNode('fiber_manual_record').outerHTML" style="color: var(--color-close)" title="${tl('status_bar.recording')}"></div>
 
 
 				<div id="status_name">
 					{{ Prop.file_name }}
 				</div>
 				<div id="status_message" class="hidden"></div>
+				<div class="status_selection_info">{{ selection_info }}</div>
 				<div class="f_right">
 					{{ Prop.fps }} FPS
 				</div>
-				<div class="f_right" v-if="Prop.session">
-					{{ Prop.connections }} Clients
-				</div>
 
-				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('right')" :title="tl('status_bar.toggle_sidebar')">
+				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('right')" title="${tl('status_bar.toggle_sidebar')}">
 					<i class="material-icons">{{Prop.show_right_bar ? 'chevron_right' : 'chevron_left'}}</i>
 				</div>
 
