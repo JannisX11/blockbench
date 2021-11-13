@@ -11,11 +11,8 @@ var codec = new Codec('collada', {
 		let gl_scene = new THREE.Scene();
 		gl_scene.name = 'blockbench_export'
 
-		scene.children.forEachReverse(object => {
-			if (object.isGroup || object.isElement) {
-				gl_scene.add(object);
-			}
-		});
+		gl_scene.add(Project.model_3d);
+
 		if (!Modes.edit) {
 			Animator.showDefaultPose();
 		}
@@ -26,18 +23,14 @@ var codec = new Codec('collada', {
 			exporter.parse(gl_scene, (result) => {
 				resolve(result);
 			}, {
-				author: 'Blockbench User',
+				author: settings.username.value || 'Blockbench User',
 				textureDirectory: 'textures'
 			});
 		})
 		scope.dispatchEvent('compile', {model: result.data, options});
 		console.log(result)
 
-		gl_scene.children.forEachReverse(object => {
-			if (object.isGroup || object.isElement) {
-				scene.add(object);
-			}
-		});
+		scene.add(Project.model_3d);
 
 		return result.data;
 	},
