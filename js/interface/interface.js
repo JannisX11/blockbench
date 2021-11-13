@@ -65,7 +65,6 @@ class ResizeLine {
 		}
 	}
 }
-
 const Interface = {
 	default_data: {
 		left_bar_width: 366,
@@ -73,6 +72,7 @@ const Interface = {
 		quad_view_x: 50,
 		quad_view_y: 50,
 		timeline_height: 260,
+		timeline_head: Blockbench.isMobile ? 140 : 196,
 		left_bar: ['uv', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
 		right_bar: ['element', 'bone', 'color', 'outliner', 'chat']
 	},
@@ -155,7 +155,7 @@ const Interface = {
 				line.setPosition({
 					top: 32,
 					bottom: p ? window.innerHeight - (p.clientHeight + p.offsetTop) : 0,
-					left: Interface.left_bar_width + $('#preview').width()*Interface.data.quad_view_x/100
+					left: Interface.left_bar_width + document.getElementById('preview').clientWidth*Interface.data.quad_view_x/100
 				}
 			)}
 		}),
@@ -165,12 +165,12 @@ const Interface = {
 			condition: function() {return quad_previews.enabled},
 			get: function() {return Interface.data.quad_view_y},
 			set: function(o, diff) {
-				Interface.data.quad_view_y = limitNumber(o + diff/$('#preview').height()*100, 5, 95)
+				Interface.data.quad_view_y = limitNumber(o + diff/document.getElementById('preview').clientHeight*100, 5, 95)
 			},
 			position: function(line) {line.setPosition({
 				left: Interface.left_bar_width+2,
 				right: Interface.right_bar_width+2,
-				top: $('#preview').offset().top + $('#preview').height()*Interface.data.quad_view_y/100
+				top: $('#preview').offset().top + document.getElementById('preview').clientHeight*Interface.data.quad_view_y/100
 			})}
 		}),
 		timeline: new ResizeLine({
@@ -185,6 +185,22 @@ const Interface = {
 				left: Interface.left_bar_width+2,
 				right: Interface.right_bar_width+2,
 				top: $('#timeline').offset().top
+			})}
+		}),
+		timeline_head: new ResizeLine({
+			id: 'timeline_head',
+			horizontal: false,
+			condition() {return Modes.animate},
+			get() {return Interface.data.timeline_head},
+			set(o, diff) {
+				let value = limitNumber(o + diff, 90, document.getElementById('timeline').clientWidth - 40);
+				value = Math.snapToValues(value, [Interface.default_data.timeline_head], 12);
+				Interface.data.timeline_head = Timeline.vue._data.head_width = value;
+			},
+			position(line) {line.setPosition({
+				left: Interface.left_bar_width+2 + Interface.data.timeline_head,
+				top: $('#timeline').offset().top + 60,
+				bottom: document.getElementById('status_bar').clientHeight + 12,
 			})}
 		})
 	},

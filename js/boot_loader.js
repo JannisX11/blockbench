@@ -90,16 +90,16 @@ setInterval(function() {
 	framespersecond = 0;
 }, 1000)
 
+updateProjectResolution()
+
+setupInterface()
+setupDragHandlers()
+
 onVueSetup.funcs.forEach((func) => {
 	if (typeof func === 'function') {
 		func()
 	}
 })
-
-updateProjectResolution()
-
-setupInterface()
-setupDragHandlers()
 
 if (isApp) {
 	initializeDesktopApp();
