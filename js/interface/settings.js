@@ -291,7 +291,7 @@ const Settings = {
 		new Setting('dialog_loose_texture', 	{category: 'dialogs', value: true, name: tl('message.loose_texture.title'), description: tl('settings.dialog.desc', [tl('message.loose_texture.title')])});
 		
 		//Application
-		new Setting('recent_projects', {category: 'application', value: 12, max: 128, min: 0, type: 'number', condition: isApp});
+		new Setting('recent_projects', {category: 'application', value: 32, max: 256, min: 0, type: 'number', condition: isApp});
 		new Setting('backup_interval', {category: 'application', value: 10, type: 'number', condition: isApp});
 		new Setting('backup_retain', {category: 'application', value: 30, type: 'number', condition: isApp});
 		new Setting('automatic_updates', {category: 'application', value: true, condition: isApp});

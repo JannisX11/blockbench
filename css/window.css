@@ -637,13 +637,13 @@
 		background: linear-gradient(90deg, transparent, var(--color-ui));
 	}
 
-	#start_screen_list_type {
+	#start_screen_view_menu {
 		height: 30px;
 		position: absolute;
 		top: 32px;
 		right: 20px;
 	}
-	#start_screen_list_type li.selected {
+	#start_screen_view_menu li.selected {
 		border-bottom: 3px solid var(--color-accent);
 	}
 
@@ -656,11 +656,10 @@
 		cursor: pointer;
 	}
 	#start_screen .recent_project.thumbnail .thumbnail_image {
+		display: block;
 		width: 180px;
 		height: 100px;
 		margin: auto;
-		background-size: 180px;
-		background-repeat: no-repeat;
 		cursor: pointer;
 	}
 	#start_screen .recent_project.thumbnail:hover {
@@ -685,6 +684,7 @@
 		padding: 2px;
 		color: var(--color-accent_text);
 		background-color: var(--color-accent);
+		top: 0;
 	}
 	#start_screen .recent_project.thumbnail:hover .recent_project_name {
 		color: var(--color-accent_text);
@@ -695,6 +695,12 @@
 	}
 	#start_screen .recent_project.thumbnail:hover .icon_wrapper {
 		display: block;
+	}
+	#start_screen_view_menu .search_bar {
+		min-width: 38px;
+		height: 100%;
+		float: left;
+		margin-right: 10px;
 	}
 
 	#start_screen > content {

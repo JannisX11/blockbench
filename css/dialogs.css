@@ -1064,12 +1064,25 @@
 		float: right;
 		padding-right: 20px;
 		width: 100%;
+		transition: width 100ms ease;
 	}
 	.search_bar i {
 		float: right;
 		position: absolute;
 		right: 6px;
 		margin-top: 5px;
+	}
+	.search_bar.folded {
+		width: auto;
+	}
+	.search_bar.folded input {
+		width: 0px;
+		padding-left: 0;
+		padding-right: 0;
+		border-width: 0;
+	}
+	.search_bar.folded i:hover {
+		color: var(--color-light);
 	}
 
 

@@ -113,62 +113,6 @@ onVueSetup(function() {
 			Condition
 		}
 	})
-
-
-	StateMemory.init('start_screen_list_type', 'string')
-
-	let vue = new Vue({
-		el: '#start_screen',
-		data: {
-			formats: Formats,
-			recent: isApp ? recent_projects : [],
-			list_type: StateMemory.start_screen_list_type || 'grid',
-			redact_names: settings.streamer_mode.value,
-			redacted: tl('generic.redacted'),
-			isApp,
-			getIconNode: Blockbench.getIconNode
-		},
-		methods: {
-			getDate(p) {
-				if (p.day) {
-					var diff = (365e10 + Blockbench.openTime.dayOfYear() - p.day) % 365;
-					if (diff <= 0) {
-						return tl('dates.today');
-					} else if (diff == 1) {
-						return tl('dates.yesterday');
-					} else if (diff <= 7) {
-						return tl('dates.this_week');
-					} else {
-						return tl('dates.weeks_ago', [Math.ceil(diff/7)]);
-					}
-				} else {
-					return '-'
-				}
-			},
-			openProject: function(p, event) {
-				Blockbench.read([p.path], {}, files => {
-					loadModelFile(files[0]);
-				})
-			},
-			getThumbnail(model_path) {
-				let hash = model_path.hashCode().toString().replace(/^-/, '0');
-				let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`);
-				if (!fs.existsSync(path)) return 'none'
-				path = `url('${path.replace(/\\/g, '/')}?${Math.round(Math.random()*255)}')`;
-				return path;
-			},
-			setListType(type) {
-				this.list_type = type;
-				StateMemory.start_screen_list_type = type;
-				StateMemory.save('start_screen_list_type')
-			},
-			tl
-		}
-	})
-	StartScreen = {
-		vue
-	}
-
 });
 BARS.defineActions(function() {
 	new Mode('edit', {
