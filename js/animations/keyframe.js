@@ -689,7 +689,7 @@ BARS.defineActions(function() {
 	new Action('change_keyframe_file', {
 		icon: 'fa-file',
 		category: 'animation',
-		condition: () => (isApp && Animator.open && Timeline.selected.length && ['sound', 'particle'].includes(Timeline.selected[0].channel)),
+		condition: () => (Animator.open && Timeline.selected.length && ['sound', 'particle'].includes(Timeline.selected[0].channel)),
 		click: function () {
 
 			if (Timeline.selected[0].channel == 'particle') {
@@ -720,12 +720,16 @@ BARS.defineActions(function() {
 					startpath: Timeline.selected[0].data_points[0].file
 				}, function(files) {
 
-					let {path} = files[0];
+					let path = isApp
+						? files[0].path
+						: URL.createObjectURL(files[0].browser_file);
+
 					Undo.initEdit({keyframes: Timeline.selected})
 					Timeline.selected.forEach((kf) => {
 						if (kf.channel == 'sound') {
 							kf.data_points.forEach(data_point => {
 								data_point.file = path;
+								if (!data_point.effect) data_point.effect = files[0].name.toLowerCase().replace(/\.[a-z]+$/, '').replace(/[^a-z0-9._]+/g, '');
 							})
 						}
 					})

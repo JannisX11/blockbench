@@ -786,9 +786,16 @@ BARS.defineActions(function() {
 	new Action('pick_screen_color', {
 		icon: 'colorize',
 		category: 'color',
-		condition: isApp,
-		click: function () {
-			ipcRenderer.send('request-color-picker', {sync: settings.sync_color.value});
+		condition: () => (typeof EyeDropper == 'function' || isApp),
+		click: async function () {
+			if (typeof EyeDropper == 'function') {
+				let dropper = new EyeDropper();
+				let {sRGBHex} = await dropper.open();
+				ColorPanel.set(sRGBHex);
+
+			} else if (isApp) {
+				ipcRenderer.send('request-color-picker', {sync: settings.sync_color.value});
+			}
 		}
 	})
 })

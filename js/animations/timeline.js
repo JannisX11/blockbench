@@ -568,7 +568,6 @@ const Timeline = {
 }
 
 onVueSetup(function() {
-	console.trace('vue')
 	Timeline.vue = new Vue({
 		el: '#timeline_vue',
 		data: {
