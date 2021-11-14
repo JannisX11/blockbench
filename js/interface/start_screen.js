@@ -166,7 +166,7 @@ onVueSetup(function() {
 			projects() {
 				if (!this.search_term) return this.recent;
 				let terms = this.search_term.toLowerCase().split(/\s/);
-				console.log(terms)
+
 				return this.recent.filter(project => {
 					return !terms.find(term => (
 						!project.path.toLowerCase().includes(term)
@@ -215,27 +215,11 @@ onVueSetup(function() {
 								<div v-if="recent.length == 0">{{ tl('mode.start.no_recents') }}</div>
 							</ul>
 							<ul :class="{redact: redact_names}" style="display: grid;" v-else>
-							<li v-on:click="openProject(project, $event)" v-for="project in projects" :key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project thumbnail">
-								<img class="thumbnail_image" v-if="getThumbnail(project.path)" :src="getThumbnail(project.path)" />
-								<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
-								<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
-							</li>
-							<li v-on:click="openProject(project, $event)" v-for="project in projects" :key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project thumbnail">
-								<img class="thumbnail_image" v-if="getThumbnail(project.path)" :src="getThumbnail(project.path)" />
-								<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
-								<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
-							</li>
-							<li v-on:click="openProject(project, $event)" v-for="project in projects" :key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project thumbnail">
-								<img class="thumbnail_image" v-if="getThumbnail(project.path)" :src="getThumbnail(project.path)" />
-								<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
-								<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
-							</li>
-							<li v-on:click="openProject(project, $event)" v-for="project in projects" :key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project thumbnail">
-								<img class="thumbnail_image" v-if="getThumbnail(project.path)" :src="getThumbnail(project.path)" />
-								<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
-								<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
-							</li>
-								<div v-if="recent.length == 0">{{ tl('mode.start.no_recents') }}</div>
+								<li v-on:click="openProject(project, $event)" v-for="project in projects" :key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project thumbnail">
+									<img class="thumbnail_image" v-if="getThumbnail(project.path)" :src="getThumbnail(project.path)" />
+									<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
+									<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
+								</li>
 							</ul>
 							<button style="margin-top: 20px;" onclick="BarItems.open_model.trigger()">${tl('action.open_model')}</button>
 						</div>

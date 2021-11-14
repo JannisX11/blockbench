@@ -98,15 +98,62 @@ window.BedrockEntityManager = class BedrockEntityManager {
 
 				} else if (valid_textures_list.length > 1) {
 					setTimeout(() => {this.project.whenNextOpen(() => {
-						var dialog_list = '';
-						valid_textures_list.forEach((path, i) => {
-							dialog_list += `<li title="${pathToName(path, true)}" arr_index="${i}"></li>`;
-						})
 						let selected_textures = [];
 						var dialog = new Dialog({
 							title: tl('data.texture'),
 							id: 'select_texture',
-							lines: [`<ul id="import_texture_list" class="y_scrollable">${dialog_list}</ul>`],
+							width: 704,
+							component: {
+								data() {return {
+									valid_textures_list,
+									selected_textures,
+									search_term: ''
+								}},
+								methods: {
+									getName(path) {
+										return pathToName(path, true);
+									},
+									getBackground(path) {
+										return `url("${ path.replace(/\\/g, '/').replace(/#/g, '%23') }?1)`
+									},
+									clickTexture(texture) {
+										if (selected_textures.includes(texture)) {
+											selected_textures.remove(texture)
+										} else {
+											selected_textures.push(texture)
+										}
+									},
+									dblclickTexture(texture) {
+										selected_textures.replace([texture])
+										dialog.confirm()
+									}
+								},
+								computed: {
+									textures() {
+										if (!this.search_term) return this.valid_textures_list;
+										let term = this.search_term.toLowerCase();
+										return this.valid_textures_list.filter(path => {
+											return path.toLowerCase().includes(this.search_term);
+										});
+									}
+								},
+								template: `
+									<div>
+										<search-bar style="float: none; height: 40px; margin-left: auto;" v-model="search_term" />
+										<ul id="import_texture_list" class="y_scrollable">
+											<li v-for="(texture, index) in textures"
+												:title="getName(texture)" :arr_index="index"
+												:class="{selected: selected_textures.includes(texture)}"
+												:style="{backgroundImage: getBackground(texture)}"
+												@click="clickTexture(texture)"
+												@dblclick="dblclickTexture(texture)"
+											>
+												<label>{{ getName(texture) }}</label>
+											</li>
+										</ul>
+									</div>
+								`
+							},
 							buttons: ['dialog.import', 'dialog.select_texture.import_all', 'dialog.cancel'],
 							confirmIndex: 0,
 							cancelIndex: 2,
@@ -117,27 +164,12 @@ window.BedrockEntityManager = class BedrockEntityManager {
 										new Texture({keep_size: true, render_mode}).fromPath(path).add()
 									})
 								} else if (index == 0) {
-									selected_textures.forEach(i => {
-										new Texture({keep_size: true, render_mode}).fromPath(valid_textures_list[i]).add()
+									selected_textures.forEach(path => {
+										new Texture({keep_size: true, render_mode}).fromPath(path).add()
 									})
 								}
 							}
 						}).show()
-						$('#import_texture_list li').each((i, el) => {
-							el.style.setProperty('background-image', `url("${ valid_textures_list[i].replace(/\\/g, '/').replace(/#/g, '%23') }?${Math.round(Math.random()*1e6)}")`)
-							el.onclick = function() {
-								if (selected_textures.includes(i)) {
-									selected_textures.remove(i)
-								} else {
-									selected_textures.push(i)
-								}
-								$(this).toggleClass('selected')
-							}
-							el.ondblclick = function() {
-								selected_textures.replace([i])
-								dialog.confirm()
-							}
-						})
 					})}, 2)
 				}
 			}

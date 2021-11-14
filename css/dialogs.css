@@ -726,15 +726,17 @@
 		margin-bottom: -7px;
 	}
 	#import_texture_list li {
-		height: 112px;
-		width: 112px;
-		margin: 3px;
+		min-height: 112px;
+		width: 150px;
+		margin: 6px 3px;
 		position: relative;
 		display: inline-block;
 		background-repeat: no-repeat;
-		background-size: contain;
+		background-size: 112px;
+		background-position-x: center;
 		box-sizing: content-box;
-		border: 1px solid transparent;
+		border: 2px solid transparent;
+		vertical-align: top;
 	}
 	#import_texture_list li:hover {
 		background-color: var(--color-selected);;
@@ -750,11 +752,23 @@
 		color: var(--color-accent);
 		background-color: var(--color-ui);
 		height: 19px;
-		margin-right: 0;
-		margin-left: 100px;
-		margin-top: -10px;
+		right: 0;
+		top: 0;
+		margin-right: -7px;
+		margin-top: -12px;
 		border-bottom-left-radius: 8px;
 		padding-left: 2px;
+	}
+	#import_texture_list li label {
+		display: block;
+		width: 100%;
+		margin-top: 112px;
+		color: var(--color-subtle_text);
+		overflow-wrap: anywhere;
+		text-align: center;
+	}
+	#import_texture_list li:hover label {
+		color: var(--color-text);
 	}
 	body.entity_mode button.entity_mode_uv_button {
 		display: block;
