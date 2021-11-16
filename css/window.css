@@ -727,10 +727,10 @@
 	#start_screen section div.start_screen_left, #start_screen section div.start_screen_right {
 		display: block;
 		padding: 24px;
-		max-height: 600px;
+		max-height: 606px;
 	}
 	#start_screen section div.start_screen_right > ul {
-		max-height: 465px;
+		max-height: 470px;
     	padding-right: 5px;
 		overflow-y: auto;
 		grid-template-columns: repeat(auto-fit, minmax(170px ,1fr));

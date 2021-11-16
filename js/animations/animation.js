@@ -392,7 +392,22 @@ class Animation {
 		}
 		var uuid = group.uuid
 		if (!this.animators[uuid]) {
-			this.animators[uuid] = new BoneAnimator(uuid, this);
+			let match;
+			for (let uuid2 in this.animators) {
+				let animator = this.animators[uuid2];
+				if (
+					animator instanceof BoneAnimator &&
+					animator._name && animator._name.toLowerCase() === group.name.toLowerCase() &&
+					!animator.group
+				) {
+					match = animator;
+					match.uuid = group.uuid;
+					delete this.animators[uuid2];
+					break;
+				}
+			}
+			console.log(group.name, match)
+			this.animators[uuid] = match || new BoneAnimator(uuid, this);
 		}
 		return this.animators[uuid];
 	}
@@ -629,12 +644,12 @@ class Animation {
 		'rename',
 		'delete',
 		'_',
-		{name: 'menu.animation.properties', icon: 'list', click: function(animation) {
+		{name: 'menu.animation.properties', icon: 'list', click(animation) {
 			animation.propertiesDialog();
 		}}
 	])
 	Animation.prototype.file_menu = new Menu([
-		{name: 'menu.animation_file.unload', icon: 'clear_all', click: function(id) {
+		{name: 'menu.animation_file.unload', icon: 'clear_all', click(id) {
 			let animations_to_remove = [];
 			Animation.all.forEach(animation => {
 				if (animation.path == id && animation.saved) {
@@ -647,6 +662,11 @@ class Animation {
 				animation.remove(false, false);
 			})
 			Undo.finishEdit('Remove animation file', {animations: []})
+		}},
+		{name: 'menu.animation_file.import_remaining', icon: 'playlist_add', click(id) {
+			Blockbench.read([id], {}, files => {
+				Animator.importFile(files[0]);
+			})
 		}}
 	])
 	new Property(Animation, 'boolean', 'saved', {default: true, condition: () => Format.animation_files})
@@ -1678,33 +1698,39 @@ const Animator = {
 			Undo.finishEdit('Import animations', {animations: new_animations})
 
 		} else {
-			let dialog = new Dialog({
-				id: 'animation_import',
-				title: 'dialog.animation_import.title',
-				form,
-				onConfirm(form_result) {
-					this.hide();
-					let names = [];
-					for (var key of keys) {
-						if (form_result[key.hashCode()]) {
-							names.push(key);
+			return new Promise(resolve => {
+				let dialog = new Dialog({
+					id: 'animation_import',
+					title: 'dialog.animation_import.title',
+					form,
+					onConfirm(form_result) {
+						this.hide();
+						let names = [];
+						for (var key of keys) {
+							if (form_result[key.hashCode()]) {
+								names.push(key);
+							}
 						}
+						Undo.initEdit({animations: []})
+						let new_animations = Animator.loadFile(file, names);
+						Undo.finishEdit('Import animations', {animations: new_animations})
+						resolve();
+					},
+					onCancel() {
+						resolve();
 					}
-					Undo.initEdit({animations: []})
-					let new_animations = Animator.loadFile(file, names);
-					Undo.finishEdit('Import animations', {animations: new_animations})
+				});
+				form.select_all_none = {
+					type: 'buttons',
+					buttons: ['generic.select_all', 'generic.select_none'],
+					click(index) {
+						let values = {};
+						keys.forEach(key => values[key.hashCode()] = (index == 0));
+						dialog.setFormValues(values);
+					}
 				}
+				dialog.show();
 			});
-			form.select_all_none = {
-				type: 'buttons',
-				buttons: ['generic.select_all', 'generic.select_none'],
-				click(index) {
-					let values = {};
-					keys.forEach(key => values[key.hashCode()] = (index == 0));
-					dialog.setFormValues(values);
-				}
-			}
-			dialog.show();
 		}
 	},
 	exportAnimationFile(path) {
@@ -1809,8 +1835,10 @@ Blockbench.addDragHandler('animation', {
 	extensions: ['animation.json'],
 	readtype: 'text',
 	condition: {modes: ['animate']},
-}, function(files) {
-	Animator.importFile(files[0])
+}, async function(files) {
+	for (let file of files) {
+		await Animator.importFile(file);
+	}
 })
 
 BARS.defineActions(function() {
@@ -1873,9 +1901,12 @@ BARS.defineActions(function() {
 				resource_id: 'animation',
 				extensions: ['json'],
 				type: 'JSON Animation',
+				multiple: true,
 				startpath: path
-			}, function(files) {
-				Animator.importFile(files[0])
+			}, async function(files) {
+				for (let file of files) {
+					await Animator.importFile(file);
+				}
 			})
 		}
 	})

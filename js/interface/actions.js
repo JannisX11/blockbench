@@ -600,7 +600,8 @@ class NumSlider extends Widget {
 		})
 		.dblclick(function(event) {
 			if (event.target != this) return;
-			scope.jq_inner.text('0');
+			let value = scope.settings && scope.settings.default ? scope.settings.default.toString() : '0';
+			scope.jq_inner.text(value);
 			scope.stopInput()
 
 		});

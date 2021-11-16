@@ -1098,6 +1098,11 @@ BARS.defineActions(function() {
 	new NumSlider('slider_animation_speed', {
 		category: 'animation',
 		condition: {modes: ['animate']},
+		settings: {
+			default: 100,
+			min: 0,
+			max: 10000
+		},
 		get: function() {
 			return Timeline.playback_speed;
 		},

@@ -707,3 +707,18 @@ function lineIntersectsReactangle(p1, p2, rect_start, rect_end) {
 		|| intersectLines(p1, p2, [rect_end[0], rect_end[1]], [rect_start[0], rect_end[1]])
 }
 
+function cameraTargetToRotation(position, target) {
+	let spherical = new THREE.Spherical();
+	spherical.setFromCartesianCoords(...target.slice().V3_subtract(position));
+	let theta = Math.radToDeg(-spherical.theta);
+	let phi = Math.radToDeg(-spherical.phi) - 90;
+	if (phi < 90) phi += 180; theta += 180;
+	return [theta, phi];
+}
+function cameraRotationToTarget(position, rotation) {
+	let vec = new THREE.Vector3(0, 0, 16);
+	vec.applyEuler(new THREE.Euler(Math.degToRad(rotation[1]), Math.degToRad(rotation[0]), 0, 'ZYX'));
+	vec.z *= -1;
+	vec.y *= -1;
+	return vec.toArray().V3_add(position);
+}

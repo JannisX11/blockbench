@@ -436,8 +436,11 @@
 	"dialog.save_angle.projection.perspective": "Perspective",
 	"dialog.save_angle.projection.orthographic": "Orthographic",
 	"dialog.save_angle.position": "Camera Position",
+	"dialog.save_angle.rotation_mode": "Rotation Mode",
 	"dialog.save_angle.target": "Focal Point",
+	"dialog.save_angle.rotation": "Rotation",
 	"dialog.save_angle.zoom": "Zoom",
+	"dialog.save_angle.fov": "FOV",
 
 	"dialog.input.title": "Input",
 
@@ -1396,6 +1399,7 @@
 	"menu.animation.flip_keyframes": "Flip Keyframes",
 
 	"menu.animation_file.unload": "Unload Animation File",
+	"menu.animation_file.import_remaining": "Import Remaining Animations",
 
 	"menu.keyframe.quaternion": "Quaternion",
 

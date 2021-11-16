@@ -612,6 +612,7 @@ class Preview {
 		target.forEach((v, i) => {
 			target[i] = Math.round(v*100)/100
 		})
+		let rotation_mode = 'target';
 
 		let dialog = new Dialog({
 			id: 'save_angle',
@@ -624,8 +625,25 @@ class Preview {
 					perspective: 'dialog.save_angle.projection.perspective',
 					orthographic: 'dialog.save_angle.projection.orthographic'
 				}},
+				divider1: '_',
+				rotation_mode: {label: 'dialog.save_angle.rotation_mode', type: 'select', value: rotation_mode, options: {
+					target: 'dialog.save_angle.target',
+					rotation: 'dialog.save_angle.rotation'
+				}},
 				position: {label: 'dialog.save_angle.position', type: 'vector', dimensions: 3, value: position},
-				target: {label: 'dialog.save_angle.target', type: 'vector', dimensions: 3, value: target},
+				target: {label: 'dialog.save_angle.target', type: 'vector', dimensions: 3, value: target, condition: ({rotation_mode}) => rotation_mode == 'target'},
+				rotation: {label: 'dialog.save_angle.rotation', type: 'vector', dimensions: 2, condition: ({rotation_mode}) => rotation_mode == 'rotation'},
+				zoom: {label: 'dialog.save_angle.zoom', type: 'number', value: 1, condition: result => (result.projection == 'orthographic')},
+			},
+			onFormChange(form) {
+				if (form.rotation_mode !== rotation_mode) {
+					rotation_mode = form.rotation_mode;
+					if (form.rotation_mode == 'rotation') {
+						this.setFormValues({rotation: cameraTargetToRotation(form.position, form.target).map(trimFloatNumber)});
+					} else {
+						this.setFormValues({target: cameraRotationToTarget(form.position, form.rotation).map(trimFloatNumber)});
+					}
+				}
 			},
 			onConfirm: function(formResult) {
 
@@ -1597,7 +1615,8 @@ function openQuadView() {
 
 function editCameraPreset(preset, presets) {
 	let {name, projection, position, target, zoom} = preset;
-	
+	let rotation_mode = 'target';
+
 	let dialog = new Dialog({
 		id: 'edit_angle',
 		title: 'menu.preview.angle.edit',
@@ -1608,11 +1627,25 @@ function editCameraPreset(preset, presets) {
 				perspective: 'dialog.save_angle.projection.perspective',
 				orthographic: 'dialog.save_angle.projection.orthographic'
 			}},
+			divider1: '_',
+			rotation_mode: {label: 'dialog.save_angle.rotation_mode', type: 'select', value: rotation_mode, options: {
+				target: 'dialog.save_angle.target',
+				rotation: 'dialog.save_angle.rotation'
+			}},
 			position: {label: 'dialog.save_angle.position', type: 'vector', dimensions: 3, value: position},
-			rotation_mode: {label: '', type: 'checkbox'},
-			target: {label: 'dialog.save_angle.target', type: 'vector', dimensions: 3, value: target},
-			rotation: {label: 'dialog.save_angle.rotation', type: 'vector', dimensions: 2, value: rotation},
+			target: {label: 'dialog.save_angle.target', type: 'vector', dimensions: 3, value: target, condition: ({rotation_mode}) => rotation_mode == 'target'},
+			rotation: {label: 'dialog.save_angle.rotation', type: 'vector', dimensions: 2, condition: ({rotation_mode}) => rotation_mode == 'rotation'},
 			zoom: {label: 'dialog.save_angle.zoom', type: 'number', value: zoom||1, condition: result => (result.projection == 'orthographic')},
+		},
+		onFormChange(form) {
+			if (form.rotation_mode !== rotation_mode) {
+				rotation_mode = form.rotation_mode;
+				if (form.rotation_mode == 'rotation') {
+					this.setFormValues({rotation: cameraTargetToRotation(form.position, form.target)});
+				} else {
+					this.setFormValues({target: cameraRotationToTarget(form.position, form.rotation)});
+				}
+			}
 		},
 		onConfirm: function(result) {
 
@@ -1621,7 +1654,9 @@ function editCameraPreset(preset, presets) {
 			preset.name = result.name;
 			preset.projection = result.projection;
 			preset.position = result.position;
-			preset.target = result.target;
+			preset.target = result.rotation_mode == 'rotation'
+					? rotationToTarget(result.position, result.rotation)
+					: result.target;
 			if (result.projection == 'orthographic') preset.zoom = result.zoom;
 
 			localStorage.setItem('camera_presets', JSON.stringify(presets))

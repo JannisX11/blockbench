@@ -17,6 +17,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 						if (typeof geoname == 'string') {
 							geoname = geoname.replace(/^geometry\./, '');
 							if (geoname == this.project.geometry_name) {
+								main.type = c['minecraft:attachable'] ? 'attachable' : 'client_entity';
 								return main;
 							}
 						}
