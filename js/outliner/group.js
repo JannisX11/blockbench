@@ -633,6 +633,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => Format.id == 'bedrock' && Group.selected,
 		click: function() {
+
 			let dialog = new Dialog({
 				id: 'edit_bedrock_binding',
 				title: 'action.edit_bedrock_binding',
@@ -641,9 +642,23 @@ BARS.defineActions(function() {
 					data: {
 						binding: Group.selected.bedrock_binding,
 					},
+					methods: {
+						showPresetMenu(event) {
+							new Menu([
+								{
+									name: 'Item',
+									icon: 'build',
+									click: () => {
+										this.binding = 'q.item_slot_to_bone_name(c.item_slot)';
+									}
+								}
+							]).show(event.target);
+						}
+					},
 					template: 
 						`<div class="dialog_bar">
-							<vue-prism-editor class="molang_input dark_bordered" v-model="binding" language="molang" :line-numbers="false" />
+							<vue-prism-editor class="molang_input dark_bordered"  v-model="binding" language="molang" :line-numbers="false" style="width: calc(100% - 36px); display: inline-block;" />
+							<i class="tool material-icons" style="vertical-align: top; padding: 3px; float: none;" @click="showPresetMenu($event)">menu</i>
 						</div>`
 				},
 				onConfirm: form_data => {
