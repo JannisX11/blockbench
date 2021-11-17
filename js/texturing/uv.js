@@ -1716,7 +1716,7 @@ Interface.definePanels(function() {
 					if (Format.single_texture) {
 						texture = Texture.getDefault();
 					} else {
-						let elements = this.mappable_elements;
+						let elements = UVEditor.getMappableElements();
 						if (elements.length && this.selected_faces.length) {
 							for (let element of elements) {
 								if (element.faces[this.selected_faces[0]]) {
@@ -1818,7 +1818,7 @@ Interface.definePanels(function() {
 
 						let old_elements;
 						if (Project.box_uv) {
-							old_elements = scope.mappable_elements.slice();
+							old_elements = UVEditor.getMappableElements().slice();
 						}
 
 						function drag(e1) {
@@ -1845,9 +1845,9 @@ Interface.definePanels(function() {
 							let elements;
 							if (Project.box_uv) {
 								elements = Cube.all.filter(cube => !cube.locked);
-								elements.safePush(scope.mappable_elements);
+								elements.safePush(UVEditor.getMappableElements());
 							} else {
-								elements = scope.mappable_elements;
+								elements = UVEditor.getMappableElements();
 							}
 							
 							elements.forEach(element => {
@@ -2028,10 +2028,10 @@ Interface.definePanels(function() {
 					if (event.which == 2 || event.which == 3) return;
 
 					if (face_key) this.selectFace(face_key, event, true);
-					let elements = this.mappable_elements;
+					let elements = UVEditor.getMappableElements();
 					Undo.initEdit({elements, uv_only: true})
 
-					this.mappable_elements.forEach(el => {
+					UVEditor.getMappableElements().forEach(el => {
 						if (el instanceof Mesh) {
 							delete Project.selected_vertices[el.uuid];
 						}
@@ -2105,7 +2105,7 @@ Interface.definePanels(function() {
 				resizeFace(face_key, event, x_side, y_side) {
 					if (event.which == 2 || event.which == 3) return;
 					event.stopPropagation();
-					let elements = this.mappable_elements;
+					let elements = UVEditor.getMappableElements();
 					Undo.initEdit({elements, uv_only: true})
 					let inverted = {};
 					elements.forEach(element => {
@@ -2146,7 +2146,7 @@ Interface.definePanels(function() {
 					event.stopPropagation();
 					convertTouchEvent(event);
 					let scope = this;
-					let elements = this.mappable_elements;
+					let elements = UVEditor.getMappableElements();
 					Undo.initEdit({elements, uv_only: true})
 
 					let face_center = [0, 0];
@@ -2292,7 +2292,7 @@ Interface.definePanels(function() {
 						sel_vertices.replace([vertex_key]);
 					}
 
-					let elements = this.mappable_elements;
+					let elements = UVEditor.getMappableElements();
 					Undo.initEdit({elements, uv_only: true})
 
 					this.drag({

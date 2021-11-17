@@ -1601,9 +1601,7 @@ function editCameraPreset(preset, presets) {
 				orthographic: 'dialog.save_angle.projection.orthographic'
 			}},
 			position: {label: 'dialog.save_angle.position', type: 'vector', dimensions: 3, value: position},
-			rotation_mode: {label: '', type: 'checkbox'},
 			target: {label: 'dialog.save_angle.target', type: 'vector', dimensions: 3, value: target},
-			rotation: {label: 'dialog.save_angle.rotation', type: 'vector', dimensions: 2, value: rotation},
 			zoom: {label: 'dialog.save_angle.zoom', type: 'number', value: zoom||1, condition: result => (result.projection == 'orthographic')},
 		},
 		onConfirm: function(result) {
