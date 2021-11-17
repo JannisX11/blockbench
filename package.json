@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Low-poly modeling and animation software",
-	"version": "4.0.4",
+	"version": "4.0.5",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -103,7 +103,7 @@
 		"webapp": "git checkout gh-pages && git merge master && git push && git checkout master"
 	},
 	"devDependencies": {
-		"blockbench-types": "^3.9.0",
+		"blockbench-types": "^4.0.0",
 		"electron": "^14.1.1",
 		"electron-builder": "^22.13.1",
 		"electron-notarize": "^1.0.0",
