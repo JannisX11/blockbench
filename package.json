@@ -105,7 +105,7 @@
 	"devDependencies": {
 		"blockbench-types": "^4.0.0",
 		"electron": "^14.1.1",
-		"electron-builder": "^22.13.1",
+		"electron-builder": "^22.11.11",
 		"electron-notarize": "^1.0.0",
 		"webpack": "^5.21.2",
 		"webpack-cli": "^4.5.0",
