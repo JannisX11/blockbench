@@ -945,6 +945,7 @@ BARS.defineActions(function() {
 			shape: {label: 'dialog.add_primitive.shape', type: 'select', options: {
 				cube: 'dialog.add_primitive.shape.cube',
 				pyramid: 'dialog.add_primitive.shape.pyramid',
+				plane: 'dialog.add_primitive.shape.plane',
 				circle: 'dialog.add_primitive.shape.circle',
 				cylinder: 'dialog.add_primitive.shape.cylinder',
 				tube: 'dialog.add_primitive.shape.tube',
@@ -1170,6 +1171,14 @@ BARS.defineActions(function() {
 					new MeshFace( mesh, {vertices: [vertex_keys[3], vertex_keys[1], vertex_keys[0]]} ),	// south
 					new MeshFace( mesh, {vertices: [vertex_keys[2], vertex_keys[4], vertex_keys[0]]} ),	// north
 					new MeshFace( mesh, {vertices: [vertex_keys[4], vertex_keys[3], vertex_keys[0]]} ),	// west
+				);
+			}
+			if (result.shape == 'plane') {
+				let r = result.diameter/2;
+				mesh.addVertices([r, 0, r], [r, 0, -r], [-r, 0, r], [-r, 0, -r]);
+				let vertex_keys = Object.keys(mesh.vertices);
+				mesh.addFaces(
+					new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[3], vertex_keys[2]]} )
 				);
 			}
 			

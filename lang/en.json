@@ -349,6 +349,7 @@
 	"dialog.add_primitive.shape.torus": "Torus",
 	"dialog.add_primitive.shape.cube": "Cube",
 	"dialog.add_primitive.shape.pyramid": "Pyramid",
+	"dialog.add_primitive.shape.plane": "Plane",
 	"dialog.add_primitive.diameter": "Diameter",
 	"dialog.add_primitive.height": "Height",
 	"dialog.add_primitive.sides": "Sides",
