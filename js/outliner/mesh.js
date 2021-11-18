@@ -1475,12 +1475,37 @@ BARS.defineActions(function() {
 				let new_vertices;
 				let selected_faces = [];
 				let selected_face_keys = [];
-				for (let key in mesh.faces) {
-					let face = mesh.faces[key]; 
+				let combined_direction;
+				for (let fkey in mesh.faces) {
+					let face = mesh.faces[fkey]; 
 					if (face.isSelected()) {
 						selected_faces.push(face);
-						selected_face_keys.push(key);
+						selected_face_keys.push(fkey);
 					}
+				}
+
+				if (original_vertices.length >= 3 && !selected_faces.length) {
+					let [a, b, c] = original_vertices.slice(0, 3).map(vkey => mesh.vertices[vkey].slice());
+					let normal = new THREE.Vector3().fromArray(a.V3_subtract(c));
+					normal.cross(new THREE.Vector3().fromArray(b.V3_subtract(c))).normalize();
+
+					let face;
+					for (let fkey in mesh.faces) {
+						if (mesh.faces[fkey].vertices.filter(vkey => original_vertices.includes(vkey)).length >= 2 && mesh.faces[fkey].vertices.length > 2) {
+							face = mesh.faces[fkey];
+							break;
+						}
+					}
+					if (face) {
+						let selected_corner = mesh.vertices[face.vertices.find(vkey => original_vertices.includes(vkey))];
+						let opposite_corner = mesh.vertices[face.vertices.find(vkey => !original_vertices.includes(vkey))];
+						let face_geo_dir = opposite_corner.slice().V3_subtract(selected_corner);
+						if (Reusable.vec1.fromArray(face_geo_dir).angleTo(normal) < 1) {
+							normal.negate();
+						}
+					}
+
+					combined_direction = normal.toArray();
 				}
 
 				new_vertices = mesh.addVertices(...original_vertices.map(key => {
@@ -1503,16 +1528,26 @@ BARS.defineActions(function() {
 					if (!direction) {
 						let match;
 						let match_level = 0;
+						let match_count = 0;
 						for (let key in mesh.faces) {
 							let face = mesh.faces[key]; 
 							let matches = face.vertices.filter(vkey => original_vertices.includes(vkey));
 							if (match_level < matches.length) {
 								match_level = matches.length;
+								match_count = 1;
 								match = face;
+							} else if (match_level === matches.length) {
+								match_count++;
 							}
 							if (match_level == 3) break;
 						}
-						if (match) {
+						
+						if (match_level < 3 && match_count > 2 && original_vertices.length > 2) {
+							// If multiple faces connect to the line, there is no point in choosing one for the normal
+							// Instead, construct the normal between the first 2 selected vertices
+							direction = combined_direction;
+
+						} else if (match) {
 							direction = match.getNormal(true);
 						}
 					}
@@ -1559,15 +1594,30 @@ BARS.defineActions(function() {
 
 				// Create Face between extruded line
 				let line_vertices = remaining_vertices.slice();
+				let covered_edges = [];
+				let new_faces = [];
 				for (let fkey in mesh.faces) {
 					let face = mesh.faces[fkey];
-					let matched_vertices = face.vertices.filter(vkey => line_vertices.includes(new_vertices[original_vertices.indexOf(vkey)]));
+					let sorted_vertices = face.getSortedVertices();
+					let matched_vertices = sorted_vertices.filter(vkey => line_vertices.includes(new_vertices[original_vertices.indexOf(vkey)]));
 					if (matched_vertices.length >= 2) {
+						let already_handled_edge = covered_edges.find(edge => edge.includes(matched_vertices[0]) && edge.includes(matched_vertices[1]))
+						if (already_handled_edge) {
+							let handled_face = new_faces[covered_edges.indexOf(already_handled_edge)]
+							if (handled_face) handled_face.invert();
+							continue;
+						}
+						covered_edges.push(matched_vertices.slice(0, 2));
+
+						if (sorted_vertices[0] == matched_vertices[0] && sorted_vertices[1] != matched_vertices[1]) {
+							matched_vertices.reverse();
+						}
 						let [a, b] = matched_vertices.map(vkey => new_vertices[original_vertices.indexOf(vkey)]);
 						let [c, d] = matched_vertices;
 						let new_face = new MeshFace(mesh, face).extend({
-							vertices: [b, a, c, d]
+							vertices: [a, b, c, d]
 						});
+						new_faces.push(new_face);
 						mesh.addFaces(new_face);
 						remaining_vertices.remove(a);
 						remaining_vertices.remove(b);
@@ -1858,7 +1908,6 @@ BARS.defineActions(function() {
 						if (index_difference == -1 || index_difference > 2) side_vertices.reverse();
 						let other_face = face.getAdjacentFace(sorted_vertices.indexOf(side_vertices[0]));
 						face.vertices.remove(...side_vertices);
-						console.log({face, side_vertices, fkey, mesh, other_face});
 						delete face.uv[side_vertices[0]];
 						delete face.uv[side_vertices[1]];
 						if (other_face) {
