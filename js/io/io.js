@@ -397,7 +397,7 @@ function uploadSketchfabModel() {
 						})
 					},
 					error: function(response) {
-						Blockbench.showQuickMessage('message.sketchfab.error', 1500)
+						Blockbench.showQuickMessage(tl('message.sketchfab.error') + `Error ${response.status}`, 1500)
 						console.error(response);
 					}
 				})

@@ -61,9 +61,9 @@ class Animation {
 					}
 				} else {
 					animator = this.animators[key];
-					animator.channels.forEach(channel => {
+					for (let channel in animator.channels) {
 						animator[channel].empty()
-					})
+					}
 				}
 				if (kfs && animator) {
 					kfs.forEach(kf_data => {
@@ -697,9 +697,16 @@ class GeneralAnimator {
 		this.selected = false;
 		this.uuid = uuid || guid();
 		this.muted = {};
-		this.channels.forEach(channel => {
+		for (let channel in this.channels) {
 			this.muted[channel] = false;
-		})
+		}
+	}
+	get keyframes() {
+		let array = [];
+		for (let channel in this.channels) {
+			array.push(...this[channel]);
+		}
+		return array;
 	}
 	select() {
 		var scope = this;
@@ -718,12 +725,15 @@ class GeneralAnimator {
 		if (!Timeline.animators.includes(this)) {
 			Timeline.animators.splice(0, 0, this);
 		}
+		for (let channel in this.channels) {
+			if (!this[channel]) this[channel] = [];
+		}
 		if (!this.expanded) this.expanded = true;
 		return this;
 	}
 	addKeyframe(data, uuid) {
 		var channel = data.channel;
-		if (typeof channel == 'number') channel = this.channels[channel];
+		if (typeof channel == 'number') channel = Object.keys(this.channels)[channel];
 		if (channel && this[channel]) {
 			var kf = new Keyframe(data, uuid);
 			this[channel].push(kf);
@@ -746,7 +756,7 @@ class GeneralAnimator {
 
 		if (value) {
 			keyframe.extend(value);
-		} else if (this.fillValues) {
+		} else if (this.transform && this.fillValues) {
 			this.fillValues(keyframe, value, true);
 		}
 
@@ -807,6 +817,20 @@ class GeneralAnimator {
 		}
 	}
 }
+GeneralAnimator.addChannel = function(channel, options) {
+	this.prototype.channels[channel] = {
+		name: options.name || channel,
+		transform: options.transform || false,
+		mutable: options.mutable instanceof Boolean ? options.mutable : true,
+		max_data_points: options.max_data_points || 0
+	}
+	Timeline.animators.forEach(animator => {
+		if (animator instanceof this && !animator[channel]) {
+			animator[channel] = [];
+		}
+	})
+	Timeline.vue.$forceUpdate();
+}
 class BoneAnimator extends GeneralAnimator {
 	constructor(uuid, animation, name) {
 		super(uuid, animation);
@@ -824,9 +848,6 @@ class BoneAnimator extends GeneralAnimator {
 	}
 	set name(name) {
 		this._name = name;
-	}
-	get keyframes() {
-		return [...this.rotation, ...this.position, ...this.scale];
 	}
 	getGroup() {
 		this.group = OutlinerNode.uuids[this.uuid];
@@ -1071,7 +1092,11 @@ class BoneAnimator extends GeneralAnimator {
 		if (!this.muted.scale) this.displayScale(this.interpolate('scale'), multiplier)
 	}
 }
-	BoneAnimator.prototype.channels = ['rotation', 'position', 'scale']
+	BoneAnimator.prototype.channels = {
+		rotation: {name: tl('timeline.rotation'), mutable: true, transform: true, max_data_points: 2},
+		position: {name: tl('timeline.position'), mutable: true, transform: true, max_data_points: 2},
+		scale: {name: tl('timeline.scale'), mutable: true, transform: true, max_data_points: 2},
+	}
 class EffectAnimator extends GeneralAnimator {
 	constructor(animation) {
 		super(null, animation);
@@ -1079,12 +1104,9 @@ class EffectAnimator extends GeneralAnimator {
 		this.name = tl('timeline.effects')
 		this.selected = false;
 
-		this.particle = [];
-		this.sound = [];
-		this.timeline = [];
-	}
-	get keyframes() {
-		return [...this.particle, ...this.sound, ...this.timeline];
+		for (let channel in this.channels) {
+			this[channel] = [];
+		}
 	}
 	pushKeyframe(keyframe) {
 		this[keyframe.channel].push(keyframe)
@@ -1171,7 +1193,11 @@ class EffectAnimator extends GeneralAnimator {
 		}
 	}
 }
-	EffectAnimator.prototype.channels = ['particle', 'sound', 'timeline']
+	EffectAnimator.prototype.channels = {
+		particle: {name: tl('timeline.particle'), mutable: true, max_data_points: 1000},
+		sound: {name: tl('timeline.sound'), mutable: true, max_data_points: 1000},
+		timeline: {name: tl('timeline.timeline'), mutable: false, max_data_points: 1},
+	}
 
 //Clipbench
 Object.assign(Clipbench, {
@@ -1273,14 +1299,23 @@ WinterskyScene.global_options.parent_mode = 'entity';
 
 
 const Animator = {
-	possible_channels: {rotation: true, position: true, scale: true, sound: true, particle: true, timeline: true},
+	get possible_channels() {
+		let obj = {};
+		Object.assign(obj, BoneAnimator.prototype.channels, EffectAnimator.prototype.channels);
+		return obj;
+	},
 	open: false,
 	get animations() {return Animation.all},
 	get selected() {return Animation.selected},
 	MolangParser: new Molang(),
 	motion_trail: new THREE.Object3D(),
 	motion_trail_lock: false,
-	_last_values: {rotation: [0, 0, 0], position: [0, 0, 0], scale: [0, 0, 0]},
+	_last_values: {},
+	resetLastValues() {
+		for (let channel in BoneAnimator.prototype.channels) {
+			if (BoneAnimator.prototype.channels[channel].transform) Animator._last_values[channel] = [0, 0, 0];
+		}
+	},
 	join() {
 		
 		if (isApp && (Format.id == 'bedrock' || Format.id == 'bedrock_old') && !Project.BedrockEntityManager.initialized_animations) {
@@ -1451,7 +1486,7 @@ const Animator = {
 		// Bones
 		Animator.showDefaultPose(true);
 		Group.all.forEach(group => {
-			Animator._last_values = {rotation: [0, 0, 0], position: [0, 0, 0], scale: [0, 0, 0]}
+			Animator.resetLastValues();
 			Animator.animations.forEach(animation => {
 				let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
 				if (animation.playing) {
@@ -1459,7 +1494,7 @@ const Animator = {
 				}
 			})
 		})
-		Animator._last_values = {rotation: [0, 0, 0], position: [0, 0, 0], scale: [0, 0, 0]}
+		Animator.resetLastValues();
 		scene.updateMatrixWorld()
 
 		// Effects
@@ -1574,7 +1609,7 @@ const Animator = {
 						animation.animators[uuid] = ba;
 						//Channels
 						for (var channel in b) {
-							if (Animator.possible_channels[channel]) {
+							if (BoneAnimator.prototype.channels[channel]) {
 								if (typeof b[channel] === 'string' || typeof b[channel] === 'number' || b[channel] instanceof Array) {
 									ba.addKeyframe({
 										time: 0,

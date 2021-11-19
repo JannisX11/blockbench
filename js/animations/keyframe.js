@@ -43,7 +43,7 @@ class Keyframe {
 
 		if (typeof data === 'object') {
 			Merge.string(this, data, 'channel')
-			this.transform = this.channel === 'rotation' || this.channel === 'position' || this.channel === 'scale';
+			this.transform = !!(BoneAnimator.prototype.channels[this.channel] || EffectAnimator.prototype.channels[this.channel]).transform;
 			this.data_points.push(new KeyframeDataPoint(this));
 			this.extend(data)
 		}
@@ -484,10 +484,13 @@ BARS.defineActions(function() {
 		click: function (event) {
 			var animator = Timeline.selected_animator;
 			if (!animator) return;
-			var channel = animator.channels[0];
-			if (Toolbox.selected.id == 'rotate_tool' && animator.channels.includes('rotation')) channel = 'rotation';
-			if (Toolbox.selected.id == 'move_tool' && animator.channels.includes('position')) channel = 'position';
-			if (Toolbox.selected.id == 'resize_tool' && animator.channels.includes('scale')) channel = 'scale';
+			var channel = Object.keys(animator.channels)[0];
+			if (Toolbox.selected.id == 'rotate_tool' && animator.channels['rotation']) channel = 'rotation';
+			if (Toolbox.selected.id == 'move_tool' && animator.channels['position']) channel = 'position';
+			if (Toolbox.selected.id == 'resize_tool' && animator.channels['scale']) channel = 'scale';
+			if (Timeline.vue.graph_editor_open && Prop.active_panel == 'timeline' && animator.channels[Timeline.vue.graph_editor_channel]) {
+				channel = Timeline.vue.graph_editor_channel;
+			}
 			animator.createKeyframe((event && (event.shiftKey || Pressing.overrides.shift)) ? {} : null, Timeline.time, channel, true);
 			if (event && (event.shiftKey || Pressing.overrides.shift)) {
 				Animator.preview();
@@ -520,6 +523,7 @@ BARS.defineActions(function() {
 			Timeline.selected.forEach((kf) => {
 				kf.time = Timeline.snapTime(limitNumber(kf.time + Timeline.getStep(), 0, 1e4))
 			})
+			Animation.selected.setLength();
 			Animator.preview()
 			BarItems.slider_keyframe_time.update()
 			Undo.finishEdit('Move keyframes forwards')
@@ -538,7 +542,7 @@ BARS.defineActions(function() {
 			let animator = Timeline.selected_animator
 						|| (Timeline.selected[0] && Timeline.selected[0].animator)
 						|| Timeline.animators[0];
-			let channel = Timeline.selected[0] ? Timeline.selected[0].channel : (animator && animator.channels[0]);
+			let channel = Timeline.selected[0] ? Timeline.selected[0].channel : (animator && Object.keys(animator.channels)[0]);
 			
 			var matches = []
 			for (var kf of Timeline.keyframes) {
@@ -578,7 +582,7 @@ BARS.defineActions(function() {
 			let animator = Timeline.selected_animator
 						|| (Timeline.selected[0] && Timeline.selected[0].animator)
 						|| Timeline.animators[0];
-			let channel = Timeline.selected[0] ? Timeline.selected[0].channel : (animator && animator.channels[0]);
+			let channel = Timeline.selected[0] ? Timeline.selected[0].channel : (animator && Object.keys(animator.channels)[0]);
 
 			var matches = []
 			for (var kf of Timeline.keyframes) {
@@ -869,7 +873,7 @@ Interface.definePanels(function() {
 				addDataPoint() {
 					Undo.initEdit({keyframes: Timeline.selected})
 					Timeline.selected.forEach(kf => {
-						if ((kf.transform && kf.data_points.length <= 1) || kf.channel == 'particle' || kf.channel == 'sound') {
+						if (kf.data_points.length < kf.animator.channels[kf.channel].max_data_points) {
 							kf.data_points.push(new KeyframeDataPoint(kf))
 							kf.data_points.last().extend(kf.data_points[0])
 						}
@@ -927,7 +931,7 @@ Interface.definePanels(function() {
 							<label>{{ tl('panel.keyframe.type', [getKeyframeInfos()]) }}</label>
 							<div
 								class="in_list_button"
-								v-if="(keyframes[0].transform && keyframes[0].data_points.length <= 1) || channel == 'particle' || channel == 'sound'"
+								v-if="keyframes[0].animator.channels[channel] && keyframes[0].data_points.length < keyframes[0].animator.channels[channel].max_data_points"
 								v-on:click.stop="addDataPoint()"
 								title="${ tl('panel.keyframe.add_data_point') }"
 							>

@@ -9,7 +9,7 @@ function buildAnimationTracks() {
 			let animator = animation.animators[uuid];
 			
 			if (animator instanceof BoneAnimator && animator.getGroup()) {
-				for (var channel of animator.channels) {
+				for (var channel in animator.channels) {
 					if (animator[channel] && animator[channel].length) {
 						let times = [];
 						let values = [];

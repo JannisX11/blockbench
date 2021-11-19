@@ -129,7 +129,7 @@ const Timeline = {
 						if (!Timeline.vue.graph_editor_open) {
 
 							var channel_index = 0 //animator.channels.indexOf(kf.channel);
-							for (var channel of animator.channels) {
+							for (var channel in animator.channels) {
 								if (kf.channel == channel) break;
 								if (channels[channel] != false && (!channels.hide_empty || animator[channel].length)) {
 									channel_index++;
@@ -713,6 +713,7 @@ onVueSetup(function() {
 			},
 			selectChannel(animator, channel) {
 				if (this.graph_editor_channel == channel && animator.selected) return;
+				if (!animator.channels[channel].transform) return;
 				animator.select();
 				if (animator[channel].length == 1 && Math.epsilon(animator[channel][0].time, Timeline.time, 0.002)) {
 					animator[channel][0].select();
@@ -961,7 +962,7 @@ onVueSetup(function() {
 									</div>
 								</div>
 								<div class="keyframe_section" v-if="!graph_editor_open">
-									<template v-for="channel in animator.channels" v-if="!(animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length))">
+									<template v-for="(channel_options, channel) in animator.channels" v-if="!(animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length))">
 										<div
 											v-for="keyframe in animator[channel]"
 											v-bind:style="{left: (8 + keyframe.time * size) + 'px'}"
@@ -975,7 +976,7 @@ onVueSetup(function() {
 							</div>
 							<div class="animator_channel_bar"
 								v-bind:style="{width: (size*length + head_width)+'px'}"
-								v-for="channel in animator.channels"
+								v-for="(channel_options, channel) in animator.channels"
 								v-if="animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length)"
 							>
 								<div class="channel_head"
@@ -983,17 +984,18 @@ onVueSetup(function() {
 									v-bind:style="{left: scroll_left+'px', width: head_width+'px'}"
 									@click.stop="selectChannel(animator, channel);"
 								>
-									<div class="text_button" v-on:click.stop="animator.toggleMuted(channel)">
+									<div class="text_button" v-if="channel_options.mutable" v-on:click.stop="animator.toggleMuted(channel)">
 										<template v-if="channel === 'sound'">
 											<i class="channel_mute fas fa-volume-mute" v-if="animator.muted[channel]"></i>
 											<i class="channel_mute fas fa-volume-up" v-else></i>
 										</template>
-										<template v-else-if="channel !== 'timeline'">
+										<template v-else>
 											<i class="channel_mute fas fa-eye-slash" v-if="animator.muted[channel]"></i>
 											<i class="channel_mute fas fa-eye" v-else></i>
 										</template>
 									</div>
-									<span>{{ tl('timeline.'+channel) }}</span>
+									<div class="text_button" v-else></div>
+									<span>{{ channel_options.name }}</span>
 									<div class="text_button" v-on:click.stop="animator.createKeyframe(null, null, channel, true)">
 										<i class="material-icons">add</i>
 									</div>
@@ -1063,7 +1065,12 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 114}),
 		onChange(state) {
 			Timeline.vue.graph_editor_open = state;
-			if (Timeline.vue.graph_editor_open && Timeline.selected.length) {
+			if (Timeline.vue.graph_editor_open &&
+				Timeline.selected.length &&
+				Timeline.selected_animator &&
+				Timeline.selected_animator.channels[Timeline.selected[0].channel] &&
+				Timeline.selected_animator.channels[Timeline.selected[0].channel].transform
+			) {
 				Timeline.vue.graph_editor_channel = Timeline.selected[0].channel;
 			}
 		}
