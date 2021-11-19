@@ -742,7 +742,12 @@ function moveElementsInSpace(difference, axis) {
 			el.mapAutoUV()
 		}
 	})
-	Canvas.updateView({elements: selected, element_aspects: {transform: true, geometry: true}})
+	Canvas.updateView({
+		elements: Outliner.selected,
+		element_aspects: {transform: true, geometry: true},
+		groups: Group.all.filter(g => g.selected),
+		group_aspects: {transform: true}
+	})
 }
 
 //Rotate

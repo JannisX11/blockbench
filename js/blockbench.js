@@ -106,6 +106,7 @@ function updateSelection(options = {}) {
 		}
 	})
 	if (Group.selected && Group.selected.locked) Group.selected.unselect()
+	UVEditor.vue._computedWatchers.mappable_elements.run();
 
 	Outliner.elements.forEach(element => {
 		if (element.preview_controller.updateSelection) {

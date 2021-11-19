@@ -1159,6 +1159,7 @@ class Toolbar {
 					let char = itemId.substr(0, 1);
 					content.append(`<div class="toolbar_separator ${char == '_' ? 'border' : (char == '+' ? 'spacer' : 'linebreak')}"></div>`);
 					this.children.push(char + guid().substr(0,8));
+					this.positionLookup[itemPosition] = char;
 
 					continue;
 				}

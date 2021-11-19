@@ -322,7 +322,9 @@ Object.assign(Blockbench, {
 				if (cb) cb(file_path)
 			} else {
 				let path = options.content.replace(/\?\d+$/, '');
-				if (!PathModule.relative(path, file_path)) fs.copyFileSync(path, file_path);
+				if (PathModule.relative(path, file_path)) {
+					fs.copyFileSync(path, file_path);
+				}
 				if (cb) cb(file_path)
 			}
 			return;

@@ -1204,7 +1204,7 @@
 	}
 	#action_selector ul {
 		background-color: var(--color-bright_ui);
-		color: var(--color-accent_text);
+		color: var(--color-bright_ui_text);
 		min-height: 20px;
 		width: 100%;
 		max-height: 400px;
