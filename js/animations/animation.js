@@ -406,7 +406,6 @@ class Animation {
 					break;
 				}
 			}
-			console.log(group.name, match)
 			this.animators[uuid] = match || new BoneAnimator(uuid, this);
 		}
 		return this.animators[uuid];
@@ -704,7 +703,7 @@ class GeneralAnimator {
 	get keyframes() {
 		let array = [];
 		for (let channel in this.channels) {
-			array.push(...this[channel]);
+			if (this[channel] && this[channel].length) array.push(...this[channel]);
 		}
 		return array;
 	}
@@ -1848,6 +1847,28 @@ Animator.MolangParser.global_variables = {
 	get 'query.life_time'() {
 		return Timeline.time;
 	},
+	'query.camera_rotation'(axis) {
+		return cameraTargetToRotation(Preview.selected.camera.position.toArray(), Preview.selected.controls.target.toArray())[axis ? 0 : 1];
+	},
+	'query.rotation_to_camera'(axis) {
+		return cameraTargetToRotation([0, 0, 0], Preview.selected.camera.position.toArray())[axis ? 0 : 1] ;
+	},
+	get 'query.distance_from_camera'() {
+		return Preview.selected.camera.position.length() / 16;
+	},
+	'query.lod_index'(indices) {
+		indices.sort((a, b) => a - b);
+		let distance = Preview.selected.camera.position.length() / 16;
+		let index = indices.length;
+		indices.forEachReverse((val, i) => {
+			if (distance < val) index = i;
+		})
+		return index;
+	},
+	'query.camera_distance_range_lerp'(a, b) {
+		let distance = Preview.selected.camera.position.length() / 16;
+		return Math.clamp(Math.lerp(a, b, distance), 0, 1);
+	},
 	get 'time'() {
 		return Timeline.time;
 	}
@@ -1860,7 +1881,8 @@ Animator.MolangParser.variableHandler = function (variable) {
 		[key, val] = inputs[i].split(/=(.+)/);
 		key = key.replace(/[\s;]/g, '');
 		if (key === variable) {
-			return Animator.MolangParser.parse(val)
+			val = val.trim();
+			return val[0] == `'` ? val : Animator.MolangParser.parse(val);
 		}
 		i++;
 	}

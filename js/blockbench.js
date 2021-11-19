@@ -218,7 +218,7 @@ setInterval(function() {
 			var model = Codecs.project.compile({compressed: false, backup: true});
 			localStorage.setItem('backup_model', model)
 		} catch (err) {
-			console.log('Unable to create backup. ', err)
+			console.error('Unable to create backup. ', err)
 		}
 	}
 }, 1e3*30)
