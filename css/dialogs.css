@@ -1033,10 +1033,11 @@
 		margin-right: 12px;
 	}
 	#plugin_list .about {
-		margin-right: 12px;
-		padding-top: 12px;
 		overflow-y: auto;
 		max-height: 480px;
+		margin: 6px 0;
+		padding: 6px 12px;
+		background: var(--color-button);
 	}
 	#plugin_list > li ul.plugin_tag_list {
 		margin: 5px 8px;
