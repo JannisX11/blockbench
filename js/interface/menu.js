@@ -683,10 +683,34 @@ const MenuBar = {
 			condition: {modes: ['display']}
 		})
 		
-		new BarMenu('filter', [
+		new BarMenu('tools', [
+			{id: 'main_tools', icon: 'construction', name: 'Toolbox', condition: () => Project, children() {
+				let tools = Toolbox.children.filter(tool => tool instanceof Tool);
+				tools.forEach(tool => {
+					let old_condition = tool.condition;
+					tool.condition = () => {
+						tool.condition = old_condition;
+						return true;
+					}
+				})
+				let modes = Object.keys(Modes.options);
+				tools.sort((a, b) => modes.indexOf(a.modes[0]) - modes.indexOf(b.modes[0]))
+				let mode = tools[0].modes[0];
+				for (let i = 0; i < tools.length; i++) {
+					if (tools[i].modes[0] !== mode) {
+						mode = tools[i].modes[0];
+						tools.splice(i, 0, '_');
+						i++;
+					}
+				}
+				return tools;
+			}},
+			'swap_tools',
+			'_',
 			'convert_to_mesh',
 			'remove_blank_faces',
 		])
+		MenuBar.menus.filter = MenuBar.menus.tools;
 
 		new BarMenu('animation', [
 			'copy',

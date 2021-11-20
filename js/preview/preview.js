@@ -1533,9 +1533,18 @@ class Preview {
 			]
 			let presets = localStorage.getItem('camera_presets')
 			presets = (presets && autoParseJSON(presets, false)) || [];
-			let all_presets = [...DefaultCameraPresets, ...presets];
+			let all_presets = [
+				DefaultCameraPresets[0], '_',
+				...DefaultCameraPresets.slice(1, 7), '_',
+				...DefaultCameraPresets.slice(7, 11), '_',
+				...DefaultCameraPresets.slice(11), '_',
+				...presets
+			];
 
 			all_presets.forEach(preset => {
+				if (typeof preset == 'string') {
+					children.push('_'); return;
+				}
 				let icon = typeof preset.locked_angle ? 'videocam' : (preset.locked_angle == preview.angle ? 'radio_button_checked' : 'radio_button_unchecked'); 
 				children.push({
 					name: preset.name,

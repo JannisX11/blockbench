@@ -390,7 +390,7 @@ class Tool extends Action {
 		if (BARS.condition(this.condition, this)) {
 			this.select()
 			return true;
-		} else if (event.type.includes('key') && this.modes) {
+		} else if (this.modes) {
 			for (var i = 0; i < this.modes.length; i++) {
 				var mode = Modes.options[this.modes[i]]
 				if (mode && Condition(mode.condition)) {
@@ -1470,7 +1470,7 @@ const BARS = {
 			new Action('swap_tools', {
 				icon: 'swap_horiz',
 				category: 'tools',
-				condition: {modes: ['edit', 'paint', 'display']},
+				condition: {modes: ['edit', 'paint', 'display'], project: true},
 				keybind: new Keybind({key: 32}),
 				click: function () {
 					if (BarItems[Toolbox.selected.alt_tool] && Condition(BarItems[Toolbox.selected.alt_tool].condition)) {

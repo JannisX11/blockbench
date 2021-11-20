@@ -40,6 +40,7 @@ const Condition = function(condition, context) {
 		if (condition.formats instanceof Array && condition.formats.includes(Format.id) === false) return false;
 		if (condition.tools instanceof Array && window.Toolbox && condition.tools.includes(Toolbox.selected.id) === false) return false;
 		if (condition.features instanceof Array && Format && condition.features.find(feature => !Format[feature])) return false;
+		if (condition.project && !Project) return false;
 
 		if (condition.method instanceof Function) {
 			return !!condition.method(context);

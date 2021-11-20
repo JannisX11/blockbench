@@ -290,11 +290,11 @@ const Blockbench = {
 		console.warn('Blockbench.addMenuEntry is deprecated. Please use Actions instead.')
 		let id = name.replace(/\s/g, '').toLowerCase();
 		var action = new Action(id, {icon: icon, name: name, click: click})
-		MenuBar.addAction(action, 'filter')
+		MenuBar.addAction(action, 'tools')
 	},
 	removeMenuEntry(name) {
 		let id = name.replace(/\s/g, '').toLowerCase();
-		MenuBar.removeAction('filter.'+id);
+		MenuBar.removeAction('tools.'+id);
 	},
 	openLink(link) {
 		if (isApp) {

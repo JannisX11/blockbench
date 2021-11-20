@@ -1736,7 +1736,6 @@ BARS.defineActions(function() {
 
 	new Action('remove_blank_faces', {
 		icon: 'cancel_presentation',
-		category: 'filter',
 		condition: () => !Format.box_uv,
 		click: function () {
 			let elements = Outliner.selected.filter(el => el.faces);
