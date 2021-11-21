@@ -1398,7 +1398,7 @@
 							})
 
 						} else {
-							let {mesh} = Group.selected;
+							let {mesh} = Group.selected || NullObject.selected[0];
 
 							if (Toolbox.selected.id === 'rotate_tool' && (BarItems.rotation_space.value === 'global' || scope.axis == 'E')) {
 

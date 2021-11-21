@@ -48,6 +48,12 @@ class NullObject extends OutlinerElement {
 		super.init();
 		return this;
 	}
+	select(event, isOutlinerClick) {
+		super.select(event, isOutlinerClick);
+		if (Animator.open && Animation.selected) {
+			Animation.selected.getBoneAnimator(this).select(true);
+		}
+	}
 	flip(axis, center) {
 		var offset = this.from[axis] - center
 		this.from[axis] = center - offset;
@@ -69,7 +75,7 @@ class NullObject extends OutlinerElement {
 			var offset2 = Reusable.vec2.fromArray(this.parent.origin).applyQuaternion(q);
 			pos.sub(offset2);
 		}
-		var offset = Reusable.vec3.fromArray(this.from).applyQuaternion(q);
+		var offset = Reusable.vec3.copy(this.mesh.position).applyQuaternion(q);
 		pos.add(offset);
 
 		return pos;
@@ -105,7 +111,16 @@ class NullObject extends OutlinerElement {
 	
 	OutlinerElement.registerType(NullObject, 'null_object');
 
-	new NodePreviewController(NullObject)
+	new NodePreviewController(NullObject, {
+		setup(element) {
+			NodePreviewController.prototype.setup(element);
+			element.mesh.fix_position = new THREE.Vector3();
+		},
+		updateTransform(element) {
+			NodePreviewController.prototype.updateTransform(element);
+			element.mesh.fix_position.copy(element.mesh.position);
+		}
+	})
 
 BARS.defineActions(function() {
 	new Action('add_null_object', {
