@@ -13,7 +13,8 @@ class ModelProject {
 		this._texture_height = 16;
 
 		this._name = '';
-		this.saved = true;
+		this._saved = true;
+
 		this.save_path = '';
 		this.export_path = '';
 		this.added_models = 0;
@@ -86,7 +87,16 @@ class ModelProject {
 	set name(name) {
 		this._name = name;
 		if (Project == this) {
-			setProjectTitle(this._name);
+			setProjectTitle(name);
+		}
+	}
+	get saved() {
+		return this._saved;
+	}
+	set saved(saved) {
+		this._saved = saved;
+		if (Project == this) {
+			setProjectTitle(this.name);
 		}
 	}
 	get model_3d() {
@@ -363,6 +373,11 @@ function newProject(format) {
 	Blockbench.dispatchEvent('new_project');
 	return true;
 }
+function updateTabBarVisibility() {
+	let hidden = Settings.get('hide_tab_bar') && Interface.tab_bar.tabs.length < 2;
+	document.getElementById('tab_bar').style.display = hidden ? 'none' : 'flex';
+	document.getElementById('title_bar_home_button').style.display = hidden ? 'block' : 'none';
+}
 
 // Resolution
 function setProjectResolution(width, height, modify_uv) {
@@ -463,7 +478,7 @@ onVueSetup(() => {
 			}
 			Project = 0;
 			Interface.tab_bar.new_tab.selected = true;
-			setProjectTitle(tl('projects.new_tab'));
+			setProjectTitle(ModelProject.all.length ? tl('projects.new_tab') : null);
 		},
 		openSettings() {}
 	}
@@ -619,8 +634,15 @@ onVueSetup(() => {
 					}, 80)
 				}
 			}
+		},
+		watch: {
+			tabs() {
+				updateTabBarVisibility();
+			}
 		}
 	})
+
+	updateTabBarVisibility()
 })
 
 

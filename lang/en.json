@@ -70,7 +70,6 @@
 	"dates.year": "%0 Year",
 	"dates.years": "%0 Years",
 
-	"mode.start": "Start",
 	"mode.edit": "Edit",
 	"mode.paint": "Paint",
 	"mode.display": "Display",
@@ -577,6 +576,8 @@
 
 	"settings.interface_scale": "Interface Scale",
 	"settings.interface_scale.desc": "Scale of the entire Blockbench interface",
+	"settings.hide_tab_bar": "Auto-hide Tab Bar",
+	"settings.hide_tab_bar.desc": "Hide the tab bar when only one tab is open",
 	"settings.origin_size": "Pivot Marker",
 	"settings.origin_size.desc": "Size of the pivot point marker",
 	"settings.control_size": "Transform Gizmo Size",

@@ -179,6 +179,9 @@ const Settings = {
 			currentwindow.webContents.setZoomFactor(factor)
 			resizeWindow()
 		}});
+		new Setting('hide_tab_bar', 		{category: 'interface', value: !isApp, onChange() {
+			updateTabBarVisibility();
+		}});
 		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number'});
 		new Setting('control_size',  		{category: 'interface', value: 10, type: 'number'});
 		new Setting('motion_trails',  		{category: 'interface', value: true, onChange() {

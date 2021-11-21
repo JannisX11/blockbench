@@ -240,8 +240,8 @@ function setupInterface() {
 	} catch (err) {}
 
 	translateUI()
-	
-	$('.edit_session_active').hide()
+
+	document.getElementById('title_bar_home_button').title = tl('projects.start_screen');
 
 	$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 
@@ -443,6 +443,7 @@ function setProjectTitle(title) {
 	} else {
 		Prop.file_name = Prop.file_name_alt = ''
 	}
+	if (Project && !Project.saved) window_title = '● ' + window_title;
 	$('title').text(window_title);
 	$('#header_free_bar').text(window_title);
 }
