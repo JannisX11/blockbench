@@ -78,7 +78,7 @@
 		}
 	}
 
-	var pickerMaterial = new GizmoMaterial( { visible: false, transparent: false } );
+	var pickerMaterial = new GizmoMaterial( { visible: false, transparent: false, side: THREE.DoubleSide } );
 
 	THREE.TransformGizmo = class extends THREE.Object3D {
 		constructor() {
@@ -230,6 +230,8 @@
 			super();
 			var arrowGeometry = new THREE.CylinderGeometry( 0, 0.07, 0.2, 12, 1, false );
 
+			let pickerCylinderGeo = new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false );
+
 			var lineXGeometry = new THREE.BufferGeometry();
 			lineXGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  1, 0, 0 ], 3 ) );
 			lineXGeometry.name = 'gizmo_x'
@@ -259,13 +261,13 @@
 
 			this.pickerGizmos = {
 				X: [
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0.6, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ]
+					[ new THREE.Mesh( pickerCylinderGeo, pickerMaterial ), [ 0.6, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ]
 				],
 				Y: [
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0.6, 0 ] ]
+					[ new THREE.Mesh( pickerCylinderGeo, pickerMaterial ), [ 0, 0.6, 0 ] ]
 				],
 				Z: [
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0, 0.6 ], [ Math.PI / 2, 0, 0 ] ]
+					[ new THREE.Mesh( pickerCylinderGeo, pickerMaterial ), [ 0, 0, 0.6 ], [ Math.PI / 2, 0, 0 ] ]
 				]
 			};
 
@@ -310,6 +312,11 @@
 			var lineZGeometry = new THREE.BufferGeometry();
 			lineZGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  0, 0, 1 ], 3 ) );
 
+			let planeGeo = new THREE.PlaneBufferGeometry( 0.3, 0.3 );
+			let planePickerGeo = new THREE.PlaneBufferGeometry( 0.4, 0.4 );
+
+			let plane_offset = 0.3;
+
 			this.handleGizmos = {
 				X: [
 					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: gizmo_colors.r } ) ), [ 1, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ],
@@ -331,7 +338,16 @@
 
 					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: gizmo_colors.b } ) ), [ 0, 0, -1 ], [ Math.PI / 2, 0, 0 ] ],
 					[ new THREE.Line( lineZGeometry, new GizmoLineMaterial( { color: gizmo_colors.b } ) ), [ 0, 0, -1 ] ]
-				]
+				],
+				YZ: [
+					[ new THREE.Mesh( planeGeo, new GizmoMaterial( { color: gizmo_colors.r, side: THREE.DoubleSide, opacity: 0.5 } ) ), [ 0, plane_offset, plane_offset ], [ 0, Math.PI / 2, 0 ] ],
+				],
+				XZ: [
+					[ new THREE.Mesh( planeGeo, new GizmoMaterial( { color: gizmo_colors.g, side: THREE.DoubleSide, opacity: 0.5 } ) ), [ plane_offset, 0, plane_offset ], [ - Math.PI / 2, 0, 0 ] ],
+				],
+				XY: [
+					[ new THREE.Mesh( planeGeo, new GizmoMaterial( { color: gizmo_colors.b, side: THREE.DoubleSide, opacity: 0.5 } ) ), [ plane_offset, plane_offset, 0 ] ],
+				],
 			};
 			this.handleGizmos.X[2][0].name = 'NX'
 			this.handleGizmos.X[3][0].name = 'NX'
@@ -352,6 +368,15 @@
 				Z: [
 					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0, 0.6 ], [ Math.PI / 2, 0, 0 ] ],
 					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0, -0.6 ], [ - Math.PI / 2, 0, 0 ] ]
+				],
+				XY: [
+					[ new THREE.Mesh( planePickerGeo, pickerMaterial ), [ plane_offset, plane_offset, 0 ] ]
+				],
+				YZ: [
+					[ new THREE.Mesh( planePickerGeo, pickerMaterial ), [ 0, plane_offset, plane_offset ], [ 0, Math.PI / 2, 0 ] ]
+				],
+				XZ: [
+					[ new THREE.Mesh( planePickerGeo, pickerMaterial ), [ plane_offset, 0, plane_offset ], [ - Math.PI / 2, 0, 0 ] ]
 				]
 			};
 			this.pickerGizmos.X[1][0].name = 'NX'
@@ -363,17 +388,17 @@
 				var tempMatrix = new THREE.Matrix4();
 				eye.applyMatrix4( tempMatrix.copy( tempMatrix.extractRotation( this.planes[ "XY" ].matrixWorld ) ).invert() );
 
-				if ( axis === "X" || axis === "NX" ) {
+				if ( axis === "X" || axis === "NX" || axis == 'XZ' ) {
 
 					this.activePlane = this.planes[ "XY" ];
 					if ( Math.abs( eye.y ) > Math.abs( eye.z ) ) this.activePlane = this.planes[ "XZ" ];
 				}
-				if ( axis === "Y" || axis === "NY" ) {
+				if ( axis === "Y" || axis === "NY" || axis == 'YZ' ) {
 
 					this.activePlane = this.planes[ "XY" ];
 					if ( Math.abs( eye.x ) > Math.abs( eye.z ) ) this.activePlane = this.planes[ "YZ" ];
 				}
-				if ( axis === "Z" || axis === "NZ" ) {
+				if ( axis === "Z" || axis === "NZ" || axis == 'YZ' ) {
 
 					this.activePlane = this.planes[ "XZ" ];
 					if ( Math.abs( eye.x ) > Math.abs( eye.y ) ) this.activePlane = this.planes[ "YZ" ];
@@ -1047,7 +1072,7 @@
 								}
 							} else if (obj.resizable) {
 								obj.oldScale = obj.size(axisnr)
-								obj.oldCenter = (obj.from[axisnr] + obj.to[axisnr]) / 2;
+								obj.oldCenter = obj.from.map((from, i) => (from + obj.to[i]) / 2)
 							} 
 						})
 					}
@@ -1160,9 +1185,15 @@
 
 				event.stopPropagation();
 
-				var axis = scope.axis.substr(-1).toLowerCase()
+				var axis = (scope.direction == false ? scope.axis[1] : scope.axis[0]).toLowerCase();
 				var axisNumber = getAxisNumber(axis)
 				var rotate_normal;
+				var axisB, axisNumberB;
+
+				if (scope.axis.length == 2 && scope.axis[0] !== 'N') {
+					axisB = scope.axis[1].toLowerCase()
+					axisNumberB = getAxisNumber(axisB)
+				}
 
 				point.copy( planeIntersect.point );
 
@@ -1238,16 +1269,30 @@
 						}
 					} else if (Toolbox.selected.id === 'resize_tool') {
 						// Resize
+
+						if (axisB) {
+							if (axis == 'y') {axis = 'z';} else
+							if (axisB == 'y') {axis = 'y';} else
+							if (axisB == 'z') {axis = 'x';}
+						}
 						var snap_factor = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)
 						point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
-
 
 						if (previousValue !== point[axis]) {
 							beforeFirstChange(event)
 
 							selected.forEach(function(obj, i) {
 								if (obj.resizable) {
-									obj.resize(point[axis], axisNumber, !scope.direction, null, ((event.altKey || Pressing.overrides.alt) && BarItems.swap_tools.keybind.key != 18) !== selected[0] instanceof Mesh)
+									let bidirectional = ((event.altKey || Pressing.overrides.alt) && BarItems.swap_tools.keybind.key != 18) !== selected[0] instanceof Mesh;
+									if (axisB) bidirectional = true;
+
+									if (!axisB) {
+										obj.resize(point[axis], axisNumber, !scope.direction, null, bidirectional);
+									} else {
+										let value = point[axis];
+										obj.resize(value, axisNumber, false, null, bidirectional);
+										obj.resize(value, axisNumberB, false, null, bidirectional);
+									}
 								}
 							})
 							displayDistance(point[axis] * (scope.direction ? 1 : -1));
