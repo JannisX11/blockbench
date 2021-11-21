@@ -317,20 +317,15 @@ BARS.defineActions(function() {
 				cube.from.V3_add(center);
 				cube.to.V3_add(center);
 			})
+			Project.exploded_view = exploded_view;
 			Undo.finishEdit(exploded_view ? 'Explode skin model' : 'Revert exploding skin model', {elements: Cube.all, exploded_view: exploded_view});
-			Canvas.updateAllPositions();
+			Canvas.updateView({elements: Cube.all, element_aspects: {geometry: true}});
 			this.setIcon(this.icon);
 		}
 	})
-	Blockbench.on('reset_project', () => {
-		explode_skin_model.value = false;
+	Blockbench.on('select_project', () => {
+		explode_skin_model.value = !!Project.exploded_view;
 		explode_skin_model.updateEnabledState();
-	})
-	Blockbench.on('load_undo_save', data => {
-		if (data.save.exploded_view !== undefined) {
-			explode_skin_model.value = data.save.exploded_view;
-			explode_skin_model.updateEnabledState();
-		}
 	})
 })
 
