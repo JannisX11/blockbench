@@ -253,6 +253,7 @@
 	"message.no_animation_to_import": "No animations to import",
 	"message.copy_paste_tool_viewport": "This tool can only be used in the UV panel",
 	"message.box_uv_for_meshes": "Meshes cannot be used in box UV templates",
+	"message.no_valid_elements": "No valid elements selected...",
 
 	"message.wireframe.enabled": "Wireframe view enabled",
 	"message.wireframe.disabled": "Wireframe view disabled",

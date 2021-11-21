@@ -2139,7 +2139,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected.length >= 2)},
 		click() {
-			let elements = Mesh.selected
+			let elements = Mesh.selected.slice();
 			Undo.initEdit({elements});
 			let original = Mesh.selected[0];
 			let vector = new THREE.Vector3();
@@ -2171,6 +2171,7 @@ BARS.defineActions(function() {
 				}
 
 				mesh.remove();
+				elements.remove(mesh);
 				Mesh.selected.remove(mesh)
 			})
 			updateSelection();

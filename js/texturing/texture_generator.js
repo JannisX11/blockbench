@@ -196,7 +196,7 @@ const TextureGenerator = {
 		}
 		//Cancel if no cubes
 		if (templates.length == 0) {
-			Blockbench.showMessage('No valid cubes', 'center')
+			Blockbench.showMessage('message.no_valid_elements', 'center')
 			return;
 		}
 		templates.sort(function(a,b) {
@@ -653,13 +653,14 @@ const TextureGenerator = {
 						normal_vec,
 						vec2.fromArray(mesh.vertices[face_group.faces[0].vertices[0]])
 					)
+					let rot = cameraTargetToRotation([0, 0, 0], normal_vec.toArray());
+					let e = new THREE.Euler(Math.degToRad(rot[1] - 90), Math.degToRad(rot[0]), 0);
 					let vertex_uvs = {};
 					face_group.faces.forEach(face => {
 						face.vertices.forEach(vkey => {
 							if (!vertex_uvs[vkey]) {
 								let coplanar_pos = plane.projectPoint(vec3.fromArray(mesh.vertices[vkey]), vec4);
-								let q = new THREE.Quaternion().setFromUnitVectors(normal_vec, THREE.NormalY)
-								coplanar_pos.applyQuaternion(q);
+								coplanar_pos.applyEuler(e);
 								vertex_uvs[vkey] = [
 									Math.roundTo(coplanar_pos.x, 4),
 									Math.roundTo(coplanar_pos.z, 4),
@@ -777,7 +778,7 @@ const TextureGenerator = {
 		})
 
 		if (face_list.length == 0) {
-			Blockbench.showMessage('No valid cubes', 'center')
+			Blockbench.showMessage('message.no_valid_elements', 'center')
 			return;
 		}
 
@@ -1042,7 +1043,7 @@ const TextureGenerator = {
 		})
 
 		if (face_list.length == 0) {
-			Blockbench.showMessage('No valid cubes', 'center')
+			Blockbench.showMessage('message.no_valid_elements', 'center')
 			return;
 		}
 
