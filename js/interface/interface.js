@@ -428,8 +428,8 @@ function resizeWindow(event) {
 
 function setProjectTitle(title) {
 	let window_title = 'Blockbench';
-	if (title == undefined && Project.geometry_name) {
-		title = Project.geometry_name
+	if (title == undefined && Project.name) {
+		title = Project.name
 	}
 	if (title) {
 		Prop.file_name = Prop.file_name_alt = title
@@ -565,7 +565,12 @@ onVueSetup(function() {
 			isMobile: Blockbench.isMobile,
 			streamer_mode: settings.streamer_mode.value,
 			selection_info: '',
-			Format: null
+			Format: null,
+			modifier_keys: {
+				ctrl: [],
+				shift: [],
+				alt: []
+			}
 		},
 		methods: {
 			showContextMenu(event) {

@@ -755,7 +755,7 @@ class GeneralAnimator {
 
 		if (value) {
 			keyframe.extend(value);
-		} else if (this.transform && this.fillValues) {
+		} else if (this.fillValues) {
 			this.fillValues(keyframe, value, true);
 		}
 
