@@ -1136,10 +1136,25 @@
 		border: 4px solid var(--color-ui);
 		box-shadow: 0 0 0 800px var(--color-back);
     	box-sizing: content-box;
-		--color-unselected: var(--color-grid);
+		--color-uv-unselected: var(--color-grid);
+		--color-uv-selected: white;
+		--color-uv-hover: var(--color-accent);
+		--color-uv-background: rgba(50, 70, 240, 0.14);
+		--color-uv-background-hover: rgba(50, 70, 240, 0.3);
+		--uv-line-width: 2px;
 	}
 	#uv_frame .selection_rectangle {
 		z-index: 8;
+	}
+	#uv_frame.overlay_mode {
+		--color-uv-unselected: var(--color-grid);
+		--color-uv-selected: var(--color-grid);
+		--color-uv-hover: var(--color-grid);
+		--color-uv-background: transparent;
+		--uv-line-width: 1px;
+	}
+	#uv_frame.overlay_mode * {
+		pointer-events: none;
 	}
 
 	body[mode=paint] #uv_frame {
@@ -1175,14 +1190,14 @@
 		position: absolute;
 		z-index: 2;
 		cursor: move;
-		border: 2px solid var(--color-accent);
+		border: var(--uv-line-width) solid var(--color-accent);
 		box-sizing: border-box;
 	}
 	.cube_box_uv > div.uv_fill {
-		background-color: rgba(50, 70, 240, 0.14);
+		background-color: var(--color-uv-background);
 	}
 	.cube_box_uv:hover > div {
-		border-color: white;
+		border-color: var(--color-uv-selected);
 		z-index: 3;
 	}
 	.cube_uv_face {
@@ -1191,19 +1206,19 @@
 		width: var(--width);
 		height: var(--height);
 		cursor: move;
-		border: 2px solid var(--color-text);
+		border: var(--uv-line-width) solid var(--color-text);
 		box-sizing: border-box;
-		background-color: rgba(50, 70, 240, 0.14);
+		background-color: var(--color-uv-background);
 		text-align: center;
 		color: var(--color-subtle_text);
 	}
 	.cube_uv_face:hover {
-		border-color: white;
-		background-color: rgba(50, 70, 240, 0.3);
+		border-color: var(--color-uv-hover);
+		background-color: var(--color-uv-background-hover);
 		z-index: 3;
 	}
 	.cube_uv_face.selected:not(.unselected) {
-		border-color: white;
+		border-color: var(--color-uv-hover);
 		z-index: 4;
 		box-shadow: 0 0 4px #000000cc;
 	}
@@ -1214,7 +1229,7 @@
 	}
 	.cube_uv_face.unselected div,
 	.cube_box_uv.unselected div {
-		border-color: var(--color-unselected) !important;
+		border-color: var(--color-uv-unselected) !important;
 	}
 
 	.uv_resize_side {
@@ -1268,15 +1283,16 @@
 	}
 	.mesh_uv_face polygon {
 		pointer-events: initial;
-		fill: rgba(50, 70, 240, 0.3);
-		stroke: var(--color-text);
-		stroke-width: 2px;
+		fill: var(--color-uv-background);
+		stroke: var(--color-uv-unselected);
+		stroke-width: var(--uv-line-width);
 	}
 	.mesh_uv_face:hover polygon {
-		stroke: white;
+		stroke: var(--color-uv-hover);
+		fill: var(--color-uv-background-hover);
 	}
 	.mesh_uv_face.selected polygon {
-		stroke: var(--color-accent);
+		stroke: var(--color-uv-selected);
 	}
 	.uv_mesh_vertex {
 		position: absolute;

@@ -206,8 +206,8 @@ class ModelProject {
 		})
 		return true;
 	}
-	unselect() {
-		this.thumbnail = Preview.selected.canvas.toDataURL();
+	unselect(closing) {
+		if (!closing) this.thumbnail = Preview.selected.canvas.toDataURL();
 		Interface.tab_bar.last_opened_project = this.uuid;
 
 		if (Format && typeof Format.onDeactivation == 'function') {
@@ -277,7 +277,7 @@ class ModelProject {
 	
 			Blockbench.dispatchEvent('close_project');
 			
-			this.unselect();
+			this.unselect(true);
 			Texture.all.forEach(tex => tex.stopWatcher());
 
 			let index = ModelProject.all.indexOf(this);

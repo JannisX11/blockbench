@@ -363,6 +363,7 @@ window.onbeforeunload = function (event) {
 	} else {
 		setTimeout(async function() {
 			let projects = ModelProject.all.slice();
+			if (projects[0]) await projects[0].select();
 			for (let project of projects) {
 				let closed = await project.close();
 				if (!closed) return false;

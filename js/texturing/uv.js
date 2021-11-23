@@ -11,6 +11,12 @@ function switchBoxUV(state) {
 			}
 			cube.uv_offset[1] = cube.faces.up.uv[3];
 		})
+	} else {
+		Cube.all.forEach(cube => {
+			for (let fkey in cube.faces) {
+				cube.faces[fkey].rotation = 0;
+			}
+		})
 	}
 	UVEditor.vue.box_uv = state;
 	UVEditor.setGrid(1);
@@ -1243,6 +1249,7 @@ const UVEditor = {
 		}},
 		'focus_on_selection',
 		'uv_checkerboard',
+		'paint_mode_uv_overlay',
 		'_',
 		'copy',
 		'paste',
@@ -1609,6 +1616,14 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Set automatic cullface')
 		}
 	})
+	new Toggle('paint_mode_uv_overlay', {
+		icon: 'splitscreen',
+		category: 'animation',
+		condition: {modes: ['paint']},
+		onChange(value) {
+			UVEditor.vue.uv_overlay = value;
+		}
+	})
 })
 
 Interface.definePanels(function() {
@@ -1637,6 +1652,7 @@ Interface.definePanels(function() {
 				height: 320,
 				zoom: 1,
 				checkerboard: settings.uv_checkerboard.value,
+				uv_overlay: false,
 				texture: 0,
 				mouse_coords: {x: -1, y: -1},
 				helper_lines: {x: -1, y: -1},
@@ -1647,9 +1663,7 @@ Interface.definePanels(function() {
 					height: 0,
 					active: false
 				},
-				copy_overlay: {
-
-				},
+				copy_overlay: {},
 
 				project_resolution: [16, 16],
 				elements: [],
@@ -2442,9 +2456,9 @@ Interface.definePanels(function() {
 						:style="{width: (width+8) + 'px', height: (height+8) + 'px', overflowX: (zoom > 1) ? 'scroll' : 'hidden', overflowY: (inner_height > height) ? 'scroll' : 'hidden'}"
 					>
 
-						<div id="uv_frame" @click.stop="reverseSelect($event)" ref="frame" :style="{width: inner_width + 'px', height: inner_height + 'px'}" v-if="texture !== null">
+						<div id="uv_frame" @click.stop="reverseSelect($event)" ref="frame" :class="{overlay_mode: uv_overlay && mode == 'paint'}" :style="{width: inner_width + 'px', height: inner_height + 'px'}" v-if="texture !== null">
 
-							<template v-if="mode == 'uv'" v-for="element in (display_uv === 'all_elements' ? all_mappable_elements : mappable_elements)">
+							<template id="uv_allocations" v-if="mode == 'uv' || uv_overlay" v-for="element in (display_uv === 'all_elements' ? all_mappable_elements : mappable_elements)">
 
 								<template v-if="element.type == 'cube' && !box_uv">
 									<div class="cube_uv_face"
@@ -2462,7 +2476,7 @@ Interface.definePanels(function() {
 											'--height': toPixels(Math.abs(face.uv_size[1]), 2),
 										}"
 									>
-										<template v-if="selected_faces.includes(key) && !(display_uv === 'all_elements' && !mappable_elements.includes(element))">
+										<template v-if="selected_faces.includes(key) && mode == 'uv' && !(display_uv === 'all_elements' && !mappable_elements.includes(element))">
 											{{ face_names[key] || '' }}
 											<div class="uv_resize_side horizontal" @mousedown="resizeFace(key, $event, 0, -1)" @touchstart.prevent="resizeFace(key, $event, 0, -1)" style="width: var(--width)"></div>
 											<div class="uv_resize_side horizontal" @mousedown="resizeFace(key, $event, 0, 1)" @touchstart.prevent="resizeFace(key, $event, 0, 1)" style="top: var(--height); width: var(--width)"></div>
@@ -2515,7 +2529,7 @@ Interface.definePanels(function() {
 										<svg>
 											<polygon :points="getMeshFaceOutline(face)" />
 										</svg>
-										<template v-if="selected_faces.includes(key)">
+										<template v-if="selected_faces.includes(key) && mode == 'uv'">
 											<div class="uv_mesh_vertex" v-for="(key, index) in face.vertices"
 												:class="{main_corner: index == 0, selected: selected_vertices[element.uuid] && selected_vertices[element.uuid].includes(key)}"
 												@mousedown.prevent.stop="dragVertices(element, key, $event)" @touchstart.prevent.stop="dragVertices(element, key, $event)"

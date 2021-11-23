@@ -1191,6 +1191,8 @@
 	"action.slider_face_tint.desc": "Set the tint index of the current face. -1 means unset.",
 	"action.snap_uv_to_pixels": "Snap UV to Pixels",
 	"action.snap_uv_to_pixels.desc": "Snaps the selected UV vertices to the pixel grid",
+	"action.paint_mode_uv_overlay": "UV Overlay",
+	"action.paint_mode_uv_overlay.desc": "Display the UV map as an overlay in paint mode",
 	"action.remove_blank_faces": "Remove Blank Faces",
 	"action.remove_blank_faces.desc": "Deletes all untextured faces of the selection",
 
