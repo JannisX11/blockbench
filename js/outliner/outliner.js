@@ -1233,7 +1233,7 @@ Interface.definePanels(function() {
 	Interface.Panels.outliner = new Panel({
 		id: 'outliner',
 		icon: 'list_alt',
-		condition: {modes: ['edit', 'paint', 'animate']},
+		condition: {modes: ['edit', 'paint', 'animate', 'pose']},
 		toolbars: {
 			head: Toolbars.outliner
 		},

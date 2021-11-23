@@ -118,7 +118,7 @@ BARS.defineActions(function() {
 	new Mode('edit', {
 		default_tool: 'move_tool',
 		category: 'navigate',
-		condition: () => Format,
+		condition: () => Format && !Format.pose_mode,
 	})
 	new Mode('paint', {
 		default_tool: 'brush_tool',
@@ -147,6 +147,11 @@ BARS.defineActions(function() {
 			UVEditor.vue.setMode('uv');
 			three_grid.visible = true;
 		},
+	})
+	new Mode('pose', {
+		default_tool: 'rotate_tool',
+		category: 'navigate',
+		condition: () => Format && Format.pose_mode,
 	})
 	new Mode('display', {
 		selectElements: false,

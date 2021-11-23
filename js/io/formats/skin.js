@@ -163,6 +163,7 @@ const format = new ModelFormat({
 	single_texture: true,
 	integer_size: true,
 	rotate_cubes: true,
+	pose_mode: true,
 	codec
 })
 format.new = function() {

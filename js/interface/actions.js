@@ -1426,7 +1426,7 @@ const BARS = {
 				animation_channel: 'rotation',
 				toolbar: Blockbench.isMobile ? 'element_rotation' : 'main_tools',
 				alt_tool: 'pivot_tool',
-				modes: ['edit', 'display', 'animate'],
+				modes: ['edit', 'display', 'animate', 'pose'],
 				keybind: new Keybind({key: 'r'})
 			})
 			new Tool('pivot_tool', {

@@ -226,7 +226,7 @@ function setupPanels() {
 	Interface.Panels.element = new Panel({
 		id: 'element',
 		icon: 'fas.fa-cube',
-		condition: !Blockbench.isMobile && {modes: ['edit']},
+		condition: !Blockbench.isMobile && {modes: ['edit', 'pose']},
 		selection_only: true,
 		toolbars: {
 			element_position: 	!Blockbench.isMobile && Toolbars.element_position,

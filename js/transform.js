@@ -988,7 +988,7 @@ BARS.defineActions(function() {
 		}
 	})
 	new BarSelect('rotation_space', {
-		condition: {modes: ['edit', 'animate'], tools: ['rotate_tool']},
+		condition: {modes: ['edit', 'animate', 'pose'], tools: ['rotate_tool']},
 		category: 'transform',
 		value: 'local',
 		options: {
@@ -1233,7 +1233,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_rotation.desc', ['X']),
 		color: 'x',
 		category: 'transform',
-		condition: () => (Modes.edit && getRotationObject()),
+		condition: () => ((Modes.edit || Modes.pose) && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.rotation[0];
@@ -1260,7 +1260,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_rotation.desc', ['Y']),
 		color: 'y',
 		category: 'transform',
-		condition: () => (Modes.edit && getRotationObject()),
+		condition: () => ((Modes.edit || Modes.pose) && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.rotation[1];
@@ -1287,7 +1287,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_rotation.desc', ['Z']),
 		color: 'z',
 		category: 'transform',
-		condition: () => (Modes.edit && getRotationObject()),
+		condition: () => ((Modes.edit || Modes.pose) && getRotationObject()),
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.rotation[2];

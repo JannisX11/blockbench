@@ -208,6 +208,7 @@ new Property(ModelFormat, 'boolean', 'canvas_limit');
 new Property(ModelFormat, 'boolean', 'rotation_limit');
 new Property(ModelFormat, 'boolean', 'uv_rotation');
 new Property(ModelFormat, 'boolean', 'animation_files');
+new Property(ModelFormat, 'boolean', 'pose_mode');
 new Property(ModelFormat, 'boolean', 'display_mode');
 new Property(ModelFormat, 'boolean', 'animation_mode');
 new Property(ModelFormat, 'boolean', 'texture_folder');

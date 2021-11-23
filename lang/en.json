@@ -74,6 +74,7 @@
 	"mode.paint": "Paint",
 	"mode.display": "Display",
 	"mode.animate": "Animate",
+	"mode.pose": "Pose",
 
 	"mode.start.new": "New",
 	"mode.start.recent": "Recent",

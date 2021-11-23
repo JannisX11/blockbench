@@ -729,7 +729,7 @@
 
 			this.updateSelection = function() {
 				this.elements.empty()
-				if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
+				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 					if (Outliner.selected.length) {
 						Outliner.selected.forEach(element => {
 							if (
@@ -830,7 +830,7 @@
 			this.center = function() {
 				delete Transformer.rotation_ref;
 				Transformer.rotation_selection.set(0, 0, 0);
-				if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
+				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 					if (Transformer.visible) {
 						var rotation_tool = Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool'
 						var rotation_object = getRotationObject()
@@ -1035,7 +1035,7 @@
 			function beforeFirstChange(event, point) {
 				if (scope.hasChanged) return;
 
-				if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
+				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 
 					if (Toolbox.selected.id === 'resize_tool') {
 						var axisnr = getAxisNumber(scope.axis.toLowerCase().replace('n', ''));
@@ -1194,7 +1194,7 @@
 				}
 				let transform_space = Transformer.getTransformSpace()
 
-				if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
+				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 
 					if (Toolbox.selected.id === 'move_tool') {
 
@@ -1560,7 +1560,7 @@
 
 					Blockbench.setStatusBarText();
 
-					if (Modes.id === 'edit' || Toolbox.selected.id == 'pivot_tool') {
+					if (Modes.id === 'edit' || Modes.id === 'pose' || Toolbox.selected.id == 'pivot_tool') {
 						if (Toolbox.selected.id === 'resize_tool') {
 							//Scale
 							selected.forEach(function(obj) {
