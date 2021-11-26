@@ -45,11 +45,19 @@ class Animation {
 						keyframes: animator_blueprint
 					}
 				}
-				var kfs = animator_blueprint.keyframes;			
+				var kfs = animator_blueprint.keyframes;
 				var animator;
 				if (!this.animators[key]) {
 					if (key == 'effects') {
 						animator = this.animators[key] = new EffectAnimator(this);
+					} else if (animator_blueprint.type == 'null_object') {
+						let uuid = isUUID(key) && key;
+						if (!uuid) {
+							let lowercase_name = key.toLowerCase();
+							let null_object_match = NullObject.all.find(null_object => null_object.name.toLowerCase() == lowercase_name)
+							uuid = null_object_match ? null_object_match.uuid : guid();
+						}
+						animator = this.animators[uuid] = new NullObjectAnimator(uuid, this, animator_blueprint.name)
 					} else {
 						let uuid = isUUID(key) && key;
 						if (!uuid) {
@@ -104,6 +112,7 @@ class Animation {
 				if (kfs && kfs.length) {
 					let ba_copy = copy.animators[uuid] = {
 						name: ba.name,
+						type: ba.type,
 						keyframes: []
 					}
 					kfs.forEach(kf => {

@@ -93,6 +93,8 @@ class NullObject extends OutlinerElement {
 	];
 	//NullObject.prototype.needsUniqueName = true;
 	NullObject.prototype.menu = new Menu([
+			'set_ik_target',
+			'_',
 			'group_elements',
 			'_',
 			'copy',
@@ -105,6 +107,7 @@ class NullObject extends OutlinerElement {
 	
 	new Property(NullObject, 'string', 'name', {default: 'null_object'})
 	new Property(NullObject, 'vector', 'from')
+	new Property(NullObject, 'string', 'ik_target', {condition: () => Format.animation_mode});
 	new Property(NullObject, 'boolean', 'ik_enabled', {condition: () => Format.animation_mode});
 	new Property(NullObject, 'number', 'ik_chain_length', {condition: () => Format.animation_mode});
 	new Property(NullObject, 'boolean', 'locked');
@@ -139,6 +142,41 @@ BARS.defineActions(function() {
 					null_object.rename();
 				}
 			})
+		}
+	})
+	
+	new Action('set_ik_target', {
+		icon: 'fa-paperclip',
+		category: 'edit',
+		condition: () => NullObject.selected.length,
+		children() {
+			let groups = [];
+			iterate(NullObject.selected[0].getParentArray());
+
+			function iterate(arr) {
+				arr.forEach(node => {
+					if (node instanceof Group) {
+						groups.push(node);
+						iterate(node.children);
+					}
+				})
+			}
+			return groups.map(group => {
+				return {
+					name: group.name,
+					id: group.name,
+					icon: group.name == NullObject.selected[0].ik_target ? 'radio_button_checked' : 'radio_button_unchecked',
+					click() {
+
+						NullObject.selected.forEach(null_object => {
+							null_object.ik_target = group.name;
+						})
+					}
+				}
+			})
+		},
+		click(event) {
+			new Menu(this.children()).show(event.target);
 		}
 	})
 })
