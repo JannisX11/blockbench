@@ -1830,7 +1830,7 @@ const BARS = {
 
 		//Find Action
 			new Action('action_control', {
-				icon: 'fullscreen',
+				icon: 'play_arrow',
 				category: 'blockbench',
 				keybind: new Keybind({key: 'f'}),
 				click: function () {
@@ -2150,10 +2150,6 @@ const BARS = {
 		}
 		BarItems.move_tool.select()
 
-		//BarItems.UVEditor.toElement('#uv_title_bar')
-		//BarItems.UVEditor_full.toElement('#uv_title_bar')
-
-
 	},
 	setupVue() {
 
@@ -2329,14 +2325,24 @@ const BARS = {
 				search_input: '',
 				index: 0,
 				length: 0,
+				search_types: {
+					'': 		{name: tl('action.action_control'), icon: 'play_arrow'},
+					'setting': 	{name: tl('data.setting'), icon: 'settings'},
+					'settings': {name: tl('data.setting'), icon: 'settings'},
+					'+plugin': 	{name: tl('action.add_plugin'), icon: 'add'},
+					'-plugin': 	{name: tl('action.remove_plugin'), icon: 'remove'},
+					'recent': 	{name: tl('menu.file.recent'), icon: 'history'},
+					'tab': 		{name: tl('menu.action_control.type.tab'), icon: 'view_stream'},
+					'angle': 	{name: tl('menu.action_control.type.angle'), icon: 'videocam'},
+				},
 				list: []
 			},
 			computed: {
 				search_type() {
-					if (this.search_input.includes(':')) {
-						let types = ['setting', 'settings', 'recent', 'tab', '+plugin', '-plugin']
+					if (this.search_input.search(/:/) > 0) {
 						let [type, search_input] = this.search_input.split(/:\s*(.*)/);
-						if (types.includes(type.toLowerCase())) {
+						type = type.toLowerCase();
+						if (this.search_types[type]) {
 							return type;
 						}
 					}
@@ -2350,9 +2356,19 @@ const BARS = {
 					var search_input = this._data.search_input.toLowerCase()
 					search_input = search_input.replace(type+':', '').trim();
 
-					if (!type) {
-						if ('+plugin'.includes(search_input) || BarItems.add_plugin.name.includes(search_input)) list.push(BarItems.add_plugin);
-						if ('-plugin'.includes(search_input) || BarItems.remove_plugin.name.includes(search_input)) list.push(BarItems.remove_plugin);
+					if (!type && search_input) {
+						for (let key in this.search_types) {
+							if (key == 'setting') continue;
+							if (key.includes(search_input)) {
+								list.push({
+									name: this.search_types[key].name,
+									icon: this.search_types[key].icon,
+									trigger: () => {
+										ActionControl.select(key && (key + ': '));
+									}
+								})
+							}
+						}
 					}
 					if (!type) {
 						for (var i = 0; i < Keybinds.actions.length; i++) {
@@ -2444,6 +2460,29 @@ const BARS = {
 							}
 						}
 					}
+					if (type == 'angle') {
+						let angles = Preview.prototype.menu.structure.find(m => m.id == 'angle').children(Preview.selected);
+						for (let angle of angles) {
+							if (typeof angle != 'object') continue;
+							let name = tl(angle.name);
+							if (
+								search_input.length == 0 ||
+								name.toLowerCase().includes(search_input) ||
+								(angle.id && angle.id.toLowerCase().includes(search_input))
+							) {
+								list.push({
+									name,
+									icon: angle.icon,
+									color: angle.color,
+									type: 'angle',
+									trigger() {
+										Preview.selected.loadAnglePreset(angle.preset);
+									}
+								})
+								if (list.length > ActionControl.max_length) break;
+							}
+						}
+					}
 					this._data.length = list.length;
 					if (this._data.index < 0) {
 						this._data.index = 0;
@@ -2469,6 +2508,24 @@ const BARS = {
 						return action.description;
 					}
 				},
+				openTypeMenu() {
+					let items = [];
+					for (let key in this.search_types) {
+						if (key == 'setting') continue;
+						items.push({
+							name: this.search_types[key].name,
+							icon: this.search_types[key].icon,
+							click: () => {
+								this.search_input = key && (key + ': ');
+								Vue.nextTick(_ => {
+									let element = $('#action_selector > input');
+									element.trigger('focus');
+								})
+							}
+						});
+					}
+					new Menu(items).show(this.$refs.search_type_menu);
+				},
 				click: ActionControl.click,
 				getIconNode: Blockbench.getIconNode
 			},
@@ -2479,6 +2536,9 @@ const BARS = {
 			},
 			template: `
 				<dialog id="action_selector" v-if="open">
+					<div class="tool" ref="search_type_menu" @click="openTypeMenu($event)">
+						<div class="icon_wrapper normal" v-html="getIconNode(search_types[search_type] ? search_types[search_type].icon : 'fullscreen').outerHTML"></div>	
+					</div>
 					<input type="text" v-model="search_input" @input="e => search_input = e.target.value" autocomplete="off" autosave="off" autocorrect="off" spellcheck="false" autocapitalize="off">
 					<i class="material-icons" id="action_search_bar_icon" @click="search_input = ''">{{ search_input ? 'clear' : 'search' }}</i>
 					<div v-if="search_type" class="action_selector_type_overlay">{{ search_type }}:</div>

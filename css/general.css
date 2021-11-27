@@ -487,7 +487,7 @@
 		min-width: 110px;
 		background-color: var(--color-bright_ui);
 		color: var(--color-bright_ui_text);
-		z-index: 20;
+		z-index: 30;
 		box-shadow: 0.4px 0.4px 4px rgba(0, 0, 0, 0.7);
 		cursor: default;
 		white-space: nowrap;

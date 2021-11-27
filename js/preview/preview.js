@@ -1550,6 +1550,7 @@ class Preview {
 					name: preset.name,
 					color: preset.color,
 					id: preset.name,
+					preset,
 					icon,
 					click: preset.default ? () => {
 						preview.loadAnglePreset(preset)

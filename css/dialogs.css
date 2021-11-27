@@ -1179,17 +1179,23 @@
 		margin-left: auto;
 		margin-right: auto;
 		top: 200px;
-		width: 360px;
+		width: 400px;
 		height: 42px;
 		box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 	}
 	#action_selector > input {
-		width: 100%;
+		width: calc(100% - 38px);
 		height: 42px;
 		padding: 5px;
 		padding-left: 12px;
 		background-color: var(--color-ui);
-		border: 1px solid var(--color-border);
+		border-left: 1px solid var(--color-border);
+	}
+	#action_selector > .tool {
+		height: 100%;
+		margin: 0;
+		padding-top: 6px;
+		background-color: var(--color-back);
 	}
 	#action_selector > i {
 		position: absolute;
@@ -1200,7 +1206,7 @@
 		background-color: var(--color-ui);
 		color: var(--color-text);
 		width: 340px;
-		margin-left: 8px;
+		margin-left: 38px;
 		box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 	}
 	#action_selector ul {
@@ -1260,7 +1266,7 @@
 		pointer-events: none;
 		opacity: 0.32;
 		top: 4px;
-		left: 12px;
+		left: 49px;
 	}
 	@media (max-device-width: 640px) {
 		dialog#action_selector {

@@ -1276,6 +1276,9 @@
 	"timeline.timeline": "Instructions",
 	"timeline.pre_effect_script": "Script",
 
+	"menu.action_control.type.tab": "Tab",
+	"menu.action_control.type.angle": "Camera Angle",
+
 	"menu.file": "File",
 	"menu.edit": "Edit",
 	"menu.transform": "Transform",

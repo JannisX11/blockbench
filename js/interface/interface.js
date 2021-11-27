@@ -221,7 +221,7 @@ function unselectInterface(event) {
 	if (open_menu && $('.contextMenu').find(event.target).length === 0 && $('.menu_bar_point.opened:hover').length === 0) {
 		open_menu.hide();
 	}
-	if (ActionControl.open && $('#action_selector').find(event.target).length === 0) {
+	if (ActionControl.open && $('#action_selector').find(event.target).length === 0 && (!open_menu || open_menu instanceof BarMenu)) {
 		ActionControl.hide();
 	}
 	if ($(event.target).is('input.cube_name:not([disabled])') === false && Blockbench.hasFlag('renaming')) {
