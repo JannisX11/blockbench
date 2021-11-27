@@ -530,10 +530,25 @@ function calculateVisibleBox() {
 				data = pe_list_data[0]
 			}
 		}
-		codec.dispatchEvent('parse', {model: data.object});
-		let {description} = data.object;
 
-		Project.geometry_name = (description.identifier && description.identifier.replace(/^geometry\./, '')) || '';
+		let {description} = data.object;
+		let geometry_name = (description.identifier && description.identifier.replace(/^geometry\./, '')) || '';
+
+		let existing_tab = isApp && ModelProject.all.find(project => (
+			Project !== project && project.export_path == Project.export_path && project.geometry_name == geometry_name
+		))
+		if (existing_tab) {
+			Project.close().then(() =>  {
+				existing_tab.select();
+			});
+			pe_list_data.length = 0;
+			hideDialog()
+			return;
+		}
+
+		codec.dispatchEvent('parse', {model: data.object});
+
+		Project.geometry_name = geometry_name;
 		Project.texture_width = 16;
 		Project.texture_height = 16;
 
@@ -743,6 +758,7 @@ var codec = new Codec('bedrock', {
 	name: 'Bedrock Model',
 	extension: 'json',
 	remember: true,
+	multiple_per_file: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['json'],
@@ -885,12 +901,6 @@ var codec = new Codec('bedrock', {
 			pe_list._data.search_text = ''
 		}
 
-		function rotateOriginCoord(pivot, y, z) {
-			return [
-				pivot[1] - pivot[2] + z,
-				pivot[2] - y + pivot[1]
-			]
-		}
 		function create_thumbnail(model_entry, isize) {
 			var included_bones = []
 			model_entry.object.bones.forEach(function(b) {
@@ -1056,7 +1066,6 @@ var format = new ModelFormat({
 	texture_meshes: true,
 	codec
 })
-//Object.defineProperty(format, 'single_texture', {get: _ => !settings.layered_textures.value})
 codec.format = format;
 
 BARS.defineActions(function() {
