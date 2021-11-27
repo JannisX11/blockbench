@@ -232,7 +232,7 @@ class Keyframe {
 	}
 	compileBedrockKeyframe() {
 		if (this.transform) {
-			if (this.interpolation != 'linear') {
+			if (this.interpolation != 'linear' && this.interpolation != 'none') {
 				return {
 					post: this.getArray(),
 					lerp_mode: this.interpolation,
@@ -410,6 +410,7 @@ class Keyframe {
 	Keyframe.interpolation = {
 		linear: 'linear',
 		catmullrom: 'catmullrom',
+		none: 'none',
 	}
 
 // Misc Functions
@@ -648,6 +649,7 @@ BARS.defineActions(function() {
 		options: {
 			linear: true,
 			catmullrom: true,
+			none: true,
 		},
 		onChange: function(sel, event) {
 			Undo.initEdit({keyframes: Timeline.selected})

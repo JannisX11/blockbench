@@ -1216,6 +1216,7 @@
 	"action.keyframe_interpolation.desc": "Select the keyframe interpolation mode",
 	"action.keyframe_interpolation.linear": "Linear",
 	"action.keyframe_interpolation.catmullrom": "Smooth",
+	"action.keyframe_interpolation.none": "None",
 	"action.keyframe_uniform": "Uniform Scaling",
 	"action.keyframe_uniform.desc": "Enable uniform scaling on the selected keyframes",
 	"action.change_keyframe_file": "Select Keyframe File",

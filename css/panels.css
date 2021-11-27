@@ -838,6 +838,12 @@
 		margin-top: 4px;
 		margin-left: -1px;
 	}
+	#timeline .keyframe i.keyframe_icon_step {
+		font-size: 16pt;
+		margin-top: 4px;
+		margin-left: -2px;
+		transform: rotate(-90deg);
+	}
 	#timeline_body .animator_head_bar .keyframe {
 		z-index: 1;
 		pointer-events: none;

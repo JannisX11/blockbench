@@ -1014,6 +1014,7 @@ onVueSetup(function() {
 										@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
 									>
 										<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
+										<i class="material-icons keyframe_icon_step" v-else-if="keyframe.interpolation == 'none'">eject</i>
 										<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
 										<svg class="keyframe_waveform" v-if="keyframe.channel == 'sound' && keyframe.data_points[0].file && waveforms[keyframe.data_points[0].file]" :style="{width: waveforms[keyframe.data_points[0].file].duration * size}">
 											<polygon :points="getWaveformPoints(waveforms[keyframe.data_points[0].file].samples, size)"></polygon>
@@ -1045,6 +1046,7 @@ onVueSetup(function() {
 									@contextmenu.prevent="keyframe.showContextMenu($event)"
 								>
 									<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
+									<i class="material-icons keyframe_icon_step" v-else-if="keyframe.interpolation == 'none'">eject</i>
 									<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
 								</div>
 							</template>

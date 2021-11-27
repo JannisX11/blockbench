@@ -165,7 +165,7 @@ class Animation {
 				for (var channel in Animator.possible_channels) {
 					if (channels[channel]) {
 						let timecodes = Object.keys(channels[channel])
-						if (timecodes.length === 1 && animator[channel][0].data_points.length == 1 && animator[channel][0].interpolation == 'linear') {
+						if (timecodes.length === 1 && animator[channel][0].data_points.length == 1 && animator[channel][0].interpolation != 'catmullrom') {
 							bone_tag[channel] = channels[channel][timecodes[0]]
 							if (channel == 'scale' &&
 								channels[channel][timecodes[0]] instanceof Array &&
@@ -1048,6 +1048,8 @@ class BoneAnimator extends GeneralAnimator {
 			result = before
 		} else if (after && Math.epsilon(after.time, time, epsilon)) {
 			result = after
+		} else if (before && before.interpolation == Keyframe.interpolation.none) {
+			result = before
 		} else if (before && !after) {
 			result = before
 		} else if (after && !before) {
