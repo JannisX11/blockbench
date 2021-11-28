@@ -2329,8 +2329,8 @@ const BARS = {
 					'': 		{name: tl('action.action_control'), icon: 'play_arrow'},
 					'setting': 	{name: tl('data.setting'), icon: 'settings'},
 					'settings': {name: tl('data.setting'), icon: 'settings'},
-					'+plugin': 	{name: tl('action.add_plugin'), icon: 'add'},
-					'-plugin': 	{name: tl('action.remove_plugin'), icon: 'remove'},
+					'+plugin': 	{name: tl('action.add_plugin'), icon: 'extension'},
+					'-plugin': 	{name: tl('action.remove_plugin'), icon: 'extension_off'},
 					'recent': 	{name: tl('menu.file.recent'), icon: 'history'},
 					'tab': 		{name: tl('menu.action_control.type.tab'), icon: 'view_stream'},
 					'angle': 	{name: tl('menu.action_control.type.angle'), icon: 'videocam'},
@@ -2340,7 +2340,7 @@ const BARS = {
 			computed: {
 				search_type() {
 					if (this.search_input.search(/:/) > 0) {
-						let [type, search_input] = this.search_input.split(/:\s*(.*)/);
+						let [type] = this.search_input.split(/:\s*(.*)/);
 						type = type.toLowerCase();
 						if (this.search_types[type]) {
 							return type;
@@ -2363,6 +2363,7 @@ const BARS = {
 								list.push({
 									name: this.search_types[key].name,
 									icon: this.search_types[key].icon,
+									keybind_label: `${key}:`,
 									trigger: () => {
 										ActionControl.select(key && (key + ': '));
 									}

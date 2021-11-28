@@ -510,28 +510,38 @@ const MenuBar = {
 				}
 			},
 			{name: 'menu.file.recent', id: 'recent', icon: 'history',
-				condition: function() {return isApp && recent_projects.length},
-				children: function() {
+				condition() {return isApp && recent_projects.length},
+				children() {
 					var arr = []
 					let redact = settings.streamer_mode.value;
-					recent_projects.forEach(function(p) {
+					for (let p of recent_projects) {
+						if (arr.length > 12) break;
 						arr.push({
 							name: redact ? `[${tl('generic.redacted')}]` : p.name,
 							path: p.path,
 							description: redact ? '' : p.path,
 							icon: p.icon,
-							click: function(c, event) {
+							click(c, event) {
 								Blockbench.read([p.path], {}, files => {
 									loadModelFile(files[0]);
 								})
 							}
 						})
-					})
+					}
+					if (recent_projects.length > 12) {
+						arr.push('_', {
+							name: 'menu.file.recent.more',
+							icon: 'read_more',
+							click(c, event) {
+								ActionControl.select('recent: ');
+							}
+						})
+					}
 					if (arr.length) {
 						arr.push('_', {
 							name: 'menu.file.recent.clear',
 							icon: 'clear',
-							click: function(c, event) {
+							click(c, event) {
 								recent_projects.empty();
 								updateRecentProjects();
 							}

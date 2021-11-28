@@ -1292,6 +1292,7 @@
 	"menu.file.new": "New",
 	"menu.file.recent": "Recent",
 	"menu.file.recent.clear": "Clear Recent Files",
+	"menu.file.recent.more": "View More...",
 	"menu.file.import": "Import",
 	"menu.file.import.import_open_project": "Import Open Project",
 	"menu.file.export": "Export",
