@@ -179,7 +179,7 @@ const Settings = {
 			currentwindow.webContents.setZoomFactor(factor)
 			resizeWindow()
 		}});
-		new Setting('hide_tab_bar', 		{category: 'interface', value: !isApp, onChange() {
+		new Setting('hide_tab_bar', 		{category: 'interface', value: Blockbench.isMobile, onChange() {
 			updateTabBarVisibility();
 		}});
 		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number'});

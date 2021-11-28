@@ -28,6 +28,16 @@ class ModelProject {
 		this.previews = {};
 		this.EditSession = null;
 
+		this.backgrounds = {
+			normal: 		new PreviewBackground({name: 'menu.preview.perspective.normal', lock: null}),
+			ortho_top: 		new PreviewBackground({name: 'direction.top', lock: true}),
+			ortho_bottom: 	new PreviewBackground({name: 'direction.bottom', lock: true}),
+			ortho_south: 	new PreviewBackground({name: 'direction.south', lock: true}),
+			ortho_north: 	new PreviewBackground({name: 'direction.north', lock: true}),
+			ortho_east: 	new PreviewBackground({name: 'direction.east', lock: true}),
+			ortho_west: 	new PreviewBackground({name: 'direction.west', lock: true}),
+		}
+
 		// Data
 		this.elements = [];
 		this.groups = [];
@@ -191,6 +201,9 @@ class ModelProject {
 
 		Blockbench.dispatchEvent('select_project', {project: this});
 
+		Preview.all.forEach(p => {
+			if (p.canvas.isConnected) p.loadBackground()
+		})
 		if (Preview.selected) Preview.selected.occupyTransformer();
 		setProjectTitle(this.name);
 		setStartScreen(!Project);

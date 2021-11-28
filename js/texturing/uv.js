@@ -756,10 +756,12 @@ const UVEditor = {
 						normal_vec,
 						vec2.fromArray(obj.vertices[face.vertices[0]])
 					)
+					let rot = cameraTargetToRotation([0, 0, 0], normal_vec.toArray());
+					let e = new THREE.Euler(Math.degToRad(-rot[1] - 90), Math.degToRad(rot[0]), 0);
+					console.log({rot, e, normal_vec})
 					face.vertices.forEach(vkey => {
 						let coplanar_pos = plane.projectPoint(vec3.fromArray(obj.vertices[vkey]), vec4.set(0, 0, 0));
-						let q = quat.setFromUnitVectors(normal_vec, THREE.NormalY);
-						coplanar_pos.applyQuaternion(q);
+						coplanar_pos.applyEuler(e);
 						vertex_uvs[vkey] = [
 							Math.roundTo(coplanar_pos.x, 4),
 							Math.roundTo(coplanar_pos.z, 4),

@@ -1242,9 +1242,9 @@ class Preview {
 				this.background = canvas_scenes.normal
 			}
 		} else if (this.angle !== null) {
-			this.background = canvas_scenes['ortho_'+this.angle]
+			this.background = Project && Project.backgrounds['ortho_'+this.angle]
 		} else {
-			this.background = canvas_scenes.normal
+			this.background = Project && Project.backgrounds.normal
 		}
 		return this.background
 	}
@@ -1465,9 +1465,6 @@ class Preview {
 		{id: 'background', icon: 'wallpaper', name: 'menu.preview.background', children(preview) {
 			var has_background = !!preview.background.image
 			function applyBackground(image) {
-				if (!preview.background.image) {
-					preview.background.save_in_project = null;
-				}
 				preview.background.image = image;
 				preview.loadBackground();
 				Settings.saveLocalStorages();
@@ -2128,7 +2125,6 @@ class PreviewBackground {
 		this.x = data.x||0
 		this.y = data.y||0
 		this.lock = data.lock||false
-		this.save_in_project = false;
 		this.defaults = Object.assign({}, this);
 		this.defaults.image = this.image;
 		this.imgtag = new Image();
@@ -2192,16 +2188,7 @@ function initCanvas() {
 
 
 	canvas_scenes = {
-		normal: 			new PreviewBackground({name: 'menu.preview.perspective.normal', lock: null}),
-		ortho_top: 			new PreviewBackground({name: 'direction.top', lock: true}),
-		ortho_bottom: 		new PreviewBackground({name: 'direction.bottom', lock: true}),
-		ortho_south: 		new PreviewBackground({name: 'direction.south', lock: true}),
-		ortho_north: 		new PreviewBackground({name: 'direction.north', lock: true}),
-		ortho_east: 		new PreviewBackground({name: 'direction.east', lock: true}),
-		ortho_west: 		new PreviewBackground({name: 'direction.west', lock: true}),
-
 		monitor: 			new PreviewBackground({name: 'display.reference.monitor' }),
-
 		inventory_nine: 	new PreviewBackground({name: 'display.reference.inventory_nine', image: './assets/inventory_nine.png', x: 0, y: -525, size: 1051, lock: true}),
 		inventory_full: 	new PreviewBackground({name: 'display.reference.inventory_full', image: './assets/inventory_full.png', x: 0, y: -1740, size: 2781, lock: true}),
 		hud: 				new PreviewBackground({name: 'display.reference.hud', image: './assets/hud.png', x: -224, y: -447.5, size: 3391, lock: true}),
@@ -2219,9 +2206,6 @@ function initCanvas() {
 					let store = stored_canvas_scenes[key]
 					let real = canvas_scenes[key]
 
-					if (store.save_in_project) continue;
-					if (store.save_in_project == null) {real.save_in_project = false}
-
 					if (store.image	!== undefined) {real.image = store.image}
 					if (store.size	!== undefined) {real.size = store.size}
 					if (store.x		!== undefined) {real.x = store.x}
@@ -2231,7 +2215,6 @@ function initCanvas() {
 			}
 		}
 	}
-	active_scene = canvas_scenes.normal
 
 	MediaPreview = new Preview({id: 'media', offscreen: true})
 

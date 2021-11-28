@@ -168,10 +168,9 @@ var codec = new Codec('project', {
 			// Backgrounds
 			const backgrounds = {};
 
-			for (var key in canvas_scenes) {
-				let scene = canvas_scenes[key];
-				if (scene.image && scene.save_in_project !== false) {
-					scene.save_in_project = true;
+			for (var key in Project.backgrounds) {
+				let scene = Project.backgrounds[key];
+				if (scene.image) {
 					backgrounds[key] = scene.getSaveCopy();
 				}
 			}
@@ -304,12 +303,10 @@ var codec = new Codec('project', {
 		}
 		if (model.backgrounds) {
 			for (var key in model.backgrounds) {
-				if (canvas_scenes.hasOwnProperty(key)) {
+				if (Project.backgrounds.hasOwnProperty(key)) {
 
 					let store = model.backgrounds[key]
-					let real = canvas_scenes[key]
-
-					real.save_in_project = true;
+					let real = Project.backgrounds[key]
 
 					if (store.image	!== undefined) {real.image = store.image}
 					if (store.size	!== undefined) {real.size = store.size}

@@ -654,7 +654,7 @@ const TextureGenerator = {
 						vec2.fromArray(mesh.vertices[face_group.faces[0].vertices[0]])
 					)
 					let rot = cameraTargetToRotation([0, 0, 0], normal_vec.toArray());
-					let e = new THREE.Euler(Math.degToRad(rot[1] - 90), Math.degToRad(rot[0]), 0);
+					let e = new THREE.Euler(Math.degToRad(-rot[1] - 90), Math.degToRad(rot[0]), 0);
 					let vertex_uvs = {};
 					face_group.faces.forEach(face => {
 						face.vertices.forEach(vkey => {
