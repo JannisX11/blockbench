@@ -14,12 +14,13 @@ const TextureGenerator = {
 	},
 	addBitmapDialog() {
 		let type_options = {
-			blank: 'dialog.create_texture.type.blank',
-			template: 'dialog.create_texture.type.template',
+			template: 'dialog.create_texture.type.template'
 		}
 		if (!Project.box_uv) {
 			type_options.color_map = 'dialog.create_texture.type.color_map';
 		}
+		type_options.blank = 'dialog.create_texture.type.blank';
+
 		var dialog = new Dialog({
 			id: 'add_bitmap',
 			title: tl('action.create_texture'),
@@ -27,8 +28,9 @@ const TextureGenerator = {
 			form: {
 				name: 		{label: 'generic.name', value: 'texture'},
 				folder: 	{label: 'dialog.create_texture.folder', condition: Format.id == 'java_block'},
+				type:	{label: 'dialog.create_texture.type', type: 'select', condition: Cube.all.length || Mesh.all.length, options: type_options},
+				section2:    "_",
 
-				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
 				resolution: {label: 'dialog.create_texture.resolution', description: 'dialog.create_texture.resolution.desc', type: 'select', value: 16, condition: (form) => (form.type == 'template'), options: {
 					16: '16',
 					32: '32',
@@ -38,9 +40,7 @@ const TextureGenerator = {
 					512: '512',
 				}},
 				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (form.type == 'blank'), dimensions: 2, value: [16, 16], min: 16, max: 2048},
-
-				section2:    "_",
-				type:	{label: 'dialog.create_texture.type', type: 'select', condition: Cube.all.length || Mesh.all.length, options: type_options},
+				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
 
 				rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', description: 'dialog.create_texture.rearrange_uv.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template')},
 				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.type == 'template' && !Project.box_uv)},
