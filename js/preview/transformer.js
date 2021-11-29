@@ -921,7 +921,7 @@
 				} else if (Modes.animate && NullObject.selected[0]) {
 
 					this.attach(NullObject.selected[0]);
-					this.position.copy(NullObject.selected[0].getWorldCenter());
+					this.position.copy(NullObject.selected[0].getWorldCenter(true));
 					
 					if (BarItems.rotation_space.value === 'global') {
 						delete Transformer.rotation_ref;

@@ -469,7 +469,6 @@ class NullObjectAnimator extends BoneAnimator {
 		return this;
 	}
 	displayIK() {
-		
 		let null_object = this.getElement();
 		let target = Group.all.find(group => group.name == null_object.ik_target);
 		if (!null_object || !target) return;
@@ -481,7 +480,11 @@ class NullObjectAnimator extends BoneAnimator {
 			current = current.parent;
 		}
 		bones.reverse();
-
+		
+		bones.forEach(bone => {
+			var mesh = bone.mesh;
+			if (mesh.fix_rotation) mesh.rotation.copy(mesh.fix_rotation);
+		})
 
 		let solver = new FIK.Structure3D(scene);
 		let chain = new FIK.Chain3D();
@@ -491,41 +494,38 @@ class NullObjectAnimator extends BoneAnimator {
 		bones.forEach((bone, i) => {
 
 			let startPoint = new FIK.V3(0,0,0).copy(bone.mesh.getWorldPosition(new THREE.Vector3()))
-			let endPoint = new FIK.V3(0,0,0).copy(bones[i+1] ? bones[i+1].mesh.getWorldPosition(new THREE.Vector3()) : null_object.getWorldCenter())
+			let endPoint = new FIK.V3(0,0,0).copy(bones[i+1] ? bones[i+1].mesh.getWorldPosition(new THREE.Vector3()) : null_object.getWorldCenter(false))
 
 			let ik_bone = new FIK.Bone3D(startPoint, endPoint)
 			chain.addBone(ik_bone)
+
 			bone_references.push({
 				bone,
 				ik_bone,
 				last_rotation: new THREE.Euler().copy(bone.mesh.rotation),
 				ik_bone,
 				last_diff: new THREE.Vector3(
-					(bones[i+1] ? bones[i+1].origin[0] : null_object.from[0]) - bone.origin[0],
-					(bones[i+1] ? bones[i+1].origin[1] : null_object.from[1]) - bone.origin[1],
-					(bones[i+1] ? bones[i+1].origin[2] : null_object.from[2]) - bone.origin[2]
+					(bones[i+1] ? bones[i+1] : target).origin[0] - bone.origin[0],
+					(bones[i+1] ? bones[i+1] : target).origin[1] - bone.origin[1],
+					(bones[i+1] ? bones[i+1] : target).origin[2] - bone.origin[2]
 				)
 			})
 		})
 
 
-		let ik_target = new THREE.Vector3().copy(Transformer.position);
+		let ik_target = new THREE.Vector3().copy(null_object.getWorldCenter(true));
 
 		solver.add(chain, ik_target , true);
 		solver.meshChains[0].forEach(mesh => {
-			//mesh.visible = false;
-			scene.add(mesh)
+			mesh.visible = false;
+			//scene.add(mesh)
 		})
 
-
-
-
-
-
 		solver.update();
-		let lim = 12;
+
+		let last_euler = new THREE.Euler();
 	
-		bone_references.forEach((bone, i) => {
+		bone_references.forEach((bone_ref, i) => {
 			
 	
 				let euler = new THREE.Euler()
@@ -536,33 +536,27 @@ class NullObjectAnimator extends BoneAnimator {
 				bone_references[i].bone.mesh.worldToLocal(start)
 				bone_references[i].bone.mesh.worldToLocal(end)
 				let diff = new THREE.Vector3().copy(end).sub(start)
-				
+
 				let v1 = new THREE.Vector3().copy(diff).normalize();
-				let v2 = new THREE.Vector3().copy(bone.last_diff).normalize();
-				//v1.x *= -1;
-				//v2.x *= -1;
+				let v2 = new THREE.Vector3().copy(bone_ref.last_diff).normalize();
 	
 				q.setFromUnitVectors(v1, v2)
 				euler.setFromQuaternion(q)
 
-				//console.log(euler)
-				//euler.x *= -1;
+				bone_ref.bone.mesh.rotation.x -= euler.x - last_euler.x;
+				bone_ref.bone.mesh.rotation.y -= euler.y - last_euler.y;
+				bone_ref.bone.mesh.rotation.z -= euler.z - last_euler.z;
 
-				bone.bone.mesh.rotation.copy(euler)
-	
-				//keyframe.offset('x', Math.clamp(Math.radToDeg(euler.x), -lim, lim));
-				//keyframe.offset('y', Math.clamp(Math.radToDeg(euler.y), -lim, lim));
-				//keyframe.offset('z', Math.clamp(Math.radToDeg(euler.z), -lim, lim));
-
+				last_euler.x = euler.x;
+				last_euler.y = euler.y;
+				last_euler.z = euler.z;
 		})
 
-		//console.log({solver, chain,bones, bone_references,ik_target})
-
-		setTimeout(() => {
+		/*setTimeout(() => {
 			solver.meshChains[0].forEach(mesh => {
-				scene.remove(mesh)
+				//scene.remove(mesh)
 			})
-		}, 1200)
+		}, 60)*/
 	}
 	displayFrame(multiplier = 1) {
 		if (!this.doRender()) return;

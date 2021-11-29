@@ -66,7 +66,7 @@ class NullObject extends OutlinerElement {
 		this.createUniqueName();
 		return this;
 	}
-	getWorldCenter() {
+	getWorldCenter(with_animation) {
 		var pos = Reusable.vec1.set(0, 0, 0);
 		var q = Reusable.quat1.set(0, 0, 0, 1);
 		if (this.parent instanceof Group) {
@@ -75,7 +75,7 @@ class NullObject extends OutlinerElement {
 			var offset2 = Reusable.vec2.fromArray(this.parent.origin).applyQuaternion(q);
 			pos.sub(offset2);
 		}
-		var offset = Reusable.vec3.copy(this.mesh.position).applyQuaternion(q);
+		var offset = ( with_animation ? Reusable.vec3.copy(this.mesh.position) : Reusable.vec3.fromArray(this.from) ).applyQuaternion(q);
 		pos.add(offset);
 
 		return pos;
@@ -167,10 +167,11 @@ BARS.defineActions(function() {
 					id: group.name,
 					icon: group.name == NullObject.selected[0].ik_target ? 'radio_button_checked' : 'radio_button_unchecked',
 					click() {
-
+						Undo.initEdit({elements: NullObject.selected});
 						NullObject.selected.forEach(null_object => {
 							null_object.ik_target = group.name;
 						})
+						Undo.finishEdit('Set IK target');
 					}
 				}
 			})
