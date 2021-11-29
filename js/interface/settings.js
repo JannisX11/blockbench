@@ -241,6 +241,12 @@ const Settings = {
 		}});
 		new Setting('deactivate_size_limit',{category: 'edit', value: false});
 		new Setting('vertex_merge_distance',{category: 'edit', value: 0.1, step: 0.01, type: 'number'});
+		new Setting('preview_paste_behavior',{category: 'edit', value: 'always_ask', type: 'select', options: {
+			'always_ask': tl('settings.preview_paste_behavior.always_ask'),
+			'outliner': tl('menu.paste.outliner'),
+			'face': tl('menu.paste.face'),
+			'mesh_selection': tl('menu.paste.mesh_selection'),
+		}});
 		
 		//Grid
 		new Setting('base_grid',		{category: 'grid', value: true,});

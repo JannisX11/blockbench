@@ -76,7 +76,9 @@ const Clipbench = {
 			if (UVEditor.getMappableElements().length && UVEditor.clipboard.length) {
 				options.push(Clipbench.types.face);
 			}
-			if (options.length > 1) {
+			if (options.length > 1 && options.includes(settings.preview_paste_behavior.value)) {
+				return settings.preview_paste_behavior.value;
+			} else if (options.length > 1) {
 				return await new Promise((resolve, reject) => {
 					new Menu(options.map(option => {
 						return {

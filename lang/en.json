@@ -650,6 +650,9 @@
 	"settings.deactivate_size_limit.desc": "Deactivate the size limit for specific model formats. WARNING: This can cause invalid models.",
 	"settings.vertex_merge_distance": "Vertex Merge Distance",
 	"settings.vertex_merge_distance.desc": "Distance within which vertices are merged using merging by distance",
+	"settings.preview_paste_behavior": "Default Preview Paste Behavior",
+	"settings.preview_paste_behavior.desc": "Select the behavior when pasting something into the preview in Edit mode and multiple options are available",
+	"settings.preview_paste_behavior.always_ask": "Always Ask",
 
 	"settings.autouv": "Auto UV",
 	"settings.autouv.desc": "Enable Auto UV by default",
