@@ -566,6 +566,7 @@ onVueSetup(function() {
 			streamer_mode: settings.streamer_mode.value,
 			selection_info: '',
 			Format: null,
+			show_modifier_keys: settings.status_bar_modifier_keys.value,
 			modifier_keys: {
 				ctrl: [],
 				shift: [],
@@ -619,8 +620,12 @@ onVueSetup(function() {
 					this.selection_info = '';
 				}
 			},
+			clickModifiers() {
+				ActionControl.select(`setting: ${tl('settings.status_bar_modifier_keys')}`);
+			},
 			toggleSidebar: Interface.toggleSidebar,
-			getIconNode: Blockbench.getIconNode
+			getIconNode: Blockbench.getIconNode,
+			tl
 		},
 		template: `
 			<div id="status_bar" @contextmenu="showContextMenu($event)">
@@ -643,6 +648,22 @@ onVueSetup(function() {
 					{{ Prop.file_name }}
 				</div>
 				<div id="status_message" class="hidden"></div>
+
+				<template v-if="show_modifier_keys">
+					<div class="status_bar_modifier_key" v-if="modifier_keys.ctrl.length" @click="clickModifiers()">
+						<kbd>${tl(Blockbench.platform == 'darwin' ? 'keys.cmd' : 'keys.ctrl')}</kbd>
+						<span>{{ tl(modifier_keys.ctrl.last()) }}</span>
+					</div>
+					<div class="status_bar_modifier_key" v-if="modifier_keys.shift.length" @click="clickModifiers()">
+						<kbd>${tl('keys.shift')}</kbd>
+						<span>{{ tl(modifier_keys.shift.last()) }}</span>
+					</div>
+					<div class="status_bar_modifier_key" v-if="modifier_keys.alt.length" @click="clickModifiers()">
+						<kbd>${tl('keys.alt')}</kbd>
+						<span>{{ tl(modifier_keys.alt.last()) }}</span>
+					</div>
+				</template>
+
 				<div class="status_selection_info">{{ selection_info }}</div>
 				<div class="f_right">
 					{{ Prop.fps }} FPS
@@ -656,4 +677,11 @@ onVueSetup(function() {
 			</div>
 		`
 	})
+
+	Interface.addSuggestedModifierKey = (key, text) => {
+		Interface.status_bar.vue.modifier_keys[key].safePush(text);
+	};
+	Interface.removeSuggestedModifierKey = (key, text) => {
+		Interface.status_bar.vue.modifier_keys[key].remove(text);
+	};
 })

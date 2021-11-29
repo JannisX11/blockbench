@@ -182,6 +182,9 @@ const Settings = {
 		new Setting('hide_tab_bar', 		{category: 'interface', value: Blockbench.isMobile, onChange() {
 			updateTabBarVisibility();
 		}});
+		new Setting('status_bar_modifier_keys', {category: 'interface', value: true, condition: !Blockbench.isTouch, onChange(value) {
+			Interface.status_bar.vue.show_modifier_keys = value;
+		}});
 		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number'});
 		new Setting('control_size',  		{category: 'interface', value: 10, type: 'number'});
 		new Setting('motion_trails',  		{category: 'interface', value: true, onChange() {

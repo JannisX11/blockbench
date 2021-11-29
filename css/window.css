@@ -936,6 +936,21 @@
 		bottom: 0;
 		left: 0;
 	}
+	#status_bar .status_bar_modifier_key {
+		flex-grow: 0.06;
+		text-align: center;
+		padding-top: 2px;
+		font-size: 0.92em;
+	}
+	#status_bar .status_bar_modifier_key kbd {
+		font-family: inherit;
+		border-radius: 2px;
+		background-color: var(--color-button);
+		padding: 1px 5px;
+	}
+	#status_bar .status_bar_modifier_key span {
+		color: var(--color-subtle_text);
+	}
 	#status_bar .status_selection_info {
 		color: var(--color-subtle_text);
 	}

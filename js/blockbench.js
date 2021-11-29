@@ -17,7 +17,17 @@ const Pressing = {
 	}
 }
 var Prop = {
-	active_panel	: 'preview',
+	_active_panel	: 'preview',
+	get active_panel() {
+		return Prop._active_panel
+	},
+	set active_panel(panel) {
+		let last_panel = Prop._active_panel;
+		if (last_panel != panel) {
+			Prop._active_panel = panel;
+			Blockbench.dispatchEvent('change_active_panel', {last_panel, panel})
+		}
+	},
 	file_path	  	: '',
 	file_name	  	: '',
 	recording		: null,

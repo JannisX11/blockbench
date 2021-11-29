@@ -149,6 +149,14 @@
 	"status_bar.selection.edges": "%0 Edges",
 	"status_bar.selection.vertices": "%0 Vertices",
 
+	"modifier_actions.draw_line": "Draw line",
+	"modifier_actions.drag_without_snapping": "Drag without snapping",
+	"modifier_actions.stretch_keyframes": "Stretch keyframes",
+	"modifier_actions.resize_background": "Resize background",
+	"modifier_actions.select_multiple": "Select multiple",
+	"modifier_actions.select_range": "Select range",
+	"modifier_actions.drag_to_duplicate": "Drag to duplicate",
+
 	"message.canvas_limit_error.title": "Canvas Limit Error",
 	"message.canvas_limit_error.message": "The action could not be performed correctly because the format limits the canvas to 48 units. Shift the pivot point to prevent this.",
 	"message.rotation_limit.title": "Rotation Limits",
@@ -579,6 +587,8 @@
 	"settings.interface_scale.desc": "Scale of the entire Blockbench interface",
 	"settings.hide_tab_bar": "Auto-hide Tab Bar",
 	"settings.hide_tab_bar.desc": "Hide the tab bar when only one tab is open",
+	"settings.status_bar_modifier_keys": "Suggest Modifier Keys in Status Bar",
+	"settings.status_bar_modifier_keys.desc": "Display context aware suggested modifier keys in the status bar",
 	"settings.origin_size": "Pivot Marker",
 	"settings.origin_size.desc": "Size of the pivot point marker",
 	"settings.control_size": "Transform Gizmo Size",

@@ -1316,6 +1316,7 @@ class Preview {
 				return true;
 			}
 		})
+		Interface.addSuggestedModifierKey('shift', 'modifier_actions.resize_background');
 	}
 	stopMovingBackground() {
 		this.movingBackground = false;
@@ -1325,6 +1326,7 @@ class Preview {
 			this.position_toast.delete();
 			delete this.position_toast;
 		}
+		Interface.removeSuggestedModifierKey('shift', 'modifier_actions.resize_background');
 		Settings.saveLocalStorages()
 		return this;
 	}

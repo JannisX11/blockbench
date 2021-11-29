@@ -271,6 +271,7 @@ const Timeline = {
 				if (!e.ctrlOrCmd && !Pressing.overrides.ctrl) time = Timeline.snapTime(time);
 				Timeline.setTime(time);
 				Animator.preview();
+				Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.drag_without_snapping');
 			}
 		})
 		$(document).on('mousemove touchmove', e => {
@@ -297,7 +298,8 @@ const Timeline = {
 		})
 		.on('mouseup touchend', e => {
 			if (Timeline.dragging_playhead) {
-				delete Timeline.dragging_playhead
+				delete Timeline.dragging_playhead;
+				Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.drag_without_snapping');
 				Timeline.pause();
 
 			} else if (Timeline.dragging_endbracket) {

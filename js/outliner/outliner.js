@@ -1485,6 +1485,19 @@ Interface.definePanels(function() {
 		])
 	})
 	Outliner.vue = Interface.Panels.outliner.inside_vue;
+	
+	Blockbench.on('change_active_panel', ({last_panel, panel}) => {
+		if (last_panel == 'outliner') {
+			Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.select_multiple');
+			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.select_range');
+			Interface.removeSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
+		}
+		if (panel == 'outliner') {
+			Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.select_multiple');
+			Interface.addSuggestedModifierKey('shift', 'modifier_actions.select_range');
+			Interface.addSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
+		}
+	})
 })
 
 class Face {

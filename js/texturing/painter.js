@@ -996,11 +996,17 @@ BARS.defineActions(function() {
 		allowed_view_modes: ['textured'],
 		keybind: new Keybind({key: 'b'}),
 		modes: ['paint'],
-		onCanvasClick: function(data) {
-			Painter.startPaintToolCanvas(data, data.event)
+		onCanvasClick(data) {
+			Painter.startPaintToolCanvas(data, data.event);
 		},
-		onSelect: function() {
-			Painter.updateNslideValues()
+		onSelect() {
+			Painter.updateNslideValues();
+			Interface.addSuggestedModifierKey('alt', 'action.color_picker');
+			Interface.addSuggestedModifierKey('shift', 'modifier_actions.draw_line');
+		},
+		onUnselect() {
+			Interface.removeSuggestedModifierKey('alt', 'action.color_picker');
+			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.draw_line');
 		}
 	})
 	new Tool('fill_tool', {
@@ -1018,7 +1024,11 @@ BARS.defineActions(function() {
 			Painter.startPaintToolCanvas(data, data.event)
 		},
 		onSelect: function() {
-			Painter.updateNslideValues()
+			Painter.updateNslideValues();
+			Interface.addSuggestedModifierKey('alt', 'action.color_picker');
+		},
+		onUnselect() {
+			Interface.removeSuggestedModifierKey('alt', 'action.color_picker');
 		}
 	})
 	new Tool('eraser', {
@@ -1039,6 +1049,10 @@ BARS.defineActions(function() {
 		},
 		onSelect: function() {
 			Painter.updateNslideValues()
+			Interface.addSuggestedModifierKey('shift', 'modifier_actions.draw_line');
+		},
+		onUnselect() {
+			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.draw_line');
 		}
 	})
 	new Tool('color_picker', {

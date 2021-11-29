@@ -445,6 +445,11 @@ function updateKeyframeSelection() {
 			Animator.motion_trail.remove(child);
 		})
 	}
+	if (Timeline.selected.length >= 2) {
+		Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.stretch_keyframes');
+	} else {
+		Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.stretch_keyframes');
+	}
 	BARS.updateConditions()
 	Blockbench.dispatchEvent('update_keyframe_selection');
 }
