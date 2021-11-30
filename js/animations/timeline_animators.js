@@ -486,6 +486,7 @@ class NullObjectAnimator extends BoneAnimator {
 			if (mesh.fix_rotation) mesh.rotation.copy(mesh.fix_rotation);
 		})
 
+		let ik_target = new THREE.Vector3().copy(null_object.getWorldCenter(true));
 		let solver = new FIK.Structure3D(scene);
 		let chain = new FIK.Chain3D();
 
@@ -508,55 +509,32 @@ class NullObjectAnimator extends BoneAnimator {
 					(bones[i+1] ? bones[i+1] : target).origin[0] - bone.origin[0],
 					(bones[i+1] ? bones[i+1] : target).origin[1] - bone.origin[1],
 					(bones[i+1] ? bones[i+1] : target).origin[2] - bone.origin[2]
-				)
+				).normalize()
 			})
 		})
-
-
-		let ik_target = new THREE.Vector3().copy(null_object.getWorldCenter(true));
 
 		solver.add(chain, ik_target , true);
 		solver.meshChains[0].forEach(mesh => {
 			mesh.visible = false;
-			//scene.add(mesh)
 		})
 
 		solver.update();
-
-		let last_euler = new THREE.Euler();
 	
 		bone_references.forEach((bone_ref, i) => {
-			
-	
-				let euler = new THREE.Euler()
-				let q = new THREE.Quaternion()
-				
-				let start = new THREE.Vector3().copy(solver.chains[0].bones[i].start)
-				let end = new THREE.Vector3().copy(solver.chains[0].bones[i].end)
-				bone_references[i].bone.mesh.worldToLocal(start)
-				bone_references[i].bone.mesh.worldToLocal(end)
-				let diff = new THREE.Vector3().copy(end).sub(start)
+			let start = Reusable.vec1.copy(solver.chains[0].bones[i].start);
+			let end = Reusable.vec2.copy(solver.chains[0].bones[i].end);
+			bone_references[i].bone.mesh.worldToLocal(start);
+			bone_references[i].bone.mesh.worldToLocal(end);
+			let diff = end.sub(start).normalize();
 
-				let v1 = new THREE.Vector3().copy(diff).normalize();
-				let v2 = new THREE.Vector3().copy(bone_ref.last_diff).normalize();
-	
-				q.setFromUnitVectors(v1, v2)
-				euler.setFromQuaternion(q)
+			Reusable.quat1.setFromUnitVectors(bone_ref.last_diff, diff);
+			let rotation = Reusable.euler1.setFromQuaternion(Reusable.quat1, 'ZYX');
 
-				bone_ref.bone.mesh.rotation.x -= euler.x - last_euler.x;
-				bone_ref.bone.mesh.rotation.y -= euler.y - last_euler.y;
-				bone_ref.bone.mesh.rotation.z -= euler.z - last_euler.z;
-
-				last_euler.x = euler.x;
-				last_euler.y = euler.y;
-				last_euler.z = euler.z;
+			bone_ref.bone.mesh.rotation.x += rotation.x;
+			bone_ref.bone.mesh.rotation.y += rotation.y;
+			bone_ref.bone.mesh.rotation.z += rotation.z;
+			bone_ref.bone.mesh.updateMatrixWorld();
 		})
-
-		/*setTimeout(() => {
-			solver.meshChains[0].forEach(mesh => {
-				//scene.remove(mesh)
-			})
-		}, 60)*/
 	}
 	displayFrame(multiplier = 1) {
 		if (!this.doRender()) return;
