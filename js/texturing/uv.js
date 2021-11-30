@@ -2460,7 +2460,7 @@ Interface.definePanels(function() {
 
 						<div id="uv_frame" @click.stop="reverseSelect($event)" ref="frame" :class="{overlay_mode: uv_overlay && mode == 'paint'}" :style="{width: inner_width + 'px', height: inner_height + 'px'}" v-if="texture !== null">
 
-							<template id="uv_allocations" v-if="mode == 'uv' || uv_overlay" v-for="element in (display_uv === 'all_elements' ? all_mappable_elements : mappable_elements)">
+							<template id="uv_allocations" v-if="mode == 'uv' || uv_overlay" v-for="element in ((display_uv === 'all_elements' || mode == 'paint') ? all_mappable_elements : mappable_elements)">
 
 								<template v-if="element.type == 'cube' && !box_uv">
 									<div class="cube_uv_face"
@@ -2570,6 +2570,7 @@ Interface.definePanels(function() {
 						<span style="color: var(--color-subtle_text);">{{ mouse_coords.x < 0 ? '-' : (mouse_coords.x + ' ⨉ ' + mouse_coords.y) }}</span>
 						<span v-if="texture">{{ texture.name }}</span>
 						<span style="color: var(--color-subtle_text);">{{ Math.round(this.zoom*100).toString() + '%' }}</span>
+						<div id="toggle_uv_overlay_anchor"></div>
 					</div>
 					
 					<div v-if="mode == 'properties'">
@@ -2584,6 +2585,8 @@ Interface.definePanels(function() {
 	})
 
 	Toolbars.uv_editor.toPlace()
+
+	BarItems.paint_mode_uv_overlay.toElement('#toggle_uv_overlay_anchor');
 
 	let {slider_bar} = UVEditor.vue.$refs;
 
