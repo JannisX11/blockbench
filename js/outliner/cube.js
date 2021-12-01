@@ -873,10 +873,16 @@ new NodePreviewController(Cube, {
 		let j = 0;
 		mesh.geometry.faces = [];
 		mesh.geometry.clearGroups();
+		let last_tex;
 		Canvas.face_order.forEach((fkey, i) => {
 			if (cube.faces[fkey].texture !== null) {
 				indices.push(0 + i*4, 2 + i*4, 1 + i*4, 2 + i*4, 3 + i*4, 1 + i*4);
-				mesh.geometry.addGroup(j*6, 6, j)
+				if (last_tex && cube.faces[fkey].texture === last_tex) {
+					mesh.geometry.groups[mesh.geometry.groups.length-1].count += 6;
+				} else {
+					mesh.geometry.addGroup(j*6, 6, j)
+					last_tex = cube.faces[fkey].texture;
+				}
 				mesh.geometry.faces.push(fkey)
 				j++;
 			}

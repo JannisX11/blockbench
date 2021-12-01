@@ -8,19 +8,13 @@ function arrangeArray(array) {
 var codec = new Codec('collada', {
 	name: 'Collada Model',
 	extension: 'dae',
-	async compile(options = 0) {
+	compile(options = 0) {
 		let scope = this;
 		let geometries = [];
 		let root = [];
 		let effects = [];
 		let images = [];
 		let materials = [];
-
-		/**
-		 * TODO
-		 * different materials per geo
-		 * image export
-		 */
 
 		// Structure
 		let model = {
@@ -221,7 +215,7 @@ var codec = new Codec('collada', {
 					id: `${cube.uuid}-mesh`,
 					name: cube.name
 				},
-				content: [{
+				content: {
 					type: 'mesh',
 					content: [
 						{
@@ -301,24 +295,51 @@ var codec = new Codec('collada', {
 									attributes: {semantic: 'POSITION', source: `#${cube.uuid}-mesh-positions`}
 								}
 							]
-						},
-						{
-							type: 'polylist',
-							attributes: {
-								material: `Material_${Texture.all.indexOf(cube.faces.north.getTexture())}-material`,
-								count: 6
-							},
-							content: [
-								{type: 'input', attributes: {semantic: 'VERTEX', source: `#${cube.uuid}-mesh-vertices`, offset: 0}},
-								{type: 'input', attributes: {semantic: 'NORMAL', source: `#${cube.uuid}-mesh-normals`, offset: 1}},
-								{type: 'input', attributes: {semantic: 'TEXCOORD', source: `#${cube.uuid}-mesh-map-0`, offset: 2, set: 0}},
-								{type: 'vcount', content: arrangeArray(vcount)},
-								{type: 'p', content: arrangeArray(primitive)}
-							]
 						}
 					]
-				}]
+				}
 			}
+
+			let j = 0;
+			let last_tex;
+			let render_groups = [];
+			for (let fkey in cube.faces) {
+				let face = cube.faces[fkey];
+				if (face.texture !== null) {
+					let vcount_here = vcount[j];
+					let p_here = primitive.slice(j * 12, j * 12 + 12);
+					if (last_tex && face.texture === last_tex) {
+						render_groups.last().vcount.push(vcount_here);
+						render_groups.last().primitive.push(...p_here);
+
+					} else {
+						render_groups.push({
+							texture: face.getTexture(),
+							vcount: [vcount_here],
+							primitive: p_here,
+						})
+						last_tex = face.texture;
+					}
+					j++;
+				}
+			}
+			render_groups.forEach(render_group => {
+				geometry.content.content.push({
+					type: 'polylist',
+					attributes: {
+						material: `Material_${Texture.all.indexOf(render_group.texture)}-material`,
+						count: 6
+					},
+					content: [
+						{type: 'input', attributes: {semantic: 'VERTEX', source: `#${cube.uuid}-mesh-vertices`, offset: 0}},
+						{type: 'input', attributes: {semantic: 'NORMAL', source: `#${cube.uuid}-mesh-normals`, offset: 1}},
+						{type: 'input', attributes: {semantic: 'TEXCOORD', source: `#${cube.uuid}-mesh-map-0`, offset: 2, set: 0}},
+						{type: 'vcount', content: arrangeArray(render_group.vcount)},
+						{type: 'p', content: arrangeArray(render_group.primitive)}
+					]
+				})
+			})
+
 			geometries.push(geometry);
 		})
 
@@ -328,8 +349,6 @@ var codec = new Codec('collada', {
 			let positions = [];
 			let normals = [];
 			let uv = [];
-			let vcount = [];
-			let primitive = [];
 			let vertex_keys = [];
 
 			function addPosition(x, y, z) {
@@ -343,14 +362,16 @@ var codec = new Codec('collada', {
 
 			let texture;
 
+			
+			let j = 0;
+			let last_tex;
+			let render_groups = [];
+			let primitive_count = 0;
 			for (let key in mesh.faces) {
-				if (mesh.faces[key].texture !== null && mesh.faces[key].vertices.length >= 3) {
+				if (mesh.faces[key].vertices.length >= 3) {
 					let face = mesh.faces[key];
 					let vertices = face.getSortedVertices();
 					let tex = mesh.faces[key].getTexture();
-					texture = tex;
-
-					vcount.push(vertices.length);
 
 					vertices.forEach(vkey => {
 						uv.push(face.uv[vkey][0] / Project.texture_width, 1 - face.uv[vkey][1] / Project.texture_height);
@@ -358,13 +379,28 @@ var codec = new Codec('collada', {
 
 					normals.push(...face.getNormal(true));
 					
+					let face_primitives = [];
 					vertices.forEach((vkey, vi) => {
-						primitive.push(
+						face_primitives.push(
 							vertex_keys.indexOf(vkey),
 							(normals.length/3)-1,
 							(uv.length/2)-vertices.length+vi,
 						)
 					})
+
+					if (last_tex && face.texture === last_tex) {
+						render_groups.last().vcount.push(vertices.length);
+						render_groups.last().primitive.push(...face_primitives);
+
+					} else {
+						render_groups.push({
+							texture: face.getTexture(),
+							vcount: [vertices.length],
+							primitive: face_primitives,
+						})
+						last_tex = face.texture;
+					}
+					primitive_count += face.vertices.length;
 					i++;
 				}
 			}
@@ -375,7 +411,7 @@ var codec = new Codec('collada', {
 					id: `${mesh.uuid}-mesh`,
 					name: mesh.name
 				},
-				content: [{
+				content: {
 					type: 'mesh',
 					content: [
 						{
@@ -455,24 +491,28 @@ var codec = new Codec('collada', {
 									attributes: {semantic: 'POSITION', source: `#${mesh.uuid}-mesh-positions`}
 								}
 							]
-						},
-						{
-							type: 'polylist',
-							attributes: {
-								material: `Material_${Texture.all.indexOf(texture)}-material`,
-								count: 6
-							},
-							content: [
-								{type: 'input', attributes: {semantic: 'VERTEX', source: `#${mesh.uuid}-mesh-vertices`, offset: 0}},
-								{type: 'input', attributes: {semantic: 'NORMAL', source: `#${mesh.uuid}-mesh-normals`, offset: 1}},
-								{type: 'input', attributes: {semantic: 'TEXCOORD', source: `#${mesh.uuid}-mesh-map-0`, offset: 2, set: 0}},
-								{type: 'vcount', content: arrangeArray(vcount)},
-								{type: 'p', content: arrangeArray(primitive)}
-							]
 						}
 					]
-				}]
+				}
 			}
+
+			render_groups.forEach(render_group => {
+				geometry.content.content.push({
+					type: 'polylist',
+					attributes: {
+						material: `Material_${Texture.all.indexOf(render_group.texture)}-material`,
+						count: 6
+					},
+					content: [
+						{type: 'input', attributes: {semantic: 'VERTEX', source: `#${mesh.uuid}-mesh-vertices`, offset: 0}},
+						{type: 'input', attributes: {semantic: 'NORMAL', source: `#${mesh.uuid}-mesh-normals`, offset: 1}},
+						{type: 'input', attributes: {semantic: 'TEXCOORD', source: `#${mesh.uuid}-mesh-map-0`, offset: 2, set: 0}},
+						{type: 'vcount', content: arrangeArray(render_group.vcount)},
+						{type: 'p', content: arrangeArray(render_group.primitive)}
+					]
+				})
+			})
+
 			geometries.push(geometry);
 		})
 
@@ -659,15 +699,15 @@ var codec = new Codec('collada', {
 		Blockbench.writeFile(path, {content}, path => scope.afterSave(path));
 
 		Texture.all.forEach(tex => {
-			if (texture.error == 1) return;
-			var name = texture.name;
+			if (tex.error == 1) return;
+			var name = tex.name;
 			if (name.substr(-4).toLowerCase() !== '.png') {
 				name += '.png';
 			}
 			var image_path = path.split(osfs);
 			image_path.splice(-1, 1, name);
 			Blockbench.writeFile(image_path.join(osfs), {
-				content: texture.source,
+				content: tex.source,
 				savetype: 'image'
 			})
 		})
@@ -679,9 +719,11 @@ var codec = new Codec('collada', {
 				resource_id: 'dae',
 				type: this.name,
 				extensions: [this.extension],
+				startpath: this.startPath(),
+				content: this.compile(),
 				name: this.fileName(),
 				custom_writer: (a, b) => scope.write(a, b),
-			})
+			}, path => this.afterDownload(path))
 
 		} else {
 			var archive = new JSZip();
@@ -707,20 +749,6 @@ var codec = new Codec('collada', {
 				}, path => scope.afterDownload(path));
 			})
 		}
-	},
-	export() {
-		var scope = codec;
-		scope.compile().then(content => {
-			Blockbench.export({
-				resource_id: 'gltf',
-				type: scope.name,
-				extensions: [scope.extension],
-				name: scope.fileName(),
-				startpath: scope.startPath(),
-				content,
-				custom_writer: isApp ? (a, b) => scope.write(a, b) : null,
-			}, path => scope.afterDownload(path))
-		})
 	}
 })
 
