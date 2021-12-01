@@ -11,6 +11,7 @@ class Mode extends KeybindItem {
 
 		this.default_tool = data.default_tool;
 		this.selectElements = data.selectElements !== false
+		this.hidden_node_types = data.hidden_node_types instanceof Array ? data.hidden_node_types.slice() : [];
 
 		this.center_windows = data.center_windows||[];
 		this.hide_toolbars = data.hide_toolbars
@@ -65,6 +66,8 @@ class Mode extends KeybindItem {
 
 		$('#main_toolbar .toolbar_wrapper').css('visibility', this.hide_toolbars ? 'hidden' : 'visible');
 		$('#status_bar').css('display', this.hide_status_bar ? 'none' : 'flex');
+
+		Outliner.vue.options.hidden_types.replace(this.hidden_node_types);
 
 		if (typeof this.onSelect === 'function') {
 			this.onSelect()
@@ -169,6 +172,7 @@ BARS.defineActions(function() {
 		default_tool: 'move_tool',
 		category: 'navigate',
 		center_windows: ['preview', 'timeline'],
+		hidden_node_types: ['cube', 'mesh', 'texture_mesh'],
 		condition: () => Format.animation_mode,
 		onSelect: () => {
 			Animator.join()

@@ -1317,8 +1317,7 @@ const Animator = {
 			if (BoneAnimator.prototype.channels[channel].transform) Animator._last_values[channel] = [0, 0, 0];
 		}
 	},
-	join() {
-		
+	join() {	
 		if (isApp && (Format.id == 'bedrock' || Format.id == 'bedrock_old') && !Project.BedrockEntityManager.initialized_animations) {
 			Project.BedrockEntityManager.initAnimations();
 		}
@@ -1326,7 +1325,6 @@ const Animator = {
 		Animator.open = true;
 		Canvas.updateAllBones()
 
-		Outliner.vue.options.hidden_types.push('cube');
 		scene.add(WinterskyScene.space);
 		WinterskyScene.global_options.tick_rate = settings.particle_tick_rate.value;
 		if (settings.motion_trails.value) scene.add(Animator.motion_trail);
@@ -1357,7 +1355,6 @@ const Animator = {
 	leave() {
 		Timeline.pause()
 		Animator.open = false;
-		Outliner.vue.options.hidden_types.remove('cube');
 
 		scene.remove(WinterskyScene.space);
 		scene.remove(Animator.motion_trail);
