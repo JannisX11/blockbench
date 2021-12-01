@@ -601,6 +601,7 @@ const MenuBar = {
 				'export_minecraft_skin',
 				'export_gltf',
 				'export_obj',
+				'export_collada',
 				'upload_sketchfab',
 				'share_model',
 			]},
