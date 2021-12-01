@@ -181,6 +181,8 @@ var codec = new Codec('gltf', {
 	}
 })
 
+codec.buildAnimationTracks = buildAnimationTracks;
+
 BARS.defineActions(function() {
 	codec.export_action = new Action({
 		id: 'export_gltf',
