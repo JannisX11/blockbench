@@ -199,15 +199,16 @@ class Keyframe {
 		})
 		return arr;
 	}
-	getFixed(data_point = 0) {
+	getFixed(data_point = 0, do_quaternion = true) {
 		if (this.channel === 'rotation') {
 			let fix = this.animator.group.mesh.fix_rotation;
-			return new THREE.Quaternion().setFromEuler(new THREE.Euler(
+			let euler = new THREE.Euler(
 				fix.x - Math.degToRad(this.calc('x', data_point)),
 				fix.y - Math.degToRad(this.calc('y', data_point)),
 				fix.z + Math.degToRad(this.calc('z', data_point)),
 				'ZYX'
-			));
+			)
+			return do_quaternion ? new THREE.Quaternion().setFromEuler(euler) : euler;
 		} else if (this.channel === 'position') {
 			let fix = this.animator.group.mesh.fix_position;
 			return new THREE.Vector3(

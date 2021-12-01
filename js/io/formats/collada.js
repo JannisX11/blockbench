@@ -1,5 +1,9 @@
 (function() {
 
+function arrangeArray(array) {
+	return array.map(v => Math.roundTo(v, 6)).join(' ');
+}
+
 
 var codec = new Codec('collada', {
 	name: 'Collada Model',
@@ -15,7 +19,6 @@ var codec = new Codec('collada', {
 		/**
 		 * TODO
 		 * different materials per geo
-		 * animations
 		 * image export
 		 */
 
@@ -205,10 +208,10 @@ var codec = new Codec('collada', {
 					case 'down': 	vertices = [7, 2, 3, 6]; break;
 				}
 				primitive.push(
-					vertices[0], (normals.length/3)-1, vcount.length*4 - 4,
-					vertices[1], (normals.length/3)-1, vcount.length*4 - 3,
-					vertices[2], (normals.length/3)-1, vcount.length*4 - 2,
 					vertices[3], (normals.length/3)-1, vcount.length*4 - 1,
+					vertices[2], (normals.length/3)-1, vcount.length*4 - 2,
+					vertices[1], (normals.length/3)-1, vcount.length*4 - 3,
+					vertices[0], (normals.length/3)-1, vcount.length*4 - 4,
 				)
 			}
 
@@ -228,7 +231,7 @@ var codec = new Codec('collada', {
 								{
 									type: 'float_array',
 									attributes: {id: `${cube.uuid}-mesh-positions-array`, count: positions.length},
-									content: positions.join(' ')
+									content: arrangeArray(positions)
 								},
 								{
 									type: 'technique_common',
@@ -251,7 +254,7 @@ var codec = new Codec('collada', {
 								{
 									type: 'float_array',
 									attributes: {id: `${cube.uuid}-mesh-normals-array`, count: normals.length},
-									content: normals.join(' ')
+									content: arrangeArray(normals)
 								},
 								{
 									type: 'technique_common',
@@ -274,7 +277,7 @@ var codec = new Codec('collada', {
 								{
 									type: 'float_array',
 									attributes: {id: `${cube.uuid}-mesh-map-0-array`, count: uv.length},
-									content: uv.join(' ')
+									content: arrangeArray(uv)
 								},
 								{
 									type: 'technique_common',
@@ -309,8 +312,8 @@ var codec = new Codec('collada', {
 								{type: 'input', attributes: {semantic: 'VERTEX', source: `#${cube.uuid}-mesh-vertices`, offset: 0}},
 								{type: 'input', attributes: {semantic: 'NORMAL', source: `#${cube.uuid}-mesh-normals`, offset: 1}},
 								{type: 'input', attributes: {semantic: 'TEXCOORD', source: `#${cube.uuid}-mesh-map-0`, offset: 2, set: 0}},
-								{type: 'vcount', content: vcount.join(' ')},
-								{type: 'p', content: primitive.join(' ')}
+								{type: 'vcount', content: arrangeArray(vcount)},
+								{type: 'p', content: arrangeArray(primitive)}
 							]
 						}
 					]
@@ -382,7 +385,7 @@ var codec = new Codec('collada', {
 								{
 									type: 'float_array',
 									attributes: {id: `${mesh.uuid}-mesh-positions-array`, count: positions.length},
-									content: positions.join(' ')
+									content: arrangeArray(positions)
 								},
 								{
 									type: 'technique_common',
@@ -405,7 +408,7 @@ var codec = new Codec('collada', {
 								{
 									type: 'float_array',
 									attributes: {id: `${mesh.uuid}-mesh-normals-array`, count: normals.length},
-									content: normals.join(' ')
+									content: arrangeArray(normals)
 								},
 								{
 									type: 'technique_common',
@@ -428,7 +431,7 @@ var codec = new Codec('collada', {
 								{
 									type: 'float_array',
 									attributes: {id: `${mesh.uuid}-mesh-map-0-array`, count: uv.length},
-									content: uv.join(' ')
+									content: arrangeArray(uv)
 								},
 								{
 									type: 'technique_common',
@@ -463,8 +466,8 @@ var codec = new Codec('collada', {
 								{type: 'input', attributes: {semantic: 'VERTEX', source: `#${mesh.uuid}-mesh-vertices`, offset: 0}},
 								{type: 'input', attributes: {semantic: 'NORMAL', source: `#${mesh.uuid}-mesh-normals`, offset: 1}},
 								{type: 'input', attributes: {semantic: 'TEXCOORD', source: `#${mesh.uuid}-mesh-map-0`, offset: 2, set: 0}},
-								{type: 'vcount', content: vcount.join(' ')},
-								{type: 'p', content: primitive.join(' ')}
+								{type: 'vcount', content: arrangeArray(vcount)},
+								{type: 'p', content: arrangeArray(primitive)}
 							]
 						}
 					]
@@ -537,6 +540,109 @@ var codec = new Codec('collada', {
 			root.push(processNode(node))
 		})
 
+		/*
+		let compiled_animations = Codecs.gltf.buildAnimationTracks();
+		if (compiled_animations.length) {
+			let animations_tag = {
+				type: 'library_animations',
+				content: []
+			}
+			let animation_clips_tag = {
+				type: 'library_animation_clips',
+				content: []
+			}
+			compiled_animations.forEach(anim_obj => {
+				let anim_tag = {
+					type: 'animation',
+					attributes: {
+						id: `animation-${anim_obj.name}`,
+						name: anim_obj.name
+					},
+					content: []
+				}
+				anim_obj.tracks.forEach(track => {
+					let group = OutlinerNode.uuids[track.group_uuid];
+					let collada_channel = track.channel;
+					if (collada_channel == 'position') collada_channel = 'location';
+					let track_name = `${group.name}_${collada_channel}`
+
+					let track_tag = {
+						type: 'animation',
+						attributes: {id: `${group.name}`, name: group.name},
+						content: [
+							{
+								type: 'source',
+								attributes: {id: track_name+'-input'},
+								content: [
+									{
+										type: 'float_array',
+										attributes: {id: track_name+'-input-array', count: track.times.length},
+										content: arrangeArray(track.times)
+									},
+									{
+										type: 'technique_common',
+										content: {
+											type: 'accessor',
+											attributes: {source: '#'+track_name+'-input-array', count: track.times.length, stride: 1},
+											content: {type: 'param', attributes: {name: 'TIME', type: 'float'}}
+										}
+									}
+								]
+							},
+							{
+								type: 'source',
+								attributes: {id: track_name+'-output'},
+								content: [
+									{
+										type: 'float_array',
+										attributes: {id: track_name+'-output-array', count: track.values.length},
+										content: arrangeArray(track.values)
+									},
+									{
+										type: 'technique_common',
+										content: {
+											type: 'accessor',
+											attributes: {source: '#'+track_name+'-output-array', count: track.values.length, stride: 3},
+											content: [
+												{type: 'param', attributes: {name: 'X', type: 'float'}},
+												{type: 'param', attributes: {name: 'Y', type: 'float'}},
+												{type: 'param', attributes: {name: 'Z', type: 'float'}},
+											]
+										}
+									}
+								]
+							},
+							{
+								type: 'sampler',
+								attributes: {id: `${track_name}-sampler`},
+								content: [
+									{type: 'input', attributes: {semantic: 'INPUT', source: '#'+track_name+'-input'}},
+									{type: 'input', attributes: {semantic: 'OUTPUT', source: '#'+track_name+'-output'}},
+									//{type: 'input', attributes: {semantic: 'INTERPOLATION', source: '#'+track_name+'-interpolation'}},
+								]
+							}
+						]
+					}
+					track_tag.content.push({
+						type: 'channel',
+						attributes: {source: `#${track_name}-sampler`, target: `${group.uuid}/${collada_channel}`}
+					})
+
+					anim_tag.content.push(track_tag)
+				})
+				animations_tag.content.push(anim_tag)
+
+				let animation_clip_tag = {
+					type: 'animation_clip',
+					attributes: {
+						id: anim_obj.name,
+						name: anim_obj.name
+					}
+				}
+			})
+			model.content.push(animations_tag);
+		}*/
+
 		scope.dispatchEvent('compile', {model, options});
 		
 
@@ -544,6 +650,62 @@ var codec = new Codec('collada', {
 			return model
 		} else {
 			return compileXML(model)
+		}
+	},
+	write(content, path) {
+		var scope = this;
+
+		content = this.compile();
+		Blockbench.writeFile(path, {content}, path => scope.afterSave(path));
+
+		Texture.all.forEach(tex => {
+			if (texture.error == 1) return;
+			var name = texture.name;
+			if (name.substr(-4).toLowerCase() !== '.png') {
+				name += '.png';
+			}
+			var image_path = path.split(osfs);
+			image_path.splice(-1, 1, name);
+			Blockbench.writeFile(image_path.join(osfs), {
+				content: texture.source,
+				savetype: 'image'
+			})
+		})
+	},
+	export() {
+		var scope = this;
+		if (isApp) {
+			Blockbench.export({
+				resource_id: 'dae',
+				type: this.name,
+				extensions: [this.extension],
+				name: this.fileName(),
+				custom_writer: (a, b) => scope.write(a, b),
+			})
+
+		} else {
+			var archive = new JSZip();
+			var content = this.compile()
+
+			archive.file((Project.name||'model')+'.obj', content)
+
+			Texture.all.forEach(tex => {
+				if (texture.error == 1) return;
+				var name = texture.name;
+				if (name.substr(-4).toLowerCase() !== '.png') {
+					name += '.png';
+				}
+				archive.file(name, texture.source.replace('data:image/png;base64,', ''), {base64: true});
+			})
+			archive.generateAsync({type: 'blob'}).then(content => {
+				Blockbench.export({
+					type: 'Zip Archive',
+					extensions: ['zip'],
+					name: 'assets',
+					content: content,
+					savetype: 'zip'
+				}, path => scope.afterDownload(path));
+			})
 		}
 	},
 	export() {
