@@ -1879,7 +1879,8 @@ Animator.MolangParser.variableHandler = function (variable) {
 		let key, val;
 		[key, val] = inputs[i].split(/=(.+)/);
 		key = key.replace(/[\s;]/g, '');
-		if (key === variable) {
+		key = key.replace(/^v\./, 'variable.').replace(/^q\./, 'query.').replace(/^t\./, 'temp.').replace(/^c\./, 'context.');
+		if (key === variable && val !== undefined) {
 			val = val.trim();
 			return val[0] == `'` ? val : Animator.MolangParser.parse(val);
 		}

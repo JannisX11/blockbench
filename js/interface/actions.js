@@ -1417,6 +1417,19 @@ const BARS = {
 				alt_tool: 'move_tool',
 				modes: ['edit', 'display', 'animate'],
 				keybind: new Keybind({key: 's'}),
+				onSelect() {
+					if (Modes.edit) {
+						if (Mesh.selected.length) {
+							Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
+						} else {
+							Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
+						}
+					}
+				},
+				onUnselect() {
+					Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
+					Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
+				}
 			})
 			new Tool('rotate_tool', {
 				icon: 'sync',

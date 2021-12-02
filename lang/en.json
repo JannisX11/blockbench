@@ -149,6 +149,8 @@
 	"status_bar.selection.edges": "%0 Edges",
 	"status_bar.selection.vertices": "%0 Vertices",
 
+	"modifier_actions.resize_both_sides": "Resize in both directions",
+	"modifier_actions.resize_one_side": "Resize in one direction",
 	"modifier_actions.draw_line": "Draw line",
 	"modifier_actions.drag_without_snapping": "Drag without snapping",
 	"modifier_actions.stretch_keyframes": "Stretch keyframes",
