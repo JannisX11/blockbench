@@ -2,8 +2,6 @@
 class NullObject extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid);
-		this.ik_enabled = false;
-		this.ik_chain_length = 0;
 
 		for (var key in NullObject.properties) {
 			NullObject.properties[key].reset(this);
@@ -91,9 +89,23 @@ class NullObject extends OutlinerElement {
 		//Outliner.buttons.export,
 		Outliner.buttons.locked,
 	];
-	//NullObject.prototype.needsUniqueName = true;
+	NullObject.prototype.needsUniqueName = true;
 	NullObject.prototype.menu = new Menu([
 			'set_ik_target',
+			{
+				id: 'lock_ik_target_rotation',
+				name: 'menu.null_object.lock_ik_target_rotation',
+				icon: null_object => null_object.lock_ik_target_rotation ? 'check_box' : 'check_box_outline_blank',
+				click(clicked_null_object) {
+					let value = !clicked_null_object.lock_ik_target_rotation;
+					let affected = null_object.selected.filter(null_object => null_object.lock_ik_target_rotation != value);
+					Undo.initEdit({elements: affected});
+					affected.forEach(null_object => {
+						null_object.lock_ik_target_rotation = value;
+					})
+					Undo.finishEdit('Change null object lock ik target rotation option');
+				}
+			},
 			'_',
 			'group_elements',
 			'_',
@@ -108,8 +120,7 @@ class NullObject extends OutlinerElement {
 	new Property(NullObject, 'string', 'name', {default: 'null_object'})
 	new Property(NullObject, 'vector', 'from')
 	new Property(NullObject, 'string', 'ik_target', {condition: () => Format.animation_mode});
-	new Property(NullObject, 'boolean', 'ik_enabled', {condition: () => Format.animation_mode});
-	new Property(NullObject, 'number', 'ik_chain_length', {condition: () => Format.animation_mode});
+	new Property(NullObject, 'boolean', 'lock_ik_target_rotation')
 	new Property(NullObject, 'boolean', 'locked');
 	
 	OutlinerElement.registerType(NullObject, 'null_object');
@@ -134,7 +145,7 @@ BARS.defineActions(function() {
 			var objs = []
 			Undo.initEdit({elements: objs, outliner: true});
 			var null_object = new NullObject().addTo(Group.selected||selected[0]).init();
-			null_object.select();
+			null_object.select().createUniqueName();
 			objs.push(null_object);
 			Undo.finishEdit('Add null object');
 			Vue.nextTick(function() {

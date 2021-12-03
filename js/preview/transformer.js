@@ -819,14 +819,6 @@
 				return 0;
 			}
 
-			this.isIKMovement = function() {
-				return Modes.animate
-					&& Toolbox.selected.id === 'move_tool'
-					&& NullObject.selected[0]
-					&& NullObject.selected[0].ik_enabled
-					&& NullObject.selected[0].ik_chain_length
-					&& NullObject.selected[0].parent instanceof Group;
-			}
 			this.center = function() {
 				delete Transformer.rotation_ref;
 				Transformer.rotation_selection.set(0, 0, 0);
@@ -1286,7 +1278,7 @@
 					}
 
 
-					if (value !== previousValue && Animation.selected && (scope.isIKMovement() || Animation.selected.getBoneAnimator())) {
+					if (value !== previousValue && Animation.selected && Animation.selected.getBoneAnimator()) {
 						beforeFirstChange(event, planeIntersect.point)
 
 						var difference = value - (previousValue||0)

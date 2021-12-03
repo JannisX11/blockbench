@@ -1445,41 +1445,6 @@ BARS.defineActions(function() {
 		}
 	})
 
-	//Inverse Kinematics
-	new Action('ik_enabled', {
-		icon: 'check_box_outline_blank',
-		category: 'animation',
-		condition: () => Animator.open && NullObject.selected[0] && !Group.selected,
-		click() {
-			NullObject.selected[0].ik_enabled = !NullObject.selected[0].ik_enabled;
-			updateNslideValues();
-			Transformer.updateSelection();
-		}
-	})
-	new NumSlider('slider_ik_chain_length', {
-		category: 'animation',
-		condition: () => Animator.open && NullObject.selected[0] && !Group.selected,
-		get: function() {
-			return NullObject.selected[0].ik_chain_length||0;
-		},
-		settings: {
-			min: 0, max: 64, default: 0,
-			interval: function(event) {
-				return 1;
-			}
-		},
-		change: function(modify) {
-			NullObject.selected[0].ik_chain_length = Math.clamp(modify(NullObject.selected[0].ik_chain_length), 0, 64);
-			updateSelection()
-		},
-		onBefore: function() {
-			Undo.initEdit({keyframes: Timeline.selected})
-		},
-		onAfter: function() {
-			Undo.finishEdit('Change IK chain length')
-		}
-	})
-
 	// Motion Trail
 	new Toggle('lock_motion_trail', {
 		icon: 'lock_open',

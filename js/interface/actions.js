@@ -1935,16 +1935,6 @@ const BARS = {
 				'rescale_toggle'
 			]
 		})
-		/*
-		Toolbars.inverse_kinematics = new Toolbar({
-			id: 'inverse_kinematics',
-			children: [
-				'ik_enabled',
-				'slider_ik_chain_length'
-			],
-			default_place: !Blockbench.isMobile
-		})*/
-
 
 		Toolbars.palette = new Toolbar({
 			id: 'palette',
