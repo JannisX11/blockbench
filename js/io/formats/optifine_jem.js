@@ -64,7 +64,7 @@ var codec = new Codec('optifine_entity', {
 				if (group.texture) {
 					p_model.texture = group.texture;
 				}
-				if (!group.texture_size.allEqual(0)) {
+				if (group.texture_size && !group.texture_size.allEqual(0)) {
 					p_model.textureSize = group.texture_size;
 				}
 
@@ -148,7 +148,7 @@ var codec = new Codec('optifine_entity', {
 			}
 			populate(bone, g, 0)
 
-			if (g.cem_animations.length) {
+			if (g.cem_animations && g.cem_animations.length) {
 				bone.animations = g.cem_animations;
 			}
 

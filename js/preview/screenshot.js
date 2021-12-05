@@ -1,6 +1,38 @@
 
 const Screencam = {
 	recording_timelapse: false,
+	gif_options_dialog: new Dialog({
+		id: 'create_gif',
+		title: tl('dialog.create_gif.title'),
+		draggable: true,
+		form: {
+			length_mode: {label: 'dialog.create_gif.length_mode', type: 'select', default: 'seconds', options: {
+				seconds: 'dialog.create_gif.length_mode.seconds',
+				frames: 'dialog.create_gif.length_mode.frames',
+				animation: 'dialog.create_gif.length_mode.animation',
+				turntable: 'dialog.create_gif.length_mode.turntable',
+			}},
+			length: {label: 'dialog.create_gif.length', type: 'number', value: 10, step: 0.25, condition: (form) => ['seconds', 'frames'].includes(form.length_mode)},
+			fps: 	{label: 'dialog.create_gif.fps', type: 'number', value: 20},
+			quality:{label: 'dialog.create_gif.compression', type: 'number', value: 20, min: 1, max: 80},
+			color:  {label: 'dialog.create_gif.color', type: 'color', value: '#00000000'},
+			turn:	{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -10, max: 10},
+			play: 	{label: 'dialog.create_gif.play', type: 'checkbox', condition: () => Animator.open},
+		},
+		onConfirm: function(formData) {
+			let background = formData.color.toHex8String() != '#00000000' ? formData.color.toHexString() : undefined;
+			Screencam.createGif({
+				length_mode: formData.length_mode,
+				length: limitNumber(formData.length, 0.1, 24000),
+				fps: limitNumber(formData.fps, 0.5, 30),
+				quality: limitNumber(formData.quality, 0, 30),
+				background,
+				play: formData.play,
+				turnspeed: formData.turn,
+			}, Screencam.returnScreenshot)
+			this.hide();
+		}
+	}),
 	screenshotPreview(preview, options, cb) {
 		if (!options) options = 0;
 
@@ -331,38 +363,7 @@ BARS.defineActions(function() {
 		icon: 'local_movies',
 		category: 'view',
 		click: function () {
-			new Dialog({
-				id: 'create_gif',
-				title: tl('dialog.create_gif.title'),
-				draggable: true,
-				form: {
-					length_mode: {label: 'dialog.create_gif.length_mode', type: 'select', default: 'seconds', options: {
-						seconds: 'dialog.create_gif.length_mode.seconds',
-						frames: 'dialog.create_gif.length_mode.frames',
-						animation: 'dialog.create_gif.length_mode.animation',
-						turntable: 'dialog.create_gif.length_mode.turntable',
-					}},
-					length: {label: 'dialog.create_gif.length', type: 'number', value: 10, step: 0.25},
-					fps: 	{label: 'dialog.create_gif.fps', type: 'number', value: 10},
-					quality:{label: 'dialog.create_gif.compression', type: 'number', value: 20, min: 1, max: 80},
-					color:  {label: 'dialog.create_gif.color', type: 'color', value: '#00000000'},
-					turn:	{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -10, max: 10},
-					play: 	{label: 'dialog.create_gif.play', type: 'checkbox', condition: Animator.open},
-				},
-				onConfirm: function(formData) {
-					let background = formData.color.toHex8String() != '#00000000' ? formData.color.toHexString() : undefined;
-					Screencam.createGif({
-						length_mode: formData.length_mode,
-						length: limitNumber(formData.length, 0.1, 24000),
-						fps: limitNumber(formData.fps, 0.5, 30),
-						quality: limitNumber(formData.quality, 0, 30),
-						background,
-						play: formData.play,
-						turnspeed: formData.turn,
-					}, Screencam.returnScreenshot)
-					this.hide()
-				}
-			}).show()
+			Screencam.gif_options_dialog.show();
 		}
 	})
 	Screencam.timelapse_dialog = new Dialog({
