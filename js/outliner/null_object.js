@@ -2,8 +2,6 @@
 class NullObject extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid);
-		this.ik_enabled = false;
-		this.ik_chain_length = 0;
 
 		for (var key in NullObject.properties) {
 			NullObject.properties[key].reset(this);
@@ -48,6 +46,12 @@ class NullObject extends OutlinerElement {
 		super.init();
 		return this;
 	}
+	select(event, isOutlinerClick) {
+		super.select(event, isOutlinerClick);
+		if (Animator.open && Animation.selected) {
+			Animation.selected.getBoneAnimator(this).select(true);
+		}
+	}
 	flip(axis, center) {
 		var offset = this.from[axis] - center
 		this.from[axis] = center - offset;
@@ -60,7 +64,7 @@ class NullObject extends OutlinerElement {
 		this.createUniqueName();
 		return this;
 	}
-	getWorldCenter() {
+	getWorldCenter(with_animation) {
 		var pos = Reusable.vec1.set(0, 0, 0);
 		var q = Reusable.quat1.set(0, 0, 0, 1);
 		if (this.parent instanceof Group) {
@@ -69,7 +73,7 @@ class NullObject extends OutlinerElement {
 			var offset2 = Reusable.vec2.fromArray(this.parent.origin).applyQuaternion(q);
 			pos.sub(offset2);
 		}
-		var offset = Reusable.vec3.fromArray(this.from).applyQuaternion(q);
+		var offset = ( with_animation ? Reusable.vec3.copy(this.mesh.position) : Reusable.vec3.fromArray(this.from) ).applyQuaternion(q);
 		pos.add(offset);
 
 		return pos;
@@ -85,8 +89,24 @@ class NullObject extends OutlinerElement {
 		//Outliner.buttons.export,
 		Outliner.buttons.locked,
 	];
-	//NullObject.prototype.needsUniqueName = true;
+	NullObject.prototype.needsUniqueName = true;
 	NullObject.prototype.menu = new Menu([
+			'set_ik_target',
+			{
+				id: 'lock_ik_target_rotation',
+				name: 'menu.null_object.lock_ik_target_rotation',
+				icon: null_object => null_object.lock_ik_target_rotation ? 'check_box' : 'check_box_outline_blank',
+				click(clicked_null_object) {
+					let value = !clicked_null_object.lock_ik_target_rotation;
+					let affected = null_object.selected.filter(null_object => null_object.lock_ik_target_rotation != value);
+					Undo.initEdit({elements: affected});
+					affected.forEach(null_object => {
+						null_object.lock_ik_target_rotation = value;
+					})
+					Undo.finishEdit('Change null object lock ik target rotation option');
+				}
+			},
+			'_',
 			'group_elements',
 			'_',
 			'copy',
@@ -99,13 +119,22 @@ class NullObject extends OutlinerElement {
 	
 	new Property(NullObject, 'string', 'name', {default: 'null_object'})
 	new Property(NullObject, 'vector', 'from')
-	new Property(NullObject, 'boolean', 'ik_enabled', {condition: () => Format.animation_mode});
-	new Property(NullObject, 'number', 'ik_chain_length', {condition: () => Format.animation_mode});
+	new Property(NullObject, 'string', 'ik_target', {condition: () => Format.animation_mode});
+	new Property(NullObject, 'boolean', 'lock_ik_target_rotation')
 	new Property(NullObject, 'boolean', 'locked');
 	
 	OutlinerElement.registerType(NullObject, 'null_object');
 
-	new NodePreviewController(NullObject)
+	new NodePreviewController(NullObject, {
+		setup(element) {
+			NodePreviewController.prototype.setup(element);
+			element.mesh.fix_position = new THREE.Vector3();
+		},
+		updateTransform(element) {
+			NodePreviewController.prototype.updateTransform(element);
+			element.mesh.fix_position.copy(element.mesh.position);
+		}
+	})
 
 BARS.defineActions(function() {
 	new Action('add_null_object', {
@@ -116,7 +145,7 @@ BARS.defineActions(function() {
 			var objs = []
 			Undo.initEdit({elements: objs, outliner: true});
 			var null_object = new NullObject().addTo(Group.selected||selected[0]).init();
-			null_object.select();
+			null_object.select().createUniqueName();
 			objs.push(null_object);
 			Undo.finishEdit('Add null object');
 			Vue.nextTick(function() {
@@ -124,6 +153,42 @@ BARS.defineActions(function() {
 					null_object.rename();
 				}
 			})
+		}
+	})
+	
+	new Action('set_ik_target', {
+		icon: 'fa-paperclip',
+		category: 'edit',
+		condition: () => NullObject.selected.length,
+		children() {
+			let groups = [];
+			iterate(NullObject.selected[0].getParentArray());
+
+			function iterate(arr) {
+				arr.forEach(node => {
+					if (node instanceof Group) {
+						groups.push(node);
+						iterate(node.children);
+					}
+				})
+			}
+			return groups.map(group => {
+				return {
+					name: group.name,
+					id: group.name,
+					icon: group.name == NullObject.selected[0].ik_target ? 'radio_button_checked' : 'radio_button_unchecked',
+					click() {
+						Undo.initEdit({elements: NullObject.selected});
+						NullObject.selected.forEach(null_object => {
+							null_object.ik_target = group.name;
+						})
+						Undo.finishEdit('Set IK target');
+					}
+				}
+			})
+		},
+		click(event) {
+			new Menu(this.children()).show(event.target);
 		}
 	})
 })

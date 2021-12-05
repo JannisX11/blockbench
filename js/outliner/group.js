@@ -93,10 +93,8 @@ class Group extends OutlinerNode {
 				s.selectLow()
 			})
 		}
-		if (Animator.open) {
-			if (Animation.selected) {
-				Animation.selected.getBoneAnimator().select(true)
-			}
+		if (Animator.open && Animation.selected) {
+			Animation.selected.getBoneAnimator(this).select(true);
 		}
 		updateSelection()
 		return this;

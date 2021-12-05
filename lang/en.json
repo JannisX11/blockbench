@@ -1278,10 +1278,8 @@
 	"action.timeline_focus": "Filter Channels",
 	"action.timeline_focus.desc": "Select the animation channels to display in the timeline",
 	"action.timeline_focus.hide_empty": "Hide empty channels",
-	"action.ik_enabled": "Enable IK",
-	"action.ik_enabled.desc": "Enable Inverse Kinematics for this bone",
-	"action.slider_ik_chain_length": "IK Chain Length",
-	"action.slider_ik_chain_length.desc": "Upwards length of the IK bone chain",
+	"action.set_ik_target": "Set IK Target",
+	"action.set_ik_target.desc": "Select the target bone that should be moved by this null object via Inverse Kinematics",
 	"action.lock_motion_trail": "Lock Motion Trail",
 	"action.lock_motion_trail.desc": "Lock the motion trail to the currently selected group",
 
@@ -1347,6 +1345,7 @@
 	"menu.cube.texture.transparent": "Transparent",
 	"menu.cube.texture.blank": "Blank",
 	"menu.locator.ignore_inherited_scale": "Ignore Inherited Scale",
+	"menu.null_object.lock_ik_target_rotation": "Lock IK Target Rotation",
 	"menu.texture_mesh.texture_name": "Texture Name...",
 
 	"menu.group.sort": "Sort",

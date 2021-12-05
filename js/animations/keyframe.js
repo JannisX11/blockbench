@@ -482,6 +482,86 @@ function removeSelectedKeyframes() {
 	Undo.finishEdit('Remove keyframes')
 }
 
+//Clipbench
+Object.assign(Clipbench, {
+	setKeyframes() {
+
+		var keyframes = Timeline.selected;
+
+		Clipbench.keyframes = []
+		if (!keyframes || keyframes.length === 0) {
+			return;
+		}
+		var first = keyframes[0];
+		var single_animator;
+		keyframes.forEach(function(kf) {
+			if (kf.time < first.time) {
+				first = kf
+			}
+			if (single_animator && single_animator !== kf.animator.uuid) {
+				single_animator = false;
+			} else if (single_animator == undefined) {
+				single_animator = kf.animator.uuid;
+			}
+		})
+
+		keyframes.forEach(function(kf) {
+			var copy = kf.getUndoCopy();
+			copy.time_offset = kf.time - first.time;
+			if (single_animator != false) {
+				delete copy.animator;
+			}
+			Clipbench.keyframes.push(copy)
+		})
+		if (isApp) {
+			clipboard.writeHTML(JSON.stringify({type: 'keyframes', content: Clipbench.keyframes}))
+		}
+	},
+	pasteKeyframes() {
+		if (isApp) {
+			var raw = clipboard.readHTML()
+			try {
+				var data = JSON.parse(raw)
+				if (data.type === 'keyframes' && data.content) {
+					Clipbench.keyframes = data.content
+				}
+			} catch (err) {}
+		}
+		if (Clipbench.keyframes && Clipbench.keyframes.length) {
+
+			if (!Animation.selected) return;
+			var keyframes = [];
+			Undo.initEdit({keyframes});
+			Timeline.selected.empty();
+			Timeline.keyframes.forEach((kf) => {
+				kf.selected = false;
+			})
+			Clipbench.keyframes.forEach(function(data, i) {
+
+				if (data.animator) {
+					var animator = Animation.selected.animators[data.animator];
+					if (animator && !Timeline.animators.includes(animator)) {
+						animator.addToTimeline();
+					}
+				} else {
+					var animator = Timeline.selected_animator;
+				}
+				if (animator) {
+					var kf = animator.createKeyframe(data, Timeline.time + data.time_offset, data.channel, false, false)
+					if (!kf) return;
+					keyframes.push(kf);
+					kf.selected = true;
+					Timeline.selected.push(kf);
+				}
+
+			})
+			TickUpdates.keyframe_selection = true;
+			Animator.preview()
+			Undo.finishEdit('Paste keyframes');
+		}
+	}
+})
+
 BARS.defineActions(function() {
 	new Action('add_keyframe', {
 		icon: 'add_circle',

@@ -85,10 +85,6 @@ function updateNslideValues() {
 			BarItems.rescale_toggle.setIcon(Outliner.selected[0].rescale ? 'check_box' : 'check_box_outline_blank')
 		}
 	}
-	if (Modes.animate && NullObject.selected[0]) {
-		BarItems.slider_ik_chain_length.update();
-		BarItems.ik_enabled.setIcon(NullObject.selected[0].ik_enabled ? 'check_box' : 'check_box_outline_blank')
-	}
 	if (Texture.all.length) {
 		BarItems.animated_texture_frame.update();
 	}

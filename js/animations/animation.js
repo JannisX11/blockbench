@@ -45,11 +45,19 @@ class Animation {
 						keyframes: animator_blueprint
 					}
 				}
-				var kfs = animator_blueprint.keyframes;			
+				var kfs = animator_blueprint.keyframes;
 				var animator;
 				if (!this.animators[key]) {
 					if (key == 'effects') {
 						animator = this.animators[key] = new EffectAnimator(this);
+					} else if (animator_blueprint.type == 'null_object') {
+						let uuid = isUUID(key) && key;
+						if (!uuid) {
+							let lowercase_name = key.toLowerCase();
+							let null_object_match = NullObject.all.find(null_object => null_object.name.toLowerCase() == lowercase_name)
+							uuid = null_object_match ? null_object_match.uuid : guid();
+						}
+						animator = this.animators[uuid] = new NullObjectAnimator(uuid, this, animator_blueprint.name)
 					} else {
 						let uuid = isUUID(key) && key;
 						if (!uuid) {
@@ -104,6 +112,7 @@ class Animation {
 				if (kfs && kfs.length) {
 					let ba_copy = copy.animators[uuid] = {
 						name: ba.name,
+						type: ba.type,
 						keyframes: []
 					}
 					kfs.forEach(kf => {
@@ -317,6 +326,9 @@ class Animation {
 		Group.all.forEach(group => {
 			scope.getBoneAnimator(group);
 		})
+		NullObject.all.forEach(null_object => {
+			scope.getBoneAnimator(null_object);
+		})
 
 		if (selected_bone) {
 			selected_bone.select();
@@ -386,7 +398,9 @@ class Animation {
 	}
 	getBoneAnimator(group) {
 		if (!group && Group.selected) {
-			group = Group.selected
+			group = Group.selected;
+		} else if (!group && NullObject.selected[0]) {
+			group = NullObject.selected[0];
 		} else if (!group) {
 			return;
 		}
@@ -406,7 +420,11 @@ class Animation {
 					break;
 				}
 			}
-			this.animators[uuid] = match || new BoneAnimator(uuid, this);
+			if (group instanceof NullObject) {
+				this.animators[uuid] = match || new NullObjectAnimator(uuid, this);
+			} else {
+				this.animators[uuid] = match || new BoneAnimator(uuid, this);
+			}
 		}
 		return this.animators[uuid];
 	}
@@ -689,596 +707,6 @@ Blockbench.on('finish_edit', event => {
 	}
 })
 
-class GeneralAnimator {
-	constructor(uuid, animation) {
-		this.animation = animation;
-		this.expanded = false;
-		this.selected = false;
-		this.uuid = uuid || guid();
-		this.muted = {};
-		for (let channel in this.channels) {
-			this.muted[channel] = false;
-		}
-	}
-	get keyframes() {
-		let array = [];
-		for (let channel in this.channels) {
-			if (this[channel] && this[channel].length) array.push(...this[channel]);
-		}
-		return array;
-	}
-	select() {
-		var scope = this;
-		for (var key in Animation.selected.animators) {
-			Animation.selected.animators[key].selected = false;
-		}
-		this.selected = true;
-		Timeline.selected_animator = this;
-		this.addToTimeline();
-		Vue.nextTick(() => {
-			scope.scrollTo();
-		})
-		return this;
-	}
-	addToTimeline() {
-		if (!Timeline.animators.includes(this)) {
-			Timeline.animators.splice(0, 0, this);
-		}
-		for (let channel in this.channels) {
-			if (!this[channel]) this[channel] = [];
-		}
-		if (!this.expanded) this.expanded = true;
-		return this;
-	}
-	addKeyframe(data, uuid) {
-		var channel = data.channel;
-		if (typeof channel == 'number') channel = Object.keys(this.channels)[channel];
-		if (channel && this[channel]) {
-			var kf = new Keyframe(data, uuid);
-			this[channel].push(kf);
-			kf.animator = this;
-			return kf;
-		}
-	}
-	createKeyframe(value, time, channel, undo, select) {
-		if (!this[channel]) return;
-		if (typeof time !== 'number') time = Timeline.time;
-		var keyframes = [];
-		if (undo) {
-			Undo.initEdit({keyframes})
-		}
-		var keyframe = new Keyframe({
-			channel: channel,
-			time: time
-		});
-		keyframes.push(keyframe);
-
-		if (value) {
-			keyframe.extend(value);
-		} else if (this.fillValues) {
-			this.fillValues(keyframe, value, true);
-		}
-
-		keyframe.channel = channel;
-		keyframe.time = Timeline.snapTime(time);
-
-		this[channel].push(keyframe);
-		keyframe.animator = this;
-
-		if (select !== false) {
-			keyframe.select();
-		}
-		var deleted = [];
-		delete keyframe.time_before;
-		keyframe.replaceOthers(deleted);
-		Undo.addKeyframeCasualties(deleted);
-		Animation.selected.setLength();
-
-		if (undo) {
-			Undo.finishEdit('Add keyframe')
-		}
-		return keyframe;
-	}
-	getOrMakeKeyframe(channel) {
-		let before, result;
-		let epsilon = Timeline.getStep()/2 || 0.01;
-
-		for (let kf of this[channel]) {
-			if (Math.abs(kf.time - Timeline.time) <= epsilon) {
-				before = kf;
-			}
-		}
-		result = before ? before : this.createKeyframe(null, Timeline.time, channel, false, false);
-		return {before, result};
-	}
-	toggleMuted(channel) {
-		this.muted[channel] = !this.muted[channel];
-		if (this instanceof BoneAnimator) Animator.preview();
-		return this;
-	}
-	scrollTo() {
-		var el = $(`#timeline_body_inner > li[uuid=${this.uuid}]`).get(0)
-		if (el) {
-			var offset = el.offsetTop;
-			var timeline = document.getElementById('timeline_body');
-			var scroll_top = timeline.scrollTop;
-			var height = timeline.clientHeight;
-			if (offset < scroll_top) {
-				$(timeline).animate({
-					scrollTop: offset
-				}, 200);
-			}
-			if (offset + el.clientHeight > scroll_top + height) {
-				$(timeline).animate({
-					scrollTop: offset - (height-el.clientHeight-20)
-				}, 200);
-			}
-		}
-	}
-}
-GeneralAnimator.addChannel = function(channel, options) {
-	this.prototype.channels[channel] = {
-		name: options.name || channel,
-		transform: options.transform || false,
-		mutable: options.mutable instanceof Boolean ? options.mutable : true,
-		max_data_points: options.max_data_points || 0
-	}
-	Timeline.animators.forEach(animator => {
-		if (animator instanceof this && !animator[channel]) {
-			animator[channel] = [];
-		}
-	})
-	Timeline.vue.$forceUpdate();
-}
-class BoneAnimator extends GeneralAnimator {
-	constructor(uuid, animation, name) {
-		super(uuid, animation);
-		this.uuid = uuid;
-		this._name = name;
-
-		this.rotation = [];
-		this.position = [];
-		this.scale = [];
-	}
-	get name() {
-		var group = this.getGroup();
-		if (group) return group.name;
-		return this._name;
-	}
-	set name(name) {
-		this._name = name;
-	}
-	getGroup() {
-		this.group = OutlinerNode.uuids[this.uuid];
-		if (!this.group) {
-			if (this.animation && this.animation.animators[this.uuid] && this.animation.animators[this.uuid].type == 'bone') {
-				delete this.animation.bones[this.uuid];
-			}
-		}
-		return this.group
-	}
-	select(group_is_selected) {
-		if (!this.getGroup() || this.group.locked) return this;
-
-		var duplicates;
-		for (var key in this.animation.animators) {
-			this.animation.animators[key].selected = false;
-		}
-		if (group_is_selected !== true && this.group) {
-			this.group.select();
-		}
-		Group.all.forEach(group => {
-			if (group.name == group.selected.name && group != Group.selected) {
-				duplicates = true;
-			}
-		})
-		function iterate(arr) {
-			arr.forEach((it) => {
-				if (it.type === 'group' && !duplicates) {
-					if (it.name === Group.selected.name && it !== Group.selected) {
-						duplicates = true;
-					} else if (it.children && it.children.length) {
-						iterate(it.children);
-					}
-				}
-			})
-		}
-		iterate(Outliner.root);
-		if (duplicates) {
-			Blockbench.showMessageBox({
-				translateKey: 'duplicate_groups',
-				icon: 'folder',
-			});
-		}
-		super.select();
-		
-		if (this[Toolbox.selected.animation_channel] && (Timeline.selected.length == 0 || Timeline.selected[0].animator != this)) {
-			var nearest;
-			this[Toolbox.selected.animation_channel].forEach(kf => {
-				if (Math.abs(kf.time - Timeline.time) < 0.002) {
-					nearest = kf;
-				}
-			})
-			if (nearest) {
-				nearest.select();
-			}
-		}
-
-		if (this.group && this.group.parent && this.group.parent !== 'root') {
-			this.group.parent.openUp();
-		}
-		return this;
-	}
-	fillValues(keyframe, values, allow_expression, round = true) {
-
-		if (values instanceof Array) {
-			keyframe.extend({
-				data_points: [{
-					x: values[0],
-					y: values[1],
-					z: values[2]
-				}]
-			})
-		} else if (typeof values === 'number' || typeof values === 'string') {
-			keyframe.extend({
-				data_points: [{
-					x: values,
-					y: values,
-					z: values
-				}]
-			})
-		} else if (values === null) {
-			let original_time = Timeline.time;
-			Timeline.time = keyframe.time;
-			var ref = this.interpolate(keyframe.channel, allow_expression)
-			Timeline.time = original_time;
-			if (ref) {
-				if (round) {
-					let e = keyframe.channel == 'scale' ? 1e4 : 1e2
-					ref.forEach((r, i) => {
-						if (!isNaN(r)) {
-							ref[i] = Math.round(parseFloat(r)*e)/e
-						}
-					})
-				}
-				keyframe.extend({
-					data_points: [{
-						x: ref[0],
-						y: ref[1],
-						z: ref[2],
-					}]
-				})
-			}
-			let closest;
-			this[keyframe.channel].forEach(kf => {
-				if (!closest || Math.abs(kf.time - keyframe.time) < Math.abs(closest.time - keyframe.time)) {
-					closest = kf;
-				}
-			});
-			keyframe.extend({
-				interpolation: closest && closest.interpolation,
-				uniform: (keyframe.channel == 'scale')
-					? (closest && closest.uniform && closest.data_points[0].x == closest.data_points[0].y && closest.data_points[0].x == closest.data_points[0].z)
-					: undefined,
-			})
-		} else {
-			keyframe.extend(values)
-		}
-	}
-	pushKeyframe(keyframe) {
-		this[keyframe.channel].push(keyframe)
-		keyframe.animator = this;
-		return this;
-	}
-	doRender() {
-		this.getGroup()
-		if (this.group && this.group.children && this.group.mesh) {
-			let mesh = this.group.mesh
-			return (mesh && mesh.fix_rotation)
-		}
-	}
-	displayRotation(arr, multiplier = 1) {
-		var bone = this.group.mesh
-
-		if (!arr) {
-		} else if (arr.length === 4) {
-			var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
-			bone.rotation.x -= added_rotation.x * multiplier
-			bone.rotation.y -= added_rotation.y * multiplier
-			bone.rotation.z += added_rotation.z * multiplier
-		} else {
-			arr.forEach((n, i) => {
-				bone.rotation[getAxisLetter(i)] += Math.degToRad(n) * (i == 2 ? 1 : -1) * multiplier
-			})
-		}
-		return this;
-	}
-	displayPosition(arr, multiplier = 1) {
-		var bone = this.group.mesh
-		if (arr) {
-			bone.position.x -= arr[0] * multiplier;
-			bone.position.y += arr[1] * multiplier;
-			bone.position.z += arr[2] * multiplier;
-		}
-		return this;
-	}
-	displayScale(arr, multiplier = 1) {
-		if (!arr) return this;
-		var bone = this.group.mesh;
-		bone.scale.x *= (1 + (arr[0] - 1) * multiplier) || 0.00001;
-		bone.scale.y *= (1 + (arr[1] - 1) * multiplier) || 0.00001;
-		bone.scale.z *= (1 + (arr[2] - 1) * multiplier) || 0.00001;
-		return this;
-	}
-	interpolate(channel, allow_expression, axis) {
-		let time = Timeline.time;
-		var before = false
-		var after = false
-		var result = false
-		let epsilon = 1/1200;
-
-		function mapAxes(cb) {
-			if (axis) {
-				let result = cb(axis);
-				Animator._last_values[channel][axis] = result;
-				return result;
-			} else {
-				return ['x', 'y', 'z'].map(axis => {
-					let result = cb(axis);
-					Animator._last_values[channel][axis] = result;
-					return result;
-				});
-			}
-		}
-
-		for (var keyframe of this[channel]) {
-
-			if (keyframe.time < time) {
-				if (!before || keyframe.time > before.time) {
-					before = keyframe
-				}
-			} else  {
-				if (!after || keyframe.time < after.time) {
-					after = keyframe
-				}
-			}
-			i++;
-		}
-		if (before && Math.epsilon(before.time, time, epsilon)) {
-			result = before
-		} else if (after && Math.epsilon(after.time, time, epsilon)) {
-			result = after
-		} else if (before && before.interpolation == Keyframe.interpolation.none) {
-			result = before
-		} else if (before && !after) {
-			result = before
-		} else if (after && !before) {
-			result = after
-		} else if (!before && !after) {
-			//
-		} else {
-			let no_interpolations = Blockbench.hasFlag('no_interpolations')
-			let alpha = Math.lerp(before.time, after.time, time)
-
-			if (no_interpolations || (before.interpolation == Keyframe.interpolation.linear && after.interpolation == Keyframe.interpolation.linear)) {
-				if (no_interpolations) {
-					alpha = Math.round(alpha)
-				}
-				return mapAxes(axis => before.getLerp(after, axis, alpha, allow_expression));
-			} else {
-
-				let sorted = this[channel].slice().sort((kf1, kf2) => (kf1.time - kf2.time));
-				let before_index = sorted.indexOf(before);
-				let before_plus = sorted[before_index-1];
-				let after_plus = sorted[before_index+2];
-
-				return mapAxes(axis => before.getCatmullromLerp(before_plus, before, after, after_plus, axis, alpha));
-			}
-		}
-		if (result && result instanceof Keyframe) {
-			let keyframe = result
-			let method = allow_expression ? 'get' : 'calc'
-			let dp_index = (keyframe.time > time || Math.epsilon(keyframe.time, time, epsilon)) ? 0 : keyframe.data_points.length-1;
-
-			return mapAxes(axis => keyframe[method](axis, dp_index));
-		}
-		return false;
-	}
-	displayFrame(multiplier = 1) {
-		if (!this.doRender()) return;
-		this.getGroup()
-
-		if (!this.muted.rotation) this.displayRotation(this.interpolate('rotation'), multiplier)
-		if (!this.muted.position) this.displayPosition(this.interpolate('position'), multiplier)
-		if (!this.muted.scale) this.displayScale(this.interpolate('scale'), multiplier)
-	}
-}
-	BoneAnimator.prototype.channels = {
-		rotation: {name: tl('timeline.rotation'), mutable: true, transform: true, max_data_points: 2},
-		position: {name: tl('timeline.position'), mutable: true, transform: true, max_data_points: 2},
-		scale: {name: tl('timeline.scale'), mutable: true, transform: true, max_data_points: 2},
-	}
-class EffectAnimator extends GeneralAnimator {
-	constructor(animation) {
-		super(null, animation);
-
-		this.name = tl('timeline.effects')
-		this.selected = false;
-
-		for (let channel in this.channels) {
-			this[channel] = [];
-		}
-	}
-	pushKeyframe(keyframe) {
-		this[keyframe.channel].push(keyframe)
-		keyframe.animator = this;
-		return this;
-	}
-	displayFrame(in_loop) {
-		if (in_loop && !this.muted.sound) {
-			this.sound.forEach(kf => {
-				var diff = kf.time - Timeline.time;
-				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100)) {
-					if (kf.data_points[0].file && !kf.cooldown) {
-						var media = new Audio(kf.data_points[0].file);
-						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
-						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
-						media.play().catch(() => {});
-						Timeline.playing_sounds.push(media);
-						media.onended = function() {
-							Timeline.playing_sounds.remove(media);
-						}
-
-						kf.cooldown = true;
-						setTimeout(() => {
-							delete kf.cooldown;
-						}, 400)
-					} 
-				}
-			})
-		}
-		
-		if (!this.muted.particle) {
-			this.particle.forEach(kf => {
-				var diff = Timeline.time - kf.time;
-				if (diff >= 0) {
-					let i = 0;
-					for (var data_point of kf.data_points) {
-						let particle_effect = data_point.file && Animator.particle_effects[data_point.file]
-						if (particle_effect) {
-
-							let emitter = particle_effect.emitters[kf.uuid + i];
-							if (!emitter) {
-								emitter = particle_effect.emitters[kf.uuid + i] = new Wintersky.Emitter(WinterskyScene, particle_effect.config);
-							}
-
-							var locator = data_point.locator && Locator.all.find(l => l.name == data_point.locator)
-							if (locator) {
-								locator.mesh.add(emitter.local_space);
-								emitter.parent_mode = 'locator';
-							} else {
-								emitter.parent_mode = 'entity';
-							}
-							scene.add(emitter.global_space);
-							emitter.jumpTo(diff);
-						} 
-						i++;
-					}
-				}
-			})
-		}
-	}
-	startPreviousSounds() {
-		if (!this.muted.sound) {
-			this.sound.forEach(kf => {
-				if (kf.data_points[0].file && !kf.cooldown) {
-					var diff = kf.time - Timeline.time;
-					if (diff < 0 && Timeline.waveforms[kf.data_points[0].file] && Timeline.waveforms[kf.data_points[0].file].duration > -diff) {
-						var media = new Audio(kf.data_points[0].file);
-						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
-						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
-						media.currentTime = -diff;
-						media.play().catch(() => {});
-						Timeline.playing_sounds.push(media);
-						media.onended = function() {
-							Timeline.playing_sounds.remove(media);
-						}
-
-						kf.cooldown = true;
-						setTimeout(() => {
-							delete kf.cooldown;
-						}, 400)
-					} 
-				}
-			})
-		}
-	}
-}
-	EffectAnimator.prototype.channels = {
-		particle: {name: tl('timeline.particle'), mutable: true, max_data_points: 1000},
-		sound: {name: tl('timeline.sound'), mutable: true, max_data_points: 1000},
-		timeline: {name: tl('timeline.timeline'), mutable: false, max_data_points: 1},
-	}
-
-//Clipbench
-Object.assign(Clipbench, {
-	setKeyframes() {
-
-		var keyframes = Timeline.selected;
-
-		Clipbench.keyframes = []
-		if (!keyframes || keyframes.length === 0) {
-			return;
-		}
-		var first = keyframes[0];
-		var single_animator;
-		keyframes.forEach(function(kf) {
-			if (kf.time < first.time) {
-				first = kf
-			}
-			if (single_animator && single_animator !== kf.animator.uuid) {
-				single_animator = false;
-			} else if (single_animator == undefined) {
-				single_animator = kf.animator.uuid;
-			}
-		})
-
-		keyframes.forEach(function(kf) {
-			var copy = kf.getUndoCopy();
-			copy.time_offset = kf.time - first.time;
-			if (single_animator != false) {
-				delete copy.animator;
-			}
-			Clipbench.keyframes.push(copy)
-		})
-		if (isApp) {
-			clipboard.writeHTML(JSON.stringify({type: 'keyframes', content: Clipbench.keyframes}))
-		}
-	},
-	pasteKeyframes() {
-		if (isApp) {
-			var raw = clipboard.readHTML()
-			try {
-				var data = JSON.parse(raw)
-				if (data.type === 'keyframes' && data.content) {
-					Clipbench.keyframes = data.content
-				}
-			} catch (err) {}
-		}
-		if (Clipbench.keyframes && Clipbench.keyframes.length) {
-
-			if (!Animation.selected) return;
-			var keyframes = [];
-			Undo.initEdit({keyframes});
-			Timeline.selected.empty();
-			Timeline.keyframes.forEach((kf) => {
-				kf.selected = false;
-			})
-			Clipbench.keyframes.forEach(function(data, i) {
-
-				if (data.animator) {
-					var animator = Animation.selected.animators[data.animator];
-					if (animator && !Timeline.animators.includes(animator)) {
-						animator.addToTimeline();
-					}
-				} else {
-					var animator = Timeline.selected_animator;
-				}
-				if (animator) {
-					var kf = animator.createKeyframe(data, Timeline.time + data.time_offset, data.channel, false, false)
-					if (!kf) return;
-					keyframes.push(kf);
-					kf.selected = true;
-					Timeline.selected.push(kf);
-				}
-
-			})
-			TickUpdates.keyframe_selection = true;
-			Animator.preview()
-			Undo.finishEdit('Paste keyframes');
-		}
-	}
-})
 
 const WinterskyScene = new Wintersky.Scene({
 	fetchTexture: isApp && function(config) {
@@ -1365,12 +793,11 @@ const Animator = {
 		Canvas.updateAllBones()
 	},
 	showDefaultPose(no_matrix_update) {
-		Group.all.forEach(group => {
-			var bone = group.mesh;
-			bone.rotation.copy(bone.fix_rotation)
-			bone.position.copy(bone.fix_position)
-			bone.scale.x = bone.scale.y = bone.scale.z = 1;
-
+		[...Group.all, ...NullObject.all].forEach(node => {
+			var mesh = node.mesh;
+			if (mesh.fix_rotation) mesh.rotation.copy(mesh.fix_rotation);
+			if (mesh.fix_position) mesh.position.copy(mesh.fix_position);
+			mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
 		})
 		if (!no_matrix_update) scene.updateMatrixWorld()
 	},
@@ -1390,7 +817,6 @@ const Animator = {
 			target = Project.motion_trail_lock && OutlinerNode.uuids[Project.motion_trail_lock];
 			if (!target) target = Group.selected || NullObject.selected[0];
 		}
-		let target_bone = target instanceof Group ? target : target.parent;
 		let animation = Animation.selected;
 		let currentTime = Timeline.time;
 		let step = Timeline.getStep();
@@ -1408,11 +834,11 @@ const Animator = {
 			bone_stack.push(g);
 			if (g.parent instanceof Group) iterate(g.parent);
 		}
-		iterate(target_bone)
+		iterate(target)
 		
 		let keyframes = {};
-		let keyframe_source = Group.selected || (NullObject.selected[0] && NullObject.selected[0].parent)
-		if (keyframe_source instanceof Group) {
+		let keyframe_source = Group.selected || NullObject.selected[0];
+		if (keyframe_source) {
 			let ba = Animation.selected.getBoneAnimator(keyframe_source);
 			let channel = target == Group.selected ? ba.position : (ba[Toolbox.selected.animation_channel] || ba.position)
 			channel.forEach(kf => {
@@ -1424,12 +850,12 @@ const Animator = {
 			Timeline.time = time;
 			bone_stack.forEach(group => {
 				var mesh = group.mesh;
-				mesh.rotation.copy(mesh.fix_rotation)
-				mesh.position.copy(mesh.fix_position)
+				if (mesh.fix_rotation) mesh.rotation.copy(mesh.fix_rotation)
+				if (mesh.fix_position) mesh.position.copy(mesh.fix_position)
 				mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
 				animation.getBoneAnimator(group).displayFrame(multiplier);
 			})
-			target_bone.mesh.updateWorldMatrix(true, false)
+			target.mesh.updateWorldMatrix(true, false)
 		}
 
 		let line_positions = [];
@@ -1483,12 +909,12 @@ const Animator = {
 	preview(in_loop) {
 		// Bones
 		Animator.showDefaultPose(true);
-		Group.all.forEach(group => {
+		[...Group.all, ...NullObject.all].forEach(node => {
 			Animator.resetLastValues();
 			Animator.animations.forEach(animation => {
 				let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
 				if (animation.playing) {
-					animation.getBoneAnimator(group).displayFrame(multiplier)
+					animation.getBoneAnimator(node).displayFrame(multiplier)
 				}
 			})
 		})
@@ -2014,41 +1440,6 @@ BARS.defineActions(function() {
 			paths.forEach(path => {
 				Animator.exportAnimationFile(path);
 			})
-		}
-	})
-
-	//Inverse Kinematics
-	new Action('ik_enabled', {
-		icon: 'check_box_outline_blank',
-		category: 'animation',
-		condition: () => Animator.open && NullObject.selected[0] && !Group.selected,
-		click() {
-			NullObject.selected[0].ik_enabled = !NullObject.selected[0].ik_enabled;
-			updateNslideValues();
-			Transformer.updateSelection();
-		}
-	})
-	new NumSlider('slider_ik_chain_length', {
-		category: 'animation',
-		condition: () => Animator.open && NullObject.selected[0] && !Group.selected,
-		get: function() {
-			return NullObject.selected[0].ik_chain_length||0;
-		},
-		settings: {
-			min: 0, max: 64, default: 0,
-			interval: function(event) {
-				return 1;
-			}
-		},
-		change: function(modify) {
-			NullObject.selected[0].ik_chain_length = Math.clamp(modify(NullObject.selected[0].ik_chain_length), 0, 64);
-			updateSelection()
-		},
-		onBefore: function() {
-			Undo.initEdit({keyframes: Timeline.selected})
-		},
-		onAfter: function() {
-			Undo.finishEdit('Change IK chain length')
 		}
 	})
 
