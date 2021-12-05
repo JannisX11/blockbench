@@ -974,6 +974,11 @@ const Animator = {
 		var json = file.json || autoParseJSON(file.content);
 		let path = file.path;
 		let new_animations = [];
+		function multilinify(string) {
+			return typeof string == 'string'
+						? string.replace(/;(?!$)/, ';\n')
+						: string
+		}
 		if (json && typeof json.animations === 'object') {
 			for (var ani_name in json.animations) {
 				if (animation_filter && !animation_filter.includes(ani_name)) continue;
@@ -985,18 +990,10 @@ const Animator = {
 					path,
 					loop: a.loop && (a.loop == 'hold_on_last_frame' ? 'hold' : 'loop'),
 					override: a.override_previous_animation,
-					anim_time_update: (typeof a.anim_time_update == 'string'
-						? a.anim_time_update.replace(/;(?!$)/, ';\n')
-						: a.anim_time_update),
-					blend_weight: (typeof a.blend_weight == 'string'
-						? a.blend_weight.replace(/;(?!$)/, ';\n')
-						: a.blend_weight),
-					start_delay: (typeof a.start_delay == 'string'
-						? a.start_delay.replace(/;(?!$)/, ';\n')
-						: a.start_delay),
-					loop_delay: (typeof a.loop_delay == 'string'
-						? a.loop_delay.replace(/;(?!$)/, ';\n')
-						: a.loop_delay),
+					anim_time_update: multilinify(a.anim_time_update),
+					blend_weight: multilinify(a.blend_weight),
+					start_delay: multilinify(a.start_delay),
+					loop_delay: multilinify(a.loop_delay),
 					length: a.animation_length
 				}).add()
 				//Bones
@@ -1058,6 +1055,19 @@ const Animator = {
 									}
 								}
 							}
+							// Set step interpolation
+							let sorted_keyframes = ba[channel].slice().sort((a, b) => a.time - b.time);
+							let last_kf_was_step = false;
+							sorted_keyframes.forEach((kf, i) => {
+								let next = sorted_keyframes[i+1];
+								if (next && next.data_points.length == 2 && kf.getArray(1).equals(next.getArray(0))) {
+									next.data_points.splice(0, 1);
+									kf.interpolation = 'step';
+									last_kf_was_step = true;
+								} else if (!next && last_kf_was_step) {
+									kf.interpolation = 'step';
+								}
+							})
 						}
 					}
 				}

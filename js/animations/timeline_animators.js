@@ -356,7 +356,7 @@ class BoneAnimator extends GeneralAnimator {
 			result = before
 		} else if (after && Math.epsilon(after.time, time, epsilon)) {
 			result = after
-		} else if (before && before.interpolation == Keyframe.interpolation.none) {
+		} else if (before && before.interpolation == Keyframe.interpolation.step) {
 			result = before
 		} else if (before && !after) {
 			result = before

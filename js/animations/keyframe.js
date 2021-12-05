@@ -231,15 +231,29 @@ class Keyframe {
 		}
 		return timecode;
 	}
+	getPreviousKeyframe() {
+		let keyframes = this.animator[this.channel].filter(kf => kf.time < this.time);
+		keyframes.sort((a, b) => b.time - a.time);
+		return keyframes[0];
+	}
 	compileBedrockKeyframe() {
 		if (this.transform) {
-			if (this.interpolation != 'linear' && this.interpolation != 'none') {
+
+			if (this.interpolation != 'linear' && this.interpolation != 'step') {
 				return {
 					post: this.getArray(),
 					lerp_mode: this.interpolation,
 				}
 			} else if (this.data_points.length == 1) {
-				return this.getArray();
+				let previous = this.getPreviousKeyframe();
+				if (previous && previous.interpolation == 'step') {
+					return new oneLiner({
+						pre:  previous.getArray(1),
+						post: this.getArray(),
+					})
+				} else {
+					return this.getArray();
+				}
 			} else {
 				return new oneLiner({
 					pre:  this.getArray(0),
@@ -411,7 +425,7 @@ class Keyframe {
 	Keyframe.interpolation = {
 		linear: 'linear',
 		catmullrom: 'catmullrom',
-		none: 'none',
+		step: 'step',
 	}
 
 // Misc Functions
@@ -735,7 +749,7 @@ BARS.defineActions(function() {
 		options: {
 			linear: true,
 			catmullrom: true,
-			none: true,
+			step: true,
 		},
 		onChange: function(sel, event) {
 			Undo.initEdit({keyframes: Timeline.selected})
