@@ -788,7 +788,7 @@ BARS.defineActions(function() {
 		category: 'color',
 		condition: () => (typeof EyeDropper == 'function' || isApp),
 		click: async function () {
-			if (typeof EyeDropper == 'function') {
+			if (!isApp && typeof EyeDropper == 'function') {
 				let dropper = new EyeDropper();
 				let {sRGBHex} = await dropper.open();
 				ColorPanel.set(sRGBHex);
