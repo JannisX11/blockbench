@@ -483,11 +483,13 @@ class Animation {
 		for (var uuid in this.animators) {
 			var bone = this.animators[uuid]
 			var keyframes = bone.keyframes;
-			var i = 0;
-			while (i < keyframes.length) {
-				len = Math.max(len, keyframes[i].time)
-				i++;
+			if (keyframes.find(kf => kf.interpolation == 'catmullrom')) {
+				keyframes = keyframes.slice().sort((a, b) => a.time - b.time);
 			}
+			keyframes.forEach((kf, i) => {
+				if (kf.interpolation == 'catmullrom' && i == keyframes.length-1) return;
+				len = Math.max(len, keyframes[i].time);
+			})
 		}
 		return len
 	}
