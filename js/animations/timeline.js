@@ -27,14 +27,13 @@ class TimelineMarker {
 	}
 }
 TimelineMarker.prototype.menu = new Menu([
-	{icon: 'flag', color: markerColors[0].standard, name: 'cube.color.'+markerColors[0].name, click: function(marker) {marker.color = 0;}},
-	{icon: 'flag', color: markerColors[1].standard, name: 'cube.color.'+markerColors[1].name, click: function(marker) {marker.color = 1;}},
-	{icon: 'flag', color: markerColors[2].standard, name: 'cube.color.'+markerColors[2].name, click: function(marker) {marker.color = 2;}},
-	{icon: 'flag', color: markerColors[3].standard, name: 'cube.color.'+markerColors[3].name, click: function(marker) {marker.color = 3;}},
-	{icon: 'flag', color: markerColors[4].standard, name: 'cube.color.'+markerColors[4].name, click: function(marker) {marker.color = 4;}},
-	{icon: 'flag', color: markerColors[5].standard, name: 'cube.color.'+markerColors[5].name, click: function(marker) {marker.color = 5;}},
-	{icon: 'flag', color: markerColors[6].standard, name: 'cube.color.'+markerColors[6].name, click: function(marker) {marker.color = 6;}},
-	{icon: 'flag', color: markerColors[7].standard, name: 'cube.color.'+markerColors[7].name, click: function(marker) {marker.color = 7;}},
+	
+	...markerColors.map((color, i) => {return {
+		icon: 'flag',
+		color: color.standard,
+		name: 'cube.color.'+color.name,
+		click(marker) {marker.color = i;}
+	}}),
 	'_',
 	{icon: 'delete', name: 'generic.delete', click: function(marker) {
 		if (Animation.selected) Animation.selected.markers.remove(marker);

@@ -52,7 +52,7 @@ function parseGeometry(data) {
 				origin: b.pivot,
 				rotation: b.rotation,
 				material: b.material,
-				color: Group.all.length%8
+				color: Group.all.length%markerColors.length
 			}).init()
 			bones[b.name] = group
 			if (b.pivot) {

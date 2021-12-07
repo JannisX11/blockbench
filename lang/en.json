@@ -1449,6 +1449,8 @@
 	"cube.color.blue": "Blue",
 	"cube.color.green": "Green",
 	"cube.color.lime": "Lime",
+	"cube.color.pink": "Pink",
+	"cube.color.silver": "Silver",
 
 	"switches.visibility": "Visibility",
 	"switches.lock": "Lock",

@@ -725,16 +725,16 @@ class Cube extends OutlinerElement {
 		'_',
 		'rename',
 		'update_autouv',
-		{name: 'menu.cube.color', icon: 'color_lens', children: [
-			{icon: 'bubble_chart', color: markerColors[0].standard, name: 'cube.color.'+markerColors[0].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(0)}, 'change color')}},
-			{icon: 'bubble_chart', color: markerColors[1].standard, name: 'cube.color.'+markerColors[1].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(1)}, 'change color')}},
-			{icon: 'bubble_chart', color: markerColors[2].standard, name: 'cube.color.'+markerColors[2].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(2)}, 'change color')}},
-			{icon: 'bubble_chart', color: markerColors[3].standard, name: 'cube.color.'+markerColors[3].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(3)}, 'change color')}},
-			{icon: 'bubble_chart', color: markerColors[4].standard, name: 'cube.color.'+markerColors[4].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(4)}, 'change color')}},
-			{icon: 'bubble_chart', color: markerColors[5].standard, name: 'cube.color.'+markerColors[5].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(5)}, 'change color')}},
-			{icon: 'bubble_chart', color: markerColors[6].standard, name: 'cube.color.'+markerColors[6].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(6)}, 'change color')}},
-			{icon: 'bubble_chart', color: markerColors[7].standard, name: 'cube.color.'+markerColors[7].name, click: function(cube) {cube.forSelected(function(obj){obj.setColor(7)}, 'change color')}}
-		]},
+		{name: 'menu.cube.color', icon: 'color_lens', children: markerColors.map((color, i) => {return {
+			icon: 'bubble_chart',
+			color: color.standard,
+			name: 'cube.color.'+color.name,
+			click(cube) {
+				cube.forSelected(function(obj){
+					obj.setColor(i)
+				}, 'change color')
+			}
+		}})},
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Project.single_texture, children: function() {
 			var arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {

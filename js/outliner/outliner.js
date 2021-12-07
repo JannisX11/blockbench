@@ -79,13 +79,15 @@ Object.defineProperty(window, 'selected', {
 //Colors
 var markerColors = [
 	{pastel: "#A2EBFF", standard: "#58C0FF", name: 'light_blue'},
-	{pastel: "#FFF899", standard: "#F3D81A", name: 'yellow'},
-	{pastel: "#E8BD7B", standard: "#EC9218", name: 'orange'},
-	{pastel: "#FFA7A4", standard: "#FA565D", name: 'red'},
+	{pastel: "#FFF899", standard: "#F4D714", name: 'yellow'},
+	{pastel: "#F1BB75", standard: "#EC9218", name: 'orange'},
+	{pastel: "#FF9B97", standard: "#FA565D", name: 'red'},
 	{pastel: "#C5A6E8", standard: "#B55AF8", name: 'purple'},
 	{pastel: "#A6C8FF", standard: "#4D89FF", name: 'blue'},
 	{pastel: "#7BFFA3", standard: "#00CE71", name: 'green'},
-	{pastel: "#BDFFA6", standard: "#AFFF62", name: 'lime'}
+	{pastel: "#BDFFA6", standard: "#AFFF62", name: 'lime'},
+	{pastel: "#FFA5D5", standard: "#F96BC5", name: 'pink'},
+	{pastel: "#E0E9FB", standard: "#C7D5F6", name: 'silver'}
 ]
 class OutlinerNode {
 	constructor(uuid) {
@@ -1135,7 +1137,7 @@ Interface.definePanels(function() {
 				'<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class=\'{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}\'></i>' +
 				'<i v-else class="outliner_opener_placeholder"></i>' +
 				//Main
-				'<i :class="node.icon + ((outliner_colors.value && node.color >= 0) ? \' ec_\'+node.color : \'\')" v-on:dblclick.stop="doubleClickIcon(node)"></i>' +
+				'<i :class="node.icon" :style="(outliner_colors.value && node.color >= 0) && {color: markerColors[node.color].pastel}" v-on:dblclick.stop="doubleClickIcon(node)"></i>' +
 				'<input type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>' +
 
 

@@ -299,30 +299,6 @@
 	    opacity: 1;
 	}
 
-	.outliner_object i.ec_0 {
-		color: #A2EBFF; /*light_blue*/
-	}
-	.outliner_object i.ec_1 {
-		color: #FFF899; /*yellow*/
-	}
-	.outliner_object i.ec_2 {
-		color: #E8BD7B; /*orange*/
-	}
-	.outliner_object i.ec_3 {
-		color: #FFA7A4; /*red*/
-	}
-	.outliner_object i.ec_4 {
-		color: #C5A6E8; /*purple*/
-	}
-	.outliner_object i.ec_5 {
-		color: #A6C8FF; /*blue*/
-	}
-	.outliner_object i.ec_6 {
-		color: #7BFFA3; /*green*/
-	}
-	.outliner_object i.ec_7 {
-		color: #BDFFA6; /*lime*/
-	}
 	div#outliner_stats {
 		float: right;
 		margin-right: 16px;

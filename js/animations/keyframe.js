@@ -405,14 +405,14 @@ class Keyframe {
 		'keyframe_interpolation',
 		{name: 'menu.cube.color', icon: 'color_lens', children: [
 			{icon: 'bubble_chart', name: 'generic.unset', click: function(kf) {kf.forSelected(kf2 => {kf2.color = -1}, 'change color')}},
-			{icon: 'bubble_chart', color: markerColors[0].standard, name: 'cube.color.'+markerColors[0].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 0}, 'change color')}},
-			{icon: 'bubble_chart', color: markerColors[1].standard, name: 'cube.color.'+markerColors[1].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 1}, 'change color')}},
-			{icon: 'bubble_chart', color: markerColors[2].standard, name: 'cube.color.'+markerColors[2].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 2}, 'change color')}},
-			{icon: 'bubble_chart', color: markerColors[3].standard, name: 'cube.color.'+markerColors[3].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 3}, 'change color')}},
-			{icon: 'bubble_chart', color: markerColors[4].standard, name: 'cube.color.'+markerColors[4].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 4}, 'change color')}},
-			{icon: 'bubble_chart', color: markerColors[5].standard, name: 'cube.color.'+markerColors[5].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 5}, 'change color')}},
-			{icon: 'bubble_chart', color: markerColors[6].standard, name: 'cube.color.'+markerColors[6].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 6}, 'change color')}},
-			{icon: 'bubble_chart', color: markerColors[7].standard, name: 'cube.color.'+markerColors[7].name, click: function(kf) {kf.forSelected(function(kf2){kf2.color = 7}, 'change color')}}
+			...markerColors.map((color, i) => {return {
+				icon: 'bubble_chart',
+				color: color.standard,
+				name: 'cube.color.'+color.name,
+				click(kf) {
+					kf.forSelected(function(kf2){kf2.color = 0}, 'change color')
+				}
+			}}),
 		]},
 		'copy',
 		'delete',
@@ -967,9 +967,6 @@ Interface.definePanels(function() {
 				getKeyframeInfos() {
 					let list =  [tl('timeline.'+this.channel)];
 					if (this.keyframes.length > 1) list.push(this.keyframes.length);
-					/*if (this.keyframes[0].color >= 0) {
-						list.push(tl(`cube.color.${markerColors[this.keyframes[0].color].name}`))
-					}*/
 					return list.join(', ')
 				},
 				addDataPoint() {

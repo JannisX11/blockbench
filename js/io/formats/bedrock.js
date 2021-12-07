@@ -438,7 +438,7 @@ function calculateVisibleBox() {
 			rotation: b.rotation,
 			material: b.material,
 			bedrock_binding: b.binding,
-			color: Group.all.length%8
+			color: Group.all.length%markerColors.length
 		}).init()
 		group.createUniqueName();
 		bones[b.name] = group
