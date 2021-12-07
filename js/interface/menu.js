@@ -740,6 +740,7 @@ const MenuBar = {
 			'lock_motion_trail',
 			'_',
 			'select_effect_animator',
+			'bake_animation_into_model',
 			'_',
 			'load_animation_file',
 			'save_all_animations',

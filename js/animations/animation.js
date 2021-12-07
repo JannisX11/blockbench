@@ -1469,6 +1469,56 @@ BARS.defineActions(function() {
 			}
 		}
 	})
+
+	new Action('bake_animation_into_model', {
+		icon: 'transfer_within_a_station',
+		category: 'animation',
+		condition: {modes: ['animate']},
+		click: function () {
+			let elements = Outliner.elements;
+			Undo.initEdit({elements, outliner: true});
+
+			[...Group.all, ...NullObject.all].forEach(node => {
+				let offset_rotation = [0, 0, 0];
+				let offset_position = [0, 0, 0];
+				Animator.animations.forEach(animation => {
+					if (animation.playing) {
+						let animator = animation.getBoneAnimator(node);
+						let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
+						
+						if (node instanceof Group) {
+							console.log(animator, animator.interpolate('rotation'))
+							let rotation = animator.interpolate('rotation');
+							let position = animator.interpolate('position');
+							if (rotation instanceof Array) offset_rotation.V3_add(rotation.map(v => v * multiplier));
+							if (position instanceof Array) offset_position.V3_add(position.map(v => v * multiplier));
+						}
+					}
+				})
+				// Rotation
+				if (node.rotatable) {
+					node.rotation[0] -= offset_rotation[0];
+					node.rotation[1] -= offset_rotation[1];
+					node.rotation[2] += offset_rotation[2];
+				}
+				// Position
+				function offset(node) {
+					if (node instanceof Group) {
+						node.origin.V3_add(offset_position);
+						node.children.forEach(offset);
+					} else {
+						if (node.from) node.from.V3_add(offset_position);
+						if (node.to) node.to.V3_add(offset_position);
+						if (node.origin && node.origin !== node.from) node.origin.V3_add(offset_position);
+					}
+				}
+				offset(node);
+			});
+
+			Modes.options.edit.select()
+			Undo.finishEdit('Bake animation into model')
+		}
+	})
 })
 
 Interface.definePanels(function() {

@@ -159,11 +159,6 @@ class BoneAnimator extends GeneralAnimator {
 	}
 	getGroup() {
 		this.group = OutlinerNode.uuids[this.uuid];
-		if (!this.group) {
-			if (this.animation && this.animation.animators[this.uuid] && this.animation.animators[this.uuid].type == 'bone') {
-				delete this.animation.bones[this.uuid];
-			}
-		}
 		return this.group
 	}
 	select(group_is_selected) {
@@ -425,11 +420,6 @@ class NullObjectAnimator extends BoneAnimator {
 	}
 	getElement() {
 		this.element = OutlinerNode.uuids[this.uuid];
-		if (!this.element) {
-			if (this.animation && this.animation.animators[this.uuid] && this.animation.animators[this.uuid].type == 'bone') {
-				delete this.animation.bones[this.uuid];
-			}
-		}
 		return this.element
 	}
 	select(element_is_selected) {
