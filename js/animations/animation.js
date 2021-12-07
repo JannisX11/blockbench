@@ -1302,7 +1302,7 @@ Animator.MolangParser.global_variables = {
 	},
 	'query.camera_distance_range_lerp'(a, b) {
 		let distance = Preview.selected.camera.position.length() / 16;
-		return Math.clamp(Math.lerp(a, b, distance), 0, 1);
+		return Math.clamp(Math.getLerp(a, b, distance), 0, 1);
 	},
 	get 'time'() {
 		return Timeline.time;

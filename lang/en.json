@@ -1435,6 +1435,8 @@
 	"menu.paste.mesh_selection": "Mesh Selection",
 	"menu.paste.outliner": "Elements",
 
+	"edit.loop_cut.offset": "Offset",
+
 	"web.download_app": "Download App",
 
 	"interface.streamer_mode_on": "Streamer Mode Enabled",

@@ -237,6 +237,7 @@ class ModelProject {
 			}
 		})
 
+		this.undo.closeAmendEditMenu();
 		if (TextureAnimator.isPlaying) TextureAnimator.stop();
 		this.selected = false;
 		Painter.current = {};

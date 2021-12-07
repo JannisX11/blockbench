@@ -122,6 +122,9 @@ BARS.defineActions(function() {
 		default_tool: 'move_tool',
 		category: 'navigate',
 		condition: () => Format && !Format.pose_mode,
+		onUnselect: () => {
+			if (Undo) Undo.closeAmendEditMenu();
+		}
 	})
 	new Mode('paint', {
 		default_tool: 'brush_tool',

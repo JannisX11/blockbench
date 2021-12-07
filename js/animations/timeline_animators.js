@@ -366,9 +366,9 @@ class BoneAnimator extends GeneralAnimator {
 			//
 		} else {
 			let no_interpolations = Blockbench.hasFlag('no_interpolations')
-			let alpha = Math.lerp(before.time, after.time, time)
+			let alpha = Math.getLerp(before.time, after.time, time)
 
-			if (no_interpolations || (before.interpolation == Keyframe.interpolation.linear && after.interpolation == Keyframe.interpolation.linear)) {
+			if (no_interpolations || (before.interpolation !== Keyframe.interpolation.catmullrom && after.interpolation !== Keyframe.interpolation.catmullrom)) {
 				if (no_interpolations) {
 					alpha = Math.round(alpha)
 				}

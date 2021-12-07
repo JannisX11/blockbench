@@ -899,12 +899,12 @@ new NodePreviewController(Mesh, {
 
 				for (let x = Math.ceil(range_x[0] / psize_x) * psize_x; x < range_x[1]; x += psize_x) {
 					if (!x_memory[x]) x_memory[x] = [];
-					let y = uv1[1] + (uv2[1] - uv1[1]) * Math.lerp(uv1[0], uv2[0], x);
+					let y = uv1[1] + (uv2[1] - uv1[1]) * Math.getLerp(uv1[0], uv2[0], x);
 					x_memory[x].push(face.UVToLocal([x, y]).toArray().V3_add(offset));
 				}
 				for (let y = Math.ceil(range_y[0] / psize_y) * psize_y; y < range_y[1]; y += psize_y) {
 					if (!y_memory[y]) y_memory[y] = [];
-					let x = uv1[0] + (uv2[0] - uv1[0]) * Math.lerp(uv1[1], uv2[1], y);
+					let x = uv1[0] + (uv2[0] - uv1[0]) * Math.getLerp(uv1[1], uv2[1], y);
 					y_memory[y].push(face.UVToLocal([x, y]).toArray().V3_add(offset));
 				}
 			})
@@ -1757,142 +1757,152 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'r', shift: true}),
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1)},
 		click() {
-			Undo.initEdit({elements: Mesh.selected});
-			Mesh.selected.forEach(mesh => {
-				let selected_vertices = mesh.getSelectedVertices();
-				let start_face;
-				for (let fkey in mesh.faces) {
-					let face = mesh.faces[fkey];
-					if (face.vertices.length < 3) continue;
-					let vertices = face.vertices.filter(vkey => selected_vertices.includes(vkey))
-					if (vertices.length >= 2) {
-						start_face = face;
-						break;
-					}
-				}
-				if (!start_face) return;
-				let processed_faces = [start_face];
-				let center_vertices = {};
-
-				function getCenterVertex(vertices) {
-					let existing_key = center_vertices[vertices[0]] || center_vertices[vertices[1]];
-					if (existing_key) return existing_key;
-
-					let vector = mesh.vertices[vertices[0]].slice().V3_add(mesh.vertices[vertices[1]]).V3_divide(2);
-					let [vkey] = mesh.addVertices(vector);
-					center_vertices[vertices[0]] = center_vertices[vertices[1]] = vkey;
-					return vkey;
-				}
-
-				function splitFace(face, side_vertices, double_side) {
-					processed_faces.push(face);
-					let sorted_vertices = face.getSortedVertices();
-
-					let side_index_diff = sorted_vertices.indexOf(side_vertices[0]) - sorted_vertices.indexOf(side_vertices[1]);
-					if (side_index_diff == -1 || side_index_diff > 2) side_vertices.reverse();
-
-					if (face.vertices.length == 4) {
-
-						let opposite_vertices = sorted_vertices.filter(vkey => !side_vertices.includes(vkey));
-						let opposite_index_diff = sorted_vertices.indexOf(opposite_vertices[0]) - sorted_vertices.indexOf(opposite_vertices[1]);
-						if (opposite_index_diff == 1 || opposite_index_diff < -2) opposite_vertices.reverse();
-
-						let center_vertices = [
-							getCenterVertex(side_vertices),
-							getCenterVertex(opposite_vertices)
-						]
-
-						let c1_uv_coords = [
-							(face.uv[side_vertices[0]][0] + face.uv[side_vertices[1]][0]) / 2,
-							(face.uv[side_vertices[0]][1] + face.uv[side_vertices[1]][1]) / 2,
-						];
-						let c2_uv_coords = [
-							(face.uv[opposite_vertices[0]][0] + face.uv[opposite_vertices[1]][0]) / 2,
-							(face.uv[opposite_vertices[0]][1] + face.uv[opposite_vertices[1]][1]) / 2,
-						];
-
-						let new_face = new MeshFace(mesh, face).extend({
-							vertices: [side_vertices[1], center_vertices[0], center_vertices[1], opposite_vertices[1]],
-							uv: {
-								[side_vertices[1]]: face.uv[side_vertices[1]],
-								[center_vertices[0]]: c1_uv_coords,
-								[center_vertices[1]]: c2_uv_coords,
-								[opposite_vertices[1]]: face.uv[opposite_vertices[1]],
-							}
-						})
-						face.extend({
-							vertices: [opposite_vertices[0], center_vertices[0], center_vertices[1], side_vertices[0]],
-							uv: {
-								[opposite_vertices[0]]: face.uv[opposite_vertices[0]],
-								[center_vertices[0]]: c1_uv_coords,
-								[center_vertices[1]]: c2_uv_coords,
-								[side_vertices[0]]: face.uv[side_vertices[0]],
-							}
-						})
-						mesh.addFaces(new_face);
-
-						// Find next (and previous) face
-						for (let fkey in mesh.faces) {
-							let ref_face = mesh.faces[fkey];
-							if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
-							let vertices = ref_face.vertices.filter(vkey => opposite_vertices.includes(vkey))
-							if (vertices.length >= 2) {
-								splitFace(ref_face, opposite_vertices);
-								break;
-							}
+			function runEdit(amended, offset = 50) {
+				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
+				Mesh.selected.forEach(mesh => {
+					let selected_vertices = mesh.getSelectedVertices();
+					let start_face;
+					for (let fkey in mesh.faces) {
+						let face = mesh.faces[fkey];
+						if (face.vertices.length < 3) continue;
+						let vertices = face.vertices.filter(vkey => selected_vertices.includes(vkey))
+						if (vertices.length >= 2) {
+							start_face = face;
+							break;
 						}
-						if (double_side) {
+					}
+					if (!start_face) return;
+					let processed_faces = [start_face];
+					let center_vertices = {};
+
+					function getCenterVertex(vertices) {
+						let existing_key = center_vertices[vertices[0]] || center_vertices[vertices[1]];
+						if (existing_key) return existing_key;
+
+						let vector = mesh.vertices[vertices[0]].map((v, i) => Math.lerp(v, mesh.vertices[vertices[1]][i], offset/100))
+						let [vkey] = mesh.addVertices(vector);
+						center_vertices[vertices[0]] = center_vertices[vertices[1]] = vkey;
+						return vkey;
+					}
+
+					function splitFace(face, side_vertices, double_side) {
+						processed_faces.push(face);
+						let sorted_vertices = face.getSortedVertices();
+
+						let side_index_diff = sorted_vertices.indexOf(side_vertices[0]) - sorted_vertices.indexOf(side_vertices[1]);
+						if (side_index_diff == -1 || side_index_diff > 2) side_vertices.reverse();
+
+						if (face.vertices.length == 4) {
+
+							let opposite_vertices = sorted_vertices.filter(vkey => !side_vertices.includes(vkey));
+							let opposite_index_diff = sorted_vertices.indexOf(opposite_vertices[0]) - sorted_vertices.indexOf(opposite_vertices[1]);
+							if (opposite_index_diff == 1 || opposite_index_diff < -2) opposite_vertices.reverse();
+
+							let center_vertices = [
+								getCenterVertex(side_vertices),
+								getCenterVertex(opposite_vertices)
+							]
+
+							let c1_uv_coords = [
+								Math.lerp(face.uv[side_vertices[0]][0], face.uv[side_vertices[1]][0], offset/100),
+								Math.lerp(face.uv[side_vertices[0]][1], face.uv[side_vertices[1]][1], offset/100),
+							];
+							let c2_uv_coords = [
+								Math.lerp(face.uv[opposite_vertices[0]][0], face.uv[opposite_vertices[1]][0], offset/100),
+								Math.lerp(face.uv[opposite_vertices[0]][1], face.uv[opposite_vertices[1]][1], offset/100),
+							];
+
+							let new_face = new MeshFace(mesh, face).extend({
+								vertices: [side_vertices[1], center_vertices[0], center_vertices[1], opposite_vertices[1]],
+								uv: {
+									[side_vertices[1]]: face.uv[side_vertices[1]],
+									[center_vertices[0]]: c1_uv_coords,
+									[center_vertices[1]]: c2_uv_coords,
+									[opposite_vertices[1]]: face.uv[opposite_vertices[1]],
+								}
+							})
+							face.extend({
+								vertices: [opposite_vertices[0], center_vertices[0], center_vertices[1], side_vertices[0]],
+								uv: {
+									[opposite_vertices[0]]: face.uv[opposite_vertices[0]],
+									[center_vertices[0]]: c1_uv_coords,
+									[center_vertices[1]]: c2_uv_coords,
+									[side_vertices[0]]: face.uv[side_vertices[0]],
+								}
+							})
+							mesh.addFaces(new_face);
+
+							// Find next (and previous) face
 							for (let fkey in mesh.faces) {
 								let ref_face = mesh.faces[fkey];
 								if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
-								let vertices = ref_face.vertices.filter(vkey => side_vertices.includes(vkey))
+								let vertices = ref_face.vertices.filter(vkey => opposite_vertices.includes(vkey))
 								if (vertices.length >= 2) {
-									splitFace(ref_face, side_vertices);
+									splitFace(ref_face, opposite_vertices);
 									break;
 								}
 							}
+							if (double_side) {
+								for (let fkey in mesh.faces) {
+									let ref_face = mesh.faces[fkey];
+									if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
+									let vertices = ref_face.vertices.filter(vkey => side_vertices.includes(vkey))
+									if (vertices.length >= 2) {
+										splitFace(ref_face, side_vertices);
+										break;
+									}
+								}
+							}
+
+						} else {
+							let opposite_vertex = sorted_vertices.find(vkey => !side_vertices.includes(vkey));
+
+							let center_vertex = getCenterVertex(side_vertices);
+
+							let c1_uv_coords = [
+								(face.uv[side_vertices[0]][0] + face.uv[side_vertices[1]][0]) / 2,
+								(face.uv[side_vertices[0]][1] + face.uv[side_vertices[1]][1]) / 2,
+							];
+
+							let new_face = new MeshFace(mesh, face).extend({
+								vertices: [side_vertices[1], center_vertex, opposite_vertex],
+								uv: {
+									[side_vertices[1]]: face.uv[side_vertices[1]],
+									[center_vertex]: c1_uv_coords,
+									[opposite_vertex]: face.uv[opposite_vertex],
+								}
+							})
+							face.extend({
+								vertices: [opposite_vertex, center_vertex, side_vertices[0]],
+								uv: {
+									[opposite_vertex]: face.uv[opposite_vertex],
+									[center_vertex]: c1_uv_coords,
+									[side_vertices[0]]: face.uv[side_vertices[0]],
+								}
+							})
+							mesh.addFaces(new_face);
 						}
-
-					} else {
-						let opposite_vertex = sorted_vertices.find(vkey => !side_vertices.includes(vkey));
-
-						let center_vertex = getCenterVertex(side_vertices);
-
-						let c1_uv_coords = [
-							(face.uv[side_vertices[0]][0] + face.uv[side_vertices[1]][0]) / 2,
-							(face.uv[side_vertices[0]][1] + face.uv[side_vertices[1]][1]) / 2,
-						];
-
-						let new_face = new MeshFace(mesh, face).extend({
-							vertices: [side_vertices[1], center_vertex, opposite_vertex],
-							uv: {
-								[side_vertices[1]]: face.uv[side_vertices[1]],
-								[center_vertex]: c1_uv_coords,
-								[opposite_vertex]: face.uv[opposite_vertex],
-							}
-						})
-						face.extend({
-							vertices: [opposite_vertex, center_vertex, side_vertices[0]],
-							uv: {
-								[opposite_vertex]: face.uv[opposite_vertex],
-								[center_vertex]: c1_uv_coords,
-								[side_vertices[0]]: face.uv[side_vertices[0]],
-							}
-						})
-						mesh.addFaces(new_face);
 					}
-				}
 
-				let start_vertices = start_face.vertices.filter((vkey, i) => selected_vertices.includes(vkey)).slice(0, 2);
-				splitFace(start_face, start_vertices, start_face.vertices.length == 4);
+					let start_vertices = start_face.vertices.filter((vkey, i) => selected_vertices.includes(vkey)).slice(0, 2);
+					splitFace(start_face, start_vertices, start_face.vertices.length == 4);
 
-				selected_vertices.empty();
-				for (let key in center_vertices) {
-					selected_vertices.safePush(center_vertices[key]);
-				}
+					selected_vertices.empty();
+					for (let key in center_vertices) {
+						selected_vertices.safePush(center_vertices[key]);
+					}
+				})
+				Undo.finishEdit('Create loop cut')
+				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
+			}
+			runEdit();
+
+			Undo.amendEdit({
+				cuts: {type: 'number', value: 1, label: 'edit.loop_cut.cuts', min: 0, max: 16},
+				offset: {type: 'number', value: 50, label: 'edit.loop_cut.offset', min: 0, max: 100},
+			}, form => {
+				runEdit(true, form.offset);
 			})
-			Undo.finishEdit('Create loop cut')
-			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
 	})
 	new Action('dissolve_edges', {

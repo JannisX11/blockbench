@@ -167,8 +167,11 @@ Math.roundTo = function(num, digits) {
 	var d = Math.pow(10,digits)
 	return Math.round(num * d) / d
 }
-Math.lerp = function(a,b,m) {
+Math.getLerp = function(a,b,m) {
 	return (m-a) / (b-a)
+}
+Math.lerp = function(a, b, m) {
+	return a + (b-a) * m
 }
 Math.isBetween = function(number, limit1, limit2) {
    return (number - limit1) * (number - limit2) <= 0

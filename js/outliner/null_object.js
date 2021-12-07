@@ -98,7 +98,7 @@ class NullObject extends OutlinerElement {
 				icon: null_object => null_object.lock_ik_target_rotation ? 'check_box' : 'check_box_outline_blank',
 				click(clicked_null_object) {
 					let value = !clicked_null_object.lock_ik_target_rotation;
-					let affected = null_object.selected.filter(null_object => null_object.lock_ik_target_rotation != value);
+					let affected = NullObject.selected.filter(null_object => null_object.lock_ik_target_rotation != value);
 					Undo.initEdit({elements: affected});
 					affected.forEach(null_object => {
 						null_object.lock_ik_target_rotation = value;

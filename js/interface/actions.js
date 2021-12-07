@@ -473,6 +473,7 @@ class NumSlider extends Widget {
 		if (data.tool_setting) this.tool_setting = data.tool_setting;
 		if (typeof data.get === 'function') this.get = data.get;
 		this.onBefore = data.onBefore;
+		this.onChange = data.onChange;
 		this.onAfter = data.onAfter;
 		if (typeof data.change === 'function') this.change = data.change;
 		if (data.settings) {
@@ -744,7 +745,7 @@ class NumSlider extends Widget {
 		this.jq_outer.find('.nslide:not(.editing)').text(this.value)
 		if (this.settings && this.settings.show_bar) {
 			this.node.classList.add('has_percentage_bar');
-			this.node.style.setProperty('--percentage', Math.lerp(this.settings.min, this.settings.max, value)*100);
+			this.node.style.setProperty('--percentage', Math.getLerp(this.settings.min, this.settings.max, value)*100);
 		} 
 		return this;
 	}
@@ -757,6 +758,9 @@ class NumSlider extends Widget {
 		this.value = num;
 		if (this.tool_setting) {
 			Toolbox.selected.tool_settings[this.tool_setting] = num;
+		}
+		if (typeof this.onChange === 'function') {
+			this.onChange(num);
 		}
 	}
 	get() {
