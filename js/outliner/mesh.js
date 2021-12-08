@@ -1478,172 +1478,181 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'e', shift: true}),
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length)},
 		click() {
-			Undo.initEdit({elements: Mesh.selected});
-			Mesh.selected.forEach(mesh => {
-				let original_vertices = Project.selected_vertices[mesh.uuid].slice();
-				let new_vertices;
-				let selected_faces = [];
-				let selected_face_keys = [];
-				let combined_direction;
-				for (let fkey in mesh.faces) {
-					let face = mesh.faces[fkey]; 
-					if (face.isSelected()) {
-						selected_faces.push(face);
-						selected_face_keys.push(fkey);
-					}
-				}
-
-				if (original_vertices.length >= 3 && !selected_faces.length) {
-					let [a, b, c] = original_vertices.slice(0, 3).map(vkey => mesh.vertices[vkey].slice());
-					let normal = new THREE.Vector3().fromArray(a.V3_subtract(c));
-					normal.cross(new THREE.Vector3().fromArray(b.V3_subtract(c))).normalize();
-
-					let face;
+			function runEdit(amended, extend = 1) {
+				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
+				Mesh.selected.forEach(mesh => {
+					let original_vertices = Project.selected_vertices[mesh.uuid].slice();
+					let new_vertices;
+					let selected_faces = [];
+					let selected_face_keys = [];
+					let combined_direction;
 					for (let fkey in mesh.faces) {
-						if (mesh.faces[fkey].vertices.filter(vkey => original_vertices.includes(vkey)).length >= 2 && mesh.faces[fkey].vertices.length > 2) {
-							face = mesh.faces[fkey];
-							break;
-						}
-					}
-					if (face) {
-						let selected_corner = mesh.vertices[face.vertices.find(vkey => original_vertices.includes(vkey))];
-						let opposite_corner = mesh.vertices[face.vertices.find(vkey => !original_vertices.includes(vkey))];
-						let face_geo_dir = opposite_corner.slice().V3_subtract(selected_corner);
-						if (Reusable.vec1.fromArray(face_geo_dir).angleTo(normal) < 1) {
-							normal.negate();
+						let face = mesh.faces[fkey]; 
+						if (face.isSelected()) {
+							selected_faces.push(face);
+							selected_face_keys.push(fkey);
 						}
 					}
 
-					combined_direction = normal.toArray();
-				}
+					if (original_vertices.length >= 3 && !selected_faces.length) {
+						let [a, b, c] = original_vertices.slice(0, 3).map(vkey => mesh.vertices[vkey].slice());
+						let normal = new THREE.Vector3().fromArray(a.V3_subtract(c));
+						normal.cross(new THREE.Vector3().fromArray(b.V3_subtract(c))).normalize();
 
-				new_vertices = mesh.addVertices(...original_vertices.map(key => {
-					let vector = mesh.vertices[key].slice();
-					let direction;
-					let count = 0;
+						let face;
+						for (let fkey in mesh.faces) {
+							if (mesh.faces[fkey].vertices.filter(vkey => original_vertices.includes(vkey)).length >= 2 && mesh.faces[fkey].vertices.length > 2) {
+								face = mesh.faces[fkey];
+								break;
+							}
+						}
+						if (face) {
+							let selected_corner = mesh.vertices[face.vertices.find(vkey => original_vertices.includes(vkey))];
+							let opposite_corner = mesh.vertices[face.vertices.find(vkey => !original_vertices.includes(vkey))];
+							let face_geo_dir = opposite_corner.slice().V3_subtract(selected_corner);
+							if (Reusable.vec1.fromArray(face_geo_dir).angleTo(normal) < 1) {
+								normal.negate();
+							}
+						}
+
+						combined_direction = normal.toArray();
+					}
+
+					new_vertices = mesh.addVertices(...original_vertices.map(key => {
+						let vector = mesh.vertices[key].slice();
+						let direction;
+						let count = 0;
+						selected_faces.forEach(face => {
+							if (face.vertices.includes(key)) {
+								count++;
+								if (!direction) {
+									direction = face.getNormal(true);
+								} else {
+									direction.V3_add(face.getNormal(true));
+								}
+							}
+						})
+						if (count > 1) {
+							direction.V3_divide(count);
+						}
+						if (!direction) {
+							let match;
+							let match_level = 0;
+							let match_count = 0;
+							for (let key in mesh.faces) {
+								let face = mesh.faces[key]; 
+								let matches = face.vertices.filter(vkey => original_vertices.includes(vkey));
+								if (match_level < matches.length) {
+									match_level = matches.length;
+									match_count = 1;
+									match = face;
+								} else if (match_level === matches.length) {
+									match_count++;
+								}
+								if (match_level == 3) break;
+							}
+							
+							if (match_level < 3 && match_count > 2 && original_vertices.length > 2) {
+								// If multiple faces connect to the line, there is no point in choosing one for the normal
+								// Instead, construct the normal between the first 2 selected vertices
+								direction = combined_direction;
+
+							} else if (match) {
+								direction = match.getNormal(true);
+							}
+						}
+
+						vector.V3_add(direction.map(v => v * extend));
+						return vector;
+					}))
+					Project.selected_vertices[mesh.uuid].replace(new_vertices);
+
+					// Move Faces
 					selected_faces.forEach(face => {
-						if (face.vertices.includes(key)) {
-							count++;
-							if (!direction) {
-								direction = face.getNormal(true);
-							} else {
-								direction.V3_add(face.getNormal(true));
-							}
-						}
+						face.vertices.forEach((key, index) => {
+							face.vertices[index] = new_vertices[original_vertices.indexOf(key)];
+							let uv = face.uv[key];
+							delete face.uv[key];
+							face.uv[face.vertices[index]] = uv;
+						})
 					})
-					if (count > 1) {
-						direction.V3_divide(count);
-					}
-					if (!direction) {
-						let match;
-						let match_level = 0;
-						let match_count = 0;
-						for (let key in mesh.faces) {
-							let face = mesh.faces[key]; 
-							let matches = face.vertices.filter(vkey => original_vertices.includes(vkey));
-							if (match_level < matches.length) {
-								match_level = matches.length;
-								match_count = 1;
-								match = face;
-							} else if (match_level === matches.length) {
-								match_count++;
-							}
-							if (match_level == 3) break;
-						}
-						
-						if (match_level < 3 && match_count > 2 && original_vertices.length > 2) {
-							// If multiple faces connect to the line, there is no point in choosing one for the normal
-							// Instead, construct the normal between the first 2 selected vertices
-							direction = combined_direction;
 
-						} else if (match) {
-							direction = match.getNormal(true);
-						}
-					}
+					// Create extra quads on sides
+					let remaining_vertices = new_vertices.slice();
+					selected_faces.forEach((face, face_index) => {
+						let vertices = face.getSortedVertices();
+						vertices.forEach((a, i) => {
+							let b = vertices[i+1] || vertices[0];
+							if (vertices.length == 2 && i) return; // Only create one quad when extruding line
+							if (selected_faces.find(f => f != face && f.vertices.includes(a) && f.vertices.includes(b))) return;
 
-					vector.V3_add(direction);
-					return vector;
-				}))
-				Project.selected_vertices[mesh.uuid].replace(new_vertices);
+							let new_face = new MeshFace(mesh, mesh.faces[selected_face_keys[face_index]]).extend({
+								vertices: [
+									b,
+									a,
+									original_vertices[new_vertices.indexOf(a)],
+									original_vertices[new_vertices.indexOf(b)],
+								]
+							});
+							mesh.addFaces(new_face);
+							remaining_vertices.remove(a);
+							remaining_vertices.remove(b);
+						})
 
-				// Move Faces
-				selected_faces.forEach(face => {
-					face.vertices.forEach((key, index) => {
-						face.vertices[index] = new_vertices[original_vertices.indexOf(key)];
-						let uv = face.uv[key];
-						delete face.uv[key];
-						face.uv[face.vertices[index]] = uv;
+						if (vertices.length == 2) delete mesh.faces[selected_face_keys[face_index]];
 					})
-				})
 
-				// Create extra quads on sides
-				let remaining_vertices = new_vertices.slice();
-				selected_faces.forEach((face, face_index) => {
-					let vertices = face.getSortedVertices();
-					vertices.forEach((a, i) => {
-						let b = vertices[i+1] || vertices[0];
-						if (vertices.length == 2 && i) return; // Only create one quad when extruding line
-						if (selected_faces.find(f => f != face && f.vertices.includes(a) && f.vertices.includes(b))) return;
+					// Create Face between extruded line
+					let line_vertices = remaining_vertices.slice();
+					let covered_edges = [];
+					let new_faces = [];
+					for (let fkey in mesh.faces) {
+						let face = mesh.faces[fkey];
+						let sorted_vertices = face.getSortedVertices();
+						let matched_vertices = sorted_vertices.filter(vkey => line_vertices.includes(new_vertices[original_vertices.indexOf(vkey)]));
+						if (matched_vertices.length >= 2) {
+							let already_handled_edge = covered_edges.find(edge => edge.includes(matched_vertices[0]) && edge.includes(matched_vertices[1]))
+							if (already_handled_edge) {
+								let handled_face = new_faces[covered_edges.indexOf(already_handled_edge)]
+								if (handled_face) handled_face.invert();
+								continue;
+							}
+							covered_edges.push(matched_vertices.slice(0, 2));
 
-						let new_face = new MeshFace(mesh, mesh.faces[selected_face_keys[face_index]]).extend({
-							vertices: [
-								b,
-								a,
-								original_vertices[new_vertices.indexOf(a)],
-								original_vertices[new_vertices.indexOf(b)],
-							]
+							if (sorted_vertices[0] == matched_vertices[0] && sorted_vertices[1] != matched_vertices[1]) {
+								matched_vertices.reverse();
+							}
+							let [a, b] = matched_vertices.map(vkey => new_vertices[original_vertices.indexOf(vkey)]);
+							let [c, d] = matched_vertices;
+							let new_face = new MeshFace(mesh, face).extend({
+								vertices: [a, b, c, d]
+							});
+							new_faces.push(new_face);
+							mesh.addFaces(new_face);
+							remaining_vertices.remove(a);
+							remaining_vertices.remove(b);
+						}
+					}
+
+					remaining_vertices.forEach(a => {
+						let b = original_vertices[new_vertices.indexOf(a)]
+						let new_face = new MeshFace(mesh, {
+							vertices: [b, a]
 						});
 						mesh.addFaces(new_face);
-						remaining_vertices.remove(a);
-						remaining_vertices.remove(b);
 					})
 
-					if (vertices.length == 2) delete mesh.faces[selected_face_keys[face_index]];
 				})
+				Undo.finishEdit('Extrude mesh selection')
+				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
+			}
+			runEdit();
 
-				// Create Face between extruded line
-				let line_vertices = remaining_vertices.slice();
-				let covered_edges = [];
-				let new_faces = [];
-				for (let fkey in mesh.faces) {
-					let face = mesh.faces[fkey];
-					let sorted_vertices = face.getSortedVertices();
-					let matched_vertices = sorted_vertices.filter(vkey => line_vertices.includes(new_vertices[original_vertices.indexOf(vkey)]));
-					if (matched_vertices.length >= 2) {
-						let already_handled_edge = covered_edges.find(edge => edge.includes(matched_vertices[0]) && edge.includes(matched_vertices[1]))
-						if (already_handled_edge) {
-							let handled_face = new_faces[covered_edges.indexOf(already_handled_edge)]
-							if (handled_face) handled_face.invert();
-							continue;
-						}
-						covered_edges.push(matched_vertices.slice(0, 2));
-
-						if (sorted_vertices[0] == matched_vertices[0] && sorted_vertices[1] != matched_vertices[1]) {
-							matched_vertices.reverse();
-						}
-						let [a, b] = matched_vertices.map(vkey => new_vertices[original_vertices.indexOf(vkey)]);
-						let [c, d] = matched_vertices;
-						let new_face = new MeshFace(mesh, face).extend({
-							vertices: [a, b, c, d]
-						});
-						new_faces.push(new_face);
-						mesh.addFaces(new_face);
-						remaining_vertices.remove(a);
-						remaining_vertices.remove(b);
-					}
-				}
-
-				remaining_vertices.forEach(a => {
-					let b = original_vertices[new_vertices.indexOf(a)]
-					let new_face = new MeshFace(mesh, {
-						vertices: [b, a]
-					});
-					mesh.addFaces(new_face);
-				})
-
+			Undo.amendEdit({
+				extend: {type: 'number', value: 1, label: 'edit.extrude_mesh_selection.extend'},
+			}, form => {
+				runEdit(true, form.extend);
 			})
-			Undo.finishEdit('Extrude mesh selection')
-			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
 	})
 	new Action('inset_mesh_selection', {
@@ -1898,7 +1907,7 @@ BARS.defineActions(function() {
 			runEdit();
 
 			Undo.amendEdit({
-				cuts: {type: 'number', value: 1, label: 'edit.loop_cut.cuts', min: 0, max: 16},
+				//cuts: {type: 'number', value: 1, label: 'edit.loop_cut.cuts', min: 0, max: 16},
 				offset: {type: 'number', value: 50, label: 'edit.loop_cut.offset', min: 0, max: 100},
 			}, form => {
 				runEdit(true, form.offset);

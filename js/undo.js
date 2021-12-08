@@ -64,6 +64,9 @@ class UndoSystem {
 	cancelEdit() {
 		if (!this.current_save) return;
 		Canvas.outlines.children.empty();
+		if (!amended && this.amend_edit_menu) {
+			this.closeAmendEditMenu();
+		}
 		this.loadSave(this.current_save, new UndoSystem.save(this.current_save.aspects))
 		delete this.current_save;
 	}
@@ -93,7 +96,7 @@ class UndoSystem {
 			for (let key in form) {
 				form_values[key] = input_elements[key].get();
 			}
-			Undo.undo();
+			Undo.undo(null, true);
 			callback(form_values);
 		}
 
@@ -138,7 +141,10 @@ class UndoSystem {
 			this.current_save.keyframes[kf.uuid] = kf.getUndoCopy();
 		})
 	}
-	undo(remote) {
+	undo(remote, amended) {
+		if (!amended && this.amend_edit_menu) {
+			this.closeAmendEditMenu();
+		}
 		if (this.history.length <= 0 || this.index < 1) return;
 
 		Project.saved = false;
@@ -151,7 +157,10 @@ class UndoSystem {
 		}
 		Blockbench.dispatchEvent('undo', {entry})
 	}
-	redo(remote) {
+	redo(remote, amended) {
+		if (!amended && this.amend_edit_menu) {
+			this.closeAmendEditMenu();
+		}
 		if (this.history.length <= 0) return;
 		if (this.index >= this.history.length) {
 			return;

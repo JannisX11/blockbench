@@ -238,6 +238,9 @@ class ModelProject {
 		})
 
 		this.undo.closeAmendEditMenu();
+		Preview.all.forEach(preview => {
+			if (preview.movingBackground) preview.stopMovingBackground();
+		})
 		if (TextureAnimator.isPlaying) TextureAnimator.stop();
 		this.selected = false;
 		Painter.current = {};
