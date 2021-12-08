@@ -162,7 +162,11 @@ class BoneAnimator extends GeneralAnimator {
 		return this.group
 	}
 	select(group_is_selected) {
-		if (!this.getGroup() || this.group.locked) return this;
+		if (!this.getGroup()) {
+			unselectAll();
+			return this;
+		}
+		if (this.group.locked) return;
 
 		var duplicates;
 		for (var key in this.animation.animators) {
@@ -423,7 +427,11 @@ class NullObjectAnimator extends BoneAnimator {
 		return this.element
 	}
 	select(element_is_selected) {
-		if (!this.getElement() || this.getElement().locked) return this;
+		if (!this.getElement()) {
+			unselectAll();
+			return this;
+		}
+		if (this.getElement().locked) return;
 
 		if (element_is_selected !== true && this.element) {
 			this.element.select();

@@ -245,8 +245,14 @@ class Menu {
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = $(`<li title="${s.description ? tl(s.description) : ''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`)
-				entry.prepend(icon)
+				entry = $(`<li title="${s.description ? tl(s.description) : ''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`);
+				entry.prepend(icon);
+				if (s.keybind) {
+					let label = document.createElement('label');
+					label.classList.add('keybinding_label')
+					label.innerText = s.keybind || '';
+					entry.append(label);
+				}
 				if (typeof s.click === 'function') {
 					entry.click(e => {
 						if (e.target == entry.get(0)) {
@@ -772,7 +778,7 @@ const MenuBar = {
 			]},
 		])
 		new BarMenu('help', [
-			{name: 'menu.help.search_action', description: BarItems.action_control.description, id: 'search_action', icon: 'search', click: ActionControl.select},
+			{name: 'menu.help.search_action', description: BarItems.action_control.description, keybind: BarItems.action_control.keybind, id: 'search_action', icon: 'search', click: ActionControl.select},
 			'_',
 			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', click: () => {
 				Blockbench.openLink('http://discord.blockbench.net');
