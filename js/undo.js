@@ -64,7 +64,7 @@ class UndoSystem {
 	cancelEdit() {
 		if (!this.current_save) return;
 		Canvas.outlines.children.empty();
-		if (!amended && this.amend_edit_menu) {
+		if (this.amend_edit_menu) {
 			this.closeAmendEditMenu();
 		}
 		this.loadSave(this.current_save, new UndoSystem.save(this.current_save.aspects))
