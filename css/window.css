@@ -600,8 +600,10 @@
 	}
 	#start_screen {
 		min-height: 300px;
+		flex-grow: 1;
 		width: 100%;
 		padding: 36px 0;
+		overflow-y: auto;
 	}
 	#start_screen h3 {
 		margin: 0;
@@ -715,11 +717,9 @@
 		display: block;
 		max-width: 1000px;
 		height: auto;
-		max-height: 100%;
 		margin-left: auto;
 		margin-right: auto;
 		background-color: var(--color-ui);
-		overflow-y: scroll;
 		overflow-x: hidden;
 		image-rendering: auto;
 	}

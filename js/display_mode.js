@@ -1565,7 +1565,7 @@ function updateDisplaySkin() {
 						var skin_path;
 						var is_slim = false;
 						try {
-							var parsed = JSON.parse(atob(data.properties[0].value))
+							var parsed = JSON.parse(Buffer.from(data.properties[0].value, 'base64').toString())
 							skin_path = parsed.textures.SKIN.url
 							if (parsed.textures.SKIN.metadata && parsed.textures.SKIN.metadata.model === 'slim') {
 								is_slim = true
