@@ -480,9 +480,6 @@ class NullObjectAnimator extends BoneAnimator {
 		let ik_target = new THREE.Vector3().copy(null_object.getWorldCenter(true));
 		let bone_references = [];
 		let current = target.parent;
-		
-		this.solver.clear();
-		this.chain.clear();
 
 		while (current !== null_object.parent) {
 			bones.push(current);
@@ -545,6 +542,10 @@ class NullObjectAnimator extends BoneAnimator {
 				}
 			}
 		})
+		this.solver.clear();
+		this.chain.clear();
+		this.chain.lastTargetLocation.set(1e9, 0, 0);
+
 		if (get_samples) return results;
 	}
 	displayFrame(multiplier = 1) {

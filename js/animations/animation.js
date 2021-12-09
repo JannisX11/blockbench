@@ -885,7 +885,6 @@ const Animator = {
 			start_time = Math.clamp(currentTime - 8, 0, Infinity);
 			max_time = Math.min(max_time, currentTime + 8);
 		}
-		let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
 		let geometry = new THREE.BufferGeometry();
 		let bone_stack = [];
 		let iterate = g => {
@@ -906,12 +905,21 @@ const Animator = {
 
 		function displayTime(time) {
 			Timeline.time = time;
-			bone_stack.forEach(group => {
-				var mesh = group.mesh;
+			let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
+
+			bone_stack.forEach(node => {
+				let mesh = node.mesh;
+				let ba = animation.getBoneAnimator(node)
+
 				if (mesh.fix_rotation) mesh.rotation.copy(mesh.fix_rotation)
 				if (mesh.fix_position) mesh.position.copy(mesh.fix_position)
-				mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
-				animation.getBoneAnimator(group).displayFrame(multiplier);
+
+				if (node instanceof NullObject) {
+					if (!ba.muted.position) ba.displayPosition(ba.interpolate('position'), multiplier);
+				} else {
+					mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
+					ba.displayFrame(multiplier);
+				}
 			})
 			target.mesh.updateWorldMatrix(true, false)
 		}
@@ -925,7 +933,7 @@ const Animator = {
 			displayTime(time);
 			let position = target instanceof Group
 						 ? THREE.fastWorldPosition(target.mesh, new THREE.Vector3())
-						 : target.getWorldCenter();
+						 : target.getWorldCenter(true);
 			position = position.toArray();
 			line_positions.push(...position);
 
