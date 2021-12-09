@@ -51,6 +51,7 @@ class NullObject extends OutlinerElement {
 		if (Animator.open && Animation.selected) {
 			Animation.selected.getBoneAnimator(this).select(true);
 		}
+		return this;
 	}
 	flip(axis, center) {
 		var offset = this.from[axis] - center

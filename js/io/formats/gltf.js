@@ -4,13 +4,36 @@ function buildAnimationTracks(do_quaternions = true) {
 	let anims = [];
 	Animator.animations.forEach(animation => {
 
+		let ik_samples = animation.sampleIK();
+
 		let tracks = [];
 		for (var uuid in animation.animators) {
 			let animator = animation.animators[uuid];
 			
-			if (animator instanceof BoneAnimator && animator.getGroup()) {
+			if (animator.type == 'bone' && animator.getGroup()) {
 				for (var channel in animator.channels) {
-					if (animator[channel] && animator[channel].length) {
+					if (channel == 'rotation' && ik_samples[uuid]) {
+
+						let times = [];
+						let values = [];
+						let sample_rate = settings.animation_sample_rate.value;
+						
+						let interpolation = THREE.InterpolateLinear;
+						ik_samples[uuid].forEach((sample, i) => {
+							sample.euler.x += animator.group.mesh.fix_rotation.x;
+							sample.euler.y += animator.group.mesh.fix_rotation.y;
+							sample.euler.z += animator.group.mesh.fix_rotation.z;
+							let quaternion = new THREE.Quaternion().setFromEuler(sample.euler);
+							quaternion.toArray(values, values.length);
+							times.push(i / sample_rate);
+						})
+
+						let track = new THREE.QuaternionKeyframeTrack(animator.group.mesh.uuid+'.quaternion', times, values, interpolation);
+						track.group_uuid = animator.group.uuid;
+						track.channel = 'quaternion';
+						tracks.push(track);
+
+					} else if (animator[channel] && animator[channel].length) {
 						let times = [];
 						let values = [];
 						let keyframes = animator[channel].slice();

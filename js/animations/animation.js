@@ -142,6 +142,7 @@ class Animation {
 
 		for (var uuid in this.animators) {
 			var animator = this.animators[uuid];
+			if (!animator.keyframes.length) continue;
 			if (animator instanceof EffectAnimator) {
 
 				animator.sound.sort((kf1, kf2) => (kf1.time - kf2.time)).forEach(kf => {
@@ -157,7 +158,7 @@ class Animation {
 					ani_tag.timeline[kf.getTimecodeString()] = kf.compileBedrockKeyframe()
 				})
 
-			} else if (animator.keyframes.length) {
+			} else if (animator.type == 'bone') {
 
 				var group = animator.getGroup(); 
 				var bone_tag = ani_tag.bones[group ? group.name : animator.name] = {};
@@ -170,7 +171,7 @@ class Animation {
 					let timecode = kf.getTimecodeString();
 					channels[kf.channel][timecode] = kf.compileBedrockKeyframe()
 				})
-				//Sorting keyframes
+				// Sorting + compressing keyframes
 				for (var channel in Animator.possible_channels) {
 					if (channels[channel]) {
 						let timecodes = Object.keys(channels[channel])
@@ -194,10 +195,65 @@ class Animation {
 				}
 			}
 		}
+		// Inverse Kinematics
+		let ik_samples = this.sampleIK();
+		let sample_rate = settings.animation_sample_rate.value;
+		for (let uuid in ik_samples) {
+			let group = OutlinerNode.uuids[uuid];
+			var bone_tag = ani_tag.bones[group ? group.name : animator.name] = {};
+			bone_tag.rotation = {};
+			ik_samples[uuid].forEach((rotation, i) => {
+				let timecode = trimFloatNumber(Timeline.snapTime(i / sample_rate, this)).toString();
+				if (!timecode.includes('.')) {
+					timecode += '.0';
+				}
+				bone_tag.rotation[timecode] = rotation.array;
+			})
+		}
 		if (Object.keys(ani_tag.bones).length == 0) {
 			delete ani_tag.bones;
 		}
 		return ani_tag;
+	}
+	sampleIK(sample_rate = settings.animation_sample_rate.value) {
+		let interval = 1 / Math.clamp(sample_rate, 1, 144);
+		let last_time = Timeline.time;
+		let samples = {};
+
+		if (!NullObject.all.find(null_object => null_object.ik_target && this.getBoneAnimator(null_object).position.length)) return samples;
+
+		Timeline.time = 0;
+		while (Timeline.time <= this.length && Timeline.time <= 200) {
+			// Bones
+			Animator.showDefaultPose(true);
+			
+			Group.all.forEach(node => {
+				Animator.resetLastValues();
+				Animator.animations.forEach(animation => {
+					let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
+					if (animation.playing) {
+						animation.getBoneAnimator(node).displayFrame(multiplier);
+					}
+				})
+			})
+			NullObject.all.forEach(node => {
+				Animator.resetLastValues();
+				let multiplier = this.blend_weight ? Math.clamp(Animator.MolangParser.parse(this.blend_weight), 0, Infinity) : 1;
+				let animator = this.getBoneAnimator(node);
+				animator.displayPosition(animator.interpolate('position'), multiplier);
+				let bone_frame_rotation = animator.displayIK(true);
+				for (let uuid in bone_frame_rotation) {
+					if (!samples[uuid]) samples[uuid] = [];
+					samples[uuid].push(bone_frame_rotation[uuid]);
+				}
+			})
+			Animator.resetLastValues();
+			Timeline.time += interval;
+		}
+
+		Timeline.time = last_time;
+		Animator.preview();
+		return samples;
 	}
 	save() {
 		if (isApp && !this.path) {
@@ -1487,7 +1543,6 @@ BARS.defineActions(function() {
 						let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
 						
 						if (node instanceof Group) {
-							console.log(animator, animator.interpolate('rotation'))
 							let rotation = animator.interpolate('rotation');
 							let position = animator.interpolate('position');
 							if (rotation instanceof Array) offset_rotation.V3_add(rotation.map(v => v * multiplier));

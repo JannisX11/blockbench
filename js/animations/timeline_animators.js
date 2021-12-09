@@ -412,6 +412,9 @@ class NullObjectAnimator extends BoneAnimator {
 		this.uuid = uuid;
 		this._name = name;
 
+		this.solver = new FIK.Structure3D(scene);
+		this.chain = new FIK.Chain3D();
+
 		this.position = [];
 	}
 	get name() {
@@ -468,13 +471,19 @@ class NullObjectAnimator extends BoneAnimator {
 		}
 		return this;
 	}
-	displayIK() {
+	displayIK(get_samples) {
 		let null_object = this.getElement();
 		let target = Group.all.find(group => group.name == null_object.ik_target);
 		if (!null_object || !target) return;
 
 		let bones = [];
+		let ik_target = new THREE.Vector3().copy(null_object.getWorldCenter(true));
+		let bone_references = [];
 		let current = target.parent;
+		
+		this.solver.clear();
+		this.chain.clear();
+
 		while (current !== null_object.parent) {
 			bones.push(current);
 			current = current.parent;
@@ -482,29 +491,18 @@ class NullObjectAnimator extends BoneAnimator {
 		bones.reverse();
 		
 		bones.forEach(bone => {
-			var mesh = bone.mesh;
-			if (mesh.fix_rotation) mesh.rotation.copy(mesh.fix_rotation);
+			if (bone.mesh.fix_rotation) bone.mesh.rotation.copy(bone.mesh.fix_rotation);
 		})
 
-		let ik_target = new THREE.Vector3().copy(null_object.getWorldCenter(true));
-		let solver = new FIK.Structure3D(scene);
-		let chain = new FIK.Chain3D();
-
-		let bone_references = [];
-
 		bones.forEach((bone, i) => {
+			let startPoint = new FIK.V3(0,0,0).copy(bone.mesh.getWorldPosition(new THREE.Vector3()));
+			let endPoint = new FIK.V3(0,0,0).copy(bones[i+1] ? bones[i+1].mesh.getWorldPosition(new THREE.Vector3()) : null_object.getWorldCenter(false));
 
-			let startPoint = new FIK.V3(0,0,0).copy(bone.mesh.getWorldPosition(new THREE.Vector3()))
-			let endPoint = new FIK.V3(0,0,0).copy(bones[i+1] ? bones[i+1].mesh.getWorldPosition(new THREE.Vector3()) : null_object.getWorldCenter(false))
-
-			let ik_bone = new FIK.Bone3D(startPoint, endPoint)
-			chain.addBone(ik_bone)
+			let ik_bone = new FIK.Bone3D(startPoint, endPoint);
+			this.chain.addBone(ik_bone);
 
 			bone_references.push({
 				bone,
-				ik_bone,
-				last_rotation: new THREE.Euler().copy(bone.mesh.rotation),
-				ik_bone,
 				last_diff: new THREE.Vector3(
 					(bones[i+1] ? bones[i+1] : target).origin[0] - bone.origin[0],
 					(bones[i+1] ? bones[i+1] : target).origin[1] - bone.origin[1],
@@ -513,28 +511,41 @@ class NullObjectAnimator extends BoneAnimator {
 			})
 		})
 
-		solver.add(chain, ik_target , true);
-		solver.meshChains[0].forEach(mesh => {
+		this.solver.add(this.chain, ik_target , true);
+		this.solver.meshChains[0].forEach(mesh => {
 			mesh.visible = false;
 		})
 
-		solver.update();
-	
+		this.solver.update();
+		
+		let results = {};
 		bone_references.forEach((bone_ref, i) => {
-			let start = Reusable.vec1.copy(solver.chains[0].bones[i].start);
-			let end = Reusable.vec2.copy(solver.chains[0].bones[i].end);
-			bone_references[i].bone.mesh.worldToLocal(start);
-			bone_references[i].bone.mesh.worldToLocal(end);
-			let diff = end.sub(start).normalize();
+			let start = Reusable.vec1.copy(this.solver.chains[0].bones[i].start);
+			let end = Reusable.vec2.copy(this.solver.chains[0].bones[i].end);
+			bones[i].mesh.worldToLocal(start);
+			bones[i].mesh.worldToLocal(end);
 
-			Reusable.quat1.setFromUnitVectors(bone_ref.last_diff, diff);
-			let rotation = Reusable.euler1.setFromQuaternion(Reusable.quat1, 'ZYX');
+			Reusable.quat1.setFromUnitVectors(bone_ref.last_diff, end.sub(start).normalize());
+			let rotation = get_samples ? new THREE.Euler() : Reusable.euler1;
+			rotation.setFromQuaternion(Reusable.quat1, 'ZYX');
 
 			bone_ref.bone.mesh.rotation.x += rotation.x;
 			bone_ref.bone.mesh.rotation.y += rotation.y;
 			bone_ref.bone.mesh.rotation.z += rotation.z;
 			bone_ref.bone.mesh.updateMatrixWorld();
+
+			if (get_samples) {
+				results[bone_ref.bone.uuid] = {
+					euler: rotation,
+					array: [
+						Math.radToDeg(-rotation.x),
+						Math.radToDeg(-rotation.y),
+						Math.radToDeg(rotation.z),
+					]
+				}
+			}
 		})
+		if (get_samples) return results;
 	}
 	displayFrame(multiplier = 1) {
 		if (!this.doRender()) return;
