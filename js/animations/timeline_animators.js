@@ -473,7 +473,7 @@ class NullObjectAnimator extends BoneAnimator {
 	}
 	displayIK(get_samples) {
 		let null_object = this.getElement();
-		let target = Group.all.find(group => group.name == null_object.ik_target);
+		let target = [...Group.all, ...Locator.all].find(node => node.uuid == null_object.ik_target);
 		if (!null_object || !target) return;
 
 		let bones = [];

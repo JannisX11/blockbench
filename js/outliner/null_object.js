@@ -162,26 +162,28 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => NullObject.selected.length,
 		children() {
-			let groups = [];
+			let nodes = [];
 			iterate(NullObject.selected[0].getParentArray());
 
 			function iterate(arr) {
 				arr.forEach(node => {
 					if (node instanceof Group) {
-						groups.push(node);
+						nodes.push(node);
 						iterate(node.children);
+					}
+					if (node instanceof Locator) {
+						nodes.push(node);
 					}
 				})
 			}
-			return groups.map(group => {
+			return nodes.map(node => {
 				return {
-					name: group.name,
-					id: group.name,
-					icon: group.name == NullObject.selected[0].ik_target ? 'radio_button_checked' : 'radio_button_unchecked',
+					name: node.name + (node.uuid == NullObject.selected[0].ik_target ? ' (✔)' : ''),
+					icon: node instanceof Locator ? 'fa-anchor' : 'fas.fa-folder',
 					click() {
 						Undo.initEdit({elements: NullObject.selected});
 						NullObject.selected.forEach(null_object => {
-							null_object.ik_target = group.name;
+							null_object.ik_target = node.uuid;
 						})
 						Undo.finishEdit('Set IK target');
 					}
