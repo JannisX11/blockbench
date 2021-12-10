@@ -661,11 +661,12 @@ class Cube extends OutlinerElement {
 	}
 	resize(val, axis, negative, allow_negative, bidirectional) {
 		var before = this.oldScale != undefined ? this.oldScale : this.size(axis);
+		if (before instanceof Array) before = before[axis];
 		var modify = val instanceof Function ? val : n => (n+val)
 
 		if (bidirectional) {
 
-			let center = this.oldCenter || 0;
+			let center = this.oldCenter[axis] || 0;
 			let difference = modify(before) - before;
 			if (negative) difference *= -1;
 
@@ -706,6 +707,7 @@ class Cube extends OutlinerElement {
 		}
 		this.preview_controller.updateGeometry(this);
 		TickUpdates.selection = true;
+		console.log(this.size())
 		return this;
 	}
 }
