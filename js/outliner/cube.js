@@ -707,7 +707,6 @@ class Cube extends OutlinerElement {
 		}
 		this.preview_controller.updateGeometry(this);
 		TickUpdates.selection = true;
-		console.log(this.size())
 		return this;
 	}
 }
