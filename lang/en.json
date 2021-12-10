@@ -158,6 +158,7 @@
 	"modifier_actions.select_multiple": "Select multiple",
 	"modifier_actions.select_range": "Select range",
 	"modifier_actions.drag_to_duplicate": "Drag to duplicate",
+	"modifier_actions.uniform_scaling": "Uniform Scaling",
 
 	"message.canvas_limit_error.title": "Canvas Limit Error",
 	"message.canvas_limit_error.message": "The action could not be performed correctly because the format limits the canvas to 48 units. Shift the pivot point to prevent this.",

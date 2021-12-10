@@ -5,6 +5,7 @@ const Clipbench = {
 		text: 'text',
 		display_slot: 'display_slot',
 		keyframe: 'keyframe',
+		animation: 'animation',
 		face: 'face',
 		mesh_selection: 'mesh_selection',
 		texture: 'texture',
@@ -31,6 +32,9 @@ const Clipbench = {
 		}
 		if (display_mode) {
 			return Clipbench.types.display_slot
+		}
+		if (Animator.open && Prop.active_panel == 'animations') {
+			return Clipbench.types.animation
 		}
 		if (Animator.open && Timeline.animators.length && (Timeline.selected.length || mode === 2) && ['keyframe', 'timeline', 'preview'].includes(p)) {
 			return Clipbench.types.keyframe
@@ -61,6 +65,9 @@ const Clipbench = {
 		}
 		if (display_mode) {
 			return Clipbench.types.display_slot
+		}
+		if (Animator.open && Prop.active_panel == 'animations') {
+			return Clipbench.types.animation
 		}
 		if (Animator.open && Timeline.animators.length && ['keyframe', 'timeline', 'preview'].includes(p)) {
 			return Clipbench.types.keyframe
@@ -115,6 +122,9 @@ const Clipbench = {
 			case 'display_slot':
 				DisplayMode.copy();
 				break;
+			case 'animation':
+				Clipbench.setAnimation();
+				break;
 			case 'keyframe':
 				if (Timeline.selected.length) {
 					Clipbench.setKeyframes();
@@ -160,6 +170,9 @@ const Clipbench = {
 				break;
 			case 'display_slot':
 				DisplayMode.paste();
+				break;
+			case 'animation':
+				Clipbench.pasteAnimation();
 				break;
 			case 'keyframe':
 				Clipbench.pasteKeyframes()

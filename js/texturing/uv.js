@@ -1733,11 +1733,11 @@ Interface.definePanels(function() {
 						texture = Texture.getDefault();
 					} else {
 						let elements = UVEditor.getMappableElements();
-						if (elements.length && this.selected_faces.length) {
+						if (elements.length) {
 							for (let element of elements) {
-								if (element.faces[this.selected_faces[0]]) {
-									texture = element.faces[this.selected_faces[0]].getTexture();
-								}
+								let face = element.faces[this.selected_faces[0] || Object.keys(element.faces)[0]];
+								texture = face.getTexture() || texture;
+								if (texture) break;
 							}
 						}
 					}

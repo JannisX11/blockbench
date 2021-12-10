@@ -691,6 +691,10 @@ class Animation {
 	})
 	Animation.selected = null;
 	Animation.prototype.menu = new Menu([
+		'copy',
+		'paste',
+		'duplicate',
+		'_',
 		{name: 'menu.animation.loop', icon: 'loop', children: [
 			{name: 'menu.animation.loop.once', icon: animation => (animation.loop == 'once' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('once', true)}},
 			{name: 'menu.animation.loop.hold', icon: animation => (animation.loop == 'hold' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('hold', true)}},
@@ -715,7 +719,6 @@ class Animation {
 				shell.showItemInFolder(animation.path);
 			}
 		},
-		'duplicate',
 		'rename',
 		'delete',
 		'_',
@@ -1334,6 +1337,34 @@ Blockbench.on('reset_project', () => {
 	}
 })
 
+Clipbench.setAnimation = function() {
+	if (!Animation.selected) return;
+	Clipbench.animation = Animation.selected.getUndoCopy();
+
+	if (isApp) {
+		clipboard.writeHTML(JSON.stringify({type: 'animation', content: Clipbench.animation}));
+	}
+}
+Clipbench.pasteAnimation = function() {
+	if (isApp) {
+		var raw = clipboard.readHTML()
+		try {
+			var data = JSON.parse(raw)
+			if (data.type === 'animation' && data.content) {
+				Clipbench.animation = data.content
+			}
+		} catch (err) {}
+	}
+	if (!Clipbench.animation) return;
+
+	let animations = [];
+	Undo.initEdit({animations});
+	let animation = new Animation(Clipbench.animation).add(false);
+	animation.select().propertiesDialog();
+	animations.push(animation);
+	Undo.finishEdit('Paste animation')
+}
+
 Animator.MolangParser.global_variables = {
 	'true': 1,
 	'false': 0,
@@ -1625,6 +1656,9 @@ Interface.definePanels(function() {
 				animation_files_enabled: true
 			}},
 			methods: {
+				openMenu(event) {
+					Interface.Panels.animations.menu.show(event)
+				},
 				toggle(key) {
 					this.files_folded[key] = !this.files_folded[key];
 					this.$forceUpdate();
@@ -1814,6 +1848,7 @@ Interface.definePanels(function() {
 						class="list mobile_scrollbar"
 						@mousedown="dragAnimation($event)"
 						@touchstart="dragAnimation($event)"
+						@contextmenu.stop.prevent="openMenu($event)"
 					>
 						<li v-for="(file, key) in files" :key="key" class="animation_file" @contextmenu.prevent.stop="showFileContextMenu($event, key)">
 							<div class="animation_file_head" v-if="!file.hide_head" v-on:click.stop="toggle(key)">
@@ -1856,7 +1891,13 @@ Interface.definePanels(function() {
 					</ul>
 				</div>
 			`
-		}
+		},
+		menu: new Menu([
+			'add_animation',
+			'load_animation_file',
+			'paste',
+			'save_all_animations',
+		])
 	})
 
 	Interface.Panels.variable_placeholders = new Panel({

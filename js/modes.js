@@ -77,6 +77,10 @@ class Mode extends KeybindItem {
 			Interface.PanelSelectorVue.select(null);
 		}
 
+		if (Interface.Panels[Prop.active_panel] && !Condition(Interface.Panels[Prop.active_panel].condition)) {
+			Prop.active_panel = 'preview';
+		}
+
 		updateInterface()
 		Canvas.updateRenderSides()
 		if (BarItems[this.default_tool]) {
