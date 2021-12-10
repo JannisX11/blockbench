@@ -707,12 +707,11 @@ const UVEditor = {
 		this.message('uv_editor.turned');
 		this.loadData();
 	},
-	setAutoSize(event) {		
+	setAutoSize(event, silent) {		
 		let vec1 = new THREE.Vector3(),
 			vec2 = new THREE.Vector3(),
 			vec3 = new THREE.Vector3(),
 			vec4 = new THREE.Vector3(),
-			quat = new THREE.Quaternion(),
 			plane = new THREE.Plane();
 
 		this.getMappableElements().forEach(obj => {
@@ -758,7 +757,6 @@ const UVEditor = {
 					)
 					let rot = cameraTargetToRotation([0, 0, 0], normal_vec.toArray());
 					let e = new THREE.Euler(Math.degToRad(-rot[1] - 90), Math.degToRad(rot[0]), 0);
-					console.log({rot, e, normal_vec})
 					face.vertices.forEach(vkey => {
 						let coplanar_pos = plane.projectPoint(vec3.fromArray(obj.vertices[vkey]), vec4.set(0, 0, 0));
 						coplanar_pos.applyEuler(e);
@@ -843,8 +841,8 @@ const UVEditor = {
 			}
 			obj.preview_controller.updateUV(obj);
 		})
-		this.message('uv_editor.autouv')
-		this.loadData()
+		if (!silent) this.message('uv_editor.autouv');
+		this.loadData();
 	},
 	setRelativeAutoSize(event) {
 		var scope = this;

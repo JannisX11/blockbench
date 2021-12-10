@@ -94,7 +94,9 @@ class UndoSystem {
 		function updateValue() {
 			let form_values = {};
 			for (let key in form) {
-				form_values[key] = input_elements[key].get();
+				if (input_elements[key]) {
+					form_values[key] = input_elements[key].get();
+				}
 			}
 			Undo.undo(null, true);
 			callback(form_values);
@@ -102,6 +104,7 @@ class UndoSystem {
 
 		for (let key in form) {
 			let form_line = form[key];
+			if (!Condition(form_line.condition)) continue;
 			let line = document.createElement('div');
 			line.className = 'amend_edit_line';
 			dialog.append(line);

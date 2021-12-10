@@ -960,254 +960,271 @@ BARS.defineActions(function() {
 			minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: 8, min: 2, max: 32, condition: ({shape}) => ['torus'].includes(shape)},
 		},
 		onConfirm(result) {
-			let elements = [];
-			Undo.initEdit({elements});
-			let mesh = new Mesh({
-				name: result.shape,
-				vertices: {}
-			});
-			var group = getCurrentGroup();
-			mesh.addTo(group)
+			function runEdit(amended, result) {
+				let elements = [];
+				Undo.initEdit({elements}, amended);
+				let mesh = new Mesh({
+					name: result.shape,
+					vertices: {}
+				});
+				var group = getCurrentGroup();
+				mesh.addTo(group)
 
-			if (result.shape == 'circle') {
-				let vertex_keys = mesh.addVertices([0, 0, 0]);
-				let [m] = vertex_keys;
+				if (result.shape == 'circle') {
+					let vertex_keys = mesh.addVertices([0, 0, 0]);
+					let [m] = vertex_keys;
 
-				for (let i = 0; i < result.sides; i++) {
-					let x = Math.sin((i / result.sides) * Math.PI * 2) * result.diameter/2;
-					let z = Math.cos((i / result.sides) * Math.PI * 2) * result.diameter/2;
-					vertex_keys.push(...mesh.addVertices([x, 0, z]));
-				}
-				for (let i = 0; i < result.sides; i++) {
-					let [a, b] = vertex_keys.slice(i+2, i+2 + 2);
-					if (!a) {
-						b = vertex_keys[2];
-						a = vertex_keys[1];
-					} else if (!b) {
-						b = vertex_keys[1];
+					for (let i = 0; i < result.sides; i++) {
+						let x = Math.sin((i / result.sides) * Math.PI * 2) * result.diameter/2;
+						let z = Math.cos((i / result.sides) * Math.PI * 2) * result.diameter/2;
+						vertex_keys.push(...mesh.addVertices([x, 0, z]));
 					}
-					mesh.addFaces(new MeshFace( mesh, {vertices: [a, b, m]} ));
-				}
-			}
-			if (result.shape == 'cone') {
-				let vertex_keys = mesh.addVertices([0, 0, 0], [0, result.height, 0]);
-				let [m0, m1] = vertex_keys;
-
-				for (let i = 0; i < result.sides; i++) {
-					let x = Math.sin((i / result.sides) * Math.PI * 2) * result.diameter/2;
-					let z = Math.cos((i / result.sides) * Math.PI * 2) * result.diameter/2;
-					vertex_keys.push(...mesh.addVertices([x, 0, z]));
-				}
-				for (let i = 0; i < result.sides; i++) {
-					let [a, b] = vertex_keys.slice(i+2, i+2 + 2);
-					if (!b) {
-						b = vertex_keys[2];
+					for (let i = 0; i < result.sides; i++) {
+						let [a, b] = vertex_keys.slice(i+2, i+2 + 2);
+						if (!a) {
+							b = vertex_keys[2];
+							a = vertex_keys[1];
+						} else if (!b) {
+							b = vertex_keys[1];
+						}
+						mesh.addFaces(new MeshFace( mesh, {vertices: [a, b, m]} ));
 					}
-					mesh.addFaces(
-						new MeshFace( mesh, {vertices: [b, a, m0]} ),
-						new MeshFace( mesh, {vertices: [a, b, m1]} )
-					);
 				}
-			}
-			if (result.shape == 'cylinder') {
-				let vertex_keys = mesh.addVertices([0, 0, 0], [0, result.height, 0]);
-				let [m0, m1] = vertex_keys;
+				if (result.shape == 'cone') {
+					let vertex_keys = mesh.addVertices([0, 0, 0], [0, result.height, 0]);
+					let [m0, m1] = vertex_keys;
 
-				for (let i = 0; i < result.sides; i++) {
-					let x = Math.sin((i / result.sides) * Math.PI * 2) * result.diameter/2;
-					let z = Math.cos((i / result.sides) * Math.PI * 2) * result.diameter/2;
-					vertex_keys.push(...mesh.addVertices([x, 0, z], [x, result.height, z]));
-				}
-				for (let i = 0; i < result.sides; i++) {
-					let [a, b, c, d] = vertex_keys.slice(2*i+2, 2*i+2 + 4);
-					if (!c) {
-						c = vertex_keys[2];
-						d = vertex_keys[3];
+					for (let i = 0; i < result.sides; i++) {
+						let x = Math.sin((i / result.sides) * Math.PI * 2) * result.diameter/2;
+						let z = Math.cos((i / result.sides) * Math.PI * 2) * result.diameter/2;
+						vertex_keys.push(...mesh.addVertices([x, 0, z]));
 					}
-					mesh.addFaces(
-						new MeshFace( mesh, {vertices: [c, a, m0]}),
-						new MeshFace( mesh, {vertices: [a, c, d, b]} ),
-						new MeshFace( mesh, {vertices: [b, d, m1]} )
-					);
-				}
-			}
-			if (result.shape == 'tube') {
-				let vertex_keys = [];
-
-				let outer_r = result.diameter/2;
-				let inner_r = outer_r - result.minor_diameter;
-				for (let i = 0; i < result.sides; i++) {
-					let x = Math.sin((i / result.sides) * Math.PI * 2);
-					let z = Math.cos((i / result.sides) * Math.PI * 2);
-					vertex_keys.push(...mesh.addVertices(
-						[x * outer_r, 0, z * outer_r],
-						[x * outer_r, result.height, z * outer_r],
-						[x * inner_r, 0, z * inner_r],
-						[x * inner_r, result.height, z * inner_r],
-					));
-				}
-				for (let i = 0; i < result.sides; i++) {
-					let [a1, b1, c1, d1, a2, b2, c2, d2] = vertex_keys.slice(4*i, 4*i + 8);
-					if (!a2) {
-						a2 = vertex_keys[0];
-						b2 = vertex_keys[1];
-						c2 = vertex_keys[2];
-						d2 = vertex_keys[3];
-					}
-					if (a1 && b1 && c1 && d1 && a2 && b2 && c2 && d2) {
+					for (let i = 0; i < result.sides; i++) {
+						let [a, b] = vertex_keys.slice(i+2, i+2 + 2);
+						if (!b) {
+							b = vertex_keys[2];
+						}
 						mesh.addFaces(
-							new MeshFace( mesh, {vertices: [a1, a2, b2, b1]} ),
-							new MeshFace( mesh, {vertices: [d1, d2, c2, c1]} ),
-							new MeshFace( mesh, {vertices: [c1, c2, a2, a1]} ),
-							new MeshFace( mesh, {vertices: [b1, b2, d2, d1]} ),
+							new MeshFace( mesh, {vertices: [b, a, m0]} ),
+							new MeshFace( mesh, {vertices: [a, b, m1]} )
 						);
 					}
 				}
-			}
-			if (result.shape == 'torus') {
-				let rings = [];
+				if (result.shape == 'cylinder') {
+					let vertex_keys = mesh.addVertices([0, 0, 0], [0, result.height, 0]);
+					let [m0, m1] = vertex_keys;
 
-				for (let i = 0; i < result.sides; i++) {
-					let circle_x = Math.sin((i / result.sides) * Math.PI * 2);
-					let circle_z = Math.cos((i / result.sides) * Math.PI * 2);
-
-					let vertices = [];
-					for (let j = 0; j < result.minor_sides; j++) {
-						let slice_x = Math.sin((j / result.minor_sides) * Math.PI * 2) * result.minor_diameter/2;
-						let x = circle_x * (result.diameter/2 + slice_x)
-						let y = Math.cos((j / result.minor_sides) * Math.PI * 2) * result.minor_diameter/2;
-						let z = circle_z * (result.diameter/2 + slice_x)
-						vertices.push(...mesh.addVertices([x, y, z]));
+					for (let i = 0; i < result.sides; i++) {
+						let x = Math.sin((i / result.sides) * Math.PI * 2) * result.diameter/2;
+						let z = Math.cos((i / result.sides) * Math.PI * 2) * result.diameter/2;
+						vertex_keys.push(...mesh.addVertices([x, 0, z], [x, result.height, z]));
 					}
-					rings.push(vertices);
-
-				}
-				
-				for (let i = 0; i < result.sides; i++) {
-					let this_ring = rings[i];
-					let next_ring = rings[i+1] || rings[0];
-					for (let j = 0; j < result.minor_sides; j++) {
-						mesh.addFaces(new MeshFace( mesh, {vertices: [
-							this_ring[j+1] || this_ring[0],
-							next_ring[j+1] || next_ring[0],
-							this_ring[j],
-							next_ring[j],
-						]} ));
+					for (let i = 0; i < result.sides; i++) {
+						let [a, b, c, d] = vertex_keys.slice(2*i+2, 2*i+2 + 4);
+						if (!c) {
+							c = vertex_keys[2];
+							d = vertex_keys[3];
+						}
+						mesh.addFaces(
+							new MeshFace( mesh, {vertices: [c, a, m0]}),
+							new MeshFace( mesh, {vertices: [a, c, d, b]} ),
+							new MeshFace( mesh, {vertices: [b, d, m1]} )
+						);
 					}
 				}
-			}
-			if (result.shape == 'sphere') {
-				let rings = [];
-				let sides = Math.round(result.sides/2)*2;
-				let [bottom] = mesh.addVertices([0, -result.diameter/2, 0]);
-				let [top] = mesh.addVertices([0, result.diameter/2, 0]);
+				if (result.shape == 'tube') {
+					let vertex_keys = [];
 
-				for (let i = 0; i < result.sides; i++) {
-					let circle_x = Math.sin((i / result.sides) * Math.PI * 2);
-					let circle_z = Math.cos((i / result.sides) * Math.PI * 2);
-
-					let vertices = [];
-					for (let j = 1; j < (sides/2); j++) {
-
-						let slice_x = Math.sin((j / sides) * Math.PI * 2) * result.diameter/2;
-						let x = circle_x * slice_x
-						let y = Math.cos((j / sides) * Math.PI * 2) * result.diameter/2;
-						let z = circle_z * slice_x
-						vertices.push(...mesh.addVertices([x, y, z]));
+					let outer_r = result.diameter/2;
+					let inner_r = outer_r - result.minor_diameter;
+					for (let i = 0; i < result.sides; i++) {
+						let x = Math.sin((i / result.sides) * Math.PI * 2);
+						let z = Math.cos((i / result.sides) * Math.PI * 2);
+						vertex_keys.push(...mesh.addVertices(
+							[x * outer_r, 0, z * outer_r],
+							[x * outer_r, result.height, z * outer_r],
+							[x * inner_r, 0, z * inner_r],
+							[x * inner_r, result.height, z * inner_r],
+						));
 					}
-					rings.push(vertices);
-
+					for (let i = 0; i < result.sides; i++) {
+						let [a1, b1, c1, d1, a2, b2, c2, d2] = vertex_keys.slice(4*i, 4*i + 8);
+						if (!a2) {
+							a2 = vertex_keys[0];
+							b2 = vertex_keys[1];
+							c2 = vertex_keys[2];
+							d2 = vertex_keys[3];
+						}
+						if (a1 && b1 && c1 && d1 && a2 && b2 && c2 && d2) {
+							mesh.addFaces(
+								new MeshFace( mesh, {vertices: [a1, a2, b2, b1]} ),
+								new MeshFace( mesh, {vertices: [d1, d2, c2, c1]} ),
+								new MeshFace( mesh, {vertices: [c1, c2, a2, a1]} ),
+								new MeshFace( mesh, {vertices: [b1, b2, d2, d1]} ),
+							);
+						}
+					}
 				}
-				
-				for (let i = 0; i < result.sides; i++) {
-					let this_ring = rings[i];
-					let next_ring = rings[i+1] || rings[0];
-					for (let j = 0; j < (sides/2); j++) {
-						if (j == 0) {
+				if (result.shape == 'torus') {
+					let rings = [];
+
+					for (let i = 0; i < result.sides; i++) {
+						let circle_x = Math.sin((i / result.sides) * Math.PI * 2);
+						let circle_z = Math.cos((i / result.sides) * Math.PI * 2);
+
+						let vertices = [];
+						for (let j = 0; j < result.minor_sides; j++) {
+							let slice_x = Math.sin((j / result.minor_sides) * Math.PI * 2) * result.minor_diameter/2;
+							let x = circle_x * (result.diameter/2 + slice_x)
+							let y = Math.cos((j / result.minor_sides) * Math.PI * 2) * result.minor_diameter/2;
+							let z = circle_z * (result.diameter/2 + slice_x)
+							vertices.push(...mesh.addVertices([x, y, z]));
+						}
+						rings.push(vertices);
+
+					}
+					
+					for (let i = 0; i < result.sides; i++) {
+						let this_ring = rings[i];
+						let next_ring = rings[i+1] || rings[0];
+						for (let j = 0; j < result.minor_sides; j++) {
 							mesh.addFaces(new MeshFace( mesh, {vertices: [
+								this_ring[j+1] || this_ring[0],
+								next_ring[j+1] || next_ring[0],
 								this_ring[j],
 								next_ring[j],
-								top
-							]} ));
-						} else if (!this_ring[j]) {
-							mesh.addFaces(new MeshFace( mesh, {vertices: [
-								next_ring[j-1],
-								this_ring[j-1],
-								bottom
-							]} ));
-						} else {
-							mesh.addFaces(new MeshFace( mesh, {vertices: [
-								this_ring[j],
-								next_ring[j],
-								this_ring[j-1],
-								next_ring[j-1],
 							]} ));
 						}
 					}
 				}
-			}
-			if (result.shape == 'cube') {
-				let r = result.diameter/2;
-				let h = result.height;
-				mesh.addVertices([r, h, r], [r, h, -r], [r, 0, r], [r, 0, -r], [-r, h, r], [-r, h, -r], [-r, 0, r], [-r, 0, -r]);
-				let vertex_keys = Object.keys(mesh.vertices);
-				mesh.addFaces(
-					new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[1], vertex_keys[3]]} ), // East
-					new MeshFace( mesh, {vertices: [vertex_keys[4], vertex_keys[5], vertex_keys[6], vertex_keys[7]]} ), // West
-					new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[4], vertex_keys[5]]} ), // Up
-					new MeshFace( mesh, {vertices: [vertex_keys[2], vertex_keys[6], vertex_keys[3], vertex_keys[7]]} ), // Down
-					new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[4], vertex_keys[2], vertex_keys[6]]} ), // South
-					new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[5], vertex_keys[7]]} ), // North
-				);
-			}
-			if (result.shape == 'pyramid') {
-				let r = result.diameter/2;
-				let h = result.height;
-				mesh.addVertices([0, h, 0], [r, 0, r], [r, 0, -r], [-r, 0, r], [-r, 0, -r]);
-				let vertex_keys = Object.keys(mesh.vertices);
-				mesh.addFaces(
-					new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[2], vertex_keys[4]]} ),	// Down
-					new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[2], vertex_keys[0]]} ),	// east
-					new MeshFace( mesh, {vertices: [vertex_keys[3], vertex_keys[1], vertex_keys[0]]} ),	// south
-					new MeshFace( mesh, {vertices: [vertex_keys[2], vertex_keys[4], vertex_keys[0]]} ),	// north
-					new MeshFace( mesh, {vertices: [vertex_keys[4], vertex_keys[3], vertex_keys[0]]} ),	// west
-				);
-			}
-			if (result.shape == 'plane') {
-				let r = result.diameter/2;
-				mesh.addVertices([r, 0, r], [r, 0, -r], [-r, 0, r], [-r, 0, -r]);
-				let vertex_keys = Object.keys(mesh.vertices);
-				mesh.addFaces(
-					new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[3], vertex_keys[2]]} )
-				);
-			}
-			
-			if (Texture.all.length && Format.single_texture) {
-				for (var face in mesh.faces) {
-					mesh.faces[face].texture = Texture.getDefault().uuid
-				}
-				UVEditor.loadData()
-			}
-			if (Format.bone_rig) {
-				if (group) {
-					var pos1 = group.origin.slice()
-					mesh.extend({
-						origin: pos1.slice()
-					})
-				}
-			}
+				if (result.shape == 'sphere') {
+					let rings = [];
+					let sides = Math.round(result.sides/2)*2;
+					let [bottom] = mesh.addVertices([0, -result.diameter/2, 0]);
+					let [top] = mesh.addVertices([0, result.diameter/2, 0]);
 
-			elements.push(mesh);
-			mesh.init()
-			if (Group.selected) Group.selected.unselect()
-			mesh.select()
-			Undo.finishEdit('Add primitive');
-			Blockbench.dispatchEvent( 'add_mesh', {object: mesh} )
+					for (let i = 0; i < result.sides; i++) {
+						let circle_x = Math.sin((i / result.sides) * Math.PI * 2);
+						let circle_z = Math.cos((i / result.sides) * Math.PI * 2);
 
-			Vue.nextTick(function() {
-				if (settings.create_rename.value) {
-					mesh.rename()
+						let vertices = [];
+						for (let j = 1; j < (sides/2); j++) {
+
+							let slice_x = Math.sin((j / sides) * Math.PI * 2) * result.diameter/2;
+							let x = circle_x * slice_x
+							let y = Math.cos((j / sides) * Math.PI * 2) * result.diameter/2;
+							let z = circle_z * slice_x
+							vertices.push(...mesh.addVertices([x, y, z]));
+						}
+						rings.push(vertices);
+
+					}
+					
+					for (let i = 0; i < result.sides; i++) {
+						let this_ring = rings[i];
+						let next_ring = rings[i+1] || rings[0];
+						for (let j = 0; j < (sides/2); j++) {
+							if (j == 0) {
+								mesh.addFaces(new MeshFace( mesh, {vertices: [
+									this_ring[j],
+									next_ring[j],
+									top
+								]} ));
+							} else if (!this_ring[j]) {
+								mesh.addFaces(new MeshFace( mesh, {vertices: [
+									next_ring[j-1],
+									this_ring[j-1],
+									bottom
+								]} ));
+							} else {
+								mesh.addFaces(new MeshFace( mesh, {vertices: [
+									this_ring[j],
+									next_ring[j],
+									this_ring[j-1],
+									next_ring[j-1],
+								]} ));
+							}
+						}
+					}
 				}
+				if (result.shape == 'cube') {
+					let r = result.diameter/2;
+					let h = result.height;
+					mesh.addVertices([r, h, r], [r, h, -r], [r, 0, r], [r, 0, -r], [-r, h, r], [-r, h, -r], [-r, 0, r], [-r, 0, -r]);
+					let vertex_keys = Object.keys(mesh.vertices);
+					mesh.addFaces(
+						new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[2], vertex_keys[1], vertex_keys[3]]} ), // East
+						new MeshFace( mesh, {vertices: [vertex_keys[4], vertex_keys[5], vertex_keys[6], vertex_keys[7]]} ), // West
+						new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[4], vertex_keys[5]]} ), // Up
+						new MeshFace( mesh, {vertices: [vertex_keys[2], vertex_keys[6], vertex_keys[3], vertex_keys[7]]} ), // Down
+						new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[4], vertex_keys[2], vertex_keys[6]]} ), // South
+						new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[5], vertex_keys[7]]} ), // North
+					);
+				}
+				if (result.shape == 'pyramid') {
+					let r = result.diameter/2;
+					let h = result.height;
+					mesh.addVertices([0, h, 0], [r, 0, r], [r, 0, -r], [-r, 0, r], [-r, 0, -r]);
+					let vertex_keys = Object.keys(mesh.vertices);
+					mesh.addFaces(
+						new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[2], vertex_keys[4]]} ),	// Down
+						new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[2], vertex_keys[0]]} ),	// east
+						new MeshFace( mesh, {vertices: [vertex_keys[3], vertex_keys[1], vertex_keys[0]]} ),	// south
+						new MeshFace( mesh, {vertices: [vertex_keys[2], vertex_keys[4], vertex_keys[0]]} ),	// north
+						new MeshFace( mesh, {vertices: [vertex_keys[4], vertex_keys[3], vertex_keys[0]]} ),	// west
+					);
+				}
+				if (result.shape == 'plane') {
+					let r = result.diameter/2;
+					mesh.addVertices([r, 0, r], [r, 0, -r], [-r, 0, r], [-r, 0, -r]);
+					let vertex_keys = Object.keys(mesh.vertices);
+					mesh.addFaces(
+						new MeshFace( mesh, {vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[3], vertex_keys[2]]} )
+					);
+				}
+				
+				if (Texture.all.length && Format.single_texture) {
+					for (var face in mesh.faces) {
+						mesh.faces[face].texture = Texture.getDefault().uuid
+					}
+					UVEditor.loadData()
+				}
+				if (Format.bone_rig) {
+					if (group) {
+						var pos1 = group.origin.slice()
+						mesh.extend({
+							origin: pos1.slice()
+						})
+					}
+				}
+
+				elements.push(mesh);
+				mesh.init()
+				if (Group.selected) Group.selected.unselect()
+				mesh.select()
+				UVEditor.selected_faces.replace(Object.keys(mesh.faces));
+				UVEditor.setAutoSize(null, true);
+				UVEditor.selected_faces.empty();
+				Undo.finishEdit('Add primitive');
+				Blockbench.dispatchEvent( 'add_mesh', {object: mesh} )
+
+				Vue.nextTick(function() {
+					if (settings.create_rename.value) {
+						mesh.rename()
+					}
+				})
+			}
+			runEdit(false, result);
+
+			Undo.amendEdit({
+				diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: result.diameter},
+				height: {label: 'dialog.add_primitive.height', type: 'number', value: result.height, condition: ['cylinder', 'cone', 'cube', 'pyramid', 'tube'].includes(result.shape)},
+				sides: {label: 'dialog.add_primitive.sides', type: 'number', value: result.sides, min: 3, max: 48, condition: ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(result.shape)},
+				minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: result.minor_diameter, condition: ['torus', 'tube'].includes(result.shape)},
+				minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: result.minor_sides, min: 2, max: 32, condition: ['torus'].includes(result.shape)},
+			}, form => {
+				Object.assign(result, form);
+				runEdit(true, result);
 			})
 		}
 	})

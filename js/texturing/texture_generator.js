@@ -21,6 +21,7 @@ const TextureGenerator = {
 		}
 		type_options.blank = 'dialog.create_texture.type.blank';
 
+		TextureGenerator.background_color.set('#00000000')
 		var dialog = new Dialog({
 			id: 'add_bitmap',
 			title: tl('action.create_texture'),
@@ -54,6 +55,9 @@ const TextureGenerator = {
 			onFormChange(form) {
 				if (form.type == 'template' && TextureGenerator.background_color.get().toHex8() === 'ffffffff') {
 					TextureGenerator.background_color.set('#00000000')
+				}
+				if (form.type == 'blank' && TextureGenerator.background_color.get().toHex8() === '00000000') {
+					TextureGenerator.background_color.set('#ffffffff')
 				}
 			},
 			onConfirm: function(results) {
@@ -764,7 +768,7 @@ const TextureGenerator = {
 					face_group.size = max_x * max_z;
 
 					let axis = [0, 1, 2].sort((a, b) => {
-						return Math.abs(face_group.normal[b]) - Math.abs(face_group.normal[a])
+						return Math.abs(face_group.normal[b]) - Math.abs(face_group.normal[a]) - 0.0001
 					})[0]
 					if (axis == 0 && face_group.normal[0] >= 0) face_group.face_key = 'east';
 					if (axis == 0 && face_group.normal[0] <= 0) face_group.face_key = 'west';
