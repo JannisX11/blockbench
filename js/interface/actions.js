@@ -909,6 +909,7 @@ class BarSelect extends Widget {
 		})
 	}
 	open(event) {
+		if (Menu.closed_in_this_click == this.id) return this;
 		let scope = this;
 		let items = [];
 		for (var key in this.options) {
@@ -930,7 +931,7 @@ class BarSelect extends Widget {
 				})()
 			}
 		}
-		let menu = new Menu(items);
+		let menu = new Menu(this.id, items);
 		menu.node.style['min-width'] = this.node.clientWidth+'px';
 		menu.open(event.target, this);
 	}

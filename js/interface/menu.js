@@ -17,7 +17,9 @@ function handleMenuOverflow(node) {
 	})
 }
 class Menu {
-	constructor(structure) {
+	constructor(id, structure) {
+		if (!structure) structure = id;
+		this.id = typeof id == 'string' ? id : '';
 		this.children = [];
 		this.node = $('<ul class="contextMenu"></ul>')[0]
 		this.structure = structure

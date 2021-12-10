@@ -91,10 +91,23 @@ function setupMobilePanelSelector() {
 					}
 				},
 				openKeyboardMenu(event) {
-					let menu = new Menu([
-						{icon: Pressing.overrides.ctrl ? 'check_box' : 'check_box_outline_blank', name: 'keys.ctrl', click() {Pressing.overrides.ctrl = !Pressing.overrides.ctrl}},
-						{icon: Pressing.overrides.shift ? 'check_box' : 'check_box_outline_blank', name: 'keys.shift', click() {Pressing.overrides.shift = !Pressing.overrides.shift}},
-						{icon: Pressing.overrides.alt ? 'check_box' : 'check_box_outline_blank', name: 'keys.alt', click() {Pressing.overrides.alt = !Pressing.overrides.alt}},
+					if (Menu.closed_in_this_click == 'mobile_keyboard') return;
+					
+					let modifiers = ['ctrl', 'shift', 'alt'];
+					let menu = new Menu('mobile_keyboard', [
+						...modifiers.map(key => {
+							let name = tl(`keys.${key}`);
+							if (Interface.status_bar.vue.modifier_keys[key].length) {
+								name += ' (' + tl(Interface.status_bar.vue.modifier_keys[key].last()) + ')';
+							}
+							return {
+								name,
+								icon: Pressing.overrides[key] ? 'check_box' : 'check_box_outline_blank',
+								click() {
+									Pressing.overrides[key] = !Pressing.overrides[key]
+								}
+							}
+						}),
 						'_',
 						{icon: 'clear_all', name: 'menu.mobile_keyboard.disable_all', condition: () => {
 							let {length} = [Pressing.overrides.ctrl, Pressing.overrides.shift, Pressing.overrides.alt].filter(key => key);

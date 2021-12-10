@@ -219,7 +219,14 @@ Interface.definePanels = function(callback) {
 //Misc
 function unselectInterface(event) {
 	if (open_menu && $('.contextMenu').find(event.target).length === 0 && $('.menu_bar_point.opened:hover').length === 0) {
+		Menu.closed_in_this_click = open_menu.id;
 		open_menu.hide();
+
+		function mouseUp(e) {
+			delete Menu.closed_in_this_click;
+			document.removeEventListener('click', mouseUp);
+		}
+		document.addEventListener('click', mouseUp);
 	}
 	if (ActionControl.open && $('#action_selector').find(event.target).length === 0 && (!open_menu || open_menu instanceof BarMenu)) {
 		ActionControl.hide();
@@ -649,7 +656,7 @@ onVueSetup(function() {
 				</div>
 				<div id="status_message" class="hidden"></div>
 
-				<template v-if="show_modifier_keys">
+				<template v-if="show_modifier_keys && !isMobile">
 					<div class="status_bar_modifier_key" v-if="modifier_keys.ctrl.length" @click="clickModifiers()">
 						<kbd>${tl(Blockbench.platform == 'darwin' ? 'keys.cmd' : 'keys.ctrl')}</kbd>
 						<span>{{ tl(modifier_keys.ctrl.last()) }}</span>
