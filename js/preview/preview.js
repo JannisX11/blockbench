@@ -288,12 +288,13 @@ class Preview {
 
 		this.raycaster = new THREE.Raycaster();
 		this.mouse = new THREE.Vector2();
-		addEventListeners(this.canvas, 'mousedown touchstart', 	function(event) { scope.click(event)}, { passive: false })
-		addEventListeners(this.canvas, 'mousemove touchmove', 	function(event) { scope.static_rclick = false}, false)
-		addEventListeners(this.canvas, 'mousemove', 			function(event) { scope.mousemove(event)}, false)
-		addEventListeners(this.canvas, 'mouseup touchend',		function(event) { scope.mouseup(event)}, false)
-		addEventListeners(this.canvas, 'dblclick', 				function(event) {Toolbox.toggleTransforms(event)}, false)
-		addEventListeners(this.canvas, 'mouseenter touchstart', function(event) { scope.occupyTransformer(event)}, false)
+		addEventListeners(this.canvas, 'mousedown touchstart', 	event => { this.click(event)}, { passive: false })
+		addEventListeners(this.canvas, 'mousemove touchmove', 	event => { this.static_rclick = false}, false)
+		addEventListeners(this.canvas, 'mousemove', 			event => { this.mousemove(event)}, false)
+		addEventListeners(this.canvas, 'mouseup touchend',		event => { this.mouseup(event)}, false)
+		addEventListeners(this.canvas, 'dblclick', 				event => { Toolbox.toggleTransforms(event)}, false)
+		addEventListeners(this.canvas, 'mouseenter touchstart', event => { this.occupyTransformer(event)}, false)
+		addEventListeners(this.canvas, 'mouseenter',			event => { this.controls.hasMoved = true}, false)
 
 		Blockbench.addDragHandler('preview_'+this.id, {
 			extensions: ['jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'],

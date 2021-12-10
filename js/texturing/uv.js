@@ -1530,7 +1530,7 @@ BARS.defineActions(function() {
 	})
 	new BarSelect('cullface', { 
 		category: 'uv',
-		condition: () => !Project.box_uv && Cube.selected.length && UVEditor.selected_faces[0],
+		condition: () => !Project.box_uv && Format.id == 'java_block' && Cube.selected.length && UVEditor.selected_faces[0],
 		label: true,
 		options: {
 			off: tl('uv_editor.no_faces'),
@@ -1550,7 +1550,7 @@ BARS.defineActions(function() {
 	new Action('auto_cullface', {
 		icon: 'block',
 		category: 'uv',
-		condition: () => !Project.box_uv && Cube.selected.length && UVEditor.selected_faces[0],
+		condition: () => !Project.box_uv && Format.id == 'java_block' && Cube.selected.length && UVEditor.selected_faces[0],
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('autoCullface', event)
@@ -1559,7 +1559,7 @@ BARS.defineActions(function() {
 	})
 	new Action('face_tint', {
 		category: 'uv',
-		condition: () => !Project.box_uv && Cube.selected.length && UVEditor.selected_faces[0],
+		condition: () => !Project.box_uv && Format.id == 'java_block' && Cube.selected.length && UVEditor.selected_faces[0],
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('switchTint', event)
@@ -1568,7 +1568,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider('slider_face_tint', {
 		category: 'uv',
-		condition: () => !Project.box_uv && Cube.selected.length && UVEditor.selected_faces[0] && Cube.selected[0].faces[UVEditor.selected_faces[0]],
+		condition: () => !Project.box_uv && Format.id == 'java_block' && Cube.selected.length && UVEditor.selected_faces[0] && Cube.selected[0].faces[UVEditor.selected_faces[0]],
 		getInterval(event) {
 			return 1;
 		},
@@ -1589,7 +1589,7 @@ BARS.defineActions(function() {
 	new Action('snap_uv_to_pixels', {
 		icon: 'grid_goldenratio',
 		category: 'uv',
-		condition: () => UVEditor.getMappableElements().length,
+		condition: () => !Project.box_uv && UVEditor.getMappableElements().length,
 		click: function (event) {
 			let elements = UVEditor.getMappableElements();
 			Undo.initEdit({elements, uv_only: true})
