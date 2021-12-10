@@ -500,12 +500,13 @@ const MenuBar = {
 			{name: 'menu.file.new', id: 'new', icon: 'insert_drive_file',
 				children: function() {
 					var arr = [];
+					let redact = settings.streamer_mode.value;
 					for (var key in Formats) {
 						(function() {
 							var format = Formats[key];
 							arr.push({
 								id: format.id,
-								name: format.name,
+								name: (redact && format.confidential) ? `[${tl('generic.redacted')}]` : format.name,
 								icon: format.icon,
 								description: format.description,
 								click: (e) => {

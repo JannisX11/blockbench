@@ -735,6 +735,7 @@ function parseGroups(array, import_reference, startIndex) {
 
 // Dropping
 function dropOutlinerObjects(item, target, event, order) {
+	let duplicate = event.altKey || Pressing.overrides.alt;
 	if (item.type === 'group' && target && target.parent) {
 		var is_parent = false;
 		function iterate(g) {
@@ -750,7 +751,7 @@ function dropOutlinerObjects(item, target, event, order) {
 	} else {
 		var items = [item];
 	}
-	if (event.altKey || Pressing.overrides.alt) {
+	if (duplicate) {
 		Undo.initEdit({elements: [], outliner: true, selection: true})
 		Outliner.selected.empty();
 	} else {
@@ -784,7 +785,7 @@ function dropOutlinerObjects(item, target, event, order) {
 	}
 	items.forEach(function(item) {
 		if (item && item !== target) {
-			if (event.altKey || Pressing.overrides.alt) {
+			if (duplicate) {
 				if (item instanceof Group) {
 					var dupl = item.duplicate()
 					place(dupl)
@@ -805,7 +806,7 @@ function dropOutlinerObjects(item, target, event, order) {
 	if (Format.bone_rig) {
 		Canvas.updateAllBones()
 	}
-	if (event.altKey || Pressing.overrides.alt) {
+	if (duplicate) {
 		updateSelection()
 		Undo.finishEdit('Duplicate selection', {elements: selected, outliner: true, selection: true})
 	} else {
@@ -1266,6 +1267,8 @@ Interface.definePanels(function() {
 					let value = original[key];
 					value = (typeof value == 'number') ? (value+1) % 3 : !value;
 
+					if (!(key == 'locked' || key == 'visibility' || Modes.edit)) return;
+
 					function move(e2) {
 						convertTouchEvent(e2);
 						if (e2.target.classList.contains('outliner_toggle') && e2.target.getAttribute('toggle') == key) {
@@ -1335,6 +1338,7 @@ Interface.definePanels(function() {
 						this.dragToggle(e1);
 						return false;
 					}
+					if (!Modes.edit) return;
 					
 					let [item] = eventTargetToNode(e1.target);
 					if (!item || item.locked) {
@@ -1496,8 +1500,8 @@ Interface.definePanels(function() {
 		}
 		if (panel == 'outliner') {
 			Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.select_multiple');
-			Interface.addSuggestedModifierKey('shift', 'modifier_actions.select_range');
-			Interface.addSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
+			if (!Modes.animate) Interface.addSuggestedModifierKey('shift', 'modifier_actions.select_range');
+			if (Modes.edit) Interface.addSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 		}
 	})
 })

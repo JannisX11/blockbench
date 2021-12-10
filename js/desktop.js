@@ -145,6 +145,7 @@ async function updateRecentProjectThumbnail() {
 
 	MediaPreview.resize(180, 100)
 	MediaPreview.loadAnglePreset(DefaultCameraPresets[0])
+	MediaPreview.setFOV(30);
 	let center = getSelectionCenter(true);
 	MediaPreview.controls.target.fromArray(center);
 	MediaPreview.controls.target.add(scene.position);

@@ -187,7 +187,7 @@ onVueSetup(function() {
 								</div>
 							</div>
 							<ul>
-								<li v-for="format in formats" v-if="format.show_on_start_screen" v-on:click="format.new()">
+								<li v-for="format in formats" v-if="format.show_on_start_screen && (!redact_names || !format.confidential)" v-on:click="format.new()">
 									<span class="icon_wrapper f_left" v-html="getIconNode(format.icon).outerHTML"></span>
 									<h3>{{ format.name }}</h3>
 									<p>{{ format.description }}</p>

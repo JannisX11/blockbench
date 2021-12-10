@@ -9,6 +9,7 @@ class ModelFormat {
 		this.name = data.name || tl('format.'+this.id);
 		this.description = data.description || tl('format.'+this.id+'.desc');
 		this.show_on_start_screen = true;
+		this.confidential = false;
 
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].reset(this);
@@ -19,6 +20,7 @@ class ModelFormat {
 		this.onDeactivation = data.onDeactivation;
 		Merge.string(this, data, 'icon');
 		Merge.boolean(this, data, 'show_on_start_screen');
+		Merge.boolean(this, data, 'confidential');
 
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].merge(this, data);
