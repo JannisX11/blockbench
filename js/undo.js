@@ -111,6 +111,7 @@ class UndoSystem {
 
 			let slider = new NumSlider({
 				id: 'amend_edit_slider',
+				name: tl(form_line.label),
 				private: true,
 				onChange: updateValue,
 				settings: {

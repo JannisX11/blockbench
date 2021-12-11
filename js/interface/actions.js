@@ -2615,7 +2615,7 @@ const ActionControl = {
 		return this.select(...args);
 	},
 	hide() {
-		open_interface = false;
+		if (open_interface == ActionControl) open_interface = false;
 		ActionControl.open = false;
 	},
 	confirm(e) {
