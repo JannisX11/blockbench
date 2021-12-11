@@ -693,14 +693,14 @@
 				if (scope.elements.length == 0) return;
 
 				if (object) {
-					worldRotation.setFromRotationMatrix( tempMatrix.extractRotation( object.matrixWorld ) );
+					if (!this.dragging) worldRotation.setFromRotationMatrix( tempMatrix.extractRotation( object.matrixWorld ) );
 					if (Toolbox.selected.transformerMode === 'rotate') {
 						_gizmo[ _mode ].update( worldRotation, eye );
 						this.rotation.set(0, 0, 0);
 					} else {
 						object.getWorldQuaternion(this.rotation)
 					}
-					if (this.rotation_selection) {
+					if (this.rotation_selection.x || this.rotation_selection.y || this.rotation_selection.z) {
 						let q = Reusable.quat1.setFromEuler(this.rotation_selection);
 						this.quaternion.multiply(q);
 						worldRotation.setFromQuaternion(this.quaternion);

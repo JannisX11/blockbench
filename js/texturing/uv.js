@@ -1733,8 +1733,8 @@ Interface.definePanels(function() {
 						let elements = UVEditor.getMappableElements();
 						if (elements.length) {
 							for (let element of elements) {
-								let face = element.faces[this.selected_faces[0] || Object.keys(element.faces)[0]];
-								texture = face.getTexture() || texture;
+								let face = element.faces[ this.selected_faces[0] || Object.keys(element.faces)[0] ];
+								if (face) texture = face.getTexture() || texture;
 								if (texture) break;
 							}
 						}
