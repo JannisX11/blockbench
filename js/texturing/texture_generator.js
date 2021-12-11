@@ -33,12 +33,12 @@ const TextureGenerator = {
 				section2:    "_",
 
 				resolution: {label: 'dialog.create_texture.resolution', description: 'dialog.create_texture.resolution.desc', type: 'select', value: 16, condition: (form) => (form.type == 'template'), options: {
-					16: '16',
-					32: '32',
-					64: '64',
-					128: '128',
-					256: '256',
-					512: '512',
+					16: tl('units.pixels_per_meter', ['16']),
+					32: tl('units.pixels_per_meter', ['32']),
+					64: tl('units.pixels_per_meter', ['64']),
+					128: tl('units.pixels_per_meter', ['128']),
+					256: tl('units.pixels_per_meter', ['256']),
+					512: tl('units.pixels_per_meter', ['512']),
 				}},
 				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (form.type == 'blank'), dimensions: 2, value: [16, 16], min: 16, max: 2048},
 				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},

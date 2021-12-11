@@ -1083,7 +1083,6 @@
 						Timeline.pause()
 					}
 					scope.keyframes = [];
-					var undo_keyframes = [];
 					var animator = Animation.selected.getBoneAnimator();
 					if (animator) {
 
@@ -1110,7 +1109,7 @@
 
 				event.stopPropagation();
 
-				var axis = (scope.direction == false ? scope.axis[1] : scope.axis[0]).toLowerCase();
+				var axis = ((scope.direction == false && scope.axis.length == 2) ? scope.axis[1] : scope.axis[0]).toLowerCase();
 				var axisNumber = getAxisNumber(axis)
 				var rotate_normal;
 				var axisB, axisNumberB;

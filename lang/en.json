@@ -43,6 +43,7 @@
 	"generic.search": "Search",
 	"generic.help": "Help",
 	"generic.name": "Name",
+	"generic.default": "Default",
 	"generic.all": "All",
 	"generic.none": "None",
 	"generic.unset": "Unset",
@@ -69,6 +70,8 @@
 	"dates.weeks": "%0 Weeks",
 	"dates.year": "%0 Year",
 	"dates.years": "%0 Years",
+
+	"units.pixels_per_meter": "%0 Pixels per Meter",
 
 	"mode.edit": "Edit",
 	"mode.paint": "Paint",
