@@ -126,6 +126,15 @@ function updateSelection(options = {}) {
 	}
 	if (Outliner.selected.length) {
 		document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'visible'));
+		if (Modes.edit && Toolbox.selected.id == 'resize_tool' && Format.meshes) {
+			if (Mesh.selected.length) {
+				Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
+				Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
+			} else {
+				Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
+				Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
+			}
+		}
 	} else {
 		if (Format.bone_rig && Group.selected) {
 			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));

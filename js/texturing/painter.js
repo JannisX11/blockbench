@@ -1090,6 +1090,10 @@ BARS.defineActions(function() {
 		},
 		onSelect: function() {
 			Painter.updateNslideValues()
+			Interface.addSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
+		},
+		onUnselect() {
+			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
 		}
 	})
 	new Tool('gradient_tool', {
@@ -1110,6 +1114,10 @@ BARS.defineActions(function() {
 		},
 		onSelect: function() {
 			Painter.updateNslideValues()
+			Interface.addSuggestedModifierKey('shift', 'modifier_actions.snap_direction');
+		},
+		onUnselect() {
+			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.snap_direction');
 		}
 	})
 	new Tool('copy_paste_tool', {

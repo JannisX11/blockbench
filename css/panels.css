@@ -1416,6 +1416,7 @@
 		float: left;
 		color: var(--color-bright_ui_text);
 		text-align: center;
+		box-sizing: border-box;
 	}
 	#texture_pasting_overlay > div.control > div:hover {
 		background-color: var(--color-accent);

@@ -250,6 +250,7 @@ const UVEditor = {
 			ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 			ctx.drawImage(temp_canvas, ctx.canvas.width, 0, -ctx.canvas.width, ctx.canvas.height);
 			ctx.restore();
+			UVEditor.updatePastingOverlay()
 		})
 		overlay.find('.button_mirror_y').click(e => {
 			let temp_canvas = getCanvasCopy()
