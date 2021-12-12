@@ -82,7 +82,12 @@
 				"rpm",
 				"appImage"
 			],
-			"category": "3DGraphics"
+			"category": "Graphics",
+			"desktop": {
+				"Name": "Blockbench",
+				"Type": "Application",
+				"GenericName": "3D Modeling Program"
+			}
 		},
 		"fileAssociations": [
 			{
