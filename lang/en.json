@@ -1300,6 +1300,8 @@
 
 	"menu.action_control.type.tab": "Tab",
 	"menu.action_control.type.angle": "Camera Angle",
+	"menu.action_control.recent_in_streamer_mode": "Sure? Streamer Mode is enabled",
+	"menu.action_control.recent_in_streamer_mode.desc": "Are you sure you want to display recent models?",
 
 	"menu.file": "File",
 	"menu.edit": "Edit",

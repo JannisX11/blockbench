@@ -729,15 +729,15 @@ var codec = new Codec('collada', {
 			var archive = new JSZip();
 			var content = this.compile()
 
-			archive.file((Project.name||'model')+'.obj', content)
+			archive.file((Project.name||'model')+'.dae', content)
 
 			Texture.all.forEach(tex => {
-				if (texture.error == 1) return;
-				var name = texture.name;
+				if (tex.error == 1) return;
+				var name = tex.name;
 				if (name.substr(-4).toLowerCase() !== '.png') {
 					name += '.png';
 				}
-				archive.file(name, texture.source.replace('data:image/png;base64,', ''), {base64: true});
+				archive.file(name, tex.source.replace('data:image/png;base64,', ''), {base64: true});
 			})
 			archive.generateAsync({type: 'blob'}).then(content => {
 				Blockbench.export({
