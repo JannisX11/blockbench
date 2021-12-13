@@ -538,6 +538,7 @@ class NodePreviewController {
 		mesh.isElement = true;
 		mesh.visible = element.visibility;
 		mesh.rotation.order = 'ZYX';
+		this.updateTransform(element);
 	}
 	remove(element) {
 		let {mesh} = element;

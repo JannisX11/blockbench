@@ -34,7 +34,7 @@ function setupDragHandlers() {
 	)
 	Blockbench.addDragHandler(
 		'texture',
-		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => Project},
+		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => Project && Dialog.open},
 		function(files, event) {
 			var texture_li = $(event.target).parents('li.texture')
 			if (texture_li.length) {
