@@ -288,10 +288,10 @@ const Screencam = {
 			frame.remove();
 		}
 		function updateCrop() {
-			crop.left = 	Math.clamp(crop.left, 	0, preview.width/2  - 12);
-			crop.right = 	Math.clamp(crop.right, 	0, preview.width/2  - 12);
-			crop.top = 		Math.clamp(crop.top, 	0, preview.height/2 - 12);
-			crop.bottom = 	Math.clamp(crop.bottom, 0, preview.height/2 - 12);
+			crop.left = 	Math.clamp(crop.left, 	0, preview.width/2  - 20);
+			crop.right = 	Math.clamp(crop.right, 	0, preview.width/2  - 20);
+			crop.top = 		Math.clamp(crop.top, 	0, preview.height/2 - 20);
+			crop.bottom = 	Math.clamp(crop.bottom, 0, preview.height/2 - 20);
 			frame.style.top = crop.top + 'px';
 			frame.style.left = crop.left + 'px';
 			frame.style.right = crop.right + 'px';

@@ -25,6 +25,7 @@ class ModelProject {
 		this.mode = 'edit';
 		this.view_mode = 'textured';
 		this.display_uv = settings.show_only_selected_uv.value ? 'selected_faces' :'selected_elements';
+		this.explode_skin_model = false;
 		this.previews = {};
 		this.EditSession = null;
 

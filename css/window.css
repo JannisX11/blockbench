@@ -1088,10 +1088,10 @@
 	.gif_recording_frame_handle.gif_resize_nw {cursor: nw-resize}
 	.gif_recording_frame_handle.gif_resize_se {cursor: se-resize}
 	.gif_recording_frame_handle.gif_resize_sw {cursor: sw-resize}
-	.gif_recording_frame_handle.gif_resize_ne i {transform: rotate(135deg);}
-	.gif_recording_frame_handle.gif_resize_nw i {transform: rotate(45deg);}
-	.gif_recording_frame_handle.gif_resize_se i {transform: rotate(225deg);}
-	.gif_recording_frame_handle.gif_resize_sw i {transform: rotate(-45deg);}
+	.gif_recording_frame_handle.gif_resize_ne i {transform: rotate(-45deg);}
+	.gif_recording_frame_handle.gif_resize_nw i {transform: rotate(225deg);}
+	.gif_recording_frame_handle.gif_resize_se i {transform: rotate(45deg);}
+	.gif_recording_frame_handle.gif_resize_sw i {transform: rotate(135deg);}
 
 /* Amend Edit Menu */
 	#amend_edit_menu {
