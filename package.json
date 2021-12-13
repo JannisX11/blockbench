@@ -83,7 +83,7 @@
 				"appImage"
 			],
 			"category": "Graphics",
-			"icon": "icon.png",
+			"icon": "build",
 			"desktop": {
 				"Name": "Blockbench",
 				"Type": "Application",
