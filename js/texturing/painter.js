@@ -63,6 +63,7 @@ const Painter = {
 			} else {
 				Painter.current.texture = texture
 				var c = Painter.current.canvas = Painter.getCanvas(texture)
+				Painter.current.ctx = c.getContext('2d');
 				c = cb(c) || c;
 
 				texture.updateSource(c.toDataURL())
@@ -196,14 +197,16 @@ const Painter = {
 				var is_line = (event.shiftKey || Pressing.overrides.shift);
 			}
 
-			if (is_line) {
-				Painter.drawBrushLine(texture, x, y, event, false, uvTag);
-			} else {
-				Painter.current.x = Painter.current.y = 0
-				Painter.useBrushlike(texture, x, y, event, uvTag)
-			}
-			Painter.current.x = x;
-			Painter.current.y = y;
+			texture.edit(canvas => {
+				if (is_line) {
+					Painter.drawBrushLine(texture, x, y, event, false, uvTag);
+				} else {
+					Painter.current.x = Painter.current.y = 0
+					Painter.useBrushlike(texture, x, y, event, uvTag)
+				}
+				Painter.current.x = x;
+				Painter.current.y = y;
+			}, {no_undo: true, use_cache: true});
 		}
 	},
 	movePaintTool(texture, x, y, event, new_face, uv) {
@@ -217,7 +220,9 @@ const Painter = {
 			Painter.useGradientTool(texture, x, y, event, uv)
 
 		} else {
-			Painter.drawBrushLine(texture, x, y, event, new_face, uv)
+			texture.edit(canvas => {
+				Painter.drawBrushLine(texture, x, y, event, new_face, uv)
+			}, {no_undo: true, use_cache: true});
 		}
 		Painter.current.x = x;
 		Painter.current.y = y;
@@ -285,23 +290,20 @@ const Painter = {
 			Painter.runMirrorBrush(texture, x, y, event, uvTag);
 		}
 
-		texture.edit(function(canvas) {
-			var ctx = canvas.getContext('2d')
-			ctx.save()
+		let ctx = Painter.current.ctx;
+		ctx.save()
 
-			ctx.beginPath();
-			let rect = Painter.setupRectFromFace(uvTag, texture);
-			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
-			ctx.rect(rect[0], rect[1], w, h)
+		ctx.beginPath();
+		let rect = Painter.setupRectFromFace(uvTag, texture);
+		var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
+		ctx.rect(rect[0], rect[1], w, h)
 
-			if (Toolbox.selected.id === 'fill_tool') {
-				Painter.useFilltool(texture, ctx, x, y, { rect, uvFactorX, uvFactorY, w, h })
-			} else {
-				Painter.useBrush(texture, ctx, x, y, event)
-			}
-			Painter.editing_area = undefined;
-
-		}, {no_undo: true, use_cache: true, no_update});
+		if (Toolbox.selected.id === 'fill_tool') {
+			Painter.useFilltool(texture, ctx, x, y, { rect, uvFactorX, uvFactorY, w, h })
+		} else {
+			Painter.useBrush(texture, ctx, x, y, event)
+		}
+		Painter.editing_area = undefined;
 	},
 	useBrush(texture, ctx, x, y, event) {
 
@@ -579,7 +581,7 @@ const Painter = {
 		var diff_x = end_x - start_x;
 		var diff_y = end_y - start_y;
 
-		var length = Math.sqrt(diff_x*diff_x + diff_y*diff_y)
+		var length = Math.round(Math.sqrt(diff_x*diff_x + diff_y*diff_y))
 		if (new_face && !length) {
 			length = 1
 		}
