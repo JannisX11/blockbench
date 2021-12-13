@@ -1678,103 +1678,109 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'i', shift: true}),
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length >= 3)},
 		click() {
-			Undo.initEdit({elements: Mesh.selected});
-			Mesh.selected.forEach(mesh => {
-				let original_vertices = Project.selected_vertices[mesh.uuid].slice();
-				if (original_vertices.length < 3) return;
-				let new_vertices;
-				let selected_faces = [];
-				let selected_face_keys = [];
-				for (let key in mesh.faces) {
-					let face = mesh.faces[key]; 
-					if (face.isSelected()) {
-						selected_faces.push(face);
-						selected_face_keys.push(key);
+			function runEdit(amended, offset = 50) {
+				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
+				Mesh.selected.forEach(mesh => {
+					let original_vertices = Project.selected_vertices[mesh.uuid].slice();
+					if (original_vertices.length < 3) return;
+					let new_vertices;
+					let selected_faces = [];
+					let selected_face_keys = [];
+					for (let key in mesh.faces) {
+						let face = mesh.faces[key]; 
+						if (face.isSelected()) {
+							selected_faces.push(face);
+							selected_face_keys.push(key);
+						}
 					}
-				}
-
-				new_vertices = mesh.addVertices(...original_vertices.map(vkey => {
-					let vector = mesh.vertices[vkey].slice();
-					affected_faces = selected_faces.filter(face => {
-						return face.vertices.includes(vkey)
-					})
-					if (affected_faces.length == 0) return;
-					let inset = [0, 0, 0];
-					if (affected_faces.length == 3 || affected_faces.length == 1) {
-						affected_faces.sort((a, b) => {
-							let ax = 0;
-							a.vertices.forEach(vkey => {
-								ax += affected_faces.filter(face => face.vertices.includes(vkey)).length;
-							})
-							let bx = 0;
-							b.vertices.forEach(vkey => {
-								bx += affected_faces.filter(face => face.vertices.includes(vkey)).length;
-							})
-							return bx - ax;
+	
+					new_vertices = mesh.addVertices(...original_vertices.map(vkey => {
+						let vector = mesh.vertices[vkey].slice();
+						affected_faces = selected_faces.filter(face => {
+							return face.vertices.includes(vkey)
 						})
-						affected_faces[0].vertices.forEach(vkey2 => {
-							inset.V3_add(mesh.vertices[vkey2]);
+						if (affected_faces.length == 0) return;
+						let inset = [0, 0, 0];
+						if (affected_faces.length == 3 || affected_faces.length == 1) {
+							affected_faces.sort((a, b) => {
+								let ax = 0;
+								a.vertices.forEach(vkey => {
+									ax += affected_faces.filter(face => face.vertices.includes(vkey)).length;
+								})
+								let bx = 0;
+								b.vertices.forEach(vkey => {
+									bx += affected_faces.filter(face => face.vertices.includes(vkey)).length;
+								})
+								return bx - ax;
+							})
+							affected_faces[0].vertices.forEach(vkey2 => {
+								inset.V3_add(mesh.vertices[vkey2]);
+							})
+							inset.V3_divide(affected_faces[0].vertices.length);
+							vector = vector.map((v, i) => Math.lerp(v, inset[i], offset/100));
+						}
+						if (affected_faces.length == 2) {
+							let vkey2 = affected_faces[0].vertices.find(_vkey => _vkey != vkey && affected_faces[1].vertices.includes(_vkey));
+							
+							vector = vector.map((v, i) => Math.lerp(v, mesh.vertices[vkey2][i], offset/200));
+						}
+						return vector;
+					}).filter(vec => vec instanceof Array))
+					if (!new_vertices.length) return;
+	
+					Project.selected_vertices[mesh.uuid].replace(new_vertices);
+	
+					// Move Faces
+					selected_faces.forEach(face => {
+						face.vertices.forEach((key, index) => {
+							face.vertices[index] = new_vertices[original_vertices.indexOf(key)];
+							let uv = face.uv[key];
+							delete face.uv[key];
+							face.uv[face.vertices[index]] = uv;
 						})
-						inset.V3_divide(affected_faces[0].vertices.length);
-						vector.V3_add(inset).V3_divide(2);
-					}
-					if (affected_faces.length == 2) {
-						let vkey2 = affected_faces[0].vertices.find(_vkey => _vkey != vkey && affected_faces[1].vertices.includes(_vkey));
-						
-						inset.V3_set(mesh.vertices[vkey2]).V3_multiply(1/4);
-						vector.V3_multiply(3/4);
-						vector.V3_add(inset);
-					}
-
-					return vector;
-				}).filter(vec => vec instanceof Array))
-				if (!new_vertices.length) return;
-
-				Project.selected_vertices[mesh.uuid].replace(new_vertices);
-
-				// Move Faces
-				selected_faces.forEach(face => {
-					face.vertices.forEach((key, index) => {
-						face.vertices[index] = new_vertices[original_vertices.indexOf(key)];
-						let uv = face.uv[key];
-						delete face.uv[key];
-						face.uv[face.vertices[index]] = uv;
 					})
-				})
-
-				// Create extra quads on sides
-				let remaining_vertices = new_vertices.slice();
-				selected_faces.forEach((face, face_index) => {
-					let vertices = face.getSortedVertices();
-					vertices.forEach((a, i) => {
-						let b = vertices[i+1] || vertices[0];
-						if (vertices.length == 2 && i) return; // Only create one quad when extruding line
-						if (selected_faces.find(f => f != face && f.vertices.includes(a) && f.vertices.includes(b))) return;
-
-						let new_face = new MeshFace(mesh, mesh.faces[selected_face_keys[face_index]]).extend({
-							vertices: [
-								b,
-								a,
-								original_vertices[new_vertices.indexOf(a)],
-								original_vertices[new_vertices.indexOf(b)],
-							]
-						});
-						mesh.addFaces(new_face);
-						remaining_vertices.remove(a);
-						remaining_vertices.remove(b);
+	
+					// Create extra quads on sides
+					let remaining_vertices = new_vertices.slice();
+					selected_faces.forEach((face, face_index) => {
+						let vertices = face.getSortedVertices();
+						vertices.forEach((a, i) => {
+							let b = vertices[i+1] || vertices[0];
+							if (vertices.length == 2 && i) return; // Only create one quad when extruding line
+							if (selected_faces.find(f => f != face && f.vertices.includes(a) && f.vertices.includes(b))) return;
+	
+							let new_face = new MeshFace(mesh, mesh.faces[selected_face_keys[face_index]]).extend({
+								vertices: [
+									b,
+									a,
+									original_vertices[new_vertices.indexOf(a)],
+									original_vertices[new_vertices.indexOf(b)],
+								]
+							});
+							mesh.addFaces(new_face);
+							remaining_vertices.remove(a);
+							remaining_vertices.remove(b);
+						})
+	
+						if (vertices.length == 2) delete mesh.faces[selected_face_keys[face_index]];
+					})
+	
+					remaining_vertices.forEach(a => {
+						let b = original_vertices[new_vertices.indexOf(a)];
+						delete mesh.vertices[b];
 					})
 
-					if (vertices.length == 2) delete mesh.faces[selected_face_keys[face_index]];
 				})
+				Undo.finishEdit('Extrude mesh selection')
+				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
+			}
+			runEdit();
 
-				remaining_vertices.forEach(a => {
-					let b = original_vertices[new_vertices.indexOf(a)];
-					delete mesh.vertices[b];
-				})
-
+			Undo.amendEdit({
+				offset: {type: 'number', value: 50, label: 'edit.loop_cut.offset', min: 0, max: 100},
+			}, form => {
+				runEdit(true, form.offset);
 			})
-			Undo.finishEdit('Extrude mesh selection')
-			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
 	})
 	new Action('loop_cut', {
