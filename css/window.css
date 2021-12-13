@@ -1029,6 +1029,70 @@
 		background-color: var(--color-bright_ui) !important;
 		filter: brightness(1);
 	}
+/* GIF Recorder */
+	#gif_recording_frame {
+		pointer-events: none;
+		position: absolute;
+		border: 2px dashed var(--color-accent);
+		top: 0;
+		right: 0;
+		left: 0;
+		bottom: 0;
+	}
+	#gif_recording_frame.recording {
+		pointer-events: none;
+	}
+	#gif_recording_frame_label {
+		text-align: center;
+		color: var(--color-subtle_text);
+		font-family: var(--font-code);
+	}
+	#gif_recording_controls {
+		pointer-events: initial;
+		background-color: var(--color-ui);
+		box-shadow: 0 0 8px #00000040;
+		height: 30px;
+		width: fit-content;
+		margin: auto;
+		position: absolute;
+		bottom: 0;
+		right: 0;
+		left: 0;
+	}
+	.gif_recording_frame_handle {
+		pointer-events: initial;
+		position: absolute;
+		width: 22px;
+		height: 22px;
+		cursor: move;
+	}
+	#gif_recording_frame.recording .gif_recording_frame_handle {
+		display: none;
+	}
+	.gif_recording_frame_handle:hover {
+		color: var(--color-light);
+	}
+	#gif_recording_controls .gif_record_button:hover {
+		filter: brightness(1.2);
+	}
+	#gif_recording_frame.recording .gif_record_button {
+		animation: record_button_blink 0.5s infinite;
+		pointer-events: none;
+	}
+	@keyframes record_button_blink {
+		0% {opacity: 0;}
+		50% {opacity: 0;}
+		51% {opacity: 1;}
+	}
+	.gif_recording_frame_handle.gif_resize_ne {cursor: ne-resize}
+	.gif_recording_frame_handle.gif_resize_nw {cursor: nw-resize}
+	.gif_recording_frame_handle.gif_resize_se {cursor: se-resize}
+	.gif_recording_frame_handle.gif_resize_sw {cursor: sw-resize}
+	.gif_recording_frame_handle.gif_resize_ne i {transform: rotate(135deg);}
+	.gif_recording_frame_handle.gif_resize_nw i {transform: rotate(45deg);}
+	.gif_recording_frame_handle.gif_resize_se i {transform: rotate(225deg);}
+	.gif_recording_frame_handle.gif_resize_sw i {transform: rotate(-45deg);}
+
 /* Amend Edit Menu */
 	#amend_edit_menu {
 		position: absolute;

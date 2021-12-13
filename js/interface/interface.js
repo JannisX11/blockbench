@@ -563,6 +563,19 @@ $(document).keyup(function(event) {
 	}
 })
 
+Interface.createElement = (tag, attributes = {}, content) => {
+	let el = document.createElement(tag);
+	for (let key in attributes) {
+		el.setAttribute(key, attributes[key]);
+	}
+	if (typeof content == 'string') el.textContent = content;
+	if (content instanceof Array) {
+		content.forEach(node => el.append(node));
+	}
+	if (content instanceof HTMLElement) el.append(content);
+	return el;
+}
+
 
 onVueSetup(function() {
 	Interface.status_bar.vue = new Vue({

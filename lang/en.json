@@ -190,7 +190,6 @@
 	"message.invalid_link": "Invalid or Expired Model Link",
 
 	"message.drag_background": "Drag the background to move its position. Hold shift and drag up and down to change its size. Click here to save the position.",
-	"message.recording_gif": "GIF creation in progress. Click here to abort.",
 
 	"message.unsaved_textures.title": "Unsaved Textures",
 	"message.unsaved_textures.message": "Your model has unsaved textures. Make sure to save them and paste them into your resource pack in the correct folder.",

@@ -21,6 +21,7 @@ const Screencam = {
 		},
 		onConfirm: function(formData) {
 			let background = formData.color.toHex8String() != '#00000000' ? formData.color.toHexString() : undefined;
+			this.hide();
 			Screencam.createGif({
 				length_mode: formData.length_mode,
 				length: limitNumber(formData.length, 0.1, 24000),
@@ -30,7 +31,6 @@ const Screencam = {
 				play: formData.play,
 				turnspeed: formData.turn,
 			}, Screencam.returnScreenshot)
-			this.hide();
 		}
 	}),
 	screenshotPreview(preview, options, cb) {
@@ -167,42 +167,21 @@ const Screencam = {
 	cleanCanvas(options, cb) {
 		quad_previews.current.screenshot(options, cb)
 	},
-	createGif(options, cb) {
-		if (typeof options !== 'object') options = {}
+	gif_crop: {top: 0, left: 0, right: 0, bottom: 0},
+
+	async createGif(options = {}, cb) {
 		if (!options.length_mode) options.length_mode = 'seconds';
 		if (!options.length) options.length = 1;
 
-		var preview = quad_previews.current;
-		var animation = Animation.selected;
-		var interval = options.fps ? (1000/options.fps) : 100;
-		var frames = 0;
-		const gif = new GIF({
-			repeat: options.repeat,
-			quality: options.quality,
-			background: options.background ? options.background : {r: 30, g: 0, b: 255},
-			transparent: options.background ? undefined : 0x1e01ff,
-		});
-
-		if (options.turnspeed) {
-			preview.controls.autoRotate = true;
-			preview.controls.autoRotateSpeed = options.turnspeed;
-			preview.controls.autoRotateProgress = 0;
-		} else if (options.length_mode == 'turntable') {
-			options.length_mode = 'seconds'
-		}
-
-		if (options.play && animation) {
-			Timeline.time = 0;
-			Timeline.start()
-			if (!animation.length) options.length_mode = 'seconds';
-		} else if (options.length_mode == 'animation') {
-			options.length_mode = 'seconds'
-		}
-
-		if (!options.silent) {
-			Blockbench.setStatusBarText(tl('status_bar.recording_gif'));
-			gif.on('progress', Blockbench.setProgress);
-		}
+		let preview = Preview.selected;
+		let animation = Animation.selected;
+		let interval = options.fps ? (1000/options.fps) : 100;
+		let frames = 0;
+		let gif;
+		let frame, frame_label;
+		let recording = false;
+		let loop = null;
+		let crop = Screencam.gif_crop;
 
 		function getProgress() {
 			switch (options.length_mode) {
@@ -212,29 +191,86 @@ const Screencam = {
 				case 'animation': return Timeline.time / (animation.length-(interval/1000)); break;
 			}
 		}
+		function startRecording() {
+			let canvas = document.createElement('canvas');
+			let ctx = canvas.getContext('2d');
+			canvas.width = Math.clamp((preview.width - crop.left - crop.right) * window.devicePixelRatio, 24, 4000);
+			canvas.height = Math.clamp((preview.height - crop.top - crop.bottom) * window.devicePixelRatio, 24, 4000);
 
-		let recording = true;
-		var loop = setInterval(() => {
-			frames++;
-			Canvas.withoutGizmos(function() {
-				var img = new Image();
-				preview.render();
-				img.src = preview.canvas.toDataURL();
-				img.onload = () => {
-					gif.addFrame(img, {delay: interval});
-				}
-			})
-			Blockbench.setProgress(getProgress());
-			if (getProgress() >= 1) {
-				endRecording(true)
-				return;
+			gif = new GIF({
+				repeat: options.repeat,
+				quality: options.quality,
+				background: options.background ? options.background : {r: 30, g: 0, b: 255},
+				transparent: options.background ? undefined : 0x1e01ff,
+				width: canvas.width,
+				height: canvas.height 
+			});
+	
+			if (options.turnspeed) {
+				preview.controls.autoRotate = true;
+				preview.controls.autoRotateSpeed = options.turnspeed;
+				preview.controls.autoRotateProgress = 0;
+			} else if (options.length_mode == 'turntable') {
+				options.length_mode = 'seconds'
+			}
+	
+			if (options.play && animation) {
+				Timeline.time = 0;
+				Timeline.start()
+				if (!animation.length) options.length_mode = 'seconds';
+			} else if (options.length_mode == 'animation') {
+				options.length_mode = 'seconds'
+			}
+	
+			if (!options.silent) {
+				Blockbench.setStatusBarText(tl('status_bar.recording_gif'));
+				gif.on('progress', Blockbench.setProgress);
 			}
 
-		}, interval)
+			recording = true;
+			loop = setInterval(() => {
+				frames++;
+				Canvas.withoutGizmos(function() {
+					let img = new Image();
+					preview.render();
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					ctx.drawImage(preview.canvas, -crop.left * window.devicePixelRatio, -crop.top * window.devicePixelRatio);
+					img.src = canvas.toDataURL();
+					img.onload = () => {
+						gif.addFrame(img, {delay: interval});
+					}
+				})
+				Blockbench.setProgress(getProgress());
+				frame_label.textContent = frames + ' - ' + (interval*frames/1000).toFixed(2) + 's';
 
+				if (getProgress() >= 1) {
+					endRecording(true);
+					return;
+				}
+	
+			}, interval)
+			gif.on('finished', blob => {
+				var reader = new FileReader();
+				reader.onload = () => {
+					if (!options.silent) {
+						Blockbench.setProgress();
+						Blockbench.setStatusBarText();
+					}
+					Screencam.returnScreenshot(reader.result, cb);
+				}
+				reader.readAsDataURL(blob);
+			});
+
+			frame.classList.add('recording');
+		}
 		function endRecording(render) {
+			if (!recording) return;
 			recording = false;
-			clearInterval(loop)
+			clearInterval(loop);
+			if (frame) {
+				frame.remove();
+			}
+			Blockbench.setProgress();
 			if (render) {
 				gif.render();
 				if (!options.silent) {
@@ -248,35 +284,79 @@ const Screencam = {
 				preview.controls.autoRotate = false;
 			}
 		}
+		function cancel() {
+			frame.remove();
+		}
+		function updateCrop() {
+			crop.left = 	Math.clamp(crop.left, 	0, preview.width/2  - 12);
+			crop.right = 	Math.clamp(crop.right, 	0, preview.width/2  - 12);
+			crop.top = 		Math.clamp(crop.top, 	0, preview.height/2 - 12);
+			crop.bottom = 	Math.clamp(crop.bottom, 0, preview.height/2 - 12);
+			frame.style.top = crop.top + 'px';
+			frame.style.left = crop.left + 'px';
+			frame.style.right = crop.right + 'px';
+			frame.style.bottom = crop.bottom + 'px';
+			frame_label.textContent = Math.round(Math.clamp((preview.width - crop.left - crop.right) * window.devicePixelRatio, 24, 4000))
+							+ ' x ' + Math.round(Math.clamp((preview.height - crop.top - crop.bottom) * window.devicePixelRatio, 24, 4000))
+		}
 
-		let toast = Blockbench.showToastNotification({
-			text: 'message.recording_gif',
-			icon: 'local_movies',
-			click() {
-				if (recording) {
-					endRecording(false);
-				} else {
-					gif.abort();
-				}
-				Blockbench.setStatusBarText();
-				Blockbench.setProgress(0);
-				return true;
-			}
-		})
+		// Setup recording UI
+		frame = Interface.createElement('div', {id: 'gif_recording_frame'});
+		preview.node.append(frame);
 
-		gif.on('finished', blob => {
-			var reader = new FileReader();
-			reader.onload = () => {
-				if (!options.silent) {
-					Blockbench.setProgress();
-					Blockbench.setStatusBarText();
-				}
-				Screencam.returnScreenshot(reader.result, cb);
+		frame_label = Interface.createElement('div', {id: 'gif_recording_frame_label'});
+		frame.append(frame_label);
+
+		let resizer_top_right = 	Interface.createElement('div', {style: 'top: -2px; right: -2px;', 	class: 'gif_recording_frame_handle gif_resize_ne'}, Blockbench.getIconNode('arrow_back_ios'));
+		let resizer_top_left = 		Interface.createElement('div', {style: 'top: -2px; left: -2px;', 	class: 'gif_recording_frame_handle gif_resize_nw'}, Blockbench.getIconNode('arrow_back_ios'));
+		let resizer_bottom_right = 	Interface.createElement('div', {style: 'bottom: -2px; right: -2px;',class: 'gif_recording_frame_handle gif_resize_se'}, Blockbench.getIconNode('arrow_back_ios'));
+		let resizer_bottom_left = 	Interface.createElement('div', {style: 'bottom: -2px; left: -2px;', class: 'gif_recording_frame_handle gif_resize_sw'}, Blockbench.getIconNode('arrow_back_ios'));
+
+		function drag(e1, x_value, y_value) {
+			let crop_original = Object.assign({}, crop);
+			function move(e2) {
+				convertTouchEvent(e2);
+				crop[x_value] = crop_original[x_value] + (e2.clientX - e1.clientX) * (x_value == 'left' ? 1 : -1);
+				crop[y_value] = crop_original[y_value] + (e2.clientY - e1.clientY) * (y_value == 'top'  ? 1 : -1);
+				updateCrop();
 			}
-			reader.readAsDataURL(blob);
-			toast.delete();
+			function stop(e3) {
+				removeEventListeners(document, 'mousemove touchmove', move);
+				removeEventListeners(document, 'mouseup touchend', stop);
+			}
+			addEventListeners(document, 'mousemove touchmove', move);
+			addEventListeners(document, 'mouseup touchend', stop);
+		}
+		addEventListeners(resizer_top_right, 	'mousedown touchstart', e => drag(e, 'right', 'top'));
+		addEventListeners(resizer_top_left, 	'mousedown touchstart', e => drag(e, 'left', 'top'));
+		addEventListeners(resizer_bottom_right, 'mousedown touchstart', e => drag(e, 'right', 'bottom'));
+		addEventListeners(resizer_bottom_left,	'mousedown touchstart', e => drag(e, 'left', 'bottom'));
+		frame.append(resizer_top_right);
+		frame.append(resizer_top_left);
+		frame.append(resizer_bottom_right);
+		frame.append(resizer_bottom_left);
+		updateCrop();
+
+		let controls = Interface.createElement('div', {id: 'gif_recording_controls'});
+		frame.append(controls);
+
+		let record_button = Interface.createElement('div', {class: 'tool gif_record_button'}, Blockbench.getIconNode('fiber_manual_record', 'var(--color-close)'));
+		record_button.addEventListener('click', event => {
+			startRecording();
 		});
+		controls.append(record_button);
 
+		let stop_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('stop'));
+		stop_button.addEventListener('click', event => {
+			recording ? endRecording(true) : cancel();
+		})
+		controls.append(stop_button);
+
+		let cancel_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('clear'));
+		cancel_button.addEventListener('click', event => {
+			recording ? endRecording(false) : cancel();
+		})
+		controls.append(cancel_button);
 	},
 	recordTimelapse(options) {
 		if (!options.destination) return;
