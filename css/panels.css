@@ -1379,16 +1379,22 @@
 		position: absolute;
 		pointer-events: none;
 		border: 1px dashed white;
+		margin: -1px;
 		mix-blend-mode: difference;
 	}
 	#texture_pasting_overlay {
 		position: absolute;
+		pointer-events: initial !important;
+	}
+	#texture_pasting_overlay canvas {
+		pointer-events: initial !important;
 	}
 	#texture_pasting_overlay::before {
 		content: "";
 		display: block;
 		position: absolute;
 		border: 1px dashed white;
+		margin: -1px;
 		pointer-events: none;
 		z-index: 6;
 		width: 100%;
@@ -1400,32 +1406,22 @@
 		z-index: 5;
 		float: left;
 	}
-	#texture_pasting_overlay > div.control {
-		background-color: var(--color-bright_ui);
-		position: absolute;
-		box-shadow: 1px 1px 15px rgba(0, 0, 0, 0.5);
-		width: 30px;
-		height: 30px;
-		bottom: -30px;
-		width: max-content;
-	}
-	#texture_pasting_overlay > div.control > div {
-		width: 30px;
-		height: 30px;
-		padding: 3px;
-		float: left;
-		color: var(--color-bright_ui_text);
-		text-align: center;
-		box-sizing: border-box;
-	}
-	#texture_pasting_overlay > div.control > div:hover {
-		background-color: var(--color-accent);
-		color: var(--color-accent_text);
-	}
 	.uv_transparent_face {
 		margin: 8px auto auto;
 		color: var(--color-subtle_text);
 		max-width: fit-content;
+	}
+	.copy_paste_tool_control {
+		height: 30px;
+		flex-grow: 1;
+	}
+	.copy_paste_tool_control .tool.button_place {
+		color: var(--color-confirm);
+		float: right;
+	}
+	.copy_paste_tool_control .tool.button_cancel {
+		color: var(--color-close);
+		float: right;
 	}
 
 /*Chat*/
