@@ -432,6 +432,11 @@ class UndoSystem {
 			}
 		}
 
+		if (save.exploded_view !== undefined) {
+			Project.exploded_view = BarItems.explode_skin_model.value = save.exploded_view;
+			BarItems.explode_skin_model.updateEnabledState();
+		}
+
 		Blockbench.dispatchEvent('load_undo_save', {save, reference, mode})
 
 		updateSelection()

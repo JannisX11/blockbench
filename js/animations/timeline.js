@@ -877,6 +877,7 @@ onVueSetup(function() {
 						Blockbench.setStatusBarText(text);
 					}
 					BarItems.slider_keyframe_time.update()
+					Animator.showMotionTrail()
 					Animator.preview()
 
 				}
