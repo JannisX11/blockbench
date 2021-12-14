@@ -390,6 +390,7 @@
 	"dialog.plugins.reload": "Reload",
 	"dialog.plugins.none_installed": "No plugins installed",
 	"dialog.plugins.none_available": "No plugins available",
+	"dialog.plugins.offline": "No internet connection",
 	"dialog.plugins.outdated_client": "Requires a newer version of Blockbench",
 	"dialog.plugins.outdated_plugin": "Plugin is outdated and does not work with this version of Blockbench",
 	"dialog.plugins.web_only": "Only for the web app",

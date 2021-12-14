@@ -1985,47 +1985,22 @@ const BARS = {
 		Toolbars.uv_editor = new Toolbar({
 			id: 'uv_editor',
 			children: [
-				'uv_grid',
 				'uv_apply_all',
 				'uv_maximize',
 				'uv_auto',
 				'uv_transparent',
+				'uv_mirror_x',
+				'uv_mirror_y',
 				'uv_rotation',
 				//Box
 				'toggle_mirror_uv',
 			]
 		})
-		/*
-		Toolbars.UVEditor = new Toolbar({
-			id: 'UVEditor',
-			children: [
-				'uv_grid',
-				'_',
-				'uv_select_all',
-				'uv_select_none',
-				'_',
-				'uv_maximize',
-				'uv_auto',
-				'uv_rel_auto',
-				'_',
-				'uv_mirror_x',
-				'uv_mirror_y',
-				'_',
-				'copy',
-				'paste',
-				'_',
-				'uv_transparent',
-				'uv_reset',
-				'_',
-				'face_tint',
-				'_',
-				'cullface',
-				'auto_cullface',
-				'_',
-				'uv_rotation'
-			],
-			default_place: true
-		})*/
+		Blockbench.onUpdateTo('4.1.0', () => {
+			Toolbars.uv_editor.remove(BarItems.uv_grid);
+			Toolbars.uv_editor.add(BarItems.uv_mirror_x, -2);
+			Toolbars.uv_editor.add(BarItems.uv_mirror_y, -2);
+		})
 		//Animations
 		Toolbars.animations = new Toolbar({
 			id: 'animations',

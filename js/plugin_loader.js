@@ -440,7 +440,7 @@ async function loadInstalledPlugins() {
 	}
 	Plugins.installed.replace(Plugins.installed.filter(p => p !== null))
 
-	if (Plugins.json instanceof Object) {
+	if (Plugins.json instanceof Object && navigator.onLine) {
 		//From Store
 		for (var id in Plugins.json) {
 			var plugin = new Plugin(id, Plugins.json[id])
@@ -580,7 +580,7 @@ BARS.defineActions(function() {
 							</ul>
 						</li>
 						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>
-						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'" id="plugin_available_empty">${tl('dialog.plugins.none_available')}</div>
+						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'" id="plugin_available_empty">{{ tl(navigator.onLine ? 'dialog.plugins.none_available' : 'dialog.plugins.offline') }}</div>
 					</ul>
 				</div>
 			`

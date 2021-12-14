@@ -253,7 +253,7 @@ const Settings = {
 		
 		//Grid
 		new Setting('base_grid',		{category: 'grid', value: true,});
-		new Setting('large_grid', 		{category: 'grid', value: false});
+		new Setting('large_grid', 		{category: 'grid', value: true});
 		new Setting('full_grid',		{category: 'grid', value: false});
 		new Setting('large_box',		{category: 'grid', value: false});
 		new Setting('large_grid_size',	{category: 'grid', value: 3, type: 'number'});
