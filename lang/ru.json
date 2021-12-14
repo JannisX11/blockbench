@@ -820,7 +820,7 @@
     "action.change_keyframe_file": "Выбрать",
     "action.change_keyframe_file.desc": "Выбрать аудиофайл для предварительного просмотра звукового эффекта",
     "action.clear_timeline": "Очистить шкалу времени",
-    "action.clear_timeline.desc": "Удалить все невыбранные <...> из временной шкалы",
+    "action.clear_timeline.desc": "Удалить все дорожки анимации из временной шкалы",
     "action.select_effect_animator": "Эффекты анимации",
     "action.select_effect_animator.desc": "Открыть временную шкалу для добавления звуковых эффектов и частиц",
     "action.timeline_focus": "Канал",
