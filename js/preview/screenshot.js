@@ -234,7 +234,7 @@ const Screencam = {
 					let img = new Image();
 					preview.render();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
-					ctx.drawImage(preview.canvas, -crop.left * window.devicePixelRatio, -crop.top * window.devicePixelRatio);
+					ctx.drawImage(preview.canvas, Math.round(-crop.left * window.devicePixelRatio), Math.round(-crop.top * window.devicePixelRatio));
 					img.src = canvas.toDataURL();
 					img.onload = () => {
 						gif.addFrame(img, {delay: interval});

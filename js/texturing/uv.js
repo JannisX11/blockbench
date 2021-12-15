@@ -147,6 +147,9 @@ const UVEditor = {
 			Painter.selection.rect = rect;
 			Painter.selection.start_x = x;
 			Painter.selection.start_y = y;
+			UVEditor.vue.copy_overlay.state = 'select';
+			UVEditor.vue.copy_overlay.width = 0;
+			UVEditor.vue.copy_overlay.height = 0;
 		} else {
 			Painter.selection.start_x = Painter.selection.x;
 			Painter.selection.start_y = Painter.selection.y;
@@ -178,6 +181,8 @@ const UVEditor = {
 			Painter.selection.calcrect = calcrect;
 			Painter.selection.x = calcrect.ax;
 			Painter.selection.y = calcrect.ay;
+			UVEditor.vue.copy_overlay.width = calcrect.x;
+			UVEditor.vue.copy_overlay.height = calcrect.y;
 			$(Painter.selection.rect)
 				.css('left', 	calcrect.ax*m + 'px')
 				.css('top', 	(calcrect.ay%UVEditor.texture.display_height)*m + 'px')
@@ -204,6 +209,7 @@ const UVEditor = {
 		canvas.width = calcrect.x;
 		canvas.height = calcrect.y;
 		ctx.drawImage(UVEditor.vue.texture.img, -calcrect.ax, -calcrect.ay)
+		UVEditor.vue.copy_overlay.state = 'off';
 
 		if (isApp) {
 			let image = nativeImage.createFromDataURL(canvas.toDataURL())
@@ -1593,6 +1599,7 @@ Interface.definePanels(function() {
 
 	let copy_overlay = {
 		state: 'off',
+		width: 0, height: 0,
 		
 		doPlace() {
 			open_interface.confirm();
@@ -2589,17 +2596,18 @@ Interface.definePanels(function() {
 
 					<div v-show="mode == 'paint'" class="bar uv_painter_info">
 						<div v-if="copy_overlay.state == 'move'" ref="copy_paste_tool_control" class="copy_paste_tool_control">
-							<div class="tool button_cut" @click="copy_overlay.doCut" title="${tl('uv_editor.copy_paste_tool.cut')}"><i class="fa_big icon fa fas fa-cut"></i></div>
-							<div class="tool button_mirror_x" @click="copy_overlay.doMirror_x" title="${tl('uv_editor.copy_paste_tool.mirror_x')}"><i class="icon-mirror_x icon"></i></div>
-							<div class="tool button_mirror_y" @click="copy_overlay.doMirror_y" title="${tl('uv_editor.copy_paste_tool.mirror_y')}"><i class="icon-mirror_y icon"></i></div>
-							<div class="tool button_rotate" @click="copy_overlay.doRotate" title="${tl('uv_editor.copy_paste_tool.rotate')}"><i class="material-icons">rotate_right</i></div>
+							<div class="tool button_cut" @click="copy_overlay.doCut"><div class="tooltip">${tl('uv_editor.copy_paste_tool.cut')}</div><i class="fa_big icon fa fas fa-cut"></i></div>
+							<div class="tool button_mirror_x" @click="copy_overlay.doMirror_x"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_x')}</div><i class="icon-mirror_x icon"></i></div>
+							<div class="tool button_mirror_y" @click="copy_overlay.doMirror_y"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_y')}</div><i class="icon-mirror_y icon"></i></div>
+							<div class="tool button_rotate" @click="copy_overlay.doRotate"><div class="tooltip">${tl('uv_editor.copy_paste_tool.rotate')}</div><i class="material-icons">rotate_right</i></div>
 
-							<div class="tool button_cancel" @click="copy_overlay.doCancel" title="${tl('dialog.cancel')}"><i class="material-icons">clear</i></div>
-							<div class="tool button_place" @click="copy_overlay.doPlace" title="${tl('uv_editor.copy_paste_tool.place')}"><i class="material-icons">check</i></div>
+							<div class="tool button_cancel" @click="copy_overlay.doCancel"><div class="tooltip">${tl('dialog.cancel')}</div><i class="material-icons">clear</i></div>
+							<div class="tool button_place" @click="copy_overlay.doPlace"><div class="tooltip">${tl('uv_editor.copy_paste_tool.place')}</div><i class="material-icons">check</i></div>
 						</div>
 
 						<template v-else>
-							<span style="color: var(--color-subtle_text);">{{ mouse_coords.x < 0 ? '-' : (mouse_coords.x + ' ⨉ ' + mouse_coords.y) }}</span>
+							<span v-if="copy_overlay.state == 'select'" style="color: var(--color-subtle_text);">{{ copy_overlay.width + ' ⨉ ' + copy_overlay.height }}</span>
+							<span v-else style="color: var(--color-subtle_text);">{{ mouse_coords.x < 0 ? '-' : (mouse_coords.x + ', ' + mouse_coords.y) }}</span>
 							<span v-if="texture">{{ texture.name }}</span>
 							<span style="color: var(--color-subtle_text);">{{ Math.round(this.zoom*100).toString() + '%' }}</span>
 						</template>

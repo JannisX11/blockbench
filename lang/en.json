@@ -428,7 +428,9 @@
 	"dialog.create_texture.combine_polys": "Combine Faces",
 	"dialog.create_texture.combine_polys.desc": "Combine connected coplanar faces into one UV section",
 	"dialog.create_texture.resolution": "Resolution",
-	"dialog.create_texture.resolution.desc": "The base resolution of the texture, in pixels per meter. The real size of the texture map may differ depending on the amount and size of elements.",
+	"dialog.create_texture.resolution.desc": "The height and width of the texture",
+	"dialog.create_texture.pixel_density": "Pixel Density",
+	"dialog.create_texture.pixel_density.desc": "The pixel density of the texture, in pixels per meter. The size of the texture map may differ depending on the amount and size of elements.",
 
 	"dialog.create_gif.title": "Record GIF",
 	"dialog.create_gif.length_mode": "Length Mode",
