@@ -37,7 +37,7 @@ var codec = new Codec('collada', {
 						},
 						{name: 'created', content: new Date().toISOString()},
 						{name: 'modified', content: new Date().toISOString()},
-						{name: 'unit', attributes: {name: 'meter', meter: "0.0625"}},
+						{name: 'unit', attributes: {name: 'meter', meter: "1.0"}},
 						{name: 'up_axis', content: 'Y_UP'}
 					]
 				},
@@ -352,7 +352,7 @@ var codec = new Codec('collada', {
 			let vertex_keys = [];
 
 			function addPosition(x, y, z) {
-				positions.push(x, y, z);
+				positions.push(x/16, y/16, z/16);
 			}
 
 			for (let vkey in mesh.vertices) {
@@ -530,7 +530,7 @@ var codec = new Codec('collada', {
 				},
 				content: [
 					{type: 'scale', attributes: {sid: 'scale'}, content: '1 1 1'},
-					{type: 'translate', attributes: {sid: 'location'}, content: position.join(' ')},
+					{type: 'translate', attributes: {sid: 'location'}, content: position.V3_divide(16).join(' ')},
 				]
 			}
 			if (node.rotatable) {

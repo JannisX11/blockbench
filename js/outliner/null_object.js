@@ -74,7 +74,18 @@ class NullObject extends OutlinerElement {
 			var offset2 = Reusable.vec2.fromArray(this.parent.origin).applyQuaternion(q);
 			pos.sub(offset2);
 		}
-		var offset = ( with_animation ? Reusable.vec3.copy(this.mesh.position) : Reusable.vec3.fromArray(this.from) ).applyQuaternion(q);
+		let offset;
+		if (with_animation && Animation.selected) {
+			offset = Reusable.vec3.copy(this.mesh.position);
+			if (this.parent instanceof Group) {
+				offset.x += this.parent.origin[0];
+				offset.y += this.parent.origin[1];
+				offset.z += this.parent.origin[2];
+			}
+		} else {
+			offset = Reusable.vec3.fromArray(this.from);
+		}
+		offset.applyQuaternion(q);
 		pos.add(offset);
 
 		return pos;
