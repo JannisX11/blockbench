@@ -1277,6 +1277,7 @@ BARS.defineActions(function() {
 				vec4 = new THREE.Vector3();
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
+				UVEditor.selected_faces.empty();
 				let selected_vertices = mesh.getSelectedVertices();
 				if (selected_vertices.length >= 2 && selected_vertices.length <= 4) {
 					let reference_face;
@@ -1308,7 +1309,8 @@ BARS.defineActions(function() {
 							reference_face.vertices.remove(unselected_vertices[1]);
 							delete reference_face.uv[unselected_vertices[1]];
 
-							mesh.addFaces(new_face);
+							let [face_key] = mesh.addFaces(new_face);
+							UVEditor.selected_faces.push(face_key);
 							
 							if (Reusable.vec1.fromArray(reference_face.getNormal(true)).angleTo(Reusable.vec2.fromArray(new_face)) > Math.PI/2) {
 								new_face.invert();
@@ -1321,7 +1323,8 @@ BARS.defineActions(function() {
 							vertices: selected_vertices,
 							texture: reference_face.texture,
 						} );
-						mesh.addFaces(new_face);
+						let [face_key] = mesh.addFaces(new_face);
+						UVEditor.selected_faces.push(face_key);
 
 						// Correct direction
 						if (selected_vertices.length > 2) {
@@ -1402,14 +1405,16 @@ BARS.defineActions(function() {
 					while (start_index < vertices.length) {
 						let face_vertices = vertices.slice(start_index, start_index+4);
 						vertices.push(face_vertices[0]);
-						let face = new MeshFace(mesh, {vertices: face_vertices, texture: reference_face.texture});
-						mesh.addFaces(face);
+						let new_face = new MeshFace(mesh, {vertices: face_vertices, texture: reference_face.texture});
+						let [face_key] = mesh.addFaces(new_face);
+						UVEditor.selected_faces.push(face_key);
 
 						if (face_vertices.length < 4) break;
 						start_index += 3;
 					}
 				}
 			})
+			UVEditor.setAutoSize(null, true);
 			Undo.finishEdit('Create mesh face')
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}

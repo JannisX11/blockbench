@@ -174,16 +174,16 @@ BARS.defineActions(function() {
 		condition: () => NullObject.selected.length,
 		children() {
 			let nodes = [];
-			iterate(NullObject.selected[0].getParentArray());
+			iterate(NullObject.selected[0].getParentArray(), 0);
 
-			function iterate(arr) {
+			function iterate(arr, level) {
 				arr.forEach(node => {
 					if (node instanceof Group) {
-						nodes.push(node);
-						iterate(node.children);
+						if (level) nodes.push(node);
+						iterate(node.children, level+1);
 					}
 					if (node instanceof Locator) {
-						nodes.push(node);
+						if (level) nodes.push(node);
 					}
 				})
 			}

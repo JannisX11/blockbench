@@ -485,6 +485,7 @@ class NullObjectAnimator extends BoneAnimator {
 			bones.push(current);
 			current = current.parent;
 		}
+		if (!bones.length) return;
 		bones.reverse();
 		
 		bones.forEach(bone => {
