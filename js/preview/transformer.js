@@ -954,9 +954,7 @@
 			function displayDistance(number) {
 				Blockbench.setStatusBarText(trimFloatNumber(number));
 			}
-			function extendTransformLine(long) {
-
-				let axis = scope.axis.substr(-1).toLowerCase();
+			function extendTransformLineOnAxis(long, axis) {
 				let axisNumber = getAxisNumber(axis);
 				let main_gizmo = _gizmo[_mode].children[0];
 
@@ -977,6 +975,14 @@
 				} else {
 					line.base_scale[axis] = long ? 20000 : 1;
 				}
+			}
+			function extendTransformLine(long) {
+				let axis = scope.axis.substr(-1).toLowerCase();
+				let axis2 = scope.axis.length == 2 && scope.axis[0] != 'N' && scope.axis[0].toLowerCase();
+
+				extendTransformLineOnAxis(long, axis);
+				if (axis2) extendTransformLineOnAxis(long, axis2);
+
 				_gizmo[ _mode ].highlight( scope.axis );
 			}
 

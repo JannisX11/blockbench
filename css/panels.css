@@ -1564,4 +1564,37 @@
 		margin: 2px 4px 0 4px;
 		width: calc(100% - 8px);
 	}
-
+/* Skin Pose */
+	#skin_pose_selector {
+		display: flex;
+	}
+	#skin_pose_selector > li {
+		flex-grow: 1;
+    	height: 48px;
+		cursor: pointer;
+		text-align: center;
+	}
+	#skin_pose_selector > li:hover {
+		color: var(--color-light);
+	}
+	#skin_pose_selector > li.selected {
+		border-bottom: 3px solid var(--color-accent);
+	}
+	#skin_pose_selector > li:active {
+		padding-top: 1px;
+	}
+	#skin_pose_selector > li .pose_icon {
+		background-color: var(--color-text);
+		pointer-events: none;
+		width: 100%;
+		height: 44px;
+		mask-size: contain;
+		mask-repeat: no-repeat;
+		mask-position: center;
+		-webkit-mask-size: contain;
+		-webkit-mask-repeat: no-repeat;
+		-webkit-mask-position: center;
+	}
+	#skin_pose_selector > li:hover .pose_icon {
+		background-color: var(--color-light);
+	}

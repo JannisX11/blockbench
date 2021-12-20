@@ -66,7 +66,7 @@ const codec = new Codec('skin_model', {
 		Project.texture_width = data.texturewidth || 64;
 		Project.texture_height = data.textureheight || 64;
 
-		Formats.skin.rotate_cubes = data.rotate_cubes == true;
+		Interface.Panels.skin_pose.inside_vue.pose = Project.skin_pose = pose ? 'natural' : 'none';
 
 		var bones = {}
 		var template_cubes = {};
@@ -162,7 +162,7 @@ const format = new ModelFormat({
 	centered_grid: true,
 	single_texture: true,
 	integer_size: true,
-	rotate_cubes: true,
+	rotate_cubes: false,
 	pose_mode: true,
 	codec
 })
@@ -269,6 +269,112 @@ const skin_dialog = new Dialog({
 
 
 BARS.defineActions(function() {
+	const poses = {
+		none: {
+			Head: [0, 0, 0],
+			Body: [0, 0, 0],
+			RightArm: [0, 0, 0],
+			LeftArm: [0, 0, 0],
+			RightLeg: [0, 0, 0],
+			LeftLeg: [0, 0, 0],
+		},
+		natural: {
+			Head: [-6, 5, 0],
+			Body: [0, 0, 0],
+			RightArm: [-10, 0, 0],
+			LeftArm: [12, 0, 0],
+			RightLeg: [11, 0, 2],
+			LeftLeg: [-10, 0, -2],
+		},
+		walking: {
+			Head: [-2, 0, 0],
+			Body: [0, 0, 0],
+			RightArm: [-35, 0, 0],
+			LeftArm: [35, 0, 0],
+			RightLeg: [42, 0, 2],
+			LeftLeg: [-42, 0, -2]
+		},
+		crouching: {
+			Head: {rotation: [-5, 0, 0], offset: [0, -1, 0]},
+			Body: {rotation: [-28, 0, 0], offset: [0, 0, -1]},
+			RightArm: [-15, 0, 0],
+			LeftArm: [-40, 0, 0],
+			RightLeg: {rotation: [-14, 0, 0], offset: [0, 3, 3.75]},
+			LeftLeg: {rotation: [14, 0, 0], offset: [0, 3, 4]}
+		},
+		sitting: {
+			Head: [5.5, 0, 0],
+			Body: [0, 0, 0],
+			RightArm: [36, 0, 0],
+			LeftArm: [36, 0, 0],
+			RightLeg: [72, -18, 0],
+			LeftLeg: [72, 18, 0]
+		},
+		jumping: {
+			Head: [20, 0, 0],
+			Body: [0, 0, 0],
+			RightArm: {rotation: [-175, 0, -20], offset: [0, 2, 0]},
+			LeftArm: {rotation: [-170, 0, 15], offset: [0, 2, 0]},
+			RightLeg: {rotation: [-5, 0, 15], offset: [0, -1, 0]},
+			LeftLeg: {rotation: [2.5, 0, -10], offset: [0, 6, -3.75]}
+		},
+		aiming: {
+			Head: [8, -35, 0],
+			Body: [-2, 0, 0],
+			RightArm: {rotation: [97, -17, -2], offset: [-1, 1, -1]},
+			LeftArm: [104, -44, -10],
+			RightLeg: {rotation: [2.5, 0, 0], offset: [0, 1, -2]},
+			LeftLeg: [-28, 0, 0]
+		},
+	};
+	Interface.Panels.skin_pose = new Panel({
+		id: 'skin_pose',
+		icon: 'icon-player',
+		condition: {modes: ['pose']},
+		component: {
+			data() {return {
+				pose: 'default'
+			}},
+			methods: {
+				setPose(pose) {
+					let old_angles = poses[this.pose];
+					for (let name in old_angles) {
+						if (old_angles[name].offset) {
+							let group = Group.all.find(g => g.name == name);
+							if (group) {
+								group.origin.V3_subtract(old_angles[name].offset);
+							}
+						}
+					}
+					this.pose = pose;
+					Project.skin_pose = pose;
+					let angles = poses[pose];
+					for (let name in angles) {
+						let group = Group.all.find(g => g.name == name);
+						if (group) {
+							group.extend({rotation: angles[name].rotation || angles[name]});
+							if (angles[name].offset) group.origin.V3_add(angles[name].offset);
+						}
+					}
+					Canvas.updateAllBones();
+				}
+			},
+			template: `
+				<div>
+					<ul id="skin_pose_selector">
+						<li :class="{selected: pose == 'none'}" @click="setPose('none')" title="${tl('panel.skin_pose.none')}"><div class="pose_icon" style="mask-image: url('./assets/poses/none.svg');"/></li>
+						<li :class="{selected: pose == 'natural'}" @click="setPose('natural')" title="${tl('panel.skin_pose.natural')}"><div class="pose_icon" style="mask-image: url('./assets/poses/natural.svg');"/></li>
+						<li :class="{selected: pose == 'walking'}" @click="setPose('walking')" title="${tl('panel.skin_pose.walking')}"><div class="pose_icon" style="mask-image: url('./assets/poses/walking.svg');"/></li>
+						<li :class="{selected: pose == 'crouching'}" @click="setPose('crouching')" title="${tl('panel.skin_pose.crouching')}"><div class="pose_icon" style="mask-image: url('./assets/poses/crouching.svg');"/></li>
+						<li :class="{selected: pose == 'sitting'}" @click="setPose('sitting')" title="${tl('panel.skin_pose.sitting')}"><div class="pose_icon" style="mask-image: url('./assets/poses/sitting.svg');"/></li>
+						<li :class="{selected: pose == 'jumping'}" @click="setPose('jumping')" title="${tl('panel.skin_pose.jumping')}"><div class="pose_icon" style="mask-image: url('./assets/poses/jumping.svg');"/></li>
+						<li :class="{selected: pose == 'aiming'}" @click="setPose('aiming')" title="${tl('panel.skin_pose.aiming')}"><div class="pose_icon" style="mask-image: url('./assets/poses/aiming.svg');"/></li>
+					</ul>
+				</div>
+			`
+		}
+	})
+
 	new Action('toggle_skin_layer', {
 		icon: 'layers_clear',
 		category: 'edit',
@@ -2579,7 +2685,6 @@ skin_presets.goat = {
 	display_name: 'Goat',
 	model: `{
 		"name": "goat",
-		"rotate_cubes": true,
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -2629,6 +2734,15 @@ skin_presets.goat = {
 					{"origin": [3, 19, -10], "size": [3, 2, 1], "uv": [2, 61], "mirror": true},
 					{"origin": [-5, 19, -10], "size": [3, 2, 1], "uv": [2, 61]},
 					{"origin": [0.5, 6, -14], "size": [0, 7, 5], "uv": [23, 52]}
+				]
+			},
+			{
+				"name": "head_main",
+				"parent": "head",
+				"pivot": [1, 18, -8],
+				"rotation": [55, 0, 0],
+				"cubes": [
+					{"origin": [-2, 15, -16], "size": [5, 7, 10], "pivot": [1, 18, -8], "uv": [34, 46]}
 				]
 			}
 		]

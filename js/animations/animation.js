@@ -252,7 +252,11 @@ class Animation {
 		}
 
 		Timeline.time = last_time;
-		Animator.preview();
+		if (Modes.animate && this.selected) {
+			Animator.preview();
+		} else {
+			Canvas.updateAllBones()
+		}
 		return samples;
 	}
 	save() {

@@ -26,6 +26,7 @@ class ModelProject {
 		this.view_mode = 'textured';
 		this.display_uv = settings.show_only_selected_uv.value ? 'selected_faces' :'selected_elements';
 		this.exploded_view = false;
+		this.skin_pose = 'none';
 		this.previews = {};
 		this.EditSession = null;
 
@@ -176,6 +177,8 @@ class ModelProject {
 		Timeline.animators = Timeline.vue.animators = this.timeline_animators;
 
 		Interface.Panels.variable_placeholders.inside_vue.text = this.variable_placeholders.toString();
+
+		Interface.Panels.skin_pose.inside_vue.pose = this.skin_pose;
 
 		Modes.options[this.mode].select();
 

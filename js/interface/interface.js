@@ -73,7 +73,7 @@ const Interface = {
 		timeline_height: 260,
 		timeline_head: Blockbench.isMobile ? 140 : 196,
 		left_bar: ['uv', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
-		right_bar: ['element', 'bone', 'color', 'outliner', 'chat']
+		right_bar: ['element', 'bone', 'color', 'skin_pose', 'outliner', 'chat']
 	},
 	get left_bar_width() {
 		return Prop.show_left_bar ? Interface.data.left_bar_width : 0;
@@ -240,9 +240,29 @@ function setupInterface() {
 	var interface_data = localStorage.getItem('interface_data')
 	try {
 		interface_data = JSON.parse(interface_data)
-		var old_data = Interface.data
-		if (interface_data.left_bar) Interface.data.left_bar = interface_data.left_bar;
-		if (interface_data.right_bar) Interface.data.right_bar = interface_data.right_bar;
+		let original_left_bar, original_right_bar;
+		if (interface_data.left_bar) {
+			original_left_bar = Interface.data.left_bar;
+			Interface.data.left_bar = interface_data.left_bar;
+		}
+		if (interface_data.right_bar) {
+			original_right_bar = Interface.data.right_bar;
+			Interface.data.right_bar = interface_data.right_bar;
+		}
+		if (original_left_bar) {
+			original_left_bar.forEach((panel, i) => {
+				if (Interface.data.left_bar.includes(panel)) return;
+				if (Interface.data.right_bar.includes(panel)) return;
+				Interface.data.left_bar.splice(i, 0, panel);
+			})
+		}
+		if (original_right_bar) {
+			original_right_bar.forEach((panel, i) => {
+				if (Interface.data.right_bar.includes(panel)) return;
+				if (Interface.data.left_bar.includes(panel)) return;
+				Interface.data.right_bar.splice(i, 0, panel);
+			})
+		}
 		$.extend(true, Interface.data, interface_data)
 	} catch (err) {}
 
