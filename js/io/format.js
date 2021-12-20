@@ -47,6 +47,9 @@ class ModelFormat {
 				preview.loadAnglePreset(DefaultCameraPresets[preview.angle+1])
 			}
 		})
+		if (Mode.selected && !Condition(Mode.selected.condition)) {
+			(this.pose_mode ? Modes.options.paint : Modes.options.edit).select();
+		}
 		Interface.Panels.animations.inside_vue._data.animation_files_enabled = this.animation_files;
 		Interface.status_bar.vue.Format = this;
 		Modes.vue.$forceUpdate()

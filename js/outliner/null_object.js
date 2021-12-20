@@ -116,6 +116,7 @@ class NullObject extends OutlinerElement {
 						null_object.lock_ik_target_rotation = value;
 					})
 					Undo.finishEdit('Change null object lock ik target rotation option');
+					if (Modes.animate) Animator.preview();
 				}
 			},
 			'_',

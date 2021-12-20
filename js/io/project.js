@@ -26,7 +26,6 @@ class ModelProject {
 		this.view_mode = 'textured';
 		this.display_uv = settings.show_only_selected_uv.value ? 'selected_faces' :'selected_elements';
 		this.exploded_view = false;
-		this.skin_pose = 'none';
 		this.previews = {};
 		this.EditSession = null;
 
@@ -366,6 +365,11 @@ new Property(ModelProject, 'number', 'shadow_size', {
 	label: 'dialog.project.shadow_size',
 	condition: {formats: ['optifine_entity']},
 	default: 1
+});
+new Property(ModelProject, 'string', 'skin_pose', {
+	exposed: false,
+	condition: {formats: ['skin']},
+	default: 'none'
 });
 
 

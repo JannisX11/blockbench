@@ -481,6 +481,11 @@ class NullObjectAnimator extends BoneAnimator {
 		let bone_references = [];
 		let current = target.parent;
 
+		let target_original_fix_point = null_object.lock_ik_target_rotation &&
+			target instanceof Group &&
+			new THREE.Vector3(0, 0, 1).applyQuaternion(target.mesh.getWorldQuaternion(new THREE.Quaternion())).multiplyScalar(100);
+		if (target_original_fix_point) target_original_fix_point.add(target.mesh.getWorldPosition(new THREE.Vector3()))
+
 		while (current !== null_object.parent) {
 			bones.push(current);
 			current = current.parent;
@@ -543,6 +548,32 @@ class NullObjectAnimator extends BoneAnimator {
 				}
 			}
 		})
+
+		if (target_original_fix_point) {
+			target.mesh.updateMatrixWorld();
+
+			let rotation = get_samples ? new THREE.Euler() : Reusable.euler1;
+			rotation.copy(target.mesh.rotation);
+
+			target.mesh.lookAt(target_original_fix_point);
+			target.mesh.updateMatrixWorld();
+
+			rotation.x = target.mesh.rotation.x - rotation.x;
+			rotation.y = target.mesh.rotation.y - rotation.y;
+			rotation.z = target.mesh.rotation.z - rotation.z;
+
+			if (get_samples) {
+				results[target.uuid] = {
+					euler: rotation,
+					array: [
+						Math.radToDeg(-rotation.x),
+						Math.radToDeg(-rotation.y),
+						Math.radToDeg(rotation.z),
+					]
+				}
+			}
+		}
+
 		this.solver.clear();
 		this.chain.clear();
 		this.chain.lastTargetLocation.set(1e9, 0, 0);
