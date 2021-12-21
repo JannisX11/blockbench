@@ -1395,7 +1395,9 @@
 							
 						displayDistance(value - originalValue);
 
-						Animator.preview()
+						if (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value !== 'bone') {} else {
+							Animator.preview()
+						}
 						previousValue = value
 						scope.hasChanged = true
 					}

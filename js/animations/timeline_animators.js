@@ -129,12 +129,15 @@ GeneralAnimator.addChannel = function(channel, options) {
 	this.prototype.channels[channel] = {
 		name: options.name || channel,
 		transform: options.transform || false,
-		mutable: options.mutable instanceof Boolean ? options.mutable : true,
+		mutable: typeof options.mutable === 'boolean' ? options.mutable : true,
 		max_data_points: options.max_data_points || 0
 	}
 	Timeline.animators.forEach(animator => {
 		if (animator instanceof this && !animator[channel]) {
-			animator[channel] = [];
+			Vue.set(animator, channel, []);
+			if (this.prototype.channels[channel].mutable) {
+				Vue.set(animator.muted, channel, false);
+			}
 		}
 	})
 	Timeline.vue.$forceUpdate();
@@ -481,10 +484,9 @@ class NullObjectAnimator extends BoneAnimator {
 		let bone_references = [];
 		let current = target.parent;
 
-		let target_original_fix_point = null_object.lock_ik_target_rotation &&
+		let target_original_quaternion = null_object.lock_ik_target_rotation &&
 			target instanceof Group &&
-			new THREE.Vector3(0, 0, 1).applyQuaternion(target.mesh.getWorldQuaternion(new THREE.Quaternion())).multiplyScalar(100);
-		if (target_original_fix_point) target_original_fix_point.add(target.mesh.getWorldPosition(new THREE.Vector3()))
+			target.mesh.getWorldQuaternion(new THREE.Quaternion());
 
 		while (current !== null_object.parent) {
 			bones.push(current);
@@ -549,13 +551,13 @@ class NullObjectAnimator extends BoneAnimator {
 			}
 		})
 
-		if (target_original_fix_point) {
-			target.mesh.updateMatrixWorld();
-
+		if (target_original_quaternion) {
 			let rotation = get_samples ? new THREE.Euler() : Reusable.euler1;
 			rotation.copy(target.mesh.rotation);
 
-			target.mesh.lookAt(target_original_fix_point);
+			target.mesh.quaternion.copy(target_original_quaternion);
+			let q1 = target.mesh.parent.getWorldQuaternion(Reusable.quat1);
+			target.mesh.quaternion.premultiply(q1.invert())
 			target.mesh.updateMatrixWorld();
 
 			rotation.x = target.mesh.rotation.x - rotation.x;

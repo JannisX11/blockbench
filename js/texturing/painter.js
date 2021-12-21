@@ -799,9 +799,9 @@ const Painter = {
 	},
 	getMirrorCube(element) {
 		let center = Format.centered_grid ? 0 : 8;
-		let e = 0.002
+		let e = 0.01
 		if (element instanceof Cube) {
-			if (element.from[0]-center === center-element.to[0] && !element.rotation[1] && !element.rotation[2]) {
+			if (Math.epsilon(element.from[0]-center, center-element.to[0], e) && !element.rotation[1] && !element.rotation[2]) {
 				return element;
 			} else {
 				for (var element2 of Cube.all) {
@@ -817,7 +817,7 @@ const Painter = {
 			}
 			return false;
 		} else if (element instanceof Mesh) {
-			if (element instanceof Mesh && element.origin[0] === center && !element.rotation[1] && !element.rotation[2]) {
+			if (element instanceof Mesh && Math.epsilon(element.origin[0], center, e) && !element.rotation[1] && !element.rotation[2]) {
 				return element;
 			} else {
 				for (var element2 of Mesh.all) {
