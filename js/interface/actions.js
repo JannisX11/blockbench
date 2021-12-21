@@ -390,7 +390,7 @@ class Tool extends Action {
 		if (BARS.condition(this.condition, this)) {
 			this.select()
 			return true;
-		} else if (event.type.includes('key') && this.modes) {
+		} else if (this.modes) {
 			for (var i = 0; i < this.modes.length; i++) {
 				var mode = Modes.options[this.modes[i]]
 				if (mode && Condition(mode.condition)) {
@@ -473,6 +473,7 @@ class NumSlider extends Widget {
 		if (data.tool_setting) this.tool_setting = data.tool_setting;
 		if (typeof data.get === 'function') this.get = data.get;
 		this.onBefore = data.onBefore;
+		this.onChange = data.onChange;
 		this.onAfter = data.onAfter;
 		if (typeof data.change === 'function') this.change = data.change;
 		if (data.settings) {
@@ -600,7 +601,8 @@ class NumSlider extends Widget {
 		})
 		.dblclick(function(event) {
 			if (event.target != this) return;
-			scope.jq_inner.text('0');
+			let value = scope.settings && scope.settings.default ? scope.settings.default.toString() : '0';
+			scope.jq_inner.text(value);
 			scope.stopInput()
 
 		});
@@ -743,7 +745,7 @@ class NumSlider extends Widget {
 		this.jq_outer.find('.nslide:not(.editing)').text(this.value)
 		if (this.settings && this.settings.show_bar) {
 			this.node.classList.add('has_percentage_bar');
-			this.node.style.setProperty('--percentage', Math.lerp(this.settings.min, this.settings.max, value)*100);
+			this.node.style.setProperty('--percentage', Math.getLerp(this.settings.min, this.settings.max, value)*100);
 		} 
 		return this;
 	}
@@ -756,6 +758,9 @@ class NumSlider extends Widget {
 		this.value = num;
 		if (this.tool_setting) {
 			Toolbox.selected.tool_settings[this.tool_setting] = num;
+		}
+		if (typeof this.onChange === 'function') {
+			this.onChange(num);
 		}
 	}
 	get() {
@@ -904,6 +909,7 @@ class BarSelect extends Widget {
 		})
 	}
 	open(event) {
+		if (Menu.closed_in_this_click == this.id) return this;
 		let scope = this;
 		let items = [];
 		for (var key in this.options) {
@@ -925,7 +931,7 @@ class BarSelect extends Widget {
 				})()
 			}
 		}
-		let menu = new Menu(items);
+		let menu = new Menu(this.id, items);
 		menu.node.style['min-width'] = this.node.clientWidth+'px';
 		menu.open(event.target, this);
 	}
@@ -1158,6 +1164,7 @@ class Toolbar {
 					let char = itemId.substr(0, 1);
 					content.append(`<div class="toolbar_separator ${char == '_' ? 'border' : (char == '+' ? 'spacer' : 'linebreak')}"></div>`);
 					this.children.push(char + guid().substr(0,8));
+					this.positionLookup[itemPosition] = char;
 
 					continue;
 				}
@@ -1415,6 +1422,19 @@ const BARS = {
 				alt_tool: 'move_tool',
 				modes: ['edit', 'display', 'animate'],
 				keybind: new Keybind({key: 's'}),
+				onSelect() {
+					if (Modes.edit) {
+						if (Mesh.selected.length) {
+							Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
+						} else {
+							Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
+						}
+					}
+				},
+				onUnselect() {
+					Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
+					Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
+				}
 			})
 			new Tool('rotate_tool', {
 				icon: 'sync',
@@ -1424,7 +1444,7 @@ const BARS = {
 				animation_channel: 'rotation',
 				toolbar: Blockbench.isMobile ? 'element_rotation' : 'main_tools',
 				alt_tool: 'pivot_tool',
-				modes: ['edit', 'display', 'animate'],
+				modes: ['edit', 'display', 'animate', 'pose'],
 				keybind: new Keybind({key: 'r'})
 			})
 			new Tool('pivot_tool', {
@@ -1468,7 +1488,7 @@ const BARS = {
 			new Action('swap_tools', {
 				icon: 'swap_horiz',
 				category: 'tools',
-				condition: {modes: ['edit', 'paint', 'display']},
+				condition: {modes: ['edit', 'paint', 'display'], project: true},
 				keybind: new Keybind({key: 32}),
 				click: function () {
 					if (BarItems[Toolbox.selected.alt_tool] && Condition(BarItems[Toolbox.selected.alt_tool].condition)) {
@@ -1478,6 +1498,14 @@ const BARS = {
 			})
 
 		//File
+			new Action('new_window', {
+				icon: 'open_in_new',
+				category: 'file',
+				condition: isApp,
+				click: function () {
+					ipcRenderer.send('new-window');
+				}
+			})
 			new Action('open_model_folder', {
 				icon: 'folder_open',
 				category: 'file',
@@ -1818,16 +1846,6 @@ const BARS = {
 				}
 			})
 
-		//Find Action
-			new Action('action_control', {
-				icon: 'fullscreen',
-				category: 'blockbench',
-				keybind: new Keybind({key: 'f'}),
-				click: function () {
-					ActionControl.select()
-				}
-			})
-
 		BARS.action_definers.forEach((definer) => {
 			if (typeof definer === 'function') {
 				definer()
@@ -1925,16 +1943,6 @@ const BARS = {
 				'rescale_toggle'
 			]
 		})
-		/*
-		Toolbars.inverse_kinematics = new Toolbar({
-			id: 'inverse_kinematics',
-			children: [
-				'ik_enabled',
-				'slider_ik_chain_length'
-			],
-			default_place: !Blockbench.isMobile
-		})*/
-
 
 		Toolbars.palette = new Toolbar({
 			id: 'palette',
@@ -1977,47 +1985,22 @@ const BARS = {
 		Toolbars.uv_editor = new Toolbar({
 			id: 'uv_editor',
 			children: [
-				'uv_grid',
 				'uv_apply_all',
 				'uv_maximize',
 				'uv_auto',
 				'uv_transparent',
+				'uv_mirror_x',
+				'uv_mirror_y',
 				'uv_rotation',
 				//Box
 				'toggle_mirror_uv',
 			]
 		})
-		/*
-		Toolbars.UVEditor = new Toolbar({
-			id: 'UVEditor',
-			children: [
-				'uv_grid',
-				'_',
-				'uv_select_all',
-				'uv_select_none',
-				'_',
-				'uv_maximize',
-				'uv_auto',
-				'uv_rel_auto',
-				'_',
-				'uv_mirror_x',
-				'uv_mirror_y',
-				'_',
-				'copy',
-				'paste',
-				'_',
-				'uv_transparent',
-				'uv_reset',
-				'_',
-				'face_tint',
-				'_',
-				'cullface',
-				'auto_cullface',
-				'_',
-				'uv_rotation'
-			],
-			default_place: true
-		})*/
+		Blockbench.onUpdateTo('4.1.0', () => {
+			Toolbars.uv_editor.remove(BarItems.uv_grid);
+			Toolbars.uv_editor.add(BarItems.uv_mirror_x, -2);
+			Toolbars.uv_editor.add(BarItems.uv_mirror_y, -2);
+		})
 		//Animations
 		Toolbars.animations = new Toolbar({
 			id: 'animations',
@@ -2139,10 +2122,6 @@ const BARS = {
 			}
 		}
 		BarItems.move_tool.select()
-
-		//BarItems.UVEditor.toElement('#uv_title_bar')
-		//BarItems.UVEditor_full.toElement('#uv_title_bar')
-
 
 	},
 	setupVue() {
@@ -2310,186 +2289,6 @@ const BARS = {
 				`
 			}
 		})
-
-
-		ActionControl.vue = new Vue({
-			el: '#action_selector',
-			data: {
-				open: false,
-				search_input: '',
-				index: 0,
-				length: 0,
-				list: []
-			},
-			computed: {
-				search_type() {
-					if (this.search_input.includes(':')) {
-						let types = ['setting', 'settings', 'recent', 'tab', '+plugin', '-plugin']
-						let [type, search_input] = this.search_input.split(/:\s*(.*)/);
-						if (types.includes(type.toLowerCase())) {
-							return type;
-						}
-					}
-					return '';
-				}
-			},
-			methods: {
-				updateSearch() {
-					var list = this._data.list.empty();
-					var type = this.search_type.toLowerCase();
-					var search_input = this._data.search_input.toLowerCase()
-					search_input = search_input.replace(type+':', '').trim();
-
-					if (!type) {
-						if ('+plugin'.includes(search_input) || BarItems.add_plugin.name.includes(search_input)) list.push(BarItems.add_plugin);
-						if ('-plugin'.includes(search_input) || BarItems.remove_plugin.name.includes(search_input)) list.push(BarItems.remove_plugin);
-					}
-					if (!type) {
-						for (var i = 0; i < Keybinds.actions.length; i++) {
-							var item = Keybinds.actions[i];
-							if (
-								search_input.length == 0 ||
-								item.name.toLowerCase().includes(search_input) ||
-								item.id.toLowerCase().includes(search_input)
-							) {
-								if (item instanceof Action && Condition(item.condition) && !item.linked_setting) {
-									list.safePush(item)
-									if (list.length > ActionControl.max_length) break;
-								}
-							}
-						}
-					}
-					if (!type || type == 'settings' || type == 'setting') {
-						if (list.length <= ActionControl.max_length) {
-							for (let key in settings) {
-								let setting = settings[key];
-								if (
-									search_input.length == 0 ||
-									setting.name.toLowerCase().includes(search_input) ||
-									key.toLowerCase().includes(search_input)
-								) {
-									if (Condition(setting.condition)) {
-										list.push(setting)
-										if (list.length > ActionControl.max_length) break;
-									}
-								}
-							}
-						}
-					}
-					if (isApp && type == 'recent') {
-						if (list.length <= ActionControl.max_length) {
-							for (let project of recent_projects) {
-								if (
-									search_input.length == 0 ||
-									project.path.toLowerCase().includes(search_input)
-								) {
-									list.push({
-										name: project.name,
-										icon: project.icon,
-										description: project.path,
-										keybind_label: StartScreen.vue.getDate(project),
-										type: 'recent_project'
-									})
-									if (list.length > ActionControl.max_length) break;
-								}
-							}
-						}
-					}
-					if (type == 'tab') {
-						for (let project of ModelProject.all) {
-							if (
-								search_input.length == 0 ||
-								project.name.toLowerCase().includes(search_input) ||
-								project.geometry_name.toLowerCase().includes(search_input)
-							) {
-								list.push({
-									name: project.getDisplayName(),
-									icon: project.format.icon,
-									description: project.path,
-									keybind_label: Modes.options[project.mode].name,
-									uuid: project.uuid,
-									type: 'project_tab'
-								})
-								if (list.length > ActionControl.max_length) break;
-							}
-						}
-					}
-					if (type.substr(1) == 'plugin') {
-						for (let plugin of Plugins.all) {
-							if (
-								plugin.installed == (type[0] == '-') &&
-								(search_input.length == 0 ||
-								plugin.name.toLowerCase().includes(search_input) ||
-								plugin.description.toLowerCase().includes(search_input))
-							) {
-								list.push({
-									name: plugin.name,
-									icon: plugin.icon,
-									description: plugin.description,
-									keybind_label: plugin.author,
-									id: plugin.id,
-									type: 'plugin'
-								})
-								if (list.length > ActionControl.max_length) break;
-							}
-						}
-					}
-					this._data.length = list.length;
-					if (this._data.index < 0) {
-						this._data.index = 0;
-					}
-					if (this._data.index >= list.length) {
-						this._data.index = list.length-1;
-					}
-					return list;
-				},
-				subtext() {
-					let action = this.list[this.index];
-					if (Pressing.alt) {
-						if (action instanceof Setting) {
-							if (action.type == 'select') {
-								return action.options[action.value];
-							} else {
-								return action.value;
-							}
-						} else {
-							action.keybind.label;
-						}
-					} else {
-						return action.description;
-					}
-				},
-				click: ActionControl.click,
-				getIconNode: Blockbench.getIconNode
-			},
-			watch: {
-				search_input() {
-					this.updateSearch();
-				}
-			},
-			template: `
-				<dialog id="action_selector" v-if="open">
-					<input type="text" v-model="search_input" @input="e => search_input = e.target.value" autocomplete="off" autosave="off" autocorrect="off" spellcheck="false" autocapitalize="off">
-					<i class="material-icons" id="action_search_bar_icon" @click="search_input = ''">{{ search_input ? 'clear' : 'search' }}</i>
-					<div v-if="search_type" class="action_selector_type_overlay">{{ search_type }}:</div>
-					<div id="action_selector_list">
-						<ul>
-							<li v-for="(item, i) in list"
-								:class="{selected: i === index}"
-								:title="item.description"
-								@click="click(item, $event)"
-								@mouseenter="index = i"
-							>
-								<div class="icon_wrapper normal" v-html="getIconNode(item.icon, item.color).outerHTML"></div>
-								<span>{{ item.name }}</span>
-								<label class="keybinding_label">{{ item.keybind_label || (item.keybind ? item.keybind.label : '') }}</label>
-							</li>
-						</ul>
-						<div class="small_text" v-if="list[index]">{{ subtext() }}</div>
-					</div>
-				</dialog>
-			`
-		})
 	},
 	updateConditions() {
 		var open_input = document.querySelector('input[type="text"]:focus, input[type="number"]:focus, div[contenteditable="true"]:focus');
@@ -2504,118 +2303,6 @@ const BARS = {
 		UVEditor.all_editors.forEach((editor) => {
 			editor.updateInterface()
 		})*/
-	}
-}
-const ActionControl = {
-	get open() {return ActionControl.vue._data.open},
-	set open(state) {ActionControl.vue._data.open = !!state},
-	type: 'action_selector',
-	max_length: 32,
-	select(input) {
-		ActionControl.open = true;
-		open_interface = ActionControl;
-		ActionControl.vue._data.index = 0;
-		ActionControl.vue.updateSearch();
-		if (input) {
-			ActionControl.vue.search_input = input;
-		}
-		Vue.nextTick(_ => {
-			let element = $('#action_selector > input');
-			element.trigger('focus');
-			if (!input)  element.trigger('select');
-		})
-
-		for (let key in settings) {
-			let setting = settings[key];
-			if (setting.type == 'toggle') {
-				setting.icon = setting.value ? 'check_box' : 'check_box_outline_blank';
-			}
-		}
-	},
-	show(...args) {
-		return this.select(...args);
-	},
-	hide() {
-		open_interface = false;
-		ActionControl.open = false;
-	},
-	confirm(e) {
-		var data = ActionControl.vue._data
-		var action = data.list[data.index]
-		ActionControl.hide()
-		if (action) {
-			ActionControl.trigger(action, e)
-		}
-	},
-	cancel() {
-		ActionControl.hide()
-	},
-	trigger(action, e) {
-		if (action.id == 'action_control') {
-			$('body').effect('shake');
-			Blockbench.showQuickMessage('Congratulations! You have discovered recursion!', 3000)
-		}
-		if (action.type == 'recent_project') {
-			Blockbench.read([action.description], {}, files => {
-				loadModelFile(files[0]);
-			})
-		} else if (action.type == 'project_tab') {
-			ModelProject.all.find(p => p.uuid == action.uuid).select();
-		} else if (action.type == 'plugin') {
-			let plugin = Plugins.all.find(plugin => plugin.id == action.id);
-			if (plugin.installed) {
-				plugin.uninstall();
-			} else {
-				plugin.download(true);
-			}
-
-		} else {
-			action.trigger(e);
-		}
-	},
-	click(action, e) {
-		ActionControl.trigger(action, e)
-		ActionControl.hide()
-	},
-	handleKeys(e) {
-		var data = ActionControl.vue._data
-
-		if (e.altKey) {
-			ActionControl.vue.$forceUpdate()
-		}
-		function updateScroll() {
-			Vue.nextTick(() => {
-				let list = document.querySelector('#action_selector_list ul');
-				let node = list && list.children[data.index];
-				if (!node) return;
-
-				var list_pos = $(list).offset().top;
-				var el_pos = $(node).offset().top;
-
-				if (el_pos < list_pos) {
-					list.scrollTop += el_pos - list_pos;
-				} else if (el_pos > list.clientHeight + list_pos - 20) {
-					list.scrollTop += el_pos - (list.clientHeight + list_pos) + 30;
-				}
-			})
-		}
-
-		if (e.which === 38) {
-			data.index--;
-			if (data.index < 0) {
-				data.index = data.length-1;
-			}
-			updateScroll();
-		} else if (e.which === 40) {
-			data.index++;
-			if (data.index >= data.length) {
-				data.index = 0;
-			}
-			updateScroll();
-		} else {
-			return false;
-		}
-		return true;
 	}
 }
 

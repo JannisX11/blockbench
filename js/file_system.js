@@ -206,7 +206,8 @@ Object.assign(Blockbench, {
 						results[this.i] = {
 							name: file.name,
 							path: file.name,
-							content: result
+							content: result,
+							browser_file: file
 						}
 						result_count++;
 						if (result_count === files.length) {

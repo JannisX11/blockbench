@@ -17,7 +17,9 @@ function handleMenuOverflow(node) {
 	})
 }
 class Menu {
-	constructor(structure) {
+	constructor(id, structure) {
+		if (!structure) structure = id;
+		this.id = typeof id == 'string' ? id : '';
 		this.children = [];
 		this.node = $('<ul class="contextMenu"></ul>')[0]
 		this.structure = structure
@@ -245,8 +247,14 @@ class Menu {
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = $(`<li title="${s.description ? tl(s.description) : ''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`)
-				entry.prepend(icon)
+				entry = $(`<li title="${s.description ? tl(s.description) : ''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`);
+				entry.prepend(icon);
+				if (s.keybind) {
+					let label = document.createElement('label');
+					label.classList.add('keybinding_label')
+					label.innerText = s.keybind || '';
+					entry.append(label);
+				}
 				if (typeof s.click === 'function') {
 					entry.click(e => {
 						if (e.target == entry.get(0)) {
@@ -492,12 +500,13 @@ const MenuBar = {
 			{name: 'menu.file.new', id: 'new', icon: 'insert_drive_file',
 				children: function() {
 					var arr = [];
+					let redact = settings.streamer_mode.value;
 					for (var key in Formats) {
 						(function() {
 							var format = Formats[key];
 							arr.push({
 								id: format.id,
-								name: format.name,
+								name: (redact && format.confidential) ? `[${tl('generic.redacted')}]` : format.name,
 								icon: format.icon,
 								description: format.description,
 								click: (e) => {
@@ -510,28 +519,38 @@ const MenuBar = {
 				}
 			},
 			{name: 'menu.file.recent', id: 'recent', icon: 'history',
-				condition: function() {return isApp && recent_projects.length},
-				children: function() {
+				condition() {return isApp && recent_projects.length},
+				children() {
 					var arr = []
 					let redact = settings.streamer_mode.value;
-					recent_projects.forEach(function(p) {
+					for (let p of recent_projects) {
+						if (arr.length > 12) break;
 						arr.push({
 							name: redact ? `[${tl('generic.redacted')}]` : p.name,
 							path: p.path,
 							description: redact ? '' : p.path,
 							icon: p.icon,
-							click: function(c, event) {
+							click(c, event) {
 								Blockbench.read([p.path], {}, files => {
 									loadModelFile(files[0]);
 								})
 							}
 						})
-					})
+					}
+					if (recent_projects.length > 12) {
+						arr.push('_', {
+							name: 'menu.file.recent.more',
+							icon: 'read_more',
+							click(c, event) {
+								ActionControl.select('recent: ');
+							}
+						})
+					}
 					if (arr.length) {
 						arr.push('_', {
 							name: 'menu.file.recent.clear',
 							icon: 'clear',
-							click: function(c, event) {
+							click(c, event) {
 								recent_projects.empty();
 								updateRecentProjects();
 							}
@@ -542,6 +561,7 @@ const MenuBar = {
 			},
 			'open_model',
 			'open_from_link',
+			'new_window',
 			'_',
 			'save_project',
 			'save_project_as',
@@ -590,6 +610,7 @@ const MenuBar = {
 				'export_minecraft_skin',
 				'export_gltf',
 				'export_obj',
+				'export_collada',
 				'upload_sketchfab',
 				'share_model',
 			]},
@@ -682,10 +703,34 @@ const MenuBar = {
 			condition: {modes: ['display']}
 		})
 		
-		new BarMenu('filter', [
+		new BarMenu('tools', [
+			{id: 'main_tools', icon: 'construction', name: 'Toolbox', condition: () => Project, children() {
+				let tools = Toolbox.children.filter(tool => tool instanceof Tool);
+				tools.forEach(tool => {
+					let old_condition = tool.condition;
+					tool.condition = () => {
+						tool.condition = old_condition;
+						return true;
+					}
+				})
+				let modes = Object.keys(Modes.options);
+				tools.sort((a, b) => modes.indexOf(a.modes[0]) - modes.indexOf(b.modes[0]))
+				let mode = tools[0].modes[0];
+				for (let i = 0; i < tools.length; i++) {
+					if (tools[i].modes[0] !== mode) {
+						mode = tools[i].modes[0];
+						tools.splice(i, 0, '_');
+						i++;
+					}
+				}
+				return tools;
+			}},
+			'swap_tools',
+			'_',
 			'convert_to_mesh',
 			'remove_blank_faces',
 		])
+		MenuBar.menus.filter = MenuBar.menus.tools;
 
 		new BarMenu('animation', [
 			'copy',
@@ -704,6 +749,7 @@ const MenuBar = {
 			'lock_motion_trail',
 			'_',
 			'select_effect_animator',
+			'bake_animation_into_model',
 			'_',
 			'load_animation_file',
 			'save_all_animations',
@@ -719,6 +765,7 @@ const MenuBar = {
 			'view_mode',
 			'toggle_shading',
 			'toggle_motion_trails',
+			'toggle_ground_plane',
 			'preview_checkerboard',
 			'painting_grid',
 			'_',
@@ -734,7 +781,7 @@ const MenuBar = {
 			]},
 		])
 		new BarMenu('help', [
-			{name: 'menu.help.search_action', description: BarItems.action_control.description, id: 'search_action', icon: 'search', click: ActionControl.select},
+			{name: 'menu.help.search_action', description: BarItems.action_control.description, keybind: BarItems.action_control.keybind, id: 'search_action', icon: 'search', click: ActionControl.select},
 			'_',
 			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', click: () => {
 				Blockbench.openLink('http://discord.blockbench.net');

@@ -299,30 +299,6 @@
 	    opacity: 1;
 	}
 
-	.outliner_object i.ec_0 {
-		color: #A2EBFF; /*light_blue*/
-	}
-	.outliner_object i.ec_1 {
-		color: #FFF899; /*yellow*/
-	}
-	.outliner_object i.ec_2 {
-		color: #E8BD7B; /*orange*/
-	}
-	.outliner_object i.ec_3 {
-		color: #FFA7A4; /*red*/
-	}
-	.outliner_object i.ec_4 {
-		color: #C5A6E8; /*purple*/
-	}
-	.outliner_object i.ec_5 {
-		color: #A6C8FF; /*blue*/
-	}
-	.outliner_object i.ec_6 {
-		color: #7BFFA3; /*green*/
-	}
-	.outliner_object i.ec_7 {
-		color: #BDFFA6; /*lime*/
-	}
 	div#outliner_stats {
 		float: right;
 		margin-right: 16px;
@@ -838,6 +814,12 @@
 		margin-top: 4px;
 		margin-left: -1px;
 	}
+	#timeline .keyframe i.keyframe_icon_step {
+		font-size: 16pt;
+		margin-top: 4px;
+		margin-left: -2px;
+		transform: rotate(-90deg);
+	}
 	#timeline_body .animator_head_bar .keyframe {
 		z-index: 1;
 		pointer-events: none;
@@ -1136,10 +1118,25 @@
 		border: 4px solid var(--color-ui);
 		box-shadow: 0 0 0 800px var(--color-back);
     	box-sizing: content-box;
-		--color-unselected: var(--color-grid);
+		--color-uv-unselected: var(--color-grid);
+		--color-uv-selected: white;
+		--color-uv-hover: var(--color-accent);
+		--color-uv-background: rgba(50, 70, 240, 0.14);
+		--color-uv-background-hover: rgba(50, 70, 240, 0.3);
+		--uv-line-width: 2px;
 	}
 	#uv_frame .selection_rectangle {
 		z-index: 8;
+	}
+	#uv_frame.overlay_mode {
+		--color-uv-unselected: var(--color-grid);
+		--color-uv-selected: var(--color-grid);
+		--color-uv-hover: var(--color-grid);
+		--color-uv-background: transparent;
+		--uv-line-width: 1px;
+	}
+	#uv_frame.overlay_mode * {
+		pointer-events: none;
 	}
 
 	body[mode=paint] #uv_frame {
@@ -1175,14 +1172,14 @@
 		position: absolute;
 		z-index: 2;
 		cursor: move;
-		border: 2px solid var(--color-accent);
+		border: var(--uv-line-width) solid var(--color-accent);
 		box-sizing: border-box;
 	}
 	.cube_box_uv > div.uv_fill {
-		background-color: rgba(50, 70, 240, 0.14);
+		background-color: var(--color-uv-background);
 	}
 	.cube_box_uv:hover > div {
-		border-color: white;
+		border-color: var(--color-uv-selected);
 		z-index: 3;
 	}
 	.cube_uv_face {
@@ -1191,19 +1188,19 @@
 		width: var(--width);
 		height: var(--height);
 		cursor: move;
-		border: 2px solid var(--color-text);
+		border: var(--uv-line-width) solid var(--color-text);
 		box-sizing: border-box;
-		background-color: rgba(50, 70, 240, 0.14);
+		background-color: var(--color-uv-background);
 		text-align: center;
 		color: var(--color-subtle_text);
 	}
 	.cube_uv_face:hover {
-		border-color: white;
-		background-color: rgba(50, 70, 240, 0.3);
+		border-color: var(--color-uv-hover);
+		background-color: var(--color-uv-background-hover);
 		z-index: 3;
 	}
 	.cube_uv_face.selected:not(.unselected) {
-		border-color: white;
+		border-color: var(--color-uv-hover);
 		z-index: 4;
 		box-shadow: 0 0 4px #000000cc;
 	}
@@ -1214,7 +1211,7 @@
 	}
 	.cube_uv_face.unselected div,
 	.cube_box_uv.unselected div {
-		border-color: var(--color-unselected) !important;
+		border-color: var(--color-uv-unselected) !important;
 	}
 
 	.uv_resize_side {
@@ -1268,15 +1265,16 @@
 	}
 	.mesh_uv_face polygon {
 		pointer-events: initial;
-		fill: rgba(50, 70, 240, 0.3);
-		stroke: var(--color-text);
-		stroke-width: 2px;
+		fill: var(--color-uv-background);
+		stroke: var(--color-uv-unselected);
+		stroke-width: var(--uv-line-width);
 	}
 	.mesh_uv_face:hover polygon {
-		stroke: white;
+		stroke: var(--color-uv-hover);
+		fill: var(--color-uv-background-hover);
 	}
 	.mesh_uv_face.selected polygon {
-		stroke: var(--color-accent);
+		stroke: var(--color-uv-selected);
 	}
 	.uv_mesh_vertex {
 		position: absolute;
@@ -1381,16 +1379,22 @@
 		position: absolute;
 		pointer-events: none;
 		border: 1px dashed white;
+		margin: -1px;
 		mix-blend-mode: difference;
 	}
 	#texture_pasting_overlay {
 		position: absolute;
+		pointer-events: initial !important;
+	}
+	#texture_pasting_overlay canvas {
+		pointer-events: initial !important;
 	}
 	#texture_pasting_overlay::before {
 		content: "";
 		display: block;
 		position: absolute;
 		border: 1px dashed white;
+		margin: -1px;
 		pointer-events: none;
 		z-index: 6;
 		width: 100%;
@@ -1402,31 +1406,22 @@
 		z-index: 5;
 		float: left;
 	}
-	#texture_pasting_overlay > div.control {
-		background-color: var(--color-bright_ui);
-		position: absolute;
-		box-shadow: 1px 1px 15px rgba(0, 0, 0, 0.5);
-		width: 30px;
-		height: 30px;
-		bottom: -30px;
-		width: max-content;
-	}
-	#texture_pasting_overlay > div.control > div {
-		width: 30px;
-		height: 30px;
-		padding: 3px;
-		float: left;
-		color: var(--color-bright_ui_text);
-		text-align: center;
-	}
-	#texture_pasting_overlay > div.control > div:hover {
-		background-color: var(--color-accent);
-		color: var(--color-accent_text);
-	}
 	.uv_transparent_face {
 		margin: 8px auto auto;
 		color: var(--color-subtle_text);
 		max-width: fit-content;
+	}
+	.copy_paste_tool_control {
+		height: 30px;
+		flex-grow: 1;
+	}
+	.copy_paste_tool_control .tool.button_place {
+		color: var(--color-confirm);
+		float: right;
+	}
+	.copy_paste_tool_control .tool.button_cancel {
+		color: var(--color-close);
+		float: right;
 	}
 
 /*Chat*/
@@ -1569,4 +1564,37 @@
 		margin: 2px 4px 0 4px;
 		width: calc(100% - 8px);
 	}
-
+/* Skin Pose */
+	#skin_pose_selector {
+		display: flex;
+	}
+	#skin_pose_selector > li {
+		flex-grow: 1;
+    	height: 48px;
+		cursor: pointer;
+		text-align: center;
+	}
+	#skin_pose_selector > li:hover {
+		color: var(--color-light);
+	}
+	#skin_pose_selector > li.selected {
+		border-bottom: 3px solid var(--color-accent);
+	}
+	#skin_pose_selector > li:active {
+		padding-top: 1px;
+	}
+	#skin_pose_selector > li .pose_icon {
+		background-color: var(--color-text);
+		pointer-events: none;
+		width: 100%;
+		height: 44px;
+		mask-size: contain;
+		mask-repeat: no-repeat;
+		mask-position: center;
+		-webkit-mask-size: contain;
+		-webkit-mask-repeat: no-repeat;
+		-webkit-mask-position: center;
+	}
+	#skin_pose_selector > li:hover .pose_icon {
+		background-color: var(--color-light);
+	}

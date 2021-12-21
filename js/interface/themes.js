@@ -107,10 +107,14 @@ const CustomTheme = {
 					CustomTheme.remote_themes_loaded = true;
 					$.getJSON('https://api.github.com/repos/JannisX11/blockbench-themes/contents/themes').then(files => {
 						files.forEach(async file => {
-							let {content} = await $.getJSON(file.git_url);
-							let theme = JSON.parse(atob(content));
-							theme.id = file.name.replace(/\.\w+/, '');
-							CustomTheme.themes.push(theme);
+							try {
+								let {content} = await $.getJSON(file.git_url);
+								let theme = JSON.parse(Buffer.from(content, 'base64').toString());
+								theme.id = file.name.replace(/\.\w+/, '');
+								CustomTheme.themes.push(theme);
+							} catch (err) {
+								console.error(err);
+							}
 						})
 					}).catch(console.error)
 
@@ -364,6 +368,8 @@ const CustomTheme = {
 		$('meta[name=theme-color]').attr('content', CustomTheme.data.colors.frame);
 
 		if (typeof gizmo_colors != 'undefined') {
+			Canvas.ground_plane.material.color.set(CustomTheme.data.colors.back);
+
 			var c_outline = parseInt('0x'+CustomTheme.data.colors.accent.replace('#', ''))
 			if (c_outline !== gizmo_colors.outline.getHex()) {
 				gizmo_colors.outline.set(c_outline)

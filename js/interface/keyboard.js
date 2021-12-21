@@ -677,6 +677,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		var orig = Toolbox.selected;
 		var alt = BarItems[Toolbox.selected.alt_tool]
 		if (alt && Condition(alt) && (Modes.paint || BarItems.swap_tools.keybind.key == 18)) {
+			e.preventDefault();
 			alt.select()
 			Toolbox.original = orig
 		}

@@ -31,6 +31,9 @@ const Reusable = {
 
 	quat1: new THREE.Quaternion(),
 	quat2: new THREE.Quaternion(),
+
+	euler1: new THREE.Euler(),
+	euler2: new THREE.Euler(),
 }
 
 const Canvas = {
@@ -299,7 +302,7 @@ const Canvas = {
 				},
 				vertexShader: vertShader,
 				fragmentShader: fragShader,
-				side: THREE.DoubleSide
+				side: THREE.DoubleSide,
 			})
 		})
 	})(),
@@ -405,6 +408,21 @@ const Canvas = {
 		rot_origin.rotation.reorder('ZYX')
 		rot_origin.base_scale = new THREE.Vector3(1, 1, 1);
 		rot_origin.no_export = true;
+
+		Canvas.groundPlaneMaterial = new THREE.MeshBasicMaterial({
+			map: Canvas.emptyMaterials[0].uniforms.map.value,
+			color: CustomTheme.data.colors.back,
+			side: THREE.DoubleSide,
+			alphaTest: 0.2
+		})
+		let size = 4096;
+		Canvas.ground_plane = new THREE.Mesh(new THREE.PlaneGeometry(size, size), Canvas.groundPlaneMaterial);
+		Canvas.ground_plane.rotation.x = Math.PI/2;
+		Canvas.ground_plane.position.y = -0.025;
+		Canvas.ground_plane.geometry.attributes.uv.set([0, 4096/16, 4096/16, 4096/16, 0, 0, 4096/16, 0]);
+		Canvas.ground_plane.geometry.attributes.uv.needsUpdate = true;
+		Canvas.ground_plane.visible = settings.ground_plane.value;
+		scene.add(Canvas.ground_plane);
 
 		setupGrid = true;
 	},

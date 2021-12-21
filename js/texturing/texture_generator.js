@@ -14,12 +14,14 @@ const TextureGenerator = {
 	},
 	addBitmapDialog() {
 		let type_options = {
-			blank: 'dialog.create_texture.type.blank',
-			template: 'dialog.create_texture.type.template',
+			template: 'dialog.create_texture.type.template'
 		}
 		if (!Project.box_uv) {
 			type_options.color_map = 'dialog.create_texture.type.color_map';
 		}
+		type_options.blank = 'dialog.create_texture.type.blank';
+
+		TextureGenerator.background_color.set('#00000000')
 		var dialog = new Dialog({
 			id: 'add_bitmap',
 			title: tl('action.create_texture'),
@@ -27,20 +29,19 @@ const TextureGenerator = {
 			form: {
 				name: 		{label: 'generic.name', value: 'texture'},
 				folder: 	{label: 'dialog.create_texture.folder', condition: Format.id == 'java_block'},
+				type:	{label: 'dialog.create_texture.type', type: 'select', condition: Cube.all.length || Mesh.all.length, options: type_options},
+				section2:    "_",
 
-				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
-				resolution: {label: 'dialog.create_texture.resolution', description: 'dialog.create_texture.resolution.desc', type: 'select', value: 16, condition: (form) => (form.type == 'template'), options: {
-					16: '16',
-					32: '32',
-					64: '64',
-					128: '128',
-					256: '256',
-					512: '512',
+				resolution: {label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: 16, condition: (form) => (form.type == 'template'), options: {
+					16: '16x',
+					32: '32x',
+					64: '64x',
+					128: '128x',
+					256: '256x',
+					512: '512x',
 				}},
 				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (form.type == 'blank'), dimensions: 2, value: [16, 16], min: 16, max: 2048},
-
-				section2:    "_",
-				type:	{label: 'dialog.create_texture.type', type: 'select', condition: Cube.all.length || Mesh.all.length, options: type_options},
+				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
 
 				rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', description: 'dialog.create_texture.rearrange_uv.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template')},
 				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.type == 'template' && !Project.box_uv)},
@@ -54,6 +55,9 @@ const TextureGenerator = {
 			onFormChange(form) {
 				if (form.type == 'template' && TextureGenerator.background_color.get().toHex8() === 'ffffffff') {
 					TextureGenerator.background_color.set('#00000000')
+				}
+				if (form.type == 'blank' && TextureGenerator.background_color.get().toHex8() === '00000000') {
+					TextureGenerator.background_color.set('#ffffffff')
 				}
 			},
 			onConfirm: function(results) {
@@ -196,7 +200,7 @@ const TextureGenerator = {
 		}
 		//Cancel if no cubes
 		if (templates.length == 0) {
-			Blockbench.showMessage('No valid cubes', 'center')
+			Blockbench.showMessage('message.no_valid_elements', 'center')
 			return;
 		}
 		templates.sort(function(a,b) {
@@ -653,13 +657,14 @@ const TextureGenerator = {
 						normal_vec,
 						vec2.fromArray(mesh.vertices[face_group.faces[0].vertices[0]])
 					)
+					let rot = cameraTargetToRotation([0, 0, 0], normal_vec.toArray());
+					let e = new THREE.Euler(Math.degToRad(-rot[1] - 90), Math.degToRad(rot[0]), 0);
 					let vertex_uvs = {};
 					face_group.faces.forEach(face => {
 						face.vertices.forEach(vkey => {
 							if (!vertex_uvs[vkey]) {
 								let coplanar_pos = plane.projectPoint(vec3.fromArray(mesh.vertices[vkey]), vec4);
-								let q = new THREE.Quaternion().setFromUnitVectors(normal_vec, THREE.NormalY)
-								coplanar_pos.applyQuaternion(q);
+								coplanar_pos.applyEuler(e);
 								vertex_uvs[vkey] = [
 									Math.roundTo(coplanar_pos.x, 4),
 									Math.roundTo(coplanar_pos.z, 4),
@@ -763,7 +768,7 @@ const TextureGenerator = {
 					face_group.size = max_x * max_z;
 
 					let axis = [0, 1, 2].sort((a, b) => {
-						return Math.abs(face_group.normal[b]) - Math.abs(face_group.normal[a])
+						return Math.abs(face_group.normal[b]) - Math.abs(face_group.normal[a]) - 0.0001
 					})[0]
 					if (axis == 0 && face_group.normal[0] >= 0) face_group.face_key = 'east';
 					if (axis == 0 && face_group.normal[0] <= 0) face_group.face_key = 'west';
@@ -777,7 +782,7 @@ const TextureGenerator = {
 		})
 
 		if (face_list.length == 0) {
-			Blockbench.showMessage('No valid cubes', 'center')
+			Blockbench.showMessage('message.no_valid_elements', 'center')
 			return;
 		}
 
@@ -1042,7 +1047,7 @@ const TextureGenerator = {
 		})
 
 		if (face_list.length == 0) {
-			Blockbench.showMessage('No valid cubes', 'center')
+			Blockbench.showMessage('message.no_valid_elements', 'center')
 			return;
 		}
 

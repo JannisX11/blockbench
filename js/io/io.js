@@ -34,7 +34,7 @@ function setupDragHandlers() {
 	)
 	Blockbench.addDragHandler(
 		'texture',
-		{extensions: ['png', 'tga'], propagate: true, readtype: 'image'},
+		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => Project && Dialog.open},
 		function(files, event) {
 			var texture_li = $(event.target).parents('li.texture')
 			if (texture_li.length) {
@@ -57,32 +57,32 @@ function loadModelFile(file) {
 	let existing_tab = isApp && ModelProject.all.find(project => (
 		project.save_path == file.path || project.export_path == file.path
 	))
-	if (existing_tab) {
-		existing_tab.select();
-		return;
-	}
 
 	let extension = pathToExtension(file.path);
-	// Text
-	for (let id in Codecs) {
-		let codec = Codecs[id];
-		if (codec.load_filter && codec.load_filter.type == 'text') {
-			if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, file.content)) {
-				codec.load(file.content, file);
-				return;
+
+	function loadIfCompatible(codec, type, content) {
+		if (codec.load_filter && codec.load_filter.type == type) {
+			if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, content)) {
+				if (existing_tab && !codec.multiple_per_file) {
+					existing_tab.select();
+				} else {
+					codec.load(content, file);
+				}
+				return true;
 			}
 		}
+	}
+
+	// Text
+	for (let id in Codecs) {
+		let success = loadIfCompatible(Codecs[id], 'text', file.content);
+		if (success) return;
 	}
 	// JSON
 	let model = autoParseJSON(file.content);
 	for (let id in Codecs) {
-		let codec = Codecs[id];
-		if (codec.load_filter && codec.load_filter.type == 'json') {
-			if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, model)) {
-				codec.load(model, file);
-				return;
-			}
-		}
+		let success = loadIfCompatible(Codecs[id], 'json', model);
+		if (success) return;
 	}
 }
 //Extruder
@@ -397,7 +397,7 @@ function uploadSketchfabModel() {
 						})
 					},
 					error: function(response) {
-						Blockbench.showQuickMessage('message.sketchfab.error', 1500)
+						Blockbench.showQuickMessage(tl('message.sketchfab.error') + `Error ${response.status}`, 1500)
 						console.error(response);
 					}
 				})

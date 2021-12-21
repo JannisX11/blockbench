@@ -63,6 +63,7 @@ const Painter = {
 			} else {
 				Painter.current.texture = texture
 				var c = Painter.current.canvas = Painter.getCanvas(texture)
+				Painter.current.ctx = c.getContext('2d');
 				c = cb(c) || c;
 
 				texture.updateSource(c.toDataURL())
@@ -196,14 +197,16 @@ const Painter = {
 				var is_line = (event.shiftKey || Pressing.overrides.shift);
 			}
 
-			if (is_line) {
-				Painter.drawBrushLine(texture, x, y, event, false, uvTag);
-			} else {
-				Painter.current.x = Painter.current.y = 0
-				Painter.useBrushlike(texture, x, y, event, uvTag)
-			}
-			Painter.current.x = x;
-			Painter.current.y = y;
+			texture.edit(canvas => {
+				if (is_line) {
+					Painter.drawBrushLine(texture, x, y, event, false, uvTag);
+				} else {
+					Painter.current.x = Painter.current.y = 0
+					Painter.useBrushlike(texture, x, y, event, uvTag)
+				}
+				Painter.current.x = x;
+				Painter.current.y = y;
+			}, {no_undo: true, use_cache: true});
 		}
 	},
 	movePaintTool(texture, x, y, event, new_face, uv) {
@@ -217,7 +220,9 @@ const Painter = {
 			Painter.useGradientTool(texture, x, y, event, uv)
 
 		} else {
-			Painter.drawBrushLine(texture, x, y, event, new_face, uv)
+			texture.edit(canvas => {
+				Painter.drawBrushLine(texture, x, y, event, new_face, uv)
+			}, {no_undo: true, use_cache: true});
 		}
 		Painter.current.x = x;
 		Painter.current.y = y;
@@ -285,23 +290,20 @@ const Painter = {
 			Painter.runMirrorBrush(texture, x, y, event, uvTag);
 		}
 
-		texture.edit(function(canvas) {
-			var ctx = canvas.getContext('2d')
-			ctx.save()
+		let ctx = Painter.current.ctx;
+		ctx.save()
 
-			ctx.beginPath();
-			let rect = Painter.setupRectFromFace(uvTag, texture);
-			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
-			ctx.rect(rect[0], rect[1], w, h)
+		ctx.beginPath();
+		let rect = Painter.setupRectFromFace(uvTag, texture);
+		var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
+		ctx.rect(rect[0], rect[1], w, h)
 
-			if (Toolbox.selected.id === 'fill_tool') {
-				Painter.useFilltool(texture, ctx, x, y, { rect, uvFactorX, uvFactorY, w, h })
-			} else {
-				Painter.useBrush(texture, ctx, x, y, event)
-			}
-			Painter.editing_area = undefined;
-
-		}, {no_undo: true, use_cache: true, no_update});
+		if (Toolbox.selected.id === 'fill_tool') {
+			Painter.useFilltool(texture, ctx, x, y, { rect, uvFactorX, uvFactorY, w, h })
+		} else {
+			Painter.useBrush(texture, ctx, x, y, event)
+		}
+		Painter.editing_area = undefined;
 	},
 	useBrush(texture, ctx, x, y, event) {
 
@@ -390,13 +392,18 @@ const Painter = {
 				ctx.beginPath();
 				if (tag.getTexture() === texture) {
 					var face_rect = getRectangle(
-						Math.floor(tag.uv[0] * uvFactorX),
-						Math.floor(tag.uv[1] * uvFactorY),
-						Math.ceil(tag.uv[2]  * uvFactorX),
-						Math.ceil(tag.uv[3]  * uvFactorY)
+						tag.uv[0] * uvFactorX,
+						tag.uv[1] * uvFactorY,
+						tag.uv[2] * uvFactorX,
+						tag.uv[3] * uvFactorY
 					)
 					let animation_offset = texture.currentFrame * texture.display_height;
-					ctx.rect(face_rect.ax, face_rect.ay + animation_offset, face_rect.x, face_rect.y)
+					ctx.rect(
+						Math.floor(face_rect.ax),
+						Math.floor(face_rect.ay) + animation_offset,
+						Math.ceil(face_rect.bx) - Math.floor(face_rect.ax),
+						Math.ceil(face_rect.by) - Math.floor(face_rect.ay)
+					)
 					ctx.fill()
 				}
 			}
@@ -579,7 +586,7 @@ const Painter = {
 		var diff_x = end_x - start_x;
 		var diff_y = end_y - start_y;
 
-		var length = Math.sqrt(diff_x*diff_x + diff_y*diff_y)
+		var length = Math.round(Math.sqrt(diff_x*diff_x + diff_y*diff_y))
 		if (new_face && !length) {
 			length = 1
 		}
@@ -797,9 +804,9 @@ const Painter = {
 	},
 	getMirrorCube(element) {
 		let center = Format.centered_grid ? 0 : 8;
-		let e = 0.002
+		let e = 0.01
 		if (element instanceof Cube) {
-			if (element.from[0]-center === center-element.to[0] && !element.rotation[1] && !element.rotation[2]) {
+			if (Math.epsilon(element.from[0]-center, center-element.to[0], e) && !element.rotation[1] && !element.rotation[2]) {
 				return element;
 			} else {
 				for (var element2 of Cube.all) {
@@ -815,7 +822,7 @@ const Painter = {
 			}
 			return false;
 		} else if (element instanceof Mesh) {
-			if (element instanceof Mesh && element.origin[0] === center && !element.rotation[1] && !element.rotation[2]) {
+			if (element instanceof Mesh && Math.epsilon(element.origin[0], center, e) && !element.rotation[1] && !element.rotation[2]) {
 				return element;
 			} else {
 				for (var element2 of Mesh.all) {
@@ -996,11 +1003,17 @@ BARS.defineActions(function() {
 		allowed_view_modes: ['textured'],
 		keybind: new Keybind({key: 'b'}),
 		modes: ['paint'],
-		onCanvasClick: function(data) {
-			Painter.startPaintToolCanvas(data, data.event)
+		onCanvasClick(data) {
+			Painter.startPaintToolCanvas(data, data.event);
 		},
-		onSelect: function() {
-			Painter.updateNslideValues()
+		onSelect() {
+			Painter.updateNslideValues();
+			Interface.addSuggestedModifierKey('alt', 'action.color_picker');
+			Interface.addSuggestedModifierKey('shift', 'modifier_actions.draw_line');
+		},
+		onUnselect() {
+			Interface.removeSuggestedModifierKey('alt', 'action.color_picker');
+			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.draw_line');
 		}
 	})
 	new Tool('fill_tool', {
@@ -1018,7 +1031,11 @@ BARS.defineActions(function() {
 			Painter.startPaintToolCanvas(data, data.event)
 		},
 		onSelect: function() {
-			Painter.updateNslideValues()
+			Painter.updateNslideValues();
+			Interface.addSuggestedModifierKey('alt', 'action.color_picker');
+		},
+		onUnselect() {
+			Interface.removeSuggestedModifierKey('alt', 'action.color_picker');
 		}
 	})
 	new Tool('eraser', {
@@ -1039,6 +1056,10 @@ BARS.defineActions(function() {
 		},
 		onSelect: function() {
 			Painter.updateNslideValues()
+			Interface.addSuggestedModifierKey('shift', 'modifier_actions.draw_line');
+		},
+		onUnselect() {
+			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.draw_line');
 		}
 	})
 	new Tool('color_picker', {
@@ -1076,6 +1097,10 @@ BARS.defineActions(function() {
 		},
 		onSelect: function() {
 			Painter.updateNslideValues()
+			Interface.addSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
+		},
+		onUnselect() {
+			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
 		}
 	})
 	new Tool('gradient_tool', {
@@ -1096,6 +1121,10 @@ BARS.defineActions(function() {
 		},
 		onSelect: function() {
 			Painter.updateNslideValues()
+			Interface.addSuggestedModifierKey('shift', 'modifier_actions.snap_direction');
+		},
+		onUnselect() {
+			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.snap_direction');
 		}
 	})
 	new Tool('copy_paste_tool', {

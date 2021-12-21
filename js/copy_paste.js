@@ -5,6 +5,7 @@ const Clipbench = {
 		text: 'text',
 		display_slot: 'display_slot',
 		keyframe: 'keyframe',
+		animation: 'animation',
 		face: 'face',
 		mesh_selection: 'mesh_selection',
 		texture: 'texture',
@@ -31,6 +32,9 @@ const Clipbench = {
 		}
 		if (display_mode) {
 			return Clipbench.types.display_slot
+		}
+		if (Animator.open && Prop.active_panel == 'animations') {
+			return Clipbench.types.animation
 		}
 		if (Animator.open && Timeline.animators.length && (Timeline.selected.length || mode === 2) && ['keyframe', 'timeline', 'preview'].includes(p)) {
 			return Clipbench.types.keyframe
@@ -62,6 +66,9 @@ const Clipbench = {
 		if (display_mode) {
 			return Clipbench.types.display_slot
 		}
+		if (Animator.open && Prop.active_panel == 'animations') {
+			return Clipbench.types.animation
+		}
 		if (Animator.open && Timeline.animators.length && ['keyframe', 'timeline', 'preview'].includes(p)) {
 			return Clipbench.types.keyframe
 		}
@@ -76,7 +83,9 @@ const Clipbench = {
 			if (UVEditor.getMappableElements().length && UVEditor.clipboard.length) {
 				options.push(Clipbench.types.face);
 			}
-			if (options.length > 1) {
+			if (options.length > 1 && options.includes(settings.preview_paste_behavior.value)) {
+				return settings.preview_paste_behavior.value;
+			} else if (options.length > 1) {
 				return await new Promise((resolve, reject) => {
 					new Menu(options.map(option => {
 						return {
@@ -112,6 +121,9 @@ const Clipbench = {
 				break;
 			case 'display_slot':
 				DisplayMode.copy();
+				break;
+			case 'animation':
+				Clipbench.setAnimation();
 				break;
 			case 'keyframe':
 				if (Timeline.selected.length) {
@@ -158,6 +170,9 @@ const Clipbench = {
 				break;
 			case 'display_slot':
 				DisplayMode.paste();
+				break;
+			case 'animation':
+				Clipbench.pasteAnimation();
 				break;
 			case 'keyframe':
 				Clipbench.pasteKeyframes()

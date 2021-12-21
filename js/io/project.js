@@ -13,7 +13,8 @@ class ModelProject {
 		this._texture_height = 16;
 
 		this._name = '';
-		this.saved = true;
+		this._saved = true;
+
 		this.save_path = '';
 		this.export_path = '';
 		this.added_models = 0;
@@ -24,8 +25,19 @@ class ModelProject {
 		this.mode = 'edit';
 		this.view_mode = 'textured';
 		this.display_uv = settings.show_only_selected_uv.value ? 'selected_faces' :'selected_elements';
+		this.exploded_view = false;
 		this.previews = {};
 		this.EditSession = null;
+
+		this.backgrounds = {
+			normal: 		new PreviewBackground({name: 'menu.preview.perspective.normal', lock: null}),
+			ortho_top: 		new PreviewBackground({name: 'direction.top', lock: true}),
+			ortho_bottom: 	new PreviewBackground({name: 'direction.bottom', lock: true}),
+			ortho_south: 	new PreviewBackground({name: 'direction.south', lock: true}),
+			ortho_north: 	new PreviewBackground({name: 'direction.north', lock: true}),
+			ortho_east: 	new PreviewBackground({name: 'direction.east', lock: true}),
+			ortho_west: 	new PreviewBackground({name: 'direction.west', lock: true}),
+		}
 
 		// Data
 		this.elements = [];
@@ -86,7 +98,16 @@ class ModelProject {
 	set name(name) {
 		this._name = name;
 		if (Project == this) {
-			setProjectTitle(this._name);
+			setProjectTitle(name);
+		}
+	}
+	get saved() {
+		return this._saved;
+	}
+	set saved(saved) {
+		this._saved = saved;
+		if (Project == this) {
+			setProjectTitle(this.name);
 		}
 	}
 	get model_3d() {
@@ -156,6 +177,8 @@ class ModelProject {
 
 		Interface.Panels.variable_placeholders.inside_vue.text = this.variable_placeholders.toString();
 
+		Interface.Panels.skin_pose.inside_vue.pose = this.skin_pose;
+
 		Modes.options[this.mode].select();
 
 		BarItems.lock_motion_trail.value = !!Project.motion_trail_lock;
@@ -181,6 +204,9 @@ class ModelProject {
 
 		Blockbench.dispatchEvent('select_project', {project: this});
 
+		Preview.all.forEach(p => {
+			if (p.canvas.isConnected) p.loadBackground()
+		})
 		if (Preview.selected) Preview.selected.occupyTransformer();
 		setProjectTitle(this.name);
 		setStartScreen(!Project);
@@ -196,8 +222,8 @@ class ModelProject {
 		})
 		return true;
 	}
-	unselect() {
-		this.thumbnail = Preview.selected.canvas.toDataURL();
+	unselect(closing) {
+		if (!closing) this.thumbnail = Preview.selected.canvas.toDataURL();
 		Interface.tab_bar.last_opened_project = this.uuid;
 
 		if (Format && typeof Format.onDeactivation == 'function') {
@@ -214,6 +240,10 @@ class ModelProject {
 			}
 		})
 
+		this.undo.closeAmendEditMenu();
+		Preview.all.forEach(preview => {
+			if (preview.movingBackground) preview.stopMovingBackground();
+		})
 		if (TextureAnimator.isPlaying) TextureAnimator.stop();
 		this.selected = false;
 		Painter.current = {};
@@ -267,7 +297,7 @@ class ModelProject {
 	
 			Blockbench.dispatchEvent('close_project');
 			
-			this.unselect();
+			this.unselect(true);
 			Texture.all.forEach(tex => tex.stopWatcher());
 
 			let index = ModelProject.all.indexOf(this);
@@ -336,6 +366,11 @@ new Property(ModelProject, 'number', 'shadow_size', {
 	condition: {formats: ['optifine_entity']},
 	default: 1
 });
+new Property(ModelProject, 'string', 'skin_pose', {
+	exposed: false,
+	condition: {formats: ['skin']},
+	default: 'none'
+});
 
 
 ModelProject.all = [];
@@ -362,6 +397,11 @@ function newProject(format) {
 	Modes.options.edit.select();
 	Blockbench.dispatchEvent('new_project');
 	return true;
+}
+function updateTabBarVisibility() {
+	let hidden = Settings.get('hide_tab_bar') && Interface.tab_bar.tabs.length < 2;
+	document.getElementById('tab_bar').style.display = hidden ? 'none' : 'flex';
+	document.getElementById('title_bar_home_button').style.display = hidden ? 'block' : 'none';
 }
 
 // Resolution
@@ -463,7 +503,7 @@ onVueSetup(() => {
 			}
 			Project = 0;
 			Interface.tab_bar.new_tab.selected = true;
-			setProjectTitle(tl('projects.new_tab'));
+			setProjectTitle(ModelProject.all.length ? tl('projects.new_tab') : null);
 		},
 		openSettings() {}
 	}
@@ -619,8 +659,15 @@ onVueSetup(() => {
 					}, 80)
 				}
 			}
+		},
+		watch: {
+			tabs() {
+				updateTabBarVisibility();
+			}
 		}
 	})
+
+	updateTabBarVisibility()
 })
 
 

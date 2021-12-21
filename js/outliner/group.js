@@ -93,10 +93,8 @@ class Group extends OutlinerNode {
 				s.selectLow()
 			})
 		}
-		if (Animator.open) {
-			if (Animation.selected) {
-				Animation.selected.getBoneAnimator().select(true)
-			}
+		if (Animator.open && Animation.selected) {
+			Animation.selected.getBoneAnimator(this).select(true);
 		}
 		updateSelection()
 		return this;
@@ -410,6 +408,7 @@ class Group extends OutlinerNode {
 	Group.prototype.type = 'group';
 	Group.prototype.icon = 'fa fa-folder';
 	Group.prototype.isParent = true;
+	Group.prototype.rotatable = true;
 	Group.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
 	Group.prototype.buttons = [
 		Outliner.buttons.autouv,
@@ -441,16 +440,14 @@ class Group extends OutlinerNode {
 		'_',
 		'rename',
 		'edit_bedrock_binding',
-		{name: 'menu.cube.color', icon: 'color_lens', children: [
-			{icon: 'bubble_chart', color: markerColors[0].standard, name: 'cube.color.'+markerColors[0].name, click: () => setGroupColor(0)},
-			{icon: 'bubble_chart', color: markerColors[1].standard, name: 'cube.color.'+markerColors[1].name, click: () => setGroupColor(1)},
-			{icon: 'bubble_chart', color: markerColors[2].standard, name: 'cube.color.'+markerColors[2].name, click: () => setGroupColor(2)},
-			{icon: 'bubble_chart', color: markerColors[3].standard, name: 'cube.color.'+markerColors[3].name, click: () => setGroupColor(3)},
-			{icon: 'bubble_chart', color: markerColors[4].standard, name: 'cube.color.'+markerColors[4].name, click: () => setGroupColor(4)},
-			{icon: 'bubble_chart', color: markerColors[5].standard, name: 'cube.color.'+markerColors[5].name, click: () => setGroupColor(5)},
-			{icon: 'bubble_chart', color: markerColors[6].standard, name: 'cube.color.'+markerColors[6].name, click: () => setGroupColor(6)},
-			{icon: 'bubble_chart', color: markerColors[7].standard, name: 'cube.color.'+markerColors[7].name, click: () => setGroupColor(7)}
-		]},
+		{name: 'menu.cube.color', icon: 'color_lens', children: markerColors.map((color, i) => {return {
+			icon: 'bubble_chart',
+			color: color.standard,
+			name: 'cube.color.'+color.name,
+			click() {
+				setGroupColor(i);
+			}
+		}})},
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
 		{icon: 'fa-leaf', name: 'menu.group.resolve', condition: {modes: ['edit']}, click: function(group) {group.resolve()}},
 		'delete'
@@ -633,6 +630,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => Format.id == 'bedrock' && Group.selected,
 		click: function() {
+
 			let dialog = new Dialog({
 				id: 'edit_bedrock_binding',
 				title: 'action.edit_bedrock_binding',
@@ -641,9 +639,23 @@ BARS.defineActions(function() {
 					data: {
 						binding: Group.selected.bedrock_binding,
 					},
+					methods: {
+						showPresetMenu(event) {
+							new Menu([
+								{
+									name: 'Item',
+									icon: 'build',
+									click: () => {
+										this.binding = 'q.item_slot_to_bone_name(c.item_slot)';
+									}
+								}
+							]).show(event.target);
+						}
+					},
 					template: 
 						`<div class="dialog_bar">
-							<vue-prism-editor class="molang_input dark_bordered" v-model="binding" language="molang" :line-numbers="false" />
+							<vue-prism-editor class="molang_input dark_bordered"  v-model="binding" language="molang" :line-numbers="false" style="width: calc(100% - 36px); display: inline-block;" />
+							<i class="tool material-icons" style="vertical-align: top; padding: 3px; float: none;" @click="showPresetMenu($event)">menu</i>
 						</div>`
 				},
 				onConfirm: form_data => {

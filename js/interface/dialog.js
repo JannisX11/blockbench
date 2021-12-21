@@ -2,21 +2,31 @@
 
 Vue.component('search-bar', {
 	props: {
-		value: String
+		value: String,
+		hide: Boolean
 	},
+	data() {return {
+		hidden: this.hide
+	}},
 	methods: {
 		change(text) {
 			this.$emit('input', text)
 		},
-		reset() {
-			this.value = '';
-			this.$emit('input', '');
+		clickIcon() {
+			if (this.hide && !this.value) {
+				this.hidden = false;
+				this.$refs.input.focus();
+			} else {
+				this.value = '';
+				this.$emit('input', '');
+			}
 		}
 	},
-	template: `<div class="search_bar">
-			<input type="text" class="dark_bordered" :value="value" @input="change($event.target.value)">
-			<i class="material-icons" :class="{light_on_hover: !!value}" @click="reset()">{{ value ? 'clear' : 'search' }}</i>
-		</div>`,
+	template: `
+		<div class="search_bar" :class="{folded: (!value && hidden)}">
+			<input type="text" ref="input" class="dark_bordered" :value="value" @focusout="hidden = hide;" @input="change($event.target.value)">
+			<i class="material-icons" :class="{light_on_hover: !!value}" @click="clickIcon()">{{ value ? 'clear' : 'search' }}</i>
+		</div>`
 })
 
 function buildForm(dialog) {

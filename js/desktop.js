@@ -145,6 +145,7 @@ async function updateRecentProjectThumbnail() {
 
 	MediaPreview.resize(180, 100)
 	MediaPreview.loadAnglePreset(DefaultCameraPresets[0])
+	MediaPreview.setFOV(30);
 	let center = getSelectionCenter(true);
 	MediaPreview.controls.target.fromArray(center);
 	MediaPreview.controls.target.add(scene.position);
@@ -363,6 +364,7 @@ window.onbeforeunload = function (event) {
 	} else {
 		setTimeout(async function() {
 			let projects = ModelProject.all.slice();
+			if (projects[0]) await projects[0].select();
 			for (let project of projects) {
 				let closed = await project.close();
 				if (!closed) return false;

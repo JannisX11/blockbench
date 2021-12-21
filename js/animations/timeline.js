@@ -27,14 +27,13 @@ class TimelineMarker {
 	}
 }
 TimelineMarker.prototype.menu = new Menu([
-	{icon: 'flag', color: markerColors[0].standard, name: 'cube.color.'+markerColors[0].name, click: function(marker) {marker.color = 0;}},
-	{icon: 'flag', color: markerColors[1].standard, name: 'cube.color.'+markerColors[1].name, click: function(marker) {marker.color = 1;}},
-	{icon: 'flag', color: markerColors[2].standard, name: 'cube.color.'+markerColors[2].name, click: function(marker) {marker.color = 2;}},
-	{icon: 'flag', color: markerColors[3].standard, name: 'cube.color.'+markerColors[3].name, click: function(marker) {marker.color = 3;}},
-	{icon: 'flag', color: markerColors[4].standard, name: 'cube.color.'+markerColors[4].name, click: function(marker) {marker.color = 4;}},
-	{icon: 'flag', color: markerColors[5].standard, name: 'cube.color.'+markerColors[5].name, click: function(marker) {marker.color = 5;}},
-	{icon: 'flag', color: markerColors[6].standard, name: 'cube.color.'+markerColors[6].name, click: function(marker) {marker.color = 6;}},
-	{icon: 'flag', color: markerColors[7].standard, name: 'cube.color.'+markerColors[7].name, click: function(marker) {marker.color = 7;}},
+	
+	...markerColors.map((color, i) => {return {
+		icon: 'flag',
+		color: color.standard,
+		name: 'cube.color.'+color.name,
+		click(marker) {marker.color = i;}
+	}}),
 	'_',
 	{icon: 'delete', name: 'generic.delete', click: function(marker) {
 		if (Animation.selected) Animation.selected.markers.remove(marker);
@@ -129,7 +128,7 @@ const Timeline = {
 						if (!Timeline.vue.graph_editor_open) {
 
 							var channel_index = 0 //animator.channels.indexOf(kf.channel);
-							for (var channel of animator.channels) {
+							for (var channel in animator.channels) {
 								if (kf.channel == channel) break;
 								if (channels[channel] != false && (!channels.hide_empty || animator[channel].length)) {
 									channel_index++;
@@ -271,6 +270,7 @@ const Timeline = {
 				if (!e.ctrlOrCmd && !Pressing.overrides.ctrl) time = Timeline.snapTime(time);
 				Timeline.setTime(time);
 				Animator.preview();
+				Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.drag_without_snapping');
 			}
 		})
 		$(document).on('mousemove touchmove', e => {
@@ -297,7 +297,8 @@ const Timeline = {
 		})
 		.on('mouseup touchend', e => {
 			if (Timeline.dragging_playhead) {
-				delete Timeline.dragging_playhead
+				delete Timeline.dragging_playhead;
+				Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.drag_without_snapping');
 				Timeline.pause();
 
 			} else if (Timeline.dragging_endbracket) {
@@ -576,7 +577,7 @@ onVueSetup(function() {
 			animation_length: 0,
 			scroll_left: 0,
 			scroll_top: 0,
-			head_width: Blockbench.isMobile ? 140 : 196,
+			head_width: Interface.data.timeline_head,
 			timecodes: [],
 			animators: Timeline.animators,
 			markers: [],
@@ -713,6 +714,7 @@ onVueSetup(function() {
 			},
 			selectChannel(animator, channel) {
 				if (this.graph_editor_channel == channel && animator.selected) return;
+				if (!animator.channels[channel].transform) return;
 				animator.select();
 				if (animator[channel].length == 1 && Math.epsilon(animator[channel][0].time, Timeline.time, 0.002)) {
 					animator[channel][0].select();
@@ -875,6 +877,7 @@ onVueSetup(function() {
 						Blockbench.setStatusBarText(text);
 					}
 					BarItems.slider_keyframe_time.update()
+					Animator.showMotionTrail()
 					Animator.preview()
 
 				}
@@ -961,7 +964,7 @@ onVueSetup(function() {
 									</div>
 								</div>
 								<div class="keyframe_section" v-if="!graph_editor_open">
-									<template v-for="channel in animator.channels" v-if="!(animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length))">
+									<template v-for="(channel_options, channel) in animator.channels" v-if="!(animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length))">
 										<div
 											v-for="keyframe in animator[channel]"
 											v-bind:style="{left: (8 + keyframe.time * size) + 'px'}"
@@ -975,7 +978,7 @@ onVueSetup(function() {
 							</div>
 							<div class="animator_channel_bar"
 								v-bind:style="{width: (size*length + head_width)+'px'}"
-								v-for="channel in animator.channels"
+								v-for="(channel_options, channel) in animator.channels"
 								v-if="animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length)"
 							>
 								<div class="channel_head"
@@ -983,17 +986,18 @@ onVueSetup(function() {
 									v-bind:style="{left: scroll_left+'px', width: head_width+'px'}"
 									@click.stop="selectChannel(animator, channel);"
 								>
-									<div class="text_button" v-on:click.stop="animator.toggleMuted(channel)">
+									<div class="text_button" v-if="channel_options.mutable" v-on:click.stop="animator.toggleMuted(channel)">
 										<template v-if="channel === 'sound'">
 											<i class="channel_mute fas fa-volume-mute" v-if="animator.muted[channel]"></i>
 											<i class="channel_mute fas fa-volume-up" v-else></i>
 										</template>
-										<template v-else-if="channel !== 'timeline'">
+										<template v-else>
 											<i class="channel_mute fas fa-eye-slash" v-if="animator.muted[channel]"></i>
 											<i class="channel_mute fas fa-eye" v-else></i>
 										</template>
 									</div>
-									<span>{{ tl('timeline.'+channel) }}</span>
+									<div class="text_button" v-else></div>
+									<span>{{ channel_options.name }}</span>
 									<div class="text_button" v-on:click.stop="animator.createKeyframe(null, null, channel, true)">
 										<i class="material-icons">add</i>
 									</div>
@@ -1012,6 +1016,7 @@ onVueSetup(function() {
 										@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
 									>
 										<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
+										<i class="material-icons keyframe_icon_step" v-else-if="keyframe.interpolation == 'step'">eject</i>
 										<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
 										<svg class="keyframe_waveform" v-if="keyframe.channel == 'sound' && keyframe.data_points[0].file && waveforms[keyframe.data_points[0].file]" :style="{width: waveforms[keyframe.data_points[0].file].duration * size}">
 											<polygon :points="getWaveformPoints(waveforms[keyframe.data_points[0].file].samples, size)"></polygon>
@@ -1043,6 +1048,7 @@ onVueSetup(function() {
 									@contextmenu.prevent="keyframe.showContextMenu($event)"
 								>
 									<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
+									<i class="material-icons keyframe_icon_step" v-else-if="keyframe.interpolation == 'step'">eject</i>
 									<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
 								</div>
 							</template>
@@ -1063,7 +1069,12 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 114}),
 		onChange(state) {
 			Timeline.vue.graph_editor_open = state;
-			if (Timeline.vue.graph_editor_open && Timeline.selected.length) {
+			if (Timeline.vue.graph_editor_open &&
+				Timeline.selected.length &&
+				Timeline.selected_animator &&
+				Timeline.selected_animator.channels[Timeline.selected[0].channel] &&
+				Timeline.selected_animator.channels[Timeline.selected[0].channel].transform
+			) {
 				Timeline.vue.graph_editor_channel = Timeline.selected[0].channel;
 			}
 		}
@@ -1098,6 +1109,11 @@ BARS.defineActions(function() {
 	new NumSlider('slider_animation_speed', {
 		category: 'animation',
 		condition: {modes: ['animate']},
+		settings: {
+			default: 100,
+			min: 0,
+			max: 10000
+		},
 		get: function() {
 			return Timeline.playback_speed;
 		},

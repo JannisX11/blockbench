@@ -117,9 +117,10 @@
 	}
 	@font-face {
 		font-family: 'icomoon';
-		src: url('../font/icomoon.woff?t564px') format('woff');
 		font-weight: normal;
 		font-style: normal;
+		src: local('icomoon'),
+			url('../font/icomoon.woff') format('woff');
 	}
 
 /*Icons*/
@@ -312,6 +313,7 @@
 		--color-checkerboard: #1c2026;
 
 		--color-close: #d62e3f;
+		--color-confirm: #90ee90;
 		--color-stream: #6442A4;
 		--color-axis-x: #ff1242;
 		--color-axis-y: #23d400;

@@ -25,7 +25,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '4.0.5';
+		const appVersion = '4.1.0';
 
 		
 		if (localStorage.getItem('theme')) {
@@ -88,9 +88,11 @@
 		<script src="js/file_system.js"></script>
 		<script src="js/interface/panels.js"></script>
 		<script src="js/interface/interface.js"></script>
+		<script src="js/interface/start_screen.js"></script>
 		<script src="js/interface/keyboard.js"></script>
 		<script src="js/interface/settings.js"></script>
 		<script src="js/interface/dialog.js"></script>
+		<script src="js/interface/action_control.js"></script>
 		<script src="js/copy_paste.js"></script>
 		<script src="js/undo.js"></script>
 
@@ -111,6 +113,7 @@
 		<script src="js/outliner/locator.js"></script>
 		<script src="js/outliner/null_object.js"></script>
 		<script src="js/preview/preview.js"></script>
+		<script src="js/preview/screenshot.js"></script>
 		<script src="js/preview/canvas.js"></script>
 		<script src="js/preview/transformer.js"></script>
 		<script src="js/transform.js"></script>
@@ -121,6 +124,7 @@
 		<script src="js/texturing/color.js"></script>
 		<script src="js/display_mode.js"></script>
 		<script src="js/animations/animation.js"></script>
+		<script src="js/animations/timeline_animators.js"></script>
 		<script src="js/animations/keyframe.js"></script>
 		<script src="js/animations/timeline.js"></script>
 		<script src="js/plugin_loader.js"></script>
@@ -135,6 +139,7 @@
 		<script src="js/io/formats/bedrock_old.js"></script>
 		<script src="js/io/formats/obj.js"></script>
 		<script src="js/io/formats/gltf.js"></script>
+		<script src="js/io/formats/collada.js"></script>
 		<script src="js/io/formats/modded_entity.js"></script>
 		<script src="js/io/formats/optifine_jem.js"></script>
 		<script src="js/io/formats/optifine_jpm.js"></script>
@@ -343,6 +348,7 @@
 			<img class="blockbench_logo" src="assets/logo_text_white.svg" alt="Blockbench" />
 		</div>
 		<ul id="menu_bar" class="scroll_horizontal"></ul>
+		<div id="title_bar_home_button" class="tool" onclick="Interface.tab_bar.openNewTab()"><i class="material-icons">home</i></div>
 		<div class="app-drag-region" id="header_free_bar"></div>
 		<div id="update_menu"></div>
 		<ul id="windows_window_menu" hidden>
@@ -395,57 +401,7 @@
 
 		<dialog id="action_selector"></dialog>
 
-		<div id="start_screen">
-			<content>
-				<section id="start-files">
-					<div class="start_screen_left">
-						<h2 class="tl">mode.start.new</h2>
-						<div class="bar next_to_title">
-							<div class="tool" onclick="Blockbench.openLink('https://blockbench.net/quickstart/')">
-								<div class="tooltip tl">menu.help.quickstart</div>
-								<i class="fas fa-question-circle"></i>
-							</div>
-						</div>
-						<ul>
-							<li v-for="format in formats" v-if="format.show_on_start_screen" v-on:click="format.new()">
-								<span class="icon_wrapper f_left" v-html="getIconNode(format.icon).outerHTML"></span>
-								<h3>{{ format.name }}</h3>
-								<p>{{ format.description }}</p>
-							</li>
-						</ul>
-					</div>
-					<div class="start_screen_right">
-						<h2 class="tl">mode.start.recent</h2>
-						<div id="start_screen_list_type" v-if="isApp && !redact_names">
-							<li class="tool" v-bind:class="{selected: list_type == 'list'}" v-on:click="setListType('list')">
-								<i class="material-icons">list</i>
-							</li>
-							<li class="tool" v-bind:class="{selected: list_type == 'grid'}" v-on:click="setListType('grid')">
-								<i class="material-icons">view_module</i>
-							</li>
-						</div>
-						<div v-if="redact_names">{{ '['+tl('generic.redacted')+']' }}</div>
-						<ul v-else-if="list_type == 'list'">
-							<li v-on:click="openProject(project, $event)" v-for="project in recent" :key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project">
-								<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
-								<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
-								<span class="recent_project_date">{{ getDate(project) }}</span>
-							</li>
-							<div v-if="recent.length == 0">{{ tl('mode.start.no_recents') }}</div>
-						</ul>
-						<ul :class="{redact: redact_names}" style="display: grid;" v-else>
-							<li v-on:click="openProject(project, $event)" v-for="project in recent" :key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project thumbnail">
-								<div class="thumbnail_image" :style="{'background-image': getThumbnail(project.path)}"></div>
-								<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
-								<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
-							</li>
-							<div v-if="recent.length == 0">{{ tl('mode.start.no_recents') }}</div>
-						</ul>
-						<button class="tl" style="margin-top: 20px;" onclick="BarItems.open_model.trigger()">action.open_model</button>
-					</div>
-				</section>
-			</content>
-		</div>
+		<div id="start_screen"></div>
 
 		<div id="work_screen" hidden>
 

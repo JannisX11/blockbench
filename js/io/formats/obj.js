@@ -91,7 +91,7 @@ var codec = new Codec('obj', {
 						uv_outputs.push(`vt ${face.uv[2] / Project.texture_width} ${1 - face.uv[1] / Project.texture_height}`);
 						uv_outputs.push(`vt ${face.uv[2] / Project.texture_width} ${1 - face.uv[3] / Project.texture_height}`);
 						uv_outputs.push(`vt ${face.uv[0] / Project.texture_width} ${1 - face.uv[3] / Project.texture_height}`);
-						var rot = element.faces[key].rotation || 0;
+						var rot = face.rotation || 0;
 						while (rot > 0) {
 							uv_outputs.splice(0, 0, uv_outputs.pop());
 							rot -= 90;

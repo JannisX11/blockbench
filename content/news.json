@@ -1,34 +1,36 @@
 {
 	"new_version": {
-		"color": "var(--color-bright_ui)",
-		"text_color": "var(--color-bright_ui_text)",
+		"color": "#12182a",
+		"text_color": "#e8ddcd",
 		"graphic": {
 			"type": "image",
-			"source": "https://web.blockbench.net/content/splash_art.png?40",
+			"source": "./content/splash_art.png?41",
 			"width": 1000,
-			"aspect_ratio": "21/10",
-			"description": "Splash Art by [Wackyblocks](https://twitter.com/wackyblocks)"
+			"aspect_ratio": "21/9",
+			"description": "Splash Art by [MisterGriimm](https://twitter.com/MisterGriimm) and [MidnitePixel_](https://twitter.com/MidnitePixel_)",
+			"text_color": "#aba4a3"
 		},
 		"layout": "vertical",
 		"text": [
-			{"text": "Welcome to Blockbench 4.0, the Mesh Update!", "type": "h1"},
-			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.0.0)!"}
+			{"text": "Happy Holidays!", "type": "h1"},
+			{"text": "...and welcome to Blockbench 4.1, the Inverse Kinematics Update!", "type": "h2"},
+			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.1.0)"}
 		],
 		"features": [
 			{
-				"image": "https://web.blockbench.net/content/tabs.png",
-				"title": "Tabs!",
-				"text": "Open multiple models at the same time and easily switch between them using the new project tabs!"
+				"image": "./content/inverse_kinematics.png",
+				"title": "Inverse Kinematics!",
+				"text": "Inverse Kinematics allow you to animate a chain of bones by just moving the end point!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/poly_mesh.png",
-				"title": "Poly Mesh Editing!",
-				"text": "Blockbench now supports poly mesh editing, which lets you create and modify any type of shape in generic models."
+				"image": "./content/gif_crop.png",
+				"title": "GIF Cropping!",
+				"text": "The new GIF recorder allows you to crop your GIF to just the content you need!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/theme_browser.png",
-				"title": "Theme Browser",
-				"text": "You can now discover and switch to new themes directly inside Blockbench. Also, the theme menu and the other settings menus have been re-designed and cleaned up!"
+				"image": "./content/collada.png",
+				"title": "Collada Export",
+				"text": "With Collada support you can export your models directly into Unity and other programs!"
 			}
 		]
 	}

@@ -179,6 +179,12 @@ const Settings = {
 			currentwindow.webContents.setZoomFactor(factor)
 			resizeWindow()
 		}});
+		new Setting('hide_tab_bar', 		{category: 'interface', value: Blockbench.isMobile, onChange() {
+			updateTabBarVisibility();
+		}});
+		new Setting('status_bar_modifier_keys', {category: 'interface', value: true, condition: !Blockbench.isTouch, onChange(value) {
+			Interface.status_bar.vue.show_modifier_keys = value;
+		}});
 		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number'});
 		new Setting('control_size',  		{category: 'interface', value: 10, type: 'number'});
 		new Setting('motion_trails',  		{category: 'interface', value: true, onChange() {
@@ -238,16 +244,25 @@ const Settings = {
 		}});
 		new Setting('deactivate_size_limit',{category: 'edit', value: false});
 		new Setting('vertex_merge_distance',{category: 'edit', value: 0.1, step: 0.01, type: 'number'});
+		new Setting('preview_paste_behavior',{category: 'edit', value: 'always_ask', type: 'select', options: {
+			'always_ask': tl('settings.preview_paste_behavior.always_ask'),
+			'outliner': tl('menu.paste.outliner'),
+			'face': tl('menu.paste.face'),
+			'mesh_selection': tl('menu.paste.mesh_selection'),
+		}});
 		
 		//Grid
 		new Setting('base_grid',		{category: 'grid', value: true,});
-		new Setting('large_grid', 		{category: 'grid', value: false});
+		new Setting('large_grid', 		{category: 'grid', value: true});
 		new Setting('full_grid',		{category: 'grid', value: false});
 		new Setting('large_box',		{category: 'grid', value: false});
 		new Setting('large_grid_size',	{category: 'grid', value: 3, type: 'number'});
 		new Setting('display_grid',		{category: 'grid', value: false});
 		new Setting('painting_grid',	{category: 'grid', value: true, onChange() {
 			Canvas.updatePaintingGrid();
+		}});
+		new Setting('ground_plane',		{category: 'grid', value: false, onChange() {
+			Canvas.ground_plane.visible = this.value;
 		}});
 		
 		//Snapping
@@ -288,7 +303,7 @@ const Settings = {
 		new Setting('dialog_loose_texture', 	{category: 'dialogs', value: true, name: tl('message.loose_texture.title'), description: tl('settings.dialog.desc', [tl('message.loose_texture.title')])});
 		
 		//Application
-		new Setting('recent_projects', {category: 'application', value: 12, max: 128, min: 0, type: 'number', condition: isApp});
+		new Setting('recent_projects', {category: 'application', value: 32, max: 256, min: 0, type: 'number', condition: isApp});
 		new Setting('backup_interval', {category: 'application', value: 10, type: 'number', condition: isApp});
 		new Setting('backup_retain', {category: 'application', value: 30, type: 'number', condition: isApp});
 		new Setting('automatic_updates', {category: 'application', value: true, condition: isApp});

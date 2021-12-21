@@ -40,6 +40,7 @@ const Condition = function(condition, context) {
 		if (condition.formats instanceof Array && condition.formats.includes(Format.id) === false) return false;
 		if (condition.tools instanceof Array && window.Toolbox && condition.tools.includes(Toolbox.selected.id) === false) return false;
 		if (condition.features instanceof Array && Format && condition.features.find(feature => !Format[feature])) return false;
+		if (condition.project && !Project) return false;
 
 		if (condition.method instanceof Function) {
 			return !!condition.method(context);
@@ -166,8 +167,11 @@ Math.roundTo = function(num, digits) {
 	var d = Math.pow(10,digits)
 	return Math.round(num * d) / d
 }
-Math.lerp = function(a,b,m) {
+Math.getLerp = function(a,b,m) {
 	return (m-a) / (b-a)
+}
+Math.lerp = function(a, b, m) {
+	return a + (b-a) * m
 }
 Math.isBetween = function(number, limit1, limit2) {
    return (number - limit1) * (number - limit2) <= 0
@@ -707,3 +711,18 @@ function lineIntersectsReactangle(p1, p2, rect_start, rect_end) {
 		|| intersectLines(p1, p2, [rect_end[0], rect_end[1]], [rect_start[0], rect_end[1]])
 }
 
+function cameraTargetToRotation(position, target) {
+	let spherical = new THREE.Spherical();
+	spherical.setFromCartesianCoords(...target.slice().V3_subtract(position));
+	let theta = Math.radToDeg(-spherical.theta);
+	let phi = Math.radToDeg(-spherical.phi) - 90;
+	if (phi < 90) phi += 180; theta += 180;
+	return [theta, phi];
+}
+function cameraRotationToTarget(position, rotation) {
+	let vec = new THREE.Vector3(0, 0, 16);
+	vec.applyEuler(new THREE.Euler(Math.degToRad(rotation[1]), Math.degToRad(rotation[0]), 0, 'ZYX'));
+	vec.z *= -1;
+	vec.y *= -1;
+	return vec.toArray().V3_add(position);
+}

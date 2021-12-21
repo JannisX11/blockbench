@@ -43,6 +43,7 @@
 	"generic.search": "Search",
 	"generic.help": "Help",
 	"generic.name": "Name",
+	"generic.default": "Default",
 	"generic.all": "All",
 	"generic.none": "None",
 	"generic.unset": "Unset",
@@ -70,11 +71,13 @@
 	"dates.year": "%0 Year",
 	"dates.years": "%0 Years",
 
-	"mode.start": "Start",
+	"units.pixels_per_meter": "%0 Pixels per Meter",
+
 	"mode.edit": "Edit",
 	"mode.paint": "Paint",
 	"mode.display": "Display",
 	"mode.animate": "Animate",
+	"mode.pose": "Pose",
 
 	"mode.start.new": "New",
 	"mode.start.recent": "Recent",
@@ -149,6 +152,18 @@
 	"status_bar.selection.edges": "%0 Edges",
 	"status_bar.selection.vertices": "%0 Vertices",
 
+	"modifier_actions.resize_both_sides": "Resize in both directions",
+	"modifier_actions.resize_one_side": "Resize in one direction",
+	"modifier_actions.draw_line": "Draw line",
+	"modifier_actions.drag_without_snapping": "Drag without snapping",
+	"modifier_actions.stretch_keyframes": "Stretch keyframes",
+	"modifier_actions.resize_background": "Resize background",
+	"modifier_actions.select_multiple": "Select multiple",
+	"modifier_actions.select_range": "Select range",
+	"modifier_actions.drag_to_duplicate": "Drag to duplicate",
+	"modifier_actions.uniform_scaling": "Uniform Scaling",
+	"modifier_actions.snap_direction": "Snap Direction",
+
 	"message.canvas_limit_error.title": "Canvas Limit Error",
 	"message.canvas_limit_error.message": "The action could not be performed correctly because the format limits the canvas to 48 units. Shift the pivot point to prevent this.",
 	"message.rotation_limit.title": "Rotation Limits",
@@ -175,7 +190,6 @@
 	"message.invalid_link": "Invalid or Expired Model Link",
 
 	"message.drag_background": "Drag the background to move its position. Hold shift and drag up and down to change its size. Click here to save the position.",
-	"message.recording_gif": "GIF creation in progress. Click here to abort.",
 
 	"message.unsaved_textures.title": "Unsaved Textures",
 	"message.unsaved_textures.message": "Your model has unsaved textures. Make sure to save them and paste them into your resource pack in the correct folder.",
@@ -253,6 +267,7 @@
 	"message.no_animation_to_import": "No animations to import",
 	"message.copy_paste_tool_viewport": "This tool can only be used in the UV panel",
 	"message.box_uv_for_meshes": "Meshes cannot be used in box UV templates",
+	"message.no_valid_elements": "No valid elements selected...",
 
 	"message.wireframe.enabled": "Wireframe view enabled",
 	"message.wireframe.disabled": "Wireframe view disabled",
@@ -349,6 +364,7 @@
 	"dialog.add_primitive.shape.torus": "Torus",
 	"dialog.add_primitive.shape.cube": "Cube",
 	"dialog.add_primitive.shape.pyramid": "Pyramid",
+	"dialog.add_primitive.shape.plane": "Plane",
 	"dialog.add_primitive.diameter": "Diameter",
 	"dialog.add_primitive.height": "Height",
 	"dialog.add_primitive.sides": "Sides",
@@ -374,6 +390,7 @@
 	"dialog.plugins.reload": "Reload",
 	"dialog.plugins.none_installed": "No plugins installed",
 	"dialog.plugins.none_available": "No plugins available",
+	"dialog.plugins.offline": "No internet connection",
 	"dialog.plugins.outdated_client": "Requires a newer version of Blockbench",
 	"dialog.plugins.outdated_plugin": "Plugin is outdated and does not work with this version of Blockbench",
 	"dialog.plugins.web_only": "Only for the web app",
@@ -411,7 +428,9 @@
 	"dialog.create_texture.combine_polys": "Combine Faces",
 	"dialog.create_texture.combine_polys.desc": "Combine connected coplanar faces into one UV section",
 	"dialog.create_texture.resolution": "Resolution",
-	"dialog.create_texture.resolution.desc": "The base resolution of the texture, in pixels per meter. The real size of the texture map may differ depending on the amount and size of elements.",
+	"dialog.create_texture.resolution.desc": "The height and width of the texture",
+	"dialog.create_texture.pixel_density": "Pixel Density",
+	"dialog.create_texture.pixel_density.desc": "The pixel density of the texture, in pixels per meter. The size of the texture map may differ depending on the amount and size of elements.",
 
 	"dialog.create_gif.title": "Record GIF",
 	"dialog.create_gif.length_mode": "Length Mode",
@@ -436,8 +455,11 @@
 	"dialog.save_angle.projection.perspective": "Perspective",
 	"dialog.save_angle.projection.orthographic": "Orthographic",
 	"dialog.save_angle.position": "Camera Position",
+	"dialog.save_angle.rotation_mode": "Rotation Mode",
 	"dialog.save_angle.target": "Focal Point",
+	"dialog.save_angle.rotation": "Rotation",
 	"dialog.save_angle.zoom": "Zoom",
+	"dialog.save_angle.fov": "FOV",
 
 	"dialog.input.title": "Input",
 
@@ -572,6 +594,10 @@
 
 	"settings.interface_scale": "Interface Scale",
 	"settings.interface_scale.desc": "Scale of the entire Blockbench interface",
+	"settings.hide_tab_bar": "Auto-hide Tab Bar",
+	"settings.hide_tab_bar.desc": "Hide the tab bar when only one tab is open",
+	"settings.status_bar_modifier_keys": "Suggest Modifier Keys in Status Bar",
+	"settings.status_bar_modifier_keys.desc": "Display context aware suggested modifier keys in the status bar",
 	"settings.origin_size": "Pivot Marker",
 	"settings.origin_size.desc": "Size of the pivot point marker",
 	"settings.control_size": "Transform Gizmo Size",
@@ -628,6 +654,8 @@
 	"settings.display_grid.desc": "Show grid in display mode",
 	"settings.painting_grid": "Painting Grid",
 	"settings.painting_grid.desc": "Show grid on textured cubes in paint mode",
+	"settings.ground_plane": "Ground Plane",
+	"settings.ground_plane.desc": "Show a floor plane below the model",
 
 	"settings.undo_limit": "Undo Limit",
 	"settings.undo_limit.desc": "Number of steps you can undo",
@@ -641,6 +669,9 @@
 	"settings.deactivate_size_limit.desc": "Deactivate the size limit for specific model formats. WARNING: This can cause invalid models.",
 	"settings.vertex_merge_distance": "Vertex Merge Distance",
 	"settings.vertex_merge_distance.desc": "Distance within which vertices are merged using merging by distance",
+	"settings.preview_paste_behavior": "Default Preview Paste Behavior",
+	"settings.preview_paste_behavior.desc": "Select the behavior when pasting something into the preview in Edit mode and multiple options are available",
+	"settings.preview_paste_behavior.always_ask": "Always Ask",
 
 	"settings.autouv": "Auto UV",
 	"settings.autouv.desc": "Enable Auto UV by default",
@@ -719,7 +750,6 @@
 	"category.transform": "Transform",
 	"category.color": "Color",
 	"category.paint": "Paint",
-	"category.filter": "Filter",
 	"category.view": "View",
 	"category.display": "Display Settings",
 	"category.animation": "Animation",
@@ -819,6 +849,8 @@
 
 	"action.project_window": "Project...",
 	"action.project_window.desc": "Opens the project window, where you can edit metadata of your model",
+	"action.new_window": "New Window",
+	"action.new_window.desc": "Opens a new Blockbench window",
 	"action.open_model_folder": "Open Model Folder",
 	"action.open_model_folder.desc": "Opens the folder that the model is contained in",
 	"action.open_backup_folder": "Open Backup Folder",
@@ -857,8 +889,10 @@
 	"action.export_minecraft_skin.desc": "Export the Minecraft skin as a PNG texture",
 	"action.export_obj": "Export OBJ Model",
 	"action.export_obj.desc": "Export a Wavefront OBJ model for rendering",
+	"action.export_collada": "Export Collada Model (dae)",
+	"action.export_collada.desc": "Export model and animations as dae file to use it in other 3D applications",
 	"action.export_gltf": "Export glTF Model",
-	"action.export_gltf.desc": "Export model and animations as glTF file to use in other 3D applications",
+	"action.export_gltf.desc": "Export model and animations as glTF file for sharing and rendering",
 	"action.upload_sketchfab": "Upload to Sketchfab",
 	"action.upload_sketchfab.desc": "Upload your model to Sketchfab",
 	"action.share_model": "Share...",
@@ -1181,6 +1215,8 @@
 	"action.slider_face_tint.desc": "Set the tint index of the current face. -1 means unset.",
 	"action.snap_uv_to_pixels": "Snap UV to Pixels",
 	"action.snap_uv_to_pixels.desc": "Snaps the selected UV vertices to the pixel grid",
+	"action.paint_mode_uv_overlay": "UV Overlay",
+	"action.paint_mode_uv_overlay.desc": "Display the UV map as an overlay in paint mode",
 	"action.remove_blank_faces": "Remove Blank Faces",
 	"action.remove_blank_faces.desc": "Deletes all untextured faces of the selection",
 
@@ -1194,6 +1230,8 @@
 	"action.save_all_animations.desc": "Save all currently loaded animations",
 	"action.export_animation_file": "Export Animations...",
 	"action.export_animation_file.desc": "Export a selection of animations into a new file",
+	"action.bake_animation_into_model": "Bake Animation into Model",
+	"action.bake_animation_into_model.desc": "Bake the currently displayed animation frame into the model. Only applies rotation and position, scale is ignored.",
 	"action.slider_animation_length": "Animation Length",
 	"action.slider_animation_length.desc": "Change the length of the selected animation",
 	"action.set_animation_end": "Set Animation End",
@@ -1204,6 +1242,7 @@
 	"action.keyframe_interpolation.desc": "Select the keyframe interpolation mode",
 	"action.keyframe_interpolation.linear": "Linear",
 	"action.keyframe_interpolation.catmullrom": "Smooth",
+	"action.keyframe_interpolation.step": "Step",
 	"action.keyframe_uniform": "Uniform Scaling",
 	"action.keyframe_uniform.desc": "Enable uniform scaling on the selected keyframes",
 	"action.change_keyframe_file": "Select Keyframe File",
@@ -1248,10 +1287,8 @@
 	"action.timeline_focus": "Filter Channels",
 	"action.timeline_focus.desc": "Select the animation channels to display in the timeline",
 	"action.timeline_focus.hide_empty": "Hide empty channels",
-	"action.ik_enabled": "Enable IK",
-	"action.ik_enabled.desc": "Enable Inverse Kinematics for this bone",
-	"action.slider_ik_chain_length": "IK Chain Length",
-	"action.slider_ik_chain_length.desc": "Upwards length of the IK bone chain",
+	"action.set_ik_target": "Set IK Target",
+	"action.set_ik_target.desc": "Select the target bone that should be moved by this null object via Inverse Kinematics",
 	"action.lock_motion_trail": "Lock Motion Trail",
 	"action.lock_motion_trail.desc": "Lock the motion trail to the currently selected group",
 
@@ -1264,10 +1301,15 @@
 	"timeline.timeline": "Instructions",
 	"timeline.pre_effect_script": "Script",
 
+	"menu.action_control.type.tab": "Tab",
+	"menu.action_control.type.angle": "Camera Angle",
+	"menu.action_control.recent_in_streamer_mode": "Sure? Streamer Mode is enabled",
+	"menu.action_control.recent_in_streamer_mode.desc": "Are you sure you want to display recent models?",
+
 	"menu.file": "File",
 	"menu.edit": "Edit",
 	"menu.transform": "Transform",
-	"menu.filter": "Filter",
+	"menu.tools": "Tools",
 	"menu.display": "Display",
 	"menu.animation": "Animation",
 	"menu.view": "View",
@@ -1276,6 +1318,7 @@
 	"menu.file.new": "New",
 	"menu.file.recent": "Recent",
 	"menu.file.recent.clear": "Clear Recent Files",
+	"menu.file.recent.more": "View More...",
 	"menu.file.import": "Import",
 	"menu.file.import.import_open_project": "Import Open Project",
 	"menu.file.export": "Export",
@@ -1313,6 +1356,7 @@
 	"menu.cube.texture.transparent": "Transparent",
 	"menu.cube.texture.blank": "Blank",
 	"menu.locator.ignore_inherited_scale": "Ignore Inherited Scale",
+	"menu.null_object.lock_ik_target_rotation": "Lock IK Target Rotation",
 	"menu.texture_mesh.texture_name": "Texture Name...",
 
 	"menu.group.sort": "Sort",
@@ -1392,6 +1436,7 @@
 	"menu.animation.flip_keyframes": "Flip Keyframes",
 
 	"menu.animation_file.unload": "Unload Animation File",
+	"menu.animation_file.import_remaining": "Import Remaining Animations",
 
 	"menu.keyframe.quaternion": "Quaternion",
 
@@ -1400,6 +1445,9 @@
 	"menu.paste.face": "UV Face",
 	"menu.paste.mesh_selection": "Mesh Selection",
 	"menu.paste.outliner": "Elements",
+
+	"edit.loop_cut.offset": "Offset",
+	"edit.extrude_mesh_selection.extend": "Extend",
 
 	"web.download_app": "Download App",
 
@@ -1413,6 +1461,8 @@
 	"cube.color.blue": "Blue",
 	"cube.color.green": "Green",
 	"cube.color.lime": "Lime",
+	"cube.color.pink": "Pink",
+	"cube.color.silver": "Silver",
 
 	"switches.visibility": "Visibility",
 	"switches.lock": "Lock",
@@ -1446,6 +1496,14 @@
 	"panel.keyframe.post": "Post",
 	"panel.variable_placeholders": "Variable Placeholders",
 	"panel.variable_placeholders.info": "List the variables you want to preview via name=value",
+	"panel.skin_pose": "Pose",
+	"panel.skin_pose.none": "None",
+	"panel.skin_pose.natural": "Natural",
+	"panel.skin_pose.walking": "Walking",
+	"panel.skin_pose.crouching": "Crouching",
+	"panel.skin_pose.sitting": "Sitting",
+	"panel.skin_pose.jumping": "Jumping",
+	"panel.skin_pose.aiming": "Aiming",
 
 	"panel.element": "Element",
 	"panel.element.position": "Position",

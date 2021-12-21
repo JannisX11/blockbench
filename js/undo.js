@@ -3,7 +3,7 @@ class UndoSystem {
 		this.index = 0;
 		this.history = [];
 	}
-	initEdit(aspects) {
+	initEdit(aspects, amended = false) {
 		if (aspects && aspects.cubes) {
 			console.warn('Aspect "cubes" is deprecated. Please use "elements" instead.');
 			aspects.elements = aspects.cubes;
@@ -19,6 +19,9 @@ class UndoSystem {
 		}
 		- This still causes issues, for example with different texture selections
 		*/
+		if (!amended && this.amend_edit_menu) {
+			this.closeAmendEditMenu();
+		}
 		this.current_save = new UndoSystem.save(aspects)
 		return this.current_save;
 	}
@@ -61,8 +64,74 @@ class UndoSystem {
 	cancelEdit() {
 		if (!this.current_save) return;
 		Canvas.outlines.children.empty();
+		if (this.amend_edit_menu) {
+			this.closeAmendEditMenu();
+		}
 		this.loadSave(this.current_save, new UndoSystem.save(this.current_save.aspects))
 		delete this.current_save;
+	}
+	closeAmendEditMenu() {
+		if (this.amend_edit_menu) {
+			this.amend_edit_menu.remove();
+			delete this.amend_edit_menu;
+		}
+	}
+	amendEdit(form, callback) {
+		let input_elements = {};
+		let dialog = document.createElement('div');
+		dialog.id = 'amend_edit_menu';
+		this.amend_edit_menu = dialog;
+
+		let close_button = document.createElement('div');
+		close_button.append(Blockbench.getIconNode('clear'));
+		close_button.className = 'amend_edit_close_button';
+		close_button.title = tl('dialog.close')
+		close_button.addEventListener('click', (event) => {
+			Undo.closeAmendEditMenu();
+		})
+		dialog.append(close_button);
+
+		function updateValue() {
+			let form_values = {};
+			for (let key in form) {
+				if (input_elements[key]) {
+					form_values[key] = input_elements[key].get();
+				}
+			}
+			Undo.undo(null, true);
+			callback(form_values);
+		}
+
+		for (let key in form) {
+			let form_line = form[key];
+			if (!Condition(form_line.condition)) continue;
+			let line = document.createElement('div');
+			line.className = 'amend_edit_line';
+			dialog.append(line);
+
+			let slider = new NumSlider({
+				id: 'amend_edit_slider',
+				name: tl(form_line.label),
+				private: true,
+				onChange: updateValue,
+				settings: {
+					default: form_line.value || 0,
+					min: form_line.min,
+					max: form_line.max,
+					step: form_line.step||1,
+				},
+			});
+			line.append(slider.node);
+			input_elements[key] = slider;
+			slider.update();
+
+			let label = document.createElement('label');
+			label.innerText = tl(form_line.label);
+			line.append(label);
+		}
+
+		let preview_container = document.getElementById('preview');
+		preview_container.append(dialog);
 	}
 	addKeyframeCasualties(arr) {
 		if (!arr || arr.length == 0) return;
@@ -76,7 +145,10 @@ class UndoSystem {
 			this.current_save.keyframes[kf.uuid] = kf.getUndoCopy();
 		})
 	}
-	undo(remote) {
+	undo(remote, amended) {
+		if (!amended && this.amend_edit_menu) {
+			this.closeAmendEditMenu();
+		}
 		if (this.history.length <= 0 || this.index < 1) return;
 
 		Project.saved = false;
@@ -89,7 +161,10 @@ class UndoSystem {
 		}
 		Blockbench.dispatchEvent('undo', {entry})
 	}
-	redo(remote) {
+	redo(remote, amended) {
+		if (!amended && this.amend_edit_menu) {
+			this.closeAmendEditMenu();
+		}
 		if (this.history.length <= 0) return;
 		if (this.index >= this.history.length) {
 			return;
@@ -199,6 +274,9 @@ class UndoSystem {
 			elements.forEach(function(obj) {
 				if (save.selection.includes(obj.uuid)) {
 					obj.selectLow()
+					if (save.selected_vertices[obj.uuid]) {
+						Project.selected_vertices[obj.uuid] = save.selected_vertices[obj.uuid];
+					}
 				}
 			})
 		}
@@ -354,6 +432,11 @@ class UndoSystem {
 			}
 		}
 
+		if (save.exploded_view !== undefined) {
+			Project.exploded_view = BarItems.explode_skin_model.value = save.exploded_view;
+			BarItems.explode_skin_model.updateEnabledState();
+		}
+
 		Blockbench.dispatchEvent('load_undo_save', {save, reference, mode})
 
 		updateSelection()
@@ -372,13 +455,18 @@ UndoSystem.save = class {
 		this.aspects = aspects;
 
 		if (aspects.selection) {
-			this.selection = []
-			selected.forEach(function(obj) {
-				scope.selection.push(obj.uuid)
+			this.selection = [];
+			this.selected_vertices = {};
+			selected.forEach(obj => {
+				this.selection.push(obj.uuid);
+				if (obj instanceof Mesh) {
+					this.selected_vertices[obj.uuid] = Mesh.selected[0].getSelectedVertices().slice();
+				}
 			})
 			if (Group.selected) {
 				this.selection_group = Group.selected.uuid
 			}
+
 		}
 
 		if (aspects.elements) {

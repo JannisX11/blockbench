@@ -726,15 +726,17 @@
 		margin-bottom: -7px;
 	}
 	#import_texture_list li {
-		height: 112px;
-		width: 112px;
-		margin: 3px;
+		min-height: 112px;
+		width: 150px;
+		margin: 6px 3px;
 		position: relative;
 		display: inline-block;
 		background-repeat: no-repeat;
-		background-size: contain;
+		background-size: 112px;
+		background-position-x: center;
 		box-sizing: content-box;
-		border: 1px solid transparent;
+		border: 2px solid transparent;
+		vertical-align: top;
 	}
 	#import_texture_list li:hover {
 		background-color: var(--color-selected);;
@@ -750,11 +752,23 @@
 		color: var(--color-accent);
 		background-color: var(--color-ui);
 		height: 19px;
-		margin-right: 0;
-		margin-left: 100px;
-		margin-top: -10px;
+		right: 0;
+		top: 0;
+		margin-right: -7px;
+		margin-top: -12px;
 		border-bottom-left-radius: 8px;
 		padding-left: 2px;
+	}
+	#import_texture_list li label {
+		display: block;
+		width: 100%;
+		margin-top: 112px;
+		color: var(--color-subtle_text);
+		overflow-wrap: anywhere;
+		text-align: center;
+	}
+	#import_texture_list li:hover label {
+		color: var(--color-text);
 	}
 	body.entity_mode button.entity_mode_uv_button {
 		display: block;
@@ -1019,10 +1033,11 @@
 		margin-right: 12px;
 	}
 	#plugin_list .about {
-		margin-right: 12px;
-		padding-top: 12px;
 		overflow-y: auto;
 		max-height: 480px;
+		margin: 6px 0;
+		padding: 6px 12px;
+		background: var(--color-button);
 	}
 	#plugin_list > li ul.plugin_tag_list {
 		margin: 5px 8px;
@@ -1064,12 +1079,25 @@
 		float: right;
 		padding-right: 20px;
 		width: 100%;
+		transition: width 100ms ease;
 	}
 	.search_bar i {
 		float: right;
 		position: absolute;
 		right: 6px;
 		margin-top: 5px;
+	}
+	.search_bar.folded {
+		width: auto;
+	}
+	.search_bar.folded input {
+		width: 0px;
+		padding-left: 0;
+		padding-right: 0;
+		border-width: 0;
+	}
+	.search_bar.folded i:hover {
+		color: var(--color-light);
 	}
 
 
@@ -1151,17 +1179,23 @@
 		margin-left: auto;
 		margin-right: auto;
 		top: 200px;
-		width: 360px;
+		width: 400px;
 		height: 42px;
 		box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 	}
 	#action_selector > input {
-		width: 100%;
+		width: calc(100% - 38px);
 		height: 42px;
 		padding: 5px;
 		padding-left: 12px;
 		background-color: var(--color-ui);
-		border: 1px solid var(--color-border);
+		border-left: 1px solid var(--color-border);
+	}
+	#action_selector > .tool {
+		height: 100%;
+		margin: 0;
+		padding-top: 6px;
+		background-color: var(--color-back);
 	}
 	#action_selector > i {
 		position: absolute;
@@ -1172,7 +1206,7 @@
 		background-color: var(--color-ui);
 		color: var(--color-text);
 		width: 340px;
-		margin-left: 8px;
+		margin-left: 38px;
 		box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 	}
 	#action_selector ul {
@@ -1232,7 +1266,7 @@
 		pointer-events: none;
 		opacity: 0.32;
 		top: 4px;
-		left: 12px;
+		left: 49px;
 	}
 	@media (max-device-width: 640px) {
 		dialog#action_selector {

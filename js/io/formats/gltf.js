@@ -1,16 +1,39 @@
 (function() {
 
-function buildAnimationTracks() {
+function buildAnimationTracks(do_quaternions = true) {
 	let anims = [];
 	Animator.animations.forEach(animation => {
+
+		let ik_samples = animation.sampleIK();
 
 		let tracks = [];
 		for (var uuid in animation.animators) {
 			let animator = animation.animators[uuid];
 			
-			if (animator instanceof BoneAnimator && animator.getGroup()) {
-				for (var channel of animator.channels) {
-					if (animator[channel] && animator[channel].length) {
+			if (animator.type == 'bone' && animator.getGroup()) {
+				for (var channel in animator.channels) {
+					if (channel == 'rotation' && ik_samples[uuid]) {
+
+						let times = [];
+						let values = [];
+						let sample_rate = settings.animation_sample_rate.value;
+						
+						let interpolation = THREE.InterpolateLinear;
+						ik_samples[uuid].forEach((sample, i) => {
+							sample.euler.x += animator.group.mesh.fix_rotation.x;
+							sample.euler.y += animator.group.mesh.fix_rotation.y;
+							sample.euler.z += animator.group.mesh.fix_rotation.z;
+							let quaternion = new THREE.Quaternion().setFromEuler(sample.euler);
+							quaternion.toArray(values, values.length);
+							times.push(i / sample_rate);
+						})
+
+						let track = new THREE.QuaternionKeyframeTrack(animator.group.mesh.uuid+'.quaternion', times, values, interpolation);
+						track.group_uuid = animator.group.uuid;
+						track.channel = 'quaternion';
+						tracks.push(track);
+
+					} else if (animator[channel] && animator[channel].length) {
 						let times = [];
 						let values = [];
 						let keyframes = animator[channel].slice();
@@ -53,7 +76,7 @@ function buildAnimationTracks() {
 						keyframes.sort((a, b) => a.time - b.time)
 
 						// Sampling rotation steps that exceed 180 degrees
-						if (channel === 'rotation' && !contains_script) {
+						if (channel === 'rotation' && !contains_script && do_quaternions) {
 							let original_keyframes = keyframes.slice();
 							original_keyframes.forEach((kf, i) => {
 								let next = original_keyframes[i+1]
@@ -101,10 +124,10 @@ function buildAnimationTracks() {
 							}
 							times.push(kf.time);
 							Timeline.time = kf.time;
-							kf.getFixed().toArray(values, values.length);
+							kf.getFixed(0, do_quaternions).toArray(values, values.length);
 						})
 						let trackType = THREE.VectorKeyframeTrack;
-						if (channel === 'rotation') {
+						if (channel === 'rotation' && do_quaternions) {
 							trackType = THREE.QuaternionKeyframeTrack;
 							channel = 'quaternion';
 						} else if (channel == 'position') {
@@ -113,6 +136,8 @@ function buildAnimationTracks() {
 							})
 						}
 						let track = new trackType(animator.group.mesh.uuid+'.'+channel, times, values, interpolation);
+						track.group_uuid = animator.group.uuid;
+						track.channel = channel;
 						tracks.push(track);
 					}
 				}
@@ -180,6 +205,8 @@ var codec = new Codec('gltf', {
 		})
 	}
 })
+
+codec.buildAnimationTracks = buildAnimationTracks;
 
 BARS.defineActions(function() {
 	codec.export_action = new Action({

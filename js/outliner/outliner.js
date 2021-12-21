@@ -79,13 +79,15 @@ Object.defineProperty(window, 'selected', {
 //Colors
 var markerColors = [
 	{pastel: "#A2EBFF", standard: "#58C0FF", name: 'light_blue'},
-	{pastel: "#FFF899", standard: "#F3D81A", name: 'yellow'},
-	{pastel: "#E8BD7B", standard: "#EC9218", name: 'orange'},
-	{pastel: "#FFA7A4", standard: "#FA565D", name: 'red'},
+	{pastel: "#FFF899", standard: "#F4D714", name: 'yellow'},
+	{pastel: "#F1BB75", standard: "#EC9218", name: 'orange'},
+	{pastel: "#FF9B97", standard: "#FA565D", name: 'red'},
 	{pastel: "#C5A6E8", standard: "#B55AF8", name: 'purple'},
 	{pastel: "#A6C8FF", standard: "#4D89FF", name: 'blue'},
 	{pastel: "#7BFFA3", standard: "#00CE71", name: 'green'},
-	{pastel: "#BDFFA6", standard: "#AFFF62", name: 'lime'}
+	{pastel: "#BDFFA6", standard: "#AFFF62", name: 'lime'},
+	{pastel: "#FFA5D5", standard: "#F96BC5", name: 'pink'},
+	{pastel: "#E0E9FB", standard: "#C7D5F6", name: 'silver'}
 ]
 class OutlinerNode {
 	constructor(uuid) {
@@ -536,6 +538,7 @@ class NodePreviewController {
 		mesh.isElement = true;
 		mesh.visible = element.visibility;
 		mesh.rotation.order = 'ZYX';
+		this.updateTransform(element);
 	}
 	remove(element) {
 		let {mesh} = element;
@@ -733,6 +736,7 @@ function parseGroups(array, import_reference, startIndex) {
 
 // Dropping
 function dropOutlinerObjects(item, target, event, order) {
+	let duplicate = event.altKey || Pressing.overrides.alt;
 	if (item.type === 'group' && target && target.parent) {
 		var is_parent = false;
 		function iterate(g) {
@@ -748,7 +752,7 @@ function dropOutlinerObjects(item, target, event, order) {
 	} else {
 		var items = [item];
 	}
-	if (event.altKey || Pressing.overrides.alt) {
+	if (duplicate) {
 		Undo.initEdit({elements: [], outliner: true, selection: true})
 		Outliner.selected.empty();
 	} else {
@@ -782,7 +786,7 @@ function dropOutlinerObjects(item, target, event, order) {
 	}
 	items.forEach(function(item) {
 		if (item && item !== target) {
-			if (event.altKey || Pressing.overrides.alt) {
+			if (duplicate) {
 				if (item instanceof Group) {
 					var dupl = item.duplicate()
 					place(dupl)
@@ -803,7 +807,7 @@ function dropOutlinerObjects(item, target, event, order) {
 	if (Format.bone_rig) {
 		Canvas.updateAllBones()
 	}
-	if (event.altKey || Pressing.overrides.alt) {
+	if (duplicate) {
 		updateSelection()
 		Undo.finishEdit('Duplicate selection', {elements: selected, outliner: true, selection: true})
 	} else {
@@ -1135,7 +1139,7 @@ Interface.definePanels(function() {
 				'<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class=\'{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}\'></i>' +
 				'<i v-else class="outliner_opener_placeholder"></i>' +
 				//Main
-				'<i :class="node.icon + ((outliner_colors.value && node.color >= 0) ? \' ec_\'+node.color : \'\')" v-on:dblclick.stop="doubleClickIcon(node)"></i>' +
+				'<i :class="node.icon" :style="(outliner_colors.value && node.color >= 0) && {color: markerColors[node.color].pastel}" v-on:dblclick.stop="doubleClickIcon(node)"></i>' +
 				'<input type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>' +
 
 
@@ -1233,7 +1237,7 @@ Interface.definePanels(function() {
 	Interface.Panels.outliner = new Panel({
 		id: 'outliner',
 		icon: 'list_alt',
-		condition: {modes: ['edit', 'paint', 'animate']},
+		condition: {modes: ['edit', 'paint', 'animate', 'pose']},
 		toolbars: {
 			head: Toolbars.outliner
 		},
@@ -1263,6 +1267,8 @@ Interface.definePanels(function() {
 					let previous_values = {};
 					let value = original[key];
 					value = (typeof value == 'number') ? (value+1) % 3 : !value;
+
+					if (!(key == 'locked' || key == 'visibility' || Modes.edit)) return;
 
 					function move(e2) {
 						convertTouchEvent(e2);
@@ -1333,6 +1339,7 @@ Interface.definePanels(function() {
 						this.dragToggle(e1);
 						return false;
 					}
+					if (!Modes.edit) return;
 					
 					let [item] = eventTargetToNode(e1.target);
 					if (!item || item.locked) {
@@ -1485,6 +1492,19 @@ Interface.definePanels(function() {
 		])
 	})
 	Outliner.vue = Interface.Panels.outliner.inside_vue;
+	
+	Blockbench.on('change_active_panel', ({last_panel, panel}) => {
+		if (last_panel == 'outliner') {
+			Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.select_multiple');
+			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.select_range');
+			Interface.removeSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
+		}
+		if (panel == 'outliner') {
+			Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.select_multiple');
+			if (!Modes.animate) Interface.addSuggestedModifierKey('shift', 'modifier_actions.select_range');
+			if (Modes.edit) Interface.addSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
+		}
+	})
 })
 
 class Face {

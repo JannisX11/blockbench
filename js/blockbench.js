@@ -17,7 +17,17 @@ const Pressing = {
 	}
 }
 var Prop = {
-	active_panel	: 'preview',
+	_active_panel	: 'preview',
+	get active_panel() {
+		return Prop._active_panel
+	},
+	set active_panel(panel) {
+		let last_panel = Prop._active_panel;
+		if (last_panel != panel) {
+			Prop._active_panel = panel;
+			Blockbench.dispatchEvent('change_active_panel', {last_panel, panel})
+		}
+	},
 	file_path	  	: '',
 	file_name	  	: '',
 	recording		: null,
@@ -75,10 +85,6 @@ function updateNslideValues() {
 			BarItems.rescale_toggle.setIcon(Outliner.selected[0].rescale ? 'check_box' : 'check_box_outline_blank')
 		}
 	}
-	if (Modes.animate && NullObject.selected[0]) {
-		BarItems.slider_ik_chain_length.update();
-		BarItems.ik_enabled.setIcon(NullObject.selected[0].ik_enabled ? 'check_box' : 'check_box_outline_blank')
-	}
 	if (Texture.all.length) {
 		BarItems.animated_texture_frame.update();
 	}
@@ -120,6 +126,15 @@ function updateSelection(options = {}) {
 	}
 	if (Outliner.selected.length) {
 		document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'visible'));
+		if (Modes.edit && Toolbox.selected.id == 'resize_tool' && Format.meshes) {
+			if (Mesh.selected.length) {
+				Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
+				Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
+			} else {
+				Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
+				Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
+			}
+		}
 	} else {
 		if (Format.bone_rig && Group.selected) {
 			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
@@ -218,7 +233,7 @@ setInterval(function() {
 			var model = Codecs.project.compile({compressed: false, backup: true});
 			localStorage.setItem('backup_model', model)
 		} catch (err) {
-			console.log('Unable to create backup. ', err)
+			console.error('Unable to create backup. ', err)
 		}
 	}
 }, 1e3*30)

@@ -11,8 +11,23 @@ function parseGeometry(data) {
 			data = pe_list_data[0]
 		}
 	}
+
+	let geometry_name = data.name.replace(/^geometry\./, '');
+
+	let existing_tab = isApp && ModelProject.all.find(project => (
+		Project !== project && project.export_path == Project.export_path && project.geometry_name == geometry_name
+	))
+	if (existing_tab) {
+		Project.close().then(() =>  {
+			existing_tab.select();
+		});
+		pe_list_data.length = 0;
+		hideDialog()
+		return;
+	}
+
 	codec.dispatchEvent('parse', {model: data.object});
-	Project.geometry_name = data.name.replace(/^geometry\./, '');
+	Project.geometry_name = geometry_name;
 	Project.texture_width = data.object.texturewidth || 64;
 	Project.texture_height = data.object.textureheight || 64;
 
@@ -37,7 +52,7 @@ function parseGeometry(data) {
 				origin: b.pivot,
 				rotation: b.rotation,
 				material: b.material,
-				color: Group.all.length%8
+				color: Group.all.length%markerColors.length
 			}).init()
 			bones[b.name] = group
 			if (b.pivot) {
@@ -129,6 +144,7 @@ var codec = new Codec('bedrock_old', {
 	name: 'Bedrock Entity Model',
 	extension: 'json',
 	remember: true,
+	multiple_per_file: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['json'],

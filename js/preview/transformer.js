@@ -78,7 +78,7 @@
 		}
 	}
 
-	var pickerMaterial = new GizmoMaterial( { visible: false, transparent: false } );
+	var pickerMaterial = new GizmoMaterial( { visible: false, transparent: false, side: THREE.DoubleSide } );
 
 	THREE.TransformGizmo = class extends THREE.Object3D {
 		constructor() {
@@ -230,6 +230,8 @@
 			super();
 			var arrowGeometry = new THREE.CylinderGeometry( 0, 0.07, 0.2, 12, 1, false );
 
+			let pickerCylinderGeo = new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false );
+
 			var lineXGeometry = new THREE.BufferGeometry();
 			lineXGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  1, 0, 0 ], 3 ) );
 			lineXGeometry.name = 'gizmo_x'
@@ -259,13 +261,13 @@
 
 			this.pickerGizmos = {
 				X: [
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0.6, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ]
+					[ new THREE.Mesh( pickerCylinderGeo, pickerMaterial ), [ 0.6, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ]
 				],
 				Y: [
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0.6, 0 ] ]
+					[ new THREE.Mesh( pickerCylinderGeo, pickerMaterial ), [ 0, 0.6, 0 ] ]
 				],
 				Z: [
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0, 0.6 ], [ Math.PI / 2, 0, 0 ] ]
+					[ new THREE.Mesh( pickerCylinderGeo, pickerMaterial ), [ 0, 0, 0.6 ], [ Math.PI / 2, 0, 0 ] ]
 				]
 			};
 
@@ -310,6 +312,11 @@
 			var lineZGeometry = new THREE.BufferGeometry();
 			lineZGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  0, 0, 1 ], 3 ) );
 
+			let planeGeo = new THREE.PlaneBufferGeometry( 0.3, 0.3 );
+			let planePickerGeo = new THREE.PlaneBufferGeometry( 0.4, 0.4 );
+
+			let plane_offset = 0.3;
+
 			this.handleGizmos = {
 				X: [
 					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: gizmo_colors.r } ) ), [ 1, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ],
@@ -331,7 +338,16 @@
 
 					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: gizmo_colors.b } ) ), [ 0, 0, -1 ], [ Math.PI / 2, 0, 0 ] ],
 					[ new THREE.Line( lineZGeometry, new GizmoLineMaterial( { color: gizmo_colors.b } ) ), [ 0, 0, -1 ] ]
-				]
+				],
+				YZ: [
+					[ new THREE.Mesh( planeGeo, new GizmoMaterial( { color: gizmo_colors.r, side: THREE.DoubleSide, opacity: 0.5 } ) ), [ 0, plane_offset, plane_offset ], [ 0, Math.PI / 2, 0 ] ],
+				],
+				XZ: [
+					[ new THREE.Mesh( planeGeo, new GizmoMaterial( { color: gizmo_colors.g, side: THREE.DoubleSide, opacity: 0.5 } ) ), [ plane_offset, 0, plane_offset ], [ - Math.PI / 2, 0, 0 ] ],
+				],
+				XY: [
+					[ new THREE.Mesh( planeGeo, new GizmoMaterial( { color: gizmo_colors.b, side: THREE.DoubleSide, opacity: 0.5 } ) ), [ plane_offset, plane_offset, 0 ] ],
+				],
 			};
 			this.handleGizmos.X[2][0].name = 'NX'
 			this.handleGizmos.X[3][0].name = 'NX'
@@ -352,6 +368,15 @@
 				Z: [
 					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0, 0.6 ], [ Math.PI / 2, 0, 0 ] ],
 					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0, -0.6 ], [ - Math.PI / 2, 0, 0 ] ]
+				],
+				XY: [
+					[ new THREE.Mesh( planePickerGeo, pickerMaterial ), [ plane_offset, plane_offset, 0 ] ]
+				],
+				YZ: [
+					[ new THREE.Mesh( planePickerGeo, pickerMaterial ), [ 0, plane_offset, plane_offset ], [ 0, Math.PI / 2, 0 ] ]
+				],
+				XZ: [
+					[ new THREE.Mesh( planePickerGeo, pickerMaterial ), [ plane_offset, 0, plane_offset ], [ - Math.PI / 2, 0, 0 ] ]
 				]
 			};
 			this.pickerGizmos.X[1][0].name = 'NX'
@@ -363,17 +388,17 @@
 				var tempMatrix = new THREE.Matrix4();
 				eye.applyMatrix4( tempMatrix.copy( tempMatrix.extractRotation( this.planes[ "XY" ].matrixWorld ) ).invert() );
 
-				if ( axis === "X" || axis === "NX" ) {
+				if ( axis === "X" || axis === "NX" || axis == 'XZ' ) {
 
 					this.activePlane = this.planes[ "XY" ];
 					if ( Math.abs( eye.y ) > Math.abs( eye.z ) ) this.activePlane = this.planes[ "XZ" ];
 				}
-				if ( axis === "Y" || axis === "NY" ) {
+				if ( axis === "Y" || axis === "NY" || axis == 'YZ' ) {
 
 					this.activePlane = this.planes[ "XY" ];
 					if ( Math.abs( eye.x ) > Math.abs( eye.z ) ) this.activePlane = this.planes[ "YZ" ];
 				}
-				if ( axis === "Z" || axis === "NZ" ) {
+				if ( axis === "Z" || axis === "NZ" || axis == 'YZ' ) {
 
 					this.activePlane = this.planes[ "XZ" ];
 					if ( Math.abs( eye.x ) > Math.abs( eye.y ) ) this.activePlane = this.planes[ "YZ" ];
@@ -668,14 +693,14 @@
 				if (scope.elements.length == 0) return;
 
 				if (object) {
-					worldRotation.setFromRotationMatrix( tempMatrix.extractRotation( object.matrixWorld ) );
+					if (!this.dragging) worldRotation.setFromRotationMatrix( tempMatrix.extractRotation( object.matrixWorld ) );
 					if (Toolbox.selected.transformerMode === 'rotate') {
 						_gizmo[ _mode ].update( worldRotation, eye );
 						this.rotation.set(0, 0, 0);
 					} else {
 						object.getWorldQuaternion(this.rotation)
 					}
-					if (this.rotation_selection) {
+					if (this.rotation_selection.x || this.rotation_selection.y || this.rotation_selection.z) {
 						let q = Reusable.quat1.setFromEuler(this.rotation_selection);
 						this.quaternion.multiply(q);
 						worldRotation.setFromQuaternion(this.quaternion);
@@ -729,7 +754,7 @@
 
 			this.updateSelection = function() {
 				this.elements.empty()
-				if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
+				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 					if (Outliner.selected.length) {
 						Outliner.selected.forEach(element => {
 							if (
@@ -819,18 +844,10 @@
 				return 0;
 			}
 
-			this.isIKMovement = function() {
-				return Modes.animate
-					&& Toolbox.selected.id === 'move_tool'
-					&& NullObject.selected[0]
-					&& NullObject.selected[0].ik_enabled
-					&& NullObject.selected[0].ik_chain_length
-					&& NullObject.selected[0].parent instanceof Group;
-			}
 			this.center = function() {
 				delete Transformer.rotation_ref;
 				Transformer.rotation_selection.set(0, 0, 0);
-				if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
+				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 					if (Transformer.visible) {
 						var rotation_tool = Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool'
 						var rotation_object = getRotationObject()
@@ -912,12 +929,8 @@
 					} else if (Toolbox.selected.id === 'move_tool' && BarItems.transform_space.value === 'global') {
 						delete Transformer.rotation_ref;
 
-					} else if (Toolbox.selected.id == 'resize_tool') {
+					} else if (Toolbox.selected.id == 'resize_tool' || (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value !== 'global')) {
 						Transformer.rotation_ref = Group.selected.mesh;
-
-					} else if (scope.isIKMovement()) {
-						if (Transformer.dragging && Transformer.ik_target) Transformer.position.copy(Transformer.ik_target);
-						delete Transformer.rotation_ref;
 
 					} else {
 						Transformer.rotation_ref = Group.selected.mesh.parent;
@@ -925,10 +938,12 @@
 				} else if (Modes.animate && NullObject.selected[0]) {
 
 					this.attach(NullObject.selected[0]);
-					this.position.copy(NullObject.selected[0].getWorldCenter());
-					if (scope.isIKMovement()) {
-						if (Transformer.dragging && Transformer.ik_target) Transformer.position.copy(Transformer.ik_target);
+					this.position.copy(NullObject.selected[0].getWorldCenter(true));
+					
+					if (BarItems.rotation_space.value === 'global') {
 						delete Transformer.rotation_ref;
+					} else {
+						Transformer.rotation_ref = NullObject.selected[0].mesh.parent;
 					}
 				}
 			}
@@ -939,9 +954,7 @@
 			function displayDistance(number) {
 				Blockbench.setStatusBarText(trimFloatNumber(number));
 			}
-			function extendTransformLine(long) {
-
-				let axis = scope.axis.substr(-1).toLowerCase();
+			function extendTransformLineOnAxis(long, axis) {
 				let axisNumber = getAxisNumber(axis);
 				let main_gizmo = _gizmo[_mode].children[0];
 
@@ -962,6 +975,14 @@
 				} else {
 					line.base_scale[axis] = long ? 20000 : 1;
 				}
+			}
+			function extendTransformLine(long) {
+				let axis = scope.axis.substr(-1).toLowerCase();
+				let axis2 = scope.axis.length == 2 && scope.axis[0] != 'N' && scope.axis[0].toLowerCase();
+
+				extendTransformLineOnAxis(long, axis);
+				if (axis2) extendTransformLineOnAxis(long, axis2);
+
 				_gizmo[ _mode ].highlight( scope.axis );
 			}
 
@@ -1035,7 +1056,7 @@
 			function beforeFirstChange(event, point) {
 				if (scope.hasChanged) return;
 
-				if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
+				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 
 					if (Toolbox.selected.id === 'resize_tool') {
 						var axisnr = getAxisNumber(scope.axis.toLowerCase().replace('n', ''));
@@ -1047,7 +1068,7 @@
 								}
 							} else if (obj.resizable) {
 								obj.oldScale = obj.size(axisnr)
-								obj.oldCenter = (obj.from[axisnr] + obj.to[axisnr]) / 2;
+								obj.oldCenter = obj.from.map((from, i) => (from + obj.to[i]) / 2)
 							} 
 						})
 					}
@@ -1068,74 +1089,8 @@
 						Timeline.pause()
 					}
 					scope.keyframes = [];
-					var undo_keyframes = [];
 					var animator = Animation.selected.getBoneAnimator();
-					if (scope.isIKMovement()) {
-
-						Transformer.bones = [];
-						originalPoint.copy(point);
-
-						var bone = NullObject.selected[0].parent;
-						for (var i = NullObject.selected[0].ik_chain_length; i > 0; i--) {
-							if (bone instanceof Group == false) break;
-							var animator = Animation.selected.getBoneAnimator(bone);
-							animator.addToTimeline();
-							var {before, result} = animator.getOrMakeKeyframe('rotation');
-							scope.keyframes.push(result);
-							if (before) undo_keyframes.push(before);
-
-							bone = bone.parent;
-						}
-						Undo.initEdit({keyframes: undo_keyframes})
-
-						let basebone;
-						let bones = [];
-						var bone = NullObject.selected[0].parent;
-						for (let i = NullObject.selected[0].ik_chain_length; i > 0; i--) {
-							if (bone instanceof Group == false) break;
-							if (bone instanceof Group) {
-								bones.push(bone);
-								bone = bone.parent;
-							}
-						}
-						bones.reverse();
-
-						let solver = new FIK.Structure3D(scene);
-						let chain = new FIK.Chain3D();
-
-						bones.forEach((bone, i) => {
-
-							let startPoint = new FIK.V3(0,0,0).copy(bone.mesh.getWorldPosition(new THREE.Vector3()))
-							let endPoint = new FIK.V3(0,0,0).copy(bones[i+1] ? bones[i+1].mesh.getWorldPosition(new THREE.Vector3()) : NullObject.selected[0].getWorldCenter())
-
-							let ik_bone = new FIK.Bone3D(startPoint, endPoint)
-							chain.addBone(ik_bone)
-							Transformer.bones.push({
-								bone,
-								ik_bone,
-								last_rotation: new THREE.Euler().copy(bone.mesh.rotation),
-								ik_bone,
-								last_diff: new THREE.Vector3(
-									(bones[i+1] ? bones[i+1].origin[0] : NullObject.selected[0].from[0]) - bone.origin[0],
-									(bones[i+1] ? bones[i+1].origin[1] : NullObject.selected[0].from[1]) - bone.origin[1],
-									(bones[i+1] ? bones[i+1].origin[2] : NullObject.selected[0].from[2]) - bone.origin[2]
-								)
-							})
-							if (!basebone) {
-								basebone = ik_bone;
-							}
-						})
-
-						Transformer.ik_target = new THREE.Vector3().copy(Transformer.position);
-
-						solver.add(chain, Transformer.ik_target , true);
-						Transformer.ik_solver = solver;
-
-						Transformer.ik_solver.meshChains[0].forEach(mesh => {
-							mesh.visible = false;
-						})
-
-					} else if (animator) {
+					if (animator) {
 
 						var {before, result} = animator.getOrMakeKeyframe(Toolbox.selected.animation_channel);
 
@@ -1160,9 +1115,15 @@
 
 				event.stopPropagation();
 
-				var axis = scope.axis.substr(-1).toLowerCase()
+				var axis = ((scope.direction == false && scope.axis.length == 2) ? scope.axis[1] : scope.axis[0]).toLowerCase();
 				var axisNumber = getAxisNumber(axis)
 				var rotate_normal;
+				var axisB, axisNumberB;
+
+				if (scope.axis.length == 2 && scope.axis[0] !== 'N') {
+					axisB = scope.axis[1].toLowerCase()
+					axisNumberB = getAxisNumber(axisB)
+				}
 
 				point.copy( planeIntersect.point );
 
@@ -1194,7 +1155,7 @@
 				}
 				let transform_space = Transformer.getTransformSpace()
 
-				if (Modes.edit || Toolbox.selected.id == 'pivot_tool') {
+				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 
 					if (Toolbox.selected.id === 'move_tool') {
 
@@ -1238,16 +1199,30 @@
 						}
 					} else if (Toolbox.selected.id === 'resize_tool') {
 						// Resize
+
+						if (axisB) {
+							if (axis == 'y') {axis = 'z';} else
+							if (axisB == 'y') {axis = 'y';} else
+							if (axisB == 'z') {axis = 'x';}
+						}
 						var snap_factor = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)
 						point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
-
 
 						if (previousValue !== point[axis]) {
 							beforeFirstChange(event)
 
 							selected.forEach(function(obj, i) {
 								if (obj.resizable) {
-									obj.resize(point[axis], axisNumber, !scope.direction, null, ((event.altKey || Pressing.overrides.alt) && BarItems.swap_tools.keybind.key != 18) !== selected[0] instanceof Mesh)
+									let bidirectional = ((event.altKey || Pressing.overrides.alt) && BarItems.swap_tools.keybind.key != 18) !== selected[0] instanceof Mesh;
+									if (axisB) bidirectional = true;
+
+									if (!axisB) {
+										obj.resize(point[axis], axisNumber, !scope.direction, null, bidirectional);
+									} else {
+										let value = point[axis];
+										obj.resize(value, axisNumber, false, null, bidirectional);
+										obj.resize(value, axisNumberB, false, null, bidirectional);
+									}
 								}
 							})
 							displayDistance(point[axis] * (scope.direction ? 1 : -1));
@@ -1353,114 +1328,76 @@
 					}
 
 
-					if (value !== previousValue && Animation.selected && (scope.isIKMovement() || Animation.selected.getBoneAnimator())) {
+					if (value !== previousValue && Animation.selected && Animation.selected.getBoneAnimator()) {
 						beforeFirstChange(event, planeIntersect.point)
 
 						var difference = value - (previousValue||0)
 						if (Toolbox.selected.id === 'rotate_tool' && Math.abs(difference) > 120) {
 							difference = 0;
 						}
-						if (scope.isIKMovement()) {
 
-							Transformer.ik_target[axis] += difference
+						let {mesh} = Group.selected || NullObject.selected[0];
 
-							main_preview.render()
-							Transformer.ik_solver.update();
-							let lim = 12;
+						if (Toolbox.selected.id === 'rotate_tool' && (BarItems.rotation_space.value === 'global' || scope.axis == 'E')) {
 
-							Transformer.bones.forEach((bone, i) => {
-								var keyframe = scope.keyframes[i];
-								if (keyframe) {
+							let normal = scope.axis == 'E'
+								? rotate_normal
+								: axisNumber == 0 ? THREE.NormalX : (axisNumber == 1 ? THREE.NormalY : THREE.NormalZ);
+							if (axisNumber != 2) difference *= -1;
+							let rotWorldMatrix = new THREE.Matrix4();
+							rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(difference))
+							rotWorldMatrix.multiply(mesh.matrixWorld)
 
-									let euler = new THREE.Euler()
-									let q = new THREE.Quaternion()
-									
-									let start = new THREE.Vector3().copy(Transformer.ik_solver.chains[0].bones[i].start)
-									let end = new THREE.Vector3().copy(Transformer.ik_solver.chains[0].bones[i].end)
-									Transformer.bones[i].bone.mesh.worldToLocal(start)
-									Transformer.bones[i].bone.mesh.worldToLocal(end)
-									let diff = new THREE.Vector3().copy(end).sub(start)
-									
-									let v1 = new THREE.Vector3().copy(diff).normalize();
-									let v2 = new THREE.Vector3().copy(bone.last_diff).normalize();
-									v1.x *= -1;
-									v2.x *= -1;
+							let inverse = new THREE.Matrix4().copy(mesh.parent.matrixWorld).invert()
+							rotWorldMatrix.premultiply(inverse)
 
-									q.setFromUnitVectors(v1, v2)
-									euler.setFromQuaternion(q)
+							mesh.matrix.copy(rotWorldMatrix)
+							mesh.setRotationFromMatrix(rotWorldMatrix)
+							let e = mesh.rotation;
 
-									keyframe.offset('x', Math.clamp(Math.radToDeg(euler.x), -lim, lim));
-									keyframe.offset('y', Math.clamp(Math.radToDeg(euler.y), -lim, lim));
-									keyframe.offset('z', Math.clamp(Math.radToDeg(euler.z), -lim, lim));
-								
-									Animator.preview()
-								}
-							})
+							scope.keyframes[0].offset('x', Math.trimDeg( (-Math.radToDeg(e.x - mesh.fix_rotation.x)) - scope.keyframes[0].calc('x') ));
+							scope.keyframes[0].offset('y', Math.trimDeg( (-Math.radToDeg(e.y - mesh.fix_rotation.y)) - scope.keyframes[0].calc('y') ));
+							scope.keyframes[0].offset('z', Math.trimDeg( ( Math.radToDeg(e.z - mesh.fix_rotation.z)) - scope.keyframes[0].calc('z') ));
+						
+						} else if (Toolbox.selected.id === 'rotate_tool' && Transformer.getTransformSpace() == 2) {
+							if (axisNumber != 2) difference *= -1;
+
+							let old_order = mesh.rotation.order;
+							mesh.rotation.reorder(axisNumber == 0 ? 'ZYX' : (axisNumber == 1 ? 'ZXY' : 'XYZ'))
+							var obj_val = Math.trimDeg(Math.radToDeg(mesh.rotation[axis]) + difference);
+							mesh.rotation[axis] = Math.degToRad(obj_val);
+							mesh.rotation.reorder(old_order);
+				
+							scope.keyframes[0].offset('x', Math.trimDeg( (-Math.radToDeg(mesh.rotation.x - mesh.fix_rotation.x)) - scope.keyframes[0].calc('x') ));
+							scope.keyframes[0].offset('y', Math.trimDeg( (-Math.radToDeg(mesh.rotation.y - mesh.fix_rotation.y)) - scope.keyframes[0].calc('y') ));
+							scope.keyframes[0].offset('z', Math.trimDeg( ( Math.radToDeg(mesh.rotation.z - mesh.fix_rotation.z)) - scope.keyframes[0].calc('z') ));
+	
+						} else if (Toolbox.selected.id === 'move_tool' && BarItems.transform_space.value === 'global') {
+
+							let offset_vec = new THREE.Vector3();
+							offset_vec[axis] = difference;
+				
+							var rotation = new THREE.Quaternion();
+							mesh.parent.getWorldQuaternion(rotation);
+							offset_vec.applyQuaternion(rotation.invert());
+				
+							scope.keyframes[0].offset('x', -offset_vec.x);
+							scope.keyframes[0].offset('y', offset_vec.y);
+							scope.keyframes[0].offset('z', offset_vec.z);
 
 						} else {
-							let {mesh} = Group.selected;
-
-							if (Toolbox.selected.id === 'rotate_tool' && (BarItems.rotation_space.value === 'global' || scope.axis == 'E')) {
-
-								let normal = scope.axis == 'E'
-									? rotate_normal
-									: axisNumber == 0 ? THREE.NormalX : (axisNumber == 1 ? THREE.NormalY : THREE.NormalZ);
-								if (axisNumber != 2) difference *= -1;
-								let rotWorldMatrix = new THREE.Matrix4();
-								rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(difference))
-								rotWorldMatrix.multiply(mesh.matrixWorld)
-
-								let inverse = new THREE.Matrix4().copy(mesh.parent.matrixWorld).invert()
-								rotWorldMatrix.premultiply(inverse)
-
-								mesh.matrix.copy(rotWorldMatrix)
-								mesh.setRotationFromMatrix(rotWorldMatrix)
-								let e = mesh.rotation;
-
-								scope.keyframes[0].offset('x', Math.trimDeg( (-Math.radToDeg(e.x - mesh.fix_rotation.x)) - scope.keyframes[0].calc('x') ));
-								scope.keyframes[0].offset('y', Math.trimDeg( (-Math.radToDeg(e.y - mesh.fix_rotation.y)) - scope.keyframes[0].calc('y') ));
-								scope.keyframes[0].offset('z', Math.trimDeg( ( Math.radToDeg(e.z - mesh.fix_rotation.z)) - scope.keyframes[0].calc('z') ));
-							
-								/*
-							} else if (Toolbox.selected.id === 'rotate_tool' && Transformer.getTransformSpace() == 2) {
-								if (axisNumber != 2) difference *= -1;
-
-
-								let old_order = mesh.rotation.order;
-								mesh.rotation.reorder(axisNumber == 0 ? 'ZYX' : (axis == 1 ? 'ZXY' : 'XYZ'))
-								var obj_val = Math.trimDeg(Math.radToDeg(mesh.rotation[axis]) + difference);
-								mesh.rotation[axis] = Math.degToRad(obj_val);
-								mesh.rotation.reorder(old_order);
-					
-								scope.keyframes[0].offset('x', Math.trimDeg( (-Math.radToDeg(mesh.rotation.x - mesh.fix_rotation.x)) - scope.keyframes[0].calc('x') ));
-								scope.keyframes[0].offset('y', Math.trimDeg( (-Math.radToDeg(mesh.rotation.y - mesh.fix_rotation.y)) - scope.keyframes[0].calc('y') ));
-								scope.keyframes[0].offset('z', Math.trimDeg( ( Math.radToDeg(mesh.rotation.z - mesh.fix_rotation.z)) - scope.keyframes[0].calc('z') ));
-								*/
-		
-							} else if (Toolbox.selected.id === 'move_tool' && BarItems.transform_space.value === 'global') {
-
-								let offset_vec = new THREE.Vector3();
-								offset_vec[axis] = difference;
-					
-								var rotation = new THREE.Quaternion();
-								mesh.parent.getWorldQuaternion(rotation);
-								offset_vec.applyQuaternion(rotation.invert());
-					
-								scope.keyframes[0].offset('x', -offset_vec.x);
-								scope.keyframes[0].offset('y', offset_vec.y);
-								scope.keyframes[0].offset('z', offset_vec.z);
-
-							} else {
-								if (axis == 'x' && Toolbox.selected.id === 'move_tool') {
-									difference *= -1
-								}
-								scope.keyframes[0].offset(axis, difference);
+							if (axis == 'x' && Toolbox.selected.id === 'move_tool') {
+								difference *= -1
 							}
-							scope.keyframes[0].select();
+							scope.keyframes[0].offset(axis, difference);
 						}
+						scope.keyframes[0].select();
+							
 						displayDistance(value - originalValue);
 
-						Animator.preview()
+						if (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value !== 'bone') {} else {
+							Animator.preview()
+						}
 						previousValue = value
 						scope.hasChanged = true
 					}
@@ -1560,7 +1497,7 @@
 
 					Blockbench.setStatusBarText();
 
-					if (Modes.id === 'edit' || Toolbox.selected.id == 'pivot_tool') {
+					if (Modes.id === 'edit' || Modes.id === 'pose' || Toolbox.selected.id == 'pivot_tool') {
 						if (Toolbox.selected.id === 'resize_tool') {
 							//Scale
 							selected.forEach(function(obj) {
@@ -1588,14 +1525,6 @@
 
 					} else if (Modes.id === 'display' && keep_changes) {
 						Undo.finishEdit('Edit display slot')
-					}
-					
-					if (Modes.animate && Transformer.isIKMovement() && Transformer.ik_solver) {
-						Transformer.ik_solver.meshChains[0].forEach(mesh => {
-							scene.remove(mesh)
-						})
-						delete Transformer.ik_solver;
-						updateSelection()
 					}
 				}
 				_dragging = false;

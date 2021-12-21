@@ -9,6 +9,7 @@ class ModelFormat {
 		this.name = data.name || tl('format.'+this.id);
 		this.description = data.description || tl('format.'+this.id+'.desc');
 		this.show_on_start_screen = true;
+		this.confidential = false;
 
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].reset(this);
@@ -19,6 +20,7 @@ class ModelFormat {
 		this.onDeactivation = data.onDeactivation;
 		Merge.string(this, data, 'icon');
 		Merge.boolean(this, data, 'show_on_start_screen');
+		Merge.boolean(this, data, 'confidential');
 
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].merge(this, data);
@@ -35,14 +37,19 @@ class ModelFormat {
 		buildGrid()
 		if (Format.centered_grid) {
 			scene.position.set(0, 0, 0);
+			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 8;
 		} else {
 			scene.position.set(-8, -8, -8);
+			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 0;
 		}
 		Preview.all.forEach(preview => {
 			if (preview.isOrtho && typeof preview.angle == 'number') {
 				preview.loadAnglePreset(DefaultCameraPresets[preview.angle+1])
 			}
 		})
+		if (Mode.selected && !Condition(Mode.selected.condition)) {
+			(this.pose_mode ? Modes.options.paint : Modes.options.edit).select();
+		}
 		Interface.Panels.animations.inside_vue._data.animation_files_enabled = this.animation_files;
 		Interface.status_bar.vue.Format = this;
 		Modes.vue.$forceUpdate()
@@ -206,6 +213,7 @@ new Property(ModelFormat, 'boolean', 'canvas_limit');
 new Property(ModelFormat, 'boolean', 'rotation_limit');
 new Property(ModelFormat, 'boolean', 'uv_rotation');
 new Property(ModelFormat, 'boolean', 'animation_files');
+new Property(ModelFormat, 'boolean', 'pose_mode');
 new Property(ModelFormat, 'boolean', 'display_mode');
 new Property(ModelFormat, 'boolean', 'animation_mode');
 new Property(ModelFormat, 'boolean', 'texture_folder');
@@ -219,5 +227,6 @@ new ModelFormat({
 	centered_grid: true,
 	optional_box_uv: true,
 	uv_rotation: true,
-	animation_mode: true
+	animation_mode: true,
+	locators: true,
 })

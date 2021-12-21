@@ -229,7 +229,7 @@ class Preview {
 		this.camPers.position.fromArray(this.default_angle.position);
 		this.controls.target.fromArray(this.default_angle.target);
 
-		if (!Blockbench.isMobile) {
+		if (!Blockbench.isMobile && !this.offscreen) {
 			this.orbit_gizmo = new OrbitGizmo(this);
 			this.node.append(this.orbit_gizmo.node);
 		}
@@ -288,12 +288,13 @@ class Preview {
 
 		this.raycaster = new THREE.Raycaster();
 		this.mouse = new THREE.Vector2();
-		addEventListeners(this.canvas, 'mousedown touchstart', 	function(event) { scope.click(event)}, { passive: false })
-		addEventListeners(this.canvas, 'mousemove touchmove', 	function(event) { scope.static_rclick = false}, false)
-		addEventListeners(this.canvas, 'mousemove', 			function(event) { scope.mousemove(event)}, false)
-		addEventListeners(this.canvas, 'mouseup touchend',		function(event) { scope.mouseup(event)}, false)
-		addEventListeners(this.canvas, 'dblclick', 				function(event) {Toolbox.toggleTransforms(event)}, false)
-		addEventListeners(this.canvas, 'mouseenter touchstart', function(event) { scope.occupyTransformer(event)}, false)
+		addEventListeners(this.canvas, 'mousedown touchstart', 	event => { this.click(event)}, { passive: false })
+		addEventListeners(this.canvas, 'mousemove touchmove', 	event => { this.static_rclick = false}, false)
+		addEventListeners(this.canvas, 'mousemove', 			event => { this.mousemove(event)}, false)
+		addEventListeners(this.canvas, 'mouseup touchend',		event => { this.mouseup(event)}, false)
+		addEventListeners(this.canvas, 'dblclick', 				event => { Toolbox.toggleTransforms(event)}, false)
+		addEventListeners(this.canvas, 'mouseenter touchstart', event => { this.occupyTransformer(event)}, false)
+		addEventListeners(this.canvas, 'mouseenter',			event => { this.controls.hasMoved = true}, false)
 
 		Blockbench.addDragHandler('preview_'+this.id, {
 			extensions: ['jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'],
@@ -595,10 +596,6 @@ class Preview {
 			this.camera.zoom = preset.zoom;
 			this.camera.updateProjectionMatrix()
 		}
-		if (!this.isOrtho) {
-			// should be FOV and should be an option on saving
-			this.camera.setFocalLength(preset.focal_length||45);
-		}
 		this.setLockedAngle(preset.locked_angle)
 		return this;
 	}
@@ -612,6 +609,7 @@ class Preview {
 		target.forEach((v, i) => {
 			target[i] = Math.round(v*100)/100
 		})
+		let rotation_mode = 'target';
 
 		let dialog = new Dialog({
 			id: 'save_angle',
@@ -624,8 +622,25 @@ class Preview {
 					perspective: 'dialog.save_angle.projection.perspective',
 					orthographic: 'dialog.save_angle.projection.orthographic'
 				}},
+				divider1: '_',
+				rotation_mode: {label: 'dialog.save_angle.rotation_mode', type: 'select', value: rotation_mode, options: {
+					target: 'dialog.save_angle.target',
+					rotation: 'dialog.save_angle.rotation'
+				}},
 				position: {label: 'dialog.save_angle.position', type: 'vector', dimensions: 3, value: position},
-				target: {label: 'dialog.save_angle.target', type: 'vector', dimensions: 3, value: target},
+				target: {label: 'dialog.save_angle.target', type: 'vector', dimensions: 3, value: target, condition: ({rotation_mode}) => rotation_mode == 'target'},
+				rotation: {label: 'dialog.save_angle.rotation', type: 'vector', dimensions: 2, condition: ({rotation_mode}) => rotation_mode == 'rotation'},
+				zoom: {label: 'dialog.save_angle.zoom', type: 'number', value: 1, condition: result => (result.projection == 'orthographic')},
+			},
+			onFormChange(form) {
+				if (form.rotation_mode !== rotation_mode) {
+					rotation_mode = form.rotation_mode;
+					if (form.rotation_mode == 'rotation') {
+						this.setFormValues({rotation: cameraTargetToRotation(form.position, form.target).map(trimFloatNumber)});
+					} else {
+						this.setFormValues({target: cameraRotationToTarget(form.position, form.rotation).map(trimFloatNumber)});
+					}
+				}
 			},
 			onConfirm: function(formResult) {
 
@@ -740,7 +755,15 @@ class Preview {
 					event.shiftKey || Pressing.overrides.shift ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
 				)) {
-					data.element.parent.select().showInOutliner();
+					if (data.element.parent.selected && (event.shiftKey || Pressing.overrides.shift)) {
+						let super_parent = data.element.parent;
+						while (super_parent.parent instanceof Group && super_parent.selected) {
+							super_parent = super_parent.parent;
+						}
+						super_parent.select().showInOutliner();
+					} else {
+						data.element.parent.select().showInOutliner();
+					}
 
 				} else if (!Animator.open) {
 
@@ -1149,7 +1172,7 @@ class Preview {
 							}
 						}
 
-					} else if (element instanceof Cube) {
+					} else if (element instanceof Cube && (selection_mode == 'object' || !Format.meshes || !scope.selection.old_selected.find(el => el instanceof Mesh))) {
 						let vertices = [
 							[element.from[0]	- element.inflate, element.from[1]	- element.inflate, element.from[2]	- element.inflate],
 							[element.from[0]	- element.inflate, element.from[1]	- element.inflate, element.to[2]	+ element.inflate],
@@ -1216,9 +1239,9 @@ class Preview {
 				this.background = canvas_scenes.normal
 			}
 		} else if (this.angle !== null) {
-			this.background = canvas_scenes['ortho_'+this.angle]
+			this.background = Project && Project.backgrounds['ortho_'+this.angle]
 		} else {
-			this.background = canvas_scenes.normal
+			this.background = Project && Project.backgrounds.normal
 		}
 		return this.background
 	}
@@ -1294,6 +1317,7 @@ class Preview {
 				return true;
 			}
 		})
+		Interface.addSuggestedModifierKey('shift', 'modifier_actions.resize_background');
 	}
 	stopMovingBackground() {
 		this.movingBackground = false;
@@ -1303,6 +1327,7 @@ class Preview {
 			this.position_toast.delete();
 			delete this.position_toast;
 		}
+		Interface.removeSuggestedModifierKey('shift', 'modifier_actions.resize_background');
 		Settings.saveLocalStorages()
 		return this;
 	}
@@ -1342,53 +1367,7 @@ class Preview {
 	}
 	//Misc
 	screenshot(options, cb) {
-		var scope = this;
-		if (!options) options = 0;
-
-		Canvas.withoutGizmos(function() {
-
-			scope.render()
-
-			if (options.crop == false && !options.width && !options.height) {
-				var dataUrl = scope.canvas.toDataURL()
-				Screencam.returnScreenshot(dataUrl, cb)
-				return;
-			}
-			
-			if (options.crop !== false && !(display_mode && display_slot === 'gui') && !options.width && !options.height) {
-				let frame = new CanvasFrame(scope.canvas);
-				frame.autoCrop()
-				Screencam.returnScreenshot(frame.canvas.toDataURL(), cb)
-				return;
-			}
-
-			var dataUrl = scope.canvas.toDataURL()
-			dataUrl = dataUrl.replace('data:image/png;base64,','')
-			Jimp.read(Buffer.from(dataUrl, 'base64')).then(function(image) { 
-				
-				if (display_mode && display_slot === 'gui' && options.crop !== false) {
-					var zoom = display_preview.camOrtho.zoom * devicePixelRatio
-					var resolution = 256 * zoom;
-
-					var start_x = display_preview.width *devicePixelRatio/2 - display_preview.controls.target.x*zoom*40 - resolution/2;
-					var start_y = display_preview.height*devicePixelRatio/2 + display_preview.controls.target.y*zoom*40 - resolution/2;
-					
-					image.crop(start_x, start_y, resolution, resolution)
-				} else {
-					if (options.crop !== false) {
-						image.autocrop([0, false])
-					}
-					if (options && options.width && options.height) {
-						image.contain(options.width, options.height)
-					}
-				}
-
-				image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
-					Screencam.returnScreenshot(dataUrl, cb)
-				})
-			});
-		})
-
+		return Screencam.screenshotPreview(this, options, cb);
 	}
 	fullscreen() {
 		if (quad_previews.current) {
@@ -1439,9 +1418,6 @@ class Preview {
 		{id: 'background', icon: 'wallpaper', name: 'menu.preview.background', children(preview) {
 			var has_background = !!preview.background.image
 			function applyBackground(image) {
-				if (!preview.background.image) {
-					preview.background.save_in_project = null;
-				}
 				preview.background.image = image;
 				preview.loadBackground();
 				Settings.saveLocalStorages();
@@ -1507,14 +1483,24 @@ class Preview {
 			]
 			let presets = localStorage.getItem('camera_presets')
 			presets = (presets && autoParseJSON(presets, false)) || [];
-			let all_presets = [...DefaultCameraPresets, ...presets];
+			let all_presets = [
+				DefaultCameraPresets[0], '_',
+				...DefaultCameraPresets.slice(1, 7), '_',
+				...DefaultCameraPresets.slice(7, 11), '_',
+				...DefaultCameraPresets.slice(11), '_',
+				...presets
+			];
 
 			all_presets.forEach(preset => {
+				if (typeof preset == 'string') {
+					children.push('_'); return;
+				}
 				let icon = typeof preset.locked_angle ? 'videocam' : (preset.locked_angle == preview.angle ? 'radio_button_checked' : 'radio_button_unchecked'); 
 				children.push({
 					name: preset.name,
 					color: preset.color,
 					id: preset.name,
+					preset,
 					icon,
 					click: preset.default ? () => {
 						preview.loadAnglePreset(preset)
@@ -1589,7 +1575,8 @@ function openQuadView() {
 
 function editCameraPreset(preset, presets) {
 	let {name, projection, position, target, zoom} = preset;
-	
+	let rotation_mode = 'target';
+
 	let dialog = new Dialog({
 		id: 'edit_angle',
 		title: 'menu.preview.angle.edit',
@@ -1600,9 +1587,25 @@ function editCameraPreset(preset, presets) {
 				perspective: 'dialog.save_angle.projection.perspective',
 				orthographic: 'dialog.save_angle.projection.orthographic'
 			}},
+			divider1: '_',
+			rotation_mode: {label: 'dialog.save_angle.rotation_mode', type: 'select', value: rotation_mode, options: {
+				target: 'dialog.save_angle.target',
+				rotation: 'dialog.save_angle.rotation'
+			}},
 			position: {label: 'dialog.save_angle.position', type: 'vector', dimensions: 3, value: position},
-			target: {label: 'dialog.save_angle.target', type: 'vector', dimensions: 3, value: target},
+			target: {label: 'dialog.save_angle.target', type: 'vector', dimensions: 3, value: target, condition: ({rotation_mode}) => rotation_mode == 'target'},
+			rotation: {label: 'dialog.save_angle.rotation', type: 'vector', dimensions: 2, condition: ({rotation_mode}) => rotation_mode == 'rotation'},
 			zoom: {label: 'dialog.save_angle.zoom', type: 'number', value: zoom||1, condition: result => (result.projection == 'orthographic')},
+		},
+		onFormChange(form) {
+			if (form.rotation_mode !== rotation_mode) {
+				rotation_mode = form.rotation_mode;
+				if (form.rotation_mode == 'rotation') {
+					this.setFormValues({rotation: cameraTargetToRotation(form.position, form.target)});
+				} else {
+					this.setFormValues({target: cameraRotationToTarget(form.position, form.rotation)});
+				}
+			}
 		},
 		onConfirm: function(result) {
 
@@ -1611,7 +1614,9 @@ function editCameraPreset(preset, presets) {
 			preset.name = result.name;
 			preset.projection = result.projection;
 			preset.position = result.position;
-			preset.target = result.target;
+			preset.target = result.rotation_mode == 'rotation'
+					? rotationToTarget(result.position, result.rotation)
+					: result.target;
 			if (result.projection == 'orthographic') preset.zoom = result.zoom;
 
 			localStorage.setItem('camera_presets', JSON.stringify(presets))
@@ -1750,279 +1755,8 @@ class OrbitGizmo {
 }
 
 
-const Screencam = {
-	recording_timelapse: false,
-	fullScreen(options, cb) {
-		setTimeout(function() {
-			currentwindow.capturePage().then(function(screenshot) {
-				var dataUrl = screenshot.toDataURL()
-
-				if (!(options && options.width && options.height)) {
-					Screencam.returnScreenshot(dataUrl, cb)
-					return;
-				}
-
-				dataUrl = dataUrl.replace('data:image/png;base64,','')
-				Jimp.read(Buffer.from(dataUrl, 'base64')).then(function(image) { 
-
-					image.contain(options.width, options.height)
-
-					image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
-						Screencam.returnScreenshot(dataUrl, cb)
-					})
-				});
-			})
-		}, 40)
-	},
-	async returnScreenshot(dataUrl, cb) {
-
-		if (cb) {
-			cb(dataUrl);
-			return;
-		}
-
-		let img = new Image()
-		let is_gif = dataUrl.substr(5, 9) == 'image/gif'
-		img.src = dataUrl
-		img.className = 'allow_default_menu checkerboard';
-		await new Promise((resolve, reject) => {
-			img.onload = resolve;
-			img.onerror = reject;
-		})
-
-		let center = document.createElement('center');
-		center.innerHTML = `<div>${img.naturalWidth} x ${img.naturalHeight}px, ${is_gif ? 'GIF' : 'PNG'}</div>`;
-		center.appendChild(img);
-
-		let buttons = [tl('dialog.save'), tl('dialog.cancel')]
-		if (!is_gif) {
-			buttons.splice(0, 0, tl('message.screenshot.clipboard'))
-		}
-		let dialog = new Dialog({
-			title: 'message.screenshot.title', 
-			id: 'screenshot',
-			width: img.naturalWidth + 50,
-			lines: [
-				center
-			],
-			buttons,
-			onButton(result) {
-
-				if (result === 0 && buttons.length == 3) {
-					if (navigator.clipboard && navigator.clipboard.write) {
-						fetch(dataUrl).then(async data => {
-							const blob = await data.blob();
-							await navigator.clipboard.write([
-								new ClipboardItem({
-									[blob.type]: blob
-								})
-							]);
-						})
-					} else {
-						Blockbench.showQuickMessage('message.screenshot.right_click');
-						return false;
-					}
-				} else if (result === buttons.length-2) {
-					Blockbench.export({
-						resource_id: 'screenshot',
-						extensions: [is_gif ? 'gif' : 'png'],
-						type: tl('data.image'),
-						savetype: is_gif ? 'binary' : 'image',
-						name: Project.name.replace(/\.geo$/, ''),
-						content: is_gif ? Buffer(dataUrl.split(',')[1], 'base64') : dataUrl,
-					})
-				}
-			}
-		})
-		dialog.show();
-	},
-	cleanCanvas(options, cb) {
-		quad_previews.current.screenshot(options, cb)
-	},
-	createGif(options, cb) {
-		if (typeof options !== 'object') options = {}
-		if (!options.length_mode) options.length_mode = 'seconds';
-		if (!options.length) options.length = 1;
-
-		var preview = quad_previews.current;
-		var animation = Animation.selected;
-		var interval = options.fps ? (1000/options.fps) : 100;
-		var frames = 0;
-		const gif = new GIF({
-			repeat: options.repeat,
-			quality: options.quality,
-			background: options.background ? options.background : {r: 30, g: 0, b: 255},
-			transparent: options.background ? undefined : 0x1e01ff,
-		});
-
-		if (options.turnspeed) {
-			preview.controls.autoRotate = true;
-			preview.controls.autoRotateSpeed = options.turnspeed;
-			preview.controls.autoRotateProgress = 0;
-		} else if (options.length_mode == 'turntable') {
-			options.length_mode = 'seconds'
-		}
-
-		if (options.play && animation) {
-			Timeline.time = 0;
-			Timeline.start()
-			if (!animation.length) options.length_mode = 'seconds';
-		} else if (options.length_mode == 'animation') {
-			options.length_mode = 'seconds'
-		}
-
-		if (!options.silent) {
-			Blockbench.setStatusBarText(tl('status_bar.recording_gif'));
-			gif.on('progress', Blockbench.setProgress);
-		}
-
-		function getProgress() {
-			switch (options.length_mode) {
-				case 'seconds': return interval*frames/(options.length*1000); break;
-				case 'frames': return frames/options.length; break;
-				case 'turntable': return Math.abs(preview.controls.autoRotateProgress) / (2*Math.PI); break;
-				case 'animation': return Timeline.time / (animation.length-(interval/1000)); break;
-			}
-		}
-
-		let recording = true;
-		var loop = setInterval(() => {
-			frames++;
-			Canvas.withoutGizmos(function() {
-				var img = new Image();
-				preview.render();
-				img.src = preview.canvas.toDataURL();
-				img.onload = () => {
-					gif.addFrame(img, {delay: interval});
-				}
-			})
-			Blockbench.setProgress(getProgress());
-			if (getProgress() >= 1) {
-				endRecording(true)
-				return;
-			}
-
-		}, interval)
-
-		function endRecording(render) {
-			recording = false;
-			clearInterval(loop)
-			if (render) {
-				gif.render();
-				if (!options.silent) {
-					Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
-				}
-			}
-			if (Animator.open && Timeline.playing) {
-				Timeline.pause();
-			}
-			if (options.turnspeed) {
-				preview.controls.autoRotate = false;
-			}
-		}
-
-		let toast = Blockbench.showToastNotification({
-			text: 'message.recording_gif',
-			icon: 'local_movies',
-			click() {
-				if (recording) {
-					endRecording(false);
-				} else {
-					gif.abort();
-				}
-				Blockbench.setStatusBarText();
-				Blockbench.setProgress(0);
-				return true;
-			}
-		})
-
-		gif.on('finished', blob => {
-			var reader = new FileReader();
-			reader.onload = () => {
-				if (!options.silent) {
-					Blockbench.setProgress();
-					Blockbench.setStatusBarText();
-				}
-				Screencam.returnScreenshot(reader.result, cb);
-			}
-			reader.readAsDataURL(blob);
-			toast.delete();
-		});
-
-	},
-	recordTimelapse(options) {
-		if (!options.destination) return;
-
-		function getFileName(num) {
-			return `${Project.name||'model'}_${num.toDigitString(4)}.png`;
-		}
-		var index = 0;
-		try {
-			var list = fs.readdirSync(options.destination);
-			while (list.includes(getFileName(index+1))) {
-				index++;
-			}
-		} catch (err) {
-			console.log('Unable to analyze past timelapse recording', err)
-		}
-
-		Prop.recording = true;
-		BarItems.timelapse.setIcon('pause');
-		Blockbench.showQuickMessage('message.timelapse_start');
-
-		function saveImage(image) {
-			var path = `${options.destination}${osfs}${getFileName(index)}`;
-			fs.writeFile(path, image, (e, b) => {});
-			
-		}
-		if (options.source === 'locked') {
-			var view_pos = new THREE.Vector3().copy(quad_previews.current.camera.position);
-			var view_tar = new THREE.Vector3().copy(quad_previews.current.controls.target);
-		}
-		Screencam.timelapse_loop = setInterval(function() {
-			index++;
-
-			if (!isApp || options.source === 'preview' || options.source === 'locked') {
-				var scope = quad_previews.current;
-				if (options.source === 'locked') {
-					var old_pos = new THREE.Vector3().copy(scope.camera.position);
-					var old_tar = new THREE.Vector3().copy(scope.controls.target);
-					scope.camera.position.copy(view_pos);
-					scope.controls.target.copy(view_tar);
-				}
-
-				Canvas.withoutGizmos(function() {
-
-					scope.render();
-					var dataUrl = scope.canvas.toDataURL();
-					saveImage(nativeImage.createFromDataURL(dataUrl).toPNG());
-
-					if (options.source === 'locked') {
-						scope.camera.position.copy(old_pos);
-						scope.controls.target.copy(old_tar);
-					}
-
-				})
-			} else {
-				currentwindow.capturePage((image) => {
-					saveImage(image.toPNG());
-				});
-			}
-
-		}, options.interval*1000);
-	},
-	stopTimelapse() {
-		if (Prop.recording) {
-			Prop.recording = false;
-			clearInterval(Screencam.timelapse_loop);
-			BarItems.timelapse.setIcon('timelapse');
-			Blockbench.showQuickMessage('message.timelapse_stop');
-		}
-	}
-}
-
 window.addEventListener("gamepadconnected", function(event) {
-	if (event.gamepad.id.includes('SpaceMouse') || event.gamepad.id.includes('SpaceNavigator')) {
+	if (event.gamepad.id.includes('SpaceMouse') || event.gamepad.id.includes('SpaceNavigator') || event.gamepad.id.includes('3Dconnexion')) {
 
 		let interval = setInterval(() => {
 			let gamepad = navigator.getGamepads()[event.gamepad.index];
@@ -2073,7 +1807,6 @@ class PreviewBackground {
 		this.x = data.x||0
 		this.y = data.y||0
 		this.lock = data.lock||false
-		this.save_in_project = false;
 		this.defaults = Object.assign({}, this);
 		this.defaults.image = this.image;
 		this.imgtag = new Image();
@@ -2137,16 +1870,7 @@ function initCanvas() {
 
 
 	canvas_scenes = {
-		normal: 			new PreviewBackground({name: 'menu.preview.perspective.normal', lock: null}),
-		ortho_top: 			new PreviewBackground({name: 'direction.top', lock: true}),
-		ortho_bottom: 		new PreviewBackground({name: 'direction.bottom', lock: true}),
-		ortho_south: 		new PreviewBackground({name: 'direction.south', lock: true}),
-		ortho_north: 		new PreviewBackground({name: 'direction.north', lock: true}),
-		ortho_east: 		new PreviewBackground({name: 'direction.east', lock: true}),
-		ortho_west: 		new PreviewBackground({name: 'direction.west', lock: true}),
-
 		monitor: 			new PreviewBackground({name: 'display.reference.monitor' }),
-
 		inventory_nine: 	new PreviewBackground({name: 'display.reference.inventory_nine', image: './assets/inventory_nine.png', x: 0, y: -525, size: 1051, lock: true}),
 		inventory_full: 	new PreviewBackground({name: 'display.reference.inventory_full', image: './assets/inventory_full.png', x: 0, y: -1740, size: 2781, lock: true}),
 		hud: 				new PreviewBackground({name: 'display.reference.hud', image: './assets/hud.png', x: -224, y: -447.5, size: 3391, lock: true}),
@@ -2164,9 +1888,6 @@ function initCanvas() {
 					let store = stored_canvas_scenes[key]
 					let real = canvas_scenes[key]
 
-					if (store.save_in_project) continue;
-					if (store.save_in_project == null) {real.save_in_project = false}
-
 					if (store.image	!== undefined) {real.image = store.image}
 					if (store.size	!== undefined) {real.size = store.size}
 					if (store.x		!== undefined) {real.x = store.x}
@@ -2176,7 +1897,6 @@ function initCanvas() {
 			}
 		}
 	}
-	active_scene = canvas_scenes.normal
 
 	MediaPreview = new Preview({id: 'media', offscreen: true})
 
@@ -2449,6 +2169,13 @@ BARS.defineActions(function() {
 		category: 'view',
 		linked_setting: 'shading'
 	})
+	new Toggle('toggle_ground_plane', {
+		name: tl('settings.ground_plane'),
+		description: tl('settings.ground_plane.desc'),
+		icon: 'icon-format_free',
+		category: 'view',
+		linked_setting: 'ground_plane'
+	})
 	new Toggle('toggle_motion_trails', {
 		name: tl('settings.motion_trails'),
 		description: tl('settings.motion_trails.desc'),
@@ -2458,85 +2185,6 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']}
 	})
 
-	new Action('screenshot_model', {
-		icon: 'fa-cubes',
-		category: 'view',
-		keybind: new Keybind({key: 'p', ctrl: true}),
-		click: function () {Preview.selected.screenshot()}
-	})
-	new Action('record_model_gif', {
-		icon: 'local_movies',
-		category: 'view',
-		click: function () {
-			new Dialog({
-				id: 'create_gif',
-				title: tl('dialog.create_gif.title'),
-				draggable: true,
-				form: {
-					length_mode: {label: 'dialog.create_gif.length_mode', type: 'select', default: 'seconds', options: {
-						seconds: 'dialog.create_gif.length_mode.seconds',
-						frames: 'dialog.create_gif.length_mode.frames',
-						animation: 'dialog.create_gif.length_mode.animation',
-						turntable: 'dialog.create_gif.length_mode.turntable',
-					}},
-					length: {label: 'dialog.create_gif.length', type: 'number', value: 10, step: 0.25},
-					fps: 	{label: 'dialog.create_gif.fps', type: 'number', value: 10},
-					quality:{label: 'dialog.create_gif.compression', type: 'number', value: 20, min: 1, max: 80},
-					color:  {label: 'dialog.create_gif.color', type: 'color', value: '#00000000'},
-					turn:	{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -10, max: 10},
-					play: 	{label: 'dialog.create_gif.play', type: 'checkbox', condition: Animator.open},
-				},
-				onConfirm: function(formData) {
-					let background = formData.color.toHex8String() != '#00000000' ? formData.color.toHexString() : undefined;
-					Screencam.createGif({
-						length_mode: formData.length_mode,
-						length: limitNumber(formData.length, 0.1, 24000),
-						fps: limitNumber(formData.fps, 0.5, 30),
-						quality: limitNumber(formData.quality, 0, 30),
-						background,
-						play: formData.play,
-						turnspeed: formData.turn,
-					}, Screencam.returnScreenshot)
-					this.hide()
-				}
-			}).show()
-		}
-	})
-	new Action('timelapse', {
-		icon: 'timelapse',
-		category: 'view',
-		condition: isApp,
-		click: function () {
-			if (!Prop.recording) {
-				new Dialog({
-					id: 'timelapse',
-					title: tl('action.timelapse'),
-					draggable: true,
-					form: {
-						interval: 	 {label: 'dialog.timelapse.interval', type: 'number', value: 10, step: 0.25},
-						source: 	 {label: 'dialog.timelapse.source', type: 'select', value: 'preview', options: {
-							preview: 'data.preview',
-							locked: 'dialog.timelapse.source.locked',
-							interface: 'dialog.timelapse.source.interface',
-						}, condition: isApp},
-						destination: {label: 'dialog.timelapse.destination', type: 'folder', value: ''},
-					},
-					onConfirm: function(formData) {
-						Screencam.recordTimelapse(formData);
-						this.hide()
-					}
-				}).show();
-			} else {
-				Screencam.stopTimelapse();
-			}
-		}
-	})
-	new Action('screenshot_app', {
-		icon: 'icon-bb_interface',
-		category: 'view',
-		condition: isApp,
-		click: function () {Screencam.fullScreen()}
-	})
 	new Action('toggle_quad_view', {
 		icon: 'grid_view',
 		category: 'view',

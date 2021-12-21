@@ -782,6 +782,7 @@ class Texture {
 	showContextMenu(event) {
 		var scope = this;
 		scope.select()
+		Prop.active_panel = 'textures'
 		this.menu.open(event, scope)
 	}
 	openMenu() {
@@ -1135,14 +1136,7 @@ class Texture {
 				name: 'menu.texture.change',
 				click: function(texture) { texture.reopen()}
 			},
-			{
-				icon: 'delete',
-				name: 'generic.delete',
-				click: function(texture) {
-					Undo.initEdit({textures: [texture], selected_texture: true, bitmap: true})
-					texture.remove()
-					Undo.finishEdit('Delete texture', {textures: [], selected_texture: true, bitmap: true})
-			}},
+			'delete',
 			'_',
 			{
 				icon: 'list',
