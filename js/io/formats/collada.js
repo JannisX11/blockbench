@@ -159,7 +159,7 @@ var codec = new Codec('collada', {
 			let primitive = [];
 
 			function addPosition(x, y, z) {
-				positions.push(x - cube.origin[0], y - cube.origin[1], z - cube.origin[2]);
+				positions.push((x - cube.origin[0]) / 16, (y - cube.origin[1]) / 16, (z - cube.origin[2]) / 16);
 			}
 
 			addPosition(cube.to[0]   + cube.inflate, cube.to[1] +	cube.inflate, cube.to[2]  	+ cube.inflate);
