@@ -37,7 +37,7 @@ function addStartScreenSection(id, data) {
 			content.css({
 				'bottom': '15px',
 				'right': '15px',
-				'color': data.graphic.description_color || '#ffffff',
+				'color': data.graphic.text_color || '#ffffff',
 			});
 			left.append(content);
 		}

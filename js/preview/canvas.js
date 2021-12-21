@@ -411,7 +411,7 @@ const Canvas = {
 
 		Canvas.groundPlaneMaterial = new THREE.MeshBasicMaterial({
 			map: Canvas.emptyMaterials[0].uniforms.map.value,
-			color: CustomTheme.data.colors.checkerboard,
+			color: CustomTheme.data.colors.back,
 			side: THREE.DoubleSide,
 			alphaTest: 0.2
 		})
