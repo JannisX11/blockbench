@@ -392,13 +392,18 @@ const Painter = {
 				ctx.beginPath();
 				if (tag.getTexture() === texture) {
 					var face_rect = getRectangle(
-						Math.floor(tag.uv[0] * uvFactorX),
-						Math.floor(tag.uv[1] * uvFactorY),
-						Math.ceil(tag.uv[2]  * uvFactorX),
-						Math.ceil(tag.uv[3]  * uvFactorY)
+						tag.uv[0] * uvFactorX,
+						tag.uv[1] * uvFactorY,
+						tag.uv[2] * uvFactorX,
+						tag.uv[3] * uvFactorY
 					)
 					let animation_offset = texture.currentFrame * texture.display_height;
-					ctx.rect(face_rect.ax, face_rect.ay + animation_offset, face_rect.x, face_rect.y)
+					ctx.rect(
+						Math.floor(face_rect.ax),
+						Math.floor(face_rect.ay) + animation_offset,
+						Math.ceil(face_rect.bx) - Math.floor(face_rect.ax),
+						Math.ceil(face_rect.by) - Math.floor(face_rect.ay)
+					)
 					ctx.fill()
 				}
 			}
