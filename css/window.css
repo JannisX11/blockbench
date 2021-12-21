@@ -720,6 +720,7 @@
 		margin-left: auto;
 		margin-right: auto;
 		background-color: var(--color-ui);
+		box-shadow: 0 0 50px #00000060;
 		overflow-x: hidden;
 		image-rendering: auto;
 	}
