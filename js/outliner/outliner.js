@@ -1339,10 +1339,9 @@ Interface.definePanels(function() {
 						this.dragToggle(e1);
 						return false;
 					}
-					if (!Modes.edit) return;
 					
 					let [item] = eventTargetToNode(e1.target);
-					if (!item || item.locked) {
+					if (!item || item.locked || !Modes.edit) {
 						function off(e2) {
 							removeEventListeners(document, 'mouseup touchend', off);
 							if (e1.target && e1.offsetX > e1.target.clientWidth) return;

@@ -142,12 +142,12 @@ const UVEditor = {
 		if (!Painter.selection.overlay) {
 			$(this.vue.$refs.frame).find('#texture_selection_rect').detach();
 			let rect = document.createElement('div');
+			rect.style.visibility = 'hidden';
 			rect.id = 'texture_selection_rect';
 			this.vue.$refs.frame.append(rect)
 			Painter.selection.rect = rect;
 			Painter.selection.start_x = x;
 			Painter.selection.start_y = y;
-			UVEditor.vue.copy_overlay.state = 'select';
 			UVEditor.vue.copy_overlay.width = 0;
 			UVEditor.vue.copy_overlay.height = 0;
 		} else {
@@ -178,6 +178,8 @@ const UVEditor = {
 
 		if (!Painter.selection.overlay) {
 			let calcrect = getRectangle(Painter.selection.start_x, Painter.selection.start_y, x, y)
+			if (!calcrect.x && !calcrect.y) return;
+			UVEditor.vue.copy_overlay.state = 'select';
 			Painter.selection.calcrect = calcrect;
 			Painter.selection.x = calcrect.ax;
 			Painter.selection.y = calcrect.ay;
@@ -188,6 +190,7 @@ const UVEditor = {
 				.css('top', 	(calcrect.ay%UVEditor.texture.display_height)*m + 'px')
 				.css('width', 	calcrect.x *m + 'px')
 				.css('height', 	calcrect.y *m + 'px')
+				.css('visibility', 'visible')
 		} else if (UVEditor.texture && Painter.selection.canvas) {
 			Painter.selection.x = Painter.selection.start_x + Math.round((event.clientX - Painter.selection.start_event.clientX) / m);
 			Painter.selection.y = Painter.selection.start_y + Math.round((event.clientY - Painter.selection.start_event.clientY) / m);
@@ -201,6 +204,7 @@ const UVEditor = {
 			Painter.selection.rect.remove()
 		}
 		if (Painter.selection.overlay || !Painter.selection.calcrect) return;
+		UVEditor.vue.copy_overlay.state = 'off';
 		if (Painter.selection.calcrect.x == 0 || Painter.selection.calcrect.y == 0) return;
 
 		let calcrect = Painter.selection.calcrect;
@@ -209,7 +213,6 @@ const UVEditor = {
 		canvas.width = calcrect.x;
 		canvas.height = calcrect.y;
 		ctx.drawImage(UVEditor.vue.texture.img, -calcrect.ax, -calcrect.ay)
-		UVEditor.vue.copy_overlay.state = 'off';
 
 		if (isApp) {
 			let image = nativeImage.createFromDataURL(canvas.toDataURL())
