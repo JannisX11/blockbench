@@ -596,6 +596,14 @@ class Preview {
 			this.camera.zoom = preset.zoom;
 			this.camera.updateProjectionMatrix()
 		}
+		if (!this.isOrtho) {
+			if (typeof preset.focal_length == 'number') {
+				// Only used for display mode and similar presets
+				this.camera.setFocalLength(preset.focal_length);
+			} else {
+				this.setFOV(Settings.get('fov'));
+			}
+		}
 		this.setLockedAngle(preset.locked_angle)
 		return this;
 	}

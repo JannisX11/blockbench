@@ -1337,8 +1337,7 @@ DisplayMode.loadThirdRight = function() {	//Loader
 	loadDisp('thirdperson_righthand')
 	display_preview.loadAnglePreset({
 		position: [-44, 40, -44],
-		target: [0, 14, 0],
-		focal_length: 45,
+		target: [0, 14, 0]
 	})
 	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
 }
@@ -1348,8 +1347,7 @@ DisplayMode.loadThirdLeft = function() {	//Loader
 	display_preview.controls.target.set(0, 14, 0)
 	display_preview.loadAnglePreset({
 		position: [-44, 40, -44],
-		target: [0, 14, 0],
-		focal_length: 45,
+		target: [0, 14, 0]
 	})
 	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
 }
@@ -1390,8 +1388,7 @@ DisplayMode.loadHead = function() {		//Loader
 	loadDisp('head')
 	display_preview.loadAnglePreset({
 		position: [-30, 40, -30],
-		target: [0, 22, 0],
-		focal_length: 45,
+		target: [0, 22, 0]
 	})
 	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
 }
@@ -1414,8 +1411,7 @@ DisplayMode.loadGround = function() {		//Loader
 	loadDisp('ground')
 	display_preview.loadAnglePreset({
 		position: [-40, 37, -40],
-		target: [0, 11, 0],
-		focal_length: 45,
+		target: [0, 11, 0]
 	})
 	setDisplayArea(0, 12, 0, 0, 0, 0, 1, 1, 1)
 	ground_animation = true;
@@ -1426,8 +1422,7 @@ DisplayMode.loadFixed = function() {		//Loader
 	loadDisp('fixed')
 	display_preview.loadAnglePreset({
 		position: [-24, 18, -50],
-		target: [0, 1, -5],
-		focal_length: 45,
+		target: [0, 1, -5]
 	})
 	setDisplayArea(0, 0, -8.5, 0, 0, 0, 0.5, 0.5, 0.5)
 	displayReferenceObjects.bar(['frame'])

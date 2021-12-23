@@ -53,6 +53,12 @@ class NullObject extends OutlinerElement {
 		}
 		return this;
 	}
+	unselect(...args) {
+		if (Animator.open && Timeline.selected_animator && Timeline.selected_animator.element == this) {
+			Timeline.selected_animator.selected = false;
+		}
+		return super.unselect(...args);
+	}
 	flip(axis, center) {
 		var offset = this.from[axis] - center
 		this.from[axis] = center - offset;
