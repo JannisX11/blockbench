@@ -1811,17 +1811,27 @@ Interface.definePanels(function() {
 
 						this.zoom = number;
 						
-						let {viewport} = this.$refs;
-						let offset = $(this.$refs.viewport).offset()
-						let offsetX = event.clientX - offset.left;
-						let offsetY = event.clientY - offset.top;
-				
-						let zoom_diff = this.zoom - old_zoom;
-						viewport.scrollLeft += ((viewport.scrollLeft + offsetX) * zoom_diff) / old_zoom
-						viewport.scrollTop  += ((viewport.scrollTop  + offsetY) * zoom_diff) / old_zoom
-						
-						this.updateMouseCoords(event)
-						if (Painter.selection.overlay) UVEditor.updatePastingOverlay()
+						let updateScroll = () => {
+							let {viewport} = this.$refs;
+							let offset = $(this.$refs.viewport).offset()
+							let offsetX = event.clientX - offset.left;
+							let offsetY = event.clientY - offset.top;
+							// Make it a bit easier to scroll into corners
+							offsetX = (offsetX - this.width/2) * 1.1 + this.width/2;
+							offsetY = (offsetY - this.height/2) * 1.1 + this.height/2;
+							let zoom_diff = this.zoom - old_zoom;
+							
+							viewport.scrollLeft += ((viewport.scrollLeft + offsetX) * zoom_diff) / old_zoom
+							viewport.scrollTop  += ((viewport.scrollTop  + offsetY) * zoom_diff) / old_zoom
+							
+							this.updateMouseCoords(event)
+							if (Painter.selection.overlay) UVEditor.updatePastingOverlay()
+						}
+						if (n > 0) {
+							Vue.nextTick(updateScroll);
+						} else {
+							updateScroll();
+						}
 
 						return false;
 					}
