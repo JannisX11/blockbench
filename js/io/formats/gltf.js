@@ -164,15 +164,15 @@ var codec = new Codec('gltf', {
 		let animations = [];
 		let gl_scene = new THREE.Scene();
 		gl_scene.name = 'blockbench_export'
-
 		gl_scene.add(Project.model_3d);
-		if (!Modes.edit) {
-			Animator.showDefaultPose();
-		}
-		if (options.animations !== false) {
-			animations = buildAnimationTracks();
-		}
+		
 		try {
+			if (!Modes.edit) {
+				Animator.showDefaultPose();
+			}
+			if (options.animations !== false) {
+				animations = buildAnimationTracks();
+			}
 			let json = await new Promise((resolve, reject) => {
 				exporter.parse(gl_scene, resolve, {
 					animations,
