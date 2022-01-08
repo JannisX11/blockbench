@@ -425,8 +425,6 @@ window.Dialog = class Dialog {
 		this.confirmIndex = options.confirmIndex||0;
 		this.cancelIndex = options.cancelIndex !== undefined ? options.cancelIndex : this.buttons.length-1;
 	
-		this.confirmEnabled = options.confirmEnabled === false ? false : true
-		this.cancelEnabled = options.cancelEnabled === false ? false : true
 		this.onConfirm = options.onConfirm
 		this.onCancel = options.onCancel
 		this.onButton = options.onButton;
