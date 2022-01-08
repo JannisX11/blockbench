@@ -236,7 +236,11 @@ onVueSetup(function() {
 		addStartScreenSection('new_version', data.new_version)
 	})*/
 
-	var news_call = $.getJSON('https://web.blockbench.net/content/news.json')
+	var news_call = $.ajax({
+		cache: false,
+		url: 'https://web.blockbench.net/content/news.json',
+		dataType: 'json'
+	});
 	Promise.all([news_call, documentReady]).then((data) => {
 		if (!data || !data[0]) return;
 		data = data[0];

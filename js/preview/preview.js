@@ -1240,18 +1240,16 @@ class Preview {
 		if (display_mode) {
 			var id = displayReferenceObjects.active.id
 			if (id == 'monitor' ||id == 'bow') {
-				this.background = canvas_scenes.monitor
+				return this.background = canvas_scenes.monitor
 			} else if (['inventory_nine', 'inventory_full', 'hud'].includes(id)) {
-				this.background = canvas_scenes[id]
-			} else {
-				this.background = canvas_scenes.normal
+				return this.background = canvas_scenes[id]
 			}
-		} else if (this.angle !== null) {
-			this.background = Project && Project.backgrounds['ortho_'+this.angle]
-		} else {
-			this.background = Project && Project.backgrounds.normal
 		}
-		return this.background
+		if (this.angle === null) {
+			return this.background = Project && Project.backgrounds.normal;
+		} else {
+			return this.background = Project && Project.backgrounds['ortho_'+this.angle];
+		}
 	}
 	loadBackground() {
 		this.getBackground()
@@ -1423,7 +1421,7 @@ class Preview {
 			changeDisplaySkin()
 		}},
 		'preview_checkerboard',
-		{id: 'background', icon: 'wallpaper', name: 'menu.preview.background', children(preview) {
+		{id: 'background', icon: 'wallpaper', name: 'menu.preview.background', condition: (preview) => preview.getBackground(), children(preview) {
 			var has_background = !!preview.background.image
 			function applyBackground(image) {
 				preview.background.image = image;

@@ -390,16 +390,23 @@ if (isApp) {
 }
 
 Plugins.loading_promise = new Promise((resolve, reject) => {
-	$.getJSON('https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins.json?'+Math.round(Math.random()*99), function(data) {
-		Plugins.json = data
-		resolve();
-		Plugins.loading_promise.resolved = true;
-	}).fail(function() {
-		console.log('Could not connect to plugin server')
-		$('#plugin_available_empty').text('Could not connect to plugin server')
-		resolve();
-		Plugins.loading_promise.resolved = true;
-	})
+
+	$.ajax({
+		cache: false,
+		url: 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins.json',
+		dataType: 'json',
+		success(data) {
+			Plugins.json = data;
+			resolve();
+			Plugins.loading_promise.resolved = true;
+		},
+		error() {
+			console.log('Could not connect to plugin server')
+			$('#plugin_available_empty').text('Could not connect to plugin server')
+			resolve();
+			Plugins.loading_promise.resolved = true;
+		}
+	});
 })
 
 $.getJSON('https://blckbn.ch/api/stats/plugins?weeks=2', data => {
