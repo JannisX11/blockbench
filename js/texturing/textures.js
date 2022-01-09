@@ -168,7 +168,7 @@ class Texture {
 
 				//Width / Animation
 				if (img.naturalWidth !== img.naturalHeight && Format.id == 'java_block') {
-					BARS.updateConditions()
+					//BARS.updateConditions()
 				}
 
 				if (Project.box_uv && Format.single_texture && !scope.error) {
@@ -976,7 +976,7 @@ class Texture {
 					if (scope.folder) arr = arr.concat(scope.folder.split('/'));
 					arr.push(scope.name)
 					find_path = arr.join(osfs)
-				} 
+				}
 				Blockbench.export({
 					resource_id: 'texture',
 					type: 'PNG Texture',
@@ -1002,6 +1002,76 @@ class Texture {
 			})
 		}
 		return this;
+	}
+	exportEmissionMap() {
+		new Dialog({
+			id: 'export_emission_map',
+			title: 'dialog.export_emission_map.title',
+			form: {
+				format: {label: 'dialog.export_emission_map.format', type: 'select', options: {
+					luminance: 'dialog.export_emission_map.format.luminance',
+					luminance_inverted: 'dialog.export_emission_map.format.luminance_inverted',
+					colors: 'dialog.export_emission_map.format.colors'
+				}},
+				threshold: {label: 'dialog.export_emission_map.threshold', type: 'number', min: 0, max: 254},
+				round_up: {
+					label: tl('dialog.export_emission_map.round_up', [Math.getNextPower(this.width), Math.getNextPower(this.height)]),
+					type: 'checkbox',
+					condition: () => !Math.isPowerOfTwo(this.width) || !Math.isPowerOfTwo(this.height)},
+				flip_y: {label: 'dialog.export_emission_map.flip_y', type: 'checkbox'},
+			},
+			onConfirm: form => {
+
+				let canvas = document.createElement('canvas')
+				let ctx = canvas.getContext('2d');
+				if (form.round_up) {
+					canvas.width = Math.getNextPower(this.img.naturalWidth);
+					canvas.height = Math.getNextPower(this.img.naturalHeight);
+				} else {
+					canvas.width = this.img.naturalWidth;
+					canvas.height = this.img.naturalHeight;
+				}
+				if (form.flip_y) {
+					ctx.translate( 0, canvas.height );
+					ctx.scale( 1, - 1 );
+				}
+				ctx.drawImage(this.img, 0, 0, this.img.naturalWidth, this.img.naturalHeight);
+		
+				let data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+				for (let i = 0; i < data.data.length; i += 4) {
+
+					if (form.format == 'colors') {
+						if (data.data[i+3] <= form.threshold) {
+							data.data[i+0] = data.data[i+1] = data.data[i+2] = data.data[i+3] = 0;
+						} else {
+							data.data[i+3] = 255 - data.data[i+3];
+						}
+					} else {
+						if (data.data[i+3] < 254 && data.data[i+3] > form.threshold) {
+							let v = form.format == 'luminance_inverted' ? data.data[i+3] : (255 - data.data[i+3]);
+							data.data[i+0] = data.data[i+1] = data.data[i+2] = v;
+						} else {
+							data.data[i+0] = data.data[i+1] = data.data[i+2] = form.format == 'luminance_inverted' ? 255 : 0;
+						}
+						data.data[i+3] = 255;
+					}
+				}
+				ctx.putImageData(data, 0, 0);
+		
+				let dataUrl = canvas.toDataURL('image/png');
+		
+				Blockbench.export({
+					resource_id: 'texture',
+					type: 'PNG Texture',
+					extensions: ['png'],
+					name: this.name.replace(/\.png$/i, '') + '-emission_map',
+					content: dataUrl,
+					startpath: this.path.replace(/\.png$/i, '') + '-emission_map',
+					savetype: 'image'
+				})
+			}
+		}).show();
 	}
 	getBase64() {
 		var scope = this;
@@ -1123,6 +1193,12 @@ class Texture {
 				icon: 'file_download',
 				name: 'menu.texture.export',
 				click: function(texture) {texture.save(true)}
+			},
+			{
+				icon: 'flourescent',
+				name: 'dialog.export_emission_map.title',
+				condition: tex => tex.render_mode == 'emissive',
+				click: function(texture) {texture.exportEmissionMap()}
 			},
 			'_',
 			{

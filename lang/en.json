@@ -326,6 +326,15 @@
 	"dialog.resize_texture.fill.repeat": "Repeat",
 	"dialog.resize_texture.fill.stretch": "Stretch",
 
+	"dialog.export_emission_map.title": "Export Emission Map",
+	"dialog.export_emission_map.format": "Format",
+	"dialog.export_emission_map.format.luminance": "Luminance",
+	"dialog.export_emission_map.format.luminance_inverted": "Luminance Inverted",
+	"dialog.export_emission_map.format.colors": "Colors",
+	"dialog.export_emission_map.threshold": "Transparency Threshold",
+	"dialog.export_emission_map.round_up": "Round Up to %0 x %1",
+	"dialog.export_emission_map.flip_y": "Flip Y Axis",
+
 	"dialog.extrude.title": "Extrude Image",
 	"dialog.extrude.mode": "Scan Mode",
 	"dialog.extrude.mode.areas": "Areas",
