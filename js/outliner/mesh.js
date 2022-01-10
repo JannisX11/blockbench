@@ -1794,18 +1794,19 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'r', shift: true}),
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1)},
 		click() {
-			function runEdit(amended, offset = 50) {
+			function runEdit(amended, offset = 50, direction = 0) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
 				Mesh.selected.forEach(mesh => {
 					let selected_vertices = mesh.getSelectedVertices();
 					let start_face;
+					let start_face_quality = 1;
 					for (let fkey in mesh.faces) {
 						let face = mesh.faces[fkey];
-						if (face.vertices.length < 3) continue;
+						if (face.vertices.length < 2) continue;
 						let vertices = face.vertices.filter(vkey => selected_vertices.includes(vkey))
-						if (vertices.length >= 2) {
+						if (vertices.length > start_face_quality) {
 							start_face = face;
-							break;
+							start_face_quality = vertices.length;
 						}
 					}
 					if (!start_face) return;
@@ -1921,8 +1922,15 @@ BARS.defineActions(function() {
 						}
 					}
 
-					let start_vertices = start_face.vertices.filter((vkey, i) => selected_vertices.includes(vkey)).slice(0, 2);
-					splitFace(start_face, start_vertices, start_face.vertices.length == 4);
+					console.log(start_face)
+					let start_vertices = start_face.getSortedVertices().filter((vkey, i) => selected_vertices.includes(vkey));
+					let start_offset = direction % start_vertices.length;
+					let start_edge = start_vertices.slice(start_offset, start_offset+2);
+					if (start_edge.length == 1) start_edge.splice(0, 0, start_vertices[0]);
+					console.log({start_vertices, start_offset, direction, start_edge})
+
+
+					splitFace(start_face, start_edge, start_face.vertices.length == 4);
 
 					selected_vertices.empty();
 					for (let key in center_vertices) {
@@ -1932,13 +1940,22 @@ BARS.defineActions(function() {
 				Undo.finishEdit('Create loop cut')
 				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 			}
+
+			let selected_face;
+			Mesh.selected.forEach(mesh => {
+				if (!selected_face) {
+					selected_face = mesh.getSelectedFaces()[0];
+				}
+			})
+
 			runEdit();
 
 			Undo.amendEdit({
+				direction: {type: 'number', value: 0, label: 'edit.loop_cut.direction', condition: !!selected_face, min: 0},
 				//cuts: {type: 'number', value: 1, label: 'edit.loop_cut.cuts', min: 0, max: 16},
 				offset: {type: 'number', value: 50, label: 'edit.loop_cut.offset', min: 0, max: 100},
 			}, form => {
-				runEdit(true, form.offset);
+				runEdit(true, form.offset, form.direction);
 			})
 		}
 	})
