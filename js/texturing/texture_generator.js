@@ -342,7 +342,7 @@ const TextureGenerator = {
 		
 		//Drawing
 		TextureGenerator.old_project_resolution = [Project.texture_width, Project.texture_height]
-		TextureGenerator.changeProjectResolution(new_resolution[0], new_resolution[1]);
+		let affected_elements = TextureGenerator.changeProjectResolution(new_resolution[0], new_resolution[1]);
 
 		templates.forEach(function(t) {
 			if (options.rearrange_uv) {
@@ -396,7 +396,7 @@ const TextureGenerator = {
 		Undo.finishEdit('Create template', {
 			textures: [texture],
 			bitmap: true,
-			elements: cubes,
+			elements: cubes.slice().safePush( ...affected_elements),
 			selected_texture: true,
 			uv_only: true,
 			uv_mode: true
@@ -990,7 +990,7 @@ const TextureGenerator = {
 		var dataUrl = canvas.toDataURL()
 		var texture = cb(dataUrl)
 
-		TextureGenerator.changeProjectResolution(new_resolution[0], new_resolution[1]);
+		let affected_elements = TextureGenerator.changeProjectResolution(new_resolution[0], new_resolution[1]);
 
 		if (texture) {
 			element_list.forEach(function(element) {
@@ -1012,7 +1012,7 @@ const TextureGenerator = {
 		Undo.finishEdit('Create template', {
 			textures: [texture],
 			bitmap: true,
-			elements: element_list,
+			elements: [...element_list, ...affected_elements],
 			selected_texture: true,
 			uv_only: true,
 			uv_mode: true
@@ -1112,7 +1112,7 @@ const TextureGenerator = {
 		var dataUrl = canvas.toDataURL()
 		var texture = cb(dataUrl)
 
-		TextureGenerator.changeProjectResolution(new_resolution[0], new_resolution[1]);
+		let affected_elements = TextureGenerator.changeProjectResolution(new_resolution[0], new_resolution[1]);
 
 		if (texture) {
 			face_list.forEach(({face, fkey}, i) => {
@@ -1130,7 +1130,7 @@ const TextureGenerator = {
 		Undo.finishEdit('Create template', {
 			textures: [texture],
 			bitmap: true,
-			elements: element_list,
+			elements: [...element_list, ...affected_elements],
 			selected_texture: true,
 			uv_only: true,
 			uv_mode: true
@@ -1142,21 +1142,35 @@ const TextureGenerator = {
 		let factor_y = height / Project.texture_height;
 		Project.texture_width = width;
 		Project.texture_height = height;
+		let changed_elements = [];
 
-		if (!Project.box_uv && !Format.single_texture) {
-			Cube.all.forEach(cube => {
-				if (cube.selected) return;
-				for (var key in cube.faces) {
-					let face = cube.faces[key];
-					if (face.texture) {
-						face.uv[0] *= factor_x
-						face.uv[1] *= factor_y;
-						face.uv[2] *= factor_x;
-						face.uv[3] *= factor_y;
+		if (!Project.box_uv && !Format.single_texture && (factor_x !== 1 || factor_y !== 1)) {
+			changed_elements = Outliner.elements.filter(el => el.faces && !el.selected);
+			Undo.current_save.addElements(changed_elements, {uv_only: true});
+
+			changed_elements.forEach(element => {
+				if (element instanceof Cube) {
+					for (var key in element.faces) {
+						let face = element.faces[key];
+						if (face.texture) {
+							face.uv[0] *= factor_x
+							face.uv[1] *= factor_y;
+							face.uv[2] *= factor_x;
+							face.uv[3] *= factor_y;
+						}
+					}
+				} else if (element instanceof Mesh) {
+					for (var fkey in element.faces) {
+						let face = element.faces[fkey];
+						for (let vkey in face.uv) {
+							face.uv[vkey][0] *= factor_x;
+							face.uv[vkey][1] *= factor_y;
+						}
 					}
 				}
-				Canvas.updateUV(cube)
+				element.preview_controller.updateUV(element);
 			})
 		}
+		return changed_elements;
 	}
 }

@@ -289,8 +289,13 @@ class Mesh extends OutlinerElement {
 		this.sanitizeName();
 		return this;
 	}
-	getUndoCopy() {
+	getUndoCopy(aspects = {}) {
 		var copy = new Mesh(this)
+		if (aspects.uv_only) {
+			copy = {
+				faces: copy.faces,
+			}
+		}
 		copy.uuid = this.uuid;
 		delete copy.parent;
 		for (let fkey in copy.faces) {
@@ -1922,13 +1927,10 @@ BARS.defineActions(function() {
 						}
 					}
 
-					console.log(start_face)
 					let start_vertices = start_face.getSortedVertices().filter((vkey, i) => selected_vertices.includes(vkey));
 					let start_offset = direction % start_vertices.length;
 					let start_edge = start_vertices.slice(start_offset, start_offset+2);
 					if (start_edge.length == 1) start_edge.splice(0, 0, start_vertices[0]);
-					console.log({start_vertices, start_offset, direction, start_edge})
-
 
 					splitFace(start_face, start_edge, start_face.vertices.length == 4);
 
