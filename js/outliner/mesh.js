@@ -965,9 +965,16 @@ BARS.defineActions(function() {
 			minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: 8, min: 2, max: 32, condition: ({shape}) => ['torus'].includes(shape)},
 		},
 		onConfirm(result) {
+			let original_selection_group = Group.selected && Group.selected.uuid;
 			function runEdit(amended, result) {
 				let elements = [];
-				Undo.initEdit({elements}, amended);
+				if (original_selection_group && !Group.selected) {
+					let group_to_select = Group.all.find(g => g.uuid == original_selection_group);
+					if (group_to_select) {
+						Group.selected = group_to_select;
+					}
+				}
+				Undo.initEdit({elements, selection: true}, amended);
 				let mesh = new Mesh({
 					name: result.shape,
 					vertices: {}
