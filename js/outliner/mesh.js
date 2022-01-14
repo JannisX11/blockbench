@@ -420,6 +420,22 @@ class Mesh extends OutlinerElement {
 				this.origin.V3_set(rotateCoord(this.origin))
 			}
 		}
+		//Rotations
+		var i = 0;
+		var temp_rot = undefined;
+		var temp_i = undefined;
+		while (i < 3) {
+			if (i !== axis) {
+				if (temp_rot === undefined) {
+					temp_rot = this.rotation[i]
+					temp_i = i
+				} else {
+					this.rotation[temp_i] = -this.rotation[i]
+					this.rotation[i] = temp_rot
+				}
+			}
+			i++;
+		}
 		this.preview_controller.updateTransform(this);
 		this.preview_controller.updateGeometry(this);
 		return this;

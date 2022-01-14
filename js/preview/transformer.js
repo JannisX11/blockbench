@@ -838,7 +838,7 @@
 							break;
 						}
 					}
-					return bone;
+					return bone instanceof Group ? bone : 0;
 				}
 				// Global Space
 				return 0;

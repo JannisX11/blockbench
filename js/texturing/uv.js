@@ -1080,9 +1080,11 @@ const UVEditor = {
 		}
 
 		function addToClipboard(key) {
-			var tag = elements[0].faces[key];
+			let element = elements.find(el => el.faces[key]);
+			if (!element) return;
+			var tag = element.faces[key];
 			var new_face;
-			if (elements[0] instanceof Mesh) {
+			if (element instanceof Mesh) {
 				new_face = new MeshFace(null, tag);
 				new_face.vertices = tag.getSortedVertices();
 				new_face.direction = key;
