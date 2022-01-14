@@ -120,7 +120,7 @@
 		font-weight: normal;
 		font-style: normal;
 		src: local('icomoon'),
-			url('../font/icomoon.woff') format('woff');
+			url('../font/icomoon.woff?t564px') format('woff');
 	}
 
 /*Icons*/

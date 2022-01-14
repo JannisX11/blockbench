@@ -328,6 +328,7 @@ class BoneAnimator extends GeneralAnimator {
 		let epsilon = 1/1200;
 
 		function mapAxes(cb) {
+			if (!Animator._last_values[channel]) Animator._last_values[channel] = [0, 0, 0];
 			if (axis) {
 				let result = cb(axis);
 				Animator._last_values[channel][axis] = result;

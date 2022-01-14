@@ -158,39 +158,45 @@ function buildAnimationTracks(do_quaternions = true) {
 var codec = new Codec('gltf', {
 	name: 'GLTF Model',
 	extension: 'gltf',
-	compile(options = 0, callback) {
+	async compile(options = 0) {
 		let scope = this;
 		let exporter = new THREE.GLTFExporter();
 		let animations = [];
 		let gl_scene = new THREE.Scene();
 		gl_scene.name = 'blockbench_export'
-
 		gl_scene.add(Project.model_3d);
-		if (!Modes.edit) {
-			Animator.showDefaultPose();
-		}
-		if (options.animations !== false) {
-			animations = buildAnimationTracks();
-		}
-		exporter.parse(gl_scene, (json) => {
-
-			scope.dispatchEvent('compile', {model: json, options});
-			callback(JSON.stringify(json));
-
+		
+		try {
+			if (!Modes.edit) {
+				Animator.showDefaultPose();
+			}
+			if (options.animations !== false) {
+				animations = buildAnimationTracks();
+			}
+			let json = await new Promise((resolve, reject) => {
+				exporter.parse(gl_scene, resolve, {
+					animations,
+					onlyVisible: false,
+					trs: true,
+					truncateDrawRange: false,
+					forcePowerOfTwoTextures: true,
+					scale_factor: 1/16,
+					exportFaceColors: false,
+				});
+			})
 			scene.add(Project.model_3d);
-		}, {
-			animations,
-			onlyVisible: false,
-			trs: true,
-			truncateDrawRange: false,
-			forcePowerOfTwoTextures: true,
-			scale_factor: 1/16,
-			exportFaceColors: false,
-		});
+			
+			scope.dispatchEvent('compile', {model: json, options});
+			return JSON.stringify(json);
+
+		} catch (err) {
+			scene.add(Project.model_3d);
+			throw err;
+		}
 	},
 	export() {
 		var scope = codec;
-		scope.compile(0, content => {
+		scope.compile().then(content => {
 			setTimeout(_ => {
 				Blockbench.export({
 					resource_id: 'gltf',

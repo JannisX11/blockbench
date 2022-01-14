@@ -734,9 +734,10 @@ const Canvas = {
 				if (Group.selected.visibility) {
 					Group.selected.mesh.add(rot_origin)
 				}
-			} else if (Cube.selected.length && Format.rotate_cubes) {
-				if (Cube.selected.length === 1 && Cube.selected.length == 1) {
-					let mesh = Cube.selected[0].mesh
+			} else if ((Cube.selected.length && Format.rotate_cubes) || Mesh.selected.length) {
+				let selected_elements = [...Cube.selected, ...Mesh.selected];
+				if (selected_elements.length === 1) {
+					let mesh = selected_elements[0].mesh
 					if (mesh) {
 						mesh.add(rot_origin)
 					}
@@ -744,15 +745,15 @@ const Canvas = {
 					var origin = null;
 					var first_visible = null;
 					var i = 0;
-					while (i < Cube.selected.length) {
-						if (Cube.selected[i].visibility) {
+					while (i < selected_elements.length) {
+						if (selected_elements[i].visibility) {
 
 							if (first_visible === null) {
-								first_visible = Cube.selected[i]
+								first_visible = selected_elements[i]
 							}
 							if (origin === null) {
-								origin = Cube.selected[i].origin
-							} else if (!origin.equals(Cube.selected[i].origin)) {
+								origin = selected_elements[i].origin
+							} else if (!origin.equals(selected_elements[i].origin)) {
 								origin = false;
 								i = Infinity;
 							}

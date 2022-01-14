@@ -722,7 +722,7 @@ function moveElementsInSpace(difference, axis) {
 						move_origin = true;
 					} else {
 						var rotation = new THREE.Quaternion();
-						if (el.mesh && el instanceof Locator == false) {
+						if (el.mesh && el instanceof Locator == false && el instanceof Mesh == false) {
 							el.mesh.getWorldQuaternion(rotation);
 						} else if (el.parent instanceof Group) {
 							el.parent.mesh.getWorldQuaternion(rotation);
@@ -731,7 +731,7 @@ function moveElementsInSpace(difference, axis) {
 					}
 				}
 
-				if (el.movable && el instanceof Mesh == false) el.from.V3_add(m.x, m.y, m.z);
+				if (el.movable && (el instanceof Mesh == false || !move_origin)) el.from.V3_add(m.x, m.y, m.z);
 				if (el.resizable && el.to) el.to.V3_add(m.x, m.y, m.z);
 				if (move_origin) {
 					if (el.rotatable && el instanceof Locator == false && el instanceof TextureMesh == false) el.origin.V3_add(m.x, m.y, m.z);
