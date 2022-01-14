@@ -239,7 +239,7 @@ class Mesh extends OutlinerElement {
 			while (!key || this.vertices[key]) {
 				key = bbuid(4);
 			}
-			this.vertices[key] = [...vector];
+			this.vertices[key] = [vector[0] || 0, vector[1] || 0, vector[2] || 0];
 			return key;
 		})
 	}
@@ -887,7 +887,7 @@ new NodePreviewController(Mesh, {
 
 		for (let fkey in element.faces) {
 			let face = element.faces[fkey];
-			if (face.vertices <= 2) continue;
+			if (face.vertices.length <= 2) continue;
 			let offset = face.getNormal(true).V3_multiply(0.01);
 			let x_memory = {};
 			let y_memory = {};

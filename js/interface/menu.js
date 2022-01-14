@@ -568,7 +568,7 @@ const MenuBar = {
 			'convert_project',
 			'close_project',
 			'_',
-			{name: 'menu.file.import', id: 'import', icon: 'insert_drive_file', children: [
+			{name: 'menu.file.import', id: 'import', icon: 'insert_drive_file', condition: () => Format && !Format.pose_mode, children: [
 				{
 					id: 'import_open_project',
 					name: 'menu.file.import.import_open_project',
