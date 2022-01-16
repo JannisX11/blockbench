@@ -296,6 +296,10 @@ class ModelProject {
 			if (isApp) await updateRecentProjectThumbnail();
 	
 			Blockbench.dispatchEvent('close_project');
+
+			if (this.EditSession) {
+				this.EditSession.quit();
+			}
 			
 			this.unselect(true);
 			Texture.all.forEach(tex => tex.stopWatcher());
@@ -781,7 +785,15 @@ BARS.defineActions(function() {
 
 					BARS.updateConditions()
 					if (Project.EditSession) {
-						Project.EditSession.sendAll('change_project_meta', JSON.stringify(Project));
+						let metadata = {
+							texture_width: Project.texture_width,
+							texture_height: Project.texture_height,
+							box_uv: Project.box_uv
+						};
+						for (let key in ModelProject.properties) {
+							ModelProject.properties[key].copy(Project, metadata);
+						}
+						Project.EditSession.sendAll('change_project_meta', JSON.stringify(metadata));
 					}
 					
 					dialog.hide()
