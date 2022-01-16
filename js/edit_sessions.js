@@ -15,6 +15,7 @@ class EditSession {
 	}
 	updateClientCount() {
 		this.client_count = Math.clamp(Object.keys(this.clients).length, 1, 999);
+		this.sendAll('client_count', this.client_count);
 	}
 	start(username) {
 		if (this.active) return;
@@ -220,7 +221,7 @@ class EditSession {
 		if (this.hosting && !tag.hostOnly && Object.keys(this.peer.connections).length > 1) {
 			//Redistribute
 			for (var id in this.peer.connections) {
-				if (id !== tag.sender) {
+				if (id !== tag.sender && this.peer.connections[id].length) {
 					this.peer.connections[id][0].send(tag);
 				}
 			}
@@ -263,6 +264,7 @@ class EditSession {
 			Codecs.project.parse(data);
 			this.Project = Project;
 			this.Project.EditSession = this;
+			updateInterfacePanels();
 
 		} else if (tag.type === 'command') {
 			switch (data) {
@@ -270,6 +272,9 @@ class EditSession {
 				case 'redo': Undo.redo(true); break;
 				case 'quit_session': this.quit(); break;
 			}
+
+		} else if (tag.type === 'client_count') {
+			this.client_count = parseInt(data);
 
 		} else if (tag.type === 'change_project_meta') {
 			for (var key in data) {

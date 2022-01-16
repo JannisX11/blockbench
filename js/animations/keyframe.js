@@ -410,7 +410,7 @@ class Keyframe {
 				color: color.standard,
 				name: 'cube.color.'+color.name,
 				click(kf) {
-					kf.forSelected(function(kf2){kf2.color = 0}, 'change color')
+					kf.forSelected(function(kf2){kf2.color = i}, 'change color')
 				}
 			}}),
 		]},

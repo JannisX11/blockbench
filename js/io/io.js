@@ -374,7 +374,7 @@ function uploadSketchfabModel() {
 
 			settings.sketchfab_token.value = formResult.token
 
-			Codecs.gltf.compile({animations: formResult.animations}, (content) => {
+			Codecs.gltf.compile({animations: formResult.animations}).then(content => {
 
 				var blob = new Blob([content], {type: "text/plain;charset=utf-8"});
 				var file = new File([blob], 'model.gltf')
