@@ -1,5 +1,5 @@
 const fs = require('fs');
-const package_path = './package.json';
+const package_path = '.\\package.json';
 
 let package_file = fs.readFileSync(package_path, {encoding: 'utf-8'});
 let package = JSON.parse(package_file);
