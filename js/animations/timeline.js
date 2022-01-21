@@ -1175,23 +1175,31 @@ BARS.defineActions(function() {
 	new Action('timeline_frame_back', {
 		icon: 'arrow_back',
 		category: 'animation',
-		condition: {modes: ['animate']},
+		condition: {modes: ['animate', 'edit'], method: () => (!Modes.edit || Interface.Panels.textures.inside_vue.maxFrameCount())},
 		keybind: new Keybind({key: 188}),
 		click: function (e) {
-			let time = Timeline.snapTime(limitNumber(Timeline.time - Timeline.getStep(), 0, 1e4));
-			Timeline.setTime(time);
-			Animator.preview()
+			if (Modes.edit) {
+				BarItems.animated_texture_frame.change(v => v - 1);
+			} else {
+				let time = Timeline.snapTime(limitNumber(Timeline.time - Timeline.getStep(), 0, 1e4));
+				Timeline.setTime(time);
+				Animator.preview()
+			}
 		}
 	})
 	new Action('timeline_frame_forth', {
 		icon: 'arrow_forward',
 		category: 'animation',
-		condition: {modes: ['animate']},
+		condition: {modes: ['animate', 'edit'], method: () => (!Modes.edit || Interface.Panels.textures.inside_vue.maxFrameCount())},
 		keybind: new Keybind({key: 190}),
 		click: function (e) {
-			let time = Timeline.snapTime(limitNumber(Timeline.time + Timeline.getStep(), 0, 1e4));
-			Timeline.setTime(time);
-			Animator.preview()
+			if (Modes.edit) {
+				BarItems.animated_texture_frame.change(v => v + 1);
+			} else {
+				let time = Timeline.snapTime(limitNumber(Timeline.time + Timeline.getStep(), 0, 1e4));
+				Timeline.setTime(time);
+				Animator.preview()
+			}
 		}
 	})
 
