@@ -315,6 +315,11 @@ const Settings = {
 		new Setting('minify_bbmodel', 		{category: 'export', value: true});
 		new Setting('export_empty_groups',	{category: 'export', value: true});
 		new Setting('export_groups', 		{category: 'export', value: true});
+		new Setting('obj_face_export_mode',	{category: 'export', value: 'both', type: 'select', options: {
+			both: 'settings.obj_face_export_mode.both',
+			tris: 'settings.obj_face_export_mode.tris',
+			quads: 'settings.obj_face_export_mode.quads',
+		}});
 		new Setting('animation_sample_rate',{category: 'export', value: 24, type: 'number'});
 		new Setting('sketchfab_token', 		{category: 'export', value: '', type: 'password'});
 		new Setting('credit', 				{category: 'export', value: 'Made with Blockbench', type: 'text'});
