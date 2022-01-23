@@ -50,11 +50,7 @@ Object.assign(Blockbench, {
 				'" accept=".'+(options.extensions ? options.extensions.join(',.'): '')+
 				'" multiple="'+(options.multiple === true)+
 			'">').change(function(e) {
-				var input = this;
-				var results = [];
-				var result_count = 0;
-				var i = 0;
-				Blockbench.read(input.files, options, cb)
+				Blockbench.read(this.files, options, cb)
 			}).click()
 		}
 	},
@@ -192,10 +188,10 @@ Object.assign(Blockbench, {
 				(function() {
 					var file = files[i]
 					var reader = new FileReader()
-					reader.i = i
+					reader.i = i;
 					reader.onloadend = function() {
 
-						if (reader.result.byteLength && pathToExtension(file.name) === 'tga') {
+						if (reader.result.byteLength && pathToExtension(name) === 'tga') {
 							var arr = new Uint8Array(reader.result)
 							var targa_loader = new Targa()
 							targa_loader.load(arr)
@@ -204,8 +200,8 @@ Object.assign(Blockbench, {
 							var result = reader.result
 						}
 						results[this.i] = {
-							name: file.name,
-							path: file.name,
+							name,
+							path: name,
 							content: result,
 							browser_file: file
 						}
@@ -214,12 +210,16 @@ Object.assign(Blockbench, {
 							cb(results)
 						}
 					}
+					let name = file.name;
+					if (pathToExtension(name) === 'txt' && !(options && options.extensions instanceof Array && options.extensions.includes('txt'))) {
+						name = name.replace(/\.txt$/i, '');
+					}
 					let readtype = options.readtype;
 					if (typeof readtype == 'function') {
-						readtype = readtype(file.name);
+						readtype = readtype(name);
 					}
 					if (readtype === 'image') {
-						if (pathToExtension(file.name) === 'tga') {
+						if (pathToExtension(name) === 'tga') {
 							reader.readAsArrayBuffer(file)
 						} else {
 							reader.readAsDataURL(file)

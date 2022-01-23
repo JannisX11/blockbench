@@ -671,7 +671,7 @@ const UVEditor = {
 		this.message('uv_editor.turned');
 		this.loadData();
 	},
-	setAutoSize(event, silent) {		
+	setAutoSize(event, silent, face_keys) {		
 		let vec1 = new THREE.Vector3(),
 			vec2 = new THREE.Vector3(),
 			vec3 = new THREE.Vector3(),
@@ -680,8 +680,9 @@ const UVEditor = {
 
 		this.getMappableElements().forEach(obj => {
 			var top2, left2;
+			let faces = face_keys || this.getFaces(obj, event);
 			if (obj instanceof Cube) {
-				this.getFaces(obj, event).forEach(function(side) {
+				faces.forEach(function(side) {
 					let face = obj.faces[side];
 					let mirror_x = face.uv[0] > face.uv[2];
 					let mirror_y = face.uv[1] > face.uv[3];
@@ -709,7 +710,7 @@ const UVEditor = {
 				obj.autouv = 0
 
 			} else if (obj instanceof Mesh) {
-				this.getFaces(obj, event).forEach(fkey => {
+				faces.forEach(fkey => {
 					let face = obj.faces[fkey];
 					let vertex_uvs = {};
 					let uv_center = [0, 0];
@@ -1034,6 +1035,7 @@ const UVEditor = {
 					face.uv[vkey][1] = Math.clamp(b + center[1], 0, Project.texture_height);
 				})
 			})
+			Mesh.preview_controller.updateUV(mesh);
 		})
 		this.loadData();
 		this.message('uv_editor.rotated')
@@ -1078,9 +1080,11 @@ const UVEditor = {
 		}
 
 		function addToClipboard(key) {
-			var tag = elements[0].faces[key];
+			let element = elements.find(el => el.faces[key]);
+			if (!element) return;
+			var tag = element.faces[key];
 			var new_face;
-			if (elements[0] instanceof Mesh) {
+			if (element instanceof Mesh) {
 				new_face = new MeshFace(null, tag);
 				new_face.vertices = tag.getSortedVertices();
 				new_face.direction = key;
@@ -1149,7 +1153,7 @@ const UVEditor = {
 		} else {
 			UVEditor.clipboard.forEach(tag => {
 				elements.forEach(el => {
-					if (Project.box_uv && el instanceof Cube)
+					if (Project.box_uv && el instanceof Cube) return;
 					if ((el instanceof Cube && tag instanceof CubeFace) || (el instanceof Mesh && tag instanceof MeshFace)) {
 						let key = tag.direction;
 						if (el.faces[key]) {

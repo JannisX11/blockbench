@@ -1444,6 +1444,7 @@
 	#chat_history li {
 		padding-top: 1px;
 		padding-left: 7px;
+		clear: both;
 	}
 	#chat_history li b {
 	    margin-left: -6px;
@@ -1463,8 +1464,8 @@
 	#chat_history li span.timestamp {
 		color: var(--color-subtle_text);
 		font-size: 0.8em;
+		margin-top: 2px;
 		float: right;
-		clear: both;
 	}
 	#chat_bar {
 		height: 32px;

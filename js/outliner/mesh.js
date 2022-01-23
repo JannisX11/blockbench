@@ -239,7 +239,7 @@ class Mesh extends OutlinerElement {
 			while (!key || this.vertices[key]) {
 				key = bbuid(4);
 			}
-			this.vertices[key] = [...vector];
+			this.vertices[key] = [vector[0] || 0, vector[1] || 0, vector[2] || 0];
 			return key;
 		})
 	}
@@ -289,8 +289,13 @@ class Mesh extends OutlinerElement {
 		this.sanitizeName();
 		return this;
 	}
-	getUndoCopy() {
+	getUndoCopy(aspects = {}) {
 		var copy = new Mesh(this)
+		if (aspects.uv_only) {
+			copy = {
+				faces: copy.faces,
+			}
+		}
 		copy.uuid = this.uuid;
 		delete copy.parent;
 		for (let fkey in copy.faces) {
@@ -414,6 +419,22 @@ class Mesh extends OutlinerElement {
 			if (origin != this.origin) {
 				this.origin.V3_set(rotateCoord(this.origin))
 			}
+		}
+		//Rotations
+		var i = 0;
+		var temp_rot = undefined;
+		var temp_i = undefined;
+		while (i < 3) {
+			if (i !== axis) {
+				if (temp_rot === undefined) {
+					temp_rot = this.rotation[i]
+					temp_i = i
+				} else {
+					this.rotation[temp_i] = -this.rotation[i]
+					this.rotation[i] = temp_rot
+				}
+			}
+			i++;
 		}
 		this.preview_controller.updateTransform(this);
 		this.preview_controller.updateGeometry(this);
@@ -882,7 +903,7 @@ new NodePreviewController(Mesh, {
 
 		for (let fkey in element.faces) {
 			let face = element.faces[fkey];
-			if (face.vertices <= 2) continue;
+			if (face.vertices.length <= 2) continue;
 			let offset = face.getNormal(true).V3_multiply(0.01);
 			let x_memory = {};
 			let y_memory = {};
@@ -960,9 +981,16 @@ BARS.defineActions(function() {
 			minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: 8, min: 2, max: 32, condition: ({shape}) => ['torus'].includes(shape)},
 		},
 		onConfirm(result) {
+			let original_selection_group = Group.selected && Group.selected.uuid;
 			function runEdit(amended, result) {
 				let elements = [];
-				Undo.initEdit({elements}, amended);
+				if (original_selection_group && !Group.selected) {
+					let group_to_select = Group.all.find(g => g.uuid == original_selection_group);
+					if (group_to_select) {
+						Group.selected = group_to_select;
+					}
+				}
+				Undo.initEdit({elements, selection: true}, amended);
 				let mesh = new Mesh({
 					name: result.shape,
 					vertices: {}
@@ -1202,8 +1230,7 @@ BARS.defineActions(function() {
 				mesh.init()
 				if (Group.selected) Group.selected.unselect()
 				mesh.select()
-				UVEditor.selected_faces.replace(Object.keys(mesh.faces));
-				UVEditor.setAutoSize(null, true);
+				UVEditor.setAutoSize(null, true, Object.keys(mesh.faces));
 				UVEditor.selected_faces.empty();
 				Undo.finishEdit('Add primitive');
 				Blockbench.dispatchEvent( 'add_mesh', {object: mesh} )
@@ -1276,6 +1303,7 @@ BARS.defineActions(function() {
 				vec3 = new THREE.Vector3(),
 				vec4 = new THREE.Vector3();
 			Undo.initEdit({elements: Mesh.selected});
+			let faces_to_autouv = [];
 			Mesh.selected.forEach(mesh => {
 				UVEditor.selected_faces.empty();
 				let selected_vertices = mesh.getSelectedVertices();
@@ -1293,21 +1321,29 @@ BARS.defineActions(function() {
 							delete mesh.faces[key];
 						}
 					}
-					if (selected_vertices.length == 2 && reference_face.vertices.length == 4 && reference_face.vertices.filter(vkey => selected_vertices.includes(vkey)).length == 2) {
+					// Split face
+					if (
+						(selected_vertices.length == 2 || selected_vertices.length == 3) &&
+						reference_face.vertices.length == 4 &&
+						reference_face.vertices.filter(vkey => selected_vertices.includes(vkey)).length == selected_vertices.length
+					) {
 
 						let sorted_vertices = reference_face.getSortedVertices();
 						let unselected_vertices = sorted_vertices.filter(vkey => !selected_vertices.includes(vkey));
 
 						let side_index_diff = Math.abs(sorted_vertices.indexOf(selected_vertices[0]) - sorted_vertices.indexOf(selected_vertices[1]));
-						if (side_index_diff != 1) {
+						if (side_index_diff != 1 || selected_vertices.length == 3) {
 
 							let new_face = new MeshFace(mesh, reference_face);
-
+							
 							new_face.vertices.remove(unselected_vertices[0]);
 							delete new_face.uv[unselected_vertices[0]];
 
-							reference_face.vertices.remove(unselected_vertices[1]);
-							delete reference_face.uv[unselected_vertices[1]];
+							let reference_corner_vertex = unselected_vertices[1]
+								|| sorted_vertices[sorted_vertices.indexOf(unselected_vertices[0]) + 2]
+								|| sorted_vertices[sorted_vertices.indexOf(unselected_vertices[0]) - 2];
+							reference_face.vertices.remove(reference_corner_vertex);
+							delete reference_face.uv[reference_corner_vertex];
 
 							let [face_key] = mesh.addFaces(new_face);
 							UVEditor.selected_faces.push(face_key);
@@ -1325,6 +1361,7 @@ BARS.defineActions(function() {
 						} );
 						let [face_key] = mesh.addFaces(new_face);
 						UVEditor.selected_faces.push(face_key);
+						faces_to_autouv.push(face_key);
 
 						// Correct direction
 						if (selected_vertices.length > 2) {
@@ -1414,7 +1451,7 @@ BARS.defineActions(function() {
 					}
 				}
 			})
-			UVEditor.setAutoSize(null, true);
+			UVEditor.setAutoSize(null, true, faces_to_autouv);
 			Undo.finishEdit('Create mesh face')
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
@@ -1431,6 +1468,7 @@ BARS.defineActions(function() {
 				
 				let mesh = new Mesh({
 					name: cube.name,
+					color: cube.color,
 					origin: cube.origin,
 					rotation: cube.rotation,
 					vertices: [
@@ -1502,9 +1540,11 @@ BARS.defineActions(function() {
 		click() {
 			function runEdit(amended, extend = 1) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
+
 				Mesh.selected.forEach(mesh => {
 					let original_vertices = Project.selected_vertices[mesh.uuid].slice();
 					let new_vertices;
+					let new_face_keys = [];
 					let selected_faces = [];
 					let selected_face_keys = [];
 					let combined_direction;
@@ -1616,7 +1656,8 @@ BARS.defineActions(function() {
 									original_vertices[new_vertices.indexOf(b)],
 								]
 							});
-							mesh.addFaces(new_face);
+							let [face_key] = mesh.addFaces(new_face);
+							new_face_keys.push(face_key);
 							remaining_vertices.remove(a);
 							remaining_vertices.remove(b);
 						})
@@ -1649,8 +1690,9 @@ BARS.defineActions(function() {
 							let new_face = new MeshFace(mesh, face).extend({
 								vertices: [a, b, c, d]
 							});
+							let [face_key] = mesh.addFaces(new_face);
+							new_face_keys.push(face_key);
 							new_faces.push(new_face);
-							mesh.addFaces(new_face);
 							remaining_vertices.remove(a);
 							remaining_vertices.remove(b);
 						}
@@ -1664,9 +1706,10 @@ BARS.defineActions(function() {
 						mesh.addFaces(new_face);
 					})
 
+					UVEditor.setAutoSize(null, true, new_face_keys);
 				})
-				Undo.finishEdit('Extrude mesh selection')
-				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
+				Undo.finishEdit('Extrude mesh selection');
+				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true});
 			}
 			runEdit();
 
@@ -1794,18 +1837,19 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'r', shift: true}),
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1)},
 		click() {
-			function runEdit(amended, offset = 50) {
+			function runEdit(amended, offset = 50, direction = 0) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
 				Mesh.selected.forEach(mesh => {
 					let selected_vertices = mesh.getSelectedVertices();
 					let start_face;
+					let start_face_quality = 1;
 					for (let fkey in mesh.faces) {
 						let face = mesh.faces[fkey];
-						if (face.vertices.length < 3) continue;
+						if (face.vertices.length < 2) continue;
 						let vertices = face.vertices.filter(vkey => selected_vertices.includes(vkey))
-						if (vertices.length >= 2) {
+						if (vertices.length > start_face_quality) {
 							start_face = face;
-							break;
+							start_face_quality = vertices.length;
 						}
 					}
 					if (!start_face) return;
@@ -1921,8 +1965,12 @@ BARS.defineActions(function() {
 						}
 					}
 
-					let start_vertices = start_face.vertices.filter((vkey, i) => selected_vertices.includes(vkey)).slice(0, 2);
-					splitFace(start_face, start_vertices, start_face.vertices.length == 4);
+					let start_vertices = start_face.getSortedVertices().filter((vkey, i) => selected_vertices.includes(vkey));
+					let start_offset = direction % start_vertices.length;
+					let start_edge = start_vertices.slice(start_offset, start_offset+2);
+					if (start_edge.length == 1) start_edge.splice(0, 0, start_vertices[0]);
+
+					splitFace(start_face, start_edge, start_face.vertices.length == 4);
 
 					selected_vertices.empty();
 					for (let key in center_vertices) {
@@ -1932,13 +1980,22 @@ BARS.defineActions(function() {
 				Undo.finishEdit('Create loop cut')
 				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 			}
+
+			let selected_face;
+			Mesh.selected.forEach(mesh => {
+				if (!selected_face) {
+					selected_face = mesh.getSelectedFaces()[0];
+				}
+			})
+
 			runEdit();
 
 			Undo.amendEdit({
+				direction: {type: 'number', value: 0, label: 'edit.loop_cut.direction', condition: !!selected_face, min: 0},
 				//cuts: {type: 'number', value: 1, label: 'edit.loop_cut.cuts', min: 0, max: 16},
 				offset: {type: 'number', value: 50, label: 'edit.loop_cut.offset', min: 0, max: 100},
 			}, form => {
-				runEdit(true, form.offset);
+				runEdit(true, form.offset, form.direction);
 			})
 		}
 	})

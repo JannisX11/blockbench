@@ -172,8 +172,8 @@ class Group extends OutlinerNode {
 	}
 	remove(undo) {
 		var scope = this;
+		let elements = [];
 		if (undo) {
-			let elements = []
 			this.forEachChild(function(element) {
 				if (element.type !== 'group') {
 					elements.push(element)
@@ -200,6 +200,7 @@ class Group extends OutlinerNode {
 		this.constructor.all.remove(this);
 		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
+			elements.empty();
 			Undo.finishEdit('Delete group')
 		}
 	}

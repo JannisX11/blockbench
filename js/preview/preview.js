@@ -1621,7 +1621,7 @@ function editCameraPreset(preset, presets) {
 			preset.projection = result.projection;
 			preset.position = result.position;
 			preset.target = result.rotation_mode == 'rotation'
-					? rotationToTarget(result.position, result.rotation)
+					? cameraRotationToTarget(result.position, result.rotation)
 					: result.target;
 			if (result.projection == 'orthographic') preset.zoom = result.zoom;
 

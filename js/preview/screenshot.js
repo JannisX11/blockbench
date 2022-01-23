@@ -22,6 +22,9 @@ const Screencam = {
 		onConfirm: function(formData) {
 			let background = formData.color.toHex8String() != '#00000000' ? formData.color.toHexString() : undefined;
 			this.hide();
+			if (document.getElementById('gif_recording_frame')) {
+				document.getElementById('gif_recording_frame').remove();
+			}
 			Screencam.createGif({
 				length_mode: formData.length_mode,
 				length: limitNumber(formData.length, 0.1, 24000),

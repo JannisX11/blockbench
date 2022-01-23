@@ -1132,7 +1132,7 @@ Interface.definePanels(function() {
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
 				@click="node.select($event, true)"
 				@touchstart="node.select($event)" :title="node.title"
-				@dblclick.stop.self="renameOutliner()"
+				@dblclick.stop.self="!node.locked && renameOutliner()"
 			>` +
 				//Opener
 				

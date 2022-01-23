@@ -793,7 +793,7 @@
     "action.remove_blank_faces.desc": "Usuwa wszystkie nieoteksturowane powierzchnie z zaznaczenia",
     "web.download_app": "Pobierz aplikację",
     "uv_editor.turned": "Turned Mapping",
-    "display.reference.crossbow": "Crossbow",
+    "display.reference.crossbow": "Kusza",
     "dialog.settings.search_results": "Wyniki wyszukiwania",
     "settings.animation_snap": "Animation Snap",
     "settings.animation_snap.desc": "Default snap interval for keyframes in the animation timeline in steps per second. This can also be changed per animation. The default value is 24.",
@@ -1477,5 +1477,6 @@
     "panel.skin_pose.crouching": "Crouching",
     "panel.skin_pose.sitting": "Sitting",
     "panel.skin_pose.jumping": "Jumping",
-    "panel.skin_pose.aiming": "Aiming"
+    "panel.skin_pose.aiming": "Aiming",
+    "edit.loop_cut.direction": "Direction"
 }

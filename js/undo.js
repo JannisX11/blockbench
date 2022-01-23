@@ -551,6 +551,12 @@ UndoSystem.save = class {
 			this.textures[texture.uuid] = texture.getUndoCopy(this.aspects.bitmap)
 		}
 	}
+	addElements(elements, aspects = {}) {
+		if (!this.elements) this.elements = {};
+		elements.forEach(el => {
+			this.elements[el.uuid] = el.getUndoCopy(aspects);
+		})
+	}
 }
 
 let Undo = null;
