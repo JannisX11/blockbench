@@ -791,6 +791,7 @@ WinterskyScene.global_options.scale = 16;
 WinterskyScene.global_options.loop_mode = 'once';
 WinterskyScene.global_options.parent_mode = 'entity';
 
+Prism.languages.molang['function-name'] = /\b(?!\d)(math\.\w+|button)(?=[\t ]*\()/i;
 
 const Animator = {
 	get possible_channels() {
@@ -1071,14 +1072,48 @@ const Animator = {
 				}).add()
 				//Bones
 				if (a.bones) {
+					let existing_variables = [
+						'query.anim_time',
+						'query.life_time',
+						'query.delta_time',
+						'query.camera_rotation',
+						'query.rotation_to_camera',
+						'query.distance_from_camera',
+						'query.lod_index',
+						'query.camera_distance_range_lerp',
+					];
+					function processPlaceholderVariables(text) {
+						if (typeof text !== 'string') return;
+						text = text.replace(/v\./, 'variable.').replace(/q\./, 'query.').replace(/t\./, 'temp.').replace(/c\./, 'context.').toLowerCase();
+						let matches = text.match(/(query|variable|context|temp)\.\w+/gi);
+						if (!matches) return;
+						matches.forEach(match => {
+							let panel_vue = Interface.Panels.variable_placeholders.inside_vue;
+							if (existing_variables.includes(match)) return;
+							if (panel_vue.text.split('\n').find(line => line.substr(0, match.length) == match)) return;
+
+							let [space, name] = match.split(/\./);
+							if (panel_vue.text != '' && panel_vue.text.substr(-1) !== '\n') panel_vue.text += '\n';
+
+							if (name == 'modified_distance_moved') {
+								panel_vue.text += `${match} = time * 8`;
+							} else if (name.match(/is_|has_|can_|blocking/)) {
+								panel_vue.text += `${match} = toggle('${name}')`;
+							} else {
+								panel_vue.text += `${match} = slider('${name}')`;
+							}
+						})
+					}
 					function getKeyframeDataPoints(source) {
 						if (source instanceof Array) {
+							source.forEach(processPlaceholderVariables);
 							return [{
 								x: source[0],
 								y: source[1],
 								z: source[2],
 							}]
 						} else if (['number', 'string'].includes(typeof source)) {
+							processPlaceholderVariables(source);
 							return [{
 								x: source, y: source, z: source
 							}]
@@ -1410,16 +1445,28 @@ Animator.MolangParser.global_variables = {
 	}
 }
 Animator.MolangParser.variableHandler = function (variable) {
-	var inputs = Interface.Panels.variable_placeholders.inside_vue._data.text.split('\n');
+	var inputs = Interface.Panels.variable_placeholders.inside_vue.text.split('\n');
 	var i = 0;
 	while (i < inputs.length) {
 		let key, val;
-		[key, val] = inputs[i].split(/=(.+)/);
+		[key, val] = inputs[i].split(/=\s*(.+)/);
 		key = key.replace(/[\s;]/g, '');
 		key = key.replace(/^v\./, 'variable.').replace(/^q\./, 'query.').replace(/^t\./, 'temp.').replace(/^c\./, 'context.');
+
 		if (key === variable && val !== undefined) {
 			val = val.trim();
-			return val[0] == `'` ? val : Animator.MolangParser.parse(val);
+
+			if (val.match(/^(slider|toggle)\(/)) {
+				let [type, content] = val.substring(0, val.length - 1).split(/\(/);
+				let [id] = content.split(/\(|, */);
+				id = id.replace(/['"]/g, '');
+				
+				let button = Interface.Panels.variable_placeholders.inside_vue.buttons.find(b => b.id === id && b.type == type);
+				return button ? parseFloat(button.value) : 0;
+				
+			} else {
+				return val[0] == `'` ? val : Animator.MolangParser.parse(val);
+			}
 		}
 		i++;
 	}
@@ -1915,18 +1962,72 @@ Interface.definePanels(function() {
 			name: 'panel-placeholders',
 			components: {VuePrismEditor},
 			data() { return {
-				text: ''
+				text: '',
+				buttons: []
 			}},
+			methods: {
+				updateButtons() {
+					let old_values = {};
+					this.buttons.forEach(b => old_values[b.id] = b.value);
+					this.buttons.empty();
+
+					let matches = this.text.toLowerCase().match(/(slider|toggle)\(.+\)/g);
+
+					if (matches) {
+						matches.forEach(match => {
+							let [type, content] = match.substring(0, match.length - 1).split(/\(/);
+							let [id, ...args] = content.split(/\(|, */);
+							id = id.replace(/['"]/g, '');
+							if (this.buttons.find(b => b.id == id)) return;
+
+							if (type == 'slider') {
+								this.buttons.push({
+									type,
+									id,
+									value: old_values[id] || 0,
+									step: args[0],
+									min: args[1],
+									max: args[2]
+								})
+							} else {
+								this.buttons.push({
+									type,
+									id,
+									value: old_values[id] || 0,
+								})
+							}
+						})
+					}
+				},
+				changeButtonValue(button, event) {
+					if (button.type == 'toggle') {
+						button.value = event.target.checked ? 1 : 0;
+					}
+					Animator.preview();
+				}
+			},
 			watch: {
 				text(text) {
 					if (Project && typeof text == 'string') {
 						Project.variable_placeholders = text;
+						this.updateButtons();
+						Project.variable_placeholder_buttons.replace(this.buttons);
 					}
 				}
 			},
 			template: `
 				<div style="flex-grow: 1; display: flex; flex-direction: column;">
+
+					<ul id="placeholder_buttons">
+						<li v-for="button in buttons" :key="button.id">
+							<input v-if="button.type == 'toggle'" type="checkbox" :value="button.value == 1" @change="changeButtonValue(button, $event)" :id="'placeholder_button_'+button.id">
+							<input v-else type="number" class="dark_bordered" :step="button.step" :min="button.min" :max="button.max" v-model="button.value" @input="changeButtonValue(button, $event)">
+							<label :for="'placeholder_button_'+button.id">{{ button.id }}</label>
+						</li>
+					</ul>
+
 					<p>${tl('panel.variable_placeholders.info')}</p>
+
 					<vue-prism-editor
 						id="var_placeholder_area"
 						class="molang_input dark_bordered tab_target"

@@ -701,6 +701,24 @@
 		color: #e8df6a;
 	}
 
+/* Placeholders */
+	#placeholder_buttons li {
+		padding: 0px 8px;
+	}
+	#placeholder_buttons li {
+		height: 30px;
+		margin: 1px;
+		padding: 0 8px;
+		float: left;
+		max-width: 100%;
+		background-color: var(--color-button);
+	}
+	#placeholder_buttons li input.dark_bordered {
+		width: 54px;
+		height: 26px;
+		margin-top: 2px;
+	}
+
 
 
 /*Timeline*/
