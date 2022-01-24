@@ -176,6 +176,7 @@ class ModelProject {
 		Timeline.animators = Timeline.vue.animators = this.timeline_animators;
 
 		Interface.Panels.variable_placeholders.inside_vue.text = this.variable_placeholders.toString();
+		Interface.Panels.variable_placeholders.inside_vue.buttons.replace(this.variable_placeholder_buttons);
 
 		Interface.Panels.skin_pose.inside_vue.pose = this.skin_pose;
 
@@ -363,6 +364,9 @@ new Property(ModelProject, 'vector', 'visible_box', {
 	default: [1, 1, 0]
 });
 new Property(ModelProject, 'string', 'variable_placeholders', {
+	exposed: false,
+});
+new Property(ModelProject, 'array', 'variable_placeholder_buttons', {
 	exposed: false,
 });
 new Property(ModelProject, 'number', 'shadow_size', {
