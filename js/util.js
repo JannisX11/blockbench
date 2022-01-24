@@ -1,14 +1,18 @@
 //Blockbench
 function compareVersions(string1/*new*/, string2/*old*/) {
 	// Is string1 newer than string2 ?
-	var arr1 = string1.split('.')
-	var arr2 = string2.split('.')
+	var arr1 = string1.split(/[.-]/);
+	var arr2 = string2.split(/[.-]/);
 	var i = 0;
 	var num1 = 0;
 	var num2 = 0;
-	while (i < arr1.length) {
-		num1 = parseInt(arr1[i])
-		num2 = parseInt(arr2[i])
+	while (i < Math.max(arr1.length, arr2.length)) {
+		num1 = arr1[i];
+		num2 = arr2[i];
+		if (num1 == 'beta') num1 = -1;
+		if (num2 == 'beta') num2 = -1;
+		num1 = parseInt(num1) || 0;
+		num2 = parseInt(num2) || 0;
 		if (num1 > num2) {
 			return true;
 		} else if (num1 < num2) {
@@ -30,14 +34,16 @@ const Condition = function(condition, context) {
 	if (condition === undefined) {
 		return true;
 	} else if (typeof condition === 'function') {
-		return condition(context)
+		return !!condition(context)
 	} else if (typeof condition === 'object') {
 		if (condition.modes instanceof Array && condition.modes.includes(Modes.id) === false) return false;
 		if (condition.formats instanceof Array && condition.formats.includes(Format.id) === false) return false;
 		if (condition.tools instanceof Array && window.Toolbox && condition.tools.includes(Toolbox.selected.id) === false) return false;
+		if (condition.features instanceof Array && Format && condition.features.find(feature => !Format[feature])) return false;
+		if (condition.project && !Project) return false;
 
 		if (condition.method instanceof Function) {
-			return condition.method(context);
+			return !!condition.method(context);
 		}
 		return true;
 	} else {
@@ -161,8 +167,11 @@ Math.roundTo = function(num, digits) {
 	var d = Math.pow(10,digits)
 	return Math.round(num * d) / d
 }
-Math.lerp = function(a,b,m) {
+Math.getLerp = function(a,b,m) {
 	return (m-a) / (b-a)
+}
+Math.lerp = function(a, b, m) {
+	return a + (b-a) * m
 }
 Math.isBetween = function(number, limit1, limit2) {
    return (number - limit1) * (number - limit2) <= 0
@@ -343,14 +352,15 @@ Array.prototype.equals = function (array) {
 	}			 
 	return true;
 }
-Array.prototype.remove = function (item) { {
-	var index = this.indexOf(item)
-	if (index > -1) {
-		this.splice(index, 1)
-		return index;
-	}
-	return false;
-	}		
+Array.prototype.remove = function (...items) {
+	items.forEach(item => {
+		var index = this.indexOf(item)
+		if (index > -1) {
+			this.splice(index, 1)
+			return index;
+		}
+		return false;
+	})		
 }
 Array.prototype.empty = function() {
 	this.splice(0, Infinity);
@@ -406,6 +416,13 @@ Array.prototype.overlap = function(arr2) {
 		if (arr2.includes(item)) count++;
 	}
 	return count;
+}
+Array.prototype.toggle = function(item, state = !this.includes(item)) {
+	if (state) {
+		this.safePush(item);
+	} else {
+		this.remove(item);
+	}
 }
 
 //Array Vector
@@ -563,6 +580,13 @@ var Merge = {
 	}
 }
 
+function onVueSetup(func) {
+	if (!onVueSetup.funcs) {
+		onVueSetup.funcs = []
+	}
+	onVueSetup.funcs.push(func)
+}
+
 //String
 function capitalizeFirstLetter(string) {
 	return string.charAt(0).toUpperCase() + string.slice(1);
@@ -656,3 +680,49 @@ function getAverageRGB(imgEl, blockSize) {
 	return rgb;	
 }
 
+function stringifyLargeInt(int) {
+	let string = int.toString();
+	return string.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
+}
+
+
+function intersectLines(p1, p2, p3, p4) {
+	let s1 = [ p2[0] - p1[0],   p2[1] - p1[1] ];
+	let s2 = [ p4[0] - p3[0],   p4[1] - p3[1] ];
+
+	let s = (-s1[1] * (p1[0] - p3[0]) + s1[0] * (p1[1] - p3[1])) / (-s2[0] * s1[1] + s1[0] * s2[1]);
+	let t = ( s2[0] * (p1[1] - p3[1]) - s2[1] * (p1[0] - p3[0])) / (-s2[0] * s1[1] + s1[0] * s2[1]);
+
+	return (s >= 0 && s <= 1 && t >= 0 && t <= 1);
+}
+function pointInRectangle(point, rect_start, rect_end) {
+	return (point[0] > rect_start[0] && point[0] < rect_end[0] && point[1] > rect_start[1] && point[1] < rect_end[1])
+}
+function lineIntersectsReactangle(p1, p2, rect_start, rect_end) {
+	// Check if points inside rect
+	if (pointInRectangle(p1, rect_start, rect_end)) return true;
+	if (pointInRectangle(p2, rect_start, rect_end)) return true;
+	// If points are the same, the line no longer intersect
+	if (Math.epsilon(p1[0], p2[0], 0.01) && Math.epsilon(p1[1], p2[1], 0.01)) return false;
+	// Intersect all 4 lines of rect
+	return intersectLines(p1, p2, [rect_start[0], rect_start[1]], [rect_end[0], rect_start[1]])
+		|| intersectLines(p1, p2, [rect_start[0], rect_start[1]], [rect_start[0], rect_end[1]])
+		|| intersectLines(p1, p2, [rect_end[0], rect_end[1]], [rect_end[0], rect_start[1]])
+		|| intersectLines(p1, p2, [rect_end[0], rect_end[1]], [rect_start[0], rect_end[1]])
+}
+
+function cameraTargetToRotation(position, target) {
+	let spherical = new THREE.Spherical();
+	spherical.setFromCartesianCoords(...target.slice().V3_subtract(position));
+	let theta = Math.radToDeg(-spherical.theta);
+	let phi = Math.radToDeg(-spherical.phi) - 90;
+	if (phi < 90) phi += 180; theta += 180;
+	return [theta, phi];
+}
+function cameraRotationToTarget(position, rotation) {
+	let vec = new THREE.Vector3(0, 0, 16);
+	vec.applyEuler(new THREE.Euler(Math.degToRad(rotation[1]), Math.degToRad(rotation[0]), 0, 'ZYX'));
+	vec.z *= -1;
+	vec.y *= -1;
+	return vec.toArray().V3_add(position);
+}

@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
-	"description": "Model editing and animation software",
-	"version": "3.8.3",
+	"description": "Low-poly modeling and animation software",
+	"version": "4.1.3",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -17,13 +17,20 @@
 		"afterSign": "scripts/notarize.js",
 		"appId": "blockbench",
 		"productName": "Blockbench",
-		"artifactName": "${productName}_${arch}_${version}.${ext}",
+		"artifactName": "${productName}_${version}.${ext}",
 		"publish": [
 			{
 				"provider": "github"
 			}
 		],
 		"mac": {
+			"target": {
+				"target": "default",
+				"arch": [
+					"arm64",
+					"x64"
+				]
+			},
 			"category": "macOS.application",
 			"hardenedRuntime": true,
 			"entitlements": "build/entitlements.mac.plist",
@@ -45,7 +52,7 @@
 			"icon.png"
 		],
 		"dmg": {
-			"artifactName": "${productName}_${version}.${ext}",
+			"artifactName": "${productName}_${arch}_${version}.${ext}",
 			"window": {
 				"x": 200,
 				"y": 100,
@@ -96,15 +103,17 @@
 		"webapp": "git checkout gh-pages && git merge master && git push && git checkout master"
 	},
 	"devDependencies": {
-		"blockbench-types": "^3.7.2",
-		"electron": "^8.5.5",
-		"electron-builder": "^22.10.5",
+		"blockbench-types": "^4.0.0",
+		"electron": "^16.0.4",
+		"electron-builder": "^22.11.11",
 		"electron-notarize": "^1.0.0",
 		"webpack": "^5.21.2",
 		"webpack-cli": "^4.5.0",
-		"workbox-build": "^6.1.0"
+		"workbox-build": "^6.4.1"
 	},
 	"dependencies": {
+		"@electron/remote": "^2.0.1",
+		"electron-color-picker": "^0.2.0",
 		"electron-updater": "^4.3.1"
 	}
 }

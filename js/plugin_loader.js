@@ -1,9 +1,9 @@
 var onUninstall, onInstall;
 const Plugins = {
-	apipath: 'https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins.json',
 	Vue: [],			//Vue Object
 	installed: [], 		//Simple List of Names
 	json: undefined,	//Json from website
+	download_stats: {},
 	all: [],			//Vue Object Data
 	registered: {},
 	devReload() {
@@ -19,7 +19,12 @@ const Plugins = {
 	},
 	sort() {
 		Plugins.all.sort(function(a,b) {
-			return sort_collator.compare(a.title, b.title)
+			let download_difference = (Plugins.download_stats[b.id] || 0) - (Plugins.download_stats[a.id] || 0);
+			if (download_difference) {
+				return download_difference
+			} else {
+				return sort_collator.compare(a.title, b.title);
+			}
 		});
 	}
 }
@@ -36,10 +41,13 @@ class Plugin {
 		this.description = '';
 		this.about = '';
 		this.icon = '';
+		this.tags = [];
+		this.version = '0.0.1';
 		this.variant = 'both';
 		this.min_version = '';
 		this.max_version = '';
 		this.source = 'store'
+		this.await_loading = false;
 
 		this.extend(data)
 
@@ -54,15 +62,20 @@ class Plugin {
 		Merge.string(this, data, 'description')
 		Merge.string(this, data, 'about')
 		Merge.string(this, data, 'icon')
+		Merge.string(this, data, 'version')
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
-		Merge.string(this, data, 'max_version')
+		Merge.boolean(this, data, 'await_loading');
+		if (data.tags instanceof Array) this.tags.safePush(...data.tags.slice(0, 3));
 
 		Merge.function(this, data, 'onload')
 		Merge.function(this, data, 'onunload')
 		Merge.function(this, data, 'oninstall')
 		Merge.function(this, data, 'onuninstall')
 		return this;
+	}
+	get name() {
+		return this.title;
 	}
 	async install(first, cb) {
 		var scope = this;
@@ -104,18 +117,29 @@ class Plugin {
 	}
 	async download(first) {
 		var scope = this;
+		function register() {
+			jQuery.ajax({
+				url: 'https://blckbn.ch/api/event/install_plugin',
+				type: 'POST',
+				data: {
+					plugin: scope.id
+				}
+			})
+		}
 		if (!isApp) {
+			if (first) register();
 			return await scope.install(first)
 		}
 		return await new Promise((resolve, reject) => {
 			var file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
-			var request = https.get('https://raw.githubusercontent.com/JannisX11/blockbench-plugins/master/plugins/'+this.id+'.js', function(response) {
+			https.get('https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/'+this.id+'.js', function(response) {
 				response.pipe(file);
 				response.on('end', function() {
 					setTimeout(async function() {
 						await scope.install(first);
 						resolve()
-					}, 50)
+					}, 20)
+					if (first) register();
 				})
 			});
 		});
@@ -131,11 +155,12 @@ class Plugin {
 			}
 		}
 
-		scope.id = pathToName(file.path)
+		this.id = pathToName(file.path);
 		Plugins.registered[this.id] = this;
-		localStorage.setItem('plugin_dev_path', file.path)
-		Plugins.all.safePush(this)
-		scope.source = 'file'
+		localStorage.setItem('plugin_dev_path', file.path);
+		Plugins.all.safePush(this);
+		this.source = 'file';
+		this.tags.safePush('Local');
 
 		return await new Promise((resolve, reject) => {
 
@@ -186,6 +211,7 @@ class Plugin {
 		Plugins.registered[this.id] = this;
 		localStorage.setItem('plugin_dev_path', url)
 		Plugins.all.safePush(this)
+		this.tags.safePush('Remote');
 
 		this.source = 'url';
 		await new Promise((resolve, reject) => {
@@ -270,6 +296,7 @@ class Plugin {
 		if (!isApp && this.source == 'file') return this;
 
 		this.unload()
+		this.tags.empty();
 		Plugins.all.remove(this)
 
 		if (this.source == 'file') {
@@ -303,6 +330,7 @@ class Plugin {
 		return (result === true) ? true : tl('dialog.plugins.'+result);
 	}
 	toggleInfo(force) {
+		if (!this.about) return;
 		var scope = this;
 		Plugins.all.forEach(function(p) {
 			if (p !== scope && p.expanded) p.expanded = false;
@@ -317,6 +345,9 @@ class Plugin {
 		return this.expanded ? 'expand_less' : 'expand_more'
 	}
 }
+// Alias for typescript
+const BBPlugin = Plugin;
+
 Plugin.register = function(id, data) {
 	if (typeof id !== 'string' || typeof data !== 'object') {
 		console.warn('Plugin.register: not enough arguments, string and object required.')
@@ -359,16 +390,30 @@ if (isApp) {
 }
 
 Plugins.loading_promise = new Promise((resolve, reject) => {
-	$.getJSON(Plugins.apipath, function(data) {
-		Plugins.json = data
-		resolve();
-		Plugins.loading_promise.resolved = true;
-	}).fail(function() {
-		console.log('Could not connect to plugin server')
-		$('#plugin_available_empty').text('Could not connect to plugin server')
-		resolve();
-		Plugins.loading_promise.resolved = true;
-	})
+
+	$.ajax({
+		cache: false,
+		url: 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins.json',
+		dataType: 'json',
+		success(data) {
+			Plugins.json = data;
+			resolve();
+			Plugins.loading_promise.resolved = true;
+		},
+		error() {
+			console.log('Could not connect to plugin server')
+			$('#plugin_available_empty').text('Could not connect to plugin server')
+			resolve();
+			Plugins.loading_promise.resolved = true;
+		}
+	});
+})
+
+$.getJSON('https://blckbn.ch/api/stats/plugins?weeks=2', data => {
+	Plugins.download_stats = data;
+	if (Plugins.json) {
+		Plugins.sort();
+	}
 })
 
 async function loadInstalledPlugins() {
@@ -402,14 +447,17 @@ async function loadInstalledPlugins() {
 	}
 	Plugins.installed.replace(Plugins.installed.filter(p => p !== null))
 
-	if (Plugins.json instanceof Object) {
+	if (Plugins.json instanceof Object && navigator.onLine) {
 		//From Store
 		for (var id in Plugins.json) {
 			var plugin = new Plugin(id, Plugins.json[id])
 			if (Plugins.installed.find(p => {
 				return p && p.id == id && p.source == 'store'
 			})) {
-				install_promises.push(plugin.download())
+				let promise = plugin.download();
+				if (plugin.await_loading) {
+					install_promises.push(promise);
+				}
 			}
 		}
 		Plugins.sort();
@@ -465,6 +513,8 @@ BARS.defineActions(function() {
 	Plugins.dialog = new Dialog({
 		id: 'plugins',
 		title: 'dialog.plugins.title',
+		singleButton: true,
+		width: 760,
 		component: {
 			data: {
 				tab: 'installed',
@@ -490,6 +540,18 @@ BARS.defineActions(function() {
 					})
 				}
 			},
+			methods: {
+				getTagClass(tag) {
+					let lowercase = tag.toLowerCase();
+					if (lowercase == 'local' || lowercase == 'remote') {
+						return 'plugin_tag_source'
+					} else if (lowercase.substr(0, 9) == 'minecraft') {
+						return 'plugin_tag_mc'
+					}
+				},
+				getIconNode: Blockbench.getIconNode,
+				tl
+			},
 			template: `
 				<div style="margin-top: 10px;">
 					<div class="bar">
@@ -500,14 +562,15 @@ BARS.defineActions(function() {
 						<search-bar id="plugin_search_bar" v-model="search_term"></search-bar>
 					</div>
 					<ul class="list" id="plugin_list">
-						<li v-for="plugin in plugin_search" v-bind:plugin="plugin.id" v-bind:class="{testing: plugin.fromFile, expanded: plugin.expanded}">
+						<li v-for="plugin in plugin_search" v-bind:plugin="plugin.id" v-bind:class="{plugin: true, testing: plugin.fromFile, expanded: plugin.expanded, has_about_text: !!plugin.about}">
 							<div class="title" v-on:click="plugin.toggleInfo()">
-								<div class="icon_wrapper plugin_icon normal" v-html="Blockbench.getIconNode(plugin.icon, plugin.color).outerHTML"></div>
+								<div class="icon_wrapper plugin_icon normal" v-html="getIconNode(plugin.icon || 'error_outline', plugin.icon ? plugin.color : 'var(--color-close)').outerHTML"></div>
 
 								<i v-if="plugin.expanded" class="material-icons plugin_expand_icon">expand_less</i>
 								<i v-else class="material-icons plugin_expand_icon">expand_more</i>
-								{{ plugin.title }}
+								{{ plugin.title || plugin.id }}
 							</div>
+							<div class="plugin_version">{{ plugin.version }}</div>
 							<div class="button_bar" v-if="plugin.installed || plugin.isInstallable() == true">
 								<button type="button" class="" v-on:click="plugin.uninstall()" v-if="plugin.installed"><i class="material-icons">delete</i><span class="tl">${tl('dialog.plugins.uninstall')}</span></button>
 								<button type="button" class="" v-on:click="plugin.download(true)" v-else><i class="material-icons">add</i><span class="tl">${tl('dialog.plugins.install')}</span></button>
@@ -519,9 +582,12 @@ BARS.defineActions(function() {
 							<div class="description">{{ plugin.description }}</div>
 							<div v-if="plugin.expanded" class="about" v-html="marked(plugin.about)"><button>a</button></div>
 							<div v-if="plugin.expanded" v-on:click="plugin.toggleInfo()" style="text-decoration: underline;">${tl('dialog.plugins.show_less')}</div>
+							<ul class="plugin_tag_list">
+								<li v-for="tag in plugin.tags" :class="getTagClass(tag)" :key="tag">{{tag}}</li>
+							</ul>
 						</li>
 						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>
-						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'" id="plugin_available_empty">${tl('dialog.plugins.none_available')}</div>
+						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'" id="plugin_available_empty">{{ tl(navigator.onLine ? 'dialog.plugins.none_available' : 'dialog.plugins.offline') }}</div>
 					</ul>
 				</div>
 			`
@@ -548,7 +614,6 @@ BARS.defineActions(function() {
 	new Action('reload_plugins', {
 		icon: 'sync',
 		category: 'blockbench',
-		keybind: new Keybind({ctrl: true, key: 74}),
 		click: function () {
 			Plugins.devReload()
 		}
@@ -573,6 +638,20 @@ BARS.defineActions(function() {
 			Blockbench.textPrompt('URL', '', url => {
 				new Plugin().loadFromURL(url, true)
 			})
+		}
+	})
+	new Action('add_plugin', {
+		icon: 'add',
+		category: 'blockbench',
+		click: function () {
+			setTimeout(_ => ActionControl.select('+plugin: '), 1);
+		}
+	})
+	new Action('remove_plugin', {
+		icon: 'remove',
+		category: 'blockbench',
+		click: function () {
+			setTimeout(_ => ActionControl.select('-plugin: '), 1);
 		}
 	})
 })

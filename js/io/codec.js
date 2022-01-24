@@ -18,6 +18,7 @@ class Codec {
 		Merge.function(this, data, 'afterDownload');
 		Merge.string(this, data, 'extension');
 		Merge.boolean(this, data, 'remember');
+		Merge.boolean(this, data, 'multiple_per_file');
 		this.load_filter = data.load_filter;
 		this.export_action = data.export_action;
 	}
@@ -25,12 +26,12 @@ class Codec {
 	load(model, file, add) {
 		if (!this.parse) return false;
 		if (!add) {
-			newProject(this.format)
+			setupProject(this.format)
 		}
 		if (file.path && isApp && this.remember && !file.no_file ) {
 			var name = pathToName(file.path, true);
-			ModelMeta.name = pathToName(name, false);
-			ModelMeta.export_path = file.path;
+			Project.name = pathToName(name, false);
+			Project.export_path = file.path;
 			addRecentProject({
 				name,
 				path: file.path,
@@ -59,10 +60,10 @@ class Codec {
 		}, path => scope.afterDownload(path))
 	}
 	fileName() {
-		return ModelMeta.name||Project.name||'model';
+		return Project.name||'model';
 	}
 	startPath() {
-		return ModelMeta.export_path;
+		return Project.export_path;
 	}
 	write(content, path) {
 		var scope = this;
@@ -75,7 +76,7 @@ class Codec {
 	//overwrite(content, path, cb)
 	afterDownload(path) {
 		if (this.remember) {
-			Prop.project_saved = true;
+			Project.saved = true;
 		}
 		Blockbench.showQuickMessage(tl('message.save_file', [path ? pathToName(path, true) : this.fileName()]));
 	}
@@ -83,12 +84,12 @@ class Codec {
 		var name = pathToName(path, true)
 		if (Format.codec == this || this.id == 'project') {
 			if (this.id == 'project') {
-				ModelMeta.save_path = path;
+				Project.save_path = path;
 			} else {
-				ModelMeta.export_path = path;
+				Project.export_path = path;
 			}
-			ModelMeta.name = pathToName(path, false);
-			Prop.project_saved = true;
+			Project.name = pathToName(path, false);
+			Project.saved = true;
 		}
 		if (this.remember) {
 			addRecentProject({
@@ -134,85 +135,4 @@ Codec.getAllExtensions = function() {
 		}
 	}
 	return extensions;
-}
-
-
-//Import
-function setupDragHandlers() {
-	Blockbench.addDragHandler(
-		'model',
-		{extensions: Codec.getAllExtensions},
-		function(files) {
-			loadModelFile(files[0])
-		}
-	)
-	Blockbench.addDragHandler(
-		'style',
-		{extensions: ['bbstyle', 'bbtheme']},
-		function(files) {
-			CustomTheme.import(files[0]);
-		}
-	)
-	Blockbench.addDragHandler(
-		'plugin',
-		{extensions: ['bbplugin', 'js']},
-		function(files) {
-			new Plugin().loadFromFile(files[0], true)
-		}
-	)
-	Blockbench.addDragHandler(
-		'texture',
-		{extensions: ['png', 'tga'], propagate: true, readtype: 'image'},
-		function(files, event) {
-			var texture_li = $(event.target).parents('li.texture')
-			if (texture_li.length) {
-				var tex = textures.findInArray('uuid', texture_li.attr('texid'))
-				if (tex) {
-					tex.fromFile(files[0])
-					TickUpdates.selection = true;
-					return;
-				}
-			}
-			files.forEach(function(f) {
-				new Texture().fromFile(f).add().fillParticle()
-			})
-		}
-	)
-}
-function loadModelFile(file) {
-	if (showSaveDialog()) {
-		resetProject();
-
-		(function() {
-			var extension = pathToExtension(file.path);
-			// Text
-			for (var id in Codecs) {
-				let codec = Codecs[id];
-				if (codec.load_filter && codec.load_filter.type == 'text') {
-					if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, file.content)) {
-						codec.load(file.content, file);
-						return;
-					}
-				}
-			}
-			// JSON
-			var model = autoParseJSON(file.content);
-			for (var id in Codecs) {
-				let codec = Codecs[id];
-				if (codec.load_filter && codec.load_filter.type == 'json') {
-					if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, model)) {
-						codec.load(model, file);
-						return;
-					}
-				}
-			}
-		})();
-
-		EditSession.initNewModel()
-		if (!Format) {
-			Modes.options.start.select()
-			Modes.vue.$forceUpdate()
-			Blockbench.dispatchEvent('close_project');
-		}
-	}
 }

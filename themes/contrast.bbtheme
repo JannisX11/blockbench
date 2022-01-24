@@ -1,0 +1,29 @@
+{
+	"id": "contrast",
+	"name": "Contrast",
+	"author": "Default",
+	"borders": true,
+	"main_font": "",
+	"headline_font": "",
+	"code_font": "",
+	"css": "#mode_selector li {\n\tpadding: 2px 10px;\n}\n#mode_selector li.selected {\n\tbackground-color: var(--color-accent);\n\tcolor: var(--color-accent_text);\n}\n\n#tab_bar .project_tab.selected,\n.dialog_sidebar_pages li.selected,\n.tool.enabled\n{\n\tbackground-color: var(--color-accent) !important;\n\tcolor: var(--color-accent_text);\n}\n.contextMenu li {\n\theight: 34px;\n\tpadding-top: 6px;\n\tpadding-bottom: 6px;\n}\n.dialog_sidebar_pages li.selected {\n\tbackground-color: var(--color-accent) !important;\n\tcolor: var(--color-accent_text);\n}\n.dialog_handle {\n\tbackground: transparent;\n}\n#work_screen {\n\tgrid-template-rows: 31px minmax(200px, 5000px) 26px;\n}\n",
+	"colors": {
+		"ui": "#17191d",
+		"back": "#17191d",
+		"dark": "#17191d",
+		"border": "#9ea4b5",
+		"selected": "#31525f",
+		"button": "#3a3f4b",
+		"bright_ui": "#17191d",
+		"accent": "#1b71d9",
+		"frame": "#181a1f",
+		"text": "#d0d0db",
+		"light": "#f4f3ff",
+		"accent_text": "#eeeef5",
+		"bright_ui_text": "#d0d0dd",
+		"subtle_text": "#adb2bc",
+		"grid": "#727683",
+		"wireframe": "#5f96bc",
+		"checkerboard": "#1c2026"
+	}
+}

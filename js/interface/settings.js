@@ -56,8 +56,17 @@ class Setting {
 			Vue.nextTick(() => {
 				category.open = before;
 			})
-
 		}
+
+		if (!this.icon) {
+			if (this.type == 'toggle') this.icon = this.value ? 'check_box' : 'check_box_outline_blank';
+			if (this.type == 'number') this.icon = 'tag';
+			if (this.type == 'password') this.icon = 'password';
+			if (this.type == 'text') this.icon = 'format_color_text';
+			if (this.type == 'select') this.icon = 'list';
+			if (!this.icon) this.icon = 'settings';
+		}
+		this.keybind_label = tl('data.setting');
 	}
 	delete() {
 		if (settings[this.id]) {
@@ -65,6 +74,84 @@ class Setting {
 		}
 		if (Settings.structure[this.category] && Settings.structure[this.category].items[this.id]) {
 			delete Settings.structure[this.category].items[this.id];
+		}
+	}
+	set(value) {
+		if (value === undefined || value === null) return;
+		let old_value = this.value;
+
+		if (this.type == 'number' && typeof value == 'number') {
+			if (this.snap) {
+				value = Math.round(value / this.snap) * this.snap;
+			}
+			this.value = Math.clamp(value, this.min, this.max)
+		} else if (this.type == 'toggle') {
+			this.value = !!value;
+		} else if (this.type == 'click') {
+			this.value = value;
+		} else if (typeof value == 'string') {
+			this.value = value;
+		}
+		if (typeof this.onChange == 'function' && this.value !== old_value) {
+			this.onChange(this.value);
+		}
+	}
+	trigger(e) {
+		let {type} = this;
+		let setting = this;
+		if (type == 'toggle') {
+			this.set(!this.value);
+			Settings.save();
+
+		} else if (type == 'click') {
+			this.click(e)
+
+		} else if (type == 'select') {
+			let list = [];
+			for (let key in this.options) {
+				list.push({
+					id: key,
+					name: this.options[key],
+					icon: this.value == key
+						? 'radio_button_checked'
+						: 'radio_button_unchecked',
+					click: () => {
+						this.set(key);
+						Settings.save();
+					}
+				})
+			}
+			new Menu(list).open(e.target);
+
+		} else if (type == 'click') {
+			this.click(e)
+
+		} else {
+			new Dialog({
+				id: 'setting_' + this.id,
+				title: tl('data.setting'),
+				form: {
+					input: {
+						value: this.value,
+						label: this.name,
+						description: this.description,
+						type: this.type
+					},
+					description: this.description ? {
+						type: 'info',
+						text: this.description
+					} : undefined
+				},
+				onConfirm({input}) {
+					setting.set(input);
+					Settings.save();
+					this.hide().delete();
+				},
+				onCancel() {
+					this.hide().delete();
+				}
+			}).show();
+
 		}
 	}
 }
@@ -82,6 +169,7 @@ const Settings = {
 		new Setting('username', {value: '', type: 'text'});
 		new Setting('streamer_mode', {value: false, onChange() {
 			StartScreen.vue._data.redact_names = settings.streamer_mode.value;
+			Interface.status_bar.vue.streamer_mode = settings.streamer_mode.value;
 			updateStreamerModeNotification();
 		}});
 
@@ -90,6 +178,12 @@ const Settings = {
 			var factor = Math.clamp(settings.interface_scale.value, 40, 200) / 100;
 			currentwindow.webContents.setZoomFactor(factor)
 			resizeWindow()
+		}});
+		new Setting('hide_tab_bar', 		{category: 'interface', value: Blockbench.isMobile, onChange() {
+			updateTabBarVisibility();
+		}});
+		new Setting('status_bar_modifier_keys', {category: 'interface', value: true, condition: !Blockbench.isTouch, onChange(value) {
+			Interface.status_bar.vue.show_modifier_keys = value;
 		}});
 		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number'});
 		new Setting('control_size',  		{category: 'interface', value: 10, type: 'number'});
@@ -103,8 +197,11 @@ const Settings = {
 		new Setting('preview_checkerboard',	{category: 'interface', value: true, onChange() {
 			$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 		}});
-		new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange() {
-			$('.UVEditor').toggleClass('checkerboard_trigger', settings.uv_checkerboard.value);
+		new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange(val) {
+			UVEditor.vue.checkerboard = val;
+		}});
+		new Setting('timecode_frame_number',{category: 'interface', value: false, onChange() {
+			Timeline.vue.updateTimecodes();
 		}});
 		
 		//Preview 
@@ -130,21 +227,11 @@ const Settings = {
 			Canvas.updateRenderSides();
 		}});
 		new Setting('background_rendering', 	{category: 'preview', value: true});
-		/*
-		new Setting('transparency',		{category: 'preview', value: true, onChange() {
-			for (var uuid in Canvas.materials) {
-				let material = Canvas.materials[uuid]
-				if (material instanceof THREE.Material) {
-					material.transparent = settings.transparency.value
-				}
-			}
-		}});
-		*/
-		new Setting('texture_fps',   	{category: 'preview', value: 2, type: 'number', onChange() {
+		new Setting('texture_fps',   	{category: 'preview', value: 7, type: 'number', onChange() {
 			TextureAnimator.updateSpeed()
 		}});
 		new Setting('particle_tick_rate',{category: 'preview', value: 30, type: 'number', onChange() {
-			Wintersky.global_options.tick_rate = this.value;
+			WinterskyScene.global_options.tick_rate = this.value;
 		}});
 		new Setting('volume',  	  		{category: 'preview', value: 80, type: 'number'});
 		new Setting('display_skin',  	{category: 'preview', value: false, type: 'click', condition: isApp, icon: 'icon-player', click: function() { changeDisplaySkin() }});
@@ -156,16 +243,26 @@ const Settings = {
 			updateCubeHighlights();
 		}});
 		new Setting('deactivate_size_limit',{category: 'edit', value: false});
+		new Setting('vertex_merge_distance',{category: 'edit', value: 0.1, step: 0.01, type: 'number'});
+		new Setting('preview_paste_behavior',{category: 'edit', value: 'always_ask', type: 'select', options: {
+			'always_ask': tl('settings.preview_paste_behavior.always_ask'),
+			'outliner': tl('menu.paste.outliner'),
+			'face': tl('menu.paste.face'),
+			'mesh_selection': tl('menu.paste.mesh_selection'),
+		}});
 		
 		//Grid
 		new Setting('base_grid',		{category: 'grid', value: true,});
-		new Setting('large_grid', 		{category: 'grid', value: false});
+		new Setting('large_grid', 		{category: 'grid', value: true});
 		new Setting('full_grid',		{category: 'grid', value: false});
 		new Setting('large_box',		{category: 'grid', value: false});
 		new Setting('large_grid_size',	{category: 'grid', value: 3, type: 'number'});
 		new Setting('display_grid',		{category: 'grid', value: false});
 		new Setting('painting_grid',	{category: 'grid', value: true, onChange() {
 			Canvas.updatePaintingGrid();
+		}});
+		new Setting('ground_plane',		{category: 'grid', value: false, onChange() {
+			Canvas.ground_plane.visible = this.value;
 		}});
 		
 		//Snapping
@@ -174,10 +271,12 @@ const Settings = {
 		new Setting('ctrl_size',	{category: 'snapping', value: 160, type: 'number'});
 		new Setting('ctrl_shift_size',	{category: 'snapping', value: 640, type: 'number'});
 		new Setting('negative_size',{category: 'snapping', value: false});
-		new Setting('animation_snap',{category: 'snapping', value: 24, type: 'number'});
 
 		//Paint
 		new Setting('sync_color',	{category: 'paint', value: false});
+		new Setting('color_wheel',	{category: 'paint', value: false, onChange(value) {
+			Interface.Panels.color.vue.picker_type = value ? 'wheel' : 'box';
+		}});
 		new Setting('paint_side_restrict',	{category: 'paint', value: true});
 		new Setting('brush_opacity_modifier', {category: 'paint', value: 'pressure', type: 'select', options: {
 			'pressure': tl('settings.brush_modifier.pressure'),
@@ -192,59 +291,47 @@ const Settings = {
 		new Setting('image_editor',  	{category: 'paint', value: false, type: 'click', condition: isApp, icon: 'fas.fa-pen-square', click: function() {changeImageEditor(null, true) }});
 		
 		//Defaults
-		new Setting('autouv',	   	{category: 'defaults', value: true});
-		new Setting('create_rename', {category: 'defaults', value: false});
-		new Setting('default_path', {category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
+		new Setting('autouv',	   				{category: 'defaults', value: true});
+		new Setting('create_rename', 			{category: 'defaults', value: false});
+		new Setting('show_only_selected_uv', 	{category: 'defaults', value: false});
+		new Setting('default_path', 			{category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
+		new Setting('animation_snap',			{category: 'defaults', value: 24, type: 'number'});
 		
 		//Dialogs
-		new Setting('dialog_larger_cubes', {category: 'dialogs', value: true});
-		new Setting('dialog_rotation_limit', {category: 'dialogs', value: true});
+		new Setting('dialog_larger_cubes', 		{category: 'dialogs', value: true, name: tl('message.model_clipping.title'), description: tl('settings.dialog.desc', [tl('message.model_clipping.title')])});
+		new Setting('dialog_rotation_limit', 	{category: 'dialogs', value: true, name: tl('message.rotation_limit.title'), description: tl('settings.dialog.desc', [tl('message.rotation_limit.title')])});
+		new Setting('dialog_loose_texture', 	{category: 'dialogs', value: true, name: tl('message.loose_texture.title'), description: tl('settings.dialog.desc', [tl('message.loose_texture.title')])});
 		
 		//Application
-		new Setting('recent_projects', {category: 'application', value: 12, max: 128, min: 0, type: 'number', condition: isApp});
+		new Setting('recent_projects', {category: 'application', value: 32, max: 256, min: 0, type: 'number', condition: isApp});
 		new Setting('backup_interval', {category: 'application', value: 10, type: 'number', condition: isApp});
 		new Setting('backup_retain', {category: 'application', value: 30, type: 'number', condition: isApp});
 		new Setting('automatic_updates', {category: 'application', value: true, condition: isApp});
+		new Setting('update_to_prereleases', {category: 'application', value: false, condition: isApp, launch_setting: true});
 		new Setting('hardware_acceleration', {category: 'application', value: true, condition: isApp, launch_setting: true});
 		
 		//Export
-		new Setting('minifiedout', {category: 'export', value: false});
-		new Setting('minify_bbmodel', {category: 'export', value: true});
-		new Setting('export_groups', {category: 'export', value: true});
-		new Setting('sketchfab_token', {category: 'export', value: '', type: 'password'});
-		new Setting('credit', {category: 'export', value: 'Made with Blockbench', type: 'text'});
+		new Setting('minifiedout', 			{category: 'export', value: false});
+		new Setting('minify_bbmodel', 		{category: 'export', value: true});
+		new Setting('export_empty_groups',	{category: 'export', value: true});
+		new Setting('export_groups', 		{category: 'export', value: true});
+		new Setting('animation_sample_rate',{category: 'export', value: 24, type: 'number'});
+		new Setting('sketchfab_token', 		{category: 'export', value: '', type: 'password'});
+		new Setting('credit', 				{category: 'export', value: 'Made with Blockbench', type: 'text'});
 
 		Blockbench.onUpdateTo('3.8', () => {
 			settings.preview_checkerboard.value = true;
 			settings.uv_checkerboard.value = true;
 		})
 	},
-	addCategory(id, data) {
-		if (!data) data = 0;
+	addCategory(id, data = {}) {
 		Settings.structure[id] = {
 			name: data.name || tl('settings.category.'+id),
 			open: data.open != undefined ? !!data.open : id === 'general',
 			items: {}
 		}
-	},
-	open(options = 0) {
-		for (var sett in settings) {
-			if (settings.hasOwnProperty(sett)) {
-				Settings.old[sett] = settings[sett].value
-			}
-		}
-		showDialog('settings')
-
-		setSettingsTab(options.tab || 'setting');
-
-		if (options.search) {
-			$('dialog#settings div.search_bar input').val(options.search);
-			if (options.tab == 'keybindings') {
-				Keybinds.updateSearch()
-			} else {
-				Settings.updateSearch()
-			}
-		}
+		Settings.dialog.sidebar.pages[id] = Settings.structure[id].name;
+		Settings.dialog.sidebar.build();
 	},
 	saveLocalStorages() {
 		var settings_copy = {}
@@ -268,7 +355,6 @@ const Settings = {
 		function hasSettingChanged(id) {
 			return (settings[id].value !== Settings.old[id])
 		}
-		hideDialog()
 		updateSelection()
 
 		for (var key in BarItems) {
@@ -300,40 +386,13 @@ const Settings = {
 		}
 		Blockbench.dispatchEvent('update_settings');
 	},
-	updateSearch() {
-		var term = Settings.vue._data.search_term = $('input#settings_search_bar').val().toLowerCase();
-		var structure = Settings.structure;
-		if (term) {
-			var keywords = term.replace(/_/g, ' ').split(' ');
-			var items = {};
-			for (var key in settings) {
-				var setting = settings[key];
-				if (Condition(setting.condition)) {
-					var name = tl('settings.'+key).toLowerCase();
-					var desc = tl('settings.'+key+'.desc').toLowerCase();
-					var missmatch = false;
-					for (var word of keywords) {
-						if (
-							!key.includes(word) &&
-							!name.includes(word) &&
-							!desc.includes(word)
-						) {
-							missmatch = true;
-						}
-					}
-					if (!missmatch) {
-						items[key] = setting;
-					}
-				}
+	import(file) {
+		let data = JSON.parse(file.content);
+		for (let key in settings) {
+			let setting = settings[key];
+			if (setting instanceof Setting && data.settings[key] !== undefined) {
+				setting.set(data.settings[key]);
 			}
-			structure.search_results.items = items
-			structure.search_results.hidden = false;
-			for (var key in structure) {
-				structure[key].open = false
-			}
-			structure.search_results.open = true;
-		} else {
-			structure.search_results.hidden = true;
 		}
 	},
 	get(id) {
@@ -355,21 +414,85 @@ function updateStreamerModeNotification() {
 			text_color: 'var(--color-light)',
 			text: [
 				{type: 'h1', text: tl('interface.streamer_mode_on'), click() {
-					Settings.open({search: 'streamer_mode'})
+					ActionControl.select(`setting: ${tl('settings.streamer_mode')}`);
 				}}
 			]
 		})
 	}
 }
 
+BARS.defineActions(() => {
+	new Action('settings_window', {
+		icon: 'settings',
+		category: 'blockbench',
+		click: function () {
+			for (var sett in settings) {
+				if (settings.hasOwnProperty(sett)) {
+					Settings.old[sett] = settings[sett].value
+				}
+			}
+			Settings.dialog.show()
+			document.querySelector('dialog#settings .search_bar > input').focus()
+		}
+	})
+	
+	new Action('import_settings', {
+		icon: 'folder',
+		category: 'blockbench',
+		click: function () {
+			Blockbench.import({
+				resource_id: 'config',
+				extensions: ['bbsettings'],
+				type: 'Blockbench Settings'
+			}, function(files) {
+				Settings.import(files[0]);
+			})
+		}
+	})
+	new Action('export_settings', {
+		icon: 'fas.fa-user-cog',
+		category: 'blockbench',
+		click: async function () {
+			let private_data = [];
+			var settings_copy = {}
+			for (var key in settings) {
+				settings_copy[key] = settings[key].value;
+				if (settings[key].value && settings[key].type == 'password') {
+					private_data.push(key);
+				}
+			}
+			if (private_data.length) {
+				let go_on = await new Promise((resolve, reject) => {
+					Blockbench.showMessageBox({
+						title: 'dialog.export_private_settings.title',
+						message: tl('dialog.export_private_settings.message', [private_data.map(key => settings[key].name).join(', ')]),
+						buttons: ['dialog.export_private_settings.keep', 'dialog.export_private_settings.omit', 'dialog.cancel']
+					}, result => {
+						if (result == 1) {
+							private_data.forEach(key => {
+								delete settings_copy[key];
+							})
+						}
+						resolve(result !== 2);
+					})
+				});
+				if (!go_on) return;
+			}
+			Blockbench.export({
+				resource_id: 'config',
+				type: 'Blockbench Settings',
+				extensions: ['bbsettings'],
+				content: compileJSON({settings: settings_copy})
+			})
+		}
+	})
+	BarItems.import_settings.toElement('#settings_title_bar')
+	BarItems.export_settings.toElement('#settings_title_bar')
+})
+
 onVueSetup(function() {
-	Settings.structure.search_results = {
-		name: tl('dialog.settings.search_results'),
-		hidden: true,
-		open: true,
-		items: {}
-	}
 	for (var key in settings) {
+		if (settings[key].condition == false) continue;
 		var category = settings[key].category
 		if (!category) category = 'general'
 
@@ -382,24 +505,135 @@ onVueSetup(function() {
 		}
 		Settings.structure[category].items[key] = settings[key]
 	}
-	Settings.vue = new Vue({
-		el: 'ul#settingslist',
-		data: {
-			structure: Settings.structure,
-			search_term: ''
+
+	let sidebar_pages = {};
+	for (let key in Settings.structure) {
+		sidebar_pages[key] = Settings.structure[key].name;
+	}
+
+	Settings.dialog = new Dialog({
+		id: 'settings',
+		title: 'dialog.settings.settings',
+		width: 920,
+		singleButton: true,
+		title_menu: new Menu([
+			'settings_window',
+			'keybindings_window',
+			'theme_window',
+			'about_window',
+		]),
+		sidebar: {
+			pages: sidebar_pages,
+			page: 'general',
+			actions: [
+				'import_settings',
+				'export_settings',
+			],
+			onPageSwitch(page) {
+				Settings.dialog.content_vue.open_category = page;
+				Settings.dialog.content_vue.search_term = '';
+			}
 		},
-		methods: {
-			saveSettings() {
-				Settings.saveLocalStorages();
+		component: {
+			data() {return {
+				structure: Settings.structure,
+				open_category: 'general',
+				search_term: '',
+			}},
+			methods: {
+				saveSettings() {
+					Settings.saveLocalStorages();
+				},
+				getIconNode: Blockbench.getIconNode,
+				Condition
 			},
-			toggleCategory(category) {
-				if (!category.open) {
-					for (var ct in Settings.structure) {
-						Settings.structure[ct].open = false
+			computed: {
+				list() {
+					if (this.search_term) {
+						var keywords = this.search_term.replace(/_/g, ' ').split(' ');
+						var items = {};
+						for (var key in settings) {
+							var setting = settings[key];
+							if (Condition(setting.condition)) {
+								var name = setting.name.toLowerCase();
+								var desc = setting.description.toLowerCase();
+								var missmatch = false;
+								for (var word of keywords) {
+									if (
+										!key.includes(word) &&
+										!name.includes(word) &&
+										!desc.includes(word)
+									) {
+										missmatch = true;
+									}
+								}
+								if (!missmatch) {
+									items[key] = setting;
+								}
+							}
+						}
+						return items;
+					} else {
+						return this.structure[this.open_category].items;
+					}
+				},
+				title() {
+					if (this.search_term) {
+						return tl('dialog.settings.search_results');
+					} else {
+						return this.structure[this.open_category].name;
 					}
 				}
-				category.open = !category.open
-			}
+			},
+			template: `
+				<div>
+					<h2 class="i_b">{{ title }}</h2>
+
+					<search-bar id="settings_search_bar" v-model="search_term"></search-bar>
+
+					<ul id="settingslist">
+
+						<li v-for="(setting, key) in list" v-if="Condition(setting.condition)" v-on="setting.click ? {click: setting.click} : {}">
+							<template v-if="setting.type === 'number'">
+								<div class="setting_element"><input type="number" v-model.number="setting.value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()"></div>
+							</template>
+							<template v-else-if="setting.type === 'click'">
+								<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
+							</template>
+							<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
+								<div class="setting_element"><input type="checkbox" v-model="setting.value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
+							</template>
+
+							<label class="setting_label" v-bind:for="'setting_'+key">
+								<div class="setting_name">{{ setting.name }}</div>
+								<div class="setting_description">{{ setting.description }}</div>
+							</label>
+
+							<template v-if="setting.type === 'text'">
+								<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.value" v-on:input="saveSettings()">
+							</template>
+
+							<template v-if="setting.type === 'password'">
+								<input :type="setting.hidden ? 'password' : 'text'" class="dark_bordered" style="width: calc(96% - 28px);" v-model="setting.value" v-on:input="saveSettings()">
+								<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
+									<i class="fas fa-eye-slash" v-if="setting.hidden"></i>
+									<i class="fas fa-eye" v-else></i>
+								</div>
+							</template>
+
+							<template v-else-if="setting.type === 'select'">
+								<div class="bar_select">
+									<select v-model="setting.value">
+										<option v-for="(text, id) in setting.options" v-bind:value="id">{{ text }}</option>
+									</select>
+								</div>
+							</template>
+						</li>
+					</ul>
+				</div>`
+		},
+		onButton() {
+			Settings.save();
 		}
 	})
 })

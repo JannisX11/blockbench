@@ -4,30 +4,41 @@ function setupDragHandlers() {
 		'model',
 		{extensions: Codec.getAllExtensions},
 		function(files) {
-			loadModelFile(files[0])
+			files.forEach(file => {
+				loadModelFile(file);
+			})
 		}
 	)
 	Blockbench.addDragHandler(
 		'style',
-		{extensions: ['bbstyle', 'bbtheme']},
+		{extensions: ['bbtheme']},
 		function(files) {
 			CustomTheme.import(files[0]);
+		}
+	)
+	Blockbench.addDragHandler(
+		'settings',
+		{extensions: ['bbsettings']},
+		function(files) {
+			Settings.import(files[0]);
 		}
 	)
 	Blockbench.addDragHandler(
 		'plugin',
 		{extensions: ['bbplugin', 'js']},
 		function(files) {
-			new Plugin().loadFromFile(files[0], true)
+			files.forEach(file => {
+				new Plugin().loadFromFile(file, true);
+			})
 		}
 	)
 	Blockbench.addDragHandler(
 		'texture',
-		{extensions: ['png', 'tga'], propagate: true, readtype: 'image'},
+		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => Project && !Dialog.open},
 		function(files, event) {
 			var texture_li = $(event.target).parents('li.texture')
 			if (texture_li.length) {
-				var tex = textures.findInArray('uuid', texture_li.attr('texid'))
+				var tex = Texture.all.findInArray('uuid', texture_li.attr('texid'))
 				if (tex) {
 					tex.fromFile(files[0])
 					TickUpdates.selection = true;
@@ -40,10 +51,45 @@ function setupDragHandlers() {
 		}
 	)
 }
+
+function loadModelFile(file) {
+	
+	let existing_tab = isApp && ModelProject.all.find(project => (
+		project.save_path == file.path || project.export_path == file.path
+	))
+
+	let extension = pathToExtension(file.path);
+
+	function loadIfCompatible(codec, type, content) {
+		if (codec.load_filter && codec.load_filter.type == type) {
+			if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, content)) {
+				if (existing_tab && !codec.multiple_per_file) {
+					existing_tab.select();
+				} else {
+					codec.load(content, file);
+				}
+				return true;
+			}
+		}
+	}
+
+	// Text
+	for (let id in Codecs) {
+		let success = loadIfCompatible(Codecs[id], 'text', file.content);
+		if (success) return;
+	}
+	// JSON
+	let model = autoParseJSON(file.content);
+	for (let id in Codecs) {
+		let success = loadIfCompatible(Codecs[id], 'json', model);
+		if (success) return;
+	}
+}
+//Extruder
 var Extruder = {
 	drawImage: function(file) {
 		Extruder.canvas = $('#extrusion_canvas').get(0)
-		var ctx = extrusion_canvas.getContext('2d')
+		var ctx = Extruder.canvas.getContext('2d')
 
 		setProgressBar('extrusion_bar', 0)
 		$('#scan_tolerance').on('input', function() {
@@ -55,25 +101,28 @@ var Extruder = {
 		Extruder.ext_img.src = isApp ? file.path.replace(/#/g, '%23') : file.content
 		Extruder.image_file = file
 		Extruder.ext_img.style.imageRendering = 'pixelated'
-		ctx.imageSmoothingEnabled = false;
+		Extruder.canvas.style.imageRendering = 'pixelated'
 
 		Extruder.ext_img.onload = function() {
-			ctx.clearRect(0, 0, 256, 256);
-			ctx.drawImage(Extruder.ext_img, 0, 0, 256, 256)
-			Extruder.width = Extruder.ext_img.naturalWidth
-			Extruder.height = Extruder.ext_img.naturalHeight
+			let ratio = Extruder.ext_img.naturalWidth / Extruder.ext_img.naturalHeight;
+			Extruder.canvas.width = 256;
+			Extruder.canvas.height = 256 / ratio;
+			ctx.clearRect(0, 0, Extruder.canvas.width, Extruder.canvas.height);
+			ctx.imageSmoothingEnabled = false;
+			ctx.drawImage(Extruder.ext_img, 0, 0, Extruder.canvas.width, Extruder.canvas.height);
+			Extruder.width = Extruder.ext_img.naturalWidth;
+			Extruder.height = Extruder.ext_img.naturalHeight;
 
 			if (Extruder.width > 128) return;
 
-			var g = 256 / Extruder.width;
 			var p = 0
 			ctx.beginPath();
 
-			for (var x = 0; x <= 256; x += g) {
+			for (var x = 0; x < Extruder.canvas.width; x += 256 / Extruder.width) {
 				ctx.moveTo(0.5 + x + p, p);
 				ctx.lineTo(0.5 + x + p, 256 + p);
 			}
-			for (var x = 0; x <= 256; x += g) {
+			for (var x = 0; x < Extruder.canvas.height; x += 256 / Extruder.width) {
 				ctx.moveTo(p, 0.5 + x + p);
 				ctx.lineTo(256 + p, 0.5 + x + p);
 			}
@@ -112,10 +161,9 @@ var Extruder = {
 
 		//Scale Index
 		var scale_i = 1;
-		if (Extruder.width < Extruder.height) {
-			Extruder.width = Extruder.height;
-		}
 		scale_i = 16 / Extruder.width;
+		let uv_scale_x = Project.texture_width / Extruder.width;
+		let uv_scale_y = Project.texture_height / Extruder.height;
 
 		function isOpaquePixel(px_x, px_y) {
 			var opacity = image_data[(px_x + ctx.canvas.width * px_y) * 4 + 3]
@@ -209,12 +257,12 @@ var Extruder = {
 						from: [rect.x*scale_i, 0, rect.y*scale_i],
 						to: [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i],
 						faces: {
-							up:		{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture},
-							down:	{uv:[rect.x*scale_i, (rect.y2+1)*scale_i, (rect.x2+1)*scale_i, rect.y*scale_i], texture: texture},
-							north:	{uv:[(rect.x2+1)*scale_i, rect.y*scale_i, rect.x*scale_i, (rect.y+1)*scale_i], texture: texture},
-							south:	{uv:[rect.x*scale_i, rect.y2*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture},
-							east:	{uv:[rect.x2*scale_i, rect.y*scale_i, (rect.x2+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 90},
-							west:	{uv:[rect.x*scale_i, rect.y*scale_i, (rect.x+1)*scale_i, (rect.y2+1)*scale_i], texture: texture, rotation: 270},
+							up:		{uv:[rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+							down:	{uv:[rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y, (rect.x2+1)*uv_scale_x, rect.y*uv_scale_y], texture: texture},
+							north:	{uv:[(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y+1)*uv_scale_y], texture: texture},
+							south:	{uv:[rect.x*uv_scale_x, rect.y2*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+							east:	{uv:[rect.x2*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 90},
+							west:	{uv:[rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 270},
 						}
 					}).init()
 					selected.push(current_cube)
@@ -231,30 +279,68 @@ var Extruder = {
 			s.addTo(group).init()
 		})
 
-		Undo.finishEdit('add extruded texture', {elements: selected, outliner: true, textures: [textures[textures.length-1]]})
+		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [Texture.all[Texture.all.length-1]]})
 
 		hideDialog()
 	}
 }
 //Export
 function uploadSketchfabModel() {
-	if (elements.length === 0) {
+	if (elements.length === 0 || !Format) {
 		return;
 	}
+	let tag_suggestions = ['low-poly', 'pixel-art'];
+	if (Format.id !== 'free') tag_suggestions.push('minecraft');
+	if (Format.id === 'skin') tag_suggestions.push('skin');
+	if (!Mesh.all.length) tag_suggestions.push('voxel');
+	let clean_project_name = Project.name.toLowerCase().replace(/[_.-]+/g, '-').replace(/[^a-z0-9-]+/, '')
+	if (Project.name) tag_suggestions.push(clean_project_name);
+	if (clean_project_name.includes('-')) tag_suggestions.safePush(...clean_project_name.split('-').filter(s => s.length > 2 && s != 'geo').reverse());
+
+	let categories = {
+		"": "-",
+		"animals-pets": "Animals & Pets",
+		"architecture": "Architecture",
+		"art-abstract": "Art & Abstract",
+		"cars-vehicles": "Cars & Vehicles",
+		"characters-creatures": "Characters & Creatures",
+		"cultural-heritage-history": "Cultural Heritage & History",
+		"electronics-gadgets": "Electronics & Gadgets",
+		"fashion-style": "Fashion & Style",
+		"food-drink": "Food & Drink",
+		"furniture-home": "Furniture & Home",
+		"music": "Music",
+		"nature-plants": "Nature & Plants",
+		"news-politics": "News & Politics",
+		"people": "People",
+		"places-travel": "Places & Travel",
+		"science-technology": "Science & Technology",
+		"sports-fitness": "Sports & Fitness",
+		"weapons-military": "Weapons & Military",
+	}
+
 	var dialog = new Dialog({
 		id: 'sketchfab_uploader',
 		title: 'dialog.sketchfab_uploader.title',
-		width: 540,
+		width: 640,
 		form: {
 			token: {label: 'dialog.sketchfab_uploader.token', value: settings.sketchfab_token.value, type: 'password'},
 			about_token: {type: 'info', text: tl('dialog.sketchfab_uploader.about_token', ['[sketchfab.com/settings/password](https://sketchfab.com/settings/password)'])},
-			name: {label: 'dialog.sketchfab_uploader.name'},
+			name: {label: 'dialog.sketchfab_uploader.name', value: capitalizeFirstLetter(Project.name.replace(/\..+/, '').replace(/[_.-]/g, ' '))},
 			description: {label: 'dialog.sketchfab_uploader.description', type: 'textarea'},
+			category1: {label: 'dialog.sketchfab_uploader.category', type: 'select', options: categories, value: ''},
+			category2: {label: 'dialog.sketchfab_uploader.category2', type: 'select', options: categories, value: ''},
 			tags: {label: 'dialog.sketchfab_uploader.tags', placeholder: 'Tag1 Tag2'},
+			tag_suggestions: {label: 'dialog.sketchfab_uploader.suggested_tags', type: 'buttons', buttons: tag_suggestions, click(index) {
+				let {tags} = dialog.getFormResult();
+				let new_tag = tag_suggestions[index];
+				if (!tags.split(/\s/g).includes(new_tag)) {
+					tags += ' ' + new_tag;
+					dialog.setFormValues({tags});
+				}
+			}},
 			animations: {label: 'dialog.sketchfab_uploader.animations', value: true, type: 'checkbox', condition: (Format.animation_mode && Animator.animations.length)},
-			//color: {type: 'color', label: 'dialog.sketchfab_uploader.color'},
-			draft: {label: 'dialog.sketchfab_uploader.draft', type: 'checkbox'},
-			// Category
+			draft: {label: 'dialog.sketchfab_uploader.draft', type: 'checkbox', value: true},
 			divider: '_',
 			private: {label: 'dialog.sketchfab_uploader.private', type: 'checkbox'},
 			password: {label: 'dialog.sketchfab_uploader.password'},
@@ -274,14 +360,21 @@ function uploadSketchfabModel() {
 			data.append('description', formResult.description)
 			data.append('tags', formResult.tags)
 			data.append('isPublished', !formResult.draft)
-			//data.append('background', JSON.stringify({color: formResult.color.toHexString()}))
+			//data.append('background', JSON.stringify({color: '#00ff00'}))
 			data.append('private', formResult.private)
 			data.append('password', formResult.password)
 			data.append('source', 'blockbench')
 
+			if (formResult.category1 || formResult.category2) {
+				let selected_categories = [];
+				if (formResult.category1) selected_categories.push(formResult.category1);
+				if (formResult.category2) selected_categories.push(formResult.category2);
+				data.append('categories', selected_categories);
+			}
+
 			settings.sketchfab_token.value = formResult.token
 
-			Codecs.gltf.compile({animations: formResult.animations}, (content) => {
+			Codecs.gltf.compile({animations: formResult.animations}).then(content => {
 
 				var blob = new Blob([content], {type: "text/plain;charset=utf-8"});
 				var file = new File([blob], 'model.gltf')
@@ -300,12 +393,11 @@ function uploadSketchfabModel() {
 							title: tl('message.sketchfab.success'),
 							message:
 								`[${formResult.name} on Sketchfab](https://sketchfab.com/models/${response.uid})`, //\n\n&nbsp;\n\n`+
-								//tl('message.sketchfab.setup_guide', '[Sketchfab Setup and Common Issues](https://blockbench.net/2020/01/22/sketchfab-setup-and-common-issues/)'),
 							icon: 'icon-sketchfab',
 						})
 					},
 					error: function(response) {
-						Blockbench.showQuickMessage('message.sketchfab.error', 1500)
+						Blockbench.showQuickMessage(tl('message.sketchfab.error') + `Error ${response.status}`, 1500)
 						console.error(response);
 					}
 				})
@@ -345,21 +437,21 @@ function compileJSON(object, options) {
 			//Number
 			o = (Math.round(o*100000)/100000).toString()
 			out += o
-		} else if (typeof o === 'object' && o instanceof Array) {
+		} else if (o instanceof Array) {
 			//Array
-			var has_content = false
+			let has_content = false
+			let has_objects = !!o.find(item => typeof item === 'object');
 			out += '['
 			for (var i = 0; i < o.length; i++) {
 				var compiled = handleVar(o[i], tabs+1)
 				if (compiled) {
-					var breaks = typeof o[i] === 'object'
-					if (has_content) {out += ',' + (breaks || options.small?'':' ')}
-					if (breaks) {out += newLine(tabs)}
+					if (has_content) {out += ',' + ((options.small || has_objects) ? '' : ' ')}
+					if (has_objects) {out += newLine(tabs)}
 					out += compiled
 					has_content = true
 				}
 			}
-			if (typeof o[o.length-1] === 'object') {out += newLine(tabs-1)}
+			if (has_objects) {out += newLine(tabs-1)}
 			out += ']'
 		} else if (typeof o === 'object') {
 			//Object
@@ -439,7 +531,6 @@ BARS.defineActions(function() {
 		icon: 'assessment',
 		category: 'file',
 		keybind: new Keybind({key: 'o', ctrl: true}),
-		condition: () => (!EditSession.active || EditSession.hosting),
 		click: function () {
 			var startpath;
 			if (isApp && recent_projects && recent_projects.length) {
@@ -454,16 +545,41 @@ BARS.defineActions(function() {
 				resource_id: 'model',
 				extensions: Codec.getAllExtensions(),
 				type: 'Model',
-				startpath
+				startpath,
+				multiple: true
 			}, function(files) {
-				loadModelFile(files[0]);
+				files.forEach(file => {
+					loadModelFile(file);
+				})
 			})
+		}
+	})
+	new Action('open_from_link', {
+		icon: 'link',
+		category: 'file',
+		click() {
+			Blockbench.textPrompt('action.open_from_link', '', link => {
+				if (link.match(/https:\/\/blckbn.ch\//) || link.length == 4) {
+					let code = link.replace(/[/]+/g, '').substr(-4);
+					$.getJSON(`https://blckbn.ch/api/models/${code}`, (model) => {
+						Codecs.project.load(model, {path: ''});
+					}).fail(error => {
+						Blockbench.showQuickMessage('message.invalid_link')
+					})
+				} else {
+					$.getJSON(link, (model) => {
+						Codecs.project.load(model, {path: ''});
+					}).fail(error => {
+						Blockbench.showQuickMessage('message.invalid_link')
+					})
+				}
+			}, 'https://blckbn.ch/1234')
 		}
 	})
 	new Action('extrude_texture', {
 		icon: 'eject',
 		category: 'file',
-		condition: _ => !Project.box_uv,
+		condition: _ => Format && !Project.box_uv,
 		click: function () {
 			Blockbench.import({
 				resource_id: 'texture',
@@ -487,12 +603,15 @@ BARS.defineActions(function() {
 			if (isApp) {
 				saveTextures()
 				if (Format) {
-					if (ModelMeta.export_path && Format.codec && Format.codec.compile) {
-						Format.codec.write(Format.codec.compile(), ModelMeta.export_path)
-					} else if (ModelMeta.save_path) {
-						Codecs.project.write(Codecs.project.compile(), ModelMeta.save_path);
-					} else if (Format.codec) {
+					if (Project.save_path) {
+						Codecs.project.write(Codecs.project.compile(), Project.save_path);
+					}
+					if (Project.export_path && Format.codec && Format.codec.compile) {
+						Format.codec.write(Format.codec.compile(), Project.export_path)
+					} else if (Format.codec && Format.codec.export && !Project.save_path) {
 						Format.codec.export()
+					} else if (!Project.save_path) {
+						Project.saved = true;
 					}
 				}
 				if (Format.animation_mode && Format.animation_files && Animation.all.length) {
@@ -500,7 +619,7 @@ BARS.defineActions(function() {
 				}
 			} else {
 				saveTextures()
-				if (Format.codec && Format.codec.compile && Format.id != 'skin') {
+				if (Format.codec && Format.codec.export) {
 					Format.codec.export()
 				}
 			}
@@ -516,7 +635,7 @@ BARS.defineActions(function() {
 				var content = Format.codec.compile()
 				var name = `${Format.codec.fileName()}.${Format.codec.extension}`
 				archive.file(name, content)
-				textures.forEach(tex => {
+				Texture.all.forEach(tex => {
 					if (tex.mode === 'bitmap') {
 						archive.file(pathToName(tex.name) + '.png', tex.source.replace('data:image/png;base64,', ''), {base64: true});
 					}
@@ -526,11 +645,11 @@ BARS.defineActions(function() {
 						type: 'Zip Archive',
 						extensions: ['zip'],
 						name: 'assets',
-						startpath: ModelMeta.export_path,
+						startpath: Project.export_path,
 						content: content,
 						savetype: 'zip'
 					})
-					Prop.project_saved = true;
+					Project.saved = true;
 				})
 			}
 		})
@@ -546,7 +665,7 @@ BARS.defineActions(function() {
 
 	new Action('share_model', {
 		icon: 'share',
-		condition: () => Cube.all.length,
+		condition: () => Outliner.elements.length,
 		click() {
 			var dialog = new Dialog({
 				id: 'share_model',
@@ -558,6 +677,7 @@ BARS.defineActions(function() {
 						'1d': tl('dates.day', [1]),
 						'2d': tl('dates.days', [2]),
 						'1w': tl('dates.week', [1]),
+						'2w': tl('dates.weeks', [2]),
 					}},
 					info: {type: 'info', text: 'The model will be stored on the Blockbench servers for the duration specified above. [Learn more](https://blockbench.net/blockbench-model-sharing-service/)'}
 				},

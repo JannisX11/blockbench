@@ -1,21 +1,44 @@
 (function() {
 
-function buildAnimationTracks() {
+function buildAnimationTracks(do_quaternions = true) {
 	let anims = [];
 	Animator.animations.forEach(animation => {
+
+		let ik_samples = animation.sampleIK();
 
 		let tracks = [];
 		for (var uuid in animation.animators) {
 			let animator = animation.animators[uuid];
 			
-			if (animator instanceof BoneAnimator && animator.getGroup()) {
-				for (var channel of animator.channels) {
-					if (animator[channel] && animator[channel].length) {
+			if (animator.type == 'bone' && animator.getGroup()) {
+				for (var channel in animator.channels) {
+					if (channel == 'rotation' && ik_samples[uuid]) {
+
+						let times = [];
+						let values = [];
+						let sample_rate = settings.animation_sample_rate.value;
+						
+						let interpolation = THREE.InterpolateLinear;
+						ik_samples[uuid].forEach((sample, i) => {
+							sample.euler.x += animator.group.mesh.fix_rotation.x;
+							sample.euler.y += animator.group.mesh.fix_rotation.y;
+							sample.euler.z += animator.group.mesh.fix_rotation.z;
+							let quaternion = new THREE.Quaternion().setFromEuler(sample.euler);
+							quaternion.toArray(values, values.length);
+							times.push(i / sample_rate);
+						})
+
+						let track = new THREE.QuaternionKeyframeTrack(animator.group.mesh.uuid+'.quaternion', times, values, interpolation);
+						track.group_uuid = animator.group.uuid;
+						track.channel = 'quaternion';
+						tracks.push(track);
+
+					} else if (animator[channel] && animator[channel].length) {
 						let times = [];
 						let values = [];
 						let keyframes = animator[channel].slice();
 
-						// Sampling calculated (molang) values
+						// Sampling non-linear and math-based values
 						let contains_script
 						for (var kf of keyframes) {
 							if (kf.interpolation != 'linear') {
@@ -29,11 +52,12 @@ function buildAnimationTracks() {
 							if (contains_script) break;
 						}
 						if (contains_script) {
-							var last_values;
-							for (var time = 0; time < animation.length; time += 1/24) {
+							let interval = 1 / Math.clamp(settings.animation_sample_rate.value, 0.1, 500);
+							let last_values;
+							for (var time = 0; time < animation.length; time += interval) {
 								Timeline.time = time;
 								let values = animator.interpolate(channel, false)
-								if (!values.equals(last_values) && !keyframes.find(kf => Math.epsilon(kf.time, time, 1/24))) {
+								if (!values.equals(last_values) && !keyframes.find(kf => Math.epsilon(kf.time, time, interval))) {
 									let new_keyframe = new Keyframe({
 										time, channel,
 										data_points: [{
@@ -52,7 +76,7 @@ function buildAnimationTracks() {
 						keyframes.sort((a, b) => a.time - b.time)
 
 						// Sampling rotation steps that exceed 180 degrees
-						if (channel === 'rotation' && !contains_script) {
+						if (channel === 'rotation' && !contains_script && do_quaternions) {
 							let original_keyframes = keyframes.slice();
 							original_keyframes.forEach((kf, i) => {
 								let next = original_keyframes[i+1]
@@ -100,10 +124,10 @@ function buildAnimationTracks() {
 							}
 							times.push(kf.time);
 							Timeline.time = kf.time;
-							kf.getFixed().toArray(values, values.length);
+							kf.getFixed(0, do_quaternions).toArray(values, values.length);
 						})
 						let trackType = THREE.VectorKeyframeTrack;
-						if (channel === 'rotation') {
+						if (channel === 'rotation' && do_quaternions) {
 							trackType = THREE.QuaternionKeyframeTrack;
 							channel = 'quaternion';
 						} else if (channel == 'position') {
@@ -112,6 +136,8 @@ function buildAnimationTracks() {
 							})
 						}
 						let track = new trackType(animator.group.mesh.uuid+'.'+channel, times, values, interpolation);
+						track.group_uuid = animator.group.uuid;
+						track.channel = channel;
 						tracks.push(track);
 					}
 				}
@@ -132,47 +158,45 @@ function buildAnimationTracks() {
 var codec = new Codec('gltf', {
 	name: 'GLTF Model',
 	extension: 'gltf',
-	compile(options = 0, callback) {
+	async compile(options = 0) {
 		let scope = this;
 		let exporter = new THREE.GLTFExporter();
 		let animations = [];
 		let gl_scene = new THREE.Scene();
 		gl_scene.name = 'blockbench_export'
-
-		scene.children.forEachReverse(object => {
-			if (object.isGroup || object.isElement) {
-				gl_scene.add(object);
+		gl_scene.add(Project.model_3d);
+		
+		try {
+			if (!Modes.edit) {
+				Animator.showDefaultPose();
 			}
-		});
-		if (!Modes.edit) {
-			Animator.showDefaultPose();
-		}
-		if (options.animations !== false) {
-			animations = buildAnimationTracks();
-		}
-		exporter.parse(gl_scene, (json) => {
-
+			if (options.animations !== false) {
+				animations = buildAnimationTracks();
+			}
+			let json = await new Promise((resolve, reject) => {
+				exporter.parse(gl_scene, resolve, {
+					animations,
+					onlyVisible: false,
+					trs: true,
+					truncateDrawRange: false,
+					forcePowerOfTwoTextures: true,
+					scale_factor: 1/16,
+					exportFaceColors: false,
+				});
+			})
+			scene.add(Project.model_3d);
+			
 			scope.dispatchEvent('compile', {model: json, options});
-			callback(JSON.stringify(json));
+			return JSON.stringify(json);
 
-			gl_scene.children.forEachReverse(object => {
-				if (object.isGroup || object.isElement) {
-					scene.add(object);
-				}
-			});
-		}, {
-			animations,
-			onlyVisible: false,
-			trs: true,
-			truncateDrawRange: false,
-			forcePowerOfTwoTextures: true,
-			scale_factor: 1/16,
-			exportFaceColors: false,
-		});
+		} catch (err) {
+			scene.add(Project.model_3d);
+			throw err;
+		}
 	},
 	export() {
 		var scope = codec;
-		scope.compile(0, content => {
+		scope.compile().then(content => {
 			setTimeout(_ => {
 				Blockbench.export({
 					resource_id: 'gltf',
@@ -187,6 +211,8 @@ var codec = new Codec('gltf', {
 		})
 	}
 })
+
+codec.buildAnimationTracks = buildAnimationTracks;
 
 BARS.defineActions(function() {
 	codec.export_action = new Action({

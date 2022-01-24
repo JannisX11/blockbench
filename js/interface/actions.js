@@ -78,13 +78,13 @@ class BarItem {
 			action.node.prepend(tooltip);
 
 			action.node.addEventListener('mouseenter', () => {
-				var tooltip = $(this).find('div.tooltip');
+				var tooltip = $(action.node).find('div.tooltip');
 				if (!tooltip.length) return;
 				var description = tooltip.find('.tooltip_description');
 
-				if ($(this).parent().parent().hasClass('vertical')) {
+				if ($(action.node).parent().parent().hasClass('vertical')) {
 					tooltip.css('margin', '0')
-					if ($(this).offset().left > window.innerWidth/2) {
+					if ($(action.node).offset().left > window.innerWidth/2) {
 						tooltip.css('margin-left', (-tooltip.width()-3) + 'px')
 					} else {
 						tooltip.css('margin-left', '34px')
@@ -112,7 +112,7 @@ class BarItem {
 
 					// height
 					if ((window.innerHeight - offset.top) < 28) {
-						tooltip.css('margin-top', -tooltip.height()+'px');
+						tooltip.css('margin-top', -2-tooltip.height()+'px');
 						description.css('margin-top', '-51px');
 					}
 				}
@@ -147,14 +147,18 @@ class BarItem {
 		$(destination).first().append(this.getNode())
 		return this;
 	}
-	pushToolbar(bar) {
+	pushToolbar(bar, idx) {
 		var scope = this;
 		if (scope.uniqueNode && scope.toolbars.length) {
 			for (var i = scope.toolbars.length-1; i >= 0; i--) {
 				scope.toolbars[i].remove(scope)
 			}
 		}
-		bar.children.push(this)
+		if (idx !== undefined) {
+			bar.children.splice(idx, 0, this);
+		} else {
+			bar.children.push(this);
+		}
 		this.toolbars.safePush(bar)
 	}
 	delete() {
@@ -188,6 +192,9 @@ class KeybindItem {
 		Keybinds.actions.push(this)
 		Keybinds.extra[this.id] = this;
 		this.keybind.setAction(this.id)
+	}
+	delete() {
+		Keybinds.actions.remove(this);
 	}
 }
 class Action extends BarItem {
@@ -280,6 +287,19 @@ class Action extends BarItem {
 			$(n).find('.icon').replaceWith($(scope.icon_node).clone())
 		})
 	}
+	setName(name) {
+		this.name = name;
+		this.nodes.forEach(node => {
+			let tooltip = node.querySelector('.tooltip');
+			if (tooltip && tooltip.firstChild) {
+				tooltip.firstChild.textContent = this.name;;
+			}
+		})
+		let menu_span = this.menu_node.querySelector('span');
+		if (menu_span) {
+			menu_span.innerText = this.name;
+		}
+	}
 	delete() {
 		super.delete();
 		for (var i = this.menus.length-1; i >= 0; i--) {
@@ -304,12 +324,12 @@ class Tool extends Action {
 		this.modes = data.modes;
 		this.selectFace = data.selectFace;
 		this.cursor = data.cursor;
-		this.selectCubes = data.selectCubes !== false;
+		this.selectElements = data.selectElements !== false;
 		this.paintTool = data.paintTool;
 		this.brushTool = data.brushTool;
 		this.transformerMode = data.transformerMode;
 		this.animation_channel = data.animation_channel;
-		this.allowWireframe = data.allowWireframe !== false;
+		this.allowed_view_modes = data.allowed_view_modes || null;
 		this.tool_settings = {};
 
 		if (!this.condition) {
@@ -334,6 +354,9 @@ class Tool extends Action {
 			if (typeof Toolbox.selected.onUnselect == 'function') {
 				Toolbox.selected.onUnselect()
 			}
+			if (Transformer.dragging) {
+				Transformer.cancelMovement({}, true);
+			}
 		}
 		Toolbox.selected = this;
 		delete Toolbox.original;
@@ -342,8 +365,8 @@ class Tool extends Action {
 		if (this.transformerMode) {
 			Transformer.setMode(this.transformerMode)
 		}
-		if (Prop.wireframe && !this.allowWireframe) {
-			Prop.wireframe = false
+		if (this.allowed_view_modes && !this.allowed_view_modes.includes(Project.view_mode)) {
+			Project.view_mode = 'textured';
 			Canvas.updateAllFaces()
 		}
 		if (this.toolbar && Toolbars[this.toolbar]) {
@@ -364,11 +387,10 @@ class Tool extends Action {
 		return this;
 	}
 	trigger(event) {
-		var scope = this;
-		if (BARS.condition(scope.condition, scope)) {
+		if (BARS.condition(this.condition, this)) {
 			this.select()
 			return true;
-		} else if (event.type.includes('key') && this.modes) {
+		} else if (this.modes) {
 			for (var i = 0; i < this.modes.length; i++) {
 				var mode = Modes.options[this.modes[i]]
 				if (mode && Condition(mode.condition)) {
@@ -451,6 +473,7 @@ class NumSlider extends Widget {
 		if (data.tool_setting) this.tool_setting = data.tool_setting;
 		if (typeof data.get === 'function') this.get = data.get;
 		this.onBefore = data.onBefore;
+		this.onChange = data.onChange;
 		this.onAfter = data.onAfter;
 		if (typeof data.change === 'function') this.change = data.change;
 		if (data.settings) {
@@ -463,11 +486,11 @@ class NumSlider extends Widget {
 		} else {
 			this.interval = function(event) {
 				event = event||0;
-				if (!event.shiftKey && !event.ctrlKey) {
+				if (!event.shiftKey && !event.ctrlOrCmd) {
 					return 1
-				} else if (event.ctrlKey && event.shiftKey) {
+				} else if (event.ctrlOrCmd && event.shiftKey) {
 					return 0.025
-				} else if (event.ctrlKey) {
+				} else if (event.ctrlOrCmd) {
 					return 0.1
 				} else if (event.shiftKey)  {
 					return 0.25
@@ -482,15 +505,17 @@ class NumSlider extends Widget {
 			this.keybind.label = this.keybind.getText();
 		}
 		var scope = this;
-		var css_color = 'xyz'.includes(this.color) ? `var(--color-axis-${this.color})` : this.color;
 		this.node = $( `<div class="tool wide widget nslide_tool">
-							<div class="nslide_overlay">
-								<div class="color_corner" style="border-color: ${css_color}"></div>
-							</div>
 							<div class="nslide tab_target" n-action="${this.id}"></div>
 					  	</div>`).get(0);
 		this.jq_outer = $(this.node)
 		this.jq_inner = this.jq_outer.find('.nslide');
+
+		if (this.color) {
+			var css_color = 'xyz'.includes(this.color) ? `var(--color-axis-${this.color})` : this.color;
+			this.node.style.setProperty('--corner-color', css_color);
+			this.node.classList.add('is_colored');
+		}
 
 		this.addLabel(data.label);
 
@@ -576,7 +601,8 @@ class NumSlider extends Widget {
 		})
 		.dblclick(function(event) {
 			if (event.target != this) return;
-			scope.jq_inner.text('0');
+			let value = scope.settings && scope.settings.default ? scope.settings.default.toString() : '0';
+			scope.jq_inner.text(value);
 			scope.stopInput()
 
 		});
@@ -717,17 +743,24 @@ class NumSlider extends Widget {
 
 		}
 		this.jq_outer.find('.nslide:not(.editing)').text(this.value)
+		if (this.settings && this.settings.show_bar) {
+			this.node.classList.add('has_percentage_bar');
+			this.node.style.setProperty('--percentage', Math.getLerp(this.settings.min, this.settings.max, value)*100);
+		} 
 		return this;
 	}
 	change(modify) {
 		//Solo sliders only, gets overwritten for most sliders
 		var num = modify(this.get());
-		if (this.settings && typeof this.settings.min === 'number') {
+		if (this.settings && typeof this.settings.min === 'number' && this.settings.limit !== false) {
 			num = limitNumber(num, this.settings.min, this.settings.max)
 		}
 		this.value = num;
 		if (this.tool_setting) {
 			Toolbox.selected.tool_settings[this.tool_setting] = num;
+		}
+		if (typeof this.onChange === 'function') {
+			this.onChange(num);
 		}
 	}
 	get() {
@@ -821,29 +854,52 @@ class BarSelect extends Widget {
 		var scope = this;
 		this.type = 'select'
 		this.icon = 'list'
-		this.node = $('<div class="tool widget bar_select"><bb-select></bb-select></div>').get(0)
-		var select = $(this.node).find('bb-select')
-		if (data.width) {
-			select.css('width', data.width+'px')
-		}
-		if (data.min_width) {
-			select.css('min-width', data.min_width+'px')
-		}
-		select.click(event => {
-			scope.open(event)
-		});
+		this.icon_mode = !!data.icon_mode;
 		this.value = data.value
 		this.values = [];
 		this.options = data.options;
 		if (data.options) {
-			for (var key in data.options) {
+			for (let key in data.options) {
 				if (!this.value) {
 					this.value = key
 				}
 				this.values.push(key);
 			}
 		}
-		this.set(this.value)
+		this.node = document.createElement('div');
+		this.node.className = 'tool widget bar_select';
+		if (this.icon_mode) {
+			this.node.classList.add('icon_mode');
+			for (let key in data.options) {
+				let button = document.createElement('div');
+				button.className = 'select_option';
+				button.setAttribute('key', key);
+				button.title = this.getNameFor(key);
+				button.append(Blockbench.getIconNode(data.options[key].icon));
+				this.node.append(button);
+				button.addEventListener('click', event => {
+					this.set(key);
+					if (this.onChange) {
+						this.onChange(this, event);
+					}
+				})
+			}
+
+		} else {
+			let select = document.createElement('bb-select')
+			this.node.append(select);
+			if (data.width) {
+				select.style.setProperty('width', data.width+'px');
+			}
+			if (data.min_width) {
+				select.style.setProperty('min-width', data.min_width+'px');
+			}
+			select.addEventListener('click', event => {
+				scope.open(event)
+			})
+		}
+		this.nodes.push(this.node);
+		this.set(this.value);
 		this.addLabel()
 		if (typeof data.onChange === 'function') {
 			this.onChange = data.onChange
@@ -853,6 +909,7 @@ class BarSelect extends Widget {
 		})
 	}
 	open(event) {
+		if (Menu.closed_in_this_click == this.id) return this;
 		let scope = this;
 		let items = [];
 		for (var key in this.options) {
@@ -874,7 +931,7 @@ class BarSelect extends Widget {
 				})()
 			}
 		}
-		let menu = new Menu(items);
+		let menu = new Menu(this.id, items);
 		menu.node.style['min-width'] = this.node.clientWidth+'px';
 		menu.open(event.target, this);
 	}
@@ -937,12 +994,21 @@ class BarSelect extends Widget {
 			return this;
 		}
 		this.value = key;
-		let name = this.getNameFor(key);
-		this.nodes.forEach(node => {
-			$(node).find('bb-select').text(name)
-		})
-		if (!this.nodes.includes(this.node)) {
-			$(this.node).find('bb-select').text(name)
+		if (this.icon_mode) {
+			this.nodes.forEach(node => {
+				for (let key in this.options) {
+					let button = node.querySelector(`div.select_option[key=${key}]`);
+					button.classList.toggle('selected', this.value == key);
+				}
+			})
+		} else {
+			let name = this.getNameFor(key);
+			this.nodes.forEach(node => {
+				$(node).find('bb-select').text(name)
+			})
+			if (!this.nodes.includes(this.node)) {
+				$(this.node).find('bb-select').text(name)
+			}
 		}
 		return this;
 	}
@@ -1005,12 +1071,15 @@ class ColorPicker extends Widget {
 		this.value = new tinycolor('ffffff')
 		this.jq.spectrum({
 			preferredFormat: "hex",
-			color: 'ffffff',
+			color: data.value || 'ffffff',
 			showAlpha: true,
 			showInput: true,
 			maxSelectionSize: 128,
 			showPalette: data.palette === true,
 			palette: data.palette ? [] : undefined,
+			resetText: tl('generic.reset'),
+			cancelText: tl('dialog.cancel'),
+			chooseText: tl('dialog.confirm'),
 			show: function() {
 				open_interface = scope
 			},
@@ -1048,6 +1117,14 @@ class Toolbar {
 		var scope = this;
 		this.children = [];
 		this.condition_cache = [];
+
+		// items the toolbar could not load on startup, most likely from plugins (stored as IDs)
+		this.postload = null;
+		// object storing initial position of actions
+		// if a property with a given position is set, then this slot is occupied
+		// and the associated object (action) can effectively be used with indexOf on children
+		this.positionLookup = {};
+
 		if (data) {
 			this.id = data.id
 			this.narrow = !!data.narrow
@@ -1081,20 +1158,33 @@ class Toolbar {
 		if (items && items.constructor.name === 'Array') {
 			var content = $(scope.node).find('div.content')
 			content.children().detach()
-			items.forEach(function(id) {
-				if (typeof id === 'string' && id.substr(0, 1) === '_') {
-					content.append('<div class="toolbar_separator"></div>')
-					scope.children.push('_'+guid().substr(0,8))
-					return;
+			for (var itemPosition = 0; itemPosition < items.length; itemPosition++) {
+				var itemId = items[itemPosition];
+				if (typeof itemId === 'string' && itemId.match(/^[_+#]/)) {
+					let char = itemId.substr(0, 1);
+					content.append(`<div class="toolbar_separator ${char == '_' ? 'border' : (char == '+' ? 'spacer' : 'linebreak')}"></div>`);
+					this.children.push(char + guid().substr(0,8));
+					this.positionLookup[itemPosition] = char;
+
+					continue;
 				}
-				var item = BarItems[id]
+
+				var item = BarItems[itemId];
 				if (item) {
-					item.pushToolbar(scope)
+					item.pushToolbar(this);
 					if (BARS.condition(item.condition)) {
 						content.append(item.getNode())
 					}
+					this.positionLookup[itemPosition] = item;
+				} else {
+					var postloadAction = [itemId, itemPosition];
+					if (this.postload) {
+						this.postload.push(postloadAction);
+					} else {
+						this.postload = [postloadAction];
+					}
 				}
-			})
+			}
 		}
 		$(scope.node).toggleClass('narrow', this.narrow)
 		$(scope.node).toggleClass('vertical', this.vertical)
@@ -1113,11 +1203,8 @@ class Toolbar {
 	}
 	editMenu() {
 		BARS.editing_bar = this;
-		this.children.forEach(function(c, ci) {
-		})
-		BARS.list.currentBar = this.children;
-		showDialog('toolbar_edit');
-		
+		BARS.dialog.show();
+		BARS.dialog.content_vue.currentBar = this.children;
 		return this;
 	}
 	add(action, position) {
@@ -1150,11 +1237,36 @@ class Toolbar {
 		}
 		return this;
 	}
-	update() {
+	update(force) {
 		var scope = this;
 
+		// check if some unkown actions are now known
+		if (this.postload) {
+			var idx = 0;
+			while (idx < this.postload.length) {
+				var postloadAction = this.postload[idx];
+				var item = BarItems[postloadAction[0]];
+				if (item) {
+					var insertAfter = postloadAction[1];
+					// while there isn't displayed element at insertAfter - 1, decrease to reach one or 0
+					while (this.positionLookup[--insertAfter] === undefined && insertAfter >= 0) {}
+					var itemIdx = insertAfter + 1;
+					if (!this.children.includes(item)) {
+						item.pushToolbar(this, itemIdx);
+						this.positionLookup[itemIdx] = item;
+					}
+					this.postload.splice(idx, 1);
+				} else {
+					idx++;
+				}
+			}
+			if (this.postload.length == 0) {
+				this.postload = null; // array obj no longer needed
+			}
+		}
+
 		//scope.condition_cache.empty();
-		let needsUpdate = scope.condition_cache.length !== scope.children.length;
+		let needsUpdate = force === true || scope.condition_cache.length !== scope.children.length;
 		scope.condition_cache.length = scope.children.length;
 
 		this.children.forEach(function(item, i) {
@@ -1171,8 +1283,11 @@ class Toolbar {
 
 		var content = $(this.node).find('.content')
 		content.find('> .tool').detach()
-		var separators = content.find('> .toolbar_separator').detach()
-		var sep_nr = 0;
+		var separators = {
+			border: content.find('> .toolbar_separator.border').detach().toArray(),
+			spacer: content.find('> .toolbar_separator.spacer').detach().toArray(),
+			linebreak: content.find('> .toolbar_separator.linebreak').detach().toArray(),
+		}
 
 		this.children.forEach(function(item, i) {
 			if (typeof item === 'string') {
@@ -1180,13 +1295,16 @@ class Toolbar {
 				if (last.length === 0 || last.hasClass('toolbar_separator') || i == scope.children.length-1) {
 					return this;
 				}
-				var sep = separators[sep_nr]
+				let type = item[0] == '_' ? 'border' : (item[0] == '+' ? 'spacer' : 'linebreak');
+				let sep = separators[type].shift();
 				if (sep) {
-					content.append(sep)
-					sep_nr++;
+					content.append(sep);
 				} else {
-					content.append('<div class="toolbar_separator"></div>')
+					let separator = document.createElement('div');
+					separator.className = `toolbar_separator ${type}`;
+					content.append(separator);
 				}
+
 			} else if (typeof item === 'object') {
 				if (scope.condition_cache[i]) {
 					content.append(item.getNode())
@@ -1264,6 +1382,14 @@ const BARS = {
 				category: 'navigate',
 				keybind: new Keybind({key: 3})
 			})
+			new KeybindItem('preview_zoom', {
+				category: 'navigate',
+				keybind: new Keybind({key: 1, shift: true})
+			})
+			new KeybindItem('preview_area_select', {
+				category: 'navigate',
+				keybind: new Keybind({key: 1, ctrl: true, shift: null})
+			})
 
 			new KeybindItem('confirm', {
 				category: 'navigate',
@@ -1296,6 +1422,19 @@ const BARS = {
 				alt_tool: 'move_tool',
 				modes: ['edit', 'display', 'animate'],
 				keybind: new Keybind({key: 's'}),
+				onSelect() {
+					if (Modes.edit) {
+						if (Mesh.selected.length) {
+							Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
+						} else {
+							Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
+						}
+					}
+				},
+				onUnselect() {
+					Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
+					Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
+				}
 			})
 			new Tool('rotate_tool', {
 				icon: 'sync',
@@ -1305,7 +1444,7 @@ const BARS = {
 				animation_channel: 'rotation',
 				toolbar: Blockbench.isMobile ? 'element_rotation' : 'main_tools',
 				alt_tool: 'pivot_tool',
-				modes: ['edit', 'display', 'animate'],
+				modes: ['edit', 'display', 'animate', 'pose'],
 				keybind: new Keybind({key: 'r'})
 			})
 			new Tool('pivot_tool', {
@@ -1322,7 +1461,7 @@ const BARS = {
 				transformerMode: 'hidden',
 				toolbar: 'vertex_snap',
 				category: 'tools',
-				selectCubes: true,
+				selectElements: true,
 				cursor: 'copy',
 				modes: ['edit'],
 				keybind: new Keybind({key: 'x'}),
@@ -1334,7 +1473,7 @@ const BARS = {
 					Vertexsnap.select()
 				},
 				onUnselect: function() {
-					Vertexsnap.removeVertexes()
+					Vertexsnap.clearVertexGizmos()
 					Vertexsnap.step1 = true
 					Blockbench.removeListener('update_selection', Vertexsnap.select)
 				}
@@ -1342,29 +1481,37 @@ const BARS = {
 			new BarSelect('vertex_snap_mode', {
 				options: {
 					move: true,
-					scale: true
+					scale: {condition: () => !Format.integer_size, name: true}
 				},
 				category: 'edit'
 			})
 			new Action('swap_tools', {
 				icon: 'swap_horiz',
 				category: 'tools',
-				condition: {modes: ['edit', 'paint', 'display']},
+				condition: {modes: ['edit', 'paint', 'display'], project: true},
 				keybind: new Keybind({key: 32}),
 				click: function () {
-					if (BarItems[Toolbox.selected.alt_tool]) {
+					if (BarItems[Toolbox.selected.alt_tool] && Condition(BarItems[Toolbox.selected.alt_tool].condition)) {
 						BarItems[Toolbox.selected.alt_tool].select()
 					}
 				}
 			})
 
 		//File
+			new Action('new_window', {
+				icon: 'open_in_new',
+				category: 'file',
+				condition: isApp,
+				click: function () {
+					ipcRenderer.send('new-window');
+				}
+			})
 			new Action('open_model_folder', {
 				icon: 'folder_open',
 				category: 'file',
-				condition: () => {return isApp && (ModelMeta.save_path || ModelMeta.export_path)},
+				condition: () => {return isApp && (Project.save_path || Project.export_path)},
 				click: function () {
-					shell.showItemInFolder(ModelMeta.export_path || ModelMeta.save_path);
+					shell.showItemInFolder(Project.export_path || Project.save_path);
 				}
 			})
 			new Action('open_backup_folder', {
@@ -1372,25 +1519,8 @@ const BARS = {
 				category: 'file',
 				condition: () => isApp,
 				click: function (e) {
-					shell.openItem(app.getPath('userData')+osfs+'backups')
+					shell.openPath(app.getPath('userData')+osfs+'backups')
 				}
-			})
-			new Action('settings_window', {
-				icon: 'settings',
-				category: 'blockbench',
-				click: function () {Settings.open()}
-			})
-			new Action('keybindings_window', {
-				name: tl('dialog.settings.keybinds') + '...',
-				icon: 'keyboard',
-				category: 'blockbench',
-				click: function () {Settings.open({tab: 'keybindings'})}
-			})
-			new Action('theme_window', {
-				name: tl('dialog.settings.theme') + '...',
-				icon: 'style',
-				category: 'blockbench',
-				click: function () {Settings.open({tab: 'layout_settings'})}
 			})
 			new Action('reload', {
 				icon: 'refresh',
@@ -1419,7 +1549,6 @@ const BARS = {
 			new Action('delete', {
 				icon: 'delete',
 				category: 'edit',
-				//condition: () => (Modes.edit && (selected.length || Group.selected)),
 				keybind: new Keybind({key: 46}),
 				click: function () {
 					if (Prop.active_panel == 'textures' && Texture.selected) {
@@ -1428,6 +1557,87 @@ const BARS = {
 						if (ColorPanel.vue._data.palette.includes(ColorPanel.vue._data.main_color)) {
 							ColorPanel.vue._data.palette.remove(ColorPanel.vue._data.main_color)
 						}
+					} else if (Modes.edit && Mesh.selected.length && Project.selected_vertices[Mesh.selected[0].uuid] && Project.selected_vertices[Mesh.selected[0].uuid].length < Mesh.selected[0].vertice_list.length) {
+
+						Undo.initEdit({elements: Mesh.selected})
+
+						Mesh.selected.forEach(mesh => {
+							let has_selected_faces = false;
+							let selected_vertices = mesh.getSelectedVertices();
+							for (let key in mesh.faces) {
+								has_selected_faces = has_selected_faces || mesh.faces[key].isSelected();
+							}
+							if (BarItems.selection_mode.value == 'face' && has_selected_faces) {
+								for (let key in mesh.faces) {
+									let face = mesh.faces[key];
+									if (face.isSelected()) {
+										delete mesh.faces[key];
+									}
+								}
+								selected_vertices.forEach(vertex_key => {
+									let used = false;
+									for (let key in mesh.faces) {
+										let face = mesh.faces[key];
+										if (face.vertices.includes(vertex_key)) used = true;
+									}
+									if (!used) {
+										delete mesh.vertices[vertex_key];
+									}
+								})
+							} else if (BarItems.selection_mode.value == 'edge' && selected_vertices.length) {
+								for (let key in mesh.faces) {
+									let face = mesh.faces[key];
+									let sorted_vertices = face.getSortedVertices();
+									let selected_corners = sorted_vertices.filter(vkey => selected_vertices.includes(vkey));
+									if (selected_corners.length >= 2) {
+										let index_diff = (sorted_vertices.indexOf(selected_corners[0]) - sorted_vertices.indexOf(selected_corners[1])) % sorted_vertices.length;
+										if ((sorted_vertices.length < 4 || Math.abs(index_diff) !== 2)) {
+											delete mesh.faces[key];
+										}
+									}
+								}
+								selected_vertices.forEach(vertex_key => {
+									let used = false;
+									for (let key in mesh.faces) {
+										let face = mesh.faces[key];
+										if (face.vertices.includes(vertex_key)) used = true;
+									}
+									if (!used) {
+										delete mesh.vertices[vertex_key];
+									}
+								})
+
+							} else {
+								let selected_vertices = Project.selected_vertices[mesh.uuid];
+								selected_vertices.forEach(vertex_key => {
+									delete mesh.vertices[vertex_key];
+
+									for (let key in mesh.faces) {
+										let face = mesh.faces[key];
+										if (!face.vertices.includes(vertex_key)) continue;
+										if (face.vertices.length > 2) {
+											face.vertices.remove(vertex_key);
+											delete face.uv[vertex_key];
+											
+											if (face.vertices.length == 2) {
+												for (let fkey2 in mesh.faces) {
+													if (fkey2 != key && !face.vertices.find(vkey => !mesh.faces[fkey2].vertices.includes(vkey))) {
+														delete mesh.faces[key];
+														break;
+													}
+												}
+											}
+										} else {
+											delete mesh.faces[key];
+										}
+									}
+								})
+							}
+						})
+
+						Undo.finishEdit('Delete mesh part')
+						Canvas.updateView({elements: Mesh.selected, selection: true, element_aspects: {geometry: true, faces: true, uv: Mesh.selected.length > 0}})
+
 					} else if ((Modes.edit || Modes.paint) && (selected.length || Group.selected)) {
 
 						var array;
@@ -1447,7 +1657,7 @@ const BARS = {
 							s.remove(false)
 						})
 						TickUpdates.selection = true;
-						Undo.finishEdit('delete elements')
+						Undo.finishEdit('Delete elements')
 
 					} else if (Prop.active_panel == 'animations' && Animation.selected) {
 						Animation.selected.remove(true)
@@ -1476,28 +1686,111 @@ const BARS = {
 						Undo.initEdit({outliner: true, elements: [], selection: true});
 						var g = Group.selected.duplicate();
 						g.select();
-						Undo.finishEdit('duplicate_group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true})
+						Undo.finishEdit('Duplicate group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true})
 					} else {
 						var added_elements = [];
 						Undo.initEdit({elements: added_elements, outliner: true, selection: true})
-						selected.forEach(function(obj, i) {
+						selected.forEachReverse(function(obj, i) {
 							var copy = obj.duplicate();
 							added_elements.push(copy);
 						})
 						BarItems.move_tool.select();
-						Undo.finishEdit('duplicate')
+						Undo.finishEdit('Duplicate elements')
 					}
+				}
+			})
+			let find_replace_dialog = new Dialog({
+				id: 'find_replace',
+				title: 'action.find_replace',
+				form: {
+					target: {label: 'dialog.find_replace.target', type: 'select', options: {
+						element_names: 'dialog.find_replace.target.element_names',
+						group_names: 'dialog.find_replace.target.group_names',
+						animation_names: 'dialog.find_replace.target.animation_names',
+						keyframe_values: 'dialog.find_replace.target.keyframe_values',
+					}},
+					find: {label: 'dialog.find_replace.find', type: 'text'},
+					replace: {label: 'dialog.find_replace.replace', type: 'text'},
+					regex: {label: 'dialog.find_replace.regex', type: 'checkbox', value: false},
+				},
+				onFormChange() {
+
+				},
+				onConfirm(form) {
+					if (!form.find) return;
+					function replace(name) {
+						if (form.regex) {
+							let regex = new RegExp(form.find, 'g');
+							return name.replace(regex, form.replace);
+						} else {
+							return name.split(form.find).join(form.replace);
+						}
+					}
+					if (form.target == 'element_names') {
+						let elements = (Outliner.selected.length ? Outliner.selected : Outliner.elements);
+						Undo.initEdit({elements});
+						elements.forEach(element => {
+							element.name = replace(element.name);
+							element.sanitizeName();
+							if (Condition(element.needsUniqueName)) {
+								element.createUniqueName();
+							}
+						})
+					}
+					if (form.target == 'group_names') {
+						let groups = Group.selected ? Group.all.filter(g => g.selected) : Group.all;
+						Undo.initEdit({outliner: true});
+						groups.forEach(group => {
+							group.name = replace(group.name);
+							group.sanitizeName();
+							if (Condition(group.needsUniqueName)) {
+								group.createUniqueName();
+							}
+						})
+					}
+					if (form.target == 'animation_names') {
+						let animations = Animation.all;
+						Undo.initEdit({animations});
+						animations.forEach(animation => {
+							animation.name = replace(animation.name);
+							animation.createUniqueName();
+						})
+					}
+					if (form.target == 'keyframe_values') {
+						let keyframes = [];
+						if (Timeline.selected.length) {
+							keyframes = Timeline.selected;
+						} else if (Animation.selected) {
+							for (let key in Animation.selected.animators) {
+								keyframes.push(...Animation.selected.animators[key].keyframes);
+							}
+						}
+						Undo.initEdit({keyframes});
+						keyframes.forEach(keyframe => {
+							keyframe.data_points.forEach(datapoint => {
+								if (datapoint.x) datapoint.x = replace(datapoint.x.toString());
+								if (datapoint.y) datapoint.y = replace(datapoint.y.toString());
+								if (datapoint.z) datapoint.z = replace(datapoint.z.toString());
+
+								if (datapoint.effect) datapoint.effect = replace(datapoint.effect);
+								if (datapoint.locator) datapoint.locator = replace(datapoint.locator);
+								if (datapoint.script) datapoint.script = replace(datapoint.script);
+							})
+						})
+					}
+					Undo.finishEdit('Find/replace')
+				}
+			})
+			new Action('find_replace', {
+				icon: 'find_replace',
+				category: 'edit',
+				click: function () {
+					find_replace_dialog.show();
 				}
 			})
 
 
 		//Settings
-			new Action('reset_keybindings', {
-				icon: 'replay',
-				category: 'blockbench',
-				work_in_dialog: true,
-				click: function () {Keybinds.reset()}
-			})
 			new Action('open_dev_tools', {
 				name: 'menu.help.developer.dev_tools',
 				icon: 'fas.fa-tools',
@@ -1540,14 +1833,16 @@ const BARS = {
 				work_in_dialog: true,
 				click: function () {setZoomLevel('reset')}
 			})
-
-		//Find Action
-			new Action('action_control', {
-				icon: 'fullscreen',
-				category: 'blockbench',
-				keybind: new Keybind({key: 'f'}),
+			new Action('toggle_sidebars', {
+				icon: 'view_array',
+				category: 'view',
+				condition: () => !Blockbench.isMobile && Mode.selected && !Mode.selected.hide_sidebars,
+				keybind: new Keybind({key: 'b', ctrl: true}),
 				click: function () {
-					ActionControl.select()
+					let status = !Prop.show_left_bar;
+					Prop.show_left_bar = status;
+					Prop.show_right_bar = status;
+					resizeWindow();
 				}
 			})
 
@@ -1571,15 +1866,19 @@ const BARS = {
 			id: 'outliner',
 			children: [
 				'add_cube',
+				'add_mesh',
 				'add_group',
 				'outliner_toggle',
 				'toggle_skin_layer',
+				'explode_skin_model',
+				'+',
 				'cube_counter'
 			]
 		})
-		if (!Toolbars.outliner.children.includes(BarItems.explode_skin_model)) {
-			Toolbars.outliner.add(BarItems.explode_skin_model, -1)
-		}
+		Blockbench.onUpdateTo('4.0.0-beta.0', () => {
+			Toolbars.outliner.add(BarItems.add_mesh, 1);
+			Toolbars.outliner.add('+', -1);
+		})
 
 		Toolbars.texturelist = new Toolbar({
 			id: 'texturelist',
@@ -1602,6 +1901,7 @@ const BARS = {
 				'eraser',
 				'color_picker',
 				'draw_shape_tool',
+				'gradient_tool',
 				'copy_paste_tool'
 			],
 			vertical: Blockbench.isMobile == true,
@@ -1643,15 +1943,6 @@ const BARS = {
 				'rescale_toggle'
 			]
 		})
-		Toolbars.inverse_kinematics = new Toolbar({
-			id: 'inverse_kinematics',
-			children: [
-				'ik_enabled',
-				'slider_ik_chain_length'
-			],
-			default_place: !Blockbench.isMobile
-		})
-
 
 		Toolbars.palette = new Toolbar({
 			id: 'palette',
@@ -1669,10 +1960,15 @@ const BARS = {
 				'slider_color_h',
 				'slider_color_s',
 				'slider_color_v',
-				'add_to_palette'
+				'add_to_palette',
+				'pick_screen_color'
 			]
 		})
-
+		if (isApp) {
+			Blockbench.onUpdateTo('3.9', () => {
+				Toolbars.color_picker.add(BarItems.pick_screen_color);
+			})
+		}
 
 
 		Toolbars.display = new Toolbar({
@@ -1686,49 +1982,24 @@ const BARS = {
 			]
 		})
 		//UV
-		Toolbars.main_uv = new Toolbar({
-			id: 'main_uv',
+		Toolbars.uv_editor = new Toolbar({
+			id: 'uv_editor',
 			children: [
-				'uv_grid',
 				'uv_apply_all',
 				'uv_maximize',
 				'uv_auto',
 				'uv_transparent',
+				'uv_mirror_x',
+				'uv_mirror_y',
 				'uv_rotation',
 				//Box
-				'toggle_uv_overlay',
 				'toggle_mirror_uv',
 			]
 		})
-		Toolbars.uv_dialog = new Toolbar({
-			id: 'uv_dialog',
-			children: [
-				'uv_grid',
-				'_',
-				'uv_select_all',
-				'uv_select_none',
-				'_',
-				'uv_maximize',
-				'uv_auto',
-				'uv_rel_auto',
-				'_',
-				'uv_mirror_x',
-				'uv_mirror_y',
-				'_',
-				'copy',
-				'paste',
-				'_',
-				'uv_transparent',
-				'uv_reset',
-				'_',
-				'face_tint',
-				'_',
-				'cullface',
-				'auto_cullface',
-				'_',
-				'uv_rotation'
-			],
-			default_place: true
+		Blockbench.onUpdateTo('4.1.0', () => {
+			Toolbars.uv_editor.remove(BarItems.uv_grid);
+			Toolbars.uv_editor.add(BarItems.uv_mirror_x, -2);
+			Toolbars.uv_editor.add(BarItems.uv_mirror_y, -2);
 		})
 		//Animations
 		Toolbars.animations = new Toolbar({
@@ -1747,9 +2018,13 @@ const BARS = {
 			children: [
 				'slider_keyframe_time',
 				'keyframe_interpolation',
+				'keyframe_uniform',
 				'change_keyframe_file',
 				'reset_keyframe'
 			]
+		})
+		Blockbench.onUpdateTo('4.0', () => {
+			Toolbars.keyframe.add(BarItems.keyframe_uniform, 2);
 		})
 		Toolbars.timeline = new Toolbar({
 			id: 'timeline',
@@ -1776,11 +2051,26 @@ const BARS = {
 			children: [
 				'transform_space',
 				'rotation_space',
+				'selection_mode',
 				'lock_motion_trail'
 			]
 		})
+		if (Blockbench.isMobile) {
+			[Toolbars.element_position,
+				Toolbars.element_size,
+				Toolbars.element_origin,
+				Toolbars.element_rotation
+			].forEach(toolbar => {
+				Toolbars.main_tools.children.forEach(child => {
+					toolbar.add(child);
+				})
+			})
+		}
 		Blockbench.onUpdateTo('3.7', () => {
 			Toolbars.main_tools.add(BarItems.lock_motion_trail, -1);
+		})
+		Blockbench.onUpdateTo('4.0.0-beta.1', () => {
+			Toolbars.main_tools.add(BarItems.selection_mode, -1);
 		})
 		Toolbars.brush = new Toolbar({
 			id: 'brush',
@@ -1792,15 +2082,23 @@ const BARS = {
 				'slider_brush_opacity',
 				'slider_brush_softness',
 				'mirror_painting',
+				'color_erase_mode',
 				'lock_alpha',
 				'painting_grid',
 			]
 		})
+		Blockbench.onUpdateTo('4.0', () => {
+			Toolbars.brush.add(BarItems.color_erase_mode, -3);
+		})
 		Toolbars.vertex_snap = new Toolbar({
 			id: 'vertex_snap',
 			children: [
-				'vertex_snap_mode'
+				'vertex_snap_mode',
+				'selection_mode'
 			]
+		})
+		Blockbench.onUpdateTo('4.0', () => {
+			Toolbars.vertex_snap.add(BarItems.selection_mode);
 		})
 
 		//Mobile
@@ -1818,136 +2116,178 @@ const BARS = {
 		Toolbox = Toolbars.tools;
 		Toolbox.toggleTransforms = function() {
 			if (Toolbox.selected.id === 'move_tool') {
-				BarItems['resize_tool'].select()
+				BarItems['resize_tool'].select();
 			} else if (Toolbox.selected.id === 'resize_tool') {
 				BarItems['move_tool'].select()
 			}
 		}
 		BarItems.move_tool.select()
 
-		BarItems.reset_keybindings.toElement('#keybinds_title_bar')
-		BarItems.uv_dialog.toElement('#uv_title_bar')
-		BarItems.uv_dialog_full.toElement('#uv_title_bar')
 	},
 	setupVue() {
-		BARS.list = new Vue({
-			el: '#toolbar_edit',
-			data: {
-				items: BarItems,
-				currentBar: [],
-				search_term: ''
-			},
-			computed: {
-				searchedBarItems() {
-					var name = this.search_term.toUpperCase()
-					var list = [{
-						icon: 'bookmark',
-						name: tl('data.separator'),
-						type: 'separator'
-					}]
-					for (var key in BarItems) {
-						var item = BarItems[key]
-						if (name.length == 0 ||
-							item.name.toUpperCase().includes(name) ||
-							item.id.toUpperCase().includes(name)
-						) {
-							if (
-								!this.currentBar.includes(item)
-							) {
-								list.push(item)
-							}
-						}
-					}
-					return list;
-				}
-			},
-			methods: {
-				sort: function(event) {
-					var item = this.currentBar.splice(event.oldIndex, 1)[0]
-					this.currentBar.splice(event.newIndex, 0, item)
-					this.update();
-				},
-				drop: function(event) {
-					var scope = this;
-					var index = event.oldIndex
-					$('#bar_items_current .tooltip').css('display', '')
-					setTimeout(() => {
-						if ($('#bar_items_current:hover').length === 0) {
-							var item = scope.currentBar.splice(event.oldIndex, 1)[0]
-							item.toolbars.remove(BARS.editing_bar)
-							scope.update()
-						}
-					}, 30)
-				},
-				choose: function(event) {
-					$('#bar_items_current .tooltip').css('display', 'none')
-				},
-				update: function() {
-					BARS.editing_bar.update().save();
-				},
-				addItem: function(item) {
-					if (item.type === 'separator') {
-						item = '_'
-					}
-					BARS.editing_bar.add(item);
-					BARS.editing_bar.update().save();
-				}
-			}
-		})
 
-		ActionControl.vue = new Vue({
-			el: '#action_selector',
-			data: {
-				open: false,
-				search_input: '',
-				index: 0,
-				length: 0,
-				list: []
-			},
-			computed: {
-				actions: function() {
-					var search_input = this._data.search_input.toUpperCase()
-					var list = this._data.list.empty()
-					for (var i = 0; i < Keybinds.actions.length; i++) {
-						var item = Keybinds.actions[i];
-						if (
-							search_input.length == 0 ||
-							item.name.toUpperCase().includes(search_input) ||
-							item.id.toUpperCase().includes(search_input)
-						) {
-							if (item instanceof Action && BARS.condition(item.condition)) {
-								list.push(item)
-								if (list.length > ActionControl.max_length) i = Infinity;
-							}
-						}
-					}
-					this._data.length = list.length;
-					if (this._data.index < 0) {
-						this._data.index = 0;
-					}
-					if (this._data.index >= list.length) {
-						this._data.index = list.length-1;
-					}
-					return list;
+		let sidebar_pages = {
+			separators: tl('category.separators')
+		};
+		for (let key in BarItems) {
+			let category = BarItems[key].category;
+			if (!sidebar_pages[category]) {
+				sidebar_pages[category] = tl(`category.${category}`);
+			}
+		}
+
+		BARS.dialog = new Dialog({
+			id: 'toolbar_edit',
+			title: 'dialog.toolbar_edit.title',
+			singleButton: true,
+			width: 780,
+			sidebar: {
+				pages: sidebar_pages,
+				page: 'separators',
+				onPageSwitch(page) {
+					BARS.dialog.content_vue.open_category = page;
+					BARS.dialog.content_vue.search_term = '';
 				}
 			},
-			template: `
-				<dialog id="action_selector" v-if="open">
-					<input type="text" v-model="search_input" @input="e => search_input = e.target.value" autocomplete="off" autosave="off" autocorrect="off" spellcheck="off" autocapitalize="off">
-					<i class="material-icons" id="action_search_bar_icon">search</i>
+			component: {
+				data: {
+					items: BarItems,
+					currentBar: [],
+					search_term: '',
+					open_category: 'separators',
+					separators: [
+						{
+							icon: 'fa-grip-lines-vertical',
+							name: tl('data.separator'),
+							type: 'separator',
+							separator_code: '_'
+						},
+						{
+							icon: 'space_bar',
+							name: tl('data.separator.spacer'),
+							type: 'separator',
+							separator_code: '+'
+						},
+						{
+							icon: 'fa-paragraph',
+							name: tl('data.separator.linebreak'),
+							type: 'separator',
+							separator_code: '#'
+						}
+					]
+				},
+				computed: {
+					searchedBarItems() {
+						var term = this.search_term.toLowerCase();
+						var list = [];
+						if (this.open_category == 'separators' || term) {
+							if (term) {
+								list = this.separators.filter(item => {
+									return item.name.toLowerCase().includes(term)
+								})
+							} else {
+								list = this.separators;
+							}
+						}
+						for (var key in BarItems) {
+							var item = BarItems[key];
+							if (this.currentBar.includes(item)) continue;
+
+							if (term) {
+								if (
+									item.name.toLowerCase().includes(term) ||
+									item.id.toLowerCase().includes(term)
+								) {
+									list.push(item)
+								}
+
+							} else if (item.category == this.open_category) {
+								list.push(item);
+							}
+						}
+						return list;
+					}
+				},
+				methods: {
+					sort(event) {
+						var item = this.currentBar.splice(event.oldIndex, 1)[0]
+						this.currentBar.splice(event.newIndex, 0, item)
+						this.update();
+					},
+					drop(event) {
+						var scope = this;
+						$('#bar_items_current .tooltip').css('display', '')
+						setTimeout(() => {
+							if ($('#bar_items_current:hover').length === 0) {
+								var item = scope.currentBar.splice(event.newIndex, 1)[0];
+								if (item instanceof BarItem) item.toolbars.remove(BARS.editing_bar);
+								scope.update();
+							}
+						}, 30)
+					},
+					choose() {
+						$('#bar_items_current .tooltip').css('display', 'none')
+					},
+					update() {
+						BARS.editing_bar.update(true).save();
+					},
+					addItem(item) {
+						if (item.type === 'separator') {
+							item = item.separator_code;
+						}
+						BARS.editing_bar.add(item);
+					},
+					openContextMenu(item, event) {
+						new Menu([
+							{
+								name: 'generic.remove',
+								icon: 'clear',
+								click: () => {
+									this.currentBar.remove(item);
+									if (item instanceof BarItem) item.toolbars.remove(BARS.editing_bar);
+									this.update();
+								}
+							}
+						]).open(event)
+					},
+					getSpacerTitle(char) {
+						switch (char) {
+							case '_': return this.separators[0].name;
+							case '+': return this.separators[1].name;
+							case '#': return this.separators[2].name;
+						}
+					},
+					getIconNode: Blockbench.getIconNode,
+					Condition,
+					tl
+				},
+				template: `
 					<div>
-						<ul>
-							<li v-for="(item, i) in actions"
-								v-html="item.menu_node.innerHTML"
-								:class="{selected: i === index}"
-								@click="ActionControl.click(item, $event)"
-								@mouseenter="index = i"
-							></li>
+						<ul class="bar" id="bar_items_current" v-sortable="{onChoose: choose, onUpdate: sort, onEnd: drop, animation: 160 }">
+							<li v-for="item in currentBar" v-bind:title="typeof item == 'string' ? getSpacerTitle(item[0]) : item.name" :key="item.id||item" @contextmenu="openContextMenu(item, $event)">
+								<div v-if="typeof item === 'string'" class="toolbar_separator" :class="{border: item[0] == '_', spacer: item[0] == '+', linebreak: item[0] == '#'}"></div>
+								<div v-else class="tool">
+									<div class="tooltip">{{item.name + (Condition(item.condition) ? '' : ' (' + tl('dialog.toolbar_edit.hidden') + ')' )}}</div>
+									<span class="icon_wrapper" v-bind:style="{opacity: Condition(item.condition) ? 1 : 0.4}" v-html="getIconNode(item.icon, item.color).outerHTML"></span>
+								</div>
+							</li> 
 						</ul>
-						<div class="small_text" v-if="actions[index]">{{ Pressing.alt ? actions[index].keybind.label : actions[index].description }}</div>
+			
+						<p class="small_text subtle" style="display: inline;">${tl('dialog.toolbar_edit.hidden_tools')}</p>
+		
+						<search-bar v-model="search_term"></search-bar>
+			
+						<ul class="list" id="bar_item_list">
+							<li v-for="item in searchedBarItems" v-on:click="addItem(item)" :class="{separator_item: item.type == 'separator'}">
+								<div class="icon_wrapper normal" v-html="getIconNode(item.icon, item.color).outerHTML"></div>
+								<div class="icon_wrapper add"><i class="material-icons">add</i></div>
+								{{ item.name }}
+							</li>
+						</ul>
+			
 					</div>
-				</dialog>
-			`
+				`
+			}
 		})
 	},
 	updateConditions() {
@@ -1959,71 +2299,10 @@ const BARS = {
 				Toolbars[key].update()
 			}
 		}
-		uv_dialog.all_editors.forEach((editor) => {
+		/*
+		UVEditor.all_editors.forEach((editor) => {
 			editor.updateInterface()
-		})
-	}
-}
-const ActionControl = {
-	get open() {return ActionControl.vue._data.open},
-	set open(state) {ActionControl.vue._data.open = !!state},
-	type: 'action_selector',
-	max_length: 32,
-	select() {
-		ActionControl.open = true;
-		open_interface = ActionControl;
-		ActionControl.vue._data.index = 0;
-		Vue.nextTick(_ => {
-			$('#action_selector > input').focus().select();
-		})
-	},
-	hide() {
-		open_interface = false;
-		ActionControl.open = false;
-	},
-	confirm(e) {
-		var data = ActionControl.vue._data
-		var action = data.list[data.index]
-		ActionControl.hide()
-		if (action) {
-			ActionControl.trigger(action, e)
-		}
-	},
-	cancel() {
-		ActionControl.hide()
-	},
-	trigger(action, e) {
-		if (action.id == 'action_control') {
-			$('body').effect('shake');
-			Blockbench.showQuickMessage('Congratulations! You have discovered recursion!', 3000)
-		}
-		action.trigger(e)
-	},
-	click(action, e) {
-		ActionControl.trigger(action, e)
-		ActionControl.hide()
-	},
-	handleKeys(e) {
-		var data = ActionControl.vue._data
-
-		if (e.altKey) {
-			ActionControl.vue.$forceUpdate()
-		}
-
-		if (e.which === 38) {
-			data.index--;
-			if (data.index < 0) {
-				data.index = data.length-1;
-			}
-		} else if (e.which === 40) {
-			data.index++;
-			if (data.index >= data.length) {
-				data.index = 0;
-			}
-		} else {
-			return false;
-		}
-		return true;
+		})*/
 	}
 }
 
@@ -2031,36 +2310,9 @@ const Keybinds = {
 	actions: [],
 	stored: {},
 	extra: {},
-	structure: {
-		search_results: {
-			name: tl('dialog.settings.search_results'),
-			hidden: true,
-			open: true,
-			actions: {}
-		}
-	},
+	structure: {},
 	save() {
 		localStorage.setItem('keybindings', JSON.stringify(Keybinds.stored))
-	},
-	reset() {
-		let answer = confirm(tl('message.reset_keybindings'));
-		if (!answer) return;
-		for (var category in Keybinds.structure) {
-			var entries = Keybinds.structure[category].actions
-			if (entries && entries.length) {
-				entries.forEach(function(item) {
-					if (item.keybind) {
-						if (item.default_keybind) {
-							item.keybind.set(item.default_keybind);
-						} else {
-							item.keybind.clear();
-						}
-						item.keybind.save(false)
-					}
-				})
-			}
-		}
-		Keybinds.save()
 	}
 }
 if (localStorage.getItem('keybindings')) {

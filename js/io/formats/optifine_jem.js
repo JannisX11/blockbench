@@ -16,13 +16,16 @@ var codec = new Codec('optifine_entity', {
 		var entitymodel = {}
 		var geo_code = 'geometry.'+Project.geometry_name
 		if (Texture.getDefault()) {
-			entitymodel.texture = Texture.getDefault().name
+			let tex = Texture.getDefault();
+			entitymodel.texture = tex.folder ? (tex.folder + '/' + tex.name) : tex.name;
 		}
 		entitymodel.textureSize = [Project.texture_width, Project.texture_height];
+		if (Project.shadow_size != 1) entitymodel.shadowSize = Project.shadow_size;
 		entitymodel.models = []
 
 		Outliner.root.forEach(function(g) {
 			if (g instanceof Group == false) return;
+			if (!settings.export_empty_groups.value && !g.children.find(child => child.export)) return;
 			//Bone
 			var bone = {
 				part: g.name,
@@ -41,7 +44,7 @@ var codec = new Codec('optifine_entity', {
 				var bone_codes = codes[bone.part] || codes[bone.part+'1']
 				if (bone_codes) {
 					if (!bone.rotate) bone.rotate = [0, 0, 0];
-					entityMode.hardcodes[geo_code][bone.part].rotation.forEach((dft, i) => {
+					bone_codes.rotation.forEach((dft, i) => {
 						bone.rotate[i] += dft;
 					})
 				}
@@ -49,11 +52,21 @@ var codec = new Codec('optifine_entity', {
 			if (g.mirror_uv) {
 				bone.mirrorTexture = 'u'
 			}
+			if (g.cem_attach) {
+				bone.attach = true;
+			}
 
 			function populate(p_model, group, depth) {
 
 				if (group.children.length === 0) return;
 				var mirror_sub;
+
+				if (group.texture) {
+					p_model.texture = group.texture;
+				}
+				if (group.texture_size && !group.texture_size.allEqual(0)) {
+					p_model.textureSize = group.texture_size;
+				}
 
 				group.children.forEach(obj => {
 					if (!obj.export) return;
@@ -135,7 +148,7 @@ var codec = new Codec('optifine_entity', {
 			}
 			populate(bone, g, 0)
 
-			if (g.cem_animations.length) {
+			if (g.cem_animations && g.cem_animations.length) {
 				bone.animations = g.cem_animations;
 			}
 
@@ -156,6 +169,7 @@ var codec = new Codec('optifine_entity', {
 			Project.texture_width = parseInt(model.textureSize[0])||16;
 			Project.texture_height = parseInt(model.textureSize[1])||16;
 		}
+		if (typeof model.shadowSize == 'number') Project.shadow_size = model.shadowSize;
 		let empty_face = {uv: [0, 0, 0, 0], texture: null}
 		if (model.models) {
 			model.models.forEach(function(b) {
@@ -168,7 +182,10 @@ var codec = new Codec('optifine_entity', {
 					origin: b.translate,
 					rotation: b.rotate,
 					mirror_uv: (b.mirrorTexture && b.mirrorTexture.includes('u')),
-					cem_animations: b.animations
+					cem_animations: b.animations,
+					cem_attach: b.attach,
+					texture: b.texture,
+					texture_size: b.textureSize,
 				})
 				group.origin[1] *= -1;
 				group.origin[2] *= -1;
@@ -237,7 +254,9 @@ var codec = new Codec('optifine_entity', {
 								name: subsub.id || `${b.part}_sub_${subcount}`,
 								origin: subsub.translate || (depth >= 1 ? submodel.translate : undefined),
 								rotation: subsub.rotate,
-								mirror_uv: (subsub.mirrorTexture && subsub.mirrorTexture.includes('u'))
+								mirror_uv: (subsub.mirrorTexture && subsub.mirrorTexture.includes('u')),
+								texture: subsub.texture,
+								texture_size: subsub.textureSize,
 							})
 							subcount++;
 							group.addTo(p_group).init()
@@ -250,12 +269,17 @@ var codec = new Codec('optifine_entity', {
 				readContent(b, group, 0)
 			})
 		}
-		if (model.texture) {
-			var path = path.replace(/\\[\w .-]+$/, '\\'+model.texture)
-			new Texture().fromPath(path).add(false)
+		if (typeof model.texture == 'string') {
+			let texture_path = model.texture.replace(/[\\/]/g, osfs);
+			if (texture_path.match(/^textures/)) {
+				texture_path = path.replace(/[\\/]optifine[\\/][\\\w .-]+$/i, '\\'+texture_path);
+			} else {
+				texture_path = path.replace(/\\[\w .-]+$/, '\\'+texture_path);
+			}
+			new Texture().fromPath(texture_path).add(false);
 		}
 		this.dispatchEvent('parsed', {model});
-		Canvas.updateAllBones()
+		Canvas.updateAllBones();
 	}
 })
 
@@ -270,6 +294,7 @@ var format = new ModelFormat({
 	integer_size: true,
 	bone_rig: true,
 	centered_grid: true,
+	texture_folder: true,
 	codec
 })
 Object.defineProperty(format, 'integer_size', {get: _ => Project.box_uv})
