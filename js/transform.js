@@ -56,22 +56,20 @@ function getSelectionCenter(all = false) {
 		let vec = THREE.fastWorldPosition(Group.selected.mesh, new THREE.Vector3());
 		return vec.toArray();
 	}
-	var center = [0, 0, 0]
-	var i = 0;
-	let items = (selected.length == 0 || all) ? elements : selected;
-	items.forEach(obj => {
-		if (obj.getWorldCenter) {
-			var pos = obj.getWorldCenter();
-			center[0] += pos.x
-			center[1] += pos.y
-			center[2] += pos.z
+
+	let max = [-Infinity, -Infinity, -Infinity];
+	let min = [ Infinity,  Infinity,  Infinity];
+	let elements = Outliner.selected.length ? Outliner.selected : Outliner.elements;
+	elements.forEach(element => {
+		if (element.getWorldCenter) {
+			var pos = element.getWorldCenter();
+			min[0] = Math.min(pos.x, min[0]);	max[0] = Math.max(pos.x, max[0]);
+			min[1] = Math.min(pos.y, min[1]);	max[1] = Math.max(pos.y, max[1]);
+			min[2] = Math.min(pos.z, min[2]);	max[2] = Math.max(pos.z, max[2]);
 		}
 	})
-	if (items.length) {
-		for (var i = 0; i < 3; i++) {
-			center[i] = center[i] / items.length
-		}
-	}
+	let center = max.V3_add(min).V3_divide(2);
+	
 	if (!Format.centered_grid) {
 		center.V3_add(8, 8, 8)
 	}
@@ -598,7 +596,6 @@ function centerElementsAll(axis) {
 	centerElements(0, false)
 	centerElements(1, false)
 	centerElements(2, false)
-	Canvas.updatePositions()
 }
 function centerElements(axis, update) {
 	if (!Outliner.selected.length) return;
@@ -610,10 +607,17 @@ function centerElements(axis, update) {
 		if (obj.to) obj.to[axis] = limitToBox(obj.to[axis] + difference, obj.inflate);
 		if (obj instanceof Cube) obj.from[axis] = limitToBox(obj.from[axis] + difference, obj.inflate);
 	})
-
-	if (update !== false) {
-		Canvas.updatePositions()
-	}
+	Group.all.forEach(group => {
+		if (!group.selected) return;
+		group.origin[axis] += difference;
+	})
+	Canvas.updateView({
+		elements: Outliner.selected,
+		groups: Group.all.filter(g => g.selected),
+		element_aspects: {transform: true},
+		group_aspects: {transform: true},
+		selection: true
+	})
 }
 
 //Move
@@ -1549,7 +1553,7 @@ BARS.defineActions(function() {
 		color: 'x',
 		category: 'transform',
 		click: function () {
-			Undo.initEdit({elements: selected});
+			Undo.initEdit({elements: Outliner.selected, outliner: true});
 			centerElements(0);
 			Undo.finishEdit('Center selection on X axis')
 		}
@@ -1560,7 +1564,7 @@ BARS.defineActions(function() {
 		color: 'y',
 		category: 'transform',
 		click: function () {
-			Undo.initEdit({elements: selected});
+			Undo.initEdit({elements: Outliner.selected, outliner: true});
 			centerElements(1);
 			Undo.finishEdit('Center selection on Y axis')
 		}
@@ -1571,7 +1575,7 @@ BARS.defineActions(function() {
 		color: 'z',
 		category: 'transform',
 		click: function () {
-			Undo.initEdit({elements: selected});
+			Undo.initEdit({elements: Outliner.selected, outliner: true});
 			centerElements(2);
 			Undo.finishEdit('Center selection on Z axis')
 		}
@@ -1580,7 +1584,7 @@ BARS.defineActions(function() {
 		icon: 'filter_center_focus',
 		category: 'transform',
 		click: function () {
-			Undo.initEdit({elements: selected});
+			Undo.initEdit({elements: Outliner.selected, outliner: true});
 			centerElementsAll();
 			Undo.finishEdit('Center selection')
 		}

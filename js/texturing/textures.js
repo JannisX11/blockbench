@@ -1616,11 +1616,15 @@ BARS.defineActions(function() {
 			return tex ? tex.currentFrame+1 : 0;
 		},
 		change: function(modify) {
-			let tex = getSliderTexture()
-			if (tex) {
-				tex.currentFrame = Math.clamp(modify(tex.currentFrame+1), 1, tex.frameCount) - 1;
-				TextureAnimator.update([tex]);
-			}
+			let slider_tex = getSliderTexture()
+			if (!slider_tex) return;
+			slider_tex.currentFrame = (modify(slider_tex.currentFrame + slider_tex.frameCount) % slider_tex.frameCount);
+
+			let textures = Texture.all.filter(tex => tex.frameCount > 1);
+			Texture.all.forEach(tex => {
+				tex.currentFrame = slider_tex.currentFrame % tex.frameCount;
+			})
+			TextureAnimator.update(textures);
 		}
 	})
 })
