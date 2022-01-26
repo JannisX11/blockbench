@@ -1484,8 +1484,11 @@ BARS.defineActions(function() {
 				})
 
 				let vertex_keys = Object.keys(mesh.vertices);
+				let unused_vkeys = vertex_keys.slice();
 				function addFace(direction, vertices) {
 					let cube_face = cube.faces[direction];
+					console.log(direction, cube_face, cube_face.texture)
+					if (cube_face.texture === null) return;
 					let uv = {
 						[vertices[0]]: [cube_face.uv[2], cube_face.uv[1]],
 						[vertices[1]]: [cube_face.uv[0], cube_face.uv[1]],
@@ -1499,6 +1502,7 @@ BARS.defineActions(function() {
 							texture: cube_face.texture,
 						}
 					));
+					vertices.forEach(vkey => unused_vkeys.remove(vkey));
 				}
 				addFace('east', [vertex_keys[1], vertex_keys[0], vertex_keys[3], vertex_keys[2]]);
 				addFace('west', [vertex_keys[4], vertex_keys[5], vertex_keys[6], vertex_keys[7]]);
@@ -1506,6 +1510,10 @@ BARS.defineActions(function() {
 				addFace('down', [vertex_keys[2], vertex_keys[6], vertex_keys[3], vertex_keys[7]]);
 				addFace('south', [vertex_keys[0], vertex_keys[4], vertex_keys[2], vertex_keys[6]]);
 				addFace('north', [vertex_keys[5], vertex_keys[1], vertex_keys[7], vertex_keys[3]]);
+
+				unused_vkeys.forEach(vkey => {
+					delete mesh.vertices[vkey];
+				})
 
 				mesh.sortInBefore(cube).init();
 				new_meshes.push(mesh);

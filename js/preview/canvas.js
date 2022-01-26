@@ -443,6 +443,7 @@ const Canvas = {
 
 		function editVis(edit) {
 			edit(three_grid)
+			edit(Canvas.ground_plane)
 			edit(Canvas.side_grids.x)
 			edit(Canvas.side_grids.z)
 			edit(Transformer)
@@ -450,7 +451,7 @@ const Canvas = {
 			edit(rot_origin)
 			edit(Vertexsnap.line)
 			edit(Animator.motion_trail)
-			Outliner.selected.forEach(element => {
+			Outliner.elements.forEach(element => {
 				let {mesh} = element;
 				if (element.selected && mesh.outline) edit(mesh.outline);
 				if (mesh.grid_box) edit(mesh.grid_box);
