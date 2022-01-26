@@ -1056,6 +1056,7 @@
 		white-space: nowrap;
     	overflow: hidden;
 		line-height: normal;
+		cursor: pointer;
 	}
 	.plugin_tag_list li.plugin_tag_source {
 		background-color: #ff7a52;
