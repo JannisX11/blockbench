@@ -497,6 +497,7 @@ const Canvas = {
 	 * @param {array} options.groups Groups to update 
 	 * @param {object} options.group_aspects Which parts of the group to update
 	 * @param {boolean} options.group_aspects.transform Update the group transformation and geometry
+	 * @param {boolean} options.selection Update the selection
 	 */
 	updateView(options) {
 

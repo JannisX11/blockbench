@@ -1487,7 +1487,6 @@ BARS.defineActions(function() {
 				let unused_vkeys = vertex_keys.slice();
 				function addFace(direction, vertices) {
 					let cube_face = cube.faces[direction];
-					console.log(direction, cube_face, cube_face.texture)
 					if (cube_face.texture === null) return;
 					let uv = {
 						[vertices[0]]: [cube_face.uv[2], cube_face.uv[1]],
@@ -1823,6 +1822,14 @@ BARS.defineActions(function() {
 	
 					remaining_vertices.forEach(a => {
 						let b = original_vertices[new_vertices.indexOf(a)];
+						for (let fkey in mesh.faces) {
+							let face = mesh.faces[fkey];
+							if (face.vertices.includes(b)) {
+								face.vertices.splice(face.vertices.indexOf(b), 1, a);
+								face.uv[a] = face.uv[b];
+								delete face.uv[b];
+							}
+						}
 						delete mesh.vertices[b];
 					})
 
