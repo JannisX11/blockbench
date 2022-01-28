@@ -1081,7 +1081,8 @@ class Preview {
 		let vector = new THREE.Vector3();
 		let rect_start = [c.ax, c.ay];
 		let rect_end = [c.bx, c.by];
-		let extend_selection = (event.shiftKey || event.ctrlOrCmd || Pressing.overrides.ctrl || Pressing.overrides.shift)
+		let extend_selection = (event.shiftKey || Pressing.overrides.shift) ||
+				((event.ctrlOrCmd || Pressing.overrides.ctrl) && !Keybinds.extra.preview_area_select.keybind.ctrl)
 		let selection_mode = BarItems.selection_mode.value;
 
 		let widthHalf = 0.5 * scope.canvas.width / window.devicePixelRatio;

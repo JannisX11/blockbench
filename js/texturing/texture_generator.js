@@ -66,7 +66,8 @@ const TextureGenerator = {
 					results.resolution = results.resolution_vec;
 				}
 				dialog.hide()
-				TextureGenerator.addBitmap(results)
+				TextureGenerator.addBitmap(results);
+				return false;
 			}
 		}).show()
 	},
@@ -109,9 +110,6 @@ const TextureGenerator = {
 		}
 		if (options.type == 'template') {
 			if (Project.box_uv || options.box_uv) {
-				if (Mesh.selected[0]) {
-					Blockbench.showQuickMessage('message.box_uv_for_meshes', 1600);
-				}
 				TextureGenerator.generateTemplate(options, makeTexture);
 			} else {
 				TextureGenerator.generateFaceTemplate(options, makeTexture);
@@ -200,8 +198,19 @@ const TextureGenerator = {
 		}
 		//Cancel if no cubes
 		if (templates.length == 0) {
-			Blockbench.showMessage('message.no_valid_elements', 'center')
+			if (Mesh.selected.length) {
+				Blockbench.showMessageBox({
+					title: 'message.no_valid_elements',
+					message: 'message.meshes_and_box_uv',
+					icon: 'fa-gem'
+				})
+			} else {
+				Blockbench.showMessage('message.no_valid_elements', 'center');
+			}
 			return;
+
+		} else if (Mesh.selected.length) {
+			Blockbench.showMessage('message.meshes_and_box_uv', 'center');
 		}
 		templates.sort(function(a,b) {
 			return b.template_size - a.template_size;

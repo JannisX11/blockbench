@@ -266,7 +266,7 @@
 	"message.keymap_loaded": "Keymap loaded",
 	"message.no_animation_to_import": "No animations to import",
 	"message.copy_paste_tool_viewport": "This tool can only be used in the UV panel",
-	"message.box_uv_for_meshes": "Meshes cannot be used in box UV templates",
+	"message.meshes_and_box_uv": "Meshes are not compatible with Box UV. Go to File > Project... and switch to Per-face UV.",
 	"message.no_valid_elements": "No valid elements selected...",
 
 	"message.wireframe.enabled": "Wireframe view enabled",
