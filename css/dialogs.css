@@ -700,9 +700,59 @@
 	}
 
 	/*About*/
+	dialog#about .dialog_content {
+		text-align: center;
+	}
+	dialog#about h4 {
+		color: var(--color-subtle_text);
+		margin-top: 30px;
+		border-top: 2px
+		solid var(--color-border);
+		padding-top: 12px;
+	}
 	#about_page_title {
 		vertical-align: top;
 		opacity: 0.9;
+	}
+	#about_page_title img {
+		width: min(340px, 100%);
+	}
+	dialog#about div.socials {
+		display: flex;
+		padding: 20px 0;
+		max-width: 540px;
+		margin: auto;
+	}
+	dialog#about div.socials a {
+		text-align: center;
+		flex-basis: 0;
+		flex-grow: 1;
+		text-decoration: none;
+		padding: 6px;
+		padding-top: 10px;
+	}
+	dialog#about div.socials a:hover {
+		background-color: var(--color-accent);
+	}
+	dialog#about div.socials a i {
+		display: block;
+		font-size: 2em;
+		max-width: none;
+		pointer-events: none;
+	}
+	dialog#about div.socials a:hover i {
+		color: var(--color-light) !important;
+	}
+	dialog#about div.socials a label {
+		color: var(--color-subtle_text);
+		cursor: inherit;
+		pointer-events: none;
+	}
+	dialog#about div.socials a:hover label {
+		color: var(--color-light);
+	}
+	dialog#about .multi_column_list {
+		column-count: 3;
 	}
 
 /*Specific Dialogs*/

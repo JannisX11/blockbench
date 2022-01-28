@@ -306,51 +306,104 @@ BARS.defineActions(() => {
 			new Dialog({
 				id: 'about',
 				title: 'dialog.settings.about',
-				width: 600,
-				singleButton: true,
+				width: 640,
 				title_menu: new Menu([
 					'settings_window',
 					'keybindings_window',
 					'theme_window',
 					'about_window',
 				]),
+				buttons: [],
 				component: {
 					data() {return data},
 					template: `
 						<div>
 							<div class="blockbench_logo" id="about_page_title">
-								<img src="assets/logo_text_white.svg" alt="Blockbench" width="240px">
+								<img src="assets/logo_text_white.svg" alt="Blockbench" width="340px">
 							</div>
-							<p><b>${tl('about.version')}</b> <span>{{ version_label }}</span></p>
-							<p><b>${tl('about.creator')}</b> JannisX11</p>
-							<p><b>${tl('about.website')}</b> <a class="open-in-browser" href="https://blockbench.net">blockbench.net</a></p>
-							<p><b>${tl('about.repository')}</b> <a class="open-in-browser" href="https://github.com/JannisX11/blockbench">github.com/JannisX11/blockbench</a></p>
-							<p>${tl('about.vertex_snap')}</p>
-							<p><b>${tl('about.icons')}</b> <a href="https://material.io/icons/" class="open-in-browser">material.io/icons</a> &amp; <a href="https://fontawesome.com/icons/" class="open-in-browser">fontawesome</a></p>
-							<p><b>${tl('about.libraries')}</b>
-								<a class="open-in-browser" href="https://electronjs.org">Electron</a>,
-								<a class="open-in-browser" href="https://vuejs.org">Vue</a>,
-								<a class="open-in-browser" href="https://github.com/weibangtuo/vue-tree">Vue Tree</a>,
-								<a class="open-in-browser" href="https://github.com/sagalbot/vue-sortable">Vue Sortable</a>,
-								<a class="open-in-browser" href="https://threejs.org">ThreeJS</a>,
-								<a class="open-in-browser" href="https://github.com/lo-th/fullik">Full IK</a>,
-								<a class="open-in-browser" href="https://github.com/oliver-moran/jimp">Jimp</a>,
-								<a class="open-in-browser" href="https://bgrins.github.io/spectrum">Spectrum</a>,
-								<a class="open-in-browser" href="https://github.com/stijlbreuk/vue-color-picker-wheel">Vue Color Picker Wheel</a>,
-								<a class="open-in-browser" href="https://github.com/jnordberg/gif.js">gif.js</a>,
-								<a class="open-in-browser" href="https://stuk.github.io/jszip/">JSZip</a>,
-								<a class="open-in-browser" href="https://github.com/rotemdan/lzutf8.js">LZ-UTF8</a>,
-								<a class="open-in-browser" href="https://jquery.com">jQuery</a>,
-								<a class="open-in-browser" href="https://jqueryui.com">jQuery UI</a>,
-								<a class="open-in-browser" href="https://github.com/furf/jquery-ui-touch-punch">jQuery UI Touch Punch</a>,
-								<a class="open-in-browser" href="https://github.com/eligrey/FileSaver.js">FileSaver.js</a>,
-								<a class="open-in-browser" href="https://peerjs.com">PeerJS</a>,
-								<a class="open-in-browser" href="https://github.com/markedjs/marked">Marked</a>,
-								<a class="open-in-browser" href="https://prismjs.com">Prism</a>,
-								<a class="open-in-browser" href="https://github.com/koca/vue-prism-editor">Vue Prism Editor</a>,
-								<a class="open-in-browser" href="https://github.com/JannisX11/molangjs">MolangJS</a>,
-								<a class="open-in-browser" href="https://github.com/JannisX11/wintersky">Wintersky</a>
-							</p>
+							<p>Version <span>{{ version_label }}</span></p>
+
+							<div class="socials">
+								<a class="open-in-browser" href="https://blockbench.net">
+									<i class="icon icon-blockbench_inverted" style="transform: scale(1.3);"></i>
+									<label>Website</label>
+								</a>
+								<a class="open-in-browser" href="https://twitter.com/blockbench">
+									<i class="icon fab fa-twitter" style="color: #1ea6ff;"></i>
+									<label>Twitter</label>
+								</a>
+								<a class="open-in-browser" href="https://discord.blockbench.net">
+									<i class="icon fab fa-discord" style="color: #727fff;"></i>
+									<label>Discord</label>
+								</a>
+								<a class="open-in-browser" href="https://youtube.com/Blockbench3D">
+									<i class="icon fab fa-youtube" style="color: #ff4444;"></i>
+									<label>YouTube</label>
+								</a>
+								<a class="open-in-browser" href="https://github.com/JannisX11/blockbench">
+									<i class="icon fab fa-github" style="color: #dddddd;"></i>
+									<label>GitHub</label>
+								</a>
+								<a class="open-in-browser" href="https://blockbench.net/wiki">
+								<i class="icon material-icons">menu_book</i>
+									<label>Wiki</label>
+								</a>
+							</div>
+
+							<p>Created by Jannis Petersen</p>
+							<p style="color: var(--color-subtle_text);">A free and open-source low-poly model editor. To make 3D art easy and accessible for everyone.
+								For all who enjoy stylied 3D art. For game developers, students, content creators, and for the Minecraft community.</p>
+
+							<h4>SPECIAL THANKS TO</h4>
+							<ul class="multi_column_list">
+								<li>Mojang Studios</li>
+								<li>The community moderators</li>
+								<li>The Sketchfab team</li>
+								<li>All donators</li>
+								<li>All contributors</li>
+								<li>All educators</li>
+								<li>Wacky</li>
+								<li>Ewan Howell and Lukas</li>
+								<li>Sultan Taha and Kanno</li>
+								<li>SirBenet</li>
+								<li>The Blockbench Community</li>
+							</ul>
+
+							<h4>FRAMEWORKS, LIBRARIES, AND ICONS</h4>
+
+							<p style="margin-bottom: 16px" v-if="isApp">This program is powered by <a class="open-in-browser" href="https://electronjs.org">Electron</a></p>
+
+							<ul class="multi_column_list">
+								<li><a class="open-in-browser" href="https://material.io/icons/">Material Icons</a></li>
+								<li><a class="open-in-browser" href="https://fontawesome.com/icons//">Font Awesome</a></li>
+								<li><a class="open-in-browser" href="https://electronjs.org">Electron</a></li>
+								<li><a class="open-in-browser" href="https://vuejs.org">Vue</a></li>
+								<li><a class="open-in-browser" href="https://github.com/weibangtuo/vue-tree">Vue Tree</a></li>
+								<li><a class="open-in-browser" href="https://github.com/sagalbot/vue-sortable">Vue Sortable</a></li>
+								<li><a class="open-in-browser" href="https://threejs.org">ThreeJS</a></li>
+								<li><a class="open-in-browser" href="https://github.com/lo-th/fullik">Full IK</a></li>
+								<li><a class="open-in-browser" href="https://github.com/oliver-moran/jimp">Jimp</a></li>
+								<li><a class="open-in-browser" href="https://bgrins.github.io/spectrum">Spectrum</a></li>
+								<li><a class="open-in-browser" href="https://github.com/stijlbreuk/vue-color-picker-wheel">Vue Color Picker Wheel</a></li>
+								<li><a class="open-in-browser" href="https://github.com/jnordberg/gif.js">gif.js</a></li>
+								<li><a class="open-in-browser" href="https://stuk.github.io/jszip/">JSZip</a></li>
+								<li><a class="open-in-browser" href="https://github.com/rotemdan/lzutf8.js">LZ-UTF8</a></li>
+								<li><a class="open-in-browser" href="https://jquery.com">jQuery</a></li>
+								<li><a class="open-in-browser" href="https://jqueryui.com">jQuery UI</a></li>
+								<li><a class="open-in-browser" href="https://github.com/furf/jquery-ui-touch-punch">jQuery UI Touch Punch</a></li>
+								<li><a class="open-in-browser" href="https://github.com/eligrey/FileSaver.js">FileSaver.js</a></li>
+								<li><a class="open-in-browser" href="https://peerjs.com">PeerJS</a></li>
+								<li><a class="open-in-browser" href="https://github.com/markedjs/marked">Marked</a></li>
+								<li><a class="open-in-browser" href="https://prismjs.com">Prism</a></li>
+								<li><a class="open-in-browser" href="https://github.com/koca/vue-prism-editor">Vue Prism Editor</a></li>
+								<li><a class="open-in-browser" href="https://github.com/JannisX11/molangjs">MolangJS</a></li>
+								<li><a class="open-in-browser" href="https://github.com/JannisX11/wintersky">Wintersky</a></li>
+							</ul>
+
+
+							<p style="margin-top: 20px">Published under the <a class="open-in-browser" href="https://github.com/JannisX11/blockbench/blob/master/LICENSE.MD">GPL 3.0 license</a></p>
+							<p><a class="open-in-browser" href="https://www.blockbench.net/privacy-policy">Privacy Policy</a></p>
+
 						</div>`
 				}
 			}).show()
