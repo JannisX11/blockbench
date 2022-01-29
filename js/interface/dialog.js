@@ -419,6 +419,7 @@ window.Dialog = class Dialog {
 
 		this.width = options.width
 		this.draggable = options.draggable
+		this.darken = options.darken !== false
 		this.singleButton = options.singleButton
 		this.buttons = options.buttons instanceof Array ? options.buttons : (options.singleButton ? ['dialog.close'] : ['dialog.confirm', 'dialog.cancel'])
 		this.form_first = options.form_first;
@@ -677,7 +678,8 @@ window.Dialog = class Dialog {
 		let jq_dialog = $(this.object);
 
 		$('#dialog_wrapper').append(jq_dialog);
-		$('#blackout').show();
+		$('#blackout').show().toggleClass('darken', this.darken);
+
 		jq_dialog.show().css('display', 'flex');
 		jq_dialog.css('top', limitNumber(window.innerHeight/2-jq_dialog.height()/2, 0, 100)+'px');
 		if (this.width) {
@@ -704,13 +706,13 @@ window.Dialog = class Dialog {
 		return this;
 	}
 	hide() {
-		$('#blackout').hide();
+		$('#blackout').hide().toggleClass('darken', true);
 		$(this.object).hide();
 		open_dialog = false;
 		open_interface = false;
 		Dialog.open = null;
 		Prop.active_panel = undefined;
-		$(this.object).detach()
+		$(this.object).detach();
 		return this;
 	}
 	delete() {

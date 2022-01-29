@@ -122,6 +122,7 @@
 		<script src="js/texturing/painter.js"></script>
 		<script src="js/texturing/texture_generator.js"></script>
 		<script src="js/texturing/color.js"></script>
+		<script src="js/texturing/edit_texture.js"></script>
 		<script src="js/display_mode.js"></script>
 		<script src="js/animations/animation.js"></script>
 		<script src="js/animations/timeline_animators.js"></script>
@@ -362,7 +363,7 @@
 
 	<div id="page_wrapper" class="invisible start_screen">
 
-		<div id="blackout"></div>
+		<div id="blackout" class="darken"></div>
 
 		<div id="tab_bar" :class="{drag_mode: drag_target_index !== null}">
 			<div id="tab_bar_list">

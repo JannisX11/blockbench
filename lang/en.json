@@ -1323,6 +1323,7 @@
 	"menu.file": "File",
 	"menu.edit": "Edit",
 	"menu.transform": "Transform",
+	"menu.texture": "Texture",
 	"menu.tools": "Tools",
 	"menu.display": "Display",
 	"menu.animation": "Animation",

@@ -629,8 +629,8 @@ Object.defineProperty(String.prototype, 'hashCode', {
 
 //Color
 tinycolor.prototype.toInt = function() {
-	var rgba = this.toRgb()
-	return Jimp.rgbaToInt(rgba.r, rgba.g, rgba.b, rgba.a)
+	let {r, g, b, a} = this.toRgb();
+	return r * Math.pow(256, 3) + g * Math.pow(256, 2) + b * Math.pow(256, 1) + a * Math.pow(256, 0);
 }
 function getAverageRGB(imgEl, blockSize) {
 		

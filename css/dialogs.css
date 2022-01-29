@@ -4,9 +4,13 @@
 		position: absolute;
 		width: 100%;
 		height: 100%;
+		z-index: 19;
+		background-color: transparent;
+		opacity: 0;
+	}
+	#blackout.darken {
 		background-color: var(--color-dark);
 		opacity: 0.6;
-		z-index: 19;
 	}
 	.dialog_handle {
 		position: relative;
@@ -1326,42 +1330,135 @@
 	}
 
 /* Edit History */
-#edit_history_list ul {
-	margin-left: 14px;
-}
-#edit_history_list ul li {
-	height: 30px;
-	padding: 2px 6px;
-	cursor: pointer;
-	border: 2px solid transparent;
-	display: flex;
-	justify-content: space-between;
-}
-#edit_history_list ul li.current {
-	border-color: var(--color-accent);
-}
-#edit_history_list ul li:hover {
-	color: var(--color-light);
-}
-#edit_history_list ul li.selected {
-	background-color: var(--color-accent);
-	color: var(--color-accent_text);
-	position: relative;
-}
-#edit_history_list ul li.selected:not(:first-of-type)::before {
-	content: "\f04b";
-	font-family: 'Font Awesome 5 Free';
-    font-weight: 900;
-	font-size: 14px;
-	color: var(--color-accent);
-	display: block;
-	position: absolute;
-    top: -11px;
-    left: -16px;
-}
-#edit_history_list .edit_history_time {
-	color: var(--color-subtle_text);
-}
-#edit_history_list ul li.selected .edit_history_time {
-	color: inherit;
-}
+	#edit_history_list ul {
+		margin-left: 14px;
+	}
+	#edit_history_list ul li {
+		height: 30px;
+		padding: 2px 6px;
+		cursor: pointer;
+		border: 2px solid transparent;
+		display: flex;
+		justify-content: space-between;
+	}
+	#edit_history_list ul li.current {
+		border-color: var(--color-accent);
+	}
+	#edit_history_list ul li:hover {
+		color: var(--color-light);
+	}
+	#edit_history_list ul li.selected {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+		position: relative;
+	}
+	#edit_history_list ul li.selected:not(:first-of-type)::before {
+		content: "\f04b";
+		font-family: 'Font Awesome 5 Free';
+		font-weight: 900;
+		font-size: 14px;
+		color: var(--color-accent);
+		display: block;
+		position: absolute;
+		top: -11px;
+		left: -16px;
+	}
+	#edit_history_list .edit_history_time {
+		color: var(--color-subtle_text);
+	}
+	#edit_history_list ul li.selected .edit_history_time {
+		color: inherit;
+	}
+
+/* Texture Edit */
+	div.texture_adjust_previews {
+		overflow: auto;
+		max-height: 416px;
+		display: flex;
+		margin-bottom: 10px;
+		width: calc(100% - 38px);
+		float: left;
+	}
+	div.texture_adjust_previews.folded {
+		max-height: 30px;
+		overflow: hidden;
+	}
+	div.texture_adjust_previews img {
+		max-height: 400px;
+		width: 400px;
+		margin: auto;
+	}
+	dialog .slider_input_combo {
+		clear: both;
+	}
+	dialog#adjust_curves .dialog_content {
+		margin-top: 6px;
+		margin-bottom: 10px;
+	}
+	#contrast_graph {
+		background-color: var(--color-back);
+		border: 1px solid var(--color-border);
+		height: 412px;
+		width: 412px;
+		position: relative;
+		overflow: hidden;
+		cursor: crosshair;
+	}
+	.contrast_graph_selector {
+		clear: both;
+		display: flex;
+	}
+	.contrast_graph_selector div {
+		flex-basis: 0;
+		flex-grow: 1;
+		padding-top: 2px;
+		text-align: center;
+		cursor: pointer;
+	}
+	.contrast_graph_selector div:hover {
+		color: var(--color-light);
+	}
+	.contrast_graph_selector div.selected {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+	}
+	#contrast_graph svg {
+		height: 100%;
+		width: 100%;
+		pointer-events: none;
+	}
+	#contrast_graph svg path {
+		fill: none;
+		stroke-width: 2px;
+		stroke: var(--color-accent);
+		opacity: 0.3;
+	}
+	#contrast_graph svg path.active {
+		opacity: 1.0;
+	}
+	#contrast_graph svg polygon {
+		fill: var(--color-selected);
+		stroke: none;
+		stroke-width: 0;
+		pointer-events: none;
+	}
+	.contrast_graph_point {
+		position: absolute;
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+		background-color: var(--color-accent);
+		margin: -1px;
+	}
+	.contrast_graph_point:hover {
+		background-color: var(--color-light);
+	}
+	.contrast_graph_point::before {
+		content: "";
+		position: absolute;
+		width: 24px;
+		height: 24px;
+		left: -6px;
+		top: -6px;
+		cursor: move;
+	}
