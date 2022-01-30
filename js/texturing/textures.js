@@ -841,7 +841,7 @@ class Texture {
 		let scope = this;
 		let dialog = new Dialog({
 			id: 'resize_texture',
-			title: 'menu.texture.resize',
+			title: 'action.resize_texture',
 			form: {
 				size: {
 					label: 'dialog.project.texture_size',
@@ -1165,10 +1165,22 @@ class Texture {
 					]
 				}
 			},
+			'resize_texture',
 			{
-				icon: 'photo_size_select_large',
-				name: 'menu.texture.resize',
-				click(texture) {texture.resizeDialog()}
+				name: 'menu.texture.merge_onto_texture',
+				icon: 'fa-caret-square-up',
+				condition: (tex) => (tex && Texture.all.indexOf(tex) !== 0),
+				click(texture) {
+					let target = Texture.all[Texture.all.indexOf(texture)-1];
+					Undo.initEdit({textures: [target], bitmap: true});
+
+					target.edit(canvas => {
+						let ctx = canvas.getContext('2d');
+						ctx.drawImage(texture.img, 0, 0);
+					}, {no_undo: true})
+
+					Undo.finishEdit('Merged textures')
+				}
 			},
 			'_',
 			{

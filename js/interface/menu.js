@@ -695,21 +695,14 @@ const MenuBar = {
 		new BarMenu('texture', [
 			'adjust_brightness',
 			'adjust_contrast',
+			'adjust_saturation',
+			'adjust_hue',
 			'invert_colors',
 			'adjust_curves',
 			'_',
 			'flip_texture_x',
-			'flip_texture_y'
-			/*
-				Hue, Saturation, Contrast, Brightness, Temperature
-				Color Curve
-				Flip, Rotate
-				Resize
-				Animation frame manipulation
-				Replace individual colors
-				Text?
-				Merge
-			*/
+			'flip_texture_y',
+			'resize_texture'
 		], {
 			condition: {modes: ['paint']}
 		})

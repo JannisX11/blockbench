@@ -8,6 +8,7 @@ BARS.defineActions(function() {
 			return Texture.all;
 		}
 	}
+	let show_preview = true;
 
 	new Action('invert_colors', {
 		icon: 'invert_colors',
@@ -45,7 +46,7 @@ BARS.defineActions(function() {
 				darken: false,
 				component: {
 					data() {return {
-						show_preview: true,
+						show_preview,
 						brightness: 100,
 						textures
 					}},
@@ -58,6 +59,9 @@ BARS.defineActions(function() {
 									ctx.drawImage(original_imgs[i], 0, 0);
 								}, {no_undo: true, use_cache: true});
 							})
+						},
+						togglePreview() {
+							this.show_preview = show_preview = !this.show_preview;
 						}
 					},
 					template: `
@@ -65,7 +69,7 @@ BARS.defineActions(function() {
 							<div class="texture_adjust_previews checkerboard" :class="{folded: !show_preview}">
 								<img v-for="texture in textures" :src="texture.source" />
 							</div>
-							<div class="tool texture_adjust_preview_toggle" @click="show_preview = !show_preview"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
+							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
 								<input type="range" class="tool" min="0" max="200" step="1" v-model="brightness" @input="change()">
 								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="brightness" @input="change()">
@@ -99,7 +103,7 @@ BARS.defineActions(function() {
 				darken: false,
 				component: {
 					data() {return {
-						show_preview: true,
+						show_preview,
 						contrast: 100,
 						textures
 					}},
@@ -112,6 +116,9 @@ BARS.defineActions(function() {
 									ctx.drawImage(original_imgs[i], 0, 0);
 								}, {no_undo: true, use_cache: true});
 							})
+						},
+						togglePreview() {
+							this.show_preview = show_preview = !this.show_preview;
 						}
 					},
 					template: `
@@ -119,10 +126,124 @@ BARS.defineActions(function() {
 							<div class="texture_adjust_previews checkerboard" :class="{folded: !show_preview}">
 								<img v-for="texture in textures" :src="texture.source" />
 							</div>
-							<div class="tool texture_adjust_preview_toggle" @click="show_preview = !show_preview"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
+							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
 								<input type="range" class="tool" min="0" max="200" step="1" v-model="contrast" @input="change()">
 								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="contrast" @input="change()">
+							</div>
+						</div>
+					`
+				},
+				onConfirm() {
+					Undo.finishEdit('Invert colors');
+				},
+				onCancel() {
+					Undo.cancelEdit();
+				}
+			}).show();
+		}
+	})
+	new Action('adjust_saturation', {
+		icon: 'fa-tint',
+		category: 'textures',
+		condition: {modes: ['paint'], method: () => Texture.all.length},
+		click() {
+			let textures = getTextures();
+			let original_imgs = textures.map(tex => {
+				return tex.img.cloneNode();
+			})
+			Undo.initEdit({textures, bitmap: true});
+
+			new Dialog({
+				id: 'adjust_saturation',
+				name: 'action.adjust_saturation',
+				darken: false,
+				component: {
+					data() {return {
+						show_preview,
+						saturation: 100,
+						textures
+					}},
+					methods: {
+						change() {
+							textures.forEach((texture, i) => {
+								texture.edit((canvas) => {
+									let ctx = canvas.getContext('2d');
+									ctx.filter = `saturate(${this.saturation / 100})`;
+									ctx.drawImage(original_imgs[i], 0, 0);
+								}, {no_undo: true, use_cache: true});
+							})
+						},
+						togglePreview() {
+							this.show_preview = show_preview = !this.show_preview;
+						}
+					},
+					template: `
+						<div>
+							<div class="texture_adjust_previews checkerboard" :class="{folded: !show_preview}">
+								<img v-for="texture in textures" :src="texture.source" />
+							</div>
+							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
+							<div class="bar slider_input_combo">
+								<input type="range" class="tool" min="0" max="200" step="1" v-model="saturation" @input="change()">
+								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="saturation" @input="change()">
+							</div>
+						</div>
+					`
+				},
+				onConfirm() {
+					Undo.finishEdit('Invert colors');
+				},
+				onCancel() {
+					Undo.cancelEdit();
+				}
+			}).show();
+		}
+	})
+	new Action('adjust_hue', {
+		icon: 'fa-swatchbook',
+		category: 'textures',
+		condition: {modes: ['paint'], method: () => Texture.all.length},
+		click() {
+			let textures = getTextures();
+			let original_imgs = textures.map(tex => {
+				return tex.img.cloneNode();
+			})
+			Undo.initEdit({textures, bitmap: true});
+
+			new Dialog({
+				id: 'adjust_hue',
+				name: 'action.adjust_hue',
+				darken: false,
+				component: {
+					data() {return {
+						show_preview,
+						hue: 0,
+						textures
+					}},
+					methods: {
+						change() {
+							textures.forEach((texture, i) => {
+								texture.edit((canvas) => {
+									let ctx = canvas.getContext('2d');
+									ctx.filter = `hue-rotate(${this.hue}deg)`;
+									ctx.drawImage(original_imgs[i], 0, 0);
+								}, {no_undo: true, use_cache: true});
+							})
+						},
+						togglePreview() {
+							this.show_preview = show_preview = !this.show_preview;
+						}
+					},
+					template: `
+						<div>
+							<div class="texture_adjust_previews checkerboard" :class="{folded: !show_preview}">
+								<img v-for="texture in textures" :src="texture.source" />
+							</div>
+							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
+							<div class="bar slider_input_combo">
+								<input type="range" class="tool" min="-180" max="180" step="1" v-model="hue" @input="change()">
+								<input lang="en" type="number" class="tool" min="-180" max="180" step="1" v-model.number="hue" @input="change()">
 							</div>
 						</div>
 					`
@@ -174,14 +295,12 @@ BARS.defineActions(function() {
 				a: null,
 			};
 
-
-			function toCatmullRomBezier( points, tension = 0.5, closing = false) {
+			function toCatmullRomBezier( points, tension = 0.5) {
 				if (points.length == 2) {
 					return `M${points[0][0]},${points[0][1]} L${points[1][0]},${points[1][1]}`
 				}
 				let tens = (tension !== 0) ? tension * 12 : 0.5 * 12
-				let PointList = (closing) ? [...copyFirstPointToLast(points)] : [...points]
-				let floats = PointList.map(x => x.map(x => parseFloat(x)))
+				let floats = points.map(x => x.map(x => parseFloat(x)))
 				let firstMoveto = ['M' + floats[0][0] + ' ' + floats[0][1] + ' ']
 				let matrixPoints = floats.map((point, i, arr) => {
 					if (i == 0) {
@@ -195,8 +314,12 @@ BARS.defineActions(function() {
 				let matrixMathToBezier = matrixPoints.map(p => {
 					return [
 						{ x: p[1].x,	y: p[1].y },
-						{ x: ((-p[0].x + tens * p[1].x + p[2].x) / tens), y: ((-p[0].y + tens * p[1].y + p[2].y) / tens)},
-						{ x: ((p[1].x + tens * p[2].x - p[3].x) / tens),	y: ((p[1].y + tens * p[2].y - p[3].y) / tens) },
+						{	x: Math.clamp((-p[0].x + tens * p[1].x + p[2].x) / tens, p[1].x, p[2].x),
+							y: ((-p[0].y + tens * p[1].y + p[2].y) / tens)
+						},
+						{	x: Math.clamp(( p[1].x + tens * p[2].x - p[3].x) / tens, p[1].x, p[2].x),
+							y: ((p[1].y + tens * p[2].y - p[3].y) / tens)
+						},
 						{ x: p[2].x,	y: p[2].y }
 					]
 				})
@@ -211,10 +334,6 @@ BARS.defineActions(function() {
 					return arr.map(p => {
 						if (p !== undefined) { return { x : p[0], y : p[1] }}
 					}) 
-				}
-				// Duplicate first element to the end
-				function copyFirstPointToLast(arr) {
-					return (arr[0] !== arr[arr.length - 1]) ? [...arr, arr[0]] : arr
 				}
 			}
 
@@ -240,18 +359,26 @@ BARS.defineActions(function() {
 					}},
 					methods: {
 						change() {
+							let values = {};
 							for (let key in this.graphs) {
-								var vectors = [];
-								this.graphs[key].points.forEach(point => {
-									vectors.push(new THREE.Vector2(point[0], point[1]));
-								})
-								curves[key] = new THREE.SplineCurve(vectors);
+								let graph = this.graphs[key];
+								if (graph.points.length === 2 && graph.points[0].allEqual(0) && graph.points[1].allEqual(1)) {
+									delete curves[key];
+								} else {
+									let vectors = [];
+									values[key] = {};
+									graph.points.forEach(point => {
+										vectors.push(new THREE.Vector2(point[0], point[1]));
+									})
+									curves[key] = new THREE.SplineCurve(vectors);
+								}
 							}
+							console.log(curves)
 
 							textures.forEach((texture, i) => {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
-									let image_data = original_image_data[i];//ctx.getImageData(0, 0, canvas.width, canvas.height);
+									let image_data = original_image_data[i];
 
 									for (let i = 0; i < image_data.data.length; i += 4) {
 
@@ -259,18 +386,18 @@ BARS.defineActions(function() {
 										let G = image_data.original_data[i+1]
 										let B = image_data.original_data[i+2]
 										let A = image_data.original_data[i+3]
-										let brightness = (0.2126*R + 0.7152*G + 0.0722*B);
+										let brightness = Math.round(0.2126*R + 0.7152*G + 0.0722*B);
 
-										let rgb = curves.rgb.getPoint(brightness / 255).y;
-										let r = curves.r.getPoint(brightness / 255).y;
-										let g = curves.g.getPoint(brightness / 255).y;
-										let b = curves.b.getPoint(brightness / 255).y;
-										let a = curves.a.getPoint(brightness / 255).y;
+										let rgb = !curves.rgb ? brightness : (values.rgb[brightness] !== undefined ? values.rgb[brightness] : values.rgb[brightness] = curves.rgb.getPointAt(brightness / 255).y * 255);
+										let r = !curves.r ? brightness : (values.r[brightness] !== undefined ? values.r[brightness] : values.r[brightness] = curves.r.getPointAt(brightness / 255).y * 255);
+										let g = !curves.g ? brightness : (values.g[brightness] !== undefined ? values.g[brightness] : values.g[brightness] = curves.g.getPointAt(brightness / 255).y * 255);
+										let b = !curves.b ? brightness : (values.b[brightness] !== undefined ? values.b[brightness] : values.b[brightness] = curves.b.getPointAt(brightness / 255).y * 255);
+										let a = !curves.a ? brightness : (values.a[brightness] !== undefined ? values.a[brightness] : values.a[brightness] = curves.a.getPointAt(brightness / 255).y * 255);
 									
-										image_data.data[i+0] = R * ((r * 255) / brightness) * ((rgb * 255) / brightness);
-										image_data.data[i+1] = G * ((g * 255) / brightness) * ((rgb * 255) / brightness);
-										image_data.data[i+2] = B * ((b * 255) / brightness) * ((rgb * 255) / brightness);
-										image_data.data[i+3] = A * ((a * 255) / brightness);
+										image_data.data[i+0] = R * (r / brightness) * (rgb / brightness);
+										image_data.data[i+1] = G * (g / brightness) * (rgb / brightness);
+										image_data.data[i+2] = B * (b / brightness) * (rgb / brightness);
+										image_data.data[i+3] = A * (a / brightness);
 									}
 									ctx.putImageData(image_data, 0, 0);
 
@@ -421,6 +548,15 @@ BARS.defineActions(function() {
 				}, {no_undo: true});
 			})
 			Undo.finishEdit('Flip texture Y')
+		}
+	})
+	new Action('resize_texture', {
+		icon: 'photo_size_select_large',
+		category: 'textures',
+		condition: {modes: ['paint'], method: () => Texture.all.length},
+		click() {
+			let texture = Texture.getDefault();
+			texture.resizeDialog();
 		}
 	})
 })
