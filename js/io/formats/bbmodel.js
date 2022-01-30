@@ -202,7 +202,7 @@ var codec = new Codec('project', {
 			var compressed = '<lz>'+LZUTF8.compress(json_string, {outputEncoding: 'StorageBinaryString'});
 			return compressed;
 		} else {
-			if (Settings.get('minify_bbmodel')) {
+			if (Settings.get('minify_bbmodel') || options.minify) {
 				return JSON.stringify(model);
 			} else {
 				return compileJSON(model);

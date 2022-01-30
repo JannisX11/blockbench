@@ -560,8 +560,57 @@ const Timeline = {
 			'zoom_reset'
 		]},
 		'select_all',
-		'bring_up_all_animations',
 		'fold_all_animations',
+		'_',
+		{
+			name: 'menu.timeline.setups',
+			icon: 'folder_special',
+			children() {
+				return Project.timeline_setups.map(setup => {
+					return {
+						name: setup.name,
+						icon: 'star_outline',
+						children: [
+							{icon: 'check_circle', name: 'menu.preview.angle.load', click() {
+								Timeline.vue._data.animators.purge();
+								unselectAll();
+								setup.animators.forEach(uuid => {
+									var ba = Animation.selected.animators[uuid]
+									if (ba) ba.addToTimeline();
+								})
+								Timeline.vue.channels.position = !!setup.channels.position;
+								Timeline.vue.channels.rotation = !!setup.channels.rotation;
+								Timeline.vue.channels.scale = !!setup.channels.scale;
+								Timeline.vue.channels.hide_empty = !!setup.channels.hide_empty;
+							}},
+							{icon: 'delete', name: 'generic.delete', click() {
+								Project.timeline_setups.remove(setup);
+							}}
+						]
+					}
+				})
+			}
+		},
+		{
+			name: 'menu.timeline.save_setup',
+			description: 'menu.timeline.save_setup.desc',
+			icon: 'star',
+			async click() {
+				let name = await Blockbench.textPrompt('generic.name', 'Timeline Setup');
+				let setup = {
+					name: name || 'Setup',
+					channels: {
+						position: Timeline.vue.channels.position,
+						rotation: Timeline.vue.channels.rotation,
+						scale: Timeline.vue.channels.scale,
+						hide_empty: Timeline.vue.channels.hide_empty
+					},
+					animators: Timeline.animators.map(animator => animator.uuid),
+				};
+				Project.timeline_setups.push(setup);
+			}
+		},
+		'bring_up_all_animations',
 		'clear_timeline',
 		'_',
 		'graph_editor_zero_line',

@@ -1469,6 +1469,10 @@
 	"menu.animation_file.unload": "Unload Animation File",
 	"menu.animation_file.import_remaining": "Import Remaining Animations",
 
+	"menu.timeline.setups": "Timeline Setups",
+	"menu.timeline.save_setup": "Save Timeline Setup...",
+	"menu.timeline.save_setup.desc": "Save a preset for the currently selected animators and channels",
+
 	"menu.keyframe.quaternion": "Quaternion",
 
 	"menu.mobile_keyboard.disable_all": "Disable All",

@@ -230,7 +230,7 @@ function unselectAll() {
 setInterval(function() {
 	if (Project && (Outliner.root.length || Project.textures.length)) {
 		try {
-			var model = Codecs.project.compile({compressed: false, backup: true});
+			var model = Codecs.project.compile({compressed: false, minify: true, backup: true});
 			localStorage.setItem('backup_model', model)
 		} catch (err) {
 			console.error('Unable to create backup. ', err)
