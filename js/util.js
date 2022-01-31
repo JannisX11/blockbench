@@ -176,7 +176,7 @@ Math.lerp = function(a, b, m) {
 Math.isBetween = function(number, limit1, limit2) {
    return (number - limit1) * (number - limit2) <= 0
 }
-Math.epsilon = function(a, b, epsilon) {
+Math.epsilon = function(a, b, epsilon = 0.001) {
 	return Math.abs(b - a) < epsilon
 }
 Math.trimDeg = function(a) {

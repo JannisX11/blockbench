@@ -1004,7 +1004,8 @@
 	.animator_channel_bar .channel_head .text_button .channel_mute {
 		font-size: 11pt;
 	}
-	.animator_channel_bar .channel_head .text_button .fa-eye-slash {
+	.animator_channel_bar .channel_head .text_button .fa-eye-slash,
+	.animator_channel_bar .channel_head .text_button .fa-volume-mute {
 		color: var(--color-subtle_text);
 	}
 	.channel_head span {

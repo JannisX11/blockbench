@@ -1293,6 +1293,9 @@
 	"action.add_keyframe.desc": "Automatically add a keyframe. Press shift to force default values",
 	"action.add_marker": "Set Marker",
 	"action.add_marker.desc": "Set a timeline marker",
+	"action.timeline_setups": "Timeline Setups",
+	"action.save_timeline_setup": "Save Timeline Setup...",
+	"action.save_timeline_setup.desc": "Save a preset for the currently selected animators and channels",
 	"action.move_keyframe_back": "Move Keyframes Back",
 	"action.move_keyframe_forth": "Move Keyframes Forth",
 	"action.previous_keyframe": "Previous Keyframe",
@@ -1468,10 +1471,6 @@
 
 	"menu.animation_file.unload": "Unload Animation File",
 	"menu.animation_file.import_remaining": "Import Remaining Animations",
-
-	"menu.timeline.setups": "Timeline Setups",
-	"menu.timeline.save_setup": "Save Timeline Setup...",
-	"menu.timeline.save_setup.desc": "Save a preset for the currently selected animators and channels",
 
 	"menu.keyframe.quaternion": "Quaternion",
 

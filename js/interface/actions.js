@@ -1292,10 +1292,10 @@ class Toolbar {
 		this.children.forEach(function(item, i) {
 			if (typeof item === 'string') {
 				var last = content.find('> :last-child')
-				if (last.length === 0 || last.hasClass('toolbar_separator') || i == scope.children.length-1) {
+				let type = item[0] == '_' ? 'border' : (item[0] == '+' ? 'spacer' : 'linebreak');
+				if ((last.length === 0 || last.hasClass('toolbar_separator') || i == scope.children.length-1) && type !== 'spacer') {
 					return this;
 				}
-				let type = item[0] == '_' ? 'border' : (item[0] == '+' ? 'spacer' : 'linebreak');
 				let sep = separators[type].shift();
 				if (sep) {
 					content.append(sep);
@@ -1315,7 +1315,7 @@ class Toolbar {
 			}
 		})
 		var last = content.find('> :last-child')
-		if (last.length && last.hasClass('toolbar_separator')) {
+		if (last.length && last.hasClass('toolbar_separator') && !last.hasClass('spacer')) {
 			last.remove()
 		}
 		return this;
