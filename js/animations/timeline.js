@@ -1305,24 +1305,25 @@ BARS.defineActions(function() {
 	new Action('timeline_setups', {
 		name: 'menu.timeline.setups',
 		icon: 'folder_special',
+		condition: {modes: ['animate'], project: true, method: () => Project.timeline_setups.length},
 		children() {
 			return Project.timeline_setups.map(setup => {
 				return {
 					name: setup.name,
 					icon: 'star_outline',
+					click() {
+						Timeline.vue._data.animators.purge();
+						unselectAll();
+						setup.animators.forEach(uuid => {
+							var ba = Animation.selected.animators[uuid]
+							if (ba) ba.addToTimeline();
+						})
+						Timeline.vue.channels.position = !!setup.channels.position;
+						Timeline.vue.channels.rotation = !!setup.channels.rotation;
+						Timeline.vue.channels.scale = !!setup.channels.scale;
+						Timeline.vue.channels.hide_empty = !!setup.channels.hide_empty;
+					},
 					children: [
-						{icon: 'check_circle', name: 'menu.preview.angle.load', click() {
-							Timeline.vue._data.animators.purge();
-							unselectAll();
-							setup.animators.forEach(uuid => {
-								var ba = Animation.selected.animators[uuid]
-								if (ba) ba.addToTimeline();
-							})
-							Timeline.vue.channels.position = !!setup.channels.position;
-							Timeline.vue.channels.rotation = !!setup.channels.rotation;
-							Timeline.vue.channels.scale = !!setup.channels.scale;
-							Timeline.vue.channels.hide_empty = !!setup.channels.hide_empty;
-						}},
 						{icon: 'delete', name: 'generic.delete', click() {
 							Project.timeline_setups.remove(setup);
 						}}
@@ -1338,6 +1339,7 @@ BARS.defineActions(function() {
 		name: 'menu.timeline.save_setup',
 		description: 'menu.timeline.save_setup.desc',
 		icon: 'star',
+		condition: {modes: ['animate']},
 		async click() {
 			let name = await Blockbench.textPrompt('generic.name', 'Timeline Setup');
 			let setup = {
@@ -1351,6 +1353,7 @@ BARS.defineActions(function() {
 				animators: Timeline.animators.map(animator => animator.uuid),
 			};
 			Project.timeline_setups.push(setup);
+			BARS.updateConditions();
 		}
 	})
 })

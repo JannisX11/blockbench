@@ -1508,13 +1508,10 @@ class Preview {
 					id: preset.name,
 					preset,
 					icon,
-					click: preset.default ? () => {
+					click: () => {
 						preview.loadAnglePreset(preset)
-					} : null,
+					},
 					children: !preset.default && [
-						{icon: 'check_circle', name: 'menu.preview.angle.load', click() {
-							preview.loadAnglePreset(preset)
-						}},
 						{icon: 'edit', name: 'menu.preview.angle.edit', click() {
 							editCameraPreset(preset, presets);
 						}},

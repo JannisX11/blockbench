@@ -24,16 +24,18 @@ class Menu {
 		this.node = $('<ul class="contextMenu"></ul>')[0]
 		this.structure = structure
 	}
-	hover(node, event) {
+	hover(node, event, expand) {
 		if (event) event.stopPropagation()
 		$(open_menu.node).find('li.focused').removeClass('focused')
 		$(open_menu.node).find('li.opened').removeClass('opened')
 		var obj = $(node)
 		obj.addClass('focused')
-		obj.parents('li.parent').addClass('opened')
+		obj.parents('li.parent, li.hybrid_parent').addClass('opened')
 
-		if (obj.hasClass('parent')) {
+		if (obj.hasClass('parent') || (expand && obj.hasClass('hybrid_parent'))) {
 			var childlist = obj.find('> ul.contextMenu.sub')
+
+			if (expand) obj.addClass('opened');
 
 			var p_width = obj.outerWidth()
 			childlist.css('left', p_width + 'px')
@@ -136,17 +138,14 @@ class Menu {
 		ctxmenu.children().detach()
 
 		function createChildList(object, node) {
-
 			if (typeof object.children == 'function') {
 				var list = object.children(context)
 			} else {
 				var list = object.children
 			}
+			node.find('ul.contextMenu.sub').detach();
 			if (list.length) {
-				node.addClass('parent')
-					.find('ul.contextMenu.sub').detach()
 				var childlist = $('<ul class="contextMenu sub"></ul>')
-				node.append(childlist)
 				list.forEach(function(s2, i) {
 					getEntry(s2, childlist)
 				})
@@ -154,6 +153,17 @@ class Menu {
 				if (last.length && last.hasClass('menu_separator')) {
 					last.remove()
 				}
+				if (typeof object.click == 'function' && object instanceof Action == false) {
+					node.addClass('hybrid_parent');
+					let more_button = Interface.createElement('div', {class: 'menu_more_button'}, Blockbench.getIconNode('more_horiz'));
+					node.append(more_button);
+					$(more_button).mouseenter(e => {
+						scope.hover(node.get(0), e, true);
+					})
+				} else {
+					node.addClass('parent');
+				}
+				node.append(childlist)
 				return childlist.children().length;
 			}
 			return 0;
@@ -256,7 +266,7 @@ class Menu {
 					entry.append(label);
 				}
 				if (typeof s.click === 'function') {
-					entry.click(e => {
+					entry.on('click', e => {
 						if (e.target == entry.get(0)) {
 							s.click(context, e)
 						}
@@ -264,7 +274,7 @@ class Menu {
 				}
 				//Submenu
 				if (typeof s.children == 'function' || typeof s.children == 'object') {
-					child_count = createChildList(s, entry)
+					child_count = createChildList(s, entry);
 				}
 				if (child_count !== 0 || typeof s.click === 'function') {
 					parent.append(entry)

@@ -517,22 +517,25 @@
 		-webkit-font-smoothing: antialiased;
 		margin-right: -12px;
 		margin-left: 6px;
+		margin-top: -1px;
 		pointer-events: none;
 	}
 	.contextMenu li.enabled {
 		padding-left: 29px;
 		border-left: 5px solid var(--color-accent);
 	}
-	.contextMenu li.focused, .contextMenu li.parent.opened {
+	.contextMenu li.focused,
+	.contextMenu li.parent.opened,
+	.contextMenu li.hybrid_parent.opened {
 		background-color: var(--color-accent);
 	}
-	.contextMenu li i {
+	.contextMenu li > i {
 		margin-top: 1px; 
 		margin-right: 4px;
 		margin-left: -28px;
 		pointer-events: none;
 	}
-	.contextMenu li img {
+	.contextMenu li > img {
 		cursor: default;
 		height: 20px;
 		width: 20px;
@@ -543,15 +546,30 @@
 		margin-right: 5px;
 		margin-top: 1px;
 	}
-	.contextMenu li span {
+	.contextMenu li > span {
 		pointer-events: none;
 		flex: 1 0 auto;
 	}
-	.contextMenu li.focused > .contextMenu.sub {
+	.contextMenu li.parent.focused > .contextMenu.sub {
+		display: block;
+	}
+	.contextMenu li.hybrid_parent.opened > .contextMenu.sub {
 		display: block;
 	}
 	.contextMenu li.opened > .contextMenu.sub {
 		display: block;
+	}
+	.contextMenu .menu_more_button {
+		background-color: var(--color-bright_ui);
+		width: 28px;
+		margin: -4px -8px -4px 2px;
+		padding: 4px 0;
+		text-align: center;
+	}
+	.contextMenu .menu_more_button:hover,
+	.hybrid_parent.opened .menu_more_button {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
 	}
 	li.menu_separator {
 		height: 2px;
