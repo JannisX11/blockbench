@@ -272,7 +272,7 @@ class Keyframe {
 			let points = [];
 			this.data_points.forEach(data_point => {
 				if (data_point.effect) {
-					let script = this.script || undefined;
+					let script = data_point.script || undefined;
 					if (script && !script.match(/;$/)) script += ';';
 					points.push({
 						effect: data_point.effect,

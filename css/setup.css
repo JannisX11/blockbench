@@ -285,9 +285,12 @@
 		font-size: 40pt;
 		float: left;
 		padding-right: 8px;
+		height: 54px;
 		min-width: 61px;
-		max-height: 54px;
 		max-width: 62px;
+	}
+	.dialog .message_box_icon.fa {
+		font-size: 35pt;
 	}
 	.dialog img.message_box_icon {
 		min-width: auto;

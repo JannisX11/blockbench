@@ -4,7 +4,7 @@ class Mode extends KeybindItem {
 			data = id;
 			id = data.id;
 		}
-		super(data)
+		super(id, data)
 		this.id = id;
 		this.name = data.name || tl('mode.'+this.id);
 		this.selected = false

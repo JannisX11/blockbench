@@ -1153,7 +1153,7 @@ const UVEditor = {
 		} else {
 			UVEditor.clipboard.forEach(tag => {
 				elements.forEach(el => {
-					if (Project.box_uv && el instanceof Cube)
+					if (Project.box_uv && el instanceof Cube) return;
 					if ((el instanceof Cube && tag instanceof CubeFace) || (el instanceof Mesh && tag instanceof MeshFace)) {
 						let key = tag.direction;
 						if (el.faces[key]) {
