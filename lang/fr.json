@@ -1364,7 +1364,6 @@
     "uv_editor.transparent_face": "Face transparente",
     "display.pose_angle": "Angle de pose (aperçu uniquement)",
     "data.mesh": "Maille",
-    "message.box_uv_for_meshes": "Les mailles ne peuvent êtres utilisées avec l'encadrement UV",
     "dialog.create_texture.type": "Type",
     "dialog.create_texture.type.blank": "Vierge",
     "dialog.create_texture.type.template": "Modèle de texture",
@@ -1478,5 +1477,6 @@
     "panel.skin_pose.sitting": "Assis",
     "panel.skin_pose.jumping": "Saut",
     "panel.skin_pose.aiming": "Visée",
-    "edit.loop_cut.direction": "Direction"
+    "edit.loop_cut.direction": "Direction",
+    "message.meshes_and_box_uv": "Meshes are not compatible with Box UV. Go to File > Project... and switch to Per-face UV."
 }
