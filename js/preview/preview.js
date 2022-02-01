@@ -1547,7 +1547,7 @@ class Preview {
 Preview.all = [];
 
 Blockbench.on('update_camera_position', e => {
-	let scale = Preview.selected.calculateControlScale(new THREE.Vector3(0, 0, 0));
+	let scale = Preview.selected.calculateControlScale(Transformer.position);
 	Preview.all.forEach(preview => {
 		if (preview.canvas.isConnected) {
 			preview.raycaster.params.Points.threshold = scale * 0.8;

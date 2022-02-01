@@ -898,6 +898,9 @@
 							Transformer.rotation_ref = space.mesh;
 
 						}
+					} else if (Toolbox.selected.id == 'vertex_snap_tool' && (Outliner.selected.length || Group.selected)) {
+						var center = getSelectionCenter()
+						Transformer.position.fromArray(center)
 					}
 
 				} else if (Modes.display) {
