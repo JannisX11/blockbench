@@ -768,6 +768,7 @@
 					} else if (Group.selected && getRotationObject() == Group.selected) {
 						scope.attach(Group.selected)
 					} else {
+						this.update()
 						return this;
 					}
 				}

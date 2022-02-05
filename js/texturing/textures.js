@@ -861,6 +861,22 @@ class Texture {
 
 				let old_width = scope.width;
 				let old_height = scope.height;
+				let elements_to_change = null;
+				if (formResult.fill !== 'stretch' && Texture.length >= 2 && !Format.single_texture) {
+					let elements = [...Cube.all, ...Mesh.all].filter(el => {
+						for (let fkey in el.faces) {
+							if (el.faces[fkey].texture == scope.uuid) return true;
+						}
+					})
+					if (elements.length) elements_to_change = elements;
+				}
+
+				Undo.initEdit({
+					textures: [scope],
+					bitmap: true,
+					elements: elements_to_change,
+					uv_only: true
+				})
 
 				scope.edit((canvas) => {
 
@@ -907,13 +923,38 @@ class Texture {
 						Project.texture_width = Project.texture_width * (formResult.size[0] / old_width);
 						Project.texture_height = Project.texture_height * (formResult.size[1] / old_height);
 						Canvas.updateAllUVs()
+
+					} else if (formResult.fill !== 'stretch' && Texture.length >= 2 && elements_to_change) {
+						elements_to_change.forEach(element => {
+							if (element instanceof Cube) {
+								for (var key in element.faces) {
+									if (element.faces[key].texture !== scope.uuid) continue;
+									var uv = element.faces[key].uv;
+									uv[0] /= formResult.size[0] / old_width;
+									uv[2] /= formResult.size[0] / old_width;
+									uv[1] /= formResult.size[1] / old_height;
+									uv[3] /= formResult.size[1] / old_height;
+								}
+							} else if (element instanceof Mesh) {
+								for (var key in element.faces) {
+									if (element.faces[key].texture !== scope.uuid) continue;
+									var uv = element.faces[key].uv;
+									for (let vkey in uv) {
+										uv[vkey][0] /= formResult.size[0] / old_width;
+										uv[vkey][1] /= formResult.size[1] / old_height;
+									}
+								}
+							}
+						})
+						Canvas.updateView({elements: elements_to_change, element_aspects: {uv: true}})
 					}
 					return new_canvas
 
-				})
-				setTimeout(updateSelection, 100);
+				}, {no_undo: true})
 
-				dialog.hide()
+				Undo.finishEdit('Resize texture');
+
+				setTimeout(updateSelection, 100);
 			}
 		})
 		dialog.show()

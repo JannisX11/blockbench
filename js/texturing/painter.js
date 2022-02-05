@@ -18,7 +18,7 @@ const Painter = {
 		var instance = Painter.current[options.method === 'jimp' ? 'image' : 'canvas']
 		Painter.current[options.method === 'jimp' ? 'canvas' : 'image'] = undefined
 
-		var edit_name = options.no_undo ? null : (options.edit_name || 'edit texture');
+		var edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
 
 		if (options.use_cache &&
 			texture === Painter.current.texture &&
