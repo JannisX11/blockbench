@@ -468,7 +468,7 @@ window.Dialog = class Dialog {
 						data.bar.find('textarea').val(value);
 						break;
 					case 'select':
-						data.bar.find('select').val(value);
+						data.bar.find(`select option#${value}`).attr('selected', 'selected');
 						break;
 					case 'radio':
 						data.bar.find('.form_part_radio input#'+value).prop('checked', value);

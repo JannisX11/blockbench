@@ -839,6 +839,7 @@ class Texture {
 	}
 	resizeDialog() {
 		let scope = this;
+		let updated_to_repeat = false;
 		let dialog = new Dialog({
 			id: 'resize_texture',
 			title: 'action.resize_texture',
@@ -850,12 +851,27 @@ class Texture {
 					value: [this.width, this.height],
 					min: 1
 				},
+				frames: {
+					label: 'dialog.resize_texture.animation_frames',
+					type: 'number',
+					condition: () => Format.animated_textures,
+					value: this.frameCount || 1,
+					min: 1,
+					max: 2048,
+					step: 1,
+				},
 				fill: {label: 'dialog.resize_texture.fill', type: 'select', default: 'transparent', options: {
 					transparent: 'dialog.resize_texture.fill.transparent',
 					color: 'dialog.resize_texture.fill.color',
 					repeat: 'dialog.resize_texture.fill.repeat',
 					stretch: 'dialog.resize_texture.fill.stretch'
 				}}
+			},
+			onFormChange(formResult) {
+				if (formResult.frames > (scope.frameCount || 1) && !updated_to_repeat) {
+					updated_to_repeat = true;
+					this.setFormValues({fill: 'repeat'});
+				}
 			},
 			onConfirm: function(formResult) {
 
@@ -869,6 +885,9 @@ class Texture {
 						}
 					})
 					if (elements.length) elements_to_change = elements;
+				}
+				if (Format.animated_textures && formResult.frames > 1) {
+					formResult.size[1] *= formResult.frames / (scope.frameCount || 1);
 				}
 
 				Undo.initEdit({
@@ -912,7 +931,9 @@ class Texture {
 						delete Painter.current.canvas;
 					}
 					scope.keep_size = true;
-					if (formResult.fill !== 'stretch' && (Format.single_texture || Texture.all.length == 1)) {
+					if (formResult.fill === 'repeat' && Format.animated_textures && formResult.size[0] < formResult.size[1]) {
+						// Animated
+					} else if (formResult.fill !== 'stretch' && (Format.single_texture || Texture.all.length == 1)) {
 						Undo.current_save.uv_mode = {
 							box_uv: Project.box_uv,
 							width:  Project.texture_width,

@@ -320,6 +320,7 @@
 	"dialog.texture.namespace": "Namespace",
 	"dialog.texture.folder": "Folder",
 
+	"dialog.resize_texture.animation_frames": "Animation Frames",
 	"dialog.resize_texture.fill": "Fill with",
 	"dialog.resize_texture.fill.transparent": "Transparent",
 	"dialog.resize_texture.fill.color": "Color",

@@ -553,7 +553,7 @@ BARS.defineActions(function() {
 	new Action('resize_texture', {
 		icon: 'photo_size_select_large',
 		category: 'textures',
-		condition: {modes: ['paint'], method: () => Texture.all.length},
+		condition: () => Texture.all.length,
 		click() {
 			let texture = Texture.getDefault();
 			texture.resizeDialog();
