@@ -768,6 +768,7 @@
 					} else if (Group.selected && getRotationObject() == Group.selected) {
 						scope.attach(Group.selected)
 					} else {
+						this.update()
 						return this;
 					}
 				}
@@ -869,7 +870,7 @@
 						
 						//Center
 						if (Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool') {
-							if (rotation_object instanceof Mesh && Project.selected_vertices[rotation_object.uuid] && Project.selected_vertices[rotation_object.uuid].length > 0) {
+							if (rotation_object instanceof Mesh && Toolbox.selected.id === 'rotate_tool' && Project.selected_vertices[rotation_object.uuid] && Project.selected_vertices[rotation_object.uuid].length > 0) {
 								this.position.copy(rotation_object.getWorldCenter())
 							} else if (rotation_object.mesh) {
 								rotation_object.mesh.getWorldPosition(this.position);
@@ -898,6 +899,9 @@
 							Transformer.rotation_ref = space.mesh;
 
 						}
+					} else if (Toolbox.selected.id == 'vertex_snap_tool' && (Outliner.selected.length || Group.selected)) {
+						var center = getSelectionCenter()
+						Transformer.position.fromArray(center)
 					}
 
 				} else if (Modes.display) {
@@ -1046,7 +1050,9 @@
 						if ( planeIntersect ) {
 							offset.copy( planeIntersect.point );
 							previousValue = undefined
-							Canvas.outlineObjects(selected)
+							if (Toolbox.selected.id !== 'pivot_tool') {
+								Canvas.outlineObjects(Outliner.selected);
+							}
 							extendTransformLine(true);
 						}
 						_dragging = true;
@@ -1293,12 +1299,16 @@
 								})
 							}
 							displayDistance(point[axis] - originalValue);
-							Canvas.updatePositions(true);
-							Canvas.updateAllBones();
+							Canvas.updateView({
+								elements: Outliner.selected,
+								element_aspects: {geometry: true, transform: true},
+								groups: Group.all,
+								group_aspects: {transform: true},
+								selection: true
+							})
 							if (Modes.animate) {
 								Animator.preview();
 							}
-							scope.updateSelection()
 
 							previousValue = point[axis]
 							scope.hasChanged = true

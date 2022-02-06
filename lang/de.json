@@ -1364,7 +1364,6 @@
     "uv_editor.transparent_face": "Unsichtbare Fläche",
     "display.pose_angle": "Arm-Winkel (Nur Vorschau)",
     "data.mesh": "Masche",
-    "message.box_uv_for_meshes": "Maschen können nicht in Box UV Templates verwendet werden",
     "dialog.create_texture.type": "Typ",
     "dialog.create_texture.type.blank": "Leer",
     "dialog.create_texture.type.template": "Texturtemplate",
@@ -1478,5 +1477,6 @@
     "panel.skin_pose.sitting": "Sitzend",
     "panel.skin_pose.jumping": "Springend",
     "panel.skin_pose.aiming": "Zielend",
-    "edit.loop_cut.direction": "Ausrichtung"
+    "edit.loop_cut.direction": "Ausrichtung",
+    "message.meshes_and_box_uv": "Meshes are not compatible with Box UV. Go to File > Project... and switch to Per-face UV."
 }

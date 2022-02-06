@@ -173,7 +173,6 @@ function updateSelection(options = {}) {
 	if (settings.highlight_cubes.value || (Mesh.all[0])) updateCubeHighlights();
 	Canvas.updatePivotMarker();
 	Transformer.updateSelection();
-	Transformer.update();
 	Preview.all.forEach(preview => {
 		preview.updateAnnotations();
 	})

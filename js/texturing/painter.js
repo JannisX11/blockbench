@@ -18,7 +18,7 @@ const Painter = {
 		var instance = Painter.current[options.method === 'jimp' ? 'image' : 'canvas']
 		Painter.current[options.method === 'jimp' ? 'canvas' : 'image'] = undefined
 
-		var edit_name = options.no_undo ? null : (options.edit_name || 'edit texture');
+		var edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
 
 		if (options.use_cache &&
 			texture === Painter.current.texture &&
@@ -287,7 +287,13 @@ const Painter = {
 		let uvFactorY = texture.display_height / Project.texture_height;
 
 		if (Painter.mirror_painting && !is_opposite) {
-			Painter.runMirrorBrush(texture, x, y, event, uvTag);
+			let target = Painter.getMirrorPaintTarget(texture, x, y, uvTag)
+			if (target) {
+				let old_element = Painter.current.element;
+				Painter.current.element = target.element;
+				Painter.useBrushlike(texture, target.x, target.y, event, target.uv_tag, true, true);
+				Painter.current.element = old_element;
+			}
 		}
 
 		let ctx = Painter.current.ctx;
@@ -494,88 +500,91 @@ const Painter = {
 		ctx.globalAlpha = 1.0;
 		ctx.globalCompositeOperation = 'source-over'
 	},
-	runMirrorBrush(texture, x, y, event, uvTag) {
-		if (uvTag && Painter.current.element) {
-			let mirror_element = Painter.getMirrorCube(Painter.current.element);
-			let even_brush_size = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool;
-			if (mirror_element instanceof Cube) {
+	getMirrorPaintTarget(texture, x, y, uvTag) {
+		if (!uvTag || !Painter.current.element) return;
+		let mirror_element = Painter.getMirrorElement(Painter.current.element);
+		let even_brush_size = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool;
+		if (mirror_element instanceof Cube) {
 
-				let uvFactorX = 1 / Project.texture_width * texture.img.naturalWidth;
-				let uvFactorY = 1 / Project.texture_height * texture.img.naturalHeight;
+			let uvFactorX = 1 / Project.texture_width * texture.img.naturalWidth;
+			let uvFactorY = 1 / Project.texture_height * texture.img.naturalHeight;
 
-				let face = Painter.current.face;
-				let side_face = (face === 'west' || face === 'east')
-				if (side_face) face = CubeFace.opposite[face];
-				face = mirror_element.faces[face];
+			let face = Painter.current.face;
+			let side_face = (face === 'west' || face === 'east')
+			if (side_face) face = CubeFace.opposite[face];
+			face = mirror_element.faces[face];
 
-				if (side_face &&
-					uvTag[1] === face.uv[1] && uvTag[3] === face.uv[3] &&
-					Math.min(uvTag[0], uvTag[2]) === Math.min(face.uv[0], face.uv[2])
-					//same face
-				) return;
+			if (side_face &&
+				uvTag[1] === face.uv[1] && uvTag[3] === face.uv[3] &&
+				Math.min(uvTag[0], uvTag[2]) === Math.min(face.uv[0], face.uv[2])
+				//same face
+			) return;
 
-				//calculate original point
-				var point_on_uv = [
-					x - Math.min(uvTag[0], uvTag[2]) * uvFactorX,
-					y - Math.min(uvTag[1], uvTag[3]) * uvFactorY,
-				]
-				//calculate new point
-				if (face.uv[0] > face.uv[0+2] == uvTag[0] > uvTag[0+2]) {
-					point_on_uv[0] = Math.max(face.uv[0], face.uv[0+2]) * uvFactorX - point_on_uv[0] - 1;
-					if (even_brush_size) point_on_uv[0] += 1
-				} else {
-					point_on_uv[0] = Math.min(face.uv[0], face.uv[0+2]) * uvFactorX + point_on_uv[0];
+			//calculate original point
+			var point_on_uv = [
+				x - Math.min(uvTag[0], uvTag[2]) * uvFactorX,
+				y - Math.min(uvTag[1], uvTag[3]) * uvFactorY,
+			]
+			//calculate new point
+			if (face.uv[0] > face.uv[0+2] == uvTag[0] > uvTag[0+2]) {
+				point_on_uv[0] = Math.max(face.uv[0], face.uv[0+2]) * uvFactorX - point_on_uv[0] - 1;
+				if (even_brush_size) point_on_uv[0] += 1
+			} else {
+				point_on_uv[0] = Math.min(face.uv[0], face.uv[0+2]) * uvFactorX + point_on_uv[0];
+			}
+			if (face.uv[1] > face.uv[1+2] == uvTag[1] > uvTag[1+2]) {
+				point_on_uv[1] = Math.min(face.uv[1], face.uv[1+2]) * uvFactorY + point_on_uv[1];
+			} else {
+				point_on_uv[1] = Math.max(face.uv[1], face.uv[1+2]) * uvFactorY - point_on_uv[1] - 1;
+			}
+
+			return {
+				element: mirror_element,
+				x: point_on_uv[0],
+				y: point_on_uv[1],
+				uv_tag: face.uv
+			}
+
+		} else if (mirror_element instanceof Mesh) {
+			
+			let mesh = mirror_element;
+
+			let clicked_face = mesh.faces[Painter.current.face];
+			let normal = clicked_face.getNormal(true);
+			let center = clicked_face.getCenter();
+			let e = 0.01;
+			let face;
+			for (let fkey in mesh.faces) {
+				let normal2 = mesh.faces[fkey].getNormal(true);
+				let center2 = mesh.faces[fkey].getCenter();
+				if (
+					Math.epsilon(normal[0], -normal2[0], e) && Math.epsilon(normal[1], normal2[1], e) && Math.epsilon(normal[2], normal2[2], e) &&
+					Math.epsilon(center[0], -center2[0], e) && Math.epsilon(center[1], center2[1], e) && Math.epsilon(center[2], center2[2], e)
+				) {
+					face = mesh.faces[fkey];
 				}
-				if (face.uv[1] > face.uv[1+2] == uvTag[1] > uvTag[1+2]) {
-					point_on_uv[1] = Math.min(face.uv[1], face.uv[1+2]) * uvFactorY + point_on_uv[1];
-				} else {
-					point_on_uv[1] = Math.max(face.uv[1], face.uv[1+2]) * uvFactorY - point_on_uv[1] - 1;
-				}
-
-				let cube = Painter.current.element;
-				Painter.current.element = mirror_element;
-				Painter.useBrushlike(texture, ...point_on_uv, event, face.uv, true, true);
-				Painter.current.element = cube;
-
-			} else if (mirror_element instanceof Mesh) {
-				
-				let mesh = mirror_element;
-
-				let clicked_face = mesh.faces[Painter.current.face];
-				let normal = clicked_face.getNormal(true);
-				let center = clicked_face.getCenter();
-				let e = 0.01;
-				let face;
-				for (let fkey in mesh.faces) {
-					let normal2 = mesh.faces[fkey].getNormal(true);
-					let center2 = mesh.faces[fkey].getCenter();
-					if (
-						Math.epsilon(normal[0], -normal2[0], e) && Math.epsilon(normal[1], normal2[1], e) && Math.epsilon(normal[2], normal2[2], e) &&
-						Math.epsilon(center[0], -center2[0], e) && Math.epsilon(center[1], center2[1], e) && Math.epsilon(center[2], center2[2], e)
-					) {
-						face = mesh.faces[fkey];
-					}
-				}
-				if (!face) return;
-				
-				if (!even_brush_size) {
-					x += 0.5; y += 0.5;
-				}
-				let world_coord = mesh.mesh.localToWorld(clicked_face.UVToLocal([x, y]));
-				world_coord.x *= -1;
-				mesh.mesh.worldToLocal(world_coord);
-				let point_on_uv = face.localToUV(world_coord);
-				
-				if (even_brush_size) {
-					point_on_uv = point_on_uv.map(v => Math.round(v))
-				} else {
-					point_on_uv = point_on_uv.map(v => Math.floor(v))
-				}
-				
-				let old_mesh = Painter.current.element;
-				Painter.current.element = mesh;
-				Painter.useBrushlike(texture, ...point_on_uv, event, face.uv, true, true);
-				Painter.current.element = old_mesh;
+			}
+			if (!face) return;
+			
+			if (!even_brush_size) {
+				x += 0.5; y += 0.5;
+			}
+			let world_coord = mesh.mesh.localToWorld(clicked_face.UVToLocal([x, y]));
+			world_coord.x *= -1;
+			mesh.mesh.worldToLocal(world_coord);
+			let point_on_uv = face.localToUV(world_coord);
+			
+			if (even_brush_size) {
+				point_on_uv = point_on_uv.map(v => Math.round(v))
+			} else {
+				point_on_uv = point_on_uv.map(v => Math.floor(v))
+			}
+			
+			return {
+				element: mesh,
+				x: point_on_uv[0],
+				y: point_on_uv[1],
+				uv_tag: face.uv
 			}
 		}
 	},
@@ -614,106 +623,123 @@ const Painter = {
 			let hollow = shape.substr(-1) == 'h';
 			shape = shape.replace(/_h$/, '');
 
-			var rect = Painter.setupRectFromFace(uvTag, texture);
-			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
+			function drawShape(start_x, start_y, x, y, uvTag) {
 
-			let diff_x = x - Painter.startPixel[0];
-			let diff_y = y - Painter.startPixel[1];
+				var rect = Painter.setupRectFromFace(uvTag, texture);
+				var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
 
-			if (event.shiftKey || Pressing.overrides.shift) {
-				let clamp = Math.floor((Math.abs(diff_x) + Math.abs(diff_y))/2);
-				diff_x = diff_x>0 ? clamp : -clamp;
-				diff_y = diff_y>0 ? clamp : -clamp;
-			}
+				let diff_x = x - start_x;
+				let diff_y = y - start_y;
 
-			if (Painter.erase_mode) {
-				ctx.globalAlpha = b_opacity;
-				ctx.globalCompositeOperation = 'destination-out'
-			}
-
-			if (shape === 'rectangle') {
-				ctx.strokeStyle = ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
-				ctx.lineWidth = width;
-				ctx.beginPath();
-				var rect = getRectangle(Painter.startPixel[0], Painter.startPixel[1], Painter.startPixel[0]+diff_x, Painter.startPixel[1]+diff_y);
-				
-				if (hollow) {
-					ctx.rect(rect.ax+(width%2 ? 0.5 : 1), rect.ay+(width%2 ? 0.5 : 1), rect.x, rect.y);
-					ctx.stroke();
-				} else {
-					ctx.rect(rect.ax, rect.ay, rect.x+1, rect.y+1);
-					ctx.fill();
+				if (event.shiftKey || Pressing.overrides.shift) {
+					let clamp = Math.floor((Math.abs(diff_x) + Math.abs(diff_y))/2);
+					diff_x = diff_x>0 ? clamp : -clamp;
+					diff_y = diff_y>0 ? clamp : -clamp;
 				}
-			} else if (shape === 'ellipse') {
-				Painter.modifyCanvasSection(ctx, rect[0], rect[1], w, h, (changePixel) => {
-					//changePixel(0, 0, editPx)
-					function editPx(pxcolor) {
-						if (!Painter.erase_mode) {
-							return Painter.combineColors(pxcolor, color, b_opacity);
-						} else {
-							if (b_opacity == 1) {
-								pxcolor.r = pxcolor.g = pxcolor.b = pxcolor.a = 0;
-							} else {
-								pxcolor.a = Math.clamp(pxcolor.a * (1-b_opacity), 0, 1);
-							}
-							return pxcolor;
-						}
-					}
+
+				if (Painter.erase_mode) {
+					ctx.globalAlpha = b_opacity;
+					ctx.globalCompositeOperation = 'destination-out'
+				}
+
+				if (shape === 'rectangle') {
+					ctx.strokeStyle = ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
+					ctx.lineWidth = width;
+					ctx.beginPath();
+					var rect = getRectangle(start_x, start_y, start_x+diff_x, start_y+diff_y);
+					
 					if (hollow) {
-						let r_min = Math.trunc(-width/2);
-						let r_max = Math.ceil(width/2);
-						for (var diff_x_m = diff_x+r_min; diff_x_m < diff_x+r_max; diff_x_m++) {
-							for (var diff_y_m = diff_y+r_min; diff_y_m < diff_y+r_max; diff_y_m++) {
-								for (var i = 0; i < Math.abs(diff_x_m); i++) {
-									for (var j = 0; j < 4; j++) {
-										changePixel(
-											Painter.startPixel[0] + (j<2?1:-1) * i,
-											Painter.startPixel[1] + (j%2?1:-1) * Math.round(Math.cos(Math.asin(i / Math.abs(diff_x_m))) * diff_y_m),
-											editPx
-										)
-									}
-								}
-								for (var i = 0; i < Math.abs(diff_y_m); i++) {
-									for (var j = 0; j < 4; j++) {
-										changePixel(
-											Painter.startPixel[0] + (j<2?1:-1) * Math.round(Math.sin(Math.acos(i / Math.abs(diff_y_m))) * diff_x_m),
-											Painter.startPixel[1] + (j%2?1:-1) * i,
-											editPx
-										)
-									}
-								}
-							}
-						}
+						ctx.rect(rect.ax+(width%2 ? 0.5 : 1), rect.ay+(width%2 ? 0.5 : 1), rect.x, rect.y);
+						ctx.stroke();
 					} else {
-						diff_x = Math.clamp(diff_x, -64, 64);
-						diff_y = Math.clamp(diff_y, -64, 64);
-						for (var i = 0; i <= Math.abs(diff_x); i++) {
-							let radius = Math.round(Math.cos(Math.asin(i / Math.abs(diff_x))) * Math.abs(diff_y))
-							for (var k = 0; k <= radius; k++) {
-								for (var j = 0; j < 4; j++) {
-									changePixel(
-										Painter.startPixel[0] + (j<2?1:-1) * i,
-										Painter.startPixel[1] + (j%2?1:-1) * k,
-										editPx
-									)
-								}
-							}
-						}
-						for (var i = 0; i <= Math.abs(diff_y); i++) {
-							let radius = Math.round(Math.sin(Math.acos(i / Math.abs(diff_y))) * Math.abs(diff_x))
-							for (var k = 0; k <= radius; k++) {
-								for (var j = 0; j < 4; j++) {
-									changePixel(
-										Painter.startPixel[0] + (j<2?1:-1) * k,
-										Painter.startPixel[1] + (j%2?1:-1) * i,
-										editPx
-									)
-								}
-							}
-						}
+						ctx.rect(rect.ax, rect.ay, rect.x+1, rect.y+1);
+						ctx.fill();
 					}
-				})
+				} else if (shape === 'ellipse') {
+					Painter.modifyCanvasSection(ctx, rect[0], rect[1], w, h, (changePixel) => {
+						//changePixel(0, 0, editPx)
+						function editPx(pxcolor) {
+							if (!Painter.erase_mode) {
+								return Painter.combineColors(pxcolor, color, b_opacity);
+							} else {
+								if (b_opacity == 1) {
+									pxcolor.r = pxcolor.g = pxcolor.b = pxcolor.a = 0;
+								} else {
+									pxcolor.a = Math.clamp(pxcolor.a * (1-b_opacity), 0, 1);
+								}
+								return pxcolor;
+							}
+						}
+						if (hollow) {
+							let r_min = Math.trunc(-width/2);
+							let r_max = Math.ceil(width/2);
+							for (var diff_x_m = diff_x+r_min; diff_x_m < diff_x+r_max; diff_x_m++) {
+								for (var diff_y_m = diff_y+r_min; diff_y_m < diff_y+r_max; diff_y_m++) {
+									for (var i = 0; i < Math.abs(diff_x_m); i++) {
+										for (var j = 0; j < 4; j++) {
+											changePixel(
+												start_x + (j<2?1:-1) * i,
+												start_y + (j%2?1:-1) * Math.round(Math.cos(Math.asin(i / Math.abs(diff_x_m))) * diff_y_m),
+												editPx
+											)
+										}
+									}
+									for (var i = 0; i < Math.abs(diff_y_m); i++) {
+										for (var j = 0; j < 4; j++) {
+											changePixel(
+												start_x + (j<2?1:-1) * Math.round(Math.sin(Math.acos(i / Math.abs(diff_y_m))) * diff_x_m),
+												start_y + (j%2?1:-1) * i,
+												editPx
+											)
+										}
+									}
+								}
+							}
+						} else {
+							diff_x = Math.clamp(diff_x, -64, 64);
+							diff_y = Math.clamp(diff_y, -64, 64);
+							for (var i = 0; i <= Math.abs(diff_x); i++) {
+								let radius = Math.round(Math.cos(Math.asin(i / Math.abs(diff_x))) * Math.abs(diff_y))
+								for (var k = 0; k <= radius; k++) {
+									for (var j = 0; j < 4; j++) {
+										changePixel(
+											start_x + (j<2?1:-1) * i,
+											start_y + (j%2?1:-1) * k,
+											editPx
+										)
+									}
+								}
+							}
+							for (var i = 0; i <= Math.abs(diff_y); i++) {
+								let radius = Math.round(Math.sin(Math.acos(i / Math.abs(diff_y))) * Math.abs(diff_x))
+								for (var k = 0; k <= radius; k++) {
+									for (var j = 0; j < 4; j++) {
+										changePixel(
+											start_x + (j<2?1:-1) * k,
+											start_y + (j%2?1:-1) * i,
+											editPx
+										)
+									}
+								}
+							}
+						}
+					})
+				}
 			}
+
+			drawShape(Painter.startPixel[0], Painter.startPixel[1], x, y, uvTag);
+			
+			if (Painter.mirror_painting) {
+				let target = Painter.getMirrorPaintTarget(texture, x, y, uvTag);
+				if (target) {
+					let start_target = Painter.getMirrorPaintTarget(texture, Painter.startPixel[0], Painter.startPixel[1], uvTag);
+					let old_element = Painter.current.element;
+					Painter.current.element = target.element;
+					drawShape(start_target.x, start_target.y, target.x, target.y, target.uv_tag)
+					Painter.current.element = old_element;
+				}
+			}
+
 			//Painter.editing_area = undefined;
 			ctx.globalAlpha = 1.0;
 			ctx.globalCompositeOperation = 'source-over';
@@ -724,55 +750,69 @@ const Painter = {
 		Painter.brushChanges = true;
 
 		texture.edit(function(canvas) {
+			let b_opacity = BarItems.slider_brush_opacity.get()/255;
 			var ctx = canvas.getContext('2d')
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			ctx.drawImage(Painter.current.clear, 0, 0)
 
-			let b_opacity = BarItems.slider_brush_opacity.get()/255;
+			function drawGradient(start_x, start_y, x, y, uvTag) {
+				let rect = Painter.setupRectFromFace(uvTag, texture);
+				var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
+				let diff_x = x - start_x;
+				let diff_y = y - start_y;
 
-			let rect = Painter.setupRectFromFace(uvTag, texture);
-			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
-			let diff_x = x - Painter.startPixel[0];
-			let diff_y = y - Painter.startPixel[1];
+				if (event.shiftKey || Pressing.overrides.shift) {
+					let length = Math.sqrt(Math.pow(diff_x, 2) + Math.pow(diff_y, 2));
 
-			if (event.shiftKey || Pressing.overrides.shift) {
-				let length = Math.sqrt(Math.pow(diff_x, 2) + Math.pow(diff_y, 2));
-
-				let ratio = Math.abs(diff_x) / Math.abs(diff_y);
-				if (ratio < 0.25) {
-					ratio = 0;
-					diff_x = 0;
-					diff_y = length;
-				} else if (ratio < 0.75) {
-					ratio = 0.5;
-					diff_x = Math.round(length / 2.2361);
-					diff_y = diff_x * 2;
-				} else if (ratio < 1.5) {
-					ratio = 1;
-					diff_x = Math.round(Math.sqrt(Math.pow(length, 2) / 2));
-					diff_y = diff_x;
-				} else if (ratio < 3) {
-					ratio = 2;
-					diff_y = Math.round(length / 2.2361);
-					diff_x = diff_y * 2;
-				} else {
-					ratio = Infinity;
-					diff_x = length;
-					diff_y = 0;
+					let ratio = Math.abs(diff_x) / Math.abs(diff_y);
+					if (ratio < 0.25) {
+						ratio = 0;
+						diff_x = 0;
+						diff_y = length;
+					} else if (ratio < 0.75) {
+						ratio = 0.5;
+						diff_x = Math.round(length / 2.2361);
+						diff_y = diff_x * 2;
+					} else if (ratio < 1.5) {
+						ratio = 1;
+						diff_x = Math.round(Math.sqrt(Math.pow(length, 2) / 2));
+						diff_y = diff_x;
+					} else if (ratio < 3) {
+						ratio = 2;
+						diff_y = Math.round(length / 2.2361);
+						diff_x = diff_y * 2;
+					} else {
+						ratio = Infinity;
+						diff_x = length;
+						diff_y = 0;
+					}
+					x = start_x + diff_x * Math.sign(x - start_x);
+					y = start_y + diff_y * Math.sign(y - start_y);
 				}
-				x = Painter.startPixel[0] + diff_x * Math.sign(x - Painter.startPixel[0]);
-				y = Painter.startPixel[1] + diff_y * Math.sign(y - Painter.startPixel[1]);
+
+				let gradient = ctx.createLinearGradient(start_x, start_y, x, y);
+				gradient.addColorStop(0, tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString());
+				gradient.addColorStop(1, tinycolor(ColorPanel.get()).setAlpha(0).toRgbString());
+
+				ctx.beginPath();
+				ctx.fillStyle = gradient;
+				ctx.rect(rect[0], rect[1], w, h);
+				ctx.fill();
+
+				return [diff_x, diff_y];
 			}
+			let [diff_x, diff_y] = drawGradient(Painter.startPixel[0], Painter.startPixel[1], x, y, uvTag);
 
-			let gradient = ctx.createLinearGradient(Painter.startPixel[0], Painter.startPixel[1], x, y);
-			gradient.addColorStop(0, tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString());
-			gradient.addColorStop(1, tinycolor(ColorPanel.get()).setAlpha(0).toRgbString());
-			
-			ctx.fillStyle = gradient;
-
-			ctx.rect(rect[0], rect[1], w, h);
-			ctx.fill();
-
+			if (Painter.mirror_painting) {
+				let target = Painter.getMirrorPaintTarget(texture, x, y, uvTag);
+				if (target) {
+					let start_target = Painter.getMirrorPaintTarget(texture, Painter.startPixel[0], Painter.startPixel[1], uvTag);
+					let old_element = Painter.current.element;
+					Painter.current.element = target.element;
+					drawGradient(start_target.x, start_target.y, target.x, target.y, target.uv_tag)
+					Painter.current.element = old_element;
+				}
+			}
 			let degrees = Math.round(Math.radToDeg(Math.atan2(diff_x, diff_y)) * 4) / 4;
 			Blockbench.setStatusBarText(`${Math.round(diff_x)} x ${Math.round(diff_y)}, ${degrees}°`);
 
@@ -802,7 +842,7 @@ const Painter = {
 		added.a = original_a
 		return mix;
 	},
-	getMirrorCube(element) {
+	getMirrorElement(element) {
 		let center = Format.centered_grid ? 0 : 8;
 		let e = 0.01
 		if (element instanceof Cube) {

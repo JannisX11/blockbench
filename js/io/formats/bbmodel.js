@@ -338,6 +338,8 @@ var codec = new Codec('project', {
 		this.dispatchEvent('merge', {model})
 		Project.added_models++;
 
+		let uuid_map = {};
+		let tex_uuid_map = {};
 		let new_elements = [];
 		let new_textures = [];
 		let new_animations = [];
@@ -363,8 +365,12 @@ var codec = new Codec('project', {
 		let height = model.resolution.height || Project.texture_height;
 
 		function loadTexture(tex) {
-			if (isApp && Texture.all.find(tex2 => tex.path == tex2.path)) {
-				return Texture.all.find(tex2 => tex.path == tex2.path)
+			if (isApp && Texture.all.find(tex2 => tex.path && tex.path == tex2.path)) {
+				return Texture.all.find(tex2 => tex.path && tex.path == tex2.path)
+			}
+			if (Texture.all.find(tex2 => tex2.uuid == tex.uuid)) {
+				tex_uuid_map[tex.uuid] = guid();
+				tex.uuid = tex_uuid_map[tex.uuid];
 			}
 			var tex_copy = new Texture(tex, tex.uuid).add(false);
 			if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
@@ -394,6 +400,11 @@ var codec = new Codec('project', {
 			model.elements.forEach(function(element) {
 				if (!OutlinerElement.isTypePermitted(element.type)) return;
 
+				if (Outliner.elements.find(el => el.uuid == element.uuid)) {
+					let uuid = guid();
+					uuid_map[element.uuid] = uuid;
+					element.uuid = uuid;
+				}
 				var copy = OutlinerElement.fromSave(element, true)
 				if (copy instanceof Cube) {
 					for (var face in copy.faces) {
@@ -433,11 +444,41 @@ var codec = new Codec('project', {
 			})
 		}
 		if (model.outliner) {
+			// Handle existing UUIDs
+			function processList(list) {
+				list.forEach((node, i) => {
+					if (typeof node == 'string') {
+						// element
+						if (uuid_map[node]) {
+							list[i] = uuid_map[node];
+						}
+					} else if (node && node.uuid) {
+						// Group
+						if (Group.all.find(g => g.uuid == node.uuid)) {
+							node.uuid = uuid_map[node.uuid] = guid();
+						}
+						if (node.children) processList(node.children);
+					}
+				})
+			}
+			processList(model.outliner);
+
 			parseGroups(model.outliner, true);
 		}
 		if (model.animations && Format.animation_mode) {
 			model.animations.forEach(ani => {
-				var base_ani = new Animation()
+				var base_ani = new Animation();
+				if (Animation.all.find(a => a.uuid == ani.uuid)) {
+					ani.uuid = guid();
+				}
+				if (base_ani.animators) {
+					for (let key in animators) {
+						if (uuid_map[key]) {
+							animators[uuid_map[key]] = animators[key];
+							delete animators[key];
+						}
+					}
+				}
 				base_ani.uuid = ani.uuid;
 				base_ani.extend(ani).add();
 				new_animations.push(base_ani);
