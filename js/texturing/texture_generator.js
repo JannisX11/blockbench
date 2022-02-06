@@ -112,7 +112,7 @@ const TextureGenerator = {
 				if (Mesh.selected[0]) {
 					Blockbench.showQuickMessage('message.box_uv_for_meshes', 1600);
 				}
-				TextureGenerator.generateTemplate(options, makeTexture);
+				TextureGenerator.generateBoxTemplate(options, makeTexture);
 			} else {
 				TextureGenerator.generateFaceTemplate(options, makeTexture);
 			}
@@ -149,7 +149,7 @@ const TextureGenerator = {
 		return this;	
 	},
 	//BoxUV Template
-	generateTemplate(options, cb) {
+	generateBoxTemplate(options, cb) {
 		var res = options.resolution;
 		var background_color = options.color;
 		var texture = options.texture;
@@ -627,7 +627,8 @@ const TextureGenerator = {
 						mesh,
 						faces: [face],
 						keys: [0],
-						normal: face.getNormal(true)
+						normal: face.getNormal(true),
+						texture: face.getTexture()
 					})
 				}
 	
@@ -776,6 +777,8 @@ const TextureGenerator = {
 					if (axis == 1 && face_group.normal[1] <= 0) face_group.face_key = 'down';
 					if (axis == 2 && face_group.normal[2] >= 0) face_group.face_key = 'south';
 					if (axis == 2 && face_group.normal[2] <= 0) face_group.face_key = 'north';
+
+
 				})
 				face_list.push(...face_groups);
 			}
@@ -792,6 +795,16 @@ const TextureGenerator = {
 			var extend_y = 0;
 
 			if (true) {
+
+				face_list.forEach(face_group => {
+					if (!face_group.mesh) return;
+					let face_uvs = face_group.faces.map((face) => {
+						return face.getSortedVertices().map(vkey => {
+							return face_group.vertex_uvs[vkey];
+						})
+					});
+					face_group.matrix = getPolygonOccupationMatrix(face_uvs, face_group.width, face_group.height);
+				})
 
 				face_list.sort(function(a,b) {
 					return b.size - a.size;
@@ -811,8 +824,10 @@ const TextureGenerator = {
 					if (options.padding) {
 						w++; h++;
 					}
-					for (var x = 0; x < w; x++) {		
+					for (var x = 0; x < w; x++) {
+						if (tpl.matrix && !tpl.matrix[x]) continue;
 						for (var y = 0; y < h; y++) {
+							if (tpl.matrix && !tpl.matrix[x][y]) continue;
 							if (cb(sx+x, sy+y)) return;
 						}
 					}
@@ -866,6 +881,51 @@ const TextureGenerator = {
 		var ctx = canvas.getContext('2d')
 		ctx.imageSmoothingEnabled = false;
 
+		function getPolygonOccupationMatrix(vertex_uv_faces, width, height) {
+			let matrix = {};
+			function vSub(a, b) {
+				return [a[0]-b[0], a[1]-b[1]];
+			}
+			function getSide(a, b) {
+				let cosine_sign = a[0]*b[1] - a[1]*b[0];
+				if (cosine_sign > 0) return 1;
+				if (cosine_sign < 0) return -1;
+			}
+			function pointInsidePolygon(x, y) {
+				face_uvs:
+				for (let vertex_uvs of vertex_uv_faces) {
+					let previous_side;
+					let i = 0;
+					vertices:
+					for (let a of vertex_uvs) {
+						let b = vertex_uvs[i+1] || vertex_uvs[0];
+						let affine_segment = vSub(b, a);
+						let affine_point = vSub([x, y], a);
+						let side = getSide(affine_segment, affine_point);
+						if (!side) continue face_uvs;
+						if (!previous_side) previous_side = side;
+						if (side !== previous_side) continue face_uvs;
+						i++;
+					}
+					return true;
+				}
+				return false;
+			}
+			for (let x = 0; x < (0 + width); x++) {
+				for (let y =0; y < (0 + height); y++) {
+					let inside = ( pointInsidePolygon(x+0.00001, y+0.00001)
+								|| pointInsidePolygon(x+0.99999, y+0.00001)
+								|| pointInsidePolygon(x+0.00001, y+0.99999)
+								|| pointInsidePolygon(x+0.99999, y+0.99999));
+					if (inside) {
+						if (!matrix[x]) matrix[x] = {};
+						matrix[x][y] = true;
+					}
+				}
+			}
+			return matrix;
+		}
+
 
 		function drawTemplateRectangle(border_color, color, coords) {
 			if (typeof background_color === 'string') {
@@ -889,7 +949,36 @@ const TextureGenerator = {
 				)
 			}
 		}
-		function drawTexture(face, coords) {
+		function drawTemplatePolygons(border_color, color, ftemp, pos) {
+			if (typeof background_color === 'string') {
+				border_color = background_color
+				color = undefined
+			}
+			
+			if (border_color) border_color = tinycolor(border_color).toRgb();
+			if (color) color = tinycolor(color).toRgb();
+
+			let R = res_multiple;
+			let matrix = ftemp.matrix;
+			Painter.scanCanvas(ctx, pos.x * R, pos.y * R, pos.w * R, pos.h * R, (x, y) => {
+				x -= pos.x*R;
+				y -= pos.y*R;
+				if (matrix[Math.floor(x / R)] && matrix[Math.floor(x / R)][Math.floor(y / R)]) {
+					if (
+						color &&
+						(matrix[Math.floor((x+1) / R)] && matrix[Math.floor((x+1) / R)][Math.floor(y / R)  ]) &&
+						(matrix[Math.floor((x-1) / R)] && matrix[Math.floor((x-1) / R)][Math.floor(y / R)  ]) &&
+						(matrix[Math.floor(x / R)  ] && matrix[Math.floor(x / R)  ][Math.floor((y+1) / R)]) &&
+						(matrix[Math.floor(x / R)  ] && matrix[Math.floor(x / R)  ][Math.floor((y-1) / R)])
+					) {
+						return [color.r, color.g, color.b, color.a * 255];
+					} else {
+						return [border_color.r, border_color.g, border_color.b, border_color.a * 255];
+					}
+				}
+			})
+		}
+		function drawCubeTexture(face, coords) {
 			if (!Format.single_texture) {
 				if (face.texture === undefined || face.texture === null) return false;
 				texture = face.getTexture()
@@ -921,7 +1010,7 @@ const TextureGenerator = {
 
 				if (rot <= 180) flip[1] *= -1;
 				if (rot >= 180) flip[0] *= -1;
-				
+
 				while (rot > 0) {
 					[coords.x, coords.y] = [coords.y, coords.x];
 					[coords.w, coords.h] = [coords.h, coords.w];
@@ -942,6 +1031,72 @@ const TextureGenerator = {
 			ctx.restore()
 			return true;
 		}
+		function drawMeshTexture(ftemp, coords) {
+			if (!Format.single_texture) {
+				if (ftemp.faces[0].texture === undefined) return false;
+				texture = ftemp.faces[0].getTexture()
+			} else {
+				texture = Texture.getDefault();
+			}
+			if (!texture || !texture.img) return false;
+
+			/*
+			ctx.save()
+			let a_old = ftemp.faces[0].uv[ftemp.faces[0].vertices[0]];
+			let b_old = ftemp.faces[0].uv[ftemp.faces[0].vertices[1]];
+			let a_new = ftemp.vertex_uvs[ftemp.faces[0].vertices[0]];
+			let b_new = ftemp.vertex_uvs[ftemp.faces[0].vertices[1]];
+			let _old = Math.atan2(
+				b_old[1] - a_old[1],
+				b_old[0] - a_old[0],
+			)
+			let _new = Math.atan2(
+				b_new[1] - a_new[1],
+				b_new[0] - a_new[0],
+			)
+			let rotation_difference = Math.radToDeg(_new - _old);
+			if (Math.abs(((rotation_difference + 540) % 360) - 180) > 15) return false;
+			*/
+
+			ctx.save()
+			let R = res_multiple;
+			let min = [Infinity, Infinity];
+			let max = [0, 0];
+			ftemp.faces.forEach(face => {
+				face.vertices.forEach(vkey => {
+					min[0] = Math.min(min[0], face.uv[vkey][0]);
+					min[1] = Math.min(min[1], face.uv[vkey][1]);
+					max[0] = Math.max(max[0], face.uv[vkey][0]);
+					max[1] = Math.max(max[1], face.uv[vkey][1]);
+				})
+			})
+			
+			ctx.beginPath()
+			// Mask
+			for (let x in ftemp.matrix) {
+				x = parseInt(x);
+				for (let y in ftemp.matrix[x]) {
+					y = parseInt(y);
+					ctx.rect((coords.x + x)*R, (coords.y + y)*R, R, R);
+				}
+			}
+			ctx.closePath();
+			ctx.clip();
+
+			ctx.drawImage(
+				texture.img,
+				min[0] / Project.texture_width * texture.img.naturalWidth,
+				min[1] / Project.texture_height * texture.img.naturalHeight,
+				Math.ceil((max[0] - min[0]) / Project.texture_width * texture.img.naturalWidth),
+				Math.ceil((max[1] - min[1]) / Project.texture_height * texture.img.naturalHeight),
+				coords.x*R,
+				coords.y*R,
+				coords.w*R,
+				coords.h*R
+			)
+			ctx.restore()
+			return true;
+		}
 
 		//Drawing
 		face_list.forEach(function(ftemp) {
@@ -953,13 +1108,23 @@ const TextureGenerator = {
 			}
 			var d = TextureGenerator.face_data[ftemp.face_key];
 			var flip_rotation = false;
-			if (!ftemp.texture ||
-				ftemp.mesh ||
-				!drawTexture(ftemp.face, pos)
-			) {
-				drawTemplateRectangle(d.c1, d.c2, pos)
-			} else if (ftemp.cube) {
-				flip_rotation = ftemp.face.rotation % 180 != 0;
+			
+			if (ftemp.cube) {
+				// Cube
+				if (!ftemp.texture ||
+					!drawCubeTexture(ftemp.face, pos)
+				) {
+					drawTemplateRectangle(d.c1, d.c2, pos)
+				} else if (ftemp.cube) {
+					flip_rotation = ftemp.face.rotation % 180 != 0;
+				}
+			} else if (ftemp.mesh) {
+				// Mesh
+				if (!ftemp.texture ||
+					!drawMeshTexture(ftemp, pos)
+				) {
+					drawTemplatePolygons(d.c1, d.c2, ftemp, pos)
+				}
 			}
 
 			if (options.rearrange_uv) {

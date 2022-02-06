@@ -245,7 +245,8 @@ class Cube extends OutlinerElement {
 		for (var face in this.faces) {
 			el.faces[face] = this.faces[face].getSaveCopy(project)
 		}
-		el.uuid = this.uuid
+		el.type = this.type;
+		el.uuid = this.uuid;
 		return el;
 	}
 	roll(axis, steps, origin) {
