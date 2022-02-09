@@ -1221,7 +1221,7 @@ class Texture {
 						Undo.finishEdit('change texture view mode');
 					}
 					return [
-						{name: 'menu.texture.render_mode.normal', icon: texture.render_mode == 'normal' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('normal')}},
+						{name: 'menu.texture.render_mode.default', icon: texture.render_mode == 'default' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('default')}},
 						{name: 'menu.texture.render_mode.emissive', icon: texture.render_mode == 'emissive' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('emissive')}},
 						{name: 'menu.texture.render_mode.layered', icon: texture.render_mode == 'layered' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('layered')}, condition: () => Format.single_texture},
 					]
@@ -1316,7 +1316,7 @@ class Texture {
 	new Property(Texture, 'string', 'namespace')
 	new Property(Texture, 'string', 'id')
 	new Property(Texture, 'boolean', 'particle')
-	new Property(Texture, 'string', 'render_mode', {default: 'normal'})
+	new Property(Texture, 'string', 'render_mode', {default: 'default'})
 
 	Object.defineProperty(Texture, 'all', {
 		get() {

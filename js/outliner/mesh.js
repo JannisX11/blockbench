@@ -749,6 +749,9 @@ new NodePreviewController(Mesh, {
 		
 		} else if (Project.view_mode === 'normal') {
 			mesh.material = Canvas.normalHelperMaterial
+		
+		} else if (Project.view_mode === 'uv') {
+			mesh.material = Canvas.uvHelperMaterial
 
 		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
 			mesh.material = Canvas.getLayeredMaterial();

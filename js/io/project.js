@@ -477,6 +477,7 @@ function updateProjectResolution() {
 		UVEditor.vue.project_resolution.replace([Project.texture_width, Project.texture_height]);
 		UVEditor.vue.updateSize()
 	}
+	Canvas.uvHelperMaterial.uniforms.DENSITY.value = Project.texture_width / 32;
 	if (Texture.selected) {
 		// Update animated textures
 		Texture.selected.height++;

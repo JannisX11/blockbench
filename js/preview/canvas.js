@@ -212,6 +212,101 @@ const Canvas = {
 			side: THREE.DoubleSide
 		});
 	})(),
+	uvHelperMaterial: (function() {
+		var img = new Image()
+		img.src = 'assets/uv_preview.png'
+		var tex = new THREE.Texture(img)
+		img.tex = tex;
+		img.tex.magFilter = THREE.NearestFilter
+		img.tex.minFilter = THREE.NearestFilter
+		img.tex.wrapS = img.tex.wrapT = THREE.RepeatWrapping;
+		img.onload = function() {
+			this.tex.needsUpdate = true;
+		}
+		var vertShader = `
+			attribute float highlight;
+
+			uniform bool SHADE;
+			uniform float DENSITY;
+
+			varying vec2 vUv;
+			varying float light;
+			varying float lift;
+
+			float AMBIENT = 0.1;
+			float XFAC = -0.05;
+			float ZFAC = 0.05;
+
+			void main()
+			{
+
+				if (SHADE) {
+
+					vec3 N = normalize( vec3( modelViewMatrix * vec4(normal, 0.0) ) );
+
+					light = (0.2 + abs(N.z) * 0.8) * (1.0-AMBIENT) + N.x*N.x * XFAC + N.y*N.y * ZFAC + AMBIENT;
+
+				} else {
+
+					light = 1.0;
+
+				}
+
+				if (highlight == 2.0) {
+					lift = 0.3;
+				} else if (highlight == 1.0) {
+					lift = 0.12;
+				} else {
+					lift = 0.0;
+				}
+				
+				vUv = uv;
+				vUv.x = vUv.x * DENSITY;
+				vUv.y = vUv.y * DENSITY;
+				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+				gl_Position = projectionMatrix * mvPosition;
+			}`
+		var fragShader = `
+			#ifdef GL_ES
+			precision ${isApp ? 'highp' : 'mediump'} float;
+			#endif
+
+			uniform sampler2D map;
+
+			uniform bool SHADE;
+
+			varying vec2 vUv;
+			varying float light;
+			varying float lift;
+
+			void main(void)
+			{
+
+				vec4 color = texture2D(map, vUv);
+				
+				if (color.a < 0.01) discard;
+
+				gl_FragColor = vec4(lift + color.rgb * light, color.a);
+
+
+				if (lift > 0.2) {
+					gl_FragColor.r = gl_FragColor.r * 0.6;
+					gl_FragColor.g = gl_FragColor.g * 0.7;
+				}
+
+			}`
+
+		return new THREE.ShaderMaterial({
+			uniforms: {
+				map: {type: 't', value: tex},
+				SHADE: {type: 'bool', value: settings.shading.value},
+				DENSITY: {type: 'float', value: 4}
+			},
+			vertexShader: vertShader,
+			fragmentShader: fragShader,
+			side: THREE.DoubleSide,
+		})
+	})(),
 	emptyMaterials: (function() {
 		var img = new Image()
 		img.src = 'assets/missing.png'
@@ -594,7 +689,7 @@ const Canvas = {
 				}
 				if (used === true) {
 					obj.preview_controller.updateFaces(obj);
-					if (Project.view_mode === 'textured' && obj.preview_controller.updateUV) {
+					if (obj.preview_controller.updateUV) {
 						obj.preview_controller.updateUV(obj);
 					}
 				}

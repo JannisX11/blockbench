@@ -1179,9 +1179,7 @@ const UVEditor = {
 				obj.faces[side].reset()
 			})
 			obj.preview_controller.updateFaces(obj);
-			if (Project.view_mode === 'textured') {
-				obj.preview_controller.updateUV(obj);
-			}
+			obj.preview_controller.updateUV(obj);
 		})
 		this.loadData()
 		this.message('uv_editor.reset')

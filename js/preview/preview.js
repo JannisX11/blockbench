@@ -1974,6 +1974,7 @@ function updateShading() {
 	})
 	Canvas.solidMaterial.uniforms.SHADE.value = settings.shading.value;
 	Canvas.solidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+	Canvas.uvHelperMaterial.uniforms.SHADE.value = settings.shading.value;
 	Canvas.normalHelperMaterial.uniforms.SHADE.value = settings.shading.value;
 }
 function updateCubeHighlights(hover_cube, force_off) {
@@ -2144,6 +2145,7 @@ BARS.defineActions(function() {
 			textured: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('textured'))},
 			solid: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('solid'))},
 			wireframe: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('wireframe'))},
+			uv: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('uv'))},
 			normal: {name: true, condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('normal')) && Mesh.all.length)},
 		},
 		onChange() {

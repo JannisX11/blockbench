@@ -808,10 +808,7 @@ new NodePreviewController(Cube, {
 		this.updateTransform(element);
 		this.updateGeometry(element);
 		this.updateFaces(element);
-		
-		if (Project.view_mode === 'textured') {
-			this.updateUV(element);
-		}
+		this.updateUV(element);
 		
 	},
 	updateTransform(element) {
@@ -898,6 +895,9 @@ new NodePreviewController(Cube, {
 		
 		} else if (Project.view_mode === 'normal') {
 			mesh.material = Canvas.normalHelperMaterial
+		
+		} else if (Project.view_mode === 'uv') {
+			mesh.material = Canvas.uvHelperMaterial
 
 		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
 			mesh.material = Canvas.getLayeredMaterial();
@@ -924,7 +924,6 @@ new NodePreviewController(Cube, {
 		if (!mesh.material) mesh.material = Canvas.transparentMaterial;
 	},
 	updateUV(cube, animation = true) {
-		if (Project.view_mode !== 'textured') return;
 		var mesh = cube.mesh
 		if (mesh === undefined || !mesh.geometry) return;
 
