@@ -1180,23 +1180,31 @@
 
 							var difference = point[axis] - previousValue
 
-							var overlapping = false
-							if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
-								selected.forEach(function(obj) {
-									if (obj.movable && obj.resizable) {
-										overlapping = overlapping || (
-											obj.to[axisNumber] + difference + obj.inflate > 32 ||
-											obj.to[axisNumber] + difference + obj.inflate < -16 ||
-											obj.from[axisNumber] + difference - obj.inflate > 32 ||
-											obj.from[axisNumber] + difference - obj.inflate < -16
-										)
-									}
-								})
+							var data = {
+								overlapping: false,
+								axisNumber,
+								difference
 							}
-							if (!overlapping) {
+							if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
+								if (Format.custom_canvas_limiter) {
+									selected.forEach(obj => Format.custom_canvas_limiter(obj, data))
+								} else {
+									selected.forEach(function(obj) {
+										if (obj.movable && obj.resizable) {
+											data.overlapping = data.overlapping || (
+												obj.to[data.axisNumber] + data.difference + obj.inflate > 32 ||
+												obj.to[data.axisNumber] + data.difference + obj.inflate < -16 ||
+												obj.from[data.axisNumber] + data.difference - obj.inflate > 32 ||
+												obj.from[data.axisNumber] + data.difference - obj.inflate < -16
+											)
+										}
+									})
+								}
+							}
+							if (!data.overlapping) {
 								displayDistance(point[axis] - originalValue);
 
-								moveElementsInSpace(difference, axisNumber)
+								moveElementsInSpace(data.difference, data.axisNumber)
 
 								updateSelection()
 							}
