@@ -216,14 +216,14 @@ new NodePreviewController(TextureMesh, {
 					ex += 0.4 * -dir;
 					sy += 0.1;
 					ey -= 0.1;
-					addNormal(dir, 0, 0);
+					addNormal(-dir, 0, 0);
 				}
 				if (sy == ey) {
 					sy += 0.1 * dir;
 					ey += 0.4 * dir;
 					sx += 0.1;
 					ex -= 0.1;
-					addNormal(0, 0, dir);
+					addNormal(0, 0, -dir);
 				}
 				uvs.push(
 					ex / canvas.width, 1 - (sy / canvas.height),
