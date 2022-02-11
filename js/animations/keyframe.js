@@ -169,7 +169,7 @@ class Keyframe {
 		let this_data_point = (this.data_points.length > 1 && this.time < other.time) ? 1 : 0;
 		let other_data_point = (other.data_points.length > 1 && this.time > other.time) ? 1 : 0;
 		if (allow_expression && this.get(axis, this_data_point) === other.get(axis, other_data_point)) {
-			return this.get(axis)
+			return this.get(axis, this_data_point);
 		} else {
 			let calc = this.calc(axis, this_data_point);
 			return calc + (other.calc(axis, other_data_point) - calc) * amount;
@@ -1001,7 +1001,7 @@ Interface.definePanels(function() {
 					})
 				},
 				focusAxis(axis) {
-					if (Timeline.vue.graph_editor_open && 'xyz'.includes(axis)) {
+					if ('xyz'.includes(axis)) {
 						Timeline.vue.graph_editor_axis = axis;
 					}
 				},
