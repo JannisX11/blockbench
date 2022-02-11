@@ -34,7 +34,7 @@ class ModelFormat {
 		if (typeof this.onActivation == 'function') {
 			Format.onActivation()
 		}
-		buildGrid()
+		Canvas.buildGrid()
 		if (Format.centered_grid) {
 			scene.position.set(0, 0, 0);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 8;

@@ -67,11 +67,19 @@
 	div#center > div {
 		max-height: 100%;
 	}
-	div#preview {
+	#preview {
 		flex-grow: 1;
 		background-repeat: no-repeat;
 		background-size: 1000px;
 		position: relative;
+
+		--color-solid: #c1c1c1;
+		--color-outline: var(--color-accent);
+		--color-gizmohover: var(--color-outline);
+		--color-ground: var(--color-back);
+		--color-axis-x: #fd3043;
+		--color-axis-y: #26ec45;
+		--color-axis-z: #2d5ee8;
 	}
 	#status_bar {
 		grid-area: status_bar;

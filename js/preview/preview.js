@@ -1,24 +1,22 @@
 var scene,
 	main_preview, MediaPreview,
 	Sun, lights,
-	outlines,
 	Transformer,
 	canvas_scenes,
 	display_scene, display_area, display_base;
 var framespersecond = 0;
 var display_mode = false;
-var doRender = false;
 var quad_previews = {};
 const three_grid = new THREE.Object3D();
 const rot_origin = new THREE.Object3D();
 var gizmo_colors = {
-	r: new THREE.Color(0xfd3043),
-	g: new THREE.Color(0x26ec45),
-	b: new THREE.Color(0x2d5ee8),
-	grid: new THREE.Color(0x495061),
-	wire: new THREE.Color(0x576f82),
-	solid: new THREE.Color(0xc1c1c1),
-	outline: new THREE.Color(0x3e90ff)
+	r: new THREE.Color(),
+	g: new THREE.Color(),
+	b: new THREE.Color(),
+	grid: new THREE.Color(),
+	solid: new THREE.Color(),
+	outline: new THREE.Color(),
+	gizmo_hover: new THREE.Color()
 }
 const DefaultCameraPresets = [
 	{
@@ -1983,156 +1981,6 @@ function updateCubeHighlights(hover_cube, force_off) {
 			element.preview_controller.updateHighlight(element, hover_cube, force_off);
 		}
 	})
-}
-//Helpers
-function buildGrid() {
-	three_grid.children.length = 0;
-	if (Canvas.side_grids) {
-		Canvas.side_grids.x.children.length = 0;
-		Canvas.side_grids.z.children.length = 0;
-	}
-	if (Modes.display && settings.display_grid.value === false) return;
-
-	three_grid.name = 'grid_group'
-	gizmo_colors.grid.set(parseInt('0x'+CustomTheme.data.colors.grid.replace('#', ''), 16));
-	var material;
-
-	Canvas.northMarkMaterial.color = gizmo_colors.grid
-
-	function setupAxisLine(origin, length, axis) {
-		var color = 'rgb'[getAxisNumber(axis)]
-		var material = new THREE.LineBasicMaterial({color: gizmo_colors[color]});
-		var dest = new THREE.Vector3().copy(origin);
-		dest[axis] += length;
-		let points = [
-			origin,
-			dest
-		];
-		let geometry = new THREE.BufferGeometry().setFromPoints(points)
-		
-
-		//geometry.vertices.push(origin)
-		//geometry.vertices.push(dest)
-
-		var line = new THREE.Line(geometry, material);
-		line.name = 'axis_line_'+axis;
-		three_grid.add(line)
-	}
-	//Axis Lines
-	if (settings.base_grid.value) {
-		var length = Format.centered_grid
-			? (settings.full_grid.value ? 24 : 8)
-			: 16
-		setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'x')
-		setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'z')
-
-	}
-
-	var side_grid = new THREE.Object3D()
-
-	if (settings.full_grid.value === true) {
-		//Grid
-		let size = settings.large_grid_size.value*16;
-		var grid = new THREE.GridHelper(size, size/canvasGridSize(), gizmo_colors.grid)
-		if (Format.centered_grid) {
-			grid.position.set(0,0,0)
-		} else { 
-			grid.position.set(8,0,8)
-		}
-		grid.name = 'grid'
-		three_grid.add(grid)
-		side_grid.add(grid.clone())
-
-		//North
-		geometry = new THREE.PlaneGeometry(5, 5)
-		var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
-		if (Format.centered_grid) {
-			north_mark.position.set(0,0, -3 - size/2)
-		} else {
-			north_mark.position.set(8, 0, 5 - size/2)
-		}
-		north_mark.rotation.x = Math.PI / -2
-		three_grid.add(north_mark)
-
-	} else {
-		if (settings.large_grid.value === true) {
-			//Grid
-			let size = settings.large_grid_size.value
-			var grid = new THREE.GridHelper(size*16, size, gizmo_colors.grid)
-			if (Format.centered_grid) {
-				grid.position.set(0,0,0)
-			} else { 
-				grid.position.set(8,0,8)
-			}
-			grid.name = 'grid'
-			three_grid.add(grid)
-			side_grid.add(grid.clone())
-		}
-
-		if (settings.base_grid.value === true) {
-			//Grid
-			var grid = new THREE.GridHelper(16, 16/canvasGridSize(), gizmo_colors.grid)
-
-			if (Format.centered_grid) {
-				grid.position.set(0,0,0)
-			} else { 
-				grid.position.set(8,0,8)
-			}
-			grid.name = 'grid'
-			three_grid.add(grid)
-			side_grid.add(grid.clone())
-
-			//North
-			geometry = new THREE.PlaneGeometry(2.4, 2.4)
-			var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
-			if (Format.centered_grid) {
-				north_mark.position.set(0,0,-9.5)
-			} else {
-				north_mark.position.set(8,0,-1.5)
-			}
-			north_mark.rotation.x = Math.PI / -2
-			three_grid.add(north_mark)
-		}
-	}
-	if (settings.large_box.value === true) {
-		var geometry_box = new THREE.EdgesGeometry(new THREE.BoxBufferGeometry(48, 48, 48));
-
-		var line_material = new THREE.LineBasicMaterial({color: gizmo_colors.grid});
-		var large_box = new THREE.LineSegments( geometry_box, line_material);
-		if (Format.centered_grid) {
-			large_box.position.set(0,8,0)
-		} else { 
-			large_box.position.set(8,8,8)
-		}
-		large_box.name = 'grid'
-		three_grid.add(large_box)
-	}
-	scene.add(three_grid)
-
-	Canvas.side_grids = {
-		x: side_grid,
-		z: side_grid.clone()
-	}
-	three_grid.add(Canvas.side_grids.x)
-	Canvas.side_grids.x.name = 'side_grid_x'
-	Canvas.side_grids.x.visible = !Modes.display;
-	Canvas.side_grids.x.rotation.z = Math.PI/2;
-	Canvas.side_grids.x.position.y = Format.centered_grid ? 8 : 0;
-	Canvas.side_grids.z.position.z = 0
-	Canvas.side_grids.x.children.forEach(el => {
-		el.layers.set(1)
-	});
-
-	three_grid.add(Canvas.side_grids.z)
-	Canvas.side_grids.z.name = 'side_grid_z'
-	Canvas.side_grids.z.visible = !Modes.display;
-	Canvas.side_grids.z.rotation.z = Math.PI/2;
-	Canvas.side_grids.z.rotation.y = Math.PI/2
-	Canvas.side_grids.z.position.y = Format.centered_grid ? 8 : 0;
-	Canvas.side_grids.z.position.z = 0
-	Canvas.side_grids.z.children.forEach(el => {
-		el.layers.set(3)
-	});
 }
 
 BARS.defineActions(function() {

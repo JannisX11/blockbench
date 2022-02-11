@@ -1165,7 +1165,7 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	$('#display_bar input#thirdperson_righthand').prop("checked", true)
 
 
-	buildGrid()
+	Canvas.buildGrid()
 	updateShading()
 	DisplayMode.loadThirdRight()
 
@@ -1192,7 +1192,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 		openQuadView()
 	}
 	scene.add(Transformer)
-	buildGrid()
+	Canvas.buildGrid()
 	updateShading()
 	Canvas.updateRenderSides()
 }

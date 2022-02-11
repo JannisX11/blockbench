@@ -37,6 +37,12 @@ const Reusable = {
 }
 
 const Canvas = {
+	// Stores various colors for the 3D scene
+	gizmo_colors,
+	// Main Blockbench 3D scene
+	scene,
+	// Pivot marker
+	pivot_marker: rot_origin,
 	outlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
 		transparent: true,
@@ -49,7 +55,6 @@ const Canvas = {
 	}),
 	meshVertexMaterial: new THREE.PointsMaterial({size: 7, sizeAttenuation: false, vertexColors: true}),
 	wireframeMaterial: new THREE.MeshBasicMaterial({
-		color: gizmo_colors.wire,
 		wireframe: true
 	}),
 	solidMaterial: (function() {
@@ -403,6 +408,155 @@ const Canvas = {
 	})(),
 	transparentMaterial: new THREE.MeshBasicMaterial({visible: false, name: 'invisible'}),
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
+	buildGrid() {
+		three_grid.children.length = 0;
+		if (Canvas.side_grids) {
+			Canvas.side_grids.x.children.length = 0;
+			Canvas.side_grids.z.children.length = 0;
+		}
+		if (Modes.display && settings.display_grid.value === false) return;
+
+		three_grid.name = 'grid_group'
+		gizmo_colors.grid.set(parseInt('0x'+CustomTheme.data.colors.grid.replace('#', ''), 16));
+
+		Canvas.northMarkMaterial.color = gizmo_colors.grid
+
+		function setupAxisLine(origin, length, axis) {
+			var color = 'rgb'[getAxisNumber(axis)]
+			var material = new THREE.LineBasicMaterial({color: gizmo_colors[color]});
+			var dest = new THREE.Vector3().copy(origin);
+			dest[axis] += length;
+			let points = [
+				origin,
+				dest
+			];
+			let geometry = new THREE.BufferGeometry().setFromPoints(points)
+			
+
+			//geometry.vertices.push(origin)
+			//geometry.vertices.push(dest)
+
+			var line = new THREE.Line(geometry, material);
+			line.name = 'axis_line_'+axis;
+			three_grid.add(line)
+		}
+		//Axis Lines
+		if (settings.base_grid.value) {
+			var length = Format.centered_grid
+				? (settings.full_grid.value ? 24 : 8)
+				: 16
+			setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'x')
+			setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'z')
+
+		}
+
+		var side_grid = new THREE.Object3D()
+
+		if (settings.full_grid.value === true) {
+			//Grid
+			let size = settings.large_grid_size.value*16;
+			var grid = new THREE.GridHelper(size, size/canvasGridSize(), Canvas.gridMaterial);
+			if (Format.centered_grid) {
+				grid.position.set(0,0,0)
+			} else { 
+				grid.position.set(8,0,8)
+			}
+			grid.name = 'grid'
+			three_grid.add(grid)
+			side_grid.add(grid.clone())
+
+			//North
+			geometry = new THREE.PlaneGeometry(5, 5)
+			var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
+			if (Format.centered_grid) {
+				north_mark.position.set(0,0, -3 - size/2)
+			} else {
+				north_mark.position.set(8, 0, 5 - size/2)
+			}
+			north_mark.rotation.x = Math.PI / -2
+			three_grid.add(north_mark)
+
+		} else {
+			if (settings.large_grid.value === true) {
+				//Grid
+				let size = settings.large_grid_size.value
+				var grid = new THREE.GridHelper(size*16, size, Canvas.gridMaterial);
+				if (Format.centered_grid) {
+					grid.position.set(0,0,0)
+				} else { 
+					grid.position.set(8,0,8)
+				}
+				grid.name = 'grid'
+				three_grid.add(grid)
+				side_grid.add(grid.clone())
+			}
+
+			if (settings.base_grid.value === true) {
+				//Grid
+				var grid = new THREE.GridHelper(16, 16/canvasGridSize(), Canvas.gridMaterial);
+
+				if (Format.centered_grid) {
+					grid.position.set(0,0,0)
+				} else { 
+					grid.position.set(8,0,8)
+				}
+				grid.name = 'grid'
+				three_grid.add(grid)
+				side_grid.add(grid.clone())
+
+				//North
+				geometry = new THREE.PlaneGeometry(2.4, 2.4)
+				var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
+				if (Format.centered_grid) {
+					north_mark.position.set(0,0,-9.5)
+				} else {
+					north_mark.position.set(8,0,-1.5)
+				}
+				north_mark.rotation.x = Math.PI / -2
+				three_grid.add(north_mark)
+			}
+		}
+		if (settings.large_box.value === true) {
+			var geometry_box = new THREE.EdgesGeometry(new THREE.BoxBufferGeometry(48, 48, 48));
+
+			var line_material = new THREE.LineBasicMaterial({color: gizmo_colors.grid});
+			var large_box = new THREE.LineSegments( geometry_box, line_material);
+			if (Format.centered_grid) {
+				large_box.position.set(0,8,0)
+			} else { 
+				large_box.position.set(8,8,8)
+			}
+			large_box.name = 'grid'
+			three_grid.add(large_box)
+		}
+		scene.add(three_grid)
+
+		Canvas.side_grids = {
+			x: side_grid,
+			z: side_grid.clone()
+		}
+		three_grid.add(Canvas.side_grids.x)
+		Canvas.side_grids.x.name = 'side_grid_x'
+		Canvas.side_grids.x.visible = !Modes.display;
+		Canvas.side_grids.x.rotation.z = Math.PI/2;
+		Canvas.side_grids.x.position.y = Format.centered_grid ? 8 : 0;
+		Canvas.side_grids.z.position.z = 0
+		Canvas.side_grids.x.children.forEach(el => {
+			el.layers.set(1)
+		});
+
+		three_grid.add(Canvas.side_grids.z)
+		Canvas.side_grids.z.name = 'side_grid_z'
+		Canvas.side_grids.z.visible = !Modes.display;
+		Canvas.side_grids.z.rotation.z = Math.PI/2;
+		Canvas.side_grids.z.rotation.y = Math.PI/2
+		Canvas.side_grids.z.position.y = Format.centered_grid ? 8 : 0;
+		Canvas.side_grids.z.position.z = 0
+		Canvas.side_grids.z.children.forEach(el => {
+			el.layers.set(3)
+		});
+	},
+
 	face_order: ['east', 'west', 'up', 'down', 'south', 'north'],
 	temp_vectors: [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()],
 
@@ -456,7 +610,6 @@ const Canvas = {
 		lights.west.intensity = lights.east.intensity = 0.1
 
 		updateShading()
-	
 
 		var img = new Image();
 		img.src = 'assets/north.png';
@@ -497,12 +650,12 @@ const Canvas = {
 		helper2.rotation.y = Math.PI / 1
 		helper2.scale.y = -1
 
-		rot_origin.add(helper1)
-		rot_origin.add(helper2)
+		Canvas.pivot_marker.add(helper1)
+		Canvas.pivot_marker.add(helper2)
 
-		rot_origin.rotation.reorder('ZYX')
-		rot_origin.base_scale = new THREE.Vector3(1, 1, 1);
-		rot_origin.no_export = true;
+		Canvas.pivot_marker.rotation.reorder('ZYX')
+		Canvas.pivot_marker.base_scale = new THREE.Vector3(1, 1, 1);
+		Canvas.pivot_marker.no_export = true;
 
 		Canvas.groundPlaneMaterial = new THREE.MeshBasicMaterial({
 			map: Canvas.emptyMaterials[0].uniforms.map.value,
@@ -543,7 +696,7 @@ const Canvas = {
 			edit(Canvas.side_grids.z)
 			edit(Transformer)
 			edit(Canvas.outlines)
-			edit(rot_origin)
+			edit(Canvas.pivot_marker)
 			edit(Vertexsnap.line)
 			edit(Animator.motion_trail)
 			Outliner.elements.forEach(element => {
@@ -823,20 +976,20 @@ const Canvas = {
 		}
 	},
 	updatePivotMarker() {
-		if (rot_origin.parent) {
-			rot_origin.parent.remove(rot_origin)
+		if (Canvas.pivot_marker.parent) {
+			Canvas.pivot_marker.parent.remove(Canvas.pivot_marker)
 		}
 		if (settings.origin_size.value > 0) {
 			if (Group.selected && Format.bone_rig) {
 				if (Group.selected.visibility) {
-					Group.selected.mesh.add(rot_origin)
+					Group.selected.mesh.add(Canvas.pivot_marker)
 				}
 			} else if ((Cube.selected.length && Format.rotate_cubes) || Mesh.selected.length) {
 				let selected_elements = [...Cube.selected, ...Mesh.selected];
 				if (selected_elements.length === 1) {
 					let mesh = selected_elements[0].mesh
 					if (mesh) {
-						mesh.add(rot_origin)
+						mesh.add(Canvas.pivot_marker)
 					}
 				} else {
 					var origin = null;
@@ -860,13 +1013,13 @@ const Canvas = {
 					if (first_visible && typeof origin === 'object') {
 						let mesh = first_visible.mesh
 						if (mesh) {
-							mesh.add(rot_origin)
+							mesh.add(Canvas.pivot_marker)
 						}
 					}
 				}
 			}
 		}
-		return !!rot_origin.parent;
+		return !!Canvas.pivot_marker.parent;
 	},
 	adaptObjectPosition(object, mesh) {
 		Canvas.updateView({
