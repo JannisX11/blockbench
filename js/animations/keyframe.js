@@ -169,7 +169,7 @@ class Keyframe {
 		let this_data_point = (this.data_points.length > 1 && this.time < other.time) ? 1 : 0;
 		let other_data_point = (other.data_points.length > 1 && this.time > other.time) ? 1 : 0;
 		if (allow_expression && this.get(axis, this_data_point) === other.get(axis, other_data_point)) {
-			return this.get(axis)
+			return this.get(axis, this_data_point);
 		} else {
 			let calc = this.calc(axis, this_data_point);
 			return calc + (other.calc(axis, other_data_point) - calc) * amount;
@@ -267,12 +267,14 @@ class Keyframe {
 					scripts.push(...data_point.script.split('\n'));
 				}
 			})
+			scripts = scripts.filter(script => !!script.replace(/[\n\s;.]+/g, ''))
 			return scripts.length <= 1 ? scripts[0] : scripts;
 		} else {
 			let points = [];
 			this.data_points.forEach(data_point => {
 				if (data_point.effect) {
 					let script = data_point.script || undefined;
+					if (script && !script.replace(/[\n\s;.]+/g, '')) script = undefined;
 					if (script && !script.match(/;$/)) script += ';';
 					points.push({
 						effect: data_point.effect,
@@ -980,11 +982,11 @@ Interface.definePanels(function() {
 					Animator.preview()
 					Undo.finishEdit('Add keyframe data point')
 				},
-				removeDataPoint(data_point) {
+				removeDataPoint(data_point_index) {
 					Undo.initEdit({keyframes: Timeline.selected})
 					Timeline.selected.forEach(kf => {
 						if (kf.data_points.length >= 2) {
-							kf.data_points.splice(data_point, 1);
+							kf.data_points.splice(data_point_index, 1);
 						}
 					})
 					Animator.preview()
@@ -999,7 +1001,7 @@ Interface.definePanels(function() {
 					})
 				},
 				focusAxis(axis) {
-					if (Timeline.vue.graph_editor_open && 'xyz'.includes(axis)) {
+					if ('xyz'.includes(axis)) {
 						Timeline.vue.graph_editor_axis = axis;
 					}
 				},
@@ -1045,7 +1047,7 @@ Interface.definePanels(function() {
 								<div class="keyframe_data_point_header" v-if="keyframes[0].data_points.length > 1">
 									<label>{{ keyframes[0].transform ? tl('panel.keyframe.' + (data_point_i ? 'post' : 'pre')) : (data_point_i + 1) }}</label>
 									<div class="flex_fill_line"></div>
-									<div class="in_list_button" v-on:click.stop="removeDataPoint(data_point)" title="${ tl('panel.keyframe.remove_data_point') }">
+									<div class="in_list_button" v-on:click.stop="removeDataPoint(data_point_i)" title="${ tl('panel.keyframe.remove_data_point') }">
 										<i class="material-icons">clear</i>
 									</div>
 								</div>

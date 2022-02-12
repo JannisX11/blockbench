@@ -441,19 +441,27 @@ class Mesh extends OutlinerElement {
 		return this;
 	}
 	flip(axis, center) {
-		for (let key in this.vertices) {
-			this.vertices[key][axis] *= -1;
+		let object_mode = BarItems.selection_mode.value == 'object';
+		let selected_vertices = this.getSelectedVertices();
+		for (let vkey in this.vertices) {
+			if (object_mode || selected_vertices.includes(vkey)) {
+				this.vertices[vkey][axis] *= -1;
+			}
 		}
 		for (let key in this.faces) {
-			this.faces[key].invert();
+			if (object_mode || this.faces[key].isSelected()) {
+				this.faces[key].invert();
+			}
 		}
 
-		this.origin[axis] *= -1;
-		this.rotation.forEach((n, i) => {
-			if (i != axis) this.rotation[i] = -n;
-		})
+		if (object_mode) {
+			this.origin[axis] *= -1;
+			this.rotation.forEach((n, i) => {
+				if (i != axis) this.rotation[i] = -n;
+			})
+			this.preview_controller.updateTransform(this);
+		}
 
-		this.preview_controller.updateTransform(this);
 		this.preview_controller.updateGeometry(this);
 		this.preview_controller.updateUV(this);
 		return this;

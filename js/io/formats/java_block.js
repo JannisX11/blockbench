@@ -271,7 +271,7 @@ var codec = new Codec('java_block', {
 		}
 
 		//Load
-		if (model.texture_size instanceof Array) {
+		if (model.texture_size instanceof Array && !add) {
 			Project.texture_width  = Math.clamp(parseInt(model.texture_size[0]), 1, Infinity)
 			Project.texture_height = Math.clamp(parseInt(model.texture_size[1]), 1, Infinity)
 		}

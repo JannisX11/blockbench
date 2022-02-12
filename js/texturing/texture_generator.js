@@ -29,7 +29,7 @@ const TextureGenerator = {
 			form: {
 				name: 		{label: 'generic.name', value: 'texture'},
 				folder: 	{label: 'dialog.create_texture.folder', condition: Format.id == 'java_block'},
-				type:	{label: 'dialog.create_texture.type', type: 'select', condition: Cube.all.length || Mesh.all.length, options: type_options},
+				type:	{label: 'dialog.create_texture.type', type: 'select', options: type_options},
 				section2:    "_",
 
 				resolution: {label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: 16, condition: (form) => (form.type == 'template'), options: {
