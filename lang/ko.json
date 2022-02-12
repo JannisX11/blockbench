@@ -1478,5 +1478,5 @@
     "panel.skin_pose.jumping": "점프",
     "panel.skin_pose.aiming": "사격",
     "edit.loop_cut.direction": "방향",
-    "message.meshes_and_box_uv": "Meshes are not compatible with Box UV. Go to File > Project... and switch to Per-face UV."
+    "message.meshes_and_box_uv": "메쉬들은 상자 UV와 호환되지 않습니다. 파일 > 프로젝트... 로 이동하고 표면별 UV로 전환하십시오."
 }
