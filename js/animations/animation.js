@@ -1305,45 +1305,49 @@ const Animator = {
 		if (keys.length == 0) {
 			Blockbench.showQuickMessage('message.no_animation_to_import');
 
-		} else if (keys.length == 1) {
+		} else /**if (keys.length == 1) {
 			Undo.initEdit({animations: []})
 			let new_animations = Animator.loadFile(file, keys);
 			Undo.finishEdit('Import animations', {animations: new_animations})
 
-		} else {
-			return new Promise(resolve => {
-				let dialog = new Dialog({
-					id: 'animation_import',
-					title: 'dialog.animation_import.title',
-					form,
-					onConfirm(form_result) {
-						this.hide();
-						let names = [];
-						for (var key of keys) {
-							if (form_result[key.hashCode()]) {
-								names.push(key);
-							}
-						}
-						Undo.initEdit({animations: []})
-						let new_animations = Animator.loadFile(file, names);
-						Undo.finishEdit('Import animations', {animations: new_animations})
-						resolve();
-					},
-					onCancel() {
-						resolve();
-					}
-				});
-				form.select_all_none = {
-					type: 'buttons',
-					buttons: ['generic.select_all', 'generic.select_none'],
-					click(index) {
-						let values = {};
-						keys.forEach(key => values[key.hashCode()] = (index == 0));
-						dialog.setFormValues(values);
-					}
-				}
-				dialog.show();
-			});
+		} else */{
+			Undo.initEdit({animations: []})
+			let new_animations = Animator.loadFile(file, keys);
+			Undo.finishEdit('Import animations', {animations: new_animations})
+
+			// return new Promise(resolve => {
+			// 	let dialog = new Dialog({
+			// 		id: 'animation_import',
+			// 		title: 'dialog.animation_import.title',
+			// 		form,
+			// 		onConfirm(form_result) {
+			// 			this.hide();
+			// 			let names = [];
+			// 			for (var key of keys) {
+			// 				if (form_result[key.hashCode()]) {
+			// 					names.push(key);
+			// 				}
+			// 			}
+			// 			Undo.initEdit({animations: []})
+			// 			let new_animations = Animator.loadFile(file, names);
+			// 			Undo.finishEdit('Import animations', {animations: new_animations})
+			// 			resolve();
+			// 		},
+			// 		onCancel() {
+			// 			resolve();
+			// 		}
+			// 	});
+			// 	form.select_all_none = {
+			// 		type: 'buttons',
+			// 		buttons: ['generic.select_all', 'generic.select_none'],
+			// 		click(index) {
+			// 			let values = {};
+			// 			keys.forEach(key => values[key.hashCode()] = (index == 0));
+			// 			dialog.setFormValues(values);
+			// 		}
+			// 	}
+			// 	dialog.show();
+			// });
 		}
 	},
 	exportAnimationFile(path) {
