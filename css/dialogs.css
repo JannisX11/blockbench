@@ -801,7 +801,7 @@
 	#import_texture_list li.selected::after {
 		position: absolute;
 		content: "\f00c";
-		font-family: 'Font Awesome 5 Free';
+		font-family: 'Font Awesome 6 Free';
 		font-weight: 600;
 		color: var(--color-accent);
 		background-color: var(--color-ui);
@@ -1359,7 +1359,7 @@
 	}
 	#edit_history_list ul li.selected:not(:first-of-type)::before {
 		content: "\f04b";
-		font-family: 'Font Awesome 5 Free';
+		font-family: 'Font Awesome 6 Free';
 		font-weight: 900;
 		font-size: 14px;
 		color: var(--color-accent);

@@ -123,8 +123,8 @@
 	.checkerboard .preview_menu {
 		background-color: var(--color-checkerboard);
 	}
-	.preview .preview_menu .preview_main_menu {
-		width: 20px;
+	.preview .preview_menu .tool {
+		width: 32px;
 	}
 	.preview .preview_menu .preview_main_menu > i {
 		width: 20px;
@@ -402,7 +402,7 @@
 	}
 	.bar_select .bar_select_wrapper::before {
 		content: "\f0d7";
-		font-family: 'Font Awesome 5 Free';
+		font-family: 'Font Awesome 6 Free';
 		font-weight: 900;
 		display: block;
 		position: absolute;
@@ -510,7 +510,7 @@
 	.contextMenu li.parent::after {
 		content: "\f105";
 		display: block;
-		font-family: 'Font Awesome 5 Free';
+		font-family: 'Font Awesome 6 Free';
 		font-weight: 900;
 		font-size: inherit;
 		text-rendering: auto;

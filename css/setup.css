@@ -499,7 +499,7 @@
 
 	bb-select::before {
 		content: "\f0d7";
-		font-family: 'Font Awesome 5 Free';
+		font-family: 'Font Awesome 6 Free';
 		font-weight: 900;
 		display: block;
 		position: absolute;
@@ -535,13 +535,13 @@
 	}
 	input[type=checkbox]::before {
 		content: "\f0c8";
-		font-family: 'Font Awesome 5 Free';
+		font-family: 'Font Awesome 6 Free';
     	font-weight: 300;
     	font-size: 15pt;
 	}
 	input[type=checkbox]:checked::before {
 		content: "\f14a";
-		font-family: 'Font Awesome 5 Free';
+		font-family: 'Font Awesome 6 Free';
     	font-weight: 600;
 	}
 	input[type=checkbox]:focus, input[type=radio]:focus {
@@ -552,7 +552,7 @@
 	}
 	input[type=radio]::before {
 		content: "\f111";
-		font-family: 'Font Awesome 5 Free';
+		font-family: 'Font Awesome 6 Free';
     	font-weight: 300;
     	font-size: 15pt;
 	}
