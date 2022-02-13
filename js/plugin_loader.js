@@ -18,7 +18,9 @@ const Plugins = {
 		console.log('Reloaded '+reloads+ ' plugin'+pluralS(reloads))
 	},
 	sort() {
-		Plugins.all.sort(function(a,b) {
+		Plugins.all.sort((a, b) => {
+			if (a.tags.find(tag => tag.match(/deprecated/i))) return 1;
+			if (b.tags.find(tag => tag.match(/deprecated/i))) return -1;
 			let download_difference = (Plugins.download_stats[b.id] || 0) - (Plugins.download_stats[a.id] || 0);
 			if (download_difference) {
 				return download_difference
@@ -543,11 +545,12 @@ BARS.defineActions(function() {
 			},
 			methods: {
 				getTagClass(tag) {
-					let lowercase = tag.toLowerCase();
-					if (lowercase == 'local' || lowercase == 'remote') {
+					if (tag.match(/^(local|remote)$/i)) {
 						return 'plugin_tag_source'
-					} else if (lowercase.substr(0, 9) == 'minecraft') {
+					} else if (tag.match(/^minecraft/i)) {
 						return 'plugin_tag_mc'
+					} else if (tag.match(/^deprecated/i)) {
+						return 'plugin_tag_deprecated'
 					}
 				},
 				getIconNode: Blockbench.getIconNode,

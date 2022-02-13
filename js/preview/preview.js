@@ -287,7 +287,14 @@ class Preview {
 		this.raycaster = new THREE.Raycaster();
 		this.mouse = new THREE.Vector2();
 		addEventListeners(this.canvas, 'mousedown touchstart', 	event => { this.click(event)}, { passive: false })
-		addEventListeners(this.canvas, 'mousemove touchmove', 	event => { this.static_rclick = false}, false)
+		addEventListeners(this.canvas, 'mousemove touchmove', 	event => {
+			if (!this.static_rclick) return;
+			convertTouchEvent(event);
+			let threshold = 7;
+			if (!this.event_start || !Math.epsilon(this.event_start[0], event.clientX, threshold) || !Math.epsilon(this.event_start[1], event.clientY, threshold)) {
+				this.static_rclick = false;
+			}
+		}, false)
 		addEventListeners(this.canvas, 'mousemove', 			event => { this.mousemove(event)}, false)
 		addEventListeners(this.canvas, 'mouseup touchend',		event => { this.mouseup(event)}, false)
 		addEventListeners(this.canvas, 'dblclick', 				event => { Toolbox.toggleTransforms(event)}, false)
@@ -714,7 +721,9 @@ class Preview {
 		convertTouchEvent(event);
 		Preview.selected = this;
 		this.static_rclick = event.which === 3 || event.type == 'touchstart';
-		
+		if (this.static_rclick) {
+			this.event_start = [event.clientX, event.clientY];
+		}
 		if (event.type == 'touchstart') {
 			this.rclick_cooldown = setTimeout(() => {
 				this.rclick_cooldown = true;

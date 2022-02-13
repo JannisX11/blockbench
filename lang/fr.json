@@ -1104,7 +1104,7 @@
     "generic.all": "Tout",
     "message.small_face_dimensions.title": "Dimensions des Faces imcompatibles",
     "message.small_face_dimensions.message": "La sélection contient des faces inférieures à 1 unité dans une direction. Le système de mappage Encadrement UV considère toutes les faces inférieures à ce seuil comme ayant une largeur de 0 pixel. La texture sur ces faces est donc susceptible de ne pas fonctionner correctement.",
-    "message.small_face_dimensions.face_uv": "Le format actuel supporte les cartes UV par face pouvant gérer de petites dimensions de faces. Allez dans « Fichier » → « Projet… » et décochez « Encadrement UV ».",
+    "message.small_face_dimensions.face_uv": "Le format actuel supporte les cartes UV par face pouvant gérer de petites dimensions de faces. Allez dans Fichier → Projet… et décochez Encadrement UV.",
     "dialog.plugins.outdated_client": "Requis une nouvelle version de Blockbench",
     "dialog.plugins.outdated_plugin": "Le plugin n'est pas à jour et ne fonctionne pas avec cette version de Blockbench",
     "settings.motion_trails": "Trainée de Mouvement",
@@ -1453,7 +1453,7 @@
     "action.bake_animation_into_model.desc": "Intègre l'image d'animation actuellement affichée au modèle. Seules la rotation et la position s'appliquent, la mise à l'échelle est ignorée.",
     "action.keyframe_interpolation.step": "Étape",
     "action.set_ik_target": "Définir la cible CI",
-    "action.set_ik_target.desc": "Choisir le segment cible à faire déplacer par cet objet nul via la Cinématique inverse",
+    "action.set_ik_target.desc": "Choisir le segment cible à faire déplacer par cet objet nul via la Cinématique inverse (CI)",
     "menu.action_control.type.tab": "Onglet",
     "menu.action_control.type.angle": "Angle de caméra",
     "menu.action_control.recent_in_streamer_mode": "Êtes-vous sûr ? Le mode Streamer est activé",
@@ -1478,5 +1478,5 @@
     "panel.skin_pose.jumping": "Saut",
     "panel.skin_pose.aiming": "Visée",
     "edit.loop_cut.direction": "Direction",
-    "message.meshes_and_box_uv": "Meshes are not compatible with Box UV. Go to File > Project... and switch to Per-face UV."
+    "message.meshes_and_box_uv": "Les mailles ne sont pas compatibles avec Encadrement UV. Allez dans Fichier → Projet… et choisissez UV par face."
 }

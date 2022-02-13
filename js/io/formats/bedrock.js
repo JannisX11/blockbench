@@ -492,7 +492,7 @@ function calculateVisibleBox() {
 				texture_mesh.local_pivot[2] *= -1;
 				texture_mesh.origin[1] *= -1;
 
-				texture_mesh.origin[1] += b.pivot[1];
+				if (b.pivot) texture_mesh.origin[1] += b.pivot[1];
 
 				texture_mesh.origin[0] *= -1;
 				texture_mesh.rotation[0] *= -1;

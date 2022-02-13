@@ -21,6 +21,7 @@ const Blockbench = {
 	reload() {
 		localStorage.removeItem('backup_model')
 		if (isApp) {
+			Blockbench.setProgress(0)
 			Blockbench.addFlag('allow_closing')
 			Blockbench.addFlag('allow_reload')
 			currentwindow.reload()
