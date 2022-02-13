@@ -117,6 +117,8 @@ Interface.definePanels(() => {
 				var item = this.palette.splice(event.oldIndex, 1)[0];
 				this.palette.splice(event.newIndex, 0, item);
 			},
+			drop(event) {
+			},
 			setColor(color) {
 				ColorPanel.set(color);
 			},

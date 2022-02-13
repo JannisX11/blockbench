@@ -1005,6 +1005,67 @@ Interface.definePanels(function() {
 						Timeline.vue.graph_editor_axis = axis;
 					}
 				},
+				slideValue(axis, e1) {
+					convertTouchEvent(e1);
+					let last_event = e1;
+					let started = false;
+					let move_calls = 0;
+					let last_val = 0;
+					let total = 0;
+					let clientX = e1.clientX;
+					function start() {
+						started = true;
+						if (!e1.touches && last_event == e1 && e1.target.requestPointerLock) e1.target.requestPointerLock();
+						Undo.initEdit({keyframes: Keyframe.selected});
+					}
+		
+					function move(e2) {
+						convertTouchEvent(e2);
+						if (!started && Math.abs(e2.clientX - e1.clientX) > 5) {
+							start()
+						}
+						if (started) {
+							if (e1.touches) {
+								clientX = e2.clientX;
+							} else {
+								let limit = move_calls <= 2 ? 1 : 100;
+								clientX += Math.clamp(e2.movementX, -limit, limit);
+							}
+							let val = Math.round((clientX - e1.clientX) / 30);
+							let difference = (val - last_val);
+							if (!difference) return;
+							if (Toolbox.selected.id === 'rotate_tool') {
+								difference *= getRotationInterval(e2);
+							} else {
+								difference *= canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);
+							}
+							
+							Keyframe.selected.forEach(kf => {
+								kf.offset(axis, difference);
+							})
+
+							last_val = val;
+							last_event = e2;
+							total += difference;
+							move_calls++;
+
+							Animator.preview()
+							Blockbench.setStatusBarText(trimFloatNumber(total));
+						}
+					}
+					function off(e2) {
+						if (document.exitPointerLock) document.exitPointerLock()
+						removeEventListeners(document, 'mousemove touchmove', move);
+						removeEventListeners(document, 'mouseup touchend', off);
+						if (total) {
+							Undo.finishEdit('Slide keyframe');
+						} else {
+							Undo.cancelEdit();
+						}
+					}
+					addEventListeners(document, 'mouseup touchend', off);
+					addEventListeners(document, 'mousemove touchmove', move);
+				},
 				tl,
 				Condition
 			},
@@ -1077,7 +1138,7 @@ Interface.definePanels(function() {
 										class="bar flex"
 										:id="'keyframe_bar_' + property.name"
 									>
-										<label :class="[channel_colors[key]]" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}">{{ property.label }}</label>
+										<label :class="{[channel_colors[key]]: true, slidable_input: property.type == 'molang'}" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}" @mousedown="slideValue(key, $event)" @touchstart="slideValue(key, $event)">{{ property.label }}</label>
 										<vue-prism-editor 
 											v-if="property.type == 'molang'"
 											class="molang_input dark_bordered keyframe_input tab_target"

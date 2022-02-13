@@ -645,6 +645,9 @@
 		flex-shrink: 0;
 		background-color: var(--color-button);
 	}
+	.panel#keyframe .bar.flex label.slidable_input {
+		cursor: ew-resize;
+	}
 	.panel#keyframe .bar input.dark_bordered {
 		width: 100%;
 		flex-shrink: 1;
