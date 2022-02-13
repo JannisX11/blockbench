@@ -117,16 +117,6 @@ Interface.definePanels(() => {
 				var item = this.palette.splice(event.oldIndex, 1)[0];
 				this.palette.splice(event.newIndex, 0, item);
 			},
-			drop: function(event) {
-				/*
-				var scope = this;
-				setTimeout(() => {
-					if ($('#palette_list:hover').length === 0) {
-						scope.palette.splice(event.oldIndex, 1)[0]
-					}
-				}, 30)
-				*/
-			},
 			setColor(color) {
 				ColorPanel.set(color);
 			},
