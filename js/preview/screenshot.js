@@ -437,7 +437,7 @@ const Screencam = {
 
 BARS.defineActions(function() {
 	new Action('screenshot_model', {
-		icon: 'fa-cubes',
+		icon: 'photo_camera',
 		category: 'view',
 		keybind: new Keybind({key: 'p', ctrl: true}),
 		click: function () {Preview.selected.screenshot()}

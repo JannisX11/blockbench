@@ -216,7 +216,7 @@ function generateTemplate(width = 64, height = 64, cubes, name = 'name', eyes, l
 const model_options = {};
 const skin_dialog = new Dialog({
 	title: tl('dialog.skin.title'),
-	id: 'image_editor',
+	id: 'skin',
 	form: {
 		model: {
 			label: 'dialog.skin.model',

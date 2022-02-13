@@ -147,23 +147,40 @@ class Preview {
 		this.node.appendChild(this.canvas);
 		let menu = $(`
 			<div class="preview_menu">
+				<div class="tool preview_fullscreen_button quad_view_only"><i class="material-icons">fullscreen</i></div>
 				<div class="tool preview_background_menu" hidden><img src="" width="36px"></div>
-				<div class="tool preview_main_menu"><i class="material-icons">more_vert</i></div>
+				<div class="tool preview_view_mode_menu one_is_enough"><i class="material-icons">image</i></div>
+				<div class="shading_placeholder"></div>
+				<div class="tool preview_main_menu"><i class="material-icons">menu</i></div>
 			</div>`)[0];
-		menu.firstElementChild.onclick = (event) => {
+			menu.querySelector('.preview_background_menu').onclick = (event) => {
 			let M = new Menu(this.menu.structure.find(s => s.id == 'background').children(this));
 			M.open(menu, this);
 		}
-		menu.lastElementChild.onclick = (event) => {
+		menu.querySelector('.preview_main_menu').onclick = (event) => {
 			this.menu.open(menu, this);
 		}
+		menu.querySelector('.preview_fullscreen_button').onclick = (event) => {
+			this.fullscreen();
+		}
+		menu.querySelector('.preview_view_mode_menu').onclick = (event) => {
+			BarItems.view_mode.open(event);
+		}
+		BarItem.prototype.addLabel(false, {
+			name: tl('menu.preview.maximize'),
+			node: menu.querySelector('.preview_fullscreen_button')
+		})
+		BarItem.prototype.addLabel(false, {
+			name: tl('action.view_mode'),
+			node: menu.querySelector('.preview_view_mode_menu')
+		})
 		BarItem.prototype.addLabel(false, {
 			name: tl('menu.preview.background'),
-			node: menu.firstElementChild
+			node: menu.querySelector('.preview_background_menu')
 		})
 		BarItem.prototype.addLabel(false, {
 			name: tl('data.preview'),
-			node: menu.lastElementChild
+			node: menu.querySelector('.preview_main_menu')
 		})
 		this.node.appendChild(menu)
 		//Cameras
@@ -1394,6 +1411,13 @@ class Preview {
 		var wrapper = $('<div class="single_canvas_wrapper"></div>')
 		wrapper.append(this.node)
 		$('#preview').append(wrapper)
+
+		this.node.querySelectorAll('.one_is_enough').forEach(child => {
+			child.style.display = 'block';
+		})
+		this.node.querySelectorAll('.quad_view_only').forEach(child => {
+			child.style.display = 'none';
+		})
 		
 		Preview.all.forEach(function(prev) {
 			if (prev.canvas.isConnected) {
@@ -1540,8 +1564,8 @@ class Preview {
 		{icon: 'grid_view', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !Modes.display && !Animator.open}, click: function() {
 			openQuadView()
 		}},
-		{icon: 'web_asset', name: 'menu.preview.maximize', condition: function(preview) {return quad_previews.enabled && !preview.movingBackground && !Modes.display}, click: function(preview) {
-			preview.fullscreen()
+		{icon: 'fullscreen', name: 'menu.preview.maximize', condition: function(preview) {return quad_previews.enabled && !preview.movingBackground && !Modes.display}, click: function(preview) {
+			preview.fullscreen();
 		}},
 		{icon: 'cancel', color: 'x', name: 'menu.preview.stop_drag', condition: function(preview) {return preview.movingBackground;}, click: function(preview) {
 			preview.stopMovingBackground()
@@ -1580,7 +1604,18 @@ function openQuadView() {
 	var wrapper4 = $('<div class="quad_canvas_wrapper"></div>')
 	wrapper4.append(quad_previews.four.node)
 	$('#preview').append(wrapper4)
-	
+
+	Preview.all.forEach(preview => {
+		if (preview.offscreen) return;
+		preview.node.querySelectorAll('.quad_view_only').forEach(child => {
+			child.style.display = 'block';
+		})
+		if (preview !== main_preview) {
+			preview.node.querySelectorAll('.one_is_enough').forEach(child => {
+				child.style.display = 'none';
+			})
+		}
+	})
 	updateInterface()
 }
 
@@ -1999,11 +2034,11 @@ BARS.defineActions(function() {
 		condition: () => Project && Toolbox && Toolbox.selected && (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.length > 1),
 		value: 'textured',
 		options: {
-			textured: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('textured'))},
-			solid: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('solid'))},
-			wireframe: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('wireframe'))},
-			uv: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('uv'))},
-			normal: {name: true, condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('normal')) && Mesh.all.length)},
+			textured: {name: true, icon: 'image', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('textured'))},
+			solid: {name: true, icon: 'fas.fa-square', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('solid'))},
+			wireframe: {name: true, icon: 'far.fa-square', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('wireframe'))},
+			uv: {name: true, icon: 'padding', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('uv'))},
+			normal: {name: true, icon: 'fa-square-caret-up', condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('normal')) && Mesh.all.length)},
 		},
 		onChange() {
 			Project.view_mode = this.value;
@@ -2011,6 +2046,12 @@ BARS.defineActions(function() {
 			if (Modes.id === 'animate') {
 				Animator.preview();
 			}
+			Preview.all.forEach(preview => {
+				if (!preview.offscreen) {
+					let icon = Blockbench.getIconNode(this.options[this.value].icon);
+					preview.node.querySelector('.preview_view_mode_menu > i').replaceWith(icon);
+				}
+			})
 			//Blockbench.showQuickMessage(tl('action.view_mode') + ': ' + tl('action.view_mode.' + this.value));
 		}
 	})
@@ -2031,6 +2072,12 @@ BARS.defineActions(function() {
 		icon: 'wb_sunny',
 		category: 'view',
 		linked_setting: 'shading'
+	})
+	Preview.all.forEach(preview => {
+		if (preview.offscreen) return;
+		let node = BarItems.toggle_shading.getNode(true);
+		node.classList.add('one_is_enough')
+		preview.node.querySelector('.preview_menu .shading_placeholder').replaceWith(node);
 	})
 	new Toggle('toggle_ground_plane', {
 		name: tl('settings.ground_plane'),

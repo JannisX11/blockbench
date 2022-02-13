@@ -119,22 +119,16 @@ class BarItem {
 			})
 		}
 	}
-	getNode() {
+	getNode(ignore_disconnected) {
 		var scope = this;
 		if (scope.nodes.length === 0) {
 			scope.nodes = [scope.node]
 		}
-		if (!scope.node.isConnected) {
-			$(scope.node).detach()
-			return scope.node;
-		}
-		var i = 0;
-		while (i < scope.nodes.length) {
-			if (!scope.nodes[i].isConnected) {
-				$(scope.nodes[i]).detach()
-				return scope.nodes[i];
+		for (let node of this.nodes) {
+			if (!node.isConnected && !ignore_disconnected) {
+				$(node).detach();
+				return node;
 			}
-			i++;
 		}
 		var clone = $(scope.node).clone(true, true).get(0);
 		clone.onclick = (e) => {
