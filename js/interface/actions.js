@@ -1958,11 +1958,9 @@ const BARS = {
 				'pick_screen_color'
 			]
 		})
-		if (isApp) {
-			Blockbench.onUpdateTo('3.9', () => {
-				Toolbars.color_picker.add(BarItems.pick_screen_color);
-			})
-		}
+		Blockbench.onUpdateTo('4.2.0-beta.0', () => {
+			Toolbars.color_picker.add(BarItems.pick_screen_color);
+		})
 
 
 		Toolbars.display = new Toolbar({
@@ -2046,8 +2044,20 @@ const BARS = {
 				'transform_space',
 				'rotation_space',
 				'selection_mode',
-				'lock_motion_trail'
+				'lock_motion_trail',
+				'extrude_mesh_selection',
+				'inset_mesh_selection',
+				'loop_cut',
+				'create_face',
+				'invert_face',
 			]
+		})
+		Blockbench.onUpdateTo('4.2.0-beta.0', () => {
+			Toolbars.main_tools.add(BarItems.extrude_mesh_selection);
+			Toolbars.main_tools.add(BarItems.inset_mesh_selection);
+			Toolbars.main_tools.add(BarItems.loop_cut);
+			Toolbars.main_tools.add(BarItems.create_face);
+			Toolbars.main_tools.add(BarItems.invert_face);
 		})
 		if (Blockbench.isMobile) {
 			[Toolbars.element_position,

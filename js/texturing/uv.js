@@ -721,7 +721,7 @@ const UVEditor = {
 						vec2.fromArray(obj.vertices[face.vertices[0]])
 					)
 					let rot = cameraTargetToRotation([0, 0, 0], normal_vec.toArray());
-					let e = new THREE.Euler(Math.degToRad(-rot[1] - 90), Math.degToRad(rot[0]), 0);
+					let e = new THREE.Euler(Math.degToRad(rot[1] - 90), Math.degToRad(rot[0] + 180), 0);
 					face.vertices.forEach(vkey => {
 						let coplanar_pos = plane.projectPoint(vec3.fromArray(obj.vertices[vkey]), vec4.set(0, 0, 0));
 						coplanar_pos.applyEuler(e);
