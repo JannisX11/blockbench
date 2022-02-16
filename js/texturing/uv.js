@@ -1317,7 +1317,7 @@ const UVEditor = {
 				'auto_cullface'
 			]
 		}},
-		{icon: 'collections', name: 'menu.uv.texture', condition: () => !Project.box_uv, children: function() {
+		{icon: 'collections', name: 'menu.uv.texture', id: 'texture', condition: () => !Project.box_uv, children: function() {
 			var arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(context, event) {
 					let elements = UVEditor.vue.mappable_elements;
@@ -1584,11 +1584,16 @@ BARS.defineActions(function() {
 	})
 	new Toggle('paint_mode_uv_overlay', {
 		icon: 'splitscreen',
-		category: 'animation',
+		category: 'uv',
 		condition: {modes: ['paint']},
 		onChange(value) {
 			UVEditor.vue.uv_overlay = value;
 		}
+	})
+	new Toggle('move_texture_with_uv', {
+		icon: 'fas.fa-link',
+		category: 'uv',
+		condition: {modes: ['edit']}
 	})
 })
 
@@ -2470,13 +2475,28 @@ Interface.definePanels(function() {
 					} else {
 						return {display: 'none'};
 					}
+				},
+				selectTexture() {
+					let menu = UVEditor.menu.structure.find(n => n.id == 'texture');
+					let textures = menu.children();
+					new Menu(textures).open(document.getElementById('uv_editor_texture_selector'));
 				}
 			},
 			template: `
 				<div class="UVEditor" ref="main" :class="{checkerboard_trigger: checkerboard}" id="UVEditor">
 
-					<div class="bar next_to_title" id="uv_title_bar">
+					<div class="bar" id="uv_title_bar">
+						<div id="uv_editor_texture_selector" @click="selectTexture()">
+							<img :style="{objectFit: texture.frameCount > 1 ? 'cover' : 'fill'}" v-if="texture && texture.error != 1" :src="texture.source">
+							<label>{{ texture.name }}</label>
+						</div>
+						<div id="uv_center_on_selection_anchor"></div>
+						<div v-show="mode == 'uv' && texture" id="move_texture_with_uv_anchor"></div>
 						<div id="project_resolution_status" @click="projectResolution()">
+							<div>
+								<i v-if="box_uv" class="icon fa_big fas fa-dice-d6"></i>
+								<i v-else class="icon fa_big fas fa-stop"></i>
+							</div>
 							{{ project_resolution[0] + ' ⨉ ' + project_resolution[1] }}
 						</div>
 					</div>
@@ -2643,6 +2663,8 @@ Interface.definePanels(function() {
 
 	Toolbars.uv_editor.toPlace()
 
+	BarItems.focus_on_selection.toElement('#uv_center_on_selection_anchor');
+	BarItems.move_texture_with_uv.toElement('#move_texture_with_uv_anchor');
 	BarItems.paint_mode_uv_overlay.toElement('#toggle_uv_overlay_anchor');
 
 	let {slider_bar} = UVEditor.vue.$refs;

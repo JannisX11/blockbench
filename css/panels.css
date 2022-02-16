@@ -1095,34 +1095,46 @@
 	.UVEditor > .toolbar {
 		margin-top: 3px;
 	}
-	.uv_headline .uv_title {
-		float: left;
-		padding-top: 3px;
-		padding-left: 10px;
-	}
-	.uv_headline {
+	#uv_title_bar {
 		height: 30px;
-		background-color: var(--color-back);
-		margin-left: -8px;
-		margin-right: -8px;
-	}
-	#UVEditor_all .UVEditor.selected {
-		border-color: var(--color-accent);
-		z-index: 21;
-	}
-	.UVEditor.selected .uv_headline {
-		background-color: var(--color-button);
-	}
-	.uv_headline .tool {
-		float: right;
+		display: flex;
+		justify-content: space-between;
 	}
 	#project_resolution_status {
-		margin: 3px;
-		padding: 1px 5px;
+		padding: 3px 5px;
 		pointer-events: auto;
+		cursor: pointer;
 	}
 	#project_resolution_status:hover {
 		color: var(--color-light);
+	}
+	#project_resolution_status > div {
+		display: inline-block;
+		color: var(--color-subtle_text);
+		cursor: inherit;
+	}
+	#project_resolution_status:hover > div {
+		color: var(--color-text);
+	}
+	#uv_editor_texture_selector {
+		cursor: pointer;
+		padding: 2px 6px;
+		overflow: hidden;
+		white-space: nowrap;
+		flex-shrink: 1;
+		margin-right: auto;
+	}
+	#uv_editor_texture_selector:hover {
+		color: var(--color-light);
+	}
+	#uv_editor_texture_selector img {
+		height: 26px;
+		margin: 1px;
+		vertical-align: middle;
+		background-color: var(--color-back);
+	}
+	#uv_editor_texture_selector label {
+		cursor: inherit;
 	}
 
 	#uv_viewport {
