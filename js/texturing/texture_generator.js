@@ -71,6 +71,47 @@ const TextureGenerator = {
 			}
 		}).show()
 	},
+	appendToTemplateDialog() {
+		let texture = Texture.getDefault();
+		if (!texture) return;
+		TextureGenerator.background_color.set('#00000000');
+		var dialog = new Dialog({
+			id: 'add_bitmap',
+			title: tl('action.create_texture'),
+			width: 480,
+			form: {
+				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
+				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (!Project.box_uv)},
+				compress: 	{label: 'dialog.create_texture.compress', description: 'dialog.create_texture.compress.desc', type: 'checkbox', value: true, condition: (form) => Project.box_uv},
+				power: 		{label: 'dialog.create_texture.power', description: 'dialog.create_texture.power.desc', type: 'checkbox', value: Math.isPowerOfTwo(texture.width)},
+				double_use: {label: 'dialog.create_texture.double_use', description: 'dialog.create_texture.double_use.desc', type: 'checkbox', value: true, condition: (form) => Project.box_uv},
+				combine_polys: {label: 'dialog.create_texture.combine_polys', description: 'dialog.create_texture.combine_polys.desc', type: 'checkbox', value: true, condition: (form) => (form.rearrange_uv && Mesh.selected.length)},
+				padding:	{label: 'dialog.create_texture.padding', description: 'dialog.create_texture.padding.desc', type: 'checkbox', value: false, condition: (form) => (form.rearrange_uv)},
+			},
+			onFormChange(form) {
+				if (form.type == 'template' && TextureGenerator.background_color.get().toHex8() === 'ffffffff') {
+					TextureGenerator.background_color.set('#00000000')
+				}
+				if (form.type == 'blank' && TextureGenerator.background_color.get().toHex8() === '00000000') {
+					TextureGenerator.background_color.set('#ffffffff')
+				}
+			},
+			onConfirm(options) {
+				dialog.hide()
+				options.rearrange_uv = true;
+				options.resolution = 16 * Texture.selected.width / Project.texture_width;
+				if (Format.single_texture) {
+					options.texture = Texture.getDefault()
+				}
+				if (Project.box_uv || options.box_uv) {
+					TextureGenerator.generateBoxTemplate(options, texture);
+				} else {
+					TextureGenerator.generateFaceTemplate(options, texture);
+				}
+				return false;
+			}
+		}).show()
+	},
 	addBitmap(options, after) {
 		if (typeof options !== 'object') {
 			options = {}
@@ -132,7 +173,7 @@ const TextureGenerator = {
 
 		cb(canvas.toDataURL())
 	},
-	//constructor
+	//constructors
 	boxUVCubeTemplate: function(obj, min_size) {
 		this.x = obj.size(0, true) || min_size;
 		this.y = obj.size(1, 'template') || min_size;
@@ -147,7 +188,7 @@ const TextureGenerator = {
 		return this;	
 	},
 	//BoxUV Template
-	generateBoxTemplate(options, cb) {
+	generateBoxTemplate(options, makeTexture) {
 		var res = options.resolution;
 		var background_color = options.color;
 		var texture = options.texture;
@@ -159,12 +200,13 @@ const TextureGenerator = {
 		var extend_y = 0;
 		var avg_size = 0;
 		var new_resolution = [];
-		var cubes = Format.single_texture ? Cube.all.slice() : Cube.selected.slice();
+		var cubes = (Format.single_texture && typeof makeTexture == 'function') ? Cube.all.slice() : Cube.selected.slice();
 
 		Undo.initEdit({
-			textures: [],
+			textures: makeTexture instanceof Texture ? [makeTexture] : [],
 			elements: cubes,
 			uv_only: true,
+			bitmap: true,
 			selected_texture: true,
 			uv_mode: true
 		})
@@ -218,9 +260,29 @@ const TextureGenerator = {
 
 		if (options.rearrange_uv) {
 
-			if (options.compress) {
+			if (options.compress || makeTexture instanceof Texture) {
+				var fill_map = {};
 
-				var fill_map = {}
+				if (makeTexture instanceof Texture) {
+					extend_x = makeTexture.width;
+					extend_y = makeTexture.height;
+					Cube.all.forEach(element => {
+						for (let fkey in element.faces) {
+							let face = element.faces[fkey];
+							if (face.getTexture() !== makeTexture) continue;
+
+							let rect = face.getBoundingRect();
+							for (let x = Math.floor(rect.ax); x < Math.ceil(rect.bx); x++) {
+								for (let y = Math.floor(rect.ay); y < Math.ceil(rect.by); y++) {
+									if (!fill_map[x]) fill_map[x] = {};
+									fill_map[x][y] = true;
+								}
+							}
+							
+						}
+					})
+				}
+
 				function occupy(x, y) {
 					if (!fill_map[x]) fill_map[x] = {}
 					fill_map[x][y] = true
@@ -342,11 +404,23 @@ const TextureGenerator = {
 		if (background_color.getAlpha() != 0) {
 			background_color = background_color.toRgbString()
 		}
-		var canvas = document.createElement('canvas')
-		canvas.width = new_resolution[0] * res_multiple;
-		canvas.height = new_resolution[1] * res_multiple;
-		var ctx = canvas.getContext('2d')
+		let canvas = document.createElement('canvas');
+		let ctx = canvas.getContext('2d');
 		ctx.imageSmoothingEnabled = false;
+		if (makeTexture instanceof Texture) {
+			if (makeTexture.mode === 'link') {
+				makeTexture.source = 'data:image/png;base64,' + makeTexture.getBase64();
+				makeTexture.mode = 'bitmap';
+				makeTexture.saved = false;
+				delete Painter.current.canvas;
+			}
+			canvas.width = Math.max(new_resolution[0] * res_multiple, makeTexture.width);
+			canvas.height = Math.max(new_resolution[1] * res_multiple, makeTexture.height);
+			ctx.drawImage(makeTexture.img, 0, 0);
+		} else {
+			canvas.width = new_resolution[0] * res_multiple;
+			canvas.height = new_resolution[1] * res_multiple;
+		}
 
 		
 		//Drawing
@@ -373,12 +447,16 @@ const TextureGenerator = {
 		})
 
 		var dataUrl = canvas.toDataURL()
-		var texture = cb(dataUrl)
+		var texture = typeof makeTexture == 'function' ? makeTexture(dataUrl) : makeTexture;
+		if (makeTexture instanceof Texture) {
+			makeTexture.updateSource(dataUrl);
+		}
 		if (texture) {
 			cubes.forEach(function(cube) {
 				if (!Format.single_texture) {
 					cube.applyTexture(texture, true);
 				}
+				cube.preview_controller.updateUV(cube);
 				cube.autouv = 0;
 			})
 		}
@@ -402,10 +480,12 @@ const TextureGenerator = {
 		})
 
 		updateSelection()
+		let updated_elements = cubes.slice();
+		updated_elements.safePush(...affected_elements);
 		Undo.finishEdit('Create template', {
 			textures: [texture],
 			bitmap: true,
-			elements: cubes.slice().safePush( ...affected_elements),
+			elements: updated_elements,
 			selected_texture: true,
 			uv_only: true,
 			uv_mode: true
@@ -562,7 +642,7 @@ const TextureGenerator = {
 		}
 	},
 	//Face Template
-	generateFaceTemplate(options, cb) {
+	generateFaceTemplate(options, makeTexture) {
 
 		var res_multiple = options.resolution / 16;
 		var background_color = options.color;
@@ -575,7 +655,7 @@ const TextureGenerator = {
 			vec4 = new THREE.Vector3();
 
 		var face_list = [];
-		var element_list = (Format.single_texture ? Outliner.elements : Outliner.selected).filter(el => {
+		var element_list = ((Format.single_texture && typeof makeTexture == 'function') ? Outliner.elements : Outliner.selected).filter(el => {
 			return (el instanceof Cube || el instanceof Mesh) && el.visibility;
 		});
 		function faceRect(cube, face_key, tex, x, y) {
@@ -599,9 +679,10 @@ const TextureGenerator = {
 		}
 
 		Undo.initEdit({
-			textures: [],
+			textures: makeTexture instanceof Texture ? [makeTexture] : [],
 			elements: element_list,
 			uv_only: true,
+			bitmap: true,
 			selected_texture: true,
 			uv_mode: true
 		})
@@ -631,6 +712,7 @@ const TextureGenerator = {
 				for (let key in mesh.faces) {
 					let face = mesh.faces[key];
 					if (face.vertices.length < 3) continue;
+					if (makeTexture instanceof Texture && BarItems.selection_mode.value !== 'object' && !face.isSelected()) continue;
 					face_groups.push({
 						type: 'face_group',
 						mesh,
@@ -668,7 +750,6 @@ const TextureGenerator = {
 						vec2.fromArray(mesh.vertices[face_group.faces[0].vertices[0]])
 					)
 					let rot = cameraTargetToRotation([0, 0, 0], normal_vec.toArray());
-					console.log(face_group.normal, rot)
 					let e = new THREE.Euler(Math.degToRad(rot[1] - 90), Math.degToRad(rot[0] + 180), 0);
 					let vertex_uvs = {};
 					face_group.faces.forEach(face => {
@@ -803,73 +884,109 @@ const TextureGenerator = {
 
 			var extend_x = 0;
 			var extend_y = 0;
+			var fill_map = {};
 
-			if (true) {
+			if (makeTexture instanceof Texture) {
+				extend_x = makeTexture.width;
+				extend_y = makeTexture.height;
+				[...Cube.all, ...Mesh.all].forEach(element => {
+					for (let fkey in element.faces) {
+						let face = element.faces[fkey];
+						if (face.getTexture() !== makeTexture) continue;
 
-				face_list.forEach(face_group => {
-					if (!face_group.mesh) return;
-					let face_uvs = face_group.faces.map((face) => {
-						return face.getSortedVertices().map(vkey => {
-							return face_group.vertex_uvs[vkey];
-						})
-					});
-					face_group.matrix = getPolygonOccupationMatrix(face_uvs, face_group.width, face_group.height);
-				})
-
-				face_list.sort(function(a,b) {
-					return b.size - a.size;
-				})
-
-				var fill_map = {}
-				function occupy(x, y) {
-					if (!fill_map[x]) fill_map[x] = {}
-					fill_map[x][y] = true
-				}
-				function check(x, y) {
-					return fill_map[x] && fill_map[x][y]
-				}
-				function forTemplatePixel(tpl, sx, sy, cb) {
-					let w = tpl.width;
-					let h = tpl.height;
-					if (options.padding) {
-						w++; h++;
-					}
-					for (var x = 0; x < w; x++) {
-						if (tpl.matrix && !tpl.matrix[x]) continue;
-						for (var y = 0; y < h; y++) {
-							if (tpl.matrix && !tpl.matrix[x][y]) continue;
-							if (cb(sx+x, sy+y)) return;
+						let rect = face.getBoundingRect();
+						let face_matrix;
+						if (face instanceof MeshFace) {
+							let vertex_uv_face = [];
+							face.getSortedVertices().forEach(vkey => {
+								vertex_uv_face.push([
+									face.uv[vkey][0] - rect.ax,
+									face.uv[vkey][1] - rect.ay
+								])
+							})
+							face_matrix = getPolygonOccupationMatrix(
+								[vertex_uv_face],
+								Math.ceil(rect.bx) - Math.floor(rect.ax),
+								Math.ceil(rect.by) - Math.floor(rect.ay)
+							);
 						}
-					}
-				}
-				function place(tpl, x, y) {
-					var works = true;
-					forTemplatePixel(tpl, x, y, (tx, ty) => {
-						if (check(tx, ty)) {
-							works = false;
-							return true;
+
+						for (let x = Math.floor(rect.ax); x < Math.ceil(rect.bx); x++) {
+							if (face_matrix && !face_matrix[x]) continue;
+							for (let y = Math.floor(rect.ay); y < Math.ceil(rect.by); y++) {
+								if (face_matrix && !face_matrix[x][y]) continue;
+								if (!fill_map[x]) fill_map[x] = {};
+								fill_map[x][y] = true;
+							}
 						}
-					})
-					if (works) {
-						forTemplatePixel(tpl, x, y, occupy)
-						tpl.posx = x;
-						tpl.posy = y;
-						extend_x = Math.max(extend_x, x + tpl.width);
-						extend_y = Math.max(extend_y, y + tpl.height);
-						return true;
-					}
-				}
-				face_list.forEach(tpl => {
-					//Scan for empty spot
-					for (var line = 0; line < 2e3; line++) {
-						for (var space = 0; space <= line; space++) {
-							if (place(tpl, space, line)) return;
-							if (space == line) continue;
-							if (place(tpl, line, space)) return;
-						}
+						
 					}
 				})
 			}
+
+			face_list.forEach(face_group => {
+				if (!face_group.mesh) return;
+				let face_uvs = face_group.faces.map((face) => {
+					return face.getSortedVertices().map(vkey => {
+						return face_group.vertex_uvs[vkey];
+					})
+				});
+				face_group.matrix = getPolygonOccupationMatrix(face_uvs, face_group.width, face_group.height);
+			})
+
+			face_list.sort(function(a,b) {
+				return b.size - a.size;
+			})
+
+			function occupy(x, y) {
+				if (!fill_map[x]) fill_map[x] = {}
+				fill_map[x][y] = true
+			}
+			function check(x, y) {
+				return fill_map[x] && fill_map[x][y]
+			}
+			function forTemplatePixel(tpl, sx, sy, cb) {
+				let w = tpl.width;
+				let h = tpl.height;
+				if (options.padding) {
+					w++; h++;
+				}
+				for (var x = 0; x < w; x++) {
+					if (tpl.matrix && !tpl.matrix[x]) continue;
+					for (var y = 0; y < h; y++) {
+						if (tpl.matrix && !tpl.matrix[x][y]) continue;
+						if (cb(sx+x, sy+y)) return;
+					}
+				}
+			}
+			function place(tpl, x, y) {
+				var works = true;
+				forTemplatePixel(tpl, x, y, (tx, ty) => {
+					if (check(tx, ty)) {
+						works = false;
+						return true;
+					}
+				})
+				if (works) {
+					forTemplatePixel(tpl, x, y, occupy)
+					tpl.posx = x;
+					tpl.posy = y;
+					extend_x = Math.max(extend_x, x + tpl.width);
+					extend_y = Math.max(extend_y, y + tpl.height);
+					return true;
+				}
+			}
+			face_list.forEach(tpl => {
+				//Scan for empty spot
+				for (var line = 0; line < 2e3; line++) {
+					for (var space = 0; space <= line; space++) {
+						if (place(tpl, space, line)) return;
+						if (space == line) continue;
+						if (place(tpl, line, space)) return;
+					}
+				}
+			})
+
 			
 			var max_size = Math.max(extend_x, extend_y)
 			if (options.power) {
@@ -885,11 +1002,23 @@ const TextureGenerator = {
 		if (background_color.getAlpha() != 0) {
 			background_color = background_color.toRgbString()
 		}
-		var canvas = document.createElement('canvas')
-		canvas.width = new_resolution[0] * res_multiple;
-		canvas.height = new_resolution[1] * res_multiple;
-		var ctx = canvas.getContext('2d')
+		let canvas = document.createElement('canvas');
+		let ctx = canvas.getContext('2d');
 		ctx.imageSmoothingEnabled = false;
+		if (makeTexture instanceof Texture) {
+			if (makeTexture.mode === 'link') {
+				makeTexture.source = 'data:image/png;base64,' + makeTexture.getBase64();
+				makeTexture.mode = 'bitmap';
+				makeTexture.saved = false;
+				delete Painter.current.canvas;
+			}
+			canvas.width = Math.max(new_resolution[0] * res_multiple, makeTexture.width);
+			canvas.height = Math.max(new_resolution[1] * res_multiple, makeTexture.height);
+			ctx.drawImage(makeTexture.img, 0, 0);
+		} else {
+			canvas.width = new_resolution[0] * res_multiple;
+			canvas.height = new_resolution[1] * res_multiple;
+		}
 
 		function getPolygonOccupationMatrix(vertex_uv_faces, width, height) {
 			let matrix = {};
@@ -1163,9 +1292,12 @@ const TextureGenerator = {
 			}
 		})
 		var dataUrl = canvas.toDataURL()
-		var texture = cb(dataUrl)
+		var texture = typeof makeTexture == 'function' ? makeTexture(dataUrl) : makeTexture;
+		if (makeTexture instanceof Texture) {
+			makeTexture.updateSource(dataUrl);
+		}
 
-		let affected_elements = TextureGenerator.changeProjectResolution(new_resolution[0], new_resolution[1]);
+		let affected_elements = TextureGenerator.changeProjectResolution(new_resolution[0], new_resolution[1], makeTexture instanceof Texture ? makeTexture : undefined);
 
 		if (texture) {
 			element_list.forEach(function(element) {
@@ -1176,15 +1308,15 @@ const TextureGenerator = {
 						}
 					}
 					element.preview_controller.updateFaces(element);
-					element.preview_controller.updateUV(element);
 				}
+				element.preview_controller.updateUV(element);
 				if (typeof element.autouv !== 'undefined') {
 					element.autouv = 0;
 				}
 			})
 		}
 		updateSelection()
-		Undo.finishEdit('Create template', {
+		Undo.finishEdit(makeTexture instanceof Texture ? 'Append to template' : 'Create template', {
 			textures: [texture],
 			bitmap: true,
 			elements: [...element_list, ...affected_elements],
@@ -1246,7 +1378,7 @@ const TextureGenerator = {
 		let texture_ctxs = {};
 
 		//Drawing
-		face_list.forEach(({face, fkey}, i) => {
+		face_list.forEach(({face}, i) => {
 			let x = i % max_size;
 			let y = Math.floor(i / max_size);
 
@@ -1312,7 +1444,7 @@ const TextureGenerator = {
 		})
 	},
 	//Misc
-	changeProjectResolution(width, height) {
+	changeProjectResolution(width, height, texture) {
 		let factor_x = width / Project.texture_width;
 		let factor_y = height / Project.texture_height;
 		Project.texture_width = width;
@@ -1327,6 +1459,7 @@ const TextureGenerator = {
 				if (element instanceof Cube) {
 					for (var key in element.faces) {
 						let face = element.faces[key];
+						if (texture && face.getTexture() == texture) continue;
 						if (face.texture) {
 							face.uv[0] *= factor_x
 							face.uv[1] *= factor_y;
@@ -1337,6 +1470,7 @@ const TextureGenerator = {
 				} else if (element instanceof Mesh) {
 					for (var fkey in element.faces) {
 						let face = element.faces[fkey];
+						if (texture && face.getTexture() == texture) continue;
 						for (let vkey in face.uv) {
 							face.uv[vkey][0] *= factor_x;
 							face.uv[vkey][1] *= factor_y;

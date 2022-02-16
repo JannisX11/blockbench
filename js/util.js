@@ -280,8 +280,8 @@ function getRectangle(a, b, c, d) {
 	if (rect.ay > rect.by) {
 		[rect.ay, rect.by] = [rect.by, rect.ay]
 	}
-	rect.x = rect.bx - rect.ax
-	rect.y = rect.by - rect.ay
+	rect.x = rect.w = rect.bx - rect.ax
+	rect.y = rect.h = rect.by - rect.ay
 	return rect;
 }
 function doRectanglesOverlap(rect1, rect2) {

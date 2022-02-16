@@ -1228,6 +1228,7 @@ class Texture {
 				}
 			},
 			'resize_texture',
+			'append_to_template',
 			{
 				name: 'menu.texture.merge_onto_texture',
 				icon: 'fa-caret-square-up',
@@ -1585,7 +1586,7 @@ BARS.defineActions(function() {
 		icon: 'library_add',
 		category: 'textures',
 		keybind: new Keybind({key: 't', ctrl: true}),
-		click: function () {
+		click() {
 			var start_path;
 			if (!isApp) {} else
 			if (Texture.all.length > 0) {
@@ -1620,20 +1621,28 @@ BARS.defineActions(function() {
 		icon: 'icon-create_bitmap',
 		category: 'textures',
 		keybind: new Keybind({key: 't', ctrl: true, shift: true}),
-		click: function () {
+		click() {
 			TextureGenerator.addBitmapDialog()
+		}
+	})
+	new Action('append_to_template', {
+		icon: 'dashboard_customize',
+		category: 'textures',
+		condition: () => Texture.all.length,
+		click() {
+			TextureGenerator.appendToTemplateDialog()
 		}
 	})
 	new Action('save_textures', {
 		icon: 'save',
 		category: 'textures',
-		click: function () {saveTextures()}
+		click() {saveTextures()}
 	})
 	new Action('change_textures_folder', {
 		icon: 'fas.fa-hdd',
 		category: 'textures',
 		condition: () => Texture.all.length > 0,
-		click: function () {
+		click() {
 			var path = undefined;
 			var i = 0;
 			while (i < Texture.all.length && path === undefined) {
@@ -1672,7 +1681,7 @@ BARS.defineActions(function() {
 		icon: 'play_arrow',
 		category: 'textures',
 		condition: textureAnimationCondition,
-		click: function () {
+		click() {
 			TextureAnimator.toggle()
 		}
 	})

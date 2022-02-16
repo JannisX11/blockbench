@@ -36,6 +36,9 @@ class CubeFace extends Face {
 		this.rotation = 0;
 		return this;
 	}
+	getBoundingRect() {
+		return getRectangle(...this.uv);
+	}
 }
 new Property(CubeFace, 'number', 'rotation', {default: 0});
 new Property(CubeFace, 'number', 'tint', {default: -1});

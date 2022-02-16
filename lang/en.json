@@ -1190,6 +1190,8 @@
 	"action.import_texture.desc": "Import one or more textures from your file system",
 	"action.create_texture": "Create Texture",
 	"action.create_texture.desc": "Create a blank texture or template texture",
+	"action.append_to_template": "Append Elements to Template...",
+	"action.append_to_template.desc": "Add the currently selected elements to the texture template",
 	"action.save_textures": "Save Textures",
 	"action.save_textures.desc": "Save all unsaved textures",
 	"action.change_textures_folder": "Change Texture Location",
