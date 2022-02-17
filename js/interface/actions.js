@@ -1978,6 +1978,7 @@ const BARS = {
 			id: 'uv_editor',
 			children: [
 				'uv_apply_all',
+				'uv_apply_all',
 				'uv_maximize',
 				'uv_auto',
 				'uv_transparent',
@@ -1992,6 +1993,9 @@ const BARS = {
 			Toolbars.uv_editor.remove(BarItems.uv_grid);
 			Toolbars.uv_editor.add(BarItems.uv_mirror_x, -2);
 			Toolbars.uv_editor.add(BarItems.uv_mirror_y, -2);
+		})
+		Blockbench.onUpdateTo('4.1.0-beta.0', () => {
+			Toolbars.uv_editor.add(BarItems.move_texture_with_uv, 0);
 		})
 		//Animations
 		Toolbars.animations = new Toolbar({

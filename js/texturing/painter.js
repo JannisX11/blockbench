@@ -393,9 +393,9 @@ const Painter = {
 		}
 
 		if (element instanceof Cube && fill_mode === 'element') {
+			ctx.beginPath();
 			for (var face in element.faces) {
 				var tag = element.faces[face]
-				ctx.beginPath();
 				if (tag.getTexture() === texture) {
 					var face_rect = getRectangle(
 						tag.uv[0] * uvFactorX,
@@ -410,35 +410,27 @@ const Painter = {
 						Math.ceil(face_rect.bx) - Math.floor(face_rect.ax),
 						Math.ceil(face_rect.by) - Math.floor(face_rect.ay)
 					)
-					ctx.fill()
 				}
 			}
+			ctx.fill()
 
-		} else if (element instanceof Mesh && fill_mode === 'element') {
+		} else if (element instanceof Mesh && (fill_mode === 'element' || fill_mode === 'face')) {
+			ctx.beginPath();
 			for (var fkey in element.faces) {
 				var face = element.faces[fkey];
+				if (fill_mode === 'face' && fkey !== Painter.current.face) continue;
 				if (face.vertices.length <= 2 || face.getTexture() !== texture) continue;
-				ctx.beginPath();
 				
-				let min_x = Project.texture_width;
-				let min_y = Project.texture_height;
-				let max_x = 0;
-				let max_y = 0;
-				face.vertices.forEach(vkey => {
-					if (!face.uv[vkey]) return;
-					min_x = Math.min(min_x, face.uv[vkey][0]);
-					min_y = Math.min(min_y, face.uv[vkey][1]);
-					max_x = Math.max(max_x, face.uv[vkey][0]);
-					max_y = Math.max(max_y, face.uv[vkey][1]);
-				})
-				ctx.rect(
-					Math.floor(min_x) * uvFactorX,
-					Math.floor(min_y) * uvFactorY,
-					(Math.ceil(max_x) - Math.floor(min_x)) * uvFactorX,
-					(Math.ceil(max_y) - Math.floor(min_y)) * uvFactorY,
-					)
-				ctx.fill()
+				let matrix = face.getOccupationMatrix(true, [0, 0]);
+				for (let x in matrix) {
+					for (let y in matrix[x]) {
+						if (!matrix[x][y]) continue;
+						x = parseInt(x); y = parseInt(y);
+						ctx.rect(x, y, 1, 1);
+					}
+				}
 			}
+			ctx.fill()
 
 		} else if (fill_mode === 'face') {
 			ctx.fill()

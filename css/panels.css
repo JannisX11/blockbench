@@ -1185,6 +1185,14 @@
 		mix-blend-mode: difference;
 		z-index: 1;
 	}
+	canvas.move_texture_with_uv {
+		position: absolute;
+		pointer-events: none;
+		width: 100%;
+		height: 100%;
+		top: 0;
+		left: 0;
+	}
 
 	.cube_box_uv {
 		position: absolute;

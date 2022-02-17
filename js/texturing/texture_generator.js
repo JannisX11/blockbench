@@ -897,18 +897,7 @@ const TextureGenerator = {
 						let rect = face.getBoundingRect();
 						let face_matrix;
 						if (face instanceof MeshFace) {
-							let vertex_uv_face = [];
-							face.getSortedVertices().forEach(vkey => {
-								vertex_uv_face.push([
-									face.uv[vkey][0] - rect.ax,
-									face.uv[vkey][1] - rect.ay
-								])
-							})
-							face_matrix = getPolygonOccupationMatrix(
-								[vertex_uv_face],
-								Math.ceil(rect.bx) - Math.floor(rect.ax),
-								Math.ceil(rect.by) - Math.floor(rect.ay)
-							);
+							face_matrix = face.getOccupationMatrix(false, [Math.floor(rect.ax), Math.floor(rect.ay)])
 						}
 
 						for (let x = Math.floor(rect.ax); x < Math.ceil(rect.bx); x++) {

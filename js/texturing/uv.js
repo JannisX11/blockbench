@@ -1590,6 +1590,11 @@ BARS.defineActions(function() {
 			UVEditor.vue.uv_overlay = value;
 		}
 	})
+	new Toggle('move_texture_with_uv', {
+		icon: 'fas.fa-link',
+		category: 'uv',
+		condition: {modes: ['edit']}
+	})
 })
 
 Interface.definePanels(function() {
@@ -2087,13 +2092,86 @@ Interface.definePanels(function() {
 
 					if (face_key) this.selectFace(face_key, event, true);
 					let elements = UVEditor.getMappableElements();
-					Undo.initEdit({elements, uv_only: true})
+					Undo.initEdit({
+						elements,
+						uv_only: true,
+
+					});
+					let total_diff = [0, 0];
+					let do_move_uv = !!(BarItems.move_texture_with_uv.value && this.texture);
 
 					UVEditor.getMappableElements().forEach(el => {
 						if (el instanceof Mesh) {
 							delete Project.selected_vertices[el.uuid];
 						}
 					})
+
+					let overlay_canvas;
+					if (do_move_uv) {
+						Undo.initEdit({
+							elements,
+							uv_only: true,
+							bitmap: true,
+							textures: [this.texture]
+						});
+
+						overlay_canvas = Interface.createElement('canvas', {class: 'move_texture_with_uv'});
+						let ctx = overlay_canvas.getContext('2d');
+						overlay_canvas.width = this.texture.width;
+						overlay_canvas.height = this.texture.height;
+						
+						this.texture.edit(canvas => {
+							let tex_ctx = canvas.getContext('2d');
+							ctx.beginPath();
+							tex_ctx.beginPath();
+							UVEditor.getMappableElements().forEach(el => {
+								if (el instanceof Mesh) {
+									for (var fkey in el.faces) {
+										var face = el.faces[fkey];
+										if (!this.selected_faces.includes(fkey)) continue;
+										if (face.vertices.length <= 2 || face.getTexture() !== this.texture) continue;
+										
+										let matrix = face.getOccupationMatrix(true, [0, 0]);
+										for (let x in matrix) {
+											for (let y in matrix[x]) {
+												if (!matrix[x][y]) continue;
+												x = parseInt(x); y = parseInt(y);
+												ctx.rect(x, y, 1, 1);
+												tex_ctx.rect(x, y, 1, 1);
+											}
+										}
+									}
+								} else {
+									let factor_x = this.texture.width  / Project.texture_width;
+									let factor_y = this.texture.height / Project.texture_height;
+									for (var fkey in el.faces) {
+										var face = el.faces[fkey];
+										if (!this.selected_faces.includes(fkey) && !this.box_uv) continue;
+										if (face.getTexture() !== this.texture) continue;
+										
+										let rect = face.getBoundingRect();
+										let canvasRect = [
+											Math.floor(rect.ax * factor_x),
+											Math.floor(rect.ay * factor_y),
+											Math.ceil(rect.bx * factor_x) - Math.floor(rect.ax * factor_x),
+											Math.ceil(rect.by * factor_y) - Math.floor(rect.ay * factor_y),
+										]
+										ctx.rect(...canvasRect);
+										tex_ctx.rect(...canvasRect);
+									}
+								}
+							})
+							ctx.clip();
+							ctx.drawImage(this.texture.img, 0, 0);
+							tex_ctx.clip();
+							tex_ctx.clearRect(0, 0, canvas.width, canvas.height);
+						}, {no_undo: true})
+
+						UVEditor.vue.$refs.frame.append(overlay_canvas);
+
+					} else {
+						Undo.initEdit({elements, uv_only: true});
+					}
 
 					this.drag({
 						event,
@@ -2152,11 +2230,33 @@ Interface.definePanels(function() {
 									})
 								}
 							})
+							if (do_move_uv) {
+								total_diff[0] += diff_x;
+								total_diff[1] += diff_y;
+								overlay_canvas.style.left = this.toPixels(total_diff[0]);
+								overlay_canvas.style.top  = this.toPixels(total_diff[1]);
+							}
 							return [diff_x, diff_y]
 						},
 						onEnd: () => {
 							UVEditor.disableAutoUV()
-							Undo.finishEdit('Move UV')
+							if (do_move_uv) {
+								this.texture.edit((canvas) => {
+									canvas.getContext('2d').drawImage(
+										overlay_canvas,
+										total_diff[0] * this.texture.width  / Project.texture_width,
+										total_diff[1] * this.texture.height / Project.texture_height
+									);
+								}, {no_undo: true})
+								overlay_canvas.remove();
+								Canvas.updateView({elements, element_aspects: {uv: true}});
+							}
+							Undo.finishEdit('Move UV');
+						},
+						onAbort: () => {
+							if (do_move_uv) {
+								overlay_canvas.remove();
+							}
 						}
 					})
 				},

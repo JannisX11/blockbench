@@ -56,6 +56,73 @@ class MeshFace extends Face {
 		})
 		return getRectangle(min_x, min_y, max_x, max_y);
 	}
+	getOccupationMatrix(texture_space = false, start_offset = [0, 0], matrix = {}) {
+		let face = this;
+		let rect = this.getBoundingRect();
+		let texture = texture_space && this.getTexture();
+		let sorted_vertices = this.getSortedVertices();
+		let factor_x = texture ? (texture.width  / Project.texture_width) : 1;
+		let factor_y = texture ? (texture.height / Project.texture_height) : 1;
+
+		if (texture_space && texture) {
+			rect.ax *= factor_x;
+			rect.ay *= factor_y;
+			rect.bx *= factor_x;
+			rect.by *= factor_y;
+		}
+		function vSub(a, b) {
+			return [a[0]-b[0], a[1]-b[1]];
+		}
+		function getSide(a, b) {
+			let cosine_sign = a[0]*b[1] - a[1]*b[0];
+			if (cosine_sign > 0) return 1;
+			if (cosine_sign < 0) return -1;
+		}
+		function pointInsidePolygon(x, y) {
+			let previous_side;
+			let i = 0;
+			for (let vkey of sorted_vertices) {
+				let a = face.uv[vkey];
+				let b = face.uv[sorted_vertices[i+1]] || face.uv[sorted_vertices[0]];
+				a[0] *= factor_x;
+				a[1] *= factor_y;
+				b[0] *= factor_x;
+				b[1] *= factor_y;
+
+				let affine_segment = vSub(b, a);
+				let affine_point = vSub([x, y], a);
+				let side = getSide(affine_segment, affine_point);
+				if (!side) return false;
+				if (!previous_side) previous_side = side;
+				if (side !== previous_side) return false;
+				i++;
+			}
+			return true;
+		}
+		for (let x = Math.floor(rect.ax); x < Math.ceil(rect.bx); x++) {
+			for (let y = Math.floor(rect.ay); y < Math.ceil(rect.by); y++) {
+				let matrix_x = x-start_offset[0];
+				let matrix_y = y-start_offset[1];
+
+				let inside = ( pointInsidePolygon(x+0.00001, y+0.00001)
+							|| pointInsidePolygon(x+0.99999, y+0.00001)
+							|| pointInsidePolygon(x+0.00001, y+0.99999)
+							|| pointInsidePolygon(x+0.99999, y+0.99999));
+				if (!inside) {
+					for (let vkey of sorted_vertices) {
+						if (pointInRectangle(face.uv[vkey], [x, y], [x+0.99999, y+0.99999])) {
+							inside = true; break;
+						}
+					}
+				}
+				if (inside) {
+					if (!matrix[matrix_x]) matrix[matrix_x] = {};
+					matrix[matrix_x][matrix_y] = true;
+				}
+			}
+		}
+		return matrix;
+	}
 	invert() {
 		if (this.vertices.length < 3) return this;
 		[this.vertices[0], this.vertices[1]] = [this.vertices[1], this.vertices[0]];

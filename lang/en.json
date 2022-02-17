@@ -1253,6 +1253,8 @@
 	"action.paint_mode_uv_overlay.desc": "Display the UV map as an overlay in paint mode",
 	"action.remove_blank_faces": "Remove Blank Faces",
 	"action.remove_blank_faces.desc": "Deletes all untextured faces of the selection",
+	"action.move_texture_with_uv": "Move Texture with UV",
+	"action.move_texture_with_uv.desc": "Move the texture of the face along when dragging UV faces",
 
 	"action.add_animation": "Add Animation",
 	"action.add_animation.desc": "Create a blank animation",
