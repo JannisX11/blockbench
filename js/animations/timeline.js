@@ -861,7 +861,7 @@ onVueSetup(function() {
 						} else {
 							kf.time = Timeline.snapTime(t);
 						}
-						if (old_time == kf.time) {
+						if (old_time !== kf.time) {
 							values_changed = true;
 						}
 

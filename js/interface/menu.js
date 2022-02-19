@@ -750,6 +750,7 @@ const MenuBar = {
 				return tools;
 			}},
 			'swap_tools',
+			'action_control',
 			'_',
 			'convert_to_mesh',
 			'remove_blank_faces',

@@ -1317,7 +1317,7 @@ Interface.definePanels(function() {
 								node[key] = value;
 								if (key == 'shade') node.updateElement();
 							})
-							Undo.finishEdit(`toggle ${key} property`)
+							Undo.finishEdit(`Toggle ${key} property`)
 						}
 						removeEventListeners(document, 'mousemove touchmove', move);
 						removeEventListeners(document, 'mouseup touchend', off);

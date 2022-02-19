@@ -1977,6 +1977,7 @@ const BARS = {
 		Toolbars.uv_editor = new Toolbar({
 			id: 'uv_editor',
 			children: [
+				'move_texture_with_uv',
 				'uv_apply_all',
 				'uv_apply_all',
 				'uv_maximize',
