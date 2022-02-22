@@ -1710,8 +1710,7 @@ Interface.definePanels(function() {
 		return 0;
 	}
 
-	Interface.Panels.animations = new Panel({
-		id: 'animations',
+	new Panel('animations', {
 		icon: 'movie',
 		growable: true,
 		condition: {modes: ['animate']},
@@ -1911,55 +1910,52 @@ Interface.definePanels(function() {
 				}
 			},
 			template: `
-				<div>
-					<div class="toolbar_wrapper animations"></div>
-					<ul
-						id="animations_list"
-						class="list mobile_scrollbar"
-						@mousedown="dragAnimation($event)"
-						@touchstart="dragAnimation($event)"
-						@contextmenu.stop.prevent="openMenu($event)"
-					>
-						<li v-for="(file, key) in files" :key="key" class="animation_file" @contextmenu.prevent.stop="showFileContextMenu($event, key)">
-							<div class="animation_file_head" v-if="!file.hide_head" v-on:click.stop="toggle(key)">
-								<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
-								<label :title="key">{{ file.name }}</label>
-								<div class="in_list_button" v-if="animation_files_enabled && !file.saved" v-on:click.stop="saveFile(key, file)">
-									<i class="material-icons">save</i>
-								</div>
-								<div class="in_list_button" v-on:click.stop="addAnimation(key)">
-									<i class="material-icons">add</i>
-								</div>
+				<ul
+					id="animations_list"
+					class="list mobile_scrollbar"
+					@mousedown="dragAnimation($event)"
+					@touchstart="dragAnimation($event)"
+					@contextmenu.stop.prevent="openMenu($event)"
+				>
+					<li v-for="(file, key) in files" :key="key" class="animation_file" @contextmenu.prevent.stop="showFileContextMenu($event, key)">
+						<div class="animation_file_head" v-if="!file.hide_head" v-on:click.stop="toggle(key)">
+							<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
+							<label :title="key">{{ file.name }}</label>
+							<div class="in_list_button" v-if="animation_files_enabled && !file.saved" v-on:click.stop="saveFile(key, file)">
+								<i class="material-icons">save</i>
 							</div>
-							<ul v-if="!files_folded[key]" :class="{indented: !file.hide_head}">
-								<li
-									v-for="animation in file.animations"
-									v-bind:class="{ selected: animation.selected }"
-									v-bind:anim_id="animation.uuid"
-									class="animation"
-									v-on:click.stop="animation.select()"
-									v-on:dblclick.stop="animation.propertiesDialog()"
-									:key="animation.uuid"
-									@contextmenu.prevent.stop="animation.showContextMenu($event)"
-								>
-									<i class="material-icons">movie</i>
-									<label :title="animation.name">
-										{{ common_namespace ? animation.name.split(common_namespace).join('') : animation.name }}
-										<span v-if="common_namespace"> - {{ animation.name }}</span>
-									</label>
-									<div v-if="animation_files_enabled"  class="in_list_button" v-bind:class="{unclickable: animation.saved}" v-on:click.stop="animation.save()">
-										<i v-if="animation.saved" class="material-icons">check_circle</i>
-										<i v-else class="material-icons">save</i>
-									</div>
-									<div class="in_list_button" v-on:click.stop="animation.togglePlayingState()">
-										<i v-if="animation.playing" class="fa_big far fa-play-circle"></i>
-										<i v-else class="fa_big far fa-circle"></i>
-									</div>
-								</li>
-							</ul>
-						</li>
-					</ul>
-				</div>
+							<div class="in_list_button" v-on:click.stop="addAnimation(key)">
+								<i class="material-icons">add</i>
+							</div>
+						</div>
+						<ul v-if="!files_folded[key]" :class="{indented: !file.hide_head}">
+							<li
+								v-for="animation in file.animations"
+								v-bind:class="{ selected: animation.selected }"
+								v-bind:anim_id="animation.uuid"
+								class="animation"
+								v-on:click.stop="animation.select()"
+								v-on:dblclick.stop="animation.propertiesDialog()"
+								:key="animation.uuid"
+								@contextmenu.prevent.stop="animation.showContextMenu($event)"
+							>
+								<i class="material-icons">movie</i>
+								<label :title="animation.name">
+									{{ common_namespace ? animation.name.split(common_namespace).join('') : animation.name }}
+									<span v-if="common_namespace"> - {{ animation.name }}</span>
+								</label>
+								<div v-if="animation_files_enabled"  class="in_list_button" v-bind:class="{unclickable: animation.saved}" v-on:click.stop="animation.save()">
+									<i v-if="animation.saved" class="material-icons">check_circle</i>
+									<i v-else class="material-icons">save</i>
+								</div>
+								<div class="in_list_button" v-on:click.stop="animation.togglePlayingState()">
+									<i v-if="animation.playing" class="fa_big far fa-play-circle"></i>
+									<i v-else class="fa_big far fa-circle"></i>
+								</div>
+							</li>
+						</ul>
+					</li>
+				</ul>
 			`
 		},
 		menu: new Menu([
@@ -1970,8 +1966,7 @@ Interface.definePanels(function() {
 		])
 	})
 
-	Interface.Panels.variable_placeholders = new Panel({
-		id: 'variable_placeholders',
+	new Panel('variable_placeholders', {
 		icon: 'fas.fa-stream',
 		condition: {modes: ['animate']},
 		growable: true,

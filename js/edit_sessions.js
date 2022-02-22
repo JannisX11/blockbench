@@ -504,8 +504,7 @@ EditSession.sanitizeMessage = function(text) {
 
 Interface.definePanels(function() {
 
-	Interface.Panels.chat = new Panel({
-		id: 'chat',
+	new Panel('chat', {
 		icon: 'chat',
 		condition: {method() {return Project.EditSession && Project.EditSession.active}},
 		toolbars: {},

@@ -1714,8 +1714,7 @@ BARS.defineActions(function() {
 
 Interface.definePanels(function() {
 
-	Interface.Panels.textures = new Panel({
-		id: 'textures',
+	new Panel('textures', {
 		icon: 'fas.fa-images',
 		growable: true,
 		condition: {modes: ['edit', 'paint']},
@@ -1790,7 +1789,6 @@ Interface.definePanels(function() {
 			},
 			template: `
 				<div>
-					<div class="toolbar_wrapper texturelist"></div>
 					<ul id="texture_list" class="list mobile_scrollbar" @contextmenu.stop.prevent="openMenu($event)">
 						<li
 							v-for="texture in textures"

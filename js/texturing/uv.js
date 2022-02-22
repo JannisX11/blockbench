@@ -1667,8 +1667,7 @@ Interface.definePanels(function() {
 		},
 	}
 	
-	UVEditor.panel = Interface.Panels.uv = new Panel({
-		id: 'uv',
+	UVEditor.panel = new Panel('uv', {
 		icon: 'photo_size_select_large',
 		selection_only: true,
 		condition: {modes: ['edit', 'paint']},
@@ -2581,7 +2580,7 @@ Interface.definePanels(function() {
 						</div>
 					</div>
 
-					<div class="bar" id="uv_cube_face_bar" v-if="mode != 'properties' && mappable_elements[0] && mappable_elements[0].type == 'cube' && !box_uv">
+					<div class="bar" id="uv_cube_face_bar" v-if="mode == 'uv' && mappable_elements[0] && mappable_elements[0].type == 'cube' && !box_uv">
 						<li v-for="(face, key) in mappable_elements[0].faces" :face="key" :class="{selected: selected_faces.includes(key), disabled: mappable_elements[0].faces[key].texture === null}" @mousedown="selectFace(key, $event, false, true)">
 							{{ face_names[key] }}
 						</li>

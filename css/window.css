@@ -30,6 +30,7 @@
 	}
 	#work_screen {
 		--toolbar-height: 30px;
+		position: relative;
 		display: grid;
 		grid-template-columns: 332px auto 314px;
 		grid-template-rows: var(--toolbar-height) minmax(200px, 5000px) 26px;
@@ -304,6 +305,7 @@
 			"status_bar"
 			"panel_selector";
 		grid-template-columns: auto !important;
+		position: relative;
 	}
 	#main_toolbar {
 		display: block;

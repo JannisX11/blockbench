@@ -327,8 +327,7 @@ BARS.defineActions(function() {
 			LeftLeg: [-28, 0, 0]
 		},
 	};
-	Interface.Panels.skin_pose = new Panel({
-		id: 'skin_pose',
+	new Panel('skin_pose', {
 		icon: 'icon-player',
 		condition: {modes: ['pose']},
 		component: {

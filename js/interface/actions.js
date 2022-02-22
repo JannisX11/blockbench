@@ -1109,6 +1109,8 @@ class ColorPicker extends Widget {
 class Toolbar {
 	constructor(data) {
 		var scope = this;
+		this.name = data.name && tl(data.name);
+		this.label = !!data.label;
 		this.children = [];
 		this.condition_cache = [];
 
@@ -1904,6 +1906,8 @@ const BARS = {
 
 		Toolbars.element_position = new Toolbar({
 			id: 'element_position',
+			name: 'panel.element.position',
+			label: true,
 			children: [
 				'slider_pos_x',
 				'slider_pos_y',
@@ -1912,6 +1916,8 @@ const BARS = {
 		})
 		Toolbars.element_size = new Toolbar({
 			id: 'element_size',
+			name: 'panel.element.size',
+			label: true,
 			children: [
 				'slider_size_x',
 				'slider_size_y',
@@ -1921,6 +1927,8 @@ const BARS = {
 		})
 		Toolbars.element_origin = new Toolbar({
 			id: 'element_origin',
+			name: 'panel.element.origin',
+			label: true,
 			children: [
 				'slider_origin_x',
 				'slider_origin_y',
@@ -1930,6 +1938,8 @@ const BARS = {
 		})
 		Toolbars.element_rotation = new Toolbar({
 			id: 'element_rotation',
+			name: 'panel.element.rotation',
+			label: true,
 			children: [
 				'slider_rotation_x',
 				'slider_rotation_y',

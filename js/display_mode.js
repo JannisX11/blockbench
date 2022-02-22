@@ -1650,8 +1650,7 @@ BARS.defineActions(function() {
 
 Interface.definePanels(function() {
 	
-	Interface.Panels.display = new Panel({
-		id: 'display',
+	new Panel('display', {
 		icon: 'tune',
 		condition: {modes: ['display']},
 		toolbars: {

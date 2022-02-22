@@ -13,7 +13,6 @@ class Mode extends KeybindItem {
 		this.selectElements = data.selectElements !== false
 		this.hidden_node_types = data.hidden_node_types instanceof Array ? data.hidden_node_types.slice() : [];
 
-		this.center_windows = data.center_windows||[];
 		this.hide_toolbars = data.hide_toolbars
 		this.hide_sidebars = data.hide_sidebars
 		this.hide_status_bar = data.hide_status_bar
@@ -28,16 +27,11 @@ class Mode extends KeybindItem {
 			let node = document.createElement('div');
 			let mount = document.createElement('div');
 			node.id = 'mode_screen_' + this.id;
-			node.classList.add('center_window');
 			node.appendChild(mount);
 			document.getElementById('center').appendChild(node);
 
 			this.vue = new Vue(data.component)
 			this.vue.$mount(mount);
-
-			this.center_windows.safePush(node.id);
-		} else {
-			this.center_windows.safePush('preview');
 		}
 	}
 	select() {
@@ -59,10 +53,6 @@ class Mode extends KeybindItem {
 		if (Project) Project.mode = this.id;
 
 		document.body.setAttribute('mode', this.id);
-
-		$('#center > .center_window').each((i, obj) => {
-			$(obj).toggle(this.center_windows.includes(obj.id));
-		})
 
 		$('#main_toolbar .toolbar_wrapper').css('visibility', this.hide_toolbars ? 'hidden' : 'visible');
 		$('#status_bar').css('display', this.hide_status_bar ? 'none' : 'flex');
@@ -178,7 +168,6 @@ BARS.defineActions(function() {
 	new Mode('animate', {
 		default_tool: 'move_tool',
 		category: 'navigate',
-		center_windows: ['preview', 'timeline'],
 		hidden_node_types: ['cube', 'mesh', 'texture_mesh'],
 		condition: () => Format.animation_mode,
 		onSelect: () => {
