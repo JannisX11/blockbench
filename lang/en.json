@@ -1001,6 +1001,8 @@
 	"action.duplicate.desc": "Duplicates the selected cubes or group",
 	"action.delete": "Delete",
 	"action.delete.desc": "Deletes the selected cubes or group",
+	"action.move_to_group": "Move to Group",
+	"action.move_to_group.desc": "Move the selected elements to a different outliner group",
 	"action.sort_outliner": "Sort Outliner",
 	"action.sort_outliner.desc": "Sort the outliner alphabetically",
 	"action.unlock_everything": "Unlock All",

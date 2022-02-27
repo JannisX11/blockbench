@@ -104,7 +104,7 @@ class Locator extends OutlinerElement {
 				}
 			},
 			'_',
-			'group_elements',
+			...Outliner.control_menu_group,
 			'_',
 			'copy',
 			'paste',

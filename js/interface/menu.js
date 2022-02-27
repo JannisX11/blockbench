@@ -17,12 +17,16 @@ function handleMenuOverflow(node) {
 	})
 }
 class Menu {
-	constructor(id, structure) {
-		if (!structure) structure = id;
+	constructor(id, structure, options) {
+		if (typeof id !== 'string') {
+			options = structure;
+			structure = id;
+		}
 		this.id = typeof id == 'string' ? id : '';
 		this.children = [];
 		this.node = $('<ul class="contextMenu"></ul>')[0]
-		this.structure = structure
+		this.structure = structure;
+		this.options = options || {};
 	}
 	hover(node, event, expand) {
 		if (event) event.stopPropagation()
@@ -146,13 +150,9 @@ class Menu {
 			node.find('ul.contextMenu.sub').detach();
 			if (list.length) {
 				var childlist = $('<ul class="contextMenu sub"></ul>')
-				list.forEach(function(s2, i) {
-					getEntry(s2, childlist)
-				})
-				var last = childlist.children().last()
-				if (last.length && last.hasClass('menu_separator')) {
-					last.remove()
-				}
+
+				populateList(list, childlist, object.searchable);
+
 				if (typeof object.click == 'function' && object instanceof Action == false) {
 					node.addClass('hybrid_parent');
 					let more_button = Interface.createElement('div', {class: 'menu_more_button'}, Blockbench.getIconNode('more_horiz'));
@@ -168,6 +168,59 @@ class Menu {
 			}
 			return 0;
 		}
+		function populateList(list, menu_node, searchable) {
+			
+			if (searchable) {
+				let input = Interface.createElement('input', {type: 'text', placeholder: tl('generic.search')});
+				let search_button = Interface.createElement('div', {}, Blockbench.getIconNode('search'));
+				let search_bar = Interface.createElement('li', {class: 'menu_search_bar'}, [input, search_button]);
+				menu_node.append(search_bar);
+				
+				let object_list = [];
+				list.forEach(function(s2, i) {
+					let jq_node = getEntry(s2, menu_node);
+					if (!jq_node) return;
+					object_list.push({
+						object: s2,
+						node: jq_node[0] || jq_node,
+						id: s2.id,
+						name: s2.name,
+						description: s2.description,
+					})
+				})
+				search_button.onclick = (e) => {
+					input.value = '';
+				}
+				input.oninput = (e) => {
+					let search_term = input.value.toUpperCase();
+					search_button.firstElementChild.replaceWith(Blockbench.getIconNode(search_term ? 'clear' : 'search'));
+
+					object_list.forEach(item => {
+						$(item.node).detach();
+					})
+					object_list.forEach(item => {
+						if (
+							typeof item.object == 'string' ||
+							item.object.always_show ||
+							(item.id && item.id.toUpperCase().includes(search_term)) ||
+							(item.name && item.name.toUpperCase().includes(search_term)) ||
+							(item.description && item.description.toUpperCase().includes(search_term))
+						) {
+							menu_node.append(item.node);
+						}
+					})
+				}
+
+			} else {
+				list.forEach((object) => {
+					getEntry(object, menu_node);
+				})
+			}
+			var last = menu_node.children().last();
+			if (last.length && last.hasClass('menu_separator')) {
+				last.remove()
+			}
+		}
 
 		function getEntry(s, parent) {
 
@@ -178,7 +231,7 @@ class Menu {
 				if (last.length && !last.hasClass('menu_separator')) {
 					parent.append(entry)
 				}
-				return;
+				return entry;
 			}
 			if (typeof s == 'string' && BarItems[s]) {
 				s = BarItems[s];
@@ -291,15 +344,10 @@ class Menu {
 					obj = obj.parent().parent();
 				}
 			}
+			return entry;
 		}
 
-		scope.structure.forEach(function(s, i) {
-			getEntry(s, ctxmenu)
-		})
-		var last = ctxmenu.children().last()
-		if (last.length && last.hasClass('menu_separator')) {
-			last.remove()
-		}
+		populateList(scope.structure, ctxmenu, this.options.searchable);
 
 		var el_width = ctxmenu.width()
 		var el_height = ctxmenu.height()
@@ -350,7 +398,9 @@ class Menu {
 		$(scope.node).on('click', (ev) => {
 			if (
 				ev.target.className.includes('parent') ||
-				(ev.target.parentNode && ev.target.parentNode.className.includes('parent'))
+				(ev.target.parentNode && ev.target.parentNode.className.includes('parent')) ||
+				ev.target.classList.contains('menu_search_bar') ||
+				(ev.target.parentNode && ev.target.parentNode.classList.contains('menu_search_bar'))
 			) {} else {
 				scope.hide()
 			}
@@ -530,6 +580,7 @@ const MenuBar = {
 			},
 			{name: 'menu.file.recent', id: 'recent', icon: 'history',
 				condition() {return isApp && recent_projects.length},
+				searchable: true,
 				children() {
 					var arr = []
 					let redact = settings.streamer_mode.value;
@@ -551,6 +602,7 @@ const MenuBar = {
 						arr.push('_', {
 							name: 'menu.file.recent.more',
 							icon: 'read_more',
+							always_show: true,
 							click(c, event) {
 								ActionControl.select('recent: ');
 							}
@@ -560,6 +612,7 @@ const MenuBar = {
 						arr.push('_', {
 							name: 'menu.file.recent.clear',
 							icon: 'clear',
+							always_show: true,
 							click(c, event) {
 								recent_projects.empty();
 								updateRecentProjects();

@@ -592,6 +592,27 @@
 			background-color: transparent;
 		}
 	}
+	.contextMenu .menu_search_bar {
+		padding: 0;
+		display: flex;
+		border: 1px solid var(--color-border);
+		margin: 2px;
+	}
+	.contextMenu .menu_search_bar input {
+		color: inherit;
+		padding: 6px;
+		flex-grow: 1;
+		height: auto;
+	}
+	.contextMenu .menu_search_bar div {
+		width: 30px;
+		text-align: center;
+		padding-top: 2px;
+	}
+	.contextMenu .menu_search_bar div > * {
+		pointer-events: none;
+		vertical-align: middle;
+	}
 
 	.keybinding_label {
 		pointer-events: none;

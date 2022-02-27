@@ -433,9 +433,7 @@ class Group extends OutlinerNode {
 		Undo.finishEdit('Change group marker color')
 	}
 	Group.prototype.menu = new Menu([
-		'copy',
-		'paste',
-		'duplicate',
+		...Outliner.control_menu_group,
 		'_',
 		'add_locator',
 		'_',
@@ -566,7 +564,7 @@ BARS.defineActions(function() {
 		}
 	})
 	new Action('group_elements', {
-		icon: 'drive_file_move',
+		icon: 'drive_folder_upload',
 		category: 'edit',
 		condition: () => Modes.edit && (selected.length || Group.selected),
 		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),

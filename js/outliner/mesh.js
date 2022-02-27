@@ -616,11 +616,7 @@ class Mesh extends OutlinerElement {
 		'_',
 		'split_mesh',
 		'merge_meshes',
-		'group_elements',
-		'_',
-		'copy',
-		'paste',
-		'duplicate',
+		...Outliner.control_menu_group,
 		'_',
 		'rename',
 		{name: 'menu.cube.color', icon: 'color_lens', children: markerColors.map((color, i) => {return {

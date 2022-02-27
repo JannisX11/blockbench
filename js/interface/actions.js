@@ -210,6 +210,7 @@ class Action extends BarItem {
 		}
 		if (data.condition) this.condition = data.condition
 		this.children = data.children;
+		this.searchable = data.searchable;
 
 		//Node
 		if (!this.click) this.click = data.click

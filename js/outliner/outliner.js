@@ -609,6 +609,13 @@ class NodePreviewController {
 		}
 	}
 }
+Outliner.control_menu_group = [
+	'copy',
+	'paste',
+	'duplicate',
+	'group_elements',
+	'move_to_group',
+]
 
 OutlinerElement.registerType = function(constructor, id) {
 	OutlinerElement.types[id] = constructor;
@@ -735,7 +742,7 @@ function parseGroups(array, import_reference, startIndex) {
 }
 
 // Dropping
-function dropOutlinerObjects(item, target, event, order) {
+function moveOutlinerSelectionTo(item, target, event, order) {
 	let duplicate = event.altKey || Pressing.overrides.alt;
 	if (item.type === 'group' && target && target.parent) {
 		var is_parent = false;
@@ -811,7 +818,7 @@ function dropOutlinerObjects(item, target, event, order) {
 		updateSelection()
 		Undo.finishEdit('Duplicate selection', {elements: selected, outliner: true, selection: true})
 	} else {
-		Undo.finishEdit('Drag elements in outliner')
+		Undo.finishEdit('Move elements in outliner')
 	}
 }
 
@@ -957,6 +964,35 @@ BARS.defineActions(function() {
 		}
 	})
 
+	new Action('move_to_group', {
+		icon: 'drive_file_move',
+		category: 'edit',
+		searchable: true,
+		children(element) {
+			let groups = getAllGroups();
+			let root = {
+				name: 'Root',
+				icon: 'list_alt',
+				click(event) {
+					moveOutlinerSelectionTo(element, undefined, event);
+				}
+			};
+			return [root, ...groups.map(group => {
+				return {
+					name: group.name,
+					icon: 'folder',
+					color: markerColors[group.color] && markerColors[group.color].standard,
+					click(event) {
+						moveOutlinerSelectionTo(element, group, event);
+						element.showInOutliner();
+					}
+				}
+			})]
+		},
+		click(event) {
+			new Menu('move_to_group', this.children(this), {searchable: true}).open(event.target, this)
+		}
+	})
 	new Action('sort_outliner', {
 		icon: 'sort_by_alpha',
 		category: 'edit',
@@ -1444,9 +1480,9 @@ Interface.definePanels(function() {
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
 							[drop_target] = eventTargetToNode(target);
 							if (drop_target) {
-								dropOutlinerObjects(item, drop_target, e2, order);
+								moveOutlinerSelectionTo(item, drop_target, e2, order);
 							} else if ($('#cubes_list').is(':hover')) {
-								dropOutlinerObjects(item, undefined, e2);
+								moveOutlinerSelectionTo(item, undefined, e2);
 							}
 						}
 					}

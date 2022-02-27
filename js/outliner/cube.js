@@ -721,7 +721,7 @@ class Cube extends OutlinerElement {
 	Cube.prototype.rotatable = true;
 	Cube.prototype.needsUniqueName = false;
 	Cube.prototype.menu = new Menu([
-		'group_elements',
+		...Outliner.control_menu_group,
 		'_',
 		'copy',
 		'paste',
