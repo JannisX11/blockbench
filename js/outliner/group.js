@@ -448,7 +448,7 @@ class Group extends OutlinerNode {
 			}
 		}})},
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
-		{icon: 'fa-leaf', name: 'menu.group.resolve', condition: {modes: ['edit']}, click: function(group) {group.resolve()}},
+		'resolve_group',
 		'delete'
 	]);
 	Object.defineProperty(Group, 'all', {
@@ -672,6 +672,13 @@ BARS.defineActions(function() {
 					dialog.hide().delete();
 				}
 			}).show();
+		}
+	})
+	new Action('resolve_group', {
+		icon: 'fa-leaf',
+		condition: {modes: ['edit'], method: () => Group.selected},
+		click() {
+			Group.selected.resolve();
 		}
 	})
 })
