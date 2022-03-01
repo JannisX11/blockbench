@@ -1474,6 +1474,7 @@
 	"menu.animation.file": "File",
 	"menu.animation.snapping": "Snapping",
 	"menu.animation.open_location": "Open File Location",
+	"menu.animation.unload": "Unload",
 	"menu.animation.flip_keyframes": "Flip Keyframes",
 
 	"menu.animation_file.unload": "Unload Animation File",

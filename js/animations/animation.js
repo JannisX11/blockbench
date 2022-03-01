@@ -724,6 +724,17 @@ class Animation {
 			}
 		},
 		'rename',
+		{
+			id: 'unload',
+			name: 'menu.animation.unload',
+			icon: 'remove',
+			condition: () => Format.animation_files,
+			click(animation) {
+				Undo.initEdit({animations: [this]})
+				this.remove(false, false);
+				Undo.finishEdit('Unload animation', {animations: []})
+			}
+		},
 		'delete',
 		'_',
 		{name: 'menu.animation.properties', icon: 'list', click(animation) {
@@ -743,7 +754,7 @@ class Animation {
 			animations_to_remove.forEach(animation => {
 				animation.remove(false, false);
 			})
-			Undo.finishEdit('Remove animation file', {animations: []})
+			Undo.finishEdit('Unload animation file', {animations: []})
 		}},
 		{name: 'menu.animation_file.import_remaining', icon: 'playlist_add', click(id) {
 			Blockbench.read([id], {}, files => {

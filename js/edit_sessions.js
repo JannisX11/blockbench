@@ -398,9 +398,9 @@ EditSession.ChatMessage = class {
 		this.self = data.sender == this.session.peer.id;
 		this.text = data.text.substr(0, EditSession.defaults.max_chat_length)||'';
 
-		this.html = this.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+		this.html = Interface.createElement('p', {}, this.text).innerHTML;
 		this.html = this.html.replace(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/g, (text, i) => {
-			return `<a href="${text}" class="open-in-browser">${text}</a>`;
+			return Interface.createElement('a', {href: text, class: "open-in-browser"}, text).outerHTML;
 		})
 		var date = new Date();
 		this.timestamp = date.getTimestamp()

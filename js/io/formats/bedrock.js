@@ -62,7 +62,13 @@ window.BedrockEntityManager = class BedrockEntityManager {
 					}
 				} catch (err) {}
 			}
-			return searchFolder(path) || searchFolder(path.replace(/entity$/, 'attachables'));
+			if (Group.all.find(group => group.bedrock_binding)) {
+				// Primarily an attachable
+				return searchFolder(path.replace(/entity$/, 'attachables')) || searchFolder(path);
+			} else {
+				// Entity
+				return searchFolder(path) || searchFolder(path.replace(/entity$/, 'attachables'));
+			}
 		}
 	}
 	initEntity() {

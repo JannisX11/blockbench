@@ -266,7 +266,7 @@ class Menu {
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = $(`<li title="${s.description ? tl(s.description) : ''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`)
+				entry = $(Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name))));
 				entry.prepend(icon)
 
 				//Submenu
@@ -310,7 +310,7 @@ class Menu {
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = $(`<li title="${s.description ? tl(s.description) : ''}" menu_item="${s.id}"><span>${tl(s.name)}</span></li>`);
+				entry = $(Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name))));
 				entry.prepend(icon);
 				if (s.keybind) {
 					let label = document.createElement('label');
@@ -427,7 +427,8 @@ class Menu {
 	}
 	addAction(action, path) {
 
-		if (path === undefined) path = ''
+		if (path === undefined) path = '';
+		if (typeof path !== 'string') path = path.toString();
 		var track = path.split('.')
 
 		function traverse(arr, layer) {
@@ -520,7 +521,7 @@ class BarMenu extends Menu {
 		this.node.style.minHeight = '8px';
 		this.node.style.minWidth = '150px';
 		this.name = tl(options.name || `menu.${id}`);
-		this.label = $(`<li class="menu_bar_point">${this.name}</li>`)[0]
+		this.label = Interface.createElement('li', {class: 'menu_bar_point'}, this.name);
 		$(this.label).click(function() {
 			if (open_menu === scope) {
 				scope.hide()
