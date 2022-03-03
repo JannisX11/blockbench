@@ -1237,6 +1237,12 @@ Interface.definePanels(function() {
 	new Panel('outliner', {
 		icon: 'list_alt',
 		condition: {modes: ['edit', 'paint', 'animate', 'pose']},
+		default_position: {
+			slot: 'right_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
 		toolbars: {
 			head: Toolbars.outliner
 		},
@@ -1498,6 +1504,24 @@ Interface.definePanels(function() {
 			Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.select_multiple');
 			if (!Modes.animate) Interface.addSuggestedModifierKey('shift', 'modifier_actions.select_range');
 			if (Modes.edit) Interface.addSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
+		}
+	})
+
+	new Panel('element', {
+		icon: 'fas.fa-cube',
+		condition: !Blockbench.isMobile && {modes: ['edit', 'pose']},
+		selection_only: true,
+		default_position: {
+			slot: 'right_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
+		toolbars: {
+			element_position: 	!Blockbench.isMobile && Toolbars.element_position,
+			element_size: 		!Blockbench.isMobile && Toolbars.element_size,
+			element_origin: 	!Blockbench.isMobile && Toolbars.element_origin,
+			element_rotation: 	!Blockbench.isMobile && Toolbars.element_rotation,
 		}
 	})
 })

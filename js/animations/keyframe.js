@@ -947,6 +947,12 @@ Interface.definePanels(function() {
 	new Panel('keyframe', {
 		icon: 'timeline',
 		condition: {modes: ['animate']},
+		default_position: {
+			slot: 'left_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
 		toolbars: {
 			head: Toolbars.keyframe
 		},

@@ -318,6 +318,16 @@ function buildComponent(dialog) {
 	dialog.component.name = 'dialog-content'
 	dialog.content_vue = new Vue(dialog.component).$mount(mount.get(0));
 }
+function getStringWidth(string, size) {
+	var a = $('<label style="position: absolute">'+string+'</label>')
+	if (size && size !== 16) {
+		a.css('font-size', size+'pt')
+	}
+	$('body').append(a.css('visibility', 'hidden'))
+	var width = a.width()
+	a.detach()
+	return width;
+};
 
 class DialogSidebar {
 	constructor(options, dialog) {
@@ -729,3 +739,43 @@ window.Dialog = class Dialog {
 }
 
 })()
+
+
+// Legacy Dialogs
+function showDialog(dialog) {
+	var obj = $('.dialog#'+dialog)
+	$('.dialog').hide()
+	if (open_menu) {
+		open_menu.hide()
+	}
+	$('#blackout').show()
+	obj.show()
+	open_dialog = dialog
+	open_interface = {
+		confirm() {
+			$('dialog#'+open_dialog).find('.confirm_btn:not([disabled])').trigger('click');
+		},
+		cancel() {
+			$('dialog#'+open_dialog).find('.cancel_btn:not([disabled])').trigger('click');
+		}
+	}
+	Prop.active_panel = 'dialog'
+	//Draggable
+	if (obj.hasClass('draggable')) {
+		obj.draggable({
+			handle: ".dialog_handle",
+			containment: '#page_wrapper'
+		})
+		var x = (window.innerWidth-obj.outerWidth()) / 2;
+		obj.css('left', x+'px')
+		obj.css('max-height', (window.innerHeight-128)+'px')
+	}
+}
+function hideDialog() {
+	$('#blackout').hide()
+	$('.dialog').hide()
+	open_dialog = false;
+	open_interface = false;
+	Prop.active_panel = undefined
+}
+

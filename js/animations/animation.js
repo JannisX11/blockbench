@@ -825,7 +825,7 @@ const Animator = {
 		Animator.motion_trail.no_export = true;
 
 		if (!Animator.timeline_node) {
-			Animator.timeline_node = $('#timeline').get(0)
+			Animator.timeline_node = Panels.timeline.node;
 		}
 		updateInterface()
 		Toolbars.element_origin.toPlace('bone_origin')
@@ -1714,6 +1714,12 @@ Interface.definePanels(function() {
 		icon: 'movie',
 		growable: true,
 		condition: {modes: ['animate']},
+		default_position: {
+			slot: 'left_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
 		toolbars: {
 			head: Toolbars.animations
 		},
@@ -1970,6 +1976,12 @@ Interface.definePanels(function() {
 		icon: 'fas.fa-stream',
 		condition: {modes: ['animate']},
 		growable: true,
+		default_position: {
+			slot: 'left_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
 		toolbars: {
 		},
 		component: {

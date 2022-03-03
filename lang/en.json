@@ -1527,6 +1527,7 @@
 	"panel.outliner": "Outliner",
 	"panel.chat": "Chat",
 	"panel.animations": "Animations",
+	"panel.timeline": "Timeline",
 	"panel.keyframe": "Keyframe",
 	"panel.keyframe.type": "Keyframe (%0)",
 	"panel.keyframe.toggle_uniform_scale": "Toggle Uniform Scale",

@@ -271,6 +271,7 @@
 	.toolbar {
 		width: 100%;
 		overflow: hidden;
+		flex-shrink: 0;
 	}
 	.toolbar > .content {
 		display: flex;
@@ -427,7 +428,7 @@
 		color: var(--color-bright_ui_text);
 		margin-top: 30px;
 		white-space: nowrap;
-		z-index: 18;
+		z-index: 20;
 		box-shadow: 0 0.4px 3.5px rgba(0, 0, 0, 0.6);
 		pointer-events: none;
 		visibility: hidden;

@@ -677,3 +677,25 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Interface.definePanels(function() {
+	new Panel('bone', {
+		icon: 'fas.fa-bone',
+		condition: !Blockbench.isMobile && {modes: ['animate']},
+		selection_only: true,
+		default_position: {
+			slot: 'right_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
+		component: {
+			template: `
+				<div>
+					<p>${ tl('panel.element.origin') }</p>
+					<div class="toolbar_wrapper bone_origin"></div>
+				</div>
+			`
+		}
+	})
+})

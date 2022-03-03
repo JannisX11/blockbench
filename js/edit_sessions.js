@@ -507,6 +507,12 @@ Interface.definePanels(function() {
 	new Panel('chat', {
 		icon: 'chat',
 		condition: {method() {return Project.EditSession && Project.EditSession.active}},
+		default_position: {
+			slot: 'right_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
 		toolbars: {},
 		onResize: t => {
 		},

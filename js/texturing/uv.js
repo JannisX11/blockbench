@@ -1671,6 +1671,12 @@ Interface.definePanels(function() {
 		icon: 'photo_size_select_large',
 		selection_only: true,
 		condition: {modes: ['edit', 'paint']},
+		default_position: {
+			slot: 'left_bar',
+			float_position: [300, 0],
+			float_size: [500, 600],
+			height: 500
+		},
 		toolbars: {
 			bottom: Toolbars.UVEditor
 		},

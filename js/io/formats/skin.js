@@ -269,6 +269,68 @@ const skin_dialog = new Dialog({
 
 
 BARS.defineActions(function() {
+	new Action('toggle_skin_layer', {
+		icon: 'layers_clear',
+		category: 'edit',
+		condition: {formats: ['skin']},
+		click: function () {
+			var edited = [];
+			Cube.all.forEach(cube => {
+				if (cube.name.toLowerCase().includes('layer')) {
+					edited.push(cube);
+				}
+			})
+			if (!edited.length) return;
+			Undo.initEdit({elements: edited});
+			value = !edited[0].visibility;
+			edited.forEach(cube => {
+				cube.visibility = value;
+			})
+			Undo.finishEdit('Toggle skin layer');
+			Canvas.updateVisibility()
+		}
+	})
+	new Action({
+		id: 'export_minecraft_skin',
+		icon: 'icon-player',
+		category: 'file',
+		condition: () => Format == format && Texture.all[0],
+		click: function () {
+			Texture.all[0].save(true);
+		}
+	})
+	
+	let explode_skin_model = new Toggle('explode_skin_model', {
+		icon: () => 'open_in_full',
+		category: 'edit',
+		condition: {formats: ['skin']},
+		value: false,
+		onChange(exploded_view) {
+			Undo.initEdit({elements: Cube.all, exploded_view: !exploded_view});
+			Cube.all.forEach(cube => {
+				let center = [
+					cube.from[0] + (cube.to[0] - cube.from[0]) / 2,
+					cube.from[1],
+					cube.from[2] + (cube.to[2] - cube.from[2]) / 2,
+				]
+				let offset = cube.name.toLowerCase().includes('leg') ? 1 : 0.5;
+				center.V3_multiply(exploded_view ? offset : -offset/(1+offset));
+				cube.from.V3_add(center);
+				cube.to.V3_add(center);
+			})
+			Project.exploded_view = exploded_view;
+			Undo.finishEdit(exploded_view ? 'Explode skin model' : 'Revert exploding skin model', {elements: Cube.all, exploded_view: exploded_view});
+			Canvas.updateView({elements: Cube.all, element_aspects: {geometry: true}});
+			this.setIcon(this.icon);
+		}
+	})
+	Blockbench.on('select_project', () => {
+		explode_skin_model.value = !!Project.exploded_view;
+		explode_skin_model.updateEnabledState();
+	})
+})
+
+Interface.definePanels(function() {
 	const poses = {
 		none: {
 			Head: [0, 0, 0],
@@ -330,6 +392,12 @@ BARS.defineActions(function() {
 	new Panel('skin_pose', {
 		icon: 'icon-player',
 		condition: {modes: ['pose']},
+		default_position: {
+			slot: 'right_bar',
+			float_position: [0, 0],
+			float_size: [300, 80],
+			height: 80
+		},
 		component: {
 			data() {return {
 				pose: 'default'
@@ -372,66 +440,6 @@ BARS.defineActions(function() {
 				</div>
 			`
 		}
-	})
-
-	new Action('toggle_skin_layer', {
-		icon: 'layers_clear',
-		category: 'edit',
-		condition: {formats: ['skin']},
-		click: function () {
-			var edited = [];
-			Cube.all.forEach(cube => {
-				if (cube.name.toLowerCase().includes('layer')) {
-					edited.push(cube);
-				}
-			})
-			if (!edited.length) return;
-			Undo.initEdit({elements: edited});
-			value = !edited[0].visibility;
-			edited.forEach(cube => {
-				cube.visibility = value;
-			})
-			Undo.finishEdit('Toggle skin layer');
-			Canvas.updateVisibility()
-		}
-	})
-	new Action({
-		id: 'export_minecraft_skin',
-		icon: 'icon-player',
-		category: 'file',
-		condition: () => Format == format && Texture.all[0],
-		click: function () {
-			Texture.all[0].save(true);
-		}
-	})
-	
-	let explode_skin_model = new Toggle('explode_skin_model', {
-		icon: () => 'open_in_full',
-		category: 'edit',
-		condition: {formats: ['skin']},
-		value: false,
-		onChange(exploded_view) {
-			Undo.initEdit({elements: Cube.all, exploded_view: !exploded_view});
-			Cube.all.forEach(cube => {
-				let center = [
-					cube.from[0] + (cube.to[0] - cube.from[0]) / 2,
-					cube.from[1],
-					cube.from[2] + (cube.to[2] - cube.from[2]) / 2,
-				]
-				let offset = cube.name.toLowerCase().includes('leg') ? 1 : 0.5;
-				center.V3_multiply(exploded_view ? offset : -offset/(1+offset));
-				cube.from.V3_add(center);
-				cube.to.V3_add(center);
-			})
-			Project.exploded_view = exploded_view;
-			Undo.finishEdit(exploded_view ? 'Explode skin model' : 'Revert exploding skin model', {elements: Cube.all, exploded_view: exploded_view});
-			Canvas.updateView({elements: Cube.all, element_aspects: {geometry: true}});
-			this.setIcon(this.icon);
-		}
-	})
-	Blockbench.on('select_project', () => {
-		explode_skin_model.value = !!Project.exploded_view;
-		explode_skin_model.updateEnabledState();
 	})
 })
 

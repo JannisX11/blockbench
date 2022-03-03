@@ -18,6 +18,8 @@
 		position: absolute;
 		border: 1px solid var(--color-accent);
 		box-shadow: 0 0 10px rgb(0 0 0 / 40%);
+		box-sizing: content-box;
+		z-index: 14;
 	}
 	h3.panel_handle {
 		display: flex;
@@ -88,6 +90,71 @@
 	.panel[order="1"]::before {
 		bottom: 0px;
 	}
+
+/* Panel Resize Lines */
+.panel:not(.floating) > .panel_resize_handle_wrapper {
+	display: none;
+}
+.panel_resize_side {
+	width: 6px;
+	height: 6px;
+	position: absolute;
+	top: 3px;
+	bottom: 3px;
+	left: 3px;
+	right: 3px;
+}
+.panel_resize_corner {
+	width: 8px;
+	height: 8px;
+	position: absolute;
+}
+.panel_resize_side.resize_top {
+	cursor: ns-resize;
+	top: -3px;
+	bottom: unset;
+	width: auto;
+}
+.panel_resize_side.resize_bottom {
+	cursor: ns-resize;
+	top: unset;
+	bottom: -3px;
+	width: auto;
+}
+.panel_resize_side.resize_left {
+	cursor: ew-resize;
+	left: -3px;
+	right: unset;
+	height: auto;
+}
+.panel_resize_side.resize_right {
+	cursor: ew-resize;
+	left: unset;
+	right: -3px;
+	height: auto;
+}
+.panel_resize_corner.resize_top_left {
+	cursor: nw-resize;
+	left: -4px;
+	top: -4px;
+}
+.panel_resize_corner.resize_top_right {
+	cursor: ne-resize;
+	right: -4px;
+	top: -4px;
+}
+.panel_resize_corner.resize_bottom_left {
+	cursor: sw-resize;
+	left: -4px;
+	bottom: -4px;
+}
+.panel_resize_corner.resize_bottom_right {
+	cursor: se-resize;
+	right: -4px;
+	bottom: -4px;
+}
+
+
 
 /*Display*/
 
@@ -734,7 +801,7 @@
 
 
 /*Timeline*/
-	#timeline {
+	#panel_timeline {
 		display: block;
 		height: 300px;
 		background-color: var(--color-ui);
@@ -824,7 +891,7 @@
 		margin-left: -2px;
 	}
 
-	#timeline .keyframe {
+	#panel_timeline .keyframe {
 		position: absolute;
 		margin-left: -6px;
 		z-index: 3;
@@ -832,19 +899,19 @@
 		width: 13.5px;
 		height: 23px;
 	}
-	#timeline .keyframe i {
+	#panel_timeline .keyframe i {
 		margin-top: 3px;
 		font-size: 16px;
 		margin-left: -1px;
 		pointer-events: none;
 		display: block;
 	}
-	#timeline .keyframe i.keyframe_icon_smaller {
+	#panel_timeline .keyframe i.keyframe_icon_smaller {
 		font-size: 11pt;
 		margin-top: 4px;
 		margin-left: -1px;
 	}
-	#timeline .keyframe i.keyframe_icon_step {
+	#panel_timeline .keyframe i.keyframe_icon_step {
 		font-size: 16pt;
 		margin-top: 4px;
 		margin-left: -2px;
@@ -859,11 +926,11 @@
 		font-size: 6pt;
 		color: var(--color-grid);
 	}
-	#timeline .keyframe.selected i {
+	#panel_timeline .keyframe.selected i {
 		color: var(--color-accent) !important;
 		z-index: 4;
 	}
-	#timeline .keyframe:hover {
+	#panel_timeline .keyframe:hover {
 		z-index: 4;
 	}
 
@@ -1384,7 +1451,7 @@
 
 	.panel .bar.next_to_title {
 		margin-top: -34px;
-		margin-right: 32px;
+		margin-right: 54px;
 		position: relative;
 		float: right;
 		pointer-events: none;

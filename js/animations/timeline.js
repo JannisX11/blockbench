@@ -584,13 +584,15 @@ Interface.definePanels(() => {
 	*/
 	Timeline.panel = new Panel('timeline', {
 		icon: 'timeline',
-		condition: {modes: ['display']},
+		condition: {modes: ['animate']},
 		default_position: {
 			slot: 'bottom',
-			height: 200,
+			float_position: [100, 400],
+			float_size: [600, 300],
+			height: 260,
 		},
 		toolbars: {
-			head: Toolbars.display
+			timeline: Toolbars.timeline
 		},
 		component: {
 			name: 'panel-timeline',
@@ -684,7 +686,7 @@ Interface.definePanels(() => {
 					if (!this._isMounted) return;
 					this.timecodes.empty();
 					let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100;
-					let timeline_container_width = document.getElementById('timeline').clientWidth - this.head_width;
+					let timeline_container_width = Panels.timeline.node.clientWidth - this.head_width;
 					this.length = Timeline.getMaxLength();
 
 					var step = 1

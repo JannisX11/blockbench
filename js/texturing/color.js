@@ -60,6 +60,12 @@ Interface.definePanels(() => {
 	ColorPanel = new Panel('color', {
 		icon: 'palette',
 		condition: () => Modes.id === 'paint',
+		default_position: {
+			slot: 'right_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
 		toolbars: {
 			color_picker: Toolbars.color_picker,
 			palette: Toolbars.palette

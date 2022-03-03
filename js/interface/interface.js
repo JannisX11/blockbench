@@ -72,10 +72,10 @@ const Interface = {
 		right_bar_width: 314,
 		quad_view_x: 50,
 		quad_view_y: 50,
-		timeline_height: 260,
 		timeline_head: Blockbench.isMobile ? 140 : 196,
 		left_bar: ['uv', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
-		right_bar: ['element', 'bone', 'color', 'skin_pose', 'outliner', 'chat']
+		right_bar: ['element', 'bone', 'color', 'skin_pose', 'outliner', 'chat'],
+		panels: {}
 	},
 	get left_bar_width() {
 		return Prop.show_left_bar ? Interface.data.left_bar_width : 0;
@@ -195,21 +195,28 @@ const Interface = {
 		top: new ResizeLine('top', {
 			horizontal: true,
 			condition() {return Interface.getTopPanel()},
-			get() {return Interface.getTopPanel().position_data.height},
+			get() {
+				let panel = Interface.getTopPanel();
+				return panel.folded ? panel.handle.clientHeight : panel.position_data.height;
+			},
 			set(o, diff) {
-				Interface.getTopPanel().position_data.height = limitNumber(o - diff, 150, document.body.clientHeight-120);
-				Interface.getTopPanel().update();
+				let panel = Interface.getTopPanel();
+				panel.position_data.height = limitNumber(o + diff, 150, document.body.clientHeight-120);
+				panel.update();
 			},
 			position() {this.setPosition({
 				left: Interface.left_bar_width+2,
 				right: Interface.right_bar_width+2,
-				top: this.get()
+				top: this.get() + document.getElementById('work_screen').offsetTop - document.getElementById('page_wrapper').offsetTop
 			})}
 		}),
 		bottom: new ResizeLine('bottom', {
 			horizontal: true,
 			condition() {return Interface.getBottomPanel()},
-			get() {return Interface.getBottomPanel().position_data.height},
+			get() {
+				let panel = Interface.getBottomPanel();
+				return panel.folded ? panel.handle.clientHeight : panel.position_data.height;
+			},
 			set(o, diff) {
 				Interface.getBottomPanel().position_data.height = limitNumber(o - diff, 150, document.body.clientHeight-120);
 				Interface.getBottomPanel().update();
@@ -217,7 +224,7 @@ const Interface = {
 			position() {this.setPosition({
 				left: Interface.left_bar_width+2,
 				right: Interface.right_bar_width+2,
-				top: document.getElementById('work_screen').clientHeight - this.get()
+				top: document.getElementById('work_screen').clientHeight - document.getElementById('status_bar').clientHeight - this.get()
 			})}
 		}),
 		timeline_head: new ResizeLine('timeline_head', {
@@ -229,11 +236,14 @@ const Interface = {
 				value = Math.snapToValues(value, [Interface.default_data.timeline_head], 12);
 				Interface.data.timeline_head = Timeline.vue._data.head_width = value;
 			},
-			position() {this.setPosition({
-				left: Interface.left_bar_width+2 + Interface.data.timeline_head,
-				top: $('#timeline').offset().top + 60,
-				bottom: document.getElementById('status_bar').clientHeight + 12,
-			})}
+			position() {
+				let offset = $(Panels.timeline.node).offset();
+				this.setPosition({
+					left: offset.left + 2 + Interface.data.timeline_head,
+					top: offset.top + 60,
+					bottom: offset.top + 60 + Panels.timeline.node.clientHeight
+				})
+			}
 		})
 	},
 	status_bar: {},
@@ -253,6 +263,7 @@ Interface.definePanels = function(callback) {
 (function() {
 	Interface.data = $.extend(true, {}, Interface.default_data)
 	var interface_data = localStorage.getItem('interface_data')
+	if (!interface_data) return;
 	try {
 		interface_data = JSON.parse(interface_data)
 		let original_left_bar, original_right_bar;
@@ -278,10 +289,11 @@ Interface.definePanels = function(callback) {
 				Interface.data.right_bar.splice(i, 0, panel);
 			})
 		}
-		console.log(interface_data)
 		$.extend(true, Interface.data, interface_data)
-		console.log(Interface.data)
-	} catch (err) {}
+		Interface.data.panels.uv.slot = interface_data.panels.uv.slot;
+	} catch (err) {
+		console.error(err);
+	}
 })()
 
 //Misc
@@ -365,7 +377,7 @@ function setupInterface() {
 	$('#texture_list').click(function(){
 		unselectTextures()
 	})
-	$('#timeline').mousedown((event) => {
+	$(Panels.timeline.node).mousedown((event) => {
 		setActivePanel('timeline');
 	})
 	$(document).on('mousedown touchstart', unselectInterface)
@@ -522,55 +534,6 @@ function setZoomLevel(mode) {
 		}
 	}
 }
-
-//Dialogs
-function showDialog(dialog) {
-	var obj = $('.dialog#'+dialog)
-	$('.dialog').hide()
-	if (open_menu) {
-		open_menu.hide()
-	}
-	$('#blackout').show()
-	obj.show()
-	open_dialog = dialog
-	open_interface = {
-		confirm() {
-			$('dialog#'+open_dialog).find('.confirm_btn:not([disabled])').trigger('click');
-		},
-		cancel() {
-			$('dialog#'+open_dialog).find('.cancel_btn:not([disabled])').trigger('click');
-		}
-	}
-	Prop.active_panel = 'dialog'
-	//Draggable
-	if (obj.hasClass('draggable')) {
-		obj.draggable({
-			handle: ".dialog_handle",
-			containment: '#page_wrapper'
-		})
-		var x = (window.innerWidth-obj.outerWidth()) / 2;
-		obj.css('left', x+'px')
-		obj.css('max-height', (window.innerHeight-128)+'px')
-	}
-}
-function hideDialog() {
-	$('#blackout').hide()
-	$('.dialog').hide()
-	open_dialog = false;
-	open_interface = false;
-	Prop.active_panel = undefined
-}
-
-function getStringWidth(string, size) {
-	var a = $('<label style="position: absolute">'+string+'</label>')
-	if (size && size !== 16) {
-		a.css('font-size', size+'pt')
-	}
-	$('body').append(a.css('visibility', 'hidden'))
-	var width = a.width()
-	a.detach()
-	return width;
-};
 
 //UI Edit
 function setProgressBar(id, val, time) {
