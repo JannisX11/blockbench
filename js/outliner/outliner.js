@@ -1507,23 +1507,25 @@ Interface.definePanels(function() {
 		}
 	})
 
-	new Panel('element', {
-		icon: 'fas.fa-cube',
-		condition: !Blockbench.isMobile && {modes: ['edit', 'pose']},
-		selection_only: true,
-		default_position: {
-			slot: 'right_bar',
-			float_position: [0, 0],
-			float_size: [300, 400],
-			height: 400
-		},
-		toolbars: {
-			element_position: 	!Blockbench.isMobile && Toolbars.element_position,
-			element_size: 		!Blockbench.isMobile && Toolbars.element_size,
-			element_origin: 	!Blockbench.isMobile && Toolbars.element_origin,
-			element_rotation: 	!Blockbench.isMobile && Toolbars.element_rotation,
-		}
-	})
+	if (!Blockbench.isMobile) {
+		new Panel('element', {
+			icon: 'fas.fa-cube',
+			condition: !Blockbench.isMobile && {modes: ['edit', 'pose']},
+			selection_only: true,
+			default_position: {
+				slot: 'right_bar',
+				float_position: [0, 0],
+				float_size: [300, 400],
+				height: 400
+			},
+			toolbars: {
+				element_position: 	Toolbars.element_position,
+				element_size: 		Toolbars.element_size,
+				element_origin: 	Toolbars.element_origin,
+				element_rotation: 	Toolbars.element_rotation,
+			}
+		})
+	}
 })
 
 class Face {

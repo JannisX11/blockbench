@@ -130,7 +130,7 @@ const Interface = {
 			},
 			position() {
 				this.setPosition({
-					top: document.getElementById('work_screen').offsetTop,
+					top: Interface.work_screen.offsetTop,
 					bottom: 0,
 					left: Interface.data.left_bar_width+2
 				})
@@ -160,7 +160,7 @@ const Interface = {
 			},
 			position() {
 				this.setPosition({
-					top: document.getElementById('work_screen').offsetTop+30,
+					top: Interface.work_screen.offsetTop+30,
 					bottom: 0,
 					right: Interface.data.right_bar_width-2
 				})
@@ -207,7 +207,7 @@ const Interface = {
 			position() {this.setPosition({
 				left: Interface.left_bar_width+2,
 				right: Interface.right_bar_width+2,
-				top: this.get() + document.getElementById('work_screen').offsetTop - document.getElementById('page_wrapper').offsetTop
+				top: this.get() + Interface.work_screen.offsetTop - document.getElementById('page_wrapper').offsetTop
 			})}
 		}),
 		bottom: new ResizeLine('bottom', {
@@ -224,7 +224,7 @@ const Interface = {
 			position() {this.setPosition({
 				left: Interface.left_bar_width+2,
 				right: Interface.right_bar_width+2,
-				top: document.getElementById('work_screen').clientHeight - document.getElementById('status_bar').clientHeight - this.get()
+				top: Interface.work_screen.clientHeight - document.getElementById('status_bar').clientHeight - this.get()
 			})}
 		}),
 		timeline_head: new ResizeLine('timeline_head', {
@@ -290,7 +290,6 @@ Interface.definePanels = function(callback) {
 			})
 		}
 		$.extend(true, Interface.data, interface_data)
-		Interface.data.panels.uv.slot = interface_data.panels.uv.slot;
 	} catch (err) {
 		console.error(err);
 	}

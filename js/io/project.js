@@ -488,7 +488,7 @@ function updateProjectResolution() {
 
 function setStartScreen(state) {
 	document.getElementById('start_screen').style.display = state ? 'block' : 'none';
-	document.getElementById('work_screen').style.display = state ? 'none' : 'grid';
+	Interface.work_screen.style.display = state ? 'none' : 'grid';
 }
 
 onVueSetup(() => {

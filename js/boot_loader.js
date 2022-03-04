@@ -1,3 +1,7 @@
+Interface.page_wrapper = document.getElementById('page_wrapper');
+Interface.work_screen = document.getElementById('work_screen');
+Interface.right_bar = document.getElementById('right_bar');
+Interface.left_bar = document.getElementById('left_bar');
 
 CustomTheme.setup()
 

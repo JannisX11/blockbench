@@ -111,6 +111,10 @@ class Panel {
 				this.fold();
 			})
 
+			this.handle.firstElementChild.addEventListener('dblclick', e => {
+				this.fold();
+			})
+
 
 
 			addEventListeners(this.handle.firstElementChild, 'mousedown touchstart', e1 => {
@@ -124,22 +128,62 @@ class Panel {
 					convertTouchEvent(e2);
 					if (!started && (Math.pow(e2.clientX - e1.clientX, 2) + Math.pow(e2.clientX - e1.clientX, 2)) > 15) {
 						started = true;
+						if (this.slot !== 'float') {
+							this.moveTo('float');
+							this.moveToFront();
+						}
 					}
 					if (!started) return;
-
-					if (this.slot !== 'float') {
-						this.moveTo('float');
-						this.moveToFront();
-					}
-
+					
 					this.position_data.float_position[0] = position_before[0] + e2.clientX - e1.clientX;
 					this.position_data.float_position[1] = position_before[1] + e2.clientY - e1.clientY;
-					this.update();
+
+					let threshold = -8;
+					if (this.position_data.float_position[0] < threshold) {
+						let panels = [];
+						Interface.left_bar.childNodes.forEach(child => {
+							if (child.clientHeight) {
+								panels.push(child.id.replace(/^panel_/, ''));
+							}
+						})
+						let anchor = this.position_data.float_position[1];
+						anchor += this.node.clientHeight * ((this.position_data.float_position[1] + this.position_data.float_size[1]) / Interface.work_screen.clientHeight);
+						let index = Math.floor(Math.clamp(anchor / Interface.work_screen.clientHeight, 0, 1) * (panels.length+1));
+						this.moveTo('left_bar', Panels[panels[Math.clamp(index, 0, panels.length-1)]], index < panels.length);
+
+					} else if (this.position_data.float_position[0] + Math.min(this.position_data.float_size[0], Interface.data.right_bar_width) > document.body.clientWidth - threshold) {
+						let panels = [];
+						Interface.right_bar.childNodes.forEach(child => {
+							if (child.clientHeight) {
+								panels.push(child.id.replace(/^panel_/, ''));
+							}
+						})
+						let anchor = this.position_data.float_position[1];
+						anchor += this.node.clientHeight * ((this.position_data.float_position[1] + this.position_data.float_size[1]) / Interface.work_screen.clientHeight);
+						let index = Math.floor(Math.clamp(anchor / Interface.work_screen.clientHeight, 0, 1) * (panels.length+1));
+						this.moveTo('right_bar', Panels[panels[Math.clamp(index, 0, panels.length-1)]], index < panels.length);
+
+					} else if (this.position_data.float_position[1] < threshold) {
+						if (this.slot == 'float') this.moveTo('top');
+
+					} else if (this.position_data.float_position[1] + Math.min(this.position_data.float_size[1], 200) > Interface.work_screen.clientHeight - threshold) {
+						if (this.slot == 'float') this.moveTo('bottom');
+
+					} else if (this.slot != 'float') {
+						this.moveTo('float');
+					}
+
+					this.update(true);
 
 				}
 				let stop = e2 => {
 					convertTouchEvent(e2);
 
+					if (this.slot != 'float') {
+						this.position_data.float_position[0] = position_before[0];
+						this.position_data.float_position[1] = position_before[1];
+					}
+					this.update();
 					saveSidebarOrder()
 					updateInterface()
 					
@@ -150,59 +194,8 @@ class Panel {
 				addEventListeners(document, 'mouseup touchend', stop);
 
 			})
-
-			/*$(this.handle).draggable({
-				revertDuration: 0,
-				cursorAt: { left: 24, top: 24 },
-				helper: 'clone',
-				revert: true,
-				appendTo: 'body',
-				zIndex: 19,
-				scope: 'panel',
-				handle: '> label',
-				start: function() {
-					Interface.panel = scope;
-				},
-				drag(e, ui) {
-					$('.panel[order]').attr('order', null)
-					let target_panel = $('div.panel:hover').get(0);
-					if (!target_panel) return;
-					let top = $(target_panel).offset().top;
-					let height = target_panel.clientHeight;
-					if (e.clientY > top + height/2) {
-						$(target_panel).attr('order', 1);
-					} else {
-						$(target_panel).attr('order', -1);
-					}
-				},
-				stop: function(e, ui) {
-					$('.panel[order]').attr('order', null)
-					if (!ui) return;
-					if (Math.abs(ui.position.top - ui.originalPosition.top) + Math.abs(ui.position.left - ui.originalPosition.left) < 30) return;
-					let target = Interface.panel
-					if (typeof target === 'string') {
-						scope.moveTo(target)
-					} else if (target.type === 'panel') {
-						let target_pos = $(target.node).offset().top
-						let target_height = target.node.clientHeight;
-						let before = e.clientY < target_pos + target_height / 2
-						if (target && target !== scope) {
-							scope.moveTo(target, before)
-						} else {
-							if (e.clientX > window.innerWidth - 200) {
-								scope.moveTo('right_bar')
-							} else if (e.clientX < 200) {
-								scope.moveTo('left_bar')
-							}
-						}
-					}
-					saveSidebarOrder()
-					updateInterface()
-				}
-			})*/
 		} else {
 			
-
 			let fold_button = Interface.createElement('div', {class: 'tool panel_control panel_folding_button'}, Blockbench.getIconNode('expand_more'))
 			this.handle.append(fold_button);
 			fold_button.addEventListener('click', (e) => {
@@ -360,7 +353,7 @@ class Panel {
 			document.getElementById('bottom_slot').append(this.node);
 
 		} else if (slot == 'float') {
-			document.getElementById('work_screen').append(this.node);
+			Interface.work_screen.append(this.node);
 			this.node.classList.add('floating');
 			if (!this.resize_handles) {
 				this.setupFloatHandles();
@@ -379,17 +372,19 @@ class Panel {
 		}
 		return this;
 	}
-	update() {
+	update(dragging) {
 		let show = BARS.condition(this.condition);
 		let work_screen = document.querySelector('div#work_screen');
 		let center_screen = document.querySelector('div#center');
 		if (show) {
 			$(this.node).show()
 			if (this.slot == 'float') {
-				this.position_data.float_position[0] = Math.clamp(this.position_data.float_position[0], 0, work_screen.clientWidth - this.width);
-				this.position_data.float_position[1] = Math.clamp(this.position_data.float_position[1], 0, work_screen.clientHeight - this.height);
-				this.position_data.float_size[0] = Math.clamp(this.position_data.float_size[0], 300, work_screen.clientWidth - this.position_data.float_position[0]);
-				this.position_data.float_size[1] = Math.clamp(this.position_data.float_size[1], 300, work_screen.clientHeight - this.position_data.float_position[1]);
+				if (!dragging) {
+					this.position_data.float_position[0] = Math.clamp(this.position_data.float_position[0], 0, work_screen.clientWidth - this.width);
+					this.position_data.float_position[1] = Math.clamp(this.position_data.float_position[1], 0, work_screen.clientHeight - this.height);
+					this.position_data.float_size[0] = Math.clamp(this.position_data.float_size[0], 300, work_screen.clientWidth - this.position_data.float_position[0]);
+					this.position_data.float_size[1] = Math.clamp(this.position_data.float_size[1], 300, work_screen.clientHeight - this.position_data.float_position[1]);
+				}
 
 				this.node.style.left = this.position_data.float_position[0] + 'px';
 				this.node.style.top = this.position_data.float_position[1] + 'px';
@@ -444,7 +439,7 @@ function updateInterfacePanels() {
 		$('.sidebar#left_bar').css('display', Prop.show_left_bar ? 'flex' : 'none');
 		$('.sidebar#right_bar').css('display', Prop.show_right_bar ? 'flex' : 'none');
 	}
-	let work_screen = document.getElementById('work_screen');
+	let work_screen = Interface.work_screen;
 
 	work_screen.style.setProperty(
 		'grid-template-columns',
@@ -483,9 +478,7 @@ function updateSidebarOrder() {
 
 		Interface.data[bar].forEach(panel_id => {
 			let panel = Panels[panel_id];
-			if (panel && Condition(panel.condition)) {
-				bar_node.append(panel.node);
-			}
+			if (panel) bar_node.append(panel.node);
 		});
 	})
 }

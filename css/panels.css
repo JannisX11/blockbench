@@ -564,7 +564,7 @@
 	}
 
 /*Animations*/
-	.panel#animations #animations_list {
+	#panel_animations #animations_list {
 		min-height: 126px;
 		padding-bottom: 12px;
 	}
@@ -678,10 +678,10 @@
 	}
 
 /* Keyframe Panel */
-	.panel#keyframe .bar {
+	#panel_keyframe .bar {
 		margin-top: 2px;
 	}
-	.panel#keyframe .tabs_small label {
+	#panel_keyframe .tabs_small label {
 		font-size: 1em;
 		height: 30px;
 		width: 25%;
@@ -710,25 +710,25 @@
 		margin-top: 11px;
 		opacity: 0.5;
 	}
-	.panel#keyframe .bar.flex {
+	#panel_keyframe .bar.flex {
 		height: auto;
 		min-height: 30px;
 	}
-	.panel#keyframe .bar.flex label {
+	#panel_keyframe .bar.flex label {
 		padding: 3px 8px;
 		min-width: 20px;
 		text-align: center;
 		flex-shrink: 0;
 		background-color: var(--color-button);
 	}
-	.panel#keyframe .bar.flex label.slidable_input {
+	#panel_keyframe .bar.flex label.slidable_input {
 		cursor: ew-resize;
 	}
-	.panel#keyframe .bar input.dark_bordered {
+	#panel_keyframe .bar input.dark_bordered {
 		width: 100%;
 		flex-shrink: 1;
 	}
-	.panel#keyframe .list {
+	#panel_keyframe .list {
 		max-height: 260px;
 		overflow-y: auto;
 		background-color: transparent;
@@ -1531,7 +1531,7 @@
 	}
 
 /*Chat*/
-	#chat {
+	#panel_chat {
 		z-index: 16;
 		flex-grow: 0;
 		flex-shrink: 0;
@@ -1662,11 +1662,11 @@
 		width: 100%;
 		height: 100%;
 	}
-	.panel#color input.sp-input {
+	#panel_color input.sp-input {
 		width: calc(100% - 40px);
 		float: left;
 	}
-	.panel#color .sp-container.sp-flat {
+	#panel_color .sp-container.sp-flat {
 		overflow: visible;
 		margin: 2px 4px 0 4px;
 		width: calc(100% - 8px);
