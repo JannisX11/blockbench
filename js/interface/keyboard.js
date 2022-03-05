@@ -298,6 +298,7 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 	Keybinds.save();
 	TickUpdates.keybind_conflicts = true;
 	Blockbench.showQuickMessage('message.keymap_loaded', 1600);
+	return true;
 }
 Keybinds.no_overlap = function(k1, k2) {
 	if (typeof k1.condition !== 'object' || typeof k2.condition !== 'object') return false;

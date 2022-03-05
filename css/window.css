@@ -918,6 +918,63 @@
 		color: var(--color-subtle_text);
 	}
 
+	#start_screen section#quick_setup {
+		padding: 20px 24px;
+		display: block;
+		border-bottom: 5px solid var(--color-border);
+	}
+	section#quick_setup > h2 {
+		display: block;
+	}
+	section#quick_setup > div {
+		display: inline-flex;
+		align-items: center;
+		flex-wrap: wrap;
+		width: 420px;
+		max-width: 100%;
+		margin-right: 48px;
+		margin-top: 16px;
+		margin-bottom: 8px;
+	}
+	section#quick_setup > div > label {
+		min-width: 120px;
+		display: inline-block;
+	}
+	section#quick_setup > div select {
+		flex-grow: 1;
+	}
+	section#quick_setup > div > p {
+		color: var(--color-subtle_text);
+	}
+	.quick_setup_theme {
+		cursor: pointer;
+		flex-basis: 0;
+		flex-grow: 1;
+		white-space: nowrap;
+	}
+	.quick_setup_theme > div {
+		height: 36px;
+		width: 36px;
+		border-radius: 50%;
+		margin-right: 6px;
+		display: inline-block;
+		vertical-align: middle;
+		border: 2px solid var(--color-border);
+		color: var(--color-text);
+		padding-top: 8px;
+		background-color: var(--color-ui);
+		cursor: inherit;
+		text-align: center;
+	}
+	.quick_setup_theme:hover,
+	.quick_setup_theme.selected {
+		color: var(--color-light);
+	}
+	.quick_setup_theme:hover > div,
+	.quick_setup_theme.selected > div {
+		border-color: var(--color-accent);
+	}
+
 /*Status Bar*/
 	#status_bar {
 		position: relative;

@@ -325,43 +325,95 @@ onVueSetup(function() {
 			})
 		}
 
-		// Keymap Preference
-		if (!Blockbench.isMobile && Blockbench.startup_count <= 1) {
-
+		// Quick Setup
+		if (Blockbench.startup_count <= 1 || true) {
 			
-			var obj = $(`<section id="keymap_preference">
-				<h2>${tl('mode.start.keymap_preference')}</h2>
-				<p>${tl('mode.start.keymap_preference.desc')}</p>
-				<ul></ul>
-			</section>`)
+			let section = Interface.createElement('section', {id: 'quick_setup'});
+			$('#start_screen content').prepend(section);
+			console.log(section)
 
-			var keymap_list = $(obj).find('ul');
-			
-			obj.prepend(`<i class="material-icons start_screen_close_button">clear</i>`);
-			obj.find('i.start_screen_close_button').on('click', (e) => {
-				obj.detach();
-			});
+			new Vue({
+				data() {return {
+					language: Language.code,
+					language_original: Language.code,
+					languages: Language.options,
+					keymap: 'default',
+					keymap_changed: false,
+					theme: 'dark',
+				}},
+				methods: {
+					tl,
+					close() {
+						obj.remove();
+					},
+					reload() {
+						Blockbench.reload();
+					},
+					loadTheme(theme_id) {
+						this.theme = theme_id;
+						let theme = CustomTheme.themes.find(t => t.id == theme_id);
+						if (theme) CustomTheme.loadTheme(theme);
+					},
+					getThemeThumbnailStyle(theme_id) {
+						let theme = CustomTheme.themes.find(t => t.id == theme_id);
+						let style = {};
+						if (!theme) return style;
+						for (let key in theme.colors) {
+							style[`--color-${key}`] = theme.colors[key];
+						}
+						return style;
+					},
+					openThemes() {
+						BarItems.theme_window.click();
+					}
+				},
+				watch: {
+					language(v) {
+						settings.language.set(v);
+						Settings.save();
+					},
+					keymap(keymap, old_keymap) {
+						this.keymap_changed = true;
+						let success = Keybinds.loadKeymap(keymap, true);
+						if (!success) this.keymap = old_keymap;
+					}
+				},
+				template: `
+					<section id="quick_setup">
+						<i class="material-icons start_screen_close_button" @click="close()">clear</i>
+						<h2>${tl('mode.start.quick_setup')}</h2>
 
-			[
-				['default', 'action.load_keymap.default'],
-				['mouse', 'action.load_keymap.mouse'],
-				['blender', 'Blender'],
-				['cinema4d', 'Cinema 4D'],
-				['maya', 'Maya'],
-			].forEach(([id, name], index) => {
-
-				let node = $(`<li class="keymap_select_box">
-					<h4>${tl(name)}</h4>
-					<p>${tl(`action.load_keymap.${id}.desc`)}</p>
-				</li>`)
-				node.on('click', e => {
-					Keybinds.loadKeymap(id, true);
-					obj.detach();
-				})
-				keymap_list.append(node);
-			})
-			
-			$('#start_screen content').prepend(obj);
+						<div>
+							<label>${tl('mode.start.keymap')}:</label>
+							<select v-model="keymap">
+								<option value="default">${tl('action.load_keymap.default')}</option>
+								<option value="mouse">${tl('action.load_keymap.mouse')}</option>
+								<option value="blender">Blender</option>
+								<option value="cinema4d">Cinema 4D</option>
+								<option value="maya">Maya</option>
+							</select>
+							<p v-if="keymap_changed">{{ tl('action.load_keymap.' + keymap + '.desc') }}</p>
+						</div>
+						<div>
+							<label>${tl('settings.language')}:</label>
+							<select v-model="language">
+								<option v-for="(text, id) in languages" v-bind:value="id">{{ text }}</option>
+							</select>
+							<div class="tool" @click="reload()" v-if="language != language_original" :title="tl('action.reload')">
+								<i class="material-icons">refresh</i>
+							</div>
+							<p v-if="language != language_original">{{ tl('message.restart_to_update') }}</p>
+						</div>
+						<div style="width: 640px;">
+							<label>${tl('dialog.settings.theme')}:</label>
+							<div class="quick_setup_theme" :class="{selected: theme == 'dark'}" @click="loadTheme('dark')"><div :style="getThemeThumbnailStyle('dark')"></div>Dark</div>
+							<div class="quick_setup_theme" :class="{selected: theme == 'light'}" @click="loadTheme('light')"><div :style="getThemeThumbnailStyle('light')"></div>Light</div>
+							<div class="quick_setup_theme" :class="{selected: theme == 'contrast'}" @click="loadTheme('contrast')"><div :style="getThemeThumbnailStyle('contrast')"></div>Contrast</div>
+							<div class="quick_setup_theme more_themes" @click="openThemes()"><div><i class="material-icons">more_horiz</i></div>{{ tl('mode.start.quick_setup.more_themes') }}</div>
+						</div>
+					</section>
+				`
+			}).$mount(section);
 		}
 	})
 })()

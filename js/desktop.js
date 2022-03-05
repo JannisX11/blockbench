@@ -238,13 +238,13 @@ function changeImageEditor(texture, from_settings) {
 			}
 			dialog.hide()
 			if (from_settings) {
-				Settings.open()
+				BarItems.settings_window.click()
 			}
 		},
 		onCancel() {
 			dialog.hide()
 			if (from_settings) {
-				Settings.open()
+				BarItems.settings_window.click()
 			}
 		}
 	}).show()

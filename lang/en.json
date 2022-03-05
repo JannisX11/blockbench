@@ -82,9 +82,10 @@
 	"mode.start.new": "New",
 	"mode.start.recent": "Recent",
 	"mode.start.no_recents": "No recently opened models",
-	"mode.start.keymap_preference": "Keybinding Preference",
+	"mode.start.quick_setup": "Quick Setup",
 	"mode.start.keymap_preference.desc": "If you are new to Blockbench and you are coming from another 3D program, you can select a keymap to make your transition easier. You can change the keymap or individual keybindings later in the settings.",
-	"mode.start.select_keymap": "Select Keymap",
+	"mode.start.keymap": "Keymap",
+	"mode.start.quick_setup.more_themes": "More...",
 
 	"projects.new_tab": "New Tab",
 	"projects.close_tab": "Close Tab",
