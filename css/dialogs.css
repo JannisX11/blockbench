@@ -758,6 +758,10 @@
 	dialog#about .multi_column_list {
 		column-count: 3;
 	}
+	.special_thanks_mentions li {
+		line-height: 18px;
+    	margin-bottom: 8px;
+	}
 
 /*Specific Dialogs*/
 	.dialog#texture_edit p.multiline_text {

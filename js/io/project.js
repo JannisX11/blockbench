@@ -559,7 +559,17 @@ onVueSetup(() => {
 					this.thumbnail.remove();
 					delete this.thumbnail;
 				}
-				if (e1.button == 1) return;
+				if (e1.button == 1) {
+					function off(e2) {
+						removeEventListeners(document, 'mouseup', off);
+						delete tab.middle_mouse_pressing;
+						console.log('delete')
+					}
+					tab.middle_mouse_pressing = true;
+					console.log('on')
+					addEventListeners(document, 'mouseup', off, {passive: false});
+					return;
+				}
 				
 				let scope = this;
 				let active = false;
@@ -640,7 +650,8 @@ onVueSetup(() => {
 				}
 			},
 			mouseUp(tab, e1) {
-				if (e1.button === 1) {
+				console.log(e1.button === 1, tab.middle_mouse_pressing)
+				if (e1.button === 1 && tab.middle_mouse_pressing) {
 					tab.close()
 				}
 			},

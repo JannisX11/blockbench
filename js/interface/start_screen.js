@@ -326,7 +326,7 @@ onVueSetup(function() {
 		}
 
 		// Quick Setup
-		if (Blockbench.startup_count <= 1 || true) {
+		if (Blockbench.startup_count <= 1) {
 			
 			let section = Interface.createElement('section', {id: 'quick_setup'});
 			$('#start_screen content').prepend(section);

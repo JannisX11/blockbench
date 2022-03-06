@@ -75,13 +75,13 @@ BARS.defineActions(() => {
 
 							<p>Created by Jannis Petersen</p>
 							<p style="color: var(--color-subtle_text);">A free and open-source low-poly model editor. To make 3D art easy and accessible for everyone.
-								For all who enjoy stylied 3D art. For game developers, students, content creators, and for the Minecraft community.</p>
+								For all who enjoy stylized 3D art. For game developers, students, content creators, and for the Minecraft community.</p>
 
 							<h4>SPECIAL THANKS TO</h4>
-							<ul class="multi_column_list">
+							<ul class="multi_column_list special_thanks_mentions">
 								<li>Mojang Studios</li>
-								<li>The community moderators</li>
 								<li>All contributors</li>
+								<li>The community moderators</li>
 								<li>All donators</li>
 								<li>All translators</li>
 								<li>Wacky</li>

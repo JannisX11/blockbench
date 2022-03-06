@@ -210,7 +210,8 @@ class EditSession {
 			before: omitKeys(entry.before, ['aspects']),
 			post: omitKeys(entry.post, ['aspects']),
 			save_history: entry.save_history,
-			action: entry.action
+			action: entry.action,
+			time: entry.time || Date.now()
 		}
 		this.sendAll('edit', JSON.stringify(new_entry))
 	}

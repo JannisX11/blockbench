@@ -185,7 +185,8 @@ var codec = new Codec('project', {
 				var e = {
 					before: omitKeys(h.before, ['aspects']),
 					post: omitKeys(h.post, ['aspects']),
-					action: h.action
+					action: h.action,
+					time: h.time
 				}
 				model.history.push(e);
 			})
