@@ -108,6 +108,7 @@ const Interface = {
 	Resizers: {
 		left: new ResizeLine('left', {
 			condition() {
+				if (Blockbench.isMobile) return false;
 				if (!Prop.show_left_bar) return false;
 				for (let p of Interface.data.left_bar) {
 					if (Interface.Panels[p] && BARS.condition(Interface.Panels[p].condition)) {
@@ -138,6 +139,7 @@ const Interface = {
 		}),
 		right: new ResizeLine('right', {
 			condition() {
+				if (Blockbench.isMobile) return false;
 				if (!Prop.show_right_bar) return false;
 				for (let p of Interface.data.right_bar) {
 					if (Interface.Panels[p] && BARS.condition(Interface.Panels[p].condition)) {
@@ -194,7 +196,7 @@ const Interface = {
 		}),
 		top: new ResizeLine('top', {
 			horizontal: true,
-			condition() {return Interface.getTopPanel()},
+			condition() {return !Blockbench.isMobile && Interface.getTopPanel()},
 			get() {
 				let panel = Interface.getTopPanel();
 				return panel.folded ? panel.handle.clientHeight : panel.position_data.height;
@@ -212,7 +214,7 @@ const Interface = {
 		}),
 		bottom: new ResizeLine('bottom', {
 			horizontal: true,
-			condition() {return Interface.getBottomPanel()},
+			condition() {return !Blockbench.isMobile && Interface.getBottomPanel()},
 			get() {
 				let panel = Interface.getBottomPanel();
 				return panel.folded ? panel.handle.clientHeight : panel.position_data.height;
@@ -318,6 +320,10 @@ function setupInterface() {
 
 	translateUI()
 
+	if (Blockbench.isMobile) document.body.classList.add('is_mobile');
+	if (Blockbench.isLandscape) document.body.classList.add('is_landscape');
+	if (Blockbench.isTouch) document.body.classList.add('is_touch');
+
 	document.getElementById('title_bar_home_button').title = tl('projects.start_screen');
 
 	$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
@@ -342,6 +348,11 @@ function setupInterface() {
 	}
 	//$(document).contextmenu()
 
+	if (Blockbench.isMobile) {
+		document.getElementById('preview').append(
+			document.querySelector('.toolbar_wrapper.narrow.tools')
+		);
+	}
 
 	//Tooltip Fix
 	$(document).on('mouseenter', '.tool', function() {
@@ -452,6 +463,8 @@ function resizeWindow(event) {
 	if (!Preview.all || (event && event.target && event.target !== window)) {
 		return;
 	}
+	Blockbench.isLandscape = window.innerWidth > window.innerHeight;
+	document.body.classList.toggle('is_landscape', Blockbench.isLandscape);
 	if (Interface.data) {
 		updateInterfacePanels()
 	}

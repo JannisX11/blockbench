@@ -37,7 +37,8 @@
 		width: auto;
 	}
 	h3.panel_handle > label {
-		flex: 0 1 auto;
+		flex: 1 1 auto;
+		overflow: hidden;
 		font-size: 1.1em;
 		text-transform: uppercase;
 		color: var(--color-subtle_text);
@@ -45,6 +46,25 @@
 		margin-right: auto;
 		padding: 0px 4px;
 		cursor: move;
+	}
+	h3.panel_handle > label > span {
+		cursor: inherit;
+	}
+	body.is_mobile.is_landscape h3.panel_handle > label > span::before {
+		content: "\f337";
+		font-family: 'Font Awesome 6 Free';
+		font-weight: 900;
+		display: inline-block;
+	    pointer-events: none;
+		margin-right: 7px;
+	}
+	body.is_mobile:not(.is_landscape) h3.panel_handle > label > span::after {
+		content: "\f338";
+		font-family: 'Font Awesome 6 Free';
+		font-weight: 900;
+		display: inline-block;
+	    pointer-events: none;
+		margin-left: 7px;
 	}
 	h3.panel_handle > .tool.panel_control {
 		flex: 0 0 24px;
@@ -54,6 +74,9 @@
 	}
 	h3.panel_handle > .tool.panel_control:hover {
 		opacity: 1;
+	}
+	body.is_touch h3.panel_handle > .tool.panel_control {
+		flex-basis: 36px;
 	}
 	.panel p {
 		margin-left: 12px;

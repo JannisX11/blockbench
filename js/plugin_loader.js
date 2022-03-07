@@ -616,7 +616,7 @@ BARS.defineActions(function() {
 				BarItems.load_plugin.toElement('#plugins_header_bar');
 				BarItems.load_plugin_from_url.toElement('#plugins_header_bar');
 			}
-			$('#plugin_list').css('max-height', limitNumber(window.innerHeight-300, 80, 600)+'px');
+			$('#plugin_list').css('max-height', limitNumber(window.innerHeight-226, 80, 800)+'px');
 			$('dialog#plugins #plugin_search_bar input').trigger('focus')
 		}
 	})

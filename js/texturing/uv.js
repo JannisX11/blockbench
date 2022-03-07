@@ -1671,6 +1671,7 @@ Interface.definePanels(function() {
 		icon: 'photo_size_select_large',
 		selection_only: true,
 		condition: {modes: ['edit', 'paint']},
+		display_condition: () => UVEditor.getMappableElements().length,
 		default_position: {
 			slot: 'left_bar',
 			float_position: [300, 0],
@@ -1756,8 +1757,11 @@ Interface.definePanels(function() {
 					if (!this.$refs.viewport) return;
 					let old_size = this.width;
 					let size = Math.floor(Math.clamp(UVEditor.panel.width - 10, 64, 1e5));
+					let sidebar = Panels.uv.slot.includes('_bar');
 					this.width = size;
-					this.height = size * Math.clamp(this.project_resolution[1] / this.project_resolution[0], 0.5, 1);
+					this.height = sidebar
+						? size * Math.clamp(this.project_resolution[1] / this.project_resolution[0], 0.5, 1)
+						: Math.clamp(UVEditor.panel.height - UVEditor.panel.handle.clientHeight - 30 - (this.mode == 'uv' ? 30 : 0) - 8, 64, 1e5);
 					this.$refs.viewport.scrollLeft = Math.round(this.$refs.viewport.scrollLeft * (size / old_size));
 					this.$refs.viewport.scrollTop  = Math.round(this.$refs.viewport.scrollTop  * (size / old_size));
 

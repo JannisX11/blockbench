@@ -249,11 +249,10 @@ License: MIT
 .sp-cf { *zoom: 1; }
 
 /* Mobile devices, make hue slider bigger so it is easier to slide */
-@media (max-device-width: 640px) {
-    .sp-color { right: 40%; }
-    .sp-hue { left: 63%; }
-    .sp-fill { padding-top: 60%; }
-}
+
+body.is_touch .sp-color { right: 40%; }
+body.is_touch .sp-hue { left: 63%; }
+body.is_touch .sp-fill { padding-top: 60%; }
 .sp-dragger {
    border-radius: 6px;
    height: 8px;

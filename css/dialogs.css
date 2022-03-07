@@ -87,12 +87,6 @@
 		flex: 1 1 auto;
 	}
 
-	@media (max-device-width: 640px) {
-		dialog {
-			width: 100% !important;
-		}
-	}
-
 	dialog p > code {
 		background-color: var(--color-back);
 		border: 1px solid var(--color-border);

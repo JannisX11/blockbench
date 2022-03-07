@@ -8,6 +8,7 @@ class Panel {
 		this.icon = data.icon;
 		this.menu = data.menu;
 		this.condition = data.condition;
+		this.display_condition = data.display_condition;
 		this.previous_slot = 'left_bar';
 
 		this.growable = data.growable;
@@ -26,7 +27,7 @@ class Panel {
 		if (!this.position_data.float_size) 	this.position_data.float_size 		= defaultp.float_size || [300, 300];
 		if (!this.position_data.height) 		this.position_data.height 			= defaultp.height || 300;
 
-		this.handle = Interface.createElement('h3', {class: 'panel_handle'}, Interface.createElement('label', {}, this.name));
+		this.handle = Interface.createElement('h3', {class: 'panel_handle'}, Interface.createElement('label', {}, Interface.createElement('span', {}, this.name)));
 		this.node = Interface.createElement('div', {class: 'panel', id: `panel_${this.id}`}, this.handle);
 
 		if (this.selection_only) this.node.classList.add('selection_only');
@@ -64,7 +65,7 @@ class Panel {
 					if (typeof onmounted == 'function') {
 						onmounted.call(this);
 					}
-					updateInterfacePanels()
+					//updateInterfacePanels()
 				})
 			}
 			this.vue = this.inside_vue = new Vue(data.component).$mount(component_mount);	
@@ -138,7 +139,8 @@ class Panel {
 					this.position_data.float_position[0] = position_before[0] + e2.clientX - e1.clientX;
 					this.position_data.float_position[1] = position_before[1] + e2.clientY - e1.clientY;
 
-					let threshold = -8;
+					let threshold = -5;
+					let center_x = this.position_data.float_position[0] + this.position_data.float_size[0]/2;
 					if (this.position_data.float_position[0] < threshold) {
 						let panels = [];
 						Interface.left_bar.childNodes.forEach(child => {
@@ -148,7 +150,7 @@ class Panel {
 						})
 						let anchor = this.position_data.float_position[1];
 						anchor += this.node.clientHeight * ((this.position_data.float_position[1] + this.position_data.float_size[1]) / Interface.work_screen.clientHeight);
-						let index = Math.floor(Math.clamp(anchor / Interface.work_screen.clientHeight, 0, 1) * (panels.length+1));
+						let index = Math.floor(Math.clamp(anchor / Interface.work_screen.clientHeight, 0, 1) * (panels.length));
 						this.moveTo('left_bar', Panels[panels[Math.clamp(index, 0, panels.length-1)]], index < panels.length);
 
 					} else if (this.position_data.float_position[0] + Math.min(this.position_data.float_size[0], Interface.data.right_bar_width) > document.body.clientWidth - threshold) {
@@ -160,13 +162,19 @@ class Panel {
 						})
 						let anchor = this.position_data.float_position[1];
 						anchor += this.node.clientHeight * ((this.position_data.float_position[1] + this.position_data.float_size[1]) / Interface.work_screen.clientHeight);
-						let index = Math.floor(Math.clamp(anchor / Interface.work_screen.clientHeight, 0, 1) * (panels.length+1));
+						let index = Math.floor(Math.clamp(anchor / Interface.work_screen.clientHeight, 0, 1) * (panels.length));
 						this.moveTo('right_bar', Panels[panels[Math.clamp(index, 0, panels.length-1)]], index < panels.length);
 
-					} else if (this.position_data.float_position[1] < threshold) {
+					} else if (
+						this.position_data.float_position[1] < threshold &&
+						center_x > Interface.left_bar_width && center_x < (Interface.work_screen.clientWidth - Interface.right_bar_width)
+					) {
 						if (this.slot == 'float') this.moveTo('top');
 
-					} else if (this.position_data.float_position[1] + Math.min(this.position_data.float_size[1], 200) > Interface.work_screen.clientHeight - threshold) {
+					} else if (
+						this.position_data.float_position[1] + Math.min(this.position_data.float_size[1], 200) > Interface.work_screen.clientHeight - threshold &&
+						center_x > Interface.left_bar_width && center_x < (Interface.work_screen.clientWidth - Interface.right_bar_width)
+					) {
 						if (this.slot == 'float') this.moveTo('bottom');
 
 					} else if (this.slot != 'float') {
@@ -194,19 +202,46 @@ class Panel {
 				addEventListeners(document, 'mouseup touchend', stop);
 
 			})
-		} else {
-			
-			let fold_button = Interface.createElement('div', {class: 'tool panel_control panel_folding_button'}, Blockbench.getIconNode('expand_more'))
-			this.handle.append(fold_button);
-			fold_button.addEventListener('click', (e) => {
-				this.fold();
-			})
-			
+		} else {			
 
 			let close_button = Interface.createElement('div', {class: 'tool panel_control'}, Blockbench.getIconNode('clear'))
 			this.handle.append(close_button);
 			close_button.addEventListener('click', (e) => {
 				Interface.PanelSelectorVue.select(null);
+			})
+			
+
+			addEventListeners(this.handle.firstElementChild, 'mousedown touchstart', e1 => {
+				convertTouchEvent(e1);
+				let started = false;
+				let height_before = this.position_data.height;
+				let max = Blockbench.isLandscape ? window.innerWidth - 50 : Interface.work_screen.clientHeight;
+
+				let drag = e2 => {
+					convertTouchEvent(e2);
+					let diff = Blockbench.isLandscape ? e1.clientX - e2.clientX : e1.clientY - e2.clientY;
+					if (!started && Math.abs(diff) > 4) {
+						started = true;
+					}
+					if (!started) return;
+					
+					this.position_data.height = Math.clamp(height_before + diff, 140, max);
+
+					this.update(true);
+					resizeWindow();
+
+				}
+				let stop = e2 => {
+					convertTouchEvent(e2);
+
+					this.update();
+					
+					removeEventListeners(document, 'mousemove touchmove', drag);
+					removeEventListeners(document, 'mouseup touchend', stop);
+				}
+				addEventListeners(document, 'mousemove touchmove', drag);
+				addEventListeners(document, 'mouseup touchend', stop);
+
 			})
 		}
 		this.node.addEventListener('mousedown', event => {
@@ -234,6 +269,9 @@ class Panel {
 		this.node.classList.toggle('folded', state);
 		if (this.onFold) {
 			this.onFold();
+		}
+		if (this.slot == 'top' || this.slot == 'bottom') {
+			resizeWindow();
 		}
 		this.update();
 		return this;
@@ -379,7 +417,7 @@ class Panel {
 		if (show) {
 			$(this.node).show()
 			if (this.slot == 'float') {
-				if (!dragging) {
+				if (!dragging && work_screen.clientWidth) {
 					this.position_data.float_position[0] = Math.clamp(this.position_data.float_position[0], 0, work_screen.clientWidth - this.width);
 					this.position_data.float_position[1] = Math.clamp(this.position_data.float_position[1], 0, work_screen.clientHeight - this.height);
 					this.position_data.float_size[0] = Math.clamp(this.position_data.float_size[0], 300, work_screen.clientWidth - this.position_data.float_position[0]);
@@ -404,8 +442,17 @@ class Panel {
 				this.width = Interface.data.right_bar_width
 			}
 			if (this.slot == 'top' || this.slot == 'bottom') {
-				this.height = Math.clamp(this.position_data.height, 30, center_screen.clientHeight);
-				if (this.folded) this.height = this.handle.clientHeight;
+
+				if (Blockbench.isMobile && Blockbench.isLandscape) {
+					this.height = center_screen.clientHeight;
+					this.width = Math.clamp(this.position_data.height, 30, center_screen.clientWidth);
+					if (this.folded) this.width = 72;
+				} else {
+					this.height = Math.clamp(this.position_data.height, 30, center_screen.clientHeight);
+					if (this.folded) this.height = this.handle.clientHeight;
+					this.width = Interface.work_screen.clientWidth - Interface.left_bar_width - Interface.right_bar_width;
+				}
+				this.node.style.width = this.width + 'px';
 				this.node.style.height = this.height + 'px';
 			}
 
@@ -489,4 +536,85 @@ function setActivePanel(panel) {
 
 function saveSidebarOrder() {
 	localStorage.setItem('interface_data', JSON.stringify(Interface.data))
+}
+
+function setupMobilePanelSelector() {
+	if (Blockbench.isMobile) {
+		Interface.PanelSelectorVue = new Vue({
+			el: '#panel_selector_bar',
+			data: {
+				all_panels: Interface.Panels,
+				selected: null,
+				modifiers: Pressing.overrides
+			},
+			computed: {
+			},
+			methods: {
+				panels() {
+					let arr = [];
+					for (var id in this.all_panels) {
+						let panel = this.all_panels[id];
+						if (Condition(panel.condition) && Condition(panel.display_condition)) {
+							arr.push(panel);
+						}
+					}
+					return arr;
+				},
+				select(panel) {
+					this.selected = panel && panel.id;
+					if (panel) {
+						panel.moveTo('bottom');
+					} else {
+						let other_panel = Interface.getBottomPanel();
+						if (other_panel) {
+							$(other_panel.node).detach();
+						}
+						resizeWindow();
+					}
+				},
+				openKeyboardMenu(event) {
+					if (Menu.closed_in_this_click == 'mobile_keyboard') return;
+					
+					let modifiers = ['ctrl', 'shift', 'alt'];
+					let menu = new Menu('mobile_keyboard', [
+						...modifiers.map(key => {
+							let name = tl(`keys.${key}`);
+							if (Interface.status_bar.vue.modifier_keys[key].length) {
+								name += ' (' + tl(Interface.status_bar.vue.modifier_keys[key].last()) + ')';
+							}
+							return {
+								name,
+								icon: Pressing.overrides[key] ? 'check_box' : 'check_box_outline_blank',
+								click() {
+									Pressing.overrides[key] = !Pressing.overrides[key]
+								}
+							}
+						}),
+						'_',
+						{icon: 'clear_all', name: 'menu.mobile_keyboard.disable_all', condition: () => {
+							let {length} = [Pressing.overrides.ctrl, Pressing.overrides.shift, Pressing.overrides.alt].filter(key => key);
+							return length;
+						}, click() {
+							Pressing.overrides.ctrl = false; Pressing.overrides.shift = false; Pressing.overrides.alt = false;
+						}},
+					])
+					menu.open(this.$refs.mobile_keyboard_menu)
+				},
+				Condition,
+				getIconNode: Blockbench.getIconNode
+			},
+			template: `
+				<div id="panel_selector_bar">
+					<div class="panel_selector" :class="{selected: selected == null}" @click="select(null)">
+						<div class="icon_wrapper"><i class="material-icons icon">3d_rotation</i></div>
+					</div>
+					<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in panels()" v-if="Condition(panel.condition)" @click="select(panel)">
+						<div class="icon_wrapper" v-html="getIconNode(panel.icon).outerHTML"></div>
+					</div>
+					<div id="mobile_keyboard_menu" @click="openKeyboardMenu($event)" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
+						<i class="material-icons">keyboard</i>
+					</div>
+				</div>`
+		})
+	}
 }

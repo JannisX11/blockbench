@@ -68,8 +68,9 @@ class BarItem {
 			label.innerText = action.keybind || '';
 			tooltip.append(label);
 
+			let description;
 			if (action.description) {
-				let description = document.createElement('div');
+				description = document.createElement('div');
 				description.className = 'tooltip_description';
 				description.innerText = action.description;
 				tooltip.append(description);
@@ -77,45 +78,57 @@ class BarItem {
 
 			action.node.prepend(tooltip);
 
-			action.node.addEventListener('mouseenter', () => {
-				var tooltip = $(action.node).find('div.tooltip');
-				if (!tooltip.length) return;
-				var description = tooltip.find('.tooltip_description');
-
+			addEventListeners(action.node, 'mouseenter touchstart', () => {
+				let j_tooltip = $(tooltip);
+				let j_description = description && $(description);
 				if ($(action.node).parent().parent().hasClass('vertical')) {
-					tooltip.css('margin', '0')
+					j_tooltip.css('margin', '0')
 					if ($(action.node).offset().left > window.innerWidth/2) {
-						tooltip.css('margin-left', (-tooltip.width()-3) + 'px')
+						j_tooltip.css('margin-left', (-j_tooltip.width()-3) + 'px')
 					} else {
-						tooltip.css('margin-left', '34px')
+						j_tooltip.css('margin-left', '34px')
 					}
 				} else {
 
-					tooltip.css('margin-left', '0')
-					var offset = tooltip && tooltip.offset()
-					offset.right = offset.left + parseInt(tooltip.css('width').replace(/px/, '')) - window.innerWidth
+					j_tooltip.css('margin-left', '0')
+					var offset = j_tooltip && j_tooltip.offset()
+					offset.right = offset.left + parseInt(j_tooltip.css('width').replace(/px/, '')) - window.innerWidth
 
 					if (offset.right > 4) {
-						tooltip.css('margin-left', -offset.right+'px')
+						j_tooltip.css('margin-left', -offset.right+'px')
 					}				
 
 					// description
-					if (!description.length) return;
+					if (!j_description) return;
 
-					description.css('margin-left', '-5px')
-					var offset = description.offset()
-					offset.right = offset.left + parseInt(description.css('width').replace(/px/, '')) - window.innerWidth
+					j_description.css('margin-left', '-5px')
+					var offset = j_description.offset()
+					offset.right = offset.left + parseInt(j_description.css('width').replace(/px/, '')) - window.innerWidth
 
 					if (offset.right > 4) {
-						description.css('margin-left', -offset.right+'px')
+						j_description.css('margin-left', -offset.right+'px')
 					}
 
 					// height
 					if ((window.innerHeight - offset.top) < 28) {
-						tooltip.css('margin-top', -2-tooltip.height()+'px');
-						description.css('margin-top', '-51px');
+						j_tooltip.css('margin-top', -2-j_tooltip.height()+'px');
+						j_description.css('margin-top', '-51px');
 					}
 				}
+			})
+			action.node.addEventListener('touchstart', () => {
+				tooltip.style.display = 'none';
+				let show_tooltip = setTimeout(() => {
+					tooltip.style.display = 'block';
+					setTimeout(() => {
+						tooltip.style.display = 'none';
+					}, 1200)
+				}, 500)
+				let stop = e => {
+					clearInterval(show_tooltip);
+					document.removeEventListener('touchend', stop);
+				};
+				document.addEventListener('touchend', stop);
 			})
 		}
 	}
@@ -2118,18 +2131,6 @@ const BARS = {
 		})
 		Blockbench.onUpdateTo('4.0', () => {
 			Toolbars.vertex_snap.add(BarItems.selection_mode);
-		})
-
-		//Mobile
-		Toolbars.mobile_side = new Toolbar({
-			id: 'mobile_side',
-			children: [
-				'sidebar_right',
-				'sidebar_left',
-				'action_control',
-			],
-			vertical: true,
-			default_place: Blockbench.isMobile
 		})
 
 		Toolbox = Toolbars.tools;

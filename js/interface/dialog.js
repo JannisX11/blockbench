@@ -329,9 +329,10 @@ function getStringWidth(string, size) {
 	return width;
 };
 
+const toggle_sidebar = window.innerWidth < 640;
 class DialogSidebar {
 	constructor(options, dialog) {
-		this.open = !Blockbench.isMobile;
+		this.open = !toggle_sidebar;
 		this.pages = options.pages || {};
 		this.page = options.page || Object.keys(this.pages)[0];
 		this.actions = options.actions || {};
@@ -354,7 +355,7 @@ class DialogSidebar {
 			this.page_menu[key] = li;
 			li.addEventListener('click', event => {
 				this.setPage(key);
-				if (Blockbench.isMobile) this.toggle();
+				if (toggle_sidebar) this.toggle();
 			})
 			page_list.append(li);
 		}

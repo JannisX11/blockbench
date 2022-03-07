@@ -1511,6 +1511,7 @@ Interface.definePanels(function() {
 		new Panel('element', {
 			icon: 'fas.fa-cube',
 			condition: !Blockbench.isMobile && {modes: ['edit', 'pose']},
+			display_condition: () => Outliner.selected.length || Group.selected,
 			selection_only: true,
 			default_position: {
 				slot: 'right_bar',

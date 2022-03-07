@@ -682,6 +682,7 @@ Interface.definePanels(function() {
 	new Panel('bone', {
 		icon: 'fas.fa-bone',
 		condition: !Blockbench.isMobile && {modes: ['animate']},
+		display_condition: () => UVEditor.getMappableElements().length,
 		selection_only: true,
 		default_position: {
 			slot: 'right_bar',

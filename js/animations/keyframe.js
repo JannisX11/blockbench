@@ -945,7 +945,7 @@ Interface.definePanels(function() {
 	document.body.append(locator_suggestion_list);
 	
 	new Panel('keyframe', {
-		icon: 'timeline',
+		icon: 'icon-keyframe',
 		condition: {modes: ['animate']},
 		default_position: {
 			slot: 'left_bar',
