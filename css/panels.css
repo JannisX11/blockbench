@@ -21,6 +21,10 @@
 		box-sizing: content-box;
 		z-index: 14;
 	}
+	body.is_mobile .panel {
+		overflow-y: auto;
+		overflow-x: hidden;
+	}
 	h3.panel_handle {
 		display: flex;
 		width: 100%;

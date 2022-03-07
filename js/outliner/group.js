@@ -66,10 +66,11 @@ class Group extends OutlinerNode {
 		Canvas.updateAllBones([this]);
 		return this;
 	}
-	select(event) {
+	select(event, isOutlinerClick) {
 		var scope = this;
 		if (Blockbench.hasFlag('renaming') || this.locked) return this;
 		if (!event) event = true
+		if (isOutlinerClick && event.pointerType == 'touch') return;
 		var allSelected = Group.selected === this && selected.length && this.matchesSelection()
 
 		//Clear Old Group
@@ -85,7 +86,7 @@ class Group extends OutlinerNode {
 		Group.selected = this;
 
 		//Select / Unselect Children
-		if (allSelected && event.which === 1) {
+		if (allSelected && (event.which === 1 || event instanceof TouchEvent)) {
 			//Select Only Group, unselect Children
 			selected.length = 0
 		} else {

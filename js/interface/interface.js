@@ -338,8 +338,10 @@ function setupInterface() {
 		'timelapse',
 	])
 	
-	if (Blockbench.isMobile && window.setupMobilePanelSelector) {
+	if (Blockbench.isMobile) {
 		setupMobilePanelSelector()
+		Prop.show_right_bar = false;
+		Prop.show_left_bar = false;
 	}
 
 	for (var key in Interface.Resizers) {

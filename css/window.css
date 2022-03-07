@@ -307,7 +307,7 @@
 	}
 	body.is_mobile.is_landscape #work_screen {
 		grid-template-columns: auto 48px !important;
-		grid-template-rows: auto minmax(200px, 5000px) 26px !important;
+		grid-template-rows: auto minmax(100px, 5000px) 26px !important;
 		grid-template-areas: 
 			"toolbar panel_selector"
 			"center panel_selector"
@@ -347,6 +347,9 @@
 		display: none;
 	}
 
+	body.is_mobile #preview {
+		overflow: hidden;
+	}
 	body.is_mobile #panel_selector_bar {
 		display: flex;
 		grid-area: panel_selector;

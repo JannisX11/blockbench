@@ -2047,24 +2047,26 @@ const BARS = {
 		Blockbench.onUpdateTo('4.0', () => {
 			Toolbars.keyframe.add(BarItems.keyframe_uniform, 2);
 		})
+		Blockbench.onUpdateTo('4.2.0-beta.0', () => {
+			delete BARS.stored.timeline;
+		})
 		Toolbars.timeline = new Toolbar({
 			id: 'timeline',
 			children: [
 				'timeline_graph_editor',
 				'timeline_focus',
 				'clear_timeline',
+				'bring_up_all_animations',
 				'select_effect_animator',
 				'add_marker',
-				'_',
-				'slider_animation_speed',
-				'previous_keyframe',
-				'next_keyframe',
+				'+',
+				'jump_to_timeline_start',
 				'play_animation',
+				'jump_to_timeline_end',
+				'+',
+				'slider_animation_speed',
 			],
 			default_place: true
-		})
-		Blockbench.onUpdateTo('3.8', () => {
-			Toolbars.timeline.add(BarItems.timeline_graph_editor, 0);
 		})
 		//Tools
 		Toolbars.main_tools = new Toolbar({
