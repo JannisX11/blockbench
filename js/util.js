@@ -577,6 +577,13 @@ var Merge = {
 				obj[index].V3_set(source[index]);
 			}
 		}
+	},
+	arrayVector2: function(obj, source, index, validate) {
+		if (source[index] instanceof Array) {
+			if (validate instanceof Function === false || validate(source[index])) {
+				obj[index].replace(source[index]);
+			}
+		}
 	}
 }
 

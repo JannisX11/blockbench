@@ -1,301 +1,620 @@
 class Panel {
-	constructor(data) {
+	constructor(id, data) {
+		if (!data) data = id;
 		let scope = this;
 		this.type = 'panel';
-		this.id = data.id || 'new_panel';
+		this.id = typeof id == 'string' ? id : data.id || 'new_panel';
+		this.name = tl(data.name ? data.name : `panel.${this.id}`);
 		this.icon = data.icon;
 		this.menu = data.menu;
-		this.growable = data.growable;
-		this.name = tl(data.name ? data.name : `panel.${this.id}`);
-		this.selection_only = data.selection_only == true;
 		this.condition = data.condition;
+		this.display_condition = data.display_condition;
+		this.previous_slot = 'left_bar';
+
+		this.growable = data.growable;
+		this.selection_only = data.selection_only == true;
+		this.folded = false;
+
 		this.onResize = data.onResize;
 		this.onFold = data.onFold;
-		this.folded = false;
-		if (data.toolbars) {
-			this.toolbars = data.toolbars;
-		} else {
-			this.toolbars = {};
-		}
-		// Vue
-		if (data.component) {
-			data.component.name = 'inside-vue'
-			let bar = $(`.sidebar#${data.default_side||'left'}_bar`);
-			let node = $(`<div id="mount-panel-${this.id}"></div>`);
+		this.toolbars = data.toolbars || {};
 
-			if (data.insert_before && bar.find(`> .panel#${data.insert_before}`).length) {
-				node.insertBefore(bar.find(`> .panel#${data.insert_before}`));
-			} else if (data.insert_after && bar.find(`> .panel#${data.insert_after}`).length) {
-				node.insertAfter(bar.find(`> .panel#${data.insert_after}`));
-			} else {
-				bar.append(node)
-			}
+		if (!Interface.data.panels[this.id]) Interface.data.panels[this.id] = {};
+		this.position_data = Interface.data.panels[this.id];
+		let defaultp = data.default_position || 0;
+		if (!this.position_data.slot) 			this.position_data.slot 			= defaultp.slot || (data.default_side ? (data.default_side+'_bar') : 'left_bar');
+		if (!this.position_data.float_position)	this.position_data.float_position 	= defaultp.float_position || [0, 0];
+		if (!this.position_data.float_size) 	this.position_data.float_size 		= defaultp.float_size || [300, 300];
+		if (!this.position_data.height) 		this.position_data.height 			= defaultp.height || 300;
 
-			this.vue = new Vue({
-				components: {
-					'inside-vue': data.component
-				},
-				template: `<div class="panel ${this.selection_only ? 'selection_only' : ''} ${this.growable ? 'grow' : ''}" id="${this.id}">
-					<inside-vue class="panel_inside" ref="inside"></inside-vue>
-				</div>`,
-				mounted() {
-					Vue.nextTick(() => {
-						updateInterfacePanels()
-					})
+		this.handle = Interface.createElement('h3', {class: 'panel_handle'}, Interface.createElement('label', {}, Interface.createElement('span', {}, this.name)));
+		this.node = Interface.createElement('div', {class: 'panel', id: `panel_${this.id}`}, this.handle);
+
+		if (this.selection_only) this.node.classList.add('selection_only');
+		if (this.growable) this.node.classList.add('grow');
+		
+		// Toolbars
+		for (let key in this.toolbars) {
+			let toolbar = this.toolbars[key];
+			if (toolbar instanceof Toolbar) {
+				if (toolbar.label) {
+					let label = Interface.createElement('p', {class: 'panel_toolbar_label'}, tl(toolbar.name));
+					this.node.append(label);
 				}
-			}).$mount(`#mount-panel-${this.id}`)
-
-			this.inside_vue = this.vue.$refs.inside;
-			
+				this.node.append(toolbar.node);
+			}
 		}
-		this.node = $('.panel#'+this.id).get(0)
-		this.handle = $(`<h3 class="panel_handle">
-			<label>${this.name}</label>
-		</h3>`).get(0)
 
-		$(this.node).prepend(this.handle)
+		if (data.component) {
+			
+			let component_mount = Interface.createElement('div');
+			this.node.append(component_mount);
+			let onmounted = data.component.mounted;
+			data.component.mounted = function() {
+				Vue.nextTick(() => {
+
+					let toolbar_wrappers = this.$el.querySelectorAll('.toolbar_wrapper');
+					toolbar_wrappers.forEach(wrapper => {
+						let id = wrapper.attributes.toolbar && wrapper.attributes.toolbar.value;
+						let toolbar = scope.toolbars[id];
+						if (toolbar) {
+							wrapper.append(toolbar.node);
+						}
+					})
+
+					if (typeof onmounted == 'function') {
+						onmounted.call(this);
+					}
+					//updateInterfacePanels()
+				})
+			}
+			this.vue = this.inside_vue = new Vue(data.component).$mount(component_mount);	
+			scope.vue.$el.classList.add('panel_vue_wrapper');		
+		}
 
 		if (!Blockbench.isMobile) {
-			let fold_button = $(`<div class="tool panel_folding_button"><i class="material-icons">expand_more</i></div>`)[0];
+
+			let snap_button = Interface.createElement('div', {class: 'tool panel_control'}, Blockbench.getIconNode('drag_handle'))
+			this.handle.append(snap_button);
+			snap_button.addEventListener('click', (e) => {
+				new Menu([
+					{
+						name: 'Left Sidebar',
+						icon: 'align_horizontal_left',
+						click: () => this.moveTo('left_bar')
+					},
+					{
+						name: 'Right Sidebar',
+						icon: 'align_horizontal_right',
+						click: () => this.moveTo('right_bar')
+					},
+					{
+						name: 'Top',
+						icon: 'align_vertical_top',
+						click: () => this.moveTo('top')
+					},
+					{
+						name: 'Bottom',
+						icon: 'align_vertical_bottom',
+						click: () => this.moveTo('bottom')
+					},
+					{
+						name: 'Float',
+						icon: 'web_asset',
+						click: () => this.moveTo('float')
+					}
+				]).show(snap_button);
+			})
+
+			let fold_button = Interface.createElement('div', {class: 'tool panel_control panel_folding_button'}, Blockbench.getIconNode('expand_more'))
 			this.handle.append(fold_button);
 			fold_button.addEventListener('click', (e) => {
 				this.fold();
 			})
 
-			$(this.handle).draggable({
-				revertDuration: 0,
-				cursorAt: { left: 24, top: 24 },
-				helper: 'clone',
-				revert: true,
-				appendTo: 'body',
-				zIndex: 19,
-				scope: 'panel',
-				handle: '> label',
-				start: function() {
-					Interface.panel = scope;
-				},
-				drag(e, ui) {
-					$('.panel[order]').attr('order', null)
-					let target_panel = $('div.panel:hover').get(0);
-					if (!target_panel) return;
-					let top = $(target_panel).offset().top;
-					let height = target_panel.clientHeight;
-					if (e.clientY > top + height/2) {
-						$(target_panel).attr('order', 1);
-					} else {
-						$(target_panel).attr('order', -1);
-					}
-				},
-				stop: function(e, ui) {
-					$('.panel[order]').attr('order', null)
-					if (!ui) return;
-					if (Math.abs(ui.position.top - ui.originalPosition.top) + Math.abs(ui.position.left - ui.originalPosition.left) < 30) return;
-					let target = Interface.panel
-					if (typeof target === 'string') {
-						scope.moveTo(target)
-					} else if (target.type === 'panel') {
-						let target_pos = $(target.node).offset().top
-						let target_height = target.node.clientHeight;
-						let before = e.clientY < target_pos + target_height / 2
-						if (target && target !== scope) {
-							scope.moveTo(target, before)
-						} else {
-							if (e.clientX > window.innerWidth - 200) {
-								scope.moveTo('right_bar')
-							} else if (e.clientX < 200) {
-								scope.moveTo('left_bar')
-							}
+			this.handle.firstElementChild.addEventListener('dblclick', e => {
+				this.fold();
+			})
+
+
+
+			addEventListeners(this.handle.firstElementChild, 'mousedown touchstart', e1 => {
+				convertTouchEvent(e1);
+				let started = false;
+				let position_before = this.slot == 'float'
+					? this.position_data.float_position.slice()
+					: [e1.clientX - e1.offsetX, e1.clientY - e1.offsetY - 55];
+
+				let drag = e2 => {
+					convertTouchEvent(e2);
+					if (!started && (Math.pow(e2.clientX - e1.clientX, 2) + Math.pow(e2.clientX - e1.clientX, 2)) > 15) {
+						started = true;
+						if (this.slot !== 'float') {
+							this.moveTo('float');
+							this.moveToFront();
 						}
 					}
-					saveInterfaceRearrangement()
+					if (!started) return;
+					
+					this.position_data.float_position[0] = position_before[0] + e2.clientX - e1.clientX;
+					this.position_data.float_position[1] = position_before[1] + e2.clientY - e1.clientY;
+
+					let threshold = -5;
+					let center_x = this.position_data.float_position[0] + this.position_data.float_size[0]/2;
+					if (this.position_data.float_position[0] < threshold) {
+						let panels = [];
+						Interface.left_bar.childNodes.forEach(child => {
+							if (child.clientHeight) {
+								panels.push(child.id.replace(/^panel_/, ''));
+							}
+						})
+						let anchor = this.position_data.float_position[1];
+						anchor += this.node.clientHeight * ((this.position_data.float_position[1] + this.position_data.float_size[1]) / Interface.work_screen.clientHeight);
+						let index = Math.floor(Math.clamp(anchor / Interface.work_screen.clientHeight, 0, 1) * (panels.length));
+						this.moveTo('left_bar', Panels[panels[Math.clamp(index, 0, panels.length-1)]], index < panels.length);
+
+					} else if (this.position_data.float_position[0] + Math.min(this.position_data.float_size[0], Interface.data.right_bar_width) > document.body.clientWidth - threshold) {
+						let panels = [];
+						Interface.right_bar.childNodes.forEach(child => {
+							if (child.clientHeight) {
+								panels.push(child.id.replace(/^panel_/, ''));
+							}
+						})
+						let anchor = this.position_data.float_position[1];
+						anchor += this.node.clientHeight * ((this.position_data.float_position[1] + this.position_data.float_size[1]) / Interface.work_screen.clientHeight);
+						let index = Math.floor(Math.clamp(anchor / Interface.work_screen.clientHeight, 0, 1) * (panels.length));
+						this.moveTo('right_bar', Panels[panels[Math.clamp(index, 0, panels.length-1)]], index < panels.length);
+
+					} else if (
+						this.position_data.float_position[1] < threshold &&
+						center_x > Interface.left_bar_width && center_x < (Interface.work_screen.clientWidth - Interface.right_bar_width)
+					) {
+						if (this.slot == 'float') this.moveTo('top');
+
+					} else if (
+						this.position_data.float_position[1] + Math.min(this.position_data.float_size[1], 200) > Interface.work_screen.clientHeight - threshold &&
+						center_x > Interface.left_bar_width && center_x < (Interface.work_screen.clientWidth - Interface.right_bar_width)
+					) {
+						if (this.slot == 'float') this.moveTo('bottom');
+
+					} else if (this.slot != 'float') {
+						this.moveTo('float');
+					}
+
+					this.update(true);
+
+				}
+				let stop = e2 => {
+					convertTouchEvent(e2);
+
+					if (this.slot != 'float') {
+						this.position_data.float_position[0] = position_before[0];
+						this.position_data.float_position[1] = position_before[1];
+					}
+					this.update();
+					saveSidebarOrder()
 					updateInterface()
+					
+					removeEventListeners(document, 'mousemove touchmove', drag);
+					removeEventListeners(document, 'mouseup touchend', stop);
 				}
+				addEventListeners(document, 'mousemove touchmove', drag);
+				addEventListeners(document, 'mouseup touchend', stop);
+
+			})
+		} else {			
+
+			let close_button = Interface.createElement('div', {class: 'tool panel_control'}, Blockbench.getIconNode('clear'))
+			this.handle.append(close_button);
+			close_button.addEventListener('click', (e) => {
+				Interface.PanelSelectorVue.select(null);
+			})
+			
+
+			addEventListeners(this.handle.firstElementChild, 'mousedown touchstart', e1 => {
+				convertTouchEvent(e1);
+				let started = false;
+				let height_before = this.position_data.height;
+				let max = Blockbench.isLandscape ? window.innerWidth - 50 : Interface.work_screen.clientHeight;
+
+				let drag = e2 => {
+					convertTouchEvent(e2);
+					let diff = Blockbench.isLandscape ? e1.clientX - e2.clientX : e1.clientY - e2.clientY;
+					if (!started && Math.abs(diff) > 4) {
+						started = true;
+					}
+					if (!started) return;
+					
+					this.position_data.height = Math.clamp(height_before + diff, 140, max);
+
+					this.update(true);
+					resizeWindow();
+
+				}
+				let stop = e2 => {
+					convertTouchEvent(e2);
+
+					this.update();
+					
+					removeEventListeners(document, 'mousemove touchmove', drag);
+					removeEventListeners(document, 'mouseup touchend', stop);
+				}
+				addEventListeners(document, 'mousemove touchmove', drag);
+				addEventListeners(document, 'mouseup touchend', stop);
+
 			})
 		}
-		$(this.node)
-			.droppable({
-				accept: 'h3',
-				scope: 'panel',
-				tolerance: 'pointer',
-				drop: function(e, ui) {
-					Interface.panel = scope;
-				}
-			})
-			.click((event) => {
-				setActivePanel(this.id)
-			})
-			.contextmenu((event) => {
-				setActivePanel(this.id)
-			})
+		this.node.addEventListener('mousedown', event => {
+			setActivePanel(this.id);
+			this.moveToFront();
+		})
 		
-		// Sort
-		if (Blockbench.setup_successful) {
-			if (Interface.data.right_bar.includes(this.id)) {
-				let index = Interface.data.right_bar.indexOf(this.id);
-				if (index == 0) {
-					this.moveTo(Interface.Panels[Interface.data.right_bar[1]], true)
-				} else {
-					this.moveTo(Interface.Panels[Interface.data.right_bar[index-1]], false)
-				}
-			} else if (Interface.data.left_bar.includes(this.id)) {
-				let index = Interface.data.left_bar.indexOf(this.id);
-				if (index == 0) {
-					this.moveTo(Interface.Panels[Interface.data.left_bar[1]], true)
-				} else {
-					this.moveTo(Interface.Panels[Interface.data.left_bar[index-1]], false)
-				}
-			}
-		}
 		
-		// Toolbars
-		for (let key in this.toolbars) {
-			let toolbar = this.toolbars[key]
-			if (toolbar instanceof Toolbar) {
-				toolbar.toPlace(toolbar.id)
-			}
-		}
+		// Add to slot
+		let reference_panel = Panels[data.insert_before || data.insert_after];
+		this.moveTo(this.position_data.slot, reference_panel, reference_panel && !data.insert_after);
 
 		Interface.Panels[this.id] = this;
 	}
 	isVisible() {
 		return !this.folded && this.node.parentElement && this.node.parentElement.style.display !== 'none';
 	}
+	get slot() {
+		return this.position_data.slot;
+	}
 	fold(state = !this.folded) {
 		this.folded = !!state;
-		$(this.handle).find('> .panel_folding_button > i').text(state ? 'expand_less' : 'expand_more');
+		let new_icon = Blockbench.getIconNode(state ? 'expand_less' : 'expand_more');
+		$(this.handle).find('> .panel_folding_button > .icon').replaceWith(new_icon);
 		this.node.classList.toggle('folded', state);
 		if (this.onFold) {
 			this.onFold();
 		}
+		if (this.slot == 'top' || this.slot == 'bottom') {
+			resizeWindow();
+		}
+		this.update();
+		return this;
 	}
-	moveTo(ref_panel, before) {
-		let scope = this
-		if (typeof ref_panel === 'string') {
-			if (ref_panel === 'left_bar') {
-				$('#left_bar').append(scope.node)
-			} else {
-				$('#right_bar').append(scope.node)
+	setupFloatHandles() {
+		let sides = [
+			Interface.createElement('div', {class: 'panel_resize_side resize_top'}),
+			Interface.createElement('div', {class: 'panel_resize_side resize_bottom'}),
+			Interface.createElement('div', {class: 'panel_resize_side resize_left'}),
+			Interface.createElement('div', {class: 'panel_resize_side resize_right'}),
+		];
+		let corners = [
+			Interface.createElement('div', {class: 'panel_resize_corner resize_top_left'}),
+			Interface.createElement('div', {class: 'panel_resize_corner resize_top_right'}),
+			Interface.createElement('div', {class: 'panel_resize_corner resize_bottom_left'}),
+			Interface.createElement('div', {class: 'panel_resize_corner resize_bottom_right'}),
+		];
+		let resize = (e1, direction_x, direction_y) => {
+			let position_before = this.position_data.float_position.slice();
+			let size_before = this.position_data.float_size.slice();
+			let started = false;
+
+			let drag = e2 => {
+				convertTouchEvent(e2);
+				if (!started && (Math.pow(e2.clientX - e1.clientX, 2) + Math.pow(e2.clientX - e1.clientX, 2)) > 15) {
+					started = true;
+				}
+				if (!started) return;
+
+				this.position_data.float_size[0] = size_before[0] + (e2.clientX - e1.clientX) * direction_x;
+				this.position_data.float_size[1] = size_before[1] + (e2.clientY - e1.clientY) * direction_y;
+
+				if (direction_x == -1) this.position_data.float_position[0] = position_before[0] - this.position_data.float_size[0] + size_before[0];
+				if (direction_y == -1) this.position_data.float_position[1] = position_before[1] - this.position_data.float_size[1] + size_before[1];
+
+				if (this.onResize) {
+					this.onResize()
+				}
+				this.update();
+
 			}
-		} else {
-			if (before) {
-				$(ref_panel.node).before(scope.node)
+			let stop = e2 => {
+				convertTouchEvent(e2);
+				
+				removeEventListeners(document, 'mousemove touchmove', drag);
+				removeEventListeners(document, 'mouseup touchend', stop);
+			}
+			addEventListeners(document, 'mousemove touchmove', drag);
+			addEventListeners(document, 'mouseup touchend', stop);
+		}
+		addEventListeners(sides[0], 'mousedown touchstart', (event) => resize(event, 0, -1));
+		addEventListeners(sides[1], 'mousedown touchstart', (event) => resize(event, 0, 1));
+		addEventListeners(sides[2], 'mousedown touchstart', (event) => resize(event, -1, 0));
+		addEventListeners(sides[3], 'mousedown touchstart', (event) => resize(event, 1, 0));
+		addEventListeners(corners[0], 'mousedown touchstart', (event) => resize(event, -1, -1));
+		addEventListeners(corners[1], 'mousedown touchstart', (event) => resize(event, 1, -1));
+		addEventListeners(corners[2], 'mousedown touchstart', (event) => resize(event, -1, 1));
+		addEventListeners(corners[3], 'mousedown touchstart', (event) => resize(event, 1, 1));
+
+		let handles = Interface.createElement('div', {class: 'panel_resize_handle_wrapper'}, [...sides, ...corners]);
+		this.node.append(handles);
+		this.resize_handles = handles;
+		return this;
+	}
+	moveToFront() {
+		if (this.slot == 'float' && Panel.floating_panel_z_order[0] !== this.id) {
+			Panel.floating_panel_z_order.remove(this.id);
+			Panel.floating_panel_z_order.splice(0, 0, this.id);
+			let zindex = 18;
+			Panel.floating_panel_z_order.forEach(id => {
+				let panel = Panels[id];
+				panel.node.style.zIndex = zindex;
+				zindex = Math.clamp(zindex-1, 14, 19);
+			})
+		}
+		return this;
+	}
+	moveTo(slot, ref_panel, before = false) {
+		let position_data = this.position_data;
+		if (slot == undefined) {
+			slot = ref_panel.position_data.slot;
+		}
+		this.node.classList.remove('floating');
+
+		if (slot == 'left_bar' || slot == 'right_bar') {
+			if (!ref_panel && Interface.data[slot].includes(this.id)) {
+				let index = Interface.data[slot].indexOf(this.id);
+				if (index == 0) {
+					ref_panel = Interface.Panels[Interface.data[slot][1]];
+					before = true;
+				} else {
+					ref_panel = Interface.Panels[Interface.data[slot][index-1]];
+					before = false;
+				}
+			}
+
+			if (ref_panel instanceof Panel && ref_panel.slot == slot) {
+				if (before) {
+					$(ref_panel.node).before(this.node);
+				} else {
+					$(ref_panel.node).after(this.node);
+				}
 			} else {
-				$(ref_panel.node).after(scope.node)
+				document.getElementById(slot).append(this.node);
+			}
+
+		} else if (slot == 'top') {
+			let top_panel = Interface.getTopPanel();
+			if (top_panel && top_panel !== this) top_panel.moveTo(top_panel.previous_slot);
+
+			document.getElementById('top_slot').append(this.node);
+
+		} else if (slot == 'bottom') {
+			let bottom_panel = Interface.getBottomPanel();
+			if (bottom_panel && bottom_panel !== this) bottom_panel.moveTo(bottom_panel.previous_slot);
+
+			document.getElementById('bottom_slot').append(this.node);
+
+		} else if (slot == 'float') {
+			Interface.work_screen.append(this.node);
+			this.node.classList.add('floating');
+			if (!this.resize_handles) {
+				this.setupFloatHandles();
 			}
 		}
-		if (this.onResize) {
-			this.onResize()
+		position_data.slot = slot;
+		this.update();
+
+		if (Panels[this.id]) {
+			// Only update after initial setup
+			if (this.onResize) {
+				this.onResize()
+			}
+			saveSidebarOrder()
+			updateInterface()
 		}
-		updateInterface()
+		return this;
 	}
-	update() {
-		let show = BARS.condition(this.condition)
+	update(dragging) {
+		let show = BARS.condition(this.condition);
+		let work_screen = document.querySelector('div#work_screen');
+		let center_screen = document.querySelector('div#center');
 		if (show) {
 			$(this.node).show()
+			if (this.slot == 'float') {
+				if (!dragging && work_screen.clientWidth) {
+					this.position_data.float_position[0] = Math.clamp(this.position_data.float_position[0], 0, work_screen.clientWidth - this.width);
+					this.position_data.float_position[1] = Math.clamp(this.position_data.float_position[1], 0, work_screen.clientHeight - this.height);
+					this.position_data.float_size[0] = Math.clamp(this.position_data.float_size[0], 300, work_screen.clientWidth - this.position_data.float_position[0]);
+					this.position_data.float_size[1] = Math.clamp(this.position_data.float_size[1], 300, work_screen.clientHeight - this.position_data.float_position[1]);
+				}
+
+				this.node.style.left = this.position_data.float_position[0] + 'px';
+				this.node.style.top = this.position_data.float_position[1] + 'px';
+				this.width  = this.position_data.float_size[0];
+				this.height = this.position_data.float_size[1];
+				if (this.folded) this.height = this.handle.clientHeight;
+				this.node.style.width = this.width + 'px';
+				this.node.style.height = this.height + 'px';
+			} else {
+				this.node.style.width = this.node.style.height = this.node.style.left = this.node.style.top = null;
+			}
 			if (Blockbench.isMobile) {
 				this.width = this.node.clientWidth;
-			} else if (Interface.data.left_bar.includes(this.id)) {
+			} else if (this.slot == 'left_bar') {
 				this.width = Interface.data.left_bar_width
-			} else if (Interface.data.right_bar.includes(this.id)) {
+			} else if (this.slot == 'right_bar') {
 				this.width = Interface.data.right_bar_width
 			}
-			if (this.onResize) this.onResize()
+			if (this.slot == 'top' || this.slot == 'bottom') {
+
+				if (Blockbench.isMobile && Blockbench.isLandscape) {
+					this.height = center_screen.clientHeight;
+					this.width = Math.clamp(this.position_data.height, 30, center_screen.clientWidth);
+					if (this.folded) this.width = 72;
+				} else {
+					this.height = Math.clamp(this.position_data.height, 30, center_screen.clientHeight);
+					if (this.folded) this.height = this.handle.clientHeight;
+					this.width = Interface.work_screen.clientWidth - Interface.left_bar_width - Interface.right_bar_width;
+				}
+				this.node.style.width = this.width + 'px';
+				this.node.style.height = this.height + 'px';
+			}
+
+			if (Panels[this.id] && this.onResize) this.onResize()
 		} else {
 			$(this.node).hide()
 		}
+		localStorage.setItem('interface_data', JSON.stringify(Interface.data))
+		return this;
 	}
 	delete() {
 		delete Interface.Panels[this.id];
 		this.node.remove()
 	}
 }
+Panel.floating_panel_z_order = [];
 
 
 function setupPanels() {
-
-	$('.sidebar').droppable({
-		accept: 'h3',
-		scope: 'panel',
-		tolerance: 'pointer',
-		drop: function(e, ui) {
-			Interface.panel = $(this).attr('id');
-		}
-	})
-
-	//Panels
-	Interface.Panels.element = new Panel({
-		id: 'element',
-		icon: 'fas.fa-cube',
-		condition: !Blockbench.isMobile && {modes: ['edit', 'pose']},
-		selection_only: true,
-		toolbars: {
-			element_position: 	!Blockbench.isMobile && Toolbars.element_position,
-			element_size: 		!Blockbench.isMobile && Toolbars.element_size,
-			element_origin: 	!Blockbench.isMobile && Toolbars.element_origin,
-			element_rotation: 	!Blockbench.isMobile && Toolbars.element_rotation,
-		}
-	})
-	Interface.Panels.bone = new Panel({
-		id: 'bone',
-		icon: 'fas.fa-bone',
-		condition: !Blockbench.isMobile && {modes: ['animate']},
-		selection_only: true,
-		toolbars: {
-			//inverse_kinematics: Toolbars.inverse_kinematics,
-		},
-		component: {
-			template: `
-				<div>
-					<p>${ tl('panel.element.origin') }</p>
-					<div class="toolbar_wrapper bone_origin"></div>
-				</div>
-			`
-		}
-	})
-
 	Interface.panel_definers.forEach((definer) => {
 		if (typeof definer === 'function') {
 			definer()
 		}
 	})
-
-	Interface.data.left_bar.forEach((id) => {
-		if (Interface.Panels[id]) {
-			$('#left_bar').append(Interface.Panels[id].node)
-		}
-	})
-	Interface.data.right_bar.forEach((id) => {
-		if (Interface.Panels[id]) {
-			$('#right_bar').append(Interface.Panels[id].node)
-		}
-	})
-
-
-	Interface.status_bar.menu = new Menu([
-		'project_window',
-		'open_model_folder',
-		'open_backup_folder',
-		'save',
-		'timelapse',
-	])
+	updateSidebarOrder();
 }
 
+function updateInterfacePanels() {
 
+	if (!Blockbench.isMobile) {
+		$('.sidebar#left_bar').css('display', Prop.show_left_bar ? 'flex' : 'none');
+		$('.sidebar#right_bar').css('display', Prop.show_right_bar ? 'flex' : 'none');
+	}
+	let work_screen = Interface.work_screen;
+
+	work_screen.style.setProperty(
+		'grid-template-columns',
+		Interface.data.left_bar_width+'px auto '+ Interface.data.right_bar_width +'px'
+	)
+	for (var key in Interface.Panels) {
+		var panel = Interface.Panels[key]
+		panel.update()
+	}
+	var left_width = $('.sidebar#left_bar > .panel:visible').length ? Interface.left_bar_width : 0;
+	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.right_bar_width : 0;
+
+	if (!left_width || !right_width) {
+		work_screen.style.setProperty(
+			'grid-template-columns',
+			left_width+'px auto '+ right_width +'px'
+		)
+	}
+
+	$('.quad_canvas_wrapper.qcw_x').css('width', Interface.data.quad_view_x+'%')
+	$('.quad_canvas_wrapper.qcw_y').css('height', Interface.data.quad_view_y+'%')
+	$('.quad_canvas_wrapper:not(.qcw_x)').css('width', (100-Interface.data.quad_view_x)+'%')
+	$('.quad_canvas_wrapper:not(.qcw_y)').css('height', (100-Interface.data.quad_view_y)+'%')
+	//$('#timeline').css('height', Interface.data.timeline_height+'px')
+	for (var key in Interface.Resizers) {
+		var resizer = Interface.Resizers[key]
+		resizer.update()
+	}
+}
+
+function updateSidebarOrder() {
+	['left_bar', 'right_bar'].forEach(bar => {
+		let bar_node = document.querySelector(`.sidebar#${bar}`);
+
+		bar_node.childNodes.forEach(panel_node => panel_node.remove());
+
+		Interface.data[bar].forEach(panel_id => {
+			let panel = Panels[panel_id];
+			if (panel) bar_node.append(panel.node);
+		});
+	})
+}
 
 function setActivePanel(panel) {
 	Prop.active_panel = panel
 }
 
-function saveInterfaceRearrangement() {
-	Interface.data.left_bar.empty();
-	$('#left_bar > .panel').each((i, obj) => {
-		let id = $(obj).attr('id');
-		Interface.data.left_bar.push(id);
-	})
-	Interface.data.right_bar.empty();
-	$('#right_bar > .panel').each((i, obj) => {
-		let id = $(obj).attr('id');
-		Interface.data.right_bar.push(id);
-	})
+function saveSidebarOrder() {
 	localStorage.setItem('interface_data', JSON.stringify(Interface.data))
+}
+
+function setupMobilePanelSelector() {
+	if (Blockbench.isMobile) {
+		Interface.PanelSelectorVue = new Vue({
+			el: '#panel_selector_bar',
+			data: {
+				all_panels: Interface.Panels,
+				selected: null,
+				modifiers: Pressing.overrides
+			},
+			computed: {
+			},
+			methods: {
+				panels() {
+					let arr = [];
+					for (var id in this.all_panels) {
+						let panel = this.all_panels[id];
+						if (Condition(panel.condition) && Condition(panel.display_condition)) {
+							arr.push(panel);
+						}
+					}
+					return arr;
+				},
+				select(panel) {
+					this.selected = panel && panel.id;
+					if (panel) {
+						panel.moveTo('bottom');
+					} else {
+						let other_panel = Interface.getBottomPanel();
+						if (other_panel) {
+							$(other_panel.node).detach();
+						}
+						resizeWindow();
+					}
+				},
+				openKeyboardMenu(event) {
+					if (Menu.closed_in_this_click == 'mobile_keyboard') return;
+					
+					let modifiers = ['ctrl', 'shift', 'alt'];
+					let menu = new Menu('mobile_keyboard', [
+						...modifiers.map(key => {
+							let name = tl(`keys.${key}`);
+							if (Interface.status_bar.vue.modifier_keys[key].length) {
+								name += ' (' + tl(Interface.status_bar.vue.modifier_keys[key].last()) + ')';
+							}
+							return {
+								name,
+								icon: Pressing.overrides[key] ? 'check_box' : 'check_box_outline_blank',
+								click() {
+									Pressing.overrides[key] = !Pressing.overrides[key]
+								}
+							}
+						}),
+						'_',
+						{icon: 'clear_all', name: 'menu.mobile_keyboard.disable_all', condition: () => {
+							let {length} = [Pressing.overrides.ctrl, Pressing.overrides.shift, Pressing.overrides.alt].filter(key => key);
+							return length;
+						}, click() {
+							Pressing.overrides.ctrl = false; Pressing.overrides.shift = false; Pressing.overrides.alt = false;
+						}},
+					])
+					menu.open(this.$refs.mobile_keyboard_menu)
+				},
+				Condition,
+				getIconNode: Blockbench.getIconNode
+			},
+			template: `
+				<div id="panel_selector_bar">
+					<div class="panel_selector" :class="{selected: selected == null}" @click="select(null)">
+						<div class="icon_wrapper"><i class="material-icons icon">3d_rotation</i></div>
+					</div>
+					<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in panels()" v-if="Condition(panel.condition)" @click="select(panel)">
+						<div class="icon_wrapper" v-html="getIconNode(panel.icon).outerHTML"></div>
+					</div>
+					<div id="mobile_keyboard_menu" @click="openKeyboardMenu($event)" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
+						<i class="material-icons">keyboard</i>
+					</div>
+				</div>`
+		})
+	}
 }

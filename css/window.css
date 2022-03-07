@@ -30,6 +30,7 @@
 	}
 	#work_screen {
 		--toolbar-height: 30px;
+		position: relative;
 		display: grid;
 		grid-template-columns: 332px auto 314px;
 		grid-template-rows: var(--toolbar-height) minmax(200px, 5000px) 26px;
@@ -290,12 +291,10 @@
 	}
 
 /*Mobile*/
-@media (max-device-width: 640px) {
-
-	#page_wrapper {
+	body.is_mobile #page_wrapper {
 		border: none;
 	}
-	#work_screen {
+	body.is_mobile #work_screen {
 		display: grid;
 		grid-template-rows: auto minmax(200px, 5000px) 26px 36px !important;
 		grid-template-areas: 
@@ -304,74 +303,96 @@
 			"status_bar"
 			"panel_selector";
 		grid-template-columns: auto !important;
+		position: relative;
 	}
-	#main_toolbar {
+	body.is_mobile.is_landscape #work_screen {
+		grid-template-columns: auto 48px !important;
+		grid-template-rows: auto minmax(200px, 5000px) 26px !important;
+		grid-template-areas: 
+			"toolbar panel_selector"
+			"center panel_selector"
+			"status_bar panel_selector";
+		position: relative;
+	}
+	body.is_mobile.is_landscape #work_screen #center {
+		flex-direction: row;
+	}
+	body.is_mobile #main_toolbar {
 		display: block;
 	}
-	#main_toolbar > * {
+	body.is_mobile #main_toolbar > * {
 		display: block;
 	}
-	#main_toolbar > div.tools {
+	body.is_mobile .toolbar_wrapper.narrow.tools {
 		position: absolute;
 		z-index: 2;
-		bottom: 62px;
+		bottom: 0px;
 		right: 0px;
 	}
-	#main_toolbar > div.mobile_side {
-		position: absolute;
-		z-index: 2;
-		right: 0px;
-		margin-top: 30px;
-	}
-	#main_toolbar > div.tool_options {
+	body.is_mobile #main_toolbar > div.tool_options {
 		background-color: var(--color-back);
 	}
-	.preview .preview_menu {
+	body.is_mobile .preview .preview_menu {
 		left: 0;
 		right: unset;
+		flex-direction: row-reverse;
 	}
-	.resizer.vertical {
+	body.is_mobile .resizer.vertical {
 		display: none;
 	}
-	.sidebar {
+	body.is_mobile .sidebar {
 		overflow-y: auto;
 	}
-	#left_bar, #right_bar {
-		width: calc(100% - 40px);
+	body.is_mobile #left_bar, body.is_mobile #right_bar {
 		display: none;
 	}
 
-	#panel_selector_bar {
+	body.is_mobile #panel_selector_bar {
 		display: flex;
 		grid-area: panel_selector;
 		background-color: var(--color-ui);
 	}
-	#panel_selector_bar .panel_selector {
+	body.is_mobile.is_landscape #panel_selector_bar {
+		flex-direction: column;
+		background: var(--color-frame);
+	}
+	body.is_mobile #panel_selector_bar .panel_selector {
 		height: 36px;
 		flex: 36px 1 0;
 		text-align: center;
 		cursor: default;
 		color: var(--color-text);
 	}
-	#panel_selector_bar .panel_selector.selected {
+	body.is_mobile.is_landscape #panel_selector_bar .panel_selector {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	body.is_mobile #panel_selector_bar .panel_selector.selected {
 		border-bottom: 3px solid var(--color-accent);
 	}
-	.panel_selector:only-child {
+	body.is_mobile.is_landscape #panel_selector_bar .panel_selector.selected {
+		border-bottom: none;
+		border-right: 5px solid var(--color-accent);
+		padding-left: 5px;
+	}
+	body.is_mobile .panel_selector:only-child {
 		display: none;
 	}
-	#panel_selector_bar .panel_selector .icon_wrapper {
+	body.is_mobile #panel_selector_bar .panel_selector .icon_wrapper {
 		margin-top: 6px;
 	}
-	#mobile_keyboard_menu {
-		width: 40px;
+	body.is_mobile #mobile_keyboard_menu {
+		width: 48px;
 		text-align: center;
 		padding: 6px;
 		position: relative;
+		color: var(--color-accent);
 	}
-	#mobile_keyboard_menu:hover {
+	body.is_mobile #mobile_keyboard_menu:hover {
 		color: var(--color-light);
 	}
-	#mobile_keyboard_menu.enabled::after {
+	body.is_mobile #mobile_keyboard_menu.enabled::after {
 		content: "";
 		display: block;
 		position: absolute;
@@ -380,24 +401,9 @@
 		border-radius: 50%;
 		background-color: var(--color-accent);
 		bottom: 2px;
-		right: 15px;
+		right: 19px;
 	}
 
-	div#mobile_panel_overlay {
-		position: absolute;
-		z-index: 12;
-		top: 0;
-		left: 0;
-		right: 40px;
-		bottom: 0;
-		overflow-x: hidden;
-		overflow-y: auto;
-		background: var(--color-ui);
-	}
-	div#mobile_panel_overlay > .panel {
-		height: 100%;
-	}
-}
 
 /*Menu Bar*/
 	ul#menu_bar {
@@ -430,6 +436,7 @@
 		height: 30px;
 		margin-left: auto;
 		margin-right: 0;
+		text-align: right;
 	}
 	#mode_selector li {
 		display: inline-block;

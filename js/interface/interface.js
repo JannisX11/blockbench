@@ -1,15 +1,17 @@
-var ColorPanel;
-
-//Panels
-
 class ResizeLine {
-	constructor(data) {
+	constructor(id, data) {
 		var scope = this;
-		this.id = data.id
+		if (typeof id == 'object') {
+			data = id;
+			id = data.id;
+		}
+		this.id = id
 		this.horizontal = data.horizontal === true
 		this.position = data.position
 		this.condition = data.condition
 		this.width = 0;
+		this.get = data.get;
+		this.set = data.set;
 		var jq = $('<div class="resizer '+(data.horizontal ? 'horizontal' : 'vertical')+'"></div>')
 		this.node = jq.get(0)
 		jq.draggable({
@@ -17,10 +19,10 @@ class ResizeLine {
 			containment: '#work_screen',
 			revert: true,
 			revertDuration: 0,
-			start: function(e, u) {
+			start(e, u) {
 				scope.before = data.get()
 			},
-			drag: function(e, u) {
+			drag(e, u) {
 				if (scope.horizontal) {
 					data.set(scope.before, u.position.top - u.originalPosition.top)
 				} else {
@@ -28,7 +30,7 @@ class ResizeLine {
 				}
 				updateInterface()
 			},
-			stop: function(e, u) {
+			stop(e, u) {
 				updateInterface()
 			}
 		})
@@ -37,7 +39,7 @@ class ResizeLine {
 		if (BARS.condition(this.condition)) {
 			$(this.node).show()
 			if (this.position) {
-				this.position(this)
+				this.position.call(this, this)
 			}
 		} else {
 			$(this.node).hide()
@@ -70,10 +72,10 @@ const Interface = {
 		right_bar_width: 314,
 		quad_view_x: 50,
 		quad_view_y: 50,
-		timeline_height: 260,
 		timeline_head: Blockbench.isMobile ? 140 : 196,
 		left_bar: ['uv', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
-		right_bar: ['element', 'bone', 'color', 'skin_pose', 'outliner', 'chat']
+		right_bar: ['element', 'bone', 'color', 'skin_pose', 'outliner', 'chat'],
+		panels: {}
 	},
 	get left_bar_width() {
 		return Prop.show_left_bar ? Interface.data.left_bar_width : 0;
@@ -81,10 +83,32 @@ const Interface = {
 	get right_bar_width() {
 		return Prop.show_right_bar ? Interface.data.right_bar_width : 0;
 	},
+	get top_panel_height() {
+		return 1;
+	},
+	get bottom_panel_height() {
+		return 1;
+	},
+	getTopPanel() {
+		for (let key in Panels) {
+			let panel = Panels[key];
+			if (panel.slot == 'top' && Condition(panel.condition)) {
+				return panel;
+			}
+		}
+	},
+	getBottomPanel() {
+		for (let key in Panels) {
+			let panel = Panels[key];
+			if (panel.slot == 'bottom' && Condition(panel.condition)) {
+				return panel;
+			}
+		}
+	},
 	Resizers: {
-		left: new ResizeLine({
-			id: 'left',
-			condition: function() {
+		left: new ResizeLine('left', {
+			condition() {
+				if (Blockbench.isMobile) return false;
 				if (!Prop.show_left_bar) return false;
 				for (let p of Interface.data.left_bar) {
 					if (Interface.Panels[p] && BARS.condition(Interface.Panels[p].condition)) {
@@ -92,8 +116,8 @@ const Interface = {
 					}
 				}
 			},
-			get: function() {return Interface.data.left_bar_width},
-			set: function(o, diff) {
+			get() {return Interface.data.left_bar_width},
+			set(o, diff) {
 				let min = 128;
 				let calculated = limitNumber(o + diff, min, window.innerWidth- 120 - Interface.data.right_bar_width)
 				Interface.data.left_bar_width = Math.snapToValues(calculated, [Interface.default_data.left_bar_width], 16);
@@ -105,17 +129,17 @@ const Interface = {
 					Prop.show_left_bar = true;
 				}
 			},
-			position: function(line) {
-				line.setPosition({
-					top: document.getElementById('work_screen').offsetTop,
+			position() {
+				this.setPosition({
+					top: Interface.work_screen.offsetTop,
 					bottom: 0,
 					left: Interface.data.left_bar_width+2
 				})
 			}
 		}),
-		right: new ResizeLine({
-			id: 'right',
-			condition: function() {
+		right: new ResizeLine('right', {
+			condition() {
+				if (Blockbench.isMobile) return false;
 				if (!Prop.show_right_bar) return false;
 				for (let p of Interface.data.right_bar) {
 					if (Interface.Panels[p] && BARS.condition(Interface.Panels[p].condition)) {
@@ -123,8 +147,8 @@ const Interface = {
 					}
 				}
 			},
-			get: function() {return Interface.data.right_bar_width},
-			set: function(o, diff) {
+			get() {return Interface.data.right_bar_width},
+			set(o, diff) {
 				let min = 128;
 				let calculated = limitNumber(o - diff, min, window.innerWidth- 120 - Interface.data.left_bar_width);
 				Interface.data.right_bar_width = Math.snapToValues(calculated, [Interface.default_data.right_bar_width], 12);
@@ -136,58 +160,76 @@ const Interface = {
 					Prop.show_right_bar = true;
 				}
 			},
-			position: function(line) {
-				line.setPosition({
-					top: document.getElementById('work_screen').offsetTop+30,
+			position() {
+				this.setPosition({
+					top: Interface.work_screen.offsetTop+30,
 					bottom: 0,
 					right: Interface.data.right_bar_width-2
 				})
 			}
 		}),
-		quad_view_x: new ResizeLine({
-			id: 'quad_view_x',
-			condition: function() {return quad_previews.enabled},
-			get: function() {return Interface.data.quad_view_x},
-			set: function(o, diff) {Interface.data.quad_view_x = limitNumber(o + diff/$('#preview').width()*100, 5, 95)},
-			position: function(line) {
+		quad_view_x: new ResizeLine('quad_view_x', {
+			condition() {return quad_previews.enabled},
+			get() {return Interface.data.quad_view_x},
+			set(o, diff) {Interface.data.quad_view_x = limitNumber(o + diff/$('#preview').width()*100, 5, 95)},
+			position() {
 				var p = document.getElementById('preview')
-				line.setPosition({
+				this.setPosition({
 					top: 32,
 					bottom: p ? window.innerHeight - (p.clientHeight + p.offsetTop) : 0,
 					left: Interface.left_bar_width + document.getElementById('preview').clientWidth*Interface.data.quad_view_x/100
 				}
 			)}
 		}),
-		quad_view_y: new ResizeLine({
-			id: 'quad_view_y',
+		quad_view_y: new ResizeLine('quad_view_y', {
 			horizontal: true,
-			condition: function() {return quad_previews.enabled},
-			get: function() {return Interface.data.quad_view_y},
-			set: function(o, diff) {
+			condition() {return quad_previews.enabled},
+			get() {return Interface.data.quad_view_y},
+			set(o, diff) {
 				Interface.data.quad_view_y = limitNumber(o + diff/document.getElementById('preview').clientHeight*100, 5, 95)
 			},
-			position: function(line) {line.setPosition({
+			position() {this.setPosition({
 				left: Interface.left_bar_width+2,
 				right: Interface.right_bar_width+2,
 				top: $('#preview').offset().top + document.getElementById('preview').clientHeight*Interface.data.quad_view_y/100
 			})}
 		}),
-		timeline: new ResizeLine({
-			id: 'timeline',
+		top: new ResizeLine('top', {
 			horizontal: true,
-			condition: function() {return Modes.animate},
-			get: function() {return Interface.data.timeline_height},
-			set: function(o, diff) {
-				Interface.data.timeline_height = limitNumber(o - diff, 150, document.body.clientHeight-120)
+			condition() {return !Blockbench.isMobile && Interface.getTopPanel()},
+			get() {
+				let panel = Interface.getTopPanel();
+				return panel.folded ? panel.handle.clientHeight : panel.position_data.height;
 			},
-			position: function(line) {line.setPosition({
+			set(o, diff) {
+				let panel = Interface.getTopPanel();
+				panel.position_data.height = limitNumber(o + diff, 150, document.body.clientHeight-120);
+				panel.update();
+			},
+			position() {this.setPosition({
 				left: Interface.left_bar_width+2,
 				right: Interface.right_bar_width+2,
-				top: $('#timeline').offset().top
+				top: this.get() + Interface.work_screen.offsetTop - document.getElementById('page_wrapper').offsetTop
 			})}
 		}),
-		timeline_head: new ResizeLine({
-			id: 'timeline_head',
+		bottom: new ResizeLine('bottom', {
+			horizontal: true,
+			condition() {return !Blockbench.isMobile && Interface.getBottomPanel()},
+			get() {
+				let panel = Interface.getBottomPanel();
+				return panel.folded ? panel.handle.clientHeight : panel.position_data.height;
+			},
+			set(o, diff) {
+				Interface.getBottomPanel().position_data.height = limitNumber(o - diff, 150, document.body.clientHeight-120);
+				Interface.getBottomPanel().update();
+			},
+			position() {this.setPosition({
+				left: Interface.left_bar_width+2,
+				right: Interface.right_bar_width+2,
+				top: Interface.work_screen.clientHeight - document.getElementById('status_bar').clientHeight - this.get()
+			})}
+		}),
+		timeline_head: new ResizeLine('timeline_head', {
 			horizontal: false,
 			condition() {return Modes.animate},
 			get() {return Interface.data.timeline_head},
@@ -196,11 +238,14 @@ const Interface = {
 				value = Math.snapToValues(value, [Interface.default_data.timeline_head], 12);
 				Interface.data.timeline_head = Timeline.vue._data.head_width = value;
 			},
-			position(line) {line.setPosition({
-				left: Interface.left_bar_width+2 + Interface.data.timeline_head,
-				top: $('#timeline').offset().top + 60,
-				bottom: document.getElementById('status_bar').clientHeight + 12,
-			})}
+			position() {
+				let offset = $(Panels.timeline.node).offset();
+				this.setPosition({
+					left: offset.left + 2 + Interface.data.timeline_head,
+					top: offset.top + 60,
+					bottom: offset.top + 60 + Panels.timeline.node.clientHeight
+				})
+			}
 		})
 	},
 	status_bar: {},
@@ -211,33 +256,16 @@ const Interface = {
 		resizeWindow();
 	}
 }
+const Panels = Interface.Panels;
 Interface.panel_definers = []
 Interface.definePanels = function(callback) {
 	Interface.panel_definers.push(callback);
-}
+};
 
-//Misc
-function unselectInterface(event) {
-	if (open_menu && $('.contextMenu').find(event.target).length === 0 && $('.menu_bar_point.opened:hover').length === 0) {
-		Menu.closed_in_this_click = open_menu.id;
-		open_menu.hide();
-
-		function mouseUp(e) {
-			delete Menu.closed_in_this_click;
-			document.removeEventListener('click', mouseUp);
-		}
-		document.addEventListener('click', mouseUp);
-	}
-	if (ActionControl.open && $('#action_selector').find(event.target).length === 0 && (!open_menu || open_menu instanceof BarMenu)) {
-		ActionControl.hide();
-	}
-	if ($(event.target).is('input.cube_name:not([disabled])') === false && Blockbench.hasFlag('renaming')) {
-		stopRenameOutliner()
-	}
-}
-function setupInterface() {
+(function() {
 	Interface.data = $.extend(true, {}, Interface.default_data)
 	var interface_data = localStorage.getItem('interface_data')
+	if (!interface_data) return;
 	try {
 		interface_data = JSON.parse(interface_data)
 		let original_left_bar, original_right_bar;
@@ -264,15 +292,51 @@ function setupInterface() {
 			})
 		}
 		$.extend(true, Interface.data, interface_data)
-	} catch (err) {}
+	} catch (err) {
+		console.error(err);
+	}
+})()
+
+//Misc
+function unselectInterface(event) {
+	if (open_menu && $('.contextMenu').find(event.target).length === 0 && $('.menu_bar_point.opened:hover').length === 0) {
+		Menu.closed_in_this_click = open_menu.id;
+		open_menu.hide();
+
+		function mouseUp(e) {
+			delete Menu.closed_in_this_click;
+			document.removeEventListener('click', mouseUp);
+		}
+		document.addEventListener('click', mouseUp);
+	}
+	if (ActionControl.open && $('#action_selector').find(event.target).length === 0 && (!open_menu || open_menu instanceof BarMenu)) {
+		ActionControl.hide();
+	}
+	if ($(event.target).is('input.cube_name:not([disabled])') === false && Blockbench.hasFlag('renaming')) {
+		stopRenameOutliner()
+	}
+}
+function setupInterface() {
 
 	translateUI()
+
+	if (Blockbench.isMobile) document.body.classList.add('is_mobile');
+	if (Blockbench.isLandscape) document.body.classList.add('is_landscape');
+	if (Blockbench.isTouch) document.body.classList.add('is_touch');
 
 	document.getElementById('title_bar_home_button').title = tl('projects.start_screen');
 
 	$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 
 	setupPanels()
+	
+	Interface.status_bar.menu = new Menu([
+		'project_window',
+		'open_model_folder',
+		'open_backup_folder',
+		'save',
+		'timelapse',
+	])
 	
 	if (Blockbench.isMobile && window.setupMobilePanelSelector) {
 		setupMobilePanelSelector()
@@ -284,6 +348,11 @@ function setupInterface() {
 	}
 	//$(document).contextmenu()
 
+	if (Blockbench.isMobile) {
+		document.getElementById('preview').append(
+			document.querySelector('.toolbar_wrapper.narrow.tools')
+		);
+	}
 
 	//Tooltip Fix
 	$(document).on('mouseenter', '.tool', function() {
@@ -318,7 +387,7 @@ function setupInterface() {
 	$('#texture_list').click(function(){
 		unselectTextures()
 	})
-	$('#timeline').mousedown((event) => {
+	$(Panels.timeline.node).mousedown((event) => {
 		setActivePanel('timeline');
 	})
 	$(document).on('mousedown touchstart', unselectInterface)
@@ -389,47 +458,13 @@ function updateInterface() {
 	resizeWindow()
 	localStorage.setItem('interface_data', JSON.stringify(Interface.data))
 }
-function updateInterfacePanels() {
-
-	if (!Blockbench.isMobile) {
-		$('.sidebar#left_bar').css('display', Prop.show_left_bar ? 'flex' : 'none');
-		$('.sidebar#right_bar').css('display', Prop.show_right_bar ? 'flex' : 'none');
-	}
-	let work_screen = document.getElementById('work_screen');
-
-	work_screen.style.setProperty(
-		'grid-template-columns',
-		Interface.data.left_bar_width+'px auto '+ Interface.data.right_bar_width +'px'
-	)
-	for (var key in Interface.Panels) {
-		var panel = Interface.Panels[key]
-		panel.update()
-	}
-	var left_width = $('.sidebar#left_bar > .panel:visible').length ? Interface.left_bar_width : 0;
-	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.right_bar_width : 0;
-
-	if (!left_width || !right_width) {
-		work_screen.style.setProperty(
-			'grid-template-columns',
-			left_width+'px auto '+ right_width +'px'
-		)
-	}
-
-	$('.quad_canvas_wrapper.qcw_x').css('width', Interface.data.quad_view_x+'%')
-	$('.quad_canvas_wrapper.qcw_y').css('height', Interface.data.quad_view_y+'%')
-	$('.quad_canvas_wrapper:not(.qcw_x)').css('width', (100-Interface.data.quad_view_x)+'%')
-	$('.quad_canvas_wrapper:not(.qcw_y)').css('height', (100-Interface.data.quad_view_y)+'%')
-	$('#timeline').css('height', Interface.data.timeline_height+'px')
-	for (var key in Interface.Resizers) {
-		var resizer = Interface.Resizers[key]
-		resizer.update()
-	}
-}
 
 function resizeWindow(event) {
 	if (!Preview.all || (event && event.target && event.target !== window)) {
 		return;
 	}
+	Blockbench.isLandscape = window.innerWidth > window.innerHeight;
+	document.body.classList.toggle('is_landscape', Blockbench.isLandscape);
 	if (Interface.data) {
 		updateInterfacePanels()
 	}
@@ -512,55 +547,6 @@ function setZoomLevel(mode) {
 	}
 }
 
-//Dialogs
-function showDialog(dialog) {
-	var obj = $('.dialog#'+dialog)
-	$('.dialog').hide()
-	if (open_menu) {
-		open_menu.hide()
-	}
-	$('#blackout').show()
-	obj.show()
-	open_dialog = dialog
-	open_interface = {
-		confirm() {
-			$('dialog#'+open_dialog).find('.confirm_btn:not([disabled])').trigger('click');
-		},
-		cancel() {
-			$('dialog#'+open_dialog).find('.cancel_btn:not([disabled])').trigger('click');
-		}
-	}
-	Prop.active_panel = 'dialog'
-	//Draggable
-	if (obj.hasClass('draggable')) {
-		obj.draggable({
-			handle: ".dialog_handle",
-			containment: '#page_wrapper'
-		})
-		var x = (window.innerWidth-obj.outerWidth()) / 2;
-		obj.css('left', x+'px')
-		obj.css('max-height', (window.innerHeight-128)+'px')
-	}
-}
-function hideDialog() {
-	$('#blackout').hide()
-	$('.dialog').hide()
-	open_dialog = false;
-	open_interface = false;
-	Prop.active_panel = undefined
-}
-
-function getStringWidth(string, size) {
-	var a = $('<label style="position: absolute">'+string+'</label>')
-	if (size && size !== 16) {
-		a.css('font-size', size+'pt')
-	}
-	$('body').append(a.css('visibility', 'hidden'))
-	var width = a.width()
-	a.detach()
-	return width;
-};
-
 //UI Edit
 function setProgressBar(id, val, time) {
 	if (!id || id === 'main') {
@@ -582,7 +568,13 @@ $(document).keyup(function(event) {
 		$('.tooltip_shift').hide()
 	}
 })
-
+/**
+ * 
+ * @param {string} tag Tag name
+ * @param {object} [attributes] Attributes
+ * @param {string|HTMLElement|string[]|HTMLElement[]} [content] Content
+ * @returns {HTMLElement} Element
+ */
 Interface.createElement = (tag, attributes = {}, content) => {
 	let el = document.createElement(tag);
 	for (let key in attributes) {

@@ -318,10 +318,21 @@ function buildComponent(dialog) {
 	dialog.component.name = 'dialog-content'
 	dialog.content_vue = new Vue(dialog.component).$mount(mount.get(0));
 }
+function getStringWidth(string, size) {
+	var a = $('<label style="position: absolute">'+string+'</label>')
+	if (size && size !== 16) {
+		a.css('font-size', size+'pt')
+	}
+	$('body').append(a.css('visibility', 'hidden'))
+	var width = a.width()
+	a.detach()
+	return width;
+};
 
+const toggle_sidebar = window.innerWidth < 640;
 class DialogSidebar {
 	constructor(options, dialog) {
-		this.open = !Blockbench.isMobile;
+		this.open = !toggle_sidebar;
 		this.pages = options.pages || {};
 		this.page = options.page || Object.keys(this.pages)[0];
 		this.actions = options.actions || {};
@@ -344,7 +355,7 @@ class DialogSidebar {
 			this.page_menu[key] = li;
 			li.addEventListener('click', event => {
 				this.setPage(key);
-				if (Blockbench.isMobile) this.toggle();
+				if (toggle_sidebar) this.toggle();
 			})
 			page_list.append(li);
 		}
@@ -729,3 +740,43 @@ window.Dialog = class Dialog {
 }
 
 })()
+
+
+// Legacy Dialogs
+function showDialog(dialog) {
+	var obj = $('.dialog#'+dialog)
+	$('.dialog').hide()
+	if (open_menu) {
+		open_menu.hide()
+	}
+	$('#blackout').show()
+	obj.show()
+	open_dialog = dialog
+	open_interface = {
+		confirm() {
+			$('dialog#'+open_dialog).find('.confirm_btn:not([disabled])').trigger('click');
+		},
+		cancel() {
+			$('dialog#'+open_dialog).find('.cancel_btn:not([disabled])').trigger('click');
+		}
+	}
+	Prop.active_panel = 'dialog'
+	//Draggable
+	if (obj.hasClass('draggable')) {
+		obj.draggable({
+			handle: ".dialog_handle",
+			containment: '#page_wrapper'
+		})
+		var x = (window.innerWidth-obj.outerWidth()) / 2;
+		obj.css('left', x+'px')
+		obj.css('max-height', (window.innerHeight-128)+'px')
+	}
+}
+function hideDialog() {
+	$('#blackout').hide()
+	$('.dialog').hide()
+	open_dialog = false;
+	open_interface = false;
+	Prop.active_panel = undefined
+}
+

@@ -1,3 +1,5 @@
+let ColorPanel;
+
 function colorDistance(color1, color2) {
 	return Math.sqrt(
 		Math.pow(color2._r - color1._r, 2) +
@@ -45,14 +47,27 @@ function colorDistance(color1, color2) {
 		]
 	}
 Interface.definePanels(() => {
-
+	var saved_colors = localStorage.getItem('colors');
+	if (saved_colors) {
+		try {
+			saved_colors = JSON.parse(saved_colors);
+		} catch (err) {
+			saved_colors = null;
+		}
+	}
 	StateMemory.init('color_picker_tab', 'string')
-	ColorPanel = Interface.Panels.color = new Panel({
-		id: 'color',
+
+	ColorPanel = new Panel('color', {
 		icon: 'palette',
 		condition: () => Modes.id === 'paint',
+		default_position: {
+			slot: 'right_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
 		toolbars: {
-			picker: Toolbars.color_picker,
+			color_picker: Toolbars.color_picker,
 			palette: Toolbars.palette
 		},
 		onResize() {
@@ -62,19 +77,147 @@ Interface.definePanels(() => {
 				Interface.Panels.color.vue.width = this.width
 			})
 		},
+		component: {
+			data: {
+				width: 100,
+				open_tab: StateMemory.color_picker_tab || 'picker',
+				picker_type: Settings.get('color_wheel') ? 'wheel' : 'box',
+				picker_toggle_label: tl('panel.color.picker_type'),
+				main_color: '#000000',
+				hover_color: '',
+				get color_code() {return this.hover_color || this.main_color},
+				set color_code(color) {
+					this.main_color = color.toLowerCase().replace(/[^a-f0-9#]/g, '');
+				},
+				text_input: '#000000',
+				hsv: {
+					h: 0,
+					s: 0,
+					v: 0,
+				},
+				palette: (saved_colors && saved_colors.palette instanceof Array) ? saved_colors.palette : palettes.default.slice(),
+				history: (saved_colors && saved_colors.history instanceof Array) ? saved_colors.history : []
+			},
+			methods: {
+				togglePickerType() {
+					settings.color_wheel.set(!settings.color_wheel.value);
+				},
+				sort(event) {
+					var item = this.palette.splice(event.oldIndex, 1)[0];
+					this.palette.splice(event.newIndex, 0, item);
+				},
+				drop(event) {
+				},
+				setColor(color) {
+					ColorPanel.set(color);
+				},
+				validateMainColor() {
+					var color = this.main_color;
+					if (!color.match(/^#[0-9a-f]{6}$/)) {
+						this.main_color = tinycolor(color).toHexString();
+					}
+				},
+				isDarkColor(hex) {
+					if (hex) {
+						let color_val = new tinycolor(hex).getBrightness();
+						let bg_val = new tinycolor(CustomTheme.data.colors.back).getBrightness();
+						return Math.abs(color_val - bg_val) <= 50;
+					}
+				},
+				tl
+			},
+			watch: {
+				main_color: function(value) {
+					this.hover_color = '';
+					Object.assign(this.hsv, ColorPanel.hexToHsv(value));
+					BarItems.slider_color_h.update();
+					BarItems.slider_color_s.update();
+					BarItems.slider_color_v.update();
+					$('#main_colorpicker').spectrum('set', value);
+					this.text_input = value;
+				},
+				open_tab(tab) {
+					StateMemory.color_picker_tab = tab;
+					StateMemory.save('color_picker_tab');
+					Vue.nextTick(() => {
+						$('#main_colorpicker').spectrum('reflow');
+					})
+				}
+			},
+			template: `
+				<div id="color_panel_wrapper" class="panel_inside">
+					<div id="color_panel_head">
+						<div class="main" v-bind:style="{'background-color': hover_color || main_color}"></div>
+						<div class="side">
+							<input type="text" v-model="color_code" @focusout="validateMainColor()">
+							<div id="color_history">
+								<li
+									v-for="(color, i) in history" v-if="i || color != main_color"
+									:key="color"
+									v-bind:style="{'background-color': color}"
+									v-bind:title="color" @click="setColor(color)"
+								></li>
+							</div>
+						</div>
+					</div>
+
+					<div class="bar tabs_small">
+
+						<input type="radio" name="tab" id="radio_color_picker" value="picker" v-model="open_tab">
+						<label for="radio_color_picker">${tl('panel.color.picker')}</label>
+
+						<input type="radio" name="tab" id="radio_color_palette" value="palette" v-model="open_tab">
+						<label for="radio_color_palette">${tl('panel.color.palette')}</label>
+
+						<input type="radio" name="tab" id="radio_color_both" value="both" v-model="open_tab">
+						<label for="radio_color_both">${tl('panel.color.both')}</label>
+
+						<div class="tool" @click="togglePickerType()" :title="picker_toggle_label">
+							<i class="fa_big icon" :class="picker_type == 'box' ? 'fas fa-square' : 'far fa-stop-circle'"></i>
+						</div>
+
+					</div>
+					<div v-show="open_tab == 'picker' || open_tab == 'both'">
+						<div v-show="picker_type == 'box'">
+							<input id="main_colorpicker">
+						</div>
+						<color-wheel v-if="picker_type == 'wheel' && width" v-model="main_color" :width="width" :height="width"></color-wheel>
+						<div class="toolbar_wrapper color_picker" toolbar="color_picker"></div>
+					</div>
+					<div v-show="open_tab == 'palette' || open_tab == 'both'">
+						<div class="toolbar_wrapper palette" toolbar="palette"></div>
+						<ul id="palette_list" class="list" v-sortable="{onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
+							<li
+								class="color" v-for="color in palette"
+								:title="color" :key="color"
+								:class="{selected: color == main_color, contrast: isDarkColor(color)}"
+								@click="setColor(color)"
+								@mouseenter="hover_color = color"
+								@mouseleave="hover_color = ''"
+							>
+								<div class="color_inner" v-bind:style="{'background-color': color}"></div>
+							</li>
+						</ul>
+					</div>
+				</div>
+			`,
+			mounted() {
+				Panels.color.picker = $(this.$el).find('#main_colorpicker').spectrum({
+					preferredFormat: "hex",
+					color: 'ffffff',
+					flat: true,
+					localStorageKey: 'brush_color_palette',
+					move: function(c) {
+						ColorPanel.change(c)
+					}
+				})
+			}
+		},
 		menu: new Menu([
 			'sort_palette',
 			'load_palette'
 		])
 	})
-	var saved_colors = localStorage.getItem('colors');
-	if (saved_colors) {
-		try {
-			saved_colors = JSON.parse(saved_colors);
-		} catch (err) {
-			saved_colors = null;
-		}
-	}
 	ColorPanel.updateFromHsv = function() {
 		ColorPanel.change({
 			h: ColorPanel.vue._data.hsv.h,
@@ -87,74 +230,6 @@ Interface.definePanels(() => {
 		var tc = color.toHsv();
 		return {h: tc.h, s: tc.s*100, v: tc.v*100};
 	}
-	Interface.Panels.color.vue = new Vue({
-		el: '#color_panel_wrapper',
-		data() {return {
-			width: Interface.Panels.color.width,
-			open_tab: StateMemory.color_picker_tab || 'picker',
-			picker_type: Settings.get('color_wheel') ? 'wheel' : 'box',
-			picker_toggle_label: tl('panel.color.picker_type'),
-			main_color: '#000000',
-			hover_color: '',
-			get color_code() {return this.hover_color || this.main_color},
-			set color_code(color) {
-				this.main_color = color.toLowerCase().replace(/[^a-f0-9#]/g, '');
-			},
-			text_input: '#000000',
-			hsv: {
-				h: 0,
-				s: 0,
-				v: 0,
-			},
-			palette: (saved_colors && saved_colors.palette instanceof Array) ? saved_colors.palette : palettes.default.slice(),
-			history: (saved_colors && saved_colors.history instanceof Array) ? saved_colors.history : []
-		}},
-		methods: {
-			togglePickerType() {
-				settings.color_wheel.set(!settings.color_wheel.value);
-			},
-			sort(event) {
-				var item = this.palette.splice(event.oldIndex, 1)[0];
-				this.palette.splice(event.newIndex, 0, item);
-			},
-			drop(event) {
-			},
-			setColor(color) {
-				ColorPanel.set(color);
-			},
-			validateMainColor() {
-				var color = this.main_color;
-				if (!color.match(/^#[0-9a-f]{6}$/)) {
-					this.main_color = tinycolor(color).toHexString();
-				}
-			},
-			isDarkColor(hex) {
-				if (hex) {
-					let color_val = new tinycolor(hex).getBrightness();
-					let bg_val = new tinycolor(CustomTheme.data.colors.back).getBrightness();
-					return Math.abs(color_val - bg_val) <= 50;
-				}
-			}
-		},
-		watch: {
-			main_color: function(value) {
-				this.hover_color = '';
-				Object.assign(this.hsv, ColorPanel.hexToHsv(value));
-				BarItems.slider_color_h.update();
-				BarItems.slider_color_s.update();
-				BarItems.slider_color_v.update();
-				$('#main_colorpicker').spectrum('set', value);
-				this.text_input = value;
-			},
-			open_tab(tab) {
-				StateMemory.color_picker_tab = tab;
-				StateMemory.save('color_picker_tab');
-				Vue.nextTick(() => {
-					$('#main_colorpicker').spectrum('reflow');
-				})
-			}
-		}
-	})
 
 
 	ColorPanel.palette = Interface.Panels.color.vue._data.palette;
@@ -186,15 +261,6 @@ Interface.definePanels(() => {
 		ColorPanel.addToHistory(ColorPanel.vue._data.main_color);
 		return ColorPanel.vue._data.main_color;
 	}
-	Interface.Panels.color.picker = $('#main_colorpicker').spectrum({
-		preferredFormat: "hex",
-		color: 'ffffff',
-		flat: true,
-		localStorageKey: 'brush_color_palette',
-		move: function(c) {
-			ColorPanel.change(c)
-		}
-	})
 
 	$('#color_history').on('mousewheel', function(e) {
 		var current = this.scrollLeft;

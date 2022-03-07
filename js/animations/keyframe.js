@@ -944,10 +944,15 @@ Interface.definePanels(function() {
 	let locator_suggestion_list = $('<datalist id="locator_suggestion_list" hidden></datalist>').get(0);
 	document.body.append(locator_suggestion_list);
 	
-	Interface.Panels.keyframe = new Panel({
-		id: 'keyframe',
-		icon: 'timeline',
+	new Panel('keyframe', {
+		icon: 'icon-keyframe',
 		condition: {modes: ['animate']},
+		default_position: {
+			slot: 'left_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
 		toolbars: {
 			head: Toolbars.keyframe
 		},

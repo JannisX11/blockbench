@@ -1667,11 +1667,17 @@ Interface.definePanels(function() {
 		},
 	}
 	
-	UVEditor.panel = Interface.Panels.uv = new Panel({
-		id: 'uv',
+	UVEditor.panel = new Panel('uv', {
 		icon: 'photo_size_select_large',
 		selection_only: true,
 		condition: {modes: ['edit', 'paint']},
+		display_condition: () => UVEditor.getMappableElements().length,
+		default_position: {
+			slot: 'left_bar',
+			float_position: [300, 0],
+			float_size: [500, 600],
+			height: 500
+		},
 		toolbars: {
 			bottom: Toolbars.UVEditor
 		},
@@ -1751,8 +1757,11 @@ Interface.definePanels(function() {
 					if (!this.$refs.viewport) return;
 					let old_size = this.width;
 					let size = Math.floor(Math.clamp(UVEditor.panel.width - 10, 64, 1e5));
+					let sidebar = Panels.uv.slot.includes('_bar');
 					this.width = size;
-					this.height = size * Math.clamp(this.project_resolution[1] / this.project_resolution[0], 0.5, 1);
+					this.height = sidebar
+						? size * Math.clamp(this.project_resolution[1] / this.project_resolution[0], 0.5, 1)
+						: Math.clamp(UVEditor.panel.height - UVEditor.panel.handle.clientHeight - 30 - (this.mode == 'uv' ? 30 : 0) - 8, 64, 1e5);
 					this.$refs.viewport.scrollLeft = Math.round(this.$refs.viewport.scrollLeft * (size / old_size));
 					this.$refs.viewport.scrollTop  = Math.round(this.$refs.viewport.scrollTop  * (size / old_size));
 
@@ -2581,7 +2590,7 @@ Interface.definePanels(function() {
 						</div>
 					</div>
 
-					<div class="bar" id="uv_cube_face_bar" v-if="mode != 'properties' && mappable_elements[0] && mappable_elements[0].type == 'cube' && !box_uv">
+					<div class="bar" id="uv_cube_face_bar" v-if="mode == 'uv' && mappable_elements[0] && mappable_elements[0].type == 'cube' && !box_uv">
 						<li v-for="(face, key) in mappable_elements[0].faces" :face="key" :class="{selected: selected_faces.includes(key), disabled: mappable_elements[0].faces[key].texture === null}" @mousedown="selectFace(key, $event, false, true)">
 							{{ face_names[key] }}
 						</li>

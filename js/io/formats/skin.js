@@ -269,112 +269,6 @@ const skin_dialog = new Dialog({
 
 
 BARS.defineActions(function() {
-	const poses = {
-		none: {
-			Head: [0, 0, 0],
-			Body: [0, 0, 0],
-			RightArm: [0, 0, 0],
-			LeftArm: [0, 0, 0],
-			RightLeg: [0, 0, 0],
-			LeftLeg: [0, 0, 0],
-		},
-		natural: {
-			Head: [-6, 5, 0],
-			Body: [0, 0, 0],
-			RightArm: [-10, 0, 0],
-			LeftArm: [12, 0, 0],
-			RightLeg: [11, 0, 2],
-			LeftLeg: [-10, 0, -2],
-		},
-		walking: {
-			Head: [-2, 0, 0],
-			Body: [0, 0, 0],
-			RightArm: [-35, 0, 0],
-			LeftArm: [35, 0, 0],
-			RightLeg: [42, 0, 2],
-			LeftLeg: [-42, 0, -2]
-		},
-		crouching: {
-			Head: {rotation: [-5, 0, 0], offset: [0, -1, 0]},
-			Body: {rotation: [-28, 0, 0], offset: [0, 0, -1]},
-			RightArm: [-15, 0, 0],
-			LeftArm: [-40, 0, 0],
-			RightLeg: {rotation: [-14, 0, 0], offset: [0, 3, 3.75]},
-			LeftLeg: {rotation: [14, 0, 0], offset: [0, 3, 4]}
-		},
-		sitting: {
-			Head: [5.5, 0, 0],
-			Body: [0, 0, 0],
-			RightArm: [36, 0, 0],
-			LeftArm: [36, 0, 0],
-			RightLeg: [72, -18, 0],
-			LeftLeg: [72, 18, 0]
-		},
-		jumping: {
-			Head: [20, 0, 0],
-			Body: [0, 0, 0],
-			RightArm: {rotation: [-175, 0, -20], offset: [0, 2, 0]},
-			LeftArm: {rotation: [-170, 0, 15], offset: [0, 2, 0]},
-			RightLeg: {rotation: [-5, 0, 15], offset: [0, -1, 0]},
-			LeftLeg: {rotation: [2.5, 0, -10], offset: [0, 6, -3.75]}
-		},
-		aiming: {
-			Head: [8, -35, 0],
-			Body: [-2, 0, 0],
-			RightArm: {rotation: [97, -17, -2], offset: [-1, 1, -1]},
-			LeftArm: [104, -44, -10],
-			RightLeg: {rotation: [2.5, 0, 0], offset: [0, 1, -2]},
-			LeftLeg: [-28, 0, 0]
-		},
-	};
-	Interface.Panels.skin_pose = new Panel({
-		id: 'skin_pose',
-		icon: 'icon-player',
-		condition: {modes: ['pose']},
-		component: {
-			data() {return {
-				pose: 'default'
-			}},
-			methods: {
-				setPose(pose) {
-					let old_angles = poses[this.pose];
-					for (let name in old_angles) {
-						if (old_angles[name].offset) {
-							let group = Group.all.find(g => g.name == name);
-							if (group) {
-								group.origin.V3_subtract(old_angles[name].offset);
-							}
-						}
-					}
-					this.pose = pose;
-					Project.skin_pose = pose;
-					let angles = poses[pose];
-					for (let name in angles) {
-						let group = Group.all.find(g => g.name == name);
-						if (group) {
-							group.extend({rotation: angles[name].rotation || angles[name]});
-							if (angles[name].offset) group.origin.V3_add(angles[name].offset);
-						}
-					}
-					Canvas.updateAllBones();
-				}
-			},
-			template: `
-				<div>
-					<ul id="skin_pose_selector">
-						<li :class="{selected: pose == 'none'}" @click="setPose('none')" title="${tl('panel.skin_pose.none')}"><div class="pose_icon" style="mask-image: url('./assets/poses/none.svg');"/></li>
-						<li :class="{selected: pose == 'natural'}" @click="setPose('natural')" title="${tl('panel.skin_pose.natural')}"><div class="pose_icon" style="mask-image: url('./assets/poses/natural.svg');"/></li>
-						<li :class="{selected: pose == 'walking'}" @click="setPose('walking')" title="${tl('panel.skin_pose.walking')}"><div class="pose_icon" style="mask-image: url('./assets/poses/walking.svg');"/></li>
-						<li :class="{selected: pose == 'crouching'}" @click="setPose('crouching')" title="${tl('panel.skin_pose.crouching')}"><div class="pose_icon" style="mask-image: url('./assets/poses/crouching.svg');"/></li>
-						<li :class="{selected: pose == 'sitting'}" @click="setPose('sitting')" title="${tl('panel.skin_pose.sitting')}"><div class="pose_icon" style="mask-image: url('./assets/poses/sitting.svg');"/></li>
-						<li :class="{selected: pose == 'jumping'}" @click="setPose('jumping')" title="${tl('panel.skin_pose.jumping')}"><div class="pose_icon" style="mask-image: url('./assets/poses/jumping.svg');"/></li>
-						<li :class="{selected: pose == 'aiming'}" @click="setPose('aiming')" title="${tl('panel.skin_pose.aiming')}"><div class="pose_icon" style="mask-image: url('./assets/poses/aiming.svg');"/></li>
-					</ul>
-				</div>
-			`
-		}
-	})
-
 	new Action('toggle_skin_layer', {
 		icon: 'layers_clear',
 		category: 'edit',
@@ -433,6 +327,119 @@ BARS.defineActions(function() {
 	Blockbench.on('select_project', () => {
 		explode_skin_model.value = !!Project.exploded_view;
 		explode_skin_model.updateEnabledState();
+	})
+})
+
+Interface.definePanels(function() {
+	const poses = {
+		none: {
+			Head: [0, 0, 0],
+			Body: [0, 0, 0],
+			RightArm: [0, 0, 0],
+			LeftArm: [0, 0, 0],
+			RightLeg: [0, 0, 0],
+			LeftLeg: [0, 0, 0],
+		},
+		natural: {
+			Head: [-6, 5, 0],
+			Body: [0, 0, 0],
+			RightArm: [-10, 0, 0],
+			LeftArm: [12, 0, 0],
+			RightLeg: [11, 0, 2],
+			LeftLeg: [-10, 0, -2],
+		},
+		walking: {
+			Head: [-2, 0, 0],
+			Body: [0, 0, 0],
+			RightArm: [-35, 0, 0],
+			LeftArm: [35, 0, 0],
+			RightLeg: [42, 0, 2],
+			LeftLeg: [-42, 0, -2]
+		},
+		crouching: {
+			Head: {rotation: [-5, 0, 0], offset: [0, -1, 0]},
+			Body: {rotation: [-28, 0, 0], offset: [0, 0, -1]},
+			RightArm: [-15, 0, 0],
+			LeftArm: [-40, 0, 0],
+			RightLeg: {rotation: [-14, 0, 0], offset: [0, 3, 3.75]},
+			LeftLeg: {rotation: [14, 0, 0], offset: [0, 3, 4]}
+		},
+		sitting: {
+			Head: [5.5, 0, 0],
+			Body: [0, 0, 0],
+			RightArm: [36, 0, 0],
+			LeftArm: [36, 0, 0],
+			RightLeg: [72, -18, 0],
+			LeftLeg: [72, 18, 0]
+		},
+		jumping: {
+			Head: [20, 0, 0],
+			Body: [0, 0, 0],
+			RightArm: {rotation: [-175, 0, -20], offset: [0, 2, 0]},
+			LeftArm: {rotation: [-170, 0, 15], offset: [0, 2, 0]},
+			RightLeg: {rotation: [-5, 0, 15], offset: [0, -1, 0]},
+			LeftLeg: {rotation: [2.5, 0, -10], offset: [0, 6, -3.75]}
+		},
+		aiming: {
+			Head: [8, -35, 0],
+			Body: [-2, 0, 0],
+			RightArm: {rotation: [97, -17, -2], offset: [-1, 1, -1]},
+			LeftArm: [104, -44, -10],
+			RightLeg: {rotation: [2.5, 0, 0], offset: [0, 1, -2]},
+			LeftLeg: [-28, 0, 0]
+		},
+	};
+	new Panel('skin_pose', {
+		icon: 'icon-player',
+		condition: {modes: ['pose']},
+		default_position: {
+			slot: 'right_bar',
+			float_position: [0, 0],
+			float_size: [300, 80],
+			height: 80
+		},
+		component: {
+			data() {return {
+				pose: 'default'
+			}},
+			methods: {
+				setPose(pose) {
+					let old_angles = poses[this.pose];
+					for (let name in old_angles) {
+						if (old_angles[name].offset) {
+							let group = Group.all.find(g => g.name == name);
+							if (group) {
+								group.origin.V3_subtract(old_angles[name].offset);
+							}
+						}
+					}
+					this.pose = pose;
+					Project.skin_pose = pose;
+					let angles = poses[pose];
+					for (let name in angles) {
+						let group = Group.all.find(g => g.name == name);
+						if (group) {
+							group.extend({rotation: angles[name].rotation || angles[name]});
+							if (angles[name].offset) group.origin.V3_add(angles[name].offset);
+						}
+					}
+					Canvas.updateAllBones();
+				}
+			},
+			template: `
+				<div>
+					<ul id="skin_pose_selector">
+						<li :class="{selected: pose == 'none'}" @click="setPose('none')" title="${tl('panel.skin_pose.none')}"><div class="pose_icon" style="mask-image: url('./assets/poses/none.svg');"/></li>
+						<li :class="{selected: pose == 'natural'}" @click="setPose('natural')" title="${tl('panel.skin_pose.natural')}"><div class="pose_icon" style="mask-image: url('./assets/poses/natural.svg');"/></li>
+						<li :class="{selected: pose == 'walking'}" @click="setPose('walking')" title="${tl('panel.skin_pose.walking')}"><div class="pose_icon" style="mask-image: url('./assets/poses/walking.svg');"/></li>
+						<li :class="{selected: pose == 'crouching'}" @click="setPose('crouching')" title="${tl('panel.skin_pose.crouching')}"><div class="pose_icon" style="mask-image: url('./assets/poses/crouching.svg');"/></li>
+						<li :class="{selected: pose == 'sitting'}" @click="setPose('sitting')" title="${tl('panel.skin_pose.sitting')}"><div class="pose_icon" style="mask-image: url('./assets/poses/sitting.svg');"/></li>
+						<li :class="{selected: pose == 'jumping'}" @click="setPose('jumping')" title="${tl('panel.skin_pose.jumping')}"><div class="pose_icon" style="mask-image: url('./assets/poses/jumping.svg');"/></li>
+						<li :class="{selected: pose == 'aiming'}" @click="setPose('aiming')" title="${tl('panel.skin_pose.aiming')}"><div class="pose_icon" style="mask-image: url('./assets/poses/aiming.svg');"/></li>
+					</ul>
+				</div>
+			`
+		}
 	})
 })
 

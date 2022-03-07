@@ -420,94 +420,20 @@
 						v-on:mousedown="mode.select()"
 					>{{ mode.name }}</li>
 				</ul>
-				<div class="toolbar_wrapper narrow mobile_side"></div>
 			</div>
 			
 			<div id="left_bar" class="sidebar"></div>
 
-			<div id="right_bar" class="sidebar">
+			<div id="right_bar" class="sidebar"></div>
 
-				<div id="element" class="panel selection_only">
-					<div class="panel_inside">
-						<p class="tl panel_toolbar_label">panel.element.position</p>
-						<div class="toolbar_wrapper element_position"></div>
-						<p class="tl panel_toolbar_label">panel.element.size</p>
-						<div class="toolbar_wrapper element_size"></div>
-						<p class="tl panel_toolbar_label">panel.element.origin</p>
-						<div class="toolbar_wrapper element_origin"></div>
-						<p class="tl panel_toolbar_label">panel.element.rotation</p>
-						<div class="toolbar_wrapper element_rotation"></div>
-					</div>
-				</div>
-
-				<div id="color" class="panel">
-					<div id="color_panel_wrapper" class="panel_inside">
-						<div id="color_panel_head">
-							<div class="main" v-bind:style="{'background-color': hover_color || main_color}"></div>
-							<div class="side">
-								<input type="text" v-model="color_code" @focusout="validateMainColor()">
-								<div id="color_history">
-									<li
-										v-for="(color, i) in history" v-if="i || color != main_color"
-										:key="color"
-										v-bind:style="{'background-color': color}"
-										v-bind:title="color" @click="setColor(color)"
-									></li>
-								</div>
-							</div>
-						</div>
-
-						<div class="bar tabs_small">
-
-							<input type="radio" name="tab" id="radio_color_picker" value="picker" v-model="open_tab">
-							<label class="tl" for="radio_color_picker">panel.color.picker</label>
-
-							<input type="radio" name="tab" id="radio_color_palette" value="palette" v-model="open_tab">
-							<label class="tl" for="radio_color_palette">panel.color.palette</label>
-
-							<input type="radio" name="tab" id="radio_color_both" value="both" v-model="open_tab">
-							<label class="tl" for="radio_color_both">panel.color.both</label>
-
-							<div class="tool" @click="togglePickerType()" :title="picker_toggle_label">
-								<i class="fa_big icon" :class="picker_type == 'box' ? 'fas fa-square' : 'far fa-stop-circle'"></i>
-							</div>
-
-						</div>
-						<div v-show="open_tab == 'picker' || open_tab == 'both'">
-							<div v-show="picker_type == 'box'">
-								<input id="main_colorpicker">
-							</div>
-							<color-wheel v-if="picker_type == 'wheel' && width" v-model="main_color" :width="width" :height="width"></color-wheel>
-							<div class="toolbar_wrapper color_picker"></div>
-						</div>
-						<div v-show="open_tab == 'palette' || open_tab == 'both'">
-							<div class="toolbar_wrapper palette"></div>
-							<ul id="palette_list" class="list" v-sortable="{onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
-								<li
-									class="color" v-for="color in palette"
-									:title="color" :key="color"
-									:class="{selected: color == main_color, contrast: isDarkColor(color)}"
-									@click="setColor(color)"
-									@mouseenter="hover_color = color"
-									@mouseleave="hover_color = ''"
-								>
-									<div class="color_inner" v-bind:style="{'background-color': color}"></div>
-								</li>
-							</ul>
-						</div>
-					</div>
-				</div>
-
-			</div>
 			<div id="center">
 				<ul id="toast_notification_list">
 				</ul>
-				<div id="preview" class="center_window">
+
+				<div id="top_slot"></div>
+				<div id="preview">
 				</div>
-				<div id="timeline" class="center_window">
-					<div class="toolbar_wrapper timeline"></div>
-					<div id="timeline_vue"></div>
-				</div>
+				<div id="bottom_slot"></div>
 
 				<div id="mobile_panel_overlay" hidden></div>
 			</div>

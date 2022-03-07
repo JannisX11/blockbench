@@ -187,7 +187,7 @@ class OutlinerNode {
 		Vue.nextTick(() => {
 			var el = $('#'+scope.uuid)
 			if (el.length === 0) return;
-			var outliner_pos = $('#outliner').offset().top
+			var outliner_pos = $('#panel_outliner').offset().top
 
 			var el_pos = el.offset().top
 			if (el_pos > outliner_pos && el_pos < $('#cubes_list').height() + outliner_pos) return;
@@ -1270,10 +1270,15 @@ Interface.definePanels(function() {
 		return 0;
 	}
 
-	Interface.Panels.outliner = new Panel({
-		id: 'outliner',
+	new Panel('outliner', {
 		icon: 'list_alt',
 		condition: {modes: ['edit', 'paint', 'animate', 'pose']},
+		default_position: {
+			slot: 'right_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
 		toolbars: {
 			head: Toolbars.outliner
 		},
@@ -1499,17 +1504,14 @@ Interface.definePanels(function() {
 				}
 			},
 			template: `
-				<div>
-					<div class="toolbar_wrapper outliner"></div>
-					<ul id="cubes_list"
-						class="list mobile_scrollbar"
-						@contextmenu.stop.prevent="openMenu($event)"
-						@mousedown="dragNode($event)"
-						@touchstart="dragNode($event)"
-					>
-						<vue-tree-item v-for="item in root" :node="item" :options="options" :key="item.uuid"></vue-tree-item>
-					</ul>
-				</div>
+				<ul id="cubes_list"
+					class="list mobile_scrollbar"
+					@contextmenu.stop.prevent="openMenu($event)"
+					@mousedown="dragNode($event)"
+					@touchstart="dragNode($event)"
+				>
+					<vue-tree-item v-for="item in root" :node="item" :options="options" :key="item.uuid"></vue-tree-item>
+				</ul>
 			`
 		},
 		menu: new Menu([
@@ -1540,6 +1542,27 @@ Interface.definePanels(function() {
 			if (Modes.edit) Interface.addSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 		}
 	})
+
+	if (!Blockbench.isMobile) {
+		new Panel('element', {
+			icon: 'fas.fa-cube',
+			condition: !Blockbench.isMobile && {modes: ['edit', 'pose']},
+			display_condition: () => Outliner.selected.length || Group.selected,
+			selection_only: true,
+			default_position: {
+				slot: 'right_bar',
+				float_position: [0, 0],
+				float_size: [300, 400],
+				height: 400
+			},
+			toolbars: {
+				element_position: 	Toolbars.element_position,
+				element_size: 		Toolbars.element_size,
+				element_origin: 	Toolbars.element_origin,
+				element_rotation: 	Toolbars.element_rotation,
+			}
+		})
+	}
 })
 
 class Face {

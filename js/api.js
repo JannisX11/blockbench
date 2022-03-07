@@ -2,7 +2,8 @@ const LastVersion = localStorage.getItem('last_version') || localStorage.getItem
 
 const Blockbench = {
 	isWeb: !isApp,
-	isMobile: !isApp && window.innerWidth <= 640,
+	isMobile: window.innerWidth <= 960 || window.innerHeight <= 500,
+	isLandscape: window.innerWidth > window.innerHeight,
 	isTouch: 'ontouchend' in document,
 	get isPWA() {
 		return navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;

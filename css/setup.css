@@ -47,21 +47,19 @@
 	::selection {
 		background: var(--color-accent);
 	}
-	@media (max-device-width: 640px) {
-		::-webkit-scrollbar {
-			width: 0;
-			height: 0;
-		}
-		* {
-			scrollbar-width: none;
-		}
-		.mobile_scrollbar {
-			scrollbar-width: thin;
-		}
-		.mobile_scrollbar::-webkit-scrollbar {
-			width: 12px;
-			height: 12px;
-		}
+	body.is_mobile ::-webkit-scrollbar {
+		width: 0;
+		height: 0;
+	}
+	body.is_mobile * {
+		scrollbar-width: none;
+	}
+	body.is_mobile .mobile_scrollbar {
+		scrollbar-width: thin;
+	}
+	body.is_mobile .mobile_scrollbar::-webkit-scrollbar {
+		width: 12px;
+		height: 12px;
 	}
 	/*Assistant Font*/
 	@font-face {
@@ -353,6 +351,7 @@
 	}
 	div {
 		cursor: default;
+		box-sizing: border-box;
 	}
 	a {
 		text-decoration: none;
