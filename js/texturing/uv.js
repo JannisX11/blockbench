@@ -314,9 +314,10 @@ const UVEditor = {
 		let pixel_size = UVEditor.getPixelSize();
 		let focus = [min_x+max_x, min_y+max_y].map(v => v * 0.5 * pixel_size);
 		let {viewport} = UVEditor.vue.$refs;
+		let margin = UVEditor.vue.getFrameMargin();
 		$(viewport).animate({
-			scrollLeft: focus[0] - UVEditor.width / 2,
-			scrollTop: focus[1] - UVEditor.height / 2,
+			scrollLeft: focus[0] + margin[0] - UVEditor.width / 2,
+			scrollTop: focus[1] + margin[1] - UVEditor.height / 2,
 		}, 100)
 	},
 	//Get
@@ -426,11 +427,12 @@ const UVEditor = {
 		})
 		Mesh.all.forEach(mesh => {
 			if (mesh.locked) return;
-			for (var face in mesh.faces) {
-				let rect = mesh.faces[face].getBoundingRect();
-				if (uv && Math.isBetween(u, rect.ax, rect.bx) && Math.isBetween(v, rect.ay, rect.by) && (mesh.faces[face].getTexture() === scope.vue.texture || Format.single_texture)) {
+			for (var fkey in mesh.faces) {
+				let face = mesh.faces[fkey];
+				let rect = face.getBoundingRect();
+				if (face.uv && Math.isBetween(u, rect.ax, rect.bx) && Math.isBetween(v, rect.ay, rect.by) && (face.getTexture() === scope.vue.texture || Format.single_texture)) {
 					matches.safePush(mesh);
-					face_matches.safePush(face);
+					face_matches.safePush(fkey);
 					break;
 				}
 			}
@@ -1670,6 +1672,7 @@ Interface.definePanels(function() {
 	UVEditor.panel = new Panel('uv', {
 		icon: 'photo_size_select_large',
 		selection_only: true,
+		expand_button: true,
 		condition: {modes: ['edit', 'paint']},
 		display_condition: () => UVEditor.getMappableElements().length,
 		default_position: {
@@ -1696,6 +1699,7 @@ Interface.definePanels(function() {
 				width: 320,
 				height: 320,
 				zoom: 1,
+				centered_view: true,
 				checkerboard: settings.uv_checkerboard.value,
 				uv_overlay: false,
 				texture: 0,
@@ -1728,10 +1732,20 @@ Interface.definePanels(function() {
 			}},
 			computed: {
 				inner_width() {
-					return this.width * this.zoom;
+					let axis = this.project_resolution[0] / this.project_resolution[1] < this.width / this.height;
+					if (axis) {
+						return this.height * this.zoom * (this.project_resolution[1] / this.project_resolution[0]);
+					} else {
+						return this.width * this.zoom;
+					}
 				},
 				inner_height() {
-					return this.width * (this.project_resolution[1] / this.project_resolution[0]) * this.zoom;
+					let axis = this.project_resolution[0] / this.project_resolution[1] < this.width / this.height;
+					if (axis) {
+						return this.height * this.zoom;
+					} else {
+						return this.width * this.zoom * (this.project_resolution[1] / this.project_resolution[0]);
+					}
 				},
 				mappable_elements() {
 					return this.elements.filter(element => element.faces && !element.locked);
@@ -1757,17 +1771,25 @@ Interface.definePanels(function() {
 					if (!this.$refs.viewport) return;
 					let old_size = this.width;
 					let size = Math.floor(Math.clamp(UVEditor.panel.width - 10, 64, 1e5));
-					let sidebar = Panels.uv.slot.includes('_bar');
 					this.width = size;
-					this.height = sidebar
-						? size * Math.clamp(this.project_resolution[1] / this.project_resolution[0], 0.5, 1)
-						: Math.clamp(UVEditor.panel.height - UVEditor.panel.handle.clientHeight - 30 - (this.mode == 'uv' ? 30 : 0) - 8, 64, 1e5);
+					if (Panels.uv.slot.includes('_bar')) {
+						this.height = size * Math.clamp(this.project_resolution[1] / this.project_resolution[0], 0.5, 1);
+					} else {
+						this.height = Math.clamp(
+							UVEditor.panel.height
+							-UVEditor.panel.handle.clientHeight - 8
+							-(this.$refs.uv_cube_face_bar ? this.$refs.uv_cube_face_bar.clientHeight : 0)
+							-(this.$refs.uv_toolbars ? this.$refs.uv_toolbars.clientHeight : 0),
+						64, 1e5);
+					}
 					this.$refs.viewport.scrollLeft = Math.round(this.$refs.viewport.scrollLeft * (size / old_size));
 					this.$refs.viewport.scrollTop  = Math.round(this.$refs.viewport.scrollTop  * (size / old_size));
 
+					let slider_bar_width = UVEditor.vue.$refs.slider_bar.clientWidth - 6;
+
 					for (var id in UVEditor.sliders) {
 						var slider = UVEditor.sliders[id];
-						slider.setWidth(size/(Project.box_uv?2:4)-1)
+						slider.setWidth(slider_bar_width / (Project.box_uv?2:4)-1);
 					}
 				},
 				setMode(mode) {
@@ -1820,9 +1842,11 @@ Interface.definePanels(function() {
 						event.stopPropagation()
 						event.preventDefault()
 				
+						let original_margin = this.getFrameMargin();
 						var n = (event.deltaY < 0) ? 0.1 : -0.1;
 						n *= this.zoom
-						var number = Math.clamp(this.zoom + n, Math.min(1, this.inner_width/this.inner_height), this.max_zoom)
+						let min = Math.min(1, this.inner_width/this.inner_height)
+						var number = Math.clamp(this.zoom + n, min, this.max_zoom)
 						let old_zoom = this.zoom;
 
 						this.zoom = number;
@@ -1830,15 +1854,16 @@ Interface.definePanels(function() {
 						let updateScroll = () => {
 							let {viewport} = this.$refs;
 							let offset = $(this.$refs.viewport).offset()
-							let offsetX = event.clientX - offset.left;
-							let offsetY = event.clientY - offset.top;
+							let margin = this.getFrameMargin();
+							let offsetX = event.clientX - offset.left - margin[0];
+							let offsetY = event.clientY - offset.top - margin[1];
 							// Make it a bit easier to scroll into corners
-							offsetX = (offsetX - this.width/2) * 1.1 + this.width/2;
-							offsetY = (offsetY - this.height/2) * 1.1 + this.height/2;
+							offsetX = (offsetX - this.width/2 + margin[0]) * 1.1 + this.width/2 - margin[0];
+							offsetY = (offsetY - this.height/2 + margin[1]) * 1.1 + this.height/2 - margin[1];
 							let zoom_diff = this.zoom - old_zoom;
 							
-							viewport.scrollLeft += ((viewport.scrollLeft + offsetX) * zoom_diff) / old_zoom
-							viewport.scrollTop  += ((viewport.scrollTop  + offsetY) * zoom_diff) / old_zoom
+							viewport.scrollLeft += ((viewport.scrollLeft + offsetX) * zoom_diff) / old_zoom + margin[0] - original_margin[0];
+							viewport.scrollTop  += ((viewport.scrollTop  + offsetY) * zoom_diff) / old_zoom + margin[1] - original_margin[1];
 							
 							this.updateMouseCoords(event)
 							if (Painter.selection.overlay) UVEditor.updatePastingOverlay()
@@ -1856,11 +1881,17 @@ Interface.definePanels(function() {
 					setActivePanel('uv');
 					if (event.which === 2) {
 						let {viewport} = this.$refs;
-						let coords = {x: 0, y: 0}
+						let margin = this.getFrameMargin();
+						let margin_center = [this.width/2, this.height/2];
+						let original = [
+							viewport.scrollLeft,
+							viewport.scrollTop
+						];
 						function dragMouseWheel(e2) {
-							viewport.scrollLeft -= (e2.pageX - coords.x)
-							viewport.scrollTop -= (e2.pageY - coords.y)
-							coords = {x: e2.pageX, y: e2.pageY}
+							viewport.scrollLeft = Math.snapToValues(original[0] + event.clientX - e2.clientX, [margin[0], margin_center[0]], 10);
+							viewport.scrollTop = Math.snapToValues(original[1] + event.clientY - e2.clientY, [margin[1], margin_center[1]], 10);
+							UVEditor.vue.centered_view = (viewport.scrollLeft == margin[0] || viewport.scrollLeft == margin_center[0])
+														&& (viewport.scrollTop == margin[1] || viewport.scrollTop == margin_center[1]);
 						}
 						function dragMouseWheelStop(e) {
 							removeEventListeners(document, 'mousemove touchmove', dragMouseWheel);
@@ -1868,7 +1899,6 @@ Interface.definePanels(function() {
 						}
 						addEventListeners(document, 'mousemove touchmove', dragMouseWheel);
 						addEventListeners(document, 'mouseup touchend', dragMouseWheelStop);
-						coords = {x: event.pageX, y: event.pageY}
 						event.preventDefault();
 						return false;
 					} else if (this.mode == 'paint' && Toolbox.selected.paintTool && (event.which === 1 || (event.touches && event.touches.length == 1))) {
@@ -2579,6 +2609,21 @@ Interface.definePanels(function() {
 					} else {
 						return {display: 'none'};
 					}
+				},
+				getFrameMargin(style) {
+					let gap_x = Math.max((this.width - this.inner_width) / 2, 0);
+					let gap_y = Math.max((this.height - this.inner_height) / 2, 0);
+					let margin = [
+						Math.floor(gap_x + this.width/2),
+						Math.floor(gap_y + this.height/2),
+					];
+					if (this.$refs.viewport && this.zoom == 1 && ((!this.$refs.viewport.scrollLeft && !this.$refs.viewport.scrollTop) || this.centered_view)) {
+						this.$refs.viewport.scrollLeft = margin[0] - gap_x;
+						this.$refs.viewport.scrollTop = margin[1] - gap_y;
+						this.centered_view = true;
+					}
+
+					return style ? `${margin[1]}px ${margin[0]}px` : margin;
 				}
 			},
 			template: `
@@ -2590,7 +2635,7 @@ Interface.definePanels(function() {
 						</div>
 					</div>
 
-					<div class="bar" id="uv_cube_face_bar" v-if="mode == 'uv' && mappable_elements[0] && mappable_elements[0].type == 'cube' && !box_uv">
+					<div class="bar" id="uv_cube_face_bar" ref="uv_cube_face_bar" v-if="mode == 'uv' && mappable_elements[0] && mappable_elements[0].type == 'cube' && !box_uv">
 						<li v-for="(face, key) in mappable_elements[0].faces" :face="key" :class="{selected: selected_faces.includes(key), disabled: mappable_elements[0].faces[key].texture === null}" @mousedown="selectFace(key, $event, false, true)">
 							{{ face_names[key] }}
 						</li>
@@ -2609,7 +2654,12 @@ Interface.definePanels(function() {
 						:style="{width: (width+8) + 'px', height: (height+8) + 'px', overflowX: (zoom > 1) ? 'scroll' : 'hidden', overflowY: (inner_height > height) ? 'scroll' : 'hidden'}"
 					>
 
-						<div id="uv_frame" @click.stop="reverseSelect($event)" ref="frame" :class="{overlay_mode: uv_overlay && mode == 'paint'}" :style="{width: inner_width + 'px', height: inner_height + 'px'}" v-if="texture !== null">
+						<div id="uv_frame" ref="frame"
+							v-if="texture !== null"
+							@click.stop="reverseSelect($event)"
+							:class="{overlay_mode: uv_overlay && mode == 'paint'}"
+							:style="{width: inner_width + 'px', height: inner_height + 'px', margin: getFrameMargin(true)}"
+						>
 
 							<template id="uv_allocations" v-if="mode == 'uv' || uv_overlay" v-for="element in ((display_uv === 'all_elements' || mode == 'paint') ? all_mappable_elements : mappable_elements)">
 
@@ -2743,8 +2793,10 @@ Interface.definePanels(function() {
 						
 					
 					</div>
-					<div v-show="mode == 'uv'" class="bar uv_editor_sliders" ref="slider_bar" style="margin-left: 2px;"></div>
-					<div v-show="mode == 'uv'" class="toolbar_wrapper uv_editor"></div>
+					<div :class="{joined_uv_bar: width >= 720}" ref="uv_toolbars">
+						<div v-show="mode == 'uv'" class="bar uv_editor_sliders" ref="slider_bar" style="margin-left: 2px;"></div>
+						<div v-show="mode == 'uv'" class="toolbar_wrapper uv_editor"></div>
+					</div>
 				</div>
 			`
 		}

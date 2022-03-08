@@ -22,6 +22,7 @@ class Panel {
 		if (!Interface.data.panels[this.id]) Interface.data.panels[this.id] = {};
 		this.position_data = Interface.data.panels[this.id];
 		let defaultp = data.default_position || 0;
+		if (defaultp && defaultp.slot) this.previous_slot = defaultp.slot;
 		if (!this.position_data.slot) 			this.position_data.slot 			= defaultp.slot || (data.default_side ? (data.default_side+'_bar') : 'left_bar');
 		if (!this.position_data.float_position)	this.position_data.float_position 	= defaultp.float_position || [0, 0];
 		if (!this.position_data.float_size) 	this.position_data.float_size 		= defaultp.float_size || [300, 300];
@@ -73,6 +74,18 @@ class Panel {
 		}
 
 		if (!Blockbench.isMobile) {
+			if (data.expand_button) {
+				let expand_button = Interface.createElement('div', {class: 'tool panel_control panel_expanding_button'}, Blockbench.getIconNode('fullscreen'))
+				this.handle.append(expand_button);
+				expand_button.addEventListener('click', (e) => {
+					if (this.slot == 'float') {
+						this.moveTo(this.previous_slot);
+					} else {
+						this.moveTo('float');
+						this.moveToFront();
+					}
+				})
+			}
 
 			let snap_button = Interface.createElement('div', {class: 'tool panel_control'}, Blockbench.getIconNode('drag_handle'))
 			this.handle.append(snap_button);
@@ -355,6 +368,9 @@ class Panel {
 			slot = ref_panel.position_data.slot;
 		}
 		this.node.classList.remove('floating');
+		if (slot !== this.slot) {
+			this.previous_slot = this.slot;
+		}
 
 		if (slot == 'left_bar' || slot == 'right_bar') {
 			if (!ref_panel && Interface.data[slot].includes(this.id)) {
@@ -378,7 +394,7 @@ class Panel {
 				Interface.data[slot].splice(Interface.data[slot].indexOf(ref_panel.id) + (before ? 0 : 1), 0, this.id);
 			} else {
 				document.getElementById(slot).append(this.node);
-				Interface.data[slot].push(this.id);
+				Interface.data[slot].safePush(this.id);
 			}
 
 		} else if (slot == 'top') {

@@ -2003,7 +2003,6 @@ const BARS = {
 			children: [
 				'move_texture_with_uv',
 				'uv_apply_all',
-				'uv_apply_all',
 				'uv_maximize',
 				'uv_auto',
 				'uv_transparent',
