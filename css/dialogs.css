@@ -1241,6 +1241,9 @@
 		height: 42px;
 		box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 	}
+	body.is_mobile #action_selector {
+		top: 26px;
+	}
 	#action_selector > input {
 		width: calc(100% - 38px);
 		height: 42px;
@@ -1325,11 +1328,6 @@
 		opacity: 0.32;
 		top: 4px;
 		left: 49px;
-	}
-	@media (max-device-width: 640px) {
-		dialog#action_selector {
-			top: 26px;
-		}
 	}
 
 /* Edit History */

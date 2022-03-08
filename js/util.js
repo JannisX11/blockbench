@@ -50,6 +50,15 @@ const Condition = function(condition, context) {
 		return !!condition
 	}
 }
+Condition.mutuallyExclusive = function(a, b) {
+	if (typeof a !== 'object' || typeof b !== 'object') return false;
+	if (a.modes && b.modes && a.modes.overlap(b.modes) == 0) return true;
+	if (a.tools && b.tools && a.tools.overlap(b.tools) == 0) return true;
+	if (a.formats && b.formats && a.formats.overlap(b.formats) == 0) return true;
+	if (a.features && b.features && a.features.overlap(b.features) == 0) return true;
+	return false;
+}
+
 class oneLiner {
 	constructor(data) {
 		if (data !== undefined) {

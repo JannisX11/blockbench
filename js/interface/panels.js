@@ -374,20 +374,25 @@ class Panel {
 				} else {
 					$(ref_panel.node).after(this.node);
 				}
+				Interface.data[slot].remove(this.id);
+				Interface.data[slot].splice(Interface.data[slot].indexOf(ref_panel.id) + (before ? 0 : 1), 0, this.id);
 			} else {
 				document.getElementById(slot).append(this.node);
+				Interface.data[slot].push(this.id);
 			}
 
 		} else if (slot == 'top') {
 			let top_panel = Interface.getTopPanel();
-			if (top_panel && top_panel !== this) top_panel.moveTo(top_panel.previous_slot);
-
+			if (top_panel && top_panel !== this && !Condition.mutuallyExclusive(this.condition, top_panel.condition)) {
+				top_panel.moveTo(top_panel.previous_slot);
+			}
 			document.getElementById('top_slot').append(this.node);
 
 		} else if (slot == 'bottom') {
 			let bottom_panel = Interface.getBottomPanel();
-			if (bottom_panel && bottom_panel !== this) bottom_panel.moveTo(bottom_panel.previous_slot);
-
+			if (bottom_panel && bottom_panel !== this && !Condition.mutuallyExclusive(this.condition, bottom_panel.condition)) {
+				bottom_panel.moveTo(bottom_panel.previous_slot);
+			}
 			document.getElementById('bottom_slot').append(this.node);
 
 		} else if (slot == 'float') {
@@ -525,7 +530,9 @@ function updateSidebarOrder() {
 
 		Interface.data[bar].forEach(panel_id => {
 			let panel = Panels[panel_id];
-			if (panel) bar_node.append(panel.node);
+			if (panel && panel.slot == bar) {
+				bar_node.append(panel.node);
+			}
 		});
 	})
 }

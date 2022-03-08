@@ -85,6 +85,10 @@
 	#status_bar {
 		grid-area: status_bar;
 	}
+	#top_slot,
+	#bottom_slot {
+		background-color: var(--color-ui);
+	}
 	.single_canvas_wrapper {
 		height: 100%;
 		width: 100%;
@@ -307,7 +311,7 @@
 	}
 	body.is_mobile.is_landscape #work_screen {
 		grid-template-columns: auto 48px !important;
-		grid-template-rows: auto minmax(100px, 5000px) 26px !important;
+		grid-template-rows: auto minmax(200px, 5000px) 26px !important;
 		grid-template-areas: 
 			"toolbar panel_selector"
 			"center panel_selector"
@@ -319,6 +323,10 @@
 	}
 	body.is_mobile #main_toolbar {
 		display: block;
+	}
+	body.is_mobile.is_landscape #main_toolbar {
+		display: flex;
+		height: fit-content;
 	}
 	body.is_mobile #main_toolbar > * {
 		display: block;

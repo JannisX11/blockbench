@@ -59,7 +59,7 @@ Interface.definePanels(() => {
 
 	ColorPanel = new Panel('color', {
 		icon: 'palette',
-		condition: () => Modes.id === 'paint',
+		condition: {modes: ['paint']},
 		default_position: {
 			slot: 'right_bar',
 			float_position: [0, 0],
