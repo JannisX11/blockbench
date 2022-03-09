@@ -78,10 +78,10 @@ const Interface = {
 		panels: {}
 	},
 	get left_bar_width() {
-		return Prop.show_left_bar ? Interface.data.left_bar_width : 0;
+		return Prop.show_left_bar && Interface.getLeftPanels().length ? Interface.data.left_bar_width : 0;
 	},
 	get right_bar_width() {
-		return Prop.show_right_bar ? Interface.data.right_bar_width : 0;
+		return Prop.show_right_bar && Interface.getRightPanels().length ? Interface.data.right_bar_width : 0;
 	},
 	get top_panel_height() {
 		return 1;
@@ -104,6 +104,26 @@ const Interface = {
 				return panel;
 			}
 		}
+	},
+	getLeftPanels() {
+		let list = [];
+		for (let key in Panels) {
+			let panel = Panels[key];
+			if (panel.slot == 'left_bar' && Condition(panel.condition)) {
+				list.push(panel);
+			}
+		}
+		return list;
+	},
+	getRightPanels() {
+		let list = [];
+		for (let key in Panels) {
+			let panel = Panels[key];
+			if (panel.slot == 'right_bar' && Condition(panel.condition)) {
+				list.push(panel);
+			}
+		}
+		return list;
 	},
 	Resizers: {
 		left: new ResizeLine('left', {

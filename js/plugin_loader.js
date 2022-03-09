@@ -193,6 +193,9 @@ class Plugin {
 					scope.extend(plugin_data)
 					scope.bindGlobalData()
 				}
+				if (first && scope.oninstall) {
+					scope.oninstall()
+				}
 				scope.installed = true
 				this.remember()
 				Plugins.sort()
@@ -222,6 +225,9 @@ class Plugin {
 					this.id = (plugin_data && plugin_data.id)||pathToName(url)
 					this.extend(plugin_data)
 					this.bindGlobalData()
+				}
+				if (first && scope.oninstall) {
+					scope.oninstall()
 				}
 				this.installed = true
 				this.path = url

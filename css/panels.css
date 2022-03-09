@@ -292,6 +292,12 @@
 	.outliner_node .outliner_object i.icon_off {
 		color: var(--color-subtle_text);
 	}
+	.outliner_object > i.material-icons,
+	#outliner_drag_helper i.material-icons {
+		padding-top: 2px;
+		width: 20px;
+		font-size: 19px;
+	}
 	.outliner_opener_placeholder {
 		width: 18px;
 		height: 14px;
@@ -379,6 +385,10 @@
 	}
 	#outliner_drag_helper > i {
 		padding: 4px;
+	}
+	#outliner_drag_helper > label {
+		padding-right: 5px;
+		padding-left: 5px;
 	}
 	.outliner_object > input {
 		width: 0;

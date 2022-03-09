@@ -418,6 +418,10 @@ class Panel {
 				this.setupFloatHandles();
 			}
 		}
+		if (slot !== 'float') {
+			Panel.floating_panel_z_order.remove(this.id);
+			this.node.style.zIndex = '';
+		}
 		position_data.slot = slot;
 		this.update();
 

@@ -43,6 +43,7 @@ const Canvas = {
 	scene,
 	// Pivot marker
 	pivot_marker: rot_origin,
+	gizmos: [rot_origin],
 	outlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
 		transparent: true,
@@ -671,6 +672,7 @@ const Canvas = {
 		Canvas.ground_plane.geometry.attributes.uv.needsUpdate = true;
 		Canvas.ground_plane.visible = settings.ground_plane.value;
 		scene.add(Canvas.ground_plane);
+		Canvas.gizmos.push(Canvas.ground_plane);
 
 		setupGrid = true;
 	},
@@ -690,15 +692,12 @@ const Canvas = {
 	withoutGizmos(cb) {
 
 		function editVis(edit) {
+			Canvas.gizmos.forEach(object => {
+				edit(object);
+			})
 			edit(three_grid)
-			edit(Canvas.ground_plane)
 			edit(Canvas.side_grids.x)
 			edit(Canvas.side_grids.z)
-			edit(Transformer)
-			edit(Canvas.outlines)
-			edit(Canvas.pivot_marker)
-			edit(Vertexsnap.line)
-			edit(Animator.motion_trail)
 			Outliner.elements.forEach(element => {
 				let {mesh} = element;
 				if (element.selected && mesh.outline) edit(mesh.outline);

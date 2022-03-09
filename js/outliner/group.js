@@ -408,7 +408,7 @@ class Group extends OutlinerNode {
 }
 	Group.prototype.title = tl('data.group');
 	Group.prototype.type = 'group';
-	Group.prototype.icon = 'fa fa-folder';
+	Group.prototype.icon = 'folder';
 	Group.prototype.isParent = true;
 	Group.prototype.rotatable = true;
 	Group.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;

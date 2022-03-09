@@ -1906,13 +1906,14 @@ function initCanvas() {
 	display_area.name = 'display_area'
 	display_scene.name = 'display_scene'
 
-
 	scene.add(Vertexsnap.vertex_gizmos)
 	Vertexsnap.vertex_gizmos.name = 'vertex_handles'
+	Canvas.gizmos.push(Vertexsnap.vertex_gizmos)
 
 	Canvas.outlines = new THREE.Object3D();
 	Canvas.outlines.name = 'outline_group'
 	scene.add(Canvas.outlines)
+	Canvas.gizmos.push(Canvas.outlines)
 
 
 	canvas_scenes = {
@@ -1952,6 +1953,7 @@ function initCanvas() {
 	Transformer = new THREE.TransformControls(main_preview.camPers, main_preview.canvas)
 	Transformer.setSize(0.5)
 	scene.add(Transformer)
+	Canvas.gizmos.push(Transformer);
 	main_preview.occupyTransformer()
 
 	quad_previews = {

@@ -1392,6 +1392,7 @@ const Animator = {
 		}
 	}
 }
+Canvas.gizmos.push(Animator.motion_trail);
 Blockbench.on('reset_project', () => {
 	for (let path in Animator.particle_effects) {
 		let effect = Animator.particle_effects[path];

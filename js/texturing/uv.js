@@ -1685,8 +1685,10 @@ Interface.definePanels(function() {
 			bottom: Toolbars.UVEditor
 		},
 		onResize: function() {
-			UVEditor.vue.updateSize();
 			UVEditor.vue.hidden = !this.isVisible();
+			Vue.nextTick(() => {
+				UVEditor.vue.updateSize();
+			})
 		},
 		onFold: function() {
 			UVEditor.vue.hidden = !this.isVisible();
@@ -1761,6 +1763,11 @@ Interface.definePanels(function() {
 						let min_zoom = Math.min(1, this.inner_width/this.inner_height);
 						if (this.zoom < min_zoom) this.zoom = 1;
 					}
+				},
+				mode() {
+					Vue.nextTick(() => {
+						this.updateSize();
+					})
 				}
 			},
 			methods: {
@@ -1779,7 +1786,8 @@ Interface.definePanels(function() {
 							UVEditor.panel.height
 							-UVEditor.panel.handle.clientHeight - 8
 							-(this.$refs.uv_cube_face_bar ? this.$refs.uv_cube_face_bar.clientHeight : 0)
-							-(this.$refs.uv_toolbars ? this.$refs.uv_toolbars.clientHeight : 0),
+							-(this.$refs.uv_toolbars ? this.$refs.uv_toolbars.clientHeight : 0)
+							-(this.mode == 'paint' ? 30 : 0),
 						64, 1e5);
 					}
 					this.$refs.viewport.scrollLeft = Math.round(this.$refs.viewport.scrollLeft * (size / old_size));
@@ -2646,8 +2654,6 @@ Interface.definePanels(function() {
 						@mousedown="onMouseDown($event)"
 						@touchstart="onMouseDown($event)"
 						@mousewheel="onMouseWheel($event)"
-						@mousemove="updateMouseCoords($event)"
-						@mouseleave="onMouseLeave($event)"
 						class="checkerboard_target"
 						ref="viewport"
 						v-if="!hidden"
@@ -2657,6 +2663,8 @@ Interface.definePanels(function() {
 						<div id="uv_frame" ref="frame"
 							v-if="texture !== null"
 							@click.stop="reverseSelect($event)"
+							@mousemove="updateMouseCoords($event)"
+							@mouseleave="onMouseLeave($event)"
 							:class="{overlay_mode: uv_overlay && mode == 'paint'}"
 							:style="{width: inner_width + 'px', height: inner_height + 'px', margin: getFrameMargin(true)}"
 						>
