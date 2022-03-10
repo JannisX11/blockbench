@@ -2594,6 +2594,115 @@ skin_presets.fox = {
 		]
 	}`
 };
+skin_presets.frog = {
+	display_name: 'Frog',
+	model: `{
+		"name": "frog",
+		"texturewidth": 48,
+		"textureheight": 48,
+		"eyes": [
+			[2, 4, 5, 1],
+			[2, 9, 5, 1]
+		],
+		"bones": [
+			{
+				"name": "root",
+				"pivot": [0, 0, 0]
+			},
+			{
+				"name": "body",
+				"parent": "root",
+				"pivot": [0, 2, 4],
+				"cubes": [
+					{"origin": [-3.5, 1, -4], "size": [7, 3, 9], "uv": [3, 1]},
+					{"origin": [-3.5, 3, -4], "size": [7, 0, 9], "uv": [23, 22]}
+				]
+			},
+			{
+				"name": "head",
+				"parent": "body",
+				"pivot": [0, 4, 3],
+				"cubes": [
+					{"origin": [-3.5, 5, -4], "size": [7, 0, 9], "uv": [23, 13]},
+					{"origin": [-3.5, 3, -4], "size": [7, 3, 9], "uv": [0, 13]}
+				]
+			},
+			{
+				"name": "eyes",
+				"parent": "head",
+				"pivot": [-0.5, 4, 5]
+			},
+			{
+				"name": "right_eye",
+				"parent": "eyes",
+				"pivot": [-2, 7, -1.5],
+				"cubes": [
+					{"origin": [-3.5, 6, -3], "size": [3, 2, 3], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "left_eye",
+				"parent": "eyes",
+				"pivot": [2, 7, -1.5],
+				"cubes": [
+					{"origin": [0.5, 6, -3], "size": [3, 2, 3], "uv": [0, 5]}
+				]
+			},
+			{
+				"name": "croaking_body",
+				"parent": "body",
+				"pivot": [0, 3, -1],
+				"cubes": [
+					{"origin": [-3.5, 1.1, -3.9], "size": [7, 2, 3], "inflate": -0.1, "uv": [26, 5]}
+				]
+			},
+			{
+				"name": "tongue",
+				"parent": "body",
+				"pivot": [0, 3.1, 5],
+				"cubes": [
+					{"origin": [-2, 3.1, -2.1], "size": [4, 0, 7], "uv": [17, 13]}
+				]
+			},
+			{
+				"name": "left_arm",
+				"parent": "body",
+				"pivot": [4, 3, -2.5],
+				"cubes": [
+					{"origin": [3, 0, -3.5], "size": [2, 3, 3], "uv": [0, 32]},
+					{"origin": [0, -0.01, -7.5], "size": [8, 0, 8], "uv": [18, 40], "layer": true}
+				]
+			},
+			{
+				"name": "right_arm",
+				"parent": "body",
+				"pivot": [-4, 3, -2.5],
+				"cubes": [
+					{"origin": [-5, 0, -3.5], "size": [2, 3, 3], "uv": [0, 38]},
+					{"origin": [-8, -0.01, -7.5], "size": [8, 0, 8], "uv": [2, 40], "layer": true}
+				]
+			},
+			{
+				"name": "left_leg",
+				"parent": "root",
+				"pivot": [3.5, 3, 4],
+				"cubes": [
+					{"origin": [2.5, 0, 2], "size": [3, 3, 4], "uv": [14, 25]},
+					{"origin": [1.5, -0.01, 0], "size": [8, 0, 8], "uv": [2, 32], "layer": true}
+				]
+			},
+			{
+				"name": "right_leg",
+				"parent": "root",
+				"pivot": [-3.5, 3, 4],
+				"cubes": [
+					{"origin": [-5.5, 0, 2], "size": [3, 3, 4], "uv": [0, 25]},
+					{"origin": [-9.5, -0.01, 0], "size": [8, 0, 8], "uv": [18, 32], "layer": true}
+				]
+			}
+		]
+	}`
+};
 skin_presets.ghast = {
 	display_name: 'Ghast',
 	model: `{
@@ -5102,6 +5211,40 @@ skin_presets.strider = {
 				"mirror": true,
 				"cubes": [
 					{"name": "cube", "origin": [2, 0, -2], "size": [4, 17, 4], "uv": [0, 32]}
+				]
+			}
+		]
+	}`
+};
+skin_presets.tadpole = {
+	display_name: 'Tadpole',
+	model: `{
+		"name": "tadpole",
+		"texturewidth": 16,
+		"textureheight": 16,
+		"eyes": [
+			[2, 3, 2, 1],
+			[5, 3, 2, 1]
+		],
+		"bones": [
+			{
+				"name": "root",
+				"pivot": [0, 0, 0]
+			},
+			{
+				"name": "body",
+				"parent": "root",
+				"pivot": [0, 0, 1],
+				"cubes": [
+					{"origin": [-1.5, 1, -2.5], "size": [3, 2, 3], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tail",
+				"parent": "root",
+				"pivot": [0, 0, 1],
+				"cubes": [
+					{"origin": [0, 1, -0.5], "size": [0, 2, 7], "uv": [0, 0]}
 				]
 			}
 		]

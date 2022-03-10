@@ -563,10 +563,8 @@ onVueSetup(() => {
 					function off(e2) {
 						removeEventListeners(document, 'mouseup', off);
 						delete tab.middle_mouse_pressing;
-						console.log('delete')
 					}
 					tab.middle_mouse_pressing = true;
-					console.log('on')
 					addEventListeners(document, 'mouseup', off, {passive: false});
 					return;
 				}
@@ -650,7 +648,6 @@ onVueSetup(() => {
 				}
 			},
 			mouseUp(tab, e1) {
-				console.log(e1.button === 1, tab.middle_mouse_pressing)
 				if (e1.button === 1 && tab.middle_mouse_pressing) {
 					tab.close()
 				}
