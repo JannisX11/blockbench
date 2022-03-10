@@ -178,6 +178,7 @@ class Panel {
 					this.position_data.float_position[1] = position_before[1] + e2.clientY - e1.clientY;
 
 					let threshold = 40;
+					let threshold_y = 64;
 					target_slot = null; target_panel = null; target_before = false;
 
 					if (e2.clientX < Math.max(Interface.left_bar_width, threshold)) {
@@ -209,13 +210,13 @@ class Panel {
 						}
 
 					} else if (
-						e2.clientY < (Interface.work_screen.offsetTop + 30 + threshold) &&
+						e2.clientY < (Interface.work_screen.offsetTop + 30 + threshold_y) &&
 						e2.clientX > Interface.left_bar_width && e2.clientX < (Interface.work_screen.clientWidth - Interface.right_bar_width)
 					) {
 						target_slot = 'top'
 
 					} else if (
-						e2.clientY > Interface.work_screen.offsetTop + Interface.work_screen.clientHeight - Interface.status_bar.vue.$el.clientHeight - 80 &&
+						e2.clientY > Interface.work_screen.offsetTop + Interface.work_screen.clientHeight - Interface.status_bar.vue.$el.clientHeight - threshold_y &&
 						e2.clientX > Interface.left_bar_width && e2.clientX < (Interface.work_screen.clientWidth - Interface.right_bar_width)
 					) {
 						target_slot = 'bottom'
@@ -483,10 +484,9 @@ class Panel {
 				if (!dragging && work_screen.clientWidth) {
 					this.position_data.float_position[0] = Math.clamp(this.position_data.float_position[0], 0, work_screen.clientWidth - this.width);
 					this.position_data.float_position[1] = Math.clamp(this.position_data.float_position[1], 0, work_screen.clientHeight - this.height);
-					this.position_data.float_size[0] = Math.clamp(this.position_data.float_size[0], 300, work_screen.clientWidth - this.position_data.float_position[0]);
-					this.position_data.float_size[1] = Math.clamp(this.position_data.float_size[1], 300, work_screen.clientHeight - this.position_data.float_position[1]);
+					this.position_data.float_size[0] = Math.clamp(this.position_data.float_size[0], 200, work_screen.clientWidth - this.position_data.float_position[0]);
+					this.position_data.float_size[1] = Math.clamp(this.position_data.float_size[1], 86, work_screen.clientHeight - this.position_data.float_position[1]);
 				}
-
 				this.node.style.left = this.position_data.float_position[0] + 'px';
 				this.node.style.top = this.position_data.float_position[1] + 'px';
 				this.width  = this.position_data.float_size[0];

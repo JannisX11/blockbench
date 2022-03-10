@@ -1674,7 +1674,7 @@ Interface.definePanels(function() {
 		selection_only: true,
 		expand_button: true,
 		condition: {modes: ['edit', 'paint']},
-		display_condition: () => UVEditor.getMappableElements().length,
+		display_condition: () => UVEditor.getMappableElements().length || Modes.paint,
 		default_position: {
 			slot: 'left_bar',
 			float_position: [300, 0],
@@ -1798,6 +1798,11 @@ Interface.definePanels(function() {
 					for (var id in UVEditor.sliders) {
 						var slider = UVEditor.sliders[id];
 						slider.setWidth(slider_bar_width / (Project.box_uv?2:4)-1);
+					}
+					if (this.$refs.viewport && this.zoom == 1 && ((!this.$refs.viewport.scrollLeft && !this.$refs.viewport.scrollTop) || this.centered_view)) {
+						this.$refs.viewport.scrollLeft = this.width/2;
+						this.$refs.viewport.scrollTop = this.height/2;
+						this.centered_view = true;
 					}
 				},
 				setMode(mode) {
@@ -2625,12 +2630,6 @@ Interface.definePanels(function() {
 						Math.floor(gap_x + this.width/2),
 						Math.floor(gap_y + this.height/2),
 					];
-					if (this.$refs.viewport && this.zoom == 1 && ((!this.$refs.viewport.scrollLeft && !this.$refs.viewport.scrollTop) || this.centered_view)) {
-						this.$refs.viewport.scrollLeft = margin[0] - gap_x;
-						this.$refs.viewport.scrollTop = margin[1] - gap_y;
-						this.centered_view = true;
-					}
-
 					return style ? `${margin[1]}px ${margin[0]}px` : margin;
 				}
 			},

@@ -138,18 +138,18 @@ function updateSelection(options = {}) {
 	} else {
 		if (Format.bone_rig && Group.selected) {
 			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
-			document.querySelectorAll('.selection_only#element').forEach(node => node.style.setProperty('visibility', 'visible'));
+			document.querySelectorAll('.selection_only#panel_element').forEach(node => node.style.setProperty('visibility', 'visible'));
 		} else {
 			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
 			if (Outliner.selected.length) {
-				document.querySelectorAll('.selection_only#element').forEach(node => node.style.setProperty('visibility', 'visible'));
+				document.querySelectorAll('.selection_only#panel_element').forEach(node => node.style.setProperty('visibility', 'visible'));
 			}
 		}
 		if (Group.selected || NullObject.selected[0]) {
-			document.querySelectorAll('.selection_only#bone').forEach(node => node.style.setProperty('visibility', 'visible'));
+			document.querySelectorAll('.selection_only#panel_bone').forEach(node => node.style.setProperty('visibility', 'visible'));
 		}
 		if (Format.single_texture && Modes.paint) {
-			document.querySelectorAll('.selection_only#uv').forEach(node => node.style.setProperty('visibility', 'visible'));
+			document.querySelectorAll('.selection_only#panel_uv').forEach(node => node.style.setProperty('visibility', 'visible'));
 		}
 	}
 	if (Outliner.selected.length || (Format.single_texture && Modes.paint)) {

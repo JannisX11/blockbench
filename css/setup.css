@@ -596,14 +596,6 @@
 		border-bottom-color: transparent !important;
 		border-left-color: transparent !important;
 	}
-	#nslide_head {
-		margin-top: 30px;
-		color: var(--color-light);
-		white-space: nowrap;
-		position: absolute;
-		z-index: 1111;
-		background-color: var(--color-back);
-	}
 	div.nslide_arrow {
 		position: absolute;
 		z-index: 17;

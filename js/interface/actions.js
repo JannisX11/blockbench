@@ -133,9 +133,8 @@ class BarItem {
 		}
 	}
 	getNode(ignore_disconnected) {
-		var scope = this;
-		if (scope.nodes.length === 0) {
-			scope.nodes = [scope.node]
+		if (this.nodes.length === 0) {
+			this.nodes = [this.node]
 		}
 		for (let node of this.nodes) {
 			if (!node.isConnected && !ignore_disconnected) {
@@ -143,11 +142,11 @@ class BarItem {
 				return node;
 			}
 		}
-		var clone = $(scope.node).clone(true, true).get(0);
+		var clone = $(this.node).clone(true, true).get(0);
 		clone.onclick = (e) => {
-			scope.trigger(e)
+			this.trigger(e)
 		}
-		scope.nodes.push(clone);
+		this.nodes.push(clone);
 		return clone;
 	}
 	toElement(destination) {

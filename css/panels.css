@@ -229,6 +229,21 @@
 		left: unset;
 		width: 3px;
 	}
+	#center[snapside=top]::before,
+	#center[snapside=bottom]::before {
+		content: "";
+		position: absolute;
+		right: 0;
+		top: 0;
+		left: 0;
+		background-color: var(--color-accent);
+		opacity: 0.1;
+		height: 64px;
+	}
+	#center[snapside=bottom]::before {
+		top: unset;
+		bottom: 0;
+	}
 
 /*Display*/
 

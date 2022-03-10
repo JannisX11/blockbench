@@ -1565,6 +1565,7 @@ Interface.definePanels(function() {
 				element_rotation: 	Toolbars.element_rotation,
 			}
 		})
+		Toolbars.element_origin.node.after(Interface.createElement('div', {id: 'element_origin_toolbar_anchor'}))
 	}
 })
 

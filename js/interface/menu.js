@@ -190,6 +190,7 @@ class Menu {
 				})
 				search_button.onclick = (e) => {
 					input.value = '';
+					input.oninput(e);
 				}
 				input.oninput = (e) => {
 					let search_term = input.value.toUpperCase();

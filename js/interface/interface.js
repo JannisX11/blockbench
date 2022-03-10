@@ -75,7 +75,14 @@ const Interface = {
 		timeline_head: Blockbench.isMobile ? 140 : 196,
 		left_bar: ['uv', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
 		right_bar: ['element', 'bone', 'color', 'skin_pose', 'outliner', 'chat'],
-		panels: {}
+		panels: {
+			paint: {
+				slot: 'bottom',
+				float_position: [300, 0],
+				float_size: [500, 600],
+				height: 500
+			}
+		}
 	},
 	get left_bar_width() {
 		return Prop.show_left_bar && Interface.getLeftPanels().length ? Interface.data.left_bar_width : 0;

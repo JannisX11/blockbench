@@ -136,6 +136,9 @@ BARS.defineActions(function() {
 			BarItems.slider_color_s.update();
 			BarItems.slider_color_v.update();
 
+			Panels.uv.handle.firstChild.textContent = tl('mode.paint');
+			Panels.uv.position_data = Interface.data.panels.paint;
+			Panels.uv.moveTo(Panels.uv.slot);
 			UVEditor.vue.setMode('paint');
 			three_grid.visible = false;
 		},
@@ -144,6 +147,9 @@ BARS.defineActions(function() {
 			Outliner.elements.forEach(cube => {
 				if (cube.preview_controller.updatePaintingGrid) cube.preview_controller.updatePaintingGrid(cube);
 			})
+			Panels.uv.handle.firstChild.textContent = tl('panel.uv');
+			Panels.uv.position_data = Interface.data.panels.uv;
+			Panels.uv.moveTo(Panels.uv.slot);
 			UVEditor.vue.setMode('uv');
 			three_grid.visible = true;
 		},

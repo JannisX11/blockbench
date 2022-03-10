@@ -1327,7 +1327,6 @@ BARS.defineActions(function() {
 	
 
 	new Action('timeline_setups', {
-		name: 'menu.timeline.setups',
 		icon: 'folder_special',
 		condition: {modes: ['animate'], project: true, method: () => Project.timeline_setups.length},
 		children() {
@@ -1360,8 +1359,6 @@ BARS.defineActions(function() {
 		}
 	})
 	new Action('save_timeline_setup', {
-		name: 'menu.timeline.save_setup',
-		description: 'menu.timeline.save_setup.desc',
 		icon: 'star',
 		condition: {modes: ['animate']},
 		async click() {
