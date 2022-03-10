@@ -188,37 +188,47 @@
 	bottom: -4px;
 }
 
-#center[snapside]::after {
-	content: "";
-	display: block;
-	position: absolute;
-	background-color: var(--color-accent);
-	box-shadow: 0 0 20px #ffffff80;
-}
-#center[snapside=top]::after {
-	top: 0;
-	right: 0;
-	left: 0;
-	height: 3px;
-}
-#center[snapside=bottom]::after {
-	bottom: 0;
-	right: 0;
-	left: 0;
-	height: 3px;
-}
-#center[snapside=left_bar]::after {
-	top: 0;
-	bottom: 0;
-	left: 0;
-	width: 3px;
-}
-#center[snapside=right_bar]::after {
-	top: 0;
-	bottom: 0;
-	right: 0;
-	width: 3px;
-}
+/*Snapping*/
+	.sidebar.drop_target {
+		position: relative;
+	}
+	.sidebar.drop_target::after {
+		content: "";
+		position: absolute;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		background-color: var(--color-accent);
+		opacity: 0.1;
+	}
+	#center[snapside]::after {
+		content: "";
+		display: block;
+		position: absolute;
+		background-color: var(--color-accent);
+		box-shadow: 0 0 20px #ffffff80;
+		top: 0;
+		bottom: 0;
+		right: 0;
+		left: 0;
+	}
+	#center[snapside=top]::after {
+		bottom: unset;
+		height: 3px;
+	}
+	#center[snapside=bottom]::after {
+		top: unset;
+		height: 3px;
+	}
+	#center[snapside=left_bar]::after {
+		right: unset;
+		width: 3px;
+	}
+	#center[snapside=right_bar]::after {
+		left: unset;
+		width: 3px;
+	}
 
 /*Display*/
 

@@ -153,6 +153,9 @@ class Panel {
 					if ((target_slot == 'right_bar' && Interface.right_bar_width) || (target_slot == 'left_bar' && Interface.left_bar_width)) {
 						Interface.center_screen.removeAttribute('snapside');
 					}
+					Interface.left_bar.classList.toggle('drop_target', target_slot == 'left_bar');
+					Interface.right_bar.classList.toggle('drop_target', target_slot == 'right_bar');
+
 					if (target_slot == 'left_bar' && !Prop.show_left_bar) Interface.toggleSidebar('left');
 					if (target_slot == 'right_bar' && !Prop.show_right_bar) Interface.toggleSidebar('right');
 					if (target_slot != 'left_bar' && Prop.show_left_bar && !original_show_left_bar) Interface.toggleSidebar('left');
@@ -227,6 +230,8 @@ class Panel {
 					this.node.classList.remove('dragging');
 					Interface.center_screen.removeAttribute('snapside');
 					$(`.panel[order]`).attr('order', null);
+					Interface.left_bar.classList.remove('drop_target');
+					Interface.right_bar.classList.remove('drop_target');
 
 					if (target_slot) {
 						this.moveTo(target_slot, target_panel, target_before)
@@ -299,7 +304,7 @@ class Panel {
 		let reference_panel = Panels[data.insert_before || data.insert_after];
 		this.moveTo(this.position_data.slot, reference_panel, reference_panel && !data.insert_after);
 
-		Interface.Panels[this.id] = this;
+		Panels[this.id] = this;
 	}
 	isVisible() {
 		return !this.folded && this.node.parentElement && this.node.parentElement.style.display !== 'none';
@@ -406,12 +411,13 @@ class Panel {
 
 		if (slot == 'left_bar' || slot == 'right_bar') {
 			if (!ref_panel && Interface.data[slot].includes(this.id)) {
-				let index = Interface.data[slot].indexOf(this.id);
+				let panels = Interface.data[slot].filter(id => Panels[id] && Panels[id].slot == slot || id == this.id);
+				let index = panels.indexOf(this.id);
 				if (index == 0) {
-					ref_panel = Interface.Panels[Interface.data[slot][1]];
+					ref_panel = Panels[panels[1]];
 					before = true;
 				} else {
-					ref_panel = Interface.Panels[Interface.data[slot][index-1]];
+					ref_panel = Panels[panels[index-1]];
 					before = false;
 				}
 			}
@@ -522,7 +528,7 @@ class Panel {
 		return this;
 	}
 	delete() {
-		delete Interface.Panels[this.id];
+		delete Panels[this.id];
 		this.node.remove()
 	}
 }
@@ -550,7 +556,7 @@ function updateInterfacePanels() {
 		Interface.data.left_bar_width+'px auto '+ Interface.data.right_bar_width +'px'
 	)
 	for (var key in Interface.Panels) {
-		var panel = Interface.Panels[key]
+		var panel = Panels[key]
 		panel.update()
 	}
 	var left_width = $('.sidebar#left_bar > .panel:visible').length ? Interface.left_bar_width : 0;
