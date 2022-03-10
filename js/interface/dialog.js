@@ -349,7 +349,11 @@ class DialogSidebar {
 		this.page_menu = {};
 		for (let key in this.pages) {
 			let li = document.createElement('li');
-			li.textContent = this.pages[key];
+			let page = this.pages[key];
+			if (typeof page == 'object' && page.icon) {
+				li.append(Blockbench.getIconNode(page.icon, page.color));
+			}
+			li.append(typeof page == 'string' ? tl(page) : tl(page.label));
 			li.setAttribute('page', key);
 			if (this.page == key) li.classList.add('selected');
 			this.page_menu[key] = li;

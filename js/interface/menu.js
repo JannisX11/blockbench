@@ -522,14 +522,16 @@ class BarMenu extends Menu {
 		this.node.style.minWidth = '150px';
 		this.name = tl(options.name || `menu.${id}`);
 		this.label = Interface.createElement('li', {class: 'menu_bar_point'}, this.name);
-		$(this.label).click(function() {
+		this.label.addEventListener('click', (event) => {
 			if (open_menu === scope) {
-				scope.hide()
+				if (event instanceof PointerEvent == false) {
+					scope.hide()
+				}
 			} else {
 				scope.open()
 			}
 		})
-		$(this.label).mouseenter(function() {
+		this.label.addEventListener('mouseenter', (event) => {
 			if (MenuBar.open && MenuBar.open !== scope) {
 				scope.open()
 			}

@@ -146,6 +146,7 @@ class Panel {
 							this.moveTo('float');
 							this.moveToFront();
 						}
+						this.node.classList.add('dragging');
 					}
 					if (!started) return;
 					
@@ -164,7 +165,6 @@ class Panel {
 						let anchor = this.position_data.float_position[1];
 						anchor += this.node.clientHeight * ((this.position_data.float_position[1] + this.position_data.float_size[1]) / Interface.work_screen.clientHeight);
 						let index = Math.floor(Math.clamp(anchor / Interface.work_screen.clientHeight, 0, 1) * (panels.length));
-						this.moveTo('left_bar', Panels[panels[Math.clamp(index, 0, panels.length-1)]], index < panels.length);
 
 					} else if (this.position_data.float_position[0] + Math.min(this.position_data.float_size[0], Interface.data.right_bar_width) > document.body.clientWidth - threshold) {
 						let panels = [];
@@ -176,22 +176,21 @@ class Panel {
 						let anchor = this.position_data.float_position[1];
 						anchor += this.node.clientHeight * ((this.position_data.float_position[1] + this.position_data.float_size[1]) / Interface.work_screen.clientHeight);
 						let index = Math.floor(Math.clamp(anchor / Interface.work_screen.clientHeight, 0, 1) * (panels.length));
-						this.moveTo('right_bar', Panels[panels[Math.clamp(index, 0, panels.length-1)]], index < panels.length);
 
 					} else if (
 						this.position_data.float_position[1] < threshold &&
 						center_x > Interface.left_bar_width && center_x < (Interface.work_screen.clientWidth - Interface.right_bar_width)
 					) {
-						if (this.slot == 'float') this.moveTo('top');
+						//if (this.slot == 'float') this.moveTo('top');
 
 					} else if (
 						this.position_data.float_position[1] + Math.min(this.position_data.float_size[1], 200) > Interface.work_screen.clientHeight - threshold &&
 						center_x > Interface.left_bar_width && center_x < (Interface.work_screen.clientWidth - Interface.right_bar_width)
 					) {
-						if (this.slot == 'float') this.moveTo('bottom');
+						//if (this.slot == 'float') this.moveTo('bottom');
 
 					} else if (this.slot != 'float') {
-						this.moveTo('float');
+						//this.moveTo('float');
 					}
 
 					this.update(true);
@@ -199,6 +198,8 @@ class Panel {
 				}
 				let stop = e2 => {
 					convertTouchEvent(e2);
+
+					this.node.classList.remove('dragging');
 
 					if (this.slot != 'float') {
 						this.position_data.float_position[0] = position_before[0];
@@ -411,7 +412,7 @@ class Panel {
 			}
 			document.getElementById('bottom_slot').append(this.node);
 
-		} else if (slot == 'float') {
+		} else if (slot == 'float' && !Blockbench.isMobile) {
 			Interface.work_screen.append(this.node);
 			this.node.classList.add('floating');
 			if (!this.resize_handles) {
@@ -632,9 +633,6 @@ function setupMobilePanelSelector() {
 			},
 			template: `
 				<div id="panel_selector_bar">
-					<div class="panel_selector" :class="{selected: selected == null}" @click="select(null)">
-						<div class="icon_wrapper"><i class="material-icons icon">3d_rotation</i></div>
-					</div>
 					<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in panels()" v-if="Condition(panel.condition)" @click="select(panel)">
 						<div class="icon_wrapper" v-html="getIconNode(panel.icon).outerHTML"></div>
 					</div>

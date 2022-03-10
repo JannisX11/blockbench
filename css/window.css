@@ -241,10 +241,8 @@
 		padding-top: 0;
 		height: calc(100% - 4px);
 	}
-	@media (max-width:640px)  {
-		div#header_free_bar.app-drag-region {
-			display: none;
-		}
+	body.is_mobile div#header_free_bar.app-drag-region {
+		display: none;
 	}
 	#web_download_button {
 		margin-left: auto;
@@ -435,11 +433,14 @@
 	li.menu_bar_point.highlighted {
 		animation: menu_item_highlight 1s infinite ease-in-out;
 	}
-	#title_bar_home_button {
+	header .tool {
 		height: 100%;
 	}
-	#title_bar_home_button > i {
+	header .tool > i {
 		margin-top: 2px;
+	}
+	body.is_mobile.is_landscape #title_bar_undo_controls {
+		display: block;
 	}
 
 	#mode_selector {

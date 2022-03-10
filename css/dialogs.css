@@ -306,6 +306,11 @@
 		border-left: 4px solid transparent;
 		cursor: pointer;
 	}
+	.dialog_sidebar .dialog_sidebar_pages li .icon {
+		float: left;
+		margin-left: -10px;
+		margin-right: 5px;
+	}
 	.dialog_sidebar .dialog_sidebar_pages li:hover {
 		color: var(--color-light);
 	}

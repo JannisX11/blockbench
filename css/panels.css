@@ -21,6 +21,9 @@
 		box-sizing: content-box;
 		z-index: 14;
 	}
+	.panel.floating.dragging {
+		opacity: 0.6;
+	}
 	body.is_mobile .panel {
 		overflow-y: auto;
 		overflow-x: hidden;
