@@ -137,6 +137,27 @@ class Panel {
 				let position_before = this.slot == 'float'
 					? this.position_data.float_position.slice()
 					: [e1.clientX - e1.offsetX, e1.clientY - e1.offsetY - 55];
+				let original_show_left_bar = Prop.show_left_bar;
+				let original_show_right_bar = Prop.show_right_bar;
+
+				let target_slot, target_panel, target_before;
+				function updateTargetHighlight() {
+					$(`.panel[order]`).attr('order', null);
+					if (target_panel) target_panel.node.setAttribute('order', target_before ? -1 : 1);
+
+					if (target_slot) {
+						Interface.center_screen.setAttribute('snapside', target_slot);
+					} else {
+						Interface.center_screen.removeAttribute('snapside');
+					}
+					if ((target_slot == 'right_bar' && Interface.right_bar_width) || (target_slot == 'left_bar' && Interface.left_bar_width)) {
+						Interface.center_screen.removeAttribute('snapside');
+					}
+					if (target_slot == 'left_bar' && !Prop.show_left_bar) Interface.toggleSidebar('left');
+					if (target_slot == 'right_bar' && !Prop.show_right_bar) Interface.toggleSidebar('right');
+					if (target_slot != 'left_bar' && Prop.show_left_bar && !original_show_left_bar) Interface.toggleSidebar('left');
+					if (target_slot != 'right_bar' && Prop.show_right_bar && !original_show_right_bar) Interface.toggleSidebar('right');
+				}
 
 				let drag = e2 => {
 					convertTouchEvent(e2);
@@ -153,53 +174,63 @@ class Panel {
 					this.position_data.float_position[0] = position_before[0] + e2.clientX - e1.clientX;
 					this.position_data.float_position[1] = position_before[1] + e2.clientY - e1.clientY;
 
-					let threshold = -5;
-					let center_x = this.position_data.float_position[0] + this.position_data.float_size[0]/2;
-					if (this.position_data.float_position[0] < threshold) {
-						let panels = [];
-						Interface.left_bar.childNodes.forEach(child => {
-							if (child.clientHeight) {
-								panels.push(child.id.replace(/^panel_/, ''));
-							}
-						})
-						let anchor = this.position_data.float_position[1];
-						anchor += this.node.clientHeight * ((this.position_data.float_position[1] + this.position_data.float_size[1]) / Interface.work_screen.clientHeight);
-						let index = Math.floor(Math.clamp(anchor / Interface.work_screen.clientHeight, 0, 1) * (panels.length));
+					let threshold = 40;
+					target_slot = null; target_panel = null; target_before = false;
 
-					} else if (this.position_data.float_position[0] + Math.min(this.position_data.float_size[0], Interface.data.right_bar_width) > document.body.clientWidth - threshold) {
-						let panels = [];
-						Interface.right_bar.childNodes.forEach(child => {
-							if (child.clientHeight) {
-								panels.push(child.id.replace(/^panel_/, ''));
+					if (e2.clientX < Math.max(Interface.left_bar_width, threshold)) {
+
+						let y = Interface.work_screen.offsetTop;
+						target_slot = 'left_bar';
+						for (let child of Interface.left_bar.childNodes) {
+							if (!child.clientHeight) continue;
+							target_panel = Panels[child.id.replace(/^panel_/, '')];
+							if (e2.clientY < (y + child.clientHeight / 2)) {
+								target_before = true;
+								break;
 							}
-						})
-						let anchor = this.position_data.float_position[1];
-						anchor += this.node.clientHeight * ((this.position_data.float_position[1] + this.position_data.float_size[1]) / Interface.work_screen.clientHeight);
-						let index = Math.floor(Math.clamp(anchor / Interface.work_screen.clientHeight, 0, 1) * (panels.length));
+							y += child.clientHeight;
+						}
+
+					} else if (e2.clientX > document.body.clientWidth - Math.max(Interface.right_bar_width, threshold)) {
+						
+						let y = Interface.work_screen.offsetTop + 30;
+						target_slot = 'right_bar';
+						for (let child of Interface.right_bar.childNodes) {
+							if (!child.clientHeight) continue;
+							target_panel = Panels[child.id.replace(/^panel_/, '')];
+							if (e2.clientY < (y + child.clientHeight / 2)) {
+								target_before = true;
+								break;
+							}
+							y += child.clientHeight;
+						}
 
 					} else if (
-						this.position_data.float_position[1] < threshold &&
-						center_x > Interface.left_bar_width && center_x < (Interface.work_screen.clientWidth - Interface.right_bar_width)
+						e2.clientY < (Interface.work_screen.offsetTop + 30 + threshold) &&
+						e2.clientX > Interface.left_bar_width && e2.clientX < (Interface.work_screen.clientWidth - Interface.right_bar_width)
 					) {
-						//if (this.slot == 'float') this.moveTo('top');
+						target_slot = 'top'
 
 					} else if (
-						this.position_data.float_position[1] + Math.min(this.position_data.float_size[1], 200) > Interface.work_screen.clientHeight - threshold &&
-						center_x > Interface.left_bar_width && center_x < (Interface.work_screen.clientWidth - Interface.right_bar_width)
+						e2.clientY > Interface.work_screen.offsetTop + Interface.work_screen.clientHeight - Interface.status_bar.vue.$el.clientHeight - 80 &&
+						e2.clientX > Interface.left_bar_width && e2.clientX < (Interface.work_screen.clientWidth - Interface.right_bar_width)
 					) {
-						//if (this.slot == 'float') this.moveTo('bottom');
+						target_slot = 'bottom'
 
-					} else if (this.slot != 'float') {
-						//this.moveTo('float');
 					}
-
+					updateTargetHighlight();
 					this.update(true);
 
 				}
 				let stop = e2 => {
 					convertTouchEvent(e2);
-
 					this.node.classList.remove('dragging');
+					Interface.center_screen.removeAttribute('snapside');
+					$(`.panel[order]`).attr('order', null);
+
+					if (target_slot) {
+						this.moveTo(target_slot, target_panel, target_before)
+					}
 
 					if (this.slot != 'float') {
 						this.position_data.float_position[0] = position_before[0];
@@ -474,7 +505,8 @@ class Panel {
 					this.width = Math.clamp(this.position_data.height, 30, center_screen.clientWidth);
 					if (this.folded) this.width = 72;
 				} else {
-					this.height = Math.clamp(this.position_data.height, 30, center_screen.clientHeight);
+					let opposite_panel = this.slot == 'top' ? Interface.getBottomPanel() : Interface.getTopPanel();
+					this.height = Math.clamp(this.position_data.height, 30, center_screen.clientHeight - (opposite_panel ? opposite_panel.height : 0));
 					if (this.folded) this.height = this.handle.clientHeight;
 					this.width = Interface.work_screen.clientWidth - Interface.left_bar_width - Interface.right_bar_width;
 				}
@@ -512,9 +544,8 @@ function updateInterfacePanels() {
 		$('.sidebar#left_bar').css('display', Prop.show_left_bar ? 'flex' : 'none');
 		$('.sidebar#right_bar').css('display', Prop.show_right_bar ? 'flex' : 'none');
 	}
-	let work_screen = Interface.work_screen;
 
-	work_screen.style.setProperty(
+	Interface.work_screen.style.setProperty(
 		'grid-template-columns',
 		Interface.data.left_bar_width+'px auto '+ Interface.data.right_bar_width +'px'
 	)
@@ -526,12 +557,13 @@ function updateInterfacePanels() {
 	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.right_bar_width : 0;
 
 	if (!left_width || !right_width) {
-		work_screen.style.setProperty(
+		Interface.work_screen.style.setProperty(
 			'grid-template-columns',
 			left_width+'px auto '+ right_width +'px'
 		)
 	}
 
+	Interface.preview.style.visibility = Interface.preview.clientHeight > 80 ? 'visible' : 'hidden';
 	$('.quad_canvas_wrapper.qcw_x').css('width', Interface.data.quad_view_x+'%')
 	$('.quad_canvas_wrapper.qcw_y').css('height', Interface.data.quad_view_y+'%')
 	$('.quad_canvas_wrapper:not(.qcw_x)').css('width', (100-Interface.data.quad_view_x)+'%')

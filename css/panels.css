@@ -21,6 +21,9 @@
 		box-sizing: content-box;
 		z-index: 14;
 	}
+	.panel.floating > .panel_vue_wrapper {
+		overflow: hidden;
+	}
 	.panel.floating.dragging {
 		opacity: 0.6;
 	}
@@ -106,10 +109,11 @@
 		height: 2px;
 		left: 0;
 		right: 0;
-		background: var(--color-accent);
+		background-color: var(--color-accent);
 		z-index: 3;
 		display: block;
 		position: absolute;
+		box-shadow: 0 0 20px #ffffff80;
 	}
 	.panel[order] {
 		position: relative;
@@ -184,7 +188,37 @@
 	bottom: -4px;
 }
 
-
+#center[snapside]::after {
+	content: "";
+	display: block;
+	position: absolute;
+	background-color: var(--color-accent);
+	box-shadow: 0 0 20px #ffffff80;
+}
+#center[snapside=top]::after {
+	top: 0;
+	right: 0;
+	left: 0;
+	height: 3px;
+}
+#center[snapside=bottom]::after {
+	bottom: 0;
+	right: 0;
+	left: 0;
+	height: 3px;
+}
+#center[snapside=left_bar]::after {
+	top: 0;
+	bottom: 0;
+	left: 0;
+	width: 3px;
+}
+#center[snapside=right_bar]::after {
+	top: 0;
+	bottom: 0;
+	right: 0;
+	width: 3px;
+}
 
 /*Display*/
 

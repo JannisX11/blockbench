@@ -219,12 +219,13 @@ const Interface = {
 			condition() {return !Blockbench.isMobile && Interface.getTopPanel()},
 			get() {
 				let panel = Interface.getTopPanel();
-				return panel.folded ? panel.handle.clientHeight : panel.position_data.height;
+				return panel.folded ? panel.handle.clientHeight : panel.height;
 			},
 			set(o, diff) {
 				let panel = Interface.getTopPanel();
-				panel.position_data.height = limitNumber(o + diff, 150, document.body.clientHeight-200);
+				panel.position_data.height = limitNumber(o + diff, 150);
 				panel.update();
+				if (Interface.getBottomPanel()) Interface.getBottomPanel().update();
 			},
 			position() {this.setPosition({
 				left: Interface.left_bar_width+2,
@@ -237,11 +238,12 @@ const Interface = {
 			condition() {return !Blockbench.isMobile && Interface.getBottomPanel()},
 			get() {
 				let panel = Interface.getBottomPanel();
-				return panel.folded ? panel.handle.clientHeight : panel.position_data.height;
+				return panel.folded ? panel.handle.clientHeight : panel.height;
 			},
 			set(o, diff) {
-				Interface.getBottomPanel().position_data.height = limitNumber(o - diff, 150, document.body.clientHeight-200);
+				Interface.getBottomPanel().position_data.height = limitNumber(o - diff, 150);
 				Interface.getBottomPanel().update();
+				if (Interface.getTopPanel()) Interface.getTopPanel().update();
 			},
 			position() {this.setPosition({
 				left: Interface.left_bar_width+2,
@@ -270,9 +272,9 @@ const Interface = {
 	},
 	status_bar: {},
 	Panels: {},
-	toggleSidebar(side) {
-		let status = !Prop[`show_${side}_bar`];
-		Prop[`show_${side}_bar`] = status;
+	toggleSidebar(side, status) {
+		if (status == undefined) status = !Prop[`show_${side}_bar`];
+		Prop[`show_${side}_bar`] = !!status;
 		resizeWindow();
 	}
 }
