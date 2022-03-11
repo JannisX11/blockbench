@@ -290,8 +290,9 @@ class OutlinerNode {
 		let zero_based = this.name.match(/[^\d]0$/) !== null;
 		var name = this.name.replace(/\d+$/, '').replace(/\s+/g, '_');
 		function check(n) {
+			let n_lower = n.toLowerCase();
 			for (var i = 0; i < others.length; i++) {
-				if (others[i] !== scope && others[i].name.toLowerCase() == n.toLowerCase()) return false;
+				if (others[i] !== scope && others[i].name.toLowerCase() === n_lower) return false;
 			}
 			return true;
 		}

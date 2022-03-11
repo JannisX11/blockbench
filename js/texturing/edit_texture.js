@@ -29,7 +29,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Invert colors')
 		}
 	})
-	new Action('adjust_brightness', {
+	new Action('adjust_brightness_contrast', {
 		icon: 'brightness_high',
 		category: 'textures',
 		condition: {modes: ['paint'], method: () => Texture.all.length},
@@ -41,13 +41,14 @@ BARS.defineActions(function() {
 			Undo.initEdit({textures, bitmap: true});
 
 			new Dialog({
-				id: 'adjust_brightness',
-				name: 'action.adjust_brightness',
+				id: 'adjust_brightness_contrast',
+				name: 'action.adjust_brightness_contrast',
 				darken: false,
 				component: {
 					data() {return {
 						show_preview,
 						brightness: 100,
+						contrast: 100,
 						textures
 					}},
 					methods: {
@@ -55,7 +56,7 @@ BARS.defineActions(function() {
 							textures.forEach((texture, i) => {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
-									ctx.filter = `brightness(${this.brightness / 100})`;
+									ctx.filter = `brightness(${this.brightness / 100}) contrast(${this.contrast / 100})`;
 									ctx.drawImage(original_imgs[i], 0, 0);
 								}, {no_undo: true, use_cache: true});
 							})
@@ -74,59 +75,6 @@ BARS.defineActions(function() {
 								<input type="range" class="tool" min="0" max="200" step="1" v-model="brightness" @input="change()">
 								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="brightness" @input="change()">
 							</div>
-						</div>
-					`
-				},
-				onConfirm() {
-					Undo.finishEdit('Invert colors');
-				},
-				onCancel() {
-					Undo.cancelEdit();
-				}
-			}).show();
-		}
-	})
-	new Action('adjust_contrast', {
-		icon: 'brightness_6',
-		category: 'textures',
-		condition: {modes: ['paint'], method: () => Texture.all.length},
-		click() {
-			let textures = getTextures();
-			let original_imgs = textures.map(tex => {
-				return tex.img.cloneNode();
-			})
-			Undo.initEdit({textures, bitmap: true});
-
-			new Dialog({
-				id: 'adjust_contrast',
-				name: 'action.adjust_contrast',
-				darken: false,
-				component: {
-					data() {return {
-						show_preview,
-						contrast: 100,
-						textures
-					}},
-					methods: {
-						change() {
-							textures.forEach((texture, i) => {
-								texture.edit((canvas) => {
-									let ctx = canvas.getContext('2d');
-									ctx.filter = `contrast(${this.contrast / 100})`;
-									ctx.drawImage(original_imgs[i], 0, 0);
-								}, {no_undo: true, use_cache: true});
-							})
-						},
-						togglePreview() {
-							this.show_preview = show_preview = !this.show_preview;
-						}
-					},
-					template: `
-						<div>
-							<div class="texture_adjust_previews checkerboard" :class="{folded: !show_preview}">
-								<img v-for="texture in textures" :src="texture.source" />
-							</div>
-							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
 								<input type="range" class="tool" min="0" max="200" step="1" v-model="contrast" @input="change()">
 								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="contrast" @input="change()">
@@ -135,7 +83,7 @@ BARS.defineActions(function() {
 					`
 				},
 				onConfirm() {
-					Undo.finishEdit('Invert colors');
+					Undo.finishEdit('Adjust brightness and contrast');
 				},
 				onCancel() {
 					Undo.cancelEdit();
@@ -143,7 +91,7 @@ BARS.defineActions(function() {
 			}).show();
 		}
 	})
-	new Action('adjust_saturation', {
+	new Action('adjust_saturation_hue', {
 		icon: 'fa-tint',
 		category: 'textures',
 		condition: {modes: ['paint'], method: () => Texture.all.length},
@@ -162,6 +110,7 @@ BARS.defineActions(function() {
 					data() {return {
 						show_preview,
 						saturation: 100,
+						hue: 0,
 						textures
 					}},
 					methods: {
@@ -169,7 +118,7 @@ BARS.defineActions(function() {
 							textures.forEach((texture, i) => {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
-									ctx.filter = `saturate(${this.saturation / 100})`;
+									ctx.filter = `saturate(${this.saturation / 100}) hue-rotate(${this.hue}deg)`;
 									ctx.drawImage(original_imgs[i], 0, 0);
 								}, {no_undo: true, use_cache: true});
 							})
@@ -188,59 +137,6 @@ BARS.defineActions(function() {
 								<input type="range" class="tool" min="0" max="200" step="1" v-model="saturation" @input="change()">
 								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="saturation" @input="change()">
 							</div>
-						</div>
-					`
-				},
-				onConfirm() {
-					Undo.finishEdit('Invert colors');
-				},
-				onCancel() {
-					Undo.cancelEdit();
-				}
-			}).show();
-		}
-	})
-	new Action('adjust_hue', {
-		icon: 'fa-swatchbook',
-		category: 'textures',
-		condition: {modes: ['paint'], method: () => Texture.all.length},
-		click() {
-			let textures = getTextures();
-			let original_imgs = textures.map(tex => {
-				return tex.img.cloneNode();
-			})
-			Undo.initEdit({textures, bitmap: true});
-
-			new Dialog({
-				id: 'adjust_hue',
-				name: 'action.adjust_hue',
-				darken: false,
-				component: {
-					data() {return {
-						show_preview,
-						hue: 0,
-						textures
-					}},
-					methods: {
-						change() {
-							textures.forEach((texture, i) => {
-								texture.edit((canvas) => {
-									let ctx = canvas.getContext('2d');
-									ctx.filter = `hue-rotate(${this.hue}deg)`;
-									ctx.drawImage(original_imgs[i], 0, 0);
-								}, {no_undo: true, use_cache: true});
-							})
-						},
-						togglePreview() {
-							this.show_preview = show_preview = !this.show_preview;
-						}
-					},
-					template: `
-						<div>
-							<div class="texture_adjust_previews checkerboard" :class="{folded: !show_preview}">
-								<img v-for="texture in textures" :src="texture.source" />
-							</div>
-							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
 								<input type="range" class="tool" min="-180" max="180" step="1" v-model="hue" @input="change()">
 								<input lang="en" type="number" class="tool" min="-180" max="180" step="1" v-model.number="hue" @input="change()">
@@ -249,7 +145,7 @@ BARS.defineActions(function() {
 					`
 				},
 				onConfirm() {
-					Undo.finishEdit('Invert colors');
+					Undo.finishEdit('Adjust saturation and hue');
 				},
 				onCancel() {
 					Undo.cancelEdit();
@@ -373,7 +269,6 @@ BARS.defineActions(function() {
 									curves[key] = new THREE.SplineCurve(vectors);
 								}
 							}
-							console.log(curves)
 
 							textures.forEach((texture, i) => {
 								texture.edit((canvas) => {
@@ -411,6 +306,8 @@ BARS.defineActions(function() {
 						},
 						dragPoint(point, e1) {
 							let scope = this;
+							let {points} = this.graphs[this.graph];
+							if (point == points[0] || point == points.last()) return;
 							let original_point = point.slice();
 							
 							function drag(e2) {

@@ -760,10 +760,8 @@ const MenuBar = {
 			condition: {modes: ['edit']}
 		})
 		new BarMenu('texture', [
-			'adjust_brightness',
-			'adjust_contrast',
-			'adjust_saturation',
-			'adjust_hue',
+			'adjust_brightness_contrast',
+			'adjust_saturation_hue',
 			'invert_colors',
 			'adjust_curves',
 			'_',

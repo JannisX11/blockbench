@@ -1736,7 +1736,7 @@ Interface.definePanels(function() {
 				inner_width() {
 					let axis = this.project_resolution[0] / this.project_resolution[1] < this.width / this.height;
 					if (axis) {
-						return this.height * this.zoom * (this.project_resolution[1] / this.project_resolution[0]);
+						return this.height * this.zoom * (this.project_resolution[0] / this.project_resolution[1]);
 					} else {
 						return this.width * this.zoom;
 					}
@@ -1746,7 +1746,7 @@ Interface.definePanels(function() {
 					if (axis) {
 						return this.height * this.zoom;
 					} else {
-						return this.width * this.zoom * (this.project_resolution[1] / this.project_resolution[0]);
+						return this.width * this.zoom * (this.project_resolution[0] / this.project_resolution[1]);
 					}
 				},
 				mappable_elements() {
@@ -1800,10 +1800,13 @@ Interface.definePanels(function() {
 						slider.setWidth(slider_bar_width / (Project.box_uv?2:4)-1);
 					}
 					if (this.$refs.viewport && this.zoom == 1 && ((!this.$refs.viewport.scrollLeft && !this.$refs.viewport.scrollTop) || this.centered_view)) {
-						this.$refs.viewport.scrollLeft = this.width/2;
-						this.$refs.viewport.scrollTop = this.height/2;
-						this.centered_view = true;
+						this.centerView();
 					}
+				},
+				centerView() {
+					this.$refs.viewport.scrollLeft = this.width/2;
+					this.$refs.viewport.scrollTop = this.height/2;
+					this.centered_view = true;
 				},
 				setMode(mode) {
 					this.mode = mode;
@@ -1858,8 +1861,8 @@ Interface.definePanels(function() {
 						let original_margin = this.getFrameMargin();
 						var n = (event.deltaY < 0) ? 0.1 : -0.1;
 						n *= this.zoom
-						let min = Math.min(1, this.inner_width/this.inner_height)
-						var number = Math.clamp(this.zoom + n, min, this.max_zoom)
+						var number = Math.clamp(this.zoom + n, 0.5, this.max_zoom)
+						if (number > 1 && number < 1.1) number = 1;
 						let old_zoom = this.zoom;
 
 						this.zoom = number;
@@ -1877,7 +1880,10 @@ Interface.definePanels(function() {
 							
 							viewport.scrollLeft += ((viewport.scrollLeft + offsetX) * zoom_diff) / old_zoom + margin[0] - original_margin[0];
 							viewport.scrollTop  += ((viewport.scrollTop  + offsetY) * zoom_diff) / old_zoom + margin[1] - original_margin[1];
-							
+
+							if (this.zoom == 1) {
+								this.centerView();
+							}
 							this.updateMouseCoords(event)
 							if (Painter.selection.overlay) UVEditor.updatePastingOverlay()
 						}

@@ -181,7 +181,8 @@ class Panel {
 					let threshold_y = 64;
 					target_slot = null; target_panel = null; target_before = false;
 
-					if (e2.clientX < Math.max(Interface.left_bar_width, threshold)) {
+					if (e2.ctrlOrCmd) {
+					} else if (e2.clientX < Math.max(Interface.left_bar_width, threshold)) {
 
 						let y = Interface.work_screen.offsetTop;
 						target_slot = 'left_bar';
@@ -342,12 +343,12 @@ class Panel {
 		];
 		let resize = (e1, direction_x, direction_y) => {
 			let position_before = this.position_data.float_position.slice();
-			let size_before = this.position_data.float_size.slice();
+			let size_before = [this.width, this.height];
 			let started = false;
 
 			let drag = e2 => {
 				convertTouchEvent(e2);
-				if (!started && (Math.pow(e2.clientX - e1.clientX, 2) + Math.pow(e2.clientX - e1.clientX, 2)) > 15) {
+				if (!started && (Math.pow(e2.clientX - e1.clientX, 2) + Math.pow(e2.clientY - e1.clientY, 2)) > 12) {
 					started = true;
 				}
 				if (!started) return;

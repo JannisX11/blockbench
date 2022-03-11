@@ -449,8 +449,8 @@ function setupInterface() {
 		}
 	])
 
-	$(document).on('contextmenu', function(event) {
-		if (!$(event.target).hasClass('allow_default_menu')) {
+	document.addEventListener('contextmenu', (event) => {
+		if (!$(event.target).hasClass('allow_default_menu') && event instanceof PointerEvent == false) {
 			if (event.target.nodeName === 'INPUT' && $(event.target).is(':focus')) {
 				Interface.text_edit_menu.open(event, event.target)
 			}
