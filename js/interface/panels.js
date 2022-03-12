@@ -244,7 +244,6 @@ class Panel {
 						this.position_data.float_position[1] = position_before[1];
 					}
 					this.update();
-					saveSidebarOrder()
 					updateInterface()
 					
 					removeEventListeners(document, 'mousemove touchmove', drag);
@@ -412,6 +411,7 @@ class Panel {
 		}
 
 		if (slot == 'left_bar' || slot == 'right_bar') {
+			let change_panel_order = !!ref_panel;
 			if (!ref_panel && Interface.data[slot].includes(this.id)) {
 				let panels = Interface.data[slot].filter(id => Panels[id] && Panels[id].slot == slot || id == this.id);
 				let index = panels.indexOf(this.id);
@@ -430,8 +430,10 @@ class Panel {
 				} else {
 					$(ref_panel.node).after(this.node);
 				}
-				Interface.data[slot].remove(this.id);
-				Interface.data[slot].splice(Interface.data[slot].indexOf(ref_panel.id) + (before ? 0 : 1), 0, this.id);
+				if (change_panel_order) {
+					Interface.data[slot].remove(this.id);
+					Interface.data[slot].splice(Interface.data[slot].indexOf(ref_panel.id) + (before ? 0 : 1), 0, this.id);
+				}
 			} else {
 				document.getElementById(slot).append(this.node);
 				Interface.data[slot].safePush(this.id);
@@ -470,7 +472,6 @@ class Panel {
 			if (this.onResize) {
 				this.onResize()
 			}
-			saveSidebarOrder()
 			updateInterface()
 		}
 		return this;
@@ -575,7 +576,6 @@ function updateInterfacePanels() {
 	$('.quad_canvas_wrapper.qcw_y').css('height', Interface.data.quad_view_y+'%')
 	$('.quad_canvas_wrapper:not(.qcw_x)').css('width', (100-Interface.data.quad_view_x)+'%')
 	$('.quad_canvas_wrapper:not(.qcw_y)').css('height', (100-Interface.data.quad_view_y)+'%')
-	//$('#timeline').css('height', Interface.data.timeline_height+'px')
 	for (var key in Interface.Resizers) {
 		var resizer = Interface.Resizers[key]
 		resizer.update()
@@ -599,10 +599,6 @@ function updateSidebarOrder() {
 
 function setActivePanel(panel) {
 	Prop.active_panel = panel
-}
-
-function saveSidebarOrder() {
-	localStorage.setItem('interface_data', JSON.stringify(Interface.data))
 }
 
 function setupMobilePanelSelector() {

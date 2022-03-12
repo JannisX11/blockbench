@@ -316,9 +316,9 @@ const Settings = {
 		new Setting('export_empty_groups',	{category: 'export', value: true});
 		new Setting('export_groups', 		{category: 'export', value: true});
 		new Setting('obj_face_export_mode',	{category: 'export', value: 'both', type: 'select', options: {
-			both: 'settings.obj_face_export_mode.both',
-			tris: 'settings.obj_face_export_mode.tris',
-			quads: 'settings.obj_face_export_mode.quads',
+			both: tl('settings.obj_face_export_mode.both'),
+			tris: tl('settings.obj_face_export_mode.tris'),
+			quads: tl('settings.obj_face_export_mode.quads'),
 		}});
 		new Setting('animation_sample_rate',{category: 'export', value: 24, type: 'number'});
 		new Setting('sketchfab_token', 		{category: 'export', value: '', type: 'password'});

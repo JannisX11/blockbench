@@ -55,7 +55,7 @@ BARS.defineActions(() => {
 									<i class="icon fab fa-twitter" style="color: #1ea6ff;"></i>
 									<label>Twitter</label>
 								</a>
-								<a class="open-in-browser" href="https://discord.blockbench.net">
+								<a class="open-in-browser" href="http://discord.blockbench.net">
 									<i class="icon fab fa-discord" style="color: #727fff;"></i>
 									<label>Discord</label>
 								</a>

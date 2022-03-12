@@ -1,6 +1,8 @@
 /*Panel*/
 	.panel {
 		background-color: var(--color-ui);
+		display: flex;
+		flex-direction: column;
 	}
 	.panel.grow {
 		display: flex;
@@ -34,17 +36,13 @@
 	h3.panel_handle {
 		display: flex;
 		width: 100%;
-		height: auto;
+		height: 40px;
 		margin: 0;
 		padding: 0;
 		font-size: inherit;
 		background: var(--color-ui);
 		place-content: space-between;
-	}
-	body > h3.panel_handle {
-		pointer-events: none;
-		box-shadow: 0 0 16px black;
-		width: auto;
+		align-items: center;
 	}
 	h3.panel_handle > label {
 		flex: 1 1 auto;
@@ -52,10 +50,12 @@
 		font-size: 1.1em;
 		text-transform: uppercase;
 		color: var(--color-subtle_text);
-		margin: 6px 8px;
-		margin-right: auto;
-		padding: 0px 4px;
+		margin-left: 8px;
+		padding: 0 4px;
 		cursor: move;
+	}
+	#center h3.panel_handle {
+		height: 32px;
 	}
 	h3.panel_handle > label > span {
 		cursor: inherit;
@@ -78,7 +78,6 @@
 	}
 	h3.panel_handle > .tool.panel_control {
 		flex: 0 0 24px;
-		margin-top: 4px;
 		opacity: 0.7;
 		cursor: pointer;
 	}

@@ -540,7 +540,7 @@
 	"layout.color.ui": "UI",
 	"layout.color.ui.desc": "Main interface color",
 	"layout.color.bright_ui": "Bright UI",
-	"layout.color.bright_ui.desc": "Context menues and tooltips",
+	"layout.color.bright_ui.desc": "Context menus and tooltips",
 	"layout.color.button": "Button",
 	"layout.color.button.desc": "Buttons and switches",
 	"layout.color.selected": "Selected",
@@ -993,6 +993,8 @@
 	"action.add_group.desc": "Adds a new group or bone",
 	"action.group_elements": "Group Elements",
 	"action.group_elements.desc": "Wrap selected elements into a new group",
+	"action.resolve_group": "Resolve Group",
+	"action.resolve_group.desc": "Resolve the group while retaining its children in the same place",
 	"action.outliner_toggle": "Toggle More Options",
 	"action.outliner_toggle.desc": "Toggles switches for more options in the outliner",
 	"action.cube_counter": "Model Statistics",
@@ -1399,7 +1401,6 @@
 	"menu.texture_mesh.texture_name": "Texture Name...",
 
 	"menu.group.sort": "Sort",
-	"menu.group.resolve": "Resolve",
 
 	"menu.palette.load.default": "Default",
 	"menu.palette.load.empty": "Blank",

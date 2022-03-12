@@ -596,8 +596,6 @@
 	.contextMenu .menu_search_bar {
 		padding: 0;
 		display: flex;
-		border: 1px solid var(--color-border);
-		margin: 2px;
 	}
 	.contextMenu .menu_search_bar input {
 		color: inherit;

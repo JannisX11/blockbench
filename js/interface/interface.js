@@ -158,7 +158,7 @@ const Interface = {
 			},
 			position() {
 				this.setPosition({
-					top: Interface.work_screen.offsetTop,
+					top: 0,
 					bottom: 0,
 					left: Interface.data.left_bar_width+2
 				})
@@ -189,7 +189,7 @@ const Interface = {
 			},
 			position() {
 				this.setPosition({
-					top: Interface.work_screen.offsetTop+30,
+					top: 30,
 					bottom: 0,
 					right: Interface.data.right_bar_width-2
 				})
@@ -218,7 +218,7 @@ const Interface = {
 			position() {this.setPosition({
 				left: Interface.left_bar_width+2,
 				right: Interface.right_bar_width+2,
-				top: $('#preview').offset().top + document.getElementById('preview').clientHeight*Interface.data.quad_view_y/100
+				top: Interface.preview.offsetTop + 30 + Interface.preview.clientHeight*Interface.data.quad_view_y/100
 			})}
 		}),
 		top: new ResizeLine('top', {

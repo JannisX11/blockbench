@@ -32,6 +32,7 @@
 		--toolbar-height: 30px;
 		position: relative;
 		display: grid;
+		overflow: hidden;
 		grid-template-columns: 332px auto 314px;
 		grid-template-rows: var(--toolbar-height) minmax(200px, 5000px) 26px;
 		grid-template-areas: 
