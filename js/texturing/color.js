@@ -75,9 +75,7 @@ Interface.definePanels(() => {
 			Interface.Panels.color.vue.width = 0;
 			Vue.nextTick(() => {
 				let disp_before = this.vue.$refs.square_picker.style.display;
-				console.log(disp_before)
 				this.vue.$refs.square_picker.style.display = 'none';
-				console.log(this.height, this.vue.$el.clientHeight, this.handle.clientHeight)
 				let max = Math.min(460, (this.height - this.vue.$el.clientHeight - this.handle.clientHeight) * (this.vue.picker_type == 'box' ? 1.265 : 1));
 				Interface.Panels.color.vue.width = Math.clamp(this.width, 100, max);
 				this.vue.$refs.square_picker.style.display = disp_before;

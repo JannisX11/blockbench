@@ -27,6 +27,10 @@ class ModelProject {
 		this.display_uv = settings.show_only_selected_uv.value ? 'selected_faces' :'selected_elements';
 		this.exploded_view = false;
 		this.previews = {};
+		this.uv_viewport = {
+			zoom: 1,
+			offset: [0, 0]
+		};
 		this.EditSession = null;
 
 		this.backgrounds = {
@@ -198,6 +202,8 @@ class ModelProject {
 			}
 		})
 
+		UVEditor.loadViewportOffset();
+
 		if (this.EditSession) {
 			Interface.Panels.chat.inside_vue.chat_history = this.EditSession.chat_history;
 			this.EditSession.catchUp();
@@ -240,6 +246,8 @@ class ModelProject {
 				angle: preview.angle,
 			}
 		})
+
+		UVEditor.saveViewportOffset();
 
 		this.undo.closeAmendEditMenu();
 		Preview.all.forEach(preview => {

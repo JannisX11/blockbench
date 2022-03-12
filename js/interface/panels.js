@@ -17,6 +17,7 @@ class Panel {
 
 		this.onResize = data.onResize;
 		this.onFold = data.onFold;
+		this.events = {};
 		this.toolbars = data.toolbars || {};
 
 		if (!Interface.data.panels[this.id]) Interface.data.panels[this.id] = {};
@@ -225,7 +226,7 @@ class Panel {
 					}
 					updateTargetHighlight();
 					this.update(true);
-
+					this.dispatchEvent('drag', {event: e2, target_before, target_panel, target_slot});
 				}
 				let stop = e2 => {
 					convertTouchEvent(e2);
@@ -325,6 +326,7 @@ class Panel {
 			resizeWindow();
 		}
 		this.update();
+		this.dispatchEvent('fold', {});
 		return this;
 	}
 	setupFloatHandles() {
@@ -405,10 +407,13 @@ class Panel {
 		if (slot == undefined) {
 			slot = ref_panel.position_data.slot;
 		}
-		this.node.classList.remove('floating');
 		if (slot !== this.slot) {
 			this.previous_slot = this.slot;
 		}
+
+		this.dispatchEvent('move_to', {slot, ref_panel, before, previous_slot: this.previous_slot});
+
+		this.node.classList.remove('floating');
 
 		if (slot == 'left_bar' || slot == 'right_bar') {
 			let change_panel_order = !!ref_panel;
@@ -473,6 +478,7 @@ class Panel {
 				this.onResize()
 			}
 			updateInterface()
+			this.dispatchEvent('moved_to', {slot, ref_panel, before, previous_slot: this.previous_slot});
 		}
 		return this;
 	}
@@ -526,9 +532,32 @@ class Panel {
 		} else {
 			$(this.node).hide()
 		}
+		this.dispatchEvent('update', {show});
 		localStorage.setItem('interface_data', JSON.stringify(Interface.data))
 		return this;
 	}
+	//Events
+	dispatchEvent(event_name, data) {
+		var list = this.events[event_name]
+		if (!list) return;
+		for (var i = 0; i < list.length; i++) {
+			if (typeof list[i] === 'function') {
+				list[i](data)
+			}
+		}
+	}
+	on(event_name, cb) {
+		if (!this.events[event_name]) {
+			this.events[event_name] = []
+		}
+		this.events[event_name].safePush(cb)
+	}
+	removeListener(event_name, cb) {
+		if (this.events[event_name]) {
+			this.events[event_name].remove(cb);
+		}
+	}
+	//Delete
 	delete() {
 		delete Panels[this.id];
 		this.node.remove()

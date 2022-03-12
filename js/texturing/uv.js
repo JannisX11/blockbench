@@ -381,6 +381,7 @@ const UVEditor = {
 	//Set
 	setZoom(zoom) {
 		this.vue.zoom = zoom;
+		Project.uv_viewport.zoom = this.zoom;
 		return this;
 	},
 	setGrid(value) {
@@ -593,6 +594,19 @@ const UVEditor = {
 	},
 	getResolution(axis, texture) {
 		return axis ? Project.texture_height : Project.texture_width;
+	},
+	saveViewportOffset() {
+		let uv_viewport = this.vue.$refs.viewport;
+		let uv_margin = this.vue.getFrameMargin();
+		Project.uv_viewport.offset[0] = uv_viewport.scrollLeft - uv_margin[0];
+		Project.uv_viewport.offset[1] = uv_viewport.scrollTop - uv_margin[1];
+	},
+	loadViewportOffset() {
+		let uv_viewport = this.vue.$refs.viewport;
+		let uv_margin = this.vue.getFrameMargin();
+		uv_viewport.scrollLeft = Project.uv_viewport.offset[0] + uv_margin[0];
+		uv_viewport.scrollTop = Project.uv_viewport.offset[1] + uv_margin[1];
+		UVEditor.setZoom(Project.uv_viewport.zoom);
 	},
 
 	//Events
@@ -1761,7 +1775,7 @@ Interface.definePanels(function() {
 					deep: true,
 					handler() {
 						let min_zoom = Math.min(1, this.inner_width/this.inner_height);
-						if (this.zoom < min_zoom) this.zoom = 1;
+						if (this.zoom < min_zoom) UVEditor.setZoom(1);
 					}
 				},
 				mode() {
@@ -1809,6 +1823,7 @@ Interface.definePanels(function() {
 					this.centered_view = true;
 				},
 				setMode(mode) {
+					this.mouse_coords.x = this.mouse_coords.y = -1;
 					this.mode = mode;
 				},
 				updateTexture() {
@@ -1866,6 +1881,7 @@ Interface.definePanels(function() {
 						let old_zoom = this.zoom;
 
 						this.zoom = number;
+						Project.uv_viewport.zoom = this.zoom;
 						
 						let updateScroll = () => {
 							let {viewport} = this.$refs;
@@ -2813,6 +2829,12 @@ Interface.definePanels(function() {
 				</div>
 			`
 		}
+	})
+	UVEditor.panel.on('move_to', (data) => {
+		UVEditor.saveViewportOffset();
+	})
+	UVEditor.panel.on('moved_to', (data) => {
+		UVEditor.loadViewportOffset();
 	})
 
 	Toolbars.uv_editor.toPlace()
