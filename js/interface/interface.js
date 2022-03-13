@@ -80,7 +80,7 @@ const Interface = {
 				slot: 'bottom',
 				float_position: [300, 0],
 				float_size: [500, 600],
-				height: 500
+				height: window.innerHeight/2-50
 			}
 		}
 	},

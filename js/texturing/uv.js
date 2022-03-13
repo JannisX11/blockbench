@@ -75,12 +75,12 @@ const UVEditor = {
 		return result;
 	},
 	startPaintTool(event) {
-		var scope = this;
-		Painter.active_uv_editor = scope;
+		delete Painter.current.face_matrix;
+		delete Painter.current.element;
 
-		var texture = scope.getTexture()
+		var texture = this.getTexture()
 		if (texture) {
-			var coords = scope.getBrushCoordinates(event, texture)
+			var coords = this.getBrushCoordinates(event, texture)
 
 			if (Toolbox.selected.id !== 'copy_paste_tool') {
 				Painter.startPaintTool(texture, coords.x, coords.y, undefined, event)
@@ -94,22 +94,21 @@ const UVEditor = {
 		}
 	},
 	movePaintTool(event) {
-		var scope = Painter.active_uv_editor;
-		var texture = scope.getTexture()
+		var texture = UVEditor.getTexture()
 		if (!texture) {
 			Blockbench.showQuickMessage('message.untextured')
 		} else {
 			var new_face;
-			var {x, y} = scope.getBrushCoordinates(event, texture);
+			var {x, y} = UVEditor.getBrushCoordinates(event, texture);
 			if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
 
 			if (x === Painter.current.x && y === Painter.current.y) {
 				return
 			}
-			if (Painter.current.face !== scope.selected_faces[0]) {
+			if (Painter.current.face !== UVEditor.selected_faces[0]) {
 				Painter.current.x = x
 				Painter.current.y = y
-				Painter.current.face = scope.selected_faces[0]
+				Painter.current.face = UVEditor.selected_faces[0];
 				new_face = true;
 				if (texture !== Painter.current.texture && Undo.current_save) {
 					Undo.current_save.addTexture(texture)
@@ -598,12 +597,14 @@ const UVEditor = {
 	saveViewportOffset() {
 		let uv_viewport = this.vue.$refs.viewport;
 		let uv_margin = this.vue.getFrameMargin();
+		if (!uv_viewport || !uv_margin) return;
 		Project.uv_viewport.offset[0] = uv_viewport.scrollLeft - uv_margin[0];
 		Project.uv_viewport.offset[1] = uv_viewport.scrollTop - uv_margin[1];
 	},
 	loadViewportOffset() {
 		let uv_viewport = this.vue.$refs.viewport;
 		let uv_margin = this.vue.getFrameMargin();
+		if (!uv_viewport) return;
 		uv_viewport.scrollLeft = Project.uv_viewport.offset[0] + uv_margin[0];
 		uv_viewport.scrollTop = Project.uv_viewport.offset[1] + uv_margin[1];
 		UVEditor.setZoom(Project.uv_viewport.zoom);

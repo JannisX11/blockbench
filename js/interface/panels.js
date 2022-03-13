@@ -13,7 +13,6 @@ class Panel {
 
 		this.growable = data.growable;
 		this.selection_only = data.selection_only == true;
-		this.folded = false;
 
 		this.onResize = data.onResize;
 		this.onFold = data.onFold;
@@ -28,6 +27,7 @@ class Panel {
 		if (!this.position_data.float_position)	this.position_data.float_position 	= defaultp.float_position || [0, 0];
 		if (!this.position_data.float_size) 	this.position_data.float_size 		= defaultp.float_size || [300, 300];
 		if (!this.position_data.height) 		this.position_data.height 			= defaultp.height || 300;
+		if (this.position_data.folded == undefined) this.position_data.folded 		= defaultp.folded || false;
 
 		this.handle = Interface.createElement('h3', {class: 'panel_handle'}, Interface.createElement('label', {}, Interface.createElement('span', {}, this.name)));
 		this.node = Interface.createElement('div', {class: 'panel', id: `panel_${this.id}`}, this.handle);
@@ -306,6 +306,8 @@ class Panel {
 		let reference_panel = Panels[data.insert_before || data.insert_after];
 		this.moveTo(this.position_data.slot, reference_panel, reference_panel && !data.insert_after);
 
+		if (this.folded) this.fold(true);
+
 		Panels[this.id] = this;
 	}
 	isVisible() {
@@ -313,6 +315,12 @@ class Panel {
 	}
 	get slot() {
 		return this.position_data.slot;
+	}
+	get folded() {
+		return this.position_data.folded;
+	}
+	set folded(state) {
+		this.position_data.folded = !!state;
 	}
 	fold(state = !this.folded) {
 		this.folded = !!state;

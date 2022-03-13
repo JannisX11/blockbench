@@ -373,7 +373,7 @@
 	"dialog.add_primitive.shape.cylinder": "Cylinder",
 	"dialog.add_primitive.shape.sphere": "Sphere",
 	"dialog.add_primitive.shape.torus": "Torus",
-	"dialog.add_primitive.shape.cube": "Cube",
+	"dialog.add_primitive.shape.cube": "Cuboid",
 	"dialog.add_primitive.shape.pyramid": "Pyramid",
 	"dialog.add_primitive.shape.plane": "Plane",
 	"dialog.add_primitive.diameter": "Diameter",

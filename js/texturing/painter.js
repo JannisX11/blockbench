@@ -148,7 +148,14 @@ const Painter = {
 					Painter.current.y = y
 					Painter.current.face = data.face
 					Painter.current.element = data.element
+					delete Painter.current.face_matrix;
 					new_face = true
+					if (Painter.current.element instanceof Mesh) {
+						let face = Painter.current.element.faces[Painter.current.face];
+						if (face && face.vertices.length > 2) {
+							Painter.current.face_matrix = face.getOccupationMatrix(true, [0, 0]);
+						}
+					}
 					if (texture !== Painter.current.texture) {
 						Undo.current_save.addTexture(texture)
 					}
@@ -192,6 +199,12 @@ const Painter = {
 				var is_line = (event.shiftKey || Pressing.overrides.shift) && Painter.current.element == data.element && Painter.current.face == data.face
 				Painter.current.element = data.element;
 				Painter.current.face = data.face;
+				if (Painter.current.element instanceof Mesh) {
+					let face = Painter.current.element.faces[Painter.current.face];
+					if (face && face.vertices.length > 2) {
+						Painter.current.face_matrix = face.getOccupationMatrix(true, [0, 0]);
+					}
+				}
 			} else {
 				//uv editor
 				var is_line = (event.shiftKey || Pressing.overrides.shift);
@@ -344,6 +357,11 @@ const Painter = {
 
 		if (tool === 'brush_tool') {
 			Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity, px, py) {
+				if (Painter.current.face_matrix) {
+					if (!Painter.current.face_matrix[Math.floor(px)] || !Painter.current.face_matrix[Math.floor(px)][Math.floor(py)]) {
+						return pxcolor;
+					}
+				}
 				var a = b_opacity * opacity;
 				var before = Painter.getAlphaMatrix(texture, px, py)
 				Painter.setAlphaMatrix(texture, px, py, a);
