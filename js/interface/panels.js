@@ -303,8 +303,12 @@ class Panel {
 		
 		
 		// Add to slot
-		let reference_panel = Panels[data.insert_before || data.insert_after];
-		this.moveTo(this.position_data.slot, reference_panel, reference_panel && !data.insert_after);
+		if (Blockbench.isMobile) {
+			this.moveTo('left_bar');
+		} else {
+			let reference_panel = Panels[data.insert_before || data.insert_after];
+			this.moveTo(this.position_data.slot, reference_panel, reference_panel && !data.insert_after);
+		}
 
 		if (this.folded) this.fold(true);
 

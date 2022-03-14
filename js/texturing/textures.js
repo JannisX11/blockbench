@@ -629,6 +629,9 @@ class Texture {
 			Canvas.updateAllFaces()
 			TickUpdates.selection = true;
 		}
+		if (Texture.all.length > 1 && Modes.paint && !UVEditor.getReferenceFace()) {
+			UVEditor.vue.updateTexture();
+		}
 		return this;
 	}
 	add(undo) {

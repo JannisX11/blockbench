@@ -1334,7 +1334,7 @@ const UVEditor = {
 				'auto_cullface'
 			]
 		}},
-		{icon: 'collections', name: 'menu.uv.texture', condition: () => !Project.box_uv, children: function() {
+		{icon: 'collections', name: 'menu.uv.texture', condition: () => UVEditor.getReferenceFace() && !Project.single_texture, children: function() {
 			var arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(context, event) {
 					let elements = UVEditor.vue.mappable_elements;
@@ -1826,6 +1826,7 @@ Interface.definePanels(function() {
 				setMode(mode) {
 					this.mouse_coords.x = this.mouse_coords.y = -1;
 					this.mode = mode;
+					this.updateTexture();
 				},
 				updateTexture() {
 					let texture;
@@ -1839,6 +1840,8 @@ Interface.definePanels(function() {
 								if (face) texture = face.getTexture() || texture;
 								if (texture) break;
 							}
+						} else if (Modes.paint) {
+							texture = Texture.getDefault();
 						}
 					}
 					if (texture === null) {
@@ -2055,8 +2058,19 @@ Interface.definePanels(function() {
 				},
 				contextMenu(event) {
 					setActivePanel('uv');
-					if (!UVEditor.getReferenceFace() && !Project.box_uv) return;
 					UVEditor.menu.open(event);
+				},
+				selectTextureMenu(event) {
+					let menu = new Menu(Texture.all.map(tex => {
+						return {
+							name: tex.name,
+							icon: tex.img,
+							click(event) {
+								tex.select(event);
+							}
+						}
+					}))
+					menu.open(event.target);
 				},
 				selectFace(key, event, keep_selection, support_dragging) {
 					if (keep_selection && this.selected_faces.includes(key)) {
@@ -2812,7 +2826,7 @@ Interface.definePanels(function() {
 						<template v-else>
 							<span v-if="copy_overlay.state == 'select'" style="color: var(--color-subtle_text);">{{ copy_overlay.width + ' ⨉ ' + copy_overlay.height }}</span>
 							<span v-else style="color: var(--color-subtle_text);">{{ mouse_coords.x < 0 ? '-' : (mouse_coords.x + ', ' + mouse_coords.y) }}</span>
-							<span v-if="texture">{{ texture.name }}</span>
+							<span v-if="texture" class="uv_panel_texture_name" @click="selectTextureMenu($event)">{{ texture.name }}</span>
 							<span style="color: var(--color-subtle_text);">{{ Math.round(this.zoom*100).toString() + '%' }}</span>
 						</template>
 

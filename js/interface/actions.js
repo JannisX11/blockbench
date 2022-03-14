@@ -915,6 +915,34 @@ class BarSelect extends Widget {
 			scope.trigger(event.originalEvent);
 		})
 	}
+	getNode(ignore_disconnected) {
+		let length = this.nodes.length;
+		let node = super.getNode(ignore_disconnected);
+		node.onclick = '';
+		if (this.nodes.length !== length) {
+			// Cloned
+			if (this.icon_mode) {
+				for (let key in this.options) {
+					let button = node.querySelector(`div[key="${key}"]`);
+					if (button) {
+						button.addEventListener('click', event => {
+							this.set(key);
+							if (this.onChange) {
+								this.onChange(this, event);
+							}
+						})
+					}
+				}
+
+			} else {
+				let select = node.querySelector('bb-select');
+				select && select.addEventListener('click', event => {
+					this.open(event)
+				})
+			}
+		}
+		return node;
+	}
 	open(event) {
 		if (Menu.closed_in_this_click == this.id) return this;
 		let scope = this;

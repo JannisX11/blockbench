@@ -1368,6 +1368,10 @@
 		top: 0;
 		left: 0;
 	}
+	.uv_panel_texture_name:hover {
+		color: var(--color-light);
+		cursor: pointer;
+	}
 
 	.cube_box_uv {
 		position: absolute;

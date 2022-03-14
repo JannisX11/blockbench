@@ -148,7 +148,7 @@ function updateSelection(options = {}) {
 		if (Group.selected || NullObject.selected[0]) {
 			document.querySelectorAll('.selection_only#panel_bone').forEach(node => node.style.setProperty('visibility', 'visible'));
 		}
-		if (Format.single_texture && Modes.paint) {
+		if (Modes.paint) {
 			document.querySelectorAll('.selection_only#panel_uv').forEach(node => node.style.setProperty('visibility', 'visible'));
 		}
 	}

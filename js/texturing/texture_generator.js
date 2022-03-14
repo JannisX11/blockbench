@@ -897,7 +897,7 @@ const TextureGenerator = {
 						let rect = face.getBoundingRect();
 						let face_matrix;
 						if (face instanceof MeshFace) {
-							face_matrix = face.getOccupationMatrix(false, [Math.floor(rect.ax), Math.floor(rect.ay)])
+							face_matrix = face.getOccupationMatrix(false);
 						}
 
 						for (let x = Math.floor(rect.ax); x < Math.ceil(rect.bx); x++) {
