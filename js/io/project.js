@@ -141,7 +141,8 @@ class ModelProject {
 		if (this === Project) return true;
 		if (this.locked || Project.locked) return false;
 		if (Project) {
-			Project.unselect()
+			Project.unselect();
+			Blockbench.addFlag('switching_project');
 		} else {
 			Interface.tab_bar.new_tab.visible = false;
 		}
@@ -184,6 +185,8 @@ class ModelProject {
 
 		Interface.Panels.skin_pose.inside_vue.pose = this.skin_pose;
 
+		UVEditor.loadViewportOffset();
+
 		Modes.options[this.mode].select();
 
 		BarItems.lock_motion_trail.value = !!Project.motion_trail_lock;
@@ -201,8 +204,6 @@ class ModelProject {
 				setTimeout(() => preview.loadAnglePreset(preview.default_angle), 0);
 			}
 		})
-
-		UVEditor.loadViewportOffset();
 
 		if (this.EditSession) {
 			Interface.Panels.chat.inside_vue.chat_history = this.EditSession.chat_history;
@@ -227,6 +228,7 @@ class ModelProject {
 				delete this.on_next_upen;
 			}
 		})
+		Blockbench.removeFlag('switching_project');
 		return true;
 	}
 	unselect(closing) {

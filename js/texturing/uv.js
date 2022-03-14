@@ -596,18 +596,18 @@ const UVEditor = {
 	},
 	saveViewportOffset() {
 		let uv_viewport = this.vue.$refs.viewport;
-		let uv_margin = this.vue.getFrameMargin();
-		if (!uv_viewport || !uv_margin) return;
-		Project.uv_viewport.offset[0] = uv_viewport.scrollLeft - uv_margin[0];
-		Project.uv_viewport.offset[1] = uv_viewport.scrollTop - uv_margin[1];
+		if (!uv_viewport || Blockbench.hasFlag('switching_project')) return;
+		Project.uv_viewport.offset[0] = (uv_viewport.scrollLeft - this.width/2) / this.vue.inner_width;
+		Project.uv_viewport.offset[1] = (uv_viewport.scrollTop - this.height/2) / this.vue.inner_height;
 	},
 	loadViewportOffset() {
 		let uv_viewport = this.vue.$refs.viewport;
-		let uv_margin = this.vue.getFrameMargin();
 		if (!uv_viewport) return;
-		uv_viewport.scrollLeft = Project.uv_viewport.offset[0] + uv_margin[0];
-		uv_viewport.scrollTop = Project.uv_viewport.offset[1] + uv_margin[1];
 		UVEditor.setZoom(Project.uv_viewport.zoom);
+		Vue.nextTick(() => {
+			uv_viewport.scrollLeft = Project.uv_viewport.offset[0] * this.vue.inner_width + this.width/2;
+			uv_viewport.scrollTop = Project.uv_viewport.offset[1] * this.vue.inner_height + this.height/2;
+		})
 	},
 
 	//Events
@@ -2849,7 +2849,9 @@ Interface.definePanels(function() {
 		UVEditor.saveViewportOffset();
 	})
 	UVEditor.panel.on('moved_to', (data) => {
-		UVEditor.loadViewportOffset();
+		Vue.nextTick(() => {
+			UVEditor.loadViewportOffset();
+		})
 	})
 
 	Toolbars.uv_editor.toPlace()

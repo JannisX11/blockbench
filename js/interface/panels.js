@@ -482,13 +482,9 @@ class Panel {
 			this.node.style.zIndex = '';
 		}
 		position_data.slot = slot;
+		
 		this.update();
-
 		if (Panels[this.id]) {
-			// Only update after initial setup
-			if (this.onResize) {
-				this.onResize()
-			}
 			updateInterface()
 			this.dispatchEvent('moved_to', {slot, ref_panel, before, previous_slot: this.previous_slot});
 		}

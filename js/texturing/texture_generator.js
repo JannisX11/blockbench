@@ -1145,6 +1145,7 @@ const TextureGenerator = {
 					rot -= 90;
 				}
 			}
+			ctx.imageSmoothingEnabled = false;
 			ctx.drawImage(
 				texture.img,
 				src.ax/Project.texture_width * texture.img.naturalWidth,
@@ -1210,6 +1211,7 @@ const TextureGenerator = {
 			}
 			ctx.closePath();
 			ctx.clip();
+			ctx.imageSmoothingEnabled = false;
 
 			ctx.drawImage(
 				texture.img,
