@@ -54,6 +54,8 @@
 	"generic.restore": "Restore",
 	"generic.select_all": "Select All",
 	"generic.select_none": "Select None",
+	"generic.left": "Left",
+	"generic.right": "Right",
 
 	"dates.today": "Today",
 	"dates.yesterday": "Yesterday",
@@ -607,6 +609,8 @@
 	"settings.interface_scale.desc": "Scale of the entire Blockbench interface",
 	"settings.hide_tab_bar": "Auto-hide Tab Bar",
 	"settings.hide_tab_bar.desc": "Hide the tab bar when only one tab is open",
+	"settings.mobile_panel_side": "Mobile Panel Side",
+	"settings.mobile_panel_side.desc": "Select which side of the screen panels are displayed on when using Blockbench on in landscape orientation",
 	"settings.status_bar_modifier_keys": "Suggest Modifier Keys in Status Bar",
 	"settings.status_bar_modifier_keys.desc": "Display context aware suggested modifier keys in the status bar",
 	"settings.origin_size": "Pivot Marker",

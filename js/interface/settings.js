@@ -182,6 +182,12 @@ const Settings = {
 		new Setting('hide_tab_bar', 		{category: 'interface', value: Blockbench.isMobile, onChange() {
 			updateTabBarVisibility();
 		}});
+		new Setting('mobile_panel_side',	{category: 'interface', value: 'right', condition: Blockbench.isMobile, type: 'select', options: {
+			'right': tl('generic.right'),
+			'left': tl('generic.left'),
+		}, onChange(value) {
+			document.body.classList.toggle('mobile_sidebar_left', value == 'left');
+		}});
 		new Setting('status_bar_modifier_keys', {category: 'interface', value: true, condition: !Blockbench.isTouch, onChange(value) {
 			Interface.status_bar.vue.show_modifier_keys = value;
 		}});

@@ -277,7 +277,8 @@ class Panel {
 					}
 					if (!started) return;
 					
-					this.position_data.height = Math.clamp(height_before + diff, 140, max);
+					let sign = settings.mobile_panel_side.value == 'left' ? -1 : 1;
+					this.position_data.height = Math.clamp(height_before + diff * sign, 140, max);
 
 					this.update(true);
 					resizeWindow();
@@ -316,6 +317,9 @@ class Panel {
 	}
 	isVisible() {
 		return !this.folded && this.node.parentElement && this.node.parentElement.style.display !== 'none';
+	}
+	isInSidebar() {
+		return this.slot === 'left_bar' || this.slot === 'right_bar';
 	}
 	get slot() {
 		return this.position_data.slot;
@@ -409,6 +413,7 @@ class Panel {
 			Panel.floating_panel_z_order.forEach(id => {
 				let panel = Panels[id];
 				panel.node.style.zIndex = zindex;
+				panel.dispatchEvent('change_zindex', {zindex});
 				zindex = Math.clamp(zindex-1, 14, 19);
 			})
 		}
@@ -473,6 +478,7 @@ class Panel {
 		} else if (slot == 'float' && !Blockbench.isMobile) {
 			Interface.work_screen.append(this.node);
 			this.node.classList.add('floating');
+			this.dispatchEvent('change_zindex', {zindex: 14});
 			if (!this.resize_handles) {
 				this.setupFloatHandles();
 			}
@@ -480,6 +486,7 @@ class Panel {
 		if (slot !== 'float') {
 			Panel.floating_panel_z_order.remove(this.id);
 			this.node.style.zIndex = '';
+			this.dispatchEvent('change_zindex', {zindex: null});
 		}
 		position_data.slot = slot;
 		

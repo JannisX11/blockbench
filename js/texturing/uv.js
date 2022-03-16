@@ -1881,7 +1881,7 @@ Interface.definePanels(function() {
 						var n = (event.deltaY < 0) ? 0.1 : -0.1;
 						n *= this.zoom
 						var number = Math.clamp(this.zoom + n, 0.5, this.max_zoom)
-						if (number > 1 && number < 1.1) number = 1;
+						if (number > 0.91 && number < 1.1) number = 1;
 						let old_zoom = this.zoom;
 
 						this.zoom = number;
@@ -1901,7 +1901,7 @@ Interface.definePanels(function() {
 							viewport.scrollLeft += ((viewport.scrollLeft + offsetX) * zoom_diff) / old_zoom + margin[0] - original_margin[0];
 							viewport.scrollTop  += ((viewport.scrollTop  + offsetY) * zoom_diff) / old_zoom + margin[1] - original_margin[1];
 
-							if (this.zoom == 1) {
+							if (this.zoom == 1 && Panels.uv.isInSidebar()) {
 								this.centerView();
 							}
 							this.updateMouseCoords(event)

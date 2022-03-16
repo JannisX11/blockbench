@@ -572,16 +572,6 @@ const Timeline = {
 }
 
 Interface.definePanels(() => {
-	/*
-		default_position: {
-			slot: 'left_bar',
-			height: 200,
-			insert_before: String
-			insert_after: String
-			float_position
-			float_size
-		}
-	*/
 	Timeline.panel = new Panel('timeline', {
 		icon: 'timeline',
 		condition: {modes: ['animate']},
@@ -1085,6 +1075,11 @@ Interface.definePanels(() => {
 		}
 	})
 	Timeline.vue = Timeline.panel.inside_vue;
+	Timeline.panel.on('change_zindex', ({zindex}) => {
+		if (Condition(Timeline.panel.condition)) {
+			document.getElementById('resizer_timeline_head').style.zIndex = zindex ? zindex+1 : null;
+		}
+	})
 })
 
 

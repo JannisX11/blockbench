@@ -12,9 +12,10 @@ class ResizeLine {
 		this.width = 0;
 		this.get = data.get;
 		this.set = data.set;
-		var jq = $('<div class="resizer '+(data.horizontal ? 'horizontal' : 'vertical')+'"></div>')
-		this.node = jq.get(0)
-		jq.draggable({
+		this.node = document.createElement('div');
+		this.node.className = 'resizer '+(data.horizontal ? 'horizontal' : 'vertical');
+		this.node.id = 'resizer_'+this.id;
+		$(this.node).draggable({
 			axis: this.horizontal ? 'y' : 'x',
 			containment: '#work_screen',
 			revert: true,
@@ -263,16 +264,16 @@ const Interface = {
 			condition() {return Modes.animate},
 			get() {return Interface.data.timeline_head},
 			set(o, diff) {
-				let value = limitNumber(o + diff, 90, document.getElementById('timeline').clientWidth - 40);
+				let value = limitNumber(o + diff, 90, Panels.timeline.node.clientWidth - 40);
 				value = Math.snapToValues(value, [Interface.default_data.timeline_head], 12);
 				Interface.data.timeline_head = Timeline.vue._data.head_width = value;
 			},
 			position() {
-				let offset = $(Panels.timeline.node).offset();
+				let offset = $(Panels.timeline.vue.$el).offset();
 				this.setPosition({
 					left: offset.left + 2 + Interface.data.timeline_head,
-					top: offset.top + 60,
-					bottom: offset.top + 60 + Panels.timeline.node.clientHeight
+					top: offset.top - Interface.work_screen.offsetTop + 30,
+					bottom: Interface.work_screen.clientHeight - offset.top + Interface.work_screen.offsetTop - Panels.timeline.vue.$el.clientHeight + 10
 				})
 			}
 		})
@@ -355,7 +356,8 @@ function setupInterface() {
 
 	document.getElementById('title_bar_home_button').title = tl('projects.start_screen');
 
-	$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
+	document.getElementById('center').classList.toggle('checkerboard', settings.preview_checkerboard.value);
+	document.body.classList.toggle('mobile_sidebar_left', settings.mobile_panel_side.value == 'left');
 
 	setupPanels()
 	
