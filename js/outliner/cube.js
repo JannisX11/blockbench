@@ -723,11 +723,8 @@ class Cube extends OutlinerElement {
 	Cube.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
 		'_',
-		'copy',
-		'paste',
-		'duplicate',
-		'_',
 		'rename',
+		'convert_to_mesh',
 		'update_autouv',
 		{name: 'menu.cube.color', icon: 'color_lens', children: markerColors.map((color, i) => {return {
 			icon: 'bubble_chart',

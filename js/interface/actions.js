@@ -1705,7 +1705,7 @@ const BARS = {
 			new Action('duplicate', {
 				icon: 'content_copy',
 				category: 'edit',
-				condition: () => (Animation.selected && Modes.animate) || (Modes.edit && (selected.length || Group.selected)),
+				condition: () => (Animation.selected && Modes.animate && Prop.active_panel == 'animations') || (Modes.edit && (selected.length || Group.selected)),
 				keybind: new Keybind({key: 'd', ctrl: true}),
 				click: function () {
 					if (Modes.animate) {

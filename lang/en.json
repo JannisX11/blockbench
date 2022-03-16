@@ -18,6 +18,7 @@
 	"data.locator": "Locator",
 	"data.null_object": "Null Object",
 	"data.mesh": "Mesh",
+	"data.texture_mesh": "Texture Mesh",
 	"data.group": "Group",
 	"data.texture": "Texture",
 	"data.origin": "Pivot",
@@ -356,6 +357,7 @@
 	"dialog.select.new": "New Selection",
 	"dialog.select.group": "In Selected Group",
 	"dialog.select.name": "Name Contains",
+	"dialog.select.type": "Element Type",
 	"dialog.select.random": "Random",
 	"dialog.select.select": "Select",
 

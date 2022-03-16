@@ -247,6 +247,11 @@ class OutlinerNode {
 			scope.name = scope.old_name;
 			if (scope.type === 'group') {
 				Undo.initEdit({outliner: true})
+				Animation.all.forEach(animation => {
+					if (animation.animators[scope.uuid] && animation.animators[scope.uuid].keyframes.length) {
+						animation.saved = false;
+					}
+				})
 			} else {
 				Undo.initEdit({elements: [scope]})
 			}
@@ -1038,16 +1043,27 @@ BARS.defineActions(function() {
 			markerColors.forEach((color, i) => {
 				color_options[i] = 'cube.color.' + color.name;
 			})
-			let dialog = new Dialog({
+			let type_options = {
+				all: 'generic.all'
+			};
+			for (let type in OutlinerElement.types) {
+				type_options[type] = tl(`data.${type}`);
+				if (type_options[type].includes('.')) {
+					type_options[type] = OutlinerElement.types[type].display_name || OutlinerElement.types[type].name;
+				}
+			}
+			new Dialog({
 				id: 'selection_creator',
 				title: 'dialog.select.title',
 				form_first: true,
 				form: {
 					new: {label: 'dialog.select.new', type: 'checkbox', value: true},
 					group: {label: 'dialog.select.group', type: 'checkbox'},
+					separate: '_',
 					name: {label: 'dialog.select.name', type: 'text'},
+					type: {label: 'dialog.select.type', type: 'select', options: type_options},
+					color: {label: 'menu.cube.color', type: 'select', value: '-1', options: color_options},
 					texture: {label: 'data.texture', type: 'text', list: Texture.all.map(tex => tex.name)},
-					color: {label: 'menu.cube.color', type: 'select', value: '-1', options: color_options}
 				},
 				lines: [
 					`<div class="dialog_bar form_bar">
@@ -1073,6 +1089,7 @@ BARS.defineActions(function() {
 					}
 				
 					array.forEach(function(obj) {
+						if (obj.type !== formData.type && formData.type !== 'all') return;
 						if (obj.name.toUpperCase().includes(name_seg) === false) return;
 						if (obj.faces && tex_seg && !Format.single_texture) {
 							var has_tex = false;
