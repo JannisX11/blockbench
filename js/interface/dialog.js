@@ -319,13 +319,13 @@ function buildComponent(dialog) {
 	dialog.content_vue = new Vue(dialog.component).$mount(mount.get(0));
 }
 function getStringWidth(string, size) {
-	var a = $('<label style="position: absolute">'+string+'</label>')
+	let node = Interface.createElement('label', {style: 'position: absolute; visibility: hidden;'}, string);
 	if (size && size !== 16) {
-		a.css('font-size', size+'pt')
+		node.style.fontSize = size + 'pt';
 	}
-	$('body').append(a.css('visibility', 'hidden'))
-	var width = a.width()
-	a.detach()
+	document.body.append(node);
+	let width = node.clientWidth;
+	node.remove();
 	return width;
 };
 

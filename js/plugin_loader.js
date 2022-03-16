@@ -617,7 +617,7 @@ BARS.defineActions(function() {
 			let none_installed = !Plugins.all.find(plugin => plugin.installed);
 			if (none_installed) Plugins.dialog.content_vue.tab = 'available';
 			if (!Plugins.dialog.button_bar) {
-				Plugins.dialog.button_bar = $(`<div class="bar next_to_title" id="plugins_header_bar"></div>`)[0];
+				Plugins.dialog.button_bar = Interface.createElement('div', {class: 'bar next_to_title', id: 'plugins_header_bar'});
 				Plugins.dialog.object.firstElementChild.after(Plugins.dialog.button_bar);
 				BarItems.load_plugin.toElement('#plugins_header_bar');
 				BarItems.load_plugin_from_url.toElement('#plugins_header_bar');

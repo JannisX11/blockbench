@@ -5,7 +5,7 @@ function addStartScreenSection(id, data) {
 		data = id;
 		id = '';
 	}
-	var obj = $(`<section id="${id}"></section>`)
+	var obj = $(Interface.createElement('section', {id}))
 	if (typeof data.graphic === 'object') {
 		var left = $('<div class="start_screen_left graphic"></div>')
 		obj.append(left)

@@ -2,7 +2,7 @@ var Toolbars, BarItems, Toolbox;
 //Bars
 class MenuSeparator {
 	constructor() {
-		this.menu_node = $('<li class="menu_separator"></li>')
+		this.menu_node = Interface.createElement('li', {class: 'menu_separator'});
 	}
 }
 class BarItem {
@@ -265,12 +265,12 @@ class Action extends BarItem {
 			scope.click(event)
 			scope.uses++;
 
-			$(scope.nodes).each(function() {
-				this.style.setProperty('color', 'var(--color-light)')
+			scope.nodes.forEach(node => {
+				node.style.setProperty('color', 'var(--color-light)')
 			})
 			setTimeout(function() {
-				$(scope.nodes).each(function() {
-					this.style.setProperty('color', '')
+				scope.nodes.forEach(node => {
+					node.style.setProperty('color', '')
 				})
 			}, 200)
 			return true;
@@ -278,9 +278,9 @@ class Action extends BarItem {
 		return false;
 	}
 	updateKeybindingLabel() {
-		$(this.menu_node).find('.keybinding_label').text(this.keybind || '');
+		this.menu_node.querySelector('.keybinding_label').textContent = this.keybind || '';
 		this.nodes.forEach(node => {
-			$(node).find('.keybinding_label').text(this.keybind || '');
+			node.querySelector('.keybinding_label').textContent = this.keybind || '';
 		});
 		return this;
 	}
@@ -385,7 +385,7 @@ class Tool extends Action {
 		if (typeof this.onSelect == 'function') {
 			this.onSelect()
 		}
-		$('#preview').css('cursor', (this.cursor ? this.cursor : 'default'))
+		Interface.preview.style.cursor = this.cursor ? this.cursor : 'default';
 		this.nodes.forEach(node => {
 			node.classList.add('enabled')
 		})
@@ -1168,16 +1168,14 @@ class Toolbar {
 			this.vertical = !!data.vertical
 			this.default_children = data.children.slice()
 		}
-		var jq = $(`<div class="toolbar">
-			<div class="tool toolbar_menu">
-				<i class="material-icons">${this.vertical ? 'more_horiz' : 'more_vert'}</i>
-			</div>
-			<div class="content"></div>
-		</div>`)
-		this.node = jq.get(0)
+		let toolbar_menu = Interface.createElement('div', {class: 'tool toolbar_menu'}, Interface.createElement('i', {class: 'material-icons'}, this.vertical ? 'more_horiz' : 'more_vert'))
+		this.node = Interface.createElement('div', {class: 'toolbar'}, [
+			toolbar_menu,
+			Interface.createElement('div', {class: 'content'})
+		])
 		BarItem.prototype.addLabel(false, {
 			name: tl('data.toolbar'),
-			node: jq.find('.tool.toolbar_menu').get(0)
+			node: toolbar_menu
 		})
 		if (data) {
 			this.build(data)

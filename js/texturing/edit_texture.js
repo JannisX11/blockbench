@@ -42,7 +42,7 @@ BARS.defineActions(function() {
 
 			new Dialog({
 				id: 'adjust_brightness_contrast',
-				name: 'action.adjust_brightness_contrast',
+				title: 'action.adjust_brightness_contrast',
 				darken: false,
 				component: {
 					data() {return {
@@ -103,8 +103,8 @@ BARS.defineActions(function() {
 			Undo.initEdit({textures, bitmap: true});
 
 			new Dialog({
-				id: 'adjust_saturation',
-				name: 'action.adjust_saturation',
+				id: 'adjust_saturation_hue',
+				title: 'action.adjust_saturation_hue',
 				darken: false,
 				component: {
 					data() {return {
@@ -235,7 +235,7 @@ BARS.defineActions(function() {
 
 			new Dialog({
 				id: 'adjust_curves',
-				name: 'action.adjust_curves',
+				title: 'action.adjust_curves',
 				darken: false,
 				width: 460,
 				component: {

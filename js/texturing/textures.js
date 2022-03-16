@@ -166,11 +166,6 @@ class Texture {
 			if(!project) return;
 			project.whenNextOpen(() => {
 
-				//Width / Animation
-				if (img.naturalWidth !== img.naturalHeight && Format.id == 'java_block') {
-					//BARS.updateConditions()
-				}
-
 				if (Project.box_uv && Format.single_texture && !scope.error) {
 
 					if (!scope.keep_size) {

@@ -1589,21 +1589,17 @@ function openQuadView() {
 
 	$('#preview').empty()
 	
-	var wrapper1 = $('<div class="quad_canvas_wrapper qcw_x qcw_y"></div>')
-	wrapper1.append(quad_previews.one.node)
-	$('#preview').append(wrapper1)
+	var wrapper1 = Interface.createElement('div', {class: 'quad_canvas_wrapper qcw_x qcw_y'}, quad_previews.one.node);
+	Interface.preview.append(wrapper1)
 	
-	var wrapper2 = $('<div class="quad_canvas_wrapper qcw_y"></div>')
-	wrapper2.append(quad_previews.two.node)
-	$('#preview').append(wrapper2)
+	var wrapper2 = Interface.createElement('div', {class: 'quad_canvas_wrapper qcw_y'}, quad_previews.two.node);
+	Interface.preview.append(wrapper2)
 	
-	var wrapper3 = $('<div class="quad_canvas_wrapper qcw_x"></div>')
-	wrapper3.append(quad_previews.three.node)
-	$('#preview').append(wrapper3)
+	var wrapper3 = Interface.createElement('div', {class: 'quad_canvas_wrapper qcw_x'}, quad_previews.three.node);
+	Interface.preview.append(wrapper3)
 	
-	var wrapper4 = $('<div class="quad_canvas_wrapper"></div>')
-	wrapper4.append(quad_previews.four.node)
-	$('#preview').append(wrapper4)
+	var wrapper4 = Interface.createElement('div', {class: 'quad_canvas_wrapper'}, quad_previews.four.node);
+	Interface.preview.append(wrapper4)
 
 	Preview.all.forEach(preview => {
 		if (preview.offscreen) return;
