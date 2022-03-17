@@ -123,6 +123,11 @@ class MeshFace extends Face {
 		}
 		return matrix;
 	}
+	getAngleTo(other_face) {
+		let a = new THREE.Vector3().fromArray(this.getNormal());
+		let b = new THREE.Vector3().fromArray(other_face.getNormal());
+		return Math.radToDeg(a.angleTo(b));
+	}
 	invert() {
 		if (this.vertices.length < 3) return this;
 		[this.vertices[0], this.vertices[1]] = [this.vertices[1], this.vertices[0]];
@@ -1421,8 +1426,8 @@ BARS.defineActions(function() {
 
 							let [face_key] = mesh.addFaces(new_face);
 							UVEditor.selected_faces.push(face_key);
-							
-							if (Reusable.vec1.fromArray(reference_face.getNormal(true)).angleTo(Reusable.vec2.fromArray(new_face)) > Math.PI/2) {
+
+							if (reference_face.angleTo(new_face) > 90) {
 								new_face.invert();
 							}
 						}
