@@ -501,9 +501,6 @@ function resizeWindow(event) {
 	if (Interface.data) {
 		updateInterfacePanels()
 	}
-	if (Animator.open) {
-		Timeline.updateSize()
-	}
 	Preview.all.forEach(function(prev) {
 		if (prev.canvas.isConnected) {
 			prev.resize()

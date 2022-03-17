@@ -165,7 +165,7 @@ class Panel {
 
 				let drag = e2 => {
 					convertTouchEvent(e2);
-					if (!started && (Math.pow(e2.clientX - e1.clientX, 2) + Math.pow(e2.clientX - e1.clientX, 2)) > 15) {
+					if (!started && (Math.pow(e2.clientX - e1.clientX, 2) + Math.pow(e2.clientY - e1.clientY, 2)) > 15) {
 						started = true;
 						if (this.slot !== 'float') {
 							this.moveTo('float');
@@ -376,11 +376,7 @@ class Panel {
 				if (direction_x == -1) this.position_data.float_position[0] = position_before[0] - this.position_data.float_size[0] + size_before[0];
 				if (direction_y == -1) this.position_data.float_position[1] = position_before[1] - this.position_data.float_size[1] + size_before[1];
 
-				if (this.onResize) {
-					this.onResize()
-				}
 				this.update();
-
 			}
 			let stop = e2 => {
 				convertTouchEvent(e2);

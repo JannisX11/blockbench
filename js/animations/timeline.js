@@ -584,6 +584,9 @@ Interface.definePanels(() => {
 		toolbars: {
 			timeline: Toolbars.timeline
 		},
+		onResize() {
+			Timeline.updateSize();
+		},
 		component: {
 			name: 'panel-timeline',
 			data() {return {

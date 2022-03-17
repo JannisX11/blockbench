@@ -10,7 +10,7 @@
 		flex-grow: 1;
 		min-height: 133px;
 	}
-	.panel.grow > .panel_vue_wrapper {
+	.panel.grow > .panel_vue_wrapper:not(.list) {
 		flex-grow: 1;
 		display: flex;
 		flex-direction: column;
@@ -23,7 +23,7 @@
 		box-sizing: content-box;
 		z-index: 14;
 	}
-	.panel.floating > .panel_vue_wrapper {
+	.panel.floating > .panel_vue_wrapper:not(.list) {
 		overflow: hidden;
 	}
 	.panel.floating.dragging {
@@ -37,6 +37,7 @@
 		display: flex;
 		width: 100%;
 		height: 40px;
+		flex-shrink: 0;
 		margin: 0;
 		padding: 0;
 		font-size: inherit;

@@ -512,9 +512,9 @@ class NumSlider extends Widget {
 			this.keybind.label = this.keybind.getText();
 		}
 		var scope = this;
-		this.node = $( `<div class="tool wide widget nslide_tool">
-							<div class="nslide tab_target" n-action="${this.id}"></div>
-					  	</div>`).get(0);
+		this.node = Interface.createElement('div', {class: 'tool wide widget nslide_tool'}, [
+			Interface.createElement('div', {class: 'nslide tab_target', 'n-action': this.id})
+		])
 		this.jq_outer = $(this.node)
 		this.jq_inner = this.jq_outer.find('.nslide');
 
@@ -804,16 +804,18 @@ class BarSlider extends Widget {
 		var scope = this;
 		this.type = 'slider'
 		this.icon = 'fa-sliders-h'
-		this.value = data.value||0
-		this.node = $('<div class="tool widget">'+
-			'<input type="range"'+
-				' value="'+(data.value?data.value:0)+'" '+
-				' min="'+(data.min?data.min:0)+'" '+
-				' max="'+(data.max?data.max:10)+'" '+
-				' step="'+(data.step?data.step:1)+'" '+
-				' style="width: '+(data.width?data.width:'auto')+'px;">'+
-		'</div>').get(0)
-		this.addLabel()
+		this.value = data.value||0;
+		this.node = Interface.createElement('div', {class: 'tool widget'}, [
+			Interface.createElement('input', {
+				type: 'range',
+				value: data.value ? data.value : 0,
+				min: data.min ? data.min : 0,
+				max: data.max ? data.max : 10,
+				step: data.step ? data.step : 1,
+				style: `width: ${data.width ? (data.width+'px') : 'auto'};`
+			})
+		])
+		this.addLabel();
 		if (typeof data.onChange === 'function') {
 			this.onChange = data.onChange
 		}
@@ -1062,7 +1064,7 @@ class BarText extends Widget {
 		this.icon = 'text_format'
 		this.node = $('<div class="tool widget bar_text">'+data.text||''+'</div>').get(0)
 		if (data.right) {
-			$(this.node).addClass('f_right')
+			this.node.classList.add('f_right');
 		}
 		this.onUpdate = data.onUpdate;
 		if (typeof data.click === 'function') {
