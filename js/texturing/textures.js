@@ -1708,6 +1708,16 @@ BARS.defineActions(function() {
 			TextureAnimator.update(textures);
 		}
 	})
+	new Action('animated_texture_fps', {
+		name: 'settings.texture_fps',
+		description: 'settings.texture_fps.desc',
+		icon: 'speed',
+		category: 'textures',
+		condition: textureAnimationCondition,
+		click() {
+			settings.texture_fps.trigger()
+		}
+	})
 })
 
 Interface.definePanels(function() {
@@ -1834,12 +1844,14 @@ Interface.definePanels(function() {
 							<div class="texture_animation_frame" v-for="i in maxFrameCount()"></div>
 							<div id="animated_texture_playhead" :style="{left: getPlayheadPos() + 'px'}"></div>
 						</div>
+						<div class="tool_wrapper_2"></div>
 					</div>
 				</div>
 			`,
 			mounted() {
 				BarItems.animated_textures.toElement('#texture_animation_playback .tool_wrapper')
 				BarItems.animated_texture_frame.setWidth(52).toElement('#texture_animation_playback .tool_wrapper')
+				BarItems.animated_texture_fps.toElement('#texture_animation_playback .tool_wrapper_2')
 			}
 		},
 		menu: new Menu([

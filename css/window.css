@@ -1148,6 +1148,8 @@
 		text-align: center;
 		color: var(--color-subtle_text);
 		font-family: var(--font-code);
+		pointer-events: initial;
+    	cursor: move;
 	}
 	#gif_recording_controls {
 		pointer-events: initial;
