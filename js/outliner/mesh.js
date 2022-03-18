@@ -184,7 +184,8 @@ class MeshFace extends Face {
 					return {
 						face,
 						key: fkey,
-						index: index_b
+						index: index_b,
+						edge: side_vertices
 					}
 				}
 			}
@@ -248,6 +249,7 @@ class Mesh extends OutlinerElement {
 
 		this.vertices = {};
 		this.faces = {};
+		this.seams = {};
 
 		if (!data.vertices) {
 			this.addVertices([2, 4, 2], [2, 4, -2], [2, 0, 2], [2, 0, -2], [-2, 4, 2], [-2, 4, -2], [-2, 0, 2], [-2, 0, -2]);
@@ -279,6 +281,18 @@ class Mesh extends OutlinerElement {
 	}
 	get vertice_list() {
 		return Object.keys(this.vertices).map(key => this.vertices[key]);
+	}
+	setSeam(edge, value) {
+		let key = edge.slice(0, 2).sort().join('_');
+		if (value) {
+			this.seams[key] = value;
+		} else {
+			delete this.seams[key];
+		}
+	}
+	getSeam(edge) {
+		let key = edge.slice(0, 2).sort().join('_');
+		return this.seams[key];
 	}
 	getWorldCenter(ignore_selected_vertices) {
 		let m = this.mesh;
@@ -906,6 +920,8 @@ new NodePreviewController(Mesh, {
 	
 		let mesh = element.mesh;
 		let white = new THREE.Color(0xffffff);
+		let join = new THREE.Color(0xffcc00);
+		let divide = new THREE.Color(0xff4400);
 		let selected_vertices = element.getSelectedVertices();
 
 		if (BarItems.selection_mode.value == 'vertex') {
@@ -925,13 +941,19 @@ new NodePreviewController(Mesh, {
 
 		let line_colors = [];
 		mesh.outline.vertex_order.forEach((key, i) => {
+			let key_b = Modes.edit && mesh.outline.vertex_order[i + ((i%2) ? -1 : 1) ];
 			let color;
 			if (!Modes.edit || BarItems.selection_mode.value == 'object') {
 				color = gizmo_colors.outline;
-			} else if (selected_vertices.includes(key) && selected_vertices.includes(mesh.outline.vertex_order[i + ((i%2) ? -1 : 1) ])) {
+			} else if (selected_vertices.includes(key) && selected_vertices.includes(key_b)) {
 				color = white;
 			} else {
 				color = gizmo_colors.grid;
+			}
+			if (Toolbox.selected.id === 'seam_tool') {
+				let seam = element.getSeam([key, key_b]);
+				if (seam == 'join') color = join;
+				if (seam == 'divide') color = divide;
 			}
 			line_colors.push(color.r, color.g, color.b);
 		})
@@ -1369,6 +1391,53 @@ BARS.defineActions(function() {
 				})
 			}
 			updateSelection();
+		}
+	})
+	
+	new Tool('seam_tool', {
+		icon: 'content_cut',
+		transformerMode: 'hidden',
+		toolbar: 'seam_tool',
+		category: 'tools',
+		selectElements: true,
+		modes: ['edit'],
+		condition: () => Mesh.all.length,
+		onCanvasClick(data) {
+			
+		},
+		onSelect: function() {
+			BarItems.selection_mode.set('edge');
+			BarItems.view_mode.set('solid');
+			BarItems.view_mode.onChange();
+		},
+		onUnselect: function() {
+			BarItems.selection_mode.set('object');
+			BarItems.view_mode.set('textured');
+			BarItems.view_mode.onChange();
+		}
+	})
+	new BarSelect('select_seam', {
+		options: {
+			auto: true,
+			join: true,
+			divide: true,
+		},
+		condition: () => Modes.edit && Mesh.all.length,
+		onChange({value}) {
+			if (value == 'auto') value = null;
+			Mesh.selected.forEach(mesh => {
+				let selected_vertices = mesh.getSelectedVertices();
+				mesh.forAllFaces((face) => {
+					let vertices = face.getSortedVertices();
+					vertices.forEach((vkey_a, i) => {
+						let vkey_b = vertices[i+1] || vertices[0];
+						if (selected_vertices.includes(vkey_a) && selected_vertices.includes(vkey_b)) {
+							mesh.setSeam([vkey_a, vkey_b], value);
+						}
+					})
+				});
+				Mesh.preview_controller.updateSelection(mesh);
+			})
 		}
 	})
 	new Action('create_face', {

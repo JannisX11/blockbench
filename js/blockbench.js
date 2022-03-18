@@ -171,6 +171,26 @@ function updateSelection(options = {}) {
 	updateNslideValues();
 	Interface.status_bar.vue.updateSelectionInfo();
 	if (settings.highlight_cubes.value || (Mesh.all[0])) updateCubeHighlights();
+	if (Toolbox.selected.id == 'seam_tool' && Mesh.selected[0]) {
+		let value;
+		let selected_vertices = Mesh.selected[0].getSelectedVertices();
+		Mesh.selected[0].forAllFaces((face) => {
+			if (value == '') return;
+			let vertices = face.getSortedVertices();
+			vertices.forEach((vkey_a, i) => {
+				let vkey_b = vertices[i+1] || vertices[0];
+				if (selected_vertices.includes(vkey_a) && selected_vertices.includes(vkey_b)) {
+					let seam = Mesh.selected[0].getSeam([vkey_a, vkey_b]) || 'auto';
+					if (value == undefined) {
+						value = seam;
+					} else if (value !== seam) {
+						value = '';
+					}
+				}
+			})
+		});
+		BarItems.select_seam.set(value || 'auto');
+	}
 	Canvas.updatePivotMarker();
 	Transformer.updateSelection();
 	Preview.all.forEach(preview => {

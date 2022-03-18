@@ -448,6 +448,7 @@ const UVEditor = {
 			matches.forEach(s => {
 				Project.selected_elements.safePush(s)
 			});
+			if (!event.shiftKey) UVEditor.selectMeshUVIsland(UVEditor.selected_faces[0]);
 			updateSelection();
 		}
 		return matches;
@@ -622,6 +623,32 @@ const UVEditor = {
 			this.vue.selected_faces.empty();
 		}
 		UVEditor.displayTools();
+	},
+	selectMeshUVIsland(face_key) {
+		if (face_key && Mesh.selected[0] && Mesh.selected[0].faces[face_key]) {
+			if (UVEditor.selected_faces.length == 1) {
+				let mesh = Mesh.selected[0];
+				function crawl(face) {
+					for (let i = 0; i < face.vertices.length; i++) {
+						let adjacent = face.getAdjacentFace(i);
+						if (!adjacent) continue;
+						if (UVEditor.selected_faces.includes(adjacent.key)) continue;
+						let epsilon = 0.1;
+						let uv_a1 = adjacent.face.uv[adjacent.edge[0]];
+						let uv_a2 = face.uv[adjacent.edge[0]];
+						if (!Math.epsilon(uv_a1[0], uv_a2[0], epsilon) || !Math.epsilon(uv_a1[1], uv_a2[1], epsilon)) continue;
+						let uv_b1 = adjacent.face.uv[adjacent.edge[1]];
+						let uv_b2 = face.uv[adjacent.edge[1]];
+						if (!Math.epsilon(uv_b1[0], uv_b2[0], epsilon) || !Math.epsilon(uv_b1[1], uv_b2[1], epsilon)) continue;
+						UVEditor.selected_faces.push(adjacent.key);
+						crawl(adjacent.face);
+					}
+				}
+				crawl(mesh.faces[face_key]);
+			} else {
+				UVEditor.selected_faces.replace([face_key]);
+			}
+		}
 	},
 	moveSelection(offset, event) {
 		Undo.initEdit({elements: UVEditor.getMappableElements()})
@@ -2346,6 +2373,7 @@ Interface.definePanels(function() {
 							if (do_move_uv) {
 								overlay_canvas.remove();
 							}
+							UVEditor.selectMeshUVIsland(face_key);
 						}
 					})
 				},
@@ -2606,8 +2634,8 @@ Interface.definePanels(function() {
 					face.getSortedVertices().forEach(key => {
 						let UV = face.uv[key];
 						coords.push(
-							((UV[0] + uv_offset[0]) / this.project_resolution[0] * this.inner_width + 1) + ',' +
-							((UV[1] + uv_offset[1]) / this.project_resolution[0] * this.inner_width + 1)
+							Math.roundTo((UV[0] + uv_offset[0]) / this.project_resolution[0] * this.inner_width + 1, 4) + ',' +
+							Math.roundTo((UV[1] + uv_offset[1]) / this.project_resolution[0] * this.inner_width + 1, 4)
 						)
 					})
 					return coords.join(' ');

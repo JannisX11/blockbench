@@ -77,7 +77,7 @@ const TextureGenerator = {
 		TextureGenerator.background_color.set('#00000000');
 		var dialog = new Dialog({
 			id: 'add_bitmap',
-			title: tl('action.create_texture'),
+			title: tl('action.append_to_template'),
 			width: 480,
 			form: {
 				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
@@ -724,11 +724,16 @@ const TextureGenerator = {
 					})
 				}
 				// Sort straight faces first
-				face_groups.sort((a, b) => {
+				function getNormalStraightness(normal) {
+					let absolute = normal.map(Math.abs);
 					return (
-						Math.max(Math.abs(a.normal[0]), Math.abs(a.normal[1]), Math.abs(a.normal[2])) -
-						Math.max(Math.abs(b.normal[0]), Math.abs(b.normal[1]), Math.abs(b.normal[2]))
+						(absolute[0] < 0.5 ? absolute[0] : (1-absolute[0]))*1.6 +
+						(absolute[1] < 0.5 ? absolute[1] : (1-absolute[1])) +
+						(absolute[2] < 0.5 ? absolute[2] : (1-absolute[2]))
 					)
+				}
+				face_groups.sort((a, b) => {
+					return getNormalStraightness(a.normal) - getNormalStraightness(b.normal);
 				})
 				let processed_faces = [];
 	
@@ -736,35 +741,38 @@ const TextureGenerator = {
 					face_groups.slice().forEach((face_group) => {
 						if (!face_groups.includes(face_group)) return;
 
-						function processFace(face, fkey) {
-							processed_faces.push(face);
-							for (let i = face.vertices.length-1; i >= 0; i--) {
-								let other_face_match = face.getAdjacentFace(i);
-								let edge = other_face_match && face.vertices.filter(vkey => other_face_match.face.vertices.includes(vkey));
-								if (other_face_match && edge.length == 2 && !face_group.faces.includes(other_face_match.face) && !processed_faces.includes(other_face_match.face)) {
-									let other_face = other_face_match.face;
-									let other_face_group = face_groups.find(group => group.faces[0] == other_face);
-									if (!other_face_group) return;
-									/**
-									 * Check for seam
-									 * If Seam Automatic, check for angle difference
-									*/
-
-									let angle = face.getAngleTo(other_face);
-									if (angle > 34) continue;
-									let angle_total = face_group.faces[0].getAngleTo(other_face);
-									if (angle_total > 45) continue;
-
-
-									face_group.faces.push(other_face);
-									face_group.keys.push(other_face_match.key);
-									face_group.edges.set(other_face, {face, fkey, edge});
-									face_groups.remove(other_face_group);
-									processFace(other_face, other_face_match.key);
-								}
+						function processFaces(faces) {
+							let perimeter = {};
+							for (let fkey in faces) {
+								let face = faces[fkey];
+								processed_faces.push(face);
+								[2, 0, 3, 1].forEach(i => {
+									if (!face.vertices[i]) return;
+									let other_face_match = face.getAdjacentFace(i);
+									let edge = other_face_match && face.vertices.filter(vkey => other_face_match.face.vertices.includes(vkey));
+									if (other_face_match && edge.length == 2 && !face_group.faces.includes(other_face_match.face) && !processed_faces.includes(other_face_match.face)) {
+										let other_face = other_face_match.face;
+										let other_face_group = face_groups.find(group => group.faces[0] == other_face);
+										if (!other_face_group) return;
+										let seam = mesh.getSeam(other_face_match.edge);
+										if (seam === 'cut') return;
+										if (seam !== 'join') {
+											let angle = face.getAngleTo(other_face);
+											if (angle > 34) return;
+											let angle_total = face_group.faces[0].getAngleTo(other_face);
+											if (angle_total > 45) return;
+										}
+										face_group.faces.push(other_face);
+										face_group.keys.push(other_face_match.key);
+										face_group.edges.set(other_face, {face, fkey, edge});
+										face_groups.remove(other_face_group);
+										perimeter[other_face_match.key] = other_face;
+									}
+								})
 							}
+							if (Object.keys(perimeter).length) processFaces(perimeter);
 						}
-						processFace(face_group.faces[0], face_group.keys[0]);
+						processFaces({[face_group.keys[0]]: face_group.faces[0]});
 					});
 				}
 	
@@ -830,7 +838,7 @@ const TextureGenerator = {
 
 
 					// Rotate UV to match corners
-					let rotation_angles = {};
+					/*let rotation_angles = {};
 					let precise_rotation_angle = {};
 					face_group.faces.forEach((face, i) => {
 						let fkey = face_group.keys[i];
@@ -879,7 +887,7 @@ const TextureGenerator = {
 							vertex_uvs[fkey][vkey][0] = point[0] * c - point[1] * s;
 							vertex_uvs[fkey][vkey][1] = point[0] * s + point[1] * c;
 						}
-					}
+					}*/
 	
 					// Define UV bounding box
 					let min_x = Infinity;
@@ -946,6 +954,7 @@ const TextureGenerator = {
 
 				})
 				face_list.push(...face_groups);
+				console.log(face_groups)
 			}
 		})
 

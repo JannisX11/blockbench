@@ -1931,6 +1931,7 @@ const BARS = {
 				'rotate_tool',
 				'pivot_tool',
 				'vertex_snap_tool',
+				'seam_tool',
 				'brush_tool',
 				'fill_tool',
 				'eraser',
@@ -1941,6 +1942,9 @@ const BARS = {
 			],
 			vertical: Blockbench.isMobile == true,
 			default_place: true
+		})
+		Blockbench.onUpdateTo('4.2.0-beta.2', () => {
+			Toolbars.tools.add(BarItems.seam_tool, 5);
 		})
 
 		Toolbars.element_position = new Toolbar({
@@ -2154,6 +2158,12 @@ const BARS = {
 			children: [
 				'vertex_snap_mode',
 				'selection_mode'
+			]
+		})
+		Toolbars.seam_tool = new Toolbar({
+			id: 'seam_tool',
+			children: [
+				'select_seam'
 			]
 		})
 		Blockbench.onUpdateTo('4.0', () => {
