@@ -1442,8 +1442,8 @@ BARS.defineActions(function() {
 	new BarSelect('select_seam', {
 		options: {
 			auto: true,
-			join: true,
 			divide: true,
+			join: true,
 		},
 		condition: () => Modes.edit && Mesh.all.length,
 		onChange({value}) {
