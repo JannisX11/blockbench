@@ -78,7 +78,7 @@ const Interface = {
 		right_bar: ['element', 'bone', 'color', 'skin_pose', 'outliner', 'chat'],
 		panels: {
 			paint: {
-				slot: 'bottom',
+				slot: 'left_bar',
 				float_position: [300, 0],
 				float_size: [500, 600],
 				height: window.innerHeight/2-50

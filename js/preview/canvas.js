@@ -654,7 +654,7 @@ const Canvas = {
 		Canvas.pivot_marker.add(helper1)
 		Canvas.pivot_marker.add(helper2)
 
-		Canvas.pivot_marker.rotation.reorder('ZYX')
+		Canvas.pivot_marker.rotation.order = 'ZYX';
 		Canvas.pivot_marker.base_scale = new THREE.Vector3(1, 1, 1);
 		Canvas.pivot_marker.no_export = true;
 
@@ -945,7 +945,7 @@ const Canvas = {
 			let bone = obj.mesh
 			if (bone) {
 
-				bone.rotation.reorder('ZYX');
+				bone.rotation.order = 'ZYX';
 				bone.rotation.setFromDegreeArray(obj.rotation);
 				bone.position.fromArray(obj.origin);
 				bone.scale.x = bone.scale.y = bone.scale.z = 1;

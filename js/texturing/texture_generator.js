@@ -887,8 +887,8 @@ const TextureGenerator = {
 			var fill_map = {};
 
 			if (makeTexture instanceof Texture) {
-				extend_x = makeTexture.width;
-				extend_y = makeTexture.height;
+				extend_x = makeTexture.width / res_multiple;
+				extend_y = makeTexture.height / res_multiple;
 				[...Cube.all, ...Mesh.all].forEach(element => {
 					for (let fkey in element.faces) {
 						let face = element.faces[fkey];
@@ -979,9 +979,9 @@ const TextureGenerator = {
 			
 			var max_size = Math.max(extend_x, extend_y)
 			if (options.power) {
-				max_size = Math.getNextPower(max_size, 16);
+				max_size = Math.getNextPower(max_size*res_multiple, 16)/res_multiple;
 			} else {
-				max_size = Math.ceil(max_size/16)*16;
+				max_size = Math.ceil(max_size*res_multiple/16)*16/res_multiple;
 			}
 			new_resolution = [max_size, max_size];
 		} else {
