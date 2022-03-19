@@ -1254,6 +1254,7 @@ const UVEditor = {
 					Project.display_uv = UVEditor.vue.display_uv = option;
 					if (option == 'selected_faces') settings.show_only_selected_uv.set(true);
 					if (option == 'selected_elements') settings.show_only_selected_uv.set(false);
+					Settings.saveLocalStorages();
 				}
 			}})
 		}},
@@ -2206,6 +2207,7 @@ Interface.definePanels(function() {
 				dragFace(face_key, event) {
 					if (event.which == 2 || event.which == 3) return;
 
+					let face_selected_before = this.selected_faces[0];
 					if (face_key) this.selectFace(face_key, event, true);
 					let elements = UVEditor.getMappableElements();
 					Undo.initEdit({
@@ -2373,7 +2375,14 @@ Interface.definePanels(function() {
 							if (do_move_uv) {
 								overlay_canvas.remove();
 							}
+							let selected_faces = this.selected_faces.slice()
 							UVEditor.selectMeshUVIsland(face_key);
+							if (
+								(this.selected_faces.includes(face_selected_before) && face_selected_before !== face_key) ||
+								(event.shiftKey || event.ctrlOrCmd || Pressing.overrides.shift || Pressing.overrides.ctrl)
+							) {
+								this.selected_faces.replace(selected_faces);
+							}
 						}
 					})
 				},

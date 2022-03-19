@@ -109,10 +109,17 @@ class MeshFace extends Face {
 							|| pointInsidePolygon(x+0.00001, y+0.99999)
 							|| pointInsidePolygon(x+0.99999, y+0.99999));
 				if (!inside) {
+					let i = 0;
+					let px_rect = [[x, y], [x+0.99999, y+0.99999]]
 					for (let vkey of sorted_vertices) {
-						if (pointInRectangle(face.uv[vkey], [x, y], [x+0.99999, y+0.99999])) {
+						let vkey_b = sorted_vertices[i+1] || sorted_vertices[0]
+						if (pointInRectangle(face.uv[vkey], ...px_rect)) {
 							inside = true; break;
 						}
+						if (lineIntersectsReactangle(face.uv[vkey], face.uv[vkey_b], ...px_rect)) {
+							inside = true; break;
+						}
+						i++;
 					}
 				}
 				if (inside) {
@@ -920,7 +927,7 @@ new NodePreviewController(Mesh, {
 	
 		let mesh = element.mesh;
 		let white = new THREE.Color(0xffffff);
-		let join = new THREE.Color(0xffcc00);
+		let join = new THREE.Color(0x16d606);
 		let divide = new THREE.Color(0xff4400);
 		let selected_vertices = element.getSelectedVertices();
 
@@ -943,10 +950,12 @@ new NodePreviewController(Mesh, {
 		mesh.outline.vertex_order.forEach((key, i) => {
 			let key_b = Modes.edit && mesh.outline.vertex_order[i + ((i%2) ? -1 : 1) ];
 			let color;
+			let selected;
 			if (!Modes.edit || BarItems.selection_mode.value == 'object') {
 				color = gizmo_colors.outline;
 			} else if (selected_vertices.includes(key) && selected_vertices.includes(key_b)) {
 				color = white;
+				selected = true;
 			} else {
 				color = gizmo_colors.grid;
 			}
@@ -954,6 +963,11 @@ new NodePreviewController(Mesh, {
 				let seam = element.getSeam([key, key_b]);
 				if (seam == 'join') color = join;
 				if (seam == 'divide') color = divide;
+				if (selected) {
+					color.r *= 1.2;
+					color.g *= 1.2;
+					color.b *= 1.2;
+				}
 			}
 			line_colors.push(color.r, color.g, color.b);
 		})
@@ -1394,6 +1408,7 @@ BARS.defineActions(function() {
 		}
 	})
 	
+	let seam_timeout;
 	new Tool('seam_tool', {
 		icon: 'content_cut',
 		transformerMode: 'hidden',
@@ -1403,7 +1418,15 @@ BARS.defineActions(function() {
 		modes: ['edit'],
 		condition: () => Mesh.all.length,
 		onCanvasClick(data) {
-			
+			if (!seam_timeout) {
+				seam_timeout = setTimeout(() => {
+					seam_timeout = null;
+				}, 200)
+			} else {
+				clearTimeout(seam_timeout);
+				seam_timeout = null;
+				BarItems.select_seam.trigger();
+			}
 		},
 		onSelect: function() {
 			BarItems.selection_mode.set('edge');
@@ -1425,6 +1448,7 @@ BARS.defineActions(function() {
 		condition: () => Modes.edit && Mesh.all.length,
 		onChange({value}) {
 			if (value == 'auto') value = null;
+			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
 				let selected_vertices = mesh.getSelectedVertices();
 				mesh.forAllFaces((face) => {
@@ -1438,6 +1462,7 @@ BARS.defineActions(function() {
 				});
 				Mesh.preview_controller.updateSelection(mesh);
 			})
+			Undo.finishEdit('Set mesh seam');
 		}
 	})
 	new Action('create_face', {

@@ -723,6 +723,14 @@ const TextureGenerator = {
 						texture: face.getTexture()
 					})
 				}
+				function getEdgeLength(edge) {
+					let edge_vertices = edge.map(vkey => mesh.vertices[vkey]);
+					return Math.sqrt(
+						Math.pow(edge_vertices[1][0] - edge_vertices[0][0], 2) +
+						Math.pow(edge_vertices[1][1] - edge_vertices[0][1], 2) +
+						Math.pow(edge_vertices[1][2] - edge_vertices[0][2], 2)
+					)
+				}
 				// Sort straight faces first
 				function getNormalStraightness(normal) {
 					let absolute = normal.map(Math.abs);
@@ -755,13 +763,16 @@ const TextureGenerator = {
 										let other_face_group = face_groups.find(group => group.faces[0] == other_face);
 										if (!other_face_group) return;
 										let seam = mesh.getSeam(other_face_match.edge);
-										if (seam === 'cut') return;
+										if (seam === 'divide') return;
 										if (seam !== 'join') {
 											let angle = face.getAngleTo(other_face);
-											if (angle > 34) return;
+											if (angle > 38) return;
 											let angle_total = face_group.faces[0].getAngleTo(other_face);
 											if (angle_total > 45) return;
+											let edge_length = getEdgeLength(other_face_match.edge);
+											if (edge_length < 2.2) return;
 										}
+										// Check overlap
 										face_group.faces.push(other_face);
 										face_group.keys.push(other_face_match.key);
 										face_group.edges.set(other_face, {face, fkey, edge});
@@ -778,10 +789,11 @@ const TextureGenerator = {
 	
 				face_groups.forEach(face_group => {
 					let vertex_uvs = {};
-
+					let main_normal;
 					face_group.faces.forEach((face, i) => {
 						// Project vertex coords onto plane
 						let normal_vec = vec1.fromArray(face.getNormal(true));
+						if (!main_normal) main_normal = normal_vec;
 						let plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
 							normal_vec,
 							vec2.fromArray(mesh.vertices[face.vertices[0]])
@@ -838,56 +850,61 @@ const TextureGenerator = {
 
 
 					// Rotate UV to match corners
-					/*let rotation_angles = {};
-					let precise_rotation_angle = {};
-					face_group.faces.forEach((face, i) => {
-						let fkey = face_group.keys[i];
-						let vertices = face.getSortedVertices();
-						vertices.forEach((vkey, i) => {
-							let vkey2 = vertices[i+1] || vertices[0];
-							let rot = Math.atan2(
-								vertex_uvs[fkey][vkey2][0] - vertex_uvs[fkey][vkey][0],
-								vertex_uvs[fkey][vkey2][1] - vertex_uvs[fkey][vkey][1],
-							)
-							let snap = 2;
-							rot = (Math.radToDeg(rot) + 360) % 90;
-							let rounded
-							let last_difference = snap;
-							for (let rounded_angle in precise_rotation_angle) {
-								let precise = precise_rotation_angle[rounded_angle];
-								if (Math.abs(rot - precise) < last_difference) {
-									last_difference = Math.abs(rot - precise);
-									rounded = rounded_angle;
+					if (face_group.faces.length == 1) {
+						let rotation_angles = {};
+						let precise_rotation_angle = {};
+						face_group.faces.forEach((face, i) => {
+							let fkey = face_group.keys[i];
+							let vertices = face.getSortedVertices();
+							vertices.forEach((vkey, i) => {
+								let vkey2 = vertices[i+1] || vertices[0];
+								let edge_length = getEdgeLength([vkey, vkey2]);
+								let rot = Math.atan2(
+									vertex_uvs[fkey][vkey2][0] - vertex_uvs[fkey][vkey][0],
+									vertex_uvs[fkey][vkey2][1] - vertex_uvs[fkey][vkey][1],
+								)
+								let snap = 2;
+								rot = (Math.radToDeg(rot) + 360) % 90;
+								let rounded
+								let last_difference = snap;
+								for (let rounded_angle in precise_rotation_angle) {
+									let precise = precise_rotation_angle[rounded_angle];
+									if (Math.abs(rot - precise) < last_difference) {
+										last_difference = Math.abs(rot - precise);
+										rounded = rounded_angle;
+									}
 								}
-							}
-							if (!rounded) rounded = Math.round(rot / snap) * snap;
-							if (rotation_angles[rounded]) {
-								rotation_angles[rounded]++;
+								if (!rounded) rounded = Math.round(rot / snap) * snap;
+								if (rotation_angles[rounded]) {
+									rotation_angles[rounded] += edge_length;
+								} else {
+									rotation_angles[rounded] = edge_length;
+									precise_rotation_angle[rounded] = rot;
+								}
+							})
+						})
+						let angles = Object.keys(rotation_angles).map(k => parseInt(k));
+						angles.sort((a, b) => {
+							let diff = rotation_angles[b] - rotation_angles[a];
+							if (diff) {
+								return diff;
 							} else {
-								rotation_angles[rounded] = 1;
-								precise_rotation_angle[rounded] = rot;
+								return a < b ? -1 : 1;
 							}
 						})
-					})
-					let angles = Object.keys(rotation_angles).map(k => parseInt(k));
-					angles.sort((a, b) => {
-						let diff = rotation_angles[b] - rotation_angles[a];
-						if (diff) {
-							return diff;
-						} else {
-							return a < b ? -1 : 1;
+						if (rotation_angles[angles[0]] > 1) {
+							let angle = Math.degToRad(precise_rotation_angle[angles[0]]);
+							let s = Math.sin(angle);
+							let c = Math.cos(angle);
+							for (let fkey in vertex_uvs) {
+								for (let vkey in vertex_uvs[fkey]) {
+									let point = vertex_uvs[fkey][vkey].slice();
+									vertex_uvs[fkey][vkey][0] = point[0] * c - point[1] * s;
+									vertex_uvs[fkey][vkey][1] = point[0] * s + point[1] * c;
+								}
+							}
 						}
-					})
-					let angle = Math.degToRad(precise_rotation_angle[angles[0]]);
-					let s = Math.sin(angle);
-					let c = Math.cos(angle);
-					for (let fkey in vertex_uvs) {
-						for (let vkey in vertex_uvs[fkey]) {
-							let point = vertex_uvs[fkey][vkey].slice();
-							vertex_uvs[fkey][vkey][0] = point[0] * c - point[1] * s;
-							vertex_uvs[fkey][vkey][1] = point[0] * s + point[1] * c;
-						}
-					}*/
+					}
 	
 					// Define UV bounding box
 					let min_x = Infinity;
@@ -926,12 +943,20 @@ const TextureGenerator = {
 					}
 	
 	
-					let max_x = -Infinity;
-					let max_z = -Infinity;
+					max_x = -Infinity;
+					max_z = -Infinity;
 					for (let fkey in vertex_uvs) {
 						for (let vkey in vertex_uvs[fkey]) {
 							max_x = Math.max(max_x, vertex_uvs[fkey][vkey][0]);
 							max_z = Math.max(max_z, vertex_uvs[fkey][vkey][1]);
+						}
+					}
+					// Align right if face points to right side of model
+					if (main_normal.x > 0) {
+						for (let fkey in vertex_uvs) {
+							for (let vkey in vertex_uvs[fkey]) {
+								vertex_uvs[fkey][vkey][0] += Math.ceil(max_x) - max_x;
+							}
 						}
 					}
 					face_group.posx = 0;
@@ -954,7 +979,6 @@ const TextureGenerator = {
 
 				})
 				face_list.push(...face_groups);
-				console.log(face_groups)
 			}
 		})
 
@@ -1128,6 +1152,23 @@ const TextureGenerator = {
 								|| pointInsidePolygon(x+0.99999, y+0.00001)
 								|| pointInsidePolygon(x+0.00001, y+0.99999)
 								|| pointInsidePolygon(x+0.99999, y+0.99999));
+					if (!inside) {
+						let px_rect = [[x, y], [x+0.99999, y+0.99999]]
+						faces:
+						for (let vertex_uvs of vertex_uv_faces) {
+							let i = 0;
+							for (let a of vertex_uvs) {
+								let b = vertex_uvs[i+1] || vertex_uvs[0];
+								if (pointInRectangle(a, ...px_rect)) {
+									inside = true; break faces;
+								}
+								if (lineIntersectsReactangle(a, b, ...px_rect)) {
+									inside = true; break faces;
+								}
+								i++;
+							}
+						}
+					}
 					if (inside) {
 						if (!matrix[x]) matrix[x] = {};
 						matrix[x][y] = true;
@@ -1244,70 +1285,114 @@ const TextureGenerator = {
 			return true;
 		}
 		function drawMeshTexture(ftemp, coords) {
-			if (!Format.single_texture) {
-				if (ftemp.faces[0].texture === undefined) return false;
-				texture = ftemp.faces[0].getTexture()
-			} else {
-				texture = Texture.getDefault();
-			}
-			if (!texture || !texture.img) return false;
+			let i = 0;
+			for (let face of ftemp.faces) {
 
-			/*
-			ctx.save()
-			let a_old = ftemp.faces[0].uv[ftemp.faces[0].vertices[0]];
-			let b_old = ftemp.faces[0].uv[ftemp.faces[0].vertices[1]];
-			let a_new = ftemp.vertex_uvs[ftemp.faces[0].vertices[0]];
-			let b_new = ftemp.vertex_uvs[ftemp.faces[0].vertices[1]];
-			let _old = Math.atan2(
-				b_old[1] - a_old[1],
-				b_old[0] - a_old[0],
-			)
-			let _new = Math.atan2(
-				b_new[1] - a_new[1],
-				b_new[0] - a_new[0],
-			)
-			let rotation_difference = Math.radToDeg(_new - _old);
-			if (Math.abs(((rotation_difference + 540) % 360) - 180) > 15) return false;
-			*/
+				let texture;
+				if (!Format.single_texture) {
+					if (face.texture === undefined) return false;
+					texture = face.getTexture()
+				} else {
+					texture = Texture.getDefault();
+				}
+				if (!texture || !texture.img) return false;
 
-			ctx.save()
-			let R = res_multiple;
-			let min = [Infinity, Infinity];
-			let max = [0, 0];
-			ftemp.faces.forEach(face => {
+				
+				ctx.save()
+				
+				let target_uvs = ftemp.vertex_uvs[ftemp.keys[i]];
+				let R = res_multiple;
+				let min = [Infinity, Infinity];
+				let max = [0, 0];
+				let target_min = [Infinity, Infinity];
+				let target_max = [0, 0];
 				face.vertices.forEach(vkey => {
 					min[0] = Math.min(min[0], face.uv[vkey][0]);
 					min[1] = Math.min(min[1], face.uv[vkey][1]);
 					max[0] = Math.max(max[0], face.uv[vkey][0]);
 					max[1] = Math.max(max[1], face.uv[vkey][1]);
+					target_min[0] = Math.min(target_min[0], target_uvs[vkey][0]);
+					target_min[1] = Math.min(target_min[1], target_uvs[vkey][1]);
+					target_max[0] = Math.max(target_max[0], target_uvs[vkey][0]);
+					target_max[1] = Math.max(target_max[1], target_uvs[vkey][1]);
 				})
-			})
-			
-			ctx.beginPath()
-			// Mask
-			for (let x in ftemp.matrix) {
-				x = parseInt(x);
-				for (let y in ftemp.matrix[x]) {
-					y = parseInt(y);
-					ctx.rect((coords.x + x)*R, (coords.y + y)*R, R, R);
-				}
-			}
-			ctx.closePath();
-			ctx.clip();
-			ctx.imageSmoothingEnabled = false;
 
-			ctx.drawImage(
-				texture.img,
-				min[0] / Project.texture_width * texture.img.naturalWidth,
-				min[1] / Project.texture_height * texture.img.naturalHeight,
-				Math.ceil((max[0] - min[0]) / Project.texture_width * texture.img.naturalWidth),
-				Math.ceil((max[1] - min[1]) / Project.texture_height * texture.img.naturalHeight),
-				coords.x*R,
-				coords.y*R,
-				coords.w*R,
-				coords.h*R
-			)
-			ctx.restore()
+
+				let a_old = face.uv[face.vertices[0]].slice();
+				let b_old = face.uv[face.vertices[1]].slice();
+				let a_new = target_uvs[face.vertices[0]].slice();
+				let b_new = target_uvs[face.vertices[1]].slice();
+				let rotation_old = Math.atan2(
+					b_old[1] - a_old[1],
+					b_old[0] - a_old[0],
+				)
+				let rotation_new = Math.atan2(
+					b_new[1] - a_new[1],
+					b_new[0] - a_new[0],
+				)
+				let rotation_difference = Math.radToDeg(rotation_new - rotation_old);
+				
+				ctx.beginPath()
+				// Mask
+				for (let x in ftemp.matrix) {
+					x = parseInt(x);
+					for (let y in ftemp.matrix[x]) {
+						y = parseInt(y);
+						ctx.rect((coords.x + x)*R, (coords.y + y)*R, R, R);
+					}
+				}
+				ctx.closePath();
+				ctx.clip();
+				ctx.imageSmoothingEnabled = false;
+
+				let rotate = Math.round((((rotation_difference + 540) % 360) - 180) / 90) * 90;
+				if (rotate) {
+					let offset = [
+						coords.x*R + (target_min[0] + (target_max[0] - target_min[0])/2) / Project.texture_width * texture.img.naturalWidth,
+						coords.y*R + (target_min[1] + (target_max[1] - target_min[1])/2) / Project.texture_height * texture.img.naturalHeight,
+					]
+					ctx.translate(...offset);
+					ctx.rotate(Math.degToRad(Math.round(rotation_difference / 90) * 90));
+					ctx.translate(-offset[0], -offset[1]);
+					
+					if (Math.abs(rotate) == 90) {
+						let target_size = [
+							Math.ceil((target_max[1] - target_min[1]) / Project.texture_height * texture.img.naturalHeight),
+							Math.ceil((target_max[0] - target_min[0]) / Project.texture_width * texture.img.naturalWidth),
+						]
+						let target_pos = [
+							coords.x*R + target_min[0] / Project.texture_width * texture.img.naturalWidth,
+							coords.y*R + target_min[1] / Project.texture_height * texture.img.naturalHeight,
+						];
+						target_pos[0] = target_pos[0] - target_size[0]/2 + target_size[1]/2;
+						target_pos[1] = target_pos[1] - target_size[1]/2 + target_size[0]/2;
+						ctx.drawImage(
+							texture.img,
+							min[0] / Project.texture_width * texture.img.naturalWidth,
+							min[1] / Project.texture_height * texture.img.naturalHeight,
+							Math.ceil((max[0] - min[0]) / Project.texture_width * texture.img.naturalWidth),
+							Math.ceil((max[1] - min[1]) / Project.texture_height * texture.img.naturalHeight),
+							...target_pos,
+							...target_size,
+						)
+					}
+				}
+				if (Math.abs(rotate) != 90) {
+					ctx.drawImage(
+						texture.img,
+						min[0] / Project.texture_width * texture.img.naturalWidth,
+						min[1] / Project.texture_height * texture.img.naturalHeight,
+						Math.ceil((max[0] - min[0]) / Project.texture_width * texture.img.naturalWidth),
+						Math.ceil((max[1] - min[1]) / Project.texture_height * texture.img.naturalHeight),
+						coords.x*R + target_min[0] / Project.texture_width * texture.img.naturalWidth,
+						coords.y*R + target_min[1] / Project.texture_height * texture.img.naturalHeight,
+						Math.ceil((target_max[0] - target_min[0]) / Project.texture_width * texture.img.naturalWidth),
+						Math.ceil((target_max[1] - target_min[1]) / Project.texture_height * texture.img.naturalHeight),
+					)
+				}
+				ctx.restore()
+				i++;
+			}
 			return true;
 		}
 
