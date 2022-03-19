@@ -974,7 +974,7 @@ class Preview {
 	}
 	mouseup(event) {
 		this.showContextMenu(event);
-		if (settings.canvas_unselect.value && event.which != 2 && this.controls.hasMoved === false && !this.selection.activated && !Transformer.dragging && !this.selection.click_target) {
+		if (settings.canvas_unselect.value && (event.which === 1 || event.which === 3) && this.controls.hasMoved === false && !this.selection.activated && !Transformer.dragging && !this.selection.click_target) {
 			unselectAll();
 		}
 		delete this.selection.click_target;

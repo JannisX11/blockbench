@@ -480,6 +480,39 @@ Array.prototype.V3_divide = function(x, y, z) {
 Array.prototype.V3_toThree = function() {
 	return new THREE.Vector3(this[0], this[1], this[2]);
 }
+Array.prototype.V2_set = function(x, y) {
+	if (x instanceof Array) return this.V2_set(...x);
+	if (y === undefined) y = x;
+	this[0] = parseFloat(x)||0;
+	this[1] = parseFloat(y)||0;
+	return this;
+}
+Array.prototype.V2_add = function(x, y) {
+	if (x instanceof Array) return this.V2_add(...x);
+	this[0] += parseFloat(x)||0;
+	this[1] += parseFloat(y)||0;
+	return this;
+}
+Array.prototype.V2_subtract = function(x, y) {
+	if (x instanceof Array) return this.V2_subtract(...x);
+	this[0] -= parseFloat(x)||0;
+	this[1] -= parseFloat(y)||0;
+	return this;
+}
+Array.prototype.V2_multiply = function(x, y) {
+	if (x instanceof Array) return this.V2_multiply(...x);
+	if (y === undefined) y = x;
+	this[0] *= parseFloat(x)||0;
+	this[1] *= parseFloat(y)||0;
+	return this;
+}
+Array.prototype.V2_divide = function(x, y) {
+	if (x instanceof Array) return this.V2_divide(...x);
+	if (y === undefined) y = x;
+	this[0] /= parseFloat(x)||1;
+	this[1] /= parseFloat(y)||1;
+	return this;
+}
 
 //Object
 Object.defineProperty(Array.prototype, "equals", {enumerable: false});
