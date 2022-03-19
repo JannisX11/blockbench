@@ -720,6 +720,7 @@ const TextureGenerator = {
 						keys: [fkey],
 						edges: new Map(),
 						normal: face.getNormal(true),
+						vertex_uvs: {},
 						texture: face.getTexture()
 					})
 				}
@@ -744,12 +745,110 @@ const TextureGenerator = {
 					return getNormalStraightness(a.normal) - getNormalStraightness(b.normal);
 				})
 				let processed_faces = [];
+
+				function projectFace(face, fkey, face_group, connection) {
+					// Project vertex coords onto plane
+					let {vertex_uvs} = face_group;
+					let normal_vec = vec1.fromArray(face.getNormal(true));
+					let plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+						normal_vec,
+						vec2.fromArray(mesh.vertices[face.vertices[0]])
+					)
+					let sorted_vertices = face.getSortedVertices();
+					let rot = cameraTargetToRotation([0, 0, 0], normal_vec.toArray());
+					let e = new THREE.Euler(Math.degToRad(rot[1] - 90), Math.degToRad(rot[0] + 180), 0);
+
+					let face_vertex_uvs = {};
+
+					face.vertices.forEach(vkey => {
+						let coplanar_pos = plane.projectPoint(vec3.fromArray(mesh.vertices[vkey]), vec4);
+						coplanar_pos.applyEuler(e);
+						face_vertex_uvs[vkey] = [
+							Math.roundTo(coplanar_pos.x, 4),
+							Math.roundTo(coplanar_pos.z, 4),
+						]
+					})
+
+					if (connection) {
+						// Rotate to connect to previous face
+						let other_face_vertex_uvs = vertex_uvs[connection.fkey];
+						let uv_hinge = face_vertex_uvs[connection.edge[0]];
+						let uv_latch = face_vertex_uvs[connection.edge[1]];
+						let uv_lock = other_face_vertex_uvs[connection.edge[1]];
+
+						// Join hinge
+						let offset = uv_hinge.slice().V2_subtract(other_face_vertex_uvs[connection.edge[0]]);
+						for (let vkey in face_vertex_uvs) {
+							face_vertex_uvs[vkey].V2_subtract(offset);
+						}
+
+						// Join latch
+						uv_hinge = uv_hinge.slice();
+						let angle = Math.atan2(
+							uv_hinge[0] - uv_latch[0],
+							uv_hinge[1] - uv_latch[1],
+						) - Math.atan2(
+							uv_hinge[0] - uv_lock[0],
+							uv_hinge[1] - uv_lock[1],
+						);
+						let s = Math.sin(angle);
+						let c = Math.cos(angle);
+						for (let vkey in face_vertex_uvs) {
+							let point = face_vertex_uvs[vkey].slice().V2_subtract(uv_hinge);
+							face_vertex_uvs[vkey][0] = point[0] * c - point[1] * s;
+							face_vertex_uvs[vkey][1] = point[0] * s + point[1] * c;
+							face_vertex_uvs[vkey].V2_add(uv_hinge);
+						}
+
+						// Check overlap
+						function isSameUVVertex(point_a, point_b) {
+							return (Math.epsilon(point_a[0], point_b[0], 0.1)
+								 && Math.epsilon(point_a[1], point_b[1], 0.1))
+						}
+						let i = -1;
+						for (let other_face of face_group.faces) {
+							i++;
+							if (other_face == connection.face) continue;
+							let other_fkey = face_group.keys[i];
+							let sorted_vertices_b = other_face.getSortedVertices();
+							let l1 = 0;
+							for (let vkey_1_a of sorted_vertices) {
+								let vkey_1_b = sorted_vertices[l1+1] || sorted_vertices[0]
+								let l2 = 0;
+								for (let vkey_2_a of sorted_vertices_b) {
+									let vkey_2_b = sorted_vertices_b[l2+1] || sorted_vertices_b[0];
+
+									if (intersectLines(
+										face_vertex_uvs[vkey_1_a],
+										face_vertex_uvs[vkey_1_b],
+										face_group.vertex_uvs[other_fkey][vkey_2_a],
+										face_group.vertex_uvs[other_fkey][vkey_2_b]
+									)) {
+										if (
+											!isSameUVVertex(face_vertex_uvs[vkey_1_a], face_group.vertex_uvs[other_fkey][vkey_2_a]) &&
+											!isSameUVVertex(face_vertex_uvs[vkey_1_a], face_group.vertex_uvs[other_fkey][vkey_2_b]) &&
+											!isSameUVVertex(face_vertex_uvs[vkey_1_b], face_group.vertex_uvs[other_fkey][vkey_2_a]) &&
+											!isSameUVVertex(face_vertex_uvs[vkey_1_b], face_group.vertex_uvs[other_fkey][vkey_2_b])
+										) {
+											return false;
+										}
+									}
+									l2++;
+								}
+								l1++;
+							}
+						}
+					}
+
+					face_group.vertex_uvs[fkey] = face_vertex_uvs;
+					return true;
+				}
 	
 				if (options.combine_polys) {
 					face_groups.slice().forEach((face_group) => {
 						if (!face_groups.includes(face_group)) return;
 
-						function processFaces(faces) {
+						function growFromFaces(faces) {
 							let perimeter = {};
 							for (let fkey in faces) {
 								let face = faces[fkey];
@@ -772,82 +871,32 @@ const TextureGenerator = {
 											let edge_length = getEdgeLength(other_face_match.edge);
 											if (edge_length < 2.2) return;
 										}
-										// Check overlap
+										let projection_success = projectFace(other_face, other_face_match.key, face_group, {face, fkey, edge});
+										if (!projection_success) return;
+
 										face_group.faces.push(other_face);
 										face_group.keys.push(other_face_match.key);
-										face_group.edges.set(other_face, {face, fkey, edge});
 										face_groups.remove(other_face_group);
 										perimeter[other_face_match.key] = other_face;
 									}
 								})
 							}
-							if (Object.keys(perimeter).length) processFaces(perimeter);
+							if (Object.keys(perimeter).length) growFromFaces(perimeter);
 						}
-						processFaces({[face_group.keys[0]]: face_group.faces[0]});
+						projectFace(face_group.faces[0], face_group.keys[0], face_group);
+						growFromFaces({[face_group.keys[0]]: face_group.faces[0]});
 					});
+				} else {
+					face_groups.forEach(face_group => {
+						face_group.faces.forEach((face, i) => {
+							let fkey = face_group.keys[i];
+							projectFace(face, fkey, face_group);
+						})
+					})
 				}
 	
 				face_groups.forEach(face_group => {
-					let vertex_uvs = {};
-					let main_normal;
-					face_group.faces.forEach((face, i) => {
-						// Project vertex coords onto plane
-						let normal_vec = vec1.fromArray(face.getNormal(true));
-						if (!main_normal) main_normal = normal_vec;
-						let plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
-							normal_vec,
-							vec2.fromArray(mesh.vertices[face.vertices[0]])
-						)
-						let rot = cameraTargetToRotation([0, 0, 0], normal_vec.toArray());
-						let e = new THREE.Euler(Math.degToRad(rot[1] - 90), Math.degToRad(rot[0] + 180), 0);
-
-						let face_vertex_uvs = {};
-
-						face.vertices.forEach(vkey => {
-							let coplanar_pos = plane.projectPoint(vec3.fromArray(mesh.vertices[vkey]), vec4);
-							coplanar_pos.applyEuler(e);
-							face_vertex_uvs[vkey] = [
-								Math.roundTo(coplanar_pos.x, 4),
-								Math.roundTo(coplanar_pos.z, 4),
-							]
-						})
-
-						// Rotate to connect to previous face
-						let connection = face_group.edges.get(face);
-						if (connection) {
-							let other_face_vertex_uvs = vertex_uvs[connection.fkey];
-							let uv_hinge = face_vertex_uvs[connection.edge[0]];
-							let uv_latch = face_vertex_uvs[connection.edge[1]];
-							let uv_lock = other_face_vertex_uvs[connection.edge[1]];
-
-							// Join hinge
-							let offset = uv_hinge.slice().V2_subtract(other_face_vertex_uvs[connection.edge[0]]);
-							for (let vkey in face_vertex_uvs) {
-								face_vertex_uvs[vkey].V2_subtract(offset);
-							}
-
-							// Join latch
-							uv_hinge = uv_hinge.slice();
-							let angle = Math.atan2(
-								uv_hinge[0] - uv_latch[0],
-								uv_hinge[1] - uv_latch[1],
-							) - Math.atan2(
-								uv_hinge[0] - uv_lock[0],
-								uv_hinge[1] - uv_lock[1],
-							);
-							let s = Math.sin(angle);
-							let c = Math.cos(angle);
-							for (let vkey in face_vertex_uvs) {
-								let point = face_vertex_uvs[vkey].slice().V2_subtract(uv_hinge);
-								face_vertex_uvs[vkey][0] = point[0] * c - point[1] * s;
-								face_vertex_uvs[vkey][1] = point[0] * s + point[1] * c;
-								face_vertex_uvs[vkey].V2_add(uv_hinge);
-							}
-						}
-
-						vertex_uvs[face_group.keys[i]] = face_vertex_uvs;
-					})
-
+					let {vertex_uvs} = face_group;
 
 					// Rotate UV to match corners
 					if (face_group.faces.length == 1) {
@@ -952,7 +1001,7 @@ const TextureGenerator = {
 						}
 					}
 					// Align right if face points to right side of model
-					if (main_normal.x > 0) {
+					if (face_group.normal[0] > 0) {
 						for (let fkey in vertex_uvs) {
 							for (let vkey in vertex_uvs[fkey]) {
 								vertex_uvs[fkey][vkey][0] += Math.ceil(max_x) - max_x;

@@ -633,7 +633,7 @@ const UVEditor = {
 						let adjacent = face.getAdjacentFace(i);
 						if (!adjacent) continue;
 						if (UVEditor.selected_faces.includes(adjacent.key)) continue;
-						let epsilon = 0.1;
+						let epsilon = 0.2;
 						let uv_a1 = adjacent.face.uv[adjacent.edge[0]];
 						let uv_a2 = face.uv[adjacent.edge[0]];
 						if (!Math.epsilon(uv_a1[0], uv_a2[0], epsilon) || !Math.epsilon(uv_a1[1], uv_a2[1], epsilon)) continue;
