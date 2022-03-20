@@ -307,8 +307,8 @@ var codec = new Codec('java_block', {
 				if (texture_paths[texture_arr.particle]) {
 					texture_paths[texture_arr.particle].enableParticle()
 				} else {
-					var t = new Texture({id: 'particle'}).fromJavaLink(texture_arr[tex], path_arr.slice()).enableParticle().add();
-					texture_paths[texture_arr[tex]] = texture_ids.particle = t;
+					var t = new Texture({id: 'particle'}).fromJavaLink(texture_arr.particle, path_arr.slice()).enableParticle().add();
+					texture_paths[texture_arr.particle] = texture_ids.particle = t;
 					new_textures.push(t);
 				}
 			}

@@ -170,6 +170,10 @@ var codec = new Codec('gltf', {
 			if (!Modes.edit) {
 				Animator.showDefaultPose();
 			}
+			if (BarItems.view_mode.value !== 'textured') {
+				BarItems.view_mode.set('textured');
+				BarItems.view_mode.onChange();
+			}
 			if (options.animations !== false) {
 				animations = buildAnimationTracks();
 			}

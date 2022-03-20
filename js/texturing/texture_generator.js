@@ -1005,10 +1005,18 @@ const TextureGenerator = {
 						}
 					}
 					// Align right if face points to right side of model
-					if (face_group.normal[0] > 0) {
+					if ((face_group.normal[0] > 0) != (face_group.normal[2] < 0)) {
 						for (let fkey in vertex_uvs) {
 							for (let vkey in vertex_uvs[fkey]) {
 								vertex_uvs[fkey][vkey][0] += Math.ceil(max_x) - max_x;
+							}
+						}
+					}
+					// Align bottom if face points downwards
+					if (face_group.normal[1] < 0) {
+						for (let fkey in vertex_uvs) {
+							for (let vkey in vertex_uvs[fkey]) {
+								vertex_uvs[fkey][vkey][1] += Math.ceil(max_z) - max_z;
 							}
 						}
 					}
