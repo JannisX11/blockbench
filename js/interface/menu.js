@@ -3,17 +3,37 @@ var open_menu = null;
 function handleMenuOverflow(node) {
 	node = node.get(0);
 	if (!node) return;
-	// Todo: mobile support
-	node.addEventListener('wheel', e => {
-		e.stopPropagation();
+	function offset(amount) {
 		let top = parseInt(node.style.top);
 		let offset = top - $(node).offset().top;
 		top = Math.clamp(
-			top - e.deltaY,
+			top + amount,
 			window.innerHeight - node.clientHeight + offset,
 			offset + 26
 		);
 		node.style.top = `${top}px`;
+	}
+	if (Blockbench.isTouch) {
+		node.addEventListener('touchstart', e1 => {
+			e1.stopPropagation();
+			convertTouchEvent(e1);
+			let last_y = e1.clientY;
+			let move = e2 => {
+				convertTouchEvent(e2);
+				offset(e2.clientY - last_y);
+				last_y = e2.clientY;
+			}
+			let stop = e2 => {
+				document.removeEventListener('touchmove', move);
+				document.removeEventListener('touchend', stop);
+			}
+			document.addEventListener('touchmove', move);
+			document.addEventListener('touchend', stop);
+		})
+	}
+	node.addEventListener('wheel', e => {
+		e.stopPropagation();
+		offset(-e.deltaY);
 	})
 }
 class Menu {

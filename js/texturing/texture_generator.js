@@ -1105,14 +1105,29 @@ const TextureGenerator = {
 			function forTemplatePixel(tpl, sx, sy, cb) {
 				let w = tpl.width;
 				let h = tpl.height;
+
 				if (options.padding) {
 					w++; h++;
-				}
-				for (var x = 0; x < w; x++) {
-					if (tpl.matrix && !tpl.matrix[x]) continue;
-					for (var y = 0; y < h; y++) {
-						if (tpl.matrix && !tpl.matrix[x][y]) continue;
-						if (cb(sx+x, sy+y)) return;
+					for (var x = 0; x < w; x++) {
+						if (tpl.matrix && !tpl.matrix[x] && !tpl.matrix[x-1]) continue;
+						for (var y = 0; y < h; y++) {
+							if (
+								tpl.matrix && 
+								(!tpl.matrix[x] || !tpl.matrix[x][y]) &&
+								(!tpl.matrix[x-1] || !tpl.matrix[x-1][y]) &&
+								(!tpl.matrix[x] || !tpl.matrix[x][y-1]) &&
+								(!tpl.matrix[x-1] || !tpl.matrix[x-1][y-1])
+							) continue;
+							if (cb(sx+x, sy+y)) return;
+						}
+					}
+				} else {
+					for (var x = 0; x < w; x++) {
+						if (tpl.matrix && !tpl.matrix[x]) continue;
+						for (var y = 0; y < h; y++) {
+							if (tpl.matrix && !tpl.matrix[x][y]) continue;
+							if (cb(sx+x, sy+y)) return;
+						}
 					}
 				}
 			}
