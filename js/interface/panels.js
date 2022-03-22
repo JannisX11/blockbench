@@ -277,7 +277,7 @@ class Panel {
 					}
 					if (!started) return;
 					
-					let sign = settings.mobile_panel_side.value == 'left' ? -1 : 1;
+					let sign = (Blockbench.isLandscape && settings.mobile_panel_side.value == 'left') ? -1 : 1;
 					this.position_data.height = Math.clamp(height_before + diff * sign, 140, max);
 
 					this.update(true);

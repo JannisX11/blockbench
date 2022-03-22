@@ -333,8 +333,10 @@ function updateKeybindConflicts() {
 	if (Keybinds.dialog && Keybinds.dialog.sidebar.node) {
 		let node = Keybinds.dialog.sidebar.node;
 		for (var key in Keybinds.structure) {
-			let page = node.querySelector(`.dialog_sidebar_pages li[page="${key}"]`)
-			page.classList.toggle('error', Keybinds.structure[key].conflict);
+			if (Keybinds.dialog.sidebar.pages[key]) {
+				let page = node.querySelector(`.dialog_sidebar_pages li[page="${key}"]`)
+				page.classList.toggle('error', Keybinds.structure[key].conflict);
+			}
 		}
 	}
 }
