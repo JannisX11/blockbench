@@ -1416,7 +1416,7 @@ BARS.defineActions(function() {
 		category: 'tools',
 		selectElements: true,
 		modes: ['edit'],
-		condition: () => Mesh.all.length,
+		condition: () => Modes.edit && Mesh.all.length,
 		onCanvasClick(data) {
 			if (!seam_timeout) {
 				seam_timeout = setTimeout(() => {
