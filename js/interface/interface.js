@@ -548,8 +548,7 @@ function setZoomLevel(mode) {
 			case 'out':   zoom *= 0.66;  break;
 			case 'reset': zoom = 1; break;
 		}
-		zoom = limitNumber(zoom, 1, 4)
-		UVEditor.setZoom(zoom)
+		UVEditor.setZoom(zoom);
 
 	} else if (Prop.active_panel == 'timeline') {
 		

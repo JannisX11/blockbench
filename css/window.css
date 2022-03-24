@@ -343,8 +343,15 @@
 	body.is_mobile .toolbar_wrapper.narrow.tools {
 		position: absolute;
 		z-index: 2;
+		top: 0;
 		bottom: 0px;
 		right: 0px;
+		display: flex;
+		align-items: end;
+	}
+	body.is_mobile .toolbar_wrapper.narrow.tools .toolbar {
+		height: auto;
+		max-height: 100%;
 	}
 	body.is_mobile #main_toolbar > div.tool_options {
 		background-color: var(--color-back);

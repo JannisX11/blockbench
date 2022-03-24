@@ -665,13 +665,16 @@ function setupMobilePanelSelector() {
 				},
 				select(panel) {
 					this.selected = panel && panel.id;
+					for (let key in Panels) {
+						let panel_b = Panels[key];
+						if (panel_b.slot == 'bottom') {
+							$(panel_b.node).detach();
+							panel_b.slot = 'left_bar';
+						}
+					}
 					if (panel) {
 						panel.moveTo('bottom');
 					} else {
-						let other_panel = Interface.getBottomPanel();
-						if (other_panel) {
-							$(other_panel.node).detach();
-						}
 						resizeWindow();
 					}
 				},

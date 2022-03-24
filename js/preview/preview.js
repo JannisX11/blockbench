@@ -2101,7 +2101,8 @@ BARS.defineActions(function() {
 			Preview.all.forEach(preview => {
 				if (!preview.offscreen) {
 					let icon = Blockbench.getIconNode(this.options[this.value].icon);
-					preview.node.querySelector('.preview_view_mode_menu > i').replaceWith(icon);
+					let icon_node = preview.node.querySelector('.preview_view_mode_menu > i');
+					if (icon_node) icon_node.replaceWith(icon);
 				}
 			})
 			//Blockbench.showQuickMessage(tl('action.view_mode') + ': ' + tl('action.view_mode.' + this.value));

@@ -244,6 +244,11 @@
 		top: unset;
 		bottom: 0;
 	}
+	
+	body.is_mobile #panel_uv,
+	body.is_mobile #panel_color {
+		overflow: hidden;
+	}
 
 /*Display*/
 
@@ -1566,6 +1571,9 @@
 		position: relative;
 		float: right;
 		pointer-events: none;
+	}
+	body.is_mobile .panel .bar.next_to_title {
+		margin-right: 32px;
 	}
 	.panel .bar.next_to_title > .tool {
 		float: right;

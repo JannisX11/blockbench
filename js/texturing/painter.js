@@ -148,14 +148,7 @@ const Painter = {
 					Painter.current.y = y
 					Painter.current.face = data.face
 					Painter.current.element = data.element
-					delete Painter.current.face_matrix;
 					new_face = true
-					if (Painter.current.element instanceof Mesh) {
-						let face = Painter.current.element.faces[Painter.current.face];
-						if (face && face.vertices.length > 2) {
-							Painter.current.face_matrix = face.getOccupationMatrix(true, [0, 0]);
-						}
-					}
 					if (texture !== Painter.current.texture) {
 						Undo.current_save.addTexture(texture)
 					}
@@ -199,12 +192,6 @@ const Painter = {
 				var is_line = (event.shiftKey || Pressing.overrides.shift) && Painter.current.element == data.element && Painter.current.face == data.face
 				Painter.current.element = data.element;
 				Painter.current.face = data.face;
-				if (Painter.current.element instanceof Mesh) {
-					let face = Painter.current.element.faces[Painter.current.face];
-					if (face && face.vertices.length > 2) {
-						Painter.current.face_matrix = face.getOccupationMatrix(true, [0, 0]);
-					}
-				}
 			} else {
 				//uv editor
 				var is_line = (event.shiftKey || Pressing.overrides.shift);
@@ -303,9 +290,19 @@ const Painter = {
 			let target = Painter.getMirrorPaintTarget(texture, x, y, uvTag)
 			if (target) {
 				let old_element = Painter.current.element;
+				let old_face = Painter.current.face;
 				Painter.current.element = target.element;
+				Painter.current.face = target.face;
 				Painter.useBrushlike(texture, target.x, target.y, event, target.uv_tag, true, true);
 				Painter.current.element = old_element;
+				Painter.current.face = old_face;
+			}
+		}
+		delete Painter.current.face_matrix;
+		if (Painter.current.element instanceof Mesh) {
+			let face = Painter.current.element.faces[Painter.current.face];
+			if (face && face.vertices.length > 2) {
+				Painter.current.face_matrix = face.getOccupationMatrix(true, [0, 0]);
 			}
 		}
 
@@ -333,6 +330,13 @@ const Painter = {
 		let tool = Toolbox.selected.id;
 
 		ctx.clip()
+		delete Painter.current.face_matrix;
+		if (Painter.current.element instanceof Mesh) {
+			let face = Painter.current.element.faces[Painter.current.face];
+			if (face && face.vertices.length > 2) {
+				Painter.current.face_matrix = face.getOccupationMatrix(true, [0, 0]);
+			}
+		}
 		if (event.touches && event.touches[0] && event.touches[0].touchType == 'stylus' && event.touches[0].force) {
 
 			// Stylus
@@ -519,10 +523,10 @@ const Painter = {
 			let uvFactorX = 1 / Project.texture_width * texture.img.naturalWidth;
 			let uvFactorY = 1 / Project.texture_height * texture.img.naturalHeight;
 
-			let face = Painter.current.face;
-			let side_face = (face === 'west' || face === 'east')
-			if (side_face) face = CubeFace.opposite[face];
-			face = mirror_element.faces[face];
+			let fkey = Painter.current.face;
+			let side_face = (fkey === 'west' || fkey === 'east')
+			if (side_face) fkey = CubeFace.opposite[fkey];
+			let face = mirror_element.faces[fkey];
 
 			if (side_face &&
 				uvTag[1] === face.uv[1] && uvTag[3] === face.uv[3] &&
@@ -552,7 +556,8 @@ const Painter = {
 				element: mirror_element,
 				x: point_on_uv[0],
 				y: point_on_uv[1],
-				uv_tag: face.uv
+				uv_tag: face.uv,
+				face: fkey
 			}
 
 		} else if (mirror_element instanceof Mesh) {
@@ -564,6 +569,7 @@ const Painter = {
 			let center = clicked_face.getCenter();
 			let e = 0.01;
 			let face;
+			let match_fkey;
 			for (let fkey in mesh.faces) {
 				let normal2 = mesh.faces[fkey].getNormal(true);
 				let center2 = mesh.faces[fkey].getCenter();
@@ -572,6 +578,7 @@ const Painter = {
 					Math.epsilon(center[0], -center2[0], e) && Math.epsilon(center[1], center2[1], e) && Math.epsilon(center[2], center2[2], e)
 				) {
 					face = mesh.faces[fkey];
+					match_fkey = fkey;
 				}
 			}
 			if (!face) return;
@@ -594,7 +601,8 @@ const Painter = {
 				element: mesh,
 				x: point_on_uv[0],
 				y: point_on_uv[1],
-				uv_tag: face.uv
+				uv_tag: face.uv,
+				face: match_fkey
 			}
 		}
 	},
@@ -744,9 +752,12 @@ const Painter = {
 				if (target) {
 					let start_target = Painter.getMirrorPaintTarget(texture, Painter.startPixel[0], Painter.startPixel[1], uvTag);
 					let old_element = Painter.current.element;
+					let old_face = Painter.current.face;
 					Painter.current.element = target.element;
+					Painter.current.face = target.face;
 					drawShape(start_target.x, start_target.y, target.x, target.y, target.uv_tag)
 					Painter.current.element = old_element;
+					Painter.current.face = old_face;
 				}
 			}
 
@@ -1040,6 +1051,16 @@ const Painter = {
 
 BARS.defineActions(function() {
 
+	new Tool('pan_tool', {
+		icon: 'pan_tool',
+		category: 'tools',
+		cursor: 'grab',
+		selectFace: false,
+		transformerMode: 'hidden',
+		allowed_view_modes: ['textured'],
+		modes: ['paint'],
+		condition: Blockbench.isMobile && {modes: ['paint']}
+	})
 	new Tool('brush_tool', {
 		icon: 'fa-paint-brush',
 		category: 'tools',

@@ -97,7 +97,7 @@ const UVEditor = {
 		var texture = UVEditor.getTexture()
 		if (!texture) {
 			Blockbench.showQuickMessage('message.untextured')
-		} else {
+		} else if (event.which === 1 || (event.touches && event.touches.length == 1)) {
 			var new_face;
 			var {x, y} = UVEditor.getBrushCoordinates(event, texture);
 			if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
@@ -379,8 +379,12 @@ const UVEditor = {
 	},
 	//Set
 	setZoom(zoom) {
+		zoom = Math.clamp(zoom, 0.5, UVEditor.max_zoom)
 		this.vue.zoom = zoom;
 		Project.uv_viewport.zoom = this.zoom;
+		Vue.nextTick(() => {
+			if (Painter.selection.overlay) UVEditor.updatePastingOverlay()
+		})
 		return this;
 	},
 	setGrid(value) {
@@ -1906,14 +1910,13 @@ Interface.definePanels(function() {
 						event.preventDefault()
 				
 						let original_margin = this.getFrameMargin();
+						let old_zoom = this.zoom;
 						var n = (event.deltaY < 0) ? 0.1 : -0.1;
 						n *= this.zoom
-						var number = Math.clamp(this.zoom + n, 0.5, this.max_zoom)
-						if (number > 0.91 && number < 1.1) number = 1;
-						let old_zoom = this.zoom;
 
-						this.zoom = number;
-						Project.uv_viewport.zoom = this.zoom;
+						let zoom = this.zoom + n;
+						if (zoom > 0.91 && zoom < 1.1) zoom = 1;
+						UVEditor.setZoom(zoom);
 						
 						let updateScroll = () => {
 							let {viewport} = this.$refs;
@@ -1933,7 +1936,7 @@ Interface.definePanels(function() {
 								this.centerView();
 							}
 							this.updateMouseCoords(event)
-							if (Painter.selection.overlay) UVEditor.updatePastingOverlay()
+							//if (Painter.selection.overlay) UVEditor.updatePastingOverlay()
 						}
 						if (n > 0) {
 							Vue.nextTick(updateScroll);
@@ -1946,7 +1949,13 @@ Interface.definePanels(function() {
 				},
 				onMouseDown(event) {
 					setActivePanel('uv');
-					if (event.which === 2) {
+					let second_touch;
+					let original_zoom = this.zoom;
+					if (event.which === 2 || (event.touches && !Toolbox.selected.paintTool && event.target.id == 'uv_frame')) {
+						if (event.touches) {
+							event.clientX = event.touches[0].clientX;
+							event.clientY = event.touches[0].clientY;
+						}
 						let {viewport} = this.$refs;
 						let margin = this.getFrameMargin();
 						let margin_center = [this.width/2, this.height/2];
@@ -1955,8 +1964,20 @@ Interface.definePanels(function() {
 							viewport.scrollTop
 						];
 						function dragMouseWheel(e2) {
+							if (e2.touches) {
+								e2.clientX = e2.touches[0].clientX;
+								e2.clientY = e2.touches[0].clientY;
+							}
 							viewport.scrollLeft = Math.snapToValues(original[0] + event.clientX - e2.clientX, [margin[0], margin_center[0]], 10);
 							viewport.scrollTop = Math.snapToValues(original[1] + event.clientY - e2.clientY, [margin[1], margin_center[1]], 10);
+
+							if (!second_touch && e2.touches[1]) second_touch = e2.touches[1];
+							if (second_touch && e2.touches[1]) {
+								let factor = Math.sqrt(Math.pow(e2.touches[0].clientX - e2.touches[1].clientX, 2) + Math.pow(e2.touches[0].clientY - e2.touches[1].clientY, 2))
+										   / Math.sqrt(Math.pow(event.touches[0].clientX - second_touch.clientX, 2) + Math.pow(event.touches[0].clientY - second_touch.clientY, 2));
+								UVEditor.setZoom(original_zoom * factor);
+							}
+
 							UVEditor.vue.centered_view = (viewport.scrollLeft == margin[0] || viewport.scrollLeft == margin_center[0])
 														&& (viewport.scrollTop == margin[1] || viewport.scrollTop == margin_center[1]);
 						}
@@ -2883,7 +2904,9 @@ Interface.definePanels(function() {
 		}
 	})
 	UVEditor.panel.on('move_to', (data) => {
-		UVEditor.saveViewportOffset();
+		if (!Blockbench.isMobile) {
+			UVEditor.saveViewportOffset();
+		}
 	})
 	UVEditor.panel.on('moved_to', (data) => {
 		Vue.nextTick(() => {

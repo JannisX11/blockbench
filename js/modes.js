@@ -64,7 +64,10 @@ class Mode extends KeybindItem {
 		}
 		if (Blockbench.isMobile) {
 			Interface.PanelSelectorVue.$forceUpdate();
-			Interface.PanelSelectorVue.select(null);
+			let bottom_panel = Interface.getBottomPanel();
+			if (bottom_panel && !Condition(bottom_panel.display_condition)) {
+				Interface.PanelSelectorVue.select(null);
+			}
 		}
 
 		if (Interface.Panels[Prop.active_panel] && !Condition(Interface.Panels[Prop.active_panel].condition)) {

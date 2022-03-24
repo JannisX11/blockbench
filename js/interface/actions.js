@@ -1934,6 +1934,7 @@ const BARS = {
 				'pivot_tool',
 				'vertex_snap_tool',
 				'seam_tool',
+				'pan_tool',
 				'brush_tool',
 				'fill_tool',
 				'eraser',
@@ -1947,6 +1948,7 @@ const BARS = {
 		})
 		Blockbench.onUpdateTo('4.2.0-beta.2', () => {
 			Toolbars.tools.add(BarItems.seam_tool, 5);
+			Toolbars.tools.add(BarItems.pan_tool, 6);
 		})
 
 		Toolbars.element_position = new Toolbar({

@@ -839,7 +839,9 @@ const Animator = {
 			Animator.timeline_node = Panels.timeline.node;
 		}
 		updateInterface()
-		Toolbars.element_origin.toPlace('bone_origin')
+		if (Panels.element) {
+			Toolbars.element_origin.toPlace('bone_origin')
+		}
 		if (!Timeline.is_setup) {
 			Timeline.setup()
 		}
@@ -865,8 +867,10 @@ const Animator = {
 		scene.remove(Animator.motion_trail);
 		Animator.resetParticles(true);
 
-		let anchor = Panels.element.node.querySelector('#element_origin_toolbar_anchor');
-		if (anchor) anchor.before(Toolbars.element_origin.node);
+		if (Panels.element) {
+			let anchor = Panels.element.node.querySelector('#element_origin_toolbar_anchor');
+			if (anchor) anchor.before(Toolbars.element_origin.node);
+		}
 
 		Canvas.updateAllBones()
 	},
