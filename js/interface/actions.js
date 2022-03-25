@@ -339,7 +339,7 @@ class Tool extends Action {
 		this.allowed_view_modes = data.allowed_view_modes || null;
 		this.tool_settings = {};
 
-		if (!this.condition) {
+		if (this.condition == undefined) {
 			this.condition = function() {
 				return !scope.modes || scope.modes.includes(Modes.id);
 			}

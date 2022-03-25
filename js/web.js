@@ -1,3 +1,16 @@
+Blockbench.queries = {};
+(function() {
+	let query_string = location.search || location.hash;
+	if (query_string) {
+		query_string = decodeURIComponent(query_string.substring(1));
+		let queries = query_string.split('&');
+		queries.forEach(string => {
+			let [key, value] = string.split(/=\s*(.+)/);
+			Blockbench.queries[key] = value || true;
+		})
+	}
+})()
+
 function initializeWebApp() {
 	
 	$(document.body).on('click', 'a[href]', (event) => {
@@ -28,13 +41,13 @@ try {
 }
 
 function loadInfoFromURL() {
-	if (location.hash.substr(1, 8) == 'session=') {
-		EditSession.token = location.hash.substr(9);
+	if (Blockbench.queries.session) {
+		EditSession.token = Blockbench.queries.session;
 		BarItems.edit_session.click();
 	}
 
-	if (location.hash.substr(1, 2) == 'm=') {
-		$.getJSON(`https://blckbn.ch/api/models/${location.hash.substr(3)}`, (model) => {
+	if (Blockbench.queries.m) {
+		$.getJSON(`https://blckbn.ch/api/models/${Blockbench.queries.m}`, (model) => {
 			Codecs.project.load(model, {path: ''});
 		})
 	}

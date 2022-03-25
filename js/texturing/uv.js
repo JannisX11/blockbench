@@ -1949,8 +1949,12 @@ Interface.definePanels(function() {
 				},
 				onMouseDown(event) {
 					setActivePanel('uv');
+					let scope = this;
 					let second_touch;
 					let original_zoom = this.zoom;
+					let original_margin = scope.getFrameMargin();
+					let offset = $(scope.$refs.viewport).offset()
+					UVEditor.total_zoom_offset = [6, 6]
 					if (event.which === 2 || (event.touches && !Toolbox.selected.paintTool && event.target.id == 'uv_frame')) {
 						if (event.touches) {
 							event.clientX = event.touches[0].clientX;
@@ -1967,16 +1971,30 @@ Interface.definePanels(function() {
 							if (e2.touches) {
 								e2.clientX = e2.touches[0].clientX;
 								e2.clientY = e2.touches[0].clientY;
-							}
-							viewport.scrollLeft = Math.snapToValues(original[0] + event.clientX - e2.clientX, [margin[0], margin_center[0]], 10);
-							viewport.scrollTop = Math.snapToValues(original[1] + event.clientY - e2.clientY, [margin[1], margin_center[1]], 10);
 
-							if (!second_touch && e2.touches[1]) second_touch = e2.touches[1];
-							if (second_touch && e2.touches[1]) {
-								let factor = Math.sqrt(Math.pow(e2.touches[0].clientX - e2.touches[1].clientX, 2) + Math.pow(e2.touches[0].clientY - e2.touches[1].clientY, 2))
-										   / Math.sqrt(Math.pow(event.touches[0].clientX - second_touch.clientX, 2) + Math.pow(event.touches[0].clientY - second_touch.clientY, 2));
-								UVEditor.setZoom(original_zoom * factor);
+								if (!second_touch && e2.touches[1]) {
+									second_touch = e2.touches[1];
+								}
+								if (second_touch && e2.touches[1]) {
+
+									let factor = Math.sqrt(Math.pow(e2.touches[0].clientX - e2.touches[1].clientX, 2) + Math.pow(e2.touches[0].clientY - e2.touches[1].clientY, 2))
+											/ Math.sqrt(Math.pow(event.touches[0].clientX - second_touch.clientX, 2) + Math.pow(event.touches[0].clientY - second_touch.clientY, 2));
+
+									if (!Math.epsilon(scope.zoom, original_zoom * factor, 0.01)) {
+										UVEditor.setZoom(original_zoom * factor);
+
+										let margin = scope.getFrameMargin();
+										let offsetX = e2.clientX - offset.left - margin[0];
+										let offsetY = e2.clientY - offset.top - margin[1];
+										let zoom_diff = scope.zoom - original_zoom;
+
+										UVEditor.total_zoom_offset[0] = ((original[0] + event.clientX - e2.clientX + offsetX) * zoom_diff) / original_zoom + margin[0] - original_margin[0];
+										UVEditor.total_zoom_offset[1] = ((original[1] + event.clientY - e2.clientY  + offsetY) * zoom_diff) / original_zoom + margin[1] - original_margin[1];
+									}
+								}
 							}
+							viewport.scrollLeft = Math.snapToValues(original[0] + event.clientX - e2.clientX + UVEditor.total_zoom_offset[0], [margin[0], margin_center[0]], 10);
+							viewport.scrollTop = Math.snapToValues(original[1] + event.clientY - e2.clientY + UVEditor.total_zoom_offset[1], [margin[1], margin_center[1]], 10);
 
 							UVEditor.vue.centered_view = (viewport.scrollLeft == margin[0] || viewport.scrollLeft == margin_center[0])
 														&& (viewport.scrollTop == margin[1] || viewport.scrollTop == margin_center[1]);
@@ -1990,7 +2008,10 @@ Interface.definePanels(function() {
 						event.preventDefault();
 						return false;
 					} else if (this.mode == 'paint' && Toolbox.selected.paintTool && (event.which === 1 || (event.touches && event.touches.length == 1))) {
-						UVEditor.startPaintTool(event)
+						UVEditor.startPaintTool(event);
+						event.preventDefault();
+						return false;
+
 					} else if (this.mode == 'uv' && event.target.id == 'uv_frame' && (event.which === 1 || (event.touches && event.touches.length == 1))) {
 
 						if (event.altKey || Pressing.overrides.alt) {
