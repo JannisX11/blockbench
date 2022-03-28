@@ -355,10 +355,7 @@ const Settings = {
 			localStorage.setItem('canvas_scenes', JSON.stringify(canvas_scenes))
 		}
 		if (window.ColorPanel) {
-			localStorage.setItem('colors', JSON.stringify({
-				palette: ColorPanel.vue._data.palette,
-				history: ColorPanel.vue._data.history,
-			}))
+			ColorPanel.saveLocalStorages()
 		}
 	},
 	save() {

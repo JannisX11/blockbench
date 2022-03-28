@@ -251,6 +251,7 @@ Interface.definePanels(() => {
 			history.splice(0, 0, color);
 			if (history.length > max) history.length = max;
 			$('#color_history')[0].scrollLeft = 0;
+			ColorPanel.saveLocalStorages();
 		}
 	}
 	ColorPanel.change = function(color) {
@@ -268,13 +269,16 @@ Interface.definePanels(() => {
 		ColorPanel.addToHistory(ColorPanel.vue._data.main_color);
 		return ColorPanel.vue._data.main_color;
 	}
+	ColorPanel.saveLocalStorages = function() {
+		localStorage.setItem('colors', JSON.stringify({
+			palette: ColorPanel.vue._data.palette,
+			history: ColorPanel.vue._data.history,
+		}))
+	}
 
 	$('#color_history').on('mousewheel', function(e) {
-		var current = this.scrollLeft;
 		var delta = (e.originalEvent.deltaY < 0 ? -90 : 90);
 		this.scrollLeft += delta;
-
-		//$(this).animate({scrollLeft: current + delta}, 200)
 	})
 
 	if (isApp) {
@@ -520,6 +524,7 @@ Interface.definePanels(() => {
 							ColorPanel.palette.safePush(color);
 						})
 					}
+					ColorPanel.saveLocalStorages();
 					dialog.hide();
 				}
 			});
@@ -528,6 +533,7 @@ Interface.definePanels(() => {
 			colors.forEach(color => {
 				ColorPanel.palette.push(color);
 			})
+			ColorPanel.saveLocalStorages();
 		}
 	}
 	ColorPanel.generatePalette = function(source, process_colors = true) {
@@ -630,6 +636,7 @@ Interface.definePanels(() => {
 						ColorPanel.palette.safePush(color);
 					})
 				}
+				ColorPanel.saveLocalStorages();
 				dialog.hide();
 			}
 		});
@@ -670,7 +677,8 @@ BARS.defineActions(function() {
 			var color = ColorPanel.get();
 			if (!ColorPanel.palette.includes(color)) {
 				ColorPanel.palette.push(color);
-				Blockbench.showQuickMessage('message.add_to_palette')
+				ColorPanel.saveLocalStorages();
+				Blockbench.showQuickMessage('message.add_to_palette');
 			}
 		}
 	})
@@ -761,9 +769,14 @@ BARS.defineActions(function() {
 					ColorPanel.palette.push(color.toHexString());
 				})
 			}
+			ColorPanel.saveLocalStorages();
 		}
 	})
 
+	function loadPalette(arr) {
+		ColorPanel.palette.splice(0, Infinity, ...arr);
+		ColorPanel.saveLocalStorages();
+	}
 	new Action('load_palette', {
 		icon: 'fa-tasks',
 		category: 'color',
@@ -772,17 +785,17 @@ BARS.defineActions(function() {
 		},
 		children: [
 			{name: 'menu.palette.load.default', icon: 'bubble_chart', id: 'default', click: () => {
-				ColorPanel.palette.splice(0, Infinity, ...palettes.default);
+				loadPalette(palettes.default);
 			}},
 			{name: 'Endesga 64', description: 'Pixel art palette created by lospec.com/endesga', icon: 'bubble_chart', id: 'endesga64', click: () => {
-				ColorPanel.palette.splice(0, Infinity, ...palettes.endesga64);
+				loadPalette(palettes.endesga64);
 			}},
 			{name: 'Material', icon: 'bubble_chart', id: 'material', click: () => {
-				ColorPanel.palette.splice(0, Infinity, ...palettes.material);
+				loadPalette(palettes.material);
 			}},
 			'_',
 			{name: 'menu.palette.load.empty', icon: 'clear', id: 'empty', click: () => {
-				ColorPanel.palette.splice(0, Infinity);
+				loadPalette([]);
 			}},
 		]
 	})

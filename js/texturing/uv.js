@@ -145,8 +145,8 @@ const UVEditor = {
 			rect.id = 'texture_selection_rect';
 			this.vue.$refs.frame.append(rect)
 			Painter.selection.rect = rect;
-			Painter.selection.start_x = x;
-			Painter.selection.start_y = y;
+			Painter.selection.start_x = Math.clamp(x, 0, UVEditor.texture ? UVEditor.texture.width : Project.texture_width);
+			Painter.selection.start_y = Math.clamp(y, 0, UVEditor.texture ? UVEditor.texture.height : Project.texture_height);
 			UVEditor.vue.copy_overlay.width = 0;
 			UVEditor.vue.copy_overlay.height = 0;
 		} else {
