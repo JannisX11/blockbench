@@ -1,35 +1,27 @@
 {
 	"new_version": {
-		"color": "#12182a",
-		"text_color": "#e8ddcd",
-		"graphic": {
-			"type": "image",
-			"source": "https://web.blockbench.net/content/splash_art.png?41",
-			"width": 1000,
-			"aspect_ratio": "21/9",
-			"description": "Splash Art by [MisterGriimm](https://twitter.com/MisterGriimm) and [MidnitePixel_](https://twitter.com/MidnitePixel_)",
-			"text_color": "#aba4a3"
-		},
+		"color": "var(--color-bright_ui)",
+		"text_color": "var(--color-bright_ui_text)",
 		"layout": "vertical",
+		"insert_after": "splash_screen",
 		"text": [
-			{"text": "Happy Holidays!", "type": "h1"},
-			{"text": "...and welcome to Blockbench 4.1, the Inverse Kinematics Update!", "type": "h2"},
-			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.1.0)"}
+			{"text": "Welcome to Blockbench 4.2, the Panel Update!", "type": "h1"},
+			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.2.0)!"}
 		],
 		"features": [
 			{
 				"image": "https://web.blockbench.net/content/inverse_kinematics.png",
-				"title": "Inverse Kinematics!",
+				"title": "Moveable Panels!",
 				"text": "Inverse Kinematics allow you to animate a chain of bones by just moving the end point!"
 			},
 			{
 				"image": "https://web.blockbench.net/content/gif_crop.png",
-				"title": "GIF Cropping!",
+				"title": "Texture Editing!",
 				"text": "The new GIF recorder allows you to crop your GIF to just the content you need!"
 			},
 			{
 				"image": "https://web.blockbench.net/content/collada.png",
-				"title": "Collada Export",
+				"title": "Move Texture with UV",
 				"text": "With Collada support you can export your models directly into Unity and other programs!"
 			}
 		]

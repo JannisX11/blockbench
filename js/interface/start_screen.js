@@ -107,8 +107,15 @@ function addStartScreenSection(id, data) {
 	}
 	if (data.last) {
 		$('#start_screen content').append(obj);
+	} else if (data.insert_after) {
+		$('#start_screen content').find(`#${data.insert_after}`).after(obj);
+	} else if (data.insert_before) {
+		$('#start_screen content').find(`#${data.insert_before}`).before(obj);
 	} else {
 		$('#start_screen content').prepend(obj);
+	}
+	if (!obj[0].parentElement) {
+		$('#start_screen content').append(obj);
 	}
 }
 
@@ -241,37 +248,6 @@ onVueSetup(function() {
 		url: 'https://web.blockbench.net/content/news.json',
 		dataType: 'json'
 	});
-	Promise.all([news_call, documentReady]).then((data) => {
-		if (!data || !data[0]) return;
-		data = data[0];
-
-		//Update Screen
-		if (Blockbench.hasFlag('after_update') && data.new_version) {
-			addStartScreenSection(data.new_version)
-			jQuery.ajax({
-				url: 'https://blckbn.ch/api/event/successful_update',
-				type: 'POST',
-				data: {
-					version: Blockbench.version
-				}
-			})
-		}
-		if (data.psa) {
-			(function() {
-				if (typeof data.psa.version == 'string') {
-					if (data.psa.version.includes('-')) {
-						limits = data.psa.version.split('-');
-						if (limits[0] && compareVersions(limits[0], Blockbench.version)) return;
-						if (limits[1] && compareVersions(Blockbench.version, limits[1])) return;
-					} else {
-						if (data.psa.version != Blockbench.version) return;
-					}
-				}
-				addStartScreenSection(data.psa)
-			})()
-		}
-
-	})
 	documentReady.then(() => {
 		Blockbench.startup_count = parseInt(localStorage.getItem('startups')||0)
 
@@ -294,6 +270,20 @@ onVueSetup(function() {
 		}
 		if (settings.streamer_mode.value) {
 			updateStreamerModeNotification()
+		}
+		addStartScreenSection('splash_screen', {
+			"text_color": '#000000',
+			"graphic": {
+				"type": "image",
+				"source": "./assets/splash_art.png?42",
+				"width": 1000,
+				"aspect_ratio": "21/9",
+				"description": "Splash Art by [Shroomy](https://twitter.com/ShroomyArts) and [RedstoneMvv](https://twitter.com/Redstone_mvv)",
+				"text_color": '#cfcfcf'
+			}
+		})
+		if (!Blockbench.hasFlag('after_update')) {
+			document.getElementById('start_screen').scrollTop = 100;
 		}
 
 		//Twitter
@@ -330,7 +320,6 @@ onVueSetup(function() {
 			
 			let section = Interface.createElement('section', {id: 'quick_setup'});
 			$('#start_screen content').prepend(section);
-			console.log(section)
 
 			new Vue({
 				data() {return {
@@ -415,5 +404,37 @@ onVueSetup(function() {
 				`
 			}).$mount(section);
 		}
+	})
+	Promise.all([news_call, documentReady]).then((data) => {
+		if (!data || !data[0]) return;
+		data = data[0];
+
+		//Update Screen
+		if (Blockbench.hasFlag('after_update') && data.new_version) {
+			data.new_version.insert_after = 'splash_screen'
+			addStartScreenSection('new_version', data.new_version);
+			jQuery.ajax({
+				url: 'https://blckbn.ch/api/event/successful_update',
+				type: 'POST',
+				data: {
+					version: Blockbench.version
+				}
+			})
+		}
+		if (data.psa) {
+			(function() {
+				if (typeof data.psa.version == 'string') {
+					if (data.psa.version.includes('-')) {
+						limits = data.psa.version.split('-');
+						if (limits[0] && compareVersions(limits[0], Blockbench.version)) return;
+						if (limits[1] && compareVersions(Blockbench.version, limits[1])) return;
+					} else {
+						if (data.psa.version != Blockbench.version) return;
+					}
+				}
+				addStartScreenSection(data.psa)
+			})()
+		}
+
 	})
 })()
