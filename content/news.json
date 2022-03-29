@@ -10,19 +10,19 @@
 		],
 		"features": [
 			{
-				"image": "https://web.blockbench.net/content/inverse_kinematics.png",
-				"title": "Moveable Panels!",
-				"text": "Inverse Kinematics allow you to animate a chain of bones by just moving the end point!"
+				"image": "https://web.blockbench.net/content/panels.png",
+				"title": "Movable Panels!",
+				"text": "Panels can now be snapped to the top or bottom of the interface, or float anywhere!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/gif_crop.png",
-				"title": "Texture Editing!",
-				"text": "The new GIF recorder allows you to crop your GIF to just the content you need!"
+				"image": "https://web.blockbench.net/content/texture_editing.png",
+				"title": "Texture Editing",
+				"text": "More texture editing tools, like color adjustments, curves, and improved 2D texturing panel!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/collada.png",
-				"title": "Move Texture with UV",
-				"text": "With Collada support you can export your models directly into Unity and other programs!"
+				"image": "https://web.blockbench.net/content/mesh_uv.png",
+				"title": "Seam Tool",
+				"text": "New tools for better automatic mesh UV unwrapping!"
 			}
 		]
 	}
