@@ -864,15 +864,16 @@ BARS.defineActions(function() {
 	new Action('pick_screen_color', {
 		icon: 'colorize',
 		category: 'color',
-		condition: () => (typeof EyeDropper == 'function' || isApp),
+		condition: () => (typeof EyeDropper == 'function'),
 		click: async function () {
-			if (!isApp && typeof EyeDropper == 'function') {
+			if (Blockbench.platform == 'win32') {
+				// workaround for https://github.com/electron/electron/issues/27980
+				ipcRenderer.send('request-color-picker', {sync: settings.sync_color.value});
+
+			} else if (typeof EyeDropper == 'function') {
 				let dropper = new EyeDropper();
 				let {sRGBHex} = await dropper.open();
 				ColorPanel.set(sRGBHex);
-
-			} else if (isApp) {
-				ipcRenderer.send('request-color-picker', {sync: settings.sync_color.value});
 			}
 		}
 	})

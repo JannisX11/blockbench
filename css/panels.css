@@ -119,7 +119,7 @@
 		position: relative;
 	}
 	.panel[order="-1"]::before {
-		margin-top: -2px;
+		margin-top: 0;
 	}
 	.panel[order="1"]::before {
 		bottom: 0px;
