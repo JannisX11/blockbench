@@ -27,7 +27,6 @@ jobs:
       os: linux
       script:
         - sudo apt-get install rpm
-        - npm install electron@13.5.2
         - electron-builder --publish=onTagOrDraft
 
 cache:

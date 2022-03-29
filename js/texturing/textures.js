@@ -166,11 +166,6 @@ class Texture {
 			if(!project) return;
 			project.whenNextOpen(() => {
 
-				//Width / Animation
-				if (img.naturalWidth !== img.naturalHeight && Format.id == 'java_block') {
-					BARS.updateConditions()
-				}
-
 				if (Project.box_uv && Format.single_texture && !scope.error) {
 
 					if (!scope.keep_size) {
@@ -629,6 +624,9 @@ class Texture {
 			Canvas.updateAllFaces()
 			TickUpdates.selection = true;
 		}
+		if (Texture.all.length > 1 && Modes.paint && !UVEditor.getReferenceFace()) {
+			UVEditor.vue.updateTexture();
+		}
 		return this;
 	}
 	add(undo) {
@@ -839,9 +837,10 @@ class Texture {
 	}
 	resizeDialog() {
 		let scope = this;
+		let updated_to_repeat = false;
 		let dialog = new Dialog({
 			id: 'resize_texture',
-			title: 'menu.texture.resize',
+			title: 'action.resize_texture',
 			form: {
 				size: {
 					label: 'dialog.project.texture_size',
@@ -850,12 +849,27 @@ class Texture {
 					value: [this.width, this.height],
 					min: 1
 				},
+				frames: {
+					label: 'dialog.resize_texture.animation_frames',
+					type: 'number',
+					condition: () => Format.animated_textures,
+					value: this.frameCount || 1,
+					min: 1,
+					max: 2048,
+					step: 1,
+				},
 				fill: {label: 'dialog.resize_texture.fill', type: 'select', default: 'transparent', options: {
 					transparent: 'dialog.resize_texture.fill.transparent',
 					color: 'dialog.resize_texture.fill.color',
 					repeat: 'dialog.resize_texture.fill.repeat',
 					stretch: 'dialog.resize_texture.fill.stretch'
 				}}
+			},
+			onFormChange(formResult) {
+				if (formResult.frames > (scope.frameCount || 1) && !updated_to_repeat) {
+					updated_to_repeat = true;
+					this.setFormValues({fill: 'repeat'});
+				}
 			},
 			onConfirm: function(formResult) {
 
@@ -869,6 +883,9 @@ class Texture {
 						}
 					})
 					if (elements.length) elements_to_change = elements;
+				}
+				if (Format.animated_textures && formResult.frames > 1) {
+					formResult.size[1] *= formResult.frames / (scope.frameCount || 1);
 				}
 
 				Undo.initEdit({
@@ -912,7 +929,9 @@ class Texture {
 						delete Painter.current.canvas;
 					}
 					scope.keep_size = true;
-					if (formResult.fill !== 'stretch' && (Format.single_texture || Texture.all.length == 1)) {
+					if (formResult.fill === 'repeat' && Format.animated_textures && formResult.size[0] < formResult.size[1]) {
+						// Animated
+					} else if (formResult.fill !== 'stretch' && (Format.single_texture || Texture.all.length == 1)) {
 						Undo.current_save.uv_mode = {
 							box_uv: Project.box_uv,
 							width:  Project.texture_width,
@@ -1017,7 +1036,7 @@ class Texture {
 					if (scope.folder) arr = arr.concat(scope.folder.split('/'));
 					arr.push(scope.name)
 					find_path = arr.join(osfs)
-				} 
+				}
 				Blockbench.export({
 					resource_id: 'texture',
 					type: 'PNG Texture',
@@ -1043,6 +1062,76 @@ class Texture {
 			})
 		}
 		return this;
+	}
+	exportEmissionMap() {
+		new Dialog({
+			id: 'export_emission_map',
+			title: 'dialog.export_emission_map.title',
+			form: {
+				format: {label: 'dialog.export_emission_map.format', type: 'select', options: {
+					luminance: 'dialog.export_emission_map.format.luminance',
+					luminance_inverted: 'dialog.export_emission_map.format.luminance_inverted',
+					colors: 'dialog.export_emission_map.format.colors'
+				}},
+				threshold: {label: 'dialog.export_emission_map.threshold', type: 'number', min: 0, max: 254},
+				round_up: {
+					label: tl('dialog.export_emission_map.round_up', [Math.getNextPower(this.width), Math.getNextPower(this.height)]),
+					type: 'checkbox',
+					condition: () => !Math.isPowerOfTwo(this.width) || !Math.isPowerOfTwo(this.height)},
+				flip_y: {label: 'dialog.export_emission_map.flip_y', type: 'checkbox'},
+			},
+			onConfirm: form => {
+
+				let canvas = document.createElement('canvas')
+				let ctx = canvas.getContext('2d');
+				if (form.round_up) {
+					canvas.width = Math.getNextPower(this.img.naturalWidth);
+					canvas.height = Math.getNextPower(this.img.naturalHeight);
+				} else {
+					canvas.width = this.img.naturalWidth;
+					canvas.height = this.img.naturalHeight;
+				}
+				if (form.flip_y) {
+					ctx.translate( 0, canvas.height );
+					ctx.scale( 1, - 1 );
+				}
+				ctx.drawImage(this.img, 0, 0, this.img.naturalWidth, this.img.naturalHeight);
+		
+				let data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+				for (let i = 0; i < data.data.length; i += 4) {
+
+					if (form.format == 'colors') {
+						if (data.data[i+3] <= form.threshold) {
+							data.data[i+0] = data.data[i+1] = data.data[i+2] = data.data[i+3] = 0;
+						} else {
+							data.data[i+3] = 255 - data.data[i+3];
+						}
+					} else {
+						if (data.data[i+3] < 254 && data.data[i+3] > form.threshold) {
+							let v = form.format == 'luminance_inverted' ? data.data[i+3] : (255 - data.data[i+3]);
+							data.data[i+0] = data.data[i+1] = data.data[i+2] = v;
+						} else {
+							data.data[i+0] = data.data[i+1] = data.data[i+2] = form.format == 'luminance_inverted' ? 255 : 0;
+						}
+						data.data[i+3] = 255;
+					}
+				}
+				ctx.putImageData(data, 0, 0);
+		
+				let dataUrl = canvas.toDataURL('image/png');
+		
+				Blockbench.export({
+					resource_id: 'texture',
+					type: 'PNG Texture',
+					extensions: ['png'],
+					name: this.name.replace(/\.png$/i, '') + '-emission_map',
+					content: dataUrl,
+					startpath: this.path.replace(/\.png$/i, '') + '-emission_map',
+					savetype: 'image'
+				})
+			}
+		}).show();
 	}
 	getBase64() {
 		var scope = this;
@@ -1130,16 +1219,29 @@ class Texture {
 						Undo.finishEdit('change texture view mode');
 					}
 					return [
-						{name: 'menu.texture.render_mode.normal', icon: texture.render_mode == 'normal' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('normal')}},
+						{name: 'menu.texture.render_mode.default', icon: texture.render_mode == 'default' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('default')}},
 						{name: 'menu.texture.render_mode.emissive', icon: texture.render_mode == 'emissive' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('emissive')}},
 						{name: 'menu.texture.render_mode.layered', icon: texture.render_mode == 'layered' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('layered')}, condition: () => Format.single_texture},
 					]
 				}
 			},
+			'resize_texture',
+			'append_to_template',
 			{
-				icon: 'photo_size_select_large',
-				name: 'menu.texture.resize',
-				click(texture) {texture.resizeDialog()}
+				name: 'menu.texture.merge_onto_texture',
+				icon: 'fa-caret-square-up',
+				condition: (tex) => (tex && Texture.all.indexOf(tex) !== 0),
+				click(texture) {
+					let target = Texture.all[Texture.all.indexOf(texture)-1];
+					Undo.initEdit({textures: [target], bitmap: true});
+
+					target.edit(canvas => {
+						let ctx = canvas.getContext('2d');
+						ctx.drawImage(texture.img, 0, 0);
+					}, {no_undo: true})
+
+					Undo.finishEdit('Merged textures')
+				}
 			},
 			'_',
 			{
@@ -1164,6 +1266,12 @@ class Texture {
 				icon: 'file_download',
 				name: 'menu.texture.export',
 				click: function(texture) {texture.save(true)}
+			},
+			{
+				icon: 'flourescent',
+				name: 'dialog.export_emission_map.title',
+				condition: tex => tex.render_mode == 'emissive',
+				click: function(texture) {texture.exportEmissionMap()}
 			},
 			'_',
 			{
@@ -1207,7 +1315,7 @@ class Texture {
 	new Property(Texture, 'string', 'namespace')
 	new Property(Texture, 'string', 'id')
 	new Property(Texture, 'boolean', 'particle')
-	new Property(Texture, 'string', 'render_mode', {default: 'normal'})
+	new Property(Texture, 'string', 'render_mode', {default: 'default'})
 
 	Object.defineProperty(Texture, 'all', {
 		get() {
@@ -1476,7 +1584,7 @@ BARS.defineActions(function() {
 		icon: 'library_add',
 		category: 'textures',
 		keybind: new Keybind({key: 't', ctrl: true}),
-		click: function () {
+		click() {
 			var start_path;
 			if (!isApp) {} else
 			if (Texture.all.length > 0) {
@@ -1511,20 +1619,28 @@ BARS.defineActions(function() {
 		icon: 'icon-create_bitmap',
 		category: 'textures',
 		keybind: new Keybind({key: 't', ctrl: true, shift: true}),
-		click: function () {
+		click() {
 			TextureGenerator.addBitmapDialog()
+		}
+	})
+	new Action('append_to_template', {
+		icon: 'dashboard_customize',
+		category: 'textures',
+		condition: () => Texture.all.length && (Cube.selected.length || Mesh.selected.length),
+		click() {
+			TextureGenerator.appendToTemplateDialog()
 		}
 	})
 	new Action('save_textures', {
 		icon: 'save',
 		category: 'textures',
-		click: function () {saveTextures()}
+		click() {saveTextures()}
 	})
 	new Action('change_textures_folder', {
 		icon: 'fas.fa-hdd',
 		category: 'textures',
 		condition: () => Texture.all.length > 0,
-		click: function () {
+		click() {
 			var path = undefined;
 			var i = 0;
 			while (i < Texture.all.length && path === undefined) {
@@ -1563,7 +1679,7 @@ BARS.defineActions(function() {
 		icon: 'play_arrow',
 		category: 'textures',
 		condition: textureAnimationCondition,
-		click: function () {
+		click() {
 			TextureAnimator.toggle()
 		}
 	})
@@ -1581,22 +1697,41 @@ BARS.defineActions(function() {
 			return tex ? tex.currentFrame+1 : 0;
 		},
 		change: function(modify) {
-			let tex = getSliderTexture()
-			if (tex) {
-				tex.currentFrame = Math.clamp(modify(tex.currentFrame+1), 1, tex.frameCount) - 1;
-				TextureAnimator.update([tex]);
-			}
+			let slider_tex = getSliderTexture()
+			if (!slider_tex) return;
+			slider_tex.currentFrame = (modify(slider_tex.currentFrame + slider_tex.frameCount) % slider_tex.frameCount);
+
+			let textures = Texture.all.filter(tex => tex.frameCount > 1);
+			Texture.all.forEach(tex => {
+				tex.currentFrame = slider_tex.currentFrame % tex.frameCount;
+			})
+			TextureAnimator.update(textures);
+		}
+	})
+	new Action('animated_texture_fps', {
+		name: 'settings.texture_fps',
+		description: 'settings.texture_fps.desc',
+		icon: 'speed',
+		category: 'textures',
+		condition: textureAnimationCondition,
+		click() {
+			settings.texture_fps.trigger()
 		}
 	})
 })
 
 Interface.definePanels(function() {
 
-	Interface.Panels.textures = new Panel({
-		id: 'textures',
+	new Panel('textures', {
 		icon: 'fas.fa-images',
 		growable: true,
 		condition: {modes: ['edit', 'paint']},
+		default_position: {
+			slot: 'left_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
 		toolbars: {
 			head: Toolbars.texturelist
 		},
@@ -1668,7 +1803,6 @@ Interface.definePanels(function() {
 			},
 			template: `
 				<div>
-					<div class="toolbar_wrapper texturelist"></div>
 					<ul id="texture_list" class="list mobile_scrollbar" @contextmenu.stop.prevent="openMenu($event)">
 						<li
 							v-for="texture in textures"
@@ -1710,12 +1844,14 @@ Interface.definePanels(function() {
 							<div class="texture_animation_frame" v-for="i in maxFrameCount()"></div>
 							<div id="animated_texture_playhead" :style="{left: getPlayheadPos() + 'px'}"></div>
 						</div>
+						<div class="tool_wrapper_2"></div>
 					</div>
 				</div>
 			`,
 			mounted() {
 				BarItems.animated_textures.toElement('#texture_animation_playback .tool_wrapper')
 				BarItems.animated_texture_frame.setWidth(52).toElement('#texture_animation_playback .tool_wrapper')
+				BarItems.animated_texture_fps.toElement('#texture_animation_playback .tool_wrapper_2')
 			}
 		},
 		menu: new Menu([

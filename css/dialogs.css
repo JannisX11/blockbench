@@ -4,9 +4,13 @@
 		position: absolute;
 		width: 100%;
 		height: 100%;
+		z-index: 19;
+		background-color: transparent;
+		opacity: 0;
+	}
+	#blackout.darken {
 		background-color: var(--color-dark);
 		opacity: 0.6;
-		z-index: 19;
 	}
 	.dialog_handle {
 		position: relative;
@@ -81,12 +85,6 @@
 		display: block;
 		overflow-y: auto;
 		flex: 1 1 auto;
-	}
-
-	@media (max-device-width: 640px) {
-		dialog {
-			width: 100% !important;
-		}
 	}
 
 	dialog p > code {
@@ -307,6 +305,11 @@
 		padding: 4px 20px;
 		border-left: 4px solid transparent;
 		cursor: pointer;
+	}
+	.dialog_sidebar .dialog_sidebar_pages li .icon {
+		float: left;
+		margin-left: -10px;
+		margin-right: 5px;
 	}
 	.dialog_sidebar .dialog_sidebar_pages li:hover {
 		color: var(--color-light);
@@ -700,9 +703,63 @@
 	}
 
 	/*About*/
+	dialog#about .dialog_content {
+		text-align: center;
+	}
+	dialog#about h4 {
+		color: var(--color-subtle_text);
+		margin-top: 30px;
+		border-top: 2px
+		solid var(--color-border);
+		padding-top: 12px;
+	}
 	#about_page_title {
 		vertical-align: top;
 		opacity: 0.9;
+	}
+	#about_page_title img {
+		width: min(340px, 100%);
+	}
+	dialog#about div.socials {
+		display: flex;
+		padding: 20px 0;
+		max-width: 540px;
+		margin: auto;
+	}
+	dialog#about div.socials a {
+		text-align: center;
+		flex-basis: 0;
+		flex-grow: 1;
+		text-decoration: none;
+		padding: 6px;
+		padding-top: 10px;
+	}
+	dialog#about div.socials a:hover {
+		background-color: var(--color-accent);
+	}
+	dialog#about div.socials a i {
+		display: block;
+		font-size: 2em;
+		max-width: none;
+		pointer-events: none;
+	}
+	dialog#about div.socials a:hover i {
+		color: var(--color-light) !important;
+	}
+	dialog#about div.socials a label {
+		color: var(--color-subtle_text);
+		cursor: inherit;
+		pointer-events: none;
+	}
+	dialog#about div.socials a:hover label {
+		color: var(--color-light);
+	}
+	dialog#about .multi_column_list {
+		column-count: 3;
+	}
+	.special_thanks_mentions li {
+		line-height: 18px;
+    	margin-bottom: 8px;
 	}
 
 /*Specific Dialogs*/
@@ -747,7 +804,7 @@
 	#import_texture_list li.selected::after {
 		position: absolute;
 		content: "\f00c";
-		font-family: 'Font Awesome 5 Free';
+		font-family: 'Font Awesome 6 Free';
 		font-weight: 600;
 		color: var(--color-accent);
 		background-color: var(--color-ui);
@@ -1057,6 +1114,7 @@
 		white-space: nowrap;
     	overflow: hidden;
 		line-height: normal;
+		cursor: pointer;
 	}
 	.plugin_tag_list li.plugin_tag_source {
 		background-color: #ff7a52;
@@ -1188,6 +1246,9 @@
 		height: 42px;
 		box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 	}
+	body.is_mobile #action_selector {
+		top: 26px;
+	}
 	#action_selector > input {
 		width: calc(100% - 38px);
 		height: 42px;
@@ -1273,49 +1334,137 @@
 		top: 4px;
 		left: 49px;
 	}
-	@media (max-device-width: 640px) {
-		dialog#action_selector {
-			top: 26px;
-		}
-	}
 
 /* Edit History */
-#edit_history_list ul {
-	margin-left: 14px;
-}
-#edit_history_list ul li {
-	height: 30px;
-	padding: 2px 6px;
-	cursor: pointer;
-	border: 2px solid transparent;
-	display: flex;
-	justify-content: space-between;
-}
-#edit_history_list ul li.current {
-	border-color: var(--color-accent);
-}
-#edit_history_list ul li:hover {
-	color: var(--color-light);
-}
-#edit_history_list ul li.selected {
-	background-color: var(--color-accent);
-	color: var(--color-accent_text);
-	position: relative;
-}
-#edit_history_list ul li.selected:not(:first-of-type)::before {
-	content: "\f04b";
-	font-family: 'Font Awesome 5 Free';
-    font-weight: 900;
-	font-size: 14px;
-	color: var(--color-accent);
-	display: block;
-	position: absolute;
-    top: -11px;
-    left: -16px;
-}
-#edit_history_list .edit_history_time {
-	color: var(--color-subtle_text);
-}
-#edit_history_list ul li.selected .edit_history_time {
-	color: inherit;
-}
+	#edit_history_list ul {
+		margin-left: 14px;
+	}
+	#edit_history_list ul li {
+		height: 30px;
+		padding: 2px 6px;
+		cursor: pointer;
+		border: 2px solid transparent;
+		display: flex;
+		justify-content: space-between;
+	}
+	#edit_history_list ul li.current {
+		border-color: var(--color-accent);
+	}
+	#edit_history_list ul li:hover {
+		color: var(--color-light);
+	}
+	#edit_history_list ul li.selected {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+		position: relative;
+	}
+	#edit_history_list ul li.selected:not(:first-of-type)::before {
+		content: "\f04b";
+		font-family: 'Font Awesome 6 Free';
+		font-weight: 900;
+		font-size: 14px;
+		color: var(--color-accent);
+		display: block;
+		position: absolute;
+		top: -11px;
+		left: -16px;
+	}
+	#edit_history_list .edit_history_time {
+		color: var(--color-subtle_text);
+	}
+	#edit_history_list ul li.selected .edit_history_time {
+		color: inherit;
+	}
+
+/* Texture Edit */
+	div.texture_adjust_previews {
+		overflow: auto;
+		max-height: 416px;
+		display: flex;
+		margin-bottom: 10px;
+		width: calc(100% - 38px);
+		float: left;
+	}
+	div.texture_adjust_previews.folded {
+		max-height: 30px;
+		overflow: hidden;
+	}
+	div.texture_adjust_previews img {
+		max-height: 400px;
+		width: 400px;
+		margin: auto;
+	}
+	dialog .slider_input_combo {
+		clear: both;
+	}
+	dialog#adjust_curves .dialog_content {
+		margin-top: 6px;
+		margin-bottom: 10px;
+	}
+	#contrast_graph {
+		background-color: var(--color-back);
+		border: 1px solid var(--color-border);
+		height: 412px;
+		width: 412px;
+		position: relative;
+		overflow: hidden;
+		cursor: crosshair;
+	}
+	.contrast_graph_selector {
+		clear: both;
+		display: flex;
+	}
+	.contrast_graph_selector div {
+		flex-basis: 0;
+		flex-grow: 1;
+		padding-top: 2px;
+		text-align: center;
+		cursor: pointer;
+	}
+	.contrast_graph_selector div:hover {
+		color: var(--color-light);
+	}
+	.contrast_graph_selector div.selected {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+	}
+	#contrast_graph svg {
+		height: 100%;
+		width: 100%;
+		pointer-events: none;
+	}
+	#contrast_graph svg path {
+		fill: none;
+		stroke-width: 2px;
+		stroke: var(--color-accent);
+		opacity: 0.3;
+	}
+	#contrast_graph svg path.active {
+		opacity: 1.0;
+	}
+	#contrast_graph svg polygon {
+		fill: var(--color-selected);
+		stroke: none;
+		stroke-width: 0;
+		pointer-events: none;
+	}
+	.contrast_graph_point {
+		position: absolute;
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+		background-color: var(--color-accent);
+		margin: -1px;
+	}
+	.contrast_graph_point:hover {
+		background-color: var(--color-light);
+	}
+	.contrast_graph_point::before {
+		content: "";
+		position: absolute;
+		width: 24px;
+		height: 24px;
+		left: -6px;
+		top: -6px;
+		cursor: move;
+	}

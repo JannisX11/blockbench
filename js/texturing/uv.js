@@ -75,12 +75,12 @@ const UVEditor = {
 		return result;
 	},
 	startPaintTool(event) {
-		var scope = this;
-		Painter.active_uv_editor = scope;
+		delete Painter.current.face_matrix;
+		delete Painter.current.element;
 
-		var texture = scope.getTexture()
+		var texture = this.getTexture()
 		if (texture) {
-			var coords = scope.getBrushCoordinates(event, texture)
+			var coords = this.getBrushCoordinates(event, texture)
 
 			if (Toolbox.selected.id !== 'copy_paste_tool') {
 				Painter.startPaintTool(texture, coords.x, coords.y, undefined, event)
@@ -94,22 +94,21 @@ const UVEditor = {
 		}
 	},
 	movePaintTool(event) {
-		var scope = Painter.active_uv_editor;
-		var texture = scope.getTexture()
+		var texture = UVEditor.getTexture()
 		if (!texture) {
 			Blockbench.showQuickMessage('message.untextured')
-		} else {
+		} else if (event.which === 1 || (event.touches && event.touches.length == 1)) {
 			var new_face;
-			var {x, y} = scope.getBrushCoordinates(event, texture);
+			var {x, y} = UVEditor.getBrushCoordinates(event, texture);
 			if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
 
 			if (x === Painter.current.x && y === Painter.current.y) {
 				return
 			}
-			if (Painter.current.face !== scope.selected_faces[0]) {
+			if (Painter.current.face !== UVEditor.selected_faces[0]) {
 				Painter.current.x = x
 				Painter.current.y = y
-				Painter.current.face = scope.selected_faces[0]
+				Painter.current.face = UVEditor.selected_faces[0];
 				new_face = true;
 				if (texture !== Painter.current.texture && Undo.current_save) {
 					Undo.current_save.addTexture(texture)
@@ -146,8 +145,8 @@ const UVEditor = {
 			rect.id = 'texture_selection_rect';
 			this.vue.$refs.frame.append(rect)
 			Painter.selection.rect = rect;
-			Painter.selection.start_x = x;
-			Painter.selection.start_y = y;
+			Painter.selection.start_x = Math.clamp(x, 0, UVEditor.texture ? UVEditor.texture.width : Project.texture_width);
+			Painter.selection.start_y = Math.clamp(y, 0, UVEditor.texture ? UVEditor.texture.height : Project.texture_height);
 			UVEditor.vue.copy_overlay.width = 0;
 			UVEditor.vue.copy_overlay.height = 0;
 		} else {
@@ -314,9 +313,10 @@ const UVEditor = {
 		let pixel_size = UVEditor.getPixelSize();
 		let focus = [min_x+max_x, min_y+max_y].map(v => v * 0.5 * pixel_size);
 		let {viewport} = UVEditor.vue.$refs;
+		let margin = UVEditor.vue.getFrameMargin();
 		$(viewport).animate({
-			scrollLeft: focus[0] - UVEditor.width / 2,
-			scrollTop: focus[1] - UVEditor.height / 2,
+			scrollLeft: focus[0] + margin[0] - UVEditor.width / 2,
+			scrollTop: focus[1] + margin[1] - UVEditor.height / 2,
 		}, 100)
 	},
 	//Get
@@ -379,7 +379,12 @@ const UVEditor = {
 	},
 	//Set
 	setZoom(zoom) {
+		zoom = Math.clamp(zoom, 0.5, UVEditor.max_zoom)
 		this.vue.zoom = zoom;
+		Project.uv_viewport.zoom = this.zoom;
+		Vue.nextTick(() => {
+			if (Painter.selection.overlay) UVEditor.updatePastingOverlay()
+		})
 		return this;
 	},
 	setGrid(value) {
@@ -426,11 +431,12 @@ const UVEditor = {
 		})
 		Mesh.all.forEach(mesh => {
 			if (mesh.locked) return;
-			for (var face in mesh.faces) {
-				let rect = mesh.faces[face].getBoundingRect();
-				if (uv && Math.isBetween(u, rect.ax, rect.bx) && Math.isBetween(v, rect.ay, rect.by) && (mesh.faces[face].getTexture() === scope.vue.texture || Format.single_texture)) {
+			for (var fkey in mesh.faces) {
+				let face = mesh.faces[fkey];
+				let rect = face.getBoundingRect();
+				if (face.uv && Math.isBetween(u, rect.ax, rect.bx) && Math.isBetween(v, rect.ay, rect.by) && (face.getTexture() === scope.vue.texture || Format.single_texture)) {
 					matches.safePush(mesh);
-					face_matches.safePush(face);
+					face_matches.safePush(fkey);
 					break;
 				}
 			}
@@ -446,6 +452,7 @@ const UVEditor = {
 			matches.forEach(s => {
 				Project.selected_elements.safePush(s)
 			});
+			if (!event.shiftKey) UVEditor.selectMeshUVIsland(UVEditor.selected_faces[0]);
 			updateSelection();
 		}
 		return matches;
@@ -592,6 +599,21 @@ const UVEditor = {
 	getResolution(axis, texture) {
 		return axis ? Project.texture_height : Project.texture_width;
 	},
+	saveViewportOffset() {
+		let uv_viewport = this.vue.$refs.viewport;
+		if (!uv_viewport || Blockbench.hasFlag('switching_project')) return;
+		Project.uv_viewport.offset[0] = (uv_viewport.scrollLeft - this.width/2) / this.vue.inner_width;
+		Project.uv_viewport.offset[1] = (uv_viewport.scrollTop - this.height/2) / this.vue.inner_height;
+	},
+	loadViewportOffset() {
+		let uv_viewport = this.vue.$refs.viewport;
+		if (!uv_viewport) return;
+		UVEditor.setZoom(Project.uv_viewport.zoom);
+		Vue.nextTick(() => {
+			uv_viewport.scrollLeft = Project.uv_viewport.offset[0] * this.vue.inner_width + this.width/2;
+			uv_viewport.scrollTop = Project.uv_viewport.offset[1] * this.vue.inner_height + this.height/2;
+		})
+	},
 
 	//Events
 	selectAll() {
@@ -605,6 +627,32 @@ const UVEditor = {
 			this.vue.selected_faces.empty();
 		}
 		UVEditor.displayTools();
+	},
+	selectMeshUVIsland(face_key) {
+		if (face_key && Mesh.selected[0] && Mesh.selected[0].faces[face_key]) {
+			if (UVEditor.selected_faces.length == 1) {
+				let mesh = Mesh.selected[0];
+				function crawl(face) {
+					for (let i = 0; i < face.vertices.length; i++) {
+						let adjacent = face.getAdjacentFace(i);
+						if (!adjacent) continue;
+						if (UVEditor.selected_faces.includes(adjacent.key)) continue;
+						let epsilon = 0.2;
+						let uv_a1 = adjacent.face.uv[adjacent.edge[0]];
+						let uv_a2 = face.uv[adjacent.edge[0]];
+						if (!Math.epsilon(uv_a1[0], uv_a2[0], epsilon) || !Math.epsilon(uv_a1[1], uv_a2[1], epsilon)) continue;
+						let uv_b1 = adjacent.face.uv[adjacent.edge[1]];
+						let uv_b2 = face.uv[adjacent.edge[1]];
+						if (!Math.epsilon(uv_b1[0], uv_b2[0], epsilon) || !Math.epsilon(uv_b1[1], uv_b2[1], epsilon)) continue;
+						UVEditor.selected_faces.push(adjacent.key);
+						crawl(adjacent.face);
+					}
+				}
+				crawl(mesh.faces[face_key]);
+			} else {
+				UVEditor.selected_faces.replace([face_key]);
+			}
+		}
 	},
 	moveSelection(offset, event) {
 		Undo.initEdit({elements: UVEditor.getMappableElements()})
@@ -721,7 +769,7 @@ const UVEditor = {
 						vec2.fromArray(obj.vertices[face.vertices[0]])
 					)
 					let rot = cameraTargetToRotation([0, 0, 0], normal_vec.toArray());
-					let e = new THREE.Euler(Math.degToRad(-rot[1] - 90), Math.degToRad(rot[0]), 0);
+					let e = new THREE.Euler(Math.degToRad(rot[1] - 90), Math.degToRad(rot[0] + 180), 0);
 					face.vertices.forEach(vkey => {
 						let coplanar_pos = plane.projectPoint(vec3.fromArray(obj.vertices[vkey]), vec4.set(0, 0, 0));
 						coplanar_pos.applyEuler(e);
@@ -1179,9 +1227,7 @@ const UVEditor = {
 				obj.faces[side].reset()
 			})
 			obj.preview_controller.updateFaces(obj);
-			if (Project.view_mode === 'textured') {
-				obj.preview_controller.updateUV(obj);
-			}
+			obj.preview_controller.updateUV(obj);
 		})
 		this.loadData()
 		this.message('uv_editor.reset')
@@ -1212,6 +1258,7 @@ const UVEditor = {
 					Project.display_uv = UVEditor.vue.display_uv = option;
 					if (option == 'selected_faces') settings.show_only_selected_uv.set(true);
 					if (option == 'selected_elements') settings.show_only_selected_uv.set(false);
+					Settings.saveLocalStorages();
 				}
 			}})
 		}},
@@ -1319,7 +1366,7 @@ const UVEditor = {
 				'auto_cullface'
 			]
 		}},
-		{icon: 'collections', name: 'menu.uv.texture', condition: () => !Project.box_uv, children: function() {
+		{icon: 'collections', name: 'menu.uv.texture', condition: () => UVEditor.getReferenceFace() && !Project.single_texture, children: function() {
 			var arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(context, event) {
 					let elements = UVEditor.vue.mappable_elements;
@@ -1592,6 +1639,11 @@ BARS.defineActions(function() {
 			UVEditor.vue.uv_overlay = value;
 		}
 	})
+	new Toggle('move_texture_with_uv', {
+		icon: 'fas.fa-link',
+		category: 'uv',
+		condition: {modes: ['edit']}
+	})
 })
 
 Interface.definePanels(function() {
@@ -1664,17 +1716,26 @@ Interface.definePanels(function() {
 		},
 	}
 	
-	UVEditor.panel = Interface.Panels.uv = new Panel({
-		id: 'uv',
+	UVEditor.panel = new Panel('uv', {
 		icon: 'photo_size_select_large',
 		selection_only: true,
+		expand_button: true,
 		condition: {modes: ['edit', 'paint']},
+		display_condition: () => UVEditor.getMappableElements().length || Modes.paint,
+		default_position: {
+			slot: 'left_bar',
+			float_position: [300, 0],
+			float_size: [500, 600],
+			height: 500
+		},
 		toolbars: {
 			bottom: Toolbars.UVEditor
 		},
 		onResize: function() {
-			UVEditor.vue.updateSize();
 			UVEditor.vue.hidden = !this.isVisible();
+			Vue.nextTick(() => {
+				UVEditor.vue.updateSize();
+			})
 		},
 		onFold: function() {
 			UVEditor.vue.hidden = !this.isVisible();
@@ -1687,6 +1748,7 @@ Interface.definePanels(function() {
 				width: 320,
 				height: 320,
 				zoom: 1,
+				centered_view: true,
 				checkerboard: settings.uv_checkerboard.value,
 				uv_overlay: false,
 				texture: 0,
@@ -1719,10 +1781,20 @@ Interface.definePanels(function() {
 			}},
 			computed: {
 				inner_width() {
-					return this.width * this.zoom;
+					let axis = this.project_resolution[0] / this.project_resolution[1] < this.width / this.height;
+					if (axis) {
+						return this.height * this.zoom * (this.project_resolution[0] / this.project_resolution[1]);
+					} else {
+						return this.width * this.zoom;
+					}
 				},
 				inner_height() {
-					return this.width * (this.project_resolution[1] / this.project_resolution[0]) * this.zoom;
+					let axis = this.project_resolution[0] / this.project_resolution[1] < this.width / this.height;
+					if (axis) {
+						return this.height * this.zoom;
+					} else {
+						return this.width * this.zoom * (this.project_resolution[0] / this.project_resolution[1]);
+					}
 				},
 				mappable_elements() {
 					return this.elements.filter(element => element.faces && !element.locked);
@@ -1736,8 +1808,13 @@ Interface.definePanels(function() {
 					deep: true,
 					handler() {
 						let min_zoom = Math.min(1, this.inner_width/this.inner_height);
-						if (this.zoom < min_zoom) this.zoom = 1;
+						if (this.zoom < min_zoom) UVEditor.setZoom(1);
 					}
+				},
+				mode() {
+					Vue.nextTick(() => {
+						this.updateSize();
+					})
 				}
 			},
 			methods: {
@@ -1749,17 +1826,39 @@ Interface.definePanels(function() {
 					let old_size = this.width;
 					let size = Math.floor(Math.clamp(UVEditor.panel.width - 10, 64, 1e5));
 					this.width = size;
-					this.height = size * Math.clamp(this.project_resolution[1] / this.project_resolution[0], 0.5, 1);
+					if (Panels.uv.slot.includes('_bar')) {
+						this.height = size * Math.clamp(this.project_resolution[1] / this.project_resolution[0], 0.5, 1);
+					} else {
+						this.height = Math.clamp(
+							UVEditor.panel.height
+							-UVEditor.panel.handle.clientHeight - 8
+							-(this.$refs.uv_cube_face_bar ? this.$refs.uv_cube_face_bar.clientHeight : 0)
+							-(this.$refs.uv_toolbars ? this.$refs.uv_toolbars.clientHeight : 0)
+							-(this.mode == 'paint' ? 30 : 0),
+						64, 1e5);
+					}
 					this.$refs.viewport.scrollLeft = Math.round(this.$refs.viewport.scrollLeft * (size / old_size));
 					this.$refs.viewport.scrollTop  = Math.round(this.$refs.viewport.scrollTop  * (size / old_size));
 
+					let slider_bar_width = UVEditor.vue.$refs.slider_bar.clientWidth - 6;
+
 					for (var id in UVEditor.sliders) {
 						var slider = UVEditor.sliders[id];
-						slider.setWidth(size/(Project.box_uv?2:4)-1)
+						slider.setWidth(slider_bar_width / (Project.box_uv?2:4)-1);
+					}
+					if (this.$refs.viewport && this.zoom == 1 && ((!this.$refs.viewport.scrollLeft && !this.$refs.viewport.scrollTop) || this.centered_view)) {
+						this.centerView();
 					}
 				},
+				centerView() {
+					this.$refs.viewport.scrollLeft = this.width/2;
+					this.$refs.viewport.scrollTop = this.height/2;
+					this.centered_view = true;
+				},
 				setMode(mode) {
+					this.mouse_coords.x = this.mouse_coords.y = -1;
 					this.mode = mode;
+					this.updateTexture();
 				},
 				updateTexture() {
 					let texture;
@@ -1773,6 +1872,8 @@ Interface.definePanels(function() {
 								if (face) texture = face.getTexture() || texture;
 								if (texture) break;
 							}
+						} else if (Modes.paint) {
+							texture = Texture.getDefault();
 						}
 					}
 					if (texture === null) {
@@ -1808,28 +1909,34 @@ Interface.definePanels(function() {
 						event.stopPropagation()
 						event.preventDefault()
 				
+						let original_margin = this.getFrameMargin();
+						let old_zoom = this.zoom;
 						var n = (event.deltaY < 0) ? 0.1 : -0.1;
 						n *= this.zoom
-						var number = Math.clamp(this.zoom + n, Math.min(1, this.inner_width/this.inner_height), this.max_zoom)
-						let old_zoom = this.zoom;
 
-						this.zoom = number;
+						let zoom = this.zoom + n;
+						if (zoom > 0.91 && zoom < 1.1) zoom = 1;
+						UVEditor.setZoom(zoom);
 						
 						let updateScroll = () => {
 							let {viewport} = this.$refs;
 							let offset = $(this.$refs.viewport).offset()
-							let offsetX = event.clientX - offset.left;
-							let offsetY = event.clientY - offset.top;
+							let margin = this.getFrameMargin();
+							let offsetX = event.clientX - offset.left - margin[0];
+							let offsetY = event.clientY - offset.top - margin[1];
 							// Make it a bit easier to scroll into corners
-							offsetX = (offsetX - this.width/2) * 1.1 + this.width/2;
-							offsetY = (offsetY - this.height/2) * 1.1 + this.height/2;
+							offsetX = (offsetX - this.width/2 + margin[0]) * 1.1 + this.width/2 - margin[0];
+							offsetY = (offsetY - this.height/2 + margin[1]) * 1.1 + this.height/2 - margin[1];
 							let zoom_diff = this.zoom - old_zoom;
 							
-							viewport.scrollLeft += ((viewport.scrollLeft + offsetX) * zoom_diff) / old_zoom
-							viewport.scrollTop  += ((viewport.scrollTop  + offsetY) * zoom_diff) / old_zoom
-							
+							viewport.scrollLeft += ((viewport.scrollLeft + offsetX) * zoom_diff) / old_zoom + margin[0] - original_margin[0];
+							viewport.scrollTop  += ((viewport.scrollTop  + offsetY) * zoom_diff) / old_zoom + margin[1] - original_margin[1];
+
+							if (this.zoom == 1 && Panels.uv.isInSidebar()) {
+								this.centerView();
+							}
 							this.updateMouseCoords(event)
-							if (Painter.selection.overlay) UVEditor.updatePastingOverlay()
+							//if (Painter.selection.overlay) UVEditor.updatePastingOverlay()
 						}
 						if (n > 0) {
 							Vue.nextTick(updateScroll);
@@ -1842,13 +1949,55 @@ Interface.definePanels(function() {
 				},
 				onMouseDown(event) {
 					setActivePanel('uv');
-					if (event.which === 2) {
+					let scope = this;
+					let second_touch;
+					let original_zoom = this.zoom;
+					let original_margin = scope.getFrameMargin();
+					let offset = $(scope.$refs.viewport).offset()
+					UVEditor.total_zoom_offset = [6, 6]
+					if (event.which === 2 || (event.touches && !Toolbox.selected.paintTool && event.target.id == 'uv_frame')) {
+						if (event.touches) {
+							event.clientX = event.touches[0].clientX;
+							event.clientY = event.touches[0].clientY;
+						}
 						let {viewport} = this.$refs;
-						let coords = {x: 0, y: 0}
+						let margin = this.getFrameMargin();
+						let margin_center = [this.width/2, this.height/2];
+						let original = [
+							viewport.scrollLeft,
+							viewport.scrollTop
+						];
 						function dragMouseWheel(e2) {
-							viewport.scrollLeft -= (e2.pageX - coords.x)
-							viewport.scrollTop -= (e2.pageY - coords.y)
-							coords = {x: e2.pageX, y: e2.pageY}
+							if (e2.touches) {
+								e2.clientX = e2.touches[0].clientX;
+								e2.clientY = e2.touches[0].clientY;
+
+								if (!second_touch && e2.touches[1]) {
+									second_touch = e2.touches[1];
+								}
+								if (second_touch && e2.touches[1]) {
+
+									let factor = Math.sqrt(Math.pow(e2.touches[0].clientX - e2.touches[1].clientX, 2) + Math.pow(e2.touches[0].clientY - e2.touches[1].clientY, 2))
+											/ Math.sqrt(Math.pow(event.touches[0].clientX - second_touch.clientX, 2) + Math.pow(event.touches[0].clientY - second_touch.clientY, 2));
+
+									if (!Math.epsilon(scope.zoom, original_zoom * factor, 0.01)) {
+										UVEditor.setZoom(original_zoom * factor);
+
+										let margin = scope.getFrameMargin();
+										let offsetX = e2.clientX - offset.left - margin[0];
+										let offsetY = e2.clientY - offset.top - margin[1];
+										let zoom_diff = scope.zoom - original_zoom;
+
+										UVEditor.total_zoom_offset[0] = ((original[0] + event.clientX - e2.clientX + offsetX) * zoom_diff) / original_zoom + margin[0] - original_margin[0];
+										UVEditor.total_zoom_offset[1] = ((original[1] + event.clientY - e2.clientY  + offsetY) * zoom_diff) / original_zoom + margin[1] - original_margin[1];
+									}
+								}
+							}
+							viewport.scrollLeft = Math.snapToValues(original[0] + event.clientX - e2.clientX + UVEditor.total_zoom_offset[0], [margin[0], margin_center[0]], 10);
+							viewport.scrollTop = Math.snapToValues(original[1] + event.clientY - e2.clientY + UVEditor.total_zoom_offset[1], [margin[1], margin_center[1]], 10);
+
+							UVEditor.vue.centered_view = (viewport.scrollLeft == margin[0] || viewport.scrollLeft == margin_center[0])
+														&& (viewport.scrollTop == margin[1] || viewport.scrollTop == margin_center[1]);
 						}
 						function dragMouseWheelStop(e) {
 							removeEventListeners(document, 'mousemove touchmove', dragMouseWheel);
@@ -1856,11 +2005,13 @@ Interface.definePanels(function() {
 						}
 						addEventListeners(document, 'mousemove touchmove', dragMouseWheel);
 						addEventListeners(document, 'mouseup touchend', dragMouseWheelStop);
-						coords = {x: event.pageX, y: event.pageY}
 						event.preventDefault();
 						return false;
 					} else if (this.mode == 'paint' && Toolbox.selected.paintTool && (event.which === 1 || (event.touches && event.touches.length == 1))) {
-						UVEditor.startPaintTool(event)
+						UVEditor.startPaintTool(event);
+						event.preventDefault();
+						return false;
+
 					} else if (this.mode == 'uv' && event.target.id == 'uv_frame' && (event.which === 1 || (event.touches && event.touches.length == 1))) {
 
 						if (event.altKey || Pressing.overrides.alt) {
@@ -1966,8 +2117,8 @@ Interface.definePanels(function() {
 								selection_rect.active = false;
 							}, 1)
 						}
-						addEventListeners(document, 'mousemove touchmove', drag);
-						addEventListeners(document, 'mouseup touchend', stop);
+						addEventListeners(document, 'mousemove touchmove', drag, false);
+						addEventListeners(document, 'mouseup touchend', stop, false);
 					}
 				},
 				onMouseLeave(event) {
@@ -1977,8 +2128,19 @@ Interface.definePanels(function() {
 				},
 				contextMenu(event) {
 					setActivePanel('uv');
-					if (!UVEditor.getReferenceFace() && !Project.box_uv) return;
 					UVEditor.menu.open(event);
+				},
+				selectTextureMenu(event) {
+					let menu = new Menu(Texture.all.map(tex => {
+						return {
+							name: tex.name,
+							icon: tex.img,
+							click(event) {
+								tex.select(event);
+							}
+						}
+					}))
+					menu.open(event.target);
 				},
 				selectFace(key, event, keep_selection, support_dragging) {
 					if (keep_selection && this.selected_faces.includes(key)) {
@@ -2087,15 +2249,89 @@ Interface.definePanels(function() {
 				dragFace(face_key, event) {
 					if (event.which == 2 || event.which == 3) return;
 
+					let face_selected_before = this.selected_faces[0];
 					if (face_key) this.selectFace(face_key, event, true);
 					let elements = UVEditor.getMappableElements();
-					Undo.initEdit({elements, uv_only: true})
+					Undo.initEdit({
+						elements,
+						uv_only: true,
+
+					});
+					let total_diff = [0, 0];
+					let do_move_uv = !!(BarItems.move_texture_with_uv.value && this.texture);
 
 					UVEditor.getMappableElements().forEach(el => {
 						if (el instanceof Mesh) {
 							delete Project.selected_vertices[el.uuid];
 						}
 					})
+
+					let overlay_canvas;
+					if (do_move_uv) {
+						Undo.initEdit({
+							elements,
+							uv_only: true,
+							bitmap: true,
+							textures: [this.texture]
+						});
+
+						overlay_canvas = Interface.createElement('canvas', {class: 'move_texture_with_uv'});
+						let ctx = overlay_canvas.getContext('2d');
+						overlay_canvas.width = this.texture.width;
+						overlay_canvas.height = this.texture.height;
+						
+						this.texture.edit(canvas => {
+							let tex_ctx = canvas.getContext('2d');
+							ctx.beginPath();
+							tex_ctx.beginPath();
+							UVEditor.getMappableElements().forEach(el => {
+								if (el instanceof Mesh) {
+									for (var fkey in el.faces) {
+										var face = el.faces[fkey];
+										if (!this.selected_faces.includes(fkey)) continue;
+										if (face.vertices.length <= 2 || face.getTexture() !== this.texture) continue;
+										
+										let matrix = face.getOccupationMatrix(true, [0, 0]);
+										for (let x in matrix) {
+											for (let y in matrix[x]) {
+												if (!matrix[x][y]) continue;
+												x = parseInt(x); y = parseInt(y);
+												ctx.rect(x, y, 1, 1);
+												tex_ctx.rect(x, y, 1, 1);
+											}
+										}
+									}
+								} else {
+									let factor_x = this.texture.width  / Project.texture_width;
+									let factor_y = this.texture.height / Project.texture_height;
+									for (var fkey in el.faces) {
+										var face = el.faces[fkey];
+										if (!this.selected_faces.includes(fkey) && !this.box_uv) continue;
+										if (face.getTexture() !== this.texture) continue;
+										
+										let rect = face.getBoundingRect();
+										let canvasRect = [
+											Math.floor(rect.ax * factor_x),
+											Math.floor(rect.ay * factor_y),
+											Math.ceil(rect.bx * factor_x) - Math.floor(rect.ax * factor_x),
+											Math.ceil(rect.by * factor_y) - Math.floor(rect.ay * factor_y),
+										]
+										ctx.rect(...canvasRect);
+										tex_ctx.rect(...canvasRect);
+									}
+								}
+							})
+							ctx.clip();
+							ctx.drawImage(this.texture.img, 0, 0);
+							tex_ctx.clip();
+							tex_ctx.clearRect(0, 0, canvas.width, canvas.height);
+						}, {no_undo: true})
+
+						UVEditor.vue.$refs.frame.append(overlay_canvas);
+
+					} else {
+						Undo.initEdit({elements, uv_only: true});
+					}
 
 					this.drag({
 						event,
@@ -2154,11 +2390,41 @@ Interface.definePanels(function() {
 									})
 								}
 							})
+							if (do_move_uv) {
+								total_diff[0] += diff_x;
+								total_diff[1] += diff_y;
+								overlay_canvas.style.left = this.toPixels(total_diff[0]);
+								overlay_canvas.style.top  = this.toPixels(total_diff[1]);
+							}
 							return [diff_x, diff_y]
 						},
 						onEnd: () => {
 							UVEditor.disableAutoUV()
-							Undo.finishEdit('Move UV')
+							if (do_move_uv) {
+								this.texture.edit((canvas) => {
+									canvas.getContext('2d').drawImage(
+										overlay_canvas,
+										total_diff[0] * this.texture.width  / Project.texture_width,
+										total_diff[1] * this.texture.height / Project.texture_height
+									);
+								}, {no_undo: true})
+								overlay_canvas.remove();
+								Canvas.updateView({elements, element_aspects: {uv: true}});
+							}
+							Undo.finishEdit('Move UV');
+						},
+						onAbort: () => {
+							if (do_move_uv) {
+								overlay_canvas.remove();
+							}
+							let selected_faces = this.selected_faces.slice()
+							UVEditor.selectMeshUVIsland(face_key);
+							if (
+								(this.selected_faces.includes(face_selected_before) && face_selected_before !== face_key) ||
+								(event.shiftKey || event.ctrlOrCmd || Pressing.overrides.shift || Pressing.overrides.ctrl)
+							) {
+								this.selected_faces.replace(selected_faces);
+							}
 						}
 					})
 				},
@@ -2419,8 +2685,8 @@ Interface.definePanels(function() {
 					face.getSortedVertices().forEach(key => {
 						let UV = face.uv[key];
 						coords.push(
-							((UV[0] + uv_offset[0]) / this.project_resolution[0] * this.inner_width + 1) + ',' +
-							((UV[1] + uv_offset[1]) / this.project_resolution[0] * this.inner_width + 1)
+							Math.roundTo((UV[0] + uv_offset[0]) / this.project_resolution[0] * this.inner_width + 1, 4) + ',' +
+							Math.roundTo((UV[1] + uv_offset[1]) / this.project_resolution[0] * this.inner_width + 1, 4)
 						)
 					})
 					return coords.join(' ');
@@ -2472,6 +2738,15 @@ Interface.definePanels(function() {
 					} else {
 						return {display: 'none'};
 					}
+				},
+				getFrameMargin(style) {
+					let gap_x = Math.max((this.width - this.inner_width) / 2, 0);
+					let gap_y = Math.max((this.height - this.inner_height) / 2, 0);
+					let margin = [
+						Math.floor(gap_x + this.width/2),
+						Math.floor(gap_y + this.height/2),
+					];
+					return style ? `${margin[1]}px ${margin[0]}px` : margin;
 				}
 			},
 			template: `
@@ -2483,7 +2758,7 @@ Interface.definePanels(function() {
 						</div>
 					</div>
 
-					<div class="bar" id="uv_cube_face_bar" v-if="mode != 'properties' && mappable_elements[0] && mappable_elements[0].type == 'cube' && !box_uv">
+					<div class="bar" id="uv_cube_face_bar" ref="uv_cube_face_bar" v-if="mode == 'uv' && mappable_elements[0] && mappable_elements[0].type == 'cube' && !box_uv">
 						<li v-for="(face, key) in mappable_elements[0].faces" :face="key" :class="{selected: selected_faces.includes(key), disabled: mappable_elements[0].faces[key].texture === null}" @mousedown="selectFace(key, $event, false, true)">
 							{{ face_names[key] }}
 						</li>
@@ -2494,15 +2769,20 @@ Interface.definePanels(function() {
 						@mousedown="onMouseDown($event)"
 						@touchstart="onMouseDown($event)"
 						@mousewheel="onMouseWheel($event)"
-						@mousemove="updateMouseCoords($event)"
-						@mouseleave="onMouseLeave($event)"
 						class="checkerboard_target"
 						ref="viewport"
 						v-if="!hidden"
 						:style="{width: (width+8) + 'px', height: (height+8) + 'px', overflowX: (zoom > 1) ? 'scroll' : 'hidden', overflowY: (inner_height > height) ? 'scroll' : 'hidden'}"
 					>
 
-						<div id="uv_frame" @click.stop="reverseSelect($event)" ref="frame" :class="{overlay_mode: uv_overlay && mode == 'paint'}" :style="{width: inner_width + 'px', height: inner_height + 'px'}" v-if="texture !== null">
+						<div id="uv_frame" ref="frame"
+							v-if="texture !== null"
+							@click.stop="reverseSelect($event)"
+							@mousemove="updateMouseCoords($event)"
+							@mouseleave="onMouseLeave($event)"
+							:class="{overlay_mode: uv_overlay && mode == 'paint'}"
+							:style="{width: inner_width + 'px', height: inner_height + 'px', margin: getFrameMargin(true)}"
+						>
 
 							<template id="uv_allocations" v-if="mode == 'uv' || uv_overlay" v-for="element in ((display_uv === 'all_elements' || mode == 'paint') ? all_mappable_elements : mappable_elements)">
 
@@ -2625,7 +2905,7 @@ Interface.definePanels(function() {
 						<template v-else>
 							<span v-if="copy_overlay.state == 'select'" style="color: var(--color-subtle_text);">{{ copy_overlay.width + ' ⨉ ' + copy_overlay.height }}</span>
 							<span v-else style="color: var(--color-subtle_text);">{{ mouse_coords.x < 0 ? '-' : (mouse_coords.x + ', ' + mouse_coords.y) }}</span>
-							<span v-if="texture">{{ texture.name }}</span>
+							<span v-if="texture" class="uv_panel_texture_name" @click="selectTextureMenu($event)">{{ texture.name }}</span>
 							<span style="color: var(--color-subtle_text);">{{ Math.round(this.zoom*100).toString() + '%' }}</span>
 						</template>
 
@@ -2636,11 +2916,23 @@ Interface.definePanels(function() {
 						
 					
 					</div>
-					<div v-show="mode == 'uv'" class="bar uv_editor_sliders" ref="slider_bar" style="margin-left: 2px;"></div>
-					<div v-show="mode == 'uv'" class="toolbar_wrapper uv_editor"></div>
+					<div :class="{joined_uv_bar: width >= 720}" ref="uv_toolbars">
+						<div v-show="mode == 'uv'" class="bar uv_editor_sliders" ref="slider_bar" style="margin-left: 2px;"></div>
+						<div v-show="mode == 'uv'" class="toolbar_wrapper uv_editor"></div>
+					</div>
 				</div>
 			`
 		}
+	})
+	UVEditor.panel.on('move_to', (data) => {
+		if (!Blockbench.isMobile) {
+			UVEditor.saveViewportOffset();
+		}
+	})
+	UVEditor.panel.on('moved_to', (data) => {
+		Vue.nextTick(() => {
+			UVEditor.loadViewportOffset();
+		})
 	})
 
 	Toolbars.uv_editor.toPlace()

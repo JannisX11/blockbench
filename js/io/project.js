@@ -27,6 +27,10 @@ class ModelProject {
 		this.display_uv = settings.show_only_selected_uv.value ? 'selected_faces' :'selected_elements';
 		this.exploded_view = false;
 		this.previews = {};
+		this.uv_viewport = {
+			zoom: 1,
+			offset: [0, 0]
+		};
 		this.EditSession = null;
 
 		this.backgrounds = {
@@ -137,7 +141,8 @@ class ModelProject {
 		if (this === Project) return true;
 		if (this.locked || Project.locked) return false;
 		if (Project) {
-			Project.unselect()
+			Project.unselect();
+			Blockbench.addFlag('switching_project');
 		} else {
 			Interface.tab_bar.new_tab.visible = false;
 		}
@@ -176,8 +181,11 @@ class ModelProject {
 		Timeline.animators = Timeline.vue.animators = this.timeline_animators;
 
 		Interface.Panels.variable_placeholders.inside_vue.text = this.variable_placeholders.toString();
+		Interface.Panels.variable_placeholders.inside_vue.buttons.replace(this.variable_placeholder_buttons);
 
 		Interface.Panels.skin_pose.inside_vue.pose = this.skin_pose;
+
+		UVEditor.loadViewportOffset();
 
 		Modes.options[this.mode].select();
 
@@ -220,6 +228,7 @@ class ModelProject {
 				delete this.on_next_upen;
 			}
 		})
+		Blockbench.removeFlag('switching_project');
 		return true;
 	}
 	unselect(closing) {
@@ -239,6 +248,8 @@ class ModelProject {
 				angle: preview.angle,
 			}
 		})
+
+		UVEditor.saveViewportOffset();
 
 		this.undo.closeAmendEditMenu();
 		Preview.all.forEach(preview => {
@@ -365,6 +376,9 @@ new Property(ModelProject, 'vector', 'visible_box', {
 new Property(ModelProject, 'string', 'variable_placeholders', {
 	exposed: false,
 });
+new Property(ModelProject, 'array', 'variable_placeholder_buttons', {
+	exposed: false,
+});
 new Property(ModelProject, 'number', 'shadow_size', {
 	label: 'dialog.project.shadow_size',
 	condition: {formats: ['optifine_entity']},
@@ -374,6 +388,10 @@ new Property(ModelProject, 'string', 'skin_pose', {
 	exposed: false,
 	condition: {formats: ['skin']},
 	default: 'none'
+});
+new Property(ModelProject, 'array', 'timeline_setups', {
+	exposed: false,
+	condition: () => Format.animation_mode,
 });
 
 
@@ -469,6 +487,7 @@ function updateProjectResolution() {
 		UVEditor.vue.project_resolution.replace([Project.texture_width, Project.texture_height]);
 		UVEditor.vue.updateSize()
 	}
+	Canvas.uvHelperMaterial.uniforms.DENSITY.value = Project.texture_width / 32;
 	if (Texture.selected) {
 		// Update animated textures
 		Texture.selected.height++;
@@ -479,7 +498,7 @@ function updateProjectResolution() {
 
 function setStartScreen(state) {
 	document.getElementById('start_screen').style.display = state ? 'block' : 'none';
-	document.getElementById('work_screen').style.display = state ? 'none' : 'grid';
+	Interface.work_screen.style.display = state ? 'none' : 'grid';
 }
 
 onVueSetup(() => {
@@ -550,7 +569,15 @@ onVueSetup(() => {
 					this.thumbnail.remove();
 					delete this.thumbnail;
 				}
-				if (e1.button == 1) return;
+				if (e1.button == 1) {
+					function off(e2) {
+						removeEventListeners(document, 'mouseup', off);
+						delete tab.middle_mouse_pressing;
+					}
+					tab.middle_mouse_pressing = true;
+					addEventListeners(document, 'mouseup', off, {passive: false});
+					return;
+				}
 				
 				let scope = this;
 				let active = false;
@@ -631,7 +658,7 @@ onVueSetup(() => {
 				}
 			},
 			mouseUp(tab, e1) {
-				if (e1.button === 1) {
+				if (e1.button === 1 && tab.middle_mouse_pressing) {
 					tab.close()
 				}
 			},

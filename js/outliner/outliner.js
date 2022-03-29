@@ -187,7 +187,7 @@ class OutlinerNode {
 		Vue.nextTick(() => {
 			var el = $('#'+scope.uuid)
 			if (el.length === 0) return;
-			var outliner_pos = $('#outliner').offset().top
+			var outliner_pos = $('#panel_outliner').offset().top
 
 			var el_pos = el.offset().top
 			if (el_pos > outliner_pos && el_pos < $('#cubes_list').height() + outliner_pos) return;
@@ -247,6 +247,11 @@ class OutlinerNode {
 			scope.name = scope.old_name;
 			if (scope.type === 'group') {
 				Undo.initEdit({outliner: true})
+				Animation.all.forEach(animation => {
+					if (animation.animators[scope.uuid] && animation.animators[scope.uuid].keyframes.length) {
+						animation.saved = false;
+					}
+				})
 			} else {
 				Undo.initEdit({elements: [scope]})
 			}
@@ -290,8 +295,9 @@ class OutlinerNode {
 		let zero_based = this.name.match(/[^\d]0$/) !== null;
 		var name = this.name.replace(/\d+$/, '').replace(/\s+/g, '_');
 		function check(n) {
+			let n_lower = n.toLowerCase();
 			for (var i = 0; i < others.length; i++) {
-				if (others[i] !== scope && others[i].name.toLowerCase() == n.toLowerCase()) return false;
+				if (others[i] !== scope && others[i].name.toLowerCase() === n_lower) return false;
 			}
 			return true;
 		}
@@ -609,6 +615,13 @@ class NodePreviewController {
 		}
 	}
 }
+Outliner.control_menu_group = [
+	'copy',
+	'paste',
+	'duplicate',
+	'group_elements',
+	'move_to_group',
+]
 
 OutlinerElement.registerType = function(constructor, id) {
 	OutlinerElement.types[id] = constructor;
@@ -735,7 +748,7 @@ function parseGroups(array, import_reference, startIndex) {
 }
 
 // Dropping
-function dropOutlinerObjects(item, target, event, order) {
+function moveOutlinerSelectionTo(item, target, event, order) {
 	let duplicate = event.altKey || Pressing.overrides.alt;
 	if (item.type === 'group' && target && target.parent) {
 		var is_parent = false;
@@ -811,7 +824,7 @@ function dropOutlinerObjects(item, target, event, order) {
 		updateSelection()
 		Undo.finishEdit('Duplicate selection', {elements: selected, outliner: true, selection: true})
 	} else {
-		Undo.finishEdit('Drag elements in outliner')
+		Undo.finishEdit('Move elements in outliner')
 	}
 }
 
@@ -957,6 +970,35 @@ BARS.defineActions(function() {
 		}
 	})
 
+	new Action('move_to_group', {
+		icon: 'drive_file_move',
+		category: 'edit',
+		searchable: true,
+		children(element) {
+			let groups = getAllGroups();
+			let root = {
+				name: 'Root',
+				icon: 'list_alt',
+				click(event) {
+					moveOutlinerSelectionTo(element, undefined, event);
+				}
+			};
+			return [root, ...groups.map(group => {
+				return {
+					name: group.name,
+					icon: 'folder',
+					color: markerColors[group.color] && markerColors[group.color].standard,
+					click(event) {
+						moveOutlinerSelectionTo(element, group, event);
+						element.showInOutliner();
+					}
+				}
+			})]
+		},
+		click(event) {
+			new Menu('move_to_group', this.children(this), {searchable: true}).open(event.target, this)
+		}
+	})
 	new Action('sort_outliner', {
 		icon: 'sort_by_alpha',
 		category: 'edit',
@@ -1001,16 +1043,27 @@ BARS.defineActions(function() {
 			markerColors.forEach((color, i) => {
 				color_options[i] = 'cube.color.' + color.name;
 			})
-			let dialog = new Dialog({
+			let type_options = {
+				all: 'generic.all'
+			};
+			for (let type in OutlinerElement.types) {
+				type_options[type] = tl(`data.${type}`);
+				if (type_options[type].includes('.')) {
+					type_options[type] = OutlinerElement.types[type].display_name || OutlinerElement.types[type].name;
+				}
+			}
+			new Dialog({
 				id: 'selection_creator',
 				title: 'dialog.select.title',
 				form_first: true,
 				form: {
 					new: {label: 'dialog.select.new', type: 'checkbox', value: true},
 					group: {label: 'dialog.select.group', type: 'checkbox'},
+					separate: '_',
 					name: {label: 'dialog.select.name', type: 'text'},
+					type: {label: 'dialog.select.type', type: 'select', options: type_options},
+					color: {label: 'menu.cube.color', type: 'select', value: '-1', options: color_options},
 					texture: {label: 'data.texture', type: 'text', list: Texture.all.map(tex => tex.name)},
-					color: {label: 'menu.cube.color', type: 'select', value: '-1', options: color_options}
 				},
 				lines: [
 					`<div class="dialog_bar form_bar">
@@ -1036,6 +1089,7 @@ BARS.defineActions(function() {
 					}
 				
 					array.forEach(function(obj) {
+						if (obj.type !== formData.type && formData.type !== 'all') return;
 						if (obj.name.toUpperCase().includes(name_seg) === false) return;
 						if (obj.faces && tex_seg && !Format.single_texture) {
 							var has_tex = false;
@@ -1136,15 +1190,18 @@ Interface.definePanels(function() {
 			>` +
 				//Opener
 				
-				'<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class=\'{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}\'></i>' +
-				'<i v-else class="outliner_opener_placeholder"></i>' +
-				//Main
-				'<i :class="node.icon" :style="(outliner_colors.value && node.color >= 0) && {color: markerColors[node.color].pastel}" v-on:dblclick.stop="doubleClickIcon(node)"></i>' +
-				'<input type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>' +
+				`<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'></i>
+				<i v-else class="outliner_opener_placeholder"></i>
+
+				<i :class="node.icon.substring(0, 2) == 'fa' ? node.icon : 'material-icons'"
+					:style="(outliner_colors.value && node.color >= 0) && {color: markerColors[node.color].pastel}"
+					v-on:dblclick.stop="doubleClickIcon(node)"
+				>{{ node.icon.substring(0, 2) == 'fa' ? '' : node.icon }}</i>
+				<input type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>` +
 
 
 				`<i v-for="btn in node.buttons"
-					v-if="(!btn.advanced_option || options.show_advanced_toggles || (btn.id === \'locked\' && node.isIconEnabled(btn)))"
+					v-if="(!btn.advanced_option || options.show_advanced_toggles || (btn.id === 'locked' && node.isIconEnabled(btn)))"
 					class="outliner_toggle"
 					:class="getBtnClasses(btn, node)"
 					:title="btn.title"
@@ -1234,10 +1291,15 @@ Interface.definePanels(function() {
 		return 0;
 	}
 
-	Interface.Panels.outliner = new Panel({
-		id: 'outliner',
+	new Panel('outliner', {
 		icon: 'list_alt',
 		condition: {modes: ['edit', 'paint', 'animate', 'pose']},
+		default_position: {
+			slot: 'right_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
 		toolbars: {
 			head: Toolbars.outliner
 		},
@@ -1317,7 +1379,7 @@ Interface.definePanels(function() {
 								node[key] = value;
 								if (key == 'shade') node.updateElement();
 							})
-							Undo.finishEdit(`toggle ${key} property`)
+							Undo.finishEdit(`Toggle ${key} property`)
 						}
 						removeEventListeners(document, 'mousemove touchmove', move);
 						removeEventListeners(document, 'mouseup touchend', off);
@@ -1394,10 +1456,10 @@ Interface.definePanels(function() {
 							if (open_menu) open_menu.hide();
 
 							if (!helper) {
-								helper = document.createElement('div');
-								helper.id = 'outliner_drag_helper';
-								let icon = document.createElement('i');		icon.className = item.icon;	helper.append(icon);
-								let span = document.createElement('span');	span.innerText = item.name;	helper.append(span);
+								helper = Interface.createElement('div', {id: 'outliner_drag_helper'}, [
+									Blockbench.getIconNode(item.icon.replace(/ /g, '.').replace(/^fa\./, '')),
+									Interface.createElement('label', {}, item.name)
+								]);
 								
 								if (item instanceof Group == false && Outliner.selected.length > 1) {
 									let counter = document.createElement('div');
@@ -1444,9 +1506,9 @@ Interface.definePanels(function() {
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
 							[drop_target] = eventTargetToNode(target);
 							if (drop_target) {
-								dropOutlinerObjects(item, drop_target, e2, order);
+								moveOutlinerSelectionTo(item, drop_target, e2, order);
 							} else if ($('#cubes_list').is(':hover')) {
-								dropOutlinerObjects(item, undefined, e2);
+								moveOutlinerSelectionTo(item, undefined, e2);
 							}
 						}
 					}
@@ -1463,17 +1525,14 @@ Interface.definePanels(function() {
 				}
 			},
 			template: `
-				<div>
-					<div class="toolbar_wrapper outliner"></div>
-					<ul id="cubes_list"
-						class="list mobile_scrollbar"
-						@contextmenu.stop.prevent="openMenu($event)"
-						@mousedown="dragNode($event)"
-						@touchstart="dragNode($event)"
-					>
-						<vue-tree-item v-for="item in root" :node="item" :options="options" :key="item.uuid"></vue-tree-item>
-					</ul>
-				</div>
+				<ul id="cubes_list"
+					class="list mobile_scrollbar"
+					@contextmenu.stop.prevent="openMenu($event)"
+					@mousedown="dragNode($event)"
+					@touchstart="dragNode($event)"
+				>
+					<vue-tree-item v-for="item in root" :node="item" :options="options" :key="item.uuid"></vue-tree-item>
+				</ul>
 			`
 		},
 		menu: new Menu([
@@ -1504,6 +1563,28 @@ Interface.definePanels(function() {
 			if (Modes.edit) Interface.addSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 		}
 	})
+
+	if (!Blockbench.isMobile) {
+		new Panel('element', {
+			icon: 'fas.fa-cube',
+			condition: !Blockbench.isMobile && {modes: ['edit', 'pose']},
+			display_condition: () => Outliner.selected.length || Group.selected,
+			selection_only: true,
+			default_position: {
+				slot: 'right_bar',
+				float_position: [0, 0],
+				float_size: [300, 400],
+				height: 400
+			},
+			toolbars: {
+				element_position: 	Toolbars.element_position,
+				element_size: 		Toolbars.element_size,
+				element_origin: 	Toolbars.element_origin,
+				element_rotation: 	Toolbars.element_rotation,
+			}
+		})
+		Toolbars.element_origin.node.after(Interface.createElement('div', {id: 'element_origin_toolbar_anchor'}))
+	}
 })
 
 class Face {

@@ -1165,7 +1165,7 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	$('#display_bar input#thirdperson_righthand').prop("checked", true)
 
 
-	buildGrid()
+	Canvas.buildGrid()
 	updateShading()
 	DisplayMode.loadThirdRight()
 
@@ -1192,7 +1192,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 		openQuadView()
 	}
 	scene.add(Transformer)
-	buildGrid()
+	Canvas.buildGrid()
 	updateShading()
 	Canvas.updateRenderSides()
 }
@@ -1650,10 +1650,15 @@ BARS.defineActions(function() {
 
 Interface.definePanels(function() {
 	
-	Interface.Panels.display = new Panel({
-		id: 'display',
+	new Panel('display', {
 		icon: 'tune',
 		condition: {modes: ['display']},
+		default_position: {
+			slot: 'left_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
 		toolbars: {
 			head: Toolbars.display
 		},

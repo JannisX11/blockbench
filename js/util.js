@@ -50,6 +50,15 @@ const Condition = function(condition, context) {
 		return !!condition
 	}
 }
+Condition.mutuallyExclusive = function(a, b) {
+	if (typeof a !== 'object' || typeof b !== 'object') return false;
+	if (a.modes && b.modes && a.modes.overlap(b.modes) == 0) return true;
+	if (a.tools && b.tools && a.tools.overlap(b.tools) == 0) return true;
+	if (a.formats && b.formats && a.formats.overlap(b.formats) == 0) return true;
+	if (a.features && b.features && a.features.overlap(b.features) == 0) return true;
+	return false;
+}
+
 class oneLiner {
 	constructor(data) {
 		if (data !== undefined) {
@@ -176,7 +185,7 @@ Math.lerp = function(a, b, m) {
 Math.isBetween = function(number, limit1, limit2) {
    return (number - limit1) * (number - limit2) <= 0
 }
-Math.epsilon = function(a, b, epsilon) {
+Math.epsilon = function(a, b, epsilon = 0.001) {
 	return Math.abs(b - a) < epsilon
 }
 Math.trimDeg = function(a) {
@@ -280,8 +289,8 @@ function getRectangle(a, b, c, d) {
 	if (rect.ay > rect.by) {
 		[rect.ay, rect.by] = [rect.by, rect.ay]
 	}
-	rect.x = rect.bx - rect.ax
-	rect.y = rect.by - rect.ay
+	rect.x = rect.w = rect.bx - rect.ax
+	rect.y = rect.h = rect.by - rect.ay
 	return rect;
 }
 function doRectanglesOverlap(rect1, rect2) {
@@ -471,6 +480,39 @@ Array.prototype.V3_divide = function(x, y, z) {
 Array.prototype.V3_toThree = function() {
 	return new THREE.Vector3(this[0], this[1], this[2]);
 }
+Array.prototype.V2_set = function(x, y) {
+	if (x instanceof Array) return this.V2_set(...x);
+	if (y === undefined) y = x;
+	this[0] = parseFloat(x)||0;
+	this[1] = parseFloat(y)||0;
+	return this;
+}
+Array.prototype.V2_add = function(x, y) {
+	if (x instanceof Array) return this.V2_add(...x);
+	this[0] += parseFloat(x)||0;
+	this[1] += parseFloat(y)||0;
+	return this;
+}
+Array.prototype.V2_subtract = function(x, y) {
+	if (x instanceof Array) return this.V2_subtract(...x);
+	this[0] -= parseFloat(x)||0;
+	this[1] -= parseFloat(y)||0;
+	return this;
+}
+Array.prototype.V2_multiply = function(x, y) {
+	if (x instanceof Array) return this.V2_multiply(...x);
+	if (y === undefined) y = x;
+	this[0] *= parseFloat(x)||0;
+	this[1] *= parseFloat(y)||0;
+	return this;
+}
+Array.prototype.V2_divide = function(x, y) {
+	if (x instanceof Array) return this.V2_divide(...x);
+	if (y === undefined) y = x;
+	this[0] /= parseFloat(x)||1;
+	this[1] /= parseFloat(y)||1;
+	return this;
+}
 
 //Object
 Object.defineProperty(Array.prototype, "equals", {enumerable: false});
@@ -577,6 +619,13 @@ var Merge = {
 				obj[index].V3_set(source[index]);
 			}
 		}
+	},
+	arrayVector2: function(obj, source, index, validate) {
+		if (source[index] instanceof Array) {
+			if (validate instanceof Function === false || validate(source[index])) {
+				obj[index].replace(source[index]);
+			}
+		}
 	}
 }
 
@@ -629,8 +678,8 @@ Object.defineProperty(String.prototype, 'hashCode', {
 
 //Color
 tinycolor.prototype.toInt = function() {
-	var rgba = this.toRgb()
-	return Jimp.rgbaToInt(rgba.r, rgba.g, rgba.b, rgba.a)
+	let {r, g, b, a} = this.toRgb();
+	return r * Math.pow(256, 3) + g * Math.pow(256, 2) + b * Math.pow(256, 1) + a * Math.pow(256, 0);
 }
 function getAverageRGB(imgEl, blockSize) {
 		

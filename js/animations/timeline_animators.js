@@ -601,6 +601,7 @@ class NullObjectAnimator extends BoneAnimator {
 class EffectAnimator extends GeneralAnimator {
 	constructor(animation) {
 		super(null, animation);
+		this.last_displayed_time = 0;
 
 		this.name = tl('timeline.effects')
 		this.selected = false;
@@ -667,6 +668,17 @@ class EffectAnimator extends GeneralAnimator {
 				}
 			})
 		}
+		
+		if (!this.muted.timeline) {
+			this.timeline.forEach(kf => {
+				if ((kf.time > this.last_displayed_time && kf.time <= Timeline.time) || Math.epsilon(kf.time, Timeline.time, 0.01)) {
+					let script = kf.data_points[0].script;
+					Animator.MolangParser.parse(script);
+				}
+			})
+		}
+
+		this.last_displayed_time = Timeline.time;
 	}
 	startPreviousSounds() {
 		if (!this.muted.sound) {
@@ -698,5 +710,5 @@ class EffectAnimator extends GeneralAnimator {
 	EffectAnimator.prototype.channels = {
 		particle: {name: tl('timeline.particle'), mutable: true, max_data_points: 1000},
 		sound: {name: tl('timeline.sound'), mutable: true, max_data_points: 1000},
-		timeline: {name: tl('timeline.timeline'), mutable: false, max_data_points: 1},
+		timeline: {name: tl('timeline.timeline'), mutable: true, max_data_points: 1},
 	}

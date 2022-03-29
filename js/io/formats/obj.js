@@ -46,6 +46,7 @@ var codec = new Codec('obj', {
 		const normal = new THREE.Vector3();
 		const uv = new THREE.Vector2();
 		const face = [];
+		let face_export_mode = Settings.get('obj_face_export_mode');
 
 		output.push('mtllib ' + (options.mtl_name||'materials.mtl') +'\n');
 
@@ -133,12 +134,25 @@ var codec = new Codec('obj', {
 							case 'up': 		vertices = [5, 2, 1, 6]; break;
 							case 'down': 	vertices = [8, 3, 4, 7]; break;
 						}
-						output.push('f '+[
-							`${vertices[3] + indexVertex}/${i*4 + 4 + indexVertexUvs}/${i+1+indexNormals}`,
-							`${vertices[2] + indexVertex}/${i*4 + 3 + indexVertexUvs}/${i+1+indexNormals}`,
-							`${vertices[1] + indexVertex}/${i*4 + 2 + indexVertexUvs}/${i+1+indexNormals}`,
-							`${vertices[0] + indexVertex}/${i*4 + 1 + indexVertexUvs}/${i+1+indexNormals}`,
-						].join(' '));
+						if (face_export_mode == 'tris') {
+							output.push('f '+[
+								`${vertices[2] + indexVertex}/${i*4 + 3 + indexVertexUvs}/${i+1+indexNormals}`,
+								`${vertices[1] + indexVertex}/${i*4 + 2 + indexVertexUvs}/${i+1+indexNormals}`,
+								`${vertices[0] + indexVertex}/${i*4 + 1 + indexVertexUvs}/${i+1+indexNormals}`,
+							].join(' '));
+							output.push('f '+[
+								`${vertices[3] + indexVertex}/${i*4 + 4 + indexVertexUvs}/${i+1+indexNormals}`,
+								`${vertices[2] + indexVertex}/${i*4 + 3 + indexVertexUvs}/${i+1+indexNormals}`,
+								`${vertices[0] + indexVertex}/${i*4 + 1 + indexVertexUvs}/${i+1+indexNormals}`,
+							].join(' '));
+						} else {
+							output.push('f '+[
+								`${vertices[3] + indexVertex}/${i*4 + 4 + indexVertexUvs}/${i+1+indexNormals}`,
+								`${vertices[2] + indexVertex}/${i*4 + 3 + indexVertexUvs}/${i+1+indexNormals}`,
+								`${vertices[1] + indexVertex}/${i*4 + 2 + indexVertexUvs}/${i+1+indexNormals}`,
+								`${vertices[0] + indexVertex}/${i*4 + 1 + indexVertexUvs}/${i+1+indexNormals}`,
+							].join(' '));
+						}
 						i++;
 					}
 				}
@@ -167,9 +181,8 @@ var codec = new Codec('obj', {
 				for (let key in element.faces) {
 					if (element.faces[key].texture !== null && element.faces[key].vertices.length >= 3) {
 						let face = element.faces[key];
-						let vertices = face.getSortedVertices();
+						let vertices = face.getSortedVertices().slice();
 						let tex = element.faces[key].getTexture();
-
 
 						vertices.forEach(vkey => {
 							output.push(`vt ${face.uv[vkey][0] / Project.texture_width} ${1 - face.uv[vkey][1] / Project.texture_height}`);
@@ -192,16 +205,43 @@ var codec = new Codec('obj', {
 							faces.push('usemtl '+mtl);
 						}
 						
-						let triplets = [];
-						vertices.forEach((vkey, vi) => {
-							let triplet = [
-								vertex_keys.indexOf(vkey) + 1 + indexVertex,
-								nbVertexUvs - vertices.length + vi + 1 + indexVertexUvs,
-								i+1+indexNormals,
-							]
-							triplets.push(triplet.join('/'));
-						})
-						faces.push('f ' + triplets.join(' '));
+						if (face_export_mode == 'quads' && vertices.length == 3) vertices.push(vertices[0]); 
+						
+						if (face_export_mode == 'tris' && vertices.length == 4) {
+							let triplets_a = [];
+							vertices.slice(0, 3).forEach((vkey, vi) => {
+								let triplet = [
+									vertex_keys.indexOf(vkey) + 1 + indexVertex,
+									nbVertexUvs - vertices.length + vi + 1 + indexVertexUvs,
+									i+1+indexNormals,
+								]
+								triplets_a.push(triplet.join('/'));
+							})
+							faces.push('f ' + triplets_a.join(' '));
+
+							let triplets_b = [];
+							[vertices[0], vertices[2], vertices[3]].forEach((vkey, vi) => {
+								let triplet = [
+									vertex_keys.indexOf(vkey) + 1 + indexVertex,
+									nbVertexUvs - vertices.length + (vi ? 1 : 0) + vi + 1 + indexVertexUvs,
+									i+1+indexNormals,
+								]
+								triplets_b.push(triplet.join('/'));
+							})
+							faces.push('f ' + triplets_b.join(' '));
+
+						} else {
+							let triplets = [];
+							vertices.forEach(vkey => {
+								let triplet = [
+									vertex_keys.indexOf(vkey) + 1 + indexVertex,
+									nbVertexUvs - vertices.length + vertices.indexOf(vkey) + 1 + indexVertexUvs,
+									i+1+indexNormals,
+								]
+								triplets.push(triplet.join('/'));
+							})
+							faces.push('f ' + triplets.join(' '));
+						}
 						i++;
 					}
 				}

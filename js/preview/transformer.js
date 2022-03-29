@@ -19,22 +19,22 @@
 	
 			this.setValues( parameters );
 	
-			this.oldColor = this.color.clone();
+			this.oldColor = this.color = parameters.color;
 			this.oldOpacity = this.opacity;
 	
 			this.highlight = function( highlighted ) {
 	
 				if ( highlighted ) {
 	
-					this.color.copy( gizmo_colors.outline );
-					this.color.r *= 1.2;
-					this.color.g *= 1.2;
-					this.color.b *= 1.2;
+					this.color = gizmo_colors.gizmo_hover;
+					//this.color.r *= 1.2;
+					//this.color.g *= 1.2;
+					//this.color.b *= 1.2;
 					this.opacity = 1;
 	
 				} else {
 	
-					this.color.copy( this.oldColor );
+					this.color = this.oldColor;
 					this.opacity = this.oldOpacity;
 	
 				}
@@ -54,22 +54,19 @@
 	
 			this.setValues( parameters );
 	
-			this.oldColor = this.color.clone();
+			this.oldColor = this.color = parameters.color;
 			this.oldOpacity = this.opacity;
 	
 			this.highlight = function( highlighted ) {
 	
 				if ( highlighted ) {
 	
-					this.color.copy( gizmo_colors.outline );
-					this.color.r *= 1.2;
-					this.color.g *= 1.2;
-					this.color.b *= 1.2;
+					this.color = gizmo_colors.gizmo_hover;
 					this.opacity = 1;
 	
 				} else {
 	
-					this.color.copy( this.oldColor );
+					this.color = this.oldColor;
 					this.opacity = this.oldOpacity;
 	
 				}
@@ -677,10 +674,10 @@
 				_gizmo.rotate.children[0].children[6].visible = !(Format && Format.rotation_limit && Modes.edit);
 
 				// Origin
-				let scale = scope.camera.preview.calculateControlScale(rot_origin.getWorldPosition(new THREE.Vector3())) * settings.origin_size.value * 0.2;
-				rot_origin.scale.set( scale, scale, scale );
-				if (rot_origin.base_scale) {
-					rot_origin.scale.multiply(rot_origin.base_scale);
+				let scale = scope.camera.preview.calculateControlScale(Canvas.pivot_marker.getWorldPosition(new THREE.Vector3())) * settings.origin_size.value * 0.2;
+				Canvas.pivot_marker.scale.set( scale, scale, scale );
+				if (Canvas.pivot_marker.base_scale) {
+					Canvas.pivot_marker.scale.multiply(Canvas.pivot_marker.base_scale);
 				}
 				
 				// Update Eye Position
@@ -970,7 +967,7 @@
 						var line = main_gizmo.children[(axisNumber*2 + (scope.direction?1:0)) * 2];
 						break;
 					case 'rotate':
-						var line = rot_origin;
+						var line = Canvas.pivot_marker;
 						break;
 				}
 				line.scale[axis] = long ? 20000 : 1;

@@ -2,7 +2,8 @@ const LastVersion = localStorage.getItem('last_version') || localStorage.getItem
 
 const Blockbench = {
 	isWeb: !isApp,
-	isMobile: !isApp && window.innerWidth <= 640,
+	isMobile: window.innerWidth <= 960 || window.innerHeight <= 500,
+	isLandscape: window.innerWidth > window.innerHeight,
 	isTouch: 'ontouchend' in document,
 	get isPWA() {
 		return navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
@@ -275,17 +276,21 @@ const Blockbench = {
 		}
 		return jq_dialog
 	},
-	textPrompt(title, value, callback, placeholder = null) {
+	async textPrompt(title, value, callback, placeholder = null) {
 		showDialog('text_input')
 		$('#text_input .dialog_handle .dialog_title').text(tl(title || 'dialog.input.title'))
 		$('#text_input input#text_input_field').val(value).trigger('select').attr('placeholder', placeholder);
 		$('#text_input button.confirm_btn').off()
-		$('#text_input button.confirm_btn').on('click', function() {
-			var s = $('#text_input input#text_input_field').val()
-			if (callback !== undefined) {
-				callback(s)
-			}
+		let text = await new Promise(resolve => {
+			$('#text_input button.confirm_btn').on('click', function() {
+				var s = $('#text_input input#text_input_field').val()
+				resolve(s)
+			})
 		})
+		if (callback !== undefined) {
+			callback(text);
+		}
+		return text;
 	},
 	addMenuEntry(name, icon, click) {
 		console.warn('Blockbench.addMenuEntry is deprecated. Please use Actions instead.')

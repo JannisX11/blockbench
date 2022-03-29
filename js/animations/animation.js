@@ -724,6 +724,17 @@ class Animation {
 			}
 		},
 		'rename',
+		{
+			id: 'unload',
+			name: 'menu.animation.unload',
+			icon: 'remove',
+			condition: () => Format.animation_files,
+			click(animation) {
+				Undo.initEdit({animations: [this]})
+				this.remove(false, false);
+				Undo.finishEdit('Unload animation', {animations: []})
+			}
+		},
 		'delete',
 		'_',
 		{name: 'menu.animation.properties', icon: 'list', click(animation) {
@@ -743,7 +754,7 @@ class Animation {
 			animations_to_remove.forEach(animation => {
 				animation.remove(false, false);
 			})
-			Undo.finishEdit('Remove animation file', {animations: []})
+			Undo.finishEdit('Unload animation file', {animations: []})
 		}},
 		{name: 'menu.animation_file.import_remaining', icon: 'playlist_add', click(id) {
 			Blockbench.read([id], {}, files => {
@@ -791,6 +802,7 @@ WinterskyScene.global_options.scale = 16;
 WinterskyScene.global_options.loop_mode = 'once';
 WinterskyScene.global_options.parent_mode = 'entity';
 
+Prism.languages.molang['function-name'] = /\b(?!\d)(math\.\w+|button)(?=[\t ]*\()/i;
 
 const Animator = {
 	get possible_channels() {
@@ -824,10 +836,12 @@ const Animator = {
 		Animator.motion_trail.no_export = true;
 
 		if (!Animator.timeline_node) {
-			Animator.timeline_node = $('#timeline').get(0)
+			Animator.timeline_node = Panels.timeline.node;
 		}
 		updateInterface()
-		Toolbars.element_origin.toPlace('bone_origin')
+		if (Panels.element) {
+			Toolbars.element_origin.toPlace('bone_origin')
+		}
 		if (!Timeline.is_setup) {
 			Timeline.setup()
 		}
@@ -853,7 +867,10 @@ const Animator = {
 		scene.remove(Animator.motion_trail);
 		Animator.resetParticles(true);
 
-		Toolbars.element_origin.toPlace()
+		if (Panels.element) {
+			let anchor = Panels.element.node.querySelector('#element_origin_toolbar_anchor');
+			if (anchor) anchor.before(Toolbars.element_origin.node);
+		}
 
 		Canvas.updateAllBones()
 	},
@@ -1003,6 +1020,16 @@ const Animator = {
 				}
 			}
 		})
+		Interface.Panels.variable_placeholders.inside_vue.text.split('\n').forEach(line => {
+			line = line.replace(/ +/g, '');
+			if (!line) return;
+			let [key, value] = line.split(/=\s*(.+)/);
+			if (key == 'preview.texture') {
+				let tex_index = parseInt(Animator.MolangParser.parse(value));
+				let texture = Texture.all[tex_index % Texture.all.length];
+				if (texture) texture.select();
+			}
+		});
 
 		if (Group.selected || NullObject.selected[0]) {
 			Transformer.updateSelection()
@@ -1071,14 +1098,48 @@ const Animator = {
 				}).add()
 				//Bones
 				if (a.bones) {
+					let existing_variables = [
+						'query.anim_time',
+						'query.life_time',
+						'query.delta_time',
+						'query.camera_rotation',
+						'query.rotation_to_camera',
+						'query.distance_from_camera',
+						'query.lod_index',
+						'query.camera_distance_range_lerp',
+					];
+					function processPlaceholderVariables(text) {
+						if (typeof text !== 'string') return;
+						text = text.replace(/v\./, 'variable.').replace(/q\./, 'query.').replace(/t\./, 'temp.').replace(/c\./, 'context.').toLowerCase();
+						let matches = text.match(/(query|variable|context|temp)\.\w+/gi);
+						if (!matches) return;
+						matches.forEach(match => {
+							let panel_vue = Interface.Panels.variable_placeholders.inside_vue;
+							if (existing_variables.includes(match)) return;
+							if (panel_vue.text.split('\n').find(line => line.substr(0, match.length) == match)) return;
+
+							let [space, name] = match.split(/\./);
+							if (panel_vue.text != '' && panel_vue.text.substr(-1) !== '\n') panel_vue.text += '\n';
+
+							if (name == 'modified_distance_moved') {
+								panel_vue.text += `${match} = time * 8`;
+							} else if (name.match(/is_|has_|can_|blocking/)) {
+								panel_vue.text += `${match} = toggle('${name}')`;
+							} else {
+								panel_vue.text += `${match} = slider('${name}')`;
+							}
+						})
+					}
 					function getKeyframeDataPoints(source) {
 						if (source instanceof Array) {
+							source.forEach(processPlaceholderVariables);
 							return [{
 								x: source[0],
 								y: source[1],
 								z: source[2],
 							}]
 						} else if (['number', 'string'].includes(typeof source)) {
+							processPlaceholderVariables(source);
 							return [{
 								x: source, y: source, z: source
 							}]
@@ -1182,6 +1243,15 @@ const Animator = {
 					for (var timestamp in a.timeline) {
 						var entry = a.timeline[timestamp];
 						var script = entry instanceof Array ? entry.join('\n') : entry;
+						
+						if (typeof script == 'string') {
+							let panel_vue = Interface.Panels.variable_placeholders.inside_vue;
+							let tex_variables = script.match(/(v|variable)\.texture\w*\s*=/);
+							if (tex_variables && !panel_vue.text.includes('preview.texture =')) {
+								if (panel_vue.text != '' && panel_vue.text.substr(-1) !== '\n') panel_vue.text += '\n';
+								panel_vue.text += `preview.texture = ${tex_variables[0].replace(/\s*=$/, '')}`
+							}
+						}
 						animation.animators.effects.addKeyframe({
 							channel: 'timeline',
 							time: parseFloat(timestamp),
@@ -1327,6 +1397,7 @@ const Animator = {
 		}
 	}
 }
+Canvas.gizmos.push(Animator.motion_trail);
 Blockbench.on('reset_project', () => {
 	for (let path in Animator.particle_effects) {
 		let effect = Animator.particle_effects[path];
@@ -1410,16 +1481,28 @@ Animator.MolangParser.global_variables = {
 	}
 }
 Animator.MolangParser.variableHandler = function (variable) {
-	var inputs = Interface.Panels.variable_placeholders.inside_vue._data.text.split('\n');
+	var inputs = Interface.Panels.variable_placeholders.inside_vue.text.split('\n');
 	var i = 0;
 	while (i < inputs.length) {
 		let key, val;
-		[key, val] = inputs[i].split(/=(.+)/);
+		[key, val] = inputs[i].split(/=\s*(.+)/);
 		key = key.replace(/[\s;]/g, '');
 		key = key.replace(/^v\./, 'variable.').replace(/^q\./, 'query.').replace(/^t\./, 'temp.').replace(/^c\./, 'context.');
+
 		if (key === variable && val !== undefined) {
 			val = val.trim();
-			return val[0] == `'` ? val : Animator.MolangParser.parse(val);
+
+			if (val.match(/^(slider|toggle)\(/)) {
+				let [type, content] = val.substring(0, val.length - 1).split(/\(/);
+				let [id] = content.split(/\(|, */);
+				id = id.replace(/['"]/g, '');
+				
+				let button = Interface.Panels.variable_placeholders.inside_vue.buttons.find(b => b.id === id && b.type == type);
+				return button ? parseFloat(button.value) : 0;
+				
+			} else {
+				return val[0] == `'` ? val : Animator.MolangParser.parse(val);
+			}
 		}
 		i++;
 	}
@@ -1644,11 +1727,16 @@ Interface.definePanels(function() {
 		return 0;
 	}
 
-	Interface.Panels.animations = new Panel({
-		id: 'animations',
+	new Panel('animations', {
 		icon: 'movie',
 		growable: true,
 		condition: {modes: ['animate']},
+		default_position: {
+			slot: 'left_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
 		toolbars: {
 			head: Toolbars.animations
 		},
@@ -1845,55 +1933,52 @@ Interface.definePanels(function() {
 				}
 			},
 			template: `
-				<div>
-					<div class="toolbar_wrapper animations"></div>
-					<ul
-						id="animations_list"
-						class="list mobile_scrollbar"
-						@mousedown="dragAnimation($event)"
-						@touchstart="dragAnimation($event)"
-						@contextmenu.stop.prevent="openMenu($event)"
-					>
-						<li v-for="(file, key) in files" :key="key" class="animation_file" @contextmenu.prevent.stop="showFileContextMenu($event, key)">
-							<div class="animation_file_head" v-if="!file.hide_head" v-on:click.stop="toggle(key)">
-								<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
-								<label :title="key">{{ file.name }}</label>
-								<div class="in_list_button" v-if="animation_files_enabled && !file.saved" v-on:click.stop="saveFile(key, file)">
-									<i class="material-icons">save</i>
-								</div>
-								<div class="in_list_button" v-on:click.stop="addAnimation(key)">
-									<i class="material-icons">add</i>
-								</div>
+				<ul
+					id="animations_list"
+					class="list mobile_scrollbar"
+					@mousedown="dragAnimation($event)"
+					@touchstart="dragAnimation($event)"
+					@contextmenu.stop.prevent="openMenu($event)"
+				>
+					<li v-for="(file, key) in files" :key="key" class="animation_file" @contextmenu.prevent.stop="showFileContextMenu($event, key)">
+						<div class="animation_file_head" v-if="!file.hide_head" v-on:click.stop="toggle(key)">
+							<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
+							<label :title="key">{{ file.name }}</label>
+							<div class="in_list_button" v-if="animation_files_enabled && !file.saved" v-on:click.stop="saveFile(key, file)">
+								<i class="material-icons">save</i>
 							</div>
-							<ul v-if="!files_folded[key]" :class="{indented: !file.hide_head}">
-								<li
-									v-for="animation in file.animations"
-									v-bind:class="{ selected: animation.selected }"
-									v-bind:anim_id="animation.uuid"
-									class="animation"
-									v-on:click.stop="animation.select()"
-									v-on:dblclick.stop="animation.propertiesDialog()"
-									:key="animation.uuid"
-									@contextmenu.prevent.stop="animation.showContextMenu($event)"
-								>
-									<i class="material-icons">movie</i>
-									<label :title="animation.name">
-										{{ common_namespace ? animation.name.split(common_namespace).join('') : animation.name }}
-										<span v-if="common_namespace"> - {{ animation.name }}</span>
-									</label>
-									<div v-if="animation_files_enabled"  class="in_list_button" v-bind:class="{unclickable: animation.saved}" v-on:click.stop="animation.save()">
-										<i v-if="animation.saved" class="material-icons">check_circle</i>
-										<i v-else class="material-icons">save</i>
-									</div>
-									<div class="in_list_button" v-on:click.stop="animation.togglePlayingState()">
-										<i v-if="animation.playing" class="fa_big far fa-play-circle"></i>
-										<i v-else class="fa_big far fa-circle"></i>
-									</div>
-								</li>
-							</ul>
-						</li>
-					</ul>
-				</div>
+							<div class="in_list_button" v-on:click.stop="addAnimation(key)">
+								<i class="material-icons">add</i>
+							</div>
+						</div>
+						<ul v-if="!files_folded[key]" :class="{indented: !file.hide_head}">
+							<li
+								v-for="animation in file.animations"
+								v-bind:class="{ selected: animation.selected }"
+								v-bind:anim_id="animation.uuid"
+								class="animation"
+								v-on:click.stop="animation.select()"
+								v-on:dblclick.stop="animation.propertiesDialog()"
+								:key="animation.uuid"
+								@contextmenu.prevent.stop="animation.showContextMenu($event)"
+							>
+								<i class="material-icons">movie</i>
+								<label :title="animation.name">
+									{{ common_namespace ? animation.name.split(common_namespace).join('') : animation.name }}
+									<span v-if="common_namespace"> - {{ animation.name }}</span>
+								</label>
+								<div v-if="animation_files_enabled"  class="in_list_button" v-bind:class="{unclickable: animation.saved}" v-on:click.stop="animation.save()">
+									<i v-if="animation.saved" class="material-icons">check_circle</i>
+									<i v-else class="material-icons">save</i>
+								</div>
+								<div class="in_list_button" v-on:click.stop="animation.togglePlayingState()">
+									<i v-if="animation.playing" class="fa_big far fa-play-circle"></i>
+									<i v-else class="fa_big far fa-circle"></i>
+								</div>
+							</li>
+						</ul>
+					</li>
+				</ul>
 			`
 		},
 		menu: new Menu([
@@ -1904,29 +1989,88 @@ Interface.definePanels(function() {
 		])
 	})
 
-	Interface.Panels.variable_placeholders = new Panel({
-		id: 'variable_placeholders',
+	new Panel('variable_placeholders', {
 		icon: 'fas.fa-stream',
 		condition: {modes: ['animate']},
 		growable: true,
+		default_position: {
+			slot: 'left_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
 		toolbars: {
 		},
 		component: {
 			name: 'panel-placeholders',
 			components: {VuePrismEditor},
 			data() { return {
-				text: ''
+				text: '',
+				buttons: []
 			}},
+			methods: {
+				updateButtons() {
+					let old_values = {};
+					this.buttons.forEach(b => old_values[b.id] = b.value);
+					this.buttons.empty();
+
+					let matches = this.text.toLowerCase().match(/(slider|toggle)\(.+\)/g);
+
+					if (matches) {
+						matches.forEach(match => {
+							let [type, content] = match.substring(0, match.length - 1).split(/\(/);
+							let [id, ...args] = content.split(/\(|, */);
+							id = id.replace(/['"]/g, '');
+							if (this.buttons.find(b => b.id == id)) return;
+
+							if (type == 'slider') {
+								this.buttons.push({
+									type,
+									id,
+									value: old_values[id] || 0,
+									step: args[0],
+									min: args[1],
+									max: args[2]
+								})
+							} else {
+								this.buttons.push({
+									type,
+									id,
+									value: old_values[id] || 0,
+								})
+							}
+						})
+					}
+				},
+				changeButtonValue(button, event) {
+					if (button.type == 'toggle') {
+						button.value = event.target.checked ? 1 : 0;
+					}
+					Animator.preview();
+				}
+			},
 			watch: {
 				text(text) {
 					if (Project && typeof text == 'string') {
 						Project.variable_placeholders = text;
+						this.updateButtons();
+						Project.variable_placeholder_buttons.replace(this.buttons);
 					}
 				}
 			},
 			template: `
 				<div style="flex-grow: 1; display: flex; flex-direction: column;">
+
+					<ul id="placeholder_buttons">
+						<li v-for="button in buttons" :key="button.id">
+							<input v-if="button.type == 'toggle'" type="checkbox" :value="button.value == 1" @change="changeButtonValue(button, $event)" :id="'placeholder_button_'+button.id">
+							<input v-else type="number" class="dark_bordered" :step="button.step" :min="button.min" :max="button.max" v-model="button.value" @input="changeButtonValue(button, $event)">
+							<label :for="'placeholder_button_'+button.id">{{ button.id }}</label>
+						</li>
+					</ul>
+
 					<p>${tl('panel.variable_placeholders.info')}</p>
+
 					<vue-prism-editor
 						id="var_placeholder_area"
 						class="molang_input dark_bordered tab_target"

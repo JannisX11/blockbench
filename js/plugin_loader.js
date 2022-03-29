@@ -193,6 +193,9 @@ class Plugin {
 					scope.extend(plugin_data)
 					scope.bindGlobalData()
 				}
+				if (first && scope.oninstall) {
+					scope.oninstall()
+				}
 				scope.installed = true
 				this.remember()
 				Plugins.sort()
@@ -222,6 +225,9 @@ class Plugin {
 					this.id = (plugin_data && plugin_data.id)||pathToName(url)
 					this.extend(plugin_data)
 					this.bindGlobalData()
+				}
+				if (first && scope.oninstall) {
+					scope.oninstall()
 				}
 				this.installed = true
 				this.path = url
@@ -485,7 +491,7 @@ async function loadInstalledPlugins() {
 				if (isApp && fs.existsSync(plugin.path)) {
 					var instance = new Plugin(plugin.id);
 					install_promises.push(instance.loadFromFile({path: plugin.path}, false));
-					loaded.push('Local: '+ plugin.id || plugin.path)
+					loaded.push(['Local', plugin.id || plugin.path]);
 				} else {
 					Plugins.installed.remove(plugin)
 				}
@@ -493,13 +499,18 @@ async function loadInstalledPlugins() {
 			} else if (plugin.source == 'url') {
 				var instance = new Plugin(plugin.id);
 				install_promises.push(instance.loadFromURL(plugin.path, false));
-				loaded.push('URL: '+ plugin.id || plugin.path)
+				loaded.push(['URL', plugin.id || plugin.path]);
 
 			} else {
-				loaded.push('Store: '+ plugin.id)
+				loaded.push(['Store', plugin.id]);
 			}
 		})
-		console.log(`Loaded ${loaded.length} plugin${pluralS(loaded.length)}`, loaded)
+		console.log(`Loaded ${loaded.length} plugin${pluralS(loaded.length)}`)
+		let list = {};
+		loaded.forEach(([type, id]) => {
+			list[id] = type;
+		})
+		console.table(list);
 	}
 	StateMemory.save('installed_plugins')
 	
@@ -533,7 +544,8 @@ BARS.defineActions(function() {
 									item.id.toUpperCase().includes(name) ||
 									item.title.toUpperCase().includes(name) ||
 									item.description.toUpperCase().includes(name) ||
-									item.author.toUpperCase().includes(name)
+									item.author.toUpperCase().includes(name) ||
+									item.tags.find(tag => tag.toUpperCase().includes(name))
 								)
 							}
 							return true;
@@ -586,7 +598,7 @@ BARS.defineActions(function() {
 							<div v-if="plugin.expanded" class="about" v-html="marked(plugin.about)"><button>a</button></div>
 							<div v-if="plugin.expanded" v-on:click="plugin.toggleInfo()" style="text-decoration: underline;">${tl('dialog.plugins.show_less')}</div>
 							<ul class="plugin_tag_list">
-								<li v-for="tag in plugin.tags" :class="getTagClass(tag)" :key="tag">{{tag}}</li>
+								<li v-for="tag in plugin.tags" :class="getTagClass(tag)" :key="tag" @click="search_term = tag;">{{tag}}</li>
 							</ul>
 						</li>
 						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>
@@ -605,12 +617,12 @@ BARS.defineActions(function() {
 			let none_installed = !Plugins.all.find(plugin => plugin.installed);
 			if (none_installed) Plugins.dialog.content_vue.tab = 'available';
 			if (!Plugins.dialog.button_bar) {
-				Plugins.dialog.button_bar = $(`<div class="bar next_to_title" id="plugins_header_bar"></div>`)[0];
+				Plugins.dialog.button_bar = Interface.createElement('div', {class: 'bar next_to_title', id: 'plugins_header_bar'});
 				Plugins.dialog.object.firstElementChild.after(Plugins.dialog.button_bar);
 				BarItems.load_plugin.toElement('#plugins_header_bar');
 				BarItems.load_plugin_from_url.toElement('#plugins_header_bar');
 			}
-			$('#plugin_list').css('max-height', limitNumber(window.innerHeight-300, 80, 600)+'px');
+			$('#plugin_list').css('max-height', limitNumber(window.innerHeight-226, 80, 800)+'px');
 			$('dialog#plugins #plugin_search_bar input').trigger('focus')
 		}
 	})

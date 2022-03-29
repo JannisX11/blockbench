@@ -41,7 +41,7 @@ function buildAnimationTracks(do_quaternions = true) {
 						// Sampling non-linear and math-based values
 						let contains_script
 						for (var kf of keyframes) {
-							if (kf.interpolation != 'linear') {
+							if (kf.interpolation == Keyframe.interpolation.catmullrom) {
 								contains_script = true; break;
 							}
 							for (var data_point of kf.data_points) {
@@ -122,6 +122,9 @@ function buildAnimationTracks(do_quaternions = true) {
 							if (kf.interpolation == Keyframe.interpolation.catmullrom) {
 								interpolation = THREE.InterpolateSmooth
 							}
+							if (kf.interpolation == Keyframe.interpolation.step) {
+								interpolation = THREE.InterpolateDiscrete
+							}
 							times.push(kf.time);
 							Timeline.time = kf.time;
 							kf.getFixed(0, do_quaternions).toArray(values, values.length);
@@ -169,6 +172,10 @@ var codec = new Codec('gltf', {
 		try {
 			if (!Modes.edit) {
 				Animator.showDefaultPose();
+			}
+			if (BarItems.view_mode.value !== 'textured') {
+				BarItems.view_mode.set('textured');
+				BarItems.view_mode.onChange();
 			}
 			if (options.animations !== false) {
 				animations = buildAnimationTracks();

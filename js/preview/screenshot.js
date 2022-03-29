@@ -310,12 +310,31 @@ const Screencam = {
 		frame_label = Interface.createElement('div', {id: 'gif_recording_frame_label'});
 		frame.append(frame_label);
 
+		function drag(e1) {
+			let crop_original = Object.assign({}, crop);
+			function move(e2) {
+				convertTouchEvent(e2);
+				crop.left	= crop_original.left	+ (e2.clientX - e1.clientX);
+				crop.right	= crop_original.right	- (e2.clientX - e1.clientX);
+				crop.top	= crop_original.top		+ (e2.clientY - e1.clientY);
+				crop.bottom	= crop_original.bottom	- (e2.clientY - e1.clientY);
+				updateCrop();
+			}
+			function stop(e3) {
+				removeEventListeners(document, 'mousemove touchmove', move);
+				removeEventListeners(document, 'mouseup touchend', stop);
+			}
+			addEventListeners(document, 'mousemove touchmove', move);
+			addEventListeners(document, 'mouseup touchend', stop);
+		}
+		addEventListeners(frame_label, 	'mousedown touchstart', e => drag(e, 'right', 'top'));
+
 		let resizer_top_right = 	Interface.createElement('div', {style: 'top: -2px; right: -2px;', 	class: 'gif_recording_frame_handle gif_resize_ne'}, Blockbench.getIconNode('arrow_back_ios'));
 		let resizer_top_left = 		Interface.createElement('div', {style: 'top: -2px; left: -2px;', 	class: 'gif_recording_frame_handle gif_resize_nw'}, Blockbench.getIconNode('arrow_back_ios'));
 		let resizer_bottom_right = 	Interface.createElement('div', {style: 'bottom: -2px; right: -2px;',class: 'gif_recording_frame_handle gif_resize_se'}, Blockbench.getIconNode('arrow_back_ios'));
 		let resizer_bottom_left = 	Interface.createElement('div', {style: 'bottom: -2px; left: -2px;', class: 'gif_recording_frame_handle gif_resize_sw'}, Blockbench.getIconNode('arrow_back_ios'));
 
-		function drag(e1, x_value, y_value) {
+		function resize(e1, x_value, y_value) {
 			let crop_original = Object.assign({}, crop);
 			function move(e2) {
 				convertTouchEvent(e2);
@@ -330,10 +349,10 @@ const Screencam = {
 			addEventListeners(document, 'mousemove touchmove', move);
 			addEventListeners(document, 'mouseup touchend', stop);
 		}
-		addEventListeners(resizer_top_right, 	'mousedown touchstart', e => drag(e, 'right', 'top'));
-		addEventListeners(resizer_top_left, 	'mousedown touchstart', e => drag(e, 'left', 'top'));
-		addEventListeners(resizer_bottom_right, 'mousedown touchstart', e => drag(e, 'right', 'bottom'));
-		addEventListeners(resizer_bottom_left,	'mousedown touchstart', e => drag(e, 'left', 'bottom'));
+		addEventListeners(resizer_top_right, 	'mousedown touchstart', e => resize(e, 'right', 'top'));
+		addEventListeners(resizer_top_left, 	'mousedown touchstart', e => resize(e, 'left', 'top'));
+		addEventListeners(resizer_bottom_right, 'mousedown touchstart', e => resize(e, 'right', 'bottom'));
+		addEventListeners(resizer_bottom_left,	'mousedown touchstart', e => resize(e, 'left', 'bottom'));
 		frame.append(resizer_top_right);
 		frame.append(resizer_top_left);
 		frame.append(resizer_bottom_right);
@@ -437,7 +456,7 @@ const Screencam = {
 
 BARS.defineActions(function() {
 	new Action('screenshot_model', {
-		icon: 'fa-cubes',
+		icon: 'photo_camera',
 		category: 'view',
 		keybind: new Keybind({key: 'p', ctrl: true}),
 		click: function () {Preview.selected.screenshot()}

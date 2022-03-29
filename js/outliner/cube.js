@@ -36,6 +36,9 @@ class CubeFace extends Face {
 		this.rotation = 0;
 		return this;
 	}
+	getBoundingRect() {
+		return getRectangle(...this.uv);
+	}
 }
 new Property(CubeFace, 'number', 'rotation', {default: 0});
 new Property(CubeFace, 'number', 'tint', {default: -1});
@@ -245,7 +248,8 @@ class Cube extends OutlinerElement {
 		for (var face in this.faces) {
 			el.faces[face] = this.faces[face].getSaveCopy(project)
 		}
-		el.uuid = this.uuid
+		el.type = this.type;
+		el.uuid = this.uuid;
 		return el;
 	}
 	roll(axis, steps, origin) {
@@ -717,13 +721,10 @@ class Cube extends OutlinerElement {
 	Cube.prototype.rotatable = true;
 	Cube.prototype.needsUniqueName = false;
 	Cube.prototype.menu = new Menu([
-		'group_elements',
-		'_',
-		'copy',
-		'paste',
-		'duplicate',
+		...Outliner.control_menu_group,
 		'_',
 		'rename',
+		'convert_to_mesh',
 		'update_autouv',
 		{name: 'menu.cube.color', icon: 'color_lens', children: markerColors.map((color, i) => {return {
 			icon: 'bubble_chart',
@@ -807,10 +808,7 @@ new NodePreviewController(Cube, {
 		this.updateTransform(element);
 		this.updateGeometry(element);
 		this.updateFaces(element);
-		
-		if (Project.view_mode === 'textured') {
-			this.updateUV(element);
-		}
+		this.updateUV(element);
 		
 	},
 	updateTransform(element) {
@@ -897,6 +895,9 @@ new NodePreviewController(Cube, {
 		
 		} else if (Project.view_mode === 'normal') {
 			mesh.material = Canvas.normalHelperMaterial
+		
+		} else if (Project.view_mode === 'uv') {
+			mesh.material = Canvas.uvHelperMaterial
 
 		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
 			mesh.material = Canvas.getLayeredMaterial();
@@ -923,7 +924,6 @@ new NodePreviewController(Cube, {
 		if (!mesh.material) mesh.material = Canvas.transparentMaterial;
 	},
 	updateUV(cube, animation = true) {
-		if (Project.view_mode !== 'textured') return;
 		var mesh = cube.mesh
 		if (mesh === undefined || !mesh.geometry) return;
 

@@ -318,10 +318,21 @@ function buildComponent(dialog) {
 	dialog.component.name = 'dialog-content'
 	dialog.content_vue = new Vue(dialog.component).$mount(mount.get(0));
 }
+function getStringWidth(string, size) {
+	let node = Interface.createElement('label', {style: 'position: absolute; visibility: hidden;'}, string);
+	if (size && size !== 16) {
+		node.style.fontSize = size + 'pt';
+	}
+	document.body.append(node);
+	let width = node.clientWidth;
+	node.remove();
+	return width;
+};
 
+const toggle_sidebar = window.innerWidth < 640;
 class DialogSidebar {
 	constructor(options, dialog) {
-		this.open = !Blockbench.isMobile;
+		this.open = !toggle_sidebar;
 		this.pages = options.pages || {};
 		this.page = options.page || Object.keys(this.pages)[0];
 		this.actions = options.actions || {};
@@ -338,13 +349,17 @@ class DialogSidebar {
 		this.page_menu = {};
 		for (let key in this.pages) {
 			let li = document.createElement('li');
-			li.textContent = this.pages[key];
+			let page = this.pages[key];
+			if (typeof page == 'object' && page.icon) {
+				li.append(Blockbench.getIconNode(page.icon, page.color));
+			}
+			li.append(typeof page == 'string' ? tl(page) : tl(page.label));
 			li.setAttribute('page', key);
 			if (this.page == key) li.classList.add('selected');
 			this.page_menu[key] = li;
 			li.addEventListener('click', event => {
 				this.setPage(key);
-				if (Blockbench.isMobile) this.toggle();
+				if (toggle_sidebar) this.toggle();
 			})
 			page_list.append(li);
 		}
@@ -419,6 +434,7 @@ window.Dialog = class Dialog {
 
 		this.width = options.width
 		this.draggable = options.draggable
+		this.darken = options.darken !== false
 		this.singleButton = options.singleButton
 		this.buttons = options.buttons instanceof Array ? options.buttons : (options.singleButton ? ['dialog.close'] : ['dialog.confirm', 'dialog.cancel'])
 		this.form_first = options.form_first;
@@ -467,7 +483,7 @@ window.Dialog = class Dialog {
 						data.bar.find('textarea').val(value);
 						break;
 					case 'select':
-						data.bar.find('select').val(value);
+						data.bar.find(`select option#${value}`).attr('selected', 'selected');
 						break;
 					case 'radio':
 						data.bar.find('.form_part_radio input#'+value).prop('checked', value);
@@ -677,7 +693,8 @@ window.Dialog = class Dialog {
 		let jq_dialog = $(this.object);
 
 		$('#dialog_wrapper').append(jq_dialog);
-		$('#blackout').show();
+		$('#blackout').show().toggleClass('darken', this.darken);
+
 		jq_dialog.show().css('display', 'flex');
 		jq_dialog.css('top', limitNumber(window.innerHeight/2-jq_dialog.height()/2, 0, 100)+'px');
 		if (this.width) {
@@ -704,13 +721,13 @@ window.Dialog = class Dialog {
 		return this;
 	}
 	hide() {
-		$('#blackout').hide();
+		$('#blackout').hide().toggleClass('darken', true);
 		$(this.object).hide();
 		open_dialog = false;
 		open_interface = false;
 		Dialog.open = null;
 		Prop.active_panel = undefined;
-		$(this.object).detach()
+		$(this.object).detach();
 		return this;
 	}
 	delete() {
@@ -727,3 +744,43 @@ window.Dialog = class Dialog {
 }
 
 })()
+
+
+// Legacy Dialogs
+function showDialog(dialog) {
+	var obj = $('.dialog#'+dialog)
+	$('.dialog').hide()
+	if (open_menu) {
+		open_menu.hide()
+	}
+	$('#blackout').show()
+	obj.show()
+	open_dialog = dialog
+	open_interface = {
+		confirm() {
+			$('dialog#'+open_dialog).find('.confirm_btn:not([disabled])').trigger('click');
+		},
+		cancel() {
+			$('dialog#'+open_dialog).find('.cancel_btn:not([disabled])').trigger('click');
+		}
+	}
+	Prop.active_panel = 'dialog'
+	//Draggable
+	if (obj.hasClass('draggable')) {
+		obj.draggable({
+			handle: ".dialog_handle",
+			containment: '#page_wrapper'
+		})
+		var x = (window.innerWidth-obj.outerWidth()) / 2;
+		obj.css('left', x+'px')
+		obj.css('max-height', (window.innerHeight-128)+'px')
+	}
+}
+function hideDialog() {
+	$('#blackout').hide()
+	$('.dialog').hide()
+	open_dialog = false;
+	open_interface = false;
+	Prop.active_panel = undefined
+}
+

@@ -298,14 +298,10 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 	Keybinds.save();
 	TickUpdates.keybind_conflicts = true;
 	Blockbench.showQuickMessage('message.keymap_loaded', 1600);
+	return true;
 }
 Keybinds.no_overlap = function(k1, k2) {
-	if (typeof k1.condition !== 'object' || typeof k2.condition !== 'object') return false;
-	if (k1.condition.modes && k2.condition.modes && k1.condition.modes.overlap(k2.condition.modes) == 0) return true;
-	if (k1.condition.tools && k2.condition.tools && k1.condition.tools.overlap(k2.condition.tools) == 0) return true;
-	if (k1.condition.formats && k2.condition.formats && k1.condition.formats.overlap(k2.condition.formats) == 0) return true;
-	if (k1.condition.features && k2.condition.features && k1.condition.features.overlap(k2.condition.features) == 0) return true;
-	return false;
+	return Condition.mutuallyExclusive(k1.condition, k2.condition);
 }
 function updateKeybindConflicts() {
 	for (var key in Keybinds.structure) {
@@ -337,8 +333,10 @@ function updateKeybindConflicts() {
 	if (Keybinds.dialog && Keybinds.dialog.sidebar.node) {
 		let node = Keybinds.dialog.sidebar.node;
 		for (var key in Keybinds.structure) {
-			let page = node.querySelector(`.dialog_sidebar_pages li[page="${key}"]`)
-			page.classList.toggle('error', Keybinds.structure[key].conflict);
+			if (Keybinds.dialog.sidebar.pages[key]) {
+				let page = node.querySelector(`.dialog_sidebar_pages li[page="${key}"]`)
+				page.classList.toggle('error', Keybinds.structure[key].conflict);
+			}
 		}
 	}
 }

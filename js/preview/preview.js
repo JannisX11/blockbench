@@ -1,24 +1,22 @@
 var scene,
 	main_preview, MediaPreview,
 	Sun, lights,
-	outlines,
 	Transformer,
 	canvas_scenes,
 	display_scene, display_area, display_base;
 var framespersecond = 0;
 var display_mode = false;
-var doRender = false;
 var quad_previews = {};
 const three_grid = new THREE.Object3D();
 const rot_origin = new THREE.Object3D();
 var gizmo_colors = {
-	r: new THREE.Color(0xfd3043),
-	g: new THREE.Color(0x26ec45),
-	b: new THREE.Color(0x2d5ee8),
-	grid: new THREE.Color(0x495061),
-	wire: new THREE.Color(0x576f82),
-	solid: new THREE.Color(0xc1c1c1),
-	outline: new THREE.Color(0x3e90ff)
+	r: new THREE.Color(),
+	g: new THREE.Color(),
+	b: new THREE.Color(),
+	grid: new THREE.Color(),
+	solid: new THREE.Color(),
+	outline: new THREE.Color(),
+	gizmo_hover: new THREE.Color()
 }
 const DefaultCameraPresets = [
 	{
@@ -149,23 +147,40 @@ class Preview {
 		this.node.appendChild(this.canvas);
 		let menu = $(`
 			<div class="preview_menu">
+				<div class="tool preview_fullscreen_button quad_view_only"><i class="material-icons">fullscreen</i></div>
 				<div class="tool preview_background_menu" hidden><img src="" width="36px"></div>
-				<div class="tool preview_main_menu"><i class="material-icons">more_vert</i></div>
+				<div class="tool preview_view_mode_menu one_is_enough"><i class="material-icons">image</i></div>
+				<div class="shading_placeholder"></div>
+				<div class="tool preview_main_menu"><i class="material-icons">menu</i></div>
 			</div>`)[0];
-		menu.firstElementChild.onclick = (event) => {
+			menu.querySelector('.preview_background_menu').onclick = (event) => {
 			let M = new Menu(this.menu.structure.find(s => s.id == 'background').children(this));
 			M.open(menu, this);
 		}
-		menu.lastElementChild.onclick = (event) => {
+		menu.querySelector('.preview_main_menu').onclick = (event) => {
 			this.menu.open(menu, this);
 		}
+		menu.querySelector('.preview_fullscreen_button').onclick = (event) => {
+			this.fullscreen();
+		}
+		menu.querySelector('.preview_view_mode_menu').onclick = (event) => {
+			BarItems.view_mode.open(event);
+		}
+		BarItem.prototype.addLabel(false, {
+			name: tl('menu.preview.maximize'),
+			node: menu.querySelector('.preview_fullscreen_button')
+		})
+		BarItem.prototype.addLabel(false, {
+			name: tl('action.view_mode'),
+			node: menu.querySelector('.preview_view_mode_menu')
+		})
 		BarItem.prototype.addLabel(false, {
 			name: tl('menu.preview.background'),
-			node: menu.firstElementChild
+			node: menu.querySelector('.preview_background_menu')
 		})
 		BarItem.prototype.addLabel(false, {
 			name: tl('data.preview'),
-			node: menu.lastElementChild
+			node: menu.querySelector('.preview_main_menu')
 		})
 		this.node.appendChild(menu)
 		//Cameras
@@ -232,6 +247,59 @@ class Preview {
 		if (!Blockbench.isMobile && !this.offscreen) {
 			this.orbit_gizmo = new OrbitGizmo(this);
 			this.node.append(this.orbit_gizmo.node);
+
+			let date = new Date();
+			let that_day = [1, 4];
+			if (this.id == 'main' && date.getDate() == that_day[0] && date.getMonth() == that_day[1]-1) {
+				Blockbench.addCSS(`
+					.ad_banner {
+						position: absolute;
+						height: 80px;
+						width: 400px;
+						bottom: 5px;
+						right: 0;
+						left: 0;
+						margin: auto;
+					}
+					.ad_banner img {
+						cursor: pointer;
+					}
+					.ad_banner img:hover {
+						filter: brightness(1.1);
+					}
+					.ad_banner .tool {
+						position: absolute;
+						top: 0;
+						right: 0;
+					}
+				`)
+				let current_banner;
+				let banner_i = 0;
+				let showBanner = () => {
+					if (current_banner) {
+						current_banner.remove();
+						current_banner = null;
+					}
+					let ad_banner = current_banner = Interface.createElement('div', {class: 'ad_banner'}, [
+						Interface.createElement('img', {src: 'https://blckbn.ch/api/adservice/ad?'+banner_i}),
+						Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('clear'))
+					]);
+					this.node.append(ad_banner);
+					ad_banner.firstElementChild.ondragstart = e => false;
+					ad_banner.firstElementChild.addEventListener('click', e => {
+						Blockbench.openLink('https://youtu.be/dQw4w9WgXcQ');
+					})
+					ad_banner.lastElementChild.addEventListener('click', e => {
+						ad_banner.remove();
+						current_banner = null;
+					})
+					banner_i++;
+				}
+				showBanner();
+				setInterval(() => {
+					showBanner();
+				}, 1000 * 60 * 20);
+			}
 		}
 
 		//Keybinds
@@ -959,7 +1027,7 @@ class Preview {
 	}
 	mouseup(event) {
 		this.showContextMenu(event);
-		if (settings.canvas_unselect.value && event.which != 2 && this.controls.hasMoved === false && !this.selection.activated && !Transformer.dragging && !this.selection.click_target) {
+		if (settings.canvas_unselect.value && (event.which === 1 || event.which === 3) && this.controls.hasMoved === false && !this.selection.activated && !Transformer.dragging && !this.selection.click_target) {
 			unselectAll();
 		}
 		delete this.selection.click_target;
@@ -1396,6 +1464,13 @@ class Preview {
 		var wrapper = $('<div class="single_canvas_wrapper"></div>')
 		wrapper.append(this.node)
 		$('#preview').append(wrapper)
+
+		this.node.querySelectorAll('.one_is_enough').forEach(child => {
+			child.style.display = 'block';
+		})
+		this.node.querySelectorAll('.quad_view_only').forEach(child => {
+			child.style.display = 'none';
+		})
 		
 		Preview.all.forEach(function(prev) {
 			if (prev.canvas.isConnected) {
@@ -1518,13 +1593,10 @@ class Preview {
 					id: preset.name,
 					preset,
 					icon,
-					click: preset.default ? () => {
+					click: () => {
 						preview.loadAnglePreset(preset)
-					} : null,
+					},
 					children: !preset.default && [
-						{icon: 'check_circle', name: 'menu.preview.angle.load', click() {
-							preview.loadAnglePreset(preset)
-						}},
 						{icon: 'edit', name: 'menu.preview.angle.edit', click() {
 							editCameraPreset(preset, presets);
 						}},
@@ -1545,8 +1617,8 @@ class Preview {
 		{icon: 'grid_view', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !Modes.display && !Animator.open}, click: function() {
 			openQuadView()
 		}},
-		{icon: 'web_asset', name: 'menu.preview.maximize', condition: function(preview) {return quad_previews.enabled && !preview.movingBackground && !Modes.display}, click: function(preview) {
-			preview.fullscreen()
+		{icon: 'fullscreen', name: 'menu.preview.maximize', condition: function(preview) {return quad_previews.enabled && !preview.movingBackground && !Modes.display}, click: function(preview) {
+			preview.fullscreen();
 		}},
 		{icon: 'cancel', color: 'x', name: 'menu.preview.stop_drag', condition: function(preview) {return preview.movingBackground;}, click: function(preview) {
 			preview.stopMovingBackground()
@@ -1570,22 +1642,29 @@ function openQuadView() {
 
 	$('#preview').empty()
 	
-	var wrapper1 = $('<div class="quad_canvas_wrapper qcw_x qcw_y"></div>')
-	wrapper1.append(quad_previews.one.node)
-	$('#preview').append(wrapper1)
+	var wrapper1 = Interface.createElement('div', {class: 'quad_canvas_wrapper qcw_x qcw_y'}, quad_previews.one.node);
+	Interface.preview.append(wrapper1)
 	
-	var wrapper2 = $('<div class="quad_canvas_wrapper qcw_y"></div>')
-	wrapper2.append(quad_previews.two.node)
-	$('#preview').append(wrapper2)
+	var wrapper2 = Interface.createElement('div', {class: 'quad_canvas_wrapper qcw_y'}, quad_previews.two.node);
+	Interface.preview.append(wrapper2)
 	
-	var wrapper3 = $('<div class="quad_canvas_wrapper qcw_x"></div>')
-	wrapper3.append(quad_previews.three.node)
-	$('#preview').append(wrapper3)
+	var wrapper3 = Interface.createElement('div', {class: 'quad_canvas_wrapper qcw_x'}, quad_previews.three.node);
+	Interface.preview.append(wrapper3)
 	
-	var wrapper4 = $('<div class="quad_canvas_wrapper"></div>')
-	wrapper4.append(quad_previews.four.node)
-	$('#preview').append(wrapper4)
-	
+	var wrapper4 = Interface.createElement('div', {class: 'quad_canvas_wrapper'}, quad_previews.four.node);
+	Interface.preview.append(wrapper4)
+
+	Preview.all.forEach(preview => {
+		if (preview.offscreen) return;
+		preview.node.querySelectorAll('.quad_view_only').forEach(child => {
+			child.style.display = 'block';
+		})
+		if (preview !== main_preview) {
+			preview.node.querySelectorAll('.one_is_enough').forEach(child => {
+				child.style.display = 'none';
+			})
+		}
+	})
 	updateInterface()
 }
 
@@ -1876,13 +1955,14 @@ function initCanvas() {
 	display_area.name = 'display_area'
 	display_scene.name = 'display_scene'
 
-
 	scene.add(Vertexsnap.vertex_gizmos)
 	Vertexsnap.vertex_gizmos.name = 'vertex_handles'
+	Canvas.gizmos.push(Vertexsnap.vertex_gizmos)
 
 	Canvas.outlines = new THREE.Object3D();
 	Canvas.outlines.name = 'outline_group'
 	scene.add(Canvas.outlines)
+	Canvas.gizmos.push(Canvas.outlines)
 
 
 	canvas_scenes = {
@@ -1922,6 +2002,7 @@ function initCanvas() {
 	Transformer = new THREE.TransformControls(main_preview.camPers, main_preview.canvas)
 	Transformer.setSize(0.5)
 	scene.add(Transformer)
+	Canvas.gizmos.push(Transformer);
 	main_preview.occupyTransformer()
 
 	quad_previews = {
@@ -1986,6 +2067,7 @@ function updateShading() {
 	})
 	Canvas.solidMaterial.uniforms.SHADE.value = settings.shading.value;
 	Canvas.solidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+	Canvas.uvHelperMaterial.uniforms.SHADE.value = settings.shading.value;
 	Canvas.normalHelperMaterial.uniforms.SHADE.value = settings.shading.value;
 }
 function updateCubeHighlights(hover_cube, force_off) {
@@ -1995,156 +2077,6 @@ function updateCubeHighlights(hover_cube, force_off) {
 		}
 	})
 }
-//Helpers
-function buildGrid() {
-	three_grid.children.length = 0;
-	if (Canvas.side_grids) {
-		Canvas.side_grids.x.children.length = 0;
-		Canvas.side_grids.z.children.length = 0;
-	}
-	if (Modes.display && settings.display_grid.value === false) return;
-
-	three_grid.name = 'grid_group'
-	gizmo_colors.grid.set(parseInt('0x'+CustomTheme.data.colors.grid.replace('#', ''), 16));
-	var material;
-
-	Canvas.northMarkMaterial.color = gizmo_colors.grid
-
-	function setupAxisLine(origin, length, axis) {
-		var color = 'rgb'[getAxisNumber(axis)]
-		var material = new THREE.LineBasicMaterial({color: gizmo_colors[color]});
-		var dest = new THREE.Vector3().copy(origin);
-		dest[axis] += length;
-		let points = [
-			origin,
-			dest
-		];
-		let geometry = new THREE.BufferGeometry().setFromPoints(points)
-		
-
-		//geometry.vertices.push(origin)
-		//geometry.vertices.push(dest)
-
-		var line = new THREE.Line(geometry, material);
-		line.name = 'axis_line_'+axis;
-		three_grid.add(line)
-	}
-	//Axis Lines
-	if (settings.base_grid.value) {
-		var length = Format.centered_grid
-			? (settings.full_grid.value ? 24 : 8)
-			: 16
-		setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'x')
-		setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'z')
-
-	}
-
-	var side_grid = new THREE.Object3D()
-
-	if (settings.full_grid.value === true) {
-		//Grid
-		let size = settings.large_grid_size.value*16;
-		var grid = new THREE.GridHelper(size, size/canvasGridSize(), gizmo_colors.grid)
-		if (Format.centered_grid) {
-			grid.position.set(0,0,0)
-		} else { 
-			grid.position.set(8,0,8)
-		}
-		grid.name = 'grid'
-		three_grid.add(grid)
-		side_grid.add(grid.clone())
-
-		//North
-		geometry = new THREE.PlaneGeometry(5, 5)
-		var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
-		if (Format.centered_grid) {
-			north_mark.position.set(0,0, -3 - size/2)
-		} else {
-			north_mark.position.set(8, 0, 5 - size/2)
-		}
-		north_mark.rotation.x = Math.PI / -2
-		three_grid.add(north_mark)
-
-	} else {
-		if (settings.large_grid.value === true) {
-			//Grid
-			let size = settings.large_grid_size.value
-			var grid = new THREE.GridHelper(size*16, size, gizmo_colors.grid)
-			if (Format.centered_grid) {
-				grid.position.set(0,0,0)
-			} else { 
-				grid.position.set(8,0,8)
-			}
-			grid.name = 'grid'
-			three_grid.add(grid)
-			side_grid.add(grid.clone())
-		}
-
-		if (settings.base_grid.value === true) {
-			//Grid
-			var grid = new THREE.GridHelper(16, 16/canvasGridSize(), gizmo_colors.grid)
-
-			if (Format.centered_grid) {
-				grid.position.set(0,0,0)
-			} else { 
-				grid.position.set(8,0,8)
-			}
-			grid.name = 'grid'
-			three_grid.add(grid)
-			side_grid.add(grid.clone())
-
-			//North
-			geometry = new THREE.PlaneGeometry(2.4, 2.4)
-			var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
-			if (Format.centered_grid) {
-				north_mark.position.set(0,0,-9.5)
-			} else {
-				north_mark.position.set(8,0,-1.5)
-			}
-			north_mark.rotation.x = Math.PI / -2
-			three_grid.add(north_mark)
-		}
-	}
-	if (settings.large_box.value === true) {
-		var geometry_box = new THREE.EdgesGeometry(new THREE.BoxBufferGeometry(48, 48, 48));
-
-		var line_material = new THREE.LineBasicMaterial({color: gizmo_colors.grid});
-		var large_box = new THREE.LineSegments( geometry_box, line_material);
-		if (Format.centered_grid) {
-			large_box.position.set(0,8,0)
-		} else { 
-			large_box.position.set(8,8,8)
-		}
-		large_box.name = 'grid'
-		three_grid.add(large_box)
-	}
-	scene.add(three_grid)
-
-	Canvas.side_grids = {
-		x: side_grid,
-		z: side_grid.clone()
-	}
-	three_grid.add(Canvas.side_grids.x)
-	Canvas.side_grids.x.name = 'side_grid_x'
-	Canvas.side_grids.x.visible = !Modes.display;
-	Canvas.side_grids.x.rotation.z = Math.PI/2;
-	Canvas.side_grids.x.position.y = Format.centered_grid ? 8 : 0;
-	Canvas.side_grids.z.position.z = 0
-	Canvas.side_grids.x.children.forEach(el => {
-		el.layers.set(1)
-	});
-
-	three_grid.add(Canvas.side_grids.z)
-	Canvas.side_grids.z.name = 'side_grid_z'
-	Canvas.side_grids.z.visible = !Modes.display;
-	Canvas.side_grids.z.rotation.z = Math.PI/2;
-	Canvas.side_grids.z.rotation.y = Math.PI/2
-	Canvas.side_grids.z.position.y = Format.centered_grid ? 8 : 0;
-	Canvas.side_grids.z.position.z = 0
-	Canvas.side_grids.z.children.forEach(el => {
-		el.layers.set(3)
-	});
-}
 
 BARS.defineActions(function() {
 	new BarSelect('view_mode', {
@@ -2152,11 +2084,13 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'z'}),
 		condition: () => Project && Toolbox && Toolbox.selected && (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.length > 1),
 		value: 'textured',
+		icon_mode: true,
 		options: {
-			textured: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('textured'))},
-			solid: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('solid'))},
-			wireframe: {name: true, condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('wireframe'))},
-			normal: {name: true, condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('normal')) && Mesh.all.length)},
+			textured: {name: true, icon: 'image', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('textured'))},
+			solid: {name: true, icon: 'fas.fa-square', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('solid'))},
+			wireframe: {name: true, icon: 'far.fa-square', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('wireframe'))},
+			uv: {name: true, icon: 'padding', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('uv'))},
+			normal: {name: true, icon: 'fa-square-caret-up', condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('normal')) && Mesh.all.length)},
 		},
 		onChange() {
 			Project.view_mode = this.value;
@@ -2164,6 +2098,13 @@ BARS.defineActions(function() {
 			if (Modes.id === 'animate') {
 				Animator.preview();
 			}
+			Preview.all.forEach(preview => {
+				if (!preview.offscreen) {
+					let icon = Blockbench.getIconNode(this.options[this.value].icon);
+					let icon_node = preview.node.querySelector('.preview_view_mode_menu > i');
+					if (icon_node) icon_node.replaceWith(icon);
+				}
+			})
 			//Blockbench.showQuickMessage(tl('action.view_mode') + ': ' + tl('action.view_mode.' + this.value));
 		}
 	})
@@ -2184,6 +2125,12 @@ BARS.defineActions(function() {
 		icon: 'wb_sunny',
 		category: 'view',
 		linked_setting: 'shading'
+	})
+	Preview.all.forEach(preview => {
+		if (preview.offscreen) return;
+		let node = BarItems.toggle_shading.getNode(true);
+		node.classList.add('one_is_enough')
+		preview.node.querySelector('.preview_menu .shading_placeholder').replaceWith(node);
 	})
 	new Toggle('toggle_ground_plane', {
 		name: tl('settings.ground_plane'),

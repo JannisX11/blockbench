@@ -13,7 +13,6 @@ class Mode extends KeybindItem {
 		this.selectElements = data.selectElements !== false
 		this.hidden_node_types = data.hidden_node_types instanceof Array ? data.hidden_node_types.slice() : [];
 
-		this.center_windows = data.center_windows||[];
 		this.hide_toolbars = data.hide_toolbars
 		this.hide_sidebars = data.hide_sidebars
 		this.hide_status_bar = data.hide_status_bar
@@ -28,16 +27,11 @@ class Mode extends KeybindItem {
 			let node = document.createElement('div');
 			let mount = document.createElement('div');
 			node.id = 'mode_screen_' + this.id;
-			node.classList.add('center_window');
 			node.appendChild(mount);
 			document.getElementById('center').appendChild(node);
 
 			this.vue = new Vue(data.component)
 			this.vue.$mount(mount);
-
-			this.center_windows.safePush(node.id);
-		} else {
-			this.center_windows.safePush('preview');
 		}
 	}
 	select() {
@@ -60,10 +54,6 @@ class Mode extends KeybindItem {
 
 		document.body.setAttribute('mode', this.id);
 
-		$('#center > .center_window').each((i, obj) => {
-			$(obj).toggle(this.center_windows.includes(obj.id));
-		})
-
 		$('#main_toolbar .toolbar_wrapper').css('visibility', this.hide_toolbars ? 'hidden' : 'visible');
 		$('#status_bar').css('display', this.hide_status_bar ? 'none' : 'flex');
 
@@ -74,7 +64,10 @@ class Mode extends KeybindItem {
 		}
 		if (Blockbench.isMobile) {
 			Interface.PanelSelectorVue.$forceUpdate();
-			Interface.PanelSelectorVue.select(null);
+			let bottom_panel = Interface.getBottomPanel();
+			if (bottom_panel && !Condition(bottom_panel.display_condition)) {
+				Interface.PanelSelectorVue.select(null);
+			}
 		}
 
 		if (Interface.Panels[Prop.active_panel] && !Condition(Interface.Panels[Prop.active_panel].condition)) {
@@ -146,6 +139,9 @@ BARS.defineActions(function() {
 			BarItems.slider_color_s.update();
 			BarItems.slider_color_v.update();
 
+			Panels.uv.handle.firstChild.textContent = tl('mode.paint');
+			Panels.uv.position_data = Interface.data.panels.paint;
+			if (Panels.uv.slot !== Interface.data.panels.uv.slot) Panels.uv.moveTo(Panels.uv.slot);
 			UVEditor.vue.setMode('paint');
 			three_grid.visible = false;
 		},
@@ -154,6 +150,9 @@ BARS.defineActions(function() {
 			Outliner.elements.forEach(cube => {
 				if (cube.preview_controller.updatePaintingGrid) cube.preview_controller.updatePaintingGrid(cube);
 			})
+			Panels.uv.handle.firstChild.textContent = tl('panel.uv');
+			Panels.uv.position_data = Interface.data.panels.uv;
+			if (Panels.uv.slot !== Interface.data.panels.paint.slot) Panels.uv.moveTo(Panels.uv.slot);
 			UVEditor.vue.setMode('uv');
 			three_grid.visible = true;
 		},
@@ -178,7 +177,6 @@ BARS.defineActions(function() {
 	new Mode('animate', {
 		default_tool: 'move_tool',
 		category: 'navigate',
-		center_windows: ['preview', 'timeline'],
 		hidden_node_types: ['cube', 'mesh', 'texture_mesh'],
 		condition: () => Format.animation_mode,
 		onSelect: () => {

@@ -66,10 +66,11 @@ class Group extends OutlinerNode {
 		Canvas.updateAllBones([this]);
 		return this;
 	}
-	select(event) {
+	select(event, isOutlinerClick) {
 		var scope = this;
 		if (Blockbench.hasFlag('renaming') || this.locked) return this;
 		if (!event) event = true
+		if (isOutlinerClick && event.pointerType == 'touch') return;
 		var allSelected = Group.selected === this && selected.length && this.matchesSelection()
 
 		//Clear Old Group
@@ -85,7 +86,7 @@ class Group extends OutlinerNode {
 		Group.selected = this;
 
 		//Select / Unselect Children
-		if (allSelected && event.which === 1) {
+		if (allSelected && (event.which === 1 || event instanceof TouchEvent)) {
 			//Select Only Group, unselect Children
 			selected.length = 0
 		} else {
@@ -407,7 +408,7 @@ class Group extends OutlinerNode {
 }
 	Group.prototype.title = tl('data.group');
 	Group.prototype.type = 'group';
-	Group.prototype.icon = 'fa fa-folder';
+	Group.prototype.icon = 'folder';
 	Group.prototype.isParent = true;
 	Group.prototype.rotatable = true;
 	Group.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
@@ -433,9 +434,7 @@ class Group extends OutlinerNode {
 		Undo.finishEdit('Change group marker color')
 	}
 	Group.prototype.menu = new Menu([
-		'copy',
-		'paste',
-		'duplicate',
+		...Outliner.control_menu_group,
 		'_',
 		'add_locator',
 		'_',
@@ -450,7 +449,7 @@ class Group extends OutlinerNode {
 			}
 		}})},
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
-		{icon: 'fa-leaf', name: 'menu.group.resolve', condition: {modes: ['edit']}, click: function(group) {group.resolve()}},
+		'resolve_group',
 		'delete'
 	]);
 	Object.defineProperty(Group, 'all', {
@@ -566,7 +565,7 @@ BARS.defineActions(function() {
 		}
 	})
 	new Action('group_elements', {
-		icon: 'drive_file_move',
+		icon: 'drive_folder_upload',
 		category: 'edit',
 		condition: () => Modes.edit && (selected.length || Group.selected),
 		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),
@@ -674,6 +673,36 @@ BARS.defineActions(function() {
 					dialog.hide().delete();
 				}
 			}).show();
+		}
+	})
+	new Action('resolve_group', {
+		icon: 'fa-leaf',
+		condition: {modes: ['edit'], method: () => Group.selected},
+		click() {
+			Group.selected.resolve();
+		}
+	})
+})
+
+Interface.definePanels(function() {
+	new Panel('bone', {
+		icon: 'fas.fa-bone',
+		condition: !Blockbench.isMobile && {modes: ['animate']},
+		display_condition: () => Group.selected,
+		selection_only: true,
+		default_position: {
+			slot: 'right_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
+		component: {
+			template: `
+				<div>
+					<p>${ tl('panel.element.origin') }</p>
+					<div class="toolbar_wrapper bone_origin"></div>
+				</div>
+			`
 		}
 	})
 })

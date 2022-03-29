@@ -1,3 +1,9 @@
+Interface.page_wrapper = document.getElementById('page_wrapper');
+Interface.work_screen = document.getElementById('work_screen');
+Interface.center_screen = document.getElementById('center');
+Interface.right_bar = document.getElementById('right_bar');
+Interface.left_bar = document.getElementById('left_bar');
+Interface.preview = document.getElementById('preview');
 
 CustomTheme.setup()
 

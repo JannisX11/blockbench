@@ -2,7 +2,7 @@ var Toolbars, BarItems, Toolbox;
 //Bars
 class MenuSeparator {
 	constructor() {
-		this.menu_node = $('<li class="menu_separator"></li>')
+		this.menu_node = Interface.createElement('li', {class: 'menu_separator'});
 	}
 }
 class BarItem {
@@ -68,8 +68,9 @@ class BarItem {
 			label.innerText = action.keybind || '';
 			tooltip.append(label);
 
+			let description;
 			if (action.description) {
-				let description = document.createElement('div');
+				description = document.createElement('div');
 				description.className = 'tooltip_description';
 				description.innerText = action.description;
 				tooltip.append(description);
@@ -77,70 +78,75 @@ class BarItem {
 
 			action.node.prepend(tooltip);
 
-			action.node.addEventListener('mouseenter', () => {
-				var tooltip = $(action.node).find('div.tooltip');
-				if (!tooltip.length) return;
-				var description = tooltip.find('.tooltip_description');
-
+			addEventListeners(action.node, 'mouseenter touchstart', () => {
+				let j_tooltip = $(tooltip);
+				let j_description = description && $(description);
 				if ($(action.node).parent().parent().hasClass('vertical')) {
-					tooltip.css('margin', '0')
+					j_tooltip.css('margin', '0')
 					if ($(action.node).offset().left > window.innerWidth/2) {
-						tooltip.css('margin-left', (-tooltip.width()-3) + 'px')
+						j_tooltip.css('margin-left', (-j_tooltip.width()-3) + 'px')
 					} else {
-						tooltip.css('margin-left', '34px')
+						j_tooltip.css('margin-left', '34px')
 					}
 				} else {
 
-					tooltip.css('margin-left', '0')
-					var offset = tooltip && tooltip.offset()
-					offset.right = offset.left + parseInt(tooltip.css('width').replace(/px/, '')) - window.innerWidth
+					j_tooltip.css('margin-left', '0')
+					var offset = j_tooltip && j_tooltip.offset()
+					offset.right = offset.left + parseInt(j_tooltip.css('width').replace(/px/, '')) - window.innerWidth
 
 					if (offset.right > 4) {
-						tooltip.css('margin-left', -offset.right+'px')
+						j_tooltip.css('margin-left', -offset.right+'px')
 					}				
 
 					// description
-					if (!description.length) return;
+					if (!j_description) return;
 
-					description.css('margin-left', '-5px')
-					var offset = description.offset()
-					offset.right = offset.left + parseInt(description.css('width').replace(/px/, '')) - window.innerWidth
+					j_description.css('margin-left', '-5px')
+					var offset = j_description.offset()
+					offset.right = offset.left + parseInt(j_description.css('width').replace(/px/, '')) - window.innerWidth
 
 					if (offset.right > 4) {
-						description.css('margin-left', -offset.right+'px')
+						j_description.css('margin-left', -offset.right+'px')
 					}
 
 					// height
 					if ((window.innerHeight - offset.top) < 28) {
-						tooltip.css('margin-top', -2-tooltip.height()+'px');
-						description.css('margin-top', '-51px');
+						j_tooltip.css('margin-top', -2-j_tooltip.height()+'px');
+						j_description.css('margin-top', '-51px');
 					}
 				}
 			})
+			action.node.addEventListener('touchstart', () => {
+				tooltip.style.display = 'none';
+				let show_tooltip = setTimeout(() => {
+					tooltip.style.display = 'block';
+					setTimeout(() => {
+						tooltip.style.display = 'none';
+					}, 1200)
+				}, 500)
+				let stop = e => {
+					clearInterval(show_tooltip);
+					document.removeEventListener('touchend', stop);
+				};
+				document.addEventListener('touchend', stop);
+			})
 		}
 	}
-	getNode() {
-		var scope = this;
-		if (scope.nodes.length === 0) {
-			scope.nodes = [scope.node]
+	getNode(ignore_disconnected) {
+		if (this.nodes.length === 0) {
+			this.nodes = [this.node]
 		}
-		if (!scope.node.isConnected) {
-			$(scope.node).detach()
-			return scope.node;
-		}
-		var i = 0;
-		while (i < scope.nodes.length) {
-			if (!scope.nodes[i].isConnected) {
-				$(scope.nodes[i]).detach()
-				return scope.nodes[i];
+		for (let node of this.nodes) {
+			if (!node.isConnected && !ignore_disconnected) {
+				$(node).detach();
+				return node;
 			}
-			i++;
 		}
-		var clone = $(scope.node).clone(true, true).get(0);
+		var clone = $(this.node).clone(true, true).get(0);
 		clone.onclick = (e) => {
-			scope.trigger(e)
+			this.trigger(e)
 		}
-		scope.nodes.push(clone);
+		this.nodes.push(clone);
 		return clone;
 	}
 	toElement(destination) {
@@ -216,6 +222,7 @@ class Action extends BarItem {
 		}
 		if (data.condition) this.condition = data.condition
 		this.children = data.children;
+		this.searchable = data.searchable;
 
 		//Node
 		if (!this.click) this.click = data.click
@@ -258,12 +265,12 @@ class Action extends BarItem {
 			scope.click(event)
 			scope.uses++;
 
-			$(scope.nodes).each(function() {
-				this.style.setProperty('color', 'var(--color-light)')
+			scope.nodes.forEach(node => {
+				node.style.setProperty('color', 'var(--color-light)')
 			})
 			setTimeout(function() {
-				$(scope.nodes).each(function() {
-					this.style.setProperty('color', '')
+				scope.nodes.forEach(node => {
+					node.style.setProperty('color', '')
 				})
 			}, 200)
 			return true;
@@ -271,9 +278,9 @@ class Action extends BarItem {
 		return false;
 	}
 	updateKeybindingLabel() {
-		$(this.menu_node).find('.keybinding_label').text(this.keybind || '');
+		this.menu_node.querySelector('.keybinding_label').textContent = this.keybind || '';
 		this.nodes.forEach(node => {
-			$(node).find('.keybinding_label').text(this.keybind || '');
+			node.querySelector('.keybinding_label').textContent = this.keybind || '';
 		});
 		return this;
 	}
@@ -332,7 +339,7 @@ class Tool extends Action {
 		this.allowed_view_modes = data.allowed_view_modes || null;
 		this.tool_settings = {};
 
-		if (!this.condition) {
+		if (this.condition == undefined) {
 			this.condition = function() {
 				return !scope.modes || scope.modes.includes(Modes.id);
 			}
@@ -378,7 +385,7 @@ class Tool extends Action {
 		if (typeof this.onSelect == 'function') {
 			this.onSelect()
 		}
-		$('#preview').css('cursor', (this.cursor ? this.cursor : 'default'))
+		Interface.preview.style.cursor = this.cursor ? this.cursor : 'default';
 		this.nodes.forEach(node => {
 			node.classList.add('enabled')
 		})
@@ -505,9 +512,9 @@ class NumSlider extends Widget {
 			this.keybind.label = this.keybind.getText();
 		}
 		var scope = this;
-		this.node = $( `<div class="tool wide widget nslide_tool">
-							<div class="nslide tab_target" n-action="${this.id}"></div>
-					  	</div>`).get(0);
+		this.node = Interface.createElement('div', {class: 'tool wide widget nslide_tool'}, [
+			Interface.createElement('div', {class: 'nslide tab_target', 'n-action': this.id})
+		])
 		this.jq_outer = $(this.node)
 		this.jq_inner = this.jq_outer.find('.nslide');
 
@@ -797,16 +804,18 @@ class BarSlider extends Widget {
 		var scope = this;
 		this.type = 'slider'
 		this.icon = 'fa-sliders-h'
-		this.value = data.value||0
-		this.node = $('<div class="tool widget">'+
-			'<input type="range"'+
-				' value="'+(data.value?data.value:0)+'" '+
-				' min="'+(data.min?data.min:0)+'" '+
-				' max="'+(data.max?data.max:10)+'" '+
-				' step="'+(data.step?data.step:1)+'" '+
-				' style="width: '+(data.width?data.width:'auto')+'px;">'+
-		'</div>').get(0)
-		this.addLabel()
+		this.value = data.value||0;
+		this.node = Interface.createElement('div', {class: 'tool widget'}, [
+			Interface.createElement('input', {
+				type: 'range',
+				value: data.value ? data.value : 0,
+				min: data.min ? data.min : 0,
+				max: data.max ? data.max : 10,
+				step: data.step ? data.step : 1,
+				style: `width: ${data.width ? (data.width+'px') : 'auto'};`
+			})
+		])
+		this.addLabel();
 		if (typeof data.onChange === 'function') {
 			this.onChange = data.onChange
 		}
@@ -907,6 +916,34 @@ class BarSelect extends Widget {
 		$(this.node).on('mousewheel', event => {
 			scope.trigger(event.originalEvent);
 		})
+	}
+	getNode(ignore_disconnected) {
+		let length = this.nodes.length;
+		let node = super.getNode(ignore_disconnected);
+		node.onclick = '';
+		if (this.nodes.length !== length) {
+			// Cloned
+			if (this.icon_mode) {
+				for (let key in this.options) {
+					let button = node.querySelector(`div[key="${key}"]`);
+					if (button) {
+						button.addEventListener('click', event => {
+							this.set(key);
+							if (this.onChange) {
+								this.onChange(this, event);
+							}
+						})
+					}
+				}
+
+			} else {
+				let select = node.querySelector('bb-select');
+				select && select.addEventListener('click', event => {
+					this.open(event)
+				})
+			}
+		}
+		return node;
 	}
 	open(event) {
 		if (Menu.closed_in_this_click == this.id) return this;
@@ -1027,7 +1064,7 @@ class BarText extends Widget {
 		this.icon = 'text_format'
 		this.node = $('<div class="tool widget bar_text">'+data.text||''+'</div>').get(0)
 		if (data.right) {
-			$(this.node).addClass('f_right')
+			this.node.classList.add('f_right');
 		}
 		this.onUpdate = data.onUpdate;
 		if (typeof data.click === 'function') {
@@ -1115,6 +1152,8 @@ class ColorPicker extends Widget {
 class Toolbar {
 	constructor(data) {
 		var scope = this;
+		this.name = data.name && tl(data.name);
+		this.label = !!data.label;
 		this.children = [];
 		this.condition_cache = [];
 
@@ -1131,16 +1170,14 @@ class Toolbar {
 			this.vertical = !!data.vertical
 			this.default_children = data.children.slice()
 		}
-		var jq = $(`<div class="toolbar">
-			<div class="tool toolbar_menu">
-				<i class="material-icons">${this.vertical ? 'more_horiz' : 'more_vert'}</i>
-			</div>
-			<div class="content"></div>
-		</div>`)
-		this.node = jq.get(0)
+		let toolbar_menu = Interface.createElement('div', {class: 'tool toolbar_menu'}, Interface.createElement('i', {class: 'material-icons'}, this.vertical ? 'more_horiz' : 'more_vert'))
+		this.node = Interface.createElement('div', {class: 'toolbar'}, [
+			toolbar_menu,
+			Interface.createElement('div', {class: 'content'})
+		])
 		BarItem.prototype.addLabel(false, {
 			name: tl('data.toolbar'),
-			node: jq.find('.tool.toolbar_menu').get(0)
+			node: toolbar_menu
 		})
 		if (data) {
 			this.build(data)
@@ -1292,10 +1329,10 @@ class Toolbar {
 		this.children.forEach(function(item, i) {
 			if (typeof item === 'string') {
 				var last = content.find('> :last-child')
-				if (last.length === 0 || last.hasClass('toolbar_separator') || i == scope.children.length-1) {
+				let type = item[0] == '_' ? 'border' : (item[0] == '+' ? 'spacer' : 'linebreak');
+				if ((last.length === 0 || last.hasClass('toolbar_separator') || i == scope.children.length-1) && type !== 'spacer') {
 					return this;
 				}
-				let type = item[0] == '_' ? 'border' : (item[0] == '+' ? 'spacer' : 'linebreak');
 				let sep = separators[type].shift();
 				if (sep) {
 					content.append(sep);
@@ -1315,7 +1352,7 @@ class Toolbar {
 			}
 		})
 		var last = content.find('> :last-child')
-		if (last.length && last.hasClass('toolbar_separator')) {
+		if (last.length && last.hasClass('toolbar_separator') && !last.hasClass('spacer')) {
 			last.remove()
 		}
 		return this;
@@ -1670,7 +1707,7 @@ const BARS = {
 			new Action('duplicate', {
 				icon: 'content_copy',
 				category: 'edit',
-				condition: () => (Animation.selected && Modes.animate) || (Modes.edit && (selected.length || Group.selected)),
+				condition: () => (Animation.selected && Modes.animate && Prop.active_panel == 'animations') || (Modes.edit && (selected.length || Group.selected)),
 				keybind: new Keybind({key: 'd', ctrl: true}),
 				click: function () {
 					if (Modes.animate) {
@@ -1896,6 +1933,8 @@ const BARS = {
 				'rotate_tool',
 				'pivot_tool',
 				'vertex_snap_tool',
+				'seam_tool',
+				'pan_tool',
 				'brush_tool',
 				'fill_tool',
 				'eraser',
@@ -1907,9 +1946,15 @@ const BARS = {
 			vertical: Blockbench.isMobile == true,
 			default_place: true
 		})
+		Blockbench.onUpdateTo('4.2.0-beta.2', () => {
+			Toolbars.tools.add(BarItems.seam_tool, 5);
+			Toolbars.tools.add(BarItems.pan_tool, 6);
+		})
 
 		Toolbars.element_position = new Toolbar({
 			id: 'element_position',
+			name: 'panel.element.position',
+			label: true,
 			children: [
 				'slider_pos_x',
 				'slider_pos_y',
@@ -1918,6 +1963,8 @@ const BARS = {
 		})
 		Toolbars.element_size = new Toolbar({
 			id: 'element_size',
+			name: 'panel.element.size',
+			label: true,
 			children: [
 				'slider_size_x',
 				'slider_size_y',
@@ -1927,6 +1974,8 @@ const BARS = {
 		})
 		Toolbars.element_origin = new Toolbar({
 			id: 'element_origin',
+			name: 'panel.element.origin',
+			label: true,
 			children: [
 				'slider_origin_x',
 				'slider_origin_y',
@@ -1936,6 +1985,8 @@ const BARS = {
 		})
 		Toolbars.element_rotation = new Toolbar({
 			id: 'element_rotation',
+			name: 'panel.element.rotation',
+			label: true,
 			children: [
 				'slider_rotation_x',
 				'slider_rotation_y',
@@ -1964,11 +2015,9 @@ const BARS = {
 				'pick_screen_color'
 			]
 		})
-		if (isApp) {
-			Blockbench.onUpdateTo('3.9', () => {
-				Toolbars.color_picker.add(BarItems.pick_screen_color);
-			})
-		}
+		Blockbench.onUpdateTo('4.2.0-beta.0', () => {
+			Toolbars.color_picker.add(BarItems.pick_screen_color);
+		})
 
 
 		Toolbars.display = new Toolbar({
@@ -1985,6 +2034,7 @@ const BARS = {
 		Toolbars.uv_editor = new Toolbar({
 			id: 'uv_editor',
 			children: [
+				'move_texture_with_uv',
 				'uv_apply_all',
 				'uv_maximize',
 				'uv_auto',
@@ -2000,6 +2050,9 @@ const BARS = {
 			Toolbars.uv_editor.remove(BarItems.uv_grid);
 			Toolbars.uv_editor.add(BarItems.uv_mirror_x, -2);
 			Toolbars.uv_editor.add(BarItems.uv_mirror_y, -2);
+		})
+		Blockbench.onUpdateTo('4.1.0-beta.0', () => {
+			Toolbars.uv_editor.add(BarItems.move_texture_with_uv, 0);
 		})
 		//Animations
 		Toolbars.animations = new Toolbar({
@@ -2026,24 +2079,26 @@ const BARS = {
 		Blockbench.onUpdateTo('4.0', () => {
 			Toolbars.keyframe.add(BarItems.keyframe_uniform, 2);
 		})
+		Blockbench.onUpdateTo('4.2.0-beta.0', () => {
+			delete BARS.stored.timeline;
+		})
 		Toolbars.timeline = new Toolbar({
 			id: 'timeline',
 			children: [
 				'timeline_graph_editor',
 				'timeline_focus',
 				'clear_timeline',
+				'bring_up_all_animations',
 				'select_effect_animator',
 				'add_marker',
-				'_',
-				'slider_animation_speed',
-				'previous_keyframe',
-				'next_keyframe',
+				'+',
+				'jump_to_timeline_start',
 				'play_animation',
+				'jump_to_timeline_end',
+				'+',
+				'slider_animation_speed',
 			],
 			default_place: true
-		})
-		Blockbench.onUpdateTo('3.8', () => {
-			Toolbars.timeline.add(BarItems.timeline_graph_editor, 0);
 		})
 		//Tools
 		Toolbars.main_tools = new Toolbar({
@@ -2052,8 +2107,20 @@ const BARS = {
 				'transform_space',
 				'rotation_space',
 				'selection_mode',
-				'lock_motion_trail'
+				'lock_motion_trail',
+				'extrude_mesh_selection',
+				'inset_mesh_selection',
+				'loop_cut',
+				'create_face',
+				'invert_face',
 			]
+		})
+		Blockbench.onUpdateTo('4.2.0-beta.0', () => {
+			Toolbars.main_tools.add(BarItems.extrude_mesh_selection);
+			Toolbars.main_tools.add(BarItems.inset_mesh_selection);
+			Toolbars.main_tools.add(BarItems.loop_cut);
+			Toolbars.main_tools.add(BarItems.create_face);
+			Toolbars.main_tools.add(BarItems.invert_face);
 		})
 		if (Blockbench.isMobile) {
 			[Toolbars.element_position,
@@ -2097,20 +2164,14 @@ const BARS = {
 				'selection_mode'
 			]
 		})
+		Toolbars.seam_tool = new Toolbar({
+			id: 'seam_tool',
+			children: [
+				'select_seam'
+			]
+		})
 		Blockbench.onUpdateTo('4.0', () => {
 			Toolbars.vertex_snap.add(BarItems.selection_mode);
-		})
-
-		//Mobile
-		Toolbars.mobile_side = new Toolbar({
-			id: 'mobile_side',
-			children: [
-				'sidebar_right',
-				'sidebar_left',
-				'action_control',
-			],
-			vertical: true,
-			default_place: Blockbench.isMobile
 		})
 
 		Toolbox = Toolbars.tools;

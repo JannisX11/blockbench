@@ -5,7 +5,7 @@ function addStartScreenSection(id, data) {
 		data = id;
 		id = '';
 	}
-	var obj = $(`<section id="${id}"></section>`)
+	var obj = $(Interface.createElement('section', {id}))
 	if (typeof data.graphic === 'object') {
 		var left = $('<div class="start_screen_left graphic"></div>')
 		obj.append(left)
@@ -107,8 +107,15 @@ function addStartScreenSection(id, data) {
 	}
 	if (data.last) {
 		$('#start_screen content').append(obj);
+	} else if (data.insert_after) {
+		$('#start_screen content').find(`#${data.insert_after}`).after(obj);
+	} else if (data.insert_before) {
+		$('#start_screen content').find(`#${data.insert_before}`).before(obj);
 	} else {
 		$('#start_screen content').prepend(obj);
+	}
+	if (!obj[0].parentElement) {
+		$('#start_screen content').append(obj);
 	}
 }
 
@@ -241,37 +248,6 @@ onVueSetup(function() {
 		url: 'https://web.blockbench.net/content/news.json',
 		dataType: 'json'
 	});
-	Promise.all([news_call, documentReady]).then((data) => {
-		if (!data || !data[0]) return;
-		data = data[0];
-
-		//Update Screen
-		if (Blockbench.hasFlag('after_update') && data.new_version) {
-			addStartScreenSection(data.new_version)
-			jQuery.ajax({
-				url: 'https://blckbn.ch/api/event/successful_update',
-				type: 'POST',
-				data: {
-					version: Blockbench.version
-				}
-			})
-		}
-		if (data.psa) {
-			(function() {
-				if (typeof data.psa.version == 'string') {
-					if (data.psa.version.includes('-')) {
-						limits = data.psa.version.split('-');
-						if (limits[0] && compareVersions(limits[0], Blockbench.version)) return;
-						if (limits[1] && compareVersions(Blockbench.version, limits[1])) return;
-					} else {
-						if (data.psa.version != Blockbench.version) return;
-					}
-				}
-				addStartScreenSection(data.psa)
-			})()
-		}
-
-	})
 	documentReady.then(() => {
 		Blockbench.startup_count = parseInt(localStorage.getItem('startups')||0)
 
@@ -294,6 +270,20 @@ onVueSetup(function() {
 		}
 		if (settings.streamer_mode.value) {
 			updateStreamerModeNotification()
+		}
+		addStartScreenSection('splash_screen', {
+			"text_color": '#000000',
+			"graphic": {
+				"type": "image",
+				"source": "./assets/splash_art.png?42",
+				"width": 1000,
+				"aspect_ratio": "21/9",
+				"description": "Splash Art by [Shroomy](https://twitter.com/ShroomyArts) and [RedstoneMvv](https://twitter.com/Redstone_mvv)",
+				"text_color": '#cfcfcf'
+			}
+		})
+		if (!Blockbench.hasFlag('after_update')) {
+			document.getElementById('start_screen').scrollTop = 100;
 		}
 
 		//Twitter
@@ -325,43 +315,126 @@ onVueSetup(function() {
 			})
 		}
 
-		// Keymap Preference
-		if (!Blockbench.isMobile && Blockbench.startup_count <= 1) {
-
+		// Quick Setup
+		if (Blockbench.startup_count <= 1) {
 			
-			var obj = $(`<section id="keymap_preference">
-				<h2>${tl('mode.start.keymap_preference')}</h2>
-				<p>${tl('mode.start.keymap_preference.desc')}</p>
-				<ul></ul>
-			</section>`)
+			let section = Interface.createElement('section', {id: 'quick_setup'});
+			$('#start_screen content').prepend(section);
 
-			var keymap_list = $(obj).find('ul');
-			
-			obj.prepend(`<i class="material-icons start_screen_close_button">clear</i>`);
-			obj.find('i.start_screen_close_button').on('click', (e) => {
-				obj.detach();
-			});
+			new Vue({
+				data() {return {
+					language: Language.code,
+					language_original: Language.code,
+					languages: Language.options,
+					keymap: 'default',
+					keymap_changed: false,
+					theme: 'dark',
+				}},
+				methods: {
+					tl,
+					close() {
+						obj.remove();
+					},
+					reload() {
+						Blockbench.reload();
+					},
+					loadTheme(theme_id) {
+						this.theme = theme_id;
+						let theme = CustomTheme.themes.find(t => t.id == theme_id);
+						if (theme) CustomTheme.loadTheme(theme);
+					},
+					getThemeThumbnailStyle(theme_id) {
+						let theme = CustomTheme.themes.find(t => t.id == theme_id);
+						let style = {};
+						if (!theme) return style;
+						for (let key in theme.colors) {
+							style[`--color-${key}`] = theme.colors[key];
+						}
+						return style;
+					},
+					openThemes() {
+						BarItems.theme_window.click();
+					}
+				},
+				watch: {
+					language(v) {
+						settings.language.set(v);
+						Settings.save();
+					},
+					keymap(keymap, old_keymap) {
+						this.keymap_changed = true;
+						let success = Keybinds.loadKeymap(keymap, true);
+						if (!success) this.keymap = old_keymap;
+					}
+				},
+				template: `
+					<section id="quick_setup">
+						<i class="material-icons start_screen_close_button" @click="close()">clear</i>
+						<h2>${tl('mode.start.quick_setup')}</h2>
 
-			[
-				['default', 'action.load_keymap.default'],
-				['mouse', 'action.load_keymap.mouse'],
-				['blender', 'Blender'],
-				['cinema4d', 'Cinema 4D'],
-				['maya', 'Maya'],
-			].forEach(([id, name], index) => {
-
-				let node = $(`<li class="keymap_select_box">
-					<h4>${tl(name)}</h4>
-					<p>${tl(`action.load_keymap.${id}.desc`)}</p>
-				</li>`)
-				node.on('click', e => {
-					Keybinds.loadKeymap(id, true);
-					obj.detach();
-				})
-				keymap_list.append(node);
-			})
-			
-			$('#start_screen content').prepend(obj);
+						<div>
+							<label>${tl('mode.start.keymap')}:</label>
+							<select v-model="keymap">
+								<option value="default">${tl('action.load_keymap.default')}</option>
+								<option value="mouse">${tl('action.load_keymap.mouse')}</option>
+								<option value="blender">Blender</option>
+								<option value="cinema4d">Cinema 4D</option>
+								<option value="maya">Maya</option>
+							</select>
+							<p v-if="keymap_changed">{{ tl('action.load_keymap.' + keymap + '.desc') }}</p>
+						</div>
+						<div>
+							<label>${tl('settings.language')}:</label>
+							<select v-model="language">
+								<option v-for="(text, id) in languages" v-bind:value="id">{{ text }}</option>
+							</select>
+							<div class="tool" @click="reload()" v-if="language != language_original" :title="tl('action.reload')">
+								<i class="material-icons">refresh</i>
+							</div>
+							<p v-if="language != language_original">{{ tl('message.restart_to_update') }}</p>
+						</div>
+						<div style="width: 640px;">
+							<label>${tl('dialog.settings.theme')}:</label>
+							<div class="quick_setup_theme" :class="{selected: theme == 'dark'}" @click="loadTheme('dark')"><div :style="getThemeThumbnailStyle('dark')"></div>Dark</div>
+							<div class="quick_setup_theme" :class="{selected: theme == 'light'}" @click="loadTheme('light')"><div :style="getThemeThumbnailStyle('light')"></div>Light</div>
+							<div class="quick_setup_theme" :class="{selected: theme == 'contrast'}" @click="loadTheme('contrast')"><div :style="getThemeThumbnailStyle('contrast')"></div>Contrast</div>
+							<div class="quick_setup_theme more_themes" @click="openThemes()"><div><i class="material-icons">more_horiz</i></div>{{ tl('mode.start.quick_setup.more_themes') }}</div>
+						</div>
+					</section>
+				`
+			}).$mount(section);
 		}
+	})
+	Promise.all([news_call, documentReady]).then((data) => {
+		if (!data || !data[0]) return;
+		data = data[0];
+
+		//Update Screen
+		if (Blockbench.hasFlag('after_update') && data.new_version) {
+			data.new_version.insert_after = 'splash_screen'
+			addStartScreenSection('new_version', data.new_version);
+			jQuery.ajax({
+				url: 'https://blckbn.ch/api/event/successful_update',
+				type: 'POST',
+				data: {
+					version: Blockbench.version
+				}
+			})
+		}
+		if (data.psa) {
+			(function() {
+				if (typeof data.psa.version == 'string') {
+					if (data.psa.version.includes('-')) {
+						limits = data.psa.version.split('-');
+						if (limits[0] && compareVersions(limits[0], Blockbench.version)) return;
+						if (limits[1] && compareVersions(Blockbench.version, limits[1])) return;
+					} else {
+						if (data.psa.version != Blockbench.version) return;
+					}
+				}
+				addStartScreenSection(data.psa)
+			})()
+		}
+
 	})
 })()

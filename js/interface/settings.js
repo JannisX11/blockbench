@@ -182,6 +182,12 @@ const Settings = {
 		new Setting('hide_tab_bar', 		{category: 'interface', value: Blockbench.isMobile, onChange() {
 			updateTabBarVisibility();
 		}});
+		new Setting('mobile_panel_side',	{category: 'interface', value: 'right', condition: Blockbench.isMobile, type: 'select', options: {
+			'right': tl('generic.right'),
+			'left': tl('generic.left'),
+		}, onChange() {
+			document.body.classList.toggle('mobile_sidebar_left', settings.mobile_panel_side.value == 'left');
+		}});
 		new Setting('status_bar_modifier_keys', {category: 'interface', value: true, condition: !Blockbench.isTouch, onChange(value) {
 			Interface.status_bar.vue.show_modifier_keys = value;
 		}});
@@ -315,6 +321,11 @@ const Settings = {
 		new Setting('minify_bbmodel', 		{category: 'export', value: true});
 		new Setting('export_empty_groups',	{category: 'export', value: true});
 		new Setting('export_groups', 		{category: 'export', value: true});
+		new Setting('obj_face_export_mode',	{category: 'export', value: 'both', type: 'select', options: {
+			both: tl('settings.obj_face_export_mode.both'),
+			tris: tl('settings.obj_face_export_mode.tris'),
+			quads: tl('settings.obj_face_export_mode.quads'),
+		}});
 		new Setting('animation_sample_rate',{category: 'export', value: 24, type: 'number'});
 		new Setting('sketchfab_token', 		{category: 'export', value: '', type: 'password'});
 		new Setting('credit', 				{category: 'export', value: 'Made with Blockbench', type: 'text'});
@@ -344,10 +355,7 @@ const Settings = {
 			localStorage.setItem('canvas_scenes', JSON.stringify(canvas_scenes))
 		}
 		if (window.ColorPanel) {
-			localStorage.setItem('colors', JSON.stringify({
-				palette: ColorPanel.vue._data.palette,
-				history: ColorPanel.vue._data.history,
-			}))
+			ColorPanel.saveLocalStorages()
 		}
 	},
 	save() {
@@ -368,7 +376,7 @@ const Settings = {
 		}
 		if (hasSettingChanged('base_grid') || hasSettingChanged('large_grid') || hasSettingChanged('full_grid') || hasSettingChanged('large_grid_size')
 			||hasSettingChanged('large_box') || hasSettingChanged('display_grid') || hasSettingChanged('edit_size')) {
-			buildGrid()
+			Canvas.buildGrid()
 		}
 		Canvas.outlineMaterial.depthTest = !settings.seethrough_outline.value
 		if (hasSettingChanged('brightness')) {

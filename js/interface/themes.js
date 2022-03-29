@@ -368,28 +368,26 @@ const CustomTheme = {
 		$('meta[name=theme-color]').attr('content', CustomTheme.data.colors.frame);
 
 		if (typeof gizmo_colors != 'undefined') {
-			Canvas.ground_plane.material.color.set(CustomTheme.data.colors.back);
-
-			var c_outline = parseInt('0x'+CustomTheme.data.colors.accent.replace('#', ''))
-			if (c_outline !== gizmo_colors.outline.getHex()) {
-				gizmo_colors.outline.set(c_outline)
-				Canvas.outlineMaterial.color = gizmo_colors.outline
+			let preview_style = window.getComputedStyle(document.getElementById('preview'));
+			function update(three_color, variable) {
+				let string = preview_style.getPropertyValue(variable).trim();
+				three_color.set(string);
 			}
-			var c_wire = parseInt('0x'+CustomTheme.data.colors.wireframe.replace('#', ''))
-			if (c_wire !== gizmo_colors.wire.getHex()) {
-				gizmo_colors.wire.set(c_wire);
-				Canvas.wireframeMaterial.color = gizmo_colors.wire;
-			}
-
-			var c_grid = parseInt('0x'+CustomTheme.data.colors.grid.replace('#', ''))
-			if (c_grid !== gizmo_colors.grid.getHex()) {
-				gizmo_colors.grid.set(c_grid);
-				three_grid.children.forEach(c => {
-					if (c.name === 'grid' && c.material) {
-						c.material.color = gizmo_colors.grid;
-					}
-				})
-			}
+			update(gizmo_colors.r, '--color-axis-x');
+			update(gizmo_colors.g, '--color-axis-y');
+			update(gizmo_colors.b, '--color-axis-z');
+			update(gizmo_colors.grid, '--color-grid');
+			update(Canvas.gridMaterial.color, '--color-grid');
+			update(Canvas.wireframeMaterial.color, '--color-wireframe');
+			update(gizmo_colors.solid, '--color-solid');
+			update(gizmo_colors.outline, '--color-outline');
+			update(gizmo_colors.gizmo_hover, '--color-gizmohover');
+			update(Canvas.outlineMaterial.color, '--color-outline');
+			update(Canvas.ground_plane.material.color, '--color-ground');
+			
+			Canvas.pivot_marker.children.forEach(c => {
+				c.updateColors();
+			})
 		}
 	},
 	updateSettings() {
@@ -398,6 +396,7 @@ const CustomTheme = {
 		document.body.style.setProperty('--font-custom-code', CustomTheme.data.code_font);
 		document.body.classList.toggle('theme_borders', !!CustomTheme.data.borders);
 		$('style#theme_css').text(CustomTheme.data.css);
+		CustomTheme.updateColors();
 	},
 	loadTheme(theme) {
 		var app = CustomTheme.data;

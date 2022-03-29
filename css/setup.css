@@ -47,21 +47,19 @@
 	::selection {
 		background: var(--color-accent);
 	}
-	@media (max-device-width: 640px) {
-		::-webkit-scrollbar {
-			width: 0;
-			height: 0;
-		}
-		* {
-			scrollbar-width: none;
-		}
-		.mobile_scrollbar {
-			scrollbar-width: thin;
-		}
-		.mobile_scrollbar::-webkit-scrollbar {
-			width: 12px;
-			height: 12px;
-		}
+	body.is_mobile ::-webkit-scrollbar {
+		width: 0;
+		height: 0;
+	}
+	body.is_mobile * {
+		scrollbar-width: none;
+	}
+	body.is_mobile .mobile_scrollbar {
+		scrollbar-width: thin;
+	}
+	body.is_mobile .mobile_scrollbar::-webkit-scrollbar {
+		width: 12px;
+		height: 12px;
 	}
 	/*Assistant Font*/
 	@font-face {
@@ -353,6 +351,7 @@
 	}
 	div {
 		cursor: default;
+		box-sizing: border-box;
 	}
 	a {
 		text-decoration: none;
@@ -499,7 +498,7 @@
 
 	bb-select::before {
 		content: "\f0d7";
-		font-family: 'Font Awesome 5 Free';
+		font-family: 'Font Awesome 6 Free';
 		font-weight: 900;
 		display: block;
 		position: absolute;
@@ -535,13 +534,13 @@
 	}
 	input[type=checkbox]::before {
 		content: "\f0c8";
-		font-family: 'Font Awesome 5 Free';
+		font-family: 'Font Awesome 6 Free';
     	font-weight: 300;
     	font-size: 15pt;
 	}
 	input[type=checkbox]:checked::before {
 		content: "\f14a";
-		font-family: 'Font Awesome 5 Free';
+		font-family: 'Font Awesome 6 Free';
     	font-weight: 600;
 	}
 	input[type=checkbox]:focus, input[type=radio]:focus {
@@ -552,7 +551,7 @@
 	}
 	input[type=radio]::before {
 		content: "\f111";
-		font-family: 'Font Awesome 5 Free';
+		font-family: 'Font Awesome 6 Free';
     	font-weight: 300;
     	font-size: 15pt;
 	}
@@ -596,14 +595,6 @@
 		border-color: var(--corner-color);
 		border-bottom-color: transparent !important;
 		border-left-color: transparent !important;
-	}
-	#nslide_head {
-		margin-top: 30px;
-		color: var(--color-light);
-		white-space: nowrap;
-		position: absolute;
-		z-index: 1111;
-		background-color: var(--color-back);
 	}
 	div.nslide_arrow {
 		position: absolute;

@@ -290,9 +290,19 @@ const Painter = {
 			let target = Painter.getMirrorPaintTarget(texture, x, y, uvTag)
 			if (target) {
 				let old_element = Painter.current.element;
+				let old_face = Painter.current.face;
 				Painter.current.element = target.element;
+				Painter.current.face = target.face;
 				Painter.useBrushlike(texture, target.x, target.y, event, target.uv_tag, true, true);
 				Painter.current.element = old_element;
+				Painter.current.face = old_face;
+			}
+		}
+		delete Painter.current.face_matrix;
+		if (Painter.current.element instanceof Mesh) {
+			let face = Painter.current.element.faces[Painter.current.face];
+			if (face && face.vertices.length > 2) {
+				Painter.current.face_matrix = face.getOccupationMatrix(true, [0, 0]);
 			}
 		}
 
@@ -320,6 +330,13 @@ const Painter = {
 		let tool = Toolbox.selected.id;
 
 		ctx.clip()
+		delete Painter.current.face_matrix;
+		if (Painter.current.element instanceof Mesh) {
+			let face = Painter.current.element.faces[Painter.current.face];
+			if (face && face.vertices.length > 2) {
+				Painter.current.face_matrix = face.getOccupationMatrix(true, [0, 0]);
+			}
+		}
 		if (event.touches && event.touches[0] && event.touches[0].touchType == 'stylus' && event.touches[0].force) {
 
 			// Stylus
@@ -344,6 +361,11 @@ const Painter = {
 
 		if (tool === 'brush_tool') {
 			Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity, px, py) {
+				if (Painter.current.face_matrix) {
+					if (!Painter.current.face_matrix[Math.floor(px)] || !Painter.current.face_matrix[Math.floor(px)][Math.floor(py)]) {
+						return pxcolor;
+					}
+				}
 				var a = b_opacity * opacity;
 				var before = Painter.getAlphaMatrix(texture, px, py)
 				Painter.setAlphaMatrix(texture, px, py, a);
@@ -393,9 +415,9 @@ const Painter = {
 		}
 
 		if (element instanceof Cube && fill_mode === 'element') {
+			ctx.beginPath();
 			for (var face in element.faces) {
 				var tag = element.faces[face]
-				ctx.beginPath();
 				if (tag.getTexture() === texture) {
 					var face_rect = getRectangle(
 						tag.uv[0] * uvFactorX,
@@ -410,35 +432,27 @@ const Painter = {
 						Math.ceil(face_rect.bx) - Math.floor(face_rect.ax),
 						Math.ceil(face_rect.by) - Math.floor(face_rect.ay)
 					)
-					ctx.fill()
 				}
 			}
+			ctx.fill()
 
-		} else if (element instanceof Mesh && fill_mode === 'element') {
+		} else if (element instanceof Mesh && (fill_mode === 'element' || fill_mode === 'face')) {
+			ctx.beginPath();
 			for (var fkey in element.faces) {
 				var face = element.faces[fkey];
+				if (fill_mode === 'face' && fkey !== Painter.current.face) continue;
 				if (face.vertices.length <= 2 || face.getTexture() !== texture) continue;
-				ctx.beginPath();
 				
-				let min_x = Project.texture_width;
-				let min_y = Project.texture_height;
-				let max_x = 0;
-				let max_y = 0;
-				face.vertices.forEach(vkey => {
-					if (!face.uv[vkey]) return;
-					min_x = Math.min(min_x, face.uv[vkey][0]);
-					min_y = Math.min(min_y, face.uv[vkey][1]);
-					max_x = Math.max(max_x, face.uv[vkey][0]);
-					max_y = Math.max(max_y, face.uv[vkey][1]);
-				})
-				ctx.rect(
-					Math.floor(min_x) * uvFactorX,
-					Math.floor(min_y) * uvFactorY,
-					(Math.ceil(max_x) - Math.floor(min_x)) * uvFactorX,
-					(Math.ceil(max_y) - Math.floor(min_y)) * uvFactorY,
-					)
-				ctx.fill()
+				let matrix = face.getOccupationMatrix(true, [0, 0]);
+				for (let x in matrix) {
+					for (let y in matrix[x]) {
+						if (!matrix[x][y]) continue;
+						x = parseInt(x); y = parseInt(y);
+						ctx.rect(x, y, 1, 1);
+					}
+				}
 			}
+			ctx.fill()
 
 		} else if (fill_mode === 'face') {
 			ctx.fill()
@@ -509,10 +523,10 @@ const Painter = {
 			let uvFactorX = 1 / Project.texture_width * texture.img.naturalWidth;
 			let uvFactorY = 1 / Project.texture_height * texture.img.naturalHeight;
 
-			let face = Painter.current.face;
-			let side_face = (face === 'west' || face === 'east')
-			if (side_face) face = CubeFace.opposite[face];
-			face = mirror_element.faces[face];
+			let fkey = Painter.current.face;
+			let side_face = (fkey === 'west' || fkey === 'east')
+			if (side_face) fkey = CubeFace.opposite[fkey];
+			let face = mirror_element.faces[fkey];
 
 			if (side_face &&
 				uvTag[1] === face.uv[1] && uvTag[3] === face.uv[3] &&
@@ -542,7 +556,8 @@ const Painter = {
 				element: mirror_element,
 				x: point_on_uv[0],
 				y: point_on_uv[1],
-				uv_tag: face.uv
+				uv_tag: face.uv,
+				face: fkey
 			}
 
 		} else if (mirror_element instanceof Mesh) {
@@ -554,6 +569,7 @@ const Painter = {
 			let center = clicked_face.getCenter();
 			let e = 0.01;
 			let face;
+			let match_fkey;
 			for (let fkey in mesh.faces) {
 				let normal2 = mesh.faces[fkey].getNormal(true);
 				let center2 = mesh.faces[fkey].getCenter();
@@ -562,6 +578,7 @@ const Painter = {
 					Math.epsilon(center[0], -center2[0], e) && Math.epsilon(center[1], center2[1], e) && Math.epsilon(center[2], center2[2], e)
 				) {
 					face = mesh.faces[fkey];
+					match_fkey = fkey;
 				}
 			}
 			if (!face) return;
@@ -584,7 +601,8 @@ const Painter = {
 				element: mesh,
 				x: point_on_uv[0],
 				y: point_on_uv[1],
-				uv_tag: face.uv
+				uv_tag: face.uv,
+				face: match_fkey
 			}
 		}
 	},
@@ -734,9 +752,12 @@ const Painter = {
 				if (target) {
 					let start_target = Painter.getMirrorPaintTarget(texture, Painter.startPixel[0], Painter.startPixel[1], uvTag);
 					let old_element = Painter.current.element;
+					let old_face = Painter.current.face;
 					Painter.current.element = target.element;
+					Painter.current.face = target.face;
 					drawShape(start_target.x, start_target.y, target.x, target.y, target.uv_tag)
 					Painter.current.element = old_element;
+					Painter.current.face = old_face;
 				}
 			}
 
@@ -1030,6 +1051,16 @@ const Painter = {
 
 BARS.defineActions(function() {
 
+	new Tool('pan_tool', {
+		icon: 'pan_tool',
+		category: 'tools',
+		cursor: 'grab',
+		selectFace: false,
+		transformerMode: 'hidden',
+		allowed_view_modes: ['textured'],
+		modes: ['paint'],
+		condition: Blockbench.isMobile && {modes: ['paint']}
+	})
 	new Tool('brush_tool', {
 		icon: 'fa-paint-brush',
 		category: 'tools',

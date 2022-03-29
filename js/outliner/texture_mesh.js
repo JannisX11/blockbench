@@ -75,11 +75,7 @@ class TextureMesh extends OutlinerElement {
 	TextureMesh.prototype.rotatable = true;
 	TextureMesh.prototype.needsUniqueName = false;
 	TextureMesh.prototype.menu = new Menu([
-		'group_elements',
-		'_',
-		'copy',
-		'paste',
-		'duplicate',
+		...Outliner.control_menu_group,
 		'_',
 		'rename',
 		{name: 'menu.texture_mesh.texture_name', icon: 'collections', condition: () => !Project.single_texture, click(context) {
