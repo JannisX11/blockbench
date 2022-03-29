@@ -89,8 +89,8 @@ const UVEditor = {
 			}
 		}
 		if (Toolbox.selected.id !== 'color_picker' && Toolbox.selected.id !== 'copy_paste_tool' && texture) {
-			addEventListeners(this.vue.$refs.frame, 'mousemove touchmove', UVEditor.movePaintTool, {capture: true} );
-			addEventListeners(document, 'mouseup touchend', UVEditor.stopBrush, {capture: true} );
+			addEventListeners(this.vue.$refs.frame, 'mousemove touchmove', UVEditor.movePaintTool, false );
+			addEventListeners(document, 'mouseup touchend', UVEditor.stopBrush, false );
 		}
 	},
 	movePaintTool(event) {
@@ -2117,8 +2117,8 @@ Interface.definePanels(function() {
 								selection_rect.active = false;
 							}, 1)
 						}
-						addEventListeners(document, 'mousemove touchmove', drag, {capture: true});
-						addEventListeners(document, 'mouseup touchend', stop, {capture: true});
+						addEventListeners(document, 'mousemove touchmove', drag, false);
+						addEventListeners(document, 'mouseup touchend', stop, false);
 					}
 				},
 				onMouseLeave(event) {

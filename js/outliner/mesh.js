@@ -929,6 +929,8 @@ new NodePreviewController(Mesh, {
 		let white = new THREE.Color(0xffffff);
 		let join = new THREE.Color(0x16d606);
 		let divide = new THREE.Color(0xff4400);
+		let join_selected = new THREE.Color(0x6bffcb);
+		let divide_selected = new THREE.Color(0xff8c69);
 		let selected_vertices = element.getSelectedVertices();
 
 		if (BarItems.selection_mode.value == 'vertex') {
@@ -961,12 +963,12 @@ new NodePreviewController(Mesh, {
 			}
 			if (Toolbox.selected.id === 'seam_tool') {
 				let seam = element.getSeam([key, key_b]);
-				if (seam == 'join') color = join;
-				if (seam == 'divide') color = divide;
 				if (selected) {
-					color.r *= 1.2;
-					color.g *= 1.2;
-					color.b *= 1.2;
+					if (seam == 'join') color = join_selected;
+					if (seam == 'divide') color = divide_selected;
+				} else {
+					if (seam == 'join') color = join;
+					if (seam == 'divide') color = divide;
 				}
 			}
 			line_colors.push(color.r, color.g, color.b);
