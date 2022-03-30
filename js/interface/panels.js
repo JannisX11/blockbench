@@ -711,6 +711,9 @@ function setupMobilePanelSelector() {
 			},
 			template: `
 				<div id="panel_selector_bar">
+					<div class="panel_selector" :class="{selected: selected == null}" @click="select(null)">
+						<div class="icon_wrapper"><i class="material-icons icon">3d_rotation</i></div>
+					</div>
 					<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in panels()" v-if="Condition(panel.condition)" @click="select(panel)">
 						<div class="icon_wrapper" v-html="getIconNode(panel.icon).outerHTML"></div>
 					</div>

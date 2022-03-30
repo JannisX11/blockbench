@@ -230,7 +230,7 @@ class Texture {
 	}
 	get frameCount() {
 		if (Format.animated_textures && this.ratio !== 1 && this.ratio !== (Project.texture_width / Project.texture_height) && 1/this.ratio % 1 === 0) {
-			return 1/this.ratio
+			return (Project.texture_width / Project.texture_height) / this.ratio
 		}
 	}
 	get display_height() {

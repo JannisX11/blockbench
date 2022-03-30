@@ -1738,7 +1738,9 @@ Interface.definePanels(function() {
 			})
 		},
 		onFold: function() {
-			UVEditor.vue.hidden = !this.isVisible();
+			Vue.nextTick(() => {
+				UVEditor.vue.hidden = !this.isVisible();
+			})
 		},
 		component: {
 			data() {return {
@@ -1789,12 +1791,7 @@ Interface.definePanels(function() {
 					}
 				},
 				inner_height() {
-					let axis = this.project_resolution[0] / this.project_resolution[1] < this.width / this.height;
-					if (axis) {
-						return this.height * this.zoom;
-					} else {
-						return this.width * this.zoom * (this.project_resolution[0] / this.project_resolution[1]);
-					}
+					return this.height * this.zoom;
 				},
 				mappable_elements() {
 					return this.elements.filter(element => element.faces && !element.locked);

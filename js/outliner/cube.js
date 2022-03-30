@@ -517,9 +517,6 @@ class Cube extends OutlinerElement {
 		var ph = Project.texture_height;
 		if (scope.autouv === 2) {
 			//Relative UV
-			function gt(n) {
-				return (n+16)%16
-			}
 			var all_faces = ['north', 'south', 'west', 'east', 'up', 'down']
 			all_faces.forEach(function(side) {
 				var uv = scope.faces[side].uv.slice()
@@ -573,14 +570,28 @@ class Cube extends OutlinerElement {
 					];
 					break;
 				}
-				//var texture = scope.faces[side]
-				//var fr_u = 16 / Project.texture_width;
-				//var fr_v = 16 / Project.texture_height;
-				//uv.forEach(function(s, uvi) {
-				//	s *= (uvi%2 ? fr_v : fr_u);
-				//	uv[uvi] = limitNumber(s, 0, 16)
-				//})
-				scope.faces[side].uv = uv
+				// Clamp to UV map boundaries
+				if (Math.max(uv[0], uv[2]) > Project.texture_width) {
+					let offset = Math.max(uv[0], uv[2]) - Project.texture_width;
+					uv[0] -= offset;
+					uv[2] -= offset;
+				}
+				if (Math.min(uv[0], uv[2]) < 0) {
+					let offset = Math.min(uv[0], uv[2]);
+					uv[0] = Math.clamp(uv[0] - offset, 0, Project.texture_width);
+					uv[2] = Math.clamp(uv[2] - offset, 0, Project.texture_width);
+				}
+				if (Math.max(uv[1], uv[3]) > Project.texture_height) {
+					let offset = Math.max(uv[1], uv[3]) - Project.texture_height;
+					uv[1] -= offset;
+					uv[3] -= offset;
+				}
+				if (Math.min(uv[1], uv[3]) < 0) {
+					let offset = Math.min(uv[1], uv[3]);
+					uv[1] = Math.clamp(uv[1] - offset, 0, Project.texture_height);
+					uv[3] = Math.clamp(uv[3] - offset, 0, Project.texture_height);
+				}
+				scope.faces[side].uv = uv;
 			})
 			Canvas.updateUV(scope)
 		} else if (scope.autouv === 1) {
@@ -594,8 +605,6 @@ class Cube extends OutlinerElement {
 				if (rot === 90 || rot === 270) {
 					size.reverse()
 				}
-				//size[0] *= 16/Project.texture_width;
-				//size[1] *= 16/Project.texture_height;
 				//Limit Input to 16
 				size[0] = Math.clamp(size[0], -Project.texture_width, Project.texture_width)
 				size[1] = Math.clamp(size[1], -Project.texture_height, Project.texture_height)
