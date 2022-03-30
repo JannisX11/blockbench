@@ -101,7 +101,7 @@
 		flex-grow: 0;
 	}
 	.panel.folded > *:not(.panel_handle) {
-		display: none;
+		display: none !important;
 	}
 
 	.panel[order]::before {

@@ -1371,3 +1371,4 @@ const Canvas = {
 		return [width, height]
 	}
 }
+var buildGrid = Canvas.buildGrid;

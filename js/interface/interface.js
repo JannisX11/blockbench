@@ -414,7 +414,6 @@ function setupInterface() {
 
 
 	//Clickbinds
-	$('header'	).click(function() { setActivePanel('header'  )})
 	$('#preview').click(function() { setActivePanel('preview' )})
 
 	$('#texture_list').click(function(){
