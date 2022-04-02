@@ -75,7 +75,7 @@ const UVEditor = {
 		return result;
 	},
 	startPaintTool(event) {
-		delete Painter.current.face_matrix;
+		delete Painter.current.face_matrices;
 		delete Painter.current.element;
 
 		var texture = this.getTexture()

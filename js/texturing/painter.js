@@ -177,6 +177,7 @@ const Painter = {
 				face: data && data.face,
 				x, y,
 				clear: document.createElement('canvas'),
+				face_matrices: {}
 			}
 			Painter.startPixel = [x, y];
 			Painter.current.clear.width = texture.width;
@@ -187,6 +188,7 @@ const Painter = {
 			Undo.initEdit({textures: [texture], selected_texture: true, bitmap: true});
 			Painter.brushChanges = false;
 			Painter.painting = true;
+			Painter.current.face_matrices = {};
 
 			if (data) {
 				var is_line = (event.shiftKey || Pressing.overrides.shift) && Painter.current.element == data.element && Painter.current.face == data.face
@@ -298,13 +300,6 @@ const Painter = {
 				Painter.current.face = old_face;
 			}
 		}
-		delete Painter.current.face_matrix;
-		if (Painter.current.element instanceof Mesh) {
-			let face = Painter.current.element.faces[Painter.current.face];
-			if (face && face.vertices.length > 2) {
-				Painter.current.face_matrix = face.getOccupationMatrix(true, [0, 0]);
-			}
-		}
 
 		let ctx = Painter.current.ctx;
 		ctx.save()
@@ -330,11 +325,10 @@ const Painter = {
 		let tool = Toolbox.selected.id;
 
 		ctx.clip()
-		delete Painter.current.face_matrix;
 		if (Painter.current.element instanceof Mesh) {
 			let face = Painter.current.element.faces[Painter.current.face];
-			if (face && face.vertices.length > 2) {
-				Painter.current.face_matrix = face.getOccupationMatrix(true, [0, 0]);
+			if (face && face.vertices.length > 2 && !Painter.current.face_matrices[Painter.current.face]) {
+				Painter.current.face_matrices[Painter.current.face] = face.getOccupationMatrix(true, [0, 0]);
 			}
 		}
 		if (event.touches && event.touches[0] && event.touches[0].touchType == 'stylus' && event.touches[0].force) {
@@ -361,8 +355,9 @@ const Painter = {
 
 		if (tool === 'brush_tool') {
 			Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity, px, py) {
-				if (Painter.current.face_matrix) {
-					if (!Painter.current.face_matrix[Math.floor(px)] || !Painter.current.face_matrix[Math.floor(px)][Math.floor(py)]) {
+				if (Painter.current.face_matrices[Painter.current.face]) {
+					let matrix = Painter.current.face_matrices[Painter.current.face];
+					if (!matrix[Math.floor(px)] || !matrix[Math.floor(px)][Math.floor(py)]) {
 						return pxcolor;
 					}
 				}
@@ -443,7 +438,8 @@ const Painter = {
 				if (fill_mode === 'face' && fkey !== Painter.current.face) continue;
 				if (face.vertices.length <= 2 || face.getTexture() !== texture) continue;
 				
-				let matrix = face.getOccupationMatrix(true, [0, 0]);
+				let matrix = Painter.current.face_matrices[fkey] || face.getOccupationMatrix(true, [0, 0]);
+				Painter.current.face_matrices[fkey] = matrix;
 				for (let x in matrix) {
 					for (let y in matrix[x]) {
 						if (!matrix[x][y]) continue;

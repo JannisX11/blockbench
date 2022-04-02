@@ -152,7 +152,7 @@ class Group extends OutlinerNode {
 		var scope = this;
 		var match = true;
 		for (var i = 0; i < selected.length; i++) {
-			if (!selected[i].isChildOf(scope, 20)) {
+			if (!selected[i].isChildOf(scope, 128)) {
 				return false
 			}
 		}

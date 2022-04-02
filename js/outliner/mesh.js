@@ -84,10 +84,10 @@ class MeshFace extends Face {
 			for (let vkey of sorted_vertices) {
 				let a = face.uv[vkey];
 				let b = face.uv[sorted_vertices[i+1]] || face.uv[sorted_vertices[0]];
-				a[0] *= factor_x;
-				a[1] *= factor_y;
-				b[0] *= factor_x;
-				b[1] *= factor_y;
+				if (factor_x !== 1 || factor_y !== 1) {
+					a = a ? [a[0] * factor_x, a[1] * factor_y] : [0, 0];
+					b = b ? [b[0] * factor_x, b[1] * factor_y] : [0, 0];
+				}
 
 				let affine_segment = vSub(b, a);
 				let affine_point = vSub([x, y], a);
