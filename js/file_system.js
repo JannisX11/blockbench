@@ -45,13 +45,39 @@ Object.assign(Blockbench, {
 			}
 			Blockbench.read(fileNames, options, cb)
 		} else {
-			$('<input '+
-				'type="file'+
-				'" accept=".'+(options.extensions ? options.extensions.join(',.'): '')+
-				'" multiple="'+(options.multiple === true)+
-			'">').change(function(e) {
-				Blockbench.read(this.files, options, cb)
-			}).click()
+			let isIOS =  ['iPad Simulator', 'iPhone Simulator', 'iPod Simulator', 'iPad', 'iPhone', 'iPod'].includes(navigator.platform) ||
+				(navigator.userAgent.includes("Mac") && "ontouchend" in document);
+			
+			if (isIOS && options.extensions && options.extensions.length > 1) {
+				let options = [];
+				options.extensions.forEach(extension => {
+					options[extension] = extension
+				})
+				new Dialog({
+					id: 'import_type',
+					title: 'File Type',
+					form: {
+						extension: {label: 'File Type', type: 'select', options}
+					},
+					onConfirm({extension}) {
+						$('<input '+
+							'type="file'+
+							'" accept=".'+extension+
+							'" multiple="'+(options.multiple === true)+
+						'">').on('change', function(e) {
+							Blockbench.read(this.files, options, cb)
+						}).trigger('click');
+					}
+				}).show();
+			} else {
+				$('<input '+
+					'type="file'+
+					'" accept=".'+(options.extensions ? options.extensions.join(',.'): '')+
+					'" multiple="'+(options.multiple === true)+
+				'">').on('change', function(e) {
+					Blockbench.read(this.files, options, cb)
+				}).trigger('click');
+			}
 		}
 	},
 	pickDirectory(options) {
