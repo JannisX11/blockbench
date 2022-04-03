@@ -46,18 +46,18 @@ Object.assign(Blockbench, {
 			Blockbench.read(fileNames, options, cb)
 		} else {
 			let isIOS =  ['iPad Simulator', 'iPhone Simulator', 'iPod Simulator', 'iPad', 'iPhone', 'iPod'].includes(navigator.platform) ||
-				(navigator.userAgent && navigator.userAgent.includes("Mac") && "ontouchend" in document);
+				(navigator.userAgent.includes("Mac") && "ontouchend" in document);
 			
 			if (isIOS && options.extensions && options.extensions.length > 1) {
-				let options = [];
+				let ext_options = {};
 				options.extensions.forEach(extension => {
-					options[extension] = extension
+					ext_options[extension] = extension;
 				})
 				new Dialog({
 					id: 'import_type',
 					title: 'File Type',
 					form: {
-						extension: {label: 'File Type', type: 'select', options}
+						extension: {label: 'File Type', type: 'select', options: ext_options}
 					},
 					onConfirm(formResult) {
 						$('<input '+
