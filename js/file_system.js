@@ -46,7 +46,7 @@ Object.assign(Blockbench, {
 			Blockbench.read(fileNames, options, cb)
 		} else {
 			let isIOS =  ['iPad Simulator', 'iPhone Simulator', 'iPod Simulator', 'iPad', 'iPhone', 'iPod'].includes(navigator.platform) ||
-				(navigator.userAgent.includes("Mac") && "ontouchend" in document);
+				(navigator.userAgent && navigator.userAgent.includes("Mac") && "ontouchend" in document);
 			
 			if (isIOS && options.extensions && options.extensions.length > 1) {
 				let options = [];
@@ -59,10 +59,10 @@ Object.assign(Blockbench, {
 					form: {
 						extension: {label: 'File Type', type: 'select', options}
 					},
-					onConfirm({extension}) {
+					onConfirm(formResult) {
 						$('<input '+
 							'type="file'+
-							'" accept=".'+extension+
+							'" accept=".'+formResult.extension+
 							'" multiple="'+(options.multiple === true)+
 						'">').on('change', function(e) {
 							Blockbench.read(this.files, options, cb)

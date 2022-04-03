@@ -34,8 +34,9 @@
 				document.body.style.setProperty('--color-dark', stored_theme.colors.dark);
 			} catch (err) {}
 		}
-
+		window.ErrorLog = [];
 		window.onerror = (message, file, line) => {
+			window.ErrorLog.push({message, file, line})
 			if (typeof Blockbench != 'undefined' && Blockbench.setup_successful) return;
 
 			let error_element = document.querySelector('#loading_error_detail');
