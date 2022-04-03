@@ -355,7 +355,7 @@ const Painter = {
 
 		if (tool === 'brush_tool') {
 			Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, opacity, px, py) {
-				if (Painter.current.face_matrices[Painter.current.face]) {
+				if (Painter.current.face_matrices[Painter.current.face] && settings.paint_side_restrict.value) {
 					let matrix = Painter.current.face_matrices[Painter.current.face];
 					if (!matrix[Math.floor(px)] || !matrix[Math.floor(px)][Math.floor(py)]) {
 						return pxcolor;
@@ -1245,9 +1245,10 @@ BARS.defineActions(function() {
 			Painter.mirror_painting = value;
 			if (value) {
 				let size = 16*16;
-				var grid = new THREE.GridHelper(size, 16*2, gizmo_colors.outline);
+				var grid = new THREE.GridHelper(size, 16*2, new THREE.LineBasicMaterial({color: gizmo_colors.outline}));
 				grid.rotation.z = Math.PI/2;
 				grid.position.y = size/2;
+				grid.position.x = Format.centered_grid ? 0 : 8;
 				scene.add(grid);
 				setTimeout(() => {
 					scene.remove(grid);

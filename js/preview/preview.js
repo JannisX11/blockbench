@@ -247,59 +247,6 @@ class Preview {
 		if (!Blockbench.isMobile && !this.offscreen) {
 			this.orbit_gizmo = new OrbitGizmo(this);
 			this.node.append(this.orbit_gizmo.node);
-
-			let date = new Date();
-			let that_day = [1, 4];
-			if (this.id == 'main' && date.getDate() == that_day[0] && date.getMonth() == that_day[1]-1) {
-				Blockbench.addCSS(`
-					.ad_banner {
-						position: absolute;
-						height: 80px;
-						width: 400px;
-						bottom: 5px;
-						right: 0;
-						left: 0;
-						margin: auto;
-					}
-					.ad_banner img {
-						cursor: pointer;
-					}
-					.ad_banner img:hover {
-						filter: brightness(1.1);
-					}
-					.ad_banner .tool {
-						position: absolute;
-						top: 0;
-						right: 0;
-					}
-				`)
-				let current_banner;
-				let banner_i = 0;
-				let showBanner = () => {
-					if (current_banner) {
-						current_banner.remove();
-						current_banner = null;
-					}
-					let ad_banner = current_banner = Interface.createElement('div', {class: 'ad_banner'}, [
-						Interface.createElement('img', {src: 'https://blckbn.ch/api/adservice/ad?'+banner_i}),
-						Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('clear'))
-					]);
-					this.node.append(ad_banner);
-					ad_banner.firstElementChild.ondragstart = e => false;
-					ad_banner.firstElementChild.addEventListener('click', e => {
-						Blockbench.openLink('https://youtu.be/dQw4w9WgXcQ');
-					})
-					ad_banner.lastElementChild.addEventListener('click', e => {
-						ad_banner.remove();
-						current_banner = null;
-					})
-					banner_i++;
-				}
-				showBanner();
-				setInterval(() => {
-					showBanner();
-				}, 1000 * 60 * 20);
-			}
 		}
 
 		//Keybinds
@@ -1515,6 +1462,9 @@ class Preview {
 		{id: 'background', icon: 'wallpaper', name: 'menu.preview.background', condition: (preview) => preview.getBackground(), children(preview) {
 			var has_background = !!preview.background.image
 			function applyBackground(image) {
+				if (isApp && preview.background.image && preview.background.image.replace(/\?\w+$/, '') == image) {
+					image = image + '?' + Math.floor(Math.random() * 1000);
+				}
 				preview.background.image = image;
 				preview.loadBackground();
 				Settings.saveLocalStorages();
@@ -1547,6 +1497,10 @@ class Preview {
 							}
 						})
 					}
+				}},
+				{icon: 'refresh', name: 'menu.texture.refresh', condition: isApp && has_background && preview.background.image && preview.background.image.substring(0, 10) !== 'data:image', click: function(preview) {
+					preview.background.image = preview.background.image.replace(/\?\w+$/, '') + '?' + Math.floor(Math.random() * 1000);
+					preview.loadBackground();
 				}},
 				{icon: 'photo_size_select_large', name: 'menu.preview.background.position', condition: has_background, click: function(preview) {
 					preview.startMovingBackground()
