@@ -226,8 +226,8 @@ class Plugin {
 					this.extend(plugin_data)
 					this.bindGlobalData()
 				}
-				if (first && scope.oninstall) {
-					scope.oninstall()
+				if (first && this.oninstall) {
+					this.oninstall()
 				}
 				this.installed = true
 				this.path = url
