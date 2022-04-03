@@ -905,6 +905,17 @@ const MenuBar = {
 					Blockbench.openLink('https://www.blockbench.net/wiki/api/index');
 				}},
 				'open_dev_tools',
+				{name: 'Error Log', condition: () => window.ErrorLog.length, icon: 'error', color: 'red', keybind: {toString: () => window.ErrorLog.length.toString()}, click() {
+					let lines = window.ErrorLog.slice(0, 64).map((error) => {
+						return Interface.createElement('p', {}, `${error.message}\n - In .${error.file.split(location.origin).join('')} : ${error.line}`);
+					})
+					new Dialog({
+						id: 'error_log',
+						title: 'Error Log',
+						lines,
+						singleButton: true
+					}).show();
+				}},
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
 					if (confirm(tl('menu.help.developer.reset_storage.confirm'))) {
 						localStorage.clear()

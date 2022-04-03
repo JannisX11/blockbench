@@ -567,7 +567,7 @@ window.Dialog = class Dialog {
 			if (result === false) return;
 		}
 		if (button == this.cancelIndex && typeof this.onCancel == 'function') {
-			let result = this.onCancel();
+			let result = this.onCancel(event);
 			if (result === false) return;
 		}
 		if (typeof this.onButton == 'function') {
