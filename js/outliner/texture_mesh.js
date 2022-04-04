@@ -115,6 +115,7 @@ new NodePreviewController(TextureMesh, {
 		mesh.name = element.uuid;
 		mesh.type = element.type;
 		mesh.isElement = true;
+		mesh.rotation.order = 'ZYX';
 
 		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(4), 1));
 

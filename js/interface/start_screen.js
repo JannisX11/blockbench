@@ -117,6 +117,11 @@ function addStartScreenSection(id, data) {
 	if (!obj[0].parentElement) {
 		$('#start_screen content').append(obj);
 	}
+	return {
+		delete() {
+			obj[0].remove();
+		}
+	}
 }
 
 onVueSetup(function() {
