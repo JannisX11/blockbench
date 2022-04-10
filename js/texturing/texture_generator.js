@@ -1278,6 +1278,7 @@ const TextureGenerator = {
 			}
 		}
 		function drawTemplatePolygons(border_color, color, ftemp, pos) {
+			if (!pos.w || !pos.h) return;
 			if (typeof background_color === 'string') {
 				border_color = background_color
 				color = undefined

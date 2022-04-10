@@ -25,6 +25,9 @@ class ModelFormat {
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].merge(this, data);
 		}
+		if (Blockbench.setup_successful && StartScreen.vue) {
+			StartScreen.vue.$forceUpdate();
+		}
 	}
 	select() {
 		if (Format && typeof Format.onDeactivation == 'function') {
@@ -195,6 +198,7 @@ class ModelFormat {
 	delete() {
 		delete Formats[this.id];
 		if (this.codec && this.codec.format == this) delete this.codec.format;
+		StartScreen.vue.$forceUpdate();
 	}
 }
 
