@@ -606,7 +606,9 @@ $(document).keyup(function(event) {
 Interface.createElement = (tag, attributes = {}, content) => {
 	let el = document.createElement(tag);
 	for (let key in attributes) {
-		el.setAttribute(key, attributes[key]);
+		if (attributes[key] !== undefined) {
+			el.setAttribute(key, attributes[key]);
+		}
 	}
 	if (typeof content == 'string') el.textContent = content;
 	if (content instanceof Array) {
