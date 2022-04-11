@@ -2047,6 +2047,55 @@ Interface.definePanels(function() {
 						button.value = event.target.checked ? 1 : 0;
 					}
 					Animator.preview();
+				},
+				slideButton(button, e1) {
+					convertTouchEvent(e1);
+					let last_event = e1;
+					let started = false;
+					let move_calls = 0;
+					let last_val = 0;
+					let total = 0;
+					let clientX = e1.clientX;
+					function start() {
+						started = true;
+						if (!e1.touches && last_event == e1 && e1.target.requestPointerLock) e1.target.requestPointerLock();
+					}
+		
+					function move(e2) {
+						convertTouchEvent(e2);
+						if (!started && Math.abs(e2.clientX - e1.clientX) > 5) {
+							start()
+						}
+						if (started) {
+							if (e1.touches) {
+								clientX = e2.clientX;
+							} else {
+								let limit = move_calls <= 2 ? 1 : 100;
+								clientX += Math.clamp(e2.movementX, -limit, limit);
+							}
+							let val = Math.round((clientX - e1.clientX) / 30);
+							let difference = (val - last_val);
+							if (!difference) return;
+							difference *= canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);
+							
+							button.value = Math.roundTo((parseFloat(button.value) || 0) + difference, 4);
+
+							last_val = val;
+							last_event = e2;
+							total += difference;
+							move_calls++;
+
+							Animator.preview()
+							Blockbench.setStatusBarText(trimFloatNumber(total));
+						}
+					}
+					function off(e2) {
+						if (document.exitPointerLock) document.exitPointerLock()
+						removeEventListeners(document, 'mousemove touchmove', move);
+						removeEventListeners(document, 'mouseup touchend', off);
+					}
+					addEventListeners(document, 'mouseup touchend', off);
+					addEventListeners(document, 'mousemove touchmove', move);
 				}
 			},
 			watch: {
@@ -2062,10 +2111,10 @@ Interface.definePanels(function() {
 				<div style="flex-grow: 1; display: flex; flex-direction: column;">
 
 					<ul id="placeholder_buttons">
-						<li v-for="button in buttons" :key="button.id">
+						<li v-for="button in buttons" :key="button.id" :class="{placeholder_slider: button.type == 'slider'}">
 							<input v-if="button.type == 'toggle'" type="checkbox" :value="button.value == 1" @change="changeButtonValue(button, $event)" :id="'placeholder_button_'+button.id">
 							<input v-else type="number" class="dark_bordered" :step="button.step" :min="button.min" :max="button.max" v-model="button.value" @input="changeButtonValue(button, $event)">
-							<label :for="'placeholder_button_'+button.id">{{ button.id }}</label>
+							<label :for="'placeholder_button_'+button.id" @mousedown="slideButton(button, $event)" @touchstart="slideButton(button, $event)">{{ button.id }}</label>
 						</li>
 					</ul>
 

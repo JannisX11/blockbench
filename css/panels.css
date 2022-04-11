@@ -905,6 +905,9 @@
 		height: 26px;
 		margin-top: 2px;
 	}
+	#placeholder_buttons li.placeholder_slider label {
+		cursor: ew-resize;
+	}
 
 
 
