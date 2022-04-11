@@ -1373,34 +1373,24 @@ class Preview {
 		if (this.movingBackground) {
 			this.stopMovingBackground()
 		}
-		var dialog = new Dialog({
+		new Dialog({
 			id: 'background_position',
 			title: tl('message.set_background_position.title'),
-			lines: [
-				`<div class="dialog_bar">
-					<input type="number" class="dark_bordered" value="${scope.background.x}" id="background_pos_x">
-					<input type="number" class="dark_bordered" value="${scope.background.y}" id="background_pos_y">
-					<input type="number" class="dark_bordered" value="${scope.background.size}" id="background_size">
-				</div>`
-			],
-			onConfirm: function() {
-				var coords = [
-					parseFloat( $(dialog.object).find('#background_pos_x').val() ),
-					parseFloat( $(dialog.object).find('#background_pos_y').val() ),
-					parseFloat( $(dialog.object).find('#background_size').val() )
-				]
-				dialog.hide()
+			form: {
+				position: {label: 'message.set_background_position.position', type: 'vector', dimensions: 2, value: [scope.background.x, scope.background.y]},
+				size: {label: 'message.set_background_position.size', type: 'number', value: scope.background.size}
+			},
+			onConfirm(form) {
 				if (!scope.background) return;
 				
-				if (!isNaN(coords[0])) { scope.background.x 	= coords[0] }
-				if (!isNaN(coords[1])) { scope.background.y 	= coords[1] }
-				if (!isNaN(coords[2])) { scope.background.size	= coords[2] }
+				scope.background.x = form.position[0];
+				scope.background.y = form.position[1];
+				scope.background.size = form.size;
 
-				scope.updateBackground()
-				Settings.saveLocalStorages()
+				scope.updateBackground();
+				Settings.saveLocalStorages();
 			}
-		})
-		dialog.show()
+		}).show();
 	}
 	//Misc
 	screenshot(options, cb) {
