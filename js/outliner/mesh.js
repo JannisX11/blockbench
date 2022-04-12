@@ -1880,12 +1880,22 @@ BARS.defineActions(function() {
 						}
 					}
 
+					// Create line between points
 					remaining_vertices.forEach(a => {
 						let b = original_vertices[new_vertices.indexOf(a)]
-						let new_face = new MeshFace(mesh, {
-							vertices: [b, a]
-						});
-						mesh.addFaces(new_face);
+						let b_in_face = false;
+						mesh.forAllFaces(face => {
+							if (face.vertices.includes(b)) b_in_face = true;
+						})
+						if (selected_faces.find(f => f.vertices.includes(a)) && !b_in_face) {
+							// Remove line if in the middle of other faces
+							delete mesh.vertices[b];
+						} else {
+							let new_face = new MeshFace(mesh, {
+								vertices: [b, a]
+							});
+							mesh.addFaces(new_face);
+						}
 					})
 
 					UVEditor.setAutoSize(null, true, new_face_keys);
