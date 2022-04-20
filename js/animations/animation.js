@@ -2073,7 +2073,7 @@ Interface.definePanels(function() {
 								let limit = move_calls <= 2 ? 1 : 100;
 								clientX += Math.clamp(e2.movementX, -limit, limit);
 							}
-							let val = Math.round((clientX - e1.clientX) / 30);
+							let val = Math.round((clientX - e1.clientX) / 45);
 							let difference = (val - last_val);
 							if (!difference) return;
 							difference *= canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);

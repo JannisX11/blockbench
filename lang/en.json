@@ -572,7 +572,7 @@
 	"layout.color.light.desc": "Highlighted text",
 	"layout.color.accent_text": "Accent Text",
 	"layout.color.accent_text.desc": "Text on accent backgrounds",
-	"layout.color.bright_ui_text": "Bright UI",
+	"layout.color.bright_ui_text": "Bright UI Text",
 	"layout.color.bright_ui_text.desc": "Text on bright backgrounds",
 	"layout.color.subtle_text": "Subtle Text",
 	"layout.color.subtle_text.desc": "Secondary text color with less contrast",

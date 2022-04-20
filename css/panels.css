@@ -907,6 +907,13 @@
 	}
 	#placeholder_buttons li.placeholder_slider label {
 		cursor: ew-resize;
+		margin-left: 4px;
+		min-width: 22px;
+		display: inline-block;
+		text-align: center;
+	}
+	#placeholder_buttons li.placeholder_slider label:hover {
+		color: var(--color-light);
 	}
 
 

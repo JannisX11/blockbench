@@ -601,7 +601,7 @@ const UVEditor = {
 	},
 	saveViewportOffset() {
 		let uv_viewport = this.vue.$refs.viewport;
-		if (!uv_viewport || Blockbench.hasFlag('switching_project')) return;
+		if (!uv_viewport || !Project || Blockbench.hasFlag('switching_project')) return;
 		Project.uv_viewport.offset[0] = (uv_viewport.scrollLeft - this.width/2) / this.vue.inner_width;
 		Project.uv_viewport.offset[1] = (uv_viewport.scrollTop - this.height/2) / this.vue.inner_height;
 	},
@@ -1791,7 +1791,7 @@ Interface.definePanels(function() {
 					}
 				},
 				inner_height() {
-					return this.height * this.zoom;
+					return Math.min(this.height * this.zoom, this.width * this.zoom / (this.project_resolution[0] / this.project_resolution[1]));
 				},
 				mappable_elements() {
 					return this.elements.filter(element => element.faces && !element.locked);
