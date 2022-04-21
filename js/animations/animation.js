@@ -867,6 +867,9 @@ const Animator = {
 		scene.remove(Animator.motion_trail);
 		Animator.resetParticles(true);
 
+		three_grid.position.z = three_grid.position.x;
+		Canvas.ground_plane.position.z = Canvas.ground_plane.position.x;
+
 		if (Panels.element) {
 			let anchor = Panels.element.node.querySelector('#element_origin_toolbar_anchor');
 			if (anchor) anchor.before(Toolbars.element_origin.node);
@@ -1009,7 +1012,16 @@ const Animator = {
 			})
 		})
 		Animator.resetLastValues();
-		scene.updateMatrixWorld()
+		scene.updateMatrixWorld();
+
+		// Shift ground
+		if (Canvas.ground_plane.visible && Animation.selected && Animation.selected.anim_time_update.includes('modified_distance_moved')) {
+			let value = Animator.MolangParser.parse(Animation.selected.anim_time_update, {'query.modified_distance_moved': Timeline.time});
+			value = (Timeline.time / value) * Timeline.time * 3;
+			value = (value % 64) || 0;
+			Canvas.ground_plane.position.z = Canvas.ground_plane.position.x + value;
+			three_grid.position.z = three_grid.position.x + value;
+		}
 
 		// Effects
 		Animator.resetParticles(true);

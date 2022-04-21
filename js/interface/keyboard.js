@@ -587,7 +587,10 @@ window.addEventListener('focus', event => {
 })
 
 function getFocusedTextInput() {
-	return document.querySelector('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus');
+	let element = document.activeElement;
+	if (element.nodeName == 'TEXTAREA' || (element.nodeName == 'INPUT' && ['number', 'text'].includes(element.type)) || element.isContentEditable) {
+		return element;
+	}
 }
 
 addEventListeners(document, 'keydown mousedown', function(e) {
