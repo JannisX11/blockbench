@@ -184,7 +184,7 @@ const Templates = {
 			?(has_parent)%(parent).addChild(%(bone));
 			?(has_rotation)setRotationAngle(%(bone), %(rx), %(ry), %(rz));
 			%(cubes)`,
-		renderer: `%(bone).render(matrixStack, buffer, packedLight, packedOverlay);`,
+		renderer: `%(bone).render(matrixStack, buffer, packedLight, packedOverlay, red, green, blue, alpha);`,
 		cube: `%(bone).setTextureOffset(%(uv_x), %(uv_y)).addBox(%(x), %(y), %(z), %(dx), %(dy), %(dz), %(inflate), %(mirror));`,
 	},
 
@@ -232,7 +232,7 @@ const Templates = {
 			?(has_parent)%(parent).addChild(%(bone));
 			?(has_rotation)setRotationAngle(%(bone), %(rx), %(ry), %(rz));
 			%(cubes)`,
-		renderer: `%(bone).render(matrixStack, buffer, packedLight, packedOverlay);`,
+		renderer: `%(bone).render(matrixStack, buffer, packedLight, packedOverlay, red, green, blue, alpha);`,
 		cube: `%(bone).texOffs(%(uv_x), %(uv_y)).addBox(%(x), %(y), %(z), %(dx), %(dy), %(dz), %(inflate), %(mirror));`,
 	},
 
@@ -244,7 +244,7 @@ const Templates = {
 		integer_size: false,
 		file:
 			`// Made with Blockbench %(bb_version)
-			// Exported for Minecraft version 1.17 with Mojang mappings
+			// Exported for Minecraft version 1.17 - 1.18 with Mojang mappings
 			// Paste this class into your mod and generate all required imports
 
 
@@ -272,7 +272,7 @@ const Templates = {
 				}
 
 				@Override
-				public void renderToBuffer(PoseStack poseStack, VertexConsumer buffer, int packedLight, int packedOverlay, float red, float green, float blue, float alpha) {
+				public void renderToBuffer(PoseStack poseStack, VertexConsumer vertexConsumer, int packedLight, int packedOverlay, float red, float green, float blue, float alpha) {
 					%(renderers)
 				}
 			}`,
@@ -284,7 +284,7 @@ const Templates = {
 			%(remove_n)%(cubes)
 			?(has_rotation)%(remove_n), PartPose.offsetAndRotation(%(x), %(y), %(z), %(rx), %(ry), %(rz)));
 			?(has_no_rotation)%(remove_n), PartPose.offset(%(x), %(y), %(z)));`,
-		renderer: `%(bone).render(poseStack, buffer, packedLight, packedOverlay);`,
+		renderer: `%(bone).render(poseStack, vertexConsumer, packedLight, packedOverlay, red, green, blue, alpha);`,
 		cube: `.texOffs(%(uv_x), %(uv_y)){?(has_mirror).mirror()}.addBox(%(x), %(y), %(z), %(dx), %(dy), %(dz), new CubeDeformation(%(inflate))){?(has_mirror).mirror(false)}`,
 	},
 
