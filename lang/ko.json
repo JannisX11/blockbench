@@ -369,7 +369,7 @@
     "action.screenshot_app": "스크린샷 앱",
     "action.screenshot_app.desc": "애플리케이션 전체 스크린샷",
     "action.toggle_quad_view": "쿼드 뷰 전환",
-    "action.toggle_quad_view.desc": "4 viewport 모드 전환",
+    "action.toggle_quad_view.desc": "4 뷰포트 모드 전환",
     "action.import_texture": "텍스쳐 불러오기",
     "action.import_texture.desc": "내 파일에서 하나 이상의 텍스쳐 가져오기",
     "action.create_texture": "텍스쳐 생성",
@@ -1535,6 +1535,9 @@
     "menu.texture.merge_onto_texture": "위의 텍스쳐와 병합",
     "menu.animation.unload": "언로드",
     "panel.timeline": "타임라인",
-    "action.pan_tool": "Pan Tool",
-    "action.pan_tool.desc": "Tool to navigate in the viewport and the texture editor"
+    "action.pan_tool": "팬 도구",
+    "action.pan_tool.desc": "뷰포트와 텍스쳐 에디터를 찾는 도구",
+    "message.set_background_position.title": "Set Background Position",
+    "message.set_background_position.position": "Position",
+    "message.set_background_position.size": "Size"
 }
