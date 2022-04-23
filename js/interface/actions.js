@@ -184,7 +184,7 @@ class KeybindItem {
 		}
 		this.id = id
 		this.type = 'keybind_item'
-		this.name = tl('keybind.'+this.id)
+		this.name =  tl(data.name || ('keybind.'+this.id))
 		this.category = data.category ? data.category : 'misc'
 		if (data.keybind) {
 			this.default_keybind = data.keybind

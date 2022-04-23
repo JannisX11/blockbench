@@ -481,24 +481,20 @@ class Mesh extends OutlinerElement {
 			this.preview_controller.updateFaces(this);
 		}
 	}
-	roll(axis, steps, origin) {
-		if (!origin) {origin = this.origin}
-		function rotateCoord(array) {
-			if (origin === undefined) {
-				origin = [8, 8, 8]
-			}
+	roll(axis, steps, origin_arg) {
+		function rotateCoord(array, rotation_origin) {
 			var a, b;
 			array.forEach(function(s, i) {
 				if (i == axis) {
 					//
 				} else {
 					if (a == undefined) {
-						a = s - origin[i]
+						a = s - rotation_origin[i]
 						b = i
 					} else {
-						array[b] = s - origin[i]
-						array[b] = origin[b] - array[b]
-						array[i] = origin[i] + a;
+						array[b] = s - rotation_origin[i]
+						array[b] = rotation_origin[b] - array[b]
+						array[i] = rotation_origin[i] + a;
 					}
 				}
 			})
@@ -507,10 +503,10 @@ class Mesh extends OutlinerElement {
 		while (steps > 0) {
 			steps--;
 			for (let vkey in this.vertices) {
-				this.vertices[vkey].replace(rotateCoord(this.vertices[vkey]));
+				rotateCoord(this.vertices[vkey], [0, 0, 0]);
 			}
-			if (origin != this.origin) {
-				this.origin.V3_set(rotateCoord(this.origin))
+			if (origin_arg) {
+				rotateCoord(this.origin, origin_arg)
 			}
 		}
 		//Rotations
@@ -1880,12 +1876,22 @@ BARS.defineActions(function() {
 						}
 					}
 
+					// Create line between points
 					remaining_vertices.forEach(a => {
 						let b = original_vertices[new_vertices.indexOf(a)]
-						let new_face = new MeshFace(mesh, {
-							vertices: [b, a]
-						});
-						mesh.addFaces(new_face);
+						let b_in_face = false;
+						mesh.forAllFaces(face => {
+							if (face.vertices.includes(b)) b_in_face = true;
+						})
+						if (selected_faces.find(f => f.vertices.includes(a)) && !b_in_face) {
+							// Remove line if in the middle of other faces
+							delete mesh.vertices[b];
+						} else {
+							let new_face = new MeshFace(mesh, {
+								vertices: [b, a]
+							});
+							mesh.addFaces(new_face);
+						}
 					})
 
 					UVEditor.setAutoSize(null, true, new_face_keys);

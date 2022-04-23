@@ -1455,10 +1455,14 @@ Animator.MolangParser.global_variables = {
 		return Timeline.time;
 	},
 	'query.camera_rotation'(axis) {
-		return cameraTargetToRotation(Preview.selected.camera.position.toArray(), Preview.selected.controls.target.toArray())[axis ? 0 : 1];
+		let val = cameraTargetToRotation(Preview.selected.camera.position.toArray(), Preview.selected.controls.target.toArray())[axis ? 0 : 1];
+		if (axis == 0) val *= -1;
+		return val;
 	},
 	'query.rotation_to_camera'(axis) {
-		return cameraTargetToRotation([0, 0, 0], Preview.selected.camera.position.toArray())[axis ? 0 : 1] ;
+		let val = cameraTargetToRotation([0, 0, 0], Preview.selected.camera.position.toArray())[axis ? 0 : 1] ;
+		if (axis == 0) val *= -1;
+		return val;
 	},
 	get 'query.distance_from_camera'() {
 		return Preview.selected.camera.position.length() / 16;
@@ -2014,39 +2018,95 @@ Interface.definePanels(function() {
 					this.buttons.forEach(b => old_values[b.id] = b.value);
 					this.buttons.empty();
 
-					let matches = this.text.toLowerCase().match(/(slider|toggle)\(.+\)/g);
+					let text = this.text.toLowerCase();
+					let matches = text.matchAll(/(slider|toggle)\(.+\)/g);
 
-					if (matches) {
-						matches.forEach(match => {
-							let [type, content] = match.substring(0, match.length - 1).split(/\(/);
-							let [id, ...args] = content.split(/\(|, */);
-							id = id.replace(/['"]/g, '');
-							if (this.buttons.find(b => b.id == id)) return;
+					for (let match of matches) {
+						let [type, content] = match[0].substring(0, match[0].length - 1).split(/\(/);
+						let [id, ...args] = content.split(/\(|, */);
+						id = id.replace(/['"]/g, '');
+						if (this.buttons.find(b => b.id == id)) return;
 
-							if (type == 'slider') {
-								this.buttons.push({
-									type,
-									id,
-									value: old_values[id] || 0,
-									step: args[0],
-									min: args[1],
-									max: args[2]
-								})
-							} else {
-								this.buttons.push({
-									type,
-									id,
-									value: old_values[id] || 0,
-								})
-							}
-						})
+						let variable = text.substring(0, match.index).match(/[\w.-]+ *= *$/);
+						variable = variable ? variable[0].replace(/[ =]+/g, '').replace(/^v\./, 'variable.').replace(/^q\./, 'query.').replace(/^t\./, 'temp.').replace(/^c\./, 'context.') : undefined;
+
+						if (type == 'slider') {
+							this.buttons.push({
+								type,
+								id,
+								value: old_values[id] || 0,
+								variable,
+								step: args[0],
+								min: args[1],
+								max: args[2]
+							})
+						} else {
+							this.buttons.push({
+								type,
+								id,
+								value: old_values[id] || 0,
+								variable,
+							})
+						}
 					}
 				},
 				changeButtonValue(button, event) {
 					if (button.type == 'toggle') {
 						button.value = event.target.checked ? 1 : 0;
 					}
+					if (button.variable) {
+						delete Animator.MolangParser.variables[button.variable];
+					}
 					Animator.preview();
+				},
+				slideButton(button, e1) {
+					convertTouchEvent(e1);
+					let last_event = e1;
+					let started = false;
+					let move_calls = 0;
+					let last_val = 0;
+					let total = 0;
+					let clientX = e1.clientX;
+					function start() {
+						started = true;
+						if (!e1.touches && last_event == e1 && e1.target.requestPointerLock) e1.target.requestPointerLock();
+					}
+		
+					function move(e2) {
+						convertTouchEvent(e2);
+						if (!started && Math.abs(e2.clientX - e1.clientX) > 5) {
+							start()
+						}
+						if (started) {
+							if (e1.touches) {
+								clientX = e2.clientX;
+							} else {
+								let limit = move_calls <= 2 ? 1 : 100;
+								clientX += Math.clamp(e2.movementX, -limit, limit);
+							}
+							let val = Math.round((clientX - e1.clientX) / 45);
+							let difference = (val - last_val);
+							if (!difference) return;
+							difference *= canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);
+							
+							button.value = Math.roundTo((parseFloat(button.value) || 0) + difference, 4);
+
+							last_val = val;
+							last_event = e2;
+							total += difference;
+							move_calls++;
+
+							Animator.preview()
+							Blockbench.setStatusBarText(trimFloatNumber(total));
+						}
+					}
+					function off(e2) {
+						if (document.exitPointerLock) document.exitPointerLock()
+						removeEventListeners(document, 'mousemove touchmove', move);
+						removeEventListeners(document, 'mouseup touchend', off);
+					}
+					addEventListeners(document, 'mouseup touchend', off);
+					addEventListeners(document, 'mousemove touchmove', move);
 				}
 			},
 			watch: {
@@ -2062,10 +2122,10 @@ Interface.definePanels(function() {
 				<div style="flex-grow: 1; display: flex; flex-direction: column;">
 
 					<ul id="placeholder_buttons">
-						<li v-for="button in buttons" :key="button.id">
+						<li v-for="button in buttons" :key="button.id" :class="{placeholder_slider: button.type == 'slider'}">
 							<input v-if="button.type == 'toggle'" type="checkbox" :value="button.value == 1" @change="changeButtonValue(button, $event)" :id="'placeholder_button_'+button.id">
 							<input v-else type="number" class="dark_bordered" :step="button.step" :min="button.min" :max="button.max" v-model="button.value" @input="changeButtonValue(button, $event)">
-							<label :for="'placeholder_button_'+button.id">{{ button.id }}</label>
+							<label :for="'placeholder_button_'+button.id" @mousedown="slideButton(button, $event)" @touchstart="slideButton(button, $event)">{{ button.id }}</label>
 						</li>
 					</ul>
 

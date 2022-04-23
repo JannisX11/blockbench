@@ -115,6 +115,7 @@ new NodePreviewController(TextureMesh, {
 		mesh.name = element.uuid;
 		mesh.type = element.type;
 		mesh.isElement = true;
+		mesh.rotation.order = 'ZYX';
 
 		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(4), 1));
 
@@ -134,7 +135,7 @@ new NodePreviewController(TextureMesh, {
 		this.updateFaces(element);
 		mesh.visible = element.visibility;
 	},
-	updateGeometry(element) {
+	updateGeometry(element, texture = Texture.getDefault()) {
 		
 		let {mesh} = element;
 		let position_array = [];
@@ -185,7 +186,6 @@ new NodePreviewController(TextureMesh, {
 			...corners[3], ...corners[4+3]
 		)
 
-		let texture = Texture.getDefault();
 		if (texture && texture.width) {
 			let canvas = document.createElement('canvas');
 			let ctx = canvas.getContext('2d');

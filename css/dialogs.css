@@ -91,6 +91,7 @@
 		background-color: var(--color-back);
 		border: 1px solid var(--color-border);
 		user-select: text;
+		font-family: var(--font-code);
 	}
 
 	.dialog {

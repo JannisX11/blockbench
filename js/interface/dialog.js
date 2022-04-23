@@ -422,7 +422,7 @@ window.Dialog = class Dialog {
 			id = options.id;
 		}
 		this.id = options.id
-		this.title = options.title
+		this.title = options.title || options.name;
 		
 		this.lines = options.lines
 		this.form = options.form

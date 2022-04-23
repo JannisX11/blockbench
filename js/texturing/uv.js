@@ -601,7 +601,7 @@ const UVEditor = {
 	},
 	saveViewportOffset() {
 		let uv_viewport = this.vue.$refs.viewport;
-		if (!uv_viewport || Blockbench.hasFlag('switching_project')) return;
+		if (!uv_viewport || !Project || Blockbench.hasFlag('switching_project')) return;
 		Project.uv_viewport.offset[0] = (uv_viewport.scrollLeft - this.width/2) / this.vue.inner_width;
 		Project.uv_viewport.offset[1] = (uv_viewport.scrollTop - this.height/2) / this.vue.inner_height;
 	},
@@ -1791,7 +1791,7 @@ Interface.definePanels(function() {
 					}
 				},
 				inner_height() {
-					return this.height * this.zoom;
+					return Math.min(this.height * this.zoom, this.width * this.zoom / (this.project_resolution[0] / this.project_resolution[1]));
 				},
 				mappable_elements() {
 					return this.elements.filter(element => element.faces && !element.locked);
@@ -1946,13 +1946,15 @@ Interface.definePanels(function() {
 				},
 				onMouseDown(event) {
 					setActivePanel('uv');
+					if (event.target && event.target.id === 'uv_viewport') return;
 					let scope = this;
 					let second_touch;
 					let original_zoom = this.zoom;
 					let original_margin = scope.getFrameMargin();
-					let offset = $(scope.$refs.viewport).offset()
-					UVEditor.total_zoom_offset = [6, 6]
+					let offset = $(scope.$refs.viewport).offset();
+					UVEditor.total_zoom_offset = [6, 6];
 					if (event.which === 2 || (event.touches && !Toolbox.selected.paintTool && event.target.id == 'uv_frame')) {
+						// Drag
 						if (event.touches) {
 							event.clientX = event.touches[0].clientX;
 							event.clientY = event.touches[0].clientY;
@@ -2005,6 +2007,7 @@ Interface.definePanels(function() {
 						event.preventDefault();
 						return false;
 					} else if (this.mode == 'paint' && Toolbox.selected.paintTool && (event.which === 1 || (event.touches && event.touches.length == 1))) {
+						// Paint
 						UVEditor.startPaintTool(event);
 						event.preventDefault();
 						return false;

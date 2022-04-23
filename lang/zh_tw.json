@@ -1536,5 +1536,8 @@
     "menu.animation.unload": "Unload",
     "panel.timeline": "Timeline",
     "action.pan_tool": "Pan Tool",
-    "action.pan_tool.desc": "Tool to navigate in the viewport and the texture editor"
+    "action.pan_tool.desc": "Tool to navigate in the viewport and the texture editor",
+    "message.set_background_position.title": "Set Background Position",
+    "message.set_background_position.position": "Position",
+    "message.set_background_position.size": "Size"
 }

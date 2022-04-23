@@ -1279,11 +1279,12 @@ Interface.definePanels(function() {
 		return [OutlinerNode.uuids[target_node.id], target_node];
 	}
 	function getOrder(loc, obj) {
+
 		if (!obj) {
 			return;
 		} else if (obj instanceof Group) {
 			if (loc < 8) return -1;
-			if (loc > 24) return 1;
+			if (loc > 24 && (!obj.isOpen || obj.children.length === 0)) return 1;
 		} else {
 			if (loc < 16) return -1;
 			return 1;
@@ -1477,6 +1478,7 @@ Interface.definePanels(function() {
 							// drag
 							$('.drag_hover').removeClass('drag_hover');
 							$('.outliner_node[order]').attr('order', null);
+							$('.drag_hover_level').removeClass('drag_hover_level');
 
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
 							[drop_target, drop_target_node] = eventTargetToNode(target);
@@ -1485,6 +1487,10 @@ Interface.definePanels(function() {
 								order = getOrder(location, drop_target)
 								drop_target_node.setAttribute('order', order)
 								drop_target_node.classList.add('drag_hover');
+								let parent_node = drop_target_node.parentElement.parentElement;
+								if ((drop_target instanceof OutlinerElement || order) && parent_node && parent_node.classList.contains('outliner_node')) {
+									parent_node.classList.add('drag_hover_level');
+								}
 
 							} else if ($('#cubes_list').is(':hover')) {
 								$('#cubes_list').addClass('drag_hover');
@@ -1499,6 +1505,7 @@ Interface.definePanels(function() {
 						removeEventListeners(document, 'mouseup touchend', off);
 						$('.drag_hover').removeClass('drag_hover');
 						$('.outliner_node[order]').attr('order', null);
+						$('.drag_hover_level').removeClass('drag_hover_level');
 						if (Blockbench.isTouch) clearTimeout(timeout);
 
 						if (active && !open_menu) {
