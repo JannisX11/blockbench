@@ -1198,6 +1198,7 @@ const Canvas = {
 		}
 	},
 	updateUV(cube, animation = true) {
+		// Deprecated
 		var mesh = cube.mesh
 		if (mesh === undefined || !mesh.geometry) return;
 
