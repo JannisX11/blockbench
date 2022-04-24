@@ -876,4 +876,20 @@ BARS.defineActions(function() {
 			dialog.show()
 		}
 	})
+	new Action('switch_tabs', {
+		icon: 'swap_horiz',
+		category: 'file',
+		keybind: new Keybind({key: 9, ctrl: true, shift: null}),
+		condition: () => ModelProject.all.length > 1,
+		click(event) {
+			let index = ModelProject.all.indexOf(Project);
+			let target;
+			if (event && event.shiftKey) {
+				target = ModelProject.all[index-1] || ModelProject.all.last();
+			} else {
+				target = ModelProject.all[index+1] || ModelProject.all[0];
+			}
+			if (target) target.select();
+		}
+	})
 })

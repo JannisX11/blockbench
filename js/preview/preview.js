@@ -2110,15 +2110,21 @@ BARS.defineActions(function() {
 	new Action('focus_on_selection', {
 		icon: 'center_focus_weak',
 		category: 'view',
-		condition: () => !Modes.display,
 		click: function () {
+			if (!Project) return;
 			if (Prop.active_panel == 'uv') {
 				UVEditor.focusOnSelection()
 
 			} else {
 				let preview = quad_previews.current;
-				let center = new THREE.Vector3().fromArray(getSelectionCenter());
-				center.add(scene.position);
+				if (!preview.controls.enabled) return;
+				let center = new THREE.Vector3();
+				if (!Modes.display) {
+					center.fromArray(getSelectionCenter());
+					center.add(scene.position);
+				} else {
+					Transformer.getWorldPosition(center)
+				}
 
 				let difference = new THREE.Vector3().copy(preview.controls.target).sub(center);
 				difference.divideScalar(6)

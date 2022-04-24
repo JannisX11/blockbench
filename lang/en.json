@@ -896,6 +896,8 @@
 	"action.convert_project.desc": "Converts the current project to a project for another model format",
 	"action.close_project": "Close Project",
 	"action.close_project.desc": "Closes the currently open project",
+	"action.switch_tabs": "Switch Tabs",
+	"action.switch_tabs.desc": "Cycle between opened tabs. Hold shift to cycle in the opposite direction.",
 	"action.import_obj": "Import OBJ Model",
 	"action.import_obj.desc": "Imports objects from an OBJ model as meshes",
 	"action.import_java_block_model": "Add Java Block/Item Model",
