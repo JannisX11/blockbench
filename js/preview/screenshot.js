@@ -185,7 +185,6 @@ const Screencam = {
 		let recording = false;
 		let loop = null;
 		let crop = Screencam.gif_crop;
-		let has_finished;
 
 		function getProgress() {
 			switch (options.length_mode) {
@@ -254,8 +253,6 @@ const Screencam = {
 	
 			}, interval)
 			gif.on('finished', blob => {
-				if (has_finished) return;
-				has_finished = true;
 
 				var reader = new FileReader();
 				reader.onload = () => {
