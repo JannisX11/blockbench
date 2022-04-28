@@ -1537,7 +1537,7 @@
     "panel.timeline": "Chronologie",
     "action.pan_tool": "Outil panoramique",
     "action.pan_tool.desc": "Outil pour naviguer dans la fenêtre et l'éditeur de texture",
-    "message.set_background_position.title": "Set Background Position",
+    "message.set_background_position.title": "Définir la position de l'arrière-plan",
     "message.set_background_position.position": "Position",
-    "message.set_background_position.size": "Size"
+    "message.set_background_position.size": "Taille"
 }
