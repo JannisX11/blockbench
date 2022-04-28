@@ -430,23 +430,36 @@ class Mesh extends OutlinerElement {
 		return faces;
 	}
 	getSelectionRotation() {
+		if (Transformer.dragging) {
+			return Transformer.rotation_selection;
+		}
 		let faces = this.getSelectedFaces().map(fkey => this.faces[fkey]);
 		if (!faces[0]) {
 			let selected_vertices = this.getSelectedVertices();
 			this.forAllFaces((face) => {
-				if (face.vertices.find(vkey => selected_vertices.includes(vkey))) {
-					faces.push(face);
+				let weight = face.vertices.filter(vkey => selected_vertices.includes(vkey)).length;
+				if (weight) {
+					faces.push({face, weight});
 				}
 			})
+			faces.sort((a, b) => b.weight-a.weight);
+			faces = faces.map(f => f.face);
 		}
 		if (faces[0]) {
-			let normal = [0, 0, 0];
-			faces.forEach(face => normal.V3_add(face.getNormal(true)))
-			normal.V3_divide(faces.length);
-			
-			var y = Math.atan2(normal[0], normal[2]);
-			var x = Math.atan2(normal[1], Math.sqrt(Math.pow(normal[0], 2) + Math.pow(normal[2], 2)));
-			return new THREE.Euler(-x, y, 0, 'YXZ');
+			let normal = faces[0].getNormal(true);
+			let normal2 = faces[1] && faces[1].getNormal(true);
+
+			if (normal2) {
+				let object = new THREE.Object3D();
+				object.up.set(...normal);
+				object.lookAt(...normal2);
+				return object.rotation;
+
+			} else {
+				var y = Math.atan2(normal[0], normal[2]);
+				var x = Math.atan2(normal[1], Math.sqrt(Math.pow(normal[0], 2) + Math.pow(normal[2], 2)));
+				return new THREE.Euler(-x, y, 0, 'YXZ');
+			}
 		}
 		return new THREE.Euler();
 	}
@@ -1519,7 +1532,8 @@ BARS.defineActions(function() {
 							let [face_key] = mesh.addFaces(new_face);
 							UVEditor.selected_faces.push(face_key);
 
-							if (reference_face.angleTo(new_face) > 90) {
+
+							if (reference_face.getAngleTo(new_face) > 90) {
 								new_face.invert();
 							}
 						}
