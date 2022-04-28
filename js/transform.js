@@ -924,7 +924,7 @@ function rotateOnAxis(modify, axis, slider) {
 		} else if (slider || (space == 2 && Format.rotation_limit)) {
 			var obj_val = modify(obj.rotation[axis]);
 			obj_val = Math.trimDeg(obj_val)
-			if (Format.rotation_limit) {
+			if (Format.rotation_limit && obj instanceof Cube) {
 				//Limit To 1 Axis
 				obj.rotation[(axis+1)%3] = 0
 				obj.rotation[(axis+2)%3] = 0

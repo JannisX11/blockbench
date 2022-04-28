@@ -747,9 +747,10 @@ class Preview {
 			}, 420)
 			Transformer.dispatchPointerHover(event);
 		}
-		if (Transformer.hoverAxis !== null || (!Keybinds.extra.preview_select.keybind.isTriggered(event) && event.which !== 0)) return;
+		if (Transformer.hoverAxis !== null) return;
+		let is_canvas_click = Keybinds.extra.preview_select.keybind.isTriggered(event) || event.which === 0;
 
-		var data = this.raycast(event);
+		var data = is_canvas_click && this.raycast(event);
 		if (data) {
 			this.selection.click_target = data;
 

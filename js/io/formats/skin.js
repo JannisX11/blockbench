@@ -170,6 +170,7 @@ format.new = function() {
 	skin_dialog.show();
 	return true;
 }
+format.presets = skin_presets;
 
 function generateTemplate(width = 64, height = 64, cubes, name = 'name', eyes, layer_template) {
 
