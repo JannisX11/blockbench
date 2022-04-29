@@ -841,8 +841,8 @@ const UVEditor = {
 						max_y = Math.max(max_y, vertex_uvs[vkey][1]);
 					}
 					let offset = [
-						min_x < 0 ? -min_x : (max_x > Project.texture_width ? Math.floor(Project.texture_width - max_x) : 0),
-						min_y < 0 ? -min_y : (max_y > Project.texture_height ? Math.floor(Project.texture_height - max_y) : 0),
+						min_x < 0 ? -min_x : (max_x > Project.texture_width ? Math.round(Project.texture_width - max_x) : 0),
+						min_y < 0 ? -min_y : (max_y > Project.texture_height ? Math.round(Project.texture_height - max_y) : 0),
 					];
 					face.vertices.forEach(vkey => {
 						face.uv[vkey] = [

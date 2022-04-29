@@ -924,7 +924,7 @@ function rotateOnAxis(modify, axis, slider) {
 		} else if (slider || (space == 2 && Format.rotation_limit)) {
 			var obj_val = modify(obj.rotation[axis]);
 			obj_val = Math.trimDeg(obj_val)
-			if (Format.rotation_limit) {
+			if (Format.rotation_limit && obj instanceof Cube) {
 				//Limit To 1 Axis
 				obj.rotation[(axis+1)%3] = 0
 				obj.rotation[(axis+2)%3] = 0
@@ -946,17 +946,21 @@ function rotateOnAxis(modify, axis, slider) {
 				obj.rotation_axis = axis_letter
 			}
 		} else if (space == 2) {
-
-			let old_order = mesh.rotation.order;
-			mesh.rotation.reorder(axis == 0 ? 'ZYX' : (axis == 1 ? 'ZXY' : 'XYZ'))
-			var obj_val = modify(Math.radToDeg(mesh.rotation[axis_letter]));
-			obj_val = Math.trimDeg(obj_val)
-			mesh.rotation[axis_letter] = Math.degToRad(obj_val);
-			mesh.rotation.reorder(old_order);
-
-			obj.rotation[0] = Math.radToDeg(mesh.rotation.x);
-			obj.rotation[1] = Math.radToDeg(mesh.rotation.y);
-			obj.rotation[2] = Math.radToDeg(mesh.rotation.z);
+			if ([0, 1, 2].find(axis2 => axis2 !== axis && Math.abs(obj.rotation[axis2]) > 0.1) !== undefined) {
+				let old_order = mesh.rotation.order;
+				mesh.rotation.reorder(axis == 0 ? 'ZYX' : (axis == 1 ? 'ZXY' : 'XYZ'))
+				var obj_val = modify(Math.radToDeg(mesh.rotation[axis_letter]));
+				obj_val = Math.trimDeg(obj_val)
+				mesh.rotation[axis_letter] = Math.degToRad(obj_val);
+				mesh.rotation.reorder(old_order);
+	
+				obj.rotation[0] = Math.radToDeg(mesh.rotation.x);
+				obj.rotation[1] = Math.radToDeg(mesh.rotation.y);
+				obj.rotation[2] = Math.radToDeg(mesh.rotation.z);
+			} else {
+				var obj_val = modify(Math.radToDeg(mesh.rotation[axis_letter]));
+				obj.rotation[axis] = Math.trimDeg(obj_val);
+			}
 
 		} else if (space instanceof Group) {
 			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)

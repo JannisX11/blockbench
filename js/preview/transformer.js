@@ -844,7 +844,7 @@
 
 			this.center = function() {
 				delete Transformer.rotation_ref;
-				Transformer.rotation_selection.set(0, 0, 0);
+				if (!scope.dragging) Transformer.rotation_selection.set(0, 0, 0);
 				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 					if (Transformer.visible) {
 						var rotation_tool = Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool'
@@ -889,7 +889,7 @@
 							}
 							if (space === 3 && Mesh.selected[0]) {
 								let rotation = Mesh.selected[0].getSelectionRotation();
-								if (rotation) Transformer.rotation_selection.copy(rotation);
+								if (rotation && !scope.dragging) Transformer.rotation_selection.copy(rotation);
 							}
 						
 						} else if (space instanceof Group) {
@@ -1366,7 +1366,7 @@
 							scope.keyframes[0].offset('y', Math.trimDeg( (-Math.radToDeg(e.y - mesh.fix_rotation.y)) - scope.keyframes[0].calc('y') ));
 							scope.keyframes[0].offset('z', Math.trimDeg( ( Math.radToDeg(e.z - mesh.fix_rotation.z)) - scope.keyframes[0].calc('z') ));
 						
-						} else if (Toolbox.selected.id === 'rotate_tool' && Transformer.getTransformSpace() == 2) {
+						} else if (Toolbox.selected.id === 'rotate_tool' && Transformer.getTransformSpace() == 2 && [0, 1, 2].find(axis => axis !== axisNumber && scope.keyframes[0].get(getAxisLetter(axis))) !== undefined) {
 							if (axisNumber != 2) difference *= -1;
 
 							let old_order = mesh.rotation.order;

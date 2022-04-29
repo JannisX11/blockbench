@@ -578,6 +578,7 @@ const TextureGenerator = {
 				rot -= 90;
 			}
 		}
+		ctx.imageSmoothingEnabled = false;
 		ctx.drawImage(
 			texture.img,
 			src.ax/TextureGenerator.old_project_resolution[0] * texture.img.naturalWidth,
@@ -1425,8 +1426,8 @@ const TextureGenerator = {
 				let rotate = Math.round((((rotation_difference + 540) % 360) - 180) / 90) * 90;
 				if (rotate) {
 					let offset = [
-						coords.x*R + (target_min[0] + (target_max[0] - target_min[0])/2) / Project.texture_width * texture.img.naturalWidth,
-						coords.y*R + (target_min[1] + (target_max[1] - target_min[1])/2) / Project.texture_height * texture.img.naturalHeight,
+						coords.x*R + (target_min[0] + (target_max[0] - target_min[0])/2) * R,
+						coords.y*R + (target_min[1] + (target_max[1] - target_min[1])/2) * R,
 					]
 					ctx.translate(...offset);
 					ctx.rotate(Math.degToRad(Math.round(rotation_difference / 90) * 90));
@@ -1434,12 +1435,12 @@ const TextureGenerator = {
 					
 					if (Math.abs(rotate) == 90) {
 						let target_size = [
-							Math.ceil((target_max[1] - target_min[1]) / Project.texture_height * texture.img.naturalHeight),
-							Math.ceil((target_max[0] - target_min[0]) / Project.texture_width * texture.img.naturalWidth),
+							Math.ceil((target_max[1] - target_min[1]) * R),
+							Math.ceil((target_max[0] - target_min[0]) * R),
 						]
 						let target_pos = [
-							coords.x*R + target_min[0] / Project.texture_width * texture.img.naturalWidth,
-							coords.y*R + target_min[1] / Project.texture_height * texture.img.naturalHeight,
+							coords.x*R + target_min[0] * R,
+							coords.y*R + target_min[1] * R,
 						];
 						target_pos[0] = target_pos[0] - target_size[0]/2 + target_size[1]/2;
 						target_pos[1] = target_pos[1] - target_size[1]/2 + target_size[0]/2;
@@ -1450,21 +1451,20 @@ const TextureGenerator = {
 							Math.ceil((max[0] - min[0]) / Project.texture_width * texture.img.naturalWidth),
 							Math.ceil((max[1] - min[1]) / Project.texture_height * texture.img.naturalHeight),
 							...target_pos,
-							...target_size,
+							...target_size
 						)
 					}
-				}
-				if (Math.abs(rotate) != 90) {
+				} else {
 					ctx.drawImage(
 						texture.img,
 						min[0] / Project.texture_width * texture.img.naturalWidth,
 						min[1] / Project.texture_height * texture.img.naturalHeight,
 						Math.ceil((max[0] - min[0]) / Project.texture_width * texture.img.naturalWidth),
 						Math.ceil((max[1] - min[1]) / Project.texture_height * texture.img.naturalHeight),
-						coords.x*R + target_min[0] / Project.texture_width * texture.img.naturalWidth,
-						coords.y*R + target_min[1] / Project.texture_height * texture.img.naturalHeight,
-						Math.ceil((target_max[0] - target_min[0]) / Project.texture_width * texture.img.naturalWidth),
-						Math.ceil((target_max[1] - target_min[1]) / Project.texture_height * texture.img.naturalHeight),
+						coords.x*R + target_min[0] * R,
+						coords.y*R + target_min[1] * R,
+						Math.ceil((target_max[0] - target_min[0]) * R),
+						Math.ceil((target_max[1] - target_min[1]) * R),
 					)
 				}
 				ctx.restore()

@@ -407,6 +407,9 @@ const Painter = {
 			ctx.globalCompositeOperation = 'destination-out';
 		} else {
 			ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
+			if (Painter.lock_alpha) {
+				ctx.globalCompositeOperation = 'source-atop';
+			}
 		}
 
 		if (element instanceof Cube && fill_mode === 'element') {
@@ -654,6 +657,8 @@ const Painter = {
 				if (Painter.erase_mode) {
 					ctx.globalAlpha = b_opacity;
 					ctx.globalCompositeOperation = 'destination-out'
+				} else if (Painter.lock_alpha) {
+					ctx.globalCompositeOperation = 'source-atop';
 				}
 
 				if (shape === 'rectangle') {
@@ -674,7 +679,16 @@ const Painter = {
 						//changePixel(0, 0, editPx)
 						function editPx(pxcolor) {
 							if (!Painter.erase_mode) {
-								return Painter.combineColors(pxcolor, color, b_opacity);
+								let result_color = Painter.combineColors(pxcolor, color, b_opacity);
+								if (Painter.lock_alpha) {
+									result_color = {
+										r: result_color.r,
+										g: result_color.g,
+										b: result_color.b,
+										a: pxcolor.a
+									}
+								}
+								return result_color;
 							} else {
 								if (b_opacity == 1) {
 									pxcolor.r = pxcolor.g = pxcolor.b = pxcolor.a = 0;
@@ -771,6 +785,9 @@ const Painter = {
 			var ctx = canvas.getContext('2d')
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			ctx.drawImage(Painter.current.clear, 0, 0)
+			if (Painter.lock_alpha) {
+				ctx.globalCompositeOperation = 'source-atop';
+			}
 
 			function drawGradient(start_x, start_y, x, y, uvTag) {
 				let rect = Painter.setupRectFromFace(uvTag, texture);
@@ -830,6 +847,8 @@ const Painter = {
 					Painter.current.element = old_element;
 				}
 			}
+			ctx.globalCompositeOperation = 'source-over';
+			
 			let degrees = Math.round(Math.radToDeg(Math.atan2(diff_x, diff_y)) * 4) / 4;
 			Blockbench.setStatusBarText(`${Math.round(diff_x)} x ${Math.round(diff_y)}, ${degrees}°`);
 
