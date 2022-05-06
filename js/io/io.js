@@ -440,18 +440,25 @@ function compileJSON(object, options) {
 		} else if (o instanceof Array) {
 			//Array
 			let has_content = false
-			let has_objects = !!o.find(item => typeof item === 'object');
+			let multiline = !!o.find(item => typeof item === 'object');
+			if (!multiline) {
+				let length = 0;
+				o.forEach(item => {
+					length += typeof item === 'string' ? (item.length+4) : 3;
+				});
+				if (length > 140) multiline = true;
+			}
 			out += '['
 			for (var i = 0; i < o.length; i++) {
 				var compiled = handleVar(o[i], tabs+1)
 				if (compiled) {
-					if (has_content) {out += ',' + ((options.small || has_objects) ? '' : ' ')}
-					if (has_objects) {out += newLine(tabs)}
+					if (has_content) {out += ',' + ((options.small || multiline) ? '' : ' ')}
+					if (multiline) {out += newLine(tabs)}
 					out += compiled
 					has_content = true
 				}
 			}
-			if (has_objects) {out += newLine(tabs-1)}
+			if (multiline) {out += newLine(tabs-1)}
 			out += ']'
 		} else if (typeof o === 'object') {
 			//Object
