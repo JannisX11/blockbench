@@ -576,8 +576,7 @@
 		height: 2px;
 		width: 100%;
 		padding: 0;
-		background-color: var(--color-bright_ui_text);
-		opacity: 0.28;
+		background-color: var(--color-menu_separator);
 	}
 	.contextMenu li.highlighted {
 		animation: menu_item_highlight 1s infinite ease-in-out;

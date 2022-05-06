@@ -1714,6 +1714,7 @@ const BARS = {
 						if (Animation.selected && Prop.active_panel == 'animations') {
 							var copy = Animation.selected.getUndoCopy();
 							var animation = new Animation(copy);
+							Property.resetUniqueValues(Animation, animation);
 							animation.createUniqueName();
 							Animator.animations.splice(Animator.animations.indexOf(Animation.selected)+1, 0, animation)
 							animation.add(true).select();

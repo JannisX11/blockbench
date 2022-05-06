@@ -567,6 +567,7 @@ Object.assign(Clipbench, {
 					if (!kf) return;
 					keyframes.push(kf);
 					kf.selected = true;
+					Property.resetUniqueValues(Keyframe, kf);
 					Timeline.selected.push(kf);
 				}
 

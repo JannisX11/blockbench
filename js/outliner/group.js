@@ -314,10 +314,9 @@ class Group extends OutlinerNode {
 		return this;
 	}
 	duplicate() {
-		var copied_groups = [];
 		var copy = this.getChildlessCopy(false)
 		delete copy.parent;
-		copied_groups.push(copy)
+		Property.resetUniqueValues(Group, copy);
 		copy.sortInBefore(this, 1).init()
 		if (Format.bone_rig) {
 			copy.createUniqueName()

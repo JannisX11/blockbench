@@ -780,6 +780,7 @@ const MenuBar = {
 		], {
 			condition: {modes: ['edit']}
 		})
+
 		new BarMenu('texture', [
 			'adjust_brightness_contrast',
 			'adjust_saturation_hue',
@@ -791,6 +792,32 @@ const MenuBar = {
 			'resize_texture'
 		], {
 			condition: {modes: ['paint']}
+		})
+
+		new BarMenu('animation', [
+			'copy',
+			'paste',
+			'select_all',
+			'add_keyframe',
+			'add_marker',
+			'reverse_keyframes',
+			{name: 'menu.animation.flip_keyframes', id: 'flip_keyframes', condition: () => Timeline.selected.length, icon: 'flip', children: [
+				'flip_x',
+				'flip_y',
+				'flip_z'
+			]},
+			'flip_animation',
+			'delete',
+			'lock_motion_trail',
+			'_',
+			'select_effect_animator',
+			'bake_animation_into_model',
+			'_',
+			'load_animation_file',
+			'save_all_animations',
+			'export_animation_file'
+		], {
+			condition: {modes: ['animate']}
 		})
 
 		new BarMenu('display', [
@@ -832,33 +859,6 @@ const MenuBar = {
 			'remove_blank_faces',
 		])
 		MenuBar.menus.filter = MenuBar.menus.tools;
-
-		new BarMenu('animation', [
-			'copy',
-			'paste',
-			'select_all',
-			'add_keyframe',
-			'add_marker',
-			'reverse_keyframes',
-			{name: 'menu.animation.flip_keyframes', id: 'flip_keyframes', condition: () => Timeline.selected.length, icon: 'flip', children: [
-				'flip_x',
-				'flip_y',
-				'flip_z'
-			]},
-			'flip_animation',
-			'delete',
-			'lock_motion_trail',
-			'_',
-			'select_effect_animator',
-			'bake_animation_into_model',
-			'_',
-			'load_animation_file',
-			'save_all_animations',
-			'export_animation_file'
-		], {
-			condition: {modes: ['animate']}
-		})
-
 
 		new BarMenu('view', [
 			'fullscreen',

@@ -1134,10 +1134,12 @@ const UVEditor = {
 			var new_face;
 			if (element instanceof Mesh) {
 				new_face = new MeshFace(null, tag);
+				Property.resetUniqueValues(MeshFace, new_face);
 				new_face.vertices = tag.getSortedVertices();
 				new_face.direction = key;
 			} else {
 				new_face = new CubeFace(key, tag);
+				Property.resetUniqueValues(CubeFace, new_face);
 			}
 			UVEditor.clipboard.push(new_face);
 		}

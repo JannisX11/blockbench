@@ -407,6 +407,7 @@ class OutlinerElement extends OutlinerNode {
 		} else {
 			selected.push(copy)
 		}
+		Property.resetUniqueValues(this.constructor, copy);
 		if (Condition(copy.needsUniqueName)) {
 			copy.createUniqueName()
 		}
