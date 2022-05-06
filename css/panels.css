@@ -889,6 +889,9 @@
 	}
 
 /* Placeholders */
+	#var_placeholder_area {
+		overflow: auto;
+	}
 	#placeholder_buttons li {
 		padding: 0px 8px;
 	}

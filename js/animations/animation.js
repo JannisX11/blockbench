@@ -730,8 +730,8 @@ class Animation {
 			icon: 'remove',
 			condition: () => Format.animation_files,
 			click(animation) {
-				Undo.initEdit({animations: [this]})
-				this.remove(false, false);
+				Undo.initEdit({animations: [animation]})
+				animation.remove(false, false);
 				Undo.finishEdit('Unload animation', {animations: []})
 			}
 		},
