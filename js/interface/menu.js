@@ -47,6 +47,8 @@ class Menu {
 		this.node = $('<ul class="contextMenu"></ul>')[0]
 		this.structure = structure;
 		this.options = options || {};
+		this.onOpen = this.options.onOpen;
+		this.onClose = this.options.onClose;
 	}
 	hover(node, event, expand) {
 		if (event) event.stopPropagation()
@@ -148,6 +150,7 @@ class Menu {
 		return used;
 	}
 	open(position, context) {
+		if (this.onOpen) this.onOpen(position, context);
 
 		if (position && position.changedTouches) {
 			convertTouchEvent(position);
@@ -439,6 +442,7 @@ class Menu {
 		return this.open(position);
 	}
 	hide() {
+		if (this.onClose) this.onClose();
 		$(this.node).find('li.highlighted').removeClass('highlighted');
 		$(this.node).detach()
 		open_menu = null;
@@ -532,7 +536,7 @@ class Menu {
 }
 class BarMenu extends Menu {
 	constructor(id, structure, options = {}) {
-		super()
+		super(id, structure, options)
 		var scope = this;
 		MenuBar.menus[id] = this
 		this.type = 'bar_menu'
@@ -779,6 +783,13 @@ const MenuBar = {
 
 		], {
 			condition: {modes: ['edit']}
+		})
+
+		new BarMenu('uv', UVEditor.menu.structure, {
+			condition: {modes: ['edit']},
+			onOpen() {
+				setActivePanel('uv');
+			}
 		})
 
 		new BarMenu('texture', [
