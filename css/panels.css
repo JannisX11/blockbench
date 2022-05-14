@@ -1385,8 +1385,8 @@
 		cursor: pointer;
 	}
 	#uv_scale_handle {
-		width: 20px;
-		height: 20px;
+		width: 18px;
+		height: 18px;
 		position: absolute;
 		text-align: center;
 		cursor: nw-resize;
@@ -1398,7 +1398,8 @@
 	}
 	#uv_scale_handle i {
 		transform: scaleY(-1);
-		font-size: 18px;
+		font-size: 16px;
+		padding-top: 2px;
 	}
 
 	.cube_box_uv {

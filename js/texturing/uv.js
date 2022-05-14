@@ -2469,7 +2469,7 @@ Interface.definePanels(function() {
 						}
 					})
 				},
-				rotateFace(face_key, event) {
+				rotateFace(event) {
 					if (event.which == 2 || event.which == 3) return;
 					event.stopPropagation();
 					convertTouchEvent(event);
@@ -2601,6 +2601,62 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'mouseup touchend', stop);
 
 				},
+				scaleFaces(event) {
+					if (event.which == 2 || event.which == 3) return;
+					event.stopPropagation();
+					let elements = UVEditor.getMappableElements();
+					Undo.initEdit({elements, uv_only: true})
+					elements.forEach(element => {
+						this.selected_faces.forEach(fkey => {
+							let face = element.faces[fkey];
+							if (!face) return;
+							if (element instanceof Cube) {
+								face.old_uv = face.uv.slice();
+							} else if (element instanceof Mesh) {
+								face.old_uv = {};
+								face.vertices.forEach(vkey => {
+									if (!face.uv[vkey]) return;
+									face.old_uv[vkey] = face.uv[vkey].slice();
+								})
+							}
+						})
+					})
+					let min = this.getSelectedUVBoundingBox();
+					let bounding_size = [min[2]-min[0], min[3]-min[1]]
+
+					let total_offset = [0, 0];
+					let total_offset_y = 0;
+					this.drag({
+						event,
+						onDrag: (x, y, event) => {
+							total_offset[0] += x;
+							total_offset[1] += y;
+							total_offset_y = (event.altKey || Pressing.overrides.alt) ? (total_offset[0] / bounding_size[0] * bounding_size[1]) : total_offset[1];
+							elements.forEach(element => {
+								this.selected_faces.forEach(key => {
+									if (!element.faces[key]) return;
+									let face = element.faces[key];
+									if (element instanceof Cube) {
+										face.uv[0] = min[0] + (face.old_uv[0] - min[0]) * (1 + total_offset[0]/bounding_size[0]);
+										face.uv[1] = min[1] + (face.old_uv[1] - min[1]) * (1 + total_offset_y /bounding_size[1]);
+										face.uv[2] = min[0] + (face.old_uv[2] - min[0]) * (1 + total_offset[0]/bounding_size[0]);
+										face.uv[3] = min[1] + (face.old_uv[3] - min[1]) * (1 + total_offset_y /bounding_size[1]);
+									} else if (element instanceof Mesh) {
+										for (let vkey in face.uv) {
+											face.uv[vkey][0] = min[0] + (face.old_uv[vkey][0] - min[0]) * (1 + total_offset[0]/bounding_size[0]);
+											face.uv[vkey][1] = min[1] + (face.old_uv[vkey][1] - min[1]) * (1 + total_offset_y /bounding_size[1]);
+										}
+									}
+								})
+							})
+							return [x, y]
+						},
+						onEnd: () => {
+							UVEditor.disableAutoUV()
+							Undo.finishEdit('Scale UV')
+						}
+					})
+				},
 
 				dragVertices(element, vertex_key, event) {
 					if (event.which == 2 || event.which == 3) return;
@@ -2654,7 +2710,7 @@ Interface.definePanels(function() {
 											face.uv[vertex_key][0] += x;
 											face.uv[vertex_key][1] += y;
 											if ((event.shiftKey || Pressing.overrides.shift) && !(event.ctrlOrCmd || Pressing.overrides.ctrl)) {
-												let multiplier = settings.shift_size.value / 16
+												let multiplier = (settings.shift_size.value / 16) * UVEditor.grid;
 												face.uv[vertex_key][0] = Math.round(face.uv[vertex_key][0] * multiplier) / multiplier;
 												face.uv[vertex_key][1] = Math.round(face.uv[vertex_key][1] * multiplier) / multiplier;
 											}
@@ -2722,6 +2778,40 @@ Interface.definePanels(function() {
 					} else {
 						return faces;
 					}
+				},
+				isScalingAvailable() {
+					if (this.mappable_elements[0] instanceof Cube) {
+						return !Project.box_uv && this.selected_faces.length > 1;
+
+					} else if (this.mappable_elements[0] instanceof Mesh) {
+						return this.selected_faces.length > 0;
+					}
+				},
+				getSelectedUVBoundingBox() {
+					let min = [Project.texture_width, Project.texture_height];
+					let max = [0, 0];
+					this.selected_faces.forEach(fkey => {
+						this.mappable_elements.forEach(element => {
+							if (!element.faces[fkey]) return;
+
+							let face = element.faces[fkey];
+							if (element instanceof Cube) {
+								min[0] = Math.min(min[0], face.uv[0], face.uv[2]);
+								min[1] = Math.min(min[1], face.uv[1], face.uv[3]);
+								max[0] = Math.max(max[0], face.uv[0], face.uv[2]);
+								max[1] = Math.max(max[1], face.uv[1], face.uv[3]);
+							} else if (element instanceof Mesh) {
+								face.vertices.forEach(vkey => {
+									if (!face.uv[vkey]) return;
+									min[0] = Math.min(min[0], face.uv[vkey][0]);
+									min[1] = Math.min(min[1], face.uv[vkey][1]);
+									max[0] = Math.max(max[0], face.uv[vkey][0]);
+									max[1] = Math.max(max[1], face.uv[vkey][1]);
+								})
+							}
+						})
+					})
+					return [...min, ...max];
 				},
 				getBrushOutlineStyle() {
 					if (Toolbox.selected.brushTool) {
@@ -2811,16 +2901,16 @@ Interface.definePanels(function() {
 											<div class="uv_resize_side vertical" @mousedown="resizeFace(key, $event, -1, 0)" @touchstart.prevent="resizeFace(key, $event, -1, 0)" style="height: var(--height)"></div>
 											<div class="uv_resize_side vertical" @mousedown="resizeFace(key, $event, 1, 0)" @touchstart.prevent="resizeFace(key, $event, 1, 0)" style="left: var(--width); height: var(--height)"></div>
 											<div class="uv_resize_corner uv_c_nw" :class="{main_corner: !face.rotation}" @mousedown="resizeFace(key, $event, -1, -1)" @touchstart.prevent="resizeFace(key, $event, -1, -1)" style="left: 0; top: 0">
-												<div class="uv_rotate_field" v-if="!face.rotation" @mousedown.stop="rotateFace(key, $event)" @touchstart.prevent.stop="rotateFace(key, $event)"></div>
+												<div class="uv_rotate_field" v-if="!face.rotation" @mousedown.stop="rotateFace($event)" @touchstart.prevent.stop="rotateFace($event)"></div>
 											</div>
 											<div class="uv_resize_corner uv_c_ne" :class="{main_corner: face.rotation == 270}" @mousedown="resizeFace(key, $event, 1, -1)" @touchstart.prevent="resizeFace(key, $event, 1, -1)" style="left: var(--width); top: 0">
-												<div class="uv_rotate_field" v-if="face.rotation == 270" @mousedown.stop="rotateFace(key, $event)" @touchstart.prevent.stop="rotateFace(key, $event)"></div>
+												<div class="uv_rotate_field" v-if="face.rotation == 270" @mousedown.stop="rotateFace($event)" @touchstart.prevent.stop="rotateFace($event)"></div>
 											</div>
 											<div class="uv_resize_corner uv_c_sw" :class="{main_corner: face.rotation == 90}" @mousedown="resizeFace(key, $event, -1, 1)" @touchstart.prevent="resizeFace(key, $event, -1, 1)" style="left: 0; top: var(--height)">
-												<div class="uv_rotate_field" v-if="face.rotation == 90" @mousedown.stop="rotateFace(key, $event)" @touchstart.prevent.stop="rotateFace(key, $event)"></div>
+												<div class="uv_rotate_field" v-if="face.rotation == 90" @mousedown.stop="rotateFace($event)" @touchstart.prevent.stop="rotateFace($event)"></div>
 											</div>
 											<div class="uv_resize_corner uv_c_se" :class="{main_corner: face.rotation == 180}" @mousedown="resizeFace(key, $event, 1, 1)" @touchstart.prevent="resizeFace(key, $event, 1, 1)" style="left: var(--width); top: var(--height)">
-												<div class="uv_rotate_field" v-if="face.rotation == 180" @mousedown.stop="rotateFace(key, $event)" @touchstart.prevent.stop="rotateFace(key, $event)"></div>
+												<div class="uv_rotate_field" v-if="face.rotation == 180" @mousedown.stop="rotateFace($event)" @touchstart.prevent.stop="rotateFace($event)"></div>
 											</div>
 										</template>
 									</div>
@@ -2863,13 +2953,24 @@ Interface.definePanels(function() {
 												@mousedown.prevent.stop="dragVertices(element, key, $event)" @touchstart.prevent.stop="dragVertices(element, key, $event)"
 												:style="{left: toPixels( face.uv[key][0] - getMeshFaceCorner(face, 0) ), top: toPixels( face.uv[key][1] - getMeshFaceCorner(face, 1) )}"
 											>
-												<div class="uv_rotate_field" @mousedown.stop="rotateFace(key, $event)" @touchstart.prevent.stop="rotateFace(key, $event)" v-if="index == 0"></div>
+												<div class="uv_rotate_field" @mousedown.stop="rotateFace($event)" @touchstart.prevent.stop="rotateFace($event)" v-if="index == 0"></div>
 											</div>
 										</template>
 									</div>
 								</template>
 
 							</template>
+
+							<div id="uv_scale_handle" v-if="mode == 'uv' && isScalingAvailable()"
+								@mousedown.stop="scaleFaces($event)" @touchstart.prevent.stop="scaleFaces($event)"
+								:title="tl('uv_editor.scale_uv')"
+								:style="{
+									left: toPixels(getSelectedUVBoundingBox()[2], -2),
+									top: toPixels(getSelectedUVBoundingBox()[3], -2),
+								}
+							">
+								<i class="fa fa-solid fa-square-up-right"></i>
+							</div>
 
 							<div class="selection_rectangle"
 								v-if="selection_rect.active"

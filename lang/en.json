@@ -1587,6 +1587,7 @@
 	"uv_editor.all_faces": "All",
 	"uv_editor.no_faces": "None",
 	"uv_editor.rotated": "Rotated",
+	"uv_editor.scale_uv": "Scale UV",
 	"uv_editor.auto_cull": "Cullface To Self",
 	"uv_editor.copied": "Copied Face",
 	"uv_editor.pasted": "Pasted Face",
