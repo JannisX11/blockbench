@@ -1687,7 +1687,7 @@ skin_presets.cow = {
 skin_presets.creeper = {
 	display_name: 'Creeper',
 	model: `{
-		"name": "alex",
+		"name": "creeper",
 		"texturewidth": 64,
 		"textureheight": 32,
 		"eyes": [
