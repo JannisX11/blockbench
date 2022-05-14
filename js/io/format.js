@@ -232,5 +232,6 @@ new ModelFormat({
 	optional_box_uv: true,
 	uv_rotation: true,
 	animation_mode: true,
+	animated_textures: true,
 	locators: true,
 })

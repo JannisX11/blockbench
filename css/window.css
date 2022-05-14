@@ -983,7 +983,7 @@
 		min-width: 120px;
 		display: inline-block;
 	}
-	section#quick_setup > div select {
+	section#quick_setup > div bb-select {
 		flex-grow: 1;
 	}
 	section#quick_setup > div > p {

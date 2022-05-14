@@ -861,7 +861,6 @@ BARS.defineActions(function() {
 					format:  {
 						label: 'data.format',
 						type: 'select',
-						default: Format.id,
 						options,
 					},
 				},

@@ -334,6 +334,13 @@ onVueSetup(function() {
 					keymap: 'default',
 					keymap_changed: false,
 					theme: 'dark',
+					keymap_options: {
+						default: tl('action.load_keymap.default'),
+						mouse: tl('action.load_keymap.mouse'),
+						blender: 'Blender',
+						cinema4d: 'Cinema 4D',
+						maya: 'Maya',
+					},
 				}},
 				methods: {
 					tl,
@@ -379,20 +386,12 @@ onVueSetup(function() {
 
 						<div>
 							<label>${tl('mode.start.keymap')}:</label>
-							<select v-model="keymap">
-								<option value="default">${tl('action.load_keymap.default')}</option>
-								<option value="mouse">${tl('action.load_keymap.mouse')}</option>
-								<option value="blender">Blender</option>
-								<option value="cinema4d">Cinema 4D</option>
-								<option value="maya">Maya</option>
-							</select>
+							<select-input v-model="keymap" :options="keymap_options" />
 							<p v-if="keymap_changed">{{ tl('action.load_keymap.' + keymap + '.desc') }}</p>
 						</div>
 						<div>
 							<label>${tl('settings.language')}:</label>
-							<select v-model="language">
-								<option v-for="(text, id) in languages" v-bind:value="id">{{ text }}</option>
-							</select>
+							<select-input v-model="language" :options="languages" />
 							<div class="tool" @click="reload()" v-if="language != language_original" :title="tl('action.reload')">
 								<i class="material-icons">refresh</i>
 							</div>

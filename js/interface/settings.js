@@ -631,9 +631,7 @@ onVueSetup(function() {
 
 							<template v-else-if="setting.type === 'select'">
 								<div class="bar_select">
-									<select v-model="setting.value">
-										<option v-for="(text, id) in setting.options" v-bind:value="id">{{ text }}</option>
-									</select>
+									<select-input v-model="setting.value" :options="setting.options" />
 								</div>
 							</template>
 						</li>

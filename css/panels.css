@@ -1384,6 +1384,22 @@
 		color: var(--color-light);
 		cursor: pointer;
 	}
+	#uv_scale_handle {
+		width: 20px;
+		height: 20px;
+		position: absolute;
+		text-align: center;
+		cursor: nw-resize;
+		z-index: 1;
+		background-color: var(--color-back);
+	}
+	#uv_scale_handle:hover {
+		color: var(--color-light);
+	}
+	#uv_scale_handle i {
+		transform: scaleY(-1);
+		font-size: 18px;
+	}
 
 	.cube_box_uv {
 		position: absolute;
