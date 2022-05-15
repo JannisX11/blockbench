@@ -42,8 +42,14 @@ const Painter = {
 					}
 				})
 			} else {
-				texture.updateSource(instance.toDataURL())
-				if (!options.no_undo) {
+				if (options.no_undo) {
+					let map = texture.getMaterial().map
+					map.image = Painter.current.canvas;
+					map.needsUpdate = true;
+					texture.display_canvas = true;
+					UVEditor.vue.updateTextureCanvas();
+				} else {
+					texture.updateSource(instance.toDataURL())
 					Undo.finishEdit(edit_name)
 				}
 			}
@@ -896,12 +902,12 @@ const Painter = {
 		BarItems.slider_brush_opacity.update()
 	},
 	getCanvas(texture) {
-		var c = document.createElement('canvas')
-		var ctx = c.getContext('2d');
-		c.width = texture.width;
-		c.height = texture.height;
+		let canvas = texture instanceof Texture ? texture.canvas : document.createElement('canvas');
+		let ctx = canvas.getContext('2d');
+		canvas.width = texture.width;
+		canvas.height = texture.height;
 		ctx.drawImage(texture instanceof Texture ? texture.img : texture, 0, 0)
-		return c;
+		return canvas;
 	},
 	scanCanvas(ctx, x, y, w, h, cb) {
 		var arr = ctx.getImageData(x, y, w, h)

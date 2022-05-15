@@ -13,6 +13,7 @@ class Texture {
 		this.show_icon = true
 		this.error = 0;
 		this.visible = true;
+		this.display_canvas = false;
 		//Data
 		this.img = 0;
 		this.width = 0;
@@ -47,6 +48,8 @@ class Texture {
 		}
 
 		//Setup Img/Mat
+		this.canvas = document.createElement('canvas');
+		this.canvas.width = this.canvas.height = 16;
 		var img = this.img = new Image()
 		img.src = 'assets/missing.png'
 
@@ -250,6 +253,9 @@ class Texture {
 	}
 	getUndoCopy(bitmap) {
 		var copy = {}
+		if (this.display_canvas && bitmap) {
+			this.updateSource(this.canvas.toDataURL());
+		}
 		for (var key in Texture.properties) {
 			Texture.properties[key].copy(this, copy)
 		}
@@ -443,6 +449,7 @@ class Texture {
 		if (!dataUrl) dataUrl = this.source;
 		this.source = dataUrl;
 		this.img.src = dataUrl;
+		this.display_canvas = false;
 		this.updateMaterial();
 		if (open_dialog == 'UVEditor') {
 			for (var key in UVEditor.editors) {
@@ -457,6 +464,7 @@ class Texture {
 	updateMaterial() {
 		let mat = this.getMaterial();
 		mat.name = this.name;
+		mat.map.image = this.img;
 		mat.map.name = this.name;
 		mat.map.image.src = this.source;
 		mat.map.needsUpdate = true;

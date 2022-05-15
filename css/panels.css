@@ -1351,6 +1351,7 @@
 	body[mode=paint] #uv_frame {
 		cursor: crosshair !important;
 	}
+	#uv_frame > #texture_canvas_wrapper > canvas,
 	#uv_frame > img {
 		position: absolute;
 		pointer-events: none;

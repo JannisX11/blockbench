@@ -1885,6 +1885,16 @@ Interface.definePanels(function() {
 					} else {
 						this.texture = 0;
 					}
+					// Display canvas while painting
+					this.updateTextureCanvas();
+				},
+				updateTextureCanvas() {
+					if (this.texture && this.texture.display_canvas) {
+						Vue.nextTick(() => {
+							let wrapper = this.$refs.texture_canvas_wrapper;
+							wrapper.append(this.texture.canvas);
+						})
+					}
 				},
 				updateMouseCoords(event) {					
 					convertTouchEvent(event);
@@ -2987,7 +2997,8 @@ Interface.definePanels(function() {
 
 							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.x >= 0" :style="getBrushOutlineStyle()"></div>
 
-							<img :style="{objectFit: texture.frameCount > 1 ? 'cover' : 'fill', objectPosition: \`0 -\${texture.currentFrame * inner_height}px\`}" v-if="texture && texture.error != 1" :src="texture.source">
+							<img :style="{objectFit: texture.frameCount > 1 ? 'cover' : 'fill', objectPosition: \`0 -\${texture.currentFrame * inner_height}px\`}" v-if="texture && texture.error != 1 && !texture.display_canvas" :src="texture.source">
+							<div ref="texture_canvas_wrapper" id="texture_canvas_wrapper" v-if="texture && texture.error != 1 && texture.display_canvas"></div>
 							<img style="object-fit: fill; opacity: 0.02; mix-blend-mode: screen;" v-if="texture == 0 && !box_uv" src="./assets/missing_blend.png">
 						</div>
 
