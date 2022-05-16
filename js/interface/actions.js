@@ -1923,9 +1923,13 @@ const BARS = {
 			children: [
 				'import_texture',
 				'create_texture',
-				'reload_textures'
+				'append_to_template',
 			]
 		})
+		Blockbench.onUpdateTo('4.3.0-beta.0', () => {
+			Toolbars.texturelist.add(BarItems.append_to_template);
+		})
+
 		Toolbars.tools = new Toolbar({
 			id: 'tools',
 			children: [

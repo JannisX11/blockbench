@@ -404,8 +404,10 @@ class DialogSidebar {
 		}
 	}
 	setPage(page) {
+		let allow;
+		if (this.onPageSwitch) allow = this.onPageSwitch(page);
+		if (allow === false) return;
 		this.page = page;
-		if (this.onPageSwitch) this.onPageSwitch(page);
 		for (let key in this.page_menu) {
 			let li = this.page_menu[key];
 			li.classList.toggle('selected', key == this.page);

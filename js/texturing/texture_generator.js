@@ -103,7 +103,7 @@ const TextureGenerator = {
 			onConfirm(options) {
 				dialog.hide()
 				options.rearrange_uv = true;
-				options.resolution = 16 * Texture.selected.width / Project.texture_width;
+				options.resolution = 16 * texture.width / Project.texture_width;
 				if (Format.single_texture) {
 					options.texture = Texture.getDefault()
 				}

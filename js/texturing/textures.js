@@ -1866,7 +1866,6 @@ Interface.definePanels(function() {
 			'paste',
 			'import_texture',
 			'create_texture',
-			'reload_textures',
 			'change_textures_folder',
 			'save_textures'
 		])
