@@ -95,6 +95,7 @@ class Setting {
 		if (typeof this.onChange == 'function' && this.value !== old_value) {
 			this.onChange(this.value);
 		}
+		Settings.saveLocalStorages();
 	}
 	trigger(e) {
 		let {type} = this;

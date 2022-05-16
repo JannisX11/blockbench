@@ -71,7 +71,6 @@ Interface.definePanels(() => {
 			palette: Toolbars.palette
 		},
 		onResize() {
-			$('#main_colorpicker').spectrum('reflow');
 			Interface.Panels.color.vue.width = 0;
 			Vue.nextTick(() => {
 				let disp_before = this.vue.$refs.square_picker.style.display;
@@ -81,6 +80,9 @@ Interface.definePanels(() => {
 					: Math.min(460, (this.height - this.vue.$el.clientHeight - this.handle.clientHeight) * (this.vue.picker_type == 'box' ? 1.265 : 1));
 				Interface.Panels.color.vue.width = Math.clamp(this.width, 100, max);
 				this.vue.$refs.square_picker.style.display = disp_before;
+				Vue.nextTick(() => {
+					$('#main_colorpicker').spectrum('reflow');
+				})
 			})
 		},
 		component: {
