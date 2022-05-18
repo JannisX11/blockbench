@@ -85,6 +85,8 @@
 	"mode.start.new": "New",
 	"mode.start.recent": "Recent",
 	"mode.start.no_recents": "No recently opened models",
+	"mode.start.target": "Target",
+	"mode.start.start": "Start",
 	"mode.start.quick_setup": "Quick Setup",
 	"mode.start.keymap_preference.desc": "If you are new to Blockbench and you are coming from another 3D program, you can select a keymap to make your transition easier. You can change the keymap or individual keybindings later in the settings.",
 	"mode.start.keymap": "Keymap",
@@ -109,6 +111,11 @@
 	"format.optifine_entity.desc": "Custom entity model for OptiFine",
 	"format.optifine_part": "OptiFine Part",
 	"format.optifine_part.desc": "JPM part for OptiFine entity models",
+
+	"format_category.low_poly": "Low-Poly",
+	"format_category.minecraft": "Minecraft",
+	"format_category.other": "Other",
+	"format_category.loaders": "Loaders",
 
 	"keys.mouse": "Mouse Button %0",
 	"keys.ctrl": "Ctrl",

@@ -876,6 +876,8 @@ Object.defineProperty(codec, 'remember', {
 var format = new ModelFormat({
 	id: 'modded_entity',
 	icon: 'icon-format_java',
+	category: 'minecraft',
+	target: 'Minecraft: Java Edition',
 	codec,
 	box_uv: true,
 	single_texture: true,

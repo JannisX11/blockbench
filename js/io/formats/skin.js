@@ -157,6 +157,8 @@ codec.export = null;
 const format = new ModelFormat({
 	id: 'skin',
 	icon: 'icon-player',
+	category: 'minecraft',
+	target: ['Minecraft: Java Edition', 'Minecraft: Bedrock Edition'],
 	bone_rig: true,
 	box_uv: true,
 	centered_grid: true,

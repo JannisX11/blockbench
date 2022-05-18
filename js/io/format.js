@@ -8,6 +8,8 @@ class ModelFormat {
 		this.id = data.id;
 		this.name = data.name || tl('format.'+this.id);
 		this.description = data.description || tl('format.'+this.id+'.desc');
+		this.category = data.category || 'other';
+		this.target = data.target;
 		this.show_on_start_screen = true;
 		this.confidential = false;
 
@@ -221,17 +223,3 @@ new Property(ModelFormat, 'boolean', 'pose_mode');
 new Property(ModelFormat, 'boolean', 'display_mode');
 new Property(ModelFormat, 'boolean', 'animation_mode');
 new Property(ModelFormat, 'boolean', 'texture_folder');
-
-new ModelFormat({
-	id: 'free',
-	icon: 'icon-format_free',
-	meshes: true,
-	rotate_cubes: true,
-	bone_rig: true,
-	centered_grid: true,
-	optional_box_uv: true,
-	uv_rotation: true,
-	animation_mode: true,
-	animated_textures: true,
-	locators: true,
-})

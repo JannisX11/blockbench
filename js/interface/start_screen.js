@@ -1,4 +1,6 @@
-const StartScreen = {};
+const StartScreen = {
+	loaders: {}
+};
 
 function addStartScreenSection(id, data) {
 	if (typeof id == 'object') {
@@ -131,12 +133,15 @@ onVueSetup(function() {
 		el: '#start_screen',
 		data: {
 			formats: Formats,
+			loaders: StartScreen.loaders,
+			selected_format: '',
 			recent: isApp ? recent_projects : [],
 			list_type: StateMemory.start_screen_list_type || 'grid',
 			redact_names: settings.streamer_mode.value,
 			redacted: tl('generic.redacted'),
 			search_term: '',
 			isApp,
+			mobile_layout: Blockbench.isMobile,
 			getIconNode: Blockbench.getIconNode
 		},
 		methods: {
@@ -172,6 +177,35 @@ onVueSetup(function() {
 				StateMemory.start_screen_list_type = type;
 				StateMemory.save('start_screen_list_type')
 			},
+			getFormatCategories() {
+				let categories = {};
+				function add(key, format) {
+					
+					if (!categories[format.category]) {
+						categories[format.category] = {
+							name: tl('format_category.' + format.category),
+							entries: []
+						}
+					}
+					categories[format.category].entries.push(format);
+				}
+				for (let key in this.formats) {
+					add(key, this.formats[key])
+				}
+				for (let key in this.loaders) {
+					add(key, this.loaders[key])
+				}
+				return categories;
+			},
+			loadFormat(format_entry) {
+				this.selected_format = format_entry.id;
+				if (format_entry.onSetup) format_entry.onSetup();
+			},
+			confirmSetupScreen(format_entry) {
+				this.selected_format = '';
+				if (format_entry.onStart) format_entry.onStart();
+				if (typeof format_entry.new == 'function') format_entry.new();
+			},
 			tl
 		},
 		computed: {
@@ -189,8 +223,9 @@ onVueSetup(function() {
 		template: `
 			<div id="start_screen">
 				<content>
-					<section id="start-files">
-						<div class="start_screen_left">
+					<section id="start_files">
+
+						<div class="start_screen_left" v-if="!(selected_format && mobile_layout)">
 							<h2>${tl('mode.start.new')}</h2>
 							<div class="bar next_to_title">
 								<div class="tool" onclick="Blockbench.openLink('https://blockbench.net/quickstart/')">
@@ -199,14 +234,49 @@ onVueSetup(function() {
 								</div>
 							</div>
 							<ul>
-								<li v-for="format in formats" v-if="format.show_on_start_screen && (!redact_names || !format.confidential)" v-on:click="format.new()">
-									<span class="icon_wrapper f_left" v-html="getIconNode(format.icon).outerHTML"></span>
-									<h3>{{ format.name }}</h3>
-									<p>{{ format.description }}</p>
+								<li v-for="(category, key) in getFormatCategories()" class="format_category" :key="key">
+									<label>{{ category.name }}</label>
+									<ul>
+										<li
+											v-for="format_entry in category.entries" :key="format_entry.id"
+											class="format_entry" :class="{[format_entry instanceof ModelFormat ? 'format' : 'loader']: true, selected: format_entry.id == selected_format}"
+											:title="format_entry.description"
+											v-if="format_entry.show_on_start_screen && (!redact_names || !format_entry.confidential)"
+											@click="loadFormat(format_entry)"
+											@dblclick="confirmSetupScreen(format_entry)"
+										>
+											<span class="icon_wrapper f_left" v-html="getIconNode(format_entry.icon).outerHTML"></span>
+											<label>{{ format_entry.name }}</label>
+										</li>
+									</ul>
 								</li>
 							</ul>
 						</div>
-						<div class="start_screen_right">
+
+						<div class="start_screen_right start_screen_format_setup" v-if="viewed_format = (selected_format && (formats[selected_format] || loaders[selected_format]) )">
+							<div class="tool format_setup_close_button" @click="selected_format = ''"><i class="material-icons">arrow_back_ios</i></div>
+
+							<h2 style="margin-bottom: 12px;">{{ viewed_format.name }}</h2>
+							<p class="format_description" v-if="viewed_format.description">{{ viewed_format.description }}</p>
+
+							<div v-if="viewed_format.about" class="about format_about" v-html="marked(viewed_format.about.replace(/\\n/g, '\\n\\n'))"><button></button></div>
+
+							<img src="assets/start_screen/generic.png" height="225px" />
+							
+							<p class="format_target" v-if="viewed_format.target">
+								<b>${tl('mode.start.target')}</b>:
+								<template v-if="viewed_format.target instanceof Array">
+									<span v-for="target in viewed_format.target">{{ target }}</span>
+								</template>
+								<span v-else>{{ viewed_format.target }}</span>
+							</p>
+
+							<div class="button_bar">
+								<button style="margin-top: 20px;" @click="confirmSetupScreen(viewed_format)">${tl('mode.start.start')}</button>
+							</div>
+						</div>
+
+						<div class="start_screen_right" v-else>
 							<h2 class="tl">${tl('mode.start.recent')}</h2>
 							<div id="start_screen_view_menu" v-if="isApp && !redact_names">
 								<search-bar :hide="true" v-model="search_term"></search-bar>
@@ -233,8 +303,11 @@ onVueSetup(function() {
 									<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
 								</li>
 							</ul>
-							<button style="margin-top: 20px;" onclick="BarItems.open_model.trigger()">${tl('action.open_model')}</button>
+							<div class="button_bar">
+								<button style="margin-top: 20px;" onclick="BarItems.open_model.trigger()">${tl('action.open_model')}</button>
+							</div>
 						</div>
+
 					</section>
 				</content>
 			</div>
@@ -242,6 +315,22 @@ onVueSetup(function() {
 	})
 });
 
+StartScreen.addLoader = function(id, options) {
+	let loader = {
+		id,
+		name: tl(options.name),
+		description: options.description ? tl(options.description) : '',
+		icon: options.icon || 'arrow_forward',
+		category: options.category || 'loaders',
+		target: options.category || 'loaders',
+		show_on_start_screen: true,
+		confidential: options.confidential || false,
+		condition: options.condition,
+		onSetup: options.onSetup,
+		onStart: options.onStart,
+	};
+	Vue.set(StartScreen.vue.loaders, id, loader);
+};
 
 (function() {
 	/*$.getJSON('./content/news.json').then(data => {

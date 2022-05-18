@@ -218,6 +218,7 @@ var part_format = new ModelFormat({
 		id: 'optifine_part',
 		extension: 'jpm',
 		icon: 'icon-format_optifine',
+		category: 'minecraft',
 		show_on_start_screen: false,
 		single_texture: true,
 		integer_size: true,
