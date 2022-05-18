@@ -107,7 +107,7 @@ function buildForm(dialog) {
 								})
 							}
 						}
-						let menu = new Menu(form_id, items);
+						let menu = new Menu(form_id, items, {searchable: items.length > 16});
 						menu.node.style['min-width'] = select.clientWidth+'px';
 						menu.open(select);
 					})

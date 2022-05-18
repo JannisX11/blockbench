@@ -157,6 +157,7 @@ codec.export = null;
 const format = new ModelFormat({
 	id: 'skin',
 	icon: 'icon-player',
+	can_convert_to: false,
 	bone_rig: true,
 	box_uv: true,
 	centered_grid: true,

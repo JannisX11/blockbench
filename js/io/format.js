@@ -9,6 +9,7 @@ class ModelFormat {
 		this.name = data.name || tl('format.'+this.id);
 		this.description = data.description || tl('format.'+this.id+'.desc');
 		this.show_on_start_screen = true;
+		this.can_convert_to = true;
 		this.confidential = false;
 
 		for (let id in ModelFormat.properties) {
@@ -20,6 +21,7 @@ class ModelFormat {
 		this.onDeactivation = data.onDeactivation;
 		Merge.string(this, data, 'icon');
 		Merge.boolean(this, data, 'show_on_start_screen');
+		Merge.boolean(this, data, 'can_convert_to');
 		Merge.boolean(this, data, 'confidential');
 
 		for (let id in ModelFormat.properties) {
@@ -190,6 +192,9 @@ class ModelFormat {
 		if (!Format.animation_mode && old_format.animation_mode) {
 			Animator.animations.length = 0;
 		}
+
+		Blockbench.dispatchEvent('convert_format', {format: this, old_format})
+
 		Canvas.updateAllPositions()
 		Canvas.updateAllBones()
 		Canvas.updateAllFaces()

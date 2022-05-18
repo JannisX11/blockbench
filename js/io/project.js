@@ -846,8 +846,9 @@ BARS.defineActions(function() {
 
 			var options = {};
 			for (var key in Formats) {
-				if (key !== Format.id && key !== 'skin') {
-					options[key] = Formats[key].name;
+				let format = Formats[key]
+				if (key !== Format.id && format.can_convert_to) {
+					options[key] = format.name;
 				}
 			}
 
