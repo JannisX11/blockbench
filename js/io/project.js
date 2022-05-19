@@ -114,6 +114,12 @@ class ModelProject {
 			setProjectTitle(this.name);
 		}
 	}
+	get geometry_name() {
+		return this.model_identifier;
+	}
+	set geometry_name(val) {
+		this.model_identifier = val;
+	}
 	get model_3d() {
 		return ProjectData[this.uuid].model_3d;
 	}
@@ -124,7 +130,7 @@ class ModelProject {
 		return ProjectData[this.uuid].nodes_3d;
 	}
 	getDisplayName() {
-		return this.name || this.geometry_name || this.format.name;
+		return this.name || this.model_identifier || this.format.name;
 	}
 	openSettings() {
 		if (this.selected) BarItems.project_window.click();
@@ -263,9 +269,14 @@ class ModelProject {
 		Format = 0;
 		Project = 0;
 		Undo = 0;
+		if (Modes.selected) Modes.selected.unselect();
 
 		OutlinerNode.uuids = {};
 		Outliner.root = [];
+
+		if (closing) {
+			updateInterface();
+		}
 
 		Blockbench.dispatchEvent('unselect_project', {project: this});
 	}
@@ -343,9 +354,9 @@ new Property(ModelProject, 'string', 'parent', {
 	label: 'dialog.project.parent',
 	condition: {formats: ['java_block']
 }});
-new Property(ModelProject, 'string', 'geometry_name', {
+new Property(ModelProject, 'string', 'model_identifier', {
 	label: 'dialog.project.geoname',
-	condition: () => Format.bone_rig
+	condition: () => Format.model_identifier
 });
 new Property(ModelProject, 'string', 'modded_entity_version', {
 	label: 'dialog.project.modded_entity_version',
@@ -527,6 +538,7 @@ onVueSetup(() => {
 			Project = 0;
 			Interface.tab_bar.new_tab.selected = true;
 			setProjectTitle(ModelProject.all.length ? tl('projects.new_tab') : null);
+			updateInterface();
 		},
 		openSettings() {}
 	}

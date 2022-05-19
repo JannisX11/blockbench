@@ -75,7 +75,7 @@ class ModelFormat {
 		Undo.index = 0;
 		Project.export_path = '';
 
-		var old_format = Format
+		var old_format = Format;
 		this.select();
 		Modes.options.edit.select()
 
@@ -210,6 +210,7 @@ class ModelFormat {
 new Property(ModelFormat, 'boolean', 'box_uv');
 new Property(ModelFormat, 'boolean', 'optional_box_uv');
 new Property(ModelFormat, 'boolean', 'single_texture');
+new Property(ModelFormat, 'boolean', 'model_identifier', {default: true});
 new Property(ModelFormat, 'boolean', 'animated_textures');
 new Property(ModelFormat, 'boolean', 'bone_rig');
 new Property(ModelFormat, 'boolean', 'centered_grid');

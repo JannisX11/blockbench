@@ -385,7 +385,7 @@
 						move_back:  (drag_position_index !== null && index > drag_target_index && drag_position_index >= index),
 						move_forth: (drag_position_index !== null && index < drag_target_index && drag_position_index <= index)
 					}"
-					:title="project.name || project.geometry_name"
+					:title="project.name || project.geometry_name || ''"
 					@dblclick="project.openSettings()"
 					@mousedown="mouseDown(project, $event)"
 					@mouseup="mouseUp(project, $event)"

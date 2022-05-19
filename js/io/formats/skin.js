@@ -62,7 +62,6 @@ const codec = new Codec('skin_model', {
 	},
 	parse(data, resolution, texture_path, pose = true, layer_template) {
 		this.dispatchEvent('parse', {model: data});
-		Project.geometry_name = data.name;
 		Project.texture_width = data.texturewidth || 64;
 		Project.texture_height = data.textureheight || 64;
 
@@ -158,6 +157,7 @@ const format = new ModelFormat({
 	id: 'skin',
 	icon: 'icon-player',
 	can_convert_to: false,
+	model_identifier: false,
 	bone_rig: true,
 	box_uv: true,
 	centered_grid: true,

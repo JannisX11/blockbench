@@ -448,6 +448,8 @@
 		padding-top: 2px;
 		display: inline-block;
 		height: 100%;
+		min-width: 42px;
+		text-align: center;
 		font-weight: normal;
 	}
 	li.menu_bar_point.opened {

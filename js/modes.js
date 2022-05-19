@@ -36,15 +36,7 @@ class Mode extends KeybindItem {
 	}
 	select() {
 		if (Modes.selected) {
-			delete Modes[Modes.selected.id];
-			Modes.previous_id = Modes.selected.id;
-		}
-		if (typeof Modes.selected.onUnselect === 'function') {
-			Blockbench.dispatchEvent('unselect_mode', {mode: Modes.selected})
-			Modes.selected.onUnselect()
-		}
-		if (Modes.selected.selected) {
-			Modes.selected.selected = false
+			Modes.selected.unselect();
 		}
 		this.selected = true;
 		Mode.selected = this;
@@ -84,6 +76,16 @@ class Mode extends KeybindItem {
 		TickUpdates.selection = true;
 		Blockbench.dispatchEvent('select_mode', {mode: this})
 	}
+	unselect() {
+		delete Modes[this.id];
+		Modes.previous_id = this.id;
+		if (typeof this.onUnselect === 'function') {
+			Blockbench.dispatchEvent('unselect_mode', {mode: this})
+			this.onUnselect()
+		}
+		this.selected = false;
+		Mode.selected = Modes.selected = 0;
+	}
 	trigger() {
 		if (Condition(this.condition)) {
 			this.select()
@@ -98,7 +100,7 @@ class Mode extends KeybindItem {
 }
 const Modes = {
 	get id() {
-		return Mode.selected ? Mode.selected.id : 'edit'
+		return Mode.selected ? Mode.selected.id : ''
 	},
 	selected: false,
 	options: {},

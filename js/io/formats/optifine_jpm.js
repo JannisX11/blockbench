@@ -219,6 +219,7 @@ var part_format = new ModelFormat({
 		extension: 'jpm',
 		icon: 'icon-format_optifine',
 		show_on_start_screen: false,
+		model_identifier: false,
 		single_texture: true,
 		integer_size: true,
 		rotate_cubes: true,

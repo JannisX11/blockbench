@@ -454,6 +454,7 @@ var format = new ModelFormat({
 	id: 'java_block',
 	extension: 'json',
 	icon: 'icon-format_block',
+	model_identifier: false,
 	rotate_cubes: true,
 	canvas_limit: true,
 	rotation_limit: true,
