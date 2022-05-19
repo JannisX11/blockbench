@@ -648,20 +648,21 @@ Interface.definePanels(() => {
 
 					for (let time = Math.clamp(this.scroll_left - 9, 0, Infinity); time < (clientWidth + this.scroll_left - this.head_width); time += step) {
 						Timeline.time = time / this.size;
+
 						let snap_kf = keyframes.find(kf => Timeline.time <= kf.time && Timeline.time > kf.time - step / this.size );
 						if (snap_kf) {
 							Timeline.time = snap_kf.time;
 						}
 						let value = ba.interpolate(this.graph_editor_channel, false, this.graph_editor_axis);
-						points.push(value);
-						min = Math.min(min, value);
-						max = Math.max(max, value);
 						if (snap_kf) snap_kf.display_value = value;
-
-						if (time >= Animation.selected.length && Animation.selected.length && Animation.selected.loop === 'loop') {
-							Timeline.time = Animation.selected.time;
-							let value = ba.interpolate(this.graph_editor_channel, false, this.graph_editor_axis);
+						
+						if (Timeline.time > Animation.selected.length && Animation.selected.length && Animation.selected.loop === 'loop') {
+							if (points.length && !loop_points.length) loop_points.push(points.last())
 							loop_points.push(value);
+						} else {
+							points.push(value);
+							min = Math.min(min, value);
+							max = Math.max(max, value);
 						}
 					}
 					
@@ -682,7 +683,7 @@ Interface.definePanels(() => {
 					this.loop_graph = '';
 					if (loop_points.length) {
 						loop_points.forEach((value, i) => {
-							i = i + points.length - loop_points.length;
+							i = i + points.length - 1;
 							this.loop_graph += `${this.loop_graph.length ? 'L' : 'M'}${i*step} ${this.graph_offset - value * this.graph_size} `
 						})
 					}
@@ -942,7 +943,8 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mouseup touchend', off);
 				},
 				clamp: Math.clamp,
-				trimFloatNumber
+				trimFloatNumber,
+				a() {console.trace('nee')}
 			},
 			watch: {
 				size() {this.updateTimecodes()},
