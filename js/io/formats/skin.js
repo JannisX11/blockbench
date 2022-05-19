@@ -717,6 +717,79 @@ skin_presets.block = {
 	}`
 };
 
+skin_presets.allay = {
+	display_name: 'Allay',
+	model: `{
+		"name": "allay",
+		"texturewidth": 32,
+		"textureheight": 32,
+		"eyes": [
+			[6, 7, 1, 2],
+			[8, 7, 1, 2]
+		],
+		"bones": [
+			{
+				"name": "root",
+				"pivot": [0, 0, 0]
+			},
+			{
+				"name": "head",
+				"parent": "root",
+				"pivot": [0, 4, 0],
+				"cubes": [
+					{"origin": [-2.5, 4.01, -2.5], "size": [5, 5, 5], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "body",
+				"parent": "root",
+				"pivot": [0, 4, 0],
+				"cubes": [
+					{"origin": [-1.5, 0, -1], "size": [3, 4, 2], "uv": [0, 10]},
+					{"origin": [-1.5, -1, -1], "size": [3, 5, 2], "inflate": -0.2, "uv": [0, 16]}
+				]
+			},
+			{
+				"name": "rightItem",
+				"parent": "body",
+				"pivot": [0, -1, -2],
+				"rotation": [-80, 0, 0]
+			},
+			{
+				"name": "right_arm",
+				"parent": "body",
+				"pivot": [-1.75, 3.5, 0],
+				"cubes": [
+					{"origin": [-2.5, 0, -1], "size": [1, 4, 2], "uv": [23, 0]}
+				]
+			},
+			{
+				"name": "left_arm",
+				"parent": "body",
+				"pivot": [1.75, 3.5, 0],
+				"cubes": [
+					{"origin": [1.5, 0, -1], "size": [1, 4, 2], "uv": [23, 6]}
+				]
+			},
+			{
+				"name": "left_wing",
+				"parent": "body",
+				"pivot": [0.5, 3, 1],
+				"cubes": [
+					{"origin": [0.5, -2, 1], "size": [0, 5, 8], "uv": [16, 14], "mirror": true}
+				]
+			},
+			{
+				"name": "right_wing",
+				"parent": "body",
+				"pivot": [-0.5, 3, 1],
+				"cubes": [
+					{"origin": [-0.5, -2, 1], "size": [0, 5, 8], "uv": [16, 14]}
+				]
+			}
+		]
+	}`
+}
 skin_presets.armor_main = {
 	display_name: 'Armor (Main)',
 	pose: true,
@@ -1455,9 +1528,9 @@ skin_presets.chest = {
 	}`
 };
 skin_presets.chest_left = {
-	display_name: 'Chest Right',
+	display_name: 'Chest Left',
 	model: `{
-		"name": "bell",
+		"name": "chest_left",
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -1475,9 +1548,9 @@ skin_presets.chest_left = {
 	}`
 };
 skin_presets.chest_right = {
-	display_name: 'Chest Left',
+	display_name: 'Chest Right',
 	model: `{
-		"name": "bell",
+		"name": "chest_right",
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -1687,7 +1760,7 @@ skin_presets.cow = {
 skin_presets.creeper = {
 	display_name: 'Creeper',
 	model: `{
-		"name": "alex",
+		"name": "creeper",
 		"texturewidth": 64,
 		"textureheight": 32,
 		"eyes": [
@@ -2263,7 +2336,7 @@ skin_presets.enderdragon = {
 skin_presets.enderman = {
 	display_name: 'Enderman',
 	model: `{
-		"name": "enderman:geometry",
+		"name": "enderman",
 		"texturewidth": 64,
 		"textureheight": 32,
 		"bones": [
@@ -5040,6 +5113,24 @@ skin_presets.spider = {
 		]
 	}`
 };
+skin_presets.spyglass = {
+	display_name: 'Spyglass',
+	model: `{
+		"name": "spyglass",
+		"texturewidth": 16,
+		"textureheight": 16,
+		"bones": [
+			{
+				"name": "spyglass",
+				"pivot": [0, 0, 0],
+				"cubes": [
+					{"origin": [-11.1, -0.1, -0.1], "size": [6.2, 2.2, 2.2], "uv": [0, 0]},
+					{"origin": [-5, 0, 0], "size": [5, 2, 2], "uv": [0, 4]}
+				]
+			}
+		]
+	}`
+}
 skin_presets.squid = {
 	display_name: 'Squid',
 	model: `{
@@ -5677,6 +5768,103 @@ skin_presets.vindicator = {
 		]
 	}`
 };
+skin_presets.warden = {
+	display_name: 'Warden',
+	model: `{
+		"name": "warden",
+		"texturewidth": 128,
+		"textureheight": 128,
+		"eyes": [
+			[12, 50, 12, 7]
+		],
+		"bones": [
+			{
+				"name": "root",
+				"pivot": [0, 0, 0]
+			},
+			{
+				"name": "body",
+				"parent": "root",
+				"pivot": [0, 21, 0],
+				"cubes": [
+					{"origin": [-9, 13, -4], "size": [18, 21, 11], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "right_ribcage",
+				"parent": "body",
+				"pivot": [-7, 23, -4],
+				"cubes": [
+					{"origin": [-9, 13, -4.1], "size": [9, 21, 0], "uv": [90, 11]}
+				]
+			},
+			{
+				"name": "left_ribcage",
+				"parent": "body",
+				"pivot": [7, 23, -4],
+				"cubes": [
+					{"origin": [0, 13, -4.1], "size": [9, 21, 0], "uv": [90, 11], "mirror": true}
+				]
+			},
+			{
+				"name": "head",
+				"parent": "body",
+				"pivot": [0, 34, 0],
+				"cubes": [
+					{"origin": [-8, 34, -5], "size": [16, 16, 10], "uv": [0, 32]}
+				]
+			},
+			{
+				"name": "right_tendril",
+				"parent": "head",
+				"pivot": [-8, 46, 0],
+				"cubes": [
+					{"origin": [-24, 43, 0], "size": [16, 16, 0], "uv": [52, 32]}
+				]
+			},
+			{
+				"name": "left_tendril",
+				"parent": "head",
+				"pivot": [8, 46, 0],
+				"cubes": [
+					{"origin": [8, 43, 0], "size": [16, 16, 0], "uv": [58, 0]}
+				]
+			},
+			{
+				"name": "right_arm",
+				"parent": "body",
+				"pivot": [-13, 34, 1],
+				"cubes": [
+					{"origin": [-17, 6, -3], "size": [8, 28, 8], "uv": [44, 50]}
+				]
+			},
+			{
+				"name": "left_arm",
+				"parent": "body",
+				"pivot": [13, 34, 1],
+				"cubes": [
+					{"origin": [9, 6, -3], "size": [8, 28, 8], "uv": [0, 58]}
+				]
+			},
+			{
+				"name": "right_leg",
+				"parent": "root",
+				"pivot": [-5.9, 13, 0],
+				"cubes": [
+					{"origin": [-9, 0, -3], "size": [6, 13, 6], "uv": [76, 48]}
+				]
+			},
+			{
+				"name": "left_leg",
+				"parent": "root",
+				"pivot": [5.9, 13, 0],
+				"cubes": [
+					{"origin": [3, 0, -3], "size": [6, 13, 6], "uv": [76, 76]}
+				]
+			}
+		]
+	}`
+}
 skin_presets.witch = {
 	display_name: 'Witch',
 	model: `{
