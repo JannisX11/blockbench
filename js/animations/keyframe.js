@@ -241,7 +241,8 @@ class Keyframe {
 
 			if (this.interpolation != 'linear' && this.interpolation != 'step') {
 				return {
-					post: this.getArray(),
+					pre: this.getArray(0),
+					post: this.getArray(1),
 					lerp_mode: this.interpolation,
 				}
 			} else if (this.data_points.length == 1) {
