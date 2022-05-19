@@ -321,7 +321,7 @@ class BoneAnimator extends GeneralAnimator {
 		return this;
 	}
 	interpolate(channel, allow_expression, axis) {
-		let time = Timeline.time;
+		let time = this.animation.time;
 		var before = false
 		var after = false
 		var result = false
@@ -618,7 +618,7 @@ class EffectAnimator extends GeneralAnimator {
 	displayFrame(in_loop) {
 		if (in_loop && !this.muted.sound) {
 			this.sound.forEach(kf => {
-				var diff = kf.time - Timeline.time;
+				var diff = kf.time - this.animation.time;
 				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100)) {
 					if (kf.data_points[0].file && !kf.cooldown) {
 						var media = new Audio(kf.data_points[0].file);
@@ -641,7 +641,7 @@ class EffectAnimator extends GeneralAnimator {
 		
 		if (!this.muted.particle) {
 			this.particle.forEach(kf => {
-				var diff = Timeline.time - kf.time;
+				var diff = this.animation.time - kf.time;
 				if (diff >= 0) {
 					let i = 0;
 					for (var data_point of kf.data_points) {
@@ -671,20 +671,20 @@ class EffectAnimator extends GeneralAnimator {
 		
 		if (!this.muted.timeline) {
 			this.timeline.forEach(kf => {
-				if ((kf.time > this.last_displayed_time && kf.time <= Timeline.time) || Math.epsilon(kf.time, Timeline.time, 0.01)) {
+				if ((kf.time > this.last_displayed_time && kf.time <= this.animation.time) || Math.epsilon(kf.time, this.animation.time, 0.01)) {
 					let script = kf.data_points[0].script;
 					Animator.MolangParser.parse(script);
 				}
 			})
 		}
 
-		this.last_displayed_time = Timeline.time;
+		this.last_displayed_time = this.animation.time;
 	}
 	startPreviousSounds() {
 		if (!this.muted.sound) {
 			this.sound.forEach(kf => {
 				if (kf.data_points[0].file && !kf.cooldown) {
-					var diff = kf.time - Timeline.time;
+					var diff = kf.time - this.animation.time;
 					if (diff < 0 && Timeline.waveforms[kf.data_points[0].file] && Timeline.waveforms[kf.data_points[0].file].duration > -diff) {
 						var media = new Audio(kf.data_points[0].file);
 						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);

@@ -404,6 +404,9 @@ class Animation {
 			BarItems.slider_animation_length.update()
 		}
 	}
+	get time() {
+		return (this.length && this.loop === 'loop') ? (Timeline.time % this.length) : Timeline.time;
+	}
 	createUniqueName(arr) {
 		var scope = this;
 		var others = Animator.animations;
@@ -1461,7 +1464,7 @@ Animator.MolangParser.global_variables = {
 		return Math.clamp(time, 0, 0.1);
 	},
 	get 'query.anim_time'() {
-		return Timeline.time;
+		return Animation.selected.time;
 	},
 	get 'query.life_time'() {
 		return Timeline.time;

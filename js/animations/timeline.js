@@ -609,6 +609,7 @@ Interface.definePanels(() => {
 				graph_offset: 200,
 				graph_size: 200,
 				show_zero_line: true,
+				loop_graph: '',
 
 				channels: {
 					rotation: true,
@@ -632,6 +633,7 @@ Interface.definePanels(() => {
 				graph() {
 					let ba = this.graph_editor_animator;
 					if (!ba || !ba[this.graph_editor_channel] || !ba[this.graph_editor_channel].length) {
+						this.loop_graph = '';
 						return '';
 					}
 					let original_time = Timeline.time;
@@ -640,6 +642,7 @@ Interface.definePanels(() => {
 					let clientHeight = this.$refs.timeline_body ? this.$refs.timeline_body.clientHeight : 400;
 					let keyframes = ba[this.graph_editor_channel];
 					let points = [];
+					let loop_points = [];
 					let min = this.show_zero_line ? -1 : 10000,
 						max = this.show_zero_line ? 1 : -10000;
 
@@ -654,6 +657,12 @@ Interface.definePanels(() => {
 						min = Math.min(min, value);
 						max = Math.max(max, value);
 						if (snap_kf) snap_kf.display_value = value;
+
+						if (time >= Animation.selected.length && Animation.selected.length && Animation.selected.loop === 'loop') {
+							Timeline.time = Animation.selected.time;
+							let value = ba.interpolate(this.graph_editor_channel, false, this.graph_editor_axis);
+							loop_points.push(value);
+						}
 					}
 					
 					Timeline.time = original_time;
@@ -669,6 +678,14 @@ Interface.definePanels(() => {
 					points.forEach((value, i) => {
 						string += `${string.length ? 'L' : 'M'}${i*step} ${this.graph_offset - value * this.graph_size} `
 					})
+
+					this.loop_graph = '';
+					if (loop_points.length) {
+						loop_points.forEach((value, i) => {
+							i = i + points.length - loop_points.length;
+							this.loop_graph += `${this.loop_graph.length ? 'L' : 'M'}${i*step} ${this.graph_offset - value * this.graph_size} `
+						})
+					}
 
 					return string;
 				}
@@ -1049,6 +1066,7 @@ Interface.definePanels(() => {
 								<svg :style="{'margin-left': clamp(scroll_left, 9, Infinity) + 'px'}">
 									<path :d="zero_line" style="stroke: var(--color-grid);"></path>
 									<path :d="one_line" style="stroke: var(--color-grid); stroke-dasharray: 6;" v-if="graph_editor_channel == 'scale'"></path>
+									<path :d="loop_graph" class="loop_graph" style="stroke: var(--color-grid);"></path>
 									<path :d="graph" :style="{stroke: 'var(--color-axis-' + graph_editor_axis + ')'}"></path>
 								</svg>
 								<template v-if="graph_editor_animator">

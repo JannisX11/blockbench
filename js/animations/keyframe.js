@@ -85,7 +85,10 @@ class Keyframe {
 		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
 		data_point = this.data_points[data_point];
 		let last_value = Animator._last_values[this.channel] && Animator._last_values[this.channel][axis];
-		let result = Animator.MolangParser.parse(data_point && data_point[axis], {this: last_value});
+		let result = Animator.MolangParser.parse(data_point && data_point[axis], {
+			'this': last_value,
+			'query.anim_time': this.animator.animation.time
+		});
 		return result;
 	}
 	set(axis, value, data_point = 0) {
