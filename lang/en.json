@@ -691,6 +691,8 @@
 	"settings.highlight_cubes.desc": "Highlight cubes when you hover over them or select them",
 	"settings.deactivate_size_limit": "Deactivate Size Limit",
 	"settings.deactivate_size_limit.desc": "Deactivate the size limit for specific model formats. WARNING: This can cause invalid models.",
+	"settings.allow_display_slot_mirror": "Allow Display Slot Mirroring",
+	"settings.allow_display_slot_mirror.desc": "Allow Display slots for Java item models to be mirrored. WARNING: This only works in Minecraft 1.14 or earlier or in special cases.",
 	"settings.vertex_merge_distance": "Vertex Merge Distance",
 	"settings.vertex_merge_distance.desc": "Distance within which vertices are merged using merging by distance",
 	"settings.preview_paste_behavior": "Default Preview Paste Behavior",

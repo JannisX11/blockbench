@@ -492,7 +492,7 @@ onVueSetup(function() {
 			computed: {
 				list() {
 					if (this.search_term) {
-						var keywords = this.search_term.replace(/_/g, ' ').split(' ');
+						var keywords = this.search_term.toLowerCase().replace(/_/g, ' ').split(' ');
 						var actions = [];
 
 						for (var action of Keybinds.actions) {

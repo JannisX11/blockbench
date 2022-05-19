@@ -355,11 +355,6 @@
 	.tool:hover {
 		color: var(--color-light);
 	}
-	.tool.head_right {
-		margin-top: -29px;
-		height: 24px;
-		float: right;
-	}
 	.tool.right_tool {
 		position: relative;
 	}

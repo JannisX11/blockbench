@@ -1668,7 +1668,8 @@ Interface.definePanels(function() {
 				axes: [0, 1, 2],
 				reference_model: 'player',
 				pose_angle: 0,
-				slot: new DisplaySlot()
+				slot: new DisplaySlot(),
+				allow_mirroring: Settings.get('allow_display_slot_mirror')
 			}},
 			watch: {
 				pose_angle(value) {
@@ -1721,6 +1722,9 @@ Interface.definePanels(function() {
 					Undo.finishEdit('Change display setting');
 					Interface.removeSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
 				},
+				showMirroringSetting() {
+					Settings.openDialog({search_term: tl('settings.allow_display_slot_mirror')});
+				},
 				getAxisLetter
 			},
 			template: `
@@ -1756,7 +1760,10 @@ Interface.definePanels(function() {
 		
 					<div id="display_sliders">
 						
-						<p>${ tl('display.rotation') }</p><div class="tool head_right" v-on:click="resetChannel('rotation')"><i class="material-icons">replay</i></div>
+						<div class="bar display_slot_section_bar">
+							<p>${ tl('display.rotation') }</p>
+							<div class="tool head_right" v-on:click="resetChannel('rotation')"><i class="material-icons">replay</i></div>
+						</div>
 						<div class="bar slider_input_combo" v-for="axis in axes">
 							<input type="range" class="tool disp_range" v-model.number="slot.rotation[axis]" v-bind:trigger_type="'rotation.'+axis"
 								min="-180" max="180" step="1" value="0"
@@ -1765,7 +1772,10 @@ Interface.definePanels(function() {
 							<div class="color_corner" :style="{'border-color': \`var(--color-axis-\${getAxisLetter(axis)})\`}"></div>
 						</div>
 						
-						<p>${ tl('display.translation') }</p><div class="tool head_right" v-on:click="resetChannel('translation')"><i class="material-icons">replay</i></div>
+						<div class="bar display_slot_section_bar">
+							<p>${ tl('display.translation') }</p>
+							<div class="tool head_right" v-on:click="resetChannel('translation')"><i class="material-icons">replay</i></div>
+							</div>
 						<div class="bar slider_input_combo" v-for="axis in axes">
 							<input type="range" class="tool disp_range" v-model.number="slot.translation[axis]" v-bind:trigger_type="'translation.'+axis"
 								v-bind:min="Math.abs(slot.translation[axis]) < 10 ? -20 : (slot.translation[axis] > 0 ? -70*3+10 : -80)"
@@ -1775,10 +1785,14 @@ Interface.definePanels(function() {
 							<input lang="en" type="number" class="tool disp_text" v-model.number="slot.translation[axis]" min="-80" max="80" step="0.5" value="0" @input="change(axis, 'translation');save()" @mousedown="start()">
 							<div class="color_corner" :style="{'border-color': \`var(--color-axis-\${getAxisLetter(axis)})\`}"></div>
 						</div>
-		
-						<p>${ tl('display.scale') }</p><div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>
+
+						<div class="bar display_slot_section_bar">
+							<p>${ tl('display.scale') }</p>
+							<div class="tool head_right" v-on:click="showMirroringSetting()"><i class="material-icons">flip</i></div>
+							<div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>
+						</div>
 						<div class="bar slider_input_combo" v-for="axis in axes">
-							<div class="tool display_scale_invert" v-on:click="invert(axis)">
+							<div class="tool display_scale_invert" v-on:click="invert(axis)" v-if="allow_mirroring">
 								<div class="tooltip">${ tl('display.mirror') }</div>
 								<i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i>
 							</div>
@@ -1792,7 +1806,9 @@ Interface.definePanels(function() {
 						</div>
 						
 						<template v-if="reference_model == 'player'">
-							<p>${ tl('display.pose_angle') }</p>
+							<div class="bar display_slot_section_bar">
+								<p>${ tl('display.pose_angle') }</p>
+							</div>
 							<div class="bar slider_input_combo">
 								<input type="range" class="tool disp_range" v-model.number="pose_angle"
 									min="-180" max="180" step="1" value="0">

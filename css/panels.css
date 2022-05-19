@@ -280,9 +280,6 @@
 	.tabs_small  label:hover {
 		color: var(--color-light);
 	}
-	#display_sliders p {
-		margin-top: 6px;
-	}
 	#display_bar .tool, #display_ref_bar > div {
 		width: calc(100% / 8 - 2px);
 		max-width: 52px;
@@ -310,6 +307,15 @@
 	}
 	.tool.display_scale_invert {
 		position: relative;
+	}
+	.bar.display_slot_section_bar {
+		display: flex;
+		margin-right: 2px;
+		margin-top: 2px;
+	}
+	.bar.display_slot_section_bar p {
+		flex-grow: 1;
+		margin-top: 6px;
 	}
 
 	input#preset_name {

@@ -248,6 +248,9 @@ const Settings = {
 		new Setting('highlight_cubes',  	{category: 'edit', value: true, onChange() {
 			updateCubeHighlights();
 		}});
+		new Setting('allow_display_slot_mirror', {category: 'edit', value: false, onChange(value) {
+			DisplayMode.vue.allow_mirroring = value;
+		}})
 		new Setting('deactivate_size_limit',{category: 'edit', value: false});
 		new Setting('vertex_merge_distance',{category: 'edit', value: 0.1, step: 0.01, type: 'number'});
 		new Setting('preview_paste_behavior',{category: 'edit', value: 'always_ask', type: 'select', options: {
@@ -384,7 +387,7 @@ const Settings = {
 		}
 		for (var id in settings) {
 			var setting = settings[id];
-			if (!Condition(setting.condition)) return;
+			if (!Condition(setting.condition)) continue;
 			if (setting.onChange && hasSettingChanged(id)) {
 				setting.onChange(setting.value);
 			}
@@ -408,6 +411,15 @@ const Settings = {
 			return settings[id].value;
 		}
 	},
+	openDialog(options = {}) {
+		for (var sett in settings) {
+			if (settings.hasOwnProperty(sett)) {
+				Settings.old[sett] = settings[sett].value
+			}
+		}
+		Settings.dialog.show();
+		if (options.search_term) Settings.dialog.content_vue.search_term = options.search_term;
+	},
 	old: {}
 }
 Settings.setup()
@@ -422,7 +434,7 @@ function updateStreamerModeNotification() {
 			text_color: 'var(--color-light)',
 			text: [
 				{type: 'h1', text: tl('interface.streamer_mode_on'), click() {
-					ActionControl.select(`setting: ${tl('settings.streamer_mode')}`);
+					Settings.openDialog({search_term: tl('settings.streamer_mode')})
 				}}
 			]
 		})
@@ -558,7 +570,7 @@ onVueSetup(function() {
 			computed: {
 				list() {
 					if (this.search_term) {
-						var keywords = this.search_term.replace(/_/g, ' ').split(' ');
+						var keywords = this.search_term.toLowerCase().replace(/_/g, ' ').split(' ');
 						var items = {};
 						for (var key in settings) {
 							var setting = settings[key];
