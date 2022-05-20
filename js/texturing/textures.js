@@ -378,7 +378,23 @@ class Texture {
 		} else {
 			this.source = path.replace(/#/g, '%23') + '?' + tex_version
 		}
-		if (Format.texture_folder) this.generateFolder(path)
+		if (Format.texture_folder) {
+			this.generateFolder(path);
+			if ((this.folder + this.name).match(/[^a-z0-9._/\\-]/) && !Dialog.open && settings.dialog_invalid_characters.value) {
+				Blockbench.showMessageBox({
+					translateKey: 'invalid_characters',
+					message: tl('message.invalid_characters.message', ['a-z0-9._-']),
+					icon: 'folder_open',
+					buttons: [tl('dialog.ok'), tl('dialog.dontshowagain')],
+					confirm: 0,
+					cancel: 0
+				}, result => {
+					if (result === 1) {
+						settings.dialog_invalid_characters.set(false);
+					}
+				})
+			}
+		}
 		this.startWatcher()
 		Painter.current = {}
 		

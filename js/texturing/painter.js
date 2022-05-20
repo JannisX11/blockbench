@@ -874,7 +874,7 @@ const Painter = {
 			} else {
 				for (var element2 of Cube.all) {
 					if (
-						element.inflate === element2.inflate &&
+						Math.epsilon(element.inflate, element2.inflate, e) &&
 						Math.epsilon(element.from[2], element2.from[2], e) && Math.epsilon(element.to[2], element2.to[2], e) &&
 						Math.epsilon(element.from[1], element2.from[1], e) && Math.epsilon(element.to[1], element2.to[1], e) &&
 						Math.epsilon(element.size(0), element2.size(0), e) && Math.epsilon(element.to[0]-center, center-element2.from[0], e)

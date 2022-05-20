@@ -210,6 +210,8 @@
 	"message.loose_texture.title": "Texture Import",
 	"message.loose_texture.message": "The imported texture is not contained in a resource pack. Minecraft can only load textures inside the textures folder of a loaded resource pack.",
 	"message.loose_texture.change": "Change Path",
+	"message.invalid_characters.title": "Invalid Path",
+	"message.invalid_characters.message": "The path of the imported file contains invalid characters, uppercase letters, or white spaces. The supported characters are: %0",
 	"message.update_res.title": "Texture Resolution",
 	"message.update_res.message": "Would you like to update the project resolution to the resolution of this texture? Click 'Cancel' if your texture has a higher resolution than normal.",
 	"message.update_res.update": "Update",
