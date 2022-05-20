@@ -243,8 +243,11 @@ class Keyframe {
 		if (this.transform) {
 
 			if (this.interpolation != 'linear' && this.interpolation != 'step') {
+				let previous = this.getPreviousKeyframe();
+				let include_pre = (!previous && this.time > 0) || (previous && previous.interpolation != 'catmullrom')
 				return {
-					post: this.getArray(),
+					pre: include_pre ? this.getArray(0) : undefined,
+					post: this.getArray(include_pre ? 1 : 0),
 					lerp_mode: this.interpolation,
 				}
 			} else if (this.data_points.length == 1) {
@@ -1102,7 +1105,7 @@ Interface.definePanels(function() {
 							<label>{{ tl('panel.keyframe.type', [getKeyframeInfos()]) }}</label>
 							<div
 								class="in_list_button"
-								v-if="keyframes[0].animator.channels[channel] && keyframes[0].data_points.length < keyframes[0].animator.channels[channel].max_data_points"
+								v-if="keyframes[0].animator.channels[channel] && keyframes[0].data_points.length < keyframes[0].animator.channels[channel].max_data_points && keyframes[0].interpolation !== 'catmullrom'"
 								v-on:click.stop="addDataPoint()"
 								title="${ tl('panel.keyframe.add_data_point') }"
 							>
