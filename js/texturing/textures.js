@@ -1496,29 +1496,46 @@ Clipbench.setTexture = function(texture) {
 	//Sets the raw image of the texture
 	if (!isApp) return;
 
-	if (texture.mode === 'bitmap') {
-		var img = nativeImage.createFromDataURL(texture.source)
-	} else {
-		var img = nativeImage.createFromPath(texture.source.split('?')[0])
+	Clipbench.texture = texture.getUndoCopy();
+	delete Clipbench.texture.path;
+	Clipbench.texture.mode = 'bitmap';
+	Clipbench.texture.saved = false;
+	Clipbench.texture.source = 'data:image/png;base64,'+texture.getBase64();
+
+	if (isApp) {
+		if (texture.mode === 'bitmap') {
+			var img = nativeImage.createFromDataURL(texture.source);
+		} else {
+			var img = nativeImage.createFromPath(texture.source.split('?')[0]);
+		}
+		clipboard.writeImage(img);
 	}
-	clipboard.writeImage(img)
 }
 Clipbench.pasteTextures = function() {
-	function loadImage(dataUrl) {
-		var texture = new Texture({name: 'pasted', folder: 'block' }).fromDataURL(dataUrl).fillParticle().add(true)
+	function loadFromDataUrl(dataUrl) {
+		if (!dataUrl || dataUrl.length < 32) return;
+		var texture = new Texture({name: 'pasted', folder: 'block' }).fromDataURL(dataUrl).fillParticle().add(true);
 		setTimeout(function() {
-			texture.openMenu()
+			texture.openMenu();
 		}, 40)
 	}
-	if (isApp) {
+
+	if (Clipbench.texture) {
+		var texture = new Texture(Clipbench.texture).fillParticle().load().add(true);
+		setTimeout(function() {
+			texture.openMenu();
+		}, 40)
+		Clipbench.texture = null;
+
+	} else if (isApp) {
 		var image = clipboard.readImage().toDataURL();
-		loadImage(image);
+		loadFromDataUrl(image);
 	} else {
 		navigator.clipboard.read().then(content => {
 			if (content && content[0] && content[0].types.includes('image/png')) {
 				content[0].getType('image/png').then(blob => {
 					let url = URL.createObjectURL(blob);
-					loadImage(url);
+					loadFromDataUrl(url);
 				})
 			}
 		}).catch(() => {})

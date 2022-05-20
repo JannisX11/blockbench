@@ -1079,7 +1079,7 @@ class Preview {
 		if (this.movingBackground) {
 			if (event.shiftKey || Pressing.overrides.shift) {
 				let diff = event.clientY - this.selection.client_y;
-				this.background.size = limitNumber( this.background.before.size + (diff * (0.6 + this.background.size/1200)), 0, 10e3)
+				this.background.size = limitNumber( this.background.before.size + (diff * (0.6 + this.background.size/1200)), 40, 10e3)
 			} else {
 				this.background.x = this.background.before.x + (event.clientX - this.selection.client_x);
 				this.background.y = this.background.before.y + (event.clientY - this.selection.client_y);
@@ -1319,7 +1319,7 @@ class Preview {
 	clearBackground() {
 		this.loadBackground()
 		this.background.image = false
-		this.background.size = limitNumber(this.background.size, 100, 2400)
+		this.background.size = limitNumber(this.background.size, 40, 2400)
 		this.background.x = limitNumber(this.background.x, 0, this.width-30)
 		this.background.y = limitNumber(this.background.y, 0, this.height-30)
 		this.loadBackground()
@@ -1378,7 +1378,7 @@ class Preview {
 			title: tl('message.set_background_position.title'),
 			form: {
 				position: {label: 'message.set_background_position.position', type: 'vector', dimensions: 2, value: [scope.background.x, scope.background.y]},
-				size: {label: 'message.set_background_position.size', type: 'number', value: scope.background.size}
+				size: {label: 'message.set_background_position.size', type: 'number', value: scope.background.size, min: 40, max: 10000}
 			},
 			onConfirm(form) {
 				if (!scope.background) return;
