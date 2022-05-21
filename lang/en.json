@@ -1196,6 +1196,8 @@
 	"action.view_mode.wireframe": "Wireframe",
 	"action.view_mode.uv": "UV Preview",
 	"action.view_mode.normal": "Face Normal",
+	"action.preview_scene": "Preview Scene",
+	"action.preview_scene.desc": "Change the model preview scene",
 	"action.screenshot_model": "Screenshot Model",
 	"action.screenshot_model.desc": "Take a cropped screenshot of the model from the current angle",
 	"action.record_model_gif": "Record GIF...",

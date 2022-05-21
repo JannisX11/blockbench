@@ -408,6 +408,8 @@ const Canvas = {
 		})
 	})(),
 	transparentMaterial: new THREE.MeshBasicMaterial({visible: false, name: 'invisible'}),
+	global_light_color: new THREE.Color(0xffffff),
+
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
 	buildGrid() {
 		three_grid.children.length = 0;

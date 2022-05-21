@@ -109,7 +109,7 @@ class Texture {
 
 			uniform bool SHADE;
 			uniform bool EMISSIVE;
-			uniform float BRIGHTNESS;
+			uniform vec3 LIGHTCOLOR;
 
 			varying vec2 vUv;
 			varying float light;
@@ -123,12 +123,17 @@ class Texture {
 
 				if (EMISSIVE == false) {
 
-					gl_FragColor = vec4(lift + color.rgb * light * BRIGHTNESS, color.a);
+					gl_FragColor = vec4(lift + color.rgb * light, color.a);
+					gl_FragColor.r = gl_FragColor.r * LIGHTCOLOR.r;
+					gl_FragColor.g = gl_FragColor.g * LIGHTCOLOR.g;
+					gl_FragColor.b = gl_FragColor.b * LIGHTCOLOR.b;
 
 				} else {
 
-					float light2 = (light * BRIGHTNESS) + (1.0 - light * BRIGHTNESS) * (1.0 - color.a);
-					gl_FragColor = vec4(lift + color.rgb * light2, 1.0);
+					float light_r = (light * LIGHTCOLOR.r) + (1.0 - light * LIGHTCOLOR.r) * (1.0 - color.a);
+					float light_g = (light * LIGHTCOLOR.g) + (1.0 - light * LIGHTCOLOR.g) * (1.0 - color.a);
+					float light_b = (light * LIGHTCOLOR.b) + (1.0 - light * LIGHTCOLOR.b) * (1.0 - color.a);
+					gl_FragColor = vec4(lift + color.r * light_r, lift + color.g * light_g, lift + color.b * light_b, 1.0);
 
 				}
 
@@ -141,7 +146,7 @@ class Texture {
 			uniforms: {
 				map: {type: 't', value: tex},
 				SHADE: {type: 'bool', value: settings.shading.value},
-				BRIGHTNESS: {type: 'bool', value: settings.brightness.value / 50},
+				LIGHTCOLOR: {type: 'vec3', value: new THREE.Color().copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50)},
 				EMISSIVE: {type: 'bool', value: this.render_mode == 'emissive'}
 			},
 			vertexShader: vertShader,

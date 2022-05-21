@@ -2009,7 +2009,7 @@ function updateShading() {
 	Texture.all.forEach(tex => {
 		let material = tex.getMaterial();
 		material.uniforms.SHADE.value = settings.shading.value;
-		material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+		material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
 	})
 	Canvas.emptyMaterials.forEach(material => {
 		material.uniforms.SHADE.value = settings.shading.value;

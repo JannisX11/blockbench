@@ -1068,6 +1068,7 @@ var format = new ModelFormat({
 	animated_textures: true,
 	animation_files: true,
 	animation_mode: true,
+	preview_scenes: true,
 	locators: true,
 	texture_meshes: true,
 	codec
