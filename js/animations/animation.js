@@ -1035,16 +1035,11 @@ const Animator = {
 				}
 			}
 		})
-		Interface.Panels.variable_placeholders.inside_vue.text.split('\n').forEach(line => {
-			line = line.replace(/ +/g, '');
-			if (!line) return;
-			let [key, value] = line.split(/=\s*(.+)/);
-			if (key == 'preview.texture') {
-				let tex_index = parseInt(Animator.MolangParser.parse(value));
-				let texture = Texture.all[tex_index % Texture.all.length];
-				if (texture) texture.select();
-			}
-		});
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.texture\s*=/m)) {
+			let tex_index = Animator.MolangParser.variableHandler('preview.texture');
+			let texture = Texture.all[tex_index % Texture.all.length];
+			if (texture) texture.select();
+		}
 
 		if (Group.selected || NullObject.selected[0]) {
 			Transformer.updateSelection()

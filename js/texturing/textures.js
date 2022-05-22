@@ -314,6 +314,8 @@ class Texture {
 			this.namespace = spaces[0]
 			link = spaces[1]
 			path_array[path_array.length-1] = this.namespace
+		} else {
+			path_array[path_array.length-1] = 'minecraft'
 		}
 
 		if (path_array.includes('cit')) {
