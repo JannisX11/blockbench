@@ -503,6 +503,7 @@
 
 	"dialog.share_model.title": "Share Model",
 	"dialog.share_model.expire_time": "Expire Time",
+	"dialog.share_model.thumbnail": "Thumbnail",
 	"dialog.share_model.copied_to_clipboard": "Link copied to clipboard",
 	"dialog.share_model.failed": "Failed to upload model",
 
@@ -517,6 +518,7 @@
 	"dialog.skin.title": "Create Minecraft Skin",
 	"dialog.skin.model": "Model",
 	"dialog.skin.variant": "Variant",
+	"dialog.skin.high_res_texture": "Please note that skins with the selected resolution will not work as regular Minecraft skins. Select a lower resolution.",
 	"dialog.skin.texture": "Texture (Optional)",
 	"dialog.skin.pose": "Pose",
 	"dialog.skin.layer_template": "Layer Texture",
