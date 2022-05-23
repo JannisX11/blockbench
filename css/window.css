@@ -895,7 +895,7 @@
 	}
 	#start_files div.start_screen_right {
 		position: relative;
-		min-height: 550px;
+		min-height: 250px;
 	}
 	#start_files div.start_screen_left h2 {
 		margin-left: 24px;
@@ -906,6 +906,9 @@
 	}
 	#start_files div.start_screen_right i {
 		vertical-align: sub;
+	}
+	.tool.quickstart_button i {
+		font-size: 17pt;
 	}
 
 	#start_files li.format_category {
@@ -943,11 +946,14 @@
 		font-weight: 900;
 		margin-right: 10px;
 	}
-	#start_files div.start_screen_left i {
+	.format_entry i {
 		font-size: 18pt;
 		height: 22px;
 		margin: 2px 8px 0px 0;
 		display: inline-block;
+	}
+	.format_entry i.fa_big {
+		font-size: 16pt;
 	}
 	.format_target {
 		padding: 10px 0;
@@ -959,11 +965,11 @@
 		border-radius: 5px;
 	}
 	#start_files .button_bar {
-		text-align: right;
+		text-align: left;
 		padding-right: 14px;
 	}
-	#start_files .format_setup_close_button {
-		margin-top: 9px;
+	#start_files .format_page_close_button {
+		margin-top: 8px;
 		margin-left: -2px;
 		cursor: pointer;
 		width: 28px;

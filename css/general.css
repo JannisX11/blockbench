@@ -336,6 +336,10 @@
 	.tool:active .icon.fa_big {
 		padding-top: 2px;
 	}
+	img.icon {
+		height: 26px;
+		image-rendering: pixelated;
+	}
 
 	.tool.enabled {
 		border-bottom: 3px solid var(--color-accent);

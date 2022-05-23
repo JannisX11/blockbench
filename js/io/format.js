@@ -3,9 +3,13 @@ const Formats = {};
 
 //Formats
 class ModelFormat {
-	constructor(data) {
-		Formats[data.id] = this;
-		this.id = data.id;
+	constructor(id, data) {
+		if (typeof id == 'object') {
+			data = id;
+			id = data.id;
+		}
+		Formats[id] = this;
+		this.id = id;
 		this.name = data.name || tl('format.'+this.id);
 		this.description = data.description || tl('format.'+this.id+'.desc');
 		this.category = data.category || 'other';
@@ -20,12 +24,16 @@ class ModelFormat {
 		this.codec = data.codec;
 		this.onActivation = data.onActivation;
 		this.onDeactivation = data.onDeactivation;
+		this.format_page = data.format_page;
 		Merge.string(this, data, 'icon');
 		Merge.boolean(this, data, 'show_on_start_screen');
 		Merge.boolean(this, data, 'confidential');
 
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].merge(this, data);
+		}
+		if (this.format_page && this.format_page.component) {
+			Vue.component(`format_page_${this.id}`, this.format_page.component)
 		}
 		if (Blockbench.setup_successful && StartScreen.vue) {
 			StartScreen.vue.$forceUpdate();
