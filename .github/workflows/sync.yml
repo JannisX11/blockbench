@@ -10,7 +10,7 @@ env:
   # Optional, defaults to UPSTREAM_BRANCH
   DOWNSTREAM_BRANCH: "dev"
   # Optional merge arguments
-  MERGE_ARGS: "--ours"
+  MERGE_ARGS: "-Xours"
   # Optional push arguments
   PUSH_ARGS: ""
 
