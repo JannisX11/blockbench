@@ -688,6 +688,7 @@ BARS.defineActions(function() {
 				id: 'share_model',
 				title: 'dialog.share_model.title',
 				form: {
+					name: {type: 'text', label: 'generic.name', value: Project.name},
 					expire_time: {label: 'dialog.share_model.expire_time', type: 'select', default: '2d', options: {
 						'10m': tl('dates.minutes', [10]),
 						'1h': tl('dates.hour', [1]),
@@ -707,9 +708,10 @@ BARS.defineActions(function() {
 				buttons: ['generic.share', 'dialog.cancel'],
 				onConfirm: function(formResult) {
 		
+					let name = formResult.name;
 					let expire_time = formResult.expire_time;
 					let model = Codecs.project.compile({compressed: false});
-					let data = {expire_time, model}
+					let data = {name, expire_time, model}
 					if (formResult.thumbnail) data.thumbnail = thumbnail;
 
 					$.ajax({

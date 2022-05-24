@@ -1189,19 +1189,17 @@ BARS.defineActions(function() {
 				UVEditor.loadData()
 			}
 			if (Format.bone_rig) {
-				if (group) {
-					var pos1 = group.origin.slice()
-					base_cube.extend({
-						from:[ pos1[0]-0, pos1[1]-0, pos1[2]-0 ],
-						to:[   pos1[0]+1, pos1[1]+1, pos1[2]+1 ],
-						origin: pos1.slice()
-					})
-				}
+				var pos1 = group ? group.origin.slice() : [0, 0, 0];
+				base_cube.extend({
+					from:[ pos1[0]-1, pos1[1]-0, pos1[2]-1 ],
+					to:[   pos1[0]+1, pos1[1]+2, pos1[2]+1 ],
+					origin: pos1.slice()
+				})
 			}
 
 			if (Group.selected) Group.selected.unselect()
 			base_cube.select()
-			Canvas.updateView({elements: [base_cube], element_aspects: {transform: true}})
+			Canvas.updateView({elements: [base_cube], element_aspects: {transform: true, geometry: true}})
 			Undo.finishEdit('Add cube', {outliner: true, elements: selected, selection: true});
 			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 
