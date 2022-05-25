@@ -527,6 +527,7 @@ class OutlinerElement extends OutlinerNode {
 class NodePreviewController {
 	constructor(type, data = {}) {
 		this.type = type;
+		this.events = {};
 		type.preview_controller = this;
 
 		this.updateGeometry = null;
@@ -546,6 +547,8 @@ class NodePreviewController {
 		mesh.visible = element.visibility;
 		mesh.rotation.order = 'ZYX';
 		this.updateTransform(element);
+
+		this.dispatchEvent('setup', {element});
 	}
 	remove(element) {
 		let {mesh} = element;
@@ -558,6 +561,8 @@ class NodePreviewController {
 			}
 		}
 		delete Project.nodes_3d[element.uuid];
+
+		this.dispatchEvent('remove', {element});
 	}
 	updateAll(element) {
 		if (!element.mesh) this.setup(element);
@@ -567,6 +572,8 @@ class NodePreviewController {
 		if (this.updateUV) this.updateUV(element);
 		if (this.updateFaces) this.updateFaces(element);
 		if (this.updatePaintingGrid) this.updatePaintingGrid(element);
+
+		this.dispatchEvent('update_all', {element});
 	}
 	updateTransform(element) {
 		let mesh = element.mesh;
@@ -605,14 +612,43 @@ class NodePreviewController {
 		}
 
 		mesh.updateMatrixWorld();
+
+		this.dispatchEvent('update_transform', {element});
 	}
 	updateVisibility(element) {
 		element.mesh.visible = element.visibility;
+
+		this.dispatchEvent('update_visibility', {element});
 	}
 	updateSelection(element) {
 		let {mesh} = element;
 		if (mesh && mesh.outline) {
 			mesh.outline.visible = element.selected
+		}
+
+		this.dispatchEvent('update_selection', {element});
+	}
+
+	//Events
+	dispatchEvent(event_name, data) {
+		if (!this.events) return;
+		var list = this.events[event_name]
+		if (!list) return;
+		for (var i = 0; i < list.length; i++) {
+			if (typeof list[i] === 'function') {
+				list[i](data)
+			}
+		}
+	}
+	on(event_name, cb) {
+		if (!this.events[event_name]) {
+			this.events[event_name] = []
+		}
+		this.events[event_name].safePush(cb)
+	}
+	removeListener(event_name, cb) {
+		if (this.events[event_name]) {
+			this.events[event_name].remove(cb);
 		}
 	}
 }

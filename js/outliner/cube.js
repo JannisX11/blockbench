@@ -818,7 +818,8 @@ new NodePreviewController(Cube, {
 		this.updateGeometry(element);
 		this.updateFaces(element);
 		this.updateUV(element);
-		
+
+		this.dispatchEvent('setup', {element});
 	},
 	updateTransform(element) {
 		NodePreviewController.prototype.updateTransform(element);
@@ -835,6 +836,8 @@ new NodePreviewController(Cube, {
 		if (Modes.paint) {
 			element.preview_controller.updatePaintingGrid(element);
 		}
+
+		this.dispatchEvent('update_transform', {element});
 	},
 	updateGeometry(element) {
 		if (element.resizable) {
@@ -872,9 +875,11 @@ new NodePreviewController(Cube, {
 			].map(a => new THREE.Vector3().fromArray(a))
 			mesh.outline.geometry.setFromPoints(points);
 		}
+
+		this.dispatchEvent('update_geometry', {element});
 	},
-	updateFaces(cube) {
-		let {mesh} = cube;
+	updateFaces(element) {
+		let {mesh} = element;
 
 		let indices = [];
 		let j = 0;
@@ -882,13 +887,13 @@ new NodePreviewController(Cube, {
 		mesh.geometry.clearGroups();
 		let last_tex;
 		Canvas.face_order.forEach((fkey, i) => {
-			if (cube.faces[fkey].texture !== null) {
+			if (element.faces[fkey].texture !== null) {
 				indices.push(0 + i*4, 2 + i*4, 1 + i*4, 2 + i*4, 3 + i*4, 1 + i*4);
-				if (last_tex && cube.faces[fkey].texture === last_tex) {
+				if (last_tex && element.faces[fkey].texture === last_tex) {
 					mesh.geometry.groups[mesh.geometry.groups.length-1].count += 6;
 				} else {
 					mesh.geometry.addGroup(j*6, 6, j)
-					last_tex = cube.faces[fkey].texture;
+					last_tex = element.faces[fkey].texture;
 				}
 				mesh.geometry.faces.push(fkey)
 				j++;
@@ -913,17 +918,17 @@ new NodePreviewController(Cube, {
 
 		} else if (Format.single_texture) {
 			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[cube.color];
+			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color];
 
 		} else {
 			var materials = []
 			Canvas.face_order.forEach(function(face) {
-				if (cube.faces[face].texture !== null) {
-					var tex = cube.faces[face].getTexture()
+				if (element.faces[face].texture !== null) {
+					var tex = element.faces[face].getTexture()
 					if (tex && tex.uuid) {
 						materials.push(Project.materials[tex.uuid])
 					} else {
-						materials.push(Canvas.emptyMaterials[cube.color])
+						materials.push(Canvas.emptyMaterials[element.color])
 					}
 				}
 			})
@@ -931,14 +936,16 @@ new NodePreviewController(Cube, {
 			mesh.material = materials
 		}
 		if (!mesh.material) mesh.material = Canvas.transparentMaterial;
+
+		Cube.preview_controller.dispatchEvent('update_faces', {element});
 	},
-	updateUV(cube, animation = true) {
-		var mesh = cube.mesh
+	updateUV(element, animation = true) {
+		var mesh = element.mesh
 		if (mesh === undefined || !mesh.geometry) return;
 
 		if (Project.box_uv) {
 
-			var size = cube.size(undefined, true)
+			var size = element.size(undefined, true)
 			
 			var face_list = [   
 				{face: 'east',	from: [0, size[2]],				   		size: [size[2],  size[1]]},
@@ -949,7 +956,7 @@ new NodePreviewController(Cube, {
 				{face: 'north',	from: [size[2], size[2]],			 	size: [size[0],  size[1]]},
 			]
 
-			if (cube.mirror_uv) {
+			if (element.mirror_uv) {
 				face_list.forEach(function(f) {
 					f.from[0] += f.size[0]
 					f.size[0] *= -1
@@ -970,22 +977,22 @@ new NodePreviewController(Cube, {
 			}
 			face_list.forEach(function(f, fIndex) {
 
-				if (cube.faces[f.face].texture == null) return;
+				if (element.faces[f.face].texture == null) return;
 
 				var uv= [
-					f.from[0]			 +  cube.uv_offset[0],
-					f.from[1]			 +  cube.uv_offset[1],
-					f.from[0] + f.size[0] + cube.uv_offset[0],
-					f.from[1] + f.size[1] + cube.uv_offset[1]
+					f.from[0]			 +  element.uv_offset[0],
+					f.from[1]			 +  element.uv_offset[1],
+					f.from[0] + f.size[0] + element.uv_offset[0],
+					f.from[1] + f.size[1] + element.uv_offset[1]
 				]
 				uv.forEach(function(s, si) {
 					uv[si] *= 1
 				})
 
-				cube.faces[f.face].uv[0] = uv[0]
-				cube.faces[f.face].uv[1] = uv[1]
-				cube.faces[f.face].uv[2] = uv[2]
-				cube.faces[f.face].uv[3] = uv[3]
+				element.faces[f.face].uv[0] = uv[0]
+				element.faces[f.face].uv[1] = uv[1]
+				element.faces[f.face].uv[2] = uv[2]
+				element.faces[f.face].uv[3] = uv[3]
 
 				//Fight Bleeding
 				for (var si = 0; si < 2; si++) {
@@ -999,7 +1006,7 @@ new NodePreviewController(Cube, {
 
 				stretch = 1;
 				frame = 0;
-				let tex = cube.faces[f.face].getTexture();
+				let tex = element.faces[f.face].getTexture();
 				if (tex instanceof Texture && tex.frameCount !== 1) {
 					stretch = tex.frameCount
 					if (animation === true && tex.currentFrame) {
@@ -1017,22 +1024,25 @@ new NodePreviewController(Cube, {
 
 			Canvas.face_order.forEach((face, fIndex) => {
 
-				if (cube.faces[face].texture === null) return;
+				if (element.faces[face].texture === null) return;
 
 				stretch = 1;
 				frame = 0;
-				let tex = cube.faces[face].getTexture();
+				let tex = element.faces[face].getTexture();
 				if (tex instanceof Texture && tex.frameCount !== 1) {
 					stretch = tex.frameCount
 					if (animation === true && tex.currentFrame) {
 						frame = tex.currentFrame
 					}
 				}
-				Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, cube.faces[face], frame, stretch)
+				Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, element.faces[face], frame, stretch)
 			})
 
 		}
 		mesh.geometry.attributes.uv.needsUpdate = true;
+
+		this.dispatchEvent('update_uv', {element});
+
 		return mesh.geometry;
 	},
 	updateHighlight(element, hover_cube, force_off) {
@@ -1048,6 +1058,8 @@ new NodePreviewController(Cube, {
 			mesh.geometry.attributes.highlight.array.set(Array(mesh.geometry.attributes.highlight.count).fill(highlighted));
 			mesh.geometry.attributes.highlight.needsUpdate = true;
 		}
+
+		this.dispatchEvent('update_highlight', {element});
 	},
 	updatePaintingGrid(cube) {
 		var mesh = cube.mesh;
@@ -1163,6 +1175,8 @@ new NodePreviewController(Cube, {
 		box.frustumCulled = false;
 		mesh.grid_box = box;
 		mesh.add(box);
+
+		this.dispatchEvent('update_painting_grid', {element});
 	}
 })
 

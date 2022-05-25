@@ -485,9 +485,13 @@ new NodePreviewController(Group, {
 		bone.name = group.uuid;
 		bone.isGroup = true;
 		Project.nodes_3d[group.uuid] = bone;
+
+		this.dispatchEvent('update_transform', {group});
 	},
 	updateTransform(group) {
 		Canvas.updateAllBones([group]);
+
+		this.dispatchEvent('update_transform', {group});
 	}
 })
 

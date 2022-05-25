@@ -144,10 +144,14 @@ class NullObject extends OutlinerElement {
 		setup(element) {
 			NodePreviewController.prototype.setup(element);
 			element.mesh.fix_position = new THREE.Vector3();
+
+			this.dispatchEvent('update_selection', {element});
 		},
 		updateTransform(element) {
 			NodePreviewController.prototype.updateTransform(element);
 			element.mesh.fix_position.copy(element.mesh.position);
+
+			this.dispatchEvent('update_transform', {element});
 		}
 	})
 
