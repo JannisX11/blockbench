@@ -2007,8 +2007,12 @@ const BARS = {
 				'export_palette',
 				'generate_palette',
 				'sort_palette',
+				'save_palette',
 				'load_palette',
 			]
+		})
+		Blockbench.onUpdateTo('4.3.0-beta.0', () => {
+			Toolbars.palette.add(BarItems.save_palette, -1);
 		})
 		Toolbars.color_picker = new Toolbar({
 			id: 'color_picker',

@@ -1063,12 +1063,14 @@
 	"action.import_palette.desc": "Import a palette file",
 	"action.export_palette": "Export Palette",
 	"action.export_palette.desc": "Export palette as a .GPL file",
-	"action.generate_palette": "Generate Palette",
+	"action.generate_palette": "Generate Palette...",
 	"action.generate_palette.desc": "Generate palette from a texture",
 	"action.sort_palette": "Sort Palette",
 	"action.sort_palette.desc": "Sort all colors on the palette by color and brightness",
+	"action.save_palette": "Save Palette...",
+	"action.save_palette.desc": "Save the current color palette inside Blockbench for later use",
 	"action.load_palette": "Load Palette",
-	"action.load_palette.desc": "Load one of the built-in palette presets",
+	"action.load_palette.desc": "Load one of the built-in or saved palette presets",
 	"action.pick_screen_color": "Pick Screen Color",
 	"action.pick_screen_color.desc": "Pick a color from somewhere on your screen",
 
@@ -1435,6 +1437,8 @@
 
 	"menu.palette.load.default": "Default",
 	"menu.palette.load.empty": "Blank",
+	"menu.palette.load.update": "Update Palette",
+	"menu.palette.load.update.desc": "Updates this palette with the colors of the current Blockbench palette",
 
 	"menu.texture.face": "Apply to Face",
 	"menu.texture.blank": "Apply to Untextured Faces",

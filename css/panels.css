@@ -1758,24 +1758,28 @@
 	}
 	#color_panel_head .side input {
 		width: 100%;
-		height: 28px;
+		height: 26px;
 		padding: 0 8px;
 		font-family: var(--font-code);
 		background-color: var(--color-back);
 	}
-	#color_panel_head #color_history {
+	#color_history {
 		width: 100%;
-		height: 16px;
+		height: 20px;
 		overflow-x: scroll;
 		overflow-y: hidden;
 		white-space: nowrap;
 		scroll-behavior: smooth;
 	}
-	#color_panel_head #color_history li {
+	#color_history > li {
 		vertical-align: top;
 		display: inline-block;
 		width: 30px;
-		height: 10px;
+		height: 12px;
+		cursor: pointer;
+	}
+	#color_history > li:hover {
+		border: 1px solid var(--color-back);
 	}
 
 	#main_colorpicker_preview {
