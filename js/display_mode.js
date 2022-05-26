@@ -1042,19 +1042,21 @@ class refModel {
 	}
 	buildBlock() {
 		this.buildModel(JSON.parse(`[
-			{"size": [16,16,16], "pos": [0, 0, 0], "origin": [0, 0, 0], "north":{"uv":[0,0,16,16]},"east":{"uv":[0,0,16,16]},"south":{"uv":[0,0,16,16]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,16,16]},"down":{"uv":[0,0,16,16]}}
+			{"size": [16,16,16], "pos": [8, -7.98, 8], "origin": [0, 0, 0], "north":{"uv":[0,0,16,16]},"east":{"uv":[0,0,16,16]},"south":{"uv":[0,0,16,16]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,16,16]},"down":{"uv":[0,0,16,16]}}
 		]`), 'assets/missing.png')
 	}
 	buildFrame() {
-		this.buildBlock()
 		this.buildModel(JSON.parse(`[
-			{"size": [10,10,0.5], "pos": [0, 0, -8.25], "origin": [0, 0, 0], "north":{"uv":[3,3,13,13]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,0,0]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
+			{"size": [16,16,16], "pos": [8, 8, 8], "origin": [0, 0, 0], "north":{"uv":[0,0,16,16]},"east":{"uv":[0,0,16,16]},"south":{"uv":[0,0,16,16]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,16,16]},"down":{"uv":[0,0,16,16]}}
+		]`), 'assets/missing.png')
+		this.buildModel(JSON.parse(`[
+			{"size": [10,10,0.5], "pos": [8, 8, -0.25], "origin": [0, 0, 0], "north":{"uv":[3,3,13,13]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,0,0]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
 
-			{"size": [1,12,1], "pos": [5.5, 0, -8.5], "origin": [0, 0, 0], "north":{"uv":[2,2,3,14]},"east":{"uv":[2,2,3,14]},"south":{"uv":[2,2,3,14]},"west":{"uv":[2,2,3,14]},"up":{"uv":[2,2,3,3]},"down":{"uv":[2,2,3,3]}},
-			{"size": [1,12,1], "pos": [-5.5, 0, -8.5], "origin": [0, 0, 0], "north":{"uv":[2,2,3,14]},"east":{"uv":[2,2,3,14]},"south":{"uv":[2,2,3,14]},"west":{"uv":[2,2,3,14]},"up":{"uv":[2,2,3,3]},"down":{"uv":[2,2,3,3]}},
+			{"size": [1,12,1], "pos": [13.5, 8, -0.5], "origin": [0, 0, 0], "north":{"uv":[2,2,3,14]},"east":{"uv":[2,2,3,14]},"south":{"uv":[2,2,3,14]},"west":{"uv":[2,2,3,14]},"up":{"uv":[2,2,3,3]},"down":{"uv":[2,2,3,3]}},
+			{"size": [1,12,1], "pos": [2.5,  8, -0.5], "origin": [0, 0, 0], "north":{"uv":[2,2,3,14]},"east":{"uv":[2,2,3,14]},"south":{"uv":[2,2,3,14]},"west":{"uv":[2,2,3,14]},"up":{"uv":[2,2,3,3]},"down":{"uv":[2,2,3,3]}},
 
-			{"size": [10,1,1], "pos": [0, 5.5, -8.5], "origin": [0, 0, 0], "north":{"uv":[3,2,13,3]},"east":{"uv":[3,2,13,3]},"south":{"uv":[3,2,13,3]},"west":{"uv":[3,2,13,3]},"up":{"uv":[3,2,13,3]},"down":{"uv":[3,2,13,3]}},
-			{"size": [10,1,1], "pos": [0, -5.5, -8.5], "origin": [0, 0, 0], "north":{"uv":[3,13,13,14]},"east":{"uv":[3,13,13,14]},"south":{"uv":[3,13,13,14]},"west":{"uv":[3,13,13,14]},"up":{"uv":[3,13,13,14]},"down":{"uv":[3,13,13,14]}}
+			{"size": [10,1,1], "pos": [8, 13.5, -0.5], "origin": [0, 0, 0], "north":{"uv":[3,2,13,3]},"east":{"uv":[3,2,13,3]},"south":{"uv":[3,2,13,3]},"west":{"uv":[3,2,13,3]},"up":{"uv":[3,2,13,3]},"down":{"uv":[3,2,13,3]}},
+			{"size": [10,1,1], "pos": [8, 2.5, -0.5], "origin": [0, 0, 0], "north":{"uv":[3,13,13,14]},"east":{"uv":[3,13,13,14]},"south":{"uv":[3,13,13,14]},"west":{"uv":[3,13,13,14]},"up":{"uv":[3,13,13,14]},"down":{"uv":[3,13,13,14]}}
 		]`), 'assets/item_frame.png')
 	}
 }
@@ -1167,6 +1169,7 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 
 	Canvas.buildGrid()
 	updateShading()
+	display_scene.add(Canvas.ground_plane);
 	DisplayMode.loadThirdRight()
 
 	display_area.updateMatrixWorld()
@@ -1194,6 +1197,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	scene.add(Transformer)
 	Canvas.buildGrid()
 	updateShading()
+	Canvas.scene.add(Canvas.ground_plane);
 	Canvas.updateRenderSides()
 }
 function resetDisplayBase() {
@@ -1297,7 +1301,7 @@ var setDisplayArea = DisplayMode.setBase = function(x, y, z, rx, ry, rz, sx, sy,
 DisplayMode.groundAnimation = function() {
 	display_area.rotation.y += 0.015
 	ground_timer += 1
-	display_area.position.y = 13.5 + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
+	display_area.position.y = 5.5 + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
 	Transformer.center()
 	if (ground_timer === 200) ground_timer = 0;
 }
@@ -1411,9 +1415,9 @@ DisplayMode.loadGround = function() {		//Loader
 	loadDisp('ground')
 	display_preview.loadAnglePreset({
 		position: [-40, 37, -40],
-		target: [0, 11, 0]
+		target: [0, 3, 0]
 	})
-	setDisplayArea(0, 12, 0, 0, 0, 0, 1, 1, 1)
+	setDisplayArea(8, 4, 8, 0, 0, 0, 1, 1, 1)
 	ground_animation = true;
 	ground_timer = 0
 	displayReferenceObjects.bar(['block'])
@@ -1424,7 +1428,7 @@ DisplayMode.loadFixed = function() {		//Loader
 		position: [-24, 18, -50],
 		target: [0, 1, -5]
 	})
-	setDisplayArea(0, 0, -8.5, 0, 0, 0, 0.5, 0.5, 0.5)
+	setDisplayArea(8, 8, -0.5, 0, 0, 0, 0.5, 0.5, 0.5)
 	displayReferenceObjects.bar(['frame'])
 }
 DisplayMode.load = function(slot) {
