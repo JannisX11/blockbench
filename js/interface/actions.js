@@ -234,16 +234,11 @@ class Action extends BarItem {
 		this.nodes = [this.node]
 		this.menus = [];
 		
-		this.menu_node = document.createElement('li');
-		this.menu_node.title = this.description || '';
-		this.menu_node.append(this.icon_node.cloneNode(true));
-		let span = document.createElement('span');
-		span.innerText = this.name;
-		this.menu_node.append(span);
-		let label = document.createElement('label');
-		label.classList.add('keybinding_label')
-		label.innerText = this.keybind || '';
-		this.menu_node.append(label);
+		this.menu_node = Interface.createElement('li', {title: this.description || '', menu_item: id}, [
+			this.icon_node.cloneNode(true),
+			Interface.createElement('span', {}, this.name),
+			Interface.createElement('label', {class: 'keybinding_label'}, this.keybind || '')
+		]);
 
 		this.addLabel(data.label)
 		this.updateKeybindingLabel()

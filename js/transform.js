@@ -162,8 +162,8 @@ function mirrorSelected(axis) {
 		updateKeyframeSelection();
 		Animator.preview();
 
-	} else if (Modes.edit && selected.length) {
-		Undo.initEdit({elements: selected, outliner: Format.bone_rig})
+	} else if (Modes.edit && (Outliner.selected.length || Group.selected)) {
+		Undo.initEdit({elements: selected, outliner: Format.bone_rig || Group.selected, selection: true})
 		var center = Format.centered_grid ? 0 : 8;
 		if (Format.bone_rig) {
 			let flip_pairs = {
