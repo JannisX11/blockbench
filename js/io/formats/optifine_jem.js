@@ -31,10 +31,10 @@ var codec = new Codec('optifine_entity', {
 				part: g.name,
 				id: g.name,
 				invertAxis: 'xy',
+				mirrorTexture: undefined,
 				translate: g.origin.slice()
 			}
-			bone.translate[1] *= -1
-			bone.translate[2] *= -1
+			bone.translate.V3_multiply(-1);
 
 			if (!g.rotation.allEqual(0)) {
 				bone.rotate = g.rotation.slice()
@@ -67,6 +67,9 @@ var codec = new Codec('optifine_entity', {
 				if (group.texture_size && !group.texture_size.allEqual(0)) {
 					p_model.textureSize = group.texture_size;
 				}
+
+				let child_cubes = group.children.filter(obj => obj.export && obj.type === 'cube')
+				let has_different_mirrored_children = !!child_cubes.find(obj => obj.mirror_uv !== child_cubes[0].mirror_uv);
 
 				group.children.forEach(obj => {
 					if (!obj.export) return;
@@ -106,19 +109,22 @@ var codec = new Codec('optifine_entity', {
 							box.sizeAdd = obj.inflate
 						}
 
-						if (obj.mirror_uv !== group.mirror_uv) {
+						if (obj.mirror_uv !== group.mirror_uv && has_different_mirrored_children) {
 							if (!mirror_sub) {
 								mirror_sub = { 
 									invertAxis: 'xy',
-									mirrorTexture: 'u',//xxx
+									mirrorTexture: 'u',
 									boxes: []
 								}
 								if (!p_model.submodels) p_model.submodels = [];
 								p_model.submodels.splice(0, 0, mirror_sub)
 							}
-							mirror_sub.boxes.push(box)
+							mirror_sub.boxes.push(box);
 						} else {
-							if (!p_model.boxes) p_model.boxes = []
+							if (!p_model.boxes) p_model.boxes = [];
+							if (obj.mirror_uv !== group.mirror_uv) {
+								p_model.mirrorTexture = obj.mirror_uv ? 'u' : undefined;
+							}
 							p_model.boxes.push(box)
 						}
 					} else if (obj.type === 'group') {
@@ -126,10 +132,11 @@ var codec = new Codec('optifine_entity', {
 						var bone = {
 							id: obj.name,
 							invertAxis: 'xy',
+							mirrorTexture: undefined,
 							translate: obj.origin.slice()
 						}
 						if (obj.mirror_uv) {
-							bone.mirrorTexture = 'u'
+							bone.mirrorTexture = 'u';
 						}
 						if (!obj.rotation.allEqual(0)) {
 							bone.rotate = obj.rotation.slice()
@@ -165,6 +172,19 @@ var codec = new Codec('optifine_entity', {
 	},
 	parse(model, path) {
 		this.dispatchEvent('parse', {model});
+
+		function importTexture(string) {
+			if (typeof string !== 'string') return;
+
+			let texture_path = string.replace(/[\\/]/g, osfs);
+			if (texture_path.match(/^textures/)) {
+				texture_path = path.replace(/[\\/]optifine[\\/][\\\w .-]+$/i, '\\'+texture_path);
+			} else {
+				texture_path = path.replace(/\\[\w .-]+$/, '\\'+texture_path);
+			}
+			return new Texture().fromPath(texture_path).add(false);
+		}
+
 		if (model.textureSize) {
 			Project.texture_width = parseInt(model.textureSize[0])||16;
 			Project.texture_height = parseInt(model.textureSize[1])||16;
@@ -187,8 +207,8 @@ var codec = new Codec('optifine_entity', {
 					texture: b.texture,
 					texture_size: b.textureSize,
 				})
-				group.origin[1] *= -1;
-				group.origin[2] *= -1;
+				group.origin.V3_multiply(-1);
+				importTexture(b.texture);
 
 				function readContent(submodel, p_group, depth) {
 
@@ -258,6 +278,7 @@ var codec = new Codec('optifine_entity', {
 								texture: subsub.texture,
 								texture_size: subsub.textureSize,
 							})
+							importTexture(subsub.texture);
 							subcount++;
 							group.addTo(p_group).init()
 							readContent(subsub, group, depth+1)
@@ -269,15 +290,7 @@ var codec = new Codec('optifine_entity', {
 				readContent(b, group, 0)
 			})
 		}
-		if (typeof model.texture == 'string') {
-			let texture_path = model.texture.replace(/[\\/]/g, osfs);
-			if (texture_path.match(/^textures/)) {
-				texture_path = path.replace(/[\\/]optifine[\\/][\\\w .-]+$/i, '\\'+texture_path);
-			} else {
-				texture_path = path.replace(/\\[\w .-]+$/, '\\'+texture_path);
-			}
-			new Texture().fromPath(texture_path).add(false);
-		}
+		importTexture(model.texture);
 		this.dispatchEvent('parsed', {model});
 		Canvas.updateAllBones();
 	}
