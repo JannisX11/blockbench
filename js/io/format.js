@@ -15,6 +15,7 @@ class ModelFormat {
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].reset(this);
 		}
+		this.render_sides = data.render_sides;
 
 		this.codec = data.codec;
 		this.onActivation = data.onActivation;
@@ -211,6 +212,8 @@ new Property(ModelFormat, 'boolean', 'box_uv');
 new Property(ModelFormat, 'boolean', 'optional_box_uv');
 new Property(ModelFormat, 'boolean', 'single_texture');
 new Property(ModelFormat, 'boolean', 'model_identifier', {default: true});
+new Property(ModelFormat, 'boolean', 'parent_model_id');
+new Property(ModelFormat, 'boolean', 'vertex_color_ambient_occlusion');
 new Property(ModelFormat, 'boolean', 'animated_textures');
 new Property(ModelFormat, 'boolean', 'bone_rig');
 new Property(ModelFormat, 'boolean', 'centered_grid');
@@ -222,6 +225,9 @@ new Property(ModelFormat, 'boolean', 'locators');
 new Property(ModelFormat, 'boolean', 'canvas_limit');
 new Property(ModelFormat, 'boolean', 'rotation_limit');
 new Property(ModelFormat, 'boolean', 'uv_rotation');
+new Property(ModelFormat, 'boolean', 'java_face_properties');
+new Property(ModelFormat, 'boolean', 'select_texture_for_particles');
+new Property(ModelFormat, 'boolean', 'bone_binding_expression');
 new Property(ModelFormat, 'boolean', 'animation_files');
 new Property(ModelFormat, 'boolean', 'pose_mode');
 new Property(ModelFormat, 'boolean', 'display_mode');

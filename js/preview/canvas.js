@@ -855,13 +855,13 @@ const Canvas = {
 	},
 	getRenderSide() {
 		if (settings.render_sides.value == 'auto') {
-			var side = Format.id === 'java_block' ? THREE.FrontSide : THREE.DoubleSide;
-			if (display_mode) {
-				if (['thirdperson_righthand', 'thirdperson_lefthand', 'head'].includes(display_slot)) {
-					side = THREE.DoubleSide;
-				}
+			if (Format && Format.render_sides) {
+				let value = typeof Format.render_sides == 'function' ? Format.render_sides() : Format.render_sides;
+				if (value == 'front') return THREE.FrontSide;
+				if (value == 'double') return THREE.DoubleSide;
+				if (value == 'back') return THREE.BackSide;
 			}
-			return side;
+			return THREE.DoubleSide;
 		} else if (settings.render_sides.value == 'front') {
 			return THREE.FrontSide;
 		} else {

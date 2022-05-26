@@ -610,7 +610,7 @@ class Texture {
 			})
 			this.folder = tex_arr.slice(index).join('/');
 
-			if (Format.id === 'java_block' && isApp && settings.dialog_loose_texture.value) {
+			if (Format.texture_folder && isApp && settings.dialog_loose_texture.value) {
 				Blockbench.showMessageBox({
 					translateKey: 'loose_texture',
 					icon: 'folder_open',
@@ -727,10 +727,10 @@ class Texture {
 	}
 	//Use
 	enableParticle() {
-		Texture.all.forEach(function(s) {
-			s.particle = false;
-		})
-		if (Format.id == 'java_block') {
+		if (Format.select_texture_for_particles) {
+			Texture.all.forEach(function(s) {
+				s.particle = false;
+			})
 			this.particle = true
 		}
 		return this;
@@ -833,9 +833,9 @@ class Texture {
 			],
 			form: {
 				name: 		{label: 'generic.name', value: scope.name},
-				variable: 	{label: 'dialog.texture.variable', value: scope.id, condition: () => Format.id === 'java_block'},
+				variable: 	{label: 'dialog.texture.variable', value: scope.id, condition: {features: ['texture_folder']}},
 				folder: 	{label: 'dialog.texture.folder', value: scope.folder, condition: () => Format.texture_folder},
-				namespace: 	{label: 'dialog.texture.namespace', value: scope.namespace, condition: () => Format.id === 'java_block'},
+				namespace: 	{label: 'dialog.texture.namespace', value: scope.namespace, condition: {features: ['texture_folder']}},
 			},
 			onConfirm: function(results) {
 
@@ -1209,7 +1209,7 @@ class Texture {
 			{
 				icon: 'bubble_chart',
 				name: 'menu.texture.particle',
-				condition: function() {return Format.id == 'java_block'},
+				condition: {features: ['select_texture_for_particles']},
 				click: function(texture) {
 					if (texture.particle) {
 						texture.particle = false

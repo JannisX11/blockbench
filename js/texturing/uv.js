@@ -1345,7 +1345,7 @@ const UVEditor = {
 			]
 		}},
 		'face_tint',
-		{icon: 'flip_to_back', condition: () => (Format.id == 'java_block' && Cube.selected.length), name: 'action.cullface' , children: function() {
+		{icon: 'flip_to_back', condition: () => (Format.java_face_properties && Cube.selected.length), name: 'action.cullface' , children: function() {
 			var off = 'radio_button_unchecked';
 			var on = 'radio_button_checked';
 			function setCullface(cullface) {
@@ -1545,7 +1545,7 @@ BARS.defineActions(function() {
 	})
 	new BarSelect('cullface', { 
 		category: 'uv',
-		condition: () => !Project.box_uv && Format.id == 'java_block' && Cube.selected.length && UVEditor.selected_faces[0],
+		condition: () => !Project.box_uv && Format.java_face_properties && Cube.selected.length && UVEditor.selected_faces[0],
 		label: true,
 		options: {
 			off: tl('uv_editor.no_faces'),
@@ -1565,7 +1565,7 @@ BARS.defineActions(function() {
 	new Action('auto_cullface', {
 		icon: 'block',
 		category: 'uv',
-		condition: () => !Project.box_uv && Format.id == 'java_block' && Cube.selected.length && UVEditor.selected_faces[0],
+		condition: () => !Project.box_uv && Format.java_face_properties && Cube.selected.length && UVEditor.selected_faces[0],
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('autoCullface', event)
@@ -1574,7 +1574,7 @@ BARS.defineActions(function() {
 	})
 	new Action('face_tint', {
 		category: 'uv',
-		condition: () => !Project.box_uv && Format.id == 'java_block' && Cube.selected.length && UVEditor.selected_faces[0],
+		condition: () => !Project.box_uv && Format.java_face_properties && Cube.selected.length && UVEditor.selected_faces[0],
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('switchTint', event)
@@ -1583,7 +1583,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider('slider_face_tint', {
 		category: 'uv',
-		condition: () => !Project.box_uv && Format.id == 'java_block' && Cube.selected.length && UVEditor.selected_faces[0] && Cube.selected[0].faces[UVEditor.selected_faces[0]],
+		condition: () => !Project.box_uv && Format.java_face_properties && Cube.selected.length && UVEditor.selected_faces[0] && Cube.selected[0].faces[UVEditor.selected_faces[0]],
 		getInterval(event) {
 			return 1;
 		},

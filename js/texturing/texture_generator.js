@@ -28,7 +28,7 @@ const TextureGenerator = {
 			width: 480,
 			form: {
 				name: 		{label: 'generic.name', value: 'texture'},
-				folder: 	{label: 'dialog.create_texture.folder', condition: Format.id == 'java_block'},
+				folder: 	{label: 'dialog.create_texture.folder', condition: {features: ['texture_folder']}},
 				type:	{label: 'dialog.create_texture.type', type: 'select', options: type_options},
 				section2:    "_",
 

@@ -1068,6 +1068,7 @@ var format = new ModelFormat({
 	animated_textures: true,
 	animation_files: true,
 	animation_mode: true,
+	bone_binding_expression: true,
 	locators: true,
 	texture_meshes: true,
 	codec

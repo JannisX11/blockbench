@@ -352,8 +352,8 @@ new Property(ModelProject, 'string', 'name', {
 });
 new Property(ModelProject, 'string', 'parent', {
 	label: 'dialog.project.parent',
-	condition: {formats: ['java_block']
-}});
+	condition: {features: ['parent_model_id']}
+});
 new Property(ModelProject, 'string', 'model_identifier', {
 	label: 'dialog.project.geoname',
 	condition: () => Format.model_identifier
@@ -375,11 +375,12 @@ new Property(ModelProject, 'string', 'modded_entity_version', {
 new Property(ModelProject, 'boolean', 'ambientocclusion', {
 	label: 'dialog.project.ao',
 	default: true,
-	condition: {formats: ['java_block']}
+	condition: {features: ['vertex_color_ambient_occlusion']}
 });
 new Property(ModelProject, 'boolean', 'front_gui_light', {
 	exposed: false,
-	condition: () => Format.display_mode});
+	condition: () => Format.display_mode
+});
 new Property(ModelProject, 'vector', 'visible_box', {
 	exposed: false,
 	default: [1, 1, 0]

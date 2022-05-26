@@ -631,7 +631,7 @@ BARS.defineActions(function() {
 	new Action('edit_bedrock_binding', {
 		icon: 'fa-paperclip',
 		category: 'edit',
-		condition: () => Format.id == 'bedrock' && Group.selected,
+		condition: () => Format.bone_binding_expression && Group.selected,
 		click: function() {
 
 			let dialog = new Dialog({
