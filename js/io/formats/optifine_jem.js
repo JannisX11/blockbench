@@ -178,9 +178,9 @@ var codec = new Codec('optifine_entity', {
 
 			let texture_path = string.replace(/[\\/]/g, osfs);
 			if (texture_path.match(/^textures/)) {
-				texture_path = path.replace(/[\\/]optifine[\\/][\\\w .-]+$/i, '\\'+texture_path);
+				texture_path = path.replace(/[\\/]optifine[\\/].+$/i, osfs+texture_path);
 			} else {
-				texture_path = path.replace(/\\[\w .-]+$/, '\\'+texture_path);
+				texture_path = path.replace(/[\\/][^\\/]+$/, osfs+texture_path);
 			}
 			return new Texture().fromPath(texture_path).add(false);
 		}

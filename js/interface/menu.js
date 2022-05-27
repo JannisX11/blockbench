@@ -235,6 +235,9 @@ class Menu {
 						}
 					})
 				}
+				if (menu_node == ctxmenu) {
+					input.focus();
+				}
 
 			} else {
 				list.forEach((object) => {
