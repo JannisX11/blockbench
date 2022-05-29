@@ -20,7 +20,6 @@ class ModelProject {
 		this.added_models = 0;
 
 		this.undo = new UndoSystem();
-		if (isApp) this.BedrockEntityManager = new BedrockEntityManager(this);
 		this.format = options.format instanceof ModelFormat ? options.format : Formats.free;
 		this.mode = 'edit';
 		this.view_mode = 'textured';
@@ -420,6 +419,9 @@ function setupProject(format) {
 	new ModelProject({format}).select();
 
 	Modes.options.edit.select();
+	if (typeof Format.onSetup == 'function') {
+		Format.onSetup(Project, false)
+	}
 	Blockbench.dispatchEvent('setup_project');
 	return true;
 }
@@ -429,6 +431,9 @@ function newProject(format) {
 	new ModelProject({format}).select();
 
 	Modes.options.edit.select();
+	if (typeof Format.onSetup == 'function') {
+		Format.onSetup(Project, true)
+	}
 	Blockbench.dispatchEvent('new_project');
 	return true;
 }
