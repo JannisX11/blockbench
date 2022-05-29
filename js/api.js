@@ -20,7 +20,6 @@ const Blockbench = {
 		Undo.finishEdit()
 	},
 	reload() {
-		localStorage.removeItem('backup_model')
 		if (isApp) {
 			Blockbench.setProgress(0)
 			Blockbench.addFlag('allow_closing')

@@ -246,11 +246,13 @@ function unselectAll() {
 	TickUpdates.selection = true;
 }
 //Backup
+const AutoBackupModels = {};
 setInterval(function() {
 	if (Project && (Outliner.root.length || Project.textures.length)) {
 		try {
-			var model = Codecs.project.compile({compressed: false, minify: true, backup: true});
-			localStorage.setItem('backup_model', model)
+			var model = Codecs.project.compile({compressed: false, backup: true, raw: true});
+			AutoBackupModels[Project.uuid] = model;
+			localStorage.setItem('backup_model', JSON.stringify(AutoBackupModels));
 		} catch (err) {
 			console.error('Unable to create backup. ', err)
 		}

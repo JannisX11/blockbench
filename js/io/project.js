@@ -330,6 +330,9 @@ class ModelProject {
 			ModelProject.all.remove(this);
 			delete ProjectData[this.uuid];
 			Project = 0;
+			
+			delete AutoBackupModels[this.uuid];
+			localStorage.setItem('backup_model', JSON.stringify(AutoBackupModels));
 
 			if (last_selected && last_selected !== this) {
 				last_selected.select();

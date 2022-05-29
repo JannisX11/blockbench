@@ -670,6 +670,9 @@
 		position: absolute;
 		right: 8px;
 	}
+	#start_screen button {
+		margin-right: 4px;
+	}
 	#start_screen .recent_project {
 		margin: 2px 0;
 		display: flex;

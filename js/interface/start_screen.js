@@ -257,18 +257,24 @@ onVueSetup(function() {
 		Blockbench.startup_count = parseInt(localStorage.getItem('startups')||0)
 
 		//Backup Model
-		if (localStorage.getItem('backup_model') && (!isApp || !currentwindow.webContents.second_instance)) {
-			var backup_model = localStorage.getItem('backup_model')
-			localStorage.removeItem('backup_model')
+		if (localStorage.getItem('backup_model') && (!isApp || !currentwindow.webContents.second_instance) && localStorage.getItem('backup_model').length > 40) {
+			var backup_models = localStorage.getItem('backup_model')
 
-			addStartScreenSection({
+			let section = addStartScreenSection({
 				color: 'var(--color-back)',
 				graphic: {type: 'icon', icon: 'fa-archive'},
 				text: [
 					{type: 'h2', text: tl('message.recover_backup.title')},
 					{text: tl('message.recover_backup.message')},
-					{type: 'button', text: tl('dialog.ok'), click: (e) => {
-						loadModelFile({content: backup_model, path: 'backup.bbmodel', no_file: true})
+					{type: 'button', text: tl('message.recover_backup.recover'), click: (e) => {
+						for (let uuid in backup_models) {
+							loadModelFile({content: backup_models[uuid], path: 'backup.bbmodel', no_file: true})
+						}
+						section.delete();
+					}},
+					{type: 'button', text: tl('dialog.discard'), click: (e) => {
+						localStorage.removeItem('backup_model');
+						section.delete();
 					}}
 				]
 			})
