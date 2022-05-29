@@ -415,7 +415,7 @@ var codec = new Codec('java_block', {
 		) {
 			let texture_mesh = new TextureMesh({
 				name: model.textures.layer0,
-				rotation: [-90, 180, 0],
+				rotation: [90, 180, 0],
 				local_pivot: [0, -7.5, -16],
 				locked: true,
 				export: false

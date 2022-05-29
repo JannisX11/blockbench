@@ -37,7 +37,6 @@ pre[class*="language-"] {
 pre[class*="language-"] {
 	padding: 1em;
 	margin: .5em 0;
-	overflow: auto;
 	border-radius: 0.3em;
 }
 
@@ -61,7 +60,7 @@ pre[class*="language-"] {
 }
 
 .token.punctuation {
-	color: #f8f8f2;
+	color: var(--color-text);
 }
 
 .namespace {

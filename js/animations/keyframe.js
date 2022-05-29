@@ -1043,7 +1043,7 @@ Interface.definePanels(function() {
 								let limit = move_calls <= 2 ? 1 : 100;
 								clientX += Math.clamp(e2.movementX, -limit, limit);
 							}
-							let val = Math.round((clientX - e1.clientX) / 30);
+							let val = Math.round((clientX - e1.clientX) / 40);
 							let difference = (val - last_val);
 							if (!difference) return;
 							if (Toolbox.selected.id === 'rotate_tool') {

@@ -54,6 +54,7 @@ class TextureMesh extends OutlinerElement {
 	getUndoCopy() {
 		var copy = new TextureMesh(this)
 		copy.uuid = this.uuid;
+		copy.type = this.type;
 		delete copy.parent;
 		return copy;
 	}

@@ -1742,11 +1742,11 @@ BARS.defineActions(function() {
 		change: function(modify) {
 			let slider_tex = getSliderTexture()
 			if (!slider_tex) return;
-			slider_tex.currentFrame = (modify(slider_tex.currentFrame + slider_tex.frameCount) % slider_tex.frameCount);
+			slider_tex.currentFrame = (modify(slider_tex.currentFrame + slider_tex.frameCount) % slider_tex.frameCount) || 0;
 
 			let textures = Texture.all.filter(tex => tex.frameCount > 1);
 			Texture.all.forEach(tex => {
-				tex.currentFrame = slider_tex.currentFrame % tex.frameCount;
+				tex.currentFrame = (slider_tex.currentFrame % tex.frameCount) || 0;
 			})
 			TextureAnimator.update(textures);
 		}
@@ -1819,7 +1819,7 @@ Interface.definePanels(function() {
 
 						let textures = Texture.all.filter(tex => tex.frameCount > 1);
 						Texture.all.forEach(tex => {
-							tex.currentFrame = scope.currentFrame % tex.frameCount;
+							tex.currentFrame = (scope.currentFrame % tex.frameCount) || 0;
 						})
 						TextureAnimator.update(textures);
 					}

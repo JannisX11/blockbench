@@ -617,54 +617,54 @@
 	}
 
 /* Theme Borders */
-body.theme_borders .contextMenu,
-body.theme_borders dialog,
-body.theme_borders .dialog_close_button,
-body.theme_borders #start_screen content,
-body.theme_borders #quick_message_box,
-body.theme_borders action_selector > #action_selector_list
-{
-	border: 1px solid var(--color-border);
-}
-body.theme_borders #start_screen section {
-	border-bottom: 1px solid var(--color-border);
-}
-body.theme_borders .panel {
-	margin-top: -1px;
-	border-top: 01px solid var(--color-border);
-}
-body.theme_borders #right_bar {
-	border-left: 1px solid var(--color-border);
-}
-body.theme_borders #left_bar {
-	border-right: 1px solid var(--color-border);
-}
-body.theme_borders .preview .preview_menu {
-	right: 0;
-}
-body.theme_borders .dialog_sidebar {
-	border-right: 1px solid var(--color-border);
-}
-body.theme_borders .dialog_handle {
-	border-bottom: 1px solid var(--color-border);
-}
-body.theme_borders .dialog_close_button {
-	right: -1px;
-	top: -1px;
-	height: 31px;
-}
-body.theme_borders li.animation_file {
-	border-top: 1px solid var(--color-border);
-}
-body.theme_borders #main_toolbar, body.theme_borders #tab_bar {
-	border-bottom: 1px solid var(--color-border);
-}
-body.theme_borders #status_bar {
-	border-top: 1px solid var(--color-border);
-}
-body.theme_borders .contextMenu li.menu_separator {
-	background-color: var(--color-border);
-	height: 1px;
-	padding: 0;
-	opacity: 1;
-}
+	body.theme_borders .contextMenu,
+	body.theme_borders dialog,
+	body.theme_borders .dialog_close_button,
+	body.theme_borders #start_screen content,
+	body.theme_borders #quick_message_box,
+	body.theme_borders action_selector > #action_selector_list
+	{
+		border: 1px solid var(--color-border);
+	}
+	body.theme_borders #start_screen section {
+		border-bottom: 1px solid var(--color-border);
+	}
+	body.theme_borders .panel {
+		margin-top: -1px;
+		border-top: 01px solid var(--color-border);
+	}
+	body.theme_borders #right_bar {
+		border-left: 1px solid var(--color-border);
+	}
+	body.theme_borders #left_bar {
+		border-right: 1px solid var(--color-border);
+	}
+	body.theme_borders .preview .preview_menu {
+		right: 0;
+	}
+	body.theme_borders .dialog_sidebar {
+		border-right: 1px solid var(--color-border);
+	}
+	body.theme_borders .dialog_handle {
+		border-bottom: 1px solid var(--color-border);
+	}
+	body.theme_borders .dialog_close_button {
+		right: -1px;
+		top: -1px;
+		height: 31px;
+	}
+	body.theme_borders li.animation_file {
+		border-top: 1px solid var(--color-border);
+	}
+	body.theme_borders #main_toolbar, body.theme_borders #tab_bar {
+		border-bottom: 1px solid var(--color-border);
+	}
+	body.theme_borders #status_bar {
+		border-top: 1px solid var(--color-border);
+	}
+	body.theme_borders .contextMenu li.menu_separator {
+		background-color: var(--color-border);
+		height: 1px;
+		padding: 0;
+		opacity: 1;
+	}

@@ -601,7 +601,7 @@ const UVEditor = {
 	},
 	saveViewportOffset() {
 		let uv_viewport = this.vue.$refs.viewport;
-		if (!uv_viewport || Blockbench.hasFlag('switching_project')) return;
+		if (!uv_viewport || !Project || Blockbench.hasFlag('switching_project')) return;
 		Project.uv_viewport.offset[0] = (uv_viewport.scrollLeft - this.width/2) / this.vue.inner_width;
 		Project.uv_viewport.offset[1] = (uv_viewport.scrollTop - this.height/2) / this.vue.inner_height;
 	},
@@ -841,8 +841,8 @@ const UVEditor = {
 						max_y = Math.max(max_y, vertex_uvs[vkey][1]);
 					}
 					let offset = [
-						min_x < 0 ? -min_x : (max_x > Project.texture_width ? Math.floor(Project.texture_width - max_x) : 0),
-						min_y < 0 ? -min_y : (max_y > Project.texture_height ? Math.floor(Project.texture_height - max_y) : 0),
+						min_x < 0 ? -min_x : (max_x > Project.texture_width ? Math.round(Project.texture_width - max_x) : 0),
+						min_y < 0 ? -min_y : (max_y > Project.texture_height ? Math.round(Project.texture_height - max_y) : 0),
 					];
 					face.vertices.forEach(vkey => {
 						face.uv[vkey] = [
@@ -1793,7 +1793,7 @@ Interface.definePanels(function() {
 					}
 				},
 				inner_height() {
-					return this.height * this.zoom;
+					return Math.min(this.height * this.zoom, this.width * this.zoom / (this.project_resolution[0] / this.project_resolution[1]));
 				},
 				mappable_elements() {
 					return this.elements.filter(element => element.faces && !element.locked);

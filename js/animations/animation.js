@@ -733,8 +733,8 @@ class Animation {
 			icon: 'remove',
 			condition: () => Format.animation_files,
 			click(animation) {
-				Undo.initEdit({animations: [this]})
-				this.remove(false, false);
+				Undo.initEdit({animations: [animation]})
+				animation.remove(false, false);
 				Undo.finishEdit('Unload animation', {animations: []})
 			}
 		},
@@ -905,6 +905,7 @@ const Animator = {
 			target = Project.motion_trail_lock && OutlinerNode.uuids[Project.motion_trail_lock];
 			if (!target) target = Group.selected || NullObject.selected[0];
 		}
+		if (!target) return;
 		let animation = Animation.selected;
 		let currentTime = Timeline.time;
 		let step = Timeline.getStep();
@@ -1465,10 +1466,14 @@ Animator.MolangParser.global_variables = {
 		return Timeline.time;
 	},
 	'query.camera_rotation'(axis) {
-		return cameraTargetToRotation(Preview.selected.camera.position.toArray(), Preview.selected.controls.target.toArray())[axis ? 0 : 1];
+		let val = cameraTargetToRotation(Preview.selected.camera.position.toArray(), Preview.selected.controls.target.toArray())[axis ? 0 : 1];
+		if (axis == 0) val *= -1;
+		return val;
 	},
 	'query.rotation_to_camera'(axis) {
-		return cameraTargetToRotation([0, 0, 0], Preview.selected.camera.position.toArray())[axis ? 0 : 1] ;
+		let val = cameraTargetToRotation([0, 0, 0], Preview.selected.camera.position.toArray())[axis ? 0 : 1] ;
+		if (axis == 0) val *= -1;
+		return val;
 	},
 	get 'query.distance_from_camera'() {
 		return Preview.selected.camera.position.length() / 16;
@@ -2024,37 +2029,44 @@ Interface.definePanels(function() {
 					this.buttons.forEach(b => old_values[b.id] = b.value);
 					this.buttons.empty();
 
-					let matches = this.text.toLowerCase().match(/(slider|toggle)\(.+\)/g);
+					let text = this.text.toLowerCase();
+					let matches = text.matchAll(/(slider|toggle)\(.+\)/g);
 
-					if (matches) {
-						matches.forEach(match => {
-							let [type, content] = match.substring(0, match.length - 1).split(/\(/);
-							let [id, ...args] = content.split(/\(|, */);
-							id = id.replace(/['"]/g, '');
-							if (this.buttons.find(b => b.id == id)) return;
+					for (let match of matches) {
+						let [type, content] = match[0].substring(0, match[0].length - 1).split(/\(/);
+						let [id, ...args] = content.split(/\(|, */);
+						id = id.replace(/['"]/g, '');
+						if (this.buttons.find(b => b.id == id)) return;
 
-							if (type == 'slider') {
-								this.buttons.push({
-									type,
-									id,
-									value: old_values[id] || 0,
-									step: args[0],
-									min: args[1],
-									max: args[2]
-								})
-							} else {
-								this.buttons.push({
-									type,
-									id,
-									value: old_values[id] || 0,
-								})
-							}
-						})
+						let variable = text.substring(0, match.index).match(/[\w.-]+ *= *$/);
+						variable = variable ? variable[0].replace(/[ =]+/g, '').replace(/^v\./, 'variable.').replace(/^q\./, 'query.').replace(/^t\./, 'temp.').replace(/^c\./, 'context.') : undefined;
+
+						if (type == 'slider') {
+							this.buttons.push({
+								type,
+								id,
+								value: old_values[id] || 0,
+								variable,
+								step: args[0],
+								min: args[1],
+								max: args[2]
+							})
+						} else {
+							this.buttons.push({
+								type,
+								id,
+								value: old_values[id] || 0,
+								variable,
+							})
+						}
 					}
 				},
 				changeButtonValue(button, event) {
 					if (button.type == 'toggle') {
 						button.value = event.target.checked ? 1 : 0;
+					}
+					if (button.variable) {
+						delete Animator.MolangParser.variables[button.variable];
 					}
 					Animator.preview();
 				},
@@ -2083,7 +2095,7 @@ Interface.definePanels(function() {
 								let limit = move_calls <= 2 ? 1 : 100;
 								clientX += Math.clamp(e2.movementX, -limit, limit);
 							}
-							let val = Math.round((clientX - e1.clientX) / 30);
+							let val = Math.round((clientX - e1.clientX) / 45);
 							let difference = (val - last_val);
 							if (!difference) return;
 							difference *= canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);

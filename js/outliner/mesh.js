@@ -390,6 +390,7 @@ class Mesh extends OutlinerElement {
 			}
 		}
 		copy.uuid = this.uuid;
+		copy.type = this.type;
 		delete copy.parent;
 		for (let fkey in copy.faces) {
 			delete copy.faces[fkey].mesh;
@@ -430,23 +431,36 @@ class Mesh extends OutlinerElement {
 		return faces;
 	}
 	getSelectionRotation() {
+		if (Transformer.dragging) {
+			return Transformer.rotation_selection;
+		}
 		let faces = this.getSelectedFaces().map(fkey => this.faces[fkey]);
 		if (!faces[0]) {
 			let selected_vertices = this.getSelectedVertices();
 			this.forAllFaces((face) => {
-				if (face.vertices.find(vkey => selected_vertices.includes(vkey))) {
-					faces.push(face);
+				let weight = face.vertices.filter(vkey => selected_vertices.includes(vkey)).length;
+				if (weight) {
+					faces.push({face, weight});
 				}
 			})
+			faces.sort((a, b) => b.weight-a.weight);
+			faces = faces.map(f => f.face);
 		}
 		if (faces[0]) {
-			let normal = [0, 0, 0];
-			faces.forEach(face => normal.V3_add(face.getNormal(true)))
-			normal.V3_divide(faces.length);
-			
-			var y = Math.atan2(normal[0], normal[2]);
-			var x = Math.atan2(normal[1], Math.sqrt(Math.pow(normal[0], 2) + Math.pow(normal[2], 2)));
-			return new THREE.Euler(-x, y, 0, 'YXZ');
+			let normal = faces[0].getNormal(true);
+			let normal2 = faces[1] && faces[1].getNormal(true);
+
+			if (normal2) {
+				let object = new THREE.Object3D();
+				object.up.set(...normal);
+				object.lookAt(...normal2);
+				return object.rotation;
+
+			} else {
+				var y = Math.atan2(normal[0], normal[2]);
+				var x = Math.atan2(normal[1], Math.sqrt(Math.pow(normal[0], 2) + Math.pow(normal[2], 2)));
+				return new THREE.Euler(-x, y, 0, 'YXZ');
+			}
 		}
 		return new THREE.Euler();
 	}
@@ -481,24 +495,20 @@ class Mesh extends OutlinerElement {
 			this.preview_controller.updateFaces(this);
 		}
 	}
-	roll(axis, steps, origin) {
-		if (!origin) {origin = this.origin}
-		function rotateCoord(array) {
-			if (origin === undefined) {
-				origin = [8, 8, 8]
-			}
+	roll(axis, steps, origin_arg) {
+		function rotateCoord(array, rotation_origin) {
 			var a, b;
 			array.forEach(function(s, i) {
 				if (i == axis) {
 					//
 				} else {
 					if (a == undefined) {
-						a = s - origin[i]
+						a = s - rotation_origin[i]
 						b = i
 					} else {
-						array[b] = s - origin[i]
-						array[b] = origin[b] - array[b]
-						array[i] = origin[i] + a;
+						array[b] = s - rotation_origin[i]
+						array[b] = rotation_origin[b] - array[b]
+						array[i] = rotation_origin[i] + a;
 					}
 				}
 			})
@@ -507,10 +517,10 @@ class Mesh extends OutlinerElement {
 		while (steps > 0) {
 			steps--;
 			for (let vkey in this.vertices) {
-				this.vertices[vkey].replace(rotateCoord(this.vertices[vkey]));
+				rotateCoord(this.vertices[vkey], [0, 0, 0]);
 			}
-			if (origin != this.origin) {
-				this.origin.V3_set(rotateCoord(this.origin))
+			if (origin_arg) {
+				rotateCoord(this.origin, origin_arg)
 			}
 		}
 		//Rotations
@@ -1537,7 +1547,8 @@ BARS.defineActions(function() {
 							let [face_key] = mesh.addFaces(new_face);
 							UVEditor.selected_faces.push(face_key);
 
-							if (reference_face.angleTo(new_face) > 90) {
+
+							if (reference_face.getAngleTo(new_face) > 90) {
 								new_face.invert();
 							}
 						}
@@ -1894,12 +1905,22 @@ BARS.defineActions(function() {
 						}
 					}
 
+					// Create line between points
 					remaining_vertices.forEach(a => {
 						let b = original_vertices[new_vertices.indexOf(a)]
-						let new_face = new MeshFace(mesh, {
-							vertices: [b, a]
-						});
-						mesh.addFaces(new_face);
+						let b_in_face = false;
+						mesh.forAllFaces(face => {
+							if (face.vertices.includes(b)) b_in_face = true;
+						})
+						if (selected_faces.find(f => f.vertices.includes(a)) && !b_in_face) {
+							// Remove line if in the middle of other faces
+							delete mesh.vertices[b];
+						} else {
+							let new_face = new MeshFace(mesh, {
+								vertices: [b, a]
+							});
+							mesh.addFaces(new_face);
+						}
 					})
 
 					UVEditor.setAutoSize(null, true, new_face_keys);

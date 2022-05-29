@@ -33,7 +33,7 @@ const Screencam = {
 				background,
 				play: formData.play,
 				turnspeed: formData.turn,
-			}, Screencam.returnScreenshot)
+			})
 		}
 	}),
 	screenshotPreview(preview, options, cb) {
@@ -116,7 +116,7 @@ const Screencam = {
 			})
 		}, 40)
 	},
-	async returnScreenshot(dataUrl, cb) {
+	async returnScreenshot(dataUrl, cb, blob) {
 
 		if (cb) {
 			cb(dataUrl);
@@ -171,7 +171,7 @@ const Screencam = {
 						type: tl('data.image'),
 						savetype: is_gif ? 'binary' : 'image',
 						name: Project.name.replace(/\.geo$/, ''),
-						content: is_gif ? Buffer(dataUrl.split(',')[1], 'base64') : dataUrl,
+						content: is_gif ? (isApp ? Buffer(dataUrl.split(',')[1], 'base64') : blob) : dataUrl,
 					})
 				}
 			}
@@ -264,13 +264,14 @@ const Screencam = {
 	
 			}, interval)
 			gif.on('finished', blob => {
+
 				var reader = new FileReader();
 				reader.onload = () => {
 					if (!options.silent) {
 						Blockbench.setProgress();
 						Blockbench.setStatusBarText();
 					}
-					Screencam.returnScreenshot(reader.result, cb);
+					Screencam.returnScreenshot(reader.result, cb, blob);
 				}
 				reader.readAsDataURL(blob);
 			});
@@ -412,7 +413,6 @@ const Screencam = {
 		Blockbench.showQuickMessage('message.timelapse_start');
 
 		function saveImage(image) {
-			console.trace(image)
 			var path = `${options.destination}${osfs}${getFileName(index)}`;
 			fs.writeFile(path, image, (e, b) => {});
 			

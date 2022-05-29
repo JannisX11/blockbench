@@ -89,7 +89,7 @@ const CustomTheme = {
 						name: 'layout.documentation',
 						icon: 'fa-book',
 						click() {
-
+							Blockbench.openLink('https://www.blockbench.net/wiki/blockbench/themes');
 						}
 					},
 					'import_theme',
@@ -366,6 +366,7 @@ const CustomTheme = {
 			document.body.style.setProperty('--color-'+key, hex);
 		}
 		$('meta[name=theme-color]').attr('content', CustomTheme.data.colors.frame);
+		document.body.classList.toggle('light_mode', new tinycolor(CustomTheme.data.colors.ui).isLight());
 
 		if (typeof gizmo_colors != 'undefined') {
 			let preview_style = window.getComputedStyle(document.getElementById('preview'));

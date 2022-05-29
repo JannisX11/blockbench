@@ -747,8 +747,6 @@ const Canvas = {
 	 * @param {boolean} options.selection Update the selection
 	 */
 	updateView(options) {
-
-
 		if (options.elements) {
 			let aspects = options.element_aspects || {};
 			options.elements.forEach(element => {
@@ -781,6 +779,7 @@ const Canvas = {
 		if (options.selection) {
 			updateSelection();
 		}
+		Blockbench.dispatchEvent('update_view', options);
 	},
 	//Main updaters
 	clear() {
@@ -1198,6 +1197,7 @@ const Canvas = {
 		}
 	},
 	updateUV(cube, animation = true) {
+		// Deprecated
 		var mesh = cube.mesh
 		if (mesh === undefined || !mesh.geometry) return;
 

@@ -747,9 +747,10 @@ class Preview {
 			}, 420)
 			Transformer.dispatchPointerHover(event);
 		}
-		if (Transformer.hoverAxis !== null || (!Keybinds.extra.preview_select.keybind.isTriggered(event) && event.which !== 0)) return;
+		if (Transformer.hoverAxis !== null) return;
+		let is_canvas_click = Keybinds.extra.preview_select.keybind.isTriggered(event) || event.which === 0;
 
-		var data = this.raycast(event);
+		var data = is_canvas_click && this.raycast(event);
 		if (data) {
 			this.selection.click_target = data;
 
@@ -1044,8 +1045,8 @@ class Preview {
 		if (Modes.edit || this.movingBackground) {
 			this.sr_move_f = function(event) { scope.moveSelRect(event)}
 			this.sr_stop_f = function(event) { scope.stopSelRect(event)}
-			document.addEventListener('mousemove', 	this.sr_move_f, false)
-			document.addEventListener('mouseup', 	this.sr_stop_f, false)
+			addEventListeners(document, 'mousemove touchmove', 	this.sr_move_f, false)
+			addEventListeners(document, 'mouseup touchend', 	this.sr_stop_f, false)
 		}
 
 		this.selection.start_x = event.offsetX+0
@@ -1075,9 +1076,10 @@ class Preview {
 	}
 	moveSelRect(event) {
 		var scope = this;
+		convertTouchEvent(event);
 
 		if (this.movingBackground) {
-			if (event.shiftKey || Pressing.overrides.shift) {
+			if (event.shiftKey || Pressing.overrides.shift || (event.touches && event.touches.length >= 2)) {
 				let diff = event.clientY - this.selection.client_y;
 				this.background.size = limitNumber( this.background.before.size + (diff * (0.6 + this.background.size/1200)), 40, 10e3)
 			} else {
@@ -1256,8 +1258,8 @@ class Preview {
 		TickUpdates.selection = true;
 	}
 	stopSelRect(event) {
-		document.removeEventListener('mousemove', this.sr_move_f)
-		document.removeEventListener('mouseup',	this.sr_stop_f)
+		removeEventListeners(document, 'mousemove touchmove', this.sr_move_f);
+		removeEventListeners(document, 'mouseup touchend',	this.sr_stop_f);
 		if (this.movingBackground) {
 			delete this.background.before
 			return
