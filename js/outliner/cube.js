@@ -277,7 +277,7 @@ class Cube extends OutlinerElement {
 		}
 
 		// Check limits
-		if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
+		if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 			let from = this.from.slice(), to = this.to.slice();
 			for (let check_steps = steps; check_steps > 0; check_steps--) {
 				switch(axis) {
@@ -288,7 +288,7 @@ class Cube extends OutlinerElement {
 				from.V3_set(rotateCoord(from));
 				to.V3_set(rotateCoord(to));
 			}
-			if ([...from, ...to].find(value => (value > 32 || value < -16))) {
+			if (Format.cube_size_limiter.test(this, {from, to})) {
 				return false;
 			}
 		}

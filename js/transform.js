@@ -77,7 +77,7 @@ function getSelectionCenter(all = false) {
 }
 function limitToBox(val, inflate) {
 	if (typeof inflate != 'number') inflate = 0;
-	if (!(Format.canvas_limit && !settings.deactivate_size_limit.value)) {
+	if (!(Format.cube_size_limiter && !settings.deactivate_size_limit.value)) {
 		return val;
 	} else if (val + inflate > 32) {
 		return 32 - inflate;
@@ -407,10 +407,13 @@ const Vertexsnap = {
 
 					for (i=0; i<3; i++) {
 						if (m[i] === 1) {
-							obj.to[i] = limitToBox(obj.to[i] + cube_pos.getComponent(i), obj.inflate)
+							obj.to[i] = obj.to[i] + cube_pos.getComponent(i);
 						} else {
-							obj.from[i] = limitToBox(obj.from[i] + cube_pos.getComponent(i), -obj.inflate)
+							obj.from[i] = obj.from[i] + cube_pos.getComponent(i);
 						}
+					}
+					if (Format.cube_size_limiter) {
+						Format.cube_size_limiter.clamp(obj)
 					}
 					if (Project.box_uv && obj.visibility) {
 						Canvas.updateUV(obj)
@@ -486,14 +489,10 @@ function scaleAll(save, size) {
 
 				if (obj.from) {
 					obj.from[i] = (obj.before.from[i] - obj.inflate - ogn) * size;
-					if (obj.from[i] + ogn > 32 || obj.from[i] + ogn < -16) overflow.push(obj);
-					obj.from[i] = limitToBox(obj.from[i] + obj.inflate + ogn, -obj.inflate);
 				}
 
 				if (obj.to) {
 					obj.to[i] = (obj.before.to[i] + obj.inflate - ogn) * size;
-					if (obj.to[i] + ogn > 32 || obj.to[i] + ogn < -16) overflow.push(obj);
-					obj.to[i] = limitToBox(obj.to[i] - obj.inflate + ogn, obj.inflate);
 					if (Format.integer_size) {
 						obj.to[i] = obj.from[i] + Math.round(obj.to[i] - obj.from[i])
 					}
@@ -523,6 +522,14 @@ function scaleAll(save, size) {
 				}
 			}
 		})
+		if (obj instanceof Cube && Format.cube_size_limiter) {
+			if (Format.cube_size_limiter.test(obj)) {
+				overflow.push(obj);
+			}
+			if (!settings.deactivate_size_limit.value) {
+				Format.cube_size_limiter.clamp(obj);
+			}
+		}
 		if (save === true) {
 			delete obj.before
 		}
@@ -538,7 +545,7 @@ function scaleAll(save, size) {
 			delete g.old_origin
 		}
 	}, Group)
-	if (overflow.length && Format.canvas_limit && !settings.deactivate_size_limit.value) {
+	if (overflow.length && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 		scaleAll.overflow = overflow;
 		$('#scaling_clipping_warning').text('Model clipping: Your model is too large for the canvas')
 		$('#scale_overflow_btn').css('display', 'inline-block')
@@ -1236,7 +1243,7 @@ BARS.defineActions(function() {
 		change: function(modify) {
 			Cube.selected.forEach(function(obj, i) {
 				var v = modify(obj.inflate)
-				if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
+				if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 					v = obj.from[0] - Math.clamp(obj.from[0]-v, -16, 32);
 					v = obj.from[1] - Math.clamp(obj.from[1]-v, -16, 32);
 					v = obj.from[2] - Math.clamp(obj.from[2]-v, -16, 32);

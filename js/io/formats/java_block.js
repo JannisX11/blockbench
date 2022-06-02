@@ -113,17 +113,19 @@ var codec = new Codec('java_block', {
 			}
 			element.faces = e_faces
 
-			function inVd(n) {
-				return n < -16 || n > 32; 
-			}
-			if (inVd(element.from[0]) ||
-				inVd(element.from[1]) ||
-				inVd(element.from[2]) ||
-				inVd(element.to[0]) ||
-				inVd(element.to[1]) ||
-				inVd(element.to[2])
-			) {
-				overflow_cubes.push(s);
+			if (Format.cube_size_limiter) {
+				function inVd(n) {
+					return n < -16 || n > 32; 
+				}
+				if (inVd(element.from[0]) ||
+					inVd(element.from[1]) ||
+					inVd(element.from[2]) ||
+					inVd(element.to[0]) ||
+					inVd(element.to[1]) ||
+					inVd(element.to[2])
+				) {
+					overflow_cubes.push(s);
+				}
 			}
 			if (Object.keys(element.faces).length) {
 				clear_elements.push(element)
@@ -465,7 +467,6 @@ var format = new ModelFormat({
 	parent_model_id: true,
 	vertex_color_ambient_occlusion: true,
 	rotate_cubes: true,
-	canvas_limit: true,
 	rotation_limit: true,
 	optional_box_uv: true,
 	uv_rotation: true,
@@ -474,6 +475,60 @@ var format = new ModelFormat({
 	select_texture_for_particles: true,
 	display_mode: true,
 	texture_folder: true,
+	cube_size_limiter: {
+		test(cube, values = 0) {
+			let from = values.from || cube.from;
+			let to = values.to || cube.to;
+			let inflate = values.inflate == undefined ? cube.inflate : values.inflate;
+
+			return undefined !== from.find((v, i) => {
+				return (
+					to[i] + inflate > 40 ||
+					to[i] + inflate < -16 ||
+					from[i] - inflate > 40 ||
+					from[i] - inflate < -16
+				)
+			})
+		},
+		move(cube, values = 0) {
+			let from = values.from || cube.from;
+			let to = values.to || cube.to;
+			let inflate = values.inflate == undefined ? cube.inflate : values.inflate;
+			
+			[0, 1, 2].forEach((ax) => {
+				var overlap = to[ax] + inflate - 40
+				if (overlap > 0) {
+					//If positive site overlaps
+					from[ax] -= overlap
+					to[ax] -= overlap
+
+					if (16 + from[ax] - inflate < 0) {
+						from[ax] = -16 + inflate
+					}
+				} else {
+					overlap = from[ax] - inflate + 16
+					if (overlap < 0) {
+						from[ax] -= overlap
+						to[ax] -= overlap
+
+						if (to[ax] + inflate > 40) {
+							to[ax] = 40 - inflate
+						}
+					}
+				}
+			})
+		},
+		clamp(cube, values = 0) {
+			let from = values.from || cube.from;
+			let to = values.to || cube.to;
+			let inflate = values.inflate == undefined ? cube.inflate : values.inflate;
+			
+			[0, 1, 2].forEach((ax) => {
+				from[ax] = Math.clamp(from[ax] - inflate, -16, 40) + inflate;
+				to[ax] = Math.clamp(to[ax] + inflate, -16, 40) - inflate;
+			})
+		}
+	},
 	codec
 })
 codec.format = format;

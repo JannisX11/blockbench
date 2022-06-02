@@ -16,6 +16,7 @@ class ModelFormat {
 			ModelFormat.properties[id].reset(this);
 		}
 		this.render_sides = data.render_sides;
+		this.cube_size_limiter = data.cube_size_limiter;
 
 		this.codec = data.codec;
 		this.onSetup = data.onSetup;
@@ -149,7 +150,7 @@ class ModelFormat {
 		}
 
 		//Canvas Limit
-		if (Format.canvas_limit && !old_format.canvas_limit && !settings.deactivate_size_limit.value) {
+		if (Format.cube_size_limiter && !old_format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 
 			Cube.all.forEach(function(s, i) {
 				//Push elements into 3x3 block box
@@ -227,7 +228,6 @@ new Property(ModelFormat, 'boolean', 'integer_size');
 new Property(ModelFormat, 'boolean', 'meshes');
 new Property(ModelFormat, 'boolean', 'texture_meshes');
 new Property(ModelFormat, 'boolean', 'locators');
-new Property(ModelFormat, 'boolean', 'canvas_limit');
 new Property(ModelFormat, 'boolean', 'rotation_limit');
 new Property(ModelFormat, 'boolean', 'uv_rotation');
 new Property(ModelFormat, 'boolean', 'java_face_properties');
