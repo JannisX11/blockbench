@@ -207,6 +207,9 @@ onVueSetup(function() {
 				if (format_entry.onStart) format_entry.onStart();
 				if (typeof format_entry.new == 'function') format_entry.new();
 			},
+			openLink(link) {
+				Blockbench.openLink(link);
+			},
 			tl
 		},
 		computed: {
@@ -228,12 +231,6 @@ onVueSetup(function() {
 
 						<div class="start_screen_left" v-if="!(selected_format_id && mobile_layout)">
 							<h2>${tl('mode.start.new')}</h2>
-							<div class="bar next_to_title">
-								<div class="tool quickstart_button" onclick="Blockbench.openLink('https://blockbench.net/quickstart/')">
-									<div class="tooltip">${tl('menu.help.quickstart')}</div>
-									<i class="fas fa-question-circle"></i>
-								</div>
-							</div>
 							<ul>
 								<li v-for="(category, key) in getFormatCategories()" class="format_category" :key="key">
 									<label>{{ category.name }}</label>
@@ -249,6 +246,19 @@ onVueSetup(function() {
 										>
 											<span class="icon_wrapper f_left" v-html="getIconNode(format_entry.icon).outerHTML"></span>
 											<label>{{ format_entry.name }}</label>
+										</li>
+									</ul>
+								</li>
+								<li class="format_category">
+									<label>${tl('mode.start.info')}</label>
+									<ul>
+										<li class="format_entry start_screen_link" @click="openLink('https://blockbench.net/quickstart')">
+											<span class="icon_wrapper f_left"><i class="material-icons">help</i></span>
+											<label>${tl('menu.help.quickstart')}</label>
+										</li>
+										<li class="format_entry start_screen_link" @click="openLink('https://blockbench.net/wiki')">
+											<span class="icon_wrapper f_left"><i class="material-icons">menu_book</i></span>
+											<label>Blockbench Wiki</label>
 										</li>
 									</ul>
 								</li>

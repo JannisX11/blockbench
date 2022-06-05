@@ -955,14 +955,27 @@
 	.format_entry i.fa_big {
 		font-size: 16pt;
 	}
+	.format_entry.start_screen_link:hover {
+		text-decoration: underline;
+	}
+	.format_entry.start_screen_link::after {
+		float: right;
+		content: "\f08e";
+		font-family: 'Font Awesome 6 Free';
+		font-weight: 900;
+		color: var(--color-subtle_text);
+		font-size: 15px;
+		margin-right: 10px;
+	}
 	.format_target {
 		padding: 10px 0;
 	}
 	.format_target span {
 		padding: 2px 4px;
 		margin: 0 2px;
-		background-color: var(--color-button);
+		background-color: var(--color-accent);
 		border-radius: 5px;
+		color: var(--color-accent_text);
 	}
 	#start_files .button_bar {
 		text-align: left;
