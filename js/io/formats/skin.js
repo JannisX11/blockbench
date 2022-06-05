@@ -153,9 +153,10 @@ const codec = new Codec('skin_model', {
 codec.export = null;
 
 
-const format = new ModelFormat({
-	id: 'skin',
+const format = new ModelFormat('skin', {
 	icon: 'icon-player',
+	category: 'minecraft',
+	target: ['Minecraft: Java Edition', 'Minecraft: Bedrock Edition'],
 	can_convert_to: false,
 	model_identifier: false,
 	bone_rig: true,

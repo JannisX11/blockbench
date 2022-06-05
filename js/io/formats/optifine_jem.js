@@ -301,6 +301,8 @@ var format = new ModelFormat({
 	id: 'optifine_entity',
 	extension: 'jem',
 	icon: 'icon-format_optifine',
+	category: 'minecraft',
+	target: 'Minecraft: Java Edition with OptiFine',
 	model_identifier: false,
 	box_uv: true,
 	optional_box_uv: true,

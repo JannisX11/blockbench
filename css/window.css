@@ -661,11 +661,6 @@
 	#start_screen h3 {
 		margin: 0;
 	}
-	#start_screen #start-files h3 {
-		padding-bottom: 0;
-		height: auto;
-		font-size: 18px;
-	}
 	#start_screen .bar.next_to_title {
 		position: absolute;
 		right: 8px;
@@ -756,7 +751,7 @@
 		color: var(--color-accent_text);
 		background-color: transparent;
 	}
-	#start-files ul.redact li.recent_project.thumbnail .thumbnail_image {
+	#start_files ul.redact li.recent_project.thumbnail .thumbnail_image {
 		background: transparent !important;
 	}
 	#start_screen .recent_project.thumbnail:hover .icon_wrapper {
@@ -789,12 +784,12 @@
 	#start_screen > content > section.vertical {
 		flex-direction: column;
 	}
-	#start_screen section div.start_screen_left, #start_screen section div.start_screen_right {
+	div.start_screen_left, div.start_screen_right {
 		display: block;
 		padding: 24px;
 		max-height: 606px;
 	}
-	#start_screen section div.start_screen_right > ul {
+	div.start_screen_right > ul {
 		max-height: 470px;
     	padding-right: 5px;
 		overflow-y: auto;
@@ -821,7 +816,7 @@
 	}
 	#start_screen div.start_screen_right {
 		flex-grow: 1;
-		width: 62%;
+		width: 70%;
 	}
 	#start_screen section.vertical div.start_screen_right {
 		width: auto;
@@ -895,43 +890,107 @@
 
 
 
-	#start-files li:hover {
-		color: var(--color-light);
-	}
-	#start_screen section#start-files div.start_screen_left {
-		width: 38%;
-		padding: 20px 24px 0px 24px;
+	#start_files div.start_screen_left {
+		width: 30%;
+		padding: 20px 0 0px 0;
 		position: relative;
 		display: flex;
 		flex-direction: column;
+		background-color: var(--color-back);
 	}
-	#start-files div.start_screen_right {
-		border-left: 1px solid var(--color-border);
+	#start_files div.start_screen_right {
+		position: relative;
+		min-height: 250px;
 	}
-	#start_screen div.start_screen_left > ul {
+	#start_files div.start_screen_left h2 {
+		margin-left: 24px;
+	}
+	#start_files div.start_screen_left > ul {
 		margin-bottom: 16px;
 		overflow-y: auto;
 	}
-	#start_screen div.start_screen_right i {
+	#start_files div.start_screen_right i {
 		vertical-align: sub;
 	}
-	#start-files div.start_screen_left li {
+	.tool.quickstart_button i {
+		font-size: 17pt;
+	}
+
+	#start_files li.format_category {
+		margin-top: 16px;
+	}
+	#start_files li.format_category > label {
+		color: var(--color-subtle_text);
+		font-size: 18px;
+		margin-left: 24px;
+	}
+	#start_files li.format_entry {
 		padding: 4px 0;
 		cursor: pointer;
+		font-size: 18px;
+		padding-left: 24px;
 	}
-	#start-files div.start_screen_left span.icon_wrapper {
+	#start_files li.format_entry span.icon_wrapper {
 		height: 22px;
+		width: 32px;
 	}
-	#start-files div.start_screen_left li p {
-		font-size: 0.94em;
-		line-height: normal;
-		color: var(--color-subtle_text);
+	#start_files li.format_entry > * {
+		cursor: inherit;
 	}
-	#start-files div.start_screen_left i {
+	#start_files li.format_entry:hover {
+		color: var(--color-light);
+	}
+	#start_files li.format_entry.selected {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+	}
+	#start_files li.format_entry.selected::after {
+		float: right;
+		content: "\f105";
+		font-family: 'Font Awesome 6 Free';
+		font-weight: 900;
+		margin-right: 10px;
+	}
+	.format_entry i {
 		font-size: 18pt;
 		height: 22px;
 		margin: 2px 8px 0px 0;
 		display: inline-block;
+	}
+	.format_entry i.fa_big {
+		font-size: 16pt;
+	}
+	.format_entry.start_screen_link:hover {
+		text-decoration: underline;
+	}
+	.format_entry.start_screen_link::after {
+		float: right;
+		content: "\f08e";
+		font-family: 'Font Awesome 6 Free';
+		font-weight: 900;
+		color: var(--color-subtle_text);
+		font-size: 15px;
+		margin-right: 10px;
+	}
+	.format_target {
+		padding: 10px 0;
+	}
+	.format_target span {
+		padding: 2px 4px;
+		margin: 0 2px;
+		background-color: var(--color-accent);
+		border-radius: 5px;
+		color: var(--color-accent_text);
+	}
+	#start_files .button_bar {
+		text-align: left;
+		padding-right: 14px;
+	}
+	#start_files .format_page_close_button {
+		margin-top: 8px;
+		margin-left: -2px;
+		cursor: pointer;
+		width: 28px;
 	}
 
 	section#keymap_preference {

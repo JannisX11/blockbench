@@ -454,6 +454,8 @@ var format = new ModelFormat({
 	id: 'java_block',
 	extension: 'json',
 	icon: 'icon-format_block',
+	category: 'minecraft',
+	target: 'Minecraft: Java Edition',
 	render_sides() {
 		if (Modes.display && ['thirdperson_righthand', 'thirdperson_lefthand', 'head'].includes(display_slot)) {
 			return 'double';

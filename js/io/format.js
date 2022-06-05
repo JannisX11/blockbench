@@ -3,11 +3,17 @@ const Formats = {};
 
 //Formats
 class ModelFormat {
-	constructor(data) {
-		Formats[data.id] = this;
-		this.id = data.id;
+	constructor(id, data) {
+		if (typeof id == 'object') {
+			data = id;
+			id = data.id;
+		}
+		Formats[id] = this;
+		this.id = id;
 		this.name = data.name || tl('format.'+this.id);
 		this.description = data.description || tl('format.'+this.id+'.desc');
+		this.category = data.category || 'other';
+		this.target = data.target;
 		this.show_on_start_screen = true;
 		this.can_convert_to = true;
 		this.confidential = false;
@@ -20,6 +26,7 @@ class ModelFormat {
 		this.codec = data.codec;
 		this.onActivation = data.onActivation;
 		this.onDeactivation = data.onDeactivation;
+		this.format_page = data.format_page;
 		Merge.string(this, data, 'icon');
 		Merge.boolean(this, data, 'show_on_start_screen');
 		Merge.boolean(this, data, 'can_convert_to');
@@ -27,6 +34,9 @@ class ModelFormat {
 
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].merge(this, data);
+		}
+		if (this.format_page && this.format_page.component) {
+			Vue.component(`format_page_${this.id}`, this.format_page.component)
 		}
 		if (Blockbench.setup_successful && StartScreen.vue) {
 			StartScreen.vue.$forceUpdate();
@@ -233,17 +243,3 @@ new Property(ModelFormat, 'boolean', 'pose_mode');
 new Property(ModelFormat, 'boolean', 'display_mode');
 new Property(ModelFormat, 'boolean', 'animation_mode');
 new Property(ModelFormat, 'boolean', 'texture_folder');
-
-new ModelFormat({
-	id: 'free',
-	icon: 'icon-format_free',
-	meshes: true,
-	rotate_cubes: true,
-	bone_rig: true,
-	centered_grid: true,
-	optional_box_uv: true,
-	uv_rotation: true,
-	animation_mode: true,
-	animated_textures: true,
-	locators: true,
-})

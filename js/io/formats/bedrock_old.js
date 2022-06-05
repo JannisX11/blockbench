@@ -490,6 +490,7 @@ var format = new ModelFormat({
 	id: 'bedrock_old',
 	extension: 'json',
 	icon: 'icon-format_bedrock_legacy',
+	category: 'minecraft',
 	show_on_start_screen: false,
 	box_uv: true,
 	single_texture: true,

@@ -1059,6 +1059,8 @@ var format = new ModelFormat({
 	id: 'bedrock',
 	extension: 'json',
 	icon: 'icon-format_bedrock',
+	category: 'minecraft',
+	target: 'Minecraft: Bedrock Edition',
 	rotate_cubes: true,
 	box_uv: true,
 	optional_box_uv: true,
