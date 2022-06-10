@@ -1712,7 +1712,7 @@ Interface.definePanels(function() {
 			ctx.drawImage(temp_canvas,-temp_canvas.width/2,-temp_canvas.height/2);
 	
 			ctx.restore();
-			UVEditor.updateSize()
+			UVEditor.updatePastingOverlay()
 		},
 	}
 	
