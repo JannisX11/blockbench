@@ -312,7 +312,7 @@ class Animation {
 				if (data) {
 					let animation = content.animations[this.name];
 					content = data;
-					if (this.saved_name) delete content.animations[this.saved_name];
+					if (this.saved_name && this.saved_name !== this.name) delete content.animations[this.saved_name];
 					content.animations[this.name] = animation;
 
 					// Sort
