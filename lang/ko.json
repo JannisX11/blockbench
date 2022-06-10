@@ -1537,7 +1537,7 @@
     "panel.timeline": "타임라인",
     "action.pan_tool": "팬 도구",
     "action.pan_tool.desc": "뷰포트와 텍스쳐 에디터를 찾는 도구",
-    "message.set_background_position.title": "Set Background Position",
-    "message.set_background_position.position": "Position",
-    "message.set_background_position.size": "Size"
+    "message.set_background_position.title": "배경 위치 조정",
+    "message.set_background_position.position": "위치",
+    "message.set_background_position.size": "크기"
 }
