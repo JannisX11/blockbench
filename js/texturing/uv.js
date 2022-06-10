@@ -159,9 +159,6 @@ const UVEditor = {
 			let texture = UVEditor.texture;
 			var {x, y} = UVEditor.getBrushCoordinates(e1, texture);
 			if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
-			if (x === Painter.current.x && y === Painter.current.y) return;
-			Painter.current.x = x = Math.clamp(x, 0, texture.img.naturalWidth);
-			Painter.current.y = y = Math.clamp(y, 0, texture.img.naturalHeight);
 			UVEditor.dragSelection(x, y, e1);
 		}
 		function stop() {
@@ -176,6 +173,9 @@ const UVEditor = {
 		let m = UVEditor.inner_width / UVEditor.texture.width;
 
 		if (!Painter.selection.overlay) {
+			if (x === Painter.current.x && y === Painter.current.y) return;
+			Painter.current.x = x = Math.clamp(x, 0, UVEditor.texture.img.naturalWidth);
+			Painter.current.y = y = Math.clamp(y, 0, UVEditor.texture.img.naturalHeight);
 			let calcrect = getRectangle(Painter.selection.start_x, Painter.selection.start_y, x, y)
 			if (!calcrect.x && !calcrect.y) return;
 			UVEditor.vue.copy_overlay.state = 'select';
@@ -190,6 +190,7 @@ const UVEditor = {
 				.css('width', 	calcrect.x *m + 'px')
 				.css('height', 	calcrect.y *m + 'px')
 				.css('visibility', 'visible')
+
 		} else if (UVEditor.texture && Painter.selection.canvas) {
 			Painter.selection.x = Painter.selection.start_x + Math.round((event.clientX - Painter.selection.start_event.clientX) / m);
 			Painter.selection.y = Painter.selection.start_y + Math.round((event.clientY - Painter.selection.start_event.clientY) / m);
@@ -1712,7 +1713,7 @@ Interface.definePanels(function() {
 			ctx.drawImage(temp_canvas,-temp_canvas.width/2,-temp_canvas.height/2);
 	
 			ctx.restore();
-			UVEditor.updateSize()
+			UVEditor.updatePastingOverlay()
 		},
 	}
 	

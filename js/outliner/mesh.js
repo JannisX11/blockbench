@@ -390,6 +390,7 @@ class Mesh extends OutlinerElement {
 			}
 		}
 		copy.uuid = this.uuid;
+		copy.type = this.type;
 		delete copy.parent;
 		for (let fkey in copy.faces) {
 			delete copy.faces[fkey].mesh;

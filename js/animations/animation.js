@@ -312,7 +312,7 @@ class Animation {
 				if (data) {
 					let animation = content.animations[this.name];
 					content = data;
-					if (this.saved_name) delete content.animations[this.saved_name];
+					if (this.saved_name && this.saved_name !== this.name) delete content.animations[this.saved_name];
 					content.animations[this.name] = animation;
 
 					// Sort
@@ -730,8 +730,8 @@ class Animation {
 			icon: 'remove',
 			condition: () => Format.animation_files,
 			click(animation) {
-				Undo.initEdit({animations: [this]})
-				this.remove(false, false);
+				Undo.initEdit({animations: [animation]})
+				animation.remove(false, false);
 				Undo.finishEdit('Unload animation', {animations: []})
 			}
 		},
@@ -899,6 +899,7 @@ const Animator = {
 			target = Project.motion_trail_lock && OutlinerNode.uuids[Project.motion_trail_lock];
 			if (!target) target = Group.selected || NullObject.selected[0];
 		}
+		if (!target) return;
 		let animation = Animation.selected;
 		let currentTime = Timeline.time;
 		let step = Timeline.getStep();

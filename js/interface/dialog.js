@@ -387,7 +387,7 @@ class DialogSidebar {
 					copy.append(icon);
 					copy.append(span);
 					copy.addEventListener('click', event => {
-						Blockbench.openLink('https://www.blockbench.net/wiki/blockbench/themes');
+						action.click(event);
 					})
 				}
 				action_list.append(copy);

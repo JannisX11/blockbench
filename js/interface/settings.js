@@ -95,6 +95,7 @@ class Setting {
 		if (typeof this.onChange == 'function' && this.value !== old_value) {
 			this.onChange(this.value);
 		}
+		Settings.saveLocalStorages();
 	}
 	trigger(e) {
 		let {type} = this;
@@ -384,7 +385,7 @@ const Settings = {
 		}
 		for (var id in settings) {
 			var setting = settings[id];
-			if (!Condition(setting.condition)) return;
+			if (!Condition(setting.condition)) continue;
 			if (setting.onChange && hasSettingChanged(id)) {
 				setting.onChange(setting.value);
 			}
@@ -558,7 +559,7 @@ onVueSetup(function() {
 			computed: {
 				list() {
 					if (this.search_term) {
-						var keywords = this.search_term.replace(/_/g, ' ').split(' ');
+						var keywords = this.search_term.toLowerCase().replace(/_/g, ' ').split(' ');
 						var items = {};
 						for (var key in settings) {
 							var setting = settings[key];
