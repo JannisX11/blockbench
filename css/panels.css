@@ -439,7 +439,7 @@
 		border-bottom-right-radius: 4px;
 	}
 	.drag_hover_level, .drag_hover[order="0"] {
-		background-color: var(--color-selected);
+		background-color: var(--color-ui);
 	}
 	#outliner_drag_helper {
 		position: absolute;
