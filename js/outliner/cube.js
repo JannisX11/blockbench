@@ -1230,7 +1230,7 @@ BARS.defineActions(function() {
 		id: 'edit_material_instances',
 		icon: 'fas.fa-adjust',
 		category: 'edit',
-		condition: {modes: ['edit'], formats: ['bedrock'], method: () => !Project.box_uv && Cube.selected.length},
+		condition: {modes: ['edit'], formats: ['bedrock_block'], method: () => !Project.box_uv && Cube.selected.length},
 		click: function () {
 			let form = {};
 

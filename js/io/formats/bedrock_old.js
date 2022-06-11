@@ -501,6 +501,11 @@ var format = new ModelFormat({
 	animation_mode: true,
 	locators: true,
 	codec,
+	onSetup(project) {
+		if (isApp) {
+			project.BedrockEntityManager = new BedrockEntityManager(project);
+		}
+	}
 })
 //Object.defineProperty(format, 'single_texture', {get: _ => !settings.layered_textures.value})
 codec.format = format;

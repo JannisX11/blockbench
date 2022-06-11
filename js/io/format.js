@@ -24,6 +24,7 @@ class ModelFormat {
 		this.render_sides = data.render_sides;
 
 		this.codec = data.codec;
+		this.onSetup = data.onSetup;
 		this.onActivation = data.onActivation;
 		this.onDeactivation = data.onDeactivation;
 		this.format_page = data.format_page;
@@ -205,6 +206,10 @@ class ModelFormat {
 		}
 
 		Blockbench.dispatchEvent('convert_format', {format: this, old_format})
+
+		if (typeof this.onSetup == 'function') {
+			this.onSetup(Project)
+		}
 
 		Canvas.updateAllPositions()
 		Canvas.updateAllBones()
