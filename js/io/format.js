@@ -25,6 +25,7 @@ class ModelFormat {
 
 		this.codec = data.codec;
 		this.onSetup = data.onSetup;
+		this.onFormatPage = data.onFormatPage;
 		this.onActivation = data.onActivation;
 		this.onDeactivation = data.onDeactivation;
 		this.format_page = data.format_page;

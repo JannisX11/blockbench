@@ -426,7 +426,7 @@ window.BedrockBlockManager = class BedrockBlockManager {
 					let texture_data = terrain_texture[material.texture];
 					texture_path = texture_data.textures
 				}
-				let full_texture_path = PathModule.join(this.rp_root_path + osfs + texture_path);
+				let full_texture_path = PathModule.join(this.rp_root_path + osfs + texture_path.replace(/\.png$/i, ''));
 				full_texture_path = findExistingFile([
 					full_texture_path+'.png',
 					full_texture_path+'.tga'
@@ -1231,6 +1231,7 @@ var entity_format = new ModelFormat({
 })
 var block_format = new ModelFormat({
 	id: 'bedrock_block',
+	category: 'minecraft',
 	extension: 'json',
 	icon: 'icon-format_bedrock',
 	rotate_cubes: true,

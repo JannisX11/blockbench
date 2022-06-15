@@ -1176,7 +1176,7 @@ new NodePreviewController(Cube, {
 		mesh.grid_box = box;
 		mesh.add(box);
 
-		this.dispatchEvent('update_painting_grid', {element});
+		this.dispatchEvent('update_painting_grid', {element: cube});
 	}
 })
 

@@ -200,7 +200,7 @@ onVueSetup(function() {
 			},
 			loadFormat(format_entry) {
 				this.selected_format_id = format_entry.id;
-				if (format_entry.onSetup) format_entry.onSetup();
+				if (format_entry.onFormatPage) format_entry.onFormatPage();
 			},
 			confirmSetupScreen(format_entry) {
 				this.selected_format_id = '';
@@ -354,7 +354,7 @@ class ModelLoader {
 		this.condition = options.condition;
 
 		this.format_page = options.format_page;
-		this.onSetup = options.onSetup;
+		this.onFormatPage = options.onFormatPage;
 		this.onStart = options.onStart;
 
 		Vue.set(ModelLoader.loaders, id, this);
