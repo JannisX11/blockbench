@@ -548,6 +548,9 @@ onVueSetup(function() {
 		},
 		onButton() {
 			Settings.save();
+		},
+		onOpen() {
+			updateKeybindConflicts();
 		}
 	})
 })

@@ -117,8 +117,8 @@
 		font-family: 'icomoon';
 		font-weight: normal;
 		font-style: normal;
-		src: local('icomoon'),
-			url('../font/icomoon.woff?t564px') format('woff');
+		src: url('../font/icomoon.ttf') format('truetype'),
+			 url('../font/icomoon.woff?t564px') format('woff');
 	}
 
 /*Icons*/
