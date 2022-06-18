@@ -1082,7 +1082,7 @@ Interface.definePanels(() => {
 										v-on:dblclick="keyframe.callPlayhead()"
 										:title="trimFloatNumber(keyframe.time) + ' ⨉ ' + keyframe.display_value"
 										@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
-										@contextmenu.prevent="keyframe.showContextMenu($event)"
+										@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
 									>
 										<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
 										<i class="material-icons keyframe_icon_step" v-else-if="keyframe.interpolation == 'step'">eject</i>

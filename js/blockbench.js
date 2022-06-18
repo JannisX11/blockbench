@@ -219,11 +219,12 @@ function selectAll() {
 		updateSelection();
 
 	} else if (Modes.edit || Modes.paint) {
-		if (Outliner.selected.length < Outliner.elements.length) {
+		let selectable_elements = Outliner.elements.filter(element => !element.locked);
+		if (Outliner.selected.length < selectable_elements.length) {
 			if (Outliner.root.length == 1 && !Outliner.root[0].locked) {
 				Outliner.root[0].select();
 			} else {
-				Outliner.elements.forEach(obj => {
+				selectable_elements.forEach(obj => {
 					obj.selectLow()
 				})
 				TickUpdates.selection = true;

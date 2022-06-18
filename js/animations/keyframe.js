@@ -37,14 +37,17 @@ class Keyframe {
 		this.selected = 0;
 		this.data_points = []
 
+		if (typeof data === 'object') {
+			Merge.string(this, data, 'channel')
+			this.transform = !!(BoneAnimator.prototype.channels[this.channel] || EffectAnimator.prototype.channels[this.channel]).transform;
+			this.data_points.push(new KeyframeDataPoint(this));
+		}
+
 		for (var key in Keyframe.properties) {
 			Keyframe.properties[key].reset(this);
 		}
 
 		if (typeof data === 'object') {
-			Merge.string(this, data, 'channel')
-			this.transform = !!(BoneAnimator.prototype.channels[this.channel] || EffectAnimator.prototype.channels[this.channel]).transform;
-			this.data_points.push(new KeyframeDataPoint(this));
 			this.extend(data)
 		}
 	}
