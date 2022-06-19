@@ -18,7 +18,7 @@ class Group extends OutlinerNode {
 		this.autouv = 0;
 		this.parent = 'root';
 		this.isOpen = false;
-		this.materialIcon = "fa fa-square";
+		this.materialIcon = null;
 		this.materialValue = "";
 		this.displayName = null;
 

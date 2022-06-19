@@ -1190,14 +1190,22 @@ Interface.definePanels(function() {
 			>` +
 				//Opener
 				
-				'<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class=\'{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}\'></i>' +
-				'<i v-else class="outliner_opener_placeholder"></i>' +
+				`<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'></i>
+				<i v-else class="outliner_opener_placeholder"></i>` +
+
+				// Material pipe icon style="margin-left: 2px; margin-right:2px;"
+				`<b v-if="!node.children"
+					:style="{'color': node.materialIcon, 'padding-left': '3px', 'padding-right': '3px'}"
+				> | </b>` +
+
+				`<i :class="node.icon.substring(0, 2) == 'fa' ? node.icon : 'material-icons'"
+					:style="(outliner_colors.value && node.color >= 0) && {color: markerColors[node.color].pastel}"
+					v-on:dblclick.stop="doubleClickIcon(node)"
+				>{{ node.icon.substring(0, 2) == 'fa' ? '' : node.icon }}</i>` +
 				//Main
 				'<i :class="node.icon" :style="(outliner_colors.value && node.color >= 0) && {color: markerColors[node.color].pastel}" v-on:dblclick.stop="doubleClickIcon(node)"></i>' +
 				'<input v-if="node.displayName == null" type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>' +
 				'<input v-if="node.displayName != null" type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.displayName" disabled>' +
-
-
 				`<i v-for="btn in node.buttons"
 					v-if="(!btn.advanced_option || options.show_advanced_toggles || (btn.id === 'locked' && node.isIconEnabled(btn)))"
 					class="outliner_toggle"
@@ -1206,7 +1214,6 @@ Interface.definePanels(function() {
 					:toggle="btn.id"
 					@click.stop
 				></i>` +
-				'<i :class="node.materialIcon">  </i>' +
 			'</div>' +
 			//Other Entries
 			'<ul v-if="node.isOpen">' +
