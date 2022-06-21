@@ -1,5 +1,3 @@
-const { node } = require("webpack")
-
 const Outliner = {
 	root: [],
 	get elements() {
