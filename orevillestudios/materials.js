@@ -19,7 +19,6 @@ function createMaterialMenu() {
                 // Map all materials into materialDirectoryCount. 
                 // This is needed so all material have a distinctive unique id
                 materialsArray.map((mat) => {
-                    console.log(mat.value)
                     materialDirectoryCount[mat.value] = 0;
                 })
                 

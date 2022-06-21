@@ -1258,7 +1258,6 @@ Interface.definePanels(function() {
 				let materialFound = false
 				materials.map((material) => {
 					if (this.node.name.includes(material.value) && (material.value != "")) {
-						console.log("true: ", this.node.name, this.node.name.includes(material.value), material.value)
 						materialFound = true
 					}
 				})
@@ -1268,9 +1267,7 @@ Interface.definePanels(function() {
 				materials = getBoneMaterials();
 				let materialColor = "white"
 				materials.map((material) => {
-					console.log("parent: ", this.node.parent.name)
 					if (this.node.parent.name.includes(material.value) && (material.value != "")) {
-						console.log("color: ", material.color)
 						this.node.material = material.value;
 						materialColor = material.color;
 					}
