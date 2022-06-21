@@ -83,7 +83,9 @@ class Animation {
 		}
 		if (data.markers instanceof Array) {
 			data.markers.forEach(marker => {
-				this.markers.push(new TimelineMarker(marker));
+				if (!this.markers.find(m2 => Math.epsilon(m2.time, marker.time, 0.001))) {
+					this.markers.push(new TimelineMarker(marker));
+				}
 			})
 		}
 		return this;

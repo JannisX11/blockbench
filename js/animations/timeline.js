@@ -1219,30 +1219,30 @@ BARS.defineActions(function() {
 	new Action('timeline_frame_back', {
 		icon: 'arrow_back',
 		category: 'animation',
-		condition: {modes: ['animate', 'edit'], method: () => (!Modes.edit || Interface.Panels.textures.inside_vue.maxFrameCount())},
+		condition: {modes: ['animate', 'edit', 'paint'], method: () => (Modes.animate || Interface.Panels.textures.inside_vue.maxFrameCount())},
 		keybind: new Keybind({key: 188}),
 		click: function (e) {
-			if (Modes.edit) {
-				BarItems.animated_texture_frame.change(v => v - 1);
-			} else {
+			if (Modes.animate || Prop.active_panel == 'timeline') {
 				let time = Timeline.snapTime(limitNumber(Timeline.time - Timeline.getStep(), 0, 1e4));
 				Timeline.setTime(time);
 				Animator.preview()
+			} else {
+				BarItems.animated_texture_frame.change(v => v - 1);
 			}
 		}
 	})
 	new Action('timeline_frame_forth', {
 		icon: 'arrow_forward',
 		category: 'animation',
-		condition: {modes: ['animate', 'edit'], method: () => (!Modes.edit || Interface.Panels.textures.inside_vue.maxFrameCount())},
+		condition: {modes: ['animate', 'edit', 'paint'], method: () => (Modes.animate || Interface.Panels.textures.inside_vue.maxFrameCount())},
 		keybind: new Keybind({key: 190}),
 		click: function (e) {
-			if (Modes.edit) {
-				BarItems.animated_texture_frame.change(v => v + 1);
-			} else {
+			if (Modes.animate || Prop.active_panel == 'timeline') {
 				let time = Timeline.snapTime(limitNumber(Timeline.time + Timeline.getStep(), 0, 1e4));
 				Timeline.setTime(time);
 				Animator.preview()
+			} else {
+				BarItems.animated_texture_frame.change(v => v + 1);
 			}
 		}
 	})

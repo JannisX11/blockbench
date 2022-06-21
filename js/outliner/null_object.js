@@ -126,7 +126,7 @@ class NullObject extends OutlinerElement {
 				}
 			},
 			'_',
-			Outliner.control_menu_group,
+			...Outliner.control_menu_group,
 			'_',
 			'rename',
 			'delete'
