@@ -70,6 +70,7 @@ class Cube extends OutlinerElement {
 		this.origin = [0, 0, 0];
 		this.visibility = true;
 		this.autouv = 0;
+		this.material = null;
 
 		for (var key in Cube.properties) {
 			Cube.properties[key].reset(this);

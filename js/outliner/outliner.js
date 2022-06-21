@@ -1,3 +1,5 @@
+const { node } = require("webpack")
+
 const Outliner = {
 	root: [],
 	get elements() {
@@ -102,6 +104,8 @@ class OutlinerNode {
 			this.addTo('root')
 		}
 		return this;
+
+		
 	}
 	get preview_controller() {
 		return this.constructor.preview_controller;
@@ -1179,7 +1183,9 @@ Interface.definePanels(function() {
 	var VueTreeItem = Vue.extend({
 		template: 
 		'<li class="outliner_node" v-bind:class="{ parent_li: node.children && node.children.length > 0}" v-bind:id="node.uuid">' +
+			// Can hide group from here!
 			`<div
+				v-if="material_directory == false"
 				class="outliner_object"
 				v-bind:class="{ cube: node.type === 'cube', group: node.type === 'group', selected: node.selected }"
 				v-bind:style="{'padding-left': indentation + 'px'}"
@@ -1188,21 +1194,24 @@ Interface.definePanels(function() {
 				@touchstart="node.select($event)" :title="node.title"
 				@dblclick.stop.self="!node.locked && renameOutliner()"
 			>` +
-				//Opener
-				
+
+				// Opener
 				`<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'></i>
 				<i v-else class="outliner_opener_placeholder"></i>` +
 
-				// Material pipe icon style="margin-left: 2px; margin-right:2px;"
+				// Material pipe icon
 				`<b v-if="!node.children"
-					:style="{'color': node.materialIcon, 'padding-left': '3px', 'padding-right': '3px'}"
+					:style="{'color': getMaterialColor, 'padding-left': '3px', 'padding-right': '3px'}"
 				> | </b>` +
 
-				`<i :class="node.icon.substring(0, 2) == 'fa' ? node.icon : 'material-icons'"
+				// Cube or Folder icon
+				`<i 
+					:class="node.icon.substring(0, 2) == 'fa' ? node.icon : 'material-icons'"
 					:style="(outliner_colors.value && node.color >= 0) && {color: markerColors[node.color].pastel}"
 					v-on:dblclick.stop="doubleClickIcon(node)"
 				>{{ node.icon.substring(0, 2) == 'fa' ? '' : node.icon }}</i>` +
-				//Main
+				
+				// Main
 				'<input v-if="node.displayName == null" type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>' +
 				'<input v-if="node.displayName != null" type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.displayName" disabled>' +
 				`<i v-for="btn in node.buttons"
@@ -1213,8 +1222,9 @@ Interface.definePanels(function() {
 					:toggle="btn.id"
 					@click.stop
 				></i>` +
+
 			'</div>' +
-			//Other Entries
+			// Other Entries
 			'<ul v-if="node.isOpen">' +
 				'<vue-tree-item v-for="item in visible_children" :node="item" :options="options" :key="item.uuid"></vue-tree-item>' +
 				`<div class="outliner_line_guide" v-if="node.constructor.selected == node" v-bind:style="{left: indentation + 'px'}"></div>` +
@@ -1231,7 +1241,11 @@ Interface.definePanels(function() {
 		}},
 		computed: {
 			indentation() {
-				return this.node.getDepth ? (limitNumber(this.node.getDepth(), 0, (this.width-100) / 16) * 16) : 0;
+				if (this.node.material) {
+					return (this.node.getDepth) ? (limitNumber(this.node.getDepth() - 1, 0, (this.width-100) / 16) * 16) : 0;
+				} else {
+					return this.node.getDepth ? (limitNumber(this.node.getDepth(), 0, (this.width-100) / 16) * 16) : 0;
+				}
 			},
 			visible_children() {
 				if (!this.options.hidden_types.length) {
@@ -1239,6 +1253,31 @@ Interface.definePanels(function() {
 				} else {
 					return this.node.children.filter(node => !this.options.hidden_types.includes(node.type));
 				}
+			},
+			// Check if group is a material group
+			material_directory() {
+				materials = getBoneMaterials();
+				let materialFound = false
+				materials.map((material) => {
+					if (this.node.name.includes(material.value) && (material.value != "")) {
+						console.log("true: ", this.node.name, this.node.name.includes(material.value), material.value)
+						materialFound = true
+					}
+				})
+				return materialFound
+			},
+			getMaterialColor() {
+				materials = getBoneMaterials();
+				let materialColor = "white"
+				materials.map((material) => {
+					console.log("parent: ", this.node.parent.name)
+					if (this.node.parent.name.includes(material.value) && (material.value != "")) {
+						console.log("color: ", material.color)
+						this.node.material = material.value;
+						materialColor = material.color;
+					}
+				})
+				return materialColor
 			}
 		},
 		methods: {
@@ -1264,6 +1303,57 @@ Interface.definePanels(function() {
 					node.isOpen = !node.isOpen;
 				}
 			},
+			// Array of bone materials
+			// This is intended to be temporary, a better solution is needed in the future!
+			getBoneMaterials() {
+			return [
+				{
+					"name" : "Alpha Test",
+					"value" : "alphaTest",
+					"color" : "red"
+				},
+				{
+					"name" : "Alpha Blend",
+					"value" : "alphaBlend",
+					"color" : "orange"
+				},
+				{
+					"name" : "Animated",
+					"value" : "animated",
+					"color" : "yellow"
+				},
+				{
+					"name" : "Beacon Beam", 
+					"value" : "beaconBeamTransparent",
+					"color" : "green"
+				}, 
+				{
+					"name" : "Charged",
+					"value" : "charged",
+					"color" : "blue"
+				},
+				{
+					"name" : "Emissive",
+					"value" : "emissive",
+					"color" : "violet"
+				}, 
+				{
+					"name" : "Emissive Alpha",
+					"value" : "emissiveAlpha",
+					"color" : "pink"
+				},
+				{
+					"name" : "Opaque",
+					"value" : "opaque",
+					"color" : "purple"
+				},
+				{
+					"name" : "Remove Material",
+					"value" : "",
+					"color" : ""
+				}
+			]
+		},
 			renameOutliner
 		}
 	});

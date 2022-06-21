@@ -360,6 +360,8 @@ function setupInterface() {
 	document.body.classList.toggle('mobile_sidebar_left', settings.mobile_panel_side.value == 'left');
 
 	setupPanels()
+
+	appendToGroupMenu(createMaterialMenu());
 	
 	Interface.status_bar.menu = new Menu([
 		'project_window',
