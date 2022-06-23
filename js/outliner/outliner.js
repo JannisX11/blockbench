@@ -912,15 +912,21 @@ function toggleCubeProperty(key) {
 StateMemory.init('advanced_outliner_toggles', 'boolean')
 
 BARS.defineActions(function() {
-	new Toggle('outliner_toggle', {
-		icon: 'dns',
+	new Action('toggle_material_groups', {
+		icon: 'fa-wrench',
 		category: 'edit',
-		keybind: new Keybind({key: 115}),
-		default: StateMemory.advanced_outliner_toggles,
-		onChange: function (value) {
-			Outliner.vue.options.show_advanced_toggles = value;
-			StateMemory.advanced_outliner_toggles = value;
-			StateMemory.save('advanced_outliner_toggles');
+		condition: () => !Modes.display,
+		keybind: new Keybind({key: 'm', ctrl: true}),
+		click: function () {
+			if (isMatGroupVisible == undefined || isMatGroupVisible == false) {
+				isMatGroupVisible = true;
+			} else {
+				isMatGroupVisible = false;
+			}
+			// THIS IS SUCH A HACK ;_; (works tho)
+			Interface.Panels.outliner.inside_vue.$children.map((element) => {
+				element.forceRerender();
+			});
 		}
 	})
 	new BarText('cube_counter', {
@@ -1177,12 +1183,12 @@ BARS.defineActions(function() {
 })
 
 Interface.definePanels(function() {
-
 	var VueTreeItem = Vue.extend({
 		template: 
-		'<li class="outliner_node" v-bind:class="{ parent_li: node.children && node.children.length > 0}" v-bind:id="node.uuid">' +
+		'<li :key="componentKey" class="outliner_node" v-bind:class="{ parent_li: node.children && node.children.length > 0}" v-bind:id="node.uuid" >' +
 			// Can hide group from here!
 			`<div
+				:key="componentKey"
 				v-if="material_directory == false"
 				class="outliner_object"
 				v-bind:class="{ cube: node.type === 'cube', group: node.type === 'group', selected: node.selected }"
@@ -1194,25 +1200,26 @@ Interface.definePanels(function() {
 			>` +
 
 				// Opener
-				`<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'></i>
+				`<i :key="componentKey" v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'></i>
 				<i v-else class="outliner_opener_placeholder"></i>` +
 
 				// Material pipe icon
-				`<b v-if="!node.children"
+				`<b :key="componentKey" v-if="!node.children"
 					:style="{'color': getMaterialColor, 'padding-left': '3px', 'padding-right': '3px'}"
 				> | </b>` +
 
 				// Cube or Folder icon
 				`<i 
+					:key="componentKey"
 					:class="node.icon.substring(0, 2) == 'fa' ? node.icon : 'material-icons'"
 					:style="(outliner_colors.value && node.color >= 0) && {color: markerColors[node.color].pastel}"
 					v-on:dblclick.stop="doubleClickIcon(node)"
 				>{{ node.icon.substring(0, 2) == 'fa' ? '' : node.icon }}</i>` +
 				
 				// Main
-				'<input v-if="node.displayName == null" type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>' +
-				'<input v-if="node.displayName != null" type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.displayName" disabled>' +
-				`<i v-for="btn in node.buttons"
+				'<input :key="componentKey" v-if="node.displayName == null" type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>' +
+				'<input :key="componentKey" v-if="node.displayName != null" type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.displayName" disabled>' +
+				`<i :key="componentKey" v-for="btn in node.buttons"
 					v-if="(!btn.advanced_option || options.show_advanced_toggles || (btn.id === 'locked' && node.isIconEnabled(btn)))"
 					class="outliner_toggle"
 					:class="getBtnClasses(btn, node)"
@@ -1223,7 +1230,7 @@ Interface.definePanels(function() {
 
 			'</div>' +
 			// Other Entries
-			'<ul v-if="node.isOpen">' +
+			'<ul :key="componentKey" v-if="node.isOpen">' +
 				'<vue-tree-item v-for="item in visible_children" :node="item" :options="options" :key="item.uuid"></vue-tree-item>' +
 				`<div class="outliner_line_guide" v-if="node.constructor.selected == node" v-bind:style="{left: indentation + 'px'}"></div>` +
 			'</ul>' +
@@ -1232,14 +1239,15 @@ Interface.definePanels(function() {
 			options: Object,
 			node: {
 				type: Object
-			}
+			},
+			componentKey: Number,
 		},
 		data() {return {
 			outliner_colors: settings.outliner_colors
 		}},
 		computed: {
 			indentation() {
-				if (this.node.material) {
+				if (this.node.material && isMatGroupVisible) {
 					return (this.node.getDepth) ? (limitNumber(this.node.getDepth() - 1, 0, (this.width-100) / 16) * 16) : 0;
 				} else {
 					return this.node.getDepth ? (limitNumber(this.node.getDepth(), 0, (this.width-100) / 16) * 16) : 0;
@@ -1256,24 +1264,28 @@ Interface.definePanels(function() {
 			material_directory() {
 				materials = getBoneMaterials();
 				let materialFound = false
-				materials.map((material) => {
-					if (this.node.name.includes(material.value) && (material.value != "")) {
-						materialFound = true
-					}
-				})
-				return materialFound
+				if (isMatGroupVisible) {
+					materials.map((material) => {
+						if (this.node.name.includes(material.value) && (material.value != "")) {
+							materialFound = true
+						}
+					})
+					return materialFound
+				} else {
+					return false
+				}
 			},
 			getMaterialColor() {
 				materials = getBoneMaterials();
 				let materialColor = "white"
 				materials.map((material) => {
-					if (this.node.parent.name.includes(material.value) && (material.value != "")) {
+					if ((this.node.parent != 'root' && this.node.parent.name.includes(material.value) && (material.value != ""))) {
 						this.node.material = material.value;
 						materialColor = material.color;
 					}
 				})
-				return materialColor
-			}
+				return materialColor;
+			},
 		},
 		methods: {
 			nodeClass: function (node) {
@@ -1301,53 +1313,60 @@ Interface.definePanels(function() {
 			// Array of bone materials
 			// This is intended to be temporary, a better solution is needed in the future!
 			getBoneMaterials() {
-			return [
-				{
-					"name" : "Alpha Test",
-					"value" : "alphaTest",
-					"color" : "red"
-				},
-				{
-					"name" : "Alpha Blend",
-					"value" : "alphaBlend",
-					"color" : "orange"
-				},
-				{
-					"name" : "Animated",
-					"value" : "animated",
-					"color" : "yellow"
-				},
-				{
-					"name" : "Beacon Beam", 
-					"value" : "beaconBeamTransparent",
-					"color" : "green"
-				}, 
-				{
-					"name" : "Charged",
-					"value" : "charged",
-					"color" : "blue"
-				},
-				{
-					"name" : "Emissive",
-					"value" : "emissive",
-					"color" : "violet"
-				}, 
-				{
-					"name" : "Emissive Alpha",
-					"value" : "emissiveAlpha",
-					"color" : "pink"
-				},
-				{
-					"name" : "Opaque",
-					"value" : "opaque",
-					"color" : "purple"
-				},
-				{
-					"name" : "Remove Material",
-					"value" : "",
-					"color" : ""
-				}
-			]
+				return [
+					{
+						"name" : "Alpha Test",
+						"value" : "alphaTest",
+						"color" : "red"
+					},
+					{
+						"name" : "Alpha Blend",
+						"value" : "alphaBlend",
+						"color" : "orange"
+					},
+					{
+						"name" : "Animated",
+						"value" : "animated",
+						"color" : "yellow"
+					},
+					{
+						"name" : "Beacon Beam", 
+						"value" : "beaconBeamTransparent",
+						"color" : "green"
+					}, 
+					{
+						"name" : "Charged",
+						"value" : "charged",
+						"color" : "teal"
+					},
+					{
+						"name" : "Emissive",
+						"value" : "emissive",
+						"color" : "blue"
+					}, 
+					{
+						"name" : "Emissive Alpha",
+						"value" : "emissiveAlpha",
+						"color" : "purple"
+					},
+					{
+						"name" : "Opaque",
+						"value" : "opaque",
+						"color" : "pink"
+					},
+					{
+						"name" : "Remove Material",
+						"value" : "",
+						"color" : ""
+					}
+				]
+		},
+		forceRerender() {
+			if (this.componentKey == undefined || this.componentKey == NaN) {
+				this.componentKey = 1;
+			} else {
+				this.componentKey += 1;
+			}
 		},
 			renameOutliner
 		}

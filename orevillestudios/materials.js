@@ -1,5 +1,5 @@
 let materialDirectoryCount = {};
-
+let isMatGroupVisible = false;
 
 // Create menu for right-click on groups
 function createMaterialMenu() {    
@@ -109,22 +109,22 @@ function getBoneMaterials() {
         {
             "name" : "Charged",
             "value" : "charged",
-            "color" : "blue"
+            "color" : "teal"
         },
         {
             "name" : "Emissive",
             "value" : "emissive",
-            "color" : "violet"
+            "color" : "blue"
         }, 
         {
             "name" : "Emissive Alpha",
             "value" : "emissiveAlpha",
-            "color" : "pink"
+            "color" : "purple"
         },
         {
             "name" : "Opaque",
             "value" : "opaque",
-            "color" : "purple"
+            "color" : "pink"
         },
         {
             "name" : "Remove Material",

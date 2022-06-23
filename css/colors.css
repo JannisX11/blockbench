@@ -1,61 +1,31 @@
 /* Font-Awesome Icon colors */
 
 .red {
-    color: #fc0303
-}
-.dark-red {
-    color: #780000
-}
-.dark-orange {
-    color: #af5f02
+    color: #D2204C
 }
 .orange {
-    color: #ff7308
+    color: #EF7116
 }
 .yellow {
-    color: #ffd608
-}
-.dark-yellow {
-    color: #7a7120
+    color: #DEBC12
 }
 .green {
-    color: #36e809
-}
-.dark-green {
-    color: #286119
+    color: #67BA3D
 }
 .teal {
-    color: #09e893
-}
-.dark-teal {
-    color: #026b43
-}
-.light-blue {
-    color: #07e8e1
+    color: #017A58
 }
 .blue {
-    color: #0752e8
-}
-.dark-blue {
-    color: #0b077d
-}
-.violet {
-    color: #cf0ba5
+    color: #1887F0
 }
 .purple {
-    color: #8800e3
+    color: #A033FF
 }
 .pink {
-    color: #f79eff
-}
-.dark-pink {
-    color: #e3009b
+    color: #EF4ACE 
 }
 .grey {
     color: #717175
-}
-.dark-grey {
-    color: #444445
 }
 .black {
     color: #000000

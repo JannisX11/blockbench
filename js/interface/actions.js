@@ -1906,6 +1906,7 @@ const BARS = {
 				'add_mesh',
 				'add_group',
 				'outliner_toggle',
+				'toggle_material_groups',
 				'toggle_skin_layer',
 				'explode_skin_model',
 				'+',
