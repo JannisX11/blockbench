@@ -361,7 +361,7 @@ function setupInterface() {
 
 	setupPanels()
 
-	appendToGroupMenu(createMaterialMenu());
+	appendToCubeMenu(createMaterialMenu());
 	
 	Interface.status_bar.menu = new Menu([
 		'project_window',

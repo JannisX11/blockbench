@@ -28,28 +28,50 @@ function createMaterialMenu() {
                 // Get currently selected group
                 let selectedGroup = getCurrentGroup();
 
-                // Add material count
-                materialDirectoryCount[material.value] += 1;
+                console.log(material.value)
 
-                // create new group to add materials to
-                let newMaterialGroup = new Group(material.value + materialDirectoryCount[material.value]).init();
+                // Remove material from cube
+                if (material.value == "") {
+                    // Move cuvbe to parent of current group
+                    Outliner.selected.map((obj) => {
+                        if (obj.title == 'Cube') {
+                            obj.material = '';
+                            obj.materialColor = '';
+                            obj.addTo(selectedGroup.parent)
+                        }
+                    });
 
-                // Set group parent to group we just pushed to
-                newMaterialGroup.addTo(selectedGroup);
-                
-                // Open the group
-                newMaterialGroup.isOpen = true;
-
-                newMaterialGroup.materialValue = material.value
-
-                // Move cubes to new material group
-                Outliner.selected.map((obj) => {
-                    if (obj.title == 'Cube') {
-                        obj.material = material.value;
-                        obj.materialColor = material.color;
-                        obj.addTo(newMaterialGroup)
+                    // remove material group
+                    if (selectedGroup.parent != 'root') {
+                        if (selectedGroup.children.length <= 0) {
+                            selectedGroup.remove()
+                        }
                     }
-                });
+                } else {
+                    // Add material count
+                    materialDirectoryCount[material.value] += 1;
+
+                    // create new group to add materials to
+                    let newMaterialGroup = new Group(material.value + materialDirectoryCount[material.value]).init();
+
+                    // Set group parent to group we just pushed to
+                    newMaterialGroup.addTo(selectedGroup);
+                    
+                    // Open the group
+                    newMaterialGroup.isOpen = true;
+
+                    newMaterialGroup.materialValue = material.value
+
+                    // Move cubes to new material group
+                    Outliner.selected.map((obj) => {
+                        if (obj.title == 'Cube') {
+                            let prevMaterial = obj.material
+                            obj.material = material.value;
+                            obj.materialColor = material.color;
+                            obj.addTo(newMaterialGroup)
+                        }
+                    });
+                }
             }
         }}),
     }
@@ -73,7 +95,7 @@ function countMaterialGroups(group) {
 }
 
 // Append single element to group menu
-function appendToGroupMenu(element) {
+function appendToCubeMenu(element) {
     // Generate new group menu that includes out custom elements
     var originalMenu = Cube.prototype.menu
     Cube.prototype.menu = new Menu([
