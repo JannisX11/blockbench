@@ -921,6 +921,8 @@
     "dialog.skin.texture": "Textuur (Optioneel)",
     "action.toggle_skin_layer": "Zet Skin Laag Aan/Uit",
     "action.toggle_skin_layer.desc": "Zet de hoed- en klerenlaag van het skin model",
+    "action.toggle_material_groups": "",
+	"action.toggle_material_groups.desc": "",
     "action.gui_light": "GUI Licht",
     "action.gui_light.desc": "Selecteer de manier waarop het item is belicht in de inventaris",
     "action.gui_light.side": "Zijkant Licht",

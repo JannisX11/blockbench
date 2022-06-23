@@ -921,6 +921,8 @@
     "dialog.skin.texture": "Textura(Opcional)",
     "action.toggle_skin_layer": "Alterar camada da Skin",
     "action.toggle_skin_layer.desc": "Alterar a camada do chapéu e da roupa do modelo da skin",
+    "action.toggle_material_groups": "",
+	"action.toggle_material_groups.desc": "",
     "action.gui_light": "Luz da GUI",
     "action.gui_light.desc": "Selecione a maneira como o item é iluminado no inventário",
     "action.gui_light.side": "Luz Lateral",

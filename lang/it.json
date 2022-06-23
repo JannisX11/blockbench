@@ -921,6 +921,8 @@
     "dialog.skin.texture": "Texture (Opzionale)",
     "action.toggle_skin_layer": "Alterna Strati Skin",
     "action.toggle_skin_layer.desc": "Alterna lo strato del capello e dei vestiti del modello della skin",
+    "action.toggle_material_groups": "",
+	"action.toggle_material_groups.desc": "",
     "action.gui_light": "Illuminazione GUI",
     "action.gui_light.desc": "Scegli il modo in quale l'item è illuminato nell'inventario",
     "action.gui_light.side": "Luce Laterale",

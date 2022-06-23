@@ -921,6 +921,8 @@
     "dialog.skin.texture": "텍스쳐 (선택 사항)",
     "action.toggle_skin_layer": "스킨 레이어 스위치",
     "action.toggle_skin_layer.desc": "스킨 모델의 모자와 옷 등의 레이어를 활성화 혹은 비활성화합니다.",
+    "action.toggle_material_groups": "",
+	"action.toggle_material_groups.desc": "",
     "action.gui_light": "GUI 밝기",
     "action.gui_light.desc": "아이템이 인벤토리에서 밝혀지는 방법을 정합니다.",
     "action.gui_light.side": "옆면 빛",

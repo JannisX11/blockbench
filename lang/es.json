@@ -921,6 +921,8 @@
     "dialog.skin.texture": "Textura (Opcional)",
     "action.toggle_skin_layer": "Cambiar Capa de Skin",
     "action.toggle_skin_layer.desc": "Cambia la capa del gorro y de la ropa en el modelo de skin",
+    "action.toggle_material_groups": "",
+	"action.toggle_material_groups.desc": "",
     "action.gui_light": "Luz en GUI",
     "action.gui_light.desc": "Selecciona la forma en la que el ítem es iluminado en el inventario",
     "action.gui_light.side": "Luz Lateral",

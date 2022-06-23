@@ -915,7 +915,6 @@ BARS.defineActions(function() {
 	new Action('toggle_material_groups', {
 		icon: 'fa-wrench',
 		category: 'edit',
-		condition: () => !Modes.display,
 		keybind: new Keybind({key: 'm', ctrl: true}),
 		click: function () {
 			if (isMatGroupVisible == undefined || isMatGroupVisible == false) {

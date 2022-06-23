@@ -921,6 +921,8 @@
     "dialog.skin.texture": "Tekstura (Opcjonalna)",
     "action.toggle_skin_layer": "Włącz warstwę skórki",
     "action.toggle_skin_layer.desc": "Włącz warstwę nakrycia głowy i ubrań",
+    "action.toggle_material_groups": "",
+	"action.toggle_material_groups.desc": "",
     "action.gui_light": "Światło GUI",
     "action.gui_light.desc": "Wybierz sposób w jaki przedmiot jest podświetlony w ekwipunku",
     "action.gui_light.side": "Boczne światło",

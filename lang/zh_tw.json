@@ -921,6 +921,8 @@
     "dialog.skin.texture": "紋理 (可選)",
     "action.toggle_skin_layer": "切換外觀外層",
     "action.toggle_skin_layer.desc": "是否顯示外觀的帽子和衣服",
+    "action.toggle_material_groups": "",
+	"action.toggle_material_groups.desc": "",
     "action.gui_light": "GUI光照",
     "action.gui_light.desc": "選取物品在背包中的光照方式",
     "action.gui_light.side": "側光照",

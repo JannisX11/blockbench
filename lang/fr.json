@@ -921,6 +921,8 @@
     "dialog.skin.texture": "Texture (optionnel)",
     "action.toggle_skin_layer": "Alterner la couche du skin",
     "action.toggle_skin_layer.desc": "Affiche/masque la couche externe du modèle de skin",
+    "action.toggle_material_groups": "",
+	"action.toggle_material_groups.desc": "",
     "action.gui_light": "Lumière dans la GUI",
     "action.gui_light.desc": "Sélectionner la façon dont l'item est éclairé dans l'inventaire",
     "action.gui_light.side": "Lumière latérale",

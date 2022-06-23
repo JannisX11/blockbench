@@ -921,6 +921,8 @@
     "dialog.skin.texture": "Textur (Optional)",
     "action.toggle_skin_layer": "Zweite Skin-Schicht umschalten",
     "action.toggle_skin_layer.desc": "Aktiviert / Deaktiviert die Hut- und Kleidungsebene",
+    "action.toggle_material_groups": "",
+	"action.toggle_material_groups.desc": "",
     "action.gui_light": "Inventarbeleuchtung",
     "action.gui_light.desc": "Wähle die Art der Beleuchtung des Gegenstands im Inventar",
     "action.gui_light.side": "Seitliches Licht",

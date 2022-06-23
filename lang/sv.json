@@ -921,6 +921,8 @@
     "dialog.skin.texture": "Texture (Frivillig)",
     "action.toggle_skin_layer": "Växla skinlager",
     "action.toggle_skin_layer.desc": "Växla hatt- och klätlager för skinmodellen",
+    "action.toggle_material_groups": "",
+	"action.toggle_material_groups.desc": "",
     "action.gui_light": "GUI Light",
     "action.gui_light.desc": "Select the way the item is lit in the inventory",
     "action.gui_light.side": "Side Light",

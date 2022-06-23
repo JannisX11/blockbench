@@ -874,8 +874,8 @@
 	"action.toggle_skin_layer.desc": "Toggle the hat and clothing layer of the skin model",
 	"action.explode_skin_model": "Explode Skin Model",
 	"action.explode_skin_model.desc": "Toggles an explosion view that allows you to edit covered faces",
-	"action.toggle_material_groups" : "Toggle Material Groups",
-	"toggle_material_groups.desc" : "Toggles on/off material group visibility",
+	"action.toggle_material_groups": "Toggle Material Groups",
+	"action.toggle_material_groups.desc": "Toggles on/off material group visibility",
 
 	"action.vertex_snap_tool": "Vertex Snap",
 	"action.vertex_snap_tool.desc": "Move one cube to another cube by connecting two vertices",

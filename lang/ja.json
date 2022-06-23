@@ -921,6 +921,8 @@
     "dialog.skin.texture": "テクスチャ (Optional)",
     "action.toggle_skin_layer": "レイヤーを切り替え",
     "action.toggle_skin_layer.desc": "スキンモデルのレイヤーを切り替えます",
+    "action.toggle_material_groups": "",
+	"action.toggle_material_groups.desc": "",
     "action.gui_light": "GUIライト",
     "action.gui_light.desc": "インベントリでアイテムを照らす方法を選択します",
     "action.gui_light.side": "Sideライト",

@@ -921,6 +921,8 @@
     "dialog.skin.texture": "Текстура (необязательно)",
     "action.toggle_skin_layer": "Переключить слой скина",
     "action.toggle_skin_layer.desc": "Переключить слои шляпы и одежды",
+    "action.toggle_material_groups": "",
+	"action.toggle_material_groups.desc": "",
     "action.gui_light": "Светлый интерфейс",
     "action.gui_light.desc": "Выбрать способ освещения предмета в инвентаре",
     "action.gui_light.side": "Боковой свет",

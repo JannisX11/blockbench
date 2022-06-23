@@ -921,6 +921,8 @@
     "dialog.skin.texture": "纹理（可选）",
     "action.toggle_skin_layer": "切换皮肤叠层",
     "action.toggle_skin_layer.desc": "切换皮肤模型的帽子和衣服叠层",
+    "action.toggle_material_groups": "",
+	"action.toggle_material_groups.desc": "",
     "action.gui_light": "GUI 光照",
     "action.gui_light.desc": "选择物品栏中物品的光照方式",
     "action.gui_light.side": "侧置光照",

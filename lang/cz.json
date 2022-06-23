@@ -921,6 +921,8 @@
     "dialog.skin.texture": "Textura (Volitelné)",
     "action.toggle_skin_layer": "Přepnout Vrstvu Skinu",
     "action.toggle_skin_layer.desc": "Přepne na vrstvu pro oblečení u skinového modelu",
+    "action.toggle_material_groups": "",
+	"action.toggle_material_groups.desc": "",
     "action.gui_light": "GUI Osvětlení",
     "action.gui_light.desc": "Vyberte způsob osvětlení položky v inventáři",
     "action.gui_light.side": "Boční Osvětlení",
