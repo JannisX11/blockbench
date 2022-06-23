@@ -54,9 +54,14 @@ function createMaterialMenu() {
                     // create new group to add materials to
                     let newMaterialGroup = new Group(material.value + materialDirectoryCount[material.value]).init();
 
-                    // Set group parent to group we just pushed to
-                    newMaterialGroup.addTo(selectedGroup);
-                    
+                    if (selectedGroup.children[0].material.length == 0) {
+                         // Set group parent to group we just pushed to
+                        newMaterialGroup.addTo(selectedGroup);
+                    } else {
+                        // Set group to parent of group
+                        newMaterialGroup.addTo(selectedGroup.parent);
+                    }
+
                     // Open the group
                     newMaterialGroup.isOpen = true;
 
@@ -65,10 +70,16 @@ function createMaterialMenu() {
                     // Move cubes to new material group
                     Outliner.selected.map((obj) => {
                         if (obj.title == 'Cube') {
-                            let prevMaterial = obj.material
                             obj.material = material.value;
                             obj.materialColor = material.color;
                             obj.addTo(newMaterialGroup)
+
+                            // remove material group
+                            if (selectedGroup.parent != 'root') {
+                                if (selectedGroup.children.length <= 0) {
+                                    selectedGroup.remove()
+                                }
+                            }
                         }
                     });
                 }
