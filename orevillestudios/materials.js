@@ -54,9 +54,10 @@ function createMaterialMenu() {
                     // create new group to add materials to
                     let newMaterialGroup = new Group(material.value + materialDirectoryCount[material.value]).init();
 
-                    if (selectedGroup.children[0].material.length == 0) {
-                         // Set group parent to group we just pushed to
-                        newMaterialGroup.addTo(selectedGroup);
+                    if (selectedGroup.children[0].material == null) {
+                            // Set group parent to group we just pushed to
+                           newMaterialGroup.addTo(selectedGroup);
+                        
                     } else {
                         // Set group to parent of group
                         newMaterialGroup.addTo(selectedGroup.parent);
