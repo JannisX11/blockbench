@@ -12,11 +12,11 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    
+    runs-on: ${{ matrix.os }}
+
     strategy:
       matrix:
-        node-version: [10.x, 12.x, 14.x, 15.x]
+        os: [macos-latest, ubuntu-latest, windows-latest]
     
     permissions:
       contents: read
@@ -25,10 +25,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+      - name: Install Node.js, NPM and Yarn
+        uses: actions/setup-node@v1
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 16.4
 
       - name: Build electron app
         run: npm run dist
