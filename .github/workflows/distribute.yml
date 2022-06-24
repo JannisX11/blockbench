@@ -29,6 +29,11 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 16.4
+  
+      - name: Install Electron Bundler
+        run: yarn add electron-builder --dev
 
-      - name: Build electron app
+      - name: Build blockbench executable
         run: npm run dist
+
+
