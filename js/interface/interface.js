@@ -361,6 +361,7 @@ function setupInterface() {
 
 	setupPanels()
 
+	// Add custom menu to interface
 	appendToCubeMenu(createMaterialMenu());
 	
 	Interface.status_bar.menu = new Menu([

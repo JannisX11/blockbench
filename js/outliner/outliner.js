@@ -913,7 +913,7 @@ StateMemory.init('advanced_outliner_toggles', 'boolean')
 
 BARS.defineActions(function() {
 	new Action('toggle_material_groups', {
-		icon: 'fa-wrench',
+		icon: 'fa-folder-open',
 		category: 'edit',
 		keybind: new Keybind({key: 'm', ctrl: true}),
 		click: function () {

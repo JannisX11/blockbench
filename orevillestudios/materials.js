@@ -4,104 +4,110 @@ let isMatGroupVisible = false;
 // Create menu for right-click on groups
 function createMaterialMenu() {    
     var bone_materials = getBoneMaterials();
-
+        
     return {
         'name': 'Material Selection', 
-        'icon': 'bar_chart',
-        'children' : bone_materials.map((material) => { return {
-            icon : 'bubble_chart',
-            color : material.color,            
-            name : material.name,
-            click() {
-                // Cleanup
-                removeUnusedGroups();
+        'icon': 'fa-fill-drip',
+        'children' : bone_materials.map((material) => { 
+            // Set Material Icons
+            materialIcon = 'fa-droplet'
 
-                // Get material array
-                let materialsArray = getBoneMaterials();
+            // Set Remove Material icon to X
+            if (material.value == null || material.value.length == 0)    {
+                    materialIcon = 'fa-x'
+            }
 
-                // Map all materials into materialDirectoryCount. 
-                // This is needed so all material have a distinctive unique id
-                materialsArray.map((mat) => {
-                    materialDirectoryCount[mat.value] = 0;
-                })
-                
-                // Loop over all groups in outliner
-                countMaterialGroups(getAllGroups());
-
-                // Get currently selected group
-                let selectedGroup = getCurrentGroup();
-
-                console.log(material.value)
-
-                // Remove material from cube
-                if (material.value == "") {
-                    // Move cuvbe to parent of current group
-                    Outliner.selected.map((obj) => {
-                        if (obj.title == 'Cube') {
-                            obj.material = '';
-                            obj.materialColor = '';
-                            obj.addTo(selectedGroup.parent)
-                        }
-                    });
-
-                    // remove material group
-                    if (selectedGroup.parent != 'root') {
-                        if (selectedGroup.children.length <= 0) {
-                            selectedGroup.remove()
-                        }
+            return {
+                icon : materialIcon,
+                color : material.color,            
+                name : material.name,
+                click() {
+                    // Build object of material counts
+                    if (Object.keys(materialDirectoryCount).length === 0) {
+                        countMaterialGroups();    
                     }
-                } else {
-                    // Add material count
-                    materialDirectoryCount[material.value] += 1;
+                    
+                    // Cleanup
+                    removeUnusedGroups();
 
-                    // create new group to add materials to
-                    let newMaterialGroup = new Group(material.value + materialDirectoryCount[material.value]).init();
+                    // Get currently selected group
+                    let selectedGroup = getCurrentGroup();
 
-                    if (selectedGroup.children[0].material == null) {
-                            // Set group parent to group we just pushed to
-                           newMaterialGroup.addTo(selectedGroup);
-                        
-                    } else {
-                        // Set group to parent of group
-                        newMaterialGroup.addTo(selectedGroup.parent);
-                    }
+                    // Remove material from cube
+                    if (material.value == "") {
+                        // Move cuvbe to parent of current group
+                        Outliner.selected.map((obj) => {
+                            if (obj.title == 'Cube') {
+                                obj.material = '';
+                                obj.materialColor = '';
+                                obj.addTo(selectedGroup.parent)
+                            }
+                        });
 
-                    // Open the group
-                    newMaterialGroup.isOpen = true;
-
-                    newMaterialGroup.materialValue = material.value
-
-                    // Move cubes to new material group
-                    Outliner.selected.map((obj) => {
-                        if (obj.title == 'Cube') {
-                            obj.material = material.value;
-                            obj.materialColor = material.color;
-                            obj.addTo(newMaterialGroup)
-
-                            // remove material group
-                            if (selectedGroup.parent != 'root') {
-                                if (selectedGroup.children.length <= 0) {
-                                    selectedGroup.remove()
-                                }
+                        // remove material group
+                        if (selectedGroup.parent != 'root') {
+                            if (selectedGroup.children.length <= 0) {
+                                selectedGroup.remove()
                             }
                         }
-                    });
+                    } else {
+                        // Add material count
+                        if (materialDirectoryCount[material.value] === NaN || materialDirectoryCount[material.value] === null) {
+                            materialDirectoryCount[material.value] = 0
+                        }
+                        materialDirectoryCount[material.value] += 1;
+
+                        // create new group to add materials to
+                        let newMaterialGroup = new Group(material.value + materialDirectoryCount[material.value]).init();
+
+                        if (selectedGroup.children[0].material == null) {
+                                // Set group parent to group we just pushed to
+                            newMaterialGroup.addTo(selectedGroup);
+                            
+                        } else {
+                            // Set group to parent of group
+                            newMaterialGroup.addTo(selectedGroup.parent);
+                        }
+
+                        // Open the group
+                        newMaterialGroup.isOpen = true;
+
+                        newMaterialGroup.materialValue = material.value
+
+                        // Move cubes to new material group
+                        Outliner.selected.map((obj) => {
+                            if (obj.title == 'Cube') {
+                                obj.material = material.value;
+                                obj.materialColor = material.color;
+                                obj.addTo(newMaterialGroup)
+
+                                // remove material group
+                                if (selectedGroup.parent != 'root') {
+                                    if (selectedGroup.children.length <= 0) {
+                                        selectedGroup.remove()
+                                    }
+                                }
+                            }
+                        });
+                    }
                 }
             }
-        }}),
+        }),
     }
 }
 
 // Need to recursively search till we get to lowest level group
-function countMaterialGroups(group) {
-    let materialsArray = getBoneMaterials();
-    
+function countMaterialGroups() {
     //If group has children, check to see if there is a group in the children
-    group.map((child) => {
+    getAllGroups().map((child) => {
         if (child.title == 'Group') {
-            // add all
-            materialsArray.map((mat) => {
+            getBoneMaterials().map((mat) => {
+                // dumb javascript thing
+                if (materialDirectoryCount[mat.value] === undefined) {
+                    materialDirectoryCount[mat.value] = 0
+                }
                 if (child.name.includes(mat.value)) {
+                    // Increment material group count
                     materialDirectoryCount[mat.value] += 1;
                 }        
             })
