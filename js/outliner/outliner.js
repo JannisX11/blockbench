@@ -1216,8 +1216,7 @@ Interface.definePanels(function() {
 				>{{ node.icon.substring(0, 2) == 'fa' ? '' : node.icon }}</i>` +
 				
 				// Main
-				'<input :key="updateMaterial" v-if="node.displayName == null" type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>' +
-				'<input :key="updateMaterial" v-if="node.displayName != null" type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.displayName" disabled>' +
+				'<input :key="updateMaterial" type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>' +
 				`<i :key="updateMaterial" v-for="btn in node.buttons"
 					v-if="(!btn.advanced_option || options.show_advanced_toggles || (btn.id === 'locked' && node.isIconEnabled(btn)))"
 					class="outliner_toggle"

@@ -1,3 +1,4 @@
+// Initialize some stuff
 let materialDirectoryCount = {};
 let isMatGroupVisible = false;
 

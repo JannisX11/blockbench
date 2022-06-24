@@ -413,9 +413,6 @@ function setupInterface() {
 		}
 	})
 
-
-
-
 	//Clickbinds
 	$('#preview').click(function() { setActivePanel('preview' )})
 
