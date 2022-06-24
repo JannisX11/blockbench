@@ -1184,10 +1184,10 @@ BARS.defineActions(function() {
 Interface.definePanels(function() {
 	var VueTreeItem = Vue.extend({
 		template: 
-		'<li :key="componentKey" class="outliner_node" v-bind:class="{ parent_li: node.children && node.children.length > 0}" v-bind:id="node.uuid" >' +
+		'<li :key="updateMaterial" class="outliner_node" v-bind:class="{ parent_li: node.children && node.children.length > 0}" v-bind:id="node.uuid" >' +
 			// Can hide group from here!
 			`<div
-				:key="componentKey"
+				:key="updateMaterial"
 				v-if="material_directory == false"
 				class="outliner_object"
 				v-bind:class="{ cube: node.type === 'cube', group: node.type === 'group', selected: node.selected }"
@@ -1199,26 +1199,26 @@ Interface.definePanels(function() {
 			>` +
 
 				// Opener
-				`<i :key="componentKey" v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'></i>
+				`<i :key="updateMaterial" v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'></i>
 				<i v-else class="outliner_opener_placeholder"></i>` +
 
 				// Material pipe icon
-				`<b :key="componentKey" v-if="!node.children"
-					:style="{'color': getMaterialColor, 'padding-left': '3px', 'padding-right': '3px'}"
+				`<b :key="updateMaterial" v-if="!node.children"
+					:style="{'color': get_material_color, 'padding-left': '3px', 'padding-right': '3px'}"
 				> | </b>` +
 
 				// Cube or Folder icon
 				`<i 
-					:key="componentKey"
+					:key="updateMaterial"
 					:class="node.icon.substring(0, 2) == 'fa' ? node.icon : 'material-icons'"
 					:style="(outliner_colors.value && node.color >= 0) && {color: markerColors[node.color].pastel}"
 					v-on:dblclick.stop="doubleClickIcon(node)"
 				>{{ node.icon.substring(0, 2) == 'fa' ? '' : node.icon }}</i>` +
 				
 				// Main
-				'<input :key="componentKey" v-if="node.displayName == null" type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>' +
-				'<input :key="componentKey" v-if="node.displayName != null" type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.displayName" disabled>' +
-				`<i :key="componentKey" v-for="btn in node.buttons"
+				'<input :key="updateMaterial" v-if="node.displayName == null" type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>' +
+				'<input :key="updateMaterial" v-if="node.displayName != null" type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.displayName" disabled>' +
+				`<i :key="updateMaterial" v-for="btn in node.buttons"
 					v-if="(!btn.advanced_option || options.show_advanced_toggles || (btn.id === 'locked' && node.isIconEnabled(btn)))"
 					class="outliner_toggle"
 					:class="getBtnClasses(btn, node)"
@@ -1229,7 +1229,7 @@ Interface.definePanels(function() {
 
 			'</div>' +
 			// Other Entries
-			'<ul :key="componentKey" v-if="node.isOpen">' +
+			'<ul :key="updateMaterial" v-if="node.isOpen">' +
 				'<vue-tree-item v-for="item in visible_children" :node="item" :options="options" :key="item.uuid"></vue-tree-item>' +
 				`<div class="outliner_line_guide" v-if="node.constructor.selected == node" v-bind:style="{left: indentation + 'px'}"></div>` +
 			'</ul>' +
@@ -1239,7 +1239,7 @@ Interface.definePanels(function() {
 			node: {
 				type: Object
 			},
-			componentKey: Number,
+			updateMaterial: Number,
 		},
 		data() {return {
 			outliner_colors: settings.outliner_colors
@@ -1274,7 +1274,7 @@ Interface.definePanels(function() {
 					return false
 				}
 			},
-			getMaterialColor() {
+			get_material_color() {
 				materials = getBoneMaterials();
 				let materialColor = "white"
 				materials.map((material) => {
@@ -1309,62 +1309,11 @@ Interface.definePanels(function() {
 					node.isOpen = !node.isOpen;
 				}
 			},
-			// Array of bone materials
-			// This is intended to be temporary, a better solution is needed in the future!
-			getBoneMaterials() {
-				return [
-					{
-						"name" : "Alpha Test",
-						"value" : "alphaTest",
-						"color" : "red"
-					},
-					{
-						"name" : "Alpha Blend",
-						"value" : "alphaBlend",
-						"color" : "orange"
-					},
-					{
-						"name" : "Animated",
-						"value" : "animated",
-						"color" : "yellow"
-					},
-					{
-						"name" : "Beacon Beam", 
-						"value" : "beaconBeamTransparent",
-						"color" : "green"
-					}, 
-					{
-						"name" : "Charged",
-						"value" : "charged",
-						"color" : "teal"
-					},
-					{
-						"name" : "Emissive",
-						"value" : "emissive",
-						"color" : "blue"
-					}, 
-					{
-						"name" : "Emissive Alpha",
-						"value" : "emissiveAlpha",
-						"color" : "purple"
-					},
-					{
-						"name" : "Opaque",
-						"value" : "opaque",
-						"color" : "pink"
-					},
-					{
-						"name" : "Remove Material",
-						"value" : "",
-						"color" : ""
-					}
-				]
-		},
 		forceRerender() {
-			if (this.componentKey == undefined || this.componentKey == NaN) {
-				this.componentKey = 1;
+			if (this.updateMaterial == undefined || this.updateMaterial == NaN) {
+				this.updateMaterial = 1;
 			} else {
-				this.componentKey += 1;
+				this.updateMaterial += 1;
 			}
 		},
 			renameOutliner
