@@ -27,7 +27,7 @@ function createMaterialMenu() {
                         countMaterialGroups();    
                     }
                     
-                    // Cleanup
+                    // Cleanup empty groups
                     removeUnusedGroups();
 
                     // Get currently selected group
@@ -69,9 +69,7 @@ function createMaterialMenu() {
                             newMaterialGroup.addTo(selectedGroup.parent);
                         }
 
-                        // Open the group
                         newMaterialGroup.isOpen = true;
-
                         newMaterialGroup.materialValue = material.value
 
                         // Move cubes to new material group
@@ -81,7 +79,7 @@ function createMaterialMenu() {
                                 obj.materialColor = material.color;
                                 obj.addTo(newMaterialGroup)
 
-                                // remove material group
+                                // remove material group if there are no children
                                 if (selectedGroup.parent != 'root') {
                                     if (selectedGroup.children.length <= 0) {
                                         selectedGroup.remove()
@@ -96,9 +94,8 @@ function createMaterialMenu() {
     }
 }
 
-// Need to recursively search till we get to lowest level group
+// Count materials and add initilize them to materialDirectoryCount object
 function countMaterialGroups() {
-    //If group has children, check to see if there is a group in the children
     getAllGroups().map((child) => {
         if (child.title == 'Group') {
             getBoneMaterials().map((mat) => {

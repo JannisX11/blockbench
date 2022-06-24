@@ -917,7 +917,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		keybind: new Keybind({key: 'm', ctrl: true}),
 		click: function () {
-			if (isMatGroupVisible == undefined || isMatGroupVisible == false) {
+			if (isMatGroupVisible === undefined || isMatGroupVisible === false) {
 				isMatGroupVisible = true;
 			} else {
 				isMatGroupVisible = false;
