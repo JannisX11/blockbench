@@ -13,6 +13,9 @@ function createMaterialMenu() {
             color : material.color,            
             name : material.name,
             click() {
+                // Cleanup
+                removeUnusedGroups();
+
                 // Get material array
                 let materialsArray = getBoneMaterials();
 
@@ -104,6 +107,16 @@ function countMaterialGroups(group) {
             })
         }
     });
+}
+
+// Remove groups with zero children
+function removeUnusedGroups() {
+    allGroups = getAllGroups();
+    allGroups.map((group) => {
+        if (group.children.length == 0) {
+            group.remove()
+        }
+    })
 }
 
 // Append single element to group menu
