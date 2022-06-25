@@ -1689,6 +1689,17 @@ Interface.definePanels(function() {
 				},
 				change: (axis, channel) => {
 					if (channel === 'scale') {
+						if (Pressing.shift) {
+							var val = limitNumber(parseFloat(DisplayMode.slot.scale[axis]), 0, 4)
+							DisplayMode.slot.scale[0] = val;
+							DisplayMode.slot.scale[1] = val;
+							DisplayMode.slot.scale[2] = val;
+						}
+					}
+					DisplayMode.updateDisplayBase()
+				},
+				focusout: (axis, channel) => {
+					if (channel === 'scale') {
 						var val = limitNumber(DisplayMode.slot.scale[axis], 0, 4)
 						DisplayMode.slot.scale[axis] = val;
 						if (Pressing.shift) {
@@ -1772,7 +1783,7 @@ Interface.definePanels(function() {
 							<input type="range" class="tool disp_range" v-model.number="slot.rotation[axis]" v-bind:trigger_type="'rotation.'+axis"
 								min="-180" max="180" step="1" value="0"
 								@input="change(axis, 'rotation')" @mousedown="start()" @change="save">
-							<input lang="en" type="number" class="tool disp_text" v-model.number="slot.rotation[axis]" min="-180" max="180" step="0.5" value="0" @input="change(axis, 'rotation');save()" @mousedown="start()">
+							<input lang="en" type="number" class="tool disp_text" v-model.number="slot.rotation[axis]" min="-180" max="180" step="0.5" value="0" @input="change(axis, 'rotation')" @focusout="focusout(axis, 'rotation');save()" @mousedown="start()">
 							<div class="color_corner" :style="{'border-color': \`var(--color-axis-\${getAxisLetter(axis)})\`}"></div>
 						</div>
 						
@@ -1786,7 +1797,7 @@ Interface.definePanels(function() {
 								v-bind:max="Math.abs(slot.translation[axis]) < 10 ?  20 : (slot.translation[axis] < 0 ? 70*3-10 : 80)"
 								v-bind:step="Math.abs(slot.translation[axis]) < 10 ? 0.25 : 1"
 								value="0" @input="change(axis, 'translation')" @mousedown="start()" @change="save">
-							<input lang="en" type="number" class="tool disp_text" v-model.number="slot.translation[axis]" min="-80" max="80" step="0.5" value="0" @input="change(axis, 'translation');save()" @mousedown="start()">
+							<input lang="en" type="number" class="tool disp_text" v-model.number="slot.translation[axis]" min="-80" max="80" step="0.5" value="0" @input="change(axis, 'translation')" @focusout="focusout(axis, 'translation');save()" @mousedown="start()">
 							<div class="color_corner" :style="{'border-color': \`var(--color-axis-\${getAxisLetter(axis)})\`}"></div>
 						</div>
 
@@ -1805,7 +1816,7 @@ Interface.definePanels(function() {
 								v-bind:max="slot.scale[axis] > 1 ? 4 : 2"
 								step="0.01"
 								value="0" @input="change(axis, 'scale')" @mousedown="start(axis, 'scale')" @change="save(axis, 'scale')">
-							<input type="number" class="tool disp_text" v-model.number="slot.scale[axis]" min="0" max="4" step="0.01" value="0" @input="change(axis, 'scale');save()" @mousedown="start()">
+							<input type="number" class="tool disp_text" v-model.number="slot.scale[axis]" min="0" max="4" step="0.01" value="0" @input="change(axis, 'scale')" @focusout="focusout(axis, 'scale');save()" @mousedown="start()">
 							<div class="color_corner" :style="{'border-color': \`var(--color-axis-\${getAxisLetter(axis)})\`}"></div>
 						</div>
 						
