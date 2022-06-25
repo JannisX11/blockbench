@@ -439,14 +439,16 @@ class Group extends OutlinerNode {
 		'_',
 		'rename',
 		'edit_bedrock_binding',
-		{name: 'menu.cube.color', icon: 'color_lens', children: markerColors.map((color, i) => {return {
-			icon: 'bubble_chart',
-			color: color.standard,
-			name: 'cube.color.'+color.name,
-			click() {
-				setGroupColor(i);
-			}
-		}})},
+		{name: 'menu.cube.color', icon: 'color_lens', children() {
+			return markerColors.map((color, i) => {return {
+				icon: 'bubble_chart',
+				color: color.standard,
+				name: color.name || 'cube.color.'+color.id,
+				click() {
+					setGroupColor(i);
+				}
+			}})
+		}},
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
 		'resolve_group',
 		'delete'

@@ -1528,6 +1528,8 @@
 
 	"menu.keyframe.quaternion": "Quaternion",
 
+	"menu.timeline_marker.set_time": "Set Time...",
+
 	"menu.mobile_keyboard.disable_all": "Disable All",
 
 	"menu.paste.face": "UV Face",

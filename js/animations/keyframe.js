@@ -416,17 +416,19 @@ class Keyframe {
 		'_',
 		'keyframe_uniform',
 		'keyframe_interpolation',
-		{name: 'menu.cube.color', icon: 'color_lens', children: [
-			{icon: 'bubble_chart', name: 'generic.unset', click: function(kf) {kf.forSelected(kf2 => {kf2.color = -1}, 'change color')}},
-			...markerColors.map((color, i) => {return {
-				icon: 'bubble_chart',
-				color: color.standard,
-				name: 'cube.color.'+color.name,
-				click(kf) {
-					kf.forSelected(function(kf2){kf2.color = i}, 'change color')
-				}
-			}}),
-		]},
+		{name: 'menu.cube.color', icon: 'color_lens', children() {
+			return [
+				{icon: 'bubble_chart', name: 'generic.unset', click: function(kf) {kf.forSelected(kf2 => {kf2.color = -1}, 'change color')}},
+				...markerColors.map((color, i) => {return {
+					icon: 'bubble_chart',
+					color: color.standard,
+					name: color.name || 'cube.color.'+color.id,
+					click(kf) {
+						kf.forSelected(function(kf2){kf2.color = i}, 'change color')
+					}
+				}})
+			];
+		}},
 		'copy',
 		'delete',
 	])

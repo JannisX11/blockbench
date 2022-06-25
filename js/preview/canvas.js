@@ -313,7 +313,8 @@ const Canvas = {
 			side: THREE.DoubleSide,
 		})
 	})(),
-	emptyMaterials: (function() {
+	emptyMaterials: [],
+	updateMarkerColorMaterials() {
 		var img = new Image()
 		img.src = 'assets/missing.png'
 		var tex = new THREE.Texture(img)
@@ -393,8 +394,10 @@ const Canvas = {
 
 			}`
 
-		return markerColors.map(function(color, i) {
-			return new THREE.ShaderMaterial({
+		
+		markerColors.forEach(function(color, i) {
+			if (Canvas.emptyMaterials[i]) return;
+			Canvas.emptyMaterials[i] = new THREE.ShaderMaterial({
 				uniforms: {
 					map: {type: 't', value: tex},
 					SHADE: {type: 'bool', value: settings.shading.value},
@@ -406,7 +409,7 @@ const Canvas = {
 				side: THREE.DoubleSide,
 			})
 		})
-	})(),
+	},
 	transparentMaterial: new THREE.MeshBasicMaterial({visible: false, name: 'invisible'}),
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
 	buildGrid() {
@@ -562,6 +565,7 @@ const Canvas = {
 	temp_vectors: [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()],
 
 	setup() {
+		Canvas.updateMarkerColorMaterials();
 
 		//Light
 		Sun = new THREE.AmbientLight( 0xffffff );

@@ -27,13 +27,32 @@ class TimelineMarker {
 	}
 }
 TimelineMarker.prototype.menu = new Menu([
-	
-	...markerColors.map((color, i) => {return {
-		icon: 'flag',
-		color: color.standard,
-		name: 'cube.color.'+color.name,
-		click(marker) {marker.color = i;}
-	}}),
+	{name: 'menu.cube.color', icon: 'color_lens', children() {
+		return [
+			...markerColors.map((color, i) => {return {
+				icon: 'flag',
+				color: color.standard,
+				name: color.name || 'cube.color.'+color.id,
+				click(marker) {marker.color = i;}
+			}})
+		];
+	}},
+	{
+		name: 'menu.timeline_marker.set_time',
+		icon: 'schedule',
+		click(marker) {
+			new Dialog({
+				id: 'timeline_marker_set_time',
+				title: 'menu.timeline_marker.set_time',
+				form: {
+					time: {label: 'action.slider_keyframe_time', value: Math.roundTo(marker.time, 4), type: 'number', min: 0}
+				},
+				onConfirm(form) {
+					marker.time = form.time;
+				}
+			}).show();
+		}
+	},
 	'_',
 	{icon: 'delete', name: 'generic.delete', click: function(marker) {
 		if (Animation.selected) Animation.selected.markers.remove(marker);
@@ -759,7 +778,7 @@ Interface.definePanels(() => {
 				},
 				getColor(index) {
 					if (index == -1 || index == undefined) return;
-					return markerColors[index].standard;
+					return markerColors[index % markerColors.length].standard;
 				},
 				getWaveformPoints(samples, size) {
 					let height = 23;
@@ -979,7 +998,7 @@ Interface.definePanels(() => {
 								<div
 									v-for="marker in markers"
 									class="timeline_marker"
-									v-bind:style="{left: (marker.time * size) + 'px', 'border-color': markerColors[marker.color].standard}"
+									v-bind:style="{left: (marker.time * size) + 'px', 'border-color': markerColors[marker.color % markerColors.length].standard}"
 									@contextmenu.prevent="marker.showContextMenu($event)"
 									v-on:click="marker.callPlayhead()"
 								></div>

@@ -78,16 +78,16 @@ Object.defineProperty(window, 'selected', {
 });
 //Colors
 var markerColors = [
-	{pastel: "#A2EBFF", standard: "#58C0FF", name: 'light_blue'},
-	{pastel: "#FFF899", standard: "#F4D714", name: 'yellow'},
-	{pastel: "#F1BB75", standard: "#EC9218", name: 'orange'},
-	{pastel: "#FF9B97", standard: "#FA565D", name: 'red'},
-	{pastel: "#C5A6E8", standard: "#B55AF8", name: 'purple'},
-	{pastel: "#A6C8FF", standard: "#4D89FF", name: 'blue'},
-	{pastel: "#7BFFA3", standard: "#00CE71", name: 'green'},
-	{pastel: "#BDFFA6", standard: "#AFFF62", name: 'lime'},
-	{pastel: "#FFA5D5", standard: "#F96BC5", name: 'pink'},
-	{pastel: "#E0E9FB", standard: "#C7D5F6", name: 'silver'}
+	{pastel: "#A2EBFF", standard: "#58C0FF", id: 'light_blue'},
+	{pastel: "#FFF899", standard: "#F4D714", id: 'yellow'},
+	{pastel: "#F1BB75", standard: "#EC9218", id: 'orange'},
+	{pastel: "#FF9B97", standard: "#FA565D", id: 'red'},
+	{pastel: "#C5A6E8", standard: "#B55AF8", id: 'purple'},
+	{pastel: "#A6C8FF", standard: "#4D89FF", id: 'blue'},
+	{pastel: "#7BFFA3", standard: "#00CE71", id: 'green'},
+	{pastel: "#BDFFA6", standard: "#AFFF62", id: 'lime'},
+	{pastel: "#FFA5D5", standard: "#F96BC5", id: 'pink'},
+	{pastel: "#E0E9FB", standard: "#C7D5F6", id: 'silver'}
 ]
 class OutlinerNode {
 	constructor(uuid) {
@@ -1024,7 +1024,7 @@ BARS.defineActions(function() {
 				return {
 					name: group.name,
 					icon: 'folder',
-					color: markerColors[group.color] && markerColors[group.color].standard,
+					color: markerColors[group.color % markerColors.length] && markerColors[group.color % markerColors.length].standard,
 					click(event) {
 						moveOutlinerSelectionTo(element, group, event);
 						element.showInOutliner();
@@ -1078,7 +1078,7 @@ BARS.defineActions(function() {
 				'-1': 'generic.all'
 			}
 			markerColors.forEach((color, i) => {
-				color_options[i] = 'cube.color.' + color.name;
+				color_options[i] = color.name || 'cube.color.' + color.id;
 			})
 			let type_options = {
 				all: 'generic.all'
@@ -1253,7 +1253,7 @@ Interface.definePanels(function() {
 				<i v-else class="outliner_opener_placeholder"></i>
 
 				<i :class="node.icon.substring(0, 2) == 'fa' ? node.icon : 'material-icons'"
-					:style="(outliner_colors.value && node.color >= 0) && {color: markerColors[node.color].pastel}"
+					:style="(outliner_colors.value && node.color >= 0) && {color: markerColors[node.color % markerColors.length].pastel}"
 					v-on:dblclick.stop="doubleClickIcon(node)"
 				>{{ node.icon.substring(0, 2) == 'fa' ? '' : node.icon }}</i>
 				<input type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>` +

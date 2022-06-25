@@ -655,16 +655,18 @@ class Mesh extends OutlinerElement {
 		...Outliner.control_menu_group,
 		'_',
 		'rename',
-		{name: 'menu.cube.color', icon: 'color_lens', children: markerColors.map((color, i) => {return {
-			icon: 'bubble_chart',
-			color: color.standard,
-			name: 'cube.color.'+color.name,
-			click(cube) {
-				cube.forSelected(function(obj){
-					obj.setColor(i)
-				}, 'change color')
-			}
-		}})},
+		{name: 'menu.cube.color', icon: 'color_lens', children() {
+			return markerColors.map((color, i) => {return {
+				icon: 'bubble_chart',
+				color: color.standard,
+				name: color.name || 'cube.color.'+color.id,
+				click(cube) {
+					cube.forSelected(function(obj){
+						obj.setColor(i)
+					}, 'change color')
+				}
+			}})
+		}},
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Project.single_texture, children: function() {
 			var arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {
