@@ -957,7 +957,7 @@ class Preview {
 			}
 			return true;
 		}
-		if (typeof Toolbox.selected.onCanvasClick === 'function') {
+		if (is_canvas_click && typeof Toolbox.selected.onCanvasClick === 'function') {
 			Toolbox.selected.onCanvasClick({event})
 		}
 
