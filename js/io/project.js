@@ -824,6 +824,8 @@ BARS.defineActions(function() {
 					for (var key in ModelProject.properties) {
 						ModelProject.properties[key].merge(Project, formResult);
 					}
+					Project.name = Project.name.trim();
+					Project.model_identifier = Project.model_identifier.trim();
 
 					if (save) {
 						Undo.finishEdit('Change project UV settings')

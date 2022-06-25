@@ -1177,37 +1177,59 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => !Modes.display,
 		keybind: new Keybind({key: 'a', ctrl: true}),
-		click: function () {selectAll()}
+		click() {selectAll()}
+	})
+	new Action('unselect_all', {
+		icon: 'border_clear',
+		category: 'edit',
+		condition: () => !Modes.display,
+		click() {
+			if (Modes.animate) {
+				unselectAllKeyframes()
+			} else if (Prop.active_panel == 'uv') {
+				this.vue.selected_faces.empty();
+				UVEditor.displayTools();
+		
+			} else if (Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object') {
+				Mesh.selected.forEach(mesh => {
+					delete Project.selected_vertices[mesh.uuid];
+				})
+				updateSelection();
+		
+			} else if (Modes.edit || Modes.paint) {
+				unselectAll()
+			}
+			Blockbench.dispatchEvent('select_all')
+		}
 	})
 
-	let enabled = false;
-	let were_hidden_before = [];
 	new Action('hide_everything_except_selection', {
 		icon: 'fa-glasses',
 		category: 'view',
 		keybind: new Keybind({key: 'i'}),
 		condition: {modes: ['edit', 'paint']},
 		click() {
-			enabled = !enabled;
+			let enabled = !Project.only_hidden_elements;
 
-			let affected = Project.elements.filter(el => typeof el.visibility == 'boolean' && (!el.selected || were_hidden_before.includes(el.uuid)));
-			Undo.initEdit({elements: affected})
-			affected.forEach(el => {
-				if (enabled) {
-					if (el.visibility) were_hidden_before.push(el.uuid);
-					el.visibility = !!el.selected;
-				} else {
-					el.visibility = were_hidden_before.includes(el.uuid);
-				}
-			})
-			if (!enabled) were_hidden_before.empty();
+			if (Project.only_hidden_elements) {
+				let affected = Project.elements.filter(el => typeof el.visibility == 'boolean' && Project.only_hidden_elements.includes(el.uuid));
+				Undo.initEdit({elements: affected})
+				affected.forEach(el => {
+					el.visibility = true;
+				})
+				delete Project.only_hidden_elements;
+			} else {
+				let affected = Project.elements.filter(el => typeof el.visibility == 'boolean' && !el.selected && el.visibility);
+				Undo.initEdit({elements: affected})
+				affected.forEach(el => {
+					el.visibility = false;
+				})
+				Project.only_hidden_elements = affected.map(el => el.uuid);
+			}
+
 			Canvas.updateVisibility();
 			Undo.finishEdit('Toggle visibility on everything except selection');
 		}
-	})
-	Blockbench.on('unselect_project', () => {
-		enabled = false;
-		were_hidden_before.empty();
 	})
 })
 

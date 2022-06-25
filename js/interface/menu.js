@@ -752,6 +752,7 @@ const MenuBar = {
 			'_',
 			'select_window',
 			'select_all',
+			'unselect_all',
 			'invert_selection'
 		])
 		new BarMenu('transform', [

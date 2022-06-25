@@ -123,6 +123,7 @@ class Keyframe {
 			var number = parseFloat( start[0].substr(0, start[0].length-1) ) + amount;
 			if (number == 0) {
 				value = value.substr(start[0].length + (value[start[0].length-1] == '+' ? 0 : -1));
+				value = value.trim();
 			} else {
 				value = trimFloatNumber(number) + (start[0].substr(-2, 1) == ' ' ? ' ' : '') + value.substr(start[0].length-1);
 			}
@@ -276,7 +277,8 @@ class Keyframe {
 					scripts.push(...data_point.script.split('\n'));
 				}
 			})
-			scripts = scripts.filter(script => !!script.replace(/[\n\s;.]+/g, ''))
+			scripts = scripts.filter(script => !!script.replace(/[\n\s;.]+/g, ''));
+			scripts = scripts.map(line => line.match(/;\s*$/) ? line : (line+';'));
 			return scripts.length <= 1 ? scripts[0] : scripts;
 		} else {
 			let points = [];
@@ -489,6 +491,14 @@ function selectAllKeyframes() {
 			Timeline.selected.remove(kf)
 		}
 		kf.selected = state
+	})
+	updateKeyframeSelection()
+}
+function unselectAllKeyframes() {
+	if (!Animation.selected) return;
+	Timeline.keyframes.forEach((kf) => {
+		Timeline.selected.remove(kf)
+		kf.selected = false;
 	})
 	updateKeyframeSelection()
 }
