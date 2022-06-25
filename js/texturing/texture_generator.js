@@ -1170,6 +1170,18 @@ const TextureGenerator = {
 			new_resolution = [max_size, max_size];
 		} else {
 			new_resolution = [Project.texture_width, Project.texture_height];
+			face_list.forEach(face_group => {
+				if (!face_group.mesh) return;
+				let face_uvs = face_group.faces.map((face, i) => {
+					let rect = face.getBoundingRect();
+					face_group.posx = rect.ax;
+					face_group.posy = rect.ay;
+					return face.getSortedVertices().map(vkey => {
+						return [face.uv[vkey][0]-rect.ax, face.uv[vkey][1]-rect.ay];
+					})
+				});
+				face_group.matrix = getPolygonOccupationMatrix(face_uvs, face_group.width, face_group.height);
+			})
 		}
 
 		if (background_color.getAlpha() != 0) {
