@@ -24,9 +24,9 @@ function createMaterialMenu() {
                 name : material.name,
                 click() {
                     // Build object of material counts
-                    if (Object.keys(materialDirectoryCount).length === 0) {
-                        countMaterialGroups();    
-                    }
+                    materialDirectoryCount = {}
+                    countMaterialGroups();    
+                    
                     
                     // Cleanup empty groups
                     removeUnusedGroups();
