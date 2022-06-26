@@ -892,6 +892,52 @@ BARS.defineActions(function() {
 			Animator.preview()
 		}
 	})
+	let channels = ['rotation', 'position', 'scale']
+	new Action('keyframe_column_create', {
+		icon: 'add_road',
+		category: 'animation',
+		condition: () => Animator.open,
+		click() {
+			Timeline.selected.empty();
+			let new_keyframes = [];
+			Undo.initEdit({keyframes: new_keyframes})
+			Timeline.animators.forEach(animator => {
+				if (animator instanceof BoneAnimator == false) return;
+				channels.forEach(channel => {
+					if (Timeline.vue.channels[channel] !== false && animator[channel] && animator[channel].length) {
+						let kf = animator.createKeyframe(null, Timeline.time, channel, false, false);
+						new_keyframes.push(kf)
+						Timeline.selected.push(kf);
+						kf.selected = true;
+					}
+				})
+			})
+			updateKeyframeSelection();
+			Undo.finishEdit('Create keyframe column');
+		}
+	})
+	new Action('keyframe_column_select', {
+		icon: 'unfold_more_double',
+		category: 'animation',
+		condition: () => Animator.open,
+		click() {
+			Timeline.selected.empty();
+			Timeline.animators.forEach(animator => {
+				if (animator instanceof BoneAnimator == false) return;
+				channels.forEach(channel => {
+					if (Timeline.vue.channels[channel] !== false && animator[channel] && animator[channel].length) {
+						animator[channel].forEach(kf => {
+							if (Math.epsilon(kf.time, Timeline.time, 1e-5) && Timeline.vue.channels[kf.channel] !== false) {
+								Timeline.selected.push(kf);
+								kf.selected = true;
+							}
+						})
+					}
+				})
+			})
+			updateKeyframeSelection();
+		}
+	})
 
 	flip_action = new Action('flip_animation', {
 		icon: 'transfer_within_a_station',

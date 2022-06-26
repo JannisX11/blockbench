@@ -1670,7 +1670,7 @@ BARS.defineActions(function() {
 	})
 
 	new Action('bake_animation_into_model', {
-		icon: 'transfer_within_a_station',
+		icon: 'directions_run',
 		category: 'animation',
 		condition: {modes: ['animate']},
 		click: function () {

@@ -1335,6 +1335,10 @@
 	"action.resolve_keyframe_expressions.desc": "Resolves the math expressions of the selected keyframes",
 	"action.reverse_keyframes": "Reverse Keyframes",
 	"action.reverse_keyframes.desc": "Reverse the order of the selected keyframes",
+	"action.keyframe_column_create": "Create Keyframe Column",
+	"action.keyframe_column_create.desc": "Key all channels in the timeline at the current timecode, if they already have keyframes",
+	"action.keyframe_column_select": "Select Keyframe Column",
+	"action.keyframe_column_select.desc": "Select all keyframes in the timeline along a column below the playhead",
 	"action.flip_animation": "Flip Animation",
 	"action.flip_animation.desc": "Flips part of an animation by copying selected keyframes to the other side of the model",
 	"action.delete_keyframes": "Delete Keyframes",
@@ -1399,6 +1403,7 @@
 	"menu.tools": "Tools",
 	"menu.display": "Display",
 	"menu.animation": "Animation",
+	"menu.keyframe": "Keyframe",
 	"menu.view": "View",
 	"menu.help": "Help",
 

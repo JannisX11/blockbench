@@ -810,27 +810,38 @@ const MenuBar = {
 		})
 
 		new BarMenu('animation', [
+			'add_marker',
+			'lock_motion_trail',
+			'_',
+			'select_effect_animator',
+			'flip_animation',
+			'bake_animation_into_model',
+			'_',
+			'load_animation_file',
+			'save_all_animations',
+			'export_animation_file'
+		], {
+			condition: {modes: ['animate']}
+		})
+
+		new BarMenu('keyframe', [
 			'copy',
 			'paste',
-			'select_all',
+			'_',
 			'add_keyframe',
-			'add_marker',
+			'keyframe_column_create',
+			'select_all',
+			'keyframe_column_select',
 			'reverse_keyframes',
 			{name: 'menu.animation.flip_keyframes', id: 'flip_keyframes', condition: () => Timeline.selected.length, icon: 'flip', children: [
 				'flip_x',
 				'flip_y',
 				'flip_z'
 			]},
-			'flip_animation',
+			'keyframe_uniform',
+			'reset_keyframe',
+			'resolve_keyframe_expressions',
 			'delete',
-			'lock_motion_trail',
-			'_',
-			'select_effect_animator',
-			'bake_animation_into_model',
-			'_',
-			'load_animation_file',
-			'save_all_animations',
-			'export_animation_file'
 		], {
 			condition: {modes: ['animate']}
 		})
