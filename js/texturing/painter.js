@@ -870,7 +870,7 @@ const Painter = {
 		if (Math.isNumber(base)) base = Jimp.intToRGBA(base)
 		if (Math.isNumber(added)) added = Jimp.intToRGBA(added)
 
-		if (added.a*opacity == 1) return added
+		if (added.a*opacity == 1) return {r: added.r, g: added.g, b: added.b, a: added.a};
 
 		var original_a = added.a
 		added.a = added.a*opacity

@@ -1234,6 +1234,7 @@ var block_format = new ModelFormat({
 	category: 'minecraft',
 	extension: 'json',
 	icon: 'icon-format_bedrock',
+	show_on_start_screen: false,
 	rotate_cubes: true,
 	box_uv: false,
 	optional_box_uv: true,
