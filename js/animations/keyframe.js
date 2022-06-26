@@ -816,7 +816,7 @@ BARS.defineActions(function() {
 			updateKeyframeSelection()
 		}
 	})
-	new Action('change_keyframe_file', {
+	/*new Action('change_keyframe_file', {
 		icon: 'fa-file',
 		category: 'animation',
 		condition: () => (Animator.open && Timeline.selected.length && ['sound', 'particle'].includes(Timeline.selected[0].channel)),
@@ -868,7 +868,7 @@ BARS.defineActions(function() {
 				})
 			}
 		}
-	})
+	})*/
 	new Action('reverse_keyframes', {
 		icon: 'swap_horizontal_circle',
 		category: 'animation',
@@ -1093,6 +1093,41 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'mouseup touchend', off);
 					addEventListeners(document, 'mousemove touchmove', move);
 				},
+				changeKeyframeFile(data_point, keyframe) {
+					if (keyframe.channel == 'particle') {
+						Blockbench.import({
+							resource_id: 'animation_particle',
+							extensions: ['json'],
+							type: 'Bedrock Particle',
+							startpath: keyframe.data_points[0].file
+						}, function(files) {
+
+							let {path} = files[0];
+							Undo.initEdit({keyframes: [keyframe]})
+							data_point.file = path;
+							Animator.loadParticleEmitter(path, files[0].content);
+							Undo.finishEdit('Change keyframe particle file')
+						})	
+					} else {
+						Blockbench.import({
+							resource_id: 'animation_audio',
+							extensions: ['ogg', 'wav', 'mp3'],
+							type: 'Audio File',
+							startpath: keyframe.data_points[0].file
+						}, function(files) {
+
+							let path = isApp
+								? files[0].path
+								: URL.createObjectURL(files[0].browser_file);
+
+							Undo.initEdit({keyframes: [keyframe]})
+							data_point.file = path;
+							if (!data_point.effect) data_point.effect = files[0].name.toLowerCase().replace(/\.[a-z]+$/, '').replace(/[^a-z0-9._]+/g, '');
+							Timeline.visualizeAudioFile(path);
+							Undo.finishEdit('Change keyframe audio file')
+						})
+					}
+				},
 				tl,
 				Condition
 			},
@@ -1122,7 +1157,7 @@ Interface.definePanels(function() {
 								class="in_list_button"
 								v-if="keyframes[0].animator.channels[channel] && keyframes[0].data_points.length < keyframes[0].animator.channels[channel].max_data_points && keyframes[0].interpolation !== 'catmullrom'"
 								v-on:click.stop="addDataPoint()"
-								title="${ tl('panel.keyframe.add_data_point') }"
+								title="${ tl('panel.keyframe.change_effect_file') }"
 							>
 								<i class="material-icons">add</i>
 							</div>
@@ -1185,6 +1220,9 @@ Interface.definePanels(function() {
 											@focus="key == 'locator' && updateLocatorSuggestionList()"
 											@input="updateInput(key, $event.target.value, data_point_i)"
 										/>
+										<div class="tool" v-if="key == 'effect'" title="${tl('action.change_keyframe_file')}" @click="changeKeyframeFile(data_point, keyframes[0])">
+											<i class="material-icons">upload_file</i>
+										</div>
 									</div>
 								</template>
 							</div>

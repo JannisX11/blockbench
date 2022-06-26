@@ -804,7 +804,7 @@ const WinterskyScene = new Wintersky.Scene({
 	}
 });
 WinterskyScene.global_options.scale = 16;
-WinterskyScene.global_options.loop_mode = 'once';
+WinterskyScene.global_options.loop_mode = 'auto';
 WinterskyScene.global_options.parent_mode = 'entity';
 
 Prism.languages.molang['function-name'] = /\b(?!\d)(math\.\w+|button)(?=[\t ]*\()/i;

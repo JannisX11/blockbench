@@ -847,6 +847,12 @@
 		overflow-y: auto;
 		background-color: transparent;
 	}
+	#keyframe_bar_effect .tool {
+		padding-top: 3px;
+		width: 34px;
+		text-align: center;
+		height: 0;
+	}
 
 	.prism-editor-wrapper {
 		caret-color: var(--color-text);

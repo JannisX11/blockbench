@@ -283,6 +283,7 @@ const Timeline = {
 
 				convertTouchEvent(e);
 				Timeline.dragging_playhead = true;
+				if (Timeline.playing) Timeline.pause();
 				
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
@@ -1220,8 +1221,14 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		keybind: new Keybind({key: 36}),
 		click: function () {
-			Timeline.setTime(0)
-			Animator.preview()
+			let was_playing = Timeline.playing;
+			if (Timeline.playing) Timeline.pause();
+			Timeline.setTime(0);
+			if (was_playing) {
+				Timeline.start();
+			} else {
+				Animator.preview();
+			}
 		}
 	})
 
@@ -1231,8 +1238,14 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		keybind: new Keybind({key: 35}),
 		click: function () {
+			let was_playing = Timeline.playing;
+			if (Timeline.playing) Timeline.pause();
 			Timeline.setTime(Animation.selected ? Animation.selected.length : 0)
-			Animator.preview()
+			if (was_playing) {
+				Timeline.start();
+			} else {
+				Animator.preview();
+			}
 		}
 	})
 	new Action('timeline_frame_back', {

@@ -650,7 +650,15 @@ class EffectAnimator extends GeneralAnimator {
 
 							let emitter = particle_effect.emitters[kf.uuid + i];
 							if (!emitter) {
+								let i_here = i;
 								emitter = particle_effect.emitters[kf.uuid + i] = new Wintersky.Emitter(WinterskyScene, particle_effect.config);
+								emitter.on('start', ({params}) => {
+									let kf_now = Animation.selected.animators.effects && Animation.selected.animators.effects.particle.find(kf2 => kf2.uuid == kf.uuid);
+									let data_point_now = kf_now && kf_now.data_points[i_here];
+									if (data_point_now) {
+										emitter.Molang.parse(data_point_now.script, Animator.MolangParser.global_variables);
+									}
+								})
 							}
 
 							var locator = data_point.locator && Locator.all.find(l => l.name == data_point.locator)
