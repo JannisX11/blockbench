@@ -1314,6 +1314,19 @@ Interface.definePanels(function() {
 			} else {
 				this.updateMaterial += 1;
 			}
+
+			getAllGroups().map((child) => {
+				if (child.title == 'Group') {
+					getBoneMaterials().map((mat) => {
+						if (child.name.includes(mat.value) && mat.value.length != 0) {
+							console.log("INCLIDES: ", child.name, " ", mat.value)
+							if (child.isOpen == false) {
+								child.isOpen = true;
+							}
+						}        
+					})
+				}
+			});
 		},
 			renameOutliner
 		}

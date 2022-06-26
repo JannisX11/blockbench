@@ -27,7 +27,6 @@ function createMaterialMenu() {
                     materialDirectoryCount = {}
                     countMaterialGroups();    
                     
-                    
                     // Cleanup empty groups
                     removeUnusedGroups();
 
