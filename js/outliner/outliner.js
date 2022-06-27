@@ -228,6 +228,7 @@ class OutlinerNode {
 	remove() {
 		if (this.preview_controller) this.preview_controller.remove(this);
 		this.constructor.all.remove(this);
+
 		if (OutlinerNode.uuids[this.uuid] == this) delete OutlinerNode.uuids[this.uuid];
 		this.removeFromParent();
 	}
@@ -362,6 +363,19 @@ class OutlinerElement extends OutlinerNode {
 		selected.remove(this);
 		elements.remove(this);
 		this.constructor.selected.remove(this);
+		
+		// Remove Empty Material Group 
+		if (this.hasOwnProperty('parent') && this.title == 'Cube' && this.parent.title == 'Group' && this.parent.hasOwnProperty('children')) {
+			if (this.parent.children.length === 0) {
+				getBoneMaterials().map((mat) => {
+					if (this.parent.name.includes(mat.value) && mat.value.length != 0) {
+						this.parent.remove();
+						return this;
+					}        
+				})
+			}
+		}
+
 		return this;
 	}
 	showContextMenu(event) {
@@ -1308,25 +1322,27 @@ Interface.definePanels(function() {
 					node.isOpen = !node.isOpen;
 				}
 			},
-		forceRerender() {
-			if (this.updateMaterial == undefined || this.updateMaterial == NaN) {
-				this.updateMaterial = 1;
-			} else {
-				this.updateMaterial += 1;
-			}
-
-			getAllGroups().map((child) => {
-				if (child.title == 'Group') {
-					getBoneMaterials().map((mat) => {
-						if (child.name.includes(mat.value) && mat.value.length != 0) {
-							console.log("INCLIDES: ", child.name, " ", mat.value)
-							if (child.isOpen == false) {
-								child.isOpen = true;
-							}
-						}        
-					})
+		
+			// Triggers vue element re-render
+			forceRerender() {
+				if (this.updateMaterial == undefined || this.updateMaterial == NaN) {
+					this.updateMaterial = 1;
+				} else {
+					this.updateMaterial += 1;
 				}
-			});
+
+				// Open all material groups
+				getAllGroups().map((child) => {
+					if (child.title == 'Group') {
+						getBoneMaterials().map((mat) => {
+							if (child.name.includes(mat.value) && mat.value.length != 0) {
+								if (child.isOpen == false) {
+									child.isOpen = true;
+								}
+							}        
+						})
+					}
+				});
 		},
 			renameOutliner
 		}

@@ -11,11 +11,11 @@ function createMaterialMenu() {
         'icon': 'fa-fill-drip',
         'children' : bone_materials.map((material) => { 
             // Set Material Icons
-            materialIcon = 'fa-droplet'
+            materialIcon = 'fa-droplet';
 
             // Set Remove Material icon to X
             if (material.value == null || material.value.length == 0)    {
-                    materialIcon = 'fa-x'
+                    materialIcon = 'fa-x';
             }
 
             return {
@@ -26,9 +26,6 @@ function createMaterialMenu() {
                     // Build object of material counts
                     materialDirectoryCount = {}
                     countMaterialGroups();    
-                    
-                    // Cleanup empty groups
-                    removeUnusedGroups();
 
                     // Get currently selected group
                     let selectedGroup = getCurrentGroup();
@@ -40,20 +37,20 @@ function createMaterialMenu() {
                             if (obj.title == 'Cube') {
                                 obj.material = '';
                                 obj.materialColor = '';
-                                obj.addTo(selectedGroup.parent)
+                                obj.addTo(selectedGroup.parent);
                             }
                         });
 
                         // remove material group
                         if (selectedGroup.parent != 'root') {
                             if (selectedGroup.children.length <= 0) {
-                                selectedGroup.remove()
+                                selectedGroup.remove();
                             }
                         }
                     } else {
                         // Add material count
                         if (materialDirectoryCount[material.value] === NaN || materialDirectoryCount[material.value] === null) {
-                            materialDirectoryCount[material.value] = 0
+                            materialDirectoryCount[material.value] = 0;
                         }
                         materialDirectoryCount[material.value] += 1;
 
@@ -61,7 +58,7 @@ function createMaterialMenu() {
                         let newMaterialGroup = new Group(material.value + materialDirectoryCount[material.value]).init();
 
                         if (selectedGroup.children[0].material == null) {
-                                // Set group parent to group we just pushed to
+                            // Set group parent to group we just pushed to
                             newMaterialGroup.addTo(selectedGroup);
                             
                         } else {
@@ -70,19 +67,19 @@ function createMaterialMenu() {
                         }
 
                         newMaterialGroup.isOpen = true;
-                        newMaterialGroup.materialValue = material.value
+                        newMaterialGroup.materialValue = material.value;
 
                         // Move cubes to new material group
                         Outliner.selected.map((obj) => {
                             if (obj.title == 'Cube') {
                                 obj.material = material.value;
                                 obj.materialColor = material.color;
-                                obj.addTo(newMaterialGroup)
+                                obj.addTo(newMaterialGroup);
 
                                 // remove material group if there are no children
                                 if (selectedGroup.parent != 'root') {
                                     if (selectedGroup.children.length <= 0) {
-                                        selectedGroup.remove()
+                                        selectedGroup.remove();
                                     }
                                 }
                             }
@@ -110,16 +107,6 @@ function countMaterialGroups() {
             })
         }
     });
-}
-
-// Remove groups with zero children
-function removeUnusedGroups() {
-    allGroups = getAllGroups();
-    allGroups.map((group) => {
-        if (group.children.length == 0) {
-            group.remove()
-        }
-    })
 }
 
 // Append single element to group menu

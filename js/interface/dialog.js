@@ -736,6 +736,7 @@ window.Dialog = class Dialog {
 			this.content_vue.$destroy();
 			delete this.content_vue;
 		}
+		
 	}
 	getFormBar(form_id) {
 		var bar = $(this.object).find(`.form_bar_${form_id}`)
