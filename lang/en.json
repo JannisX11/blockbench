@@ -689,7 +689,7 @@
 	"settings.full_grid.desc": "Show pixel-precise block grid",
 	"settings.large_box": "Large Box",
 	"settings.large_box.desc": "Show 3x3x3 block boundaries",
-	"settings.display_grid": "Display Mode",
+	"settings.display_grid": "Display Mode Grid",
 	"settings.display_grid.desc": "Show grid in display mode",
 	"settings.painting_grid": "Painting Grid",
 	"settings.painting_grid.desc": "Show grid on textured cubes in paint mode",

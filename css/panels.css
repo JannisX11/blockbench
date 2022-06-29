@@ -300,10 +300,12 @@
 	}
 	.bar.slider_input_combo input.tool[type="number"] {
 		width: 60px;
-		background-color: var(--color-back);
 		float: none;
 		flex-grow: 0;
 		flex-shrink: 0;
+		text-align: left;
+		padding-left: 8px;
+		padding-bottom: 3px;
 	}
 	.tool.display_scale_invert {
 		position: relative;

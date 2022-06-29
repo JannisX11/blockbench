@@ -504,14 +504,9 @@ Interface.definePanels(() => {
 				color = tinycolor('rgb'+color);
 				colors.safePush(color.toHexString());
 			})
-			var m_gpl = string.match(/\n\d{1,3} \d{1,3} \d{1,3}/g)
+			var m_gpl = string.match(/\n\s*\d{1,3}\s+\d{1,3}\s+\d{1,3}/g)
 			if (m_gpl) m_gpl.forEach(color => {
-				color = tinycolor(`rgb(${color.substr(1).replace(/ /g, ',')})`);
-				colors.safePush(color.toHexString());
-			})
-			var m_gpl = string.match(/\n\d{1,3} \d{1,3} \d{1,3}/g)
-			if (m_gpl) m_gpl.forEach(color => {
-				color = tinycolor(`rgb(${color.substr(1).replace(/ /g, ',')})`);
+				color = tinycolor(`rgb(${color.replace(/^[\n\s]*/, '').replace(/\s+/g, ',')})`);
 				colors.safePush(color.toHexString());
 			})
 		}
