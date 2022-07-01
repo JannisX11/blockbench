@@ -303,6 +303,16 @@ var format = new ModelFormat({
 	icon: 'icon-format_optifine',
 	category: 'minecraft',
 	target: 'Minecraft: Java Edition with OptiFine',
+	format_page: {
+		content: [
+			{type: 'h3', text: tl('mode.start.format.informations')},
+			{text: `* ${tl('format.optifine_entity.info.optifine_required')}
+					* ${tl('format.optifine_entity.info.pivots')}`.replace(/\t+/g, '')
+			},
+			{type: 'h3', text: tl('mode.start.format.resources')},
+			{text: `* [OptiFine Modeling and Animation Tutorial](https://youtu.be/arj2eim42KI)`}
+		]
+	},
 	model_identifier: false,
 	box_uv: true,
 	optional_box_uv: true,

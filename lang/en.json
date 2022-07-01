@@ -88,6 +88,10 @@
 	"mode.start.info": "Info",
 	"mode.start.target": "Target",
 	"mode.start.start": "Start",
+	"mode.start.create_new": "Create New Model",
+	"mode.start.format.informations": "Good to know:",
+	"mode.start.format.resources": "Resources:",
+
 	"mode.start.quick_setup": "Quick Setup",
 	"mode.start.keymap_preference.desc": "If you are new to Blockbench and you are coming from another 3D program, you can select a keymap to make your transition easier. You can change the keymap or individual keybindings later in the settings.",
 	"mode.start.keymap": "Keymap",
@@ -98,20 +102,39 @@
 
 	"format.free": "Generic Model",
 	"format.free.desc": "Model without restrictions. For game engines, rendering etc.",
+	"format.free.info.meshes": "In this format, you can create low poly models using cubes and custom shaped meshes.",
+	"format.free.info.limitation": "Models cannot be loaded into games that need specialized formats, such as Minecraft.",
+
 	"format.skin": "Minecraft Skin",
 	"format.skin.desc": "Edit player and entity skins",
+	"format.skin.info.skin": "This format is designed to create Minecraft skins and entity textures.",
+	"format.skin.info.model": "The model cannot be changed. In order to make changes to the model, first convert to a different format via **File** > **Convert**.",
+
 	"format.java_block": "Java Block/Item",
 	"format.java_block.desc": "Block or item model for Minecraft Java Edition.",
+	"format.java_block.info.rotation": "Rotations are limited to 22.5 degree steps and one axis per element",
+	"format.java_block.info.size": "The model is limited to a size of 3 by 3 by 3 blocks. Display settings can make item models larger though",
+	"format.java_block.info.animation": "This format does not support animations in vanilla Minecraft. If you are creating a mod, you can use GeckoLib to animate models. If not, the only way to animate is to switch out the model using commands or animated textures.",
+	
 	"format.bedrock": "Bedrock Entity",
 	"format.bedrock.desc": "Entity model for Minecraft Bedrock Edition",
+	"format.bedrock.info.textures": "Each model can only have one texture",
+
 	"format.bedrock_block": "Bedrock Block",
 	"format.bedrock_block.desc": "Block model for Minecraft Bedrock Edition",
 	"format.bedrock_old": "Bedrock Legacy Model",
 	"format.bedrock_old.desc": "Pre-1.12 Minecraft Bedrock Edition entity model",
+
 	"format.modded_entity": "Modded Entity",
 	"format.modded_entity.desc": "Entity model for Minecraft mods. Can be exported as .java class files.",
+	"format.modded_entity.info.integer_size": "The size of individual cubes is limited to integers.",
+	"format.modded_entity.info.format": "Models are written in Java code instead of dedicated data structures like all other Blockbench export formats.",
+
 	"format.optifine_entity": "OptiFine Entity",
-	"format.optifine_entity.desc": "Custom entity model for OptiFine",
+	"format.optifine_entity.desc": "Custom entity model for the OptiFine mod",
+	"format.optifine_entity.info.optifine_required": "Users without OptiFine installed won't see the model.",
+	"format.optifine_entity.info.pivots": "Bone pivots are locked, so it is a good idea to leave them untouched.",
+
 	"format.optifine_part": "OptiFine Part",
 	"format.optifine_part.desc": "JPM part for OptiFine entity models",
 

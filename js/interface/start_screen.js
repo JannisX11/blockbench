@@ -266,7 +266,7 @@ onVueSetup(function() {
 						</div>
 
 						<div class="start_screen_right start_screen_format_page" v-if="viewed_format = (selected_format_id && (formats[selected_format_id] || loaders[selected_format_id]) )" :id="'format_page_'+selected_format_id">
-							<div class="tool format_page_close_button" @click="selected_format_id = ''"><i class="material-icons">arrow_back_ios</i></div>
+							<div class="tool format_page_close_button" @click="selected_format_id = ''"><i class="material-icons">clear</i></div>
 
 							<h2 style="margin-bottom: 12px;">{{ viewed_format.name }}</h2>
 
@@ -289,14 +289,19 @@ onVueSetup(function() {
 									<template v-for="item in viewed_format.format_page.content">
 
 										<img v-if="item.type == 'image'" :src="item.source" :width="item.width" :height="item.height">
-										<h2 v-if="item.type == 'h2'" v-html="marked(item.text.replace(/\\n/g, '\\n\\n'))"></h2>
-										<label v-if="item.type == 'label'" v-html="marked(item.text.replace(/\\n/g, '\\n\\n'))"></label>
-										<p v-else v-html="marked((item.text || item).replace(/\\n/g, '\\n\\n'))"></p>
+										<h2 v-else-if="item.type == 'h2'" class="markdown" v-html="marked(item.text.replace(/\\n/g, '\\n\\n'))"></h2>
+										<h3 v-else-if="item.type == 'h3'" class="markdown" v-html="marked(item.text.replace(/\\n/g, '\\n\\n'))"></h3>
+										<h4 v-else-if="item.type == 'h4'" class="markdown" v-html="marked(item.text.replace(/\\n/g, '\\n\\n'))"></h4>
+										<label v-else-if="item.type == 'label'" class="markdown" v-html="marked(item.text.replace(/\\n/g, '\\n\\n'))"></label>
+										<p v-else class="markdown" v-html="marked((item.text || item).replace(/\\n/g, '\\n\\n'))"></p>
 									</template>
 								</content>
 
-								<div class="button_bar">
-									<button style="margin-top: 20px;" @click="confirmSetupScreen(viewed_format)">${tl('mode.start.start')}</button>
+								<div class="button_bar" v-if="!viewed_format.format_page || viewed_format.format_page.button_text !== ''">
+									<button style="margin-top: 20px;" id="create_new_model_button" @click="confirmSetupScreen(viewed_format)">
+										<i class="material-icons">arrow_forward</i>
+										{{ viewed_format.format_page && viewed_format.format_page.button_text ? tl(viewed_format.format_page.button_text) : '${tl('mode.start.create_new')}' }}
+									</button>
 								</div>
 							</template>
 						</div>

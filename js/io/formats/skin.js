@@ -157,6 +157,16 @@ const format = new ModelFormat('skin', {
 	icon: 'icon-player',
 	category: 'minecraft',
 	target: ['Minecraft: Java Edition', 'Minecraft: Bedrock Edition'],
+	format_page: {
+		content: [
+			{type: 'h3', text: tl('mode.start.format.informations')},
+			{text: `* ${tl('format.skin.info.skin')}
+					* ${tl('format.skin.info.model')}`.replace(/\t+/g, '')
+			},
+			{type: 'h3', text: tl('mode.start.format.resources')},
+			{text: `* [Skin Design Tutorial](https://youtu.be/xC81Q3HGraE)`}
+		]
+	},
 	can_convert_to: false,
 	model_identifier: false,
 	bone_rig: true,

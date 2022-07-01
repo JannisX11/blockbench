@@ -878,6 +878,14 @@ var format = new ModelFormat({
 	icon: 'icon-format_java',
 	category: 'minecraft',
 	target: 'Minecraft: Java Edition',
+	format_page: {
+		content: [
+			{type: 'h3', text: tl('mode.start.format.informations')},
+			{text: `* ${tl('format.modded_entity.info.integer_size')}
+					* ${tl('format.modded_entity.info.format')}`.replace(/\t+/g, '')
+			}
+		]
+	},
 	codec,
 	box_uv: true,
 	single_texture: true,

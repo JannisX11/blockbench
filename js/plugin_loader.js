@@ -595,7 +595,7 @@ BARS.defineActions(function() {
 
 							<div class="author">{{ tl('dialog.plugins.author', [plugin.author]) }}</div>
 							<div class="description">{{ plugin.description }}</div>
-							<div v-if="plugin.expanded" class="about" v-html="marked(plugin.about.replace(/\\n/g, '\\n\\n'))"><button>a</button></div>
+							<div v-if="plugin.expanded" class="about markdown" v-html="marked(plugin.about.replace(/\\n/g, '\\n\\n'))"><button>a</button></div>
 							<div v-if="plugin.expanded" v-on:click="plugin.toggleInfo()" style="text-decoration: underline;">${tl('dialog.plugins.show_less')}</div>
 							<ul class="plugin_tag_list">
 								<li v-for="tag in plugin.tags" :class="getTagClass(tag)" :key="tag" @click="search_term = tag;">{{tag}}</li>

@@ -1210,6 +1210,16 @@ var entity_format = new ModelFormat({
 	icon: 'icon-format_bedrock',
 	category: 'minecraft',
 	target: 'Minecraft: Bedrock Edition',
+	format_page: {
+		content: [
+			{type: 'h3', text: tl('mode.start.format.informations')},
+			{text: `* ${tl('format.bedrock.info.textures')}`},
+			{type: 'h3', text: tl('mode.start.format.resources')},
+			{text: `* [Article on modeling and implementation](https://www.blockbench.net/wiki/guides/bedrock-modeling)
+					* [Modeling Tutorial Series](https://www.youtube.com/watch?v=U9FLteWmFzg&list=PLvULVkjBtg2SezfUA8kHcPUGpxIS26uJR)`.replace(/\t+/g, '')
+			}
+		]
+	},
 	rotate_cubes: true,
 	box_uv: true,
 	optional_box_uv: true,

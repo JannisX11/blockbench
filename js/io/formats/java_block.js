@@ -456,6 +456,15 @@ var format = new ModelFormat({
 	icon: 'icon-format_block',
 	category: 'minecraft',
 	target: 'Minecraft: Java Edition',
+	format_page: {
+		content: [
+			{type: 'h3', text: tl('mode.start.format.informations')},
+			{text: `* ${tl('format.java_block.info.rotation')}
+					* ${tl('format.java_block.info.size')}
+					* ${tl('format.java_block.info.animation')}`.replace(/\t+/g, '')
+			}
+		]
+	},
 	render_sides() {
 		if (Modes.display && ['thirdperson_righthand', 'thirdperson_lefthand', 'head'].includes(display_slot)) {
 			return 'double';
