@@ -85,6 +85,7 @@
 	"mode.start.new": "New",
 	"mode.start.recent": "Recent",
 	"mode.start.no_recents": "No recently opened models",
+	"mode.start.recent.favorite": "Mark as Favorite",
 	"mode.start.info": "Info",
 	"mode.start.target": "Target",
 	"mode.start.start": "Start",

@@ -178,6 +178,36 @@ onVueSetup(function() {
 				StateMemory.start_screen_list_type = type;
 				StateMemory.save('start_screen_list_type')
 			},
+			recentProjectContextMenu(recent_project, event) {
+				let menu = new Menu('recent_project', [
+					{
+						id: 'favorite',
+						name: 'mode.start.recent.favorite',
+						icon: recent_project.favorite ? 'fas.fa-star' : 'far.fa-star',
+						click: () => {
+							this.toggleProjectFavorite(recent_project);
+						}
+					},
+					{
+						id: 'remove',
+						name: 'generic.remove',
+						icon: 'clear',
+						click: () => {
+							recent_projects.remove(recent_project);
+							updateRecentProjects();
+						}
+					}
+				])
+				menu.show(event);
+			},
+			toggleProjectFavorite(recent_project) {
+				recent_project.favorite = !recent_project.favorite;
+				if (recent_project.favorite) {
+					recent_projects.remove(recent_project);
+					recent_projects.splice(0, 0, recent_project);
+				}
+				updateRecentProjects();
+			},
 			getFormatCategories() {
 				let categories = {};
 				function add(key, format) {
@@ -319,18 +349,34 @@ onVueSetup(function() {
 							</div>
 							<div v-if="redact_names">{{ '['+tl('generic.redacted')+']' }}</div>
 							<ul v-else-if="list_type == 'list'">
-								<li v-on:click="openProject(project, $event)" v-for="project in projects" :key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project">
+								<li v-for="project in projects" :key="project.path"
+									v-bind:title="redact_names ? '' : project.path"
+									class="recent_project"
+									@click="openProject(project, $event)"
+									@contextmenu="recentProjectContextMenu(project, $event)"
+								>
+									<div class="recent_favorite_button" :class="{favorite_enabled: project.favorite}" @click.stop="toggleProjectFavorite(project)" title="${tl('mode.start.recent.favorite')}">
+										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')">
+									</div>
 									<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
 									<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
 									<span class="recent_project_date">{{ getDate(project) }}</span>
 								</li>
 								<div v-if="recent.length == 0">{{ tl('mode.start.no_recents') }}</div>
 							</ul>
-							<ul :class="{redact: redact_names}" style="display: grid;" v-else>
-								<li v-on:click="openProject(project, $event)" v-for="project in projects" :key="project.path" v-bind:title="redact_names ? '' : project.path" class="recent_project thumbnail">
+							<ul :class="{redact: redact_names, recent_list_grid: true}" v-else>
+								<li v-for="project in projects" :key="project.path"
+									v-bind:title="redact_names ? '' : project.path"
+									class="recent_project thumbnail"
+									@click="openProject(project, $event)"
+									@contextmenu="recentProjectContextMenu(project, $event)"
+								>
 									<img class="thumbnail_image" v-if="getThumbnail(project.path)" :src="getThumbnail(project.path)" />
 									<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
 									<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
+									<div class="recent_favorite_button" :class="{favorite_enabled: project.favorite}" @click.stop="toggleProjectFavorite(project)" title="${tl('mode.start.recent.favorite')}">
+										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')">
+									</div>
 								</li>
 							</ul>
 							<div class="button_bar">

@@ -24,8 +24,12 @@
 		display: flex;
 		cursor: pointer;
 	}
+	#start_screen .recent_project:hover {
+		color: var(--color-light);
+	}
 	#start_screen .recent_project .icon_wrapper {
 		flex-shrink: 0;
+		margin-top: 1px;
 	}
 	#start_screen .recent_project_name {
 		font-size: 1.1em;
@@ -47,6 +51,37 @@
 		height: 26px;
 		margin-left: -20px;
 		background: linear-gradient(90deg, transparent, var(--color-ui));
+	}
+	#start_screen .recent_favorite_button {
+		color: var(--color-subtle_text);
+		visibility: hidden;
+		--color-active-favorite: #f9c300;
+	}
+	#start_screen .recent_project:hover .recent_favorite_button {
+		color: var(--color-subtle_text);
+		visibility: visible;
+	}
+	#start_screen .recent_project.thumbnail .recent_favorite_button {
+		color: var(--color-accent_text);
+		position: absolute;
+		top: 0;
+		right: 0;
+		padding: 2px 4px;
+	}
+	#start_screen .recent_project .recent_favorite_button:hover {
+		color: var(--color-light);
+		visibility: visible;
+	}
+	#start_screen .recent_favorite_button.favorite_enabled {
+		visibility: visible;
+		color: #ffda24;
+	}
+	#start_screen div.start_screen_right .recent_favorite_button > i {
+		font-size: 16px;
+		vertical-align: bottom;
+	}
+	#start_screen .recent_favorite_button.favorite_enabled > i {
+		color: var(--color-active-favorite);
 	}
 
 	#start_screen_view_menu {
@@ -146,6 +181,11 @@
 		overflow-y: auto;
 		grid-template-columns: repeat(auto-fit, minmax(170px ,1fr));
 		grid-gap: 5px;
+		margin-left: -10px;
+	}
+	div.start_screen_right > ul.recent_list_grid {
+		display: grid;
+		margin-left: 0;
 	}
 	#start_screen div.start_screen_left {
 		max-width: 100%;
