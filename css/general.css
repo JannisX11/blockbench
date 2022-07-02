@@ -334,8 +334,8 @@
 		color: var(--color-text);
 	}
 	.tool i {
-		display: inline-block;
-		margin-top: 4px;
+		display: block;
+		margin: 4px auto;
 	}
 	.tool:active .icon {
 		padding-top: 1px;

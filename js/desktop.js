@@ -139,7 +139,7 @@ function addRecentProject(data) {
 		name: data.name,
 		path: data.path,
 		icon: data.icon,
-		favorite: former_entry.favorite ? former_entry.favorite : false,
+		favorite: former_entry ? former_entry.favorite : false,
 		day: new Date().dayOfYear()
 	}
 	recent_projects.splice(0, 0, project)
