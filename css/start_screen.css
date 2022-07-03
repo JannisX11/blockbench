@@ -55,6 +55,7 @@
 	#start_screen .recent_favorite_button {
 		color: var(--color-subtle_text);
 		visibility: hidden;
+		cursor: pointer;
 		--color-active-favorite: #f9c300;
 	}
 	#start_screen .recent_project:hover .recent_favorite_button {
@@ -323,8 +324,9 @@
 		padding-left: 24px;
 	}
 	#start_files li.format_entry span.icon_wrapper {
-		height: 22px;
+		height: 30px;
 		width: 32px;
+		display: flex;
 	}
 	#start_files li.format_entry > * {
 		cursor: inherit;

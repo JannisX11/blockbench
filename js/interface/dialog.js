@@ -75,43 +75,14 @@ function buildForm(dialog) {
 
 
 				case 'select':
-					function getNameFor(key) {
-						let val = data.options[key];
-						if (val) {
-							return tl(val.name || val);
-						} else {
-							return '';
+					let select_input = new Interface.CustomElements.SelectInput(form_id, {
+						options: data.options,
+						value: data.value || data.default,
+						onChange() {
+							dialog.updateFormValues();
 						}
-					}
-					let value = data.value || data.default || Object.keys(data.options)[0];
-					let select = Interface.createElement('bb-select', {id: form_id, class: 'half', value: value}, getNameFor(value));
-					function setKey(key) {
-						value = key;
-						select.setAttribute('value', key);
-						select.textContent = getNameFor(key);
-						dialog.updateFormValues();
-					}
-					select.addEventListener('click', function(event) {
-						if (Menu.closed_in_this_click == form_id) return this;
-						let items = [];
-						for (let key in data.options) {
-							let val = data.options[key];
-							if (val) {
-								items.push({
-									name: getNameFor(key),
-									icon: val.icon || ((value == key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
-									condition: val.condition,
-									click: (e) => {
-										setKey(key);
-									}
-								})
-							}
-						}
-						let menu = new Menu(form_id, items, {searchable: items.length > 16});
-						menu.node.style['min-width'] = select.clientWidth+'px';
-						menu.open(select);
-					})
-					bar.append(select)
+					});
+					bar.append(select_input.node)
 					break;
 
 

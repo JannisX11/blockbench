@@ -273,6 +273,15 @@
 	.markdown ul {
 		padding-left: 24px;
 	}
+	.markdown ol {
+		padding-left: 24px;
+	}
+	.markdown ol li {
+		list-style: auto;
+	}
+	.markdown a {
+		cursor: pointer;
+	}
 
 /*Actions*/
 	.toolbar {
